@@ -21,8 +21,8 @@ frontend_sha: "83b8b72744d4afaaedb3d2af9dd0b83fb272f9d6 (sukmagpV2)"
 backend_sha: "063d38bc306bb6b46bdf088513fa6cdcc80399d8 (sukmagp)"
 stack: "Next.js App Router, JavaScript/JSX, Redux, Axios, base component Quilvian"
 ui_authority: "RJ-E2E-FE-001, RJ-E2E-FE-002 approved; RJ-E2E-FE-003, RJ-E2E-FE-004 DEV_DISCRETION"
-implementation_authority: "NOT_GRANTED — diberikan per task"
-builder_execution: "NOT_AUTHORIZED — seluruh task"
+implementation_authority: "GRANTED — FE-RJE-001, FE-RJE-002, FE-RJE-003 (Sukma Giri, 2026-09-30)"
+builder_execution: "EXECUTED — FE-RJE-001, FE-RJE-002, FE-RJE-003 (2026-09-30)"
 backend_roadmap: roadmap/e2e-backend-roadmap.md
 traceability: roadmap/e2e-requirement-traceability.md
 ```
@@ -43,11 +43,11 @@ traceability: roadmap/e2e-requirement-traceability.md
 ## Grafik Urutan Dependency
 
 ```text
-BE-RJE-014 [BE] ─> FE-RJE-001
+BE-RJE-014 ✅ [BE] ─> FE-RJE-001 ✅
 
-BE-RJE-012 [BE] ─> FE-RJE-003
+BE-RJE-012 ✅ [BE] ─> FE-RJE-003 ✅
 
-BE-RJE-013 [BE] ─> FE-RJE-002
+BE-RJE-013 ✅ [BE] ─> FE-RJE-002 ✅
 ```
 
 `[BE]` = task backend pada `e2e-backend-roadmap.md`, cermin baca-saja; tandanya disalin dari sana.
@@ -56,9 +56,9 @@ Jumlah pasangan prasyarat → task: **3**, sama dengan isi kolom `Dependency`.
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | `BE-RJE-014` | `FE-RJE-001` — menunggu `BE-RJE-014` selesai |
-| 1 | `BE-RJE-012` | `FE-RJE-003` — menunggu `BE-RJE-012` selesai |
-| — | ⛔ menunggu approval `RJ-E2E-CONTRACT-001@1.0.1` lewat `BE-RJE-013` | `FE-RJE-002` |
+| 1 | `BE-RJE-014` ✅ | `FE-RJE-001` ✅ — menunggu `BE-RJE-014` selesai |
+| 1 | `BE-RJE-012` ✅ | `FE-RJE-003` ✅ — menunggu `BE-RJE-012` selesai |
+| — | ⛔ menunggu approval `RJ-E2E-CONTRACT-001@1.0.1` lewat `BE-RJE-013` | `FE-RJE-002` ✅ |
 
 Ketiga task tidak saling menunggu dan boleh dikerjakan paralel begitu backend pasangannya selesai.
 Kerangka layar boleh disiapkan lebih awal memakai kontrak `1.0.0` yang sudah terkunci, tetapi task
@@ -68,9 +68,9 @@ baru boleh dinyatakan selesai setelah divalidasi terhadap backend sungguhan.
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-RJE-001` | Dokter melihat tab Ringkasan Billing kunjungan yang sedang ditangani | `FR-RJE-061`; `RJ-E2E-DEC-008`; `RJ-E2E-FE-001`, `002`, `003` | `1.0.0` | `patient-billing-summary.service.js`, `nursing-billing-section.jsx`, base component, `usePermission` | Service, tab, konstanta tab, render di workspace | `BE-RJE-014` | Kartu | Pola Bank Darah FE + `UAT-17`, `18`, `24` | Kebocoran harga per item / Security | Kartu |
-| `FE-RJE-002` | Dokter melihat masalah penyerahan tagihan setelah Selesai Konsultasi | `FR-RJE-062`; `RJ-E2E-FE-004` | `1.0.1` (draft) | Alur Selesai Konsultasi yang ada | Membaca `BillingHandoffIssues` | `BE-RJE-013` | Kartu | Pola Bank Darah FE + `UAT-19` | Konsultasi tampak gagal padahal sukses / Clinical | Kartu |
-| `FE-RJE-003` | Petugas Billing menangani antrean rekonsiliasi dari menu | `FR-RJE-053`; `RJ-E2E-DEC-009` | `1.0.0` | `DataTable`, `DataFilter`, `FilterSelect`, `FilterDatePicker`, `StatusBadge`, `AccessDeniedGate`, `ToastStack` | Route, view, service, butir menu | `BE-RJE-012` | Kartu | Pola Bank Darah FE + `UAT-15`, `16` | Klik ganda / Billing | Kartu |
+| `FE-RJE-001` ✅ | Dokter melihat tab Ringkasan Billing kunjungan yang sedang ditangani | `FR-RJE-061`; `RJ-E2E-DEC-008`; `RJ-E2E-FE-001`, `002`, `003` | `1.0.0` | `patient-billing-summary.service.js`, `nursing-billing-section.jsx`, base component, `usePermission` | Service, tab, konstanta tab, render di workspace | `BE-RJE-014` | Kartu | Pola Bank Darah FE + `UAT-17`, `18`, `24` | Kebocoran harga per item / Security | Kartu |
+| `FE-RJE-002` ✅ | Dokter melihat masalah penyerahan tagihan setelah Selesai Konsultasi | `FR-RJE-062`; `RJ-E2E-FE-004` | `1.0.1` (draft) | Alur Selesai Konsultasi yang ada | Membaca `BillingHandoffIssues` | `BE-RJE-013` | Kartu | Pola Bank Darah FE + `UAT-19` | Konsultasi tampak gagal padahal sukses / Clinical | Kartu |
+| `FE-RJE-003` ✅ | Petugas Billing menangani antrean rekonsiliasi dari menu | `FR-RJE-053`; `RJ-E2E-DEC-009` | `1.0.0` | `DataTable`, `DataFilter`, `FilterSelect`, `FilterDatePicker`, `StatusBadge`, `AccessDeniedGate`, `ToastStack` | Route, view, service, butir menu | `BE-RJE-012` | Kartu | Pola Bank Darah FE + `UAT-15`, `16` | Klik ganda / Billing | Kartu |
 
 ## Aturan yang berlaku untuk setiap task
 
@@ -90,31 +90,33 @@ baru boleh dinyatakan selesai setelah divalidasi terhadap backend sungguhan.
 
 ## Kartu task
 
-### `FE-RJE-001` — Tab Ringkasan Billing
+### ✅ `FE-RJE-001` — Tab Ringkasan Billing
 
 | Field | Isi |
 | --- | --- |
+| **Status** | ✅ `COMPLETE` 2026-09-30 — 7/7 AC terbukti. `npm run lint:errors` `PASS`; `npm run build` `PASS`; `npm run test:unit` 2056/2063 (7 kegagalan lama tidak terkait, test baru 6/6 `PASS`); Playwright Chromium terhadap backend sungguhan **7 passed**. [laporan](../task/report/frontend/FE-RJE-001.md) |
 | **Outcome** | dr. B membuka tab dan melihat status tagihan, nomor invoice, total, bagian penjamin dan pasien, serta daftar pelayanan tanpa harga |
 | **Cakupan** | `encounter-billing-summary.service.js`; `doctor-billing-summary-tab.jsx`; entri baru `DOCTOR_QUEUE_TABS`; render di `doctor-queue-view.jsx`; tab hanya tampil bila `usePermission("EncounterBillingSummary", "Read")`; tombol *Buka Detail Billing* hanya bila `usePermission("BillingInvoice", "Read")`, menuju detail invoice (arti `[slug]` pada `…/invoices/[slug]/detail-billing` dipastikan saat preflight) |
 | **Acceptance criteria** | 1. `NO_INVOICE` → kalimat "Belum ada tagihan untuk kunjungan ini…", bukan galat (`UAT-17`). 2. Angka tampil apa adanya dari API, tanpa dijumlah ulang; sama dengan `calculation-preview` (`UAT-24`). 3. Daftar pelayanan tanpa kolom harga. 4. Pengguna tanpa `BillingInvoice : Read` tidak melihat tombol detail (`UAT-18`). 5. Muat ulang mempertahankan data lama yang sah selama memuat. 6. Gagal → pesan + Coba lagi. 7. Teks `<script>` tampil sebagai teks |
 | **Verifikasi** | Pola Bank Darah FE; runtime terhadap kunjungan uji dengan dan tanpa invoice |
 | **DoD** | AC terbukti; laporan |
 
-### `FE-RJE-002` — Pemberitahuan penyerahan tagihan
+### ✅ `FE-RJE-002` — Pemberitahuan penyerahan tagihan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Kontrak `1.0.1` `approved` (`RJ-E2E-DEC-017`); menunggu `BE-RJE-013` selesai |
+| **Status** | ✅ `COMPLETE` 2026-09-30 — 3/3 AC terbukti. `npm run lint:errors` `PASS`; `npm run build` `PASS`; `npm run test:unit` 2059/2066 (7 kegagalan lama tidak terkait, test baru 3/3 `PASS`); Playwright Chromium terhadap backend sungguhan **9 passed** (termasuk regresi `FE-RJE-001`). Prasyarat kontrak `1.0.1` `approved` (`RJ-E2E-DEC-017`) dan `BE-RJE-013` ✅. [laporan](../task/report/frontend/FE-RJE-002.md) |
 | **Outcome** | Dokter tahu bila penyerahan tagihan bermasalah, tanpa mengira konsultasinya gagal |
 | **Cakupan** | Membaca `BillingHandoffIssues` dari respons tombol Selesai. Bila kelak `RJ-DOC-FE-001` memindahkan tombol ke `PATCH /doctor-consultations/{id}/complete`, field yang sama dibaca dari respons itu (sudah ada di `1.0.0`) |
 | **Acceptance criteria** | 1. Daftar tidak kosong → pemberitahuan tampil; status konsultasi tetap selesai (`UAT-19`). 2. Daftar kosong → tidak ada pemberitahuan. 3. Bentuk pemberitahuan `DEV_DISCRETION` |
 | **Verifikasi** | Pola Bank Darah FE; runtime dengan Billing dibuat gagal sementara |
 | **DoD** | AC terbukti; laporan |
 
-### `FE-RJE-003` — Layar Antrean Rekonsiliasi Tagihan Klinis
+### ✅ `FE-RJE-003` — Layar Antrean Rekonsiliasi Tagihan Klinis
 
 | Field | Isi |
 | --- | --- |
+| **Status** | ✅ `COMPLETE` 2026-09-30 — 8/8 AC terbukti. `npm run lint:errors` `PASS`; `npm run build` `PASS`; `npm run test:unit` 2070/2077 (7 kegagalan lama tidak terkait, test baru 11/11 `PASS`); Playwright Chromium terhadap backend sungguhan **8/8 skenario passed** (per kelompok; R3/R5 mengonsumsi data uji). [laporan](../task/report/frontend/FE-RJE-003.md) |
 | **Outcome** | Petugas Billing membuka *Rekonsiliasi Tagihan Klinis* dari menu, menyaring, mengirim ulang, dan menyelesaikan item |
 | **Cakupan** | `src/app/health-services/billing-management/billing/charge-reconciliations/page.jsx` + view; `charge-reconciliation.service.js`; butir menu di grup *Billing dan Kasir* (`menu-items.jsx`); aksi dijaga `BillingChargeReconciliation : Update` |
 | **Acceptance criteria** | 1. Butir menu membuka layar (keterjangkauan). 2. Saringan status, jenis pelayanan, sebab, tanggal, pencarian ≤ 100 karakter. 3. Kirim Ulang item `TARIFF_NOT_FOUND` setelah tarif diisi → hilang dari antrean `ReconciliationRequired` (`UAT-15`). 4. Selesaikan tanpa alasan → pesan di bawah isian (`UAT-16`). 5. `409` → "Item sedang diproses sistem…", muat ulang tanpa kirim otomatis. 6. Tombol nonaktif selama permintaan berjalan. 7. Tanpa `Update` → daftar tanpa tombol aksi; tanpa `Read` → `AccessDeniedGate`. 8. Keempat keadaan memuat, kosong, gagal, berisi tersedia |
