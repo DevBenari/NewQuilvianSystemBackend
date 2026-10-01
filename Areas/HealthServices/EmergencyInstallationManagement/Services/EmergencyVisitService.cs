@@ -25,15 +25,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private readonly ApplicationDbContext _dbContext;
         private readonly EmergencyDocumentNumberService _documentNumberService;
         private readonly ClinicalDocumentIntegrityService _integrityService;
+        private readonly EmergencyDispositionService _dispositionService;
 
         public EmergencyVisitService(
             ApplicationDbContext dbContext,
             EmergencyDocumentNumberService documentNumberService,
-            ClinicalDocumentIntegrityService integrityService)
+            ClinicalDocumentIntegrityService integrityService,
+            EmergencyDispositionService dispositionService)
         {
             _dbContext = dbContext;
             _documentNumberService = documentNumberService;
             _integrityService = integrityService;
+            _dispositionService = dispositionService;
         }
 
         /// <summary>
@@ -633,6 +636,64 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             encounter.UpdateBy = actorUserId;
 
             return true;
+        }
+
+        public sealed record HasilPenutupanSusulan(
+            bool Ditutup,
+            Guid? DispositionId,
+            string? AlasanPenahan,
+            bool EncounterDitutup)
+        {
+            public static HasilPenutupanSusulan Dilewati { get; } = new(false, null, null, false);
+        }
+
+        public async Task<HasilPenutupanSusulan> TryCloseAfterDispositionAsync(
+            Guid emergencyVisitId,
+            Guid actorUserId,
+            DateTime now,
+            Guid? dispositionPemicuId = null,
+            CancellationToken cancellationToken = default)
+        {
+            var visit = await _dbContext.Set<EmgVisit>()
+                .FirstOrDefaultAsync(x => x.Id == emergencyVisitId && !x.IsDelete, cancellationToken);
+
+            if (visit == null || !EpisodeMasihBerjalan(visit.VisitStatus))
+                return HasilPenutupanSusulan.Dilewati;
+
+            var dispositionId = dispositionPemicuId ?? await _dbContext.Set<EmgDisposition>()
+                .AsNoTracking()
+                .Where(x => x.EmergencyVisitId == visit.Id
+                            && !x.IsDelete
+                            && x.DispositionStatus == EmergencyDispositionStatus.Executed)
+                .OrderByDescending(x => x.ExecutedAt)
+                .ThenByDescending(x => x.CreateDateTime)
+                .Select(x => (Guid?)x.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (!dispositionId.HasValue)
+                return HasilPenutupanSusulan.Dilewati;
+
+            var alasanPenahan = await _dispositionService.ValidateVisitClosureAsync(visit, cancellationToken);
+
+            if (alasanPenahan != null)
+                return new HasilPenutupanSusulan(false, dispositionId, alasanPenahan, false);
+
+            if (!TryApplyVisitStatus(visit, EmergencyVisitStatus.Completed, actorUserId, now, out _))
+                return HasilPenutupanSusulan.Dilewati;
+
+            visit.VisitCompletedAt = now;
+            visit.ClosedByDispositionId = dispositionId;
+            visit.UpdateDateTime = now;
+            visit.UpdateBy = actorUserId;
+
+            var encounterDitutup = await ApplyEncounterClosureAsync(
+                visit,
+                EmergencyVisitStatus.Completed,
+                actorUserId,
+                now,
+                cancellationToken: cancellationToken);
+
+            return new HasilPenutupanSusulan(true, dispositionId, null, encounterDitutup);
         }
 
         public async Task<Hasil<EmgVisit>> StartVisitAsync(

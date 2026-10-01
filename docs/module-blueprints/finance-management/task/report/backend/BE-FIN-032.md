@@ -109,3 +109,68 @@
   (Perubahan lain pada working tree — `BE-FIN-027`..`031` dan seluruh dokumen blueprint AMENDMENT REVISI 4/5 — sudah ada sebelum task ini dimulai; bukan hasil task ini.)
 
 - NEXT RECOMMENDED STEP: **Pengguna menjalankan `dotnet build`** mencakup `BE-FIN-028`..`032` sekaligus. Sesudah build sukses dan migration `BE-FIN-031` diterapkan: (1) jalankan aplikasi sekali agar `FinanceApprovalRoleSeeder` membuat dua role, (2) tugaskan minimal satu pengguna ke `Manajer Finance` lewat layar manajemen pengguna yang sudah ada, baru kemudian (3) `BE-FIN-033` (Tukar Faktur, bergantung `BE-FIN-031`) dapat dikerjakan paralel dengan penyambungan `FinancePaymentService` ke `FinanceApprovalAuthorizationService` (KNOWN ISSUE #3, belum ada task ID-nya di roadmap — direkomendasikan ditambahkan).
+
+---
+
+## AMENDMENT — Penyelesaian `GET /` berpaging + riwayat GR pada detail PO (30 September 2026)
+
+Dipicu temuan `FE-FIN-008` (task frontend, FRONTEND MODE, dilarang mengubah backend sendiri —
+dilaporkan lewat `Langkah berikutnya` laporan itu, bukan diperbaiki diam-diam di sana). Kontrak
+`FIN-API-1.1` §B.1-B.2 SUDAH mendaftarkan bentuk `GET /` (`PurchaseOrderQuery`/`GoodsReceiptQuery`
+→ `PagedResult<T>`, status kontrak `locked` 25 September 2026) sejak sebelum `BE-FIN-032` ditulis
+— gap KNOWN ISSUE #6 di atas murni implementasi yang tertunda, bukan kapabilitas baru yang belum
+disetujui, sehingga diselesaikan langsung lewat `build-module-backend` tanpa mengulang
+grill-me/design-business-module.
+
+- FILES CHANGED (tambahan, di atas FILES CHANGED asli):
+  - `Areas/Corporate/FinanceManagement/Purchasing/Dtos/FinancePurchaseOrderDtos.cs` — tambah `PurchaseOrderQuery` (filter `SupplierId`/`Status`/`DateFrom`/`DateTo` atas `RequestedAt`, persis tiga filter yang disebut `api-contract.md`), `PurchaseOrderGoodsReceiptSummaryResponse`, dan field `GoodsReceipts` pada `PurchaseOrderDetailResponse` (**delta kontrak**: `api-contract.md` §B.1 tidak mendaftarkan field ini pada `PurchaseOrderDetailResponse` — ditambahkan karena tanpanya GR yang sudah tercatat pada sesi sebelumnya tidak pernah bisa ditampilkan lagi lewat `GET /{id}`, persis Gap #2 yang dilaporkan `FE-FIN-008`)
+  - `Areas/Corporate/FinanceManagement/Purchasing/Dtos/FinanceGoodsReceiptDtos.cs` — tambah `GoodsReceiptQuery` (`PurchaseOrderId`/`SupplierId`/`Status`)
+  - `Areas/Corporate/FinanceManagement/Purchasing/Dtos/FinanceInvoiceExchangeDtos.cs` — tambah `InvoiceExchangeQuery` (`SupplierId`/`Status`) — **catatan: bagian ini adalah delta milik `BE-FIN-033`, dilaporkan sekaligus di sini karena satu commit kerja, lihat AMENDMENT senada pada `BE-FIN-033.md`**
+  - `Areas/Corporate/FinanceManagement/Purchasing/Services/FinancePurchaseOrderService.cs` — tambah `GetPagedAsync(PurchaseOrderQuery, ...)` (pola query/paging persis `FinanceSupplierReturnService.GetDepositsPagedAsync`, referensi terdekat pada submodul yang sama); `GetByIdAsync` diperluas `.Include(x => x.GoodsReceipts.Where(gr => !gr.IsDelete))` — filtered include, navigasi `FinPurchaseOrder.GoodsReceipts` sudah ada sejak `BE-FIN-029`, nol perubahan model
+  - `Areas/Corporate/FinanceManagement/Purchasing/Services/FinanceGoodsReceiptService.cs` — tambah `GetPagedAsync(GoodsReceiptQuery, ...)`; filter `SupplierId` lewat join `x.PurchaseOrder!.SupplierId` (`FinGoodsReceipt` sendiri tidak punya kolom `SupplierId`)
+  - `Areas/Corporate/FinanceManagement/Purchasing/Controllers/FinancePurchaseOrdersController.cs` — tambah `[HttpGet] GetList`, `[AccessPermission("FinancePurchaseOrder", "Read")]` (sama persis dengan `GetById`, konsisten pola `FinanceSupplierReturnsController.GetDeposits` yang juga memakai action `Read` yang sama untuk dua endpoint GET); `MapDetail` diperluas memetakan `GoodsReceipts`
+  - `Areas/Corporate/FinanceManagement/Purchasing/Controllers/FinanceGoodsReceiptsController.cs` — tambah `[HttpGet] GetList`, `[AccessPermission("FinanceGoodsReceipt", "Read")]`
+
+- OTORISASI: `GET /` pada kedua controller memakai `[AccessPermission]` yang SAMA dengan `GetById` yang sudah ada (`FinancePurchaseOrder : Read`, `FinanceGoodsReceipt : Read`) — dikonfirmasi sudah terdaftar persis di `permission-audit-matrix.md` baris `GET /purchasing/purchase-orders` dan `GET /purchasing/goods-receipts` (bukan gap kontrak baru, hanya belum diimplementasikan). Nol resource/action baru diciptakan.
+
+- VALIDATION (pembaruan):
+
+  | Command/check | Hasil | Klasifikasi | Bukti/catatan |
+  |---|---|---|---|
+  | `dotnet build QuilvianSystemBackend.csproj` | **PASS** — `0 Error(s)`, `233 Warning(s)` (seluruhnya XML-doc pre-existing di file lain, nol menyentuh file yang diubah task ini) | BUILD-VERIFIED | Dijalankan langsung task ini (bukan menunggu pengguna) — pertama kali seluruh solution, termasuk `BE-FIN-028`..`032`, terverifikasi compiler |
+  | `GET /` PO — filter `SupplierId`/`Status`/`DateFrom`/`DateTo` persis kontrak | `GetPagedAsync` menerapkan ketiganya; nol filter tambahan yang tidak diminta kontrak | PASS (review) | Baca ulang `GetPagedAsync` |
+  | `GET /` GR — filter `PurchaseOrderId`/`SupplierId`/`Status` | `SupplierId` lewat join `PurchaseOrder.SupplierId` (kolom tidak ada langsung di `FinGoodsReceipt`) | PASS (review) | Baca ulang `GetPagedAsync` + `FinGoodsReceipt.cs` |
+  | `PagedResult<T>` shape (`Items`/`PageNumber`/`PageSize`/`TotalData`/`TotalPage`) | Identik pola `FinanceSupplierReturnService.GetDepositsPagedAsync`/`SupplierReturnsController.GetDeposits` | PASS (review) | Perbandingan langsung kedua implementasi |
+  | Riwayat GR pada `GET /{id}` PO | `PurchaseOrderDetailResponse.GoodsReceipts` terisi dari `Include` terfilter (`!IsDelete`), diurutkan `ReceivedDate` menurun; GR yang sudah `CANCELLED` tetap tampil (riwayat, bukan hanya yang aktif) — keputusan sengaja demi transparansi riwayat penuh, bukan kontrak eksplisit | PASS (review, DESAIN) | Baca ulang `GetByIdAsync` + `MapDetail` |
+  | Permission `GET /` = permission `GetById` yang sudah ada | Dicocokkan persis `permission-audit-matrix.md` baris `GET /purchasing/purchase-orders` dan `GET /purchasing/goods-receipts` | PASS (review) | Perbandingan manual |
+  | Pencarian nama method/DTO baru di seluruh repository | Masing-masing tepat satu definisi | PASS (review) | `grep -rn` pasca-tulis |
+
+  **Klasifikasi keseluruhan pembaruan ini: BUILD-VERIFIED + REVIEW. MANUAL TEST tetap NOT FEASIBLE** (butuh migration `BE-FIN-031` diterapkan dan data PO/GR nyata untuk pagination end-to-end).
+
+- KNOWN ISSUES (pembaruan status, bukan daftar baru):
+  1. ~~`dotnet build` belum dijalankan~~ — **RESOLVED** pembaruan ini: `dotnet build` PASS, `0` error.
+  2. Penugasan staf ke role `Supervisor Finance`/`Manajer Finance` — **tetap belum dilakukan**, di luar cakupan tugas ini (aksi administratif terpisah).
+  3. `FinancePaymentService.ApproveAsync` belum disambungkan ke `FinanceApprovalAuthorizationService` — **tetap belum dikerjakan**, di luar cakupan tugas ini.
+  4. `FinPurchaseOrder` masih tidak punya kolom `RejectionReason` — **tetap belum dikerjakan**, butuh migration (otorisasi terpisah), di luar cakupan tugas ini (nol perubahan model dilakukan pada pembaruan ini).
+  5. `PONumber`/`GRNumber` pola GUID-suffix — tidak berubah, di luar cakupan tugas ini.
+  6. ~~`GET /` (daftar berpaging) tidak dibangun~~ — **RESOLVED** pembaruan ini.
+  7. Aksi "Tutup PO" (`FULLY_RECEIVED → CLOSED`) — tidak berubah, tetap menyusul `BE-FIN-035`.
+  8. **BARU**: `PurchaseOrderDetailResponse.GoodsReceipts` adalah ringkasan (tidak menyertakan baris `Items` tiap GR) — cukup untuk kebutuhan `FE-FIN-008` (riwayat, bukan rincian ulang); rincian penuh tetap lewat `GET /goods-receipts/{id}` yang sudah ada.
+
+- GIT STATUS (pembaruan ini, di atas GIT STATUS asli — hasil `git status --short` gabungan seluruh task Purchasing yang masih dalam satu working tree, bukan hanya task ini):
+
+  ```text
+  M  Areas/Corporate/FinanceManagement/Purchasing/Controllers/FinanceGoodsReceiptsController.cs
+  M  Areas/Corporate/FinanceManagement/Purchasing/Controllers/FinanceInvoiceExchangesController.cs
+  M  Areas/Corporate/FinanceManagement/Purchasing/Controllers/FinancePurchaseOrdersController.cs
+  M  Areas/Corporate/FinanceManagement/Purchasing/Dtos/FinanceGoodsReceiptDtos.cs
+  M  Areas/Corporate/FinanceManagement/Purchasing/Dtos/FinanceInvoiceExchangeDtos.cs
+  M  Areas/Corporate/FinanceManagement/Purchasing/Dtos/FinancePurchaseOrderDtos.cs
+  M  Areas/Corporate/FinanceManagement/Purchasing/Services/FinanceGoodsReceiptService.cs
+  M  Areas/Corporate/FinanceManagement/Purchasing/Services/FinanceInvoiceExchangeService.cs
+  M  Areas/Corporate/FinanceManagement/Purchasing/Services/FinancePurchaseOrderService.cs
+  ```
+
+  (Perubahan lain pada working tree saat ini — `FinanceBillingIntakeService.cs`, skrip migration `be-fin-042`, laporan `BE-FIN-047.md` — milik sesi/task lain yang berjalan bersamaan, bukan hasil pembaruan ini.)
+
+- NEXT RECOMMENDED STEP (pembaruan): Task frontend kecil untuk layar "Daftar PO" (disebut `FE-FIN-008` sebagai langkah berikutnya) kini TIDAK lagi diblokir backend. KNOWN ISSUES #2/#3/#4 di atas tetap menjadi alasan `BE-FIN-032` bertahan 🟡 (bukan ✅) — masing-masing butuh wewenang terpisah (penugasan staf, migration, penyambungan service lain) di luar cakupan permintaan "perbaiki gap backend pada FE-FIN-008".

@@ -215,6 +215,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             // Penyerahan fakta dilakukan setelah commit. Konsultasi yang sudah sah tidak boleh
             // dibatalkan hanya karena Billing sedang tidak dapat dihubungi.
             var billingHandoffIssues = new List<string>();
+
+            // RJ-E2E-DEC-001 (BE-RJE-007): jasa konsultasi ditagih saat konsultasi Completed lewat
+            // finalisasi canonical ini — satu fakta per konsultasi. Tarifnya ditetapkan Billing
+            // (RJ-E2E-DEC-012), sehingga fakta tidak membawa nominal apa pun.
+            var consultationEmission = await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
+                new ClinicalMilestoneFactRequest
+                {
+                    SourceContext = BillingSourceContract.ConsultationSourceContext,
+                    SourceAggregateId = consultation.Id,
+                    EffectType = BillingSourceContract.ConsultationChargeEffectType,
+                    EncounterId = consultation.EncounterId,
+                    OccurredAt = now,
+                    Quantity = 1m,
+                    Unit = "KALI",
+                    RuleSnapshot = JsonSerializer.Serialize(new
+                    {
+                        milestone = "ConsultationCompleted",
+                        doctorId = consultation.DoctorId,
+                        clinicId = consultation.ClinicId
+                    }),
+                    CorrelationId = consultationId
+                },
+                actorUserId,
+                cancellationToken);
+
+            if (!consultationEmission.IsClinicallySafe)
+                billingHandoffIssues.Add($"Jasa konsultasi: {consultationEmission.Code}");
+
             foreach (var prescription in finalizedPrescriptions)
             {
                 var emission = await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
@@ -228,6 +256,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                         Quantity = prescription.TotalItemCount > 0 ? prescription.TotalItemCount : null,
                         Unit = prescription.TotalItemCount > 0 ? "ITEM" : null,
                         TariffSnapshot = BuildPrescriptionSnapshot(prescription),
+                        // Tahap 1 obat dua tahap (RJ-E2E-DEC-005): Billing menagih jumlah yang diresepkan.
+                        RuleSnapshot = JsonSerializer.Serialize(new
+                        {
+                            milestone = BillingSourceContract.PrescriptionMilestoneClinicalFinalization
+                        }),
                         CorrelationId = consultationId
                     },
                     actorUserId,

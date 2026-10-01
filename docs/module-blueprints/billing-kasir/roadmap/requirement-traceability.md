@@ -866,3 +866,71 @@ Tidak ada kemampuan lintas modul baru yang dibuka. Perubahan ini murni memperkua
 | Wewenang menulis source code | Terpisah | Wajib konfirmasi approval task per task sebelum builder menulis source code. |
 | Otorisasi migration EF Core | Tidak berlaku | Nol migration pada seluruh cakupan `MVP-34`. |
 
+---
+
+# Gelombang `MVP-35` — Pembalikan Tender Top-Up Deposit, Alokasi Tagihan, dan Penanda Eksplisit Mutasi `RELEASE` (Revisi 1.8)
+
+Masukan: `BKC-DEC-128`–`134` (**approved 28–29 September 2026** via `/grill-me`), `FIN-DEC-077`, `FIN-DEC-081` (menutup `FIN-OQ-034` dan `FIN-OQ-037`), evidence 17 & evidence 19 Finance Management. Baseline Backend SHA: `dcb9c88e`, Baseline Frontend SHA: `fdebb9059`. Kontrak version: `BIL-API-1.5`, `BIL-STATE-1.6`, `BIL-VALIDATION-1.6`, `BIL-INTEGRATION-1.4`, `BIL-PERMISSION-1.2`, `BIL-TEST-1.7`.
+
+## 1. Requirement ke Task ke Bukti Verifikasi
+
+| Requirement | Keputusan Asal | Task BE | Task FE | Bukti Verifikasi |
+| --- | --- | --- | --- | --- |
+| Pembalikan tender top-up deposit memeriksa saldo tanpa membiarkan saldo negatif (`FR-BKC-125`) | `BKC-DEC-128`, `BKC-DES-051` | 🟡 [`BE-BKC-079`](../task/report/backend/BE-BKC-079.md) | `NOT APPLICABLE` (Nol UI) | Uji unit `BillingSettlementServiceTests`: verifikasi mutasi `REVERSAL`, pemotongan deposit, dan penolakan saldo negatif (`BIL-AT-149`, `BIL-AT-150`, `UAT-BKC-83`) |
+| Pembatalan alokasi tagihan berurut LIFO saat saldo deposit defisit (`FR-BKC-126`) | `BKC-DEC-129`, `BKC-DES-052` | 🟡 [`BE-BKC-079`](../task/report/backend/BE-BKC-079.md) | `NOT APPLICABLE` (Nol UI) | Uji unit LIFO: alokasi terbaru dibatalkan terlebih dahulu, baris kompensasi bertanda negatif (`BIL-AT-151`, `UAT-BKC-85`) |
+| Penyelarasan status invoice `CLOSED` → `FINAL` via `SyncClosureAsync` (`FR-BKC-127`) | `BKC-DEC-130`, `BKC-DES-053` | 🟡 [`BE-BKC-079`](../task/report/backend/BE-BKC-079.md) | `NOT APPLICABLE` (Nol UI) | Uji integrasi invoice closure: invoice terdampak beralih dari `CLOSED` ke `FINAL` dan piutang muncul kembali (`BIL-AT-152`, `UAT-BKC-84`) |
+| Pencatatan mutasi terpisah `RELEASE` dan `REVERSAL` pada `BilDepositMovement` (`FR-BKC-128`) | `BKC-DEC-131`, `FIN-DEC-077`, `BKC-DES-054` | 🟡 [`BE-BKC-079`](../task/report/backend/BE-BKC-079.md) | `NOT APPLICABLE` (Nol UI) | Uji integritas mutasi: baris `RELEASE` dan `REVERSAL` tercatat berpasangan dan dikonsumsi oleh Finance (`BIL-AT-153`, `BIL-INT-018`, `UAT-BKC-86`) |
+| Penanda eksplisit `ReversesMovementId` 1-ke-1 pada mutasi `RELEASE` per alokasi yang dibatalkan (`FR-BKC-129`) | `BKC-DEC-132`, `BKC-DEC-133`, `BKC-DES-055` | 🟡 [`BE-BKC-080`](../task/report/backend/BE-BKC-080.md) | `NOT APPLICABLE` (Nol UI) | Uji unit `BillingSettlementServiceTests`: verifikasi terbit tepat $N$ baris mutasi `RELEASE` ber-`ReversesMovementId` menunjuk ID mutasi `ALLOCATION` asal (`BIL-AT-157`, `BIL-VAL-132`, `UAT-BKC-89`) |
+| Penyelarasan agregasi deposit kasir (`totalRefunded`) dan efek saldo mutasi rekening (`FR-BKC-130`) | `BKC-DEC-134`, `BKC-DES-056` | 🟡 [`BE-BKC-080`](../task/report/backend/BE-BKC-080.md) | `NOT APPLICABLE` (Nol UI) | Uji unit `BillingDepositServiceTests`: `totalRefunded == 0` bila mutasi pembatalan alokasi; `BalanceEffect == +Amount` pada statement (`BIL-AT-158`, `BIL-VAL-133`) |
+| Transaksi atomik dan integritas rollback bila ada operasi gagal | `BKC-DES-051`, `BIL-VAL-131` | 🟡 [`BE-BKC-079`](../task/report/backend/BE-BKC-079.md) | `NOT APPLICABLE` (Nol UI) | Uji rollback: kegagalan di tengah proses membatalkan seluruh perubahan deposit dan invoice (`BIL-AT-154`, `UAT-BKC-88`) |
+
+**Coverage gap: NOL untuk seluruh 6 functional requirement (`FR-BKC-125`–`130`) dan 7 keputusan bisnis (`BKC-DEC-128`–`134`).** Seluruhnya telah dipetakan secara lengkap ke vertical slice backend `BE-BKC-079` dan `BE-BKC-080`.
+
+## 2. Jalur Gagal & Pengecualian yang Terpetakan
+
+| Skenario Jalur Gagal | Skenario UAT / Kasus Bisnis | Aturan Validasi | Task Penjaga | Bukti Verifikasi |
+| --- | --- | --- | --- | --- |
+| Tender yang belum pernah `SUCCEEDED` (misal `PENDING` atau `FAILED`) dipicu `REVERSED` | Pembalikan tender tidak valid | `BIL-VAL-129` | 🟡 `BE-BKC-079` | Sistem menolak memproses mutasi deposit atau pembatalan alokasi (`BIL-AT-156`, `UAT-BKC-87`) |
+| Saldo deposit akun < nominal top-up yang dibalik dan seluruh alokasi telah dibalik sebelumnya | Defisit deposit tidak tertutup | `BIL-VAL-127` | 🟡 `BE-BKC-079` | Sistem melempar exception bahwa saldo deposit tidak mencukupi untuk dibalik tanpa alokasi aktif |
+| Gagal di tengah penulisan mutasi deposit atau pembaruan status invoice | Inkonsistensi data finansial | `BIL-VAL-131` | 🟡 `BE-BKC-079` | Transaksi di-rollback atomik; saldo deposit dan status invoice tetap utuh (`BIL-AT-154`, `UAT-BKC-88`) |
+| Pemicuan ulang pembalikan pada tender yang sudah berstatus `REVERSED` | Idempotency replay | `BIL-VAL-129` | 🟡 `BE-BKC-079` | Sistem mengenali tender sudah `REVERSED` dan tidak menduplikasi pembalikan (`BIL-AT-155`) |
+| Mutasi `RELEASE` pembatalan alokasi diterbitkan dengan `ReversesMovementId == null` | Ambiguitas mutasi di Finance | `BIL-VAL-132` | 🟡 `BE-BKC-080` | Dilarang keras oleh arsitektur; verifikasi `ReversesMovementId` selalu terisi ID mutasi `ALLOCATION` (`BIL-AT-157`) |
+| Mutasi `RELEASE` pembatalan alokasi diterbitkan secara agregat gelondongan multi-alokasi | Finance gagal memetakan alokasi | `BIL-VAL-132` | 🟡 `BE-BKC-080` | Sistem menerbitkan 1 baris mutasi `RELEASE` terpisah untuk setiap alokasi yang dibatalkan (`BIL-AT-157`) |
+| Mutasi `RELEASE` pembatalan alokasi dihitung masuk ke `totalRefunded` kasir | Selisih rekonsiliasi kas kasir | `BIL-VAL-133` | 🟡 `BE-BKC-080` | Filter `ReversesMovementId == null` menjamin `totalRefunded` kasir tidak terdistorsi (`BIL-AT-158`) |
+
+## 3. Keputusan Bisnis → Keputusan Arsitektur → Artefak & Task
+
+| Keputusan Bisnis | Keputusan Arsitektur / Desain | Artefak Turunan | Task Terkait |
+| --- | --- | --- | --- |
+| `BKC-DEC-128` (Penarikan top-up mengurangi deposit tanpa saldo negatif) | Validasi `AvailableBalance >= 0` dan perhitungan defisit terhadap alokasi aktif | `02-backend-architecture.md`, `BIL-VALIDATION-1.5` | 🟡 `BE-BKC-079` |
+| `BKC-DEC-129` (Pembatalan alokasi tagihan berurut LIFO) | Kueri alokasi aktif `AllocatedAt DESC` dan penulisan alokasi kompensasi negatif bertaut `ReversesAllocationId` | `02-backend-architecture.md`, `BIL-STATE-1.5` | 🟡 `BE-BKC-079` |
+| `BKC-DEC-130` (Penyelarasan status invoice `CLOSED` → `FINAL`) | Pemanggilan `SyncClosureAsync` untuk setiap `InvoiceId` unik terdampak | `02-backend-architecture.md`, `BIL-STATE-1.5` | 🟡 `BE-BKC-079` |
+| `BKC-DEC-131` / `FIN-DEC-077` (Pencatatan mutasi ganda transparan `RELEASE` & `REVERSAL`) | Penerbitan baris `RELEASE` sebesar alokasi batal dan `REVERSAL` sebesar tender top-up pada `BilDepositMovement` | `02-backend-architecture.md`, `BIL-INTEGRATION-1.3` | 🟡 `BE-BKC-079` |
+| `BKC-DEC-132` (Opsi A: `ReversesMovementId` pada `RELEASE` pembatalan alokasi) | Kolom `ReversesMovementId` pada `BilDepositMovement` diisi ID mutasi `ALLOCATION` asal | `02-backend-architecture.md`, `contracts/integration-contract.md`, `contracts/validation-matrix.md` | 🟡 `BE-BKC-080` |
+| `BKC-DEC-133` (Granularitas 1-ke-1 per alokasi yang dibatalkan) | 1 baris mutasi `RELEASE` per alokasi batal di dalam loop LIFO; hapus mutasi gelondongan | `02-backend-architecture.md`, `flowcharts/pembalikan-tender-deposit.md`, `contracts/state-transition-matrix.md` | 🟡 `BE-BKC-080` |
+| `BKC-DEC-134` (Penyelarasan perhitungan deposit di `BillingDepositService`) | Filter `ReversesMovementId == null` pada `totalRefunded` dan `BalanceEffect = +Amount` pada statement | `02-backend-architecture.md`, `contracts/validation-matrix.md`, `testing/acceptance-test-matrix.md` | 🟡 `BE-BKC-080` |
+
+## 4. Yang Dibuka Gelombang Ini untuk Modul Lain
+
+| Modul Konsumen | Task Konsumen | Kemampuan yang Dibuka | Kontrak Integrasi |
+| --- | --- | --- | --- |
+| **Finance Management** (`FIN-BP-001`) | `BE-FIN-047` | Intake fakta `DEPOSIT_MOVEMENT` dengan mutasi `RELEASE` berpenanda `ReversesMovementId` 1-ke-1 dan `REVERSAL` untuk penerbitan jurnal akuntansi pembalikan deposit dan piutang | `BIL-INT-018`, menutup blocker `FIN-OQ-034` dan `FIN-OQ-037` |
+
+## 5. Status Gap, Pertanyaan, dan Wewenang Terpisah
+
+| Butir | Status | Penjelasan & Pemilik |
+| --- | :---: | --- |
+| `FIN-OQ-034` (Blokir intake deposit reversal di Finance) | **DITUTUP** | `FIN-DEC-077`: Billing menerbitkan mutasi ganda `RELEASE` dan `REVERSAL` via `BIL-INT-018`. |
+| `FIN-OQ-037` (Ambiguitas semantik mutasi `RELEASE` di Finance) | **DITUTUP** | `BKC-DEC-132`–`134` / `FIN-DEC-081`: Mutasi `RELEASE` pembatalan alokasi bertaut 1-ke-1 via `ReversesMovementId`. |
+| Wewenang menulis source code | Terpisah | Wajib konfirmasi approval task per task sebelum builder menulis source code. |
+| Otorisasi migration EF Core | Tidak berlaku | Nol migration pada seluruh cakupan `MVP-35`. |
+
+## 6. Laporan Task Terverifikasi
+
+| Task ID | Laporan | Status |
+| --- | --- | :---: |
+| `BE-BKC-079` | [BE-BKC-079.md](../task/report/backend/BE-BKC-079.md) | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
+| `BE-BKC-080` | [BE-BKC-080.md](../task/report/backend/BE-BKC-080.md) | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
+
+
+

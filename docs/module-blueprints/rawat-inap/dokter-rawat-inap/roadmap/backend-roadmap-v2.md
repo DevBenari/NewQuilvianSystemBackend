@@ -42,12 +42,12 @@ contract_version: 0.6.1
 decision_source: "00-interview-decisions.md revision 23; RWI-DEC terakhir 151"
 backend_source_sha: df3679c0d5b2f08106702153eb242d3a6cb2929b
 frontend_source_sha: 1ce219b40f8e411f3c4e66975626ab33ae81616a
-task_id_range: BE-RWI-088..BE-RWI-105, BE-RWI-127, BE-RWI-128
-task_id_next_free: BE-RWI-129
-completed_tasks: [BE-RWI-088, BE-RWI-089, BE-RWI-090, BE-RWI-091, BE-RWI-092, BE-RWI-093, BE-RWI-094, BE-RWI-095, BE-RWI-096, BE-RWI-097, BE-RWI-098, BE-RWI-099, BE-RWI-100, BE-RWI-101, BE-RWI-102, BE-RWI-103, BE-RWI-104, BE-RWI-105]
+task_id_range: BE-RWI-088..BE-RWI-105, BE-RWI-127, BE-RWI-128, BE-RWI-141, BE-RWI-142
+task_id_next_free: BE-RWI-143   # ruang ID RWI dipakai bersama; BE-RWI-129..140 tidak dialokasikan di sini (BE-RWI-140 terpakai keperawatan, NursingInterventionDtos)
+completed_tasks: [BE-RWI-088, BE-RWI-089, BE-RWI-090, BE-RWI-091, BE-RWI-092, BE-RWI-093, BE-RWI-094, BE-RWI-095, BE-RWI-096, BE-RWI-097, BE-RWI-098, BE-RWI-099, BE-RWI-100, BE-RWI-101, BE-RWI-102, BE-RWI-103, BE-RWI-104, BE-RWI-105, BE-RWI-141, BE-RWI-142]
 partial_tasks: [BE-RWI-127, BE-RWI-128]
 blocked_tasks: []
-last_updated: "2026-09-23 — BE-RWI-128 ditambahkan sebagai task perbaikan dari ISSUE-DOK-002 (ISS-07 InpEpisodeId CPPT from-consultation, ISS-08 DoctorName kajian medis); source selesai, kompilasi PASS 0 error 224 warning tanpa warning baru, dotnet build penuh EXISTING/ENVIRONMENT ISSUE karena bin dikunci proses backend PID 6608, verifikasi runtime NOT RUN; ISS-09 TIDAK DIKERJAKAN beserta alasannya; contract_version tetap 0.6.1"
+last_updated: "2026-09-30 — BE-RWI-141 dan BE-RWI-142 ditambahkan dari rencana-kerja/soap/soap.md Rev 2.1 (keputusan pemilik K1, K2, K5): tautan SOAP ke deret tanda vital + migration 20260930110000_AddDoctorConsultationSourceVitalSign (diterapkan ke QuilvianNewDevHamzah saja), gerbang ICD-10 pada penyelesaian SOAP rawat inap, master-options icdVersion + urutan relevansi, nama obat/tindakan di resolver, diagnosa dan peran dokter di lini masa; dotnet build --no-incremental PASS 0 error 230 warning (0 di berkas task), runtime NOT RUN; contract_version tetap 0.6.1 — usulan 0.6.2 menunggu pemilik. Sebelumnya 2026-09-23 — BE-RWI-128 ditambahkan sebagai task perbaikan dari ISSUE-DOK-002 (ISS-07 InpEpisodeId CPPT from-consultation, ISS-08 DoctorName kajian medis); source selesai, kompilasi PASS 0 error 224 warning tanpa warning baru, dotnet build penuh EXISTING/ENVIRONMENT ISSUE karena bin dikunci proses backend PID 6608, verifikasi runtime NOT RUN; ISS-09 TIDAK DIKERJAKAN beserta alasannya; contract_version tetap 0.6.1"
 waves: [DOK-V2-0, DOK-V2-1, DOK-V2-2, DOK-V2-3]
 migration_steps: [R1, R2, R3, R4, R5, R6, R7, R8, R9]
 owned_tables_note: "Sub-modul ini TIDAK memiliki satu tabel pun — RWI-DEC-081. Seluruh tabel milik ClinicalManagement, PharmacyManagement, LaboratoryManagement, RadiologyManagement"
@@ -224,6 +224,8 @@ Pemetaan gelombang PRD:
 | `BE-RWI-105` | Template resep benar-benar milik dokter yang membuatnya | `FR-DOK-088`, `089`, `090`, `091` | `0.6.0` permission + validation | `PrescriptionTemplateService` | `R9` — pemilik dari **akun login**; hanya template milik sendiri; template kosong ditolak; butir bentrok ditandai | `BE-RWI-099` | AC-1 s.d. AC-6 | Validasi source/QBE; `dotnet build` **PASS** 17-09-2026; **regresi poliklinik NOT RUN** | **Mengubah perilaku poliklinik** — pemberitahuan pemilik `rawat-jalan` wajib / pemilik `rawat-jalan` | ✅ [Laporan](../task/report/backend/BE-RWI-105.md) |
 | `BE-RWI-127` | Resep tersimpan utuh beserta obatnya, dan penyimpanan tidak lagi gagal karena format angka regional | `ISSUE-DOK-001` `ISS-01`, `ISS-03`, `ISS-04`, `ISS-06`; `BE-RWI-050`; `RWI-DEC-046` | `0.6.1` — `CreatePrescriptionRequest` bertambah `Items` dan `Compounds`, disetujui pemilik 23-09-2026 | `PrescriptionWorkspaceService` — jalur penyimpanan isi resep yang sudah ada | Culture invariant global; isi resep sekali transaksi bersama kepalanya; `201` seragam untuk tiga endpoint create | — | AC-1 s.d. AC-7 | `dotnet build` **PASS** 23-09-2026 (dijalankan pemilik); **verifikasi runtime NOT RUN** | Penguncian culture berlaku seluruh aplikasi; penilaian source menunjukkan aman / Muhammad Hamzah | 🟡 [Laporan](../task/report/backend/BE-RWI-127.md) |
 | `BE-RWI-128` | Catatan dokter dari SOAP sampai ke lembar terpadu perawatan, dan riwayat kajian medis menyebut nama dokter pengkajinya | `ISSUE-DOK-002` `ISS-07`, `ISS-08`; `BE-RWI-040`, `BE-RWI-043`, `BE-RWI-063` | `0.6.1` — **tidak naik**; tidak ada properti, endpoint, maupun status code yang berubah | `PatientIntegratedProgressNoteController`, `PatientAssessmentController`, `InpatientClinicalContextService` | `InpEpisodeId` diturunkan pada jalur `from-consultation`; nama dokter dibaca dari `MstDoctor` sekali per halaman, bukan dari antrean poliklinik; skrip perbaikan data historis disediakan | — | AC-1 s.d. AC-7 | Kompilasi **PASS** 23-09-2026 (`0 error`, `224 warning`, tanpa warning baru); `dotnet build` penuh **EXISTING / ENVIRONMENT ISSUE** (`bin` dikunci proses backend PID 6608); **verifikasi runtime NOT RUN**; skrip perbaikan data **NOT RUN** | `ISS-09` di luar kepemilikan sub-modul ini; `FE-RWI-096` yang dialokasikan isu sudah dipakai `episode-rawat-inap` — ID frontend yang benar `FE-RWI-097` / Muhammad Hamzah | 🟡 [Laporan](../task/report/backend/BE-RWI-128.md) |
+| `BE-RWI-141` ✅ | Catatan dokter merujuk tanda vital yang sudah tercatat, dan ukuran dokter ikut masuk deret tanda vital pasien | [`rencana-kerja/soap/soap.md`](./rencana-kerja/soap/soap.md) Rev 2.1 bagian 7.6; K5 | `0.6.1` + delta aditif `soap.md` 4.2 (usulan `0.6.2`) | `TrxPatientVitalSign`, logika hitung jalur perawat (dipindah ke `PatientVitalSignCalculation`), `NumberSeriesAllocator` | Kolom + FK `TrxDoctorConsultation.SourceVitalSignId` (migration); `sourceVitalSignId`/`isDoctorMeasuredVitalSign` di create dan patch SOAP; satu baris ukuran dokter per catatan (`VTD-`), dibatalkan bersama catatan; jalur perawat menolak mengubahnya; asal-usul di lini masa | — | Rencana kerja 7.6 butir 1–6 | `dotnet build --no-incremental` **PASS** 0 error, 230 warning (0 di berkas task); migration diterapkan ke `QuilvianNewDevHamzah` via skrip idempoten; runtime **NOT RUN** | Migration wajib ikut ke setiap DB tempat backend ini jalan / Muhammad Hamzah | ✅ [Laporan](../task/report/backend/BE-RWI-141.md) |
+| `BE-RWI-142` ✅ | SOAP rawat inap tidak dapat dikunci tanpa ICD-10, dan pencarian/planning/riwayat mendapat data yang tepat | [`rencana-kerja/soap/soap.md`](./rencana-kerja/soap/soap.md) Rev 2.1 bagian 7.7; K1, K2; cacat C4, C10, C11 | `0.6.1` + delta aditif `soap.md` 4.2 (usulan `0.6.2`) | `ConsultationValidationService`, `PatientDiagnosisController`, resolver rekomendasi | `master-options?icdVersion=` + urutan relevansi; `drugName`/`procedureName` di resolver; gerbang K1 pada `complete` rawat inap (+ tolak `completeImmediately` rawat inap); `diagnoses[]` dan peran dokter di lini masa | — | Rencana kerja 7.7 butir 1–4 | `dotnet build --no-incremental` **PASS**; data master ICD-10 18.543 / ICD-9 4.626 baris (baca-saja); runtime **NOT RUN** | Poliklinik tidak terkena gerbang / Muhammad Hamzah | ✅ [Laporan](../task/report/backend/BE-RWI-142.md) |
 
 ---
 
@@ -950,6 +952,40 @@ sebenarnya `TrxPatientIntegratedProgressNote`. Keduanya perlu dibetulkan pada do
 review diff/scope penutup dijalankan dan bersih. Yang tersisa: pemilik menghentikan proses backend
 lama, menjalankan `dotnet build` sampai hijau, menjalankan verifikasi runtime dan skrip perbaikan
 data, lalu status dinaikkan ke ✅.
+
+---
+
+### `BE-RWI-141` — Tautan SOAP ke deret tanda vital (perawat dan dokter)
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **Selesai di tingkat source 30 September 2026** — [laporan](../task/report/backend/BE-RWI-141.md); **`dotnet build --no-incremental` PASS** (exit `0`, `0 error`, `230 warning`, tidak satu pun di 12 berkas task); **migration diterapkan ke `QuilvianNewDevHamzah`** lewat skrip idempoten (katalog: kolom `uuid NULL`, FK `ON DELETE RESTRICT`, riwayat `9.0.18`); `dotnet ef database update` **EXISTING / ENVIRONMENT ISSUE** karena `PendingModelChangesWarning` dari model `MstDailyNursingAction` milik pekerjaan lain; **verifikasi runtime NOT RUN** |
+| **Gelombang** | Rencana kerja SOAP gelombang 2 |
+| **Migration** | `20260930110000_AddDoctorConsultationSourceVitalSign` — hanya DB pribadi pemilik; DB tim tidak disentuh |
+
+**Bisnis prosesnya.** Dokter merujuk baris tanda vital perawat (`sourceVitalSignId`), atau mencatat ukurannya sendiri (`isDoctorMeasuredVitalSign`). Ukuran dokter menjadi satu baris `TrxPatientVitalSign` bersumber `DoctorConsultation` per catatan: diperbarui selama Draf, beku saat Final, dan dibatalkan bila catatan dibatalkan. Snapshot di catatan dokter tidak berubah bila perawat mengoreksi datanya kemudian. Sumber: [`soap.md`](./rencana-kerja/soap/soap.md) bagian 3.2 dan 7.6.
+
+**Acceptance criteria.** Rencana kerja 7.6 butir 1–6; dipetakan di laporan bagian 6.
+
+**Risiko dan kewajiban koordinasi.** Migration wajib diterapkan ke setiap database tempat backend ini dijalankan, karena entity memetakan kolom baru pada setiap kueri catatan dokter. Layar perawat perlu task frontend keperawatan untuk label "Dokter" pada baris ukuran dokter.
+
+**Definition of Done.** Laporan tracked ada; roadmap, traceability, dan status `soap.md` diperbarui; build `PASS`. Pemilik menjalankan verifikasi runtime.
+
+---
+
+### `BE-RWI-142` — Penyempurnaan diagnosa untuk SOAP
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **Selesai di tingkat source 30 September 2026** — [laporan](../task/report/backend/BE-RWI-142.md); **`dotnet build --no-incremental` PASS** (`0 error`, tanpa warning di berkas task); nilai `IcdVersion` master cocok dengan penyaring (ICD-10 18.543, ICD-9 4.626 baris; baca-saja); **verifikasi runtime NOT RUN** |
+| **Gelombang** | Rencana kerja SOAP gelombang 1 |
+| **Migration** | `NOT APPLICABLE` — tidak ada perubahan schema |
+
+**Bisnis prosesnya.** Penyelesaian catatan rawat inap menuntut S, O, A, P terisi, minimal satu diagnosa ICD-10 aktif, dan tepat satu Utama (K1), dengan kalimat yang sama dengan layar. Catatan rawat inap tidak boleh lahir langsung selesai. Pencarian ICD hanya menawarkan ICD-10 dengan urutan relevansi, resolver menyebut nama obat dan tindakan, dan lini masa membawa diagnosa serta peran dokter per catatan. SOAP poliklinik tidak terkena gerbang ini. Sumber: [`soap.md`](./rencana-kerja/soap/soap.md) bagian 3.1 dan 7.7.
+
+**Acceptance criteria.** Rencana kerja 7.7 butir 1–4; dipetakan di laporan bagian 6.
+
+**Definition of Done.** Laporan tracked ada; roadmap, traceability, dan status `soap.md` diperbarui; build `PASS`. Pemilik menjalankan verifikasi runtime dan memutuskan kenaikan `contract_version` ke `0.6.2`.
 
 ---
 

@@ -174,7 +174,7 @@ dibatalkan.
 | `last_changed_in` | `ACC-PERMISSION-0.5` — 11 September 2026: (1) baris baru `RecurringJournal : Activate` beserta pembagian perannya; (2) `Period : Read`/`Close`/`Approve` menjadi `AccountingPeriod : ...` — sisa kesalahan yang sudah diperbaiki di `api-contract.md` (`ACC-API-0.9`) tetapi terlewat di sini. Sebelumnya `0.4` — 8 September 2026 |
 | Amandemen menunggu ratifikasi | **`ACC-PERMISSION-0.6` (usulan) — 11 September 2026.** Baris baru `AccountingReconciliation : Read` untuk grup Reconciliation (`ACC-API-0.11`), beserta usulan pembagian perannya, dan satu pertanyaan terbuka: apakah pembacaan saldo rekonsiliasi dicatat `LoggerService`. **Status `approved` di bawah belum diubah** — menunggu ratifikasi Rizki |
 | Status | **`approved`** |
-| Penyesuaian atas keputusan owner | **`ACC-PERMISSION-0.7` (usulan) — 24 September 2026.** Menuliskan `ACC-DEC-088`: `AccountingEvent : Receive` **dicabut dari kolom Administrator** dan hanya diberikan kepada penugasan Departemen + Jabatan khusus akun layanan Finance. Dasarnya keputusan owner yang sudah `approved`; tidak menunggu ratifikasi `0.6` |
+| Penyesuaian atas keputusan owner | **`ACC-PERMISSION-0.7` — approved Rizki, 24 September 2026 (`GATE-DESAIN-0924`).** Menuliskan `ACC-DEC-088`: `AccountingEvent : Receive` **dicabut dari kolom Administrator** dan hanya diberikan kepada penugasan Departemen + Jabatan khusus akun layanan Finance. Dasarnya keputusan owner yang sudah `approved`; tidak menunggu ratifikasi `0.6` |
 | `approved_by` / `approved_at` | Rizki / 11 September 2026 (ratifikasi `ACC-PERMISSION-0.5`); sebelumnya Rizki / 8 September 2026 (`ACC-PERMISSION-0.4`) |
 | Traceability | `ACC-DEC-055` peran ketujuh, `ACC-DEC-044` sampai `ACC-DEC-057` |
 
@@ -194,7 +194,7 @@ peran serba bisa kedua di samping Manager.
 | Tindakan | String permission | Viewer | Staff | Approver | Manager | Director | Auditor | Administrator |
 |---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | Melihat kotak masuk kejadian | `AccountingEvent : Read` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Menerima kejadian dari Finance | `AccountingEvent : Receive` | | | | | | | ~~✓~~ *(dicabut, usulan `0.7`)* |
+| Menerima kejadian dari Finance | `AccountingEvent : Receive` | | | | | | | ~~✓~~ *(dicabut, `0.7`)* |
 | Coba ulang kejadian gagal | `AccountingEvent : Retry` | | | | ✓ | | | ✓ |
 | Menandai kejadian diabaikan | `AccountingEvent : Ignore` | | | | ✓ | | | |
 | Melihat jenis kejadian | `EventType : Read` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -220,7 +220,7 @@ peran serba bisa kedua di samping Manager.
 **Baris yang perlu diperhatikan:**
 
 1. `AccountingEvent : Receive` **tidak dimiliki satu pun dari tujuh peran manusia** — termasuk
-   Administrator sejak usulan `ACC-PERMISSION-0.7` (`ACC-DEC-088`). Hak ini hanya diberikan kepada
+   Administrator sejak `ACC-PERMISSION-0.7` (`ACC-DEC-088`). Hak ini hanya diberikan kepada
    **penugasan Departemen + Jabatan khusus akun layanan Finance** (misalnya Departemen "Integrasi
    Sistem", Jabatan "Akun Layanan Finance"), dan penugasan itu tidak diberi hak lain apa pun.
    Alasannya: memberikan `Receive` kepada manusia membuka jalur penyisipan jurnal yang tidak
@@ -242,6 +242,9 @@ peran serba bisa kedua di samping Manager.
    Director, Auditor, dan Administrator — dan **menunggu konfirmasi owner**. Per 11 September 2026
    hak ini punya **nol pemberian** di `SysAccessPolicy`, sehingga hanya SuperAdmin yang dapat
    membuka layarnya sebelum hak itu dicentang di layar Akses Role.
+   **28 September 2026 (`GATE-DESAIN-0928`):** endpoint baru `GET /reconciliation/subledger-comparison`
+   (`BE-ACC-P2-014`) memakai hak yang **sama**, `AccountingReconciliation : Read` — nol resource dan
+   nol action baru. Tidak ada hak untuk mengecualikan penghalang rekonsiliasi (`ACC-DEC-113`).
 
 ### Nama resource penutupan periode adalah `AccountingPeriod`
 
@@ -263,7 +266,7 @@ layar Akses Role, karena hak yang dicari tidak pernah ada untuk diberikan.
 | Jurnal penutup tahun disusun | **Ya** | `EntityId`, pelaku |
 | Membaca daftar kejadian | **Tidak** | Pembacaan sehari-hari tidak dicatat (`ACC-DEC-032`) |
 | Membaca pratinjau tutup tahun | **Ya** | Termasuk pembacaan laporan keuangan pada `ACC-DEC-032` |
-| Membaca saldo rekonsiliasi control account *(usulan `0.6`)* | **Belum diputuskan** | Kode saat ini **tidak** mencatatnya. `ACC-DEC-032` mencatat pembacaan laporan keuangan; apakah saldo control account termasuk di dalamnya menunggu keputusan owner |
+| Membaca saldo rekonsiliasi control account *(usulan `0.6`)* — `gl-balances`, dan `subledger-comparison` *(`ACC-API-0.13`)* | **Tidak** — **`ACC-DEC-115`**, 28 September 2026 | Layar penelusuran sejenis Buku Besar; tindakan penutupannya yang dicatat. Menutup butir terbuka usulan `0.6` |
 
 **Nilai uang dan keterangan jurnal tetap tidak boleh masuk catatan `LoggerService`.** Aturan
 `02-backend-architecture.md` bagian 11 berlaku penuh di Phase 2.

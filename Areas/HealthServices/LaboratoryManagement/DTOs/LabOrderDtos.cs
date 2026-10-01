@@ -418,6 +418,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public DateTime? InstructionVerifiedAt { get; set; }
 
         public Guid? InstructionVerifiedByUserId { get; set; }
+
+        /// <summary>
+        /// Label order turunan (<c>r34</c> 29.5): <c>InProgress</c> atau <c>AllReleased</c>, hanya
+        /// bagi order Patologi Klinik. <b>Tidak pernah mengubah</b> <c>orderStatus</c> — keduanya
+        /// dua arti yang belum diselaraskan (<c>LAB-CONFLICT-014</c>).
+        /// </summary>
+        public string? ResultProgress { get; set; }
     }
 
     /// <summary>
@@ -439,5 +446,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public Guid? RequestedByUserId { get; set; }
         public string? RequestedByName { get; set; }
         public string InstructionVerificationStatus { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Satu pemeriksaan yang menahan penyelesaian pesanan (<c>VAL-146</c>, <c>LAB-API-v1</c>
+    /// <c>r36</c> 31.3). Rincian penolakan memuat <b>setiap</b> pemeriksaan tidak batal yang belum
+    /// dirilis. Nol nilai hasil (rancangan 22.8).
+    /// </summary>
+    public class LabOrderCompletionBlockedItem
+    {
+        public Guid ExaminationId { get; set; }
+
+        /// <summary>Nama pemeriksaan dari snapshot katalog.</summary>
+        public string ProcedureName { get; set; } = string.Empty;
+
+        /// <summary><c>NotEntered</c>, <c>Draft</c>, <c>Final</c>, atau <c>Validated</c> — tidak pernah <c>Released</c>.</summary>
+        public string ResultStatus { get; set; } = string.Empty;
+
+        /// <summary>Label <c>LAB-DEC-156</c>: <i>Menunggu Hasil</i>, <i>Draft</i>, <i>Menunggu Validasi</i>, <i>Tervalidasi</i>.</summary>
+        public string Status { get; set; } = string.Empty;
     }
 }

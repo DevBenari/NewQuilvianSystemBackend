@@ -172,8 +172,11 @@ public sealed class BillingDepositService
             totalAllocated = activeMovements
                 .Where(x => x.MovementType == BillingDepositMovementTypes.Allocation)
                 .Sum(x => x.Amount);
+            // BKC-DEC-134 / BKC-DES-056: totalRefunded hanya menghitung mutasi RELEASE yang merupakan refund kas murni
+            // (ReversesMovementId == null). Mutasi RELEASE pembatalan alokasi (ReversesMovementId != null) dikecualikan
+            // karena tidak ada pergerakan kas keluar dari kasir/rumah sakit.
             totalRefunded = activeMovements
-                .Where(x => x.MovementType == BillingDepositMovementTypes.Release)
+                .Where(x => x.MovementType == BillingDepositMovementTypes.Release && !x.ReversesMovementId.HasValue)
                 .Sum(x => x.Amount);
             availableBalance = account.AvailableBalance;
         }
@@ -761,7 +764,12 @@ public sealed class BillingDepositService
             .ThenBy(x => x.Id)
             .Select(x =>
             {
-                var effect = x.MovementType == BillingDepositMovementTypes.TopUp
+                // BKC-DEC-134 / BKC-DES-056:
+                // TopUp selalu menambah saldo deposit (+Amount).
+                // Mutasi RELEASE pembatalan alokasi (ReversesMovementId != null) memulihkan saldo deposit (+Amount).
+                // Reversal, Allocation, dan Release refund murni (ReversesMovementId == null) mengurangi saldo deposit (-Amount).
+                var effect = (x.MovementType == BillingDepositMovementTypes.TopUp ||
+                              (x.MovementType == BillingDepositMovementTypes.Release && x.ReversesMovementId.HasValue))
                     ? x.Amount
                     : -x.Amount;
                 runningBalance += effect;

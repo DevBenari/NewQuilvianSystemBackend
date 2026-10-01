@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `RJ-BIL-BP-001` |
-| Revision | `17` |
+| Revision | `18` — Amendment Pass `2026-09-28` (PRD V2) di bagian akhir |
 | Status | `draft` untuk butir yang belum diberi approval formal; `RJ-BIL-GATE-DEC-001` s.d. `009` sudah `OWNER_APPROVED` lewat Approval Amendment `2026-08-20` di bagian akhir |
 | Interview mode | `Closure pass` |
 | Final accountable owner | Direksi Rumah Sakit atau pejabat eksekutif dengan delegasi formal; assignment belum dilampirkan |
@@ -665,3 +665,110 @@ Approval `RJ-DOC-DEC-001` **tidak** mencakup: perubahan application source; ekse
 pembuatan atau penerapan migration; mutasi database; commit; push; merge; deployment; pekerjaan
 Billing; maupun aktivasi `RJ-BIL-DEP-009`. `IMPLEMENTATION_AUTHORITY` scope Dokter tetap
 `NOT_GRANTED` sampai diberikan eksplisit per task.
+
+## Amendment Pass 2026-09-28 — PRD Rawat Jalan sampai Billing V2
+
+| Field | Nilai |
+|---|---|
+| Mode | `Amendment pass` — blueprint sudah pernah disetujui; keputusan lama **tidak** ditimpa |
+| Masukan | `PRD-RJ-BIL-V2-001` ([PRD-Rawat-Jalan.md](PRD-Rawat-Jalan.md), *Draft for Owner Review*, belum di-commit) |
+| Capability map | [01-existing-capability-map-prd-v2.md](01-existing-capability-map-prd-v2.md) — `CURRENT` pada SHA di bawah |
+| Backend SHA | `063d38bc306bb6b46bdf088513fa6cdcc80399d8` (`sukmagp`) |
+| Frontend SHA | `83b8b72744d4afaaedb3d2af9dd0b83fb272f9d6` (`sukmagpV2`) |
+| Kontrak Billing yang berlaku | `BIL-INTEGRATION-0.4` / `BIL-INTEGRATION-1.2` |
+| Prefix keputusan | `RJ-E2E-DEC-*` (mengikuti PRD §29) |
+| Pengambil keputusan | Sukma Giri, pemilik blueprint `RJ-BIL-BP-001` |
+
+### Batas scope amendment
+
+**Satu kalimat:** menyambungkan fakta pelayanan Rawat Jalan ke invoice canonical Billing
+(`BilInvoice`), ditambah Ringkasan Billing read-only di workspace dokter.
+
+| Di dalam scope | Di luar scope — pemiliknya |
+|---|---|
+| Korelasi `EncounterId`; finalisasi konsultasi; sumber tagihan konsultasi, tindakan, Lab, Radiologi, obat | Kalkulasi harga, diskon, coverage, payer, pembayaran, settlement, refund — **Billing/Kasir** (hanya titik sentuh) |
+| Konvergensi Folio → Invoice; idempotency, retry, rekonsiliasi | Aturan internal telaah/dispensing — **Pharmacy** (hanya titik tagih obat) |
+| Pembatalan/koreksi pelayanan; batas status Encounter | Transisi Encounter `Billing → Completed` — **Registration** (`RJ-E2E-DEC-004`, sengaja ditunda) |
+| Ringkasan Billing read-only; permission dan audit | Pemesanan Lab/Radiologi dari workspace dokter — tetap `CONDITIONAL` sesuai `RJ-DOC-DEC-002` (CAP-V2-19) |
+
+### Keputusan
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `RJ-E2E-DEC-000` | Decision | **Bentuk blueprint `SINGLE`** — PRD V2 masuk sebagai amendment pada umbrella `RJ-BIL-BP-001`. `shape_decided_by = USER_CONFIRMED`. Hasil uji: jalur fakta → invoice tidak punya bounded context, kosakata status, atau master data sendiri; ia titik sambung Clinical ↔ Billing. Tidak ada kemampuan tanpa rumpun | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 | Jawaban sesi |
+| `RJ-E2E-DEC-003` | Decision | **`BilFolio` menjadi ledger bukti/rekonsiliasi; `BilInvoice`/`BilInvoiceItem` adalah satu-satunya tagihan canonical.** Fakta klinis tetap dicatat di folio, lalu adapter Billing meneruskannya ke `UpsertChargeAsync`. Setiap baris folio wajib punya penanda sudah/belum masuk invoice. Tidak boleh ada pelayanan yang punya `BilChargeLine` tetapi tidak pernah masuk invoice. Pemindahan ringkasan tagihan rawat inap (`PatientBillingSummaryService`) dari folio ke invoice **bukan** scope amendment ini | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 | CAP-V2-13 |
+| `RJ-E2E-DEC-005` | Decision | **Obat ditagih dua tahap.** Tahap 1: saat dokter menekan Selesai Konsultasi, item `PHARMACY` masuk invoice dengan status sementara agar kasir dapat menagih dan gerbang *lunas sebelum serah* tetap berlaku. Tahap 2: saat `DISPENSED`, versi baru menyesuaikan qty aktual. **Mengoreksi PRD FR-007 dan `AC-RJ-007`** (bukan hanya `DISPENSED`) dan **menyempurnakan, bukan menggantikan**, `RJ-BIL-DEC-002` serta Actual Consumption Rule `RJ-BIL-DEC-005`. Kontrak adapter `PHARMACY` wajib diperluas dengan status tahap 1. Contoh: resep Paracetamol 10 tablet → invoice 10 tablet → pasien bayar → farmasi hanya punya 8 → versi 2 `DISPENSED` 8 tablet; kelebihan bayar diselesaikan Billing | Sukma Giri (Farmasi + Billing/Finance untuk sign-off formal) | `approved` | Sukma Giri, 28 Sep 2026. `FORMAL_PHARMACY_SIGNOFF` dan `FORMAL_FINANCE_SIGNOFF` tetap `OPEN` | CAP-V2-07 |
+| `RJ-E2E-DEC-006` | Decision | **Harga item dari jalur fakta klinis ditetapkan adapter Billing dari `MstTariff`**, termasuk `DoctorShare`. Fakta klinis hanya membawa identitas layanan/`TariffId` dan qty; `TariffSnapshot` dari modul klinis tidak dipakai sebagai harga. **Titik sentuh ke Billing:** `POST from-source` publik yang masih menerima `UnitPrice` dari pemanggil harus dikunci (hanya internal atau harga dari tarif) — keputusan teknisnya milik Billing | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026. `SECURITY_PRIVACY_SIGNOFF` tetap `OPEN` | CAP-V2-03 |
+| `RJ-E2E-DEC-001` | Decision | **Jasa konsultasi memakai `SourceDomain = CONSULTATION`, milestone `COMPLETED`, satu item per konsultasi.** Konsultasi yang batal sebelum selesai tidak menghasilkan tagihan (`SuppressedNoPriorCharge`). Konsultasi yang sudah `Completed` tidak dibuka ulang (`RJ-DOC-DEC-003`); koreksinya berupa adjustment Billing. Tarif dicari dari master yang sudah ada (`MstTariff.IsConsultationFee`, `DoctorServiceRule`, `MstPatientClass.DefaultConsultationFee`) — urutan prioritasnya lihat `RJ-E2E-OQ-002` | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 | CAP-V2-08 |
+| `RJ-E2E-DEC-002` | Decision | **Biaya administrasi Rawat Jalan tetap dari `MstAdministrationFeePolicy` `RAJAL`** di dalam kalkulasi Billing. Usulan sumber `REGISTRATION` pada PRD FR-009 dan baris Source Mapping-nya **dicabut** agar tidak menagih dua kali. Contoh: policy `RAJAL` Rp25.000 muncul sebagai `AdministrationFeeAmount`, bukan item invoice | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 | CAP-V2-09 |
+| `RJ-E2E-DEC-007` | Decision | **Rawat Jalan tidak pernah menutup kunjungan menjadi `Completed`**, termasuk kunjungan tanpa dokter. Kunjungan yang hanya skrining perawat berhenti di status setara *selesai pelayanan*. Endpoint ubah status bebas tidak boleh dipakai Rawat Jalan untuk `Completed`. Bentuk status/penanda untuk kunjungan tanpa dokter ditetapkan saat desain | Sukma Giri (titik sentuh Registration) | `approved` | Sukma Giri, 28 Sep 2026 | CAP-V2-11 (`NurseStationQueueController.cs:327-329`, `PatientEncounterController.cs:944-953`) |
+| `RJ-E2E-DEC-008` | Decision | **Ringkasan Billing memakai butir akses baru khusus ringkasan per Encounter** (nama final saat desain, mis. `EncounterBillingSummary : Read`), hanya total dan status, tanpa daftar invoice lain atau riwayat pembayaran. Pola sama dengan `PatientBillingSummary : Read` rawat inap. Tombol *Buka Detail Billing* hanya tampil bila user juga memegang `BillingInvoice : Read`, dan server tetap menolak `403` tanpa butir itu. Keadaan *belum ada invoice* ditampilkan sebagai keadaan normal, bukan galat | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 | CAP-V2-17, `SEC-RJ-005` |
+| `RJ-E2E-DEC-009` | Decision | **Fakta `Pending`/`OutcomeUnknown` diselesaikan pekerja otomatis ditambah antrean manual.** Pekerja latar mengirim ulang dengan identitas dan `IdempotencyKey` yang sama. Setelah batas percobaan tercapai, fakta masuk antrean rekonsiliasi untuk petugas Billing. Batas percobaan dan jeda dijadikan master data dengan bawaan fail-closed (pola `RJ-BIL-DEC-010`). Clinical truth tidak pernah dibatalkan karena Billing gagal | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 | CAP-V2-16 |
+| `RJ-E2E-DEC-010` | Decision | **Koreksi pelayanan yang sudah `PERFORMED`/`COMPLETED`**: klinis menerbitkan fakta pembatalan versi baru; Billing membuat **adjustment** dengan persetujuan sesuai `RJ-BIL-DEC-004`, bukan void biasa. Kebijakan void adapter (`CONFIRMED`/`ACCEPTED` saja) **tidak** dilonggarkan. Riwayat versi lama tetap ada. Contoh: Lab Darah Lengkap `COMPLETED` salah pasien → fakta `CANCELLED` v3 → adjustment Billing menunggu persetujuan | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 | CAP-V2-15 |
+| `RJ-E2E-DEC-012` | Decision | **[Dilengkapi `RJ-E2E-DEC-023`]** **Urutan pencarian tarif jasa konsultasi** (menutup `RJ-E2E-OQ-002`): (1) `MstDoctorServiceRule` aktif dan berlaku untuk dokter + klinik + kelas pasien yang memiliki `TariffId`; (2) `MstTariff` ber-`IsConsultationFee` untuk klinik + kelas pasien; (3) `MstTariff` ber-`IsConsultationFee` untuk klinik saja; (4) tidak ditemukan → antrean rekonsiliasi, **tidak pernah Rp0**. `MstPatientClass.DefaultConsultationFee` **tidak** dipakai karena bukan `MstTariff` (`RJ-E2E-DEC-006`) | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 (sesi `design-business-module`) | CAP-V2-08 |
+| `RJ-E2E-DEC-013` | Decision | **Kunjungan Rawat Jalan tanpa dokter berhenti di `EncounterStatus.Billing`** (nilai `8`, sudah ada, belum ditulis kode mana pun). Tidak ada nilai enum baru. Jalur dokter tetap berhenti di `ConsultationCompleted`; keduanya bermakna *siap ditagih*. Melengkapi `RJ-E2E-DEC-007` | Sukma Giri (titik sentuh Registration) | `approved` | Sukma Giri, 28 Sep 2026 (sesi `design-business-module`) | CAP-V2-11 |
+| `RJ-E2E-DEC-014` | Decision | **Baris folio lama** yang terbentuk sebelum jembatan folio → invoice dibuat ditandai *perlu rekonsiliasi* (kode `LEGACY_PRE_BRIDGE`) saat migration. Tidak ada yang diteruskan otomatis ke invoice, sehingga tidak ada tagihan ganda dengan input manual kasir, dan tidak ada yang hilang diam-diam. Petugas Billing memutuskan per baris | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 (sesi `design-business-module`) | `RJ-E2E-DEC-003` |
+| `RJ-E2E-DEC-018` | Approval | **`IMPLEMENTATION_AUTHORITY` `GRANTED` untuk `BE-RJE-002`**: penulisan source dan validasi runtime terhadap `QuilvianNewDevSukma`. Tanpa migration (tidak diperlukan), commit, push, merge, maupun deployment | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 ("commit dulu pekerjaan yang sudah selesai kemudian lanjutkan BE-RJE-002") | `roadmap/e2e-backend-roadmap.md` |
+| `RJ-E2E-DEC-019` | Approval | **`IMPLEMENTATION_AUTHORITY` `GRANTED` untuk `BE-RJE-003`**: penulisan source dan validasi runtime terhadap `QuilvianNewDevSukma`, termasuk data uji. Tanpa migration, commit, push, merge, maupun deployment | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 ("commit lebih dulu BE-RJE-002, kemudian lanjutkan BE-RJE-003") | `roadmap/e2e-backend-roadmap.md` |
+| `RJ-E2E-DEC-020` | Approval | **`IMPLEMENTATION_AUTHORITY` `GRANTED` untuk `BE-RJE-004`** (task berikutnya menurut tabel gelombang): source dan validasi runtime terhadap `QuilvianNewDevSukma`. Tanpa migration, commit, push, merge, maupun deployment | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 ("commit BE-RJE-003 dulu lalu lanjut ke task berikutnya") | `roadmap/e2e-backend-roadmap.md` |
+| `RJ-E2E-DEC-021` | Approval | **`IMPLEMENTATION_AUTHORITY` `GRANTED` untuk `BE-RJE-006`**: source dan validasi runtime terhadap `QuilvianNewDevSukma`, termasuk penyesuaian data uji antrean. Tanpa migration, commit, push, merge, maupun deployment | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 ("commit BE-RJE-004 dan lanjutkan") | `roadmap/e2e-backend-roadmap.md` |
+| `RJ-E2E-DEC-022` | Approval | **`IMPLEMENTATION_AUTHORITY` `GRANTED` untuk `BE-RJE-005`**: source dan validasi runtime terhadap `QuilvianNewDevSukma`, termasuk mengubah status invoice uji. Tanpa migration, commit, push, merge, maupun deployment | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 ("commit dulu baru lanjutkan BE-RJE-005") | `roadmap/e2e-backend-roadmap.md` |
+| `RJ-E2E-DEC-023` | Decision | **Urutan tarif jasa konsultasi dilengkapi jalur tindakan** (melengkapi `RJ-E2E-DEC-012`, tidak menggantikan): (1) `MstDoctorServiceRule.TariffId` — **wajib** tarif ber-`IsConsultationFee`; (1b) `MstDoctorServiceRule.ProcedureId` → `MstTariff` ber-`IsConsultationFee` untuk tindakan itu, kelas pasien yang cocok lebih dulu; (2)/(3) tarif konsultasi klinik (+ kelas); tidak ketemu → `TARIFF_NOT_FOUND`, tidak pernah Rp0. Sebab: di master, 2.130 tarif konsultasi seluruhnya ditautkan ke **tindakan** konsultasi (113 tindakan × 19 kelas) dan **tidak satu pun** berklinik; satu-satunya rule dokter bertarif menunjuk tarif pemeriksaan darah. Konsekuensi: admin wajib mengisi rule layanan dokter (dokter + klinik → tindakan konsultasi); sampai diisi, konsultasi masuk antrean rekonsiliasi | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 (sesi `build-module-backend BE-RJE-007`) | Query master `QuilvianNewDevSukma`; `MstDoctorServiceRule.cs` |
+| `RJ-E2E-DEC-024` | Approval | **`IMPLEMENTATION_AUTHORITY` `GRANTED` untuk `BE-RJE-007`**: source dan validasi runtime terhadap `QuilvianNewDevSukma`, termasuk data uji master rule dokter. Tanpa migration, commit, push, merge, maupun deployment | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 ("commit BE-RJE-005 kemudian lanjutkan BE-RJE-007") | `roadmap/e2e-backend-roadmap.md` |
+| `RJ-E2E-DEC-025` | Approval | **`IMPLEMENTATION_AUTHORITY` `GRANTED` untuk `BE-RJE-008`, `BE-RJE-009`, `BE-RJE-010`, dan `BE-RJE-014`**, dikerjakan berurutan: source dan validasi runtime terhadap `QuilvianNewDevSukma`, termasuk data uji (resep, stok obat, shift kasir, status invoice uji). Tanpa migration ke database lain, commit (kecuali diminta), push, merge, maupun deployment | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 ("commit BE-RJE-007 kemudian lanjutkan BE-RJE-008 (obat dua tahap), BE-RJE-009 (pembatalan), BE-RJE-010, dan BE-RJE-014") | `roadmap/e2e-backend-roadmap.md` |
+| `RJ-E2E-DEC-026` | Approval | **`IMPLEMENTATION_AUTHORITY` `GRANTED` untuk task backend V2 yang tersisa — `BE-RJE-011`, `BE-RJE-013`, `BE-RJE-012`** — dikerjakan berurutan: source dan validasi runtime terhadap `QuilvianNewDevSukma`, termasuk data uji. Tanpa migration, commit (kecuali diminta), push, merge, maupun deployment. `BE-RJE-008`/`009`/`010`/`014` sudah di-commit pemilik (`2af16d93`) | Sukma Giri | `approved` | Sukma Giri, 29 Sep 2026 ("sudah saya commit mandiri, sekarang lanjutkan task yang perlu di kerjakan") | `roadmap/e2e-backend-roadmap.md` |
+| `RJ-E2E-DEC-011` | Decision | **`CONSUMABLE` ditunda ke slice berikutnya.** Producer belum ada. Baris Source Mapping PRD dikoreksi dari `REUSE` menjadi `LATER SLICE`, dan tidak masuk Definition of Done rilis ini | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 | CAP-V2-24 |
+| `RJ-E2E-DEC-016` | Decision | **Unit sinkron invoice adalah `BilProcessingEffect`, bukan `BilChargeLine`** (kontrak `RJ-E2E-CONTRACT-001@1.0.2`). Ditemukan saat inspeksi `BE-RJE-001`: folio tidak membuat atau memperbarui `BilChargeLine` untuk fakta versi baru, melainkan mencatat satu `BilProcessingEffect` `PendingFinancialReview` yang menunjuk charge line versi 1 (`BillingFolioService.cs:183-266`); unique index `BilChargeLine` tidak memuat versi. Karena itu kolom sinkron, `IsClinicalCancellation`, dan kolom rekonsiliasi pindah ke `BilProcessingEffect` (satu baris per fakta + versi, sudah dirujuk `CliClinicalMilestoneFact.BillingProcessingEffectId`). `BilChargeLine` **tidak** diubah. Perilaku folio yang ada tidak disentuh. Aturan bisnis `RJ-E2E-DEC-003`/`009`/`014` tidak berubah | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 (sesi `build-module-backend BE-RJE-001`) | `BillingOperationalConfigurations.cs` (index `BilChargeLine`), `BillingFolioService.cs:183-266` |
+| `RJ-E2E-DEC-017` | Approval | **Roadmap V2 (`e2e-backend-roadmap.md`, `e2e-frontend-roadmap.md` rev `1`) dan kontrak `1.0.1` disetujui; `IMPLEMENTATION_AUTHORITY` `GRANTED` untuk `BE-RJE-001` saja**, mencakup penulisan source, **pembuatan migration**, dan **penerapan migration ke `QuilvianNewDevSukma` saja** sebagaimana diwajibkan AC 1 kartu task. Tidak mencakup database lain, commit, push, merge, maupun deployment. Task lain tetap `NOT_GRANTED` | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 ("saya menyetujui semuanya, lanjutkan … BE-RJE-001") | `roadmap/e2e-backend-roadmap.md` |
+| `RJ-E2E-DEC-015` | Approval | **Desain V2 dan `RJ-E2E-CONTRACT-001@1.0.0` disetujui**: `02`/`03` bagian V2, `04-prd-to-mvp.md`, `data/data-dictionary.md`, `flowcharts/`, lima kontrak bagian V2, dan acceptance test matrix bagian V2. Approval ini **bukan** izin menulis code: `IMPLEMENTATION_AUTHORITY` tetap diberikan per task. Usulan `1.0.1` (field `BillingHandoffIssues` pada `finish-consultation`) **tidak** termasuk dan menunggu approval terpisah | Sukma Giri | `approved` | Sukma Giri, 28 Sep 2026 ("saya menyetujuinya") | `blueprint-manifest.md` revisi `27` |
+
+### Frontend Decision Authority
+
+| Decision ID | Area | Owner | Status | Allowed range | Evidence |
+|---|---|---|---|---|---|
+| `RJ-E2E-FE-001` | Letak Ringkasan Billing | Sukma Giri | `approved` | Tab baru *Ringkasan Billing* di workspace konsultasi dokter, sesuai PRD §8 | PRD §8 |
+| `RJ-E2E-FE-002` | Isi minimum panel | Sukma Giri | `approved` | Field PRD §17; seluruh nominal dari API, tanpa hitung ulang di client (`AC-RJ-009`, `AC-RJ-010`) | PRD §17 |
+| `RJ-E2E-FE-003` | Tata letak, urutan field, gaya | Developer | `DEV_DISCRETION` | Wajib base component Quilvian (`Hero`, `DataTable`, `StatusBadge`, `BaseButton`, `AccessDeniedGate`, `ToastStack`); tanpa tombol Bayar/Diskon/Void/Finalisasi/Settlement | PRD §19–20, CAP-V2-23 |
+| `RJ-E2E-FE-004` | Menampilkan kegagalan handoff saat Selesai Konsultasi | Developer | `DEV_DISCRETION` | `BillingHandoffIssues` wajib terlihat oleh dokter; bentuk pesan bebas asal tidak memblokir konsultasi yang sudah selesai | CAP-V2-10 |
+
+### Koreksi atas PRD yang wajib dibawa ke desain
+
+| Bagian PRD | Bunyi sekarang | Koreksi | Dasar |
+|---|---|---|---|
+| FR-007, `AC-RJ-007` | Obat ditagih hanya saat `DISPENSED` | Dua tahap: finalisasi lalu `DISPENSED` | `RJ-E2E-DEC-005` |
+| FR-009, Source Mapping | Sumber `REGISTRATION` | Dicabut; pakai policy `RAJAL` | `RJ-E2E-DEC-002` |
+| Source Mapping | `CONSUMABLE` = `REUSE` | `LATER SLICE` | `RJ-E2E-DEC-011` |
+| §8 | Tab Laboratorium dan Radiologi dianggap sudah ada | Belum ada; tetap `CONDITIONAL` | CAP-V2-19, `RJ-DOC-DEC-002` |
+| §18 | Reuse `charge-summary` dengan akses `BillingInvoice : Read` | Endpoint/butir akses ringkasan baru | `RJ-E2E-DEC-008` |
+| §1 | Billing diposisikan `EXISTING/REUSE` penuh | Billing ada, tetapi **tidak ada jalur dari fakta klinis ke invoice** dan harga `from-source` datang dari pemanggil | CAP-V2-03, CAP-V2-13 |
+
+### Acceptance criteria tambahan yang sudah dapat diuji
+
+1. Tindakan yang dikonfirmasi pada kunjungan X muncul sebagai satu item di invoice kunjungan X
+   tanpa input kasir. Mengirim fakta yang sama dua kali tetap menghasilkan satu item.
+2. Mengirim `from-source` dengan `UnitPrice` berbeda dari `MstTariff` **tidak** mengubah harga item.
+3. Resep yang difinalkan menghasilkan item `PHARMACY` tahap 1. Setelah dibayar, farmasi dapat
+   menelaah dan menyerahkan obat. Dispensing 8 dari 10 tablet menghasilkan versi item 8 tablet.
+4. Konsultasi `Completed` menghasilkan tepat satu item `CONSULTATION`. Konsultasi yang dibatalkan
+   sebelum selesai tidak menghasilkan item.
+5. Invoice Rawat Jalan tidak memuat item `REGISTRATION`. Biaya admin muncul hanya lewat
+   `AdministrationFeeAmount`.
+6. Kunjungan tanpa dokter tidak pernah berstatus `Completed` oleh aksi Rawat Jalan.
+7. Pengguna yang hanya memegang butir ringkasan mendapat `403` saat memanggil
+   `GET billing/invoices` atau `GET billing/invoices/{id}`.
+8. Fakta `OutcomeUnknown` dikirim ulang otomatis dengan `IdempotencyKey` yang sama, dan setelah
+   batas percobaan muncul di antrean rekonsiliasi.
+9. Pembatalan Lab berstatus `COMPLETED` menghasilkan permintaan adjustment, bukan void; item lama
+   tetap terbaca di riwayat.
+
+### Open question dan blocker
+
+| ID | Isi | Owner | Memblokir |
+|---|---|---|---|
+| `RJ-E2E-OQ-001` | Tidak ada project automated test yang ter-commit di backend `063d38b`, sementara `RJ-BIL-DEC-019` merujuk `Tests/QuilvianSystemBackend.IntegrationTests.Postgres/`. Perlu dipastikan apakah test berada di cabang lain atau hilang | Sukma Giri | `IMPLEMENTATION` (verifikasi DoD 17–20) |
+| `RJ-E2E-OQ-002` | ~~Urutan prioritas sumber tarif konsultasi~~ — **ditutup `RJ-E2E-DEC-012`** | Billing/Finance | — |
+| `RJ-E2E-OQ-003` | Kelebihan bayar obat bila dispensing lebih sedikit dari yang ditagih — refundable credit atau dikembalikan tunai | Billing/Finance | `LATER SLICE` (di luar scope, titik sentuh saja) |
+| `RJ-E2E-OQ-004` | `RJ-E2E-DEC-004` — siapa mengubah Encounter `Billing → Completed` | Registration + Billing | `LATER SLICE` |
+| `RJ-E2E-OQ-005` | Sign-off formal `FORMAL_PHARMACY_SIGNOFF`, `FORMAL_FINANCE_SIGNOFF`, `SECURITY_PRIVACY_SIGNOFF` untuk `RJ-E2E-DEC-005`/`006` | Farmasi, Finance, Security | Aktivasi production, **bukan** desain |
+
+Tidak ada invariant kritis yang masih terbuka untuk tahap desain.

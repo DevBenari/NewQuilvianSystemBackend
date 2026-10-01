@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Enums;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -44,5 +45,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         /// di service.
         /// </summary>
         public bool IsActive { get; set; } = true;
+
+        public EventTypeKind EventKind { get; set; } = EventTypeKind.Transaksi;
     }
 }

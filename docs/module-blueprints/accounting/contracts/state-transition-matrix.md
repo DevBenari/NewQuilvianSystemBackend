@@ -132,6 +132,7 @@ Daftar akun tidak punya alur berstatus banyak. Yang ada hanya penanda aktif.
 |---|---|
 | `contract_version` | `ACC-STATE-0.3` — 10 September 2026, `ACC-DEC-067` menetapkan periode `SoftClosed` menerima jurnal `JT`. Sebelumnya `0.2` |
 | `last_changed_in` | `ACC-STATE-0.2` — 8 September 2026 |
+| Penyesuaian atas keputusan owner | **`ACC-STATE-0.5` — approved Rizki, 28 September 2026 (`GATE-DESAIN-0928`).** Prasyarat dua perpindahan periode bertambah: `Open` → `PendingClosingApproval` kini menuntut **empat** penghalang nol, termasuk rekonsiliasi saldo subledger bila sudah berlaku; `SoftClosed` → `Closed` menuntut rekonsiliasi bersih (`ACC-DEC-076`, `107`, `111`). Nol status baru, nol perpindahan baru |
 | Status | **`approved`** |
 | `approved_by` / `approved_at` | Rizki / 8 September 2026 |
 | Traceability | `ACC-DEC-045`, `046`, `047`, `049`, `052`, `055` |
@@ -150,7 +151,7 @@ Status awal: **`Diterima`**. Status akhir: `Terjurnal` dan `Diabaikan`.
 | `Gagal` | `Terjurnal` | Coba ulang manual berhasil | `AccountingEvent : Retry` | — |
 | `Gagal` | `Diabaikan` | Akuntansi menyatakan kejadian tidak perlu dijurnal | `AccountingEvent : Ignore` | **Alasan tertulis wajib** |
 
-#### Tambahan usulan `ACC-STATE-0.4` — 24 September 2026 (`ACC-DEC-084`, `087`)
+#### Tambahan `ACC-STATE-0.4` — approved Rizki, 24 September 2026 (`GATE-DESAIN-0924`) (`ACC-DEC-084`, `087`, `092`)
 
 Status baru **`Tercatat`** untuk pesan saldo subledger (`EventKind = SaldoSubledger`): pesan sudah
 disimpan sebagai saldo rekonsiliasi dan **tidak pernah** menghasilkan jurnal. `Tercatat` adalah
@@ -187,6 +188,34 @@ dirancang. Contohnya: kejadian penyusutan Rp 4.000.000 tertahan karena akun belu
 Bila petugas boleh mengabaikannya untuk membersihkan layar, beban Rp 4.000.000 hilang dari
 laporan tanpa jejak apa pun bahwa ia pernah ada.
 
+#### Tambahan `ACC-STATE-0.6` — approved Rizki, 29 September 2026 (`GATE-DESAIN-0929`) (`ACC-DEC-116`, `118`, `119`)
+
+Satu perpindahan kejadian baru, dan satu baris larangan di bawah dipersempit. **Nol status baru.**
+"Jurnal hasil kejadian" di bagian ini berarti jurnal yang ditunjuk `AccAccountingEvent.JournalId`
+milik kejadian yang tidak terhapus — pengenal yang sama dengan `BE-ACC-P2-034`.
+
+| Dari | Ke | Pemicu | Wewenang | Prasyarat |
+|---|---|---|---|---|
+| `Terjurnal` | `Gagal` | Jurnal hasil kejadian itu **dihapus** | `Journal : Delete` (`ACC-DEC-121`) | Jurnalnya masih `Draft` atau `Rejected`. Dikerjakan dalam **satu transaksi** dengan penghapusan jurnal; tautan `JournalId` dilepas; satu baris riwayat percobaan gagal "Jurnal draft {nomor jurnal} dihapus oleh {nama pengguna}." (`ACC-DEC-117`). Perpindahan bersyarat — hanya berhasil bila kejadian masih `Terjurnal` dan masih menunjuk jurnal itu |
+
+**Baris larangan `Terjurnal` → mana pun dipersempit:** larangan tetap berlaku, **kecuali** `Terjurnal`
+→ `Gagal` lewat penghapusan di atas. Begitu jurnalnya `PendingApproval`, `Approved`, atau `Posted`,
+jalannya tetap penolakan atau pembalikan jurnal.
+
+**Status jurnal hasil kejadian** — tambahan atas bagian 1.1 dan 1.2 MVP:
+
+| Dari | Tindakan | Ke | Aturan |
+|---|---|---|---|
+| `Draft` hasil kejadian | Ubah | — | **Dilarang** `409` (`ACC-DEC-119`) |
+| `Rejected` hasil kejadian | Sunting kembali | — | **Dilarang** `409` (`ACC-DEC-119`). Jalan keluarnya Ajukan ulang atau Hapus |
+| `Draft` hasil kejadian | Hapus | *(terhapus)*; kejadian → `Gagal` | Diizinkan (`ACC-DEC-116`) |
+| `Rejected` hasil kejadian | Hapus | *(terhapus)*; kejadian → `Gagal` | **Diizinkan** (`ACC-DEC-118`). Jurnal manual `Rejected` tetap tidak dapat dihapus |
+
+**Contoh.** `EVT-UJI-034A` membentuk `JU/2031/01/00003` (Draft). Petugas menghapus jurnal itu karena
+aturan `PATIENT_PAYMENT` salah akun. Sesudahnya `EVT-UJI-034A` berstatus `Gagal`, riwayat
+percobaannya bertambah "Jurnal draft JU/2031/01/00003 dihapus oleh Rizki.", dan daftar periksa
+Januari 2031 menghitung satu kejadian gagal sampai kejadian itu dicoba ulang atau diabaikan.
+
 ## 2. Periode akuntansi (`AccountingPeriodStatus`) — diperluas
 
 Nilai `PendingClosingApproval = 4` **ditambahkan di belakang**, bukan disisipkan. Menyisipkan di
@@ -194,11 +223,11 @@ tengah akan mengubah arti angka yang sudah tersimpan di database.
 
 | Dari | Ke | Pemicu | Wewenang | Prasyarat |
 |---|---|---|---|---|
-| `Open` | `PendingClosingApproval` | Pengajuan penutupan | `Period : Close` (Accounting Manager) | **Nol penghalang** — kini **tiga**: jurnal belum disahkan, kejadian gagal, dan shift kasir belum ditutup (`ACC-DEC-051` diperluas `ACC-DEC-065`) |
+| `Open` | `PendingClosingApproval` | Pengajuan penutupan | `Period : Close` (Accounting Manager) | **Nol penghalang** — kini **tiga**: jurnal belum disahkan, kejadian gagal, dan shift kasir belum ditutup (`ACC-DEC-051` diperluas `ACC-DEC-065`). **Sejak `0.5`:** menjadi **empat** — ditambah rekonsiliasi saldo subledger yang belum bersih, hanya sejak titik mulai rekonsiliasi badan hukum itu (`ACC-DEC-076`, `107`) |
 | `PendingClosingApproval` | `SoftClosed` | Persetujuan penutupan | `Period : Approve` (**Director**) | Penyetuju **bukan** pengaju |
 | `PendingClosingApproval` | `Open` | Penolakan penutupan | `Period : Approve` | Alasan tertulis wajib |
 | `SoftClosed` | `Open` | Pembukaan kembali | `Period : Close` | Alasan tertulis wajib (`ACC-DEC-027`) |
-| `SoftClosed` | `Closed` | Penutupan permanen | `Period : Close` | Sudah `SoftClosed` |
+| `SoftClosed` | `Closed` | Penutupan permanen | `Period : Close` | Sudah `SoftClosed`. **Sejak `0.5`:** rekonsiliasi saldo subledger periode itu bersih, dihitung ulang saat itu; bila belum → `409`, periode tetap `SoftClosed` (`ACC-DEC-111`). Tidak berlaku sebelum titik mulai rekonsiliasi |
 
 ### Perpindahan yang DILARANG
 
@@ -207,6 +236,12 @@ tengah akan mengubah arti angka yang sudah tersimpan di database.
 | `Open` | `SoftClosed` | Melompati persetujuan. Inilah yang diubah `ACC-DEC-052` — pada MVP perpindahan ini sah, pada Phase 2 tidak lagi |
 | `Closed` | mana pun | Tertutup permanen |
 | `PendingClosingApproval` | `Closed` | Penutupan permanen hanya dari `SoftClosed` |
+
+**Kenapa Setujui tidak ikut memeriksa rekonsiliasi** *(`0.5`)*. Periode yang disetujui masuk
+Tutup Sementara, yang masih dapat dikoreksi. Titik terakhir sebelum angka membeku adalah Tutup
+Permanen — di sanalah pemeriksaan kedua ditaruh (`ACC-DEC-111`). Contoh: diajukan 3 Oktober dalam
+keadaan cocok, disetujui, lalu 10 Oktober Finance mengirim saldo Piutang versi 2 yang berselisih
+Rp 1.500.000; Tutup Permanen 12 Oktober ditolak `409`.
 
 **Catatan kompatibilitas.** Periode yang sudah `SoftClosed` sebelum Phase 2 berdiri **tidak punya**
 riwayat persetujuan, dan itu benar — mereka ditutup ketika aturannya memang belum ada. Sistem tidak

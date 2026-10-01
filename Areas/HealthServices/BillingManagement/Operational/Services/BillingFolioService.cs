@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Enums;
@@ -82,10 +83,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
         private const string ReviewRequiredCode = "BIL_CALCULATION_REVIEW_REQUIRED";
 
         private readonly ApplicationDbContext _dbContext;
+        private readonly BillingClinicalChargeBridgeService _invoiceBridge;
 
-        public BillingFolioService(ApplicationDbContext dbContext)
+        public BillingFolioService(
+            ApplicationDbContext dbContext,
+            BillingClinicalChargeBridgeService invoiceBridge)
         {
             _dbContext = dbContext;
+            _invoiceBridge = invoiceBridge;
         }
 
         public async Task<BillingFolioDetailResponse?> GetByIdAsync(
@@ -120,6 +125,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
             string consumer = InternalConsumer,
             string operationType = RecognizeMilestoneOperation,
             CancellationToken cancellationToken = default)
+        {
+            var result = await RecognizeMilestoneCoreAsync(
+                request, actorUserId, consumer, operationType, cancellationToken);
+
+            // RJ-E2E-DEC-003: efek yang sudah ter-commit diteruskan ke invoice canonical. Jembatan
+            // memakai scope-nya sendiri dan tidak pernah melempar; kegagalannya hanya tercatat
+            // sebagai status sinkron efek untuk dikirim ulang, tidak mengubah hasil folio ini.
+            // Replay juga dilewatkan ke jembatan: efek yang sudah Synced diabaikan di sana.
+            if (result.Kind == BillingServiceResultKind.Success && result.Value is { } recognized)
+                await _invoiceBridge.TrySyncEffectAsync(recognized.ProcessingEffectId, cancellationToken);
+
+            return result;
+        }
+
+        private async Task<BillingServiceResult<RecognizeBillingMilestoneResponse>> RecognizeMilestoneCoreAsync(
+            RecognizeBillingMilestoneRequest request,
+            Guid actorUserId,
+            string consumer,
+            string operationType,
+            CancellationToken cancellationToken)
         {
             var validation = ValidateRequest(request, actorUserId, consumer, operationType);
             if (validation != null)
@@ -512,6 +537,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
                 ErrorMessage = errorMessage,
                 CorrelationId = request.CorrelationId,
                 CausationId = request.CausationId,
+                IsClinicalCancellation = request.IsClinicalCancellation,
+                // Ditandai di dalam transaksi folio, bukan oleh jembatan, supaya efek calon tidak
+                // pernah hilang walau jembatan gagal dipanggil sesudah commit (RJ-E2E-DEC-003).
+                InvoiceSyncStatus = BillingClinicalChargeBridgeService.IsCandidateSourceContext(request.SourceContext)
+                    ? BillingInvoiceSyncStatus.Pending
+                    : BillingInvoiceSyncStatus.NotApplicable,
                 CompletedAt = now,
                 CreateDateTime = now,
                 CreateBy = actorUserId,
@@ -694,7 +725,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
                 RuleSnapshot = NormalizeJson(request.RuleSnapshot),
                 RoundingSnapshot = NormalizeJson(request.RoundingSnapshot),
                 CorrelationId = request.CorrelationId == Guid.Empty ? null : request.CorrelationId,
-                CausationId = request.CausationId == Guid.Empty ? null : request.CausationId
+                CausationId = request.CausationId == Guid.Empty ? null : request.CausationId,
+                IsClinicalCancellation = request.IsClinicalCancellation
             };
         }
 

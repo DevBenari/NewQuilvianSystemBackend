@@ -70,6 +70,149 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.WorkingDiagnosis)
                 .HasMaxLength(500);
 
+            // Kolom operasional kajian medis dokter (paritas V1)
+            entity.Property(x => x.KajianUtamaPengkajian)
+                .HasMaxLength(150);
+
+            entity.Property(x => x.KeadaanUmum)
+                .HasMaxLength(100);
+
+            entity.Property(x => x.KeadaanKepala)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.KeadaanMata)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.KeadaanMulut)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.KeadaanTHT)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.KeadaanLeher)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.KeadaanKulit)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.KeadaanThorak)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.KeadaanDada)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.KeadaanJantung)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.KeadaanParuParu)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.KeadaanPunggung)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.KeadaanAbdomen)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.KeadaanGenitalia)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.KeadaanEkstremitas)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.KeadaanAnggotaGerak)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.StatusLokalis)
+                .HasMaxLength(2000);
+
+            entity.Property(x => x.KeadaanLainnya)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.IsDBNKepala)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsDBNMata)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsDBNMulut)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsDBNTHT)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsDBNLeher)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsDBNThorak)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsDBNJantung)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsDBNParu)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsDBNPunggung)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsDBNAbdomen)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsDBNGenital)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsDBNEkstremitas)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.PemeriksaanPenunjang)
+                .HasMaxLength(3000);
+
+            entity.Property(x => x.DiagnosaSaatIni)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.DiagnosaBanding)
+                .HasMaxLength(2000);
+
+            entity.Property(x => x.DaftarMasalah)
+                .HasMaxLength(2000);
+
+            entity.Property(x => x.Program)
+                .HasMaxLength(2000);
+
+            entity.Property(x => x.Terapi)
+                .HasMaxLength(3000);
+
+            entity.Property(x => x.EdukasiKepada)
+                .HasMaxLength(250);
+
+            entity.Property(x => x.PenyampaianEdukasi)
+                .HasMaxLength(500);
+
+            entity.Property(x => x.BahasaDigunakan)
+                .HasMaxLength(100);
+
+            entity.Property(x => x.JenisHambatan)
+                .HasMaxLength(250);
+
+            entity.Property(x => x.IsDaerah)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.IsAsing)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.TglTindakLanjut)
+                .HasColumnType("timestamp with time zone")
+                .IsRequired(false);
+
+            entity.Property(x => x.NamaTempat)
+                .HasMaxLength(200);
+
+            entity.Property(x => x.IndikasiTindakLanjut)
+                .HasMaxLength(1000);
+
+            entity.Property(x => x.KeteranganTindakLanjut)
+                .HasMaxLength(1000);
+
             entity.Property(x => x.BloodPressureSystolic)
                 .IsRequired(false);
 

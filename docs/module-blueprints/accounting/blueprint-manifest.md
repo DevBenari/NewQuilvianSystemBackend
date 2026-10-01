@@ -5,11 +5,11 @@ blueprint_id: ACC-BP-001
 module_name: Accounting
 module_slug: accounting
 module_prefix: ACC
-revision: 12   # 24 Sep 2026 - amendment pasca-ratifikasi Finance (ACC-DEC-082..091); 11 disamakan 15 Sep 2026
+revision: 16   # 1 Okt 2026 - jawaban atas surat Finance 15/16/21 (ACC-DEC-125..131, ACC-XMOD-0.6, dokumen saja); 15 = 30 Sep 2026 - amendment ACC-DEC-122..124 (dokumen saja, nol kode), GATE-DESAIN-0930; 14 = 29 Sep 2026 - amendment draft jurnal hasil kejadian (ACC-DEC-116..121), GATE-DESAIN-0929; 13 = 28 Sep 2026 rekonsiliasi saldo subledger (ACC-DEC-107..115), GATE-DESAIN-0928; 12 = 24 Sep 2026 pasca-ratifikasi Finance
 status: approved
 current_phase: ACC-PH-005
 created_at: 2026-09-01T09:53:36+07:00
-updated_at: 2026-09-24T00:00:00+07:00
+updated_at: 2026-09-28T00:00:00+07:00   # GATE-FIN-087 dibuka (FIN-DEC-035); malam: amendment rekonsiliasi saldo subledger (ACC-DEC-107..115) approved, GATE-DESAIN-0928 dibuka, revision 13
 last_verified_at: 2026-09-07T00:00:00+07:00
 approved_by: Rizki (Product/Domain Owner + Implementation Owner Accounting)
 approved_at: 2026-09-01T18:00:00+07:00
@@ -127,12 +127,13 @@ contract_versions:
   api: ACC-API-0.10
   state: ACC-STATE-0.3
   validation: ACC-VALIDATION-0.6
-  integration: ACC-INTEGRATION-0.5   # 0.3 approved 8 Sep 2026; teks 0.4 dan 0.5 menuliskan keputusan approved, approval teksnya menunggu Rizki
+  integration: ACC-INTEGRATION-0.5   # approved Rizki 24 Sep 2026 (teks 0.4 dan 0.5, GATE-DESAIN-0924)
   permission: ACC-PERMISSION-0.5
   testing: ACC-TEST-0.1
   mvp: ACC-MVP-0.1
   cross_module: ACC-XMOD-0.3   # approved 24 Sep 2026 (ACC-DEC-082); Finance meratifikasi 0.2 lewat FIN-DEC-001
-contracts_proposed: [ACC-API-0.11, ACC-VALIDATION-0.7, ACC-PERMISSION-0.6, ACC-API-0.12, ACC-VALIDATION-0.8, ACC-PERMISSION-0.7, ACC-STATE-0.4]   # 0.11/0.7/0.6 usulan 11 Sep; 0.12/0.8/0.7/0.4 usulan 24 Sep (ACC-DEC-084..088) - GATE-DESAIN-0924
+contracts_proposed: [ACC-API-0.11, ACC-VALIDATION-0.7, ACC-PERMISSION-0.6]   # usulan 11 Sep 2026, belum diratifikasi
+contracts_approved_amendments: [ACC-API-0.12, ACC-VALIDATION-0.8, ACC-PERMISSION-0.7, ACC-STATE-0.4]   # approved Rizki 24 Sep 2026 lewat GATE-DESAIN-0924; ditulis di atas 0.10/0.6/0.5/0.3 karena 0.11/0.7/0.6 masih usulan
 shared_engineering_rules:
   proposed: [QBE-MIG-001, QBE-MIG-002]
   canonical_home: docs/engineering/BACKEND_ENGINEERING_CONTRACT.md@origin/QuilvianIntegrationBackend
@@ -820,9 +821,232 @@ Delapan keputusan `ACC-DEC-074` sampai `ACC-DEC-081` dicatat pada
 | ID | Isi | Menahan |
 |---|---|---|
 | `GATE-DESAIN-0924` | Approval Rizki atas bagian 22 arsitektur dan usulan `ACC-API-0.12`, `ACC-VALIDATION-0.8`, `ACC-PERMISSION-0.7`, `ACC-STATE-0.4`, serta teks `ACC-INTEGRATION-0.4`/`0.5` | Seluruh task Wave B |
-| `GATE-FIN-087` | Finance menyetujui bentuk pesan saldo dan kode `SALDO-SUBLEDGER` | Wave D |
+| ~~`GATE-FIN-087`~~ | ~~Finance menyetujui bentuk pesan saldo dan kode `SALDO-SUBLEDGER`~~ **DIBUKA 28 September 2026** — lihat bagian *Pembaruan 28 September 2026* | ~~Wave D~~ |
 | Gerbang cutover G1–G6 | `ACC-DEC-089`, `090`, `091` | Pengaktifan pengiriman |
 | Coba Ulang untuk `Tertahan` di layar | Pertentangan `03-frontend-architecture.md` 11.2 lawan `ACC-STATE` | `FE-ACC-P2-012` |
 | Saldo untuk periode `Closed` | Perlu peringatan tersendiri atau tidak | Tidak menahan |
 | FR saldo subledger | Belum ada di `04-prd-to-mvp.md` | Coverage gap |
 | `UAT-P2-08` | Skenario perlu ditinjau terhadap `ACC-DEC-084` | Coverage gap |
+
+## Approval 24 September 2026 — `GATE-DESAIN-0924` dibuka
+
+| Field | Nilai |
+|---|---|
+| Diputuskan | Rizki, 24 September 2026, lewat pertanyaan approval eksplisit |
+| Yang di-approve | `02-backend-architecture.md` bagian 22; `ACC-API-0.12`, `ACC-VALIDATION-0.8`, `ACC-PERMISSION-0.7`, `ACC-STATE-0.4`; teks `ACC-INTEGRATION-0.4` dan `0.5`; roadmap backend revisi 4 dan frontend revisi 5 |
+| Keputusan tambahan | `ACC-DEC-092` (Coba Ulang untuk `Gagal` dan `Tertahan`), `ACC-DEC-093` (tanpa peringatan khusus untuk saldo periode `Closed`); `00-interview-decisions.md` revision 11 |
+| Akibat | `BE-ACC-P2-019`..`026` dan `FE-ACC-P2-011`..`013` lepas dari ⛔. `BE-ACC-P2-027`, `028`, dan `014` tetap ⛔ menunggu `GATE-FIN-087` — **dilepas 28 September 2026** |
+| Yang tetap `OPEN` | ~~`GATE-FIN-087`~~ (dibuka 28 September 2026); gerbang cutover G1–G6; FR saldo subledger di PRD; tinjauan `UAT-P2-08` |
+
+## Pembaruan 28 September 2026 — `GATE-FIN-087` dibuka
+
+| Field | Nilai |
+|---|---|
+| `revision` | **Tetap `12`.** Nol perubahan target: bentuk pesan saldo yang diterima Finance sama persis dengan `ACC-DEC-087`. Yang bergerak hanya status gerbang dan status task |
+| Dikerjakan lewat | `manage-module-blueprint` — pembaruan status, bukan amandemen desain |
+| `backend_commit_sha` | `91cc2aba` (branch `rizkiG`); working tree bersih sebelum pembaruan |
+| `frontend_commit_sha` | `95ea41cd9` (branch `RizkiV2`) — tidak disentuh |
+| Pemicu | Jawaban Finance atas `evidence/13` bagian 5: `finance-management/evidence/04-jawaban-atas-balasan-accounting.md` (25 September 2026), dikoreksi `finance-management/evidence/05-koreksi-jawaban-atas-balasan-accounting.md` pada hari yang sama. Kedua surat menyatakan decision log Finance yang berlaku bila berbeda, sehingga setiap butir dicocokkan juga ke `FIN-DEC-030`..`044` |
+| Diputuskan | Pilahan jawaban Finance dikonfirmasi Rizki, 28 September 2026 |
+
+### Dasar pembukaan
+
+`GATE-FIN-087` hanya dibuka bila Finance menyetujui **tegas** bentuk pesan saldo dan kode
+`SALDO-SUBLEDGER` (`evidence/13` bagian 5 butir 1). Ketiganya terpenuhi:
+
+| Yang diminta | Jawaban Finance | Bukti |
+|---|---|---|
+| Bentuk pesan saldo mengikuti `evidence/13` bagian 3.3 | "**Diterima apa adanya.** `FIN-DEC-023` (draft lima field) kami tarik, digantikan bentuk Anda" | `evidence/04` bagian 2; `FIN-DEC-035` `approved` Yasmin 25 September 2026 |
+| Kode `SALDO-SUBLEDGER` | Dipakai sebagai kode ke-18; pada koreksi tercatat "Tidak berubah" | `evidence/04` bagian 4 baris 18; `evidence/05` bagian 2 baris 1 dan bagian 4 |
+| Bentuk lima bidang Finance ditarik | `FIN-DEC-023` berstatus `superseded` oleh `FIN-DEC-035` | Decision log Finance |
+
+Bentuknya dibandingkan bidang demi bidang dengan bagian 3.3 dan tidak ada yang berbeda:
+`AccountingPeriodCode` teks maksimal 7 berbentuk `YYYY-MM`, `ControlAccountCode` teks maksimal 50,
+`Amount` boleh nol atau negatif khusus pesan saldo, `AccountingDate` sebagai tanggal cut-off, dan
+`SourceVersion` bilangan bulat positif. **Contoh:** saldo piutang penjamin per 30 November 2026
+Rp 425.000.000 tetap dikirim sebagai `Amount` `425000000.00`, `AccountingDate` `2026-11-30`,
+`AccountingPeriodCode` `2026-11`, `ControlAccountCode` `1-1201` — persis contoh `ACC-DEC-087`.
+
+### Akibat pada task
+
+| Task | Sebelum | Sesudah |
+|---|---|---|
+| `BE-ACC-P2-027` | ⛔ menunggu `GATE-FIN-087` | Belum dikerjakan — `READY` (Wave D-1) |
+| `BE-ACC-P2-028` | ⛔ menunggu `027` dan `GATE-FIN-087` | Belum dikerjakan — `READY` sesudah `027` (Wave D-2) |
+| `BE-ACC-P2-014` | ⛔ menunggu `028` | Belum dikerjakan — `READY` sesudah `028` (Wave D-3). **Koreksi pada hari yang sama:** kembali ⛔ — kontrak endpoint sisi subledger belum dirancang dan keputusan T6 terbuka (roadmap backend revisi 5, approved Rizki 28 Sep 2026) |
+
+Tidak satu pun dimulai tanpa perintah Rizki. Migration `027` tetap dibuat dan diterapkan Rizki sendiri.
+
+### Artefak yang disesuaikan
+
+| Artefak | Perubahan |
+|---|---|
+| `roadmap/backend-roadmap-phase2.md` | Metadata, grafik ringkasan, Grafik 1 dan 3, tabel gelombang, tabel ringkasan, kartu `014` (bentuk pesan lima bidang yang usang diganti `ACC-DEC-087`), kartu `027` dan `028` beserta baris Status baru. `roadmap_revision` tetap `4` |
+| `roadmap/frontend-roadmap-phase2.md` | Node cermin `BE-ACC-P2-014` dan tabel gelombang `FE-ACC-P2-008` |
+| `roadmap/requirement-traceability-phase2.md` | `FR-P2-040`, kepala bagian 3d, dua baris Wave D, ringkasan cakupan (backend 28 ✅ dari 31, frontend 14 ✅ dari 14), catatan `DEC-ACC-P2-011` |
+| `MODULE-STATUS.md` | Titik lanjut 28 September 2026 |
+| `00-interview-decisions.md` | Revision 11 → 12: `ACC-DEC-094`..`102`, fakta jawaban Finance, catatan pada `ACC-DEC-057` dan `090`, penutupan butir terbuka 24 September 2026 yang sudah dijawab Finance |
+| Manifest ini | `updated_at`, baris `GATE-FIN-087` pada amendment 24 September 2026, dan bagian ini |
+
+### Yang sengaja tidak disentuh
+
+| Hal | Alasan |
+|---|---|
+| Katalog kode `ACC-XMOD-0.3` bagian 3a (masih 17 kode) | Penambahan `SALDO-SUBLEDGER` dan enam kode transaksi usulan Finance butuh ratifikasi Accounting lebih dahulu (`ACC-DEC-083` butir 1: kode baru hanya lewat keputusan kedua pihak), lalu `design-business-module` |
+| `evidence/13` | Surat yang sudah terkirim ke Finance |
+| Dokumen `finance-management/` | Milik Finance, di luar wewenang pembaruan ini |
+| `artifact_hashes` | Masih usang sejak Phase 2 (lihat amendment 15 September 2026); tidak dihitung ulang sebagian |
+
+### Keputusan owner pada hari yang sama
+
+Sesudah pembaruan status di atas, Rizki mengambil sembilan keputusan lewat `grill-me`, dicatat
+sebagai `ACC-DEC-094` sampai `ACC-DEC-102` pada `00-interview-decisions.md` **revision 12**.
+Pada hari yang sama menyusul `ACC-DEC-103` sampai `ACC-DEC-106` (revision **13**) atas usulan kode
+Finance `evidence/06` dan `07`, dan ketiga surat Finance dijawab dalam satu balasan
+[`evidence/14`](evidence/14-balasan-accounting-atas-kode-finance-05-06-07.md). Katalog kini 26 kode
+diratifikasi. Blueprint `revision` tetap `12`, mengikuti preseden `ACC-DEC-092`/`093`. Kenaikan menyusul saat
+`design-business-module` mengubah kontrak — katalog `ACC-XMOD` bagian 3a dan
+`03-frontend-architecture.md` 11.2.
+
+### Yang masih `OPEN` sesudah pembaruan ini
+
+| Butir | Pemilik | Menahan |
+|---|---|---|
+| ~~Ratifikasi Accounting atas enam kode transaksi baru Finance (`FIN-OQ-017`)~~ **Sisi Accounting diputuskan 28 September 2026:** empat diratifikasi (`ACC-DEC-098`), `PENGAKUAN-KELEBIHAN-BAYAR` bersyarat (`ACC-DEC-100`), `SELISIH-KAS-SHIFT` diminta dipecah (`ACC-DEC-099`). Sisa: jawaban Finance atas syarat dan permintaan itu | Yasmin | G6 |
+| Balasan Accounting ke Finance memuat `ACC-DEC-098`..`102` dan dua pelurusan: `"Components": "TOTAL"` dikirim sebagai teks — setiap pesan semacam itu ditolak `400`; dan baris `HELD_FOR_FINALIZATION` "bagian 5.5" yang tidak ada di kontrak Accounting | Rizki → Yasmin | G4, G6 |
+| Refund kategori `SETTLEMENT`/`REFERRED_OUTPATIENT_ADMIN` — kini bagian G6 (`ACC-DEC-102`) | Yasmin + owner Billing | G6 |
+| Kode penanda shift tertutup dan `OD-ACC-07` (`ACC-DEC-101`) | Yasmin; Rizki | Penegakan `ACC-DEC-065` |
+| Kartu task baru untuk `ACC-DEC-095` dan `ACC-DEC-096` | Rizki, lewat `plan-module-delivery` | — |
+| Mekanisme token akun layanan (`FIN-OQ-016`) | Platform + Yasmin + Rizki | G3 |
+| Gerbang cutover G1–G6 | Lihat `ACC-DEC-089`, `090` | Pengaktifan pengiriman |
+| FR saldo subledger di PRD; tinjauan `UAT-P2-08` | Rizki | Coverage gap |
+
+## Amendment 28 September 2026 (malam) — rekonsiliasi saldo subledger, **`approved`**
+
+| Field | Nilai |
+|---|---|
+| `revision` | **12 → 13**, berlaku 28 September 2026 saat `GATE-DESAIN-0928` dibuka. `00-interview-decisions.md` revision 13 → **14** (`ACC-DEC-107`..`115`) |
+| Dikerjakan lewat | `grill-me` (amendment pass, **selesai**) → `design-business-module` (amendment, **approved**) → `plan-module-delivery` (belum; atas perintah Rizki) |
+| `backend_commit_sha` | `b476527d` (branch `rizkiG`); working tree bersih sebelum pass dimulai |
+| `frontend_commit_sha` | `a6d269077` (branch `RizkiV2`) — dibaca, tidak disentuh |
+| Pemicu | `BE-ACC-P2-014` dan `FE-ACC-P2-016` ⛔: kontrak endpoint sisi subledger belum dirancang, dan temuan T6 (`ACC-DEC-076` menahan setiap tutup bulan sebelum Finance mengirim saldo) |
+| Gerbang | **`GATE-DESAIN-0928` — DIBUKA Rizki, 28 September 2026**, lewat pertanyaan approval eksplisit atas bagian 23 arsitektur backend dan seluruh kontrak di bawah. Keputusan tambahan saat approval: `ACC-DEC-115` (pembacaan layar Rekonsiliasi tidak dicatat `LoggerService`). `014` dan `FE-016` tetap ⛔ di roadmap sampai `plan-module-delivery` melepasnya |
+
+### Artefak yang disesuaikan
+
+| Artefak | Versi | Perubahan | sha256 sesudah |
+|---|---|---|---|
+| `00-interview-decisions.md` | revision 14 | `ACC-DEC-107`..`115`, fakta source, 12 acceptance criteria, butir terbuka Finance | `4e925e42…d301a393` |
+| `02-backend-architecture.md` | revision 6, bagian 23 **`approved`** | Aturan perhitungan, butir penghalang keempat, dua titik penegakan, endpoint baru, class dan folder, nol migration; koreksi diagram 22.3 (`AsOfDate` `DateTime` + kolom `date`); butir terbuka 22.6 ditutup `ACC-DEC-093` | `24621fce…f20b3ff9` |
+| `contracts/api-contract.md` | `ACC-API-0.13` **approved** | `GET /reconciliation/subledger-comparison` beserta DTO, enum, dan contoh; penghalang keempat; `409` rekonsiliasi pada `submit-closing` dan `close` permanen; aturan 5–6 `SubledgerBalance` | `09e063fd…a6bd45d2` |
+| `contracts/validation-matrix.md` | `ACC-VALIDATION-0.9` **approved** | Dua aturan `409` di bagian 4, bagian 4b baru; nol aturan penerimaan baru | `57c18dcd…90098b37` |
+| `contracts/state-transition-matrix.md` | `ACC-STATE-0.5` **approved** | Prasyarat `Open` → `PendingClosingApproval` (empat penghalang) dan `SoftClosed` → `Closed` (rekonsiliasi bersih) | `3376afd6…f303d28d` |
+| `contracts/cross-module-contract.md` | `ACC-XMOD-0.4` **approved sisi Accounting** | Katalog bagian 3a menjadi **26 kode**; bagian 8a empat aturan pesan saldo; bagian 9 dan 10 dimutakhirkan | `f45b527c…c3977d73` |
+| `contracts/permission-audit-matrix.md` | catatan pada usulan `0.6` | Endpoint baru memakai `AccountingReconciliation : Read`; pencatatan pembacaan ditutup `ACC-DEC-115` (tidak dicatat) | `b5dce3ea…4058809c` |
+| `03-frontend-architecture.md` | revision 7 **`approved`** | 11.2 tabel berlabel (`ACC-DEC-097`) dan baris Jurnal pesan saldo; 11.3 penghalang keempat; 11.6 pemilih periode dan sisi subledger; temuan butir menu hilang lewat merge `8f01cf06c` | `3539eeb0…33a78769` |
+| `04-prd-to-mvp.md` | amandemen **`approved`** | `ACC-P2-CAP-008`, `ACC-P2-EPIC-07` (`FR-P2-035`..`044`), `UAT-P2-24`..`33`, DoD, gelombang `P2-RECON`, dua pertanyaan terbuka | `c621905f…9203dc12` |
+| Manifest ini | — | Bagian ini | — |
+
+**Catatan hash.** Kolom sha256 diukur saat `GATE-DESAIN-0928` dibuka. Langkah C pada hari yang sama
+mengubah lagi `00-interview-decisions.md`, `api-contract.md` (usulan lalu approved `ACC-API-0.14`),
+`validation-matrix.md` (`ACC-VALIDATION-0.10`), roadmap, traceability, dan `MODULE-STATUS.md`; hash
+sesudahnya tidak dihitung ulang di sini.
+
+### Yang sengaja tidak disentuh
+
+| Hal | Alasan |
+|---|---|
+| `integration-contract.md` bagian 6 | Tidak memuat aturan pesan saldo; nol perubahan |
+| Roadmap dan traceability | Diperbarui `plan-module-delivery` pada hari yang sama — backend revisi 6, frontend revisi 7, traceability bagian 3e, approved Rizki |
+| `MODULE-STATUS.md` | Diperbarui bersama roadmap (Langkah C) |
+| Dokumen `finance-management/` | Milik Finance |
+| `evidence/14` | Surat yang mungkin sudah terkirim; butir Finance baru dikirim lewat surat berikutnya |
+| `contract_versions` YAML dan `artifact_hashes` | Masih usang sejak Phase 2; tidak dihitung ulang sebagian |
+
+### Yang masih `OPEN` sesudah amendment ini
+
+| Butir | Pemilik | Menahan |
+|---|---|---|
+| ~~`GATE-DESAIN-0928` — approval draf~~ **DIBUKA 28 September 2026** | Rizki | — |
+| ~~Pembacaan layar Rekonsiliasi dicatat `LoggerService` atau tidak (`ACC-P2-OQ-REC-2`)~~ **Ditutup `ACC-DEC-115`** — tidak dicatat | Rizki | — |
+| ~~Lepas ⛔ `BE-ACC-P2-014` dan `FE-ACC-P2-016`, kartu `ACC-DEC-095`/`096`, pemulihan butir menu~~ **Selesai 28 September 2026** — roadmap backend revisi 6 dan frontend revisi 7 approved Rizki; `ACC-API-0.14` dan `ACC-VALIDATION-0.10` ikut approved | Rizki | — |
+| Build berpasangan `014` + `FE-016` + `FE-017`, `030` + `FE-018`, `029` | Rizki, atas perintah | — |
+| Kesanggupan Finance atas `ACC-XMOD-0.4` bagian 8a: cakupan empat kelompok termasuk Rp 0, arah tanda, tanggal akhir periode (`ACC-P2-OQ-REC-1`); jadwal terbit saldo | Yasmin | Cutover G4 |
+| Butir menu Rekonsiliasi hilang dari `menu-items.jsx` | Rizki, lewat `plan-module-delivery` | Keterjangkauan layar |
+
+## Amendment 29 September 2026 — draft jurnal hasil kejadian, **`approved`**
+
+| Field | Nilai |
+|---|---|
+| `revision` | **13 → 14**, berlaku 29 September 2026 saat `GATE-DESAIN-0929` dibuka. `00-interview-decisions.md` revision 14 → **15** (`ACC-DEC-116`..`121`, sudah `approved`) |
+| Dikerjakan lewat | audit kesiapan 29 September 2026 → `grill-me` (amendment pass, **selesai**) → `design-business-module` (amendment, **approved**) → `plan-module-delivery` (belum) |
+| `backend_commit_sha` | `618b206e` (branch `rizkiG`) + working tree belum di-commit (`BE-ACC-P2-029`, `030`, `034`, dokumen) |
+| `frontend_commit_sha` | `bf0a22537` (branch `RizkiV2`) + working tree `FE-ACC-009` |
+| Gerbang | **`GATE-DESAIN-0929` — DIBUKA Rizki, 29 September 2026**, lewat pertanyaan approval eksplisit ("Setujui semua") atas seluruh artefak di bawah, termasuk tombol Ubah/Hapus Rincian Jurnal |
+| Migration | Tidak ada |
+
+| Artefak | Versi | Perubahan |
+|---|---|---|
+| `contracts/state-transition-matrix.md` | `ACC-STATE-0.6` | `Terjurnal` → `Gagal` saat jurnalnya dihapus; larangan `Terjurnal` → mana pun dipersempit; status jurnal hasil kejadian |
+| `contracts/validation-matrix.md` | `ACC-VALIDATION-0.11` | Bagian 4c baru; baris jurnal belum disahkan di bagian 4 diperluas |
+| `contracts/api-contract.md` | `ACC-API-0.15` | `JournalDetailResponse` +2 bidang; `AvailableActions`; `PUT`/`DELETE /journals/{id}`; dampak daftar periksa dan kejadian |
+| `02-backend-architecture.md` | bagian 24 | Batas transaksi, class yang berubah, yang sengaja tidak dibuat |
+| `03-frontend-architecture.md` | amandemen tabel tombol Rincian Jurnal | Tombol Ubah/Hapus (gap `FE-ACC-007`), baris Asal, dialog Hapus jurnal hasil kejadian |
+| `04-prd-to-mvp.md` | `ACC-P2-EPIC-08` | `FR-P2-045`..`048`, `UAT-P2-34`..`38`, DoD |
+
+## Amendment 30 September 2026 — pelaku sistem, penjadwal jurnal berulang, shift kasir, **`approved`**
+
+| Field | Nilai |
+|---|---|
+| `revision` | **14 → 15**, berlaku 30 September 2026 saat `GATE-DESAIN-0930` dibuka. `00-interview-decisions.md` revision 15 → **16** (`ACC-DEC-122`..`124`, `approved`) |
+| Dikerjakan lewat | audit kesiapan 29 September 2026 → `grill-me` (amendment pass, **selesai**) → `design-business-module` (amendment dokumen, **approved**). **Tanpa `plan-module-delivery`**: nol kartu baru, atas arahan Rizki — development Accounting dinyatakan selesai sesuai lingkup yang sudah dibentuk |
+| `backend_commit_sha` | `a3f2514a` (branch `rizkiG`) + working tree dokumen |
+| `frontend_commit_sha` | `2c2190858` (branch `RizkiV2`) |
+| Gerbang | **`GATE-DESAIN-0930` — DIBUKA Rizki, 30 September 2026** ("saya setujui") |
+| Kode dan migration | Tidak ada |
+
+| Artefak | Versi | Perubahan |
+|---|---|---|
+| `04-prd-to-mvp.md` | bagian 24, `ACC-P2-EPIC-07`, bagian 27 | `FR-P2-038` ditunda menjadi syarat gerbang cutover G6; DoD butir 1 menjadi 47 FR (`ACC-DEC-124`) |
+| `contracts/cross-module-contract.md` | `ACC-XMOD-0.5` | G6 bertambah penegakan shift kasir; bagian 9 bertambah OQ-124-1; bagian 4b diselaraskan dengan `api-contract.md` |
+| `contracts/api-contract.md` | `ACC-API-0.16` | Tanda terima: `201` berstatus `Gagal` untuk pesan saldo, dan nomor jurnal yang dapat berganti (`ACC-DEC-116`) — penyelarasan dengan perilaku source, nol perubahan kode |
+| `roadmap/requirement-traceability-phase2.md` | baris `FR-P2-038` | Penegakan penuh keluar dari Phase 2 |
+| `MODULE-STATUS.md` | titik lanjut 30 September 2026 | **Development Accounting ✅ SELESAI** |
+
+### Yang sengaja tidak disentuh
+
+`02-backend-architecture.md`, `contracts/validation-matrix.md`, `03-frontend-architecture.md`, dan kedua
+roadmap Phase 2 tidak berubah. Usulan bagian 25 arsitektur — bagian `Accounting` di `appsettings.json`,
+penjaga penjadwal jurnal berulang, validasi nilai jenis akun dan saldo normal — **dibatalkan** atas
+keberatan Rizki. `ACC-DEC-122`/`123` dijalankan sebagai langkah operasional, dan temuan nilai `0` pada
+jenis akun dan saldo normal menjadi catatan impor bagan akun di `MODULE-STATUS.md`.
+
+### Yang masih `OPEN` sesudah amendment ini
+
+| Butir | Pemilik |
+|---|---|
+| OQ-124-1 — bagaimana Accounting mengetahui shift kasir yang dibuka; syarat G6 | Rizki + Yasmin |
+| Pengguna "Sistem Akuntansi" per lingkungan dan tiga nilai konfigurasi di server (`ACC-DEC-122`, `123`) | Admin sistem, Platform |
+
+## Amendment 1 Oktober 2026 — jawaban atas surat Finance 15, 16, dan 21
+
+| Field | Nilai |
+|---|---|
+| `revision` | **15 → 16**, 1 Oktober 2026. `00-interview-decisions.md` revision 16 → **17** (`ACC-DEC-125`..`131`, `approved`) |
+| Dikerjakan lewat | Surat Finance `finance-management/evidence/15`, `16`, `21` → `grill-me` (amendment pass, **selesai**) → penulisan keputusan ke kontrak (preseden `ACC-DEC-074`). **Tanpa `plan-module-delivery`**: nol kartu baru |
+| `backend_commit_sha` | `5c6632d2` (branch `rizkiG`) + working tree dokumen |
+| `frontend_commit_sha` | `5ec2b3b8c` (branch `RizkiV2`) |
+| Kode dan migration | Tidak ada |
+
+| Artefak | Versi | Perubahan |
+|---|---|---|
+| `00-interview-decisions.md` | revision 17 | `ACC-DEC-125`..`131`; OQ-131-1..4 |
+| `contracts/cross-module-contract.md` | `ACC-XMOD-0.6` | Katalog 34 kode aktif + dua kode penanda (bagian 3a.2b); bagian 3a.3 dan 9 dimutakhirkan; G6 bertambah nilai nol penanda dan akun debit refund `REFERRED_OUTPATIENT_ADMIN` |
+| `evidence/16-balasan-accounting-atas-surat-finance-15-16-21.md` | baru | Surat balasan beserta lima pertanyaan balik |
+
+### Yang masih `OPEN` sesudah amendment ini
+
+| Butir | Pemilik |
+|---|---|
+| OQ-131-1 kas per shift atau per kuitansi; OQ-131-2 saldo per akun dan utang honor dokter; OQ-131-3 saldo negatif; OQ-131-4 pernyataan ulang saldo Kas Kasir | Yasmin (jawaban atas `evidence/16`) |
+| OQ-124-1 shift yang dibuka; akun debit refund `REFERRED_OUTPATIENT_ADMIN` | Yasmin, Rizki, owner Billing, pemilik proses akuntansi — syarat G6 |

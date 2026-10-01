@@ -191,7 +191,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             [FromQuery] Guid? diagnosisChapterId,
             [FromQuery] bool onlySelectable = true,
             [FromQuery] bool onlyActive = true,
-            [FromQuery] int take = 50)
+            [FromQuery] int take = 50,
+            [FromQuery] string? icdVersion = "ICD-10")
         {
             if (take <= 0) take = 50;
             if (take > 100) take = 100;
@@ -209,17 +210,38 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             if (diagnosisChapterId.HasValue && diagnosisChapterId.Value != Guid.Empty)
                 query = query.Where(x => x.DiagnosisChapterId == diagnosisChapterId.Value);
 
-            if (!string.IsNullOrWhiteSpace(search))
+            // BE-RWI-142. Kode tindakan ICD-9 disimpan pada tabel yang sama dengan diagnosa ICD-10
+            // (Icd10DiagnosisSeeder). Tanpa penyaring versi, mengetik "99" di kolom diagnosa SOAP
+            // dapat menawarkan kode tindakan. Nilai kosong mematikan penyaring untuk pemanggil lama.
+            if (!string.IsNullOrWhiteSpace(icdVersion))
             {
-                var keyword = search.Trim().ToLower();
+                var versi = icdVersion.Trim().ToUpper();
+                query = query.Where(x => x.IcdVersion.ToUpper() == versi);
+            }
 
+            var keyword = string.IsNullOrWhiteSpace(search)
+                ? null
+                : search.Trim().ToLower();
+
+            if (keyword != null)
+            {
                 query = query.Where(x =>
                     x.DiagnosisCode.ToLower().Contains(keyword) ||
                     x.DiagnosisName.ToLower().Contains(keyword));
             }
 
-            var data = await query
-                .OrderBy(x => x.DiagnosisCode)
+            // BE-RWI-142. Urutan relevansi: kode persis, lalu awalan kode, lalu nama. Mengetik "J18"
+            // menaruh J18.0, J18.1, ... di atas, bukan kode lain yang kebetulan memuat "j18" pada
+            // namanya. Tanpa kata kunci, urutan tetap per kode seperti sebelumnya.
+            var ordered = keyword == null
+                ? query.OrderBy(x => x.DiagnosisCode)
+                : query
+                    .OrderBy(x =>
+                        x.DiagnosisCode.ToLower() == keyword ? 0 :
+                        x.DiagnosisCode.ToLower().StartsWith(keyword) ? 1 : 2)
+                    .ThenBy(x => x.DiagnosisCode);
+
+            var data = await ordered
                 .Take(take)
                 .Select(x => new PatientDiagnosisMasterOptionResponse
                 {

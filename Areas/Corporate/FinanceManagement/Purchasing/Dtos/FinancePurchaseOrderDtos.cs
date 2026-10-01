@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Dtos;
 
 public sealed class PurchaseOrderItemRequestDto
@@ -38,6 +40,34 @@ public class PurchaseOrderResponse
 public sealed class PurchaseOrderDetailResponse : PurchaseOrderResponse
 {
     public List<PurchaseOrderItemResponse> Items { get; set; } = [];
+
+    /// <summary>Riwayat GR anak PO ini, ringkas — delta kontrak BE-FIN-032 (lihat laporan task):
+    /// api-contract.md §B.1 tidak mendaftarkan field ini, ditambahkan karena tanpanya GR yang
+    /// sudah tercatat pada sesi sebelumnya tidak dapat ditampilkan kembali lewat GET /{id}.</summary>
+    public List<PurchaseOrderGoodsReceiptSummaryResponse> GoodsReceipts { get; set; } = [];
+}
+
+/// <summary>Ringkasan GR untuk ditampilkan di dalam rincian PO induknya — bukan bentuk penuh
+/// GoodsReceiptResponse (tidak menyertakan Items baris GR, cukup untuk daftar riwayat).</summary>
+public sealed class PurchaseOrderGoodsReceiptSummaryResponse
+{
+    public Guid Id { get; set; }
+    public string GRNumber { get; set; } = string.Empty;
+    public DateOnly ReceivedDate { get; set; }
+    public string Status { get; set; } = string.Empty;
+}
+
+/// <summary>GET / — daftar PO berpaging (FIN-API-1.1 §B.1, kolom Request `PurchaseOrderQuery`).
+/// Filter persis sesuai kontrak: supplier, status, tanggal (RequestedAt) — bukan filter tambahan
+/// yang tidak diminta.</summary>
+public sealed class PurchaseOrderQuery
+{
+    public Guid? SupplierId { get; set; }
+    public string? Status { get; set; }
+    public DateOnly? DateFrom { get; set; }
+    public DateOnly? DateTo { get; set; }
+    [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
+    [Range(1, 100)] public int PageSize { get; set; } = 25;
 }
 
 public sealed class CreatePurchaseOrderRequest

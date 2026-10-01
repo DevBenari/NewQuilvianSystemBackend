@@ -53,6 +53,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             PatientAssessmentType.PainMonitoring => ClinicalInstrumentKind.PainScale,
             PatientAssessmentType.EducationAssessment => ClinicalInstrumentKind.EducationAssessmentForm,
             PatientAssessmentType.DischargePlanning => ClinicalInstrumentKind.DischargePlanningForm,
+            PatientAssessmentType.CaseManagementAssessment => ClinicalInstrumentKind.CaseManagementChecklist,
             _ => null
         };
 

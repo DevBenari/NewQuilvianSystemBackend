@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Services;
@@ -29,6 +31,37 @@ public sealed class FinanceInvoiceExchangeService
         await _dbContext.FinInvoiceExchanges
             .AsNoTracking()
             .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+
+    // ------------------------------------------------------------------------------------
+    // Daftar Tukar Faktur — GET /, disaring supplier/status (api-contract.md §B.3)
+    // ------------------------------------------------------------------------------------
+
+    public async Task<PagedResult<FinInvoiceExchange>> GetPagedAsync(InvoiceExchangeQuery query, CancellationToken cancellationToken)
+    {
+        var q = _dbContext.FinInvoiceExchanges.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (query.SupplierId.HasValue && query.SupplierId.Value != Guid.Empty)
+            q = q.Where(x => x.SupplierId == query.SupplierId.Value);
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+            q = q.Where(x => x.Status == query.Status.Trim().ToUpperInvariant());
+
+        var totalCount = await q.CountAsync(cancellationToken);
+
+        var items = await q.OrderByDescending(x => x.CreateDateTime)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<FinInvoiceExchange>
+        {
+            Items = items,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize,
+            TotalData = totalCount,
+            TotalPage = (int)Math.Ceiling(totalCount / (double)query.PageSize)
+        };
+    }
 
     // ------------------------------------------------------------------------------------
     // Pencatatan (state-transition-matrix.md §B.3, FIN-DEC-051, FR-FIN-082)
