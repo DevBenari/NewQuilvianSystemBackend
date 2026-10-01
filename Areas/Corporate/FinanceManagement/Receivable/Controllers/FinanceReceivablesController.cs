@@ -12,6 +12,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Con
 /// <summary>
 /// Aggregate ber-lifecycle (transaksi, bukan master data) — perpindahan status lewat aksi
 /// POST /{id}/&lt;aksi&gt;, bukan PATCH /{id}/status generik (transaction-endpoint-standard.md).
+/// BE-FIN-053 (FIN-DES-073): GET /write-offs adalah permukaan BACA lintas piutang untuk layar
+/// "Pemutihan Piutang" — nol aksi baru, pembuatan/persetujuan/penolakan write-off tetap lewat
+/// endpoint per-piutang di bawah beserta maker-checker-nya.
 /// </summary>
 [ApiController]
 [Authorize]
@@ -55,6 +58,14 @@ public sealed class FinanceReceivablesController : ControllerBase
     public async Task<IActionResult> Get([FromQuery] ReceivableQuery request, CancellationToken cancellationToken) =>
         Ok(ApiResponse<PagedResult<ReceivableResponse>>.Ok(
             await _service.GetPagedAsync(request, cancellationToken), "Piutang berhasil diambil."));
+
+    [HttpGet("write-offs")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<ReceivableWriteOffRowResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetWriteOffs([FromQuery] ReceivableWriteOffQuery request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<PagedResult<ReceivableWriteOffRowResponse>>.Ok(
+            await _service.GetWriteOffsAsync(request, cancellationToken), "Daftar penghapusan piutang berhasil diambil."));
 
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]

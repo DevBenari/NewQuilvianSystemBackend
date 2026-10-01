@@ -459,3 +459,86 @@ bagian 5. Ringkasnya:
 - Tidak menyembunyikan satu pun dependency eksternal: keempat pemiliknya disebut namanya.
 - Tidak menjalankan builder mana pun.
 - Tidak mengubah cakupan MVP yang sudah dikunci owner.
+
+---
+
+# AMENDMENT ROADMAP REVISI 13 — `EPIC FIN-18` dan `EPIC FIN-19`
+
+```yaml
+roadmap_revision: 13
+roadmap_status: DRAFT
+blueprint_revision: 13
+blueprint_status: draft — FIN-DES-070..077 dan lima kontrak turunannya BELUM disetujui owner
+decisions: FIN-DEC-094..FIN-DEC-106 (approved)
+backend_source_sha: d6978487
+frontend_source_sha: d2e8a3538
+tanggal: 1 Oktober 2026
+```
+
+## Dua epic baru
+
+| Epic | Isi | Pemicu |
+|---|---|---|
+| `EPIC FIN-18` | Pelacakan klaim penjamin pada tagihan gabungan, dan penyelarasan seluruh menu Transaksi A/R dan A/P ke bentuk sistem produksi V1 | `FIN-DEC-094`..`098`, `105`, `106` |
+| `EPIC FIN-19` | Piutang sewa non-pasien: tagihan parkir dan tenant beserta umur piutangnya | `FIN-DEC-099`..`104` |
+
+## Gelombang
+
+| Gelombang | Epic | Task | Status |
+|---|---|---|---|
+| `REV-13A` | `FIN-18` | `FE-FIN-016`, `FE-FIN-017`, `FE-FIN-018` | Direncanakan 1 Oktober 2026 — **nol pekerjaan backend**, hasil terlihat paling cepat |
+| `REV-13B` | `FIN-18` | `BE-FIN-053` 🟡, `BE-FIN-054`, `BE-FIN-055` · `FE-FIN-019`, `FE-FIN-021` | 🟡 Sebagian 1 Oktober 2026 — source `BE-FIN-053` lengkap, `dotnet build` NOT RUN ([laporan](../task/report/backend/BE-FIN-053.md)); `BE-FIN-054`/`055` belum dikerjakan |
+| `REV-13C` | `FIN-18` | `BE-FIN-052` 🟡 · `FE-FIN-020` | 🟡 Sebagian 1 Oktober 2026 — source dan migration `BE-FIN-052` lengkap, `dotnet build` NOT RUN, eksekusi migration belum diminta ([laporan](../task/report/backend/BE-FIN-052.md)) |
+| `REV-13D` | `FIN-19` | `BE-FIN-056`, `BE-FIN-057` · `FE-FIN-022`, `FE-FIN-023` | Direncanakan 1 Oktober 2026 — dua tabel baru, butuh izin migration |
+| **Di luar gelombang** | `FIN-19` | Integrasi pelunasan sewa ke kas harian, setoran bank, dan kejadian akuntansi | **Tertahan `FIN-OQ-044`** — sengaja belum bernomor |
+
+Keempat gelombang `REV-13A`..`13D` **saling bebas** di tingkat backend; yang mengikat hanya
+`FE-FIN-016` sebagai prasyarat seluruh task frontend, dan `BE-FIN-056` sebelum `BE-FIN-057`.
+
+## Register task backend
+
+| Task ID | Outcome | Gelombang | Status |
+|---|---|---|---|
+| 🟡 `BE-FIN-052` | Sumbu klaim penjamin pada `FinReceivableInvoiceBatch` (7 kolom, migration, 3 endpoint aksi) | `REV-13C` | 🟡 Sebagian 1 Oktober 2026 — source dan migration lengkap, `dotnet build` NOT RUN, eksekusi migration belum diminta ([laporan](../task/report/backend/BE-FIN-052.md)) |
+| 🟡 `BE-FIN-053` | `GET /receivables/write-offs` — daftar penghapusan piutang lintas piutang | `REV-13B` | 🟡 Sebagian 1 Oktober 2026 — source lengkap, `dotnet build` NOT RUN ([laporan](../task/report/backend/BE-FIN-053.md)) |
+| `BE-FIN-054` | `GET /receipts/reversed-allocations` — daftar alokasi penerimaan yang dibalik | `REV-13B` | Direncanakan 1 Oktober 2026 |
+| `BE-FIN-055` | Saringan segmen pada `GET /receivables/aging` | `REV-13B` | Direncanakan 1 Oktober 2026 |
+| `BE-FIN-056` | Skema piutang sewa non-pasien (2 model, 2 configuration, 1 migration) | `REV-13D` | Direncanakan 1 Oktober 2026 |
+| `BE-FIN-057` | Layanan dan 10 endpoint piutang sewa non-pasien | `REV-13D` | Direncanakan 1 Oktober 2026 |
+
+## Register task frontend
+
+| Task ID | Outcome | Gelombang | Status |
+|---|---|---|---|
+| `FE-FIN-016` | Menu Keuangan berbentuk dua grup datar mengikuti V1; submenu "Pembelian" dicabut | `REV-13A` | Direncanakan 1 Oktober 2026 |
+| `FE-FIN-017` | Tujuh layar pandangan tersaring rumpun A/R | `REV-13A` | Direncanakan 1 Oktober 2026 |
+| `FE-FIN-018` | Lima layar pandangan tersaring rumpun A/P beserta daftar tanda terima barang | `REV-13A` | Direncanakan 1 Oktober 2026 |
+| `FE-FIN-019` | Layar alokasi yang dibalik dan penghapusan piutang (baca saja) | `REV-13B` | Direncanakan 1 Oktober 2026 |
+| `FE-FIN-020` | Layar Manajemen Klaim — dua sumbu status berdampingan | `REV-13C` | Direncanakan 1 Oktober 2026 |
+| `FE-FIN-021` | Umur piutang pasien per segmen Kasir | `REV-13B` | Direncanakan 1 Oktober 2026 |
+| `FE-FIN-022` | Layar tagihan sewa beserta butir menu "Tagihan Sewa" (`FIN-DEC-105`) | `REV-13D` | Direncanakan 1 Oktober 2026 |
+| `FE-FIN-023` | Umur piutang sewa Parkir dan Tenant | `REV-13D` | Direncanakan 1 Oktober 2026 |
+
+## Traceability
+
+| Kebutuhan | Keputusan | Rancangan | Kontrak | Backend | Frontend | Bukti verifikasi | Status |
+|---|---|---|---|---|---|---|---|
+| Menu Transaksi A/R dan A/P mengikuti bentuk V1 | `FIN-DEC-094`, `105` | `FIN-DES-073` | `03-frontend-architecture.md` 17.2 | — | `FE-FIN-016`..`018`, `022` | `FIN-TEST-1.6` G.1 | Direncanakan |
+| Pelacakan klaim penjamin | `FIN-DEC-095`, `097`, `098` | `FIN-DES-070`..`072` | `FIN-API-1.3` D.1, `FIN-STATE-1.4` D.1 | `BE-FIN-052` 🟡 | `FE-FIN-020` | `FIN-TEST-1.6` G.1 | 🟡 Sebagian 1 Oktober 2026 — source `BE-FIN-052` lengkap ([laporan](../task/report/backend/BE-FIN-052.md)) |
+| Ayat Silang | `FIN-DEC-096` | — | — | **Nol task** | `FE-FIN-016` (butir menu saja) | `FIN-TEST-1.6` G.1 | Direncanakan — ditutup sebagai kapabilitas yang sudah ada |
+| Daftar penghapusan piutang dan alokasi yang dibalik | `FIN-DEC-094` | `FIN-DES-073` | `FIN-API-1.3` D.2 | `BE-FIN-053` 🟡, `054` | `FE-FIN-019` | `FIN-TEST-1.6` G.1 | 🟡 Sebagian — `BE-FIN-053` source lengkap ([laporan](../task/report/backend/BE-FIN-053.md)); `BE-FIN-054` belum dikerjakan |
+| Umur piutang per segmen | `FIN-OQ-040` (terjawab) | — | `FIN-API-1.4` | `BE-FIN-055` | `FE-FIN-021` | `FIN-TEST-1.7` H.1 | Direncanakan |
+| Piutang sewa parkir dan tenant | `FIN-DEC-099`..`104` | `FIN-DES-074`..`077` | `FIN-API-1.4` E.1, `FIN-STATE-1.5` E.1 | `BE-FIN-056`, `057` | `FE-FIN-022`, `023` | `FIN-TEST-1.7` H.1 | Direncanakan |
+| Pelunasan sewa tercatat sebagai kas masuk dan kejadian akuntansi | **Belum ada** | **Belum ada** | **Belum ada** | **Belum ada** | **Belum ada** | **Belum ada** | ⛔ **GAP TERBUKA** — `FIN-OQ-044` |
+
+Baris terakhir adalah **gap yang disengaja dan dicatat terbuka**, bukan kelalaian traceability:
+bagian kode kejadiannya menuntut ratifikasi Accounting dan bukan wewenang Finance sepihak.
+
+## Prasyarat sebelum eksekusi
+
+| # | Prasyarat | Keadaan |
+|---:|---|---|
+| 1 | Approval owner atas `FIN-DES-070`..`077` dan kelima kontrak turunannya | **Belum** — seluruhnya `draft` |
+| 2 | Izin membuat migration | `BE-FIN-052` ✅ diberikan dan dibuat 1 Oktober 2026; `BE-FIN-056` belum diminta |
+| 3 | Izin mengeksekusi migration ke database | Belum diminta — **wewenang terpisah** |
+| 4 | Pemilik mengetahui batas `FIN-OQ-044` sebelum `EPIC FIN-19` dipakai pada data sungguhan | **MUST** disampaikan saat approval |

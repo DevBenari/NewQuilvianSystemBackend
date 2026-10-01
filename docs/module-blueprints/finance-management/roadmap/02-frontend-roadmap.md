@@ -387,3 +387,89 @@ akan diikuti seluruh layar berikutnya.
 | 17 | *(revisi 6)* Menu sidebar memuat submenu "Pembelian" berisi 5 layar Purchasing AP; "Supplier Invoice" direlabel menjadi "Faktur Pembelian"; "Tagihan Gabungan Penjamin" sejajar "Piutang"; seluruhnya difilter Finance.AP dan Finance.AR tanpa galat runtime (FE-FIN-014) |
 | 18 | *(revisi 8)* Layar/tab pemantauan saldo subledger bulanan (`FE-FIN-015`) membaca kelengkapan 4 kontrol akun dari backend, menampilkan nominal non-negatif dan status pengiriman outbox, serta memicu kalkulasi snapshot dengan modal konfirmasi dan proteksi RBAC |
 
+
+---
+
+# AMENDMENT ROADMAP REVISI 13 — `EPIC FIN-18` dan `EPIC FIN-19`
+
+```yaml
+roadmap_revision: 13
+roadmap_status: DRAFT
+blueprint_revision: 13
+blueprint_status: draft — desain FIN-DES-070..077 BELUM disetujui owner
+decisions: FIN-DEC-094..FIN-DEC-106 (seluruhnya approved)
+contract_versions: FIN-API-1.4, FIN-STATE-1.5, FIN-VAL-1.6, FIN-PERM-1.6, FIN-TEST-1.7 (seluruhnya draft)
+backend_source_sha: d6978487
+frontend_source_sha: d2e8a3538
+tanggal: 1 Oktober 2026
+```
+
+**Status `DRAFT`.** Keputusan bisnisnya sudah `approved`, rancangan dan kontraknya belum. Task di
+bawah **MUST NOT** dieksekusi sebelum approval desain turun.
+
+## Grafik Urutan Dependency — REV-13
+
+Delapan task frontend. Prasyarat milik roadmap backend digambar sebagai cermin baca-saja berlabel
+`[BE]`; ia **tidak** dihitung sebagai task roadmap ini.
+
+```text
+FE-FIN-016 ─┬─> FE-FIN-017
+            ├─> FE-FIN-018
+            ├─> FE-FIN-019
+            ├─> FE-FIN-020
+            ├─> FE-FIN-021
+            ├─> FE-FIN-022
+            └─> FE-FIN-023
+
+BE-FIN-053 [BE] 🟡 ─┬─> FE-FIN-019
+BE-FIN-054 [BE]   ─┘
+
+BE-FIN-052 [BE] 🟡 ───> FE-FIN-020
+
+BE-FIN-055 [BE] ───> FE-FIN-021
+
+BE-FIN-057 [BE] ─┬─> FE-FIN-022
+                 └─> FE-FIN-023
+```
+
+**Legenda:** `[BE]` menandai task milik `01-backend-roadmap.md` yang digambar di sini sebagai
+prasyarat baca-saja.
+
+| Gelombang | Boleh mulai setelah | Task |
+|---|---|---|
+| `REV-13A` | Approval desain | `FE-FIN-016` — dua grup menu berdiri lebih dulu supaya butir layar berikutnya punya tempat bergantung |
+| `REV-13A` | `FE-FIN-016` | `FE-FIN-017`, `FE-FIN-018` — **nol pekerjaan backend**, hasil terlihat paling cepat |
+| `REV-13B` | `FE-FIN-016`, `BE-FIN-053` 🟡 ✚ `BE-FIN-054` | `FE-FIN-019` |
+| `REV-13B` | `FE-FIN-016`, `BE-FIN-055` | `FE-FIN-021` |
+| `REV-13C` | `FE-FIN-016`, `BE-FIN-052` 🟡 | `FE-FIN-020` |
+| `REV-13D` | `FE-FIN-016`, `BE-FIN-057` | `FE-FIN-022`, `FE-FIN-023` |
+
+## Task REV-13
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `FE-FIN-016` | Menu Keuangan berbentuk dua grup datar "Transaksi A/R" dan "Transaksi A/P" seperti sistem produksi V1 | `FIN-DEC-094` (**supersedes `FIN-DEC-060`**) | `03-frontend-architecture.md` bagian 17.2 | `menu-items.jsx`, `filter-menu-items-by-permission.jsx` — penyaring **tidak** disentuh | Susun ulang kedua grup; daftarkan **hanya** butir yang rutenya sudah ada hari ini (13 butir); submenu "Pembelian" dicabut | — | Kedua grup tampil dengan label dan urutan V1; **nol** butir mengarah ke rute yang belum ada; butir yang dijaga `Finance.AP`/`Finance.AR` V2 tidak berubah hak aksesnya | `npm run lint:errors`; `npm run build`; verifikasi manual sidebar per peran | Product Owner — **risiko:** mendaftarkan butir yang layarnya belum dibuat, menghasilkan tautan mati. Butir layar baru didaftarkan oleh task layarnya masing-masing | Lint + build PASS; laporan task tracked ada; roadmap ditandai |
+| `FE-FIN-017` | Tujuh layar pandangan tersaring rumpun A/R terjangkau dari menu | `FIN-DEC-094`; `FIN-DES-073` | `03-frontend-architecture.md` 17.2, 17.3 | Pola layar daftar modul ini; endpoint `GET /receivable-invoice-batches`, `GET /receivables`, `GET /receipts/register` yang sudah ada | Canceled Invoice, Report Canceled Invoice, Report Receiveable AR, Report Payment AR, Report Closed Billing, Report AR Created, Piutang Korporat/Penjamin — beserta pendaftaran butir menunya | `FE-FIN-016` | Saringan bawaan tiap layar **dikirim ke backend**, bukan disaring di klien; paginasi benar pada data lebih dari satu halaman; keempat keadaan (memuat/kosong/gagal/berisi) ada | `npm run lint:errors`; `npm run build`; verifikasi manual tiap layar termasuk paginasi | Product Owner — **risiko:** menyaring di klien membuat paginasi dan jumlah baris salah | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
+| `FE-FIN-018` | Lima layar pandangan tersaring rumpun A/P beserta daftar tanda terima barang terjangkau dari menu | `FIN-DEC-094`; `FIN-DES-073` | `03-frontend-architecture.md` 17.2, 17.3 | Keempat endpoint `purchasing/reports` dan `GET /goods-receipts` yang **sudah ada** | Rekap Purchasing AP, Laporan Tukar Faktur, Laporan Jatuh Tempo, Rekonsiliasi Tagihan (pecahan dari tab), serta Penerima Pesanan — beserta butir menunya | `FE-FIN-016` | Keempat laporan memakai endpointnya masing-masing, bukan satu endpoint disaring klien; Penerima Pesanan **hanya membaca** — pencatatan tanda terima tetap dari detail Purchase Order | `npm run lint:errors`; `npm run build`; verifikasi manual tiap layar | Product Owner — **risiko:** memindahkan alur pencatatan tanda terima keluar dari detail PO, yang tidak diminta keputusan mana pun | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
+| `FE-FIN-019` | Alokasi penerimaan yang dibalik dan penghapusan piutang dapat ditelusuri dari layar sendiri | `FIN-DEC-094` | `FIN-API-1.4` D.2 | Pola layar daftar modul ini | Layar "Receiveable AR Canceled" dan "Pemutihan Piutang", keduanya **baca saja**, beserta butir menunya | `FE-FIN-016`, `BE-FIN-053` [BE] 🟡, `BE-FIN-054` [BE] | Keduanya **tidak** menyediakan aksi membuat atau menyetujui apa pun — pembuatan write-off dan pembalikan alokasi tetap dari layar asalnya beserta jenjangnya | `npm run lint:errors`; `npm run build`; verifikasi manual | Product Owner — **risiko:** menambahkan tombol aksi di layar baca, yang akan melewati maker-checker yang sudah ada | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
+| `FE-FIN-020` | Petugas AR melacak jawaban penjamin atas tagihan gabungan, terpisah dari status pelunasannya | `FIN-DEC-095`, `097`, `098`; `FIN-DES-070`, `071` | `FIN-API-1.4` D.1, D.3; `03-frontend-architecture.md` 17.3 | Layar batch tagihan (`FE-FIN-012`) sebagai sumber pola | Layar Manajemen Klaim: daftar bersaring status klaim, rincian dua sumbu, tiga aksi klaim, panel selisih beserta tautan ke piutang yang perlu dihapus | `FE-FIN-016`, `BE-FIN-052` [BE] 🟡 | **Dua status ditampilkan berdampingan**, bukan digabung satu chip; selisih dibaca dari `ClaimVarianceAmount` backend, **nol** perhitungan di klien; aksi yang tidak sah pada status saat ini **dinonaktifkan**, bukan disembunyikan; **nol** tombol yang menghapus selisih langsung dari layar ini | `npm run lint:errors`; `npm run build`; verifikasi manual seluruh perpindahan status termasuk jalur gagal | Product Owner — **risiko utama:** menggabungkan dua sumbu status menjadi satu chip, yang membuat keadaan "penjamin sudah setuju tetapi uang belum masuk" hilang dari layar | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
+| `FE-FIN-021` | Umur piutang pasien dapat dibaca per segmen Kasir | `FIN-DEC-094`, `FIN-OQ-040` | `FIN-API-1.4` (perluasan `ReceivableAgingQuery`) | Layar umur piutang yang sudah ada | Butir menu "Umur Piutang — Kasir" beserta saringan segmennya | `FE-FIN-016`, `BE-FIN-055` [BE] | Saringan segmen dikirim ke backend; layar umur piutang tanpa saringan **tidak berubah perilakunya** | `npm run lint:errors`; `npm run build`; verifikasi manual perbandingan dengan dan tanpa saringan | Product Owner | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
+| `FE-FIN-022` | Petugas AR mencatat, melunasi, menghapus, dan membatalkan tagihan sewa parkir dan tenant | `FIN-DEC-099`..`106`; `FIN-DES-075`, `076` | `FIN-API-1.4` E.1; `03-frontend-architecture.md` bagian 18 | Pola layar daftar dan rincian modul ini | Butir menu **"Tagihan Sewa"** (`FIN-DEC-105` — penyimpangan yang disetujui dari V1), layar daftar beserta pencatatan, dan layar rincian beserta riwayat pelunasan | `FE-FIN-016`, `BE-FIN-057` [BE] | Konfirmasi Hapus dan Batalkan **MUST** menyebut terang bahwa tindakan ini tidak melewati persetujuan siapa pun, dan alasan wajib diisi; layar **MUST** menyatakan bahwa pelunasan yang dicatat belum tercatat sebagai kas masuk selama `FIN-OQ-044` terbuka; pelunasan bernilai minus terbaca jelas sebagai pembatalan | `npm run lint:errors`; `npm run build`; verifikasi manual seluruh perpindahan status termasuk jalur gagal | Product Owner — **risiko utama:** petugas menyangka uang sewa sudah tercatat di kas. Pernyataan di layar adalah satu-satunya penahan selama `FIN-OQ-044` belum dijawab | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
+| `FE-FIN-023` | Umur piutang sewa dapat dibaca terpisah untuk Parkir dan Tenant | `FIN-DEC-104`; `FIN-DES-074` | `FIN-API-1.4` E.1; `03-frontend-architecture.md` 18.1, 18.2 | Layar umur piutang sewa digambar sekali, dipakai dua butir menu | Butir menu "Umur Piutang — Parkir" dan "— Tenant", satu layar dengan saringan kategori terkunci | `FE-FIN-016`, `BE-FIN-057` [BE] | Keduanya memakai **satu** endpoint umur piutang sewa dengan saringan kategori berbeda; kelompok umurnya **sama persis** dengan umur piutang pasien; angkanya terpisah dan tidak bercampur | `npm run lint:errors`; `npm run build`; verifikasi manual kedua kategori | Product Owner | Lint + build PASS; kedua butir menu terdaftar; laporan task tracked ada |
+
+## Task yang sengaja **tidak** dibuat pada REV-13
+
+| Yang tidak dibuat | Alasan |
+|---|---|
+| Butir menu "Umur Piutang (A/R Aging)" sebagai tautan tunggal | Ia **grup**, bukan daun — isinya Kasir, Parkir, Tenant (`FIN-OQ-040` terjawab). Ketiganya punya task sendiri |
+| Butir menu "Jasa Medis" | Kepemilikannya sudah diputuskan milik modul Medical Fee (`FIN-OQ-012`/`013`) |
+| Layar pengaturan tarif sewa atau master kontrak | Ditolak `FIN-DEC-100`/`102`, ditegaskan batas `FIN-DEC-105` |
+| Layar rekonsiliasi uang sewa ke kas | Tertahan `FIN-OQ-044` |
+
+## Pertanyaan terbuka yang masih menggantung
+
+| ID | Memblokir | Pemilik |
+|---|---|---|
+| `FIN-OQ-041` | Tidak — empat pasang butir V1 yang tampak kembar dibuat apa adanya sesuai perintah "ikuti V1" | Yasmin (Product Owner Finance) |
+| `FIN-OQ-042` | Tidak — kolom `PayerClaimReference` opsional, mudah dicabut sebelum migration dijalankan | Yasmin (Product Owner Finance) |
+| `FIN-OQ-044` | **Kelengkapan akuntansi `EPIC FIN-19`**, bukan pembangunannya | Yasmin (Finance) untuk jalur kas; Rizki (Accounting) untuk ratifikasi kode kejadian |

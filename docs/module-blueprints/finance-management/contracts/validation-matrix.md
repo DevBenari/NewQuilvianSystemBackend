@@ -395,3 +395,55 @@ memakai mutasi `RELEASE` untuknya, mutasi itu datang **tanpa** pasangan `REVERSA
 menebak: baris intake ditandai `ERROR` dan muncul di layar pantauan, sehingga lubangnya terlihat
 pada hari pertama alih-alih menjadi kas keluar palsu di buku besar.
 
+
+# AMENDMENT REVISI 13 — Aturan pelacakan klaim penjamin
+
+`last_changed_in`: `FIN-VAL-1.5` — status `draft`, 1 Oktober 2026.
+Diturunkan dari `FIN-DEC-097`, `FIN-DEC-098`; dirancang `FIN-DES-070`, `FIN-DES-071`.
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-147` | `POST /receivable-invoice-batches/{id}/claim/verify`, `/claim/approve`, `/claim/close` | Batch belum pernah diterbitkan ke penjamin (`ClaimStatus` masih kosong dan `Status` belum `ISSUED`) | "Tagihan ini belum diterbitkan ke penjamin, jadi belum ada klaim yang bisa ditindaklanjuti. Terbitkan tagihannya lebih dulu." | `422` |
+| `FIN-VAL-148` | `POST /claim/approve` | `ApprovedAmount` tidak diisi | "Nominal yang disetujui penjamin wajib diisi." | `400` |
+| `FIN-VAL-149` | `POST /claim/approve` | `ApprovedAmount` bernilai minus | "Nominal yang disetujui tidak boleh kurang dari nol." | `400` |
+| `FIN-VAL-150` | `POST /claim/approve` | `ApprovedAmount` melebihi `TotalAmount` batch | "Nominal yang disetujui penjamin tidak boleh melebihi total tagihan." | `422` |
+| `FIN-VAL-151` | `POST /claim/approve` | `ApprovedAmount` lebih kecil dari `TotalAmount` tetapi `ClaimNote` kosong | "Karena penjamin menyetujui lebih kecil dari tagihan, tuliskan alasannya supaya selisihnya bisa ditindaklanjuti." | `400` |
+| `FIN-VAL-152` | Ketiga aksi klaim | Perpindahan status tidak sah menurut `state-transition-matrix.md` `D.1` — termasuk upaya memundurkan status dan mengubah klaim yang sudah `CLOSED` | "Langkah ini tidak bisa dilakukan dari status klaim saat ini." | `422` |
+| `FIN-VAL-153` | Ketiga aksi klaim | `ExpectedRowVersion` tidak cocok dengan data terkini | "Data tagihan ini sudah diubah pengguna lain. Muat ulang halaman sebelum melanjutkan." | `409` |
+
+## Yang sengaja **tidak** divalidasi
+
+| Yang tidak dilarang | Alasan |
+|---|---|
+| `ApprovedAmount` bernilai nol | Penjamin menolak klaim sepenuhnya adalah jawaban yang sah. Seluruh nilai tagihan menjadi selisih yang menunggu write-off |
+| Menutup klaim walaupun uang belum masuk sama sekali | Klaim yang ditolak penuh tetap perlu ditutup. Pelunasan ada pada sumbu lain (`B.7`) |
+| Mencatat ulang persetujuan pada klaim yang sudah `APPROVED` | Penjamin dapat merevisi keputusannya. Nilai lama tertimpa; perubahannya terbaca pada kolom audit |
+| Selisih yang belum di-write-off menahan penutupan klaim | `FIN-DEC-097` menempatkan write-off sebagai pekerjaan terpisah milik petugas, bukan syarat penutupan klaim. Menahan penutupan akan memaksa petugas menghapus piutang hanya agar klaimnya bisa ditutup |
+
+# AMENDMENT REVISI 13 (lanjutan) — Aturan piutang sewa non-pasien
+
+`last_changed_in`: `FIN-VAL-1.6` — status `draft`, 1 Oktober 2026.
+Diturunkan dari `FIN-DEC-100`..`FIN-DEC-104`; dirancang `FIN-DES-074`..`FIN-DES-077`.
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-154` | `POST /non-patient-receivables` | `Category` bukan `PARKING` atau `TENANT` | "Jenis sewa hanya boleh Parkir atau Tenant." | `400` |
+| `FIN-VAL-155` | `POST`, `PUT /non-patient-receivables` | `BilledAmount` bernilai nol atau minus | "Nominal tagihan harus lebih besar dari nol." | `400` |
+| `FIN-VAL-156` | `POST`, `PUT /non-patient-receivables` | `LateFeeAmount` bernilai minus | "Nominal denda tidak boleh kurang dari nol." | `400` |
+| `FIN-VAL-157` | `POST`, `PUT /non-patient-receivables` | `PeriodEnd` lebih awal dari `PeriodStart`, atau `DueDate` lebih awal dari `PeriodStart` | "Periode tagihan dan tanggal jatuh tempo tidak masuk akal. Periksa kembali tanggalnya." | `400` |
+| `FIN-VAL-158` | `POST /{id}/write-off`, `POST /{id}/cancel` | `Reason` kosong | "Tuliskan alasannya — penghapusan dan pembatalan tagihan sewa tidak melewati persetujuan siapa pun, jadi alasannya wajib tercatat." | `400` |
+| `FIN-VAL-159` | `PUT /non-patient-receivables/{id}` | Tagihan sudah pernah menerima pembayaran | "Tagihan yang sudah menerima pembayaran tidak bisa dikoreksi. Betulkan lewat pencatatan pelunasan." | `422` |
+| `FIN-VAL-160` | `POST /{id}/cancel` | Tagihan sudah pernah menerima pembayaran | "Tagihan yang sudah menerima pembayaran tidak bisa dibatalkan. Betulkan lewat pencatatan pelunasan bernilai minus." | `422` |
+| `FIN-VAL-161` | `POST /{id}/settlements` | Pelunasan membuat jumlah seluruh pembayaran melebihi total tagihan | "Jumlah pembayaran melebihi nilai tagihan. Periksa kembali nominalnya." | `422` |
+| `FIN-VAL-162` | `POST /{id}/settlements` | Pelunasan bernilai minus membuat jumlah seluruh pembayaran menjadi kurang dari nol | "Pembatalan pembayaran ini melebihi pembayaran yang pernah tercatat." | `422` |
+| `FIN-VAL-163` | Seluruh aksi | Perpindahan status tidak sah menurut `state-transition-matrix.md` bagian `E` | "Langkah ini tidak bisa dilakukan dari status tagihan saat ini." | `422` |
+| `FIN-VAL-164` | Seluruh aksi yang mengubah data | `ExpectedRowVersion` tidak cocok dengan data terkini | "Data tagihan ini sudah diubah pengguna lain. Muat ulang halaman sebelum melanjutkan." | `409` |
+
+## Yang sengaja **tidak** divalidasi
+
+| Yang tidak dilarang | Alasan |
+|---|---|
+| Dua tagihan dengan penyewa, objek sewa, dan periode yang sama persis | `FIN-DEC-100` meniadakan master kontrak, sehingga sistem tidak punya dasar menyatakan mana yang duplikat dan mana yang memang dua tagihan berbeda. Risiko tagihan ganda **diterima sadar** dan ditangani ketelitian petugas |
+| Nama penyewa yang dieja berbeda untuk penyewa yang sama | Turunan langsung dari ketiadaan master penyewa. Lihat catatan "Rencana data master awal" pada `02-backend-architecture.md` `K.7` |
+| Tagihan periode yang terlewat tidak dicatat sama sekali | Tidak ada kontrak yang bisa dijadikan acuan "seharusnya ada tagihan bulan ini". `FIN-DEC-100` menerima risiko ini apa adanya |
+| Denda yang tidak sebanding dengan lama keterlambatan | `FIN-DEC-102` menetapkan denda sebagai nominal yang diketik petugas, bukan hasil perhitungan — tidak ada rumus yang bisa dijadikan pembanding |

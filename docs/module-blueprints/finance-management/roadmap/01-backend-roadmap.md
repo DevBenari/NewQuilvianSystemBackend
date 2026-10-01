@@ -724,3 +724,85 @@ Diturunkan dari `04-prd-to-mvp.md` bagian 19 dan pola yang diwarisi dari Petty C
 
 Kriteria 17 adalah kriteria **selesai**, bukan kelalaian: mengerjakan yang `OPEN DECISION`
 lebih awal berarti membangun sesuatu yang jawabannya bisa membatalkan.
+
+---
+
+# AMENDMENT ROADMAP REVISI 13 — `EPIC FIN-18` dan `EPIC FIN-19`
+
+```yaml
+roadmap_revision: 13
+roadmap_status: DRAFT
+blueprint_revision: 13
+blueprint_status: draft — desain FIN-DES-070..077 BELUM disetujui owner
+decisions: FIN-DEC-094..FIN-DEC-106 (seluruhnya approved)
+contract_versions: FIN-API-1.4, FIN-STATE-1.5, FIN-VAL-1.6, FIN-PERM-1.6, FIN-TEST-1.7 (seluruhnya draft)
+backend_source_sha: d6978487
+frontend_source_sha: d2e8a3538
+tanggal: 1 Oktober 2026
+```
+
+**Status roadmap ini `DRAFT`, dan sebabnya ditulis apa adanya.** Seluruh keputusan bisnis
+(`FIN-DEC-094`..`106`) sudah `approved`, tetapi rancangan arsitektur (`FIN-DES-070`..`077`) dan
+kelima kontrak turunannya masih `draft` — belum disetujui owner. Task di bawah **MUST NOT**
+dieksekusi sebelum approval desain itu turun. Roadmap ditulis sekarang supaya owner dapat menilai
+besaran pekerjaannya saat menyetujui, bukan sesudahnya.
+
+## Grafik Urutan Dependency — REV-13
+
+Enam task backend. Hanya satu pasangan prasyarat di dalam roadmap ini; lima sisanya berdiri sendiri
+dan **boleh dikerjakan paralel**. Arah garis: prasyarat di kiri, yang menunggu di kanan.
+
+```text
+BE-FIN-052 🟡          (berdiri sendiri — sumbu klaim)
+BE-FIN-053 🟡          (berdiri sendiri — daftar penghapusan piutang)
+BE-FIN-054            (berdiri sendiri — daftar alokasi yang dibalik)
+BE-FIN-055            (berdiri sendiri — saringan segmen umur piutang)
+
+BE-FIN-056 ─> BE-FIN-057     (skema piutang sewa ─> layanan dan endpointnya)
+
+{FIN-OQ-044} ─> (integrasi kas harian, setoran bank, dan kejadian akuntansi
+                 untuk piutang sewa — POST-MVP, sengaja belum bernomor)
+```
+
+| Gelombang | Task | Boleh mulai setelah |
+|---|---|---|
+| `REV-13B` | `BE-FIN-053` 🟡, `BE-FIN-054`, `BE-FIN-055` | Approval desain `FIN-DES-073` |
+| `REV-13C` | `BE-FIN-052` 🟡 | Approval desain `FIN-DES-070`, `071` |
+| `REV-13D` | `BE-FIN-056` lalu `BE-FIN-057` | Approval desain `FIN-DES-074`..`077` |
+| *(tanpa gelombang)* | Integrasi kas dan kejadian akuntansi piutang sewa | `FIN-OQ-044` dijawab — termasuk ratifikasi kode kejadian oleh Accounting |
+
+`BE-FIN-052` sengaja **tidak** ditaruh di gelombang paling awal walau tidak punya prasyarat: ia
+satu-satunya task `EPIC FIN-18` yang menyentuh skema, sehingga ditempatkan sesudah task yang tidak
+menuntut izin migration apa pun. Ini urutan risiko, bukan urutan teknis.
+
+## Task REV-13
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 🟡 `BE-FIN-052` | Jawaban penjamin atas tagihan gabungan terlacak sebagai sumbu kedua, terpisah dari status pelunasan | `FIN-DEC-097`, `098`; `FIN-DES-070`, `071`, `072` | `FIN-API-1.4` D.1, `FIN-STATE-1.5` D.1, `FIN-VAL-1.6` `147`..`153` | `FinReceivableInvoiceBatch` beserta `RowVersion` dan pola `POST /{id}/<aksi>` yang sudah ada | 7 kolom nullable + check constraint + index pada `FinReceivableInvoiceBatch`; migration `AddClaimTrackingToFinReceivableInvoiceBatch`; 3 endpoint aksi klaim; `ClaimVarianceAmount` dihitung pada response | — | `ClaimStatus` berpindah sesuai `FIN-STATE-1.5` D.1; `ApprovedAmount` lebih kecil dari `TotalAmount` **tidak** mengubah `OutstandingAmount` piutang anggota mana pun; `FIN-VAL-147`..`153` ditegakkan; **nol** action hak akses baru | 🟡 **Sebagian** 1 Oktober 2026 — source dan migration `20261001090000_AddClaimTrackingToFinReceivableInvoiceBatch` lengkap, QBE preflight PASS, review diff/scope PASS, `diff` Designer.cs vs snapshot PASS; `dotnet build` **NOT RUN** (dibuat tanpa build atas permintaan eksplisit); eksekusi migration ke database **belum diminta** ([laporan](../task/report/backend/BE-FIN-052.md)) | Backend Owner — **risiko utama:** implementer menyangka persetujuan klaim ikut melunasi tagihan. `FIN-DES-070` dan `071` MUST dibaca sebelum menulis baris pertama | Build PASS; migration dibuat **dan** dieksekusi atas izin eksplisit pemilik (dua wewenang terpisah); laporan task tracked ada |
+| 🟡 `BE-FIN-053` | Penghapusan piutang dapat didaftar lintas piutang, bukan hanya dibuat per piutang | `FIN-DEC-094`; `FIN-DES-073` | `FIN-API-1.4` D.2 | `FinReceivableWriteOff` beserta maker-checker-nya (`BE-FIN-018`) — **tidak diubah** | 1 endpoint baca `GET /receivables/write-offs` beserta `ReceivableWriteOffQuery`/`RowResponse` | — | Daftar tersaring periode, status, dan penjamin; paginasi benar; **nol** perubahan pada jalur pembuatan write-off | 🟡 **Sebagian** 1 Oktober 2026 — source lengkap, QBE preflight PASS, review diff/scope PASS; `dotnet build` **NOT RUN** ([laporan](../task/report/backend/BE-FIN-053.md)) | Backend Owner — risiko rendah, murni permukaan baca | Build PASS; **nol** migration; laporan task tracked ada |
+| `BE-FIN-054` | Alokasi penerimaan yang dibalik dapat didaftar sebagai baris tersendiri | `FIN-DEC-094`; `FIN-DES-073` | `FIN-API-1.4` D.2 | `FinReceiptAllocation` beserta jalur pembalikan yang sudah ada (`BE-FIN-018`) — **tidak diubah** | 1 endpoint baca `GET /receipts/reversed-allocations` beserta DTO-nya | — | Grain baris adalah **alokasi**, bukan penerimaan; tersaring periode dan penerimaan; paginasi benar | QBE preflight; review diff/scope; `dotnet build`; verifikasi kontrak API | Backend Owner — risiko rendah | Build PASS; **nol** migration; laporan task tracked ada |
+| `BE-FIN-055` | Umur piutang pasien dapat disaring per segmen sumbernya | `FIN-DEC-094`, `FIN-OQ-040` (terjawab: Kasir) | `FIN-API-1.4` (perluasan `ReceivableAgingQuery`) | `GetAgingSummaryAsync` dan `ReceivableAgingBuckets` yang sudah ada | Satu parameter saringan segmen pada `GET /receivables/aging`; **nol** kelompok umur baru | — | Saringan dikirim ke backend dan memengaruhi angka; tanpa saringan, hasilnya sama persis dengan hari ini (**tidak boleh ada regresi**) | QBE preflight; review diff/scope; `dotnet build`; verifikasi kontrak API; perbandingan angka sebelum-sesudah tanpa saringan | Backend Owner — **risiko:** mengubah perilaku bawaan endpoint yang sudah dipakai layar lain | Build PASS; **nol** migration; laporan task tracked ada |
+| `BE-FIN-056` | Skema piutang sewa non-pasien berdiri, terpisah penuh dari piutang pasien | `FIN-DEC-099`..`104`; `FIN-DES-074` | `erd/data-dictionary.md` AMENDMENT REVISI 13 lanjutan | Pola configuration rumpun `Receivable`; `IdentityModel` | 2 model (`FinNonPatientReceivable`, `FinNonPatientReceivableSettlement`), 2 EF configuration, 2 `DbSet`, migration `AddFinNonPatientReceivable` | — | Kedua tabel terbentuk beserta check constraint `Category` dan `Status`; **nol** kolom rujukan ke `BilInvoice`, `FinReceivable`, atau `FinReceipt`; `FinReceivable` **tidak tersentuh sama sekali** | QBE preflight (**entity baru — pendaftaran registry MUST diperiksa lebih dulu**); review diff/scope; `dotnet build`; verifikasi skema terhadap kamus data | Backend Owner — **risiko:** implementer menambahkan kolom rujukan ke Billing "supaya konsisten", yang justru membatalkan `FIN-DEC-101` | Build PASS; migration dibuat **dan** dieksekusi atas izin eksplisit pemilik (dua wewenang terpisah); laporan task tracked ada |
+| `BE-FIN-057` | Petugas AR dapat mencatat, melunasi, menghapus, dan membatalkan tagihan sewa, serta membaca umur piutangnya | `FIN-DEC-100`..`104`; `FIN-DES-075`, `076`, `077` | `FIN-API-1.4` E.1, `FIN-STATE-1.5` E.1, `FIN-VAL-1.6` `154`..`164`, `FIN-PERM-1.6` F.1 | `ReceivableAgingBuckets` **dipakai ulang**; pola service dan controller rumpun `Receivable` | 1 service, 1 controller, 10 endpoint, DTO lengkap; resource hak akses `FinanceNonPatientReceivable` beserta 3 action | `BE-FIN-056` | Kelima status berpindah sesuai `FIN-STATE-1.5` E.1; `FIN-VAL-154`..`164` ditegakkan; kelompok umur **sama persis** dengan umur piutang pasien; service **tidak pernah** memanggil `FinanceReceivableService`, `FinanceReceiptService`, maupun `FinanceAccountingOutboxService` | QBE preflight; review diff/scope; `dotnet build`; verifikasi kontrak API; verifikasi proses bisnis termasuk pelunasan bernilai minus | Backend Owner — **risiko utama:** ketiadaan jenjang approval (`FIN-DEC-103`) membuat penghapusan piutang selesai seketika. Alasan wajib (`FIN-VAL-158`) adalah satu-satunya penahan yang tersisa dan **MUST NOT** dilewati | Build PASS; **nol** migration (skema sudah di `BE-FIN-056`); laporan task tracked ada |
+
+## Task yang sengaja **tidak** dibuat pada REV-13
+
+| Yang tidak dibuat | Alasan |
+|---|---|
+| Task penyambungan pelunasan sewa ke kas harian, setoran bank, dan kotak keluar Accounting | Tertahan `FIN-OQ-044`. Bagian kode kejadiannya **menuntut ratifikasi Accounting**, bukan wewenang Finance sepihak — mengikuti pola `FIN-DEC-053`. Memberinya nomor task sekarang berarti menjadwalkan pekerjaan yang bentuknya belum ada |
+| Task master kontrak sewa, master penyewa, master objek sewa | Ditolak `FIN-DEC-100`, ditegaskan ulang batas `FIN-DEC-105` |
+| Task perhitungan denda otomatis | Ditolak `FIN-DEC-102` |
+| Task jenjang approval untuk penghapusan piutang sewa | Ditolak `FIN-DEC-103`, batas penularannya diratifikasi `FIN-DEC-106` |
+| Task automated test | Mengikuti `rules/backend/TEST_POLICY.md`: backend tidak memelihara project test otomatis, dan ketiadaannya **bukan** coverage gap. Dibuat hanya bila pemilik memintanya eksplisit |
+| Task perapian alokator nomor bisnis ke provider number-series atomik | `QBE-CODE-001`..`006` belum dipakai **seluruh** rumpun ini; memperbaikinya hanya untuk tabel baru membuat satu rumpun punya dua cara menomori. MUST menjadi task tersendiri untuk seluruh rumpun |
+
+## Prasyarat eksekusi REV-13
+
+| # | Prasyarat | Keadaan saat roadmap ditulis |
+|---:|---|---|
+| 1 | Approval owner atas `FIN-DES-070`..`077` dan kelima kontrak turunannya | **Belum** — seluruhnya `draft` |
+| 2 | Izin eksplisit membuat migration | `BE-FIN-052` ✅ diberikan dan dibuat 1 Oktober 2026; `BE-FIN-056` belum diminta |
+| 3 | Izin eksplisit mengeksekusi migration ke database | Belum diminta — **wewenang terpisah** dari nomor 2 |
+| 4 | QBE preflight untuk entity baru `BE-FIN-056` | Diselesaikan saat eksekusi dari `AGENTS.md` backend dan `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`; prefix `Fin` sudah terdaftar untuk Finance Management |
+| 5 | Pemilik mengetahui batas `FIN-OQ-044` sebelum `BE-FIN-057` dipakai pada data sungguhan | **MUST** disampaikan saat approval, bukan sesudah rilis |

@@ -1239,3 +1239,176 @@ Menggantikan baris yang bersesuaian pada bagian 25.
 diteruskan ke `/plan-module-delivery` untuk `FR-FIN-108` dan `FR-FIN-109` — keduanya tidak menunggu
 pihak luar dan kontraknya sudah ada. `FR-FIN-105` boleh **dibangun** tetapi worker-nya digerbang;
 `FR-FIN-110` **MUST NOT** masuk gelombang sampai `FIN-OQ-036` turun.
+
+---
+
+# AMENDMENT REVISI 13 — `FIN-MVP-1.7` (`draft`, 1 Oktober 2026)
+
+Diturunkan dari `FIN-DEC-094`..`FIN-DEC-098` dan `FIN-DES-070`..`FIN-DES-073`.
+Seluruh entity, status, hak akses, dan endpoint yang disebut di bawah **sudah** tercatat pada
+`02-backend-architecture.md` AMENDMENT REVISI 13, `erd/data-dictionary.md`, dan `contracts/`.
+Dokumen ini menurunkan, tidak menciptakan.
+
+## 31. Apa yang berubah pada rilis
+
+| Hal | Sebelum | Sesudah amendment ini |
+|---|---|---|
+| Bentuk navigasi Keuangan | Submenu "Pembelian" beserta beberapa kemampuan yang dikonsolidasikan ke satu layar (`FIN-DEC-060`) | Dua grup datar "Transaksi A/R" dan "Transaksi A/P" mengikuti sistem produksi V1 yang sudah lolos UAT (`FIN-DEC-094`) |
+| Jawaban penjamin atas tagihan | Tidak terlacak di sistem | Terlacak sebagai sumbu kedua pada Batch Tagihan AR (`FIN-DEC-097`) |
+| Selisih nominal yang tidak disetujui penjamin | — | Tampil sebagai pekerjaan yang menunggu write-off manual, **tidak** mengurangi piutang sendiri (`FIN-DES-071`) |
+| Ayat Silang | Tercatat sebagai gap terbuka sejak audit awal | **Ditutup** — dilayani alokasi penerimaan yang sudah ada (`FIN-DEC-096`) |
+
+**Yang tidak berubah:** seluruh aturan bisnis, alur persetujuan, dan endpoint yang sudah berjalan.
+Pemecahan layar menambah jalan masuk, **tidak** memindahkan alur pencatatan mana pun.
+
+## 32. `EPIC FIN-18` — Pelacakan klaim penjamin dan penyelarasan navigasi ke V1
+
+| Kemampuan `MUST HAVE` | ID kemampuan asal | Disposisi backend |
+|---|---|---|
+| Petugas AR melacak jawaban penjamin atas tagihan gabungan | Baru — tidak ada di `01-existing-capability-map.md` maupun V1 yang berfungsi | **EXTEND** — tujuh kolom pada `FinReceivableInvoiceBatch`, tiga endpoint aksi |
+| Petugas AR melihat selisih yang belum dihapus dari buku | Turunan dari kemampuan di atas | **EXISTING / REUSE** — dihitung pada response, nol penyimpanan baru |
+| Petugas AR membuka daftar penghapusan piutang lintas piutang | `FIN-CAP` write-off (`BE-FIN-018`) | **MISSING / NEW** — satu endpoint baca |
+| Petugas AR membuka daftar alokasi penerimaan yang dibalik | `FIN-CAP` alokasi (`BE-FIN-016`..`018`) | **MISSING / NEW** — satu endpoint baca |
+| Seluruh layar Transaksi A/R dan A/P terjangkau dari sidebar sesuai bentuk V1 | `FIN-DEC-094` | **EXISTING / REUSE** — nol endpoint baru untuk sebelas layar hasil pemecahan |
+| Ayat Silang | `FIN-DEC-096` | **LEGACY REFERENCE** — dilayani alokasi penerimaan; nol pekerjaan backend |
+
+### Functional requirement
+
+| ID | Requirement | Dapat diuji lewat |
+|---|---|---|
+| `FR-FIN-111` | Saat batch tagihan diterbitkan, sistem menandai klaimnya sebagai sudah diajukan ke penjamin tanpa tindakan tambahan petugas | `state-transition-matrix.md` `D.1` baris pertama |
+| `FR-FIN-112` | Petugas AR dapat menandai berkas klaim sudah diterima dan dinyatakan lengkap oleh penjamin | `FIN-VAL-147`, `FIN-VAL-152` |
+| `FR-FIN-113` | Petugas AR dapat mencatat nominal yang disetujui penjamin, termasuk nol bila klaim ditolak penuh | `FIN-VAL-148`..`150` |
+| `FR-FIN-114` | Nominal yang disetujui lebih kecil dari tagihan wajib disertai alasan | `FIN-VAL-151` |
+| `FR-FIN-115` | Selisih antara tagihan dan nominal yang disetujui ditampilkan dari backend, dan **tidak** mengurangi sisa piutang sampai petugas menghapusnya lewat jalur write-off yang sudah ada | `FIN-DES-071`; UAT 33.2 |
+| `FR-FIN-116` | Status klaim dan status pelunasan ditampilkan berdampingan dan bergerak sendiri-sendiri | `FIN-DES-070`; UAT 33.3 |
+| `FR-FIN-117` | Petugas AR dapat menutup klaim, dan klaim yang sudah ditutup tidak dapat diubah lagi | `FIN-VAL-152` |
+| `FR-FIN-118` | Perubahan status klaim oleh dua petugas bersamaan ditolak pada petugas kedua, bukan saling menimpa | `FIN-VAL-153` |
+| `FR-FIN-119` | Seluruh butir menu pada peta `03-frontend-architecture.md` bagian 17.2 terjangkau dari sidebar dan membuka layar yang benar | UAT 33.5 |
+| `FR-FIN-120` | Layar pandangan tersaring mengirim saringan bawaannya ke backend, bukan menyaring di klien | Review kode; paginasi benar pada data lebih dari satu halaman |
+
+## 33. Skenario UAT
+
+| # | Jalur | Skenario | Hasil yang diharapkan |
+|---|---|---|---|
+| 33.1 | **Berhasil** | Terbitkan batch, tandai diverifikasi, catat persetujuan penuh, tutup klaim | Keempat perpindahan tersimpan beserta tanda waktunya; selisih nol |
+| 33.2 | **Berhasil** | Penjamin menyetujui Rp 118,5 juta dari tagihan Rp 120 juta disertai alasan | Selisih Rp 1,5 juta tampil sebagai pekerjaan menunggu; **sisa piutang anggota tidak berubah sama sekali** sampai write-off disetujui |
+| 33.3 | **Berhasil** | Batch berstatus klaim "Disetujui" menerima pembayaran sebagian | Status pelunasan berpindah ke "Dibayar Sebagian" oleh sistem; status klaim **tetap** "Disetujui" |
+| 33.4 | **Gagal** | Aksi klaim dijalankan pada batch yang masih draft | Ditolak beserta pesan bahwa tagihan belum diterbitkan; nol perubahan tersimpan |
+| 33.5 | **Berhasil** | Seluruh butir Transaksi A/R dan A/P dibuka satu per satu dari sidebar | Setiap butir membuka layar yang benar; nol butir menuju rute yang tidak ada; nol butir tersembunyi bagi peran yang berhak |
+| 33.6 | **Gagal** | Petugas tanpa hak mengelola batch membuka Manajemen Klaim | Ketiga tombol aksi tidak tampil; pemanggilan langsung endpoint ditolak |
+| 33.7 | **Gagal** | Nominal disetujui diisi melebihi total tagihan | Ditolak; nilai lama tidak tertimpa |
+
+## 34. Definition of Done tambahan
+
+| Butir | Dijawab "ya" bila |
+|---|---|
+| Migration kolom klaim dibuat **dan** dijalankan atas izin eksplisit pemilik repository | Ada laporan task yang mencatat keduanya terpisah |
+| Nol penulis baru terhadap `OutstandingAmount` | Review kode membuktikan aksi klaim tidak memanggil service piutang |
+| Nol resource dan nol action hak akses baru | Diff atribut `[AccessAction]` kosong untuk amendment ini |
+| Seluruh butir menu bagian 17.2 terdaftar di `menu-items.jsx` | Peta menu dan berkas menu dapat diperiksa silang baris per baris |
+| Saringan bawaan tiap layar tersaring dikirim ke backend | Review kode; nol `.filter()` atas hasil response untuk saringan bawaan |
+| `FIN-OQ-040` sudah terjawab **atau** butir "Umur Piutang (A/R Aging)" sengaja belum dibuat dan dicatat sebagai sisa pekerjaan | Roadmap menyebut statusnya apa adanya, bukan didiamkan |
+
+## 35. Urutan pengiriman
+
+| Gelombang | Isi | Alasan urutan |
+|---|---|---|
+| `MVP-13A` | Menu dan layar yang **nol pekerjaan backend**: sebelas layar pandangan tersaring, Penerima Pesanan, Ayat Silang, serta penyusunan ulang kedua grup menu | Tidak bergantung pada migration mana pun; memberi hasil terlihat paling cepat |
+| `MVP-13B` | Dua endpoint baca baru (`write-offs`, `reversed-allocations`) beserta kedua layarnya | Bergantung pada backend, tidak bergantung pada migration |
+| `MVP-13C` | Kolom klaim, migration, tiga endpoint aksi, dan layar Manajemen Klaim | Satu-satunya yang menyentuh skema; dikerjakan terakhir supaya gelombang sebelumnya tidak tertahan izin migration |
+| `MVP-13A` | Butir "Umur Piutang — Kasir" beserta saringan segmen pada `GET /receivables/aging` | `FIN-OQ-040` sudah terjawab; segmen Kasir tidak menuntut sumber piutang baru |
+| **Di luar gelombang** | Butir "Umur Piutang — Parkir" dan "— Tenant" | Tertahan `FIN-OQ-043`. **MUST NOT** masuk gelombang mana pun sampai kepemilikan modul dan aturan bisnis sewa diputuskan |
+
+`EPIC FIN-18` **tidak** berstatus `OPEN DECISION` — seluruh keputusan bisnisnya sudah turun
+(`FIN-DEC-094`..`098`). Satu pertanyaan terbuka (`FIN-OQ-040`) memblokir **satu butir menu saja**
+dan sudah dikeluarkan ke `POST-MVP`, sehingga tidak menahan gelombang mana pun.
+
+## 36. Pertanyaan terbuka sebelum development lock — pembaruan
+
+| ID | Memblokir | Keterangan |
+|---|---|---|
+| ~~`FIN-OQ-040`~~ | — | **CLOSED 1 Oktober 2026** — isi grupnya: Kasir, Parkir, Tenant |
+| `FIN-OQ-043` | **Dua butir menu saja** (Umur Piutang Parkir dan Tenant) | Penagihan sewa parkir dan tenant adalah sumber piutang yang **belum ada sama sekali** di sistem governed, dan V1 tidak punya aturan bisnis yang bisa dirujuk (layarnya data contoh). Butuh `/grill-me` tersendiri sebelum dirancang. Tidak menahan `EPIC FIN-18` |
+| `FIN-OQ-041` | Tidak | Empat pasang butir yang tampak kembar; sementara dibuat sesuai V1 apa adanya |
+| `FIN-OQ-042` | Tidak | Kolom `PayerClaimReference` adalah kesimpulan desain, bukan permintaan owner |
+| `FIN-OQ-039` | **Tidak untuk amendment ini** | Perluasan registry resource tanpa endpoint; amendment ini sengaja dirancang nol resource baru supaya tidak bergantung padanya (`FIN-DES-072`) |
+
+---
+
+# AMENDMENT REVISI 13 (lanjutan) — `FIN-MVP-1.8` (`draft`, 1 Oktober 2026)
+
+Diturunkan dari `FIN-DEC-099`..`FIN-DEC-104` dan `FIN-DES-074`..`FIN-DES-077`.
+Seluruh entity, status, hak akses, dan endpoint yang disebut sudah tercatat pada
+`02-backend-architecture.md` bagian `K`, `erd/data-dictionary.md`, dan `contracts/`.
+
+## 37. `EPIC FIN-19` — Piutang sewa non-pasien (Parkir dan Tenant)
+
+**Batas MVP.** Mulai: petugas AR mencatat satu tagihan sewa untuk satu periode. Selesai: tagihan itu
+terbaca pada laporan umur piutang sewa, dan dapat dilunasi, dihapus, atau dibatalkan.
+**Di luar batas:** pencatatan uang sewa sebagai kas masuk, dan penerbitan kejadian akuntansi atas
+pendapatan sewa — keduanya tertahan `FIN-OQ-044`.
+
+| Kemampuan `MUST HAVE` | ID kemampuan asal | Disposisi backend |
+|---|---|---|
+| Mencatat tagihan sewa parkir/tenant per periode | Baru — tidak ada di `01-existing-capability-map.md`; V1 hanya punya layar berisi data contoh | **MISSING / NEW** — dua tabel, satu controller, satu service |
+| Mencatat pelunasan dari penyewa | Baru | **MISSING / NEW** |
+| Mencatat denda keterlambatan | Baru | **MISSING / NEW** — kolom nominal, bukan perhitungan |
+| Menghapus piutang sewa yang tidak tertagih | Baru | **MISSING / NEW** — satu aksi, tanpa jenjang (`FIN-DEC-103`) |
+| Melihat umur piutang sewa per kategori | Baru | **MISSING / NEW** endpoint; **EXISTING / REUSE** untuk definisi kelompok umurnya |
+
+### Functional requirement
+
+| ID | Requirement | Dapat diuji lewat |
+|---|---|---|
+| `FR-FIN-121` | Petugas AR dapat mencatat tagihan sewa berkategori Parkir atau Tenant untuk satu periode, lengkap dengan penyewa, objek sewa, jatuh tempo, dan nominal | `FIN-VAL-154`..`157`; UAT 38.1 |
+| `FR-FIN-122` | Setiap periode dicatat sebagai tagihan tersendiri; sistem **tidak** menerbitkan tagihan otomatis dan **tidak** menyimpan kontrak sewa | UAT 38.2; review skema — nol tabel master kontrak |
+| `FR-FIN-123` | Petugas AR dapat mencatat denda keterlambatan sebagai nominal, dan sistem **tidak pernah** menghitungnya sendiri | UAT 38.3 |
+| `FR-FIN-124` | Petugas AR dapat mencatat pelunasan sebagian maupun penuh, dan membetulkan pelunasan keliru lewat pencatatan bernilai minus | `FIN-VAL-161`, `162`; UAT 38.4 |
+| `FR-FIN-125` | Petugas AR dapat menghapus piutang sewa dalam satu aksi tanpa persetujuan siapa pun, dengan alasan yang wajib diisi | `FIN-VAL-158`; UAT 38.5 |
+| `FR-FIN-126` | Tagihan yang sudah menerima pembayaran tidak dapat dikoreksi maupun dibatalkan | `FIN-VAL-159`, `160`; UAT 38.6 |
+| `FR-FIN-127` | Umur piutang sewa ditampilkan per kategori memakai kelompok umur yang sama persis dengan umur piutang pasien, tetapi angkanya terpisah | UAT 38.7 |
+| `FR-FIN-128` | Pencatatan piutang sewa **tidak menambah satu baris pun** pada piutang pasien, dan **tidak** menerbitkan kejadian akuntansi | UAT 38.8; review kode |
+
+## 38. Skenario UAT
+
+| # | Jalur | Skenario | Hasil yang diharapkan |
+|---|---|---|---|
+| 38.1 | **Berhasil** | Catat tagihan sewa Tenant untuk unit Lt.1 A-01, periode satu bulan | Tagihan tersimpan berstatus Belum Dibayar, bernomor, dan muncul pada daftar |
+| 38.2 | **Berhasil** | Catat tagihan periode berikutnya untuk penyewa yang sama | Tersimpan sebagai baris baru yang berdiri sendiri; nol kontrak terbentuk |
+| 38.3 | **Berhasil** | Tambahkan denda pada tagihan yang lewat jatuh tempo | Sisa tagihan bertambah persis sebesar nominal yang diketik; nol perhitungan otomatis |
+| 38.4 | **Berhasil** | Catat pelunasan sebagian, lalu pelunasan minus untuk membetulkan kekeliruan | Sisa tagihan bergerak sesuai; kedua baris pelunasan tetap terbaca di riwayat |
+| 38.5 | **Berhasil** | Hapus piutang sewa yang tidak tertagih disertai alasan | Status menjadi Dihapus **seketika**, tanpa antrean persetujuan |
+| 38.6 | **Gagal** | Batalkan tagihan yang sudah menerima pembayaran | Ditolak; petugas diarahkan memakai pelunasan minus |
+| 38.7 | **Berhasil** | Buka umur piutang Parkir dan Tenant | Kelompok umurnya sama persis dengan umur piutang pasien; angkanya terpisah dan tidak bercampur |
+| 38.8 | **Berhasil — pemeriksaan batas** | Sesudah mencatat tagihan dan pelunasan sewa, buka kas harian, setoran bank, dan pemantauan kejadian | Sisa tagihan sewa berkurang, **tetapi** uangnya tidak muncul di ketiganya. Perilaku ini **dirancang**, dan menjadi bukti bahwa `FIN-OQ-044` perlu diputuskan sebelum dipakai pada data sungguhan |
+| 38.9 | **Gagal** | Hapus piutang tanpa mengisi alasan | Ditolak; status tidak berubah |
+
+## 39. Definition of Done tambahan
+
+| Butir | Dijawab "ya" bila |
+|---|---|
+| Dua tabel baru dibuat lewat migration, dan migration dijalankan atas izin eksplisit pemilik | Laporan task mencatat keduanya terpisah |
+| Nol baris bertambah pada `FinReceivable` akibat kapabilitas ini | Review kode: service ini tidak pernah memanggil `FinanceReceivableService` |
+| Definisi kelompok umur dipakai ulang, bukan disalin | Review kode: memakai `ReceivableAgingBuckets` yang sudah ada |
+| Layar menyatakan terang bahwa pelunasan sewa belum tercatat sebagai kas masuk | Terbaca pada layar, bukan hanya pada dokumen |
+| Konfirmasi hapus/batal menyebut ketiadaan persetujuan | Terbaca pada layar |
+| `FIN-OQ-044` sudah dijawab, **atau** kapabilitas ini dinyatakan dipakai terbatas sampai jawabannya turun | Tercatat apa adanya pada roadmap, bukan didiamkan |
+
+## 40. Urutan pengiriman
+
+| Gelombang | Isi | Alasan urutan |
+|---|---|---|
+| `MVP-13D` | Dua tabel, migration, controller, service, dan ketiga layar (umur piutang Parkir/Tenant, daftar tagihan sewa, rincian) | Berdiri sendiri penuh — tidak bergantung pada gelombang `MVP-13A`..`13C` maupun sebaliknya |
+| `POST-MVP` | Penyambungan pelunasan sewa ke kas harian, setoran bank, dan kotak keluar Accounting | Tertahan `FIN-OQ-044`; menuntut ratifikasi kode kejadian oleh Accounting |
+
+`EPIC FIN-19` **tidak** berstatus `OPEN DECISION` — seluruh keputusan bisnisnya sudah turun
+(`FIN-DEC-099`..`104`). `FIN-OQ-044` menahan **kelengkapan akuntansinya**, bukan pembangunan
+kapabilitasnya, sehingga `MVP-13D` boleh berjalan.
+
+## 41. Pertanyaan terbuka — pembaruan
+
+| ID | Memblokir | Keterangan |
+|---|---|---|
+| `FIN-OQ-044` | **Kelengkapan akuntansi `EPIC FIN-19`**, bukan pembangunannya | Uang sewa yang diterima belum tercatat sebagai kas masuk dan belum menerbitkan kejadian akuntansi. Tiga hal MUST diputuskan: (a) apakah pelunasan sewa masuk kas harian/setoran bank, dan lewat jalur apa mengingat `FinReceipt` tidak punya jalur manual; (b) kode kejadian akuntansi apa yang terbit untuk pendapatan sewa dan pelunasannya — **menuntut ratifikasi Accounting**, mengikuti pola `FIN-DEC-053`; (c) apakah rilis pertama boleh berjalan tanpa keduanya. Pemilik: Yasmin (Finance) untuk (a) dan (c); Rizki (Accounting) untuk (b) |
+| ~~`FIN-OQ-043`~~ | — | **CLOSED 1 Oktober 2026** oleh `FIN-DEC-099`..`104` |

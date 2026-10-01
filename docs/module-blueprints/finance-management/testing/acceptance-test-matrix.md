@@ -509,3 +509,46 @@ Menurunkan `FIN-DES-064` dan `FIN-DES-065` via `FIN-DEC-080` dan `FIN-DEC-081`. 
 |---|---|---|---|
 | `FIN-DES-064` | Refund kas atas kredit `ALLOCATION_EXCESS` atau `SETTLEMENT` dieksekusi | Integrasi | `PENGEMBALIAN-UANG-MUKA` **tetap** terbit — kode ini tidak mati, hanya pemicunya dipersempit ke `BilRefundCase` |
 | `FIN-DES-064` | Seluruh mutasi `RELEASE` pada satu periode | Integrasi | **Nol** di antaranya menerbitkan `PENGEMBALIAN-UANG-MUKA` |
+
+## G.1 Pelacakan klaim penjamin dan pemecahan layar ke bentuk V1
+
+`last_changed_in`: `FIN-TEST-1.6` — status `draft`, 1 Oktober 2026.
+Diturunkan dari `FIN-DEC-094`..`FIN-DEC-098`.
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-DEC-097` | **Berhasil.** Batch `ISSUED` ditandai berkasnya diterima penjamin, lalu dicatat disetujui penuh sebesar total tagihan, lalu ditutup | Manual/runtime | `ClaimStatus` berpindah `SUBMITTED` ke `PAYER_VERIFIED` ke `APPROVED` ke `CLOSED`; ketiga tanda waktu terisi; `ClaimVarianceAmount` bernilai nol |
+| `FIN-DEC-097` | **Berhasil.** Penjamin menyetujui lebih kecil dari tagihan, disertai alasan | Manual/runtime | `ApprovedAmount` tersimpan; `ClaimVarianceAmount` sama dengan selisihnya; `OutstandingAmount` seluruh piutang anggota **tidak berubah sama sekali** |
+| `FIN-DES-071` | **Berhasil.** Petugas menindaklanjuti selisih lewat write-off pada piutang anggota | Manual/runtime | Write-off tetap melewati maker-checker yang sudah ada; `OutstandingAmount` baru berkurang setelah write-off **disetujui**, bukan saat klaim disetujui |
+| `FIN-VAL-147` | **Gagal.** Aksi klaim dijalankan pada batch yang masih `DRAFT` | Manual/runtime | `422` beserta pesan bahwa tagihan belum diterbitkan; `ClaimStatus` tetap kosong |
+| `FIN-VAL-150` | **Gagal.** Nominal disetujui melebihi total tagihan | Manual/runtime | `422`; nilai lama tidak tertimpa |
+| `FIN-VAL-151` | **Gagal.** Nominal disetujui lebih kecil dari tagihan tanpa alasan | Manual/runtime | `400`; perpindahan status tidak terjadi |
+| `FIN-VAL-152` | **Gagal.** Klaim yang sudah `CLOSED` dicoba diubah lagi | Manual/runtime | `422`; status tetap `CLOSED` |
+| `FIN-VAL-153` | **Gagal.** Dua petugas mengubah klaim batch yang sama dari layar yang dibuka bersamaan | Manual/runtime | Petugas kedua menerima `409` beserta ajakan memuat ulang; nol perubahan tertimpa diam-diam |
+| `FIN-DES-070` | **Berhasil.** Batch berstatus klaim `APPROVED` menerima pembayaran sebagian dari penjamin | Manual/runtime | `Status` berpindah ke `PARTIALLY_PAID` oleh sistem, sementara `ClaimStatus` **tetap** `APPROVED` — kedua sumbu bergerak sendiri-sendiri |
+| `FIN-DES-072` | **Gagal.** Pengguna tanpa `FinanceReceivableInvoiceBatch : Update` membuka layar Manajemen Klaim | Manual/runtime | Tombol aksi klaim tidak tampil; pemanggilan langsung endpoint ditolak `403` |
+| `FIN-DEC-094` | **Berhasil.** Seluruh butir menu Transaksi A/R dan Transaksi A/P dapat dibuka dari sidebar | Manual/runtime | Setiap butir pada peta menu `03-frontend-architecture.md` bagian 17 membuka layar yang benar; nol butir mengarah ke rute yang tidak ada |
+| `FIN-DEC-096` | **Berhasil.** Butir menu "Ayat Silang" membuka layar alokasi penerimaan yang sudah ada | Manual/runtime | Nol endpoint baru dipanggil; layar yang terbuka sama dengan yang dipakai `FE-FIN-004` |
+| `FIN-DEC-094` | **Gagal.** Pengguna tanpa hak akses pada salah satu layar hasil pemecahan | Manual/runtime | Butir menunya tersembunyi (penyaring *fail-closed*), bukan tampil lalu ditolak |
+
+## H.1 Piutang sewa non-pasien (Parkir dan Tenant)
+
+`last_changed_in`: `FIN-TEST-1.7` — status `draft`, 1 Oktober 2026.
+Diturunkan dari `FIN-DEC-099`..`FIN-DEC-104`.
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-DEC-104` | **Berhasil.** Catat tagihan sewa kategori Parkir dan satu lagi kategori Tenant | Manual/runtime | Keduanya tersimpan pada tabel yang sama dengan `Category` berbeda; keduanya muncul pada daftar saat disaring kategorinya masing-masing |
+| `FIN-DEC-100` | **Berhasil.** Catat tagihan untuk periode berikutnya bagi penyewa yang sama | Manual/runtime | Tersimpan sebagai baris baru yang berdiri sendiri; **nol** entity kontrak yang terbentuk |
+| `FIN-DEC-101` | **Berhasil.** Sesudah mencatat beberapa tagihan sewa | Review kode + runtime | Tabel `FinReceivable` **tidak bertambah satu baris pun**; umur piutang pasien tidak berubah angkanya |
+| `FIN-DES-074` | **Berhasil.** Buka umur piutang sewa dan umur piutang pasien | Manual/runtime | Kedua laporan memakai kelompok yang sama persis (`0-30`, `31-60`, `61-90`, `di atas 90 hari`), tetapi angkanya terpisah |
+| `FIN-DEC-102` | **Berhasil.** Catat denda keterlambatan pada tagihan yang lewat jatuh tempo | Manual/runtime | Nominal denda tersimpan apa adanya; **nol** perhitungan otomatis terjadi walau tagihan sudah lama lewat tempo |
+| `FIN-DEC-103` | **Berhasil.** Staf AR menghapus piutang sewa yang tidak tertagih | Manual/runtime | Status menjadi `WRITTEN_OFF` **dalam satu aksi**, tanpa antrean persetujuan; alasan tersimpan |
+| `FIN-VAL-158` | **Gagal.** Hapus piutang tanpa mengisi alasan | Manual/runtime | `400`; status tidak berubah |
+| `FIN-VAL-159` | **Gagal.** Koreksi tagihan yang sudah menerima pembayaran | Manual/runtime | `422`; isi tagihan tidak berubah |
+| `FIN-VAL-161` | **Gagal.** Catat pelunasan melebihi nilai tagihan | Manual/runtime | `422`; sisa tagihan tidak berubah |
+| `FIN-VAL-162` | **Gagal.** Catat pelunasan minus melebihi pembayaran yang pernah tercatat | Manual/runtime | `422` |
+| `FIN-VAL-164` | **Gagal.** Dua petugas mengubah tagihan yang sama dari layar yang dibuka bersamaan | Manual/runtime | Petugas kedua menerima `409`; nol perubahan tertimpa diam-diam |
+| `FIN-DES-075` | **Berhasil — dan inilah yang MUST diperiksa pemilik.** Catat pelunasan sewa, lalu buka kas harian, setoran bank, dan pemantauan kejadian akuntansi | Manual/runtime | Sisa tagihan sewa berkurang, **tetapi** uangnya **tidak muncul** pada ketiga layar itu, dan **nol** baris kotak keluar terbit. Ini perilaku yang dirancang, bukan cacat — dan menjadi bukti nyata mengapa `FIN-OQ-044` perlu diputuskan sebelum dipakai pada data sungguhan |
+| `FIN-DES-077` | **Gagal.** Pengguna tanpa `FinanceNonPatientReceivable : Update` membuka layar tagihan sewa | Manual/runtime | Tombol catat pelunasan, hapus, dan batalkan tidak tampil; pemanggilan langsung endpoint ditolak `403` |
+| `FIN-DEC-104` | **Berhasil.** Butir menu "Umur Piutang — Parkir" dan "— Tenant" | Manual/runtime | Keduanya membuka laporan umur piutang yang sama dengan saringan kategori berbeda; **nol** endpoint terpisah dipanggil |

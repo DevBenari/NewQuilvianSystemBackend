@@ -568,3 +568,148 @@ Hasil: piutang Rp 10.000.000 menjadi `SETTLED`; `UnallocatedAmount` penerimaan R
 
 `GET /purchasing/supplier-returns/deposits` dan `GET /receipts/{id}/deductions` **tetap** — keduanya
 baca saja.
+
+# AMENDMENT REVISI 13 — Pelacakan klaim penjamin dan dua permukaan baca baru
+
+`last_changed_in`: `FIN-API-1.3` — status `draft`, 1 Oktober 2026.
+Diturunkan dari `FIN-DEC-094`..`FIN-DEC-098`; dirancang `FIN-DES-070`..`FIN-DES-073`.
+Dampak kompatibilitas: **aditif murni.** Nol endpoint berubah bentuk, nol endpoint dicabut.
+
+## D.1 Corporate / Finance Management / Receivable Invoice Batch — tiga aksi klaim
+
+Base URL: `api/v1/corporate/finance-management/receivable-invoice-batches`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `POST` | `/{id}/claim/verify` | Menandai berkas klaim sudah diterima dan dinyatakan lengkap oleh penjamin | `FinanceReceivableInvoiceBatch : Update` | `ClaimVerifyRequest` | `ApiResponse<ReceivableInvoiceBatchResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/claim/approve` | Mencatat nominal yang disetujui penjamin | `FinanceReceivableInvoiceBatch : Update` | `ClaimApproveRequest` | `ApiResponse<ReceivableInvoiceBatchResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/claim/close` | Menutup klaim; tidak ada tindak lanjut lagi | `FinanceReceivableInvoiceBatch : Update` | `ClaimCloseRequest` | `ApiResponse<ReceivableInvoiceBatchResponse>` | **Rencana (belum tersedia)** |
+
+Ketiganya memakai bentuk `POST /{id}/<aksi>` sesuai `transaction-endpoint-standard`, bukan
+`PATCH /{id}/status` generik. Daftar dan rincian klaim **tidak** mendapat endpoint sendiri —
+layar Manajemen Klaim memakai `GET /receivable-invoice-batches` dan `GET /{id}` yang sudah ada,
+yang responsnya bertambah field klaim (lihat `D.3`).
+
+### Request
+
+| DTO | Jenis | Field |
+|---|---|---|
+| `ClaimVerifyRequest` | Status | `ExpectedRowVersion` (`Guid`, wajib); `PayerClaimReference` (`string(100)`, opsional); `ClaimNote` (`string(500)`, opsional) |
+| `ClaimApproveRequest` | Status | `ExpectedRowVersion` (`Guid`, wajib); `ApprovedAmount` (`decimal(18,2)`, **wajib**); `PayerClaimReference` (`string(100)`, opsional); `ClaimNote` (`string(500)`, **wajib bila** `ApprovedAmount` lebih kecil dari `TotalAmount`) |
+| `ClaimCloseRequest` | Status | `ExpectedRowVersion` (`Guid`, wajib); `ClaimNote` (`string(500)`, opsional) |
+
+`ExpectedRowVersion` mengikuti pola `ReceivableInvoiceBatchRowVersionRequest` yang sudah dipakai
+`issue` dan `cancel` — bukan mekanisme baru.
+
+### Kode status dan artinya bagi pengguna
+
+| Kode | Arti |
+|---|---|
+| `200` | Perubahan status klaim tersimpan |
+| `400` | Isian tidak lengkap atau tidak masuk akal, misalnya nominal disetujui bernilai minus |
+| `403` | Pengguna tidak punya hak mengelola batch tagihan |
+| `404` | Batch tidak ditemukan |
+| `409` | Batch sudah diubah pengguna lain sejak layar dibuka; layar perlu dimuat ulang |
+| `422` | Perpindahan status tidak sah menurut `state-transition-matrix.md` `D.1`, atau nominal disetujui melebihi total tagihan |
+
+## D.2 Dua permukaan baca baru
+
+| Grup `[Tags(...)]` | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|---|
+| `Corporate / Finance Management / Receivable` | `GET` | `/receivables/write-offs` | Daftar penghapusan piutang lintas piutang, untuk layar "Pemutihan Piutang" | `FinanceReceivable : Read` | `ReceivableWriteOffQuery` | `ApiResponse<PagedResult<ReceivableWriteOffRowResponse>>` | **Rencana (belum tersedia)** |
+| `Corporate / Finance Management / Receipt` | `GET` | `/receipts/reversed-allocations` | Daftar baris alokasi penerimaan yang dibalik, untuk layar "Receiveable AR Canceled" | `FinanceReceipt : Read` | `ReversedAllocationQuery` | `ApiResponse<PagedResult<ReversedAllocationRowResponse>>` | **Rencana (belum tersedia)** |
+
+Base URL keduanya mengikuti grup masing-masing:
+`api/v1/corporate/finance-management/receivables` dan
+`api/v1/corporate/finance-management/receipts`.
+
+| DTO | Jenis | Field |
+|---|---|---|
+| `ReceivableWriteOffQuery` | PagedQuery | `StartDate`, `EndDate` (`DateOnly?`); `Status` (`string?` — mengikuti status write-off yang sudah ada); `DebtorReferenceId` (`Guid?`); `PageNumber`, `PageSize`, `SortBy`, `SortDirection` |
+| `ReceivableWriteOffRowResponse` | Response | `Id`, `ReceivableId`, `ReceivableNumber`, `DebtorReferenceId`, `Amount`, `Reason`, `Status`, `RequestedAt`, `DecidedAt` |
+| `ReversedAllocationQuery` | PagedQuery | `StartDate`, `EndDate` (`DateOnly?`); `ReceiptId` (`Guid?`); `PageNumber`, `PageSize`, `SortBy`, `SortDirection` |
+| `ReversedAllocationRowResponse` | Response | `AllocationId`, `ReceiptId`, `ReceiptNumber`, `ReceivableId`, `ReceivableNumber`, `Amount`, `ReversedAt`, `ReversalReason` |
+
+Keduanya **membaca saja**. Pembuatan write-off tetap lewat `POST /receivables/{id}/write-offs`
+beserta maker-checker-nya, dan pembalikan alokasi tetap lewat
+`POST /receipts/{id}/allocations/{allocationId}/reverse` — keduanya sudah berjalan dan **tidak**
+berubah.
+
+## D.3 Response yang bertambah field — `ReceivableInvoiceBatchResponse`
+
+Aditif murni; konsumen lama yang mengabaikan field baru tetap berjalan.
+
+| Field baru | Tipe | Arti |
+|---|---|---|
+| `ClaimStatus` | `string?` | Kosong, `SUBMITTED`, `PAYER_VERIFIED`, `APPROVED`, atau `CLOSED` |
+| `ApprovedAmount` | `decimal?` | Nominal yang disetujui penjamin; kosong selama belum `APPROVED` |
+| `ClaimVarianceAmount` | `decimal?` | **Dihitung, tidak disimpan**: `TotalAmount` dikurangi `ApprovedAmount`. Kosong selama belum `APPROVED` |
+| `PayerClaimReference` | `string?` | Nomor rujukan klaim milik penjamin |
+| `ClaimNote` | `string?` | Keterangan terakhir yang dicatat petugas |
+| `PayerVerifiedAt`, `ClaimApprovedAt`, `ClaimClosedAt` | `DateTimeOffset?` | Tanda waktu tiap tahap |
+
+`ClaimVarianceAmount` **MUST** dihitung di backend dan **MUST NOT** dihitung ulang di layar,
+mengikuti aturan "nol perhitungan uang di klien" yang berlaku di seluruh blueprint ini.
+
+## E.1 Corporate / Finance Management / Non Patient Receivable
+
+`last_changed_in`: `FIN-API-1.4` — status `draft`, 1 Oktober 2026.
+Diturunkan dari `FIN-DEC-099`..`FIN-DEC-104`; dirancang `FIN-DES-074`..`FIN-DES-077`.
+Dampak kompatibilitas: **aditif murni** — grup endpoint baru, nol endpoint lama disentuh.
+
+Base URL: `api/v1/corporate/finance-management/non-patient-receivables`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Daftar tagihan sewa, bersaring kategori, status, periode, jatuh tempo | `FinanceNonPatientReceivable : Read` | `NonPatientReceivableQuery` | `ApiResponse<PagedResult<NonPatientReceivableResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Rincian satu tagihan beserta riwayat pelunasannya | `FinanceNonPatientReceivable : Read` | — | `ApiResponse<NonPatientReceivableDetailResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/aging` | Umur piutang sewa per kelompok, bersaring kategori | `FinanceNonPatientReceivable : Read` | `NonPatientReceivableAgingQuery` | `ApiResponse<List<ReceivableAgingBucketResult>>` | **Rencana (belum tersedia)** |
+| `GET` | `/summary` | Ringkasan nominal per status | `FinanceNonPatientReceivable : Read` | `NonPatientReceivableSummaryQuery` | `ApiResponse<NonPatientReceivableSummaryResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/filters/metadata` | Isi pilihan saringan (kategori, status) | `FinanceNonPatientReceivable : Read` | — | `ApiResponse<NonPatientReceivableFilterMetadataResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Mencatat tagihan sewa baru untuk satu periode | `FinanceNonPatientReceivable : Create` | `CreateNonPatientReceivableRequest` | `ApiResponse<NonPatientReceivableResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Mengoreksi tagihan yang belum menerima pembayaran sama sekali | `FinanceNonPatientReceivable : Update` | `UpdateNonPatientReceivableRequest` | `ApiResponse<NonPatientReceivableResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/settlements` | Mencatat pembayaran yang diterima dari penyewa | `FinanceNonPatientReceivable : Update` | `CreateNonPatientReceivableSettlementRequest` | `ApiResponse<NonPatientReceivableDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/write-off` | Menghapus piutang sewa yang tidak tertagih | `FinanceNonPatientReceivable : Update` | `WriteOffNonPatientReceivableRequest` | `ApiResponse<NonPatientReceivableResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/cancel` | Membatalkan tagihan yang salah dicatat | `FinanceNonPatientReceivable : Update` | `CancelNonPatientReceivableRequest` | `ApiResponse<NonPatientReceivableResponse>` | **Rencana (belum tersedia)** |
+
+Mengikuti `transaction-endpoint-standard`: **nol** `DELETE /{id}` (pembatalan memakai aksi `cancel`),
+**nol** `PATCH /{id}/status` generik, dan **nol** `GET /options` (kapabilitas ini bukan master data
+yang dirujuk entity lain).
+
+### Request dan response
+
+| DTO | Jenis | Field |
+|---|---|---|
+| `NonPatientReceivableQuery` | PagedQuery | `Category` (`string?` — `PARKING`/`TENANT`); `Status` (`string?`); `PeriodStart`, `PeriodEnd`, `DueDateFrom`, `DueDateTo` (`DateOnly?`); `Search` (`string?` — nama penyewa atau objek sewa); `PageNumber`, `PageSize`, `SortBy`, `SortDirection` |
+| `NonPatientReceivableAgingQuery` | PagedQuery | `AsOfDate` (`DateOnly?`); `Category` (`string?`) |
+| `CreateNonPatientReceivableRequest` | Create | `Category` (**wajib**); `CounterpartyName` (`string(200)`, **wajib**); `RentedObject` (`string(200)`, **wajib**); `PeriodStart`, `PeriodEnd` (**wajib**); `DueDate` (**wajib**); `BilledAmount` (`decimal`, **wajib**); `LateFeeAmount` (`decimal`, opsional, bawaan nol); `Note` (`string(500)`, opsional) |
+| `UpdateNonPatientReceivableRequest` | Update | Sama dengan Create, ditambah `ExpectedRowVersion` (**wajib**) |
+| `CreateNonPatientReceivableSettlementRequest` | Create | `ExpectedRowVersion` (**wajib**); `SettlementDate` (**wajib**); `Amount` (`decimal`, **wajib**, boleh negatif untuk membatalkan pelunasan sebelumnya); `PaymentMethod` (`string(50)`, **wajib**); `ReferenceNumber` (`string(100)`, opsional); `Note` (`string(500)`, opsional) |
+| `WriteOffNonPatientReceivableRequest` | Status | `ExpectedRowVersion` (**wajib**); `Reason` (`string(500)`, **wajib**) |
+| `CancelNonPatientReceivableRequest` | Status | `ExpectedRowVersion` (**wajib**); `Reason` (`string(500)`, **wajib**) |
+| `NonPatientReceivableResponse` | Response | `Id`, `ReceivableNumber`, `Category`, `CounterpartyName`, `RentedObject`, `PeriodStart`, `PeriodEnd`, `DueDate`, `BilledAmount`, `LateFeeAmount`, `TotalBilledAmount`, `SettledAmount`, `OutstandingAmount`, `DaysPastDue`, `Status`, `Note`, `RowVersion` |
+| `NonPatientReceivableDetailResponse` | Response | Seluruh field di atas, ditambah `Settlements` (daftar `SettlementRowResponse`) |
+| `SettlementRowResponse` | Response | `Id`, `SettlementDate`, `Amount`, `PaymentMethod`, `ReferenceNumber`, `Note` |
+
+`TotalBilledAmount`, `SettledAmount`, `OutstandingAmount`, dan `DaysPastDue` **MUST** dihitung
+backend dan **MUST NOT** dihitung ulang di layar.
+
+### Kode status dan artinya bagi pengguna
+
+| Kode | Arti |
+|---|---|
+| `200` | Permintaan berhasil |
+| `201` | Tagihan sewa baru tersimpan |
+| `400` | Isian tidak lengkap atau tidak masuk akal, misalnya nominal tagihan bernilai minus |
+| `403` | Pengguna tidak punya hak mengelola piutang sewa |
+| `404` | Tagihan tidak ditemukan |
+| `409` | Tagihan sudah diubah pengguna lain sejak layar dibuka; layar perlu dimuat ulang |
+| `422` | Langkah tidak sah menurut `state-transition-matrix.md` bagian `E`, misalnya mengoreksi tagihan yang sudah menerima pembayaran |
+
+### Yang **tidak** dilakukan endpoint ini
+
+| Yang mungkin disangka | Kenyataannya |
+|---|---|
+| Pelunasan tercatat sebagai kas masuk di kas harian atau setoran bank | **Tidak.** Kedua layar itu membaca `FinReceipt`, yang tidak dilewati jalur ini — `FIN-DES-075`, `FIN-OQ-044` |
+| Pencatatan tagihan menerbitkan kejadian akuntansi | **Tidak.** Nol kode kejadian terbit dari kapabilitas ini pada rilis pertama — `FIN-OQ-044` |
+| Piutang sewa ikut terhitung pada umur piutang pasien | **Tidak.** `GET /receivables/aging` dan `GET /non-patient-receivables/aging` adalah dua laporan terpisah dengan definisi kelompok umur yang sama |

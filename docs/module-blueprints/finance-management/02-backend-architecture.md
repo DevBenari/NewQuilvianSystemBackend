@@ -3390,3 +3390,533 @@ Amendment ini menyentuh kode milik modul lain, dan itu dicatat terbuka — bukan
 | Memperbaiki `FIN-CQ-09` di sini | Arah perbaikannya keputusan pemilik, bukan pekerjaan mekanis. Lihat `I.4` |
 | Payung untuk rumpun di luar AP/AR (Cash, Master Data, Accounting Integration) | `FIN-DEC-079` D.3 secara eksplisit menempatkannya sebagai resource mandiri. Menambah payung ketiga tanpa permintaan adalah perluasan cakupan |
 
+
+---
+
+# AMENDMENT REVISI 13 — Pelacakan Klaim Penjamin dan Pemecahan Layar ke Bentuk V1 (`FIN-DEC-094`..`FIN-DEC-098`)
+
+| Field | Nilai |
+|---|---|
+| Pemicu | `/grill-me` Amendment pass 1 Oktober 2026, yang sendiri dipicu perbandingan owner antara menu Keuangan sistem produksi V1 (`QuilvianSystemFrontendDev1`/`QuilvianSystemBackendDev1`, UAT-approved) dengan menu `finance` governed |
+| Keputusan yang diturunkan | `FIN-DEC-094` (penempatan halaman mengikuti V1, supersedes `FIN-DEC-060`), `FIN-DEC-095` (Manajemen Klaim = sisi keuangan saja), `FIN-DEC-096` (Ayat Silang tidak butuh kapabilitas baru), `FIN-DEC-097` (Manajemen Klaim = perluasan `FinReceivableInvoiceBatch`), `FIN-DEC-098` (wewenang staf AR, tanpa jenjang approval) |
+| Keputusan arsitektur baru | `FIN-DES-070`..`FIN-DES-073` — seluruhnya **`draft`**, belum disetujui owner |
+| Dampak skema | **ADA.** Nol tabel baru. **Satu tabel `Diperbarui`** (`FinReceivableInvoiceBatch`, tujuh kolom baru) + satu check constraint + satu index. Satu migration |
+| Dampak hak akses | **NOL** resource baru, **NOL** action baru. Seluruh endpoint baru memakai pasangan yang sudah terdaftar — karena itu amendment ini **tidak** bergantung pada gerbang `FIN-OQ-039` yang masih terbuka |
+| Dampak lintas modul | **NOL.** Verifikasi dokumen klaim tetap milik Billing/Casemix (`FIN-DEC-095`); Finance tidak membaca maupun menulis ke sana pada amendment ini |
+
+## J.1 Apa yang diperiksa pada source
+
+Impact scan read-only dijalankan pada backend `d6978487` dan frontend `d2e8a3538` — **keduanya
+bergerak** dari SHA yang tercatat `01-existing-capability-map.md` (`d6cdfaf9`/`49b59cfaa`), karena
+pekerjaan `BE-FIN-044`..`051` dan `FE-FIN-004`..`015` berjalan sesudahnya. Pemindaian dibatasi pada
+area terdampak: agregat Batch Tagihan AR, permukaan penerimaan/piutang, dan rute frontend `finance`.
+
+Sebelum pass ini, `trace-existing-capabilities` penuh dijalankan atas **dua pasang repository**
+(governed vs V1) untuk menjawab pertanyaan owner "menu apa yang belum tampil". Hasilnya memperkecil
+cakupan amendment ini secara drastis, dan **MUST** dibaca sebagai pembatas scope:
+
+| # | Dugaan sebelum audit | Kenyataan pada source | Akibat pada amendment ini |
+|---:|---|---|---|
+| 1 | Puluhan layar Keuangan V1 hilang dari sistem governed | Mayoritas sudah ada, sebagian bahkan lebih matang. Belasan lainnya sengaja dimiliki modul lain: COA/Buku Besar/Jurnal milik **Accounting** (`FIN-OOS-002`), Master Bank/Supplier milik **Administrator**, Master Tarif milik **Health Services** | Nol kapabilitas dibangun ulang untuk kelompok itu |
+| 2 | Ayat Silang adalah kapabilitas yang hilang | Secara fungsional sama dengan alokasi penerimaan yang sudah berjalan (`FE-FIN-004`, `BE-FIN-016`..`018`) | `FIN-DEC-096` — nol model, nol endpoint, nol layar baru. Hanya butir menu |
+| 3 | Manajemen Klaim punya aturan bisnis V1 yang bisa dirujuk | Layar V1-nya **murni `useState(dummyData)`** — tidak pernah memanggil API sama sekali | Aturan bisnisnya **MUST** digali dari owner, bukan disalin. Sudah dilakukan: `FIN-DEC-095`, `097`, `098` |
+| 4 | Beberapa laporan AR/AP V1 butuh endpoint baru | `GET /goods-receipts`, `GET /receipts/register`, keempat laporan Purchasing, dan filter `Status` pada daftar batch **sudah ada** | Pemecahan layar sebagian besar nol pekerjaan backend |
+| 5 | — (tidak diperiksa sebelumnya) | Daftar write-off **lintas piutang** tidak ada — `write-offs` hanya `POST` per piutang. Daftar alokasi yang dibalik juga tidak ada | Dua endpoint `GET` baru, lihat `J.5` |
+
+## J.2 Tabel kepemilikan data — perubahan
+
+Nol kelompok data baru. Nol pemilik berubah. Nol tabel dibuat ulang.
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini | Perubahan amendment ini |
+|---|---|:---:|---|---|
+| Batch Tagihan AR (`FinReceivableInvoiceBatch`) | **Finance Management** | Ya | Tidak — sudah dimiliki sendiri | **Bertambah tujuh kolom** sumbu klaim |
+| Piutang (`FinReceivable`) | Finance Management | Ya | Tidak | **Tidak berubah.** Selisih klaim **MUST NOT** mengurangi `OutstandingAmount` otomatis |
+| Verifikasi dokumen klaim, SEP, kelengkapan administrasi | **Billing/Casemix** (modul lain) | **Tidak** pada amendment ini | **Tidak** | Dibatasi tegas `FIN-DEC-095` |
+| Penghapusan piutang (`FinReceivableWriteOff`) | Finance Management | Ya | Tidak | Bertambah **satu endpoint baca lintas piutang**; model tidak berubah |
+| Alokasi penerimaan (`FinReceiptAllocation`) | Finance Management | Ya | Tidak | Bertambah **satu endpoint baca** baris yang dibalik; model tidak berubah |
+
+## J.3 Keputusan arsitektur baru
+
+### `FIN-DES-070` — Status klaim adalah **sumbu kedua**, bukan perluasan enum status yang ada
+
+Ini keputusan desain paling menentukan pada amendment ini, dan ia **berbeda dari bacaan harfiah**
+`FIN-DEC-097`. Owner menyebut satu rantai: *Diajukan Diverifikasi Payer Disetujui (sebagian/
+penuh) Dibayar Sebagian/Lunas Ditutup*. Pada source, dua ruas rantai itu sudah dipegang kolom
+`Status` yang ada, dan **penulisnya berbeda**:
+
+| Ruas rantai owner | Dipegang | Penulis | Bukti |
+|---|---|---|---|
+| Diajukan | `Status = ISSUED` | Petugas AR | `state-transition-matrix.md` B.7 |
+| Diverifikasi Payer | **belum ada** | Petugas AR (manual) | — |
+| Disetujui (sebagian/penuh) | **belum ada** | Petugas AR (manual) | — |
+| Dibayar Sebagian / Lunas | `Status = PARTIALLY_PAID` / `PAID` | **Sistem**, diturunkan dari pelunasan anggota | `state-transition-matrix.md` B.7 |
+| Ditutup | **belum ada** | Petugas AR (manual) | — |
+
+Menggabungkan keduanya ke satu kolom berarti sebuah batch **tidak dapat** berada pada dua keadaan
+yang sah secara bersamaan — misalnya "payer sudah menyetujui nominal, tetapi uangnya belum masuk
+sama sekali". Keadaan itu justru keadaan normal pada klaim penjamin, dan merupakan inti dari apa
+yang ingin dipantau. Penggabungan juga akan membuat petugas AR menjadi penulis status pelunasan,
+membatalkan invariant yang dijaga sejak `FIN-DES-041`: **status batch tidak pernah menjadi sumber
+kebenaran baru untuk pelunasan.**
+
+Karena itu: kolom `ClaimStatus` baru, **nullable**, dengan empat nilai tersimpan; ruas "Dibayar"
+tetap dibaca dari kolom `Status` yang sudah ada. Rantai tunggal yang dilihat owner disusun di
+layar dari kedua sumbu — itu urusan penyajian, bukan urusan skema.
+
+| `ClaimStatus` | Arti bagi petugas | Diisi oleh |
+|---|---|---|
+| `null` | Batch belum diterbitkan ke penjamin | — (bawaan) |
+| `SUBMITTED` | Tagihan sudah dikirim ke penjamin | **Sistem**, saat batch diterbitkan (`POST /{id}/issue` yang sudah ada) |
+| `PAYER_VERIFIED` | Penjamin menyatakan berkasnya diterima dan lengkap | Petugas AR, manual |
+| `APPROVED` | Penjamin menyatakan nominal yang disetujui | Petugas AR, manual, **wajib menyertakan nominal** |
+| `CLOSED` | Klaim ditutup; tidak ada tindak lanjut lagi | Petugas AR, manual |
+
+Tidak ada nilai `NOT_SUBMITTED`. Owner tidak menyebutnya, dan `null` sudah menyatakan hal yang sama
+tanpa mengarang status keenam.
+
+### `FIN-DES-071` — Selisih nominal yang tidak disetujui penjamin **tidak** disentuh sistem
+
+`FIN-DEC-097` menetapkan selisih dicatat sebagai item terpisah yang **memerlukan write-off manual**.
+Konsekuensi arsitekturnya ditulis tegas supaya tidak diterjemahkan keliru saat implementasi:
+
+| Yang **MUST** terjadi | Yang **MUST NOT** terjadi |
+|---|---|
+| Selisih `TotalAmount` dikurangi `ApprovedAmount` **dihitung pada response**, tidak disimpan | Menyimpan kolom selisih yang bisa basi terhadap kedua sumbernya |
+| Selisih ditampilkan sebagai pekerjaan yang menunggu petugas | Sistem membuat baris write-off otomatis |
+| Penghapusan dilakukan petugas per `FinReceivable` lewat jalur write-off yang sudah ada (`POST /receivables/{id}/write-offs`, maker-checker `BE-FIN-018`) | `OutstandingAmount` berkurang karena persetujuan klaim |
+| Jenjang approval write-off yang sudah ada **tetap berlaku apa adanya** | Melewati maker-checker write-off dengan alasan "sudah disetujui di klaim" |
+
+`FIN-DEC-098` (staf AR, tanpa jenjang) berlaku pada **perubahan status klaim**, bukan pada
+write-off. Keduanya proses berbeda: menyatakan apa kata penjamin tidak sama dengan menghapus
+piutang dari buku.
+
+### `FIN-DES-072` — Nol resource dan nol action hak akses baru
+
+Perubahan status klaim memakai `FinanceReceivableInvoiceBatch : Update` yang **sudah terdaftar**
+(`[AccessAction("Update", ...)]` pada `FinanceReceivableInvoiceBatchesController`). Ini turunan
+langsung `FIN-DEC-098`: wewenangnya sama dengan petugas yang sudah boleh mengelola batch, tanpa
+jenjang tambahan.
+
+Akibat yang perlu dicatat: amendment ini **tidak bergantung** pada `FIN-OQ-039` (perluasan registry
+resource tanpa endpoint) yang masih menunggu Security Owner, dan **tidak** menambah baris registry
+apa pun.
+
+### `FIN-DES-073` — Layar hasil pemecahan memakai endpoint yang sudah ada, dengan saringan bawaan
+
+`FIN-DEC-094` menuntut layar dipecah mengikuti V1. Pemecahan itu **MUST NOT** diterjemahkan menjadi
+satu endpoint per layar. Belasan layar hasil pemecahan adalah **pandangan tersaring** atas permukaan
+yang sudah ada — saringannya ditetapkan layar, datanya tetap satu sumber:
+
+| Contoh layar hasil pemecahan | Endpoint yang dipakai | Saringan bawaan |
+|---|---|---|
+| Canceled Invoice | `GET /receivable-invoice-batches` | `Status = CANCELLED` |
+| Rekap Purchasing AP, Laporan Tukar Faktur, Laporan Jatuh Tempo, Rekonsiliasi Tagihan | Keempat endpoint `purchasing/reports` yang sudah ada | — (satu endpoint per laporan, memang sudah terpisah) |
+| Penerima Pesanan | `GET /goods-receipts` | — |
+
+Hanya dua layar yang benar-benar tidak punya permukaan baca: lihat `J.5`.
+
+## J.4 Class diagram — agregat Batch Tagihan AR sesudah amendment
+
+```mermaid
+classDiagram
+    class FinReceivableInvoiceBatch {
+        +Guid Id
+        +string BatchNumber
+        +Guid DebtorReferenceId
+        +decimal TotalAmount
+        +string Status
+        +DateTimeOffset IssuedAt
+        +string ClaimStatus
+        +decimal ApprovedAmount
+        +string PayerClaimReference
+        +string ClaimNote
+    }
+    class FinReceivableInvoiceBatchItem {
+        +Guid Id
+        +Guid BatchId
+        +Guid ReceivableId
+    }
+    class FinReceivable {
+        +Guid Id
+        +Guid DebtorReferenceId
+        +decimal OriginalAmount
+        +decimal OutstandingAmount
+        +string Status
+    }
+    class FinReceivableWriteOff {
+        +Guid Id
+        +Guid ReceivableId
+        +decimal Amount
+        +string Status
+    }
+    FinReceivableInvoiceBatch "1" --> "1..*" FinReceivableInvoiceBatchItem : menaungi
+    FinReceivableInvoiceBatchItem "1" --> "1" FinReceivable : menunjuk
+    FinReceivable "1" --> "0..*" FinReceivableWriteOff : dihapus sebagian lewat
+```
+
+Selisih klaim sengaja **tidak** digambar sebagai class. Ia angka turunan, bukan entity — lihat
+`FIN-DES-071`.
+
+### Penjelasan class yang berubah
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Diperbarui` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Receivable/Models/FinReceivableInvoiceBatch.cs` |
+| Kategori | Transaksi — aggregate root |
+| Tanggung jawab utama | Menggabungkan beberapa piutang satu penjamin menjadi satu dokumen tagihan resmi. Amendment ini menambahkan **sumbu kedua**: apa jawaban penjamin atas tagihan itu, terpisah dari apakah uangnya sudah masuk |
+| Field penting yang ditambahkan | `ClaimStatus`, `ApprovedAmount`, `PayerClaimReference`, `ClaimNote`, `PayerVerifiedAt`, `ClaimApprovedAt`, `ClaimClosedAt` |
+| Navigation property dan relasi | Tidak berubah — tetap menaungi `FinReceivableInvoiceBatchItem` |
+| Pemakaian dalam alur bisnis | Petugas AR mencatat jawaban penjamin setelah tagihan dikirim, lalu menutup klaim ketika tidak ada tindak lanjut lagi |
+| Catatan desain | `ClaimStatus` **MUST NOT** mengubah `Status`, dan **MUST NOT** menyentuh `OutstandingAmount` piutang anggota. `ApprovedAmount` **MUST NOT** dipakai sebagai dasar perhitungan pelunasan |
+| Ekuivalen model lama | `Fin_ARHeader` (V1) sebatas konsep dokumen tagihan; V1 tidak punya padanan sumbu klaim yang berfungsi |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Diperbarui` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceReceivableInvoiceBatchService.cs` |
+| Kategori | Service |
+| Tanggung jawab utama | Bertambah tiga operasi perpindahan status klaim beserta penegakan syaratnya; menghitung selisih klaim pada response |
+| Dipanggil oleh | `FinanceReceivableInvoiceBatchesController` |
+| Membuka transaksi database | Ya, untuk setiap perpindahan status klaim — satu perpindahan satu transaksi, memakai `RowVersion` sebagai concurrency token yang sudah ada |
+| Catatan desain | **MUST NOT** memanggil `FinanceReceivableService` untuk mengubah piutang. Jalur write-off tetap milik service piutang |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Diperbarui` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Receivable/Controllers/FinanceReceivableInvoiceBatchesController.cs` |
+| Kategori | Controller |
+| Service yang dipakai | `FinanceReceivableInvoiceBatchService` |
+| Endpoint yang diurus | Bertambah tiga aksi klaim (lihat `J.5`) |
+| Atribut akses | Ketiganya `[AccessPermission("FinanceReceivableInvoiceBatch", "Update")]` — **tidak ada** action baru |
+
+## J.5 Endpoint yang bertambah
+
+Rinciannya ada di `contracts/api-contract.md` (`FIN-API-1.3`). Ringkasnya lima, seluruhnya
+`Rencana (belum tersedia)`:
+
+| # | Method dan path | Kegunaan | Hak akses | Alasan keberadaannya |
+|---:|---|---|---|---|
+| 1 | `POST /receivable-invoice-batches/{id}/claim/verify` | Menandai berkas klaim diterima penjamin | `FinanceReceivableInvoiceBatch : Update` | `FIN-DEC-097` |
+| 2 | `POST /receivable-invoice-batches/{id}/claim/approve` | Mencatat nominal yang disetujui penjamin | `FinanceReceivableInvoiceBatch : Update` | `FIN-DEC-097` |
+| 3 | `POST /receivable-invoice-batches/{id}/claim/close` | Menutup klaim | `FinanceReceivableInvoiceBatch : Update` | `FIN-DEC-097` |
+| 4 | `GET /receivables/write-offs` | Daftar penghapusan piutang **lintas piutang** | `FinanceReceivable : Read` | Layar "Pemutihan Piutang" (`FIN-DEC-094`); hari ini write-off hanya dapat dibuat, tidak dapat didaftar |
+| 5 | `GET /receipts/reversed-allocations` | Daftar alokasi penerimaan yang dibalik | `FinanceReceipt : Read` | Layar "Receiveable AR Canceled" (`FIN-DEC-094`); grainnya baris alokasi, bukan penerimaan, sehingga tidak dapat ditumpangkan ke `GET /receipts/register` |
+
+Aksi perpindahan status memakai bentuk `POST /{id}/<aksi>` sesuai `transaction-endpoint-standard`,
+**bukan** `PATCH /{id}/status` generik.
+
+## J.6 Status model, migration, dan data master
+
+| Model | Status | Kolom yang berubah | Dampak migration |
+|---|---|---|---|
+| `FinReceivableInvoiceBatch` | **`Diperbarui`** | tambah `ClaimStatus` varchar(30) null; tambah `ApprovedAmount` numeric(18,2) null; tambah `PayerClaimReference` varchar(100) null; tambah `ClaimNote` varchar(500) null; tambah `PayerVerifiedAt` timestamptz null; tambah `ClaimApprovedAt` timestamptz null; tambah `ClaimClosedAt` timestamptz null | Satu migration |
+| `FinReceivableInvoiceBatchItem` | `Sudah ada` | — | — |
+| `FinReceivable`, `FinReceivableWriteOff`, `FinReceiptAllocation` | `Sudah ada` | — | — |
+
+### Rencana migration
+
+| Field | Nilai |
+|---|---|
+| Nama | `AddClaimTrackingToFinReceivableInvoiceBatch` |
+| Urutan | Satu-satunya pada amendment ini; tidak bergantung pada migration lain yang belum jalan |
+| Dapat dijalankan tanpa mematikan layanan | **Ya.** Seluruh kolom nullable, nol kolom wajib, nol perubahan tipe, nol rename |
+| Pengisian data lama | **Tidak ada backfill.** Batch lama berstatus `ClaimStatus` kosong, dibaca sebagai "belum diterbitkan ke penjamin" — benar secara bisnis untuk batch `DRAFT`, dan untuk batch `ISSUED` lama petugas mengisinya saat menindaklanjuti klaimnya |
+| Constraint yang ditambahkan | `CK_FinReceivableInvoiceBatch_ClaimStatus`: `ClaimStatus` kosong, atau salah satu dari `SUBMITTED`, `PAYER_VERIFIED`, `APPROVED`, `CLOSED` |
+| Index yang ditambahkan | `IX_FinReceivableInvoiceBatch_ClaimStatus` — layar Manajemen Klaim menyaring berdasarkan kolom ini |
+| Langkah mundur | `Down()` menghapus ketujuh kolom beserta constraint dan index. Aman karena tidak ada kolom lama yang diubah |
+| Wewenang | Pembuatan migration dan eksekusinya adalah **dua wewenang terpisah** dan keduanya **MUST** diminta eksplisit kepada pemilik repository, mengikuti pola seluruh amendment sebelumnya |
+
+### Rencana data master awal
+
+**Nol.** Amendment ini tidak menambah tabel master. Nilai `ClaimStatus` adalah konstanta domain pada
+`static class FinReceivableInvoiceBatchClaimStatuses`, mengikuti pola
+`FinReceivableInvoiceBatchStatuses` yang sudah ada — bukan tabel referensi, karena daftarnya
+ditetapkan aturan bisnis dan tidak boleh disunting pengguna.
+
+## J.7 Yang sengaja tidak dibuat pada amendment ini
+
+| Yang ditolak | Alasan penolakan |
+|---|---|
+| Entity `FinClaim` tersendiri | Ditolak `FIN-DEC-097`. Satu klaim = satu batch yang sudah ada; entity baru akan menduplikasi `DebtorReferenceId`, periode, dan daftar anggota |
+| Model Ayat Silang (`FinCrossEntry` atau sejenisnya) | Ditolak `FIN-DEC-096`. Secara fungsional sama dengan alokasi penerimaan yang sudah berjalan |
+| Kolom selisih klaim yang disimpan | Dapat basi terhadap `TotalAmount` dan `ApprovedAmount`. Dihitung pada response — `FIN-DES-071` |
+| Pembuatan write-off otomatis dari persetujuan klaim | Melanggar `FIN-DEC-097` secara langsung, dan melewati maker-checker write-off yang sudah ada |
+| Tabel riwayat perpindahan status klaim | Tiga kolom tanda waktu sudah menjawab "kapan", dan kolom audit `IdentityModel` menjawab "oleh siapa" untuk perubahan terakhir. Tabel riwayat baru dibuat bila owner menuntut jejak setiap percobaan, bukan sekadar hasil akhirnya |
+| Action hak akses baru (mis. `ManageClaim`) | Ditolak `FIN-DEC-098` — wewenangnya sama dengan pengelolaan batch. Action baru juga akan menambah baris registry yang menunggu pemberian admin, membuat layar mati sampai admin bertindak |
+| Verifikasi dokumen klaim, SEP, kelengkapan berkas | Ditolak `FIN-DEC-095` — milik Billing/Casemix |
+| Entity Jasa Medis AP | Sudah diputuskan milik modul Medical Fee (`FIN-OQ-012`/`FIN-OQ-013`), tidak dibuka ulang di sini |
+| Satu endpoint baru per layar hasil pemecahan | Ditolak `FIN-DES-073`. Belasan layar adalah pandangan tersaring atas permukaan yang sama |
+
+---
+
+# AMENDMENT REVISI 13 (lanjutan) — Piutang Non-Pasien: Sewa Parkir dan Tenant (`FIN-DEC-099`..`FIN-DEC-104`)
+
+| Field | Nilai |
+|---|---|
+| Pemicu | `/grill-me` penutupan `FIN-OQ-043`, 1 Oktober 2026 — gerbang yang dibuka pass desain hari yang sama |
+| Keputusan yang diturunkan | `FIN-DEC-099` (milik Finance sepenuhnya), `FIN-DEC-100` (dicatat manual per periode, tanpa master kontrak), `FIN-DEC-101` (entity tersendiri, invariant `FinReceivable` tidak dilonggarkan), `FIN-DEC-102` (denda nominal manual), `FIN-DEC-103` (staf AR penuh, tanpa jenjang approval), `FIN-DEC-104` (satu entity, kolom `Category`) |
+| Keputusan arsitektur baru | `FIN-DES-074`..`FIN-DES-077` — seluruhnya **`draft`** |
+| Dampak skema | **ADA.** **Dua tabel baru** (`FinNonPatientReceivable`, `FinNonPatientReceivableSettlement`). Nol tabel lama berubah. Satu migration |
+| Dampak hak akses | **ADA.** Satu resource baru `FinanceNonPatientReceivable` beserta tiga action. Terdaftar lewat pemindaian atribut biasa karena controllernya nyata — **tidak** bergantung pada `FIN-OQ-039` |
+| Gerbang baru | `FIN-OQ-044` — integrasi pelunasan sewa ke kas harian, setoran bank, dan kotak keluar Accounting. Lihat `K.3` |
+
+## K.1 Apa yang diperiksa pada source
+
+Impact scan read-only pada backend `d6978487` dan frontend `d2e8a3538` — tidak bergeser sejak pass
+desain sebelumnya pada hari yang sama. Pemindaian dibatasi pada rumpun piutang dan penerimaan.
+
+| # | Yang diperiksa | Temuan | Akibat pada desain ini |
+|---:|---|---|---|
+| 1 | Apakah `FinReceivable` dapat menampung piutang non-pasien | **Tidak.** Jenis debitur terbatas `PAYER`/`PATIENT_GUARANTOR`/`EMPLOYEE_BENEFIT`, dan setiap baris wajib punya `SourceHandoffKey`/`SourceHandoffId`/`InvoiceId` dari Billing | Dasar `FIN-DEC-101`; entity terpisah |
+| 2 | Apakah `FinReceipt` dapat menerima uang yang bukan dari Billing | **Tidak.** Penerimaan lahir dari intake tender Billing; `POST /receipts` manual sengaja tidak pernah dibangun (dikecualikan sejak `BE-FIN-018`) | Pelunasan sewa butuh jalurnya sendiri — `FIN-DES-075` |
+| 3 | Bagaimana kelompok umur piutang dihitung | `ReceivableAgingBuckets` pada `FinanceReceivableService.cs` baris 835-853: empat kelompok `0-30`, `31-60`, `61-90`, `di atas 90 hari` | **Dipakai ulang apa adanya** — `FIN-DES-074` |
+| 4 | Bagaimana nomor bisnis dialokasikan rumpun ini | `GenerateBatchNumber()` memakai tanggal + GUID, dengan komentar `KNOWN ISSUE` bahwa provider number-series atomik (`QBE-CODE-001`..`006`) belum dipakai seluruh rumpun ini | Desain ini **mengikuti pola yang sama** dan **mewarisi utang teknis yang sama**, bukan memperbaikinya diam-diam — lihat `K.3` |
+| 5 | Prefix pemilik pada registry | `Fin` untuk Finance Management, terbukti dari seluruh model rumpun ini | `FinNonPatientReceivable` sah; nol prefix baru diajukan |
+
+## K.2 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini | Catatan |
+|---|---|:---:|---|---|
+| Piutang sewa parkir dan tenant | **Finance Management** | Ya | **Ya — tabel baru**, karena belum ada pemiliknya di modul mana pun (`FIN-DEC-099`) | Bukan duplikasi: tidak ada modul properti/konsesi yang memilikinya |
+| Piutang pasien (`FinReceivable`) | Finance Management | **Tidak** oleh kapabilitas ini | **Tidak** | Sengaja tidak disentuh (`FIN-DEC-101`) |
+| Penerimaan dari Billing (`FinReceipt`) | Finance Management | **Tidak** oleh kapabilitas ini | **Tidak** | Pelunasan sewa punya jalur sendiri — lihat `FIN-DES-075` dan `FIN-OQ-044` |
+| Kelompok umur piutang (`ReceivableAgingBuckets`) | Finance Management | Ya — **dipakai ulang** | **Tidak** | Satu definisi kelompok umur untuk seluruh modul |
+| Master penyewa, master area parkir, master unit tenant | **Tidak ada pemiliknya** | **Tidak** | **Tidak** | `FIN-DEC-100` meniadakan master kontrak; nama penyewa dan objek sewa diketik petugas sebagai teks |
+
+## K.3 Keputusan arsitektur baru
+
+### `FIN-DES-074` — Agregat berdiri sendiri, tetapi kelompok umur piutang dipakai ulang
+
+`FinNonPatientReceivable` adalah aggregate root tersendiri. Ia **tidak** punya relasi database apa
+pun ke `FinReceivable`, `FinReceipt`, atau `BilInvoice`, dan **tidak** pernah menulis ke ketiganya.
+Invariant "setiap piutang berasal dari serah terima Billing" pada `FinReceivable` tetap berlaku
+**tanpa satu pun pengecualian** — inilah yang dibeli `FIN-DEC-101`.
+
+Satu hal **dipakai ulang dengan sengaja**: definisi kelompok umur (`ReceivableAgingBuckets`). Bila
+kapabilitas ini mendefinisikan kelompoknya sendiri, dua laporan umur piutang di modul yang sama
+dapat memakai batas hari berbeda dan angkanya tidak dapat dijumlahkan. Yang dipakai ulang adalah
+**definisi kelompoknya**, bukan tabel maupun service-nya.
+
+### `FIN-DES-075` — Pelunasan dicatat langsung pada piutangnya, dan akibatnya dicatat terbuka
+
+`FinReceipt` tidak dapat dipakai: ia lahir dari intake tender Billing, dan jalur penerimaan manual
+sengaja tidak pernah dibangun. Karena itu pelunasan sewa dicatat sebagai baris anak
+`FinNonPatientReceivableSettlement` langsung di bawah piutangnya.
+
+**Akibat yang MUST dicatat apa adanya, bukan disembunyikan di balik kata "sederhana":**
+
+| Akibat | Keadaannya |
+|---|---|
+| Uang sewa yang diterima **tidak** muncul pada kas harian maupun setoran bank | Kedua layar itu membaca `FinReceipt`, yang tidak dilewati jalur ini |
+| **Nol** kejadian akuntansi terbit untuk pendapatan sewa maupun pelunasannya | Kotak keluar Accounting hanya menerima kode yang sudah diratifikasi; sewa belum punya kode apa pun |
+| Rekonsiliasi rekening koran **tidak** mencakup pelunasan sewa | Konsekuensi langsung dari dua baris di atas |
+
+Ketiganya **bukan** cacat desain yang ditutupi — ketiganya adalah konsekuensi sah dari memisahkan
+jalur, dan menjadi isi `FIN-OQ-044`. Desain ini **MUST NOT** diimplementasikan sampai pemilik tahu
+bahwa pada rilis pertama, uang sewa tercatat sebagai pelunasan piutang tetapi belum tercatat
+sebagai kas masuk di mana pun.
+
+### `FIN-DES-076` — Tanpa jenjang approval, dan batas penularannya dikunci
+
+`FIN-DEC-103` menetapkan staf AR berwenang penuh: mencatat tagihan, mencatat pelunasan, menghapus
+piutang, dan membatalkan — seluruhnya selesai dalam satu aksi, tanpa pemeriksa kedua.
+
+| Yang berlaku | Yang **MUST NOT** terjadi |
+|---|---|
+| Penghapusan piutang sewa adalah satu perpindahan status langsung | Jalur ini dipakai untuk menghapus `FinReceivable` (piutang pasien) |
+| Service kapabilitas ini **tidak** memiliki konsep pengajuan dan persetujuan | Maker-checker pada `FinReceivableWriteOff` dilonggarkan dengan alasan "di sewa sudah boleh" |
+| Jejaknya hanya kolom audit `IdentityModel` beserta alasan yang wajib diisi | Penghapusan tanpa alasan tertulis |
+
+Risiko yang diterima sadar: satu orang dapat mencatat piutang lalu menghapusnya sendiri. Mitigasi
+yang tersedia tanpa mengubah keputusan: alasan penghapusan **wajib** diisi (`FIN-VAL-158`), dan
+seluruh perubahan tercatat logger.
+
+### `FIN-DES-077` — Satu resource hak akses baru, tiga action
+
+| Resource | Action | Dipakai untuk |
+|---|---|---|
+| `FinanceNonPatientReceivable` | `Read` | Daftar, rincian, umur piutang |
+| `FinanceNonPatientReceivable` | `Create` | Mencatat tagihan sewa baru |
+| `FinanceNonPatientReceivable` | `Update` | Mencatat pelunasan, menghapus piutang, membatalkan, mengoreksi |
+
+Ketiganya terdaftar lewat pemindaian atribut biasa karena controllernya nyata dan punya endpoint —
+**berbeda** dari resource payung `FIN-OQ-039` yang tertahan justru karena tidak punya endpoint.
+Nol ketergantungan pada gerbang itu.
+
+Penghapusan dan pembatalan sengaja **tidak** mendapat action sendiri: `FIN-DEC-103` menyamakan
+wewenangnya dengan perubahan biasa, dan action terpisah akan menyiratkan jenjang yang tidak ada.
+
+### Utang teknis yang diwarisi, bukan diperbaiki di sini
+
+Alokasi nomor bisnis mengikuti pola rumpun ini apa adanya (tanggal + GUID), **termasuk** komentar
+`KNOWN ISSUE` bahwa provider number-series atomik `QBE-CODE-001`..`006` belum dipakai. Memperbaikinya
+hanya untuk tabel baru akan membuat satu rumpun punya dua cara menomori. Perapiannya **MUST** menjadi
+task tersendiri untuk seluruh rumpun.
+
+## K.4 Class diagram
+
+```mermaid
+classDiagram
+    class FinNonPatientReceivable {
+        +Guid Id
+        +string ReceivableNumber
+        +string Category
+        +string CounterpartyName
+        +string RentedObject
+        +DateOnly PeriodStart
+        +DateOnly PeriodEnd
+        +DateOnly DueDate
+        +decimal BilledAmount
+        +decimal LateFeeAmount
+        +decimal OutstandingAmount
+        +string Status
+        +Guid RowVersion
+    }
+    class FinNonPatientReceivableSettlement {
+        +Guid Id
+        +Guid NonPatientReceivableId
+        +DateOnly SettlementDate
+        +decimal Amount
+        +string PaymentMethod
+        +string ReferenceNumber
+    }
+    FinNonPatientReceivable "1" --> "0..*" FinNonPatientReceivableSettlement : dilunasi lewat
+```
+
+Diagram ini sengaja **tidak** menggambar `FinReceivable` maupun `FinReceipt`: tidak ada relasi
+apa pun di antaranya, dan menggambarnya akan menyiratkan hubungan yang justru dilarang `FIN-DES-074`.
+
+### Penjelasan class
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Receivable/Models/FinNonPatientReceivable.cs` |
+| Kategori | Transaksi — aggregate root |
+| Tanggung jawab utama | Menyimpan satu tagihan sewa untuk satu periode, satu objek sewa, satu penyewa. Setiap periode adalah barisnya sendiri yang dicatat petugas (`FIN-DEC-100`) |
+| Field penting | `Category` (`PARKING`/`TENANT`), `CounterpartyName`, `RentedObject`, `PeriodStart`, `PeriodEnd`, `DueDate`, `BilledAmount`, `LateFeeAmount`, `OutstandingAmount`, `Status` |
+| Navigation property dan relasi | Memiliki banyak `FinNonPatientReceivableSettlement`. **Nol relasi** ke entity lain |
+| Pemakaian dalam alur bisnis | Petugas AR mencatatnya tiap periode penagihan, lalu mencatat pelunasannya saat penyewa membayar |
+| Catatan desain | **MUST NOT** diberi kolom rujukan ke `BilInvoice`, `FinReceivable`, atau `FinReceipt`. `OutstandingAmount` dihitung dari `BilledAmount + LateFeeAmount` dikurangi jumlah pelunasan — service ini **satu-satunya** penulisnya |
+| Ekuivalen model lama | Tidak ada. Layar V1 Parkir/Tenant murni data contoh, nol tabel di baliknya |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Receivable/Models/FinNonPatientReceivableSettlement.cs` |
+| Kategori | Transaksi — anak |
+| Tanggung jawab utama | Mencatat satu kali pembayaran yang diterima dari penyewa atas satu tagihan sewa |
+| Field penting | `NonPatientReceivableId`, `SettlementDate`, `Amount`, `PaymentMethod`, `ReferenceNumber` |
+| Navigation property dan relasi | Milik `FinNonPatientReceivable`, `DeleteBehavior.Restrict` |
+| Pemakaian dalam alur bisnis | Dibuat petugas AR saat penyewa membayar, sebagian atau penuh |
+| Catatan desain | Baris pelunasan **tidak pernah dihapus**; pembatalan pelunasan dilakukan dengan mencatat baris pelunasan bernilai negatif, mengikuti pola "tidak pernah menghapus, selalu menambah baris" yang berlaku di seluruh blueprint ini. **Belum** mengalir ke kas harian atau kotak keluar Accounting — `FIN-OQ-044` |
+| Ekuivalen model lama | Tidak ada |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceNonPatientReceivableService.cs` |
+| Kategori | Service |
+| Tanggung jawab utama | Seluruh CRUD dan perpindahan status piutang sewa, perhitungan `OutstandingAmount`, dan perhitungan kelompok umur memakai `ReceivableAgingBuckets` yang sudah ada |
+| Dipanggil oleh | `FinanceNonPatientReceivablesController` |
+| Membuka transaksi database | Ya — pencatatan pelunasan dan perubahan `OutstandingAmount` dalam satu transaksi, memakai `RowVersion` sebagai concurrency token |
+| Catatan desain | **MUST NOT** memanggil `FinanceReceivableService`, `FinanceReceiptService`, atau `FinanceAccountingOutboxService`. Ketiadaan panggilan terakhir itu **disengaja** dan menjadi isi `FIN-OQ-044` |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Receivable/Controllers/FinanceNonPatientReceivablesController.cs` |
+| Kategori | Controller |
+| Service yang dipakai | `FinanceNonPatientReceivableService` |
+| Endpoint yang diurus | Sembilan, lihat `K.6` |
+| Atribut akses | `[AccessController(..., ControllerName = "FinanceNonPatientReceivable", ...)]`; tiga `[AccessAction]`: `Read`, `Create`, `Update` |
+
+## K.5 Arsitektur folder
+
+```text
+Areas/Corporate/FinanceManagement/Receivable/
+├── Controllers/
+│   ├── FinanceReceivablesController.cs                     # sudah ada
+│   ├── FinanceReceivableInvoiceBatchesController.cs        # sudah ada, diperbarui amendment klaim
+│   ├── FinanceArController.cs                              # sudah ada, V2 legacy
+│   └── FinanceNonPatientReceivablesController.cs           # BARU
+├── Models/
+│   ├── FinReceivable.cs                                    # sudah ada, TIDAK disentuh
+│   ├── FinNonPatientReceivable.cs                          # BARU
+│   └── FinNonPatientReceivableSettlement.cs                # BARU
+├── Services/
+│   └── FinanceNonPatientReceivableService.cs               # BARU
+└── DTOs/
+    └── FinanceNonPatientReceivableDtos.cs                  # BARU
+
+Repositories/Configurations/Corporate/FinanceManagement/Receivable/
+├── FinNonPatientReceivableConfiguration.cs                 # BARU
+└── FinNonPatientReceivableSettlementConfiguration.cs       # BARU
+```
+
+Configuration **tidak** berada di dalam `Areas/` — ia terpisah di `Repositories/Configurations/`,
+mengikuti aturan struktur backend yang berlaku.
+
+## K.6 Endpoint
+
+Rinciannya pada `contracts/api-contract.md` bagian `E`. Sembilan, seluruhnya
+`Rencana (belum tersedia)`, memakai bentuk transaksi (`POST /{id}/<aksi>`), **tanpa**
+`DELETE /{id}` dan **tanpa** `PATCH /{id}/status` generik.
+
+| Method dan path | Kegunaan | Hak akses |
+|---|---|---|
+| `GET /` | Daftar tagihan sewa, bersaring kategori/status/periode | `FinanceNonPatientReceivable : Read` |
+| `GET /{id}` | Rincian beserta riwayat pelunasan | `FinanceNonPatientReceivable : Read` |
+| `GET /aging` | Umur piutang per kelompok, bersaring kategori | `FinanceNonPatientReceivable : Read` |
+| `GET /summary` | Ringkasan nominal per status | `FinanceNonPatientReceivable : Read` |
+| `GET /filters/metadata` | Isi pilihan saringan | `FinanceNonPatientReceivable : Read` |
+| `POST /` | Mencatat tagihan sewa baru | `FinanceNonPatientReceivable : Create` |
+| `PUT /{id}` | Mengoreksi tagihan yang belum dibayar sama sekali | `FinanceNonPatientReceivable : Update` |
+| `POST /{id}/settlements` | Mencatat pembayaran dari penyewa | `FinanceNonPatientReceivable : Update` |
+| `POST /{id}/write-off` | Menghapus piutang yang tidak tertagih | `FinanceNonPatientReceivable : Update` |
+| `POST /{id}/cancel` | Membatalkan tagihan yang salah dicatat | `FinanceNonPatientReceivable : Update` |
+
+## K.7 Status model, migration, dan data master
+
+| Model | Status | Dampak migration |
+|---|---|---|
+| `FinNonPatientReceivable` | **`Baru`** | Tabel baru |
+| `FinNonPatientReceivableSettlement` | **`Baru`** | Tabel baru |
+| `FinReceivable`, `FinReceipt`, `FinReceivableWriteOff` | `Sudah ada` | **Nol perubahan** |
+
+### Rencana migration
+
+| Field | Nilai |
+|---|---|
+| Nama | `AddFinNonPatientReceivable` |
+| Urutan | Sesudah `AddClaimTrackingToFinReceivableInvoiceBatch`; keduanya saling bebas, tetapi urutan ini menjaga satu amendment satu rangkaian |
+| Dapat dijalankan tanpa mematikan layanan | **Ya.** Hanya menambah dua tabel baru; nol tabel lama disentuh |
+| Pengisian data lama | **Tidak ada.** Tagihan sewa periode lalu dicatat petugas bila memang masih ditagih |
+| Langkah mundur | `Down()` menghapus kedua tabel. Aman — tidak ada data lain yang merujuknya |
+| Wewenang | Pembuatan migration dan eksekusinya **dua wewenang terpisah**, keduanya **MUST** diminta eksplisit kepada pemilik repository |
+
+### Rencana data master awal
+
+**Nol tabel master.** `FIN-DEC-100` meniadakan master kontrak sewa, dan `FIN-DEC-104` menjadikan
+kategori sebagai konstanta domain (`FinNonPatientReceivableCategories`), bukan tabel referensi.
+
+Konsekuensi yang dicatat terbuka: nama penyewa dan objek sewa adalah **teks bebas**. Dua baris untuk
+penyewa yang sama dapat dieja berbeda, dan sistem tidak akan memergokinya. Ini harga langsung dari
+meniadakan master — diterima sadar lewat `FIN-DEC-100`, dan **MUST NOT** diperbaiki diam-diam dengan
+menambahkan master tanpa keputusan baru.
+
+## K.8 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan penolakan |
+|---|---|
+| `MstLeaseContract` atau master kontrak sewa apa pun | Ditolak `FIN-DEC-100`. Tagihan dicatat manual tiap periode |
+| Master penyewa, master area parkir, master unit tenant | Turunan langsung penolakan di atas — tanpa kontrak, master objek sewa kehilangan gunanya |
+| Penerbitan tagihan otomatis per periode | Ditolak `FIN-DEC-100`. Risiko tagihan terlewat diterima sadar |
+| Perhitungan denda otomatis dari tanggal jatuh tempo | Ditolak `FIN-DEC-102`. Denda adalah nominal yang diketik petugas |
+| Jenjang approval untuk penghapusan piutang sewa | Ditolak `FIN-DEC-103` |
+| Dua entity terpisah untuk Parkir dan Tenant | Ditolak `FIN-DEC-104` |
+| Menambah jenis debitur baru pada `FinReceivable` | Ditolak `FIN-DEC-101`. Melonggarkan invariant yang menjaga piutang pasien |
+| Mengalirkan pelunasan sewa ke `FinReceipt` | `FinReceipt` lahir dari intake Billing dan tidak punya jalur manual. Memaksanya berarti membangun penerimaan manual yang sengaja tidak pernah dibangun — keputusan tersendiri, bukan efek samping |
+| Kode kejadian akuntansi untuk pendapatan sewa | **Bukan wewenang Finance sepihak.** Setiap kode wajib diratifikasi Accounting, mengikuti pola `FIN-DEC-053` dkk. Dicatat sebagai `FIN-OQ-044` |
+| Definisi kelompok umur piutang tersendiri | Dipakai ulang dari `ReceivableAgingBuckets` supaya kedua laporan umur piutang dapat dibandingkan |

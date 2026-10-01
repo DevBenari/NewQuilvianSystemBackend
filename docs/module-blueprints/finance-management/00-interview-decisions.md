@@ -201,7 +201,7 @@ pada sesi wawancara ini — lihat `FIN-DEC-024`..`029` untuk detail dan bukti ti
 | `FIN-DEC-057` | Decision | **Menutup `FIN-OQ-023`.** Deposit Retur dipakai sebagai **baris alokasi non-tunai di dalam satu `FinPayment`**, bersanding dengan alokasi transfer bank biasa — satu pembayaran boleh sebagian dari deposit, sebagian dari transfer nyata. `NetTransferAmount` hanya menghitung porsi kas sungguhan; `OutstandingAmount` tetap berkurang sebesar seluruh alokasi (tunai + deposit), memakai ulang jalur penulis yang sudah ada (`FinancePaymentService`/`FinanceSupplierPayableService`) — nol penulis `OutstandingAmount` baru. Ini memakai ulang kemampuan `FinPayment` yang SUDAH BISA melunasi banyak `FinSupplierPayable` sekaligus dalam satu pembayaran (pola rekap `FIN-DES-015`), sehingga sifat lintas-invoice Deposit Retur (`FIN-DEC-047`) terpenuhi tanpa mekanisme terpisah. **Konsekuensi arsitektur yang BELUM digambar:** `FinPaymentAllocation` dan/atau `FinSupplierReturnDepositUsage` (`FIN-DES-038`) perlu jalur untuk menandai satu baris alokasi sebagai "dari deposit" alih-alih "dari transfer bank" — ini **MUST** digambar ulang pada amendment arsitektur berikutnya sebelum `BE-FIN-036` dapat dimulai; `/grill-me` ini hanya menutup keputusan bisnisnya, bukan skemanya. | Yasmin (Finance) | `approved` | Yasmin, 25 September 2026 | Jawaban eksplisit owner atas opsi yang direkomendasikan; preseden `FIN-DES-015` (satu pembayaran, banyak utang) |
 | `FIN-DEC-058` | Decision | **Menutup `FIN-OQ-024`.** Kode kejadian baru diusulkan untuk potongan AR, bernama **`POTONGAN-PIUTANG-NON-TUNAI`** (kode ke-26 pada katalog, setelah `PPN-MASUKAN-PEMBELIAN` di posisi 25) — mengikuti pola `FIN-DEC-053`: setiap pemicu bisnis berbeda mendapat kode sendiri, tidak digabung ke `AR_PAYMENT`/`PENERIMAAN-PIUTANG` (yang berarti kas masuk) maupun `PENYESUAIAN-PIUTANG` (yang berarti koreksi maker-checker disetujui — proses berbeda dari pencatatan potongan saat alokasi). Usulan ini **MUST** dikirim sebagai surat evidence terpisah ke Rizki, mengikuti pola `evidence/06`, **sebelum** `BE-FIN-040` mulai dikerjakan. **Mengikuti `FIN-DEC-056`:** gerbang ratifikasi ini HANYA menahan aktivasi worker pengiriman kode `POTONGAN-PIUTANG-NON-TUNAI`, TIDAK menahan seluruh `EPIC FIN-17` masuk `/plan-module-delivery` — baris outbox-nya tetap ditulis `PENDING` sejak potongan pertama dicatat. Lawan jurnal persisnya TIDAK diputuskan Finance sepihak, konsisten dengan pola seluruh kode lain. | Yasmin (Finance) — sisi Finance saja; ratifikasi tetap wewenang Rizki | `approved` (usulan sisi Finance); ratifikasi Accounting `open`, dicatat `FIN-OQ-026` | Yasmin, 25 September 2026 | Jawaban eksplisit owner atas opsi yang direkomendasikan; pola `FIN-DEC-053` |
 | `FIN-DEC-059` | Decision | **Menutup `FIN-OQ-025`.** Endpoint `GET /purchasing/reports/aging` **dicabut** dari `contracts/api-contract.md` — layar Aging Purchasing/AP memakai `GET api/finance/payable/aging` (`FinanceApController`) yang sudah berjalan, apa adanya. Nol endpoint duplikat, nol risiko dua angka umur utang yang bisa berselisih — inilah risiko yang membuka pertanyaan ini. Pencabutan ini **MUST** dicatat sebagai revisi kontrak bernomor pada `FIN-API-1.1` (bukan dihapus diam-diam), dan `FinancePurchasingReportService`/`Controller` (`BE-FIN-037`) dibangun tanpa endpoint ini. | Yasmin (Finance) | `approved` | Yasmin, 25 September 2026 | Jawaban eksplisit owner atas opsi yang direkomendasikan |
-| `FIN-DEC-060` | Decision | **Menutup `FIN-OQ-022`.** Lima layar (Purchase Order, Tanda Terima Barang, Tukar Faktur, Purchasing Invoice, Retur Pembelian & Deposit Retur, Laporan Pembelian) masuk **submenu baru "Pembelian"** pada group `corporateFinance`, sejajar submenu Master Data yang sudah ada — memisahkan konsep "proses pembelian" dari "Faktur & Tagihan Supplier" (layar existing di `/finance/payable/invoice`) yang tetap di bawah pengelompokan Utang, karena layar itu daftar utang, bukan proses pembelian. Purchasing Invoice diberi label **"Faktur Pembelian"** supaya tidak tertukar dengan "Faktur & Tagihan Supplier". Batch Tagihan AR menjadi **satu butir flat "Tagihan Gabungan Penjamin"**, sejajar butir "Piutang" yang sudah ada — bukan bagian submenu Pembelian karena ia rumpun AR, bukan AP. | Yasmin (Product Owner Finance) | `approved` | Yasmin, 25 September 2026 | Jawaban eksplisit owner atas opsi yang direkomendasikan |
+| `FIN-DEC-060` | Decision | ~~Menutup `FIN-OQ-022`. Lima layar (Purchase Order, Tanda Terima Barang, Tukar Faktur, Purchasing Invoice, Retur Pembelian & Deposit Retur, Laporan Pembelian) masuk submenu baru "Pembelian" pada group `corporateFinance`, sejajar submenu Master Data yang sudah ada — memisahkan konsep "proses pembelian" dari "Faktur & Tagihan Supplier" (layar existing di `/finance/payable/invoice`) yang tetap di bawah pengelompokan Utang. Purchasing Invoice diberi label "Faktur Pembelian". Batch Tagihan AR menjadi satu butir flat "Tagihan Gabungan Penjamin", sejajar butir "Piutang" yang sudah ada.~~ **`superseded` oleh `FIN-DEC-094`, 1 Oktober 2026 — owner memutuskan seluruh menu Transaksi A/R dan A/P mengikuti bentuk dan penempatan halaman persis sistem produksi V1 (`QuilvianSystemFrontendDev1`/`QuilvianSystemBackendDev1`, sudah UAT-approved), menggantikan pengelompokan submenu "Pembelian" dengan struktur flat sesuai V1.** | Yasmin (Product Owner Finance) | `superseded` | Yasmin, 25 September 2026 | Jawaban eksplisit owner atas opsi yang direkomendasikan |
 | `FIN-DEC-061` | Decision | **Dibuka dan ditutup `/design-business-module` revisi 5, 25 September 2026.** Retur Pembelian dan pemakaian Deposit Retur mendapat **dua kode kejadian baru**: **`RETUR-PEMBELIAN`** (kode ke-28) terbit saat retur `CONFIRMED` sebesar nilai retur — piutang RS ke supplier bertambah; **`PEMAKAIAN-DEPOSIT-RETUR`** (kode ke-29) terbit saat `FinPayment` `PAID` sebesar porsi yang dilunasi deposit. Untuk pembayaran yang memakai deposit, kejadian pembayaran utang yang sudah ada (`AP_PAYMENT`) **turun menjadi `TotalAmount − DepositAppliedAmount`** — pola yang sama dengan pemisahan pokok/PPN pada `BE-FIN-034`, supaya Kas di buku besar hanya bergerak sebesar uang yang benar-benar keluar. Alasan: tanpa pemisahan ini, pembayaran yang dilunasi deposit tercatat sebagai kas keluar penuh. Mengikuti `FIN-DEC-056`: ratifikasi Rizki hanya menahan worker pengiriman, tidak menahan pembangunan. Lawan jurnal persis wewenang Accounting. | Yasmin (Finance) — sisi Finance; ratifikasi wewenang Rizki | `approved` (usulan sisi Finance); ratifikasi dicatat `FIN-OQ-026` | Yasmin, 25 September 2026 | Jawaban eksplisit owner atas opsi yang direkomendasikan; temuan `FinancePaymentService.cs` baris 553-563 (`AP_PAYMENT` bernilai `TotalAmount`) |
 | `FIN-DEC-062` | Decision | **Dibuka dan ditutup `/design-business-module` revisi 5, 25 September 2026.** Pembalikan potongan AR memakai kode pasangan **`PEMBALIKAN-POTONGAN-PIUTANG-NON-TUNAI`** (kode ke-27), mengikuti preseden `FIN-DEC-044` bahwa setiap kode penerimaan punya kode pembalikan sendiri. Berlaku saat alokasi yang membawa potongan dibalik — termasuk pembalikan **otomatis** karena tender Billing dibatalkan (`FIN-DEC-021`), yang karena itu tidak dapat dilarang. Baris potongan pembalik dibuat, baris lama tidak dihapus. Diusulkan dalam surat yang sama dengan `POTONGAN-PIUTANG-NON-TUNAI`. | Yasmin (Finance) — sisi Finance; ratifikasi wewenang Rizki | `approved` (usulan sisi Finance); ratifikasi dicatat `FIN-OQ-026` | Yasmin, 25 September 2026 | Jawaban eksplisit owner atas opsi yang direkomendasikan; preseden `FIN-DEC-044` |
 
@@ -1033,4 +1033,180 @@ pemberian hak granular. Yang tersisa sekarang: menunggu jawaban penerima.
 1. Kirim surat balasan resmi ke Accounting: `evidence/21-balasan-finance-atas-aturan-saldo-dan-nomor-jurnal.md` (selesai dibuat).
 2. Tambahkan task backend `BE-FIN-048` (pengetatan validasi `FinanceAccountingOutboxService`) dan `BE-FIN-049` (layanan snapshot kalkulasi saldo subledger bulanan) ke `01-backend-roadmap.md`.
 
+---
 
+## Amendment pass — Penyelarasan Menu ke Sistem Produksi V1 (Ayat Silang & Manajemen Klaim), 1 Oktober 2026
+
+**Pemicu.** Owner membandingkan menu Keuangan pada sistem produksi V1 (`QuilvianSystemFrontendDev1` branch `master`, remote `DevBenari/QuilvianSystemFrontendDev`, dan `QuilvianSystemBackendDev1`, remote `DevBenari/QuilvianSystemBackendDev` — repository terpisah, sudah berjalan produksi dan disetujui UAT, branding "Metropolitan Medical Centre") dengan menu `finance` pada sistem governed (`QuilvianSystemFrontendDev` branch `yasmina`), lewat empat tangkapan layar menu "Transaksi A/R" dan "Transaksi A/P". Sebelum pass ini, `trace-existing-capabilities` (4 agent paralel, dilaporkan di percakapan yang sama) sudah memverifikasi bahwa dari puluhan layar V1, hanya **dua kapabilitas** yang benar-benar tidak punya rujukan bisnis nyata di sistem manapun (V1 maupun governed): **Ayat Silang** dan **Manajemen Klaim**. Sisanya sudah tercakup (langsung atau terkonsolidasi) di `finance/`, atau sengaja dimiliki modul lain (Accounting untuk COA/GL/Jurnal; Administrator untuk Master Bank/Supplier; Health Services untuk Master Tarif; Medical Fee untuk Jasa Medis AP per `FIN-OQ-012`/`013`).
+
+**Keputusan baru:** `FIN-DEC-094` sampai `FIN-DEC-098`, seluruhnya `approved`, diputuskan interaktif via `/grill-me`, 1 Oktober 2026.
+
+| ID | Pertanyaan | Keputusan | Dasar |
+|---|---|---|---|
+| `FIN-DEC-094` | Bagaimana bentuk dan penempatan halaman menu Transaksi A/R dan Transaksi A/P pada sistem governed, menyusul owner menunjukkan menu V1 yang sudah UAT-approved? | **Supersedes `FIN-DEC-060`.** Seluruh layar Transaksi A/R dan Transaksi A/P MUST mengikuti bentuk dan penempatan halaman persis seperti V1 — termasuk memecah kembali kapabilitas yang sebelumnya dikonsolidasikan governed (Canceled Invoice, Pemutihan Piutang, Piutang Korporat, Receiveable AR Canceled, laporan AR per jenis, Penerima Pesanan/GR) menjadi halaman/rute berdiri sendiri, bukan modal/tab di dalam layar lain. Submenu "Pembelian" (`FIN-DEC-060`) **dicabut** sebagai struktur pengelompokan; label dan susunan flat mengikuti V1 apa adanya. | Jawaban eksplisit owner, 1 Oktober 2026, atas pilihan "pecah jadi halaman berdiri sendiri" vs "tautkan ke layar konsolidasi yang ada" |
+| `FIN-DEC-095` | Apa batas scope "Manajemen Klaim" — sisi keuangan (pelacakan status pelunasan) atau lifecycle verifikasi dokumen klaim penuh? | **Sisi keuangan saja.** Finance hanya melacak status pelunasan klaim per payer (asuransi/BPJS): diajukan, disetujui (sebagian/penuh), disengketakan, dibayar (sebagian/lunas). Verifikasi dokumen medis/SEP/kelengkapan administrasi klaim **tetap milik Billing/Casemix** — Finance tidak membangun ulang atau menduplikasi proses itu, hanya membaca/menautkan hasilnya bila diperlukan di masa depan (titik sentuh, bukan kepemilikan). | Jawaban eksplisit owner, 1 Oktober 2026, atas opsi yang direkomendasikan |
+| `FIN-DEC-096` | Apakah Ayat Silang (field legacy `AsuransiId`/`BankId`/`TotalPembayaran`/`IsSudahTerpakai`) butuh kapabilitas baru, atau sudah tercakup mekanisme yang ada? | **Sudah tercakup alokasi penerimaan (`FE-FIN-004`/`BE-FIN-016`..`018`).** Satu setoran bank gabungan dari asuransi = satu `FinReceipt`, dialokasikan manual ke banyak `FinReceivable` memakai mekanisme alokasi yang sudah dibangun. Ayat Silang di V1 adalah nama lama untuk proses yang secara fungsional sama. **Tidak ada kapabilitas backend/frontend baru yang dibangun** — menutup gap yang tercatat di `01-existing-capability-map.md` sebagai `MISSING`/unresolved sejak awal proyek; cakupannya murni menampilkan butir menu "Ayat Silang" yang mengarah ke layar alokasi penerimaan yang sudah ada. | Jawaban eksplisit owner, 1 Oktober 2026, atas opsi yang direkomendasikan |
+| `FIN-DEC-097` | Apa bentuk data "Manajemen Klaim" — entity baru, atau perluasan kapabilitas yang sudah ada? | **Perluasan `FinReceivableInvoiceBatch`/`FinanceReceivableInvoiceBatchesController` (`BE-FIN-038`/`039`, `FE-FIN-012`) — bukan entity baru.** Satu klaim = satu batch tagihan gabungan penjamin yang sudah ada, ditambah field status lifecycle: **Diajukan → Diverifikasi Payer → Disetujui (sebagian/penuh) → Dibayar Sebagian/Lunas → Ditutup**. Saat payer menyetujui nominal LEBIH KECIL dari yang ditagih, selisihnya **dicatat sebagai item terpisah yang memerlukan write-off manual** oleh staf AR memakai mekanisme write-off yang sudah ada (`FinanceReceivablesController` write-off, `FE-FIN-002`) — **tidak** otomatis terhapus/disesuaikan oleh sistem. | Jawaban eksplisit owner, 1 Oktober 2026, atas opsi "5 status + selisih jadi piutang tak tertagih (write-off manual)" |
+| `FIN-DEC-098` | Siapa berwenang mengubah status klaim, terutama menandai "Disengketakan"/"Disetujui Sebagian"? | **Staf AR biasa, manual, tanpa jenjang approval tambahan** — sama dengan hak akses yang sudah dipasang pada `FinanceReceivableInvoiceBatch` (`FE-FIN-012`). Tidak ada maker-checker terpisah untuk perubahan status klaim, berbeda dari pola approval berjenjang pembayaran AP/AR. | Jawaban eksplisit owner, 1 Oktober 2026, atas opsi yang direkomendasikan |
+
+**Open question yang ditutup pass ini:**
+
+| ID | Status baru | Keterangan |
+|---|---|---|
+| — | **Ayat Silang** (tercatat `MISSING`/unresolved di `01-existing-capability-map.md` sejak audit awal, belum pernah diberi nomor `FIN-OQ` formal) | **DITUTUP** oleh `FIN-DEC-096` — bukan kapabilitas baru, tercakup alokasi penerimaan yang sudah ada |
+
+**Penilaian bentuk blueprint.** Kedua kapabilitas (Ayat Silang, Manajemen Klaim) **tidak** memenuhi syarat pemisahan sub-modul (`COMPOSITE`) — Ayat Silang bukan kapabilitas berdiri sendiri sama sekali (`FIN-DEC-096`), dan Manajemen Klaim adalah perluasan field/status di atas aggregate yang sudah ada (`FIN-DEC-097`), tanpa bounded context, resource RBAC, atau MVP wave sendiri. Blueprint `finance-management` tetap `SINGLE`.
+
+**Acceptance criteria tambahan yang sudah dapat diuji:**
+
+1. Menu sidebar Transaksi A/R dan Transaksi A/P MUST menampilkan seluruh butir sesuai daftar V1 (lihat tangkapan layar owner, 1 Oktober 2026), dengan label dan urutan mengikuti V1 apa adanya, kecuali Jasa Medis (`FIN-OQ-012`/`013`, tetap di luar scope Finance).
+2. Setiap butir yang sebelumnya adalah modal/tab di dalam layar konsolidasi (Canceled Invoice, Pemutihan Piutang, Piutang Korporat, Receiveable AR Canceled, Report-* AR per jenis, Penerima Pesanan) MUST punya rute/halaman sendiri yang dapat diakses langsung dari menu, bukan hanya dari dalam layar lain.
+3. Ayat Silang MUST mengarah ke layar alokasi penerimaan yang sudah ada (`FE-FIN-004`) — nol endpoint/model baru.
+4. `FinReceivableInvoiceBatch` MUST memiliki field status klaim baru dengan lima nilai (`FIN-DEC-097`) dan dapat diubah staf AR tanpa approval tambahan (`FIN-DEC-098`).
+5. Selisih nominal saat status "Disetujui Sebagian" MUST tercatat sebagai item terpisah yang memerlukan write-off manual — bukan pengurangan `OutstandingAmount` otomatis.
+
+**Langkah berikutnya:** owner akan diminta memilih kelanjutan di bawah (`design-business-module` untuk menggambar skema field status + state-transition-matrix amandemen `FinReceivableInvoiceBatch`, lalu `plan-module-delivery` untuk memecah seluruh pekerjaan ini — restrukturisasi menu, halaman berdiri sendiri, field status klaim baru — menjadi task `FE-FIN-xxx`/`BE-FIN-xxx` bernomor).
+
+
+
+---
+
+## Addendum — `FIN-OQ-040` terjawab, dan jawabannya membuka gerbang baru, 1 Oktober 2026
+
+**Jawaban owner.** Grup "Umur Piutang (A/R Aging)" pada menu V1 berisi **tiga** butir:
+**Kasir**, **Parkir**, dan **Tenant**.
+
+| ID | Status baru | Keterangan |
+|---|---|---|
+| `FIN-OQ-040` | **CLOSED** | Isi grupnya terjawab: Kasir, Parkir, Tenant |
+| `FIN-OQ-043` | **DIBUKA — MEMBLOKIR dua dari tiga butir itu** | Piutang Parkir dan Tenant **tidak dapat diwakili** model piutang yang berjalan sekarang. Lihat di bawah |
+
+### Mengapa jawaban ini tidak langsung dapat dirancang
+
+Pemeriksaan source dilakukan sebelum menulis baris desain apa pun, dan hasilnya menghentikan dua
+dari tiga butir itu:
+
+| Temuan | Bukti |
+|---|---|
+| `FinReceivable` **hanya** mengenal tiga jenis debitur: `PAYER`, `PATIENT_GUARANTOR`, `EMPLOYEE_BENEFIT` | `Areas/Corporate/FinanceManagement/Receivable/Models/FinReceivable.cs` baris 80-85 |
+| Setiap piutang **wajib** berasal dari serah terima tagihan Billing — ada `SourceHandoffKey`, `SourceHandoffId`, dan `InvoiceId` yang menunjuk `BilInvoice` | `FinReceivable.cs` baris 25-31 |
+| Tidak ada jalur apa pun untuk menerbitkan piutang yang **bukan** tagihan pasien | Konsekuensi langsung dua baris di atas |
+| Endpoint umur piutang **tidak punya saringan segmen sama sekali** — hanya `AsOfDate` | `FinanceReceivableDtos.cs` baris 112-115 |
+| Layar Parkir dan Tenant di V1 **murni `generateDummyData()`**, nol panggilan API — sama seperti Manajemen Klaim | `src/components/view/Keuangan/transaksi-AR/tagihan/{parkir,tenant}/table/services/*.service.jsx` |
+
+Artinya Parkir dan Tenant bukan "saringan yang belum dipasang", melainkan **sumber piutang yang
+belum ada sama sekali**. Sewa lahan parkir dan sewa unit tenant adalah penagihan berulang atas
+kontrak sewa — bukan tagihan pasien, tidak lahir dari Billing, dan menuntut data induk yang belum
+dimiliki modul mana pun di sistem governed.
+
+### Bentuk bisnis yang terbaca dari data contoh V1
+
+Dicatat sebagai **petunjuk**, bukan sebagai aturan yang sudah sah — sumbernya data contoh yang
+di-hardcode, bukan sistem yang berjalan:
+
+| Hal | Parkir | Tenant |
+|---|---|---|
+| Objek yang disewakan | Area parkir (Basement A1/A2/B1/B2, Outdoor, Karyawan) | Unit (Lt.1 A-01, Lt.2 B-12, dst.) |
+| Penyewa | — (tidak terbaca) | Nama tenant (kantin, ATM, optik, apotek, laboratorium) |
+| Pola tagihan | Bulanan atau Tahunan | Bulanan atau Tahunan |
+| Nominal contoh | Rp 2.500.000 bulanan; Rp 37.000.000 tahunan | Bervariasi per unit |
+| Keterlambatan | Ada layar "Tagihan Keterlambatan" terpisah untuk keduanya | idem |
+
+### `FIN-OQ-043` — yang MUST diputuskan sebelum dua butir ini dirancang
+
+| # | Pertanyaan | Mengapa agent tidak boleh menjawabnya sendiri |
+|---:|---|---|
+| 1 | Apakah penagihan sewa parkir dan tenant **milik modul Finance**, atau modul pengelolaan properti/konsesi tersendiri yang hasilnya mengalir ke Finance sebagai piutang? | Pertanyaan kepemilikan bounded context — sama bentuknya dengan `FIN-DEC-095` untuk Manajemen Klaim. Menjawabnya sendiri berarti menetapkan batas modul tanpa wewenang |
+| 2 | Data induk apa yang dibutuhkan: kontrak sewa, objek sewa (area/unit), tarif, masa berlaku? Siapa pemiliknya? | Menebak berarti membuat master baru yang mungkin sudah dimiliki modul lain |
+| 3 | Bagaimana tagihan berulang diterbitkan — otomatis tiap periode, atau diterbitkan petugas? Siapa yang menyetujui? | Aturan bisnis dan kewenangan |
+| 4 | Aturan denda keterlambatan: dihitung bagaimana, sejak kapan, siapa yang boleh membebaskannya? | V1 punya layarnya, tetapi isinya data contoh — nol aturan yang bisa dirujuk |
+| 5 | Apakah piutang sewa masuk `FinReceivable` dengan jenis debitur baru, atau entity piutang tersendiri? | Keputusan skema yang menyentuh invariant "setiap piutang berasal dari Billing" |
+
+**Yang TIDAK terhambat.** Butir **Kasir** dan seluruh isi `EPIC FIN-18` lainnya berjalan terus.
+Umur piutang per segmen Kasir hanya menuntut satu saringan tambahan pada endpoint umur piutang yang
+sudah ada — bukan sumber piutang baru.
+
+---
+
+## Amendment pass — Penutupan `FIN-OQ-043`: Piutang Non-Pasien (Parkir & Tenant), 1 Oktober 2026
+
+**Pemicu.** `FIN-OQ-043` (dibuka pass desain hari yang sama) menahan dua butir menu "Umur Piutang —
+Parkir" dan "— Tenant" karena penagihan sewa parkir dan unit tenant bukan tagihan pasien, tidak
+lahir dari Billing, dan model `FinReceivable` yang berjalan tidak dapat menampungnya. V1 pun tidak
+punya aturan bisnis yang bisa dirujuk — layarnya murni data contoh (`generateDummyData()`).
+
+**Keputusan baru:** `FIN-DEC-099` sampai `FIN-DEC-104`, seluruhnya `approved`, diputuskan interaktif
+via `/grill-me`, 1 Oktober 2026.
+
+| ID | Pertanyaan | Keputusan | Dasar |
+|---|---|---|---|
+| `FIN-DEC-099` | Penagihan sewa parkir dan sewa unit tenant milik modul mana? | **Milik Finance sepenuhnya.** Finance merancang sendiri pencatatan tagihan sewa — tidak ada modul properti/konsesi terpisah di sistem ini saat ini, tidak ditunggu kehadirannya | Jawaban eksplisit owner, 1 Oktober 2026, atas opsi yang direkomendasikan |
+| `FIN-DEC-100` | Bagaimana tagihan berulang disusun — dari kontrak sewa master, atau dicatat manual tiap periode? | **Dicatat manual oleh staf AR tiap periode, TANPA entity kontrak sewa.** Tidak ada `MstLeaseContract`. Staf mengisi tagihan baru setiap periode (objek sewa, penyewa, nominal, periode) — risiko tagihan terlewat bila staf lupa **diterima sadar** oleh owner, bukan ditangani sistem | Jawaban eksplisit owner atas opsi "staf mencatat manual, tanpa master kontrak" |
+| `FIN-DEC-101` | Bagaimana piutang sewa ini disimpan, mengingat `FinReceivable` mewajibkan setiap barisnya berasal dari serah terima Billing (`SourceHandoffKey`/`InvoiceId`)? | **Entity piutang tersendiri, terpisah dari `FinReceivable`** — invariant "wajib dari Billing" pada `FinReceivable` **TIDAK dilonggarkan dan TIDAK mendapat pengecualian apa pun**. Piutang non-pasien punya jalur aging/write-off/alokasi sendiri yang serupa bentuknya tetapi berdiri sendiri | Jawaban eksplisit owner atas opsi yang direkomendasikan; alasan eksplisit: melonggarkan invariant `FinReceivable` berisiko disalahgunakan untuk piutang pasien juga |
+| `FIN-DEC-102` | Bagaimana aturan denda keterlambatan? | **Nominal tetap, dicatat manual oleh staf AR saat menagih ulang** — tidak ada perhitungan otomatis (persentase atau tarif harian) pada rilis ini. Konsisten dengan `FIN-DEC-100`: seluruh angka pada kapabilitas ini memang dicatat manual, bukan dihitung sistem | Jawaban eksplisit owner atas opsi yang direkomendasikan |
+| `FIN-DEC-103` | Siapa berwenang mencatat tagihan baru dan menghapus piutang sewa yang tidak tertagih? | **Staf AR penuh, TANPA jenjang approval untuk keduanya** — baik pencatatan maupun penghapusan. **Ini BERBEDA secara sadar** dari pola write-off `FinReceivable` (`BE-FIN-018`) yang memakai maker-checker. Owner memilih opsi tanpa approval sesudah disodorkan konsekuensinya (nol pemeriksa kedua untuk penghapusan nominal) | Jawaban eksplisit owner atas opsi "staf AR penuh tanpa approval", bukan opsi yang direkomendasikan |
+| `FIN-DEC-104` | Piutang Parkir dan Piutang Tenant — satu entity atau dua? | **Satu entity, `FinNonPatientReceivable`, dengan kolom `Category` (`PARKING`/`TENANT`)** — kedua butir menu menjadi pandangan tersaring atas entity yang sama, mengikuti pola `FinReceivable.DebtorType` yang sudah ada | Jawaban eksplisit owner atas opsi yang direkomendasikan |
+
+**Penegasan risiko yang MUST dicatat apa adanya, bukan didiamkan.** `FIN-DEC-103` membuka celah yang
+tidak dimiliki kapabilitas Finance lain: staf yang sama dapat mencatat piutang **dan**
+menghapusnya, tanpa pemeriksa kedua. Ini **diterima sadar** oleh owner untuk kapabilitas piutang
+non-pasien **saja** — `FIN-DEC-103` **MUST NOT** dijadikan preseden untuk melonggarkan maker-checker
+pada `FinReceivable` (piutang pasien) atau kapabilitas write-off mana pun yang sudah berjalan.
+
+**Open question yang ditutup pass ini:**
+
+| ID | Status baru | Keterangan |
+|---|---|---|
+| `FIN-OQ-043` | **CLOSED** oleh `FIN-DEC-099`..`104` | Kedua butir menu (Parkir, Tenant) kini dapat dirancang |
+
+**Acceptance criteria tambahan yang sudah dapat diuji:**
+
+1. `FinNonPatientReceivable` **MUST** punya kolom `Category` dengan tepat dua nilai: `PARKING`,
+   `TENANT`. Nilai lain **MUST** ditolak.
+2. `FinNonPatientReceivable` **MUST NOT** memiliki `SourceHandoffKey`, `SourceHandoffId`, atau
+   `InvoiceId` — baris ini **tidak pernah** berasal dari Billing, dan upaya menyamakannya dengan
+   `FinReceivable` adalah cacat desain.
+3. Pencatatan tagihan baru dan penghapusan piutang sewa **MUST NOT** menuntut approval jenjang
+   apa pun — keduanya selesai dalam satu aksi oleh staf AR.
+4. Denda keterlambatan **MUST** berupa field nominal yang diisi manual, **MUST NOT** dihitung
+   otomatis dari tanggal jatuh tempo.
+5. Layar "Umur Piutang — Parkir" dan "— Tenant" **MUST** menjadi pandangan tersaring
+   (`Category = PARKING` / `Category = TENANT`) atas satu endpoint umur piutang non-pasien,
+   **bukan** dua endpoint terpisah.
+
+**Langkah berikutnya:** `/design-business-module` amandemen kecil untuk menggambar `FinNonPatientReceivable`
+(model, migration, endpoint, kontrak) — menyusul `AMENDMENT REVISI 13` yang sudah ada, sebagai bagian
+dari revisi yang sama karena masih satu benang perubahan (penyelarasan navigasi V1). Sesudah itu,
+`FIN-OQ-040`/`FIN-OQ-043` tidak lagi menahan `EPIC FIN-18` sama sekali — seluruh isinya dapat masuk
+`/plan-module-delivery`.
+
+---
+
+## Addendum — Dua keputusan penutup sebelum perencanaan delivery, 1 Oktober 2026
+
+**Pemicu.** Dua butir yang disodorkan pass desain sebagai hal yang **MUST** diputuskan pemilik,
+dijawab langsung owner sebelum `/plan-module-delivery` dijalankan.
+
+| ID | Pertanyaan | Keputusan | Dasar |
+|---|---|---|---|
+| `FIN-DEC-105` | Menu V1 tidak punya butir "Tagihan Sewa" — satu-satunya jalan masuk ke pencatatan tagihan sewa adalah lewat laporan umur piutang, yang terasa berputar bila petugas harus mencatat tiap periode. Apakah butir menu tersendiri ditambahkan walau menyimpang dari V1? | **Ya, dibuat.** Butir menu tersendiri untuk mengelola tagihan sewa ditambahkan beserta layarnya. Ini **penyimpangan yang disetujui** dari bentuk V1 (`FIN-DEC-094`), dicatat terbuka sebagai pengecualian bernama — bukan pelonggaran umum atas aturan "ikuti V1 apa adanya" | Jawaban eksplisit owner, 1 Oktober 2026: "Jika belum ada maka buatkan konfigurasi tagihan sewanya juga" |
+| `FIN-DEC-106` | Apakah batas penularan `FIN-DEC-103` (wewenang tanpa jenjang approval hanya berlaku untuk piutang sewa) diratifikasi sebagai aturan yang mengikat? | **Ya, diratifikasi.** Kelonggaran tanpa jenjang approval berlaku **hanya** pada `FinNonPatientReceivable`. Ia **MUST NOT** dijadikan dasar melonggarkan maker-checker pada `FinReceivableWriteOff`, `FinReceivableAdjustment`, atau jalur persetujuan pembayaran mana pun yang sudah berjalan | Jawaban eksplisit owner, 1 Oktober 2026: "saya menyetujui point kedua" |
+
+### Batas `FIN-DEC-105` yang MUST dijaga
+
+Keputusan ini menambah **jalan masuk**, bukan kapabilitas baru. Yang **tidak** ikut disetujui, dan
+**MUST NOT** diturunkan diam-diam dari kata "konfigurasi":
+
+| Yang **tidak** termasuk | Alasan |
+|---|---|
+| Master kontrak sewa (`MstLeaseContract` atau sejenisnya) | Ditolak tegas `FIN-DEC-100` satu putaran sebelumnya. Tidak dibuka ulang oleh keputusan ini |
+| Master penyewa, master area parkir, master unit tenant | Turunan penolakan yang sama |
+| Pengaturan tarif bawaan atau rumus denda | Ditolak `FIN-DEC-102` — nominal diketik petugas tiap kali |
+| Penerbitan tagihan otomatis per periode | Ditolak `FIN-DEC-100` |
+
+Bila yang dimaksud owner ternyata lebih dari jalan masuk — misalnya pengaturan tarif bawaan per
+objek sewa — itu **keputusan baru** yang membuka kembali `FIN-DEC-100`/`FIN-DEC-102`, dan **MUST**
+melewati `/grill-me` tersendiri. Perencanaan ini berjalan di atas bacaan yang sempit dan konservatif.
+
+**Open question yang ditutup:** nol baru. `FIN-OQ-044` (integrasi kas dan kejadian akuntansi) **tetap
+terbuka** dan tidak tersentuh kedua keputusan ini.

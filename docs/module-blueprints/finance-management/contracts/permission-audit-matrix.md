@@ -751,3 +751,106 @@ registry; platform hari ini **belum dapat** mendaftarkan resource yang tidak pun
 Sampai `FIN-OQ-039` turun, mekanisme ekspansi **MUST NOT** diimplementasikan. Ini **tidak** menahan
 penyelarasan nama enam controller (D.5) yang sudah selesai, maupun pekerjaan frontend mana pun.
 
+
+# AMENDMENT REVISI 13 — Pelacakan klaim penjamin: nol resource dan nol action baru
+
+`last_changed_in`: `FIN-PERM-1.5` — status `draft`, 1 Oktober 2026.
+Diturunkan dari `FIN-DEC-098`; dirancang `FIN-DES-072`.
+
+## E.1 Ringkasan dampak
+
+| Hal | Nilai |
+|---|---|
+| Resource baru | **NOL** |
+| Action baru | **NOL** |
+| Baris registry baru | **NOL** |
+| Ketergantungan pada `FIN-OQ-039` (perluasan registry resource tanpa endpoint) | **TIDAK ADA** — amendment ini dapat diimplementasikan penuh sementara gerbang itu masih tertutup |
+
+Kelima endpoint baru memakai pasangan yang **sudah terdaftar** dari pemindaian atribut source:
+
+| Endpoint baru | Pasangan hak akses | Sudah terdaftar lewat |
+|---|---|---|
+| `POST /receivable-invoice-batches/{id}/claim/verify` | `FinanceReceivableInvoiceBatch : Update` | `[AccessAction("Update", ...)]` pada `FinanceReceivableInvoiceBatchesController` (`BE-FIN-039`) |
+| `POST /receivable-invoice-batches/{id}/claim/approve` | `FinanceReceivableInvoiceBatch : Update` | idem |
+| `POST /receivable-invoice-batches/{id}/claim/close` | `FinanceReceivableInvoiceBatch : Update` | idem |
+| `GET /receivables/write-offs` | `FinanceReceivable : Read` | `FinanceReceivablesController` (`BE-FIN-018`) |
+| `GET /receipts/reversed-allocations` | `FinanceReceipt : Read` | `FinanceReceiptsController` (`BE-FIN-016`) |
+
+## E.2 Kewenangan yang **tidak** dijaga mesin hak akses
+
+Dicatat apa adanya, karena inilah bagian yang tidak terbaca dari daftar endpoint:
+
+| Kewenangan | Dijaga oleh | Yang **tidak** dijaganya | Risiko yang diterima |
+|---|---|---|---|
+| Siapa yang boleh menyatakan nominal persetujuan penjamin | `FinanceReceivableInvoiceBatch : Update` saja | Mesin hak akses **tidak** membedakan petugas yang menerbitkan tagihan dari petugas yang mencatat jawaban penjamin — satu orang dapat melakukan keduanya | **Diterima sadar** lewat `FIN-DEC-098`: owner memilih tanpa jenjang approval. Risikonya nominal persetujuan dicatat keliru atau sepihak tanpa ada pemeriksa kedua |
+| Besarnya selisih yang dihapus dari buku | **Maker-checker write-off yang sudah ada** (`BE-FIN-018`), bukan oleh aksi klaim | Aksi klaim sendiri tidak pernah mengurangi piutang | Rendah — penghapusan tetap melewati penyetuju, sesuai `FIN-DES-071` |
+
+Penegasan yang **MUST** dipegang implementasi: longgarnya wewenang pada sumbu klaim **MUST NOT**
+dipakai sebagai alasan melonggarkan jenjang write-off. Keduanya proses berbeda.
+
+## E.3 Pencatatan audit
+
+Mengikuti konvensi project tanpa pengecualian: ketiga `POST` aksi klaim **dicatat** logger
+(`EntityId`, controller, action, status); kedua `GET` baru **tidak** dicatat.
+
+Kolom sensitif: nol kolom baru ditandai sensitif. `ClaimNote` dan `PayerClaimReference` memuat
+rujukan administratif penjamin, **bukan** data medis pasien — keduanya **MUST NOT** diisi
+diagnosis atau keterangan klinis, dan antarmuka **MUST NOT** mengarahkan petugas ke sana.
+
+# AMENDMENT REVISI 13 (lanjutan) — Resource hak akses baru: piutang sewa non-pasien
+
+`last_changed_in`: `FIN-PERM-1.6` — status `draft`, 1 Oktober 2026.
+Diturunkan dari `FIN-DEC-103`; dirancang `FIN-DES-077`.
+
+## F.1 Resource dan action baru
+
+| Resource | Action | `[AccessPermission(...)]` persis | Dipakai endpoint |
+|---|---|---|---|
+| `FinanceNonPatientReceivable` | `Read` | `[AccessPermission("FinanceNonPatientReceivable", "Read")]` | `GET /`, `GET /{id}`, `GET /aging`, `GET /summary`, `GET /filters/metadata` |
+| `FinanceNonPatientReceivable` | `Create` | `[AccessPermission("FinanceNonPatientReceivable", "Create")]` | `POST /` |
+| `FinanceNonPatientReceivable` | `Update` | `[AccessPermission("FinanceNonPatientReceivable", "Update")]` | `PUT /{id}`, `POST /{id}/settlements`, `POST /{id}/write-off`, `POST /{id}/cancel` |
+
+Ketiganya terdaftar lewat **pemindaian atribut biasa** karena controllernya nyata dan punya
+endpoint. Berbeda dari resource payung pada `FIN-OQ-039` yang tertahan justru karena tidak punya
+endpoint — amendment ini **nol ketergantungan** pada gerbang itu.
+
+Penghapusan piutang dan pembatalan sengaja **tidak** mendapat action sendiri. `FIN-DEC-103`
+menyamakan wewenangnya dengan perubahan biasa; memberinya action terpisah akan menyiratkan adanya
+jenjang yang sebenarnya tidak ada, dan membuat admin menyangka ia dapat memisahkan keduanya.
+
+## F.2 Kewenangan yang **tidak** dijaga mesin hak akses
+
+Bagian ini adalah yang paling penting pada kapabilitas ini, dan ditulis apa adanya.
+
+| Kewenangan | Dijaga oleh | Yang **tidak** dijaganya | Risiko yang diterima |
+|---|---|---|---|
+| Menghapus piutang sewa yang tidak tertagih | `FinanceNonPatientReceivable : Update` saja | **Nol pemeriksa kedua.** Petugas yang mencatat tagihan dapat menghapusnya sendiri pada hari yang sama, tanpa sepengetahuan siapa pun | **Diterima sadar** lewat `FIN-DEC-103`, sesudah konsekuensinya disodorkan. Ini **berbeda** dari piutang pasien yang memakai maker-checker |
+| Mencatat pelunasan yang tidak pernah benar-benar diterima | `FinanceNonPatientReceivable : Update` saja | Tidak ada pencocokan ke rekening koran maupun kas harian, karena jalur ini memang belum tersambung ke sana (`FIN-DES-075`) | Tinggi selama `FIN-OQ-044` belum diputuskan. **MUST** disampaikan kepada pemilik sebelum kapabilitas ini dipakai pada data sungguhan |
+| Besarnya denda keterlambatan | Tidak dijaga sama sekali | Denda adalah angka yang diketik petugas; tidak ada rumus, batas atas, maupun pembanding | Diterima lewat `FIN-DEC-102` |
+
+**Mitigasi yang tersedia tanpa mengubah keputusan mana pun:** alasan wajib diisi pada penghapusan
+dan pembatalan (`FIN-VAL-158`), seluruh aksi non-`GET` tercatat logger, dan kolom audit
+`IdentityModel` menyimpan siapa yang melakukannya.
+
+**Batas penularan yang MUST dijaga:** kelonggaran pada kapabilitas ini **MUST NOT** dijadikan dasar
+melonggarkan maker-checker pada `FinReceivableWriteOff`, `FinReceivableAdjustment`, atau jalur
+persetujuan pembayaran mana pun yang sudah berjalan.
+
+## F.3 Peta peran
+
+| Peran rumah sakit | Butir hak akses yang diberikan | Catatan |
+|---|---|---|
+| Staf AR Finance | `FinanceNonPatientReceivable : Read`, `Create`, `Update` | Seluruh kapabilitas — `FIN-DEC-103` |
+| Supervisor/Manajer Finance | `FinanceNonPatientReceivable : Read` | Pemantauan. Tidak ada aksi yang khusus menuntut jenjang ini, karena memang tidak ada jenjang |
+| Peran lain | — | Tidak diberikan secara bawaan |
+
+Pemberian sesungguhnya tetap dilakukan admin lewat layar Akses Role; tabel ini usulan, bukan seeder.
+
+## F.4 Pencatatan audit dan kolom sensitif
+
+`GET` tidak dicatat; `POST` dan `PUT` dicatat (`EntityId`, controller, action, status), mengikuti
+konvensi project tanpa pengecualian.
+
+Kolom sensitif: **nol**. `CounterpartyName` adalah nama badan usaha atau penyewa komersial, bukan
+data pasien. `RentedObject`, `ReferenceNumber`, dan `Note` **MUST NOT** diisi data pasien atau
+keterangan klinis, dan antarmuka **MUST NOT** mengarahkan petugas ke sana.

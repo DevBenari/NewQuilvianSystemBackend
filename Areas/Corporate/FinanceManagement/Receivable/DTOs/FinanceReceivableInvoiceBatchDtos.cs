@@ -53,6 +53,46 @@ public class ReceivableInvoiceBatchResponse
     public string Status { get; set; } = string.Empty;
     public DateTimeOffset? IssuedAt { get; set; }
     public Guid RowVersion { get; set; }
+
+    // Sumbu klaim penjamin (BE-FIN-052, FIN-DEC-097) — aditif, lihat FIN-API-1.3 §D.3.
+    public string? ClaimStatus { get; set; }
+    public decimal? ApprovedAmount { get; set; }
+
+    /// <summary>Dihitung (TotalAmount - ApprovedAmount), TIDAK disimpan. Null selama belum APPROVED (FIN-DES-071).</summary>
+    public decimal? ClaimVarianceAmount { get; set; }
+
+    public string? PayerClaimReference { get; set; }
+    public string? ClaimNote { get; set; }
+    public DateTimeOffset? PayerVerifiedAt { get; set; }
+    public DateTimeOffset? ClaimApprovedAt { get; set; }
+    public DateTimeOffset? ClaimClosedAt { get; set; }
+}
+
+public sealed class ClaimVerifyRequest
+{
+    [Required] public Guid ExpectedRowVersion { get; set; }
+    [MaxLength(100)] public string? PayerClaimReference { get; set; }
+    [MaxLength(500)] public string? ClaimNote { get; set; }
+}
+
+public sealed class ClaimApproveRequest
+{
+    [Required] public Guid ExpectedRowVersion { get; set; }
+
+    [Required(ErrorMessage = "Nominal yang disetujui penjamin wajib diisi.")]
+    [Range(0, double.MaxValue, ErrorMessage = "Nominal yang disetujui tidak boleh kurang dari nol.")]
+    public decimal? ApprovedAmount { get; set; }
+
+    [MaxLength(100)] public string? PayerClaimReference { get; set; }
+
+    /// <summary>Wajib diisi bila ApprovedAmount lebih kecil dari TotalAmount (FIN-VAL-151) — diperiksa di service, bukan di sini, karena TotalAmount bukan bagian request.</summary>
+    [MaxLength(500)] public string? ClaimNote { get; set; }
+}
+
+public sealed class ClaimCloseRequest
+{
+    [Required] public Guid ExpectedRowVersion { get; set; }
+    [MaxLength(500)] public string? ClaimNote { get; set; }
 }
 
 public sealed class ReceivableInvoiceBatchMemberResponse

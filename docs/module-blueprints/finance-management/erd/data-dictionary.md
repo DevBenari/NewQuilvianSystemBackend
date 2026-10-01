@@ -1856,3 +1856,188 @@ CREATE UNIQUE INDEX "IX_FinReceiptDeduction_ReversalOnce"
 
 Syarat "alokasi harus `TargetType = RECEIVABLE` dan bukan pembalik" **tidak** dapat dijaga check
 constraint karena menyangkut tabel lain; ia ditegakkan `FinanceReceiptService` (`FIN-VAL-129`).
+
+# AMENDMENT REVISI 13 — `FinReceivableInvoiceBatch` menjadi `Diperbarui` (sumbu klaim penjamin)
+
+Status: `draft`, 1 Oktober 2026. Diturunkan dari `FIN-DEC-097`; dirancang `FIN-DES-070`, `FIN-DES-071`.
+
+Seluruh tabel pada kamus ini mewarisi `IdentityModel` (sepuluh kolom audit) — tidak diulang di bawah.
+Penghapusan bersifat penandaan lewat `IsDelete`, bukan penghapusan baris.
+
+## Tabel status dan kepemilikan — perubahan amendment ini
+
+| Entity | Status | Owner | Catatan |
+|---|---|---|---|
+| `FinReceivableInvoiceBatch` | **Diperbarui** | Finance Management | Tujuh kolom sumbu klaim ditambahkan |
+| `FinReceivableInvoiceBatchItem` | Sudah ada | Finance Management | Tidak berubah |
+| `FinReceivable` | Sudah ada | Finance Management | Tidak berubah. Selisih klaim **MUST NOT** menyentuh `OutstandingAmount` |
+| `FinReceivableWriteOff` | Sudah ada | Finance Management | Tidak berubah; hanya bertambah permukaan baca |
+| `FinReceiptAllocation` | Sudah ada | Finance Management | Tidak berubah; hanya bertambah permukaan baca |
+
+## `FinReceivableInvoiceBatch` — seluruh kolom (status `Diperbarui`)
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `BatchNumber` | `string(50)` | Ya | — | Unique, tersaring `IsDelete = false` | — | — | Tidak | Nomor dokumen tagihan; dialokasikan service lewat number-series |
+| `DebtorType` | `string(30)` | Ya | `PAYER` | Index | — | — | Tidak | Terkunci `PAYER` lewat check constraint (`FIN-DEC-048`) |
+| `DebtorReferenceId` | `Guid` | Ya | — | Index | Rujukan penjamin milik modul lain | — | Tidak | **MUST NOT** disalin menjadi master penjamin milik Finance |
+| `PeriodStart` | `DateOnly` | Ya | — | Index | — | — | Tidak | Awal periode penagihan |
+| `PeriodEnd` | `DateOnly` | Ya | — | — | — | — | Tidak | Akhir periode penagihan |
+| `TotalAmount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Jumlah `OriginalAmount` seluruh anggota |
+| `Status` | `string(20)` | Ya | `DRAFT` | Index | — | — | Tidak | Sumbu dokumen dan pelunasan. **Tidak berubah** pada amendment ini |
+| `IssuedAt` | `DateTimeOffset?` | Tidak | — | — | — | — | Tidak | Terisi saat `ISSUED` |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Concurrency token |
+| **`ClaimStatus`** | **`string(30)?`** | **Tidak** | — | **Index** | — | — | Tidak | **Baru.** Sumbu jawaban penjamin: kosong, `SUBMITTED`, `PAYER_VERIFIED`, `APPROVED`, `CLOSED` |
+| **`ApprovedAmount`** | **`decimal(18,2)?`** | **Tidak** | — | — | — | — | Tidak | **Baru.** Nominal yang disetujui penjamin. **MUST NOT** dipakai sebagai dasar pelunasan |
+| **`PayerClaimReference`** | **`string(100)?`** | **Tidak** | — | — | — | — | Tidak | **Baru.** Nomor rujukan klaim milik penjamin. **MUST NOT** diisi keterangan klinis |
+| **`ClaimNote`** | **`string(500)?`** | **Tidak** | — | — | — | — | Tidak | **Baru.** Keterangan petugas; wajib diisi saat nominal disetujui lebih kecil dari tagihan (`FIN-VAL-151`). **MUST NOT** diisi diagnosis |
+| **`PayerVerifiedAt`** | **`DateTimeOffset?`** | **Tidak** | — | — | — | — | Tidak | **Baru.** Saat berkas dinyatakan diterima penjamin |
+| **`ClaimApprovedAt`** | **`DateTimeOffset?`** | **Tidak** | — | — | — | — | Tidak | **Baru.** Saat nominal persetujuan dicatat |
+| **`ClaimClosedAt`** | **`DateTimeOffset?`** | **Tidak** | — | — | — | — | Tidak | **Baru.** Saat klaim ditutup |
+
+Selisih klaim (`TotalAmount` dikurangi `ApprovedAmount`) **tidak punya kolom** — ia dihitung pada
+response sebagai `ClaimVarianceAmount` (`FIN-DES-071`). Menyimpannya membuat angka itu dapat basi
+terhadap kedua sumbernya.
+
+## Bentuk DDL
+
+> Basis data project ini dibentuk EF Core Migrations, bukan skrip SQL manual. DDL di bawah adalah
+> **dokumentasi bentuk tabel**, bukan skrip untuk dijalankan. Menjalankannya akan berbenturan
+> dengan migration.
+
+```sql
+-- Bentuk kolom yang DITAMBAHKAN pada public."FinReceivableInvoiceBatch".
+-- Kolom audit IdentityModel dan kolom lama tidak ditulis ulang di sini.
+ALTER TABLE public."FinReceivableInvoiceBatch"
+    ADD COLUMN "ClaimStatus"          varchar(30),
+    ADD COLUMN "ApprovedAmount"       numeric(18,2),
+    ADD COLUMN "PayerClaimReference"  varchar(100),
+    ADD COLUMN "ClaimNote"            varchar(500),
+    ADD COLUMN "PayerVerifiedAt"      timestamp with time zone,
+    ADD COLUMN "ClaimApprovedAt"      timestamp with time zone,
+    ADD COLUMN "ClaimClosedAt"        timestamp with time zone;
+
+ALTER TABLE public."FinReceivableInvoiceBatch"
+    ADD CONSTRAINT "CK_FinReceivableInvoiceBatch_ClaimStatus"
+    CHECK ("ClaimStatus" IS NULL OR "ClaimStatus" IN
+        ('SUBMITTED', 'PAYER_VERIFIED', 'APPROVED', 'CLOSED'));
+
+CREATE INDEX "IX_FinReceivableInvoiceBatch_ClaimStatus"
+    ON public."FinReceivableInvoiceBatch" ("ClaimStatus");
+```
+
+Sumber kebenarannya tetap
+`Repositories/Configurations/Corporate/FinanceManagement/Receivable/FinReceivableInvoiceBatchConfiguration.cs`,
+yang **MUST** diperbarui bersamaan dengan modelnya.
+
+# AMENDMENT REVISI 13 (lanjutan) — Dua tabel baru: piutang sewa non-pasien
+
+Status: `draft`, 1 Oktober 2026. Diturunkan dari `FIN-DEC-099`..`FIN-DEC-104`;
+dirancang `FIN-DES-074`..`FIN-DES-077`.
+
+Seluruh tabel mewarisi `IdentityModel` (sepuluh kolom audit) — tidak diulang di bawah.
+Penghapusan bersifat penandaan lewat `IsDelete`, bukan penghapusan baris.
+
+## Tabel status dan kepemilikan
+
+| Entity | Status | Owner | Catatan |
+|---|---|---|---|
+| `FinNonPatientReceivable` | **Baru** | Finance Management | Tagihan sewa parkir dan tenant |
+| `FinNonPatientReceivableSettlement` | **Baru** | Finance Management | Pelunasan atas tagihan sewa |
+| `FinReceivable` | Sudah ada | Finance Management | **Tidak disentuh.** Invariant "wajib dari Billing" tetap utuh (`FIN-DEC-101`) |
+| `FinReceipt` | Sudah ada | Finance Management | **Tidak disentuh.** Pelunasan sewa tidak melewatinya (`FIN-DES-075`) |
+
+## `FinNonPatientReceivable` (status `Baru`)
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `ReceivableNumber` | `string(50)` | Ya | — | Unique, tersaring `IsDelete = false` | — | — | Tidak | Nomor tagihan sewa. Dialokasikan service; mewarisi utang teknis `QBE-CODE-001`..`006` seperti seluruh rumpun ini |
+| `Category` | `string(20)` | Ya | — | Index | — | — | Tidak | `PARKING` atau `TENANT`, dijaga check constraint (`FIN-DEC-104`) |
+| `CounterpartyName` | `string(200)` | Ya | — | Index | — | — | Tidak | Nama penyewa. **Teks bebas** — tidak ada master penyewa (`FIN-DEC-100`) |
+| `RentedObject` | `string(200)` | Ya | — | — | — | — | Tidak | Objek sewa, misalnya area parkir atau unit tenant. **Teks bebas** |
+| `PeriodStart` | `DateOnly` | Ya | — | Index | — | — | Tidak | Awal periode yang ditagih |
+| `PeriodEnd` | `DateOnly` | Ya | — | — | — | — | Tidak | Akhir periode yang ditagih |
+| `DueDate` | `DateOnly` | Ya | — | Index | — | — | Tidak | Jatuh tempo; dasar perhitungan kelompok umur piutang |
+| `BilledAmount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Nominal sewa periode itu |
+| `LateFeeAmount` | `decimal(18,2)` | Ya | `0` | — | — | — | Tidak | Denda keterlambatan, **diketik petugas**, bukan dihitung sistem (`FIN-DEC-102`) |
+| `OutstandingAmount` | `decimal(18,2)` | Ya | — | Index | — | — | Tidak | Sisa yang belum dibayar. Service kapabilitas ini **satu-satunya** penulisnya |
+| `Status` | `string(20)` | Ya | `OUTSTANDING` | Index | — | — | Tidak | `OUTSTANDING`, `PARTIALLY_SETTLED`, `SETTLED`, `WRITTEN_OFF`, `CANCELLED`, dijaga check constraint |
+| `Note` | `string(500)` | Tidak | — | — | — | — | Tidak | Keterangan petugas, termasuk alasan penghapusan atau pembatalan |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Concurrency token |
+
+**Nol kolom rujukan** ke `BilInvoice`, `FinReceivable`, `FinReceipt`, atau serah terima Billing —
+ketiadaannya **disengaja** dan menjadi inti `FIN-DEC-101`.
+
+## `FinNonPatientReceivableSettlement` (status `Baru`)
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `NonPatientReceivableId` | `Guid` | Ya | — | Index | FK ke `FinNonPatientReceivable` | `Restrict` | Tidak | Tagihan induk |
+| `SettlementDate` | `DateOnly` | Ya | — | Index | — | — | Tidak | Tanggal uang diterima |
+| `Amount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Nominal diterima. **Boleh minus** untuk membatalkan pelunasan sebelumnya |
+| `PaymentMethod` | `string(50)` | Ya | — | — | — | — | Tidak | Cara bayar, misalnya transfer atau tunai. Teks bebas pada rilis ini |
+| `ReferenceNumber` | `string(100)` | Tidak | — | — | — | — | Tidak | Nomor bukti transfer atau kuitansi |
+| `Note` | `string(500)` | Tidak | — | — | — | — | Tidak | Keterangan petugas |
+
+Baris pelunasan **tidak pernah dihapus**; pembetulan dilakukan dengan menambah baris bernilai minus.
+
+## Bentuk DDL
+
+> Basis data project ini dibentuk EF Core Migrations, bukan skrip SQL manual. DDL di bawah adalah
+> **dokumentasi bentuk tabel**, bukan skrip untuk dijalankan.
+
+```sql
+-- Kolom audit IdentityModel tidak ditulis ulang di sini.
+CREATE TABLE public."FinNonPatientReceivable" (
+    "Id"                 uuid           NOT NULL,
+    "ReceivableNumber"   varchar(50)    NOT NULL,
+    "Category"           varchar(20)    NOT NULL,
+    "CounterpartyName"   varchar(200)   NOT NULL,
+    "RentedObject"       varchar(200)   NOT NULL,
+    "PeriodStart"        date           NOT NULL,
+    "PeriodEnd"          date           NOT NULL,
+    "DueDate"            date           NOT NULL,
+    "BilledAmount"       numeric(18,2)  NOT NULL,
+    "LateFeeAmount"      numeric(18,2)  NOT NULL DEFAULT 0,
+    "OutstandingAmount"  numeric(18,2)  NOT NULL,
+    "Status"             varchar(20)    NOT NULL DEFAULT 'OUTSTANDING',
+    "Note"               varchar(500),
+    "RowVersion"         uuid           NOT NULL,
+
+    CONSTRAINT "PK_FinNonPatientReceivable" PRIMARY KEY ("Id"),
+    CONSTRAINT "CK_FinNonPatientReceivable_Category"
+        CHECK ("Category" IN ('PARKING', 'TENANT')),
+    CONSTRAINT "CK_FinNonPatientReceivable_Status"
+        CHECK ("Status" IN ('OUTSTANDING', 'PARTIALLY_SETTLED', 'SETTLED', 'WRITTEN_OFF', 'CANCELLED'))
+);
+
+CREATE UNIQUE INDEX "IX_FinNonPatientReceivable_ReceivableNumber"
+    ON public."FinNonPatientReceivable" ("ReceivableNumber") WHERE "IsDelete" = false;
+CREATE INDEX "IX_FinNonPatientReceivable_Category"
+    ON public."FinNonPatientReceivable" ("Category");
+CREATE INDEX "IX_FinNonPatientReceivable_Status"
+    ON public."FinNonPatientReceivable" ("Status");
+CREATE INDEX "IX_FinNonPatientReceivable_DueDate"
+    ON public."FinNonPatientReceivable" ("DueDate");
+
+CREATE TABLE public."FinNonPatientReceivableSettlement" (
+    "Id"                       uuid           NOT NULL,
+    "NonPatientReceivableId"   uuid           NOT NULL,
+    "SettlementDate"           date           NOT NULL,
+    "Amount"                   numeric(18,2)  NOT NULL,
+    "PaymentMethod"            varchar(50)    NOT NULL,
+    "ReferenceNumber"          varchar(100),
+    "Note"                     varchar(500),
+
+    CONSTRAINT "PK_FinNonPatientReceivableSettlement" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_FinNonPatientReceivableSettlement_FinNonPatientReceivable"
+        FOREIGN KEY ("NonPatientReceivableId")
+        REFERENCES public."FinNonPatientReceivable" ("Id") ON DELETE RESTRICT
+);
+
+CREATE INDEX "IX_FinNonPatientReceivableSettlement_NonPatientReceivableId"
+    ON public."FinNonPatientReceivableSettlement" ("NonPatientReceivableId");
+```

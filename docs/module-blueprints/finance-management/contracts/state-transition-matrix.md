@@ -439,3 +439,70 @@ tetapi pencadangan yang dilepas harus bisa mengembalikan saldo. Deposit yang hab
 | Alokasi dibalik (manual atau otomatis karena tender dibatalkan, `FIN-DEC-021`) | Setiap potongan mendapat baris pembalik; piutang terbuka kembali; `PEMBALIKAN-POTONGAN-PIUTANG-NON-TUNAI` terbit per baris pembalik |
 | Potongan keliru, alokasi masih benar | **Tidak ada transisi sendiri.** Balik alokasinya lalu catat ulang |
 | Potongan yang sudah dibalik dibalik lagi | **Tidak sah** — ditolak unique index `ReversalOfDeductionId` |
+
+## D.1 Sumbu klaim penjamin pada Batch Tagihan AR — `FinReceivableInvoiceBatch.ClaimStatus`
+
+`last_changed_in`: `FIN-STATE-1.4` — status `draft`, 1 Oktober 2026.
+Diturunkan dari `FIN-DEC-095`, `FIN-DEC-097`, `FIN-DEC-098`; dirancang `FIN-DES-070`.
+
+Bagian ini **menambah sumbu kedua**, dan **tidak mengubah satu baris pun** pada `B.7`. Keduanya
+hidup bersamaan pada entity yang sama:
+
+| Sumbu | Kolom | Menjawab | Penulis |
+|---|---|---|---|
+| Dokumen dan pelunasan (`B.7`, tidak berubah) | `Status` | Apakah tagihan sudah diterbitkan, dan apakah uangnya sudah masuk | Petugas AR (terbit/batal) dan **Sistem** (pelunasan) |
+| Jawaban penjamin (**baru**) | `ClaimStatus` | Apa kata penjamin atas tagihan itu | **Hanya** petugas AR, manual — kecuali `SUBMITTED` |
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| kosong | Batch diterbitkan | `SUBMITTED` | **Sistem**, menumpang `POST /{id}/issue` yang sudah ada | `Status` berpindah ke `ISSUED` | — |
+| `SUBMITTED` | Tandai berkas diterima penjamin | `PAYER_VERIFIED` | Petugas AR | — | `422` |
+| `SUBMITTED` | Catat nominal disetujui, melewati verifikasi | `APPROVED` | Petugas AR | Diizinkan — sebagian penjamin langsung menerbitkan berita acara persetujuan tanpa tahap konfirmasi berkas terpisah | — |
+| `PAYER_VERIFIED` | Catat nominal disetujui | `APPROVED` | Petugas AR | `ApprovedAmount` wajib diisi, antara nol dan `TotalAmount` | `422` |
+| `APPROVED` | Tutup klaim | `CLOSED` | Petugas AR | — | `422` |
+| `APPROVED` | Catat ulang nominal disetujui | `APPROVED` | Petugas AR | Penjamin merevisi keputusannya; nominal lama tertimpa, perubahannya terbaca pada kolom audit | — |
+| `CLOSED` | Apa pun | — | — | **Status akhir** | `422` |
+| kosong | Tindakan klaim apa pun | — | — | **Tidak sah.** Klaim belum ada selama tagihannya belum dikirim ke penjamin | `422` |
+| Apa pun | Mundur ke status sebelumnya | — | — | **Tidak sah.** Pembetulan dilakukan dengan mencatat ulang pada status yang sama, bukan memundurkan | `422` |
+
+### Yang **tidak** terjadi pada sumbu ini
+
+| Yang mungkin disangka | Kenyataannya |
+|---|---|
+| `ClaimStatus = APPROVED` membuat batch menjadi `PAID` | **Tidak.** Pelunasan tetap hanya dari alokasi penerimaan pada piutang anggota (`B.7`) |
+| `ApprovedAmount` lebih kecil dari `TotalAmount` mengurangi `OutstandingAmount` | **Tidak.** Selisihnya menunggu write-off manual petugas (`FIN-DES-071`) |
+| `ClaimStatus = CLOSED` mengunci batch dari pelunasan | **Tidak.** Uang yang masuk belakangan tetap dialokasikan seperti biasa |
+| Batch `CANCELLED` ikut membatalkan klaimnya | **Tidak otomatis.** Pembatalan batch hanya sah saat `DRAFT` (`B.7`), dan pada keadaan itu `ClaimStatus` masih kosong |
+
+## E.1 Piutang sewa non-pasien — `FinNonPatientReceivable`
+
+`last_changed_in`: `FIN-STATE-1.5` — status `draft`, 1 Oktober 2026.
+Diturunkan dari `FIN-DEC-100`..`FIN-DEC-103`; dirancang `FIN-DES-074`..`FIN-DES-076`.
+
+Berbeda dari `FinReceivable`, kapabilitas ini **tidak** punya jenjang persetujuan apa pun
+(`FIN-DEC-103`) — setiap perpindahan selesai dalam satu aksi oleh staf AR.
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| — | Catat tagihan sewa baru | `OUTSTANDING` | Petugas AR | Nominal tagihan lebih besar dari nol | `400` |
+| `OUTSTANDING` | Koreksi isi tagihan | `OUTSTANDING` | Petugas AR | **Belum pernah** menerima pembayaran sama sekali | `422` bila sudah ada pelunasan |
+| `OUTSTANDING` | Catat pelunasan sebagian | `PARTIALLY_SETTLED` | Petugas AR | Jumlah pelunasan masih kurang dari total tagihan | — |
+| `OUTSTANDING` atau `PARTIALLY_SETTLED` | Catat pelunasan sampai lunas | `SETTLED` | Petugas AR | Jumlah pelunasan mencapai total tagihan | — |
+| `PARTIALLY_SETTLED` | Catat pelunasan bernilai negatif (membatalkan pelunasan sebelumnya) | `PARTIALLY_SETTLED` atau `OUTSTANDING` | Petugas AR | Jumlah pelunasan sesudahnya tidak boleh kurang dari nol | `422` |
+| `SETTLED` | Catat pelunasan bernilai negatif | `PARTIALLY_SETTLED` | Petugas AR | Pembetulan pelunasan yang keliru | — |
+| `OUTSTANDING` atau `PARTIALLY_SETTLED` | Hapus piutang (tidak tertagih) | `WRITTEN_OFF` | Petugas AR, **tanpa penyetuju** | Alasan wajib diisi | `400` bila alasan kosong |
+| `OUTSTANDING` | Batalkan (salah catat) | `CANCELLED` | Petugas AR | **Belum pernah** menerima pembayaran, dan alasan wajib diisi | `422` bila sudah ada pelunasan |
+| `PARTIALLY_SETTLED` atau `SETTLED` | Batalkan | — | — | **Tidak sah.** Tagihan yang sudah menerima uang dibetulkan lewat pelunasan negatif, bukan dibatalkan | `422` |
+| `SETTLED` | Hapus piutang | — | — | **Tidak sah.** Tidak ada sisa yang bisa dihapus | `422` |
+| `WRITTEN_OFF`, `CANCELLED` | Apa pun | — | — | **Status akhir** | `422` |
+
+### Perbedaan yang disengaja dari piutang pasien
+
+| Hal | `FinReceivable` (piutang pasien) | `FinNonPatientReceivable` (sewa) |
+|---|---|---|
+| Penghapusan piutang | Pengajuan lalu persetujuan (maker-checker, `BE-FIN-018`) | **Satu aksi langsung**, tanpa penyetuju (`FIN-DEC-103`) |
+| Asal baris | Wajib dari serah terima Billing | Dicatat manual petugas (`FIN-DEC-100`) |
+| Pelunasan | Lewat alokasi `FinReceipt` | Baris pelunasan sendiri (`FIN-DES-075`) |
+
+Perbedaan pertama **MUST NOT** menular: kelonggaran di sini berlaku **hanya** untuk piutang sewa,
+dan tidak pernah menjadi alasan melonggarkan maker-checker piutang pasien.

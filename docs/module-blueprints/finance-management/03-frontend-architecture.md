@@ -528,3 +528,372 @@ Menjawab kebutuhan rekonsiliasi tutup buku bulanan Accounting (`accounting/evide
 3. **Penempatan Navigasi:**
    - Dapat ditempatkan sebagai tab terdedikasi *"Saldo Subledger Bulanan"* pada halaman Pemantauan Finance (`/finance/monitoring?tab=subledger`) atau sebagai rute terdedikasi (`/finance/subledger-balances`) — **`DEV_DISCRETION`**.
 
+
+---
+
+## 17. Amendment 1 Oktober 2026 (revisi 13) — penempatan halaman mengikuti V1 dan layar Manajemen Klaim
+
+| Field | Nilai |
+|---|---|
+| Keputusan yang diturunkan | `FIN-DEC-094` (**supersedes `FIN-DEC-060`**), `FIN-DEC-095`, `FIN-DEC-096`, `FIN-DEC-097`, `FIN-DEC-098` |
+| Rancangan backend | `FIN-DES-070`..`FIN-DES-073`, `02-backend-architecture.md` AMENDMENT REVISI 13 |
+| Wewenang UI | `FIN-DEC-094` adalah **approved product brief** — ia mengunci *layar mana yang berdiri sendiri* dan *butir menu mana yang ada*, karena bentuk itu sudah disetujui pengguna lewat UAT pada sistem produksi V1. Tata letak, warna, ikon, urutan visual, dan component library **tetap `DEV_DISCRETION`** |
+| Yang dicabut | Bagian 15 (submenu "Pembelian" menurut `FIN-DEC-060`) **tidak lagi berlaku** sebagai struktur menu. Isinya tetap dibaca sebagai riwayat, bukan sebagai ketetapan |
+
+### 17.1 Apa yang berubah dari bagian 15, dan mengapa
+
+Bagian 15 menurunkan `FIN-DEC-060`: lima layar Purchasing dikelompokkan ke submenu "Pembelian",
+beberapa kemampuan sengaja **dikonsolidasikan** ke dalam satu layar (tanda terima barang menjadi
+modal di detail Purchase Order; pembatalan, penghapusan, dan laporan AR menjadi modal/tab di dalam
+buku piutang). Konsolidasi itu dibangun dan berjalan.
+
+`FIN-DEC-094` membalik arah itu atas dasar yang lebih kuat daripada preferensi: bentuk V1 **sudah
+diuji dan disetujui pengguna lewat UAT**, dan pengguna yang sama akan memakai sistem ini. Karena
+itu setiap kemampuan yang di V1 berdiri sebagai halaman sendiri **MUST** berdiri sebagai halaman
+sendiri di sini juga.
+
+Yang **tidak** ikut berubah, dan ini penting supaya pemecahan tidak disalahartikan sebagai
+pembongkaran:
+
+| Tetap seperti sekarang | Alasan |
+|---|---|
+| Seluruh endpoint, aturan bisnis, dan alur persetujuan | Pemecahan ini soal keterjangkauan layar, bukan soal aturan |
+| Layar konsolidasi yang sudah ada | **Tidak dihapus.** Ia tetap menjadi jalan masuk lengkap; halaman berdiri sendiri adalah jalan masuk **tambahan** yang terfokus |
+| Nol perhitungan uang di klien | Berlaku penuh, termasuk pada selisih klaim |
+
+### 17.2 Peta butir menu — Keuangan
+
+Berkas yang disunting saat implementasi: `src/utils/menu-sidebar/menu-items.jsx`. Resolver membaca
+`subMenu` pada tingkat 0 dan `subItems` pada grup di bawahnya.
+
+```text
+Keuangan                                     <- tingkat 0
+├── Master Data                              <- grup, tidak berubah
+├── Transaksi A/R                            <- grup, BENTUK BARU
+│   ├── Tagihan/Billing
+│   ├── Receivable AR/Invoice
+│   ├── Ayat Silang
+│   ├── Canceled Invoice
+│   ├── Report Canceled Invoice
+│   ├── Receiveable AR Canceled
+│   ├── Report Receiveable AR
+│   ├── Report Payment AR
+│   ├── Settlement AR
+│   ├── Report Closed Billing
+│   ├── Report AR
+│   ├── Report AR Created
+│   ├── Laporan Aging AR
+│   ├── Piutang Korporat/Penjamin
+│   ├── Manajemen Klaim
+│   ├── Umur Piutang (A/R Aging)             <- GRUP (FIN-OQ-040 terjawab)
+│   │   ├── Kasir                            -> dapat dikerjakan
+│   │   ├── Parkir                           -> TERTAHAN FIN-OQ-043
+│   │   └── Tenant                           -> TERTAHAN FIN-OQ-043
+│   ├── Pemutihan Piutang
+│   └── Piutang Tagihan
+├── Transaksi A/P                            <- grup, BENTUK BARU
+│   ├── Pembelian Pesanan
+│   ├── Penerima Pesanan
+│   ├── Retur Produk
+│   ├── Tukar Faktur
+│   ├── Purchasing Invoice
+│   ├── Laporan Aging AP
+│   ├── Retur Pembelian Supplier
+│   ├── Purchasing Payment
+│   ├── Rekap Purchasing AP
+│   ├── Laporan Tukar Faktur
+│   ├── Laporan Jatuh Tempo
+│   ├── Laporan Pembayaran AP
+│   ├── Penerimaan Invoice
+│   ├── Utang Usaha (A/P Aging)
+│   └── Rekonsiliasi Tagihan
+├── Manajemen Kas                            <- tidak berubah
+└── Pemantauan                               <- tidak berubah
+```
+
+**"Jasa Medis" sengaja tidak dibuat.** Butir itu ada pada menu V1, tetapi kepemilikannya sudah
+diputuskan milik modul Medical Fee (`FIN-OQ-012`/`FIN-OQ-013`) — membuatnya di sini berarti
+membuka kembali keputusan yang sudah tertutup.
+
+#### Tabel butir menu — Transaksi A/R
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status layar |
+|---|:---:|---|---|---|---|---|
+| Transaksi A/R | 1 | Keuangan | — | — | — | Baru (grup) |
+| Tagihan/Billing | 2 | Transaksi A/R | `/finance/receivable-invoice-batches` | `FIN-LYR-AR-01` | `FinanceReceivableInvoiceBatch : Read` | **Sudah ada** (`FE-FIN-012`) |
+| Receivable AR/Invoice | 2 | Transaksi A/R | `/finance/receivable` | `FIN-LYR-AR-02` | `FinanceReceivable : Read` | **Sudah ada** (`FE-FIN-002`) |
+| Ayat Silang | 2 | Transaksi A/R | `/finance/receipts?debtorType=PAYER` | `FIN-LYR-AR-03` | `FinanceReceipt : Read` | **Sudah ada**, pandangan tersaring (`FIN-DEC-096`) |
+| Canceled Invoice | 2 | Transaksi A/R | `/finance/receivable-invoice-batches/canceled` | `FIN-LYR-AR-04` | `FinanceReceivableInvoiceBatch : Read` | **Baru** — pandangan tersaring |
+| Report Canceled Invoice | 2 | Transaksi A/R | `/finance/ar-report/canceled-invoice` | `FIN-LYR-AR-05` | `FinanceReceivableInvoiceBatch : Read` | **Baru** — pandangan tersaring |
+| Receiveable AR Canceled | 2 | Transaksi A/R | `/finance/receipts/reversed-allocations` | `FIN-LYR-AR-06` | `FinanceReceipt : Read` | **Baru** — butuh endpoint baru |
+| Report Receiveable AR | 2 | Transaksi A/R | `/finance/ar-report/receivable` | `FIN-LYR-AR-07` | `FinanceReceivable : Read` | **Baru** — pandangan tersaring |
+| Report Payment AR | 2 | Transaksi A/R | `/finance/ar-report/payment` | `FIN-LYR-AR-08` | `FinanceReceipt : Read` | **Baru** — pandangan tersaring atas `GET /receipts/register` |
+| Settlement AR | 2 | Transaksi A/R | `/finance/receipts` | `FIN-LYR-AR-09` | `FinanceReceipt : Read` | **Sudah ada** (`FE-FIN-004`) |
+| Report Closed Billing | 2 | Transaksi A/R | `/finance/ar-report/closed-billing` | `FIN-LYR-AR-10` | `FinanceReceivable : Read` | **Baru** — pandangan tersaring |
+| Report AR | 2 | Transaksi A/R | `/finance/ar-report` | `FIN-LYR-AR-11` | `Finance.AR : View` | **Sudah ada** |
+| Report AR Created | 2 | Transaksi A/R | `/finance/ar-report/created` | `FIN-LYR-AR-12` | `FinanceReceivable : Read` | **Baru** — pandangan tersaring |
+| Laporan Aging AR | 2 | Transaksi A/R | `/finance/ar-aging` | `FIN-LYR-AR-13` | `Finance.AR : View` | **Sudah ada** |
+| Piutang Korporat/Penjamin | 2 | Transaksi A/R | `/finance/receivable/corporate` | `FIN-LYR-AR-14` | `FinanceReceivable : Read` | **Baru** — pandangan tersaring |
+| Manajemen Klaim | 2 | Transaksi A/R | `/finance/receivable-invoice-batches/claims` | `FIN-LYR-AR-15` | `FinanceReceivableInvoiceBatch : Read` | **Baru — kapabilitas baru** |
+| Umur Piutang (A/R Aging) | 2 | Transaksi A/R | — (grup) | — | — | Grup; isinya terjawab `FIN-OQ-040` |
+| Umur Piutang — Kasir | 3 | Umur Piutang (A/R Aging) | `/finance/receivable/aging?segment=KASIR` | `FIN-LYR-AR-18` | `FinanceReceivable : Read` | **Baru** — butuh satu saringan segmen pada `GET /receivables/aging` |
+| Umur Piutang — Parkir | 3 | Umur Piutang (A/R Aging) | — | — | — | **TERTAHAN `FIN-OQ-043`** — sumber piutangnya belum ada |
+| Umur Piutang — Tenant | 3 | Umur Piutang (A/R Aging) | — | — | — | **TERTAHAN `FIN-OQ-043`** — sumber piutangnya belum ada |
+| Pemutihan Piutang | 2 | Transaksi A/R | `/finance/receivable/write-offs` | `FIN-LYR-AR-16` | `FinanceReceivable : Read` | **Baru** — butuh endpoint baru |
+| Piutang Tagihan | 2 | Transaksi A/R | `/finance/receivable?view=billed` | `FIN-LYR-AR-17` | `FinanceReceivable : Read` | **Sudah ada**, pandangan tersaring (lihat `FIN-OQ-041`) |
+
+#### Tabel butir menu — Transaksi A/P
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status layar |
+|---|:---:|---|---|---|---|---|
+| Transaksi A/P | 1 | Keuangan | — | — | — | Baru (grup) |
+| Pembelian Pesanan | 2 | Transaksi A/P | `/finance/purchasing/purchase-orders` | `FIN-LYR-AP-01` | `FinancePurchaseOrder : Read` | **Sudah ada** (`FE-FIN-008`) |
+| Penerima Pesanan | 2 | Transaksi A/P | `/finance/purchasing/goods-receipts` | `FIN-LYR-AP-02` | `FinanceGoodsReceipt : Read` | **Baru** — endpoint sudah ada |
+| Retur Produk | 2 | Transaksi A/P | `/finance/purchasing/supplier-returns/items` | `FIN-LYR-AP-03` | `FinanceSupplierReturn : Read` | **Baru** — pandangan per baris barang |
+| Tukar Faktur | 2 | Transaksi A/P | `/finance/purchasing/invoice-exchanges` | `FIN-LYR-AP-04` | `FinanceInvoiceExchange : Read` | **Sudah ada** (`FE-FIN-008`) |
+| Purchasing Invoice | 2 | Transaksi A/P | `/finance/purchasing/purchasing-invoices` | `FIN-LYR-AP-05` | `FinancePurchasingInvoice : Read` | **Sudah ada** (`FE-FIN-009`) |
+| Laporan Aging AP | 2 | Transaksi A/P | `/finance/ap-aging` | `FIN-LYR-AP-06` | `Finance.AP : View` | **Sudah ada** |
+| Retur Pembelian Supplier | 2 | Transaksi A/P | `/finance/purchasing/supplier-returns` | `FIN-LYR-AP-07` | `FinanceSupplierReturn : Read` | **Sudah ada** (`FE-FIN-009`) |
+| Purchasing Payment | 2 | Transaksi A/P | `/finance/payment-ap` | `FIN-LYR-AP-08` | `FinancePayment : Read` | **Sudah ada** (`FE-FIN-010`) |
+| Rekap Purchasing AP | 2 | Transaksi A/P | `/finance/purchasing/reports/summary` | `FIN-LYR-AP-09` | `FinancePurchasingReport : Read` | **Baru** — pecahan dari tab |
+| Laporan Tukar Faktur | 2 | Transaksi A/P | `/finance/purchasing/reports/invoice-exchanges` | `FIN-LYR-AP-10` | `FinancePurchasingReport : Read` | **Baru** — pecahan dari tab |
+| Laporan Jatuh Tempo | 2 | Transaksi A/P | `/finance/purchasing/reports/due-dates` | `FIN-LYR-AP-11` | `FinancePurchasingReport : Read` | **Baru** — pecahan dari tab |
+| Laporan Pembayaran AP | 2 | Transaksi A/P | `/finance/payable/report` | `FIN-LYR-AP-12` | `Finance.AP : View` | **Sudah ada** |
+| Penerimaan Invoice | 2 | Transaksi A/P | `/finance/purchasing/purchasing-invoices?stage=intake` | `FIN-LYR-AP-13` | `FinancePurchasingInvoice : Read` | **Sudah ada**, pandangan tersaring |
+| Utang Usaha (A/P Aging) | 2 | Transaksi A/P | `/finance/payable/invoice` | `FIN-LYR-AP-14` | `Finance.AP : View` | **Sudah ada** |
+| Rekonsiliasi Tagihan | 2 | Transaksi A/P | `/finance/purchasing/reports/reconciliation` | `FIN-LYR-AP-15` | `FinancePurchasingReport : Read` | **Baru** — pecahan dari tab |
+
+**Catatan hak akses.** Lima butir masih dijaga resource payung V2 (`Finance.AR : View`,
+`Finance.AP : View`) karena layar tujuannya memang milik controller V2 — itu benar, bukan
+kelalaian. Butir baru seluruhnya memakai resource granular yang sama persis dengan endpointnya
+(`FIN-DES-069`, tetap berlaku). Nol resource dan nol action baru dibutuhkan (`FIN-DES-072`).
+
+### 17.3 Skema fitur — layar baru yang penting
+
+#### `FIN-LYR-AR-15` Manajemen Klaim — satu-satunya kapabilitas yang benar-benar baru
+
+```text
++- Manajemen Klaim Penjamin ------------------------------ FIN-LYR-AR-15 -+
+| [cari no. tagihan / no. klaim]  [Penjamin v] [Status Klaim v] [Periode v]|
++--------------------------------------------------------------------------+
+| No. Tagihan | Penjamin | Periode | Total | Disetujui | Selisih | Klaim |  |
+| ----------- | -------- | ------- | ----- | --------- | ------- | chip  |  |
+|             |          |         |       |           |         |       |[Detail]
++--------------------------------------------------------------------------+
+| memuat -> kerangka baris                                                  |
+| kosong -> "Belum ada tagihan penjamin pada saringan ini."    [Atur ulang] |
+| gagal  -> "Data gagal dimuat."                               [Coba lagi]  |
++- Halaman 1 dari n ------------------------- [< Sebelumnya] [Berikutnya >] +
+```
+
+```text
++- Klaim BATCH-2026-000045 - BPJS Kesehatan --------------- FIN-LYR-AR-15 -+
+| Tagihan Rp 120.000.000   Disetujui Rp 118.500.000   Selisih Rp 1.500.000 |
+| Status tagihan: Dibayar Sebagian    Status klaim: Disetujui              |
+| [Tandai Diverifikasi] [Catat Persetujuan] [Tutup Klaim]                  |
++--------------------------------------------------------------------------+
+| Anggota tagihan (piutang) + sisa masing-masing                           |
+| Selisih yang belum dihapus dari buku -> [Buka piutangnya]                |
++--------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Daftar | Nomor tagihan, penjamin, periode, total, nominal disetujui, selisih, status klaim | `GET /receivable-invoice-batches` (response bertambah field klaim) | `FinanceReceivableInvoiceBatch : Read` | Kosong: "Belum ada tagihan penjamin pada saringan ini." Gagal: seluruh daftar diganti pesan beserta tombol coba lagi |
+| Kepala rincian | Total tagihan, nominal disetujui, selisih, **dua status berdampingan** | `GET /receivable-invoice-batches/{id}` | `FinanceReceivableInvoiceBatch : Read` | Gagal: seluruh layar diganti pesan beserta tombol coba lagi |
+| Tombol aksi | Tandai Diverifikasi, Catat Persetujuan, Tutup Klaim | `POST /{id}/claim/verify`, `/claim/approve`, `/claim/close` | `FinanceReceivableInvoiceBatch : Update` | Tombol yang tidak berhak **MUST** disembunyikan. Tombol yang tidak sah pada status saat ini **MUST** dinonaktifkan, bukan disembunyikan — supaya petugas tahu langkahnya ada tetapi belum waktunya |
+| Daftar anggota | Piutang anggota beserta sisa masing-masing | `GET /receivable-invoice-batches/{id}` | `FinanceReceivableInvoiceBatch : Read` | Kosong tidak mungkin terjadi — batch wajib punya minimal satu anggota |
+| Panel selisih | Nominal selisih dan tautan ke piutang yang perlu dihapus | `ClaimVarianceAmount` dari response | `FinanceReceivable : Read` untuk tautannya | Kosong bila disetujui penuh: "Penjamin menyetujui seluruh nilai tagihan." |
+
+**Dua status ditampilkan berdampingan, bukan digabung menjadi satu chip.** Ini turunan langsung
+`FIN-DES-070`: sumbu dokumen/pelunasan dan sumbu jawaban penjamin bergerak sendiri-sendiri, dan
+petugas perlu melihat keduanya sekaligus — "penjamin sudah setuju tetapi uang belum masuk" adalah
+keadaan yang paling sering ditindaklanjuti.
+
+**Yang MUST NOT ada di layar ini:** tombol yang menghapus selisih langsung dari sini. Penghapusan
+piutang tetap lewat jalur write-off beserta maker-checker-nya (`FIN-DES-071`); layar ini hanya
+menautkan ke sana.
+
+#### Layar pandangan tersaring — digambar sekali, dipakai sembilan layar
+
+Sembilan layar baru (`FIN-LYR-AR-04`, `05`, `07`, `08`, `10`, `12`, `14`, `AP-09`, `AP-10`,
+`AP-11`, `AP-15`) berbagi satu bentuk: **daftar bersaring, baca saja**, memakai endpoint yang sudah
+ada dengan saringan bawaan yang terkunci layar.
+
+```text
++- <judul layar> ------------------------------------------- <ID layar> -+
+| saringan bawaan terkunci (tidak dapat diubah pengguna)                 |
+| [saringan bebas: periode, penjamin/supplier, cari]                     |
++------------------------------------------------------------------------+
+| kolom mengikuti response endpoint sumbernya                            |
++------------------------------------------------------------------------+
+| memuat / kosong / gagal -> sama seperti layar daftar lain              |
++- Halaman 1 dari n -------------------- [< Sebelumnya] [Berikutnya >]   +
+```
+
+| Layar | Endpoint sumber | Saringan bawaan yang terkunci |
+|---|---|---|
+| `FIN-LYR-AR-04` Canceled Invoice | `GET /receivable-invoice-batches` | `Status = CANCELLED` |
+| `FIN-LYR-AR-05` Report Canceled Invoice | `GET /receivable-invoice-batches` | `Status = CANCELLED`, tampilan laporan |
+| `FIN-LYR-AR-07` Report Receiveable AR | `GET /receivables` | — (laporan penuh) |
+| `FIN-LYR-AR-08` Report Payment AR | `GET /receipts/register` | — |
+| `FIN-LYR-AR-10` Report Closed Billing | `GET /receivables` | `Status = SETTLED` |
+| `FIN-LYR-AR-12` Report AR Created | `GET /receivables` | diurutkan tanggal terbit |
+| `FIN-LYR-AR-14` Piutang Korporat/Penjamin | `GET /receivables` | `DebtorType = PAYER` |
+| `FIN-LYR-AP-09`/`10`/`11`/`15` | Keempat endpoint `purchasing/reports` | — (endpointnya memang sudah terpisah) |
+
+**Aturan yang mengikat seluruhnya:** saringan bawaan **MUST** dikirim sebagai parameter ke backend,
+**MUST NOT** disaring di klien sesudah data diterima. Menyaring di klien membuat paginasi dan
+jumlah baris menjadi salah.
+
+#### `FIN-LYR-AR-06` Receiveable AR Canceled dan `FIN-LYR-AR-16` Pemutihan Piutang
+
+Keduanya berbentuk daftar bersaring yang sama, tetapi memakai **endpoint baru**
+(`GET /receipts/reversed-allocations` dan `GET /receivables/write-offs`). Keduanya **baca saja**:
+pembalikan alokasi dan pembuatan write-off tetap dilakukan dari layar asalnya beserta jenjang
+persetujuannya.
+
+#### `FIN-LYR-AP-02` Penerima Pesanan
+
+Daftar tanda terima barang berdiri sendiri, memakai `GET /goods-receipts` yang **sudah ada**.
+Pencatatan tanda terima baru **tetap** dilakukan dari detail Purchase Order seperti sekarang —
+layar ini menambah jalan masuk untuk melihat dan menelusuri, bukan memindahkan alur pencatatannya.
+
+### 17.4 Kewenangan UI
+
+| Hal | Wewenang | Dasar |
+|---|---|---|
+| Layar mana yang berdiri sendiri | **Mengikat** | `FIN-DEC-094` — bentuk V1 sudah lolos UAT |
+| Butir menu mana yang ada, dan rutenya | **Mengikat** | `FIN-DEC-094` beserta tabel 17.2 |
+| Label butir menu | **Mengikat** | Disalin apa adanya dari menu V1, termasuk ejaan "Receiveable" dan campuran Indonesia/Inggris — supaya pengguna lama mengenalinya tanpa belajar ulang |
+| Urutan butir di dalam grup | **Mengikat** | Mengikuti urutan tangkapan layar V1 |
+| Dua status klaim ditampilkan berdampingan | **Mengikat** | `FIN-DES-070` — ini soal kebenaran informasi, bukan rupa |
+| Saringan bawaan dikirim ke backend | **Mengikat** | Kebenaran paginasi |
+| Tata letak, warna, ikon, jarak, component library | `DEV_DISCRETION` | — |
+| Bentuk kontrol aksi klaim (modal konfirmasi, drawer, atau form inline) | `DEV_DISCRETION` | Yang dikunci hanya keberadaan aksinya dan hak akses penjaganya |
+| Bentuk tampilan laporan (tabel, kartu ringkas, atau keduanya) | `DEV_DISCRETION` | — |
+
+### 17.5 Pertanyaan terbuka yang lahir dari pass ini
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| ~~`FIN-OQ-040`~~ | ~~Apa saja butir di dalam grup "Umur Piutang (A/R Aging)"?~~ **TERJAWAB 1 Oktober 2026: Kasir, Parkir, Tenant.** | Yasmin (Product Owner Finance) | **CLOSED** — digantikan `FIN-OQ-043` untuk dua dari tiga butirnya |
+| `FIN-OQ-043` | Piutang **Parkir** dan **Tenant** adalah penagihan sewa berulang, bukan tagihan pasien. Model piutang yang berjalan **tidak dapat menampungnya**: `FinReceivable` hanya mengenal `PAYER`/`PATIENT_GUARANTOR`/`EMPLOYEE_BENEFIT`, dan setiap barisnya wajib berasal dari serah terima tagihan Billing (`SourceHandoffKey`, `InvoiceId`). Layar V1-nya pun murni data contoh, nol panggilan API. Lima hal MUST diputuskan: kepemilikan modul, data induk kontrak/objek sewa/tarif, cara penerbitan tagihan berulang, aturan denda keterlambatan, dan bentuk penyimpanan piutangnya | Yasmin (Product Owner Finance) | **MEMBLOKIR dua butir saja** (Parkir, Tenant). Butir Kasir dan seluruh isi `EPIC FIN-18` lainnya berjalan terus. Rinciannya pada `00-interview-decisions.md` addendum 1 Oktober 2026 |
+| `FIN-OQ-041` | Empat pasang butir V1 tampak mengarah ke kemampuan yang sama: (a) "Laporan Aging AR" dan "Umur Piutang (A/R Aging)"; (b) "Receivable AR/Invoice" dan "Piutang Tagihan"; (c) "Retur Produk" dan "Retur Pembelian Supplier"; (d) "Ayat Silang" dan "Settlement AR" (`FIN-DEC-096` menyatakan keduanya dilayani alokasi penerimaan). Apakah keempat pasang itu memang dua layar berbeda di V1, atau salah satunya peninggalan yang sebaiknya tidak dibawa? | Yasmin (Product Owner Finance) | **Tidak memblokir.** Sementara belum dijawab, keduanya dibuat sesuai tabel 17.2 dengan saringan bawaan yang berbeda, mengikuti perintah "ikuti V1 apa adanya" |
+| `FIN-OQ-042` | Kolom `PayerClaimReference` (nomor rujukan klaim milik penjamin) **tidak** disebut pada `FIN-DEC-097`; ia kesimpulan desain karena pelacakan klaim tanpa nomor rujukan penjamin sulit dicocokkan saat berkorespondensi. Apakah kolom ini memang dibutuhkan? | Yasmin (Product Owner Finance) | **Tidak memblokir.** Kolomnya opsional dan tidak membawa aturan bisnis; bila ditolak, cukup dihapus dari migration sebelum dijalankan |
+
+---
+
+## 18. Amendment 1 Oktober 2026 (revisi 13, lanjutan) — layar piutang sewa non-pasien
+
+| Field | Nilai |
+|---|---|
+| Keputusan yang diturunkan | `FIN-DEC-099`..`FIN-DEC-104` |
+| Rancangan backend | `FIN-DES-074`..`FIN-DES-077`, `02-backend-architecture.md` bagian `K` |
+| Menutup | `FIN-OQ-043` — butir "Umur Piutang — Parkir" dan "— Tenant" kini dapat dikerjakan |
+| Wewenang UI | Keberadaan layar dan butir menunya **mengikat** (`FIN-DEC-094` beserta tangkapan layar V1). Tata letak, warna, ikon, dan bentuk kontrol tetap `DEV_DISCRETION` |
+
+### 18.1 Butir menu yang terbuka kembali
+
+Menggantikan tiga baris `TERTAHAN FIN-OQ-043` pada tabel bagian 17.2:
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status layar |
+|---|:---:|---|---|---|---|---|
+| Umur Piutang — Kasir | 3 | Umur Piutang (A/R Aging) | `/finance/receivable/aging?segment=KASIR` | `FIN-LYR-AR-18` | `FinanceReceivable : Read` | **Baru** — saringan segmen pada umur piutang pasien |
+| Umur Piutang — Parkir | 3 | Umur Piutang (A/R Aging) | `/finance/non-patient-receivables/aging?category=PARKING` | `FIN-LYR-AR-19` | `FinanceNonPatientReceivable : Read` | **Baru** |
+| Umur Piutang — Tenant | 3 | Umur Piutang (A/R Aging) | `/finance/non-patient-receivables/aging?category=TENANT` | `FIN-LYR-AR-20` | `FinanceNonPatientReceivable : Read` | **Baru** |
+
+Dua layar kerja berikut **tidak** mendapat butir menu sendiri pada bentuk V1, dan karena itu
+dinyatakan sebagai **layar anak** beserta jalan masuknya — tanpa pernyataan ini, keduanya hanya
+dapat dibuka lewat URL langsung dan dihitung belum selesai:
+
+| Layar | ID | Jalan masuk | Alasan tidak mendapat butir menu |
+|---|---|---|---|
+| Daftar tagihan sewa (catat, koreksi, lunasi, hapus) | `FIN-LYR-AR-21` | Tombol pada layar umur piutang Parkir/Tenant | Menu V1 hanya memuat laporan umurnya; pencatatan tagihan tidak punya butir sendiri di sana |
+| Rincian satu tagihan sewa beserta riwayat pelunasan | `FIN-LYR-AR-22` | Baris pada `FIN-LYR-AR-21` | Layar rincian memang selalu anak dari daftarnya |
+
+**Catatan yang MUST disampaikan ke pemilik saat approval:** bentuk V1 hanya menyediakan jalan masuk
+lewat laporan umur piutang. Bila petugas diharapkan mencatat tagihan sewa setiap periode, jalan
+masuk lewat laporan terasa berputar. Menambah butir menu "Tagihan Sewa" tersendiri adalah
+penyimpangan dari V1 dan **MUST** diputuskan pemilik, bukan ditambahkan agent atas nama kenyamanan.
+
+### 18.2 Skema fitur
+
+#### `FIN-LYR-AR-19` dan `FIN-LYR-AR-20` — Umur piutang sewa
+
+Keduanya satu layar yang sama dengan saringan kategori berbeda; digambar sekali.
+
+```text
++- Umur Piutang Sewa - <Parkir|Tenant> ------------------ FIN-LYR-AR-19/20 -+
+| kategori terkunci sesuai butir menu     [Per tanggal v]                   |
++---------------------------------------------------------------------------+
+| 0-30 hari | 31-60 hari | 61-90 hari | di atas 90 hari | Total             |
+| Rp ...    | Rp ...     | Rp ...     | Rp ...          | Rp ...            |
++---------------------------------------------------------------------------+
+| Rincian tagihan pada kelompok terpilih                                    |
+| No. Tagihan | Penyewa | Objek Sewa | Periode | Jatuh Tempo | Sisa |        |
++---------------------------------------------------------------------------+
+| memuat -> kerangka baris                                                  |
+| kosong -> "Belum ada piutang sewa pada saringan ini."       [Atur ulang]   |
+| gagal  -> "Data gagal dimuat."                              [Coba lagi]    |
+|                                      [Kelola Tagihan Sewa] -> FIN-LYR-AR-21|
++---------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Kelompok umur | Empat kelompok beserta nominalnya | `GET /non-patient-receivables/aging` | `FinanceNonPatientReceivable : Read` | Gagal: seluruh layar diganti pesan beserta tombol coba lagi |
+| Rincian tagihan | Daftar tagihan pada kelompok terpilih | `GET /non-patient-receivables` | `FinanceNonPatientReceivable : Read` | Kosong: "Belum ada piutang sewa pada saringan ini." |
+| Tombol Kelola Tagihan Sewa | Jalan masuk ke layar pencatatan | — | `FinanceNonPatientReceivable : Read` | Disembunyikan bila tidak berhak |
+
+Saringan kategori **MUST** dikirim ke backend sebagai parameter, **MUST NOT** disaring di klien.
+
+#### `FIN-LYR-AR-21` — Daftar dan pencatatan tagihan sewa
+
+```text
++- Tagihan Sewa ------------------------------------------ FIN-LYR-AR-21 -+
+| [cari penyewa / objek sewa]  [Kategori v] [Status v] [Periode v]        |
+|                                                   [+ Catat Tagihan]     |
++-------------------------------------------------------------------------+
+| No. | Kategori | Penyewa | Objek | Periode | Tagihan | Denda | Sisa |    |
+|     | chip     |         |       |         |         |       |     |[...]|
++-------------------------------------------------------------------------+
+| memuat / kosong / gagal -> pola layar daftar yang berlaku di modul ini  |
++- Halaman 1 dari n ---------------------- [< Sebelumnya] [Berikutnya >]  +
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Daftar | Nomor, kategori, penyewa, objek sewa, periode, nominal, denda, sisa, status | `GET /non-patient-receivables` | `FinanceNonPatientReceivable : Read` | Kosong: "Belum ada tagihan sewa pada saringan ini." |
+| Tombol Catat Tagihan | Membuka isian tagihan baru | `POST /non-patient-receivables` | `FinanceNonPatientReceivable : Create` | Disembunyikan bila tidak berhak |
+| Aksi per baris | Koreksi, Catat Pelunasan, Hapus Piutang, Batalkan | `PUT /{id}`, `POST /{id}/settlements`, `/write-off`, `/cancel` | `FinanceNonPatientReceivable : Update` | Aksi yang tidak sah pada status saat ini **MUST** dinonaktifkan, bukan disembunyikan — supaya petugas tahu langkahnya ada tetapi belum waktunya |
+
+**Dua hal yang MUST ada di layar ini, dan keduanya soal kejujuran kepada petugas:**
+
+1. Tombol **Hapus Piutang** dan **Batalkan** **MUST** memakai konfirmasi yang menyebut terang bahwa
+   tindakan ini **tidak melewati persetujuan siapa pun** dan alasannya wajib diisi. Ini satu-satunya
+   penahan yang tersisa setelah `FIN-DEC-103` meniadakan jenjang approval.
+2. Layar **MUST** menyatakan bahwa pelunasan yang dicatat di sini **belum** tercatat sebagai kas
+   masuk di kas harian maupun setoran bank, selama `FIN-OQ-044` belum diputuskan. Membiarkan petugas
+   menyangka uangnya sudah tercatat di kas adalah kekeliruan yang mahal dan sulit ditelusuri
+   belakangan.
+
+Bunyi persis kedua pernyataan itu `DEV_DISCRETION`; **keberadaannya** mengikat.
+
+#### `FIN-LYR-AR-22` — Rincian tagihan sewa
+
+Bentuknya mengikuti pola layar rincian yang sudah berlaku di modul ini: kepala berisi identitas dan
+angka tagihan, diikuti daftar riwayat pelunasan dari
+`GET /non-patient-receivables/{id}`. Pelunasan bernilai minus **MUST** terbaca jelas sebagai
+pembatalan pembayaran, bukan sebagai pembayaran biasa.
+
+### 18.3 Kewenangan UI
+
+| Hal | Wewenang | Dasar |
+|---|---|---|
+| Keberadaan ketiga butir menu umur piutang | **Mengikat** | `FIN-DEC-094`, tangkapan layar V1 |
+| Saringan kategori dikirim ke backend | **Mengikat** | Kebenaran angka dan paginasi |
+| Konfirmasi yang menyebut ketiadaan persetujuan pada Hapus/Batalkan | **Mengikat** | `FIN-DEC-103` meniadakan penahan lain |
+| Pernyataan bahwa pelunasan belum masuk kas | **Mengikat** selama `FIN-OQ-044` terbuka | `FIN-DES-075` |
+| Butir menu tersendiri untuk "Tagihan Sewa" | **Menunggu keputusan pemilik** | Penyimpangan dari V1 — lihat 18.1 |
+| Tata letak, warna, ikon, bentuk kontrol, bunyi kalimat | `DEV_DISCRETION` | — |

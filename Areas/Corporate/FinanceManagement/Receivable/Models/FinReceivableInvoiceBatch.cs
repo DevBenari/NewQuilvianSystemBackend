@@ -38,6 +38,26 @@ public sealed class FinReceivableInvoiceBatch : IdentityModel
 
     public Guid RowVersion { get; set; } = Guid.NewGuid();
 
+    // ------------------------------------------------------------------------------------
+    // Sumbu klaim penjamin (BE-FIN-052, FIN-DEC-097, FIN-DES-070). Sumbu KEDUA, terpisah dari
+    // Status di atas — Status menjawab "apakah dokumen terbit dan apakah lunas" (ditulis Sistem
+    // untuk pelunasan), ClaimStatus menjawab "apa kata penjamin" (ditulis petugas AR, kecuali
+    // SUBMITTED yang ditulis Sistem saat IssueAsync). Keduanya MUST NOT saling menulis kolom
+    // satu sama lain — lihat FIN-DES-070/071 dan state-transition-matrix.md §D.1.
+    // ------------------------------------------------------------------------------------
+
+    /// <summary>Null berarti batch belum diterbitkan ke penjamin. Lihat FinReceivableInvoiceBatchClaimStatuses.</summary>
+    public string? ClaimStatus { get; set; }
+
+    /// <summary>Nominal yang disetujui penjamin. MUST NOT dipakai sebagai dasar pelunasan (FIN-DES-070).</summary>
+    public decimal? ApprovedAmount { get; set; }
+
+    public string? PayerClaimReference { get; set; }
+    public string? ClaimNote { get; set; }
+    public DateTimeOffset? PayerVerifiedAt { get; set; }
+    public DateTimeOffset? ClaimApprovedAt { get; set; }
+    public DateTimeOffset? ClaimClosedAt { get; set; }
+
     public ICollection<FinReceivableInvoiceBatchItem> Items { get; set; } = new List<FinReceivableInvoiceBatchItem>();
 }
 
@@ -48,6 +68,15 @@ public static class FinReceivableInvoiceBatchStatuses
     public const string PartiallyPaid = "PARTIALLY_PAID";
     public const string Paid = "PAID";
     public const string Cancelled = "CANCELLED";
+}
+
+/// <summary>Sumbu klaim penjamin (BE-FIN-052, FIN-DEC-097). Lihat state-transition-matrix.md §D.1.</summary>
+public static class FinReceivableInvoiceBatchClaimStatuses
+{
+    public const string Submitted = "SUBMITTED";
+    public const string PayerVerified = "PAYER_VERIFIED";
+    public const string Approved = "APPROVED";
+    public const string Closed = "CLOSED";
 }
 
 public static class FinReceivableInvoiceBatchDebtorTypes

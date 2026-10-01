@@ -365,6 +365,53 @@ public sealed class FinanceReceivableService
     // Penghapusan buku (FinReceivableWriteOff) — FIN-VAL-014, FIN-DES-014
     // ------------------------------------------------------------------------------------
 
+    /// <summary>BE-FIN-053 (FIN-DES-073) — daftar LINTAS piutang, baca saja. Pembuatan dan
+    /// keputusan write-off tetap lewat RequestWriteOffAsync/DecideWriteOffAsync di bawah.</summary>
+    public async Task<PagedResult<ReceivableWriteOffRowResponse>> GetWriteOffsAsync(
+        ReceivableWriteOffQuery request, CancellationToken cancellationToken)
+    {
+        var query = _dbContext.FinReceivableWriteOffs.AsNoTracking()
+            .Include(x => x.Receivable)
+            .Where(x => !x.IsDelete);
+
+        if (!string.IsNullOrWhiteSpace(request.Status)) query = query.Where(x => x.Status == request.Status);
+        if (request.DebtorReferenceId.HasValue) query = query.Where(x => x.Receivable!.DebtorReferenceId == request.DebtorReferenceId.Value);
+        if (request.StartDate.HasValue) query = query.Where(x => x.RequestedAt >= request.StartDate.Value.ToDateTime(TimeOnly.MinValue));
+        if (request.EndDate.HasValue) query = query.Where(x => x.RequestedAt < request.EndDate.Value.AddDays(1).ToDateTime(TimeOnly.MinValue));
+
+        var descending = !string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+        query = request.SortBy.Trim().ToLowerInvariant() switch
+        {
+            "amount" => descending ? query.OrderByDescending(x => x.Amount) : query.OrderBy(x => x.Amount),
+            "status" => descending ? query.OrderByDescending(x => x.Status) : query.OrderBy(x => x.Status),
+            _ => descending ? query.OrderByDescending(x => x.RequestedAt) : query.OrderBy(x => x.RequestedAt)
+        };
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query
+            .Skip((request.PageNumber - 1) * request.PageSize).Take(request.PageSize)
+            .Select(x => new ReceivableWriteOffRowResponse
+            {
+                Id = x.Id,
+                WriteOffNumber = x.WriteOffNumber,
+                ReceivableId = x.ReceivableId,
+                ReceivableNumber = x.Receivable!.ReceivableNumber,
+                DebtorReferenceId = x.Receivable.DebtorReferenceId,
+                Amount = x.Amount,
+                Reason = x.Reason,
+                Status = x.Status,
+                RequestedAt = x.RequestedAt,
+                DecidedAt = x.ApprovedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<ReceivableWriteOffRowResponse>
+        {
+            PageNumber = request.PageNumber, PageSize = request.PageSize, TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)request.PageSize), Items = items
+        };
+    }
+
     public async Task<FinReceivableWriteOff> RequestWriteOffAsync(
         Guid receivableId, decimal amount, string reason, Guid actorUserId, CancellationToken cancellationToken)
     {

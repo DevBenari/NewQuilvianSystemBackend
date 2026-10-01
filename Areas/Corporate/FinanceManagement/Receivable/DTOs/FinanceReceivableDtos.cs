@@ -132,3 +132,39 @@ public sealed class RequestReceivableWriteOffRequest
     [Range(0.01, double.MaxValue)] public decimal Amount { get; set; }
     [Required, MaxLength(500)] public string Reason { get; set; } = string.Empty;
 }
+
+// ----------------------------------------------------------------------------------------
+// BE-FIN-053 (FIN-DEC-094, FIN-DES-073) — daftar penghapusan piutang LINTAS piutang, untuk
+// layar "Pemutihan Piutang" (03-frontend-architecture.md §17.2). Baca saja: pembuatan,
+// persetujuan, dan penolakan write-off TETAP lewat endpoint per-piutang di atas beserta
+// maker-checker-nya (FIN-DES-073 — tidak ada aksi baru di sini, murni permukaan baca).
+// ----------------------------------------------------------------------------------------
+
+public sealed class ReceivableWriteOffQuery
+{
+    public DateOnly? StartDate { get; set; }
+    public DateOnly? EndDate { get; set; }
+    public string? Status { get; set; }
+    public Guid? DebtorReferenceId { get; set; }
+    public string SortBy { get; set; } = "requestedAt";
+    public string SortDirection { get; set; } = "desc";
+    [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
+    [Range(1, 100)] public int PageSize { get; set; } = 25;
+}
+
+public sealed class ReceivableWriteOffRowResponse
+{
+    public Guid Id { get; set; }
+    public string WriteOffNumber { get; set; } = string.Empty;
+    public Guid ReceivableId { get; set; }
+    public string ReceivableNumber { get; set; } = string.Empty;
+    public Guid? DebtorReferenceId { get; set; }
+    public decimal Amount { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTimeOffset RequestedAt { get; set; }
+
+    /// <summary>Terisi saat disetujui MAUPUN ditolak — model menamainya ApprovedAt/ApprovedBy
+    /// untuk kedua keputusan (lihat FinanceReceivableService.DecideWriteOffAsync).</summary>
+    public DateTimeOffset? DecidedAt { get; set; }
+}
