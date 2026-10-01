@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,11 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261001040508_AddCliDoctorCertificate")]
+    partial class AddCliDoctorCertificate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -81286,9 +81289,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<Guid?>("DiagnosisGroupId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("DiagnosisName")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -81350,8 +81350,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DiagnosisChapterId");
-
-                    b.HasIndex("DiagnosisGroupId");
 
                     b.HasIndex("DiagnosisName");
 
@@ -81740,84 +81738,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("DiagnosisId", "ReviewStatus", "IsActive", "IsDelete");
 
                     b.ToTable("MstDiagnosisEducationRecommendation", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosisGroup", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CodeRangeText")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DtdNumber")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("GroupName")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.Property<bool>("IsAccidentCause")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsImmunization")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("SourceCode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DtdNumber");
-
-                    b.HasIndex("GroupName");
-
-                    b.HasIndex("SourceCode")
-                        .IsUnique();
-
-                    b.ToTable("MstDiagnosisGroup", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosisProcedureRecommendation", b =>
@@ -119856,19 +119776,12 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("DiagnosisChapterId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosisGroup", "DiagnosisGroup")
-                        .WithMany("Diagnoses")
-                        .HasForeignKey("DiagnosisGroupId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosis", "ParentDiagnosis")
                         .WithMany("ChildDiagnoses")
                         .HasForeignKey("ParentDiagnosisId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("DiagnosisChapter");
-
-                    b.Navigation("DiagnosisGroup");
 
                     b.Navigation("ParentDiagnosis");
                 });
@@ -124702,11 +124615,6 @@ namespace QuilvianSystemBackend.Migrations
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosisChapter", b =>
-                {
-                    b.Navigation("Diagnoses");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosisGroup", b =>
                 {
                     b.Navigation("Diagnoses");
                 });
