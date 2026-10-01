@@ -953,3 +953,173 @@ Invoice), atau **cacat aksesibilitas menu yang sudah ada** (`FIN-CQ-09`), bukan 
 Belum ada `/design-business-module` yang perlu dijalankan untuk sebagian besar butir — pekerjaan
 tersisa adalah perbaikan (`FIN-CQ-09`, GR belum berlayar sendiri) dan tiga closure question di atas
 untuk `Manajemen Klaim`/`Pemutihan Piutang`/`Ayat Silang`.
+
+---
+
+## 18. Impact scan terarah — kesiapan source untuk `FIN-DEC-111`..`117` (1 Oktober 2026, `7f8c3014` / `85578363b`)
+
+**Pemicu.** Amandemen decision log "Penutupan gap Finance atas balasan Accounting `evidence/16`"
+membuka `FIN-OQ-046` (apakah saldo per tanggal bisa dihitung tanpa tabel baru) dan `FIN-OQ-050`
+(seberapa luas pola tanggal UTC). Pass ini **terbatas** pada dua pertanyaan itu ditambah apa yang
+ditemukan di jalan. Bagian 1–17 tidak diaudit ulang; backend sudah bergerak dari `831ddb5d`, jadi
+status di bagian itu yang menyentuh `AccountingIntegration` dan `BillingIntake` dianggap **stale**
+sampai diaudit ulang. Frontend hanya dipindai pada tiga kata kunci (hasil di 18.6).
+
+### 18.1 Temuan utama: Finance belum punya jalur pengiriman ke Accounting sama sekali
+
+| ID | Kebutuhan | Pemilik | Bukti (`@7f8c3014`) | Status | Gap | Risiko |
+|---|---|---|---|---|---|---|
+| `FIN-CAP-050` | Pengiriman otomatis baris outbox ke Accounting | Finance | `Program.cs` baris 940–953 mendaftarkan 11 hosted service; **tidak satu pun milik Finance**. Tidak ada folder `Workers` di `FinanceManagement`. Grep `HttpClient`/pengirim pada `AccountingIntegration/Services` kosong. Roadmap `00-delivery-roadmap.md` baris 40 dan 235: `EPIC FIN-12` **ditunda atas keputusan pemilik** ("karena system saya belum perlu itu") | **`Missing`** (ditunda sengaja) | Seluruh baris `FinAccountingEventOutbox` tinggal `PENDING` selamanya. Gerbang worker `FIN-DES-059` / `FIN-OQ-035` yang dirujuk surat Finance 16 **tidak punya kode** untuk digerbang | Menyentuh **setiap janji "G4 siap" dan "snapshot otomatis"** di `evidence/15`, `21`, dan balasan Accounting `16` |
+| `FIN-CAP-051` | Penjadwal snapshot saldo tanggal 1 pukul 00.05 WIB | Finance | `FinanceSubledgerSnapshotService` terdaftar `AddScoped` (`BillingManagementServiceCollectionExtensions.cs:99`); satu-satunya pemanggil `FinanceAccountingEventsController` `POST subledger-balances/generate` | **`Missing`** | Hanya bisa dipicu manual dari layar (`generate-subledger-snapshots-modal.jsx`). Pola yang ada: hosted service di dalam blok `runBackgroundJobs` (`AccAccountingEventSchedulerHostedService`, `LeaveAccrualSchedulerHostedService`, dst.) | Janji `FIN-DEC-092` tidak terpenuhi |
+| `FIN-CAP-052` | Pemicu penanda shift | Finance | `FinanceBillingIntakeController` `POST cashier-shift-closure-markers/sync` (baris 80) — satu-satunya pemanggil `SyncCashierShiftClosureMarkersAsync` | **`Missing`** pemicu otomatis | Penanda hanya terbit bila seseorang menekan sinkronisasi | Accounting tidak akan pernah melihat shift tertutup tanpa tindakan manual |
+
+### 18.2 `FIN-OQ-050` — luas pola tanggal UTC (dijawab)
+
+| Hal | Hasil |
+|---|---|
+| Titik yang menghitung `AccountingDate` dari `UtcNow`/`UtcDateTime` | **20 titik** di lima service: `FinanceReceivableService` (344, 527, 663, 757), `FinanceSupplierPayableService` (253), `FinancePaymentService` (613, 629), `FinanceBillingIntakeService` (489, 664, 715, 743, 825, 906, 990, 1111, 1141), `FinanceReceiptService` (134, 207, 640, 753) |
+| Titik yang aman (tanggal berasal dari dokumen) | `FinanceSupplierPayableService:130` (`SupplierInvoiceDate`), `FinancePurchasingInvoiceService:280`, `FinanceSupplierReturnService:188,207` (variabel `accountingDate`, asalnya **belum dibaca** — Unknown) |
+| Helper WIB yang sudah ada | `Helpers/AppDateTimeHelper.cs` (`Asia/Jakarta`, `OperationalDate()`, `OperationalDateToUtc()`); pola serupa di `AdministrationFeePolicyService`, `NumberSeriesAllocator`. **Tidak satu pun dipakai oleh Finance.** Catatan: helper berada dalam namespace bersarang ganda (`QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers`) dan **belum punya** konversi `DateTimeOffset → DateOnly` WIB |
+| Status | **`Reuse with adapter`** — zona waktunya ada, tetapi perlu satu metode baru dan 20 titik diubah |
+
+Kasus berbahaya yang ikut ditemukan: `FinanceReceivableService` memakai `DateTime.UtcNow` untuk
+tanggal pengakuan, dan snapshot piutang memakai `endOfPeriodUtc` berzona nol. Keduanya memotong
+bulan tujuh jam lebih awal dari yang dilihat staf.
+
+### 18.3 `FIN-OQ-046` — saldo per tanggal (dijawab sebagian)
+
+| Akun | Data historis yang ada | Status | Catatan |
+|---|---|---|---|
+| Kas Kasir | `FinDailyCashSnapshot` per `CashDate` dengan `ClosingBalance` | **`Reuse with adapter`** | **Sumbernya baris rekap harian Finance (`OPEN`/`CLOSED`), bukan status `BilCashierShift`.** Surat Finance 21 bagian 3.2 menulis "shift `CLOSED`/`REVIEWED`" — salah baca kode. Keduanya dua hal berbeda; mana yang jadi dasar Kas Kasir adalah **keputusan terbuka** (`FIN-OQ-052`) |
+| Kas Kecil | `FinPettyCashBudgetMovement.OccurredAt` + `BalanceAfter` | **`Reuse with adapter`** | Saldo per tanggal = `BalanceAfter` gerakan terakhir sampai akhir periode. Kode snapshot sekarang memakai `CurrentBalance` dan filter `Status = Active` **saat ini**, bukan saat itu |
+| Piutang | `FinReceivable.OriginalAmount`, `RecognizedAt`; `FinReceiptAllocation.AllocatedAt` (+`IsReversal`); `FinReceivableAdjustment.ApprovedAt`; `FinReceivableWriteOff.ApprovedAt` | **`Extend`** | Dapat dihitung ulang: asli − alokasi bersih − penyesuaian disetujui − penghapusan disetujui, masing-masing sampai akhir periode. **Tanpa tabel baru.** Belum terbukti: apakah `FinReceiptDeduction` mengurangi `OutstandingAmount` terpisah dari alokasi (Unknown, `FIN-OQ-053`) |
+| Utang supplier | `FinPayment.PaidAt`/`ApprovedAt` (induk dari `FinPaymentAllocation`, yang **tidak punya tanggal sendiri**); `FinPayableAdjustment.ApprovedAt`; `FinSupplierReturnDepositUsage.UsedAt`/`ReleasedAt` | **`Extend`** | Join ke induk pembayaran. `OutstandingAmount` dikurangi saat pembayaran **disetujui** (`FinancePaymentService:575`), bukan saat `PaidAt` — tanggal mana yang berlaku untuk posisi per tanggal belum diputuskan (Unknown) |
+
+**Kesimpulan `FIN-OQ-046`:** posisi per tanggal **layak tanpa tabel baru** untuk Piutang, Utang, dan
+Kas Kecil, dengan syarat dua Unknown di atas ditutup. Kas Kasir butuh keputusan sumber lebih dulu.
+
+### 18.4 Bukti untuk `FIN-DEC-111`, `113`, `115`, `117`
+
+| ID | Kebutuhan | Bukti | Status | Gap |
+|---|---|---|---|---|
+| `FIN-CAP-053` | Nomor shift dan metode bayar pada kejadian penerimaan | `FinReceipt.CashierShiftId`, `PaymentMethodId`, `PaymentMethodAccountId` sudah tersimpan (`FinanceReceiptService.cs:105-110`); `AccountingOutboxEventRequest` tidak membawanya; Accounting `ReceiveAccountingEventRequest` punya `AdditionalFields` (`JsonExtensionData`) sehingga kolom tambahan **tidak ditolak** | **`Extend`** | Tambah ke `AccountingOutboxEventRequest` dan `BuildPayloadJson`. **Conflict kecil:** baris pembalik menyalin `CashierShiftId` dari handoff **pembalikan** (`FinanceReceiptService.cs:165-180`), bukan dari kuitansi asli — contoh pada decision log yang menyebut "shift yang sama" **belum tentu benar** (`FIN-OQ-054`) |
+| `FIN-CAP-054` | Pemetaan kelompok saldo → kode akun control | Hanya konstanta `SubledgerControlAccountDefaults` dan override opsional per permintaan (`CashierControlAccountCode` dst.) pada `GenerateSubledgerSnapshotsRequest`. Tidak ada tabel atau konfigurasi | **`Missing`** | Satu kode per kelompok, bukan daftar. `FIN-OQ-051` (migration) tetap berlaku |
+| `FIN-CAP-055` | Deteksi shift terbuka | `BilCashierShift.Status` punya **tujuh** nilai: `OPEN`, `HANDED_OVER`, `CLOSED`, `CLOSED_WITH_VARIANCE`, `REVIEWED`, `REOPENED`, `PERLU_TINDAK_LANJUT`. Sinkronisasi sekarang hanya membaca `CLOSED`/`REVIEWED`/`REOPENED` (`FinanceBillingIntakeService.cs:1049-1054`) | **`Extend`** | `FIN-DEC-115` menyebut "shift terbuka" tanpa mendefinisikan apakah `HANDED_OVER` ikut. Definisi harus diputuskan (`FIN-OQ-055`) |
+| `FIN-CAP-056` | Pengirim saldo utang honor dokter oleh Medical Fee (`FIN-DEC-117`) | `FinMedicalServicePayable` **ada di area Finance** (`Payable/Models`), bukan di Medical Fee. Kelas `MdfServiceFee`/`MdfFinanceHandoff` yang dirujuk **tidak ditemukan** di source. `BE-FIN-021` tertulis `BLOCKED` pada komentar model | **`Conflict`** dengan asumsi `FIN-DEC-117` | Premis "data honor dokter milik Medical Fee" tidak cocok dengan source: tabel utangnya milik Finance, dan Medical Fee belum ada. Opsi A `FIN-DEC-117` belum punya pelaksana (`FIN-OQ-056`) |
+
+### 18.5 Koreksi atas pernyataan sebelumnya
+
+| Pernyataan | Koreksi |
+|---|---|
+| Sesi `/grill-me` menyebut piutang yang lebih bayar akan terkirim `0.00` oleh `Math.Max` | **Belum terbukti dapat terjadi.** `CK_FinReceivable_Balance` menjaga `OutstandingAmount ≥ 0`, dan `FinancePaymentService:571` menolak alokasi melebihi sisa utang. Kelebihan bayar menjadi saldo tak teralokasi (`FinReceipt.UnallocatedAmount`), bukan piutang negatif. Pemotongan ke nol praktis **tidak aktif** untuk Piutang dan Utang; yang paling mungkin negatif adalah Kas Kasir (`ClosingBalance`). `FIN-DEC-112` tetap sah sebagai aturan, tetapi contohnya salah (`FIN-OQ-057`) |
+| `evidence/21` bagian 3.2: Kas Kasir dari "shift `CLOSED`/`REVIEWED`" | Kode memakai `FinDailyCashSnapshot` berstatus `CLOSED`. Lihat 18.3 |
+
+### 18.6 Frontend (terbatas)
+
+`generate-subledger-snapshots-modal.jsx`, `finance-monitoring-view.jsx`,
+`use-finance-subledger-balances.jsx`, dan `finance-monitoring-slice.jsx` mengonsumsi
+`POST subledger-balances/generate` dan `GET subledger-balances/{period}`. Tidak ada tombol atau layar
+untuk sinkronisasi penanda shift. Tidak ada konsumen untuk status "pernyataan ulang". Status:
+**`Extend`**, bila `FIN-DEC-114` dan `FIN-DEC-115` dikerjakan. Kontrak respons belum dibandingkan
+field per field.
+
+### 18.7 Open question baru
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-052` | Kas Kasir bersumber dari rekap harian Finance (`FinDailyCashSnapshot`) atau dari status shift Billing? | Yasmin | `IMPLEMENTATION` `FIN-DEC-114` |
+| `FIN-OQ-053` | Apakah `FinReceiptDeduction` mengurangi piutang terpisah dari alokasi? | Audit `FinanceReceiptService` baris 580–760 | `IMPLEMENTATION` `FIN-DEC-114` |
+| `FIN-OQ-054` | Shift mana yang dipakai kuitansi pembalik: shift saat pembalikan terjadi atau shift kuitansi asli? | Yasmin, lalu Accounting | `IMPLEMENTATION` `FIN-DEC-111` |
+| `FIN-OQ-055` | "Shift terbuka" mencakup status mana (`OPEN`, `HANDED_OVER`)? | Yasmin | `IMPLEMENTATION` `FIN-DEC-115` |
+| `FIN-OQ-056` | Siapa pelaksana pengirim saldo honor dokter bila Medical Fee belum ada dan tabelnya milik Finance? | Yasmin | `LATER SLICE` `FIN-DEC-117` |
+| `FIN-OQ-057` | Skenario nyata saldo negatif yang tersisa setelah invarian di 18.5? | Yasmin | Tidak memblokir `FIN-DEC-112` |
+| `FIN-OQ-058` | **Apakah `EPIC FIN-12` (worker pengiriman) dibuka kembali?** Tanpa ini, `FIN-DEC-111`..`115` tidak pernah sampai ke Accounting | Yasmin | **Seluruh G4**; mengubah janji `evidence/15`, `21` |
+
+### 18.8 Pemicu impact scan berikutnya
+
+Ulangi bagian ini bila: backend bergerak dari `7f8c3014` pada `AccountingIntegration`,
+`BillingIntake`, `Collection`, `Receivable`, atau `Payable`; `Program.cs` mendaftarkan hosted
+service Finance; `AppDateTimeHelper` diubah; atau Accounting mengubah `ReceiveAccountingEventRequest`.
+
+### 18.9 Koreksi atas 18.3 (ditemukan pada closure pass yang sama, 1 Oktober 2026)
+
+**Dicabut:** kesimpulan "posisi per tanggal layak tanpa tabel baru" untuk **Piutang**.
+
+| Hal | Bukti | Dampak |
+|---|---|---|
+| Pembayaran langsung piutang mengurangi `OutstandingAmount` **tanpa** `FinReceipt`/`FinReceiptAllocation` | `FinanceReceivableService.RecordPaymentAsync`, baris 621–701; jejak hanya baris outbox `PENERIMAAN-PIUTANG` dan `AuditAsync("RecordPayment")` | Rumus "asli − alokasi − penyesuaian − penghapusan" **melewatkan** pembayaran langsung. Status Piutang berubah dari `Extend` menjadi `Missing` (buku mutasi) |
+| Potongan (`FinReceiptDeduction`) mengurangi piutang terpisah dari alokasi | `FinanceReceiptService.cs:611` memanggil `ApplyAllocationAsync` sendiri | `FIN-OQ-053` **CLOSED**; potongan harus menjadi mutasi tersendiri |
+| Penghapusan langsung **punya** baris | `FinanceReceivableService.DirectWriteOffAsync`, baris 729–749 | Aman |
+| Utang supplier dan utang jasa medis | `FinancePaymentService.cs:575` mengurangi saldo saat pembayaran **disetujui**; `FinPaymentAllocation` tanpa tanggal | Status tetap `Extend` dengan Unknown; dibuka `FIN-OQ-059` |
+
+Status `FIN-CAP-050` menjadi **`Missing` → disetujui dibangun** (`FIN-DEC-118`); `FIN-CAP-056` (honor dokter)
+tidak lagi `Conflict` karena `FIN-DEC-122` mengikuti source. `FIN-CAP-057` baru: **buku mutasi Piutang dan
+Utang supplier** — `Missing`, disetujui dibangun (`FIN-DEC-123`), migration menunggu konfirmasi terpisah.
+
+---
+
+## 19. Impact scan terarah — `FIN-OQ-059`, `FIN-OQ-062`, dan kesiapan migrasi `FIN-DEC-129` (1 Oktober 2026, `7f8c3014` / `0b54fdce6`)
+
+**Pemicu.** Closure pass decision log (`FIN-DEC-118`..`129`) menyisakan dua pertanyaan fakta source dan
+dua pertanyaan tambahan dari `FIN-DEC-129`. Pass ini **terbatas** pada keempatnya.
+
+**Staleness.** Backend tidak bergerak (`7f8c3014`, sama dengan bagian 18). **Frontend bergerak dari
+`85578363b` ke `0b54fdce6`**; pass ini tidak mengaudit ulang frontend, sehingga temuan 18.6 dianggap
+stale sampai dipindai ulang.
+
+### 19.1 `FIN-OQ-059` — jalur ubah saldo utang tanpa riwayat (dijawab)
+
+| Jalur | Bukti (`@7f8c3014`) | Menulis riwayat bertanggal? | Status |
+|---|---|---|---|
+| Pembayaran utang supplier lewat dokumen pembayaran | `FinancePaymentService.cs:575` | **Ya**: induk `FinPayment` (`ApprovedAt`, `PaidAt`) dan `FinPaymentAllocation`. Alokasi tidak punya tanggal sendiri | `Reuse with adapter` |
+| **Pembayaran langsung utang supplier** | `FinanceSupplierPayableService.RecordDirectPaymentAsync`, baris 207–274 | **Tidak.** Mengurangi `OutstandingAmount` dan menambah `PaidAmount`; hanya meninggalkan satu baris outbox `PEMBAYARAN-HUTANG-SUPPLIER` dan satu catatan audit. Parameter `bankAccountId`, `paymentMethod`, dan `notes` **diterima tetapi tidak disimpan** | **`Repair`** |
+| Penyesuaian utang | `FinanceSupplierPayableService.cs:450,455`; `FinPayableAdjustment.ApprovedAt` | Ya | `Reuse with adapter` |
+| Pembuatan utang | `FinanceSupplierPayableService.cs:99-139` | Ya (`SupplierInvoiceDate`) | `Reuse with adapter` |
+| Utang jasa medis (`FinMedicalServicePayable`) | Satu-satunya rujukan di `FinancePaymentService.cs:103,112`: `MedicalServicePayableId = null`, komentar "belum aktif — modul Medical Fee belum ada" | **Tidak ada penulis sama sekali** | **`Missing`** |
+| Kredit retur supplier yang dipakai melunasi utang | `FinSupplierReturnDepositUsage` (`UsedAt`, `ReleasedAt`), `FinPayment.DepositAppliedAmount` | Sebagian | **`Unknown`** — jalur persisnya belum ditelusuri |
+
+**Jawaban `FIN-OQ-059`: ya, ada satu jalur yang bocor — pembayaran langsung utang supplier.** Bentuknya
+sama persis dengan pembayaran langsung piutang (F11). Pembayaran langsung piutang dan utang
+sama-sama membuang metode, bank, dan catatan, sehingga `FIN-DEC-126` (metode dan bukti **MUST**
+disimpan) hanya menyentuh piutang; **utang supplier belum punya keputusan setara** (`FIN-OQ-067`).
+
+### 19.2 `FIN-OQ-062` — bukti pembayaran (dijawab)
+
+| Hal | Bukti | Status |
+|---|---|---|
+| `FinReceivableDocument` | `Receivable/Models/FinReceivableDocument.cs`: melacak **kelengkapan berkas klaim** (`DocumentType`, `DocumentNumber`, `IsReceived`, `Notes`), terikat `ReceivableId`, **tanpa kolom berkas**, tanpa konsumen selain properti navigasi | **Tidak cocok dipakai ulang** — tujuannya klaim ke penjamin, bukan bukti bayar, dan secara komentar sendiri melarang dikaitkan dengan pengakuan nilai |
+| Bukti pembayaran Finance | `FinReceipt` hanya punya `ProviderReference`/`ProviderEventId` dari Billing; pembayaran langsung tidak menyimpan `referenceNumber` maupun `notes` | **`Missing`** |
+| Pola penyimpanan berkas | Unggah `IFormFile`, akar penyimpanan dari konfigurasi `FileStorage:UploadRootPath`, `UseStaticFiles` (`Program.cs:1391-1419`). Kelas yang ada **semuanya milik HR**: `WorkflowFileStorageService`, `WfpCertificationFileStorageService`, `LeaveRequestAttachmentService`. **Tidak ada layanan penyimpanan bersama** | **`Reuse with adapter`** hanya sebagai **pola**; memakai kelas HR langsung melintasi batas modul |
+
+### 19.3 Kesiapan migrasi `FIN-DEC-129`
+
+| Pertanyaan | Hasil | Status |
+|---|---|---|
+| Bisakah jalur pengakuan piutang dilewati untuk item migrasi? | Pengakuan terjadi **di dalam** jalur intake Billing (`FinanceBillingIntakeService.cs:437-494`) dan terikat `BilArHandoff`. Migrasi **tidak boleh** memakai jalur itu (tidak ada handoff Billing). Jadi "melewati" berarti **jalur pembuatan baru**, bukan mengubah intake | **`Extend`** |
+| Apakah `FinReceivable` dapat menampung item tanpa Billing? | `SourceHandoffKey`, `SourceHandoffId`, `InvoiceId` adalah `Guid` **tidak nullable** dan `SourceHandoffKey` punya indeks unik (`FinReceivableConfiguration.cs:46`). Item migrasi tidak punya satu pun | **`Repair`**: perlu kolom nullable, penanda migrasi, dan perubahan constraint (migration) |
+| Apakah pembuatan utang supplier dapat dibuat tanpa kejadian? | `FinanceSupplierPayableService` membuat `PENGAKUAN-HUTANG-SUPPLIER` **tanpa syarat** (baris 125–135) dan nilai kejadian harus lebih dari nol. Tidak ada parameter untuk menahannya | **`Extend`**: perlu parameter eksplisit; `SupplierId` wajib ada di master supplier |
+| Mekanisme impor yang bisa dipakai ulang? | Tidak ada layanan impor di `Areas`, tidak ada paket spreadsheet di `.csproj`, tidak ada konsumen unggah berkas di Finance | **`Missing`** |
+| Pencocokan dengan Accounting | Accounting sudah punya rekonsiliasi subledger pada tutup periode (`AccPeriodClosingService`, `HitungRekonsiliasiSubledgerAsync`, kode `SUBLEDGER_RECONCILIATION`) | `Reuse with adapter` — sisi Accounting; cara Finance membuktikan total migrasi tetap harus dirancang |
+
+### 19.4 Open question baru dan efek ke yang lama
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-059` | **CLOSED** (19.1) | — | — |
+| `FIN-OQ-062` | **CLOSED** (19.2) — tidak memakai ulang `FinReceivableDocument` | — | — |
+| `FIN-OQ-067` | Pembayaran langsung **utang supplier** punya bentuk yang sama dengan piutang: apakah `FIN-DEC-126` (tunai/non-tunai satu mekanisme, metode dan bukti disimpan) berlaku juga untuk utang? | Yasmin | `IMPLEMENTATION` `FIN-DEC-123` bagian Utang |
+| `FIN-OQ-068` | Penyimpanan bukti pembayaran: memakai pola unggah HR dengan layanan baru milik Finance, atau menunggu layanan berkas bersama dari Platform? | Yasmin; Platform bila dibutuhkan | `IMPLEMENTATION` `FIN-DEC-126` |
+| `FIN-OQ-069` | Apakah piutang sewa non-pasien lama (`FinNonPatientReceivable`) ikut dimigrasikan? `FIN-DEC-129` hanya menyebut piutang dan utang supplier | Yasmin | `LATER SLICE` |
+| `FIN-OQ-070` | Dari mana asal data migrasi (sistem lama, spreadsheet, atau input manual) dan siapa yang menyiapkannya? Menentukan bentuk impor `FIN-OQ-066` | Yasmin | `DESIGN` `FIN-DEC-129` |
+
+### 19.5 Dampak ke keputusan yang sudah ada
+
+1. `FIN-DEC-123`: buku mutasi **MUST** mencakup `RecordDirectPaymentAsync` utang supplier, bukan hanya piutang.
+2. `FIN-DEC-129`: butuh migration untuk membuat `SourceHandoffKey`, `SourceHandoffId`, dan `InvoiceId` nullable dengan constraint "diisi bila bukan migrasi". Itu **bukan** perubahan kecil pada tabel yang sudah dipakai; masuk `FIN-OQ-051`.
+3. `FIN-DEC-126`: tidak boleh memakai `FinReceivableDocument`; bukti perlu tempat penyimpanan baru.
+
+### 19.6 Pemicu impact scan berikutnya
+
+Ulangi bagian 19 bila backend bergerak dari `7f8c3014` pada `Receivable`, `Payable`, `Collection`, atau
+`BillingIntake`; bila layanan penyimpanan berkas bersama muncul di Platform; atau bila `Program.cs`
+mendaftarkan hosted service Finance.

@@ -760,8 +760,8 @@ BE-FIN-055 ✅          (berdiri sendiri — saringan segmen umur piutang)
 
 BE-FIN-056 ✅ ─> BE-FIN-057 ✅  (skema piutang sewa ─> layanan dan endpointnya)
 
-{FIN-OQ-044} ─> (integrasi kas harian, setoran bank, dan kejadian akuntansi
-                 untuk piutang sewa — POST-MVP, sengaja belum bernomor)
+{FIN-OQ-044(b)} ─> (kejadian akuntansi untuk piutang sewa — POST-MVP, sengaja belum
+                    bernomor; integrasi kas harian/setoran bank DICABUT, FIN-DEC-109)
 ```
 
 | Gelombang | Task | Boleh mulai setelah |
@@ -769,7 +769,7 @@ BE-FIN-056 ✅ ─> BE-FIN-057 ✅  (skema piutang sewa ─> layanan dan endpoin
 | `REV-13B` | `BE-FIN-053` ✅, `BE-FIN-054` ✅, `BE-FIN-055` ✅ | Approval desain `FIN-DES-073` |
 | `REV-13C` | `BE-FIN-052` ✅ | Approval desain `FIN-DES-070`, `071` |
 | `REV-13D` | `BE-FIN-056` ✅ lalu `BE-FIN-057` ✅ | Approval desain `FIN-DES-074`..`077` |
-| *(tanpa gelombang)* | Integrasi kas dan kejadian akuntansi piutang sewa | `FIN-OQ-044` dijawab — termasuk ratifikasi kode kejadian oleh Accounting |
+| *(tanpa gelombang)* | Kejadian akuntansi piutang sewa | `FIN-OQ-044(b)` dijawab — ratifikasi kode kejadian oleh Accounting (Rizki) |
 
 `BE-FIN-052` sengaja **tidak** ditaruh di gelombang paling awal walau tidak punya prasyarat: ia
 satu-satunya task `EPIC FIN-18` yang menyentuh skema, sehingga ditempatkan sesudah task yang tidak
@@ -790,7 +790,8 @@ menuntut izin migration apa pun. Ini urutan risiko, bukan urutan teknis.
 
 | Yang tidak dibuat | Alasan |
 |---|---|
-| Task penyambungan pelunasan sewa ke kas harian, setoran bank, dan kotak keluar Accounting | Tertahan `FIN-OQ-044`. Bagian kode kejadiannya **menuntut ratifikasi Accounting**, bukan wewenang Finance sepihak — mengikuti pola `FIN-DEC-053`. Memberinya nomor task sekarang berarti menjadwalkan pekerjaan yang bentuknya belum ada |
+| Task penyambungan pelunasan sewa ke kas harian dan setoran bank | **Dicabut** — `FIN-DEC-109`: sewa dikelola terpisah dari kas harian dan setoran bank |
+| Task penyambungan pelunasan sewa ke kotak keluar Accounting | Tertahan `FIN-OQ-044(b)`. Kode kejadiannya **menuntut ratifikasi Accounting**, bukan wewenang Finance sepihak — mengikuti pola `FIN-DEC-053`. Memberinya nomor task sekarang berarti menjadwalkan pekerjaan yang bentuknya belum ada |
 | Task master kontrak sewa, master penyewa, master objek sewa | Ditolak `FIN-DEC-100`, ditegaskan ulang batas `FIN-DEC-105` |
 | Task perhitungan denda otomatis | Ditolak `FIN-DEC-102` |
 | Task jenjang approval untuk penghapusan piutang sewa | Ditolak `FIN-DEC-103`, batas penularannya diratifikasi `FIN-DEC-106` |
@@ -805,4 +806,150 @@ menuntut izin migration apa pun. Ini urutan risiko, bukan urutan teknis.
 | 2 | Izin eksplisit membuat migration | `BE-FIN-052` ✅ diberikan dan dibuat 1 Oktober 2026; `BE-FIN-056` ✅ diberikan dan dibuat 1 Oktober 2026 (tanpa `dotnet build`, atas permintaan eksplisit) |
 | 3 | Izin eksplisit mengeksekusi migration ke database | `BE-FIN-052` ✅ diberikan dan **berhasil dieksekusi** 1 Oktober 2026, dikonfirmasi pengguna; `BE-FIN-056` ✅ diberikan dan **berhasil dieksekusi** 1 Oktober 2026, dikonfirmasi pengguna |
 | 4 | QBE preflight untuk entity baru `BE-FIN-056` | Diselesaikan saat eksekusi dari `AGENTS.md` backend dan `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`; prefix `Fin` sudah terdaftar untuk Finance Management |
-| 5 | Pemilik mengetahui batas `FIN-OQ-044` sebelum `BE-FIN-057` dipakai pada data sungguhan | **MUST** disampaikan saat approval, bukan sesudah rilis |
+| 5 | Pemilik mengetahui batas `FIN-OQ-044` sebelum `BE-FIN-057` dipakai pada data sungguhan | ✅ Dijawab 1 Oktober 2026: sewa terpisah dari kas (`FIN-DEC-109`), rilis dengan banner (`FIN-DEC-110`); hanya `FIN-OQ-044(b)` terbuka |
+
+---
+
+# REV-14 — Buku mutasi, cutover, dan jalur pengiriman
+
+```yaml
+roadmap_revision: REV-14
+blueprint_id: FIN-BP-001
+blueprint_revision: 14
+blueprint_status: approved — FIN-DES-078..091 disetujui owner 1 Oktober 2026
+decisions: FIN-DEC-111..FIN-DEC-138 (seluruhnya approved; FIN-DEC-117 dan 119 superseded)
+contract_versions: FIN-API-1.5, FIN-INTEGRATION-1.7, FIN-STATE-1.6, FIN-VAL-1.7, FIN-PERM-1.7,
+                   FIN-TEST-1.8, FIN-MVP-1.9 (seluruhnya approved 1 Oktober 2026)
+backend_source_sha: 7f8c3014
+frontend_source_sha: 0b54fdce6
+tanggal: 1 Oktober 2026
+```
+
+**Status roadmap ini `SIAP DIEKSEKUSI`** untuk gelombang `REV-14A` dan `REV-14B`, dan sebabnya ditulis
+apa adanya: keputusan bisnis, keputusan arsitektur, dan ketujuh kontrak turunannya **seluruhnya
+`approved`**, serta gerbang wewenang migration sudah dijawab (`FIN-DEC-138`). Ini berbeda dari REV-13
+yang ditulis saat desainnya masih `draft`.
+
+## Wewenang migration pada REV-14 — batas yang MUST dijaga setiap task
+
+`FIN-DEC-138` menjawab `FIN-OQ-051` dengan membelah wewenangnya:
+
+| Hal | Keadaan |
+|---|---|
+| **Membuat** berkas migration | **DIIZINKAN**, dengan syarat berkasnya **sesuai `ApplicationDbContextModelSnapshot`** — dihasilkan dari perubahan model, bukan ditulis tangan menyimpang dari snapshot |
+| **Menerapkan** ke database | **MILIK YASMIN.** Agent **MUST NOT** menjalankan migration, `dotnet ef database update`, maupun SQL langsung ke database mana pun |
+| Kewajiban setiap laporan task | Laporan task yang membawa migration **MUST** menyatakan migration itu **belum dijalankan**, dan menyebut langkah yang Yasmin perlu jalankan sendiri |
+
+**Hanya dua migration yang benar-benar dibuat pada REV-14**, dan keduanya **murni tabel baru**:
+
+| Migration | Task pembawa | Sifat |
+|---|---|---|
+| `AddFinanceSubledgerMovementLedgers` | `BE-FIN-058` | Tiga tabel baru; nol tabel lama disentuh |
+| `AddFinanceSubledgerSetup` | `BE-FIN-064` | Dua tabel baru; nol tabel lama disentuh |
+
+Dua migration lain pada rencana desain — `AddFinanceTransactionProofAndDirectPaymentThreshold` dan
+`AddFinanceOpeningItemMigration` — **tidak** dibuat pada REV-14, karena keduanya milik epic berstatus
+`OPEN DECISION`. Yang keempat satu-satunya yang menyentuh tabel berjalan, dan ia **tidak** masuk
+gelombang mana pun. Jadi walaupun wewenangnya sudah ada, risiko tertinggi tetap belum tersentuh.
+
+## Grafik urutan dependency — REV-14
+
+Enam belas task backend. Rantainya panjang karena memang berurutan: buku mutasi dibangun lebih dulu,
+baru posisi dihitung darinya, baru dikirim.
+
+```text
+REV-14A  (EPIC FIN-20 — buku mutasi dan tanggal WIB)
+
+BE-FIN-058 ─┬─> BE-FIN-059                        (skema + helper ─> 21 titik WIB)
+            └─> BE-FIN-060 ─> BE-FIN-061 ─> BE-FIN-062 ─> BE-FIN-063
+                 (penulis mutasi ─> jalur utang ─> buku kas ─> permukaan baca)
+
+REV-14B  (EPIC FIN-21 — pemetaan akun control dan saldo awal)
+
+BE-FIN-064 ─┬─> BE-FIN-065                        (skema setup ─> pemetaan akun)
+            └─> BE-FIN-066 ─> BE-FIN-067 ─> BE-FIN-068
+                 (saldo awal ─> kalkulator posisi ─> perombakan snapshot)
+
+REV-14C  (EPIC FIN-22 — jalur pengiriman)
+
+BE-FIN-069                                        (dimensi shift dan metode — berdiri sendiri)
+BE-FIN-070 ─> BE-FIN-073                          (penanda pembukaan ─> penjadwalnya)
+BE-FIN-068 ─> BE-FIN-071                          (snapshot siap ─> worker pengiriman)
+BE-FIN-068 ─> BE-FIN-072                          (snapshot siap ─> penjadwal 00.05 WIB)
+
+DI LUAR SELURUH GELOMBANG
+
+{FIN-OQ-075} ─> (EPIC FIN-23 — pembayaran langsung berkontrol, bukti, ambang)
+{FIN-OQ-077} ─> (EPIC FIN-24 — migrasi tagihan lama lewat spreadsheet)
+```
+
+| Gelombang | Task | Boleh mulai setelah |
+|---|---|---|
+| `REV-14A` | `BE-FIN-058` lalu `BE-FIN-059` paralel dengan rantai `BE-FIN-060`→`063` | Sekarang — seluruh gerbangnya sudah terbuka |
+| `REV-14B` | `BE-FIN-064` lalu `BE-FIN-065` paralel dengan rantai `BE-FIN-066`→`068` | `REV-14A` selesai |
+| `REV-14C` | `BE-FIN-069`, `BE-FIN-070`→`073`, `BE-FIN-071`, `BE-FIN-072` | `REV-14B` selesai. **Pengaktifannya** menunggu G3 dan `FIN-OQ-047` — pembangunannya tidak |
+| *(tanpa gelombang)* | `EPIC FIN-23`, `EPIC FIN-24` | `FIN-OQ-075` dan `FIN-OQ-077` dijawab |
+
+`BE-FIN-059` (21 titik WIB) sengaja **dipisah** dari rantai buku mutasi walaupun keduanya memakai
+helper yang sama: ia menyentuh lima service yang sudah berjalan, sehingga risikonya berbeda jenis dan
+layak ditinjau tersendiri.
+
+## Task REV-14A — `EPIC FIN-20`, buku mutasi dan tanggal WIB
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `BE-FIN-058` | Skema tiga buku mutasi berdiri, dan Finance punya satu tempat menghitung tanggal WIB | `FR-FIN-130`..`132`, `FR-FIN-136`; `FIN-DEC-123`, `116`; `FIN-DES-079`, `082` | `erd/data-dictionary.md` R14.1-R14.3; DDL revisi 14 | Pola configuration rumpun `Receivable`/`Payable`/`CashManagement`; `IdentityModel`; pola zona waktu `AdministrationFeePolicyService` | 3 model, 3 EF configuration, 3 `DbSet`, helper statis `FinanceBusinessDate`, migration `AddFinanceSubledgerMovementLedgers` | — | Ketiga tabel terbentuk beserta check constraint saldo dan unique index idempotensi kas; helper memulangkan tanggal WIB dan memakai cadangan `SE Asia Standard Time` bila `Asia/Jakarta` tidak tersedia; **nol** penulis dibuat pada task ini | `dotnet build` PASS; migration **dibuat, belum dijalankan** | Backend Owner — **risiko:** implementer menambahkan penulis mutasi sekaligus pada task ini, sehingga perubahan skema dan perubahan perilaku bercampur dalam satu tinjauan | Build PASS; migration dibuat; laporan task menyatakan migration **belum dieksekusi** beserta langkah yang Yasmin perlu jalankan |
+| `BE-FIN-059` | Tanggal akuntansi dan batas periode tidak lagi melompat satu hari pada dini hari WIB | `FR-FIN-136`; `FIN-DEC-116`; `FIN-DES-082` | `FIN-VAL-1.7` `FIN-VAL-210`; `FIN-INTEGRATION-1.7` 5.12.1 | `FinanceBusinessDate` dari `BE-FIN-058` | 21 titik: 20 titik `AccountingDate` pada lima service, batas hari rekap kas, dan batas akhir periode snapshot piutang | `BE-FIN-058` | Pembayaran pukul 02.00 WIB tanggal 1 Oktober memulangkan `AccountingDate` `2026-10-01`, bukan `2026-09-30`; kejadian pukul 23.30 WIB 30 September tetap `2026-09-30`; piutang yang diakui 30 September pukul 23.50 WIB **ikut** periode `2026-09`; `EventOccurredAt` **tetap** UTC | `dotnet build` PASS; daftar 21 titik yang disentuh dilampirkan pada laporan | Backend Owner — **risiko tertinggi REV-14A:** menyentuh lima service yang sudah berjalan. Belum ada kejadian sungguhan terkirim, sehingga **tidak ada data yang perlu dibetulkan** — tetapi satu titik yang terlewat membuat dua konvensi hidup bersamaan | Build PASS; **nol** migration; 21 titik terdaftar satu per satu di laporan |
+| `BE-FIN-060` | Setiap perubahan sisa piutang meninggalkan jejak bertanggal | `FR-FIN-130`, `FR-FIN-133`; `FIN-DEC-123`; `FIN-DES-079` | `FIN-VAL-1.7` `FIN-VAL-165`..`167`, `171` | `FinanceReceivableService.ApplyAllocationAsync` sebagai preseden "satu-satunya penulis"; advisory lock yang sudah ada | 1 service penulis (`FinanceSubledgerMovementService`); penyambungan **tujuh** jalur piutang: pengakuan intake, alokasi, pembalikan alokasi, potongan, penyesuaian, penghapusan, pembayaran langsung | `BE-FIN-058` | Ketujuh jalur menulis tepat satu baris mutasi dengan `MovementType` yang benar; `BalanceAfter` baris terakhir **sama dengan** `OutstandingAmount`; service **tidak** membuka transaksi sendiri; pemanggil sudah memegang advisory lock | `dotnet build` PASS; tujuh kasus uji manual, satu per jalur, dilampirkan | Backend Owner — **risiko utama:** satu jalur terlewat. Pemeriksaan `BalanceAfter` terhadap `OutstandingAmount` adalah alat deteksinya dan **MUST** diuji, bukan hanya ditulis | Build PASS; **nol** migration; tujuh jalur terdaftar beserta buktinya |
+| `BE-FIN-061` | Setiap perubahan sisa utang supplier meninggalkan jejak bertanggal | `FR-FIN-131`, `FR-FIN-133`; `FIN-DEC-123`, `130`; `FIN-DES-079` | `FIN-VAL-1.7` `FIN-VAL-165`..`167` | `FinanceSubledgerMovementService` dari `BE-FIN-060` | Penyambungan **empat** jalur utang: pembuatan utang, pembayaran dokumen (satu baris per alokasi), pembayaran langsung, penyesuaian | `BE-FIN-060` | Keempat jalur menulis mutasi; pembayaran dokumen menulis **satu baris per alokasi**; `BusinessDate` disalin dari `FinPayment.ApprovedAt` dalam WIB saat mutasi ditulis, **bukan** dari `PaidAt` | `dotnet build` PASS; empat kasus uji manual dilampirkan | Backend Owner — **risiko:** memakai `PaidAt` sebagai tanggal bisnis. Utang berkurang saat pembayaran **disetujui**, dan itu yang MUST tercatat | Build PASS; **nol** migration; empat jalur terdaftar |
+| `BE-FIN-062` | Posisi kas dapat dihitung dari jejak bertanggal, bukan dari rekap harian | `FR-FIN-132`, `FR-FIN-137`, `FR-FIN-138`; `FIN-DEC-124`, `125`, `127`, `132`, `133`; `FIN-DES-081` | `FIN-VAL-1.7` `FIN-VAL-168`, `169`; `erd/cash-and-master-data.md` revisi 14 | `FinBankDeposit` beserta statusnya; `BilCashierShift` **dibaca saja** | Penyambungan **enam** sumber mutasi kas: shift `CLOSED`/`REVIEWED`, penerimaan tunai langsung, pembayaran tunai langsung, `FinPayment` bermetode `CASH`, setoran bank, pembalikan setoran. Penutupan rekap harian **berhenti** memeriksa shift | `BE-FIN-060`, `BE-FIN-061` | Mutasi kas untuk `FinPayment` `CASH` bernilai **`NetTransferAmount`**, bukan jumlah alokasi; shift `OPEN` **tidak** menghasilkan mutasi; rekap harian dapat ditutup walau ada shift `OPEN`; sinkronisasi berulang **tidak** menggandakan kas shift; anggaran kas kecil **tidak** tersentuh | `dotnet build` PASS; kasus pembayaran dengan potongan dan deposit terpakai dibuktikan memakai `NetTransferAmount` | Backend Owner — **risiko tertinggi REV-14:** menjumlah alokasi sebagai kas keluar. `NetTransferAmount = Total − Potongan + Tambahan − Deposit`, sehingga menjumlah alokasi **melebih-hitung** kas setiap kali ada potongan | Build PASS; **nol** migration; keenam sumber terdaftar beserta buktinya |
+| `BE-FIN-063` | Petugas dapat membaca jejak perubahan saldo per piutang, per utang, dan kas | `FR-FIN-140`; `FIN-DEC-123` | `FIN-API-1.5` F.5; `FIN-PERM-1.7` G.3 | Pola daftar berpaging rumpun ini; resource hak akses yang **sudah ada** | 3 endpoint baca berpaging beserta DTO-nya; **nol** resource hak akses baru | `BE-FIN-062` | Ketiganya berpaging dan tersaring; kolom sensitif (`Notes`) **tidak** masuk logger; memakai `FinanceReceivable`/`FinanceSupplierPayable`/`FinanceCashManagement : Read` yang sudah ada | `dotnet build` PASS | Backend Owner — risiko rendah, murni permukaan baca | Build PASS; **nol** migration; **nol** resource hak akses baru |
+
+## Task REV-14B — `EPIC FIN-21`, pemetaan akun control dan saldo awal
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `BE-FIN-064` | Skema pemetaan akun control dan saldo awal cutover berdiri | `FR-FIN-141`, `FR-FIN-146`; `FIN-DEC-113`, `128`; `FIN-DES-080`, `088` | `erd/data-dictionary.md` R14.4-R14.5; DDL revisi 14 | Pola configuration rumpun `AccountingIntegration` | 2 model, 2 EF configuration, 2 `DbSet`, migration `AddFinanceSubledgerSetup` | `BE-FIN-058` | Kedua tabel terbentuk beserta check constraint kelompok saldo, check constraint "kelompok item migrasi wajib nol", dan unique index satu baris aktif per kelompok; **nol** penulis dibuat | `dotnet build` PASS; migration **dibuat, belum dijalankan** | Backend Owner — risiko rendah, murni tabel baru | Build PASS; migration dibuat; laporan menyatakan migration **belum dieksekusi** |
+| `BE-FIN-065` | Petugas dapat memetakan setiap kelompok saldo dan segmennya ke kode akun Accounting, dan melihat apa yang belum terpetakan | `FR-FIN-141`, `FR-FIN-144`; `FIN-DEC-113`; `FIN-DES-080` | `FIN-API-1.5` F.1; `FIN-VAL-1.7` `FIN-VAL-172`..`179`; `FIN-PERM-1.7` G.1-G.3 | Pola service dan controller rumpun `AccountingIntegration` | 1 service, 1 controller, 5 endpoint; resource hak akses `FinanceSubledgerSetup` beserta 4 action; konstanta `SubledgerControlAccountDefaults` dipertahankan **sebagai nilai seed**, bukan sumber kebenaran | `BE-FIN-064` | Segmen di luar daftar yang sah ditolak; kelompok dengan baris `NULL` **dan** baris bersegmen sekaligus ditolak (`FIN-VAL-176`); kode akun kembar ditolak unique index; permukaan cakupan memulangkan kelompok dan segmen yang belum terpetakan | `dotnet build` PASS | Backend Owner — **risiko:** mengizinkan pemetaan menyeluruh dan per segmen hidup bersamaan, yang membuat saldo terhitung dua kali | Build PASS; **nol** migration; empat action hak akses terdaftar |
+| `BE-FIN-066` | Saldo awal cutover dapat dicatat, disetujui, dan dikunci satu kali | `FR-FIN-146`..`148`; `FIN-DEC-128`; `FIN-DES-088` | `FIN-API-1.5` F.1; `FIN-STATE-1.6` F.1; `FIN-VAL-1.7` `FIN-VAL-180`..`185` | `RowVersion` sebagai concurrency token; pola `POST /{id}/<aksi>` | 1 service, 5 endpoint; penguncian kelompok `KAS-KASIR` menerbitkan **satu** mutasi kas `SALDO-AWAL` bertanggal `CutoverDate` | `BE-FIN-064`, `BE-FIN-062` | Status berpindah `DRAFT`→`APPROVED`→`LOCKED`; baris `LOCKED` **tidak dapat** diubah service mana pun; kelompok piutang, utang supplier, dan utang jasa medis **wajib** bernilai nol beserta alasan tertulis; penguncian menerbitkan tepat satu mutasi kas | `dotnet build` PASS | Backend Owner — **risiko:** mengizinkan baris `LOCKED` diubah lewat jalur lain. Posisi seluruh buku dihitung dari titik ini | Build PASS; **nol** migration |
+| `BE-FIN-067` | Finance dapat menyatakan posisi setiap kelompok saldo pada tanggal mana pun sejak cutover | `FR-FIN-134`, `FR-FIN-135`, `FR-FIN-139`; `FIN-DEC-114`, `125`; `FIN-DES-081` | `FIN-API-1.5` F.6; `FIN-VAL-1.7` `FIN-VAL-170` | Ketiga buku mutasi; `FinOpeningBalance`; `ReceivableAgingBuckets` **tidak** dipakai di sini | 1 service baca (`FinanceSubledgerBalanceCalculator`), 2 endpoint: posisi per tanggal dan selisih rekap harian | `BE-FIN-066` | Posisi dihitung dari saldo awal ditambah mutasi; **menolak** tanggal sebelum `CutoverDate` beserta pesan yang menyebutnya; **nol** pembacaan `OutstandingAmount` atau `ClosingBalance` sebagai jawaban; selisih memuat kedua angka beserta mutasi yang menjelaskannya | `dotnet build` PASS; kasus dua pembayaran lintas periode dibuktikan | Backend Owner — **risiko:** mengambil jalan pintas membaca `OutstandingAmount`. Itu posisi *sekarang*, dan memakainya menghidupkan kembali cacat yang REV-14 perbaiki | Build PASS; **nol** migration |
+| `BE-FIN-068` | Snapshot saldo menerbitkan satu baris per akun control, menolak terbit bila pemetaan tidak lengkap, dan mengirim nilai negatif apa adanya | `FR-FIN-142`, `FR-FIN-143`, `FR-FIN-145`, `FR-FIN-149`; `FIN-DEC-112`, `113`, `122`; `FIN-DES-080`, `091` | `FIN-API-1.5` F.7; `FIN-INTEGRATION-1.7` 5.12.4; `FIN-VAL-1.7` `FIN-VAL-177`, `178`, `211` | `FinanceSubledgerSnapshotService` yang sudah ada beserta transaksi `Serializable` dan advisory lock-nya | Perombakan `FinanceSubledgerSnapshotService`: sumber angka berpindah ke kalkulator, **empat** `Math.Max(0m, …)` dihapus, jumlah baris mengikuti pemetaan, gagal tertutup, `IsComplete` berhenti memakai angka empat; utang jasa medis dikirim `0.00` | `BE-FIN-067`, `BE-FIN-065` | Enam pemetaan aktif menghasilkan enam baris; kelompok tanpa pemetaan → `422` dan **nol** baris outbox; segmen terpetakan sebagian → `422` dan **nol** baris outbox; saldo negatif terkirim negatif; keempat ruas override kode akun pada request ditandai **usang** | `dotnet build` PASS; kasus gagal tertutup dibuktikan menerbitkan nol baris | Backend Owner — **risiko:** mengirim sebagian saat pemetaan tidak lengkap. Saldo segmen yang hilang tanpa jejak adalah kegagalan paling berbahaya karena totalnya tetap terlihat wajar | Build PASS; **nol** migration; keempat `Math.Max` dibuktikan hilang dari source |
+
+## Task REV-14C — `EPIC FIN-22`, jalur pengiriman
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `BE-FIN-069` | Kejadian penerimaan membawa nomor shift dan metode pembayaran, sehingga Accounting dapat meringkasnya per shift | `FR-FIN-158`, `FR-FIN-159`; `FIN-DEC-111`, `120`; `FIN-DES-083` | `FIN-INTEGRATION-1.7` 5.12.1-5.12.2 | `FinReceipt` yang **sudah menyimpan** `CashierShiftId`, `PaymentMethodId`, `PaymentMethodAccountId`, `ReversalOfReceiptId` | 5 ruas baru pada `AccountingOutboxEventRequest` dan `BuildPayloadJson`; **nol** kolom baru pada `FinAccountingEventOutbox` | — | Payload memuat kelima ruas; kuitansi pembalik membawa shift **pembalikan** beserta `ReversalOfSourceTransactionId` kuitansi asli; idempotensi tetap memakai `SourceTransactionId`+`EventTypeCode`+`SourceVersion` | `dotnet build` PASS; contoh payload dilampirkan | Backend Owner — **gerbang:** `FIN-OQ-045` belum dijawab Accounting. Ruasnya **tidak akan ditolak** kotak masuk mereka (ada penampung ruas tambahan), tetapi **kontraknya** belum disetujui. Pembangunannya tidak tertahan | Build PASS; **nol** migration |
+| `BE-FIN-070` | Accounting dapat mengetahui shift mana yang belum selesai, sehingga penegakan tutup bulan tidak punya celah | `FR-FIN-157`; `FIN-DEC-115`, `121`; `FIN-DES-084` | `FIN-INTEGRATION-1.7` 5.12.3; `FIN-STATE-1.6` F.3 | `SyncCashierShiftClosureMarkersAsync` beserta pola nomor siklusnya; unique index outbox | Kode `PEMBUKAAN-SHIFT-KASIR` ditambahkan ke katalog dan ke `ZeroAmountAllowedEventTypes`; query diperluas dari **tiga** menjadi **tujuh** status | `BE-FIN-062` | Shift `CLOSED_WITH_VARIANCE` yang belum pernah terlihat menerbitkan penanda pembukaan; shift `CLOSED` **tidak**; shift dibuka kembali menerbitkan pembalik siklus lama **sebelum** pembukaan siklus baru; sinkronisasi berulang tidak menggandakan | `dotnet build` PASS | Backend Owner — **gerbang:** `FIN-OQ-047`. Pengirimannya tetap dilewati worker sampai Accounting meratifikasi dan menambahkannya ke daftar nilai nol **mereka** | Build PASS; **nol** migration; baris penanda dibuktikan tetap menunggu |
+| `BE-FIN-071` | Baris kotak keluar Finance benar-benar terkirim ke Accounting, bukan menumpuk menunggu | `FR-FIN-150`..`153`; `FIN-DEC-118`, `093`; `FIN-DES-078` | `FIN-INTEGRATION-1.7` 5.12.6 | Pola `AccAccountingEventSchedulerHostedService`; `FinAccountingEventAttempt` yang sudah ada; blok `runBackgroundJobs` pada `Program.cs` | 1 hosted service + options; 1 `AddHostedService`; kredensial dibaca dari konfigurasi | `BE-FIN-068` | **Mati secara bawaan** — tanpa konfigurasi, nol pengiriman dan satu baris log; **melewati** ketiga penanda shift dan kode yang belum diratifikasi; balasan `200` dan `201` keduanya sukses; `AccountingReceiptNumber` diisi dari `AccountingEventId`; kegagalan mencatat satu `FinAccountingEventAttempt` dan dicoba ulang siklus berikutnya | `dotnet build` PASS; diuji terhadap kotak masuk pada lingkungan integrasi, **bukan** produksi | Backend Owner — **risiko tertinggi REV-14C:** kredensial ditanamkan di source. **MUST** dari konfigurasi. **Gerbang:** G3 masih terbuka bersama Platform | Build PASS; **nol** migration; keadaan mati-secara-bawaan dibuktikan |
+| `BE-FIN-072` | Snapshot saldo terbit sendiri tiap tanggal 1 pukul 00.05 WIB, dan dinyatakan ulang bila posisinya berubah | `FR-FIN-154`, `FR-FIN-155`; `FIN-DEC-092`, `114`, `118` | `FIN-INTEGRATION-1.7` 5.12.5; `FIN-API-1.5` F.6 | `StageEventAsync` yang **sudah** menaikkan `SourceVersion` otomatis; `FinanceBusinessDate` | 1 hosted service + options; 1 endpoint `POST .../restate`; jam dihitung dalam WIB | `BE-FIN-068` | Terbit tanpa dipicu manual; dijalankan dua kali untuk periode yang sama **tidak** menggandakan baris; pernyataan ulang menyentuh **hanya** akun yang nilainya berubah; mati secara bawaan | `dotnet build` PASS; kasus shift terlambat dibuktikan memicu pernyataan ulang | Backend Owner — **risiko:** menerbitkan ulang seluruh akun, bukan hanya yang berubah. Accounting menerima versi baru untuk akun yang tidak bergerak | Build PASS; **nol** migration |
+| `BE-FIN-073` | Penanda shift terbit tanpa seseorang menekan tombol | `FR-FIN-156`; `FIN-DEC-118`; `FIN-DES-078` | `FIN-INTEGRATION-1.7` 5.12.6 | `SyncCashierShiftClosureMarkersAsync` dari `BE-FIN-070` | 1 hosted service + options; 1 `AddHostedService` | `BE-FIN-070` | Terbit berkala tanpa tindakan pengguna; mati secara bawaan; nol tulisan ke tabel `Bil*` | `dotnet build` PASS | Backend Owner — risiko rendah; task terkecil REV-14C | Build PASS; **nol** migration |
+
+## Task yang sengaja **tidak** dibuat pada REV-14
+
+| Yang tidak dibuat | Alasan |
+|---|---|
+| Task pembayaran langsung berkontrol — metode, sumber dana, bukti, ambang | **`EPIC FIN-23` berstatus `OPEN DECISION`**, tertahan `FIN-OQ-075` (aturan jenis, ukuran, retensi, dan akses berkas bukti). `FIN-DEC-126` membuat bukti **wajib**, sehingga tanpa aturan berkasnya jalur ini tidak dapat dinyalakan. Memberinya nomor task sekarang berarti menjadwalkan pekerjaan yang bentuknya belum ada |
+| Task migrasi tagihan lama lewat spreadsheet | **`EPIC FIN-24` berstatus `OPEN DECISION`**, tertahan `FIN-OQ-077` (penambahan paket pembaca spreadsheet, yang **belum ada di proyek** dan menuntut wewenang eksplisit menurut `AGENTS.md`) |
+| Migration `AddFinanceTransactionProofAndDirectPaymentThreshold` dan `AddFinanceOpeningItemMigration` | Keduanya milik dua epic di atas. Yang kedua satu-satunya migration revisi 14 yang menyentuh tabel berjalan, dan ia **tidak** masuk gelombang mana pun |
+| Task buku mutasi utang jasa medis | `FinMedicalServicePayable` **tidak punya penulis apa pun** hari ini (`BE-FIN-021` `BLOCKED`). Kewajiban membangunnya **bersamaan** dengan `BE-FIN-021` dicatat `FIN-DES-091`, bukan dijadwalkan sekarang |
+| Task pemicu manual worker pengiriman | Ditolak desain (`FIN-API-1.5` F.9). Pemicu manual akan menjadi jalan memutar gerbang `FIN-DES-078` |
+| Task jalur membuka kembali rekap kas harian | Ditolak `FIN-DEC-125` lewat pilihan menghitung posisi langsung |
+| Task saldo per rekening bank | Ditolak `FIN-DEC-137` — milik Accounting |
+| Task penyatuan lima salinan helper zona waktu | **Bukan scope Finance.** Task tersendiri lintas modul, menuntut approval pemilik arsitektur backend |
+| Task perbaikan namespace bersarang `AppDateTimeHelper` | Menyentuh berkas bersama di luar scope; **MUST NOT** dirapikan diam-diam |
+| Task perapian alokator nomor bisnis ke provider number-series atomik | Alasan sama dengan REV-13: `QBE-CODE-001`..`006` belum dipakai seluruh rumpun ini |
+| Task automated test | Mengikuti `rules/backend/TEST_POLICY.md`: backend tidak memelihara project test otomatis, dan ketiadaannya **bukan** coverage gap |
+
+## Prasyarat eksekusi REV-14
+
+| # | Prasyarat | Keadaan saat roadmap ditulis |
+|---:|---|---|
+| 1 | Approval owner atas `FIN-DES-078`..`091` dan ketujuh kontrak turunannya | ✅ **Diberikan** 1 Oktober 2026 ("Saya setujui FIN-DES-078...091") — lihat `blueprint-manifest.md` `status_note_revision_14` |
+| 2 | Izin **membuat** migration | ✅ **Diberikan** lewat `FIN-DEC-138`, dengan syarat berkasnya sesuai `ApplicationDbContextModelSnapshot`. Berlaku untuk `BE-FIN-058` dan `BE-FIN-064` |
+| 3 | Izin **mengeksekusi** migration ke database | ❌ **Tidak diberikan kepada agent.** `FIN-DEC-138`: penerapan ke database dilakukan **Yasmin sendiri**. Setiap laporan task **MUST** menyatakan migration belum dijalankan |
+| 4 | QBE preflight untuk delapan entity baru | Diselesaikan **pada waktu eksekusi** dari `AGENTS.md` backend dan `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`. Prefix `Fin` dan `Mst` sudah terdaftar; **nol** folder submodul baru, sehingga **nol** gerbang `QBE-MOD-003` baru |
+| 5 | Kesesuaian engineering contract | Diselesaikan pada waktu eksekusi dari `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`. Delapan model baru berstatus `NEW CODE`, sehingga pola legacy di sekitarnya **tidak** memberi wewenang menirunya |
+| 6 | Persetujuan Accounting atas `FIN-OQ-045` dan `FIN-OQ-047` | ❌ Belum. Diminta lewat `evidence/22`. **Tidak** menahan `BE-FIN-069` dan `BE-FIN-070`; menahan **pengiriman** penanda shift |
+| 7 | Mekanisme kredensial akun layanan (G3) | ❌ Masih terbuka bersama Platform dan Accounting. **Tidak** menahan `BE-FIN-071`; menahan **pengaktifannya** |
+| 8 | `FIN-OQ-075` dan `FIN-OQ-077` | ❌ Belum. Menahan `EPIC FIN-23` dan `EPIC FIN-24` seluruhnya |

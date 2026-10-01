@@ -3659,7 +3659,7 @@ ditetapkan aturan bisnis dan tidak boleh disunting pengguna.
 | Keputusan arsitektur baru | `FIN-DES-074`..`FIN-DES-077` — seluruhnya **`draft`** |
 | Dampak skema | **ADA.** **Dua tabel baru** (`FinNonPatientReceivable`, `FinNonPatientReceivableSettlement`). Nol tabel lama berubah. Satu migration |
 | Dampak hak akses | **ADA.** Satu resource baru `FinanceNonPatientReceivable` beserta tiga action. Terdaftar lewat pemindaian atribut biasa karena controllernya nyata — **tidak** bergantung pada `FIN-OQ-039` |
-| Gerbang baru | `FIN-OQ-044` — integrasi pelunasan sewa ke kas harian, setoran bank, dan kotak keluar Accounting. Lihat `K.3` |
+| Gerbang baru | `FIN-OQ-044` — integrasi pelunasan sewa ke kas harian, setoran bank, dan kotak keluar Accounting. Lihat `K.3`. **Diperbarui 1 Oktober 2026:** (a) dan (c) dijawab — sewa terpisah dari kas (`FIN-DEC-109`), rilis dengan banner (`FIN-DEC-110`); hanya (b) kode kejadian akuntansi yang terbuka |
 
 ## K.1 Apa yang diperiksa pada source
 
@@ -3711,6 +3711,11 @@ sengaja tidak pernah dibangun. Karena itu pelunasan sewa dicatat sebagai baris a
 | Uang sewa yang diterima **tidak** muncul pada kas harian maupun setoran bank | Kedua layar itu membaca `FinReceipt`, yang tidak dilewati jalur ini |
 | **Nol** kejadian akuntansi terbit untuk pendapatan sewa maupun pelunasannya | Kotak keluar Accounting hanya menerima kode yang sudah diratifikasi; sewa belum punya kode apa pun |
 | Rekonsiliasi rekening koran **tidak** mencakup pelunasan sewa | Konsekuensi langsung dari dua baris di atas |
+
+> **Diperbarui 1 Oktober 2026 (`FIN-DEC-109`, `FIN-DEC-110`):** baris pertama dan ketiga di atas kini
+> **keputusan**, bukan batas sementara — piutang sewa dikelola terpisah dari kas harian dan setoran
+> bank. Hanya baris kedua (kejadian akuntansi) yang masih menunggu ratifikasi Accounting
+> (`FIN-OQ-044(b)`).
 
 Ketiganya **bukan** cacat desain yang ditutupi — ketiganya adalah konsekuensi sah dari memisahkan
 jalur, dan menjadi isi `FIN-OQ-044`. Desain ini **MUST NOT** diimplementasikan sampai pemilik tahu
@@ -3920,3 +3925,1033 @@ menambahkan master tanpa keputusan baru.
 | Mengalirkan pelunasan sewa ke `FinReceipt` | `FinReceipt` lahir dari intake Billing dan tidak punya jalur manual. Memaksanya berarti membangun penerimaan manual yang sengaja tidak pernah dibangun — keputusan tersendiri, bukan efek samping |
 | Kode kejadian akuntansi untuk pendapatan sewa | **Bukan wewenang Finance sepihak.** Setiap kode wajib diratifikasi Accounting, mengikuti pola `FIN-DEC-053` dkk. Dicatat sebagai `FIN-OQ-044` |
 | Definisi kelompok umur piutang tersendiri | Dipakai ulang dari `ReceivableAgingBuckets` supaya kedua laporan umur piutang dapat dibandingkan |
+
+---
+
+# AMENDMENT REVISI 14 — Jalur Pengiriman, Buku Mutasi, dan Cutover (`FIN-DEC-111`..`FIN-DEC-137`)
+
+| Field | Nilai |
+|---|---|
+| Pemicu | `/grill-me` closure pass 1 Oktober 2026 menjawab balasan Accounting `accounting/evidence/16` (lima pertanyaan balik 16.1–16.5), lalu dua impact scan terarah yang menemukan celah lebih besar daripada pertanyaannya |
+| Keputusan yang diturunkan | `FIN-DEC-111`..`FIN-DEC-137` (27 keputusan; `FIN-DEC-117` dan `FIN-DEC-119` `superseded`, rumus `FIN-DEC-127` digantikan `FIN-DEC-132`) |
+| Keputusan arsitektur baru | `FIN-DES-078`..`FIN-DES-091` — seluruhnya **`draft`** |
+| Dampak skema | **BESAR.** **Delapan tabel baru**, **dua tabel berjalan diperbarui** (`FinReceivable`, `FinSupplierPayable`), **empat migration** |
+| Dampak runtime | **ADA.** **Tiga hosted service baru** didaftarkan di blok `runBackgroundJobs` — yang pertama bagi modul Finance. Dibangun dalam keadaan mati |
+| Dampak hak akses | **ADA.** Tiga resource baru beserta action-nya — lihat `L.9` |
+| Gerbang yang menahan implementasi | `FIN-OQ-051` (wewenang migration), `FIN-OQ-077` (paket pembaca spreadsheet), `FIN-OQ-045`/`047`/`048` (persetujuan Accounting), `FIN-OQ-075` (aturan berkas bukti) |
+| Nilai yang sengaja kosong | `FIN-OQ-074` (angka ambang) dan `FIN-OQ-076` (jumlah tagihan lama) — **data konfigurasi**, tidak dikarang di desain ini |
+
+## L.1 Apa yang diperiksa pada source
+
+Impact scan read-only tercatat lengkap pada `01-existing-capability-map.md` bagian **18** dan **19**,
+backend `7f8c3014` dan frontend `0b54fdce6`. Manifest sebelum revisi ini masih mencatat
+`7811c048`/`a31da3c21`; selisih itu **sudah** ditutup kedua bagian tersebut, dan manifest revisi 14
+memperbaruinya.
+
+Enam temuan yang **membentuk** desain ini, bukan sekadar melatarinya:
+
+| # | Temuan | Bukti | Akibat pada desain |
+|---:|---|---|---|
+| 1 | Finance **belum punya jalur pengiriman apa pun** ke Accounting. Nol hosted service Finance terdaftar | `Program.cs:940-953` — sebelas hosted service, tidak satu pun milik Finance | `FIN-DES-078`; seluruh janji "G4 siap" pada `evidence/15`/`21` menjadi bersyarat |
+| 2 | Pembayaran langsung piutang **tidak meninggalkan riwayat bertanggal** | `FinanceReceivableService.cs:621-701` — mengubah `OutstandingAmount` tanpa baris `FinReceipt`/`FinReceiptAllocation` | `FIN-DES-079`; rumus "asli − alokasi − penyesuaian − penghapusan" **gugur** |
+| 3 | Pembayaran langsung utang supplier bocor dengan bentuk yang **sama** | `FinanceSupplierPayableService.cs:207-274`; `bankAccountId`/`paymentMethod`/`notes` diterima lalu dibuang | `FIN-DES-079`, `FIN-DES-085` |
+| 4 | Rekap kas harian menghitung kas dari **shift Billing tanpa melihat statusnya**, dan penutupannya tidak memeriksa shift | `FinanceCashManagementService.cs:415,499,585-611` | `FIN-DES-081`; rekap diturunkan menjadi laporan operasional |
+| 5 | `FinReceivable` **tidak dapat** menampung tagihan tanpa Billing | `SourceHandoffKey`/`SourceHandoffId`/`InvoiceId` `Guid` non-nullable; `IX_FinReceivable_SourceHandoffKey` unik | `FIN-DES-089`; kolom menjadi nullable bersyarat |
+| 6 | `AccountingDate` dihitung dari UTC pada **20 titik**, ditambah batas hari rekap kas | capability map 18.2; `FinanceCashManagementService.cs:409` | `FIN-DES-082`; 21 titik |
+
+Dua fakta yang **menguntungkan** dan ikut memperkecil desain:
+
+| Fakta | Bukti | Manfaat |
+|---|---|---|
+| Kotak masuk Accounting menerima ruas tambahan tanpa menolaknya | `ReceiveAccountingEventRequest.AdditionalFields` ber-`[JsonExtensionData]` | Dimensi shift dan metode dapat dikirim **tanpa** menunggu Accounting mengubah kodenya — yang ditunggu hanya persetujuan kontraknya (`FIN-OQ-045`) |
+| `StageEventAsync` sudah menaikkan `SourceVersion` otomatis | `FinanceAccountingOutboxService.cs:89-97` | Pernyataan ulang saldo (`FIN-DEC-114`) **tidak** butuh mekanisme versi baru |
+
+## L.2 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini | Catatan |
+|---|---|:---:|---|---|
+| Mutasi saldo piutang, utang supplier, dan kas | **Finance Management** | Ya | **Ya — tiga tabel baru**, karena belum ada pemiliknya | Bukan duplikasi: tidak ada tabel riwayat saldo di modul mana pun |
+| Pemetaan kelompok saldo ke kode akun control | **Finance Management** | Ya | **Ya — tabel baru** | Isi kodenya **milik Accounting** (bagan akun G2); yang dimiliki Finance hanya pemetaannya |
+| Bagan akun dan aturan posting | Accounting Management | **Tidak** | **Tidak** | Finance hanya menyebut kode akun control sebagai teks, tidak pernah menyimpan bagan akunnya |
+| Saldo dan mutasi rekening bank | **Accounting Management** | **Tidak** | **Tidak** | `FIN-DEC-137` — Finance menyimpan master rekening dan identitas rekening pada transaksi, **bukan** saldonya |
+| Shift kasir (`BilCashierShift`) | Billing Kasir | Ya — **baca saja** | **Tidak** | Nol tulisan ke tabel `Bil*`, mengikuti `FIN-OOS-001`..`004` |
+| Rekening bank (`MstBankAccount`) | Finance Management | Ya — dipakai ulang | **Tidak** | Sudah ada; dipakai sebagai sumber dana pembayaran |
+| Kas kecil (`FinPettyCashBudget`) | Finance Management | Ya — dibaca snapshot | **Tidak** | `FIN-DEC-133` melarang pembayaran supplier memotong anggaran kas kecil |
+| Utang jasa medis (`FinMedicalServicePayable`) | Finance Management | Ya — dibaca snapshot | **Tidak** | `FIN-DEC-122`; nol penulis hari ini, snapshot mengirim `0.00` |
+| Berkas bukti pembayaran | **Finance Management** | Ya | **Ya — tabel metadata baru** | `FinReceivableDocument` **tidak** dipakai ulang (`FIN-DEC-135`) — tujuannya kelengkapan klaim penjamin |
+| Pola unggah berkas dan akar penyimpanan | Platform (konfigurasi aplikasi) | Ya — **polanya** | **Tidak** | `FileStorage:UploadRootPath` dan `UseStaticFiles` dipakai ulang; kelas unggah milik HR **tidak** dipakai |
+| Ambang nilai pembayaran langsung | **Finance Management** | Ya | **Ya — tabel master baru** | `FIN-DEC-134` |
+| Saldo awal cutover sisi Finance | **Finance Management** | Ya | **Ya — tabel baru** | Angkanya **wajib sama** dengan saldo awal manual Accounting (G5); Finance tidak membaca tabel Accounting |
+| Piutang sewa non-pasien (`FinNonPatientReceivable`) | Finance Management | **Tidak** oleh amandemen ini | **Tidak** | Sengaja tidak disentuh; `FIN-OQ-069` belum dijawab |
+
+## L.3 Keputusan arsitektur baru
+
+### `FIN-DES-078` — Tiga hosted service terpisah, satu gerbang konfigurasi, dibangun mati
+
+`FIN-DEC-118` membuka kembali `EPIC FIN-12` sebagai paket tiga bagian. Desain ini memecahnya menjadi
+**tiga hosted service terpisah**, bukan satu worker serba bisa:
+
+| Hosted service | Tugas | Irama |
+|---|---|---|
+| `FinanceAccountingDispatchWorker` | Mengirim baris `FinAccountingEventOutbox` berstatus `PENDING` ke kotak masuk Accounting, mencatat percobaan pada `FinAccountingEventAttempt` | Berkala, jeda dari konfigurasi |
+| `FinanceSubledgerSnapshotSchedulerHostedService` | Memicu snapshot saldo periode sebelumnya, lalu memeriksa kebutuhan pernyataan ulang | Harian pukul **00.05 WIB**; snapshot periode baru hanya pada tanggal 1 |
+| `FinanceCashierShiftMarkerSchedulerHostedService` | Memanggil sinkronisasi penanda shift (pembukaan, penutupan, pembalikan) | Berkala, jeda dari konfigurasi |
+
+**Kenapa dipecah tiga.** Ketiganya punya irama, bentuk kegagalan, dan gerbang yang berbeda.
+Pengiriman tertahan `FIN-OQ-045`/`047` dan kredensial G3; penjadwal snapshot tertahan `FIN-DEC-113`
+dan G2; pemicu penanda shift tidak tertahan apa pun. Menyatukannya membuat satu gerbang mematikan
+tiga pekerjaan yang tidak saling bergantung.
+
+**Dibangun dalam keadaan mati.** Ketiganya didaftarkan di dalam blok `runBackgroundJobs` yang sudah
+ada pada `Program.cs:940`, mengikuti `AccAccountingEventSchedulerHostedService`. Masing-masing
+membaca `Enabled` dari options-nya dan **berhenti dengan satu baris log** bila mati — pola yang sama
+persis dengan penjadwal Accounting. Nilai bawaannya **mati**, sehingga menambahkan kode ini **tidak**
+mengubah perilaku lingkungan mana pun sebelum seseorang menyalakannya.
+
+| Gerbang yang berada di dalam kode, bukan hanya di konfigurasi | Perilaku |
+|---|---|
+| Penanda shift (`PENUTUPAN-`, `PEMBALIKAN-PENUTUPAN-`, `PEMBUKAAN-SHIFT-KASIR`) | **Dilewati** worker pengiriman — tetap `PENDING`, `AttemptCount` tidak bertambah — sampai Accounting menyatakan G6 siap (`FIN-OQ-035`, `FIN-OQ-047`). Mempertahankan `FIN-DES-059` apa adanya |
+| Kode yang belum diratifikasi Accounting | Dilewati dengan alasan yang sama, mengikuti pola `FIN-OQ-026` |
+
+Jadi ada **dua lapis**: satu gerbang konfigurasi untuk seluruh pengiriman, dan satu daftar kode yang
+tetap dilewati walaupun pengiriman sudah hidup. Lapis kedua **MUST NOT** dihapus ketika lapis
+pertama dinyalakan.
+
+**Kredensial (G3) bukan bagian desain ini.** Mekanisme akun layanan masih terbuka bersama Platform
+dan Accounting. Worker dirancang mengambil kredensialnya dari konfigurasi, dan **MUST NOT**
+menanamkan kredensial apa pun di source.
+
+### `FIN-DES-079` — Tiga buku mutasi per agregat, bukan satu tabel polimorfik
+
+`FIN-DEC-123` menuntut buku mutasi untuk Piutang dan Utang supplier. `FIN-DEC-132` menambahkan
+kebutuhan yang sama untuk kas. Desain ini membuat **tiga tabel**:
+
+| Tabel | Agregat induk | Kenapa terpisah |
+|---|---|---|
+| `FinReceivableMovement` | `FinReceivable` | FK sungguhan, non-nullable |
+| `FinSupplierPayableMovement` | `FinSupplierPayable` | FK sungguhan, non-nullable |
+| `FinCashMovement` | **tanpa agregat induk** | Kas bukan baris tabel; ia posisi yang dihitung |
+
+**Satu tabel polimorfik ditolak.** Pola `FinPaymentAllocation` (FK nullable + check constraint
+"tepat satu terisi") memang sudah ada di blueprint ini, tetapi di sini ia merugikan: ketiga buku
+punya himpunan jenis mutasi yang berbeda, dan query "posisi per tanggal" dijalankan per kelompok
+saldo. FK non-nullable membuat kemustahilan mutasi tanpa induk dijaga **database**, bukan dijaga
+service.
+
+**Bentuk barisnya mengikuti `FinPettyCashBudgetMovement` yang sudah berjalan** — `Amount`,
+`BalanceBefore`, `BalanceAfter`, waktu kejadian — sehingga tidak ada pola baru yang diperkenalkan.
+
+**Satu titik tulis.** Ketiga buku ditulis **hanya** oleh `FinanceSubledgerMovementService`. Service
+itu **tidak** membuka transaksi sendiri; ia dipanggil di dalam transaksi pemanggilnya, persis pola
+`FinanceReceivableService.ApplyAllocationAsync` yang sudah menjadi satu-satunya penulis
+`OutstandingAmount` walaupun dipanggil dari rumpun Collection.
+
+**Daftar jalur yang MUST menulis mutasi.** Satu jalur yang terlewat membuat saldo per tanggal salah
+tanpa ada yang tahu, jadi daftarnya ditulis lengkap di sini dan diuji satu per satu:
+
+| Agregat | Jalur | Lokasi hari ini |
+|---|---|---|
+| Piutang | Pengakuan dari intake Billing | `FinanceBillingIntakeService.cs:437-494` |
+| Piutang | Alokasi penerimaan dan pembalikannya | `FinanceReceivableService.ApplyAllocationAsync` / `ReverseAllocationAsync` |
+| Piutang | Potongan PPh 23 dan biaya bank (memanggil alokasi tersendiri) | `FinanceReceiptService.cs:611,725` |
+| Piutang | Penyesuaian disetujui | `FinanceReceivableService.cs:310,315` |
+| Piutang | Penghapusan — jenjang approval maupun langsung | `FinanceReceivableService.cs:498,742` |
+| Piutang | **Pembayaran langsung** | `FinanceReceivableService.cs:649` |
+| Piutang | **Pembukaan item migrasi** | baru, `FIN-DES-089` |
+| Utang supplier | Pembuatan utang | `FinanceSupplierPayableService.cs:99-139` |
+| Utang supplier | Pembayaran lewat dokumen, satu baris per alokasi | `FinancePaymentService.cs:575` |
+| Utang supplier | **Pembayaran langsung** | `FinanceSupplierPayableService.cs:239` |
+| Utang supplier | Penyesuaian disetujui | `FinanceSupplierPayableService.cs:450,455` |
+| Utang supplier | **Pembukaan item migrasi** | baru, `FIN-DES-089` |
+| Kas | Shift kasir mencapai `CLOSED`/`REVIEWED` | baru, dari sinkronisasi penanda shift |
+| Kas | Penerimaan tunai langsung piutang | baru, `FIN-DES-085` |
+| Kas | Pengeluaran tunai — pembayaran langsung **dan** `FinPayment` bermetode `CASH` | baru, `FIN-DES-085` |
+| Kas | Setoran bank `POSTED`/`VERIFIED` dan pembatalannya | `FinanceCashManagementService` |
+| Kas | Saldo awal cutover | baru, `FIN-DES-088` |
+
+**Satu jalur sengaja belum dibuat.** Utang jasa medis (`FinMedicalServicePayable`) **tidak** mendapat
+buku mutasi, karena ia **tidak punya penulis apa pun** hari ini (`FinancePaymentService.cs:103,112`;
+`BE-FIN-021` `BLOCKED`). Snapshot-nya membaca tabel apa adanya dan mengirim `0.00` (`FIN-DEC-122`).
+Ketika `BE-FIN-021` dibangun, buku mutasinya **MUST** dibangun bersamaan — `FIN-DES-091`.
+
+### `FIN-DES-080` — Pemetaan akun control berkelompok dan bersegmen, gagal tertutup
+
+`FIN-DEC-113` menuntut satu baris saldo per akun control lewat pemetaan terkonfigurasi. Bentuk yang
+harus dijawab: bila bagan akun sah memecah Piutang menjadi dua akun (pasien pribadi dan penjamin),
+pemetaan **kelompok → satu kode** tidak cukup. Karena itu `FinSubledgerControlAccountMap` memetakan
+**kelompok saldo + segmen → kode akun control**:
+
+| Kelompok saldo | Segmen yang sah | Asal nilai segmen |
+|---|---|---|
+| `PIUTANG` | `PAYER`, `PATIENT_GUARANTOR`, `EMPLOYEE_BENEFIT` | `FinReceivableDebtorTypes` yang sudah ada |
+| `UTANG-SUPPLIER` | `(seluruh)` | Belum ada sumbu pemecah yang disepakati |
+| `KAS-KASIR`, `KAS-KECIL` | `(seluruh)` | Kas tidak punya sumbu debitur |
+| `UTANG-JASA-MEDIS` | `DOCTOR`, `NURSE`, `OTHER_PRACTITIONER` | `FinMedicalServicePayeeTypes` yang sudah ada |
+
+Segmen `(seluruh)` disimpan sebagai `NULL`, artinya satu akun menanggung seluruh kelompok.
+
+**Gagal tertutup, dan cakupannya diperiksa menyeluruh.** Snapshot **MUST** menolak terbit — nol baris
+outbox, bukan sebagian — bila salah satu keadaan ini terjadi:
+
+| Keadaan | Kenapa ditolak |
+|---|---|
+| Sebuah kelompok tidak punya baris pemetaan aktif sama sekali | Periode Accounting akan tertahan "belum menerima saldo" |
+| Sebuah kelompok memetakan **sebagian** segmennya saja | Saldo segmen yang tidak terpetakan hilang tanpa jejak — bentuk kegagalan paling berbahaya, karena totalnya tetap terlihat wajar |
+| Satu kelompok punya baris `NULL` **dan** baris bersegmen sekaligus | Dua tafsir yang bertabrakan; nilainya terhitung dua kali |
+| Satu kode akun control dipakai dua baris pemetaan | Accounting menerima dua saldo untuk satu akun |
+
+Tiga yang pertama dijaga service beserta pesan yang menyebut kelompok dan segmennya; yang keempat
+dijaga unique index.
+
+**Yang TIDAK dilakukan pemetaan ini.** Ia **tidak** menyimpan nama akun, tipe akun, maupun saldo
+normalnya. Seluruhnya milik bagan akun Accounting (G2). Yang disimpan Finance hanya kodenya sebagai
+teks, persis seperti `SubledgerBalanceRequest.ControlAccountCode` hari ini.
+
+### `FIN-DES-081` — Kas Kasir dihitung dari buku mutasi kas; rekap harian menjadi laporan
+
+`FIN-DEC-124`, `125`, `132`, dan `133` bersama-sama memindahkan sumber kebenaran Kas Kasir.
+
+| Hal | Sebelum | Sesudah |
+|---|---|---|
+| Sumber angka yang dikirim ke Accounting | `FinDailyCashSnapshot.ClosingBalance` hari tertutup terakhir | **Posisi dihitung dari `FinCashMovement`** sampai tanggal akhir periode (WIB) |
+| Kedudukan rekap kas harian | Dasar saldo ke Accounting | **Laporan operasional** untuk petugas kas |
+| Penutupan rekap harian | Direncanakan menjadi syarat snapshot (`FIN-DEC-119`) | **Bukan** syarat; boleh ditutup walau shift belum final (`FIN-DEC-124`) |
+| Pengeluaran kas | Diketik petugas (`DisbursementAmount`) | **Dihitung** dari mutasi kas keluar bertanggal |
+
+Rumus final (`FIN-DEC-132` di atas `FIN-DEC-127` dan `FIN-DEC-128`):
+
+```text
+Kas Kasir pada akhir periode P
+  = saldo awal cutover  (FinOpeningBalance, kelompok KAS-KASIR)
+  + Σ kas masuk   dari shift CLOSED/REVIEWED       bertanggal <= akhir P
+  + Σ kas masuk   dari penerimaan tunai langsung    bertanggal <= akhir P
+  − Σ kas keluar  dari pembayaran tunai             bertanggal <= akhir P
+  − Σ setoran bank POSTED/VERIFIED                  bertanggal <= akhir P
+```
+
+Seluruh tanggal adalah **tanggal WIB** (`FIN-DES-082`), dan keempat sumbu itu **adalah** baris
+`FinCashMovement` — bukan empat query terpisah ke empat tabel. Itulah gunanya buku mutasi kas.
+
+**Satu jebakan yang dihindari sengaja.** Pengeluaran tunai lewat `FinPayment` **MUST NOT** dijumlah
+dari alokasinya: `NetTransferAmount = TotalAmount − DeductionAmount + AdditionAmount −
+DepositAppliedAmount` (`FinPayment.cs:13-15`), sehingga menjumlah alokasi akan **melebih-hitung** kas
+keluar setiap kali ada potongan atau deposit retur terpakai. Mutasi kas untuk `FinPayment` bermetode
+`CASH` karena itu bernilai **`NetTransferAmount`**, satu baris per pembayaran — berbeda dari mutasi
+utang yang satu baris per alokasi. Keduanya memang menjawab pertanyaan yang berbeda.
+
+**Pernyataan ulang jatuh sendiri.** Shift yang baru tertutup menulis mutasi kas **bertanggal tanggal
+shift**. Bila tanggal itu berada di periode yang snapshot-nya sudah terbit, posisi periode itu
+berubah, dan penjadwal menerbitkan ulang **hanya** akun yang nilainya berubah dengan `SourceVersion`
+lebih tinggi (`FIN-DEC-114`). Tidak ada pembukaan kembali rekap harian, dan tidak ada koreksi
+berantai antarhari — inilah yang dibeli dengan menurunkan rekap harian menjadi laporan.
+
+**Selisih yang MUST ditampilkan.** Karena rekap harian dan snapshot kini dua perhitungan berbeda,
+keduanya dapat berselisih secara sah. `FIN-DEC-125` mewajibkan selisihnya **ditampilkan sebagai
+informasi**, bukan disembunyikan — permukaan bacanya pada `L.8`.
+
+### `FIN-DES-082` — Tanggal WIB lewat helper lokal Finance, 21 titik
+
+`FIN-DEC-116` menetapkan seluruh `AccountingDate` dan batas periode memakai tanggal WIB.
+
+| Yang dipertimbangkan | Keputusan |
+|---|---|
+| Memperluas `Helpers/AppDateTimeHelper.cs` | **Ditolak.** Ia berkas bersama, dan namespace-nya bersarang ganda (`QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers`) — cacat yang akan ikut terbawa setiap pemakai baru. Memperbaikinya menyentuh source di luar scope Finance |
+| Helper lokal milik Finance | **Dipilih.** `FinanceBusinessDate`, statis, satu tempat, dengan cadangan `SE Asia Standard Time` persis pola `AdministrationFeePolicyService.ResolveBusinessTimeZone()` |
+
+Preseden source mendukung bentuk ini: `AdministrationFeePolicyService`, `NumberSeriesAllocator`, dan
+`InpatientRoomChargeCalculationService` masing-masing sudah punya salinannya sendiri. Desain ini
+**mengikuti** preseden itu dan **mencatat utang tekniknya**: empat salinan menjadi lima, dan
+penyatuannya **MUST** menjadi task tersendiri lintas modul, bukan efek samping amandemen Finance.
+
+**21 titik yang MUST berubah** — 20 titik `AccountingDate` (capability map 18.2), ditambah batas hari
+rekap kas (`FinanceCashManagementService.cs:409,617`) dan batas akhir periode snapshot piutang
+(`FinanceSubledgerSnapshotService.cs:104`) yang hari ini berzona nol.
+
+Satu hal **tidak** berubah: `EventOccurredAt` tetap `DateTimeOffset` UTC. Yang berpindah ke WIB
+adalah **tanggal akuntansi**, bukan tanda waktu kejadian.
+
+### `FIN-DES-083` — Dimensi shift dan metode dibawa payload, bukan kolom outbox baru
+
+`FIN-DEC-111` mempertahankan satu kejadian per kuitansi ditambah nomor shift dan metode bayar;
+`FIN-DEC-120` menetapkan kuitansi pembalik memakai shift saat pembalikan terjadi.
+
+| Yang dipertimbangkan | Keputusan |
+|---|---|
+| Kolom baru pada `FinAccountingEventOutbox` | **Ditolak.** Kedua dimensi ini tidak dipakai idempotensi (kuncinya tetap `SourceTransactionId` + `EventTypeCode` + `SourceVersion`) dan tidak dipakai saringan baca. Kolom baru pada tabel berjalan tanpa pemakai adalah biaya tanpa manfaat |
+| Dibawa di `PayloadJson` | **Dipilih.** Ditambahkan pada `BuildPayloadJson`; kotak masuk Accounting menerimanya lewat `AdditionalFields` tanpa perubahan kode di sisi mereka |
+
+Ruas yang ditambahkan: `CashierShiftId`, `CashierShiftNumber`, `PaymentMethodCode`,
+`PaymentMethodAccountId`, dan `ReversalOfSourceTransactionId`. Seluruhnya **sudah tersimpan** pada
+`FinReceipt` (`FinanceReceiptService.cs:105-111,170`), jadi tidak ada data baru yang perlu
+dikumpulkan.
+
+**Shift pada kuitansi pembalik.** Kode hari ini menyalin `CashierShiftId` dari handoff **pembalikan**
+(`FinanceReceiptService.cs:165-180`) — dan `FIN-DEC-120` menyatakan itulah yang benar, karena uang
+fisik keluar dari laci shift itu. Jadi perilaku kode **tidak berubah**; yang berubah hanya contoh
+pada `FIN-DEC-111` yang semula menulis "shift yang sama". Rujukan ke kuitansi asli tetap dibawa lewat
+`ReversalOfReceiptId` yang sudah ada dan ikut masuk payload.
+
+Kejadian yang mendapat kedua dimensi: `PENERIMAAN-KASIR`, `PEMBALIKAN-PENERIMAAN-KASIR`,
+`PENERIMAAN-UANG-MUKA`, `PEMBALIKAN-PENERIMAAN-UANG-MUKA`, serta `PENERIMAAN-PIUTANG` dan
+`PEMBAYARAN-HUTANG-SUPPLIER` — dua yang terakhir mendapat metode dan sumber dana saja, karena
+keduanya tidak punya shift.
+
+### `FIN-DES-084` — Penanda pembukaan shift memakai pola siklus yang sudah ada
+
+`FIN-DEC-115` dan `FIN-DEC-121` menambah satu kode: `PEMBUKAAN-SHIFT-KASIR`, bernilai nol,
+diterbitkan saat Finance pertama kali melihat shift **belum final**.
+
+| Hal | Isi |
+|---|---|
+| "Belum final" | Seluruh status selain `CLOSED` dan `REVIEWED`, yaitu `OPEN`, `HANDED_OVER`, `REOPENED`, `CLOSED_WITH_VARIANCE`, `PERLU_TINDAK_LANJUT` (`FIN-DEC-121`) |
+| `SourceTransactionId` | Nomor shift — sama dengan kedua penanda yang sudah ada |
+| `SourceVersion` | Nomor siklus: jumlah penanda pembalik yang sudah terbit untuk shift itu ditambah satu. **Pola yang sama persis** dengan `SyncCashierShiftClosureMarkersAsync` hari ini |
+| `AccountingDate` | Tanggal shift (dari `OpenedAt`) dalam WIB — konvensi yang sama dengan `SELISIH-KAS-*` |
+| Daftar nilai nol | Ditambahkan ke `ZeroAmountAllowedEventTypes` (`FinAccountingEventOutbox.cs:182-186`) |
+| Gerbang | `FIN-OQ-047` — belum diratifikasi Accounting dan belum masuk daftar nilai nol **mereka**. Pengirimannya dilewati worker sampai itu turun |
+
+Idempotensinya ikut dari unique index outbox yang sudah ada: satu shift pada satu siklus hanya
+menghasilkan satu penanda pembukaan, berapa kali pun sinkronisasi berjalan.
+
+**Pasangan yang terbentuk.** Satu siklus shift menghasilkan paling banyak satu `PEMBUKAAN-`, satu
+`PENUTUPAN-`, dan — bila dibuka kembali — satu `PEMBALIKAN-PENUTUPAN-`. Accounting menahan tutup
+bulan selama ada `PEMBUKAAN-` tanpa `PENUTUPAN-` pada siklus yang sama. Itulah yang membuat
+`ACC-DEC-065` dapat ditegakkan **tanpa** Accounting membaca tabel Billing.
+
+### `FIN-DES-085` — Metode, sumber dana, dan bukti dibawa baris mutasi
+
+`FIN-DEC-126` dan `FIN-DEC-130` menuntut pembayaran langsung piutang maupun utang menyimpan metode,
+sumber dana, catatan, dan bukti, dengan satu mekanisme untuk tunai dan non-tunai.
+
+| Yang dipertimbangkan | Keputusan |
+|---|---|
+| Kolom baru pada `FinReceivable`/`FinSupplierPayable` | **Ditolak.** Agregatnya dapat menerima banyak pembayaran; metode adalah sifat **setiap pembayaran**, bukan sifat piutang atau utangnya |
+| Tabel pembayaran langsung tersendiri | **Ditolak.** Ia akan menjadi kembaran buku mutasi — data, tanggal, dan nilai yang sama |
+| Dibawa baris `FinReceivableMovement`/`FinSupplierPayableMovement` | **Dipilih.** Satu pembayaran langsung = satu baris mutasi yang memang sudah wajib ada (`FIN-DEC-123`), ditambah empat ruas |
+
+Ruas yang dibawa baris mutasi: `PaymentMethodCode`, `FundingSourceType` + `FundingSourceId`
+(rekening bank atau kas), `ReferenceNumber`, dan `ProofId`. Mutasi yang bukan pembayaran
+mengosongkan seluruhnya.
+
+**Hubungan dengan kas.** Mutasi bermetode `CASH` melahirkan **satu baris `FinCashMovement`** pada
+transaksi yang sama: masuk untuk penerimaan piutang, keluar untuk pembayaran utang. Keduanya
+menambah atau mengurangi **Kas Kasir** (`FIN-DEC-127`, `FIN-DEC-133`); anggaran kas kecil **tidak**
+pernah tersentuh jalur ini.
+
+**Ambang (`FIN-DEC-131`, `FIN-DEC-134`).** Pembayaran langsung di atas ambang **ditolak** beserta
+pesan yang mengarahkan ke jalur `FinPayment` berjenjang. Ambangnya satu nilai rupiah yang berlaku
+sama untuk piutang dan utang, dibaca dari `MstDirectPaymentThreshold` (`FIN-DES-086`).
+
+**Yang diterima sadar.** Pembayaran yang dipecah-pecah agar tetap di bawah ambang **tidak**
+tertangkap otomatis — `FIN-DEC-134` menolak kriteria "berisiko" pada rilis ini. Mitigasinya jejak
+mutasi dan laporan, bukan blokir. Dicatat terbuka, bukan dianggap tidak ada.
+
+### `FIN-DES-086` — Ambang disimpan sebagai master berjejak, bukan appsettings
+
+`FIN-DEC-134` menuntut ambang yang dapat diubah pejabat berwenang dengan alasan dan jejak. Itu
+meniadakan `appsettings.json`: berkas konfigurasi tidak punya pemilik perubahan, tidak punya alasan,
+dan tidak tercatat logger.
+
+`MstDirectPaymentThreshold` karena itu adalah **tabel master dengan satu baris aktif**, memuat
+`Amount`, `ChangeReason` yang **wajib**, dan kolom audit `IdentityModel` yang menjawab siapa dan
+kapan. Perubahannya dicatat logger seperti Update lain.
+
+**Yang ditolak beserta alasannya.** Tabel riwayat perubahan ambang **tidak** dibuat: kolom audit
+sudah menjawab perubahan terakhir dan logger menyimpan jejaknya. Riwayat penuh dibuat bila pemilik
+menuntut dapat menelusuri setiap perubahan ambang di masa lalu — pertimbangan yang sama dengan tabel
+riwayat status klaim yang ditolak pada revisi 13.
+
+Nilai awalnya **tidak ditetapkan desain ini** (`FIN-OQ-074`). Tanpa baris aktif, seluruh pembayaran
+langsung **ditolak fail-closed** beserta pesan yang menyebut ambang belum ditetapkan — bukan
+dianggap tak terbatas.
+
+### `FIN-DES-087` — Bukti pembayaran: tabel metadata milik Finance, pola unggah dipakai ulang
+
+`FIN-DEC-135` menetapkan Finance membuat layanan penyimpanan buktinya sendiri.
+
+| Hal | Keputusan |
+|---|---|
+| `FinReceivableDocument` dipakai ulang | **Tidak.** Ia melacak kelengkapan berkas klaim penjamin, tidak punya kolom berkas, dan komentarnya sendiri melarang dikaitkan dengan pengakuan nilai |
+| Kelas unggah HR (`WorkflowFileStorageService` dkk.) dipakai langsung | **Tidak.** Melintasi batas modul |
+| Pola dan konfigurasinya dipakai ulang | **Ya.** `FileStorage:UploadRootPath` dan `UseStaticFiles` (`Program.cs:1391-1419`) sudah berjalan; Finance menulis `FinanceTransactionProofService` sendiri di atasnya |
+| Layanan berkas bersama dari Platform | Belum ada. Bila kelak ada, **Finance** yang memigrasikan |
+
+`FinTransactionProof` menyimpan metadata saja: jenis, nama berkas asli, nama berkas tersimpan, jalur
+relatif, tipe media, ukuran, dan pengunggah. Berkasnya sendiri berada di luar database, mengikuti
+pola yang sudah berjalan.
+
+Bukti terikat ke **tepat satu** baris mutasi lewat `ProofId` pada mutasi itu. Satu bukti **tidak
+dapat** dipakai dua pembayaran — dijaga unique index pada `ProofId` di kedua tabel mutasi.
+
+Jenis dan ukuran berkas yang diterima, lama simpan, serta siapa boleh melihat dan menggantinya
+**belum ditetapkan** (`FIN-OQ-075`). Sampai itu turun, bagian **unggah** desain ini **MUST NOT**
+diimplementasikan; bagian mutasinya tidak tertahan.
+
+### `FIN-DES-088` — Saldo awal cutover: satu tabel untuk seluruh kelompok, sekali kunci
+
+`FIN-DEC-128` menuntut saldo awal Kas Kasir yang diinput manual, disetujui, bernilai sama dengan
+saldo awal manual Accounting, dan hanya boleh diisi sekali.
+
+`FinOpeningBalance` menampung **seluruh kelompok saldo**, bukan hanya Kas Kasir, karena gerbang G5
+menuntut hal yang sama untuk setiap akun control:
+
+| Kelompok | Isi saldo awalnya | Alasan |
+|---|---|---|
+| `KAS-KASIR` | **Nominal**, diketik dan disetujui | Kas fisik tidak punya rincian item |
+| `KAS-KECIL` | **Nominal** | Alasan yang sama |
+| `PIUTANG`, `UTANG-SUPPLIER` | **`0.00`**, rinciannya datang dari item migrasi (`FIN-DES-089`) | `FIN-DEC-129` memilih item bertagihan, bukan nominal gelondongan |
+| `UTANG-JASA-MEDIS` | **`0.00`** | Nol penulis hari ini (`FIN-DEC-122`) |
+
+Barisnya berstatus `DRAFT` → `APPROVED` → `LOCKED`. Sesudah `LOCKED` nilainya **tidak dapat** diubah;
+koreksi menuntut keputusan baru dan jalur tersendiri. Satu kelompok hanya boleh punya satu baris
+aktif — dijaga unique index.
+
+**Kenapa `PIUTANG` bernilai nol dan bukan total migrasi.** Bila keduanya diisi, saldo awal terhitung
+dua kali: sekali sebagai nominal, sekali lagi sebagai mutasi pembuka item migrasi. Tabel ini
+mencatatnya **eksplisit** sebagai nol beserta alasannya, bukan membiarkan barisnya kosong — supaya
+pembaca berikutnya tidak menyangka saldo awal piutang terlupa diisi.
+
+### `FIN-DES-089` — Item migrasi: penandanya FK batch; kolom Billing menjadi nullable bersyarat
+
+`FIN-DEC-129` menempatkan tagihan lama sebagai item biasa di tabel Finance, berpenanda migrasi,
+dibuka lewat mutasi pembuka. `FIN-DEC-136` menetapkan jalannya: spreadsheet, divalidasi, disetujui
+per batch.
+
+**Penandanya bukan kolom boolean.** `FinReceivable` dan `FinSupplierPayable` mendapat satu kolom
+`OpeningItemBatchId` (FK nullable ke `FinOpeningItemBatch`). Terisi berarti item migrasi; kosong
+berarti item normal. Satu kolom menjawab dua pertanyaan sekaligus — apakah ia migrasi, dan dari batch
+mana — sehingga tidak ada penanda boolean yang dapat berselisih dari FK-nya.
+
+**Kolom asal Billing menjadi nullable bersyarat.** Inilah bagian paling berisiko amandemen ini,
+karena menyentuh tabel yang sudah berjalan:
+
+| Kolom `FinReceivable` | Sebelum | Sesudah |
+|---|---|---|
+| `SourceHandoffKey`, `SourceHandoffId`, `InvoiceId` | `Guid` non-nullable | `Guid?` nullable |
+| `CK_FinReceivable_OpeningItem` | — | **Baru**: ketiganya terisi **dan** `OpeningItemBatchId` kosong, **atau** ketiganya kosong **dan** `OpeningItemBatchId` terisi |
+| `IX_FinReceivable_SourceHandoffKey` | Unik, filter `IsDelete = false` | Unik, filter `IsDelete = false AND "SourceHandoffKey" IS NOT NULL` |
+
+Invariant "piutang pasien wajib berasal dari serah terima Billing" **tetap ditegakkan database**;
+yang berubah hanya syaratnya menjadi bersyarat pada jenis barisnya. Ini **berbeda** dari melonggarkan
+invariant: baris non-migrasi tetap wajib lengkap, dan baris migrasi tetap wajib punya batch.
+
+> **Hubungan dengan `FIN-DEC-101`.** Piutang sewa non-pasien dulu **ditolak** masuk `FinReceivable`
+> dengan alasan invariant ini. Keputusan itu **tidak dibuka ulang**: sewa tetap punya tabelnya
+> sendiri. Yang diizinkan di sini hanya baris migrasi dari batch bersetujuan — bukan jenis piutang
+> baru, dan bukan jalur input manual harian. `FIN-OQ-069` (apakah piutang sewa lama ikut
+> dimigrasikan) **tidak** dijawab desain ini.
+
+**Migrasi tidak menerbitkan kejadian.** `FIN-DEC-129` butir 3 melarangnya, sedangkan jalur pembuatan
+utang supplier hari ini menerbitkan `PENGAKUAN-HUTANG-SUPPLIER` **tanpa syarat**
+(`FinanceSupplierPayableService.cs:125-135`). Karena itu kedua jalur pembuatan mendapat parameter
+eksplisit `isOpeningItem`; bila benar, **nol** baris outbox ditulis dan yang ditulis hanya mutasi
+pembuka. Parameter itu **MUST** bernilai salah secara bawaan, sehingga jalur normal tidak dapat
+diam-diam berhenti menerbitkan kejadian.
+
+**Alur batch.** `DRAFT` → `VALIDATED` → `APPROVED` → `LOCKED`, dengan rekonsiliasi sebagai syarat
+perpindahan ke `APPROVED`. Rinciannya pada `contracts/state-transition-matrix.md` bagian `F`.
+
+### `FIN-DES-090` — Rekonsiliasi batch dibandingkan terhadap angka yang dinyatakan, bukan dibaca dari Accounting
+
+`FIN-DEC-129` butir 1 menuntut total sisa migrasi direkonsiliasi dengan saldo awal AR/AP Accounting
+sebelum batch dikunci. Pertanyaan desainnya: dari mana Finance tahu angka Accounting.
+
+| Yang dipertimbangkan | Keputusan |
+|---|---|
+| Finance membaca tabel saldo awal Accounting | **Ditolak.** Melintasi batas bounded context tanpa kontrak. Setiap pertukaran dengan Accounting sejauh ini lewat kontrak tertulis (`FIN-DEC-053` dst.), dan desain ini tidak menjadi pengecualian pertama |
+| Accounting menyediakan jalur baca saldo awal | **Tidak diminta pada rilis ini.** Ia kontrak baru, dan `evidence/22` sudah memuat tiga permintaan. Dicatat `FIN-OQ-078` sebagai bentuk yang lebih baik di kemudian hari |
+| Petugas menyatakan angkanya, sistem membandingkan | **Dipilih.** `FinOpeningItemBatch` menyimpan `DeclaredAccountingOpeningAmount` beserta rujukan dokumen saldo awal Accounting; batch **tidak dapat** `APPROVED` bila total sisa itemnya berbeda |
+
+Kelemahannya dicatat apa adanya: angka yang dinyatakan **dapat salah ketik**, dan sistem hanya
+memeriksa kedua angka itu cocok — bukan bahwa angkanya benar. Mitigasi yang tersedia tanpa kontrak
+baru: rujukan dokumen wajib diisi, dan persetujuan batch adalah tindakan bernama pada satu orang.
+
+### `FIN-DES-091` — Utang jasa medis: dibaca apa adanya, dan kewajibannya dicatat ke depan
+
+`FIN-DEC-122` menetapkan Finance mengirim saldo utang jasa medis dari tabelnya sendiri, `0.00` selama
+tabel kosong. Hari ini tabel itu **tidak punya penulis apa pun**.
+
+| Hari ini | Ketika `BE-FIN-021` dibangun |
+|---|---|
+| Snapshot menjumlah `FinMedicalServicePayable` apa adanya — hasilnya `0.00` | Jumlah langsung **tidak lagi sah** sebagai posisi per tanggal |
+| Nol buku mutasi | `FinMedicalServicePayableMovement` **MUST** dibangun bersamaan, beserta seluruh jalur penulisnya |
+| Pemetaan akun control kelompok `UTANG-JASA-MEDIS` tetap wajib ada | Tidak berubah |
+
+Kewajiban ini ditulis di sini supaya `BE-FIN-021` tidak dibangun tanpa buku mutasinya, lalu mewarisi
+persis cacat yang amandemen ini perbaiki pada piutang dan utang supplier.
+
+## L.4 Class diagram
+
+Dipecah tiga supaya setiap diagram muat dibaca dalam satu layar.
+
+### L.4.1 Buku mutasi dan bukti
+
+```mermaid
+classDiagram
+    class FinReceivable {
+        +Guid Id
+        +Guid? SourceHandoffKey
+        +Guid? InvoiceId
+        +Guid? OpeningItemBatchId
+        +decimal OutstandingAmount
+    }
+    class FinReceivableMovement {
+        +Guid Id
+        +Guid ReceivableId
+        +string MovementType
+        +decimal Amount
+        +decimal BalanceBefore
+        +decimal BalanceAfter
+        +DateOnly BusinessDate
+        +DateTimeOffset OccurredAt
+        +string? PaymentMethodCode
+        +string? FundingSourceType
+        +Guid? FundingSourceId
+        +Guid? ProofId
+    }
+    class FinSupplierPayable {
+        +Guid Id
+        +Guid? OpeningItemBatchId
+        +decimal OutstandingAmount
+    }
+    class FinSupplierPayableMovement {
+        +Guid Id
+        +Guid SupplierPayableId
+        +string MovementType
+        +decimal Amount
+        +decimal BalanceBefore
+        +decimal BalanceAfter
+        +DateOnly BusinessDate
+        +string? PaymentMethodCode
+        +Guid? ProofId
+    }
+    class FinTransactionProof {
+        +Guid Id
+        +string ProofType
+        +string OriginalFileName
+        +string StoredFileName
+        +string RelativePath
+        +string MediaType
+        +long SizeBytes
+    }
+    FinReceivable "1" --> "0..*" FinReceivableMovement : mutasinya
+    FinSupplierPayable "1" --> "0..*" FinSupplierPayableMovement : mutasinya
+    FinReceivableMovement "0..1" --> "0..1" FinTransactionProof : buktinya
+    FinSupplierPayableMovement "0..1" --> "0..1" FinTransactionProof : buktinya
+```
+
+### L.4.2 Kas dan saldo awal
+
+```mermaid
+classDiagram
+    class FinCashMovement {
+        +Guid Id
+        +string MovementType
+        +string Direction
+        +decimal Amount
+        +DateOnly BusinessDate
+        +DateTimeOffset OccurredAt
+        +string SourceReferenceType
+        +string SourceReferenceId
+        +Guid? CashierShiftId
+        +Guid CorrelationId
+    }
+    class FinOpeningBalance {
+        +Guid Id
+        +string BalanceGroup
+        +decimal Amount
+        +DateOnly CutoverDate
+        +string Status
+        +string Reason
+        +string AccountingReferenceDocument
+        +Guid? ApprovedBy
+        +DateTimeOffset? ApprovedAt
+        +DateTimeOffset? LockedAt
+    }
+    class FinDailyCashSnapshot {
+        +DateOnly CashDate
+        +decimal ClosingBalance
+        +string Status
+    }
+    FinOpeningBalance ..> FinCashMovement : titik awal perhitungan
+    FinDailyCashSnapshot ..> FinCashMovement : dibandingkan, tidak menjadi sumber
+```
+
+`FinDailyCashSnapshot` digambar **bergaris putus-putus** dan sengaja tanpa relasi database: sesudah
+`FIN-DES-081` ia laporan operasional yang **dibandingkan** terhadap posisi kas, bukan sumbernya.
+
+### L.4.3 Pemetaan akun control, batch migrasi, dan pengiriman
+
+```mermaid
+classDiagram
+    class FinSubledgerControlAccountMap {
+        +Guid Id
+        +string BalanceGroup
+        +string? SegmentKey
+        +string ControlAccountCode
+        +bool IsActive
+    }
+    class FinOpeningItemBatch {
+        +Guid Id
+        +string BatchNumber
+        +string ItemKind
+        +string Status
+        +DateOnly CutoverDate
+        +int TotalItemCount
+        +decimal TotalOutstandingAmount
+        +decimal DeclaredAccountingOpeningAmount
+        +string AccountingReferenceDocument
+        +Guid? ApprovedBy
+        +DateTimeOffset? LockedAt
+    }
+    class FinAccountingEventOutbox {
+        +string EventTypeCode
+        +string SourceTransactionId
+        +string SourceVersion
+        +decimal Amount
+        +DateOnly AccountingDate
+        +string PayloadJson
+        +string DeliveryStatus
+    }
+    class MstDirectPaymentThreshold {
+        +Guid Id
+        +decimal Amount
+        +string ChangeReason
+        +bool IsActive
+    }
+    FinSubledgerControlAccountMap ..> FinAccountingEventOutbox : menentukan baris SALDO-SUBLEDGER
+    FinOpeningItemBatch ..> FinAccountingEventOutbox : NOL kejadian (FIN-DEC-129)
+```
+
+Panah `FinOpeningItemBatch` digambar justru untuk menegaskan yang **tidak** terjadi: batch migrasi
+tidak pernah menulis ke kotak keluar.
+
+### Penjelasan class
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Receivable/Models/FinReceivableMovement.cs` |
+| Kategori | Transaksi — buku mutasi, anak `FinReceivable` |
+| Tanggung jawab utama | Mencatat setiap perubahan `OutstandingAmount` beserta tanggal bisnisnya, supaya posisi piutang pada tanggal mana pun dapat dihitung ulang (`FIN-DEC-123`) |
+| Field penting | `ReceivableId`, `MovementType`, `Amount`, `BalanceBefore`, `BalanceAfter`, `BusinessDate` (WIB), `OccurredAt`, `PaymentMethodCode`, `FundingSourceType`/`FundingSourceId`, `ReferenceNumber`, `ProofId`, `CorrelationId` |
+| Navigation property dan relasi | Milik `FinReceivable`, `DeleteBehavior.Restrict`. `ProofId` menunjuk `FinTransactionProof`, `DeleteBehavior.Restrict` |
+| Pemakaian dalam alur bisnis | Ditulis **setiap** jalur pada daftar `FIN-DES-079`; dibaca `FinanceSubledgerBalanceCalculator` dan layar riwayat piutang |
+| Catatan desain | Baris **tidak pernah diubah atau dihapus**; koreksi menambah baris. `BalanceAfter` baris terakhir **MUST** sama dengan `FinReceivable.OutstandingAmount` — invariant yang dapat diuji dan menjadi alat deteksi jalur yang lupa menulis mutasi |
+| Ekuivalen model lama | Tidak ada. `FinReceiptAllocation` hanya memuat alokasi, bukan seluruh sumbu perubahan saldo |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Payable/Models/FinSupplierPayableMovement.cs` |
+| Kategori | Transaksi — buku mutasi, anak `FinSupplierPayable` |
+| Tanggung jawab utama | Padanan `FinReceivableMovement` untuk utang supplier |
+| Field penting | Sama dengan buku mutasi piutang, dengan `SupplierPayableId` sebagai induk dan `PaymentId` opsional untuk mutasi yang lahir dari `FinPayment` |
+| Navigation property dan relasi | Milik `FinSupplierPayable`, `DeleteBehavior.Restrict` |
+| Pemakaian dalam alur bisnis | Ditulis pembuatan utang, pembayaran dokumen (satu baris per alokasi), pembayaran langsung, penyesuaian, dan pembukaan item migrasi |
+| Catatan desain | `PaymentId` **tidak** cukup menggantikan `BusinessDate`: `FinPaymentAllocation` tidak punya tanggal sendiri, dan utang berkurang saat pembayaran **disetujui**, bukan saat `PaidAt` (`FinancePaymentService.cs:575`). Tanggal bisnis karena itu disalin ke baris mutasi saat ditulis |
+| Ekuivalen model lama | Tidak ada |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/CashManagement/Models/FinCashMovement.cs` |
+| Kategori | Transaksi — buku mutasi kas, tanpa agregat induk |
+| Tanggung jawab utama | Menjadi satu-satunya sumbu perhitungan posisi Kas Kasir (`FIN-DES-081`) |
+| Field penting | `MovementType`, `Direction` (`IN`/`OUT`), `Amount`, `BusinessDate` (WIB), `OccurredAt`, `SourceReferenceType` + `SourceReferenceId`, `CashierShiftId`, `CorrelationId` |
+| Navigation property dan relasi | **Nol FK.** Rujukan ke shift, setoran, pembayaran, dan penerimaan disimpan sebagai pasangan jenis dan id tanpa FK, karena sumbernya melintasi submodul dan satu di antaranya milik Billing |
+| Pemakaian dalam alur bisnis | Ditulis saat shift mencapai keadaan final, saat penerimaan dan pembayaran tunai, saat setoran bank diposting, dan sekali saat saldo awal cutover dikunci |
+| Catatan desain | **Idempotensi wajib**: unique index pada (`SourceReferenceType`, `SourceReferenceId`, `MovementType`) supaya sinkronisasi penanda shift yang berjalan berkala tidak menulis kas shift yang sama dua kali. Ini pelajaran langsung dari idempotensi penanda shift yang sudah ada |
+| Ekuivalen model lama | `FinDailyCashSnapshot` menghitung hal yang mirip, tetapi per hari, dari status shift yang tidak diperiksa, dan tidak dapat ditanya "posisi pada tanggal X" |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/AccountingIntegration/Models/FinSubledgerControlAccountMap.cs` |
+| Kategori | Konfigurasi integrasi |
+| Tanggung jawab utama | Memetakan kelompok saldo dan segmennya ke kode akun control milik Accounting (`FIN-DES-080`) |
+| Field penting | `BalanceGroup`, `SegmentKey` (nullable = seluruh kelompok), `ControlAccountCode`, `IsActive`, `Notes` |
+| Navigation property dan relasi | **Nol FK.** `ControlAccountCode` adalah teks milik Accounting, bukan FK lintas bounded context |
+| Pemakaian dalam alur bisnis | Dibaca `FinanceSubledgerSnapshotService` sebelum menerbitkan satu baris `SALDO-SUBLEDGER` per akun |
+| Catatan desain | Unique index pada (`BalanceGroup`, `SegmentKey`) dan pada `ControlAccountCode` untuk baris aktif. Ditempatkan di `AccountingIntegration` karena ia murni alat penyelarasan dengan Accounting — bukan master data operasional Finance |
+| Ekuivalen model lama | `SubledgerControlAccountDefaults` — konstanta di kode ditambah override per permintaan. Konstanta itu **tetap ada** sebagai nilai bawaan seed, tetapi **berhenti** menjadi sumber kebenaran |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/AccountingIntegration/Models/FinOpeningBalance.cs` |
+| Kategori | Konfigurasi cutover |
+| Tanggung jawab utama | Menyimpan saldo awal per kelompok saldo pada tanggal cutover, sekali isi lalu dikunci (`FIN-DES-088`) |
+| Field penting | `BalanceGroup`, `Amount`, `CutoverDate`, `Status` (`DRAFT`/`APPROVED`/`LOCKED`), `Reason` wajib, `AccountingReferenceDocument` wajib, `ApprovedBy`, `ApprovedAt`, `LockedAt` |
+| Navigation property dan relasi | Nol FK |
+| Pemakaian dalam alur bisnis | Dibaca `FinanceSubledgerBalanceCalculator` sebagai titik awal setiap kelompok |
+| Catatan desain | Baris `LOCKED` **MUST NOT** dapat diubah service mana pun. Unique index satu baris aktif per kelompok. Kelompok piutang dan utang **wajib** bernilai `0.00` beserta alasan tertulis, supaya tidak terhitung dua kali bersama item migrasi |
+| Ekuivalen model lama | Tidak ada. Rekap kas harian pertama menolak saldo awal selain nol (`FinanceCashManagementService.cs:608-612`), sehingga saldo awal kas memang belum punya tempat |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/AccountingIntegration/Models/FinOpeningItemBatch.cs` |
+| Kategori | Transaksi — batch cutover |
+| Tanggung jawab utama | Menampung satu unggahan migrasi tagihan lama beserta hasil validasi dan rekonsiliasinya (`FIN-DES-089`, `FIN-DES-090`) |
+| Field penting | `BatchNumber`, `ItemKind` (`RECEIVABLE`/`SUPPLIER_PAYABLE`), `Status` (`DRAFT`/`VALIDATED`/`APPROVED`/`LOCKED`/`REJECTED`), `CutoverDate`, `TotalItemCount`, `TotalOutstandingAmount`, `DeclaredAccountingOpeningAmount`, `AccountingReferenceDocument`, `UploadedFileName`, `ApprovedBy`, `LockedAt` |
+| Navigation property dan relasi | Dirujuk `FinReceivable.OpeningItemBatchId` dan `FinSupplierPayable.OpeningItemBatchId`, keduanya `DeleteBehavior.Restrict` |
+| Pemakaian dalam alur bisnis | Petugas mengunggah spreadsheet, sistem memvalidasi per baris, petugas menyatakan saldo awal Accounting, lalu batch disetujui dan dikunci |
+| Catatan desain | Satu `ItemKind` per batch — piutang dan utang **tidak** dicampur, supaya rekonsiliasinya dapat dibandingkan terhadap satu angka Accounting. Item hanya dibuat saat perpindahan ke `APPROVED`; selama `DRAFT`/`VALIDATED` tidak ada baris piutang atau utang yang lahir |
+| Ekuivalen model lama | Tidak ada; nol mekanisme impor di seluruh `Areas` |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Collection/Models/FinTransactionProof.cs` |
+| Kategori | Transaksi — metadata berkas |
+| Tanggung jawab utama | Menyimpan keterangan berkas bukti pembayaran; berkasnya sendiri di luar database (`FIN-DES-087`) |
+| Field penting | `ProofType`, `OriginalFileName`, `StoredFileName`, `RelativePath`, `MediaType`, `SizeBytes`, `UploadedBy`, `UploadedAt` |
+| Navigation property dan relasi | Dirujuk `ProofId` pada kedua tabel mutasi, `DeleteBehavior.Restrict` |
+| Pemakaian dalam alur bisnis | Diunggah bersama pembayaran langsung piutang maupun utang |
+| Catatan desain | Ditempatkan di `Collection` karena rumpun itu sudah menampung keluarga penerimaan dan potongan, dan ia submodul terdaftar (`Fin`) — **folder baru sengaja tidak dibuat** supaya tidak memicu gerbang pendaftaran registry untuk satu tabel. `RelativePath` **MUST** divalidasi berada di bawah akar penyimpanan, mengikuti pemeriksaan jalur yang sudah ada pada pola unggah |
+| Ekuivalen model lama | `FinReceivableDocument` — **bukan** padanannya; ia melacak kelengkapan klaim, tanpa kolom berkas |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/MasterData/Models/MstDirectPaymentThreshold.cs` |
+| Kategori | Master — parameter kendali |
+| Tanggung jawab utama | Menyimpan ambang nilai pembayaran langsung beserta alasan perubahannya (`FIN-DES-086`) |
+| Field penting | `Amount`, `ChangeReason` wajib, `IsActive`, `EffectiveFrom` |
+| Navigation property dan relasi | Nol FK |
+| Pemakaian dalam alur bisnis | Dibaca sebelum setiap pembayaran langsung piutang maupun utang |
+| Catatan desain | Memakai awalan `Mst` dan ditempatkan di `MasterData/` mengikuti `MstBankAccount`, `MstCurrency`, dan `MstPettyCashCategory` yang sudah ada di folder itu — tercakup baris registry `Mst`, sehingga **nol** prefix dan **nol** folder baru |
+| Ekuivalen model lama | Tidak ada; jalur pembayaran langsung hari ini tidak punya batas apa pun |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/AccountingIntegration/Services/FinanceSubledgerMovementService.cs` |
+| Kategori | Service |
+| Tanggung jawab utama | **Satu-satunya** penulis ketiga buku mutasi; menghitung `BalanceBefore`/`BalanceAfter` dan menetapkan `BusinessDate` WIB |
+| Dipanggil oleh | `FinanceReceivableService`, `FinanceReceiptService`, `FinanceBillingIntakeService`, `FinanceSupplierPayableService`, `FinancePaymentService`, `FinanceCashManagementService`, `FinanceOpeningItemImportService` |
+| Membuka transaksi database | **Tidak.** Dipanggil di dalam transaksi pemanggilnya, mengikuti pola `FinanceAccountingOutboxService.StageEventAsync` dan `FinanceReceivableService.ApplyAllocationAsync` |
+| Catatan desain | Pemanggil **MUST** sudah memegang advisory lock atas agregatnya sebelum memanggil, karena `BalanceBefore` dibaca dari baris mutasi terakhir. Tanpa lock, dua mutasi bersamaan menghasilkan rantai saldo yang bercabang |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/AccountingIntegration/Services/FinanceSubledgerBalanceCalculator.cs` |
+| Kategori | Service — baca saja |
+| Tanggung jawab utama | Menghitung posisi setiap kelompok saldo dan segmennya pada satu tanggal, dari saldo awal ditambah buku mutasi |
+| Dipanggil oleh | `FinanceSubledgerSnapshotService`, dan permukaan baca perbandingan pada `L.8` |
+| Membuka transaksi database | Tidak |
+| Catatan desain | **Nol tulisan.** Ia tidak pernah membaca `OutstandingAmount` maupun `ClosingBalance` sebagai jawaban — keduanya posisi *sekarang*, bukan posisi *pada tanggal*. Membacanya akan menghidupkan kembali cacat yang amandemen ini perbaiki |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Diperbarui` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/AccountingIntegration/Services/FinanceSubledgerSnapshotService.cs` |
+| Kategori | Service |
+| Yang berubah | (1) Sumber angka berpindah ke `FinanceSubledgerBalanceCalculator`; (2) `Math.Max(0m, …)` pada empat tempat **dihapus** (`FIN-DEC-112`); (3) jumlah baris tidak lagi tetap empat, melainkan sebanyak baris pemetaan aktif (`FIN-DEC-113`); (4) gagal tertutup bila pemetaan tidak lengkap; (5) menambahkan jalur pernyataan ulang yang membandingkan posisi terhitung dengan baris outbox terakhir per akun |
+| Membuka transaksi database | Ya — tetap `Serializable` beserta advisory lock per periode, seperti sekarang |
+| Catatan desain | `IsComplete = items.Count >= 4` pada jalur baca **MUST** diubah: angka empat tidak lagi bermakna sesudah `FIN-DEC-113` |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Diperbarui` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/BillingIntake/Services/FinanceBillingIntakeService.cs` |
+| Kategori | Service |
+| Yang berubah | (1) `SyncCashierShiftClosureMarkersAsync` mencakup status **belum final** dan menerbitkan `PEMBUKAAN-SHIFT-KASIR` (`FIN-DES-084`); (2) shift yang mencapai `CLOSED`/`REVIEWED` menulis satu `FinCashMovement` kas masuk; (3) `AccountingDate` memakai WIB |
+| Membuka transaksi database | Ya — sudah |
+| Catatan desain | Query hari ini menyaring tiga status (`cs:1049-1054`) dan **MUST** diperluas ke tujuh. Shift `Bil*` tetap **dibaca saja** |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/AccountingIntegration/Services/FinanceAccountingDispatchWorker.cs` |
+| Kategori | Hosted service (`BackgroundService`) |
+| Tanggung jawab utama | Mengirim baris outbox `PENDING` ke kotak masuk Accounting, mencatat `FinAccountingEventAttempt`, memperbarui `DeliveryStatus` |
+| Dipanggil oleh | Runtime, lewat `AddHostedService` di blok `runBackgroundJobs` |
+| Membuka transaksi database | Ya — per baris, supaya satu kegagalan tidak membatalkan seluruh siklus |
+| Catatan desain | Memakai `IServiceScopeFactory.CreateScope()` per siklus seperti `AccAccountingEventSchedulerHostedService`. **Melewati** kode yang digerbang (`FIN-DES-078`). Balasan `200` dan `201` **sama-sama** sukses, dan `AccountingReceiptNumber` diisi dari `AccountingEventId` — keduanya sudah dikonfirmasi Accounting pada `evidence/16` bagian 5 |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/AccountingIntegration/Services/FinanceSubledgerSnapshotSchedulerHostedService.cs` |
+| Kategori | Hosted service |
+| Tanggung jawab utama | Menjalankan snapshot periode sebelumnya pada tanggal 1 pukul 00.05 WIB, lalu tiap hari memeriksa kebutuhan pernyataan ulang |
+| Membuka transaksi database | Tidak sendiri — memanggil service yang membukanya |
+| Catatan desain | Jam dihitung dalam WIB lewat `FinanceBusinessDate`. Menjalankannya dua kali untuk periode yang sama **tidak** menggandakan baris, karena `SourceTransactionId` snapshot sudah deterministik dan idempotensinya dijaga unique index outbox |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/AccountingIntegration/Services/FinanceOpeningItemImportService.cs` |
+| Kategori | Service |
+| Tanggung jawab utama | Membaca spreadsheet migrasi, memvalidasi per baris, menyimpan hasilnya, lalu membuat item piutang atau utang saat batch disetujui (`FIN-DES-089`) |
+| Dipanggil oleh | `FinanceOpeningItemBatchesController` |
+| Membuka transaksi database | Ya — pembuatan seluruh item satu batch dalam satu transaksi, supaya tidak ada batch setengah jadi |
+| Catatan desain | Pembacaan spreadsheet menuntut paket yang **belum ada di proyek** (`FIN-OQ-077`). Sampai paketnya disetujui, service ini **MUST NOT** dibangun; bagian validasi dan pembuatan item dapat dirancang lebih dulu karena tidak bergantung pada pembacanya |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Collection/Services/FinanceTransactionProofService.cs` |
+| Kategori | Service |
+| Tanggung jawab utama | Menyimpan dan membaca berkas bukti beserta metadatanya |
+| Catatan desain | Memakai `FileStorage:UploadRootPath` yang sudah ada. **MUST NOT** memanggil kelas unggah milik HR. Aturan jenis dan ukuran berkas menunggu `FIN-OQ-075` |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/AccountingIntegration/Services/FinanceBusinessDate.cs` |
+| Kategori | Helper statis |
+| Tanggung jawab utama | Mengubah `DateTimeOffset`/`DateTime` menjadi `DateOnly` menurut kalender WIB, dan menyusun batas awal serta akhir periode dalam WIB |
+| Catatan desain | Salinan kelima pola zona waktu di repository ini — utang teknis yang **diwarisi sadar**, lihat `FIN-DES-082` |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Diperbarui` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/AccountingIntegration/Services/FinanceAccountingOutboxService.cs` |
+| Kategori | Service |
+| Yang berubah | (1) `AccountingOutboxEventRequest` menerima lima ruas dimensi baru dan meneruskannya ke `BuildPayloadJson` (`FIN-DES-083`); (2) larangan nilai negatif pada `SALDO-SUBLEDGER` **dicabut** (`FIN-DEC-112`, mengamandemen `FIN-DEC-091`); (3) `ZeroAmountAllowedEventTypes` menerima `PEMBUKAAN-SHIFT-KASIR` |
+| Catatan desain | Validasi `AccountingDate` wajib tanggal akhir periode untuk pesan saldo **tetap berlaku**, hanya perbandingannya kini memakai kalender WIB |
+
+## L.5 Arsitektur folder
+
+```text
+Areas/Corporate/FinanceManagement/
+├── AccountingIntegration/
+│   ├── Controllers/
+│   │   ├── FinanceAccountingEventsController.cs                      # sudah ada, diperbarui
+│   │   ├── FinanceSubledgerControlAccountMapsController.cs           # BARU
+│   │   ├── FinanceOpeningBalancesController.cs                       # BARU
+│   │   └── FinanceOpeningItemBatchesController.cs                    # BARU
+│   ├── Models/
+│   │   ├── FinAccountingEventOutbox.cs                               # sudah ada, konstanta kode baru
+│   │   ├── FinSubledgerControlAccountMap.cs                          # BARU
+│   │   ├── FinOpeningBalance.cs                                      # BARU
+│   │   └── FinOpeningItemBatch.cs                                    # BARU
+│   ├── Services/
+│   │   ├── FinanceAccountingOutboxService.cs                         # sudah ada, diperbarui
+│   │   ├── FinanceSubledgerSnapshotService.cs                        # sudah ada, diperbarui
+│   │   ├── FinanceSubledgerMovementService.cs                        # BARU
+│   │   ├── FinanceSubledgerBalanceCalculator.cs                      # BARU
+│   │   ├── FinanceOpeningItemImportService.cs                        # BARU
+│   │   ├── FinanceBusinessDate.cs                                    # BARU (helper statis)
+│   │   ├── FinanceAccountingDispatchWorker.cs                        # BARU (hosted service)
+│   │   └── FinanceSubledgerSnapshotSchedulerHostedService.cs         # BARU (hosted service)
+│   └── DTOs/
+│       ├── SubledgerSnapshotDtos.cs                                  # sudah ada, diperbarui
+│       ├── SubledgerControlAccountMapDtos.cs                         # BARU
+│       ├── OpeningBalanceDtos.cs                                     # BARU
+│       └── OpeningItemBatchDtos.cs                                   # BARU
+├── Receivable/
+│   ├── Models/FinReceivable.cs                                       # sudah ada, DIPERBARUI (4 kolom)
+│   ├── Models/FinReceivableMovement.cs                               # BARU
+│   └── Services/FinanceReceivableService.cs                          # sudah ada, diperbarui
+├── Payable/
+│   ├── Models/FinSupplierPayable.cs                                  # sudah ada, DIPERBARUI (1 kolom)
+│   ├── Models/FinSupplierPayableMovement.cs                          # BARU
+│   └── Services/FinanceSupplierPayableService.cs                     # sudah ada, diperbarui
+├── Collection/
+│   ├── Models/FinTransactionProof.cs                                 # BARU
+│   ├── Services/FinanceTransactionProofService.cs                    # BARU
+│   └── Controllers/FinanceTransactionProofsController.cs             # BARU
+├── CashManagement/
+│   ├── Models/FinCashMovement.cs                                     # BARU
+│   └── Services/FinanceCashManagementService.cs                      # sudah ada, diperbarui
+├── BillingIntake/
+│   └── Services/FinanceBillingIntakeService.cs                       # sudah ada, diperbarui
+│       └── FinanceCashierShiftMarkerSchedulerHostedService.cs        # BARU (hosted service)
+└── MasterData/
+    ├── Models/MstDirectPaymentThreshold.cs                           # BARU
+    ├── Services/DirectPaymentThresholdService.cs                     # BARU
+    └── Controllers/DirectPaymentThresholdsController.cs              # BARU
+
+Repositories/Configurations/Corporate/FinanceManagement/
+├── Receivable/
+│   ├── FinReceivableConfiguration.cs                                 # sudah ada, DIPERBARUI
+│   └── FinReceivableMovementConfiguration.cs                         # BARU
+├── Payable/
+│   ├── FinSupplierPayableConfiguration.cs                            # sudah ada, DIPERBARUI
+│   └── FinSupplierPayableMovementConfiguration.cs                    # BARU
+├── CashManagement/FinCashMovementConfiguration.cs                    # BARU
+├── Collection/FinTransactionProofConfiguration.cs                    # BARU
+├── AccountingIntegration/
+│   ├── FinSubledgerControlAccountMapConfiguration.cs                 # BARU
+│   ├── FinOpeningBalanceConfiguration.cs                             # BARU
+│   └── FinOpeningItemBatchConfiguration.cs                           # BARU
+└── MasterData/MstDirectPaymentThresholdConfiguration.cs              # BARU
+
+Program.cs                                                            # DIPERBARUI — 3 AddHostedService
+```
+
+Dua hal yang mengikuti aturan struktur dan sering salah:
+
+1. Configuration **tidak** berada di dalam `Areas/`; ia terpisah di `Repositories/Configurations/`.
+2. **Nol folder submodul baru dibuat.** Ketujuh submodul Finance sudah terdaftar pada
+   `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` (catatan 2026-09-21 dan 2026-09-26) dengan prefix `Fin`,
+   dan `MasterData/` tercakup baris `Mst`. Karena itu **tidak ada** gerbang `QBE-MOD-003` baru pada
+   amandemen ini — berbeda dari revisi 4 yang menuntut pendaftaran `Purchasing`.
+
+## L.6 Endpoint
+
+Rinciannya pada `contracts/api-contract.md` bagian `F`. Seluruhnya
+**`Rencana (belum tersedia)`**, memakai bentuk transaksi (`POST /{id}/<aksi>`).
+
+| Grup | Method dan path | Kegunaan | Hak akses |
+|---|---|---|---|
+| Pemetaan akun control | `GET /subledger-control-accounts` | Daftar pemetaan | `FinanceSubledgerSetup : Read` |
+| Pemetaan akun control | `POST /subledger-control-accounts` | Menambah pemetaan | `FinanceSubledgerSetup : Create` |
+| Pemetaan akun control | `PUT /subledger-control-accounts/{id}` | Mengoreksi pemetaan | `FinanceSubledgerSetup : Update` |
+| Pemetaan akun control | `GET /subledger-control-accounts/coverage` | Memeriksa kelengkapan cakupan sebelum snapshot | `FinanceSubledgerSetup : Read` |
+| Saldo awal | `GET /opening-balances` | Daftar saldo awal per kelompok | `FinanceSubledgerSetup : Read` |
+| Saldo awal | `POST /opening-balances` | Mencatat saldo awal | `FinanceSubledgerSetup : Create` |
+| Saldo awal | `POST /opening-balances/{id}/approve` | Menyetujui | `FinanceSubledgerSetup : Approve` |
+| Saldo awal | `POST /opening-balances/{id}/lock` | Mengunci | `FinanceSubledgerSetup : Approve` |
+| Batch migrasi | `GET /opening-item-batches` | Daftar batch | `FinanceOpeningItemBatch : Read` |
+| Batch migrasi | `GET /opening-item-batches/{id}` | Rincian beserta hasil validasi per baris | `FinanceOpeningItemBatch : Read` |
+| Batch migrasi | `POST /opening-item-batches` | Mengunggah spreadsheet, membuat batch `DRAFT` | `FinanceOpeningItemBatch : Create` |
+| Batch migrasi | `POST /opening-item-batches/{id}/validate` | Menjalankan validasi per baris | `FinanceOpeningItemBatch : Update` |
+| Batch migrasi | `POST /opening-item-batches/{id}/approve` | Membuat item dan mutasi pembuka | `FinanceOpeningItemBatch : Approve` |
+| Batch migrasi | `POST /opening-item-batches/{id}/reject` | Menolak batch | `FinanceOpeningItemBatch : Update` |
+| Mutasi | `GET /receivables/{id}/movements` | Buku mutasi satu piutang | `FinanceReceivable : Read` |
+| Mutasi | `GET /supplier-payables/{id}/movements` | Buku mutasi satu utang | `FinanceSupplierPayable : Read` |
+| Mutasi | `GET /cash-movements` | Buku mutasi kas, bersaring tanggal dan jenis | `FinanceCashManagement : Read` |
+| Posisi saldo | `GET /subledger-balances/position` | Posisi terhitung per kelompok dan segmen pada satu tanggal | `FinanceAccountingEvent : Read` |
+| Posisi saldo | `GET /subledger-balances/{periode}/variance` | Selisih rekap kas harian terhadap posisi terhitung (`FIN-DEC-125`) | `FinanceAccountingEvent : Read` |
+| Ambang | `GET /direct-payment-threshold` | Ambang aktif | `MstDirectPaymentThreshold : Read` |
+| Ambang | `PUT /direct-payment-threshold` | Mengubah ambang beserta alasan | `MstDirectPaymentThreshold : Update` |
+| Bukti | `POST /transaction-proofs` | Mengunggah bukti, mengembalikan `ProofId` | `FinanceTransactionProof : Create` |
+| Bukti | `GET /transaction-proofs/{id}` | Mengunduh bukti | `FinanceTransactionProof : Read` |
+
+Dua endpoint yang **sudah ada** dan berubah bentuk requestnya:
+
+| Endpoint | Perubahan | Kompatibilitas |
+|---|---|---|
+| `POST /receivables/{id}/payment` | `PaymentMethod` **menjadi wajib** dan disimpan; ditambah `FundingSourceType`/`FundingSourceId`, `ReferenceNumber`, `ProofId` wajib | **Memutus.** Hari ini `PaymentMethod` punya nilai bawaan `"TRANSFER"` dan diabaikan |
+| `POST /supplier-payables/{id}/direct-payment` | Ruas yang sama menjadi wajib dan disimpan | **Memutus** dengan alasan yang sama |
+
+Keduanya dicatat sebagai perubahan memutus di `contracts/api-contract.md`, dan konsumen
+frontend-nya dibahas pada `03-frontend-architecture.md` bagian 19.
+
+## L.7 Status model, migration, dan data master
+
+| Model | Status | Dampak migration |
+|---|---|---|
+| `FinReceivableMovement` | **`Baru`** | Tabel baru |
+| `FinSupplierPayableMovement` | **`Baru`** | Tabel baru |
+| `FinCashMovement` | **`Baru`** | Tabel baru |
+| `FinSubledgerControlAccountMap` | **`Baru`** | Tabel baru |
+| `FinOpeningBalance` | **`Baru`** | Tabel baru |
+| `FinOpeningItemBatch` | **`Baru`** | Tabel baru |
+| `FinTransactionProof` | **`Baru`** | Tabel baru |
+| `MstDirectPaymentThreshold` | **`Baru`** | Tabel baru |
+| `FinReceivable` | **`Diperbarui`** | `SourceHandoffKey`, `SourceHandoffId`, `InvoiceId` menjadi nullable; kolom `OpeningItemBatchId` ditambah; `CK_FinReceivable_OpeningItem` ditambah; `IX_FinReceivable_SourceHandoffKey` diganti filternya |
+| `FinSupplierPayable` | **`Diperbarui`** | Kolom `OpeningItemBatchId` ditambah |
+| `FinAccountingEventOutbox` | `Sudah ada` | **Nol perubahan skema.** Hanya konstanta kode dan isi `PayloadJson` |
+| `FinDailyCashSnapshot` | `Sudah ada` | **Nol perubahan skema.** Yang berubah kedudukannya, bukan kolomnya |
+| `FinMedicalServicePayable` | `Sudah ada` | **Nol perubahan** |
+
+### Rencana migration
+
+Empat migration, berurutan. Urutannya penting karena yang belakangan merujuk tabel yang lebih dulu.
+
+| # | Nama | Isi | Tanpa mematikan layanan | Langkah mundur |
+|---:|---|---|---|---|
+| 1 | `AddFinanceSubledgerMovementLedgers` | Tiga tabel buku mutasi | **Ya** — murni tabel baru | `Down()` menghapus ketiganya; aman selama belum ada baris |
+| 2 | `AddFinanceSubledgerSetup` | `FinSubledgerControlAccountMap`, `FinOpeningBalance` | **Ya** | `Down()` menghapus keduanya |
+| 3 | `AddFinanceTransactionProofAndDirectPaymentThreshold` | `FinTransactionProof`, `MstDirectPaymentThreshold` | **Ya** | `Down()` menghapus keduanya |
+| 4 | `AddFinanceOpeningItemMigration` | `FinOpeningItemBatch`; perubahan `FinReceivable` dan `FinSupplierPayable` | **Ya, dengan syarat** — lihat di bawah | **Tidak sepenuhnya aman** — lihat di bawah |
+
+**Kenapa migration ke-4 butuh perhatian khusus.** Ia satu-satunya yang menyentuh tabel berjalan:
+
+| Langkah | Sifat di PostgreSQL | Catatan |
+|---|---|---|
+| `DROP NOT NULL` pada tiga kolom `FinReceivable` | Perubahan katalog, **tanpa penulisan ulang tabel** | Cepat; pembaca yang ada tidak terdampak |
+| `ADD COLUMN "OpeningItemBatchId" uuid NULL` | Tanpa penulisan ulang | Cepat |
+| `ADD CONSTRAINT ... CHECK (...) NOT VALID` lalu `VALIDATE CONSTRAINT` | Dua langkah **sengaja dipisah** | Menambahkannya langsung memaksa pemindaian seluruh tabel di dalam kunci tulis. `NOT VALID` menghindarinya, dan `VALIDATE` berjalan dengan kunci yang lebih ringan |
+| `DROP INDEX` lalu `CREATE INDEX CONCURRENTLY` untuk filter unik yang baru | **MUST** `CONCURRENTLY` | Tanpa itu, pembuatan index unik memblokir tulisan ke piutang |
+
+Satu catatan jujur: `CREATE INDEX CONCURRENTLY` **tidak dapat** berjalan di dalam transaksi, sehingga
+migration ini **MUST** menandai dirinya tanpa transaksi untuk langkah tersebut. Bila pola itu tidak
+dipakai di repository ini, alternatifnya menjalankan langkah index sebagai langkah operasional
+terpisah di luar migration — dan itu **keputusan pemilik repository**, bukan keputusan desain ini.
+
+| Field | Nilai |
+|---|---|
+| Pengisian data lama | **Tidak ada.** Baris `FinReceivable` dan `FinSupplierPayable` yang sudah ada tetap sah: ketiga kolom Billing-nya terisi dan `OpeningItemBatchId` kosong — persis cabang pertama check constraint |
+| Buku mutasi untuk baris lama | **Tidak diisi mundur.** Lihat peringatan di bawah |
+| Wewenang | Pembuatan migration dan eksekusinya **dua wewenang terpisah**, keduanya **MUST** diminta eksplisit (`FIN-OQ-051`) |
+
+> **Peringatan yang MUST dibaca sebelum implementasi.** Buku mutasi **tidak** diisi mundur, sehingga
+> posisi saldo untuk tanggal **sebelum** buku mutasi hidup tidak dapat dihitung. Dua akibatnya:
+> (1) snapshot periode yang seluruhnya berada sebelum tanggal itu akan salah, dan (2) karena itu
+> tanggal mulai buku mutasi **MUST** sama dengan atau lebih awal daripada `CutoverDate` pada
+> `FinOpeningBalance`. Snapshot **MUST** menolak terbit untuk periode yang berakhir sebelum
+> `CutoverDate`, beserta pesan yang menyebutnya — bukan mengembalikan angka yang kelihatan wajar.
+
+### Rencana data master awal
+
+| Master | Isi minimum | Sumber nilai |
+|---|---|---|
+| `MstDirectPaymentThreshold` | **Satu baris aktif** beserta `ChangeReason` | **Belum ada** — `FIN-OQ-074`. Tanpa baris ini seluruh pembayaran langsung ditolak, dan itu perilaku yang disengaja |
+| `FinSubledgerControlAccountMap` | **Satu baris per kelompok saldo**; `PIUTANG` dan `UTANG-JASA-MEDIS` boleh satu baris `NULL` atau satu baris per segmen | Daftar kode akun control definitif dari Accounting, **menunggu G2**. Sebelum itu dapat diisi nilai sementara `SubledgerControlAccountDefaults` supaya jalurnya dapat diuji |
+| `FinOpeningBalance` | **Lima baris**, satu per kelompok: `KAS-KASIR` dan `KAS-KECIL` bernominal, tiga sisanya `0.00` beserta alasan tertulis | Nominal kas dari perhitungan fisik saat cutover; **wajib sama** dengan saldo awal manual Accounting (G5) |
+
+Nol tabel master lain. Kode metode pembayaran **tidak** dibuat sebagai master baru: `FinPaymentMethods`
+(`TRANSFER`, `CASH`) sudah ada sebagai konstanta domain, dan master metode pembayaran kasir milik
+Billing dipakai apa adanya untuk penerimaan.
+
+## L.8 Permukaan baca baru yang bukan endpoint CRUD
+
+Dua permukaan lahir dari kewajiban yang ditetapkan keputusan, bukan dari permintaan layar:
+
+| Permukaan | Kewajiban yang memerintahkannya | Isi |
+|---|---|---|
+| `GET /subledger-control-accounts/coverage` | `FIN-DES-080` gagal tertutup | Daftar kelompok dan segmen yang **belum** terpetakan, supaya petugas tahu apa yang menahan snapshot sebelum tanggal 1 tiba |
+| `GET /subledger-balances/{periode}/variance` | `FIN-DEC-125` mewajibkan selisih **ditampilkan** | Perbandingan `FinDailyCashSnapshot.ClosingBalance` terhadap posisi kas terhitung, beserta daftar mutasi yang menjelaskan selisihnya |
+
+Keduanya **baca saja** dan tidak menulis apa pun.
+
+## L.9 Hak akses
+
+| Resource | Status | Action | Dipakai untuk |
+|---|---|---|---|
+| `FinanceSubledgerSetup` | **Baru** | `Read`, `Create`, `Update`, `Approve` | Pemetaan akun control dan saldo awal cutover |
+| `FinanceOpeningItemBatch` | **Baru** | `Read`, `Create`, `Update`, `Approve` | Batch migrasi tagihan lama |
+| `FinanceTransactionProof` | **Baru** | `Read`, `Create` | Unggah dan unduh bukti pembayaran |
+| `MstDirectPaymentThreshold` | **Baru** | `Read`, `Update` | Ambang pembayaran langsung |
+| `FinanceReceivable`, `FinanceSupplierPayable`, `FinanceCashManagement`, `FinanceAccountingEvent` | Sudah ada | `Read` | Permukaan baca mutasi dan posisi |
+
+Keempat resource baru punya controller nyata beserta endpoint, sehingga terdaftar lewat pemindaian
+atribut biasa — **nol** ketergantungan pada `FIN-OQ-039` yang tertahan justru karena resource tanpa
+endpoint.
+
+**Action `Approve` adalah action baru pada resource baru**, bukan action baru pada resource yang sudah
+ada. Ia dipakai untuk menyetujui saldo awal dan batch migrasi: dua tindakan yang mengubah pembukaan
+seluruh buku, dan karena itu **tidak** disamakan dengan `Update` biasa. Ini **berbeda** dari
+`FIN-DEC-103`/`FIN-DEC-098` yang sengaja menolak jenjang approval — keduanya menyangkut transaksi
+harian, bukan pembukaan buku.
+
+## L.10 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan penolakan |
+|---|---|
+| Satu tabel mutasi polimorfik untuk ketiga agregat | Ditolak `FIN-DES-079`. FK non-nullable membuat mutasi tanpa induk mustahil di tingkat database |
+| Buku mutasi untuk `FinMedicalServicePayable` | Belum ada penulis saldonya sama sekali (`BE-FIN-021` `BLOCKED`). Kewajiban membangunnya dicatat ke depan — `FIN-DES-091` |
+| Tabel saldo per rekening bank | Ditolak `FIN-DEC-137`. Saldo bank, jurnal akun bank, dan rekonsiliasi rekening koran milik Accounting |
+| Rekening bank sebagai kelompok saldo kelima yang dikirim | Turunan penolakan di atas — ia bukan akun control Finance |
+| Kolom baru pada `FinAccountingEventOutbox` untuk shift dan metode | Ditolak `FIN-DES-083`. Tidak dipakai idempotensi maupun saringan baca |
+| Jalur membuka kembali `FinDailyCashSnapshot` yang sudah ditutup | Ditolak `FIN-DEC-125` lewat pilihan menghitung posisi langsung. Pembukaan kembali menuntut koreksi berantai antarhari |
+| Penanda boolean `IsOpeningItem` pada piutang dan utang | Ditolak `FIN-DES-089`. FK batch sudah menjawab pertanyaannya, dan dua penanda dapat berselisih |
+| Melonggarkan jenis debitur `FinReceivable` untuk tagihan lama | Tidak perlu: tagihan lama tetap `PAYER`/`PATIENT_GUARANTOR`/`EMPLOYEE_BENEFIT`. Yang dilonggarkan bersyarat hanya kolom asal Billing |
+| Memindahkan piutang sewa non-pasien ke `FinReceivable` | Ditolak `FIN-DEC-101`, tidak dibuka ulang di sini. `FIN-OQ-069` belum dijawab |
+| Tabel riwayat perubahan ambang | Ditolak `FIN-DES-086`. Kolom audit dan logger sudah menjawab perubahan terakhir |
+| Kriteria "berisiko" otomatis pada pembayaran langsung | Ditolak `FIN-DEC-134` secara eksplisit (pilihan B tidak diambil) |
+| `FinReceivableDocument` dipakai untuk bukti pembayaran | Ditolak `FIN-DEC-135`. Tujuannya kelengkapan klaim penjamin, tanpa kolom berkas |
+| Layanan penyimpanan berkas bersama lintas modul | **Bukan wewenang Finance.** Bila Platform membuatnya, Finance yang memigrasikan (`FIN-OQ-068`) |
+| Finance membaca tabel saldo awal Accounting | Ditolak `FIN-DES-090`. Melintasi bounded context tanpa kontrak |
+| Pembayaran supplier tunai memotong anggaran kas kecil | Ditolak `FIN-DEC-133`. Kas kecil hanya lewat mekanisme vouchernya sendiri |
+| Penyatuan lima salinan helper zona waktu | **Bukan scope Finance.** Task tersendiri lintas modul (`FIN-DES-082`) |
+| Perbaikan namespace bersarang `AppDateTimeHelper` | Menyentuh berkas bersama di luar scope; **MUST NOT** dirapikan diam-diam |
+| Provider nomor seri atomik untuk tabel baru | Rumpun ini memakai pola tanggal + GUID beserta komentar `KNOWN ISSUE`-nya. Memperbaikinya hanya untuk tabel baru membuat satu rumpun punya dua cara menomori — utang teknis yang **diwarisi**, persis seperti revisi 13 |

@@ -825,7 +825,7 @@ Bagian ini adalah yang paling penting pada kapabilitas ini, dan ditulis apa adan
 | Kewenangan | Dijaga oleh | Yang **tidak** dijaganya | Risiko yang diterima |
 |---|---|---|---|
 | Menghapus piutang sewa yang tidak tertagih | `FinanceNonPatientReceivable : Update` saja | **Nol pemeriksa kedua.** Petugas yang mencatat tagihan dapat menghapusnya sendiri pada hari yang sama, tanpa sepengetahuan siapa pun | **Diterima sadar** lewat `FIN-DEC-103`, sesudah konsekuensinya disodorkan. Ini **berbeda** dari piutang pasien yang memakai maker-checker |
-| Mencatat pelunasan yang tidak pernah benar-benar diterima | `FinanceNonPatientReceivable : Update` saja | Tidak ada pencocokan ke rekening koran maupun kas harian, karena jalur ini memang belum tersambung ke sana (`FIN-DES-075`) | Tinggi selama `FIN-OQ-044` belum diputuskan. **MUST** disampaikan kepada pemilik sebelum kapabilitas ini dipakai pada data sungguhan |
+| Mencatat pelunasan yang tidak pernah benar-benar diterima | `FinanceNonPatientReceivable : Update` saja | Tidak ada pencocokan ke rekening koran maupun kas harian, karena jalur ini sengaja dikelola terpisah dari kas (`FIN-DES-075`, `FIN-DEC-109`) | Tinggi, risiko diterima sadar oleh pemilik (`FIN-DEC-109`, `FIN-DEC-110`). Penahannya: alasan wajib, jejak `IdentityModel`, dan banner di layar. Kejadian akuntansi menunggu `FIN-OQ-044(b)` |
 | Besarnya denda keterlambatan | Tidak dijaga sama sekali | Denda adalah angka yang diketik petugas; tidak ada rumus, batas atas, maupun pembanding | Diterima lewat `FIN-DEC-102` |
 
 **Mitigasi yang tersedia tanpa mengubah keputusan mana pun:** alasan wajib diisi pada penghapusan
@@ -854,3 +854,139 @@ konvensi project tanpa pengecualian.
 Kolom sensitif: **nol**. `CounterpartyName` adalah nama badan usaha atau penyewa komersial, bukan
 data pasien. `RentedObject`, `ReferenceNumber`, dan `Note` **MUST NOT** diisi data pasien atau
 keterangan klinis, dan antarmuka **MUST NOT** mengarahkan petugas ke sana.
+
+---
+
+# Bagian G — Revisi 14: hak akses cutover, bukti, dan ambang
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-PERM-1.7` — status **`draft`** |
+| Naik dari | `FIN-PERM-1.6` (`approved` 1 Oktober 2026) |
+| Traceability | `FIN-DEC-128`..`136`; `FIN-DES-078`, `086`..`089` |
+| Dampak | **Empat resource baru**, satu action baru (`Approve`) pada resource baru |
+| Ketergantungan pada `FIN-OQ-039` | **Nol.** Keempat resource punya controller nyata beserta endpoint |
+
+## G.1 Resource dan action baru
+
+| Resource | Action | String yang dipakai |
+|---|---|---|
+| `FinanceSubledgerSetup` | `Read` | `[AccessPermission("FinanceSubledgerSetup", "Read")]` |
+| `FinanceSubledgerSetup` | `Create` | `[AccessPermission("FinanceSubledgerSetup", "Create")]` |
+| `FinanceSubledgerSetup` | `Update` | `[AccessPermission("FinanceSubledgerSetup", "Update")]` |
+| `FinanceSubledgerSetup` | `Approve` | `[AccessPermission("FinanceSubledgerSetup", "Approve")]` |
+| `FinanceOpeningItemBatch` | `Read` | `[AccessPermission("FinanceOpeningItemBatch", "Read")]` |
+| `FinanceOpeningItemBatch` | `Create` | `[AccessPermission("FinanceOpeningItemBatch", "Create")]` |
+| `FinanceOpeningItemBatch` | `Update` | `[AccessPermission("FinanceOpeningItemBatch", "Update")]` |
+| `FinanceOpeningItemBatch` | `Approve` | `[AccessPermission("FinanceOpeningItemBatch", "Approve")]` |
+| `FinanceTransactionProof` | `Read` | `[AccessPermission("FinanceTransactionProof", "Read")]` |
+| `FinanceTransactionProof` | `Create` | `[AccessPermission("FinanceTransactionProof", "Create")]` |
+| `MstDirectPaymentThreshold` | `Read` | `[AccessPermission("MstDirectPaymentThreshold", "Read")]` |
+| `MstDirectPaymentThreshold` | `Update` | `[AccessPermission("MstDirectPaymentThreshold", "Update")]` |
+
+## G.2 Atribut controller
+
+Mengikuti pola `FinanceReceivablesController` apa adanya.
+
+```csharp
+[AccessController("CORPORATE_FINANCE_MANAGEMENT_SUBLEDGER_SETUP",
+    "Corporate Finance Management Subledger Setup", "Subledger Setup",
+    AreaName = "Corporate", ControllerName = "FinanceSubledgerSetup",
+    Description = "Pemetaan akun control dan saldo awal cutover", SortOrder = 70)]
+[Tags("Corporate / Finance Management / Subledger Setup")]
+
+[AccessController("CORPORATE_FINANCE_MANAGEMENT_OPENING_ITEM_BATCH",
+    "Corporate Finance Management Opening Item Batch", "Opening Item Batch",
+    AreaName = "Corporate", ControllerName = "FinanceOpeningItemBatch",
+    Description = "Migrasi tagihan lama lewat batch spreadsheet", SortOrder = 71)]
+[Tags("Corporate / Finance Management / Opening Item Batch")]
+
+[AccessController("CORPORATE_FINANCE_MANAGEMENT_TRANSACTION_PROOF",
+    "Corporate Finance Management Transaction Proof", "Transaction Proof",
+    AreaName = "Corporate", ControllerName = "FinanceTransactionProof",
+    Description = "Bukti pembayaran langsung piutang dan utang", SortOrder = 72)]
+[Tags("Corporate / Finance Management / Transaction Proof")]
+
+[AccessController("CORPORATE_FINANCE_MANAGEMENT_MASTER_DIRECT_PAYMENT_THRESHOLD",
+    "Corporate Finance Management Direct Payment Threshold", "Master Data",
+    AreaName = "Corporate", ControllerName = "MstDirectPaymentThreshold",
+    Description = "Ambang nilai pembayaran langsung", SortOrder = 73)]
+[Tags("Corporate / Finance Management / Master Data / Direct Payment Threshold")]
+```
+
+`SortOrder` di atas **usulan**, bukan nilai final — ia urutan tampil pada layar hak akses dan boleh
+disesuaikan admin tanpa mengubah desain.
+
+## G.3 Matriks endpoint dan pencatatan logger
+
+Mengikuti konvensi project: `GET` **tidak** dicatat logger.
+
+| Endpoint | Resource | Action | Dicatat logger |
+|---|---|---|:---:|
+| `GET /subledger-setup/control-accounts` | `FinanceSubledgerSetup` | `Read` | Tidak |
+| `GET /subledger-setup/control-accounts/coverage` | `FinanceSubledgerSetup` | `Read` | Tidak |
+| `POST /subledger-setup/control-accounts` | `FinanceSubledgerSetup` | `Create` | **Ya** |
+| `PUT /subledger-setup/control-accounts/{id}` | `FinanceSubledgerSetup` | `Update` | **Ya** |
+| `POST /subledger-setup/control-accounts/{id}/deactivate` | `FinanceSubledgerSetup` | `Update` | **Ya** |
+| `GET /subledger-setup/opening-balances` | `FinanceSubledgerSetup` | `Read` | Tidak |
+| `POST /subledger-setup/opening-balances` | `FinanceSubledgerSetup` | `Create` | **Ya** |
+| `PUT /subledger-setup/opening-balances/{id}` | `FinanceSubledgerSetup` | `Update` | **Ya** |
+| `POST /subledger-setup/opening-balances/{id}/approve` | `FinanceSubledgerSetup` | `Approve` | **Ya** |
+| `POST /subledger-setup/opening-balances/{id}/lock` | `FinanceSubledgerSetup` | `Approve` | **Ya** |
+| `GET /opening-item-batches` | `FinanceOpeningItemBatch` | `Read` | Tidak |
+| `GET /opening-item-batches/{id}` | `FinanceOpeningItemBatch` | `Read` | Tidak |
+| `GET /opening-item-batches/template` | `FinanceOpeningItemBatch` | `Read` | Tidak |
+| `POST /opening-item-batches` | `FinanceOpeningItemBatch` | `Create` | **Ya** |
+| `POST /opening-item-batches/{id}/validate` | `FinanceOpeningItemBatch` | `Update` | **Ya** |
+| `POST /opening-item-batches/{id}/declare-accounting-opening` | `FinanceOpeningItemBatch` | `Update` | **Ya** |
+| `POST /opening-item-batches/{id}/approve` | `FinanceOpeningItemBatch` | `Approve` | **Ya** |
+| `POST /opening-item-batches/{id}/reject` | `FinanceOpeningItemBatch` | `Update` | **Ya** |
+| `POST /transaction-proofs` | `FinanceTransactionProof` | `Create` | **Ya** — hanya `EntityId`, controller, action, status |
+| `GET /transaction-proofs/{id}` | `FinanceTransactionProof` | `Read` | Tidak |
+| `GET /transaction-proofs/{id}/metadata` | `FinanceTransactionProof` | `Read` | Tidak |
+| `GET /master-data/direct-payment-threshold` | `MstDirectPaymentThreshold` | `Read` | Tidak |
+| `PUT /master-data/direct-payment-threshold` | `MstDirectPaymentThreshold` | `Update` | **Ya** |
+| `GET /receivables/{id}/movements` | `FinanceReceivable` | `Read` | Tidak |
+| `GET /supplier-payables/{id}/movements` | `FinanceSupplierPayable` | `Read` | Tidak |
+| `GET /daily-cash/cash-movements` | `FinanceCashManagement` | `Read` | Tidak |
+| `GET /accounting-events/subledger-balances/position` | `FinanceAccountingEvent` | `Read` | Tidak |
+| `GET /accounting-events/subledger-balances/{kode}/variance` | `FinanceAccountingEvent` | `Read` | Tidak |
+| `POST /accounting-events/subledger-balances/restate` | `FinanceAccountingEvent` | `Create` | **Ya** |
+
+**Payload logger MUST NOT memuat kolom bertanda sensitif** pada kamus data: `Notes` pada ketiga buku
+mutasi, dan `ValidationSummaryJson` pada batch migrasi. Keduanya dapat memuat nama debitur,
+supplier, atau pihak ketiga.
+
+## G.4 Kenapa `Approve` adalah action baru, dan kenapa itu tidak bertentangan
+
+Blueprint ini dua kali **menolak** jenjang approval: `FIN-DEC-098` (status klaim) dan `FIN-DEC-103`
+(piutang sewa). Action `Approve` di sini **tidak** membalik keduanya.
+
+| Hal | `FIN-DEC-098`/`103` | Revisi 14 |
+|---|---|---|
+| Yang diputuskan | Transaksi **harian** oleh staf AR | **Pembukaan buku**: saldo awal dan migrasi tagihan lama |
+| Frekuensi | Berkali-kali sehari | **Satu kali** saat cutover |
+| Akibat bila salah | Satu tagihan atau satu status | Seluruh rekonsiliasi Finance dan Accounting salah sejak periode pertama |
+| Dapat dikoreksi | Ya, lewat jalur yang sudah ada | **Tidak** — baris `LOCKED` tidak dapat diubah |
+
+Karena itu `Approve` dipisahkan dari `Update`: ia menandai tindakan yang tidak dapat ditarik.
+Pemisahan ini **MUST NOT** dipakai sebagai dasar menambahkan jenjang approval pada transaksi harian.
+
+## G.5 Hak akses yang TIDAK dijaga mesin, dicatat apa adanya
+
+| Yang tidak dijaga | Akibatnya | Mitigasi yang ada |
+|---|---|---|
+| Satu orang dapat memegang `Create` **dan** `Approve` sekaligus | Maker-checker pada saldo awal dan batch migrasi dapat dilewati satu orang | Mesin hak akses tidak mengenal pemisahan tugas. Pencegahannya **pemberian hak** oleh admin, dan itu **MUST** disebutkan saat menyerahkan modul |
+| Perubahan ambang tidak punya jenjang | Pejabat berwenang dapat menaikkannya lalu membayar di bawahnya | `ChangeReason` wajib dan tercatat logger (`FIN-DEC-134`) |
+| Siapa boleh melihat berkas bukti | Hak akses hanya membedakan `Read` dan `Create`, bukan per pemilik transaksi | Menunggu `FIN-OQ-075` |
+| Pembayaran dipecah di bawah ambang | Tidak terdeteksi | Diterima sadar (`FIN-DEC-134`) |
+
+## G.6 Nol resource untuk hosted service
+
+Ketiga hosted service **tidak** mendapat resource hak akses: mereka tidak punya endpoint dan tidak
+dipanggil pengguna. Kredensial yang mereka pakai untuk memanggil kotak masuk Accounting adalah
+**akun layanan**, dan mekanismenya masih terbuka bersama Platform dan Accounting (G3) — **bukan**
+bagian kontrak hak akses ini.
+
+Pemicu manual untuk worker pengiriman **sengaja tidak dibuat** (`FIN-API-1.5` bagian `F.9`), sehingga
+tidak ada permukaan hak akses yang dapat memutar gerbang `FIN-DES-078`.

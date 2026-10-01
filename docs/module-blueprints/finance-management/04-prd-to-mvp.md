@@ -1330,8 +1330,8 @@ dan sudah dikeluarkan ke `POST-MVP`, sehingga tidak menahan gelombang mana pun.
 |---|---|---|
 | ~~`FIN-OQ-040`~~ | — | **CLOSED 1 Oktober 2026** — isi grupnya: Kasir, Parkir, Tenant |
 | `FIN-OQ-043` | **Dua butir menu saja** (Umur Piutang Parkir dan Tenant) | Penagihan sewa parkir dan tenant adalah sumber piutang yang **belum ada sama sekali** di sistem governed, dan V1 tidak punya aturan bisnis yang bisa dirujuk (layarnya data contoh). Butuh `/grill-me` tersendiri sebelum dirancang. Tidak menahan `EPIC FIN-18` |
-| `FIN-OQ-041` | Tidak | Empat pasang butir yang tampak kembar; sementara dibuat sesuai V1 apa adanya |
-| `FIN-OQ-042` | Tidak | Kolom `PayerClaimReference` adalah kesimpulan desain, bukan permintaan owner |
+| ~~`FIN-OQ-041`~~ | — | **CLOSED 1 Oktober 2026** oleh `FIN-DEC-107` — keempat pasang butir adalah layar berbeda, seluruhnya dipertahankan |
+| ~~`FIN-OQ-042`~~ | — | **CLOSED 1 Oktober 2026** oleh `FIN-DEC-108` — `PayerClaimReference` dipertahankan sebagai kolom opsional |
 | `FIN-OQ-039` | **Tidak untuk amendment ini** | Perluasan registry resource tanpa endpoint; amendment ini sengaja dirancang nol resource baru supaya tidak bergantung padanya (`FIN-DES-072`) |
 
 ---
@@ -1347,7 +1347,7 @@ Seluruh entity, status, hak akses, dan endpoint yang disebut sudah tercatat pada
 **Batas MVP.** Mulai: petugas AR mencatat satu tagihan sewa untuk satu periode. Selesai: tagihan itu
 terbaca pada laporan umur piutang sewa, dan dapat dilunasi, dihapus, atau dibatalkan.
 **Di luar batas:** pencatatan uang sewa sebagai kas masuk, dan penerbitan kejadian akuntansi atas
-pendapatan sewa — keduanya tertahan `FIN-OQ-044`.
+pendapatan sewa — kas masuk dicabut (`FIN-DEC-109`), kejadian akuntansi tertahan `FIN-OQ-044(b)`.
 
 | Kemampuan `MUST HAVE` | ID kemampuan asal | Disposisi backend |
 |---|---|---|
@@ -1393,14 +1393,14 @@ pendapatan sewa — keduanya tertahan `FIN-OQ-044`.
 | Definisi kelompok umur dipakai ulang, bukan disalin | Review kode: memakai `ReceivableAgingBuckets` yang sudah ada |
 | Layar menyatakan terang bahwa pelunasan sewa belum tercatat sebagai kas masuk | Terbaca pada layar, bukan hanya pada dokumen |
 | Konfirmasi hapus/batal menyebut ketiadaan persetujuan | Terbaca pada layar |
-| `FIN-OQ-044` sudah dijawab, **atau** kapabilitas ini dinyatakan dipakai terbatas sampai jawabannya turun | Tercatat apa adanya pada roadmap, bukan didiamkan |
+| Kapabilitas dinyatakan dipakai terbatas sampai `FIN-OQ-044(b)` dijawab (`FIN-DEC-110`) | Tercatat apa adanya pada roadmap, bukan didiamkan |
 
 ## 40. Urutan pengiriman
 
 | Gelombang | Isi | Alasan urutan |
 |---|---|---|
 | `MVP-13D` | Dua tabel, migration, controller, service, dan ketiga layar (umur piutang Parkir/Tenant, daftar tagihan sewa, rincian) | Berdiri sendiri penuh — tidak bergantung pada gelombang `MVP-13A`..`13C` maupun sebaliknya |
-| `POST-MVP` | Penyambungan pelunasan sewa ke kas harian, setoran bank, dan kotak keluar Accounting | Tertahan `FIN-OQ-044`; menuntut ratifikasi kode kejadian oleh Accounting |
+| `POST-MVP` | Penyambungan pelunasan sewa ke kotak keluar Accounting (kejadian akuntansi) | Tertahan `FIN-OQ-044(b)`; menuntut ratifikasi kode kejadian oleh Accounting. Penyambungan ke kas harian dan setoran bank **dicabut** (`FIN-DEC-109`) |
 
 `EPIC FIN-19` **tidak** berstatus `OPEN DECISION` — seluruh keputusan bisnisnya sudah turun
 (`FIN-DEC-099`..`104`). `FIN-OQ-044` menahan **kelengkapan akuntansinya**, bukan pembangunan
@@ -1410,5 +1410,241 @@ kapabilitasnya, sehingga `MVP-13D` boleh berjalan.
 
 | ID | Memblokir | Keterangan |
 |---|---|---|
-| `FIN-OQ-044` | **Kelengkapan akuntansi `EPIC FIN-19`**, bukan pembangunannya | Uang sewa yang diterima belum tercatat sebagai kas masuk dan belum menerbitkan kejadian akuntansi. Tiga hal MUST diputuskan: (a) apakah pelunasan sewa masuk kas harian/setoran bank, dan lewat jalur apa mengingat `FinReceipt` tidak punya jalur manual; (b) kode kejadian akuntansi apa yang terbit untuk pendapatan sewa dan pelunasannya — **menuntut ratifikasi Accounting**, mengikuti pola `FIN-DEC-053`; (c) apakah rilis pertama boleh berjalan tanpa keduanya. Pemilik: Yasmin (Finance) untuk (a) dan (c); Rizki (Accounting) untuk (b) |
+| `FIN-OQ-044` | **Hanya bagian (b)** — kelengkapan akuntansi `EPIC FIN-19`, bukan pembangunannya | Dijawab 1 Oktober 2026: (a) pelunasan sewa **tidak** masuk kas harian/setoran bank, dikelola terpisah (`FIN-DEC-109`); (c) rilis pertama **boleh** berjalan dengan banner peringatan (`FIN-DEC-110`). **Masih terbuka:** (b) kode kejadian akuntansi untuk pendapatan sewa dan pelunasannya — **menuntut ratifikasi Accounting**, mengikuti pola `FIN-DEC-053`. Pemilik: Rizki (Accounting) |
 | ~~`FIN-OQ-043`~~ | — | **CLOSED 1 Oktober 2026** oleh `FIN-DEC-099`..`104` |
+
+---
+
+# Revisi 14 — Empat epic baru: jalur pengiriman, buku mutasi, cutover, dan pembayaran berkontrol
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-MVP-1.9` — status **`draft`** |
+| Naik dari | `FIN-MVP-1.8` (`approved` 1 Oktober 2026) |
+| Diturunkan dari | `FIN-DEC-111`..`137`; `FIN-DES-078`..`091`; `01-existing-capability-map.md` bagian 18 dan 19 |
+| Epic baru | `EPIC FIN-20`..`EPIC FIN-23` |
+
+## 42. Masalah produk yang diselesaikan revisi 14
+
+Tiga masalah, dan ketiganya ditemukan dengan membaca source, bukan dilaporkan pengguna:
+
+| # | Masalah | Akibat bila dibiarkan |
+|---:|---|---|
+| 1 | **Finance belum pernah mengirim apa pun ke Accounting.** Seluruh baris kotak keluar menumpuk `PENDING` karena tidak ada yang mengirimnya | Cutover Accounting tidak dapat terjadi. Seluruh pekerjaan kotak keluar sejak revisi 3 belum menghasilkan satu jurnal pun |
+| 2 | **Saldo yang dikirim tidak dapat dipertanggungjawabkan per tanggal.** Dua jalur mengubah saldo tanpa meninggalkan riwayat, dan saldo dihitung dari posisi *sekarang* | Rekonsiliasi toleransi nol Accounting gagal, dan sebabnya tidak dapat dilacak |
+| 3 | **Tagihan yang sudah berjalan sebelum go-live tidak punya tempat.** Kolomnya mewajibkan asal dari Billing | Piutang lama tidak dapat ditagih lewat sistem, dan saldo Finance berselisih tetap dari buku besar |
+
+## 43. Batas rilis revisi 14
+
+| Hal | Isi |
+|---|---|
+| **Titik mulai** | Keadaan hari ini: kotak keluar terisi tetapi tidak terkirim; saldo dihitung dari posisi sekarang; nol tempat bagi tagihan lama |
+| **Titik akhir** | Finance dapat menerbitkan saldo per akun control yang **dapat dihitung ulang untuk tanggal mana pun**, mengirimkannya otomatis ketika dinyalakan, dan menampung tagihan lama lewat batch yang direkonsiliasi |
+| **Pelaku sasaran** | Staf AR dan AP, petugas kas, penyiap dan penyetuju cutover, serta owner Accounting sebagai penerima |
+| **Di luar batas** | Aturan posting dan bagan akun; saldo dan rekonsiliasi rekening bank; kredensial akun layanan (G3); kode kejadian pendapatan sewa |
+
+## 44. `EPIC FIN-20` — Buku mutasi dan posisi saldo per tanggal
+
+| Field | Nilai |
+|---|---|
+| Kemampuan asal | `FIN-CAP-057` (`Missing`), `FIN-CAP-050`..`052` sebagiannya |
+| Disposisi menyeluruh | **`MISSING / NEW`** ditambah **`EXTEND`** pada jalur yang sudah ada |
+| Gelombang | **`MVP-14A`** — paling awal, karena seluruh epic lain bergantung padanya |
+
+| # | Functional requirement | Disposisi |
+|---:|---|---|
+| `FR-FIN-130` | Sistem mencatat setiap perubahan sisa piutang sebagai satu baris buku mutasi bertanggal WIB | `MISSING / NEW` |
+| `FR-FIN-131` | Sistem mencatat setiap perubahan sisa utang supplier dengan cara yang sama | `MISSING / NEW` |
+| `FR-FIN-132` | Sistem mencatat setiap kas masuk dan kas keluar sebagai satu baris buku mutasi kas | `MISSING / NEW` |
+| `FR-FIN-133` | Seluruh 17 jalur pengubah saldo pada `FIN-DES-079` menulis mutasi; nol jalur terlewat | `EXTEND` |
+| `FR-FIN-134` | Sistem dapat menyatakan posisi setiap kelompok saldo pada tanggal mana pun sejak tanggal cutover | `MISSING / NEW` |
+| `FR-FIN-135` | Sistem menolak menyatakan posisi untuk tanggal sebelum tanggal cutover | `MISSING / NEW` |
+| `FR-FIN-136` | Seluruh tanggal akuntansi dan batas periode memakai kalender WIB pada 21 titik | `EXTEND` |
+| `FR-FIN-137` | Posisi Kas Kasir dihitung dari buku mutasi kas, bukan dari rekap kas harian | `EXTEND` |
+| `FR-FIN-138` | Rekap kas harian dapat ditutup walaupun masih ada shift belum final | `EXTEND` |
+| `FR-FIN-139` | Sistem menampilkan selisih rekap kas harian terhadap posisi kas terhitung | `MISSING / NEW` |
+| `FR-FIN-140` | Petugas dapat melihat buku mutasi satu piutang, satu utang, dan buku kas | `MISSING / NEW` |
+
+**Prasyarat keras:** wewenang pembuatan dan eksekusi migration (`FIN-OQ-051`). Tanpa itu, epic ini
+tidak dapat dimulai.
+
+## 45. `EPIC FIN-21` — Pemetaan akun control dan saldo awal cutover
+
+| Field | Nilai |
+|---|---|
+| Kemampuan asal | `FIN-CAP-054` (`Missing`) |
+| Disposisi menyeluruh | **`MISSING / NEW`** |
+| Gelombang | **`MVP-14B`** |
+
+| # | Functional requirement | Disposisi |
+|---:|---|---|
+| `FR-FIN-141` | Petugas dapat memetakan setiap kelompok saldo, dan bila perlu setiap segmennya, ke satu kode akun control | `MISSING / NEW` |
+| `FR-FIN-142` | Snapshot menerbitkan satu baris saldo per akun control aktif, bukan tetap empat baris | `EXTEND` |
+| `FR-FIN-143` | Snapshot menolak terbit dan menerbitkan nol baris bila ada kelompok atau segmen yang belum terpetakan | `EXTEND` |
+| `FR-FIN-144` | Sistem menampilkan kelompok dan segmen yang belum terpetakan sebelum tanggal 1 tiba | `MISSING / NEW` |
+| `FR-FIN-145` | Saldo yang tidak wajar dikirim bertanda negatif, tidak dipotong ke nol | `EXTEND` |
+| `FR-FIN-146` | Petugas dapat mencatat saldo awal setiap kelompok, menyetujuinya, lalu menguncinya satu kali | `MISSING / NEW` |
+| `FR-FIN-147` | Saldo awal kelompok piutang, utang supplier, dan utang jasa medis wajib nol beserta alasan tertulis | `MISSING / NEW` |
+| `FR-FIN-148` | Saldo awal yang terkunci tidak dapat diubah siapa pun | `MISSING / NEW` |
+| `FR-FIN-149` | Saldo utang jasa medis dikirim bernilai `0.00`, bukan dihilangkan | `EXTEND` |
+
+**Catatan isi:** daftar kode akun control definitif **menunggu G2** milik Accounting. Epic ini dapat
+dibangun dan diuji dengan nilai sementara; **mengisinya** menunggu Accounting.
+
+## 46. `EPIC FIN-22` — Jalur pengiriman ke Accounting
+
+| Field | Nilai |
+|---|---|
+| Kemampuan asal | `FIN-CAP-050`, `FIN-CAP-051`, `FIN-CAP-052` (ketiganya `Missing`) |
+| Disposisi menyeluruh | **`MISSING / NEW`** |
+| Gelombang | **`MVP-14C`** |
+| Menggantikan | `EPIC FIN-12` yang ditunda sejak revisi awal — dibuka kembali `FIN-DEC-118` |
+
+| # | Functional requirement | Disposisi |
+|---:|---|---|
+| `FR-FIN-150` | Sistem mengirim baris kotak keluar berstatus menunggu ke kotak masuk Accounting secara berkala | `MISSING / NEW` |
+| `FR-FIN-151` | Pengiriman mati secara bawaan; menyalakannya menuntut konfigurasi eksplisit | `MISSING / NEW` |
+| `FR-FIN-152` | Pengiriman melewati kode yang belum diratifikasi Accounting, termasuk ketiga penanda shift | `MISSING / NEW` |
+| `FR-FIN-153` | Setiap percobaan kirim tercatat beserta hasilnya; kegagalan dicoba ulang pada siklus berikutnya | `MISSING / NEW` |
+| `FR-FIN-154` | Snapshot saldo periode sebelumnya terbit otomatis tanggal 1 pukul 00.05 WIB | `MISSING / NEW` |
+| `FR-FIN-155` | Sistem menerbitkan ulang saldo yang berubah dengan versi lebih tinggi, hanya untuk akun yang berubah | `MISSING / NEW` |
+| `FR-FIN-156` | Penanda shift terbit otomatis tanpa seseorang menekan tombol | `MISSING / NEW` |
+| `FR-FIN-157` | Sistem menerbitkan penanda pembukaan shift untuk setiap shift yang belum final | `MISSING / NEW` |
+| `FR-FIN-158` | Kejadian penerimaan kasir membawa nomor shift dan metode pembayaran | `EXTEND` |
+| `FR-FIN-159` | Kejadian pembalik membawa shift saat pembalikan beserta rujukan kuitansi aslinya | `EXTEND` |
+
+**Dua gerbang yang membatasi, dan keduanya tidak menahan pembangunan:**
+
+| Gerbang | Yang tertahan |
+|---|---|
+| `FIN-OQ-045` (Accounting menyetujui `FIN-DEC-111`) | **Pengaktifan** dimensi shift dan metode sebagai kontrak, bukan pengirimannya |
+| `FIN-OQ-047` (ratifikasi `PEMBUKAAN-SHIFT-KASIR`) | **Pengiriman** ketiga penanda shift |
+| Kredensial akun layanan (G3) | **Pengaktifan** pengiriman di lingkungan nyata |
+
+## 47. `EPIC FIN-23` — Pembayaran langsung berkontrol — **`OPEN DECISION`**
+
+| Field | Nilai |
+|---|---|
+| Kemampuan asal | `FIN-CAP-053` (`Extend`), bukti pembayaran (`Missing`) |
+| Disposisi menyeluruh | **`OPEN DECISION`** |
+| Gelombang | **Di luar seluruh gelombang** |
+| Yang membuatnya terbuka | `FIN-OQ-075` — jenis dan ukuran berkas bukti, lama simpan, siapa boleh melihat dan menggantinya. `FIN-DEC-126` membuat bukti **wajib**, sehingga tanpa aturan berkas, jalur pembayaran langsung tidak dapat dinyalakan |
+
+| # | Functional requirement | Disposisi |
+|---:|---|---|
+| `FR-FIN-160` | Pembayaran langsung piutang dan utang menerima tunai maupun non-tunai dengan satu mekanisme | `OPEN DECISION` |
+| `FR-FIN-161` | Metode, sumber dana, nomor rujukan, dan bukti wajib disimpan | `OPEN DECISION` |
+| `FR-FIN-162` | Pembayaran tunai menambah atau mengurangi Kas Kasir; anggaran kas kecil tidak tersentuh | `OPEN DECISION` |
+| `FR-FIN-163` | Pembayaran di atas ambang ditolak dan diarahkan ke jalur berjenjang | `OPEN DECISION` |
+| `FR-FIN-164` | Tanpa ambang aktif, seluruh pembayaran langsung ditolak | `OPEN DECISION` |
+| `FR-FIN-165` | Pejabat berwenang dapat mengubah ambang beserta alasan yang wajib | `OPEN DECISION` |
+| `FR-FIN-166` | Metode dan sumber dana diteruskan ke Accounting | `OPEN DECISION` |
+
+**Perlakuan sementara selama epic ini tertahan.** Jalur pembayaran langsung **tetap berjalan seperti
+sekarang**: ia menerima metode lalu mengabaikannya, dan tidak punya ambang. Yang **sudah** berubah
+sejak `EPIC FIN-20` adalah ia mulai menulis buku mutasi — sehingga posisi saldo tetap benar walaupun
+kontrolnya belum ada. Petugas **tidak** kehilangan pekerjaan yang selama ini dapat dilakukan.
+
+**Risiko yang berjalan selama itu, dicatat terbuka:** pembayaran langsung masih tanpa batas nilai dan
+tanpa bukti. `FIN-OQ-074` (angka ambang) ikut tertahan, tetapi ia **bukan** penyebab epic ini
+terbuka — ia data konfigurasi yang dapat diisi kapan saja sesudah tabelnya ada.
+
+## 48. `EPIC FIN-24` — Migrasi tagihan lama — **`OPEN DECISION`**
+
+| Field | Nilai |
+|---|---|
+| Kemampuan asal | Mekanisme impor (`Missing`), `FinReceivable` (`Repair`) |
+| Disposisi menyeluruh | **`OPEN DECISION`** |
+| Gelombang | **Di luar seluruh gelombang** |
+| Yang membuatnya terbuka | `FIN-OQ-077` — penambahan paket pembaca spreadsheet, yang **belum ada di proyek** dan menuntut wewenang eksplisit menurut `AGENTS.md` |
+
+| # | Functional requirement | Disposisi |
+|---:|---|---|
+| `FR-FIN-167` | Petugas dapat mengunduh templat spreadsheet per jenis tagihan | `OPEN DECISION` |
+| `FR-FIN-168` | Petugas dapat mengunggah tagihan lama, dan sistem memvalidasi setiap baris | `OPEN DECISION` |
+| `FR-FIN-169` | Batch tidak dapat disetujui bila total sisanya berbeda dari saldo awal Accounting yang dinyatakan | `OPEN DECISION` |
+| `FR-FIN-170` | Persetujuan batch melahirkan item tagihan beserta mutasi pembukanya dalam satu transaksi | `OPEN DECISION` |
+| `FR-FIN-171` | Item migrasi tidak menerbitkan kejadian akuntansi apa pun | `OPEN DECISION` |
+| `FR-FIN-172` | Sesudah diposting, item migrasi mengikuti proses penagihan, pelunasan, umur piutang, dan snapshot yang normal | `OPEN DECISION` |
+| `FR-FIN-173` | Piutang non-migrasi tetap wajib berasal dari serah terima Billing | `OPEN DECISION` |
+
+**Perlakuan sementara selama epic ini tertahan.** Tagihan lama **tidak** dapat ditagih lewat sistem.
+Penagihannya berjalan di luar sistem seperti sekarang, dan saldo Finance akan **berselisih tetap**
+dari buku besar sebesar saldo awal piutang dan utang. Selisih itu **MUST** dijelaskan Accounting
+secara manual setiap bulan sampai epic ini jalan — dan itulah biaya langsung dari menundanya.
+
+**`FIN-OQ-076`** (jumlah tagihan lama) ikut tertahan dan menentukan batas baris per unggahan. Ia
+**bukan** penyebab epic ini terbuka.
+
+## 49. Skenario UAT revisi 14
+
+Satu jalur berhasil dan satu jalur gagal untuk setiap epic `MUST HAVE`. Rinciannya pada
+`testing/acceptance-test-matrix.md` bagian `I`.
+
+| Epic | UAT berhasil | UAT gagal |
+|---|---|---|
+| `FIN-20` | Dua pembayaran piutang, 30 September dan 1 Oktober; posisi periode September hanya memuat yang pertama | Posisi diminta untuk tanggal sebelum cutover → ditolak beserta keterangan, bukan angka nol |
+| `FIN-20` | Shift malam ditutup pagi berikutnya; posisi September berubah dan dinyatakan ulang | Sinkronisasi penanda shift berjalan dua kali; kas shift **tidak** tercatat dua kali |
+| `FIN-21` | Enam pemetaan aktif menghasilkan enam baris saldo, satu di antaranya negatif dan terkirim negatif | Satu segmen piutang belum terpetakan → snapshot ditolak, **nol** baris outbox |
+| `FIN-21` | Saldo awal kas dicatat, disetujui, dikunci; posisi tanggal cutover sama dengan nominalnya | Saldo awal kelompok piutang diisi selain nol → ditolak |
+| `FIN-22` | Snapshot terbit otomatis tanggal 1 pukul 00.05 WIB tanpa dipicu manual | Kotak masuk Accounting menjawab galat → baris menjadi gagal beserta catatan percobaan, dicoba ulang siklus berikutnya |
+| `FIN-22` | Shift `CLOSED_WITH_VARIANCE` yang belum pernah terlihat menerbitkan penanda pembukaan | Penanda shift **tidak** terkirim selama G6 belum siap; barisnya tetap menunggu |
+
+`EPIC FIN-23` dan `EPIC FIN-24` berstatus `OPEN DECISION` dan karena itu **tidak** memiliki skenario
+UAT pada revisi ini.
+
+## 50. Definition of Done revisi 14
+
+Setiap butir dapat dijawab "ya" atau "belum" beserta buktinya.
+
+| # | Butir | Bukti yang diminta |
+|---:|---|---|
+| 1 | Seluruh 17 jalur pengubah saldo menulis buku mutasi | 17 kasus test lulus, satu per jalur |
+| 2 | Invariant saldo buku mutasi terjaga | Test yang membandingkan `BalanceAfter` terakhir terhadap sisa agregat lulus |
+| 3 | Posisi saldo dapat dihitung untuk tanggal mana pun sejak cutover | Test posisi per tanggal lulus |
+| 4 | Posisi sebelum cutover ditolak, bukan dijawab nol | Test penolakan lulus |
+| 5 | 21 titik tanggal memakai WIB | Daftar 21 titik beserta test yang membuktikan tiap kelompoknya |
+| 6 | Snapshot menerbitkan satu baris per akun control, dan gagal tertutup bila pemetaan tidak lengkap | Dua test lulus: cakupan lengkap dan cakupan sebagian |
+| 7 | Saldo negatif terkirim apa adanya | Test lulus; `Math.Max` sudah tidak ada di source |
+| 8 | Saldo awal dapat dikunci sekali dan tidak dapat diubah | Test lulus |
+| 9 | Ketiga hosted service terdaftar dan **mati** secara bawaan | Satu baris log per service pada lingkungan tanpa konfigurasi |
+| 10 | Pengiriman melewati kode yang digerbang | Test lulus; baris penanda tetap menunggu |
+| 11 | Snapshot otomatis tidak menggandakan baris bila dijalankan dua kali | Test idempotensi lulus |
+| 12 | Baris piutang dan utang yang sudah ada tetap sah sesudah migration | Pemeriksaan atas data yang ada: nol baris melanggar check constraint baru |
+| 13 | Idempotensi intake Billing tetap terjaga sesudah index diganti filternya | Test sinkron ganda lulus |
+| 14 | Layar pembayaran langsung disesuaikan **sebelum atau bersamaan** dengan backend | Urutan rilis tercatat; tidak ada jeda ketika layar lama memanggil kontrak baru |
+| 15 | `dotnet build` lulus tanpa galat | Keluaran build |
+| 16 | Wewenang migration diminta dan diberikan terpisah | Pernyataan pemilik, bukan asumsi |
+
+## 51. Urutan pengiriman revisi 14
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| **`MVP-14A`** | `EPIC FIN-20` — buku mutasi, posisi per tanggal, WIB, Kas Kasir | Wewenang migration (`FIN-OQ-051`) |
+| **`MVP-14B`** | `EPIC FIN-21` — pemetaan akun control dan saldo awal cutover | `MVP-14A` selesai; wewenang migration |
+| **`MVP-14C`** | `EPIC FIN-22` — worker pengiriman, penjadwal snapshot, pemicu penanda shift | `MVP-14B` selesai. Pengaktifannya menunggu G3 dan `FIN-OQ-047` |
+| **`POST-MVP`** | `EPIC FIN-23`, `EPIC FIN-24` | **Di luar gelombang.** Keduanya `OPEN DECISION` |
+
+Urutan ini bukan pilihan gaya: `MVP-14C` mengirim saldo yang bentuknya ditentukan `MVP-14B`, dan
+`MVP-14B` menghitung dari buku mutasi yang dibangun `MVP-14A`. Membaliknya berarti mengirim angka
+yang belum dapat dipertanggungjawabkan.
+
+## 52. Pertanyaan terbuka sebelum development lock — revisi 14
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-051` | Wewenang pembuatan dan eksekusi empat migration | Yasmin | **MEMBLOKIR** `MVP-14A` dan `MVP-14B` |
+| `FIN-OQ-077` | Penambahan paket pembaca spreadsheet | Yasmin | **MEMBLOKIR** `EPIC FIN-24` |
+| `FIN-OQ-075` | Aturan berkas bukti | Yasmin | **MEMBLOKIR** `EPIC FIN-23` |
+| `FIN-OQ-045` | Accounting menyetujui dimensi shift dan metode | Rizki | Pengaktifan kontrak, bukan pembangunan |
+| `FIN-OQ-047` | Ratifikasi `PEMBUKAAN-SHIFT-KASIR` | Rizki | Pengiriman penanda shift |
+| `FIN-OQ-048` | Accounting menerima konvensi tanggal WIB | Rizki | Tidak memblokir |
+| `FIN-OQ-074` | Angka ambang | Yasmin | Data konfigurasi |
+| `FIN-OQ-076` | Jumlah tagihan lama | Yasmin | `DESIGN` batas baris unggahan |
+| `FIN-OQ-079` | Penempatan tujuh butir menu baru | Yasmin | Penempatan menu, bukan pembangunan layar |
+| `FIN-OQ-080` | Apakah ambang ditampilkan kepada staf | Yasmin | `DESIGN` dua layar |
+| `FIN-OQ-078` | Apakah Accounting kelak menyediakan jalur baca saldo awal | Rizki | Tidak memblokir; rilis ini memakai angka yang dinyatakan |
+| `FIN-OQ-057`, `065`, `069` | Saldo negatif selain Kas Kasir; migrasi utang jasa medis; migrasi piutang sewa | Yasmin | Tidak memblokir |
+
+Dokumen ini **MUST NOT** diteruskan ke `/plan-module-delivery` sebelum `FIN-OQ-051` dijawab, karena
+ketiga gelombang bergantung pada wewenang migration.

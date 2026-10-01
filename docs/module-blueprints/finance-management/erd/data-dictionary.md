@@ -2041,3 +2041,470 @@ CREATE TABLE public."FinNonPatientReceivableSettlement" (
 CREATE INDEX "IX_FinNonPatientReceivableSettlement_NonPatientReceivableId"
     ON public."FinNonPatientReceivableSettlement" ("NonPatientReceivableId");
 ```
+
+---
+
+# Revisi 14 — Kamus data tabel baru dan tabel yang diperbarui
+
+Seluruh tabel di bawah mewarisi `IdentityModel`; sepuluh kolom auditnya tidak diulang di sini
+(lihat kepala dokumen). Penghapusan bersifat penandaan lewat `IsDelete`.
+
+Turunan `FIN-DES-078`..`FIN-DES-091`. Delapan tabel `Baru`, dua tabel `Diperbarui`.
+
+## R14.1 `FinReceivableMovement` — `Baru`
+
+Buku mutasi piutang. Lokasi model:
+`Areas/Corporate/FinanceManagement/Receivable/Models/FinReceivableMovement.cs`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `ReceivableId` | `Guid` | Ya | — | Index | FK ke `FinReceivable` | `Restrict` | Tidak | Induk piutang |
+| `MovementType` | `string(30)` | Ya | — | Index | — | — | Tidak | Sembilan nilai; lihat `erd/receivable-collection.md` |
+| `Amount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | **Bertanda**: positif menaikkan sisa, negatif menurunkannya |
+| `BalanceBefore` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Sisa piutang sebelum mutasi |
+| `BalanceAfter` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Sisa sesudah mutasi; `MUST` sama dengan `BalanceBefore + Amount` |
+| `BusinessDate` | `DateOnly` | Ya | — | Index | — | — | Tidak | **Tanggal WIB** — dasar perhitungan posisi per tanggal |
+| `OccurredAt` | `DateTimeOffset` | Ya | — | — | — | — | Tidak | Tanda waktu kejadian, tetap UTC |
+| `SourceAllocationId` | `Guid?` | Tidak | — | Index | Rujukan `FinReceiptAllocation`, **bukan** FK | — | Tidak | Terisi untuk mutasi alokasi dan potongan |
+| `PaymentMethodCode` | `string(30)?` | Tidak | — | Index | — | — | Tidak | Terisi hanya untuk `PEMBAYARAN-LANGSUNG`; `TRANSFER` atau `CASH` |
+| `FundingSourceType` | `string(30)?` | Tidak | — | — | — | — | Tidak | `BANK_ACCOUNT` atau `CASH`; wajib bila `PaymentMethodCode` terisi |
+| `FundingSourceId` | `Guid?` | Tidak | — | — | Rujukan `MstBankAccount`, **bukan** FK | — | Tidak | Kosong bila sumber dananya kas |
+| `ReferenceNumber` | `string(100)?` | Tidak | — | — | — | — | Tidak | Nomor rujukan transfer atau kuitansi |
+| `ProofId` | `Guid?` | Tidak | — | **Unique** (parsial) | FK ke `FinTransactionProof` | `Restrict` | Tidak | Satu bukti **MUST NOT** dipakai dua mutasi |
+| `OpeningItemBatchId` | `Guid?` | Tidak | — | Index | Rujukan `FinOpeningItemBatch`, **bukan** FK | — | Tidak | Terisi hanya untuk `PEMBUKAAN-MIGRASI` |
+| `Notes` | `string(500)?` | Tidak | — | — | — | — | **Ya** | Catatan petugas; dapat memuat nama pihak ketiga |
+| `CorrelationId` | `Guid` | Ya | — | Index | — | — | Tidak | Penelusuran lintas kejadian |
+| `CausationId` | `Guid` | Ya | — | — | — | — | Tidak | Penyebab langsung |
+
+Aturan tambahan: baris **tidak pernah diubah atau dihapus**; koreksi menambah baris.
+
+## R14.2 `FinSupplierPayableMovement` — `Baru`
+
+Lokasi model: `Areas/Corporate/FinanceManagement/Payable/Models/FinSupplierPayableMovement.cs`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `SupplierPayableId` | `Guid` | Ya | — | Index | FK ke `FinSupplierPayable` | `Restrict` | Tidak | Induk utang |
+| `MovementType` | `string(30)` | Ya | — | Index | — | — | Tidak | Lima nilai; lihat `erd/payable.md` |
+| `Amount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Bertanda, sama seperti mutasi piutang |
+| `BalanceBefore` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | — |
+| `BalanceAfter` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | `MUST` sama dengan `BalanceBefore + Amount` |
+| `BusinessDate` | `DateOnly` | Ya | — | Index | — | — | Tidak | **Tanggal WIB**; untuk pembayaran dokumen disalin dari `FinPayment.ApprovedAt` |
+| `OccurredAt` | `DateTimeOffset` | Ya | — | — | — | — | Tidak | UTC |
+| `PaymentId` | `Guid?` | Tidak | — | Index | Rujukan `FinPayment`, **bukan** FK | — | Tidak | Terisi untuk `PEMBAYARAN-DOKUMEN` |
+| `PaymentAllocationId` | `Guid?` | Tidak | — | Index | Rujukan `FinPaymentAllocation`, **bukan** FK | — | Tidak | Satu baris per alokasi |
+| `PaymentMethodCode` | `string(30)?` | Tidak | — | Index | — | — | Tidak | `TRANSFER` atau `CASH` |
+| `FundingSourceType` | `string(30)?` | Tidak | — | — | — | — | Tidak | `BANK_ACCOUNT` atau `CASH` |
+| `FundingSourceId` | `Guid?` | Tidak | — | — | Rujukan `MstBankAccount`, **bukan** FK | — | Tidak | — |
+| `ReferenceNumber` | `string(100)?` | Tidak | — | — | — | — | Tidak | — |
+| `ProofId` | `Guid?` | Tidak | — | **Unique** (parsial) | FK ke `FinTransactionProof` | `Restrict` | Tidak | — |
+| `OpeningItemBatchId` | `Guid?` | Tidak | — | Index | Rujukan `FinOpeningItemBatch`, **bukan** FK | — | Tidak | Terisi hanya untuk `PEMBUKAAN-MIGRASI` |
+| `Notes` | `string(500)?` | Tidak | — | — | — | — | **Ya** | Dapat memuat keterangan supplier |
+| `CorrelationId` | `Guid` | Ya | — | Index | — | — | Tidak | — |
+| `CausationId` | `Guid` | Ya | — | — | — | — | Tidak | — |
+
+## R14.3 `FinCashMovement` — `Baru`
+
+Lokasi model: `Areas/Corporate/FinanceManagement/CashManagement/Models/FinCashMovement.cs`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `MovementType` | `string(40)` | Ya | — | **Unique** gabungan | — | — | Tidak | Tujuh nilai; lihat `erd/cash-and-master-data.md` |
+| `Direction` | `string(3)` | Ya | — | Index | — | — | Tidak | `IN` atau `OUT` |
+| `Amount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | **Selalu positif**; arahnya dibawa `Direction` |
+| `BusinessDate` | `DateOnly` | Ya | — | Index | — | — | Tidak | **Tanggal WIB** — dasar posisi kas per tanggal |
+| `OccurredAt` | `DateTimeOffset` | Ya | — | — | — | — | Tidak | UTC |
+| `SourceReferenceType` | `string(40)` | Ya | — | **Unique** gabungan | — | — | Tidak | `CASHIER_SHIFT`, `BANK_DEPOSIT`, `RECEIVABLE_MOVEMENT`, `PAYABLE_MOVEMENT`, `PAYMENT`, `OPENING_BALANCE` |
+| `SourceReferenceId` | `string(100)` | Ya | — | **Unique** gabungan | — | — | Tidak | Id atau nomor sumbernya sebagai teks, karena sumbernya melintasi tabel dan modul |
+| `CashierShiftId` | `Guid?` | Tidak | — | Index | Rujukan `BilCashierShift` milik **Billing**, **bukan** FK | — | Tidak | Terisi untuk `KAS-SHIFT` |
+| `PaymentMethodCode` | `string(30)?` | Tidak | — | — | — | — | Tidak | Terisi untuk mutasi yang lahir dari pembayaran |
+| `Notes` | `string(500)?` | Tidak | — | — | — | — | **Ya** | — |
+| `CorrelationId` | `Guid` | Ya | — | Index | — | — | Tidak | — |
+| `CausationId` | `Guid` | Ya | — | — | — | — | Tidak | — |
+
+Unique index gabungan (`SourceReferenceType`, `SourceReferenceId`, `MovementType`) berfilter
+`IsDelete = false` adalah **inti idempotensi** buku ini.
+
+## R14.4 `FinSubledgerControlAccountMap` — `Baru`
+
+Lokasi model:
+`Areas/Corporate/FinanceManagement/AccountingIntegration/Models/FinSubledgerControlAccountMap.cs`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `BalanceGroup` | `string(30)` | Ya | — | **Unique** gabungan | — | — | Tidak | `KAS-KASIR`, `KAS-KECIL`, `PIUTANG`, `UTANG-SUPPLIER`, `UTANG-JASA-MEDIS` |
+| `SegmentKey` | `string(40)?` | Tidak | `NULL` | **Unique** gabungan | — | — | Tidak | `NULL` berarti satu akun menanggung seluruh kelompok |
+| `ControlAccountCode` | `string(50)` | Ya | — | **Unique** (parsial, baris aktif) | — | — | Tidak | Kode akun milik Accounting, disimpan sebagai teks |
+| `IsActive` | `bool` | Ya | `true` | Index | — | — | Tidak | Baris tidak aktif disimpan sebagai riwayat pemetaan |
+| `Notes` | `string(300)?` | Tidak | — | — | — | — | Tidak | Misalnya rujukan surat bagan akun Accounting |
+
+## R14.5 `FinOpeningBalance` — `Baru`
+
+Lokasi model:
+`Areas/Corporate/FinanceManagement/AccountingIntegration/Models/FinOpeningBalance.cs`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `BalanceGroup` | `string(30)` | Ya | — | **Unique** (parsial, baris aktif) | — | — | Tidak | Lima nilai, sama dengan tabel pemetaan |
+| `Amount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | `PIUTANG`, `UTANG-SUPPLIER`, dan `UTANG-JASA-MEDIS` **MUST** `0.00` |
+| `CutoverDate` | `DateOnly` | Ya | — | Index | — | — | Tidak | Tanggal mulai perhitungan posisi; snapshot menolak periode yang berakhir sebelumnya |
+| `Status` | `string(20)` | Ya | `DRAFT` | Index | — | — | Tidak | `DRAFT`, `APPROVED`, `LOCKED` |
+| `Reason` | `string(500)` | Ya | — | — | — | — | Tidak | **Wajib** — termasuk alasan nilai nol pada kelompok item migrasi |
+| `AccountingReferenceDocument` | `string(200)` | Ya | — | — | — | — | Tidak | Rujukan dokumen saldo awal manual Accounting (G5) |
+| `ApprovedBy` | `Guid?` | Tidak | — | — | — | — | Tidak | Terisi saat `APPROVED` |
+| `ApprovedAt` | `DateTimeOffset?` | Tidak | — | — | — | — | Tidak | — |
+| `LockedAt` | `DateTimeOffset?` | Tidak | — | — | — | — | Tidak | Sesudah terisi, baris **MUST NOT** berubah |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Concurrency token |
+
+## R14.6 `FinOpeningItemBatch` — `Baru`
+
+Lokasi model:
+`Areas/Corporate/FinanceManagement/AccountingIntegration/Models/FinOpeningItemBatch.cs`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `BatchNumber` | `string(50)` | Ya | — | **Unique** | — | — | Tidak | Pola tanggal + GUID, mengikuti rumpun ini |
+| `ItemKind` | `string(30)` | Ya | — | Index | — | — | Tidak | `RECEIVABLE` atau `SUPPLIER_PAYABLE`; **tidak** dicampur dalam satu batch |
+| `Status` | `string(20)` | Ya | `DRAFT` | Index | — | — | Tidak | `DRAFT`, `VALIDATED`, `APPROVED`, `LOCKED`, `REJECTED` |
+| `CutoverDate` | `DateOnly` | Ya | — | — | — | — | Tidak | `MUST` sama dengan `CutoverDate` pada `FinOpeningBalance` |
+| `TotalItemCount` | `int` | Ya | `0` | — | — | — | Tidak | Hasil validasi |
+| `TotalOutstandingAmount` | `decimal(18,2)` | Ya | `0` | — | — | — | Tidak | Jumlah sisa seluruh baris yang lolos validasi |
+| `DeclaredAccountingOpeningAmount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Angka yang **dinyatakan petugas** dari dokumen Accounting (`FIN-DES-090`) |
+| `AccountingReferenceDocument` | `string(200)` | Ya | — | — | — | — | Tidak | Wajib sebelum `APPROVED` |
+| `UploadedFileName` | `string(260)` | Ya | — | — | — | — | Tidak | Nama berkas asli yang diunggah |
+| `ValidationSummaryJson` | `text?` | Tidak | — | — | — | — | **Ya** | Hasil validasi per baris; dapat memuat nama debitur atau supplier |
+| `RejectionReason` | `string(500)?` | Tidak | — | — | — | — | Tidak | Wajib bila `REJECTED` |
+| `ApprovedBy` | `Guid?` | Tidak | — | — | — | — | Tidak | — |
+| `ApprovedAt` | `DateTimeOffset?` | Tidak | — | — | — | — | Tidak | — |
+| `LockedAt` | `DateTimeOffset?` | Tidak | — | — | — | — | Tidak | — |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | — |
+
+## R14.7 `FinTransactionProof` — `Baru`
+
+Lokasi model: `Areas/Corporate/FinanceManagement/Collection/Models/FinTransactionProof.cs`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Dipakai sebagai `ProofId` pada mutasi |
+| `ProofType` | `string(30)` | Ya | — | Index | — | — | Tidak | Misalnya `BUKTI-TRANSFER`, `KUITANSI` |
+| `OriginalFileName` | `string(260)` | Ya | — | — | — | — | Tidak | Nama berkas dari pengguna |
+| `StoredFileName` | `string(260)` | Ya | — | **Unique** | — | — | Tidak | Nama hasil penormalan, mencegah tabrakan |
+| `RelativePath` | `string(500)` | Ya | — | — | — | — | Tidak | Relatif terhadap `FileStorage:UploadRootPath`; **MUST** divalidasi berada di bawah akarnya |
+| `MediaType` | `string(100)` | Ya | — | — | — | — | Tidak | Jenis yang diterima menunggu `FIN-OQ-075` |
+| `SizeBytes` | `long` | Ya | — | — | — | — | Tidak | Batas ukuran menunggu `FIN-OQ-075` |
+| `UploadedBy` | `Guid` | Ya | — | Index | — | — | Tidak | — |
+| `UploadedAt` | `DateTimeOffset` | Ya | — | — | — | — | Tidak | — |
+
+Berkasnya **tidak** disimpan di database. Isi berkas bukti dapat memuat data pihak ketiga, sehingga
+jalur unduhnya **MUST** dijaga hak akses dan **MUST NOT** dicatat logger beserta isinya.
+
+## R14.8 `MstDirectPaymentThreshold` — `Baru`
+
+Lokasi model: `Areas/Corporate/FinanceManagement/MasterData/Models/MstDirectPaymentThreshold.cs`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `Amount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Ambang rupiah; **nilai awalnya belum ditetapkan** (`FIN-OQ-074`) |
+| `ChangeReason` | `string(500)` | Ya | — | — | — | — | Tidak | **Wajib** setiap kali diubah (`FIN-DEC-134`) |
+| `IsActive` | `bool` | Ya | `true` | **Unique** (parsial, hanya `true`) | — | — | Tidak | Satu baris aktif saja |
+| `EffectiveFrom` | `DateOnly` | Ya | — | — | — | — | Tidak | Tanggal mulai berlaku |
+
+Tanpa baris aktif, seluruh pembayaran langsung **ditolak** — perilaku yang disengaja.
+
+## R14.9 `FinReceivable` — `Diperbarui`
+
+Lokasi model: `Areas/Corporate/FinanceManagement/Receivable/Models/FinReceivable.cs`
+Configuration: `Repositories/Configurations/Corporate/FinanceManagement/Receivable/FinReceivableConfiguration.cs`
+
+**Hanya kolom yang berubah dan kolom kunci** yang ditulis di sini; kolom lainnya tidak berubah dan
+sudah tercatat pada kamus data revisi sebelumnya.
+
+| Kolom | Tipe sesudah | Wajib | Index | Perubahan | Sensitif |
+|---|---|:---:|---|---|:---:|
+| `SourceHandoffKey` | `Guid?` | **Tidak** (dulu Ya) | Unique, filter ditambah `IS NOT NULL` | **Menjadi nullable** | Tidak |
+| `SourceHandoffId` | `Guid?` | **Tidak** (dulu Ya) | — | **Menjadi nullable** | Tidak |
+| `InvoiceId` | `Guid?` | **Tidak** (dulu Ya) | Index | **Menjadi nullable** | Tidak |
+| `OpeningItemBatchId` | `Guid?` | Tidak | Index | **Kolom baru**, FK ke `FinOpeningItemBatch`, `Restrict` | Tidak |
+| `DebtorType` | `string(30)` | Ya | — | **Tidak berubah** — item migrasi tetap memakai tiga jenis yang sama | Tidak |
+| `OutstandingAmount` | `decimal(18,2)` | Ya | — | Tidak berubah; `CK_FinReceivable_Outstanding >= 0` **tetap** | Tidak |
+
+Check constraint **baru** `CK_FinReceivable_OpeningItem`:
+
+```text
+(  "SourceHandoffKey" IS NOT NULL AND "SourceHandoffId" IS NOT NULL
+   AND "InvoiceId" IS NOT NULL   AND "OpeningItemBatchId" IS NULL )
+OR
+(  "SourceHandoffKey" IS NULL     AND "SourceHandoffId" IS NULL
+   AND "InvoiceId" IS NULL        AND "OpeningItemBatchId" IS NOT NULL )
+```
+
+Artinya invariant "piutang pasien wajib berasal dari serah terima Billing" **tetap ditegakkan
+database**, hanya kini bersyarat pada jenis barisnya.
+
+## R14.10 `FinSupplierPayable` — `Diperbarui`
+
+| Kolom | Tipe sesudah | Wajib | Index | Perubahan | Sensitif |
+|---|---|:---:|---|---|:---:|
+| `OpeningItemBatchId` | `Guid?` | Tidak | Index | **Kolom baru**, FK ke `FinOpeningItemBatch`, `Restrict` | Tidak |
+
+Nol kolom lain berubah. `SupplierId` **tetap wajib**, sehingga setiap item migrasi utang **MUST**
+menunjuk supplier yang sudah ada di master — dijaga FK yang sudah ada, dan menjadi salah satu
+pemeriksaan validasi batch.
+
+---
+
+# Revisi 14 — Bentuk DDL
+
+> **Peringatan.** Basis data project ini dibentuk EF Core Migrations, bukan skrip SQL manual. DDL di
+> bawah adalah **dokumentasi bentuk tabel**, **bukan** skrip untuk dijalankan. Menjalankannya akan
+> berbenturan dengan migration. Kolom audit `IdentityModel` tidak ditulis ulang.
+
+```sql
+-- Bentuk tabel sebagaimana dihasilkan EF Core. Bukan skrip untuk dijalankan.
+
+CREATE TABLE public."FinReceivableMovement" (
+    "Id"                   uuid           NOT NULL,
+    "ReceivableId"         uuid           NOT NULL,
+    "MovementType"         varchar(30)    NOT NULL,
+    "Amount"               numeric(18,2)  NOT NULL,
+    "BalanceBefore"        numeric(18,2)  NOT NULL,
+    "BalanceAfter"         numeric(18,2)  NOT NULL,
+    "BusinessDate"         date           NOT NULL,
+    "OccurredAt"           timestamptz    NOT NULL,
+    "SourceAllocationId"   uuid,
+    "PaymentMethodCode"    varchar(30),
+    "FundingSourceType"    varchar(30),
+    "FundingSourceId"      uuid,
+    "ReferenceNumber"      varchar(100),
+    "ProofId"              uuid,
+    "OpeningItemBatchId"   uuid,
+    "Notes"                varchar(500),          -- SENSITIF
+    "CorrelationId"        uuid           NOT NULL,
+    "CausationId"          uuid           NOT NULL,
+    CONSTRAINT "PK_FinReceivableMovement" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_FinReceivableMovement_FinReceivable_ReceivableId"
+        FOREIGN KEY ("ReceivableId") REFERENCES public."FinReceivable" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_FinReceivableMovement_FinTransactionProof_ProofId"
+        FOREIGN KEY ("ProofId") REFERENCES public."FinTransactionProof" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "CK_FinReceivableMovement_Balance"
+        CHECK ("BalanceAfter" = "BalanceBefore" + "Amount"),
+    CONSTRAINT "CK_FinReceivableMovement_FundingSource"
+        CHECK ("PaymentMethodCode" IS NULL OR "FundingSourceType" IS NOT NULL)
+);
+
+CREATE INDEX "IX_FinReceivableMovement_ReceivableId_BusinessDate"
+    ON public."FinReceivableMovement" ("ReceivableId", "BusinessDate");
+CREATE INDEX "IX_FinReceivableMovement_BusinessDate"
+    ON public."FinReceivableMovement" ("BusinessDate");
+CREATE UNIQUE INDEX "IX_FinReceivableMovement_ProofId"
+    ON public."FinReceivableMovement" ("ProofId")
+    WHERE "ProofId" IS NOT NULL AND "IsDelete" = false;
+
+CREATE TABLE public."FinSupplierPayableMovement" (
+    "Id"                   uuid           NOT NULL,
+    "SupplierPayableId"    uuid           NOT NULL,
+    "MovementType"         varchar(30)    NOT NULL,
+    "Amount"               numeric(18,2)  NOT NULL,
+    "BalanceBefore"        numeric(18,2)  NOT NULL,
+    "BalanceAfter"         numeric(18,2)  NOT NULL,
+    "BusinessDate"         date           NOT NULL,
+    "OccurredAt"           timestamptz    NOT NULL,
+    "PaymentId"            uuid,
+    "PaymentAllocationId"  uuid,
+    "PaymentMethodCode"    varchar(30),
+    "FundingSourceType"    varchar(30),
+    "FundingSourceId"      uuid,
+    "ReferenceNumber"      varchar(100),
+    "ProofId"              uuid,
+    "OpeningItemBatchId"   uuid,
+    "Notes"                varchar(500),          -- SENSITIF
+    "CorrelationId"        uuid           NOT NULL,
+    "CausationId"          uuid           NOT NULL,
+    CONSTRAINT "PK_FinSupplierPayableMovement" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_FinSupplierPayableMovement_FinSupplierPayable_SupplierPayableId"
+        FOREIGN KEY ("SupplierPayableId") REFERENCES public."FinSupplierPayable" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_FinSupplierPayableMovement_FinTransactionProof_ProofId"
+        FOREIGN KEY ("ProofId") REFERENCES public."FinTransactionProof" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "CK_FinSupplierPayableMovement_Balance"
+        CHECK ("BalanceAfter" = "BalanceBefore" + "Amount")
+);
+
+CREATE INDEX "IX_FinSupplierPayableMovement_SupplierPayableId_BusinessDate"
+    ON public."FinSupplierPayableMovement" ("SupplierPayableId", "BusinessDate");
+CREATE UNIQUE INDEX "IX_FinSupplierPayableMovement_ProofId"
+    ON public."FinSupplierPayableMovement" ("ProofId")
+    WHERE "ProofId" IS NOT NULL AND "IsDelete" = false;
+
+CREATE TABLE public."FinCashMovement" (
+    "Id"                    uuid           NOT NULL,
+    "MovementType"          varchar(40)    NOT NULL,
+    "Direction"             varchar(3)     NOT NULL,
+    "Amount"                numeric(18,2)  NOT NULL,
+    "BusinessDate"          date           NOT NULL,
+    "OccurredAt"            timestamptz    NOT NULL,
+    "SourceReferenceType"   varchar(40)    NOT NULL,
+    "SourceReferenceId"     varchar(100)   NOT NULL,
+    "CashierShiftId"        uuid,
+    "PaymentMethodCode"     varchar(30),
+    "Notes"                 varchar(500),         -- SENSITIF
+    "CorrelationId"         uuid           NOT NULL,
+    "CausationId"           uuid           NOT NULL,
+    CONSTRAINT "PK_FinCashMovement" PRIMARY KEY ("Id"),
+    CONSTRAINT "CK_FinCashMovement_Direction" CHECK ("Direction" IN ('IN','OUT')),
+    CONSTRAINT "CK_FinCashMovement_Amount" CHECK ("Amount" > 0)
+);
+
+CREATE UNIQUE INDEX "IX_FinCashMovement_Source"
+    ON public."FinCashMovement" ("SourceReferenceType", "SourceReferenceId", "MovementType")
+    WHERE "IsDelete" = false;
+CREATE INDEX "IX_FinCashMovement_BusinessDate_Direction"
+    ON public."FinCashMovement" ("BusinessDate", "Direction");
+
+CREATE TABLE public."FinSubledgerControlAccountMap" (
+    "Id"                   uuid          NOT NULL,
+    "BalanceGroup"         varchar(30)   NOT NULL,
+    "SegmentKey"           varchar(40),
+    "ControlAccountCode"   varchar(50)   NOT NULL,
+    "IsActive"             boolean       NOT NULL DEFAULT true,
+    "Notes"                varchar(300),
+    CONSTRAINT "PK_FinSubledgerControlAccountMap" PRIMARY KEY ("Id"),
+    CONSTRAINT "CK_FinSubledgerControlAccountMap_BalanceGroup"
+        CHECK ("BalanceGroup" IN ('KAS-KASIR','KAS-KECIL','PIUTANG','UTANG-SUPPLIER','UTANG-JASA-MEDIS'))
+);
+
+CREATE UNIQUE INDEX "IX_FinSubledgerControlAccountMap_Group_Segment"
+    ON public."FinSubledgerControlAccountMap" ("BalanceGroup", COALESCE("SegmentKey", ''))
+    WHERE "IsActive" = true AND "IsDelete" = false;
+CREATE UNIQUE INDEX "IX_FinSubledgerControlAccountMap_ControlAccountCode"
+    ON public."FinSubledgerControlAccountMap" ("ControlAccountCode")
+    WHERE "IsActive" = true AND "IsDelete" = false;
+
+CREATE TABLE public."FinOpeningBalance" (
+    "Id"                            uuid           NOT NULL,
+    "BalanceGroup"                  varchar(30)    NOT NULL,
+    "Amount"                        numeric(18,2)  NOT NULL,
+    "CutoverDate"                   date           NOT NULL,
+    "Status"                        varchar(20)    NOT NULL DEFAULT 'DRAFT',
+    "Reason"                        varchar(500)   NOT NULL,
+    "AccountingReferenceDocument"   varchar(200)   NOT NULL,
+    "ApprovedBy"                    uuid,
+    "ApprovedAt"                    timestamptz,
+    "LockedAt"                      timestamptz,
+    "RowVersion"                    uuid           NOT NULL,
+    CONSTRAINT "PK_FinOpeningBalance" PRIMARY KEY ("Id"),
+    CONSTRAINT "CK_FinOpeningBalance_Status"
+        CHECK ("Status" IN ('DRAFT','APPROVED','LOCKED')),
+    CONSTRAINT "CK_FinOpeningBalance_ItemGroupZero"
+        CHECK ("BalanceGroup" NOT IN ('PIUTANG','UTANG-SUPPLIER','UTANG-JASA-MEDIS') OR "Amount" = 0)
+);
+
+CREATE UNIQUE INDEX "IX_FinOpeningBalance_BalanceGroup"
+    ON public."FinOpeningBalance" ("BalanceGroup")
+    WHERE "IsDelete" = false;
+
+CREATE TABLE public."FinOpeningItemBatch" (
+    "Id"                                uuid           NOT NULL,
+    "BatchNumber"                       varchar(50)    NOT NULL,
+    "ItemKind"                          varchar(30)    NOT NULL,
+    "Status"                            varchar(20)    NOT NULL DEFAULT 'DRAFT',
+    "CutoverDate"                       date           NOT NULL,
+    "TotalItemCount"                    integer        NOT NULL DEFAULT 0,
+    "TotalOutstandingAmount"            numeric(18,2)  NOT NULL DEFAULT 0,
+    "DeclaredAccountingOpeningAmount"   numeric(18,2)  NOT NULL,
+    "AccountingReferenceDocument"       varchar(200)   NOT NULL,
+    "UploadedFileName"                  varchar(260)   NOT NULL,
+    "ValidationSummaryJson"             text,                      -- SENSITIF
+    "RejectionReason"                   varchar(500),
+    "ApprovedBy"                        uuid,
+    "ApprovedAt"                        timestamptz,
+    "LockedAt"                          timestamptz,
+    "RowVersion"                        uuid           NOT NULL,
+    CONSTRAINT "PK_FinOpeningItemBatch" PRIMARY KEY ("Id"),
+    CONSTRAINT "CK_FinOpeningItemBatch_ItemKind"
+        CHECK ("ItemKind" IN ('RECEIVABLE','SUPPLIER_PAYABLE')),
+    CONSTRAINT "CK_FinOpeningItemBatch_Status"
+        CHECK ("Status" IN ('DRAFT','VALIDATED','APPROVED','LOCKED','REJECTED'))
+);
+
+CREATE UNIQUE INDEX "IX_FinOpeningItemBatch_BatchNumber"
+    ON public."FinOpeningItemBatch" ("BatchNumber") WHERE "IsDelete" = false;
+
+CREATE TABLE public."FinTransactionProof" (
+    "Id"                 uuid          NOT NULL,
+    "ProofType"          varchar(30)   NOT NULL,
+    "OriginalFileName"   varchar(260)  NOT NULL,
+    "StoredFileName"     varchar(260)  NOT NULL,
+    "RelativePath"       varchar(500)  NOT NULL,
+    "MediaType"          varchar(100)  NOT NULL,
+    "SizeBytes"          bigint        NOT NULL,
+    "UploadedBy"         uuid          NOT NULL,
+    "UploadedAt"         timestamptz   NOT NULL,
+    CONSTRAINT "PK_FinTransactionProof" PRIMARY KEY ("Id")
+);
+
+CREATE UNIQUE INDEX "IX_FinTransactionProof_StoredFileName"
+    ON public."FinTransactionProof" ("StoredFileName") WHERE "IsDelete" = false;
+
+CREATE TABLE public."MstDirectPaymentThreshold" (
+    "Id"              uuid           NOT NULL,
+    "Amount"          numeric(18,2)  NOT NULL,
+    "ChangeReason"    varchar(500)   NOT NULL,
+    "IsActive"        boolean        NOT NULL DEFAULT true,
+    "EffectiveFrom"   date           NOT NULL,
+    CONSTRAINT "PK_MstDirectPaymentThreshold" PRIMARY KEY ("Id"),
+    CONSTRAINT "CK_MstDirectPaymentThreshold_Amount" CHECK ("Amount" > 0)
+);
+
+CREATE UNIQUE INDEX "IX_MstDirectPaymentThreshold_Active"
+    ON public."MstDirectPaymentThreshold" (("IsActive"))
+    WHERE "IsActive" = true AND "IsDelete" = false;
+
+-- Perubahan pada tabel yang sudah berjalan (migration ke-4)
+
+ALTER TABLE public."FinReceivable" ALTER COLUMN "SourceHandoffKey" DROP NOT NULL;
+ALTER TABLE public."FinReceivable" ALTER COLUMN "SourceHandoffId"  DROP NOT NULL;
+ALTER TABLE public."FinReceivable" ALTER COLUMN "InvoiceId"        DROP NOT NULL;
+ALTER TABLE public."FinReceivable" ADD COLUMN "OpeningItemBatchId" uuid NULL;
+
+ALTER TABLE public."FinReceivable"
+    ADD CONSTRAINT "FK_FinReceivable_FinOpeningItemBatch_OpeningItemBatchId"
+    FOREIGN KEY ("OpeningItemBatchId") REFERENCES public."FinOpeningItemBatch" ("Id") ON DELETE RESTRICT;
+
+-- Dua langkah, sengaja dipisah supaya tidak memindai seluruh tabel di dalam kunci tulis
+ALTER TABLE public."FinReceivable"
+    ADD CONSTRAINT "CK_FinReceivable_OpeningItem" CHECK (
+        (    "SourceHandoffKey" IS NOT NULL AND "SourceHandoffId" IS NOT NULL
+         AND "InvoiceId" IS NOT NULL        AND "OpeningItemBatchId" IS NULL )
+     OR (    "SourceHandoffKey" IS NULL     AND "SourceHandoffId" IS NULL
+         AND "InvoiceId" IS NULL            AND "OpeningItemBatchId" IS NOT NULL )
+    ) NOT VALID;
+ALTER TABLE public."FinReceivable" VALIDATE CONSTRAINT "CK_FinReceivable_OpeningItem";
+
+-- Index unik diganti filternya; CONCURRENTLY supaya tidak memblokir tulisan
+DROP INDEX public."IX_FinReceivable_SourceHandoffKey";
+CREATE UNIQUE INDEX CONCURRENTLY "IX_FinReceivable_SourceHandoffKey"
+    ON public."FinReceivable" ("SourceHandoffKey")
+    WHERE "IsDelete" = false AND "SourceHandoffKey" IS NOT NULL;
+
+ALTER TABLE public."FinSupplierPayable" ADD COLUMN "OpeningItemBatchId" uuid NULL;
+ALTER TABLE public."FinSupplierPayable"
+    ADD CONSTRAINT "FK_FinSupplierPayable_FinOpeningItemBatch_OpeningItemBatchId"
+    FOREIGN KEY ("OpeningItemBatchId") REFERENCES public."FinOpeningItemBatch" ("Id") ON DELETE RESTRICT;
+```
+
+Dua catatan jujur tentang DDL di atas:
+
+1. `CREATE INDEX CONCURRENTLY` **tidak dapat** berjalan di dalam transaksi, sehingga migration
+   ke-4 **MUST** menandai langkah itu tanpa transaksi, atau langkah index dijalankan sebagai
+   langkah operasional terpisah. Mana yang dipakai adalah **keputusan pemilik repository**.
+2. Jeda antara `DROP INDEX` dan selesainya `CREATE INDEX CONCURRENTLY` adalah jendela ketika
+   idempotensi intake Billing **tidak** dijaga index. Urutan yang lebih aman — membuat index baru
+   bernama lain lebih dulu, lalu menghapus yang lama — **SHOULD** dipakai, dan dicatat di sini
+   supaya implementer tidak menyalin urutan di atas apa adanya.

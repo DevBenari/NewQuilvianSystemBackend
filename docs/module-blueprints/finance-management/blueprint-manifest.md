@@ -6,7 +6,76 @@ module_name: Finance Management
 module_slug: finance-management
 module_prefix: Fin
 module_area: Areas/Corporate/FinanceManagement
-revision: 13
+revision: 14
+revision_14_note: >
+  Revisi 14 (1 Oktober 2026) adalah /design-business-module yang menggambar DUA PULUH TUJUH keputusan
+  closure pass hari yang sama: FIN-DEC-111..137. Keputusan arsitekturnya FIN-DES-078..091 —
+  SELURUHNYA `draft`, BELUM disetujui owner.
+  JALANNYA SAMPAI KE SINI: /grill-me menjawab balasan Accounting evidence/16 (lima pertanyaan balik
+  16.1-16.5), lalu DUA impact scan terarah (01-existing-capability-map.md bagian 18 dan 19) yang
+  menemukan celah LEBIH BESAR daripada pertanyaan Accounting sendiri.
+  TEMUAN YANG MENGUBAH SIFAT SELURUH AMANDEMEN, dan ia memalukan untuk dicatat tetapi MUST dicatat:
+  FINANCE BELUM PERNAH MENGIRIM APA PUN KE ACCOUNTING. Program.cs mendaftarkan sebelas hosted service
+  dan tidak satu pun milik Finance; EPIC FIN-12 (worker pengiriman) ditunda atas keputusan owner sendiri
+  ("karena system saya belum perlu itu"). Akibatnya SELURUH baris FinAccountingEventOutbox menumpuk
+  PENDING selamanya, dan janji "G4 siap" beserta "snapshot otomatis tanggal 1 pukul 00.05 WIB" pada
+  evidence/15 dan evidence/21 TIDAK PUNYA KODE sama sekali. Gerbang FIN-DES-059 yang disebut surat
+  Finance 16 pun tidak punya apa-apa untuk digerbang. Dibuka kembali lewat FIN-DEC-118 sebagai syarat
+  G4; digambar FIN-DES-078 sebagai TIGA hosted service terpisah yang DIBANGUN DALAM KEADAAN MATI.
+  TEMUAN KEDUA, yang membatalkan kesimpulan impact scan pertama: pembayaran langsung piutang
+  (FinanceReceivableService.cs:621-701) mengubah OutstandingAmount TANPA baris FinReceipt/
+  FinReceiptAllocation, dan pembayaran langsung utang supplier
+  (FinanceSupplierPayableService.cs:207-274) bocor dengan bentuk YANG SAMA — keduanya juga menerima
+  bankAccountId/paymentMethod/notes lalu MEMBUANGNYA. Rumus "asli − alokasi − penyesuaian − penghapusan"
+  yang dinyatakan layak pada bagian 18.3 karena itu DICABUT pada bagian 19, dan digantikan TIGA BUKU
+  MUTASI (FIN-DEC-123, FIN-DES-079).
+  DAMPAK SKEMA: DELAPAN tabel baru (FinReceivableMovement, FinSupplierPayableMovement, FinCashMovement,
+  FinSubledgerControlAccountMap, FinOpeningBalance, FinOpeningItemBatch, FinTransactionProof,
+  MstDirectPaymentThreshold) dan DUA tabel berjalan diperbarui. EMPAT migration. Yang keempat
+  (AddFinanceOpeningItemMigration) adalah satu-satunya yang menyentuh tabel berjalan: tiga kolom
+  FinReceivable asal Billing menjadi NULLABLE BERSYARAT beserta check constraint baru dan satu index
+  diganti filternya — dicatat lengkap beserta langkah NOT VALID/VALIDATE dan CREATE INDEX CONCURRENTLY,
+  termasuk PENGAKUAN bahwa urutan DROP-lalu-CREATE pada DDL membuka jendela ketika idempotensi intake
+  Billing tidak dijaga index, dan karena itu urutan yang lebih aman SHOULD dipakai.
+  DAMPAK RUNTIME: TIGA hosted service, yang PERTAMA bagi modul Finance. Dibangun mati secara bawaan,
+  dengan DUA LAPIS gerbang — satu konfigurasi untuk seluruh pengiriman, satu daftar kode yang tetap
+  dilewati walaupun pengiriman sudah hidup (mempertahankan FIN-DES-059 apa adanya).
+  DAMPAK HAK AKSES: EMPAT resource baru, dan satu action baru `Approve` pada resource baru.
+  Dijelaskan kenapa itu TIDAK bertentangan dengan FIN-DEC-098/103 yang justru menolak jenjang approval:
+  keduanya menyangkut transaksi harian, sedangkan Approve di sini menyangkut PEMBUKAAN BUKU yang tidak
+  dapat ditarik. NOL ketergantungan pada FIN-OQ-039.
+  NOL FOLDER SUBMODUL BARU, dan karena itu NOL gerbang QBE-MOD-003 — berbeda dari revisi 4. Ketujuh
+  submodule Finance sudah terdaftar prefix `Fin`, dan MasterData tercakup baris `Mst`.
+  TIGA KOREKSI ATAS KEPUTUSAN YANG BARU DIAMBIL HARI ITU, dicatat apa adanya:
+    (a) FIN-DEC-119 (Kas Kasir dari rekap harian) SUPERSEDED oleh FIN-DEC-125 — premisnya keliru,
+        rekap harian ternyata menghitung kas dari shift Billing TANPA memeriksa statusnya;
+    (b) rumus FIN-DEC-127 SUPERSEDED oleh FIN-DEC-132 — rumus Kas Kasir yang diambil pagi itu LUPA
+        memuat pengeluaran kas, padahal rekap harian memuatnya dan FinPayment sudah mendukung CASH;
+    (c) FIN-DEC-117 (Medical Fee mengirim saldo honor dokter) SUPERSEDED oleh FIN-DEC-122 —
+        FinMedicalServicePayable ternyata milik Finance dan modul Medical Fee belum ada.
+  SATU CONTOH KEPUTUSAN DIKOREKSI TANPA MENCABUT KEPUTUSANNYA: contoh FIN-DEC-112 (piutang lebih bayar
+  menjadi negatif) terbukti TIDAK DAPAT TERJADI — CK_FinReceivable_Outstanding menjaganya >= 0 dan
+  alokasi melebihi sisa ditolak. Aturan "kirim negatif apa adanya" tetap diambil karena benar secara
+  prinsip, dengan Kas Kasir sebagai satu-satunya kandidat negatif yang diketahui. Dicatat di kontrak
+  integrasi sebagai kejujuran, bukan dihapus diam-diam.
+  EMPAT EPIC BARU: FIN-20 (buku mutasi dan posisi per tanggal, MVP-14A), FIN-21 (pemetaan akun control
+  dan saldo awal, MVP-14B), FIN-22 (jalur pengiriman, MVP-14C). DUA berstatus OPEN DECISION dan karena
+  itu DI LUAR SELURUH GELOMBANG: FIN-23 (pembayaran langsung berkontrol — tertahan FIN-OQ-075, aturan
+  berkas bukti, karena FIN-DEC-126 membuat bukti WAJIB) dan FIN-24 (migrasi tagihan lama — tertahan
+  FIN-OQ-077, paket pembaca spreadsheet yang belum ada di proyek dan menuntut wewenang eksplisit
+  menurut AGENTS.md). Keduanya membawa PERLAKUAN SEMENTARA yang eksplisit supaya petugas tidak
+  kehilangan pekerjaan yang selama ini dapat dilakukan, beserta biaya penundaannya: selisih tetap
+  Finance terhadap buku besar sebesar saldo awal piutang dan utang, yang MUST dijelaskan Accounting
+  secara manual setiap bulan sampai FIN-24 jalan.
+  DUA NILAI SENGAJA DIBIARKAN KOSONG, tidak dikarang: FIN-OQ-074 (angka ambang) dan FIN-OQ-076 (jumlah
+  tagihan lama). Keduanya data konfigurasi. Tanpa baris ambang aktif, seluruh pembayaran langsung
+  DITOLAK fail-closed — perilaku yang disengaja, bukan kelalaian.
+  PERUBAHAN MEMUTUS: DUA endpoint yang sudah berjalan (POST /receivables/{id}/payment dan
+  POST /supplier-payables/{id}/direct-payment). Urutan rilisnya MUST dijaga — layar disesuaikan sebelum
+  atau bersamaan dengan backend, tidak sesudahnya.
+  SATU PENEMPATAN MENU TIDAK DIPUTUSKAN SENDIRI: tujuh layar baru tidak ada di V1, sedangkan FIN-DEC-094
+  mengikat menu pada bentuk V1. Dicatat FIN-OQ-079, BUKAN DEV_DISCRETION.
+  NOL source aplikasi disentuh. NOL migration dibuat. NOL package ditambahkan.
 revision_13_note: >
   Revisi 13 (1 Oktober 2026) adalah /grill-me Amendment pass yang MEMBALIK FIN-DEC-060 (SUPERSEDED).
   Pemicu: owner membandingkan menu Keuangan sistem produksi V1 (QuilvianSystemFrontendDev1/
@@ -94,6 +163,12 @@ revision_13_note: >
   Finance sepihak; (c) apakah rilis pertama boleh berjalan tanpa keduanya. MEMBLOKIR kelengkapan
   akuntansi EPIC FIN-19, TIDAK memblokir pembangunannya (gelombang MVP-13D boleh jalan).
   FIN-OQ-043 CLOSED.
+  PEMBARUAN 1 Oktober 2026 (addendum pada 00-interview-decisions.md): FIN-OQ-041 CLOSED oleh
+  FIN-DEC-107 (keempat pasang butir V1 dipertahankan sebagai layar berbeda); FIN-OQ-042 CLOSED oleh
+  FIN-DEC-108 (PayerClaimReference dipertahankan, opsional); FIN-OQ-044(a) CLOSED oleh FIN-DEC-109
+  (sewa dikelola terpisah dari kas harian/setoran bank; task integrasi kas dicabut) dan (c) CLOSED
+  oleh FIN-DEC-110 (rilis boleh berjalan dengan banner). HANYA FIN-OQ-044(b) TERBUKA — ratifikasi kode
+  kejadian akuntansi pendapatan sewa oleh Rizki (Accounting).
 contract_versions_revision_13_lanjutan: >
   DRAFT lanjutan untuk revisi 13 (bagian K pada 02-backend-architecture.md, bagian 18 pada
   03-frontend-architecture.md). Lima sumbu bergerak lagi di atas angka sebelumnya:
@@ -385,7 +460,97 @@ revision_2_note: >
   penerimaan, alokasi/koreksi/write-off, kotak keluar) TIDAK disentuh sama sekali. Amendment ini
   hanya menyentuh EPIC FIN-08 dan FIN-09 yang keduanya POST-MVP dan NOL baris kode.
   Baseline revisi 1 beserta approval FIN-DES-001..024 TETAP berlaku apa adanya.
-status: approved untuk revisi 1-6, 13; revisi lain lihat status_note masing-masing
+status: approved untuk revisi 1-6, 13, 14; revisi lain lihat status_note masing-masing
+status_note_revision_14: >
+  FIN-DES-078..091 `approved` 1 Oktober 2026 oleh Yasmin lewat pernyataan langsung
+  "Saya setujui FIN-DES-078...091". Dicatat apa adanya; skill TIDAK menetapkannya sendiri.
+  YANG IKUT TERANGKAT approval itu, mengikuti preseden status_note_revision_7: ketujuh kontrak turunan
+  yang lahir dari pass desain yang sama — FIN-API-1.5, FIN-INTEGRATION-1.7, FIN-STATE-1.6, FIN-VAL-1.7,
+  FIN-PERM-1.7, FIN-TEST-1.8, FIN-MVP-1.9. Bila owner bermaksud lebih sempit, koreksinya MUST dicatat.
+  FIN-OQ-051 DIJAWAB pada kesempatan yang sama lewat FIN-DEC-138: pembuatan berkas migration
+  DIIZINKAN sepanjang berkasnya sesuai ApplicationDbContextModelSnapshot, sedangkan PENERAPAN KE
+  DATABASE TETAP MILIK YASMIN. Agent MUST NOT menjalankan migration, `dotnet ef database update`,
+  maupun SQL langsung ke database mana pun. Jawaban eksplisit owner: "bisa membuat file migration yg
+  sesuai DbSnapshot. tpi untuk aplikasi ke database, yg lakukan adalah saya."
+  Dengan itu /plan-module-delivery TERBUKA untuk MVP-14A dan MVP-14B.
+  DUA GERBANG BESAR DITUTUP pada kesempatan yang sama, dan keduanya membuka epic yang semula di luar
+  seluruh gelombang:
+    FIN-OQ-075 CLOSED oleh FIN-DEC-139 — aturan berkas bukti MENGIKUTI PRESEDEN repository:
+        .pdf/.jpg/.jpeg/.png dari konfigurasi (pola <Modul>:<Fitur>:AllowedExtensions yang sudah
+        dipakai dua layanan HR), batas ukuran dari konfigurasi, sistem TIDAK PERNAH menghapus bukti
+        otomatis, bukti TIDAK DAPAT DIGANTI sesudah mutasi tertulis (koreksi = balik lalu catat ulang),
+        akses tanpa pembatasan per pemilik transaksi pada rilis pertama — batas terakhir itu DITERIMA
+        SADAR dan MUST disampaikan saat menyerahkan modul. MEMBUKA EPIC FIN-23.
+    FIN-OQ-077 CLOSED oleh FIN-DEC-140 — DUA FORMAT didukung, CSV dan XLSX ("bisa pakai csv dan
+        xlsx"). CSV nol paket; XLSX menuntut TEPAT SATU paket, dan wewenang penambahannya DIBERIKAN
+        dengan dua batas keras: lisensi MUST permisif, dan EPPlus v5+ DILARANG karena lisensinya
+        berubah komersial. Pembacanya MUST berupa lapisan terpisah sehingga validasi per baris
+        TUNGGAL untuk kedua format. MEMBUKA EPIC FIN-24.
+  AKIBAT YANG MUST DITINDAKLANJUTI, dan dicatat terbuka sebagai STALE:
+    04-prd-to-mvp.md bagian 47, 48, dan 51 masih menyatakan EPIC FIN-23 dan FIN-24 `OPEN DECISION`
+    dan di luar seluruh gelombang. roadmap/00, 01, dan 02 bagian REV-14 masih mencatat keduanya tanpa
+    task. Keempat berkas itu STALE sejak FIN-DEC-139/140 dan MUST diperbarui lewat pass desain lalu
+    /plan-module-delivery lanjutan — BUKAN lewat pass /grill-me yang menurunkan keputusan ini.
+  YANG MASIH MUST DIMINTA TERPISAH, dan tidak satu pun terangkat approval di atas:
+    (1) Nama dan versi paket pembaca XLSX (FIN-OQ-081) — dikonfirmasi pada task yang membawanya,
+        mengikuti AGENTS.md. Memblokir bagian XLSX saja; CSV, validasi, dan batch tidak tertahan.
+    (2) Persetujuan Accounting atas FIN-DEC-111 (FIN-OQ-045), ratifikasi PEMBUKAAN-SHIFT-KASIR
+        (FIN-OQ-047), dan penerimaan konvensi tanggal WIB (FIN-OQ-048) — ketiganya BUKAN wewenang
+        owner Finance. Diminta lewat evidence/22 yang sudah terkirim 1 Oktober 2026.
+    (3) Penempatan tujuh butir menu baru (FIN-OQ-079) dan apakah ambang ditampilkan kepada staf
+        (FIN-OQ-080).
+    (4) Tiga nilai konfigurasi: angka ambang (FIN-OQ-074), jumlah tagihan lama (FIN-OQ-076), dan
+        batas ukuran berkas bukti (FIN-OQ-082). Tanpa dua yang pertama, jalur yang bersangkutan
+        DITOLAK fail-closed — perilaku yang disengaja, bukan kelalaian.
+  MIGRATION NOMOR 3 DAN 4 tidak akan dibuat dalam waktu dekat walaupun wewenangnya sudah ada:
+  keduanya milik EPIC FIN-23 dan FIN-24 yang berstatus OPEN DECISION dan berada di luar seluruh
+  gelombang. Itu akibat disiplin roadmap, bukan batasan tambahan atas FIN-DEC-138.
+  SURAT evidence/22 DITULIS DAN TERKIRIM 1 Oktober 2026 kepada Rizki (Accounting), atas instruksi
+  eksplisit owner. Isinya: (a) jawaban lima pertanyaan 16.1-16.5, (b) tiga permintaan —
+  FIN-OQ-045 (persetujuan PENERIMAAN-KASIR per kuitansi beserta dimensi shift dan metode, yang
+  menuntut ACC-DEC-062 diubah), FIN-OQ-047 (ratifikasi PEMBUKAAN-SHIFT-KASIR beserta penambahannya ke
+  daftar tertutup nilai nol kotak masuk Accounting), dan FIN-OQ-048 (penerimaan konvensi tanggal WIB),
+  (c) PELURUSAN evidence/21 bagian 3.2 yang salah membaca source Finance sendiri soal sumber Kas Kasir,
+  (d) PENCABUTAN klausa "nominal negatif ditolak tanpa pengecualian" pada evidence/21 butir 15.2,
+  beserta pengakuan bahwa contoh yang dipakai (piutang lebih bayar) terbukti TIDAK DAPAT TERJADI, dan
+  (e) PENGAKUAN bahwa janji "G4 siap" serta "snapshot otomatis tanggal 1 pukul 00.05 WIB" pada
+  evidence/15 dan 21 TIDAK PUNYA KODE sama sekali — G4 dinyatakan ulang sebagai BERSYARAT.
+  Mengikuti pola evidence/20: surat ini sengaja menaruh dua hal yang merugikan posisi Finance sendiri
+  (butir c dan d) beserta satu pengakuan (butir e) SEBELUM permintaan apa pun, supaya penerimanya
+  dapat menimbang jujur. Surat itu juga menyatakan penolakan atas ketiga permintaan DAPAT DITERIMA
+  SEPENUHNYA, beserta apa yang Finance lakukan pada masing-masing penolakan.
+  CATATAN CARA KIRIM: pengiriman di proyek ini berarti surat berada pada jalur kanonik
+  docs/module-blueprints/finance-management/evidence/, tempat owner Accounting membaca surat Finance —
+  pola yang sama dengan evidence/15, 16, dan 21 yang dirujuk balasan Accounting evidence/16.
+  Pemberitahuan langsung kepada Rizki di luar repository BUKAN tindakan agent.
+contract_versions_revision_14: >
+  DRAFT untuk revisi 14 (AMENDMENT REVISI 14 / bagian L pada 02-backend-architecture.md, bagian 19 pada
+  03-frontend-architecture.md, bagian 42-52 pada 04-prd-to-mvp.md). TUJUH sumbu bergerak — seluruh
+  kontrak naik versi, termasuk integration-contract yang TIDAK bergerak pada dua revisi sebelumnya:
+    api-contract: FIN-API-1.5 (`draft`) — bagian F baru, 24 endpoint Rencana pada empat grup baru,
+                          tiga permukaan baca pada grup yang sudah ada, DAN bagian F.8 yang mencatat
+                          DUA PERUBAHAN MEMUTUS pada endpoint berjalan
+    integration-contract: FIN-INTEGRATION-1.7 (`draft`) — bagian 5.12 baru. Lima ruas dimensi pada
+                          payload, satu kode baru PEMBUKAAN-SHIFT-KASIR, pencabutan larangan nilai
+                          negatif pada pesan saldo, dan pengakuan bahwa janji G4 pada evidence/15 dan
+                          21 belum punya kode. BERGERAK justru karena amandemen ini menyentuh kontrak
+                          pertukaran, berbeda dari revisi 13 yang tidak
+    state-transition-matrix: FIN-STATE-1.6 (`draft`) — bagian F baru: saldo awal cutover, batch
+                          migrasi, dan perluasan siklus penanda shift ke tujuh status. Transisi yang
+                          TIDAK sah ditulis bersama yang sah
+    validation-matrix: FIN-VAL-1.7 (`draft`) — FIN-VAL-165..213 baru, beserta daftar eksplisit TUJUH
+                          hal yang sengaja TIDAK divalidasi — termasuk pengakuan bahwa salah ketik
+                          saldo awal yang kebetulan cocok dengan total item tidak terdeteksi
+    permission-audit-matrix: FIN-PERM-1.7 (`draft`) — bagian G baru. Empat resource, satu action baru,
+                          dan bagian G.5 yang mencatat EMPAT kewenangan yang TIDAK dijaga mesin hak
+                          akses — termasuk bahwa satu orang dapat memegang Create dan Approve sekaligus
+    acceptance-test-matrix: FIN-TEST-1.8 (`draft`) — bagian I baru, 60+ skenario, jalur gagal ditulis
+                          bersama jalur berhasil. Termasuk satu test yang SENGAJA dibuat untuk
+                          menangkap jalur yang lupa menulis mutasi
+    prd-to-mvp: FIN-MVP-1.9 (`draft`) — bagian 42-52. Empat epic, 44 functional requirement bernomor,
+                          tiga gelombang MVP-14A..14C, dan DUA epic OPEN DECISION di luar gelombang
+  Langkah berikutnya: /plan-module-delivery memecah EPIC FIN-20..22 menjadi task BE-FIN-xxx/FE-FIN-xxx
+  bernomor, SESUDAH owner menyetujui desain ini DAN menjawab FIN-OQ-051. Approval tetap tindakan manusia.
 status_note_revision_13: >
   FIN-DES-070..077 beserta kelima kontrak turunannya (FIN-API-1.3/1.4, FIN-STATE-1.4/1.5,
   FIN-VAL-1.5/1.6, FIN-PERM-1.5/1.6, FIN-TEST-1.6/1.7) `approved` 1 Oktober 2026 oleh Yasmin lewat
@@ -465,7 +630,23 @@ shape_evidence: >
   integrasi ke Accounting — memecahnya akan menduplikasi ketiganya. Mengikuti preseden
   billing-kasir (BIL-CASH-001) yang juga SINGLE dengan empat rumpun.
 created_at: 2026-09-20T00:00:00+07:00
-updated_at: 2026-09-23T00:00:00+07:00
+updated_at: 2026-10-01T00:00:00+07:00
+last_owner_action_revision_14: >
+  1 Oktober 2026 — /design-business-module menggambar FIN-DEC-111..137 menjadi FIN-DES-078..091
+  (`draft`). Didahului /grill-me closure pass dalam 25 pertanyaan berurutan dan DUA
+  /trace-existing-capabilities terarah pada hari yang sama, satu benang: menjawab balasan Accounting
+  evidence/16 lalu menutup celah yang ditemukannya.
+  TINDAKAN OWNER yang tercatat pada benang itu: 25 jawaban pilihan, di antaranya EMPAT jawaban
+  tertulis panjang yang memperluas pilihannya sendiri (FIN-DEC-111, 126, 130, 137). Satu di antaranya
+  memilih fleksibilitas di atas kekencangan (FIN-DEC-124, "karena lebih flexibel"), dan konsekuensinya
+  ditutup pada pertanyaan berikutnya lewat FIN-DEC-125 — bukan dibiarkan menggantung.
+  SATU PREMIS OWNER DIKOREKSI SEBELUM DESAIN DIMULAI, dan itu mengubah ukuran pekerjaannya: owner
+  menyatakan "tabel dan confignya untuk menampung data tagihan sudah ada". Tabel piutang dan utang
+  memang ada, TETAPI FinReceivable MEWAJIBKAN SourceHandoffKey/SourceHandoffId/InvoiceId terisi dengan
+  index unik, jalur pembuatan utang supplier SELALU menerbitkan kejadian akuntansi, dan pemetaan akun
+  control hanya berupa konstanta di kode. Jadi dasarnya ada, kesiapannya belum — dan selisih itu
+  menjadi FIN-DES-089 beserta migration keempat.
+  NOL source aplikasi disentuh. NOL migration dibuat. NOL package ditambahkan. NOL kontrak di-approve.
 last_owner_action: >
   29 September 2026 (kesebelas, keempat pada tanggal ini) — /grill-me Amendment pass menutup
   FIN-OQ-038 lewat FIN-DEC-084: perluas platform-authorization supaya resource tanpa endpoint dapat
@@ -590,7 +771,15 @@ approval_note: >
   memerlukan wewenang terpisah sesuai AGENTS.md.
   Lihat `status_scope_note` untuk tiga hal yang TIDAK ikut terangkat approval ini.
 
-backend_commit_sha: 7811c048
+backend_commit_sha: 7f8c3014
+backend_commit_sha_note_revision_14: >
+  Revisi 14 mencatat 7f8c3014, naik dari 7811c048 yang tercatat sejak revisi 8. Selisih itu TIDAK
+  dilompati: impact scan read-only atas area terdampak dijalankan dua kali dan tercatat lengkap pada
+  01-existing-capability-map.md bagian 18 (AccountingIntegration, BillingIntake, CashManagement,
+  Collection, Receivable, Payable) dan bagian 19 (Payable direct payment, bukti pembayaran, kesiapan
+  migrasi). Bagian 1-17 peta kapabilitas TIDAK diaudit ulang; bagiannya yang menyentuh keenam rumpun
+  di atas MUST dianggap stale sampai dipindai ulang.
+backend_commit_sha_previous_revision_14: 7811c048
 backend_commit_sha_previous: cba60cb0
 backend_commit_sha_note_revision_8: >
   Bergerak dua commit: 0a09e18a (BE-FIN-041, kolom DepositAppliedAmount) dan 7811c048 (BE-FIN-035
@@ -601,7 +790,15 @@ backend_commit_sha_note_revision_8: >
 backend_commit_sha_previous: 96bf9746
 backend_commit_sha_baseline: 09101d0581695e20345a9efa8af3fce7c38b1ae4
 backend_branch: Yasmina
-frontend_commit_sha: a31da3c21
+frontend_commit_sha: 0b54fdce6
+frontend_commit_sha_note_revision_14: >
+  Revisi 14 mencatat 0b54fdce6. Frontend BERGERAK dua kali selama pass ini: a31da3c21 -> 85578363b
+  (dipindai terbatas pada bagian 18.6 peta kapabilitas, tiga kata kunci saja) -> 0b54fdce6 (TIDAK
+  dipindai). Karena itu bagian 18.6 MUST dianggap stale, dan bagian 19 pass desain ini tidak
+  mengandalkan temuan frontend apa pun. Satu akibatnya dicatat terbuka pada 03-frontend-architecture.md
+  bagian 19.1: dua layar pembayaran langsung yang sudah berjalan AKAN RUSAK bila backend naik lebih
+  dulu, dan urutan rilisnya MUST dijaga.
+frontend_commit_sha_previous_revision_14: a31da3c21
 frontend_commit_sha_previous: 49b59cfaa
 frontend_branch: yasmina
 frontend_commit_sha_note_revision_11: >

@@ -779,8 +779,8 @@ layar ini menambah jalan masuk untuk melihat dan menelusuri, bukan memindahkan a
 |---|---|---|---|
 | ~~`FIN-OQ-040`~~ | ~~Apa saja butir di dalam grup "Umur Piutang (A/R Aging)"?~~ **TERJAWAB 1 Oktober 2026: Kasir, Parkir, Tenant.** | Yasmin (Product Owner Finance) | **CLOSED** — digantikan `FIN-OQ-043` untuk dua dari tiga butirnya |
 | `FIN-OQ-043` | Piutang **Parkir** dan **Tenant** adalah penagihan sewa berulang, bukan tagihan pasien. Model piutang yang berjalan **tidak dapat menampungnya**: `FinReceivable` hanya mengenal `PAYER`/`PATIENT_GUARANTOR`/`EMPLOYEE_BENEFIT`, dan setiap barisnya wajib berasal dari serah terima tagihan Billing (`SourceHandoffKey`, `InvoiceId`). Layar V1-nya pun murni data contoh, nol panggilan API. Lima hal MUST diputuskan: kepemilikan modul, data induk kontrak/objek sewa/tarif, cara penerbitan tagihan berulang, aturan denda keterlambatan, dan bentuk penyimpanan piutangnya | Yasmin (Product Owner Finance) | **MEMBLOKIR dua butir saja** (Parkir, Tenant). Butir Kasir dan seluruh isi `EPIC FIN-18` lainnya berjalan terus. Rinciannya pada `00-interview-decisions.md` addendum 1 Oktober 2026 |
-| `FIN-OQ-041` | Empat pasang butir V1 tampak mengarah ke kemampuan yang sama: (a) "Laporan Aging AR" dan "Umur Piutang (A/R Aging)"; (b) "Receivable AR/Invoice" dan "Piutang Tagihan"; (c) "Retur Produk" dan "Retur Pembelian Supplier"; (d) "Ayat Silang" dan "Settlement AR" (`FIN-DEC-096` menyatakan keduanya dilayani alokasi penerimaan). Apakah keempat pasang itu memang dua layar berbeda di V1, atau salah satunya peninggalan yang sebaiknya tidak dibawa? | Yasmin (Product Owner Finance) | **Tidak memblokir.** Sementara belum dijawab, keduanya dibuat sesuai tabel 17.2 dengan saringan bawaan yang berbeda, mengikuti perintah "ikuti V1 apa adanya" |
-| `FIN-OQ-042` | Kolom `PayerClaimReference` (nomor rujukan klaim milik penjamin) **tidak** disebut pada `FIN-DEC-097`; ia kesimpulan desain karena pelacakan klaim tanpa nomor rujukan penjamin sulit dicocokkan saat berkorespondensi. Apakah kolom ini memang dibutuhkan? | Yasmin (Product Owner Finance) | **Tidak memblokir.** Kolomnya opsional dan tidak membawa aturan bisnis; bila ditolak, cukup dihapus dari migration sebelum dijalankan |
+| ~~`FIN-OQ-041`~~ **CLOSED 1 Oktober 2026 oleh `FIN-DEC-107`: keempat pasang adalah layar berbeda, seluruhnya dipertahankan.** | Empat pasang butir V1 tampak mengarah ke kemampuan yang sama: (a) "Laporan Aging AR" dan "Umur Piutang (A/R Aging)"; (b) "Receivable AR/Invoice" dan "Piutang Tagihan"; (c) "Retur Produk" dan "Retur Pembelian Supplier"; (d) "Ayat Silang" dan "Settlement AR" (`FIN-DEC-096` menyatakan keduanya dilayani alokasi penerimaan). Apakah keempat pasang itu memang dua layar berbeda di V1, atau salah satunya peninggalan yang sebaiknya tidak dibawa? | Yasmin (Product Owner Finance) | **Tidak memblokir.** Sementara belum dijawab, keduanya dibuat sesuai tabel 17.2 dengan saringan bawaan yang berbeda, mengikuti perintah "ikuti V1 apa adanya" |
+| ~~`FIN-OQ-042`~~ **CLOSED 1 Oktober 2026 oleh `FIN-DEC-108`: kolom dipertahankan sebagai kolom opsional.** | Kolom `PayerClaimReference` (nomor rujukan klaim milik penjamin) **tidak** disebut pada `FIN-DEC-097`; ia kesimpulan desain karena pelacakan klaim tanpa nomor rujukan penjamin sulit dicocokkan saat berkorespondensi. Apakah kolom ini memang dibutuhkan? | Yasmin (Product Owner Finance) | **Tidak memblokir.** Kolomnya opsional dan tidak membawa aturan bisnis; bila ditolak, cukup dihapus dari migration sebelum dijalankan |
 
 ---
 
@@ -873,8 +873,9 @@ Saringan kategori **MUST** dikirim ke backend sebagai parameter, **MUST NOT** di
 1. Tombol **Hapus Piutang** dan **Batalkan** **MUST** memakai konfirmasi yang menyebut terang bahwa
    tindakan ini **tidak melewati persetujuan siapa pun** dan alasannya wajib diisi. Ini satu-satunya
    penahan yang tersisa setelah `FIN-DEC-103` meniadakan jenjang approval.
-2. Layar **MUST** menyatakan bahwa pelunasan yang dicatat di sini **belum** tercatat sebagai kas
-   masuk di kas harian maupun setoran bank, selama `FIN-OQ-044` belum diputuskan. Membiarkan petugas
+2. Layar **MUST** menyatakan bahwa pelunasan yang dicatat di sini **tidak** tercatat sebagai kas
+   masuk di kas harian maupun setoran bank, karena piutang sewa dikelola terpisah (`FIN-DEC-109`;
+   sebelumnya "belum", sebelum diputuskan). Membiarkan petugas
    menyangka uangnya sudah tercatat di kas adalah kekeliruan yang mahal dan sulit ditelusuri
    belakangan.
 
@@ -894,6 +895,120 @@ pembatalan pembayaran, bukan sebagai pembayaran biasa.
 | Keberadaan ketiga butir menu umur piutang | **Mengikat** | `FIN-DEC-094`, tangkapan layar V1 |
 | Saringan kategori dikirim ke backend | **Mengikat** | Kebenaran angka dan paginasi |
 | Konfirmasi yang menyebut ketiadaan persetujuan pada Hapus/Batalkan | **Mengikat** | `FIN-DEC-103` meniadakan penahan lain |
-| Pernyataan bahwa pelunasan belum masuk kas | **Mengikat** selama `FIN-OQ-044` terbuka | `FIN-DES-075` |
+| Pernyataan bahwa pelunasan sewa tidak masuk kas harian/setoran bank | **Mengikat** (permanen) | `FIN-DES-075`, `FIN-DEC-109`, `FIN-DEC-110` |
 | Butir menu tersendiri untuk "Tagihan Sewa" | **Menunggu keputusan pemilik** | Penyimpangan dari V1 — lihat 18.1 |
 | Tata letak, warna, ikon, bentuk kontrol, bunyi kalimat | `DEV_DISCRETION` | — |
+
+---
+
+## 19. Amendment 1 Oktober 2026 (revisi 14) — buku mutasi, cutover, dan pembayaran langsung berkontrol
+
+| Field | Nilai |
+|---|---|
+| Diturunkan dari | `FIN-DEC-111`..`137`; `FIN-DES-078`..`091` |
+| Frontend SHA yang diaudit | `0b54fdce6` — **bergerak** dari `85578363b`; pass ini **tidak** mengaudit ulang frontend secara menyeluruh |
+| Sifat | **Ada perubahan memutus** pada dua layar yang sudah berjalan |
+| Wewenang UI | Hierarki yang berlaku: keamanan dan invariant → brief produk yang disetujui → konvensi project → `DEV_DISCRETION` |
+
+### 19.1 Peringatan: dua layar yang sudah berjalan akan rusak bila backend naik lebih dulu
+
+Ini bagian terpenting pada amandemen frontend ini, dan karena itu ditulis lebih dulu.
+
+| Layar | Endpoint | Apa yang rusak |
+|---|---|---|
+| Pembayaran langsung piutang | `POST /receivables/{id}/payment` | `PaymentMethod` menjadi **wajib**, ditambah sumber dana, nomor rujukan, dan `ProofId` wajib. Permintaan lama akan dijawab `400`/`422` |
+| Pembayaran langsung utang supplier | `POST /supplier-payables/{id}/direct-payment` | Ruas yang sama menjadi wajib |
+
+Keduanya juga mulai ditolak `404` bila ambang belum ditetapkan, dan `422` bila nominalnya melewati
+ambang. Jadi urutan rilisnya **MUST** dijaga: layar disesuaikan **sebelum atau bersamaan** dengan
+backend, **tidak** sesudahnya. Bila tidak, petugas kehilangan kemampuan mencatat pembayaran yang
+selama ini berjalan.
+
+### 19.2 Kebutuhan fungsional per layar
+
+| # | Layar | Sifat | Kebutuhan |
+|---:|---|---|---|
+| 1 | **Pembayaran langsung piutang** | **Diperbarui** | Pilihan metode wajib; pilihan rekening sumber bila transfer; kolom nomor rujukan; unggah bukti wajib; peringatan bila nominal melewati ambang **sebelum** dikirim |
+| 2 | **Pembayaran langsung utang supplier** | **Diperbarui** | Sama dengan nomor 1 |
+| 3 | **Riwayat mutasi piutang** | **Baru** | Daftar mutasi satu piutang berurut tanggal: jenis, nominal bertanda, saldo sebelum dan sesudah, metode, bukti |
+| 4 | **Riwayat mutasi utang supplier** | **Baru** | Sama dengan nomor 3 |
+| 5 | **Buku kas** | **Baru** | Mutasi kas bersaring tanggal, arah, dan jenis; menampilkan posisi berjalan |
+| 6 | **Rekap kas harian** | **Diperbarui** | Menambah keterangan bahwa angkanya **laporan operasional**, bukan angka yang dikirim ke Accounting; menampilkan selisih terhadap posisi terhitung |
+| 7 | **Pemetaan akun control** | **Baru** | Daftar kelompok dan segmen beserta kode akunnya; penanda kelompok yang **belum** terpetakan |
+| 8 | **Saldo awal cutover** | **Baru** | Lima kelompok; alur catat, setujui, kunci; kolom alasan dan rujukan dokumen Accounting wajib |
+| 9 | **Batch migrasi tagihan lama** | **Baru** | Unduh templat, unggah berkas, lihat galat per baris, nyatakan saldo awal Accounting, setujui |
+| 10 | **Ambang pembayaran langsung** | **Baru** | Satu nilai beserta alasan perubahan wajib |
+| 11 | **Snapshot saldo subledger** (bagian 16) | **Diperbarui** | Jumlah baris tidak lagi tetap empat; nilai negatif ditampilkan apa adanya; pesan penolakan gagal tertutup ditampilkan beserta kelompok dan segmennya |
+
+### 19.3 Aksi per peran
+
+| Peran | Boleh | Tidak boleh |
+|---|---|---|
+| Staf AR / AP | Mencatat pembayaran langsung di bawah ambang beserta bukti; melihat riwayat mutasi dan buku kas | Mengubah ambang; menyetujui saldo awal; menyetujui batch migrasi |
+| Petugas kas | Menutup rekap kas harian; melihat buku kas dan selisih | Mengubah pemetaan akun control |
+| Penyiap cutover | Mencatat pemetaan akun control, saldo awal, dan mengunggah batch migrasi | **Menyetujui** dan **mengunci** keduanya, bila haknya tidak mencakup `Approve` |
+| Penyetuju cutover | Menyetujui dan mengunci saldo awal serta batch migrasi | — |
+| Pejabat berwenang ambang | Mengubah ambang beserta alasan | — |
+
+> **Batas yang MUST disampaikan saat menyerahkan modul.** Mesin hak akses **tidak** mencegah satu
+> orang memegang `Create` dan `Approve` sekaligus. Pemisahan penyiap dan penyetuju bergantung pada
+> **pemberian hak oleh admin**, bukan pada kode. Layar **MUST NOT** menyiratkan pemisahan itu
+> dijamin sistem.
+
+### 19.4 Data, status, dan galat yang dikonsumsi
+
+| Keadaan | Yang ditampilkan |
+|---|---|
+| Ambang belum ditetapkan (`404`) | Layar pembayaran langsung **dinonaktifkan** beserta keterangan bahwa ambang belum ditetapkan dan kepada siapa memintanya. **Bukan** pesan galat teknis |
+| Nominal melewati ambang (`422`) | Peringatan beserta arahan memakai jalur pembayaran berjenjang, dengan tautan ke layarnya |
+| Snapshot gagal tertutup (`422`) | Daftar kelompok dan segmen yang belum terpetakan, beserta tautan ke layar pemetaan |
+| Posisi diminta sebelum cutover (`422`) | Keterangan bahwa buku mutasi belum berjalan pada tanggal itu — **bukan** angka nol |
+| Batch migrasi bergalat per baris | Tabel baris bergalat beserta nomor baris dan alasannya; tombol setujui **dinonaktifkan** |
+| Selisih rekonsiliasi batch (`422`) | **Kedua angka** ditampilkan berdampingan, bukan hanya pesan "tidak cocok" |
+| Saldo negatif pada snapshot | Ditampilkan **apa adanya** beserta keterangan bahwa nilai itu berlawanan dengan saldo normal akun. **MUST NOT** disembunyikan atau ditampilkan sebagai nol |
+| Baris `LOCKED` | Seluruh kendali ubah **dinonaktifkan**, bukan disembunyikan — supaya terlihat bahwa barisnya ada dan memang tidak dapat diubah |
+
+### 19.5 Penanganan state
+
+| Hal | Aturan |
+|---|---|
+| Loading | Pola yang sudah berlaku di modul ini |
+| Empty | Buku mutasi kosong menampilkan keterangan bahwa buku mutasi baru berjalan sejak tanggal cutover, **bukan** "tidak ada data" |
+| Error dan retry | Pola yang sudah berlaku |
+| Stale | Saldo awal dan batch migrasi memakai `RowVersion`; benturan menampilkan keterangan bahwa baris sudah diubah orang lain dan meminta memuat ulang |
+| Duplicate submit | Tombol setujui dan kunci **MUST** dinonaktifkan sejak permintaan dikirim. Keduanya tidak dapat ditarik |
+| Unggah berkas | Satu unggahan menghasilkan satu `ProofId`; mengirim pembayaran dua kali dengan `ProofId` yang sama dijawab `409` dan **MUST** ditampilkan sebagai "bukti sudah terpakai", bukan galat teknis |
+
+### 19.6 Privasi
+
+| Hal | Aturan |
+|---|---|
+| Catatan mutasi (`Notes`) | Dapat memuat nama pihak ketiga. **MUST NOT** ditampilkan pada ringkasan atau ekspor yang dibagikan luas |
+| Hasil validasi batch migrasi | Dapat memuat nama debitur dan supplier. Hanya ditampilkan pada layar batch bagi pemegang haknya |
+| Berkas bukti | Diunduh lewat endpoint berhak akses. Tautan langsung ke berkas **MUST NOT** ditempelkan di layar lain |
+
+### 19.7 Yang didelegasikan dan yang tidak
+
+| Hal | Wewenang |
+|---|---|
+| Penempatan butir menu untuk tujuh layar baru | **BUKAN `DEV_DISCRETION`.** `FIN-DEC-094` mengikat menu Transaksi A/R dan A/P pada bentuk V1, dan tujuh layar ini **tidak ada** di V1. Penempatannya **MUST** diputuskan pemilik — dicatat `FIN-OQ-079` |
+| Apakah layar cutover berada di menu pengaturan atau menu Finance | Turunan `FIN-OQ-079` |
+| Bentuk tabel, lebar kolom, urutan kolom, penempatan saringan | `DEV_DISCRETION` |
+| Tab atau modal atau drawer untuk riwayat mutasi | `DEV_DISCRETION` |
+| Warna dan ikon | `DEV_DISCRETION` |
+| Penandaan nilai negatif | **Bukan** `DEV_DISCRETION` pada maknanya: nilainya **MUST** terbaca negatif. Caranya menampilkan `DEV_DISCRETION` |
+| Kata-kata peringatan rekap kas harian | Brief singkat diperlukan; sampai turun, pemasangannya ditahan |
+
+### 19.8 Pertanyaan terbuka frontend
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-079` | Penempatan tujuh butir menu baru, mengingat `FIN-DEC-094` mengikat menu pada bentuk V1 yang tidak memuatnya | Yasmin | Layar baru **boleh dibangun**; penempatan menunya tertahan |
+| `FIN-OQ-080` | Apakah layar pembayaran langsung perlu menampilkan ambang kepada staf AR/AP, atau cukup menolak saat melewati | Yasmin | `DESIGN` layar nomor 1 dan 2 |
+
+### 19.9 Nol layar untuk hosted service
+
+Ketiga hosted service **tidak** mendapat layar apa pun: tidak ada tombol "kirim sekarang" dan tidak
+ada tombol "jalankan snapshot sekarang" di luar yang sudah ada. Pemicu manual sengaja tidak dibuat
+supaya tidak menjadi jalan memutar gerbang `FIN-DES-078`. Keadaan pengiriman terbaca dari layar
+Snapshot Saldo Subledger dan daftar kejadian akuntansi yang sudah ada.

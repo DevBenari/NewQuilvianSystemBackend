@@ -542,3 +542,95 @@ bagian kode kejadiannya menuntut ratifikasi Accounting dan bukan wewenang Financ
 | 2 | Izin membuat migration | `BE-FIN-052` ✅ diberikan dan dibuat 1 Oktober 2026; `BE-FIN-056` ✅ diberikan dan dibuat 1 Oktober 2026 (tanpa `dotnet build`, permintaan eksplisit pengguna) |
 | 3 | Izin mengeksekusi migration ke database | `BE-FIN-052` ✅ diberikan dan **berhasil dieksekusi** 1 Oktober 2026; `BE-FIN-056` ✅ diberikan dan **berhasil dieksekusi** 1 Oktober 2026 |
 | 4 | Pemilik mengetahui batas `FIN-OQ-044` sebelum `EPIC FIN-19` dipakai pada data sungguhan | **MUST** disampaikan saat approval |
+
+---
+
+# REV-14 — Traceability dan ringkasan gelombang
+
+```yaml
+roadmap_revision: REV-14
+blueprint_id: FIN-BP-001
+blueprint_revision: 14
+blueprint_status: approved — FIN-DES-078..091 disetujui owner 1 Oktober 2026
+decisions: FIN-DEC-111..FIN-DEC-138
+contract_versions: FIN-API-1.5, FIN-INTEGRATION-1.7, FIN-STATE-1.6, FIN-VAL-1.7, FIN-PERM-1.7,
+                   FIN-TEST-1.8, FIN-MVP-1.9 (seluruhnya approved 1 Oktober 2026)
+backend_source_sha: 7f8c3014
+frontend_source_sha: 0b54fdce6
+jumlah_task: 16 backend, 5 frontend
+tanggal: 1 Oktober 2026
+```
+
+## Ringkasan gelombang REV-14
+
+| Gelombang | Epic | Task backend | Task frontend | Migration | Gerbang yang berlaku |
+|---|---|---|---|---|---|
+| `REV-14A` | `EPIC FIN-20` — buku mutasi dan tanggal WIB | `BE-FIN-058`..`063` (6) | `FE-FIN-025`, `FE-FIN-026` (2) | `AddFinanceSubledgerMovementLedgers` | Menu tertahan `FIN-OQ-079`; eksekusi migration milik Yasmin |
+| `REV-14B` | `EPIC FIN-21` — pemetaan akun control dan saldo awal | `BE-FIN-064`..`068` (5) | `FE-FIN-027`..`029` (3) | `AddFinanceSubledgerSetup` | Isi kode akun menunggu **G2**; menu tertahan `FIN-OQ-079` |
+| `REV-14C` | `EPIC FIN-22` — jalur pengiriman | `BE-FIN-069`..`073` (5) | — | **nol** | **Pengaktifan** menunggu **G3** dan `FIN-OQ-047`; pembangunan tidak tertahan |
+| *(di luar gelombang)* | `EPIC FIN-23` | — | — | tertunda | **`OPEN DECISION`** — `FIN-OQ-075` |
+| *(di luar gelombang)* | `EPIC FIN-24` | — | — | tertunda | **`OPEN DECISION`** — `FIN-OQ-077` |
+
+Satu hal yang perlu dibaca bersamaan: **dua migration yang paling berisiko tidak masuk gelombang
+mana pun.** `AddFinanceOpeningItemMigration` adalah satu-satunya migration revisi 14 yang menyentuh
+tabel berjalan, dan ia milik `EPIC FIN-24` yang `OPEN DECISION`. Jadi walaupun wewenang pembuatan
+migration sudah diberikan (`FIN-DEC-138`), yang benar-benar dibuat pada REV-14 hanyalah **dua
+migration murni aditif**.
+
+## Traceability REV-14
+
+| Requirement | Decision | Desain | Kontrak | Task backend | Task frontend | Bukti | Status |
+|---|---|---|---|---|---|---|---|
+| `FR-FIN-130`..`132` | `FIN-DEC-123` | `FIN-DES-079` | `erd` R14.1-R14.3 | `BE-FIN-058` | — | `FIN-TEST-1.8` I.1 | Direncanakan |
+| `FR-FIN-133` | `FIN-DEC-123` | `FIN-DES-079` | `FIN-VAL-1.7` `165`..`167` | `BE-FIN-060`, `BE-FIN-061` | — | `FIN-TEST-1.8` I.1 | Direncanakan |
+| `FR-FIN-134`, `135` | `FIN-DEC-114` | `FIN-DES-081` | `FIN-API-1.5` F.6; `FIN-VAL-1.7` `170` | `BE-FIN-067` | `FE-FIN-029` | `FIN-TEST-1.8` I.1 | Direncanakan |
+| `FR-FIN-136` | `FIN-DEC-116` | `FIN-DES-082` | `FIN-VAL-1.7` `210` | `BE-FIN-058`, `BE-FIN-059` | — | `FIN-TEST-1.8` I.4 | Direncanakan |
+| `FR-FIN-137`, `138` | `FIN-DEC-124`, `125`, `127`, `132`, `133` | `FIN-DES-081` | `erd/cash-and-master-data.md` rev 14 | `BE-FIN-062` | `FE-FIN-026` | `FIN-TEST-1.8` I.2 | Direncanakan |
+| `FR-FIN-139` | `FIN-DEC-125` | `FIN-DES-081` | `FIN-API-1.5` F.6 | `BE-FIN-067` | `FE-FIN-029` | `FIN-TEST-1.8` I.2 | Direncanakan |
+| `FR-FIN-140` | `FIN-DEC-123` | `FIN-DES-079` | `FIN-API-1.5` F.5 | `BE-FIN-063` | `FE-FIN-025`, `FE-FIN-026` | `FIN-TEST-1.8` I.1 | Direncanakan |
+| `FR-FIN-141`, `144` | `FIN-DEC-113` | `FIN-DES-080` | `FIN-API-1.5` F.1; `FIN-VAL-1.7` `172`..`179` | `BE-FIN-064`, `BE-FIN-065` | `FE-FIN-027` | `FIN-TEST-1.8` I.3 | Direncanakan |
+| `FR-FIN-142`, `143`, `145`, `149` | `FIN-DEC-112`, `113`, `122` | `FIN-DES-080`, `091` | `FIN-INTEGRATION-1.7` 5.12.4 | `BE-FIN-068` | `FE-FIN-029` | `FIN-TEST-1.8` I.3 | Direncanakan |
+| `FR-FIN-146`..`148` | `FIN-DEC-128` | `FIN-DES-088` | `FIN-STATE-1.6` F.1; `FIN-VAL-1.7` `180`..`185` | `BE-FIN-064`, `BE-FIN-066` | `FE-FIN-028` | `FIN-TEST-1.8` I.7 | Direncanakan |
+| `FR-FIN-150`..`153` | `FIN-DEC-118`, `093` | `FIN-DES-078` | `FIN-INTEGRATION-1.7` 5.12.6 | `BE-FIN-071` | — | `FIN-TEST-1.8` I.5 | Direncanakan |
+| `FR-FIN-154`, `155` | `FIN-DEC-092`, `114`, `118` | `FIN-DES-078` | `FIN-INTEGRATION-1.7` 5.12.5 | `BE-FIN-072` | — | `FIN-TEST-1.8` I.3 | Direncanakan |
+| `FR-FIN-156` | `FIN-DEC-118` | `FIN-DES-078` | `FIN-INTEGRATION-1.7` 5.12.6 | `BE-FIN-073` | — | `FIN-TEST-1.8` I.5 | Direncanakan |
+| `FR-FIN-157` | `FIN-DEC-115`, `121` | `FIN-DES-084` | `FIN-INTEGRATION-1.7` 5.12.3; `FIN-STATE-1.6` F.3 | `BE-FIN-070` | — | `FIN-TEST-1.8` I.5 | Direncanakan — **pengiriman** tertahan `FIN-OQ-047` |
+| `FR-FIN-158`, `159` | `FIN-DEC-111`, `120` | `FIN-DES-083` | `FIN-INTEGRATION-1.7` 5.12.1-5.12.2 | `BE-FIN-069` | — | `FIN-TEST-1.8` I.5 | Direncanakan — **kontraknya** tertahan `FIN-OQ-045` |
+| `FR-FIN-160`..`166` | `FIN-DEC-126`, `130`, `131`, `134`, `135`, `137` | `FIN-DES-085`..`087` | `FIN-API-1.5` F.3, F.4, F.8 | — | — | `FIN-TEST-1.8` I.6 | **`OPEN DECISION`** — `FIN-OQ-075` |
+| `FR-FIN-167`..`173` | `FIN-DEC-129`, `136` | `FIN-DES-089`, `090` | `FIN-STATE-1.6` F.2; `FIN-VAL-1.7` `186`..`196` | — | — | `FIN-TEST-1.8` I.7 | **`OPEN DECISION`** — `FIN-OQ-077` |
+
+## Coverage gap
+
+Dibedakan antara gap yang **MUST** ditutup dan ketiadaan yang memang kebijakan.
+
+| # | Gap | Sifat | Tindakan |
+|---:|---|---|---|
+| 1 | `FR-FIN-160`..`173` (14 requirement) tidak punya task | **Gap sah** — kedua epic pembawanya `OPEN DECISION`. Bukan kelalaian perencanaan | Ditutup sesudah `FIN-OQ-075` dan `FIN-OQ-077` dijawab, lewat `/plan-module-delivery` lanjutan |
+| 2 | Buku mutasi utang jasa medis tidak punya requirement maupun task | **Gap sah** — `FinMedicalServicePayable` belum punya penulis apa pun (`BE-FIN-021` `BLOCKED`) | Kewajiban membangunnya **bersamaan** dengan `BE-FIN-021` dicatat `FIN-DES-091`. `BE-FIN-021` **MUST NOT** dikerjakan tanpanya |
+| 3 | Penempatan tujuh butir menu baru tidak punya task bernomor | **Gap sah** — tertahan `FIN-OQ-079`, dan ia keputusan pemilik | Diberi nomor sesudah dijawab |
+| 4 | Ketiadaan project automated test | **Bukan coverage gap** — mengikuti `rules/backend/TEST_POLICY.md`. Verifikasi memakai `dotnet build` ditambah kasus uji manual yang dilampirkan pada laporan task | Tidak ada tindakan |
+| 5 | `FIN-TEST-1.8` I.8 mendaftar tujuh hal yang **sengaja tidak diuji** | **Bukan gap** — masing-masing beserta alasannya, antara lain pembacaan spreadsheet (paketnya belum ada) dan pengiriman ke lingkungan nyata (kredensial G3 belum ada) | Tidak ada tindakan; ditinjau ulang bila gerbangnya terbuka |
+| 6 | Posisi saldo untuk tanggal **sebelum** cutover tidak tercakup | **Bukan gap** — penolakannya justru **diuji** (`FIN-TEST-1.8` I.1). Buku mutasi tidak diisi mundur, dan itu keputusan sadar | Tidak ada tindakan |
+
+## Pernyataan wajib pada setiap handoff implementasi backend REV-14
+
+| # | Pernyataan |
+|---:|---|
+| 1 | QBE preflight dan kesesuaian engineering diselesaikan **pada waktu eksekusi**, dari `AGENTS.md` backend target, `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`, dan `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` — **bukan** dari roadmap ini |
+| 2 | Delapan model baru revisi 14 berstatus `NEW CODE`. Pola legacy di sekitarnya **tidak** memberi wewenang menirunya |
+| 3 | **Nol** folder submodul baru, sehingga **nol** gerbang `QBE-MOD-003` baru. Prefix `Fin` dan `Mst` sudah terdaftar |
+| 4 | Migration **dibuat** atas `FIN-DEC-138`, dan **MUST NOT dijalankan** agent. Setiap laporan task yang membawa migration **MUST** menyatakannya belum dieksekusi beserta langkah yang Yasmin perlu jalankan |
+| 5 | Branch, commit, dan push adalah wewenang terpisah dan **MUST NOT** dijalankan tanpa instruksi eksplisit |
+| 6 | Task yang menyentuh service berjalan (`BE-FIN-059`..`062`, `BE-FIN-068`, `BE-FIN-069`) **MUST** membuktikan tidak ada regresi pada jalur yang sudah berjalan, bukan hanya membuktikan jalur barunya |
+
+## Risiko REV-14 yang perlu diketahui pemilik sebelum eksekusi
+
+| # | Risiko | Task terdampak | Mitigasi yang sudah dirancang |
+|---:|---|---|---|
+| 1 | **Satu jalur pengubah saldo terlewat**, sehingga posisi saldo salah tanpa ada yang tahu | `BE-FIN-060`, `BE-FIN-061`, `BE-FIN-062` | Invariant `BalanceAfter` baris terakhir sama dengan sisa agregat (`FIN-VAL-167`), beserta test yang **sengaja** dibuat untuk menangkapnya |
+| 2 | **Kas keluar dihitung dari jumlah alokasi**, bukan `NetTransferAmount`, sehingga kas melebih-hitung setiap kali ada potongan | `BE-FIN-062` | Ditulis eksplisit pada `FIN-DES-081`, pada ERD `payable.md`, dan pada acceptance criteria task |
+| 3 | **Satu dari 21 titik tanggal terlewat**, sehingga dua konvensi tanggal hidup bersamaan | `BE-FIN-059` | Daftar 21 titik **MUST** dilampirkan satu per satu pada laporan task |
+| 4 | **Snapshot mengirim sebagian** saat pemetaan tidak lengkap | `BE-FIN-068` | Gagal tertutup dengan nol baris outbox, diuji tersendiri untuk cakupan sebagian |
+| 5 | **Kredensial ditanamkan di source** worker pengiriman | `BE-FIN-071` | Kredensial **MUST** dari konfigurasi; G3 masih terbuka dan pengaktifannya menunggu |
+| 6 | **Layar snapshot mempertahankan anggapan empat baris**, sehingga akun kelima tidak tampil | `FE-FIN-029` | Ditulis pada acceptance criteria; `IsComplete` di backend juga berhenti memakai angka empat |
+| 7 | **Layar menjanjikan pemisahan penyiap dan penyetuju** yang tidak dijamin mesin hak akses | `FE-FIN-028` | Dicatat `FIN-PERM-1.7` G.5 dan pada acceptance criteria task; **MUST** disampaikan saat menyerahkan modul |

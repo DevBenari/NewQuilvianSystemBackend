@@ -710,6 +710,167 @@ backend dan **MUST NOT** dihitung ulang di layar.
 
 | Yang mungkin disangka | Kenyataannya |
 |---|---|
-| Pelunasan tercatat sebagai kas masuk di kas harian atau setoran bank | **Tidak.** Kedua layar itu membaca `FinReceipt`, yang tidak dilewati jalur ini — `FIN-DES-075`, `FIN-OQ-044` |
-| Pencatatan tagihan menerbitkan kejadian akuntansi | **Tidak.** Nol kode kejadian terbit dari kapabilitas ini pada rilis pertama — `FIN-OQ-044` |
+| Pelunasan tercatat sebagai kas masuk di kas harian atau setoran bank | **Tidak.** Kedua layar itu membaca `FinReceipt`, yang tidak dilewati jalur ini. Ini **keputusan**: sewa dikelola terpisah dari kas — `FIN-DES-075`, `FIN-DEC-109` |
+| Pencatatan tagihan menerbitkan kejadian akuntansi | **Tidak.** Nol kode kejadian terbit dari kapabilitas ini pada rilis pertama, menunggu ratifikasi Accounting — `FIN-OQ-044(b)`, `FIN-DEC-110` |
 | Piutang sewa ikut terhitung pada umur piutang pasien | **Tidak.** `GET /receivables/aging` dan `GET /non-patient-receivables/aging` adalah dua laporan terpisah dengan definisi kelompok umur yang sama |
+
+---
+
+# Bagian F — Revisi 14: jalur pengiriman, buku mutasi, dan cutover
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-API-1.5` — status **`draft`** |
+| Naik dari | `FIN-API-1.4` (`approved` 1 Oktober 2026) |
+| `input_revision` | `00-interview-decisions.md` closure pass 1 Oktober 2026 (`FIN-DEC-111`..`137`) |
+| Owner | Yasmin (Product/Domain Finance) |
+| `approved_by`, `approved_at` | — belum |
+| Traceability | `FIN-DES-078`..`FIN-DES-091` |
+| Dampak kompatibilitas | **ADA PERUBAHAN MEMUTUS** pada dua endpoint yang sudah berjalan — bagian `F.8` |
+
+Seluruh endpoint baru berlabel **`Rencana (belum tersedia)`**.
+
+## F.1 Corporate / Finance Management / Subledger Setup
+
+Base URL: `api/v1/corporate/finance-management/subledger-setup`
+`[Tags("Corporate / Finance Management / Subledger Setup")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/control-accounts` | Daftar pemetaan kelompok dan segmen ke kode akun control | `FinanceSubledgerSetup : Read` | `ControlAccountMapPagedQuery` | `ApiResponse<PagedResult<ControlAccountMapResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/control-accounts/coverage` | Memeriksa kelengkapan cakupan sebelum snapshot; mengembalikan kelompok dan segmen yang belum terpetakan | `FinanceSubledgerSetup : Read` | — | `ApiResponse<ControlAccountCoverageResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/control-accounts` | Menambah satu pemetaan | `FinanceSubledgerSetup : Create` | `CreateControlAccountMapRequest` | `ApiResponse<ControlAccountMapResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/control-accounts/{id:guid}` | Mengoreksi pemetaan yang belum dipakai snapshot | `FinanceSubledgerSetup : Update` | `UpdateControlAccountMapRequest` | `ApiResponse<ControlAccountMapResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/control-accounts/{id:guid}/deactivate` | Menonaktifkan pemetaan; barisnya disimpan sebagai riwayat | `FinanceSubledgerSetup : Update` | `DeactivateControlAccountMapRequest` | `ApiResponse<ControlAccountMapResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/opening-balances` | Daftar saldo awal per kelompok | `FinanceSubledgerSetup : Read` | — | `ApiResponse<List<OpeningBalanceResponse>>` | **Rencana (belum tersedia)** |
+| `POST` | `/opening-balances` | Mencatat saldo awal satu kelompok, status `DRAFT` | `FinanceSubledgerSetup : Create` | `CreateOpeningBalanceRequest` | `ApiResponse<OpeningBalanceResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/opening-balances/{id:guid}` | Mengoreksi saldo awal yang masih `DRAFT` | `FinanceSubledgerSetup : Update` | `UpdateOpeningBalanceRequest` | `ApiResponse<OpeningBalanceResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/opening-balances/{id:guid}/approve` | Menyetujui saldo awal | `FinanceSubledgerSetup : Approve` | `ApproveOpeningBalanceRequest` | `ApiResponse<OpeningBalanceResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/opening-balances/{id:guid}/lock` | Mengunci; sesudahnya nilainya tidak dapat diubah | `FinanceSubledgerSetup : Approve` | `LockOpeningBalanceRequest` | `ApiResponse<OpeningBalanceResponse>` | **Rencana (belum tersedia)** |
+
+Kode status beserta artinya bagi pengguna:
+
+| Kode | Artinya bagi pengguna |
+|---|---|
+| `200` | Berhasil |
+| `201` | Pemetaan atau saldo awal berhasil dicatat |
+| `400` | Isian tidak lengkap atau tidak sah, misalnya segmen yang tidak dikenal untuk kelompok itu |
+| `403` | Hak akses tidak mencukupi |
+| `404` | Baris tidak ditemukan |
+| `409` | Bertabrakan dengan keadaan sekarang, misalnya kelompok itu sudah punya baris aktif, atau saldo awal sudah `LOCKED` |
+| `422` | Nilai melanggar aturan bisnis, misalnya saldo awal kelompok piutang diisi selain nol |
+
+## F.2 Corporate / Finance Management / Opening Item Batch
+
+Base URL: `api/v1/corporate/finance-management/opening-item-batches`
+`[Tags("Corporate / Finance Management / Opening Item Batch")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Daftar batch migrasi, bersaring jenis dan status | `FinanceOpeningItemBatch : Read` | `OpeningItemBatchPagedQuery` | `ApiResponse<PagedResult<OpeningItemBatchResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id:guid}` | Rincian batch beserta hasil validasi per baris | `FinanceOpeningItemBatch : Read` | — | `ApiResponse<OpeningItemBatchDetailResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/template` | Mengunduh templat spreadsheet sesuai jenis item | `FinanceOpeningItemBatch : Read` | `?itemKind=` | Berkas | **Rencana (belum tersedia)** |
+| `POST` | `/` | Mengunggah spreadsheet; membuat batch `DRAFT` | `FinanceOpeningItemBatch : Create` | `multipart/form-data` | `ApiResponse<OpeningItemBatchResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/validate` | Menjalankan validasi per baris; batch menjadi `VALIDATED` bila nol galat | `FinanceOpeningItemBatch : Update` | — | `ApiResponse<OpeningItemBatchDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/declare-accounting-opening` | Menyatakan total saldo awal Accounting beserta rujukan dokumennya | `FinanceOpeningItemBatch : Update` | `DeclareAccountingOpeningRequest` | `ApiResponse<OpeningItemBatchResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/approve` | Membuat item piutang atau utang beserta mutasi pembukanya, lalu mengunci batch | `FinanceOpeningItemBatch : Approve` | `ApproveOpeningItemBatchRequest` | `ApiResponse<OpeningItemBatchResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/reject` | Menolak batch beserta alasannya | `FinanceOpeningItemBatch : Update` | `RejectOpeningItemBatchRequest` | `ApiResponse<OpeningItemBatchResponse>` | **Rencana (belum tersedia)** |
+
+| Kode | Artinya bagi pengguna |
+|---|---|
+| `400` | Berkas tidak dapat dibaca, atau kolom templat tidak lengkap |
+| `409` | Batch sudah `APPROVED`, `LOCKED`, atau `REJECTED` sehingga tindakan itu tidak berlaku lagi |
+| `422` | Total sisa item tidak sama dengan saldo awal Accounting yang dinyatakan, atau masih ada baris bergalat |
+
+## F.3 Corporate / Finance Management / Transaction Proof
+
+Base URL: `api/v1/corporate/finance-management/transaction-proofs`
+`[Tags("Corporate / Finance Management / Transaction Proof")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `POST` | `/` | Mengunggah bukti pembayaran; mengembalikan `ProofId` untuk dipakai pada pembayaran | `FinanceTransactionProof : Create` | `multipart/form-data` | `ApiResponse<TransactionProofResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id:guid}` | Mengunduh berkas bukti | `FinanceTransactionProof : Read` | — | Berkas | **Rencana (belum tersedia)** |
+| `GET` | `/{id:guid}/metadata` | Keterangan berkas tanpa mengunduh isinya | `FinanceTransactionProof : Read` | — | `ApiResponse<TransactionProofResponse>` | **Rencana (belum tersedia)** |
+
+| Kode | Artinya bagi pengguna |
+|---|---|
+| `400` | Jenis atau ukuran berkas tidak diterima |
+| `409` | Bukti sudah terpakai pada pembayaran lain |
+
+> Jenis dan ukuran berkas yang diterima, lama simpan, dan siapa boleh menggantinya **belum
+> ditetapkan** (`FIN-OQ-075`). Bagian unggah **MUST NOT** dibangun sebelum itu turun.
+
+## F.4 Corporate / Finance Management / Master Data / Direct Payment Threshold
+
+Base URL: `api/v1/corporate/finance-management/master-data/direct-payment-threshold`
+`[Tags("Corporate / Finance Management / Master Data / Direct Payment Threshold")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Ambang aktif beserta alasan perubahan terakhir | `MstDirectPaymentThreshold : Read` | — | `ApiResponse<DirectPaymentThresholdResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/` | Mengubah ambang; alasan **wajib** | `MstDirectPaymentThreshold : Update` | `UpdateDirectPaymentThresholdRequest` | `ApiResponse<DirectPaymentThresholdResponse>` | **Rencana (belum tersedia)** |
+
+| Kode | Artinya bagi pengguna |
+|---|---|
+| `404` | Ambang belum pernah ditetapkan — seluruh pembayaran langsung sedang ditolak |
+| `422` | Alasan perubahan belum diisi, atau nilainya bukan angka positif |
+
+## F.5 Permukaan baca buku mutasi
+
+Ditambahkan pada grup yang sudah ada, bukan grup baru.
+
+| Grup | Method | Path | Kegunaan | Hak akses | Status |
+|---|---|---|---|---|---|
+| `Receivable` | `GET` | `/receivables/{id:guid}/movements` | Buku mutasi satu piutang, berurut tanggal | `FinanceReceivable : Read` | **Rencana (belum tersedia)** |
+| `Supplier Payable` | `GET` | `/supplier-payables/{id:guid}/movements` | Buku mutasi satu utang | `FinanceSupplierPayable : Read` | **Rencana (belum tersedia)** |
+| `Daily Cash` | `GET` | `/daily-cash/cash-movements` | Buku mutasi kas, bersaring tanggal, arah, dan jenis | `FinanceCashManagement : Read` | **Rencana (belum tersedia)** |
+
+## F.6 Permukaan baca posisi dan selisih
+
+Ditambahkan pada grup `Accounting Events` yang sudah ada.
+Base URL: `api/v1/corporate/finance-management/accounting-events`
+
+| Method | Path | Kegunaan | Hak akses | Status |
+|---|---|---|---|---|
+| `GET` | `/subledger-balances/position` | Posisi terhitung per kelompok dan segmen pada satu tanggal, dari saldo awal ditambah buku mutasi | `FinanceAccountingEvent : Read` | **Rencana (belum tersedia)** |
+| `GET` | `/subledger-balances/{accountingPeriodCode}/variance` | Selisih rekap kas harian terhadap posisi kas terhitung, beserta mutasi yang menjelaskannya (`FIN-DEC-125`) | `FinanceAccountingEvent : Read` | **Rencana (belum tersedia)** |
+| `POST` | `/subledger-balances/restate` | Memeriksa dan menerbitkan ulang saldo yang berubah untuk satu periode (`FIN-DEC-114`) | `FinanceAccountingEvent : Create` | **Rencana (belum tersedia)** |
+
+## F.7 Endpoint yang berubah perilakunya tanpa berubah bentuk
+
+| Endpoint | Yang berubah | Bentuk request/response |
+|---|---|---|
+| `POST /accounting-events/subledger-balances/generate` | Jumlah baris tidak lagi tetap empat, melainkan sebanyak pemetaan aktif; nilai negatif **tidak lagi** dipotong ke nol; gagal tertutup bila pemetaan tidak lengkap | **Tidak berubah** — `GenerateSubledgerSnapshotsRequest` tetap, tetapi keempat ruas override kode akun menjadi **tidak dipakai** dan ditandai usang |
+| `GET /accounting-events/subledger-balances/{accountingPeriodCode}` | `IsComplete` tidak lagi dihitung dari `items.Count >= 4` | Bentuk response tetap; arti `IsComplete` berubah |
+| `POST /billing-intake/cashier-shift-closure-markers/sync` | Mencakup status belum final dan menerbitkan `PEMBUKAAN-SHIFT-KASIR`; menulis mutasi kas untuk shift final | Response menambah dua penghitung baru |
+
+## F.8 Perubahan memutus pada endpoint yang sudah berjalan
+
+Dua endpoint di bawah **mengubah kontrak requestnya**. Keduanya dicatat terbuka karena konsumen
+frontend-nya perlu disesuaikan bersamaan — lihat `03-frontend-architecture.md` bagian 19.
+
+| Endpoint | Sebelum | Sesudah | Alasan |
+|---|---|---|---|
+| `POST /receivables/{id:guid}/payment` | `PaymentMethod` punya bawaan `"TRANSFER"` dan **diabaikan**; `ReferenceNumber` dan `Notes` diterima lalu dibuang | `PaymentMethod` **wajib**; ditambah `FundingSourceType`, `FundingSourceId`, `ReferenceNumber`, dan `ProofId` — seluruhnya **wajib** kecuali `FundingSourceId` saat metodenya tunai | `FIN-DEC-126`, `FIN-DEC-135` |
+| `POST /supplier-payables/{id:guid}/direct-payment` | `bankAccountId`, `paymentMethod`, `notes` diterima lalu **dibuang** | Ruas yang sama menjadi **wajib dan disimpan**; ditambah `ProofId` wajib | `FIN-DEC-130`, `FIN-DEC-135` |
+
+Kode status baru pada keduanya:
+
+| Kode | Artinya bagi pengguna |
+|---|---|
+| `404` | Ambang pembayaran langsung belum ditetapkan, sehingga jalur ini sedang ditutup |
+| `422` | Nilai pembayaran melewati ambang — gunakan jalur pembayaran berjenjang |
+
+Keduanya juga mulai menulis satu baris buku mutasi, dan — bila metodenya tunai — satu baris mutasi
+kas. Itu **tidak** mengubah bentuk response, tetapi mengubah akibatnya, sehingga dicatat di sini.
+
+## F.9 Yang sengaja tidak ditambahkan
+
+| Yang ditolak | Alasan |
+|---|---|
+| `DELETE` pada tabel mutasi mana pun | Baris mutasi tidak pernah dihapus; koreksi menambah baris |
+| `PUT` pada baris mutasi | Alasan yang sama |
+| Endpoint saldo rekening bank | Ditolak `FIN-DEC-137` — milik Accounting |
+| Endpoint menjalankan worker pengiriman secara manual | Pengiriman dijalankan penjadwal; pemicu manual akan menjadi jalan memutar gerbang `FIN-DES-078` |
+| Endpoint membuka kembali rekap kas harian | Ditolak `FIN-DEC-125` lewat pilihan menghitung posisi langsung |

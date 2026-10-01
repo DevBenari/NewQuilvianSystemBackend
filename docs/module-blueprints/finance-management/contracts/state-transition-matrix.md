@@ -506,3 +506,108 @@ Berbeda dari `FinReceivable`, kapabilitas ini **tidak** punya jenjang persetujua
 
 Perbedaan pertama **MUST NOT** menular: kelonggaran di sini berlaku **hanya** untuk piutang sewa,
 dan tidak pernah menjadi alasan melonggarkan maker-checker piutang pasien.
+
+---
+
+# Bagian F — Revisi 14: saldo awal, batch migrasi, dan siklus penanda shift
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-STATE-1.6` — status **`draft`** |
+| Naik dari | `FIN-STATE-1.5` (`approved` 1 Oktober 2026) |
+| Traceability | `FIN-DEC-121`, `128`, `129`, `136`; `FIN-DES-084`, `088`, `089` |
+| Dampak kompatibilitas | Aditif — nol status lama berubah |
+
+## F.1 `FinOpeningBalance` — saldo awal cutover
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| *(belum ada)* | Mencatat saldo awal | `DRAFT` | `FinanceSubledgerSetup : Create` | Kelompok belum punya baris aktif; `Reason` dan rujukan dokumen Accounting terisi; kelompok item migrasi bernilai nol | `409` bila sudah ada; `422` bila nilainya melanggar |
+| `DRAFT` | Mengoreksi | `DRAFT` | `FinanceSubledgerSetup : Update` | — | — |
+| `DRAFT` | Menyetujui | `APPROVED` | `FinanceSubledgerSetup : Approve` | Seluruh ruas wajib terisi | `422` |
+| `APPROVED` | Mengunci | `LOCKED` | `FinanceSubledgerSetup : Approve` | `CutoverDate` tidak melebihi hari ini | `422` |
+| `LOCKED` | — | — | **Tidak seorang pun** | Nilai **MUST NOT** berubah | `409` |
+
+Transisi yang **tidak sah** dan MUST ditolak:
+
+| Yang dicoba | Kenapa ditolak |
+|---|---|
+| `APPROVED` → `DRAFT` | Persetujuan tidak dapat ditarik; koreksi menuntut keputusan baru |
+| `LOCKED` → status apa pun | Posisi seluruh buku dihitung dari titik ini |
+| Mengubah `Amount` saat `APPROVED` | Nilai yang disetujui adalah nilai yang disetujui |
+| Menghapus baris `LOCKED` | Penghapusan penandaan sekalipun akan membuat posisi tidak dapat dihitung |
+
+**Akibat `LOCKED` yang MUST dipahami.** Mengunci kelompok `KAS-KASIR` menerbitkan satu mutasi kas
+`SALDO-AWAL` bertanggal `CutoverDate`. Mutasi itu juga tidak dapat dibatalkan.
+
+## F.2 `FinOpeningItemBatch` — batch migrasi tagihan lama
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| *(belum ada)* | Mengunggah spreadsheet | `DRAFT` | `FinanceOpeningItemBatch : Create` | Berkas terbaca; kolom templat lengkap; `ItemKind` ditetapkan | `400` |
+| `DRAFT` | Mengunggah ulang berkas | `DRAFT` | `FinanceOpeningItemBatch : Update` | Hasil validasi sebelumnya dibuang | — |
+| `DRAFT` | Menjalankan validasi | `VALIDATED` | `FinanceOpeningItemBatch : Update` | **Nol** baris bergalat | Tetap `DRAFT` beserta daftar galat per baris |
+| `DRAFT` atau `VALIDATED` | Menyatakan saldo awal Accounting | status tidak berubah | `FinanceOpeningItemBatch : Update` | Nominal dan rujukan dokumen terisi | `422` |
+| `VALIDATED` | Menyetujui | `APPROVED` lalu **otomatis** `LOCKED` | `FinanceOpeningItemBatch : Approve` | `TotalOutstandingAmount` **sama dengan** `DeclaredAccountingOpeningAmount`; rujukan dokumen terisi; `CutoverDate` sama dengan `FinOpeningBalance` | `422` beserta kedua angka yang dibandingkan |
+| `DRAFT` atau `VALIDATED` | Menolak | `REJECTED` | `FinanceOpeningItemBatch : Update` | Alasan terisi | `422` |
+| `LOCKED` | — | — | **Tidak seorang pun** | — | `409` |
+| `REJECTED` | — | — | **Tidak seorang pun** | Batch baru diunggah tersendiri | `409` |
+
+Transisi yang **tidak sah** dan MUST ditolak:
+
+| Yang dicoba | Kenapa ditolak |
+|---|---|
+| `VALIDATED` → `APPROVED` dengan selisih rekonsiliasi | Inti `FIN-DEC-129` butir 1 |
+| `APPROVED` tanpa melewati `VALIDATED` | Item akan lahir tanpa pemeriksaan per baris |
+| `REJECTED` → `DRAFT` | Batch yang ditolak ditutup; perbaikan diunggah sebagai batch baru |
+| `LOCKED` → `REJECTED` | Item sudah lahir; pembatalannya menuntut keputusan dan jalur tersendiri |
+| Mengubah item piutang atau utang yang `OpeningItemBatchId`-nya menunjuk batch `LOCKED`, lewat jalur batch | Item sudah menjadi tagihan biasa; koreksinya lewat penyesuaian dan penghapusan yang sudah ada |
+
+**Satu hal yang MUST diperhatikan pada perpindahan ke `APPROVED`.** Pada perpindahan inilah item
+piutang atau utang **lahir**, beserta mutasi pembukanya, dalam **satu transaksi**. Bila satu baris
+gagal, seluruh batch gagal — tidak ada batch setengah jadi. Selama `DRAFT` dan `VALIDATED`, **nol**
+baris piutang atau utang ada.
+
+**Dan satu hal yang MUST NOT terjadi:** perpindahan ini **tidak** menerbitkan kejadian akuntansi apa
+pun (`FIN-DEC-129` butir 3). Nilainya sudah tercakup saldo awal Accounting; menerbitkannya akan
+menghitung ganda.
+
+## F.3 Siklus penanda shift kasir — diperluas
+
+Bukan status baru pada entity Finance; ini **siklus penanda** yang diterbitkan Finance atas shift
+milik Billing. `FIN-DEC-121` memperluas pemicunya.
+
+| Status shift (milik Billing) | Masuk kelompok | Penanda yang diterbitkan Finance |
+|---|---|---|
+| `OPEN` | **Belum final** | `PEMBUKAAN-SHIFT-KASIR` |
+| `HANDED_OVER` | **Belum final** | `PEMBUKAAN-SHIFT-KASIR` |
+| `CLOSED_WITH_VARIANCE` | **Belum final** | `PEMBUKAAN-SHIFT-KASIR` |
+| `PERLU_TINDAK_LANJUT` | **Belum final** | `PEMBUKAAN-SHIFT-KASIR` |
+| `REOPENED` | **Belum final** | `PEMBALIKAN-PENUTUPAN-SHIFT-KASIR` bila siklusnya pernah tertutup, lalu `PEMBUKAAN-SHIFT-KASIR` siklus berikutnya |
+| `CLOSED` | **Final** | `PENUTUPAN-SHIFT-KASIR` + satu mutasi kas `KAS-SHIFT` |
+| `REVIEWED` | **Final** | `PENUTUPAN-SHIFT-KASIR` + satu mutasi kas `KAS-SHIFT` |
+
+| Aturan siklus | Isi |
+|---|---|
+| Nomor siklus | Jumlah penanda pembalik yang sudah terbit untuk shift itu ditambah satu |
+| Idempotensi penanda | Satu shift pada satu siklus menghasilkan paling banyak satu penanda per jenis — dijaga unique index outbox |
+| Idempotensi mutasi kas | Dijaga unique index (`SourceReferenceType`, `SourceReferenceId`, `MovementType`) pada `FinCashMovement` |
+| Yang **tidak** terjadi | Finance **MUST NOT** menulis apa pun ke tabel `Bil*`. Status shift tetap sepenuhnya milik Billing |
+
+**Urutan yang MUST dijaga saat shift dibuka kembali lalu ditutup lagi:** pembalik penutupan siklus
+lama terbit lebih dulu, baru penanda pembukaan siklus baru. Terbalik, Accounting akan melihat dua
+shift terbuka untuk satu shift yang sama.
+
+## F.4 Kedudukan `FinDailyCashSnapshot` — status tidak berubah, artinya berubah
+
+Status `OPEN` dan `CLOSED` **tidak berubah**, dan nol transisi baru ditambahkan. Yang berubah
+kedudukannya:
+
+| Hal | Sebelum | Sesudah |
+|---|---|---|
+| Penutupan hari | Direncanakan menjadi syarat snapshot | **Bukan** syarat. Boleh ditutup walau masih ada shift belum final (`FIN-DEC-124`) |
+| `CLOSED` yang tidak dapat diubah | Tetap tidak dapat diubah | **Tetap**, dan kini **tidak menjadi masalah** karena posisi kas tidak lagi dihitung darinya |
+| Selisih terhadap posisi kas | Tidak ada konsepnya | **Sah dan diharapkan**; ditampilkan lewat permukaan baca selisih (`FIN-DEC-125`) |
+
+Karena itu **nol** transisi baru, **nol** jalur pembukaan kembali, dan **nol** perubahan skema untuk
+tabel ini. Pembukaan kembali rekap harian ditolak sebagai desain — lihat `FIN-DES-081`.

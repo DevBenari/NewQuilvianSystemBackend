@@ -1210,3 +1210,652 @@ melewati `/grill-me` tersendiri. Perencanaan ini berjalan di atas bacaan yang se
 
 **Open question yang ditutup:** nol baru. `FIN-OQ-044` (integrasi kas dan kejadian akuntansi) **tetap
 terbuka** dan tidak tersentuh kedua keputusan ini.
+
+---
+
+## Addendum — Jawaban `FIN-OQ-041`, `FIN-OQ-042`, `FIN-OQ-044`, 1 Oktober 2026
+
+**Pemicu.** Yasmin (Product Owner Finance) menjawab tiga pertanyaan terbuka yang tersisa pada
+`03-frontend-architecture.md` §17.5 dan `blueprint-manifest.md`. Diputuskan interaktif.
+
+| ID | Pertanyaan | Keputusan | Dasar |
+|---|---|---|---|
+| `FIN-DEC-107` | Empat pasang butir V1 yang tampak kembar: (a) Laporan Aging AR / Umur Piutang (A/R Aging); (b) Receivable AR/Invoice / Piutang Tagihan; (c) Retur Produk / Retur Pembelian Supplier; (d) Ayat Silang / Settlement AR | **Keempatnya dua layar berbeda, seluruhnya dipertahankan.** Tidak ada butir yang dibuang atau digabung. Dibuat sesuai tabel 17.2 dengan saringan bawaan yang berbeda, persis seperti perlakuan sementara sebelumnya | Jawaban eksplisit owner, 1 Oktober 2026 |
+| `FIN-DEC-108` | Apakah kolom `PayerClaimReference` dibutuhkan? | **Ya, dipertahankan** sebagai kolom opsional pada migration. Tidak membawa aturan bisnis | Jawaban eksplisit owner, 1 Oktober 2026 |
+| `FIN-DEC-109` | `FIN-OQ-044(a)`: apakah pelunasan sewa masuk kas harian dan setoran bank? | **Tidak.** Piutang sewa non-pasien dikelola **terpisah** dari kas harian dan setoran bank. Pelunasan sewa tetap hanya tercatat pada `FinNonPatientReceivableSettlement`. `FinReceipt` **MUST NOT** diperluas untuk sewa | Jawaban eksplisit owner, 1 Oktober 2026 |
+| `FIN-DEC-110` | `FIN-OQ-044(c)`: bolehkah rilis pertama `EPIC FIN-19` berjalan tanpa penyambungan kas dan kode kejadian akuntansi? | **Boleh, dengan banner peringatan** yang tetap tampil. Batas ini sudah dikomunikasikan kepada pemilik | Jawaban eksplisit owner, 1 Oktober 2026 |
+
+### Akibat yang MUST dijaga
+
+1. `FIN-DEC-109` mengubah sifat `FIN-DES-075`: ketiadaan alur ke kas harian/setoran bank **bukan lagi
+   batas sementara**, melainkan keputusan. Task penyambungan pelunasan sewa ke kas harian dan setoran
+   bank (`FIN-19` bagian kas) **dicabut** dari roadmap, bukan lagi "tertahan".
+2. Banner peringatan pada layar piutang sewa (`FE-FIN-022`, `FE-FIN-023`) **tetap** dan
+   kata-katanya perlu disesuaikan: "dikelola terpisah dari kas harian", bukan "belum tersambung".
+3. Risiko yang diterima sadar: uang sewa yang diterima tidak tercocokkan dengan rekening koran lewat
+   kas harian. Mitigasi tetap pada alasan wajib dan jejak `IdentityModel`.
+
+### Yang **masih terbuka**
+
+| ID | Status | Keterangan |
+|---|---|---|
+| `FIN-OQ-044(b)` | **TERBUKA** | Kode kejadian akuntansi pendapatan sewa **belum** diratifikasi. Pemilik: Rizki (Accounting). Memblokir **kelengkapan akuntansi** `EPIC FIN-19`, bukan pembangunannya (`FIN-DEC-110`). Tidak dapat diputuskan Finance sepihak, mengikuti pola `FIN-DEC-053` |
+| `FIN-OQ-041` | **CLOSED** oleh `FIN-DEC-107` | — |
+| `FIN-OQ-042` | **CLOSED** oleh `FIN-DEC-108` | — |
+| `FIN-OQ-044(a)`, `(c)` | **CLOSED** oleh `FIN-DEC-109`, `FIN-DEC-110` | Hanya bagian (b) tersisa |
+
+**Langkah berikutnya:** amandemen kecil untuk menyelaraskan berkas turunan (`blueprint-manifest.md`,
+§17.5 dan §18.2 pada `03-frontend-architecture.md`, `04-prd-to-mvp.md`, `roadmap/*`, `FIN-DES-075`)
+dengan keputusan di atas. Penyelarasan itu belum dikerjakan; addendum ini baru mencatat keputusannya.
+
+---
+
+## Amendment pass — Penutupan gap Finance atas balasan Accounting `evidence/16`, 1 Oktober 2026
+
+**Pemicu.** Accounting membalas surat Finance 15, 16, dan 21 lewat
+`docs/module-blueprints/accounting/evidence/16-balasan-accounting-atas-surat-finance-15-16-21.md`
+dengan lima pertanyaan balik (16.1–16.5). Sesi `/grill-me` ini memeriksa pertanyaan itu terhadap
+source sisi Finance, menemukan gap tambahan, dan memutuskan sisi Finance secara interaktif.
+Keputusan di bawah `approved` **sisi Finance** (Yasmin, 1 Oktober 2026). Butir yang menuntut
+persetujuan Accounting atau modul lain ditandai tersendiri dan **belum** mengikat modul itu.
+
+**Batas scope pass ini.** *Di dalam:* apa yang Finance kirim ke kotak masuk Accounting (penerimaan
+kasir, snapshot saldo, penanda shift). *Di luar:* aturan posting dan bagan akun (Accounting), data
+shift dan akun refund `REFERRED_OUTPATIENT_ADMIN` (Billing bersama Accounting), aturan internal
+honor dokter (Medical Fee).
+
+### Fakta source yang mendasari (dibaca 1 Oktober 2026, bukan keputusan)
+
+| # | Fakta | Lokasi |
+|---:|---|---|
+| F1 | `PENERIMAAN-KASIR` terbit **per kuitansi**; `SourceTransactionId = receipt.ReceiptNumber`. `AccountingOutboxEventRequest` tidak punya rujukan shift maupun metode bayar | `FinanceReceiptService.cs:129-139`; `FinanceAccountingOutboxService.cs:221-234` |
+| F2 | Snapshot saldo **hanya** dapat dipicu lewat endpoint POST manual; tidak ada hosted service Finance yang memanggilnya, padahal `FIN-DEC-092` menjanjikan terbit otomatis tanggal 1 pukul 00.05 WIB | `FinanceAccountingEventsController.GenerateSubledgerSnapshots` |
+| F3 | Keempat saldo snapshot dipotong `Math.Max(0m, …)`: saldo negatif menjadi `0.00` tanpa jejak | `FinanceSubledgerSnapshotService.cs:92,100,111,121` |
+| F4 | Snapshot menerbitkan tepat 4 baris dengan kode default; tidak ada pemetaan per akun control dan tidak ada utang honor dokter | `FinanceSubledgerSnapshotService.cs:123-129` |
+| F5 | Kas kecil, piutang, dan utang memakai saldo **berjalan** (`CurrentBalance`, `OutstandingAmount`), bukan posisi pada tanggal akhir periode. Kas Kasir hanya status `CLOSED` dari hari tertutup terakhir | baris 87-121 |
+| F6 | `AccountingDate` penerimaan kasir, pembaliknya, dan penanda shift dihitung dari `UtcDateTime`; batas akhir periode snapshot piutang juga UTC | `FinanceReceiptService.cs:134,207`; `FinanceBillingIntakeService.cs:1111`; snapshot baris 104 |
+| F7 | Penanda shift hanya terbit untuk shift `Closed`, `Reviewed`, `Reopened`; shift berstatus terbuka tidak pernah terlihat Accounting | `FinanceBillingIntakeService.cs:1049-1054` |
+| F8 | `StageEventAsync` sudah menaikkan `SourceVersion` otomatis bila kejadian sama diterbitkan ulang | `FinanceAccountingOutboxService.cs:89-97` |
+
+### Keputusan
+
+| ID | Pertanyaan | Keputusan | Menjawab |
+|---|---|---|---|
+| `FIN-DEC-111` | `PENERIMAAN-KASIR` per kuitansi atau per shift? | **Tetap per kuitansi.** Finance menambahkan **nomor shift dan metode bayar** pada kejadian penerimaan kasir dan pembaliknya; Accounting yang meringkas menjadi satu jurnal per shift per metode lewat aturan posting. Finance **tidak** membongkar `BE-FIN-024` dan idempotensi tender | Accounting 16.1 |
+| `FIN-DEC-112` | Saldo tidak wajar (negatif) pada `SALDO-SUBLEDGER` | **Dikirim apa adanya, bertanda negatif**, artinya berlawanan dengan saldo normal akun. Amandemen `FIN-DEC-091`: larangan negatif **dicabut** untuk `SALDO-SUBLEDGER`. Pemotongan ke nol (F3) **MUST** dihapus | Accounting 16.3 |
+| `FIN-DEC-113` | Granularitas baris saldo | **Satu baris per akun control**, lewat **pemetaan terkonfigurasi** "kelompok saldo → kode akun control". Bila daftar dari Accounting memuat akun yang belum terpetakan, snapshot **MUST** menolak terbit dengan pesan jelas (gagal tertutup), bukan mengirim sebagian | Accounting 16.2 |
+| `FIN-DEC-114` | Shift tertutup sesudah snapshot; saldo bukan posisi per tanggal | Saldo dihitung sebagai **posisi per tanggal akhir periode** (transaksi bertanggal sampai akhir periode, shift `CLOSED` dan `REVIEWED`), terbit sekali, lalu **dinyatakan ulang otomatis** dengan `SourceVersion` lebih tinggi **hanya untuk akun yang nilainya berubah** | Accounting 16.4 |
+| `FIN-DEC-115` | Bagaimana Accounting tahu ada shift terbuka | **Penanda pembukaan shift per shift**, kode baru bernilai nol (nama usulan `PEMBUKAAN-SHIFT-KASIR`), diterbitkan saat Finance melihat shift berstatus terbuka. Penutupan final menggantikannya; pembukaan tanpa penutupan menahan tutup bulan sisi Accounting | Accounting 16.5 |
+| `FIN-DEC-116` | Konvensi tanggal akuntansi | **Seluruh `AccountingDate` dan batas periode memakai tanggal WIB (Asia/Jakarta)**, bukan UTC. Cakupan minimal tiga titik pada F6, dan **MUST** disisir ke sisa Finance sebelum diklaim tuntas | Temuan sesi ini |
+| `FIN-DEC-117` | Pengirim saldo utang honor dokter | **Medical Fee menerbitkan saldonya sendiri** dengan kode akun control miliknya, **bila** G2 menandainya sebagai control account. Finance **tidak** membaca data honor dokter dan tidak memasukkannya ke snapshot | Accounting 16.2 (bagian honor) |
+
+### Contoh
+
+Kuitansi tunai Rp 150.000 dan kuitansi QRIS Rp 200.000 pada shift 12 tanggal 1 Oktober 2026 pukul
+02.10 WIB. Finance mengirim dua kejadian, masing-masing membawa nomor shift 12 dan metodenya, dengan
+`AccountingDate = 2026-10-01` (bukan 2026-09-30, `FIN-DEC-116`). Accounting menggabungkannya menjadi
+dua jurnal untuk shift 12 (satu per metode). Bila kuitansi tunai dibalik sesudah shift tertutup,
+pembaliknya tetap menunjuk kuitansi aslinya dan shift yang sama.
+
+### Dampak turunan dan batas
+
+1. **Perbaikan atas janji yang sudah ada, bukan keputusan baru.** Snapshot tidak terjadwal (F2) adalah
+   pelanggaran `FIN-DEC-092` dan **MUST** dikerjakan sebagai bagian `BE-FIN-049`/penggantinya,
+   memakai pola hosted service yang sudah ada di source; Finance **tidak** boleh menyatakan G4 siap
+   sebelum ini terbukti jalan.
+2. `FIN-DEC-112` menggantikan sebagian `FIN-DEC-091`; `FIN-DEC-091` ditandai `superseded` **hanya**
+   pada klausa penolakan negatif untuk `SALDO-SUBLEDGER`. Kata "tanpa pengecualian" pada
+   `evidence/21` tidak lagi berlaku.
+3. Nilai `Amount` tetap mengikuti saldo normal akun (`ACC-DEC-109`); tanda minus hanya berarti
+   lawan dari saldo normal itu.
+4. **Migration tidak dibuat pada sesi ini.** `FIN-DEC-113` kemungkinan menuntut tabel atau
+   konfigurasi baru; pembuatannya butuh instruksi dan konfirmasi terpisah dari Yasmin.
+5. Pengirim penanda shift (`PENUTUPAN`/`PEMBALIKAN`) **tetap tidak diaktifkan** sampai Accounting
+   menyatakan G6 siap (`FIN-OQ-035`, `evidence/16` bagian 4). `FIN-DEC-115` menambah satu kode ke
+   gerbang yang sama.
+
+### Open question
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-045` | Accounting menyetujui `FIN-DEC-111`, termasuk mengubah `ACC-DEC-062` dan memperluas kontrak dengan dimensi shift dan metode bayar | Rizki (Accounting) | `IMPLEMENTATION` sisi `PENERIMAAN-KASIR`; G4 |
+| `FIN-OQ-046` | Apakah riwayat pembayaran, alokasi, pembalikan, dan setoran cukup untuk menghitung posisi **per tanggal** tanpa tabel baru? Perlu `/trace-existing-capabilities` | Yasmin / audit source | `IMPLEMENTATION` `FIN-DEC-114` |
+| `FIN-OQ-047` | Ratifikasi `PEMBUKAAN-SHIFT-KASIR` dan penambahannya ke daftar tertutup nilai nol G6; nama final | Rizki (Accounting) | `IMPLEMENTATION` `FIN-DEC-115`; G6 |
+| `FIN-OQ-048` | Accounting menerima konvensi tanggal WIB (`FIN-DEC-116`) | Rizki (Accounting) | `LATER SLICE` |
+| `FIN-OQ-049` | Apakah Medical Fee sanggup dan bersedia menerbitkan saldo honor dokter sendiri; jadwalnya selaras dengan snapshot Finance | Yasmin sebagai owner Medical Fee | `LATER SLICE`; G2/G4 |
+| `FIN-OQ-050` | Seberapa luas pola `UtcDateTime` pada `AccountingDate` di sisa Finance | Audit source | `IMPLEMENTATION` `FIN-DEC-116` |
+| `FIN-OQ-051` | Persetujuan pembuatan migration untuk pemetaan akun control (`FIN-DEC-113`) | Yasmin | `IMPLEMENTATION` `FIN-DEC-113` |
+
+### Bukan gap Finance (dicatat supaya tidak ditanyakan ulang)
+
+Refund `REFERRED_OUTPATIENT_ADMIN`: perlakuan sementara Finance (gagal terlihat, nol kejadian, tidak
+memakai `PENGEMBALIAN-UANG-MUKA`) sudah diterima Accounting (`ACC-DEC-129`). Akun debitnya ditentukan
+Billing bersama Accounting dan menjadi syarat G6 mereka.
+
+### Kriteria penerimaan yang kini dapat diuji
+
+1. Saldo piutang negatif terkirim sebagai nilai negatif, **bukan** `0.00`.
+2. Periode dengan akun control yang belum terpetakan: snapshot menolak terbit, nol baris outbox.
+3. Pembayaran pukul 02.00 WIB tanggal 1 Oktober menghasilkan `AccountingDate = 2026-10-01`.
+4. Dua kuitansi pada satu shift menghasilkan dua kejadian, masing-masing membawa nomor shift dan metode bayar.
+5. Shift yang tertutup sesudah snapshot menaikkan `SourceVersion` hanya pada akun yang berubah.
+6. Snapshot terbit otomatis tanggal 1 pukul 00.05 WIB tanpa dipicu manual, dan menjalankannya dua kali tidak menggandakan baris.
+
+**Langkah berikutnya:** lihat penawaran di pesan sesi. Surat balasan Finance untuk Accounting
+(`evidence/22`) belum ditulis.
+
+---
+
+## Closure pass — Penutupan `FIN-OQ-052`, `054`, `055`, `056`, `058` dan pengerasan `FIN-DEC-114`, 1 Oktober 2026
+
+**Pemicu.** Impact scan `01-existing-capability-map.md` §18 (`7f8c3014` / `85578363b`) menemukan bahwa
+Finance belum punya jalur pengiriman ke Accounting sama sekali, bahwa beberapa asumsi amandemen
+sebelumnya tidak cocok dengan source, dan bahwa jalur pembayaran langsung piutang tidak meninggalkan
+riwayat bertanggal. Keputusan di bawah `approved` sisi Finance (Yasmin, 1 Oktober 2026), diputuskan
+interaktif lewat `/grill-me`.
+
+**Batas scope pass ini.** *Di dalam:* apa yang Finance bangun untuk mengirim ke Accounting, dan kapan.
+*Di luar:* kredensial layanan antar-modul (G3, Platform bersama Accounting), aturan posting dan bagan
+akun (Accounting).
+
+### Keputusan
+
+| ID | Pertanyaan | Keputusan | Menutup |
+|---|---|---|---|
+| `FIN-DEC-118` | Apakah `EPIC FIN-12` (worker pengiriman) dibuka kembali? | **Ya, dibuka kembali sebagai syarat G4**, berupa satu paket tiga bagian: (1) worker pengiriman outbox yang menghormati gerbang yang sudah ada (penanda shift tetap `PENDING` sampai Accounting menyatakan G6 siap); (2) penjadwal snapshot tanggal 1 pukul 00.05 WIB; (3) pemicu otomatis penanda shift. Memakai pola hosted service di blok `runBackgroundJobs`. **Dibangun dalam keadaan mati** sampai mekanisme kredensial layanan (G3) diputuskan. Mencabut sebagian penundaan `EPIC FIN-12` | `FIN-OQ-058` |
+| `FIN-DEC-119` | Dari mana saldo Kas Kasir dihitung? | **Rekap kas harian Finance (`FinDailyCashSnapshot`, status `CLOSED`)**, bukan status shift Billing. Snapshot **MUST menolak terbit** bila rekap hari terakhir periode belum `CLOSED`; kebiasaan memakai hari sebelumnya secara diam-diam **MUST** dihapus. Koreksi: `evidence/21` bagian 3.2 yang menulis "shift `CLOSED`/`REVIEWED`" salah baca kode dan **MUST** diluruskan ke Accounting | `FIN-OQ-052` |
+| `FIN-DEC-120` | Kuitansi pembalik masuk shift yang mana? | **Shift saat pembalikan terjadi**, dengan rujukan ke kuitansi asli tetap dibawa. Menggantikan kalimat contoh `FIN-DEC-111` ("pembaliknya tetap menunjuk shift yang sama"): rujukan kuitansi asli tetap, tetapi shift adalah shift pembalikan, karena uang fisik keluar dari laci shift itu | `FIN-OQ-054` |
+| `FIN-DEC-121` | "Shift terbuka" mencakup status apa? | **Semua status selain `CLOSED` dan `REVIEWED`** (`OPEN`, `HANDED_OVER`, `REOPENED`, `CLOSED_WITH_VARIANCE`, `PERLU_TINDAK_LANJUT`). Penanda pembukaan terbit saat Finance pertama kali melihat shift belum final; penutupan final menggantikannya. Memperjelas `FIN-DEC-115` | `FIN-OQ-055` |
+| `FIN-DEC-122` | Siapa pengirim saldo utang honor dokter? | **Finance**, dari `FinMedicalServicePayable` miliknya sendiri. Selama tabel kosong (`BE-FIN-021` `BLOCKED`), Finance tetap mengirim `0.00`. **`FIN-DEC-117` menjadi `superseded`**: premisnya (data milik Medical Fee, Medical Fee mengirim sendiri) tidak cocok dengan source. Pemetaan `FIN-DEC-113` mendapat satu kelompok saldo tambahan | `FIN-OQ-056`, `FIN-OQ-049` |
+| `FIN-DEC-123` | Bagaimana saldo Piutang dan Utang dihitung per tanggal? | **Dibangun buku mutasi** untuk Piutang dan Utang supplier (pola `FinPettyCashBudgetMovement`: waktu kejadian, saldo sebelum, saldo sesudah). **Setiap jalur yang mengubah saldo MUST menulis ke buku mutasi**, termasuk pembayaran langsung piutang. Posisi per tanggal dibaca dari mutasi terakhir sampai akhir periode. Mengeraskan `FIN-DEC-114` | Turunan `FIN-OQ-046`, `FIN-OQ-053` |
+
+### Fakta source baru yang mendasari (dibaca 1 Oktober 2026)
+
+| # | Fakta | Lokasi |
+|---|---|---|
+| F9 | Tidak ada hosted service Finance yang terdaftar; `EPIC FIN-12` ditunda atas keputusan pemilik | `Program.cs:940-953`; `roadmap/00-delivery-roadmap.md:40,235` |
+| F10 | `FinReceiptDeduction` mengurangi `OutstandingAmount` **terpisah** dari alokasi, lewat panggilan sendiri ke `ApplyAllocationAsync` | `FinanceReceiptService.cs:611` |
+| F11 | Pembayaran langsung piutang mengurangi `OutstandingAmount` **tanpa** baris `FinReceipt`/`FinReceiptAllocation`; jejaknya hanya satu baris outbox dan satu catatan audit | `FinanceReceivableService.cs:621-701` |
+| F12 | Penghapusan langsung piutang **punya** baris `FinReceivableWriteOff` | `FinanceReceivableService.cs:729-749` |
+| F13 | `AccountingDate` dihitung dari UTC pada **20 titik** di lima service, bukan tiga | capability map §18.2 |
+| F14 | `FinPaymentAllocation` tidak punya tanggal sendiri; utang supplier berkurang saat pembayaran **disetujui**, bukan saat `PaidAt` | `FinancePaymentService.cs:575` |
+
+### Koreksi atas klaim sesi ini
+
+1. `FIN-OQ-046` sebelumnya dinyatakan "layak tanpa tabel baru". **Dicabut untuk Piutang** (F11) dan dengan syarat untuk Utang. `FIN-DEC-123` menggantikannya dengan buku mutasi; keputusan `FIN-DEC-114` tetap berlaku, hanya cara menghitungnya yang berubah.
+2. Contoh `FIN-DEC-112` (piutang lebih bayar menjadi `0.00`) tidak dapat terjadi karena invarian skema. `FIN-DEC-112` tetap sah sebagai aturan, dengan Kas Kasir sebagai kandidat saldo negatif satu-satunya yang diketahui.
+3. `FIN-DEC-117` ditandai `superseded` oleh `FIN-DEC-122`; `FIN-OQ-049` ikut tertutup tanpa pelaksana di Medical Fee.
+
+### Akibat yang MUST dijaga
+
+1. `FIN-DEC-118` mengubah janji "G4 siap" menjadi **bersyarat**: G4 baru boleh dinyatakan siap setelah ketiga bagian paket terbukti jalan. Balasan Finance ke Accounting (`evidence/22`) **MUST** mengatakannya apa adanya, tidak boleh menjanjikan pengiriman otomatis lebih dulu.
+2. `FIN-DEC-123` menyentuh setiap jalur yang menulis `FinReceivable.OutstandingAmount` (alokasi, pembalikan, penyesuaian, penghapusan, pembayaran langsung, potongan) dan `FinSupplierPayable.OutstandingAmount` (pembayaran, penyesuaian). Tidak boleh ada jalur yang terlewat; satu jalur tanpa mutasi membuat saldo per tanggal salah tanpa ada yang tahu.
+3. **Migration tidak dibuat pada pass ini.** `FIN-DEC-113` (pemetaan akun control) dan `FIN-DEC-123` (buku mutasi) sama-sama menuntut tabel baru; keduanya butuh instruksi dan konfirmasi terpisah dari Yasmin (`FIN-OQ-051`, diperluas).
+4. Prefix tabel baru **MUST** didaftarkan di `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` sebelum model dibuat (`QBE-MOD-003`).
+
+### Contoh
+
+Pembayaran langsung piutang Rp 500.000 pada 30 September pukul 23.50 WIB, lalu pembayaran Rp 200.000
+pada 1 Oktober pukul 00.02 WIB. Buku mutasi mencatat dua baris dengan tanggal WIB masing-masing
+(`FIN-DEC-116`). Snapshot periode `2026-09` membaca saldo sesudah mutasi pertama saja, sehingga angkanya
+tetap benar walaupun penjadwal baru jalan pukul 00.30. Tanpa buku mutasi, kedua pembayaran ikut terhitung.
+
+### Open question
+
+| ID | Status | Keterangan |
+|---|---|---|
+| `FIN-OQ-052`, `054`, `055`, `056`, `058` | **CLOSED** oleh `FIN-DEC-119`..`122`, `118` | — |
+| `FIN-OQ-053` | **CLOSED** (fakta F10) | Potongan mengurangi piutang terpisah; buku mutasi harus mencatatnya sebagai mutasi tersendiri |
+| `FIN-OQ-049` | **CLOSED** oleh `FIN-DEC-122` | Tanpa pelaksana di Medical Fee |
+| `FIN-OQ-051` | **DIPERLUAS** | Persetujuan migration untuk pemetaan akun control **dan** buku mutasi piutang/utang. Memblokir `IMPLEMENTATION` `FIN-DEC-113`, `123` |
+| `FIN-OQ-057` | **TERBUKA** | Skenario nyata saldo negatif selain Kas Kasir. Tidak memblokir |
+| `FIN-OQ-059` | **BARU** | Apakah ada jalur pengurang saldo utang supplier atau utang jasa medis yang tidak meninggalkan riwayat bertanggal, seperti F11 pada piutang? Perlu `/trace-existing-capabilities` terarah. Memblokir `IMPLEMENTATION` `FIN-DEC-123` bagian Utang |
+| `FIN-OQ-060` | **BARU** | Apakah pembayaran langsung piutang (F11) ikut masuk rekap kas harian, mengingat ia tidak punya `FinReceipt`? Bila tidak, Kas Kasir dan Piutang bisa tidak sinkron. Pemilik: Yasmin. Memblokir `IMPLEMENTATION` `FIN-DEC-119` |
+| `FIN-OQ-045`, `047`, `048` | **TERBUKA**, milik Accounting | Persetujuan `FIN-DEC-111`, kode `PEMBUKAAN-SHIFT-KASIR`, konvensi WIB |
+
+### Kriteria penerimaan tambahan
+
+1. Tanpa konfigurasi apa pun, worker pengiriman terdaftar tetapi **tidak** mengirim; menyalakannya membutuhkan aksi eksplisit.
+2. Snapshot tanggal 1 pukul 00.05 WIB terbit tanpa dipicu manual; dijalankan dua kali tidak menggandakan baris.
+3. Snapshot periode dengan rekap hari terakhir `OPEN`: ditolak, nol baris outbox.
+4. Kuitansi pembalik di shift berbeda dari kuitansi asli: kejadian membawa shift pembalikan dan rujukan kuitansi asli.
+5. Shift berstatus `CLOSED_WITH_VARIANCE` yang belum pernah terlihat sebelumnya: penanda pembukaan terbit.
+6. Pembayaran langsung piutang menulis tepat satu baris buku mutasi; saldo per tanggal akhir periode tidak ikut menghitung pembayaran sesudahnya.
+7. Saldo honor dokter terbit `0.00` selama tabel utang jasa kosong.
+
+**Langkah berikutnya:** lihat penawaran di pesan sesi. Surat `evidence/22` tetap **ditahan**.
+
+---
+
+## Closure pass lanjutan — Sumber Kas Kasir dan pembayaran langsung piutang, 1 Oktober 2026
+
+**Pemicu.** Pengecekan `FIN-OQ-060` menemukan fakta yang mengubah dasar `FIN-DEC-119`. Keputusan di bawah
+`approved` sisi Finance (Yasmin, 1 Oktober 2026), diputuskan interaktif lewat `/grill-me`.
+
+**Batas scope.** *Di dalam:* cara Finance menghitung dan mengirim saldo Kas Kasir, dan perlakuan pembayaran
+langsung piutang. *Di luar:* akun debit untuk tunai vs bank (aturan posting Accounting), data shift
+(Billing).
+
+### Fakta source baru (dibaca 1 Oktober 2026)
+
+| # | Fakta | Lokasi |
+|---|---|---|
+| F15 | `FinDailyCashSnapshot.CashReceiptAmount` dihitung dari `shifts.Sum(GetShiftCash)` atas `BilCashierShift` **tanpa melihat status shift**, bukan dari `FinReceipt` | `FinanceCashManagementService.cs:415,499` |
+| F16 | Menutup rekap harian hanya memeriksa setoran `DRAFT` dan kesesuaian saldo awal; **tidak memeriksa status shift**. Rekap yang sudah `CLOSED` tidak dapat diubah dan tidak ada jalur koreksi | `FinanceCashManagementService.cs:585-611` |
+| F17 | Batas hari rekap kas memakai `TimeSpan.Zero` (UTC) | `FinanceCashManagementService.cs:409` |
+| F18 | Pembayaran langsung piutang menerima `PaymentMethod` (bawaan `"TRANSFER"`) tetapi **tidak menyimpan dan tidak memakainya**; tidak punya `FinReceipt`, tidak ikut shift, tidak masuk kas | `FinanceReceivableService.cs:621-701`; `FinanceArDtos.cs:17` |
+
+### Keputusan
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-124` | Haruskah menutup rekap kas harian menuntut semua shift hari itu final? | **Tidak.** Rekap boleh ditutup walau masih ada shift belum final (pilihan pemilik: "lebih fleksibel"). Rekap harian menjadi **laporan operasional**, bukan dasar saldo ke Accounting |
+| `FIN-DEC-125` | Bagaimana Kas Kasir diperbaiki bila shift selesai setelah rekap ditutup? | **Snapshot Kas Kasir dihitung langsung** saat dijalankan: kas dari shift berstatus `CLOSED`/`REVIEWED` dikurangi setoran bank `POSTED`/`VERIFIED`, sampai tanggal akhir periode dalam **tanggal WIB**. Pernyataan ulang `FIN-DEC-114` berjalan dengan menghitung ulang dari shift final. **`FIN-DEC-119` menjadi `superseded`** (premisnya keliru, lihat F15–F16). Selisih antara rekap harian yang sudah ditutup dan angka snapshot **MUST** ditampilkan sebagai informasi |
+| `FIN-DEC-126` | Pembayaran langsung piutang: tunai atau non-tunai? | **Boleh tunai dan non-tunai, dengan satu mekanisme dan satu proses bisnis yang sama.** Satu-satunya perbedaan adalah metode pembayaran. **Metode wajib dipilih dan disimpan**, dan **bukti pembayaran disimpan**. Menutup `FIN-OQ-060` |
+
+### Akibat yang MUST dijaga
+
+1. Sebelum `FIN-DEC-126`, metode pembayaran langsung diabaikan; setelahnya ia **MUST** dibawa ke kejadian `PENERIMAAN-PIUTANG` supaya Accounting dapat menentukan akun debit. Ini menambah dimensi pada kontrak, sejalan dengan `FIN-DEC-111`.
+2. Pembayaran langsung piutang **MUST** menulis satu baris buku mutasi `FIN-DEC-123`, membawa metode dan rujukan bukti.
+3. Rumus Kas Kasir yang baru memakai shift final sebagai satu-satunya sumber kas masuk. **Kas tunai yang diterima langsung oleh Finance bukan bagian shift**, dan belum ada keputusan di mana ia dihitung (`FIN-OQ-063`).
+4. Batas hari rekap kas (F17) masuk lingkup `FIN-DEC-116` bersama 20 titik `AccountingDate`.
+
+### Contoh
+
+Penjamin membayar Rp 5.000.000 tunai langsung ke Finance pada 30 September 2026 pukul 16.00 WIB, dengan
+bukti kuitansi yang difoto. Finance mencatat satu pembayaran dengan metode "tunai", menyimpan foto bukti,
+menurunkan piutang, menulis satu baris mutasi, dan mengirim `PENERIMAAN-PIUTANG` Rp 5.000.000 membawa
+metode "tunai". Jika penjamin itu membayar transfer, prosesnya identik; hanya metodenya "transfer".
+
+### Open question
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-060` | **CLOSED** oleh `FIN-DEC-126` | — | — |
+| `FIN-OQ-061` | Dasar saldo awal Kas Kasir untuk rumus kumulatif `FIN-DEC-125` (saldo awal manual G5 atau kas sejak go-live) | Yasmin, lalu Accounting | `IMPLEMENTATION` `FIN-DEC-125` |
+| `FIN-OQ-062` | Bentuk bukti pembayaran (berkas, nomor referensi, atau keduanya) dan apakah `FinReceivableDocument` dapat dipakai ulang. Perlu `/trace-existing-capabilities` terarah | Audit source | `IMPLEMENTATION` `FIN-DEC-126` |
+| `FIN-OQ-063` | Tunai yang diterima langsung Finance dicatat di kas yang mana (bagian Kas Kasir, atau kas tersendiri)? | Yasmin, lalu Accounting | `IMPLEMENTATION` `FIN-DEC-125`, `126` |
+
+### Kriteria penerimaan tambahan
+
+1. Menutup rekap harian berhasil walau ada shift berstatus `OPEN`.
+2. Snapshot Kas Kasir menjumlah hanya shift `CLOSED`/`REVIEWED`; shift `OPEN` tidak ikut.
+3. Shift selesai setelah rekap ditutup: snapshot periode itu dinyatakan ulang dengan versi lebih tinggi.
+4. Pembayaran langsung tunai dan transfer menghasilkan kejadian yang identik kecuali metodenya, dan bukti tersimpan pada keduanya.
+5. Pembayaran langsung tanpa metode atau tanpa bukti ditolak dengan pesan jelas.
+
+### Penutup `FIN-OQ-063`
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-127` | Tunai yang diterima langsung Finance dicatat di kas yang mana? | **Komponen Kas Kasir.** Rumus Kas Kasir menjadi: kas dari shift `CLOSED`/`REVIEWED` **+ penerimaan tunai langsung Finance − setoran bank** `POSTED`/`VERIFIED`, sampai tanggal akhir periode (WIB). Tidak ada akun control baru. Penerimaan tunai langsung **MUST** punya jejak bertanggal lewat buku mutasi `FIN-DEC-123`. Melengkapi `FIN-DEC-125` |
+
+`FIN-OQ-063` **CLOSED** oleh `FIN-DEC-127`. Pembayaran langsung non-tunai tidak masuk Kas Kasir; ia mengikuti
+akun debit yang ditentukan Accounting menurut metode.
+
+### Penutup `FIN-OQ-061`
+
+**Fakta (F19).** Rekap harian pertama selalu berawal dari saldo awal `0`; nilai lain ditolak
+(`FinanceCashManagementService.cs:608-612`). Saat ini **tidak ada** cara memasukkan saldo kas yang sudah ada pada hari go-live.
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-128` | Dari mana rumus Kas Kasir kumulatif mulai? | **Finance menyimpan satu saldo awal Kas Kasir pada tanggal cutover**, diinput manual dan disetujui, bernilai **sama** dengan saldo awal manual Accounting (G5). Rumus `FIN-DEC-125`/`127` mulai dari saldo awal ini. Nilai hanya boleh diisi sekali; perubahan sesudahnya **MUST** membawa alasan dan jejak. Kemungkinan menuntut tempat penyimpanan baru (migration, butuh konfirmasi terpisah, `FIN-OQ-051` diperluas) |
+
+`FIN-OQ-061` **CLOSED** oleh `FIN-DEC-128`.
+
+**Celah serupa yang ditemukan dan belum diputuskan (`FIN-OQ-064`).** Bila sebelum go-live sudah ada piutang
+dan utang berjalan, Accounting memasukkannya sebagai saldo awal manual (G5). Finance menghitung Piutang
+dan Utang dari tabelnya sendiri, yang hanya berisi data sejak intake pertama. Tanpa keputusan,
+snapshot Piutang dan Utang berselisih dari buku besar sebesar saldo awal itu, persis seperti Kas Kasir
+sebelum `FIN-DEC-128`. Pertanyaannya: apakah piutang dan utang lama dimigrasikan ke tabel Finance, atau
+dicatat sebagai saldo awal tersendiri? Pemilik: Yasmin, lalu Accounting. Memblokir `IMPLEMENTATION`
+`FIN-DEC-123` dan G5.
+
+### Penutup `FIN-OQ-064`
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-129` | Piutang dan utang lama sebelum go-live: dimigrasikan atau saldo awal saja? | **Dimigrasikan sebagai item tagihan di Finance** (pilihan A, dijawab Yasmin 1 Oktober 2026). Setiap tagihan lama masuk dengan identitas dokumen, debitur atau supplier, tanggal dokumen, jatuh tempo, nilai awal, dan sisa pada saat cutover. Record **MUST** diberi penanda sebagai data migrasi/opening item dan dibuka lewat **mutasi pembuka** `FIN-DEC-123` |
+
+**Aturan yang mengikat `FIN-DEC-129`:**
+
+1. **Rekonsiliasi sebelum dikunci.** Total sisa migrasi **MUST** direkonsiliasi dengan saldo awal AR/AP Accounting pada G5/G6 **sebelum** batch migrasi boleh disetujui dan dikunci.
+2. **Sesudah diposting, tagihan lama mengikuti proses Finance yang normal:** aging, penagihan atau pembayaran, alokasi, settlement, snapshot, dan rekonsiliasi.
+3. **Tidak boleh ada jurnal atau pendapatan/beban baru.** Migrasi **MUST NOT** menerbitkan kejadian akuntansi atas aktivitas sebelum go-live, karena nilainya sudah tercakup dalam saldo awal Accounting. Artinya jalur pengakuan piutang yang biasanya menulis ke outbox **MUST** dilewati untuk item berpenanda migrasi.
+4. Cakupan: piutang (`FinReceivable`) dan utang supplier (`FinSupplierPayable`). Utang jasa medis (`FinMedicalServicePayable`) belum diputuskan (`FIN-OQ-065`).
+
+**Contoh.** Piutang penjamin lama Rp 800.000.000 dari 40 tagihan dimigrasikan sebagai 40 item berpenanda
+migrasi, masing-masing dengan mutasi pembuka. Jumlahnya dicocokkan dengan saldo awal AR Accounting
+Rp 800.000.000; bila cocok, batch disetujui dan dikunci. Penjamin membayar Rp 100.000.000 untuk dua tagihan:
+Finance mengalokasikannya seperti biasa dan mengirim `PENERIMAAN-PIUTANG`. Migrasi itu sendiri tidak
+mengirim apa pun ke Accounting.
+
+`FIN-OQ-064` **CLOSED** oleh `FIN-DEC-129`.
+
+| ID | Pertanyaan baru | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-065` | Apakah utang jasa medis lama (`FinMedicalServicePayable`) ikut dimigrasikan? Tabelnya belum terisi dan `BE-FIN-021` `BLOCKED` | Yasmin | `LATER SLICE` |
+| `FIN-OQ-066` | Mekanisme batch migrasi: bentuk impor, maker-checker persetujuan batch, siapa mengunci, dan bagaimana kegagalan sebagian ditangani. Perlu `/design-business-module` | Yasmin, lalu Accounting | `IMPLEMENTATION` `FIN-DEC-129`; G5/G6 |
+| `FIN-OQ-051` | **DIPERLUAS lagi**: penanda migrasi pada item dan batch migrasi kemungkinan menambah kolom/tabel | Yasmin | `IMPLEMENTATION` |
+
+### Kriteria penerimaan tambahan
+
+1. Item berpenanda migrasi tidak menulis baris outbox saat diposting (nol kejadian akuntansi).
+2. Batch migrasi dengan total sisa berbeda dari saldo awal Accounting **tidak dapat** disetujui atau dikunci.
+3. Setelah batch dikunci, item tidak dapat diubah nilai awalnya; perubahan hanya lewat penyesuaian normal.
+4. Pembayaran atas item migrasi menulis mutasi dan mengirim `PENERIMAAN-PIUTANG` seperti piutang biasa.
+5. Snapshot Piutang periode go-live sama dengan saldo awal Accounting ditambah mutasi sesudah go-live.
+
+---
+
+## Closure pass lanjutan — Pembayaran langsung utang supplier, 1 Oktober 2026
+
+**Pemicu.** Impact scan `01-existing-capability-map.md` §19 menemukan bahwa pembayaran langsung utang supplier
+bocor seperti pembayaran langsung piutang (`FIN-OQ-059`). Keputusan di bawah `approved` sisi Finance
+(Yasmin, 1 Oktober 2026), dijawab lewat `/grill-me`.
+
+**Batas scope.** *Di dalam:* aturan pembayaran langsung utang supplier dan efeknya ke Kas Kasir. *Di luar:*
+akun kredit kas atau bank (aturan posting Accounting), persetujuan berjenjang `FinPayment` yang sudah ada.
+
+### Fakta source (dibaca 1 Oktober 2026)
+
+| # | Fakta | Lokasi |
+|---|---|---|
+| F20 | Rekap kas harian memuat **pengeluaran kas** dalam rumusnya (`Opening + CashReceipt + OtherReceipt − Disbursement − BankDeposit`); nilainya diketik dari permintaan, bawaan `0` | `FinanceCashManagementService.cs:625-634` |
+| F21 | `FinPayment` sudah menyimpan `PaymentMethod` (`TRANSFER`/`CASH`) dan `BankAccountId` wajib; pembayaran langsung utang supplier menerima `bankAccountId`, `paymentMethod`, `notes` tetapi tidak menyimpannya | `FinPayment.cs:40,44,109-112`; `FinanceSupplierPayableService.cs:207-274` |
+
+### Keputusan
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-130` | Apakah pembayaran langsung utang supplier mengikuti aturan piutang? | **Ya, sama** (pilihan A). Mendukung tunai dan non-tunai, serta **menyimpan metode, sumber dana, catatan, dan bukti transaksi**. Setiap pembayaran langsung **MUST** menurunkan sisa utang dan menulis **satu mutasi** `FIN-DEC-123`. Metode `CASH` mengurangi Kas Kasir atau sumber kas terkait; metode `TRANSFER` mengurangi rekening bank sumber yang dipilih. **Metode dan sumber dana MUST diteruskan ke Accounting** agar akun kredit ditentukan eksplisit |
+| `FIN-DEC-131` | Jalur langsung vs `FinPayment` | **Tetap dibedakan berdasarkan kontrol.** Transaksi sederhana atau di bawah ambang tertentu boleh langsung; transaksi bernilai besar atau berisiko **MUST** lewat `FinPayment` dengan persetujuan berjenjang. Nilai ambang dan definisi "berisiko" belum ditetapkan (`FIN-OQ-071`) |
+| `FIN-DEC-132` | Koreksi rumus Kas Kasir | **Amandemen `FIN-DEC-125`/`127`**: rumus menjadi kas shift `CLOSED`/`REVIEWED` + penerimaan tunai langsung Finance **− pengeluaran kas tunai** (pembayaran supplier tunai, baik lewat `FinPayment` `CASH` maupun pembayaran langsung) − setoran bank `POSTED`/`VERIFIED`, sampai tanggal akhir periode (WIB). Menggantikan rumus tanpa pengeluaran pada `FIN-DEC-127`; pengeluaran **tidak lagi diketik manual** sebagai `DisbursementAmount` bebas pada snapshot kirim |
+
+`FIN-DEC-127` ditandai `superseded` **hanya pada rumusnya** oleh `FIN-DEC-132`; keputusan bahwa tunai langsung Finance
+adalah komponen Kas Kasir tetap berlaku.
+
+### Akibat yang MUST dijaga
+
+1. Jalur langsung dan jalur dokumen **MUST** menulis ke buku mutasi yang sama dan menghasilkan kejadian yang
+   memuat metode dan sumber dana, supaya Accounting tidak menebak akun kredit.
+2. Bukti transaksi mengikuti `FIN-OQ-068` (tempat penyimpanan belum diputuskan).
+3. `FIN-DEC-131` mengubah jalur langsung dari "bebas" menjadi **terbatas**; perilaku sekarang (tanpa batas) **MUST NOT** dipertahankan setelah diterapkan.
+
+### Contoh
+
+Staf membayar supplier Rp 750.000 tunai lewat jalur langsung, di bawah ambang. Finance menyimpan metode `CASH`,
+sumber kas, catatan, dan foto bukti; menurunkan sisa utang Rp 750.000; menulis satu mutasi; mengurangi Kas Kasir
+Rp 750.000 pada tanggal WIB hari itu; dan mengirim `PEMBAYARAN-HUTANG-SUPPLIER` membawa metode `CASH`. Pembayaran
+Rp 80.000.000 ke supplier yang sama, di atas ambang, ditolak di jalur langsung dan harus lewat `FinPayment`
+dengan persetujuan berjenjang.
+
+### Open question
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-067` | **CLOSED** oleh `FIN-DEC-130` | — | — |
+| `FIN-OQ-071` | Nilai ambang jalur langsung, definisi "berisiko" (mis. supplier baru, rekening baru), dan siapa yang menetapkannya. Apakah ambang sama untuk piutang | Yasmin; persetujuan berjenjang bila perlu | `DESIGN` `FIN-DEC-131` |
+| `FIN-OQ-072` | "Kas Kasir/cash source terkait": pembayaran tunai mengurangi **Kas Kasir** atau **Kas Kecil** (atau sumber kas lain)? Pengeluaran tunai bernilai kecil biasanya lewat kas kecil | Yasmin, lalu Accounting | `DESIGN` `FIN-DEC-132` |
+| `FIN-OQ-073` | Pembayaran `TRANSFER` mengurangi "rekening bank sumber": apakah Finance perlu mencatat saldo per rekening bank, atau cukup meneruskan identitas rekening ke Accounting? | Yasmin, lalu Accounting | `DESIGN` `FIN-DEC-130` |
+
+### Kriteria penerimaan tambahan
+
+1. Pembayaran langsung utang supplier tanpa metode atau tanpa sumber dana ditolak dengan pesan jelas.
+2. Pembayaran langsung tunai menurunkan Kas Kasir sebesar nilainya pada tanggal WIB kejadian.
+3. Pembayaran langsung melewati ambang ditolak dan diarahkan ke `FinPayment`.
+4. Setiap pembayaran langsung menulis tepat satu baris mutasi dan satu kejadian yang membawa metode dan sumber dana.
+5. Pembayaran `FinPayment` tunai juga mengurangi Kas Kasir; tidak ada `DisbursementAmount` yang bisa diketik bebas pada snapshot.
+
+### Penutup `FIN-OQ-072`
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-133` | Pembayaran tunai ke supplier mengurangi Kas Kasir atau Kas Kecil? | **Selalu Kas Kasir** (pilihan A, Yasmin 1 Oktober 2026). Pembayaran supplier tunai, baik jalur langsung maupun `FinPayment` `CASH`, mengurangi Kas Kasir. **Kas Kecil hanya lewat mekanisme voucher kas kecil yang sudah ada** (anggaran, kategori, voucher); pembayaran supplier **MUST NOT** memotong anggaran kas kecil. Modul Kas Kecil tidak diubah. Menegaskan `FIN-DEC-132` |
+
+`FIN-OQ-072` **CLOSED** oleh `FIN-DEC-133`. Konsekuensi yang diterima: pembayaran supplier kecil yang selama ini lewat kas kecil
+tidak otomatis dikurangkan dari anggaran itu; staf memakai voucher kas kecil bila memang ingin memakainya.
+
+### Penutup `FIN-OQ-071`
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-134` | Bagaimana ambang jalur langsung ditetapkan? | **Satu ambang rupiah tetap, bisa diubah oleh pejabat berwenang, berlaku sama untuk utang dan piutang** (pilihan A, Yasmin 1 Oktober 2026). Perubahan ambang **MUST** membawa alasan dan jejak. Pembayaran di atas ambang **MUST** diarahkan ke `FinPayment` dengan persetujuan berjenjang. Kriteria "berisiko" (supplier atau rekening baru, pembayaran berulang) **tidak** dipakai pada rilis ini; pilihan B ditolak. Menjawab `FIN-DEC-131` |
+
+`FIN-OQ-071` **CLOSED** oleh `FIN-DEC-134`. Diterima sadar: pembayaran yang dipecah-pecah di bawah ambang tidak otomatis tertangkap;
+mitigasinya hanya jejak mutasi `FIN-DEC-123` dan laporan, bukan blokir otomatis.
+
+| ID | Pertanyaan baru | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-074` | **Nilai awal ambang** (angka rupiah) dan siapa pejabat berwenang yang boleh mengubahnya. Belum disebut pada jawaban | Yasmin | `DESIGN` `FIN-DEC-134` (data konfigurasi, bukan kode) |
+
+Kriteria penerimaan tambahan: (1) pembayaran langsung di atas ambang ditolak dan diarahkan ke `FinPayment`; (2) perubahan ambang tanpa alasan
+ditolak dan meninggalkan jejak; (3) ambang yang sama berlaku pada pembayaran langsung piutang dan utang.
+
+### Penutup `FIN-OQ-068`
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-135` | Di mana bukti pembayaran disimpan? | **Finance membuat layanan penyimpanan bukti sendiri** (pilihan A, Yasmin 1 Oktober 2026), memakai pola dan konfigurasi unggah yang sudah ada (`FileStorage:UploadRootPath`, `UseStaticFiles`). **Bukan** memakai kelas HR (`WorkflowFileStorageService` dan sejenisnya) dan **bukan** `FinReceivableDocument`. Satu tabel metadata bukti (jenis, nama berkas, ukuran, jalur simpan, pengunggah) terikat ke mutasi pembayaran. Berlaku untuk pembayaran langsung piutang (`FIN-DEC-126`) dan utang (`FIN-DEC-130`) |
+
+`FIN-OQ-068` **CLOSED** oleh `FIN-DEC-135`. Akibat: migration tabel metadata masuk `FIN-OQ-051`; prefix tabel **MUST** didaftarkan lebih dulu
+di `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` (`QBE-MOD-003`); bila kelak Platform membuat layanan bersama, Finance yang memigrasikan.
+
+| ID | Pertanyaan baru | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-075` | Aturan berkas bukti: jenis dan ukuran yang diterima, lama simpan, siapa boleh melihat dan menghapus, dan apakah bukti boleh diganti setelah pembayaran terkunci | Yasmin | `DESIGN` `FIN-DEC-135` |
+
+Kriteria penerimaan tambahan: (1) pembayaran langsung tanpa bukti ditolak; (2) berkas di luar jenis atau ukuran yang ditetapkan ditolak;
+(3) bukti terikat ke tepat satu mutasi dan tidak dapat dikaitkan ke pembayaran lain; (4) penyimpanan tidak memakai kelas atau tabel milik HR.
+
+### Penutup `FIN-OQ-070`
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-136` | Dari mana data migrasi berasal dan bagaimana masuk? | **Spreadsheet standar yang disiapkan staf Finance dari sistem lama, diunggah, divalidasi, lalu diposting lewat persetujuan batch** (pilihan A, Yasmin 1 Oktober 2026). Finance menetapkan **satu templat per jenis** (piutang dan utang supplier). Sistem memeriksa baris dan total **sebelum** posting; batch hanya dapat disetujui dan dikunci setelah total cocok dengan saldo awal AR/AP Accounting (`FIN-DEC-129`). Menjawab sebagian `FIN-OQ-066` (bentuk impor) |
+
+`FIN-OQ-070` **CLOSED** oleh `FIN-DEC-136`. Yang tersisa pada `FIN-OQ-066`: persetujuan batch berjenjang (maker-checker), siapa mengunci, dan perilaku kegagalan sebagian.
+
+| ID | Pertanyaan baru | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-076` | Jumlah kira-kira tagihan lama yang dimigrasikan (belum disebut), untuk menentukan ukuran batch, batas baris per unggahan, dan perilaku kegagalan sebagian | Yasmin | `DESIGN` `FIN-DEC-136` |
+| `FIN-OQ-077` | **Persetujuan penambahan paket pembaca spreadsheet.** Proyek tidak punya satu pun; AGENTS.md melarang penambahan atau perubahan package tanpa wewenang eksplisit pada task. Pilihan paket dan lisensinya ditentukan pada tahap desain | Yasmin | `IMPLEMENTATION` `FIN-DEC-136` |
+
+Kriteria penerimaan tambahan: (1) baris yang tidak lolos validasi tidak ikut diposting dan ditunjukkan per baris; (2) batch dengan total berbeda dari saldo awal
+Accounting tidak dapat disetujui; (3) unggahan ulang batch yang sama tidak menggandakan item; (4) migrasi tidak menulis baris outbox (`FIN-DEC-129`).
+
+### Penutup `FIN-OQ-073`
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-137` | Apakah Finance mencatat saldo per rekening bank? | **Tidak** (pilihan A, Yasmin 1 Oktober 2026). Finance menyimpan **master rekening** serta **identitas rekening sumber/tujuan** pada transaksi seperti pembayaran supplier dan setoran bank. Rekening, metode pembayaran, nominal, tanggal, dan referensi transaksi **diteruskan ke Accounting**. Saldo rekening bank, jurnal akun bank, dan rekonsiliasi rekening koran **tetap tanggung jawab Accounting**. Rekening bank **tidak** menjadi control account Finance dan **tidak** dikirim sebagai `SALDO-SUBLEDGER` |
+
+**Penafsiran yang mengikat.** Frasa "mengurangi rekening bank" pada `FIN-DEC-130` berarti rekening itu **sumber dana transaksi**, bukan Finance menghitung
+saldo berjalan rekening tersebut. `FIN-DEC-130` diperjelas, tidak digantikan.
+
+`FIN-OQ-073` **CLOSED** oleh `FIN-DEC-137`.
+
+Kriteria penerimaan tambahan: (1) pembayaran `TRANSFER` tanpa rekening sumber ditolak; (2) kejadian `PEMBAYARAN-HUTANG-SUPPLIER` bermetode `TRANSFER`
+membawa identitas rekening sumber; (3) tidak ada baris `SALDO-SUBLEDGER` untuk rekening bank.
+
+### Status akhir closure pass 1 Oktober 2026 (`FIN-DEC-118`..`137`)
+
+Seluruh keputusan bisnis yang diketahui menahan desain **sudah tertutup sisi Finance**. Yang tersisa adalah data konfigurasi, aturan rinci
+yang ditetapkan pada tahap desain, konfirmasi wewenang (migration, paket), dan persetujuan Accounting:
+
+| Kelompok | ID | Sifat |
+|---|---|---|
+| Wewenang | `FIN-OQ-051` | Konfirmasi migration (pemetaan akun control, buku mutasi, saldo awal Kas Kasir, penanda dan batch migrasi, metadata bukti, ambang) |
+| Wewenang | `FIN-OQ-077` | Penambahan paket pembaca spreadsheet |
+| Data konfigurasi | `FIN-OQ-074`, `076` | Angka awal ambang; jumlah tagihan lama |
+| Aturan rinci tahap desain | `FIN-OQ-066`, `075` | Maker-checker batch migrasi; aturan berkas bukti |
+| Tidak memblokir | `FIN-OQ-057`, `065`, `069` | Saldo negatif selain Kas Kasir; utang jasa medis lama; piutang sewa lama |
+| Milik Accounting | `FIN-OQ-045`, `047`, `048` | Persetujuan `FIN-DEC-111`, kode `PEMBUKAAN-SHIFT-KASIR`, konvensi WIB |
+| Dikirim dalam surat | `evidence/22` | Belum ditulis; **MUST** memuat janji bersyarat G4 (`FIN-DEC-118`) |
+
+---
+
+## Addendum — Approval desain revisi 14 dan jawaban `FIN-OQ-051`, 1 Oktober 2026
+
+**Pemicu.** Owner meninjau hasil `/design-business-module` revisi 14 dan menjawab gerbang wewenang
+migration yang dibuka pass itu.
+
+### Approval desain
+
+| Hal | Keadaan |
+|---|---|
+| `FIN-DES-078`..`FIN-DES-091` | **`approved`** 1 Oktober 2026 oleh Yasmin lewat pernyataan langsung "Saya setujui FIN-DES-078...091" |
+| Tujuh kontrak turunan (`FIN-API-1.5`, `FIN-INTEGRATION-1.7`, `FIN-STATE-1.6`, `FIN-VAL-1.7`, `FIN-PERM-1.7`, `FIN-TEST-1.8`, `FIN-MVP-1.9`) | **Ikut terangkat**, mengikuti preseden `status_note_revision_7`: bagian kontrak yang lahir dari pass desain yang sama ikut naik bersama approval keputusan arsitekturnya. Dicatat apa adanya; bila owner bermaksud lebih sempit, **MUST** dikoreksi |
+
+### Keputusan
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-138` | `FIN-OQ-051` — wewenang migration revisi 14 | **Pembuatan berkas migration DIIZINKAN**, dengan syarat berkasnya **sesuai `ApplicationDbContextModelSnapshot`** — yaitu dihasilkan dari perubahan model, bukan ditulis tangan menyimpang dari snapshot. **Penerapan ke database TETAP milik Yasmin**; agent **MUST NOT** menjalankan migration, `dotnet ef database update`, maupun eksekusi SQL ke database mana pun. Jawaban eksplisit owner: *"bisa membuat file migration yg sesuai DbSnapshot. tpi untuk aplikasi ke database, yg lakukan adalah saya."* |
+
+`FIN-OQ-051` **CLOSED** oleh `FIN-DEC-138`.
+
+### Batas yang MUST dijaga
+
+| Batas | Isi |
+|---|---|
+| Yang diizinkan | Membuat berkas migration di `Migrations/` beserta pasangan `.Designer.cs` dan pembaruan `ApplicationDbContextModelSnapshot.cs` yang konsisten |
+| Yang **TIDAK** diizinkan | Menjalankan migration, memperbarui database, menjalankan SQL langsung, maupun menyentuh database di luar lingkungan pengembangan Yasmin |
+| Kapan migration dibuat | **Di dalam task yang disetujui dari roadmap**, lewat `build-module-backend` — bukan sebagai pekerjaan lepas. Setiap task membawa migration-nya sendiri |
+| Migration nomor 3 dan 4 | Milik `EPIC FIN-23` dan `EPIC FIN-24` yang berstatus **`OPEN DECISION`** dan di luar seluruh gelombang. Keduanya **tidak akan dibuat** sampai `FIN-OQ-075` dan `FIN-OQ-077` dijawab dan epic-nya masuk gelombang. Ini akibat disiplin roadmap, **bukan** batasan tambahan atas `FIN-DEC-138` |
+| Urutan index migration nomor 4 | Pilihan antara `CREATE INDEX CONCURRENTLY` di luar transaksi atau membuat index bernama lain lebih dulu **tetap keputusan pemilik repository**, diambil bersama task yang menjalankannya — bukan sekarang |
+
+### Akibat langsung
+
+1. **`/plan-module-delivery` terbuka.** Satu-satunya gerbang yang menahannya (`FIN-OQ-051`) sudah tertutup.
+2. `MVP-14A` dan `MVP-14B` dapat direncanakan menjadi task bernomor.
+3. Setiap laporan task yang membuat migration **MUST** menyatakan bahwa migration itu **belum dijalankan**, dan menyebut langkah yang Yasmin perlu jalankan sendiri.
+
+---
+
+## Closure pass — Penutupan `FIN-OQ-075` dan `FIN-OQ-077`, 1 Oktober 2026
+
+**Pemicu.** Kedua gerbang ini menahan `EPIC FIN-23` dan `EPIC FIN-24` seluruhnya. Owner menjawab
+keduanya sesudah surat `evidence/22` terkirim. Keputusan di bawah `approved` sisi Finance
+(Yasmin, 1 Oktober 2026).
+
+**Batas scope pass ini.** *Di dalam:* aturan berkas bukti pembayaran Finance, dan format berkas
+migrasi beserta wewenang paket yang dibutuhkannya. *Di luar:* kebijakan retensi dokumen keuangan
+rumah sakit secara umum (bukan milik modul ini), dan mekanisme hak akses per pemilik transaksi
+(milik Platform).
+
+### Fakta source yang mendasari (dibaca 1 Oktober 2026)
+
+| # | Fakta | Lokasi |
+|---|---|---|
+| F21 | Repository sudah punya aturan berkas yang mapan: wajib ada, tidak boleh kosong, batas ukuran, nama berkas maksimal 255 karakter, ekstensi wajib, daftar ekstensi terlarang, dan daftar ekstensi diizinkan | `WorkflowFileStorageService.ValidateFile`, baris 248-288 |
+| F22 | Daftar yang sudah dipakai **dua** layanan: `.pdf`, `.jpg`, `.jpeg`, `.png`; tipe media `application/pdf`, `image/jpeg`, `image/png` | Dua layanan unggah HR |
+| F23 | Daftar ekstensi dapat dikonfigurasi per fitur, pola `<Modul>:<Fitur>:AllowedExtensions` | `ResolveAllowedExtensions()` |
+| F24 | Akar penyimpanan sudah berjalan: `FileStorage:UploadRootPath` bernilai `Storage/uploads` | `appsettings.json:58-59` |
+| F25 | **Nol paket pembaca spreadsheet** terpasang. Yang ada hanya `SixLabors.ImageSharp` dan `QRCoder` | `QuilvianSystemBackend.csproj` |
+
+### Keputusan
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-139` | `FIN-OQ-075` — aturan berkas bukti pembayaran | **Mengikuti preseden yang sudah berlaku di repository** (pilihan A). Rinciannya di bawah |
+| `FIN-DEC-140` | `FIN-OQ-077` — format berkas migrasi dan paket pembacanya | **Dua format didukung: CSV dan XLSX** (jawaban owner: *"bisa pakai csv dan xlsx"*). CSV dibaca dengan kemampuan bawaan .NET; XLSX menuntut **satu** paket pembaca, dan wewenang penambahannya **DIBERIKAN** dengan batas di bawah. Memperjelas `FIN-DEC-136` yang semula hanya menulis "spreadsheet standar" |
+
+### `FIN-DEC-139` — rincian aturan berkas bukti
+
+| Hal | Aturan |
+|---|---|
+| Jenis yang diterima | `.pdf`, `.jpg`, `.jpeg`, `.png` — sama dengan dua layanan unggah yang sudah berjalan. Tipe media diperiksa, bukan hanya ekstensinya |
+| Tempat daftarnya | **Konfigurasi**, bukan tertanam di kode: `FinanceManagement:TransactionProof:AllowedExtensions`, mengikuti pola `<Modul>:<Fitur>:AllowedExtensions` yang sudah ada |
+| Batas ukuran | Dari konfigurasi, bukan angka tertanam di kode. **Nilai awalnya belum ditetapkan** (`FIN-OQ-082`) |
+| Pemeriksaan lain | Berkas wajib ada dan tidak kosong; nama maksimal 255 karakter; ekstensi wajib; daftar terlarang tetap ditegakkan; jalur simpan **MUST** divalidasi berada di bawah akar penyimpanan |
+| Lama simpan | **Sistem tidak pernah menghapus bukti otomatis.** Retensinya mengikuti kebijakan dokumen keuangan rumah sakit, dan penghapusannya keputusan tersendiri di luar modul ini |
+| Penggantian bukti | **Tidak dapat diganti** setelah baris mutasi tertulis. Koreksi dilakukan dengan **membalik pembayarannya lalu mencatat ulang** — pola "tidak pernah mengubah, selalu menambah baris" yang berlaku di seluruh blueprint ini |
+| Penghapusan | Hanya penandaan (`IsDelete`), mengikuti `IdentityModel`. Berkas fisiknya **tidak** dihapus bersamaan |
+| Akses | Siapa pun yang memegang `FinanceTransactionProof : Read`, **tanpa** pembatasan per pemilik transaksi pada rilis pertama |
+
+**Batas yang diterima sadar, dan MUST disampaikan saat menyerahkan modul.** Staf AR/AP yang memegang
+hak baca dapat melihat bukti pembayaran transaksi yang bukan miliknya. Pembatasan per pemilik
+menuntut mekanisme hak akses yang belum dimiliki platform, dan menambahkannya akan menahan
+`EPIC FIN-23` lagi. Mitigasi yang ada: jalur unduh dijaga hak akses, dan isi berkas **MUST NOT**
+dicatat logger.
+
+### `FIN-DEC-140` — rincian dukungan dua format dan batas wewenang paket
+
+| Hal | Aturan |
+|---|---|
+| Format yang diterima | **CSV dan XLSX**, keduanya pada satu endpoint unggah yang sama |
+| Pembaca CSV | Kemampuan bawaan .NET; **nol** paket baru |
+| Pembaca XLSX | **Satu** paket, wewenang penambahannya diberikan owner |
+| Lisensi paket | **MUST** permisif. `ClosedXML` (MIT) memenuhi syarat. **`EPPlus` versi 5 dan sesudahnya DILARANG** — lisensinya berubah menjadi komersial, dan memakainya memasukkan kewajiban lisensi ke sistem rumah sakit |
+| Jumlah paket | **Tepat satu.** Dua pembaca XLSX sekaligus **MUST NOT** ditambahkan |
+| Bentuk kode | Pembacanya **MUST** berupa lapisan terpisah di balik satu antarmuka yang memulangkan baris terurai. Validasi per baris (`FIN-VAL-186`..`191`) bekerja di atas baris terurai itu, **bukan** di atas berkasnya — sehingga aturan validasinya **tunggal** untuk kedua format |
+| Templat | **Dua berkas templat** yang isinya setara, satu per format. Keduanya **MUST** dijaga sinkron; kolom yang berbeda antara keduanya adalah cacat |
+| Wewenang per task | Penambahan paket **MUST** dinyatakan eksplisit pada task yang membawanya, mengikuti `AGENTS.md`. Keputusan ini memberi wewenangnya **secara prinsip**; task tetap menyatakannya sendiri |
+
+**Risiko yang MUST dijaga, dan ia lahir langsung dari mendukung dua format.** Staf hampir pasti
+memakai salah satu saja, sehingga jalur yang lain menjadi jalur yang jarang terpakai dan jarang
+teruji. Karena itu:
+
+1. Kedua jalur **MUST** diuji dengan berkas contoh yang isinya sama, dan keduanya **MUST**
+   menghasilkan baris terurai yang identik.
+2. CSV **MUST** menetapkan satu format angka dan tanggal pada templatnya. Excel di lokal Indonesia
+   menulis `1.500.000,00`, dan baris yang tidak sesuai format **MUST** ditolak beserta nomor
+   barisnya — bukan ditebak.
+3. XLSX membawa sel bertipe, sehingga tanggal dan angkanya tidak ambigu. Itu justru membuat kedua
+   jalur punya **bentuk kegagalan yang berbeda**, dan keduanya perlu kasus ujinya sendiri.
+
+### Akibat yang MUST dijaga
+
+1. **`EPIC FIN-23` tidak lagi `OPEN DECISION`.** `FIN-OQ-075` tertutup, sehingga satu-satunya yang
+   tersisa adalah nilai awal batas ukuran berkas — data konfigurasi, bukan keputusan desain.
+2. **`EPIC FIN-24` tidak lagi `OPEN DECISION`.** `FIN-OQ-077` tertutup.
+3. **`04-prd-to-mvp.md` bagian 47, 48, dan 51 kini STALE.** Keduanya masih menyatakan kedua epic
+   `OPEN DECISION` dan di luar seluruh gelombang. **MUST** diperbarui lewat pass desain, bukan
+   di sini.
+4. **`roadmap/00`, `01`, dan `02` kini STALE** pada bagian REV-14: keduanya mencatat kedua epic
+   tanpa task. **MUST** diperbarui lewat `/plan-module-delivery` lanjutan.
+5. `FIN-DEC-136` diperjelas `FIN-DEC-140`, **tidak** digantikan: jalannya tetap spreadsheet yang
+   diunggah, divalidasi, lalu disetujui per batch.
+6. Endpoint templat (`GET /opening-item-batches/template`) kini butuh ruas format selain `itemKind`.
+   Perubahan kontraknya **MUST** digambar pass desain, bukan diputuskan di sini.
+
+### Contoh
+
+Staf menyiapkan 120 tagihan piutang lama di Excel lalu mengunggahnya sebagai `.xlsx`. Sistem
+membacanya menjadi 120 baris terurai, memvalidasi masing-masing, dan menolak tiga baris yang
+tanggal dokumennya melewati tanggal cutover beserta nomor barisnya. Staf memperbaiki ketiganya,
+mengunggah ulang, lalu menyatakan saldo awal AR dari dokumen Accounting. Karena totalnya cocok,
+batch disetujui dan dikunci. Bila staf yang sama menyimpan berkasnya sebagai `.csv`, hasil
+terurainya **wajib identik** — itu kriteria penerimaan tersendiri.
+
+Untuk pembayaran langsung: petugas memotret kuitansi dengan ponsel, menghasilkan `.jpg` berukuran
+di bawah batas konfigurasi. Berkas tersimpan, `ProofId` terbit, pembayaran dicatat, dan satu baris
+mutasi membawa `ProofId` itu. Bila nominalnya salah, petugas **tidak** mengganti buktinya —
+pembayarannya dibalik, lalu dicatat ulang beserta bukti baru.
+
+### Open question
+
+| ID | Status | Keterangan |
+|---|---|---|
+| `FIN-OQ-075` | **CLOSED** oleh `FIN-DEC-139` | — |
+| `FIN-OQ-077` | **CLOSED** oleh `FIN-DEC-140` | — |
+| `FIN-OQ-081` | **BARU** | Nama dan versi paket pembaca XLSX yang dipakai. `ClosedXML` (MIT) adalah usulan; `EPPlus` v5+ **dilarang**. Dikonfirmasi pada task yang membawanya, mengikuti `AGENTS.md`. Pemilik: Yasmin. Memblokir `IMPLEMENTATION` bagian XLSX saja — bagian CSV, validasi, dan batch tidak tertahan |
+| `FIN-OQ-082` | **BARU** | Nilai awal batas ukuran berkas bukti. Data konfigurasi; tanpa nilainya, unggah **ditolak fail-closed**. Pemilik: Yasmin. Tidak memblokir `DESIGN` |
+| `FIN-OQ-074`, `076` | **TERBUKA** | Angka ambang; jumlah tagihan lama. Keduanya data konfigurasi |
+| `FIN-OQ-045`, `047`, `048` | **TERBUKA**, milik Accounting | Diminta lewat `evidence/22` yang sudah terkirim |
+| `FIN-OQ-079`, `080` | **TERBUKA** | Penempatan menu; apakah ambang ditampilkan kepada staf |
+| `FIN-OQ-057`, `065`, `069`, `078` | **TERBUKA** | Tidak memblokir |
+
+### Kriteria penerimaan tambahan
+
+1. Berkas bukti ber-ekstensi di luar daftar konfigurasi ditolak beserta pesan yang dapat dipahami.
+2. Berkas bukti yang ekstensinya lolos tetapi tipe medianya tidak cocok **ditolak**.
+3. Tanpa nilai batas ukuran pada konfigurasi, unggah bukti **ditolak** — bukan dianggap tak terbatas.
+4. Bukti yang sudah terpakai satu mutasi tidak dapat dipakai mutasi lain, dan **tidak dapat diganti**.
+5. Jalur simpan yang mengarah keluar akar penyimpanan ditolak.
+6. Berkas migrasi CSV dan XLSX yang isinya sama menghasilkan baris terurai yang **identik**.
+7. CSV dengan format angka yang tidak sesuai templat ditolak beserta **nomor barisnya**, bukan ditebak.
+8. Templat CSV dan XLSX memiliki kolom yang sama persis.
+9. Tepat **satu** paket pembaca XLSX terpasang pada `QuilvianSystemBackend.csproj`.

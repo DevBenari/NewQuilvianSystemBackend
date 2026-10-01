@@ -447,3 +447,114 @@ Diturunkan dari `FIN-DEC-100`..`FIN-DEC-104`; dirancang `FIN-DES-074`..`FIN-DES-
 | Nama penyewa yang dieja berbeda untuk penyewa yang sama | Turunan langsung dari ketiadaan master penyewa. Lihat catatan "Rencana data master awal" pada `02-backend-architecture.md` `K.7` |
 | Tagihan periode yang terlewat tidak dicatat sama sekali | Tidak ada kontrak yang bisa dijadikan acuan "seharusnya ada tagihan bulan ini". `FIN-DEC-100` menerima risiko ini apa adanya |
 | Denda yang tidak sebanding dengan lama keterlambatan | `FIN-DEC-102` menetapkan denda sebagai nominal yang diketik petugas, bukan hasil perhitungan — tidak ada rumus yang bisa dijadikan pembanding |
+
+---
+
+# Bagian F — Revisi 14: validasi buku mutasi, cutover, dan pembayaran langsung
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-VAL-1.7` — status **`draft`** |
+| Naik dari | `FIN-VAL-1.6` (`approved` 1 Oktober 2026) |
+| Aturan baru | `FIN-VAL-165`..`FIN-VAL-196` |
+| Traceability | `FIN-DEC-111`..`137`; `FIN-DES-078`..`091` |
+
+Pesan ditulis sebagaimana dibaca pengguna.
+
+## F.1 Buku mutasi dan posisi saldo
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-165` | Setiap penulisan mutasi | `BalanceAfter` tidak sama dengan `BalanceBefore + Amount` | *"Perhitungan saldo mutasi tidak konsisten. Hubungi pengelola sistem."* | `500` — ini cacat program, bukan kesalahan pengguna; dijaga juga check constraint |
+| `FIN-VAL-166` | Setiap penulisan mutasi | Pemanggil belum memegang advisory lock atas agregatnya | *"Perubahan saldo sedang diproses. Coba lagi beberapa saat."* | `409` |
+| `FIN-VAL-167` | Mutasi piutang dan utang | `BalanceAfter` baris terakhir berbeda dari `OutstandingAmount` agregatnya | *"Saldo buku mutasi tidak cocok dengan sisa tagihan. Hubungi pengelola sistem."* | `500` — pemeriksaan ini menangkap jalur yang lupa menulis mutasi |
+| `FIN-VAL-168` | `FinCashMovement` | `Amount` nol atau negatif | *"Nominal mutasi kas harus lebih besar dari nol."* | `400` |
+| `FIN-VAL-169` | `FinCashMovement` | Pasangan (`SourceReferenceType`, `SourceReferenceId`, `MovementType`) sudah ada | *"Mutasi kas untuk sumber ini sudah tercatat."* | `409` — perilaku idempoten, bukan galat bagi penjadwal |
+| `FIN-VAL-170` | Permintaan posisi saldo | Tanggal yang diminta lebih awal daripada `CutoverDate` | *"Posisi saldo sebelum tanggal cutover tidak dapat dihitung karena buku mutasi belum berjalan pada tanggal itu."* | `422` |
+| `FIN-VAL-171` | Mutasi bukan pembayaran | `PaymentMethodCode`, `FundingSourceType`, atau `ProofId` terisi | *"Metode pembayaran hanya berlaku untuk mutasi pembayaran."* | `400` |
+
+## F.2 Pemetaan akun control
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-172` | Pemetaan | `BalanceGroup` di luar lima nilai yang sah | *"Kelompok saldo tidak dikenal."* | `400` |
+| `FIN-VAL-173` | Pemetaan | `SegmentKey` tidak sah bagi kelompok itu | *"Segmen ini tidak berlaku untuk kelompok saldo yang dipilih."* | `400` |
+| `FIN-VAL-174` | Pemetaan | Kelompok dan segmen yang sama sudah punya baris aktif | *"Kelompok dan segmen ini sudah dipetakan."* | `409` |
+| `FIN-VAL-175` | Pemetaan | Kode akun control sudah dipakai baris aktif lain | *"Kode akun ini sudah dipakai pemetaan lain."* | `409` |
+| `FIN-VAL-176` | Pemetaan | Kelompok itu sudah punya baris tanpa segmen, lalu ditambahkan baris bersegmen — atau sebaliknya | *"Satu kelompok saldo tidak boleh memakai pemetaan menyeluruh dan pemetaan per segmen sekaligus."* | `422` |
+| `FIN-VAL-177` | Snapshot saldo | Ada kelompok tanpa pemetaan aktif | *"Snapshot tidak dapat diterbitkan: kelompok <nama> belum punya kode akun."* | `422` — **nol** baris outbox ditulis |
+| `FIN-VAL-178` | Snapshot saldo | Ada kelompok yang segmennya terpetakan sebagian | *"Snapshot tidak dapat diterbitkan: segmen <nama> pada kelompok <nama> belum punya kode akun."* | `422` — **nol** baris outbox |
+| `FIN-VAL-179` | Pemetaan | Panjang kode akun melebihi 50 karakter | *"Kode akun maksimal 50 karakter."* | `400` |
+
+## F.3 Saldo awal cutover
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-180` | Saldo awal | Kelompok sudah punya baris aktif | *"Saldo awal untuk kelompok ini sudah pernah dicatat."* | `409` |
+| `FIN-VAL-181` | Saldo awal | Kelompok `PIUTANG`, `UTANG-SUPPLIER`, atau `UTANG-JASA-MEDIS` bernilai selain nol | *"Saldo awal kelompok ini harus nol karena rinciannya datang dari migrasi tagihan lama."* | `422` |
+| `FIN-VAL-182` | Saldo awal | `Reason` atau rujukan dokumen Accounting kosong | *"Alasan dan rujukan dokumen saldo awal wajib diisi."* | `422` |
+| `FIN-VAL-183` | Saldo awal | Mengubah baris berstatus `APPROVED` atau `LOCKED` | *"Saldo awal yang sudah disetujui tidak dapat diubah."* | `409` |
+| `FIN-VAL-184` | Saldo awal | `CutoverDate` melebihi hari ini saat dikunci | *"Tanggal cutover tidak boleh melewati hari ini."* | `422` |
+| `FIN-VAL-185` | Saldo awal | Nilai negatif pada kelompok kas | *"Saldo awal kas tidak boleh negatif."* | `422` |
+
+## F.4 Batch migrasi tagihan lama
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-186` | Unggah batch | Berkas tidak terbaca atau kolom templat tidak lengkap | *"Berkas tidak dapat dibaca. Gunakan templat yang disediakan."* | `400` |
+| `FIN-VAL-187` | Validasi baris piutang | Jenis debitur di luar tiga nilai yang sah | *"Baris <n>: jenis debitur tidak dikenal."* | Tercatat sebagai galat baris, batch tetap `DRAFT` |
+| `FIN-VAL-188` | Validasi baris utang | Supplier tidak ditemukan di master | *"Baris <n>: supplier tidak ditemukan."* | Galat baris |
+| `FIN-VAL-189` | Validasi baris | Sisa tagihan nol atau negatif | *"Baris <n>: sisa tagihan harus lebih besar dari nol."* | Galat baris |
+| `FIN-VAL-190` | Validasi baris | Tanggal dokumen melebihi `CutoverDate` | *"Baris <n>: tanggal dokumen tidak boleh melewati tanggal cutover."* | Galat baris |
+| `FIN-VAL-191` | Validasi baris | Nomor dokumen kembar di dalam satu berkas | *"Baris <n>: nomor dokumen kembar dengan baris <m>."* | Galat baris |
+| `FIN-VAL-192` | Persetujuan batch | `TotalOutstandingAmount` berbeda dari `DeclaredAccountingOpeningAmount` | *"Total sisa tagihan <A> tidak sama dengan saldo awal Accounting yang dinyatakan <B>. Batch tidak dapat disetujui."* | `422` |
+| `FIN-VAL-193` | Persetujuan batch | Masih ada baris bergalat | *"Masih ada <n> baris yang bermasalah. Perbaiki dahulu."* | `422` |
+| `FIN-VAL-194` | Persetujuan batch | `CutoverDate` batch berbeda dari `FinOpeningBalance` | *"Tanggal cutover batch berbeda dari tanggal cutover saldo awal."* | `422` |
+| `FIN-VAL-195` | Persetujuan batch | Rujukan dokumen Accounting kosong | *"Rujukan dokumen saldo awal Accounting wajib diisi."* | `422` |
+| `FIN-VAL-196` | Batch | Tindakan pada batch `LOCKED` atau `REJECTED` | *"Batch ini sudah final dan tidak dapat diubah."* | `409` |
+
+## F.5 Pembayaran langsung piutang dan utang
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-197` | Pembayaran langsung | Tidak ada baris ambang aktif | *"Ambang pembayaran langsung belum ditetapkan, sehingga jalur ini belum dapat dipakai."* | `404` — **fail-closed**, bukan dianggap tak terbatas |
+| `FIN-VAL-198` | Pembayaran langsung | Nominal melewati ambang aktif | *"Nominal melewati batas pembayaran langsung. Gunakan jalur pembayaran berjenjang."* | `422` |
+| `FIN-VAL-199` | Pembayaran langsung | `PaymentMethod` kosong atau di luar `TRANSFER`/`CASH` | *"Metode pembayaran wajib dipilih."* | `400` |
+| `FIN-VAL-200` | Pembayaran langsung | Metode `TRANSFER` tanpa rekening sumber | *"Rekening sumber dana wajib dipilih untuk pembayaran transfer."* | `422` |
+| `FIN-VAL-201` | Pembayaran langsung | Metode `CASH` tetapi rekening bank diisi | *"Pembayaran tunai tidak memakai rekening bank."* | `400` |
+| `FIN-VAL-202` | Pembayaran langsung | `ProofId` kosong | *"Bukti pembayaran wajib dilampirkan."* | `422` |
+| `FIN-VAL-203` | Pembayaran langsung | `ProofId` sudah dipakai mutasi lain | *"Bukti ini sudah dipakai pada pembayaran lain."* | `409` |
+| `FIN-VAL-204` | Pembayaran langsung | Nominal melebihi sisa tagihan | *"Nominal melebihi sisa tagihan."* | `422` — aturan yang sudah ada, dipertahankan |
+| `FIN-VAL-205` | Ambang | `ChangeReason` kosong saat mengubah | *"Alasan perubahan ambang wajib diisi."* | `422` |
+| `FIN-VAL-206` | Ambang | Nilai nol atau negatif | *"Ambang harus berupa angka lebih besar dari nol."* | `400` |
+
+## F.6 Bukti pembayaran
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-207` | Unggah bukti | Jenis berkas di luar daftar yang diterima | *"Jenis berkas tidak diterima."* | `400` — **daftarnya menunggu `FIN-OQ-075`** |
+| `FIN-VAL-208` | Unggah bukti | Ukuran melebihi batas | *"Ukuran berkas melebihi batas."* | `400` — **batasnya menunggu `FIN-OQ-075`** |
+| `FIN-VAL-209` | Unggah bukti | Jalur simpan keluar dari akar penyimpanan | *"Berkas tidak dapat disimpan."* | `400` — pemeriksaan keamanan, pesannya sengaja tidak merinci |
+
+## F.7 Tanggal WIB dan nilai saldo
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-210` | Pesan saldo subledger | `AccountingDate` bukan tanggal akhir periode **menurut kalender WIB** | *"Tanggal akuntansi pesan saldo periode <kode> wajib tanggal akhir periode (<tanggal>)."* | `400` — aturan yang sudah ada (`FIN-VAL-082`), **pembandingnya** kini WIB |
+| `FIN-VAL-211` | Pesan saldo subledger | Nilai negatif | **Tidak lagi ditolak.** Mencabut sebagian `FIN-VAL-081` | — |
+| `FIN-VAL-212` | Kejadian bukan pesan saldo dan bukan penanda | `Amount <= 0` | *"Nilai kejadian harus lebih besar dari nol."* | `400` — aturan yang sudah ada, dipertahankan |
+| `FIN-VAL-213` | Penanda `PEMBUKAAN-SHIFT-KASIR` | `Amount` bukan nol | *"Penanda shift tidak membawa nilai."* | `400` |
+
+## F.8 Yang sengaja TIDAK divalidasi
+
+Daftar ini ditulis supaya ketiadaannya tidak disangka kelalaian.
+
+| Yang tidak divalidasi | Alasan |
+|---|---|
+| Pembayaran yang dipecah-pecah agar tetap di bawah ambang | `FIN-DEC-134` menolak kriteria "berisiko" pada rilis ini. Mitigasinya jejak mutasi dan laporan |
+| Kebenaran `DeclaredAccountingOpeningAmount` | Sistem hanya membandingkannya dengan total item. Salah ketik yang **kebetulan** sama dengan total item **tidak** terdeteksi (`FIN-DES-090`) |
+| Kecocokan kode akun control terhadap bagan akun Accounting | Finance tidak membaca bagan akun. Kode yang salah ketik baru tertangkap di kotak masuk Accounting |
+| Kelengkapan tagihan lama yang dimigrasikan | Sistem tidak tahu tagihan apa saja yang *seharusnya* ada. Hanya totalnya yang direkonsiliasi |
+| Kesesuaian metode pembayaran terhadap akun debit atau kredit | Milik aturan posting Accounting |
+| Saldo rekening bank mencukupi sebelum pembayaran transfer | Ditolak `FIN-DEC-137` — Finance tidak memegang saldo bank |
+| Nama penyewa, supplier, atau debitur kembar karena ejaan berbeda pada berkas migrasi | Hanya nomor dokumen yang diperiksa kembar |

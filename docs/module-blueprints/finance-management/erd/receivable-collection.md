@@ -299,3 +299,99 @@ bila alokasinya dibalik (`FIN-DES-049`). Rincian kolom: `data-dictionary.md` D.3
 
 Rincian kolom penuh dan DDL ada di `data-dictionary.md` AMENDMENT REVISI 4 bagian C.13-C.16,
 dengan `FinReceiptDeduction` **digantikan** bagian D.3 (REVISI 5).
+
+---
+
+## Revisi 14 — Buku mutasi piutang, item migrasi, dan bukti pembayaran
+
+Diturunkan dari `FIN-DES-079`, `FIN-DES-085`, `FIN-DES-087`, dan `FIN-DES-089`.
+Kolom audit `IdentityModel` tidak digambar.
+
+```mermaid
+erDiagram
+    FinReceivable {
+        uuid Id PK
+        varchar ReceivableNumber UK
+        uuid SourceHandoffKey UK "NULLABLE sejak revisi 14"
+        uuid SourceHandoffId "NULLABLE sejak revisi 14"
+        uuid InvoiceId "NULLABLE sejak revisi 14, milik Billing"
+        uuid OpeningItemBatchId FK "BARU, terisi = item migrasi"
+        varchar DebtorType "PAYER/PATIENT_GUARANTOR/EMPLOYEE_BENEFIT"
+        numeric OriginalAmount
+        numeric OutstandingAmount "selalu >= 0"
+        varchar Status
+        timestamptz RecognizedAt
+        uuid RowVersion
+    }
+    FinReceivableMovement {
+        uuid Id PK
+        uuid ReceivableId FK
+        varchar MovementType "lihat tabel jenis mutasi"
+        numeric Amount "bertanda, + menaikkan sisa"
+        numeric BalanceBefore
+        numeric BalanceAfter
+        date BusinessDate "tanggal WIB"
+        timestamptz OccurredAt
+        varchar PaymentMethodCode "kosong bila bukan pembayaran"
+        varchar FundingSourceType "BANK_ACCOUNT/CASH"
+        uuid FundingSourceId
+        varchar ReferenceNumber
+        uuid ProofId FK "UK, satu bukti satu mutasi"
+        uuid SourceAllocationId "rujukan alokasi, bukan FK"
+        uuid CorrelationId
+    }
+    FinTransactionProof {
+        uuid Id PK
+        varchar ProofType
+        varchar OriginalFileName
+        varchar StoredFileName UK
+        varchar RelativePath
+        varchar MediaType
+        bigint SizeBytes
+        uuid UploadedBy
+        timestamptz UploadedAt
+    }
+    FinOpeningItemBatch {
+        uuid Id PK
+        varchar BatchNumber UK
+        varchar ItemKind "RECEIVABLE/SUPPLIER_PAYABLE"
+        varchar Status
+    }
+    FinReceivable ||--o{ FinReceivableMovement : "1:N — Baru"
+    FinOpeningItemBatch |o--o{ FinReceivable : "0:N — Baru, hanya item migrasi"
+    FinReceivableMovement |o--o| FinTransactionProof : "0:1 — Baru"
+```
+
+### Status entity
+
+| Entity | Status | Owner | Catatan |
+|---|---|---|---|
+| `FinReceivable` | **Diperbarui** | Finance Management | Tiga kolom asal Billing menjadi nullable bersyarat; satu kolom FK batch ditambah; satu check constraint baru; satu index diganti filternya |
+| `FinReceivableMovement` | **Baru** | Finance Management | Buku mutasi; satu-satunya dasar posisi piutang per tanggal |
+| `FinTransactionProof` | **Baru** | Finance Management | Metadata berkas bukti; berkasnya di luar database |
+| `FinOpeningItemBatch` | **Baru** | Finance Management | Digambar sebatas titik sentuhnya; ERD lengkapnya pada `accounting-integration.md` |
+| `FinReceiptAllocation`, `FinReceiptDeduction`, `FinReceivableWriteOff`, `FinReceivableAdjustment` | Sudah ada | Finance Management | **Tidak disentuh.** Keempatnya tetap menjadi rincian kejadiannya; buku mutasi **melengkapi**, bukan menggantikannya |
+| `FinNonPatientReceivable` | Sudah ada | Finance Management | **Tidak disentuh** (`FIN-OQ-069` belum dijawab) |
+
+### Jenis mutasi piutang
+
+| `MovementType` | Tanda `Amount` | Ditulis oleh |
+|---|---|---|
+| `PENGAKUAN` | + | Intake Billing |
+| `PEMBUKAAN-MIGRASI` | + | Persetujuan batch migrasi |
+| `ALOKASI-PENERIMAAN` | − | `ApplyAllocationAsync` |
+| `PEMBALIKAN-ALOKASI` | + | `ReverseAllocationAsync` |
+| `POTONGAN` | − | Potongan PPh 23 dan biaya bank |
+| `PEMBALIKAN-POTONGAN` | + | Pembalikan potongan |
+| `PENYESUAIAN` | + atau − | Penyesuaian disetujui |
+| `PENGHAPUSAN` | − | Penghapusan, berjenjang maupun langsung |
+| `PEMBAYARAN-LANGSUNG` | − | Pembayaran langsung; **membawa** metode, sumber dana, dan bukti |
+
+Invariant yang dapat diuji: `BalanceAfter` baris mutasi terakhir **MUST** sama dengan
+`FinReceivable.OutstandingAmount`. Selisih berarti ada jalur yang lupa menulis mutasi.
+
+### Yang sengaja tidak digambar
+
+`FinReceipt` tidak digambar bersama buku mutasi. Pembayaran langsung **tidak** melahirkan
+`FinReceipt` — itu justru temuan yang melahirkan `FIN-DEC-123`. Menggambarnya akan menyiratkan
+hubungan yang tidak ada.
