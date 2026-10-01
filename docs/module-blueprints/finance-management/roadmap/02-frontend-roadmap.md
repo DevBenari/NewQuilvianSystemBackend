@@ -419,7 +419,7 @@ FE-FIN-016 🟡 ─┬─> FE-FIN-017 🟡
               ├─> FE-FIN-020 ✅
               ├─> FE-FIN-021 ✅
               ├─> FE-FIN-022 ✅
-              └─> FE-FIN-023
+              └─> FE-FIN-023 ✅
 
 BE-FIN-053 [BE] ✅ ─┬─> FE-FIN-019 🟡
 BE-FIN-054 [BE] ✅ ─┘
@@ -429,7 +429,7 @@ BE-FIN-052 [BE] ✅ ───> FE-FIN-020 ✅
 BE-FIN-055 [BE] ✅ ───> FE-FIN-021 ✅
 
 BE-FIN-057 [BE] ✅ ─┬─> FE-FIN-022 ✅
-                   └─> FE-FIN-023
+                   └─> FE-FIN-023 ✅
 ```
 
 **Legenda:** `[BE]` menandai task milik `01-backend-roadmap.md` yang digambar di sini sebagai
@@ -442,7 +442,7 @@ prasyarat baca-saja.
 | `REV-13B` | `FE-FIN-016` 🟡, `BE-FIN-053` ✅ ✚ `BE-FIN-054` ✅ | `FE-FIN-019` 🟡 |
 | `REV-13B` | `FE-FIN-016` 🟡, `BE-FIN-055` ✅ | `FE-FIN-021` ✅ |
 | `REV-13C` | `FE-FIN-016` 🟡, `BE-FIN-052` ✅ | `FE-FIN-020` ✅ |
-| `REV-13D` | `FE-FIN-016` 🟡, `BE-FIN-057` ✅ | `FE-FIN-022` ✅, `FE-FIN-023` |
+| `REV-13D` | `FE-FIN-016` 🟡, `BE-FIN-057` ✅ | `FE-FIN-022` ✅, `FE-FIN-023` ✅ |
 
 ## Task REV-13
 
@@ -455,7 +455,7 @@ prasyarat baca-saja.
 | ✅ `FE-FIN-020` | Petugas AR melacak jawaban penjamin atas tagihan gabungan, terpisah dari status pelunasannya | `FIN-DEC-095`, `097`, `098`; `FIN-DES-070`, `071` | `FIN-API-1.4` D.1, D.3; `03-frontend-architecture.md` 17.3 | Layar batch tagihan (`FE-FIN-012`) sebagai sumber pola | Layar Manajemen Klaim: daftar bersaring status klaim, rincian dua sumbu, tiga aksi klaim, panel selisih beserta tautan ke piutang yang perlu dihapus | `FE-FIN-016` 🟡, `BE-FIN-052` [BE] ✅ | **Dua status ditampilkan berdampingan**, bukan digabung satu chip; selisih dibaca dari `ClaimVarianceAmount` backend, **nol** perhitungan di klien; aksi yang tidak sah pada status saat ini **dinonaktifkan**, bukan disembunyikan; **nol** tombol yang menghapus selisih langsung dari layar ini | ✅ **Selesai** 1 Oktober 2026 — source lengkap (2 hook, 2 view, 2 route, 1 columns, constants, menu), `npm run lint:errors` PASS, `npm run build` PASS ([laporan](../task/report/frontend/FE-FIN-020.md)) | Product Owner — **risiko utama:** menggabungkan dua sumbu status menjadi satu chip, yang membuat keadaan "penjamin sudah setuju tetapi uang belum masuk" hilang dari layar | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
 | ✅ `FE-FIN-021` | Umur piutang pasien dapat dibaca lewat butir menu "Kasir" | `FIN-DEC-094`, `FIN-OQ-040` | `FIN-API-1.4` (perluasan `ReceivableAgingQuery`) | Layar umur piutang yang sudah ada | Butir menu "Umur Piutang — Kasir", memanggil `GET /receivables/aging` **tanpa parameter** — **dikoreksi** dari rencana awal "saringan segmen": `BE-FIN-055` membuktikan tidak ada nilai "KASIR" pada data, lihat [laporan](../task/report/backend/BE-FIN-055.md) §1 | `FE-FIN-016` 🟡, `BE-FIN-055` [BE] ✅ | Layar umur piutang **tidak berubah perilakunya** dari hari ini — murni butir menu baru menunjuk endpoint yang sudah ada | ✅ **Selesai** 1 Oktober 2026 — source lengkap (endpoint governed, metadata, menu grup), `npm run lint:errors` PASS, `npm run build` PASS ([laporan](../task/report/frontend/FE-FIN-021.md)) | Product Owner | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
 | ✅ `FE-FIN-022` | Petugas AR mencatat, melunasi, menghapus, dan membatalkan tagihan sewa parkir dan tenant | `FIN-DEC-099`..`106`; `FIN-DES-075`, `076` | `FIN-API-1.4` E.1; `03-frontend-architecture.md` bagian 18 | Pola layar daftar dan rincian modul ini | Butir menu **"Tagihan Sewa"** (`FIN-DEC-105` — penyimpangan yang disetujui dari V1), layar daftar beserta pencatatan, dan layar rincian beserta riwayat pelunasan | `FE-FIN-016` 🟡, `BE-FIN-057` [BE] ✅ | Konfirmasi Hapus dan Batalkan **MUST** menyebut terang bahwa tindakan ini tidak melewati persetujuan siapa pun, dan alasan wajib diisi; layar **MUST** menyatakan bahwa pelunasan yang dicatat belum tercatat sebagai kas masuk selama `FIN-OQ-044` terbuka; pelunasan bernilai minus terbaca jelas sebagai pembatalan | ✅ **Selesai** 1 Oktober 2026 — source lengkap (2 hook, 2 view, 2 route, 1 columns, modal set), `npm run lint:errors` PASS, `npm run build` PASS ([laporan](../task/report/frontend/FE-FIN-022.md)) | Product Owner — **risiko utama:** petugas menyangka uang sewa sudah tercatat di kas. Pernyataan di layar adalah satu-satunya penahan selama `FIN-OQ-044` belum dijawab | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
-| `FE-FIN-023` | Umur piutang sewa dapat dibaca terpisah untuk Parkir dan Tenant | `FIN-DEC-104`; `FIN-DES-074` | `FIN-API-1.4` E.1; `03-frontend-architecture.md` 18.1, 18.2 | Layar umur piutang sewa digambar sekali, dipakai dua butir menu | Butir menu "Umur Piutang — Parkir" dan "— Tenant", satu layar dengan saringan kategori terkunci | `FE-FIN-016` 🟡, `BE-FIN-057` [BE] ✅ | Keduanya memakai **satu** endpoint umur piutang sewa dengan saringan kategori berbeda; kelompok umurnya **sama persis** dengan umur piutang pasien; angkanya terpisah dan tidak bercampur | `npm run lint:errors`; `npm run build`; verifikasi manual kedua kategori | Product Owner | Lint + build PASS; kedua butir menu terdaftar; laporan task tracked ada |
+| ✅ `FE-FIN-023` | Umur piutang sewa dapat dibaca terpisah untuk Parkir dan Tenant | `FIN-DEC-104`; `FIN-DES-074` | `FIN-API-1.4` E.1; `03-frontend-architecture.md` 18.1, 18.2 | Layar umur piutang sewa digambar sekali, dipakai dua butir menu | Butir menu **"Umur Piutang — Parkir"** dan **"— Tenant"**, satu layar dengan saringan kategori terkunci | `FE-FIN-016` 🟡, `BE-FIN-057` [BE] ✅ | Keduanya memakai **satu** endpoint umur piutang sewa dengan saringan kategori berbeda; kelompok umurnya **sama persis** dengan umur piutang pasien; angkanya terpisah dan tidak bercampur | ✅ **Selesai** 1 Oktober 2026 — source lengkap (1 hook, 1 view, 1 route, constants, menu), `npm run lint:errors` PASS, `npm run build` PASS ([laporan](../task/report/frontend/FE-FIN-023.md)) | Product Owner | Lint + build PASS; kedua butir menu terdaftar; laporan task tracked ada |
 
 ## Task yang sengaja **tidak** dibuat pada REV-13
 
