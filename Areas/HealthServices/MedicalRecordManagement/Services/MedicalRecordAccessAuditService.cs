@@ -85,8 +85,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         /// menentukan kewenangan: pasien yang dianggap sedang dirawat pengguna tidak dimintai
         /// keperluan akses. Dua salinan aturan yang berbeda tipis akan membuat layar
         /// menjanjikan sesuatu yang ditolak server — atau lebih buruk, sebaliknya.
+        ///
+        /// Sejak RJ-DOC-REV-BE-007 dipakai juga oleh pendaftaran kunjungan rawat jalan untuk
+        /// menolak kunjungan kedua selama kunjungan sebelumnya belum selesai.
         /// </remarks>
-        private static readonly Expression<Func<RegPatientEncounter, bool>> KunjunganMasihBerjalan =
+        internal static readonly Expression<Func<RegPatientEncounter, bool>> KunjunganMasihBerjalan =
             x => !x.IsDelete
                  && !x.IsCancel
                  && x.CompletedAt == null

@@ -804,3 +804,29 @@ mengaktifkan `RJ-BIL-DEP-009`, atau mengerjakan Billing.
 | ✅ `RJ-DOC-REV-FE-006` | Surat Dokter | 1. Diagnosa terisi dari Assessment SOAP terakhir. 2. Riwayat surat dokter. 3. Unit/Tujuan Rujukan berupa pilihan yang dapat dicari. 4. Label `Dokter Pemeriksa` menjadi `Dokter Penanggung Jawab` | `REV-BE-004` | ✅ `COMPLETE` `2026-10-01` — lint `0 error`, `next build` `PASS`, unit `2169/2175` (6 gagal milik modul lain, `EXISTING`); manual klik `NOT FEASIBLE` (tanpa peramban) — kontrak data diuji runtime HTTP. Test baru `2/2`; surat kini ikut tersimpan saat Selesai Konsultasi. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-006.md) |
 | ✅ `RJ-DOC-REV-FE-007` | Penunjang Medis — order Lab dan Radiologi dari dokter | Dokter dapat membuat dan melihat order Lab dan Radiologi kunjungan ini memakai endpoint `LabOrder`/`RadOrder` existing | — | ✅ `COMPLETE` `2026-10-01` — lint `0 error`, `next build` `PASS`, unit `2169/2175` (6 gagal milik modul lain, `EXISTING`); manual klik `NOT FEASIBLE` (tanpa peramban) — kontrak data diuji runtime HTTP. Runtime order Lab `201`, Radiologi `201`. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-007.md) |
 | ✅ `RJ-DOC-REV-FE-008` | Hasil Penunjang Medis | Tab `Hasil Radiologi` menjadi `Hasil Penunjang Medis` dan menampilkan hasil Lab dan Radiologi kunjungan per kategori penunjang | `REV-FE-007` | ✅ `COMPLETE` `2026-10-01` — lint `0 error`, `next build` `PASS`, unit `2169/2175` (6 gagal milik modul lain, `EXISTING`); manual klik `NOT FEASIBLE` (tanpa peramban) — kontrak data diuji runtime HTTP. Hasil Lab per disiplin + panel Radiologi. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-008.md) |
+
+## 10. Revisi `2026-10-01` — prioritas Skrining
+
+### 10.0 Dasar dan wewenang
+
+| Field | Isi |
+| --- | --- |
+| **Sumber requirement** | Catatan pemilik 1 Okt 2026 pukul 16.09, "Prioritas Screening" butir 1–3 |
+| **Keputusan** | `RJ-DOC-DEC-010` — `2026-10-01`, Sukma Giri (dipilih lewat sesi agent): (a) EWS mengacu NEWS2/MEWS; keduanya hanya menilai sistolik, sehingga diastolik **ditampilkan** di tabel EWS tanpa menambah skor, dengan interpretasi memakai ambang abnormal/kritis backend yang sudah ada (< 60 / > 110 abnormal, ≥ 120 kritis). (b) Kategori IMT dewasa memakai standar Kemenkes RI: < 18,5 kurang; 18,5–25,0 normal; > 25,0–27,0 lebih; > 27,0 obesitas; pasien < 18 tahun tidak dikategorikan (pakai IMT/U). (c) Satu pasien satu kunjungan aktif: pendaftaran rawat jalan (petugas dan Kiosk) ditolak selama pasien masih punya kunjungan yang belum Selesai/Batal/Tidak Hadir, **tanggal berapa pun** |
+| **`IMPLEMENTATION_AUTHORITY`** | `GRANTED` untuk `RJ-DOC-REV-BE-007` dan `RJ-DOC-REV-FE-009`. Tanpa migration. Commit, push, merge, deploy tidak termasuk |
+| **Baseline source** | Backend `27fd8fb4` (`sukmagp`), frontend `fa9d5dd2` (`sukmagpV2`), keduanya bersih |
+
+### 10.1 Temuan audit
+
+| # | Temuan | Bukti |
+| --- | --- | --- |
+| B1 | EWS tidak memuat diastolik di preview FE (dua salinan util: perawat dan dokter) maupun skor tersimpan BE | `ews.utils.js`; `PatientVitalSignCalculation.CalculateEwsScore` |
+| B2 | BMI hanya angka, tanpa kategori | `vital-preview.utils.js#calculateBmiPreview` |
+| B3 | Create kunjungan (admin dan Kiosk) tidak memeriksa kunjungan aktif. DB dev: `14` pasien punya lebih dari satu kunjungan yang belum selesai | `PatientEncounterController.ValidateCreateRequestAsync`; query read-only `2026-10-01` |
+
+### 10.2 Task
+
+| Task | Isi | Acceptance criteria | Status |
+| --- | --- | --- | --- |
+| ✅ `RJ-DOC-REV-BE-007` | Satu kunjungan aktif per pasien | 1. `POST /admin` dan `POST /kiosk` (alias `/`) menolak `400` bila pasien punya kunjungan yang masih berjalan menurut definisi tunggal `KunjunganMasihBerjalan`; pesan menyebut nomor dan tanggal kunjungan itu. 2. Setelah kunjungan itu dibatalkan/selesai, pendaftaran berhasil. 3. Dua permintaan bersamaan menghasilkan tepat satu kunjungan | ✅ `COMPLETE` `2026-10-01` — build Release `0 Error` (244 warning, tanpa warning baru di berkas task), QBE Strict `PASS` (2 berkas), runtime R0–R8 `9/9 PASS` (termasuk dua `POST` bersamaan → `200`/`400`). Tanpa migration. [Laporan](../task/report/backend/RJ-DOC-REV-BE-007.md) |
+| 🟡 `RJ-DOC-REV-FE-009` | EWS diastolik dan kategori BMI di Skrining Perawat dan Dokter | 1. Tabel EWS memuat baris "Tekanan Darah Diastolik" bertanda "Tidak diskor"; skor total tidak berubah. 2. Kartu BMI menampilkan "Kategori (Kemenkes): …" sesuai ambang `RJ-DOC-DEC-010`, dibulatkan satu desimal seperti tampilan. 3. Pasien < 18 tahun tidak diberi kategori dewasa | 🟡 `PARTIAL` `2026-10-01` — logika `30/30 PASS` (skrip node, kedua salinan util; batas 18,5/25,0/27,0 teruji), ESLint tanpa warning baru, `next build` `PASS`. Belum: uji klik layar, karena antrean perawat untuk SuperAdmin kosong (difilter cluster) dan akun perawat tidak tersedia. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-009.md) |

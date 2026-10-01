@@ -20,6 +20,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Security.Claims;
 
 using ResponsePatientEncounterPagedResult =
@@ -560,6 +561,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
             var transactionCommitted = false;
+
+            // RJ-DOC-REV-BE-007: pemeriksaan di validasi tidak cukup untuk dua permintaan yang
+            // datang bersamaan (ketukan ganda kiosk, dua loket). Kunci per pasien dipegang
+            // database dan lepas sendiri saat transaction berakhir; permintaan kedua menunggu,
+            // lalu melihat kunjungan yang baru dibuat dan ditolak.
+            if (_dbContext.Database.IsNpgsql())
+            {
+                await _dbContext.Database.ExecuteSqlRawAsync(
+                    "SELECT pg_advisory_xact_lock(hashtext({0}));",
+                    [$"REG_ENCOUNTER_ACTIVE_{request.PatientId:N}"],
+                    HttpContext.RequestAborted);
+            }
+
+            var kunjunganAktifTerkini = await FindActiveEncounterAsync(request.PatientId);
+
+            if (kunjunganAktifTerkini is not null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    BuildActiveEncounterMessage(kunjunganAktifTerkini)));
+            }
 
             try
             {
@@ -1279,6 +1301,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return query;
         }
 
+        private sealed record ActiveEncounterInfo(string EncounterNumber, DateTime EncounterDate);
+
+        /// <summary>
+        /// Kunjungan pasien yang masih berjalan, memakai definisi tunggal
+        /// <see cref="MedicalRecordAccessAuditService.KunjunganMasihBerjalan"/>
+        /// (RJ-DOC-REV-BE-007: satu pasien satu kunjungan aktif, tanggal berapa pun).
+        /// </summary>
+        private Task<ActiveEncounterInfo?> FindActiveEncounterAsync(Guid patientId) =>
+            _dbContext.Set<RegPatientEncounter>()
+                .AsNoTracking()
+                .Where(MedicalRecordAccessAuditService.KunjunganMasihBerjalan)
+                .Where(x => x.PatientId == patientId)
+                .OrderByDescending(x => x.EncounterDate)
+                .Select(x => new ActiveEncounterInfo(x.EncounterNumber, x.EncounterDate))
+                .FirstOrDefaultAsync(HttpContext.RequestAborted);
+
+        private static string BuildActiveEncounterMessage(ActiveEncounterInfo kunjungan) =>
+            $"Pasien masih memiliki kunjungan aktif bernomor {kunjungan.EncounterNumber} " +
+            $"tanggal {kunjungan.EncounterDate.ToString("dd MMM yyyy", CultureInfo.GetCultureInfo("id-ID"))}. " +
+            "Selesaikan atau batalkan kunjungan tersebut sebelum mendaftar ke poliklinik atau layanan lain.";
+
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateRequestAsync(
             PatientEncounterCreateRequest request,
             DateTime targetEncounterDate,
@@ -1334,6 +1377,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             if (!patientExists)
             {
                 return (false, "Pasien tidak valid atau tidak aktif.");
+            }
+
+            var kunjunganAktif = await FindActiveEncounterAsync(request.PatientId);
+
+            if (kunjunganAktif is not null)
+            {
+                return (false, BuildActiveEncounterMessage(kunjunganAktif));
             }
 
             var serviceUnitExists = await _dbContext.Set<MstServiceUnit>()

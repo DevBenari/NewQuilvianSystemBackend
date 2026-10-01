@@ -272,3 +272,13 @@ Definisi task ada pada [doctor-consultation-roadmap.md](doctor-consultation-road
 | Dokter 6a–6d — Surat Dokter | `RJ-DOC-REV-BE-004` + `RJ-DOC-REV-FE-006` | BE ✅ `2026-10-01`; FE ✅ `2026-10-01` | [RJ-DOC-REV-BE-004](../task/report/backend/RJ-DOC-REV-BE-004.md), [RJ-DOC-REV-FE-006](../task/report/frontend/RJ-DOC-REV-FE-006.md) |
 | Dokter 7 — order Penunjang Medis | `RJ-DOC-REV-FE-007` | FE ✅ `2026-10-01` | [RJ-DOC-REV-FE-007](../task/report/frontend/RJ-DOC-REV-FE-007.md) |
 | Dokter 8 — Hasil Penunjang Medis per kategori | `RJ-DOC-REV-FE-008` | FE ✅ `2026-10-01` | [RJ-DOC-REV-FE-008](../task/report/frontend/RJ-DOC-REV-FE-008.md) |
+
+## 6. Revisi `2026-10-01` — prioritas Skrining
+
+Keputusan `RJ-DOC-DEC-010`; definisi task pada [doctor-consultation-roadmap.md](doctor-consultation-roadmap.md) bagian `10`.
+
+| Requirement pemilik | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Skrining 1 — diastolik masuk perhitungan EWS | `RJ-DOC-REV-FE-009` | FE 🟡 `2026-10-01` — tampil sebagai baris informasi, tidak diskor (NEWS2/MEWS); uji klik layar belum | [RJ-DOC-REV-FE-009](../task/report/frontend/RJ-DOC-REV-FE-009.md) |
+| Skrining 2 — kategori berat badan kurang/normal/lebih/obesitas | `RJ-DOC-REV-FE-009` | FE 🟡 `2026-10-01` — logika terbukti; uji klik layar belum | [RJ-DOC-REV-FE-009](../task/report/frontend/RJ-DOC-REV-FE-009.md) |
+| Skrining 3 — satu No. RM tidak boleh punya dua kunjungan aktif | `RJ-DOC-REV-BE-007` | BE ✅ `2026-10-01` | [RJ-DOC-REV-BE-007](../task/report/backend/RJ-DOC-REV-BE-007.md) |
