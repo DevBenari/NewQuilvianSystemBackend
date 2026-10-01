@@ -71,6 +71,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// Kosong berarti batasnya tidak menyatakan rentang normal.
         /// </summary>
         public bool? IsOutOfNormalRange { get; set; }
+
+        /// <summary>
+        /// <c>Normal</c>, <c>Low</c>, <c>High</c>, atau <c>OutOfReference</c>
+        /// (<c>r33</c> 28.3). Kosong bila batasnya tidak menyatakan rentang normal.
+        /// <see cref="IsOutOfNormalRange"/> tetap dikirim demi konsumen lama.
+        /// </summary>
+        public string? ReferenceFlag { get; set; }
     }
 
     /// <summary>
@@ -123,6 +130,76 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public DateTime? ExaminedAt { get; set; }
 
         public DateTime? ResultEnteredAt { get; set; }
+
+        // Sembilan ruas di bawah ditambahkan r33 28.3.
+
+        /// <summary><c>Routine</c> atau <c>Cito</c>, supaya halaman dapat mendahulukan pemeriksaan cito.</summary>
+        public string Urgency { get; set; } = string.Empty;
+
+        /// <summary>
+        /// <c>Normal</c>, <c>Low</c>, <c>High</c>, atau <c>OutOfReference</c>, dihitung dari batas
+        /// nilai yang berlaku <b>saat hasil disimpan</b>. Kosong bila hasil belum diisi atau
+        /// batasnya tidak menyatakan rentang normal. Nilai kritis tidak termasuk — itu <c>S5</c>.
+        /// </summary>
+        public string? ReferenceFlag { get; set; }
+
+        public bool IsFinalized { get; set; }
+
+        public DateTime? FinalizedAt { get; set; }
+
+        public Guid? FinalizedByUserId { get; set; }
+
+        public int ReopenCount { get; set; }
+
+        public bool IsConsulted { get; set; }
+
+        public string? ConsultedToName { get; set; }
+
+        public DateTime? ConsultedAt { get; set; }
+
+        // Ruas di bawah ditambahkan r34 29.3 (BE-LAB-76) — sama dengan respons kelengkapan.
+
+        /// <summary>
+        /// Pengisi hasil — <b>hanya pada respons ini</b>, supaya layar dapat memperingatkan pengisi
+        /// <b>sebelum</b> ia menekan Validasi atas hasilnya sendiri (<c>VAL-129</c>).
+        /// </summary>
+        public Guid? ResultEnteredByUserId { get; set; }
+
+        /// <summary><c>NotEntered</c>, <c>Draft</c>, <c>Final</c>, <c>Validated</c>, <c>Released</c> — turunan (<c>LAB-DEC-080</c>).</summary>
+        public string ResultStatus { get; set; } = string.Empty;
+
+        public bool IsValidated { get; set; }
+
+        public DateTime? ValidatedAt { get; set; }
+
+        public Guid? ValidatedByUserId { get; set; }
+
+        /// <summary>Nama pemvalidasi — baris <i>Validasi oleh</i>.</summary>
+        public string? ValidatedByName { get; set; }
+
+        /// <summary>Jabatan pemvalidasi saat itu — snapshot.</summary>
+        public string? ValidatedByPositionName { get; set; }
+
+        /// <summary><i>"Divalidasi oleh pengisi sendiri — {nama} — {alasan}"</i>, atau kosong.</summary>
+        public string? ValidationExceptionMarker { get; set; }
+
+        public bool IsReleased { get; set; }
+
+        public DateTime? ReleasedAt { get; set; }
+
+        public Guid? ReleasedByUserId { get; set; }
+
+        /// <summary>Nama perilis — baris <i>Otorisasi oleh</i>.</summary>
+        public string? ReleasedByName { get; set; }
+
+        /// <summary>Jabatan perilis saat itu — snapshot.</summary>
+        public string? ReleasedByPositionName { get; set; }
+
+        /// <summary><i>"Dirilis oleh pemvalidasi sendiri — {nama} — {alasan}"</i>, atau kosong.</summary>
+        public string? ReleaseExceptionMarker { get; set; }
+
+        /// <summary>Kosong bila sudah dirilis; selebihnya menyatakan kenapa hasil belum boleh dikirim.</summary>
+        public string? DeliveryBlockedReason { get; set; }
     }
 
     /// <summary>Satu pilihan hasil yang sah.</summary>
@@ -184,6 +261,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
     }
 
     /// <summary>
+    /// Permintaan Validasi dan Rilis hasil (<c>LAB-API-v1</c> <c>r34</c> 29.3).
+    ///
+    /// <b>Pelakunya tidak diterima dari pemanggil</b> — diturunkan dari sesi. Kedua ruas hanya
+    /// diisi bila pelaku <b>merangkap</b> peran pada hasil itu: pemvalidasi yang juga pengisi,
+    /// atau perilis yang juga pemvalidasi (<c>LAB-DEC-003</c>). Dikirim tanpa merangkap →
+    /// ditolak <c>422</c> (<c>VAL-132</c>), supaya penanda pengecualian tidak pernah tercatat
+    /// pada hasil yang tidak merangkap.
+    /// </summary>
+    public class LabResultSignOffRequest
+    {
+        /// <summary>Alasan <b>aktif</b> pada daftar <c>lab-four-eyes-exception-reasons</c>.</summary>
+        public Guid? ExceptionReasonId { get; set; }
+
+        /// <summary>
+        /// Catatan bebas, wajib bila alasannya <c>requiresNote</c>, maksimal 500. Disimpan pada
+        /// riwayat, <b>tidak</b> tercetak.
+        /// </summary>
+        public string? ExceptionNote { get; set; }
+    }
+
+    /// <summary>
+    /// Permintaan <i>Kembalikan ke analis</i> (<c>LAB-API-v1</c> <c>r34</c> 29.3,
+    /// <c>LAB-DEC-138</c>). Pelakunya diturunkan dari sesi.
+    /// </summary>
+    public class LabResultReturnRequest
+    {
+        /// <summary>
+        /// Alasan <b>aktif</b> pada daftar <c>lab-result-correction-reasons</c>. <b>Wajib</b>
+        /// (<c>VAL-135</c>) — kodenya menjadi kunci laporan mutu.
+        /// </summary>
+        public Guid? CorrectionReasonId { get; set; }
+
+        /// <summary>Catatan bebas pada riwayat; wajib bila alasannya <c>requiresNote</c>, maksimal 500.</summary>
+        public string? Note { get; set; }
+    }
+
+    /// <summary>
     /// Keadaan kelengkapan dan konsultasi sebuah hasil Mikrobiologi
     /// (<c>LAB-API-v1</c> <c>r26</c> bagian 21.3).
     ///
@@ -218,14 +332,59 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
         public Guid? ConsultedByUserId { get; set; }
 
+        // Ruas di bawah ditambahkan r34 29.3 (BE-LAB-73). Ruas rilis menyusul BE-LAB-74.
+
         /// <summary>
-        /// <b>Selalu bernilai salah pada rilis ini</b>, dan itu disengaja.
+        /// <c>NotEntered</c>, <c>Draft</c>, <c>Final</c>, <c>Validated</c>, atau <c>Released</c>.
+        /// <b>Diturunkan</b> setiap kali dibaca, bukan kolom tersimpan (<c>LAB-DEC-080</c>).
+        /// </summary>
+        public string ResultStatus { get; set; } = string.Empty;
+
+        /// <summary><c>ValidatedAt != null</c>.</summary>
+        public bool IsValidated { get; set; }
+
+        public DateTime? ValidatedAt { get; set; }
+
+        public Guid? ValidatedByUserId { get; set; }
+
+        /// <summary>Nama pemvalidasi — baris <i>Validasi oleh</i>.</summary>
+        public string? ValidatedByName { get; set; }
+
+        /// <summary>Jabatan pemvalidasi <b>saat ia memvalidasi</b> — snapshot, bukan jabatan hari ini.</summary>
+        public string? ValidatedByPositionName { get; set; }
+
+        /// <summary>
+        /// Bunyi penanda bila pemvalidasi juga pengisi hasil, persis
+        /// <c>02-backend-architecture.md</c> 20.10 butir 5:
+        /// <i>"Divalidasi oleh pengisi sendiri — {nama} — {alasan}"</i>. Kosong bila tidak merangkap.
+        /// </summary>
+        public string? ValidationExceptionMarker { get; set; }
+
+        /// <summary>
+        /// <c>ReleasedAt != null</c> — hasil sudah menjadi dokumen klinis pasien (<c>BE-LAB-74</c>).
         ///
-        /// Rilis Mikrobiologi adalah <c>S4d</c> dan belum dibangun. Ruas ini ada supaya layar
-        /// dan pemanggil <b>tidak perlu menyimpulkan</b> bahwa Final sama dengan rilis —
-        /// kesimpulan yang justru ditolak <c>LAB-DEC-097</c>.
+        /// Bernilai sebenarnya untuk Patologi Klinik. Mikrobiologi tetap salah sampai <c>S4d</c>,
+        /// sebab rilisnya belum dibangun. Ruas ini ada supaya layar dan pemanggil <b>tidak perlu
+        /// menyimpulkan</b> bahwa Final sama dengan rilis — kesimpulan yang ditolak
+        /// <c>LAB-DEC-097</c>.
         /// </summary>
         public bool IsReleased { get; set; }
+
+        public DateTime? ReleasedAt { get; set; }
+
+        public Guid? ReleasedByUserId { get; set; }
+
+        /// <summary>Nama perilis — baris <i>Otorisasi oleh</i> (<c>LAB-DEC-120</c>).</summary>
+        public string? ReleasedByName { get; set; }
+
+        /// <summary>Jabatan perilis <b>saat ia merilis</b> — snapshot (20.10 butir 1).</summary>
+        public string? ReleasedByPositionName { get; set; }
+
+        /// <summary>
+        /// Bunyi penanda bila perilis juga pemvalidasi, persis 20.10 butir 5:
+        /// <i>"Dirilis oleh pemvalidasi sendiri — {nama} — {alasan}"</i>. Kosong bila tidak merangkap.
+        /// </summary>
+        public string? ReleaseExceptionMarker { get; set; }
 
         /// <summary>
         /// Kenapa hasil ini belum boleh dikirim ke pasien. Kosong ketika sudah boleh.

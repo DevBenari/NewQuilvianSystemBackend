@@ -215,5 +215,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// </para>
         /// </summary>
         public string? ExaminerDoctorName { get; set; }
+
+        /// <summary>
+        /// Label order turunan (<c>r34</c> 29.5): <c>InProgress</c> — <i>Dalam Pemeriksaan</i> —
+        /// atau <c>AllReleased</c> — <i>Selesai</i>. Kosong bila order tidak punya pemeriksaan
+        /// yang tidak batal dan tidak gugur. <b>Hanya diisi pada jalur Patologi Klinik</b>; rilis
+        /// Mikrobiologi dan Patologi Anatomi belum dibangun. Bukan <c>orderStatus</c>.
+        /// </summary>
+        public string? ResultProgress { get; set; }
     }
 }

@@ -252,6 +252,128 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums
     }
 
     /// <summary>
+    /// Penanda rujukan sebuah hasil Patologi Klinik (<c>LAB-FE-015</c>, <c>LAB-API-v1</c>
+    /// <c>r33</c> 28.3). <b>Tidak disimpan</b> — dihitung dari batas nilai yang berlaku saat
+    /// hasil disimpan, bukan batas hari ini.
+    ///
+    /// <see cref="Low"/> dan <see cref="High"/> hanya bagi hasil angka. Hasil pilihan tidak
+    /// punya arah, sehingga pilihan yang ditandai di luar rujukan menjadi
+    /// <see cref="OutOfReference"/>.
+    ///
+    /// <b>Nilai kritis sengaja tidak ada.</b> Itu <c>S5</c>; menambahkannya lebih dulu membuat
+    /// layar menampilkan penanda yang nol dihitung.
+    /// </summary>
+    public enum LabReferenceFlag
+    {
+        [Display(Name = "Normal")]
+        Normal = 1,
+
+        [Display(Name = "Low")]
+        Low = 2,
+
+        [Display(Name = "High")]
+        High = 3,
+
+        [Display(Name = "Out Of Reference")]
+        OutOfReference = 4
+    }
+
+    // =====================================================================
+    // Validasi dan rilis — S4 (02-backend-architecture.md 20.4, BE-LAB-70)
+    //
+    // Kelima enum di bawah TIDAK disimpan. BE-LAB-70 hanya mendeklarasikannya; pemakainya lahir
+    // pada BE-LAB-72 (resolver kewenangan) dan BE-LAB-73..77 (tindakan, respons, antrean).
+    // =====================================================================
+
+    /// <summary>Jenis kewenangan klinis yang diminta dari pembaca kredensial Human Resource.</summary>
+    public enum LabPrivilegeKind
+    {
+        [Display(Name = "Validation")]
+        Validation = 1,
+
+        [Display(Name = "Release")]
+        Release = 2
+    }
+
+    /// <summary>
+    /// Satu sebab penolakan kewenangan yang terbaca oleh pengguna (<c>AC-233</c>). Resolver
+    /// menolak bila data kewenangan kosong — fail-closed, bukan jalur pintas.
+    /// </summary>
+    public enum LabPrivilegeDenial
+    {
+        [Display(Name = "No Workforce Profile")]
+        NoWorkforceProfile = 1,
+
+        [Display(Name = "Not Appointed")]
+        NotAppointed = 2,
+
+        [Display(Name = "Pending Approval")]
+        PendingApproval = 3,
+
+        [Display(Name = "Not Yet Effective")]
+        NotYetEffective = 4,
+
+        [Display(Name = "Expired")]
+        Expired = 5,
+
+        [Display(Name = "Suspended")]
+        Suspended = 6,
+
+        [Display(Name = "Revoked")]
+        Revoked = 7,
+
+        [Display(Name = "Clinical Service Blocked")]
+        ClinicalServiceBlocked = 8
+    }
+
+    /// <summary>
+    /// Keadaan hasil satu pemeriksaan untuk ruas respons <c>resultStatus</c>. <b>Diturunkan</b>
+    /// dari <c>ResultEnteredAt</c>, <c>FinalizedAt</c>, <c>ValidatedAt</c>, dan
+    /// <c>ReleasedAt</c> setiap kali dibaca — <b>tidak pernah disimpan</b> (<c>LAB-DEC-080</c>).
+    /// </summary>
+    public enum LabResultStatus
+    {
+        [Display(Name = "Not Entered")]
+        NotEntered = 1,
+
+        [Display(Name = "Draft")]
+        Draft = 2,
+
+        [Display(Name = "Final")]
+        Final = 3,
+
+        [Display(Name = "Validated")]
+        Validated = 4,
+
+        [Display(Name = "Released")]
+        Released = 5
+    }
+
+    /// <summary>
+    /// Kemajuan hasil satu order untuk ruas respons <c>resultProgress</c>. Diturunkan, tidak
+    /// disimpan — label <i>Selesai</i> hanya bila seluruh pemeriksaan tidak batal sudah dirilis
+    /// (<c>LAB-DEC-135</c>, <c>AC-199</c>).
+    /// </summary>
+    public enum LabOrderResultProgress
+    {
+        [Display(Name = "In Progress")]
+        InProgress = 1,
+
+        [Display(Name = "All Released")]
+        AllReleased = 2
+    }
+
+    /// <summary>Tahap antrean validasi — penyaring, tidak disimpan.</summary>
+    public enum LabValidationQueueStage
+    {
+        [Display(Name = "Awaiting Validation")]
+        AwaitingValidation = 1,
+
+        [Display(Name = "Awaiting Release")]
+        AwaitingRelease = 2
+    }
+
+    /// <summary>
     /// Status temuan sebuah pemeriksaan Mikrobiologi berstruktur (<c>LAB-DEC-113</c>).
     ///
     /// <b>Daftar ini sengaja TERPISAH dari <see cref="LabPathologyFindingStatus"/>.</b>

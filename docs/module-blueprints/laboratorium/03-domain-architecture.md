@@ -6,10 +6,10 @@
 |---|---|
 | Blueprint ID | `laboratorium` |
 | Architecture ID | `LAB-DA-001` |
-| Revision | `9` — bagian **A6**, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `8` — bagian **A5**, 2026-09-24: `S4` validasi dan rilis Patologi Klinik |
+| Revision | `10` — bagian **A7**, 2026-09-25: `S16a` tiga laporan operasional; `INV-54` dibukukan. Sebelumnya `9` — bagian **A6**, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `8` — bagian **A5**, 2026-09-24: `S4` validasi dan rilis Patologi Klinik |
 | Status | `draft` |
-| **Kesiapan arsitektur** | **Revision 9: `S4d-1` ditambahkan `DOMAIN_ARCHITECTURE_READY` untuk desain saja; `S4d-2` dan `S4e` tidak dirancang (`DEC-LAB-020`, `DEC-LAB-021`). Lihat A6.14.** **Revision 8: `S4` ditambahkan `DOMAIN_ARCHITECTURE_READY` untuk desain saja — pemakaian nyatanya tertahan `DEC-LAB-011` sisa, `DEC-LAB-017`, `DEC-LAB-018`, `LAB-COORD-016`. Lihat A5.14.** Sebelumnya: **`DOMAIN_ARCHITECTURE_READY`** — **12 slice siap.** `S4c` **dirancang ulang revision 7** sesudah bukti `LAB-EVD-003`; bentuk lamanya pada A3 dicabut, bentuk barunya pada **A4**. Jumlah slice tidak berubah; yang berubah isinya. **12 slice siap.** Sepuluh slice revision 2-4 tetap `READY`; revision 5 menambahkan `S4b` dan `S4c` ke dalam scope, dan revision 6 menaikkan `S4b` menjadi `READY` sesudah `LAB-DEC-084` menutup `DEC-LAB-015`. **Satu bagian dikecualikan, bukan satu slice:** gambar hasil Patologi Anatomi menunggu `DEC-LAB-016`. Lihat A3.16 |
-| Scope yang dinilai | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11` (rev 2); `S13a`, `S13b`, `S14`, `S15` (rev 3); **`S4b` dan `S4c` (rev 5-6)**; **`S4` (rev 8)**; **`S4d-1` (rev 9)** |
+| **Kesiapan arsitektur** | **Revision 10: `S16a` ditambahkan `DOMAIN_ARCHITECTURE_READY` — nol konsep tersimpan, tiga invariant arti `INV-55`..`INV-57`, nol gap memblokir. Lihat A7.14.** **Revision 9: `S4d-1` ditambahkan `DOMAIN_ARCHITECTURE_READY` untuk desain saja; `S4d-2` dan `S4e` tidak dirancang (`DEC-LAB-020`, `DEC-LAB-021`). Lihat A6.14.** **Revision 8: `S4` ditambahkan `DOMAIN_ARCHITECTURE_READY` untuk desain saja — pemakaian nyatanya tertahan `DEC-LAB-011` sisa, `DEC-LAB-017`, `DEC-LAB-018`, `LAB-COORD-016`. Lihat A5.14.** Sebelumnya: **`DOMAIN_ARCHITECTURE_READY`** — **12 slice siap.** `S4c` **dirancang ulang revision 7** sesudah bukti `LAB-EVD-003`; bentuk lamanya pada A3 dicabut, bentuk barunya pada **A4**. Jumlah slice tidak berubah; yang berubah isinya. **12 slice siap.** Sepuluh slice revision 2-4 tetap `READY`; revision 5 menambahkan `S4b` dan `S4c` ke dalam scope, dan revision 6 menaikkan `S4b` menjadi `READY` sesudah `LAB-DEC-084` menutup `DEC-LAB-015`. **Satu bagian dikecualikan, bukan satu slice:** gambar hasil Patologi Anatomi menunggu `DEC-LAB-016`. Lihat A3.16 |
+| Scope yang dinilai | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11` (rev 2); `S13a`, `S13b`, `S14`, `S15` (rev 3); **`S4b` dan `S4c` (rev 5-6)**; **`S4` (rev 8)**; **`S4d-1` (rev 9)**; **`S16a` (rev 10)** |
 | Kesiapan requirement | `PARTIALLY_READY` dari `LAB-RCG-001` revision 4; seluruh slice dikirim sebagai slice siap yang berdiri sendiri |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
 | Backend SHA | `c87d9c0` |
@@ -1284,6 +1284,178 @@ tercatat, `LAB-COORD-016`, dan `LAB-OPEN-044`.
 
 ---
 
+## A7. Revision 10 — `S16a` tiga laporan operasional (2026-09-25)
+
+**Bagian ini tidak menambah satu pun konsep yang tersimpan.** Ketiga laporan adalah **pandangan baca**
+atas fakta yang sudah dimiliki `BC-LAB`. Yang dirancang di sini adalah **arti** setiap angka — dari
+fakta mana ia dihitung dan pada tanggal apa — supaya angka yang sama tidak pernah dihitung dua cara.
+
+### A7.0 Pembukuan yang tertunda — `INV-54`
+
+`02-backend-architecture.md` 22.0 mengusulkan invariant penyelesaian order dicatat pada revisi
+arsitektur berikutnya. Dicatat di sini, tanpa mengubah rancangannya:
+
+| Invariant | Isi | Dasar |
+|---|---|---|
+| `INV-54` | Pesanan tidak boleh `Completed` selama masih ada pemeriksaan yang tidak batal dan tidak gugur yang **belum dirilis**. Pemeriksaan tanpa jalur validasi menahan pesanan | `LAB-DEC-154`; kontrak `r36`/`r14`/`r7` **approved**; `BE-LAB-81` |
+
+### A7.1 Identitas dan gerbang masuk
+
+| Butir | Isi |
+|---|---|
+| Scope | **`S16a`** — jumlah pemeriksaan, angka penolakan sampel, waktu penyelesaian (TAT). **`S16b`** (delapan laporan lain) **tidak** dirancang |
+| Kesiapan requirement | `LAB-RCG-001-r11` bagian 0F: **`READY_FOR_DOMAIN_DESIGN`**, independen dari `S16b` |
+| Decision ID yang mengikat | `LAB-DEC-159` (tiga definisi), `LAB-DEC-160` (pembaca), `LAB-DEC-155` (hasil resmi = Tervalidasi dan Dirilis), `LAB-DEC-071` (rentang tanggal inklusif), `LAB-DEC-080` (fakta, bukan status); `AC-17`, `AC-250`..`AC-253` |
+| Bukti | Decisions rev 81; capability map rev 6; kode dibaca pada **BE `84383f64`**, **FE `2083ff36a`** |
+| Impact scan | **Dijalankan** karena kedua SHA bergeser dari `cfafad8d`/`0bcd15724`. Backend 73 commit dan frontend 38 commit: **nol berkas source Laboratorium**; `Program.cs` dan `ApplicationDbContext` tidak memuat baris Laboratorium yang berubah. Commit `334a69aa` hanya dokumen blueprint |
+| Baseline rujukan | **Tidak dipakai** — ketiga definisi sudah diputuskan pemilik modul |
+
+### A7.2 Ubiquitous language — istilah yang ditambahkan
+
+| Istilah | Arti |
+|---|---|
+| **Tanggal operasional** | Tanggal menurut jam dinding rumah sakit — **WIB** (`Asia/Jakarta`) — bukan tanggal UTC. Hasil yang dirilis 1 Oktober pukul 06.30 WIB tercatat 30 September pukul 23.30 UTC, tetapi **masuk hitungan 1 Oktober** |
+| **Periode laporan** | Rentang tanggal operasional dengan **awal dan akhir inklusif** (`LAB-DEC-071`). Periode 1-30 September memuat seluruh kejadian 1 September 00.00 WIB sampai 30 September 23.59 WIB |
+| **Keputusan kelayakan** | Satu keputusan atas satu wadah — **layak** atau **tidak layak** — pada satu waktu. Ditandai waktunya dan, bila tidak layak, alasannya |
+| **Waktu penyelesaian (TAT)** | Selang dari **saat wadah yang melayani pemeriksaan dinyatakan layak** sampai **hasil pemeriksaan itu dirilis** |
+
+**Perbedaan makna yang wajib dijaga:** *jumlah pemeriksaan* pada laporan ini menghitung **hasil
+resmi**, sedangkan Billing menagih pada saat **layak tagih**. Pemeriksaan yang layak tagih 30 September
+dan dirilis 1 Oktober masuk tagihan September **dan** laporan Oktober — dua angka yang sengaja
+berbeda, bukan selisih yang harus direkonsiliasi.
+
+### A7.3 Peta bounded context — perubahan
+
+**Nol.** Seluruh data milik `BC-LAB`. `BC-PLAT` hanya menyediakan pemeriksaan hak akses. **Nol** baca
+dari `BC-BIL`, `BC-REG`, `BC-MRC`, maupun modul klinis — itulah yang membedakan `S16a` dari `S16b`.
+
+### A7.4 Katalog konsep domain
+
+| ID | Nama | Klasifikasi | Context | Ownership | Identitas | Peran | Bukti |
+|---|---|---|---|---|---|---|---|
+| `LAB-DC-059` | **Periode Laporan** | `VALUE_OBJECT` | `BC-LAB` | `Existing` — penentu rentang yang sudah ada | Tanpa identitas; sama bila awal dan akhirnya sama | Batas setiap laporan | `LabQueryDateRange.cs` (inklusif, `LAB-DEC-071`); `Helpers/AppDateTimeHelper.cs#ToUtc` membaca tanggal polos sebagai **WIB** |
+| `LAB-DC-060` | **Laporan Jumlah Pemeriksaan** | `ADAPTER/VIEW` | `BC-LAB` | `Adapter/View` atas `LAB-DC-002` dan `LAB-DC-052` | Tanpa identitas; dihitung saat diminta | Angka volume | `LAB-DEC-159` butir 2 |
+| `LAB-DC-061` | **Laporan Penolakan Wadah** | `ADAPTER/VIEW` | `BC-LAB` | `Adapter/View` atas `LAB-DC-003` dan `LAB-DC-005` | Sama | Angka mutu pra-analitik | `LAB-DEC-159` butir 3 |
+| `LAB-DC-062` | **Laporan Waktu Penyelesaian** | `ADAPTER/VIEW` | `BC-LAB` | `Adapter/View` atas `LAB-DC-002` dan `LAB-DC-052` | Sama | Angka kecepatan | `LAB-DEC-159` butir 4; `AC-17` |
+
+**Fakta yang dibaca — seluruhnya sudah ada atau sudah dirancang, nol yang dibuat untuk laporan:**
+
+| Fakta | Milik konsep | Keadaan pada `84383f64` |
+|---|---|---|
+| Waktu rilis | `LAB-DC-052` Rilis Hasil | **Dirancang, belum dibangun** — kolom `ReleasedAt`, `BE-LAB-70` |
+| Status pemeriksaan (batal, gugur) | `LAB-DC-002` | Ada — `LabExaminationStatus` |
+| Saat wadah pemeriksaan dinyatakan layak | `LAB-DC-002` | Ada — `LabExamination.ChargeEligibleAt`, diisi **dengan nilai waktu yang sama** dengan `DecidedAt` wadahnya ketika wadah diterima (`LabSpecimenService.cs:603`, `:611-619` lewat `MoveExaminationsAsync:442`) |
+| Kesegeraan cito/rutin per pemeriksaan | `LAB-DC-002` | Ada — `LabExamination.Urgency` (`S1a`) |
+| Disiplin | `LAB-DC-001` | Ada — diturunkan dari katalog (`LAB-DEC-048`) |
+| Waktu dan hasil keputusan kelayakan | `LAB-DC-003` | Ada — `DecidedAt` diisi saat diterima **dan** saat ditolak (`LabSpecimenService.cs:603`, `:746`); `RejectionReasonId`/`RejectionReasonCode` hanya terisi saat ditolak |
+| Alasan penolakan | `LAB-DC-005` | Ada — `MstLabRejectionReason` (`S11`) |
+
+### A7.5 Invariant
+
+Laporan tidak menulis apa pun, sehingga **nol aggregate baru** dan nol batas konsistensi. Yang dijaga
+adalah **arti angkanya**:
+
+| Invariant | Isi | Contoh |
+|---|---|---|
+| `INV-55` | Sebuah pemeriksaan dihitung **tepat sekali**, pada **tanggal operasional rilisnya**, dan hanya bila ia punya rilis. Pemeriksaan batal atau gugur tidak pernah dihitung — mereka tidak pernah dirilis, dan rilis tidak dapat dibatalkan (`VAL-143`) | Kalium dipesan 30 September, dirilis 1 Oktober 06.30 WIB → hitungan **Oktober** |
+| `INV-56` | Angka penolakan = keputusan **tidak layak** ÷ **seluruh keputusan kelayakan**, keduanya menurut **tanggal operasional keputusan**. Wadah pengganti adalah wadah **baru** dengan keputusannya sendiri | Satu tabung hemolisis ditolak, penggantinya diterima → **dua** keputusan, **satu** penolakan. Rincian per alasan: *hemolisis* 1 |
+| `INV-57` | TAT dihitung dari `ChargeEligibleAt` pemeriksaan sampai rilisnya — **titik mulai yang sama** dengan daftar pantau keterlambatan cito hari ini (`LabWorklistService.cs`: tenggat = `ChargeEligibleAt` + batas waktu). **Satu rumus dipakai bersama**; laporan tidak boleh punya rumus kedua | Kalium cito layak 08.00, dirilis 09.10 → **70 menit**. Batas cito 60 menit → terlambat **baik** di laporan **maupun** di daftar pantau |
+
+**Akibat `INV-57` pada pengambilan ulang, dan kenapa itu sesuai keputusan.** Pengambilan ulang
+**membuat pemeriksaan baru** pada wadah pengganti (`LabSpecimenService.cs` `RequestRecollectionAsync`),
+dan pemeriksaan lama digugurkan. TAT pemeriksaan baru mulai dari **wadah pengganti dinyatakan layak**.
+Waktu yang hilang karena penolakan **tidak** masuk TAT — ia terlihat pada laporan penolakan. Itu persis
+bunyi `LAB-DEC-159`: *dari wadah dinyatakan layak*.
+
+**Yang tidak boleh muncul:** ringkasan yang **disimpan** — angka per hari atau per bulan dalam tabel
+sendiri. Seluruh angka dihitung dari fakta saat laporan dibuka, sehingga tidak pernah basi (preseden:
+`02-backend-architecture.md` menolak tabel rekap pemakaian `Lainnya` dengan alasan yang sama).
+
+### A7.6 Model relasi
+
+| Dari | Ke | Arti | Kardinalitas |
+|---|---|---|---|
+| Laporan Jumlah Pemeriksaan | Pemeriksaan (`LAB-DC-002`) yang punya Rilis (`LAB-DC-052`) | Menghitung | Satu periode ↔ nol atau banyak pemeriksaan |
+| Laporan Penolakan Wadah | Wadah (`LAB-DC-003`) yang punya keputusan kelayakan; Alasan (`LAB-DC-005`) | Menghitung dan merinci | Satu periode ↔ nol atau banyak wadah; satu wadah ↔ nol atau satu alasan |
+| Laporan Waktu Penyelesaian | Pemeriksaan yang punya `ChargeEligibleAt` **dan** Rilis | Mengukur selang | Satu periode ↔ nol atau banyak pemeriksaan |
+
+Seluruh relasi **hanya membaca**. Nol relasi ke luar `BC-LAB`.
+
+### A7.7 Model lifecycle
+
+**Tidak ada lifecycle.** Laporan tidak punya status dan tidak dapat dibatalkan atau dikoreksi.
+Kestabilan angkanya bersandar pada lifecycle fakta yang dibacanya: rilis tidak dapat dibatalkan
+(`VAL-143`), dan keputusan kelayakan tidak dapat diubah sesudah dibuat. **Satu-satunya pengubah
+kelak adalah koreksi `S6`** — lihat `ARCH-GAP-LAB-12`.
+
+### A7.8 Tanggung jawab authorization
+
+| Tindakan | Siapa | Dasar |
+|---|---|---|
+| Membuka dan mengunduh ketiga laporan | Jabatan yang diberi **izin laporan tersendiri** oleh admin — kepala instalasi dan manajemen | `LAB-DEC-160` |
+| Memberi izin | Admin, lewat pengaturan hak akses yang sudah ada | `LAB-DEC-160`; `SysAccessPolicies` per departemen–jabatan |
+
+Hak baca daftar Laboratorium **tidak** mencakup laporan. **Jabatan mana yang disebut *manajemen***
+adalah data yang diisi admin saat rilis, bukan keputusan arsitektur.
+
+### A7.9 Model audit dan histori
+
+| Kejadian | Dicatat? | Status |
+|---|---|---|
+| Membuka laporan | Tidak — konvensi proyek tidak mencatat `GET` | `CONFIRMED` |
+| Mengunduh laporan | **Ya** — pelaku, waktu, periode, disiplin | `PROPOSED` (`LAB-RCG-001-r11` 0F.3 dimensi 14). **✅ Disetujui 2026-09-28** bersama kontrak `EPIC-LAB-17` — `02-backend-architecture.md` 23.10 butir 7 |
+
+### A7.10 Model integrasi
+
+**Nol integrasi.** Tidak ada produsen maupun konsumen di luar Laboratorium, tidak ada sinkronisasi,
+tidak ada kebutuhan idempotensi.
+
+### A7.11 Dampak billing
+
+**Tidak ada dampak charge yang diketahui.** Laporan membaca, tidak menagih. Perbedaan dengan angka
+Billing adalah **arti yang berbeda** (A7.2), bukan selisih.
+
+### A7.12 Dampak keselamatan klinis
+
+**Non-klinis.** Angka agregat untuk manajemen; tidak ada keputusan klinis yang diambil darinya. Laporan
+**tidak** memuat identitas pasien (`PROPOSED`, 0F.3 dimensi 18). **✅ Disetujui 2026-09-28** bersama
+kontrak `EPIC-LAB-17` — `02-backend-architecture.md` 23.10 butir 6.
+
+### A7.13 Gap arsitektur
+
+| ID | Isi | Status | Dampak |
+|---|---|---|---|
+| `ARCH-GAP-LAB-11` | **Disiplin tanpa jalur rilis** — Patologi Anatomi sampai `S4e`, Mikrobiologi sampai `MVP-10` dipakai — ditulis ***"belum dapat dihitung"***, bukan angka 0. Tanpa itu, laporan menyatakan *nol pemeriksaan PA* padahal puluhan laporan PA sudah Final | `PROPOSED`, `NON_BLOCKING_STANDARD`. **✅ Ditutup 2026-09-28:** disetujui Yoga Aji Pratama bersama kontrak `EPIC-LAB-17` (`02-backend-architecture.md` 23.10 butir 6) | Tampilan |
+| `ARCH-GAP-LAB-12` | **Koreksi `S6` kelak.** Hasil terkoreksi tetap **satu** pemeriksaan: jumlah dan TAT memakai **rilis pertama**, bukan rilis koreksi — kalau tidak, koreksi memperpanjang TAT dan menggandakan hitungan. Diputuskan saat `S6` dirancang | `PROPOSED`, `NON_BLOCKING_STANDARD` | Tidak ada sampai `S6` |
+| `ARCH-GAP-LAB-13` | **Bentuk sajian TAT:** rata-rata, jumlah pemeriksaan, dan jumlah yang **terlambat**. *Terlambat* hanya bermakna bagi pemeriksaan cito yang batas waktunya diatur (`VAL-39`); rutin tidak punya batas, sehingga tidak ada *terlambat* rutin | `PROPOSED`, `NON_BLOCKING_STANDARD`. **✅ Ditutup 2026-09-28:** disetujui Yoga Aji Pratama bersama kontrak `EPIC-LAB-17` (`02-backend-architecture.md` 23.10 butir 6) | Tampilan |
+
+**Nol gap `BLOCKING`.**
+
+### A7.14 Kesiapan arsitektur
+
+**`S16a`: `DOMAIN_ARCHITECTURE_READY`.** Nol konsep tersimpan, nol aggregate, nol relasi ke luar
+`BC-LAB`; tiga invariant arti (`INV-55`..`INV-57`); satu kebutuhan kewenangan; nol dampak billing dan
+klinis; tiga usulan tidak memblokir yang wajib tetap ditandai usulan.
+
+**Dependency data, bukan penahan desain:** `ReleasedAt` (`BE-LAB-70`). Angka Mikrobiologi dan Patologi
+Anatomi bergantung `MVP-10` dan `S4e`.
+
+### A7.15 Handoff ke `design-business-module`
+
+| Field | Nilai |
+|---|---|
+| Slice | `S16a` |
+| Kesiapan requirement | `READY_FOR_DOMAIN_DESIGN` (`LAB-RCG-001-r11`) |
+| Kesiapan arsitektur | `DOMAIN_ARCHITECTURE_READY` (`LAB-DA-001` revision 10) |
+| Snapshot | BE `84383f64`, FE `2083ff36a`; decisions rev 81; capability map rev 6 |
+| Konsep | `LAB-DC-059`..`LAB-DC-062` — **nol tabel baru** |
+| Invariant | `INV-55`, `INV-56`, `INV-57` |
+| Usulan yang wajib tetap ditandai usulan | `ARCH-GAP-LAB-11`..`13`; audit unduhan (A7.9); tanpa identitas pasien (A7.12). **Sejak 2026-09-28 tinggal `ARCH-GAP-LAB-12`** — keempat lainnya disetujui bersama kontrak `EPIC-LAB-17` (penunjuk ditambahkan; revision tetap 10) |
+| Yang wajib dipakai ulang | `LabQueryDateRange` dan `AppDateTimeHelper` untuk periode; titik mulai `ChargeEligibleAt` yang **sama** dengan daftar pantau cito |
+| Yang **tidak boleh** muncul | Ringkasan tersimpan; rumus TAT kedua; daftar pasien pada laporan; baca data Billing, Registrasi, atau diagnosis |
+
+---
+
 ## B. Ubiquitous Language
 
 Satu istilah, satu makna. Bila satu kata dipakai dua arti oleh bagian berbeda, perbedaannya
@@ -1804,6 +1976,7 @@ dijawab, yang berjalan di produksi tidak boleh disentuh.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 10 | 2026-09-25 | **`S16a` tiga laporan operasional dirancang** (bagian A7), menurunkan `LAB-RCG-001-r11` bagian 0F dan `LAB-DEC-159`/`160`. **Nol konsep tersimpan:** ketiga laporan `ADAPTER/VIEW` (`LAB-DC-060`..`062`) plus satu `VALUE_OBJECT` Periode Laporan (`LAB-DC-059`) yang memakai ulang `LabQueryDateRange` dan tanggal operasional **WIB**. Tiga invariant arti: `INV-55` hitung pada tanggal rilis, `INV-56` penolakan per keputusan kelayakan, **`INV-57` TAT memakai titik mulai `ChargeEligibleAt` yang sama dengan daftar pantau cito** — diverifikasi pada kode, nilainya sama dengan `DecidedAt` wadah. Pengambilan ulang membuat pemeriksaan baru, sehingga TAT mulai dari wadah pengganti — sesuai bunyi `LAB-DEC-159`. Tiga usulan tidak memblokir `ARCH-GAP-LAB-11`..`13`. **`INV-54`** (penyelesaian pesanan, `LAB-DEC-154`) dibukukan sesuai usulan `02-backend-architecture.md` 22.0. Impact scan: BE `84383f64` (73 commit) dan FE `2083ff36a` (38 commit), nol berkas source Laboratorium. **`DOMAIN_ARCHITECTURE_READY`**; siap ke `design-business-module` | `draft` |
 | 9 | 2026-09-25 | **`S4d-1` validasi dan rilis Mikrobiologi dirancang** (bagian A6), menurunkan `LAB-RCG-001-r9` bagian 0D. **A6 memperluas A5, tidak menyalinnya.** **Nol konsep, nol aggregate, nol relasi baru** — `LAB-DC-051`..`058` berlaku apa adanya, dengan kode kewenangan Mikrobiologi dan daftar alasan yang **sama** lintas disiplin. **Dua invariant baru:** `INV-52` menolak validasi dan rilis hasil `Sementara` sampai `DEC-LAB-020` dijawab; `INV-53` menegaskan hasil berstruktur — status temuan, isolat, antibiogram — disahkan sebagai **satu** kesatuan, bukan per isolat. **Satu usulan:** `ARCH-GAP-LAB-10` — hasil **tanpa** kualifikasi diperlakukan bukan `Sementara`, sebab ruas itu sengaja opsional (`r10` 12.2); disarankan ikut ditanyakan bersama `DEC-LAB-020`. **Satu perbedaan makna dijaga:** *Definitif* adalah kualifikasi isi hasil, *Tervalidasi*/*Dirilis* adalah pengesahan — dan rilis **tidak** mengirim apa pun kepada pasien (`LAB-OPEN-029` tetap terpisah). `DOMAIN_ARCHITECTURE_READY` untuk desain saja; `S4d-2` dan `S4e` tidak dirancang | `draft` |
 | 8 | 2026-09-24 | **`S4` validasi dan rilis Patologi Klinik dirancang** (bagian A5), menurunkan `LAB-RCG-001-r8` bagian 0C. **Nol aggregate baru, nol status baru.** Delapan konsep (`LAB-DC-051`..`058`) dan tiga domain event — `LAB-DC-058` alasan pengecualian empat mata ditambahkan pada hari yang sama sesudah pemeriksaan ulang terhadap `LAB-DEC-003` menemukan jalur pengecualian **nyata** pada rilis malam hari; sebelas invariant (`INV-41`..`51`). **Dua context yang sudah ada disebut untuk pertama kali:** `BC-HR` sebagai upstream penunjukan kewenangan — Laboratorium hanya membaca, dan **fail-closed** bila datanya kosong — serta `BC-MRC` sebagai downstream dokumen hasil. **`ARCH-GAP-LAB-05` ditinjau ulang** seperti yang dimintanya sendiri: validasi dan rilis cukup dijaga per pemeriksaan, sehingga gap itu menyempit. **Dua gap baru:** `ARCH-GAP-LAB-08` lima usulan yang wajib ditandai usulan, dan `ARCH-GAP-LAB-09` pembatalan sesudah rilis yang ditolak. **Pemeriksaan kelengkapan 2026-09-25** — sesi 2026-09-24 terhenti sebelum A5 diperiksa terhadap kontrak — menyambungkan `LAB-DC-058` ke relasi dan audit, menambah dua usulan pada `ARCH-GAP-LAB-08` (pengelola daftar alasan pengecualian, bunyi penanda rangkap pemvalidasi–perilis), dan **membetulkan rujukan `ARCH-GAP-LAB-09`**: penolakannya diturunkan dari `LAB-DEC-138`/`007`/`063`, bukan `DEC-LAB-014`, dan ketegangannya dengan `LAB-DEC-049` kini tercatat. `DOMAIN_ARCHITECTURE_READY` **untuk desain saja** — pemakaian nyata tertahan `DEC-LAB-011` sisa, `DEC-LAB-017`, `DEC-LAB-018`, dan `LAB-COORD-016` | `draft` |
 | 7 | 2026-09-18 | **`S4c` dirancang ulang seluruhnya sesudah bukti `LAB-EVD-003`** — ditulis sebagai bagian **A4**, dan A3 dicabut sejauh menyangkut `S4c`. **Delapan konsep, sembilan invariant baru, nol aggregate baru.** **Satu penilaian revision 6 saya cabut sendiri, dan alasannya pantas disimpan:** laporan Patologi Anatomi dinilai `VALUE_OBJECT` atas tiga alasan — ketiga bagiannya selalu utuh, nol yang menunjuk kepadanya, dan ia berubah sebagai satu kesatuan. **Ketiganya gugur** oleh bukti baru: ruasnya bukan tiga melainkan sampai lima belas dan mana yang wajib bergantung kategori; nilai parameter kini menunjuk kepadanya dan ditambah-kurangi satu per satu; dan ia punya **lifecycle sendiri** — difinalkan, dibuka kembali, difinalkan lagi. **Sesuatu yang punya lifecycle dan punya yang menunjuk kepadanya adalah entity.** Penilaian revision 6 benar terhadap bukti saat itu; buktinya yang bertambah. **Yang paling dijaga pada revision ini satu kata:** `Final` **bukan** rilis. Ia dicatat sebagai fakta `FinalizedAt`/`FinalizedByUserId`, dan `INV-36` menegakkan nol status lifecycle. Bila `Final` diartikan rilis, `LAB-DEC-003` yang melarang pengisi merilis hasilnya sendiri akan bertabrakan dengan `LAB-DEC-090` yang menetapkan pengisi hasil PA adalah Dokter Lab — **pada orang yang sama**. **`INV-38` menolak dua kolom yang diminta artifact:** Waktu Issued dan Waktu Efektif **nol disimpan**, keduanya diturunkan dari `FinalizedAt` dan `LabSpecimen.CollectedAt`. **Dua gap baru dicatat apa adanya:** `ARCH-GAP-LAB-06`, `AGG-LAB-01` membesar lagi oleh empat konsep transaksional dan wajib ditinjau saat `S4d`/`S4e` dirancang; dan `ARCH-GAP-LAB-07`, konteks klinis menyentuh **alur pemesanan yang sudah berjalan** — bukan penahan, tetapi biayanya nyata dan tidak boleh ditemukan saat implementasi. **Empat pengecualian pada handoff seluruhnya BAGIAN, bukan slice:** gambar, HL7, cetak bilingual, dan Informasi Specimen. Laporan PA tetap utuh dan dapat dipakai patolog tanpa satu pun di antaranya | `draft` |

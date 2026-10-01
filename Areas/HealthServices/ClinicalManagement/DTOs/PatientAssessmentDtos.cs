@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
@@ -128,6 +128,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
 
+        public DateTime? TglKajian { get; set; }
+        public string? KajianUtamaPengkajian { get; set; }
+        public string? DiagnosaSaatIni { get; set; }
+
         /// <summary>Keadaan penilaian nyeri — <c>BE-RWI-110</c>/<c>BE-RWI-111</c>.</summary>
         public PainAssessmentState PainAssessmentState { get; set; }
 
@@ -231,6 +235,61 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         public string? TherapyPlan { get; set; }
 
+        // Kolom operasional kajian dokter (paritas V1)
+        public DateTime? TglKajian { get; set; }
+        public string? KajianUtamaPengkajian { get; set; }
+        public string? RiwayatPenyakitSekarang { get; set; }
+        public string? RiwayatPenyakitDahulu { get; set; }
+        public string? RiwayatPenyakitKeluarga { get; set; }
+        public string? RiwayatAlergi { get; set; }
+        public string? KeadaanUmum { get; set; }
+        public string? Kesadaran { get; set; }
+        public string? KeadaanKepala { get; set; }
+        public string? KeadaanMata { get; set; }
+        public string? KeadaanMulut { get; set; }
+        public string? KeadaanTHT { get; set; }
+        public string? KeadaanLeher { get; set; }
+        public string? KeadaanKulit { get; set; }
+        public string? KeadaanThorak { get; set; }
+        public string? KeadaanDada { get; set; }
+        public string? KeadaanJantung { get; set; }
+        public string? KeadaanParuParu { get; set; }
+        public string? KeadaanPunggung { get; set; }
+        public string? KeadaanAbdomen { get; set; }
+        public string? KeadaanGenitalia { get; set; }
+        public string? KeadaanEkstremitas { get; set; }
+        public string? KeadaanAnggotaGerak { get; set; }
+        public string? StatusLokalis { get; set; }
+        public string? KeadaanLainnya { get; set; }
+        public bool IsDBNKepala { get; set; } = false;
+        public bool IsDBNMata { get; set; } = false;
+        public bool IsDBNMulut { get; set; } = false;
+        public bool IsDBNTHT { get; set; } = false;
+        public bool IsDBNLeher { get; set; } = false;
+        public bool IsDBNThorak { get; set; } = false;
+        public bool IsDBNJantung { get; set; } = false;
+        public bool IsDBNParu { get; set; } = false;
+        public bool IsDBNPunggung { get; set; } = false;
+        public bool IsDBNAbdomen { get; set; } = false;
+        public bool IsDBNGenital { get; set; } = false;
+        public bool IsDBNEkstremitas { get; set; } = false;
+        public string? PemeriksaanPenunjang { get; set; }
+        public string? DiagnosaSaatIni { get; set; }
+        public string? DiagnosaBanding { get; set; }
+        public string? DaftarMasalah { get; set; }
+        public string? Program { get; set; }
+        public string? Terapi { get; set; }
+        public string? EdukasiKepada { get; set; }
+        public string? PenyampaianEdukasi { get; set; }
+        public string? BahasaDigunakan { get; set; }
+        public string? JenisHambatan { get; set; }
+        public bool IsDaerah { get; set; } = false;
+        public bool IsAsing { get; set; } = false;
+        public DateTime? TglTindakLanjut { get; set; }
+        public string? NamaTempat { get; set; }
+        public string? IndikasiTindakLanjut { get; set; }
+        public string? KeteranganTindakLanjut { get; set; }
+
         public string? OxygenSupportNote { get; set; }
 
         public string? EwsMonitoringRecommendation { get; set; }
@@ -326,6 +385,138 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         [MaxLength(2000)]
         public string? TherapyPlan { get; set; }
+
+        // Kolom operasional kajian dokter (paritas V1)
+        public DateTime? TglKajian { get; set; }
+
+        [MaxLength(150)]
+        public string? KajianUtamaPengkajian { get; set; }
+
+        [MaxLength(2000)]
+        public string? RiwayatPenyakitSekarang { get; set; }
+
+        [MaxLength(2000)]
+        public string? RiwayatPenyakitDahulu { get; set; }
+
+        [MaxLength(2000)]
+        public string? RiwayatPenyakitKeluarga { get; set; }
+
+        [MaxLength(1000)]
+        public string? RiwayatAlergi { get; set; }
+
+        [MaxLength(100)]
+        public string? KeadaanUmum { get; set; }
+
+        [MaxLength(100)]
+        public string? Kesadaran { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanKepala { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanMata { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanMulut { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanTHT { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanLeher { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanKulit { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanThorak { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanDada { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanJantung { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanParuParu { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanPunggung { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanAbdomen { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanGenitalia { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanEkstremitas { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanAnggotaGerak { get; set; }
+
+        [MaxLength(2000)]
+        public string? StatusLokalis { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanLainnya { get; set; }
+
+        public bool IsDBNKepala { get; set; } = false;
+        public bool IsDBNMata { get; set; } = false;
+        public bool IsDBNMulut { get; set; } = false;
+        public bool IsDBNTHT { get; set; } = false;
+        public bool IsDBNLeher { get; set; } = false;
+        public bool IsDBNThorak { get; set; } = false;
+        public bool IsDBNJantung { get; set; } = false;
+        public bool IsDBNParu { get; set; } = false;
+        public bool IsDBNPunggung { get; set; } = false;
+        public bool IsDBNAbdomen { get; set; } = false;
+        public bool IsDBNGenital { get; set; } = false;
+        public bool IsDBNEkstremitas { get; set; } = false;
+
+        [MaxLength(3000)]
+        public string? PemeriksaanPenunjang { get; set; }
+
+        [MaxLength(1000)]
+        public string? DiagnosaSaatIni { get; set; }
+
+        [MaxLength(2000)]
+        public string? DiagnosaBanding { get; set; }
+
+        [MaxLength(2000)]
+        public string? DaftarMasalah { get; set; }
+
+        [MaxLength(2000)]
+        public string? Program { get; set; }
+
+        [MaxLength(3000)]
+        public string? Terapi { get; set; }
+
+        [MaxLength(250)]
+        public string? EdukasiKepada { get; set; }
+
+        [MaxLength(500)]
+        public string? PenyampaianEdukasi { get; set; }
+
+        [MaxLength(100)]
+        public string? BahasaDigunakan { get; set; }
+
+        [MaxLength(250)]
+        public string? JenisHambatan { get; set; }
+
+        public bool IsDaerah { get; set; } = false;
+        public bool IsAsing { get; set; } = false;
+
+        public DateTime? TglTindakLanjut { get; set; }
+
+        [MaxLength(200)]
+        public string? NamaTempat { get; set; }
+
+        [MaxLength(1000)]
+        public string? IndikasiTindakLanjut { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeteranganTindakLanjut { get; set; }
 
         public int? BloodPressureSystolic { get; set; }
 
@@ -491,6 +682,138 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         [MaxLength(2000)]
         public string? TherapyPlan { get; set; }
+
+        // Kolom operasional kajian dokter (paritas V1)
+        public DateTime? TglKajian { get; set; }
+
+        [MaxLength(150)]
+        public string? KajianUtamaPengkajian { get; set; }
+
+        [MaxLength(2000)]
+        public string? RiwayatPenyakitSekarang { get; set; }
+
+        [MaxLength(2000)]
+        public string? RiwayatPenyakitDahulu { get; set; }
+
+        [MaxLength(2000)]
+        public string? RiwayatPenyakitKeluarga { get; set; }
+
+        [MaxLength(1000)]
+        public string? RiwayatAlergi { get; set; }
+
+        [MaxLength(100)]
+        public string? KeadaanUmum { get; set; }
+
+        [MaxLength(100)]
+        public string? Kesadaran { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanKepala { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanMata { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanMulut { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanTHT { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanLeher { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanKulit { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanThorak { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanDada { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanJantung { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanParuParu { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanPunggung { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanAbdomen { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanGenitalia { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanEkstremitas { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanAnggotaGerak { get; set; }
+
+        [MaxLength(2000)]
+        public string? StatusLokalis { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanLainnya { get; set; }
+
+        public bool IsDBNKepala { get; set; } = false;
+        public bool IsDBNMata { get; set; } = false;
+        public bool IsDBNMulut { get; set; } = false;
+        public bool IsDBNTHT { get; set; } = false;
+        public bool IsDBNLeher { get; set; } = false;
+        public bool IsDBNThorak { get; set; } = false;
+        public bool IsDBNJantung { get; set; } = false;
+        public bool IsDBNParu { get; set; } = false;
+        public bool IsDBNPunggung { get; set; } = false;
+        public bool IsDBNAbdomen { get; set; } = false;
+        public bool IsDBNGenital { get; set; } = false;
+        public bool IsDBNEkstremitas { get; set; } = false;
+
+        [MaxLength(3000)]
+        public string? PemeriksaanPenunjang { get; set; }
+
+        [MaxLength(1000)]
+        public string? DiagnosaSaatIni { get; set; }
+
+        [MaxLength(2000)]
+        public string? DiagnosaBanding { get; set; }
+
+        [MaxLength(2000)]
+        public string? DaftarMasalah { get; set; }
+
+        [MaxLength(2000)]
+        public string? Program { get; set; }
+
+        [MaxLength(3000)]
+        public string? Terapi { get; set; }
+
+        [MaxLength(250)]
+        public string? EdukasiKepada { get; set; }
+
+        [MaxLength(500)]
+        public string? PenyampaianEdukasi { get; set; }
+
+        [MaxLength(100)]
+        public string? BahasaDigunakan { get; set; }
+
+        [MaxLength(250)]
+        public string? JenisHambatan { get; set; }
+
+        public bool IsDaerah { get; set; } = false;
+        public bool IsAsing { get; set; } = false;
+
+        public DateTime? TglTindakLanjut { get; set; }
+
+        [MaxLength(200)]
+        public string? NamaTempat { get; set; }
+
+        [MaxLength(1000)]
+        public string? IndikasiTindakLanjut { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeteranganTindakLanjut { get; set; }
 
         public int? BloodPressureSystolic { get; set; }
 

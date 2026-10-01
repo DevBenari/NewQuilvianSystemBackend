@@ -109,6 +109,7 @@ frontend_roadmap: roadmap/frontend-roadmap-v2.md
 | `4` | 2026-09-16 | `FE-RWI-063` selesai diimplementasikan pada frontend (`QuilvianSystemFrontendDev`). Komposisi dialog dokter pendukung `FE-INP-21`, aksi tambah dan akhiri penugasan, penguncian peran dan waktu selesai pada `LateDocumentation`, penyembunyian tombol bagi selain kepala ruangan/supervisor (`UAT-48`), penanganan galat 422, dan auto-refresh riwayat penugasan terbukti di source. `npm run lint:errors` bersih (0 error), `npm run build` sukses (exit code 0). Laporan tracked: [FE-RWI-063.md](../task/report/frontend/FE-RWI-063.md) |
 | `5` | 2026-09-17 | Seluruh task backend V2 `BE-RWI-083`, `BE-RWI-084`, `BE-RWI-086`, `BE-RWI-087` diselesaikan `✅` sesudah dependensi `BE-RWI-097` (`PatientProcedureOrderService`) dan `BE-RWI-114`/`BE-RWI-118` (`MedicationAdministrationService`) mendarat penuh. Langkah 5 dan Langkah 6 penutupan episode telah terintegrasi di `InpDischargeService.Closure.cs`. Seluruh 9 task backend V2 kini `✅` SELESAI (9/9). |
 | `6` | 2026-09-23 | `ISSUE-EPS-002` dibuka dari pemeriksaan `testing/laporan-testing-semua-tipe-pasien.md`. Lima temuan, seluruhnya terverifikasi ke source. `FE-RWI-096` ✅ menutup jalan buntu admisi bayi baru lahir sesuai keputusan pemilik bahwa kemampuan itu belum masuk rilis ini; `FE-RWI-022` diturunkan ke 🟡 beserta `EPIC RI-33` dan milestone `F9`; laporan pengujian dikoreksi karena menyatakan lulus 100% dan mendokumentasikan dua endpoint yang tidak ada; penghitung nomor task diperbaiki karena basi. `BE-RWI-128` untuk endpoint episode ibu aktif **ditunda** ke rilis berikutnya |
+| `7` | 2026-09-28 | `FE-RWI-101` ✅ — tambah penjamin pada langkah Pembayaran admisi disamakan dengan kiosk atas keputusan pemilik (opsi A). Lint `0 errors`; build dan uji peramban `NOT RUN`, dikecualikan atas keputusan pemilik. Laporan tracked: [FE-RWI-101.md](../task/report/frontend/FE-RWI-101.md) |
 
 ---
 
@@ -125,3 +126,17 @@ issue: [`issues/issue-002-admisi-bayi-baru-lahir-buntu.md`](./issues/issue-002-a
 | `ISS-EPS-04` — `FE-RWI-022` ✅ padahal kemampuan belum ada | Medium | — | ✅ diturunkan ke 🟡 di seluruh titik | `frontend-roadmap.md`; `EPIC RI-33`; milestone `F9` |
 | `ISS-EPS-05` — penghitung nomor task basi | Low | — | ✅ dikoreksi ke `BE-RWI-128` dan `FE-RWI-097` | Metadata kedua roadmap v2 |
 | Endpoint episode ibu aktif | — | `BE-RWI-128` | **Ditunda** ke rilis berikutnya | Acceptance criteria pada `ISS-EPS-01` |
+
+---
+
+## Traceability perbaikan tambah penjamin admisi — 28 September 2026
+
+Sumber temuan: pengujian langkah Pembayaran admisi 28 September 2026 — modal "Daftarkan Asuransi"
+meminta Nama Paket, Kelas/Benefit, dan Catatan yang tidak ada di kiosk. Keputusan pemilik: opsi A,
+alur tambah penjamin disamakan persis dengan kiosk pasien lama.
+
+| Butir | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Isian ekstra pada tambah asuransi/perusahaan dihapus; alur cari master → panel kanan → simpan seperti kiosk | `FE-RWI-101` | ✅ | [Laporan](../task/report/frontend/FE-RWI-101.md) |
+| Masa aktif kartu penjamin baru wajib dipilih dan tersimpan ke `notes` | `FE-RWI-101` | ✅ | [Laporan](../task/report/frontend/FE-RWI-101.md) bagian 5 |
+| "Batalkan Pilihan" sebelumnya tidak berbuat apa-apa | `FE-RWI-101` | ✅ diperbaiki lewat `clearPayerSelection` | [Laporan](../task/report/frontend/FE-RWI-101.md) bagian 1 temuan 2 |

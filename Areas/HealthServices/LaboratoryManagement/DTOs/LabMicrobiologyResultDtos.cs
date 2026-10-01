@@ -185,20 +185,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public string? StandingNote { get; set; }
 
         /// <summary>
-        /// <c>Petugas Otorisasi</c> — pihak yang <b>merilis</b> (<c>LAB-DEC-120</c>).
-        ///
-        /// <b>SELALU kosong pada rilis ini, dan itu benar.</b> Rilis Mikrobiologi adalah
-        /// <c>S4d</c> yang tertahan <c>DEC-LAB-011</c>. Mengisinya dari pencetak atau penulis
-        /// hasil <b>ditolak</b>: dokumen akan menyebut pihak yang salah sebagai pengesah.
+        /// <c>Petugas Otorisasi</c> — nama <b>perilis</b> (<c>LAB-DEC-120</c>, <c>r35</c> 30.3).
+        /// Kosong sampai hasil dirilis. Tidak pernah diisi dari pencetak atau penulis hasil:
+        /// dokumen akan menyebut pihak yang salah sebagai pengesah.
         /// </summary>
         public string? AuthorizingOfficerName { get; set; }
 
         /// <summary>
-        /// <c>Validasi oleh</c> — pemvalidasi, dan <b>tidak boleh orang yang sama</b> dengan
-        /// pengotorisasi kecuali pengecualian <c>LAB-DEC-003</c> tercatat. Kosong sampai
-        /// <c>S4d</c> dibuka.
+        /// <c>Validasi oleh</c> — nama <b>pemvalidasi</b> (<c>r35</c> 30.3). Kosong sampai hasil
+        /// divalidasi. Tidak boleh orang yang sama dengan perilis kecuali pengecualian
+        /// <c>LAB-DEC-003</c> tercatat — lihat <see cref="ReleaseExceptionMarker"/>.
         /// </summary>
         public string? ValidatedByName { get; set; }
+
+        /// <summary>
+        /// Keadaan turunan — <c>NotEntered</c>, <c>Draft</c>, <c>Final</c>, <c>Validated</c>,
+        /// <c>Released</c> — rumus yang sama dengan halaman hasil Patologi Klinik (<c>r34</c> 29.3).
+        /// Hasil <i>Sementara</i> yang Final tetap <c>Final</c>: kualifikasi bukan keadaan.
+        /// </summary>
+        public string ResultStatus { get; set; } = string.Empty;
+
+        public DateTime? ValidatedAt { get; set; }
+
+        public Guid? ValidatedByUserId { get; set; }
+
+        /// <summary>Jabatan pemvalidasi saat memvalidasi — snapshot, tidak berubah bila ia pindah jabatan.</summary>
+        public string? ValidatedByPositionName { get; set; }
+
+        /// <summary><i>"Divalidasi oleh pengisi sendiri — {nama} — {alasan}"</i>; kosong bila bukan pengecualian.</summary>
+        public string? ValidationExceptionMarker { get; set; }
+
+        public DateTime? ReleasedAt { get; set; }
+
+        public Guid? ReleasedByUserId { get; set; }
+
+        /// <summary>Jabatan perilis saat merilis — snapshot.</summary>
+        public string? ReleasedByPositionName { get; set; }
+
+        /// <summary><i>"Dirilis oleh pemvalidasi sendiri — {nama} — {alasan}"</i>; kosong bila bukan pengecualian.</summary>
+        public string? ReleaseExceptionMarker { get; set; }
 
         /// <summary>
         /// Apakah pemeriksaan ini memakai set bakteri (<c>LAB-DEC-125</c>). Layar memakainya
@@ -207,8 +232,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public bool UsesSusceptibilitySet { get; set; }
 
         /// <summary>
-        /// <b>Selalu salah pada rilis ini</b> — rilis Mikrobiologi adalah <c>S4d</c>.
-        /// Ruas ini ada supaya pemanggil nol perlu menyimpulkan bahwa Final sama dengan rilis.
+        /// Benar bila <see cref="ReleasedAt"/> terisi (<c>r35</c> 30.3). Ruas ini ada supaya pemanggil
+        /// tidak perlu menyimpulkan bahwa Final sama dengan rilis.
         /// </summary>
         public bool IsReleased { get; set; }
 

@@ -1454,6 +1454,37 @@ public sealed class BillingInvoiceService
         };
     }
 
+    // RJ-E2E-DEC-006 / RJE-VAL-010: domain klinis Rawat Jalan ditagihkan oleh jembatan folio
+    // (BillingClinicalChargeBridgeService) dengan harga dari MstTariff. Jalur HTTP from-source
+    // menerima harga dari pemanggil, sehingga domain itu ditutup di sini untuk kunjungan Rawat Jalan.
+    private static readonly HashSet<string> BridgeOwnedOutpatientDomains =
+        new(StringComparer.OrdinalIgnoreCase) { "PROCEDURE", "LABORATORY", "RADIOLOGY", "PHARMACY", "CONSULTATION" };
+
+    /// <summary>
+    /// Pintu HTTP <c>POST from-source</c>. Menolak domain klinis Rawat Jalan sebelum meneruskan ke
+    /// <see cref="UpsertChargeAsync"/>. Jembatan folio memanggil <see cref="UpsertChargeAsync"/>
+    /// langsung sehingga tidak terhalang pengaman ini.
+    /// </summary>
+    public async Task<InvoiceDetailResponse> UpsertManualChargeAsync(
+        UpsertChargeRequest request,
+        Guid idempotencyKey,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var domain = request.SourceDomain?.Trim();
+        if (!string.IsNullOrEmpty(domain) && BridgeOwnedOutpatientDomains.Contains(domain) && request.EncounterId != Guid.Empty)
+        {
+            var isOutpatient = await _dbContext.RegPatientEncounters.AsNoTracking()
+                .AnyAsync(x => x.Id == request.EncounterId && !x.IsDelete && x.EncounterType == EncounterType.Outpatient,
+                    cancellationToken);
+            if (isOutpatient)
+                throw new BillingManualClinicalSourceException();
+        }
+
+        return await UpsertChargeAsync(request, idempotencyKey, actorUserId, cancellationToken);
+    }
+
     public async Task<InvoiceDetailResponse> UpsertChargeAsync(
         UpsertChargeRequest request,
         Guid idempotencyKey,
@@ -2282,6 +2313,14 @@ public sealed class BillingInvoiceService
 }
 
 public sealed class BillingInvoiceValidationException(string message) : Exception(message);
+
+/// <summary>RJE-VAL-010 — pelayanan klinis Rawat Jalan tidak boleh dicatat lewat from-source.</summary>
+public sealed class BillingManualClinicalSourceException()
+    : Exception("Pelayanan Rawat Jalan ditagihkan otomatis dari pelayanan klinis dan tidak dapat dicatat lewat jalur ini.")
+{
+    public const string Code = "RJE-VAL-010";
+}
+
 public sealed class BillingInvoiceConflictException : Exception
 {
     public BillingInvoiceConflictException(string message) : base(message) { }

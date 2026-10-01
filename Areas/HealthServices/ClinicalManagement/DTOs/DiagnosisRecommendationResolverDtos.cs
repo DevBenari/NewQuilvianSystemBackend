@@ -23,6 +23,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string DiagnosisCode { get; set; } = string.Empty;
         public string DiagnosisName { get; set; } = string.Empty;
         public Guid DrugId { get; set; }
+
+        /// <summary>
+        /// Nama obat dari <c>MstDrug</c> — <c>BE-RWI-142</c>. Tanpa ini rekomendasi hanya menyebut
+        /// indikasi dan dosis, dan dokter tidak tahu obat apa yang dimaksud.
+        /// </summary>
+        public string DrugName { get; set; } = string.Empty;
+
+        /// <summary>Kekuatan sediaan, mis. "500 mg"; kosong bila master tidak mengisinya.</summary>
+        public string? DrugStrength { get; set; }
+
+        /// <summary>Bentuk sediaan, mis. "Tablet", "Injeksi"; kosong bila master tidak mengisinya.</summary>
+        public string? DrugForm { get; set; }
+
         public string RecommendationType { get; set; } = string.Empty;
         public string RecommendationTypeName { get; set; } = string.Empty;
         public string? IndicationText { get; set; }
@@ -43,6 +56,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string DiagnosisCode { get; set; } = string.Empty;
         public string DiagnosisName { get; set; } = string.Empty;
         public Guid? ProcedureId { get; set; }
+
+        /// <summary>Kode tindakan dari <c>MstProcedure</c> bila rekomendasi menunjuk master — <c>BE-RWI-142</c>.</summary>
+        public string? ProcedureCode { get; set; }
+
+        /// <summary>Nama tindakan dari <c>MstProcedure</c> bila rekomendasi menunjuk master — <c>BE-RWI-142</c>.</summary>
+        public string? ProcedureName { get; set; }
+
         public string RecommendationType { get; set; } = string.Empty;
         public string RecommendationTypeName { get; set; } = string.Empty;
         public string RecommendationName { get; set; } = string.Empty;

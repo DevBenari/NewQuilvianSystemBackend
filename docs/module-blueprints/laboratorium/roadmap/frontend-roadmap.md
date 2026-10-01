@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `42` — `LAB-DEC-156` diturunkan 2026-09-25 malam; `FE-LAB-36`, `39`, `40`, `41` berubah cakupan. Sebelumnya `41` — gelombang `MVP-10` ditambahkan 2026-09-25. Sebelumnya `40` — gelombang `MVP-9` ditambahkan 2026-09-25. Sebelumnya `39` — gelombang `MVP-8` ditambahkan 2026-09-24. *Baris ini sempat tertinggal di `35` sementara riwayat sudah sampai `38`; dirapikan 2026-09-24* |
+| Roadmap revision | `47` — `FE-LAB-35` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; menunggu rilis serempak `MVP-8a`, 2026-10-01. Sebelumnya `46` — `FE-LAB-45` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; **`MVP-11b` selesai pada kode**, 2026-09-30. Sebelumnya `45` — `FE-LAB-44` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `FE-LAB-45` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30. Sebelumnya `44` — `FE-LAB-38` `SIAP DIKERJAKAN`; kedua daftar alasan sudah terisi, 2026-09-29. Sebelumnya `43` — gelombang `MVP-11` (`EPIC-LAB-17`, tiga laporan operasional) ditambahkan 2026-09-28: `FE-LAB-44`, `FE-LAB-45`. Sebelumnya `42` — `LAB-DEC-156` diturunkan 2026-09-25 malam; `FE-LAB-36`, `39`, `40`, `41` berubah cakupan. Sebelumnya `41` — gelombang `MVP-10` ditambahkan 2026-09-25. Sebelumnya `40` — gelombang `MVP-9` ditambahkan 2026-09-25. Sebelumnya `39` — gelombang `MVP-8` ditambahkan 2026-09-24. *Baris ini sempat tertinggal di `35` sementara riwayat sudah sampai `38`; dirapikan 2026-09-24* |
 | Status | `DRAFT` |
 | Bentuk blueprint | `SINGLE` |
 | Ditulis oleh | `plan-module-delivery` |
@@ -1430,6 +1430,11 @@ mengosongkan disiplin mencabut golongannya.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 47 | 2026-10-01 | **`FE-LAB-35` dikerjakan — ⚠ `SELESAI DENGAN BATAS VERIFIKASI`** (gelombang `MVP-8a`, [`FE-LAB-35.md`](../task/report/frontend/FE-LAB-35.md)). Final, Buka Kembali, dan konsultasi beralih ke route netral `r33` 28.4 (konsultasi kini `PUT`); `usePermission("LabExaminationResult", "Update")` menyembunyikan seluruh kontrol tulis hasil dan mengunci pemilih; `describeResultWriteFailure` memetakan `403` ke kalimat kontrak dan `409` ke pesan backend; penolakan tidak menyentuh hasil tersimpan sehingga isian tetap. Uji unit 8/8; layar hasil build terhadap backend lokal `BE-LAB-67`/`68` 29/29 dengan `409` sungguhan dan nol tulis diterima. **Batas:** `AC-221` dengan akun asli dan `403` asli menunggu pemberian izin hasil (6aj.5). **Belum dirilis** — wajib serempak dengan `BE-LAB-67`/`68`. Pengamatan di luar lingkup: bagian Informasi Specimen (`FE-LAB-32`) tidak disaring izin di layar. `FE-LAB-41` tetap menunggu `FE-LAB-39` | `DRAFT` |
+| 46 | 2026-09-30 | **`FE-LAB-45` dikerjakan — ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; gelombang `MVP-11b` selesai pada kode** ([`FE-LAB-45.md`](../task/report/frontend/FE-LAB-45.md)). Tombol *Unduh CSV* di awal setiap bagian, hanya bagi pemegang `LabOperationalReport : Export`; berkas backend disimpan apa adanya lewat hook unduh tersendiri; satu klik satu permintaan (penjaga ref); badan galat `Blob` dibaca sebagai JSON; `403` unduhan tidak menutup halaman. Uji unit 22/22, e2e 13/13; tiga CSV sungguhan backend tersimpan identik byte demi byte. **Temuan backend:** CORS tidak mengekspos `Content-Disposition` — nama cadangan disamakan dengan pola backend. Koreksi kecil `FE-LAB-44`: pesan bawaan Axios berbahasa Inggris tidak lagi tampil. **Batas:** akun asli dan Excel menunggu `MVP-11c` 0-1 | `DRAFT` |
+| 45 | 2026-09-30 | **`FE-LAB-44` dikerjakan — ⚠ `SELESAI DENGAN BATAS VERIFIKASI`** (gelombang `MVP-11`, [`FE-LAB-44.md`](../task/report/frontend/FE-LAB-44.md)). Route `lab-operational-reports`, butir menu *Laporan Operasional* ber-`requiredPermission` `LabOperationalReport : Read`, service, hook yang memuat ketiga laporan terpisah, berkas aturan murni, dan tiga bagian bertumpuk (`BaseDetailSection` + `DataTable`) — nol komponen dan nol CSS baru. Uji unit 17/17 pada WIB, e2e layar 8/8, lint dan build hijau; layar hasil build diberi respons sungguhan backend lokal terhadap PostgreSQL dev (September, `422`, `400`). **Batas:** sambungan langsung ke backend dengan tiga akun asli menunggu langkah rilis `MVP-11c` 0-1. **`FE-LAB-45` naik menjadi `SIAP DIKERJAKAN`** | `DRAFT` |
+| 44 | 2026-09-29 | **`FE-LAB-38` naik menjadi `SIAP DIKERJAKAN`** — `BE-LAB-71` terbukti lewat HTTP sesudah migration `BE-LAB-70` diterapkan ke database dev; izin kedua data induk alasan sudah diberikan; kedua daftar sudah terisi nilai usulan 20.8 atas nama kepala instalasi. Dicatat pula: belum ada akun pemegang jabatan System Administrator di dev, sehingga verifikasi sakelar *wajib catatan* dengan akun admin sungguhan belum mungkin. **`FE-LAB-35`/`FE-LAB-36` kini dapat diverifikasi** terhadap backend yang berjalan — `BE-LAB-67`..`69` terbukti lewat HTTP pada hari yang sama | `DRAFT` |
+| 43 | 2026-09-28 | **Gelombang `MVP-11` diturunkan dari `EPIC-LAB-17` — dua task frontend `FE-LAB-44`, `FE-LAB-45`** (bagian akhir dokumen), di atas `r37`, `r15`, dan revision 12 yang disetujui pemilik modul pada hari yang sama. **Satu layar, satu route, satu butir menu.** `FE-LAB-44` **SIAP DIKERJAKAN** sejajar dengan backend `MVP-11a`; verifikasinya menunggu `BE-LAB-83`..`85`. `FE-LAB-45` unduhan, menunggu `FE-LAB-44` dan `BE-LAB-86`. **Temuan impact scan yang masuk task:** butir menu wajib memakai `requiredPermission` — properti `permission:` yang dipakai butir Hemodialisa sejak `2083ff36a..696a906a6` tidak dibaca fungsi mana pun. Jebakan tanggal: `toISOString()` menggeser periode sehari pada WIB | `DRAFT` |
 | 42 | 2026-09-25 | **`LAB-DEC-156` diturunkan — empat task berubah cakupan, nol task baru** (bagian akhir dokumen). Label keadaan *Menunggu Hasil*/*Draft*/*Menunggu Validasi*/*Tervalidasi*/*Dirilis* lewat satu konstanta bersama yang dibuat `FE-LAB-39`; tombol Final bertuliskan *Pemeriksaan Selesai* sejak `FE-LAB-36`; halaman Mikrobiologi beralih pada `FE-LAB-41`. Patologi Anatomi tidak disentuh. `LAB-DEC-154` dan `LAB-DEC-155` melahirkan nol task frontend | `DRAFT` |
 | 41 | 2026-09-25 | **Gelombang `MVP-10` diturunkan dari `EPIC-LAB-16` — tiga task frontend `FE-LAB-41`..`FE-LAB-43`** (bagian akhir dokumen), di atas kontrak `r35`, `r13`, dan `r6` yang disetujui pemilik modul pada hari yang sama. `FE-LAB-41` tiga tindakan pada Halaman Hasil Mikrobiologi — Validasi **tidak** ditawarkan pada hasil `Sementara` dan **ditawarkan** pada kualifikasi kosong; `FE-LAB-42` penyaring disiplin antrean; `FE-LAB-43` label order pada daftar Pemeriksaan Mikrobiologi. **Nol route baru, nol cetakan.** Seluruhnya `MENUNGGU PENDAHULU`: gelombang dimulai **sesudah `MVP-9b` selesai**, sesuai penegasan pemilik modul | `DRAFT` |
 | 40 | 2026-09-25 | **Gelombang `MVP-9` diturunkan dari `EPIC-LAB-15` — tiga task frontend `FE-LAB-38`..`FE-LAB-40`** (bagian akhir dokumen), di atas kontrak `r34`, `r12`, rev 11, dan `r5` yang disetujui pemilik modul pada hari yang sama. `FE-LAB-38` dua layar data induk alasan; `FE-LAB-39` tiga tindakan dan pengesah pada Halaman Hasil Patologi Klinik — **menumpang `FE-LAB-36`**; `FE-LAB-40` antrean validasi, route **diturunkan dari konvensi** sebagai saudara `lab-worklists/cito-overdue`. **Nol tombol Validasi/Rilis di antrean**, sebab validasi adalah pernyataan sesudah hasil dilihat bersama hasil lain pasien itu. Wujud pertanyaan alasan, konfirmasi rilis, dan bentuk dua tahap antrean tetap `DEV_DISCRETION` | `DRAFT` |
@@ -1661,7 +1666,7 @@ navigasi papan ketik tetap **`DEV_DISCRETION`** — roadmap ini tidak memutuskan
 
 | Butir | Isi |
 |---|---|
-| **Status** | `SIAP DIKERJAKAN` — **dirilis bersama** `BE-LAB-67` dan `BE-LAB-68` |
+| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — 2026-10-01; **belum dirilis — tetap wajib dirilis bersama** `BE-LAB-67` dan `BE-LAB-68`. Final, Buka Kembali, dan konsultasi (`PUT`) memanggil route netral; nol rujukan ke route lama; `403` tampil dengan kalimat kontrak, `409` dengan pesan backend; nilai yang diketik tetap di isian; tanpa `LabExaminationResult : Update` halaman baca-saja. Uji unit 8/8, lint 0 error, build hijau; layar hasil build terhadap backend lokal **29/29** — simpan, Final, dan konsultasi atas hasil Final ditolak `409` sungguhan, isi database identik. **Batas:** `AC-221` bagian antarmuka dengan izin disuapkan — nol jabatan di dev memegang izin hasil; `403` asli belum. Lihat [`FE-LAB-35.md`](../task/report/frontend/FE-LAB-35.md) |
 | **Gelombang** | `MVP-8a` |
 | **Outcome** | Halaman Mikrobiologi tetap berfungsi sesudah route lama dicabut; pengguna tanpa izin hasil melihat halaman baca-saja; penolakan `409` dan `403` tampil terbaca tanpa menghilangkan isian |
 | **Requirement/decision** | `FR-14.6`, `FR-14.12`; `LAB-DEC-146`, `LAB-DEC-147` |
@@ -1745,7 +1750,7 @@ memutuskannya.
 
 | Butir | Isi |
 |---|---|
-| **Status** | `MENUNGGU PENDAHULU` — `BE-LAB-71` untuk diverifikasi; boleh mulai di atas kontrak `r34` 29.6 |
+| **Status** | `SIAP DIKERJAKAN` — sejak 2026-09-29 sore: `BE-LAB-71` ✅ terbukti lewat HTTP, dan kedua resource sudah diberikan kepada Kepala Instalasi (`Read`/`Create`/`Update`) serta System Administrator (`Read`/`SystemFlag`). **Kedua daftar sudah berisi** `SAMPEL-TERTUKAR`, `SALAH-KETIK`, dan `SHIFT-TUNGGAL` — diisi lewat endpoint yang sama atas nama kepala instalasi, karena layar ini belum ada saat langkah rilis 20.7 butir 3 dijalankan. Layar ini karena itu **mengelola data yang sudah ada**, bukan mengisi dari kosong. **Verifikasi dengan akun admin terhambat:** belum ada akun pemegang jabatan System Administrator di dev. *Semula `MENUNGGU PENDAHULU` — `BE-LAB-71` untuk diverifikasi* |
 | **Gelombang** | `MVP-9c` |
 | **Outcome** | Kepala instalasi mengisi dan mengelola daftar alasan pengembalian dan daftar alasan pengecualian dari aplikasi — bukan lewat SQL |
 | **Requirement/decision** | `FR-15.12`; `LAB-DEC-082`, `LAB-DEC-138`, `LAB-DEC-003`, `LAB-DEC-019` |
@@ -1925,3 +1930,80 @@ frontend: tidak ada layar yang memanggil `PUT /lab-orders/{id}/complete`.
 
 **Jebakan yang sama pada keempat task:** menulis label di tiap komponen sendiri-sendiri, sehingga
 Patologi Klinik dan Mikrobiologi kelak berbeda kata untuk keadaan yang sama.
+
+## Gelombang `MVP-11` — `EPIC-LAB-17` tiga laporan operasional (`S16a`), 2026-09-28
+
+Menurunkan [`03-frontend-architecture.md`](../03-frontend-architecture.md) **amandemen
+2026-09-25 (keempat)** dan [`04-prd-to-mvp.md`](../04-prd-to-mvp.md) **bagian 24**. **Satu layar baru,
+satu route baru, satu butir menu baru.**
+
+| Field | Nilai |
+|---|---|
+| Kontrak | `LAB-API-v1` **`r37`** bagian 32, `LAB-VAL-v1` **`r15`** (`VAL-147`..`VAL-149`), `LAB-PERM-v1` **revision 12** — `approved` 2026-09-28 beserta kedelapan butir `02-backend-architecture.md` 23.10 |
+| Approval | Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul, 2026-09-28 — *"saya setujui semuanya yaa sebagai pemilik modul lab atas nama yoga aji pratama"* |
+| Masukan | decisions **rev 81**; `03-frontend-architecture.md` **rev 13**; `04-prd-to-mvp.md` **rev 11**; matriks uji **rev 10** |
+| Frontend SHA | **`696a906a6`** (branch `YogaV2`) — bergeser dari `2083ff36a` sesudah desain. **Impact scan:** 17 commit, **nol berkas Laboratorium**; `menu-items.jsx` dan dua penyaring menu berubah oleh Hemodialisa (lihat *Butir menu* di bawah) |
+| Hash masukan | Pada [`traceability.md`](traceability.md) bagian *Traceability gelombang `MVP-11`* |
+| Nomor task | `FE-LAB-44`, `FE-LAB-45` |
+| Gelombang | `MVP-11b` |
+| Kerja paralel | Boleh dikerjakan **sejajar dengan backend `MVP-11a`** di atas kontrak yang approved dan hash-nya tercatat — layar ini tidak menyentuh berkas yang disunting `MVP-9` atau `MVP-10`. **Verifikasi dan penyelesaiannya** menunggu task backend pasangannya; itulah arti prasyarat `MVP-11a` pada `04-prd-to-mvp.md` 24.6 |
+
+**Butir menu — wajib `requiredPermission`.** Letak menu **sudah diputuskan** (23.10 butir 8): butir
+*Laporan Operasional* pada menu Laboratorium. Penyembunyiannya **wajib** lewat
+`requiredPermission: { resource: "LabOperationalReport", action: "Read" }`, yang disaring
+`filterMenuItemsByPermission` (FE-BD-006, fail-closed) untuk **setiap** peran. Butir Hemodialisa yang
+masuk sejak `2083ff36a` memakai properti lain — `permission: "…:Read"` — yang pada `696a906a6` **tidak
+dibaca fungsi mana pun**; meniru pola itu membuat butir laporan tampil bagi setiap analis.
+
+**Wewenang tampilan.** Teks *belum dapat dihitung* (`ARCH-GAP-LAB-11`), nol daftar pasien (A7.12), dan
+letak menu **sudah disetujui**. **Tab, kartu, atau susunan bertumpuk; grafik atau tabel; format menit
+(*70 menit* atau *1 jam 10 menit*); letak tombol unduh — `DEV_DISCRETION`**. Roadmap ini tidak
+memutuskannya. Pesan `VAL-147`..`VAL-149` ditampilkan **apa adanya dari backend**.
+
+**Uji unit** dijalankan dengan `node --import ./tests/helpers/register.mjs --test tests/unit/` —
+`npm run test:unit` gagal di Node 20. **Build** hanya saat dev server mati; keduanya berbagi folder
+`.next`.
+
+### `FE-LAB-44` — Layar Laporan Operasional
+
+| Butir | Isi |
+|---|---|
+| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — 2026-09-30. Layar, butir menu (`requiredPermission`), service, hook, dan berkas aturan terbangun; tiga bagian bertumpuk memuat sendiri-sendiri; periode bawaan tanggal 1 bulan berjalan sampai hari ini (WIB); menit satu desimal sama dengan CSV. Uji unit **17/17** (periode WIB, *3,0%*, *48,6 menit*, `isCountable = false` bukan 0, kolom cito kosong pada rutin); e2e **8/8** (memuat per laporan, `422` pada penyaring, `403`, tanpa izin, disiplin, reset); layar hasil build diberi **respons sungguhan** backend lokal — September 2026, `422`, `400` — dan menampilkannya benar; menu tampil bagi pemegang `Read`, tidak bagi analis. **Batas:** sambungan langsung ke backend dengan tiga akun asli menunggu langkah rilis `MVP-11c` 0-1 — build frontend mengarah ke API dev bersama yang belum menerima `MVP-11a`, dan belum ada jabatan pemegang izin laporan. Lihat [`FE-LAB-44.md`](../task/report/frontend/FE-LAB-44.md). *Semula `SIAP DIKERJAKAN` — kontrak approved; verifikasi menunggu `BE-LAB-83`, `BE-LAB-84`, `BE-LAB-85`, ketiganya ✅ 2026-09-30* |
+| **Gelombang** | `MVP-11b` |
+| **Outcome** | Kepala instalasi membuka *Laporan Operasional* dari menu Laboratorium, memilih periode dan — bila perlu — satu disiplin, lalu membaca tiga angka: jumlah pemeriksaan, angka penolakan wadah beserta alasannya, dan waktu penyelesaian cito dan rutin. Disiplin yang belum dapat dihitung **tertulis sebabnya**, bukan 0. Analis tidak melihat menunya |
+| **Requirement/decision** | `FR-17.10`; bagian tampilan `FR-17.1`..`FR-17.3`, `FR-17.5`, `FR-17.9`; `LAB-DEC-159`, `LAB-DEC-160`; `ARCH-GAP-LAB-11`, `ARCH-GAP-LAB-13`; A7.12; 23.10 butir 4, 6, 8 |
+| **Kontrak** | `r37` 32.2 (`GET /filters/metadata`, `/examination-count`, `/specimen-rejection`, `/turnaround-time`), 32.3; `LAB-VAL-v1` `r15`; `LAB-PERM-v1` rev 12 14.2 |
+| **Reuse** | Pola `lab-reception-reports` — `page.jsx` tipis, `*-client.jsx`, view, dan berkas aturan murni `lab-reception-report-rules.js`; `FilterDatePicker` (`src/components/features/base-features/filter-date-picker.jsx`, aturan rentang `LAB-DEC-074`); `usePermission` (`src/lib/hooks/auth/use-permission.jsx`); `AccessDeniedGate`; `filterMenuItemsByPermission` beserta `requiredPermission`; butir menu Laboratorium di `src/utils/menu-sidebar/menu-items.jsx`; `axiosInstance`. Pustaka grafik tersedia pada `package.json` bila grafik dipilih |
+| **Cakupan** | (1) Route `src/app/health-services/laboratory-management/lab-operational-reports/page.jsx`, mengikuti konvensi `LAB-FE-001`, dijaga `AccessDeniedGate` untuk `LabOperationalReport : Read`. (2) Butir menu *Laporan Operasional* di submenu Laboratorium dengan `requiredPermission` di atas. (3) `src/lib/services/health-services/laboratory-management/lab-operational-report.service.js` — metadata dan tiga baca (unduhan di `FE-LAB-45`). (4) Hook laporan dan **berkas aturan murni** di `src/lib/hooks/health-services/laboratory-management/` — nama `DEV_DISCRETION` — berisi: pembentuk parameter periode sebagai **tanggal polos `YYYY-MM-DD`**; pemformatan persen (`3.0` → *3,0%*) dan menit; keadaan `isCountable = false` → teks `notCountableReason`; angka kosong → *"—"* beserta sebabnya; kolom terlambat dan tanpa batas **hanya** pada baris cito. (5) Komposisi tiga laporan di `src/components/view/health-services/laboratory-management/lab-operational-reports/`. (6) Penyaring: periode wajib, disiplin dari metadata (kosong = seluruh disiplin); pesan `400`/`422` backend tampil pada penyaring. (7) Memuat **per laporan** — satu laporan lambat tidak mengosongkan dua lainnya; kosong bersebab (*"Tidak ada hasil yang dirilis pada periode ini."*); `403` → pesan tidak berwenang, nol angka. **Nol** daftar pasien, **nol** tautan dari angka ke daftar mana pun. **Nol** angka dihitung ulang di layar — persen dan rata-rata dari backend |
+| **Dependency** | Nol task frontend. `BE-LAB-83`..`85` untuk verifikasi |
+| **Acceptance criteria** | Matriks uji amandemen 2026-09-28, *Matriks — layar*: `ARCH-GAP-LAB-11`, angka kosong, pemformatan, menu, memuat per laporan, galat periode; bagian antarmuka `AC-250`..`AC-253` |
+| **Verifikasi** | Unit test berkas aturan: periode 1-30 September menghasilkan `startDate=2026-09-01` dan `endDate=2026-09-30` **pada zona WIB** (bukan tanggal sehari sebelumnya); `3.0` → *3,0%*; `isCountable = false` tidak pernah menghasilkan *0*; kolom cito kosong pada baris rutin. Layar dijalankan terhadap backend dengan tiga akun samaran — kepala instalasi, pemegang `Read` saja, analis: analis **tidak** melihat butir menu dan membuka route langsung → pesan tidak berwenang; periode 367 hari → pesan `422` dari backend pada penyaring |
+| **Risiko/pemilik** | **Sedang.** Empat jebakan: (a) memakai properti `permission:` pola Hemodialisa — butir tampil bagi semua; (b) mengirim tanggal lewat `toISOString()` — pada WIB tengah malam menjadi tanggal **sehari sebelumnya**, dan periode bergeser tanpa satu galat pun; (c) menampilkan 0 bagi disiplin yang belum dapat dihitung; (d) menghitung ulang persen atau rata-rata di layar sehingga berbeda dari berkas unduhan. Pemilik: implementer frontend |
+| **DoD** | Layar dan butir menu berjalan; berkas aturan teruji; nol daftar pasien; lint dan build hijau; laporan `task/report/frontend/FE-LAB-44.md` |
+
+### `FE-LAB-45` — Unduhan laporan
+
+| Butir | Isi |
+|---|---|
+| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — 2026-09-30; **`MVP-11b` selesai pada kode**. `useLabOperationalReportExport`: tombol *Unduh CSV* per bagian hanya bila `usePermission("LabOperationalReport", "Export")` mengizinkan; parameter = `requestParams` laporan yang tampil, tombol nonaktif sampai laporannya tampil; penjaga ref satu-klik-satu-permintaan; berkas `Blob` disimpan apa adanya, `revokeObjectURL` sesudahnya; nama dari `Content-Disposition`, cadangan `<awalan>_<awal>_<akhir>.csv` sama dengan backend; galat `Blob` dibaca sebagai JSON. Uji unit **22/22**, e2e **13/13**; tiga CSV sungguhan backend (`BE-LAB-86`) diunduh lewat layar hasil build — **identik byte demi byte**; `422` sungguhan tampil pada bagiannya. **Temuan backend:** `FrontendCorsPolicy` tidak mengekspos `Content-Disposition`. **Batas:** unduhan dengan akun asli, satu log per dua klik di backend live, dan pembukaan di Excel menunggu `MVP-11c` 0-1. Lihat [`FE-LAB-45.md`](../task/report/frontend/FE-LAB-45.md). *Semula `SIAP DIKERJAKAN` sejak 2026-09-30 (`FE-LAB-44` ⚠, `BE-LAB-86` ✅); semula pula `MENUNGGU PENDAHULU` — `FE-LAB-44`; `BE-LAB-86` untuk diverifikasi* |
+| **Gelombang** | `MVP-11b` |
+| **Outcome** | Pemegang izin unduh menyimpan setiap laporan sebagai berkas yang terbuka benar di Excel; pemegang izin lihat saja **tidak** melihat tombolnya |
+| **Requirement/decision** | Bagian tampilan `FR-17.7`, `FR-17.8`; `LAB-DEC-160`; 23.10 butir 1, 2, 7 |
+| **Kontrak** | `r37` 32.2 (tiga `GET …/export`), 32.3; `LAB-PERM-v1` rev 12 14.2 |
+| **Reuse** | Service dan berkas aturan `FE-LAB-44`; `usePermission`; pola `URL.createObjectURL` yang sudah dipakai `self-service-profile-page.jsx` dan `base-grouped-editor-field.jsx` |
+| **Cakupan** | (1) Tiga fungsi unduh pada `lab-operational-report.service.js` dengan `responseType: "blob"` dan parameter yang **sama persis** dengan laporan yang sedang tampil. (2) Satu tombol unduh per laporan, **tampil hanya** bila `usePermission("LabOperationalReport", "Export")` mengizinkan. (3) Penyimpan berkas: berkas dari backend disimpan **apa adanya** — nama dari `Content-Disposition`, cadangan dari berkas aturan; **nol** pembentukan CSV di layar. (4) Tombol nonaktif selama unduhan berjalan — satu klik, satu permintaan. (5) Galat: badan galat datang sebagai `Blob` dan **wajib dibaca sebagai teks JSON** sebelum pesannya ditampilkan pada tombol; `403` → pesan tidak berwenang |
+| **Dependency** | `FE-LAB-44`; `BE-LAB-86` |
+| **Acceptance criteria** | *Tombol unduh* pada matriks layar; bagian antarmuka `AC-253` `Read` tanpa `Export`; baris *Unduhan gagal* `03-frontend-architecture.md` |
+| **Verifikasi** | Unit test nama berkas cadangan dan pembaca pesan galat dari `Blob`. Layar dijalankan terhadap backend: kepala instalasi mengunduh laporan penolakan → berkas terbuka di Excel berbahasa Indonesia, kolom terpisah, angka *3,0*, dan **tepat satu** baris log di backend walau tombol diklik dua kali cepat; pemegang `Read` saja → tombol tidak tampil |
+| **Risiko/pemilik** | **Rendah-sedang.** Tiga jebakan: membentuk CSV di layar — unduhan lolos tanpa tercatat (A7.9); menampilkan *"[object Blob]"* atau pesan umum karena badan galat tidak dibaca; melupakan `URL.revokeObjectURL`. **Belum ada pembantu unduh berkas bersama** di repository — lokasi pembantu baru `DEV_DISCRETION`. Pemilik: implementer frontend |
+| **DoD** | Tiga unduhan berjalan; tombol mengikuti izin `Export`; nol pembentukan berkas di layar; laporan `FE-LAB-45.md` |
+
+### Yang sengaja tidak menjadi task frontend
+
+| Yang tidak dijadikan task | Alasan |
+|---|---|
+| Laporan pada halaman *Ringkasan Laboratorium* | 23.10 butir 8 memilih butir menu tersendiri |
+| Pembentukan berkas di layar; Excel `.xlsx` | A7.9 — unduhan wajib tercatat; 23.10 butir 1 |
+| Grafik tren antarperiode | Tidak diminta `LAB-DEC-159` |
+| Daftar pasien atau tautan dari angka | A7.12 |
+| Delapan laporan lain | `S16b` — `DEC-LAB-025` |
