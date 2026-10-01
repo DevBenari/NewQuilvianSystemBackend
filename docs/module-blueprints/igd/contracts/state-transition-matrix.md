@@ -2,11 +2,12 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.6.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 9 baru (pemicu penutupan kunjungan, `IGD-DEC-163`…`167`). **Aditif** — nol status baru, nol transisi baru. Sebelumnya `0.5.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif**: bagian 8 baru (titik lahir kunjungan, pengakhiran encounter Emergency oleh IGD, enum `EmergencyArrivalTimeSource` dan `EmergencyReconciliationRunStatus`); bagian 1–7 **tidak** diubah. Sebelumnya `0.4.0` — revisi 6. **Aditif**: bagian 6a murni baru, nol bagian lama diubah |
-| Status | `draft`, **kecuali bagian 1, 1.1, 1.2, dan bagian 8 (encounter-first) yang `approved`**. Bagian 9 **`approved`** (`IGD-DEC-170`, 23 September 2026) |
+| `contract_version` | `0.7.0` — observasi yang diakhiri sesudah disposisi dilaksanakan, 30 September 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-175`): bagian 9.5 baru (pemetaan status observasi → status kunjungan pada kunjungan `Disposed`, `IGD-DEC-171`, `172`) dan satu baris baru pada §9.4. **Aditif pada matriks** — nol status baru, nol transisi baru; bagian 1 tidak diubah. Yang berubah adalah *upaya* transisi yang dilakukan aksi observasi pada kunjungan `Disposed`. Sebelumnya `0.6.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 9 baru (pemicu penutupan kunjungan, `IGD-DEC-163`…`167`). **Aditif** — nol status baru, nol transisi baru. Sebelumnya `0.5.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif**: bagian 8 baru (titik lahir kunjungan, pengakhiran encounter Emergency oleh IGD, enum `EmergencyArrivalTimeSource` dan `EmergencyReconciliationRunStatus`); bagian 1–7 **tidak** diubah. Sebelumnya `0.4.0` — revisi 6. **Aditif**: bagian 6a murni baru, nol bagian lama diubah |
+| Status | `draft`, **kecuali bagian 1, 1.1, 1.2, dan bagian 8 (encounter-first) yang `approved`**. Bagian 9.1–9.4 **`approved`** (`IGD-DEC-170`, 23 September 2026). Bagian 9.5 dan baris §9.4 *eskalasi observasi pada kunjungan `Disposed`* **`approved`** (`IGD-DEC-175`, 30 September 2026) |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
-| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 1, 1.1, 1.2 (`EmergencyVisitStatus`) lewat `IGD-DEC-093`. **Rizki Gunawan / 2026-09-22** — bagian 8 (encounter-first) lewat `IGD-DEC-157`. Bagian 2 sampai 7 tetap `draft` |
-| Versi sebelumnya | `0.4.0`, `0.3.0`, sebelumnya `0.2.0` |
+| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 1, 1.1, 1.2 (`EmergencyVisitStatus`) lewat `IGD-DEC-093`. **Rizki Gunawan / 2026-09-22** — bagian 8 (encounter-first) lewat `IGD-DEC-157`. **Rizki Gunawan / 2026-09-23** — bagian 9 (penutupan lewat disposisi) lewat `IGD-DEC-170`. **Rizki Gunawan / 2026-09-30** — bagian 9.5 dan baris §9.4 eskalasi lewat `IGD-DEC-175` (sementara, `IGD-DEC-174`). Bagian 2 sampai 7 tetap `draft` |
+| `input_revision` | `0.7.0`: `00-interview-decisions.md` **174 keputusan**, terakhir `IGD-DEC-174` (amendment pass 30 September 2026); fakta `IGD-FACT-029`…`031` diverifikasi ulang pada backend `rizkiG` `327ccad3` + working tree `BE-IGD-060` |
+| Versi sebelumnya | `0.6.0`, `0.5.0`, `0.4.0`, `0.3.0`, sebelumnya `0.2.0` |
 
 ---
 
@@ -266,7 +267,9 @@ Preview **tidak** membuat run.
 Bagian 1 dan 8 **tidak** diubah: nol status baru, nol transisi baru. Yang baru hanya **siapa yang memicu**
 perpindahan `Disposed` → `Completed` yang sudah sah. Keputusan: `IGD-DEC-163`…`167`.
 
-**Status bagian ini: `draft`** — menunggu approval pemilik.
+**Status bagian ini: `approved`** untuk 9.1–9.4 — `IGD-DEC-170`, Rizki Gunawan, 23 September 2026; terkunci hash
+(manifest bagian 0j). **Bagian 9.5 dan baris §9.4 *eskalasi observasi pada kunjungan `Disposed`*: `approved`** —
+`IGD-DEC-175`, Rizki Gunawan, 30 September 2026 (sementara, `IGD-DEC-174`); amendment `IGD-DEC-171`, `172`.
 
 ### 9.1 Dua jalan menuju `Completed`
 
@@ -304,3 +307,44 @@ status kunjungan.
 | Membatalkan disposisi `Executed` pada kunjungan yang sudah `Completed` | `IGD-DEC-166` — penyelesaian kunjungan final (validation §11 aturan 8) |
 | Penutupan susulan atas kunjungan `Completed`/`Cancelled` | Penjaga transisi `BE-IGD-018`; dilewati diam-diam, bukan galat |
 | Membuka kembali kunjungan yang sudah selesai | Tidak ada jalur mana pun yang menyediakannya |
+| Eskalasi observasi pada kunjungan `Disposed` — **baru pada `0.7.0`** | `IGD-DEC-172` — kunjungan yang tindak lanjutnya sudah dilaksanakan tidak dibuka kembali ke `InTreatment`, dan eskalasi tanpa perpindahan status akan melepas observasi dari daftar penahan penutupan (§9.5; validation §11 aturan 14) |
+
+### 9.5 Pemetaan observasi → kunjungan pada kunjungan `Disposed` — baru pada `0.7.0`
+
+Keputusan: `IGD-DEC-171`, `IGD-DEC-172` (amendment pass 30 September 2026), disetujui sementara lewat
+`IGD-DEC-174`. Bagian 1 **tidak** diubah: baris `Disposed` tetap hanya mengizinkan `Completed`.
+
+**Masalah yang ditutup.** Aksi ubah status observasi memindahkan status kunjungan sesuai status tujuan observasinya
+(`IGD-FACT-029`). Pada kunjungan `Disposed`, dua pemetaan itu mencoba transisi yang memang tidak sah menurut
+bagian 1 — `Disposed` → `AwaitingDisposition` dan `Disposed` → `InTreatment` — sehingga keduanya ditolak `409`
+(`IGD-FACT-030`). Akibatnya observasi yang masih berjalan sesudah disposisi dilaksanakan hanya dapat dibatalkan, dan
+kesimpulannya hilang.
+
+| Status tujuan observasi | Kunjungan berjalan selain `Disposed` (tidak berubah) | Kunjungan `Disposed` |
+| --- | --- | --- |
+| `Active` | Kunjungan dipindahkan ke `UnderObservation` lewat penjaga `BE-IGD-018` | **Tidak berubah** — penjaga menolak `409` dengan pesannya sendiri |
+| `Completed` | Kunjungan dipindahkan ke `AwaitingDisposition` lewat penjaga | **Baru — status kunjungan tetap `Disposed`**; penjaga tidak dipanggil karena tidak ada perpindahan. Observasi dan kesimpulannya disimpan, lalu penutupan susulan dicoba (§9.2 titik 2) — `IGD-DEC-171` |
+| `Escalated` | Kunjungan dipindahkan ke `InTreatment` lewat penjaga | **Baru — ditolak lebih dulu** dengan pesan validation §11 aturan 14, menggantikan pesan teknis penjaga. Observasi, kunjungan, dan catatannya tidak berubah — `IGD-DEC-172` |
+| `Cancelled` | Tidak memindahkan status kunjungan | **Tidak berubah** — tidak memindahkan; penutupan susulan dicoba (§9.2 titik 2) |
+
+Aturan `Completed` berlaku dari `Active` maupun dari `Escalated`, karena keduanya asal yang sah menuju `Completed`
+pada rangkaian status observasi.
+
+**Mengapa eskalasi ditolak, bukan diterima tanpa memindahkan status.** Penjaga penutupan hanya menghitung observasi
+`Active` sebagai penahan (`IGD-FACT-031`). Eskalasi yang diterima diam-diam akan mengubah observasi menjadi
+`Escalated`, melepasnya dari daftar penahan, lalu penutupan susulan dapat **menutup kunjungan tepat saat pasien
+memburuk**. Dengan penolakan, observasinya tetap `Active` dan tetap menahan penutupan. Cara mencatat pasien yang
+memburuk sesudah tindak lanjutnya dilaksanakan belum diputuskan — `IGD-OQ-111`, tidak menahan bagian ini.
+
+*Contoh.* Pasien diputuskan pulang dan disposisinya dilaksanakan pukul 14.00; observasinya masih berjalan, sehingga
+kunjungan menunggu penutupan. Pukul 15.00 perawat menyelesaikan observasi dengan kesimpulan *"tanda vital stabil"*:
+observasi `Completed`, kesimpulan tersimpan, kunjungan tidak dicoba dipindahkan ke `AwaitingDisposition`, dan pada
+penyimpanan yang sama kunjungan tertutup bila tak ada penahan lain. Bila pukul 15.00 perawat justru menekan eskalasi,
+permintaan ditolak, observasi tetap `Active`, dan kunjungan tetap menunggu penutupan.
+
+**Yang tidak berubah oleh bagian ini.**
+
+| Keadaan | Perilaku | Catatan |
+| --- | --- | --- |
+| Aksi observasi pada kunjungan `Completed` atau `Cancelled` | Tetap ditolak penjaga `409` untuk target `Active`, `Completed`, `Escalated`; `Cancelled` tetap lolos | Di luar `IGD-DEC-171`, yang hanya menyebut `Disposed`. **Catatan, bukan keputusan:** observasi `Escalated` tidak menahan penutupan (`IGD-FACT-031`), sehingga dapat tertinggal pada kunjungan yang sudah `Completed` dan hanya dapat dibatalkan |
+| Kunjungan `Disposed` yang tidak punya disposisi `Executed` (bila ada pada data lama) | Aturan `Completed` tetap berlaku; penutupan susulan dilewati karena tidak ada pemicunya (§9.2) | Kunjungan tetap `Disposed`. Pada source hari ini `Disposed` hanya dicapai lewat disposisi `Executed` |
