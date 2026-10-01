@@ -198,11 +198,20 @@ public sealed class FinanceReceivableService
     /// terlambat dianggap nol), bukan keputusan bisnis baru, sekadar nilai aman untuk kasus
     /// yang tidak diatur.
     /// </summary>
-    public async Task<List<ReceivableAgingBucketResult>> GetAgingSummaryAsync(DateOnly? asOfDate, CancellationToken cancellationToken)
+    /// <summary>BE-FIN-055: parameter debtorType opsional, nilai PAYER/PATIENT_GUARANTOR/
+    /// EMPLOYEE_BENEFIT (FinReceivableDebtorTypes). Null/kosong berarti seluruh FinReceivable
+    /// tanpa saringan — perilaku bawaan sebelum task ini, TIDAK berubah bila dipanggil tanpa
+    /// argumen ini (dipakai GetSummaryAsync di bawah).</summary>
+    public async Task<List<ReceivableAgingBucketResult>> GetAgingSummaryAsync(
+        DateOnly? asOfDate, CancellationToken cancellationToken, string? debtorType = null)
     {
         var referenceDate = asOfDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
-        var receivables = await _dbContext.FinReceivables.AsNoTracking()
-            .Where(x => !x.IsDelete && x.OutstandingAmount > 0)
+        var query = _dbContext.FinReceivables.AsNoTracking()
+            .Where(x => !x.IsDelete && x.OutstandingAmount > 0);
+        if (!string.IsNullOrWhiteSpace(debtorType))
+            query = query.Where(x => x.DebtorType == debtorType);
+
+        var receivables = await query
             .Select(x => new { x.DueDate, x.OutstandingAmount })
             .ToListAsync(cancellationToken);
 

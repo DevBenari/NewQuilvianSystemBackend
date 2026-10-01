@@ -621,7 +621,7 @@ membuka kembali keputusan yang sudah tertutup.
 |---|:---:|---|---|---|---|---|
 | Transaksi A/R | 1 | Keuangan | — | — | — | Baru (grup) |
 | Tagihan/Billing | 2 | Transaksi A/R | `/finance/receivable-invoice-batches` | `FIN-LYR-AR-01` | `FinanceReceivableInvoiceBatch : Read` | **Sudah ada** (`FE-FIN-012`) |
-| Receivable AR/Invoice | 2 | Transaksi A/R | `/finance/receivable` | `FIN-LYR-AR-02` | `FinanceReceivable : Read` | **Sudah ada** (`FE-FIN-002`) |
+| Receivable AR/Invoice | 2 | Transaksi A/R | `/finance/receivable` | `FIN-LYR-AR-02` | `Finance.AR : View` *(dikoreksi `FE-FIN-017`, lihat laporan §3.3 — bukan `FinanceReceivable : Read` seperti tertulis sebelumnya: halaman ini memanggil `FinanceArController` V2 legacy, bukan `FinanceReceivablesController` governed)* | **Sudah ada** (`FE-FIN-002`) |
 | Ayat Silang | 2 | Transaksi A/R | `/finance/receipts?debtorType=PAYER` | `FIN-LYR-AR-03` | `FinanceReceipt : Read` | **Sudah ada**, pandangan tersaring (`FIN-DEC-096`) |
 | Canceled Invoice | 2 | Transaksi A/R | `/finance/receivable-invoice-batches/canceled` | `FIN-LYR-AR-04` | `FinanceReceivableInvoiceBatch : Read` | **Baru** — pandangan tersaring |
 | Report Canceled Invoice | 2 | Transaksi A/R | `/finance/ar-report/canceled-invoice` | `FIN-LYR-AR-05` | `FinanceReceivableInvoiceBatch : Read` | **Baru** — pandangan tersaring |
@@ -636,11 +636,11 @@ membuka kembali keputusan yang sudah tertutup.
 | Piutang Korporat/Penjamin | 2 | Transaksi A/R | `/finance/receivable/corporate` | `FIN-LYR-AR-14` | `FinanceReceivable : Read` | **Baru** — pandangan tersaring |
 | Manajemen Klaim | 2 | Transaksi A/R | `/finance/receivable-invoice-batches/claims` | `FIN-LYR-AR-15` | `FinanceReceivableInvoiceBatch : Read` | **Baru — kapabilitas baru** |
 | Umur Piutang (A/R Aging) | 2 | Transaksi A/R | — (grup) | — | — | Grup; isinya terjawab `FIN-OQ-040` |
-| Umur Piutang — Kasir | 3 | Umur Piutang (A/R Aging) | `/finance/receivable/aging?segment=KASIR` | `FIN-LYR-AR-18` | `FinanceReceivable : Read` | **Baru** — butuh satu saringan segmen pada `GET /receivables/aging` |
+| Umur Piutang — Kasir | 3 | Umur Piutang (A/R Aging) | `/finance/receivable/aging` | `FIN-LYR-AR-18` | `FinanceReceivable : Read` | **Baru** — `GET /receivables/aging` dipanggil **tanpa saringan** (lihat koreksi `BE-FIN-055` §3.3: tidak ada nilai "KASIR" pada `FinReceivable.DebtorType`; "Kasir" = seluruh `FinReceivable` sejak Parkir/Tenant dipisah ke `FinNonPatientReceivable`) |
 | Umur Piutang — Parkir | 3 | Umur Piutang (A/R Aging) | — | — | — | **TERTAHAN `FIN-OQ-043`** — sumber piutangnya belum ada |
 | Umur Piutang — Tenant | 3 | Umur Piutang (A/R Aging) | — | — | — | **TERTAHAN `FIN-OQ-043`** — sumber piutangnya belum ada |
 | Pemutihan Piutang | 2 | Transaksi A/R | `/finance/receivable/write-offs` | `FIN-LYR-AR-16` | `FinanceReceivable : Read` | **Baru** — butuh endpoint baru |
-| Piutang Tagihan | 2 | Transaksi A/R | `/finance/receivable?view=billed` | `FIN-LYR-AR-17` | `FinanceReceivable : Read` | **Sudah ada**, pandangan tersaring (lihat `FIN-OQ-041`) |
+| Piutang Tagihan | 2 | Transaksi A/R | `/finance/receivable?view=billed` | `FIN-LYR-AR-17` | `Finance.AR : View` *(dikoreksi `FE-FIN-017`, sama alasan dengan `FIN-LYR-AR-02` — halaman sama, `/finance/receivable`)* | **Sudah ada**, pandangan tersaring (lihat `FIN-OQ-041`). **Catatan:** parameter `?view=billed` saat ini **inert** — `finance-receivable-view.jsx` tidak membacanya sama sekali (temuan `FE-FIN-016`/`017`) |
 
 #### Tabel butir menu — Transaksi A/P
 
@@ -799,7 +799,7 @@ Menggantikan tiga baris `TERTAHAN FIN-OQ-043` pada tabel bagian 17.2:
 
 | Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status layar |
 |---|:---:|---|---|---|---|---|
-| Umur Piutang — Kasir | 3 | Umur Piutang (A/R Aging) | `/finance/receivable/aging?segment=KASIR` | `FIN-LYR-AR-18` | `FinanceReceivable : Read` | **Baru** — saringan segmen pada umur piutang pasien |
+| Umur Piutang — Kasir | 3 | Umur Piutang (A/R Aging) | `/finance/receivable/aging` | `FIN-LYR-AR-18` | `FinanceReceivable : Read` | **Baru** — `GET /receivables/aging` tanpa saringan (lihat koreksi `BE-FIN-055` §3.3) |
 | Umur Piutang — Parkir | 3 | Umur Piutang (A/R Aging) | `/finance/non-patient-receivables/aging?category=PARKING` | `FIN-LYR-AR-19` | `FinanceNonPatientReceivable : Read` | **Baru** |
 | Umur Piutang — Tenant | 3 | Umur Piutang (A/R Aging) | `/finance/non-patient-receivables/aging?category=TENANT` | `FIN-LYR-AR-20` | `FinanceNonPatientReceivable : Read` | **Baru** |
 

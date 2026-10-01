@@ -134,3 +134,35 @@ public sealed class ShiftReconciliationResponse
     public int CashReceiptCount { get; set; }
 }
 
+// ----------------------------------------------------------------------------------------
+// BE-FIN-054 (FIN-DEC-094, FIN-DES-073) — daftar baris alokasi yang DIBALIK, untuk layar
+// "Receiveable AR Canceled" (03-frontend-architecture.md §17.2). Baca saja: pembalikan alokasi
+// TETAP lewat POST /{id}/allocations/{allocationId}/reverse yang sudah ada — nol aksi baru.
+// Grain-nya baris alokasi (IsReversal = true), bukan penerimaan.
+// ----------------------------------------------------------------------------------------
+
+public sealed class ReversedAllocationQuery
+{
+    public DateTimeOffset? StartDate { get; set; }
+    public DateTimeOffset? EndDate { get; set; }
+    public Guid? ReceiptId { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 25;
+}
+
+/// <summary>Satu baris pembalik alokasi (FinReceiptAllocation.IsReversal = true). Kontrak
+/// FIN-API-1.3 §D.2 awalnya menyebut field ReversalReason — DICABUT di sini: FinReceiptAllocation
+/// tidak punya kolom alasan sama sekali (lihat Models/FinReceiptAllocation.cs), dan ReverseAllocationAsync
+/// tidak menerima parameter alasan. Dicatat sebagai delta kontrak-vs-source, bukan dikarang.</summary>
+public sealed class ReversedAllocationRowResponse
+{
+    public Guid AllocationId { get; set; }
+    public Guid ReceiptId { get; set; }
+    public string ReceiptNumber { get; set; } = string.Empty;
+    public Guid? ReceivableId { get; set; }
+    public string? ReceivableNumber { get; set; }
+    public decimal Amount { get; set; }
+    public Guid ReversalOfAllocationId { get; set; }
+    public DateTimeOffset ReversedAt { get; set; }
+}
+

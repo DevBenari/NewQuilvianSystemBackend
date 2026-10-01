@@ -665,6 +665,8 @@ namespace QuilvianSystemBackend.Repositories
         // (prasyarat #10 01-backend-roadmap.md), belum dibuat pada task ini.
         public DbSet<FinReceivableInvoiceBatch> FinReceivableInvoiceBatches { get; set; }
         public DbSet<FinReceivableInvoiceBatchItem> FinReceivableInvoiceBatchItems { get; set; }
+        public DbSet<FinNonPatientReceivable> FinNonPatientReceivables { get; set; }
+        public DbSet<FinNonPatientReceivableSettlement> FinNonPatientReceivableSettlements { get; set; }
         // BE-FIN-016, FIN-DES-010..012: buku penerimaan. Migration AddFinanceCollection dibuat
         // tangan, belum dijalankan. FinReceiptAllocation belum punya penulis — pembagian
         // bayar-vs-piutang adalah tanggung jawab FinanceReceiptService (BE-FIN-017, BLOCKED).

@@ -112,6 +112,15 @@ public sealed class ReceivableFilterMetadataResponse
 public sealed class ReceivableAgingQuery
 {
     public DateOnly? AsOfDate { get; set; }
+
+    /// <summary>BE-FIN-055 (FIN-DEC-094, FIN-OQ-040). Saringan opsional, memakai nilai
+    /// FinReceivableDebtorTypes yang NYATA (PAYER/PATIENT_GUARANTOR/EMPLOYEE_BENEFIT) — bukan
+    /// "KASIR" seperti dugaan awal rancangan. Model FinReceivable tidak punya nilai "Kasir" sama
+    /// sekali; "Umur Piutang Kasir" pada menu V1 memetakan ke seluruh FinReceivable TANPA
+    /// saringan ini (lihat laporan BE-FIN-055 §3.3), karena Parkir/Tenant sudah dipisah penuh ke
+    /// FinNonPatientReceivable (BE-FIN-056/057). Parameter ini kemampuan teknis tambahan yang sah
+    /// (menyaring per jenis debitur bila dibutuhkan kelak), bukan penerapan "segmen Kasir".</summary>
+    public string? DebtorType { get; set; }
 }
 
 public sealed class RequestReceivableAdjustmentRequest

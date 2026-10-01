@@ -15,6 +15,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Con
 /// BE-FIN-053 (FIN-DES-073): GET /write-offs adalah permukaan BACA lintas piutang untuk layar
 /// "Pemutihan Piutang" — nol aksi baru, pembuatan/persetujuan/penolakan write-off tetap lewat
 /// endpoint per-piutang di bawah beserta maker-checker-nya.
+/// BE-FIN-055: GET /aging menerima parameter opsional DebtorType (PAYER/PATIENT_GUARANTOR/
+/// EMPLOYEE_BENEFIT) — BUKAN "segmen Kasir" seperti dugaan rancangan awal, karena nilai itu tidak
+/// ada pada FinReceivable. "Umur Piutang Kasir" pada menu V1 memanggil endpoint ini TANPA
+/// saringan apa pun.
 /// </summary>
 [ApiController]
 [Authorize]
@@ -49,7 +53,7 @@ public sealed class FinanceReceivablesController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<List<ReceivableAgingBucketResult>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAging([FromQuery] ReceivableAgingQuery request, CancellationToken cancellationToken) =>
         Ok(ApiResponse<List<ReceivableAgingBucketResult>>.Ok(
-            await _service.GetAgingSummaryAsync(request.AsOfDate, cancellationToken), "Umur piutang berhasil diambil."));
+            await _service.GetAgingSummaryAsync(request.AsOfDate, cancellationToken, request.DebtorType), "Umur piutang berhasil diambil."));
 
     [HttpGet]
     [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]

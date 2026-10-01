@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Belum di-commit — branch `Yasmina`, HEAD `d6978487` |
 | Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **Sebagian.** Source dan migration lengkap sesuai kontrak (pembuatan migration diberi wewenang eksplisit 1 Oktober 2026). `dotnet build` **belum dijalankan** (NOT RUN — pengguna eksplisit meminta migration dibuat **tanpa** memakai `dotnet build`). Eksekusi migration ke database **belum diminta** — wewenang terpisah |
+| Status | ✅ **Selesai 1 Oktober 2026.** Source dan migration lengkap sesuai kontrak. `dotnet build` **PASS** (dikonfirmasi pengguna) dan migration `20261001090000_AddClaimTrackingToFinReceivableInvoiceBatch` **berhasil dieksekusi ke database** (dikonfirmasi pengguna) |
 
 ---
 
@@ -184,7 +184,8 @@ Ketiganya mengembalikan `ApiResponse<ReceivableInvoiceBatchResponse>` yang sekar
 
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
-| `dotnet build` | — | `NOT RUN` | Pengguna eksplisit meminta migration dibuat **tanpa** `dotnet build` |
+| `dotnet build` | Berhasil tanpa error | `PASS` | Dikonfirmasi pengguna, 1 Oktober 2026 — membuktikan source **dan** migration manual (lihat §3.3) valid secara compiler |
+| Eksekusi migration ke database | Berhasil | `PASS` | Dikonfirmasi pengguna, 1 Oktober 2026 |
 | `diff` isi `BuildModel`/`BuildTargetModel` antara snapshot dan Designer.cs migration baru | Byte-identik | `PASS` | `diff` keluar kode 0 atas 123.729 baris yang dibandingkan |
 | Review diff/scope | 8 berkas source + migration, persis sesuai desain `02-backend-architecture.md` §J; `FinBankDeposit.cs` terlihat di `git status` **bukan dari task ini**, tidak disentuh | `PASS` | `git status --short` Bagian 7 |
 | Review kontrak API terhadap implementasi | Tiga endpoint, bentuk request/response, kode status 400/403/404/409/422 sesuai `FIN-API-1.3` §D.1 dan `FIN-VAL-1.5` | `PASS` | Perbandingan langsung kode vs kontrak |
@@ -192,8 +193,9 @@ Ketiganya mengembalikan `ApiResponse<ReceivableInvoiceBatchResponse>` yang sekar
 | Review proses bisnis — selisih tidak disimpan | `ClaimVarianceAmount` murni properti response, dihitung di `Map()`, tidak ada kolom tabel untuknya | `PASS` | `FinReceivableInvoiceBatch.cs` tidak memiliki properti itu |
 | QBE preflight | Area `Corporate/Finance`, Module `FinanceManagement`, Submodule `Receivable`, prefix `Fin` `ACTIVE` — sudah terdaftar, applicability `TOUCHED LEGACY` | `PASS` | `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` baris 15 |
 
-Uji manual: `NOT FEASIBLE` — build belum dijalankan, aplikasi tidak dapat dijalankan untuk uji
-runtime pada sesi ini.
+Uji manual: `NOT FEASIBLE` — tidak ada dev server/klien HTTP yang dijalankan pada sesi ini untuk
+memanggil ketiga endpoint aksi klaim secara runtime. Build dan migration sudah PASS, tetapi
+pemanggilan endpoint sungguhan belum dicoba.
 
 **AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis
 (`rules/backend/TEST_POLICY.md`).**
@@ -212,8 +214,8 @@ pada build dan eksekusi migration).
 | `ApprovedAmount` lebih kecil dari `TotalAmount` **tidak** mengubah `OutstandingAmount` piutang anggota mana pun | Terpenuhi | `ApproveClaimAsync` hanya menulis kolom pada `FinReceivableInvoiceBatch`, tidak pernah memuat/menulis `FinReceivable` |
 | `FIN-VAL-147`..`153` ditegakkan | Terpenuhi | Ketujuh aturan dipetakan langsung ke pengecualian dan kondisinya masing-masing di ketiga method |
 | Nol action hak akses baru | Terpenuhi | Ketiga endpoint memakai `[AccessAction("Update", ...)]` dan `[AccessPermission("FinanceReceivableInvoiceBatch", "Update")]` yang sudah ada |
-| Build PASS | **Belum terpenuhi** | `dotnet build` `NOT RUN` — pengguna eksplisit meminta migration dibuat tanpa build |
-| Migration dibuat dan dieksekusi atas izin eksplisit | **Sebagian.** Pembuatan ✅ (izin diberikan 1 Oktober 2026); eksekusi ke database **belum diminta** | `Migrations/20261001090000_AddClaimTrackingToFinReceivableInvoiceBatch.cs`/`.Designer.cs` |
+| Build PASS | Terpenuhi | `dotnet build` PASS, dikonfirmasi pengguna 1 Oktober 2026 |
+| Migration dibuat dan dieksekusi atas izin eksplisit | Terpenuhi | `Migrations/20261001090000_AddClaimTrackingToFinReceivableInvoiceBatch.cs`/`.Designer.cs` dibuat; eksekusi ke database dikonfirmasi berhasil 1 Oktober 2026 |
 
 ---
 
@@ -221,10 +223,10 @@ pada build dan eksekusi migration).
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | Migration dibuat **manual** tanpa `dotnet build`/`dotnet ef` atas permintaan eksplisit pengguna — lihat §3.3 "Metode pembuatan migration" untuk risikonya |
+| Peringatan | Migration dibuat **manual** tanpa `dotnet build`/`dotnet ef` atas permintaan eksplisit pengguna — lihat §3.3 "Metode pembuatan migration". Risiko itu **tertutup**: `dotnet build` PASS dan eksekusi migration berhasil, keduanya dikonfirmasi pengguna 1 Oktober 2026 |
 | Masalah yang diketahui | Tidak ada temuan baru di luar yang sudah dicatat rancangan (`FIN-OQ-044`, tidak tersentuh task ini) |
-| Risiko tersisa | **Build belum dibuktikan.** Perubahan source bersifat aditif murni dan mengikuti pola existing persis; migration dibuat manual dan diverifikasi `diff` cocok dengan snapshot, tetapi **nol verifikasi compiler**. Keduanya berisiko standar kesalahan kecil (tipo, using yang hilang, ketidakcocokan tipe) sampai `dotnet build` benar-benar dijalankan |
+| Risiko tersisa | **Rendah.** Build dan migration sudah dibuktikan PASS. Uji manual/runtime atas ketiga endpoint aksi klaim belum dicoba — risiko tersisa murni pada perilaku runtime yang belum diverifikasi, bukan lagi pada validitas compiler/skema |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | `git status --short` mencakup tujuh berkas source dan migration task ini (lihat Bagian 3.2), ditambah perubahan dokumen blueprint dari pass sebelumnya pada sesi yang sama (tidak disentuh task ini). **Satu berkas tidak terkait** (`Areas/Corporate/FinanceManagement/CashManagement/Models/FinBankDeposit.cs`) juga termodifikasi tetapi **bukan dari task ini** — dibiarkan apa adanya, bukan pekerjaan task ini untuk disentuh atau dilaporkan isinya |
-| Langkah berikutnya | (1) Pengguna menjalankan `dotnet build` untuk membuktikan source dan migration benar-benar valid; (2) bila PASS, wewenang terpisah untuk mengeksekusi migration ke database; (3) lanjut `BE-FIN-053`/`054`/`055` (`REV-13B`, berdiri sendiri, dapat dikerjakan paralel) atau `BE-FIN-056` (`REV-13D`, piutang sewa non-pasien) |
+| Langkah berikutnya | Uji manual/runtime ketiga endpoint aksi klaim bila dibutuhkan; lanjut `BE-FIN-054`/`055` (`REV-13B`, berdiri sendiri) atau `BE-FIN-056` (`REV-13D`, piutang sewa non-pasien) |

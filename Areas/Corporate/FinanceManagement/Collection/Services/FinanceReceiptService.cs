@@ -418,6 +418,53 @@ public sealed class FinanceReceiptService
         };
     }
 
+    /// <summary>BE-FIN-054 (FIN-DES-073). `GET /receipts/reversed-allocations` — daftar baris
+    /// pembalik alokasi (IsReversal = true), baca saja. Pembalikan tetap satu-satunya lewat
+    /// ReverseAllocationAsync di bawah; method ini TIDAK PERNAH menulis FinReceiptAllocation.</summary>
+    public async Task<PagedResult<ReversedAllocationRowResponse>> GetReversedAllocationsAsync(
+        ReversedAllocationQuery request, CancellationToken cancellationToken)
+    {
+        var query = _dbContext.FinReceiptAllocations.AsNoTracking()
+            .Include(x => x.Receipt)
+            .Include(x => x.Receivable)
+            .Where(x => !x.IsDelete && x.IsReversal);
+
+        if (request.StartDate.HasValue) query = query.Where(x => x.AllocatedAt >= request.StartDate.Value);
+        if (request.EndDate.HasValue) query = query.Where(x => x.AllocatedAt <= request.EndDate.Value);
+        if (request.ReceiptId.HasValue) query = query.Where(x => x.ReceiptId == request.ReceiptId.Value);
+
+        query = query.OrderByDescending(x => x.AllocatedAt);
+
+        var pageNumber = Math.Max(1, request.PageNumber);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new ReversedAllocationRowResponse
+            {
+                AllocationId = x.Id,
+                ReceiptId = x.ReceiptId,
+                ReceiptNumber = x.Receipt!.ReceiptNumber,
+                ReceivableId = x.ReceivableId,
+                ReceivableNumber = x.Receivable != null ? x.Receivable.ReceivableNumber : null,
+                Amount = x.Amount,
+                ReversalOfAllocationId = x.ReversalOfAllocationId!.Value,
+                ReversedAt = x.AllocatedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<ReversedAllocationRowResponse>
+        {
+            Items = items,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
+            PageNumber = pageNumber,
+            PageSize = pageSize
+        };
+    }
+
     /// <summary>`GET /receipts/shift-reconciliation` — membandingkan total penerimaan tunai
     /// Finance dengan `BilCashierShift.SystemCash` milik Billing untuk satu shift (FIN-API-1.0).
     /// Baca saja: nol tulisan ke `FinReceipt` maupun `BilCashierShift`, sama seperti

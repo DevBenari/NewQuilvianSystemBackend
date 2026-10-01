@@ -102,6 +102,9 @@ public static class BillingManagementServiceCollectionExtensions
         // BE-FIN-039, FIN-DEC-048/054: Batch Tagihan AR — hanya membaca FinReceivable, memanggil
         // BillingCompanyGuarantorInvoiceDocumentService untuk dokumen gabungan, tidak menyalinnya.
         services.AddScoped<FinanceReceivableInvoiceBatchService>();
+        // BE-FIN-057, FIN-DEC-099..104: satu-satunya penulis FinNonPatientReceivable — aggregate
+        // BERDIRI SENDIRI (FIN-DEC-101), MUST NOT memanggil FinanceReceivableService/FinanceReceiptService.
+        services.AddScoped<FinanceNonPatientReceivableService>();
         // BE-FIN-017, 02-backend-architecture.md §4.22: pemilik logika penerimaan (pembuatan dari
         // tender + pembuktian FR-FIN-035). Dipakai FinanceBillingIntakeService lewat DI.
         services.AddScoped<FinanceReceiptService>();

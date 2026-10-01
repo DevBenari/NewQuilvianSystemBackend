@@ -20,6 +20,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Con
 /// non-kasir) dan `POST /receipts/{id}/reverse` (pembalikan penerimaan penuh secara manual) pada
 /// kontrak `FIN-API-1.0`/`FIN-PERM-1.0` MASIH belum ada service-nya — tetap gap terbuka, tidak
 /// dikarang di sini.
+/// `GET /receipts/reversed-allocations` dibangun BE-FIN-054 (FIN-DES-073) — permukaan BACA baris
+/// alokasi yang dibalik, nol aksi baru. Pembalikan tetap lewat
+/// POST /{id}/allocations/{allocationId}/reverse yang sudah ada.
 /// </summary>
 [ApiController]
 [Authorize]
@@ -62,6 +65,14 @@ public sealed class FinanceReceiptsController : ControllerBase
         }
         catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
     }
+
+    [HttpGet("reversed-allocations")]
+    [AccessAction("Read", "Read Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceipt", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<ReversedAllocationRowResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetReversedAllocations([FromQuery] ReversedAllocationQuery request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<PagedResult<ReversedAllocationRowResponse>>.Ok(
+            await _service.GetReversedAllocationsAsync(request, cancellationToken), "Daftar alokasi yang dibalik berhasil diambil."));
 
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]

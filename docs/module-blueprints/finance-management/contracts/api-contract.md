@@ -627,8 +627,8 @@ Base URL keduanya mengikuti grup masing-masing:
 |---|---|---|
 | `ReceivableWriteOffQuery` | PagedQuery | `StartDate`, `EndDate` (`DateOnly?`); `Status` (`string?` — mengikuti status write-off yang sudah ada); `DebtorReferenceId` (`Guid?`); `PageNumber`, `PageSize`, `SortBy`, `SortDirection` |
 | `ReceivableWriteOffRowResponse` | Response | `Id`, `ReceivableId`, `ReceivableNumber`, `DebtorReferenceId`, `Amount`, `Reason`, `Status`, `RequestedAt`, `DecidedAt` |
-| `ReversedAllocationQuery` | PagedQuery | `StartDate`, `EndDate` (`DateOnly?`); `ReceiptId` (`Guid?`); `PageNumber`, `PageSize`, `SortBy`, `SortDirection` |
-| `ReversedAllocationRowResponse` | Response | `AllocationId`, `ReceiptId`, `ReceiptNumber`, `ReceivableId`, `ReceivableNumber`, `Amount`, `ReversedAt`, `ReversalReason` |
+| `ReversedAllocationQuery` | PagedQuery | `StartDate`, `EndDate` (`DateTimeOffset?` — disesuaikan `BE-FIN-054` mengikuti tipe `ReceiptRegisterQuery` yang sudah ada pada file DTO yang sama, bukan `DateOnly?`); `ReceiptId` (`Guid?`); `PageNumber`, `PageSize`. **Tanpa `SortBy`/`SortDirection`** — urutan tetap `AllocatedAt` menurun, mengikuti pola `ReceiptRegisterQuery` |
+| `ReversedAllocationRowResponse` | Response | `AllocationId`, `ReceiptId`, `ReceiptNumber`, `ReceivableId`, `ReceivableNumber`, `Amount`, `ReversalOfAllocationId`, `ReversedAt`. **`ReversalReason` DICABUT** (`BE-FIN-054`) — `FinReceiptAllocation` tidak punya kolom alasan sama sekali, dan `ReverseAllocationAsync` tidak menerima parameter alasan. Bukan dikarang; dicatat sebagai delta kontrak-vs-source |
 
 Keduanya **membaca saja**. Pembuatan write-off tetap lewat `POST /receivables/{id}/write-offs`
 beserta maker-checker-nya, dan pembalikan alokasi tetap lewat

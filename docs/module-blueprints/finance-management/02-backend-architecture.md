@@ -3829,7 +3829,7 @@ apa pun di antaranya, dan menggambarnya akan menyiratkan hubungan yang justru di
 | **Lokasi file** | `Areas/Corporate/FinanceManagement/Receivable/Controllers/FinanceNonPatientReceivablesController.cs` |
 | Kategori | Controller |
 | Service yang dipakai | `FinanceNonPatientReceivableService` |
-| Endpoint yang diurus | Sembilan, lihat `K.6` |
+| Endpoint yang diurus | Sepuluh, lihat `K.6` |
 | Atribut akses | `[AccessController(..., ControllerName = "FinanceNonPatientReceivable", ...)]`; tiga `[AccessAction]`: `Read`, `Create`, `Update` |
 
 ## K.5 Arsitektur folder
@@ -3860,7 +3860,7 @@ mengikuti aturan struktur backend yang berlaku.
 
 ## K.6 Endpoint
 
-Rinciannya pada `contracts/api-contract.md` bagian `E`. Sembilan, seluruhnya
+Rinciannya pada `contracts/api-contract.md` bagian `E`. Sepuluh, seluruhnya
 `Rencana (belum tersedia)`, memakai bentuk transaksi (`POST /{id}/<aksi>`), **tanpa**
 `DELETE /{id}` dan **tanpa** `PATCH /{id}/status` generik.
 
