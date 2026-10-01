@@ -343,13 +343,15 @@ kunjungan dan pesan aturan 3 bagian "belum lahir" bila berupa encounter.
 | 11 | Pasien tanpa identitas wajib punya nama sementara | `400` | Pesan §1 aturan 3 | `IGD-DEC-151` |
 | 12 | Kunjungan yang sudah ada **tidak pernah** mundur statusnya; `ImmediateCare` hanya meneruskan `Arrived`/`WaitingForTriage` → `InTreatment` lewat penjaga transisi | — | — | `IGD-DEC-143` |
 | 13 | Dua panggilan serentak → tepat satu kunjungan (unique index + tangkap bentrokan) | — | — | `IGD-DEC-143` |
+| 14 | Lima ruas kunjungan opsional — `arrivalLocation`, `foundLocation`, `traumaLocation` (maks. 250), `notes` (maks. 1000), `traumaDateTime` — di-*trim*, kosong disimpan `null`, berlaku pada kedua `mode`, dan diabaikan bila kunjungan sudah ada. Melebihi panjang → `400` validasi model — **ditambahkan 1 Oktober 2026** | `400` | Pesan validasi model bawaan | `IGD-DEC-179` |
+| 15 | Waktu trauma tidak boleh di masa depan (waktu server) — aturan penyerta usulan agent | `400` | *"Waktu trauma tidak boleh melewati waktu sekarang."* | `IGD-DEC-179` |
 
 ### 10.3 Pasien pergi sebelum ditriage — `POST /no-show`
 
 | No | Aturan | Kode | Pesan | Keputusan |
 | ---: | --- | :-: | --- | --- |
 | 1 | Alasan wajib | `400` | *"Alasan pasien dinyatakan pergi sebelum ditriage wajib diisi."* | `IGD-DEC-142` |
-| 2 | Alasan maksimal 500 karakter | `400` | *"Alasan maksimal 500 karakter."* | `IGD-DEC-142` |
+| 2 | Alasan maksimal 250 karakter | `400` | *"Alasan maksimal 250 karakter."* — **dikoreksi 1 Oktober 2026 (`IGD-DEC-178`)**: semula 500, padahal kolom `RegPatientEncounter.NoShowReason` hanya 250 | `IGD-DEC-142`, `IGD-DEC-178` |
 | 3 | Encounter harus bertipe Emergency | `400` | Pesan §10.2 aturan 4 | `IGD-DEC-142` |
 | 4 | Encounter yang sudah punya kunjungan ditolak | `409` | *"Pasien ini sudah memiliki kunjungan IGD {nomor kunjungan}. Tutup lewat kunjungan tersebut."* | `IGD-DEC-142` |
 | 5 | Encounter yang sudah berakhir ditolak | `409` | *"Encounter ini sudah berakhir ({status})."* | `IGD-DEC-142` |

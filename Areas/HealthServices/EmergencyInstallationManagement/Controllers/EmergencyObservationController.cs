@@ -36,6 +36,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         // IGD-DEC-119 — sama dengan kapasitas kolom CompletionSummary dan EscalationReason.
         private const int MaxObservationStatusNotesLength = 1000;
 
+        private const string PesanEskalasiPadaKunjunganDisposed =
+            "Tindak lanjut pasien sudah dilaksanakan; eskalasi tidak dapat dicatat pada kunjungan ini.";
+
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly EmergencyObservationService _emergencyObservationService;
@@ -277,6 +280,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
             var visit = await _dbContext.Set<EmgVisit>().FirstAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
+            var kunjunganDisposed = visit.VisitStatus == EmergencyVisitStatus.Disposed;
+
+            if (kunjunganDisposed && request.ObservationStatus == EmergencyObservationStatus.Escalated)
+                return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, PesanEskalasiPadaKunjunganDisposed));
 
             // BE-IGD-021 — tiga dari lima titik tulis VisitStatus yang tersisa ada di
             // percabangan ini. Targetnya ditentukan lebih dulu, lalu penjaga BE-IGD-018
@@ -287,7 +294,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var targetVisitStatus = request.ObservationStatus switch
             {
                 EmergencyObservationStatus.Active => EmergencyVisitStatus.UnderObservation,
-                EmergencyObservationStatus.Completed => EmergencyVisitStatus.AwaitingDisposition,
+                EmergencyObservationStatus.Completed when !kunjunganDisposed => EmergencyVisitStatus.AwaitingDisposition,
                 EmergencyObservationStatus.Escalated => EmergencyVisitStatus.InTreatment,
                 _ => (EmergencyVisitStatus?)null
             };
@@ -340,14 +347,62 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            var mencobaPenutupan = kunjunganDisposed
+                && request.ObservationStatus != EmergencyObservationStatus.Active;
+            var penutupan = EmergencyVisitService.HasilPenutupanSusulan.Dilewati;
+
+            await using (var transaksi = mencobaPenutupan
+                ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+                : null)
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                if (transaksi != null)
+                {
+                    penutupan = await _emergencyVisitService.TryCloseAfterDispositionAsync(
+                        visit.Id,
+                        actorUserId,
+                        now,
+                        cancellationToken: cancellationToken);
+
+                    if (penutupan.Ditutup)
+                        await _dbContext.SaveChangesAsync(cancellationToken);
+
+                    await transaksi.CommitAsync(cancellationToken);
+                }
+            }
 
             await _loggerService.InfoAsync(
                 LogCategory,
                 "EmergencyObservation.UpdateObservationStatus",
                 "Memperbarui proses Emergency Observation melalui aksi UpdateObservationStatus.",
-                new { EntityId = id, Controller = "EmergencyObservation", Action = "UpdateObservationStatus" }
+                new
+                {
+                    EntityId = id,
+                    Controller = "EmergencyObservation",
+                    Action = "UpdateObservationStatus",
+                    KunjunganDitutup = penutupan.Ditutup,
+                    AlasanPenahanPenutupan = penutupan.AlasanPenahan
+                }
             );
+
+            if (penutupan.Ditutup)
+            {
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "EmergencyVisit.CompleteByDisposition",
+                    "Kunjungan IGD ditutup karena penahan terakhirnya dibereskan.",
+                    new
+                    {
+                        EntityId = visit.Id,
+                        Controller = "EmergencyObservation",
+                        Action = "UpdateObservationStatus",
+                        DispositionId = penutupan.DispositionId,
+                        ActorUserId = actorUserId,
+                        EncounterDitutup = penutupan.EncounterDitutup
+                    }
+                );
+            }
 
             return Ok(ApiResponse<EmergencyObservationResponse>.Ok(ToResponse(entity), "Status observasi IGD berhasil diubah."));
         }

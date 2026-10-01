@@ -210,17 +210,17 @@ flowchart LR
 | `BE-IGD-047` | Nomor urut penilaian triage ditetapkan server | R3.10 | ✅ **17 September 2026** — `dotnet build` lulus dan **uji API tiga skenario lulus** oleh pemilik; dibuktikan lagi lewat layar bersama `FE-IGD-033`. Tanpa UAT | [BE-IGD-047](../task/report/backend/BE-IGD-047.md) |
 | `BE-IGD-051` | Kunjungan IGD yang berakhir ikut menutup encounter-nya (`IGD-DEC-139`, `148`) | R3.13 | ✅ **22 September 2026 — atas penilaian pemilik.** Implementation Complete, Build Verified (artefak), uji API S1–S9 lulus menurut pemilik (tanpa lampiran). Kriteria 8 (kueri invarian) dikecualikan sampai sesudah rilis. Tanpa UAT | [BE-IGD-051](../task/report/backend/BE-IGD-051.md) |
 | `BE-IGD-052` | Rekonsiliasi encounter `Emergency` historis — endpoint admin (`IGD-DEC-148`) | R3.13 | ✅ **23 September 2026 — SELESAI atas penilaian pemilik.** Migration `20260923061124` dibuat pemilik (isi diperiksa agent) dan diterapkan; build serta sepuluh skenario uji dinyatakan lulus pemilik; angka pratinjau dinyatakan cocok dengan kueri D. Acceptance 9 sebagian (jumlah warning tidak dilaporkan). UAT belum dijalankan. *Sebelumnya: 🟡 Implementation Complete, menunggu migration, build, uji API, dan angka kueri D* | [BE-IGD-052](../task/report/backend/BE-IGD-052.md) |
-| `BE-IGD-053` | Penjaga episode terbuka pada pintu encounter `Emergency` — **realisasi** `IGD-OQ-093` (`superseded` sebagian) | R3.13 | tanpa tanda — **kedua dependency kini ✅** (`BE-IGD-052` dan `BE-IGD-055`, 23 September 2026), jadi boleh **dikerjakan**; dirilis bersama `FE-IGD-038` sesudah rekonsiliasi K1 dijalankan, dan rilisnya menuntut `GET /preview` → `expectedCount` = 0 di lingkungan itu (urutan rilis R3.13.5 langkah 2). *Sebelumnya: menunggu `BE-IGD-052`* | — |
+| `BE-IGD-053` | Penjaga episode terbuka pada pintu encounter `Emergency` — **realisasi** `IGD-OQ-093` | R3.13 | ✅ **1 Oktober 2026 — atas penilaian pemilik.** Migration `20261001023520` diterapkan ke dev; `Down()` berpenjaga lulus uji empat tahap (agent); build pemilik berhasil (warning tidak dilaporkan); uji API S1–S12 `PASS` (bukti mentah diperiksa agent). Alur loket lewat layar terbukti pada `FE-IGD-038` U1. Tanpa UAT. *Sebelumnya: 🟡 pagi hari yang sama* | [BE-IGD-053](../task/report/backend/BE-IGD-053.md) |
 | `BE-IGD-054` | Daftar Menunggu Triage terpadu (`GET triage-queue`) | R3.13 | ✅ **24 September 2026 — SELESAI atas penilaian pemilik.** Build dan sebelas skenario uji dinyatakan lulus pemilik; acceptance 8 sebagian (jumlah warning tidak dilaporkan). Nol schema, nol migration. `FE-IGD-035` tidak lagi tertahan. UAT belum dijalankan. *Sebelumnya: 🟡 Implementation Complete 23 September, menunggu build dan uji API* | [BE-IGD-054](../task/report/backend/BE-IGD-054.md) |
-| `BE-IGD-055` | Kunjungan IGD lahir lewat Mulai Triage atau Tangani Segera (`POST start-triage`) | R3.13 | ✅ **23 September 2026 — atas penilaian pemilik.** Migration `20260923021224` diterapkan; penjaga `Down()` diuji agent di basis data terpisah (lulus 4 tahap); uji API S1–S15 lulus menurut pemilik. Jumlah warning build tidak dilaporkan | [BE-IGD-055](../task/report/backend/BE-IGD-055.md) |
+| `BE-IGD-055` | Kunjungan IGD lahir lewat Mulai Triage atau Tangani Segera (`POST start-triage`) | R3.13 | 🟡 **1 Oktober 2026 — delta `IGD-DEC-179`.** Sepuluh kriteria asli tetap (✅ 23 September 2026). `start-triage` kini menerima lima ruas kunjungan opsional (lokasi kedatangan, lokasi ditemukan, lokasi trauma, waktu trauma, catatan): 2 berkas source, +41/−2, nol migration; QBE checker `PASS`. Belum: build pemilik, uji API D1–D6 (laporan bagian 8). *Sebelumnya: ✅ **23 September 2026 — atas penilaian pemilik.** Migration `20260923021224` diterapkan; penjaga `Down()` diuji agent di basis data terpisah (lulus 4 tahap); uji API S1–S15 lulus menurut pemilik. Jumlah warning build tidak dilaporkan* | [BE-IGD-055](../task/report/backend/BE-IGD-055.md) |
 | `BE-IGD-056` | Dokter layak IGD, validasi ulang, dan override beralasan (`IGD-DEC-141`) | R3.13 | ⛔ `IGD-OQ-102`, `IGD-OQ-103` (`S7`, tidak dikontrakkan); isi kartu dibekukan | — |
-| `BE-IGD-057` | Pasien pergi sebelum ditriage ditandai perawat (`POST no-show`, `IGD-DEC-142`) — **baru** | R3.13 | tanpa tanda — **siap**, prasyarat `BE-IGD-055` ✅ 23 September 2026 | — |
-| `BE-IGD-058` | Waktu tiba satu jalur; identitas kunjungan terkunci pada `PUT` (`IGD-DEC-152`, `154`, `159`) — **baru** | R3.13 | tanpa tanda — **siap**, prasyarat `BE-IGD-055` ✅ 23 September 2026 (kolom sumber waktu tiba sudah ada di basis data) | — |
-| `BE-IGD-059` | Jalur umum Registrasi dibatasi untuk encounter `Emergency` (`IGD-DEC-153`) — **baru** | R3.13 | tanpa tanda — menunggu `BE-IGD-051`, `BE-IGD-057` | — |
+| `BE-IGD-057` | Pasien pergi sebelum ditriage ditandai perawat (`POST no-show`, `IGD-DEC-142`) — **baru** | R3.13 | 🟡 **1 Oktober 2026** — build pemilik berhasil; uji API S1–S7, S9, S10 terbukti pada bukti mentah; **S8 (NoShow lawan Mulai Triage serentak) belum terbukti** — hasilnya pada JSON ditulis di skrip, bukan balasan endpoint. Sisa: satu uji paralel ulang. Batas alasan 250 (`IGD-DEC-178`). Tidak menahan `BE-IGD-059` dan `FE-IGD-039`. *Sebelumnya: 🟡 menunggu build dan uji* | [BE-IGD-057](../task/report/backend/BE-IGD-057.md) |
+| `BE-IGD-058` | Waktu tiba satu jalur; identitas kunjungan terkunci pada `PUT` (`IGD-DEC-152`, `154`, `159`) — **baru** | R3.13 | ✅ **1 Oktober 2026** — build pemilik berhasil (warning tidak dilaporkan); uji API S1–S9 terbukti 9 dari 9 pada bukti mentah (JSON, skrip, log backend). Tanpa UAT. *Sebelumnya: 🟡 menunggu build dan uji* | [BE-IGD-058](../task/report/backend/BE-IGD-058.md) |
+| `BE-IGD-059` | Jalur umum Registrasi dibatasi untuk encounter `Emergency` (`IGD-DEC-153`) — **baru** | R3.13 | 🟡 **1 Oktober 2026** — Implementation Complete (1 berkas Registrasi, +48 baris; QBE checker `PASS`); belum: build pemilik, uji API S1–S8. *Sebelumnya: tanpa tanda — menunggu `BE-IGD-051`, `BE-IGD-057`* | [BE-IGD-059](../task/report/backend/BE-IGD-059.md) |
 | `BE-IGD-060` | Kunjungan tertutup saat disposisi dilaksanakan (`IGD-DEC-163`…`165`) — **baru** | R3.14 | ✅ **30 September 2026 — atas penilaian pemilik.** Migration `20260930064430` diterapkan ke dev; `Down()` berpenjaga lulus uji empat tahap (agent); build pemilik berhasil (warning tidak dilaporkan); uji S1–S6 `PASS` (Playwright pemilik, bukti mentah diperiksa agent). Tanpa UAT. *Sebelumnya: 🟡 hari yang sama* | [BE-IGD-060](../task/report/backend/BE-IGD-060.md) |
-| `BE-IGD-061` | Penutupan menyusul dari tiga titik pemicu (`IGD-DEC-165`), dan observasi yang diakhiri sesudah disposisi dilaksanakan (`IGD-DEC-171`, `172`) — **baru** | R3.14 | tanpa tanda — **siap**, `BE-IGD-060` ✅. **Diperluas 30 September 2026** (`IGD-DEC-173`, `175`): pemetaan observasi pada kunjungan `Disposed`, acceptance 8–12; pasangan layar `FE-IGD-042` | — |
-| `BE-IGD-062` | Pembatalan disposisi ditolak pada kunjungan yang sudah selesai (`IGD-DEC-166`) — **baru** | R3.14 | tanpa tanda — **siap**, `BE-IGD-060` ✅. **Diperiksa ulang 30 September 2026** (`IGD-DEC-176`): `Executed → Cancelled` sudah `400` teknis; kartu kini menambah `409` bermakna yang didahulukan, `Executed` tetap final | — |
-| `BE-IGD-063` | Saringan "menunggu penutupan" pada daftar kunjungan (`IGD-DEC-168`) — **baru** | R3.14 | tanpa tanda — **siap**, `BE-IGD-060` ✅ 30 September 2026 | — |
+| `BE-IGD-061` | Penutupan menyusul dari tiga titik pemicu (`IGD-DEC-165`), dan observasi yang diakhiri sesudah disposisi dilaksanakan (`IGD-DEC-171`, `172`) — **baru** | R3.14 | 🟡 **1 Oktober 2026** — Implementation Complete (3 berkas source; QBE checker `PASS`); belum: build pemilik, uji API S1–S12. Pemicu dijalankan sesudah aksi tersimpan dalam satu transaksi; `arrive` bukan titik pemicu (catatan untuk pemilik). *Sebelumnya: tanpa tanda — **siap**, `BE-IGD-060` ✅. **Diperluas 30 September 2026** (`IGD-DEC-173`, `175`): pemetaan observasi pada kunjungan `Disposed`, acceptance 8–12; pasangan layar `FE-IGD-042`* | [BE-IGD-061](../task/report/backend/BE-IGD-061.md) |
+| `BE-IGD-062` | Pembatalan disposisi ditolak pada kunjungan yang sudah selesai (`IGD-DEC-166`) — **baru** | R3.14 | 🟡 **1 Oktober 2026** — Implementation Complete (1 berkas, +17 baris; QBE checker `PASS`); belum: build pemilik, uji API S1–S5. *Sebelumnya: tanpa tanda — **siap**, `BE-IGD-060` ✅. **Diperiksa ulang 30 September 2026** (`IGD-DEC-176`): `Executed → Cancelled` sudah `400` teknis; kartu kini menambah `409` bermakna yang didahulukan, `Executed` tetap final* | [BE-IGD-062](../task/report/backend/BE-IGD-062.md) |
+| `BE-IGD-063` | Saringan "menunggu penutupan" pada daftar kunjungan (`IGD-DEC-168`) — **baru** | R3.14 | 🟡 **1 Oktober 2026** — Implementation Complete (3 berkas source, +74/−2; QBE checker `PASS`); belum: build pemilik, uji API S1–S8. `GET /{id}` ikut mengisi dua ruas baru (selisih terhadap kartu). *Sebelumnya: tanpa tanda — **siap**, `BE-IGD-060` ✅ 30 September 2026* | [BE-IGD-063](../task/report/backend/BE-IGD-063.md) |
 
 
 **Tindak lanjut `BE-IGD-017`** (task yang sama, ID tidak diganti): laporan tracked susulan.
@@ -2002,11 +2002,11 @@ flowchart LR
     BEIGD051["✅ BE-IGD-051<br/>Kunjungan berakhir menutup encounter"]:::selesai
     BEIGD052["✅ BE-IGD-052<br/>Rekonsiliasi encounter historis"]:::selesai
     BEIGD054["✅ BE-IGD-054<br/>Daftar Menunggu Triage terpadu"]:::selesai
-    BEIGD055["✅ BE-IGD-055<br/>Kunjungan lahir lewat Mulai Triage"]:::selesai
-    BEIGD053["BE-IGD-053<br/>Penjaga episode di pintu encounter"]:::belum
-    BEIGD057["BE-IGD-057<br/>Pasien pergi sebelum ditriage"]:::belum
-    BEIGD058["BE-IGD-058<br/>Waktu tiba satu jalur, identitas terkunci"]:::belum
-    BEIGD059["BE-IGD-059<br/>Jalur umum Registrasi dibatasi"]:::belum
+    BEIGD055["🟡 BE-IGD-055<br/>Kunjungan lahir lewat Mulai Triage"]:::sebagian
+    BEIGD053["✅ BE-IGD-053<br/>Penjaga episode di pintu encounter"]:::selesai
+    BEIGD057["🟡 BE-IGD-057<br/>Pasien pergi sebelum ditriage"]:::sebagian
+    BEIGD058["✅ BE-IGD-058<br/>Waktu tiba satu jalur, identitas terkunci"]:::selesai
+    BEIGD059["🟡 BE-IGD-059<br/>Jalur umum Registrasi dibatasi"]:::sebagian
 
     BEIGD022 --> BEIGD051
     BEIGD024 --> BEIGD051
@@ -2270,11 +2270,11 @@ admin rekonsiliasi; `404` run tidak ada; `409` data berubah sejak pratinjau, ata
 
 **DoD.** Acceptance 1–9; laporan tracked; daftar K3/K4 diserahkan pada laporan sebagai daftar kerja, tanpa ditulis.
 
-### `BE-IGD-053` — Penjaga episode terbuka pada pintu encounter `Emergency` (realisasi `IGD-OQ-093`)
+### ✅ `BE-IGD-053` — Penjaga episode terbuka pada pintu encounter `Emergency` (realisasi `IGD-OQ-093`)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Tanpa tanda — **dependency terpenuhi 23 September 2026**: `BE-IGD-052` ✅ dan `BE-IGD-055` ✅, jadi task ini boleh **dikerjakan**. Keputusan yang dulu menahannya (`IGD-OQ-096`, `IGD-OQ-101`) sudah dijawab `IGD-DEC-142`, `145`, `146`. **Dirilis** di satu lingkungan hanya sesudah rekonsiliasi K1 dijalankan di sana (R3.13.5) — dan karena uji `BE-IGD-052` di Development memuat eksekusi *dan* pembalikan, keadaan dev harus diperiksa ulang lewat `GET /preview` (`expectedCount` = 0) sebelum rilis — dan **bersama** `FE-IGD-038`. *Sebelumnya: menunggu `BE-IGD-052` dan `BE-IGD-055`* |
+| **Status** | ✅ **SELESAI 1 Oktober 2026 — atas penilaian pemilik.** Migration `20261001023520_AddEmergencyDuplicateEpisodeOverride` dibuat dan diterapkan ke dev oleh pemilik (isi diperiksa agent: satu `CreateTable`, nol operasi pada tabel lain; snapshot hanya bertambah blok tabel baru); build pemilik berhasil (jumlah warning tidak dilaporkan — kriteria 14 sebagian); uji API S1–S12 `PASS` (Playwright pemilik, bukti mentah JSON diperiksa agent) — S4 `[200, 409]` dan S6 `409` membuktikan celah `IGD-OQ-093` hilang; penjaga `Down()` lulus uji empat tahap di basis data terpisah (agent). Alur loket dua langkah lewat layar (kriteria 9) terbukti pada uji layar `FE-IGD-038` U1 — tangkapan layar diperiksa agent. Tanpa UAT. **Rilis** tetap bersama `FE-IGD-038` dan sesudah rekonsiliasi K1 (R3.13.5). Bukti: [laporan](../task/report/backend/BE-IGD-053.md). *Sebelumnya: 🟡 pagi hari yang sama; tulisan agen penguji "LULUS PENUH (VERIFIED & CLOSED)" diluruskan* |
 | **Outcome** | Pendaftaran IGD kedua untuk pasien yang episodenya masih terbuka ditolak server **sebelum** encounter dibuat — dari layar mana pun, juga bila dua petugas menekan simpan pada detik yang sama; pendaftaran ganda yang sah tetap bisa, dengan alasan tercatat; encounter IGD tidak lagi membuat antrean |
 | **Slice** | `S1` · `EPIC IGD-11` · `MVP-7` |
 | **Requirement** | `FR-IGD-069` (sisi backend: pintu encounter tanpa kunjungan), `FR-IGD-071`, `FR-IGD-072`, `FR-IGD-073`, `FR-IGD-074` |
@@ -2430,11 +2430,11 @@ baris ada pada API §8.3.1.
 
 **DoD.** Acceptance 1–8; laporan tracked; `FE-IGD-035` boleh mulai sesudah build terverifikasi.
 
-### ✅ `BE-IGD-055` — Kunjungan IGD lahir lewat Mulai Triage atau Tangani Segera (`POST start-triage`)
+### 🟡 `BE-IGD-055` — Kunjungan IGD lahir lewat Mulai Triage atau Tangani Segera (`POST start-triage`)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI atas penilaian pemilik — 23 September 2026.** Implementasi: `POST start-triage` (`StartTriage` → `EmergencyVisitService.StartVisitAsync`, transaksi eksplisit + kunci `EMG_EPISODE_{patientId}` + satu kali ulang saat bentrok unique index), `EmergencyEpisodeRule.FindOpenEpisodeAsync` dan `LockPatientEpisodeAsync`, dua enum baru, tiga kolom `EmgVisit` + FK, tiga ruas waktu tiba pada `EmergencyVisitResponse`. Migration **`20260923021224_AddEmergencyArrivalTimeSource`** dibuat dan diterapkan pemilik; `Up()` diperiksa agent = 3 `AddColumn` + 1 `CreateIndex` + 1 `AddForeignKey`, snapshot **+20 baris, 0 penghapusan**. **Kriteria 9 terbukti agent**: penjaga `Down()` diuji empat tahap pada `postgres:16` terpisah (238 migration) — tanpa data `Down` berhasil; dengan satu baris `ArrivalTimeSource = 2` `Down` **ditolak** `PostgresException P0001` dan kolom tetap utuh; sesudah dinolkan `Down` berhasil lagi. **Uji API S1–S15 dinyatakan lulus semua oleh pemilik** (Development, 23 September 2026; S6 ditegaskan benar-benar serentak; lampiran tangkapan layar S13 `400`/`201`, skenario lain tanpa badan respons, agent tidak mengamati). **Kriteria 10 terpenuhi sebagian**: build berhasil dari artefak (DLL 10.23 memuat literal penjaga `Down()`), tetapi **jumlah warning tidak dilaporkan** sehingga kesamaannya dengan baseline tidak dapat dinyatakan. Dua belas selisih terhadap kartu dicatat pada laporan bagian 3.2. Bukti: [laporan](../task/report/backend/BE-IGD-055.md). *Riwayat:* 🟡 **SEBAGIAN — 22 September 2026**, source lengkap tetapi migration, build, dan uji API belum ada. *Sebelumnya: tanpa tanda — siap sesudah `BE-IGD-051`.* |
+| **Status** | 🟡 **SEBAGIAN — 1 Oktober 2026 (delta `IGD-DEC-179`).** Sepuluh kriteria asli tidak berubah dan tetap seperti 23 September 2026. Atas perintah pemilik, `POST start-triage` menerima lima ruas kunjungan opsional — `arrivalLocation`, `foundLocation`, `traumaLocation`, `traumaDateTime`, `notes` — yang disimpan saat kunjungan lahir dan diabaikan pada jawaban idempoten. Dua berkas source (`EmergencyVisitDtos.cs` +14, `EmergencyVisitService.cs` +27/−2), nol migration, nol baris komentar; QBE checker Strict `PASS` (0 `VIOLATION`, 0 `REVIEW`). Kontrak API §8.3.2 dan validation §10.2 aturan 14–15 ditambah (manifest 0j.3). **Belum:** build pemilik dan uji API D1–D6. **Usulan agent yang boleh ditolak:** waktu trauma di masa depan → `400`. Bukti: [laporan bagian 8](../task/report/backend/BE-IGD-055.md). *Sebelumnya: ✅ **SELESAI atas penilaian pemilik — 23 September 2026.** Implementasi: `POST start-triage` (`StartTriage` → `EmergencyVisitService.StartVisitAsync`, transaksi eksplisit + kunci `EMG_EPISODE_{patientId}` + satu kali ulang saat bentrok unique index), `EmergencyEpisodeRule.FindOpenEpisodeAsync` dan `LockPatientEpisodeAsync`, dua enum baru, tiga kolom `EmgVisit` + FK, tiga ruas waktu tiba pada `EmergencyVisitResponse`. Migration **`20260923021224_AddEmergencyArrivalTimeSource`** dibuat dan diterapkan pemilik; `Up()` diperiksa agent = 3 `AddColumn` + 1 `CreateIndex` + 1 `AddForeignKey`, snapshot **+20 baris, 0 penghapusan**. **Kriteria 9 terbukti agent**: penjaga `Down()` diuji empat tahap pada `postgres:16` terpisah (238 migration) — tanpa data `Down` berhasil; dengan satu baris `ArrivalTimeSource = 2` `Down` **ditolak** `PostgresException P0001` dan kolom tetap utuh; sesudah dinolkan `Down` berhasil lagi. **Uji API S1–S15 dinyatakan lulus semua oleh pemilik** (Development, 23 September 2026; S6 ditegaskan benar-benar serentak; lampiran tangkapan layar S13 `400`/`201`, skenario lain tanpa badan respons, agent tidak mengamati). **Kriteria 10 terpenuhi sebagian**: build berhasil dari artefak (DLL 10.23 memuat literal penjaga `Down()`), tetapi **jumlah warning tidak dilaporkan** sehingga kesamaannya dengan baseline tidak dapat dinyatakan. Dua belas selisih terhadap kartu dicatat pada laporan bagian 3.2. Bukti: [laporan](../task/report/backend/BE-IGD-055.md). *Riwayat:* 🟡 **SEBAGIAN — 22 September 2026**, source lengkap tetapi migration, build, dan uji API belum ada. *Sebelumnya: tanpa tanda — siap sesudah `BE-IGD-051`.** |
 | **Outcome** | Perawat triage menekan **Mulai Triage** (dengan waktu tiba) atau **Tangani Segera** (tanpa isian) pada pasien yang baru didaftarkan, dan kunjungan IGD lahir saat itu — sekali saja, walau tombolnya ditekan dua kali atau oleh dua perawat |
 | **Slice** | `S3` (dan `S8`) · `EPIC IGD-11` · `MVP-7` |
 | **Requirement** | `FR-IGD-075`, `FR-IGD-076`, `FR-IGD-077`; `FR-IGD-085` (ruas pasien tanpa identitas) |
@@ -2531,11 +2531,11 @@ dipakai sebagai dasar implementasi. Kartu disusun ulang `plan-module-delivery` s
 dan kontraknya disetujui. Yang tetap: `FE-IGD-027` **tetap ✅** (`IGD-DEC-141` butir 6); penetapan dokter berjalan
 seperti hari ini (`BE-IGD-045`) selama task ini ditahan.
 
-### `BE-IGD-057` — Pasien pergi sebelum ditriage ditandai perawat (`POST no-show`)
+### 🟡 `BE-IGD-057` — Pasien pergi sebelum ditriage ditandai perawat (`POST no-show`)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Tanpa tanda — **baru, direncanakan 22 September 2026 (penutup)**. Menunggu `BE-IGD-055` |
+| **Status** | 🟡 **SEBAGIAN — 1 Oktober 2026.** Build pemilik berhasil (jumlah warning tidak dilaporkan — kriteria 9 sebagian). Uji API dijalankan pemilik lewat agen penguji; bukti mentah diperiksa agent: S1–S7, S9, S10 terbukti (kriteria 1–5, 7). **Kriteria 6 belum terbukti lewat uji:** S8 pada JSON hasil adalah teks yang ditulis di skrip saat encounter sudah NoShow, dan satu-satunya eksekusi paralel yang tercatat di log backend memakai pasien yang masih punya kunjungan lain, sehingga Mulai Triage pasti ditolak apa pun urutannya. Pada source kedua jalur memakai kunci per pasien yang sama dan membaca ulang di dalam kunci. **Sisa:** satu uji paralel ulang pada pasien tanpa episode lain (laporan bagian 5.3). Tidak menahan `BE-IGD-059` dan `FE-IGD-039`. Tanpa UAT. Bukti: [laporan](../task/report/backend/BE-IGD-057.md). *Sebelumnya: tulisan agen penguji "✅ SELESAI — lulus penuh" diluruskan; 🟡 menunggu build dan uji* |
 | **Outcome** | Perawat triage menandai pasien yang pergi sebelum ditriage, dengan alasan; encounter-nya berakhir `NoShow` secara final, hilang dari daftar triage, tidak ditagih, dan pasien yang kembali dapat didaftarkan ulang |
 | **Slice** | `S4` · `EPIC IGD-11` · `MVP-7` |
 | **Requirement** | `FR-IGD-079` |
@@ -2597,11 +2597,11 @@ berakhir. **Pemberian hak ke peran** (`IGD-UNK-11`) dilakukan admin di basis dat
 
 **DoD.** Acceptance 1–9; laporan tracked; `FE-IGD-039` dan `BE-IGD-059` boleh mulai sesudahnya.
 
-### `BE-IGD-058` — Waktu tiba dikonfirmasi lewat satu jalur; identitas kunjungan terkunci pada `PUT`
+### ✅ `BE-IGD-058` — Waktu tiba dikonfirmasi lewat satu jalur; identitas kunjungan terkunci pada `PUT`
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Tanpa tanda — **baru, direncanakan 22 September 2026 (penutup)**. Menunggu `BE-IGD-055` (kolom sumber waktu tiba) |
+| **Status** | ✅ **SELESAI — 1 Oktober 2026.** Build pemilik berhasil (jumlah warning tidak dilaporkan — kriteria 8 sebagian). Uji API S1–S9 dijalankan pemilik lewat agen penguji; bukti mentah (JSON, skrip, log permintaan backend) diperiksa agent: 9 dari 9 terbukti, kriteria 1–7 terpenuhi. `PUT` atas kunjungan ber-encounter kini dapat dipakai (S7). Tanpa UAT. Bukti: [laporan](../task/report/backend/BE-IGD-058.md). *Sebelumnya: tulisan agen penguji "lulus penuh" diluruskan; 🟡 menunggu build dan uji* |
 | **Outcome** | Perawat mengonfirmasi atau mengoreksi waktu tiba lewat satu jalur yang menolak nilai mustahil (masa depan, atau sesudah peristiwa klinis pertama); pasien, encounter, dan waktu tiba kunjungan tidak lagi dapat ditimpa diam-diam lewat ubah kunjungan |
 | **Slice** | `S3` · `EPIC IGD-11` · `MVP-7` |
 | **Requirement** | `FR-IGD-078`, `FR-IGD-083` |
@@ -2662,11 +2662,11 @@ berkas Registrasi, `Program.cs`, berkas kontrak, frontend.
 
 **DoD.** Acceptance 1–8; laporan tracked; `FE-IGD-040` boleh mulai sesudah build terverifikasi.
 
-### `BE-IGD-059` — Jalur umum Registrasi dibatasi untuk encounter `Emergency`
+### 🟡 `BE-IGD-059` — Jalur umum Registrasi dibatasi untuk encounter `Emergency`
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Tanpa tanda — **baru, direncanakan 22 September 2026 (penutup)**. Menunggu `BE-IGD-051` dan `BE-IGD-057` — jalan pengganti harus ada sebelum jalur umum ditutup |
+| **Status** | 🟡 **SEBAGIAN — 1 Oktober 2026 (Implementation Complete).** Source selesai pada satu berkas Registrasi (`PatientEncounterController.cs`, +48 baris, nol baris komentar): `PATCH …/status` menolak Emergency `409`; `PATCH …/cancel` untuk Emergency berjalan di dalam transaksi dengan kunci per pasien, membaca ulang, dan menolak `409` bila sudah punya kunjungan. QBE checker Strict `PASS` (0 `VIOLATION`, 0 `REVIEW`). Nol schema, nol migration, nol `Program.cs` (kriteria 6). **Belum:** build pemilik (kriteria 7) dan uji API S1–S8 termasuk uji paralel (kriteria 1–5). Jalan penggantinya sudah ada: penutupan ikut kunjungan (`BE-IGD-051` ✅) dan NoShow (`BE-IGD-057` 🟡 — endpoint terpasang). Bukti: [laporan](../task/report/backend/BE-IGD-059.md). *Sebelumnya: tanpa tanda — menunggu `BE-IGD-051` dan `BE-IGD-057`* |
 | **Outcome** | Status akhir encounter IGD hanya dapat ditetapkan lewat aksi IGD, sehingga tidak pernah ada keadaan "kunjungan berjalan, encounter sudah berakhir", dan setiap NoShow IGD berpelaku dan beralasan |
 | **Slice** | `S1` · `EPIC IGD-11` · `MVP-7` |
 | **Requirement** | `FR-IGD-082` |
@@ -2761,13 +2761,13 @@ flowchart LR
 
     subgraph prasyarat14["Prasyarat — gelombang lain yang sudah selesai"]
         BEIGD051X["✅ BE-IGD-051<br/>Kunjungan berakhir menutup encounter"]:::luar
-        BEIGD055X["✅ BE-IGD-055<br/>Kunjungan lahir lewat Mulai Triage"]:::luar
+        BEIGD055X["🟡 BE-IGD-055<br/>Kunjungan lahir lewat Mulai Triage"]:::luar
     end
 
     BEIGD060["✅ BE-IGD-060<br/>Disposisi dilaksanakan menutup kunjungan"]:::selesai
-    BEIGD061["BE-IGD-061<br/>Penutupan menyusul tiga titik pemicu<br/>+ observasi pada kunjungan Disposed"]:::belum
-    BEIGD062["BE-IGD-062<br/>Pembatalan disposisi ditolak"]:::belum
-    BEIGD063["BE-IGD-063<br/>Saringan menunggu penutupan"]:::belum
+    BEIGD061["🟡 BE-IGD-061<br/>Penutupan menyusul tiga titik pemicu<br/>+ observasi pada kunjungan Disposed"]:::sebagian
+    BEIGD062["🟡 BE-IGD-062<br/>Pembatalan disposisi ditolak"]:::sebagian
+    BEIGD063["🟡 BE-IGD-063<br/>Saringan menunggu penutupan"]:::sebagian
 
     BEIGD051X --> BEIGD060
     BEIGD055X --> BEIGD060
@@ -2852,11 +2852,11 @@ menolak bila ada baris `ClosedByDispositionId IS NOT NULL`.
 
 ---
 
-### `BE-IGD-061` — Penutupan menyusul dari tiga titik pemicu, dan observasi yang diakhiri sesudah disposisi dilaksanakan
+### 🟡 `BE-IGD-061` — Penutupan menyusul dari tiga titik pemicu, dan observasi yang diakhiri sesudah disposisi dilaksanakan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Tanpa tanda — **siap**, prasyarat `BE-IGD-060` ✅ 30 September 2026. **Diperluas 30 September 2026** (`plan-module-delivery`, `IGD-DEC-173`): perubahan pemetaan status pada `UpdateObservationStatus` untuk kunjungan `Disposed` (`IGD-DEC-171`, `172`) masuk kartu ini, sehingga kriteria 1 diuji dengan observasi yang **diselesaikan**, bukan dibatalkan. *Sebelumnya: tertahan temuan uji `BE-IGD-060` S3 — sesudah disposisi dilaksanakan, observasi aktif hanya dapat dibatalkan* |
+| **Status** | 🟡 **SEBAGIAN — 1 Oktober 2026 (Implementation Complete).** Tiga berkas source, nol baris komentar, nol `Program.cs`, nol migration: `EmergencyObservationController` (+58/−3 — eskalasi pada kunjungan `Disposed` ditolak `409` lebih dulu dengan kalimat validation §11.1 aturan 14; *selesaikan* tidak lagi memetakan ke `AwaitingDisposition`; penutupan dicoba sesudah observasi tersimpan), `EmergencyDepartureController` (+99/−8 — enam action: `accept-handover`, `reject-handover`, `cancel`, `order-items/{itemId}/action`, `accept`, `reject`), dan `EmergencyVisitService` (+27 — `TryCloseAfterBlockerResolvedAsync`). QBE checker Strict `PASS` (0 `VIOLATION`, 0 `REVIEW`). Kriteria 6 terpenuhi; kriteria 1–5 dan 8–12 terpetakan ke source. **Belum:** build pemilik (kriteria 7) dan uji API S1–S12. **Dua selisih terhadap kartu** (laporan 3.4): (a) pemicu dijalankan **sesudah** aksi tersimpan di dalam satu transaksi, bukan sebelum `SaveChanges` — penjaga penutupan membaca basis data, jadi perubahan yang belum tersimpan tidak terlihat; (b) `EmergencyVisitService` ikut disentuh supaya controller kepergian tidak memegang context. **Catatan untuk pemilik:** `arrive` bukan titik pemicu menurut kontrak, padahal keadaan fisik itulah yang menahan penutupan. Bukti: [laporan](../task/report/backend/BE-IGD-061.md). *Sebelumnya: Tanpa tanda — **siap**, prasyarat `BE-IGD-060` ✅ 30 September 2026. **Diperluas 30 September 2026** (`plan-module-delivery`, `IGD-DEC-173`): perubahan pemetaan status pada `UpdateObservationStatus` untuk kunjungan `Disposed` (`IGD-DEC-171`, `172`) masuk kartu ini, sehingga kriteria 1 diuji dengan observasi yang **diselesaikan**, bukan dibatalkan. *Sebelumnya: tertahan temuan uji `BE-IGD-060` S3 — sesudah disposisi dilaksanakan, observasi aktif hanya dapat dibatalkan** |
 | **Outcome** | Kunjungan yang tertahan karena satu kewajiban belum tuntas tertutup sendiri begitu petugas membereskan kewajiban terakhir itu, atas nama petugas tersebut. Perawat dapat **menyelesaikan** observasi beserta kesimpulannya sesudah tindak lanjut pasien dilaksanakan, dan eskalasi pada keadaan itu ditolak dengan kalimat yang dapat dipahami |
 | **Slice** | `S5` · `EPIC IGD-13` · `MVP-8` |
 | **Requirement** | `FR-IGD-088`, `FR-IGD-092`, `FR-IGD-093` |
@@ -2933,11 +2933,11 @@ kunjungan Dede (laporan `BE-IGD-060`) — bersihkan atau pakai pasien lain sebel
 
 ---
 
-### `BE-IGD-062` — Pembatalan disposisi ditolak pada kunjungan yang sudah selesai
+### 🟡 `BE-IGD-062` — Pembatalan disposisi ditolak pada kunjungan yang sudah selesai
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Tanpa tanda — **siap**, prasyarat `BE-IGD-060` ✅ 30 September 2026. **Diperiksa ulang 30 September 2026** (`IGD-DEC-176`) — lihat *Hasil pemeriksaan ulang* di bawah |
+| **Status** | 🟡 **SEBAGIAN — 1 Oktober 2026 (Implementation Complete).** Satu berkas source (`EmergencyDispositionController.cs`, +17 baris, nol baris komentar): pada `UpdateDispositionStatus`, sesudah `404` dan sebelum penjaga perpindahan, pembatalan tindak lanjut `Executed` atas kunjungan `Completed` dijawab `409` dengan kalimat validation §11 aturan 8. `CanTransition` tidak diubah; nol `Program.cs`, nol migration. QBE checker Strict `PASS` (0 `VIOLATION`, 0 `REVIEW`). Kriteria 5 terpenuhi (seluruh penulisan status kunjungan melewati penjaga yang menolak apa pun dari `Completed`); kriteria 1–4 terpetakan ke source. **Belum:** build pemilik (kriteria 6) dan uji API S1–S5. Bukti: [laporan](../task/report/backend/BE-IGD-062.md). *Sebelumnya: Tanpa tanda — **siap**, prasyarat `BE-IGD-060` ✅ 30 September 2026. **Diperiksa ulang 30 September 2026** (`IGD-DEC-176`) — lihat *Hasil pemeriksaan ulang* di bawah* |
 | **Outcome** | Petugas yang mencoba membatalkan tindak lanjut pasien yang kunjungannya sudah ditutup membaca alasannya dan arahan mendaftarkan episode baru — bukan pesan teknis perpindahan status |
 | **Slice** | `S5` · `EPIC IGD-13` · `MVP-8` |
 | **Requirement** | `FR-IGD-090` |
@@ -2996,11 +2996,11 @@ pengaman tingkat API, bukan jalur layar. Tidak ada perubahan layar yang dibutuhk
 
 ---
 
-### `BE-IGD-063` — Saringan "menunggu penutupan" pada daftar kunjungan
+### 🟡 `BE-IGD-063` — Saringan "menunggu penutupan" pada daftar kunjungan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Tanpa tanda — menunggu `BE-IGD-060` |
+| **Status** | 🟡 **SEBAGIAN — 1 Oktober 2026 (Implementation Complete).** Tiga berkas source, nol baris komentar, nol `Program.cs`, nol migration: `EmergencyVisitDtos.cs` (+3 — `IsAwaitingClosure`, `AwaitingClosureReason`), `EmergencyVisitService` (+42 — `SaringMenungguPenutupan`, `AmbilAlasanMenungguPenutupanAsync`), `EmergencyVisitController` (+29/−2 — query `awaitingClosure` pada `GetAll`, pengisian dua ruas pada baris halaman dan pada `GetById`). QBE checker Strict `PASS` (0 `VIOLATION`, 0 `REVIEW`). Kriteria 5 terpenuhi (penjaga hanya dijalankan untuk baris halaman yang memang menunggu penutupan); kriteria 1–4 terpetakan ke source. **Belum:** build pemilik (kriteria 6) dan uji API S1–S8. **Selisih terhadap kartu** (laporan 3.5): `GET /{id}` ikut mengisi dua ruas baru supaya detail kunjungan yang tertahan tidak menjawab `false`; "belum selesai" dibaca sebagai bukan `Completed` dan bukan `Cancelled`. **Catatan:** response aksi tulis kunjungan tidak menghitung dua ruas itu. Bukti: [laporan](../task/report/backend/BE-IGD-063.md). *Sebelumnya: Tanpa tanda — menunggu `BE-IGD-060`* |
 | **Outcome** | Petugas dapat melihat daftar kunjungan yang tindak lanjutnya sudah dilaksanakan tetapi belum tertutup, beserta alasan penahannya dan jumlahnya |
 | **Slice** | `S5` · `EPIC IGD-13` · `MVP-8` |
 | **Requirement** | `FR-IGD-091` |

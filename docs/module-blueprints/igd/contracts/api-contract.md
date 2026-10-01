@@ -743,6 +743,14 @@ diekspos sebagai ruas yang wajib dibaca layar.
 | `chiefComplaint` | `string?` | Tidak | Salinan `RegPatientEncounter.ChiefComplaint` | Maks. mengikuti kolom kunjungan |
 | `isUnknownPatient` | `bool` | Tidak | `false` | Menandai rekam pengganti (`IGD-DEC-151`) |
 | `temporaryPatientAlias` | `string?` | Wajib bila `isUnknownPatient` | — | Aturan yang sudah ada (validation §1 aturan 3) |
+| `arrivalLocation` | `string?` | Tidak | — | Lokasi kedatangan; di-*trim*; maks. 250 — **ditambahkan 1 Oktober 2026 (`IGD-DEC-179`)** |
+| `foundLocation` | `string?` | Tidak | — | Lokasi pasien ditemukan; di-*trim*; maks. 250 — `IGD-DEC-179` |
+| `traumaLocation` | `string?` | Tidak | — | Lokasi trauma; di-*trim*; maks. 250 — `IGD-DEC-179` |
+| `traumaDateTime` | `datetime?` | Tidak | — | Waktu trauma; tidak di masa depan — `IGD-DEC-179` |
+| `notes` | `string?` | Tidak | — | Catatan kunjungan; di-*trim*; maks. 1000 — `IGD-DEC-179` |
+
+Lima ruas terakhir berlaku pada kedua `mode` dan hanya dipakai **saat kunjungan lahir** (`201`). Pada jawaban
+idempoten `200` kelimanya diabaikan — kunjungan yang sudah ada tidak ditimpa.
 
 **Contoh — Mulai Triage.**
 
@@ -784,7 +792,7 @@ diekspos sebagai ruas yang wajib dibaca layar.
 | Ruas | Tipe | Wajib | Aturan |
 | --- | --- | :-: | --- |
 | `encounterId` | `uuid` | **Ya** | Encounter Emergency tanpa kunjungan, belum berakhir |
-| `reason` | `string` | **Ya** | Di-*trim*; 1–500 karakter |
+| `reason` | `string` | **Ya** | Di-*trim*; 1–250 karakter — **dikoreksi 1 Oktober 2026 (`IGD-DEC-178`)**: semula tertulis 500, padahal kolom `RegPatientEncounter.NoShowReason` hanya 250 |
 
 **Respons `200`.** `{ "encounterId": "…", "encounterStatus": 11, "noShowAt": "…", "noShowByName": "…", "noShowReason": "…" }`.
 Pelaku dari token, waktu dari server. **Final** — tidak ada endpoint pembatalannya (`IGD-DEC-142`).
