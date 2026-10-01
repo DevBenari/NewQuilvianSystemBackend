@@ -444,6 +444,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 filtered = filtered.Where(x => x.RoomId == query.RoomId.Value);
             }
 
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var keyword = query.Search.Trim().ToLower();
+                filtered = filtered.Where(x =>
+                    x.Episode!.EpisodeNumber.ToLower().Contains(keyword) ||
+                    (x.Episode.Patient != null && x.Episode.Patient.FullName.ToLower().Contains(keyword)) ||
+                    (x.Episode.Patient != null && x.Episode.Patient.MedicalRecordNumber.ToLower().Contains(keyword)) ||
+                    (x.Bed != null && x.Bed.BedName.ToLower().Contains(keyword)));
+            }
+
             var totalData = await filtered.CountAsync(cancellationToken);
 
             var items = await filtered
@@ -524,6 +534,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// </remarks>
         public async Task<List<CensusItemResponse>> GetUnassignedNurseEpisodesAsync(
             Guid? serviceUnitId = null,
+            string? search = null,
             CancellationToken cancellationToken = default)
         {
             IQueryable<InpEpisode> filtered = _dbContext.Set<InpEpisode>()
@@ -537,6 +548,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
             {
                 filtered = filtered.Where(x => x.ServiceUnitId == serviceUnitId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+                filtered = filtered.Where(x =>
+                    x.EpisodeNumber.ToLower().Contains(keyword) ||
+                    (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
+                    (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)));
             }
 
             var items = await filtered
@@ -634,6 +654,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 filtered = filtered.Where(x => x.ServiceUnitId == query.ServiceUnitId.Value);
             }
 
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var keyword = query.Search.Trim().ToLower();
+                filtered = filtered.Where(x =>
+                    x.EpisodeNumber.ToLower().Contains(keyword) ||
+                    (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
+                    (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)));
+            }
+
+            if (query.MinDelayHours.HasValue && query.MinDelayHours.Value > 0)
+            {
+                var minCutoff = now.AddHours(-query.MinDelayHours.Value);
+                filtered = filtered.Where(x => x.DischargeDecidedAt <= minCutoff);
+            }
+
             var totalData = await filtered.CountAsync(cancellationToken);
 
             var items = await filtered
@@ -710,6 +745,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 filtered = filtered.Where(x => x.ServiceUnitId == query.ServiceUnitId.Value);
             }
 
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var keyword = query.Search.Trim().ToLower();
+                filtered = filtered.Where(x =>
+                    x.EpisodeNumber.ToLower().Contains(keyword) ||
+                    (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
+                    (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)));
+            }
+
             var totalData = await filtered.CountAsync(cancellationToken);
 
             var items = await filtered
@@ -756,6 +800,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             var all = await GetUnassignedNurseEpisodesAsync(
                 query.ServiceUnitId,
+                query.Search,
                 cancellationToken);
 
             return new UnassignedNursePagedResult

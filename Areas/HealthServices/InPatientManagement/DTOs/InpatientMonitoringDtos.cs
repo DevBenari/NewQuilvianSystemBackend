@@ -5,6 +5,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// <summary>Penyaring daftar pantau penempatan tidak sesuai kebutuhan isolasi.</summary>
     public class IsolationMismatchQuery
     {
+        public string? Search { get; set; }
+
         public Guid? ServiceUnitId { get; set; }
 
         public Guid? RoomId { get; set; }
@@ -77,7 +79,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// <summary>Penyaring daftar pantau yang dikelompokkan menurut unit layanan.</summary>
     public class InpatientMonitoringQuery
     {
+        public string? Search { get; set; }
+
         public Guid? ServiceUnitId { get; set; }
+
+        public int? MinDelayHours { get; set; }
 
         public int PageNumber { get; set; } = 1;
 
