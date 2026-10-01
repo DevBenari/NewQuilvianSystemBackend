@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Constants;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
@@ -142,6 +143,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                             .FirstOrDefault()
                 })
                 .ToListAsync(cancellationToken);
+
+            // r34 29.5, r35 30.5 — label order turunan bagi disiplin yang DAPAT DIRILIS
+            // (LabReleasableDisciplines: Patologi Klinik dan, sejak BE-LAB-79, Mikrobiologi) — satu
+            // jawaban dengan penjaga validasi. Patologi Anatomi tetap kosong sampai S4e. Satu kueri
+            // berkelompok untuk seluruh halaman, bukan sub-query per baris.
+            if (LabReleasableDisciplines.Contains(discipline))
+            {
+                var progres = await LabOrderResultProgressRules.ReadAsync(
+                    _dbContext,
+                    items.Select(x => x.LabOrderId).ToList(),
+                    cancellationToken);
+
+                foreach (var item in items)
+                {
+                    item.ResultProgress = progres.TryGetValue(item.LabOrderId, out var label)
+                        ? label.ToString()
+                        : null;
+                }
+            }
 
             return new PagedResult<LabMonitoringItemResponse>
             {

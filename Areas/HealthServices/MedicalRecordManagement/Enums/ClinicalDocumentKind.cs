@@ -31,6 +31,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enu
         /// pada himpunan <c>JenisYangDitegakkan</c> di <c>ClinicalDocumentIntegrityService</c>.
         /// Tanpa itu sesi tampil disahkan tetapi catatannya tetap dapat disunting.
         /// </summary>
-        HemodialysisSession = 14
+        HemodialysisSession = 14,
+
+        /// <summary>
+        /// Hasil laboratorium yang dirilis — <c>LAB-BP-001</c>, <c>BE-LAB-70</c>, kesepakatan
+        /// <c>LAB-COORD-002</c>. Satu baris per <c>LabExamination</c> yang dirilis; dokumennya
+        /// langsung tertanda tangan dan terkunci saat rilis.
+        ///
+        /// <b>15, bukan 14.</b> Rancangan Laboratorium menetapkan 14 sebelum
+        /// <see cref="HemodialysisSession"/> mengambil angka itu; pemilik modul Laboratorium
+        /// memilih 15 pada 2026-09-29.
+        ///
+        /// Sengaja BELUM masuk <c>JenisYangDitegakkan</c> pada
+        /// <c>ClinicalDocumentIntegrityService</c>: penegakan <c>EnsureMutableAsync</c> baru
+        /// dibutuhkan koreksi <c>S6</c>, dan himpunan itu milik Rekam Medis.
+        /// </summary>
+        LaboratoryResult = 15
     }
 }
