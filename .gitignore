@@ -397,3 +397,10 @@ DataProtectionKeys/key-*.xml
 !/Tests/QuilvianSystemBackend.OperatingRoomTests/
 /Tests/QuilvianSystemBackend.OperatingRoomTests/bin/
 /Tests/QuilvianSystemBackend.OperatingRoomTests/obj/
+
+# Alasan yang sama untuk regresi Farmasi `GAP-PHA-BE-001`: uji tangga tahap pemenuhan resep
+# menjaga agar resep tidak lagi lahir pada tahap 2, dan itu hanya berlaku di mesin yang kebetulan
+# pernah menjalankannya bila berkasnya tidak ikut masuk repositori.
+!/Tests/QuilvianSystemBackend.PharmacyTests/
+/Tests/QuilvianSystemBackend.PharmacyTests/bin/
+/Tests/QuilvianSystemBackend.PharmacyTests/obj/

@@ -409,6 +409,7 @@ try
     builder.Services.AddScoped<PrescriptionNumberService>();
     builder.Services.AddScoped<PrescriptionSummaryService>();
     builder.Services.AddScoped<PrescriptionWorkflowService>();
+    builder.Services.AddScoped<PrescriptionBillingChargeProducer>();
     builder.Services.AddScoped<PrescriptionWorkspaceService>();
     builder.Services.AddScoped<PrescriptionTemplateService>();
     builder.Services.AddScoped<PrescriptionValidationService>();

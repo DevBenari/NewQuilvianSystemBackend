@@ -367,9 +367,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 PolicyNumberSnapshot = insuranceContext.PolicyNumber,
                 BenefitPlanCodeSnapshot = insuranceContext.BenefitPlanCode,
                 BenefitPlanNameSnapshot = insuranceContext.BenefitPlanName,
-                PrescriptionStatus = PrescriptionStatus.Draft,
-                PaymentStatus = PrescriptionPaymentStatus.NotBilled,
-                FulfillmentStatus = PrescriptionFulfillmentStatus.WaitingForPayment,
                 PrescriptionDateTime = request.PrescriptionDateTime ?? now,
                 ClinicalNote = NormalizeNullableText(request.ClinicalNote),
                 DoctorInstruction = NormalizeNullableText(request.DoctorInstruction),
@@ -379,6 +376,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 IsDelete = false,
                 IsCancel = false
             };
+
+            // GAP-PHA-BE-001. Ketiga status awal ditetapkan domain service, bukan di sini.
+            // Sebelumnya baris ini menetapkan FulfillmentStatus = WaitingForPayment pada resep
+            // yang sekaligus ditandai Draft, dan resep seperti itu tidak pernah dapat difinalkan.
+            PrescriptionWorkflowService.ApplyInitialClinicalState(entity);
 
             _dbContext.Set<PhmPrescription>().Add(entity);
             await _dbContext.SaveChangesAsync(cancellationToken);
