@@ -14,7 +14,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 {
     /// <summary>
     /// Validasi, rilis, dan <i>Kembalikan ke analis</i> atas hasil Patologi Klinik (<c>S4</c>,
-    /// <c>02-backend-architecture.md</c> 20.4). Dipisah dari <see cref="LabExaminationService"/>
+    /// <c>02-backend-architecture.md</c> 20.4) dan — sejak <c>BE-LAB-78</c> — Mikrobiologi
+    /// (<c>S4d-1</c>, bagian 21). Kode kewenangan dipilih dari disiplin pemeriksaan; hasil
+    /// Mikrobiologi <i>Sementara</i> tidak disahkan (<c>VAL-144</c>). Dipisah dari <see cref="LabExaminationService"/>
     /// karena ketiga tindakan ini punya pelaku, izin, dan integrasi yang berbeda dari penulisan
     /// hasil. <see cref="LabExaminationService"/> tetap memegang penulisan hasil, Final, dan Reopen.
     ///
@@ -57,13 +59,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         }
 
         /// <summary>
-        /// Menyatakan angka hasil Patologi Klinik yang sudah Final <b>benar</b>
-        /// (<c>LAB-API-v1</c> <c>r34</c> 29.2; <c>LAB-STATE-v1</c> <c>r5</c> 7.2).
+        /// Menyatakan hasil Patologi Klinik atau Mikrobiologi yang sudah Final <b>benar</b>
+        /// (<c>LAB-API-v1</c> <c>r34</c> 29.2, <c>r35</c> 30.2; <c>LAB-STATE-v1</c> <c>r5</c> 7.2, <c>r6</c> 8.2).
         ///
         /// <para>
-        /// <b>Urutan pemeriksaan disengaja</b> (20.4, <c>LAB-VAL-v1</c> <c>r12</c> 14.1):
-        /// (1) Patologi Klinik — <c>VAL-126</c>; (2) tidak batal atau gugur — <c>VAL-127</c>;
-        /// (3) keadaan hasil — <c>VAL-124</c>, <c>VAL-125</c>; (4) lapis orang — <c>VAL-128</c>;
+        /// <b>Urutan pemeriksaan disengaja</b> (20.4 dan 21.1, <c>LAB-VAL-v1</c> <c>r12</c> 14.1):
+        /// (1) disiplin didukung — <c>VAL-126</c>; (2) tidak batal atau gugur — <c>VAL-127</c>;
+        /// (2a) bukan Mikrobiologi <i>Sementara</i> — <c>VAL-144</c>;
+        /// (3) keadaan hasil — <c>VAL-124</c>, <c>VAL-125</c>; (4) lapis orang — <c>VAL-128</c>, kode disiplin pemeriksaan;
         /// (5) empat mata — <c>VAL-130</c>, <c>VAL-129</c>, <c>VAL-132</c>; (6) tulis. Lapis orang
         /// sengaja <b>sesudah</b> keadaan hasil: dokter yang menekan Validasi pada hasil Draft
         /// membaca sebab yang sebenarnya — <i>belum Final</i> — bukan penolakan kewenangan.
@@ -82,7 +85,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var examination = await LoadAsync(id, cancellationToken);
 
             // (1) VAL-126 dan (2) VAL-127.
-            EnsureClinicalPathologyAndRunning(examination);
+            var discipline = EnsureReleasableAndRunning(examination);
+
+            // (2a) VAL-144 — Mikrobiologi Sementara (r35, 21.1).
+            EnsureNotPreliminary(examination, discipline);
 
             // (3) VAL-124 lalu VAL-125.
             if (examination.FinalizedAt is null)
@@ -100,7 +106,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             // LabPrivilegeReadException: controller menjawab 503, dan nol yang tersimpan.
             var actorUserId = GetCurrentUserId();
             var now = DateTime.UtcNow;
-            var privilege = await EnsureAppointedAsync(actorUserId, LabPrivilegeKind.Validation, now, cancellationToken);
+            var privilege = await EnsureAppointedAsync(actorUserId, discipline, LabPrivilegeKind.Validation, now, cancellationToken);
 
             // (5) Empat mata.
             // VAL-130. Tanpa pengisi yang tercatat, "bukan orang yang sama" tidak dapat dibuktikan.
@@ -144,14 +150,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             await SaveAsync(cancellationToken);
 
             // Payload log sengaja tanpa nilai hasil, catatan pengecualian, dan nama pasien
-            // (LAB-PERM-v1 rev 11 13.6).
+            // (LAB-PERM-v1 rev 11 13.6). LoggerService tidak menuliskan objek payload, dan ruas
+            // bernama "Id" menimpa pelaku — isi pentingnya di teks pesan, id di ExaminationId.
             await _loggerService.AuditAsync(
                 LogCategory,
                 "LabExamination.ValidateResult",
-                "Hasil Patologi Klinik divalidasi.",
+                $"Hasil {NamaDisiplin(discipline)} divalidasi — pemeriksaan {examination.Id}; pengecualian empat mata: {reason?.ReasonCode ?? "tidak"}.",
                 new
                 {
-                    examination.Id,
+                    ExaminationId = examination.Id,
                     examination.LabOrderId,
                     examination.ValidatedAt,
                     examination.ValidatedByPrivilegeId,
@@ -165,7 +172,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         }
 
         /// <summary>
-        /// Merilis hasil Patologi Klinik yang sudah divalidasi, sehingga menjadi dokumen klinis
+        /// Merilis hasil Patologi Klinik atau Mikrobiologi yang sudah divalidasi, sehingga menjadi dokumen klinis
         /// pasien — <b>sekaligus</b> mendaftarkannya ke rekam medis sebagai dokumen tertanda
         /// tangan dan terkunci (<c>r34</c> 29.2, 29.7; <c>INT-08</c>; <c>LAB-DEC-017</c>).
         ///
@@ -204,7 +211,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var examination = await LoadAsync(id, cancellationToken);
 
             // (1) VAL-126 dan (2) VAL-127.
-            EnsureClinicalPathologyAndRunning(examination);
+            var discipline = EnsureReleasableAndRunning(examination);
+
+            // (2a) VAL-144 — penjaganya tetap ada pada rilis walau keadaan itu tidak dapat terjadi
+            // lewat sistem (r6 8.3): hasil Sementara tidak pernah lolos validasi.
+            EnsureNotPreliminary(examination, discipline);
 
             // (3) VAL-133 — belum divalidasi, lalu sudah dirilis.
             if (examination.ValidatedAt is null)
@@ -222,7 +233,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             // (AC-217, AC-231).
             var actorUserId = GetCurrentUserId();
             var now = DateTime.UtcNow;
-            var privilege = await EnsureAppointedAsync(actorUserId, LabPrivilegeKind.Release, now, cancellationToken);
+            var privilege = await EnsureAppointedAsync(actorUserId, discipline, LabPrivilegeKind.Release, now, cancellationToken);
 
             // (5) Empat mata — VAL-131, VAL-132.
             var (reason, note) = await ResolveFourEyesExceptionAsync(
@@ -288,10 +299,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             await _loggerService.AuditAsync(
                 LogCategory,
                 "LabExamination.ReleaseResult",
-                "Hasil Patologi Klinik dirilis dan didaftarkan ke rekam medis.",
+                $"Hasil {NamaDisiplin(discipline)} dirilis dan didaftarkan ke rekam medis — pemeriksaan {examination.Id}; pengecualian empat mata: {reason?.ReasonCode ?? "tidak"}.",
                 new
                 {
-                    examination.Id,
+                    ExaminationId = examination.Id,
                     examination.LabOrderId,
                     examination.ReleasedAt,
                     examination.ReleasedByPrivilegeId,
@@ -345,8 +356,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         {
             var examination = await LoadAsync(id, cancellationToken);
 
-            // VAL-126 dan VAL-127.
-            EnsureClinicalPathologyAndRunning(examination);
+            // VAL-126 dan VAL-127. VAL-144 sengaja TIDAK di sini — lihat EnsureNotPreliminary.
+            var discipline = EnsureReleasableAndRunning(examination);
 
             // VAL-134 — belum divalidasi, lalu sudah dirilis.
             if (examination.ValidatedAt is null)
@@ -366,18 +377,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var actorUserId = GetCurrentUserId();
             var now = DateTime.UtcNow;
 
+            // Kode dari disiplin PEMERIKSAAN (AC-241) — pemegang kode Patologi Klinik tidak dapat
+            // mengembalikan hasil Mikrobiologi, dan sebaliknya.
             var bolehValidasi = await _privilegeResolver.ResolveAsync(
-                actorUserId, LabDiscipline.ClinicalPathology, LabPrivilegeKind.Validation, now, cancellationToken);
+                actorUserId, discipline, LabPrivilegeKind.Validation, now, cancellationToken);
 
             if (!bolehValidasi.IsGranted)
             {
                 var bolehRilis = await _privilegeResolver.ResolveAsync(
-                    actorUserId, LabDiscipline.ClinicalPathology, LabPrivilegeKind.Release, now, cancellationToken);
+                    actorUserId, discipline, LabPrivilegeKind.Release, now, cancellationToken);
 
                 if (!bolehRilis.IsGranted)
                 {
                     throw new LabExaminationForbiddenException(
-                        "Anda bukan pemegang kewenangan validasi atau rilis Patologi Klinik.");
+                        $"Anda bukan pemegang kewenangan validasi atau rilis {NamaDisiplin(discipline)}.");
                 }
             }
 
@@ -433,10 +446,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             await _loggerService.AuditAsync(
                 LogCategory,
                 "LabExamination.ReturnResultToAnalyst",
-                "Hasil tervalidasi dikembalikan kepada analis sebelum dirilis.",
+                $"Hasil {NamaDisiplin(discipline)} tervalidasi dikembalikan kepada analis sebelum dirilis — pemeriksaan {examination.Id}; alasan: {reason.ReasonCode}.",
                 new
                 {
-                    examination.Id,
+                    ExaminationId = examination.Id,
                     examination.LabOrderId,
                     ReturnedAt = now,
                     CorrectionReasonCode = reason.ReasonCode
@@ -456,18 +469,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             ?? throw new KeyNotFoundException("Pemeriksaan tidak ditemukan.");
 
         /// <summary>
-        /// <c>VAL-126</c> lalu <c>VAL-127</c> — sama bagi validasi dan rilis. Disiplin yang diterima
-        /// dibaca dari <see cref="LabReleasableDisciplines"/> (<c>BE-LAB-82</c>), satu jawaban dengan
-        /// laporan operasional. Disiplin kosong — order dan katalog sama-sama tanpa disiplin — tetap
-        /// ditolak.
+        /// <c>VAL-126</c> lalu <c>VAL-127</c> — sama bagi ketiga tindakan. Disiplin yang diterima
+        /// dibaca dari <see cref="LabReleasableDisciplines"/> (<c>BE-LAB-82</c>) — sejak <c>BE-LAB-78</c>
+        /// Patologi Klinik dan Mikrobiologi — satu jawaban dengan laporan operasional. Disiplin kosong,
+        /// yaitu order dan katalog sama-sama tanpa disiplin, tetap ditolak.
+        ///
+        /// Mengembalikan disiplin pemeriksaan: kode kewenangan dipilih dari disiplin <b>ini</b>, bukan
+        /// dari jabatan pelaku (<c>AC-241</c>).
         /// </summary>
-        private static void EnsureClinicalPathologyAndRunning(LabExamination examination)
+        private static LabDiscipline EnsureReleasableAndRunning(LabExamination examination)
         {
+            // VAL-126 bunyi r13 — kata per kata.
             if (LabExaminationService.ResolveDiscipline(examination) is not LabDiscipline discipline ||
                 !LabReleasableDisciplines.Contains(discipline))
             {
                 throw new LabExaminationValidationException(
-                    "Validasi dan rilis hasil Mikrobiologi serta Patologi Anatomi belum tersedia.");
+                    "Validasi dan rilis hasil Patologi Anatomi belum tersedia.");
             }
 
             // INV-51.
@@ -477,18 +494,52 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 throw new LabExaminationValidationException(
                     "Pemeriksaan ini sudah dibatalkan atau gugur, sehingga tidak dapat divalidasi maupun dirilis.");
             }
+
+            return discipline;
         }
 
-        /// <summary><c>VAL-128</c> — lapis orang. Penolakan menjadi <c>403</c> dengan sebabnya.</summary>
+        /// <summary>
+        /// <c>VAL-144</c> (<c>INV-52</c>) — hasil Mikrobiologi berkualifikasi <b>Sementara</b> tidak
+        /// disahkan, pada validasi <b>dan</b> rilis. Kualifikasi <b>kosong diterima</b>
+        /// (<c>ARCH-GAP-LAB-10</c>, 21.10 butir 2).
+        ///
+        /// Diperiksa sesudah <c>VAL-127</c> dan <b>sebelum</b> keadaan hasil dan kewenangan (21.1) —
+        /// dokter membaca sebab sebenarnya, bukan penolakan kewenangan. <i>Kembalikan ke analis</i>
+        /// sengaja tidak memakai penjaga ini: mengembalikan hasil sementara justru jalan memperbaikinya.
+        /// </summary>
+        private static void EnsureNotPreliminary(LabExamination examination, LabDiscipline discipline)
+        {
+            if (discipline == LabDiscipline.Microbiology &&
+                examination.ResultQualifier == LabResultQualifier.Preliminary)
+            {
+                throw new LabExaminationValidationException(
+                    "Hasil Mikrobiologi sementara belum dapat divalidasi maupun dirilis. Buka kembali dan ubah kualifikasinya bila hasil sudah definitif.");
+            }
+        }
+
+        private static string NamaDisiplin(LabDiscipline discipline) => discipline switch
+        {
+            LabDiscipline.ClinicalPathology => "Patologi Klinik",
+            LabDiscipline.Microbiology => "Mikrobiologi",
+            LabDiscipline.AnatomicalPathology => "Patologi Anatomi",
+            _ => discipline.ToString()
+        };
+
+        /// <summary>
+        /// <c>VAL-128</c> — lapis orang, dengan kode kewenangan <b>disiplin pemeriksaan</b>
+        /// (<see cref="LabClinicalPrivilegeCodes.For"/> lewat resolver). Penolakan menjadi <c>403</c>
+        /// dengan sebabnya, dan pesannya menyebut disiplin itu (<c>AC-218</c>).
+        /// </summary>
         private async Task<LabPrivilegeCheck> EnsureAppointedAsync(
             Guid actorUserId,
+            LabDiscipline discipline,
             LabPrivilegeKind kind,
             DateTime now,
             CancellationToken cancellationToken)
         {
             var privilege = await _privilegeResolver.ResolveAsync(
                 actorUserId,
-                LabDiscipline.ClinicalPathology,
+                discipline,
                 kind,
                 now,
                 cancellationToken);

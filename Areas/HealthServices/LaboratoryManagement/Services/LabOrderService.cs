@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Constants;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
@@ -386,9 +387,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
-            // r34 29.5 — label order turunan bagi Patologi Klinik. Dibaca, tidak pernah disimpan,
-            // dan orderStatus tidak disentuh (LAB-CONFLICT-014).
-            if (detail is not null && detail.Discipline == nameof(LabDiscipline.ClinicalPathology))
+            // r34 29.5, r35 30.5 — label order turunan bagi disiplin yang dapat dirilis (Patologi
+            // Klinik dan Mikrobiologi). Dibaca, tidak pernah disimpan, dan orderStatus tidak disentuh
+            // — Completed tetap tindakan manual lewat PUT complete (LAB-DEC-154, BE-LAB-81).
+            if (detail is not null &&
+                Enum.TryParse<LabDiscipline>(detail.Discipline, out var disiplinDetail) &&
+                LabReleasableDisciplines.Contains(disiplinDetail))
             {
                 var progres = await LabOrderResultProgressRules.ReadAsync(
                     _dbContext, new[] { detail.Id }, cancellationToken);

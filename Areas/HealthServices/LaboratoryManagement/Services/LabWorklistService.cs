@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Constants;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
@@ -188,9 +189,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         }
 
         /// <summary>
-        /// Antrean hasil Patologi Klinik yang <b>menunggu validasi</b> atau <b>menunggu rilis</b>
-        /// (<c>LAB-API-v1</c> <c>r34</c> 29.4, <c>LAB-DEC-135</c> butir 2). Cito lebih dulu, lalu
-        /// yang paling lama menunggu (<c>LAB-FE-006</c>).
+        /// Antrean hasil Patologi Klinik dan Mikrobiologi yang <b>menunggu validasi</b> atau
+        /// <b>menunggu rilis</b> (<c>LAB-API-v1</c> <c>r34</c> 29.4, <c>r35</c> 30.4; <c>LAB-DEC-135</c>
+        /// butir 2). Cito lebih dulu, lalu yang paling lama menunggu (<c>LAB-FE-006</c>) — <b>lintas
+        /// disiplin</b>.
+        ///
+        /// <para>
+        /// <b>Disiplin dibaca</b> (<c>r35</c>): kosong = seluruh disiplin yang dapat dirilis
+        /// (<see cref="LabReleasableDisciplines"/>); <c>ClinicalPathology</c> atau <c>Microbiology</c>
+        /// = satu disiplin; Patologi Anatomi, angka, atau nilai tak dikenal → <c>VAL-145</c>, bukan
+        /// dianggap kosong — nilai yang salah ketik tidak boleh diam-diam mengembalikan kedua disiplin.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Hasil Mikrobiologi <i>Sementara</i> dikeluarkan</b> dari tahap mana pun (21.10 butir 4):
+        /// antrean berarti <i>menunggu tindakan Anda</i>, dan hasil itu pasti ditolak <c>VAL-144</c>.
+        /// </para>
         ///
         /// <para>
         /// <b>Tahap diturunkan dengan rumus yang sama dengan <c>resultStatus</c></b> —
@@ -206,7 +220,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         /// manual <b>tidak</b> dikeluarkan: hasil Final di dalamnya tetap menunggu disahkan.
         /// </para>
         /// </summary>
-        /// <exception cref="LabExaminationValidationException"><c>VAL-139</c> — tahap kosong atau tidak sah.</exception>
+        /// <exception cref="LabExaminationValidationException"><c>VAL-139</c> — tahap kosong atau tidak sah; <c>VAL-145</c> — disiplin tidak didukung.</exception>
         public async Task<PagedResult<LabValidationQueueItemResponse>> GetValidationQueueAsync(
             LabValidationQueueQuery query,
             CancellationToken cancellationToken = default)
@@ -222,10 +236,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     "Tahap antrean wajib dipilih: menunggu validasi atau menunggu rilis.");
             }
 
+            // VAL-145. Hanya nama disiplin yang dapat dirilis; angka dan nilai tak dikenal ditolak.
+            var disiplinDipilih = ResolveQueueDisciplines(query.Discipline);
+
             var pageNumber = Math.Max(1, query.PageNumber);
             var pageSize = Math.Clamp(query.PageSize, 1, 100);
             var menungguValidasi = stage == LabValidationQueueStage.AwaitingValidation;
 
+            // Disiplin dibaca sama dengan tindakan validasi (VAL-126): disiplin order, lalu jatuh ke
+            // katalog pemeriksaan bagi order lama yang disiplinnya kosong.
             var source = _dbContext.LabExaminations
                 .AsNoTracking()
                 .Where(x =>
@@ -235,16 +254,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     x.LabOrder != null &&
                     !x.LabOrder.IsDelete &&
                     x.LabOrder.OrderStatus != LabOrderStatus.Cancelled &&
-                    (x.LabOrder.Discipline == LabDiscipline.ClinicalPathology ||
-                     (x.LabOrder.Discipline == null && x.Procedure != null &&
-                      x.Procedure.LabDiscipline == LabDiscipline.ClinicalPathology)))
+                    disiplinDipilih.Contains(x.LabOrder.Discipline ?? (x.Procedure != null ? x.Procedure.LabDiscipline : null)) &&
+                    // 21.10 butir 4 — hasil Sementara tidak masuk tahap mana pun. Kualifikasi kosong
+                    // tetap masuk (ARCH-GAP-LAB-10), sama dengan VAL-144.
+                    x.ResultQualifier != LabResultQualifier.Preliminary)
                 .Where(LabExaminationService.HasResultStatus(
                     menungguValidasi ? LabResultStatus.Final : LabResultStatus.Validated));
 
             if (query.OnlyCito == true)
                 source = source.Where(x => x.Urgency == LabExaminationUrgency.Cito);
 
-            // Penyaring disiplin daftar kerja sengaja TIDAK dipakai — r34 menyatakannya diabaikan.
+            // Penyaring disiplin daftar kerja (TerapkanPenyaringBersama) sengaja TIDAK dipakai: ia
+            // menyaring disiplin ORDER saja, sedangkan antrean membaca disiplin seperti VAL-126.
             source = TerapkanPencarian(source, query.Search);
 
             var totalData = await source.CountAsync(cancellationToken);
@@ -261,6 +282,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 {
                     x.Id,
                     x.LabOrderId,
+                    Discipline = x.LabOrder!.Discipline ?? (x.Procedure != null ? x.Procedure.LabDiscipline : null),
+                    x.ResultQualifier,
                     OrderNumber = x.LabOrder!.OrderNumber,
                     EncounterId = x.LabOrder!.EncounterId,
                     PatientId = x.LabOrder!.Encounter != null ? (Guid?)x.LabOrder.Encounter.PatientId : null,
@@ -307,6 +330,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 {
                     ExaminationId = x.Id,
                     LabOrderId = x.LabOrderId,
+                    Discipline = x.Discipline?.ToString(),
+                    ResultQualifier = x.ResultQualifier?.ToString(),
                     OrderNumber = x.OrderNumber,
                     EncounterId = x.EncounterId,
                     PatientName = p?.FullName,
@@ -368,6 +393,38 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             }
 
             return TerapkanPencarian(source, query.Search);
+        }
+
+        /// <summary>
+        /// Disiplin antrean validasi (<c>r35</c> 30.4, <c>VAL-145</c>). Kosong = seluruh disiplin yang
+        /// dapat dirilis. Nama disiplin yang dapat dirilis = disiplin itu saja. Patologi Anatomi,
+        /// angka, atau nilai tak dikenal → <c>422</c> — <b>tidak</b> diperlakukan sebagai kosong.
+        /// Daftar bertipe nullable supaya dapat dibandingkan dengan disiplin order yang boleh kosong.
+        /// </summary>
+        private static List<LabDiscipline?> ResolveQueueDisciplines(string? discipline)
+        {
+            var semua = Enum.GetValues<LabDiscipline>()
+                .Where(LabReleasableDisciplines.Contains)
+                .Select(x => (LabDiscipline?)x)
+                .ToList();
+
+            var teks = discipline?.Trim();
+
+            if (string.IsNullOrEmpty(teks))
+            {
+                return semua;
+            }
+
+            if (int.TryParse(teks, out _) ||
+                !Enum.TryParse<LabDiscipline>(teks, ignoreCase: true, out var dipilih) ||
+                !Enum.IsDefined(dipilih) ||
+                !LabReleasableDisciplines.Contains(dipilih))
+            {
+                throw new LabExaminationValidationException(
+                    "Antrean validasi hanya tersedia untuk Patologi Klinik dan Mikrobiologi.");
+            }
+
+            return new List<LabDiscipline?> { dipilih };
         }
 
         /// <summary>

@@ -1833,8 +1833,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         /// bercabang.
         ///
         /// <see cref="LabExaminationCompletionResponse.IsReleased"/> dibaca dari
-        /// <c>ReleasedAt</c>. Hanya Patologi Klinik yang dapat dirilis hari ini, sehingga bagi
-        /// Mikrobiologi ruas itu tetap salah sampai <c>S4d</c>.
+        /// <c>ReleasedAt</c> bagi setiap disiplin — sejak <c>BE-LAB-78</c> Mikrobiologi pun dapat
+        /// dirilis (<c>S4d-1</c>). Patologi Anatomi tidak pernah memperoleh <c>ReleasedAt</c> sampai
+        /// <c>S4e</c>, sehingga ruasnya tetap salah bagi disiplin itu.
         /// </summary>
         /// <param name="examination">Pemeriksaan yang baru saja ditulis.</param>
         /// <param name="validatedByName">

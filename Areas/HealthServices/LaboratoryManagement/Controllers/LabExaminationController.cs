@@ -420,7 +420,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status503ServiceUnavailable)]
-        [AccessAction("Validate", "Validate Lab Examination Result", Description = "Memvalidasi hasil Patologi Klinik", AccessType = AccessTypes.Update, SortOrder = 8)]
+        [AccessAction("Validate", "Validate Lab Examination Result", Description = "Memvalidasi hasil Patologi Klinik dan Mikrobiologi", AccessType = AccessTypes.Update, SortOrder = 8)]
         [AccessPermission("LabExaminationResult", "Validate")]
         public async Task<IActionResult> ValidateResult(
             Guid id,
@@ -475,7 +475,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status503ServiceUnavailable)]
-        [AccessAction("Release", "Release Lab Examination Result", Description = "Merilis hasil Patologi Klinik yang sudah divalidasi", AccessType = AccessTypes.Update, SortOrder = 9)]
+        [AccessAction("Release", "Release Lab Examination Result", Description = "Merilis hasil Patologi Klinik dan Mikrobiologi yang sudah divalidasi", AccessType = AccessTypes.Update, SortOrder = 9)]
         [AccessPermission("LabExaminationResult", "Release")]
         public async Task<IActionResult> ReleaseResult(
             Guid id,

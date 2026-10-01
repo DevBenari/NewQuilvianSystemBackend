@@ -73,13 +73,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 hasil, "Daftar pantau keterlambatan cito berhasil diambil."));
         }
 
-        // Antrean hasil Patologi Klinik yang menunggu validasi atau rilis (r34 29.4). Tahap wajib
-        // dipilih (VAL-139); cito lebih dulu, lalu yang paling lama menunggu. Hak aksesnya sama
-        // dengan kedua daftar saudaranya — pemvalidasi dan perilis wajib diberi LabWorklist:Read.
+        // Antrean hasil Patologi Klinik dan Mikrobiologi yang menunggu validasi atau rilis (r34 29.4,
+        // r35 30.4). Tahap wajib dipilih (VAL-139); disiplin kosong = keduanya, disiplin lain 422
+        // (VAL-145); hasil Mikrobiologi Sementara tidak masuk. Cito lebih dulu, lalu yang paling lama
+        // menunggu, lintas disiplin. Hak aksesnya sama dengan kedua daftar saudaranya — pemvalidasi
+        // dan perilis wajib diberi LabWorklist:Read.
         [HttpGet("validation-queue")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabValidationQueueItemResponse>>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Read", "Read Lab Worklist", Description = "Melihat antrean validasi dan rilis hasil Patologi Klinik", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Lab Worklist", Description = "Melihat antrean validasi dan rilis hasil Patologi Klinik dan Mikrobiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LabWorklist", "Read")]
         public async Task<IActionResult> GetValidationQueue(
             [FromQuery] LabValidationQueueQuery query,

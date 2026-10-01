@@ -137,9 +137,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
     }
 
     /// <summary>
-    /// Penyaring antrean validasi dan rilis (<c>LAB-API-v1</c> <c>r34</c> 29.4). Mewarisi penyaring
-    /// daftar kerja; ruas <see cref="LabWorklistPagedQuery.Discipline"/> <b>diabaikan</b> — antrean
-    /// selalu Patologi Klinik pada <c>r34</c>.
+    /// Penyaring antrean validasi dan rilis (<c>LAB-API-v1</c> <c>r34</c> 29.4, <c>r35</c> 30.4).
+    /// Mewarisi penyaring daftar kerja. Ruas <see cref="LabWorklistPagedQuery.Discipline"/> <b>dibaca</b>
+    /// sejak <c>r35</c>: <c>ClinicalPathology</c>, <c>Microbiology</c>, atau kosong = keduanya;
+    /// <c>AnatomicalPathology</c>, angka, atau nilai lain → <c>422</c> <c>VAL-145</c>.
     /// </summary>
     public class LabValidationQueueQuery : LabWorklistPagedQuery
     {
@@ -159,6 +160,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public Guid ExaminationId { get; set; }
 
         public Guid LabOrderId { get; set; }
+
+        /// <summary>
+        /// <c>ClinicalPathology</c> atau <c>Microbiology</c> (<c>r35</c> 30.4) — dibaca sama dengan tindakan
+        /// validasi: disiplin order, lalu katalog pemeriksaan bagi order lama.
+        /// </summary>
+        public string? Discipline { get; set; }
+
+        /// <summary>
+        /// Kualifikasi hasil Mikrobiologi — <c>Definitive</c> atau kosong. Hasil <c>Preliminary</c> tidak
+        /// pernah masuk antrean (21.10 butir 4). Selalu kosong bagi Patologi Klinik.
+        /// </summary>
+        public string? ResultQualifier { get; set; }
 
         public string? OrderNumber { get; set; }
 

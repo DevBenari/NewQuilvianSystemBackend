@@ -10,8 +10,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Consta
     ///
     /// <para>
     /// Isinya mengikuti jalur yang sudah dibangun: <b>Patologi Klinik</b> (<c>S4</c>,
-    /// <c>BE-LAB-73</c>). Mikrobiologi ditambahkan <b>di sini</b> oleh <c>BE-LAB-78</c>
-    /// (<c>S4d-1</c>), bukan pada penjaga di service; Patologi Anatomi bersama <c>S4e</c>.
+    /// <c>BE-LAB-73</c>) dan <b>Mikrobiologi</b> (<c>S4d-1</c>, <c>BE-LAB-78</c>). Patologi Anatomi
+    /// ditambahkan di sini bersama <c>S4e</c>.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Menambah disiplin di sini saja tidak cukup:</b> <see cref="LabClinicalPrivilegeCodes.For"/>
+    /// wajib memberi disiplin itu kode kewenangannya sendiri pada perubahan yang sama. Tanpa kode,
+    /// resolver menolak setiap tindakan (<c>NotAppointed</c>) — aman, tetapi tidak berguna.
     /// </para>
     ///
     /// <para>
@@ -23,7 +29,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Consta
     {
         private static readonly LabDiscipline[] Disciplines =
         {
-            LabDiscipline.ClinicalPathology
+            LabDiscipline.ClinicalPathology,
+            LabDiscipline.Microbiology
         };
 
         /// <summary>Benar bila hasil disiplin ini dapat divalidasi dan dirilis.</summary>

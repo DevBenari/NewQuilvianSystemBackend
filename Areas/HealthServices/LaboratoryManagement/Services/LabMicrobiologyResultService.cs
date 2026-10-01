@@ -380,20 +380,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 PrintReceivedAt = examination.Specimen?.PhysicallyReceivedAt,
                 PrintCompletedAt = examination.FinalizedAt,
 
-                // LAB-DEC-120. Keduanya SENGAJA dibiarkan kosong: pengisinya adalah perilis
-                // dan pemvalidasi, dan keduanya milik S4d yang tertahan DEC-LAB-011.
-                // Mengisinya dari pencetak atau penulis hasil akan membuat dokumen menyebut
-                // pihak yang salah sebagai pengesah.
-                AuthorizingOfficerName = null,
-                ValidatedByName = null,
-
-                // Rilis Mikrobiologi adalah S4d dan belum dibangun. Dinyatakan, bukan
-                // disimpulkan pemanggil (LAB-DEC-097).
-                IsReleased = false
+                // r35 30.3 — ruas pengesah dan keadaan, bentuk dan arti sama dengan halaman hasil
+                // Patologi Klinik (r34 29.3). Keadaan dari turunan yang sama (BE-LAB-76), bukan
+                // rumus kedua. Rilis dinyatakan, bukan disimpulkan pemanggil (LAB-DEC-097).
+                ResultStatus = LabExaminationService.DeriveResultStatus(examination).ToString(),
+                ValidatedAt = examination.ValidatedAt,
+                ValidatedByUserId = examination.ValidatedByUserId,
+                ValidatedByPositionName = examination.ValidatedByPositionNameSnapshot,
+                ReleasedAt = examination.ReleasedAt,
+                ReleasedByUserId = examination.ReleasedByUserId,
+                ReleasedByPositionName = examination.ReleasedByPositionNameSnapshot,
+                IsReleased = examination.ReleasedAt is not null
             };
 
-            response.AnalystName = await ReadAnalystNameAsync(
-                examination.ResultEnteredByUserId, cancellationToken);
+            // LAB-DEC-120. Pengesah adalah pemvalidasi dan perilis yang TERCATAT pada pemeriksaan
+            // ini — tidak pernah pencetak atau penulis hasil. Kosong sampai tindakannya terjadi
+            // (AC-183). Ketiga nama dibaca dalam SATU kueri (BE-LAB-79).
+            var nama = await ReadActorNamesAsync(examination, cancellationToken);
+
+            response.AnalystName = nama.Analyst;
+            response.ValidatedByName = examination.ValidatedAt is not null ? nama.Validator : null;
+            response.AuthorizingOfficerName = examination.ReleasedAt is not null ? nama.Releaser : null;
+            response.ValidationExceptionMarker = LabExaminationService.ValidationExceptionMarker(
+                examination.ValidationExceptionReasonId, response.ValidatedByName, examination.ValidationExceptionReasonNameSnapshot);
+            response.ReleaseExceptionMarker = LabExaminationService.ReleaseExceptionMarker(
+                examination.ReleaseExceptionReasonId, response.AuthorizingOfficerName, examination.ReleaseExceptionReasonNameSnapshot);
 
             response.UsesSusceptibilitySet = await _profileService.UsesSusceptibilitySetAsync(
                 examination.ProcedureId, cancellationToken);
@@ -450,23 +461,52 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         }
 
         /// <summary>
-        /// Nama analis, diturunkan dari pencatat hasil (<c>LAB-DEC-105</c>, <c>AC-168</c>).
+        /// Nama analis (<c>LAB-DEC-105</c>, <c>AC-168</c>), pemvalidasi, dan perilis — dalam
+        /// <b>satu</b> kueri, dilewati bila tidak ada satu pun pelaku yang tercatat.
         ///
-        /// <b>Mengembalikan null bila penggunanya sudah tidak ada</b> — bukan melempar galat.
-        /// Pencatat yang akunnya dihapus tidak boleh membuat hasil lama gagal dibaca; yang
-        /// hilang hanya namanya, sedangkan <c>ResultEnteredByUserId</c> tetap tersimpan.
+        /// <para>
+        /// Nama analis tetap <c>DisplayName</c>, seperti sebelum <c>BE-LAB-79</c>. Nama pemvalidasi
+        /// dan perilis memakai rumus yang sama dengan lembar hasil Patologi Klinik
+        /// (<c>BE-LAB-76</c>) — satu orang tidak terbaca dengan dua nama di dua halaman hasil.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Mengembalikan null bagi pengguna yang sudah tidak ada</b> — bukan melempar galat.
+        /// Akun yang dihapus tidak boleh membuat hasil lama gagal dibaca; yang hilang hanya namanya,
+        /// sedangkan id pelakunya tetap tersimpan.
+        /// </para>
         /// </summary>
-        private async Task<string?> ReadAnalystNameAsync(
-            Guid? userId,
+        private async Task<(string? Analyst, string? Validator, string? Releaser)> ReadActorNamesAsync(
+            LabExamination examination,
             CancellationToken cancellationToken)
         {
-            if (userId is null || userId == Guid.Empty) return null;
+            static Guid? Sah(Guid? id) => id is Guid g && g != Guid.Empty ? g : null;
 
-            return await _dbContext.Users
+            var analis = Sah(examination.ResultEnteredByUserId);
+            var pemvalidasi = examination.ValidatedAt is not null ? Sah(examination.ValidatedByUserId) : null;
+            var perilis = examination.ReleasedAt is not null ? Sah(examination.ReleasedByUserId) : null;
+
+            var ids = new[] { analis, pemvalidasi, perilis }
+                .Where(x => x.HasValue)
+                .Select(x => x!.Value)
+                .Distinct()
+                .ToList();
+
+            if (ids.Count == 0)
+            {
+                return (null, null, null);
+            }
+
+            var users = await _dbContext.Users
                 .AsNoTracking()
-                .Where(x => x.Id == userId.Value)
-                .Select(x => x.DisplayName)
-                .FirstOrDefaultAsync(cancellationToken);
+                .Where(x => ids.Contains(x.Id))
+                .Select(x => new { x.Id, x.DisplayName, Name = x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode })
+                .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+            return (
+                analis is Guid a && users.TryGetValue(a, out var ua) ? ua.DisplayName : null,
+                pemvalidasi is Guid v && users.TryGetValue(v, out var uv) ? uv.Name : null,
+                perilis is Guid r && users.TryGetValue(r, out var ur) ? ur.Name : null);
         }
 
         /// <summary>
