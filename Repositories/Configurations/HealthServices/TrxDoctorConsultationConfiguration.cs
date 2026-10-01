@@ -429,6 +429,21 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasIndex(x => x.PhysicianVisitId);
+
+            // BE-RWI-141 / K5 - baris tanda vital sumber snapshot. Restrict: baris deret tidak
+            // pernah dihapus (jalur hapus tanda vital dicabut BE-RWI-077), sehingga tautan ini
+            // tidak boleh menjadi alasan penghapusan diam-diam. Tanpa navigasi di kedua sisi supaya
+            // tidak bertabrakan dengan TrxPatientVitalSign.Consultation.
+            entity.Property(x => x.SourceVitalSignId)
+                .IsRequired(false);
+
+            entity.HasOne<TrxPatientVitalSign>()
+                .WithMany()
+                .HasForeignKey(x => x.SourceVitalSignId)
+                .HasConstraintName("FK_TrxDoctorConsultation_SourceVitalSignId")
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => x.SourceVitalSignId);
         }
     }
 }

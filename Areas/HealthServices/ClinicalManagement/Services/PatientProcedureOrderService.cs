@@ -208,6 +208,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     pricing.ErrorMessage ?? "Tarif atau coverage tindakan tidak dapat ditentukan.");
             }
 
+            var isFoc = request.IsFreeOfCharge;
+            var focReason = isFoc
+                ? NormalizeText(request.FreeOfChargeReason) ?? "Free of Charge (FOC) atas kebijakan DPJP rawat inap"
+                : null;
+
             var entity = new TrxPatientProcedure
             {
                 Id = Guid.NewGuid(),
@@ -241,22 +246,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 Quantity = pricing.Quantity,
                 UnitNameSnapshot = "Tindakan",
                 UnitPrice = pricing.UnitPrice,
-                TotalPrice = pricing.TotalPrice,
+                TotalPrice = isFoc ? 0 : pricing.TotalPrice,
                 HospitalPriceSnapshot = pricing.HospitalUnitPrice,
                 InsuranceContractPrice = pricing.ContractUnitPrice,
-                IsFreeOfCharge = false,
-                IsBillable = true,
+                IsFreeOfCharge = isFoc,
+                FreeOfChargeReason = focReason,
+                IsBillable = !isFoc,
                 IsCoveredByInsurance = pricing.IsCovered,
-                CoverageStatus = pricing.CoverageStatus,
+                CoverageStatus = isFoc ? "FreeOfCharge" : pricing.CoverageStatus,
                 CoveragePercent = pricing.CoveragePercent,
-                CoveredAmount = pricing.CoveredAmount,
-                PatientPayAmount = pricing.PatientPayAmount,
+                CoveredAmount = isFoc ? 0 : pricing.CoveredAmount,
+                PatientPayAmount = isFoc ? 0 : pricing.PatientPayAmount,
                 CoverageNote = pricing.CoverageNote,
                 IsNeedApproval = pricing.IsNeedApproval || procedure.IsNeedApproval,
                 IsApproved = false,
                 IsExecuted = false,
                 ClinicalNote = NormalizeText(request.ClinicalReason),
                 InstructionNote = NormalizeText(request.InstructionNote),
+                DispositionNote = NormalizeText(request.DispositionNote),
                 IsBillingGenerated = false,
                 OrderedByUserId = actorUserId,
                 InstructingDoctorId = instructingDoctorId,
@@ -756,6 +763,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 UnitPrice = entity.UnitPrice,
                 TotalPrice = entity.TotalPrice,
                 IsBillable = entity.IsBillable,
+                IsFreeOfCharge = entity.IsFreeOfCharge,
+                FreeOfChargeReason = entity.FreeOfChargeReason,
+                ClinicalNote = entity.ClinicalNote,
+                InstructionNote = entity.InstructionNote,
+                DispositionNote = entity.DispositionNote,
                 IsCoveredByInsurance = entity.IsCoveredByInsurance,
                 CoverageStatus = entity.CoverageStatus,
                 CoveredAmount = entity.CoveredAmount,
