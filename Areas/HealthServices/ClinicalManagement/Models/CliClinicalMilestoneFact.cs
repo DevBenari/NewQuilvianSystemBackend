@@ -89,5 +89,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
         public int Version { get; set; } = 1;
 
         public bool IsActive { get; set; } = true;
+
+        // RJ-E2E-DEC-009. "Perlu rekonsiliasi" sengaja berupa penanda waktu, bukan nilai
+        // DispatchStatus keenam, agar kosakata status penyerahan tetap lima nilai (PRD §25).
+
+        /// <summary>Jadwal kirim ulang berikutnya dengan identitas dan kunci yang sama.</summary>
+        public DateTime? NextDispatchAttemptAt { get; set; }
+
+        /// <summary>Terisi ketika kirim ulang otomatis dihentikan dan fakta menunggu petugas Billing.</summary>
+        public DateTime? ReconciliationRequiredAt { get; set; }
+
+        public DateTime? ReconciliationResolvedAt { get; set; }
+
+        public Guid? ReconciliationResolvedByUserId { get; set; }
+
+        /// <summary>Alasan penyelesaian manual. Tidak boleh memuat isi klinis.</summary>
+        public string? ReconciliationResolutionNote { get; set; }
     }
 }

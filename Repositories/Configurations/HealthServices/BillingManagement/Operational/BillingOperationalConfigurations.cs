@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 
@@ -109,6 +111,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
             builder.HasOne<BilChargeLine>()
                 .WithMany()
                 .HasForeignKey(x => x.ChargeLineId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // RJ-E2E-DEC-016 — status penerusan efek ke invoice canonical.
+            builder.Property(x => x.IsClinicalCancellation).HasDefaultValue(false);
+            builder.Property(x => x.InvoiceSyncStatus)
+                .HasConversion<int>()
+                .IsRequired()
+                .HasDefaultValue(BillingInvoiceSyncStatus.NotApplicable);
+            builder.Property(x => x.InvoiceSyncVersion).HasDefaultValue(0).IsConcurrencyToken();
+            builder.Property(x => x.InvoiceSourceDomain).HasMaxLength(50);
+            builder.Property(x => x.InvoiceSourceDetailId).HasMaxLength(100);
+            builder.Property(x => x.InvoiceSyncAttemptCount).HasDefaultValue(0);
+            builder.Property(x => x.InvoiceSyncErrorCode).HasMaxLength(100);
+            builder.Property(x => x.InvoiceSyncErrorMessage).HasMaxLength(1000);
+            builder.Property(x => x.ReconciliationResolutionNote).HasMaxLength(500);
+
+            // Dibaca pekerja kirim ulang: efek yang menunggu dan sudah jatuh tempo.
+            builder.HasIndex(x => new { x.InvoiceSyncStatus, x.InvoiceSyncNextAttemptAt });
+            builder.HasIndex(x => x.InvoiceItemId);
+
+            builder.HasOne<BilInvoice>()
+                .WithMany()
+                .HasForeignKey(x => x.InvoiceId)
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.HasOne<BilInvoiceItem>()
+                .WithMany()
+                .HasForeignKey(x => x.InvoiceItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+            builder.HasOne<BilAdjustment>()
+                .WithMany()
+                .HasForeignKey(x => x.InvoiceAdjustmentId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

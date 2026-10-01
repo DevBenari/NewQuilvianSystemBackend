@@ -21,6 +21,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
         public const string PrescriptionSourceContext = "Prescription";
         public const string PrescriptionChargeEffectType = "PrescriptionCharge";
 
+        /// <summary>
+        /// Nilai <c>RuleSnapshot.milestone</c> fakta resep dua tahap (<c>RJ-E2E-DEC-005</c>).
+        /// Tahap 1 diterbitkan saat resep difinalkan dokter; tahap 2 adalah revisi fakta yang sama
+        /// setelah obat diserahkan, membawa jumlah kumulatif yang diserahkan per item resep.
+        /// </summary>
+        public const string PrescriptionMilestoneClinicalFinalization = "ClinicalFinalization";
+        public const string PrescriptionMilestoneDispensed = "Dispensed";
+
         public const string ProcedureSourceContext = "Procedure";
         public const string ProcedureChargeEffectType = "ProcedureCharge";
 
@@ -55,6 +63,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
         public const string BloodBankSourceContext = "BloodBank";
         public const string BloodBankChargeEffectType = "BloodBankCharge";
 
+        /// <summary>
+        /// Sumber jasa konsultasi dokter, terdaftar sejak <c>BE-RJE-002</c> atas keputusan
+        /// <c>RJ-E2E-DEC-001</c>. Satu fakta per konsultasi yang menjadi <c>Completed</c> lewat
+        /// finalisasi canonical; konsultasi yang batal sebelum selesai tidak menerbitkan fakta.
+        /// </summary>
+        public const string ConsultationSourceContext = "Consultation";
+        public const string ConsultationChargeEffectType = "ConsultationCharge";
+
         private static readonly IReadOnlyDictionary<string, string[]> AllowedEffectTypes =
             new Dictionary<string, string[]>(StringComparer.Ordinal)
             {
@@ -63,7 +79,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
                 [ProcedureSourceContext] = new[] { ProcedureChargeEffectType },
                 [LaboratorySourceContext] = new[] { LaboratoryChargeEffectType },
                 [RadiologySourceContext] = new[] { RadiologyChargeEffectType },
-                [BloodBankSourceContext] = new[] { BloodBankChargeEffectType }
+                [BloodBankSourceContext] = new[] { BloodBankChargeEffectType },
+                [ConsultationSourceContext] = new[] { ConsultationChargeEffectType }
             };
 
         public static bool IsKnownSourceContext(string? sourceContext)

@@ -449,8 +449,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         /// <summary>
         /// Diisi hanya ketika PaymentType = Penjamin Perusahaan dan harus merupakan
-        /// MstPatientCompanyGuarantor aktif milik PatientId yang sama. Hanya route
-        /// /admin yang menerimanya; route kiosk tetap Tunai/Asuransi.
+        /// MstPatientCompanyGuarantor aktif milik PatientId yang sama. Route /admin
+        /// dan route kiosk menerimanya dengan validasi yang sama sejak
+        /// RWI-ENC-PAYER-001 1.1.0 (KSK-DEC-013).
         /// </summary>
         public Guid? PatientCompanyGuarantorId { get; set; }
 

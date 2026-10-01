@@ -601,6 +601,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstPaymentMethod> MstPaymentMethods { get; set; }
         public DbSet<MstPaymentMethodAccount> MstPaymentMethodAccounts { get; set; }
         public DbSet<MstAdministrationFeePolicy> MstAdministrationFeePolicies { get; set; }
+        public DbSet<MstBillingSyncPolicy> MstBillingSyncPolicies { get; set; }
         public DbSet<MstDiscountPolicy> MstDiscountPolicies { get; set; }
         public DbSet<MstTaxRule> MstTaxRules { get; set; }
         public DbSet<MstRoomChargePolicy> MstRoomChargePolicies { get; set; }
@@ -659,11 +660,20 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<FinReceivableDocument> FinReceivableDocuments { get; set; }
         public DbSet<FinReceivableAdjustment> FinReceivableAdjustments { get; set; }
         public DbSet<FinReceivableWriteOff> FinReceivableWriteOffs { get; set; }
+        // BE-FIN-038, FIN-DES-041: Batch Tagihan AR ke penjamin. Migration
+        // AddArInvoiceBatchAndReceiptDeduction — berkas migration MENUNGGU otorisasi terpisah
+        // (prasyarat #10 01-backend-roadmap.md), belum dibuat pada task ini.
+        public DbSet<FinReceivableInvoiceBatch> FinReceivableInvoiceBatches { get; set; }
+        public DbSet<FinReceivableInvoiceBatchItem> FinReceivableInvoiceBatchItems { get; set; }
         // BE-FIN-016, FIN-DES-010..012: buku penerimaan. Migration AddFinanceCollection dibuat
         // tangan, belum dijalankan. FinReceiptAllocation belum punya penulis — pembagian
         // bayar-vs-piutang adalah tanggung jawab FinanceReceiptService (BE-FIN-017, BLOCKED).
         public DbSet<FinReceipt> FinReceipts { get; set; }
         public DbSet<FinReceiptAllocation> FinReceiptAllocations { get; set; }
+        // BE-FIN-038, FIN-DES-048/049: potongan penerimaan piutang, bentuk revisi 5 (D.3/D.4(c)) —
+        // MENGGANTIKAN §C.15 yang belum pernah dibangun. Belum ada penulis; pemilihan EventTypeCode
+        // dari DeductionType adalah tanggung jawab BE-FIN-040.
+        public DbSet<FinReceiptDeduction> FinReceiptDeductions { get; set; }
         // BE-FIN-010, FIN-DES-017..019: kotak keluar kejadian Finance -> Accounting (transactional
         // outbox). Migration AddFinanceAccountingOutbox dibuat tangan, belum dijalankan. Worker
         // pengiriman (FIN-DES-020) dan endpoint penerima Accounting belum ada (FIN-CAP-018) — di
@@ -756,6 +766,14 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstReferralDoctor> MstReferralDoctors { get; set; }
         public DbSet<MstDiagnosisChapter> MstDiagnosisChapters { get; set; }
         public DbSet<MstDiagnosis> MstDiagnoses { get; set; }
+
+        // Master Data 3S Asuhan Keperawatan: Standar Diagnosis (SDKI), Luaran (SLKI), dan Intervensi (SIKI)
+        public DbSet<MstNursingDiagnosisGroup> MstNursingDiagnosisGroups { get; set; }
+        public DbSet<MstNursingDiagnosis> MstNursingDiagnoses { get; set; }
+        public DbSet<MstNursingDiagnosisEtiology> MstNursingDiagnosisEtiologies { get; set; }
+        public DbSet<MstNursingDiagnosisOutcome> MstNursingDiagnosisOutcomes { get; set; }
+        public DbSet<MstNursingDiagnosisIntervention> MstNursingDiagnosisInterventions { get; set; }
+        public DbSet<MstDailyNursingAction> MstDailyNursingActions { get; set; }
         public DbSet<MstMeasurement> MstMeasurements { get; set; }
         public DbSet<MstMeasurementConversion> MstMeasurementConversions { get; set; }
         public DbSet<MstDrugUnitConversion> MstDrugUnitConversions { get; set; }

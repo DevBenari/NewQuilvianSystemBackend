@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 {
@@ -63,6 +63,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public bool IsAllowFractionalDispense { get; set; }
 
         public bool IsStockManaged { get; set; }
+
+        public bool IsConsumable { get; set; }
 
         public bool IsNeedPrescription { get; set; }
 
@@ -201,6 +203,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public bool? IsHighAlert { get; set; }
 
         public bool? IsCompoundIngredientAllowed { get; set; }
+ 
+        public bool? IsConsumable { get; set; } = false;
 
         public string? Search { get; set; }
 

@@ -1078,3 +1078,164 @@ perencanaan pengiriman sampai keputusan yang menahannya turun.
 
 **Status dokumen:** `MVP-0`..`MVP-5` dan AMENDMENT REVISI 4 `approved` dan `locked` oleh Yasmin.
 Approval dicatat apa adanya dari pernyataan owner; skill tidak menetapkannya sendiri.
+
+---
+
+# AMENDMENT REVISI 6 — `FIN-MVP-1.5` (`draft`, 28 September 2026)
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-MVP-1.5` — **`draft`, belum dikunci owner** |
+| `last_changed_in` | `FIN-MVP-1.5` — 28 September 2026: `EPIC FIN-14` dan `EPIC FIN-12` diperbarui; `FR-FIN-100`..`107` baru; bagian 20.2 diperbarui |
+| Diturunkan dari | `FIN-DEC-063`..`071`; `02-backend-architecture.md` AMENDMENT REVISI 6 (`FIN-DES-051`..`058`); `contracts/integration-contract.md` bagian 5.10 |
+| Entity/status/permission/endpoint baru | **Nol** yang lahir di sini. Satu kolom (`FinSupplierReturn.PPNAmount`) sudah tercatat `02-backend-architecture.md` `E.9` dan `erd/data-dictionary.md` C.8 lebih dulu |
+
+## 21. Apa yang berubah pada rilis karena ratifikasi Accounting
+
+Ratifikasi owner Accounting (`evidence/14`) **tidak menambah kemampuan baru** bagi pengguna. Ia
+mengubah dua hal yang menentukan kapan sebuah kemampuan boleh dinyatakan selesai: nama kode
+kejadian, dan daftar keadaan yang sengaja tidak diterbitkan sebagai kejadian.
+
+| Epic | Perubahan status | Alasan |
+|---|---|---|
+| `EPIC FIN-14` (uang muka, deposit, kelebihan bayar, selisih kas) | **Tetap `OPEN DECISION`, tetapi sebabnya berganti** — bukan lagi `FIN-OQ-017` (sudah tertutup), melainkan `FIN-OQ-027`, `030`, `031`, `032`, `034` | Ketujuh kode aslinya sudah diratifikasi; yang terbuka sekarang kode-kode **baru** yang lahir dari pemecahan dan dari dua temuan source (penanda shift, gap pembalikan tender) |
+| `EPIC FIN-12` (pengiriman ke Accounting) | **Satu penghalang tertutup** — endpoint penerima Accounting **sudah ada** pada `cba60cb0` (`FIN-CAP-018` `stale`). Tetap `OPEN DECISION` karena `FIN-OQ-016` (kredensial akun layanan) belum turun | Gerbang `G1` sisi keberadaan endpoint tidak lagi menahan; UAT-nya milik Accounting |
+| `EPIC FIN-15` (Purchasing/AP) | Tetap seperti REVISI 4-5. **Satu kolom baru** dan **satu kejadian baru** masuk cakupannya (`FR-FIN-102`, `103`) | Porsi PPN retur (`FIN-DEC-068`) |
+| `EPIC FIN-17` (Potongan AR) | Tetap seperti REVISI 5, dengan **cakupan menyempit**: jenis potongan "lain-lain" dikeluarkan | `FIN-VAL-137`; tidak ada akun debit yang sah untuk jenis itu |
+
+`EPIC FIN-14` dan `EPIC FIN-12` **MUST NOT** masuk gelombang pengiriman mana pun selama masih
+`OPEN DECISION`. Gelombang `MVP-0`..`MVP-5` tidak berubah oleh amendment ini.
+
+## 22. Functional requirement baru
+
+Seluruhnya dapat diuji, dan seluruhnya menurunkan dari arsitektur/kontrak yang sudah berdiri.
+
+| ID | Functional requirement | Disposisi | Bukti uji |
+|---|---|---|---|
+| `FR-FIN-100` | Setiap kejadian yang ditulis Finance memakai nama dari katalog resmi; kelima alias `AR_*`/`AP_*` tidak dapat lagi ditulis karena konstantanya dihapus | `EXTEND` — lima titik tulis pada kode yang sudah berjalan | `acceptance-test-matrix.md` D.1 |
+| `FR-FIN-101` | Pesan kejadian yang tidak punya rincian komponen tidak memuat properti komponen sama sekali | `EXTEND` — satu method pada kode yang sudah berjalan | D.2 |
+| `FR-FIN-102` | Retur pembelian dapat mencatat porsi PPN terpisah dari nilai pokoknya | `MISSING / NEW` — satu kolom, satu migration | D.5 |
+| `FR-FIN-103` | Kredit retur yang lahir dari retur bernilai pokok + PPN, dan porsi PPN-nya terbit sebagai kejadian tersendiri | `EXTEND` — satu service yang sudah berjalan | D.5 |
+| `FR-FIN-104` | Potongan piutang dicatat sebagai PPh 23 **atau** biaya administrasi bank, masing-masing dengan kejadian sendiri; jenis lain-lain ditolak dengan pesan yang menyebut jalan keluarnya | `MISSING / NEW` — `BE-FIN-040` | D.4 |
+| `FR-FIN-105` | Setiap shift kasir yang tertutup final menerbitkan tepat satu penanda tertutup, termasuk shift yang kasnya pas; shift yang dibuka kembali menerbitkan penanda pembalik | `MISSING / NEW` — bergantung `FIN-OQ-030`/`032` | D.3 |
+| `FR-FIN-106` | Selisih kas yang disahkan menerbitkan tepat satu kejadian per siklus tutup, walaupun pengesahannya melewati tahap tindak lanjut | `MISSING / NEW` — bergantung `FIN-OQ-030` | D.3 |
+| `FR-FIN-107` | Fakta Billing yang tidak dapat diterbitkan sebagai kejadian — refund yang perlakuan akuntansinya belum ditetapkan, dan pembalikan tender top-up deposit tanpa mutasi pembalik — tercatat sebagai kegagalan yang terbaca petugas beserta sebabnya, bukan dilewati diam-diam | `MISSING / NEW` — bergantung `FIN-OQ-031`/`034` | D.6 |
+
+## 23. Skenario UAT tambahan
+
+Setiap butir memuat jalur berhasil **dan** jalur gagal, sesuai kontrak dokumen ini.
+
+| # | Skenario | Jalur berhasil | Jalur gagal |
+|---:|---|---|---|
+| 1 | Kasir menutup shift yang kasnya **pas** | Shift tertutup; penanda tertutup terbit; Accounting dapat menutup bulan | Bila penanda tidak terbit, tutup bulan tertahan tanpa sebab yang terlihat — inilah skenario yang **MUST** diuji lebih dulu, karena inilah yang paling mudah terlewat |
+| 2 | Kasir menutup shift dengan selisih Rp 30.000, supervisor menyatakan perlu tindak lanjut, dua hari kemudian diselesaikan | Tepat **satu** kejadian selisih terbit, bertanggal shift; penanda tertutup terbit sesudah selesai | Bila dua kejadian terbit, buku besar mencatat selisih dua kali lipat. Uji **MUST** membuktikan jumlahnya satu |
+| 3 | Penjamin membayar piutang dipotong PPh 23 dan biaya bank | Piutang lunas penuh; tiga kejadian terbit dengan kode yang benar | Petugas memilih jenis potongan "lain-lain": ditolak dengan pesan yang menyebut jalan keluarnya, dan **seluruh** alokasi ditolak — tidak ada piutang yang berkurang tanpa kejadian |
+| 4 | Petugas mencatat retur obat yang membawa PPN | Kredit retur bernilai pokok + PPN; dua kejadian terbit dengan nilai terpisah | PPN diisi negatif: ditolak sebelum retur tersimpan |
+| 5 | Pasien dikembalikan uang dari kredit biaya administrasi rawat jalan | — | Tidak ada kejadian yang terbit; baris kegagalan muncul di layar pemantauan beserta sebabnya, dan tombol "ulangi" **tidak** ditawarkan karena mengulang tidak akan pernah berhasil |
+| 6 | Kartu pasien ditarik kembali penerbit sesudah uang mukanya dipakai melunasi tagihan | — | Baris kegagalan muncul beserta sebabnya; Finance **tidak** menulis apa pun ke tabel Billing. Perbaikannya menunggu owner Billing |
+
+## 24. Definition of Done tambahan
+
+| # | Butir | Dijawab dengan |
+|---:|---|---|
+| 1 | Apakah seluruh kejadian yang ditulis memakai nama katalog, dan kelima alias sudah dihapus? | Pencarian kode: nol kemunculan konstanta alias; nol `EventTypeCode` di luar katalog |
+| 2 | Apakah pesan tanpa komponen sudah tidak memuat properti komponen? | Satu uji unit atas `PayloadJson` |
+| 3 | Apakah shift yang kasnya pas menerbitkan penanda tertutup? | Uji integrasi skenario UAT nomor 1 |
+| 4 | Apakah satu shift tidak pernah menerbitkan dua kejadian selisih? | Uji integrasi skenario UAT nomor 2, termasuk jalur tindak lanjut |
+| 5 | Apakah kedua keadaan yang sengaja tidak diterbitkan terlihat di layar pemantauan beserta sebabnya? | Uji integrasi skenario UAT nomor 5 dan 6 |
+| 6 | Apakah kolom `PPNAmount` sudah ada dan kredit retur sudah mencakupnya? | Migration terpasang + uji integrasi skenario UAT nomor 4 |
+| 7 | Apakah setiap kode pada katalog final sudah terdaftar sebagai jenis kejadian di sisi Accounting? | Konfirmasi tertulis dari owner Accounting — **di luar kendali Finance**, dan MUST dipastikan sebelum worker diaktifkan |
+
+## 25. Pertanyaan terbuka sebelum development lock — pembaruan
+
+Menggantikan baris yang bersesuaian pada bagian 20.2.
+
+| Pertanyaan | Pemilik | Bila belum terjawab | Memblokir? |
+|---|---|---|---|
+| ~~Apakah Accounting meratifikasi tujuh kode kejadian baru? (`FIN-OQ-017`)~~ | Rizki | **TERTUTUP** 28 September 2026 | — |
+| ~~Apakah Accounting meratifikasi `PPN-MASUKAN-PEMBELIAN`? (`FIN-OQ-020`)~~ | Rizki | **TERTUTUP** 28 September 2026 | — |
+| ~~Kapan endpoint penerima Accounting dibangun?~~ | Rizki | **TERTUTUP** — sudah ada pada `cba60cb0` | — |
+| Ratifikasi kode `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` (`FIN-OQ-027`) | Rizki | Worker kode itu tidak diaktifkan | Tidak — dan pemicunya sendiri masih tertahan `FIN-OQ-034` |
+| Ratifikasi empat kode potongan piutang (`FIN-OQ-028`) | Rizki | Worker keempat kode tidak diaktifkan | Tidak — `BE-FIN-040` tetap boleh dibangun |
+| Ratifikasi `PPN-MASUKAN-RETUR-PEMBELIAN` (`FIN-OQ-029`) | Rizki | Worker retur ber-PPN tidak diaktifkan | Tidak |
+| Ratifikasi kedua kode penanda shift **dan** konfirmasi bahwa `Amount = 0` diterima (`FIN-OQ-030`, `032`) | Rizki | Penegakan `ACC-DEC-065` tidak dapat dijalankan | **Ya, untuk `FR-FIN-105`** — bila nilai nol tidak diterima, bentuk penandanya MUST dirancang ulang, jadi membangunnya lebih dulu berisiko dibongkar |
+| Akun debit refund `REFERRED_OUTPATIENT_ADMIN` (`FIN-OQ-031`) | Billing Owner + Rizki | Refund kategori itu tercatat gagal, tidak terjurnal | Tidak — jalur `ERROR` sudah dirancang sebagai keadaan sah sementara |
+| Kode potongan AR untuk jenis lain-lain (`FIN-OQ-033`) | Rizki | Jenis "lain-lain" tetap ditolak | Tidak |
+| **Perbaikan gap pembalikan tender top-up deposit (`FIN-OQ-034`)** | **Billing Owner** | Saldo deposit dapat kelebihan catat tanpa jejak; kode 37 tidak pernah punya baris untuk dikirim | **Ya, untuk kelengkapan `EPIC FIN-14`** — bukan untuk gelombang `MVP-0`..`MVP-5` |
+| Kredensial akun layanan (`FIN-OQ-016`) | Platform + Accounting | Worker pengiriman tidak dapat diaktifkan | **Ya, untuk `EPIC FIN-12`** |
+
+**Status dokumen amendment ini:** `draft`. `FIN-MVP-1.5` **belum** dikunci owner, dan karena
+bagian 25 memuat dua pertanyaan bertanda memblokir, bagian AMENDMENT REVISI 6 **MUST NOT**
+diteruskan ke `/plan-module-delivery` sampai keduanya turun. Bagian dokumen yang sudah `locked`
+sebelumnya tidak terpengaruh.
+
+---
+
+# AMENDMENT REVISI 7 — `FIN-MVP-1.6` (`draft`, 28 September 2026)
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-MVP-1.6` — **`draft`** |
+| `last_changed_in` | `FIN-MVP-1.6` — 28 September 2026: `FR-FIN-105` gerbangnya dipindah; `FR-FIN-108`..`110` baru; bagian 25 diperbarui |
+| Diturunkan dari | `FIN-DEC-072`..`076`; `02-backend-architecture.md` AMENDMENT REVISI 7 (`FIN-DES-059`, `060`) |
+| Entity/endpoint baru | **Nol.** Kelima endpoint daftar Purchasing **sudah** tercatat `contracts/api-contract.md` `B.1`-`B.5` sejak revisi 4 |
+
+## 26. Apa yang berubah pada rilis
+
+`FIN-DES-051`..`058` **disetujui owner** 28 September 2026 ("Saya approve"). Tiga koreksi yang
+sebelumnya menunggu pengakuan kini tertutup (`FIN-DEC-072`..`074`), sehingga bagian AMENDMENT
+REVISI 6 tidak lagi menyimpan asumsi yang belum diakui.
+
+Yang **belum** selesai bukan lagi soal keputusan bisnis, melainkan tiga hal yang bergantung pihak
+lain atau pada pekerjaan yang belum dijadwalkan:
+
+| Epic | Status | Perubahan dari revisi 6 |
+|---|---|---|
+| `EPIC FIN-14` | Tetap `OPEN DECISION` | Sebabnya menyempit: `FIN-OQ-027`, `030`, `031`, `032`, `034`, dan `035`. Ketiga koreksi asumsi sudah tidak menjadi sebab lagi |
+| `EPIC FIN-15` (Purchasing/AP) | Tetap seperti revisi 4-6 | **Satu celah implementasi dinyatakan eksplisit:** kelima `GET /` berpaging sudah dikontrak tetapi belum dibangun (`FR-FIN-109`) |
+| `EPIC FIN-16` (Batch Tagihan AR) | Tetap `POST-MVP` | Butir menu "Tagihan Gabungan Penjamin" **MUST NOT** didaftarkan sebelum entity-nya ada (`FIN-CAP-032`, masih nol baris) |
+
+## 27. Functional requirement baru dan yang gerbangnya berubah
+
+| ID | Functional requirement | Disposisi | Bukti uji |
+|---|---|---|---|
+| `FR-FIN-105` | *(diperbarui)* Penanda shift tertutup terbit untuk shift `CLOSED` maupun `REVIEWED`; shift yang dibuka kembali menerbitkan penanda pembalik. **Gerbangnya berpindah** dari `FIN-OQ-030`/`032` menjadi **`FIN-OQ-035`** — baris outbox tetap ditulis, hanya worker pengirimannya yang tertahan | `MISSING / NEW` | `acceptance-test-matrix.md` D.3 |
+| `FR-FIN-108` | Butir menu Purchasing mengikuti `FIN-DEC-060`: submenu "Pembelian" berlabel Indonesia, "Faktur Pembelian", dan butir flat "Tagihan Gabungan Penjamin" | `EXTEND` — frontend, murni relabel/restrukturisasi | `E.1` di bawah |
+| `FR-FIN-109` | Kelima daftar berpaging Purchasing (`PO`, Tanda Terima Barang, Tukar Faktur, Faktur Pembelian, Retur) dapat dibuka petugas dengan penyaringan sesuai kontrak | `MISSING / NEW` — **kontraknya sudah ada**, kodenya belum | `E.1` di bawah |
+| `FR-FIN-110` | Butir menu yang terlihat petugas tidak pernah mengarah ke layar yang menolaknya di endpoint | `OPEN DECISION` — menunggu `FIN-OQ-036` | `E.1` di bawah |
+
+## 28. Skenario UAT tambahan
+
+| # | Skenario | Jalur berhasil | Jalur gagal |
+|---:|---|---|---|
+| 1 | Petugas membuka daftar Purchase Order dari menu | Daftar tampil berpaging dengan penyaringan supplier/status/tanggal | Sebelum `FR-FIN-109` selesai: butir menu **MUST NOT** didaftarkan. Menu yang mengarah ke layar kosong dihitung **gagal**, bukan "menyusul" |
+| 2 | Supervisor menutup shift, lalu Accounting menutup bulan | Penanda terbit dan tersimpan `PENDING`; sesudah `FIN-OQ-035` dijawab, terkirim dan tutup bulan berjalan | Selama `FIN-OQ-035` belum dijawab: baris menumpuk `PENDING` dan **tidak** ditandai `FAILED`. Worker yang mencoba mengirimnya lalu menandai `FAILED` dihitung gagal |
+| 3 | Petugas ber-hak akses AP terbatas membuka menu Pembelian | Butir yang terlihat hanya yang benar-benar dapat dibuka | Petugas melihat butir lalu ditolak endpoint — inilah yang `FIN-OQ-036` harus mencegah |
+
+## 29. Definition of Done tambahan
+
+| # | Butir | Dijawab dengan |
+|---:|---|---|
+| 1 | Apakah label menu Purchasing sudah Bahasa Indonesia dan berada di submenu "Pembelian"? | Tangkapan layar menu + `menu-items.jsx` |
+| 2 | Apakah kelima `GET /` berpaging sudah ada dan dipakai layar? | Uji integrasi + pemanggilan nyata dari frontend |
+| 3 | Apakah butir menu hanya tampil bagi pengguna yang endpoint-nya benar-benar mengizinkan? | Keputusan `FIN-OQ-036` diterapkan + uji dengan dua peran berbeda |
+| 4 | Apakah baris penanda shift menumpuk `PENDING` tanpa ditandai `FAILED` selama gerbang tertutup? | Uji integrasi worker dengan gerbang aktif |
+
+## 30. Pertanyaan terbuka — pembaruan
+
+Menggantikan baris yang bersesuaian pada bagian 25.
+
+| Pertanyaan | Pemilik | Bila belum terjawab | Memblokir? |
+|---|---|---|---|
+| ~~Apakah kotak masuk Accounting menerima `Amount = 0`?~~ | Rizki | **TERJAWAB 28 September 2026 — TIDAK.** Dibaca langsung dari source; kedua jalur menolak | — |
+| **Permintaan perluasan validasi `Amount = 0`, atau pengaktifan jalur pesan saldo (`FIN-OQ-035`)** | Rizki (Accounting) | Worker penanda shift tidak diaktifkan; baris tetap `PENDING` | **Ya, untuk aktivasi `FR-FIN-105`** — tidak memblokir pembangunannya |
+| Ratifikasi `PEMBALIKAN-PENUTUPAN-SHIFT-KASIR` (`FIN-OQ-032`) | Rizki | Worker kode itu tidak diaktifkan | Tidak |
+| **Resource hak akses butir menu Purchasing (`FIN-OQ-036`)** | Yasmin + Security Owner | Petugas dapat melihat butir menu yang endpoint-nya menolaknya | **Ya, untuk `FR-FIN-110`** — tidak memblokir `FR-FIN-108`/`109` |
+| Perbaikan gap pembalikan tender top-up deposit (`FIN-OQ-034`) | **Billing Owner** | Kode 37 tidak pernah punya baris untuk dikirim | Ya, untuk kelengkapan `EPIC FIN-14` |
+| Akun debit refund `REFERRED_OUTPATIENT_ADMIN` (`FIN-OQ-031`) | Billing + Rizki | Refund kategori itu tercatat `ERROR`, tidak terjurnal | Tidak |
+| Kredensial akun layanan (`FIN-OQ-016`) | Platform + Accounting | Worker pengiriman tidak dapat diaktifkan | **Ya, untuk `EPIC FIN-12`** |
+
+**Status dokumen amendment ini:** `draft`. Berbeda dari revisi 6, bagian AMENDMENT REVISI 7 **boleh**
+diteruskan ke `/plan-module-delivery` untuk `FR-FIN-108` dan `FR-FIN-109` — keduanya tidak menunggu
+pihak luar dan kontraknya sudah ada. `FR-FIN-105` boleh **dibangun** tetapi worker-nya digerbang;
+`FR-FIN-110` **MUST NOT** masuk gelombang sampai `FIN-OQ-036` turun.

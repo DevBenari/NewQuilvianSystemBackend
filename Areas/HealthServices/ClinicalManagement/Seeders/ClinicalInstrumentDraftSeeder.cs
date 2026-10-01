@@ -368,7 +368,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
             yield return new Baseline(
                 Guid.Parse("c1a1f000-0107-4a01-9b01-000000000004"), Guid.Parse("c1a1f000-0107-4a01-9b02-000000000004"),
                 "GENERAL_NURSING_ASSESSMENT", "Kajian Umum Keperawatan Rawat Inap (draft)", ClinicalInstrumentKind.GeneralNursingAssessmentForm, null, null,
-                "Delapan bagian RWI-DEC-141. Tanda vital ditunjuk lewat VitalSignId, tidak disalin.",
+                "Delapan bagian RWI-DEC-141 diselaraskan dengan formulir operasional rumah sakit (referensi/kajian-umum).",
                 new ClinicalInstrumentDefinition
                 {
                     Sections =
@@ -378,16 +378,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                             Code = "SUMBER_DATA", Label = "Sumber Data Pasien",
                             Items =
                             {
-                                Single("SD_SOURCE", "Sumber data", ("PATIENT", "Pasien", null), ("OTHER", "Orang lain", null)),
-                                Text("SD_OTHER_NAME", "Nama orang lain / pemberi informasi"),
-                                Single("SD_RELATION", "Hubungan keluarga", ("SUAMI", "Suami", null), ("ISTRI", "Istri", null), ("ORANG_TUA", "Orang tua", null), ("ANAK", "Anak", null), ("KAKAK", "Kakak", null), ("ADIK", "Adik", null), ("OTHER", "Lainnya", null)),
-                                Text("SD_RELATION_OTHER", "Hubungan lainnya"),
-                                Text("SD_BELIEFS", "Nilai kepercayaan / budaya / spiritual"),
-                                Multi("SD_PSYCHOLOGY", "Kondisi psikologis", ("TENANG", "Tenang"), ("CEMAS", "Cemas"), ("TAKUT", "Takut"), ("MARAH", "Marah"), ("SEDIH", "Sedih"), ("BUNUH_DIRI", "Kecenderungan bunuh diri"), ("OTHER", "Lain-lain")),
-                                Single("SD_FAMILY_RELATION", "Hubungan antar anggota keluarga", ("BAIK", "Baik / Harmonis", null), ("TIDAK_BAIK", "Tidak baik / Renggang", null)),
-                                Multi("SD_RESIDENCE", "Tempat tinggal", ("RUMAH_PRIBADI", "Rumah pribadi"), ("KONTRAK", "Kontrak / Sewa"), ("RUMAH_KELUARGA", "Bersama keluarga"), ("PANTI_JOMPO", "Panti jompo")),
-                                Multi("SD_FUNCTIONAL_DIS", "Gangguan fungsional", ("BUTA", "Penglihatan / Buta"), ("TULI", "Pendengaran / Tuli"), ("DAYA_INGAT", "Daya ingat"), ("LEMAH_GERAK", "Kelemahan anggota gerak")),
-                                Text("SD_RELEVANT_NOTE", "Catatan relevan (riwayat jatuh di rumah, kebiasaan)", "PsychosocialNote")
+                                Single("SD_SOURCE", "Sumber Data", ("PATIENT", "Pasien", null), ("OTHER", "Orang Lain", null)),
+                                Single("SD_RELATION", "Hubungan dengan Pasien", ("SUAMI", "Suami", null), ("ISTRI", "Istri", null), ("ORANG_TUA", "Orang Tua", null), ("KAKAK", "Kakak", null), ("ADIK", "Adik", null), ("ANAK", "Anak", null), ("OTHER", "Keluarga Lainnya", null)),
+                                Text("SD_BELIEFS", "Nilai-Nilai Kepercayaan"),
+                                Text("SD_NOTE", "Keterangan Tambahan", "PsychosocialNote"),
+                                Multi("SD_PSYCHOLOGY", "Kondisi Psikologis", ("TENANG", "Tenang"), ("CEMAS", "Cemas"), ("TAKUT", "Takut"), ("MARAH", "Marah"), ("SEDIH", "Sedih"), ("BUNUH_DIRI", "Kecenderungan Bunuh Diri")),
+                                Text("SD_PSYCHOLOGY_OTHER", "Kondisi Psikologis Lainnya"),
+                                Single("SD_FAMILY_RELATION", "Hubungan Pasien dengan anggota keluarga/tetangga", ("BAIK", "Baik", null), ("TIDAK_BAIK", "Tidak Baik", null)),
+                                Multi("SD_RESIDENCE", "Tempat Tinggal", ("RUMAH_PRIBADI", "Rumah Pribadi"), ("KONTRAK", "Kontrak"), ("RUMAH_KELUARGA", "Rumah Keluarga"), ("PANTI_JOMPO", "Panti Jompo")),
+                                Multi("SD_FUNCTIONAL_DIS", "Gangguan Fungsional", ("BUTA", "Penglihatan / Buta"), ("TULI", "Pendengaran / Tuli"), ("DAYA_INGAT", "Daya Ingat"), ("LEMAH_GERAK", "Kelemahan Anggota Gerak"))
                             }
                         },
                         new()
@@ -395,12 +394,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                             Code = "KONDISI_UMUM", Label = "Kondisi Umum",
                             Items =
                             {
-                                Text("KU_CHIEF_COMPLAINT", "Keluhan utama", "ChiefComplaint"),
-                                Text("KU_ILLNESS_HISTORY", "Riwayat penyakit sekarang", "CurrentIllnessHistory"),
-                                Text("KU_MEDICATION_HISTORY", "Riwayat obat", "MedicationHistory"),
-                                Single("KU_CONSCIOUSNESS", "Kesadaran", "ConsciousnessStatus", ("ComposMentis", "Compos Mentis", null), ("Apatis", "Apatis", null), ("Somnolen", "Somnolen", null), ("Sopor", "Sopor", null), ("Coma", "Koma", null)),
-                                Bool("KU_ALLERGY", "Ada riwayat alergi", "HasAllergy"),
-                                Text("KU_ALLERGY_NOTE", "Catatan rincian alergi (obat, makanan, udara)", "AllergyNote")
+                                Text("KU_CHIEF_COMPLAINT", "Keluhan Utama", "ChiefComplaint"),
+                                Text("KU_ILLNESS_HISTORY", "Riwayat Penyakit Sekarang", "CurrentIllnessHistory"),
+                                Text("KU_MEDICATION_HISTORY", "Riwayat Obat", "MedicationHistory"),
+                                Single("KU_CONSCIOUSNESS", "Tingkat Kesadaran", "ConsciousnessStatus", ("ComposMentis", "Compos Mentis", null), ("Apatis", "Apatis", null), ("Somnolen", "Somnolen", null), ("Sopor", "Sopor", null), ("Coma", "Koma", null)),
+                                Bool("KU_ALLERGY", "Ada Riwayat Alergi", "HasAllergy"),
+                                Text("KU_ALLERGY_NOTE", "Catatan Rincian Alergi", "AllergyNote")
                             }
                         },
                         new()
@@ -408,14 +407,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                             Code = "PERNAPASAN", Label = "Pernapasan",
                             Items =
                             {
-                                Bool("RESP_DIFFICULTY", "Kesulitan bernapas"),
-                                Bool("RESP_O2_USAGE", "Memakai terapi oksigen", "IsUsingOxygen"),
-                                Number("RESP_O2_FLOW", "Aliran oksigen (Liter/Menit)", "OxygenFlowRate"),
-                                Single("RESP_O2_DEVICE", "Jenis alat bantu oksigen", "OxygenSupportType", ("NasalCannula", "Nasal kanul", null), ("SimpleMask", "Simple mask", null), ("NonRebreathingMask", "Non-rebreathing mask", null), ("VenturiMask", "Venturi mask", null), ("Other", "Lainnya", null)),
-                                Bool("RESP_COUGH", "Batuk produktif"),
-                                Single("RESP_PATTERN", "Pola pernapasan", ("REGULAR", "Regular", null), ("IRREGULAR", "Irregular", null), ("TACHYPNEA", "Takipnea", null), ("BRADYPNEA", "Bradipnea", null), ("KUSSMAUL", "Kussmaul", null), ("CHEYNE_STOKES", "Cheyne-Stokes", null), ("OTHER", "Lainnya", null)),
-                                Multi("RESP_SYMPTOMS", "Gejala / keluhan pernapasan", ("DYSPNEA", "Dyspnea"), ("ORTHOPNEA", "Orthopnea"), ("CYANOSIS", "Sianosis"), ("WHEEZING", "Wheezing"), ("STRIDOR", "Stridor"), ("NONE", "Tidak ada")),
-                                Text("RESP_NOTE", "Catatan pernapasan")
+                                Bool("RESP_DIFFICULTY", "Kesulitan Bernapas"),
+                                Bool("RESP_COUGH", "Batuk"),
+                                Number("RESP_O2_FLOW", "Pemakaian O2 (L/menit)", "OxygenFlowRate"),
+                                Single("RESP_PATTERN", "Pola Pernapasan", ("REGULAR", "Regular", null), ("IRREGULAR", "Irregular", null)),
+                                Text("RESP_O2_DEVICE", "Jenis Alat", "OxygenSupportType"),
+                                Multi("RESP_SYMPTOMS", "Gejala yang Diamati", ("DISPNEA", "Dispnea"), ("ORTOPNEA", "Ortopnea"), ("SIANOSIS", "Sianosis"), ("SESAK", "Sesak"), ("BATUK_PRODUKTIF", "Batuk Produktif"), ("BATUK_NON_PRODUKTIF", "Batuk Non-Produktif")),
+                                Text("RESP_NOTE", "Catatan Tambahan Pernapasan")
                             }
                         },
                         new()
@@ -423,11 +421,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                             Code = "INTEGRITAS_KULIT", Label = "Integritas Kulit",
                             Items =
                             {
-                                Bool("SKIN_IMPAIRED", "Integritas kulit terganggu"),
-                                Number("SKIN_BRADEN_SCORE", "Skor skala Braden dekubitus"),
-                                Multi("SKIN_CONDITION", "Kondisi kulit pasien", ("NORMAL", "Normal / Utuh"), ("RASH", "Rash (Ruam)"), ("SCAR", "Parut (Jaringan Parut)"), ("BRUISE", "Memar (Lebam)"), ("CYANOTIC", "Sianotik (Kebiruan)"), ("SWEATING", "Berkeringat banyak / Basah"), ("DECUBITUS", "Luka tekan / Dekubitus")),
-                                Single("SKIN_DECUBITUS_STG", "Stadium luka tekan dekubitus", ("NONE", "Tidak ada", null), ("STAGE_1", "Stadium 1 (Eritema non-blanchable)", null), ("STAGE_2", "Stadium 2 (Hilang sebagian lapisan kulit)", null), ("STAGE_3", "Stadium 3 (Hilang seluruh lapisan kulit)", null), ("STAGE_4", "Stadium 4 (Hilang jaringan hingga otot/tulang)", null), ("UNSTAGEABLE", "Unstageable / Tidak dapat ditentukan", null)),
-                                Text("SKIN_NOTE", "Lokasi luka dan catatan integritas kulit")
+                                Bool("SKIN_IMPAIRED", "Terganggu"),
+                                Number("SKIN_BRADEN_SCORE", "Skala/Braden Score Dekubitus"),
+                                Multi("SKIN_CONDITION", "Deskripsi (Kondisi Kulit Pasien)", ("RASH", "Rash (Ruam)"), ("SCAR", "Parut (Bekas Luka/Jaringan Parut)"), ("BRUISE", "Memar (Lebam)"), ("CYANOTIC", "Sianotik (kebiruan)"), ("SWEATING", "Berkeringat Banyak (Basah Berlebih)")),
+                                Text("SKIN_NOTE", "Keterangan Tambahan")
                             }
                         },
                         new()
@@ -435,15 +432,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                             Code = "SKRINING_NUTRISI", Label = "Skrining Nutrisi",
                             Items =
                             {
-                                Single("NUT_APPETITE", "Nafsu makan", "AppetiteStatus", ("Normal", "Normal", null), ("Decreased", "Menurun", null), ("Increased", "Meningkat", null), ("Poor", "Sangat buruk", null)),
-                                Bool("NUT_NAUSEA", "Mual", "HasNausea"),
-                                Bool("NUT_VOMITING", "Muntah", "HasVomiting"),
-                                Single("NUT_MST_WT_LOSS", "Penurunan berat badan 3-6 bulan terakhir (MST Butir 1)", ("NO", "Tidak ada penurunan BB (Skor 0)", 0), ("UNSURE", "Ragu-ragu / Tidak yakin (Skor 2)", 2), ("KG_1_5", "Turun 1 - 5 kg (Skor 1)", 1), ("KG_6_10", "Turun 6 - 10 kg (Skor 2)", 2), ("KG_11_15", "Turun 11 - 15 kg (Skor 3)", 3), ("KG_OVER_15", "Turun > 15 kg (Skor 4)", 4)),
-                                Single("NUT_MST_INTAKE", "Penurunan asupan makan 1 minggu terakhir (MST Butir 2)", ("NO", "Tidak (Skor 0)", 0), ("YES", "Ya (Skor 1)", 1)),
-                                Bool("NUT_MST_SEVERE", "Pasien menderita penyakit berat / kritis (ICU/Keganasan/Stroke)"),
-                                Multi("NUT_METABOLIC", "Gangguan metabolisme / komorbid gizi", ("DM", "Diabetes Melitus"), ("HT", "Hipertensi"), ("DISLIPIDEMIA", "Dislipidemia"), ("CKD", "Penyakit Ginjal Kronis"), ("OBESITAS", "Obesitas"), ("MALNUTRISI", "Malnutrisi")),
-                                Single("NUT_RISK", "Risiko gizi", "NutritionRiskStatus", ("NoRisk", "Tidak berisiko", null), ("LowRisk", "Risiko rendah", null), ("MediumRisk", "Risiko sedang", null), ("HighRisk", "Risiko tinggi", null)),
-                                Number("NUT_RISK_SCORE", "Total skor skrining gizi (MST)", "NutritionRiskScore")
+                                Multi("NUT_DEWASA", "Skrining Nutrisi Dewasa", ("IMT_EXTREME", "IMT < 18,5 atau > 25"), ("LOSS_WEIGHT_3M", "Kehilangan BB yang tidak diinginkan dalam 3 bulan terakhir"), ("INTAKE_DECREASE_1W", "Asupan makan berkurang dalam 1 minggu terakhir"), ("SEVERE_DISEASE", "Menderita penyakit berat")),
+                                Multi("NUT_ANAK", "Skrining Nutrisi Anak", ("THIN", "Pasien tampak kurus"), ("BB_STATIC_1M", "BB menurun/tetap selama 1 bulan terakhir"), ("NO_GAIN_3M", "Tidak ada kenaikan BB dalam 3 bulan terakhir"), ("DIARRHEA_VOMIT_1W", "Diare > 5x sehari dan/atau muntah > 3x sehari dalam seminggu terakhir"), ("VOMIT_5X_1W", "Muntah > 5x sehari dalam seminggu terakhir"), ("INTAKE_DECREASE_CHILD", "Asupan makanan berkurang dalam 1 minggu terakhir")),
+                                Multi("NUT_OBESITAS", "Skrining Nutrisi Obesitas", ("METABOLIC", "Mengalami gangguan metabolisme (DM, Hipertensi, Dislipidemia, dll)"), ("OVERWEIGHT_FLUCTUATION", "BB berlebih atau mengalami penurunan/kenaikan BB yang tidak diinginkan"), ("HB_HCT_ABNORMAL", "Hasil pemeriksaan HB dan HCT di bawah atau di atas nilai normal"), ("APPETITE_DECREASE_DIFF", "Mengalami kesulitan dalam mengonsumsi makanan dan nafsu makan menurun")),
+                                Single("NUT_APPETITE", "Nafsu Makan", "AppetiteStatus", ("Normal", "Normal", null), ("Decreased", "Menurun", null), ("Increased", "Meningkat", null), ("Poor", "Sangat Buruk", null)),
+                                Single("NUT_RISK", "Risiko Gizi", "NutritionRiskStatus", ("NoRisk", "Tidak Berisiko", null), ("LowRisk", "Risiko Rendah", null), ("MediumRisk", "Risiko Sedang", null), ("HighRisk", "Risiko Tinggi", null)),
+                                Number("NUT_RISK_SCORE", "Total Skor Skrining Gizi (MST)", "NutritionRiskScore")
                             }
                         },
                         new()
@@ -451,16 +445,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                             Code = "ELIMINASI", Label = "Eliminasi",
                             Items =
                             {
-                                Bool("ELIM_URINE_PROB", "Ada masalah perkemihan (BAK)"),
-                                Multi("ELIM_URINE_ISSUES", "Jenis masalah BAK", ("STRIKTUR", "Striktur Uretra"), ("RETENSI", "Retensi Urin"), ("INKONTINENSIA", "Inkontinensia Urin"), ("DIALISIS", "Dialisis"), ("DISURIA", "Disuria / Nyeri BAK")),
-                                Text("ELIM_URINE_COLOR", "Warna urin / BAK"),
-                                Bool("ELIM_CATHETER", "Terpasang kateter urin"),
-                                Single("ELIM_CATHETER_TYPE", "Jenis kateter urin", ("FOLEY", "Foley Catheter", null), ("SILICONE", "Silicone 100%", null), ("CONDOM", "Condom Catheter", null), ("SUPRAPUBIC", "Suprapubik", null), ("OTHER", "Lainnya", null)),
-                                Text("ELIM_CATHETER_SIZE", "Ukuran kateter (contoh: 16 Fr, 18 Fr)"),
-                                Text("ELIM_CATHETER_DATE", "Tanggal pemasangan kateter (YYYY-MM-DD)"),
-                                Bool("ELIM_DEFEC_PROB", "Ada masalah defekasi (BAB)"),
-                                Multi("ELIM_DEFEC_ISSUES", "Jenis masalah BAB", ("STOMA", "Stoma / Kolostomi"), ("ATRESIA_ANI", "Atresia Ani"), ("KONSTIPASI", "Konstipasi / Sembelit"), ("INKONTINENSIA_ALVI", "Inkontinensia Alvi"), ("DIARE", "Diare"), ("MELENA", "Melena / Feses Berdarah")),
-                                Text("ELIM_NOTE", "Catatan eliminasi")
+                                Bool("ELIM_URINE_PROB", "Masalah Perkemihan: Ya/Tidak"),
+                                Text("ELIM_URINE_COLOR", "Warna BAK"),
+                                Bool("ELIM_DEFEC_PROB", "Masalah Defekasi: Ya/Tidak"),
+                                Text("ELIM_TOOL", "Alat Bantu Eliminasi"),
+                                Text("ELIM_CATHETER_TYPE", "Jenis Kateter"),
+                                Text("ELIM_CATHETER_SIZE", "Ukuran Kateter"),
+                                Text("ELIM_NOTE", "Keterangan Tambahan")
                             }
                         },
                         new()
@@ -468,14 +459,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                             Code = "KETERGANTUNGAN", Label = "Ketergantungan",
                             Items =
                             {
-                                Single("DEP_MOBILITY", "Mobilisasi", ("MANDIRI", "Mandiri", null), ("DIBANTU", "Dibantu sebagian", null), ("TERGANTUNG_PENUH", "Tergantung penuh", null)),
-                                Single("DEP_HYGIENE", "Kebersihan diri / Personal hygiene", ("MANDIRI", "Mandiri", null), ("DIBANTU", "Dibantu sebagian", null), ("TERGANTUNG_PENUH", "Tergantung penuh", null)),
-                                Single("DEP_TOILETING", "Toileting (BAB & BAK)", ("MANDIRI", "Mandiri", null), ("DIBANTU", "Dibantu sebagian", null), ("TERGANTUNG_PENUH", "Tergantung penuh", null)),
-                                Single("DEP_DRESSING", "Berpakaian", ("MANDIRI", "Mandiri", null), ("DIBANTU", "Dibantu sebagian", null), ("TERGANTUNG_PENUH", "Tergantung penuh", null)),
-                                Single("DEP_FEEDING", "Makan dan minum", ("MANDIRI", "Mandiri", null), ("DIBANTU", "Dibantu sebagian", null), ("TERGANTUNG_PENUH", "Tergantung penuh", null)),
-                                Multi("DEP_MOBILITY_AID", "Alat bantu aktivitas", ("WHEELCHAIR", "Kursi roda"), ("CANE", "Tongkat"), ("WALKER", "Walker"), ("PENYANGGA", "Penyangga tubuh"), ("GIGI_PALSU", "Gigi palsu"), ("KACAMATA", "Kacamata"), ("PENDENGARAN", "Alat bantu dengar"), ("BED_REST", "Tirah baring total")),
-                                Bool("DEP_ALERT_DPJP", "Notifikasi lapor dokter DPJP (aktif jika >= 5 aktivitas tergantung penuh)"),
-                                Text("DEP_NOTE", "Catatan ketergantungan")
+                                Single("DEP_MOBILITY", "Mobilisasi", ("MANDIRI", "Mandiri", null), ("DIBANTU", "Dibantu", null), ("TERGANTUNG_PENUH", "Ketergantungan Penuh", null)),
+                                Single("DEP_PERSONAL", "Personal", ("MANDIRI", "Mandiri", null), ("DIBANTU", "Dibantu", null), ("TERGANTUNG_PENUH", "Ketergantungan Penuh", null)),
+                                Single("DEP_TOILETING", "Toileting", ("MANDIRI", "Mandiri", null), ("DIBANTU", "Dibantu", null), ("TERGANTUNG_PENUH", "Ketergantungan Penuh", null)),
+                                Single("DEP_DRESSING", "Berpakaian", ("MANDIRI", "Mandiri", null), ("DIBANTU", "Dibantu", null), ("TERGANTUNG_PENUH", "Ketergantungan Penuh", null)),
+                                Single("DEP_FEEDING", "Makan/Minum", ("MANDIRI", "Mandiri", null), ("DIBANTU", "Dibantu", null), ("TERGANTUNG_PENUH", "Ketergantungan Penuh", null)),
+                                Single("DEP_CONSCIOUSNESS", "Kesadaran", ("SADAR", "Sadar", null), ("GELISAH", "Gelisah", null), ("KOMA", "Koma", null)),
+                                Single("DEP_TTV_OBSERVATION", "Observasi TTV", ("SETIAP_8_JAM", "Setiap 8 Jam", null), ("SETIAP_4_JAM", "Setiap 4 Jam", null), ("SETIAP_2_4_JAM", "Setiap 2-4 Jam", null)),
+                                Single("DEP_RESPIRATION", "Respirasi", ("NORMAL", "Normal", null), ("OKSIGENISASI", "Oksigenisasi", null), ("ISAP_LENDIR", "Isap Lendir", null)),
+                                Single("DEP_MEDICATION", "Pengobatan", ("ORAL", "Oral", null), ("INJEKSI_OVER_3", "Injeksi > 3 Kali", null), ("INJEKSI_UNDER_3", "Injeksi < 3 Kali", null)),
+                                Bool("DEP_ALERT_DPJP", "Lapor kepada Dokter DPJP"),
+                                Multi("DEP_AIDS", "Alat Bantu ADL", ("PENYANGGA", "Penyangga"), ("GIGI_PALSU", "Gigi Palsu"), ("TONGKAT", "Tongkat"), ("KACAMATA", "Kacamata/Lensa Kontak"), ("KURSI_RODA", "Kursi Roda"), ("MATA_PALSU", "Mata Palsu"), ("PACEMAKER", "Pacemaker"), ("ALAT_BANTU_DENGAR", "Alat Bantu Dengar"), ("WALKER", "Walker")),
+                                Text("DEP_NOTE", "Keterangan Tambahan")
                             }
                         },
                         new()
@@ -483,24 +478,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                             Code = "STATUS_FUNGSIONAL", Label = "Status Fungsional",
                             Items =
                             {
-                                Single("FUNC_BARTHEL_BOWEL", "1. Mengontrol BAB (Defekasi)", ("KONTINIUM", "Terkontrol / Mandiri (Skor 2)", 2), ("KADANG", "Kadang inkontinensia / Butuh bantuan (Skor 1)", 1), ("INKONTINEN", "Inkontinensia / Tergantung (Skor 0)", 0)),
-                                Single("FUNC_BARTHEL_BLADD", "2. Mengontrol BAK (Miksi)", ("KONTINIUM", "Terkontrol / Mandiri (Skor 2)", 2), ("KADANG", "Kadang inkontinensia / Butuh bantuan (Skor 1)", 1), ("INKONTINEN", "Inkontinensia / Pakai kateter (Skor 0)", 0)),
-                                Single("FUNC_BARTHEL_GROOM", "3. Perawatan diri (Cuci muka, sisir rambut, sikat gigi)", ("MANDIRI", "Mandiri (Skor 1)", 1), ("DIBANTU", "Butuh pertolongan orang lain (Skor 0)", 0)),
-                                Single("FUNC_BARTHEL_TOIL", "4. Penggunaan toilet (Pergi, lepas celana, siram, pakai celana)", ("MANDIRI", "Mandiri (Skor 2)", 2), ("DIBANTU", "Butuh pertolongan sebagian (Skor 1)", 1), ("TERGANTUNG", "Tergantung penuh (Skor 0)", 0)),
-                                Single("FUNC_BARTHEL_FEED", "5. Makan", ("MANDIRI", "Mandiri (Skor 2)", 2), ("DIBANTU", "Butuh pertolongan memotong makanan (Skor 1)", 1), ("TERGANTUNG", "Tergantung penuh / Lewat NGT (Skor 0)", 0)),
-                                Single("FUNC_BARTHEL_TRANS", "6. Transfer (Pindah dari tempat tidur ke kursi & sebaliknya)", ("MANDIRI", "Mandiri (Skor 3)", 3), ("BANTUAN_MINIMAL", "Bantuan minimal 1 orang (Skor 2)", 2), ("DUDUK", "Bisa duduk dengan bantuan fisik (Skor 1)", 1), ("TERGANTUNG", "Tergantung penuh / Tidak seimbang (Skor 0)", 0)),
-                                Single("FUNC_BARTHEL_MOBIL", "7. Mobilitas (Berjalan di permukaan datar)", ("MANDIRI", "Mandiri > 50 meter (Skor 3)", 3), ("DIBANTU", "Berjalan dengan bantuan 1 orang (Skor 2)", 2), ("KURSI_RODA", "Berjalan dengan kursi roda (Skor 1)", 1), ("IMOBIL", "Imobil / Tirah baring (Skor 0)", 0)),
-                                Single("FUNC_BARTHEL_DRESS", "8. Berpakaian", ("MANDIRI", "Mandiri memakai baju & sepatu (Skor 2)", 2), ("DIBANTU", "Sebagian dibantu (Skor 1)", 1), ("TERGANTUNG", "Tergantung penuh (Skor 0)", 0)),
-                                Single("FUNC_BARTHEL_STAIR", "9. Naik turun tangga", ("MANDIRI", "Mandiri (Skor 2)", 2), ("DIBANTU", "Butuh bantuan / Pengawasan (Skor 1)", 1), ("TIDAK_MAMPU", "Tidak mampu (Skor 0)", 0)),
-                                Single("FUNC_BARTHEL_BATH", "10. Mandi", ("MANDIRI", "Mandiri (Skor 1)", 1), ("DIBANTU", "Tergantung / Dibantu (Skor 0)", 0)),
-                                Single("FUNC_STATUS", "Status fungsional", "FunctionalStatus", ("Independent", "Mandiri", null), ("NeedPartialAssistance", "Butuh bantuan sebagian", null), ("FullyDependent", "Tergantung penuh", null)),
-                                Text("FUNC_NOTE", "Catatan status fungsional", "FunctionalNote")
+                                Single("FUNC_BARTHEL_1", "1. Memakai Baju", ("0", "0", 0), ("1", "1", 1), ("2", "2", 2)),
+                                Single("FUNC_BARTHEL_2", "2. Naik Turun Tangga", ("0", "0", 0), ("1", "1", 1), ("2", "2", 2)),
+                                Single("FUNC_BARTHEL_3", "3. Mandi", ("0", "0", 0), ("1", "1", 1), ("2", "2", 2)),
+                                Single("FUNC_BARTHEL_4", "4. Mengendalikan rangsang defekasi", ("0", "0", 0), ("1", "1", 1), ("2", "2", 2)),
+                                Single("FUNC_BARTHEL_5", "5. Mengendalikan rangsang defekasi (BAB)", ("0", "0", 0), ("1", "1", 1), ("2", "2", 2)),
+                                Single("FUNC_BARTHEL_6", "6. Mengendalikan rangsang berkemih (BAK)", ("0", "0", 0), ("1", "1", 1), ("2", "2", 2)),
+                                Single("FUNC_BARTHEL_7", "7. Membersihkan Diri", ("0", "0", 0), ("1", "1", 1), ("2", "2", 2)),
+                                Single("FUNC_BARTHEL_8", "8. Penggunaan Jamban", ("0", "0", 0), ("1", "1", 1), ("2", "2", 2)),
+                                Single("FUNC_BARTHEL_9", "9. Makan", ("0", "0", 0), ("1", "1", 1), ("2", "2", 2)),
+                                Single("FUNC_BARTHEL_10", "10. Berpindah / Transfer", ("0", "0", 0), ("1", "1", 1), ("2", "2", 2)),
+                                Number("FUNC_TOTAL_SCORE", "Total Score", "FunctionalScore"),
+                                Single("FUNC_STATUS", "Status Fungsional", "FunctionalStatus", ("Total", "Ketergantungan Total", null), ("Berat", "Ketergantungan Berat", null), ("Sedang", "Ketergantungan Sedang", null), ("Ringan", "Ketergantungan Ringan", null), ("Mandiri", "Mandiri", null)),
+                                Text("FUNC_NOTE", "Keterangan Tambahan", "FunctionalNote")
                             }
                         }
                     },
                     ReviewFlags =
                     {
-                        "Susunan delapan bagian mengikuti RWI-DEC-141 dan diselaraskan penuh dengan butir klinis V1 (RLN3-CAP-05).",
+                        "Susunan delapan bagian mengikuti RWI-DEC-141 dan diselaraskan penuh dengan formulir operasional rumah sakit (referensi/kajian-umum).",
                         "Isian wajib mengikuti kebijakan klinis; requiredItemCodes dikosongkan untuk fleksibilitas perawat bangsal."
                     }
                 });
@@ -726,7 +722,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                         new()
                         {
                             Code = "DP_KRITERIA",
-                            Label = "1. Skrining Kriteria Pemulangan Pasien",
+                            Label = "Skrining Kriteria Pemulangan Pasien",
                             Items =
                             {
                                 Bool("DP_KRIT_USIA", "Usia lebih dari 65 tahun"),
@@ -740,18 +736,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                         new()
                         {
                             Code = "DP_CAREGIVER",
-                            Label = "2. Caregiver & Kesiapan Perawatan di Rumah",
+                            Label = "Caregiver & Kesiapan Perawatan di Rumah",
                             Items =
                             {
                                 Bool("DP_LIVING_ALONE", "Pasien tinggal sendiri setelah keluar RS"),
                                 Text("DP_CAREGIVER_NAME", "Nama penanggung jawab / caregiver utama di rumah"),
-                                Text("DP_CAREGIVER_PHONE", "Nomor telepon / kontak caregiver")
+                                Text("DP_CAREGIVER_PHONE", "Nomor telepon / kontak caregiver"),
+                                Multi("DP_ADL_NEEDS", "Kebutuhan Bantuan Aktivitas Sehari-hari (ADL)",
+                                    ("MAKAN", "Makan / Minum"),
+                                    ("MINUM_OBAT", "Minum Obat"),
+                                    ("MANDI", "Mandi"),
+                                    ("BERPAKAIAN", "Berpakaian"),
+                                    ("BAB_BAK", "Eliminasi BAB / BAK"),
+                                    ("MOBILISASI", "Mobilisasi / Berjalan"),
+                                    ("OTHER", "Lainnya"))
                             }
                         },
                         new()
                         {
                             Code = "DP_HOME_ENV",
-                            Label = "3. Lingkungan Fisik Rumah (Faktor Keselamatan)",
+                            Label = "Lingkungan Fisik Rumah (Faktor Keselamatan)",
                             Items =
                             {
                                 Single("DP_BEDROOM_FLOOR", "Letak kamar tidur pasien di rumah",
@@ -772,7 +776,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                         new()
                         {
                             Code = "DP_EQUIPMENT",
-                            Label = "4. Peralatan Medis & Alat Bantu di Rumah",
+                            Label = "Peralatan Medis & Alat Bantu di Rumah",
                             Items =
                             {
                                 Bool("DP_MED_EQUIP_USED", "Memerlukan peralatan medis di rumah (kateter, NGT, O2, stoma)"),
@@ -784,7 +788,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                         new()
                         {
                             Code = "DP_HOMECARE",
-                            Label = "5. Kebutuhan Layanan Home Care / Rawat Lanjut",
+                            Label = "Kebutuhan Layanan Home Care / Rawat Lanjut",
                             Items =
                             {
                                 Bool("DP_HOMECARE_NEEDED", "Memerlukan bantuan perawatan khusus di rumah (home care)"),
@@ -794,7 +798,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                         new()
                         {
                             Code = "DP_TRANSPORT",
-                            Label = "6. Transportasi Kepulangan Pasien",
+                            Label = "Transportasi Kepulangan Pasien",
                             Items =
                             {
                                 Single("DP_TRANSPORT_TYPE", "Moda transportasi kepulangan yang digunakan",
@@ -808,7 +812,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                         new()
                         {
                             Code = "DP_FOLLOWUP",
-                            Label = "7. Rencana Kontrol & Edukasi Lanjutan",
+                            Label = "Rencana Kontrol & Edukasi Lanjutan",
                             Items =
                             {
                                 Text("DP_FOLLOWUP_PLAN", "Rencana kontrol dokter DPJP / poliklinik"),
@@ -818,7 +822,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                         new()
                         {
                             Code = "DP_PLAN_STATUS",
-                            Label = "8. Status Rencana & Resume Pemulangan",
+                            Label = "Status Rencana & Resume Pemulangan",
                             Items =
                             {
                                 Text("DP_PLAN_STATUS_NOTE", "Catatan resume perencanaan pulang perawat", "NurseNote")
@@ -835,23 +839,115 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
             yield return new Baseline(
                 Guid.Parse("c1a1f000-0107-4a01-9b01-000000000008"), Guid.Parse("c1a1f000-0107-4a01-9b02-000000000008"),
                 "CASE_MANAGEMENT_CHECKLIST", "Checklist Evaluasi Awal MPP", ClinicalInstrumentKind.CaseManagementChecklist, null, null,
-                "Formulir evaluasi awal Manajer Pelayanan Pasien (MPP) 8 bagian berstandar KARS PAP 2.1 & TKRS serta V1 evaluasi awal.",
+                "Formulir evaluasi awal Manajer Pelayanan Pasien (MPP) Form A berstandar KARS AKP 3 & AKP 3.1 serta V1 evaluasi awal.",
                 new ClinicalInstrumentDefinition
                 {
                     Sections =
                     {
-                        TextSection("MPP_SCREENING", "1. Identifikasi / Skrining Pasien"),
-                        TextSection("MPP_PROBLEM", "2. Identifikasi Masalah Pasien & Keluarga"),
-                        TextSection("MPP_GOAL", "3. Harapan / Sasaran Asuhan Manajer Pelayanan"),
-                        TextSection("MPP_PLAN", "4. Perencanaan Pelayanan & Kolaborasi Klinis"),
-                        TextSection("MPP_SUPPORT", "5. Dukungan Sosial & Sistem Keluarga"),
-                        TextSection("MPP_FINANCIAL", "6. Aspek Finansial & Jaminan Pembiayaan"),
-                        TextSection("MPP_LEGAL", "7. Aspek Legal & Etika Pelayanan"),
-                        TextSection("MPP_DISCHARGE", "8. Perencanaan Pemulangan (Discharge Planning)")
+                        new()
+                        {
+                            Code = "MPP_SCREENING",
+                            Label = "Identifikasi / Skrining Pasien (Kriteria KARS AKP 3)",
+                            Items =
+                            {
+                                Multi("MPP_SCREENING_ITEMS", "Kriteria Skrining Kasus Kompleks",
+                                    ("AGE_OVER_65", "Usia > 65 Tahun"),
+                                    ("LOW_COGNITIVE", "Pasien dengan fungsi kognitif rendah"),
+                                    ("HIGH_CLINICAL_RISK", "Pasien dengan risiko tinggi"),
+                                    ("HIGH_COMPLAINT_POTENTIAL", "Potensi komplain tinggi"),
+                                    ("CHRONIC_TERMINAL", "Kasus penyakit kronis, katastrofik, terminal"),
+                                    ("LOW_FUNCTIONAL_ADL", "Status fungsional rendah, kebutuhan bantuan ADL"),
+                                    ("MENTAL_SOCIAL_ISSUE", "Riwayat gangguan mental, upaya bunuh diri, krisis keluarga, isu sosial"),
+                                    ("MEDICAL_DEVICE_USAGE", "Riwayat penggunaan peralatan medis (alat invasif)"),
+                                    ("FREQUENT_ER_READMISSION", "Sering masuk IGD, readmisi rumah sakit"),
+                                    ("FINANCIAL_ISSUE", "Masalah pembiayaan / finansial"),
+                                    ("LONG_STAY_RISK", "Hari rawat panjang (estimasi LOS > standar)"),
+                                    ("COMPLEX_DISCHARGE", "Membutuhkan kontinuitas pelayanan / Rencana pemulangan berisiko")),
+                                Text("MPP_SCREENING_NOTE", "Catatan Hasil Skrining Kasus Kompleks")
+                            }
+                        },
+                        new()
+                        {
+                            Code = "MPP_ASSESSMENT",
+                            Label = "Asesmen / Evaluasi Awal Manajemen Pelayanan Pasien (11 Domain)",
+                            Items =
+                            {
+                                Text("EVAL_STRENGTHS", "Kekuatan / Kemampuan Pasien & Keluarga (Fisik, Fungsional, Kognitif)"),
+                                Text("EVAL_HEALTH_HIST", "Riwayat Kesehatan Pasien & Keluarga (Penyakit & Pengobatan Dahulu)"),
+                                Text("EVAL_MENTAL", "Kesehatan Mental, Perilaku & Emosional Pasien"),
+                                Text("EVAL_SUPPORT", "Tersedianya Dukungan Sosial & Sistem Keluarga"),
+                                Text("EVAL_FINANCIAL", "Evaluasi Finansial / Jaminan Pembiayaan Kesehatan"),
+                                Text("EVAL_MEDS_DEVICES", "Riwayat Penggunaan Obat, Alat Medis & Pengobatan Alternatif"),
+                                Text("EVAL_TRAUMA", "Riwayat Trauma, Kekerasan Dalam Rumah Tangga / Penelantaran"),
+                                Text("EVAL_GOALS", "Harapan Hasil Asuhan & Kemampuan Menerima Perubahan"),
+                                Text("EVAL_LEGAL", "Aspek Legal, Budaya, Nilai Kepercayaan & Etik Pelayanan"),
+                                Text("EVAL_DISCHARGE", "Discharge Planning (Kebutuhan Perencanaan Pemulangan Awal)"),
+                                Text("EVAL_OTHER", "Kebutuhan Lain / Kendala Khusus Pasien")
+                            }
+                        },
+                        new()
+                        {
+                            Code = "MPP_PROBLEM",
+                            Label = "Identifikasi Masalah & Kesempatan Pasien / Keluarga",
+                            Items =
+                            {
+                                Multi("MPP_PROBLEM_ITEMS", "Masalah Klinis, Finansial & Psikososial",
+                                    ("PROB_COMPLEXITY", "Kompleksitas klinis / multipatologi medis"),
+                                    ("PROB_COORDINATION", "Kebutuhan koordinasi intensif antar DPJP & PPA"),
+                                    ("PROB_ADHERENCE", "Risiko ketidakpatuhan instruksi terapi / diet"),
+                                    ("PROB_FINANCIAL", "Kendala biaya / batas penjaminan asuransi"),
+                                    ("PROB_FAMILY", "Keterbatasan dukungan keluarga / pengasuh"),
+                                    ("PROB_DISCHARGE", "Kesiapan pemulangan memerlukan persiapan khusus"),
+                                    ("PROB_HOMECARE", "Kebutuhan alat bantu kesehatan pasca pulang"),
+                                    ("PROB_ETHICAL", "Kendala psikososial / masalah etik-legal")),
+                                Text("MPP_PROBLEM_NOTE", "Catatan Identifikasi Masalah Tambahan")
+                            }
+                        },
+                        new()
+                        {
+                            Code = "MPP_GOAL",
+                            Label = "Harapan / Sasaran Asuhan Manajer Pelayanan Pasien",
+                            Items =
+                            {
+                                Multi("MPP_GOAL_ITEMS", "Sasaran Kolaborasi Klinis & Edukasi",
+                                    ("GOAL_CLINICAL", "Kestabilan klinis tercapai sesuai Clinical Pathway"),
+                                    ("GOAL_KNOWLEDGE", "Pemahaman keluarga mengenai tata laksana pengobatan"),
+                                    ("GOAL_INDEPENDENCE", "Kesiapan keluarga merawat pasien secara mandiri di rumah"),
+                                    ("GOAL_EFFICIENCY", "Optimalisasi efisiensi biaya dan lama hari rawat (LOS)"),
+                                    ("GOAL_SAFETY", "Tidak terjadi komplikasi infeksi nosokomial atau cedera"),
+                                    ("GOAL_NO_READMISSION", "Tidak terjadi readmisi dalam waktu 30 hari")),
+                                Text("MPP_GOAL_NOTE", "Catatan Sasaran Asuhan Tambahan")
+                            }
+                        },
+                        new()
+                        {
+                            Code = "MPP_PLAN",
+                            Label = "Perencanaan Pelayanan & Kolaborasi Klinis",
+                            Items =
+                            {
+                                Multi("MPP_PLAN_ITEMS", "Rencana Tindakan Manajer Pelayanan Pasien",
+                                    ("PLAN_COMMUNICATION", "Fasilitasi komunikasi efektif antara DPJP, perawat, ahli gizi, dan keluarga"),
+                                    ("PLAN_DISCHARGE", "Koordinasi awal rencana pemulangan (Early Discharge Planning) bersama tim PPA"),
+                                    ("PLAN_EDUCATION", "Edukasi terstruktur cara perawatan mandiri dan tanda bahaya darurat"),
+                                    ("PLAN_FINANCIAL", "Koordinasi bantuan jaminan sosial / keringanan biaya rumah sakit"),
+                                    ("PLAN_DEVICES", "Fasilitasi penyediaan alat bantu medis pasca rawat (kursi roda/oksigen)"),
+                                    ("PLAN_REFERRAL", "Koordinasi rujukan faskes tingkat pertama atau layanan home care")),
+                                Text("MPP_PLAN_NOTE", "Catatan Perencanaan Tambahan")
+                            }
+                        },
+                        new()
+                        {
+                            Code = "MPP_CLOSING",
+                            Label = "Catatan Tambahan & Verifikasi Manajer Pelayanan Pasien",
+                            Items =
+                            {
+                                Text("MPP_CLOSING_NOTE", "Catatan Tambahan & Tindak Lanjut MPP", "NurseNote")
+                            }
+                        }
                     },
                     ReviewFlags =
                     {
-                        "Formulir evaluasi awal MPP 8 bagian selaras dengan standar KARS (Bab PAP 2.1) dan mengadopsi V1 evaluasi awal."
+                        "Formulir evaluasi awal MPP Form A berstandar KARS (Bab AKP 3 & AKP 3.1) dan mengadopsi 100% parameter operasional V1."
                     }
                 });
         }

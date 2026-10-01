@@ -120,11 +120,11 @@ public sealed class FinanceSupplierPayableService
 
         _dbContext.FinSupplierPayables.Add(payable);
 
-        // Stage event AP_CREATED ke Accounting Integration Outbox. accountingEventAmountOverride
+        // Stage event PENGAKUAN-HUTANG-SUPPLIER ke Accounting Integration Outbox. accountingEventAmountOverride
         // (BE-FIN-034) hanya memengaruhi ANGKA KEJADIAN ini, bukan payable.OriginalAmount di atas.
         await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
         {
-            EventTypeCode = FinAccountingEventTypeCodes.ApCreated,
+            EventTypeCode = FinAccountingEventTypeCodes.PengakuanHutangSupplier,
             SourceTransactionId = payable.PayableNumber,
             EventOccurredAt = DateTimeOffset.UtcNow,
             AccountingDate = payable.SupplierInvoiceDate,
@@ -243,11 +243,11 @@ public sealed class FinanceSupplierPayableService
             payable.UpdateBy = actorUserId;
             payable.RowVersion = Guid.NewGuid();
 
-            // Stage event AP_PAYMENT ke Accounting Outbox
+            // Stage event PEMBAYARAN-HUTANG-SUPPLIER ke Accounting Outbox
             var eventOccurredAt = DateTimeOffset.UtcNow;
             await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
             {
-                EventTypeCode = FinAccountingEventTypeCodes.ApPayment,
+                EventTypeCode = FinAccountingEventTypeCodes.PembayaranHutangSupplier,
                 SourceTransactionId = payable.PayableNumber,
                 EventOccurredAt = eventOccurredAt,
                 AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),

@@ -36,16 +36,43 @@ public sealed class FinReceiptDetailResponse : FinReceiptResponse
     public List<FinReceiptAllocationResponse> Allocations { get; set; } = [];
 }
 
+/// <summary>Satu baris potongan sisi penerimaan (BE-FIN-040, FIN-DES-048). Hanya sah pada baris
+/// alokasi ber-ReceivableId terisi (FIN-VAL-128).</summary>
+public sealed class ReceiptDeductionLineRequestDto
+{
+    public string DeductionType { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string? Reason { get; set; }
+    public string? ReferenceNumber { get; set; }
+}
+
 /// <summary>Satu baris permintaan alokasi. ReceivableId kosong = INVOICE_DIRECT (FIN-DES-011).</summary>
 public sealed class AllocationLineRequestDto
 {
     public Guid? ReceivableId { get; set; }
     public decimal Amount { get; set; }
+    public List<ReceiptDeductionLineRequestDto>? Deductions { get; set; }
 }
 
 public sealed class AllocateReceiptRequest
 {
     public List<AllocationLineRequestDto> Lines { get; set; } = [];
+}
+
+/// <summary>Baris GET /receipts/{id}/deductions (FIN-API-1.2 B.8).</summary>
+public sealed class ReceiptDeductionResponse
+{
+    public Guid Id { get; set; }
+    public string DeductionNumber { get; set; } = string.Empty;
+    public Guid ReceiptId { get; set; }
+    public Guid ReceiptAllocationId { get; set; }
+    public string DeductionType { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string? Reason { get; set; }
+    public string? ReferenceNumber { get; set; }
+    public bool IsReversal { get; set; }
+    public Guid? ReversalOfDeductionId { get; set; }
+    public Guid RowVersion { get; set; }
 }
 
 public sealed class FinReceiptQuery

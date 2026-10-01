@@ -10,12 +10,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Models
 /// Satu perintah bayar yang boleh melunasi banyak utang sekaligus dalam bentuk rekap pembayaran.
 ///
 /// Invariant:
-/// - NetTransferAmount = TotalAmount - DeductionAmount + AdditionAmount (CK_FinPayment_NetTransfer, FR-FIN-050).
+/// - NetTransferAmount = TotalAmount - DeductionAmount + AdditionAmount - DepositAppliedAmount
+///   (CK_FinPayment_NetTransfer, FR-FIN-050, rumus diperluas BE-FIN-041/FIN-DES-045).
 /// - NetTransferAmount >= 0 (CK_FinPayment_NetTransferNonNegative).
+/// - DepositAppliedAmount >= 0 (CK_FinPayment_DepositApplied, BE-FIN-041).
 /// - TotalAmount > 0 (CK_FinPayment_Total).
 /// - ApprovedBy IS NULL OR ApprovedBy != RequestedBy (CK_FinPayment_MakerChecker, FIN-VAL-051).
 /// - Status != 'PAID' OR AllocatedAmount = TotalAmount (CK_FinPayment_FullyAllocatedWhenPaid, FIN-VAL-050).
 /// - ApprovalTier diisi service dari total nominal (FIN-DEC-022; ambang Rp 50.000.000 diratifikasi FIN-DEC-052).
+///
+/// BE-FIN-041: DepositAppliedAmount ditambahkan pada TABEL YANG SUDAH BERJALAN. Kolom ini HANYA
+/// ditulis FinancePaymentService lewat mekanisme reservasi Deposit Retur (BE-FIN-036,
+/// FIN-DES-046) — nol perilaku berubah untuk pembayaran yang tidak memakainya (nilainya tetap 0).
 /// </summary>
 [Table("FinPayment", Schema = "public")]
 public sealed class FinPayment : IdentityModel
@@ -49,8 +55,13 @@ public sealed class FinPayment : IdentityModel
     /// <summary>Jumlah seluruh baris tambahan berarah ADDITION (sitting fee, dll.).</summary>
     public decimal AdditionAmount { get; set; } = 0m;
 
-    /// <summary>Uang yang benar-benar ditransfer: TotalAmount - DeductionAmount + AdditionAmount (FR-FIN-050). MUST NOT negatif.</summary>
+    /// <summary>Uang yang benar-benar ditransfer: TotalAmount - DeductionAmount + AdditionAmount - DepositAppliedAmount (FR-FIN-050). MUST NOT negatif.</summary>
     public decimal NetTransferAmount { get; set; } = 0m;
+
+    /// <summary>Jumlah baris pemakaian Deposit Retur (FinSupplierReturnDepositUsage) berstatus RESERVED/APPLIED
+    /// yang belum dilepas (BE-FIN-041, FIN-DES-045/046). Selalu 0 untuk pembayaran yang tidak memakai deposit —
+    /// nol perubahan perilaku sebelum BE-FIN-036 menulis nilai selain 0 ke kolom ini.</summary>
+    public decimal DepositAppliedAmount { get; set; } = 0m;
 
     [Required, MaxLength(30)] public string Status { get; set; } = FinPaymentStatuses.Draft;
 

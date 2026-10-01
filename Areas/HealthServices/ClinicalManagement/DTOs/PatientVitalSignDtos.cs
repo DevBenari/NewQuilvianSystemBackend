@@ -37,6 +37,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid? ObservedByUserId { get; set; }
         public string? ObservedByName { get; set; }
         public DateTime? UpdateDateTime { get; set; }
+
+        /// <summary>
+        /// Asal baris — <c>BE-RWI-141</c>. <c>DoctorConsultation</c> menandai ukuran dokter pada SOAP
+        /// rawat inap, sehingga grafik dan panel SOAP dapat menuliskan "Dokter", bukan "Perawat".
+        /// </summary>
+        public PatientVitalSignSource VitalSignSource { get; set; }
+
+        /// <summary>Catatan dokter pemilik baris, bila baris ini ukuran dokter.</summary>
+        public Guid? ConsultationId { get; set; }
     }
 
     public class PatientVitalSignResponse

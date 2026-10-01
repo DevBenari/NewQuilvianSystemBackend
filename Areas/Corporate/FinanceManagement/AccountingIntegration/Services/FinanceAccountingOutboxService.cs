@@ -3,6 +3,7 @@ using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
 using QuilvianSystemBackend.Repositories;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 
@@ -16,12 +17,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingInte
 /// terjadi menurut roadmap MVP-5.
 ///
 /// PayloadJson dibangun DI SINI, bukan diterima mentah dari pemanggil, dari 12 field wajib
-/// ACC-XMOD-0.2 + Components saja — desain ini sengaja mengunci FR-FIN-073 (data pasien/DoctorId
+/// ACC-XMOD-0.2 + Components & SubledgerBalance opsional — desain ini sengaja mengunci FR-FIN-073 (data pasien/DoctorId
 /// tidak pernah ikut) di level tipe: pemanggil tidak diberi jalan untuk menyisipkan field bebas
 /// ke payload sama sekali.
 /// </summary>
 public sealed class FinanceAccountingOutboxService
 {
+    private static readonly Regex AccountingPeriodRegex = new(@"^\d{4}-(0[1-9]|1[0-2])$", RegexOptions.Compiled);
     private readonly ApplicationDbContext _dbContext;
 
     public FinanceAccountingOutboxService(ApplicationDbContext dbContext)
@@ -65,13 +67,10 @@ public sealed class FinanceAccountingOutboxService
             CausationId = request.CausationId,
             ComponentsJson = componentsJson,
             PayloadJson = payloadJson,
-            // HELD_FOR_FINALIZATION hanya berlaku untuk kejadian penerimaan sebelum tagihan final
-            // (FIN-DES-018, accounting-integration.md §4) — belum ada pemanggil nyata pada task ini
-            // karena FinReceipt/Collection masih BLOCKED (roadmap MVP-2/3). Parameter tetap
-            // disediakan supaya pemanggil di masa depan tidak perlu mengubah tanda tangan ini.
-            DeliveryStatus = request.RequiresFinalization
-                ? FinAccountingEventDeliveryStatuses.HeldForFinalization
-                : FinAccountingEventDeliveryStatuses.Pending,
+            // HELD_FOR_FINALIZATION dicabut oleh FIN-DEC-030 dan FIN-DES-033 (FIN-VAL-076 dicabut).
+            // Penentuan perlakuan pra-finalisasi berpindah ke pemilihan EventTypeCode (BE-FIN-024).
+            // Seluruh kejadian baru masuk dengan status PENDING.
+            DeliveryStatus = FinAccountingEventDeliveryStatuses.Pending,
             CreateDateTime = DateTime.UtcNow,
             CreateBy = request.ActorUserId
         };
@@ -100,32 +99,112 @@ public sealed class FinanceAccountingOutboxService
 
     private static string BuildPayloadJson(string eventNumber, AccountingOutboxEventRequest request, string sourceVersion, Guid legalEntityId)
     {
-        // Persis 12 field wajib ACC-XMOD-0.2 (integration-contract.md §5.2) + Components opsional.
+        // Persis 12 field wajib ACC-XMOD-0.2 (integration-contract.md §5.2) + Components & SubledgerBalance opsional.
         // Sengaja tidak menerima field bebas dari pemanggil — lihat ringkasan kelas.
-        var payload = new
+        // Pelurusan 1 (FIN-DES-058, FIN-VAL-139): bila tidak ada komponen, properti Components TIDAK BOLEH
+        // muncul sama sekali di payload (bukan "Components": null).
+        var payload = new Dictionary<string, object?>
         {
-            EventNumber = eventNumber,
-            request.EventTypeCode,
-            SourceModule = FinAccountingEventSourceModules.Finance,
-            request.SourceTransactionId,
-            SourceVersion = sourceVersion,
-            request.EventOccurredAt,
-            request.AccountingDate,
-            request.Amount,
-            CurrencyCode = "IDR",
-            LegalEntityId = legalEntityId,
-            request.CorrelationId,
-            request.CausationId,
-            Components = request.Components
+            ["EventNumber"] = eventNumber,
+            ["EventTypeCode"] = request.EventTypeCode,
+            ["SourceModule"] = FinAccountingEventSourceModules.Finance,
+            ["SourceTransactionId"] = request.SourceTransactionId,
+            ["SourceVersion"] = sourceVersion,
+            ["EventOccurredAt"] = request.EventOccurredAt,
+            ["AccountingDate"] = request.AccountingDate,
+            ["Amount"] = request.Amount,
+            ["CurrencyCode"] = "IDR",
+            ["LegalEntityId"] = legalEntityId,
+            ["CorrelationId"] = request.CorrelationId,
+            ["CausationId"] = request.CausationId
         };
+
+        if (request.Components is { Count: > 0 })
+        {
+            payload["Components"] = request.Components;
+        }
+
+        if (request.SubledgerBalance != null)
+        {
+            payload["SubledgerBalance"] = new
+            {
+                request.SubledgerBalance.AccountingPeriodCode,
+                request.SubledgerBalance.ControlAccountCode
+            };
+        }
+
         return JsonSerializer.Serialize(payload);
     }
 
     private static void ValidateRequest(AccountingOutboxEventRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.EventTypeCode)) throw new AccountingOutboxException("EventTypeCode wajib diisi.");
-        if (string.IsNullOrWhiteSpace(request.SourceTransactionId)) throw new AccountingOutboxException("SourceTransactionId wajib diisi.");
-        if (request.Amount <= 0) throw new AccountingOutboxException("Amount kejadian harus lebih dari nol.");
+        if (string.IsNullOrWhiteSpace(request.EventTypeCode))
+            throw new AccountingOutboxException("EventTypeCode wajib diisi.");
+
+        if (string.IsNullOrWhiteSpace(request.SourceTransactionId))
+            throw new AccountingOutboxException("SourceTransactionId wajib diisi.");
+
+        var isSaldoSubledger = string.Equals(request.EventTypeCode, FinAccountingEventTypeCodes.SaldoSubledger, StringComparison.OrdinalIgnoreCase);
+
+        // Aturan Nilai (FIN-VAL-079, FIN-VAL-138, FIN-DES-054, FIN-DES-058, FIN-DEC-091, ACC-DEC-109)
+        if (request.Amount < 0)
+        {
+            throw new AccountingOutboxException("Nominal kejadian harus lebih dari nol.");
+        }
+
+        if (request.Amount == 0)
+        {
+            if (!FinAccountingEventTypeCodes.ZeroAmountAllowedEventTypes.Contains(request.EventTypeCode))
+            {
+                throw new AccountingOutboxException("Nominal kejadian harus lebih dari nol.");
+            }
+        }
+
+        // Aturan SubledgerBalance (FIN-VAL-081, FIN-VAL-082, FIN-VAL-083, FIN-VAL-084, FIN-DEC-092, ACC-DEC-110)
+        if (!isSaldoSubledger)
+        {
+            if (request.SubledgerBalance != null)
+            {
+                throw new AccountingOutboxException("Rincian saldo subledger hanya berlaku untuk pesan saldo.");
+            }
+        }
+        else
+        {
+            if (request.SubledgerBalance == null ||
+                string.IsNullOrWhiteSpace(request.SubledgerBalance.AccountingPeriodCode) ||
+                string.IsNullOrWhiteSpace(request.SubledgerBalance.ControlAccountCode))
+            {
+                throw new AccountingOutboxException("Pesan saldo subledger wajib menyebutkan periode dan akun kontrolnya.");
+            }
+
+            if (request.SubledgerBalance.AccountingPeriodCode.Length > 7 ||
+                !AccountingPeriodRegex.IsMatch(request.SubledgerBalance.AccountingPeriodCode))
+            {
+                throw new AccountingOutboxException("Kode periode harus berbentuk tahun-bulan, contoh 2026-11.");
+            }
+
+            var periodParts = request.SubledgerBalance.AccountingPeriodCode.Split('-');
+            var periodYear = int.Parse(periodParts[0]);
+            var periodMonth = int.Parse(periodParts[1]);
+            var expectedLastDate = new DateOnly(periodYear, periodMonth, DateTime.DaysInMonth(periodYear, periodMonth));
+
+            if (request.AccountingDate != expectedLastDate)
+            {
+                throw new AccountingOutboxException(
+                    $"AccountingDate untuk pesan saldo periode {request.SubledgerBalance.AccountingPeriodCode} " +
+                    $"wajib tanggal akhir periode ({expectedLastDate:yyyy-MM-dd}).");
+            }
+
+            if (request.SubledgerBalance.ControlAccountCode.Length > 50)
+            {
+                throw new AccountingOutboxException("Kode akun kontrol melebihi panjang maksimal 50 karakter.");
+            }
+
+            if (request.SourceVersion != null && (!int.TryParse(request.SourceVersion, out var version) || version <= 0))
+            {
+                throw new AccountingOutboxException("Pernyataan ulang saldo harus memakai versi yang lebih baru.");
+            }
+        }
     }
 
     // EventNumber tidak punya format baku pada kontrak yang terkunci — dibuat unik lewat Guid,
@@ -150,8 +229,24 @@ public sealed class AccountingOutboxEventRequest
     public Guid CorrelationId { get; init; }
     public Guid CausationId { get; init; }
     public IReadOnlyList<AccountingEventComponent>? Components { get; init; }
-    public bool RequiresFinalization { get; init; }
+    public SubledgerBalanceRequest? SubledgerBalance { get; init; }
     public Guid ActorUserId { get; init; }
+}
+
+/// <summary>
+/// Parameter rincian saldo subledger khusus kejadian SALDO-SUBLEDGER (FIN-DES-032, FIN-VAL-081, FIN-VAL-082).
+/// </summary>
+public sealed class SubledgerBalanceRequest
+{
+    /// <summary>
+    /// Periode akuntansi berbentuk YYYY-MM (maksimal 7 karakter).
+    /// </summary>
+    public required string AccountingPeriodCode { get; init; }
+
+    /// <summary>
+    /// Kode akun kontrol milik Accounting (maksimal 50 karakter).
+    /// </summary>
+    public required string ControlAccountCode { get; init; }
 }
 
 public sealed record AccountingEventComponent(string ComponentCode, decimal Amount);

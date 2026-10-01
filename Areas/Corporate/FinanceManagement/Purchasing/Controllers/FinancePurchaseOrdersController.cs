@@ -17,10 +17,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Con
 /// submodul Purchasing belum punya controller sebelumnya sehingga tidak ada pola legacy yang
 /// perlu ditiru di sini (QBE canonical berlaku penuh untuk NEW CODE).
 ///
-/// Hanya endpoint dengan logika service nyata yang dibangun (create, update draft, submit,
-/// approve, reject, cancel, rincian). `GET /` (daftar berpaging) belum ada service-nya — gap
-/// terbuka yang sama seperti `FinancePaymentsController`, dicatat di laporan task, bukan
-/// dikarang di sini.
+/// `GET /` (daftar berpaging) ditambahkan menyusul (penyelesaian `BE-FIN-032`, lihat laporan
+/// task) — gap yang sebelumnya sama seperti `FinancePaymentsController`.
 /// </summary>
 [ApiController]
 [Authorize]
@@ -32,6 +30,24 @@ public sealed class FinancePurchaseOrdersController : ControllerBase
 {
     private readonly FinancePurchaseOrderService _service;
     public FinancePurchaseOrdersController(FinancePurchaseOrderService service) => _service = service;
+
+    [HttpGet]
+    [AccessAction("Read", "Read Purchase Order", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinancePurchaseOrder", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<PurchaseOrderResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetList([FromQuery] PurchaseOrderQuery query, CancellationToken cancellationToken)
+    {
+        var result = await _service.GetPagedAsync(query, cancellationToken);
+        var mapped = new PagedResult<PurchaseOrderResponse>
+        {
+            Items = result.Items.Select(Map).ToList(),
+            PageNumber = result.PageNumber,
+            PageSize = result.PageSize,
+            TotalData = result.TotalData,
+            TotalPage = result.TotalPage
+        };
+        return Ok(ApiResponse<PagedResult<PurchaseOrderResponse>>.Ok(mapped, "Daftar Purchase Order berhasil diambil."));
+    }
 
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Purchase Order", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -168,7 +184,16 @@ public sealed class FinancePurchaseOrdersController : ControllerBase
                 Quantity = x.Quantity,
                 UnitPrice = x.UnitPrice,
                 LineTotal = x.LineTotal
-            }).ToList()
+            }).ToList(),
+            GoodsReceipts = purchaseOrder.GoodsReceipts
+                .OrderByDescending(x => x.ReceivedDate)
+                .Select(x => new PurchaseOrderGoodsReceiptSummaryResponse
+                {
+                    Id = x.Id,
+                    GRNumber = x.GRNumber,
+                    ReceivedDate = x.ReceivedDate,
+                    Status = x.Status
+                }).ToList()
         };
     }
 

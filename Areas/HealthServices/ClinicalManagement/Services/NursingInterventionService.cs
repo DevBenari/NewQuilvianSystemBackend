@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
@@ -44,6 +45,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             };
 
         internal static NursingInterventionResult Fail(int statusCode, string message) => new()
+        {
+            IsSuccess = false,
+            StatusCode = statusCode,
+            ErrorMessage = message
+        };
+    }
+
+    /// <summary>
+    /// Hasil perintah simpan massal pada catatan tindakan keperawatan harian.
+    /// </summary>
+    public sealed class BatchNursingInterventionResult
+    {
+        public bool IsSuccess { get; init; }
+
+        public int StatusCode { get; init; }
+
+        public string? ErrorMessage { get; init; }
+
+        public BatchNursingInterventionResponse? Response { get; init; }
+
+        internal static BatchNursingInterventionResult Ok(
+            BatchNursingInterventionResponse response,
+            int statusCode = StatusCodes.Status201Created) => new()
+            {
+                IsSuccess = true,
+                StatusCode = statusCode,
+                Response = response
+            };
+
+        internal static BatchNursingInterventionResult Fail(int statusCode, string message) => new()
         {
             IsSuccess = false,
             StatusCode = statusCode,
@@ -289,6 +320,245 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             }
 
             return NursingInterventionResult.Ok(tindakan);
+        }
+
+        /// <summary>
+        /// Mencatat sekumpulan tindakan keperawatan harian sekaligus dalam satu transaksi database atomik (Lembar Keperawatan Harian).
+        /// </summary>
+        public async Task<BatchNursingInterventionResult> RecordBatchAsync(
+            CreateBatchNursingInterventionRequest request,
+            ClaimsPrincipal? user,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (request == null || request.Items == null || !request.Items.Any())
+            {
+                return BatchNursingInterventionResult.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Daftar tindakan wajib berisi minimal 1 butir tindakan.");
+            }
+
+            if (request.EncounterId == Guid.Empty)
+            {
+                return BatchNursingInterventionResult.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Kunjungan wajib diisi.");
+            }
+
+            var batchKey = string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey.Trim();
+
+            // Selesaikan konteks rawat inap
+            var konteks = await _contextService.ResolveAsync(
+                request.EncounterId,
+                expectedEpisodeId: request.InpEpisodeId,
+                forNewDocument: true,
+                cancellationToken: cancellationToken);
+
+            if (!konteks.IsResolved || konteks.Context == null)
+            {
+                return BatchNursingInterventionResult.Fail(
+                    konteks.StatusCode,
+                    konteks.ErrorMessage ?? "Konteks perawatan rawat inap tidak dapat ditentukan.");
+            }
+
+            var now = DateTime.UtcNow;
+
+            // Selesaikan perawat pelaksana login
+            var employeeId = await _actorService.ResolveEmployeeIdAsync(user, actorUserId, cancellationToken);
+            if (employeeId == null)
+            {
+                return BatchNursingInterventionResult.Fail(
+                    StatusCodes.Status400BadRequest,
+                    NursingActorService.PenolakanTanpaPegawai);
+            }
+
+            // Periksa kewenangan perawat bertugas pada unit rawat inap terkait
+            var bertugas = await _contextService.IsNurseOnDutyAtUnitAsync(
+                konteks.Context.ServiceUnitId, employeeId.Value, now, cancellationToken);
+
+            if (!bertugas)
+            {
+                return BatchNursingInterventionResult.Fail(
+                    StatusCodes.Status403Forbidden,
+                    InpatientClinicalContextService.PenolakanPerawatUnitLain);
+            }
+
+            var entitiesToSave = new List<CliNursingIntervention>();
+            int index = 0;
+
+            foreach (var item in request.Items)
+            {
+                index++;
+                var nama = item.InterventionName?.Trim();
+                if (string.IsNullOrWhiteSpace(nama))
+                    continue;
+
+                var itemKey = string.IsNullOrWhiteSpace(item.IdempotencyKey)
+                    ? (batchKey != null ? $"{batchKey}-{index}" : null)
+                    : item.IdempotencyKey.Trim();
+
+                if (itemKey != null)
+                {
+                    var existing = await FindByIdempotencyKeyAsync(itemKey, cancellationToken);
+                    if (existing != null)
+                    {
+                        entitiesToSave.Add(existing);
+                        continue;
+                    }
+                }
+
+                var waktuTindakan = item.PerformedAt ?? now;
+                if (waktuTindakan > now.Add(ToleransiJamMaju))
+                {
+                    waktuTindakan = now;
+                }
+
+                if (konteks.Context.AdmittedAt.HasValue && waktuTindakan < konteks.Context.AdmittedAt.Value)
+                {
+                    waktuTindakan = konteks.Context.AdmittedAt.Value;
+                }
+
+                var performerId = (item.PerformedByEmployeeId.HasValue && item.PerformedByEmployeeId.Value != Guid.Empty)
+                    ? item.PerformedByEmployeeId.Value
+                    : employeeId.Value;
+
+                var tindakan = new CliNursingIntervention
+                {
+                    Id = Guid.NewGuid(),
+                    EncounterId = konteks.Context.EncounterId,
+                    InpEpisodeId = konteks.Context.EpisodeId,
+                    PatientId = konteks.Context.PatientId,
+                    CarePlanItemId = NormalizeNullableGuid(item.CarePlanItemId),
+                    InterventionName = nama,
+                    PerformedAt = waktuTindakan,
+                    PerformedByEmployeeId = performerId,
+                    ResultNote = NormalizeNullableText(item.ActionNotes),
+                    RecordStatus = NursingInterventionStatus.Recorded,
+                    IdempotencyKey = itemKey,
+                    IsBillable = item.IsBillable,
+                    BillingDispatchStatus = item.IsBillable
+                        ? NursingBillingDispatchStatus.Pending
+                        : NursingBillingDispatchStatus.NotApplicable,
+                    BillingDispatchAttemptCount = 0,
+                    CreateDateTime = now,
+                    CreateBy = actorUserId,
+                    IsDelete = false,
+                    IsCancel = false
+                };
+
+                entitiesToSave.Add(tindakan);
+            }
+
+            if (!entitiesToSave.Any())
+            {
+                return BatchNursingInterventionResult.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Tidak ada tindakan valid untuk disimpan.");
+            }
+
+            var newEntities = entitiesToSave.Where(x => _dbContext.Entry(x).State == EntityState.Detached).ToList();
+
+            if (newEntities.Any())
+            {
+                using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    _dbContext.Set<CliNursingIntervention>().AddRange(newEntities);
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    await tx.CommitAsync(cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    await tx.RollbackAsync(cancellationToken);
+                    return BatchNursingInterventionResult.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        $"Gagal menyimpan tindakan massal: {ex.Message}");
+                }
+            }
+
+            var savedResponses = new List<NursingInterventionResponse>();
+            foreach (var ent in entitiesToSave)
+            {
+                savedResponses.Add(await ToResponseAsync(ent, isReplay: false, cancellationToken));
+            }
+
+            var response = new BatchNursingInterventionResponse
+            {
+                TotalRequested = request.Items.Count,
+                TotalCreated = newEntities.Count,
+                IsReplay = newEntities.Count == 0,
+                SavedInterventions = savedResponses
+            };
+
+            return BatchNursingInterventionResult.Ok(response);
+        }
+
+        /// <summary>
+        /// Mengambil katalog butir tindakan keperawatan harian standar rawat inap langsung dari database Master Data (MstDailyNursingAction).
+        /// </summary>
+        public async Task<List<NursingDailyActionTemplateDto>> GetDailyChecklistTemplatesAsync(
+            string? shift = null,
+            string? category = null,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<MstDailyNursingAction>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.IsActive);
+
+            if (!string.IsNullOrWhiteSpace(category))
+            {
+                var c = category.Trim();
+                query = query.Where(x => x.Category == c);
+            }
+
+            var dbTemplates = await query
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.ActionName)
+                .Select(x => new NursingDailyActionTemplateDto
+                {
+                    SortOrder = x.SortOrder,
+                    Code = x.ActionCode,
+                    Name = x.ActionName,
+                    Category = x.Category,
+                    DefaultNotes = x.DefaultNotes
+                })
+                .ToListAsync(cancellationToken);
+
+            if (dbTemplates.Count > 0)
+            {
+                return dbTemplates;
+            }
+
+            // Fallback aman jika database master data belum di-seed
+            var fallback = new List<NursingDailyActionTemplateDto>
+            {
+                new() { SortOrder = 1, Code = "ACT_O2", Name = "Memberikan oksigen", Category = "Respirasi & Oksigenasi", DefaultNotes = "Nasal kanul / masker oksigen" },
+                new() { SortOrder = 2, Code = "ACT_SUCTION", Name = "Suction", Category = "Respirasi & Oksigenasi", DefaultNotes = "Pengisapan lendir jalan napas" },
+                new() { SortOrder = 3, Code = "ACT_BATUK_EFEKTIF", Name = "Latihan batuk efektif", Category = "Respirasi & Oksigenasi", DefaultNotes = "Edukasi & latihan batuk efektif" },
+                new() { SortOrder = 4, Code = "ACT_NEBULIZER", Name = "Memasang nebulizer", Category = "Respirasi & Oksigenasi", DefaultNotes = "Inhalasi terapi pernapasan" },
+                new() { SortOrder = 5, Code = "ACT_GANTI_KATETER", Name = "Ganti kateter urin", Category = "Eliminasi & Kateterisasi", DefaultNotes = "Perawatan / penggantian kateter urine" },
+                new() { SortOrder = 6, Code = "ACT_IRIGASI_KATETER", Name = "Irigasi kateter", Category = "Eliminasi & Kateterisasi", DefaultNotes = "Irigasi spuit cairan steril" },
+                new() { SortOrder = 7, Code = "ACT_PASANG_PAMPERS", Name = "Pemasangan pampers", Category = "Eliminasi & Kateterisasi", DefaultNotes = "Penggantian popok / pampers dewasa" },
+                new() { SortOrder = 8, Code = "ACT_GANTI_STOMA_BAG", Name = "Mengganti stoma bag", Category = "Eliminasi & Kateterisasi", DefaultNotes = "Perawatan stoma & ganti kantong" },
+                new() { SortOrder = 9, Code = "ACT_GANTI_INFUS", Name = "Ganti infus", Category = "Akses Vaskular & Cairan", DefaultNotes = "Ganti botol cairan / set infus" },
+                new() { SortOrder = 10, Code = "ACT_PASANG_NGT", Name = "Pasang NGT", Category = "Nutrisi & Saluran Cerna", DefaultNotes = "Pemasangan selang lambung NGT" },
+                new() { SortOrder = 11, Code = "ACT_MONITOR_INTAKE_OUTPUT", Name = "Monitor intake output", Category = "Nutrisi & Saluran Cerna", DefaultNotes = "Pencatatan keseimbangan cairan" },
+                new() { SortOrder = 12, Code = "ACT_MAKAN_NGT", Name = "Memberi makan via NGT", Category = "Nutrisi & Saluran Cerna", DefaultNotes = "Nutrisi enteral sonde cair" },
+                new() { SortOrder = 13, Code = "ACT_MINUM_ORAL", Name = "Pemberian minum oral", Category = "Nutrisi & Saluran Cerna", DefaultNotes = "Membantu minum per oral bertahap" },
+                new() { SortOrder = 14, Code = "ACT_VITAL_SIGN", Name = "Cek tanda vital", Category = "Observasi & Monitoring", DefaultNotes = "Pengukuran TTV rutin per shift" },
+                new() { SortOrder = 15, Code = "ACT_OBS_LUKA_OPERASI", Name = "Observasi luka operasi", Category = "Perawatan Luka & Kulit", DefaultNotes = "Observasi tanda infeksi / rembesan" },
+                new() { SortOrder = 16, Code = "ACT_ORAL_HYGIENE", Name = "Perawatan mulut", Category = "Higiene & Kenyamanan", DefaultNotes = "Oral hygiene antiseptik" },
+                new() { SortOrder = 17, Code = "ACT_MANDIKAN_PASIEN", Name = "Memandikan pasien di tempat tidur", Category = "Higiene & Kenyamanan", DefaultNotes = "Seka air hangat & ganti laken" },
+                new() { SortOrder = 18, Code = "ACT_RAWAT_LUKA_STERIL", Name = "Perawatan luka steril / ganti balutan", Category = "Perawatan Luka & Kulit", DefaultNotes = "Ganti balutan steril pasca bedah" },
+                new() { SortOrder = 19, Code = "ACT_MOBILISASI_FISIOTERAPI", Name = "Fisioterapi dada / mobilisasi bertahap", Category = "Mobilisasi & Keselamatan", DefaultNotes = "Alih baring / duduk di bed / jalan" }
+            };
+
+            if (!string.IsNullOrWhiteSpace(category))
+            {
+                fallback = fallback.Where(t => t.Category.Contains(category, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            return fallback;
         }
 
         /// <summary>Daftar tindakan satu perawatan, terurut waktu tindakan.</summary>
