@@ -1,50 +1,15 @@
 {
-  "releaseName": "Quilvian 0.9.0 - Enterprise Platform Enhancement",
-  "description": "Release 0.9.0 enhances Accounting Management, Billing Management, Clinical Management, Emergency Management, Finance Management, Inpatient Management, Laboratory Management, Medical Record Management, Nutrition Management, Operating Room Management, Patient Management, Pharmacy Management, Registration Management capabilities. Includes improvements across Microbiology Workflow, Laboratory Reporting, Specimen Management, Result Validation, Billing Workflow, Finance Workflow, Pharmacy Workflow. Includes 14 database migration update(s).",
-  "backendVersion": "0.9.0",
   "releaseMetadata": {
-    "migrations": [
-      "20260928034143_AddClinicalChargeInvoiceSync.cs",
-      "20260928041937_AddAccSubledgerBalance.cs",
-      "20260928093849_AddMasterNursingDiagnosisSdki.cs",
-      "20260928120000_AddDepositAppliedAmountToFinPayment.cs",
-      "20260929000000_AddOperatingRoomOutboxEventContract.cs",
-      "20260929041709_AddLabResultValidationAndRelease.cs",
-      "20260929120000_AddArInvoiceBatchAndReceiptDeduction.cs",
-      "20260929130000_AddPPNAmountToFinSupplierReturn.cs",
-      "20260930032822_AddLabSpecimenDecidedAtIndex.cs",
-      "20260930064430_AddEmergencyVisitClosureSource.cs",
-      "20260930082632_UpdatePendingModelChanges.cs",
-      "20260930110000_AddDoctorConsultationSourceVitalSign.cs",
-      "20260930120000_AddMasterDailyNursingAction.cs",
-      "20260930144500_AddInpatientDoctorMedicalAssessmentOperationalColumns.cs"
+    "migrationCount": 0,
+    "generatedAt": "2026-10-02T06:56:43",
+    "modules": [
+      "Laboratory Management"
     ],
     "generatedBy": "Quilvian Release Generator",
-    "generatedAt": "2026-10-02T02:00:40",
-    "features": [
-      "Microbiology Workflow",
-      "Laboratory Reporting",
-      "Specimen Management",
-      "Result Validation",
-      "Billing Workflow",
-      "Finance Workflow",
-      "Pharmacy Workflow"
-    ],
-    "migrationCount": 14,
-    "modules": [
-      "Accounting Management",
-      "Billing Management",
-      "Clinical Management",
-      "Emergency Management",
-      "Finance Management",
-      "Inpatient Management",
-      "Laboratory Management",
-      "Medical Record Management",
-      "Nutrition Management",
-      "Operating Room Management",
-      "Patient Management",
-      "Pharmacy Management",
-      "Registration Management"
-    ]
-  }
+    "features": [],
+    "migrations": []
+  },
+  "releaseName": "Quilvian 0.10.0 - Laboratory Management Enhancement",
+  "backendVersion": "0.10.0",
+  "description": "Release 0.10.0 enhances Laboratory Management capabilities."
 }
