@@ -40,17 +40,24 @@ Tangga tahap yang berlaku dan sudah terbukti ujung ke ujung:
 | Backend | `SUBSTANTIAL` |
 | Frontend | `SUBSTANTIAL` |
 | Integrasi | `SUBSTANTIAL` — clearance terbukti ujung ke ujung; producer tagihan menunggu approval Billing |
-| Verifikasi | `MODERATE` — **17 uji** regresi ditambah bukti runtime penuh; masih tipis untuk 31.982 baris |
+| Verifikasi | `SUBSTANTIAL` — **88 uji** regresi ditambah bukti runtime penuh |
 
-**Perkiraan ketuntasan: ~90%.** Diukur ketat "berfungsi hari ini di integration", producer
-tagihan belum menyala sehingga angkanya lebih dekat ~86%.
+**Perkiraan ketuntasan: ~93%.** Diukur ketat "berfungsi hari ini di integration", producer
+tagihan belum menyala sehingga angkanya lebih dekat ~88%.
 
 Uji pada `Tests/QuilvianSystemBackend.PharmacyTests`:
 
 | Berkas | Jumlah | Yang dijaga |
 |---|---|---|
 | `PrescriptionFulfillmentStageTests` | 8 | regresi `GAP-PHA-BE-001`; tangga tahap pemenuhan dan penomorannya |
-| `BillingChargeProducerTests` | 9 | kunci idempotensi deterministik dan nilainya yang sudah terpakai; gerbang resep tanpa item maupun tanpa harga; penolakan tegas saat kategori tarif farmasi tidak ada; `SourceStatus` dan `ContractVersion` yang diterima Billing |
+| `BillingChargeProducerTests` | 9 | kunci idempotensi deterministik dan nilainya yang sudah terpakai; gerbang resep tanpa item maupun tanpa harga; `SourceStatus` dan `ContractVersion` yang diterima Billing |
+| `FinancialClearanceTests` | 20 | `PrescriptionFinancialClearanceService` — ketiga hasil finansial, fail-closed, pencabutan, versi, idempotensi, keempat gerbang |
+| `PharmacyWorkflowTests` | 31 | telaah resep, klarifikasi dokter, penyiapan, telaah obat akhir, tangga tahap 2 → 7 |
+| `DispensingGuardTests` | 20 | `PrescriptionDispensingService` — penjagaan tahap, izin finansial, depo, petugas, baris dan jumlah, pembatalan |
+
+**Belum teruji:** `PrescriptionDispensingService.DispenseAsync` (menerbitkan fakta klinis ke
+Billing, menuntut container DI sebenarnya), penyerahan sebagian dan penuh, retur obat, etiket
+obat, dan integrasi stok.
 
 ## Permukaan yang sudah berdiri
 
