@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | Baseline task `48a78703` pada branch `rizkiG`. Source task ini di-commit pemilik sebagai `3bd999ef`; lalu merge `62c8360a` dari `QuilvianIntegrationBackend`; lalu migration dan snapshot sebagai `dce1f138`. Seluruhnya sudah di-push ke `origin/rizkiG` |
 | Tanggal | 22 September 2026 (implementasi); 23 September 2026 (merge, migration, uji, penandaan) |
-| Status | 🟡 **SEBAGIAN — 1 Oktober 2026 (delta `IGD-DEC-179`, bagian 8).** Sepuluh kriteria asli tidak berubah (keadaan 23 September 2026 di bawah). Atas perintah pemilik, `start-triage` kini menerima lima ruas kunjungan opsional; source ditulis (2 berkas, +41/−2), QBE checker `PASS`; **belum** build pemilik dan uji API D1–D6. *Sebelumnya:* ✅ **SELESAI atas penilaian pemilik — 23 September 2026.** Implementation Complete; **Build Verified** dari artefak (DLL 10.23, memuat literal penjaga `Down()`; jumlah warning tidak dilaporkan); **migration `20260923021224_AddEmergencyArrivalTimeSource` dibuat dan diterapkan pemilik** ke dev, `Up()` diperiksa agent dan bersih; **uji `Down()` berpenjaga dijalankan agent** pada basis data terpisah dan lulus empat tahap; **uji API S1–S15 dinyatakan lulus semua oleh pemilik** (lingkungan Development, dengan tangkapan layar S13 sebagai lampiran; skenario lain tanpa badan respons, agent tidak mengamati). Kriteria 10 terpenuhi sebagian: 0 error terbukti dari artefak, tetapi jumlah warning tidak dilaporkan sehingga kesamaannya dengan baseline tidak dapat dinyatakan. Sebelumnya 🟡 pada 22 September 2026 |
+| Status | ✅ **SELESAI — 2 Oktober 2026.** Delta `IGD-DEC-179` terbukti: build pemilik (DLL 1 Oktober 2026 15.18) dan uji API D1–D6 **6 dari 6** pada bukti mentah. Sepuluh kriteria asli tetap seperti 23 September 2026. Jumlah warning build tidak dilaporkan. Tanpa UAT. *Sebelumnya:* 🟡 **SEBAGIAN — 1 Oktober 2026 (delta `IGD-DEC-179`, bagian 8).** Sepuluh kriteria asli tidak berubah (keadaan 23 September 2026 di bawah). Atas perintah pemilik, `start-triage` kini menerima lima ruas kunjungan opsional; source ditulis (2 berkas, +41/−2), QBE checker `PASS`; **belum** build pemilik dan uji API D1–D6. *Sebelumnya:* ✅ **SELESAI atas penilaian pemilik — 23 September 2026.** Implementation Complete; **Build Verified** dari artefak (DLL 10.23, memuat literal penjaga `Down()`; jumlah warning tidak dilaporkan); **migration `20260923021224_AddEmergencyArrivalTimeSource` dibuat dan diterapkan pemilik** ke dev, `Up()` diperiksa agent dan bersih; **uji `Down()` berpenjaga dijalankan agent** pada basis data terpisah dan lulus empat tahap; **uji API S1–S15 dinyatakan lulus semua oleh pemilik** (lingkungan Development, dengan tangkapan layar S13 sebagai lampiran; skenario lain tanpa badan respons, agent tidak mengamati). Kriteria 10 terpenuhi sebagian: 0 error terbukti dari artefak, tetapi jumlah warning tidak dilaporkan sehingga kesamaannya dengan baseline tidak dapat dinyatakan. Sebelumnya 🟡 pada 22 September 2026 |
 
 ### Backend Governance Preflight
 
@@ -468,3 +468,26 @@ Token pemegang `EmergencyVisit : Create`. "Encounter baru" = encounter `Emergenc
 | Keterbatasan | Sesudah kunjungan lahir, kelima ruas hanya dapat diubah lewat `PUT /emergency-visits/{id}`; tidak ada layar yang memakainya. Tangani Segera dari layar tetap tanpa isian, jadi kelima ruas kosong pada jalur itu |
 | Perubahan sampingan | `NONE` |
 | Status Git | Tidak ada stage maupun commit |
+
+---
+
+## Pemeriksaan bukti uji gabungan — 2 Oktober 2026
+
+Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/` (`results-tahap-1.json`…`results-tahap-4.json`, skrip `test-tahap-*.mjs`, tangkapan layar `<ID>.png`) dan log backend `Logs/quilvian-backend-20261001.json`, `quilvian-backend-20261002.json`. Ringkasan agen penguji ([laporan uji gabungan](../../../testing/2026-10-01-laporan-uji-gabungan-r313-r314.md)) **tidak** dipakai sebagai bukti: uraian skenarionya pada beberapa task tidak sama dengan panduan, dan daftar `FAIL`-nya tidak cocok dengan JSON mentah.
+
+Build pemilik terbukti dari artefak: `bin/Debug/net9.0/QuilvianSystemBackend.dll` bertanggal 1 Oktober 2026 15.18, sesudah edit source terakhir (14.54); jumlah warning tidak dilaporkan. Source di-commit pemilik sebagai `74a72399`.
+
+| Skenario | Putusan | Yang teramati pada bukti mentah |
+| --- | --- | --- |
+| `055-D1` | **Terbukti** | `201`; kelima ruas tersimpan; `arrivalLocation` terpangkas menjadi `"Pintu ambulans"`; `GET /{id}` sama |
+| `055-D2` | **Terbukti** | `201`; kelima ruas `null` |
+| `055-D3` | **Terbukti** | `400` *"Waktu trauma tidak boleh melewati waktu sekarang."*; `active-episode` masih menyebut pasien menunggu triage |
+| `055-D4` | **Terbukti** | 251 karakter → `400` validasi model `ArrivalLocation`; 1001 karakter → `400` validasi model `Notes` |
+| `055-D5` | **Terbukti** | `200` *"…sudah ada dengan status WaitingForTriage."*; `traumaLocation` tetap `"Halte Busway"` |
+| `055-D6` | **Terbukti** | `201`; `visitStatus` 4; `arrivalTimeSource` 1; `traumaLocation` dan `notes` tersimpan |
+
+**Catatan.**
+
+- Usulan agent "waktu trauma di masa depan → `400`" bekerja dan tidak ditolak pemilik sampai tanggal ini.
+
+Putusan: **✅ selesai** — Delta `IGD-DEC-179` terbukti: build pemilik (DLL 1 Oktober 2026 15.18) dan uji API D1–D6 **6 dari 6** pada bukti mentah. Sepuluh kriteria asli tetap seperti 23 September 2026. Jumlah warning build tidak dilaporkan. Tanpa UAT.

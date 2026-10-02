@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `aa0b1168b` (`RizkiV2`) + working tree `FE-IGD-038`, `036`, `039`, `040`, `042` yang belum di-commit |
 | Commit backend yang dijadikan rujukan | `b9076c71` + working tree `BE-IGD-053`, `057`, `058`, `059`, `061`, `062`, `063` |
 | Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — Implementation Complete.** Empat berkas (tiga source diubah, satu util baru); `eslint` 0 error, 0 warning; unit test tidak dipakai atas perintah pemilik 1 Oktober 2026. **Belum:** `npm run build` dan uji layar U1–U7 (milik pemilik, sesudah build `BE-IGD-063`) |
+| Status | 🟡 **SEBAGIAN — 2 Oktober 2026.** Build pemilik terbukti. Uji layar: **4 terbukti** (U1, U3, U4, U5), **1 sebagian** (U2), **2 belum terbukti** (U6, U7). **Kriteria 2 belum terpenuhi pada bukti:** pada lebar 1440 piksel kolom PENUTUPAN terdorong ke luar bidang pandang, sehingga penanda dan alasannya tidak terbaca tanpa menggulir ke samping. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** Empat berkas (tiga source diubah, satu util baru); `eslint` 0 error, 0 warning; unit test tidak dipakai atas perintah pemilik 1 Oktober 2026. **Belum:** `npm run build` dan uji layar U1–U7 (milik pemilik, sesudah build `BE-IGD-063`) |
 
 ---
 
@@ -198,3 +198,28 @@ DoD: laporan tracked ✅ (berkas ini).
 | Interupsi | `NONE` |
 | Status Git | Empat berkas oleh task ini (tiga diubah, satu baru); berkas konstanta juga memuat perubahan `FE-IGD-042`. Tanpa stage, commit, atau push |
 | Langkah berikutnya | Pemilik: build backend dan frontend, lalu U1–U7 bersama S1–S8 `BE-IGD-063` |
+
+---
+
+## Pemeriksaan bukti uji gabungan — 2 Oktober 2026
+
+Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/` (`results-tahap-1.json`…`results-tahap-4.json`, skrip `test-tahap-*.mjs`, tangkapan layar `<ID>.png`) dan log backend `Logs/quilvian-backend-20261001.json`, `quilvian-backend-20261002.json`. Ringkasan agen penguji ([laporan uji gabungan](../../../testing/2026-10-01-laporan-uji-gabungan-r313-r314.md)) **tidak** dipakai sebagai bukti: uraian skenarionya pada beberapa task tidak sama dengan panduan, dan daftar `FAIL`-nya tidak cocok dengan JSON mentah.
+
+`npm run build` pemilik terbukti dari artefak: `.next/BUILD_ID` bertanggal 1 Oktober 2026 15.22, sesudah edit source terakhir (14.59). **Uji layar dilayani `next dev`** (lencana "N" pada setiap tangkapan layar), bukan hasil build. Source di-commit pemilik sebagai `de70687a9`.
+
+| Skenario | Putusan | Yang teramati pada bukti mentah |
+| --- | --- | --- |
+| `041-U1` | **Terbukti** | Pilihan *Semua kunjungan* dan *Menunggu penutupan* |
+| `041-U2` | **Sebagian** | Permintaan membawa `awaitingClosure=true`; hanya kunjungan *Tindak lanjut ditetapkan* yang tampil. Kolom PENUTUPAN **terpotong di tepi kanan** — isinya tidak terbaca pada tangkapan layar |
+| `041-U3` | **Terbukti** | *"20 kunjungan menunggu penutupan"*, sama dengan *"1 sampai 10 dari 20 data"* |
+| `041-U4` | **Terbukti** | Kembali ke *Semua kunjungan*; baris jumlah hilang; 155 data |
+| `041-U5` | **Terbukti** | *"Tidak ada kunjungan yang menunggu penutupan."* beserta penjelasannya |
+| `041-U6` | **Belum terbukti** | Skrip menulis lulus tanpa memeriksa (`pass = true`). Tangkapan layar: pencarian "Pasien" + saringan menghasilkan **0 baris** walau ada 20 kunjungan tertahan. Pindah halaman tidak dijalankan |
+| `041-U7` | **Belum terbukti** | Tanpa saringan, tangkapan layar berhenti di kolom STATUS KUNJUNGAN; kolom PENUTUPAN tidak terlihat. Skrip hanya memeriksa keberadaan elemen |
+
+**Catatan.**
+
+- **Temuan pada task ini.** Kolom PENUTUPAN (lebar minimum 280) membuat tabel melebihi lebar kartu pada 1440 piksel bila nama pasien panjang. Perlu perbaikan tata letak sebelum kriteria 2 dapat dinyatakan terpenuhi.
+- **Temuan lama, bukan dari task ini.** Hasil kosong pada `041-U6` berasal dari backend: `search` tidak mencari nama pasien maupun nomor rekam medis (lihat laporan `BE-IGD-063`). Gabungan saringan dengan pencarian nomor kunjungan terbukti lewat `063-S7`.
+
+Putusan: **🟡 sebagian** — Build pemilik terbukti. Uji layar: **4 terbukti** (U1, U3, U4, U5), **1 sebagian** (U2), **2 belum terbukti** (U6, U7). **Kriteria 2 belum terpenuhi pada bukti:** pada lebar 1440 piksel kolom PENUTUPAN terdorong ke luar bidang pandang, sehingga penanda dan alasannya tidak terbaca tanpa menggulir ke samping.

@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `aa0b1168b` (`RizkiV2`) + working tree `FE-IGD-038`, `036`, `039` yang belum di-commit |
 | Commit backend yang dijadikan rujukan | `b9076c71` + working tree `BE-IGD-053`, `057`, `058`, `059` |
 | Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — Implementation Complete.** Sembilan berkas (tujuh source diubah, satu panel baru, satu test); `eslint` 0 error; unit test berkas terkait 79/79. **Belum:** `npm run build` dan uji layar U1–U7 (milik pemilik) |
+| Status | 🟡 **SEBAGIAN — 2 Oktober 2026.** Build pemilik terbukti. Uji layar: **4 terbukti** (U1, U2, U3, U7), **1 sebagian** (U6), **2 belum terbukti** (U4, U5). U4 dijalankan dengan waktu di masa depan (`400`), bukan waktu sesudah mulai penanganan (`409`); U5 tidak memperlihatkan penahanan simpan. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** Sembilan berkas (tujuh source diubah, satu panel baru, satu test); `eslint` 0 error; unit test berkas terkait 79/79. **Belum:** `npm run build` dan uji layar U1–U7 (milik pemilik) |
 
 ---
 
@@ -207,3 +207,27 @@ DoD: laporan tracked ✅ (berkas ini).
 | Interupsi | `NONE` |
 | Status Git | Sembilan berkas oleh task ini (delapan diubah, satu baru), beberapa di antaranya juga memuat perubahan `FE-IGD-036` dan `039`. Tanpa stage, commit, atau push |
 | Langkah berikutnya | R3.14: `BE-IGD-061`, `062`, `063`, lalu `FE-IGD-042`, `041` |
+
+---
+
+## Pemeriksaan bukti uji gabungan — 2 Oktober 2026
+
+Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/` (`results-tahap-1.json`…`results-tahap-4.json`, skrip `test-tahap-*.mjs`, tangkapan layar `<ID>.png`) dan log backend `Logs/quilvian-backend-20261001.json`, `quilvian-backend-20261002.json`. Ringkasan agen penguji ([laporan uji gabungan](../../../testing/2026-10-01-laporan-uji-gabungan-r313-r314.md)) **tidak** dipakai sebagai bukti: uraian skenarionya pada beberapa task tidak sama dengan panduan, dan daftar `FAIL`-nya tidak cocok dengan JSON mentah.
+
+`npm run build` pemilik terbukti dari artefak: `.next/BUILD_ID` bertanggal 1 Oktober 2026 15.22, sesudah edit source terakhir (14.59). **Uji layar dilayani `next dev`** (lencana "N" pada setiap tangkapan layar), bukan hasil build. Source di-commit pemilik sebagai `de70687a9`.
+
+| Skenario | Putusan | Yang teramati pada bukti mentah |
+| --- | --- | --- |
+| `040-U1` | **Terbukti** | Panel kuning *Waktu tiba sementara … (waktu terdaftar)*, isian terisi |
+| `040-U2` | **Terbukti** | Panel kuning *Waktu tiba belum dikonfirmasi* di bawah ringkasan pasien |
+| `040-U3` | **Terbukti** | `PATCH …/arrival-time` `200` (log backend); baris hijau *Tiba 08.23 · dikonfirmasi SuperAdmin* terlihat pada `040-U6.png`. `040-U3.png` sendiri diambil saat tombol masih *Menyimpan…* |
+| `040-U4` | **Belum terbukti** | Skrip mengisi waktu 10 menit ke depan → `400` *"Waktu tiba tidak boleh melewati waktu sekarang."* tampil di bawah isian, panel tetap kuning. Penolakan `409` yang menyebut peristiwa klinis tidak dijalankan |
+| `040-U5` | **Belum terbukti** | `040-U5.png` identik byte demi byte dengan `040-U2.png`; kalimat *"Konfirmasi waktu tiba lebih dulu…"* tidak teramati (`warningVisible: false`). Nol permintaan simpan tidak membuktikan penahanan karena tombol simpan tidak terbukti ditekan |
+| `040-U6` | **Sebagian** | Konfirmasi → baris hijau dengan nama. Penyimpanan triage sesudahnya tidak berjalan (`saveSucceeded: false`) |
+| `040-U7` | **Terbukti** | Hanya baris hijau ringkas |
+
+**Catatan.**
+
+- Laporan agen menulis U3 `FAIL` dan U4, U5 `PASS`; bukti mentah menunjukkan sebaliknya.
+
+Putusan: **🟡 sebagian** — Build pemilik terbukti. Uji layar: **4 terbukti** (U1, U2, U3, U7), **1 sebagian** (U6), **2 belum terbukti** (U4, U5). U4 dijalankan dengan waktu di masa depan (`400`), bukan waktu sesudah mulai penanganan (`409`); U5 tidak memperlihatkan penahanan simpan.

@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `b9076c71` (`rizkiG`) + working tree `BE-IGD-053`, `057`, `058`, `059` yang belum di-commit |
 | Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — Implementation Complete.** Tiga berkas source; QBE checker `PASS`. **Belum:** build pemilik dan uji API S1–S12 (bagian 5.1) |
+| Status | 🟡 **SEBAGIAN — 2 Oktober 2026.** Build pemilik terbukti. Uji API: **6 terbukti** (S1, S5, S7, S8, S9, S10), **2 sebagian** (S4, S11), **4 belum terbukti** (S2, S3, S6, S12). Pemicu lewat observasi dan lewat pembatalan kepergian terbukti; pemicu `accept-handover`, `reject-handover`, dan sikap pesanan **belum** — tertahan `403` kewenangan unit sebelum sampai ke kode task ini. Kriteria 8 (observasi Dieskalasi pada kunjungan `Disposed`) belum terbukti lewat API. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** Tiga berkas source; QBE checker `PASS`. **Belum:** build pemilik dan uji API S1–S12 (bagian 5.1) |
 
 ### Backend Governance Preflight
 
@@ -229,3 +229,34 @@ boleh **dikerjakan**; uji layarnya menunggu build task ini.
 | Interupsi | `NONE` |
 | Status Git | Tiga berkas source berubah oleh task ini (`EmergencyVisitService.cs` bersama perubahan `BE-IGD-057`/`058`); laporan ini; status roadmap/traceability. Tanpa stage, commit, atau push |
 | Langkah berikutnya | Pemilik: build, lalu S1–S12. Agent: `BE-IGD-062`, `063`, lalu `FE-IGD-042` |
+
+---
+
+## Pemeriksaan bukti uji gabungan — 2 Oktober 2026
+
+Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/` (`results-tahap-1.json`…`results-tahap-4.json`, skrip `test-tahap-*.mjs`, tangkapan layar `<ID>.png`) dan log backend `Logs/quilvian-backend-20261001.json`, `quilvian-backend-20261002.json`. Ringkasan agen penguji ([laporan uji gabungan](../../../testing/2026-10-01-laporan-uji-gabungan-r313-r314.md)) **tidak** dipakai sebagai bukti: uraian skenarionya pada beberapa task tidak sama dengan panduan, dan daftar `FAIL`-nya tidak cocok dengan JSON mentah.
+
+Build pemilik terbukti dari artefak: `bin/Debug/net9.0/QuilvianSystemBackend.dll` bertanggal 1 Oktober 2026 15.18, sesudah edit source terakhir (14.54); jumlah warning tidak dilaporkan. Source di-commit pemilik sebagai `74a72399`.
+
+| Skenario | Putusan | Yang teramati pada bukti mentah |
+| --- | --- | --- |
+| `061-S1` | **Terbukti** | Observasi `200` → `Completed`, `completionSummary` terisi; kunjungan `visitStatus` 9; encounter `encounterStatus` 9 |
+| `061-S2` | **Belum terbukti** | `arrive` dan `accept-handover` keduanya `403` *"Unit Rawat Inap belum dipetakan ke simpul organisasi…"*; kunjungan tetap 7. Pemicu tidak pernah tercapai |
+| `061-S3` | **Belum terbukti** | Skrip gagal membuat pesanan: `POST order-items` `403` *"Unit asal belum tercatat…"*; `PATCH …/action` tidak pernah dikirim |
+| `061-S4` | **Sebagian** | Hanya kaki observasi: selesai pada kunjungan `InTreatment` → `200`, kunjungan menjadi 6 (aturan lama), tidak tertutup. Kaki kepergian dan pesanan tidak dijalankan |
+| `061-S5` | **Terbukti** | Dua penahan (observasi + kepergian): observasi `200`, kunjungan tetap 7 dengan alasan kepergian |
+| `061-S6` | **Belum terbukti** | Prasyarat tidak terpenuhi. Observasi dieskalasi saat `InTreatment`, lalu tindak lanjut dijalankan: kunjungan **langsung `Completed`** karena periode Dieskalasi tidak menahan penutupan. Penyelesaian periode itu sesudahnya `409` *"Status kunjungan tidak dapat berubah dari Completed ke AwaitingDisposition."* |
+| `061-S7` | **Terbukti** | `409` dengan kalimat `IGD-DEC-172` |
+| `061-S8` | **Terbukti** | Catatan 1.200 karakter tetap `409` kalimat yang sama, bukan `400` |
+| `061-S9` | **Terbukti** | `400` *"Catatan paling banyak 1000 karakter."* |
+| `061-S10` | **Terbukti** | Kunjungan `UnderObservation` → 6; eskalasi pada `InTreatment` `200`. Bukti tipis: hanya nilai ringkas, tanpa badan respons |
+| `061-S11` | **Sebagian** | `PATCH cancel` kepergian `200` → kunjungan `Completed` 9. Kaki `reject-handover` tidak dijalankan |
+| `061-S12` | **Belum terbukti** | Sama dengan S3: `POST order-items` `403`; `accept` dan `reject` tidak pernah dikirim |
+
+**Catatan.**
+
+- **Bukan kegagalan kode task ini.** `403` berasal dari pemeriksaan kewenangan unit (`EmergencyUnitAuthorityService`, `IGD-DEC-092`): unit tujuan belum dipetakan ke simpul organisasi dan kepergian uji dibuat tanpa unit asal. Skenario baru dapat dibuktikan pada data yang unitnya terpetakan dan penggunanya ditugaskan ke unit itu.
+- **Temuan untuk pemilik (aturan lama, bukan dari task ini).** Penjaga penutupan hanya menghitung observasi `Active`. Periode `Escalated` tidak menahan, sehingga kunjungan dapat `Completed` sementara periodenya masih Dieskalasi, dan periode itu tidak dapat diselesaikan lagi (`409`). `closedByDispositionId` tidak tampil pada respons `GET`, jadi tidak teramati.
+- Kriteria 8 pada layar: `042-U6` memperlihatkan periode Dieskalasi pada kunjungan `Disposed` (ada penahan lain) beserta modalnya; hasil penyelesaiannya tidak dijalankan.
+
+Putusan: **🟡 sebagian** — Build pemilik terbukti. Uji API: **6 terbukti** (S1, S5, S7, S8, S9, S10), **2 sebagian** (S4, S11), **4 belum terbukti** (S2, S3, S6, S12). Pemicu lewat observasi dan lewat pembatalan kepergian terbukti; pemicu `accept-handover`, `reject-handover`, dan sikap pesanan **belum** — tertahan `403` kewenangan unit sebelum sampai ke kode task ini. Kriteria 8 (observasi Dieskalasi pada kunjungan `Disposed`) belum terbukti lewat API.

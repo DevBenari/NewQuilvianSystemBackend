@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `b9076c71` (`rizkiG`) + working tree `BE-IGD-053` yang belum di-commit |
 | Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — 1 Oktober 2026.** Build pemilik berhasil (jumlah warning tidak dilaporkan). Uji API dijalankan pemilik lewat agen penguji; bukti mentah diperiksa agent: **S1–S7, S9, S10 terbukti**, **S8 tidak terbukti** — hasilnya pada JSON adalah teks yang ditulis di skrip, bukan balasan endpoint (bagian 5.2). Kriteria 6 (NoShow dan Mulai Triage serentak) karena itu baru terbukti pada source. Sisa: satu uji paralel ulang pada pasien tanpa kunjungan lain (bagian 5.3). Tanpa UAT. *Tulisan agen penguji "LULUS PENUH (VERIFIED & CLOSED)" diluruskan* |
+| Status | ✅ **SELESAI — 2 Oktober 2026.** S8 ulang terbukti pada bukti mentah: tiga putaran benar-benar serentak (`Promise.all`) pada pasien bersih, tiap putaran tepat satu berhasil. Dengan itu S1–S10 terbukti seluruhnya. Tanpa UAT. *Sebelumnya:* 🟡 **SEBAGIAN — 1 Oktober 2026.** Build pemilik berhasil (jumlah warning tidak dilaporkan). Uji API dijalankan pemilik lewat agen penguji; bukti mentah diperiksa agent: **S1–S7, S9, S10 terbukti**, **S8 tidak terbukti** — hasilnya pada JSON adalah teks yang ditulis di skrip, bukan balasan endpoint (bagian 5.2). Kriteria 6 (NoShow dan Mulai Triage serentak) karena itu baru terbukti pada source. Sisa: satu uji paralel ulang pada pasien tanpa kunjungan lain (bagian 5.3). Tanpa UAT. *Tulisan agen penguji "LULUS PENUH (VERIFIED & CLOSED)" diluruskan* |
 
 ### Backend Governance Preflight
 
@@ -236,3 +236,22 @@ tetap boleh berjalan: endpoint-nya ada, terpasang pada build pemilik, dan perila
 | Interupsi | `NONE` |
 | Status Git | Tiga berkas source berubah (bersama `BE-IGD-053` dan `BE-IGD-058` yang belum di-commit); laporan ini; status roadmap/traceability. Tanpa stage, commit, atau push |
 | Langkah berikutnya | Pemilik: S8 ulang (bagian 5.3) — dapat dijalankan bersama uji paralel `BE-IGD-059`. Agent: `BE-IGD-059`, lalu `FE-IGD-036`, `FE-IGD-039` |
+
+---
+
+## Pemeriksaan bukti uji gabungan — 2 Oktober 2026
+
+Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/` (`results-tahap-1.json`…`results-tahap-4.json`, skrip `test-tahap-*.mjs`, tangkapan layar `<ID>.png`) dan log backend `Logs/quilvian-backend-20261001.json`, `quilvian-backend-20261002.json`. Ringkasan agen penguji ([laporan uji gabungan](../../../testing/2026-10-01-laporan-uji-gabungan-r313-r314.md)) **tidak** dipakai sebagai bukti: uraian skenarionya pada beberapa task tidak sama dengan panduan, dan daftar `FAIL`-nya tidak cocok dengan JSON mentah.
+
+Build pemilik terbukti dari artefak: `bin/Debug/net9.0/QuilvianSystemBackend.dll` bertanggal 1 Oktober 2026 15.18, sesudah edit source terakhir (14.54); jumlah warning tidak dilaporkan. Source di-commit pemilik sebagai `74a72399`.
+
+| Skenario | Putusan | Yang teramati pada bukti mentah |
+| --- | --- | --- |
+| `057-S8` | **Terbukti** | Tiga putaran, tiap putaran encounter baru milik pasien bersih; `no-show` dan `start-triage` dikirim lewat `Promise.all`. Ketiganya: `start-triage` `201`, `no-show` `409` *"Pasien ini sudah memiliki kunjungan IGD IGD-…"*; baris tampil di antrean sebagai baris kunjungan. Tidak pernah keduanya berhasil |
+
+**Catatan.**
+
+- Urutan "NoShow menang" tidak teramati pada tiga putaran itu. Kunci per pasien yang sama terbukti bekerja pada kedua urutan lewat `059-S6` (batal lawan Mulai Triage).
+- Skrip hanya menyimpan kode status dan pesan tiap putaran, bukan badan respons lengkap.
+
+Putusan: **✅ selesai** — S8 ulang terbukti pada bukti mentah: tiga putaran benar-benar serentak (`Promise.all`) pada pasien bersih, tiap putaran tepat satu berhasil. Dengan itu S1–S10 terbukti seluruhnya. Tanpa UAT.

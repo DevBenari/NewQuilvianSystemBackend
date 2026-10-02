@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `aa0b1168b` (`RizkiV2`) + working tree `FE-IGD-038`, `036`, `039`, `040` yang belum di-commit |
 | Commit backend yang dijadikan rujukan | `b9076c71` + working tree `BE-IGD-053`, `057`, `058`, `059`, `061`, `062`, `063` |
 | Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — Implementation Complete.** Enam berkas (lima source diubah, satu util baru); `eslint` 0 error; unit test tidak dipakai atas perintah pemilik 1 Oktober 2026. **Belum:** `npm run build` dan uji layar U1–U8 (milik pemilik, satu siklus dengan uji `BE-IGD-061`) |
+| Status | ✅ **SELESAI — 2 Oktober 2026.** Build pemilik dan uji layar U1–U8 **8 dari 8** pada bukti mentah (tangkapan layar dan teks modal). Layar dilayani `next dev`, bukan hasil build. Tanpa UAT. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** Enam berkas (lima source diubah, satu util baru); `eslint` 0 error; unit test tidak dipakai atas perintah pemilik 1 Oktober 2026. **Belum:** `npm run build` dan uji layar U1–U8 (milik pemilik, satu siklus dengan uji `BE-IGD-061`) |
 
 ---
 
@@ -203,3 +203,29 @@ DoD: laporan tracked ✅ (berkas ini). Uji layar dijalankan satu siklus bersama 
 | Interupsi | `NONE` |
 | Status Git | Enam berkas oleh task ini (lima diubah, satu baru). Tanpa stage, commit, atau push |
 | Langkah berikutnya | Pemilik: build backend dan frontend, lalu U1–U8 bersama S1–S12 `BE-IGD-061`. Agent: `FE-IGD-041` |
+
+---
+
+## Pemeriksaan bukti uji gabungan — 2 Oktober 2026
+
+Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/` (`results-tahap-1.json`…`results-tahap-4.json`, skrip `test-tahap-*.mjs`, tangkapan layar `<ID>.png`) dan log backend `Logs/quilvian-backend-20261001.json`, `quilvian-backend-20261002.json`. Ringkasan agen penguji ([laporan uji gabungan](../../../testing/2026-10-01-laporan-uji-gabungan-r313-r314.md)) **tidak** dipakai sebagai bukti: uraian skenarionya pada beberapa task tidak sama dengan panduan, dan daftar `FAIL`-nya tidak cocok dengan JSON mentah.
+
+`npm run build` pemilik terbukti dari artefak: `.next/BUILD_ID` bertanggal 1 Oktober 2026 15.22, sesudah edit source terakhir (14.59). **Uji layar dilayani `next dev`** (lencana "N" pada setiap tangkapan layar), bukan hasil build. Source di-commit pemilik sebagai `de70687a9`.
+
+| Skenario | Putusan | Yang teramati pada bukti mentah |
+| --- | --- | --- |
+| `042-U1` | **Terbukti** | Modal Jalankan memuat kalimat baru; tidak ada *"belum menyelesaikan kunjungan"* |
+| `042-U2` | **Terbukti** | Kartu pasien *Tindak lanjut ditetapkan*; tindak lanjut *Dijalankan* |
+| `042-U3` | **Terbukti** | Eskalasi nonaktif; keterangan terbaca di bawah deret tombol; nol permintaan |
+| `042-U4` | **Terbukti** | Modal Selesaikan memuat *"…status kunjungan tidak berpindah…kunjungan langsung selesai"* |
+| `042-U5` | **Terbukti** | Periode *Selesai* beserta kesimpulan; kartu pasien *Selesai* |
+| `042-U6` | **Terbukti** | Modal berawalan *"Menutup periode yang sudah dieskalasi."* pada kunjungan `Disposed` yang masih punya periode berjalan |
+| `042-U7` | **Terbukti** | Kunjungan *Sedang ditangani*: Eskalasi aktif, tanpa keterangan |
+| `042-U8` | **Terbukti** | `409` dengan kalimat `IGD-DEC-172` tampil di dalam modal; alasan yang diketik tetap ada |
+
+**Catatan.**
+
+- Terlihat pada `042-U8.png`: pesan `409` tampil dua kali (di modal dan di bawah formulir Buka Periode Observasi), dan kartu pasien masih *Sedang ditangani* karena konteks kunjungan hanya dimuat ulang sesudah aksi berhasil.
+- `042-U6` hanya memperlihatkan modalnya; hasil penyelesaian periode Dieskalasi tidak dijalankan (lihat `061-S6` pada laporan `BE-IGD-061`).
+
+Putusan: **✅ selesai** — Build pemilik dan uji layar U1–U8 **8 dari 8** pada bukti mentah (tangkapan layar dan teks modal). Layar dilayani `next dev`, bukan hasil build. Tanpa UAT.

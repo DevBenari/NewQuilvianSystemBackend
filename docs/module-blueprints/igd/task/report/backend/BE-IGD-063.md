@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `b9076c71` (`rizkiG`) + working tree `BE-IGD-053`, `057`, `058`, `059`, `061`, `062` yang belum di-commit |
 | Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — Implementation Complete.** Tiga berkas source (+74/−2); QBE checker `PASS`. **Belum:** build pemilik dan uji API S1–S8 (bagian 5.1) |
+| Status | ✅ **SELESAI — 2 Oktober 2026.** Build pemilik dan uji API: **6 terbukti penuh** (S1, S4–S8), **2 sebagian** (S2, S3) pada bukti mentah. Dikecualikan dan dicatat: kalimat penahan jenis *pesanan* tidak teramati (data uji tidak dapat membuat pesanan — `403` kewenangan unit), dan pembandingan sebelum–sesudah build tidak dilakukan. Tanpa UAT. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** Tiga berkas source (+74/−2); QBE checker `PASS`. **Belum:** build pemilik dan uji API S1–S8 (bagian 5.1) |
 
 ### Backend Governance Preflight
 
@@ -224,3 +224,28 @@ DoD: laporan tracked ✅ (berkas ini). `FE-IGD-041` boleh mulai pada sisi source
 | Interupsi | `NONE` |
 | Status Git | Tiga berkas source berubah oleh task ini; laporan ini; status roadmap/traceability. Tanpa stage, commit, atau push |
 | Langkah berikutnya | Pemilik: build, lalu S1–S8. Agent: `FE-IGD-042`, lalu `FE-IGD-041` |
+
+---
+
+## Pemeriksaan bukti uji gabungan — 2 Oktober 2026
+
+Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/` (`results-tahap-1.json`…`results-tahap-4.json`, skrip `test-tahap-*.mjs`, tangkapan layar `<ID>.png`) dan log backend `Logs/quilvian-backend-20261001.json`, `quilvian-backend-20261002.json`. Ringkasan agen penguji ([laporan uji gabungan](../../../testing/2026-10-01-laporan-uji-gabungan-r313-r314.md)) **tidak** dipakai sebagai bukti: uraian skenarionya pada beberapa task tidak sama dengan panduan, dan daftar `FAIL`-nya tidak cocok dengan JSON mentah.
+
+Build pemilik terbukti dari artefak: `bin/Debug/net9.0/QuilvianSystemBackend.dll` bertanggal 1 Oktober 2026 15.18, sesudah edit source terakhir (14.54); jumlah warning tidak dilaporkan. Source di-commit pemilik sebagai `74a72399`.
+
+| Skenario | Putusan | Yang teramati pada bukti mentah |
+| --- | --- | --- |
+| `063-S1` | **Terbukti** | `totalData` 13; ketiga belas baris `visitStatus` 7 dan `isAwaitingClosure: true` |
+| `063-S2` | **Sebagian** | Dua dari tiga kalimat teramati: observasi dan kepergian. Kalimat pesanan tidak teramati; skrip tetap menulis lulus |
+| `063-S3` | **Sebagian** | Tanpa saringan: `totalData` 68, tiap baris memuat dua ruas baru di samping ruas lama. Tidak dibandingkan dengan hasil sebelum build |
+| `063-S4` | **Terbukti** | `pageSize=1` → `totalData` 13, satu baris |
+| `063-S5` | **Terbukti** | `awaitingClosure=false` → 55; 55 + 13 = 68; nol baris bertanda |
+| `063-S6` | **Terbukti** | `GET /{id}` kunjungan tertahan `true` + alasan; kunjungan `Completed` `false` + `null` |
+| `063-S7` | **Terbukti** | Digabung `search` nomor kunjungan → 1 baris, tetap bertanda |
+| `063-S8` | **Terbukti** | Sesudah penahan dibereskan: 13 → 12; kunjungan itu tidak lagi muncul |
+
+**Catatan.**
+
+- **Temuan lama, bukan dari task ini.** `search` pada `GET /emergency-visits` mencari nomor kunjungan, keluhan, tiga lokasi, nama sementara, dan catatan — **tidak** nama pasien maupun nomor rekam medis. Layar Pengkajian menulis *"Cari No. RM, nama pasien…"*; lihat laporan `FE-IGD-041`.
+
+Putusan: **✅ selesai** — Build pemilik dan uji API: **6 terbukti penuh** (S1, S4–S8), **2 sebagian** (S2, S3) pada bukti mentah. Dikecualikan dan dicatat: kalimat penahan jenis *pesanan* tidak teramati (data uji tidak dapat membuat pesanan — `403` kewenangan unit), dan pembandingan sebelum–sesudah build tidak dilakukan. Tanpa UAT.

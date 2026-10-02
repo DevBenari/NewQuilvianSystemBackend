@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `aa0b1168b` (`RizkiV2`, upstream `origin/RizkiV2`) + working tree `FE-IGD-038` yang belum di-commit |
 | Commit backend yang dijadikan rujukan | `b9076c71` + working tree `BE-IGD-053`, `057`, `058`, `059` |
 | Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — Implementation Complete, termasuk pengerjaan ulang `IGD-DEC-179` (bagian 9).** Dialog Mulai Triage kini memuat lima isian opsional — lokasi kedatangan, lokasi pasien ditemukan, lokasi trauma, waktu trauma, catatan kunjungan — dan mengirimnya ke `start-triage` (3 berkas, +90 baris; `eslint` 0 error). **Belum:** `npm run build` dan uji layar U1–U14 (milik pemilik). **Jangan dirilis** sebelum `BE-IGD-059` aktif dan delta `BE-IGD-055` di-build. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** 17 berkas (13 source diubah, 1 baru, 3 test); `eslint` 0 error; unit test berkas terkait 70/70. **Belum:** `npm run build` dan uji layar U1–U9 (milik pemilik). **Jangan dirilis** sebelum `BE-IGD-059` aktif |
+| Status | 🟡 **SEBAGIAN — 2 Oktober 2026.** Build pemilik terbukti. Uji layar: **12 dari 14 terbukti** pada bukti mentah (U1–U6, U9–U14), termasuk lima isian `IGD-DEC-179`. **Belum terbukti:** U7 (tangkapan layar diambil saat permintaan masih berjalan; `409` tercatat di log backend, tampilannya di dialog tidak terekam) dan U8 (dijalankan lewat dua panggilan API, bukan dua tab). *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete, termasuk pengerjaan ulang `IGD-DEC-179` (bagian 9).** Dialog Mulai Triage kini memuat lima isian opsional — lokasi kedatangan, lokasi pasien ditemukan, lokasi trauma, waktu trauma, catatan kunjungan — dan mengirimnya ke `start-triage` (3 berkas, +90 baris; `eslint` 0 error). **Belum:** `npm run build` dan uji layar U1–U14 (milik pemilik). **Jangan dirilis** sebelum `BE-IGD-059` aktif dan delta `BE-IGD-055` di-build. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** 17 berkas (13 source diubah, 1 baru, 3 test); `eslint` 0 error; unit test berkas terkait 70/70. **Belum:** `npm run build` dan uji layar U1–U9 (milik pemilik). **Jangan dirilis** sebelum `BE-IGD-059` aktif |
 
 ---
 
@@ -348,3 +348,35 @@ dijalankan** untuk membuktikannya.
 `MANUAL TEST: NOT FEASIBLE` — backend tidak berjalan pada sesi ini; delta `BE-IGD-055` belum di-build.
 
 Uji manual: `REQUIRED` — U10–U14, sesudah backend di-build.
+
+---
+
+## Pemeriksaan bukti uji gabungan — 2 Oktober 2026
+
+Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/` (`results-tahap-1.json`…`results-tahap-4.json`, skrip `test-tahap-*.mjs`, tangkapan layar `<ID>.png`) dan log backend `Logs/quilvian-backend-20261001.json`, `quilvian-backend-20261002.json`. Ringkasan agen penguji ([laporan uji gabungan](../../../testing/2026-10-01-laporan-uji-gabungan-r313-r314.md)) **tidak** dipakai sebagai bukti: uraian skenarionya pada beberapa task tidak sama dengan panduan, dan daftar `FAIL`-nya tidak cocok dengan JSON mentah.
+
+`npm run build` pemilik terbukti dari artefak: `.next/BUILD_ID` bertanggal 1 Oktober 2026 15.22, sesudah edit source terakhir (14.59). **Uji layar dilayani `next dev`** (lencana "N" pada setiap tangkapan layar), bukan hasil build. Source di-commit pemilik sebagai `de70687a9`.
+
+| Skenario | Putusan | Yang teramati pada bukti mentah |
+| --- | --- | --- |
+| `036-U1` | **Terbukti** | Layar Selesai memuat nomor encounter dan *Menunggu Triage*; satu `POST /patient-encounters`, nol `POST /emergency-visits` |
+| `036-U2` | **Terbukti** | Tangkapan layar memperlihatkan baris *Menunggu Triage — Terdaftar 08.21* dengan Mulai Triage, Tangani Segera, Pergi. Skrip menulis `FAIL` karena pemilih elemennya meleset |
+| `036-U3` | **Terbukti** | `201`, `arrivalDateTime` dimundurkan 15 menit; formulir triage terbuka dengan baris hijau *Tiba 08.06 · dikonfirmasi SuperAdmin* |
+| `036-U4` | **Terbukti** | `400` *"Waktu tiba tidak boleh melewati waktu sekarang."* tampil di dialog |
+| `036-U5` | **Terbukti** | Badan permintaan hanya `encounterId` dan `mode`; `201`; Pengkajian IGD terbuka |
+| `036-U6` | **Terbukti** | Badan permintaan `isUnknownPatient: true` + nama sementara; `201` pada log backend; baris daftar berbunyi *Tanpa identitas · nama sementara Mr. X Korban Kecelakaan*. Tanda vital, SOAP, dan lab tidak diuji |
+| `036-U7` | **Belum terbukti** | Log backend mencatat `start-triage` `409`, tetapi tangkapan layar diambil saat tombol masih *Memulai…*; pesan di dialog tidak terekam. Baris pasien tetap tanpa kunjungan |
+| `036-U8` | **Belum terbukti** | Skrip mengirim dua `POST start-triage` lewat API (`201` lalu `200`, kunjungan sama). Dua tab pada layar tidak dijalankan |
+| `036-U9` | **Terbukti** | Layar Selesai untuk encounter kedua; satu `POST`, nol `POST /emergency-visits` |
+| `036-U10` | **Terbukti** | Badan permintaan memuat `arrivalLocation`, `foundLocation`, `traumaLocation`, `traumaDateTime`, `notes`; `201` |
+| `036-U11` | **Terbukti** | Badan permintaan tidak memuat kelima kunci; `201` |
+| `036-U12` | **Terbukti** | `400` *"Waktu trauma tidak boleh melewati waktu sekarang."* tampil di dialog; dialog tetap terbuka, isian *Lokasi Trauma Sah* utuh |
+| `036-U13` | **Terbukti** | Isian berhenti pada 250 dan 1000 karakter |
+| `036-U14` | **Terbukti** | Konfirmasi Tangani Segera tanpa isian apa pun |
+
+**Catatan.**
+
+- Laporan agen menulis U2, U6, U7 `FAIL`. Dari bukti mentah: U2 dan U6 terbukti; U7 tidak terbukti karena waktu pengambilan gambar, bukan karena dialog menutup sendiri — kode menyimpan pesan server di dialog (`setStartTriageError`).
+- Kosmetik, terlihat pada `036-U5.png`: saat menutup, modal Tangani Segera sesaat menampilkan varian beralasan dan nama *"Pasien belum teridentifikasi"*.
+
+Putusan: **🟡 sebagian** — Build pemilik terbukti. Uji layar: **12 dari 14 terbukti** pada bukti mentah (U1–U6, U9–U14), termasuk lima isian `IGD-DEC-179`. **Belum terbukti:** U7 (tangkapan layar diambil saat permintaan masih berjalan; `409` tercatat di log backend, tampilannya di dialog tidak terekam) dan U8 (dijalankan lewat dua panggilan API, bukan dua tab).

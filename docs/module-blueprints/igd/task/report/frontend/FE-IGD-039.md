@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `aa0b1168b` (`RizkiV2`) + working tree `FE-IGD-038` dan `FE-IGD-036` yang belum di-commit |
 | Commit backend yang dijadikan rujukan | `b9076c71` + working tree `BE-IGD-053`, `057`, `058`, `059` |
 | Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — Implementation Complete.** Tujuh berkas (enam source, satu test); `eslint` 0 error; unit test berkas terkait 73/73. **Belum:** `npm run build` dan uji layar U1–U6 (milik pemilik) |
+| Status | ✅ **SELESAI — 2 Oktober 2026.** Build pemilik dan uji layar U1–U6 **6 dari 6** pada bukti mentah. Layar dilayani `next dev`, bukan hasil build. Tanpa UAT. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** Tujuh berkas (enam source, satu test); `eslint` 0 error; unit test berkas terkait 73/73. **Belum:** `npm run build` dan uji layar U1–U6 (milik pemilik) |
 
 ---
 
@@ -188,3 +188,26 @@ DoD: laporan tracked ✅ (berkas ini). Dirilis bersama `FE-IGD-035` dan `FE-IGD-
 | Interupsi | `NONE` |
 | Status Git | Tujuh berkas berubah oleh task ini, enam di antaranya juga memuat perubahan `FE-IGD-036`. Tanpa stage, commit, atau push |
 | Langkah berikutnya | `FE-IGD-040` |
+
+---
+
+## Pemeriksaan bukti uji gabungan — 2 Oktober 2026
+
+Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/` (`results-tahap-1.json`…`results-tahap-4.json`, skrip `test-tahap-*.mjs`, tangkapan layar `<ID>.png`) dan log backend `Logs/quilvian-backend-20261001.json`, `quilvian-backend-20261002.json`. Ringkasan agen penguji ([laporan uji gabungan](../../../testing/2026-10-01-laporan-uji-gabungan-r313-r314.md)) **tidak** dipakai sebagai bukti: uraian skenarionya pada beberapa task tidak sama dengan panduan, dan daftar `FAIL`-nya tidak cocok dengan JSON mentah.
+
+`npm run build` pemilik terbukti dari artefak: `.next/BUILD_ID` bertanggal 1 Oktober 2026 15.22, sesudah edit source terakhir (14.59). **Uji layar dilayani `next dev`** (lencana "N" pada setiap tangkapan layar), bukan hasil build. Source di-commit pemilik sebagai `de70687a9`.
+
+| Skenario | Putusan | Yang teramati pada bukti mentah |
+| --- | --- | --- |
+| `039-U1` | **Terbukti** | Tiga tombol pada baris tanpa kunjungan |
+| `039-U2` | **Terbukti** | Dialog *Pergi sebelum ditriage?* dengan alasan kosong; tombol *Tandai Pergi* tidak aktif; nol permintaan |
+| `039-U3` | **Terbukti** | `POST /no-show` `200` (log backend); spanduk hijau *"… ditandai pergi sebelum ditriage."*; isian berhenti di 250 |
+| `039-U4` | **Terbukti** | Baris berkunjungan hanya memuat Isi Triage/Tangani Segera atau Lihat Riwayat (juga terlihat pada `036-U8.png`) |
+| `039-U5` | **Terbukti** | `409` *"Pasien ini sudah memiliki kunjungan IGD IGD-…"* pada spanduk merah |
+| `039-U6` | **Terbukti** | Pemeriksaan teks halaman: tidak ada "Tidak Hadir". Tangkapan layarnya sama dengan `039-U5.png` |
+
+**Catatan.**
+
+- `039-U5` dijalankan dengan Mulai Triage lewat API lalu Pergi pada daftar yang belum dimuat ulang — setara dua tab.
+
+Putusan: **✅ selesai** — Build pemilik dan uji layar U1–U6 **6 dari 6** pada bukti mentah. Layar dilayani `next dev`, bukan hasil build. Tanpa UAT.

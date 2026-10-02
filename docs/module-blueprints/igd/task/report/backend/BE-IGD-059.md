@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `b9076c71` (`rizkiG`, upstream `origin/rizkiG`) + working tree `BE-IGD-053`, `057`, `058` yang belum di-commit |
 | Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — Implementation Complete.** Source selesai (satu berkas); QBE checker `PASS`. **Belum:** build pemilik dan uji API S1–S8 (bagian 5.1) |
+| Status | ✅ **SELESAI — 2 Oktober 2026.** Build pemilik (DLL 1 Oktober 2026 15.18) dan uji API S1–S8 **8 dari 8** pada bukti mentah, termasuk S6 serentak dengan kedua urutan teramati. Tanpa UAT. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** Source selesai (satu berkas); QBE checker `PASS`. **Belum:** build pemilik dan uji API S1–S8 (bagian 5.1) |
 
 ### Backend Governance Preflight
 
@@ -210,3 +210,29 @@ DoD: laporan tracked ✅ (berkas ini). Belum ✅ karena acceptance 1–5 belum d
 | Interupsi | `NONE` |
 | Status Git | Satu berkas source berubah oleh task ini (bersama perubahan `BE-IGD-053` di berkas yang sama); laporan ini; status roadmap/traceability. Tanpa stage, commit, atau push |
 | Langkah berikutnya | Pemilik: build, lalu S1–S8. Agent: `FE-IGD-036` |
+
+---
+
+## Pemeriksaan bukti uji gabungan — 2 Oktober 2026
+
+Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/` (`results-tahap-1.json`…`results-tahap-4.json`, skrip `test-tahap-*.mjs`, tangkapan layar `<ID>.png`) dan log backend `Logs/quilvian-backend-20261001.json`, `quilvian-backend-20261002.json`. Ringkasan agen penguji ([laporan uji gabungan](../../../testing/2026-10-01-laporan-uji-gabungan-r313-r314.md)) **tidak** dipakai sebagai bukti: uraian skenarionya pada beberapa task tidak sama dengan panduan, dan daftar `FAIL`-nya tidak cocok dengan JSON mentah.
+
+Build pemilik terbukti dari artefak: `bin/Debug/net9.0/QuilvianSystemBackend.dll` bertanggal 1 Oktober 2026 15.18, sesudah edit source terakhir (14.54); jumlah warning tidak dilaporkan. Source di-commit pemilik sebagai `74a72399`.
+
+| Skenario | Putusan | Yang teramati pada bukti mentah |
+| --- | --- | --- |
+| `059-S1` | **Terbukti** | `409` dengan kalimat aturan 8; `GET` encounter: `encounterStatus` tetap 1 |
+| `059-S2` | **Terbukti** | `409` kalimat yang sama lewat `/admin/{id}/status` |
+| `059-S3` | **Terbukti** | `409` *"Encounter ini sudah memiliki kunjungan IGD IGD-…"*; encounter tidak berubah |
+| `059-S4` | **Terbukti** | `200`; `cancelledAt` dan `cancelReason` terisi, `isActive` salah |
+| `059-S5` | **Terbukti** | Pendaftaran ulang `200`, encounter baru terbit |
+| `059-S6` | **Terbukti** | Tiga putaran serentak: dua kali Mulai Triage menang (`201` + batal `409`), satu kali batal menang (`200` + `start-triage` `409` *"…sudah berakhir (Cancelled)…"*) |
+| `059-S7` | **Terbukti** | Encounter rawat jalan: `PATCH status` `200`, `PATCH cancel` `200` |
+| `059-S8` | **Terbukti** | `400` *"Kunjungan yang sudah selesai tidak dapat dibatalkan."* |
+
+**Catatan.**
+
+- `059-S4`: respons `GET` tidak memuat ruas `isCancel` maupun nama pelaku, jadi keduanya tidak teramati; hilangnya baris dari antrean hanya tercatat sebagai penanda pada ringkasan skrip.
+- `059-S7`: pembatalan antrean rawat jalan tidak diperiksa oleh skrip.
+
+Putusan: **✅ selesai** — Build pemilik (DLL 1 Oktober 2026 15.18) dan uji API S1–S8 **8 dari 8** pada bukti mentah, termasuk S6 serentak dengan kedua urutan teramati. Tanpa UAT.

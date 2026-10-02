@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `b9076c71` (`rizkiG`) + working tree `BE-IGD-053`, `057`, `058`, `059`, `061` yang belum di-commit |
 | Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — Implementation Complete.** Satu berkas source (+17 baris); QBE checker `PASS`. **Belum:** build pemilik dan uji API S1–S5 (bagian 5.1) |
+| Status | ✅ **SELESAI — 2 Oktober 2026.** Build pemilik dan uji API S1–S5 **5 dari 5** pada bukti mentah. Tanpa UAT. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** Satu berkas source (+17 baris); QBE checker `PASS`. **Belum:** build pemilik dan uji API S1–S5 (bagian 5.1) |
 
 ### Backend Governance Preflight
 
@@ -171,3 +171,21 @@ DoD: laporan tracked ✅ (berkas ini).
 | Interupsi | `NONE` |
 | Status Git | Satu berkas source berubah oleh task ini; laporan ini; status roadmap/traceability. Tanpa stage, commit, atau push |
 | Langkah berikutnya | Pemilik: build, lalu S1–S5. Agent: `BE-IGD-063` |
+
+---
+
+## Pemeriksaan bukti uji gabungan — 2 Oktober 2026
+
+Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/` (`results-tahap-1.json`…`results-tahap-4.json`, skrip `test-tahap-*.mjs`, tangkapan layar `<ID>.png`) dan log backend `Logs/quilvian-backend-20261001.json`, `quilvian-backend-20261002.json`. Ringkasan agen penguji ([laporan uji gabungan](../../../testing/2026-10-01-laporan-uji-gabungan-r313-r314.md)) **tidak** dipakai sebagai bukti: uraian skenarionya pada beberapa task tidak sama dengan panduan, dan daftar `FAIL`-nya tidak cocok dengan JSON mentah.
+
+Build pemilik terbukti dari artefak: `bin/Debug/net9.0/QuilvianSystemBackend.dll` bertanggal 1 Oktober 2026 15.18, sesudah edit source terakhir (14.54); jumlah warning tidak dilaporkan. Source di-commit pemilik sebagai `74a72399`.
+
+| Skenario | Putusan | Yang teramati pada bukti mentah |
+| --- | --- | --- |
+| `062-S1` | **Terbukti** | `409` dengan kalimat `IGD-DEC-166` |
+| `062-S2` | **Terbukti** | Tanpa `notes` tetap `409` kalimat yang sama |
+| `062-S3` | **Terbukti** | `400` *"Perubahan status dari Executed ke Cancelled tidak diperbolehkan."* |
+| `062-S4` | **Terbukti** | `200`; `dispositionStatus` 4 |
+| `062-S5` | **Terbukti** | `400` *"Alasan pembatalan wajib diisi ketika tindak lanjut dibatalkan."* |
+
+Putusan: **✅ selesai** — Build pemilik dan uji API S1–S5 **5 dari 5** pada bukti mentah. Tanpa UAT.
