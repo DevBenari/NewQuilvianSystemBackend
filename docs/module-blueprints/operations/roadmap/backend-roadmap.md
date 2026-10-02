@@ -2,6 +2,47 @@
 
 Kontrak terkunci: `opr-api-v1`, `opr-state-v1`, `opr-integration-v1`.
 
+## Status per 28 September 2026
+
+Bukti: `docs/testing/OPR-backend-runtime-validation.md` (runtime/API) dan
+`Tests/QuilvianSystemBackend.OperatingRoomTests` (70 uji, seluruhnya lulus).
+
+| Task ID | Status | Dasar |
+|---|---|---|
+| `BE-OPR-001` | Selesai | Struktur terverifikasi di basis data: 14 tabel `Opr*`, 23 FK seluruhnya `RESTRICT`/`NO ACTION`, 29 unique index, 4 kolom concurrency |
+| `BE-OPR-002` | Selesai | Migration additive sudah dijalankan pada basis data pengembangan; tidak ada migration baru pada tahap ini |
+| `BE-OPR-003` | Selesai | Happy/invalid/duplicate/idempotency/concurrency lulus di runtime dan di uji otomatis; `OPR002`, `OPR013` terbukti |
+| `BE-OPR-004` | Selesai | Penjadwalan, tabrakan `OPR003`, lima permintaan paralel menyisakan satu jadwal, riwayat jadwal lama tersimpan, dan pembuatan kasus di bawah aturan klinis penuh kini terbukti memakai akun `opr.bedah` |
+| `BE-OPR-005` | Selesai | Seluruh gerbang terbukti, termasuk `Scheduled` → `Ready` di bawah aturan penuh dengan tiga peran dipegang tiga akun berbeda |
+| `BE-OPR-006` | Selesai | Illegal start ditolak, catatan final immutable, addendum append-only, pembatalan sesudah mulai ditolak |
+| `BE-OPR-007` | Selesai | `Completed` hanya setelah catatan final, recovery `Released`, dan serah terima diterima; jalur kegagalan keselamatan ditolak dengan kode yang benar |
+| `BE-OPR-008` | Selesai | Validasi quantity/serial, retry tidak menggandakan, koreksi beralasan, dan keunikan serial implant per kasus (`OPR014`) terbukti di service maupun runtime |
+| `BE-OPR-009` | Selesai | Amplop kejadian outbox lengkap dan dibekukan pada `PayloadJson`; satu kejadian satu pesan dijaga indeks unik `EventId` dan `(Destination, IdempotencyKey)`; pengulangan tidak menggandakan; kegagalan pengiriman tidak membatalkan transaksi klinis; pesan dapat dibaca dan diantrekan ulang. Mapping ke consumer eksternal tetap milik integration layer |
+| `BE-OPR-010` | Selesai | Filter, rentang tanggal, paging, batas `pageSize`, validasi rentang utilization, dan laporan material terbukti |
+| `BE-OPR-011` | **Selesai — kurang tes** | Proyek uji ada dan hijau untuk permission matrix, regresi state, konkurensi, idempotensi, audit/privasi, serta kontrak outbox. Sisi pembangunan tidak menyisakan pekerjaan. Yang tersisa hanya pembuktian penolakan `403` per peran, dan itu diserahkan ke analis penguji: membuktikannya menuntut akun per peran beserta pemetaan izin milik lingkungan, bukan sesuatu yang boleh dibuat modul ini sendiri. Temuan kolom pengguna pada baris audit dipindahkan menjadi task Core/shared |
+
+Satu hal yang menyertai `BE-OPR-009` dan bukan pekerjaan modul Operasi: Billing masih terdaftar
+pada `BlockedDestinations`. Itu menyatakan kesiapan **penerima**, bukan kesiapan modul ini.
+Pesannya sudah terbentuk lengkap dan menunggu di antrean; yang belum ada adalah pihak yang
+mengambilnya. Selama itu, rekonsiliasi tujuan Billing masih dilakukan orang.
+
+Dua catatan yang tidak boleh hilang saat task ini ditutup. Keduanya sudah punya pemilik, dan
+tidak satu pun berupa pekerjaan pembangunan modul Operasi yang tertinggal.
+
+1. **Kolom pengguna pada baris audit terisi id kasus.** `LoggerService` mengambil nilainya dari
+   `UserId` lalu `Id` pada data yang dikirim, sedangkan data audit Operasi memuat `Id` kasus.
+   Pertanggungjawaban pelaku karena itu hanya terbaca dari `OprStatusHistory.CreateBy`.
+   `LoggerService` dipakai seluruh modul, sehingga perbaikannya bukan keputusan modul Operasi
+   sendiri. Dipindahkan menjadi task Core/shared:
+   `docs/engineering/task-core-logger-audit-user.md`.
+2. **Penolakan izin per peran diserahkan ke analis penguji.** `opr.bedah`, `opr.anestesi`, dan
+   `opr.perawat` semuanya dibuat berperan SuperAdmin oleh seeder demo — disengaja, supaya alur
+   klinis dapat dicoba tanpa menyiapkan pemetaan izin lebih dulu — sehingga seluruhnya selalu
+   lolos. Membuktikan `403` menuntut akun per peran beserta pemetaan izin milik lingkungan.
+   Membuatnya sendiri dari dalam modul berarti mengarang data privilege, dan itu tidak dilakukan.
+   Kontrak izin yang terpasang pada setiap endpoint sudah dijaga otomatis oleh
+   `PermissionMatrixTests`; yang diserahkan adalah pembuktian penolakannya saat berjalan.
+
 | Task ID | Outcome | Trace | Cakupan dan reuse | Dependency | Acceptance criteria/verifikasi | Risiko/DoD |
 |---|---|---|---|---|---|---|
 | `BE-OPR-001` | Foundation domain dapat dikompilasi | `OPS-REQ-001/002`, `OPS-CON-001..015` | Folder canonical, enum, model, configuration, DbSet, services skeleton; reference existing patient/encounter/procedure/consent/room/workforce | Blueprint approved; QBE preflight | Build berhasil; configuration test memeriksa FK Restrict, unique/index, concurrency; tidak ada master duplikat | DoD: source+targeted test, tanpa migration execution |
@@ -23,6 +64,12 @@ Setiap task builder hanya boleh mengerjakan satu task ID dengan acceptance crite
 ## Audit status pelaksanaan — 24 September 2026
 
 Audit **read-only** terhadap source pada commit `3e1de652`. Nol baris implementasi diubah.
+
+> **Bagian di bawah sudah usang.** Ia adalah audit 24 September 2026, ditulis ketika repository
+> belum memiliki test project sama sekali. Sejak 29 September 2026 test project sudah ada —
+> `Tests/QuilvianSystemBackend.OperatingRoomTests`, 70 uji dan seluruhnya lulus — dan seluruh
+> penilaian di bawah sudah digantikan tabel **Status per 29 September 2026** di awal berkas ini.
+> Bagian ini disimpan sebagai jejak, bukan sebagai status yang berlaku.
 
 Satu keterangan yang berlaku untuk seluruh task: **repository ini tidak memiliki test
 project** — solution hanya memuat `QuilvianSystemBackend.csproj`. Setiap acceptance criteria

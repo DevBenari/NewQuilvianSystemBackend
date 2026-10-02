@@ -83,6 +83,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Emerg
                 .HasForeignKey(x => x.ArrivalConfirmedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasOne(x => x.ClosedByDisposition)
+                .WithMany()
+                .HasForeignKey(x => x.ClosedByDispositionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.HasMany(x => x.Triages)
                 .WithOne(x => x.EmergencyVisit)
                 .HasForeignKey(x => x.EmergencyVisitId)

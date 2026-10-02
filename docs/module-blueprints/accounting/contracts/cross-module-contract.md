@@ -2,10 +2,11 @@
 
 | Field | Value |
 |---|---|
-| `contract_version` | `ACC-XMOD-0.5` |
-| `last_changed_in` | `ACC-XMOD-0.5` — 30 September 2026. Sebelumnya `0.4`, 28 September 2026; `0.3`, 24 September 2026; `0.2`, 15 September 2026 |
+| `contract_version` | `ACC-XMOD-0.6` |
+| `last_changed_in` | `ACC-XMOD-0.6` — 1 Oktober 2026. Sebelumnya `0.5`, 30 September 2026; `0.4`, 28 September 2026; `0.3`, 24 September 2026; `0.2`, 15 September 2026 |
 | Amandemen `0.4` | **`ACC-XMOD-0.4` — approved sisi Accounting, Rizki, 28 September 2026 (`GATE-DESAIN-0928`).** (1) Katalog bagian 3a menjadi **26 kode** (`ACC-DEC-087`, `098`, `100`, `103`, `105`, `106`); (2) empat aturan pesan saldo untuk rekonsiliasi di bagian 8a — titik mulai, akun wajib, arah tanda `Amount`, tanggal cut-off (`ACC-DEC-107`..`110`); (3) bagian 9 dan 10 dimutakhirkan. **Nol perubahan pada kedua belas bidang, tipe, kunci anti-ganda, kode balasan, dan validasi penerimaan.** Butir (2) menunggu kesanggupan Finance (bagian 9), mengikuti preseden `0.3`: diputuskan sisi Accounting, dikonfirmasi Finance per butir |
 | Amandemen `0.5` | **`ACC-XMOD-0.5` — approved sisi Accounting, Rizki, 30 September 2026 (`GATE-DESAIN-0930`).** (1) Gerbang G6 bagian 13 bertambah syarat penegakan shift kasir belum ditutup (`ACC-DEC-124`); (2) bagian 9 bertambah butir shift kasir (OQ-124-1); (3) bagian 4b diselaraskan dengan `api-contract.md` — `EventStatus` `Gagal`/`Diabaikan` dan nomor jurnal yang dapat berganti (`ACC-DEC-116`). **Nol perubahan pada kedua belas bidang, tipe, kunci anti-ganda, kode balasan, dan validasi penerimaan**; pengirim dari `0.4` tetap cocok |
+| Amandemen `0.6` | **`ACC-XMOD-0.6` — 1 Oktober 2026, menuliskan keputusan owner `ACC-DEC-125`..`131` yang sudah `approved`** (preseden `ACC-DEC-074`: penyesuaian atas keputusan owner tidak menunggu gerbang tersendiri). (1) Katalog bagian 3a menjadi **34 kode aktif** ditambah dua kode penanda yang aktif sesudah G6; (2) bagian 3a.3 dan 9 dimutakhirkan dengan jawaban Finance (`finance-management/evidence/15`, `21`) dan lima pertanyaan balik `evidence/16` Accounting; (3) gerbang G6 bagian 13 bertambah keputusan akun debit refund `REFERRED_OUTPATIENT_ADMIN` dan penerimaan nilai nol untuk kode penanda. **Nol perubahan pada kedua belas bidang, tipe, kunci anti-ganda, kode balasan, dan validasi penerimaan** |
 | Klasifikasi artefak | **`CROSS_MODULE_REQUIRED`** |
 | Status | **`approved`** — bentuk batas (bagian 2–7) diratifikasi owner Finance lewat `FIN-DEC-001` atas `0.2` apa adanya; tambahan `0.3` diputuskan sisi Accounting (`ACC-DEC-082`..`090`) dan **menunggu konfirmasi Finance hanya untuk butir yang ditandai** di bagian 9 |
 | Consumer | Accounting (owner: Rizki) |
@@ -228,10 +229,10 @@ oleh kode.
 
 Daftar komponen yang dikirim Finance per jenis kejadian **belum ditetapkan** (bagian 9).
 
-## 3a. Katalog jenis kejadian — 26 kode *(`0.4`; semula 17 kode pada `0.3`)*
+## 3a. Katalog jenis kejadian — 34 kode aktif, ditambah 2 kode penanda *(`0.6`; 26 kode pada `0.4`, 17 kode pada `0.3`)*
 
 Diratifikasi `ACC-DEC-083` atas `FIN-DEC-002` (17 kode pertama), lalu diperluas `ACC-DEC-087`,
-`098`, `100`, `103`, `105`, dan `106` menjadi **26 kode**. `SourceModule` seluruhnya `Finance`. Kode
+`098`, `100`, `103`, `105`, dan `106` menjadi 26 kode, lalu oleh `ACC-DEC-099`, `104`, dan `125` menjadi **34 kode** (bagian 3a.2b). `SourceModule` seluruhnya `Finance`. Kode
 baru hanya lewat keputusan kedua pihak. Kode yang sah tetapi belum punya aturan posting tetap
 **Tertahan** — ratifikasi kode bukan aturan posting. **Nomor urut tidak mengikat; identitas kejadian
 adalah kodenya** (`evidence/14` bagian 2).
@@ -268,21 +269,44 @@ Gelombang Finance untuk kode-kode ini tidak dicatat di sini; lihat decision log 
 | `PENERIMAAN-UANG-MUKA` | Penerimaan sebelum tagihan final, deposit top-up | Debit Kas, kredit Uang Muka Pasien | Saldo Uang Muka Pasien hanya berkurang lewat tiga kode di bawah | `ACC-DEC-098`, `FIN-DEC-031` |
 | `PEMAKAIAN-UANG-MUKA-DEPOSIT` | Tagihan final dilunasi dari uang muka atau deposit | Debit Uang Muka Pasien, kredit Piutang | — | `ACC-DEC-098`, `FIN-DEC-032` |
 | `PENGEMBALIAN-UANG-MUKA` | Uang muka dikembalikan ke pasien | Debit Uang Muka Pasien, kredit Kas | — | `ACC-DEC-098`, `FIN-DEC-041` |
-| `PEMBALIKAN-PENERIMAAN-UANG-MUKA` | Tender uang muka dibatalkan | Debit Uang Muka Pasien, kredit Kas | Pertanyaan balik terbuka: kejadian apa bila uang mukanya sudah dipakai | `ACC-DEC-098` |
-| `PENGAKUAN-KELEBIHAN-BAYAR` | Kelebihan pembayaran atas piutang | Debit Piutang, kredit Uang Muka Pasien | **Bersyarat** — hanya bila pembayaran asal mengkredit Piutang; tidak terbit bila asalnya `PENERIMAAN-UANG-MUKA` | `ACC-DEC-100` |
+| `PEMBALIKAN-PENERIMAAN-UANG-MUKA` | Tender uang muka dibatalkan | Debit Uang Muka Pasien, kredit Kas | Bila uang mukanya sudah terpakai, dikirim **berpasangan** dengan `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` *(`0.6`, `ACC-DEC-125`)* | `ACC-DEC-098` |
+| `PENGAKUAN-KELEBIHAN-BAYAR` | Kelebihan pembayaran atas piutang | Debit Piutang, kredit Uang Muka Pasien | **Bersyarat** — hanya bila pembayaran asal mengkredit Piutang; tidak terbit bila asalnya `PENERIMAAN-UANG-MUKA`. Mencakup kredit bertipe `SETTLEMENT` *(`0.6`, `ACC-DEC-130`)* | `ACC-DEC-100` |
 | `PPN-MASUKAN-PEMBELIAN` | Faktur pembelian ber-PPN | Debit PPN Masukan **atau** beban PPN tak dapat dikreditkan, kredit Utang Supplier | Akun debit ditetapkan di G2 bersama pemilik pajak RS | `ACC-DEC-103` |
-| `RETUR-PEMBELIAN` | Retur barang ke supplier | Debit Piutang Retur Supplier, kredit Persediaan | **Bersyarat** — nilai pokok tanpa PPN; porsi PPN lewat kode terpisah yang masih ditunggu | `ACC-DEC-105` |
-| `PEMAKAIAN-DEPOSIT-RETUR` | Kredit retur dipakai memotong pembayaran utang | Debit Utang Supplier, kredit Piutang Retur Supplier | Saran nama tidak mengikat | `ACC-DEC-106` |
+| `RETUR-PEMBELIAN` | Retur barang ke supplier | Debit Piutang Retur Supplier, kredit Persediaan | **Bersyarat** — nilai pokok tanpa PPN; porsi PPN lewat `PPN-MASUKAN-RETUR-PEMBELIAN` *(`0.6`)* | `ACC-DEC-105` |
+| `PEMAKAIAN-KREDIT-RETUR-PEMBELIAN` *(`0.6`; semula `PEMAKAIAN-DEPOSIT-RETUR`)* | Kredit retur dipakai memotong pembayaran utang | Debit Utang Supplier, kredit Piutang Retur Supplier | Nama final Finance (`FIN-DEC-066`) | `ACC-DEC-106` |
+
+### 3a.2b Delapan kode tambahan dan dua kode penanda — 1 Oktober 2026 *(`0.6`)*
+
+| Kode | Dipicu oleh (menurut Finance) | Lawan jurnal yang diratifikasi | Syarat | Dasar |
+|---|---|---|---|---|
+| `SELISIH-KAS-KURANG` | Kas fisik shift lebih kecil dari catatan, selisih disahkan | Debit beban selisih kas, kredit Kas | `Amount` positif | `ACC-DEC-099`, `FIN-DEC-064` |
+| `SELISIH-KAS-LEBIH` | Kas fisik shift lebih besar dari catatan, selisih disahkan | Debit Kas, kredit pendapatan selisih kas | `Amount` positif | `ACC-DEC-099`, `FIN-DEC-064` |
+| `POTONGAN-PPH23-PIUTANG` | Penjamin memotong PPh 23 saat membayar | Debit PPh 23 dibayar di muka, kredit Piutang | — | `ACC-DEC-104`, `FIN-DEC-065` |
+| `PEMBALIKAN-POTONGAN-PPH23-PIUTANG` | Pembalikan potongan di atas | Debit Piutang, kredit PPh 23 dibayar di muka | — | `ACC-DEC-104`, `FIN-DEC-065` |
+| `POTONGAN-BIAYA-BANK-PIUTANG` | Biaya administrasi bank atas pembayaran piutang | Debit beban administrasi bank, kredit Piutang | — | `ACC-DEC-104`, `FIN-DEC-065` |
+| `PEMBALIKAN-POTONGAN-BIAYA-BANK-PIUTANG` | Pembalikan potongan di atas | Debit Piutang, kredit beban administrasi bank | — | `ACC-DEC-104`, `FIN-DEC-065` |
+| `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` | Pemakaian uang muka untuk melunasi piutang dibalik | Debit Piutang, kredit Uang Muka Pasien | Berpasangan dengan `PEMBALIKAN-PENERIMAAN-UANG-MUKA` bila tendernya dibatalkan | `ACC-DEC-125` |
+| `PPN-MASUKAN-RETUR-PEMBELIAN` | Retur pembelian dikonfirmasi dan membawa porsi PPN | Debit Piutang Retur Supplier, kredit akun yang sama dengan debit `PPN-MASUKAN-PEMBELIAN` | Nilainya porsi PPN saja | `ACC-DEC-125`, `FIN-DEC-068` |
+
+**Dua kode penanda — nama dan pemicu disepakati, aktif sesudah gerbang G6** (`ACC-DEC-126`, `127`):
+
+| Kode | Dipicu oleh | Jurnal | `Amount` | Keadaan |
+|---|---|---|---|---|
+| `PENUTUPAN-SHIFT-KASIR` | Shift mencapai `CLOSED` (kas pas) atau `REVIEWED` (selisih disahkan) | Tidak ada — penanda status, tanpa aturan posting | `0` | Hari ini ditolak `400`; diterima sesudah penegakan shift dibangun (G6) |
+| `PEMBALIKAN-PENUTUPAN-SHIFT-KASIR` | Shift yang sudah tertutup dibuka kembali | Tidak ada | `0` | Sama |
+
+Potongan piutang jenis "lain-lain" **tidak** diberi kode (`ACC-DEC-128`); Finance menolaknya di
+validasi. Kredit retur tidak pernah dicairkan tunai (`FIN-DEC-069`), sehingga tidak ada kodenya.
 
 ### 3a.3 Belum masuk katalog — menunggu Finance
 
 | Kebutuhan | Keadaan | Dasar | Pemilik |
 |---|---|---|---|
-| Selisih kas shift | `SELISIH-KAS-SHIFT` bernilai bertanda **tidak** diratifikasi; diminta dua kode bernilai positif, usulan `SELISIH-KAS-KURANG` dan `SELISIH-KAS-LEBIH` | `ACC-DEC-099` | Yasmin — nama final |
-| Potongan piutang non-tunai | Diminta dipecah dua pasang, usulan `POTONGAN-PPH23-PIUTANG`, `POTONGAN-BIAYA-BANK-PIUTANG` beserta pembaliknya | `ACC-DEC-104` | Yasmin — nama final |
-| PPN atas retur pembelian | Kode terpisah, cermin `PPN-MASUKAN-PEMBELIAN` | `ACC-DEC-105` | Yasmin — usulan kode |
-| Pencairan tunai kredit retur | Bila memang terjadi | `ACC-DEC-106` | Yasmin |
-| Refund kategori `SETTLEMENT` dan `REFERRED_OUTPATIENT_ADMIN` | Wajib punya kejadian bila mengeluarkan kas; bagian G6 | `ACC-DEC-102` | Yasmin + owner Billing |
+| ~~Selisih kas shift~~ | **Tertutup** *(`0.6`)* — `SELISIH-KAS-KURANG` dan `SELISIH-KAS-LEBIH` masuk katalog (bagian 3a.2b) | `ACC-DEC-099`, `FIN-DEC-064` | — |
+| ~~Potongan piutang non-tunai~~ | **Tertutup** *(`0.6`)* — empat kode masuk katalog; jenis "lain-lain" tanpa kode | `ACC-DEC-104`, `128` | — |
+| ~~PPN atas retur pembelian~~ | **Tertutup** *(`0.6`)* — `PPN-MASUKAN-RETUR-PEMBELIAN` | `ACC-DEC-125` | — |
+| ~~Pencairan tunai kredit retur~~ | **Tertutup** *(`0.6`)* — tidak pernah terjadi (`FIN-DEC-069`) | `ACC-DEC-125` | — |
+| Refund kategori `REFERRED_OUTPATIENT_ADMIN` | Akun debit belum ditetapkan; Finance mencatatnya sebagai kegagalan yang terlihat, nol kejadian. `SETTLEMENT` **tertutup** — masuk `PENGAKUAN-KELEBIHAN-BAYAR` (`ACC-DEC-130`) *(`0.6`)* | `ACC-DEC-102`, `129` | Rizki + owner Billing + pemilik proses akuntansi — syarat G6 |
 
 **`PENERIMAAN-KASIR` dan `PENERIMAAN-PIUTANG` jangan disamakan.** Yang pertama terbit saat belum ada
 piutang, sehingga lawannya ditentukan aturan posting (piutang, uang muka pasien, atau pendapatan).
@@ -499,14 +523,15 @@ Per 24 September 2026. Yang sudah ditutup: `ACC-XM-001` dan ratifikasi bentuk pe
 |---|---|---|---|
 | `OD-ACC-05` sisa | Mekanisme autentikasi akun layanan | Platform + Yasmin + Rizki | Gerbang G3 |
 | ~~Kode saldo~~ | ~~Persetujuan kode `SALDO-SUBLEDGER` dan penyesuaian `FIN-DEC-023` ke bagian 8~~ **Tertutup 28 September 2026** — `FIN-DEC-035` | Yasmin | — |
-| Cakupan saldo *(`0.4`)* | Kesanggupan mengirim saldo untuk keempat kelompok control account — Kas Kasir, Kas Kecil, Piutang, Hutang — termasuk `Rp 0` (bagian 8a aturan 2) | Yasmin | G4 |
-| Arah tanda *(`0.4`)* | Kesanggupan mengirim `Amount` menurut saldo normal akun (bagian 8a aturan 3) | Yasmin | G4 |
-| Jadwal saldo *(`0.4`)* | Kapan saldo terbit dibanding jadwal tutup bulan Accounting | Yasmin | Jadwal operasional |
+| Cakupan saldo *(`0.4`)* | ~~Kesanggupan mengirim saldo untuk keempat kelompok control account, termasuk `Rp 0`~~ **Disanggupi** *(`0.6`)* — `FIN-DEC-090`, snapshot bulanan `BE-FIN-049`. **Sisa:** empat baris per kelompok atau satu baris per akun control, dan utang honor dokter (`evidence/16` butir 16.2, OQ-131-2) | Yasmin; daftar akun dari pemilik proses akuntansi | G2, G4 |
+| Arah tanda *(`0.4`)* | ~~Kesanggupan mengirim `Amount` menurut saldo normal akun~~ **Disanggupi** *(`0.6`)* — `FIN-DEC-091`. **Sisa:** Finance menolak saldo negatif tanpa pengecualian, sedangkan bagian 8 mengizinkannya untuk saldo tidak wajar (`evidence/16` butir 16.3, OQ-131-3) | Yasmin | G4 |
+| Jadwal saldo *(`0.4`)* | ~~Kapan saldo terbit~~ **Dijawab** *(`0.6`)* — tanggal 1 pukul 00.05 WIB, `AccountingDate` tanggal akhir periode (`FIN-DEC-092`). **Sisa:** pernyataan ulang saldo Kas Kasir sesudah shift yang masih terbuka ditutup (`evidence/16` butir 16.4, OQ-131-4) | Yasmin | G4 |
 | Komponen | Komponen yang dikirim per jenis kejadian | Yasmin | Aturan posting berbaris banyak |
-| Kas di luar katalog | Kode atau pernyataan tertulis untuk deposit, refund, selisih shift | Yasmin + owner Billing | Gerbang G6 |
+| Kas di luar katalog | ~~Kode atau pernyataan tertulis untuk deposit, refund, selisih shift~~ **Sebagian besar tertutup** *(`0.6`)* — lihat bagian 3a.2b. **Sisa:** akun debit refund `REFERRED_OUTPATIENT_ADMIN` (`ACC-DEC-129`) | Rizki + owner Billing + pemilik proses akuntansi | Gerbang G6 |
 | Selisih catatan | Versi percakapan (JWT Bearer, cutover 1 Oktober, amplop + 4 rincian) berbeda dengan `FIN-DEC-007`, `008`, `023` | Yasmin | Tidak menahan; wajib didamaikan (bagian 11) |
 | `FIN-DEC-004` | Accounting meminta penerimaan sebelum tagihan final **terbit segera** sebagai uang muka pasien, beserta kode pemakaian uang muka (`ACC-DEC-091`) | Yasmin | Gerbang G6 |
-| Shift kasir *(`0.5`)* | Kode penanda shift tertutup yang terbit saat shift `REVIEWED` (`evidence/14` pertanyaan 7.4), **dan** bagaimana Accounting mengetahui shift yang dibuka supaya dapat menyatakan shift yang belum ditutup (OQ-124-1) | Yasmin + Rizki | Gerbang G6 (`ACC-DEC-124`) |
+| Shift kasir *(`0.5`, dimutakhirkan `0.6`)* | Kode penanda dan pemicunya **disepakati** — `PENUTUPAN-SHIFT-KASIR` dan pembaliknya, terbit pada `CLOSED` dan `REVIEWED` (`ACC-DEC-126`, `127`). **Sisa:** bagaimana Accounting mengetahui shift yang dibuka (OQ-124-1, `evidence/16` butir 16.5) | Yasmin + Rizki | Gerbang G6 (`ACC-DEC-124`) |
+| Kas per shift atau per kuitansi *(`0.6`)* | `ACC-DEC-062` menetapkan satu kejadian kas per shift; kode Finance menyiapkan `PENERIMAAN-KASIR` per kuitansi. Ditanyakan lewat `evidence/16` butir 16.1; `ACC-DEC-062` belum diubah (`ACC-DEC-131`, OQ-131-1) | Yasmin + Rizki + owner Billing | G4 |
 
 ## 10. Yang sudah dan belum dibangun sisi Accounting
 
@@ -567,7 +592,7 @@ sebelum cutover diinput Accounting sebagai saldo awal manual, satu kali (`FIN-DE
 | G3 | Akun layanan aktif sesuai bagian 4c dan mekanismenya sudah diputuskan | Platform + Yasmin + Rizki | Mekanisme terbuka |
 | G4 | Pengirim Finance siap | Yasmin | Belum dibangun |
 | G5 | Saldo awal manual per tanggal cutover siap diinput | Rizki | Bergantung G2 |
-| G6 | Kode atau pernyataan tertulis Finance untuk deposit pasien, kelebihan bayar dan refund, serta selisih kas shift — termasuk jaminan top-up deposit **tidak** dikirim sebagai `PENERIMAAN-KASIR`; ditambah perubahan `FIN-DEC-004` dan kode pemakaian uang muka (`ACC-DEC-091`). *(`0.5` — `ACC-DEC-124`:)* **ditambah penegakan shift kasir belum ditutup** (`FR-P2-038`, `ACC-DEC-065`) sudah dirancang, dibangun, dan diuji di Accounting — bergantung pada kode penanda shift dan OQ-124-1 (bagian 9) | Yasmin + owner Billing; penegakan shift: Rizki | Terbuka |
+| G6 | Kode atau pernyataan tertulis Finance untuk deposit pasien, kelebihan bayar dan refund, serta selisih kas shift — termasuk jaminan top-up deposit **tidak** dikirim sebagai `PENERIMAAN-KASIR`; ditambah perubahan `FIN-DEC-004` dan kode pemakaian uang muka (`ACC-DEC-091`). *(`0.5` — `ACC-DEC-124`:)* **ditambah penegakan shift kasir belum ditutup** (`FR-P2-038`, `ACC-DEC-065`) sudah dirancang, dibangun, dan diuji di Accounting — bergantung pada kode penanda shift dan OQ-124-1 (bagian 9). *(`0.6`:)* **ditambah** kotak masuk menerima `Amount = 0` hanya untuk daftar tertutup kode penanda (`ACC-DEC-127`), dan **akun debit refund `REFERRED_OUTPATIENT_ADMIN` sudah diputuskan** (`ACC-DEC-129`) | Yasmin + owner Billing; penegakan shift: Rizki | Terbuka |
 
 **Kenapa penegakan shift masuk G6** *(`0.5`)*. Kas kasir datang per shift. Shift yang
 melewati pergantian bulan dan belum ditutup membuat kasnya belum sampai ke buku besar, sementara

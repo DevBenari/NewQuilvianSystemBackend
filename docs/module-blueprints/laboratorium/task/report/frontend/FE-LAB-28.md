@@ -18,7 +18,7 @@
 | Model | Claude Opus 5.5 |
 | Commit frontend saat dikerjakan | `1629bf025` (branch `YogaV2`) |
 | Tanggal | 2026-09-23 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — layar terbangun, **15 uji unit** lulus, lint 0 error, build hijau. **Aturan murninya dijalankan terhadap jawaban server yang sungguhan** dan membaca keempat pesanan PA dengan benar. **Belum diklik di peramban**, dan `Simpan`/`Selesaikan`/`Buka Kembali` **sengaja nol dijalankan** terhadap database bersama |
+| Status | ✅ **`SELESAI`** (naik 2026-10-02) — ketujuh AC terbukti **di peramban** dengan akun analis asli (Vina) terhadap backend lokal dan PostgreSQL dev, 13/13. `Buka Kembali`, `Simpan`, dan `Selesaikan` **dijalankan sungguhan** pada pesanan uji `LAB-RSMMC-000009` yang diizinkan pemilik modul — ketiganya `200`. Lihat 9. *(Semula 2026-09-23: ⚠ — 15 uji unit, aturan murni atas jawaban server sungguhan; belum diklik di peramban; tiga jalur tulis sengaja nol dijalankan.)* |
 
 ---
 
@@ -187,11 +187,11 @@ Uji manual: **`NOT FEASIBLE`** — sesi ini nol punya alat kendali peramban.
 | --- | --- | --- |
 | `AC-146` formulir **dibangkitkan dari daftar parameter server**, nol daftar ruas ditulis di kode | ✅ **Terbukti atas data sungguhan** | 15 ruas dan 3 ruas terbangkitkan dari dua pesanan nyata; berkas konstanta nol memuat nama ruas; 4 uji |
 | `AC-147` **nol tombol Validasi/Rilis/Kirim** | ✅ **Terpenuhi** | Service hanya memuat 4 fungsi; tampilan hanya merender Simpan, Selesaikan, Buka Kembali |
-| `AC-148` `Selesaikan` **terpisah** dari `Simpan` dan disertai penegasan ia bukan rilis | **Terbangun** | Dua tombol; penegasan selalu tampak di sebelahnya, bukan hanya di dalam dialog |
-| `AC-149` konteks klinis **baca-saja** | **Terbangun** | Wilayah B dirender sebagai teks; kosong bertanda *"Belum diisi dokter pemesan"* |
+| `AC-148` `Selesaikan` **terpisah** dari `Simpan` dan disertai penegasan ia bukan rilis | ✅ **Terbukti di peramban** (R7, R10) | Dua tombol; penegasan selalu tampak di sebelahnya, bukan hanya di dalam dialog |
+| `AC-149` konteks klinis **baca-saja** | ✅ **Terbukti di peramban** (R4) | Wilayah B dirender sebagai teks, nol isian; kosong bertanda *"Belum diisi dokter pemesan"* |
 | `AC-150` Waktu Efektif dan Issued **baca-saja bertanda turunan**, nol kotak isian | ✅ **Terbukti terbalik** | Payload atas data sungguhan nol memuat keduanya; 2 uji |
-| `AC-151` `Buka Kembali` **meminta alasan** | **Terbangun; aturannya terbukti** | `ConfirmModal requireReason` + penjaga di hook; 1 uji |
-| `AC-152` pesanan tanpa pemetaan menampilkan **sebab dan siapa yang mengatur** | **Terbangun; aturannya terbukti** | 3 uji. **Keadaannya nol dapat dilihat pada data sekarang** — pemetaan sudah 10/10 |
+| `AC-151` `Buka Kembali` **meminta alasan** | ✅ **Terbukti di peramban** (R6) | `ConfirmModal requireReason` + penjaga di hook; 1 uji; tombol mati tanpa alasan, dengan alasan → `200` |
+| `AC-152` pesanan tanpa pemetaan menampilkan **sebab dan siapa yang mengatur** | ✅ **Terbukti di peramban** (R11) | 3 uji; keadaannya kini ada pada data dev (pesanan yang jenis pemeriksaannya belum digolongkan) dan kalimatnya tampil |
 | DoD — isi laporan **tidak muncul** pada layar non-klinis | ✅ **Terpenuhi** | Satu-satunya pemanggil `pathology-report` adalah layar ini |
 
 ---
@@ -209,4 +209,41 @@ Uji manual: **`NOT FEASIBLE`** — sesi ini nol punya alat kendali peramban.
 | Perubahan sampingan | `NONE` di luar perbaikan cacat yang dilaporkan di atas |
 | Status Git | Seluruh berkas dalam cakupan. **Nol operasi Git dijalankan** |
 | **Catatan lingkungan** | Backend kini membutuhkan `version.json` yang **tidak lagi di-track** sejak `b17d1dfc` (dibangkitkan CI). Untuk pengujian ini ia dipulihkan sementara dari `b17d1dfc^` lalu **dihapus lagi** — tree backend bersih. Build penuh backend kini ~30 menit dan ~27 GB RAM akibat empat migration `Designer.cs` baru berukuran ~116.000 baris |
-| Langkah berikutnya | **1.** Tinjauan klinis atas pemetaan LBC dan FNAB oleh `DR-LAB-003`. **2.** Klik layar terhadap pesanan uji — bukan pesanan pasien sungguhan. **3.** Putuskan sumber pemilih analis |
+| Langkah berikutnya | **1.** Tinjauan klinis atas pemetaan LBC dan FNAB oleh `DR-LAB-003`. ~~**2.** Klik layar terhadap pesanan uji — bukan pesanan pasien sungguhan.~~ (selesai 2026-10-02 pada `LAB-RSMMC-000009`, lihat 9) **3.** Putuskan sumber pemilih analis |
+
+---
+
+## 9. Verifikasi susulan 2026-10-02 — di peramban dengan akun asli, tulis pada pesanan uji
+
+**Lingkungan.** Backend lokal (`dotnet run`, `Development`) terhadap PostgreSQL dev bersama; `next dev`
+port 3000 dari working tree `YogaV2`; Chromium lewat Playwright; login **lewat formulir** dengan akun
+**Vina (analis Laboratorium)**.
+
+**Wewenang tulis.** Pemilik modul memilih pesanan **`LAB-RSMMC-000009`** sebagai pesanan uji Patologi
+Anatomi dan mengizinkan tulis padanya. Penjaga tulis **meneruskan hanya** `reopen`, `PUT`, dan
+`finalize` milik pesanan itu; selebihnya digagalkan. Nilai yang ditulis bertanda uji
+(`… [uji layar FE-LAB-28 2026-10-02]`), sehingga dapat dikenali kemudian.
+
+| ID | Skenario | Hasil | Bukti |
+| --- | --- | --- | --- |
+| R0 | Login Vina lewat formulir | `PASS` | — |
+| R1 | `AC-146` formulir dibangkitkan dari ruas server — jumlah dan nama sama dengan jawaban backend | `PASS` | 15 ruas: Makroskopik, Mikroskopik, Kesimpulan, … , Ki-67, status reseptor |
+| R2 | Laporan `Final`: isian terkunci; hanya `Buka Kembali`; nol `Simpan`/`Selesaikan` | `PASS` | — |
+| R3 | `AC-147` nol tombol `Validasi`/`Rilis`/`Kirim` | `PASS` | 0 |
+| R4 | `AC-149` konteks klinis dokter pemesan tampil baca-saja | `PASS` | 0 isian |
+| R5 | `AC-150` Waktu Efektif dan Waktu Issued sebagai teks bertanda turunan | `PASS` | "Diturunkan sistem — tidak dapat diubah." |
+| R6 | `AC-151` `Buka Kembali`: tombol mati tanpa alasan; dengan alasan → `POST …/reopen` **`200`**; isian dapat disunting | `PASS` | Badan `{reason}`; pesan backend "Laporan Patologi Anatomi berhasil dibuka kembali." |
+| R7 | `AC-148` sesudah dibuka: `Simpan` dan `Selesaikan` terpisah; penegasan "BUKAN rilis" tampak di sebelahnya | `PASS` | — |
+| R8 | `Simpan`: `Selesaikan` mati selama ada perubahan; `PUT` → **`200`** | `PASS` | Kunci badan `findingStatus`, `analystUserId`, `values` |
+| R9 | Muat ulang: nilai tersimpan terbaca dari backend | `PASS` | Akhiran `[uji layar FE-LAB-28 2026-10-02]` |
+| R10 | `Selesaikan`: `POST …/finalize` → **`200`**; terkunci lagi; nol tombol rilis | `PASS` | "Laporan Patologi Anatomi berhasil diselesaikan." |
+| R11 | `AC-152` pesanan tanpa ruas: sebab tertulis — **apa** yang belum diatur dan **siapa** yang mengatur | `PASS` | "…belum digolongkan… diatur kepala instalasi laboratorium lewat menu Data Master → Penggolongan Jenis Pemeriksaan PA" |
+| R12 | 390 px: tanpa gulir horizontal halaman | `PASS` | `375 ≤ 390` |
+| R13 | Nol tulis di luar pesanan uji | `PASS` | Tiga tulis diteruskan, seluruhnya milik `LAB-RSMMC-000009` |
+
+**Jejak di database dev.** `LAB-RSMMC-000009`: satu kali dibuka kembali (`ReopenCount` naik satu), satu
+nilai laporan berakhiran penanda uji di atas, lalu diselesaikan lagi — keadaan akhirnya `Final`, sama
+dengan keadaan awal.
+
+**Nol perubahan kode** diperlukan untuk task ini. Validasi akhir sesi: uji unit 2303/2309 (6 gagal =
+baseline, nol Laboratorium), `lint:errors` 0 error, `npm run build` hijau. **Nol operasi Git dijalankan.**

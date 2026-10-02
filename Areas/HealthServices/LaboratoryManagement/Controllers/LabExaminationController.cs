@@ -31,18 +31,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
     [Tags("Health Services / Laboratory Management / Lab Examination")]
     public class LabExaminationController : ControllerBase
     {
+        // Kelima tindakan hasil berbagi satu kunci LabExaminationResult:Update, dan registri hak
+        // akses menampilkannya sebagai SATU baris di layar Akses Role memakai teks [AccessAction]
+        // endpoint yang pertama terbaca. Teksnya karena itu identik dan menyebut kelimanya,
+        // supaya admin membaca kemampuan yang sebenarnya ia berikan.
+        private const string LabExaminationResultActionDescription =
+            "Mengisi hasil, menyatakan penulisan selesai, membuka kembali, dan mencatat konsultasi hasil Patologi Klinik dan Mikrobiologi";
+
         private readonly LabExaminationService _labExaminationService;
         private readonly LabMicrobiologyResultService _labMicrobiologyResultService;
         private readonly LabConfirmingDoctorResolver _confirmingDoctorResolver;
+        private readonly LabResultValidationService _labResultValidationService;
 
         public LabExaminationController(
             LabExaminationService labExaminationService,
             LabMicrobiologyResultService labMicrobiologyResultService,
-            LabConfirmingDoctorResolver confirmingDoctorResolver)
+            LabConfirmingDoctorResolver confirmingDoctorResolver,
+            LabResultValidationService labResultValidationService)
         {
             _labExaminationService = labExaminationService;
             _labMicrobiologyResultService = labMicrobiologyResultService;
             _confirmingDoctorResolver = confirmingDoctorResolver;
+            _labResultValidationService = labResultValidationService;
         }
 
         // Daftar pemeriksaan terpesan pada satu pesanan.
@@ -99,6 +109,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<LabExaminationResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Update", "Cancel Lab Examination", Description = "Membatalkan satu pemeriksaan terpesan", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("LabExamination", "Update")]
         public Task<IActionResult> Cancel(
@@ -191,13 +202,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             }
         }
 
+        [HttpGet("by-order/{labOrderId:guid}/results")]
+        [ProducesResponseType(typeof(ApiResponse<List<LabExaminationResultFormResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Read", "Read Lab Examination Result Sheet", Description = "Melihat seluruh hasil Patologi Klinik pada satu pesanan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabExamination", "Read")]
+        public async Task<IActionResult> GetResultSheetByOrder(
+            Guid labOrderId,
+            CancellationToken cancellationToken = default)
+        {
+            // BE-LAB-69, r33 28.2. Satu panggilan untuk satu halaman hasil Patologi Klinik per
+            // order (LAB-DEC-149) — bentuk tiap baris sama persis dengan GET /{id}/result.
+            // Order bukan Patologi Klinik ditolak 422 (VAL-123).
+            try
+            {
+                var result = await _labExaminationService.GetResultSheetByOrderAsync(labOrderId, cancellationToken);
+
+                return Ok(ApiResponse<List<LabExaminationResultFormResponse>>.Ok(
+                    result, "Hasil pemeriksaan pada pesanan berhasil diambil."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+            catch (LabExaminationValidationException exception)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity, exception.Message));
+            }
+        }
+
         [HttpPut("{id:guid}/result")]
         [ProducesResponseType(typeof(ApiResponse<LabExaminationResultResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Set Lab Examination Result", Description = "Mengisi hasil pemeriksaan laboratorium", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("LabExamination", "Update")]
+        [AccessAction("Update", "Update Lab Examination Result", Description = LabExaminationResultActionDescription, AccessType = AccessTypes.Update, SortOrder = 1)]
+        [AccessPermission("LabExaminationResult", "Update")]
         public async Task<IActionResult> SetResult(
             Guid id,
             [FromBody] LabExaminationResultRequest request,
@@ -208,9 +251,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             // lewat LAB-DEC-003, LAB-DEC-004, dan LAB-DEC-007, dan nol status hasil disentuh
             // di sini.
             //
-            // Hak akses memakai ulang LabExamination:Update, bukan resource baru: memecah izin
-            // pengisian dari izin pemeriksaan lain berarti menetapkan pembagian wewenang yang
-            // justru menunggu jawaban LAB-SIGN-001.
+            // Hak akses LabExaminationResult:Update, bukan LabExamination:Update (LAB-DEC-146,
+            // LAB-PERM-v1 rev 10). Dokter pemesan memegang LabExamination:Update untuk menandai
+            // cito, dan izin itu tidak boleh ikut membuka penulisan hasil.
             try
             {
                 var result = await _labExaminationService.SetResultAsync(id, request, cancellationToken);
@@ -281,24 +324,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         }
 
         // =============================================================
-        // Kelengkapan dan konsultasi hasil Mikrobiologi — BE-LAB-54, slice S4b
+        // Kelengkapan dan konsultasi hasil Patologi Klinik dan Mikrobiologi
+        // BE-LAB-54 (slice S4b), dijadikan netral disiplin oleh BE-LAB-67 (LAB-API-v1 r33 28.4)
         //
         // KETIGA ENDPOINT DI BAWAH TIDAK MERILIS. Simpan Final berarti penulisnya selesai
-        // menulis — sebuah fakta (LAB-DEC-097). Rilis Mikrobiologi adalah S4d, tertahan
-        // DEC-LAB-011, dan nol endpoint rilis ada di sini.
+        // menulis — sebuah fakta (LAB-DEC-097). Rilis adalah S4/S4d, dan nol endpoint rilis
+        // ada di sini.
         //
-        // Hak akses memakai ulang LabExamination:Update sesuai LAB-PERM-v1 rev 8 bagian 10.1 —
-        // nol resource permission baru.
+        // Route lama /result/microbiology/finalize|reopen|consultation DICABUT, tanpa alias
+        // (02-backend-architecture 19.9): dua jalur untuk satu tindakan wajib diuji dan dijaga
+        // selamanya. Patologi Anatomi ditolak VAL-122 — hasilnya tinggal di laporan per pesanan.
         // =============================================================
 
-        [HttpPost("{id:guid}/result/microbiology/finalize")]
+        [HttpPost("{id:guid}/result/finalize")]
         [ProducesResponseType(typeof(ApiResponse<LabExaminationCompletionResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Finalize Lab Microbiology Result", Description = "Menyatakan penulisan hasil Mikrobiologi selesai", AccessType = AccessTypes.Update, SortOrder = 4)]
-        [AccessPermission("LabExamination", "Update")]
-        public async Task<IActionResult> FinalizeMicrobiologyResult(
+        [AccessAction("Update", "Update Lab Examination Result", Description = LabExaminationResultActionDescription, AccessType = AccessTypes.Update, SortOrder = 1)]
+        [AccessPermission("LabExaminationResult", "Update")]
+        public async Task<IActionResult> FinalizeResult(
             Guid id,
             CancellationToken cancellationToken = default)
         {
@@ -307,7 +352,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             // Menerima badan permintaan akan membuat dua jalur menulis hasil yang sama.
             try
             {
-                var result = await _labExaminationService.FinalizeMicrobiologyResultAsync(id, cancellationToken);
+                var result = await _labExaminationService.FinalizeResultAsync(id, cancellationToken);
 
                 return Ok(ApiResponse<LabExaminationCompletionResponse>.Ok(
                     result, "Penulisan hasil dinyatakan selesai. Hasil ini belum dirilis."));
@@ -329,13 +374,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             }
         }
 
-        [HttpPost("{id:guid}/result/microbiology/reopen")]
+        [HttpPost("{id:guid}/result/reopen")]
         [ProducesResponseType(typeof(ApiResponse<LabExaminationCompletionResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Reopen Lab Microbiology Result", Description = "Membuka kembali penulisan hasil Mikrobiologi sebelum rilis", AccessType = AccessTypes.Update, SortOrder = 5)]
-        [AccessPermission("LabExamination", "Update")]
-        public async Task<IActionResult> ReopenMicrobiologyResult(
+        [AccessAction("Update", "Update Lab Examination Result", Description = LabExaminationResultActionDescription, AccessType = AccessTypes.Update, SortOrder = 1)]
+        [AccessPermission("LabExaminationResult", "Update")]
+        public async Task<IActionResult> ReopenResult(
             Guid id,
             [FromBody] LabReopenRequest request,
             CancellationToken cancellationToken = default)
@@ -344,7 +390,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             // ia nol menyentuh S6 maupun DEC-LAB-014 (LAB-DEC-097).
             try
             {
-                var result = await _labExaminationService.ReopenMicrobiologyResultAsync(id, request, cancellationToken);
+                var result = await _labExaminationService.ReopenResultAsync(id, request, cancellationToken);
 
                 return Ok(ApiResponse<LabExaminationCompletionResponse>.Ok(
                     result, "Penulisan hasil dibuka kembali."));
@@ -354,6 +400,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound, exception.Message));
             }
+            catch (LabExaminationConflictException exception)
+            {
+                // VAL-136 dan bentrok Version (BE-LAB-73).
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict, exception.Message));
+            }
             catch (LabExaminationValidationException exception)
             {
                 return UnprocessableEntity(ApiResponse<object>.Fail(
@@ -361,12 +413,178 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             }
         }
 
-        [HttpPut("{id:guid}/result/microbiology/consultation")]
+        [HttpPost("{id:guid}/result/validate")]
+        [ProducesResponseType(typeof(ApiResponse<LabExaminationCompletionResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status503ServiceUnavailable)]
+        [AccessAction("Validate", "Validate Lab Examination Result", Description = "Memvalidasi hasil Patologi Klinik dan Mikrobiologi", AccessType = AccessTypes.Update, SortOrder = 8)]
+        [AccessPermission("LabExaminationResult", "Validate")]
+        public async Task<IActionResult> ValidateResult(
+            Guid id,
+            [FromBody] LabResultSignOffRequest? request,
+            CancellationToken cancellationToken = default)
+        {
+            // Nama aksi Validate yang berbeda dari Update adalah penjaganya: kebijakan dicocokkan
+            // per nama aksi, sehingga analis pemegang LabExaminationResult:Update TIDAK memperoleh
+            // Validate (LAB-PERM-v1 rev 11 13.2, LAB-CONFLICT-012). Lapis orang diperiksa service.
+            try
+            {
+                var result = await _labResultValidationService.ValidateAsync(id, request, cancellationToken);
+
+                return Ok(ApiResponse<LabExaminationCompletionResponse>.Ok(
+                    result, "Hasil divalidasi. Hasil ini belum dirilis."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+            catch (LabExaminationForbiddenException exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, exception.Message));
+            }
+            catch (LabExaminationConflictException exception)
+            {
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict, exception.Message));
+            }
+            catch (LabExaminationValidationException exception)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity, exception.Message));
+            }
+            catch (LabPrivilegeReadException exception)
+            {
+                // Fail-closed: data kewenangan yang tidak terbaca tidak pernah diteruskan sebagai
+                // izin, dan nol yang tersimpan.
+                return StatusCode(
+                    StatusCodes.Status503ServiceUnavailable,
+                    ApiResponse<object>.Fail(StatusCodes.Status503ServiceUnavailable, exception.Message));
+            }
+        }
+
+        [HttpPost("{id:guid}/result/release")]
+        [ProducesResponseType(typeof(ApiResponse<LabExaminationCompletionResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status503ServiceUnavailable)]
+        [AccessAction("Release", "Release Lab Examination Result", Description = "Merilis hasil Patologi Klinik dan Mikrobiologi yang sudah divalidasi", AccessType = AccessTypes.Update, SortOrder = 9)]
+        [AccessPermission("LabExaminationResult", "Release")]
+        public async Task<IActionResult> ReleaseResult(
+            Guid id,
+            [FromBody] LabResultSignOffRequest? request,
+            CancellationToken cancellationToken = default)
+        {
+            // Rilis menjadikan hasil dokumen klinis pasien, tertanda tangan dan terkunci di rekam
+            // medis pada penyimpanan yang sama (INT-08). Perangkat dan alamat jaringan dicatat pada
+            // tanda tangan, mengikuti pemanggil RegisterSignedAsync yang lain.
+            try
+            {
+                var result = await _labResultValidationService.ReleaseAsync(
+                    id,
+                    request,
+                    deviceInfo: Request.Headers.UserAgent.ToString(),
+                    ipAddress: HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    cancellationToken);
+
+                return Ok(ApiResponse<LabExaminationCompletionResponse>.Ok(
+                    result, "Hasil dirilis dan tercatat pada rekam medis pasien."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+            catch (LabExaminationForbiddenException exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, exception.Message));
+            }
+            catch (LabExaminationConflictException exception)
+            {
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict, exception.Message));
+            }
+            catch (LabExaminationValidationException exception)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity, exception.Message));
+            }
+            catch (LabPrivilegeReadException exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status503ServiceUnavailable,
+                    ApiResponse<object>.Fail(StatusCodes.Status503ServiceUnavailable, exception.Message));
+            }
+        }
+
+        [HttpPost("{id:guid}/result/return")]
+        [ProducesResponseType(typeof(ApiResponse<LabExaminationCompletionResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status503ServiceUnavailable)]
+        [AccessAction("Return", "Return Lab Examination Result", Description = "Mengembalikan hasil tervalidasi yang belum dirilis kepada analis", AccessType = AccessTypes.Update, SortOrder = 10)]
+        [AccessPermission("LabExaminationResult", "Return")]
+        public async Task<IActionResult> ReturnResultToAnalyst(
+            Guid id,
+            [FromBody] LabResultReturnRequest? request,
+            CancellationToken cancellationToken = default)
+        {
+            // Pemegang aksi Return adalah gabungan pemvalidasi dan perilis (LAB-DEC-138 butir 1);
+            // apakah orangnya memegang kode validasi ATAU rilis diperiksa service (VAL-138).
+            try
+            {
+                var result = await _labResultValidationService.ReturnToAnalystAsync(id, request, cancellationToken);
+
+                return Ok(ApiResponse<LabExaminationCompletionResponse>.Ok(
+                    result, "Hasil dikembalikan kepada analis dan kembali menjadi Draft."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+            catch (LabExaminationForbiddenException exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, exception.Message));
+            }
+            catch (LabExaminationConflictException exception)
+            {
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict, exception.Message));
+            }
+            catch (LabExaminationValidationException exception)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity, exception.Message));
+            }
+            catch (LabPrivilegeReadException exception)
+            {
+                return StatusCode(
+                    StatusCodes.Status503ServiceUnavailable,
+                    ApiResponse<object>.Fail(StatusCodes.Status503ServiceUnavailable, exception.Message));
+            }
+        }
+
+        [HttpPut("{id:guid}/result/consultation")]
         [ProducesResponseType(typeof(ApiResponse<LabExaminationCompletionResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Record Lab Result Consultation", Description = "Mencatat fakta konsultasi hasil", AccessType = AccessTypes.Update, SortOrder = 6)]
-        [AccessPermission("LabExamination", "Update")]
+        [AccessAction("Update", "Update Lab Examination Result", Description = LabExaminationResultActionDescription, AccessType = AccessTypes.Update, SortOrder = 1)]
+        [AccessPermission("LabExaminationResult", "Update")]
         public async Task<IActionResult> RecordConsultation(
             Guid id,
             [FromBody] LabConsultationRequest request,
@@ -387,6 +605,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound, exception.Message));
+            }
+            catch (LabExaminationConflictException exception)
+            {
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict, exception.Message));
             }
             catch (LabExaminationValidationException exception)
             {
@@ -409,9 +632,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [HttpPut("{id:guid}/result/microbiology")]
         [ProducesResponseType(typeof(ApiResponse<LabMicrobiologyResultResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Set Lab Microbiology Result", Description = "Mengisi hasil Mikrobiologi beserta isolat dan antibiogramnya", AccessType = AccessTypes.Update, SortOrder = 7)]
-        [AccessPermission("LabExamination", "Update")]
+        [AccessAction("Update", "Update Lab Examination Result", Description = LabExaminationResultActionDescription, AccessType = AccessTypes.Update, SortOrder = 1)]
+        [AccessPermission("LabExaminationResult", "Update")]
         public async Task<IActionResult> SetMicrobiologyResult(
             Guid id,
             [FromBody] LabMicrobiologyResultRequest request,
@@ -428,6 +652,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound, exception.Message));
+            }
+            catch (LabExaminationConflictException exception)
+            {
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict, exception.Message));
             }
             catch (LabMicrobiologyResultValidationException exception)
             {

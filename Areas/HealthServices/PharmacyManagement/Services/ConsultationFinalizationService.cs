@@ -21,6 +21,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         private readonly PrescriptionAggregateService _prescriptionAggregateService;
         private readonly PrescriptionWorkflowService _prescriptionWorkflowService;
         private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
+        private readonly PrescriptionBillingChargeProducer _prescriptionBillingChargeProducer;
         private readonly ClinicalDocumentIntegrityService _integrityService;
 
         public ConsultationFinalizationService(
@@ -29,6 +30,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             PrescriptionAggregateService prescriptionAggregateService,
             PrescriptionWorkflowService prescriptionWorkflowService,
             ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
+            PrescriptionBillingChargeProducer prescriptionBillingChargeProducer,
             ClinicalDocumentIntegrityService integrityService)
         {
             _dbContext = dbContext;
@@ -36,6 +38,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             _prescriptionAggregateService = prescriptionAggregateService;
             _prescriptionWorkflowService = prescriptionWorkflowService;
             _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
+            _prescriptionBillingChargeProducer = prescriptionBillingChargeProducer;
             _integrityService = integrityService;
         }
 
@@ -265,6 +268,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 
                 if (!emission.IsClinicallySafe)
                     billingHandoffIssues.Add($"{prescription.PrescriptionNumber}: {emission.Code}");
+
+                // Fakta di atas bermuara ke ledger folio. Surat financial clearance Billing
+                // membaca `BilInvoiceItems`, ledger yang lain, sehingga tagihan obat harus
+                // dikirim ke sana juga — kalau tidak, resep tertahan selamanya pada tahap 2
+                // karena suratnya tidak punya sasaran. Sama seperti fakta: setelah commit,
+                // dan kegagalannya tidak membatalkan konsultasi yang sudah sah.
+                var chargeIssue = await _prescriptionBillingChargeProducer
+                    .SendForFinalizedPrescriptionAsync(
+                        prescription,
+                        actorUserId,
+                        now,
+                        consultationId,
+                        cancellationToken);
+
+                if (chargeIssue != null)
+                    billingHandoffIssues.Add($"{prescription.PrescriptionNumber}: {chargeIssue}");
             }
 
             return ConsultationFinalizationOperationResult.Success(new ConsultationFinalizationResponse

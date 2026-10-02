@@ -44,6 +44,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Labor
             // (AC-67), sehingga kolom inilah yang dipakai sebagai rentang tanggalnya.
             builder.HasIndex(x => x.PhysicallyReceivedAt);
 
+            // Laporan penolakan wadah menyaring menurut waktu KEPUTUSAN kelayakan, bukan status
+            // wadah hari ini (LAB-DEC-159 butir 3, INV-56; BE-LAB-84). Wadah yang sesudah diputuskan
+            // berpindah status tetap terhitung pada hari keputusannya, sehingga rentang tanggalnya
+            // dibaca dari kolom ini.
+            builder.HasIndex(x => x.DecidedAt);
+
             // Relasi ke LabOrder dideklarasikan dari sisi LabOrderConfiguration agar hanya ada
             // satu tempat yang mendefinisikannya.
 

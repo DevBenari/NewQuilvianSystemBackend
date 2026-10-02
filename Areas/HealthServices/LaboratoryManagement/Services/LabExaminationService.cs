@@ -9,6 +9,8 @@ using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
+using System.Globalization;
+using System.Linq.Expressions;
 using System.Security.Claims;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services
@@ -272,6 +274,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
             if (entity.ExaminationStatus == LabExaminationStatus.Cancelled)
                 throw new LabExaminationConflictException("Pemeriksaan ini sudah dibatalkan.");
+
+            // VAL-143 — arah sementara ARCH-GAP-LAB-09 sampai DEC-LAB-019 dijawab. Hasil yang
+            // sudah dirilis sudah menjadi dokumen klinis pasien dan mungkin sudah dibaca dokter;
+            // membatalkan pemeriksaannya menghilangkan hasil itu dari pandangan tanpa jejak
+            // koreksi. Perbaikannya lewat koreksi (S6), bukan pembatalan.
+            if (entity.ReleasedAt is not null)
+            {
+                throw new LabExaminationValidationException(
+                    "Pemeriksaan yang hasilnya sudah dirilis tidak dapat dibatalkan. Hasilnya hanya dapat diperbaiki lewat koreksi.");
+            }
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
@@ -674,6 +686,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     "Pemeriksaan yang sudah gugur atau dibatalkan tidak dapat diisi hasilnya.");
             }
 
+            EnsureResultNotFinalized(examination);
+
             var now = DateTime.UtcNow;
 
             // VAL-82. Aturan yang sama dengan LAB-DEC-064 pada penyaring, diterapkan pada waktu
@@ -766,8 +780,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
             examination.UpdateDateTime = now;
             examination.UpdateBy = actorUserId;
+            examination.Version += 1;
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await SaveResultWriteAsync(cancellationToken);
 
             await _loggerService.AuditAsync(
                 LogCategory,
@@ -796,7 +811,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 ResultValueBoundId = examination.ResultValueBoundId,
                 ExaminedAt = examination.ExaminedAt,
                 ResultEnteredAt = examination.ResultEnteredAt,
-                IsOutOfNormalRange = ResolveOutOfNormalRange(bound, examination.ResultNumeric, option)
+                IsOutOfNormalRange = ResolveOutOfNormalRange(bound, examination.ResultNumeric, option),
+                ReferenceFlag = ResolveReferenceFlag(
+                    bound.NormalLow,
+                    bound.NormalHigh,
+                    examination.ResultNumeric,
+                    option?.IsOutOfReference)?.ToString()
             };
         }
 
@@ -812,67 +832,480 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             Guid id,
             CancellationToken cancellationToken = default)
         {
-            var examination = await _dbContext.LabExaminations
-                .Include(x => x.Procedure)
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+            var row = await ProjectResultFormRows(
+                    _dbContext.LabExaminations.Where(x => x.Id == id && !x.IsDelete))
+                .FirstOrDefaultAsync(cancellationToken)
                 ?? throw new KeyNotFoundException("Pemeriksaan tidak ditemukan.");
 
-            var response = new LabExaminationResultFormResponse
-            {
-                LabExaminationId = examination.Id,
-                ProcedureName = examination.ProcedureNameSnapshot ?? examination.Procedure?.ProcedureName,
-                ResultNumeric = examination.ResultNumeric,
-                ResultOptionId = examination.ResultOptionId,
-                ExaminedAt = examination.ExaminedAt,
-                ResultEnteredAt = examination.ResultEnteredAt
-            };
+            var forms = await BuildResultFormsAsync(row.LabOrderId, [row], cancellationToken);
 
-            if (examination.ExaminationStatus is LabExaminationStatus.Voided
-                or LabExaminationStatus.Cancelled)
+            return forms[0];
+        }
+
+        /// <summary>
+        /// Seluruh pemeriksaan Patologi Klinik yang tidak batal pada satu order, dalam bentuk
+        /// yang sama persis dengan <see cref="GetResultFormAsync"/> (<c>LAB-DEC-149</c>,
+        /// <c>r33</c> 28.2). Satu panggilan untuk satu halaman.
+        ///
+        /// <b>Jumlah kueri tetap, berapa pun barisnya.</b> Pemeriksaan dibaca dalam satu kueri,
+        /// lalu batas nilai, pilihan, dan riwayat batas dimuat berkelompok. Halaman 19 baris
+        /// tidak boleh menjadi 19 kali <see cref="GetResultFormAsync"/>.
+        /// </summary>
+        public async Task<List<LabExaminationResultFormResponse>> GetResultSheetByOrderAsync(
+            Guid labOrderId,
+            CancellationToken cancellationToken = default)
+        {
+            var order = await _dbContext.LabOrders
+                .AsNoTracking()
+                .Where(x => x.Id == labOrderId && !x.IsDelete)
+                .Select(x => new { x.Discipline })
+                .FirstOrDefaultAsync(cancellationToken)
+                ?? throw new KeyNotFoundException("Pesanan laboratorium tidak ditemukan.");
+
+            if (order.Discipline is not null && order.Discipline != LabDiscipline.ClinicalPathology)
             {
-                response.CanEnterResult = false;
-                response.BlockedReason =
-                    "Pemeriksaan yang sudah gugur atau dibatalkan tidak dapat diisi hasilnya.";
-                return response;
+                throw NotClinicalPathologyOrder();
             }
 
-            var bound = await ResolveValueBoundAsync(examination, cancellationToken);
+            // "Tidak batal" berarti Cancelled saja yang keluar (AC-234). Pemeriksaan yang GUGUR
+            // bersama wadahnya tetap tampil, dengan isian terkunci beserta alasannya — petugas
+            // perlu tahu wadahnya ditolak, bukan melihat baris itu lenyap.
+            var rows = await ProjectResultFormRows(
+                    _dbContext.LabExaminations.Where(x =>
+                        x.LabOrderId == labOrderId &&
+                        !x.IsDelete &&
+                        x.ExaminationStatus != LabExaminationStatus.Cancelled))
+                .OrderBy(x => x.CreateDateTime)
+                .ThenBy(x => x.ProcedureName)
+                .ToListAsync(cancellationToken);
 
-            if (bound == null)
+            // VAL-123 bagi order lama yang disiplinnya kosong: disiplin dibaca dari katalog
+            // tiap pemeriksaan, sumber yang juga menurunkan disiplin order (LAB-DEC-048).
+            if (rows.Any(x => x.Discipline is not null && x.Discipline != LabDiscipline.ClinicalPathology))
             {
-                response.CanEnterResult = false;
-                response.BlockedReason =
-                    "Jenis pemeriksaan ini belum memiliki batas nilai yang berlaku, sehingga hasilnya belum dapat diisi.";
-                return response;
+                throw NotClinicalPathologyOrder();
             }
 
-            response.CanEnterResult = true;
-            response.ResultForm = bound.ResultForm.ToString();
-            response.Unit = bound.Unit;
-            response.NormalLow = bound.NormalLow;
-            response.NormalHigh = bound.NormalHigh;
+            return await BuildResultFormsAsync(labOrderId, rows, cancellationToken);
+        }
 
-            // CriticalLow dan CriticalHigh sengaja TIDAK ikut. Batas kritis adalah LAB-DEC-004,
-            // yang tertahan LAB-SIGN-001 — mengirimkannya mengundang layar menandai nilai
-            // kritis, dan penandaan itu menjanjikan alur pelaporan yang belum diputuskan.
+        /// <summary><c>VAL-123</c>.</summary>
+        private static LabExaminationValidationException NotClinicalPathologyOrder() =>
+            new("Order ini bukan Patologi Klinik. Buka halaman hasil sesuai disiplinnya.");
 
-            if (bound.ResultForm == LabResultForm.Choice)
+        /// <summary>Isi satu pemeriksaan yang dibutuhkan respons bentuk hasil.</summary>
+        private sealed class ResultFormRow
+        {
+            public Guid Id { get; init; }
+            public Guid LabOrderId { get; init; }
+            public Guid ProcedureId { get; init; }
+            public string? ProcedureName { get; init; }
+            /// <summary>Disiplin order; order lama yang kosong jatuh ke disiplin katalog pemeriksaan.</summary>
+            public LabDiscipline? Discipline { get; init; }
+            public LabExaminationStatus ExaminationStatus { get; init; }
+            public LabExaminationUrgency Urgency { get; init; }
+            public decimal? ResultNumeric { get; init; }
+            public Guid? ResultOptionId { get; init; }
+            public Guid? ResultValueBoundId { get; init; }
+            public DateTime? ExaminedAt { get; init; }
+            public DateTime? ResultEnteredAt { get; init; }
+            public DateTime? FinalizedAt { get; init; }
+            public Guid? FinalizedByUserId { get; init; }
+            public int ReopenCount { get; init; }
+            public string? ConsultedToName { get; init; }
+            public DateTime? ConsultedAt { get; init; }
+            public DateTime CreateDateTime { get; init; }
+            // BE-LAB-76 — pengisi dan pengesah.
+            public Guid? ResultEnteredByUserId { get; init; }
+            public DateTime? ValidatedAt { get; init; }
+            public Guid? ValidatedByUserId { get; init; }
+            public string? ValidatedByPositionNameSnapshot { get; init; }
+            public Guid? ValidationExceptionReasonId { get; init; }
+            public string? ValidationExceptionReasonNameSnapshot { get; init; }
+            public DateTime? ReleasedAt { get; init; }
+            public Guid? ReleasedByUserId { get; init; }
+            public string? ReleasedByPositionNameSnapshot { get; init; }
+            public Guid? ReleaseExceptionReasonId { get; init; }
+            public string? ReleaseExceptionReasonNameSnapshot { get; init; }
+        }
+
+        private static IQueryable<ResultFormRow> ProjectResultFormRows(IQueryable<LabExamination> source) =>
+            source
+                .AsNoTracking()
+                .Select(x => new ResultFormRow
+                {
+                    Id = x.Id,
+                    LabOrderId = x.LabOrderId,
+                    ProcedureId = x.ProcedureId,
+                    ProcedureName = x.ProcedureNameSnapshot ?? (x.Procedure != null ? x.Procedure.ProcedureName : null),
+                    Discipline = x.LabOrder != null && x.LabOrder.Discipline != null
+                        ? x.LabOrder.Discipline
+                        : x.Procedure != null ? x.Procedure.LabDiscipline : null,
+                    ExaminationStatus = x.ExaminationStatus,
+                    Urgency = x.Urgency,
+                    ResultNumeric = x.ResultNumeric,
+                    ResultOptionId = x.ResultOptionId,
+                    ResultValueBoundId = x.ResultValueBoundId,
+                    ExaminedAt = x.ExaminedAt,
+                    ResultEnteredAt = x.ResultEnteredAt,
+                    FinalizedAt = x.FinalizedAt,
+                    FinalizedByUserId = x.FinalizedByUserId,
+                    ReopenCount = x.ReopenCount,
+                    ConsultedToName = x.ConsultedToName,
+                    ConsultedAt = x.ConsultedAt,
+                    CreateDateTime = x.CreateDateTime,
+                    ResultEnteredByUserId = x.ResultEnteredByUserId,
+                    ValidatedAt = x.ValidatedAt,
+                    ValidatedByUserId = x.ValidatedByUserId,
+                    ValidatedByPositionNameSnapshot = x.ValidatedByPositionNameSnapshot,
+                    ValidationExceptionReasonId = x.ValidationExceptionReasonId,
+                    ValidationExceptionReasonNameSnapshot = x.ValidationExceptionReasonNameSnapshot,
+                    ReleasedAt = x.ReleasedAt,
+                    ReleasedByUserId = x.ReleasedByUserId,
+                    ReleasedByPositionNameSnapshot = x.ReleasedByPositionNameSnapshot,
+                    ReleaseExceptionReasonId = x.ReleaseExceptionReasonId,
+                    ReleaseExceptionReasonNameSnapshot = x.ReleaseExceptionReasonNameSnapshot
+                });
+
+        /// <summary>
+        /// Menyusun respons bentuk hasil bagi banyak pemeriksaan <b>satu order</b> sekaligus.
+        ///
+        /// Dua batas yang berbeda dipakai dengan sengaja. <b>Bentuk isian</b> — rentang, satuan,
+        /// pilihan — memakai batas yang berlaku <b>hari ini</b> bagi pasien itu, sebab itulah
+        /// yang dipakai bila hasilnya disimpan sekarang. <b>Penanda</b> memakai batas yang
+        /// berlaku <b>saat hasil disimpan</b>, supaya perubahan batas kemudian hari tidak
+        /// mengubah arti hasil lama.
+        /// </summary>
+        private async Task<List<LabExaminationResultFormResponse>> BuildResultFormsAsync(
+            Guid labOrderId,
+            IReadOnlyList<ResultFormRow> rows,
+            CancellationToken cancellationToken)
+        {
+            if (rows.Count == 0)
             {
-                response.Options = await _dbContext.Set<LabValueOption>()
-                    .AsNoTracking()
-                    .Where(x => x.ValueBoundId == bound.Id && !x.IsDelete)
-                    .OrderBy(x => x.SortOrder)
-                    .Select(x => new LabExaminationResultOptionResponse
-                    {
-                        Id = x.Id,
-                        OptionName = x.OptionName,
-                        IsOutOfReference = x.IsOutOfReference
-                        // IsCritical sengaja tidak ikut, sebab yang sama dengan batas kritis.
-                    })
+                return [];
+            }
+
+            var berjalan = rows
+                .Where(x => x.ExaminationStatus is not (LabExaminationStatus.Voided or LabExaminationStatus.Cancelled))
+                .ToList();
+
+            var boundPerProcedure = new Dictionary<Guid, LabValueBound>();
+
+            if (berjalan.Count > 0)
+            {
+                // Satu pesanan, satu pasien — konteks batas cukup dibaca sekali.
+                var patient = await LoadBoundPatientContextAsync(labOrderId, cancellationToken);
+                var procedureIds = berjalan.Select(x => x.ProcedureId).Distinct().ToList();
+
+                var kandidat = await ApplicableBounds(patient)
+                    .Where(x => procedureIds.Contains(x.ProcedureId))
                     .ToListAsync(cancellationToken);
+
+                boundPerProcedure = kandidat
+                    .GroupBy(x => x.ProcedureId)
+                    .ToDictionary(g => g.Key, g => PickBound(g, patient.GenderScope)!);
             }
 
-            return response;
+            var choiceBoundIds = boundPerProcedure.Values
+                .Where(x => x.ResultForm == LabResultForm.Choice)
+                .Select(x => x.Id)
+                .ToList();
+
+            var optionsPerBound = new Dictionary<Guid, List<LabExaminationResultOptionResponse>>();
+
+            if (choiceBoundIds.Count > 0)
+            {
+                optionsPerBound = (await _dbContext.Set<LabValueOption>()
+                        .AsNoTracking()
+                        .Where(x => choiceBoundIds.Contains(x.ValueBoundId) && !x.IsDelete)
+                        .OrderBy(x => x.SortOrder)
+                        .Select(x => new
+                        {
+                            x.ValueBoundId,
+                            Option = new LabExaminationResultOptionResponse
+                            {
+                                Id = x.Id,
+                                OptionName = x.OptionName,
+                                IsOutOfReference = x.IsOutOfReference
+                                // IsCritical sengaja tidak ikut, sebab yang sama dengan batas kritis.
+                            }
+                        })
+                        .ToListAsync(cancellationToken))
+                    .GroupBy(x => x.ValueBoundId)
+                    .ToDictionary(g => g.Key, g => g.Select(x => x.Option).ToList());
+            }
+
+            var flags = await ResolveReferenceFlagsAsync(rows, cancellationToken);
+
+            // BE-LAB-76. Nama pemvalidasi dan perilis dibaca BERKELOMPOK — satu kueri untuk seluruh
+            // baris, dilewati bila tidak satu pun baris tervalidasi. Halaman 18 baris tidak boleh
+            // menjadi 18 kueri nama.
+            var pelakuIds = rows
+                .SelectMany(x => new[] { x.ValidatedByUserId, x.ReleasedByUserId })
+                .Where(x => x.HasValue && x.Value != Guid.Empty)
+                .Select(x => x!.Value)
+                .Distinct()
+                .ToList();
+
+            var namaPelaku = pelakuIds.Count == 0
+                ? new Dictionary<Guid, string?>()
+                : await _dbContext.Users
+                    .AsNoTracking()
+                    .Where(u => pelakuIds.Contains(u.Id))
+                    .Select(u => new { u.Id, Name = u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode })
+                    .ToDictionaryAsync(x => x.Id, x => (string?)x.Name, cancellationToken);
+
+            string? Nama(Guid? userId) =>
+                userId is Guid id && namaPelaku.TryGetValue(id, out var nama) ? nama : null;
+
+            return rows.Select(row =>
+            {
+                var namaPemvalidasi = row.ValidatedAt is not null ? Nama(row.ValidatedByUserId) : null;
+                var namaPerilis = row.ReleasedAt is not null ? Nama(row.ReleasedByUserId) : null;
+
+                var response = new LabExaminationResultFormResponse
+                {
+                    ResultEnteredByUserId = row.ResultEnteredByUserId,
+                    ResultStatus = DeriveResultStatus(row.ReleasedAt, row.ValidatedAt, row.FinalizedAt, row.ResultEnteredAt).ToString(),
+                    IsValidated = row.ValidatedAt is not null,
+                    ValidatedAt = row.ValidatedAt,
+                    ValidatedByUserId = row.ValidatedByUserId,
+                    ValidatedByName = namaPemvalidasi,
+                    ValidatedByPositionName = row.ValidatedByPositionNameSnapshot,
+                    ValidationExceptionMarker = ValidationExceptionMarker(
+                        row.ValidationExceptionReasonId, namaPemvalidasi, row.ValidationExceptionReasonNameSnapshot),
+                    IsReleased = row.ReleasedAt is not null,
+                    ReleasedAt = row.ReleasedAt,
+                    ReleasedByUserId = row.ReleasedByUserId,
+                    ReleasedByName = namaPerilis,
+                    ReleasedByPositionName = row.ReleasedByPositionNameSnapshot,
+                    ReleaseExceptionMarker = ReleaseExceptionMarker(
+                        row.ReleaseExceptionReasonId, namaPerilis, row.ReleaseExceptionReasonNameSnapshot),
+                    DeliveryBlockedReason = row.ReleasedAt is not null ? null : NotReleasedMessage,
+
+                    LabExaminationId = row.Id,
+                    ProcedureName = row.ProcedureName,
+                    ResultNumeric = row.ResultNumeric,
+                    ResultOptionId = row.ResultOptionId,
+                    ExaminedAt = row.ExaminedAt,
+                    ResultEnteredAt = row.ResultEnteredAt,
+                    Urgency = row.Urgency.ToString(),
+                    ReferenceFlag = flags.TryGetValue(row.Id, out var flag) ? flag.ToString() : null,
+                    IsFinalized = row.FinalizedAt is not null,
+                    FinalizedAt = row.FinalizedAt,
+                    FinalizedByUserId = row.FinalizedByUserId,
+                    ReopenCount = row.ReopenCount,
+                    IsConsulted = row.ConsultedAt is not null,
+                    ConsultedToName = row.ConsultedToName,
+                    ConsultedAt = row.ConsultedAt
+                };
+
+                if (row.ExaminationStatus is LabExaminationStatus.Voided or LabExaminationStatus.Cancelled)
+                {
+                    response.CanEnterResult = false;
+                    response.BlockedReason =
+                        "Pemeriksaan yang sudah gugur atau dibatalkan tidak dapat diisi hasilnya.";
+                    return response;
+                }
+
+                if (!boundPerProcedure.TryGetValue(row.ProcedureId, out var bound))
+                {
+                    response.CanEnterResult = false;
+                    response.BlockedReason =
+                        "Jenis pemeriksaan ini belum memiliki batas nilai yang berlaku, sehingga hasilnya belum dapat diisi.";
+                    return response;
+                }
+
+                response.CanEnterResult = true;
+                response.ResultForm = bound.ResultForm.ToString();
+                response.Unit = bound.Unit;
+                response.NormalLow = bound.NormalLow;
+                response.NormalHigh = bound.NormalHigh;
+
+                // CriticalLow dan CriticalHigh sengaja TIDAK ikut. Batas kritis adalah LAB-DEC-004,
+                // yang tertahan LAB-SIGN-001 — mengirimkannya mengundang layar menandai nilai
+                // kritis, dan penandaan itu menjanjikan alur pelaporan yang belum diputuskan.
+
+                if (bound.ResultForm == LabResultForm.Choice)
+                {
+                    response.Options = optionsPerBound.TryGetValue(bound.Id, out var options)
+                        ? options
+                        : new List<LabExaminationResultOptionResponse>();
+                }
+
+                return response;
+            }).ToList();
+        }
+
+        /// <summary>
+        /// Penanda rujukan setiap hasil yang sudah diisi, dihitung dari batas yang berlaku
+        /// <b>saat hasil disimpan</b>.
+        ///
+        /// Hasil pilihan membaca <c>IsOutOfReference</c> pilihan yang tersimpan. Pilihan yang
+        /// sudah dipakai hasil tidak dapat dihapus (relasi <c>Restrict</c>), sehingga nilainya
+        /// adalah nilai saat hasil disimpan.
+        /// </summary>
+        private async Task<Dictionary<Guid, LabReferenceFlag>> ResolveReferenceFlagsAsync(
+            IReadOnlyList<ResultFormRow> rows,
+            CancellationToken cancellationToken)
+        {
+            var hasil = new Dictionary<Guid, LabReferenceFlag>();
+
+            var terisi = rows
+                .Where(x => x.ResultEnteredAt.HasValue && x.ResultValueBoundId.HasValue)
+                .ToList();
+
+            if (terisi.Count == 0)
+            {
+                return hasil;
+            }
+
+            var optionIds = terisi
+                .Where(x => x.ResultOptionId.HasValue)
+                .Select(x => x.ResultOptionId!.Value)
+                .Distinct()
+                .ToList();
+
+            var optionOutOfReference = optionIds.Count == 0
+                ? new Dictionary<Guid, bool>()
+                : await _dbContext.Set<LabValueOption>()
+                    .AsNoTracking()
+                    .Where(x => optionIds.Contains(x.Id))
+                    .ToDictionaryAsync(x => x.Id, x => x.IsOutOfReference, cancellationToken);
+
+            var ranges = await LoadNormalRangesAtResultAsync(
+                terisi.Where(x => !x.ResultOptionId.HasValue && x.ResultNumeric.HasValue).ToList(),
+                cancellationToken);
+
+            foreach (var row in terisi)
+            {
+                LabReferenceFlag? flag = null;
+
+                if (row.ResultOptionId is Guid optionId)
+                {
+                    if (optionOutOfReference.TryGetValue(optionId, out var isOut))
+                    {
+                        flag = ResolveReferenceFlag(null, null, null, isOut);
+                    }
+                }
+                else if (ranges.TryGetValue(row.Id, out var range))
+                {
+                    flag = ResolveReferenceFlag(range.Low, range.High, row.ResultNumeric, null);
+                }
+
+                if (flag.HasValue)
+                {
+                    hasil[row.Id] = flag.Value;
+                }
+            }
+
+            return hasil;
+        }
+
+        /// <summary>
+        /// Rentang normal <b>saat hasil disimpan</b>, per pemeriksaan.
+        ///
+        /// Batas nilai disunting di baris yang sama (<c>LabValueBoundService.UpdateAsync</c>),
+        /// sehingga <c>ResultValueBoundId</c> saja belum membekukan rentangnya. Yang
+        /// membekukannya adalah riwayat perubahan per kolom (<c>AC-34</c>): bila rentang
+        /// berubah sesudah hasil disimpan, nilai lama pada perubahan <b>pertama</b> sesudah
+        /// waktu itu adalah nilai yang berlaku bagi hasil tersebut.
+        ///
+        /// Baris batas dibaca tanpa menyaring <c>IsActive</c> dan <c>IsDelete</c>: batas yang
+        /// kemudian dinonaktifkan tetap batas yang dipakai hasil itu.
+        /// </summary>
+        private async Task<Dictionary<Guid, (decimal? Low, decimal? High)>> LoadNormalRangesAtResultAsync(
+            IReadOnlyList<ResultFormRow> rows,
+            CancellationToken cancellationToken)
+        {
+            var hasil = new Dictionary<Guid, (decimal? Low, decimal? High)>();
+
+            if (rows.Count == 0)
+            {
+                return hasil;
+            }
+
+            var boundIds = rows.Select(x => x.ResultValueBoundId!.Value).Distinct().ToList();
+
+            var bounds = await _dbContext.Set<LabValueBound>()
+                .AsNoTracking()
+                .Where(x => boundIds.Contains(x.Id))
+                .Select(x => new { x.Id, x.NormalLow, x.NormalHigh })
+                .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+            var sejak = rows.Min(x => x.ResultEnteredAt!.Value);
+
+            var perubahan = await _dbContext.LabValueBoundHistories
+                .AsNoTracking()
+                .Where(x =>
+                    boundIds.Contains(x.ValueBoundId) &&
+                    x.OccurredAt > sejak &&
+                    (x.ChangedField == nameof(LabValueBound.NormalLow) ||
+                     x.ChangedField == nameof(LabValueBound.NormalHigh)))
+                .Select(x => new BoundChange(x.ValueBoundId, x.ChangedField, x.OldValue, x.OccurredAt))
+                .ToListAsync(cancellationToken);
+
+            foreach (var row in rows)
+            {
+                if (!bounds.TryGetValue(row.ResultValueBoundId!.Value, out var bound))
+                {
+                    continue;
+                }
+
+                var saat = row.ResultEnteredAt!.Value;
+
+                if (TryValueAtResult(perubahan, bound.Id, nameof(LabValueBound.NormalLow), saat, bound.NormalLow, out var low) &&
+                    TryValueAtResult(perubahan, bound.Id, nameof(LabValueBound.NormalHigh), saat, bound.NormalHigh, out var high))
+                {
+                    hasil[row.Id] = (low, high);
+                }
+            }
+
+            return hasil;
+        }
+
+        private sealed record BoundChange(Guid ValueBoundId, string ChangedField, string? OldValue, DateTime OccurredAt);
+
+        /// <summary>
+        /// Nilai satu kolom batas pada waktu <paramref name="saat"/>. <c>false</c> bila riwayat
+        /// menyimpan nilai lama yang tidak terbaca sebagai angka — penanda lebih baik kosong
+        /// daripada dihitung dari rentang yang ditebak.
+        /// </summary>
+        private static bool TryValueAtResult(
+            IEnumerable<BoundChange> perubahan,
+            Guid boundId,
+            string field,
+            DateTime saat,
+            decimal? nilaiSekarang,
+            out decimal? nilai)
+        {
+            var pertama = perubahan
+                .Where(x => x.ValueBoundId == boundId && x.ChangedField == field && x.OccurredAt > saat)
+                .OrderBy(x => x.OccurredAt)
+                .FirstOrDefault();
+
+            if (pertama is null)
+            {
+                nilai = nilaiSekarang;
+                return true;
+            }
+
+            if (pertama.OldValue is null)
+            {
+                nilai = null;
+                return true;
+            }
+
+            // LabValueBoundService menulis nilai lama dengan InvariantCulture.
+            if (decimal.TryParse(pertama.OldValue, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed))
+            {
+                nilai = parsed;
+                return true;
+            }
+
+            nilai = null;
+            return false;
         }
 
         /// <summary>
@@ -891,9 +1324,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             LabExamination examination,
             CancellationToken cancellationToken)
         {
+            var patient = await LoadBoundPatientContextAsync(examination.LabOrderId, cancellationToken);
+
+            var kandidat = await ApplicableBounds(patient)
+                .Where(x => x.ProcedureId == examination.ProcedureId)
+                .ToListAsync(cancellationToken);
+
+            return PickBound(kandidat, patient.GenderScope);
+        }
+
+        /// <summary>Jenis kelamin dan kelompok umur pasien yang menentukan batas nilai.</summary>
+        private readonly record struct BoundPatientContext(LabGenderScope GenderScope, Guid? AgeCategoryId);
+
+        private async Task<BoundPatientContext> LoadBoundPatientContextAsync(
+            Guid labOrderId,
+            CancellationToken cancellationToken)
+        {
             var konteks = await _dbContext.LabOrders
                 .AsNoTracking()
-                .Where(o => o.Id == examination.LabOrderId)
+                .Where(o => o.Id == labOrderId)
                 .Select(o => new
                 {
                     AgeCategoryId = o.Encounter != null ? o.Encounter.AgeCategoryId : null,
@@ -913,23 +1362,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 _ => LabGenderScope.All
             };
 
-            var ageCategoryId = konteks?.AgeCategoryId;
+            return new BoundPatientContext(genderScope, konteks?.AgeCategoryId);
+        }
 
-            var kandidat = await _dbContext.Set<LabValueBound>()
+        /// <summary>Baris batas nilai aktif yang cocok dengan pasien — belum disaring per pemeriksaan.</summary>
+        private IQueryable<LabValueBound> ApplicableBounds(BoundPatientContext patient)
+        {
+            var genderScope = patient.GenderScope;
+            var ageCategoryId = patient.AgeCategoryId;
+
+            return _dbContext.Set<LabValueBound>()
                 .AsNoTracking()
                 .Where(x =>
-                    x.ProcedureId == examination.ProcedureId &&
                     x.IsActive &&
                     !x.IsDelete &&
                     (x.GenderScope == LabGenderScope.All || x.GenderScope == genderScope) &&
-                    (x.AgeCategoryId == null || x.AgeCategoryId == ageCategoryId))
-                .ToListAsync(cancellationToken);
+                    (x.AgeCategoryId == null || x.AgeCategoryId == ageCategoryId));
+        }
 
-            return kandidat
+        /// <summary>Yang paling khusus menang — lihat <see cref="ResolveValueBoundAsync"/>.</summary>
+        private static LabValueBound? PickBound(IEnumerable<LabValueBound> kandidat, LabGenderScope genderScope) =>
+            kandidat
                 .OrderByDescending(x => x.GenderScope == genderScope && genderScope != LabGenderScope.All ? 1 : 0)
                 .ThenByDescending(x => x.AgeCategoryId != null ? 1 : 0)
                 .FirstOrDefault();
-        }
 
         /// <summary>
         /// Apakah nilainya di luar rentang normal batas yang berlaku.
@@ -958,14 +1414,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             return false;
         }
 
+        /// <summary>
+        /// Penanda rujukan (<c>r33</c> 28.3, <c>LAB-FE-015</c>). Batas yang diberikan wajib batas
+        /// yang berlaku <b>saat hasil disimpan</b>.
+        ///
+        /// Contoh: Kalium 6,4 pada 3,5–5,1 → <c>High</c>; Hemoglobin 9,4 pada 13,0–17,0 →
+        /// <c>Low</c>; Protein urin <c>+2</c> yang ditandai di luar rujukan →
+        /// <c>OutOfReference</c>. Nilai kritis tidak dihitung — itu <c>S5</c>.
+        /// </summary>
+        private static LabReferenceFlag? ResolveReferenceFlag(
+            decimal? normalLow,
+            decimal? normalHigh,
+            decimal? resultNumeric,
+            bool? optionIsOutOfReference)
+        {
+            if (optionIsOutOfReference.HasValue)
+            {
+                return optionIsOutOfReference.Value ? LabReferenceFlag.OutOfReference : LabReferenceFlag.Normal;
+            }
+
+            if (!resultNumeric.HasValue) return null;
+            if (!normalLow.HasValue && !normalHigh.HasValue) return null;
+
+            if (normalLow.HasValue && resultNumeric.Value < normalLow.Value) return LabReferenceFlag.Low;
+            if (normalHigh.HasValue && resultNumeric.Value > normalHigh.Value) return LabReferenceFlag.High;
+
+            return LabReferenceFlag.Normal;
+        }
+
 
         // =================================================================
-        // Kelengkapan dan konsultasi hasil Mikrobiologi — BE-LAB-54, slice S4b
-        // (LAB-API-v1 r26 bagian 21.2; LAB-DEC-097, LAB-DEC-106; VAL-107, VAL-108)
+        // Kelengkapan dan konsultasi hasil Patologi Klinik dan Mikrobiologi
+        // BE-LAB-54 (slice S4b), dijadikan netral disiplin oleh BE-LAB-67
+        // (LAB-API-v1 r33 bagian 28; LAB-DEC-097, LAB-DEC-106, LAB-DEC-135; VAL-107, VAL-108,
+        // VAL-122)
         //
         // KETIGA METODE DI BAWAH TIDAK MERILIS APA PUN. FinalizedAt mencatat bahwa penulisnya
-        // menyatakan selesai — sebuah fakta. Rilis Mikrobiologi adalah S4d, dan S4d tertahan
-        // DEC-LAB-011.
+        // menyatakan selesai — sebuah fakta. Rilis adalah S4/S4d.
         //
         // Itu sebabnya setiap respons membawa IsReleased dan DeliveryBlockedReason: supaya
         // pemanggil nol perlu MENYIMPULKAN bahwa Final sama dengan rilis.
@@ -973,15 +1458,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
         /// <summary>
         /// Menyatakan penulisan hasil selesai — <b>bukan</b> merilis (<c>LAB-DEC-097</c>).
+        /// Berlaku bagi Patologi Klinik dan Mikrobiologi.
         /// </summary>
-        public async Task<LabExaminationCompletionResponse> FinalizeMicrobiologyResultAsync(
+        public async Task<LabExaminationCompletionResponse> FinalizeResultAsync(
             Guid id,
             CancellationToken cancellationToken = default)
         {
             var examination = await _dbContext.LabExaminations
                 .Include(x => x.Procedure)
+                .Include(x => x.LabOrder)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Pemeriksaan tidak ditemukan.");
+
+            EnsureNotAnatomicalPathology(examination);
 
             if (examination.ResultEnteredAt is null)
             {
@@ -1007,21 +1496,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             examination.UpdateDateTime = now;
             examination.UpdateBy = actorUserId;
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            // Dua Final bersamaan sama-sama membaca FinalizedAt kosong dan sama-sama lolos
+            // penjaga di atas. Kenaikan Version inilah yang membuat yang kedua bentrok.
+            examination.Version += 1;
+
+            await SaveResultWriteAsync(cancellationToken);
 
             await _loggerService.AuditAsync(
                 LogCategory,
-                "LabExamination.FinalizeMicrobiologyResult",
-                "Penulisan hasil Mikrobiologi dinyatakan selesai. Ini BUKAN rilis.",
+                "LabExamination.FinalizeResult",
+                "Penulisan hasil dinyatakan selesai. Ini BUKAN rilis.",
                 new { examination.Id, examination.LabOrderId, examination.FinalizedAt });
 
             return BuildCompletionResponse(examination);
         }
 
         /// <summary>
-        /// Membuka kembali penulisan hasil sebelum rilis (<c>LAB-DEC-097</c>).
+        /// Membuka kembali penulisan hasil sebelum rilis (<c>LAB-DEC-097</c>). Berlaku bagi
+        /// Patologi Klinik dan Mikrobiologi.
         /// </summary>
-        public async Task<LabExaminationCompletionResponse> ReopenMicrobiologyResultAsync(
+        public async Task<LabExaminationCompletionResponse> ReopenResultAsync(
             Guid id,
             LabReopenRequest request,
             CancellationToken cancellationToken = default)
@@ -1036,6 +1530,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Pemeriksaan tidak ditemukan.");
 
+            EnsureNotAnatomicalPathology(examination);
+
             // VAL-107. Membuka kembali sesuatu yang belum pernah ditutup adalah permintaan yang
             // tidak punya arti, dan membiarkannya lolos akan menaikkan ReopenCount pada hasil
             // yang nol pernah difinalkan.
@@ -1043,6 +1539,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             {
                 throw new LabExaminationValidationException(
                     "Hasil ini belum pernah dinyatakan selesai, jadi tidak ada yang perlu dibuka kembali.");
+            }
+
+            // VAL-136. Hasil yang sudah divalidasi tidak dibuka analis sendiri — yang
+            // mengembalikannya adalah pemvalidasi atau perilis lewat "Kembalikan ke analis",
+            // yang mencatat alasan dari daftar koreksi (LAB-DEC-135 butir 3, INV-48).
+            if (examination.ValidatedAt is not null)
+            {
+                throw new LabExaminationConflictException(
+                    "Hasil ini sudah divalidasi. Minta pemvalidasi atau perilis mengembalikannya bila perlu diubah.");
             }
 
             var alasan = string.IsNullOrWhiteSpace(request?.Reason) ? null : request.Reason.Trim();
@@ -1079,7 +1584,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 LabExaminationId = examination.Id,
                 EncounterId = examination.LabOrder!.EncounterId,
                 Scope = LabTransitionScope.LabExamination,
-                Action = "LabExamination.ReopenMicrobiologyResult",
+                // LAB-PERM-v1 rev 10 bagian 12.6: nama netral untuk baris BARU saja. Baris lama
+                // bernama LabExamination.ReopenMicrobiologyResult sengaja tidak diubah.
+                Action = "LabExamination.ReopenResult",
                 FromStatus = "Finalized",
                 ToStatus = "Draft",
                 ReasonNote = alasan,
@@ -1087,12 +1594,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 OccurredAt = now
             });
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            // Reopen dan Validasi pada detik yang sama sama-sama membaca FinalizedAt terisi dan
+            // ValidatedAt kosong. Kenaikan Version inilah yang membuat yang kedua bentrok —
+            // tanpanya dapat tersimpan hasil tervalidasi yang FinalizedAt-nya kosong (20.1).
+            examination.Version += 1;
+
+            await SaveResultWriteAsync(cancellationToken);
 
             await _loggerService.AuditAsync(
                 LogCategory,
-                "LabExamination.ReopenMicrobiologyResult",
-                "Penulisan hasil Mikrobiologi dibuka kembali sebelum rilis.",
+                "LabExamination.ReopenResult",
+                "Penulisan hasil dibuka kembali sebelum rilis.",
                 new
                 {
                     examination.Id,
@@ -1116,8 +1628,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         {
             var examination = await _dbContext.LabExaminations
                 .Include(x => x.Procedure)
+                .Include(x => x.LabOrder)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Pemeriksaan tidak ditemukan.");
+
+            EnsureNotAnatomicalPathology(examination);
+
+            // VAL-121.
+            if (examination.FinalizedAt is not null)
+            {
+                throw new LabExaminationConflictException(
+                    "Hasil ini sudah dinyatakan selesai. Buka kembali lebih dulu sebelum mencatat konsultasi.");
+            }
 
             var kepada = string.IsNullOrWhiteSpace(request?.ConsultedToName)
                 ? null
@@ -1159,8 +1681,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
             examination.UpdateDateTime = now;
             examination.UpdateBy = actorUserId;
+            examination.Version += 1;
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await SaveResultWriteAsync(cancellationToken);
 
             await _loggerService.AuditAsync(
                 LogCategory,
@@ -1172,16 +1695,166 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         }
 
         /// <summary>
-        /// Menyusun respons kelengkapan.
+        /// <c>VAL-122</c>. Final, Reopen, dan konsultasi ditolak pada pemeriksaan Patologi
+        /// Anatomi: order PA punya baris <see cref="LabExamination"/>, tetapi hasilnya tinggal
+        /// di laporan per pesanan (<c>LAB-DEC-085</c>). Tanpa penjaga ini Final atas baris itu
+        /// menjawab "hasil belum diisi" — benar secara teknis, menyesatkan bagi petugas.
         ///
-        /// <b><see cref="LabExaminationCompletionResponse.IsReleased"/> selalu bernilai salah
-        /// pada rilis ini</b>, sebab rilis Mikrobiologi adalah <c>S4d</c> yang belum dibangun.
-        /// Ruas itu ada supaya pemanggil nol perlu menyimpulkan sendiri.
+        /// Disiplin dibaca dari order; order lama yang berdisiplin kosong jatuh ke disiplin
+        /// katalog pemeriksaannya, sumber yang sama yang menurunkan disiplin order
+        /// (<c>LAB-DEC-048</c>). Pemanggil wajib memuat <c>LabOrder</c> dan <c>Procedure</c>.
         /// </summary>
-        private static LabExaminationCompletionResponse BuildCompletionResponse(LabExamination examination)
+        private static void EnsureNotAnatomicalPathology(LabExamination examination)
         {
-            const string belumDirilis =
-                "Hasil ini belum dirilis, sehingga belum boleh dikirim kepada pasien.";
+            if (ResolveDiscipline(examination) == LabDiscipline.AnatomicalPathology)
+            {
+                throw new LabExaminationValidationException(
+                    "Hasil Patologi Anatomi diselesaikan lewat laporan Patologi Anatomi.");
+            }
+        }
+
+        /// <summary>
+        /// Disiplin sebuah pemeriksaan: dari order, lalu jatuh ke disiplin katalog pemeriksaannya
+        /// bagi order lama yang berdisiplin kosong (<c>LAB-DEC-048</c>). Satu tempat, dipakai
+        /// penjaga Patologi Anatomi dan tindakan validasi, supaya keduanya tidak pernah berbeda
+        /// pendapat tentang disiplin baris yang sama. Pemanggil wajib memuat <c>LabOrder</c> dan
+        /// <c>Procedure</c>.
+        /// </summary>
+        internal static LabDiscipline? ResolveDiscipline(LabExamination examination) =>
+            examination.LabOrder?.Discipline ?? examination.Procedure?.LabDiscipline;
+
+        /// <summary>
+        /// Keadaan hasil <b>turunan</b> (<c>LAB-DEC-080</c>) — bukan kolom tersimpan, dan bukan
+        /// <c>LabExaminationStatus</c>, yang bersumbu kelayakan tagih.
+        /// </summary>
+        internal static LabResultStatus DeriveResultStatus(LabExamination examination) =>
+            DeriveResultStatus(
+                examination.ReleasedAt,
+                examination.ValidatedAt,
+                examination.FinalizedAt,
+                examination.ResultEnteredAt);
+
+        /// <summary>
+        /// Penyaring kueri yang memilih pemeriksaan ber-<paramref name="status"/> tertentu —
+        /// <b>cermin persis</b> <see cref="DeriveResultStatus(DateTime?, DateTime?, DateTime?, DateTime?)"/>
+        /// dalam bentuk yang dapat diterjemahkan ke SQL. Keduanya berdampingan supaya antrean
+        /// validasi (<c>BE-LAB-77</c>) tidak pernah menurunkan keadaan dengan rumus lain: bila
+        /// salah satu berubah, yang lain wajib ikut.
+        /// </summary>
+        internal static Expression<Func<LabExamination, bool>> HasResultStatus(LabResultStatus status) => status switch
+        {
+            LabResultStatus.Released => x => x.ReleasedAt != null,
+            LabResultStatus.Validated => x => x.ReleasedAt == null && x.ValidatedAt != null,
+            LabResultStatus.Final => x => x.ReleasedAt == null && x.ValidatedAt == null && x.FinalizedAt != null,
+            LabResultStatus.Draft => x => x.ReleasedAt == null && x.ValidatedAt == null && x.FinalizedAt == null && x.ResultEnteredAt != null,
+            _ => x => x.ReleasedAt == null && x.ValidatedAt == null && x.FinalizedAt == null && x.ResultEnteredAt == null
+        };
+
+        /// <summary>
+        /// Penanda rujukan bagi sekumpulan pemeriksaan — <b>penghitung yang sama</b> dengan lembar
+        /// hasil (batas yang berlaku saat hasil disimpan). Dipakai antrean validasi supaya penanda
+        /// di antrean dan di halaman hasil tidak pernah berbeda.
+        /// </summary>
+        internal async Task<Dictionary<Guid, LabReferenceFlag>> ResolveReferenceFlagsByIdAsync(
+            IReadOnlyList<Guid> examinationIds,
+            CancellationToken cancellationToken)
+        {
+            if (examinationIds.Count == 0)
+            {
+                return new Dictionary<Guid, LabReferenceFlag>();
+            }
+
+            var rows = await ProjectResultFormRows(
+                    _dbContext.LabExaminations.Where(x => examinationIds.Contains(x.Id)))
+                .ToListAsync(cancellationToken);
+
+            return await ResolveReferenceFlagsAsync(rows, cancellationToken);
+        }
+
+        /// <summary>Penurun yang sama bagi baris hasil proyeksi (jalur baca).</summary>
+        internal static LabResultStatus DeriveResultStatus(
+            DateTime? releasedAt,
+            DateTime? validatedAt,
+            DateTime? finalizedAt,
+            DateTime? resultEnteredAt)
+        {
+            if (releasedAt is not null) return LabResultStatus.Released;
+            if (validatedAt is not null) return LabResultStatus.Validated;
+            if (finalizedAt is not null) return LabResultStatus.Final;
+            if (resultEnteredAt is not null) return LabResultStatus.Draft;
+
+            return LabResultStatus.NotEntered;
+        }
+
+        /// <summary>
+        /// Pesan <c>409</c> bila baris pemeriksaan berubah di antara dibaca dan disimpan
+        /// (<c>LAB-API-v1</c> <c>r33</c> 28.2, <c>02-backend-architecture.md</c> 20.1).
+        /// </summary>
+        internal const string ResultConcurrencyMessage =
+            "Hasil ini baru saja diubah orang lain. Muat ulang lalu ulangi.";
+
+        /// <summary>
+        /// <c>VAL-120</c>. Hasil yang sudah Final tidak diisi ulang tanpa Reopen
+        /// (<c>LAB-DEC-147</c>). Pemanggil wajib memeriksanya <b>sebelum</b> satu pun perubahan
+        /// dibuat — pada Mikrobiologi itu berarti sebelum isolat lama ditandai hapus.
+        ///
+        /// Satu salinan untuk Patologi Klinik dan Mikrobiologi: dua salinan aturan yang sama
+        /// pasti bercabang.
+        /// </summary>
+        internal static void EnsureResultNotFinalized(LabExamination examination)
+        {
+            if (examination.FinalizedAt is not null)
+            {
+                throw new LabExaminationConflictException(
+                    "Hasil ini sudah dinyatakan selesai. Buka kembali lebih dulu bila perlu diubah.");
+            }
+        }
+
+        /// <summary>
+        /// Simpan bagi penulisan hasil yang menaikkan <see cref="LabExamination.Version"/>.
+        /// Token yang dinaikkan hanya berguna bila bentrokannya dijawab <c>409</c>, bukan
+        /// dibiarkan menjadi <c>500</c>.
+        /// </summary>
+        private async Task SaveResultWriteAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw new LabExaminationConflictException(ResultConcurrencyMessage);
+            }
+        }
+
+        /// <summary>
+        /// Menyusun respons kelengkapan. <b>Satu penyusun</b> bagi Final, Reopen, konsultasi,
+        /// Validasi, dan Rilis (<c>LabResultValidationService</c>), supaya ruasnya tidak pernah
+        /// bercabang.
+        ///
+        /// <see cref="LabExaminationCompletionResponse.IsReleased"/> dibaca dari
+        /// <c>ReleasedAt</c> bagi setiap disiplin — sejak <c>BE-LAB-78</c> Mikrobiologi pun dapat
+        /// dirilis (<c>S4d-1</c>). Patologi Anatomi tidak pernah memperoleh <c>ReleasedAt</c> sampai
+        /// <c>S4e</c>, sehingga ruasnya tetap salah bagi disiplin itu.
+        /// </summary>
+        /// <param name="examination">Pemeriksaan yang baru saja ditulis.</param>
+        /// <param name="validatedByName">
+        /// Nama pemvalidasi. Hanya jalur Validasi dan Rilis yang mengirimnya: pada Final, Reopen,
+        /// dan konsultasi hasilnya belum pernah tervalidasi — ketiganya ditolak bila sudah.
+        /// </param>
+        /// <param name="releasedByName">Nama perilis — hanya jalur Rilis.</param>
+        internal static LabExaminationCompletionResponse BuildCompletionResponse(
+            LabExamination examination,
+            string? validatedByName = null,
+            string? releasedByName = null)
+        {
+            var penandaValidasi = ValidationExceptionMarker(
+                examination.ValidationExceptionReasonId, validatedByName, examination.ValidationExceptionReasonNameSnapshot);
+
+            var penandaRilis = ReleaseExceptionMarker(
+                examination.ReleaseExceptionReasonId, releasedByName, examination.ReleaseExceptionReasonNameSnapshot);
+
+            var dirilis = examination.ReleasedAt is not null;
 
             return new LabExaminationCompletionResponse
             {
@@ -1196,10 +1869,42 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 ConsultedToName = examination.ConsultedToName,
                 ConsultedAt = examination.ConsultedAt,
                 ConsultedByUserId = examination.ConsultedByUserId,
-                IsReleased = false,
-                DeliveryBlockedReason = belumDirilis
+                ResultStatus = DeriveResultStatus(examination).ToString(),
+                IsValidated = examination.ValidatedAt is not null,
+                ValidatedAt = examination.ValidatedAt,
+                ValidatedByUserId = examination.ValidatedByUserId,
+                ValidatedByName = examination.ValidatedAt is not null ? validatedByName : null,
+                ValidatedByPositionName = examination.ValidatedByPositionNameSnapshot,
+                ValidationExceptionMarker = penandaValidasi,
+                IsReleased = dirilis,
+                ReleasedAt = examination.ReleasedAt,
+                ReleasedByUserId = examination.ReleasedByUserId,
+                ReleasedByName = dirilis ? releasedByName : null,
+                ReleasedByPositionName = examination.ReleasedByPositionNameSnapshot,
+                ReleaseExceptionMarker = penandaRilis,
+                DeliveryBlockedReason = dirilis ? null : NotReleasedMessage
             };
         }
+
+        /// <summary>Kenapa hasil yang belum dirilis tidak boleh dikirim — satu teks bagi setiap respons.</summary>
+        internal const string NotReleasedMessage =
+            "Hasil ini belum dirilis, sehingga belum boleh dikirim kepada pasien.";
+
+        /// <summary>
+        /// Bunyi penanda pengecualian validasi, disetujui kata per kata (20.10 butir 5,
+        /// <c>LAB-DEC-003</c>). <b>Satu penyusun</b> bagi respons tindakan dan jalur baca. Alasan
+        /// dibaca dari snapshot, sehingga mengganti nama alasan kelak tidak mengubah penanda lama.
+        /// </summary>
+        internal static string? ValidationExceptionMarker(Guid? reasonId, string? validatorName, string? reasonNameSnapshot) =>
+            reasonId is not null && validatorName is not null
+                ? $"Divalidasi oleh pengisi sendiri — {validatorName} — {reasonNameSnapshot}"
+                : null;
+
+        /// <summary>Bunyi penanda pengecualian rilis (20.10 butir 5). Lihat <see cref="ValidationExceptionMarker"/>.</summary>
+        internal static string? ReleaseExceptionMarker(Guid? reasonId, string? releaserName, string? reasonNameSnapshot) =>
+            reasonId is not null && releaserName is not null
+                ? $"Dirilis oleh pemvalidasi sendiri — {releaserName} — {reasonNameSnapshot}"
+                : null;
 
         private Guid GetCurrentUserId()
         {

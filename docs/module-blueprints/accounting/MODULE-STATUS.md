@@ -313,7 +313,7 @@ selesai sesuai lingkup yang sudah dibentuk.
 | Operasional | Pengguna "Sistem Akuntansi" di tiap lingkungan (`ACC-DEC-122`); tujuh peran dan pemberian hak di Akses Role | Admin sistem |
 | Konfigurasi | Tiga nilai di server bersama dan produksi: pelaku sistem kedua penjadwal dan penjadwal jurnal berulang nyala (`ACC-DEC-123`). Kuncinya sudah ada di kode | Platform |
 | Data | Bagan akun sah dari ekspor `gl_coa` lengkap, aturan posting per kode kejadian, akun laba ditahan | Pemilik proses akuntansi |
-| Integrasi | Jawaban Finance atas `evidence/14` dan `15`; gerbang G3, G4, G6 — termasuk penegakan shift kasir yang kini syarat G6 (`ACC-DEC-124`) | Yasmin, Rizki, Platform |
+| Integrasi | Finance sudah menjawab `evidence/14` dan `15` (surat Finance 15, 16, 21); dibalas `evidence/16` 1 Oktober 2026 dengan `ACC-DEC-125`..`131` — katalog kini 34 kode aktif (`ACC-XMOD-0.6`). Sisa: lima pertanyaan balik `evidence/16`; gerbang G3, G4, G6 — termasuk penegakan shift kasir dan akun debit refund `REFERRED_OUTPATIENT_ADMIN` | Yasmin, Rizki, owner Billing, Platform |
 | Uji penerimaan | Skenario UAT Phase 2 | Tim UAT |
 
 **Catatan untuk impor bagan akun.** API tambah akun tidak menolak jenis akun atau saldo normal

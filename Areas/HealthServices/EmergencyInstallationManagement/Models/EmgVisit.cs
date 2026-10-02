@@ -102,6 +102,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// </summary>
         public Guid? DuplicateEpisodeOverrideOfVisitId { get; set; }
 
+        public Guid? ClosedByDispositionId { get; set; }
+
         public RegPatientEncounter? Encounter { get; set; }
 
         public MstPatient? Patient { get; set; }
@@ -115,6 +117,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public ApplicationUser? RegistrationCompletedByUser { get; set; }
 
         public ApplicationUser? ArrivalConfirmedByUser { get; set; }
+
+        public EmgDisposition? ClosedByDisposition { get; set; }
 
         public ICollection<EmgTriage> Triages { get; set; }
             = new List<EmgTriage>();
