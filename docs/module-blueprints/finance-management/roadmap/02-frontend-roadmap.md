@@ -524,7 +524,7 @@ menyusul. Ini **bukan** `BLOCKED` seluruhnya.
 ## Grafik urutan dependency — REV-14
 
 ```text
-REV-14A   BE-FIN-063 ─> FE-FIN-025        (permukaan baca mutasi ─> layar riwayat)
+REV-14A   BE-FIN-063 ─> FE-FIN-025 ✅     (permukaan baca mutasi ─> layar riwayat)
           BE-FIN-063 ─> FE-FIN-026        (permukaan baca kas ─> buku kas)
 
 REV-14B   BE-FIN-065 ─> FE-FIN-027        (pemetaan akun ─> layarnya)
@@ -540,7 +540,7 @@ REV-14C   (nol task frontend — lihat bagian di bawah)
 
 | Gelombang | Task | Boleh mulai setelah |
 |---|---|---|
-| `REV-14A` | `FE-FIN-025`, `FE-FIN-026` | `BE-FIN-063` selesai |
+| `REV-14A` | `FE-FIN-025` ✅, `FE-FIN-026` | `BE-FIN-063` selesai |
 | `REV-14B` | `FE-FIN-027`, `FE-FIN-028`, `FE-FIN-029` | Task backend pasangannya selesai |
 | `REV-14C` | — | Tidak ada task frontend |
 
@@ -548,7 +548,7 @@ REV-14C   (nol task frontend — lihat bagian di bawah)
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-FIN-025` | Petugas dapat menelusuri mengapa sisa piutang atau utang berubah, baris per baris | `FR-FIN-140`; `FIN-DEC-123`; `03-frontend-architecture.md` 19.2 nomor 3-4 | `FIN-API-1.5` F.5; `FIN-PERM-1.7` G.3 | Pola tabel berpaging dan hook daftar rumpun Finance yang sudah ada; resource hak akses yang **sudah ada** | 2 permukaan riwayat mutasi (piutang dan utang) beserta hook dan slice-nya; menampilkan jenis, nominal bertanda, saldo sebelum dan sesudah, metode, dan tautan bukti | `BE-FIN-063` | Nominal bertanda terbaca jelas mana yang menaikkan dan mana yang menurunkan sisa; keadaan kosong berbunyi "buku mutasi baru berjalan sejak tanggal cutover", **bukan** "tidak ada data"; kolom catatan **tidak** ditampilkan pada ringkasan yang dibagikan luas | `npm run lint` dan `npm run build` PASS | Frontend Owner — **sebagian tertahan** `FIN-OQ-079` untuk penempatan menu. Bentuk tabel, lebar kolom, dan pilihan tab/modal/drawer adalah `DEV_DISCRETION` | Lint dan build PASS; laporan menyebut cara mencapai layar selama menu tertahan |
+| `FE-FIN-025` ✅ | Petugas dapat menelusuri mengapa sisa piutang atau utang berubah, baris per baris | `FR-FIN-140`; `FIN-DEC-123`; `03-frontend-architecture.md` 19.2 nomor 3-4 | `FIN-API-1.5` F.5; `FIN-PERM-1.7` G.3 | Pola tabel berpaging dan hook daftar rumpun Finance yang sudah ada; resource hak akses yang **sudah ada** | 2 permukaan riwayat mutasi (piutang dan utang) beserta hook dan slice-nya; menampilkan jenis, nominal bertanda, saldo sebelum dan sesudah, metode, dan tautan bukti | `BE-FIN-063` ✅ | Nominal bertanda terbaca jelas mana yang menaikkan dan mana yang menurunkan sisa; keadaan kosong berbunyi "buku mutasi baru berjalan sejak tanggal cutover", **bukan** "tidak ada data"; kolom catatan **tidak** ditampilkan pada ringkasan yang dibagikan luas | `npm run lint` dan `npm run build` PASS | Frontend Owner — **sebagian tertahan** `FIN-OQ-079` untuk penempatan menu. Bentuk tabel, lebar kolom, dan pilihan tab/modal/drawer adalah `DEV_DISCRETION` | ✅ Selesai 2 Oktober 2026. Lint, unit test, dan build PASS; laporan menyebut cara mencapai layar selama menu tertahan. Bukti: [laporan FE-FIN-025](../task/report/frontend/FE-FIN-025.md) |
 | `FE-FIN-026` | Petugas kas dapat melihat kas masuk dan keluar bertanggal, dan memahami bahwa rekap harian bukan lagi angka yang dikirim ke Accounting | `FR-FIN-132`, `FR-FIN-140`; `FIN-DEC-124`, `125`; `03-frontend-architecture.md` 19.2 nomor 5-6 | `FIN-API-1.5` F.5 | Layar rekap kas harian yang sudah ada; pola saringan tanggal | 1 layar buku kas bersaring tanggal, arah, dan jenis; penyesuaian layar rekap kas harian berupa keterangan kedudukannya | `BE-FIN-063` | Buku kas menampilkan posisi berjalan; layar rekap harian menyatakan dirinya **laporan operasional**; penutupan rekap **tidak lagi** diblokir layar karena shift belum selesai | `npm run lint` dan `npm run build` PASS | Frontend Owner — **tertahan sebagian:** kata-kata peringatan pada layar rekap harian menuntut brief singkat dari pemilik. Sampai turun, keterangannya **MUST NOT** dikarang; bagian buku kas tidak tertahan | Lint dan build PASS; bagian yang menunggu brief dicatat terbuka di laporan |
 
 ## Task REV-14B
