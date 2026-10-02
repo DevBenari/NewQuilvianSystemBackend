@@ -299,3 +299,46 @@ Nama pasien dan petugas di bawah adalah contoh, bukan data asli.
 | Pengesahan instrumen di produksi dengan isi klinis | Pemilik klinis belum ditunjuk — `RWI-OQ-056`, `RWI-OQ-057` | Pengesahan pemilik klinis |
 | Cek ganda pada daftar high-alert yang sebenarnya | Daftar high-alert gerbang produksi `RWI-DEC-116` | Daftar disahkan |
 | Jam jadwal dan jendela lewat waktu sebenarnya | Gate `G-12` | Farmasi/klinis mengisi |
+
+---
+
+## 10. Amandemen kontrak `0.6.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+Akibat di modul lain (Billing, Gizi, Bank Darah, register nosokomial) hanya lulus bila terbukti di modul penerima (`RWI-DEC-168`). Butir yang tidak dijalankan ditulis `NOT RUN`.
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FR-RWF-050` / `AC-RWF-050` | Buka Catatan Keperawatan | E2E | Enam sub-menu urut V1, tanpa *placeholder* |
+| `FR-RWF-051` / `AC-RWF-051` | Intake 500 ml lewat Spooling Cairan | E2E + statis | Tampil sama di Pengawasan Harian; tidak ada tabel cairan kedua |
+| `FR-RWF-056` / `AC-RWF-054` | Narasi lama perawat | E2E | Terbaca di Catatan Terintegrasi dengan saringan "Naratif Keperawatan" |
+| `FR-RWF-057` / `AC-RWF-056` | Buka Obat & Alkes | E2E | Empat sub-tab: Resep, Resep Harian, Alat Kesehatan, Summary |
+| `FR-RWF-053` / `AC-RWF-053` | Efek samping dari dosis MAR | Integrasi | Tampil sebagai reaksi obat di riwayat alergi |
+| `FR-RWF-054` / `AC-RWF-052` | Satu selang: lalu 200, kini 350, tanpa pengosongan | Integrasi | Bertambah 150 ml dari server; satu entri cairan `DrainOrWsd` |
+| `FR-RWF-054` / `AC-RWF-057` | Dua selang kanan/kiri | Integrasi | Output 150 dan 30 ml, masing-masing merujuk selangnya; balance +180 ml |
+| `FR-RWF-058` / `AC-RWF-058` | Selang baru tanpa sisa awal; lalu selang dilepas | Integrasi | Pembacaan pertama dari 0 ml; pembacaan setelah dilepas 422 `CLI-WSD-002` |
+| `INV-RWF-11` | Sisa sekarang lebih kecil tanpa volume dibuang | Integrasi | 422 `CLI-WSD-001`; tidak ada entri cairan |
+| `INV-RWF-12` | Koreksi pembacaan yang bukan terakhir | Integrasi | 422 `CLI-WSD-003` |
+| `FR-RWF-055` / `AC-RWF-055` | Perawat menetapkan diet atas instruksi dokter berpenugasan | Integrasi dengan Gizi sungguhan | Layar Gizi menampilkan penetap = dokter, penginput = perawat, status `Pending`; muncul di daftar verifikasi dokter |
+| `FR-RWF-055` | Perawat tanpa dokter; perawat dengan dokter tidak berpenugasan | Integrasi | 400 lalu 403; tidak ada diet tersimpan |
+| `FR-RWF-055` | Dokter lain memverifikasi diet | Integrasi | 403 `GIZ-VER-001` |
+| Regresi Gizi (`RWI-AC-303`) | Penetapan diet dari layar Gizi yang sudah ada | Integrasi | Hasil identik dengan sebelum perubahan; status `NotRequired` |
+| `FR-RWF-060`, `063` / `AC-RWF-060` | Ventilator 1 Okt 08.00 s.d. 3 Okt 11.00, per hari, bulat ke atas | Integrasi dengan Billing sungguhan | `BilledUnits = 3`; invoice memuat 3 hari dengan harga master tarif kelas pasien |
+| `FR-RWF-066` / `AC-RWF-061` | Batalkan satu pemakaian ventilator | Integrasi dengan Billing sungguhan | Hanya baris ventilator itu batal; baris alkes farmasi tidak berubah |
+| `FR-RWF-061` / `AC-RWF-062` | Alat tanpa tarif kelas pasien | Integrasi | Pemakaian tersimpan; baris `TARIFF_NOT_FOUND`; finalisasi invoice ditolak |
+| `FR-RWF-069` / `AC-RWF-063` | Pemakaian berjalan saat keluar ruangan | Integrasi lintas Rawat Inap–Clinical | `Completed` pada waktu keluar, `RequiresNurseReview = true` |
+| `FR-RWF-068` / `AC-RWF-064` | Pencarian source | Statis | Tidak ada tabel tarif alat terpisah; tidak ada tabel pemakaian alat di `InPatientManagement` |
+| `FR-RWF-064` | Dokter penanggung jawab tidak berpenugasan | Integrasi | 403 |
+| `FR-RWF-066` | Koreksi waktu setelah invoice `FINAL` | Integrasi | 422 `CLI-EQP-002` |
+| `FR-RWF-083` / `AC-RWF-095` | Kasus OK selesai 1 Okt pada episode aktif, versi formulir `Approved` | Integrasi | Satu formulir; hari ke-1 = 2 Okt |
+| `FR-RWF-083` | Tidak ada versi formulir `Approved` | Integrasi | Formulir tidak dibentuk; peringatan di daftar PPI |
+| `FR-RWF-084`, `091` / `AC-RWF-083` | Suhu 38,5 °C hari ke-2; PPI dan perawat menandai dicurigai | Integrasi | Indikator suhu hari ke-2 "ya" tanpa diketik; PPI berhasil membuat kejadian `SurgicalSiteInfection` `Suspected`; perawat 403 |
+| `INV-RWF-16` | Tandai dicurigai | Integrasi | Satu baris `TrxNosocomialInfection`; formulir merujuknya; tanda kedua 409 `CLI-SSI-004` |
+| `FR-RWF-092` / `AC-RWF-096` | Pasien keluar hari ke-5 | Integrasi | `StoppedOnDeparture`, hari 5; isian baru 422 `CLI-SSI-001`; tetap di daftar PPI |
+| `FR-RWF-085` / `AC-RWF-084` | Pilih kantong; catat empat titik | Integrasi dengan Bank Darah sungguhan | Hanya kantong yang diserahkan ke pasien ini yang tampil; empat titik tersimpan dengan nama perawat. Persetujuan Bank Darah sudah ada (`RWI-DEC-209`) |
+| `FR-RWF-085` / `AC-RWF-097` | Reaksi "menggigil, demam" pada titik 15 menit | Integrasi dengan Bank Darah sungguhan | Pemberitahuan `New` di kotak masuk Bank Darah berisi pasien, kantong, reaksi, waktu. Persetujuan Bank Darah sudah ada (`RWI-DEC-209`) |
+| `FR-RWF-093` / `AC-RWF-098` | Titik 1 jam terlewat; diisi tanpa keterangan | Integrasi | Tampil terlambat; isian tanpa keterangan 422 `CLI-TRF-003` |
+| `INV-RWF-17` | Kantong yang sama dipantau dua kali; kantong pasien lain | Integrasi | 409 `CLI-TRF-002`; 422 `CLI-TRF-001` |
+| `INT-RWF-12` | Bank Darah mati saat reaksi dicatat | Integrasi | Reaksi tersimpan; pengiriman `Failed` lalu `Delivered` setelah Bank Darah hidup; satu pemberitahuan saja |
+| `FR-RWF-020` s.d. `025` / `AC-RWF-020` s.d. `023` | Perawat dan petugas admisi membuka Tagihan Pasien; episode tanpa invoice | E2E | Perawat tanpa rupiah dan tanpa pemanggilan `…/amounts`; admisi melihat subtotal dan total; tanpa invoice tampil "Tagihan belum terbentuk" |
+| `RWI-AC-339` / `RWI-DEC-211`, `212` | Pasien dengan dan tanpa kasus OK `Completed` | E2E | Sub-tab surveilans hanya tampil bila ada kasus OK `Completed`; monitoring transfusi dibuka dari tab Bank Darah Penunjang Medis |
+| `RWI-AC-330` / `RWI-DEC-207` | Tagihan Pasien pasien yang dirawat setelah operasi dari Poli Bedah | E2E dengan Billing sungguhan | Kelompok Operasi memuat baris kunjungan asal berlabel asalnya; perawat tanpa izin rupiah tidak menerima satu pun field rupiah |

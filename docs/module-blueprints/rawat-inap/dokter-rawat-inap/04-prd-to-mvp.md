@@ -1036,3 +1036,146 @@ Nama gelombang memakai awalan `DOK-V2-` supaya tidak bertabrakan dengan `DOK-MVP
 | 11 | ~~Persetujuan pemilik `rawat-jalan` atas ekstraksi komponen tata letak~~ — **`closed` 2026-09-16** oleh `RWI-DEC-152`, pemberi persetujuan **Sukma GP** | Sukma GP | ~~`DOK-V2-4` tertahan~~ — bebas; regresi poliklinik tetap wajib | Tidak |
 | 12 | Apakah integrasi Gizi dan Bank Darah dibuka sekarang karena modulnya sudah ada di source | Muhammad Hamzah lewat `grill-me` | Tetap "Integrasi belum tersedia" | Tidak |
 | 13 | Penunjukan pemilik klinis pengesah isi protokol sliding scale — **sebagian dijawab 2026-09-16** oleh `RWI-DEC-155`: manajemen menyetujui **pemakaian**, tetapi **nama pengesah belum ada**; dilanjutkan sebagai `RWI-OQ-097` | Manajemen rumah sakit | Mesin boleh dibangun dan diuji; **nol versi protokol dapat dinaikkan `Approved`** selama namanya kosong | Gerbang produksi |
+
+---
+
+## 23. Finishing Rawat Inap — revision `0.6` / kontrak `0.7.0` ★ 1 Oktober 2026
+
+Menurunkan dari `02-backend-architecture.md` 12, `contracts/` bagian `0.7.0`, `data/data-dictionary.md` 14, dan `flowcharts/06`.
+
+### 23.1 Identitas dokumen
+
+| Field | Nilai |
+|---|---|
+| Produk | Quilvian — Rawat Inap, sub-modul `dokter-rawat-inap` |
+| Status | **`draft`** |
+| Baseline | Backend `c8e99ce5` (HEAD `425cfeae`); frontend `22ad67330` |
+| Masukan | `PRD-RWI-FINISHING-001` v`0.4`; decision log revision `30`; gate `1.9` |
+| Cakupan | Penunjang Medis lengkap dari bangsal (Lab, Radiologi, Gizi, Bank Darah), verifikasi dokter terpadu, dan katalog tindakan rawat inap |
+
+### 23.2 Ringkasan eksekutif
+
+Dokter dan perawat dapat memesan seluruh penunjang dari bangsal seperti V1. Setiap pesanan perawat punya dokter pemberi instruksi yang berpenugasan dan memverifikasinya dari satu daftar.
+
+### 23.3 Masalah produk
+
+`FIN-CAP-16` s.d. `18`, `20`, `32`: tombol Lab/Rad perawat terkunci walau backend siap; Gizi dan Bank Darah *placeholder* walau modulnya lengkap; modul tujuan tidak memeriksa penugasan dan tidak punya status verifikasi; katalog tindakan memakai saringan rawat jalan.
+
+### 23.4 Visi produk
+
+1. Instruksi dokter → pesanan dari bangsal → modul pemilik.
+2. Penugasan diperiksa Rawat Inap → status verifikasi di modul pemilik.
+3. Dokter memverifikasi dari satu daftar → hasil terbaca di bangsal.
+
+### 23.5 Batas MVP
+
+**Titik mulai.** (1) Episode `Admitted`. (2) Dokter berpenugasan aktif. **Titik akhir.** (1) Pesanan tersimpan di modul pemilik. (2) Pesanan perawat terverifikasi. (3) Hasil terbaca di bangsal.
+
+### 23.6 Pelaku sasaran
+
+| Pelaku | Tanggung jawab |
+|---|---|
+| Dokter berpenugasan | Memesan; memverifikasi pesanan perawat |
+| Perawat | Menginput atas instruksi dokter |
+| Unit Gizi, Bank Darah, Lab, Radiologi | Memproses menurut modulnya |
+
+### 23.7 Pemilihan kemampuan MVP
+
+| Kemampuan | ID kemampuan asal | Keputusan MVP |
+|---|---|---|
+| Pesanan Lab/Rad oleh perawat | `CAP-RWF-06`, `FIN-CAP-16` | Wajib (`P1`) |
+| Konsultasi Gizi dan Bank Darah dari bangsal | `CAP-RWF-06`, `FIN-CAP-17`, `18` | Wajib (`P1`) |
+| Verifikasi dokter terpadu | `CAP-RWF-06`, `FIN-CAP-20` | Wajib (`P1`) |
+| Katalog tindakan rawat inap | `CAP-RWF-14`, `FIN-CAP-32` | Wajib (`P1`) |
+
+### 23.8 Kemampuan yang ditunda
+
+| Kemampuan | Alasan | Pengganti selama MVP |
+|---|---|---|
+| Rehab Medik | Modul backend belum ada (PRD 5.4) | *Placeholder* tanpa data |
+| ~~Harga pemeriksaan untuk perawat~~ | **Masuk MVP** lewat `RWI-DEC-218` — lihat penyelarasan di akhir bagian ini | — |
+
+### 23.9 Alur bisnis target
+
+`flowcharts/00-alur-utama.md` bagian 5.
+
+### 23.10 Epic dan functional requirement
+
+| Epic | FR | Disposisi backend |
+|---|---|---|
+| `EPIC-RWF-04` Penunjang Medis lengkap | `FR-RWF-030` s.d. `038` | `EXISTING / REUSE` (Lab, Rad), `EXTEND` (Gizi, Bank Darah), `MISSING / NEW` (adapter) |
+| `EPIC-RWF-08` bagian katalog | `FR-RWF-070` | `EXTEND` (`master-options`) |
+
+### 23.11 Model status yang diusulkan
+
+`contracts/state-transition-matrix.md` bagian 9. Invariant `INV-RWF-20` s.d. `24`.
+
+### 23.12 Sasaran arsitektur
+
+Dipakai ulang: kolom verifikasi Lab/Rad, `InpatientClinicalContextService`, `InsuranceCoverageService`. Diperluas: `GziNutritionOrder`, `BbkBloodOrder`, `master-options`. Baru: `InpAncillaryOrderAdapter`, controller-nya.
+
+### 23.13 Sasaran kemampuan API
+
+| Tag | Endpoint | Hak akses | Epic | Status |
+|---|---|---|---|---|
+| `Health Services / Inpatient Management / Inpatient Ancillary Order` | `…/ancillary-orders/nutrition-consultations`, `/blood-orders`, `/coverage-status` (status tanggungan **dan** perkiraan harga) | `NutritionOrder : Create`, `BloodOrder : Create`, `InpatientEpisode : Read` (harga mengikuti hak membuat pesanan) | `EPIC-RWF-04` | **Rencana (belum tersedia)** |
+| `Health Services / Nutrition Management / Nutrition Order` | `/instruction-verification-worklist`, `/{id}/verify-instruction` | `NutritionOrder : VerifyInstruction` | `EPIC-RWF-04` | **Rencana (belum tersedia)** |
+| `Health Services / Blood Bank Management / Blood Order` | Sama | `BloodOrder : VerifyInstruction` | `EPIC-RWF-04` | **Rencana (belum tersedia)** |
+| `Health Services / Clinical Management / Patient Procedure` | `GET /master-options` | `PatientProcedure : Read` | `EPIC-RWF-08` | Diubah |
+
+### 23.14 Matriks kewenangan
+
+`contracts/permission-audit-matrix.md` bagian 10.
+
+### 23.15 Batas integrasi dan billing
+
+Rawat Inap tidak membuat tabel pesanan; pesanan bukan tagihan; tagihan lahir dari layanan modul pemilik.
+
+### 23.16 Guardrail regulasi
+
+Pesanan darah oleh perawat atas instruksi menyangkut keselamatan produk darah; konfirmasi clinical governance tetap gerbang produksi (`RWI-DEC-171`).
+
+### 23.17 Kebutuhan non-fungsional
+
+| ID | Kebutuhan |
+|---|---|
+| `NFR-RWF-10` | Pemeriksaan penugasan gagal tertutup untuk pesanan darah |
+| `NFR-RWF-11` | Daftar verifikasi gabungan tetap tampil sebagian bila satu sumber gagal |
+
+### 23.18 Skenario UAT
+
+| ID | Jalur | Langkah | Hasil |
+|---|---|---|---|
+| `UAT-RWF-04` | Gagal | Perawat memesan lab tanpa dokter | Ditolak dengan pesan jelas |
+| `UAT-RWF-07` | Berhasil | Dokter memesan konsultasi gizi | Tampil di layar Gizi, `NotRequired` |
+| `UAT-RWF-08` | Berhasil | Perawat memesan 2 PRC atas instruksi, dokter memverifikasi | `Pending` lalu terverifikasi atas nama dokter |
+| `UAT-RWF-30` | Gagal | Perawat memilih dokter tanpa penugasan untuk pesanan darah | Ditolak 403; tidak ada pesanan di Bank Darah |
+| `UAT-RWF-31` | Berhasil | Tindakan khusus rawat inap dicari dari bangsal dan dari poliklinik | Tampil di bangsal saja |
+
+### 23.19 Definition of Done
+
+| Butir | Bukti |
+|---|---|
+| Gizi dan Bank Darah tidak lagi *placeholder* | `UAT-RWF-07`, `08` |
+| Pesanan perawat selalu punya dokter berpenugasan dan terverifikasi | `UAT-RWF-08`, `30`; test `INV-RWF-23` |
+| Alur pesanan poliklinik tidak berubah | Test regresi `AC-RWF-036` |
+| Katalog rawat inap benar | `UAT-RWF-31` |
+
+### 23.20 Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi | Syarat mulai |
+|---|---|---|
+| `MVP-0` (`RWF-W0`) | Buka tombol Lab/Rad perawat; katalog tindakan rawat inap | `BE-RWI-104` terbukti berjalan |
+| `MVP-1` (`RWF-W2`) | Kolom verifikasi (`R10`, `R11`), adapter, layar Gizi dan Bank Darah, daftar gabungan | Kontrak `0.7.0` disetujui |
+
+| Pertanyaan | Siapa | Dampak | Memblokir |
+|---|---|---|:---:|
+| ~~Tafsiran status tanggungan tanpa harga untuk perawat (G-05)~~ | Muhammad Hamzah | **Diputuskan `RWI-DEC-218`, `219`:** perkiraan harga tampil bagi setiap pemesan | — |
+
+**Penyelarasan decision log revision `31` ★ 2 Oktober 2026.** Tidak ada pertanyaan terbuka pada bagian 23.20. Perkiraan harga masuk `MVP-0` bersama pembukaan tombol Lab/Rad perawat untuk katalog Lab, Radiologi, dan tindakan; gizi dan darah ikut `MVP-1`.
+
+| ID | Jalur | Langkah | Hasil |
+|---|---|---|---|
+| `UAT-RWF-36` | Berhasil | Perawat memilih "Darah Lengkap" untuk pasien BPJS kelas 2 | Status tanggungan dan perkiraan harga berlabel perkiraan; Tagihan Pasien pasien itu tetap tanpa rupiah (`RWI-AC-337`) |
+| `UAT-RWF-37` | Gagal | Tarif pemeriksaan dihapus dari master, lalu perawat memesan | "Tarif belum tersedia"; pesanan tetap tersimpan (`RWI-AC-335`) |
+| `UAT-RWF-38` | Berhasil | Dokter membuka pasien pasca operasi di ruang kerjanya | Penanda "Pasca operasi" di Konteks pasien membuka ringkasan baca-saja; delapan tab tidak berubah (`RWI-AC-339`) |

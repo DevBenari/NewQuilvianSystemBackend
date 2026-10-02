@@ -273,3 +273,68 @@ Kolom berikut **MUST NOT** masuk payload custom logger dan **MUST NOT** dipakai 
 | `ReactionDescription`, `ClinicalNote` pada baris dugaan reaksi | `TrxPatientAllergy` | Sudah sensitif pada tabel asal |
 
 **Masa simpan** tetap belum ditetapkan — bagian 5 berlaku.
+
+---
+
+## 7. Perubahan pada `contract_version` `0.6.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.6.0` |
+| Status | **`draft`** |
+| Traceability | `RWI-DEC-179`, `180`, `188`, `189`, `200`, `202`, `203`; `PR-RWF-07` |
+
+Cara kerja hak akses sama dengan `integrasi-billing/contracts/permission-audit-matrix.md` 5.1: satu-satunya penjaga adalah `[AccessPermission]`, dan baris registry lahir dari atribut endpoint. Pemetaan endpoint ke hak akses tetap hanya di `api-contract.md` bagian 8.
+
+### 7.1 Permission baru dan diubah
+
+| Resource : Action | Status | Dipakai untuk |
+|---|---|---|
+| `MedicalEquipment : Read`, `: Create`, `: Update` | **Baru** | Master jenis alat |
+| `EquipmentUsage : Read`, `: Create`, `: Update`, `: Cancel`, `: Correct` | **Baru** | Pemakaian alat |
+| `FluidBalance : Read`, `: Create`, `: Update` | Sudah ada | Dipakai ulang untuk WSD (gate G-15) |
+| `SurgicalSiteSurveillance : Read`, `: Update`, `: Review` | **Baru** | Surveilans; `Review` khusus tim PPI |
+| `TransfusionMonitoring : Read`, `: Create`, `: Update` | **Baru** | Monitoring transfusi |
+| `TransfusionReactionNotice : Read`, `: Acknowledge` | **Baru** (Bank Darah) | Kotak masuk reaksi — disetujui `RWI-DEC-209` |
+| `NutritionPatientDiet : VerifyInstruction` | **Baru** (Gizi) | Daftar dan aksi verifikasi diet |
+| `NutritionPatientDiet : Read`, `: Update` | Sudah ada | Adapter diet memakai string yang sama |
+
+### 7.2 Peta peran ke butir hak akses
+
+Pemberian nyata dilakukan Admin Akses Role (`FIN-UNK-05`).
+
+| Peran | `EquipmentUsage` | `FluidBalance` | `SurgicalSiteSurveillance` | `TransfusionMonitoring` | `TransfusionReactionNotice` | `NutritionPatientDiet` | `MstMedicalEquipment` |
+|---|---|---|---|---|---|---|---|
+| Perawat pelaksana | `Read`, `Create`, `Update` | `Read`, `Create`, `Update` | `Read`, `Update` | `Read`, `Create`, `Update` | — | `Read`, `Update` | `Read` |
+| Kepala ruangan | + `Cancel`, `Correct` | Sama | `Read`, `Update` | Sama | — | `Read`, `Update` | `Read` |
+| Dokter DPJP / jaga | `Read` | `Read` | `Read` | `Read` | — | `Read`, `Update`, `VerifyInstruction` | `Read` |
+| Ahli gizi | — | `Read` | — | — | — | `Read`, `Update` | — |
+| Tim PPI / IPCN | — | `Read` | `Read`, `Review` | `Read` | — | — | — |
+| Petugas Bank Darah | — | — | — | `Read` | `Read`, `Acknowledge` | — | — |
+| Admin Master Data | — | — | — | — | — | — | `Read`, `Create`, `Update` |
+
+### 7.3 Kewenangan yang tidak dapat dijaga mesin hak akses
+
+| Kewenangan | Penjaga | Yang tidak dijaganya | Risiko |
+|---|---|---|---|
+| Dokter penanggung jawab alat dan pemberi instruksi diet benar-benar menangani pasien | `IsDoctorAssignedAsync` | Bahwa instruksi lisan benar-benar diberikan | Diterima pola `RWI-DEC-114`; verifikasi dokter untuk diet |
+| Perawat yang mengisi surveilans benar-benar merawat pasien | Permission dan akun login | Unit tempat perawat bertugas (`RWI-DEC-189` butir 6) | Nama pengisi tercatat |
+| Titik ukur transfusi diukur sungguhan pada waktunya | Keterangan wajib bila terlambat | Kejujuran isian | Prosedur klinis; gate G-21 |
+
+### 7.4 Audit
+
+| Kejadian | Jejak tahan lama |
+|---|---|
+| Pemakaian alat mulai, selesai, batal, koreksi | `CliEquipmentUsage`, `CliEquipmentUsageRevision`; fakta klinis |
+| Pembacaan WSD dan koreksinya | `CliWsdReading` revisi; `CliFluidBalanceEntryRevision` |
+| Isian dan koreksi surveilans | `CliSurgicalSiteSurveillanceEntryRevision` |
+| Tanda dicurigai | `TrxNosocomialInfection` (`ReportedByUserId`, `ReportedAt`) dan rujukannya |
+| Titik ukur dan reaksi transfusi | Kolom pelaku dan waktu per titik; reaksi |
+| Penerimaan pemberitahuan reaksi | `BbkTransfusionReactionNotice.AcknowledgedByUserId`, `AcknowledgedAt` |
+| Verifikasi diet | `GziPatientDiet.InstructionVerifiedByUserId`, `InstructionVerifiedAt` |
+
+Seluruh endpoint bukan `GET` dicatat `LoggerService` dengan payload `EntityId`, controller, action, dan status saja.
+
+### 7.5 Kolom sensitif
+
+Kolom sensitif pada `data/data-dictionary.md` bagian 12: catatan dan alasan pada pemakaian alat dan WSD, `ResponsesJson` dan `SummaryResponsesJson` surveilans, nilai tanda vital dan reaksi transfusi, ringkasan reaksi pada pemberitahuan Bank Darah, serta `Instruction` diet. Kolom itu **tidak** masuk custom logger dan tidak dipakai sebagai contoh data asli.

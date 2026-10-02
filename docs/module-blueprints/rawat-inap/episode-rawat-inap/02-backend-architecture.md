@@ -1421,3 +1421,408 @@ sudah ada.
 | 11.5.2, 11.5.5 | `RWI-DEC-112` | `INT-DOK-20` | Acceptance bagian 18 |
 | 11.5.4 | `RWI-DEC-138`, `143`; `RWI-DEC-116` | `INT-DOK-13`, `INT-KEP-15` | `RWI-AC-199`, `201`, `213`, `214`; `AC-KEP-113` |
 | 11.5.6 | `RWI-DEC-111` | `INT-DOK-11` | Acceptance bagian 18 |
+
+---
+
+## 12. Amandemen revision `0.9` / kontrak `0.10.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+### 12.0 Masukan, batas, dan cara membaca bagian ini
+
+| Hal | Isi |
+|---|---|
+| Status | **`draft`**. Baseline kontrak `0.9.0` (`RWI-DEC-150`) tetap berlaku untuk isi yang tidak disentuh |
+| Kemampuan | `CAP-RWF-07`, `CAP-RWF-08` (`CAP-018` keluar dari `DEFERRED` untuk pemesanan dari bangsal), `CAP-RWF-16` (`CAP-017`, `P2`), `CAP-RWF-18`, `CAP-RWF-19`, `CAP-RWF-22`, `CAP-RWF-23` (`P2`) |
+| Slice gate | `INP-S27`, `INP-S31`, `INP-S33`, `INP-S36`, `INP-S37` — `READY_FOR_DOMAIN_DESIGN`; `INP-S32` tercatat `PARTIALLY_READY` di gate `1.9` karena `DEC-INP-018`; **keputusan itu ditutup `RWI-DEC-207` (2 Oktober 2026)** dan dirancang pada 12.15 serta `integrasi-billing` 9.14 |
+| Keputusan | `RWI-DEC-173` s.d. `177`, `182`, `189`, `191`, `196`, `199`, `201`, `204`, `205` |
+| Bukti as-is | Capability map `1.6` bagian 19 `FIN-CAP-21` s.d. `26`, `33`; `RWI-FACT-048`, `053`, `054`, `057`, `058`; pembacaan source gate `1.9` 18.1 dan desain ini (12.1) |
+| Arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` |
+| Gerbang implementasi | ~~`RWI-OQ-114` butir (a) dan (c)~~ — **disetujui Ikbal Yulianto, `RWI-DEC-208` (2 Oktober 2026)**; tidak ada lagi gerbang persetujuan |
+| Keputusan yang belum ada | **Tidak ada.** ~~`DEC-INP-018`~~ ditutup `RWI-DEC-207`: biaya operasi tetap pada kunjungan asal, ditautkan Billing ke invoice `RANAP`, dibayar bersama saat pulang (pola `BKC-DEC-118`). Biaya OK tetap dikirim dengan `EncounterId` kasus OK |
+
+**Satu kalimat terpenting.** Hampir seluruh data baru amandemen ini milik **Kamar Operasi** dan **Clinical**; Rawat Inap hanya memperoleh satu tabel baru — permintaan admisi dari kamar pulih — ditambah dua kolom pengaturan.
+
+### 12.1 Fakta source yang dibaca desain ini
+
+| Fakta | Bukti (`BE@c8e99ce5`, HEAD `425cfeae`) | Akibat pada desain |
+|---|---|---|
+| Kasus OK belum punya jenis layanan bedah dan jenis anestesi saat dipesan; teknik anestesi pada catatan anestesi berupa teks bebas | `OprCase.cs:11-26`; `OprAnesthesiaRecord.Technique` (`string`) | Dua kolom baru pada `OprCase` |
+| Kasus OK sudah dapat merujuk **lebih dari satu** order tindakan (`OprCaseProcedure`: `PatientProcedureId`, `IsPrimary`, `Sequence`); `POST cases` menerima daftar `Procedures` minimal satu | `OprCaseProcedure.cs:8-14`; `OperatingRoomCaseDtos.cs:24-39` | Aturan "tepat satu order" (`RWI-DEC-176` butir 1) dijaga **adapter Rawat Inap**, bukan dengan mempersempit `POST cases` milik OK yang dipakai juga oleh petugas OK |
+| Daftar kasus OK sudah dapat disaring per `PatientId` dan `EncounterId` | `OprCasePagedQuery` (`OperatingRoomCaseDtos.cs:6-16`) | Bangsal memakai `GET cases?encounterId=` dengan respons yang ditambah, tanpa endpoint daftar baru |
+| Data ringkasan operasi tersebar di empat bacaan: laporan operasi (`OprExecutionRecord`: `PostDiagnosis`, `Findings`, `Complications`, `BloodLossMl`, `ImplantDrainNote`, `PostPlan`, `Status`), catatan anestesi, kamar pulih (`ScoreSystem`, `ScoreValue`, `Decision`), dan serah terima — masing-masing dengan permission berbeda | `OperatingRoomExecutionController.cs:25`, `OperatingRoomRecoveryController.cs:25-103` | Satu bacaan gabungan baca-saja dengan satu permission `OperatingRoomCase : Read` (`FR-RWF-082`) |
+| Keputusan kamar pulih: `Inpatient`, `Icu`, `OtherUnit`, `Discharged`; penolakan serah terima sudah ada lewat `Accept = false` beralasan | `OperatingRoomEnums.cs:16-17`; `OperatingRoomRecoveryService.cs:321-355` | Permintaan admisi untuk `Inpatient` dan `Icu`; penolakan serah terima dipakai ulang |
+| Kasus `Postponed` hanya punya tindakan `Reschedule`; penundaan hanya dari `Requested`/`Scheduled` | `OperatingRoomCommandSupport.cs:77-88`; `OperatingRoomSchedulingService.cs:199-201` | Pra-operasi menjadi "perlu diperbarui" pada `PATCH cases/{id}/postpone`; status tidak bertambah selain `Rejected` |
+| Gerbang "Siap" membaca tiga tanda tangan kesiapan dan consent bedah serta anestesi | `OperatingRoomPreparationService.cs:25-43` | Syarat keempat: pra-operasi bangsal versi terbaru terkonfirmasi kedua sisi |
+| Serah terima: permission kirim dan terima sama (`OperatingRoomHandover : Update`); penerima tidak diperiksa | `OperatingRoomRecoveryController.cs:99-144`; `OperatingRoomRecoveryService.cs:317-360` | Permission dipisah; penerima ≠ pengirim; pasien wajib menempati bed di unit tujuan |
+| Kasus `Completed` hanya bila laporan operasi final, pasien keluar kamar pulih, **dan** serah terima diterima | `OperatingRoomRecoveryService.cs:395-430` (`OPS-DEC-025`) | Biaya operasi dan pembentukan surveilans terjadi sesudah penerimaan serah terima |
+| Kiriman OK → Billing sudah disiapkan sebagai outbox per komponen, tetapi tujuannya ditahan | `OperatingRoomIntegrationService.cs:28-40`, `StageChargeDeliveryAsync` | Tujuan Billing dibuka dengan tiga jenis komponen |
+| Penyelesaian order tindakan (dan tagihannya) hidup di **controller** | `PatientProcedureController.cs:1199 PATCH {id}/execute`, tagih `:1322-1324` | Logika diekstrak ke `PatientProcedureExecutionService` agar OK dapat memakainya tanpa memanggil HTTP |
+| Keputusan kamar pulih `Inpatient` tidak membuat admisi | `RWI-FACT-057` butir 5 | Tabel `InpAdmissionReferral` |
+| Penempatan bed menyimpan alasan transfer, alasan perubahan, pencatat, dan penanda supersede | `InpBedPlacement.cs:39-58` | Laporan transfer tanpa tabel baru |
+| Pengaturan Rawat Inap berupa kolom pada satu baris | `MstInpatientSetting.cs:10-49` | Dua kolom ambang daftar pantau |
+
+### 12.2 Yang berubah dari revision `0.8`
+
+| Hal | Revision `0.8` | Revision `0.9` |
+|---|---|---|
+| Pemesanan Ruangan Bedah | `DEFERRED` (`CAP-018`) | Dua tab, merujuk satu order tindakan; jenis Obstetri |
+| Catatan Pra-Operasi | Tidak ada | Fase persiapan kasus OK, dua akun, berversi setelah penundaan |
+| Serah terima pasca operasi | OK saja | Dibaca dan diterima bangsal dengan penerima sah |
+| Biaya operasi | Tidak ada | Order tindakan diselesaikan OK; anestesi, sewa kamar operasi, dan bahan dikirim OK |
+| Penolakan order operasi | Tidak ada | Status akhir `Rejected` |
+| Admisi dari kamar pulih | Tidak ada | Permintaan admisi; admisi tetap berlangkah |
+| Ringkasan operasi | Tidak dibaca bangsal | Dibaca baca-saja dari OK |
+| Serah terima klinis transfer (`P2`) | "Integrasi belum tersedia" | Dokumen Clinical, tidak menahan transfer |
+| Laporan transfer ruangan (`P2`) | Tidak ada | Bacaan linimasa penempatan |
+
+### 12.3 Invariant baru
+
+| ID | Invariant | Penjaga |
+|---|---|---|
+| `INV-RWF-25` | Pesanan ruang bedah dari bangsal merujuk tepat satu order tindakan operasi aktif pada kunjungan episode yang sama, dan episode berstatus `Admitted` | `InpSurgeryBookingAdapter` |
+| `INV-RWF-26` | Gerbang "Siap" hanya membaca versi pra-operasi terbaru yang dikonfirmasi pengirim dan penerima dari dua akun berbeda; versi "perlu diperbarui" tidak pernah meloloskannya | `OperatingRoomPreparationService` |
+| `INV-RWF-27` | Sisi penandaan area operasi sama dengan `OprCase.Laterality` bila sisi berlaku | `OprWardPreOpService` |
+| `INV-RWF-28` | Penerimaan serah terima: akun penerima ≠ pengirim, memegang `OperatingRoomHandover : Receive`, dan pasien menempati bed aktif di `DestinationUnitId` | `OperatingRoomRecoveryService.AcceptHandoverAsync` |
+| `INV-RWF-29` | Satu baris tagihan, satu pengirim: tindakan operasi hanya lewat order tindakan; OK hanya mengirim anestesi, sewa kamar operasi, dan bahan | `OperatingRoomCompletionEffects` |
+| `INV-RWF-30` | Kasus `Rejected` dan `Cancelled` tidak pernah menimbulkan biaya | `OperatingRoomCompletionEffects` hanya berjalan pada `Completed` |
+| `INV-RWF-31` | `Rejected` hanya dari `Requested`, beralasan, dan final | `OperatingRoomCaseService.RejectAsync` |
+| `INV-RWF-32` | Satu permintaan admisi `Pending` per kasus OK dan per pasien; tidak ada admisi otomatis; permintaan tidak dibuat untuk pasien yang sudah punya episode hadir; admisi pasien yang punya permintaan `Pending` wajib merujuk permintaan itu | Dua unique parsial; index `IX_InpEpisode_PatientId_Present` yang sudah ada; `InpEpisodeService` |
+| `INV-RWF-33` | Dokumen serah terima transfer tidak pernah menahan perpindahan bed | `CliTransferHandoverService` dipanggil sesudah commit transfer |
+| `INV-RWF-34` | Laporan transfer membedakan koreksi salah catat dari transfer | Bacaan `CorrectsPlacementId` (`integrasi-billing` `1.1.0`) |
+
+### 12.4 Kepemilikan data yang disentuh
+
+| Kelompok data | Pemilik | Diubah sub-modul ini | Dibuat ulang |
+|---|---|---|---|
+| Kasus operasi, status, penolakan | `OperatingRoomManagement` (`OprCase`) | Ya — lima kolom, satu nilai status | Tidak |
+| Pra-operasi bangsal | `OperatingRoomManagement` (`OprWardPreOpNote`, `OprWardPreOpItem`, `OprWardPreOpSiteMark`) | Ya, baru | Tidak — `RWI-DEC-173` |
+| Master butir persiapan | `MasterData` (`MstSurgicalPreparationItem`) | Ya, baru | Tidak |
+| Serah terima pasca operasi | `OperatingRoomManagement` (`OprHandover`) | Perilaku saja | Tidak |
+| Kiriman komponen biaya OK | `OperatingRoomManagement` (`OprIntegrationDelivery`, sudah ada) | Perilaku saja | Tidak |
+| Komponen operasi pada tarif | `MasterData` (`MstTariff`) | Ya — tiga kolom; daftar kolom lengkap di `keperawatan/data/data-dictionary.md` 12.14 | Tidak |
+| Order tindakan | `ClinicalManagement` (`TrxPatientProcedure`) | Tidak ada perubahan bentuk; logika penyelesaian diekstrak | Tidak |
+| Serah terima transfer | `ClinicalManagement` (`CliTransferHandover`) | Ya, baru (`P2`) | Tidak — `RWI-DEC-182` |
+| Permintaan admisi dari kamar pulih | **`InPatientManagement`** (`InpAdmissionReferral`) | Ya, baru | Tidak — nama `Referral` dipilih agar tidak tertukar dengan DTO `OpenAdmissionRequest`, `UpdateAdmissionRequest`, dan `CancelAdmissionRequest` yang sudah ada (`InpatientEpisodeDtos.cs:29-109`) |
+| Pengaturan Rawat Inap | `MasterData` (`MstInpatientSetting`) | Ya — dua kolom | Tidak |
+| Penempatan bed | `InPatientManagement` (`InpBedPlacement`) | Dibaca laporan | Tidak |
+
+### 12.5 Transaction boundary dan arah panggilan
+
+| Proses | Transaksi | Sesudah commit |
+|---|---|---|
+| Pesan ruang bedah | Adapter Rawat Inap memvalidasi episode dan order, lalu memanggil `OperatingRoomCaseService.CreateAsync` dalam proses yang sama; satu transaksi milik OK | — |
+| Kirim, konfirmasi pra-operasi | Transaksi OK | — |
+| Tunda kasus | Transaksi OK: status `Postponed` + pra-operasi "perlu diperbarui" | — |
+| Terima serah terima | Transaksi OK: serah terima `Accepted`; `EvaluateCompletionAsync` dapat membuat kasus `Completed` | `OperatingRoomCompletionEffects`: selesaikan order tindakan, siapkan kiriman komponen biaya. Gagal → dicatat dan dicoba ulang lewat mekanisme delivery OK yang sudah ada |
+| Simpan keputusan kamar pulih | Transaksi OK | Panggil `InpAdmissionReferralService.CreateFromRecoveryAsync` atau `CancelFromRecoveryAsync` (disetujui Ikbal Yulianto, `RWI-DEC-208`) |
+| Admisi dari permintaan | Transaksi Rawat Inap: episode + permintaan `Completed` | Ketukan pintu `ADMISSION_CONFIRMED` seperti admisi biasa |
+| Transfer antarunit | Transaksi Rawat Inap | `CliTransferHandoverService.CreateForTransferAsync`; gagal → transfer tetap sah, dokumen dibuat ulang oleh pengecekan Daftar Pantau |
+| Laporan transfer | Baca saja | Ekspor dicatat logger |
+
+### 12.6 Class diagram
+
+#### 12.6.1 Kamar Operasi — kasus, pra-operasi, serah terima
+
+```mermaid
+classDiagram
+    class OprCase {
+        +Guid Id
+        +Guid EncounterId
+        +OprCaseStatus Status
+        +OprSurgicalServiceType SurgicalServiceType
+        +OprPlannedAnesthesiaType? PlannedAnesthesiaType
+        +string? Laterality
+        +DateTime? RejectedAt
+        +string? RejectionReason
+    }
+    class OprWardPreOpNote {
+        +Guid Id
+        +Guid OprCaseId
+        +int VersionNumber
+        +OprWardPreOpStatus Status
+        +Guid? SentByUserId
+        +Guid? ConfirmedByUserId
+        +string VitalSnapshotJson
+        +string? MarkingLaterality
+    }
+    class OprWardPreOpItem {
+        +Guid Id
+        +Guid NoteId
+        +Guid PreparationItemId
+        +bool SenderConfirmed
+        +bool ReceiverConfirmed
+    }
+    class OprWardPreOpSiteMark {
+        +Guid Id
+        +Guid NoteId
+        +string BodyView
+        +decimal X
+        +decimal Y
+    }
+    class MstSurgicalPreparationItem {
+        +Guid Id
+        +string Code
+        +string GroupName
+        +bool IsMandatory
+    }
+    class OprHandover {
+        +Guid Id
+        +Guid DestinationUnitId
+        +OprHandoverStatus Status
+        +Guid SentBy
+        +Guid? ReceivedBy
+    }
+    OprCase "1" --> "0..*" OprWardPreOpNote : versi pra-operasi
+    OprWardPreOpNote "1" --> "1..*" OprWardPreOpItem : butir checklist
+    OprWardPreOpNote "1" --> "0..*" OprWardPreOpSiteMark : penandaan
+    MstSurgicalPreparationItem "1" --> "0..*" OprWardPreOpItem : definisi
+    OprCase "1" --> "0..*" OprHandover : serah terima
+    class InpSurgeryBookingAdapter {
+        +BookAsync(episodeId, SurgeryBookingRequest r)
+    }
+    InpSurgeryBookingAdapter ..> OprCase : membuat lewat service OK
+```
+
+#### 12.6.2 Efek kasus selesai dan permintaan admisi
+
+```mermaid
+classDiagram
+    class OperatingRoomCompletionEffects {
+        +ApplyAsync(Guid caseId)
+    }
+    class PatientProcedureExecutionService {
+        +ExecuteAsync(procedureId, actor)
+        +ExecuteFromOperatingRoomAsync(procedureId, caseId, completedAt)
+    }
+    class OperatingRoomIntegrationService {
+        +StageChargeDeliveryAsync(caseId, component, revision)
+        +DeliverToBillingAsync(deliveryId)
+    }
+    class InpAdmissionReferral {
+        +Guid Id
+        +Guid PatientId
+        +Guid SourceEncounterId
+        +Guid OprCaseId
+        +InpAdmissionReferralStatus Status
+        +Guid? CompletedEpisodeId
+    }
+    class InpAdmissionReferralService {
+        +CreateFromRecoveryAsync(caseId)
+        +CancelFromRecoveryAsync(caseId, reason)
+        +CompleteAsync(requestId, episodeId)
+    }
+    OperatingRoomCompletionEffects ..> PatientProcedureExecutionService : selesaikan order tindakan
+    OperatingRoomCompletionEffects ..> OperatingRoomIntegrationService : anestesi, sewa kamar, bahan
+    InpAdmissionReferralService ..> InpAdmissionReferral
+```
+
+#### 12.6.3 Serah terima transfer dan laporan
+
+```mermaid
+classDiagram
+    class CliTransferHandover {
+        +Guid Id
+        +Guid InpEpisodeId
+        +Guid FromServiceUnitId
+        +Guid ToServiceUnitId
+        +CliTransferHandoverStatus Status
+        +string? SnapshotJson
+        +Guid? SentByUserId
+        +Guid? ReceivedByUserId
+    }
+    class CliTransferHandoverService {
+        +CreateForTransferAsync(episodeId, fromPlacementId, toPlacementId)
+        +SaveDraftAsync(...)
+        +SendAsync(...)
+        +AcceptAsync(...)
+        +RejectAsync(...)
+    }
+    class InpRoomTransferReportService {
+        +GetAsync(RoomTransferReportQuery q)
+        +ExportAsync(RoomTransferReportQuery q)
+    }
+    class InpBedPlacement {
+        +Guid Id
+        +DateTime StartDateTime
+        +string? TransferReason
+        +Guid? CorrectsPlacementId
+    }
+    CliTransferHandoverService ..> CliTransferHandover
+    InpRoomTransferReportService ..> InpBedPlacement : baca linimasa
+```
+
+### 12.7 Penjelasan setiap class
+
+| Class | Status | Lokasi file | Kategori | Tanggung jawab | Penting | Dipanggil oleh / memakai | Transaksi | Catatan desain |
+|---|---|---|---|---|---|---|---|---|
+| `OprCase` | **Diperbarui** | `Areas/HealthServices/OperatingRoomManagement/Models/OprCase.cs` | Model (OK) | Jenis layanan bedah, rencana anestesi, jejak penolakan | `SurgicalServiceType`, `PlannedAnesthesiaType`, `RejectedAt`, `RejectedByUserId`, `RejectionReason` | Service kasus | — | `OprCaseType` (Elektif/Darurat) tetap terpisah dari jenis layanan |
+| `OprCaseStatus` | **Diperbarui** | `.../OperatingRoomManagement/Enums/OperatingRoomEnums.cs` | Enum | Tambah `Rejected = 8` | — | — | — | Disetujui `RWI-DEC-208` |
+| `OperatingRoomCaseService`, `OperatingRoomCaseController` | **Diperbarui** | `.../OperatingRoomManagement/Services/`, `/Controllers/` | Service + controller | Menerima `SurgicalServiceType` dan `PlannedAnesthesiaType`; `RejectAsync`; respons kasus ditambah jejak penolakan dan alasan status terakhir; bacaan ringkasan pasca operasi | `POST cases`, `PATCH cases/{id}/reject`, `GET cases/{id}/post-operative-summary` | Adapter bangsal, petugas OK, bangsal | Ya (tulis) | `POST cases` tetap menerima banyak tindakan untuk petugas OK |
+| `InpSurgeryBookingAdapter`, `InpatientSurgeryBookingController` | **Baru** | `Areas/HealthServices/InPatientManagement/Services/InpSurgeryBookingAdapter.cs`, `/Controllers/InpatientSurgeryBookingController.cs` | Adapter + controller (Rawat Inap) | Pemesanan ruang bedah dari bangsal: episode `Admitted`, tepat satu order tindakan aktif milik kunjungan episode, tab Obgyn memaksa `Obstetric`, penginput dari akun login | `BookAsync`; `POST inpatient-management/episodes/{episodeId}/surgery-bookings` | Perawat dan dokter bangsal | Tidak membuka transaksi sendiri; memanggil service OK | Pola sama dengan `InpAncillaryOrderAdapter` (`dokter-rawat-inap` `0.7.0`) |
+| `OperatingRoomPostOperativeSummaryQuery` | **Baru** | `.../OperatingRoomManagement/Services/OperatingRoomPostOperativeSummaryQuery.cs` | Service baca (OK) | Menggabungkan laporan operasi final, catatan anestesi, kamar pulih, dan serah terima terakhir | `GetAsync(caseId)` | `OperatingRoomCaseController` | Tidak | Laporan masih draft → `ReportFinal = false` dan isi klinis kosong (`FR-RWF-082`) |
+| `OperatingRoomCommandSupport` | **Diperbarui** | `.../OperatingRoomManagement/Services/OperatingRoomCommandSupport.cs` | Helper | `AvailableActions(Requested)` ditambah `Reject` | Baris `77-88` | Frontend OK | — | — |
+| `OprWardPreOpNote`, `OprWardPreOpItem`, `OprWardPreOpSiteMark` | **Baru** | `.../OperatingRoomManagement/Models/` | Model (OK) | Pra-operasi bangsal berversi, butir dua sisi, penandaan gambar tubuh | Kamus data 19.4 s.d. 19.6 | `OprWardPreOpService` | — | Foto tubuh tidak disimpan (`RWI-DEC-174`) |
+| `OprWardPreOpService` | **Baru** | `.../OperatingRoomManagement/Services/OprWardPreOpService.cs` | Service (OK) | Simpan draf, kirim (dengan potret tanda vital dan nyeri), konfirmasi penerima, tandai "perlu diperbarui" saat ditunda | `SaveDraftAsync`, `SendAsync`, `ConfirmAsync`, `MarkNeedsUpdateAsync` | Controller; `OperatingRoomSchedulingService` | Ya | Tanda vital dari `TrxPatientVitalSign` terakhir; nyeri dari respons instrumen `PainScale` terakhir |
+| `OperatingRoomPreparationController` | **Diperbarui** | `.../OperatingRoomManagement/Controllers/OperatingRoomPreparationController.cs` | Controller | Endpoint pra-operasi bangsal | `contracts/api-contract.md` 11.3 | `OprWardPreOpService` | — | — |
+| `OperatingRoomPreparationService` | **Diperbarui** | `.../OperatingRoomManagement/Services/OperatingRoomPreparationService.cs` | Service | Syarat "Siap" keempat (`INV-RWF-26`, `27`) | — | Petugas OK | Ya | Jalur bypass darurat yang sudah ada tetap berlaku dengan alasan |
+| `OperatingRoomSchedulingService` | **Diperbarui** | `.../OperatingRoomManagement/Services/OperatingRoomSchedulingService.cs` | Service | Penundaan memanggil `MarkNeedsUpdateAsync` dalam transaksi yang sama | `PostponeAsync` | — | Ya | — |
+| `MstSurgicalPreparationItem` | **Baru** | `Areas/HealthServices/MasterData/Models/MstSurgicalPreparationItem.cs` | Master | Butir checklist persiapan beserta kelompok dan wajib/tidak | Kamus data 19.7 | Layar pra-operasi | — | Isi awal disahkan klinis |
+| `SurgicalPreparationItemController` | **Baru** | `Areas/HealthServices/MasterData/Controllers/SurgicalPreparationItemController.cs` | Controller master | CRUD butir persiapan | `contracts/api-contract.md` 11.4 | Admin Master Data | — | — |
+| `OperatingRoomRecoveryService`, `OperatingRoomRecoveryController` | **Diperbarui** | `.../OperatingRoomManagement/Services/`, `/Controllers/` | Service + controller | Permission kirim/terima dipisah; penerimaan memeriksa `INV-RWF-28` lewat `InpPatientLocationQuery`; simpan keputusan kamar pulih memanggil permintaan admisi | `POST handovers` (`Send`), `PATCH handovers/{id}/accept` (`Receive`) | Perawat OK, perawat unit tujuan | Ya | Panggilan permintaan admisi disetujui `RWI-DEC-208` |
+| `OperatingRoomHandoverQueryController` | **Baru** | `.../OperatingRoomManagement/Controllers/OperatingRoomHandoverQueryController.cs` | Controller (OK) | Daftar serah terima per unit tujuan dan per status, termasuk yang tertunda melewati ambang | `GET operating-room-management/handovers` | Bangsal, Daftar Pantau | — | Baca saja |
+| `OperatingRoomCompletionEffects` | **Baru** | `.../OperatingRoomManagement/Services/OperatingRoomCompletionEffects.cs` | Service (OK) | Efek kasus `Completed`: selesaikan setiap order tindakan yang dirujuk `OprCaseProcedure` (pesanan bangsal selalu satu); siapkan komponen anestesi (bila catatan anestesi final), sewa kamar operasi (durasi menit), dan bahan (`OprMaterialUsage` `Used`) | `ApplyAsync` | `OperatingRoomRecoveryService` sesudah commit | Ya | Idempoten per kasus dan komponen (`StageChargeDeliveryAsync` sudah berkunci) |
+| `OperatingRoomIntegrationService` | **Diperbarui** | `.../OperatingRoomManagement/Services/OperatingRoomIntegrationService.cs` | Service (OK) | `BlockedDestinations` tidak lagi memuat Billing; adapter kirim lewat `BillingFolioService` dengan `SourceContext = OPERATING_ROOM` | `DeliverToBillingAsync` | Worker/rekonsiliasi delivery OK | Ya | Kunci `case:charge:component:revision` dipertahankan |
+| `PatientProcedureExecutionService` | **Baru** | `Areas/HealthServices/ClinicalManagement/Services/PatientProcedureExecutionService.cs` | Service (Clinical) | Logika `PATCH patient-procedures/{id}/execute` dipindah ke sini; jalur OK menyelesaikan order dengan pelaksana dokter operator dan waktu = kasus selesai, **tanpa** mendaftarkan dokumen tindakan baru (dokumen klinisnya laporan operasi final OK) | `ExecuteAsync`, `ExecuteFromOperatingRoomAsync` | `PatientProcedureController`; `OperatingRoomCompletionEffects` | Ya; fakta tagih sesudah commit | Order yang sudah `Completed` dilewati (idempoten) |
+| `PatientProcedureController` | **Diperbarui** | `.../ClinicalManagement/Controllers/PatientProcedureController.cs` | Controller | `execute` memanggil service baru; perilaku endpoint tidak berubah | — | — | — | Perubahan struktur, bukan perilaku |
+| `InpAdmissionReferral` | **Baru** | `Areas/HealthServices/InPatientManagement/Models/InpAdmissionReferral.cs` | Model (Rawat Inap) | Permintaan admisi dari kamar pulih | Kamus data 19.8 | `InpAdmissionReferralService` | — | Prefix `Inp` |
+| `InpAdmissionReferralService`, `InpatientAdmissionReferralController` | **Baru** | `.../InPatientManagement/Services/`, `/Controllers/` | Service + controller | Dibuat dari keputusan kamar pulih `Inpatient`/`Icu`; tidak dibuat bila episode hadir (jawaban "tidak perlu, serah terima biasa"); batal oleh OK; selesai saat admisi | `contracts/api-contract.md` 11.6 | OK; petugas admisi | Ya | Tidak membuat episode |
+| `InpEpisodeService`, `InpatientEpisodeController` | **Diperbarui** | `.../InPatientManagement/Services/InpEpisodeService.cs`, `/Controllers/InpatientEpisodeController.cs` | Service + controller | Admisi menerima `AdmissionReferralId` opsional dan menyelesaikan permintaan dalam transaksi yang sama | — | Petugas admisi | Ya | Aturan admisi berlangkah tidak berubah |
+| `InpPatientLocationQuery` | **Baru** | `.../InPatientManagement/Services/InpPatientLocationQuery.cs` | Service baca (Rawat Inap) | Menjawab "apakah pasien menempati bed aktif di unit X" | `IsPatientInUnitAsync(patientId, serviceUnitId)` | `OperatingRoomRecoveryService` | Tidak | Satu-satunya cara OK membaca lokasi bed |
+| `InpRoomTransferReportService`, `InpatientReportController` | **Baru** | `.../InPatientManagement/Services/`, `/Controllers/` | Service + controller | Laporan transfer per periode dan ekspor Excel | `contracts/api-contract.md` 11.7 | Kepala ruangan, manajemen | Tidak | Periode maksimum 31 hari per permintaan |
+| `CliTransferHandover`, `CliTransferHandoverService`, `TransferHandoverController` | **Baru** | `Areas/HealthServices/ClinicalManagement/Models/`, `/Services/`, `/Controllers/` | Model + service + controller (Clinical) | Dokumen serah terima transfer sembilan bagian V1 dengan potret | Kamus data 19.9; `contracts/api-contract.md` 11.8 | Rawat Inap sesudah transfer; perawat | Ya | `P2`; permission terima terpisah (`RWI-DEC-189`) |
+| `InpBedOccupancyService` | **Diperbarui** | `.../InPatientManagement/Services/InpBedOccupancyService.cs` | Service | Transfer ke unit lain memanggil pembuatan dokumen serah terima sesudah commit | — | — | Ya (sudah) | Event transfer diatur `integrasi-billing` `1.1.0` |
+| `MstInpatientSetting` | **Diperbarui** | `Areas/HealthServices/MasterData/Models/MstInpatientSetting.cs` | Master | Ambang daftar pantau | `PendingSurgicalHandoverAlertMinutes`, `PendingAdmissionReferralAlertMinutes` | Daftar Pantau | — | Gate G-18 `CONFIGURABLE_DEFAULT` |
+| `OperatingRoomReportService` | **Diperbarui** | `.../OperatingRoomManagement/Services/OperatingRoomReportService.cs` | Service | Laporan `operations` memisahkan kasus ditolak dari dibatalkan | Baris `128-139` | — | Tidak | — |
+
+### 12.8 Enum baru dan berubah
+
+| Enum | Lokasi | Nilai | Bawaan |
+|---|---|---|---|
+| `OprCaseStatus` | `OperatingRoomManagement/Enums/OperatingRoomEnums.cs` | Tambah `Rejected = 8` | — |
+| `OprSurgicalServiceType` | Sama | `General = 1`, `Obstetric = 2` | `General` |
+| `OprPlannedAnesthesiaType` | Sama | `General = 1`, `Regional = 2`, `Local = 3`, `Sedation = 4` — **usulan**, disahkan pemilik OK saat implementasi | — (nullable) |
+| `OprWardPreOpStatus` | Sama | `Draft = 1`, `Sent = 2`, `Confirmed = 3`, `NeedsUpdate = 4`, `Superseded = 5` | `Draft` |
+| `MstSurgeryComponentType` | `MasterData/Enums/` | `None = 0`, `AnesthesiaService = 1`, `OperatingRoomRent = 2` | `None` |
+| `MstTariffChargeBasis` | `MasterData/Enums/` | `PerService = 0`, `PerHour = 1` | `PerService` |
+| `InpAdmissionReferralStatus` | `InPatientManagement/Enums/` | `Pending = 1`, `Completed = 2`, `Cancelled = 3` | `Pending` |
+| `CliTransferHandoverStatus` | `ClinicalManagement/Enums/` | `NotSent = 1`, `Sent = 2`, `Accepted = 3`, `Rejected = 4` | `NotSent` |
+| Komponen kiriman OK (konstanta) | `OperatingRoomIntegrationService` | `ANESTHESIA`, `OR_RENT`, `MATERIAL-{usageId}` | — |
+
+### 12.9 Arsitektur folder — delta revision `0.9`
+
+```text
+Areas/HealthServices/
+├── OperatingRoomManagement/
+│   ├── Models/OprCase.cs                                  [Diperbarui]
+│   ├── Models/OprWardPreOpNote.cs, OprWardPreOpItem.cs,
+│   │          OprWardPreOpSiteMark.cs                     [Baru]
+│   ├── Enums/OperatingRoomEnums.cs                        [Diperbarui]
+│   ├── DTOs/OperatingRoomCaseDtos.cs                      [Diperbarui]
+│   ├── DTOs/OprWardPreOpDtos.cs                           [Baru]
+│   ├── Services/OperatingRoomCaseService.cs               [Diperbarui]
+│   ├── Services/OperatingRoomCommandSupport.cs            [Diperbarui]
+│   ├── Services/OprWardPreOpService.cs                    [Baru]
+│   ├── Services/OperatingRoomPreparationService.cs        [Diperbarui]
+│   ├── Services/OperatingRoomSchedulingService.cs         [Diperbarui]
+│   ├── Services/OperatingRoomRecoveryService.cs           [Diperbarui]
+│   ├── Services/OperatingRoomCompletionEffects.cs         [Baru]
+│   ├── Services/OperatingRoomPostOperativeSummaryQuery.cs [Baru]
+│   ├── Services/OperatingRoomIntegrationService.cs        [Diperbarui]
+│   ├── Services/OperatingRoomReportService.cs             [Diperbarui]
+│   └── Controllers/OperatingRoomCaseController.cs, OperatingRoomPreparationController.cs,
+│                   OperatingRoomRecoveryController.cs     [Diperbarui]
+│       Controllers/OperatingRoomHandoverQueryController.cs [Baru]
+├── MasterData/
+│   ├── Models/MstSurgicalPreparationItem.cs               [Baru]
+│   ├── Models/MstInpatientSetting.cs                      [Diperbarui]
+│   ├── Enums/MstSurgeryComponentType.cs, MstTariffChargeBasis.cs [Baru]
+│   └── Controllers/SurgicalPreparationItemController.cs   [Baru]
+├── ClinicalManagement/
+│   ├── Models/CliTransferHandover.cs                      [Baru]
+│   ├── Enums/CliTransferHandoverStatus.cs                 [Baru]
+│   ├── Services/PatientProcedureExecutionService.cs       [Baru]
+│   ├── Services/CliTransferHandoverService.cs             [Baru]
+│   └── Controllers/TransferHandoverController.cs          [Baru]
+│       Controllers/PatientProcedureController.cs          [Diperbarui: execute memanggil service]
+└── InPatientManagement/
+    ├── Models/InpAdmissionReferral.cs                      [Baru]
+    ├── Enums/InpAdmissionReferralStatus.cs                 [Baru]
+    ├── Services/InpAdmissionReferralService.cs             [Baru]
+    ├── Services/InpSurgeryBookingAdapter.cs               [Baru]
+    ├── Services/InpPatientLocationQuery.cs                [Baru]
+    ├── Services/InpRoomTransferReportService.cs           [Baru]
+    ├── Services/InpEpisodeService.cs                      [Diperbarui]
+    ├── Services/InpBedOccupancyService.cs                 [Diperbarui]
+    └── Controllers/InpatientAdmissionReferralController.cs, InpatientReportController.cs,
+                    InpatientSurgeryBookingController.cs   [Baru]
+        Controllers/InpatientEpisodeController.cs          [Diperbarui]
+Repositories/Configurations/HealthServices/   (configuration untuk setiap model Baru dan Diperbarui)
+Areas/HealthServices/BillingManagement/Billing/Services/BillingSourceTariffResolver.cs,
+    BillingClinicalChargeBridgeService.cs                 [Diperbarui: SourceContext OPERATING_ROOM — milik Billing, RWI-DEC-192/196]
+```
+
+### 12.10 Status model dan dampak migration
+
+| Tabel | Status | Kolom yang berubah | Dampak |
+|---|---|---|---|
+| `OprCase` | Diperbarui | Tambah `SurgicalServiceType` (`int`, bawaan `1`), `PlannedAnesthesiaType` (`int?`), `RejectedAt` (`timestamp?`), `RejectedByUserId` (`uuid?`), `RejectionReason` (`varchar(500)?`) | Kasus lama `General`; tanpa rencana anestesi |
+| `OprWardPreOpNote`, `OprWardPreOpItem`, `OprWardPreOpSiteMark` | Baru | Seluruh kolom | — |
+| `MstSurgicalPreparationItem` | Baru | Seluruh kolom | Wajib berisi sebelum pra-operasi dipakai |
+| `MstTariff` | Diperbarui | `SurgeryComponentType`, `ChargeBasis`, `ChargeRounding` (rinci di `keperawatan` 12.14) | Satu migration bersama `K8` |
+| `MstInpatientSetting` | Diperbarui | Tambah `PendingSurgicalHandoverAlertMinutes` (`int`, `60`), `PendingAdmissionReferralAlertMinutes` (`int`, `30`) | Baris bawaan mendapat nilai bawaan |
+| `InpAdmissionReferral` | Baru | Seluruh kolom | — |
+| `CliTransferHandover` | Baru | Seluruh kolom | `P2` |
+
+### 12.11 Rencana migration di dalam sub-modul ini
+
+| Langkah | Isi | Tanpa downtime | Data lama | Mundur |
+|---|---|---|---|---|
+| `E4` | `MasterData`: `MstSurgicalPreparationItem`; tiga kolom komponen operasi `MstTariff` (satu migration bersama `K8`); dua kolom `MstInpatientSetting` | Ya | Bawaan aman | `Down()` |
+| `E5` | OK: kolom `OprCase`; tabel pra-operasi (merujuk `MstSurgicalPreparationItem`, maka sesudah `E4`); nilai status `Rejected` (enum, tanpa perubahan kolom) | Ya | Bawaan `General` | `Down()`; nilai `Rejected` tidak dipakai sebelum kode dirilis |
+| `E6` | Rawat Inap: `InpAdmissionReferral` | Ya | — | `Down()` |
+| `E7` | Clinical: `CliTransferHandover` (`P2`, `RWF-W5`) | Ya | — | `Down()` |
+| `E8` | Data awal butir persiapan dan tarif komponen operasi (12.12); salin pemberian hak `OperatingRoomHandover : Update` menjadi `: Send` pada peran yang sama | Ya | — | Hapus baris; hak `Update` lama tetap ada sampai rilis kode berhasil |
+
+### 12.12 Rencana data master dan konfigurasi awal
+
+| Master | Isi minimum | Sumber nilai |
+|---|---|---|
+| `MstSurgicalPreparationItem` | Empat kelompok `RWI-DEC-173` butir 3 — verifikasi pasien, persiapan fisik, hasil pemeriksaan, persiapan lain — dengan butir V1 (misalnya "Gelang identitas terpasang", "Puasa sejak jam …", "Persetujuan tindakan tersedia", "Hasil laboratorium pra-operasi ada") | Capture V1 `captures/keperawatan/`; **disahkan pemilik klinis sebelum produksi** |
+| `MstTariff` komponen operasi | Satu baris `AnesthesiaService` dan satu `OperatingRoomRent` per kelas yang dipakai, dengan `ChargeBasis` yang ditetapkan (misalnya sewa kamar `PerHour`) | Billing dan pemilik tarif. Tanpa tarif: baris "tarif belum ada" |
+| `MstTariff` bahan OK | Baris tarif per `DrugId` untuk bahan dan implan yang dipakai OK | Admin Master Data / Farmasi |
+| `MstInpatientSetting` | Ambang 60 dan 30 menit | Usulan bawaan (G-18) |
+| Pemberian hak peran | `OperatingRoomHandover : Receive` pada peran perawat unit rawat inap dan ICU; `OperatingRoomWardPreOp : Send` pada perawat bangsal, `: Confirm` pada perawat OK; `OperatingRoomCase : Reject` pada petugas penjadwalan OK; `InpatientAdmissionReferral : Read` pada petugas admisi | Admin hak akses; **tidak** disalin otomatis dari `Update` agar perawat OK tidak menjadi penerima |
+
+### 12.13 Yang sengaja tidak dibuat pada revision `0.9`
+
+| Yang ditolak | Alasan |
+|---|---|
+| Status "Disetujui" pada kasus OK | Menyetujui = menjadwalkan (`RWI-DEC-204` butir 2) |
+| Admisi otomatis dari kamar pulih | `RWI-DEC-201` butir 2 |
+| Memindahkan baris biaya operasi kunjungan asal ke invoice `RANAP` | `RWI-DEC-207` memilih tautan non-destruktif (`BKC-DEC-118`); tautannya milik Billing (`integrasi-billing` 9.14) |
+| Salinan ringkasan operasi di Rawat Inap | `PR-RWF-05`; dibaca dari OK |
+| Master keanggotaan perawat per unit | `RWI-DEC-189` butir 6 |
+| Foto tubuh pasien | `RWI-DEC-174` |
+| Tabel laporan transfer | Bacaan linimasa (`RWI-DEC-205` butir 1) |
+| Pembayaran jasa medis, asisten, dan diskon operasi | Milik modul jasa medis dan Billing (`RWI-DEC-197`) |
+| Mempersempit `POST cases` OK menjadi satu tindakan | Petugas OK memakai banyak tindakan per kasus; aturan satu order hanya untuk pesanan bangsal |
+| Endpoint daftar kasus khusus bangsal | `GET cases?encounterId=` sudah ada; cukup respons ditambah |
+| Ruang bersalin sebagai lokasi OK | Hanya bila modul OK mendukung (`RWI-DEC-175` butir 4); tidak ada perubahan lokasi |
+
+### 12.14 Traceability bagian 12
+
+| Bagian | Requirement | Keputusan | Acceptance |
+|---|---|---|---|
+| Pemesanan, status, Obgyn | `FR-RWF-040` s.d. `044`, `048` | `RWI-DEC-174` s.d. `176`, `204` | `AC-RWF-040`, `041`, `045`, `048`, `085` |
+| Pra-operasi dan penundaan | `FR-RWF-045`, `090` | `RWI-DEC-173`, `199` | `AC-RWF-042`, `046`, `093`, `094` |
+| Serah terima dan bed | `FR-RWF-046`, `049`, `088` | `RWI-DEC-177`, `189` | `AC-RWF-043`, `047`, `049`, `087` |
+| Biaya operasi | `FR-RWF-047` | `RWI-DEC-196` | `AC-RWF-044`, `092` |
+| Admisi dari kamar pulih | `FR-RWF-080`, `089` | `RWI-DEC-201` | `AC-RWF-080`, `088`, `089` |
+| Ringkasan operasi | `FR-RWF-081`, `082` | `RWI-DEC-197` | `AC-RWF-081`, `082` |
+| Penolakan order | `FR-RWF-086` | `RWI-DEC-204` | `AC-RWF-085`, `099` |
+| Laporan transfer | `FR-RWF-087` | `RWI-DEC-205` | `AC-RWF-086`, `100` |
+| Serah terima transfer | `FR-RWF-071` | `RWI-DEC-182`, `189` | `AC-RWF-071`, `072` |
+
+### 12.15 Penyelarasan decision log revision `31` ★ 2 Oktober 2026
+
+Kontrak tetap `0.10.0` `draft`. Bagian ini menyerap `RWI-DEC-207` s.d. `220`.
+
+| Keputusan | Akibat pada sub-modul ini |
+|---|---|
+| `RWI-DEC-207` (`DEC-INP-018`) | Tidak ada tabel atau service baru di Rawat Inap. Billing membaca `InpAdmissionReferral` (19.8) saat memproses `ADMISSION_CONFIRMED` dan mencatat `BilInvoiceEncounterLink` (`integrasi-billing` 9.14, `INT-RWF-29`). `InpAdmissionReferral` kini menjadi target FK `BilInvoiceEncounterLink.SourceReferralId` (`Restrict`) |
+| **Koreksi desain** | `INT-RWF-25` sebelumnya menulis ketukan pintu "ditambah `SourceEncounterId`". Itu melanggar daftar putih isi pesan (`INV-RWF-05`, `RWI-DEC-166`). Yang benar: pesan tetap daftar putih; Billing membaca kunjungan asal dari sumbernya |
+| `RWI-DEC-208` | `PATCH cases/{id}/reject`, status `Rejected`, `INT-RWF-23`, dan `INT-RWF-24` tidak lagi tertahan persetujuan OK |
+| `RWI-DEC-213` | Frontend saja: penanda "Pasca operasi" di panel Konteks pasien ruang kerja dokter membuka `FE-INP-28` |
+| `RWI-DEC-214`, `RWI-DEC-215` | Frontend saja: butir menu ke-10 "Laporan Rawat Inap" (wadah) membuka `FE-INP-32`; guard butir = memegang salah satu permission laporan rawat inap (hari ini `InpatientReport : ReadRoomTransfer`). Tidak ada endpoint baru |
+| `RWI-DEC-217` | `CAP-RWF-18`, `19`, `22` `P1` — urutan gelombang di `04-prd-to-mvp.md` 23.20 tetap |
+| `RWI-DEC-218`, `RWI-DEC-219` | `FE-INP-25` menampilkan perkiraan tarif tindakan dari order yang dirujuk, memakai `UnitPrice` dan `CoverageStatus` yang **sudah** dikembalikan `GET clinical-management/patient-procedures` (`PatientProcedureResponse`), berlabel "perkiraan — tagihan final di kasir", disertai keterangan bahwa anestesi, sewa kamar operasi, dan bahan ditagihkan setelah operasi. Tidak ada endpoint baru |
+| `RWI-DEC-220` | Enam aturan bawaan desain disahkan: `VAL-RWF-87` (butir 1), `VAL-RWF-71` (butir 2), pemberian hak `Receive` pada 12.12 (butir 3), `VAL-RWF-90` (butir 4), ambang `MstInpatientSetting` 12.12 (butir 6). Butir 5 milik `dokter-rawat-inap` 12.13 |

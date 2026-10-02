@@ -299,3 +299,68 @@ transaksi database sungguhan, bukan koordinasi antarlayanan.
 | Tagihan strip glukometer | Gate `G-28` |
 | Handover shift | `DEFERRED` — `RWI-DEC-145` |
 | Salinan data episode, dosis, atau order ke tabel keperawatan | `INV-KEP-04` |
+
+---
+
+## 9. Perubahan pada `contract_version` `0.6.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.6.0` |
+| Status | **`draft`** |
+| Traceability | `RWI-DEC-179`, `180`, `188`, `200`, `202`, `203`; `integrasi-billing/contracts/integration-contract.md` bagian 4 |
+
+### 9.1 Daftar integrasi
+
+| ID | Arah | Mekanisme | Kapan | Gerbang |
+|---|---|---|---|---|
+| `INT-RWF-06` | Rawat Inap → Clinical | `CliEquipmentUsageService.CloseRunningForDepartureAsync(episodeId, departedAt, actorUserId)` | Setelah transaksi keluar ruangan commit | — |
+| `INT-RWF-07` | Clinical → Billing | `ClinicalMilestoneFactProducer` dengan `SourceContext = EQUIPMENT_USAGE` | Setelah pemakaian selesai, dibatalkan, atau dikoreksi | — (`RWI-DEC-192` butir 4) |
+| `INT-RWF-08` | Clinical → Billing (baca) | `InpatientClearanceService.GetLatestStatusAsync` untuk status invoice | Sebelum batal atau koreksi pemakaian | — |
+| `INT-RWF-09` | Clinical ← Kamar Operasi (baca) | Worker membaca `OprCase` `Completed` dan `OprStatusHistory` | Tiap 5 menit | Tidak ada perubahan modul OK |
+| `INT-RWF-10` | Clinical ← Rawat Inap (baca) | `InpatientClinicalContextService` untuk episode aktif dan `PhysicallyLeftAt` | Saat membentuk dan menghentikan surveilans; saat menyimpan isian | — |
+| `INT-RWF-11` | Clinical ← Bank Darah (baca) | Membaca `BbkBloodUnit` yang `IssuedToPatientId` = pasien | Saat memilih kantong | Disetujui `RWI-DEC-209` |
+| `INT-RWF-12` | Clinical → Bank Darah | `BbkTransfusionReactionNoticeService.ReceiveAsync` | Setelah reaksi tersimpan | Disetujui `RWI-DEC-209` |
+| `INT-RWF-13` | Rawat Inap → Gizi | `InpDietOrderAdapter` memanggil `NutritionDietService.PrescribeAsync`/`StopAsync` | Saat perawat atau dokter menyimpan diet | — (`RWI-DEC-191`) |
+
+### 9.2 `INT-RWF-07` — tagihan pemakaian alat
+
+| Hal | Isi |
+|---|---|
+| Fakta yang dikirim | `SourceContext = EQUIPMENT_USAGE`, `SourceAggregateId = EquipmentUsageId`, `EncounterId`, `OccurredAt = EndedAt`, `Quantity = BilledUnits`, `Unit` dari satuan master, `RuleSnapshot` berisi satuan dan pembulatan |
+| Kunci idempotensi | Per pemakaian dan revisi, sehingga koreksi waktu menjadi revisi baru atas fakta yang sama |
+| Penentuan tarif | Billing (`BillingSourceTariffResolver`) mencari `MstTariff` dengan `MedicalEquipmentId` dan kelas pasien, lalu harga kontrak penjamin lewat `MstInsuranceTariff` (`RWI-FACT-049`). Clinical **tidak** mengirim harga |
+| Tarif tidak ditemukan | Charge line `TARIFF_NOT_FOUND`; layar menampilkan "tarif belum ada"; invoice tidak dapat difinalkan |
+| Pembatalan | Fakta pembatalan klinis untuk `EquipmentUsageId` itu saja; charge alkes farmasi tidak tersentuh (`FR-RWF-066`) |
+| Perubahan Billing yang dibutuhkan | Jembatan folio mengenal `SourceContext = EQUIPMENT_USAGE` dan memetakannya ke item invoice `SourceDomain = EQUIPMENT_USAGE` (kelompok Pemakaian Alat) |
+
+**Contoh.** Ventilator per hari dengan pembulatan ke atas, dipasang 1 Okt 08.00 dan dilepas 3 Okt 11.00 (2 hari 3 jam). Server menghitung 3 unit dan mengirim fakta `Quantity = 3`. Billing menemukan tarif kelas 2 Rp 1.200.000 per hari (contoh), lalu membentuk baris Rp 3.600.000.
+
+### 9.3 `INT-RWF-09` dan `INT-RWF-10` — pembentukan dan penghentian surveilans
+
+| Hal | Isi |
+|---|---|
+| Sumber "operasi selesai" | Baris `OprStatusHistory` ke `Completed` untuk `OprCase` yang encounter-nya milik episode rawat inap berstatus `Admitted` atau `DischargePending` |
+| Hari ke-1 | Tanggal kalender (`Asia/Jakarta`) setelah tanggal operasi selesai |
+| Versi formulir | Versi `Approved` terbaru instrumen `SurgicalSiteSurveillanceForm` pada saat dibentuk; tidak berganti di tengah jalan |
+| Penghentian | Bila `InpEpisode.PhysicallyLeftAt` terisi sebelum hari ke-15 berakhir: `StoppedOnDeparture` dengan nomor hari saat itu |
+| Pembacaan suhu | `TrxPatientVitalSign` berstatus tercatat pada encounter yang sama dan hari kalender yang sama; indikator suhu "ya" bila sekurang-kurangnya satu nilai ≥ 38 °C (gate G-20) |
+
+### 9.4 `INT-RWF-11` dan `INT-RWF-12` — Bank Darah
+
+| Hal | Isi |
+|---|---|
+| Kantong yang dapat dipilih | `BbkBloodUnit` dengan `IssuedToPatientId` = pasien, `IssuedAt` ≥ waktu admisi episode, dan belum punya monitoring yang tidak dibatalkan |
+| Isi pemberitahuan reaksi | `ClinicalReactionId`, `BloodUnitId`, `PatientId`, `EncounterId`, ringkasan reaksi, waktu kejadian, unit pelayanan |
+| Gagal kirim | `CliReactionNoticeDelivery = Failed`; worker mencoba ulang tiap 1 menit; reaksi klinis tetap tersimpan |
+| Kecepatan | Bank Darah melihat pemberitahuan pada penyegaran kotak masuknya; notifikasi seketika tetap `DEFERRED`. Komunikasi darurat di luar sistem adalah prosedur klinis (gate G-23) |
+| Gerbang | ~~`RWI-OQ-115`~~ — **disetujui Sukma Giri Pratama lewat `RWI-DEC-209`, 2 Oktober 2026** |
+
+### 9.5 `INT-RWF-13` — Diet atas instruksi
+
+| Hal | Isi |
+|---|---|
+| Pemeriksaan | Adapter memanggil `InpatientClinicalContextService.IsDoctorAssignedAsync(episodeId, instructingDoctorId, now)` |
+| Pemetaan | `PrescribedByWorkforceId` = `MstDoctor.WorkforceProfileId` dokter pemberi instruksi; bila dokter atau ahli gizi menulis sendiri, dari profil tenaga kerja akun login |
+| Status verifikasi | `Pending` bila penginput bukan penetap; `NotRequired` bila penetap menulis sendiri |
+| Yang tidak diubah | Aturan modul Gizi lain, termasuk alasan wajib saat mengganti diet aktif (`GIZ010`) |

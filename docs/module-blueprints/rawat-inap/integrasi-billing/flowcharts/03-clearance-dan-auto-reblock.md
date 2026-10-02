@@ -1,5 +1,7 @@
 # Flowchart Alur Clearance Kasir, Auto-Reblock, & Supervisor Override
 
+> **Digantikan pada kontrak `1.1.0` (1 Oktober 2026).** Alur webhook, supervisor override pulang fisik, dan gerbang kasir pada pulang fisik di berkas ini tidak berlaku lagi. Alur yang berlaku ada di [`04-keluar-ruangan-dan-penutupan.md`](./04-keluar-ruangan-dan-penutupan.md) (`RWI-DEC-167`, `186`, `187`).
+
 Dokumen ini memodelkan proses persetujuan pemulangan kasir (*Billing Clearance*), penguncian otomatis kembali (*Auto-Reblock*) jika clearance dicabut, serta jalur darurat medis melalui *Supervisor Override*.
 
 ---

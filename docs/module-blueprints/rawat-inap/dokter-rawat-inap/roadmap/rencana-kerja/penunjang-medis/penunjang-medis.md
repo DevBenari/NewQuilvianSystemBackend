@@ -8,7 +8,7 @@
 | **Menu** | Ruang Kerja Dokter Rawat Inap → Tab: **Penunjang Medis (*Ancillary & Diagnostic Services*)** |
 | **Jalur dokumen** | `docs/module-blueprints/rawat-inap/dokter-rawat-inap/roadmap/rencana-kerja/penunjang-medis/penunjang-medis.md` |
 | **Revisi** | rev 2.0 — 1 Oktober 2026 |
-| **Status** | **DISETUJUI (rev 2.0)** |
+| **Status** | **SELESAI (1 Oktober 2026)** |
 | **Roadmap aktif** | `roadmap/backend-roadmap-v2.md` dan `roadmap/frontend-roadmap-v2.md` (sesuai `blueprint-manifest.md` RWI-BP-001 Rev 7) |
 | **SHA sumber bukti** | V1 FE `86408f245`, V1 BE `4be1499c`, Final BE `425cfeae`, Final FE `ee75e055b` |
 | **Keputusan terkait** | `RWI-DEC-108`, `RWI-DEC-113`, `RWI-DEC-150`, `RWI-DEC-152`, `RWI-DEC-171`, `RWI-DEC-178` |
@@ -366,7 +366,7 @@ flowchart TD
 
 | Task ID | Tanda Roadmap | Laporan Implementasi |
 | :--- | :---: | :--- |
-| `FE-RWI-143` | belum | Menunggu approval rencana kerja & penjadwalan `plan-module-delivery` |
-| `FE-RWI-144` | belum | Menunggu `FE-RWI-143` |
-| `FE-RWI-145` | belum | Menunggu `FE-RWI-143` |
-| `FE-RWI-146` | belum | Menunggu `FE-RWI-143` |
+| `FE-RWI-143` | ✅ | [Laporan Implementasi FE-RWI-143](../../task/report/frontend/FE-RWI-143.md) — Selesai 1 Oktober 2026 |
+| `FE-RWI-144` | ✅ | [Laporan Implementasi FE-RWI-144](../../task/report/frontend/FE-RWI-144.md) — Selesai 1 Oktober 2026 |
+| `FE-RWI-145` | ✅ | [Laporan Implementasi FE-RWI-145](../../task/report/frontend/FE-RWI-145.md) — Selesai 1 Oktober 2026 |
+| `FE-RWI-146` | ✅ | [Laporan Implementasi FE-RWI-146](../../task/report/frontend/FE-RWI-146.md) — Selesai 1 Oktober 2026 |

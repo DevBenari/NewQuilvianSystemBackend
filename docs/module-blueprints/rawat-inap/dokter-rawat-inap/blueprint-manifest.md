@@ -508,3 +508,56 @@ prasyarat berupa task lain.
 poliklinik** pada `BE-RWI-097` dan `BE-RWI-105` tetap wajib, begitu juga **regresi Lab/Rad** pada
 `BE-RWI-104`. Satu gerbang **produksi** juga masih menyisakan butir: `RWI-OQ-097` — nama pengesah isi
 protokol sliding scale belum ada, sehingga nol versi protokol dapat dinaikkan `Approved`.
+
+---
+
+## 10. Amandemen kontrak `0.7.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+**Status amandemen: `draft`.** Revision `7` / kontrak `0.6.0` tetap berlaku untuk isi yang tidak disentuh. Approval adalah tindakan manusia; dokumen ini **tidak** menandai apa pun `approved`. **Diselaraskan 2 Oktober 2026** dengan decision log revision `31` (`RWI-DEC-206` s.d. `220`) tanpa menaikkan versi kontrak; artefak yang terdampak memuat bagian Penyelarasan decision log revision `31`.
+
+| Field | Nilai |
+| --- | --- |
+| `contract_version` | `0.6.0` → **`0.7.0`** (`draft`) |
+| `input_revision` | `PRD-RWI-FINISHING-001` v`0.4`; decision log revision `31` (diselaraskan 2 Oktober 2026); gate `1.9` bagian 18; capability map `1.6` bagian 19 |
+| `backend_commit_sha` | Audit `c8e99ce5`; diperiksa ulang terhadap HEAD **`8d96a978`** (1 dan 2 Oktober 2026) — perubahan sesudah audit hanya saringan pencarian census dan daftar pantau; tidak menyentuh area yang dirancang |
+| `frontend_commit_sha` | Audit `22ad67330`; diperiksa ulang terhadap HEAD **`bf5af8090`** — gaya tampilan, pencarian, label menu Dashboard; tidak menyentuh area yang dirancang |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN` — batas domain diambil dari keputusan pemilik dan source yang dibaca |
+| Kemampuan | `CAP-RWF-06`, `CAP-RWF-14` — slice `INP-S26`, `INP-S30` |
+| Keputusan | `RWI-DEC-160`, `165`, `171`, `188`, `191`; penyelarasan `RWI-DEC-213`, `218`, `219` |
+| Peta modul | `../02-module-map.md` revision `4` bagian 7 — kepemilikan data, menu, urutan migration lintas sub-modul |
+
+### 10.1 Tabel artefak dan hash
+
+| Artefak | Bagian | Status | SHA-256 |
+| --- | --- | --- | --- |
+| [`02-backend-architecture.md`](./02-backend-architecture.md) | bagian 12 | `draft` | `f62928c6ae8d974d3e2914785132477af7db7925793604d0a2ab15f4c6d22c24` |
+| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | bagian 11 | `draft` | `b0de9bd5a3c2c8138c65e397c33c7f9f50550cf422a84786a0fe29c804622cd1` |
+| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | bagian 23 | `draft` | `5a4ffa9b95855810e5691ae387989a47e50d82ba91513928bd2f386e00aa8a67` |
+| [`contracts/api-contract.md`](./contracts/api-contract.md) | bagian 13 | `draft` | `591a4b64077f2453d6560186f8ccc934e20f6051f557ca101f746a474b1bca98` |
+| [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | bagian 9 | `draft` | `f2cf2c32493e4167ff3b73097027336034edfabd212c813b54840973a8b40e72` |
+| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | bagian 11 | `draft` | `9224f9ef742ee1b87abc36b0b12a541fdf6bb7c8e00c63fa12e182a8d34f60bb` |
+| [`contracts/integration-contract.md`](./contracts/integration-contract.md) | bagian 13 | `draft` | `1c6def4d1c6c945bde7b2f8c361f386dd682ff9e2399e9073d5160a8e46e65e9` |
+| [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | bagian 10 | `draft` | `4cf7de6d2e7e2745d5d3f62b271f8481f3cb88cca361ecc5d4b31509c6ffcfbc` |
+| [`data/data-dictionary.md`](./data/data-dictionary.md) | bagian 14 | `draft` | `c0ced2e73f35b260849f7ff9a8295fe2b3d8a44ac3fccbb4e382d884548cf8f8` |
+| [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md) | bagian 15 | `draft` | `e7c6da47bef16fe9e7469e35b6103613a059c93920e99127bb1c79127898f109` |
+| [`flowcharts/00-alur-utama.md`](./flowcharts/00-alur-utama.md) | bagian 5 | `draft` | `3f0b1efa88c5da2953bd57f54121578081859bcccc704d21c4cf3e919994f545` |
+| [`flowcharts/06-pesanan-gizi-dan-bank-darah.md`](./flowcharts/06-pesanan-gizi-dan-bank-darah.md) | baru | `draft` | `83809c7810a10b9a3c7618558f850ae8900470c3a6e5fc57089ab902225df79c` |
+
+Hash di bawah adalah hash saat amandemen ditulis, **bukan** hash approval. Approval tetap tindakan manusia; saat disetujui, hash dihitung ulang dan menjadi acuan deteksi perubahan berikutnya.
+
+### 10.2 Dependency dan gerbang
+
+| Bergantung pada | Untuk apa | Keadaan | Menahan |
+| --- | --- | --- | --- |
+| Gizi — Ikbal Yulianto | Kolom verifikasi `GziNutritionOrder` (`R10`) | **Disetujui** `RWI-DEC-191` | Tidak |
+| Bank Darah — Sukma Giri Pratama | Kolom verifikasi `BbkBloodOrder` (`R11`) | **Disetujui** `RWI-DEC-191`; konfirmasi clinical governance tetap gerbang produksi (`RWI-DEC-171`) | Gerbang produksi |
+| Lab/Radiologi | Pesanan perawat (`BE-RWI-104`) | Backend sudah ada; dibuktikan berjalan sebelum `MVP-0` | Tidak |
+
+### 10.3 Handoff
+
+| Field | Nilai |
+| --- | --- |
+| `blueprint_id` / `contract_version` | `RWI-BP-001` / `0.7.0` |
+| `approval_status` | **`draft`** — `approved_by` dan `approved_at` kosong |
+| `blocking_questions` | **Nol.** G-05 diputuskan `RWI-DEC-218`, `219`: perkiraan harga di layar pemesanan (`02-backend-architecture.md` 12.13) |
+| `next_owner` | Approval pemilik atas kontrak `0.7.0` (Muhammad Hamzah) → `plan-module-delivery` untuk `RWF-W0` (katalog, tombol Lab/Rad) dan `RWF-W2` |

@@ -480,3 +480,23 @@ maupun panggilan HTTP antar modul. "Transaksi yang sama" berarti satu `DbContext
 | Notifikasi aktif ke dokter dari rentang sliding scale atau dari pesanan perawat | Gate `G-24`, `G-15`; tidak ada requirement notifikasi yang diputuskan |
 | Aggregator lintas modul untuk daftar verifikasi instruksi | Tiga pemilik; penggabungan terjadi di layar |
 | Penguncian konsep saat **kunjungan** rawat inap diselesaikan lewat `PatientEncounterController` | Pemicu yang sah bagi rawat inap adalah penutupan **episode**. Mengubah status kunjungan rawat inap menjadi `Completed` di luar penutupan episode tetap dilarang alur episode |
+
+---
+
+## 13. Perubahan pada `contract_version` `0.7.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.7.0` |
+| Status | **`draft`** |
+| Traceability | `RWI-DEC-171`, `188`, `191` |
+
+| ID | Arah | Mekanisme | Kegagalan | Gerbang |
+|---|---|---|---|---|
+| `INT-RWF-14` | Rawat Inap → Gizi | `InpAncillaryOrderAdapter` memanggil `NutritionOrderService.CreateAsync` dengan status verifikasi | Gizi menolak → kode dan pesan Gizi diteruskan apa adanya; tidak ada yang tersimpan di Rawat Inap | — |
+| `INT-RWF-15` | Rawat Inap → Bank Darah | Adapter memanggil `BbkBloodOrderService.CreateAsync` / `ConfirmDuplicateAsync` | Sama | — |
+| `INT-RWF-16` | Rawat Inap ← Clinical | `InpatientClinicalContextService.IsDoctorAssignedAsync` | Gagal dibaca → pesanan ditolak (gagal tertutup), karena produk darah berisiko tinggi | — |
+| `INT-RWF-17` | Rawat Inap ← Clinical | `InsuranceCoverageService.ResolveTariffAsync`/`ResolveProcedureAsync` untuk status tanggungan | Gagal → status "tidak diketahui"; pesanan tetap boleh dibuat | — |
+| `INT-RWF-18` | Layar dokter ← enam modul | Frontend memanggil enam daftar "perlu diverifikasi" (tindakan, Lab, Rad, Gizi, darah, diet) dan menyatukannya | Satu daftar gagal → bagian itu menampilkan pesan gagal; lima lainnya tetap tampil | — |
+
+**Contoh.** Pukul 23.00 dr. Yoga (dokter jaga berpenugasan) menelepon Ns. Siti untuk 2 kantong PRC. Siti memilih dr. Yoga sebagai dokter peminta. Adapter memeriksa penugasan dr. Yoga pada episode Budi, lalu memanggil Bank Darah. Pesanan tampil di layar Bank Darah dengan penginput Siti, peminta dr. Yoga, status `Pending`. Esok pagi dr. Yoga membuka daftar gabungan "perlu diverifikasi" dan memverifikasinya.

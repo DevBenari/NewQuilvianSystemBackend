@@ -50,3 +50,49 @@ flowchart TD
 | 7 | Penerbitan Clearance | Staf Kasir | Konfirmasi pelunasan administrasi | Status clearance disetujui | Kasir dilarang menyetujui bila masih terdapat tagihan menggantung. |
 | 8 | Pelepasan Pasien Fisik | Perawat Bangsal | Pasien selesai berkemas dan menerima obat | Jam kepulangan fisik terkunci; tempat tidur kosong | Perawat memeriksa kembali apakah ada barang pasien yang tertinggal. |
 | 9 | Penutupan Tagihan Final | Sistem Kasir / Billing | Sinyal pasien keluar fisik | Invoice resmi tertutup; posting biaya terkunci | Durasi sewa kamar dihitung presisi sampai menit kepulangan fisik pasien. |
+
+---
+
+## 3. Alur utama kontrak `1.1.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+Alur pada bagian 1 dan 2 di atas **tidak berlaku lagi** untuk langkah webhook, supervisor override pulang fisik, dan konfirmasi pulang fisik yang ditahan kasir. Alur yang berlaku:
+
+```mermaid
+flowchart TD
+    subgraph admisi[Petugas admisi]
+        A([Pasien diputuskan rawat inap]) --> B[Sahkan admisi]
+    end
+    subgraph sistem[Sistem Rawat Inap]
+        B --> C[(Admitted)]
+        C --> D[Antrekan ketukan pintu ke Billing]
+    end
+    subgraph billing[Sistem Billing]
+        D --> E[Buka invoice rawat inap]
+        E --> F[Hitung tarif kamar dari linimasa bed]
+    end
+    subgraph bangsal[Perawat dan dokter]
+        F --> G[Berikan layanan selama dirawat]
+        G --> H[DPJP memutuskan pulang]
+        H --> I[(DischargePending)]
+        I --> J[Catat pasien meninggalkan ruangan]
+    end
+    subgraph kasir[Kasir]
+        J --> K[Hitung tagihan final dan terima pembayaran]
+        K --> L[Setujui izin kasir]
+    end
+    subgraph penutup[Petugas admisi]
+        L --> M[Tutup episode]
+        M --> N[(Closed)]
+    end
+    N --> O([Episode selesai])
+```
+
+| Langkah | Pelaku | Masukan | Keluaran | Bila gagal |
+|---|---|---|---|---|
+| Sahkan admisi | Petugas admisi | Episode `Draft` lengkap | `Admitted` dan ketukan pintu ke Billing | Admisi tetap tersimpan walaupun Billing gangguan; ketukan dicoba ulang |
+| Buka invoice dan hitung tarif kamar | Sistem Billing | Ketukan pintu | Invoice rawat inap `OPEN` | Tim TI melihat pesan gagal di pemantauan outbox |
+| Catat keluar ruangan | Perawat, kepala ruangan, admisi, supervisor | `DischargePending` | Bed kosong, status kasir saat itu tercatat | Bila kasir belum memberi izin: peringatan, lalu konfirmasi |
+| Setujui izin kasir | Kasir | Tagihan final, pembayaran atau jaminan | Izin kasir disetujui di Billing | Kasir menahan; episode tetap terbuka |
+| Tutup episode | Petugas admisi | Izin kasir disetujui, syarat penutupan lain lengkap | `Closed` | Ditolak; atau supervisor menutup dengan alasan |
+
+Rincian jalur pengecualian ada di `04-keluar-ruangan-dan-penutupan.md`, `05-ketukan-pintu-billing.md`, dan `06-koreksi-penempatan-dan-putar-ulang.md`. Berkas `03-clearance-dan-auto-reblock.md` **digantikan** `04`.

@@ -311,3 +311,85 @@ Order yang disesuaikan atau dihentikan setelahnya **tidak** mengubah pelaksanaan
 | `PhmPrescriptionItem.IsStopped` | `dokter-rawat-inap` | Menghentikan butir resep |
 | `ReconciliationDecisionType` | `dokter-rawat-inap` | Mengambil keputusan per obat — `RWI-AC-192` |
 | `InpEpisodeStatus` | `episode-rawat-inap` | Mengubah status episode dari dokumentasi keperawatan — `AC-CAP012-03` |
+
+---
+
+## 6. Perubahan pada `contract_version` `0.6.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.6.0` |
+| Status | **`draft`** |
+| Traceability | `BP-RWF-04`, `BP-RWF-06`, `BP-RWF-08`; `RWI-DEC-179`, `200`, `202`, `203`, `178` |
+
+### 6.1 Pemakaian alat (`CliEquipmentUsageStatus`)
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| — | Mulai | `Running` | `EquipmentUsage : Create` | Episode `Admitted`/`DischargePending`; alat aktif; dokter penanggung jawab berpenugasan aktif | 403 atau 422 |
+| `Running` | Selesai | `Completed` | `EquipmentUsage : Update` | Waktu selesai ≥ waktu mulai; unit dihitung server; fakta tagih terbit | 422 `CLI-EQP-001` |
+| `Running` | Pasien keluar ruangan | `Completed`, `RequiresNurseReview = true` | Sistem | Waktu selesai = waktu keluar | Gagal → tetap `Running`, tampil di Daftar Pantau |
+| `Running` atau `Completed` | Batal | `Cancelled` | `EquipmentUsage : Cancel` | Alasan wajib; invoice `OPEN`; fakta pembatalan untuk pemakaian ini saja | 422 `CLI-EQP-002` |
+| `Completed` | Koreksi waktu | `Completed` (revisi baru) | `EquipmentUsage : Correct` | Alasan wajib; invoice `OPEN`; versi lama tersimpan; unit dan tagihan dihitung ulang | 422 `CLI-EQP-002`; 409 |
+| `Cancelled` | Tindakan apa pun | — | — | — | 409; status akhir |
+| `Completed` dengan `RequiresNurseReview` | Perawat menyatakan sudah diperiksa | `Completed`, `RequiresNurseReview = false` | `EquipmentUsage : Update` | Boleh disertai koreksi waktu | — |
+
+### 6.2 Selang WSD (`CliWsdDrainStatus`) dan pembacaan
+
+| Dari | Tindakan | Ke | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| — | Daftarkan selang | `Active` | `FluidBalance : Create` | Episode aktif; label tidak kosong | 400 |
+| `Active` | Catat pembacaan | `Active` + pembacaan `Active` + entri cairan | `FluidBalance : Create` | Bertambah ≥ 0 | 422 `CLI-WSD-001` |
+| `Active` | Lepas | `Removed` | `FluidBalance : Update` | Waktu lepas ≥ pembacaan terakhir | 400 |
+| `Removed` | Catat pembacaan | — | — | — | 422 `CLI-WSD-002` |
+| Pembacaan terakhir `Active` | Koreksi | Pembacaan revisi baru; entri cairan direvisi | `FluidBalance : Update` | Alasan wajib | — |
+| Pembacaan bukan terakhir | Koreksi atau batal | — | — | — | 422 `CLI-WSD-003` |
+| `Active` tanpa pembacaan | Batal daftar | `Cancelled` | `FluidBalance : Update` | Alasan wajib | 422 bila sudah ada pembacaan |
+
+### 6.3 Surveilans infeksi luka operasi (`CliSurveillanceStatus`)
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| — | Kasus OK `Completed` pada episode rawat inap aktif | `Active` | Sistem (worker) | Ada versi instrumen `Approved` | Tanpa versi `Approved`: tidak dibentuk, peringatan di Daftar Pantau |
+| `Active` | Isi hari ke-N | `Active` | `SurgicalSiteSurveillance : Update` | 1 ≤ N ≤ 15 dan hari ke-N sudah tiba; isian sesuai definisi versi | 422 `CLI-SSI-002`/`003` |
+| `Active` | Tandai dicurigai | `Active` + `NosocomialInfectionId` terisi | `SurgicalSiteSurveillance : Review` | Belum pernah ditandai | 409 `CLI-SSI-004` |
+| `Active` | Pasien keluar ruangan sebelum hari ke-15 | `StoppedOnDeparture`, `StoppedOnDayNumber = N` | Sistem | — | — |
+| `Active` | Hari ke-15 terlewati | `Completed` | Sistem | — | — |
+| `StoppedOnDeparture` atau `Completed` | Isi atau ubah | — | — | — | 422 `CLI-SSI-001` |
+| `Active` | Kasus OK ternyata salah dikaitkan | `Cancelled` | `SurgicalSiteSurveillance : Review` | Alasan wajib | — |
+
+Status kejadian infeksi berikutnya (`Confirmed`, `RuledOut`, `Resolved`) bergerak di register nosokomial yang sudah ada, bukan di formulir ini.
+
+### 6.4 Monitoring transfusi (`CliTransfusionMonitoringStatus`) dan titik ukur
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| — | Mulai | `InProgress`; empat titik dibuat dengan jatuh tempo | `TransfusionMonitoring : Create` | Kantong sudah diserahkan kepada pasien ini sejak episode aktif; belum dipantau | 422 `CLI-TRF-001`; 409 `CLI-TRF-002` |
+| `InProgress` | Catat titik tepat waktu | `InProgress` | `TransfusionMonitoring : Update` | — | — |
+| `InProgress` | Catat titik melewati jatuh tempo + toleransi | `InProgress`, titik `IsLate = true` | Sama | Keterangan wajib | 422 `CLI-TRF-003` |
+| `InProgress` | Catat reaksi | `InProgress` + reaksi + pemberitahuan Bank Darah | Sama | Ringkasan reaksi wajib | — |
+| `InProgress` | Hentikan | `Stopped`; titik belum tercatat bertanda dihentikan | Sama | Alasan wajib | — |
+| `InProgress` | Selesai | `Completed` | Sama | Titik 4 jam tercatat atau bertanda terlambat | 422 |
+| `InProgress` tanpa titik tercatat | Batal | `Cancelled` | Sama | Alasan wajib | 422 `CLI-TRF-005` bila sudah ada titik |
+| `Stopped`, `Completed`, `Cancelled` | Catat titik | — | — | — | 422 `CLI-TRF-004` |
+
+### 6.5 Pemberitahuan reaksi di Bank Darah (`BbkReactionNoticeStatus`)
+
+| Dari | Tindakan | Ke | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| — | Clinical mengirim | `New` | Sistem | Idempoten pada `ClinicalReactionId` | Kiriman kedua tidak membuat baris kedua |
+| `New` | Terima dan tindak lanjuti | `Acknowledged` | `TransfusionReactionNotice : Acknowledge` | — | — |
+| `Acknowledged` | Terima lagi | — | — | — | 409 |
+
+Sisi Clinical: `CliReactionNoticeDelivery` `Pending` → `Delivered`, atau `Pending` → `Failed` → dicoba ulang worker → `Delivered`.
+
+### 6.6 Verifikasi instruksi diet (`GziInstructionVerificationStatus`)
+
+| Dari | Tindakan | Ke | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| — | Dokter berpenugasan aktif atau ahli gizi menetapkan sendiri | `NotRequired` | `NutritionPatientDiet : Update` | — | — |
+| — | Perawat menetapkan atas instruksi | `Pending` | Sama | Dokter pemberi instruksi berpenugasan aktif | 400 tanpa dokter; 403 dokter tidak berpenugasan |
+| `Pending` | Verifikasi | `Verified` | `NutritionPatientDiet : VerifyInstruction` | Akun pemverifikasi = dokter penetap | 403 `GIZ-VER-001` |
+| `Verified` | Verifikasi lagi | — | — | — | 409 `GIZ-VER-002` |
+
+Status diet sendiri (`GziPatientDietStatus`) tidak berubah oleh verifikasi; diet langsung berlaku (`RWI-DEC-178` butir 2).

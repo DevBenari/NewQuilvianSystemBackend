@@ -320,3 +320,24 @@ rentang → `400` sampai rentang "< 150" ditambahkan.
 | Penugasan singkat wajib dokter jaga dan berbatas waktu | `episode-rawat-inap` `VAL-INP-01` | `RWI-DEC-130` |
 | Pelaksanaan sliding scale tanpa order aktif; GDS laboratorium sebagai sumber | `keperawatan` `VAL-KEP-27`, `VAL-KEP-28` | `RWI-AC-219`, `RWI-AC-228` |
 | Tanda tangan resume oleh bukan DPJP aktif | `episode-rawat-inap`, sudah ada | `RWI-RULE-032` |
+
+---
+
+## 11. Perubahan pada `contract_version` `0.7.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.7.0` |
+| Status | **`draft`** |
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `VAL-RWF-60` | Pesanan Gizi/darah oleh perawat | Tanpa dokter peminta | "Dokter pemberi instruksi wajib dipilih." | `400` |
+| `VAL-RWF-61` | Pesanan Gizi/darah | Dokter peminta tidak berpenugasan aktif | "Dokter yang dipilih tidak sedang menangani pasien ini." | `403` |
+| `VAL-RWF-62` | Pesanan darah | Mirip pesanan sebelumnya | Pesan `confirm-duplicate` modul Bank Darah yang sudah ada | Kode modul Bank Darah |
+| `VAL-RWF-63` | Verifikasi | Bukan dokter peminta | "Hanya dokter yang memberi instruksi yang dapat memverifikasi pesanan ini." | `403` |
+| `VAL-RWF-64` | Verifikasi | Sudah diverifikasi | "Pesanan ini sudah diverifikasi." | `409` |
+| `VAL-RWF-65` | Pesanan Lab perawat | Tanpa dokter pemberi instruksi | "Dokter pemberi instruksi wajib dipilih" (pesan modul Lab yang sudah ada) | Kode modul Lab |
+| `VAL-RWF-66` | Status tanggungan | `ItemIds` kosong | "Pilih sekurang-kurangnya satu pemeriksaan." | `400` |
+| `VAL-RWF-67` | Perkiraan harga | Pemanggil tidak memegang hak membuat pesanan jenis itu | — (bukan penolakan) — `PriceStatus = NOT_PERMITTED`, tanpa field harga | `200` |
+| `VAL-RWF-68` | Perkiraan harga | Tarif tidak dapat diresolusi | "Tarif belum tersedia" — pesanan tetap boleh dikirim (`RWI-DEC-218` butir 4, `RWI-DEC-220` butir 5) | `200` |

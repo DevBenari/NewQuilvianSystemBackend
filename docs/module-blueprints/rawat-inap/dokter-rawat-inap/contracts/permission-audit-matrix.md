@@ -327,3 +327,30 @@ Kolom berikut **MUST NOT** masuk payload custom logger dan **MUST NOT** dipakai 
 
 `ClinicalReason` dan `Instruction` pada permintaan pesanan tindakan memakai kolom `ClinicalNote` dan `InstructionNote`
 yang sudah ada dan sudah diperlakukan sensitif pada praktik logging project.
+
+---
+
+## 10. Perubahan pada `contract_version` `0.7.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.7.0` |
+| Status | **`draft`** |
+
+| Resource : Action | Status | Dipakai untuk |
+|---|---|---|
+| `NutritionOrder : VerifyInstruction` | **Baru** (Gizi) | Daftar dan aksi verifikasi pesanan gizi |
+| `BloodOrder : VerifyInstruction` | **Baru** (Bank Darah) | Daftar dan aksi verifikasi pesanan darah |
+| `NutritionOrder : Create`, `BloodOrder : Create` | Sudah ada | Dipakai ulang oleh adapter Rawat Inap |
+| `InpatientEpisode : Read` | Sudah ada | Status tanggungan; **perkiraan harga hanya dikirim bila pemanggil juga memegang hak membuat pesanan jenis itu** (`LabOrder : Create`, `RadOrder : Create`, `PatientProcedure : Create`, `NutritionOrder : Create`, `BloodOrder : Create`) — diperiksa lewat `AccessPermissionService.HasAccessAsync` (`RWI-DEC-218`) |
+| `PatientProcedure : Read` | Sudah ada | Katalog tindakan dengan parameter baru |
+
+| Peran | `NutritionOrder` | `BloodOrder` | Verifikasi |
+|---|---|---|---|
+| Perawat pelaksana | `Create` | `Create` | — |
+| Dokter DPJP, konsulen, jaga | `Create` | `Create` | `NutritionOrder : VerifyInstruction`, `BloodOrder : VerifyInstruction` |
+| Petugas Gizi, Bank Darah | `Read` dan seterusnya menurut modul pemilik | Sama | — |
+
+**Kewenangan yang tidak dijaga mesin hak akses.** Bahwa instruksi lisan benar-benar diberikan dokter. Penahannya: dokter harus berpenugasan aktif dan memverifikasi; nama penginput dan peminta tercatat. Konfirmasi clinical governance atas pesanan darah oleh perawat tetap gerbang produksi (`RWI-DEC-171`, gate G-11).
+
+**Audit.** Verifikasi menulis `InstructionVerifiedByUserId` dan `InstructionVerifiedAt` pada pesanan; `LoggerService` mencatat endpoint bukan `GET` tanpa isi klinis.

@@ -643,3 +643,223 @@ Peran adalah kumpulan hak pada Akses Role; tabel ini menjelaskan seeder usulan `
 | `FE-KEP-16` | PRD 45 | `RWI-DEC-113` | — |
 | `FE-KEP-17`, `FE-KEP-18` | PRD 44, 46, 47 | `RWI-DEC-108`, `137` | `AC-KEP-130` s.d. `132` |
 | `FE-KEP-19` s.d. `FE-KEP-21` | `FR-MVP-KEP-005`, `012`, `017` | `RWI-DEC-124`, `136`; gate `G-06`, `G-12` | `AC-KEP-051` s.d. `053`, `091`, `092`, `096` |
+
+---
+
+## 11. Amandemen revision `0.4` / kontrak `0.6.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+### 11.1 Kebutuhan layar
+
+| ID | Layar | Jenis | Pelaku | Kemampuan | Status |
+|---|---|---|---|---|---|
+| `FE-KEP-23` | Tagihan Pasien per kelompok | Menu Tagihan Pasien di ruang kerja `FE-KEP-07` (pengganti `nursing-billing-section.jsx`) | Perawat, admisi | `CAP-RWF-05` | Diubah |
+| `FE-KEP-24` | Catatan Keperawatan enam sub-menu | Sub-tab Asuhan Keperawatan (pengganti tab naratif `nursing-narrative-tab.jsx`) | Perawat | `CAP-RWF-09` | Diubah |
+| `FE-KEP-25` | Observasi Pengeluaran Cairan WSD per selang | Sub-menu `FE-KEP-24` | Perawat | `CAP-RWF-10` | Baru |
+| `FE-KEP-26` | Daftar Pemberian Obat empat bagian, termasuk Efek Samping | Sub-menu `FE-KEP-24`; MAR dan rekonsiliasi yang sudah ada dipindah ke sini | Perawat | `CAP-RWF-09`, `CAP-RWF-11` | Diubah + bagian Efek Samping baru |
+| `FE-KEP-27` | Diet Medis | Sub-menu `FE-KEP-24` | Perawat, dokter, ahli gizi | `CAP-RWF-12` | Baru |
+| `FE-KEP-28` | Pemakaian Alat: Order dan History | Menu Pemakaian Alat di `FE-KEP-07` (keluar dari *placeholder*) | Perawat, kepala ruangan | `CAP-RWF-13` | Baru |
+| `FE-KEP-29` | Surveilans infeksi luka operasi per pasien | Sub-tab baru di Asuhan Keperawatan, tampil hanya bila pasien punya kasus OK `Completed` (`RWI-DEC-211`) | Perawat, tim PPI | `CAP-RWF-20` | Baru |
+| `FE-KEP-30` | Daftar surveilans PPI | Daftar di Daftar Pantau `FE-INP-09` | Tim PPI | `CAP-RWF-20` | Baru |
+| `FE-KEP-31` | Monitoring transfusi per kantong | Tab Bank Darah di menu Penunjang Medis ruang kerja keperawatan (`RWI-DEC-212`) | Perawat | `CAP-RWF-21` | Baru |
+| `FE-KEP-32` | Master Alat Medis | Butir menu Pelayanan Kesehatan → Master Data | Admin Master Data | `CAP-RWF-13` | Baru |
+| `FE-KEP-33` | Pemberitahuan Reaksi Transfusi | Butir menu Bank Darah | Petugas Bank Darah | `CAP-RWF-21` | Baru — disetujui `RWI-DEC-209` |
+| `FE-KEP-34` | Obat & Alkes empat sub-tab | Sub-tab Asuhan Keperawatan (`nursing-medication-section.jsx`) | Perawat | `CAP-RWF-09` | Diubah |
+
+Spooling Cairan, Sliding Scale, dan Catatan Pra-Operasi di dalam `FE-KEP-24` adalah **jendela** ke layar yang sudah ada atau dirancang sub-modul lain: Spooling Cairan ke cairan Pengawasan Harian, Sliding Scale ke pelaksanaan sliding scale (`CAP-023-MAR`), dan Catatan Pra-Operasi ke `FE-INP-27` (`episode-rawat-inap` kontrak `0.10.0`).
+
+### 11.2 Peta butir menu
+
+Peta seluruh modul dipegang `02-module-map.md` bagian 7.3. Butir milik sub-modul ini:
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+|---|:---:|---|---|---|---|---|
+| Alat Medis | 2 | Pelayanan Kesehatan → Master Data | `/health-services/master-data/medical-equipments` | `FE-KEP-32` | `MedicalEquipment : Read` | Baru |
+| Reaksi Transfusi | 2 | Pelayanan Kesehatan → Bank Darah | `/health-services/blood-bank-management/transfusion-reaction-notices` | `FE-KEP-33` | `TransfusionReactionNotice : Read` | Baru — disetujui `RWI-DEC-209` |
+
+Kuota `IA-INP-05` (sembilan butir tingkat dua Rawat Inap) **tidak disentuh**.
+
+| Layar anak | Jalan masuk |
+|---|---|
+| `FE-KEP-23`, `24`–`28`, `34` | Ruang kerja keperawatan `FE-KEP-07`, delapan menu internal V1 |
+| `FE-KEP-29` | Sub-tab Asuhan Keperawatan di `FE-KEP-07`, hanya bila ada kasus OK `Completed` (`RWI-DEC-211`) |
+| `FE-KEP-31` | Tab Bank Darah pada menu Penunjang Medis `FE-KEP-07` (`RWI-DEC-212`) |
+| `FE-KEP-30` | Daftar Pantau `FE-INP-09`, kelompok `keperawatan` |
+
+### 11.3 Keputusan rupa yang belum dibuat
+
+Wewenang frontend tidak mengizinkan agent menetapkan letak menu atau tab tanpa brief. PRD 8.1 menyatakan letak keduanya ditetapkan saat desain menurut wewenang yang berlaku. Kedua butir ini **tidak menahan backend**, tetapi menahan task frontend `FE-KEP-29` dan `FE-KEP-31`.
+
+| ID | Pertanyaan | Opsi | Rekomendasi agent | Pemilik |
+|---|---|---|---|---|
+| `UI-RWF-01` | Di mana perawat membuka surveilans infeksi luka operasi? | **A.** Sub-tab baru di Asuhan Keperawatan, tampil hanya bila pasien punya kasus OK selesai. **B.** Sub-menu ketujuh di Catatan Keperawatan (menyimpang dari enam sub-menu V1). **C.** Bagian dari panel pasca operasi bersama ringkasan operasi (`FE-INP-28`) | **A** — tidak mengubah susunan V1 yang sudah diputuskan (`RWI-DEC-172`) dan dekat dengan pencatatan harian perawat | Muhammad Hamzah (frontend authority) — **diputuskan A, `RWI-DEC-211`** |
+| `UI-RWF-02` | Di mana perawat membuka monitoring transfusi? | **A.** Tab Bank Darah di Penunjang Medis: pesanan, kantong yang diterima, dan monitoringnya dalam satu tempat. **B.** Sub-tab baru di Asuhan Keperawatan | **A** — perawat sudah membuka tab itu untuk pesanan darah, dan kantong yang diserahkan berasal dari pesanan yang sama | Muhammad Hamzah — **diputuskan A, `RWI-DEC-212`** |
+
+### 11.4 Skema fitur per layar
+
+#### `FE-KEP-23` Tagihan Pasien
+
+```text
++- Tagihan Pasien ------------------------------------------------ FE-KEP-23 -+
+| Dihitung pukul 10.15                                     [Muat ulang]       |
+| Kamar Rawat Inap                                   [subtotal bila berhak]   |
+|   Kamar Melati 2 — 1 s.d. 4 Okt 2026 — 3 hari                               |
+| Tindakan                                                                    |
+|   Pasang infus × 1 • Nebulizer × 2                                          |
+| Penunjang Medis • Obat & Alkes • Pemakaian Alat                              |
+| Operasi                                                                     |
+|   Kolesistektomi × 1 • Jasa anestesi • Sewa kamar operasi 95 menit          |
+|   (dari kunjungan Poli Bedah 1 Okt — dibayar bersama saat pulang)           |
+| Biaya Administrasi                                                          |
+| ------------------------------------------------------------------------    |
+| Total berjalan                                     [hanya bila berhak]      |
+| belum terbentuk -> "Tagihan belum terbentuk."                               |
+| gagal           -> "Rincian tagihan gagal dimuat." [Coba lagi]              |
++-----------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Kelompok dan baris | Tujuh kelompok V1; baris tanpa rupiah; baris "tarif belum ada" bertanda | `GET billing-management/patient-billing-summaries/episodes/{episodeId}/breakdown` | `PatientBillingSummary : Read` | `NOT_FORMED` → "Tagihan belum terbentuk." Gagal → pesan dan coba lagi. **Tidak pernah "Rp 0"** |
+| Subtotal dan total | Rupiah per kelompok dan total berjalan | `GET …/breakdown/amounts` | `PatientBillingSummary : ViewAmount` | Tidak dipanggil bila pengguna tidak berhak; tidak ada tempat kosong yang menyiratkan nol |
+| Baris dari kunjungan asal | Baris operasi dari invoice kunjungan poli/ODC yang tertaut ke invoice `RANAP` (`RWI-DEC-207`) tampil di kelompok Operasi dengan label kunjungan asalnya; baris lain kunjungan asal tidak tampil di sini | Sama, `…/breakdown` (`LinkedEncounter` per baris) | `PatientBillingSummary : Read` | Tidak ada kunjungan tertaut → kelompok Operasi hanya berisi operasi selama dirawat |
+| Catatan | "Rincian harga per layanan tersedia di kasir." | — | — | — |
+
+#### `FE-KEP-24` Catatan Keperawatan
+
+| Wilayah | Isi | Sumber data | Butir hak akses |
+|---|---|---|---|
+| Daftar sub-menu | Spooling Cairan, Observasi Pengeluaran Cairan WSD, Sliding Scale, Daftar Pemberian Obat, Catatan Pra-Operasi, Diet Medis — urut V1 | — | Tiap sub-menu mengikuti hak aksesnya sendiri |
+| Narasi perawat | Tidak di sini. Tautan "Tulis catatan naratif" membuka Catatan Terintegrasi dengan saringan "Naratif Keperawatan" | `GET clinical-management/patient-integrated-progress-notes?noteKind=NursingNarrative` | Sesuai controller CPPT |
+
+#### `FE-KEP-25` Observasi WSD
+
+```text
++- Observasi Pengeluaran Cairan WSD --------------------------- FE-KEP-25 -+
+| [+ Daftarkan selang]                                                      |
+| WSD kanan  • dipasang 1 Okt 08.00 • sisa terakhir 350 ml   [Catat] [Lepas]|
+| WSD kiri   • dipasang 1 Okt 08.00 • sisa terakhir 80 ml    [Catat] [Lepas]|
+| Riwayat: Jam awal | Jam akhir | Sisa lalu | Sisa kini | Dibuang | Bertambah | Oleh
+| kosong -> "Belum ada selang WSD terdaftar."                               |
++---------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Daftar selang | Label, waktu pasang, sisa terakhir, status | `GET clinical-management/wsd-drains?episodeId=` | `FluidBalance : Read` | Kosong → "Belum ada selang WSD terdaftar." |
+| Formulir pembacaan | Jam awal, jam akhir, sisa sekarang, volume dibuang; "sisa lalu" dan "bertambah" tampil dari server setelah simpan | `POST …/wsd-drains/{drainId}/readings` | `FluidBalance : Create` | 422 `CLI-WSD-001` → pesan server di formulir |
+| Koreksi | Hanya pada baris terakhir tiap selang | `PUT …/readings/{readingId}/correction` | `FluidBalance : Update` | Tombol tidak tampil pada baris lain |
+
+#### `FE-KEP-26` Daftar Pemberian Obat — bagian Efek Samping
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Pilih dosis | Dosis MAR pasien | Endpoint MAR yang sudah ada | Sesuai MAR | — |
+| Formulir efek samping | Reaksi, keparahan, tindakan | `POST clinical-management/patient-allergies/from-medication-administration` | `PatientAllergy : Create` | Gagal → pesan server |
+| Riwayat | Reaksi obat pasien | Endpoint riwayat alergi yang sudah ada | `PatientAllergy : Read` | Kosong → "Belum ada efek samping obat tercatat." |
+
+#### `FE-KEP-27` Diet Medis
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Diet aktif dan riwayat | Tanggal, penetap, penginput, jenis diet, bentuk makanan, status, diagnosa, instruksi, status verifikasi | `GET nutrition-management/diets/history/{encounterId}` | `NutritionPatientDiet : Read` | Kosong → "Belum ada diet ditetapkan." |
+| Formulir | Dokter pemberi instruksi (wajib bila perawat), jenis diet, bentuk, kalori, instruksi | `POST inpatient-management/episodes/{episodeId}/diets` | `NutritionPatientDiet : Update` | 400/403 → pesan server |
+| Hentikan | Alasan wajib | `POST …/diets/{dietId}/stop` | Sama | — |
+
+#### `FE-KEP-28` Pemakaian Alat
+
+```text
++- Pemakaian Alat ---------------- [Order Alat Kesehatan] [History] ---- FE-KEP-28 -+
+| Order: Jenis alat [v]  Dokter penanggung jawab [v]  Mulai [..]  Jumlah (per pakai) |
+|                                                               [Mulai pemakaian]    |
+| Berjalan: Ventilator • mulai 1 Okt 08.00 • dr. Yoga            [Selesai] [Batal]   |
+| History: Alat | Mulai | Selesai | Unit | Status | Tagihan | Perlu diperiksa          |
++------------------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Pilihan alat | Jenis alat aktif beserta satuan | `GET master-data/medical-equipments?isActive=true` | `MedicalEquipment : Read` | Kosong → "Belum ada jenis alat di master." |
+| Pilihan dokter | Dokter berpenugasan aktif pada episode | Endpoint penugasan dokter episode yang sudah ada | `InpatientEpisode : Read` | — |
+| Order dan selesai | — | `POST`, `PATCH /{id}/finish` | `EquipmentUsage : Create`, `: Update` | 403 → "Dokter yang dipilih tidak sedang menangani pasien ini." |
+| Batal dan koreksi waktu | Alasan wajib | `PATCH /{id}/cancel`, `PUT /{id}/time-correction` | `EquipmentUsage : Cancel`, `: Correct` | 422 `CLI-EQP-002` → "Tagihan sudah difinalkan" |
+| History | Termasuk tanda "perlu diperiksa" dan status tagihan tanpa rupiah | `GET clinical-management/equipment-usages?episodeId=` | `EquipmentUsage : Read` | Kosong → "Belum ada pemakaian alat." |
+
+#### `FE-KEP-29` Surveilans infeksi luka operasi
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Kepala | Tindakan, tanggal operasi selesai, hari ke-N, status | `GET clinical-management/surgical-site-surveillances/{id}` | `SurgicalSiteSurveillance : Read` | Pasien tanpa kasus OK selesai → layar tidak tampil |
+| Kisi hari 1–15 | Indikator harian; kolom suhu terisi dari tanda vital dan tidak dapat diketik | Sama | Sama | Hari yang belum tiba terkunci |
+| Isian harian | Mengikuti definisi versi formulir | `PUT …/{id}/entries/{dayNumber}` | `SurgicalSiteSurveillance : Update` | Formulir berhenti → banner "Surveilans berhenti — pasien pulang hari ke-N" |
+| Kultur dan serologi | — | `PUT …/{id}/summary` | Sama | — |
+| Tombol Tandai dicurigai | Untuk tim PPI | `POST …/{id}/flag-suspected` | `SurgicalSiteSurveillance : Review` | Disembunyikan bagi yang tidak berhak |
+
+#### `FE-KEP-30` Daftar surveilans PPI
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Tabel | Pasien, tindakan, hari ke-N, status, dicurigai | `GET clinical-management/surgical-site-surveillances` | `SurgicalSiteSurveillance : Read` | Kosong → "Tidak ada surveilans pada saringan ini." |
+| Peringatan | "Formulir surveilans belum disahkan; surveilans tidak dibentuk" bila tidak ada versi `Approved` | Respons daftar | Sama | — |
+
+#### `FE-KEP-31` Monitoring transfusi
+
+```text
++- Monitoring Transfusi -------------------------------------------- FE-KEP-31 -+
+| [+ Mulai monitoring]  Kantong: [PMI-2026-0101 • PRC • diserahkan 09.00 v]     |
+| Titik       | Jatuh tempo | TD     | Suhu | Nadi | Oleh   | Status            |
+| Sebelum     | 09.10       | 120/80 | 36,8 | 82   | Siti   | Tercatat          |
+| 15 menit    | 09.25       | ...    |      |      |        | [Catat]           |
+| 1 jam / 4 jam ...                                                             |
+| [Catat reaksi] [Hentikan transfusi] [Selesai]                                 |
+| kosong -> "Belum ada kantong yang diserahkan Bank Darah untuk pasien ini."    |
++-------------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Pilihan kantong | Nomor kantong, komponen, waktu serah | `GET clinical-management/transfusion-monitorings/selectable-units?episodeId=` | `TransfusionMonitoring : Read` | Kosong → pesan pada skema |
+| Kisi titik ukur | Empat titik, jatuh tempo, nilai, status terlambat | `GET …/transfusion-monitorings?episodeId=` | Sama | — |
+| Catat titik | Nilai tanda vital; keterangan wajib bila terlambat | `PUT …/{id}/points/{pointType}` | `TransfusionMonitoring : Update` | 422 `CLI-TRF-003` → kolom keterangan disorot |
+| Catat reaksi | Ringkasan dan rincian; setelah simpan tampil "Bank Darah sudah diberi tahu" atau "Pemberitahuan sedang dikirim ulang" | `POST …/{id}/reactions` | Sama | — |
+
+#### `FE-KEP-32` Master Alat Medis dan `FE-KEP-33` Pemberitahuan Reaksi Transfusi
+
+Bentuk daftar dan formulir mengikuti layar master dan daftar yang sudah ada; tidak digambar ulang.
+
+| Layar | Sumber data | Butir hak akses | Kosong |
+|---|---|---|---|
+| `FE-KEP-32` | `GET/POST/PUT master-data/medical-equipments` | `MedicalEquipment : Read/Create/Update` | "Belum ada jenis alat." |
+| `FE-KEP-33` | `GET blood-bank-management/transfusion-reaction-notices`, `POST /{id}/acknowledge` | `TransfusionReactionNotice : Read/Acknowledge` | "Tidak ada pemberitahuan reaksi transfusi." |
+
+### 11.5 Penanganan keadaan
+
+| Keadaan | Perilaku |
+|---|---|
+| Rupiah | `FE-KEP-23` hanya memanggil `…/amounts` bila daftar permission pengguna memuat `PatientBillingSummary : ViewAmount` |
+| Data basi | WSD, titik transfusi, dan pemakaian alat memakai `ExpectedVersion`/revisi; 409 → "Data sudah diubah pengguna lain. Muat ulang." |
+| Pengiriman ganda | Tombol simpan nonaktif selama permintaan; diet memakai `IdempotencyKey` |
+| Waktu | Ditampilkan `Asia/Jakarta`; titik ukur transfusi menampilkan jatuh tempo dari server |
+
+### 11.6 Kewenangan UI
+
+| Hal | Kewenangan |
+|---|---|
+| Enam sub-menu Catatan Keperawatan dan urutannya | Mengikat (`RWI-DEC-172`) |
+| Empat sub-tab Obat & Alkes | Mengikat (`RWI-DEC-172` butir 3) |
+| Kolom suhu surveilans tidak dapat diketik | Mengikat (`RWI-DEC-202` butir 3) |
+| Nomor kantong tidak dapat diketik | Mengikat (`RWI-DEC-203` butir 1) |
+| Letak `FE-KEP-29` dan `FE-KEP-31` | **Diputuskan 2 Oktober 2026** — `RWI-DEC-211`, `RWI-DEC-212` |
+| Bentuk kisi, warna status, ikon | `DEV_DISCRETION` |
+
+### 11.7 Penyelarasan decision log revision `31` ★ 2 Oktober 2026
+
+| Keputusan | Akibat |
+|---|---|
+| `RWI-DEC-211` (`UI-RWF-01`) | `FE-KEP-29` dibuka dari sub-tab baru di Asuhan Keperawatan yang tampil hanya bila pasien punya kasus OK `Completed`; formulir yang sudah berhenti tetap terbaca di sub-tab itu dan di daftar PPI `FE-KEP-30` |
+| `RWI-DEC-212` (`UI-RWF-02`) | `FE-KEP-31` dibuka dari tab Bank Darah menu Penunjang Medis, bersama pesanan darah (`FE-DOK-17`) dan kantong yang sudah diserahkan |
+| `RWI-DEC-209` | Butir menu Reaksi Transfusi `FE-KEP-33` tidak lagi menunggu persetujuan Bank Darah |
+| `RWI-DEC-216` (`UI-RWF-05`) | Daftar surveilans PPI `FE-KEP-30` ditaruh di akhir kelompok keperawatan Daftar Pantau, sesudah `FE-KEP-22` |
+| `RWI-DEC-207` | Kelompok Operasi pada `FE-KEP-23` memuat baris operasi kunjungan asal yang tertaut, berlabel asalnya |
+| `RWI-DEC-213` | Laci Pasca Operasi `FE-INP-28` tetap jalan masuk ringkasan operasi; tidak ada perubahan di ruang kerja keperawatan |
+
+`UI-RWF-01` dan `UI-RWF-02` pada 11.3 tetap tertulis sebagai jejak pertanyaan; jawabannya di atas. Rupa di dalam letak itu `DEV_DISCRETION` (`RWI-FE-006`).

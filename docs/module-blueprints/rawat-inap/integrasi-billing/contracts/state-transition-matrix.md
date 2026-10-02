@@ -53,3 +53,80 @@ Sistem wajib menggagalkan upaya transisi ilegal berikut dan melemparkan exceptio
 3. **Mutasi Kamar saat Tagihan Kasir `CLOSED`:** Dilarang mengubah status kamar atau kelas perawatan bila folio kasir telah ditutup.
 4. **Penerbitan Event Outbox Tanpa Idempotency Key:** Dilarang menyimpan entri outbox dengan kunci idempoten kosong atau format tidak standar.
 5. **Hard-Delete Riwayat Hunian:** Dilarang menghapus baris `InpBedPlacement` yang lama saat koreksi kamar; wajib menggunakan transisi ke `IsSuperseded = true`.
+
+---
+
+## 5. Perubahan pada `contract_version` `1.1.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `1.1.0` |
+| Status | **`draft`** |
+| Owner | Muhammad Hamzah; sisi Billing Yasmina (`RWI-DEC-192`) |
+| `input_revision` | Decision log revision `30`; PRD Finishing v`0.4`; gate `1.9` |
+| Traceability | `BP-RWF-01`, `BP-RWF-02`; `RWI-DEC-166`, `167`, `169`, `186`, `187` |
+
+**Bagian 1 di atas tidak berlaku lagi.** Status `BillingClearanceStatus` di sisi Rawat Inap tidak lagi berpindah; status izin kasir hanya bergerak di Billing. Yang dicatat Rawat Inap hanya pengamatan (5.2).
+
+### 5.1 Pesan outbox Rawat Inap
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| — | Kejadian bisnis tersimpan | `Pending` | Sistem, dalam transaksi bisnis | Payload lolos daftar putih (`INV-RWF-05`) | Transaksi bisnis gagal; tidak ada event hantu |
+| `Pending` atau `Failed` (jatuh tempo coba ulang) | Worker mengambil | `Processing` | Worker | `ProcessingStartedAtUtc` diisi | — |
+| `Processing` | Billing mengembalikan tanda terima `Accepted = true` | `Published` | Worker | `AcknowledgedReceiptId` diisi | **Dilarang** tanpa tanda terima (`INV-RWF-04`) |
+| `Processing` | Billing menolak atau gagal dipanggil | `Failed` | Worker | `RetryCount + 1`; `NextRetryAtUtc` menurut backoff | — |
+| `Processing` | Masa sewa terlewati (aplikasi mati di tengah pengiriman) | `Pending` | Worker berikutnya | `ProcessingStartedAtUtc` lebih tua dari masa sewa | Pesan tersangkut selamanya (`FIN-FACT-06`) |
+| `Failed` | Batas coba ulang tercapai | `DeadLetter` | Worker | `RetryCount ≥ MaxRetry` | Tampil di `GET integration-outbox` |
+| `Published` atau `DeadLetter` | Putar ulang | `Pending` | Pemegang `InpatientIntegrationOutbox : Replay` | Episode masih aktif; `ReplayBatchId` diisi | — |
+| `Published` | Tindakan lain apa pun | — | — | — | Ditolak; pesan terkirim bersifat final kecuali lewat putar ulang |
+
+### 5.2 Jejak pengamatan status kasir pada episode
+
+Ini bukan status episode. `InpEpisodeStatus` tetap lima nilai (`RWI-DEC-009`); keluar ruangan tetap bukan perubahan status (`RWI-RULE-036`).
+
+| Kejadian | Kolom yang diisi | Nilai | Siapa | Dapat diubah |
+|---|---|---|---|---|
+| Keluar ruangan dicatat | `DepartureClearanceObserved`, `DepartureClearanceObservedAt`, `DepartureClearanceWarningAcknowledged` | Status kasir dari bacaan langsung, atau `Unreadable` | Pencatat keluar ruangan | Tidak. Keluar ruangan tidak dapat dibatalkan (`RWI-RULE-036`) |
+| Penutupan dengan override | `ClosureClearanceObserved` | Status kasir dari bacaan langsung, atau `Unreadable` | Pemegang `InpatientDischarge : CloseOverride` | Tidak; pembukaan kembali mengikuti `RWI-RULE-020` |
+| Penutupan normal | `ClosureClearanceObserved` | Selalu `Cleared` | Petugas admisi, supervisor | Tidak |
+
+### 5.3 Episode — gerbang keluar ruangan dan penutupan
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| `DischargePending`, bed terisi | Catat keluar ruangan, status kasir `CLEARED` | `DischargePending`, bed `Available` | `InpatientDischarge : RecordDeparture` | — | — |
+| `DischargePending`, bed terisi | Catat keluar ruangan, status kasir bukan `CLEARED` atau tidak terbaca | `DischargePending`, bed `Available` | Sama | `ClearanceWarningAcknowledged = true` | 409 `INP-DEP-001`, tidak ada perubahan |
+| `Admitted` | Catat keluar ruangan | — | — | — | 422; DPJP belum memutuskan pulang |
+| `DischargePending` | Tutup normal | `Closed` | `InpatientDischarge : Close` | Bacaan langsung `CLEARED` **dan** syarat `RWI-RULE-010` lain | 422 `INP-CLS-010` atau `INP-CLS-011` |
+| `DischargePending` | Tutup dengan override | `Closed`, `IsClosedWithoutFinancialClearance = true` | `InpatientDischarge : CloseOverride` | Alasan tidak kosong dan tidak hanya tanda baca | 400 `INP-CLS-012`; 403 tanpa permission. **Nama peran tidak diperiksa** |
+| `Closed` | Tutup lagi | — | — | — | 409 |
+
+**Penguncian ulang otomatis** (`RWI-DEC-158`) tidak punya transisi di Rawat Inap: begitu Billing mencabut izin, bacaan berikutnya mengembalikan `REVOKED`, dan penutupan normal ditolak.
+
+### 5.4 Penempatan bed — koreksi salah catat
+
+| Dari keadaan | Tindakan | Ke keadaan | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| Penempatan berlaku | Koreksi | Baris lama: `SupersededByCorrectionId` terisi. Baris baru: `CorrectsPlacementId` terisi, `Version` lama + 1 | `InpatientBedOccupancy : Correct` | Invoice `RANAP` berstatus `OPEN` dari bacaan langsung; alasan wajib; versi cocok | 422 `INP-COR-001`/`002`; 409 `INP-COR-003` |
+| Penempatan yang sudah dikoreksi (`SupersededByCorrectionId` terisi) | Koreksi lagi | — | — | — | 409; koreksi selalu dilakukan pada baris yang berlaku |
+| Penempatan berlaku | Hapus | — | — | — | Tidak ada endpoint hapus; penghapusan sungguhan dilarang |
+
+### 5.5 Invoice — tanda "perlu diperiksa" (Billing)
+
+| Dari | Tindakan | Ke | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| `RequiresReview = false` | Billing menemukan biaya kamar manual dan tarif kamar otomatis sekaligus | `RequiresReview = true`, `ReviewReasonCode = MANUAL_AND_AUTOMATIC_ROOM_CHARGE` | Sistem Billing | — | — |
+| `RequiresReview = true` | Kasir menyelesaikan pemeriksaan | `RequiresReview = false`, `ReviewResolvedAt` terisi | `BillingInvoice : Update` | Tidak ada lagi biaya kamar manual yang aktif bersamaan dengan tarif kamar otomatis | 422 `BIL-REV-001` |
+| Invoice `OPEN`, `RequiresReview = true` | Finalisasi | — | — | — | 422 `BIL-FIN-020` |
+| Invoice `OPEN` dengan baris `TARIFF_NOT_FOUND` | Finalisasi | — | — | — | 422 `BIL-FIN-021` |
+
+### 5.6 Tanda terima event (Billing)
+
+| Kejadian | Hasil | Akibat |
+|---|---|---|
+| `ADMISSION_CONFIRMED`, invoice belum ada | `INVOICE_OPENED` | Invoice `RANAP` `OPEN` terbuka |
+| `ADMISSION_CONFIRMED`, invoice sudah ada | `INVOICE_ALREADY_OPEN` | Tidak ada invoice kedua |
+| `BED_OCCUPIED`, `OCCUPANCY_CORRECTED`, `BED_RELEASED` | `RECALCULATED` | Versi hitungan baru; invoice dibuka lebih dulu bila belum ada |
+| Kunci idempotensi sudah pernah diterima | `DUPLICATE`, `Accepted = true` | Tidak ada efek kedua |
+| Encounter tidak dikenal | `REJECTED_UNKNOWN_ENCOUNTER`, `Accepted = false` | Pesan Rawat Inap `Failed`, lalu `DeadLetter` |
