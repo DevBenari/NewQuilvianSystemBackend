@@ -40,10 +40,10 @@ Tangga tahap yang berlaku dan sudah terbukti ujung ke ujung:
 | Backend | `SUBSTANTIAL` |
 | Frontend | `SUBSTANTIAL` |
 | Integrasi | `SUBSTANTIAL` — clearance terbukti ujung ke ujung; producer tagihan menunggu approval Billing |
-| Verifikasi | `SUBSTANTIAL` — **88 uji** regresi ditambah bukti runtime penuh |
+| Verifikasi | `STRONG` — **120 uji** regresi ditambah bukti runtime penuh |
 
-**Perkiraan ketuntasan: ~93%.** Diukur ketat "berfungsi hari ini di integration", producer
-tagihan belum menyala sehingga angkanya lebih dekat ~88%.
+**Perkiraan ketuntasan: ~95%.** Diukur ketat "berfungsi hari ini di integration", producer
+tagihan belum menyala sehingga angkanya lebih dekat ~90%.
 
 Uji pada `Tests/QuilvianSystemBackend.PharmacyTests`:
 
@@ -54,10 +54,19 @@ Uji pada `Tests/QuilvianSystemBackend.PharmacyTests`:
 | `FinancialClearanceTests` | 20 | `PrescriptionFinancialClearanceService` — ketiga hasil finansial, fail-closed, pencabutan, versi, idempotensi, keempat gerbang |
 | `PharmacyWorkflowTests` | 31 | telaah resep, klarifikasi dokter, penyiapan, telaah obat akhir, tangga tahap 2 → 7 |
 | `DispensingGuardTests` | 20 | `PrescriptionDispensingService` — penjagaan tahap, izin finansial, depo, petugas, baris dan jumlah, pembatalan |
+| `DispenseFlowTests` | 18 | `DispenseAsync` — penyerahan penuh dan sebagian, mutasi stok, idempotensi, fakta klinis, gerbang finansial |
+| `LabelAndStockTests` | 14 | `PrescriptionLabelService`, `DrugStockService` — penahanan, pelepasan, FEFO, pengeluaran |
 
-**Belum teruji:** `PrescriptionDispensingService.DispenseAsync` (menerbitkan fakta klinis ke
-Billing, menuntut container DI sebenarnya), penyerahan sebagian dan penuh, retur obat, etiket
-obat, dan integrasi stok.
+Uji penyerahan memakai **container DI sungguhan** (`ServiceCollection`/`BuildServiceProvider`)
+dengan registrasi yang sama seperti aplikasi, karena rantai fakta klinis membuka scope-nya
+sendiri lewat `IServiceScopeFactory`; tiruan kosong akan membuat jalur itu diam-diam tidak
+berjalan.
+
+**Belum teruji:** `DrugReturnService` (retur obat — 8 method, daur hidup tersendiri),
+permission matrix tingkat HTTP, dan 19 controller Farmasi lainnya.
+
+**Bug terbuka:** [`BUG-PHA-BE-002`](bug-pha-be-002-klarifikasi-tertutup.md) — klarifikasi yang
+sudah ditutup masih dapat dijawab dokter.
 
 ## Permukaan yang sudah berdiri
 

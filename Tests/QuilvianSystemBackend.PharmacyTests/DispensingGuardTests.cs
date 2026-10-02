@@ -52,7 +52,7 @@ public class DispensingGuardTests
         await using var k = h.CreateContext();
 
         var galat = await Assert.ThrowsAsync<PrescriptionDispensingConflictException>(() =>
-            h.DispensingService(k).PrepareAsync(h.ResepId, Penyiapan(h)));
+            h.Penyerahan().Layanan.PrepareAsync(h.ResepId, Penyiapan(h)));
 
         Assert.Equal("PHM110", galat.Code);
     }
@@ -73,7 +73,7 @@ public class DispensingGuardTests
             hasil: null, versi: 2, alasan: "PAYMENT_REVERSED");
 
         var galat = await Assert.ThrowsAsync<PrescriptionDispensingConflictException>(() =>
-            h.DispensingService(k).PrepareAsync(h.ResepId, Penyiapan(h)));
+            h.Penyerahan().Layanan.PrepareAsync(h.ResepId, Penyiapan(h)));
 
         Assert.StartsWith("PHA_CLR_", galat.Code);
     }
@@ -88,7 +88,7 @@ public class DispensingGuardTests
         await h.TerimaSuratAsync(k);
 
         var galat = await Assert.ThrowsAsync<PrescriptionDispensingConflictException>(() =>
-            h.DispensingService(k).PrepareAsync(h.ResepId, Penyiapan(h)));
+            h.Penyerahan().Layanan.PrepareAsync(h.ResepId, Penyiapan(h)));
 
         Assert.Equal("PHM110", galat.Code);
     }
@@ -106,7 +106,7 @@ public class DispensingGuardTests
         await k.SaveChangesAsync();
 
         var galat = await Assert.ThrowsAsync<PrescriptionDispensingConflictException>(() =>
-            h.DispensingService(k).PrepareAsync(h.ResepId, Penyiapan(h)));
+            h.Penyerahan().Layanan.PrepareAsync(h.ResepId, Penyiapan(h)));
 
         Assert.Equal("PHM109", galat.Code);
     }
@@ -118,7 +118,7 @@ public class DispensingGuardTests
         await using var k = h.CreateContext();
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
-            h.DispensingService(k).PrepareAsync(Guid.NewGuid(), Penyiapan(h)));
+            h.Penyerahan().Layanan.PrepareAsync(Guid.NewGuid(), Penyiapan(h)));
     }
 
     // ------------------------------------------------------------- depo & petugas
@@ -132,7 +132,7 @@ public class DispensingGuardTests
         await h.SampaiSiapDiserahkanAsync(k);
 
         var galat = await Assert.ThrowsAsync<PrescriptionDispensingUnprocessableException>(() =>
-            h.DispensingService(k).PrepareAsync(h.ResepId, Penyiapan(h, depo: Guid.NewGuid())));
+            h.Penyerahan().Layanan.PrepareAsync(h.ResepId, Penyiapan(h, depo: Guid.NewGuid())));
 
         Assert.Equal("PHM112", galat.Code);
     }
@@ -145,7 +145,7 @@ public class DispensingGuardTests
         await h.SampaiSiapDiserahkanAsync(k);
 
         var galat = await Assert.ThrowsAsync<PrescriptionDispensingUnprocessableException>(() =>
-            h.DispensingService(k).PrepareAsync(h.ResepId,
+            h.Penyerahan().Layanan.PrepareAsync(h.ResepId,
                 Penyiapan(h, depo: h.DepoNonaktifId)));
 
         Assert.Equal("PHM112", galat.Code);
@@ -161,7 +161,7 @@ public class DispensingGuardTests
         await h.SampaiSiapDiserahkanAsync(k);
 
         var galat = await Assert.ThrowsAsync<PrescriptionDispensingUnprocessableException>(() =>
-            h.DispensingService(k).PrepareAsync(h.ResepId,
+            h.Penyerahan().Layanan.PrepareAsync(h.ResepId,
                 Penyiapan(h, depo: h.GudangTanpaPenyerahanId)));
 
         Assert.Equal("PHM112", galat.Code);
@@ -176,7 +176,7 @@ public class DispensingGuardTests
         await h.SampaiSiapDiserahkanAsync(k);
 
         var galat = await Assert.ThrowsAsync<PrescriptionDispensingUnprocessableException>(() =>
-            h.DispensingService(k).PrepareAsync(h.ResepId,
+            h.Penyerahan().Layanan.PrepareAsync(h.ResepId,
                 Penyiapan(h, petugas: h.PetugasNonaktifId)));
 
         Assert.Equal("PHM113", galat.Code);
@@ -190,7 +190,7 @@ public class DispensingGuardTests
         await h.SampaiSiapDiserahkanAsync(k);
 
         var galat = await Assert.ThrowsAsync<PrescriptionDispensingUnprocessableException>(() =>
-            h.DispensingService(k).PrepareAsync(h.ResepId,
+            h.Penyerahan().Layanan.PrepareAsync(h.ResepId,
                 Penyiapan(h, petugas: Guid.NewGuid())));
 
         Assert.Equal("PHM113", galat.Code);
@@ -210,7 +210,7 @@ public class DispensingGuardTests
         permintaan.Items.Clear();
 
         var galat = await Assert.ThrowsAsync<PrescriptionDispensingUnprocessableException>(() =>
-            h.DispensingService(k).PrepareAsync(h.ResepId, permintaan));
+            h.Penyerahan().Layanan.PrepareAsync(h.ResepId, permintaan));
 
         Assert.Equal("PHM101", galat.Code);
     }
@@ -224,7 +224,7 @@ public class DispensingGuardTests
         await h.SampaiSiapDiserahkanAsync(k);
 
         var galat = await Assert.ThrowsAsync<PrescriptionDispensingUnprocessableException>(() =>
-            h.DispensingService(k).PrepareAsync(h.ResepId,
+            h.Penyerahan().Layanan.PrepareAsync(h.ResepId,
                 Penyiapan(h, itemId: Guid.NewGuid())));
 
         Assert.Equal("PHM102", galat.Code);
@@ -241,7 +241,7 @@ public class DispensingGuardTests
         await h.SampaiSiapDiserahkanAsync(k);
 
         var galat = await Assert.ThrowsAsync<PrescriptionDispensingUnprocessableException>(() =>
-            h.DispensingService(k).PrepareAsync(h.ResepId, Penyiapan(h, jumlah: jumlah)));
+            h.Penyerahan().Layanan.PrepareAsync(h.ResepId, Penyiapan(h, jumlah: jumlah)));
 
         Assert.Equal("PHM103", galat.Code);
     }
@@ -256,7 +256,7 @@ public class DispensingGuardTests
         await h.SampaiSiapDiserahkanAsync(k);
 
         var galat = await Assert.ThrowsAsync<PrescriptionDispensingUnprocessableException>(() =>
-            h.DispensingService(k).PrepareAsync(h.ResepId, Penyiapan(h, jumlah: 11)));
+            h.Penyerahan().Layanan.PrepareAsync(h.ResepId, Penyiapan(h, jumlah: 11)));
 
         Assert.Equal("PHM104", galat.Code);
     }
@@ -274,7 +274,7 @@ public class DispensingGuardTests
         await k.SaveChangesAsync();
 
         var galat = await Assert.ThrowsAsync<PrescriptionDispensingUnprocessableException>(() =>
-            h.DispensingService(k).PrepareAsync(h.ResepId, Penyiapan(h)));
+            h.Penyerahan().Layanan.PrepareAsync(h.ResepId, Penyiapan(h)));
 
         Assert.Equal("PHM115", galat.Code);
     }
@@ -287,7 +287,7 @@ public class DispensingGuardTests
         await h.SampaiSiapDiserahkanAsync(k);
 
         await Assert.ThrowsAnyAsync<Exception>(() =>
-            h.DispensingService(k).PrepareAsync(h.ResepId, Penyiapan(h, kunci: "  ")));
+            h.Penyerahan().Layanan.PrepareAsync(h.ResepId, Penyiapan(h, kunci: "  ")));
     }
 
     // ------------------------------------------------------------- pembatalan
@@ -301,7 +301,7 @@ public class DispensingGuardTests
         await h.SampaiSiapDiserahkanAsync(k);
 
         var galat = await Assert.ThrowsAsync<PrescriptionDispensingUnprocessableException>(() =>
-            h.DispensingService(k).CancelAsync(h.ResepId, Guid.NewGuid(), new CancelPrescriptionDispensingRequest
+            h.Penyerahan().Layanan.CancelAsync(h.ResepId, Guid.NewGuid(), new CancelPrescriptionDispensingRequest
             {
                 Reason = "   ",
                 ExpectedVersion = 0,
@@ -319,7 +319,7 @@ public class DispensingGuardTests
         await h.SampaiSiapDiserahkanAsync(k);
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
-            h.DispensingService(k).CancelAsync(h.ResepId, Guid.NewGuid(), new CancelPrescriptionDispensingRequest
+            h.Penyerahan().Layanan.CancelAsync(h.ResepId, Guid.NewGuid(), new CancelPrescriptionDispensingRequest
             {
                 Reason = "Salah input",
                 ExpectedVersion = 0,
@@ -335,7 +335,7 @@ public class DispensingGuardTests
         using var h = new PharmacyHarness();
         await using var k = h.CreateContext();
 
-        Assert.Null(await h.DispensingService(k).GetSummaryAsync(Guid.NewGuid()));
+        Assert.Null(await h.Penyerahan().Layanan.GetSummaryAsync(Guid.NewGuid()));
     }
 
     [Fact]
@@ -346,7 +346,7 @@ public class DispensingGuardTests
         await using var k = h.CreateContext();
         await h.SampaiSiapDiserahkanAsync(k);
 
-        var ringkasan = await h.DispensingService(k).GetSummaryAsync(h.ResepId);
+        var ringkasan = await h.Penyerahan().Layanan.GetSummaryAsync(h.ResepId);
 
         Assert.NotNull(ringkasan);
         Assert.Equal(h.ResepId, ringkasan!.PrescriptionId);

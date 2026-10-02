@@ -39,6 +39,8 @@ public sealed class PharmacyHarness : IDisposable
 {
     private readonly TestDatabase _database;
     private readonly List<ApplicationDbContext> _contexts = [];
+    private readonly List<IServiceScope> _scopes = [];
+    private ServiceProvider? _container;
 
     public PharmacyHarness(bool denganRacikan = false)
     {
@@ -208,6 +210,10 @@ public sealed class PharmacyHarness : IDisposable
 
     public PrescriptionFinancialClearanceService ClearanceService(ApplicationDbContext k) => new(k);
 
+    public DrugStockService StokService(ApplicationDbContext k) =>
+        new(k, Accessor(ApotekerId),
+            new LoggerService(NullLogger<LoggerService>.Instance, Accessor(ApotekerId)));
+
     /// <summary>
     /// Service penyerahan obat, lengkap dengan rantai dependency-nya.
     /// </summary>
@@ -227,26 +233,6 @@ public sealed class PharmacyHarness : IDisposable
     /// berhasil.
     /// </para>
     /// </remarks>
-    public PrescriptionDispensingService DispensingService(ApplicationDbContext k)
-    {
-        var accessor = Accessor(ApotekerId);
-        var logger = new LoggerService(
-            NullLogger<LoggerService>.Instance, Accessor(ApotekerId));
-
-        var bridge = new BillingClinicalChargeBridgeService(
-            new ScopeFactoryKosong(),
-            NullLogger<BillingClinicalChargeBridgeService>.Instance);
-
-        return new PrescriptionDispensingService(
-            k,
-            accessor,
-            logger,
-            new DrugStockService(k, Accessor(ApotekerId), logger),
-            ClearanceService(k),
-            new ClinicalMilestoneFactProducer(k, new BillingFolioService(k, bridge), logger),
-            NullLogger<PrescriptionDispensingService>.Instance);
-    }
-
     private static IHttpContextAccessor Accessor(Guid userId)
     {
         var context = new DefaultHttpContext
@@ -266,13 +252,86 @@ public sealed class PharmacyHarness : IDisposable
         public HttpContext? HttpContext { get; set; } = context;
     }
 
-    /// <summary>Ujung rantai DI yang tidak tersentuh oleh jalur yang diuji.</summary>
-    private sealed class ScopeFactoryKosong : IServiceScopeFactory, IServiceScope, IServiceProvider
+    /// <summary>
+    /// Container DI sungguhan untuk jalur penyerahan obat, dibangun sekali per harness.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>DispenseAsync</c> menerbitkan fakta klinis ke Billing lewat rantai
+    /// dispensing → <c>ClinicalMilestoneFactProducer</c> → <c>BillingFolioService</c> →
+    /// <c>BillingClinicalChargeBridgeService</c> → <c>IServiceScopeFactory</c>. Ujung rantai itu
+    /// membuka scope-nya sendiri dan menyelesaikan service dari dalamnya, jadi tiruan kosong akan
+    /// membuat jalur itu diam-diam tidak berjalan — dan uji yang lulus karena tidak ada yang
+    /// dijalankan tidak membuktikan apa pun.
+    /// </para>
+    /// <para>
+    /// Container ini memakai registrasi yang sama dengan aplikasi dan <c>DbContext</c> yang
+    /// menunjuk koneksi SQLite yang sama, sehingga scope turunan melihat data yang sama dengan
+    /// uji yang memanggilnya.
+    /// </para>
+    /// </remarks>
+    private ServiceProvider BangunContainer()
     {
-        public IServiceScope CreateScope() => this;
-        public IServiceProvider ServiceProvider => this;
-        public object? GetService(Type serviceType) => null;
-        public void Dispose() { }
+        var layanan = new ServiceCollection();
+
+        layanan.AddLogging();
+        layanan.AddSingleton<IHttpContextAccessor>(_ => Accessor(ApotekerId));
+        layanan.AddScoped(_ => _database.CreateContext());
+        layanan.AddScoped<LoggerService>();
+        layanan.AddScoped<DrugStockService>();
+        layanan.AddScoped<PrescriptionFinancialClearanceService>();
+        layanan.AddScoped<BillingClinicalChargeBridgeService>();
+        layanan.AddScoped<BillingFolioService>();
+        layanan.AddScoped<ClinicalMilestoneFactProducer>();
+        layanan.AddScoped<PrescriptionDispensingService>();
+
+        return layanan.BuildServiceProvider();
+    }
+
+    /// <summary>
+    /// Service penyerahan dari container DI sungguhan, beserta <c>DbContext</c> yang dipakainya.
+    /// </summary>
+    /// <remarks>
+    /// Konteksnya dikembalikan sekalian karena uji perlu memeriksa keadaan yang dilihat service
+    /// itu — bukan keadaan pada konteks lain yang kebetulan menunjuk koneksi yang sama.
+    /// </remarks>
+    public (PrescriptionDispensingService Layanan, ApplicationDbContext Konteks) Penyerahan()
+    {
+        _container ??= BangunContainer();
+        var scope = _container.CreateScope();
+        _scopes.Add(scope);
+
+        return (scope.ServiceProvider.GetRequiredService<PrescriptionDispensingService>(),
+            scope.ServiceProvider.GetRequiredService<ApplicationDbContext>());
+    }
+
+    /// <summary>Menyediakan satu bets obat bersaldo di depo penyerahan.</summary>
+    public async Task SediakanStokAsync(ApplicationDbContext konteks, decimal jumlah = 100)
+    {
+        var betsId = Guid.NewGuid();
+
+        konteks.Set<PhmDrugBatch>().Add(new PhmDrugBatch
+        {
+            Id = betsId,
+            DrugId = ObatId,
+            BatchNumber = "UJI-PHM-BATCH-1",
+            ExpiryDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+            CreateDateTime = DateTime.UtcNow
+        });
+
+        konteks.Set<PhmDrugStockBalance>().Add(new PhmDrugStockBalance
+        {
+            Id = Guid.NewGuid(),
+            DrugId = ObatId,
+            DrugBatchId = betsId,
+            StorageLocationId = DepoId,
+            Status = DrugStockStatus.Available,
+            QuantityOnHand = jumlah,
+            QuantityReserved = 0,
+            CreateDateTime = DateTime.UtcNow
+        });
+
+        await konteks.SaveChangesAsync();
     }
 
     public PrescriptionReviewService ReviewService(ApplicationDbContext k) =>
@@ -418,6 +477,8 @@ public sealed class PharmacyHarness : IDisposable
 
     public void Dispose()
     {
+        foreach (var scope in _scopes) scope.Dispose();
+        _container?.Dispose();
         foreach (var konteks in _contexts) konteks.Dispose();
         _database.Dispose();
     }
