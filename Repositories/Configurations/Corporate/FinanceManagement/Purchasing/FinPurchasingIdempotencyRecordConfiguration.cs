@@ -23,6 +23,11 @@ public sealed class FinPurchasingIdempotencyRecordConfiguration : IEntityTypeCon
         entity.Property(x => x.Action).HasMaxLength(20).IsRequired();
         entity.Property(x => x.ResponseBody).HasColumnType("text").IsRequired();
         entity.Property(x => x.CreateDateTime).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
+        entity.Property(x => x.UpdateDateTime).HasColumnType("timestamp with time zone");
+        entity.Property(x => x.DeleteDateTime).HasColumnType("timestamp with time zone");
+        entity.Property(x => x.CancelDateTime).HasColumnType("timestamp with time zone");
+        entity.Property(x => x.IsDelete).HasDefaultValue(false);
+        entity.Property(x => x.IsCancel).HasDefaultValue(false);
 
         // Baris dedup utama — satu IdempotencyKey hanya pernah punya satu hasil.
         entity.HasIndex(x => x.IdempotencyKey).IsUnique().HasDatabaseName("IX_FinPurchasingIdempotencyRecord_IdempotencyKey");
