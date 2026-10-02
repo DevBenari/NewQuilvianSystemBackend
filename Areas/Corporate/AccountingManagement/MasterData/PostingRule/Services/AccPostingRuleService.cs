@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.PostingRule.DTOs;
@@ -195,6 +196,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                     StatusCodes.Status400BadRequest, "Jenis kejadian wajib dipilih dan harus aktif.");
             }
 
+            if (jenisKejadian.EventKind == EventTypeKind.SaldoSubledger)
+                return JenisSaldoSubledger<PostingRuleDetailResponse>(jenisKejadian.EventTypeCode);
+
             var siap = await SiapkanAsync(
                 request.LegalEntityId, request.JournalTypeId, request.Treatment, request.Lines, ct);
 
@@ -270,6 +274,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
 
             var aturan = await MuatLengkapAsync(_db, id, lacak: true, ct);
             if (aturan is null) return TidakDitemukan<PostingRuleDetailResponse>();
+
+            if (aturan.EventType?.EventKind == EventTypeKind.SaldoSubledger)
+                return JenisSaldoSubledger<PostingRuleDetailResponse>(aturan.EventType.EventTypeCode);
 
             var siap = await SiapkanAsync(
                 aturan.LegalEntityId, request.JournalTypeId, request.Treatment, request.Lines, ct);
@@ -630,6 +637,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                 StatusCodes.Status409Conflict,
                 $"Jenis kejadian {kodeJenis} sudah punya aturan posting aktif pada badan hukum ini. "
                 + "Nonaktifkan aturan lama lebih dahulu, atau ubah aturan yang sudah ada.");
+
+        private static AccountingServiceResult<T> JenisSaldoSubledger<T>(string kodeJenis)
+            => Gagal<T>(
+                StatusCodes.Status422UnprocessableEntity,
+                $"Jenis kejadian {kodeJenis} berperlakuan Saldo Subledger. "
+                + "Pesan saldo tidak pernah menjadi jurnal, sehingga tidak memerlukan aturan posting.");
 
         private static AccountingServiceResult<T> Gagal<T>(int statusCode, string pesan)
             => AccountingServiceResult<T>.Fail(statusCode, pesan);

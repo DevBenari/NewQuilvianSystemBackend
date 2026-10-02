@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -464,6 +464,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction(
             "Create",
             "Create Patient",
@@ -482,6 +483,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
             if (!validation.IsValid)
             {
+                if (validation.ErrorCode == "PATIENT_IDENTITY_ALREADY_EXISTS")
+                {
+                    return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        validation.ErrorMessage ?? "Nomor identitas sudah digunakan oleh patient lain.",
+                        new
+                        {
+                            code = "PATIENT_IDENTITY_ALREADY_EXISTS",
+                            identityNumber = request.IdentityNumber
+                        }
+                    ));
+                }
+
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     validation.ErrorMessage ?? "Data patient tidak valid."
@@ -741,6 +755,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [HttpPost("admin")]
         [ProducesResponseType(typeof(ApiResponse<PatientCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessPermission("Patient", "Create")]
         public async Task<IActionResult> CreatePatientForAdmin([FromBody] CreatePatientRequest request)
         {
@@ -752,6 +767,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction(
             "Update",
             "Update Patient",
@@ -784,6 +800,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
             if (!validation.IsValid)
             {
+                if (validation.ErrorCode == "PATIENT_IDENTITY_ALREADY_EXISTS")
+                {
+                    return StatusCode(StatusCodes.Status409Conflict, ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        validation.ErrorMessage ?? "Nomor identitas sudah digunakan oleh patient lain.",
+                        new
+                        {
+                            code = "PATIENT_IDENTITY_ALREADY_EXISTS",
+                            identityNumber = request.IdentityNumber
+                        }
+                    ));
+                }
+
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     validation.ErrorMessage ?? "Data patient tidak valid."
@@ -2084,7 +2113,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             };
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
+        private async Task<(bool IsValid, string? ErrorMessage, string? ErrorCode)> ValidateRequestAsync(
             Guid? excludeId,
             CreatePatientRequest request,
             Guid? mergedToPatientId,
@@ -2092,52 +2121,52 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         {
             if (string.IsNullOrWhiteSpace(request.FullName))
             {
-                return (false, "Nama patient wajib diisi.");
+                return (false, "Nama patient wajib diisi.", null);
             }
 
             if (!Enum.IsDefined(typeof(PatientType), request.PatientType))
             {
-                return (false, "Tipe patient tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+                return (false, "Tipe patient tidak valid. Gunakan nilai dari endpoint filters/metadata.", null);
             }
 
             if (!Enum.IsDefined(typeof(PatientStatus), request.PatientStatus))
             {
-                return (false, "Status patient tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+                return (false, "Status patient tidak valid. Gunakan nilai dari endpoint filters/metadata.", null);
             }
 
             if (!Enum.IsDefined(typeof(PatientRegistrationSource), request.RegistrationSource))
             {
-                return (false, "Sumber registrasi patient tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+                return (false, "Sumber registrasi patient tidak valid. Gunakan nilai dari endpoint filters/metadata.", null);
             }
 
             if (request.Gender.HasValue && !Enum.IsDefined(typeof(Gender), request.Gender.Value))
             {
-                return (false, "Gender tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+                return (false, "Gender tidak valid. Gunakan nilai dari endpoint filters/metadata.", null);
             }
 
             if (!Enum.IsDefined(typeof(Religion), request.Religion))
             {
-                return (false, "Agama tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+                return (false, "Agama tidak valid. Gunakan nilai dari endpoint filters/metadata.", null);
             }
 
             if (!Enum.IsDefined(typeof(MaritalStatus), request.MaritalStatus))
             {
-                return (false, "Status pernikahan tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+                return (false, "Status pernikahan tidak valid. Gunakan nilai dari endpoint filters/metadata.", null);
             }
 
             if (!Enum.IsDefined(typeof(BloodType), request.BloodType))
             {
-                return (false, "Golongan darah tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+                return (false, "Golongan darah tidak valid. Gunakan nilai dari endpoint filters/metadata.", null);
             }
 
             if (request.IsDeceased && !request.DeceasedDate.HasValue)
             {
-                return (false, "Tanggal meninggal wajib diisi jika patient ditandai meninggal.");
+                return (false, "Tanggal meninggal wajib diisi jika patient ditandai meninggal.", null);
             }
 
             if (!request.IsDeceased && request.DeceasedDate.HasValue)
             {
-                return (false, "Tanggal meninggal hanya boleh diisi jika patient ditandai meninggal.");
+                return (false, "Tanggal meninggal hanya boleh diisi jika patient ditandai meninggal.", null);
             }
 
             var identityNumber = NormalizeNullableString(request.IdentityNumber);
@@ -2160,7 +2189,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
                 if (await duplicateIdentityQuery.AnyAsync())
                 {
-                    return (false, "Nomor identitas sudah digunakan oleh patient lain.");
+                    return (false, "Nomor identitas sudah digunakan oleh patient lain.", "PATIENT_IDENTITY_ALREADY_EXISTS");
                 }
             }
 
@@ -2174,7 +2203,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
             if (!regionValidation.IsValid)
             {
-                return regionValidation;
+                return (false, regionValidation.ErrorMessage, null);
             }
 
             var membershipValidation = await ValidateMembershipReferencesAsync(
@@ -2185,7 +2214,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
             if (!membershipValidation.IsValid)
             {
-                return membershipValidation;
+                return (false, membershipValidation.ErrorMessage, null);
             }
 
             var newbornValidation = await ValidateNewbornReferencesAsync(
@@ -2196,7 +2225,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
             if (!newbornValidation.IsValid)
             {
-                return newbornValidation;
+                return (false, newbornValidation.ErrorMessage, null);
             }
 
             var mergedValidation = await ValidateMergedPatientReferenceAsync(
@@ -2207,10 +2236,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
             if (!mergedValidation.IsValid)
             {
-                return mergedValidation;
+                return (false, mergedValidation.ErrorMessage, null);
             }
 
-            return (true, null);
+            return (true, null, null);
         }
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRegionReferencesAsync(

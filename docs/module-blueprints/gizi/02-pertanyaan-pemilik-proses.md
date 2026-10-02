@@ -4,9 +4,27 @@
 |---|---|
 | Blueprint ID | `gizi` |
 | Revision | `1` |
-| Status | `menunggu jawaban` |
+| Status | **`TERJAWAB`** — keputusan V1, 25 September 2026 |
 | Ditujukan kepada | Pemilik proses gizi rumah sakit |
-| Menutup | `GIZ-OQ-002`, `GIZ-OQ-004`, `GIZ-OQ-006` |
+| Menutup | `GIZ-OQ-002`, `GIZ-OQ-004`, `GIZ-OQ-006` — ketiganya **tertutup** |
+
+> ## ✅ TERJAWAB — keputusan V1, 25 September 2026
+>
+> Ketiga pertanyaan pada lembar ini sudah dijawab pemilik proses gizi dan dicatat sebagai
+> `GIZ-DEC-011`, `GIZ-DEC-012`, dan `GIZ-DEC-014` pada
+> [`00-interview-decisions.md`](00-interview-decisions.md).
+>
+> | Pertanyaan | Jawaban V1 |
+> |---|---|
+> | `GIZ-OQ-002` isi master diagnosis | Master berkode milik Gizi, baseline **IDNT**, berkolom `Code`, `Name`, `Domain`; domain `NI`, `NC`, `NB`; tanpa isian bebas |
+> | `GIZ-OQ-004` kebutuhan nutrisi | Energi kkal/hari, protein/lemak/karbohidrat gram/hari, cairan ml/hari. Sistem menghitung, ahli gizi boleh mengoreksi; simpan nilai kalkulasi, nilai final, alasan, pelaku, waktu. Diet dari master. Berhistori |
+> | `GIZ-OQ-006` pemilik proses | Kepala Instalasi Gizi / Kepala Unit Gizi |
+>
+> **Satu hal belum diserahkan:** rumus kalkulasi beserta faktor dan sumbernya. Strukturnya
+> sudah disiapkan menerima rumus, tetapi tidak ada rumus yang dikarang. Tercatat sebagai
+> `GIZ-OQ-007`.
+>
+> Isi lembar di bawah dipertahankan apa adanya sebagai catatan apa yang ditanyakan.
 
 ## Mengapa lembar ini ada
 

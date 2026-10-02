@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -170,6 +170,146 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
         /// </remarks>
         [MaxLength(500)]
         public string? WorkingDiagnosis { get; set; }
+
+        // =========================
+        // KAJIAN MEDIS OPERASIONAL (PARITAS V1)
+        // =========================
+        public DateTime? TglKajian { get; set; }
+
+        [MaxLength(150)]
+        public string? KajianUtamaPengkajian { get; set; }
+
+        [MaxLength(2000)]
+        public string? RiwayatPenyakitSekarang { get; set; }
+
+        [MaxLength(2000)]
+        public string? RiwayatPenyakitDahulu { get; set; }
+
+        [MaxLength(2000)]
+        public string? RiwayatPenyakitKeluarga { get; set; }
+
+        [MaxLength(1000)]
+        public string? RiwayatAlergi { get; set; }
+
+        [MaxLength(100)]
+        public string? KeadaanUmum { get; set; }
+
+        [MaxLength(100)]
+        public string? Kesadaran { get; set; }
+
+        // Regio Fisik Terstruktur
+        [MaxLength(1000)]
+        public string? KeadaanKepala { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanMata { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanMulut { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanTHT { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanLeher { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanKulit { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanThorak { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanDada { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanJantung { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanParuParu { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanPunggung { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanAbdomen { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanGenitalia { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanEkstremitas { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanAnggotaGerak { get; set; }
+
+        [MaxLength(2000)]
+        public string? StatusLokalis { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeadaanLainnya { get; set; }
+
+        // 12 Saklar DBN (Dalam Batas Normal)
+        public bool IsDBNKepala { get; set; } = false;
+        public bool IsDBNMata { get; set; } = false;
+        public bool IsDBNMulut { get; set; } = false;
+        public bool IsDBNTHT { get; set; } = false;
+        public bool IsDBNLeher { get; set; } = false;
+        public bool IsDBNThorak { get; set; } = false;
+        public bool IsDBNJantung { get; set; } = false;
+        public bool IsDBNParu { get; set; } = false;
+        public bool IsDBNPunggung { get; set; } = false;
+        public bool IsDBNAbdomen { get; set; } = false;
+        public bool IsDBNGenital { get; set; } = false;
+        public bool IsDBNEkstremitas { get; set; } = false;
+
+        // Pemeriksaan Penunjang
+        [MaxLength(3000)]
+        public string? PemeriksaanPenunjang { get; set; }
+
+        // Diagnosa & Perencanaan
+        [MaxLength(1000)]
+        public string? DiagnosaSaatIni { get; set; }
+
+        [MaxLength(2000)]
+        public string? DiagnosaBanding { get; set; }
+
+        [MaxLength(2000)]
+        public string? DaftarMasalah { get; set; }
+
+        [MaxLength(2000)]
+        public string? Program { get; set; }
+
+        [MaxLength(3000)]
+        public string? Terapi { get; set; }
+
+        // Edukasi Pasien
+        [MaxLength(250)]
+        public string? EdukasiKepada { get; set; }
+
+        [MaxLength(500)]
+        public string? PenyampaianEdukasi { get; set; }
+
+        [MaxLength(100)]
+        public string? BahasaDigunakan { get; set; }
+
+        [MaxLength(250)]
+        public string? JenisHambatan { get; set; }
+
+        public bool IsDaerah { get; set; } = false;
+        public bool IsAsing { get; set; } = false;
+
+        // Rencana Tindak Lanjut
+        public DateTime? TglTindakLanjut { get; set; }
+
+        [MaxLength(200)]
+        public string? NamaTempat { get; set; }
+
+        [MaxLength(1000)]
+        public string? IndikasiTindakLanjut { get; set; }
+
+        [MaxLength(1000)]
+        public string? KeteranganTindakLanjut { get; set; }
 
         // =========================
         // VITAL SIGN

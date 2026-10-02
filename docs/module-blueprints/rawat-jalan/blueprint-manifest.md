@@ -9,6 +9,99 @@ Keduanya punya roadmap, progress, dan Definition of Done sendiri, dan **tidak bo
 |---|---|---|---|---|---|
 | Doctor / Clinical | `RJ-DOC` | [roadmap/doctor-consultation-roadmap.md](roadmap/doctor-consultation-roadmap.md) | `PARTIAL` · roadmap **`OWNER_APPROVED`** · kontrak **`FROZEN`** | `3` — `CURRENT STATE` per `2026-08-31` | Berakhir pada `Selesai Konsultasi` yang authoritative, aman, idempotent, ter-audit, dengan durable producer handoff untuk setiap **eligible** clinical milestone |
 | Billing / Revenue Cycle | `RJ-BIL` | [roadmap/backend-roadmap.md](roadmap/backend-roadmap.md), [roadmap/frontend-roadmap.md](roadmap/frontend-roadmap.md) | `PARTIAL — NEEDS REVERIFICATION` | `1` — `HISTORICAL SNAPSHOT` per `2026-08-24`/`28` | Dimulai sebagai **consumer** clinical fact. `DOWNSTREAM — NOT PART OF DOCTOR DEFINITION OF DONE` |
+| **Rawat Jalan → Invoice V2** | `RJ-E2E` (dokumen: `RJE`) | [roadmap/e2e-backend-roadmap.md](roadmap/e2e-backend-roadmap.md), [roadmap/e2e-frontend-roadmap.md](roadmap/e2e-frontend-roadmap.md) | **Desain `APPROVED` · roadmap `DRAFT`** | `1` | Jembatan fakta klinis → `BilInvoice`, obat dua tahap, jasa konsultasi, rekonsiliasi, Ringkasan Billing. Lihat bagian *Revisi 27* di bawah |
+
+## Revisi 28 — Amendment DP: Daftar Pasien Rawat Jalan (`2026-10-02`)
+
+| Field | Nilai |
+|---|---|
+| `revision` | `28` |
+| `status` | **`approved`** — desain dan kontrak disetujui (`RJ-DOC-DEC-024`) |
+| Scope | `RJ-DOC` (revisi roadmap `RJ-DOC-REV-*`). Layar daftar kunjungan RJ bercakupan, pembatalan kunjungan menggantung, dan pelonggaran pemblokir pendaftaran |
+| `blueprint_shape` | `SINGLE` (`RJ-DOC-DEC-011`, `USER_CONFIRMED`) |
+| `backend_commit_sha` / `frontend_commit_sha` | `245f0464` / `b7e9b7fd4` |
+| `contract_versions` | **`RJ-DOC-ENCLIST-001@1.0.0 (approved)`** — bagian *Amendment DP* pada `api-contract`, `state-transition-matrix`, `validation-matrix`, `integration-contract`, `permission-audit-matrix`. Kontrak lain tidak berubah |
+| `decision_revision` | `RJ-DOC-DEC-011`..`023`, `RJ-DOC-FE-005`..`009` |
+| `requirement_readiness` | `GATE_NOT_RUN` — dilewati atas persetujuan pemilik (scope kecil, keputusan tertutup berbukti) |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN` — tanpa bounded context, master, atau dampak billing baru |
+| Capability | [01-capability-impact-scan-daftar-pasien-rj.md](01-capability-impact-scan-daftar-pasien-rj.md) |
+| Migration | Tidak ada |
+| `owners` | Product/Domain, API, Security/Privacy, Frontend authority: Sukma Giri |
+| `approved_by`, `approved_at` | Sukma Giri, `2026-10-02` ("lanjutkan" atas pertanyaan "Setujui sekarang dan lanjut?") |
+| `implementation_authority` | `NOT_GRANTED` — diberikan per task |
+| Roadmap | [roadmap/doctor-consultation-roadmap.md](roadmap/doctor-consultation-roadmap.md) bagian 11 — `RJ-DOC-REV-BE-008`..`010` (`MVP-0`), `RJ-DOC-REV-FE-010`..`011` (`MVP-1`) |
+| Implementasi | ✅ `RJ-DOC-REV-BE-008`..`010`, `RJ-DOC-REV-FE-010`..`011` selesai `2026-10-02` (`RJ-DOC-DEC-025`); belum di-commit |
+| Langkah berikutnya | Keputusan pemilik atas akun uji `UJI-RJDP` dan hak jabatan uji; commit oleh pemilik; opsional `verify-module-readiness` |
+
+| Artifact | SHA-256 | Keadaan |
+|---|---|---|
+| `00-interview-decisions.md` | `1D295036A86AE525A3A4918FF782FB6CE4FE6CEFF58926FB7952EF27C3F3560D` | `CHANGED` — Amendment Pass + Closure 2026-10-02 |
+| `01-capability-impact-scan-daftar-pasien-rj.md` | `734E603A45F533330851002B3377DDA08189E6319615E12E0F7DFDD22D4C0E60` | `NEW` |
+| `02-backend-architecture.md` | `1E507D7574153B71F207BF9868EC0179BB27D9713723118EA0D876F351B76328` | `CHANGED` — Amendment DP |
+| `03-frontend-architecture.md` | `B3B41C2164A795FB49CBF6F0A135B0612F33588F773CDBCACD1EC81C3B0A2E3F` | `CHANGED` — Amendment DP |
+| `04-prd-to-mvp.md` | `FC6BED21E07F3BCD6020B7BCA5B6621CB9DEDB35B4BD6E8D81F74E424026C2F6` | `CHANGED` — Amendment DP |
+| `flowcharts/daftar-pasien-rawat-jalan.md` | `A9A6D137A860250E6026587B348127B8AB023AD362D4B1DDD25985372AE0FB8E` | `NEW` |
+| `data/data-dictionary.md` | `3A9069C1FFF1C5CD19821F8A157C9AED940CE5C273FA737097EB81FC3E36A785` | `CHANGED` — kolom kunci saja |
+| `contracts/api-contract.md` | `BD8AE89DABAE8C8847A2C83964CBAAD7BADDB2D75480C4A5E977474BD21D51DB` | `CHANGED` |
+| `contracts/state-transition-matrix.md` | `7C355B329B6DC7F5D6BE8DAFA1E34557ABC43CC31481BD7B9C756D80665B8EBE` | `CHANGED` |
+| `contracts/validation-matrix.md` | `60CCDD231E7AE1C1BDE3F2605C1D8D7BAE1E2EAE83DB68A56BE4C986DE80DB73` | `CHANGED` |
+| `contracts/integration-contract.md` | `AE6EC521930E1C1FF427F6A86DB237BEBE501A576DF0848609D633D0C49B49ED` | `CHANGED` — satu paragraf "tidak berlaku" |
+| `contracts/permission-audit-matrix.md` | `8CDCAD7C17F78C500200F9C9B9BE87B9A5A27AEFDF245A88760B87E2E8FFB0E9` | `CHANGED` |
+| `testing/acceptance-test-matrix.md` | `A6326CD3BFF8F3D5E893D390DC6A1FBACB6A77CC942EFB7597CA1C8B2D2DD26F` | `CHANGED` |
+
+## Revisi 27 — Amendment V2 (`2026-09-28`)
+
+| Field | Nilai |
+|---|---|
+| `revision` | `27` |
+| `status` | `approved` — desain V2 dan `RJ-E2E-CONTRACT-001@1.0.0` (`RJ-E2E-DEC-015`) |
+| `blueprint_shape` | `SINGLE` |
+| `shape_decided_by` | `USER_CONFIRMED` (`RJ-E2E-DEC-000`) |
+| `backend_commit_sha` | `063d38bc306bb6b46bdf088513fa6cdcc80399d8` (`sukmagp`) |
+| `frontend_commit_sha` | `83b8b72744d4afaaedb3d2af9dd0b83fb272f9d6` (`sukmagpV2`) |
+| `contract_versions` | **`RJ-E2E-CONTRACT-001@1.0.0 (approved)`** · **`RJ-E2E-CONTRACT-001@1.0.1 (draft)`** — tambahan aditif `BillingHandoffIssues` pada `POST /doctor-queues/{id}/finish-consultation` (lihat `api-contract.md` bagian V2.1) — satu set: `api-contract`, `state-transition-matrix`, `validation-matrix`, `integration-contract`, `permission-audit-matrix` bagian V2. Kontrak lama tetap: `RJ-BIL-CONTRACT-001@1.0.0`, `RJ-DOC-COMPLETION-001@1.0.0 (FROZEN)`, `RJ-DOC-HANDOFF-001@1.0.0 (FROZEN)` |
+| `decision_revision` | `18` — `RJ-E2E-DEC-000`..`014` |
+| `requirement_readiness` | Slice *clinical fact handoff* dan *billing folio* `READY_FOR_DOMAIN_DESIGN` |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_PARTIAL`; slice V2 di core internal yang siap independen |
+| `owners` | Product/Domain: Sukma Giri · Billing/Revenue Cycle · API authority · Security/Privacy · Frontend authority |
+| `approved_by`, `approved_at` | Sukma Giri, `2026-09-28` |
+| Capability map yang berlaku | [01-existing-capability-map-prd-v2.md](01-existing-capability-map-prd-v2.md). Berkas canonical `01-existing-capability-map.md` tetap sebagai riwayat revisi sebelumnya |
+| Kamus data yang berlaku | [data/data-dictionary.md](data/data-dictionary.md) (lokasi canonical baru); `erd/` tetap sebagai riwayat |
+| Verifikasi | Pola Bank Darah — **tanpa** project/folder test (`02-backend-architecture.md` bagian `V2.13`) |
+| Roadmap V2 | [roadmap/e2e-backend-roadmap.md](roadmap/e2e-backend-roadmap.md) (14 task), [roadmap/e2e-frontend-roadmap.md](roadmap/e2e-frontend-roadmap.md) (3 task), [roadmap/e2e-requirement-traceability.md](roadmap/e2e-requirement-traceability.md) — revisi `1`, `DRAFT` |
+| `implementation_authority` / `builder_execution` | `NOT_GRANTED` / `NOT_AUTHORIZED` — diberikan per task |
+| Langkah berikutnya | Approval roadmap V2 dan kontrak `1.0.1`; lalu wewenang per task (mulai gelombang 1: `BE-RJE-001`, `BE-RJE-004`, `BE-RJE-006`) |
+
+### Masukan
+
+| Masukan | SHA-256 |
+|---|---|
+| `PRD-Rawat-Jalan.md` (`PRD-RJ-BIL-V2-001`, belum di-commit) | `39C60B262E6B38B4B6DF6F5B33AA4C013E8E0B6BC4CE715E721F7A5BEFBF59D2` |
+| `00-interview-decisions.md` revisi `18` | `2520893E36039CD0CA6DA3AE45CE302C7C78A60113E7DCACB51FB0D1C117CA84` |
+| `01-existing-capability-map-prd-v2.md` | `9ED01454F34A665787ED805A872C4DD77FE421CFEE59EC16AA2F6BA85B7F6615` |
+
+### Artifact hashes revisi 27
+
+| Artifact | SHA-256 | Keadaan |
+|---|---|---|
+| `02-backend-architecture.md` | `343E895FD6450D5C543DD3DDC6595323F7666D74DDDFC3FE7909556C60D95BFE` | `CHANGED` — amendment V2 |
+| `03-frontend-architecture.md` | `91DFDA451773F1BDBC96F9D8231D229C32B385116DCA830760251F5CF722E2AC` | `CHANGED` — amendment V2 |
+| `04-prd-to-mvp.md` | `1A59492EF66D5ADE41014597A62388389C9F0D622E5110EA97BB46F30F7F2B5E` | `NEW` |
+| `data/data-dictionary.md` | `9C3C2AB22AEEC994EE402C2BE3050C0236E44FDB01156E2EB13A937AFBED9782` | `NEW` |
+| `flowcharts/00-alur-utama.md` | `4F859D64908E18B917E8EE8C1F6D1943C1D1338DA9FE16D76839CFA29E3CC9EE` | `NEW` |
+| `flowcharts/penagihan-otomatis.md` | `DAA041CB6E0F41286DE7277F9B99541A8438A8C7D73CE370F10B05D499FF8C33` | `NEW` |
+| `flowcharts/obat-dua-tahap.md` | `CFAF927B8AAEC7C1A09F2A8B64F6ACED82ACE6E78F7EA06174214D848E09909E` | `NEW` |
+| `flowcharts/pembatalan-dan-koreksi.md` | `6541BBCD98935ABF5EB9EF19CCCFAA1B1325F11B9F082B51CE955082A6D84B6C` | `NEW` |
+| `flowcharts/rekonsiliasi.md` | `80CE649CD1987B244AFC14CB69B8549AE6B7688F90F82C12DCB7A9AC959EFD01` | `NEW` |
+| `contracts/api-contract.md` | `704EA21583734C136EF5DFE573A5C7FDE921B12D6D4BFC9DAABF7C9F28AFC5C2` | `CHANGED` — V2 |
+| `contracts/state-transition-matrix.md` | `B71EE027F85061086F05FF4CEDBA8E9A02F93FD4D29D58213B3078B03E6EBE6D` | `CHANGED` — V2 |
+| `contracts/validation-matrix.md` | `0E83DD96B93945422BD52DD0F45DCE45128F7F14ECB43456B1A86CA345EDDD8D` | `CHANGED` — V2 |
+| `contracts/integration-contract.md` | `67AB06BF27765F167BF886048F852FD3F2F275B28BA3EA2E6067AE233AA45831` | `CHANGED` — V2 |
+| `contracts/permission-audit-matrix.md` | `E54D31079F65232421EA767DFC8888CBAEBC1D9CDA786213EFA77A91527C6EB0` | `CHANGED` — V2 |
+| `testing/acceptance-test-matrix.md` | `E6966796EAA0F137AC477DC1A56B7E1E35F27B6F3237746D7720011346975629` | `CHANGED` — V2 |
+
+Hash dihitung `2026-09-28` setelah seluruh artefak V2 selesai ditulis. Hitung ulang saat approval
+untuk memastikan tidak ada perubahan di antaranya.
 
 Metadata di bawah adalah metadata scope **Billing**; ia dipertahankan apa adanya. Metadata scope
 Dokter ada di kepala roadmap-nya sendiri.
@@ -19,7 +112,7 @@ Dokter ada di kepala roadmap-nya sendiri.
 | `module_name` | Rawat Jalan (umbrella); scope Billing bernama Dokter / Rawat Jalan Billing |
 | `module_slug` | `rawat-jalan` |
 | `module_prefix` | `RJ-BIL` untuk scope Billing; `RJ-DOC` untuk scope Doctor/Clinical |
-| `revision` | `26` |
+| `revision` | `26` — **dilanjutkan revisi `27` (amendment V2) di bagian atas**; baris ini metadata scope Billing lama |
 | `status` | `PARTIAL` |
 | `current_phase` | `RJ-BIL-PH-008` — Delivery Planning |
 | `created_at` | `2026-08-20T15:06:30+07:00` |

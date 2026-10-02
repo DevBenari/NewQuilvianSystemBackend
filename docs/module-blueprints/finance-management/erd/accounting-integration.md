@@ -154,3 +154,61 @@ Konsekuensinya untuk rencana kerja:
 | Layar pemantauan outbox | Ya | Membaca tabel sendiri |
 | Worker pengiriman | Tidak | `FIN-DES-020` — dibangun tapi dimatikan konfigurasi sampai endpoint ada |
 | Penanganan balasan `200`/`201`/`400`/`403`/`409`/`422` | Tidak | Menunggu endpoint |
+
+---
+
+## 7. Tujuan kirim sudah ada — pembaruan 28 September 2026 (AMENDMENT REVISI 6)
+
+**Bagian 6 di atas sudah tidak berlaku sebagai keadaan terkini.** Impact scan 28 September 2026
+pada `cba60cb0` menemukan kotak masuk Accounting **sudah dibangun**:
+`Areas/Corporate/AccountingManagement/AccountingEvent/Services/AccAccountingEventService.cs`,
+sejalan dengan pernyataan owner Accounting di `evidence/14` bagian 4.4 (dibangun dan diuji
+pengembang; uji penerimaan oleh tim terpisah belum). Bagian 6 dipertahankan sebagai jejak sejarah.
+
+Konsekuensinya bukan "worker boleh hidup", melainkan **pelurusan bentuk pesan berubah dari
+persoalan dokumen menjadi persoalan runtime**: pesan yang salah bentuk kini benar-benar akan
+ditolak. Yang masih menahan pengaktifan worker: kredensial akun layanan (`FIN-OQ-016`), ratifikasi
+kode baru (`FIN-OQ-027`..`033`), dan aturan posting di sisi Accounting (gerbang G2 mereka).
+
+### 7.1 Peta pemicu setiap kode — dari fakta mana kejadian lahir
+
+Tabel ini menjawab satu pertanyaan yang tidak dipegang dokumen lain: **fakta apa** yang melahirkan
+setiap kejadian, dan **siapa pemilik** fakta itu. Nama kode dan nilainya ada di
+`contracts/integration-contract.md` bagian 5.4 dan 5.10.
+
+| Fakta sumber | Pemilik fakta | Kejadian yang lahir |
+|---|---|---|
+| Utang supplier diinput | Finance | `PENGAKUAN-HUTANG-SUPPLIER` |
+| Pembayaran supplier ditandai sudah dibayar | Finance | `PEMBAYARAN-HUTANG-SUPPLIER`, dan `PEMAKAIAN-KREDIT-RETUR-PEMBELIAN` bila memakai kredit retur |
+| Retur pembelian dikonfirmasi | Finance | `RETUR-PEMBELIAN`, dan `PPN-MASUKAN-RETUR-PEMBELIAN` bila ada porsi PPN |
+| Purchasing Invoice disetujui | Finance | `PENGAKUAN-HUTANG-SUPPLIER` dan `PPN-MASUKAN-PEMBELIAN` |
+| Penerimaan piutang dialokasikan | Finance | `PENERIMAAN-PIUTANG`, ditambah `POTONGAN-PPH23-PIUTANG` dan/atau `POTONGAN-BIAYA-BANK-PIUTANG` bila ada potongan |
+| Alokasi penerimaan dibalik | Finance | Kejadian pembalik yang bersesuaian, satu per baris potongan |
+| Write-off piutang disetujui | Finance | `PEMUTIHAN-PIUTANG` |
+| Mutasi deposit pasien `TOP_UP` | **Billing** | `PENERIMAAN-UANG-MUKA` |
+| Mutasi deposit pasien `ALLOCATION` | **Billing** | `PEMAKAIAN-UANG-MUKA-DEPOSIT` |
+| Mutasi deposit pasien `RELEASE` | **Billing** | `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` — **dikoreksi AMENDMENT REVISI 9** (`FIN-DES-064`), sebelumnya `PENGEMBALIAN-UANG-MUKA`. Mutasi ini tidak mengeluarkan kas; ia membatalkan alokasi uang muka ke tagihan. Berlaku hanya bila ada mutasi `REVERSAL` ber-`SettlementId` sama — bila tidak ada, baris intake `ERROR` (`FIN-VAL-145`) |
+| Mutasi deposit pasien `REVERSAL` atas `TOP_UP` | **Billing** | `PEMBALIKAN-PENERIMAAN-UANG-MUKA` |
+| ~~Mutasi deposit pasien `REVERSAL` atas `ALLOCATION`~~ | **Billing** | ~~`PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT`~~ — **tidak pernah ada di Billing**; digantikan oleh mutasi `RELEASE` berpasangan di atas (`FIN-DES-064`) |
+| Kelebihan bayar diakui (`ALLOCATION_EXCESS` atau `SETTLEMENT`) | **Billing** | `PENGAKUAN-KELEBIHAN-BAYAR` |
+| Pengembalian uang dieksekusi atas kredit `ALLOCATION_EXCESS`/`SETTLEMENT` | **Billing** | `PENGEMBALIAN-UANG-MUKA` |
+| Pengembalian uang dieksekusi atas kredit `REFERRED_OUTPATIENT_ADMIN` | **Billing** | **Nol kejadian** — baris intake `ERROR`, lihat 7.2 |
+| Selisih kas shift disahkan sampai selesai | **Billing** | `SELISIH-KAS-KURANG` atau `SELISIH-KAS-LEBIH` |
+| Shift mencapai keadaan tertutup final | **Billing** | `PENUTUPAN-SHIFT-KASIR` (bernilai `0`) |
+| Shift tertutup dibuka kembali | **Billing** | `PEMBALIKAN-PENUTUPAN-SHIFT-KASIR` (bernilai `0`) |
+| Setoran bank, mutasi kas kecil | Finance | `SETORAN-BANK`, `PETTY-CASH-*` |
+| Tutup bulan dicocokkan | Finance | `SALDO-SUBLEDGER` (boleh nol/negatif) |
+
+Setiap fakta milik **Billing** masuk lewat satu pintu yang sama, `FinBillingHandoffIntake`
+(`FIN-DES-008`/`029`/`036`), dan Finance **MUST NOT** menulis balik ke tabel Billing mana pun.
+
+### 7.2 Dua fakta yang tidak sampai ke buku besar, dan sengaja dibuat berbunyi
+
+| Keadaan | Yang terjadi | Kenapa begitu |
+|---|---|---|
+| Pengembalian tunai atas kredit `REFERRED_OUTPATIENT_ADMIN` | Baris intake `ERROR`, nol kejadian | Akun debitnya belum ditetapkan dan bukan wewenang Finance (`FIN-OQ-031`). Memaksakan kode yang ada menghasilkan jurnal seimbang tetapi keliru |
+| Tender top-up deposit dibalik tanpa mutasi deposit pembalik | Baris intake `ERROR`, nol kejadian | Billing tidak menulis mutasi apa pun saat tender top-up dibalik, sehingga saldo deposit kelebihan catat tanpa jejak (`FIN-OQ-034`). Perbaikannya milik owner Billing |
+
+Keduanya **MUST** terlihat di layar pemantauan sejak hari pertama. Melewatkannya diam-diam adalah
+persis bahaya yang digambarkan Accounting di `evidence/14` bagian 4.2: kas bergerak tanpa kejadian,
+lalu rekonsiliasi toleransi nol tertahan tanpa ada yang tahu sebabnya.

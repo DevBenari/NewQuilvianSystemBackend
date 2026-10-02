@@ -448,3 +448,26 @@ endpoint upload ada; test validasi wajib di atas sudah cukup untuk membuktikan P
 FRONTEND tanpa endpoint sungguhan, memakai upload tiruan/mock).
 
 Trace `BUI-DEC-001`–`015`, `BUI-DES-001`–`012`, `BUI-AC-01`–`17`, `BUI-VAL-01`–`07`.
+
+---
+
+# Amendment 29 September 2026 — Pengujian Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan (Revisi 1.8, `BIL-TEST-1.7`)
+
+`last_changed_in: BIL-TEST-1.7` · status **draft** · input `BKC-DEC-128`–`134`, `BKC-DES-051`–`056`, `BIL-VAL-127`–`133`, `BIL-INT-018`.
+
+| ID | Requirement | Skenario | Jenis Test | Bukti yang Diharapkan |
+|---|---|---|---|---|
+| `BIL-AT-149` | `BKC-DEC-128`, `BKC-DES-051` | Tender top-up dibalik saat saldo deposit masih utuh (belum ada alokasi tagihan) | Integrasi / Service | Tepat satu mutasi `REVERSAL` tercatat dengan `ReversesMovementId` menunjuk ke mutasi `TOP_UP` awal; `AvailableBalance` dipotong tepat sebesar nilai top-up; saldo akhir >= 0; nol alokasi yang dibatalkan. |
+| `BIL-AT-150` | `BKC-DEC-128`, `BKC-DEC-130` | Tender top-up dibalik saat dana telah terpakai melunasi tagihan invoice (`CLOSED`) | Integrasi / End-to-End | Alokasi invoice dibatalkan sebesar defisit via baris pembalik `BilPaymentAllocation` ber-`ReversesAllocationId`; mutasi `RELEASE` tercatat; saldo akun pulih lalu dipotong via mutasi `REVERSAL`; `AvailableBalance` akhir tetap >= 0 (tidak minus); status invoice otomatis berubah dari `CLOSED` kembali ke `FINAL`. |
+| `BIL-AT-151` | `BKC-DEC-129`, `BKC-DES-052` | Tender top-up dibalik saat dana terpakai pada beberapa alokasi invoice (LIFO Test) | Unit / Integrasi | Alokasi invoice yang paling akhir dibuat (`AllocatedAt DESC`) dibatalkan terlebih dahulu; jika defisit belum tertutup, alokasi sebelumnya dibatalkan berurutan sampai total pembalikan terpenuhi; alokasi yang lebih lama tetap utuh jika defisit sudah tertutup. |
+| `BIL-AT-152` | `BKC-DEC-130`, `BKC-DES-053` | Penyelarasan status invoice via `SyncClosureAsync` pasca-pembatalan alokasi | Integrasi | Invoice terdampak yang sebelumnya `CLOSED` bertransisi kembali ke `FINAL`; `ClosedAt` menjadi null; sisa tagihan pasien (`PatientOutstanding`) naik kembali sebesar alokasi yang dibatalkan; alasan clearance mencatat `PrescriptionClearanceReasonCodes.PaymentReversed`. |
+| `BIL-AT-153` | `BKC-DEC-131`, `BKC-DES-054` | Integrasi ke Finance Management via fakta `DEPOSIT_MOVEMENT` | Integrasi Lintas Modul | Mutasi `RELEASE` dan `REVERSAL` yang tercatat pada `BilDepositMovement` dapat dibaca dan dikonsumsi oleh `FinanceBillingIntakeService` untuk membentuk kejadian akuntansi `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` dan `PEMBALIKAN-PENERIMAAN-UANG-MUKA`. |
+| `BIL-AT-154` | `BKC-DEC-130`, `BKC-DES-051` | Jalur gagal: kegagalan transaksi di tengah proses pembalikan | Ketahanan / Transaksi | Bila terjadi galat pada tahap pembatalan alokasi atau penulisan mutasi, seluruh transaksi database di-rollback secara atomik; saldo deposit dan status tender tetap pada keadaan sebelum reversal dipicu. |
+| `BIL-AT-155` | `BIL-INT-018` | Idempotensi penanganan webhook tender `REVERSED` berulang | Integrasi / Idempotensi | Panggilan kedua dengan `tenderId` dan status `REVERSED` yang sama bersifat no-op (*idempotent*); tidak ada mutasi `RELEASE` atau `REVERSAL` duplikat yang tercatat. |
+| `BIL-AT-156` | `BIL-VAL-129` | Jalur gagal: tender belum pernah `SUCCEEDED` bertransisi ke `REVERSED` | Guard / Validasi | Transisi ditolak atau diabaikan tanpa menulis mutasi deposit apa pun; membuktikan hanya tender yang benar-benar pernah menambah saldo yang dapat dibalikkan saldonya. |
+| `BIL-AT-157` | `BKC-DEC-132`, `BKC-DEC-133`, `BKC-DES-055`, `BIL-VAL-132` | Penanda eksplisit `ReversesMovementId` dan granularitas 1-ke-1 mutasi `RELEASE` | Unit / Integrasi | Bila pembatalan LIFO membatalkan $N$ alokasi tagihan ($N \ge 1$), terbit tepat $N$ baris mutasi `RELEASE` di `BilDepositMovement`. Setiap baris memiliki `ReversesMovementId` yang cocok dengan ID mutasi `ALLOCATION` asalnya, `SettlementId` alokasi terkait, dan `Amount` cocok persis. Nol mutasi `RELEASE` ber-`ReversesMovementId == null`. |
+| `BIL-AT-158` | `BKC-DEC-134`, `BKC-DES-056`, `BIL-VAL-133` | Penyelarasan ringkasan deposit (`totalRefunded`) dan efek saldo mutasi rekening di `BillingDepositService` | Unit / Service | (1) `GetEpisodeDepositSummaryAsync` menghasilkan `TotalRefunded == 0` bila hanya ada mutasi `RELEASE` pembatalan alokasi (`ReversesMovementId != null`); (2) `GetDepositStatementAsync` menghasilkan `BalanceEffect == +Amount` untuk mutasi `RELEASE` pembatalan alokasi, memulihkan running balance secara tepat sebelum mutasi `REVERSAL` menariknya. |
+
+Trace `BKC-DEC-128`–`134`, `BKC-DES-051`–`056`, `BIL-VAL-127`–`133`, `BIL-INT-018`.
+
+

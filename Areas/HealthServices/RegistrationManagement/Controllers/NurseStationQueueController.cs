@@ -324,19 +324,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
                 if (queue.Encounter != null)
                 {
+                    // RJ-E2E-DEC-007/013: Rawat Jalan tidak menutup kunjungan. Kunjungan tanpa
+                    // dokter diserahkan ke Billing (setara ConsultationCompleted pada jalur dokter);
+                    // penutupan menjadi Completed beserta CompletedAt bukan wewenang layar ini
+                    // (RJ-E2E-DEC-004). Antrean perawat sendiri tetap Completed.
                     queue.Encounter.EncounterStatus = queue.IsDoctorRequired
                         ? EncounterStatus.WaitingForDoctor
-                        : EncounterStatus.Completed;
+                        : EncounterStatus.Billing;
                     queue.Encounter.UpdateDateTime = now;
                     queue.Encounter.UpdateBy = actorUserId;
 
                     if (!queue.IsDoctorRequired)
                     {
-                        queue.Encounter.CompletedAt = now;
-
                         // RM-DEC-003 lapis kedua. Pada pasien yang tidak memerlukan dokter,
-                        // screening perawat adalah titik penyelesaian kunjungan, sehingga
-                        // penguncian catatan terjadi di sini.
+                        // screening perawat adalah titik penyelesaian klinis, sehingga
+                        // penguncian catatan tetap terjadi di sini walau kunjungan belum
+                        // ditutup administratif (RJ-E2E-DEC-013). Waktu kunci = waktu screening
+                        // selesai, sama dengan perilaku sebelumnya.
                         //
                         // Penguncian ikut SaveChanges dan transaksi di bawah, sehingga bila
                         // gagal, penyelesaian screening ikut dibatalkan.
@@ -370,7 +374,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             var message = queue.IsDoctorRequired
                 ? "Screening perawat selesai dan pasien dikirim ke dokter."
-                : "Screening perawat selesai dan kunjungan diselesaikan.";
+                : "Screening perawat selesai dan kunjungan diserahkan ke Billing.";
 
             await _queueRealtimeService.NotifyQueueScreeningFinishedAsync(queue, actorUserId, message);
 
@@ -520,6 +524,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 .Include(x => x.Encounter)
                     .ThenInclude(x => x.PaymentSource)
                         .ThenInclude(x => x.InsuranceProvider)
+                .Include(x => x.Encounter)
+                    .ThenInclude(x => x.PaymentSource)
+                        .ThenInclude(x => x.CompanyGuarantor)
                 .Include(x => x.Encounter)
                     .ThenInclude(x => x.Room)
                 .Include(x => x.Patient)
@@ -1062,6 +1069,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     .ThenInclude(x => x.PaymentSource)
                         .ThenInclude(x => x.InsuranceProvider)
                 .Include(x => x.Encounter)
+                    .ThenInclude(x => x.PaymentSource)
+                        .ThenInclude(x => x.CompanyGuarantor)
+                .Include(x => x.Encounter)
                     .ThenInclude(x => x.Room)
                 .Include(x => x.Patient)
                 .Include(x => x.Clinic)
@@ -1107,6 +1117,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var encounter = x.Encounter;
             var patient = x.Patient;
             var paymentSource = encounter?.PaymentSource;
+            var primaryPayer = EncounterPrimaryPayerSummary.From(encounter);
             var serverNowUtc = DateTime.UtcNow;
 
             return new NurseStationQueueResponse
@@ -1193,6 +1204,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     ?? paymentSource?.PaymentSourceNameSnapshot,
                 IsInsuranceEligible = paymentSource?.IsEligible ?? (encounter?.PaymentType == EncounterPaymentType.Cash),
                 IsInsurancePolicyActive = paymentSource?.IsPolicyActive ?? false,
+                PrimaryGuarantorNameSnapshot = primaryPayer.PrimaryGuarantorName,
+                PrimaryGuarantorTypeSnapshot = primaryPayer.PrimaryGuarantorTypeName,
+                IsInsurancePatient = primaryPayer.IsInsurancePatient,
+                IsCompanyPatient = primaryPayer.IsCompanyPatient,
                 IsReferral = encounter?.IsReferral ?? false,
                 ReferralNumber = encounter?.ReferralNumber,
 
@@ -1363,7 +1378,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private static string? BuildOptionalLabel(object? value)
         {
             if (value == null) return null;
-            if (value is Enum enumValue) return BuildEnumLabel(enumValue);
+            if (value is Enum enumValue)
+            {
+                // RJ-DOC-REV-BE-001: BuildEnumLabel<Enum> membaca typeof(Enum), sehingga label
+                // [Display] tidak pernah ditemukan (mis. "Female" bukan "Perempuan").
+                var display = enumValue.GetType().GetMember(enumValue.ToString()).FirstOrDefault()?
+                    .GetCustomAttributes(typeof(DisplayAttribute), false)
+                    .OfType<DisplayAttribute>()
+                    .FirstOrDefault();
+                return display?.Name ?? SplitPascalCase(enumValue.ToString());
+            }
             var text = value.ToString();
             return string.IsNullOrWhiteSpace(text) ? null : text;
         }

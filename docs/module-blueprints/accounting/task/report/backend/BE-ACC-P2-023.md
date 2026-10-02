@@ -15,9 +15,9 @@
 | Task mode | `BACKEND` |
 | Target tulis | `Areas/Corporate/AccountingManagement/AccountingEvent/**`; satu baris di blok Accounting `Program.cs` (**diizinkan Rizki 24 September 2026**); laporan ini; baris status roadmap dan traceability |
 | Model | Claude Opus 5.5 |
-| Commit backend saat dikerjakan | `d62a084e` (branch `rizkiG`), belum di-commit |
-| Tanggal | 24 September 2026 |
-| Status | **🟡 SEBAGIAN** — 6 dari 6 acceptance terpetakan ke source; build Rizki **berhasil, 222 warning** (nol warning baru); uji Rizki 24 September 2026 membuktikan acceptance (3), (4), (5) serta jalur Gagal di layar (bagian 8). **Belum:** bukti waktu percobaan untuk acceptance (1) tenggang dan (2) jeda 1/5/15 menit — laporan uji menyebut 3 percobaan dan jeda 120 detik, sedangkan kode menghasilkan 4 percobaan berjarak ±2, 5, 15 menit |
+| Commit backend saat dikerjakan | `d62a084e` (branch `rizkiG`); di-commit Rizki `1ea09d66` |
+| Tanggal | 24 September 2026; bukti uji 25 September 2026 |
+| Status | **✅ SELESAI** — 25 September 2026. 6 dari 6 acceptance: (1)–(5) terbukti dari response Swagger mentah Rizki (`EVT-UJI-105`: 4 percobaan berjarak 2 menit 25 detik, 5 menit 30 detik, 15 menit 30 detik, `attemptCount` 3; `EVT-UJI-112` Gagal; `EVT-UJI-001` `attemptCount` 0), (6) lewat source sesuai kartu. Build Rizki berhasil, 222 warning. UAT belum dijalankan — diserahkan ke tim UAT. Riwayat: 🟡 24 September 2026 |
 
 ### Backend Governance Preflight
 
@@ -141,9 +141,10 @@ Nol baris komentar `//` ditambahkan.
 | Pemeriksaan source 6 acceptance | Terpetakan semua | `PASS` | Bagian 6 |
 | Nol `//` baru | Baris tambahan berisi `//`: 0 | `PASS` | `git diff -U0 \| grep "^+" \| grep -c "//"` |
 | `dotnet build` | Berhasil — Rizki, 24 September 2026: `Build succeeded with 222 warning(s) in 448,7s`; nol warning baru dibanding build `024`/`025` | `PASS` | Tangkapan layar keluaran build |
-| Uji | Lulus sebagian — waktu percobaan belum dilaporkan | `PASS` untuk (3)(4)(5); belum ada bukti untuk (1)(2) | Bagian 8 |
+| Uji | Lulus — response Swagger mentah Rizki, 25 September 2026 | `PASS` | Bagian 8 |
 
-Uji manual: `PASS` sebagian — Rizki, 24 September 2026 (bagian 8).
+Uji manual: `PASS` — Rizki, 25 September 2026 (bagian 8). Skenario 1–9 di bawah adalah rencana awal; yang
+benar-benar dijalankan memakai `EVT-UJI-105` dan `EVT-UJI-112` (bagian 8).
 
 ```powershell
 cd C:\Users\BenariDev03\QuilvianV2\NewQuilvianSystemBackend
@@ -181,11 +182,11 @@ mengambil kejadian (#4).
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| (1) Hanya kejadian Diterima yang percobaan terakhirnya lebih tua dari masa tenggang yang diambil | Terpenuhi di source — **bukti uji belum ada** | `Where(EventStatus == Diterima)`; jatuh tempo `dasar + max(tenggang, jeda) <= sekarang`, `dasar` = percobaan terakhir atau waktu diterima. Uji: #3 — butuh waktu percobaan #1 dan #2 (bagian 8.2) |
-| (2) Jeda 1, 5, 15 menit | Terpenuhi di source — **bukti uji belum ada** | `JedaCobaUlangTerjadwal` diindeks `AttemptCount`. Uji: #4 — butuh waktu percobaan #2, #3, #4 (bagian 8.2) |
-| (3) Percobaan dalam request tidak menambah `AttemptCount` | Terpenuhi | Hanya `CobaUlangTerjadwalAsync` yang menulis `AttemptCount`; `TerimaAsync`, `ProsesKejadianAsync`, `CobaUlangAsync` tidak. Uji: #1 (`AttemptCount = 0`), #7 |
-| (4) Sesudah tiga coba ulang gagal → Gagal | Terpenuhi | `hitunganBaru >= BatasCobaUlangTerjadwal` → `TandaiGagalTerjadwalAsync`. Uji: #5 |
-| (5) Tertahan dan Gagal tidak diambil | Terpenuhi | Filter `EventStatus == Diterima`. Uji (tidak langsung, bagian 8): `EVT-UJI-023B` tetap Gagal sesudah periode 2030 dibangkitkan sampai dicoba ulang manual — penjadwal tidak menyentuhnya walau jurnalnya kini dapat terbentuk; `EVT-UJI-026A` tetap Tertahan sampai Coba Ulang manual |
+| (1) Hanya kejadian Diterima yang percobaan terakhirnya lebih tua dari masa tenggang yang diambil | Terpenuhi | `Where(EventStatus == Diterima)`; jatuh tempo `dasar + max(tenggang, jeda) <= sekarang`. Uji: `EVT-UJI-105` percobaan #1 09.13.46 → #2 09.16.11, selisih **2 menit 25 detik** ≥ tenggang 120 detik (bagian 8.1) |
+| (2) Jeda 1, 5, 15 menit | Terpenuhi | `JedaCobaUlangTerjadwal` diindeks `AttemptCount`. Uji: #2 → #3 **5 menit 30 detik**, #3 → #4 **15 menit 30 detik** (bagian 8.1) |
+| (3) Percobaan dalam request tidak menambah `AttemptCount` | Terpenuhi | Hanya `CobaUlangTerjadwalAsync` yang menulis `AttemptCount`. Uji: `EVT-UJI-105` punya 4 percobaan tetapi `attemptCount: 3` — percobaan #1 dari `POST` tidak dihitung |
+| (4) Sesudah tiga coba ulang gagal → Gagal | Terpenuhi | `hitunganBaru >= BatasCobaUlangTerjadwal` → `TandaiGagalTerjadwalAsync`. Uji: `EVT-UJI-105` berakhir Diabaikan dengan alasan — hanya mungkin dari Gagal; `EVT-UJI-112` terhitung Gagal pada daftar periksa Januari 2031 |
+| (5) Tertahan dan Gagal tidak diambil | Terpenuhi | Filter `EventStatus == Diterima`. Uji: tidak ada percobaan otomatis sesudah #4 pada `EVT-UJI-105`; `EVT-UJI-001` Tertahan sejak 24 September dengan `attemptCount: 0` — penjadwal tidak pernah mengklaimnya |
 | (6) Perpindahan status bersyarat — request dan penjadwal bersamaan tetap satu jurnal | Terpenuhi di source | Klaim `AttemptCount` bersyarat; `ProsesKejadianAsync` menulis Terjurnal `WHERE EventStatus = statusAsal` di dalam transaksi dan membatalkan jurnalnya bila 0 baris; Gagal `WHERE EventStatus = Diterima`. Tidak dapat dipicu manual — dibuktikan lewat source (risiko yang sudah disebut kartu) |
 | DoD: source berubah | Terpenuhi | Bagian 3.2 |
 | DoD: build owner 0 error | Terpenuhi | Build Rizki berhasil, 222 warning |
@@ -203,43 +204,46 @@ mengambil kejadian (#4).
 | Frontend | Kartu ini **tidak punya pasangan frontend** di roadmap. Layar yang ada sudah menampilkan status Gagal, tab Gagal, riwayat percobaan, dan tombol Abaikan/Coba Ulang untuk Gagal (`FE-ACC-P2-011`, `012`). Uji #5–#7 sekaligus menguji ulang jalur Gagal `FE-ACC-P2-012` yang sebelumnya dibuktikan lewat source |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
-| Status Git | Backend: `M` `Program.cs` (+1 baris), `AccountingEventDtos.cs`, `AccAccountingEventSchedulerOptions.cs`, `AccAccountingEventService.cs`; `??` `AccAccountingEventSchedulerHostedService.cs`, laporan ini. Dokumen penandaan ✅ `FE-ACC-P2-011`–`013` sesi yang sama juga belum di-commit |
-| Langkah berikutnya | Rizki: kirim tangkapan layar Riwayat Percobaan `EVT-UJI-023A` (bagian 8.2); sesudah itu task ini dapat dinaikkan ke ✅. Commit oleh Rizki |
+| Status Git | Source di-commit Rizki `1ea09d66` (24 September 2026); `rizkiG` sudah di-merge dengan integration (`68ebc667`), registrasi penjadwal tetap di `Program.cs` baris 712. Pembaruan laporan ini belum di-commit |
+| Langkah berikutnya | Tidak ada untuk task ini. UAT oleh tim UAT |
 
 ---
 
-## 8. Bukti uji — Rizki, 24 September 2026
+## 8. Bukti uji
 
-### 8.1 Yang terbukti
+### 8.1 Bukti yang dipakai — response Swagger mentah, Rizki, 25 September 2026
 
-| Skenario | Yang dilaporkan Rizki | Acceptance | Hasil |
-| --- | --- | --- | :---: |
-| 1–2 | `EVT-UJI-023A` dan `023B` bertanggal 2030-01-15 → `201`, Diterima, tanpa nomor jurnal, alasan "Belum ada periode akuntansi untuk tanggal 2030-01-15" | Prasyarat | ✅ |
-| 4–5 | Penjadwal mencoba ulang otomatis, semuanya gagal, status akhir **Gagal** | (4) | ✅ |
-| 6 | `023A` → Abaikan tanpa alasan ditolak; dengan alasan "Testing ignore event" → Diabaikan | Jalur Gagal `BE-ACC-P2-025` | ✅ |
-| 7 | `023B` → Coba Ulang manual; "AttemptCount tetap sesuai acceptance" | (3) | ✅ |
-| `026` B1–B4 | Sesudah periode 2030 dibangkitkan, `023B` tetap Gagal (daftar periksa Januari 2030 = 1) sampai dicoba ulang manual → Terjurnal | (5) — penjadwal tidak mengambil Gagal | ✅ |
-| `026` A2–A6 | `EVT-UJI-026A` tetap Tertahan sampai Coba Ulang manual | (5) — penjadwal tidak mengambil Tertahan | ✅ |
-| Log | Registrasi penjadwal berhasil (dilaporkan "Scheduler Registration PASS") | — | ✅ |
+**`GET /accounting-events/9fc887be-aee4-4d71-82cf-57d696803528` (`EVT-UJI-105`)**, dikirim 09.13.46 WIB
+bertanggal akuntansi 2031-01-15, saat periode 2031 belum ada:
+
+| Percobaan | `attemptedAt` | Selisih dari sebelumnya | Hasil | Acceptance |
+| --- | --- | --- | --- | --- |
+| #1 (`POST`) | 09.13.46,48 | — | Gagal: "Belum ada periode akuntansi untuk tanggal 2031-01-15…" | — |
+| #2 (penjadwal) | 09.16.11,10 | **2 menit 24,6 detik** | Gagal | (1) ≥ tenggang 120 detik |
+| #3 (penjadwal) | 09.21.40,90 | **5 menit 29,8 detik** | Gagal | (2) ≥ 5 menit |
+| #4 (penjadwal) | 09.37.11,24 | **15 menit 30,3 detik** | Gagal → status Gagal | (2) ≥ 15 menit; (4) |
+
+Bidang lain pada response yang sama: `attemptCount: 3` untuk empat percobaan — acceptance (3);
+`eventStatus: 5` (Diabaikan) dengan `ignoreReason: "Membersihkan data uji"`, yang hanya mungkin dari Gagal —
+acceptance (4); tidak ada percobaan otomatis sesudah #4 — acceptance (5). Kelebihan ±25–30 detik pada tiap
+jarak sesuai jeda polling 30 detik.
+
+**`EVT-UJI-112`** (dikirim untuk `BE-ACC-P2-026` skenario B, tanggal 2031-01-15): daftar periksa Januari
+2031 pukul 13.43 menghitung satu kejadian Gagal, dan Coba Ulang manual pukul 13.50 tercatat sebagai
+percobaan **#5** — empat percobaan sebelumnya (#1 dari `POST`, #2–#4 dari penjadwal) berakhir Gagal.
+Pengulangan acceptance (4) pada kejadian kedua.
+
+**`GET /accounting-events?Search=EVT-UJI-001`**: `eventStatus: 2` (Tertahan) sejak 2026-09-24 06.33 UTC,
+`attemptCount: 0` — lebih dari sehari penjadwal tidak pernah mengklaim kejadian Tertahan. Acceptance (5).
 
 Nol SQL langsung. UAT belum dijalankan — diserahkan ke tim UAT.
 
-### 8.2 Yang belum terbukti — acceptance (1) dan (2)
+**Catatan zona waktu.** `attemptedAt` dikembalikan dalam WIB (`+07:00`), bukan UTC seperti perkiraan
+sebelumnya; `receivedAt` dalam UTC (`Z`).
 
-Laporan uji menuliskan **tiga** percobaan (#1–#3) lalu Gagal, dengan konfigurasi "Retry Delay: 120 detik".
-Menurut kode, kejadian menjadi Gagal sesudah **tiga coba ulang penjadwal**, sehingga riwayatnya memuat
-**empat** baris:
+### 8.2 Bukti yang dicabut
 
-| Percobaan | Asal | Kapan, dihitung dari #1 |
-| --- | --- | --- |
-| #1 | Request `POST` | 0 |
-| #2 | Penjadwal, coba ulang ke-1 | ±2 menit (tenggang 120 detik mengalahkan jeda 1 menit) |
-| #3 | Penjadwal, coba ulang ke-2 | ±5 menit sesudah #2 (±7 menit dari #1) |
-| #4 | Penjadwal, coba ulang ke-3 → Gagal | ±15 menit sesudah #3 (±22 menit dari #1) |
-
-Kemungkinan laporan uji hanya menghitung percobaan penjadwal. Untuk menutupnya cukup **satu tangkapan
-layar Riwayat Percobaan `EVT-UJI-023A`** yang menampilkan nomor dan waktu tiap percobaan. `023A` sudah
-Diabaikan, tetapi riwayatnya tetap tersimpan dan tampil di rincian.
-
-- Bila tampil empat baris dengan jarak seperti tabel di atas → acceptance (1) dan (2) terbukti, task ✅.
-- Bila tampil tiga baris, atau jaraknya tetap 120 detik → ada selisih dengan kode yang perlu diperiksa sebelum ✅.
+Laporan uji 24 September 2026 (bagian 8 versi sebelumnya) disusun oleh agen AI penguji dan menyebut
+kejadian `EVT-UJI-023A` dan `EVT-UJI-023B`. Kotak Masuk di database dev pada 25 September 2026 memuat
+lima kejadian saja, tanpa keduanya, dan `EVT-UJI-001` yang dilaporkan Terjurnal masih Tertahan. Seluruh
+bukti versi sebelumnya karena itu **tidak dipakai**; acceptance ditutup hanya dengan bukti bagian 8.1.

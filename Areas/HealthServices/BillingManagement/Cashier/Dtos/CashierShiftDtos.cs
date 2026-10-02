@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Dtos;
@@ -63,6 +63,16 @@ public sealed class ReviewVarianceRequest
     public Guid ExpectedRowVersion { get; set; }
     [Required, MaxLength(500)] public string Resolution { get; set; } = string.Empty;
     [Required, MaxLength(500)] public string Reason { get; set; } = string.Empty;
+    public string? Outcome { get; set; }
+    public Guid CorrelationId { get; set; }
+    public Guid CausationId { get; set; }
+}
+
+public sealed class ResolveShiftFollowUpRequest
+{
+    public Guid ExpectedRowVersion { get; set; }
+    [Required(ErrorMessage = "Catatan verifikasi wajib diisi."), MaxLength(500)]
+    public string VerificationNote { get; set; } = string.Empty;
     public Guid CorrelationId { get; set; }
     public Guid CausationId { get; set; }
 }

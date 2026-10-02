@@ -110,6 +110,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public bool IsInsuranceEligible { get; set; }
         public bool IsInsurancePolicyActive { get; set; }
 
+        // RJ-DOC-REV-BE-001 — penjamin utama dari sumber pembayaran aktif kunjungan.
+        public string PrimaryGuarantorNameSnapshot { get; set; } = string.Empty;
+        public string PrimaryGuarantorTypeSnapshot { get; set; } = string.Empty;
+        public bool IsInsurancePatient { get; set; }
+        public bool IsCompanyPatient { get; set; }
+
+        // RJ-DOC-REV-BE-001 — identitas klinis ringkas untuk header workspace dokter.
+        public string? GenderName { get; set; }
+        public DateTime? BirthDate { get; set; }
+        public string? AllergySummary { get; set; }
+        public bool HasAllergy { get; set; }
+        public string? PatientPhotoPath { get; set; }
+        /// <summary>Path dokumen identitas utama (KTP). Bisa berupa path lokal kiosk yang tidak dapat disajikan.</summary>
+        public string? IdentityDocumentPath { get; set; }
+        /// <summary>Path gambar kartu asuransi yang dipakai kunjungan ini.</summary>
+        public string? InsuranceCardImagePath { get; set; }
+
         public int PatientTotalVisitCount { get; set; }
         public int PatientVisitNumber { get; set; }
 
@@ -128,6 +145,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         [MaxLength(500)]
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// Khusus <c>finish-consultation</c>: kunci peringatan validasi (<c>issueKey</c>) yang sudah
+        /// dibaca dokter. Peringatan yang belum dikonfirmasi menahan finalisasi.
+        /// </summary>
+        [MaxLength(100)]
+        public List<string>? AcknowledgedWarningKeys { get; set; }
     }
 
     public class DoctorQueueActionResponse
@@ -155,6 +179,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DoctorConsultationStatus? ConsultationStatus { get; set; }
         public DateTime? ConsultationStartedAt { get; set; }
         public DateTime? ConsultationCompletedAt { get; set; }
+
+        /// <summary>
+        /// Masalah penyerahan tagihan saat konsultasi diselesaikan dari antrean (<c>BE-RJE-013</c>,
+        /// <c>RJ-E2E-CONTRACT-001@1.0.1</c>). Disalin apa adanya dari hasil finalisasi canonical;
+        /// kosong bila tidak ada masalah atau untuk aksi antrean lain. Konsultasi tetap selesai.
+        /// </summary>
+        public List<string> BillingHandoffIssues { get; set; } = new();
 
         public bool IsDoctorCallClusterLocked { get; set; }
         public Guid? DoctorCallScopeId { get; set; }

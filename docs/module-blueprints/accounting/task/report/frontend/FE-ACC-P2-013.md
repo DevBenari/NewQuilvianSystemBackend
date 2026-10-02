@@ -136,3 +136,13 @@ biarkan Jenis Perlakuan **Transaksi**. Bila dipilih Saldo Subledger, pesan berko
 
 `MANUAL TEST: PASS` 7 dari 7, ditambah 3 uji Swagger milik `BE-ACC-P2-022`. UAT belum dijalankan —
 diserahkan ke tim UAT.
+
+---
+
+## 10. Catatan bukti — 28 September 2026
+
+Hasil uji layar bagian 9 berasal dari laporan uji 24 September 2026 yang disusun agen AI penguji;
+laporan agen yang sama terbukti keliru pada task lain (`FE-ACC-P2-012`, `BE-ACC-P2-025`). Status ✅
+tetap karena DoD kartu — eslint 0/0, `npm run build` owner berhasil, laporan tertulis — terpenuhi.
+Uji layar ulang (kolom Jenis Perlakuan pada daftar, isian terkunci pada form "Pembayaran Pasien")
+**dinyatakan lulus oleh Rizki pada 28 September 2026 tanpa tangkapan layar**.

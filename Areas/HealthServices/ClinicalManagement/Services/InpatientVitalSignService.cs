@@ -107,7 +107,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                                           x.VitalSignStatus == PatientVitalSignStatus.EnteredInError,
                     ObservedByUserId = x.ObservedByUserId,
                     ObservedByName = x.ObservedByUser != null ? x.ObservedByUser.DisplayName : null,
-                    UpdateDateTime = x.UpdateDateTime
+                    UpdateDateTime = x.UpdateDateTime,
+                    VitalSignSource = x.VitalSignSource,
+                    ConsultationId = x.ConsultationId
                 })
                 .ToListAsync(cancellationToken);
 

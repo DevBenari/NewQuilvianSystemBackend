@@ -1,5 +1,7 @@
 # Integration Contract — Rawat Jalan Billing
 
+> **Revisi `27` (28 September 2026):** amendment **V2 — Rawat Jalan ke invoice canonical** ada di bagian akhir berkas ini dan **berlaku** untuk jalur fakta klinis → tagihan. Isi di atasnya adalah riwayat desain `RJ-BIL`.
+
 | Field | Nilai |
 |---|---|
 | Contract version | `RJ-BIL-INT-001@1.0.0` |
@@ -136,3 +138,94 @@ credential, certificate, payload, dan environment tidak boleh ditebak.
 Production activation hanya setelah contract owner, security, sandbox/UAT, duplicate/status-query,
 reconciliation, support escalation, dan cutover approval tersedia.
 
+
+
+---
+
+# Amendment V2 — Rawat Jalan ke Invoice Canonical
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `RJ-E2E-CONTRACT-001@1.0.0` |
+| Status | `approved` — Sukma Giri, 2026-09-28 |
+| Owner | Billing Integration; producer: Clinical (konsultasi, tindakan), Pharmacy (resep), Laboratory, Radiology |
+| Traceability | `RJ-E2E-DEC-001`, `003`, `005`, `006`, `009`, `010`, `011` |
+| Compatibility impact | `BIL-INTEGRATION-1.3` ditambahkan; `0.4` dan `1.2` tetap diterima dengan aturan lama |
+
+Seluruh integrasi di amendment ini **internal di dalam satu proses aplikasi** (pemanggilan service).
+Tidak ada sistem luar; `RJ-BIL-DEP-009` tetap `INACTIVE`.
+
+## V2-1. Arah baca dan tulis
+
+| Dari | Ke | Cara | Isi | Arah |
+|---|---|---|---|---|
+| Transaksi klinis (konsultasi, tindakan, Lab, Radiologi, resep) | `ClinicalMilestoneFactProducer` | Pemanggilan service **setelah commit klinis** | `ClinicalMilestoneFactRequest` | Tulis ke ledger fakta |
+| `ClinicalMilestoneFactProducer` | `BillingFolioService.RecognizeMilestoneAsync` | Pemanggilan service | `RecognizeBillingMilestoneRequest` + **`IsClinicalCancellation`** (baru) | Tulis ke folio |
+| `BillingFolioService` | `BillingClinicalChargeBridgeService` | Pemanggilan service setelah commit folio | `ChargeLineId` | Mulai sinkron |
+| `BillingClinicalChargeBridgeService` | `BillingInvoiceService` / `BillingFinancialExceptionService` | Pemanggilan service | `UpsertChargeRequest` / void / adjustment | Tulis ke invoice |
+| `EncounterBillingSummaryService` | Invoice, kalkulasi, folio | Baca | Total dan status | Baca saja |
+| Frontend Rawat Jalan | `GET /encounter-billing-summaries/{encounterId}` | HTTP | — | **Baca saja.** Frontend Rawat Jalan tidak pernah memanggil endpoint tulis Billing |
+
+## V2-2. Kontrak fakta per producer
+
+| Producer | `SourceContext` / `EffectType` | Pemicu | `SourceAggregateId` / `SourceItemId` | `Quantity` / `Unit` | `RuleSnapshot` wajib |
+|---|---|---|---|---|---|
+| `ConsultationFinalizationService` | `Consultation` / `ConsultationCharge` (**baru**) | Konsultasi menjadi `Completed` lewat finalisasi canonical | konsultasi / — | `1` / `KALI` | `{ milestone: "ConsultationCompleted", doctorId, clinicId }` |
+| `PatientProcedureController` (sudah ada) | `Procedure` / `ProcedureCharge` | Tindakan dieksekusi | tindakan / — | dari tindakan | tidak berubah |
+| `LabSpecimenService` (sudah ada) | `Laboratory` / `LaboratoryCharge` | Spesimen diterima | order / pemeriksaan | `1` / pemeriksaan | tidak berubah |
+| `RadStudyService` (sudah ada) | `Radiology` / `RadiologyCharge` | Mutu study diterima | order / study | `1` / pemeriksaan | tidak berubah; `repeatCause` dibaca jembatan |
+| `ConsultationFinalizationService` (resep tahap 1) | `Prescription` / `PrescriptionCharge` | Resep difinalkan bersama konsultasi | resep / — | jumlah item | `{ milestone: "ClinicalFinalization" }` (**baru**) |
+| `PrescriptionDispensingService` (resep tahap 2, **baru**) | `Prescription` / `PrescriptionCharge` | Status resep menjadi `Dispensed` atau `PartiallyDispensed` | resep / — | jumlah item diserahkan | `{ milestone: "Dispensed", items: [{ prescriptionItemId, dispensedQuantity }] }` |
+
+Fakta **tidak** membawa SOAP, diagnosis, anamnesis, hasil pemeriksaan, maupun aturan pakai obat
+(`SEC-RJ-005`). Harga dalam `TariffSnapshot` tetap boleh dikirim producer lama demi kompatibilitas,
+tetapi **tidak dipakai** sebagai harga invoice (`RJ-E2E-DEC-006`).
+
+Resep tahap 2 memakai **identitas fakta yang sama** dengan tahap 1 dan versi naik. Producer yang
+sudah ada menangani ini sebagai *CASE B* (charge sudah terbentuk → revisi baru).
+
+**Contoh:** Resep R/0912 (samaran) — tahap 1 versi 1 saat Selesai Konsultasi. Farmasi menyerahkan
+sebagian → versi 2 `Dispensed` sebagian; sisa diserahkan esok hari → versi 3. Invoice mengikuti
+versi tertinggi; versi 1 dan 2 tetap tercatat di ledger.
+
+## V2-3. Idempotency, timeout, dan kirim ulang
+
+| Mata rantai | Kunci idempotency | Bila hasil tidak pasti | Kirim ulang oleh |
+|---|---|---|---|
+| Fakta → folio | `CliClinicalMilestoneFact.IdempotencyKey` (sudah ada) | `OutcomeUnknown`; **dilarang** menebak berhasil atau gagal | `ClinicalFactDispatchWorker`, lalu antrean manual |
+| Folio → invoice | Guid deterministik `RJ-E2E|{MilestoneFactId}|{MilestoneFactVersion}` → `BilChargeReceipt` | Baris tetap `Pending`/`Failed`; `UpsertChargeAsync` me-replay bila kunci sudah pernah diterima | `BilInvoiceSyncWorker`, lalu antrean manual |
+| Folio → adjustment | Kunci deterministik yang sama → `BilAdjustment.IdempotencyKey` | Sama | Sama |
+
+Jadwal kirim ulang dan batasnya dibaca dari `MstBillingSyncPolicy` (`FACT_DISPATCH`,
+`INVOICE_SYNC`). Tanpa baris aktif, tidak ada kirim ulang otomatis (fail-closed).
+
+## V2-4. Yang tidak boleh terjadi (`AC-RJ-001`..`015`)
+
+| Larangan | Penjaga |
+|---|---|
+| Dua invoice aktif untuk satu kunjungan | Unique index `BilInvoice.EncounterId` + advisory lock di `UpsertChargeAsync` |
+| Dua item untuk satu (sumber, versi) karena retry atau klik ganda | Kunci deterministik + `BilChargeReceipt` + pemeriksaan versi |
+| Item masuk invoice pasien lain | `EncounterId` diambil dari fakta, bukan dari permintaan klien |
+| Harga dari browser | Frontend Rawat Jalan tidak punya endpoint tulis; `from-source` menolak domain klinis Rawat Jalan |
+| Clinical truth batal karena Billing gagal | Fakta ditulis setelah commit klinis; kegagalan hanya mengubah status sinkron |
+| Baris folio yang tak pernah sampai invoice tanpa diketahui siapa pun | Setiap baris layak berakhir `Synced`, `ReconciliationRequired`, atau `Resolved` — tidak ada keadaan diam |
+
+## V2-5. Di luar kontrak ini
+
+| Hal | Pemilik | Catatan |
+|---|---|---|
+| Penerusan fakta Bank Darah dan hemodialisis ke invoice | Pemilik modul masing-masing | Tetap `NotApplicable` (`SOURCE_OUT_OF_SCOPE`) |
+| Penerusan untuk kunjungan rawat inap, IGD, MCU, telemedicine | Pemilik modul masing-masing | Tetap `NotApplicable` (`NOT_OUTPATIENT`) |
+| `CONSUMABLE` / `USED` | Belum ada | `RJ-E2E-DEC-011` |
+| Pembagian jasa medis (`DoctorShare`) | Medical Fee | `0` pada amendment ini |
+
+
+---
+
+# Amendment DP — Daftar Pasien Rawat Jalan (`RJ-DOC-ENCLIST-001@1.0.0`, `draft`)
+
+Tidak ada kontrak integrasi baru, karena fitur ini hanya membaca dan membatalkan data kunjungan di
+dalam aplikasi yang sama dan tidak memanggil sistem luar maupun modul Billing. Satu-satunya efek
+samping lintas komponen adalah notifikasi realtime antrean batal (`QueueRealtimeService`) yang
+sudah ada; ia dikirim setelah commit dan kegagalannya tidak membatalkan pembatalan. Ditinjau
+ulang bila pembatalan kunjungan kelak harus mengabari Billing atau BPJS.

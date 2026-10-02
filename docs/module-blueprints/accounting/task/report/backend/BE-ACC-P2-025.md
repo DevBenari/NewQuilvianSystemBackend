@@ -14,7 +14,7 @@
 | Urutan | Dimajukan atas permintaan Rizki 24 September 2026 supaya rincian kejadian dapat diuji lewat layar (`FE-ACC-P2-012`) |
 | Commit backend saat dikerjakan | `8535dd56` (branch `rizkiG`), belum di-commit — bertumpuk dengan `021` dan `024` |
 | Tanggal | 24 September 2026 |
-| Status | **✅ SELESAI** — 24 September 2026. 4 dari 4 acceptance di source; build Rizki **berhasil, 0 error, 222 warning**; uji Rizki lulus: Swagger `ignore` ditolak `409` untuk `Tertahan` dan `Terjurnal`, serta Coba Ulang `Tertahan` → `Terjurnal` lewat layar Rincian (bagian 6). Jalur `Gagal` (Abaikan berhasil, Coba Ulang `Gagal`) dibuktikan lewat pembacaan source **atas keputusan Rizki** — belum ada kode yang menghasilkan status `Gagal` sebelum `BE-ACC-P2-023`. Riwayat: 🟡 pada hari yang sama |
+| Status | **✅ SELESAI — 28 September 2026.** 4 dari 4 acceptance di source dan terbukti dari **response Swagger mentah Rizki** (25 dan 28 September 2026): (1) Coba Ulang Tertahan (`EVT-UJI-113`) dan Gagal (`EVT-UJI-112`); (2) `EVT-UJI-104` berjenis belum terdaftar dipasangkan ke `UJI-BELUM-TERDAFTAR` yang baru didaftarkan lalu terjurnal `JU/2026/09/00008`; (3) Abaikan Gagal beralasan (`EVT-UJI-105`), alasan kosong → `400`, status Terjurnal → `409`; (4) Tertahan → `409`. Build Rizki berhasil, 222 warning. Bukti 24 September 2026 dari laporan agen AI dicabut (bagian 6.3). UAT belum dijalankan — diserahkan ke tim UAT. Riwayat: ✅ 24 September, 🟡 28 September pagi |
 
 ### Backend Governance Preflight
 
@@ -42,10 +42,10 @@ berubah bersamaan.
 
 | # | Acceptance | Bukti | Status |
 | ---: | --- | --- | :---: |
-| 1 | Coba ulang `Gagal`/`Tertahan` memakai aturan terkini | `CobaUlangAsync` → `ProsesKejadianAsync(id, statusAsal, nomorTerakhir + 1, …)` — jalur yang sama dengan `021` | ✅ |
-| 2 | `Tertahan` berjenis belum terdaftar dipasangkan ke jenis berkode sama | `ProsesKejadianAsync` mencari jenis aktif berdasarkan `EventTypeCode` tersimpan, lalu mengisi `EventTypeId` | ✅ |
-| 3 | Abaikan hanya `Gagal`, alasan wajib | `AbaikanAsync` — `400` alasan kosong, `409` status lain; ubah status bersyarat `WHERE EventStatus = Gagal`. **Uji:** penolakan `409` untuk `Tertahan` dan `Terjurnal` lulus; jalur berhasil pada `Gagal` dibuktikan lewat source (bagian 6.2) | ✅ |
-| 4 | `Tertahan` → `Diabaikan` ditolak | `409` dengan pesan "Kejadian Tertahan menunggu aturan posting dan tidak boleh diabaikan…". **Uji:** Swagger pada `EVT-UJI-001` lulus | ✅ |
+| 1 | Coba ulang `Gagal`/`Tertahan` memakai aturan terkini | `CobaUlangAsync` → `ProsesKejadianAsync(id, statusAsal, nomorTerakhir + 1, …)` — jalur yang sama dengan `021`. **Uji:** `EVT-UJI-113` Tertahan → Terjurnal sesudah aturan dibuat; `EVT-UJI-112` Gagal → Terjurnal sesudah periode dibangkitkan (bagian 6.1) | ✅ |
+| 2 | `Tertahan` berjenis belum terdaftar dipasangkan ke jenis berkode sama | `ProsesKejadianAsync` mencari jenis aktif berdasarkan `EventTypeCode` tersimpan, lalu mengisi `EventTypeId`. **Uji:** `EVT-UJI-104` (`EVENT_TYPE_NOT_REGISTERED`) → jenis `UJI-BELUM-TERDAFTAR` didaftarkan dengan `accountingEventCount: 0` → Coba Ulang → Terjurnal `JU/2026/09/00008` → jenis yang sama kini `accountingEventCount: 1` (bagian 6.2, 025-4) | ✅ |
+| 3 | Abaikan hanya `Gagal`, alasan wajib | `AbaikanAsync` — `400` alasan kosong, `409` status lain; ubah status bersyarat `WHERE EventStatus = Gagal`. **Uji:** `EVT-UJI-105` Gagal → Diabaikan beralasan (bagian 6.1); `EVT-UJI-101` Terjurnal → `409`; alasan kosong → `400` (bagian 6.2, 025-2 dan 025-3) | ✅ |
+| 4 | `Tertahan` → `Diabaikan` ditolak | `409` dengan pesan "Kejadian Tertahan menunggu aturan posting dan tidak boleh diabaikan…". **Uji:** `EVT-UJI-104` Tertahan → `409` pesan persis (bagian 6.2, 025-1) | ✅ |
 
 ## 3. Keputusan implementasi
 
@@ -70,44 +70,99 @@ berubah bersamaan.
 | Pemeriksaan | Hasil |
 | --- | --- |
 | `dotnet build` | **Berhasil** — Rizki, 24 September 2026, 0 error, 222 warning |
-| Uji | **Lulus** — Rizki, 24 September 2026, bagian 6 |
+| Uji | **Lulus** — response Swagger mentah Rizki 25 dan 28 September 2026, bagian 6.1 dan 6.2 |
 
-## 6. Bukti uji — Rizki, 24 September 2026
+## 6. Bukti uji
 
-### 6.1 Yang diuji
+### 6.1 Terbukti — response Swagger mentah, Rizki, 25 September 2026
 
-| Skenario | Jalur | Hasil |
-| --- | --- | :---: |
-| `PATCH /{id}/ignore` pada `EVT-UJI-001` (`Tertahan`), alasan terisi | Swagger | `409` "Kejadian Tertahan … tidak boleh diabaikan" ✅ |
-| `PATCH /{id}/ignore` pada `EVT-UJI-002` (`Terjurnal`) | Swagger | `409` ✅ |
-| Daftarkan jenis berkode sama dengan `EVT-UJI-001` + aturan posting, lalu Coba Ulang | Layar Rincian (`FE-ACC-P2-012` skenario 4) | Toast berhasil, `Tertahan` → `Terjurnal`, riwayat percobaan bertambah ✅ — acceptance (1) dan (2) |
-| Coba Ulang pada kejadian `Terjurnal` | Layar Rincian (`FE-ACC-P2-012` skenario 5) | Tombol mati ✅ |
+| Jalur | Bukti | Acceptance |
+| --- | --- | --- |
+| Coba Ulang kejadian **Tertahan** memakai aturan terkini | `EVT-UJI-113` Tertahan `POSTING_RULE_MISSING`; sesudah aturan `UJI-026-A` dibuat, `POST /{id}/retry` → `200` "berhasil dijurnal sebagai JU/2026/09/00007", `journalStatus: Posted` | (1) |
+| Coba Ulang kejadian **Gagal** | `EVT-UJI-112` Gagal oleh penjadwal; sesudah periode 2031 dibangkitkan, `POST /{id}/retry` → `200` "berhasil dijurnal sebagai JU/2031/01/00001" (percobaan #5) | (1) |
+| Abaikan kejadian **Gagal** dengan alasan | `EVT-UJI-105`: `eventStatus: 5`, `ignoreReason: "Membersihkan data uji"`; sebelumnya Gagal oleh penjadwal (`attemptCount: 3`) | (3) jalur berhasil |
 
-### 6.2 Yang dibuktikan lewat source — keputusan Rizki, 24 September 2026
+Rinciannya di [laporan `BE-ACC-P2-023`](BE-ACC-P2-023.md) bagian 8.1 dan
+[laporan `BE-ACC-P2-026`](BE-ACC-P2-026.md) bagian 8. Nol SQL langsung. UAT belum dijalankan.
 
-Saat ini **tidak ada jalur kode yang menghasilkan kejadian `Gagal`**: `AccAccountingEventService`
-tidak pernah menulis `AccountingEventStatus.Gagal`; status itu baru muncul dari penjadwal
-`BE-ACC-P2-023` sesudah tiga coba ulang gagal. Rizki memilih menerima pembacaan source untuk dua
-jalur berikut, mengikuti preseden `BE-ACC-P2-031` acceptance (5). Data tidak diubah lewat SQL.
+### 6.2 Skenario Swagger — dijalankan Rizki 28 September 2026, semuanya lulus
 
-| Jalur | Bukti source |
-| --- | --- |
-| Abaikan kejadian `Gagal` dengan alasan → `Diabaikan` | `AbaikanAsync`: status harus `Gagal` (selain itu `409`), alasan wajib (`400`), lalu `ExecuteUpdateAsync` bersyarat `WHERE Id = id AND EventStatus = Gagal` — penjaga yang sama yang menolak `Tertahan` dan `Terjurnal` pada 6.1 |
-| Coba Ulang kejadian `Gagal` | `CobaUlangAsync` menerima `Gagal` dan `Tertahan` lewat satu pemeriksaan (`is not (Gagal or Tertahan)` → `409`), lalu memanggil `ProsesKejadianAsync` yang sama yang terbukti mengubah `Tertahan` → `Terjurnal` pada 6.1 |
+Semua URL diawali `/api/v1/corporate/accounting`. Kirim balik response body mentah setiap langkah.
+Jalankan **berurutan**: 025-1 sampai 025-3 memakai `EVT-UJI-104` selagi masih Tertahan, sebelum 025-4
+mengubahnya menjadi Terjurnal.
 
-Kedua jalur ini diuji ulang lewat layar begitu `BE-ACC-P2-023` menghasilkan kejadian `Gagal`
-sungguhan. UAT belum dijalankan — diserahkan ke tim UAT.
+**025-1 — Tertahan tidak boleh diabaikan (acceptance 4)**
+`PATCH /accounting-events/1db62e3f-76db-4f8c-965e-fd4af0acf72e/ignore` (`EVT-UJI-104`, Tertahan)
+```json
+{ "reason": "Uji tolak abaikan kejadian Tertahan" }
+```
+Diharapkan: `409` "Kejadian Tertahan menunggu aturan posting dan tidak boleh diabaikan. Lengkapi aturannya lalu coba ulang."
 
-**Perubahan data uji.** `EVT-UJI-001` kini `Terjurnal`; kotak masuk tidak lagi punya kejadian `Tertahan`.
+**025-2 — Status selain Gagal tidak boleh diabaikan (acceptance 3)**
+`PATCH /accounting-events/3f0e128c-a91d-4a50-885e-7ca3767967a2/ignore` (`EVT-UJI-101`, Terjurnal)
+```json
+{ "reason": "Uji tolak abaikan kejadian Terjurnal" }
+```
+Diharapkan: `409` "Hanya kejadian Gagal yang dapat diabaikan; kejadian ini berstatus Terjurnal."
 
-### 6.3 Pembaruan — jalur Gagal diuji di layar, 24 September 2026
+**025-3 — Alasan wajib (acceptance 3)**
+`PATCH /accounting-events/1db62e3f-76db-4f8c-965e-fd4af0acf72e/ignore`
+```json
+{ "reason": "" }
+```
+Diharapkan: `400` "Alasan mengabaikan kejadian wajib diisi, maksimal 500 karakter." — alasan diperiksa lebih dulu daripada status.
 
-Sesudah `BE-ACC-P2-023` menghasilkan kejadian Gagal sungguhan (`EVT-UJI-023A`, `023B`, tanggal 2030-01-15),
-Rizki menguji kedua jalur yang di bagian 6.2 baru dibuktikan lewat source:
+**025-4 — Kejadian berjenis belum terdaftar dipasangkan ke jenis berkode sama (acceptance 2)**
+`EVT-UJI-104` tertahan `EVENT_TYPE_NOT_REGISTERED` dengan kode `UJI-BELUM-TERDAFTAR` dan `eventTypeName: null`.
 
-| Jalur | Hasil |
-| --- | :---: |
-| Abaikan `EVT-UJI-023A` tanpa alasan → ditolak; dengan alasan "Testing ignore event" → Diabaikan | ✅ |
-| Coba Ulang `EVT-UJI-023B` saat periode 2030 belum ada → tetap Gagal; sesudah periode 2030 dibangkitkan → Terjurnal | ✅ |
+1. `POST /event-types`
+   ```json
+   { "eventTypeCode": "UJI-BELUM-TERDAFTAR", "eventTypeName": "Uji Belum Terdaftar", "sourceModule": "Finance", "eventKind": 1 }
+   ```
+   Diharapkan `201`; catat `data.id` sebagai `{typeId}`.
+2. `POST /posting-rules` — akun sama dengan aturan `UJI-026-A`
+   ```json
+   {
+     "legalEntityId": "3bf63974-a754-4b20-81ee-70894f6fb058",
+     "eventTypeId": "{typeId}",
+     "journalTypeId": "87796dbd-edf2-46c1-8f7c-0f6ff17ab2ae",
+     "treatment": 1,
+     "lines": [
+       { "lineNumber": 1, "componentCode": "TOTAL", "accountId": "d81b4195-641b-458a-9284-1da568446ee8", "costCenterId": null, "side": 1, "description": "Uji 025 debit" },
+       { "lineNumber": 2, "componentCode": "TOTAL", "accountId": "da1f4129-e36e-4882-90e6-b9fc14413db8", "costCenterId": null, "side": 2, "description": "Uji 025 kredit" }
+     ]
+   }
+   ```
+   Diharapkan `201`; catat `data.id` sebagai `{ruleId}`.
+3. `POST /accounting-events/1db62e3f-76db-4f8c-965e-fd4af0acf72e/retry` (tanpa body)
+   Diharapkan `200`, `eventStatus: 4`, `journalNumber` terisi, dan **`eventTypeName: "Uji Belum Terdaftar"`**
+   — nama itu hanya muncul bila `EventTypeId` kejadian sudah dipasangkan ke jenis yang baru didaftarkan.
+4. Bersihkan: `PATCH /posting-rules/{ruleId}/deactivate` lalu `PATCH /event-types/{typeId}/deactivate`, keduanya `200`.
 
-Bukti source di bagian 6.2 kini diperkuat bukti layar. Rincian di [laporan `BE-ACC-P2-023`](BE-ACC-P2-023.md) bagian 8.
+Langkah 3 menambah satu jurnal Posted Rp 500.000 di September 2026 pada akun uji. Bila Rizki tidak
+menginginkan jurnal itu, acceptance (2) dapat diterima lewat pembacaan source — keputusan Rizki.
+
+### 6.3 Bukti yang dicabut
+
+Bagian 6.1–6.3 versi 24 September 2026 disusun dari laporan agen AI penguji: penolakan `409` pada
+`EVT-UJI-001` dan `EVT-UJI-002`, `EVT-UJI-001` Tertahan → Terjurnal, serta jalur Gagal pada
+`EVT-UJI-023A`/`023B`. Pada 25 September 2026 `GET /accounting-events?Search=EVT-UJI-001` masih
+menjawab Tertahan `EVENT_TYPE_NOT_REGISTERED` dengan `attemptCount: 0`, dan `EVT-UJI-023A`/`023B` tidak
+ada di Kotak Masuk. Seluruh bukti versi itu **tidak dipakai**.
+
+### 6.4 Hasil skenario 6.2 — response Swagger mentah, Rizki, 28 September 2026
+
+| Skenario | Response sebenarnya | Acceptance | Hasil |
+| --- | --- | --- | :---: |
+| 025-1 `PATCH …/1db62e3f-…/ignore` (`EVT-UJI-104` Tertahan) | `409` "Kejadian Tertahan menunggu aturan posting dan tidak boleh diabaikan. Lengkapi aturannya lalu coba ulang." (09.08) | (4) | ✅ |
+| 025-2 `PATCH …/3f0e128c-…/ignore` (`EVT-UJI-101` Terjurnal) | `409` "Hanya kejadian Gagal yang dapat diabaikan; kejadian ini berstatus Terjurnal." (09.09) | (3) | ✅ |
+| 025-3 `PATCH …/1db62e3f-…/ignore` alasan `""` | `400` "Alasan mengabaikan kejadian wajib diisi, maksimal 500 karakter." (09.10) | (3) | ✅ |
+| 025-4 langkah 1 `POST /event-types` `UJI-BELUM-TERDAFTAR` | `201`; `id 1041ae33-…`, `accountingEventCount: 0` | (2) | ✅ |
+| 025-4 langkah 2 `POST /posting-rules` | `201` "Aturan posting untuk jenis kejadian UJI-BELUM-TERDAFTAR berhasil disimpan."; aturan `8ec42fe7-…` | (2) | ✅ |
+| 025-4 langkah 3 `POST …/1db62e3f-…/retry` | `200` "Kejadian EVT-UJI-104 berhasil dijurnal sebagai JU/2026/09/00008.", `journalStatus: Posted`, percobaan #2 berhasil 09.15.02 | (1), (2) | ✅ |
+| 025-4 langkah 4 `PATCH …/8ec42fe7-…/deactivate`, `PATCH /event-types/1041ae33-…/deactivate` | Keduanya `200`; jenis kini `isActive: false`, **`accountingEventCount: 1`** — kejadian sudah terhubung ke jenis ini | (2) | ✅ |
+
+Bukti pemasangan jenis (acceptance 2) adalah perubahan `accountingEventCount` jenis `UJI-BELUM-TERDAFTAR`
+dari `0` menjadi `1`: angka itu menghitung kejadian ber-`EventTypeId` jenis tersebut, sedangkan
+`EVT-UJI-104` diterima tanpa `EventTypeId`. Nol SQL langsung. Data uji tambahan: jurnal Posted
+`JU/2026/09/00008` Rp 500.000 di September 2026.

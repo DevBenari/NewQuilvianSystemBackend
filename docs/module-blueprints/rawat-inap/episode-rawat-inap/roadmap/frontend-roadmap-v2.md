@@ -39,9 +39,9 @@ frontend_repo: QuilvianSystemFrontendDev
 frontend_branch: HamzahV2
 frontend_source_sha: 1ce219b40f8e411f3c4e66975626ab33ae81616a
 backend_source_sha: df3679c0d5b2f08106702153eb242d3a6cb2929b
-task_id_range: FE-RWI-063..FE-RWI-066, FE-RWI-096
-task_id_next_free: FE-RWI-097   # FE-RWI-095 dipakai dokter-rawat-inap, FE-RWI-096 dipakai di sini, keduanya 23-09-2026
-last_updated: "2026-09-23 — FE-RWI-096 ditambahkan dari ISSUE-EPS-002 ISS-EPS-01; penghitung nomor task dikoreksi karena sebelumnya basi (ISS-EPS-05)"
+task_id_range: FE-RWI-063..FE-RWI-066, FE-RWI-096, FE-RWI-101
+task_id_next_free: FE-RWI-102   # FE-RWI-095..100 dipakai integrasi-billing, FE-RWI-101 dipakai di sini 28-09-2026
+last_updated: "2026-09-28 — FE-RWI-101 ditambahkan dari hasil pengujian tambah asuransi admisi; keputusan pemilik opsi A sama persis dengan kiosk"
 stack: "Next.js App Router, JavaScript/JSX, Redux, Axios, design token dan base component Quilvian"
 test_policy: "rules/frontend/test-policy.md — menulis test baru opsional; lint dan build wajib"
 write_authority: "TIDAK diberikan di sini. Wewenang tulis frontend dinyatakan terpisah per task"
@@ -298,6 +298,55 @@ sistem.
 
 **Definition of Done.** Lint dan build hijau; laporan tracked ada; roadmap dan traceability
 diperbarui. Seluruh kriteria terpenuhi.
+
+---
+
+### ✅ `FE-RWI-101` — Tambah penjamin pada langkah Pembayaran admisi disamakan dengan kiosk
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **SELESAI 28 September 2026.** Kedelapan acceptance criteria dipetakan ke source. `npx eslint` kelima berkas JS/JSX `0 errors`, 1 warning `react-hooks/set-state-in-effect` yang sama persis dengan versi `HEAD`; `node --test base-payer-workspace.test.mjs` 3 dari 3 lulus; grep anti-regresi UI nol hasil pada blok baru. Butir DoD `npm run build` dan uji peramban **`NOT RUN` — dikecualikan atas keputusan pemilik 10 September 2026**, ditegaskan lagi pada task ini. Bukti: [laporan](../task/report/frontend/FE-RWI-101.md) |
+| **Gelombang** | Di luar gelombang — task perbaikan pasca-pengujian |
+| **Wewenang UI** | Opsi A "sama persis dengan kiosk" disetujui pemilik (Muhammad Hamzah) 28 September 2026. Modal cari master dirangkai dari base component yang ada, bukan menyalin CSS kiosk |
+
+**Bisnis prosesnya.** Hasil pengujian 28 September 2026: menambah asuransi pada langkah Pembayaran
+admisi rawat inap memunculkan formulir berisi Nama Paket, Kelas/Benefit, dan Catatan, sedangkan
+kiosk pasien lama hanya meminta tiga hal — memilih penjamin dari master, nomor polis/kartu, dan
+masa aktif kartu. Selain itu masa aktif kartu pada panel kanan admisi hanya tampilan: nilainya
+terisi dari awal dan tidak pernah dikirim ke server. Pemilik meminta alur tambah penjamin
+disamakan persis dengan kiosk.
+
+**Acceptance criteria.**
+
+1. Tombol "+ Tambah Asuransi Baru" dan "+ Tambah Perusahaan Baru" membuka modal cari master
+   penjamin: kotak cari, daftar hasil yang dapat diklik, keadaan memuat/kosong/galat, "Muat lebih
+   banyak" bila masih ada halaman berikutnya, dan tombol Tutup.
+2. Memilih satu master menutup modal, dan panel kanan masuk mode "PENJAMIN BARU": nomor polis/kartu
+   (atau nomor pegawai/kartu) dapat diisi paling banyak 50 karakter, masa aktif kartu kosong di
+   awal dan wajib dipilih, serta bar "Simpan Asuransi Baru" / "Simpan Perusahaan Baru".
+3. Isian Nama Paket, Kelas/Benefit, dan Catatan (asuransi) serta Nama Pegawai, Departemen, Kelas,
+   dan Catatan (perusahaan) tidak lagi tampil dan tidak lagi diisi dari layar.
+4. Simpan menolak nomor kosong atau masa aktif yang belum dipilih dengan pesan Bahasa Indonesia.
+   Bila berhasil, kartu tersimpan ke profil pasien, langsung terpilih, dan masa aktifnya tercatat
+   pada `notes` seperti kiosk.
+5. "Batalkan Pilihan" mengosongkan penjamin terpilih maupun draft penjamin baru.
+6. Selama draft penjamin baru belum disimpan, langkah tidak dapat dilanjutkan.
+7. `isPrimary` tetap `false`; Kelas Perawatan tetap wajib; alur Tunai tidak berubah.
+8. Tanpa perubahan backend dan tanpa base component baru.
+
+**Bukti verifikasi.** `eslint` berkas yang diubah; `npm run build` dijalankan user sendiri; grep
+anti-regresi UI; pembacaan `CreatePatientInsuranceRequest` untuk memastikan `PlanName`,
+`ClassName`, dan `Notes` memang opsional.
+
+**Yang dikecualikan.** Verifikasi peramban mengikuti kebijakan pemilik — bukti source, lint, dan
+build memadai.
+
+**Risiko dan kewajiban koordinasi.** Masa aktif kiosk berupa rentang "kurang/lebih dari 1 tahun",
+bukan tanggal, sehingga dicatat pada `notes` dan tidak mengisi `EffectiveStartDate` /
+`EffectiveEndDate`. Tombol "Jadikan Utama" kiosk tidak termasuk cakupan.
+
+**Definition of Done.** Lint hijau; build dijalankan; laporan tracked ada; roadmap dan
+traceability diperbarui.
 
 ---
 

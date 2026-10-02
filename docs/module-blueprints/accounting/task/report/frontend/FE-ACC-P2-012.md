@@ -12,7 +12,7 @@
 | Dependency | `BE-ACC-P2-024` ✅, `BE-ACC-P2-025` ✅, `FE-ACC-P2-011` ✅ |
 | Branch / commit | `RizkiV2` — di-commit Rizki `70bb05446` (24 September 2026), di atas `c941012ac` |
 | Tanggal | 24 September 2026 |
-| Status | **🟡 SEBAGIAN — pengerjaan ulang 24 September 2026** atas permintaan Rizki (bagian 9): rincian diringkas dari 13 kotak + 3 kartu menjadi 7 kotak, dan Isi Pesan Asli tidak lagi tampil sebagai kode. eslint 3 berkas **0/0**. **Belum:** `npm run build` Rizki dan uji layar ulang 6 skenario (bagian 9.6). Versi sebelumnya ✅ — build berhasil dan uji layar 7/7 lulus, commit `70bb05446` |
+| Status | **✅ SELESAI — 28 September 2026.** Pengerjaan ulang atas permintaan Rizki (bagian 9): rincian diringkas dari 13 kotak + 3 kartu menjadi 7 kotak, Isi Pesan Asli tampil sebagai tabel berlabel Indonesia. eslint 3 berkas **0/0**; di-commit `57c2f5de0`; `npm run build` Rizki berhasil 28 September 2026; uji layar ulang Rizki lulus skenario 1–5 (bagian 11). Tombol untuk status Gagal dibuktikan lewat source atas keputusan Rizki (bagian 8.2); jalur backend-nya terbukti lewat Swagger. Bukti agen AI 24 September 2026 dicabut (bagian 10). UAT belum dijalankan — diserahkan ke tim UAT
 
 ## 1. Yang dibangun
 
@@ -207,7 +207,7 @@ Nol baris komentar ditambahkan. Konstanta yang dihapus hanya dipakai hook ini (d
 | --- | --- |
 | `npx eslint` ketiga berkas | **0 error, 0 warning** (exit 0), dijalankan ulang sesudah `data-flat-table` |
 | Grep anti-regresi (`<button`, `fw-`/`fs-`, warna literal, `style={{`, `<pre`) | Kosong. `<table>`: 2, keduanya ber-`data-flat-table="true"` |
-| `npm run build` | **Belum** — Rizki |
+| `npm run build` | **Berhasil** — Rizki, 28 September 2026: tabel rute tercetak lalu `postbuild` (`prepare-standalone`) menyalin static dan public assets; npm hanya menjalankan `postbuild` bila `next build` keluar dengan kode 0 |
 | `MANUAL TEST` | `REQUIRED` — bagian 9.6 |
 | `AUTOMATED TEST` | `SKIPPED (opsional)` |
 
@@ -218,6 +218,46 @@ Nol baris komentar ditambahkan. Konstanta yang dihapus hanya dipakai hook ini (d
 | 1 | Kotak Masuk → klik dua kali `EVT-UJI-002` | Informasi Utama **7 kotak**: Status lencana Terjurnal; Jurnal `JU/2026/09/00005` + status + periode + tombol Buka Jurnal; Jenis "Pembayaran Pasien (PATIENT_PAYMENT)"; Nilai "Rp 1.000.000" tanpa rincian (komponennya hanya TOTAL); Tanggal Akuntansi "24 September 2026"; Sumber "Finance · transaksi AR-UJI-0002"; Waktu "Terjadi … · diterima …". Tidak ada bagian Informasi Tambahan, kartu Jurnal, atau kartu Komponen |
 | 2 | Tekan **Buka Jurnal** di kotak Jurnal | Rincian jurnal terbuka |
 | 3 | Isi Pesan Asli → **Lihat** | Tabel Keterangan–Isi: Nomor Kejadian, Kode Jenis Kejadian, Modul Pengirim, Nomor Transaksi Asal, Versi Transaksi, Waktu Kejadian, Tanggal Akuntansi, Nilai, Mata Uang "Rupiah (IDR)", Badan Hukum **nama PT**, Komponen Total, dua nomor "(untuk tim IT)". **Tanpa** kurung kurawal, tanda kutip, atau baris Saldo Subledger |
-| 4 | Buka `EVT-UJI-023A` (tab Semua) | Status "Diabaikan — Alasan diabaikan: Testing ignore event"; Jurnal "Belum ada jurnal"; **Riwayat Percobaan berisi 4 baris**. Tangkapan layar bagian ini sekaligus menutup bukti `BE-ACC-P2-023` acceptance (1)–(2) |
+| 4 | Buka `EVT-UJI-105` (tab Semua) | Status "Diabaikan — Alasan diabaikan: Membersihkan data uji"; Jurnal "Belum ada jurnal"; **Riwayat Percobaan berisi 4 baris** (09.13, 09.16, 09.21, 09.37). *Diperbarui 28 September 2026: `EVT-UJI-023A` tidak ada di database dev* |
 | 5 | Tombol Coba Ulang dan Abaikan pada `EVT-UJI-002` | Tetap mati, dengan keterangan saat diarahkan kursor (status Terjurnal) |
 | 6 | Perkecil jendela peramban | Kotak Informasi Utama tersusun satu kolom; tabel pesan dapat digulir mendatar |
+
+---
+
+## 10. Koreksi bukti — 28 September 2026
+
+Hasil uji bagian 8.1 dan 8.3 disusun oleh agen AI penguji. Data di database dev pada 25 September 2026
+membantah sebagiannya:
+
+| Klaim | Kenyataan (response Swagger dan tangkapan layar Rizki, 25 September 2026) | Akibat |
+| --- | --- | --- |
+| 8.1 skenario 4: `EVT-UJI-001` Tertahan → Terjurnal sesudah Coba Ulang | `EVT-UJI-001` masih Tertahan `EVENT_TYPE_NOT_REGISTERED`, `attemptCount: 0` | Dicabut |
+| 8.3: Abaikan `EVT-UJI-023A`, Coba Ulang `EVT-UJI-023B` | Kedua kejadian tidak ada di Kotak Masuk | Dicabut |
+
+**Bukti layar yang benar-benar ada** — tangkapan layar Rizki:
+
+| Tangkapan layar | Yang terlihat |
+| --- | --- |
+| Rincian `EVT-UJI-002`, versi sebelum pengerjaan ulang | Isi Pesan Asli tampil sebagai JSON — dasar keluhan pengerjaan ulang |
+| Kotak Masuk tab Semua, 25 September 2026 | Lima kejadian dengan status, jenis, nilai, dan kolom Jurnal |
+| Rincian `EVT-UJI-105` sesudah pengerjaan ulang, status Diterima | Informasi Utama **7 kotak** ("7 item"): Status, Jurnal "Belum ada jurnal", Jenis "Pembayaran Pasien (PATIENT_PAYMENT)", Nilai "Rp 300.000", Tanggal Akuntansi "15 Januari 2031", Sumber "Finance · transaksi AR-UJI-0105", Waktu. Coba Ulang dan Abaikan mati dengan keterangan saat status Diterima |
+
+Tombol untuk kejadian **Gagal** pada layar Rincian masih belum punya bukti layar. Jalur backend-nya
+terbukti lewat Swagger (`EVT-UJI-105` diabaikan, `EVT-UJI-112` dicoba ulang). Status tetap 🟡 sampai
+`npm run build` dan uji layar ulang bagian 9.6 selesai.
+
+---
+
+## 11. Hasil uji layar ulang — tangkapan layar Rizki, 28 September 2026
+
+| # (bagian 9.6) | Yang terlihat | Hasil |
+| ---: | --- | :---: |
+| 1 | Rincian `EVT-UJI-002`: Informasi Utama "7 item" — Status lencana Terjurnal; Jurnal `JU/2026/09/00005` "Draft, periode 2026-09" + tombol Buka Jurnal; Jenis "Pembayaran Pasien (PATIENT_PAYMENT)"; Nilai "Rp 1.000.000"; Tanggal Akuntansi "24 September 2026"; Sumber "Finance · transaksi AR-UJI-0002"; Waktu "Terjadi 24 Sep 2026, 10.00 · diterima 24 Sep 2026, 13.39" | ✅ |
+| 2 | Buka Jurnal → rincian jurnal `JU/2026/09/00005` terbuka (Nomor Dokumen `EVT-UJI-002`) | ✅ |
+| 3 | Isi Pesan Asli → Lihat: tabel "Keterangan — Isi yang dikirim Finance", tanpa kurung kurawal atau tanda kutip; Mata Uang "Rupiah (IDR)"; Badan Hukum "PT Metropolitan Medical Centre"; baris "Komponen Total Rp 1.000.000"; dua nomor "(untuk tim IT)"; tanpa baris Saldo Subledger | ✅ |
+| 4 | Riwayat Percobaan `EVT-UJI-105`: empat baris "Tidak Berhasil" pukul 09.37, 09.21, 09.16, 09.13 dengan pesan periode 2031 belum ada | ✅ |
+| 5 | Coba Ulang pada `EVT-UJI-002` (Terjurnal) mati, keterangan "Coba Ulang hanya untuk kejadian Gagal atau Tertahan" | ✅ |
+| 6 | Tampilan layar sempit | Tidak dilampirkan — bukan bagian DoD kartu |
+
+`MANUAL TEST: PASS` skenario 1–5. Catatan: kotak Jurnal `EVT-UJI-002` berstatus Draft karena aturan
+`PATIENT_PAYMENT` berperlakuan Buat Draft.

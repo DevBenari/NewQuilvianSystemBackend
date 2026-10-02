@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs
 {
@@ -55,6 +56,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public DateTime? DuplicateEpisodeOverrideAt { get; set; }
         public Guid? DuplicateEpisodeOverrideOfVisitId { get; set; }
 
+        public bool IsAwaitingClosure { get; set; }
+        public string? AwaitingClosureReason { get; set; }
+
         public DateTime CreateDateTime { get; set; }
         public DateTime? UpdateDateTime { get; set; }
     }
@@ -71,6 +75,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         /// <summary>Kunjungan yang sudah ada; <c>null</c> bila <see cref="HasActiveEpisode"/> salah.</summary>
         public EmergencyActiveEpisodeVisitSummary? Visit { get; set; }
+
+        public EmergencyActiveEncounterSummary? Encounter { get; set; }
+    }
+
+    public class EmergencyActiveEncounterSummary
+    {
+        public Guid Id { get; set; }
+        public string EncounterNumber { get; set; } = string.Empty;
+        public DateTime RegisteredAt { get; set; }
     }
 
     /// <summary>
@@ -184,6 +197,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         [MaxLength(100)]
         public string? TemporaryPatientAlias { get; set; }
+
+        [MaxLength(250)]
+        public string? ArrivalLocation { get; set; }
+
+        [MaxLength(250)]
+        public string? FoundLocation { get; set; }
+
+        [MaxLength(250)]
+        public string? TraumaLocation { get; set; }
+
+        public DateTime? TraumaDateTime { get; set; }
+
+        [MaxLength(1000)]
+        public string? Notes { get; set; }
+    }
+
+    public class MarkEmergencyEncounterNoShowRequest
+    {
+        public Guid? EncounterId { get; set; }
+
+        public string? Reason { get; set; }
+    }
+
+    public class EmergencyEncounterNoShowResponse
+    {
+        public Guid EncounterId { get; set; }
+        public EncounterStatus EncounterStatus { get; set; }
+        public DateTime NoShowAt { get; set; }
+        public string? NoShowByName { get; set; }
+        public string NoShowReason { get; set; } = string.Empty;
+    }
+
+    public class UpdateEmergencyArrivalTimeRequest
+    {
+        public DateTime? ArrivalDateTime { get; set; }
     }
 
     public class UpdateEmergencyVisitRegistrationStatusRequest

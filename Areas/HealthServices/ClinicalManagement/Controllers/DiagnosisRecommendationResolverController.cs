@@ -105,6 +105,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     DiagnosisCode = x.Diagnosis != null ? x.Diagnosis.DiagnosisCode : string.Empty,
                     DiagnosisName = x.Diagnosis != null ? x.Diagnosis.DiagnosisName : string.Empty,
                     DrugId = x.DrugId,
+                    // BE-RWI-142. Nama obat dibaca dari master lewat navigasi — proyeksi ini menjadi
+                    // satu JOIN, bukan satu kueri per rekomendasi.
+                    DrugName = x.Drug != null ? x.Drug.DrugName : string.Empty,
+                    DrugStrength = x.Drug != null ? x.Drug.Strength : null,
+                    DrugForm = x.Drug != null ? x.Drug.DrugForm : null,
                     RecommendationType = x.RecommendationType,
                     RecommendationTypeName = BuildLabel(x.RecommendationType),
                     IndicationText = x.IndicationText,
@@ -137,6 +142,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     DiagnosisCode = x.Diagnosis != null ? x.Diagnosis.DiagnosisCode : string.Empty,
                     DiagnosisName = x.Diagnosis != null ? x.Diagnosis.DiagnosisName : string.Empty,
                     ProcedureId = x.ProcedureId,
+                    ProcedureCode = x.Procedure != null ? x.Procedure.ProcedureCode : null,
+                    ProcedureName = x.Procedure != null ? x.Procedure.ProcedureName : null,
                     RecommendationType = x.RecommendationType,
                     RecommendationTypeName = BuildLabel(x.RecommendationType),
                     RecommendationName = x.RecommendationName,

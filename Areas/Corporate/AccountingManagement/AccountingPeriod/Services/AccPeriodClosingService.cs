@@ -7,6 +7,10 @@ using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPerio
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.PostingRule.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Enums;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Services;
 using QuilvianSystemBackend.Repositories;
 using System.Globalization;
@@ -71,6 +75,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
         public const string KodeJurnalBelumDisahkan = "UNPOSTED_JOURNALS";
         public const string KodeKejadianGagal = "FAILED_EVENTS";
         public const string KodeShiftKasirBelumTutup = "OPEN_CASH_SHIFTS";
+        public const string KodeRekonsiliasiSubledger = "SUBLEDGER_RECONCILIATION";
 
         public const string KodeJurnalBelumSeimbang = "UNBALANCED_JOURNALS";
         public const string KodeKejadianTertahan = "HELD_EVENTS";
@@ -111,6 +116,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
             var jurnalBelumSeimbang = await HitungJurnalBelumSeimbangAsync(accountingPeriodId, ct);
             var kejadianGagal = await HitungKejadianAsync(_db, periode, AccountingEventStatus.Gagal, ct);
             var kejadianTertahan = await HitungKejadianAsync(_db, periode, AccountingEventStatus.Tertahan, ct);
+            var rekonsiliasi = await AccControlAccountReconciliationService
+                .HitungRekonsiliasiSubledgerAsync(_db, periode, ct);
 
             var penghalang = new List<PeriodClosingBlockerResponse>
             {
@@ -140,7 +147,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
                     "Shift kasir belum ditutup",
                     "Belum dapat diperiksa: kejadian CASH_SHIFT_CLOSED belum mengalir.",
                     menahan: true,
-                    alasan: "Finance belum mengirim kejadian CASH_SHIFT_CLOSED; pemeriksaan ini menyusul saat pengirimannya aktif.")
+                    alasan: "Finance belum mengirim kejadian CASH_SHIFT_CLOSED; pemeriksaan ini menyusul saat pengirimannya aktif."),
+
+                ButirRekonsiliasiSubledger(rekonsiliasi)
             };
 
             var peringatan = new List<PeriodClosingBlockerResponse>
@@ -281,6 +290,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
             if (kejadianGagal > 0)
             {
                 return Gagal(StatusCodes.Status409Conflict, PesanKejadianGagal(kejadianGagal));
+            }
+
+            var rekonsiliasi = await AccControlAccountReconciliationService
+                .HitungRekonsiliasiSubledgerAsync(_db, periode, ct);
+            if (rekonsiliasi.ReconciliationState == SubledgerReconciliationState.BelumBersih)
+            {
+                return Gagal(
+                    StatusCodes.Status409Conflict,
+                    $"Rekonsiliasi saldo subledger periode {NamaPeriode(periode)} belum bersih: {rekonsiliasi.StateMessage}");
             }
 
             var riwayat = await CatatTindakanAsync(
@@ -540,9 +558,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
                 .AsNoTracking()
                 .CountAsync(x => !x.IsDelete
                                  && x.AccountingPeriodId == accountingPeriodId
-                                 && StatusBelumDisahkan.Contains(x.JournalStatus), ct);
+                                 && (StatusBelumDisahkan.Contains(x.JournalStatus)
+                                     || (x.JournalStatus == JournalStatus.Rejected
+                                         && db.Set<AccAccountingEvent>().Any(
+                                             e => e.JournalId == x.Id && !e.IsDelete))), ct);
 
-        public static Task<int> HitungKejadianAsync(
+        public static async Task<int> HitungKejadianAsync(
             ApplicationDbContext db,
             AccAccountingPeriod periode,
             AccountingEventStatus status,
@@ -552,14 +573,97 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
             var akhir = periode.EndDate.Date;
             var badanHukum = periode.LegalEntityId;
 
-            return db.Set<AccAccountingEvent>()
+            var jumlah = await db.Set<AccAccountingEvent>()
                 .AsNoTracking()
                 .CountAsync(x => !x.IsDelete
                                  && x.LegalEntityId == badanHukum
                                  && x.EventStatus == status
                                  && x.AccountingDate >= awal
                                  && x.AccountingDate <= akhir, ct);
+
+            if (status != AccountingEventStatus.Gagal) return jumlah;
+
+            return jumlah + await HitungKejadianGagalLimpahanAsync(db, periode, ct);
         }
+
+        private static async Task<int> HitungKejadianGagalLimpahanAsync(
+            ApplicationDbContext db,
+            AccAccountingPeriod periode,
+            CancellationToken ct)
+        {
+            var awal = periode.StartDate.Date;
+            var badanHukum = periode.LegalEntityId;
+
+            var kejadian = await db.Set<AccAccountingEvent>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete
+                            && x.LegalEntityId == badanHukum
+                            && x.EventStatus == AccountingEventStatus.Gagal
+                            && x.AccountingDate < awal)
+                .Select(x => new { x.AccountingDate, x.EventTypeId })
+                .ToListAsync(ct);
+
+            if (kejadian.Count == 0) return 0;
+
+            var daftarPeriode = await db.Set<AccAccountingPeriod>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.LegalEntityId == badanHukum && x.StartDate <= periode.EndDate)
+                .OrderBy(x => x.StartDate)
+                .ToListAsync(ct);
+
+            var idJenis = kejadian
+                .Where(x => x.EventTypeId.HasValue)
+                .Select(x => x.EventTypeId!.Value)
+                .Distinct()
+                .ToList();
+
+            var aturanAktif = await db.Set<AccPostingRule>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete
+                            && x.IsActive
+                            && x.LegalEntityId == badanHukum
+                            && idJenis.Contains(x.EventTypeId))
+                .Select(x => new
+                {
+                    x.EventTypeId,
+                    Kode = x.JournalType != null ? x.JournalType.JournalTypeCode : string.Empty
+                })
+                .ToListAsync(ct);
+
+            var kodeJenisJurnal = aturanAktif
+                .GroupBy(x => x.EventTypeId)
+                .ToDictionary(g => g.Key, g => g.First().Kode);
+
+            var limpahan = 0;
+
+            foreach (var item in kejadian)
+            {
+                var tanggal = item.AccountingDate.Date;
+
+                var periodeTanggal = daftarPeriode.FirstOrDefault(
+                    x => x.StartDate.Date <= tanggal && x.EndDate.Date >= tanggal);
+
+                if (periodeTanggal is null) continue;
+
+                var kode = item.EventTypeId.HasValue
+                           && kodeJenisJurnal.TryGetValue(item.EventTypeId.Value, out var kodeAturan)
+                    ? kodeAturan
+                    : string.Empty;
+
+                if (MenerimaJenisJurnal(periodeTanggal, kode)) continue;
+
+                var tujuan = daftarPeriode.FirstOrDefault(
+                    x => x.StartDate > periodeTanggal.EndDate && MenerimaJenisJurnal(x, kode));
+
+                if (tujuan?.Id == periode.Id) limpahan++;
+            }
+
+            return limpahan;
+        }
+
+        private static bool MenerimaJenisJurnal(AccAccountingPeriod periode, string kodeJenisJurnal)
+            => AccAccountingPeriodService.AlasanPenolakanJenisJurnal(
+                periode.PeriodStatus, periode.PeriodCode, kodeJenisJurnal) is null;
 
         private static string PesanKejadianGagal(int jumlah)
             => $"Masih ada {jumlah} kejadian keuangan yang gagal diproses. "
@@ -600,6 +704,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
                 IsBlocking = menahan && jumlah > 0,
                 State = PeriodChecklistItemState.Evaluated
             };
+
+        private static PeriodClosingBlockerResponse ButirRekonsiliasiSubledger(
+            SubledgerComparisonReportResponse rekonsiliasi)
+            => rekonsiliasi.ReconciliationState == SubledgerReconciliationState.BelumBerlaku
+                ? ButirBelumTersedia(
+                    KodeRekonsiliasiSubledger,
+                    "Rekonsiliasi saldo subledger",
+                    rekonsiliasi.StateMessage,
+                    menahan: true,
+                    alasan: AccControlAccountReconciliationService.AlasanRekonsiliasiBelumBerlaku(rekonsiliasi))
+                : Butir(
+                    KodeRekonsiliasiSubledger,
+                    "Rekonsiliasi saldo subledger",
+                    rekonsiliasi.StateMessage,
+                    rekonsiliasi.BlockingCount,
+                    menahan: true);
 
         private static PeriodClosingBlockerResponse ButirBelumTersedia(
             string kode,

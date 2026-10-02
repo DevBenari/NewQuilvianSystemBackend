@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `d62a084e` (branch `rizkiG`), belum di-commit — bertumpuk dengan `BE-ACC-P2-023` yang juga belum di-commit |
 | Tanggal | 24 September 2026 |
-| Status | **✅ SELESAI** — 24 September 2026. 3 dari 3 acceptance terpetakan ke source dan lulus uji Rizki (bagian 8): Tertahan tampil sebagai peringatan, penonaktifan aturan yang ditunggu `409`, kejadian Gagal menahan daftar periksa dan pengajuan Januari 2030 (`409`). Build Rizki **berhasil, 222 warning** — sama dengan build sebelumnya, nol warning baru. UAT belum dijalankan — diserahkan ke tim UAT. Riwayat: 🟡 pada hari yang sama |
+| Status | **✅ SELESAI** — 3 dari 3 acceptance terpetakan ke source dan terbukti dari **response Swagger mentah Rizki, 25 September 2026** (bagian 8): Tertahan tampil sebagai peringatan di daftar periksa September 2026, penonaktifan aturan `UJI-026-A` yang ditunggu `409`, kejadian Gagal `EVT-UJI-112` menahan daftar periksa dan pengajuan Januari 2031 (`409`). Build Rizki **berhasil, 222 warning**. Bukti 24 September 2026 dari laporan agen AI dicabut (bagian 8.3). UAT belum dijalankan — diserahkan ke tim UAT |
 
 ### Backend Governance Preflight
 
@@ -119,9 +119,9 @@ Rute persis mengikuti controller `BE-ACC-P2-005`/`006` dan `BE-ACC-P2-018`; tida
 | Pemeriksaan source 3 acceptance | Terpetakan semua | `PASS` | Bagian 6 |
 | Nol `//` baru | Baris tambahan berisi `//`: 0 | `PASS` | `git diff -U0 \| grep "^+" \| grep -c "//"` |
 | `dotnet build` | Berhasil — Rizki, 24 September 2026: `Build succeeded with 222 warning(s) in 448,7s`. Sama dengan baseline 222 build `024`/`025`; nol warning baru | `PASS` | Tangkapan layar keluaran build |
-| Uji | Lulus — skenario A dan B | `PASS` | Bagian 8 |
+| Uji | Lulus — skenario A dan B lewat Swagger, response mentah Rizki 25 September 2026 | `PASS` | Bagian 8 |
 
-Uji manual: `PASS` — Rizki, 24 September 2026.
+Uji manual: `PASS` — Rizki, 25 September 2026. Skenario A dijalankan ulang dengan data baru (`UJI-026-A`, `EVT-UJI-113`) dan skenario B dengan tahun 2031 (`EVT-UJI-112`) — lihat bagian 8.
 
 ```powershell
 cd C:\Users\BenariDev03\QuilvianV2\NewQuilvianSystemBackend
@@ -165,13 +165,13 @@ jalur Gagal pada `BE-ACC-P2-025` — keputusan Rizki.
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| (1) Satu kejadian Gagal pada periode itu menahan pengajuan penutupan | Terpenuhi | Daftar periksa: `Butir(FAILED_EVENTS, …, kejadianGagal, menahan: true)` → `IsBlocking`, `CanSubmitClosing = false`. Pengajuan: `SubmitClosingAsync` → `HitungKejadianAsync(Gagal) > 0` → `409`. Uji: B2–B3 |
-| (2) Kejadian Tertahan hanya peringatan | Terpenuhi | `Butir(HELD_EVENTS, …, menahan: false)` di daftar `peringatan`; `SubmitClosingAsync` tidak menghitung Tertahan. Uji: A3 |
-| (3) Penonaktifan aturan yang ditunggu → `409` | Terpenuhi | `DeactivateAsync`: hitung Tertahan dengan `LegalEntityId` dan `EventTypeId` sama → `409`. Uji: A5 |
+| (1) Satu kejadian Gagal pada periode itu menahan pengajuan penutupan | Terpenuhi | Daftar periksa: `Butir(FAILED_EVENTS, …, kejadianGagal, menahan: true)` → `IsBlocking`, `CanSubmitClosing = false`. Pengajuan: `SubmitClosingAsync` → `HitungKejadianAsync(Gagal) > 0` → `409`. Uji: Januari 2031 `FAILED_EVENTS` `count: 1`, `isBlocking: true`, `canSubmitClosing: false`; `submit-closing` → `409` (bagian 8.2 B3–B4) |
+| (2) Kejadian Tertahan hanya peringatan | Terpenuhi | `Butir(HELD_EVENTS, …, menahan: false)` di daftar `peringatan`; `SubmitClosingAsync` tidak menghitung Tertahan. Uji: September 2026 `HELD_EVENTS` `count: 3`, `isBlocking: false`, sedangkan `blockingCount: 1` hanya dari `UNPOSTED_JOURNALS` (bagian 8.1 A3) |
+| (3) Penonaktifan aturan yang ditunggu → `409` | Terpenuhi | `DeactivateAsync`: hitung Tertahan dengan `LegalEntityId` dan `EventTypeId` sama → `409`. Uji: `PATCH /posting-rules/1d03f254-…/deactivate` → `409` "Masih ada 1 kejadian yang menunggu aturan ini…"; sesudah kejadian terjurnal → `200` (bagian 8.1 A5, A7) |
 | DoD: source berubah | Terpenuhi | Bagian 3.2 |
 | DoD: build owner 0 error | Terpenuhi | Build Rizki berhasil, 222 warning |
 | DoD: laporan task tertulis | Terpenuhi | Berkas ini |
-| Verifikasi kartu: uji panggil daftar periksa | Terpenuhi | Skenario A3 (September 2026), B2 dan B5 (Januari 2030) |
+| Verifikasi kartu: uji panggil daftar periksa | Terpenuhi | September 2026 (A3) dan Januari 2031 (B3, B5) |
 
 ---
 
@@ -184,32 +184,58 @@ jalur Gagal pada `BE-ACC-P2-025` — keputusan Rizki.
 | Risiko tersisa | Penutupan periode yang sudah **diajukan** sebelum kejadian Gagal muncul tidak diperiksa ulang saat disetujui — kontrak hanya menaruh penghalang pada Ajukan |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
-| Status Git | Backend: `M` `AccPeriodClosingService.cs`, `AccPostingRuleService.cs`, laporan ini (`??`) — belum di-commit, bersama berkas `BE-ACC-P2-023` dan penandaan dokumen |
-| Langkah berikutnya | Commit oleh Rizki. Keputusan terbuka di atas tetap menunggu Rizki; `027`/`028`/`014` tetap ⛔ `GATE-FIN-087` |
+| Status Git | Source di-commit Rizki `1ea09d66`; `rizkiG` sudah di-merge dengan integration (`68ebc667`). Pembaruan laporan ini belum di-commit |
+| Langkah berikutnya | Keputusan terbuka di atas tetap menunggu Rizki; `027`/`028`/`014` tetap ⛔ `GATE-FIN-087` |
 
 ---
 
-## 8. Bukti uji — Rizki, 24 September 2026
+## 8. Bukti uji — response Swagger mentah, Rizki, 25 September 2026
 
-| Skenario | Yang dilaporkan Rizki | Hasil |
-| --- | --- | :---: |
-| A2 | `EVT-UJI-026A` (jenis `UJI-026`, belum ada aturan) → Tertahan `POSTING_RULE_MISSING` | ✅ |
-| A3 | Daftar Periksa September 2026: "Kejadian keuangan tertahan" ≥ 1, berstatus peringatan, bukan penghalang — acceptance (2) | ✅ |
-| A5 | Nonaktifkan aturan `UJI-026` selagi kejadian masih menunggu → `409` "…kejadian yang menunggu aturan ini" — acceptance (3) | ✅ |
-| A4 + A6 | Aturan `UJI-026` dibuat, Coba Ulang `EVT-UJI-026A` → Terjurnal, jurnal terbentuk | ✅ |
-| B1 | Periode tahun buku 2030 dibangkitkan lewat layar (keputusan Rizki) | ✅ |
-| B2 | Daftar Periksa Januari 2030: "Kejadian keuangan gagal" = 1, menahan | ✅ |
-| B3 | `POST /periods/{id}/submit-closing` Januari 2030 → `409` — acceptance (1) | ✅ |
-| B4 + B5 | Coba Ulang `EVT-UJI-023B` → Terjurnal; daftar periksa kejadian gagal = 0 | ✅ |
+Seluruh langkah lewat Swagger dengan akun SuperAdmin; nol SQL langsung. Badan hukum
+`3bf63974-a754-4b20-81ee-70894f6fb058` (PT Metropolitan Medical Centre).
 
-`MANUAL TEST: PASS`. Nol SQL langsung. UAT belum dijalankan — diserahkan ke tim UAT.
+### 8.1 Skenario A — Tertahan hanya peringatan, penonaktifan aturan ditolak
 
-**Catatan atas laporan uji.** Laporan Rizki menuliskan A5 (penolakan `409`) sesudah pemulihan A6. Penolakan
-hanya mungkin terjadi selama `EVT-UJI-026A` masih Tertahan, jadi urutan eksekusinya dibaca A5 lalu A6 —
-urutan di laporan adalah urutan penulisan. Pesan yang dikutip tanpa angka; pesan sebenarnya dari kode
-menyertakan jumlah ("Masih ada 1 kejadian yang menunggu aturan ini…").
+| Langkah | Panggilan | Hasil sebenarnya | Hasil |
+| --- | --- | --- | :---: |
+| A0 | `GET /event-types?Search=PATIENT_PAYMENT`, `GET /posting-rules?EventTypeId=…`, `GET /posting-rules/ca655eaa-…` | Bahan aturan: jenis jurnal `JU`, dua baris komponen `TOTAL` | ✅ |
+| A1 | `POST /event-types` `UJI-026-A`, `eventKind: 1` | `201`; `id c5d7a5a3-…`, `accountingEventCount: 0` | ✅ |
+| A2 | `POST /accounting-events` `EVT-UJI-113` (`UJI-026-A`, 2026-09-25, Rp 400.000) | `422` Tertahan `POSTING_RULE_MISSING`; `accountingEventId 9754dbc5-…` | ✅ |
+| A3 | `GET /periods/94b6592f-…/closing-checklist` (September 2026) | `HELD_EVENTS` `count: 3`, `isBlocking: false`, `state: 1`. `FAILED_EVENTS` `count: 0`, `state: 1`. `blockingCount: 1` hanya dari `UNPOSTED_JOURNALS` (3 jurnal draft) — acceptance (2) | ✅ |
+| A4 | `POST /posting-rules` untuk `UJI-026-A`, `treatment: 1` | `201`; aturan `1d03f254-…` aktif | ✅ |
+| A5 | `PATCH /posting-rules/1d03f254-…/deactivate` | `409` "Masih ada 1 kejadian yang menunggu aturan ini. Perbaiki aturannya lalu Coba Ulang kejadian itu dari Kotak Masuk Kejadian." — acceptance (3) | ✅ |
+| A6 | `POST /accounting-events/9754dbc5-…/retry` | `200` "Kejadian EVT-UJI-113 berhasil dijurnal sebagai JU/2026/09/00007", `journalStatus: Posted` | ✅ |
+| A7 | `PATCH /posting-rules/1d03f254-…/deactivate`, lalu `PATCH /event-types/c5d7a5a3-…/deactivate` | Keduanya `200`; jenis `isActive: false`, `accountingEventCount: 1` | ✅ |
 
-**Data uji yang tertinggal di database dev** (semuanya lewat layar/API, bukan SQL): periode tahun buku
-2030; jurnal Posted September 2026 dari `EVT-UJI-026A` dan Januari 2030 dari `EVT-UJI-023B`. Langkah A7
-(menonaktifkan aturan dan jenis `UJI-026`) tidak dilaporkan — bila keduanya masih aktif, nonaktifkan
-lewat layar Aturan Posting lalu Jenis Kejadian.
+### 8.2 Skenario B — kejadian Gagal menahan tutup bulan
+
+| Langkah | Panggilan | Hasil sebenarnya | Hasil |
+| --- | --- | --- | :---: |
+| B0 | `GET /periods?…&FiscalYear=2031` | `totalData: 0` — tahun 2031 dipakai | ✅ |
+| B1 | `POST /accounting-events` `EVT-UJI-112` (PATIENT_PAYMENT, 2031-01-15) | `201` "…Penjurnalan tertunda dan akan dicoba ulang otomatis." Menjadi Gagal lewat penjadwal (percobaan #1–#4) | ✅ |
+| B2 | `POST /periods/generate` `fiscalYear: 2031` pukul 13.36 | `201` "Dua belas periode tahun buku 2031 berhasil dibangkitkan"; Januari 2031 `e300b651-…` | ✅ |
+| B3 | `GET /periods/e300b651-…/closing-checklist` pukul 13.43 | `FAILED_EVENTS` `count: 1`, `isBlocking: true`, `state: 1`; `canSubmitClosing: false`; `blockingCount: 1` | ✅ |
+| B4 | `POST /periods/e300b651-…/submit-closing` pukul 13.48 | `409` "Masih ada 1 kejadian keuangan yang gagal diproses. Coba ulang atau abaikan dengan alasan dari Kotak Masuk Kejadian." — acceptance (1) | ✅ |
+| B5 | `POST /accounting-events/cda4d52c-…/retry` pukul 13.50, lalu daftar periksa lagi | `200` "…berhasil dijurnal sebagai JU/2031/01/00001" (percobaan #5), `journalStatus: Draft`; `FAILED_EVENTS` `count: 0` | ✅ |
+
+Pada B5, butir `UNPOSTED_JOURNALS` Januari 2031 menjadi `1`: aturan `PATIENT_PAYMENT` berperlakuan
+Buat Draft (`treatment: 2`), sehingga jurnal hasil Coba Ulang masih draft. Itu perilaku aturan posting,
+bukan cacat task ini.
+
+UAT belum dijalankan — diserahkan ke tim UAT.
+
+### 8.3 Bukti yang dicabut
+
+Bukti versi 24 September 2026 berasal dari laporan agen AI penguji dan menyebut kejadian `EVT-UJI-026A`,
+`EVT-UJI-023B`, serta periode 2030. Kotak Masuk pada 25 September 2026 tidak memuat kedua kejadian itu,
+sehingga bukti tersebut **tidak dipakai**. Status ✅ kini bersandar hanya pada bagian 8.1 dan 8.2.
+
+### 8.4 Data uji yang tertinggal di database dev
+
+| Data | Keadaan |
+| --- | --- |
+| Periode tahun buku 2031 | Dua belas periode Open |
+| Jurnal `JU/2026/09/00007` (`EVT-UJI-113`) | Posted, September 2026, akun uji aturan `UJI-026-A` |
+| Jurnal `JU/2031/01/00001` (`EVT-UJI-112`) | Draft, Januari 2031 |
+| Jenis dan aturan `UJI-026-A` | Nonaktif |
+| `EVT-UJI-001` (`PENGAKUAN-PIUTANG`) dan `EVT-UJI-104` (`UJI-BELUM-TERDAFTAR`) | Masih Tertahan — ikut dihitung peringatan `HELD_EVENTS` September 2026 |

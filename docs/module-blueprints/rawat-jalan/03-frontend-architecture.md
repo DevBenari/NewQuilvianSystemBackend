@@ -1,5 +1,7 @@
 # Arsitektur Frontend — Rawat Jalan Billing
 
+> **Revisi `27` (28 September 2026):** amendment **V2 — Rawat Jalan ke invoice canonical** ada di bagian akhir berkas ini dan **berlaku** untuk jalur fakta klinis → tagihan. Isi di atasnya adalah riwayat desain `RJ-BIL`.
+
 | Field | Nilai |
 |---|---|
 | Blueprint | `RJ-BIL-BP-001` revision `11` |
@@ -97,3 +99,316 @@ Route final, lokasi menu, susunan sidebar, bentuk modal/drawer, warna status, da
 library tidak ditentukan oleh dokumen ini. Implementer frontend harus mengusulkan opsi dan
 menunggu authority UI yang sah. Adapter payer eksternal tidak boleh memiliki tombol aktivasi
 produksi sebelum `RJ-BIL-DEP-009` selesai.
+
+
+---
+
+# Amendment V2 — Ringkasan Billing dan Antrean Rekonsiliasi (revisi blueprint `27`)
+
+| Field | Nilai |
+|---|---|
+| Status | `approved` — Sukma Giri, 2026-09-28 |
+| Kontrak | `RJ-E2E-CONTRACT-001@1.0.0` |
+| Frontend SHA | `83b8b72744d4afaaedb3d2af9dd0b83fb272f9d6` (`sukmagpV2`) |
+| Keputusan | `RJ-E2E-DEC-008`, `009`; `RJ-E2E-FE-001`..`004` |
+| Stack | Next.js App Router, JavaScript/JSX, Redux, Axios, base component Quilvian |
+
+> Bagian di atas garis adalah desain layar folio `RJ-BIL` revisi `11`. Layar folio `RJ-BIL-FE-001`/`002`
+> **tidak ditemukan** di frontend `83b8b72` (capability map V2 bagian `6`). Amendment ini tidak
+> menghidupkannya kembali.
+
+## V2.1 Hierarki kewenangan
+
+```text
+security/privacy/invariant   → tanpa harga per item, tanpa aksi finansial, akses dijaga server
+  → approved product/UI brief → PRD §8, §17, §19; RJ-E2E-FE-001, RJ-E2E-FE-002
+  → project convention        → base component Quilvian, usePermission, AccessDeniedGate
+  → DEV_DISCRETION            → RJ-E2E-FE-003, RJ-E2E-FE-004
+```
+
+## V2.2 Kebutuhan layar
+
+| ID | Layar | Pengguna | Jalan masuk | Status |
+|---|---|---|---|---|
+| `FE-RJE-01` | Tab **Ringkasan Billing** di workspace konsultasi dokter | Dokter, perawat poli | Layar anak dari `doctor-queues` (tab baru) | Baru |
+| `FE-RJE-02` | Pemberitahuan masalah penyerahan tagihan saat Selesai Konsultasi | Dokter | Layar anak dari alur Selesai Konsultasi yang sudah ada | Diperbarui |
+| `FE-RJE-03` | **Antrean Rekonsiliasi Tagihan Klinis** | Petugas Billing | Butir menu baru di grup *Billing dan Kasir* | Baru |
+
+Master kebijakan kirim ulang **tidak** mendapat layar pada MVP; admin mengubahnya lewat endpoint
+yang terjaga hak akses dan ter-audit. Layarnya `POST-MVP`.
+
+## V2.3 Peta butir menu
+
+```text
+Billing dan Kasir                                   <- grup yang sudah ada (menu-items.jsx)
+├── Invoice & Billing Kasir                         (sudah ada)
+├── ...                                             (sudah ada)
+└── Rekonsiliasi Tagihan Klinis                     -> /health-services/billing-management/billing/charge-reconciliations   [Baru]
+
+Registration / Doctor Queues                        (sudah ada)
+└── /health-services/registration-management/doctor-queues
+    └── tab "Ringkasan Billing"                     [Baru — layar anak, tanpa butir menu]
+```
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+|---|:---:|---|---|---|---|---|
+| Rekonsiliasi Tagihan Klinis | anak grup | Billing dan Kasir | `/health-services/billing-management/billing/charge-reconciliations` | `FE-RJE-03` | `BillingChargeReconciliation : Read` | Baru |
+| — (tab, bukan menu) | — | Layar `doctor-queues` | — | `FE-RJE-01` | `EncounterBillingSummary : Read` | Baru |
+| — (bagian alur finalisasi) | — | Modal Selesai Konsultasi yang ada | — | `FE-RJE-02` | tidak ada butir baru | Diperbarui |
+
+Berkas yang disunting saat implementasi: `src/utils/menu-sidebar/menu-items.jsx` (butir `FE-RJE-03`)
+dan `src/lib/constants/health-services/registration-management/doctor-queue/doctor-queue.constants.js`
+(entri `DOCTOR_QUEUE_TABS` baru). Nama butir dan urutan `DEV_DISCRETION`.
+
+## V2.4 Skema fitur
+
+### `FE-RJE-01` — Tab Ringkasan Billing
+
+```text
++- Ringkasan Billing --------------------------------------------- FE-RJE-01 -+
+| Status Tagihan [OPEN]   No. INV-2026-000812   Diperbarui 10.42  [Muat ulang] |
+| Penjamin: Tunai                                                              |
++------------------------------------------------------------------------------+
+| Total Pelayanan 4 | Total Tagihan Rp360.000 | Ditanggung Penjamin Rp0 |      |
+| Tanggungan Pasien Rp360.000                                                  |
+| (!) 1 pelayanan sedang diproses ke tagihan · 0 perlu rekonsiliasi            |
++------------------------------------------------------------------------------+
+| Pelayanan              | Jml | Status Pelayanan | Status Tagihan             |
+| Konsultasi Sp.PD       |  1  | Selesai          | Tercatat                   |
+| Nebulizer              |  1  | Dikerjakan       | Tercatat                   |
+| Resep R/0912           |  1  | Diresepkan       | Tercatat                   |
+| Darah Lengkap          |  1  | Diterima Lab     | Menunggu                   |
++------------------------------------------------------------------------------+
+|                                                    [Buka Detail Billing]     |
++------------------------------------------------------------------------------+
+| memuat  -> kerangka; data lama yang masih sah tetap tampil saat muat ulang   |
+| kosong  -> "Belum ada tagihan untuk kunjungan ini. Tagihan terbentuk otomatis |
+|             setelah pelayanan pertama tercatat."                             |
+| gagal   -> "Ringkasan tagihan gagal dimuat."                   [Coba lagi]   |
+| 403     -> tab tidak ditampilkan                                             |
++------------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Kepala | Status tagihan, nomor invoice, penjamin, waktu diperbarui | `GET /encounter-billing-summaries/{encounterId}` → `BillingStatus`, `InvoiceNumber`, `PaymentSourceLabel`, `LastUpdatedAt` | `EncounterBillingSummary : Read` | `NO_INVOICE` → kalimat kosong di atas (bukan galat) |
+| Angka | Total pelayanan, total tagihan, bagian penjamin, bagian pasien | `ServiceCount`, `GrossAmount`, `PayerAmount`, `PatientAmount` — **tampil apa adanya, tanpa dijumlah ulang** (`AC-RJ-009`) | sama | `NO_INVOICE` → angka tidak ditampilkan |
+| Pemberitahuan sinkron | Jumlah pelayanan yang masih diproses dan yang perlu rekonsiliasi | `PendingSyncCount`, `ReconciliationCount` | sama | Keduanya 0 → wilayah disembunyikan |
+| Daftar pelayanan | Nama, jumlah, status pelayanan, status tagihan | `Services[]` (**tanpa harga**) | sama | Kosong → "Belum ada pelayanan tercatat." |
+| Tombol Muat ulang | Membaca ulang ringkasan | endpoint yang sama | sama | Gagal → pesan gagal + Coba lagi; data sebelumnya tetap tampil |
+| Tombol Buka Detail Billing | Pindah ke detail invoice di modul Billing | route `.../billing/invoices/{token}/detail-billing` | `BillingInvoice : Read` | Tanpa butir → tombol **disembunyikan**; server tetap menolak `403` bila dipanggil langsung |
+
+Label `BillingState`: `RECORDED` → *Tercatat*, `PENDING` → *Menunggu*, `RECONCILIATION` → *Perlu
+dicek Billing*, `NOT_BILLED` → *Tidak ditagihkan*. **Tidak ada** tombol Bayar, Diskon, Void,
+Finalisasi, maupun Settlement (PRD §19).
+
+### `FE-RJE-02` — Pemberitahuan penyerahan tagihan
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Pemberitahuan setelah Selesai Konsultasi | Daftar masalah penyerahan, mis. "Resep R/0912: penyerahan ke tagihan akan dicoba ulang otomatis." | `BillingHandoffIssues` pada respons `PATCH /doctor-consultations/{id}/complete` (sudah ada, belum dibaca frontend) | tidak ada butir baru | Daftar kosong → tidak ada pemberitahuan |
+
+Konsultasi yang sudah selesai **tidak boleh** tampak gagal karena pemberitahuan ini. Bentuknya
+(toast, panel, atau baris di modal) `DEV_DISCRETION` (`RJ-E2E-FE-004`).
+
+### `FE-RJE-03` — Antrean Rekonsiliasi Tagihan Klinis
+
+```text
++- Rekonsiliasi Tagihan Klinis ----------------------------------- FE-RJE-03 -+
+| [cari no. kunjungan / invoice] [Status v] [Jenis pelayanan v] [Sebab v] [Tgl]|
++------------------------------------------------------------------------------+
+| Kunjungan | Pelayanan | Versi | Sebab            | Percobaan | Sejak | Aksi  |
+| RJ-...812 | PHARMACY  |  2    | Tarif belum ada  | 0         | 09.10 | [...] |
++------------------------------------------------------------------------------+
+| memuat -> kerangka baris                                                     |
+| kosong -> "Tidak ada tagihan yang menunggu penanganan."   [Atur ulang]       |
+| gagal  -> "Daftar gagal dimuat."                          [Coba lagi]        |
++- Halaman 1 dari n ----------------------------- [< Sebelumnya] [Berikutnya >]+
+
+Aksi per baris: [Kirim Ulang]  [Selesaikan Manual -> jenis + alasan min. 10 karakter]
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Saringan | Status, jenis pelayanan, sebab, tanggal, pencarian (maks. 100 karakter) | query `ChargeReconciliationQuery` | `BillingChargeReconciliation : Read` | — |
+| Tabel | Kunjungan, pelayanan, versi, sebab (terbaca), percobaan, sejak kapan, nomor invoice | `GET /charge-reconciliations` | sama | Kalimat kosong / gagal di atas |
+| Kirim Ulang | Mengirim ulang item | `POST /{itemType}/{id}/retry` | `BillingChargeReconciliation : Update` | `409` → "Item sedang diproses sistem. Muat ulang beberapa saat lagi."; `422` → pesan dari server |
+| Selesaikan Manual | Jenis penyelesaian + alasan | `POST /{itemType}/{id}/resolve` | sama | `422` alasan kurang → pesan di bawah isian; peringatan "Jangan menulis diagnosis atau isi klinis." |
+
+Tombol aksi disembunyikan bagi pengguna tanpa `BillingChargeReconciliation : Update`. Tombol
+dinonaktifkan selama permintaan berjalan (klik ganda). Kirim ulang **tidak** membuat identitas baru
+di sisi mana pun.
+
+## V2.5 Aksi per peran
+
+Diturunkan dari [contracts/permission-audit-matrix.md](contracts/permission-audit-matrix.md) bagian
+V2-3.
+
+| Peran | `FE-RJE-01` | `FE-RJE-02` | `FE-RJE-03` |
+|---|---|---|---|
+| Dokter | Lihat ringkasan | Lihat pemberitahuan | Tidak terlihat |
+| Petugas Billing | Lihat ringkasan + Buka Detail Billing | — | Lihat, Kirim Ulang, Selesaikan Manual |
+| Kasir | Lihat bila diberi butir ringkasan | — | Lihat saja bila diberi `Read` |
+
+## V2.6 Penanganan keadaan
+
+| Keadaan | `FE-RJE-01` | `FE-RJE-03` |
+|---|---|---|
+| Memuat | Kerangka; saat muat ulang, data lama yang sah tetap tampil (PRD §22) | Kerangka baris (`DataTable`) |
+| Kosong | `NO_INVOICE` = keadaan normal | Kalimat kosong + Atur ulang |
+| `401` | Alur sesi berakhir yang sudah ada | sama |
+| `403` | Tab tidak ditampilkan | `AccessDeniedGate` |
+| `404` | "Kunjungan tidak ditemukan." | Item hilang → muat ulang daftar |
+| `409` | — | "Item sedang diproses sistem…" / sudah diselesaikan; muat ulang. **Tidak** mengirim otomatis dengan kunci baru |
+| `422` | Pesan kalkulasi dari Billing | Pesan validasi dari server |
+| Data basi | Tombol Muat ulang; tidak ada polling otomatis | Muat ulang setelah setiap aksi |
+| Pengiriman ganda | — (baca saja) | Tombol nonaktif selama permintaan berjalan |
+| Timeout jaringan | Pesan gagal + Coba lagi | Pesan gagal; status item dibaca ulang sebelum mencoba lagi |
+
+Seluruh teks pelayanan dan pesan dari server ditampilkan sebagai teks biasa; `dangerouslySetInnerHTML`
+dilarang (`SEC-RJ-004`).
+
+## V2.7 Berkas frontend yang terlibat
+
+| Berkas | Status |
+|---|---|
+| `src/lib/services/health-services/billing-management/encounter-billing-summary.service.js` | Baru (pola `patient-billing-summary.service.js`) |
+| `src/lib/services/health-services/billing-management/charge-reconciliation.service.js` | Baru |
+| `src/components/view/health-services/registration-management/doctor-queues/tabs/billing-summary/doctor-billing-summary-tab.jsx` | Baru |
+| `src/components/view/health-services/registration-management/doctor-queues/doctor-queue-view.jsx` | Diperbarui (render tab baru) |
+| `src/lib/constants/health-services/registration-management/doctor-queue/doctor-queue.constants.js` | Diperbarui |
+| `src/components/features/health-services/doctor-queue-features/FinalizeConsultationModal.jsx` atau hook finalisasi | Diperbarui (`FE-RJE-02`) |
+| `src/app/health-services/billing-management/billing/charge-reconciliations/page.jsx` + view | Baru |
+| `src/utils/menu-sidebar/menu-items.jsx` | Diperbarui |
+
+Kandidat reuse: `nursing-billing-section.jsx` (ringkasan rawat inap) sebagai rujukan pola tampilan,
+`DataTable`, `DataFilter`, `FilterSelect`, `FilterDatePicker`, `StatusBadge`, `BaseButton`,
+`AccessDeniedGate`, `ToastStack`. Keputusan reuse atau buat baru per elemen menjadi bagian task
+frontend.
+
+## V2.8 Kewenangan UI
+
+| Decision ID | Area | Status |
+|---|---|---|
+| `RJ-E2E-FE-001` | Ringkasan Billing sebagai tab di workspace dokter | `approved` |
+| `RJ-E2E-FE-002` | Isi minimum panel = PRD §17, angka dari API | `approved` |
+| `RJ-E2E-FE-003` | Tata letak, urutan field, gaya | `DEV_DISCRETION` |
+| `RJ-E2E-FE-004` | Bentuk pemberitahuan penyerahan | `DEV_DISCRETION` |
+| — | Tata letak `FE-RJE-03`, nama dan urutan butir menu | `DEV_DISCRETION` di dalam skema V2.4 |
+
+
+---
+
+# Amendment DP — Daftar Pasien Rawat Jalan (revisi `28`, `draft`)
+
+Masukan: `RJ-DOC-DEC-011`..`023`, `RJ-DOC-FE-005`..`009`; backend [02-backend-architecture.md](02-backend-architecture.md)
+*Amendment DP*; kontrak `RJ-DOC-ENCLIST-001@1.0.0` (`draft`). Snapshot FE `b7e9b7fd4`.
+
+## DP-FE.1 Kebutuhan layar
+
+| ID layar | Layar | Pengguna | Tujuan |
+|---|---|---|---|
+| `FE-RJDP-01` | Daftar Pasien Rawat Jalan | Dokter, perawat poli, petugas pendaftaran, Super Admin | Melihat kunjungan RJ dalam cakupan, statusnya, dan membatalkan kunjungan yang menggantung |
+
+Pembatalan memakai modal konfirmasi di layar yang sama (`RJ-DOC-FE-008`); tidak ada layar anak.
+
+## DP-FE.2 Peta butir menu
+
+```text
+Rawat Jalan                               <- tingkat 0 (sudah ada), field `subMenu`
+├── Skrining Pasien                       -> /health-services/registration-management/nurse-station-queue   (sudah ada)
+└── Daftar Pasien Rawat Jalan             -> /health-services/registration-management/outpatient-encounters  (Baru)
+```
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses (`requiredPermission`) | Status |
+|---|:---:|---|---|---|---|---|
+| Daftar Pasien Rawat Jalan | 1 | Rawat Jalan (`healthServicesRegistrationManagement`) | `/health-services/registration-management/outpatient-encounters` | `FE-RJDP-01` | `{ resource: "OutpatientEncounter", action: "Read" }` | Baru |
+
+Disisipkan tepat setelah "Skrining Pasien" di `src/utils/menu-sidebar/menu-items.jsx`
+(`RJ-DOC-FE-005`). Entri lama "Daftar Kunjungan" yang dikomentari (`patient-encounters`) tidak
+dihidupkan; route itu tidak ada. Pendaftaran butir menu menjadi acceptance criteria task FE
+layar ini.
+
+## DP-FE.3 Skema fitur `FE-RJDP-01`
+
+```text
++- Hero: Daftar Pasien Rawat Jalan -------------------------------------------------+
+| cakupan: "Pasien Anda" / "Klinik cluster Anda" / "Semua klinik"                    |
++-----------------------------------------------------------------------------------+
+| [Menunggu] [Sedang Konsultasi] [Siap Ditagih] [Batal/Tidak Hadir] [Menggantung!]  |  <- summary card, klik = filter
++-----------------------------------------------------------------------------------+
+| (Hari ini | Aktif semua tanggal)  [Tanggal] [Status v] [Klinik v] [Dokter v*]      |  <- base filter; *hanya ReadAll
+| [cari no. RM / nama / no. kunjungan]                                 [Atur ulang]  |
++-----------------------------------------------------------------------------------+
+| No. Kunjungan | Tanggal | Pasien / No. RM | Klinik | Dokter | Penjamin | Status | |
+| ENC-...00146  | 30 Jul  | ...             | ...    | ...    | Tunai    | chip   |[⋮]|  <- aksi: Batalkan
++-----------------------------------------------------------------------------------+
+| memuat -> kerangka baris                                                          |
+| kosong -> "Tidak ada kunjungan pada saringan ini."              [Atur ulang]      |
+| gagal  -> "Daftar kunjungan gagal dimuat."                      [Coba lagi]       |
+| 403    -> "Akun Anda belum terhubung ke data dokter atau cluster perawat. ..."    |
++- Halaman 1 dari n ---------------------------------- [< Sebelumnya] [Berikutnya >]+
+
+Modal Batalkan Kunjungan:
+  ENC-RSMMC-00146 · <nama pasien> · Poli ... · status Menunggu Perawat
+  Alasan pembatalan* [______________________] 0/250
+  [Kembali]  [Batalkan Kunjungan]
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Hero | Judul dan label cakupan | `GET /outpatient-encounters/filters/metadata` (`scope`) | `OutpatientEncounter : Read` | `403` → seluruh layar diganti pesan cakupan (`AccessDeniedGate`/`InformationAlert`) |
+| Summary card | Jumlah per kelompok: Menunggu (0-5), Sedang Konsultasi (6), Siap Ditagih (7-8), Batal/Tidak Hadir, **Menggantung** (aktif, status < 7, tanggal sebelum hari ini) | `GET /outpatient-encounters/summary` (saringan yang sama, tanpa saringan status) | `Read` | Gagal → kartu menampilkan "–" dan tabel tetap dimuat |
+| Filter | Mode Hari ini / Aktif semua tanggal; tanggal; status; klinik (opsi dari metadata); dokter (hanya bila `scope.canReadAll`); pencarian | `filters/metadata` | `Read` | Opsi gagal dimuat → filter tetap dapat dipakai tanpa daftar opsi |
+| Tabel | Kolom pada `OutpatientEncounterListItem` | `GET /outpatient-encounters` | `Read` | Lihat skema |
+| Aksi Batalkan | Menu baris; tampil hanya bila `item.canCancel = true` **dan** `usePermission("OutpatientEncounter", "Cancel")` | — | `OutpatientEncounter : Cancel` | Baris status 6 dengan konsultasi aktif menampilkan `item.cancelBlockedReason` sebagai keterangan, bukan tombol |
+| Modal batal | Ringkasan kunjungan, alasan wajib 1-250 karakter | `PATCH /outpatient-encounters/{id}/cancel` | `Cancel` | `400`/`404` → pesan dari server di modal, modal tetap terbuka; berhasil → toast, tabel dan summary dimuat ulang |
+
+Default saat layar dibuka: mode **Hari ini** (`RJ-DOC-FE-007`). Klik kartu **Menggantung** →
+mode Aktif semua tanggal + saringan `hangingOnly=true`.
+
+## DP-FE.4 Aksi per peran
+
+| Peran | Lihat | Saring dokter | Batalkan |
+|---|---|---|---|
+| Dokter (`Read`) | Pasien sendiri | Tidak | Hanya bila diberi `Cancel` |
+| Perawat poli (`Read`, `Cancel`) | Klinik clusternya | Tidak | Ya, status yang diizinkan |
+| Petugas pendaftaran (`Read`, `ReadAll`, `Cancel`) | Semua | Ya | Ya |
+
+## DP-FE.5 Penanganan keadaan
+
+| Keadaan | Perilaku |
+|---|---|
+| Kirim ganda | Tombol "Batalkan Kunjungan" nonaktif selama permintaan berjalan |
+| Data basi | Server menolak `400` "Kunjungan sudah dibatalkan." atau "sedang dalam konsultasi" → pesan di modal, lalu tabel dimuat ulang saat modal ditutup |
+| Ganti saringan | Halaman kembali ke 1; summary ikut dimuat ulang |
+| Sesi habis | Pola `InstanceAxios` yang sudah ada |
+| Privasi | Nama pasien dan no. RM tidak ditulis ke `console` maupun `localStorage` |
+
+## DP-FE.6 Berkas frontend yang terlibat
+
+Mengikuti pola layar registrasi yang ada (hook + service, bukan Redux slice baru) dan pola
+pemakaian base component di `administrator-bank-view.jsx`.
+
+| Berkas | Status |
+|---|---|
+| `src/app/health-services/registration-management/outpatient-encounters/page.jsx` | Baru |
+| `src/components/view/health-services/registration-management/outpatient-encounters/outpatient-encounter-list-client.jsx` | Baru |
+| `src/components/view/health-services/registration-management/outpatient-encounters/outpatient-encounter-list-view.jsx` | Baru |
+| `src/components/view/health-services/registration-management/outpatient-encounters/outpatient-encounter-table-columns.jsx` | Baru |
+| `src/components/view/health-services/registration-management/outpatient-encounters/cancel-outpatient-encounter-modal.jsx` | Baru |
+| `src/lib/hooks/health-services/registration-management/outpatient-encounters/use-outpatient-encounter-list.jsx` | Baru |
+| `src/lib/services/health-services/registration-management/outpatient-encounter.service.js` | Baru |
+| `src/lib/constants/health-services/registration-management/outpatient-encounter-constants.js` | Baru — label status dan kelompok summary |
+| `src/utils/menu-sidebar/menu-items.jsx` | Diperbarui — satu butir menu |
+| Base component `Hero`, `SummaryGrid`, `DataFilter`, `DataTable`, `StatusBadge`, `RowActionMenu`, `ConfirmModal`, `AccessDeniedGate`, `ToastStack`, `FilterDatePicker`, `FilterSelect`, `Pagination` | Sudah ada, dipakai ulang tanpa diubah |
+
+## DP-FE.7 Kewenangan UI
+
+| Decision ID | Area | Status |
+|---|---|---|
+| `RJ-DOC-FE-005` | Letak menu di bawah Skrining Pasien | `approved` |
+| `RJ-DOC-FE-006` | Hero, summary card, base filter, base table dari base component | `approved` |
+| `RJ-DOC-FE-007` | Default hari ini + Aktif semua tanggal + kartu Menggantung | `approved` |
+| `RJ-DOC-FE-008` | Modal batal, alasan wajib, tombol bersyarat | `approved` |
+| `RJ-DOC-FE-009` | Kolom, urutan, isi filter, gaya | `DEV_DISCRETION` di dalam skema DP-FE.3 |

@@ -70,6 +70,14 @@ public sealed class CashierShiftService
                 throw new CashierShiftConflictException(
                     "Kasir atau register masih memiliki shift aktif.");
 
+            if (await _dbContext.BilCashierShifts.AnyAsync(
+                    x => !x.IsDelete
+                        && (x.CashierId == actorUserId || x.RegisterId == request.RegisterId)
+                        && (x.Status == CashierShiftStatuses.ClosedWithVariance || x.Status == CashierShiftStatuses.PerluTindakLanjut),
+                    cancellationToken))
+                throw new CashierShiftConflictException(
+                    "Kasir atau register masih memiliki shift yang menunggu review selisih kas.");
+
             var now = DateTimeOffset.UtcNow;
             var shift = new BilCashierShift
             {
@@ -566,6 +574,7 @@ public sealed class CashierShiftService
             request.ExpectedRowVersion.ToString("N"),
             request.Resolution.Trim(),
             request.Reason.Trim(),
+            (request.Outcome ?? string.Empty).Trim(),
             request.CorrelationId.ToString("N"),
             request.CausationId.ToString("N"));
         IDbContextTransaction? transaction = null;
@@ -610,7 +619,10 @@ public sealed class CashierShiftService
                 CreateBy = actorUserId
             };
             _dbContext.BilCashVarianceReviews.Add(review);
-            shift.Status = CashierShiftStatuses.Reviewed;
+            var isNeedsFollowUp = request.Outcome?.Trim().Equals("NEEDS_FOLLOW_UP", StringComparison.OrdinalIgnoreCase) == true;
+            shift.Status = isNeedsFollowUp
+                ? CashierShiftStatuses.PerluTindakLanjut
+                : CashierShiftStatuses.Reviewed;
             shift.RowVersion = Guid.NewGuid();
             Touch(shift, actorUserId);
             var response = new CashVarianceResponse
@@ -656,6 +668,131 @@ public sealed class CashierShiftService
             await RollbackAsync(transaction);
             throw new CashierShiftConflictException(
                 "Review variance tidak dapat disimpan karena correlation atau idempotency key sudah diproses.",
+                exception);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    public async Task<CashVarianceResponse> ResolveFollowUpAsync(
+        Guid shiftId,
+        ResolveShiftFollowUpRequest request,
+        Guid idempotencyKey,
+        Guid actorUserId,
+        string actorRole,
+        CancellationToken cancellationToken)
+    {
+        ValidateResolveFollowUp(shiftId, request, idempotencyKey, actorUserId);
+        var payloadHash = Hash(
+            CashierShiftCommandTypes.ResolveFollowUp,
+            shiftId.ToString("N"),
+            actorUserId.ToString("N"),
+            request.ExpectedRowVersion.ToString("N"),
+            request.VerificationNote.Trim(),
+            request.CorrelationId.ToString("N"),
+            request.CausationId.ToString("N"));
+        IDbContextTransaction? transaction = null;
+
+        try
+        {
+            transaction = await BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"BIL_CASHIER_SHIFT_COMMAND_{idempotencyKey:N}", cancellationToken);
+            var replay = await ReplayAsync<CashVarianceResponse>(
+                idempotencyKey,
+                CashierShiftCommandTypes.ResolveFollowUp,
+                payloadHash,
+                actorUserId,
+                cancellationToken);
+            if (replay is not null)
+            {
+                await CommitAsync(transaction, cancellationToken);
+                return replay;
+            }
+
+            await AcquireLockAsync($"BIL_CASHIER_SHIFT_{shiftId:N}", cancellationToken);
+            var shift = await _dbContext.BilCashierShifts.SingleOrDefaultAsync(
+                x => x.Id == shiftId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Shift kasir tidak ditemukan.");
+            EnsureCurrent(shift, request.ExpectedRowVersion);
+            if (shift.Status != CashierShiftStatuses.PerluTindakLanjut)
+                throw new CashierShiftValidationException(
+                    "Hanya shift berstatus PERLU_TINDAK_LANJUT yang dapat diselesaikan.");
+
+            var now = DateTimeOffset.UtcNow;
+            var before = shift.Status;
+            var note = request.VerificationNote.Trim();
+            var resolution = "Penyelesaian Tindak Lanjut: " + note;
+            if (resolution.Length > 500)
+            {
+                resolution = resolution[..500];
+            }
+
+            var review = new BilCashVarianceReview
+            {
+                ShiftId = shift.Id,
+                Shift = shift,
+                ReviewerId = actorUserId,
+                Variance = shift.Variance,
+                Resolution = resolution,
+                Reason = note,
+                ReviewedAt = now,
+                CreateDateTime = DateTime.UtcNow,
+                CreateBy = actorUserId
+            };
+            _dbContext.BilCashVarianceReviews.Add(review);
+            shift.Status = CashierShiftStatuses.Reviewed;
+            shift.RowVersion = Guid.NewGuid();
+            Touch(shift, actorUserId);
+            var response = new CashVarianceResponse
+            {
+                Id = review.Id,
+                ShiftId = shift.Id,
+                ReviewerId = review.ReviewerId,
+                Variance = review.Variance,
+                Resolution = review.Resolution,
+                Reason = review.Reason,
+                ReviewedAt = review.ReviewedAt,
+                Shift = MapShift(shift)
+            };
+            var command = Command(
+                shift,
+                CashierShiftCommandTypes.ResolveFollowUp,
+                actorUserId,
+                actorRole,
+                "CashierShift.Review",
+                idempotencyKey,
+                payloadHash,
+                request.CorrelationId,
+                request.CausationId,
+                before,
+                shift.Status,
+                note,
+                response,
+                now);
+            _dbContext.BilCashierShiftCommands.Add(command);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            await AuditCommandAsync(command, false);
+            return response;
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            await RollbackAsync(transaction);
+            throw Stale(exception);
+        }
+        catch (DbUpdateException exception)
+        {
+            await RollbackAsync(transaction);
+            throw new CashierShiftConflictException(
+                "Penyelesaian tindak lanjut shift tidak dapat disimpan karena correlation atau idempotency key sudah diproses.",
                 exception);
         }
         catch
@@ -1106,6 +1243,20 @@ public sealed class CashierShiftService
         ValidateExpectedVersion(request.ExpectedRowVersion);
         ValidateText(request.Resolution, "Resolusi variance");
         ValidateText(request.Reason, "Alasan review");
+    }
+
+    private static void ValidateResolveFollowUp(
+        Guid shiftId,
+        ResolveShiftFollowUpRequest request,
+        Guid idempotencyKey,
+        Guid actorUserId)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ValidateCommand(idempotencyKey, actorUserId, request.CorrelationId, request.CausationId);
+        if (shiftId == Guid.Empty)
+            throw new CashierShiftValidationException("ShiftId wajib diisi.");
+        ValidateExpectedVersion(request.ExpectedRowVersion);
+        ValidateText(request.VerificationNote, "Catatan verifikasi");
     }
 
     private static void ValidateReopen(

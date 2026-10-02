@@ -16,16 +16,20 @@ erDiagram
     BILLING ||--o{ FIN_BILLING_INTAKE : "mengirim fakta (satu arah)"
     MEDICAL_FEE ||--o{ FIN_PAYABLE : "fee yang sudah disetujui (satu arah)"
     ADMINISTRATOR ||--o{ FIN_PAYABLE : "MstSupplier (rujukan)"
+    ADMINISTRATOR ||--o{ FIN_PURCHASING : "MstSupplier (rujukan)"
     FIN_BILLING_INTAKE ||--o{ FIN_RECEIVABLE : "melahirkan piutang"
     FIN_BILLING_INTAKE ||--o{ FIN_COLLECTION : "melahirkan penerimaan"
     FIN_COLLECTION ||--o{ FIN_RECEIVABLE : "mengalokasikan pelunasan"
     FIN_COLLECTION ||--o{ FIN_CASH : "mengisi posisi kas harian"
     FIN_MASTER_DATA ||--o{ FIN_CASH : "rekening tujuan setoran"
     FIN_MASTER_DATA ||--o{ FIN_PAYABLE : "rekening sumber pembayaran"
+    FIN_PURCHASING ||--o{ FIN_PAYABLE : "Purchasing Invoice Approved -> FinSupplierPayable"
+    BILLING ||--o{ FIN_RECEIVABLE : "dokumen per-invoice penjamin (rujukan, dipakai ulang)"
     FIN_RECEIVABLE ||--o{ FIN_ACCOUNTING_OUTBOX : "menerbitkan kejadian"
     FIN_COLLECTION ||--o{ FIN_ACCOUNTING_OUTBOX : "menerbitkan kejadian"
     FIN_PAYABLE ||--o{ FIN_ACCOUNTING_OUTBOX : "menerbitkan kejadian"
     FIN_PETTY_CASH ||--o{ FIN_ACCOUNTING_OUTBOX : "menerbitkan kejadian"
+    FIN_PURCHASING ||--o{ FIN_ACCOUNTING_OUTBOX : "menerbitkan kejadian PPN Masukan (tertahan, menunggu ratifikasi)"
     FIN_ACCOUNTING_OUTBOX ||--o{ ACCOUNTING : "mengirim (satu arah, belum aktif)"
 ```
 
@@ -43,6 +47,10 @@ erDiagram
 | Master Data → Cash / Payable | `MstBankAccount` sebagai tujuan setoran dan sumber pembayaran | Rujukan baca |
 | Empat konteks → Outbox | Baris kejadian ditulis di transaksi yang sama (`FIN-DES-017`) | Wajib satu transaksi |
 | Outbox → Accounting | `POST` kejadian 12 field | **Belum aktif.** Endpoint penerima belum dibangun (`FIN-CAP-018`) |
+| Administrator → Purchasing | `MstSupplier` lewat `SupplierId` | Rujukan baca, sama seperti Payable — tidak disalin |
+| Purchasing → Payable | Purchasing Invoice `Approved` menciptakan `FinSupplierPayable` | `FIN-DEC-045`; jalur input manual tetap ada sebagai fallback (`FIN-DES-040`) |
+| Billing → Receivable | Dokumen per-invoice penjamin (`BillingCompanyGuarantorInvoiceDocumentService`) dirujuk sebagai rincian baris `FinReceivableInvoiceBatch` | Layanan baca, tidak disalin (`FIN-CAP-030`) |
+| Purchasing → Outbox | Kejadian `PPN-MASUKAN-PEMBELIAN` | **Tertahan** — menunggu ratifikasi Accounting (`FIN-OQ-020`, `FIN-DEC-046`) |
 
 ## 3. Yang sengaja tidak ada panahnya
 
@@ -52,13 +60,15 @@ erDiagram
 | Finance → Billing | Finance tidak pernah menulis ke tabel Billing, termasuk `BilCashierShift` (aturan bisnis #12) |
 | Petty Cash ↔ Collection | Kas kecil dan kas kasir adalah dua kolam terpisah. Pencairan kas kecil MUST NOT mengubah kas kasir, dan sebaliknya (aturan bisnis #15) |
 | Finance → Medical Fee | Finance tidak pernah mengubah status atau nilai fee dokter |
+| Finance → Billing (Purchasing/AP) | `FIN_PURCHASING` tidak pernah menulis ke tabel Billing; dokumen per-invoice penjamin (`BillingCompanyGuarantorInvoiceDocumentService`) dipanggil murni sebagai layanan baca (`FIN-CAP-030`) |
 
 ## 4. Daftar berkas ERD rinci
 
 | Berkas | Konteks yang dirinci |
 |---|---|
-| `receivable-collection.md` | Billing Intake, Receivable, Collection |
+| `receivable-collection.md` | Billing Intake, Receivable, Collection, AR Invoice Agregat (AMENDMENT REVISI 4), Potongan AR (AMENDMENT REVISI 4) |
 | `payable.md` | Supplier Payable, Doctor Payable, Payment |
+| `purchasing-ap.md` | **Baru (AMENDMENT REVISI 4)** — Purchase Order, Tanda Terima Barang, Tukar Faktur, Purchasing Invoice, Retur Pembelian, Deposit Retur |
 | `cash-and-master-data.md` | Bank Deposit, Daily Cash, dan seluruh master Finance |
 | `accounting-integration.md` | Outbox, Attempt, Subledger Period Balance |
 | `data-dictionary.md` | Kamus data seluruh kolom dan bentuk DDL |

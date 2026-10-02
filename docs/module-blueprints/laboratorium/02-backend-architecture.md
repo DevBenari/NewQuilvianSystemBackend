@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `12` — bagian 22, 2026-09-25: penjaga penyelesaian order (`LAB-DEC-154`). Sebelumnya `11` — bagian 21, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `10` — bagian 20, 2026-09-25: `S4` validasi dan rilis Patologi Klinik. Sebelumnya `9` — bagian 19, 2026-09-24 |
+| Revision | `13` — bagian 23, 2026-09-25: `S16a` tiga laporan operasional. Sebelumnya `12` — bagian 22, 2026-09-25: penjaga penyelesaian order (`LAB-DEC-154`). Sebelumnya `11` — bagian 21, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `10` — bagian 20, 2026-09-25: `S4` validasi dan rilis Patologi Klinik. Sebelumnya `9` — bagian 19, 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -2522,7 +2522,7 @@ hak akses **bukan** data induk dan ditangani 19.7.
 | No | Hal | Usulan rancangan | Bila tidak disetujui |
 |---:|---|---|---|
 | 1 | ✅ **Disetujui 2026-09-24 bersama `LAB-API-v1` `r33`.** **Perubahan yang memecah kompatibilitas:** `POST /result/microbiology/finalize`, `POST /result/microbiology/reopen`, dan `PUT /result/microbiology/consultation` **dicabut**, digantikan route netral `POST /result/finalize`, `POST /result/reopen`, `PUT /result/consultation` | Setujui. **Konsumennya dinilai:** satu berkas frontend, `src/lib/constants/health-services/laboratory-management/lab-microbiology-result-constants.jsx:16,19,22`; nol konsumen lain di kedua repository; `S4b` belum masuk Rilis 1 | Patologi Klinik memanggil route bernama `microbiology`. Tidak salah perilaku, tetapi menyesatkan pemelihara berikutnya |
-| 2 | ⏳ **Masih terbuka** — tidak termasuk persetujuan 2026-09-24. Penanda hasil **pilihan** yang di luar rujukan tidak punya arah, sehingga tidak dapat dicetak `L` atau `H` | Tampil sebagai teks **"Di luar rujukan"** — tetap berupa teks, sesuai maksud `LAB-FE-015` | Pemilik menetapkan huruf lain |
+| 2 | ✅ **Disetujui 2026-10-01 — `LAB-DEC-165`:** teks **"Di luar rujukan"** di belakang nilai (`+2 — Di luar rujukan`), sesuai usulan di kolom berikutnya; diterapkan `FE-LAB-36`. *Semula:* ⏳ **Masih terbuka** — tidak termasuk persetujuan 2026-09-24. Penanda hasil **pilihan** yang di luar rujukan tidak punya arah, sehingga tidak dapat dicetak `L` atau `H` | Tampil sebagai teks **"Di luar rujukan"** — tetap berupa teks, sesuai maksud `LAB-FE-015` | Pemilik menetapkan huruf lain |
 
 ### 19.11 Keamanan, privasi, dan pencatatan
 
@@ -2711,7 +2711,7 @@ classDiagram
     }
     class ClinicalDocumentKind {
         <<Diperbarui - milik Rekam Medis>>
-        LaboratoryResult = 14
+        LaboratoryResult = 15
     }
     class LabResultCorrectionReason {
         <<Baru>>
@@ -2872,9 +2872,14 @@ Laboratorium.
 
 **`ClinicalDocumentKind`** — `Diperbarui`, **milik Rekam Medis**,
 `Areas/HealthServices/MedicalRecordManagement/Enums/ClinicalDocumentKind.cs`. Satu nilai baru
-`LaboratoryResult = 14`, sesuai kesepakatan `LAB-COORD-002` (*"satu nilai pada daftar jenis
+`LaboratoryResult = 15`, sesuai kesepakatan `LAB-COORD-002` (*"satu nilai pada daftar jenis
 dokumen klinis, untuk hasil laboratorium"*). Himpunan `JenisYangDitegakkan` pada
 `ClinicalDocumentIntegrityService.cs:81-87` **tidak** diubah (20.9).
+
+> **Koreksi 2026-09-29 — `15`, bukan `14`.** Rancangan ini semula menetapkan `14`. Angka itu
+> diambil `HemodialysisSession` (commit `89028993`, 2026-09-22), yang masuk ke branch `yoga`
+> sesudah rancangan diaudit pada `ddeb5ed8`. Pemilik modul memilih `15` saat `BE-LAB-70`
+> dikerjakan. Kesepakatan `LAB-COORD-002` menyangkut **adanya satu nilai**, bukan angkanya.
 
 **DTO** — `Areas/HealthServices/LaboratoryManagement/DTOs/`:
 
@@ -3493,10 +3498,284 @@ perubahan data; penyelesaian yang berhasil dicatat seperti hari ini.
 | Label pada rincian | `LAB-DEC-156` | `r36` 31.2 | `AC-247` bagian backend |
 | `409` bagi order bukan `InProcess` | `LAB-STATE-v1` bagian 1 | `r36` 31.2 | Baris matriks uji |
 
+## 23. Rancangan 2026-09-25 (keempat) — `S16a` tiga laporan operasional
+
+Bagian ini menurunkan `LAB-DA-001` revision 10 bagian **A7**. Arsitektur domain sudah menetapkan
+bahwa ketiga laporan adalah **pandangan baca** — nol tabel, nol aggregate. Yang dirancang di sini
+adalah permukaannya: satu controller, satu service, dua pemindahan logika supaya aturan yang sama
+tidak ditulis dua kali, dan **satu index**.
+
+### 23.0 Identitas dan gerbang masukan
+
+| Butir | Isi |
+|---|---|
+| Status | **`draft`** — approval tetap tindakan pemilik modul. **Ketiga kontraknya disetujui 2026-09-28**, beserta kedelapan butir 23.10 |
+| Masukan | `00-interview-decisions.md` **revision 81** (`LAB-DEC-155`, `LAB-DEC-159`, `LAB-DEC-160`); `LAB-RCG-001-r11` bagian 0F; `LAB-DA-001` **revision 10 bagian A7**; capability map revision 6 |
+| SHA | Backend **`84383f64`** (branch `yoga`), frontend **`2083ff36a`** (branch `YogaV2`) — sama dengan arsitektur domain; impact scan A7.1 berlaku |
+| Gerbang | Requirement `READY_FOR_DOMAIN_DESIGN`; arsitektur `DOMAIN_ARCHITECTURE_READY` |
+| Yang dirancang | Tiga laporan — jumlah pemeriksaan, penolakan wadah, waktu penyelesaian — beserta unduhannya, penyaring periode dan disiplin, dan satu hak akses tersendiri |
+| Yang **tidak** dirancang | `S16b` (delapan laporan lain, `DEC-LAB-025`); grafik dan tata letak (`DEV_DISCRETION`, 03-frontend) |
+| Skema | **Nol tabel, nol kolom.** **Satu index** pada `LabSpecimen.DecidedAt` (23.6) |
+| Ketergantungan kode | **`BE-LAB-70`** (`ReleasedAt` beserta index-nya), **`BE-LAB-73`** (penjaga disiplin `VAL-126`), dan **`BE-LAB-77`** (`BelumSelesai()` mengeluarkan pemeriksaan dirilis dari daftar pantau — tanpa itu cito yang dirilis tepat waktu tetap tampil terlambat selama ordernya terbuka, dan laporan berbeda pendapat dengan daftar pantau; ditambahkan 2026-09-28). Angka Mikrobiologi bermakna sesudah `BE-LAB-78` |
+
+### 23.1 Bounded context, invariant, dan batas transaksi
+
+| Butir | Isi |
+|---|---|
+| Bounded context | `BC-LAB` saja. `BC-PLAT` menyediakan pemeriksaan hak akses |
+| Aggregate | **Nol.** Laporan tidak menulis |
+| Invariant | `INV-55` hitung pada tanggal operasional rilis; `INV-56` penolakan per keputusan kelayakan; `INV-57` TAT dari `ChargeEligibleAt` — **titik mulai dan batas waktu cito yang sama dengan daftar pantau** |
+| Transaksi | **Nol transaksi tulis.** Setiap laporan satu atau dua kueri baca `AsNoTracking` |
+| Konkurensi | Tidak relevan — nol tulis. Angka dapat bergeser bila hasil dirilis selama laporan dibuka; itu kebenaran, bukan cacat |
+
+**Tanggal operasional.** Periode `startDate`..`endDate` dikirim sebagai tanggal polos dan diubah
+lewat `LabQueryDateRange` yang sudah ada: tanggal polos dibaca sebagai **jam dinding WIB**
+(`AppDateTimeHelper.ToUtc`), dan akhir rentang dinaikkan ke penghabisan hari (`LAB-DEC-071`).
+
+**Contoh:** periode 1-30 September → dibandingkan dengan `31 Agustus 17.00 UTC` sampai
+`30 September 16.59.59 UTC`. Kalium yang dirilis **1 Oktober 06.30 WIB** (30 September 23.30 UTC)
+**tidak** masuk September.
+
+### 23.2 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+|---|---|:---:|---|
+| Waktu rilis, pengesah | Laboratorium (`LabExamination`, `BE-LAB-70`) | Ya | Tidak |
+| Waktu layak (`ChargeEligibleAt`), kesegeraan, status, snapshot nama pemeriksaan | Laboratorium (`LabExamination`) | Ya | Tidak |
+| Keputusan kelayakan wadah dan alasannya | Laboratorium (`LabSpecimen`, `MstLabRejectionReason`) | Ya | Tidak |
+| Disiplin | Laboratorium (`LabOrder.Discipline`) | Ya | Tidak |
+| Batas waktu cito per pemeriksaan | Laboratorium (`LabValueBound`) | Ya | Tidak — **dibaca lewat fungsi yang sama** dengan daftar pantau |
+| **Ringkasan per periode** | — | — | **Tidak disimpan di mana pun** — dihitung saat diminta (A7.5) |
+| Tagihan, penjamin, diagnosis | Billing, Registrasi, modul klinis | **Tidak** | Tidak — milik `S16b` |
+
+### 23.3 Class diagram
+
+```mermaid
+classDiagram
+    class LabOperationalReportController {
+        <<Baru>>
+        +GetFilterMetadata()
+        +GetExaminationCount()
+        +GetSpecimenRejection()
+        +GetTurnaroundTime()
+        +ExportExaminationCount()
+        +ExportSpecimenRejection()
+        +ExportTurnaroundTime()
+    }
+    class LabOperationalReportService {
+        <<Baru>>
+        +GetExaminationCountAsync()
+        +GetSpecimenRejectionAsync()
+        +GetTurnaroundTimeAsync()
+    }
+    class LabReportCsvWriter {
+        <<Baru>>
+        +Write()
+    }
+    class LabCitoTurnaroundPolicy {
+        <<Baru - dipindah dari LabWorklistService>>
+        +GetLimitsAsync()
+    }
+    class LabReleasableDisciplines {
+        <<Baru - dipindah dari LabResultValidationService>>
+        +Contains()
+    }
+    class LabWorklistService {
+        <<Diperbarui>>
+    }
+    class LabResultValidationService {
+        <<Diperbarui>>
+    }
+    class LabQueryDateRange {
+        <<Sudah ada>>
+    }
+    LabOperationalReportController --> LabOperationalReportService
+    LabOperationalReportController --> LabReportCsvWriter
+    LabOperationalReportService --> LabCitoTurnaroundPolicy : batas cito
+    LabOperationalReportService --> LabReleasableDisciplines : dapat dihitung
+    LabOperationalReportService --> LabQueryDateRange : periode WIB
+    LabWorklistService --> LabCitoTurnaroundPolicy : batas cito
+    LabResultValidationService --> LabReleasableDisciplines : VAL-126
+```
+
+### 23.4 Penjelasan setiap class
+
+**`LabOperationalReportController`**
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Controllers/LabOperationalReportController.cs` |
+| Route dan tag | `api/v1/health-services/laboratory-management/lab-operational-reports`; `[Tags("Health Services / Laboratory Management / Lab Operational Report")]` |
+| Atribut akses | `[AccessController]` di kelas; `Read` pada empat `GET` baca, `Export` pada tiga `GET` unduh — string persis pada `LAB-PERM-v1` revision 12 |
+| Service yang dipakai | `LabOperationalReportService`, `LabReportCsvWriter` |
+| Validasi | Periode wajib (`VAL-147`), awal tidak sesudah akhir (`VAL-148`, pesan **sama** dengan endpoint Lab lain), panjang periode (`VAL-149`). Disiplin tak dikenal ditolak model binding — perilaku yang sama dengan catatan `VAL-76` |
+| Pencatatan | Hanya tiga unduhan: `LabOperationalReport.Export` — jenis laporan, periode, disiplin, jumlah baris, pelaku. **Nol** data pasien |
+
+**`LabOperationalReportService`**
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Services/LabOperationalReportService.cs` |
+| Fungsi | `GetExaminationCountAsync` — pemeriksaan dengan `ReleasedAt` dalam periode, dikelompokkan per disiplin order lalu per `ProcedureId` dengan `ProcedureNameSnapshot`. `GetSpecimenRejectionAsync` — wadah dengan `DecidedAt` dalam periode; tidak layak = `RejectionReasonCode` terisi; rincian per disiplin dan per alasan. `GetTurnaroundTimeAsync` — pemeriksaan dengan `ReleasedAt` dalam periode dan `ChargeEligibleAt` terisi; selang dalam menit; per disiplin × kesegeraan; *terlambat* = selang melebihi batas cito dari `LabCitoTurnaroundPolicy` |
+| Disiplin yang belum dapat dihitung | Disiplin **di luar** `LabReleasableDisciplines` ditulis `isCountable = false` beserta alasan — **bukan** angka 0 (`ARCH-GAP-LAB-11`). Berlaku bagi jumlah dan TAT; **tidak** bagi penolakan, sebab keputusan kelayakan ada pada ketiga disiplin |
+| Order tanpa disiplin | Data lama berdisiplin kosong dikelompokkan **"Belum tergolong"**, tidak dibuang diam-diam |
+| Dipanggil siapa | Controller saja |
+| Membuka transaksi | **Tidak** |
+| Catatan kinerja | Pengelompokan dijalankan di basis data. Bila selisih waktu tidak dapat diterjemahkan Npgsql, service memproyeksikan pasangan `ChargeEligibleAt`/`ReleasedAt` lalu menghitung di memori — aman karena periode dibatasi `VAL-149` |
+
+**`LabReportCsvWriter`**
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Services/LabReportCsvWriter.cs` |
+| Fungsi | Menulis respons laporan menjadi CSV **tanpa pustaka baru**: UTF-8 dengan BOM, pemisah **titik koma**, desimal **koma**, judul kolom Bahasa Indonesia, baris pertama periode laporan — supaya berkas terbuka benar di Excel berbahasa Indonesia (23.10 butir 1) |
+| Membuka transaksi | Tidak |
+
+**`LabCitoTurnaroundPolicy`**
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` — **dipindah** dari `LabWorklistService.BatasWaktuCitoAsync` (privat, `LabWorklistService.cs:240`) |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Services/LabCitoTurnaroundPolicy.cs` |
+| Fungsi | `GetLimitsAsync(procedureIds)` → batas waktu cito per jenis pemeriksaan dari `LabValueBound` yang aktif; kosong bila belum diatur (`VAL-39`) |
+| Kenapa dipindah | `INV-57`: laporan dan daftar pantau **wajib** memakai batas yang sama. Dua salinan fungsi akan bercabang tanpa satu galat pun |
+| Dipanggil siapa | `LabWorklistService` (daftar pantau cito) dan `LabOperationalReportService` |
+
+**`LabReleasableDisciplines`**
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` — himpunan disiplin yang diterima penjaga `VAL-126`, **dipindah** dari `LabResultValidationService` (`BE-LAB-73`, diperluas `BE-LAB-78`) |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Constants/LabReleasableDisciplines.cs` |
+| Isi | Sesudah `BE-LAB-73`: Patologi Klinik. Sesudah `BE-LAB-78`: Patologi Klinik dan Mikrobiologi. Patologi Anatomi masuk bersama `S4e` |
+| Kenapa dipindah | *"Disiplin ini dapat dirilis"* harus satu jawaban: penjaga validasi dan laporan tidak boleh berbeda pendapat |
+
+**`LabWorklistService`** — `Diperbarui`: `BatasWaktuCitoAsync` diganti panggilan `LabCitoTurnaroundPolicy`; **nol perubahan perilaku**.
+**`LabResultValidationService`** — `Diperbarui`: penjaga disiplin membaca `LabReleasableDisciplines`; **nol perubahan perilaku**.
+**`LabFilterMetadataFactory`** — `Diperbarui`: `LabOperationalReport()` — penyaring periode (tanggal, wajib) dan disiplin (pilihan, tiga nilai).
+
+**DTO** — `Areas/HealthServices/LaboratoryManagement/DTOs/LabOperationalReportDtos.cs` (`Baru`):
+
+| Class | Jenis | Ruas |
+|---|---|---|
+| `LabOperationalReportQuery` | PagedQuery tanpa halaman | `startDate` (tanggal, wajib), `endDate` (tanggal, wajib), `discipline` (`LabDiscipline?`) |
+| `LabReportPeriodResponse` | Response | `startDate`, `endDate` (tanggal operasional), `generatedAt` |
+| `LabExaminationCountReportResponse` | Response | `period`, `rows[]`, `totalCountable` |
+| `LabExaminationCountRow` | Response | `discipline`, `disciplineName`, `isCountable`, `notCountableReason`, `total`, `procedures[]` (`procedureId`, `procedureName`, `total`) |
+| `LabSpecimenRejectionReportResponse` | Response | `period`, `rows[]` (`discipline`, `disciplineName`, `decidedCount`, `rejectedCount`, `rejectionRatePercent`), `reasons[]` (`discipline`, `reasonCode`, `reasonName`, `count`) |
+| `LabTurnaroundTimeReportResponse` | Response | `period`, `rows[]` (`discipline`, `disciplineName`, `urgency`, `isCountable`, `notCountableReason`, `releasedCount`, `averageMinutes`, `overdueCount`, `withoutLimitCount`) |
+
+`rejectionRatePercent` dan `averageMinutes` dibulatkan **satu desimal**, **kosong** bila pembaginya nol.
+`overdueCount` dan `withoutLimitCount` hanya terisi pada baris **cito**.
+
+### 23.5 Arsitektur folder
+
+```text
+Areas/HealthServices/LaboratoryManagement/
+├── Constants/
+│   └── LabReleasableDisciplines.cs          # Baru — dipindah dari LabResultValidationService
+├── Controllers/
+│   └── LabOperationalReportController.cs    # Baru
+├── DTOs/
+│   └── LabOperationalReportDtos.cs          # Baru
+└── Services/
+    ├── LabOperationalReportService.cs       # Baru
+    ├── LabReportCsvWriter.cs                # Baru
+    ├── LabCitoTurnaroundPolicy.cs           # Baru — dipindah dari LabWorklistService
+    ├── LabWorklistService.cs                # Diperbarui — memakai LabCitoTurnaroundPolicy
+    ├── LabResultValidationService.cs        # Diperbarui — memakai LabReleasableDisciplines
+    └── LabFilterMetadataFactory.cs          # Diperbarui — metadata laporan
+Repositories/Configurations/HealthServices/LaboratoryManagement/
+└── LabSpecimenConfiguration.cs              # Diperbarui — satu index
+Migrations/
+└── <timestamp>_AddLabSpecimenDecidedAtIndex.cs   # Baru
+Program.cs                                   # Diperbarui — registrasi DI tiga class
+```
+
+### 23.6 Status model dan dampak migration
+
+| Model | Status | Yang berubah | Dampak migration |
+|---|---|---|---|
+| `LabSpecimen` | `Sudah ada` | **Nol kolom.** Satu index baru pada `DecidedAt` — laporan penolakan menyaring kolom itu, dan hari ini ia tidak ber-index (`LabSpecimenConfiguration.cs:38-45`) | `AddLabSpecimenDecidedAtIndex` |
+| `LabExamination` | `Sudah ada` — sesudah `BE-LAB-70` | Nol. Index `ReleasedAt` dari `BE-LAB-70`; `ChargeEligibleAt` dan `Urgency` sudah ber-index (`LabExaminationConfiguration.cs:46-47`) | Nol |
+
+### 23.7 Rencana migration dan urutan rilis
+
+| Langkah | Isi | Tanpa henti layanan? | Mundur |
+|---:|---|:---:|---|
+| 1 | `AddLabSpecimenDecidedAtIndex` — dibangkitkan **sesudah** migration `BE-LAB-70` | Ya — membuat index mengunci tulis `LabSpecimen` sesaat selama pembuatannya; tabelnya kecil | `Down` menghapus index; nol data berubah |
+| 2 | Deploy kode | Ya | Kode |
+| 3 | Admin memberi `LabOperationalReport : Read` dan `: Export` kepada jabatan kepala instalasi dan manajemen | — | Cabut kebijakan |
+
+**Nol pengisian data lama.** Laporan membaca fakta yang sudah ada; periode sebelum `BE-LAB-70` wajar
+kosong untuk jumlah dan TAT, sebab rilis belum pernah tercatat.
+
+### 23.8 Rencana data master awal
+
+**Nol data induk baru.** Yang harus sudah terisi supaya laporan bermakna:
+
+| Data | Isi minimum | Sumber |
+|---|---|---|
+| Batas waktu cito per jenis pemeriksaan (`LabValueBound`) | Seluruh pemeriksaan cito yang dilayani | Sudah dikelola kepala instalasi; tanpa itu baris cito ditulis *"batas waktu belum diatur"* (`withoutLimitCount`) |
+| Alasan penolakan (`MstLabRejectionReason`) | Sudah ada | `S11` |
+| Kebijakan izin laporan | Dua aksi bagi jabatan pembaca | Admin, langkah rilis |
+
+### 23.9 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Tabel ringkasan per hari atau per bulan | `A7.5` — angka tersimpan dapat basi |
+| Rumus TAT atau batas cito kedua | `INV-57` |
+| Daftar pasien di balik angka | `A7.12` — privasi; laporan agregat |
+| Unduhan Excel `.xlsx` | Butuh pustaka baru di backend maupun frontend — keputusan pemilik repository (23.10 butir 1) |
+| Pemakaian riwayat batas nilai (`LabValueBoundHistory`) untuk menilai *terlambat* pada batas yang berlaku saat itu | Daftar pantau memakai batas **saat ini**; memakai dua sumber melanggar `INV-57` (23.10 butir 5) |
+| Laporan tagihan, penjamin, kelompok penyakit | `S16b` — `DEC-LAB-025` |
+
+### 23.10 Keputusan yang diminta pada persetujuan kontrak
+
+> **✅ Kedelapan butir disetujui 2026-09-28** oleh Yoga Aji Pratama selaku pemilik modul, bersama
+> `LAB-API-v1` `r37`, `LAB-VAL-v1` `r15`, dan `LAB-PERM-v1` revision 12, lewat instruksi *"saya
+> setujui semuanya yaa sebagai pemilik modul lab atas nama yoga aji pratama"*. Yang disetujui adalah
+> **kolom "Usulan rancangan"** di bawah.
+
+| No | Hal | Usulan rancangan | Bila tidak disetujui |
+|---:|---|---|---|
+| 1 | **Format unduhan** | **CSV dari backend** tanpa pustaka baru — UTF-8 dengan BOM, pemisah titik koma, desimal koma, supaya terbuka benar di Excel berbahasa Indonesia; setiap unduhan dicatat | Excel `.xlsx` butuh pustaka baru (persetujuan pemilik repository); atau tanpa unduhan sama sekali |
+| 2 | **Izin unduh terpisah dari izin lihat** | Ya — `Export` terpisah dari `Read`: mengunduh membawa data keluar sistem | Satu izin `Read` membuka keduanya |
+| 3 | **Panjang periode maksimum** | **366 hari** — melindungi basis data yang dipakai bersama | Tanpa batas |
+| 4 | **Rincian jumlah pemeriksaan** | Per disiplin **dan per jenis pemeriksaan** | Per disiplin saja |
+| 5 | **Batas cito untuk menilai terlambat** | Batas yang berlaku **saat laporan dibuka** — sama dengan daftar pantau (`INV-57`) | Batas historis — butuh sumber kedua dan melanggar satu rumus |
+| 6 | **Tiga usulan arsitektur** | Disiplin tanpa jalur rilis ditulis *"belum dapat dihitung"* (`ARCH-GAP-LAB-11`); TAT disajikan rata-rata, jumlah, jumlah terlambat (`ARCH-GAP-LAB-13`); laporan tanpa identitas pasien (A7.12) | Pemilik menetapkan lain |
+| 7 | **Pencatatan** | Unduhan dicatat; membuka laporan tidak (A7.9) | Keduanya dicatat, atau tidak satu pun |
+| 8 | **Letak menu** — keputusan tampilan, bukan backend; dicatat di sini supaya disetujui bersama butir lain (`03-frontend-architecture.md` amandemen 2026-09-25 keempat) | Butir baru *Laporan Operasional* pada menu Laboratorium, tampil hanya bagi pemegang `LabOperationalReport : Read` — izin tersendiri `LAB-DEC-160` langsung menjadi syarat tampil satu butir menu | Bagian di halaman *Ringkasan Laboratorium*. Halaman itu dibuka pemegang hak baca daftar, sehingga bagian laporan wajib disembunyikan per izin **di dalam** halaman — satu syarat yang terlupa membuka laporan bagi setiap analis |
+
+**Butir 8 adalah koreksi pembukuan 2026-09-28:** rancangan frontend sejak awal merujuk *"23.10 butir 8"*,
+tetapi tabel ini baru memuat tujuh butir. Nol rancangan backend berubah.
+
+### 23.11 Keamanan, privasi, dan pencatatan
+
+Laporan memuat **angka** dan **nama jenis pemeriksaan** — **nol** nama pasien, No. RM, nilai hasil,
+maupun nama petugas. Payload log unduhan tidak memuat isi berkas. Hak baca daftar Laboratorium
+**tidak** membuka laporan (`LAB-DEC-160`).
+
+### 23.12 Traceability bagian 23
+
+| Yang dirancang | Keputusan | Arsitektur domain | Kontrak (usulan) | AC |
+|---|---|---|---|---|
+| Laporan jumlah pemeriksaan | `LAB-DEC-159` butir 2, `LAB-DEC-155` | `INV-55` | `LAB-API-v1` `r37` 32.2 | `AC-250` |
+| Laporan penolakan wadah | `LAB-DEC-159` butir 3 | `INV-56` | `r37` 32.2 | `AC-251` |
+| Laporan waktu penyelesaian | `LAB-DEC-159` butir 4; `AC-17` | `INV-57` | `r37` 32.2 | `AC-252` |
+| Hak akses tersendiri | `LAB-DEC-160` | A7.8 | `LAB-PERM-v1` revision 12 | `AC-253` |
+| Periode | `LAB-DEC-071` | `LAB-DC-059` | `LAB-VAL-v1` `r15` `VAL-147`..`VAL-149` | Baris matriks uji |
+
 ## Riwayat Revisi
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 13 | 2026-09-25 | **`S16a` tiga laporan operasional dirancang** (bagian 23), menurunkan `LAB-DA-001` rev 10 bagian A7. **Nol tabel, nol kolom; satu index** `LabSpecimen.DecidedAt`. Satu controller, satu service, satu penulis CSV tanpa pustaka baru. **Dua pemindahan logika tanpa perubahan perilaku** supaya `INV-57` dan `VAL-126` tetap satu sumber: batas waktu cito ke `LabCitoTurnaroundPolicy`, disiplin yang dapat dirilis ke `LabReleasableDisciplines`. Satu resource izin baru `LabOperationalReport` dengan `Read` dan `Export`. Delapan butir diminta pada persetujuan (23.10), termasuk format CSV berpemisah titik koma, batas periode 366 hari, dan letak menu (butir 8, ditambahkan 2026-09-28 — rujukan frontend sudah menyebutnya) | `draft` |
 | 12 | 2026-09-25 | **Penjaga penyelesaian order dirancang** (bagian 22), menurunkan `LAB-DEC-154` yang menutup `LAB-CONFLICT-014`. `PUT /lab-orders/{id}/complete` ditolak `409` beserta rincian selama ada pemeriksaan tidak batal yang belum dirilis; pemeriksaan tanpa jalur validasi menahan order. **Nol tabel, nol kolom, nol migration, nol permission.** Empat butir diminta pada persetujuan (22.7), termasuk bunyi pesan yang disesuaikan dari tangkapan dan perbaikan `400` → `409` bagi order bukan `InProcess`. Satu risiko balapan dengan penambahan pemeriksaan dicatat, tidak ditutup (22.6). Baris `LAB-CONFLICT-014` pada 20.12 ditandai tertutup | `draft` |
 | 11 | 2026-09-25 | **`S4d-1` validasi dan rilis hasil Mikrobiologi dirancang** (bagian 21), menurunkan `LAB-DA-001` rev 9 bagian A6. **Memperluas bagian 20, tidak menyalinnya.** **Nol tabel, nol kolom, nol migration** — ke-14 kolom `BE-LAB-70` melayani setiap disiplin per pemeriksaan. Yang berubah: `VAL-126` menerima Mikrobiologi dan hanya menolak Patologi Anatomi; penjaga baru `VAL-144` menolak hasil `Sementara`; dua kode kewenangan Mikrobiologi dengan fungsi `For()` yang **tidak** memberi kode apa pun bagi Patologi Anatomi — fail-closed berlapis; ruas *Petugas Otorisasi* dan *Validasi oleh* pada respons Mikrobiologi — hari ini **sengaja kosong** — terisi; antrean menerima dua disiplin dan **mengeluarkan** hasil `Sementara`. **Impact scan dijalankan** karena kedua SHA bergeser (`31b12f07`, `0bcd15724`): **nol berkas** Laboratorium, Rekam Medis, kredensial HR, atau keamanan berubah; satu akibat teknis — snapshot migration bergeser oleh migration Gizi dan Farmasi, sehingga `BE-LAB-70` wajib dibangkitkan di atas snapshot baru. Lima keputusan diminta pada persetujuan (21.10) | `draft` |
 | 10 | 2026-09-25 | **`S4` validasi dan rilis hasil Patologi Klinik dirancang** (bagian 20), menurunkan `LAB-DA-001` rev 8 bagian A5 atas decisions rev 74 dan capability map rev 5. **Dua tabel baru, 14 kolom baru pada `LabExamination`, nol status baru.** Validasi, rilis, dan *Kembalikan ke analis* sebagai tiga aksi pada resource `LabExaminationResult`, sehingga pemegang `Update` (analis) tidak otomatis memegangnya. Lapis orang dibaca dari kredensial Human Resource **fail-closed** — berbeda sengaja dari preseden Kamar Operasi. Rilis dan pendaftaran rekam medis **atomik** dalam satu penyimpanan. **Satu temuan mengubah rancangan:** token `Version` tidak dinaikkan pada penulisan hasil, sehingga Reopen dan Validasi pada detik yang sama dapat sama-sama berhasil; `S4` memperbaikinya untuk Reopen dan meneruskan sisanya ke `MVP-8`. **Satu pertentangan baru dicatat, tidak diputuskan:** `LAB-CONFLICT-014`, *Selesai* manual versus *Selesai* turunan. Sepuluh keputusan diminta pada persetujuan kontrak (20.10), termasuk bunyi penanda yang tercetak dan penanda tangan dokumen rekam medis | `draft` |

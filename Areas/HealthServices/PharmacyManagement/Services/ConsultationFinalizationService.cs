@@ -21,6 +21,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         private readonly PrescriptionAggregateService _prescriptionAggregateService;
         private readonly PrescriptionWorkflowService _prescriptionWorkflowService;
         private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
+        private readonly PrescriptionBillingChargeProducer _prescriptionBillingChargeProducer;
         private readonly ClinicalDocumentIntegrityService _integrityService;
 
         public ConsultationFinalizationService(
@@ -29,6 +30,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             PrescriptionAggregateService prescriptionAggregateService,
             PrescriptionWorkflowService prescriptionWorkflowService,
             ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
+            PrescriptionBillingChargeProducer prescriptionBillingChargeProducer,
             ClinicalDocumentIntegrityService integrityService)
         {
             _dbContext = dbContext;
@@ -36,6 +38,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             _prescriptionAggregateService = prescriptionAggregateService;
             _prescriptionWorkflowService = prescriptionWorkflowService;
             _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
+            _prescriptionBillingChargeProducer = prescriptionBillingChargeProducer;
             _integrityService = integrityService;
         }
 
@@ -212,6 +215,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             // Penyerahan fakta dilakukan setelah commit. Konsultasi yang sudah sah tidak boleh
             // dibatalkan hanya karena Billing sedang tidak dapat dihubungi.
             var billingHandoffIssues = new List<string>();
+
+            // RJ-E2E-DEC-001 (BE-RJE-007): jasa konsultasi ditagih saat konsultasi Completed lewat
+            // finalisasi canonical ini — satu fakta per konsultasi. Tarifnya ditetapkan Billing
+            // (RJ-E2E-DEC-012), sehingga fakta tidak membawa nominal apa pun.
+            var consultationEmission = await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
+                new ClinicalMilestoneFactRequest
+                {
+                    SourceContext = BillingSourceContract.ConsultationSourceContext,
+                    SourceAggregateId = consultation.Id,
+                    EffectType = BillingSourceContract.ConsultationChargeEffectType,
+                    EncounterId = consultation.EncounterId,
+                    OccurredAt = now,
+                    Quantity = 1m,
+                    Unit = "KALI",
+                    RuleSnapshot = JsonSerializer.Serialize(new
+                    {
+                        milestone = "ConsultationCompleted",
+                        doctorId = consultation.DoctorId,
+                        clinicId = consultation.ClinicId
+                    }),
+                    CorrelationId = consultationId
+                },
+                actorUserId,
+                cancellationToken);
+
+            if (!consultationEmission.IsClinicallySafe)
+                billingHandoffIssues.Add($"Jasa konsultasi: {consultationEmission.Code}");
+
             foreach (var prescription in finalizedPrescriptions)
             {
                 var emission = await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
@@ -225,6 +256,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                         Quantity = prescription.TotalItemCount > 0 ? prescription.TotalItemCount : null,
                         Unit = prescription.TotalItemCount > 0 ? "ITEM" : null,
                         TariffSnapshot = BuildPrescriptionSnapshot(prescription),
+                        // Tahap 1 obat dua tahap (RJ-E2E-DEC-005): Billing menagih jumlah yang diresepkan.
+                        RuleSnapshot = JsonSerializer.Serialize(new
+                        {
+                            milestone = BillingSourceContract.PrescriptionMilestoneClinicalFinalization
+                        }),
                         CorrelationId = consultationId
                     },
                     actorUserId,
@@ -232,6 +268,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 
                 if (!emission.IsClinicallySafe)
                     billingHandoffIssues.Add($"{prescription.PrescriptionNumber}: {emission.Code}");
+
+                // Fakta di atas bermuara ke ledger folio. Surat financial clearance Billing
+                // membaca `BilInvoiceItems`, ledger yang lain, sehingga tagihan obat harus
+                // dikirim ke sana juga — kalau tidak, resep tertahan selamanya pada tahap 2
+                // karena suratnya tidak punya sasaran. Sama seperti fakta: setelah commit,
+                // dan kegagalannya tidak membatalkan konsultasi yang sudah sah.
+                var chargeIssue = await _prescriptionBillingChargeProducer
+                    .SendForFinalizedPrescriptionAsync(
+                        prescription,
+                        actorUserId,
+                        now,
+                        consultationId,
+                        cancellationToken);
+
+                if (chargeIssue != null)
+                    billingHandoffIssues.Add($"{prescription.PrescriptionNumber}: {chargeIssue}");
             }
 
             return ConsultationFinalizationOperationResult.Success(new ConsultationFinalizationResponse

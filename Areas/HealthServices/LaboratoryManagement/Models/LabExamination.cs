@@ -111,9 +111,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
         // mencatat APA YANG TERJADI — nilainya, kapan diperiksa, siapa yang mengetik — dan nol
         // MENJANJIKAN apa yang terjadi berikutnya. Tidak ada satu pun status hasil di sini.
         //
-        // Validasi, rilis, nilai kritis, dan koreksi tetap tertahan LAB-SIGN-001 (S4), dan
-        // ketiga keputusan yang mengaturnya justru yang memberi arti kepada status. Menambahkan
-        // statusnya sekarang berarti menjanjikan perilaku yang belum diputuskan pihak klinis.
+        // Validasi dan rilis kini dicatat sebagai FAKTA pada bagian S4 di bawah (ValidatedAt,
+        // ReleasedAt — BE-LAB-70), BUKAN sebagai status: LAB-DEC-080 menolak status hasil pada
+        // LabExaminationStatus. Nilai kritis (S5) dan koreksi (S6) tetap belum ada di sini.
         //
         // "Hasil sudah diisi" karena itu dibaca dari ResultEnteredAt != null — sebuah fakta,
         // bukan sebuah janji.
@@ -193,11 +193,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
         // FinalizedAt mencatat bahwa seseorang menekan Simpan Final — sebuah fakta. Ia BUKAN
         // status, dan ia BUKAN rilis (LAB-DEC-097).
         //
-        // Validasi dan rilis Mikrobiologi adalah S4d, dan S4d tertahan DEC-LAB-011. Nol kolom
-        // ValidatedAt maupun ReleasedAt ditambahkan di sini.
+        // Validasi dan rilis TIDAK dicatat di bagian ini. Kolomnya — ValidatedAt, ReleasedAt, dan
+        // pengesahnya — tinggal pada bagian S4 di bawah dan berlaku bagi setiap disiplin.
         //
         // Isolat dan baris kepekaan antibiotik TIDAK tinggal di sini — keduanya tabel
         // tersendiri pada task BE-LAB-47, dan keduanya melekat pada pemeriksaan ini.
+        //
+        // Sejak MVP-8 (LAB-DEC-135, LAB-DEC-141) FinalizedAt, ReopenCount, dan ketiga kolom
+        // konsultasi berlaku juga bagi Patologi Klinik — namanya tetap, kolomnya tidak berubah.
         // =================================================================
 
         /// <summary>
@@ -292,6 +295,81 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
 
         /// <summary>Kapan konsultasinya terjadi. Tidak boleh berada di masa depan (<c>VAL-108</c>).</summary>
         public DateTime? ConsultedAt { get; set; }
+
+        // =================================================================
+        // Validasi dan rilis — S4, BE-LAB-70 (LAB-DEC-080, LAB-DEC-120, LAB-DEC-150 butir 4;
+        // kamus data 17.3)
+        //
+        // Empat belas kolom, SELURUHNYA nullable. Kosong berarti BELUM TERJADI — dan itu
+        // kebenaran bagi setiap baris yang lahir sebelum S4, sehingga nol pengisian data lama.
+        //
+        // Tetap FAKTA, bukan status (LAB-DEC-080): LabExaminationStatus tetap empat nilai.
+        // Keadaan Tervalidasi dan Dirilis diturunkan dari ValidatedAt dan ReleasedAt.
+        //
+        // Kolom pengguna, jabatan, dan kewenangan TANPA foreign key, mengikuti
+        // ResultEnteredByUserId. Nama jabatan dan nama alasan DISALIN sebagai teks: dokumen yang
+        // sudah terjadi tidak boleh ikut berubah bila jabatannya dinamai ulang (AC-239) atau
+        // ejaan alasannya dibetulkan — penandanya tercetak.
+        //
+        // BE-LAB-70 hanya menyiapkan tempatnya. Nol endpoint dan nol aturan membaca atau
+        // menulis kolom-kolom ini sampai BE-LAB-73 dan BE-LAB-74.
+        // =================================================================
+
+        /// <summary>
+        /// Kapan hasil divalidasi. <b>Dikosongkan</b> oleh <i>Kembalikan ke analis</i>; jejaknya
+        /// tetap pada <see cref="LabTransitionHistory"/>.
+        /// </summary>
+        public DateTime? ValidatedAt { get; set; }
+
+        /// <summary>Pemvalidasi; <c>null</c> — bukan <c>Guid.Empty</c> — bila tidak diketahui.</summary>
+        public Guid? ValidatedByUserId { get; set; }
+
+        /// <summary>Jabatan pemvalidasi <b>saat itu</b> — penempatan yang memberinya aksi <c>Validate</c>.</summary>
+        public Guid? ValidatedByPositionId { get; set; }
+
+        [MaxLength(200)]
+        public string? ValidatedByPositionNameSnapshot { get; set; }
+
+        /// <summary>
+        /// Dasar kewenangan — baris <c>WfpClinicalPrivilege</c> milik Human Resource yang berlaku
+        /// saat memvalidasi. Tanpa foreign key lintas modul (<c>ARCH-GAP-LAB-08</c> butir 2).
+        /// </summary>
+        public Guid? ValidatedByPrivilegeId { get; set; }
+
+        /// <summary>Terisi <b>hanya</b> bila pemvalidasi juga pengisi hasil (<c>INV-42</c>).</summary>
+        public Guid? ValidationExceptionReasonId { get; set; }
+
+        [MaxLength(200)]
+        public string? ValidationExceptionReasonNameSnapshot { get; set; }
+
+        /// <summary>
+        /// Kapan hasil dirilis. <b>Tidak pernah dikosongkan</b> oleh <c>S4</c>; perubahan
+        /// sesudahnya lewat koreksi <c>S6</c>.
+        /// </summary>
+        public DateTime? ReleasedAt { get; set; }
+
+        /// <summary>Perilis — baris <i>Otorisasi oleh</i> pada cetakan (<c>LAB-DEC-120</c>).</summary>
+        public Guid? ReleasedByUserId { get; set; }
+
+        public Guid? ReleasedByPositionId { get; set; }
+
+        [MaxLength(200)]
+        public string? ReleasedByPositionNameSnapshot { get; set; }
+
+        public Guid? ReleasedByPrivilegeId { get; set; }
+
+        /// <summary>
+        /// Terisi <b>hanya</b> bila perilis juga pemvalidasi (<c>INV-43</c>) — jalur pengecualian
+        /// yang nyata pada Patologi Klinik.
+        /// </summary>
+        public Guid? ReleaseExceptionReasonId { get; set; }
+
+        [MaxLength(200)]
+        public string? ReleaseExceptionReasonNameSnapshot { get; set; }
+
+        public LabFourEyesExceptionReason? ValidationExceptionReason { get; set; }
+
+        public LabFourEyesExceptionReason? ReleaseExceptionReason { get; set; }
 
         public LabValueOption? ResultOption { get; set; }
 
