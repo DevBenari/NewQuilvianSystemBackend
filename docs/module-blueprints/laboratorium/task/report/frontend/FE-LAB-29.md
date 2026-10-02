@@ -18,7 +18,7 @@
 | Model | Claude Opus 5 |
 | Commit frontend saat dikerjakan | `6ea61bcad` (branch `YogaV2`) |
 | Tanggal | 2026-09-23 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — ketiga AC terbangun, aturannya terbukti lewat 9 uji unit, lint 0 error, build hijau. **Belum diklik di peramban.** Satu keputusan penempatan perlu dikonfirmasi pemilik modul — lihat bagian 7 |
+| Status | ✅ **`SELESAI`** (naik 2026-10-02) — ketiga AC terbukti **di peramban** terhadap backend lokal dan PostgreSQL dev, 10/10 sesudah satu perbaikan hak akses; `Simpan` dijalankan sungguhan pada pesanan uji `LAB-RSMMC-000009` (`200`). **Penempatan di layar detail pesanan dikonfirmasi pemilik modul.** Lihat 8. *(Semula 2026-09-23: ⚠ — 9 uji unit, belum diklik di peramban, penempatan menunggu konfirmasi.)* |
 
 ---
 
@@ -138,10 +138,10 @@ Uji manual: **`NOT FEASIBLE`** — sesi ini nol punya alat kendali peramban.
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| `AC-153` bagian **hanya muncul** bila disiplin pesanannya Patologi Anatomi | **Terbangun; aturannya terbukti** | Penjaga di `lab-order-detail-view.jsx`; 2 uji positif |
-| `AC-154` seluruh ruas **opsional**, alur disiplin lain **nol berubah** — dibuktikan terbalik | **Terbangun; aturannya terbukti** | 5 uji terbalik; formulir kosong menghasilkan payload sah; nol ruas bertanda wajib |
-| `AC-155` `Masa Terakhir Haid` ditandai hanya bermakna bagi sitologi ginekologi | **Terbangun, belum dilihat** | `description` ruas berbunyi *"Hanya bermakna bagi sitologi ginekologi. Kosongkan bila tidak relevan."* |
-| DoD — bagian ini berjalan | **Terbangun** | Build hijau, route terkompilasi |
+| `AC-153` bagian **hanya muncul** bila disiplin pesanannya Patologi Anatomi | ✅ **Terbukti di peramban** (C1, C4) | Penjaga di `lab-order-detail-view.jsx`; 2 uji positif |
+| `AC-154` seluruh ruas **opsional**, alur disiplin lain **nol berubah** — dibuktikan terbalik | ✅ **Terbukti di peramban** (C2, C4, C5) | 5 uji terbalik; formulir kosong menghasilkan payload sah; nol ruas bertanda wajib; pesanan Patologi Klinik dan Mikrobiologi nol bagian ini |
+| `AC-155` `Masa Terakhir Haid` ditandai hanya bermakna bagi sitologi ginekologi | ✅ **Terlihat di peramban** (C3) | `description` ruas berbunyi *"Hanya bermakna bagi sitologi ginekologi. Kosongkan bila tidak relevan."* |
+| DoD — bagian ini berjalan | ✅ | Simpan `200`, terbaca ulang, dan terbaca pula oleh laporan PA (C5–C7) |
 | DoD — **seluruh uji pemesanan lama tetap lulus** | ✅ **Terpenuhi** | Nol kegagalan baru |
 
 ---
@@ -152,9 +152,57 @@ Uji manual: **`NOT FEASIBLE`** — sesi ini nol punya alat kendali peramban.
 | --- | --- |
 | **Satu keputusan penempatan perlu dikonfirmasi** | Arsitektur menulis *"pada layar pemesanan yang sudah ada"*. Bagian ini saya pasang pada **layar detail pesanan** (`lab-orders/[slug]`), **bukan** layar buat pesanan (`lab-orders/create`), dan alasannya teknis: endpoint-nya berkunci pada `labOrderId` yang **baru ada sesudah pesanan tersimpan**, sementara layar buat **memecah satu pilihan menjadi beberapa pesanan per disiplin** sehingga saat itu id-nya bisa belum ada atau lebih dari satu. Detail pesanan juga satu-satunya tempat disiplinnya sudah pasti. **Bila yang dimaksud justru layar buat**, pekerjaan tambahannya adalah mengirim `PUT` sesudah pesanan terbentuk dan memilih pesanan mana yang menerimanya ketika pemecahan terjadi — dan itu keputusan produk, bukan pilihan teknis |
 | Peringatan | Nol peringatan lint baru |
-| Masalah yang diketahui | Ketiga AC **belum diklik di peramban** |
+| **Penempatan — dikonfirmasi 2026-10-02** | Pemilik modul menyetujui penempatan pada **layar detail pesanan** |
+| Masalah yang diketahui | ~~Ketiga AC belum diklik di peramban.~~ **Tertutup 2026-10-02** (8). Uji menemukan bagian ini tetap dapat disunting oleh akun tanpa `LabOrder : Update` — diperbaiki (8.2) |
 | Risiko tersisa | **Rendah.** Bagian ini aditif dan berpenjaga disiplin; pesanan disiplin lain nol menyentuh satu baris pun kode baru |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | 9 berkas tersentuh, seluruhnya dalam cakupan. **Nol operasi Git dijalankan** |
-| Langkah berikutnya | Konfirmasi penempatan di atas; klik ketiga AC terhadap pesanan Patologi Anatomi yang sungguhan |
+| Langkah berikutnya | ~~Konfirmasi penempatan di atas; klik ketiga AC terhadap pesanan Patologi Anatomi yang sungguhan.~~ Keduanya selesai 2026-10-02. Tersisa: uji ulang dengan akun **dokter pemesan** sungguhan bila akun itu sudah ada (8.1 memakai superadmin sebagai pengganti) — bukan penahan |
+
+---
+
+## 8. Verifikasi susulan 2026-10-02 — di peramban, tulis pada pesanan uji
+
+**Lingkungan.** Backend lokal (`dotnet run`, `Development`) terhadap PostgreSQL dev bersama; `next dev`
+port 3000 dari working tree `YogaV2`; Chromium lewat Playwright; login **lewat formulir**.
+
+**Akun.** Akun **dokter pemesan** belum ada di dev, sehingga jalur menyimpan dijalankan dengan
+**superadmin** sebagai penggantinya (pemegang `LabOrder : Update`); jalur tanpa hak dijalankan dengan
+akun asli **Vina (analis)**. **Wewenang tulis:** hanya `PUT /lab-orders/{id}/pathology-context` milik
+pesanan uji **`LAB-RSMMC-000009`** diteruskan; selebihnya digagalkan.
+
+### 8.1 Hasil
+
+| ID | Skenario | Hasil | Bukti |
+| --- | --- | --- | --- |
+| C1 | `AC-153` pesanan Patologi Anatomi: bagian *Konteks Klinis* tampil di layar **detail** pesanan | `PASS` | — |
+| C2 | `AC-154` keempat ruas opsional — nol penanda wajib | `PASS` | `wajib=[]` |
+| C3 | `AC-155` `Masa Terakhir Haid` berketerangan "Hanya bermakna bagi sitologi ginekologi" | `PASS` | — |
+| C4 ×2 | `AC-153`/`AC-154` pesanan Patologi Klinik (`LAB-RSMMC-000001`) dan Mikrobiologi (`LAB-RSMMC-000014`): bagian **tidak muncul**, layar detail tetap termuat | `PASS` | Percobaan pertama `FAIL` karena pemeriksa uji mencari nomor pesanan pada judul; diperiksa ulang lewat judul *Detail Pesanan Laboratorium* + baris disiplin |
+| C5 | Simpan → `PUT` **`200`**; ruas kosong terkirim `null` (opsional) | `PASS` | Badan `{initialDiagnosis, relevantHistory:"Uji layar FE-LAB-29 2026-10-02", lastMenstrualPeriod:null, clinicalNote:null}` |
+| C6 | Muat ulang: nilai tersimpan terbaca dari backend | `PASS` | — |
+| C7 | Laporan PA (`FE-LAB-28`) membaca konteks yang sama, baca-saja — rantai pemesan → patolog | `PASS` | "RIWAYAT PENYAKIT Uji layar FE-LAB-29 2026-10-02" |
+| C8 | 390 px: tanpa gulir horizontal halaman | `PASS` | `375 ≤ 390` |
+| C9 | Vina (tanpa `LabOrder : Update`): bagian tampil, isian **terkunci** | **`FAIL` → `PASS`** | Lihat 8.2 |
+| C10 | Nol tulis di luar pesanan uji | `PASS` | Satu tulis diteruskan, milik `LAB-RSMMC-000009` |
+
+### 8.2 Satu cacat yang ditemukan uji, dan perbaikannya
+
+**Gejala.** Bagian ini menerima `canWrite` dari pemanggil dengan bawaan `true`, dan pemanggilnya tidak
+pernah mengirimkannya. Akibatnya analis tanpa `LabOrder : Update` melihat isian yang dapat diketik dan
+tombol `Simpan` — lalu berakhir `403` ketika menyimpan.
+
+| Berkas frontend | Perubahan |
+| --- | --- |
+| `lib/hooks/health-services/laboratory-management/use-lab-pathology-context.jsx` | `usePermission("LabOrder", "Update")` → dikembalikan sebagai `canWrite` |
+| `components/view/…/lab-orders/detail/lab-order-pathology-context-section.jsx` | Bawaan `canWrite` kini dari hook; pemanggil tetap boleh menimpanya |
+
+Penegakan tetap di backend; perbaikan ini hanya membuat layar jujur tentang apa yang boleh dilakukan.
+Selama daftar izin belum termuat, `allowed` bernilai benar — konvensi `usePermission` bersama.
+
+**Jejak di database dev.** `LAB-RSMMC-000009`: `initialDiagnosis` tetap `x` (nilai sebelumnya),
+`relevantHistory` = *"Uji layar FE-LAB-29 2026-10-02"*.
+
+Validasi akhir sesi: uji unit 2303/2309 (6 gagal = baseline, nol Laboratorium), `lint:errors` 0 error,
+`npm run build` hijau. Perbaikan 8.2 belum ter-commit. **Nol operasi Git dijalankan.**
