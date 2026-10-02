@@ -64,6 +64,20 @@ public class OperatingRoomIntegrationController(OperatingRoomIntegrationService 
             : Ok(ApiResponse<OprReconciliationResponse>.Ok(result, "Status penyerahan data berhasil diambil."));
     }
 
+    [HttpGet("deliveries/{deliveryId:guid}/event")]
+    [ProducesResponseType(typeof(ApiResponse<OprIntegrationEvent>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [AccessAction("Read", "Read Operating Room Integration", Description = "Membaca amplop kejadian yang akan dikirim ke consumer", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("OperatingRoomIntegration", "Read")]
+    public async Task<IActionResult> GetEvent(Guid caseId, Guid deliveryId,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await service.GetEventAsync(caseId, deliveryId, cancellationToken);
+        return result == null
+            ? NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data pengiriman tidak ditemukan."))
+            : Ok(ApiResponse<OprIntegrationEvent>.Ok(result, "Amplop kejadian berhasil diambil."));
+    }
+
     [HttpPatch("deliveries/{deliveryId:guid}/attempts")]
     [ProducesResponseType(typeof(ApiResponse<OprIntegrationDeliveryResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
