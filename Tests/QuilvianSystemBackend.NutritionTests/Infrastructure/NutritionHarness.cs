@@ -5,6 +5,10 @@ using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 
@@ -59,6 +63,129 @@ public sealed class NutritionHarness : IDisposable
             CreateDateTime = DateTime.UtcNow
         });
 
+        // Pasien, kunjungan, dan dokter pemohon. `GIZ001` memeriksa ketiganya ke basis data, dan
+        // kunjungan harus benar-benar milik pasien itu — bukan sekadar ada.
+        konteks.Set<MstPatient>().Add(new MstPatient
+        {
+            Id = PasienId,
+            FullName = "Pasien Uji Gizi",
+            IsActive = true,
+            CreateDateTime = DateTime.UtcNow
+        });
+
+        konteks.Set<RegPatientEncounter>().Add(new RegPatientEncounter
+        {
+            Id = KunjunganRawatId,
+            EncounterNumber = "UJI-GZI-ENC-1",
+            PatientId = PasienId,
+            CreateDateTime = DateTime.UtcNow
+        });
+
+        // `MstDoctor.WorkforceProfileId` berindeks unik, jadi kedua dokter uji harus menunjuk
+        // profil yang berbeda — dibiarkan kosong, keduanya bentrok pada nilai default yang sama.
+        konteks.MstDoctors.Add(new MstDoctor
+        {
+            Id = DokterId,
+            DoctorCode = "UJI-GZI-DR-1",
+            WorkforceProfileId = AhliGiziId,
+            IsActive = true,
+            CreateDateTime = DateTime.UtcNow
+        });
+
+        // Dokter tidak aktif, ada dengan sengaja: tanpa baris ini `GIZ001` tidak terbukti
+        // memeriksa keaktifan, hanya keberadaan.
+        konteks.MstDoctors.Add(new MstDoctor
+        {
+            Id = DokterNonaktifId,
+            DoctorCode = "UJI-GZI-DR-2",
+            WorkforceProfileId = AhliGiziNonaktifId,
+            IsActive = false,
+            CreateDateTime = DateTime.UtcNow
+        });
+
+        konteks.Set<MstWorkforceProfile>().Add(new MstWorkforceProfile
+        {
+            Id = AhliGiziNonaktifId,
+            ProfileCode = "UJI-GZI-WFP-OFF",
+            IsActive = false,
+            CreateDateTime = DateTime.UtcNow
+        });
+
+        // Episode rawat inap aktif. `PrescribeAsync` menuntutnya — diet pasien hanya bermakna
+        // selama pasien benar-benar dirawat, dan `GIZ001` memeriksanya ke `InpEpisode`.
+        konteks.Set<InpEpisode>().Add(new InpEpisode
+        {
+            Id = Guid.NewGuid(),
+            EpisodeNumber = "UJI-GZI-EP-1",
+            EncounterId = KunjunganRawatId,
+            PatientId = PasienId,
+            ServiceUnitId = Guid.NewGuid(),
+            PatientClassId = Guid.NewGuid(),
+            EpisodeStatus = InpEpisodeStatus.Admitted,
+            AdmittedAt = DateTime.UtcNow,
+            CreateDateTime = DateTime.UtcNow
+        });
+
+        // Episode yang sudah selesai, pada kunjungan tersendiri: tanpa baris ini aturan "sudah
+        // tidak aktif" tidak terbukti, hanya aturan "tidak ditemukan". Status aktif menurut
+        // service adalah `Admitted` dan `DischargePending`, jadi `Closed` yang dipakai di sini.
+        konteks.Set<InpEpisode>().Add(new InpEpisode
+        {
+            Id = Guid.NewGuid(),
+            EpisodeNumber = "UJI-GZI-EP-2",
+            EncounterId = KunjunganPulangId,
+            PatientId = PasienId,
+            ServiceUnitId = Guid.NewGuid(),
+            PatientClassId = Guid.NewGuid(),
+            EpisodeStatus = InpEpisodeStatus.Closed,
+            AdmittedAt = DateTime.UtcNow.AddDays(-5),
+            CreateDateTime = DateTime.UtcNow
+        });
+
+        konteks.GziDietTypes.Add(new GziDietType
+        {
+            Id = JenisDietId,
+            DietTypeCode = "UJI-DIET-1",
+            DietTypeName = "Diet Biasa (Uji)",
+            IsActive = true,
+            CreateDateTime = DateTime.UtcNow
+        });
+
+        konteks.GziDietTypes.Add(new GziDietType
+        {
+            Id = JenisDietNonaktifId,
+            DietTypeCode = "UJI-DIET-OFF",
+            DietTypeName = "Diet Nonaktif (Uji)",
+            IsActive = false,
+            CreateDateTime = DateTime.UtcNow
+        });
+
+        konteks.GziFoodForms.Add(new GziFoodForm
+        {
+            Id = BentukMakananId,
+            FoodFormCode = "UJI-FORM-1",
+            FoodFormName = "Makanan Biasa (Uji)",
+            IsActive = true,
+            CreateDateTime = DateTime.UtcNow
+        });
+
+        konteks.GziFoodForms.Add(new GziFoodForm
+        {
+            Id = BentukMakananNonaktifId,
+            FoodFormCode = "UJI-FORM-OFF",
+            FoodFormName = "Bentuk Nonaktif (Uji)",
+            IsActive = false,
+            CreateDateTime = DateTime.UtcNow
+        });
+
+        konteks.Set<RegPatientEncounter>().Add(new RegPatientEncounter
+        {
+            Id = KunjunganPulangId,
+            EncounterNumber = "UJI-GZI-ENC-2",
+            PatientId = PasienId,
+            CreateDateTime = DateTime.UtcNow
+        });
+
         konteks.GziNutritionFormulas.Add(new GziNutritionFormula
         {
             Id = RumusId,
@@ -98,6 +225,16 @@ public sealed class NutritionHarness : IDisposable
     }
 
     public Guid AhliGiziId { get; } = Guid.NewGuid();
+    public Guid AhliGiziNonaktifId { get; } = Guid.NewGuid();
+    public Guid PasienId { get; } = Guid.NewGuid();
+    public Guid KunjunganRawatId { get; } = Guid.NewGuid();
+    public Guid DokterId { get; } = Guid.NewGuid();
+    public Guid DokterNonaktifId { get; } = Guid.NewGuid();
+    public Guid KunjunganPulangId { get; } = Guid.NewGuid();
+    public Guid JenisDietId { get; } = Guid.NewGuid();
+    public Guid JenisDietNonaktifId { get; } = Guid.NewGuid();
+    public Guid BentukMakananId { get; } = Guid.NewGuid();
+    public Guid BentukMakananNonaktifId { get; } = Guid.NewGuid();
     public Guid RumusId { get; } = Guid.NewGuid();
     public Guid OrderId { get; } = Guid.NewGuid();
     public Guid OrderTertutupId { get; } = Guid.NewGuid();
@@ -121,6 +258,18 @@ public sealed class NutritionHarness : IDisposable
         _contexts.Add(konteks);
         return konteks;
     }
+
+    public NutritionReportService ReportService(ApplicationDbContext konteks) => new(konteks);
+
+    public NutritionDietService DietService(ApplicationDbContext konteks) =>
+        new(konteks,
+            Accessor(PenggunaId),
+            new LoggerService(new CapturingLogger(LogEntries), Accessor(PenggunaId)));
+
+    public NutritionOrderService OrderService(ApplicationDbContext konteks) =>
+        new(konteks,
+            Accessor(PenggunaId),
+            new LoggerService(new CapturingLogger(LogEntries), Accessor(PenggunaId)));
 
     public NutritionRequirementService RequirementService(ApplicationDbContext konteks)
     {

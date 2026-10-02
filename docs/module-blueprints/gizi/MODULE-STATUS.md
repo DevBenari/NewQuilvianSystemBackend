@@ -7,12 +7,21 @@ Diukur dari source 1 Oktober 2026, bukan disalin dari dokumen sebelumnya.
 | Backend | `SUBSTANTIAL` | 5 controller · 5 service · 41 endpoint · 16 tabel · 5.298 baris |
 | Frontend | `SUBSTANTIAL` | 9 halaman · 10 folder view · 4 service |
 | Integrasi | `PARTIAL` | membaca asesmen keperawatan dan CPPT; tidak menerbitkan fakta ke modul lain |
-| Verifikasi | `MODERATE` | 30 uji, naik dari **nol** |
+| Verifikasi | `STRONG` | **95 uji**, naik dari **nol** |
 
-**Perkiraan ketuntasan: ~82%.**
+**Perkiraan ketuntasan: ~88%.**
 
-Uji terbagi dua berkas: `RequirementRuleTests` (20) untuk kebutuhan nutrisi, dan
-`DiagnosisRuleTests` (10) untuk diagnosis gizi beserta penomoran enum.
+| Berkas | Jumlah | Service yang ditutup |
+|---|---|---|
+| `RequirementRuleTests` | 20 | `NutritionRequirementService` — kebutuhan nutrisi |
+| `DiagnosisRuleTests` | 10 | `NutritionRequirementService` — diagnosis, plus penomoran enum |
+| `OrderRuleTests` | 24 | `NutritionOrderService` |
+| `DietRuleTests` | 21 | `NutritionDietService` — diet pasien |
+| `ReportRuleTests` | 20 | `NutritionReportService` |
+
+Keempat service utama kini tertutup. Yang belum: bagian produksi dapur pada
+`NutritionDietService` (`CreateBatchAsync`, `ChangeBatchStatusAsync`, `RecordDeliveryAsync`) dan
+`NutritionMasterController`.
 
 ## Permukaan
 
