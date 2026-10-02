@@ -1,11 +1,11 @@
 # `BUG-PHA-BE-003` — Retur obat tidak dibatasi jumlah yang pernah diserahkan
 
-Ditemukan 2 Oktober 2026 saat penambahan uji `DrugReturnService`. **Belum diperbaiki**; task yang
-menemukannya berfokus verifikasi.
+Ditemukan 2 Oktober 2026 saat penambahan uji `DrugReturnService`. **Selesai** 2 Oktober 2026.
 
 | Hal | Isi |
 |---|---|
-| Prioritas usulan | **P1** — menambah saldo stok dari barang yang tidak pernah keluar |
+| Status | ✅ **Selesai** — diperbaiki beserta 13 uji regresi |
+| Prioritas | **P1** — menambah saldo stok dari barang yang tidak pernah keluar |
 | Pemilik | modul Farmasi |
 | Berkas | `Areas/HealthServices/PharmacyManagement/Services/DrugReturnService.cs` |
 | Terjaga uji | `Tests/QuilvianSystemBackend.PharmacyTests/DrugReturnTests.cs` → `Retur_tidak_dibatasi_jumlah_yang_pernah_diserahkan` |
@@ -49,17 +49,57 @@ pemeriksaannya di layar tidak punya pembanding apa pun untuk menolaknya.
 3. **Retur berulang atas batch yang sama terakumulasi**, sehingga dua retur masing-masing separuh
    tidak dapat melampaui jumlah yang diserahkan bila dijumlahkan.
 
-## Yang perlu diputuskan lebih dulu
+## Keputusan pemilik modul — 2 Oktober 2026
 
-**Apakah `SourceDrugUsageId` menjadi wajib?** Membuatnya wajib memberi pembanding yang pasti, tetapi
-menutup retur obat yang penyerahannya tidak tercatat di sistem — misalnya sisa obat yang dibawa
-pasien dari rawat inap lama. Menjadikannya tetap opsional menuntut pembandingnya dihitung dari
-seluruh penyerahan pada kunjungan itu, yang lebih longgar tetapi tidak menutup kasus apa pun.
+**`SourceDrugUsageId` wajib untuk retur obat normal.** Pembandingnya **satu penyerahan tertentu**,
+bukan total seluruh penyerahan pada kunjungan — total kunjungan terlalu longgar dan mencampur
+beberapa penyerahan berbeda, sehingga kelebihan retur atas satu penyerahan dapat tersembunyi di
+balik penyerahan lain yang belum diretur.
 
-Pilihan itu milik pemilik modul; keduanya menutup celah ini dengan tingkat ketelitian yang berbeda.
+## Perbaikan
 
-## Catatan
+Satu penjaga baru, `EnsureReturnableAgainstSourceAsync`, dipanggil dari **tiga** titik:
+`CreateAsync`, `UpdateAsync` (barisnya diganti seluruhnya), dan `VerifyAsync` (sebelum stok
+bertambah).
 
-Uji yang menjaganya **sengaja dinamai sesuai perilaku sebenarnya**. Ia lulus hari ini dan akan
-gagal begitu bug ini diperbaiki — kegagalan itulah penanda bahwa perbaikannya benar-benar mengubah
-perilaku, dan ujinya harus diperbarui bersama perbaikan tersebut.
+| Syarat | Kode | Penegakan |
+|---|---|---|
+| 1. Sumber wajib ada | `PHM080` | `SourceDrugUsageId` null atau kosong ditolak; penyerahan yang tidak ditemukan juga |
+| 2. Sumber milik kunjungan yang sesuai | `PHM081` | `usage.EncounterId` harus sama; penyerahan `Draft`/`Cancelled` ditolak |
+| 3. Obat harus pernah diserahkan | `PHM082` | dibandingkan ke `DrugId` pada item penyerahan |
+| 4. Batch harus sesuai | `PHM082` | dibandingkan ke `PhmDrugUsageAllocation.DrugBatchId` — penyerahan memang dilacak per batch |
+| 5. Jumlah kumulatif ≤ yang diserahkan | `PHM083` | pesannya menyebut diserahkan, sudah diretur, dan sisanya |
+| 6. `Verify` hanya menambah stok setelah lolos | — | pembanding dijalankan ulang sebelum `ReceiveBatchAsync` |
+| 7. Retur berulang menghitung yang sebelumnya | `PHM083` | retur lain atas sumber yang sama ikut dihitung |
+
+Pada syarat 7, yang sudah **diperiksa** dihitung sebesar jumlah yang **diterima**, sementara yang
+masih berjalan dihitung sebesar yang diajukan — jumlah itu sudah dipesan dan belum boleh dipesan
+ulang retur lain. Retur yang **ditolak atau dibatalkan tidak ikut dihitung**: barangnya tidak
+pernah diterima kembali, jadi hak retur pasien kembali utuh.
+
+## Kebutuhan terpisah: flow `Legacy/Untracked Return`
+
+Retur obat yang penyerahannya **tidak tercatat di sistem** — misalnya sisa obat yang dibawa pasien
+dari rawatan lama, atau obat dari masa sebelum modul ini berjalan — **sengaja tidak dipaksakan**
+masuk jalur retur normal. Jalur normal sekarang menolaknya dengan `PHM080`, dan pesannya mengarahkan
+ke jalur terpisah.
+
+Kebutuhan yang masih harus dirancang pemilik modul:
+
+1. **Alasan wajib** yang menyebutkan mengapa penyerahannya tidak tercatat; bukan teks bebas tanpa
+   kategori, supaya pemakaiannya dapat dipantau dan tidak menjadi jalan pintas harian.
+2. **Otorisasi khusus** — bukan kewenangan yang sama dengan retur biasa, karena jalur ini menambah
+   stok tanpa pembanding apa pun.
+3. **Penandaan pada barisnya** supaya retur tak terlacak dapat dipisahkan pada laporan dan audit
+   stok, dan lonjakannya terlihat.
+4. **Batas atas atau persetujuan berjenjang** untuk jumlah besar, karena satu-satunya pengaman yang
+   tersisa adalah penilaian manusia.
+
+Belum ada task untuk ini; dicatat di sini supaya kebutuhannya tidak hilang bersama perbaikan di
+atas.
+
+## Uji regresi
+
+`Tests/QuilvianSystemBackend.PharmacyTests/DrugReturnTests.cs`, 13 uji, dengan sumber retur yang
+lahir dari **alur penyerahan produksi penuh** — resep ditelaah, disiapkan, ditelaah akhir, lalu
+diserahkan lewat container DI sungguhan — bukan baris penyerahan yang ditanam langsung ke tabel.

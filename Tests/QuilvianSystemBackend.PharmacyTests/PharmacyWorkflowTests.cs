@@ -282,18 +282,15 @@ public class PharmacyWorkflowTests
     }
 
     [Fact]
-    public async Task Klarifikasi_yang_sudah_ditutup_MASIH_dapat_dijawab_dokter()
+    public async Task Klarifikasi_yang_sudah_ditutup_tidak_dapat_dijawab_lagi()
     {
-        // Perilaku apa adanya, dicatat supaya perubahannya kelak terlihat — BUKAN perilaku yang
-        // dibenarkan uji ini.
+        // Regresi `BUG-PHA-BE-002`. Penjaga lamanya hanya memeriksa status `Closed` dan
+        // `Cancelled`, padahal `CloseClarificationAsync` menyetel `AcceptedByPharmacist` atau
+        // `Rejected` — jadi ia tidak pernah menyala lewat jalur penutupan normal, dan jawaban
+        // dokter yang tiba terlambat memundurkan telaah yang sudah beres menjadi
+        // `RevisedByDoctor` sementara klarifikasinya tetap tampak tertutup di layar.
         //
-        // `RespondClarificationAsync` menolak klarifikasi berstatus `Closed` atau `Cancelled`,
-        // tetapi `CloseClarificationAsync` tidak pernah menyetel salah satunya: ia menyetel
-        // `AcceptedByPharmacist` atau `Rejected`. Penjaga itu karena itu tidak pernah menyala
-        // lewat jalur penutupan normal, dan jawaban dokter yang masuk sesudah apoteker menutup
-        // mengembalikan telaah ke `RevisedByDoctor` — telaah yang sudah beres terbuka lagi.
-        //
-        // Dilaporkan sebagai temuan; source tidak diubah dari task pengujian ini.
+        // Penjaga sekarang `ClosedAt != null`, yang terisi pada setiap jalur penutupan.
         using var h = new PharmacyHarness();
         await using var k = h.CreateContext();
         await h.TerimaSuratAsync(k);
@@ -308,10 +305,95 @@ public class PharmacyWorkflowTests
         Assert.Equal(PrescriptionClarificationStatus.AcceptedByPharmacist, ditutup.Status);
         Assert.NotNull(ditutup.ClosedAt);
 
-        var dijawab = await layanan.RespondClarificationAsync(klarifikasi.Id,
-            new DoctorClarificationResponseRequest { DoctorResponse = "Jawab" }, h.DokterId);
+        var galat = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layanan.RespondClarificationAsync(klarifikasi.Id,
+                new DoctorClarificationResponseRequest { DoctorResponse = "Jawab" }, h.DokterId));
 
-        Assert.Equal(PrescriptionClarificationStatus.AcknowledgedByDoctor, dijawab.Status);
+        Assert.Contains("sudah ditutup", galat.Message);
+    }
+
+    [Fact]
+    public async Task Klarifikasi_yang_ditolak_apoteker_juga_tidak_dapat_dijawab_lagi()
+    {
+        // Sisi lain regresi yang sama: `Rejected` pun mengisi `ClosedAt`, jadi pintunya tertutup
+        // tanpa perlu status itu didaftarkan tersendiri.
+        using var h = new PharmacyHarness();
+        await using var k = h.CreateContext();
+        await h.TerimaSuratAsync(k);
+        var layanan = h.ReviewService(k);
+
+        var review = await layanan.StartAsync(h.ResepId, h.ApotekerId, null);
+        var klarifikasi = await layanan.CreateClarificationAsync(review.Id,
+            new CreatePrescriptionClarificationRequest
+            {
+                ProblemCode = "UJI-PRB-4",
+                ProblemDescription = "Tanya lagi"
+            }, h.ApotekerId);
+
+        await layanan.CloseClarificationAsync(klarifikasi.Id,
+            new ClosePrescriptionClarificationRequest { Accepted = false }, h.ApotekerId);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layanan.RespondClarificationAsync(klarifikasi.Id,
+                new DoctorClarificationResponseRequest { DoctorResponse = "Jawab" }, h.DokterId));
+    }
+
+    [Fact]
+    public async Task Telaah_tidak_mundur_karena_jawaban_dokter_yang_terlambat()
+    {
+        // Akibat yang sebenarnya dijaga `BUG-PHA-BE-002`: bukan hanya penolakan responsnya,
+        // melainkan bahwa status telaah tidak kembali ke `RevisedByDoctor` sesudah ditutup.
+        using var h = new PharmacyHarness();
+        await using var k = h.CreateContext();
+        await h.TerimaSuratAsync(k);
+        var layanan = h.ReviewService(k);
+
+        var review = await layanan.StartAsync(h.ResepId, h.ApotekerId, null);
+        var klarifikasi = await layanan.CreateClarificationAsync(review.Id,
+            new CreatePrescriptionClarificationRequest
+            {
+                ProblemCode = "UJI-PRB-5",
+                ProblemDescription = "Tanya"
+            }, h.ApotekerId);
+
+        await layanan.CloseClarificationAsync(klarifikasi.Id,
+            new ClosePrescriptionClarificationRequest { Accepted = true }, h.ApotekerId);
+
+        var sesudahTutup = await layanan.GetActiveAsync(h.ResepId);
+        Assert.NotEqual(PrescriptionReviewStatus.RevisedByDoctor, sesudahTutup!.Status);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            layanan.RespondClarificationAsync(klarifikasi.Id,
+                new DoctorClarificationResponseRequest { DoctorResponse = "Terlambat" }, h.DokterId));
+
+        var sesudahJawab = await layanan.GetActiveAsync(h.ResepId);
+        Assert.Equal(sesudahTutup.Status, sesudahJawab!.Status);
+    }
+
+    [Fact]
+    public async Task Jawaban_yang_sama_dikirim_ulang_sebelum_penutupan_aman()
+    {
+        // Acceptance ketiga `BUG-PHA-BE-002`: pengiriman ulang tidak melahirkan transisi kedua.
+        using var h = new PharmacyHarness();
+        await using var k = h.CreateContext();
+        await h.TerimaSuratAsync(k);
+        var layanan = h.ReviewService(k);
+
+        var review = await layanan.StartAsync(h.ResepId, h.ApotekerId, null);
+        var klarifikasi = await layanan.CreateClarificationAsync(review.Id,
+            new CreatePrescriptionClarificationRequest
+            {
+                ProblemCode = "UJI-PRB-6",
+                ProblemDescription = "Tanya"
+            }, h.ApotekerId);
+
+        var jawaban = new DoctorClarificationResponseRequest { DoctorResponse = "Dosis benar" };
+
+        var pertama = await layanan.RespondClarificationAsync(klarifikasi.Id, jawaban, h.DokterId);
+        var kedua = await layanan.RespondClarificationAsync(klarifikasi.Id, jawaban, h.DokterId);
+
+        Assert.Equal(pertama.Status, kedua.Status);
+        Assert.Equal(pertama.DoctorResponse, kedua.DoctorResponse);
     }
 
     [Fact]

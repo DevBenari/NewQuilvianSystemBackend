@@ -1,14 +1,14 @@
 # `BUG-PHA-BE-002` — Klarifikasi yang sudah ditutup masih dapat dijawab dokter
 
-Ditemukan 2 Oktober 2026 saat penambahan uji regresi Farmasi. **Belum diperbaiki**; task yang
-menemukannya berfokus verifikasi.
+Ditemukan 2 Oktober 2026 saat penambahan uji regresi Farmasi. **Selesai** 2 Oktober 2026.
 
 | Hal | Isi |
 |---|---|
-| Prioritas usulan | **P1** — membuka kembali telaah yang sudah beres, tanpa jejak yang jelas bagi petugas |
+| Status | ✅ **Selesai** — diperbaiki beserta 4 uji regresi |
+| Prioritas | **P1** — membuka kembali telaah yang sudah beres, tanpa jejak yang jelas bagi petugas |
 | Pemilik | modul Farmasi |
 | Berkas | `Areas/HealthServices/PharmacyManagement/Services/PrescriptionReviewService.cs` |
-| Terjaga uji | `Tests/QuilvianSystemBackend.PharmacyTests/PharmacyWorkflowTests.cs` → `Klarifikasi_yang_sudah_ditutup_MASIH_dapat_dijawab_dokter` |
+| Terjaga uji | `Tests/QuilvianSystemBackend.PharmacyTests/PharmacyWorkflowTests.cs` → `Klarifikasi_yang_sudah_ditutup_tidak_dapat_dijawab_lagi` dan 3 uji lainnya |
 
 ## Masalah
 
@@ -79,9 +79,19 @@ if (entity.Status is PrescriptionClarificationStatus.Closed
     throw new InvalidOperationException("Klarifikasi sudah ditutup.");
 ```
 
-## Catatan
+## Perbaikan
 
-Uji yang menjaganya **sengaja dinamai sesuai perilaku sebenarnya**, bukan sesuai perilaku yang
-diharapkan. Ia lulus hari ini dan akan gagal begitu bug ini diperbaiki — kegagalan itulah
-penanda bahwa perbaikannya benar-benar mengubah perilaku, dan ujinya harus diperbarui bersama
-perbaikan tersebut.
+`ClosedAt != null` dipasang sebagai penjaga pertama pada `RespondClarificationAsync`, dan
+pemeriksaan status dipertahankan di bawahnya sebagai lapisan tambahan — ia menangkap baris yang
+berstatus tertutup tetapi stempel waktunya belum terisi.
+
+## Uji regresi
+
+`Tests/QuilvianSystemBackend.PharmacyTests/PharmacyWorkflowTests.cs`, 4 uji:
+
+| Uji | Yang dijaga |
+|---|---|
+| `Klarifikasi_yang_sudah_ditutup_tidak_dapat_dijawab_lagi` | penutupan `AcceptedByPharmacist` menutup pintu respons |
+| `Klarifikasi_yang_ditolak_apoteker_juga_tidak_dapat_dijawab_lagi` | `Rejected` pun mengisi `ClosedAt`, tanpa perlu didaftarkan tersendiri |
+| `Telaah_tidak_mundur_karena_jawaban_dokter_yang_terlambat` | akibat yang sebenarnya dijaga — status telaah tidak kembali ke `RevisedByDoctor` |
+| `Jawaban_yang_sama_dikirim_ulang_sebelum_penutupan_aman` | pengiriman ulang tidak melahirkan transisi kedua |

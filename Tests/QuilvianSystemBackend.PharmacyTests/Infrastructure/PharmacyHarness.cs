@@ -230,6 +230,9 @@ public sealed class PharmacyHarness : IDisposable
     public Guid PetugasNonaktifId { get; } = Guid.NewGuid();
     public Guid DepoTanpaTerimaId { get; } = Guid.NewGuid();
 
+    /// <summary>Penyerahan yang dipakai uji retur sebagai sumbernya.</summary>
+    public Guid? SumberPenyerahanId { get; set; }
+
     public ApplicationDbContext CreateContext()
     {
         var konteks = _database.CreateContext();
@@ -332,6 +335,53 @@ public sealed class PharmacyHarness : IDisposable
 
         return (scope.ServiceProvider.GetRequiredService<PrescriptionDispensingService>(),
             scope.ServiceProvider.GetRequiredService<ApplicationDbContext>());
+    }
+
+    /// <summary>
+    /// Membawa resep sampai obatnya benar-benar diserahkan, lewat service produksi, dan
+    /// mengembalikan penyerahan yang terjadi sebagai sumber retur.
+    /// </summary>
+    /// <remarks>
+    /// Retur hanya sah terhadap penyerahan yang benar-benar terjadi (`BUG-PHA-BE-003`), jadi
+    /// sumbernya harus lahir dari alur yang sama dengan produksi — bukan baris penyerahan yang
+    /// ditanam langsung ke tabel.
+    /// </remarks>
+    public async Task<(ApplicationDbContext Konteks, Guid UsageId, Guid BetsId)>
+        SampaiDiserahkanAsync(decimal jumlah = 10)
+    {
+        var (penyerahan, konteks) = Penyerahan();
+        await SampaiSiapDiserahkanAsync(konteks);
+        await SediakanStokAsync(konteks);
+
+        await penyerahan.PrepareAsync(ResepId, new PreparePrescriptionDispensingRequest
+        {
+            StorageLocationId = DepoId,
+            PreparedByWorkforceId = PetugasId,
+            Items =
+            [
+                new PrescriptionDispensingItemInput
+                {
+                    PrescriptionItemId = ItemResepId,
+                    Quantity = jumlah
+                }
+            ],
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+
+        var usage = konteks.PhmDrugUsages
+            .Where(x => x.PrescriptionId == ResepId && !x.IsDelete)
+            .OrderByDescending(x => x.CreateDateTime)
+            .First();
+
+        await penyerahan.DispenseAsync(ResepId, usage.Id,
+            new PrescriptionDispensingCommandRequest
+            {
+                ExpectedVersion = usage.Version,
+                IdempotencyKey = Guid.NewGuid().ToString("N")
+            });
+
+        var betsId = konteks.Set<PhmDrugBatch>().First().Id;
+        return (konteks, usage.Id, betsId);
     }
 
     /// <summary>Menyediakan satu bets obat bersaldo di depo penyerahan.</summary>

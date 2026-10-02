@@ -31,6 +31,7 @@ public class DrugReturnTests
             EncounterId = h.KunjunganId,
             StorageLocationId = depo ?? h.DepoId,
             ReturnedByWorkforceId = petugas ?? h.PetugasId,
+            SourceDrugUsageId = h.SumberPenyerahanId,
             ReturnedAt = DateTime.UtcNow,
             Reason = "Sisa obat pasien pulang",
             Items =
@@ -64,11 +65,10 @@ public class DrugReturnTests
     private static async Task<(DrugReturnService Layanan, ApplicationDbContext Konteks, Guid BetsId)>
         SiapAsync(PharmacyHarness h)
     {
-        await using var pembuat = h.CreateContext();
-        await h.SediakanStokAsync(pembuat);
-
-        var konteks = h.CreateContext();
-        var betsId = konteks.Set<PhmDrugBatch>().First().Id;
+        // Sumber returnya penyerahan yang benar-benar terjadi, lewat alur produksi penuh —
+        // retur tidak lagi sah tanpa itu (`BUG-PHA-BE-003`).
+        var (konteks, usageId, betsId) = await h.SampaiDiserahkanAsync();
+        h.SumberPenyerahanId = usageId;
         return (h.ReturService(konteks), konteks, betsId);
     }
 
@@ -106,7 +106,7 @@ public class DrugReturnTests
 
         var saldo = konteks.Set<PhmDrugStockBalance>().Single(x => x.StorageLocationId == h.DepoId);
         await konteks.Entry(saldo).ReloadAsync();
-        Assert.Equal(100, saldo.QuantityOnHand);
+        Assert.Equal(90, saldo.QuantityOnHand);
     }
 
     [Fact]
@@ -321,7 +321,7 @@ public class DrugReturnTests
 
         var saldo = konteks.Set<PhmDrugStockBalance>().Single(x => x.StorageLocationId == h.DepoId);
         await konteks.Entry(saldo).ReloadAsync();
-        Assert.Equal(104, saldo.QuantityOnHand);
+        Assert.Equal(94, saldo.QuantityOnHand);
     }
 
     [Fact]
@@ -345,7 +345,7 @@ public class DrugReturnTests
 
         var saldo = konteks.Set<PhmDrugStockBalance>().Single(x => x.StorageLocationId == h.DepoId);
         await konteks.Entry(saldo).ReloadAsync();
-        Assert.Equal(101, saldo.QuantityOnHand);
+        Assert.Equal(91, saldo.QuantityOnHand);
     }
 
     [Fact]
@@ -371,7 +371,7 @@ public class DrugReturnTests
 
         var saldo = konteks.Set<PhmDrugStockBalance>().Single(x => x.StorageLocationId == h.DepoId);
         await konteks.Entry(saldo).ReloadAsync();
-        Assert.Equal(100, saldo.QuantityOnHand);
+        Assert.Equal(90, saldo.QuantityOnHand);
     }
 
     [Fact]
@@ -484,7 +484,7 @@ public class DrugReturnTests
 
         var saldo = konteks.Set<PhmDrugStockBalance>().Single(x => x.StorageLocationId == h.DepoId);
         await konteks.Entry(saldo).ReloadAsync();
-        Assert.Equal(104, saldo.QuantityOnHand);
+        Assert.Equal(94, saldo.QuantityOnHand);
     }
 
     // ------------------------------------------------------------------ penolakan
@@ -521,7 +521,7 @@ public class DrugReturnTests
 
         var saldo = konteks.Set<PhmDrugStockBalance>().Single(x => x.StorageLocationId == h.DepoId);
         await konteks.Entry(saldo).ReloadAsync();
-        Assert.Equal(100, saldo.QuantityOnHand);
+        Assert.Equal(90, saldo.QuantityOnHand);
     }
 
     [Fact]
@@ -583,7 +583,7 @@ public class DrugReturnTests
 
         var saldo = konteks.Set<PhmDrugStockBalance>().Single(x => x.StorageLocationId == h.DepoId);
         await konteks.Entry(saldo).ReloadAsync();
-        Assert.Equal(100, saldo.QuantityOnHand);
+        Assert.Equal(90, saldo.QuantityOnHand);
     }
 
     [Fact]
@@ -688,25 +688,252 @@ public class DrugReturnTests
 
     // ------------------------------------------------------- catatan atas lingkup source
 
+    // ------------------------------------------- regresi BUG-PHA-BE-003
+
     [Fact]
-    public async Task Retur_tidak_dibatasi_jumlah_yang_pernah_diserahkan()
+    public async Task Jumlah_retur_melebihi_yang_pernah_diserahkan_ditolak()
     {
-        // Perilaku apa adanya, dicatat supaya terlihat — BUKAN perilaku yang dibenarkan uji ini.
-        //
-        // Retur pada source ini mengacu pada BATCH obat, bukan pada baris penyerahan, dan tidak
-        // ada satu pun pemeriksaan yang membandingkan jumlah retur dengan jumlah yang pernah
-        // benar-benar diserahkan kepada pasien itu. `SourceDrugUsageId` pun opsional dan hanya
-        // disimpan sebagai rujukan.
-        //
-        // Akibatnya retur 1.000 tablet atas resep berisi 10 tetap diterima, dan setelah
-        // diperiksa jumlah itu benar-benar masuk ke saldo. Dilaporkan sebagai temuan.
+        // Regresi `BUG-PHA-BE-003`, syarat 5. Sebelum diperbaiki, retur 1.000 tablet atas resep
+        // berisi 10 diterima dan jumlah itu benar-benar masuk ke saldo — salah ketik satu angka
+        // nol sudah cukup menambah stok dari barang yang tidak pernah keluar.
         using var h = new PharmacyHarness();
         var (layanan, _, betsId) = await SiapAsync(h);
 
-        var retur = await layanan.CreateAsync(Pembuatan(h, betsId, jumlah: 1000));
+        var galat = await Assert.ThrowsAsync<DrugReturnUnprocessableException>(() =>
+            layanan.CreateAsync(Pembuatan(h, betsId, jumlah: 1000)));
+
+        Assert.Equal("PHM083", galat.Code);
+        Assert.Contains("melebihi sisa yang pernah diserahkan", galat.Message);
+    }
+
+    [Fact]
+    public async Task Retur_sejumlah_yang_diserahkan_tetap_diterima()
+    {
+        // Batas atasnya tepat sejumlah yang diserahkan, bukan kurang — pasien berhak
+        // mengembalikan seluruhnya.
+        using var h = new PharmacyHarness();
+        var (layanan, _, betsId) = await SiapAsync(h);
+
+        var retur = await layanan.CreateAsync(Pembuatan(h, betsId, jumlah: 10));
 
         Assert.Equal(DrugReturnStatus.Draft, retur.Status);
-        Assert.Equal(1000, retur.Items.Single().Quantity);
+        Assert.Equal(10, retur.Items.Single().Quantity);
+    }
+
+    [Fact]
+    public async Task Penyerahan_sumber_wajib_disebut()
+    {
+        // Syarat 1. Retur tanpa sumber tidak punya pembanding apa pun.
+        using var h = new PharmacyHarness();
+        var (layanan, _, betsId) = await SiapAsync(h);
+
+        var permintaan = Pembuatan(h, betsId);
+        permintaan.SourceDrugUsageId = null;
+
+        var galat = await Assert.ThrowsAsync<DrugReturnUnprocessableException>(() =>
+            layanan.CreateAsync(permintaan));
+
+        Assert.Equal("PHM080", galat.Code);
+        Assert.Contains("tak terlacak", galat.Message);
+    }
+
+    [Fact]
+    public async Task Penyerahan_sumber_yang_tidak_ada_ditolak()
+    {
+        using var h = new PharmacyHarness();
+        var (layanan, _, betsId) = await SiapAsync(h);
+
+        var permintaan = Pembuatan(h, betsId);
+        permintaan.SourceDrugUsageId = Guid.NewGuid();
+
+        var galat = await Assert.ThrowsAsync<DrugReturnUnprocessableException>(() =>
+            layanan.CreateAsync(permintaan));
+
+        Assert.Equal("PHM080", galat.Code);
+    }
+
+    [Fact]
+    public async Task Penyerahan_sumber_milik_kunjungan_lain_ditolak()
+    {
+        // Syarat 2. Memakai penyerahan kunjungan lain memindahkan hak retur satu pasien ke
+        // pasien lain.
+        using var h = new PharmacyHarness();
+        var (layanan, konteks, betsId) = await SiapAsync(h);
+
+        var usage = await konteks.PhmDrugUsages.FindAsync(h.SumberPenyerahanId!.Value);
+        usage!.EncounterId = Guid.NewGuid();
+        await konteks.SaveChangesAsync();
+
+        var galat = await Assert.ThrowsAsync<DrugReturnUnprocessableException>(() =>
+            layanan.CreateAsync(Pembuatan(h, betsId)));
+
+        Assert.Equal("PHM081", galat.Code);
+        Assert.Contains("bukan milik kunjungan", galat.Message);
+    }
+
+    [Fact]
+    public async Task Penyerahan_sumber_yang_dibatalkan_ditolak()
+    {
+        using var h = new PharmacyHarness();
+        var (layanan, konteks, betsId) = await SiapAsync(h);
+
+        var usage = await konteks.PhmDrugUsages.FindAsync(h.SumberPenyerahanId!.Value);
+        usage!.Status = DrugUsageStatus.Cancelled;
+        await konteks.SaveChangesAsync();
+
+        var galat = await Assert.ThrowsAsync<DrugReturnUnprocessableException>(() =>
+            layanan.CreateAsync(Pembuatan(h, betsId)));
+
+        Assert.Equal("PHM081", galat.Code);
+    }
+
+    [Fact]
+    public async Task Obat_yang_tidak_pernah_diserahkan_ditolak()
+    {
+        // Syarat 3.
+        using var h = new PharmacyHarness();
+        var (layanan, _, betsId) = await SiapAsync(h);
+
+        var permintaan = Pembuatan(h, betsId);
+        permintaan.Items[0].DrugId = h.ObatTanpaSatuanId;
+
+        var galat = await Assert.ThrowsAsync<DrugReturnUnprocessableException>(() =>
+            layanan.CreateAsync(permintaan));
+
+        Assert.Equal("PHM082", galat.Code);
+        Assert.Contains("Obat yang dikembalikan", galat.Message);
+    }
+
+    [Fact]
+    public async Task Batch_yang_tidak_pernah_diserahkan_ditolak()
+    {
+        // Syarat 4. Penyerahan dilacak per batch, jadi batch lain pada obat yang sama pun bukan
+        // barang yang pernah keluar.
+        using var h = new PharmacyHarness();
+        var (layanan, konteks, _) = await SiapAsync(h);
+
+        var batchLain = Guid.NewGuid();
+        konteks.Set<PhmDrugBatch>().Add(new PhmDrugBatch
+        {
+            Id = batchLain,
+            DrugId = h.ObatId,
+            BatchNumber = "UJI-PHM-BATCH-LAIN",
+            ExpiryDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+            CreateDateTime = DateTime.UtcNow
+        });
+        await konteks.SaveChangesAsync();
+
+        var galat = await Assert.ThrowsAsync<DrugReturnUnprocessableException>(() =>
+            layanan.CreateAsync(Pembuatan(h, batchLain)));
+
+        Assert.Equal("PHM082", galat.Code);
+        Assert.Contains("Batch yang dikembalikan", galat.Message);
+    }
+
+    [Fact]
+    public async Task Retur_berulang_menghitung_retur_sebelumnya()
+    {
+        // Syarat 7. Dua retur masing-masing 6 atas penyerahan 10 tidak boleh lolos: yang kedua
+        // hanya berhak atas sisa 4.
+        using var h = new PharmacyHarness();
+        var (layanan, _, betsId) = await SiapAsync(h);
+
+        await layanan.CreateAsync(Pembuatan(h, betsId, jumlah: 6));
+
+        var galat = await Assert.ThrowsAsync<DrugReturnUnprocessableException>(() =>
+            layanan.CreateAsync(Pembuatan(h, betsId, jumlah: 6)));
+
+        Assert.Equal("PHM083", galat.Code);
+        Assert.Contains("sudah diretur 6", galat.Message);
+    }
+
+    [Fact]
+    public async Task Retur_berikutnya_sebesar_sisa_tetap_diterima()
+    {
+        using var h = new PharmacyHarness();
+        var (layanan, _, betsId) = await SiapAsync(h);
+
+        await layanan.CreateAsync(Pembuatan(h, betsId, jumlah: 6));
+        var kedua = await layanan.CreateAsync(Pembuatan(h, betsId, jumlah: 4));
+
+        Assert.Equal(4, kedua.Items.Single().Quantity);
+    }
+
+    [Fact]
+    public async Task Retur_yang_ditolak_mengembalikan_hak_returnya()
+    {
+        // Retur yang ditolak berarti barangnya tidak pernah diterima kembali, jadi jumlahnya
+        // tidak boleh terus memakan hak retur pasien.
+        using var h = new PharmacyHarness();
+        var (layanan, _, betsId) = await SiapAsync(h);
+
+        var pertama = await layanan.CreateAsync(Pembuatan(h, betsId, jumlah: 10));
+        var diajukan = await layanan.SubmitAsync(pertama.Id, Perintah(pertama.Version));
+        await layanan.RejectAsync(diajukan.Id, Beralasan(diajukan.Version, "Kemasan terbuka"));
+
+        var kedua = await layanan.CreateAsync(Pembuatan(h, betsId, jumlah: 10));
+
+        Assert.Equal(10, kedua.Items.Single().Quantity);
+    }
+
+    [Fact]
+    public async Task Retur_yang_sudah_diperiksa_memakai_jumlah_yang_diterima_sebagai_pemakaian()
+    {
+        // Yang sudah diperiksa dihitung sebesar yang DITERIMA, bukan yang diajukan — selisihnya
+        // barang yang tidak layak dan tidak pernah masuk, jadi haknya kembali.
+        using var h = new PharmacyHarness();
+        var (layanan, _, betsId) = await SiapAsync(h);
+
+        var pertama = await layanan.CreateAsync(Pembuatan(h, betsId, jumlah: 10));
+        var diajukan = await layanan.SubmitAsync(pertama.Id, Perintah(pertama.Version));
+        await layanan.VerifyAsync(diajukan.Id, new VerifyDrugReturnRequest
+        {
+            VerifiedByWorkforceId = h.PetugasId,
+            Items = [Keputusan(diajukan.Items.Single().Id, 3)],
+            ExpectedVersion = diajukan.Version,
+            IdempotencyKey = Guid.NewGuid().ToString("N")
+        });
+
+        // Diterima 3, jadi sisa haknya 7.
+        var kedua = await layanan.CreateAsync(Pembuatan(h, betsId, jumlah: 7));
+        Assert.Equal(7, kedua.Items.Single().Quantity);
+
+        await Assert.ThrowsAsync<DrugReturnUnprocessableException>(() =>
+            layanan.CreateAsync(Pembuatan(h, betsId, jumlah: 1)));
+    }
+
+    [Fact]
+    public async Task Verifikasi_memeriksa_ulang_pembanding_sebelum_menambah_stok()
+    {
+        // Syarat 6. Penyerahan sumbernya dibatalkan di antara pembuatan dan pemeriksaan; stok
+        // tidak boleh bertambah.
+        using var h = new PharmacyHarness();
+        var (layanan, konteks, betsId) = await SiapAsync(h);
+
+        var diajukan = await DiajukanAsync(layanan, h, betsId, jumlah: 4);
+        var baris = diajukan.Items.Single();
+
+        var usage = await konteks.PhmDrugUsages.FindAsync(h.SumberPenyerahanId!.Value);
+        usage!.Status = DrugUsageStatus.Cancelled;
+        await konteks.SaveChangesAsync();
+
+        var saldo = konteks.Set<PhmDrugStockBalance>().Single(x => x.StorageLocationId == h.DepoId);
+        await konteks.Entry(saldo).ReloadAsync();
+        var saldoSebelum = saldo.QuantityOnHand;
+
+        var galat = await Assert.ThrowsAsync<DrugReturnUnprocessableException>(() =>
+            layanan.VerifyAsync(diajukan.Id, new VerifyDrugReturnRequest
+            {
+                VerifiedByWorkforceId = h.PetugasId,
+                Items = [Keputusan(baris.Id, 4)],
+                ExpectedVersion = diajukan.Version,
+                IdempotencyKey = Guid.NewGuid().ToString("N")
+            }));
+
+        Assert.Equal("PHM081", galat.Code);
+
+        await konteks.Entry(saldo).ReloadAsync();
+        Assert.Equal(saldoSebelum, saldo.QuantityOnHand);
     }
 
     private static VerifyDrugReturnItemInput Keputusan(Guid barisId, decimal diterima) => new()

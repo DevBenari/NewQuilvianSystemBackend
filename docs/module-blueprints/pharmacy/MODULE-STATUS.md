@@ -40,7 +40,7 @@ Tangga tahap yang berlaku dan sudah terbukti ujung ke ujung:
 | Backend | `SUBSTANTIAL` |
 | Frontend | `SUBSTANTIAL` |
 | Integrasi | `SUBSTANTIAL` — clearance terbukti ujung ke ujung; producer tagihan menunggu approval Billing |
-| Verifikasi | `STRONG` — **158 uji** regresi ditambah bukti runtime penuh |
+| Verifikasi | `STRONG` — **173 uji** regresi ditambah bukti runtime penuh |
 
 **Perkiraan ketuntasan: ~96%.** Diukur ketat "berfungsi hari ini di integration", producer
 tagihan belum menyala sehingga angkanya lebih dekat ~91%.
@@ -52,7 +52,7 @@ Uji pada `Tests/QuilvianSystemBackend.PharmacyTests`:
 | `PrescriptionFulfillmentStageTests` | 8 | regresi `GAP-PHA-BE-001`; tangga tahap pemenuhan dan penomorannya |
 | `BillingChargeProducerTests` | 9 | kunci idempotensi deterministik dan nilainya yang sudah terpakai; gerbang resep tanpa item maupun tanpa harga; `SourceStatus` dan `ContractVersion` yang diterima Billing |
 | `FinancialClearanceTests` | 20 | `PrescriptionFinancialClearanceService` — ketiga hasil finansial, fail-closed, pencabutan, versi, idempotensi, keempat gerbang |
-| `PharmacyWorkflowTests` | 31 | telaah resep, klarifikasi dokter, penyiapan, telaah obat akhir, tangga tahap 2 → 7 |
+| `PharmacyWorkflowTests` | 34 | telaah resep, klarifikasi dokter, penyiapan, telaah obat akhir, tangga tahap 2 → 7 |
 | `DispensingGuardTests` | 20 | `PrescriptionDispensingService` — penjagaan tahap, izin finansial, depo, petugas, baris dan jumlah, pembatalan |
 | `DispenseFlowTests` | 18 | `DispenseAsync` — penyerahan penuh dan sebagian, mutasi stok, idempotensi, fakta klinis, gerbang finansial |
 | `LabelAndStockTests` | 14 | `PrescriptionLabelService`, `DrugStockService` — penahanan, pelepasan, FEFO, pengeluaran |
@@ -62,17 +62,21 @@ dengan registrasi yang sama seperti aplikasi, karena rantai fakta klinis membuka
 sendiri lewat `IServiceScopeFactory`; tiruan kosong akan membuat jalur itu diam-diam tidak
 berjalan.
 
-| `DrugReturnTests` | 38 | `DrugReturnService` — daur hidup `Draft → Submitted → Verified/Rejected`, `Cancelled` dari dua keadaan, efek stok, histori, versi |
+| `DrugReturnTests` | 51 | `DrugReturnService` — daur hidup `Draft → Submitted → Verified/Rejected`, `Cancelled` dari dua keadaan, efek stok, histori, versi |
 
 **Belum teruji:** `DrugReturnService.UpdateAsync` dan `GetPagedAsync`, permission matrix tingkat
 HTTP, dan 19 controller Farmasi lainnya.
 
-**Bug terbuka:**
+**Bug yang sudah ditutup:**
 
 | ID | Isi |
 |---|---|
-| [`BUG-PHA-BE-002`](bug-pha-be-002-klarifikasi-tertutup.md) | Klarifikasi yang sudah ditutup masih dapat dijawab dokter. Keputusan pemilik modul: penjaga utamanya `ClosedAt != null` |
-| [`BUG-PHA-BE-003`](bug-pha-be-003-retur-tanpa-batas-serah.md) | Retur obat tidak dibatasi jumlah yang pernah diserahkan |
+| [`BUG-PHA-BE-002`](bug-pha-be-002-klarifikasi-tertutup.md) | ✅ Klarifikasi yang sudah ditutup masih dapat dijawab dokter. Penjaga sekarang `ClosedAt != null` |
+| [`BUG-PHA-BE-003`](bug-pha-be-003-retur-tanpa-batas-serah.md) | ✅ Retur obat tidak dibatasi jumlah yang pernah diserahkan. `SourceDrugUsageId` kini wajib dan jumlahnya dibandingkan per batch secara kumulatif |
+
+**Kebutuhan baru yang belum punya task:** flow `Legacy/Untracked Return` untuk retur obat yang
+penyerahannya tidak tercatat — alasan wajib, otorisasi khusus, penandaan pada barisnya, dan batas
+atas. Rinciannya pada dokumen `BUG-PHA-BE-003`.
 
 ## Permukaan yang sudah berdiri
 
