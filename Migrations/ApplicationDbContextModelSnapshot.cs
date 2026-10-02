@@ -4933,6 +4933,100 @@ namespace QuilvianSystemBackend.Migrations
                         });
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceiptAllocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("AllocatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("AllocatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsReversal")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("ReceiptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ReceivableId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ReversalOfAllocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SourceAllocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReceiptId");
+
+                    b.HasIndex("ReceivableId");
+
+                    b.HasIndex("ReversalOfAllocationId");
+
+                    b.ToTable("FinReceiptAllocation", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_FinReceiptAllocation_Amount", "\"Amount\" > 0");
+
+                            t.HasCheckConstraint("CK_FinReceiptAllocation_ReceivableRequired", "\"TargetType\" <> 'RECEIVABLE' OR \"ReceivableId\" IS NOT NULL");
+
+                            t.HasCheckConstraint("CK_FinReceiptAllocation_Reversal", "(\"IsReversal\" = true AND \"ReversalOfAllocationId\" IS NOT NULL) OR (\"IsReversal\" = false AND \"ReversalOfAllocationId\" IS NULL)");
+
+                            t.HasCheckConstraint("CK_FinReceiptAllocation_TargetType", "\"TargetType\" IN ('RECEIVABLE','INVOICE_DIRECT')");
+                        });
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceiptDeduction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5045,100 +5139,6 @@ namespace QuilvianSystemBackend.Migrations
                             t.HasCheckConstraint("CK_FinReceiptDeduction_Reversal", "\"IsReversal\" = (\"ReversalOfDeductionId\" IS NOT NULL)");
 
                             t.HasCheckConstraint("CK_FinReceiptDeduction_Type", "\"DeductionType\" IN ('PPH23','BANK_ADMIN_FEE','OTHER')");
-                        });
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceiptAllocation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("AllocatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("AllocatedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsReversal")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<Guid>("ReceiptId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ReceivableId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ReversalOfAllocationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("SourceAllocationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("TargetType")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ReceiptId");
-
-                    b.HasIndex("ReceivableId");
-
-                    b.HasIndex("ReversalOfAllocationId");
-
-                    b.ToTable("FinReceiptAllocation", "public", t =>
-                        {
-                            t.HasCheckConstraint("CK_FinReceiptAllocation_Amount", "\"Amount\" > 0");
-
-                            t.HasCheckConstraint("CK_FinReceiptAllocation_ReceivableRequired", "\"TargetType\" <> 'RECEIVABLE' OR \"ReceivableId\" IS NOT NULL");
-
-                            t.HasCheckConstraint("CK_FinReceiptAllocation_Reversal", "(\"IsReversal\" = true AND \"ReversalOfAllocationId\" IS NOT NULL) OR (\"IsReversal\" = false AND \"ReversalOfAllocationId\" IS NULL)");
-
-                            t.HasCheckConstraint("CK_FinReceiptAllocation_TargetType", "\"TargetType\" IN ('RECEIVABLE','INVOICE_DIRECT')");
                         });
                 });
 
@@ -8056,15 +8056,15 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<Guid>("DebtorReferenceId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("DebtorType")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
                         .HasDefaultValue("PAYER");
-
-                    b.Property<Guid>("DebtorReferenceId")
-                        .HasColumnType("uuid");
 
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
@@ -66676,6 +66676,230 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("CliDailyObservationRevision", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.CliDoctorCertificate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActivityRestriction")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("AdditionalNote")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("AddressSnapshot")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("BirthDateSnapshot")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("BloodPressure")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("CertificateNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("CertificateStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CertificateType")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ClinicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ClinicNameSnapshot")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("ClinicalSummary")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("ColorBlindResult")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("ConsultationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Diagnosis")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid?>("DoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DoctorNameSnapshot")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("DoctorSignatureDataUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DoctorSipSnapshot")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("EncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ExaminationDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GenderSnapshot")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("HealthConclusion")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("HealthRecommendation")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Height")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("IssuedDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("MedicalRecordNumberSnapshot")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("OccupationSnapshot")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PatientNameSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("Pulse")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Purpose")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("QueueId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ReferralAdmissionDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReferralDiagnosis")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("ReferralReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid?>("ReferralTargetClinicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReferralTargetNameSnapshot")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<Guid?>("ReferralTargetServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RequestedRoomClass")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("ServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("SickDurationDays")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SickEndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("SickStartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SpecialInstruction")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Temperature")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Weight")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CertificateNumber")
+                        .IsUnique();
+
+                    b.HasIndex("EncounterId");
+
+                    b.HasIndex("QueueId");
+
+                    b.HasIndex("PatientId", "IssuedDate");
+
+                    b.ToTable("CliDoctorCertificate", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.CliFluidBalanceEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -81275,6 +81499,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<Guid?>("DiagnosisGroupId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("DiagnosisName")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -81336,6 +81563,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DiagnosisChapterId");
+
+                    b.HasIndex("DiagnosisGroupId");
 
                     b.HasIndex("DiagnosisName");
 
@@ -81724,6 +81953,84 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("DiagnosisId", "ReviewStatus", "IsActive", "IsDelete");
 
                     b.ToTable("MstDiagnosisEducationRecommendation", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosisGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CodeRangeText")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DtdNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("GroupName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<bool>("IsAccidentCause")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsImmunization")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SourceCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DtdNumber");
+
+                    b.HasIndex("GroupName");
+
+                    b.HasIndex("SourceCode")
+                        .IsUnique();
+
+                    b.ToTable("MstDiagnosisGroup", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosisProcedureRecommendation", b =>
@@ -99026,30 +99333,6 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceiptDeduction", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceipt", "Receipt")
-                        .WithMany()
-                        .HasForeignKey("ReceiptId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceiptAllocation", "ReceiptAllocation")
-                        .WithMany()
-                        .HasForeignKey("ReceiptAllocationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceiptDeduction", null)
-                        .WithMany()
-                        .HasForeignKey("ReversalOfDeductionId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Receipt");
-
-                    b.Navigation("ReceiptAllocation");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceiptAllocation", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceipt", "Receipt")
@@ -99071,6 +99354,30 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Receipt");
 
                     b.Navigation("Receivable");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceiptDeduction", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceiptAllocation", "ReceiptAllocation")
+                        .WithMany()
+                        .HasForeignKey("ReceiptAllocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceipt", "Receipt")
+                        .WithMany()
+                        .HasForeignKey("ReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceiptDeduction", null)
+                        .WithMany()
+                        .HasForeignKey("ReversalOfDeductionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Receipt");
+
+                    b.Navigation("ReceiptAllocation");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models.MstBankAccount", b =>
@@ -116460,6 +116767,21 @@ namespace QuilvianSystemBackend.Migrations
                         .HasConstraintName("FK_CliDailyObservationRevision_ObservationId");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.CliDoctorCertificate", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter", null)
+                        .WithMany()
+                        .HasForeignKey("EncounterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", null)
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.CliFluidBalanceEntry", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter", null)
@@ -119791,12 +120113,19 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("DiagnosisChapterId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosisGroup", "DiagnosisGroup")
+                        .WithMany("Diagnoses")
+                        .HasForeignKey("DiagnosisGroupId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosis", "ParentDiagnosis")
                         .WithMany("ChildDiagnoses")
                         .HasForeignKey("ParentDiagnosisId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("DiagnosisChapter");
+
+                    b.Navigation("DiagnosisGroup");
 
                     b.Navigation("ParentDiagnosis");
                 });
@@ -124630,6 +124959,11 @@ namespace QuilvianSystemBackend.Migrations
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosisChapter", b =>
+                {
+                    b.Navigation("Diagnoses");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosisGroup", b =>
                 {
                     b.Navigation("Diagnoses");
                 });

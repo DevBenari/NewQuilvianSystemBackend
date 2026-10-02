@@ -105,3 +105,52 @@ Tidak ada kolom baru pada amendment ini yang bertanda sensitif (lihat
 Billing dan **tidak boleh** memuat diagnosis atau isi klinis; layar penyelesaian menampilkan
 peringatan itu. Payload log **tidak boleh** memuat nama pasien, diagnosis, atau isi `RuleSnapshot`.
 Masa simpan mengikuti tabel induknya (tidak ada penghapusan fisik; `IsDelete`).
+
+
+---
+
+# Amendment DP — Daftar Pasien Rawat Jalan (`RJ-DOC-ENCLIST-001@1.0.0`, `draft`)
+
+`last_changed_in`: `RJ-DOC-ENCLIST-001@1.0.0` · Owner: Sukma Giri (Security/Privacy authority) ·
+Menutup `RJ-DOC-OQ-010` (menunggu approval).
+
+## DP-1. Butir hak akses baru
+
+Resource `OutpatientEncounter`, modul `HEALTH_SERVICE_REGISTRATION_MANAGEMENT`.
+
+| Action | Didaftarkan lewat | String | Makna |
+|---|---|---|---|
+| `Read` | `[AccessAction("Read", …)]` pada tiga `GET` | `[AccessPermission("OutpatientEncounter", "Read")]` | Membuka layar dan membaca kunjungan **dalam cakupan** |
+| `Cancel` | `[AccessAction("Cancel", "Cancel Outpatient Encounter", AccessType = AccessTypes.Update)]` | `[AccessPermission("OutpatientEncounter", "Cancel")]` | Membatalkan kunjungan dalam cakupan |
+| `ReadAll` | `[assembly: AccessExplicitPermission(moduleCode: "HEALTH_SERVICE_REGISTRATION_MANAGEMENT", resourceName: "OutpatientEncounter", actionName: "ReadAll", displayName: "Read All Outpatient Encounter", accessType: AccessTypes.Read)]` | Diperiksa `AccessPermissionService.HasAccessAsync(user, "OutpatientEncounter", "ReadAll")` | Penanda: melihat kunjungan **semua** klinik. Tidak menjaga endpoint mana pun sendirian |
+
+Butir ini **terpisah** dari `PatientEncounter : Read/Update`: pemegang `PatientEncounter : Read`
+saat ini membaca semua kunjungan tanpa cakupan; memakai ulang butir itu berarti memberi
+"lihat semua" kepada setiap dokter.
+
+## DP-2. Peta peran (saran awal, diatur lewat layar Akses Role)
+
+| Peran | `Read` | `ReadAll` | `Cancel` |
+|---|:---:|:---:|:---:|
+| Petugas pendaftaran | ✓ | ✓ | ✓ |
+| Perawat poli / kepala ruangan | ✓ | | ✓ |
+| Dokter | ✓ | | sesuai kebijakan RS |
+| Super Admin | ✓ | ✓ | ✓ |
+
+## DP-3. Kewenangan yang tidak dijaga mesin hak akses
+
+| Kewenangan | Penjaganya |
+|---|---|
+| Cakupan dokter/perawat | `ClinicalActorScopeService` di server — bukan butir hak akses |
+| Boleh batal menurut status | `OutpatientEncounterRules` di server |
+
+## DP-4. Audit dan privasi
+
+| Aksi | Dicatat di | Isi |
+|---|---|---|
+| Batalkan | Baris kunjungan | `CancelledByUserId`, `CancelledAt`, `CancelReason`, `CancelBy`, `CancelDateTime` |
+| Batalkan | Custom logger | `EntityId`, controller, action, status hasil — **tanpa** alasan, nama pasien, no. RM |
+| `GET` | — | Tidak dicatat (pola backend) |
+
+Kolom sensitif pada respons: `patientName`, `medicalRecordNumber`. Hanya untuk kunjungan dalam
+cakupan; tidak boleh muncul di log maupun penyimpanan peramban.
