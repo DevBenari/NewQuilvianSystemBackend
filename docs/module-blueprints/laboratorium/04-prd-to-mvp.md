@@ -943,7 +943,7 @@ Reopen. **Yang tidak berubah:** hasil masih belum dapat dinyatakan sah oleh siap
 | `FR-14.6` | Route `/result/microbiology/finalize`, `/reopen`, `/consultation` dicabut; halaman Mikrobiologi beralih ke route netral **pada rilis yang sama** | `r33` 28.4 | `EXTEND` — memecah kompatibilitas, butuh persetujuan eksplisit |
 | `FR-14.7` | Seluruh pemeriksaan Patologi Klinik yang tidak batal pada satu order terbaca dalam satu panggilan | `GET /by-order/{labOrderId}/results`, `VAL-123`, `AC-234` | `MISSING / NEW` |
 | `FR-14.8` | Hasil angka di luar rujukan tampil dengan huruf `L` atau `H` di layar | `referenceFlag`, `AC-219` | `EXTEND` |
-| `FR-14.9` | Hasil pilihan di luar rujukan tampil sebagai teks | `referenceFlag = OutOfReference` | **`OPEN DECISION`** — teksnya menunggu persetujuan (19.10 butir 2) |
+| `FR-14.9` | Hasil pilihan di luar rujukan tampil sebagai teks | `referenceFlag = OutOfReference` | ✅ **Diputuskan 2026-10-01 — `LAB-DEC-165`:** `+2 — Di luar rujukan`; masuk gelombang `MVP-8c` lewat `FE-LAB-36`. *Semula `OPEN DECISION` (19.10 butir 2)* |
 | `FR-14.10` | Hasil Patologi Klinik diisi pada halaman per order; Final per pemeriksaan tidak mengunci baris lain; isian baris lain tidak hilang | `AC-234`..`AC-237` | `MISSING / NEW` |
 | `FR-14.11` | Dialog isi hasil pada Daftar Kerja dicabut; baris membuka halaman order | `AC-235` | `EXTEND` |
 | `FR-14.12` | Halaman Mikrobiologi menampilkan `409` dan `403` secara terbaca tanpa menghilangkan isian | `AC-228` | `EXTEND` |
@@ -1015,7 +1015,7 @@ ketik"*, membetulkan, dan Final lagi. `ReopenCount` = 1 dan riwayatnya memuat al
 |---|---|---|
 | ~~Persetujuan `r33`, `r11`, revision 10, dan `r4`~~ | ✅ **Terjawab 2026-09-24** — keempatnya disetujui Yoga Aji Pratama. **Tidak lagi memblokir** | — |
 | ~~Persetujuan pencabutan tiga route Mikrobiologi (19.10 butir 1)~~ | ✅ **Terjawab 2026-09-24** — disetujui bersama `r33`. `FR-14.6` berlaku | — |
-| Teks penanda hasil pilihan di luar rujukan (19.10 butir 2) | **Ya** untuk `FR-14.9` saja | Yoga Aji Pratama |
+| Teks penanda hasil pilihan di luar rujukan (19.10 butir 2) | ~~**Ya** untuk `FR-14.9` saja~~ ✅ **Terjawab 2026-10-01** — `LAB-DEC-165` | Yoga Aji Pratama |
 | Jabatan mana yang analis — `UNK-P14-01` | **Ya** untuk **rilis** `MVP-8a`, bukan pengembangannya | Admin sistem + kepala instalasi |
 | `DEC-LAB-011`, `LAB-COORD-016` | **Tidak** memblokir epic ini. *`DEC-LAB-011` dijawab sebagian 2026-09-24 (`LAB-DEC-150`); sisanya `LAB-REQ-014`* | dr. Bima Prasetya, Sp.PK; pemilik `human-resource` |
 
@@ -1026,8 +1026,8 @@ ketik"*, membetulkan, dan Final lagi. `ReopenCount` = 1 dan riwayatnya memuat al
 > **`EPIC-LAB-14` boleh diteruskan ke `/plan-module-delivery`** untuk `MVP-8a`, `MVP-8b`, dan
 > `MVP-8c`.
 >
-> **Yang tetap di luar gelombang mana pun:** `FR-14.9` — teks penanda hasil pilihan — sampai
-> teksnya disetujui. **Yang menahan rilis, bukan pengembangan:** `UNK-P14-01`, jabatan mana yang
+> **Yang tetap di luar gelombang mana pun:** ~~`FR-14.9` — teks penanda hasil pilihan — sampai
+> teksnya disetujui~~ — **disetujui 2026-10-01 (`LAB-DEC-165`)**, dikerjakan `FE-LAB-36`. **Yang menahan rilis, bukan pengembangan:** `UNK-P14-01`, jabatan mana yang
 > analis, wajib dibaca admin sebelum `MVP-8a` dirilis.
 
 ---
