@@ -7,7 +7,7 @@ Diukur dari source 1 Oktober 2026, disegarkan 2 Oktober 2026.
 | Backend | `SUBSTANTIAL` | 9 controller · 10 service · 36 endpoint · 14 model · 7.229 baris |
 | Frontend | `SUBSTANTIAL` | 11 halaman · 4 folder view · 8 service |
 | Integrasi | `SUBSTANTIAL` | kontrak event outbox internal berdiri dan terbukti runtime |
-| Verifikasi | `STRONG` | **110 uji** |
+| Verifikasi | `STRONG` | **117 uji** |
 
 **Perkiraan ketuntasan: ~86%.**
 
@@ -32,7 +32,7 @@ Rincian beserta pencabutan tiga penghalang lama ada di
 | `MaterialSerialTests` | 8 | `OPR014` serial implant unik dalam satu kasus |
 | `SeedSmokeTests` | 4 | seeder demo menghasilkan data yang dapat dipakai |
 | `AuditPrivacyTests` | 3 | jejak audit dan data yang tidak boleh terbaca |
-| `ReportTests` | 27 | `BE-OPR-010` — penyaring, rentang tanggal, paging, bentuk keluaran |
+| `ReportTests` | 34 | `BE-OPR-010` — penyaring, rentang tanggal, paging, bentuk keluaran |
 | `ReportPermissionTests` | 13 | kontrak izin ketiga laporan, termasuk pembedaan izin material |
 
 ## Kontrak event outbox
@@ -62,12 +62,11 @@ kontrak pemiliknya.
 | Penolakan `403` runtime per peran | sedang | tidak dapat dibuktikan dari proyek uji: keputusannya milik filter otorisasi atas pemetaan peran-ke-izin lingkungan, dan pada Development pemeriksaan itu dimatikan. Memalsukan pemetaannya hanya membuktikan tiruannya bekerja |
 | Performa laporan | rendah | belum diukur pada volume besar |
 
-## Bug terbuka
+## Bug yang sudah ditutup
 
 | ID | Isi |
 |---|---|
-| [`BUG-OPR-BE-001`](bug-opr-be-001-tanggal-akhir-tidak-inklusif.md) | Tanggal akhir laporan membuang seluruh data hari itu — penyaring layar mengirim tanggal tanpa jam. Cacat yang sama sudah ditutup pada laporan Gizi lewat `ToInclusive`; laporan Operasi belum punya padanannya |
-
+| [`BUG-OPR-BE-001`](bug-opr-be-001-tanggal-akhir-tidak-inklusif.md) | ✅ Tanggal akhir laporan membuang seluruh data hari itu. Ketiga laporan kini memakai penolong `NormalkanRentang`; rentang terbalik ditolak 400 |
 ## Penghalang di luar modul
 
 | Hal | Catatan |

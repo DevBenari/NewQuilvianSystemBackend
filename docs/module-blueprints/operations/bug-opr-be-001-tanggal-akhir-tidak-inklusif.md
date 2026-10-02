@@ -1,14 +1,14 @@
 # `BUG-OPR-BE-001` — Tanggal akhir laporan Operasi membuang seluruh data hari itu
 
-Ditemukan 2 Oktober 2026 saat penambahan uji `BE-OPR-010`. **Belum diperbaiki**; task yang
-menemukannya berfokus verifikasi.
+Ditemukan 2 Oktober 2026 saat penambahan uji `BE-OPR-010`. **Selesai** 2 Oktober 2026.
 
 | Hal | Isi |
 |---|---|
-| Prioritas usulan | **P1** — angkanya terbaca masuk akal tetapi keliru, dan keputusan penjadwalan diambil di atasnya |
+| Status | ✅ **Selesai** — diperbaiki beserta 10 uji regresi |
+| Prioritas | **P1** — angkanya terbaca masuk akal tetapi keliru, dan keputusan penjadwalan diambil di atasnya |
 | Pemilik | modul Operasi |
 | Berkas | `Areas/HealthServices/OperatingRoomManagement/Services/OperatingRoomReportService.cs` |
-| Terjaga uji | `Tests/QuilvianSystemBackend.OperatingRoomTests/ReportTests.cs` → `Tanggal_akhir_tanpa_jam_membuang_seluruh_data_hari_itu` |
+| Terjaga uji | `Tests/QuilvianSystemBackend.OperatingRoomTests/ReportTests.cs` → `Tanggal_akhir_tanpa_jam_mencakup_seluruh_hari_itu` dan 9 uji lainnya |
 
 ## Masalah
 
@@ -54,16 +54,41 @@ Laporan Operasi belum punya padanannya.
 
 Penolong `ToInclusive` pada `NutritionReportService` dapat dipakai sebagai acuan bentuknya.
 
-## Gap terkait yang bukan bug
+## Perbaikan
 
-**Rentang terbalik tidak ditolak.** `From` lebih besar daripada `To` tidak divalidasi; laporan
-mengembalikan hasil kosong. Itu tidak merusak data dan tidak menyesatkan sejauh pembacanya tahu
-apa yang dimintanya, tetapi juga tidak memberi tahu bahwa penyaringnya mustahil. Perilakunya
-dijaga uji `Rentang_terbalik_mengembalikan_kosong_bukan_melempar`; apakah ia perlu ditolak adalah
-keputusan pemilik modul, bukan diputuskan dari task pengujian.
+Satu penolong bersama, `NormalkanRentang`, dipakai **ketiga** laporan supaya perilakunya tidak
+berbeda antar layar. Di dalamnya `AkhirHariBila` memperluas tanggal akhir ke detik terakhir harinya
+**hanya** bila yang dikirim memang tanggal tanpa jam.
 
-## Catatan
+Jam diperiksa **sebelum** konversi ke UTC. Memeriksanya sesudah konversi keliru: tanggal lokal
+pukul 00:00 berubah menjadi 17:00 UTC, sehingga tidak pernah dikenali sebagai "tanggal tanpa jam"
+dan laporan tetap membuang data hari terakhir.
 
-Uji yang menjaganya **sengaja dinamai sesuai perilaku sebenarnya**. Ia lulus hari ini dan akan
-gagal begitu bug ini diperbaiki — kegagalan itulah penanda bahwa perbaikannya benar-benar
-mengubah perilaku, dan ujinya harus diperbarui bersama perbaikan tersebut.
+Timestamp yang memang menyebut jam dihormati apa adanya — pengguna yang meminta "sampai pukul
+10:00" tidak sedang meminta sampai tengah malam.
+
+## Rentang terbalik kini ditolak
+
+`From` yang melewati `To` melempar `ArgumentException`, dan ketiga endpoint laporan memetakannya
+menjadi **400 Bad Request** mengikuti konvensi yang sudah dipakai `GetUtilization`. Daftar kosong
+yang dulu dikembalikan berbohong: ia menyatakan laporannya memang tidak punya data, padahal
+penyaringnya yang mustahil.
+
+Pemeriksaannya dilakukan **sesudah** normalisasi, sehingga `From` dan `To` pada tanggal yang sama
+tetap sah — satu hari penuh bukan rentang nol. Pemeriksaan lama pada `GetUtilizationAsync`
+(`to <= from`) ikut diseragamkan menjadi `akhir < awal`, karena yang dilarang adalah rentang
+terbalik, bukan rentang yang kebetulan berujung sama.
+
+## Uji regresi
+
+`Tests/QuilvianSystemBackend.OperatingRoomTests/ReportTests.cs`, 10 uji:
+
+| Uji | Yang dijaga |
+|---|---|
+| `Tanggal_akhir_tanpa_jam_mencakup_seluruh_hari_itu` | acceptance 1 |
+| `Kasus_hari_berikutnya_tidak_ikut_walau_tanggal_akhir_diperluas` | acceptance 2 — perluasan berhenti pada detik terakhir |
+| `Timestamp_akhir_yang_menyebut_jam_dihormati_apa_adanya` | acceptance 3 |
+| `Tanggal_akhir_tanpa_jam_juga_inklusif_pada_laporan_material` | acceptance 4 — konsistensi antar laporan |
+| `Rentang_terbalik_ditolak` + dua uji laporan lain | keputusan 2 pada ketiga laporan |
+| `Tanggal_awal_sama_dengan_tanggal_akhir_tetap_sah` | `From == To` valid |
+| `Penyaring_lain_tetap_bekerja_sesudah_normalisasi_tanggal` | normalisasi tidak menelan penyaring lain |

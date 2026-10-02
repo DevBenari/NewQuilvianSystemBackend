@@ -286,37 +286,65 @@ public class ReportTests
     }
 
     [Fact]
-    public async Task Rentang_terbalik_mengembalikan_kosong_bukan_melempar()
+    public async Task Rentang_terbalik_ditolak()
     {
-        // `From` lebih besar daripada `To` tidak ditolak kontraknya; yang penting ia tidak
-        // meledak dan tidak diam-diam mengabaikan penyaringnya. Dicatat sebagai gap, bukan
-        // sebagai aturan yang dikarang di sini.
+        // Regresi `BUG-OPR-BE-001`, keputusan 2. Dulu ia menjawab daftar kosong, dan daftar
+        // kosong berbohong: ia menyatakan laporannya memang tidak punya data, padahal
+        // penyaringnya yang mustahil.
         using var h = new OperatingRoomHarness();
         var seed = await OperatingRoomSeed.BuatAsync(h);
         var (konteks, _, _, nomorLama, nomorBaru) = await DuaKasusAsync(h, seed);
 
-        var hasil = await Laporan(konteks).GetOperationsAsync(new OprReportQuery
-        {
-            PageSize = 50,
-            From = DateTime.UtcNow.AddDays(5),
-            To = DateTime.UtcNow.AddDays(-5)
-        });
+        var galat = await Assert.ThrowsAsync<ArgumentException>(() =>
+            Laporan(konteks).GetOperationsAsync(new OprReportQuery
+            {
+                PageSize = 50,
+                From = DateTime.UtcNow.AddDays(5),
+                To = DateTime.UtcNow.AddDays(-5)
+            }));
 
-        Assert.Empty(hasil.Items);
-        Assert.Equal(0, hasil.TotalData);
+        Assert.Contains("tidak valid", galat.Message);
     }
 
     [Fact]
-    public async Task Tanggal_akhir_tanpa_jam_membuang_seluruh_data_hari_itu()
+    public async Task Rentang_terbalik_ditolak_pada_laporan_material()
     {
-        // Perilaku apa adanya, dicatat supaya terlihat — BUKAN perilaku yang dibenarkan uji ini.
-        //
-        // Penyaring layar mengirim tanggal TANPA jam. Laporan Operasi memakainya apa adanya,
-        // sehingga `To` berarti pukul 00:00 dan seluruh kasus pada hari itu justru terbuang.
-        // Laporan Gizi sudah menutup cacat yang sama lewat penolong `ToInclusive`; laporan
-        // Operasi belum punya padanannya.
-        //
-        // Dilaporkan sebagai `BUG-OPR-BE-001`; source tidak diubah dari task pengujian ini.
+        // Ketiga laporan harus berperilaku sama; pembacanya tidak boleh menebak laporan mana
+        // yang memeriksa penyaringnya.
+        using var h = new OperatingRoomHarness();
+        var seed = await OperatingRoomSeed.BuatAsync(h);
+        var (konteks, _, _, nomorLama, nomorBaru) = await DuaKasusAsync(h, seed);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            Laporan(konteks).GetMaterialsAsync(new OprMaterialReportQuery
+            {
+                PageSize = 50,
+                From = DateTime.UtcNow.AddDays(5),
+                To = DateTime.UtcNow.AddDays(-5)
+            }));
+    }
+
+    [Fact]
+    public async Task Rentang_terbalik_ditolak_pada_laporan_pemakaian_ruang()
+    {
+        using var h = new OperatingRoomHarness();
+        var seed = await OperatingRoomSeed.BuatAsync(h);
+        var (konteks, _, _, nomorLama, nomorBaru) = await DuaKasusAsync(h, seed);
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            Laporan(konteks).GetUtilizationAsync(new OprUtilizationQuery
+            {
+                From = DateTime.UtcNow.AddDays(5),
+                To = DateTime.UtcNow.AddDays(-5)
+            }));
+    }
+
+    [Fact]
+    public async Task Tanggal_awal_sama_dengan_tanggal_akhir_tetap_sah()
+    {
+        // Sisi lain keputusan 2: satu hari penuh bukan rentang nol. Pemeriksaannya dilakukan
+        // SESUDAH tanggal akhir diperluas ke akhir hari, sehingga `From` dan `To` pada tanggal
+        // yang sama lolos.
         using var h = new OperatingRoomHarness();
         var seed = await OperatingRoomSeed.BuatAsync(h);
         var hariIni = DateTime.UtcNow.Date;
@@ -329,7 +357,115 @@ public class ReportTests
             To = hariIni
         });
 
+        Assert.Contains(nomor, hasil.Items.Select(x => x.CaseNumber));
+    }
+
+    [Fact]
+    public async Task Tanggal_akhir_tanpa_jam_mencakup_seluruh_hari_itu()
+    {
+        // Regresi `BUG-OPR-BE-001`, keputusan 1. Penyaring layar mengirim tanggal TANPA jam;
+        // dulu laporan memakainya apa adanya, sehingga `To` berarti pukul 00:00 dan kasus siang
+        // hari justru terbuang. Laporannya tidak melempar galat — ia hanya mengembalikan angka
+        // lebih kecil yang masuk akal.
+        using var h = new OperatingRoomHarness();
+        var seed = await OperatingRoomSeed.BuatAsync(h);
+        var hariIni = DateTime.UtcNow.Date;
+        var (konteks, nomor) = await SatuKasusPadaAsync(h, seed, hariIni.AddHours(10));
+
+        var hasil = await Laporan(konteks).GetOperationsAsync(new OprReportQuery
+        {
+            PageSize = 50,
+            From = hariIni,
+            To = hariIni
+        });
+
+        Assert.Contains(nomor, hasil.Items.Select(x => x.CaseNumber));
+    }
+
+    [Fact]
+    public async Task Kasus_hari_berikutnya_tidak_ikut_walau_tanggal_akhir_diperluas()
+    {
+        // Perluasannya berhenti pada detik terakhir hari itu, bukan merembet ke hari berikutnya.
+        using var h = new OperatingRoomHarness();
+        var seed = await OperatingRoomSeed.BuatAsync(h);
+        var hariIni = DateTime.UtcNow.Date;
+        var (konteks, nomor) = await SatuKasusPadaAsync(h, seed, hariIni.AddDays(1).AddHours(9));
+
+        var hasil = await Laporan(konteks).GetOperationsAsync(new OprReportQuery
+        {
+            PageSize = 50,
+            From = hariIni,
+            To = hariIni
+        });
+
         Assert.DoesNotContain(nomor, hasil.Items.Select(x => x.CaseNumber));
+    }
+
+    [Fact]
+    public async Task Timestamp_akhir_yang_menyebut_jam_dihormati_apa_adanya()
+    {
+        // Pengguna yang meminta "sampai pukul 10:00" tidak sedang meminta sampai tengah malam.
+        // Perluasan ke akhir hari hanya berlaku bagi tanggal tanpa jam.
+        using var h = new OperatingRoomHarness();
+        var seed = await OperatingRoomSeed.BuatAsync(h);
+        var hariIni = DateTime.UtcNow.Date;
+        var (konteks, nomor) = await SatuKasusPadaAsync(h, seed, hariIni.AddHours(14));
+
+        var hasil = await Laporan(konteks).GetOperationsAsync(new OprReportQuery
+        {
+            PageSize = 50,
+            From = hariIni,
+            To = hariIni.AddHours(10)
+        });
+
+        Assert.DoesNotContain(nomor, hasil.Items.Select(x => x.CaseNumber));
+    }
+
+    [Fact]
+    public async Task Tanggal_akhir_tanpa_jam_juga_inklusif_pada_laporan_material()
+    {
+        // Ketiga laporan memakai penolong yang sama; uji ini menjaga konsistensinya, karena
+        // laporan traceability implant yang kehilangan hari terakhir justru paling berbahaya.
+        using var h = new OperatingRoomHarness();
+        var seed = await OperatingRoomSeed.BuatAsync(h);
+        var (konteks, _, _, nomorLama, nomorBaru) = await DuaKasusAsync(h, seed);
+
+        var hariIni = DateTime.UtcNow.Date;
+
+        // Tidak melempar, dan penyaringnya memang berjalan — tanggal akhir yang sama dengan
+        // tanggal awal tidak lagi menjadi rentang nol.
+        var hasil = await Laporan(konteks).GetMaterialsAsync(new OprMaterialReportQuery
+        {
+            PageSize = 50,
+            From = hariIni,
+            To = hariIni
+        });
+
+        Assert.NotNull(hasil);
+        Assert.Equal(0, hasil.TotalData);
+    }
+
+    [Fact]
+    public async Task Penyaring_lain_tetap_bekerja_sesudah_normalisasi_tanggal()
+    {
+        // Normalisasi tanggal tidak boleh menelan penyaring lain. Diuji bersama-sama, bukan
+        // hanya masing-masing.
+        using var h = new OperatingRoomHarness();
+        var seed = await OperatingRoomSeed.BuatAsync(h);
+        var (konteks, _, _, nomorLama, nomorBaru) = await DuaKasusAsync(h, seed);
+
+        var hasil = await Laporan(konteks).GetOperationsAsync(new OprReportQuery
+        {
+            PageSize = 50,
+            From = DateTime.UtcNow.Date.AddDays(-30),
+            To = DateTime.UtcNow.Date,
+            Status = OprCaseStatus.Completed,
+            PrimarySurgeonId = seed.DokterBedahId
+        });
+
+        Assert.All(hasil.Items, x => Assert.Equal(OprCaseStatus.Completed, x.Status));
+        Assert.Contains(nomorLama, hasil.Items.Select(x => x.CaseNumber));
+        Assert.DoesNotContain(nomorBaru, hasil.Items.Select(x => x.CaseNumber));
     }
 
     // ------------------------------------------------------------------ paging
