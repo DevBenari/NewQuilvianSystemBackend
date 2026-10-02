@@ -9,6 +9,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.M
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Services.Logging;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
@@ -150,7 +152,27 @@ public sealed class PharmacyHarness : IDisposable
         konteks.Set<MstDrugStorageLocation>().AddRange(
             Depo(DepoId, "UJI-PHM-DEPO-1", "Depo Farmasi (Uji)", aktif: true, bolehSerah: true),
             Depo(DepoNonaktifId, "UJI-PHM-DEPO-2", "Depo Nonaktif (Uji)", aktif: false, bolehSerah: true),
-            Depo(GudangTanpaPenyerahanId, "UJI-PHM-GUD-1", "Gudang Induk (Uji)", aktif: true, bolehSerah: false));
+            Depo(GudangTanpaPenyerahanId, "UJI-PHM-GUD-1", "Gudang Induk (Uji)", aktif: true, bolehSerah: false),
+            Depo(DepoTanpaTerimaId, "UJI-PHM-DEPO-3", "Depo Tanpa Terima (Uji)", aktif: true, bolehSerah: true, bolehTerima: false));
+
+        // Pasien dan kunjungannya. Etiket obat membacanya, dan retur obat memeriksa kunjungannya
+        // ke basis data sebelum menerima apa pun.
+        konteks.Set<MstPatient>().Add(new MstPatient
+        {
+            Id = PasienId,
+            FullName = "Pasien Uji Farmasi",
+            MedicalRecordNumber = "UJI-PHM-RM-1",
+            IsActive = true,
+            CreateDateTime = DateTime.UtcNow
+        });
+
+        konteks.Set<RegPatientEncounter>().Add(new RegPatientEncounter
+        {
+            Id = KunjunganId,
+            PatientId = PasienId,
+            EncounterNumber = "UJI-PHM-ENC-1",
+            CreateDateTime = DateTime.UtcNow
+        });
 
         konteks.Set<MstWorkforceProfile>().AddRange(
             new MstWorkforceProfile
@@ -172,15 +194,21 @@ public sealed class PharmacyHarness : IDisposable
     }
 
     private static MstDrugStorageLocation Depo(Guid id, string kode, string nama,
-        bool aktif, bool bolehSerah) => new()
+        bool aktif, bool bolehSerah, bool bolehTerima = true) => new()
         {
             Id = id,
             StorageLocationCode = kode,
             StorageLocationName = nama,
             IsActive = aktif,
             IsAllowDispensing = bolehSerah,
+            IsAllowReceiving = bolehTerima,
             CreateDateTime = DateTime.UtcNow
         };
+
+    public DrugReturnService ReturService(ApplicationDbContext k) =>
+        new(k, Accessor(ApotekerId),
+            new LoggerService(NullLogger<LoggerService>.Instance, Accessor(ApotekerId)),
+            StokService(k));
 
     public Guid ResepId { get; } = Guid.NewGuid();
     public Guid ItemResepId { get; } = Guid.NewGuid();
@@ -200,6 +228,7 @@ public sealed class PharmacyHarness : IDisposable
     public Guid GudangTanpaPenyerahanId { get; } = Guid.NewGuid();
     public Guid PetugasId { get; } = Guid.NewGuid();
     public Guid PetugasNonaktifId { get; } = Guid.NewGuid();
+    public Guid DepoTanpaTerimaId { get; } = Guid.NewGuid();
 
     public ApplicationDbContext CreateContext()
     {

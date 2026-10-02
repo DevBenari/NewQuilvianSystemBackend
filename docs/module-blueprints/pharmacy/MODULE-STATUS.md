@@ -40,10 +40,10 @@ Tangga tahap yang berlaku dan sudah terbukti ujung ke ujung:
 | Backend | `SUBSTANTIAL` |
 | Frontend | `SUBSTANTIAL` |
 | Integrasi | `SUBSTANTIAL` — clearance terbukti ujung ke ujung; producer tagihan menunggu approval Billing |
-| Verifikasi | `STRONG` — **120 uji** regresi ditambah bukti runtime penuh |
+| Verifikasi | `STRONG` — **158 uji** regresi ditambah bukti runtime penuh |
 
-**Perkiraan ketuntasan: ~95%.** Diukur ketat "berfungsi hari ini di integration", producer
-tagihan belum menyala sehingga angkanya lebih dekat ~90%.
+**Perkiraan ketuntasan: ~96%.** Diukur ketat "berfungsi hari ini di integration", producer
+tagihan belum menyala sehingga angkanya lebih dekat ~91%.
 
 Uji pada `Tests/QuilvianSystemBackend.PharmacyTests`:
 
@@ -62,11 +62,17 @@ dengan registrasi yang sama seperti aplikasi, karena rantai fakta klinis membuka
 sendiri lewat `IServiceScopeFactory`; tiruan kosong akan membuat jalur itu diam-diam tidak
 berjalan.
 
-**Belum teruji:** `DrugReturnService` (retur obat — 8 method, daur hidup tersendiri),
-permission matrix tingkat HTTP, dan 19 controller Farmasi lainnya.
+| `DrugReturnTests` | 38 | `DrugReturnService` — daur hidup `Draft → Submitted → Verified/Rejected`, `Cancelled` dari dua keadaan, efek stok, histori, versi |
 
-**Bug terbuka:** [`BUG-PHA-BE-002`](bug-pha-be-002-klarifikasi-tertutup.md) — klarifikasi yang
-sudah ditutup masih dapat dijawab dokter.
+**Belum teruji:** `DrugReturnService.UpdateAsync` dan `GetPagedAsync`, permission matrix tingkat
+HTTP, dan 19 controller Farmasi lainnya.
+
+**Bug terbuka:**
+
+| ID | Isi |
+|---|---|
+| [`BUG-PHA-BE-002`](bug-pha-be-002-klarifikasi-tertutup.md) | Klarifikasi yang sudah ditutup masih dapat dijawab dokter. Keputusan pemilik modul: penjaga utamanya `ClosedAt != null` |
+| [`BUG-PHA-BE-003`](bug-pha-be-003-retur-tanpa-batas-serah.md) | Retur obat tidak dibatasi jumlah yang pernah diserahkan |
 
 ## Permukaan yang sudah berdiri
 

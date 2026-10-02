@@ -58,12 +58,26 @@ tertunda yang tiba terlambat.
 3. **Respons yang sama dikirim ulang aman.** Pengiriman kedua dengan isi identik tidak mengubah
    apa pun dan tidak melahirkan baris maupun transisi kedua.
 
-## Yang perlu diputuskan lebih dulu
+## Keputusan pemilik modul — 2 Oktober 2026
 
-Pemeriksaannya sebaiknya memakai `ClosedAt` atau daftar status tertutup yang lengkap? Keduanya
-menutup celah ini, tetapi daftar status menuntut setiap status baru kelak ikut didaftarkan,
-sementara `ClosedAt` berlaku sendiri. Pilihan itu milik pemilik modul, bukan diputuskan dari task
-pengujian.
+**Penjaga utamanya `ClosedAt != null`.** Jangan bergantung hanya pada daftar status tertutup;
+status boleh dipakai sebagai validasi tambahan, bukan sebagai satu-satunya pemeriksaan.
+
+Alasannya: `ClosedAt` terisi pada setiap jalur penutupan dan berlaku sendiri tanpa menuntut
+daftar status diperbarui setiap kali status baru ditambahkan. Daftar status yang tertinggal satu
+nilai akan membuka kembali celah yang sama tanpa ada yang menyadarinya.
+
+Bentuk yang diminta pada `RespondClarificationAsync`:
+
+```csharp
+if (entity.ClosedAt != null)
+    throw new InvalidOperationException("Klarifikasi sudah ditutup.");
+
+// Pemeriksaan status dipertahankan sebagai lapisan tambahan, bukan pengganti.
+if (entity.Status is PrescriptionClarificationStatus.Closed
+    or PrescriptionClarificationStatus.Cancelled)
+    throw new InvalidOperationException("Klarifikasi sudah ditutup.");
+```
 
 ## Catatan
 
