@@ -12,8 +12,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Con
 
 /// <summary>
 /// Tukar Faktur (BE-FIN-033, FIN-API-1.1 §B.3, FIN-PERM-1.1 §B.3). `GET /` (daftar berpaging)
-/// belum ada service-nya — gap terbuka yang sama seperti `FinancePurchaseOrdersController`/
-/// `FinanceGoodsReceiptsController` (BE-FIN-032).
+/// ditambahkan menyusul (penyelesaian `BE-FIN-033`, lihat laporan task).
 /// </summary>
 [ApiController]
 [Authorize]
@@ -25,6 +24,24 @@ public sealed class FinanceInvoiceExchangesController : ControllerBase
 {
     private readonly FinanceInvoiceExchangeService _service;
     public FinanceInvoiceExchangesController(FinanceInvoiceExchangeService service) => _service = service;
+
+    [HttpGet]
+    [AccessAction("Read", "Read Invoice Exchange", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceInvoiceExchange", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<InvoiceExchangeResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetList([FromQuery] InvoiceExchangeQuery query, CancellationToken cancellationToken)
+    {
+        var result = await _service.GetPagedAsync(query, cancellationToken);
+        var mapped = new PagedResult<InvoiceExchangeResponse>
+        {
+            Items = result.Items.Select(Map).ToList(),
+            PageNumber = result.PageNumber,
+            PageSize = result.PageSize,
+            TotalData = result.TotalData,
+            TotalPage = result.TotalPage
+        };
+        return Ok(ApiResponse<PagedResult<InvoiceExchangeResponse>>.Ok(mapped, "Daftar Tukar Faktur berhasil diambil."));
+    }
 
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Invoice Exchange", AccessType = AccessTypes.Read, SortOrder = 1)]

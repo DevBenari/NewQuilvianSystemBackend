@@ -395,8 +395,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [AccessPermission("PatientEncounter", "Create")]
         public async Task<IActionResult> CreateEncounterForAdmin([FromBody] PatientEncounterCreateRequest request)
         {
-            // Jalur petugas admisi. Hanya route ini yang menerima Penjamin Perusahaan
-            // sesuai RWI-ENC-PAYER-001 bagian 7, sehingga wewenang kiosk tidak ikut meluas.
+            // Jalur petugas admisi. Menerima Penjamin Perusahaan sejak RWI-ENC-PAYER-001 1.0.0.
             return await CreateEncounterCoreAsync(
                 request,
                 allowCompanyGuarantor: true,
@@ -411,10 +410,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [AccessAction("Create", "Create Patient Encounter", Description = "Membuat transaksi kunjungan pasien dengan satu sumber pembayaran", AccessType = AccessTypes.Create, SortOrder = 2)]
         public async Task<IActionResult> CreateEncounterForKiosk([FromBody] PatientEncounterCreateRequest request)
         {
-            // Kiosk tetap terbatas pada Tunai dan Asuransi.
+            // Kiosk menerima Tunai, Asuransi, dan Penjamin Perusahaan sejak RWI-ENC-PAYER-001
+            // 1.1.0 (KSK-DEC-013, BE-KSK-003), dengan validasi yang sama persis dengan /admin.
+            // Parameter tetap dipertahankan agar kedua jalur dapat dibedakan lagi tanpa
+            // mengubah proses inti, dan logScope tetap membedakan asal permintaan di audit.
             return await CreateEncounterCoreAsync(
                 request,
-                allowCompanyGuarantor: false,
+                allowCompanyGuarantor: true,
                 logScope: "PatientEncounter.CreateEncounterForKiosk");
         }
 
@@ -1313,8 +1315,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return (false, "Tipe pembayaran tidak valid. Gunakan nilai dari endpoint filters/metadata.");
             }
 
-            // Penjamin Perusahaan hanya dibuka untuk registrasi petugas. Kiosk tetap
-            // pada dua metode lamanya supaya wewenangnya tidak ikut meluas.
+            // Penjaga jalur: kini kedua route (admin dan kiosk) mengirim allowCompanyGuarantor
+            // = true (RWI-ENC-PAYER-001 1.1.0). Dipertahankan untuk pemanggil yang kelak
+            // sengaja menutup Penjamin Perusahaan.
             if (request.PaymentType == EncounterPaymentType.CompanyGuarantor &&
                 !allowCompanyGuarantor)
             {
@@ -2071,8 +2074,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     NormalizeNullableText(patientCompanyGuarantor.BenefitPlanName);
                 entity.ClassNameSnapshot =
                     NormalizeNullableText(patientCompanyGuarantor.ClassName);
-                entity.EffectiveStartDateSnapshot = patientCompanyGuarantor.EffectiveStartDate;
-                entity.EffectiveEndDateSnapshot = patientCompanyGuarantor.EffectiveEndDate;
+                // Kolom sumber bertipe date (Kind=Unspecified), sedangkan snapshot timestamptz
+                // hanya menerima UTC; tanpa konversi ini SaveChanges gagal (500).
+                entity.EffectiveStartDateSnapshot = ToUtcDate(patientCompanyGuarantor.EffectiveStartDate);
+                entity.EffectiveEndDateSnapshot = ToUtcDate(patientCompanyGuarantor.EffectiveEndDate);
                 entity.IsEligible = patientCompanyGuarantor.IsEligible;
                 entity.IsPolicyActive = true;
 
@@ -2095,8 +2100,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             entity.PlanNameSnapshot = NormalizeNullableText(patientInsurance.PlanName);
             entity.ClassNameSnapshot = NormalizeNullableText(patientInsurance.ClassName);
             entity.BenefitPlanCodeSnapshot = NormalizeNullableText(patientInsurance.BenefitPlanCode);
-            entity.EffectiveStartDateSnapshot = patientInsurance.EffectiveStartDate;
-            entity.EffectiveEndDateSnapshot = patientInsurance.EffectiveEndDate;
+            entity.EffectiveStartDateSnapshot = ToUtcDate(patientInsurance.EffectiveStartDate);
+            entity.EffectiveEndDateSnapshot = ToUtcDate(patientInsurance.EffectiveEndDate);
             entity.IsEligible = patientInsurance.IsEligible;
             entity.IsPolicyActive = true;
 
@@ -2681,6 +2686,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private static DateTime ToUtcDate(DateTime value)
         {
             return DateTime.SpecifyKind(value.Date, DateTimeKind.Utc);
+        }
+
+        private static DateTime? ToUtcDate(DateTime? value)
+        {
+            return value.HasValue ? ToUtcDate(value.Value) : null;
         }
 
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)

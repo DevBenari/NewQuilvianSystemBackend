@@ -11,12 +11,16 @@ public sealed class FinSupplierReturnConfiguration : IEntityTypeConfiguration<Fi
         entity.ToTable("FinSupplierReturn", "public", table =>
         {
             table.HasCheckConstraint("CK_FinSupplierReturn_Status", "\"Status\" IN ('DRAFT','CONFIRMED','CANCELLED')");
+            // BE-FIN-043, FIN-DES-055 / E.9: porsi PPN tidak boleh negatif. Default 0 membuat
+            // seluruh baris lama langsung memenuhi constraint ini tanpa backfill.
+            table.HasCheckConstraint("CK_FinSupplierReturn_PPNAmount", "\"PPNAmount\" >= 0");
         });
         entity.HasKey(x => x.Id);
 
         entity.Property(x => x.ReturnNumber).HasMaxLength(50).IsRequired();
         entity.Property(x => x.Reason).HasMaxLength(500).IsRequired();
         entity.Property(x => x.TotalAmount).HasPrecision(18, 2);
+        entity.Property(x => x.PPNAmount).HasPrecision(18, 2).HasDefaultValue(0m);
         entity.Property(x => x.Status).HasMaxLength(20).IsRequired().HasDefaultValue(FinSupplierReturnStatuses.Draft);
         entity.Property(x => x.RowVersion).IsConcurrencyToken();
 

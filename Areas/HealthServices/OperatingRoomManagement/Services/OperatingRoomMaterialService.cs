@@ -81,6 +81,8 @@ public sealed class OperatingRoomMaterialService
                 "Kasus sudah selesai; perubahan pemakaian hanya melalui koreksi beralasan.");
         await EnsureTeamMemberAsync(entity, actorUserId, cancellationToken);
 
+        await EnsureImplantSerialUnusedAsync(caseId, request, cancellationToken);
+
         var revision = 1;
         if (request.Outcome == OprMaterialOutcome.Corrected)
         {
@@ -201,6 +203,47 @@ public sealed class OperatingRoomMaterialService
                     "Item yang dipilih sudah tidak aktif pada master farmasi.");
             return new ItemResolution(true, drug.DrugName);
         });
+    }
+
+    /// <summary>
+    /// Satu implant bernomor seri hanya ada satu benda, jadi nomor itu tidak boleh dipakai dua
+    /// kali sebagai pemakaian pada kasus operasi yang sama (`OPR014`).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Cakupan keunikan yang diberlakukan V1 adalah satu kasus operasi. Cakupan yang lebih luas
+    /// — per pasien atau seluruh rumah sakit — belum diputuskan pemilik proses, dan implant yang
+    /// sama memang dapat muncul lagi pada kasus lain, misalnya saat revisi implant yang gagal.
+    /// </para>
+    /// <para>
+    /// Yang dihitung hanya baris <c>Used</c> yang belum dikoreksi. Baris <c>Returned</c> dan
+    /// <c>Wasted</c> justru menyatakan implant itu tidak jadi terpasang, dan baris koreksi
+    /// memang menunjuk catatan sebelumnya, sehingga keduanya tidak boleh ikut menutup nomor
+    /// serinya. Baris yang sudah digantikan koreksi juga dilepas, supaya pencatatan yang salah
+    /// tidak mengunci nomor seri itu selamanya.
+    /// </para>
+    /// </remarks>
+    private async Task EnsureImplantSerialUnusedAsync(Guid caseId, CreateOprMaterialUsageRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.ItemType != OprMaterialItemType.Implant ||
+            request.Outcome != OprMaterialOutcome.Used) return;
+
+        var serial = Normalize(request.SerialNumber);
+        if (string.IsNullOrWhiteSpace(serial)) return;
+
+        var bentrok = await _dbContext.OprMaterialUsages.AsNoTracking()
+            .Where(x => x.OprCaseId == caseId && !x.IsDelete &&
+                x.ItemType == OprMaterialItemType.Implant &&
+                x.Outcome == OprMaterialOutcome.Used &&
+                x.SerialNumber == serial &&
+                !_dbContext.OprMaterialUsages.Any(koreksi =>
+                    koreksi.CorrectionOfUsageId == x.Id && !koreksi.IsDelete))
+            .AnyAsync(cancellationToken);
+
+        if (bentrok)
+            throw new OperatingRoomConflictException("OPR014",
+                "Nomor serial implant ini sudah tercatat dipakai pada kasus operasi yang sama.");
     }
 
     private async Task EnsureTeamMemberAsync(OprCase entity, Guid actorUserId, CancellationToken cancellationToken)

@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `ACC-BP-001` |
-| Revision | `13` — dinaikkan 28 September 2026 (kedua); `ACC-DEC-103` sampai `ACC-DEC-106` menjawab usulan kode Finance `evidence/06` dan `07`: `PPN-MASUKAN-PEMBELIAN` diratifikasi dengan akun debit ditetapkan di G2, potongan piutang diminta dipecah menjadi dua pasang kode, `RETUR-PEMBELIAN` bersyarat tanpa PPN, `PEMAKAIAN-DEPOSIT-RETUR` diratifikasi. Sebelumnya `12` — dinaikkan 28 September 2026; `ACC-DEC-094` sampai `ACC-DEC-102` mencatat empat keputusan terbuka pasca-Wave B (angka menu, kejadian Gagal di periode tertutup, aturan posting untuk jenis saldo, tampilan pesan asli) dan keputusan sisi Accounting atas jawaban Finance (`FIN-DEC-030`..`044`): ratifikasi empat kode, pemecahan `SELISIH-KAS-SHIFT`, ratifikasi bersyarat `PENGAKUAN-KELEBIHAN-BAYAR`, batas pengesahan selisih shift, dan refund kategori lain dalam G6. Sebelumnya `11` — dinaikkan 24 September 2026 (kedua); `ACC-DEC-092` dan `ACC-DEC-093` menutup dua butir desain yang tersisa saat `GATE-DESAIN-0924` dibuka. Sebelumnya `10` — dinaikkan 24 September 2026; `ACC-DEC-082` sampai `ACC-DEC-091` mencatat keputusan pasca-ratifikasi Finance (`FIN-DEC-001`..`023`, 20 September 2026): `ACC-XM-001` ditutup, katalog 17 kode diratifikasi, mode pemrosesan, isi tanda terima, `JASA_MEDIS`, bentuk saldo subledger, syarat akun layanan, gerbang cutover, dan penerimaan sebelum tagihan final sebagai uang muka pasien. Sebelumnya `9` — dinaikkan 14 September 2026; `ACC-DEC-074` sampai `ACC-DEC-081` mencatat delapan keputusan owner hasil review "rencana sampai 100%" (`OD-ACC-02`, `03`, `09`, `10`, `11`, `13`, `14`, `15`). Sebelumnya `8` — dinaikkan 11 September 2026; `ACC-DEC-072` dan `ACC-DEC-073` menutup dua keputusan terbuka `BE-ACC-P2-012` (koreksi jurnal dan template berulang yang menyentuh control account). Sebelumnya `7`, 10 September 2026; `ACC-DEC-071` menutup `DEC-ACC-P2-011` dengan memilih saldo subledger per periode dari Finance, dan membuka `ACC-GAP-013`. Sebelumnya `6` (`ACC-DEC-070`, enam peringatan, menutup `ACC-GAP-012`), `5` (`ACC-DEC-067`, `068`, `069`), dan `4`, 8 September 2026 oleh Amendment pass Phase 2 |
+| Revision | `17` — dinaikkan 1 Oktober 2026; `ACC-DEC-125` sampai `ACC-DEC-131` menjawab surat Finance 15, 16, dan 21: dua kode jurnal baru diratifikasi, shift tertutup final pada `CLOSED` dan `REVIEWED`, dua kode penanda diterima untuk dikerjakan di G6, potongan piutang cukup dua jenis, refund `REFERRED_OUTPATIENT_ADMIN` ditahan sebagai syarat G6, `SETTLEMENT` masuk kode kelebihan bayar, dan soal kas per shift ditanyakan ke Finance. Sebelumnya `16` — dinaikkan 30 September 2026; `ACC-DEC-122` sampai `ACC-DEC-124` menetapkan pengguna khusus "Sistem Akuntansi" sebagai pelaku kedua penjadwal, menyalakan penjadwal jurnal berulang di server bersama dan produksi, serta memindahkan `FR-P2-038` dari DoD Phase 2 menjadi syarat gerbang cutover G6. Sebelumnya `15` — dinaikkan 29 September 2026; `ACC-DEC-116` sampai `ACC-DEC-121` menetapkan perlakuan draft jurnal hasil kejadian: hapus mengembalikan kejadian ke Gagal, catatan otomatis, jurnal Ditolak hasil kejadian boleh dihapus, jurnal hasil kejadian tidak dapat disunting, jurnal Ditolak hasil kejadian menahan tutup bulan, dan hak hapus yang sudah ada (OQ-034-1/2). Sebelumnya `14` — dinaikkan 28 September 2026 (ketiga); `ACC-DEC-107` sampai `ACC-DEC-115` menetapkan rekonsiliasi saldo subledger untuk `BE-ACC-P2-014`/`FE-ACC-P2-016`: titik mulai otomatis sejak saldo pertama (T6), akun wajib, arah tanda nilai, cut-off akhir periode, dua titik penegakan, hasil dihitung tanpa disimpan, tanpa jalan darurat, pemilih periode di layar Rekonsiliasi, dan pembacaan layar Rekonsiliasi tidak dicatat (`115`, diambil saat approval `GATE-DESAIN-0928`). Sebelumnya `13` — dinaikkan 28 September 2026 (kedua); `ACC-DEC-103` sampai `ACC-DEC-106` menjawab usulan kode Finance `evidence/06` dan `07`: `PPN-MASUKAN-PEMBELIAN` diratifikasi dengan akun debit ditetapkan di G2, potongan piutang diminta dipecah menjadi dua pasang kode, `RETUR-PEMBELIAN` bersyarat tanpa PPN, `PEMAKAIAN-DEPOSIT-RETUR` diratifikasi. Sebelumnya `12` — dinaikkan 28 September 2026; `ACC-DEC-094` sampai `ACC-DEC-102` mencatat empat keputusan terbuka pasca-Wave B (angka menu, kejadian Gagal di periode tertutup, aturan posting untuk jenis saldo, tampilan pesan asli) dan keputusan sisi Accounting atas jawaban Finance (`FIN-DEC-030`..`044`): ratifikasi empat kode, pemecahan `SELISIH-KAS-SHIFT`, ratifikasi bersyarat `PENGAKUAN-KELEBIHAN-BAYAR`, batas pengesahan selisih shift, dan refund kategori lain dalam G6. Sebelumnya `11` — dinaikkan 24 September 2026 (kedua); `ACC-DEC-092` dan `ACC-DEC-093` menutup dua butir desain yang tersisa saat `GATE-DESAIN-0924` dibuka. Sebelumnya `10` — dinaikkan 24 September 2026; `ACC-DEC-082` sampai `ACC-DEC-091` mencatat keputusan pasca-ratifikasi Finance (`FIN-DEC-001`..`023`, 20 September 2026): `ACC-XM-001` ditutup, katalog 17 kode diratifikasi, mode pemrosesan, isi tanda terima, `JASA_MEDIS`, bentuk saldo subledger, syarat akun layanan, gerbang cutover, dan penerimaan sebelum tagihan final sebagai uang muka pasien. Sebelumnya `9` — dinaikkan 14 September 2026; `ACC-DEC-074` sampai `ACC-DEC-081` mencatat delapan keputusan owner hasil review "rencana sampai 100%" (`OD-ACC-02`, `03`, `09`, `10`, `11`, `13`, `14`, `15`). Sebelumnya `8` — dinaikkan 11 September 2026; `ACC-DEC-072` dan `ACC-DEC-073` menutup dua keputusan terbuka `BE-ACC-P2-012` (koreksi jurnal dan template berulang yang menyentuh control account). Sebelumnya `7`, 10 September 2026; `ACC-DEC-071` menutup `DEC-ACC-P2-011` dengan memilih saldo subledger per periode dari Finance, dan membuka `ACC-GAP-013`. Sebelumnya `6` (`ACC-DEC-070`, enam peringatan, menutup `ACC-GAP-012`), `5` (`ACC-DEC-067`, `068`, `069`), dan `4`, 8 September 2026 oleh Amendment pass Phase 2 |
 | Status | `approved` untuk scope MVP; `approved` untuk keputusan Phase 2. Ratifikasi lintas modul `ACC-XM-001` **tertutup 24 September 2026** (`ACC-DEC-082`); yang tersisa hanya butir lintas modul yang bukan wewenang Accounting, lihat bagian *Keputusan pasca-ratifikasi Finance* |
-| Pass | `Scope pass` — **selesai** 1 September 2026 · `Amendment pass — Phase 2` — **selesai** 8 September 2026 · `Amendment pass — pasca-ratifikasi Finance` — **selesai** 24 September 2026 (`rizkiG` `b2b265af`, `RizkiV2` `c941012ac`) · `Amendment pass — pasca-Wave B dan jawaban Finance` — **selesai** 28 September 2026 (`rizkiG` `91cc2aba`, `RizkiV2` `95ea41cd9`) · `Amendment pass — usulan kode Finance evidence/06 dan 07` — **selesai** 28 September 2026 (`rizkiG` `3d469bc5`) |
+| Pass | `Scope pass` — **selesai** 1 September 2026 · `Amendment pass — Phase 2` — **selesai** 8 September 2026 · `Amendment pass — pasca-ratifikasi Finance` — **selesai** 24 September 2026 (`rizkiG` `b2b265af`, `RizkiV2` `c941012ac`) · `Amendment pass — pasca-Wave B dan jawaban Finance` — **selesai** 28 September 2026 (`rizkiG` `91cc2aba`, `RizkiV2` `95ea41cd9`) · `Amendment pass — usulan kode Finance evidence/06 dan 07` — **selesai** 28 September 2026 (`rizkiG` `3d469bc5`) · `Amendment pass — rekonsiliasi saldo subledger (Wave D tahap akhir)` — **selesai** 28 September 2026 (`rizkiG` `b476527d`, `RizkiV2` `a6d269077`) · `Amendment pass — draft jurnal hasil kejadian` — **selesai** 29 September 2026 · `Amendment pass — pelaku sistem, penjadwal jurnal berulang, dan shift kasir` — **selesai** 30 September 2026 (`rizkiG` `a3f2514a`, `RizkiV2` `2c2190858`) · `Amendment pass — jawaban atas surat Finance 15, 16, 21` — **selesai** 1 Oktober 2026 (`rizkiG` `5c6632d2`, `RizkiV2` `5ec2b3b8c`) |
 | Backend SHA — Amendment pass | `02c3219` (branch `rizkiG`) |
 | Frontend SHA — Amendment pass | `e732424eb` (branch `RizkiV2`) |
 | Product/domain owner | Rizki |
@@ -930,6 +930,75 @@ empat kode uang muka (`ACC-DEC-098`), `PENGAKUAN-KELEBIHAN-BAYAR` (bersyarat, `A
 retur (`ACC-DEC-105`), kode pencairan tunai kredit retur bila ada (`ACC-DEC-106`), dan kode refund
 kategori lain (`ACC-DEC-102`).
 
+### Keputusan rekonsiliasi saldo subledger (Wave D tahap akhir) — 28 September 2026
+
+**Amendment pass `grill-me`.** Tujuannya membuka `BE-ACC-P2-014` dan `FE-ACC-P2-016`, yang ⛔ karena
+dua hal: kontrak endpoint sisi subledger belum dirancang, dan temuan **T6** — `ACC-DEC-076` akan
+menahan **setiap** tutup bulan begitu `014` aktif, karena Finance belum mengirim saldo apa pun
+sebelum cutover (G4). Snapshot: `rizkiG` `b476527d` (working tree bersih), `RizkiV2` `a6d269077`.
+Bentuk blueprint tetap `SINGLE`, tidak dinilai ulang.
+
+**Batas scope pass ini** — dikonfirmasi Rizki 28 September 2026. *Di dalam scope:* penghalang
+rekonsiliasi pada daftar periksa penutupan (`ACC-DEC-076`); pembandingan saldo subledger tersimpan
+(`AccSubledgerBalance`) dengan saldo buku besar; laporan selisih di layar Rekonsiliasi
+(`FE-ACC-P2-016`); aturan Accounting atas isi pesan `SALDO-SUBLEDGER` yang diterima. *Di luar scope —
+untuk modul lain:* kapan dan untuk akun apa Finance mengirim saldo, serta aturan internal subledger
+Finance (milik Yasmin). Kartu `ACC-DEC-095`/`096` dan pemulihan butir menu Rekonsiliasi adalah task,
+bukan keputusan — ditangani `plan-module-delivery`.
+
+**Capability map.** `01-existing-capability-map.md` masih ber-SHA `aa837d78`, basi. Fakta di bawah
+diperiksa langsung di source hari ini.
+
+| Hal | Fakta | Bukti |
+|---|---|---|
+| Titik pemeriksaan penghalang | Ajukan (`Open` → `PendingClosingApproval`) menghitung ulang penghalang. Setujui (→ `SoftClosed`) dan Tutup Permanen (`SoftClosed` → `Closed`) **tidak memeriksa apa pun** | `AccPeriodClosingService.SubmitClosingAsync`, `ApproveClosingAsync`; `AccAccountingPeriodService.CloseAsync`, `PeriksaPerpindahanTutup` |
+| Pesan saldo untuk periode belum `Closed` | Baris saldo tetap diganti bila versinya lebih tinggi — termasuk selama `PendingClosingApproval` dan `SoftClosed`. Hanya `Closed` yang dibekukan | `AccAccountingEventService` cabang saldo, pemeriksaan `StatusPeriode != Closed` |
+| Tanggal cut-off pesan saldo | **Tidak** dicocokkan dengan periode. Pesan periode `2026-09` bertanggal `2026-09-15` diterima dan disimpan sebagai `AsOfDate` | `AccAccountingEventService.PeriksaRincianSaldoAsync` |
+| Arah tanda `Amount` pesan saldo | Tidak diatur kontrak mana pun — hanya "boleh nol atau negatif" | `cross-module-contract.md` bagian pesan saldo; `finance-management/contracts/integration-contract.md` bagian 5 |
+| Saldo buku besar yang sudah berdiri | `GET /reconciliation/gl-balances` per **tanggal** (`asOfDate`, kosong = seluruh riwayat), hanya jurnal `Posted`, memberi `Balance` (debit − kredit) dan `BalanceInNormalBalance` | `AccControlAccountReconciliationService`; `ControlAccountReconciliationDtos.cs` |
+| Layar Rekonsiliasi (`FE-ACC-P2-008`) | Isian **"Saldo per tanggal"**, bukan pemilih periode; sketsa `03-frontend-architecture.md` 11.6 menulis "Periode: 2026-09" | `use-control-account-reconciliation.jsx`; `control-account-reconciliation-constants.jsx` |
+| Butir daftar periksa | Sudah membawa `Message` teks bebas — rincian "2 akun belum menerima saldo, 1 akun berselisih" tidak butuh bidang baru | `PeriodClosingBlockerResponse`; `AccPeriodClosingService.Butir` |
+| Pengaturan Akuntansi | Satu baris per badan hukum, isinya hanya akun laba ditahan dan `IsActive` | `AccAccountingConfiguration.cs` |
+| Opsi `appsettings` Accounting | Setiap kelas opsi baru butuh baris `Configure<...>` di `Program.cs` (baris 710, 716) — bertentangan dengan larangan menambah kode ke `Program.cs` | `Program.cs` |
+
+| ID | Type | Isi keputusan | Owner | Status | Approved by | Evidence |
+|---|---|---|---|---|---|---|
+| `ACC-DEC-107` | Decision | **Penghalang rekonsiliasi saldo subledger berlaku otomatis mulai periode pertama yang sudah menerima saldo subledger untuk badan hukum itu.** Memperluas `ACC-DEC-076` dengan titik mulai; isi `076` tidak berubah. **(1)** Titik mulai = periode paling awal yang punya baris `AccSubledgerBalance` (artinya pesan saldo sudah berstatus `Tercatat`) untuk badan hukum tersebut. Pesan saldo yang masih `Tertahan` atau `Gagal` **tidak** menyalakannya. **(2)** Periode **sebelum** titik mulai, atau badan hukum yang belum pernah menerima saldo: butir rekonsiliasi berkeadaan `NotYetAvailable` — tidak menahan, ikut dihitung `NotYetAvailableCount`, dengan alasan yang terbaca pengguna ("Finance belum pernah mengirim saldo subledger untuk badan hukum ini"). **(3)** Periode **sejak** titik mulai: butir `Evaluated` penuh — satu control account yang belum menerima saldo atau berselisih sudah menahan penutupan. **(4)** Berlaku **per badan hukum, bukan per akun**: bila menyala per akun, akun yang saldonya tidak pernah dikirim Finance tidak akan pernah ditagih. **(5)** Tidak ada isian, tombol, atau pengaturan untuk menyalakan maupun mematikannya; sekali menyala tetap menyala, karena baris saldo tidak punya jalan hapus. **Contoh:** Finance mengirim saldo pertama untuk periode `2026-11`. Oktober 2026 yang masih terbuka tetap "belum dapat diperiksa" dan boleh diajukan; November 2026 dan sesudahnya tertahan sampai setiap control account punya saldo yang cocok. **Akibat di `QuilvianNewDevRizki`:** baris saldo `2026-09` (akun 1-1002 dan 1-1003) sudah ada, jadi rekonsiliasi di dev menyala sejak September 2026 — uji tutup bulan September perlu saldo untuk seluruh control account lewat Swagger | Rizki | `approved` | Rizki, 28 September 2026 | Temuan T6 (`MODULE-STATUS.md`). Dipilih atas titik mulai manual di Pengaturan Akuntansi (butuh kolom, migration, dua task tambahan, dan aturan larangan memundurkan supaya tidak menjadi tuas penghindar penghalang) dan atas pemberlakuan langsung (menahan seluruh penutupan sebelum G4; satu-satunya jalan keluar adalah saldo karangan atas nama Finance, bertentangan `ACC-DEC-071`). Pola "belum dapat diperiksa sampai datanya mengalir" sama dengan `OPEN_CASH_SHIFTS` hari ini (`AccPeriodClosingService`). Varian `appsettings` dicoret karena menuntut baris baru di `Program.cs` |
+| `ACC-DEC-108` | Decision | **Control account yang wajib punya saldo subledger supaya sebuah periode dianggap lengkap.** Wajib: setiap akun ber-`IsControlAccount = true` milik badan hukum itu yang **menerima jurnal** (`IsPostable = true`) **dan aktif**, ditambah akun control **nonaktif** yang saldo buku besarnya pada akhir periode **bukan nol**. **Saldo buku besar nol tidak membebaskan** — Finance tetap wajib mengirim saldo `Rp 0`, karena justru itulah yang memergoki keadaan "subledger ada, buku besar kosong". Akun **induk** (`IsPostable = false`) dan akun nonaktif bersaldo nol **tidak wajib**. Saldo yang dikirim untuk akun di luar daftar wajib tetap disimpan (`BE-ACC-P2-028`), dibandingkan, dan tampil di layar Rekonsiliasi; bila berselisih ia **ikut menahan**, tetapi ketiadaannya tidak. **Contoh periode `2026-11`:** 1-1101 Kas Kasir aktif → wajib; 1-1201 Piutang Penjamin aktif dengan saldo buku besar nol → wajib, Finance kirim `Rp 0`; 1-1100 Kas (induk) → tidak wajib; 1-1290 Piutang Lama nonaktif bersaldo nol → tidak wajib | Rizki | `approved` | Rizki, 28 September 2026 | Fakta source: penanda control account dapat dipasang pada akun induk karena `AccChartOfAccountService` tidak membatasinya; `gl-balances` dan penerimaan saldo sama-sama memuat akun nonaktif; akun hanya dapat dinonaktifkan saat saldonya nol (`ACC-DEC-024`). Ditolak: "semua control account tanpa kecuali" (Finance wajib mengirim `Rp 0` setiap bulan untuk akun induk dan akun mati, penutupan tertahan oleh akun tak bermakna) dan "hanya yang bersaldo atau bermutasi" (piutang yang tercatat di Finance tetapi kejadiannya tak pernah sampai ke buku besar membuat akun dibebaskan, sehingga selisihnya tak pernah menahan). **Butir terbuka Finance:** kesanggupan mengirim saldo untuk keempat kelompok control account, termasuk `Rp 0` (Yasmin) |
+| `ACC-DEC-109` | Decision | **`Amount` pada pesan saldo subledger dinyatakan menurut saldo normal akunnya: positif saat akun berperilaku wajar, apa pun arah saldo normalnya.** Dibandingkan dengan **`BalanceInNormalBalance`** dari perhitungan buku besar yang sudah berdiri (`BE-ACC-P2-013`), bukan dengan `Balance` mentah. Nilai negatif hanya berarti akun **terbalik** — misalnya piutang bersaldo kredit karena kelebihan bayar. **Contoh:** Piutang Penjamin (saldo normal debit) Rp 425.000.000 → `425000000.00`; Utang Supplier (saldo normal kredit) Rp 300.000.000 → `300000000.00`, **bukan** `-300000000.00`; piutang yang terbalik menjadi kredit Rp 2.000.000 → `-2000000.00`. Melengkapi `ACC-DEC-087` yang hanya menyebut "boleh nol atau negatif" tanpa arah | Rizki (sisi Accounting); Yasmin (kesanggupan mengirim) | `approved` sisi Accounting | Rizki, 28 September 2026 | Kontrak `ACC-XMOD` dan `finance-management/contracts/integration-contract.md` bagian 5 tidak mengatur arah tanda. Contoh Finance sendiri (`FR-FIN-080`, piutang Rp 425 jt positif) sudah memakai cara ini. Ditolak "debit dikurangi kredit": Finance wajib mengetahui arah saldo normal setiap control account Accounting, dan satu akun Utang yang dikirim positif karena kebiasaan langsung berselisih dua kali lipat. **Butir terbuka Finance:** kesanggupan mengirim dengan arah ini (Yasmin) — dikabarkan lewat surat balasan sesudah pass ini |
+| `ACC-DEC-110` | Decision | **Saldo buku besar pembanding selalu dihitung per tanggal akhir periode; saldo subledger yang tanggal cut-off-nya bukan akhir periode dianggap belum lengkap.** **(1)** Untuk periode yang direkonsiliasi, saldo buku besar tiap control account dihitung sampai `AccAccountingPeriod.EndDate` inklusif, hanya dari jurnal `Posted` — aturan yang sama dengan `gl-balances`. **(2)** Pesan saldo yang `AccountingDate`-nya bukan tanggal akhir periode **tetap diterima dan disimpan** apa adanya; `BE-ACC-P2-028` dan kontrak `ACC-XMOD` tidak berubah. **(3)** Pada rekonsiliasi, akun seperti itu berkeadaan **belum lengkap** — sama dengan tidak punya saldo — dan menahan penutupan, dengan keterangan yang menyebut tanggal cut-off-nya. **(4)** Finance memperbaikinya dengan menyatakan ulang saldo lewat versi lebih tinggi bertanggal akhir periode. **Contoh periode `2026-09`:** Piutang di buku besar per 30 September Rp 80.000.000; saldo subledger versi 1 bertanggal 15 September Rp 78.500.000 → "belum lengkap: tanggal cut-off 15 September 2026 bukan akhir periode", menahan; sesudah Finance mengirim versi 2 bertanggal 30 September Rp 80.000.000 → cocok | Rizki | `approved` | Rizki, 28 September 2026 | `ACC-DEC-071` butir 1 (rekonsiliasi pada cut-off periode akuntansi). Fakta source: `PeriksaRincianSaldoAsync` tidak mencocokkan `AccountingDate` dengan periode. Ditolak "tolak `400` saat diterima" (menambah aturan pada `ACC-XMOD` yang sudah approved Rizki dan Yasmin, dan membuka ulang `028` yang sudah ✅ — dapat ditimbang kelak bersama Finance) dan "buku besar per tanggal cut-off pesan" (saldo per 15 September yang cocok meloloskan penutupan padahal transaksi 16–30 September tak pernah dicocokkan) |
+| `ACC-DEC-111` | Decision | **Penghalang rekonsiliasi ditegakkan di dua titik: saat Ajukan dan saat Tutup Permanen.** **(1) Ajukan** — `POST /periods/{id}/submit-closing` menghitung ulang rekonsiliasi di server, bukan mempercayai daftar periksa yang dilihat pengguna, lalu menolak `409` bila belum bersih; sama seperti `UNPOSTED_JOURNALS` dan `FAILED_EVENTS`. **(2) Tutup Permanen** — `POST /periods/{id}/close` dengan `Permanent = true` (`SoftClosed` → `Closed`) menghitung ulang **khusus rekonsiliasi** dan menolak `409` bila belum bersih. Penghalang lain tidak ikut diperiksa di titik ini. **(3) Setujui** (`approve-closing`) **tidak** memeriksa; selisih yang muncul selama menunggu persetujuan tertangkap saat Tutup Permanen. **(4)** Periode sebelum titik mulai `ACC-DEC-107` tidak tertahan di titik mana pun. **Contoh:** September 2026 diajukan 3 Oktober dalam keadaan cocok lalu disetujui. Tanggal 10 Oktober Finance mengirim saldo Piutang versi 2 yang berselisih Rp 1.500.000. Tanggal 12 Oktober Tutup Permanen ditolak `409` "Rekonsiliasi saldo subledger periode September 2026 belum bersih: 1 akun berselisih." Periode tetap Tutup Sementara sampai selisihnya dibereskan. **Akibat kontrak:** endpoint tutup periode kini dapat menjawab `409` karena rekonsiliasi — perubahan pada `ACC-API` grup periode | Rizki | `approved` | Rizki, 28 September 2026 | Fakta source: `SubmitClosingAsync` menghitung ulang penghalang; `ApproveClosingAsync` dan `CloseAsync` (`PeriksaPerpindahanTutup`) tidak memeriksa apa pun; saldo untuk periode belum `Closed` masih diganti versi yang lebih tinggi, sedangkan periode `Closed` dibekukan (`BE-ACC-P2-028`, `ACC-DEC-093`); pembalikan `JB` atas jurnal control account diterima periode Tutup Sementara (`ACC-DEC-067`, `072`). Tanpa titik kedua, selisih yang lahir sesudah pengajuan membeku permanen di periode `Closed`. Ditolak "hanya saat Ajukan" (celah membeku itu) dan "juga saat Setujui" (menghambat penyetuju padahal Tutup Sementara masih dapat dikoreksi, dan mengubah kontrak dua endpoint) |
+| `ACC-DEC-112` | Decision | **Hasil rekonsiliasi dihitung setiap kali diminta dan tidak disimpan.** Nol tabel baru, nol migration untuk `BE-ACC-P2-014`. Kata "mencatat selisihnya" pada `ACC-DEC-071` butir 5 ditafsirkan **melaporkan** selisih — di layar Rekonsiliasi dan pada butir daftar periksa — bukan menyimpannya sebagai baris. **Kenapa potret saat ditutup tetap terjaga tanpa tabel:** sesuai `ACC-DEC-111`, periode hanya dapat menjadi `Closed` bila setiap akun wajib cocok dengan toleransi nol. Baris `AccSubledgerBalance` periode `Closed` dibekukan (`BE-ACC-P2-028`), lengkap dengan versi dan kejadian asalnya. Jadi angka buku besar saat ditutup **sama dengan** angka subledger yang membeku itu. Angka periode `Closed` hanya bergeser lewat pembukaan kembali beralasan tertulis (`ACC-DEC-027`), dan pada saat itu hitungan terbaru memang yang benar. **Contoh:** September 2026 ditutup permanen 12 Oktober dengan Kas Kasir Rp 25.000.000 cocok dengan saldo subledger versi 3. Membuka layar Rekonsiliasi September pada Maret 2027 tetap menampilkan Rp 25.000.000 di kedua sisi dan selisih nol, tanpa satu pun tabel potret | Rizki | `approved` | Rizki, 28 September 2026 | Prinsip yang sudah berdiri di `AccPeriodClosingService` (daftar periksa dihitung setiap kali diminta; menyimpannya membuat penutupan diputus atas keadaan yang sudah berubah) dan di `gl-balances` ("tanpa cache"). Ditolak "simpan potret saat Tutup Permanen": entity, migration, dan satu task backend tambahan, serta dua angka yang dapat berbeda sesudah periode dibuka kembali sehingga butuh aturan mana yang ditampilkan |
+| `ACC-DEC-113` | Decision | **Tidak ada jalan darurat untuk melewati penghalang rekonsiliasi.** Bila saldo subledger terlambat atau berselisih, penutupan **menunggu**; tidak ada peran, hak akses, maupun tombol untuk mengecualikan butir ini. `ACC-DEC-076` (toleransi nol) tetap utuh. **Jalan pemberesan yang sah:** (1) Finance menyatakan ulang saldo lewat versi yang lebih tinggi, atau mengirim kejadian yang tertinggal; (2) Accounting membalik jurnal yang keliru dengan pembalikan penuh `JB` (`ACC-DEC-072`); jurnal manual ke control account tetap dilarang (`ACC-DEC-064`). **Tutup bulan yang tertunda tidak menghentikan pelaporan:** Neraca Saldo dan Buku Besar tetap dapat dibaca pada periode terbuka, dan transaksi bulan berikutnya tetap masuk periodenya sendiri. **Contoh:** pengiriman Finance terganggu 30 September sampai 5 Oktober 2026. Selama itu daftar periksa September menampilkan "4 akun belum menerima saldo" dan tombol Ajukan mati, sementara Neraca Saldo September tetap dapat dibaca. Tanggal 6 Oktober saldo tiba dan cocok, lalu Ajukan menyala | Rizki | `approved` | Rizki, 28 September 2026 | `ACC-DEC-071` butir 6 dan `ACC-DEC-076`. Ditolak "pengecualian oleh pimpinan keuangan dengan alasan tertulis": mengubah `076` menjadi toleransi berpengecualian, butuh hak akses baru, tempat simpan catatan pengecualian beserta migration, dan tombol baru di layar; selisih yang dikecualikan masuk periode `Closed` dan saldo subledgernya membeku permanen |
+| `ACC-DEC-114` | Decision | **Layar Rekonsiliasi Control Account memakai pemilih periode akuntansi, menggantikan isian "Saldo per tanggal".** Saldo buku besar dihitung per akhir periode terpilih (`ACC-DEC-110`); kolom **Subledger** dan **Selisih** terisi dari saldo yang diterima Finance untuk periode itu. Keadaan per akun wajib terbaca bedanya: **cocok**, **berselisih** beserta nilainya, dan **belum diterima**. Kaidah "belum diperiksa ≠ nol" pada `03-frontend-architecture.md` 11.6 tetap berlaku: akun yang saldonya belum diterima **tidak pernah** ditulis `Rp 0` atau selisih nol. Melihat saldo buku besar control account per tanggal sembarang tidak lagi tersedia di layar ini, sedangkan endpoint `GET /reconciliation/gl-balances` tetap berdiri. **`DEV_DISCRETION`:** periode bawaan saat layar dibuka, bentuk pemilih, serta letak dan gaya penanda keadaan — mengikuti komponen dan konvensi yang sudah ada. **Contoh:** memilih `2026-09` menampilkan Kas Kasir Rp 25.000.000 / Rp 25.000.000 / 0 (cocok), Piutang Penjamin Rp 80.000.000 / Rp 78.500.000 / Rp 1.500.000 (berselisih), dan Utang Supplier Rp 30.000.000 / "belum diterima" / "belum dapat dihitung" | Rizki (pemilik produk/UI) | `approved` | Rizki, 28 September 2026 | Sketsa `03-frontend-architecture.md` 11.6 yang sudah approved menulis "Periode: 2026-09"; `ACC-DEC-071` (rekonsiliasi terikat periode, bukan waktu). Fakta source: layar `FE-ACC-P2-008` memakai `asOfDate` (`use-control-account-reconciliation.jsx`). Ditolak "dua mode periode dan tanggal" (lebih rumit; mode tanggal mudah terbaca sebagai rekonsiliasi padahal tak ada yang dibandingkan) dan "tetap tanggal, subledger hanya terisi di akhir periode" (aturan tersembunyi yang membingungkan petugas) |
+| `ACC-DEC-115` | Decision | **Pembacaan layar Rekonsiliasi Control Account tidak dicatat ke jejak audit `LoggerService`** — baik `GET /reconciliation/gl-balances` yang sudah berdiri maupun `GET /reconciliation/subledger-comparison` yang baru. Layar ini alat penelusuran saat tutup bulan, sejenis Buku Besar, dan dapat dibuka puluhan kali ketika petugas mencari sumber selisih. Tindakan yang menentukan — Ajukan, Setujui, Tolak, Tutup Permanen — **sudah** dicatat. Menutup butir terbuka `ACC-PERMISSION` usulan `0.6` dan `ACC-P2-OQ-REC-2`. **Contoh:** petugas membuka rekonsiliasi September 2026 dua puluh kali sambil menelusuri selisih Utang Supplier Rp 500 — nol baris log; pengajuan penutupannya sesudah bersih tetap tercatat satu baris | Rizki | `approved` | Rizki, 28 September 2026 — diambil saat approval `GATE-DESAIN-0928`, pilihan yang direkomendasikan | `ACC-DEC-032` (hanya laporan keuangan dan riwayat pemetaan posting yang dicatat; Buku Besar sengaja tidak, karena dibuka berulang saat menelusuri selisih). Ditolak "dicatat seperti Neraca Saldo": menyentuh controller `gl-balances` yang sudah berdiri dan menghasilkan baris log tak berguna setiap kali petugas menelusuri selisih |
+
+**Terbuka untuk Finance — tidak diputuskan di sini, dikumpulkan ke surat balasan sesudah pass ini.**
+
+| Butir | Pemilik | Menahan |
+|---|---|---|
+| Apakah saldo dikirim untuk keempat kelompok control account (Kas Kasir, Kas Kecil, Piutang, Hutang) | Yasmin | Cutover G4 |
+| Kesanggupan mengirim `Amount` dengan arah tanda yang ditetapkan Accounting | Yasmin | Cutover G4 |
+| Kapan saldo terbit dibanding jadwal tutup bulan Accounting | Yasmin | Jadwal operasional |
+
+**Acceptance criteria yang sudah dapat diuji dari pass ini.** Bahan kartu `BE-ACC-P2-014` dan
+`FE-ACC-P2-016`. Bentuk endpoint dan kode butirnya ditetapkan `design-business-module`, bukan di sini.
+
+| # | Kriteria | Berasal dari |
+|---:|---|---|
+| 1 | Badan hukum yang belum pernah menerima saldo subledger: butir rekonsiliasi pada daftar periksa berkeadaan "belum dapat diperiksa", tidak menahan Ajukan, dan ikut dihitung dalam jumlah pemeriksaan yang belum berjalan | `ACC-DEC-107` |
+| 2 | Saldo pertama untuk `2026-11` membuat November 2026 dan sesudahnya dinilai penuh, sedangkan Oktober 2026 yang masih terbuka tetap "belum dapat diperiksa" | `ACC-DEC-107` |
+| 3 | Control account aktif yang menerima jurnal, bersaldo buku besar nol, dan belum menerima saldo subledger → periode belum lengkap dan tertahan | `ACC-DEC-108` |
+| 4 | Akun induk ber-penanda control dan akun control nonaktif bersaldo nol tidak menahan walaupun tanpa saldo subledger | `ACC-DEC-108` |
+| 5 | Utang Supplier Rp 300.000.000 (saldo normal kredit) dengan pesan `Amount` `300000000.00` → cocok; pesan `-300000000.00` → berselisih Rp 600.000.000 | `ACC-DEC-109` |
+| 6 | Saldo periode `2026-09` bertanggal 15 September → akun itu "belum lengkap" dengan keterangan tanggal cut-off; versi lebih tinggi bertanggal 30 September yang nilainya sama dengan buku besar → cocok | `ACC-DEC-110` |
+| 7 | Selisih Rp 500 menahan; tidak ada batas "cukup dekat" | `ACC-DEC-076` |
+| 8 | `submit-closing` menolak `409` saat rekonsiliasi belum bersih walaupun daftar periksa yang dimuat sebelumnya masih bersih | `ACC-DEC-111` |
+| 9 | `close` dengan `Permanent = true` menolak `409` bila, sesudah disetujui, Finance mengirim versi saldo yang berselisih; `approve-closing` tetap berhasil pada keadaan yang sama | `ACC-DEC-111` |
+| 10 | Membuka rekonsiliasi periode `Closed` berkali-kali memberi angka yang sama; tidak ada tabel hasil rekonsiliasi baru | `ACC-DEC-112` |
+| 11 | Tidak ada endpoint, hak akses, maupun tombol untuk mengecualikan butir rekonsiliasi | `ACC-DEC-113` |
+| 12 | Layar Rekonsiliasi memilih periode, bukan tanggal; akun tanpa saldo subledger tampil "belum diterima", tidak pernah `Rp 0` atau selisih nol | `ACC-DEC-114` |
+
 ### `ACC-DEC-041` — kenapa ditunda, bukan dibatalkan
 
 Perbedaan ini menentukan dan mudah tertukar. Ada **dua** hal yang selama ini menyatu di bawah satu
@@ -1060,6 +1129,189 @@ dan penulisan kode integrasi tetap **dilarang** oleh `contracts/integration-cont
 
 ---
 
+## Keputusan draft jurnal hasil kejadian — Amendment pass 29 September 2026
+
+| Field | Nilai |
+|---|---|
+| Pass | `Amendment pass` — dua keputusan terbuka dari roadmap backend revisi 7: OQ-034-1 (menghapus draft hasil kejadian) dan OQ-034-2 (menyunting draft hasil kejadian) |
+| Pemicu | Audit kesiapan 29 September 2026 dan kartu `BE-ACC-P2-034` — [`testing/readiness-report-2026-09-29.md`](testing/readiness-report-2026-09-29.md), roadmap backend revisi 7 bagian "Yang sengaja tidak dijadikan task" |
+| Di dalam scope | Perlakuan draft jurnal hasil kejadian di Accounting — hapus, sunting, tolak — dan nasib kejadiannya |
+| Di luar scope | Cara Finance mengoreksi transaksinya (modul Finance; kode pembalik seperti `PEMBALIKAN-PENERIMAAN-KASIR` sudah ada di `ACC-XMOD`), dan isi aturan posting |
+| Bentuk blueprint | Tetap `SINGLE` — tidak ada kemampuan baru yang membentuk rumpun sendiri |
+| Source | `rizkiG` `618b206e` + working tree `BE-ACC-P2-029`/`030`/`034`; `RizkiV2` `bf0a22537` |
+| Capability map | `01-existing-capability-map.md` disusun pada baseline September awal dan **berpotensi basi**; fakta di bawah dibaca langsung dari source hari ini |
+| Pengambil keputusan | Rizki, Product/Domain Owner Accounting — seluruh pilihan lewat pertanyaan interaktif, 29 September 2026 |
+
+### Fakta source yang menjadi dasar
+
+| Fakta | Bukti |
+|---|---|
+| Hapus jurnal hanya untuk status `Draft`; sunting untuk `Draft` dan `Rejected` (menyunting `Rejected` mengembalikannya ke `Draft`) | `AccJournalService.PeriksaDapatDisunting`, `DeleteAsync`, `UpdateAsync` |
+| `DeleteAsync` tidak memeriksa tautan kejadian — kejadian tetap `Terjurnal` menunjuk jurnal terhapus | `AccJournalService.DeleteAsync`; `AccAccountingEvent.JournalId` |
+| Kejadian `Terjurnal` tidak dapat dicoba ulang maupun diabaikan | `AccAccountingEventService` — coba ulang hanya `Gagal`/`Tertahan`, abaikan hanya `Gagal` |
+| Jurnal `Rejected` tidak menahan tutup bulan | `AccPeriodClosingService.StatusBelumDisahkan` = `Draft`, `PendingApproval`, `Approved` |
+| Penyuntingan draft yang barisnya menyentuh control account sudah ditolak `422`; draft ke akun biasa masih dapat disunting | `AccJournalService.UpdateAsync` baris 363 |
+
+| ID | Type | Isi keputusan | Owner | Status | Approved by | Evidence |
+|---|---|---|---|---|---|---|
+| `ACC-DEC-116` | Decision | **Menghapus draft jurnal hasil kejadian tetap diizinkan, dan kejadiannya otomatis kembali ke `Gagal`.** Menutup OQ-034-1. **(1)** `DELETE /journals/{id}` atas jurnal yang ditunjuk `AccAccountingEvent.JournalId` menghapus jurnal **dan** mengembalikan kejadian `Terjurnal` itu ke `Gagal` dalam satu transaksi; tautan `JournalId` dilepas. **(2)** Kejadian `Gagal` itu kemudian diselesaikan lewat jalan yang sudah ada: **Coba Ulang** — memakai aturan posting yang berlaku saat itu, sehingga aturan yang salah akun dapat dibetulkan lebih dulu — atau **Abaikan** beralasan (`ACC-DEC-092`). **(3)** Karena `Gagal`, kejadian itu menahan tutup bulan (`ACC-DEC-051`, perluasan `ACC-DEC-095`) sampai diselesaikan. **(4)** Jurnal manual tidak terpengaruh. **Contoh:** aturan `PATIENT_PAYMENT` ternyata mengkredit Piutang Pasien Umum padahal seharusnya Pendapatan Rawat Jalan. Petugas membetulkan aturannya, menghapus draft `JU/2031/01/00003`, lalu menekan Coba Ulang pada `EVT-UJI-034A` — draft baru terbit dengan akun yang benar | Rizki | `approved` | Rizki, 29 September 2026 | Pertanyaan interaktif; fakta source di atas |
+| `ACC-DEC-117` | Decision | **Penghapusan dicatat otomatis pada riwayat percobaan kejadian; tidak ada isian alasan saat menghapus.** Satu baris `AccAccountingEventAttempt` gagal dengan pesan "Jurnal draft {nomor} dihapus oleh {nama pengguna}." dan waktu penghapusannya. `DELETE /journals/{id}` tetap tanpa body — nol perubahan bentuk API. Alasan tertulis tetap terjamin di ujung jalurnya: bila tidak dicoba ulang, kejadian hanya dapat ditutup lewat Abaikan yang wajib beralasan | Rizki | `approved` | Rizki, 29 September 2026 | Pertanyaan interaktif |
+| `ACC-DEC-118` | Decision | **Jurnal hasil kejadian berstatus `Rejected` boleh dihapus dengan akibat yang sama seperti `ACC-DEC-116`.** Pengecualian dari aturan umum "hapus hanya untuk `Draft`", **khusus** jurnal hasil kejadian. Tanpa ini, jurnal hasil kejadian yang ditolak karena salah akun menjadi jalan buntu: tidak dapat disunting (`ACC-DEC-119`) dan tidak dapat dihapus. Jurnal manual `Rejected` tetap tidak dapat dihapus | Rizki | `approved` | Rizki, 29 September 2026 | Pertanyaan interaktif |
+| `ACC-DEC-119` | Decision | **Jurnal hasil kejadian tidak dapat disunting sama sekali — akun, nominal, maupun keterangan — baik berstatus `Draft` maupun `Rejected`.** Menutup OQ-034-2. Jurnal hasil kejadian mencerminkan catatan Finance apa adanya. Bila salah: hapus → kejadian `Gagal` → Coba Ulang sesudah aturan posting dibetulkan (`ACC-DEC-116`), atau Finance mengirim kejadian pembalik. Berlaku untuk **semua** akun, bukan hanya control account, sehingga perilakunya seragam dan pengecualian `BE-ACC-P2-034` (pengenalan asal-usul saat diajukan) tidak dapat dibelokkan lewat penyuntingan. Kode status dan bunyi pesan penolakannya ditetapkan pada amandemen `ACC-VALIDATION` | Rizki | `approved` | Rizki, 29 September 2026 | Pertanyaan interaktif; `BE-ACC-P2-034` risiko |
+| `ACC-DEC-120` | Decision | **Jurnal hasil kejadian berstatus `Rejected` ikut dihitung sebagai "jurnal belum disahkan" pada daftar periksa periodenya, sampai diselesaikan.** Diselesaikan berarti **diajukan ulang** (menjadi `PendingApproval`) atau **dihapus** (kejadian kembali `Gagal`, `ACC-DEC-118`). Tujuannya: transaksi yang ditolak penyetuju tidak boleh keluar dari buku diam-diam dan lolos tutup bulan. Jurnal **manual** `Rejected` tetap tidak menahan, seperti sekarang (`ACC-DEC-051`). Memperluas arti butir `UNPOSTED_JOURNALS` dan penolakan `409` pada `submit-closing`; bentuk respons tidak berubah | Rizki | `approved` | Rizki, 29 September 2026 | Pertanyaan interaktif; fakta `StatusBelumDisahkan` |
+| `ACC-DEC-121` | Decision | **Menghapus jurnal hasil kejadian memakai hak hapus jurnal yang sudah ada di layar Akses Role; tidak ada hak baru.** Akibatnya tetap terkendali karena kejadian kembali `Gagal`, terlihat di Kotak Masuk, dan menahan tutup bulan | Rizki | `approved` | Rizki, 29 September 2026 | Pertanyaan interaktif |
+
+### Acceptance criteria yang sudah dapat diuji — pass ini
+
+| # | Skenario | Hasil yang diharapkan | Keputusan |
+|---:|---|---|---|
+| A1 | Hapus draft hasil kejadian `JU/…` | `200`; kejadian sumbernya kini `Gagal`, `JournalId` kosong, riwayat percobaan bertambah satu baris "Jurnal draft JU/… dihapus oleh …" | `116`, `117` |
+| A2 | Coba Ulang kejadian dari A1 sesudah aturan posting dibetulkan | Draft baru terbit dengan akun aturan yang baru; kejadian kembali `Terjurnal` | `116` |
+| A3 | Daftar periksa periode kejadian dari A1 sebelum Coba Ulang | `FAILED_EVENTS` bertambah satu dan menahan | `116` |
+| A4 | Hapus jurnal hasil kejadian berstatus `Rejected` | Diterima; kejadian kembali `Gagal` | `118` |
+| A5 | Hapus jurnal **manual** berstatus `Rejected` | Tetap ditolak seperti sekarang | `118` |
+| A6 | Sunting jurnal hasil kejadian — ubah keterangan saja, atau ubah nominal baris non-control | Ditolak | `119` |
+| A7 | Sunting jurnal manual `Draft` ke akun biasa | Tetap diterima seperti sekarang | `119` |
+| A8 | Penyetuju menolak jurnal hasil kejadian, lalu daftar periksa periodenya dibuka | `UNPOSTED_JOURNALS` menghitung jurnal itu; `submit-closing` ditolak `409` | `120` |
+| A9 | Jurnal manual ditolak, lalu daftar periksa dibuka | Tidak dihitung, seperti sekarang | `120` |
+| A10 | Pengguna tanpa hak hapus jurnal mencoba menghapus draft hasil kejadian | `403`, seperti jurnal lain | `121` |
+
+### Yang dibutuhkan sesudah pass ini
+
+| Hal | Jalur |
+|---|---|
+| `ACC-STATE`: transisi baru kejadian `Terjurnal` → `Gagal` saat jurnalnya dihapus | `design-business-module` (amandemen kecil) |
+| `ACC-VALIDATION`: penolakan sunting jurnal hasil kejadian (kode + pesan); pengecualian hapus `Rejected` untuk jurnal hasil kejadian; perluasan butir `UNPOSTED_JOURNALS` | `design-business-module` (amandemen kecil) |
+| Layar Rincian Jurnal: tombol Ubah tidak ditawarkan untuk jurnal hasil kejadian; tombol Hapus tersedia untuk jurnal hasil kejadian `Rejected`; keterangan akibat penghapusan | `design-business-module` → `03-frontend-architecture.md`; rupa tombolnya `DEV_DISCRETION` |
+| Kartu task backend + frontend berpasangan | `plan-module-delivery` |
+
+## Keputusan pelaku sistem, penjadwal jurnal berulang, dan shift kasir — Amendment pass 30 September 2026
+
+| Field | Nilai |
+|---|---|
+| Pass | `Amendment pass` — langkah B1 dan B2 menuju "100% finish", sesudah audit kesiapan 29 September 2026 |
+| Pemicu | [`testing/readiness-report-2026-09-29.md`](testing/readiness-report-2026-09-29.md): G-03 / T-4 (konfigurasi runtime `Accounting` tidak ada) dan G-13 / DoD Phase 2 butir 1 (`FR-P2-038` hanya punya tempat di daftar periksa) |
+| Di dalam scope | **B1** — siapa pelaku sistem untuk dua penjadwal Accounting (`Accounting:AccountingEventScheduler`, `Accounting:RecurringJournalScheduler`), dan apakah penjadwal jurnal berulang dinyalakan. **B2** — nasib `FR-P2-038` / `ACC-DEC-065` di Phase 2 |
+| Di luar scope | Cara membuat akun pengguna dan mencentang hak di Akses Role (admin sistem / Security); cara mengisi pengaturan per lingkungan deploy (Platform); kode penanda shift tertutup dan kapan shift dianggap tertutup (Finance / Yasmin — `evidence/14` pertanyaan 7.4); penjadwal modul HR dan Health Services yang juga belum berpelaku (pemilik modul masing-masing) |
+| Batas scope dikonfirmasi | Rizki, 30 September 2026, pertanyaan interaktif |
+| Bentuk blueprint | Tetap `SINGLE` — tidak ada kemampuan baru |
+| Source | `rizkiG` `a3f2514a`; `RizkiV2` `2c2190858` |
+| Capability map | `01-existing-capability-map.md` berpotensi basi; fakta di bawah dibaca langsung dari source hari ini |
+| Pengambil keputusan | Rizki, Product/Domain Owner Accounting |
+
+### Fakta source yang menjadi dasar
+
+| Fakta | Bukti |
+|---|---|
+| `appsettings.json` dan `appsettings.Development.json` tidak punya bagian `Accounting`, sehingga bawaan kode yang berlaku | `Program.cs` baris 726–732; `AccAccountingEventSchedulerOptions`, `AccRecurringJournalSchedulerOptions` |
+| Penjadwal kejadian: `Enabled` bawaan `true`, jeda 120 detik, periksa tiap 30 detik; `SystemActorUserId` kosong → pelaku coba ulang otomatis dan pengesahan Langsung Disahkan tercatat `Guid.Empty` | `AccAccountingEventSchedulerOptions` |
+| Penjadwal jurnal berulang: `Enabled` bawaan `false`, jalan harian 02.00 `Asia/Jakarta`; `SystemActorUserId` kosong → draft terbit atas nama `Guid.Empty` | `AccRecurringJournalSchedulerOptions` |
+| Kedua penjadwal hanya berjalan pada proses yang menjalankan pekerjaan latar (`runBackgroundJobs`); pada produksi Blue-Green hanya kontainer Worker | `Program.cs` baris 905–918 |
+| Penjadwal modul lain (HR Absensi, Cuti, Health Services) juga menyimpan `SystemActorUserId` kosong — belum ada preseden akun sistem di proyek ini | `appsettings.json` lima bagian `SystemActorUserId: null` |
+| SuperAdmin dibuat seeder per database dengan Id acak; Id tidak tetap antar-lingkungan | `Seeders/SuperAdminSeeder.cs`; `SeedSuperAdmin` tanpa `Id` |
+| Aturan empat mata menolak penyetujuan jurnal oleh pembuatnya (`403` "Anda tidak dapat menyetujui jurnal yang Anda buat sendiri.") | Uji `BE-ACC-P2-034` S5, 29 September 2026 |
+| Butir `OPEN_CASH_SHIFTS` selalu "Belum dapat diperiksa: kejadian CASH_SHIFT_CLOSED belum mengalir." dan tidak menahan pengajuan | `AccPeriodClosingService` baris 145–150 |
+| `ACC-DEC-065` hanya memeriksa **keberadaan** kejadian shift tertutup; untuk tahu shift mana yang **belum** ditutup, Accounting perlu tahu shift mana yang dibuka — belum dirancang | `ACC-DEC-065`; `evidence/14` bagian 4.1 dan pertanyaan 7.4 |
+
+| ID | Type | Isi keputusan | Owner | Status | Approved by | Evidence |
+|---|---|---|---|---|---|---|
+| `ACC-DEC-122` | Decision | **Pekerjaan yang dijalankan sistem sendiri dicatat atas nama satu pengguna khusus "Sistem Akuntansi", bukan SuperAdmin dan bukan kosong.** Menutup sisi keputusan G-03. **(1)** Di setiap lingkungan (dev, UAT, produksi) admin membuat satu pengguna khusus untuk Accounting; ia tidak dipakai login dan tidak diberi hak apa pun di Akses Role. **(2)** Id pengguna itu diisi pada `Accounting:AccountingEventScheduler:SystemActorUserId` **dan** `Accounting:RecurringJournalScheduler:SystemActorUserId`. Karena Id berbeda di tiap database, nilainya diisi per lingkungan. **(3)** Akibat yang dikehendaki: riwayat jurnal menulis "Sistem Akuntansi" sebagai pembuat draft jurnal berulang dan sebagai pengesah jurnal Langsung Disahkan hasil coba ulang otomatis; aturan empat mata tetap berlaku, sehingga setiap pengguna berhak dapat mengajukan dan menyetujui draft buatan sistem. **Alasan menolak SuperAdmin:** pekerjaan sistem akan tercatat seolah dikerjakan orang, dan SuperAdmin tidak dapat menyetujui draft buatan penjadwal. **Contoh:** draft jurnal berulang `JU/2026/11/00021` terbit 29 November 2026 pukul 02.00 dengan pembuat "Sistem Akuntansi"; Dewi mengajukan, Budi menyetujui | Rizki | `approved` | Rizki, 30 September 2026 | Pertanyaan interaktif; fakta source di atas |
+| `ACC-DEC-123` | Decision | **Penjadwal jurnal berulang dinyalakan di server bersama (dev/staging tempat UAT) dan di produksi; mesin pengembang lokal boleh tetap mati.** Memenuhi `FR-P2-019` / `ACC-DEC-050` — template aktif menerbitkan draft pada tanggalnya tanpa menunggu tombol. **(1)** `Accounting:RecurringJournalScheduler:Enabled = true` pada lingkungan tersebut; jam jalan tetap bawaan 02.00 `Asia/Jakarta`. **(2)** **Syarat urutan:** pelaku sistem `ACC-DEC-122` sudah terisi sebelum penjadwal dinyalakan, supaya tidak ada draft yang terbit atas nama kosong. **(3)** Draft yang terbit ikut dihitung jurnal belum disahkan dan menahan tutup bulan sampai diajukan dan disetujui — perilaku yang dikehendaki, bukan efek samping. **(4)** Penjadwal kejadian (`AccountingEventScheduler`) tetap nyala seperti bawaannya. **Contoh:** template "Sewa Gedung" jatuh tempo tiap tanggal 1; pada 1 Desember 2026 pukul 02.00 draft `JU/2026/12/00001` terbit atas nama Sistem Akuntansi, dan daftar periksa Desember menghitungnya sampai disahkan | Rizki | `approved` | Rizki, 30 September 2026 | Pertanyaan interaktif; `AccRecurringJournalSchedulerOptions` |
+| `ACC-DEC-124` | Decision | **`FR-P2-038` (shift kasir belum ditutup menahan tutup bulan) dikeluarkan dari Definition of Done Phase 2 dan dijadikan syarat gerbang cutover G6.** `ACC-DEC-065` tetap berlaku isinya; yang berubah hanya **kapan** ia wajib ditegakkan. **(1)** Phase 2 dinilai tanpa `FR-P2-038`: DoD butir 1 menjadi 43 FR. **(2)** Gerbang G6 (`ACC-XMOD` bagian 13, `ACC-DEC-090`) bertambah syarat: penegakan shift kasir sudah dirancang, dibangun, dan diuji **sebelum** Finance mulai mengirim kejadian sungguhan. **(3)** Sampai itu, butir `OPEN_CASH_SHIFTS` tetap tampil "belum dapat diperiksa" dan tidak menahan — aman karena sebelum cutover tidak ada kas yang masuk buku lewat kejadian. **(4)** Rancangan penegakannya menunggu jawaban Finance atas `evidence/14` pertanyaan 7.4 dan OQ-124-1. **Alasan:** penegakannya sepenuhnya bergantung pada kejadian dari Finance, sedangkan risikonya — bulan tertutup dengan kas yang belum lengkap — baru ada sesudah cutover. **Alasan menolak "tunda tanpa syarat":** cutover dapat berjalan tanpa penahan shift. **Contoh:** Accounting menutup Oktober 2026 sebelum cutover; butir shift tampil "belum dapat diperiksa" dan tidak menahan. Cutover tidak boleh dimulai selama G6 belum memuat penegakan ini | Rizki | `approved` | Rizki, 30 September 2026 | Pertanyaan interaktif; `AccPeriodClosingService` baris 145–150 dan `SubmitClosingAsync` |
+
+### Open question baru
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| OQ-124-1 | Bagaimana Accounting mengetahui shift kasir mana yang **dibuka**, supaya dapat menyatakan shift yang belum ditutup? `ACC-DEC-065` hanya memeriksa keberadaan kejadian shift tertutup. Kemungkinannya: Finance juga mengirim kejadian shift dibuka, atau kejadian penanda shift tertutup membawa daftar shift per hari. Diputuskan bersama Finance | Rizki + Yasmin | `LATER SLICE` — rancangan penegakan shift sebelum cutover (G6); tidak memblokir Phase 2 |
+
+### Acceptance criteria yang sudah dapat diuji — pass ini
+
+| # | Skenario | Hasil yang diharapkan | Keputusan |
+|---:|---|---|---|
+| B1 | Template jurnal berulang jatuh tempo di server bersama | Pukul 02.00 WIB draft terbit sendiri; pembuatnya "Sistem Akuntansi" | `122`, `123` |
+| B2 | Kejadian `Diterima` dengan aturan Langsung Disahkan dicoba ulang otomatis oleh penjadwal | Jurnal `Posted`; pengesahnya "Sistem Akuntansi", bukan kosong | `122` |
+| B3 | Petugas mengajukan lalu penyetuju menyetujui draft buatan sistem | Diterima; aturan empat mata tidak menolak karena pembuatnya bukan mereka | `122` |
+| B4 | Pengguna "Sistem Akuntansi" diperiksa di Akses Role | Tidak punya hak apa pun | `122` |
+| B5 | Mesin pengembang lokal tanpa pengaturan penjadwal jurnal berulang | Tidak ada draft yang terbit sendiri | `123` |
+| B6 | Daftar periksa dibuka sebelum cutover | Butir shift kasir "belum dapat diperiksa" dan tidak menahan pengajuan | `124` |
+| B7 | DoD Phase 2 dinilai ulang | Butir 1 dihitung 43 FR tanpa `FR-P2-038`; gerbang G6 memuat syarat penegakan shift | `124` |
+
+### Yang dibutuhkan sesudah pass ini
+
+| Hal | Jalur |
+|---|---|
+| Nilai konfigurasi di server bersama dan produksi: `Accounting:RecurringJournalScheduler:Enabled = true` dan kedua `SystemActorUserId` berisi Id pengguna "Sistem Akuntansi" | **Langkah operasional, tanpa perubahan kode** — kunci dan pengikatannya sudah ada (`Program.cs` baris 726–732). Diisi Platform per lingkungan, misalnya lewat variabel lingkungan `Accounting__RecurringJournalScheduler__Enabled`, `Accounting__RecurringJournalScheduler__SystemActorUserId`, `Accounting__AccountingEventScheduler__SystemActorUserId`. Urutannya: pengguna dibuat → Id diisi → penjadwal dinyalakan |
+| Pengguna "Sistem Akuntansi" di setiap lingkungan, tanpa hak | Admin sistem — langkah operasional, dicatat pada serah terima |
+| Amandemen `04-prd-to-mvp.md` bagian 27 butir 1; status `FR-P2-038` di PRD dan traceability; syarat G6 di `ACC-XMOD` bagian 13 | ~~`design-business-module` (amandemen kecil)~~ **Selesai, approved Rizki 30 September 2026 (`GATE-DESAIN-0930`)** |
+
+## Jawaban atas surat Finance 15, 16, dan 21 — Amendment pass 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| Pass | `Amendment pass` — menjawab `finance-management/evidence/15` (28 September 2026, bagian 7), `16` (28 September 2026), dan `21` (30 September 2026) |
+| Pemicu | Balasan Finance atas `evidence/14` dan `evidence/15` Accounting |
+| Di dalam scope | Jawaban Accounting: ratifikasi empat kode baru, pemicu penanda shift, potongan piutang jenis "lain-lain", refund `REFERRED_OUTPATIENT_ADMIN`, perluasan `SETTLEMENT`, nilai nol untuk kode penanda, dan kas kasir per shift atau per kuitansi |
+| Di luar scope | Cara Finance membangun pengirim, snapshot saldo, dan validasinya (modul Finance); kapan Billing membalik pendapatan administrasi dan gap pembalikan tender deposit (modul Billing); akun persis di bagan akun dan isi aturan posting (pemilik proses akuntansi, gerbang G2) |
+| Batas scope dikonfirmasi | Rizki, 1 Oktober 2026, pertanyaan interaktif |
+| Hasil yang dikehendaki | Dokumen saja — keputusan, surat balasan, katalog kode. **Tanpa kartu kode baru** (arahan Rizki 30 September 2026) |
+| Bentuk blueprint | Tetap `SINGLE` |
+| Source | `rizkiG` `5c6632d2`; `RizkiV2` `5ec2b3b8c` |
+| Pengambil keputusan | Rizki, Product/Domain Owner Accounting |
+
+### Fakta yang menjadi dasar
+
+| Fakta | Bukti |
+|---|---|
+| Finance menyanggupi keempat butir `evidence/15` Accounting: saldo tiap periode termasuk `0.00`, nilai menurut saldo normal, tanggal akhir periode dengan snapshot tanggal 1 pukul 00.05 WIB, dan `AccountingEventId` sebagai rujukan tetap | `finance-management/evidence/21` bagian 2; `FIN-DEC-090`..`093` |
+| Finance menerima seluruh ratifikasi `evidence/14`, memakai nama usulan Accounting untuk enam kode pecahan, dan mengusulkan empat kode baru | `finance-management/evidence/15` bagian 2 dan 5; `FIN-DEC-063`..`076` |
+| Shift kasir yang kasnya pas berhenti di `CLOSED` dan tidak pernah mencapai `REVIEWED` | `finance-management/evidence/15` bagian 6.1 |
+| Kotak masuk menolak `400` kejadian bukan-saldo bernilai nol atau negatif. Jalur pesan saldo **sudah aktif** sejak `BE-ACC-P2-028`, tetapi menuntut rincian `SubledgerBalance` (periode dan akun control) — keterangan "ditolak `409`" pada surat Finance 16 sudah usang | `AccAccountingEventService`; laporan `BE-ACC-P2-028` |
+| Kode Finance menyiapkan `PENERIMAAN-KASIR` **per kuitansi** (`SourceTransactionId` = nomor kuitansi), bukan per shift seperti `ACC-DEC-062` | `FinanceManagement/Collection/Services/FinanceReceiptService.cs` baris 129 |
+| Pesan saldo menunjuk **kode akun** (`ControlAccountCode`), satu pesan per control account; Finance berencana empat baris per kelompok | `ACC-XMOD` bagian 8; `finance-management/evidence/21` bagian 3.2 |
+| Pengirim Finance ke Accounting belum hidup | `finance-management/evidence/15` bagian 10 |
+
+| ID | Type | Isi keputusan | Owner | Status | Approved by | Evidence |
+|---|---|---|---|---|---|---|
+| `ACC-DEC-125` | Decision | **Dua kode kejadian baru usulan Finance diratifikasi: `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` dan `PPN-MASUKAN-RETUR-PEMBELIAN`.** **(1)** `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` — debit Piutang, kredit Uang Muka Pasien; cermin `PEMAKAIAN-UANG-MUKA-DEPOSIT` (`ACC-DEC-098`). Menjawab pertanyaan 7.1 `evidence/14`: pembatalan tender uang muka yang sudah terpakai dikirim sebagai **dua** kejadian, sehingga Uang Muka Pasien kembali nol dan tidak ada lawan jurnal kode lama yang berubah. **(2)** `PPN-MASUKAN-RETUR-PEMBELIAN` — debit Piutang Retur Supplier, kredit akun yang sama dengan debit `PPN-MASUKAN-PEMBELIAN`; memenuhi syarat `ACC-DEC-105` butir 2. **(3)** Ratifikasi bukan aturan posting: akun persisnya ditetapkan di G2, dan kejadiannya tersimpan Tertahan sampai aturan posting ada. **(4)** Kredit retur tidak pernah dicairkan tunai (`FIN-DEC-069`), sehingga tidak ada kode debit Kas / kredit Piutang Retur Supplier. **Contoh:** uang muka Rp 20.000.000 terpakai melunasi tagihan, lalu tendernya dibatalkan: `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` Rp 20.000.000 (debit Piutang, kredit Uang Muka Pasien) dan `PEMBALIKAN-PENERIMAAN-UANG-MUKA` Rp 20.000.000 (debit Uang Muka Pasien, kredit Kas); bersihnya debit Piutang, kredit Kas. Retur obat pokok Rp 1.000.000 + PPN Rp 110.000: `RETUR-PEMBELIAN` Rp 1.000.000 dan `PPN-MASUKAN-RETUR-PEMBELIAN` Rp 110.000 | Rizki | `approved` | Rizki, 1 Oktober 2026 | Pertanyaan interaktif; `finance-management/evidence/15` bagian 4.1, 4.3, dan 5; `FIN-DEC-068`, `069` |
+| `ACC-DEC-126` | Decision | **Shift kasir dianggap tertutup final pada dua keadaan: `CLOSED` (kas fisik pas) dan `REVIEWED` (selisih sudah disahkan).** Mengoreksi `evidence/14` bagian 4.1 yang menulis "saat `REVIEWED`", dan memperjelas `ACC-DEC-065` serta `ACC-DEC-101` tanpa mengubah maksudnya. **(1)** Finance menerbitkan penanda shift tertutup pada kedua keadaan itu (`FIN-DEC-072`). **(2)** `CLOSED_WITH_VARIANCE` dan `PERLU_TINDAK_LANJUT` **tidak** tertutup final dan tetap menahan tutup bulan: selisihnya belum disahkan, sehingga kejadian selisih kasnya belum terbit. **(3)** Shift tertutup yang dibuka kembali dinyatakan lewat penanda pembalik, dan kembali menahan. **Alasan:** shift yang kasnya pas tidak pernah mencapai `REVIEWED`; dengan pemicu lama, justru shift yang tidak bermasalah yang menahan tutup bulan selamanya. **Contoh:** shift pagi 30 November ditutup dengan kas pas → `CLOSED` → penanda terbit. Shift malamnya kurang Rp 30.000 → `CLOSED_WITH_VARIANCE` → tidak ada penanda sampai selisihnya disahkan menjadi `REVIEWED` | Rizki | `approved` | Rizki, 1 Oktober 2026 | Pertanyaan interaktif; `finance-management/evidence/15` bagian 6.1; `FIN-DEC-072` |
+| `ACC-DEC-127` | Decision | **Dua kode penanda `PENUTUPAN-SHIFT-KASIR` dan `PEMBALIKAN-PENUTUPAN-SHIFT-KASIR` diterima nama dan pemicunya; bentuknya mengikuti pilihan A surat Finance 16, dan dikerjakan sebagai bagian gerbang G6 — bukan sekarang.** **(1)** Keduanya penanda status: tanpa lawan jurnal, tanpa aturan posting, `Amount` nol, `SourceTransactionId` nomor shift; pemicunya `ACC-DEC-126`. **(2)** Kotak masuk kelak menerima `Amount = 0` **hanya** untuk daftar tertutup kode penanda yang bernama; seluruh kode lain tetap ditolak `400` seperti sekarang. Pilihan B (jalur pesan saldo) ditolak: jalur itu menuntut periode dan kode akun control, yang tidak dimiliki penanda shift. **(3)** Perubahan kotak masuk itu **tidak dikerjakan sekarang** dan tidak membuka kartu; ia bagian penegakan shift kasir yang menjadi syarat cutover G6 (`ACC-DEC-124`). **(4)** Sampai itu, pengirim kedua kode di Finance tetap tidak diaktifkan; baris kotak keluarnya boleh terus ditulis dan dikirim berurutan saat G6 dibuka. **(5)** Penanda pembalik menjawab shift yang dibuka kembali, tetapi belum menjawab shift yang **belum pernah** ditutup — OQ-124-1 tetap terbuka. **Contoh:** hari ini `PENUTUPAN-SHIFT-KASIR` bernilai `0` yang terkirim ditolak `400` "Nilai kejadian harus lebih besar dari nol."; sesudah G6, pesan yang sama diterima tanpa jurnal, sedangkan `PENERIMAAN-KASIR` bernilai `0` tetap ditolak | Rizki | `approved` | Rizki, 1 Oktober 2026 | Pertanyaan interaktif; `finance-management/evidence/16`; `FIN-DEC-075` |
+| `ACC-DEC-128` | Decision | **Potongan piutang non-tunai cukup dua jenis — PPh 23 dan biaya administrasi bank; tidak ada kode untuk jenis "lain-lain".** Menjawab `finance-management/evidence/15` bagian 7 butir 3. Finance tetap menolak jenis "lain-lain" di validasinya, dan petugas diarahkan memakai salah satu dari dua jenis yang ada atau menghubungi bagian akuntansi. Bila kelak ada kasus nyata, Finance mengusulkan kode **bernama** dengan satu akun debit yang jelas, seperti dua kode yang sudah ada (`ACC-DEC-104`). **Alasan:** satu kode "lain-lain" berarti satu akun debit menampung potongan yang jenisnya berbeda-beda, dan sebabnya tidak dapat ditelusuri saat diperiksa. **Contoh:** penjamin membayar Rp 9.700.000 untuk piutang Rp 10.000.000 dengan PPh 23 Rp 230.000 dan biaya bank Rp 25.000; sisa Rp 45.000 yang tidak berjenis **tidak** dicatat sebagai potongan — piutangnya tetap terbuka Rp 45.000 sampai sebabnya diketahui | Rizki | `approved` | Rizki, 1 Oktober 2026 | Pertanyaan interaktif; `finance-management/evidence/15` bagian 2 dan 7; `FIN-DEC-065` |
+| `ACC-DEC-129` | Decision | **Akun debit refund `REFERRED_OUTPATIENT_ADMIN` belum ditetapkan; perlakuan sementara Finance diterima, dan keputusannya menjadi syarat gerbang G6.** Menjawab `finance-management/evidence/15` bagian 4.6 dan 7 butir 4; melanjutkan `ACC-DEC-102`. **(1)** Sampai diputuskan, Finance mencatat pengembalian tunai atas kredit jenis ini sebagai kegagalan sinkronisasi yang terlihat dan menerbitkan **nol** kejadian; Finance **tidak** memakai `PENGEMBALIAN-UANG-MUKA`, karena tidak pernah ada uang muka yang diakui untuk kredit itu. **(2)** Akun debitnya diputuskan bersama Rizki, owner Billing, dan pemilik proses akuntansi, karena bergantung pada apakah Billing membalik pendapatan administrasi rawat jalan saat kreditnya lahir. **(3)** Cutover tidak dimulai sebelum butir ini diputuskan: sesudah cutover, kas yang keluar tanpa kejadian menjadi selisih rekonsiliasi Kas Kasir dan menahan tutup bulan (`ACC-DEC-076`). **Alasan menolak menetapkan sekarang:** kedua tebakan — membalik pendapatan, atau mendebit kewajiban — dapat menghasilkan jurnal seimbang tetapi keliru. **Contoh:** kasir mengembalikan Rp 150.000 biaya administrasi; Finance menampilkan baris gagal beserta sebabnya, Accounting tidak menerima apa pun | Rizki | `approved` | Rizki, 1 Oktober 2026 | Pertanyaan interaktif; `finance-management/evidence/15` bagian 4.6 |
+| `ACC-DEC-130` | Decision | **Kredit bertipe `SETTLEMENT` masuk cakupan `PENGAKUAN-KELEBIHAN-BAYAR` dan `PENGEMBALIAN-UANG-MUKA`; tidak ada kode baru.** Menyetujui `FIN-DEC-074` dan menutup sisi `SETTLEMENT` dari `ACC-DEC-102`. `SETTLEMENT` lahir ketika uang yang benar-benar diterima melebihi tagihan yang dapat dilunasi — ekonominya sama dengan kelebihan bayar dari pembayaran yang mengkredit Piutang. Tiga syarat `ACC-DEC-100` tetap berlaku seluruhnya, termasuk larangan terbit bila pembayaran asalnya `PENERIMAAN-UANG-MUKA`. **Contoh:** pasien membayar Rp 500.000 untuk tagihan yang dapat dilunasi Rp 450.000: `PENGAKUAN-KELEBIHAN-BAYAR` Rp 50.000 (debit Piutang, kredit Uang Muka Pasien); bila dikembalikan tunai, `PENGEMBALIAN-UANG-MUKA` Rp 50.000 (debit Uang Muka Pasien, kredit Kas) | Rizki | `approved` | Rizki, 1 Oktober 2026 | Pertanyaan interaktif; `finance-management/evidence/15` bagian 4.2 dan 4.6; `FIN-DEC-067`, `074` |
+| `ACC-DEC-131` | Decision | **Soal kas kasir per shift atau per kuitansi ditanyakan dulu kepada Finance; `ACC-DEC-062` belum diubah.** `ACC-DEC-062` menetapkan satu kejadian kas per shift, sedangkan kode Finance menyiapkan `PENERIMAAN-KASIR` per kuitansi. Karena `ACC-DEC-062` ikut disetujui owner Billing dan belum ada kejadian yang mengalir, keputusan itu tidak diubah sepihak: surat balasan menyampaikan temuannya dan menanyakan apakah bentuk per kuitansi disengaja. Diputuskan bersama sebelum pengirim Finance dinyalakan (gerbang G4) — lihat OQ-131-1. **Contoh:** 300 pembayaran dalam tiga shift berarti 3 jurnal menurut `ACC-DEC-062`, atau 300 jurnal menurut kode Finance; bila aturan postingnya Buat Draft, 300 draft sehari harus diajukan dan disetujui satu per satu | Rizki | `approved` | Rizki, 1 Oktober 2026 | Pertanyaan interaktif; `FinanceReceiptService.cs` baris 129 |
+
+### Open question baru — seluruhnya untuk Finance, dibawa surat balasan
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| OQ-131-1 | Apakah `PENERIMAAN-KASIR` per kuitansi itu disengaja, atau akan diringkas per shift sesuai `ACC-DEC-062`? | Yasmin + Rizki + owner Billing | `LATER SLICE` — sebelum pengirim Finance dinyalakan (G4) |
+| OQ-131-2 | Finance berencana empat baris saldo per kelompok. Pesan saldo menunjuk **kode akun**, dan `ACC-DEC-108` meminta saldo untuk **setiap** akun bertanda control account. Sanggupkah Finance mengirim per akun bila bagan akun sah menandai lebih dari empat akun — misalnya piutang pribadi, piutang penjamin, dan beberapa akun utang supplier? Bagaimana dengan utang honor dokter, yang tidak ada di daftar snapshot Finance? | Yasmin; daftar akunnya dari pemilik proses akuntansi (G2) | `LATER SLICE` — G2 dan G4 |
+| OQ-131-3 | Finance kini menolak saldo negatif tanpa pengecualian, sedangkan kontrak mengizinkan negatif untuk akun yang saldonya sedang tidak wajar (`ACC-DEC-109`). Bila itu terjadi, bagaimana Finance melaporkannya? Tanpa saldo, periode tertahan | Yasmin | `LATER SLICE` — G4 |
+| OQ-131-4 | Snapshot tanggal 1 pukul 00.05 hanya menghitung shift yang sudah tertutup. Sesudah shift yang masih terbuka ditutup, apakah Finance menyatakan ulang saldo Kas Kasir dengan `SourceVersion` lebih tinggi secara otomatis? | Yasmin | `LATER SLICE` — G4 |
+
+OQ-124-1 (bagaimana Accounting mengetahui shift yang dibuka) **tetap terbuka** dan ikut dibawa surat
+balasan: penanda pembalik hanya menjawab shift yang dibuka kembali.
+
+### Acceptance criteria yang sudah dapat diuji — pass ini
+
+| # | Skenario | Hasil yang diharapkan | Keputusan |
+|---:|---|---|---|
+| C1 | Jenis kejadian `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` dan `PPN-MASUKAN-RETUR-PEMBELIAN` didaftarkan beserta aturan postingnya, lalu kejadiannya dikirim | Terjurnal dengan lawan jurnal `ACC-DEC-125` | `125` |
+| C2 | Kedua kejadian itu dikirim sebelum aturan postingnya ada | Tertahan, tidak ditolak | `125` |
+| C3 | `PENUTUPAN-SHIFT-KASIR` bernilai `0` dikirim hari ini | `400` "Nilai kejadian harus lebih besar dari nol." — perilaku sekarang, tidak diubah sampai G6 | `127` |
+| C4 | Katalog `ACC-XMOD` bagian 3a dibaca | Memuat dua kode jurnal baru sebagai diratifikasi, dan dua kode penanda sebagai "nama disepakati, aktif di G6" | `125`, `127` |
+| C5 | Gerbang G6 dibaca | Memuat keputusan akun debit refund `REFERRED_OUTPATIENT_ADMIN` sebagai syarat | `129` |
+
+### Yang dibutuhkan sesudah pass ini
+
+| Hal | Jalur |
+|---|---|
+| Surat balasan kepada Finance | `evidence/16-balasan-accounting-atas-surat-finance-15-16-21.md` — dokumen, dikirim Rizki |
+| Katalog `ACC-XMOD` bagian 3a dan gerbang G6 bagian 13 | **Selesai 1 Oktober 2026** — `ACC-XMOD-0.6`, menuliskan keputusan di atas (preseden `ACC-DEC-074`) |
+| Pendaftaran jenis kejadian dan aturan posting untuk kode yang diratifikasi | Langkah data di layar Jenis Kejadian dan Aturan Posting, sesudah bagan akun sah (G2). **Tanpa perubahan kode** |
+| Penerimaan `Amount = 0` untuk kode penanda | Bagian penegakan shift kasir — syarat G6 (`ACC-DEC-124`, `127`). **Tidak dibuka sekarang** |
+
 ## Acceptance Criteria yang sudah dapat diuji
 
 Tiga hal berikut sudah pasti apa pun jawaban atas pertanyaan terbuka, karena berasal dari
@@ -1138,4 +1390,60 @@ direncanakan lalu tuntas 28 September 2026.
     `03-frontend-architecture.md` bagian 11.2 (`ACC-DEC-097`), dan FR saldo subledger di PRD.
 18. `plan-module-delivery`: kartu task baru untuk `ACC-DEC-095` (backend) dan `ACC-DEC-096`
     (backend + frontend).
-19. Wave D `BE-ACC-P2-027` → `028` → `014`, hanya atas perintah Rizki.
+19. Wave D `BE-ACC-P2-027` → `028` → `014`, hanya atas perintah Rizki. **`027` dan `028` ✅
+    28 September 2026**; `014` ⛔ menunggu butir 21–22.
+
+### Sudah selesai — Amendment pass rekonsiliasi saldo subledger, 28 September 2026
+
+20. Delapan keputusan `ACC-DEC-107` sampai `ACC-DEC-114`. Temuan **T6 diputuskan** oleh `ACC-DEC-107`.
+    Seluruhnya memilih opsi yang direkomendasikan. `ACC-DEC-115` menyusul saat approval `GATE-DESAIN-0928`.
+
+### Belum — sesudah pass rekonsiliasi saldo subledger
+
+21. ~~`design-business-module` (amendment)~~ **Selesai dan approved Rizki 28 September 2026 (`GATE-DESAIN-0928`).** Kontrak endpoint sisi subledger dan butir penghalang
+    rekonsiliasi pada daftar periksa (`ACC-DEC-076`, `107`..`113`); `409` rekonsiliasi pada
+    `submit-closing` dan `close` (`111`); `03-frontend-architecture.md` 11.3 dan 11.6 (`114`).
+    Sekaligus amandemen tertunda butir 17 dan diagram class 22.3 (`AsOfDate` `DateTime` + kolom `date`).
+    Draf ditunjukkan ke Rizki sebelum lanjut.
+22. ~~`plan-module-delivery`~~ **Selesai dan approved Rizki 28 September 2026** (roadmap backend revisi 6, frontend revisi 7): lepaskan ⛔ `BE-ACC-P2-014` dan `FE-ACC-P2-016`, lalu selaraskan
+    dependency dan grafiknya; tawarkan juga kartu butir 18 dan pemulihan butir menu Rekonsiliasi
+    di `menu-items.jsx`.
+23. Surat balasan ke Yasmin berisi tiga butir terbuka Finance dari pass ini (bagian *Keputusan
+    rekonsiliasi saldo subledger*), digabung dengan `evidence/14` bila surat itu belum terkirim.
+    Pemilik: Rizki → Yasmin.
+
+### Sudah selesai — Amendment pass draft jurnal hasil kejadian, 29 September 2026
+
+24. Enam keputusan `ACC-DEC-116` sampai `ACC-DEC-121`, seluruhnya memilih opsi yang direkomendasikan.
+    OQ-034-1 dan OQ-034-2 roadmap backend revisi 7 **tertutup**. Satu celah setara ikut ditutup:
+    jurnal hasil kejadian yang ditolak penyetuju kini menahan tutup bulan (`ACC-DEC-120`).
+
+### Belum — sesudah pass draft jurnal hasil kejadian
+
+25. ~~`design-business-module` (amandemen kecil)~~ **Selesai dan approved Rizki 29 September 2026 (`GATE-DESAIN-0929`):** `ACC-STATE` transisi kejadian `Terjurnal` → `Gagal`;
+    `ACC-VALIDATION` penolakan sunting, pengecualian hapus `Rejected`, perluasan `UNPOSTED_JOURNALS`;
+    `03-frontend-architecture.md` tombol Ubah dan Hapus pada Rincian Jurnal. Draf ditunjukkan ke Rizki.
+26. ~~`plan-module-delivery`~~ **Selesai dan approved Rizki 29 September 2026**: `BE-ACC-P2-035` (roadmap backend revisi 8) dan `FE-ACC-P2-019` (roadmap frontend revisi 8), berpasangan.
+
+### Sudah selesai — Amendment pass pelaku sistem, penjadwal, dan shift kasir, 30 September 2026
+
+27. Tiga keputusan `ACC-DEC-122` sampai `ACC-DEC-124`, seluruhnya memilih opsi yang direkomendasikan. Sisi keputusan G-03 dan G-13 audit kesiapan
+    29 September 2026 **tertutup**. Satu pertanyaan baru terbuka: OQ-124-1 (Rizki + Yasmin), tidak memblokir Phase 2.
+
+### Belum — sesudah pass pelaku sistem, penjadwal, dan shift kasir
+
+28. ~~`design-business-module` (amandemen kecil)~~ **Selesai dan approved Rizki 30 September 2026 (`GATE-DESAIN-0930`):** DoD Phase 2 butir 1 dan status `FR-P2-038` di `04-prd-to-mvp.md`, traceability, dan
+    syarat G6 di `ACC-XMOD` bagian 13 (`ACC-DEC-124`).
+29. **Tanpa kartu dan tanpa perubahan kode** (arahan Rizki 30 September 2026: task yang sudah selesai dinyatakan selesai,
+    tidak membuat pekerjaan baru). `ACC-DEC-122` dan `123` dijalankan sebagai langkah operasional: admin sistem membuat
+    pengguna "Sistem Akuntansi" per lingkungan, lalu Platform mengisi tiga nilai konfigurasi di server bersama dan produksi.
+
+### Sudah selesai — Amendment pass jawaban atas surat Finance 15, 16, 21, 1 Oktober 2026
+
+30. Tujuh keputusan `ACC-DEC-125` sampai `ACC-DEC-131`, seluruhnya memilih opsi yang direkomendasikan. Empat pertanyaan baru
+    untuk Finance (OQ-131-1..4); OQ-124-1 tetap terbuka. Nol kartu kode baru.
+
+### Belum — sesudah pass jawaban atas surat Finance
+
+31. Surat balasan `evidence/16` dikirim Rizki kepada Yasmin.
+32. ~~Katalog `ACC-XMOD` bagian 3a dan syarat G6 bagian 13~~ **Selesai 1 Oktober 2026** — `ACC-XMOD-0.6`.

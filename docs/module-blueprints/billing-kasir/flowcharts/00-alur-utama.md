@@ -96,3 +96,12 @@ Tiga hal yang **MUST** dipahami pembaca ketiga alur itu:
 1. **Seluruhnya hanya berlaku sebelum pembayaran.** Begitu ada pembayaran yang berhasil atau tagihan difinalisasi, ketiganya tertutup. Perbaikan sesudah itu adalah pekerjaan pembalikan, bukan pengeditan.
 2. **Satu kunjungan tetap satu penjamin.** Mengganti penjamin berarti menggantikan yang lama, bukan menambah penjamin kedua. Tidak pernah ada keadaan di mana asuransi pribadi dan penjamin perusahaan berlaku bersamaan pada satu kunjungan.
 3. **Keputusan menagih terpisah dari fakta pelayanan.** Menandai obat tidak ditebus tidak mengubah catatan penyerahan obat milik Farmasi, dan menandai satu biaya sebagai tanggungan pasien tidak menghapus fakta bahwa pelayanannya memang diberikan.
+
+## Pembalikan pembayaran dan uang muka — revisi 1.8
+
+Sejak revisi `1.8`, modul ini memperjelas alur pembalikan ketika tender pembayaran uang muka (deposit) ditarik kembali oleh bank atau payment gateway (`REVERSED`):
+
+| Yang terjadi | Penjelasan | Berkas |
+| --- | --- | --- |
+| Setoran uang muka deposit ditarik kembali oleh bank setelah terpakai melunasi tagihan | Alokasi tagihan dibatalkan secara berurut LIFO, tagihan dibuka kembali menjadi piutang aktif, dan saldo deposit ditarik tanpa pernah menjadi minus | [`pembalikan-tender-deposit.md`](pembalikan-tender-deposit.md) |
+

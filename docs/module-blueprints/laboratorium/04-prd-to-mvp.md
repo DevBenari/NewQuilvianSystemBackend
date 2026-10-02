@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `10` — bagian 23, penyelesaian order, hasil resmi, dan label keadaan (`LAB-DEC-154`..`LAB-DEC-156`), 2026-09-25 — kontrak `r36`/`r14`/`r7` disetujui hari yang sama. Sebelumnya `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
+| Revision | `11` — bagian 24, `EPIC-LAB-17` tiga laporan operasional (`S16a`), 2026-09-28 — kontrak `r37`/`r15`/revision 12 disetujui hari yang sama. Sebelumnya `10` — bagian 23, penyelesaian order, hasil resmi, dan label keadaan (`LAB-DEC-154`..`LAB-DEC-156`), 2026-09-25 — kontrak `r36`/`r14`/`r7` disetujui hari yang sama. Sebelumnya `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
 | Status | `draft` |
 | Scope tambahan revision 4 | **`EPIC-LAB-11` Penerimaan Sampling/Specimen** dan gelombang `MVP-5` — lihat bagian 16 |
 | Scope tambahan revision 5 | **`EPIC-LAB-12` Konfirmasi Pesanan dan Pembatalan Beralasan** dan gelombang `MVP-5c` — lihat bagian 17. Ditambahkan 2026-09-15 dari rekonsiliasi bukti putaran 2 |
@@ -1383,3 +1383,162 @@ Kalium muncul di antrean dokter.
 > pada 2026-09-25, beserta keempat butir `02-backend-architecture.md` 22.7. `BE-LAB-81` direncanakan
 > hari yang sama sebagai gelombang **`MVP-9e`** (`backend-roadmap.md` 6am.1). `FR-15.19` sejak awal
 > tidak menunggu gerbang ini.
+
+## 24. Amandemen 2026-09-28 — `EPIC-LAB-17` Tiga laporan operasional (`S16a`)
+
+Menurunkan `02-backend-architecture.md` rev 13 bagian 23, `03-frontend-architecture.md` rev 13
+amandemen 2026-09-25 (keempat), `erd/data-dictionary.md` rev 8 bagian 19, dan usulan kontrak
+`LAB-API-v1` `r37`, `LAB-VAL-v1` `r15`, serta `LAB-PERM-v1` revision 12 — **ketiganya disetujui
+2026-09-28** (24.7). `LAB-STATE-v1` `r7` dan `LAB-INT-v1` `r5` berlaku apa adanya: laporan tidak punya
+status dan tidak punya integrasi. Arsitektur domain `LAB-DA-001` rev 10 bagian A7; decisions rev 81.
+
+**Seluruh yang disebut di bawah sudah tercatat pada dokumen itu. Nol konsep tersimpan, nol tabel,
+nol kolom; satu index.** Epic ini **membaca** fakta yang dibangun `EPIC-LAB-15`; angka jumlah
+pemeriksaan dan waktu penyelesaian baru terisi sesudah rilis hasil dipakai.
+
+### 24.1 Batas epic
+
+| Batas | Isi |
+|---|---|
+| **Titik mulai** | Kepala instalasi atau manajemen — pemegang izin `LabOperationalReport : Read` — membuka laporan dan memilih periode (dan, bila perlu, satu disiplin) |
+| **Titik akhir** | Ketiga angka terbaca di layar dan, bagi pemegang `Export`, terunduh sebagai berkas CSV yang unduhannya tercatat. **Berhenti di situ** — nol daftar pasien di balik angka, nol laporan tagihan/penjamin/penyakit, nol grafik tren antarperiode, nol angka tersimpan |
+
+**Yang dianggap selesai:** kepala instalasi dapat menjawab tiga pertanyaan untuk periode apa pun
+sampai 366 hari — *berapa hasil yang keluar*, *seberapa sering sampel ditolak dan karena apa*, dan
+*seberapa cepat hasil keluar, cito dan rutin terpisah* — dengan angka cito terlambat yang **sama**
+dengan daftar pantau keterlambatan; analis yang hanya memegang hak baca daftar Laboratorium **tidak**
+dapat membukanya.
+
+**Satu perbedaan makna yang wajib diketahui pembaca angka:** jumlah pemeriksaan dihitung pada tanggal
+**rilis**, sedangkan Billing menagih pada tanggal **layak tagih**. Pemeriksaan yang layak 30 September
+dan dirilis 1 Oktober masuk tagihan September **dan** laporan Oktober — disengaja, bukan selisih
+(`LAB-DA-001` A7.2).
+
+### 24.2 Kemampuan `MUST HAVE`
+
+Capability map rev 6 **tidak memuat satu pun laporan agregat Laboratorium**. Yang sudah ada adalah
+fakta yang dibacanya:
+
+| ID kemampuan asal | Kemampuan | Disposisi |
+|---|---|---|
+| — (A7.4: nol laporan agregat) | Tiga laporan beserta unduhannya | **`MISSING / NEW`** — pandangan baca, nol tabel |
+| `CAP-03` → `CAP-P14-06` | Waktu rilis hasil (`ReleasedAt`) | **`EXTEND`** — dibangun `BE-LAB-70`; **belum ada** di kode |
+| `CAP-02` | Keputusan kelayakan wadah (`DecidedAt`) dan titik layak pemeriksaan (`ChargeEligibleAt`) | **`EXISTING / REUSE`** — ditambah satu index |
+| `CAP-05` | Alasan penolakan wadah | **`EXISTING / REUSE`** |
+| `CAP-07` | Batas waktu cito per jenis pemeriksaan | **`EXISTING / REUSE`** — lewat fungsi yang **sama** dengan daftar pantau cito, dipindah ke `LabCitoTurnaroundPolicy` |
+| `CAP-13`, `CAP-14` | Izin per aksi dan pendaftaran otomatisnya | **`EXISTING / REUSE`** — satu resource baru `LabOperationalReport` |
+
+**Yang ditunda, beserta penggantinya selama MVP:**
+
+| Ditunda | Sebab | Pengganti selama MVP |
+|---|---|---|
+| Delapan laporan lain (tagihan, penjamin, kelompok penyakit, dan lainnya) | `S16b` — `DEC-LAB-025` | Laporan yang berlaku di luar sistem hari ini |
+| Angka jumlah dan TAT Patologi Anatomi | Rilis PA belum ada — `S4e`, `DEC-LAB-021` | Ditulis *"belum dapat dihitung"* (`ARCH-GAP-LAB-11`); **bukan** 0 |
+| Angka jumlah dan TAT Mikrobiologi sebelum `MVP-10a` | Rilis Mikrobiologi baru ada sesudah `BE-LAB-78` | Sama — *"belum dapat dihitung"* |
+| Unduhan Excel `.xlsx` | Butuh pustaka baru — persetujuan pemilik repository | CSV yang terbuka benar di Excel berbahasa Indonesia (23.10 butir 1) |
+| Aturan hitung sesudah koreksi hasil | `S6` belum ada — `ARCH-GAP-LAB-12` | Tidak diperlukan: tanpa `S6`, satu pemeriksaan punya paling banyak satu rilis |
+
+### 24.3 Functional requirement
+
+| ID | Kebutuhan | Dapat diuji lewat | Disposisi |
+|---|---|---|---|
+| `FR-17.1` | Jumlah pemeriksaan menghitung pemeriksaan **dirilis** pada periode itu menurut **tanggal operasional WIB** rilisnya, per disiplin dan per jenis pemeriksaan; batal dan gugur tidak dihitung | `AC-250`; `INV-55` | `MISSING / NEW` — rincian per jenis pemeriksaan **disetujui bersama kontrak** (23.10 butir 4) |
+| `FR-17.2` | Angka penolakan = wadah tidak layak ÷ wadah yang diputuskan menurut **tanggal keputusan**, per disiplin, beserta rincian per alasan; kosong — bukan 0 — bila nol wadah diputuskan | `AC-251`; `INV-56` | `MISSING / NEW` |
+| `FR-17.3` | TAT dari pemeriksaan layak (`ChargeEligibleAt`) sampai dirilis, per disiplin, cito dan rutin terpisah: rata-rata, jumlah, jumlah terlambat, dan jumlah cito tanpa batas waktu | `AC-252`; `INV-57` | `MISSING / NEW` — bentuk sajian `ARCH-GAP-LAB-13` **disetujui bersama kontrak** |
+| `FR-17.4` | Pemeriksaan cito terlambat menurut laporan **sama** dengan daftar pantau keterlambatan, dan sebaliknya — satu fungsi batas waktu, **nol perubahan perilaku** daftar pantau | `AC-252`; `AC-17` | `EXTEND` — pemindahan `BatasWaktuCitoAsync` |
+| `FR-17.5` | Disiplin tanpa jalur rilis ditulis *"belum dapat dihitung"* pada jumlah dan TAT; penjaga validasi dan laporan membaca **satu** himpunan disiplin | `ARCH-GAP-LAB-11`; `VAL-126` tetap lulus | `EXTEND` — pemindahan ke `LabReleasableDisciplines` |
+| `FR-17.6` | Periode wajib, awal tidak sesudah akhir, paling panjang 366 hari | `VAL-147`, `VAL-148`, `VAL-149` | `MISSING / NEW` — batas 366 hari **disetujui bersama kontrak** (23.10 butir 3) |
+| `FR-17.7` | Laporan dibuka lewat `LabOperationalReport : Read`; unduhan lewat `Export` yang **terpisah**; hak baca daftar Laboratorium tidak membukanya | `AC-253`; `LAB-PERM-v1` revision 12 | `MISSING / NEW` — izin unduh terpisah **disetujui bersama kontrak** (23.10 butir 2) |
+| `FR-17.8` | Unduhan CSV (UTF-8 BOM, pemisah titik koma, desimal koma) dicatat — jenis laporan, periode, disiplin, jumlah baris, pelaku; **nol** data pasien di payload | `LabOperationalReport.Export`; A7.9 | `MISSING / NEW` — format dan pencatatan **disetujui bersama kontrak** (23.10 butir 1 dan 7) |
+| `FR-17.9` | Laporan tidak memuat identitas pasien, nilai hasil, maupun nama petugas | A7.12; 23.11 | `MISSING / NEW` — usulan, **disetujui bersama kontrak** |
+| `FR-17.10` | Layar laporan: penyaring periode dan disiplin, tiga laporan, tombol unduh hanya bagi pemegang `Export`, keadaan memuat/kosong/galat per laporan | `03-frontend-architecture.md` amandemen keempat | `MISSING / NEW` — letak menu **disetujui 2026-09-28**: butir *Laporan Operasional* pada menu Laboratorium (23.10 butir 8) |
+
+### 24.4 Skenario UAT
+
+Seluruh data samaran. Periode yang dipakai: **1-30 September 2026**.
+
+**Jalur berhasil — jumlah pemeriksaan.** Kalium A dirilis 12 September 10.00 WIB; Kalium B dipesan
+30 September dan dirilis **1 Oktober 06.30 WIB**; Glukosa C dibatalkan 15 September. Laporan September
+menulis Patologi Klinik **1** — rincian *Kalium* 1. Laporan Oktober menulis Kalium B.
+
+**Jalur berhasil — penolakan.** Pada September, 400 wadah Patologi Klinik diputuskan dan 12 ditolak
+(8 *hemolisis*, 4 *volume kurang*). Laporan menulis **3,0%** beserta kedua alasan. Satu tabung yang
+ditolak lalu diganti wadah yang diterima terhitung **dua** keputusan, **satu** penolakan.
+
+**Jalur berhasil — TAT dan daftar pantau.** Kalium cito layak 08.00, dirilis 09.10; batas cito Kalium
+60 menit. Laporan TAT menulis selang **70 menit** dan menghitungnya **terlambat**; Kalium yang sama
+tercatat terlambat pada daftar pantau keterlambatan cito.
+
+**Jalur berhasil — unduh.** Kepala instalasi menekan unduh laporan penolakan. Berkas terbuka di Excel
+dengan kolom terpisah dan angka *3,0*; satu baris log `LabOperationalReport.Export` tercatat tanpa nama
+pasien.
+
+**Jalur gagal — izin.** Analis yang memegang `LabExamination : Read` membuka alamat laporan secara
+langsung → `403`; menu laporan tidak tampil baginya. Pemegang `Read` tanpa `Export` tidak melihat
+tombol unduh, dan panggilan langsung ke unduhan dijawab `403`.
+
+**Jalur gagal — periode.** Periode 30 September sampai 1 September → `400` *"Tanggal awal tidak boleh
+melewati tanggal akhir."* Periode 1 Januari 2026 sampai 2 Januari 2027 → `422` *"Periode laporan
+paling panjang 366 hari. Persempit rentang tanggalnya."* Periode kosong → `400`.
+
+**Jalur gagal — disiplin tanpa rilis.** Laporan jumlah dengan penyaring Patologi Anatomi, padahal
+puluhan laporan PA sudah Final → baris PA menulis *"Rilis hasil Patologi Anatomi belum tersedia."*,
+**bukan** 0.
+
+### 24.5 Definition of Done
+
+| # | Butir | Cara menjawabnya |
+|---:|---|---|
+| 1 | `LAB-API-v1` `r37`, `LAB-VAL-v1` `r15`, `LAB-PERM-v1` revision 12 **disetujui**, termasuk kedelapan butir `02-backend-architecture.md` 23.10 | `approved_by`/`approved_at` pada ketiganya |
+| 2 | `VAL-147`..`VAL-149` ditegakkan; `AC-250`..`AC-253` terbukti | Baris masing-masing pada matriks uji |
+| 3 | Daftar pantau keterlambatan cito dan penjaga `VAL-126` **tidak berubah perilaku** sesudah pemindahan | Uji karakterisasi yang ditulis **sebelum** pemindahan tetap lulus tanpa disunting — daftar pantau cito hari ini belum punya uji otomatis (matriks uji amandemen 2026-09-28) |
+| 4 | Satu migration `AddLabSpecimenDecidedAtIndex`, jalur `Down` terbukti; **nol tabel, nol kolom** | Laporan task backend; dibuktikan terbalik |
+| 5 | Log unduhan tanpa isi berkas dan tanpa data pasien | Uji integrasi membaca payload log |
+| 6 | Kebijakan `LabOperationalReport : Read` dan `: Export` diberikan kepada kepala instalasi dan jabatan manajemen yang ditetapkan admin — **tidak** disalin dari pemegang `LabExamination : Read` | Daftar `SysAccessPolicies` sesudah rilis — **langkah rilis** |
+| 7 | Nol angka disimpan | Dibuktikan terbalik — nol tabel ringkasan, nol job terjadwal |
+
+### 24.6 Urutan pengiriman
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| **`MVP-11a`** | Backend: pemindahan `LabCitoTurnaroundPolicy` dan `LabReleasableDisciplines` **lebih dulu dan tersendiri** (bukti nol perubahan perilaku), lalu index, service, controller, DTO, penulis CSV, izin | **`MVP-9b` selesai** — `ReleasedAt` (`BE-LAB-70`), penjaga disiplin (`BE-LAB-73`), dan `BelumSelesai()` yang mengeluarkan pemeriksaan dirilis dari daftar pantau (`BE-LAB-77`) harus sudah ada; ✅ kontrak `EPIC-LAB-17` disetujui 2026-09-28 |
+| **`MVP-11b`** | Frontend: layar laporan dan butir menu *Laporan Operasional* pada menu Laboratorium | `MVP-11a`; ✅ letak menu diputuskan 2026-09-28 (23.10 butir 8) |
+| **`MVP-11c`** | Langkah rilis: kebijakan izin bagi kepala instalasi dan jabatan manajemen | `MVP-11a` terdeploy; admin menetapkan jabatan *manajemen* |
+| **`POST-MVP`** | `S16b`; aturan hitung sesudah koreksi (`ARCH-GAP-LAB-12`, bersama `S6`); angka PA (bersama `S4e`) | `DEC-LAB-025`, `S6`, `DEC-LAB-021` |
+
+**Catatan urutan terhadap `MVP-10a`.** Keduanya boleh dikerjakan dalam urutan mana pun sesudah
+`MVP-9b`. Yang datang kedua menyesuaikan satu hal: bila `MVP-11a` lebih dulu, `BE-LAB-78` menambahkan
+Mikrobiologi pada `LabReleasableDisciplines` alih-alih pada penjaga `VAL-126`. **Satu himpunan, satu
+tempat** — perencana delivery wajib menuliskannya pada task yang datang kedua.
+
+**Kenapa `BE-LAB-77` wajib lebih dulu.** Hari ini (`84383f64`) daftar pantau cito mengeluarkan
+pemeriksaan hanya bila **order**-nya `Completed` atau batal (`LabWorklistService.cs:194-204`). Tanpa
+`BE-LAB-77`, Kalium cito yang dirilis tepat waktu pukul 08.55 tetap tampil *terlambat* pukul 09.05
+selama ordernya belum ditutup — sedangkan laporan menulisnya **tidak** terlambat, dan `AC-252`
+(*"dan sebaliknya"*) gugur. `BE-LAB-77` juga menyunting `LabWorklistService.cs`, berkas yang sama
+dengan pemindahan batas cito.
+
+**Angka jumlah dan TAT tetap kosong sampai rilis dipakai sungguhan** (langkah 4 `MVP-9d`). Itu bukan
+penahan `MVP-11c`: laporan penolakan sudah bermakna sejak hari pertama, karena keputusan kelayakan sudah
+tercatat sejak `S2`.
+
+### 24.7 Pertanyaan terbuka sebelum development lock
+
+| Pertanyaan | Memblokir? | Pemilik |
+|---|---|---|
+| ~~**Persetujuan `r37`, `r15`, revision 12 beserta kedelapan butir 23.10**~~ — format CSV, izin unduh terpisah, 366 hari, rincian per jenis pemeriksaan, batas cito saat ini, tiga usulan arsitektur, pencatatan unduhan, letak menu | ✅ **Tertutup 2026-09-28** — disetujui seluruhnya dalam bunyi usulannya | Yoga Aji Pratama |
+| Jabatan mana yang termasuk *manajemen* | **Tidak** untuk pengembangan; **ya** untuk `MVP-11c` — data yang diisi admin, bukan keputusan arsitektur (A7.8) | Admin + Yoga Aji Pratama |
+| `ARCH-GAP-LAB-12` — koreksi `S6` memakai rilis pertama | **Tidak** — tidak berlaku sampai `S6` dirancang | Yoga Aji Pratama, saat `S6` |
+
+> ### ✅ Gerbang perencanaan `EPIC-LAB-17` terbuka — 2026-09-28
+>
+> `LAB-API-v1` `r37`, `LAB-VAL-v1` `r15`, dan `LAB-PERM-v1` revision 12 **disetujui** Yoga Aji
+> Pratama selaku pemilik modul pada 2026-09-28, beserta kedelapan butir `02-backend-architecture.md`
+> 23.10, lewat instruksi *"saya setujui semuanya yaa sebagai pemilik modul lab atas nama yoga aji
+> pratama"*. **`EPIC-LAB-17` boleh diteruskan ke `/plan-module-delivery`** untuk `MVP-11a`..`MVP-11c`
+> — roadmap disusun hari yang sama: `BE-LAB-82`..`BE-LAB-86` (`backend-roadmap.md` bagian 6an),
+> `FE-LAB-44`..`FE-LAB-45` (`frontend-roadmap.md` gelombang `MVP-11`), langkah rilis `MVP-11c` (6an.7).
+>
+> **Prasyarat pengerjaan tetap berlaku:** `MVP-11a` baru boleh dikerjakan sesudah **`MVP-9b` selesai**
+> (`BE-LAB-70`, `BE-LAB-73`, `BE-LAB-77`). **Yang tetap tertahan — rilis, bukan pengembangan:**
+> `MVP-11c` menunggu admin menetapkan jabatan *manajemen*.

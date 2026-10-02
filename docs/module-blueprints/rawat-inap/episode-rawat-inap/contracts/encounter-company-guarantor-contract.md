@@ -5,15 +5,15 @@
 | Field | Nilai |
 | --- | --- |
 | `contract_id` | `RWI-ENC-PAYER-001` |
-| `contract_version` | `1.0.0` |
+| `contract_version` | `1.1.0` — amendment 30 September 2026 (lihat §11). Versi `1.0.0` berlaku 31 Agustus – 30 September 2026 |
 | Status | `APPROVED` |
 | Disetujui oleh | Muhammad Hamzah — Product/Domain owner |
-| Tanggal persetujuan | 31 Agustus 2026 |
+| Tanggal persetujuan | `1.0.0`: 31 Agustus 2026. `1.1.0`: 30 September 2026 |
 | Dasar persetujuan | Pemilik memilih opsi A: mempertahankan Tunai, Asuransi, dan Penjamin Perusahaan serta menyetujui penambahan kontrak backend encounter |
-| Trace | `RWI-CAP-002`, `RWI-DEC-075`, `RWI-UI-GAP-002`, `BE-RWI-035`, `FE-RWI-025` |
+| Trace | `RWI-CAP-002`, `RWI-DEC-075`, `RWI-UI-GAP-002`, `BE-RWI-035`, `FE-RWI-025`; amendment `1.1.0`: `KSK-DEC-013`, `KSK-OQ-005`, `BE-KSK-003` (blueprint `kiosk`) |
 | Snapshot backend | `64d7419415e473968d752d873ca02e1ae1fcded8` |
 | Snapshot frontend | `786bd247db47a3b7c97b8c08fb6ec633f57d0c72` |
-| Dampak kompatibilitas | Aditif. Nilai dan perilaku Tunai serta Asuransi dipertahankan |
+| Dampak kompatibilitas | Aditif. Nilai dan perilaku Tunai serta Asuransi dipertahankan. `1.1.0` melonggarkan route kiosk agar menerima `CompanyGuarantor`; payload lama tetap sah |
 
 Kontrak ini adalah addendum lintas modul untuk endpoint milik `RegistrationManagement` yang
 dipakai alur admisi Rawat Inap. Kontrak `API 0.4.0` Rawat Inap tetap berlaku dan tidak dinaikkan,
@@ -36,7 +36,7 @@ benefit plan di master data kemudian diperbarui.
 | Unsur | Ketentuan |
 | --- | --- |
 | Tujuan | Membawa penjamin perusahaan yang dipilih pada langkah Pembayaran sampai menjadi sumber pembayaran encounter |
-| Pelaku | Petugas yang memiliki `PatientEncounter : Create` |
+| Pelaku | Petugas yang memiliki `PatientEncounter : Create` (route `/admin`), atau — sejak `1.1.0` — pasien lewat akun perangkat Kiosk yang lolos policy `KioskRead` (route `/kiosk` dan alias `/`) |
 | Pemicu | Petugas menyelesaikan langkah Dokter pada alur admisi dan frontend membuat encounter |
 | Prasyarat | Pasien, unit layanan, dan kartu pasien-perusahaan sudah ada; kartu dan perusahaan aktif; kartu eligible; tanggal kunjungan berada dalam masa berlaku |
 | Hasil akhir | Satu `TrxPatientEncounter` dan satu `TrxPatientEncounterGuarantor` tersimpan atomik dengan tipe serta snapshot penjamin perusahaan |
@@ -168,9 +168,21 @@ Kode response:
 - `500`: transaksi gagal disimpan; encounter dan sumber pembayaran tidak boleh tersimpan
   separuh.
 
-Route `POST /` dan `POST /kiosk` tidak menerima `CompanyGuarantor` dalam kontrak ini. Keduanya
-tetap mengikuti kemampuan existing Tunai/Asuransi. Implementasi harus memisahkan jalur internal
-admin dari kiosk walaupun source saat ini mendelegasikan method admin ke method kiosk.
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `POST` | `/kiosk` (dan alias `/`) | Membuat encounter dari Kiosk dengan tepat satu sumber pembayaran, **termasuk Penjamin Perusahaan sejak `1.1.0`** | Policy `KioskRead` | Body `PatientEncounterCreateRequest` | `ApiResponse<PatientEncounterCreateResponse>` |
+
+Status dukungan Penjamin Perusahaan pada route kiosk: **Rencana (belum tersedia)** sampai
+`BE-KSK-003` (blueprint `kiosk`) selesai.
+
+> **Diamandemen pada `1.1.0`.** Teks `1.0.0` berbunyi: *"Route `POST /` dan `POST /kiosk` tidak
+> menerima `CompanyGuarantor` dalam kontrak ini. Keduanya tetap mengikuti kemampuan existing
+> Tunai/Asuransi. Implementasi harus memisahkan jalur internal admin dari kiosk walaupun source
+> saat ini mendelegasikan method admin ke method kiosk."* Sejak `1.1.0`, route kiosk menerima
+> `CompanyGuarantor` dengan **validasi yang sama persis** dengan route `/admin` (bagian 4) dan
+> penyimpanan atomik yang sama (bagian 5). Pemisahan jalur admin dan kiosk tetap dipertahankan
+> lewat parameter `allowCompanyGuarantor` dan `logScope`, sehingga jejak audit tetap membedakan
+> asal permintaan. Hak akses tiap route tidak berubah.
 
 ## 8. Batas cakupan
 
@@ -179,7 +191,8 @@ Termasuk:
 - enum, request/response DTO, validasi server, persistence, mapping list/detail/create, summary,
   konfigurasi EF, migration code, dan automated test backend;
 - regresi Tunai dan Asuransi;
-- pembuktian bahwa route admin menerima Penjamin Perusahaan dan route kiosk menolaknya.
+- pembuktian bahwa route admin menerima Penjamin Perusahaan dan route kiosk menolaknya (`1.0.0`;
+  sejak `1.1.0` route kiosk menerimanya dengan validasi yang sama — dibuktikan `BE-KSK-003`).
 
 Tidak termasuk:
 
@@ -205,3 +218,19 @@ Tidak termasuk:
 tetap wajib menjalankan QBE preflight dari `AGENTS.md` backend pada waktu eksekusi, memeriksa
 drift source dari snapshot di atas, dan berhenti bila perubahan baru membuat kontrak ini tidak
 lagi aman diterapkan.
+
+## 11. Riwayat perubahan
+
+| Versi | Tanggal | Perubahan | Disetujui oleh | Dasar |
+| --- | --- | --- | --- | --- |
+| `1.0.0` | 31 Agustus 2026 | Kontrak awal: route `/admin` menerima `CompanyGuarantor`; route kiosk menolaknya | Muhammad Hamzah | Opsi A, `RWI-DEC-075` |
+| `1.1.0` | 30 September 2026 | Route `/kiosk` dan alias `/` menerima `CompanyGuarantor` dengan validasi dan penyimpanan yang sama dengan `/admin`. Tidak ada field, tipe pembayaran, atau hak akses baru | Muhammad Hamzah (pemilik kontrak), disampaikan langsung melalui Sukma Giri Pratama | `KSK-DEC-013` blueprint `kiosk`: PRD Kiosk KSK-GUA-001 menuntut pasien memilih Penjamin Perusahaan di Kiosk; menurut pemilik kontrak, perubahan admisi rawat inap soal penjamin justru mengikuti Kiosk dan ia tidak melarangnya |
+
+Dampak `1.1.0` terhadap kontrak lain:
+
+| Kontrak | Dampak |
+| --- | --- |
+| `encounter-payment-source-change-contract.md` | Tidak ada. Invariant "satu encounter tepat satu sumber pembayaran aktif" yang dirujuknya tidak berubah; route kiosk hanya menjadi sumber baru encounter bertipe `CompanyGuarantor` |
+| `RJ-BIL-DEC-015` (billing) | Tidak ada. Satu kunjungan tetap tepat satu penanggung |
+| Kontrak API Rawat Inap `0.4.0` / `0.9.0` | Tidak ada; endpoint milik `RegistrationManagement` |
+

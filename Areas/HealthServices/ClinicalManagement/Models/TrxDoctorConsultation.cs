@@ -116,6 +116,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
 
         public decimal? BMI { get; set; }
 
+        /// <summary>
+        /// Baris <c>TrxPatientVitalSign</c> yang menjadi sumber snapshot di atas — <c>BE-RWI-141</c>,
+        /// keputusan K5.
+        /// </summary>
+        /// <remarks>
+        /// Menunjuk ukuran perawat yang dipakai dokter, atau baris ukuran dokter sendiri yang lahir dari
+        /// catatan rawat inap ini. Kosong pada catatan lama dan pada catatan yang mengetik tanda vital
+        /// tanpa sumber. Snapshot tetap disimpan: koreksi pada deret sesudah catatan ditandatangani
+        /// tidak mengubah apa yang dilihat dokter saat itu.
+        /// </remarks>
+        public Guid? SourceVitalSignId { get; set; }
+
         // =========================
         // CLINICAL SUMMARY
         // =========================

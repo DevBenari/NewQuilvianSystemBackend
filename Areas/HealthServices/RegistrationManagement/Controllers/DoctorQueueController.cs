@@ -489,7 +489,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 consultation.Id,
                 new FinalizeDoctorConsultationRequest
                 {
-                    AcknowledgedWarningKeys = new List<string>(),
+                    AcknowledgedWarningKeys = (request?.AcknowledgedWarningKeys ?? new List<string>())
+                        .Where(key => !string.IsNullOrWhiteSpace(key))
+                        .Select(key => key.Trim())
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList(),
                     FinalizationNote = NormalizeNullableText(request?.Notes)
                 },
                 actorUserId,
@@ -504,9 +508,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             if (!result.IsSuccess)
             {
+                // Rincian validasi ikut dikirim. Sebelumnya hanya pesan umum yang keluar, sehingga
+                // dokter tidak tahu bagian mana (SOAP, diagnosis, resep, tindakan) yang kurang.
+                var issues = (result.Validation?.Sections ?? new List<ConsultationFinalizationSectionResponse>())
+                    .SelectMany(section => section.Issues)
+                    .Where(issue => issue.Severity != ConsultationValidationSeverity.Information)
+                    .OrderByDescending(issue => issue.Severity)
+                    .Select(issue => new
+                    {
+                        issue.Code,
+                        Severity = issue.Severity.ToString(),
+                        issue.Message,
+                        issue.TabKey,
+                        issue.IssueKey
+                    })
+                    .ToList();
+
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    result.ErrorMessage ?? "Konsultasi belum dapat diselesaikan."));
+                    result.ErrorMessage ?? "Konsultasi belum dapat diselesaikan.",
+                    issues.Count > 0
+                        ? new { Issues = issues, result.RequiresWarningAcknowledgement }
+                        : null));
             }
 
             await _queueRealtimeService.NotifyQueueConsultationFinishedAsync(
@@ -514,8 +537,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 actorUserId,
                 "Konsultasi dokter selesai.");
 
+            var response = BuildActionResponse(queue, "Konsultasi dokter selesai.");
+            // BE-RJE-013: dokter yang menyelesaikan dari antrean juga harus melihat masalah
+            // penyerahan tagihan, sama seperti jalur PATCH /doctor-consultations/{id}/complete.
+            response.BillingHandoffIssues = result.Data?.BillingHandoffIssues ?? new List<string>();
+
             return Ok(ApiResponse<DoctorQueueActionResponse>.Ok(
-                BuildActionResponse(queue, "Konsultasi dokter selesai."),
+                response,
                 "Konsultasi dokter selesai."));
         }
 

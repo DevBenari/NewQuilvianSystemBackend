@@ -47,9 +47,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             // Rawat jalan, medical check-up, dan IGD tidak tersentuh: penyaringnya adalah
             // keberadaan konteks perawatan pada catatan itu sendiri, kolom yang hanya terisi
             // bagi catatan yang lahir di atas perawatan rawat inap - INV-DOK-01, RWI-AC-143.
+            // BE-RWI-142 / K1 (30-09-2026) MENGGANTIKAN aturan di atas untuk penyelesaian catatan
+            // rawat inap. Pemilik memutuskan SOAP rawat inap mengikuti V1: keempat bagian terisi dan
+            // minimal satu diagnosa ICD-10 dengan tepat satu Diagnosa Utama, dijaga di backend —
+            // penjagaan di layar saja terbukti bisa bocor (catatan terkunci tanpa diagnosa terkode,
+            // rencana-kerja/soap/soap.md Rev 2 C3). Aturan draf tidak berubah: menyimpan draf tetap
+            // cukup dengan satu bagian terisi, karena itu diperiksa di jalur simpan, bukan di sini.
             if (consultation.InpEpisodeId.HasValue)
             {
-                ValidateInpatientDailyNote(consultation, issues);
+                ValidateSoap(consultation, issues);
+                await ValidateInpatientDiagnosisAsync(consultation, issues, cancellationToken);
             }
             else
             {
@@ -76,23 +83,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         }
 
         /// <summary>
-        /// Kelayakan finalisasi catatan harian rawat inap - <c>VAL-DOK-12</c>.
+        /// Syarat diagnosa penyelesaian SOAP rawat inap — <c>BE-RWI-142</c>, keputusan K1.
         /// </summary>
         /// <remarks>
-        /// <c>BE-RWI-046</c>. Cukup satu bagian terisi. Yang ditolak hanya catatan yang benar-benar
-        /// kosong, dan kalimatnya diambil apa adanya dari validation matrix supaya pengguna
-        /// membaca sebab yang sama dengan yang tertulis pada kontrak.
+        /// Dibaca dari baris <c>TrxPatientDiagnosis</c> milik catatan itu, bukan dari ringkasan pada
+        /// catatan, supaya tidak bergantung pada urutan penyegaran ringkasan. Kalimatnya sama dengan
+        /// banner di layar. Contoh: catatan dengan J18.0 (Utama) dan E86 lolos; catatan tanpa diagnosa
+        /// ditolak <c>MISSING_ICD10_DIAGNOSIS</c>; catatan dengan dua diagnosa tanpa Utama ditolak
+        /// <c>MISSING_PRIMARY_DIAGNOSIS</c>.
         /// </remarks>
-        private static void ValidateInpatientDailyNote(TrxDoctorConsultation c, List<ConsultationFinalizationIssueResponse> issues)
+        private async Task ValidateInpatientDiagnosisAsync(
+            TrxDoctorConsultation c,
+            List<ConsultationFinalizationIssueResponse> issues,
+            CancellationToken cancellationToken)
         {
-            var adaIsi =
-                !string.IsNullOrWhiteSpace(c.Subjective) ||
-                !string.IsNullOrWhiteSpace(c.Objective) ||
-                !string.IsNullOrWhiteSpace(c.Assessment) ||
-                !string.IsNullOrWhiteSpace(c.Plan);
+            var diagnosa = await _dbContext.Set<TrxPatientDiagnosis>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.ConsultationId == c.Id &&
+                    !x.IsDelete &&
+                    x.DiagnosisStatus != PatientDiagnosisStatus.Cancelled)
+                .Select(x => new { x.IsPrimary })
+                .ToListAsync(cancellationToken);
 
-            if (!adaIsi)
-                issues.Add(Issue("EMPTY_INPATIENT_NOTE", ConsultationValidationSeverity.Error, "Catatan masih kosong.", "SOAP", "soap"));
+            if (diagnosa.Count == 0)
+            {
+                issues.Add(Issue("MISSING_ICD10_DIAGNOSIS", ConsultationValidationSeverity.Error, "Silakan pilih minimal satu diagnosa ICD-10 sebelum menyelesaikan SOAP.", "Diagnosis", "diagnosis"));
+                return;
+            }
+
+            var jumlahUtama = diagnosa.Count(x => x.IsPrimary);
+
+            if (jumlahUtama == 0)
+                issues.Add(Issue("MISSING_PRIMARY_DIAGNOSIS", ConsultationValidationSeverity.Error, "Tentukan satu Diagnosa Utama sebelum menyelesaikan SOAP.", "Diagnosis", "diagnosis"));
+            else if (jumlahUtama > 1)
+                issues.Add(Issue("MULTIPLE_PRIMARY_DIAGNOSIS", ConsultationValidationSeverity.Error, "Diagnosa Utama hanya boleh satu.", "Diagnosis", "diagnosis"));
         }
 
         private static void ValidateDiagnosis(TrxDoctorConsultation c, List<ConsultationFinalizationIssueResponse> issues)

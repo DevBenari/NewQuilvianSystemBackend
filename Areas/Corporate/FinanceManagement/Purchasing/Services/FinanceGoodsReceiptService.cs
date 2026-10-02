@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Data;
 
@@ -30,6 +32,41 @@ public sealed class FinanceGoodsReceiptService
             .Include(x => x.Items)
             .AsNoTracking()
             .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+
+    // ------------------------------------------------------------------------------------
+    // Daftar GR — GET /, disaring PO/supplier/status (api-contract.md §B.2). SupplierId
+    // disaring lewat join PurchaseOrder karena FinGoodsReceipt sendiri tidak punya kolom itu.
+    // ------------------------------------------------------------------------------------
+
+    public async Task<PagedResult<FinGoodsReceipt>> GetPagedAsync(GoodsReceiptQuery query, CancellationToken cancellationToken)
+    {
+        var q = _dbContext.FinGoodsReceipts.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (query.PurchaseOrderId.HasValue && query.PurchaseOrderId.Value != Guid.Empty)
+            q = q.Where(x => x.PurchaseOrderId == query.PurchaseOrderId.Value);
+
+        if (query.SupplierId.HasValue && query.SupplierId.Value != Guid.Empty)
+            q = q.Where(x => x.PurchaseOrder!.SupplierId == query.SupplierId.Value);
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+            q = q.Where(x => x.Status == query.Status.Trim().ToUpperInvariant());
+
+        var totalCount = await q.CountAsync(cancellationToken);
+
+        var items = await q.OrderByDescending(x => x.CreateDateTime)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<FinGoodsReceipt>
+        {
+            Items = items,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize,
+            TotalData = totalCount,
+            TotalPage = (int)Math.Ceiling(totalCount / (double)query.PageSize)
+        };
+    }
 
     // ------------------------------------------------------------------------------------
     // Pencatatan penerimaan (state-transition-matrix.md §B.2, FIN-VAL-104)

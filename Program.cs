@@ -31,6 +31,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Ser
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Workers;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Workers;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
@@ -58,6 +60,9 @@ using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Controllers;
+using QuilvianSystemBackend.Responses;
+using System.Threading.RateLimiting;
 using QuilvianSystemBackend.Areas.SelfServices.HumanResource.Services;
 using QuilvianSystemBackend.Hubs;
 using QuilvianSystemBackend.Middlewares;
@@ -379,6 +384,8 @@ try
     builder.Services.AddScoped<LabPathologyReportService>();
     builder.Services.AddScoped<LabOrganismService>();
     builder.Services.AddScoped<LabAntibioticService>();
+    builder.Services.AddScoped<LabResultCorrectionReasonService>();
+    builder.Services.AddScoped<LabFourEyesExceptionReasonService>();
     builder.Services.AddScoped<LabSusceptibilityBreakpointService>();
     builder.Services.AddScoped<LabSusceptibilityInterpreter>();
     builder.Services.AddScoped<LabProcedureMicrobiologyProfileService>();
@@ -389,9 +396,14 @@ try
     builder.Services.AddScoped<LabReportNumberService>();
     builder.Services.AddScoped<LabDisciplineSettingService>();
     builder.Services.AddScoped<LabConfirmingDoctorResolver>();
+    builder.Services.AddScoped<LabClinicalPrivilegeResolver>();
+    builder.Services.AddScoped<LabResultValidationService>();
     builder.Services.AddScoped<LabMicrobiologyResultService>();
     builder.Services.AddScoped<LabExaminationService>();
+    builder.Services.AddScoped<LabCitoTurnaroundPolicy>();
     builder.Services.AddScoped<LabWorklistService>();
+    builder.Services.AddScoped<LabOperationalReportService>();
+    builder.Services.AddScoped<LabReportCsvWriter>();
     builder.Services.AddScoped<LabMonitoringService>();
     builder.Services.AddScoped<LabCatalogService>();
     builder.Services.AddScoped<LabPatientRegistrationService>();
@@ -413,6 +425,9 @@ try
     builder.Services.AddScoped<EncounterIntakeService>();
     builder.Services.AddScoped<PatientEncounterNumberService>();
 
+    // BE-KSK-001 — Cek Nomor Rekam Medis dari Kiosk (baca-saja).
+    builder.Services.AddScoped<KioskPatientLookupService>();
+
     // BE-EXT-05 — penutupan otomatis kunjungan kiosk yang tidak dilanjutkan.
     //
     // Urutannya penting untuk dibaca, bukan untuk dijalankan: penjawab tiap unit didaftarkan
@@ -430,6 +445,7 @@ try
     builder.Services.AddScoped<PrescriptionNumberService>();
     builder.Services.AddScoped<PrescriptionSummaryService>();
     builder.Services.AddScoped<PrescriptionWorkflowService>();
+    builder.Services.AddScoped<PrescriptionBillingChargeProducer>();
     builder.Services.AddScoped<PrescriptionWorkspaceService>();
     builder.Services.AddScoped<PrescriptionTemplateService>();
     builder.Services.AddScoped<PrescriptionValidationService>();
@@ -487,6 +503,11 @@ try
     builder.Services.AddScoped<CaseManagementEvaluationService>();
     builder.Services.AddScoped<InpatientVitalSignService>();
 
+    // BE-RWI-141 / K5 — tautan SOAP dokter rawat inap ke deret tanda vital pasien: rujukan ke
+    // ukuran perawat, atau ukuran dokter sendiri yang ikut masuk deret (nomor lewat
+    // NumberSeriesAllocator, QBE-CODE-006).
+    builder.Services.AddScoped<DoctorConsultationVitalSignService>();
+
     // BE-RWI-114 s.d. BE-RWI-123 — keperawatan rawat inap revision 7 (KEP-V2-2). Pengawasan Harian
     // (cairan, GDS bangsal, observasi, shift, balance), dugaan reaksi obat, MAR milik PharmacyManagement
     // beserta pembentukan dosis terjadwal, dan pelaksanaan sliding scale satu transaksi. Pembentukan
@@ -530,6 +551,7 @@ try
     builder.Services.AddScoped<NutritionOrderService>();
     builder.Services.AddScoped<NutritionDietService>();
     builder.Services.AddScoped<NutritionRequirementService>();
+    builder.Services.AddScoped<NutritionReportService>();
 
     // Pencari rumus kebutuhan nutrisi. Didaftarkan singleton karena isinya hanya pemetaan
     // kunci ke kelas perhitungan, dan pada V1 pemetaan itu KOSONG: rumus belum diserahkan
@@ -619,6 +641,11 @@ try
     // yang berlaku saat pengkajian dibuat. Dipakai layar master dan jalur pembuatan
     // pengkajian; selama masternya kosong tidak satu pun pengkajian dinyatakan terlambat.
     builder.Services.AddScoped<ClinicalAssessmentPolicyService>();
+
+    // Master data 3S asuhan keperawatan: Standar Diagnosis (SDKI), Luaran (SLKI), dan Intervensi (SIKI).
+    // Menutup keputusan terbuka OQ-RI-011.
+    builder.Services.AddScoped<NursingDiagnosisService>();
+    builder.Services.AddScoped<DailyNursingActionService>();
 
     // Daftar pilihan data induk perujuk — baca saja. Tanpa ini, layar pendaftaran rujukan luar
     // tidak punya sumber pilihan dan petugas terpaksa mengetik nama, yang justru dilarang
@@ -868,6 +895,11 @@ try
     // pendaftaran dan mencabut yang lain.
     builder.Services.AddBillingManagement();
 
+    // BE-RJE-010: pekerja kirim ulang efek folio Rawat Jalan yang belum sampai ke invoice.
+    builder.Services.AddHostedService<BilInvoiceSyncWorker>();
+    // BE-RJE-011: pekerja kirim ulang fakta klinis yang hasil penyerahannya belum pasti.
+    builder.Services.AddHostedService<ClinicalFactDispatchWorker>();
+
     builder.Services.AddScoped<BillingArApHandoffService>();
 
     builder.Services.AddScoped<BillingPayerEditService>();
@@ -1007,6 +1039,58 @@ try
                     user.HasClaim(claim => claim.Type == "display_code" && !string.IsNullOrWhiteSpace(claim.Value));
             });
         });
+    });
+
+    // BE-KSK-002 — batas Cek Nomor Rekam Medis per akun perangkat Kiosk (KSK-DEC-011, KSK-DSN-005).
+    // Sengaja hanya policy bernama, tanpa GlobalLimiter: endpoint lain tidak ikut terbatas.
+    // Setiap perangkat Kiosk punya akun login sendiri, sehingga partisi per NameIdentifier sama
+    // dengan partisi per perangkat. Alamat IP hanya cadangan bila klaim itu kosong.
+    var kioskPatientLookupPermitPerMinute = Math.Max(
+        1,
+        builder.Configuration.GetValue<int?>("KioskPatientLookup:PermitPerMinute") ?? 10);
+
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.AddPolicy(KioskPatientLookupController.RateLimitPolicy, httpContext =>
+        {
+            var partitionKey =
+                httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                "ip:" + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
+
+            return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = kioskPatientLookupPermitPerMinute,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+        });
+
+        // 429 wajib terbaca sebagai "coba lagi", bukan "pasien belum terdaftar" (KSK-INV-002).
+        options.OnRejected = async (context, cancellationToken) =>
+        {
+            var response = context.HttpContext.Response;
+            response.StatusCode = StatusCodes.Status429TooManyRequests;
+
+            if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+            {
+                response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
+            }
+
+            context.HttpContext.RequestServices
+                .GetRequiredService<ILoggerFactory>()
+                .CreateLogger("KioskPatientLookupRateLimit")
+                .LogWarning(
+                    "Kiosk patient lookup ditolak rate limit. DeviceUserId={DeviceUserId} Path={Path}",
+                    context.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "-",
+                    context.HttpContext.Request.Path.Value);
+
+            await response.WriteAsJsonAsync(
+                ApiResponse<object>.Fail(
+                    StatusCodes.Status429TooManyRequests,
+                    "Terlalu banyak percobaan. Silakan coba lagi sebentar."),
+                cancellationToken);
+        };
     });
 
     builder.Services.AddDistributedMemoryCache();
@@ -1555,14 +1639,24 @@ try
             "ClinicalInstrumentDraftSeeder",
             () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
 
-        // LabDummyDataSeeder DICABUT 2026-09-17 atas instruksi pemilik modul, dan berkasnya
-        // dihapus pada commit 0bc921b0. Pemanggilnya sempat hidup kembali lewat merge
-        // 4ba789b2 dari QuilvianIntegrationBackend — cabang itu belum menerima pencabutannya —
-        // sehingga HEAD memanggil kelas yang tidak ada pada kedua sisi merge dan GAGAL DIBUILD.
-        // Dicabut ulang 2026-09-22 supaya instruksi pemilik modul kembali berlaku.
-        //
-        // Pengaturan `Seeders:RunLabDummySeed` dibiarkan ada pada appsettings dan nol dibaca.
-        // Mencabutnya adalah perubahan konfigurasi milik pemilik modul, bukan perbaikan build.
+    // Master data 3S asuhan keperawatan (SDKI, SLKI, SIKI) — 10 diagnosa prioritas rawat inap.
+    await RunStartupSeederAsync(
+        "MstNursingDiagnosisSeeder",
+        () => MstNursingDiagnosisSeeder.SeedAsync(app.Services));
+
+    // Master data tindakan harian keperawatan rawat inap (19 tindakan standar RS)
+    await RunStartupSeederAsync(
+        "MstDailyNursingActionSeeder",
+        () => MstDailyNursingActionSeeder.SeedAsync(app.Services));
+
+    // LabDummyDataSeeder DICABUT 2026-09-17 atas instruksi pemilik modul, dan berkasnya
+    // dihapus pada commit 0bc921b0. Pemanggilnya sempat hidup kembali lewat merge
+    // 4ba789b2 dari QuilvianIntegrationBackend — cabang itu belum menerima pencabutannya —
+    // sehingga HEAD memanggil kelas yang tidak ada pada kedua sisi merge dan GAGAL DIBUILD.
+    // Dicabut ulang 2026-09-22 supaya instruksi pemilik modul kembali berlaku.
+    //
+    // Pengaturan `Seeders:RunLabDummySeed` dibiarkan ada pada appsettings dan nol dibaca.
+    // Mencabutnya adalah perubahan konfigurasi milik pemilik modul, bukan perbaikan build.
 
         var runOperatingRoomDemoSeed =
             builder.Configuration.GetValue<bool>("Seeders:RunOperatingRoomDemoSeed");
@@ -1691,6 +1785,9 @@ try
 
     app.UseAuthentication();
     app.UseAuthorization();
+
+    // BE-KSK-002 — setelah autentikasi agar partisi membaca user perangkat Kiosk.
+    app.UseRateLimiter();
 
     if (runWebRuntime)
     {

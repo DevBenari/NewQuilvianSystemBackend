@@ -5,7 +5,7 @@
 | `contract_version` | `0.5.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 6 baru (penutupan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol modul baru yang disentuh. Sebelumnya `0.4.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif pada dokumen**: bagian 5 baru; bagian 1–4 tidak diubah. Secara perilaku **memutus** untuk Registrasi (penolakan Emergency pada jalur umum, pintu encounter memanggil aturan IGD). Sebelumnya `0.3.0` |
 | Status | `draft`, **kecuali bagian 5 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026). Bagian 6 **`approved`** (`IGD-DEC-170`, 23 September 2026) |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
-| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-09-22** — bagian 5 (encounter-first) lewat `IGD-DEC-157` — termasuk koreksi B1 pada §5.2. Bagian 1–4 tetap `draft` |
+| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-09-22** — bagian 5 (encounter-first) lewat `IGD-DEC-157` — termasuk koreksi B1 pada §5.2. **Rizki Gunawan / 2026-09-23** — bagian 6 (penutupan lewat disposisi) lewat `IGD-DEC-170`. Bagian 1–4 tetap `draft` |
 | Versi sebelumnya | `0.2.0` |
 
 ---
@@ -172,7 +172,9 @@ menimbulkan *deadlock*.
 Slice `IGD-DEC-163`…`169`. Seluruhnya integrasi **di dalam satu proses** dan **di dalam satu modul**: nol modul
 baru yang disentuh, nol antrean pesan, nol integrasi eksternal.
 
-**Status bagian ini: `draft`** — menunggu approval pemilik.
+**Status bagian ini: `approved`** — `IGD-DEC-170`, Rizki Gunawan, 23 September 2026; terkunci hash (manifest bagian
+0j). Amendment 30 September 2026 (`IGD-DEC-171`, `172`) **tidak** mengubah bagian ini: titik sentuh observasi §6.2
+tetap sama, hanya pemetaan status di dalam aksi observasi yang berubah (state §9.5).
 
 ### 6.1 Modul yang disentuh
 

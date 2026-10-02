@@ -58,6 +58,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums
         PainMonitoring = 7,
 
         /// <summary>Assesment Edukasi sebagai dokumen tersendiri — <c>BE-RWI-111</c>.</summary>
-        EducationAssessment = 8
+        EducationAssessment = 8,
+
+        /// <summary>
+        /// Evaluasi Awal Manajemen Pelayanan Pasien (Form A MPP) — <c>BE-RWI-113</c>, standar KARS AKP 3.
+        /// </summary>
+        CaseManagementAssessment = 9
     }
 }

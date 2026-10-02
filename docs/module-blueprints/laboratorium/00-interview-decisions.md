@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `laboratorium` |
-| Revision | `81` |
+| Revision | `82` |
 | Status | `draft` |
 | Pass | `Scope pass` selesai; `Closure pass` selesai (tiga putaran); `Amendment pass` putaran 1 selesai; **putaran 2 selesai** (Penerimaan Sampling/Specimen, 2026-09-14); **putaran 3 selesai** (metode pembayaran, 2026-09-14); **putaran 4 selesai** (pendaftaran lewat kiosk dan pemecahan pesanan per disiplin, 2026-09-15); **putaran 5 selesai sebagian** (Menu Hasil, pencetakan, dan pengiriman hasil ke pasien, 2026-09-16 — sepuluh klarifikasi diadopsi `LAB-DEC-064`..`LAB-DEC-073`; **empat dari tujuh hal yang dibuka ditutup pada hari yang sama**; sisanya `LAB-OPEN-029`, `LAB-OPEN-030`, `LAB-OPEN-032`); **putaran 9 selesai** (halaman Hasil Pemeriksaan Mikrobiologi, 2026-09-21 — enam belas keputusan `LAB-DEC-095`..`LAB-DEC-110`; **enam pertentangan dengan keputusan terkunci diselesaikan seluruhnya ke arah blueprint**; `LAB-OPEN-017` dan `LAB-OPEN-030` ditutup); **putaran 10 selesai** (penutupan closure question impact scan capability map revision 4, 2026-09-21 — `LAB-DEC-111`..`LAB-DEC-113`; `LAB-CONFLICT-010` dan ketiga `LAB-CLOSE-010/011/012` ditutup; `LAB-COORD-014` dibuka dan **tidak memblokir**); **putaran 11 selesai** (bukti cetak tiga disiplin `LAB-EVD-005`, 2026-09-21 — `LAB-DEC-114`..`LAB-DEC-121`; **empat keputusan berumur beberapa jam diperbaiki**; `LAB-OPEN-039` sebagian ditutup; `LAB-OPEN-029` **sengaja tetap terbuka**); **putaran 12 selesai** (cetakan Mikrobiologi varian bakteri `LAB-EVD-006`, 2026-09-21 — `LAB-DEC-122`..`LAB-DEC-128`; **`LAB-DEC-116` yang berumur kurang dari satu jam dikoreksi**; interpretasi `S`/`I`/`R` menjadi terhitung); **putaran 13 selesai** (dataset specimen SNOMED CT `LAB-EVD-007`, 2026-09-21 — `LAB-DEC-129`..`LAB-DEC-132`; **`LAB-OPEN-040` DITUTUP**; `LAB-DEC-098` dikoreksi pada pilihan kolomnya); **putaran 14 selesai** (PRD Hasil Pemeriksaan PK & Mikrobiologi `LAB-EVD-008`, 2026-09-24 — `LAB-DEC-133` menetapkan PRD sebagai bukti untuk direkonsiliasi; `LAB-DEC-134`..`LAB-DEC-145` beserta `LAB-FE-015`/`LAB-FE-016` menutup **keempat belas pertentangan dan keenam butir baru**, nol keputusan terkunci dicabut; 45 koreksi PRD dicatat; `PRD1-CLIN-01` terbuka bagi pihak klinis, `LAB-COORD-015` bagi pemilik keamanan/platform, `PRD1-OPEN-01` tidak memblokir); **closure pass putaran 15 selesai** (closure question capability map revision 5, 2026-09-24 — `LAB-DEC-146`..`LAB-DEC-149` serta `LAB-FE-017` menutup `LAB-CLOSE-013`..`LAB-CLOSE-016` dan `LAB-CONFLICT-012`/`LAB-CONFLICT-013`, nol keputusan terkunci dicabut; `LAB-COORD-016` dibuka); **putaran 16 selesai** (jawaban dr. Bima `LAB-EVD-009`, 2026-09-24 — `LAB-DEC-150` menjawab sebagian `DEC-LAB-011` dan **menggantikan butir 2 `LAB-DEC-022`**; `LAB-DEC-151` menutup `PRD1-CLIN-01`; sisa `DEC-LAB-011` diajukan `LAB-REQ-014`); **putaran 17 selesai** (jawaban tertulis dr. Bima `LAB-EVD-010`, 2026-09-25 — `LAB-DEC-152` menutup sisa `DEC-LAB-011` dan `LAB-OPEN-034`, `LAB-DEC-153` menutup `DEC-LAB-018`; `LAB-OPEN-044` dibuka); **putaran 18 selesai** (keputusan pemilik modul `LAB-EVD-011`, 2026-09-25 — `LAB-DEC-154` menutup `LAB-CONFLICT-014`, `LAB-DEC-155` menjawab sebagian pertanyaan pemakaian sebelum `S6`, `LAB-DEC-156` mengamandemen label BR-88; `LAB-OPEN-045` dibuka); **putaran 19 selesai** (enam penahan gerbang `LAB-RCG-001-r10`, 2026-09-25 — `LAB-DEC-157`..`LAB-DEC-164` menutup `DEC-LAB-023`, `DEC-LAB-024`, `DEC-LAB-026`, `DEC-LAB-027` dan mempersempit `DEC-LAB-022`, `DEC-LAB-025`; `LAB-COORD-018` dibuka; satu pertentangan dengan bukti lapangan diselesaikan ke arah blueprint) |
 | Product/domain owner | **Yoga Aji Pratama** (`yogaaji452@gmail.com`), ditetapkan 2026-09-01 |
@@ -4659,6 +4659,40 @@ untuk perusahaan **bukan** urusan Laboratorium.
 
 ---
 
+## Amendment Pass Putaran 20 — Urutan langkah kiosk Pasien Lama (2026-09-30)
+
+**Sumber:** keputusan blueprint `kiosk` — `KSK-DEC-002` dan `KSK-DEC-014` (`kiosk/00-interview-decisions.md`),
+`approved` oleh Sukma Giri Pratama, 30 Sep 2026. Dicatat di blueprint ini untuk menutup `KSK-OQ-004`
+atas persetujuan Sukma Giri Pratama (pemilik `KSK-OQ-004`), 30 Sep 2026.
+
+**Yang berubah hanya urutan langkah dan saat sesi kiosk dibentuk di alur kiosk Pasien Lama** — keduanya
+milik alur kiosk `registration-management`, bukan keputusan Laboratorium.
+
+| Hal | Bunyi lama (`FE-LAB-13`, 2026-09-16) | Bunyi baru (`KSK-DEC-002`/`014`, dikerjakan `FE-KSK-007`) |
+|---|---|---|
+| Letak pilihan Tujuan Layanan (Poliklinik / Laboratorium + surat dokter) | Langkah **pertama** alur Pasien Lama, sebelum identitas dipindai | Langkah **ketiga**, sesudah Identifikasi dan Review Data |
+| Saat sesi kiosk (`scan-result`) dibentuk | Di langkah Identifikasi, saat kartu dipindai | **Tepat sekali**, saat Tujuan Layanan dipilih di langkah ketiga — untuk Poliklinik maupun Laboratorium. Identifikasi mengenali pasien lewat pencarian tanpa membentuk sesi; hasil pindai disimpan di memori layar |
+| Urutan alur Laboratorium | Tujuan Layanan → Identifikasi → Selesai | Identifikasi → Review Data → Tujuan Layanan → Selesai |
+
+**Yang tidak berubah, dan diperiksa satu per satu:**
+
+1. Aturan BR-46 butir 1–4 serta `LAB-DEC-051`/`052`: pasien tetap memilih Laboratorium sendiri, dan dua jalur (membawa
+   permintaan dokter / periksa mandiri) tetap ditanyakan di kiosk.
+2. Tiga jawaban pemilik modul saat `FE-LAB-13`: **Pasien Lama saja**; alur Laboratorium **berhenti sesudah identitas
+   terbaca** (kini sesudah identitas terbaca **dan** Review Data); **cabang Poliklinik tidak menuliskan ruas tujuan
+   apa pun** — muatan `scan-result` cabang itu tetap objek tanpa `targetService`/`hasPhysicianRequest` (`KSK-DSN-007`).
+3. Kontrak `scan-result` dan kedua ruas `TrxKioskScanSession` (`BE-EXT-04`/`04b`): tidak berubah. Sesi tetap ditulis
+   sekali dan tidak punya jalur ubah.
+4. Panel pendaftaran pasien laboratorium (`FE-LAB-14`): tetap membaca sesi bertujuan Laboratorium yang belum terpakai.
+
+**Catatan tafsir `AC-93`.** Bunyi `AC-93` tidak diubah. "Perilaku sesi kiosk yang sudah ada" dibaca sebagai perilaku
+**data dan kontrak** sesi (ruas, jalur baca, sesi lama tetap terbaca) — itulah yang dibuktikan `T-93a`..`T-93d`.
+Pergeseran **saat** sesi dibentuk pada alur Pasien Lama adalah keputusan alur kiosk (`KSK-DEC-014`) dan dibuktikan
+oleh acceptance criteria `FE-KSK-007` (tepat satu `scan-result` per perjalanan, sesudah Tujuan Layanan dipilih).
+
+**Pemberitahuan.** Pemilik modul Laboratorium (Yoga Aji Pratama) perlu diberi tahu amendment ini. Tidak ada
+keputusan Laboratorium yang berubah, sehingga tidak dibutuhkan keputusan baru dari pemilik modul.
+
 ## State dan Transition
 
 Kerangka mengikuti `LAB-INH-001`, `LAB-INH-002`, dan `LAB-INH-003`. Bagian yang ditambahkan
@@ -5090,7 +5124,7 @@ pengujian.
 | AC-90 | Pasien yang memilih Laboratorium di kiosk lalu pergi tanpa diperiksa **tidak menghasilkan satu pun tagihan pemeriksaan laboratorium** | BR-46, `AC-37` |
 | AC-91 | Setiap pemeriksaan yang dipesan dapat ditelusuri ke baris pemeriksaan yang memenuhinya; yang belum masuk wadah terbaca sebagai **menunggu wadah**, bukan hilang | BR-47, `LAB-DEC-057` |
 | AC-92 | Pasien yang memilih Laboratorium di kiosk lalu pergi tanpa diperiksa: kunjungannya **ditutup otomatis saat hari layanan berakhir** dengan sebab "tidak dilanjutkan", dan **biaya pendaftarannya gugur** | BR-46, `LAB-DEC-058` |
-| AC-93 | Sesi kiosk yang bertambah ruas tujuan layanan dan jalur permintaan **tidak mengubah satu pun perilaku sesi kiosk yang sudah ada**; 16 sesi yang sudah tersimpan tetap terbaca | BR-46, `LAB-REQ-006` |
+| AC-93 | Sesi kiosk yang bertambah ruas tujuan layanan dan jalur permintaan **tidak mengubah satu pun perilaku sesi kiosk yang sudah ada**; 16 sesi yang sudah tersimpan tetap terbaca | BR-46, `LAB-REQ-006`; tafsir dicatat Amendment Pass putaran 20 (`KSK-DEC-002`/`014`) |
 | AC-94 | Konfirmasi pesanan hanya sah **sekali**; sesudahnya nama konfirmator dan tanggal/waktu konfirmasi terekam dan terbaca pada daftar | BR-48, `LAB-DEC-061` |
 | AC-95 | Konfirmasi **menolak** bila dokter pemeriksa belum dipilih, dan dokter yang dipilih tampil pada daftar serta ringkasan cetak | BR-48, `LAB-DEC-061` |
 | AC-96 | Pembatalan pesanan **tanpa alasan ditolak**; alasan yang diterima tersimpan pada jejak audit dan terbaca kembali per pesanan | BR-49, `LAB-DEC-063` |
@@ -5623,6 +5657,7 @@ pada 2026-09-01. Yang perlu dicatat jujur tentang persetujuan ini:
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 82 | 2026-09-30 | **Amendment pass putaran 20 — urutan langkah kiosk Pasien Lama, menutup `KSK-OQ-004` blueprint `kiosk`.** `KSK-DEC-002`/`014` (Sukma Giri Pratama, `approved` 30 Sep 2026) memindahkan pilihan Tujuan Layanan ke langkah ketiga (sesudah Identifikasi dan Review Data) dan membentuk sesi kiosk tepat sekali saat tujuan dipilih. Bunyi lama perilaku `FE-LAB-13` dicatat berdampingan dengan bunyi baru; BR-46, `LAB-DEC-051`/`052`, tiga jawaban pemilik modul `FE-LAB-13`, kontrak `scan-result`, dan `FE-LAB-14` diperiksa **tidak berubah**. `AC-93` tidak diubah bunyinya; tafsirnya dicatat. Pemilik modul Laboratorium perlu diberi tahu | `draft` |
 | 81 | 2026-09-25 | **Dua pertentangan dan satu unknown dari capability map revision 6, dicatat tanpa keputusan baru.** `LAB-CONFLICT-015` — tiga jalan keluar berkas salah pasien pada dokumen klinis pasien lawan `LAB-DEC-158`; `LAB-CONFLICT-016` — satu kode izin `Update` untuk seluruh tindakan keadaan dan verifikasi-sendiri saat membuat. Keduanya bahan `LAB-COORD-018`, bukan keputusan Laboratorium. `UNK-P19-01` — kunjungan MCU tidak dapat dibuat dari layar mana pun, sehingga syarat penutupan `S19` belum dapat dibuktikan lewat layar. **Satu koreksi faktual:** asal dokumen klinis pasien `9d38d30a` (2026-06-02), bukan `58c61a5b` | `draft` |
 | 80 | 2026-09-25 | **Dua decision ID baru dari gerbang `LAB-RCG-001-r11`, dicatat tanpa keputusan baru.** `DEC-LAB-028` — fiksasi specimen PA, ruas cetakan `LAB-EVD-005` yang tidak pernah diadopsi putaran 11; `DEC-LAB-029` — kardinalitas lokasi per wadah, satu-satunya penahan `S2b-1`. Gerbang yang sama menaikkan `S16a` ke `READY_FOR_DOMAIN_DESIGN`, meleburkan `S8`, dan mengeluarkan `S19` dari desain | `draft` |
 | 79 | 2026-09-25 | **Amendment pass putaran 19 — enam penahan gerbang `LAB-RCG-001-r10`, dengan scope yang dikonfirmasi pemilik modul.** **`LAB-DEC-157`/`158`** menutup `DEC-LAB-026`: PDF hasil eksternal **satu data** di dokumen klinis pasien Clinical Management, **pintu unggah di Laboratorium**, tertaut pasien dan kunjungan, cek dua identitas, salah pasien ditandai *salah input* — `LAB-COORD-018` dibuka. **`LAB-DEC-159`/`160`**: `S16a` tiga laporan dengan definisi tetap — jumlah pada tanggal rilis, penolakan per wadah, TAT layak sampai rilis — dan hak akses tersendiri; `DEC-LAB-007` disahkan, `DEC-LAB-025` menyempit ke delapan laporan lain. **`LAB-DEC-161`** menutup `DEC-LAB-023` dan `LAB-DEC-145` butir 4 — pertentangan dengan `CAP-006` (daftar lokasi tumbuh otomatis) diselesaikan **ke arah blueprint**. **`LAB-DEC-162`**: blok/slide tidak dilacak; seri Sitologi/FNAB ditahan — `DEC-LAB-022` menyempit. **`LAB-DEC-163`** menutup `DEC-LAB-024`: `S8` dilebur ke `S5`/`S6`. **`LAB-DEC-164`** menutup `DEC-LAB-027`: MCU lewat jalur umum, `S19` menunggu verifikasi berjalan. `LAB-DEC-030` diamandemen pada dua baris. `AC-248`..`AC-256`. **Nol keputusan terkunci dicabut** | `draft` |

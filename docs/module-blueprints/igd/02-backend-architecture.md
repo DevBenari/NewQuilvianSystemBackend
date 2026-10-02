@@ -1296,7 +1296,9 @@ Bukan keputusan bisnis baru — pilihan realisasi yang agent ambil dan perlu dil
 ## 14. Penutupan kunjungan lewat disposisi yang dilaksanakan — 23 September 2026
 
 Desain target untuk `IGD-DEC-163`…`169` (amendment pass 23 September 2026). Slice ini **sempit**: satu aturan baru,
-satu kolom baru, nol tabel baru, nol endpoint baru. Status seluruh isi bagian ini: `draft`, **Rencana (belum tersedia)**.
+satu kolom baru, nol tabel baru, nol endpoint baru. Status bagian ini: **`approved`** (`IGD-DEC-170`, Rizki Gunawan,
+23 September 2026), **Rencana (belum tersedia)**. Perluasan baris `EmergencyObservationController` pada §14.3 dan §14.4
+berasal dari amendment 30 September 2026 (`IGD-DEC-171`, `172`) dan **`approved`** lewat `IGD-DEC-175` (30 September 2026).
 
 Masukan: decision log bagian "Amendment pass 23 September 2026"; capability map suplemen revision 3.3
 (`dce1f138`); gerbang requirement `S5` `READY_FOR_DOMAIN_DESIGN`. Keberlakuan QBE: `TOUCHED LEGACY` untuk
@@ -1362,7 +1364,7 @@ boleh memanggilnya. Keduanya sudah terdaftar di `Program.cs` (`:515`, `:520`), s
 | `EmgVisit` | Model | **Diperbarui** | `Areas/HealthServices/EmergencyInstallationManagement/Models/EmgVisit.cs` | + `ClosedByDispositionId` beserta navigasi `ClosedByDisposition` |
 | `EmergencyVisitService` | Service | **Diperbarui** | `…/Services/EmergencyVisitService.cs` | + `TryCloseAfterDispositionAsync` dan record hasilnya; constructor + `EmergencyDispositionService`. **Tidak** menyimpan sendiri — penyimpanan tetap milik pemanggil, sama seperti `ApplyEncounterClosureAsync` |
 | `EmergencyDispositionController` | Controller | **Diperbarui** | `…/Controllers/EmergencyDispositionController.cs` | Sesudah disposisi berpindah ke `Executed` (`:300` `UpdateDispositionStatus`), panggil penutupan susulan sebelum `SaveChanges`. Tambah penolakan pembatalan atas kunjungan yang sudah selesai |
-| `EmergencyObservationController` | Controller | **Diperbarui** | `…/Controllers/EmergencyObservationController.cs` | Sesudah observasi tidak lagi aktif (`:261` `UpdateObservationStatus`), panggil penutupan susulan |
+| `EmergencyObservationController` | Controller | **Diperbarui** | `…/Controllers/EmergencyObservationController.cs` | Sesudah observasi tidak lagi aktif (`:261` `UpdateObservationStatus`), panggil penutupan susulan. **Amendment 30 September 2026:** pada kunjungan `Disposed`, target `Completed` tidak lagi dipetakan ke perpindahan status kunjungan, dan target `Escalated` ditolak `409` dengan pesan validation §11.1 aturan 14 sebelum pemeriksaan batas catatan (state §9.5, `IGD-DEC-171`, `172`). Nol method service baru; nol perubahan pada `EmergencyObservationService` |
 | `EmergencyDepartureController` | Controller | **Diperbarui** | `…/Controllers/EmergencyDepartureController.cs` | Sesudah serah terima diterima/ditolak/dibatalkan (`:162`, `:172`, `:206`) dan sesudah sikap pesanan ditetapkan (`:118`, `:129`, `:135`), panggil penutupan susulan |
 | `EmergencyVisitController` | Controller | **Diperbarui** | `…/Controllers/EmergencyVisitController.cs` | `GET /` bertambah saringan `awaitingClosure`; `EmergencyVisitResponse` bertambah dua ruas penahan |
 | `EmergencyVisitDtos.cs` | DTO | **Diperbarui** | `…/DTOs/EmergencyVisitDtos.cs` | + `IsAwaitingClosure`, `AwaitingClosureReason` pada response |
@@ -1374,7 +1376,7 @@ boleh memanggilnya. Keduanya sudah terdaftar di `Program.cs` (`:515`, `:520`), s
 Areas/HealthServices/EmergencyInstallationManagement/
 ├── Controllers/
 │   ├── EmergencyDispositionController.cs     Diperbarui  (pemicu 1 + penolakan pembatalan)
-│   ├── EmergencyObservationController.cs     Diperbarui  (pemicu 2)
+│   ├── EmergencyObservationController.cs     Diperbarui  (pemicu 2 + pemetaan pada kunjungan Disposed)
 │   ├── EmergencyDepartureController.cs       Diperbarui  (pemicu 3 dan 4)
 │   └── EmergencyVisitController.cs           Diperbarui  (saringan + ruas response)
 ├── DTOs/EmergencyVisitDtos.cs                Diperbarui

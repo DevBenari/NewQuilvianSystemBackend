@@ -74,11 +74,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingE
 
             _logger.LogInformation(
                 "Siklus coba ulang kejadian selesai. Diambil={Diambil}, Terjurnal={Terjurnal}, "
-                + "Tertahan={Tertahan}, MasihDiterima={MasihDiterima}, MenjadiGagal={MenjadiGagal}, "
+                + "Tertahan={Tertahan}, Tercatat={Tercatat}, MasihDiterima={MasihDiterima}, MenjadiGagal={MenjadiGagal}, "
                 + "Dilewati={Dilewati}, Galat={Galat}.",
                 hasil.Considered,
                 hasil.Journaled,
                 hasil.Held,
+                hasil.Recorded,
                 hasil.StillPending,
                 hasil.MarkedFailed,
                 hasil.Skipped,

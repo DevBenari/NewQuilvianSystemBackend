@@ -1324,7 +1324,10 @@ sebagai bagian dari `CREATE TABLE "FinPayment"` yang asli — bukan sebagai migr
 | `UnitPrice` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | — |
 | `LineTotal` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | — |
 
-## C.8 `FinSupplierReturn` — status `Baru`
+## C.8 `FinSupplierReturn` — status `Diperbarui` (AMENDMENT REVISI 6)
+
+Status naik dari `Baru` menjadi `Diperbarui`: tabelnya **sudah dibangun dan sudah berjalan** pada
+`cba60cb0`, dan AMENDMENT REVISI 6 menambahkan satu kolom (`FIN-DES-055`).
 
 | Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
 |---|---|:---:|---|---|---|---|:---:|---|
@@ -1332,9 +1335,16 @@ sebagai bagian dari `CREATE TABLE "FinPayment"` yang asli — bukan sebagai migr
 | `ReturnNumber` | `string(50)` | Ya | — | UK | — | — | Tidak | — |
 | `PurchasingInvoiceId` | `Guid` | Ya | — | Index | FK ke `FinPurchasingInvoice` | `Restrict` | Tidak | Invoice sumber |
 | `Reason` | `string(500)` | Ya | — | — | — | — | Tidak | — |
-| `TotalAmount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | — |
+| `TotalAmount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | **Pokok tanpa PPN** — jumlah `LineTotal` seluruh barisnya. Arti ini diperjelas REVISI 6; nilainya tidak berubah |
+| `PPNAmount` | `decimal(18,2)` | Ya | `0` | — | — | — | Tidak | **Baru (REVISI 6).** Porsi PPN barang yang diretur. `>= 0` lewat `CK_FinSupplierReturn_PPNAmount`. Mengikuti nama `FinPurchasingInvoice.PPNAmount`. Kredit retur yang lahir = `TotalAmount + PPNAmount` |
 | `Status` | `string(20)` | Ya | `DRAFT` | Index | — | — | Tidak | `DRAFT`, `CONFIRMED`, `CANCELLED` |
 | `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Optimistic concurrency |
+
+**Kenapa kolom ini ada.** Accounting meratifikasi `RETUR-PEMBELIAN` dengan syarat nilainya pokok
+tanpa PPN dan porsi PPN dikirim lewat kode terpisah (`integration-contract.md` bagian 5.10).
+Tanpa kolom ini, kredit retur tercatat hanya sebesar pokok padahal supplier mengakui pokok + PPN,
+sehingga selisihnya tidak pernah dapat dipakai mengurangi utang dan terbaca sebagai utang yang
+masih harus dibayar.
 
 ## C.9 `FinSupplierReturnItem` — status `Baru`
 
@@ -1574,11 +1584,13 @@ CREATE TABLE public."FinSupplierReturn" (
     "PurchasingInvoiceId" uuid          NOT NULL,
     "Reason"              varchar(500)  NOT NULL,
     "TotalAmount"         numeric(18,2) NOT NULL,
+    "PPNAmount"           numeric(18,2) NOT NULL DEFAULT 0,   -- Baru, AMENDMENT REVISI 6
     "Status"              varchar(20)   NOT NULL DEFAULT 'DRAFT',
     "RowVersion"          uuid          NOT NULL,
 
     CONSTRAINT "PK_FinSupplierReturn" PRIMARY KEY ("Id"),
     CONSTRAINT "UQ_FinSupplierReturn_ReturnNumber" UNIQUE ("ReturnNumber"),
+    CONSTRAINT "CK_FinSupplierReturn_PPNAmount" CHECK ("PPNAmount" >= 0),
     CONSTRAINT "FK_FinSupplierReturn_FinPurchasingInvoice_PurchasingInvoiceId"
         FOREIGN KEY ("PurchasingInvoiceId") REFERENCES public."FinPurchasingInvoice" ("Id")
         ON DELETE RESTRICT,
