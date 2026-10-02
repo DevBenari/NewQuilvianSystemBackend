@@ -56,10 +56,10 @@ Seluruh node berlabel adalah cermin baca-saja; tandanya disalin dari roadmap pem
 | 1 | `BE-RWI-160` [BE], `BE-RWI-163` [BE] | `FE-RWI-176` |
 | 1 | — | `FE-RWI-177` |
 | 1 | `FE-RWI-196` [EPS] | `FE-RWI-178` |
+| 1 | — | `FE-RWI-179` |
 | 2 | `FE-RWI-173`, `BE-RWI-104` ✅ [V2] | `FE-RWI-172` — juga menunggu bukti runtime `BE-RWI-104` (kartu) |
-| — | ⛔ menunggu `DEC-INP-019` | `FE-RWI-179` |
 
-**Pemetaan ke gelombang `04-prd-to-mvp.md` bagian 23.20.** `MVP-0` (`RWF-W0`): `FE-RWI-172`, `173`, `176`, `177`. `MVP-1` (`RWF-W2`): `FE-RWI-174`, `175`. `FE-RWI-178` ikut gelombang Pasca Operasi `episode-rawat-inap`. `FE-RWI-179` tidak bergelombang sampai `DEC-INP-019` dijawab.
+**Pemetaan ke gelombang `04-prd-to-mvp.md` bagian 23.20.** `MVP-0` (`RWF-W0`): `FE-RWI-172`, `173`, `176`, `177`, `179`. `MVP-1` (`RWF-W2`): `FE-RWI-174`, `175`. `FE-RWI-178` ikut gelombang Pasca Operasi `episode-rawat-inap`. `FE-RWI-179` lepas dari blokir setelah `DEC-INP-019` ditutup oleh `RWI-DEC-222`.
 
 ## Gerbang rilis
 
@@ -69,11 +69,11 @@ Kode frontend `f74758af5` memuat lima cacat implementasi di ruang kerja dokter. 
 |---|---|---|---|
 | IMP-RWF-01 | Gizi dan Bank Darah dikirim langsung ke modul tujuan dengan dokter peminta = dokter admisi | `supporting-nutrition-form.jsx:66-71`, `supporting-blood-bank-form.jsx:80-95` | `FE-RWI-174` |
 | IMP-RWF-02 | `bloodComponentId` dan unit layanan berupa GUID tertanam | `supporting-blood-bank-form.jsx:80-95` | `FE-RWI-174` |
-| IMP-RWF-03 | Rehab Medik memakai tujuh `procedureId` buatan | `supporting-rehab-form.jsx:20-60` | `FE-RWI-179` ⛔ |
+| IMP-RWF-03 | Rehab Medik memakai tujuh `procedureId` buatan | `supporting-rehab-form.jsx:20-60` | `FE-RWI-179` |
 | IMP-RWF-05 | Lab/Radiologi berharga tetap 120.000 dan memakai katalog contoh bila katalog kosong | `supporting-laboratory-form.jsx:27-40`, `:81-96`; `supporting-radiology-form.jsx:21-25`, `:103` | `FE-RWI-173` |
 | IMP-RWF-06 (temuan perencanaan 2 Oktober) | Order tindakan rawat inap mengisi status tanggungan bawaan "Ditanggung" dan harga `0` karena `master-options` tidak mengirim tarif | `procedure-form-panel.jsx:102-103`, `:150`, `:360` | `FE-RWI-176` |
 
-`FE-RWI-179` tertahan `DEC-INP-019`. Bila rilis harus berjalan sebelum keputusan itu dijawab, pemilik dapat memilih jawaban "tetap *placeholder*" lebih dulu; agent tidak memilih atas nama pemilik.
+`DEC-INP-019` telah ditutup oleh `RWI-DEC-222` (2 Oktober 2026): kartu Rehab Medik tetap sebagai *placeholder* ("Integrasi belum tersedia") tanpa request jaringan dan form dicabut. `FE-RWI-179` bebas blokir dan siap dikerjakan.
 
 ## Slice D1 — Penunjang Medis, perkiraan harga, dan verifikasi
 
@@ -133,16 +133,16 @@ Pasangan: 1. Endpoint ringkasan operasi (`BE-RWI-180` milik `episode-rawat-inap`
 ### Grafik dependency slice D3
 
 ```text
-{DEC-INP-019 ⛔} ─> FE-RWI-179 ⛔
+(RWI-DEC-222) ─> FE-RWI-179
 ```
 
-Pasangan: 1 (keputusan `DEC-INP-019` dihitung sebagai satu entri).
+Pasangan: 1 (keputusan `RWI-DEC-222` / `DEC-INP-019` telah disetujui).
 
 ### Tabel task slice D3
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-RWI-179` ⛔ | Kartu Rehab Medik tidak lagi mengirim pesanan ber-ID buatan; perilaku akhirnya mengikuti `DEC-INP-019` | `FR-RWF-035`; `RWI-DEC-108`; KK-3; `DEC-INP-019`; IMP-RWF-03 | `04-prd-to-mvp.md` 23.8 (Rehab ditunda) | `supporting-rehab-form.jsx` | Bergantung jawaban keputusan | `DEC-INP-019` ⛔ | Kartu | Kartu | Keputusan pemilik terbuka / Muhammad Hamzah | Kartu |
+| `FE-RWI-179` | Kartu Rehab Medik tidak lagi mengirim pesanan ber-ID buatan; kembali ke *placeholder* 'Integrasi belum tersedia' | `FR-RWF-035`; `RWI-DEC-108`; `RWI-DEC-222`; IMP-RWF-03 | `04-prd-to-mvp.md` 23.8 (Rehab ditunda) | `supporting-rehab-form.jsx`, `SupportingUnavailablePanel` | Kartu kembali "Integrasi belum tersedia" tanpa request jaringan dan form dicabut | — (`RWI-DEC-222` disetujui) | `RWI-AC-341`, `RWI-AC-342` | Kartu | Bebas blokir / Muhammad Hamzah | Kartu |
 
 ## Kartu task
 
@@ -259,20 +259,20 @@ Pasangan: 1 (keputusan `DEC-INP-019` dihitung sebagai satu entri).
 | **Risiko/pemilik** | Menunggu task sub-modul lain. Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; lint dan build lulus; laporan tracked; roadmap dan traceability diperbarui |
 
-### `FE-RWI-179` ⛔ — Rehab Medik di tab Penunjang dokter
+### `FE-RWI-179` — Rehab Medik di tab Penunjang dokter
 
 | Field | Isi |
 |---|---|
-| **Status** | ⛔ **Terblokir** — menunggu `DEC-INP-019` (pemilik Muhammad Hamzah; jalur penutupan `grill-me`) |
-| **Outcome** | Kartu Rehab Medik tidak lagi mengirim pesanan ber-ID tindakan buatan; perilaku akhirnya mengikuti jawaban `DEC-INP-019` |
-| **Requirement/decision** | `FR-RWF-035`; `RWI-DEC-108`; KK-3 rencana kerja Penunjang Medis rev 2.0; `DEC-INP-019`; gerbang rilis IMP-RWF-03 |
+| **Status** | Belum dikerjakan (Bebas Blokir — `DEC-INP-019` ditutup `RWI-DEC-222`) |
+| **Outcome** | Kartu Rehab Medik tidak lagi mengirim pesanan ber-ID tindakan buatan; kartu kembali menampilkan status "Integrasi belum tersedia" |
+| **Requirement/decision** | `FR-RWF-035`; `RWI-DEC-108`; `RWI-DEC-222`; gerbang rilis IMP-RWF-03; `RWI-AC-341`, `RWI-AC-342` |
 | **Kontrak** | `04-prd-to-mvp.md` 23.8 (Rehab Medik ditunda sebagai *placeholder*) |
-| **Reuse** | `supporting-rehab-form.jsx` (`FE-RWI-146`) |
-| **Cakupan** | Jawaban "tetap *placeholder*": kartu kembali "Integrasi belum tersedia" tanpa request jaringan dan form dicabut. Jawaban "dibuka": pesanan memakai katalog prosedur fisioterapi dari master lewat alur order tindakan biasa (perkiraan harga dan verifikasi ikut), dan **memerlukan kontrak baru** lewat `design-business-module` sebelum task ini boleh dijalankan |
-| **Dependency** | `DEC-INP-019` ⛔ |
-| **Acceptance criteria** | Berlaku untuk kedua jawaban: 1. Pencarian kode: nol `procedureId` buatan `…0101` s.d. `…0107` (`supporting-rehab-form.jsx:20-60`). 2. Tidak ada pesanan tindakan dari kartu Rehab sebelum jawaban "dibuka" disetujui beserta kontraknya. 3. Hemodialisa tidak berubah |
+| **Reuse** | `supporting-rehab-form.jsx` (`FE-RWI-146`), `SupportingUnavailablePanel` |
+| **Cakupan** | Mengikuti jawaban `RWI-DEC-222` ("tetap *placeholder*"): kartu kembali ke `SupportingUnavailablePanel` ("Integrasi belum tersedia") tanpa request jaringan dan form dicabut |
+| **Dependency** | — (`RWI-DEC-222` sudah disetujui) |
+| **Acceptance criteria** | 1. Pencarian kode: nol `procedureId` buatan `…0101` s.d. `…0107` (`supporting-rehab-form.jsx:20-60`). 2. Tidak ada pesanan tindakan atau request jaringan dari kartu Rehab. 3. Hemodialisa tidak berubah |
 | **Verifikasi** | `npm run lint`; `npm run build`; verifikasi manual kartu Rehab; pencarian kode |
-| **Risiko/pemilik** | Selama terblokir, kode Rehab saat ini tetap menjadi gerbang rilis. Pemilik: Muhammad Hamzah |
+| **Risiko/pemilik** | Pemilik: Muhammad Hamzah |
 | **DoD** | Keputusan tercatat; kriteria terbukti; lint dan build lulus; laporan tracked; roadmap dan traceability diperbarui |
 
 ## Rujukan silang `frontend-roadmap-v2.md`
@@ -281,6 +281,6 @@ Pasangan: 1 (keputusan `DEC-INP-019` dihitung sebagai satu entri).
 |---|---|---|
 | `FE-RWI-144` | Register 🟡, kartu "✅ Selesai di tingkat source" | `FE-RWI-173` (IMP-RWF-05) |
 | `FE-RWI-145` | Sama | `FE-RWI-174` (IMP-RWF-01, 02) |
-| `FE-RWI-146` | Sama | `FE-RWI-179` ⛔ (IMP-RWF-03); bagian Hemodialisa tidak diubah |
+| `FE-RWI-146` | Sama | `FE-RWI-179` (IMP-RWF-03); bagian Hemodialisa tidak diubah |
 
 Tanda pada roadmap lama tidak diubah oleh dokumen ini. Selisih tanda register 🟡 dan kartu ✅ pada ketiga task itu dicatat untuk pemilik roadmap tersebut.

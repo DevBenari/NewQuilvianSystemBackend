@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Attributes;
@@ -14,10 +13,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.C
 
 /// <summary>
 /// Controller API resmi integrasi Rawat Inap (Inpatient) dengan Billing Management.
-/// Mengelola penerimaan beban sewa kamar harian, ringkasan kelayakan finansial bangsal,
-/// evaluasi ulang status clearance kepulangan pasien ranap, validasi deposit tindakan besar,
-/// dan pengakuan surat handoff kelayakan (BKC-DEC-112, BKC-DEC-114, BKC-DEC-115, BKC-DES-043, BKC-DES-045, BKC-DES-047, BIL-API-1.4, BIL-PERMISSION-1.2).
+/// Mengelola ringkasan kelayakan finansial bangsal, evaluasi ulang status clearance kepulangan
+/// pasien ranap, validasi deposit tindakan besar, dan pengakuan surat handoff kelayakan
+/// (BKC-DEC-114, BKC-DEC-115, BKC-DES-045, BKC-DES-047, BIL-API-1.4, BIL-PERMISSION-1.2).
 /// </summary>
+/// <remarks>
+/// BE-RWI-147 / RWI-DEC-192 butir (e): endpoint <c>POST invoices/occupancy-charges</c> dan
+/// hitungan tarif kamar kedua (<c>InpatientRoomChargeCalculationService</c>, dengan jam potong dan
+/// tarif cadangan tertanam) dipensiunkan. Tarif kamar kini hanya dihitung
+/// <c>BillingCalculationService</c> dari linimasa penempatan bed menurut <c>MstRoomChargePolicy</c>.
+/// </remarks>
 [ApiController]
 [Authorize]
 [Route("api/v1/health-services/billing-management/billing")]
@@ -27,81 +32,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.C
     "Billing Inpatient Integration",
     AreaName = "HealthServices",
     ControllerName = "BillingInpatient",
-    Description = "Inpatient billing integration, room occupancy charges, and clearance handoff",
+    Description = "Inpatient billing integration and clearance handoff",
     SortOrder = 7)]
 [Tags("BillingInpatientIntegration")]
 public sealed class InpatientClearanceController : ControllerBase
 {
     private const string LogCategory = "HealthServices.BillingManagement.Billing.InpatientClearanceController";
     private readonly IInpatientClearanceService _clearanceService;
-    private readonly IInpatientRoomChargeCalculationService _roomChargeCalculationService;
     private readonly LoggerService _loggerService;
 
     public InpatientClearanceController(
         IInpatientClearanceService clearanceService,
-        IInpatientRoomChargeCalculationService roomChargeCalculationService,
         LoggerService loggerService)
     {
         _clearanceService = clearanceService ?? throw new ArgumentNullException(nameof(clearanceService));
-        _roomChargeCalculationService = roomChargeCalculationService ?? throw new ArgumentNullException(nameof(roomChargeCalculationService));
         _loggerService = loggerService ?? throw new ArgumentNullException(nameof(loggerService));
-    }
-
-    /// <summary>
-    /// Menerima beban sewa kamar harian dari outbox Rawat Inap (ROOM_STAY).
-    /// Menerapkan potongan jam masuk &amp; split transfer kamar harian.
-    /// Mematuhi BKC-DEC-112, BKC-DES-043, BIL-API-1.4, BIL-VAL-118, BIL-VAL-119.
-    /// </summary>
-    [HttpPost("invoices/occupancy-charges")]
-    [AccessAction("Create", "Create Occupancy Charge", AccessType = AccessTypes.Create, SortOrder = 1)]
-    [AccessPermission("BillingInpatient", "Create")]
-    [ProducesResponseType(typeof(ApiResponse<OccupancyChargeResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ProcessOccupancyCharge(
-        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
-        [FromBody] OccupancyChargeRequest request,
-        CancellationToken cancellationToken)
-    {
-        if (idempotencyKey == Guid.Empty)
-        {
-            return BadRequest(ApiResponse<object>.Fail(
-                StatusCodes.Status400BadRequest, "Header 'Idempotency-Key' wajib disertakan dan berupa GUID valid."));
-        }
-
-        if (request == null)
-        {
-            return BadRequest(ApiResponse<object>.Fail(
-                StatusCodes.Status400BadRequest, "Payload beban sewa kamar tidak boleh kosong."));
-        }
-
-        if (request.EncounterId == Guid.Empty)
-        {
-            return BadRequest(ApiResponse<object>.Fail(
-                StatusCodes.Status400BadRequest, "Identitas kunjungan (EncounterId) wajib diisi."));
-        }
-
-        try
-        {
-            var result = await _roomChargeCalculationService.ProcessOccupancyChargeAsync(request, cancellationToken);
-            return Ok(ApiResponse<OccupancyChargeResponse>.Ok(
-                result, "Beban sewa kamar berhasil dicatat pada invoice berjalan."));
-        }
-        catch (KeyNotFoundException exception)
-        {
-            return NotFound(ApiResponse<object>.Fail(
-                StatusCodes.Status404NotFound, exception.Message));
-        }
-        catch (ArgumentException exception)
-        {
-            return BadRequest(ApiResponse<object>.Fail(
-                StatusCodes.Status400BadRequest, exception.Message));
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(ApiResponse<object>.Fail(
-                StatusCodes.Status400BadRequest, exception.Message));
-        }
     }
 
     /// <summary>

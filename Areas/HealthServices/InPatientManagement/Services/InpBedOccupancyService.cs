@@ -865,27 +865,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     touchEpisode: true,
                     cancellationToken: cancellationToken);
 
-                // BE-RWI-130 / RWI-DEC-156 — Event BED_OCCUPIED saat bed fisik ditempati
-                var bedOccupiedPayload = new
-                {
-                    encounterId = episode.EncounterId,
-                    episodeId = episode.Id,
-                    patientId = episode.PatientId,
-                    roomId = context.Room.Id,
-                    roomName = context.Room.RoomName,
-                    bedId = context.Bed.Id,
-                    bedCode = context.Bed.BedCode,
-                    roomClassId = placement.PatientClassId,
-                    occupancyStartAt = placement.StartDateTime
-                };
-
+                // BE-RWI-130 / RWI-DEC-156 — Event BED_OCCUPIED saat bed fisik ditempati.
+                // BE-RWI-151 / INV-RWF-05: ruang, bed, kelas, dan waktu hunian tidak ikut di
+                // pesan; Billing membaca linimasa penempatan langsung.
                 await _outboxService.EnqueueEventAsync(
                     eventType: "BED_OCCUPIED",
-                    idempotencyKey: $"INPATIENT:ROOM_STAY:{placement.Id}:{placement.Version}",
-                    sourceDomain: "INPATIENT",
+                    episodeId: episode.Id,
+                    encounterId: episode.EncounterId,
                     sourceType: "ROOM_STAY",
-                    sourceDetailId: placement.Id.ToString(),
-                    payload: bedOccupiedPayload,
+                    sourceId: placement.Id,
+                    version: placement.Version,
+                    occurredAtUtc: placement.StartDateTime,
                     cancellationToken: cancellationToken);
 
                 await _dbContext.SaveChangesAsync(cancellationToken);
@@ -1153,27 +1143,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 episode.UpdateDateTime = now;
                 episode.UpdateBy = actorUserId;
 
-                // BE-RWI-131 / RWI-DEC-157 — Event OCCUPANCY_CORRECTED saat mutasi / koreksi kamar
-                var occupancyCorrectedPayload = new
-                {
-                    encounterId = episode.EncounterId,
-                    episodeId = episode.Id,
-                    oldRoomId = currentPlacement.RoomId,
-                    newRoomId = context.Room.Id,
-                    oldRoomClassId = currentPlacement.PatientClassId,
-                    newRoomClassId = placement.PatientClassId,
-                    effectiveAtUtc = now,
-                    reason = reason,
-                    version = placement.Version
-                };
-
+                // BE-RWI-154 / kontrak integrasi-billing 1.1.0 API 3.4: transfer biasa menerbitkan
+                // BED_OCCUPIED untuk penempatan baru. OCCUPANCY_CORRECTED kini hanya milik koreksi
+                // salah catat (InpPlacementCorrectionService). Bagi Billing artinya sama: hitung
+                // ulang tarif kamar dari linimasa penempatan (RWI-DEC-166 butir 3).
+                // BE-RWI-151 / INV-RWF-05: isi pesan hanya penanda kejadian (daftar putih).
                 await _outboxService.EnqueueEventAsync(
-                    eventType: "OCCUPANCY_CORRECTED",
-                    idempotencyKey: $"INPATIENT:ROOM_STAY:{placement.Id}:{placement.Version}",
-                    sourceDomain: "INPATIENT",
+                    eventType: "BED_OCCUPIED",
+                    episodeId: episode.Id,
+                    encounterId: episode.EncounterId,
                     sourceType: "ROOM_STAY",
-                    sourceDetailId: placement.Id.ToString(),
-                    payload: occupancyCorrectedPayload,
+                    sourceId: placement.Id,
+                    version: placement.Version,
+                    occurredAtUtc: placement.StartDateTime,
                     cancellationToken: cancellationToken);
 
                 await _dbContext.SaveChangesAsync(cancellationToken);
@@ -1198,6 +1180,342 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 throw;
             }
         }
+
+        // =====================================================================
+        // BE-RWI-154 — Koreksi salah catat penempatan (RWI-DEC-157, RWI-DEC-192 butir g)
+        // =====================================================================
+
+        /// <summary>
+        /// Menerapkan koreksi salah catat kamar, bed, kelas, atau waktu pada satu penempatan.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Dipanggil <see cref="InpPlacementCorrectionService"/> <b>sesudah</b> gerbang status invoice
+        /// (<c>INT-RWF-03</c>) lolos. Baris lama tidak pernah dihapus atau ditimpa isinya: ia diberi
+        /// <c>SupersededByCorrectionId</c>, lalu satu baris baru lahir dengan
+        /// <c>CorrectsPlacementId</c> dan <c>Version</c> lama + 1 (kontrak state 5.4). Billing hanya
+        /// menghitung baris yang <c>SupersededByCorrectionId</c>-nya kosong (<c>INV-RWF-07</c>),
+        /// sehingga tarif kamar tidak dobel dan tidak kurang (<c>RSK-RWF-02</c>).
+        /// </para>
+        /// <para>
+        /// <b>Dua kali simpan di dalam satu transaksi.</b> Bila penempatan yang dikoreksi masih
+        /// berjalan, baris lama ditutup lebih dulu supaya index unik "satu bed satu penempatan
+        /// aktif" (<c>IX_InpBedPlacement_BedId_Active</c>) tidak menolak baris koreksi pada bed yang
+        /// sama, misalnya koreksi kelas saja.
+        /// </para>
+        /// </remarks>
+        public async Task<InpPlacementCorrectionResult> ApplyPlacementCorrectionAsync(
+            Guid placementId,
+            CorrectPlacementRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var reason = request.Reason.Trim();
+            var now = DateTime.UtcNow;
+
+            var target = await _dbContext.Set<InpBedPlacement>()
+                .FirstOrDefaultAsync(x => x.Id == placementId && !x.IsDelete, cancellationToken);
+
+            if (target == null)
+            {
+                return InpPlacementCorrectionResult.Fail(
+                    InpEpisodeOperationStatus.NotFound, "Penempatan tidak ditemukan.");
+            }
+
+            // Koreksi selalu dilakukan pada baris yang berlaku (kontrak state 5.4).
+            if (target.SupersededByCorrectionId.HasValue || target.Version != request.ExpectedVersion)
+            {
+                return InpPlacementCorrectionResult.Fail(
+                    InpEpisodeOperationStatus.Conflict,
+                    "Data penempatan sudah diubah pengguna lain. Muat ulang lalu coba lagi.",
+                    InpPlacementCorrectionCodes.VersionChanged);
+            }
+
+            var episode = await _dbContext.Set<InpEpisode>()
+                .FirstOrDefaultAsync(x => x.Id == target.EpisodeId && !x.IsDelete, cancellationToken);
+
+            if (episode == null)
+            {
+                return InpPlacementCorrectionResult.Fail(
+                    InpEpisodeOperationStatus.NotFound, "Episode rawat inap tidak ditemukan.");
+            }
+
+            var isActivePlacement = target.EndDateTime == null;
+
+            if (request.CorrectedEndDateTime.HasValue && isActivePlacement)
+            {
+                return InpPlacementCorrectionResult.Fail(
+                    InpEpisodeOperationStatus.Invalid,
+                    "Waktu selesai hanya dapat dikoreksi pada penempatan yang sudah berakhir.");
+            }
+
+            var newStart = request.CorrectedStartDateTime.HasValue
+                ? ToUtc(request.CorrectedStartDateTime.Value)
+                : target.StartDateTime;
+            var newEnd = isActivePlacement
+                ? (DateTime?)null
+                : request.CorrectedEndDateTime.HasValue
+                    ? ToUtc(request.CorrectedEndDateTime.Value)
+                    : target.EndDateTime;
+
+            if (newStart > now || (newEnd.HasValue && newEnd.Value > now))
+            {
+                return InpPlacementCorrectionResult.Fail(
+                    InpEpisodeOperationStatus.Invalid,
+                    "Waktu koreksi tidak boleh melewati waktu sekarang.");
+            }
+
+            if (newEnd.HasValue && newEnd.Value <= newStart)
+            {
+                return InpPlacementCorrectionResult.Fail(
+                    InpEpisodeOperationStatus.Invalid,
+                    "Waktu selesai penempatan harus sesudah waktu mulainya.");
+            }
+
+            // VAL-RWF-12 — tidak mendahului admisi dan tidak menimpa penempatan lain.
+            if (episode.AdmittedAt.HasValue && newStart < episode.AdmittedAt.Value)
+            {
+                return InpPlacementCorrectionResult.Fail(
+                    InpEpisodeOperationStatus.Invalid,
+                    "Waktu koreksi bertabrakan dengan penempatan lain pada episode ini.");
+            }
+
+            var siblings = await _dbContext.Set<InpBedPlacement>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.EpisodeId == episode.Id &&
+                    x.Id != target.Id &&
+                    !x.IsDelete &&
+                    x.SupersededByCorrectionId == null)
+                .Select(x => new { x.StartDateTime, x.EndDateTime })
+                .ToListAsync(cancellationToken);
+
+            var correctedEndForOverlap = newEnd ?? DateTime.MaxValue;
+            var overlaps = siblings.Any(x =>
+                x.StartDateTime < correctedEndForOverlap &&
+                (x.EndDateTime ?? DateTime.MaxValue) > newStart);
+
+            if (overlaps)
+            {
+                return InpPlacementCorrectionResult.Fail(
+                    InpEpisodeOperationStatus.Invalid,
+                    "Waktu koreksi bertabrakan dengan penempatan lain pada episode ini.");
+            }
+
+            var newBedId = target.BedId;
+            var newRoomId = target.RoomId;
+            var newServiceUnitId = target.ServiceUnitId;
+            var newPatientClassId = target.PatientClassId;
+            var bedChanged = request.CorrectedBedId.HasValue && request.CorrectedBedId.Value != target.BedId;
+
+            if (bedChanged)
+            {
+                var context = await LoadBedContextAsync(request.CorrectedBedId!.Value, cancellationToken);
+
+                if (context?.Room == null)
+                {
+                    return InpPlacementCorrectionResult.Fail(
+                        InpEpisodeOperationStatus.NotFound, "Tempat tidur hasil koreksi tidak ditemukan.");
+                }
+
+                if (isActivePlacement)
+                {
+                    // VAL-RWF-10 — bed yang sedang ditempati wajib lolos kelayakan yang sama
+                    // dengan transfer.
+                    var patient = await _dbContext.Set<MstPatient>()
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(x => x.Id == episode.PatientId, cancellationToken);
+
+                    var evaluation = await EvaluatePlacementEligibilityAsync(
+                        episode,
+                        patient,
+                        context.Bed,
+                        context.Room,
+                        InpPlacementContext.Transfer,
+                        cancellationToken);
+
+                    if (!evaluation.IsEligible)
+                    {
+                        return InpPlacementCorrectionResult.Fail(
+                            InpEpisodeOperationStatus.BusinessRuleRejected,
+                            evaluation.PrimaryMessage,
+                            InpPlacementCorrectionCodes.BedNotEligible,
+                            evaluation.Failures.ToList());
+                    }
+                }
+                else
+                {
+                    // Penempatan yang sudah berakhir: keadaan bed hari ini tidak relevan, tetapi
+                    // bed itu tidak boleh tercatat ditempati episode lain pada periode yang sama.
+                    var historicalEnd = newEnd ?? DateTime.MaxValue;
+                    var takenInPeriod = await _dbContext.Set<InpBedPlacement>()
+                        .AsNoTracking()
+                        .AnyAsync(x =>
+                            x.BedId == context.Bed.Id &&
+                            x.EpisodeId != episode.Id &&
+                            !x.IsDelete &&
+                            x.SupersededByCorrectionId == null &&
+                            x.StartDateTime < historicalEnd &&
+                            (x.EndDateTime == null || x.EndDateTime > newStart),
+                            cancellationToken);
+
+                    if (takenInPeriod)
+                    {
+                        return InpPlacementCorrectionResult.Fail(
+                            InpEpisodeOperationStatus.BusinessRuleRejected,
+                            "Tempat tidur itu tercatat ditempati pasien lain pada periode yang sama.",
+                            InpPlacementCorrectionCodes.BedNotEligible);
+                    }
+                }
+
+                newBedId = context.Bed.Id;
+                newRoomId = context.Room.Id;
+                newServiceUnitId = context.Room.ServiceUnitId;
+                newPatientClassId = ResolveBilledPatientClassId(context.Room, episode);
+            }
+
+            if (request.CorrectedPatientClassId.HasValue)
+            {
+                var classExists = await _dbContext.Set<MstPatientClass>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == request.CorrectedPatientClassId.Value && !x.IsDelete, cancellationToken);
+
+                if (!classExists)
+                {
+                    return InpPlacementCorrectionResult.Fail(
+                        InpEpisodeOperationStatus.NotFound, "Kelas perawatan hasil koreksi tidak ditemukan.");
+                }
+
+                newPatientClassId = request.CorrectedPatientClassId.Value;
+            }
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+            try
+            {
+                if (bedChanged && isActivePlacement)
+                {
+                    await LockBedRowAsync(newBedId, cancellationToken);
+
+                    var takenByOther = await _dbContext.Set<InpBedPlacement>()
+                        .AnyAsync(
+                            x =>
+                                x.BedId == newBedId &&
+                                x.EpisodeId != episode.Id &&
+                                x.EndDateTime == null &&
+                                !x.IsDelete,
+                            cancellationToken);
+
+                    if (takenByOther)
+                    {
+                        await transaction.RollbackAsync(cancellationToken);
+
+                        return InpPlacementCorrectionResult.Fail(
+                            InpEpisodeOperationStatus.Conflict,
+                            "Tempat tidur hasil koreksi sudah ditempati pasien lain.");
+                    }
+                }
+
+                // Langkah 1 — tutup baris lama yang masih berjalan lebih dulu (lihat remarks).
+                if (isActivePlacement)
+                {
+                    target.EndDateTime = newStart;
+                    target.EndReason = InpBedPlacementEndReason.CorrectedEntry;
+                    target.EndedByUserId = actorUserId;
+                    target.IsActive = false;
+                }
+
+                target.UpdateDateTime = now;
+                target.UpdateBy = actorUserId;
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                // Langkah 2 — baris koreksi, lalu tautan dua arah.
+                var lastSequence = await _dbContext.Set<InpBedPlacement>()
+                    .Where(x => x.EpisodeId == episode.Id)
+                    .Select(x => (int?)x.SequenceNumber)
+                    .MaxAsync(cancellationToken) ?? 0;
+
+                var correction = new InpBedPlacement
+                {
+                    Id = Guid.NewGuid(),
+                    EpisodeId = episode.Id,
+                    BedId = newBedId,
+                    RoomId = newRoomId,
+                    ServiceUnitId = newServiceUnitId,
+                    PatientClassId = newPatientClassId,
+                    SequenceNumber = lastSequence + 1,
+                    StartDateTime = newStart,
+                    EndDateTime = newEnd,
+                    EndReason = isActivePlacement ? null : target.EndReason,
+                    TransferReason = target.TransferReason,
+                    PhysicallyLeftAt = target.PhysicallyLeftAt,
+                    Version = target.Version + 1,
+                    ChangeReason = reason,
+                    IsSuperseded = !isActivePlacement && target.IsSuperseded,
+                    SupersededAtUtc = !isActivePlacement ? target.SupersededAtUtc : null,
+                    CorrectsPlacementId = target.Id,
+                    PlacedByUserId = actorUserId,
+                    EndedByUserId = isActivePlacement ? null : target.EndedByUserId,
+                    IsActive = isActivePlacement,
+                    CreateDateTime = now,
+                    CreateBy = actorUserId
+                };
+
+                _dbContext.Set<InpBedPlacement>().Add(correction);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                target.SupersededByCorrectionId = correction.Id;
+
+                if (bedChanged && isActivePlacement)
+                {
+                    await WriteBedStatusCopyAsync(newBedId, BedStatus.Occupied, actorUserId, now, cancellationToken);
+                    await ReleaseBedStatusCopyAsync(target.BedId, episode.Id, actorUserId, now, cancellationToken);
+                }
+
+                episode.UpdateDateTime = now;
+                episode.UpdateBy = actorUserId;
+
+                // OCCUPANCY_CORRECTED kini hanya milik koreksi salah catat (kontrak integrasi 4.2).
+                await _outboxService.EnqueueEventAsync(
+                    eventType: "OCCUPANCY_CORRECTED",
+                    episodeId: episode.Id,
+                    encounterId: episode.EncounterId,
+                    sourceType: "ROOM_STAY",
+                    sourceId: correction.Id,
+                    version: correction.Version,
+                    occurredAtUtc: now,
+                    cancellationToken: cancellationToken);
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                return InpPlacementCorrectionResult.Ok(
+                    "Penempatan berhasil dikoreksi. Baris lama tetap tersimpan sebagai jejak.",
+                    correction.Id);
+            }
+            catch (DbUpdateException)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                _dbContext.ChangeTracker.Clear();
+
+                return InpPlacementCorrectionResult.Fail(
+                    InpEpisodeOperationStatus.Conflict,
+                    "Data penempatan sudah diubah pengguna lain. Muat ulang lalu coba lagi.",
+                    InpPlacementCorrectionCodes.VersionChanged);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        }
+
+        private static DateTime ToUtc(DateTime value) => value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+        };
 
         /// <summary>Membaca riwayat penempatan satu episode, dari tempat tidur pertama sampai terakhir.</summary>
         public async Task<List<BedPlacementResponse>> GetPlacementsByEpisodeAsync(
@@ -1229,7 +1547,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     TransferReason = x.TransferReason,
                     PlacedByUserId = x.PlacedByUserId,
                     EndedByUserId = x.EndedByUserId,
-                    IsCurrent = x.EndDateTime == null
+                    IsCurrent = x.EndDateTime == null,
+                    // BE-RWI-154 / kontrak integrasi-billing 1.1.0 API 3.4 — transfer dan koreksi
+                    // salah catat dapat dibedakan pada riwayat.
+                    Version = x.Version,
+                    CorrectsPlacementId = x.CorrectsPlacementId,
+                    SupersededByCorrectionId = x.SupersededByCorrectionId,
+                    IsCorrection = x.CorrectsPlacementId != null
                 })
                 .ToListAsync(cancellationToken);
 

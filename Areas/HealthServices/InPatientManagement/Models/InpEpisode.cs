@@ -41,6 +41,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
 
         public Guid? PhysicallyLeftByUserId { get; set; }
 
+        /// <summary>
+        /// Status kasir yang dibaca langsung dari Billing saat keluar ruangan dicatat, atau
+        /// <see cref="InpClearanceObservation.Unreadable"/> bila Billing tidak terbaca —
+        /// kontrak <c>integrasi-billing</c> <c>1.1.0</c> kamus data 6.3.
+        /// </summary>
+        /// <remarks>Jejak pengamatan, bukan sumber status kasir (<c>INV-RWF-01</c>).</remarks>
+        public InpClearanceObservation? DepartureClearanceObserved { get; set; }
+
+        /// <summary>Waktu bacaan status kasir saat keluar ruangan.</summary>
+        public DateTime? DepartureClearanceObservedAt { get; set; }
+
+        /// <summary>
+        /// <c>true</c> bila pencatat keluar ruangan mengakui peringatan kasir
+        /// (<c>INV-RWF-03</c>, <c>VAL-RWF-01</c>).
+        /// </summary>
+        public bool DepartureClearanceWarningAcknowledged { get; set; } = false;
+
+        /// <summary>
+        /// Status kasir saat episode ditutup. Penutupan normal selalu
+        /// <see cref="InpClearanceObservation.Cleared"/>; penutupan dengan override menyimpan
+        /// bacaan langsung saat itu.
+        /// </summary>
+        public InpClearanceObservation? ClosureClearanceObserved { get; set; }
+
         public Guid? MotherEpisodeId { get; set; }
 
         public bool RequiresIsolation { get; set; } = false;
@@ -65,18 +89,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
         [MaxLength(500)]
         public string? ClosedWithoutClearanceReason { get; set; }
 
+        // Enam kolom di bawah DIPENSIUNKAN oleh kontrak integrasi-billing 1.1.0 (RWI-DEC-167
+        // butir 4, RWI-DEC-187): kolom tetap ada di database supaya data lama tidak hilang,
+        // tetapi kode baru tidak menulis maupun membacanya. Status kasir hanya milik Billing
+        // (INV-RWF-01). Pembaca yang masih tersisa dicabut BE-RWI-152 dan BE-RWI-153.
+        [Obsolete("Dipensiunkan kontrak integrasi-billing 1.1.0 (INV-RWF-01). Baca status kasir lewat Billing.")]
         public BillingClearanceStatus ClearanceStatus { get; set; } = BillingClearanceStatus.None;
 
+        [Obsolete("Dipensiunkan kontrak integrasi-billing 1.1.0 (INV-RWF-01).")]
         [MaxLength(1000)]
         public string? ClearanceRevokedReason { get; set; }
 
+        [Obsolete("Dipensiunkan kontrak integrasi-billing 1.1.0 (RWI-DEC-187).")]
         public bool IsSupervisorOverridden { get; set; } = false;
 
+        [Obsolete("Dipensiunkan kontrak integrasi-billing 1.1.0 (RWI-DEC-187).")]
         [MaxLength(1000)]
         public string? SupervisorOverrideReason { get; set; }
 
+        [Obsolete("Dipensiunkan kontrak integrasi-billing 1.1.0 (RWI-DEC-187).")]
         public Guid? SupervisorOverriddenByUserId { get; set; }
 
+        [Obsolete("Dipensiunkan kontrak integrasi-billing 1.1.0 (RWI-DEC-187).")]
         public DateTime? SupervisorOverriddenAtUtc { get; set; }
 
         [MaxLength(500)]

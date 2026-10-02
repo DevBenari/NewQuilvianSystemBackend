@@ -930,7 +930,7 @@ terbaru dicatat terpisah agar snapshot desain dan bukti audit tidak tercampur.
 > |---|---|---|
 > | Pemilik menyetujui roadmap Finishing (seluruhnya atau per sub-modul) | **`build-module-backend`** | Gelombang 1 tanpa prasyarat: `BE-RWI-146`, `147`, `148`, `149`, `152` (`integrasi-billing`); `BE-RWI-160` s.d. `163` (`dokter-rawat-inap`); `BE-RWI-165`, `166`, `169`, `170` (`keperawatan`); `BE-RWI-172`, `174`, `177`, `178`, `180` (`episode-rawat-inap`). Task bermigration dikerjakan berurutan |
 > | Sama, untuk frontend | `build-module-frontend` | Tanpa prasyarat backend: `FE-RWI-177`, `FE-RWI-180`; selebihnya sesudah task backend prasyaratnya ✅ |
-> | `DEC-INP-019` (Rehab Medik dibuka atau tetap *placeholder*) | `grill-me` | Membuka atau menutup `FE-RWI-179` ⛔ — satu-satunya task terblokir |
+> | ~~`DEC-INP-019` (Rehab Medik dibuka atau tetap *placeholder*)~~ **selesai 2026-10-02 (`RWI-DEC-222`)** | `grill-me` | `FE-RWI-179` bebas blokir (unblocked); kartu Rehab Medik tetap *placeholder* |
 > | IMP-RWF-04 (daftar pemicu capability map tidak lengkap) | `trace-existing-capabilities` impact scan ruang kerja dokter | Bukti as-is |
 > | IMP-RWF-06 dan gap dokumen TRC-RWF-01 (`FE-INP-08`), TRC-RWF-02 (isian formulir tarif) | `requirement-completeness-gate` atau revisi kecil kontrak frontend — opsional | Pencatatan; task-nya sudah ada di roadmap |
 > | G-27 (`BKC-DEC-118` / `BILL-INT-007`) | Roadmap `billing-kasir` | Satu kwitansi kunjungan asal + `RANAP` |

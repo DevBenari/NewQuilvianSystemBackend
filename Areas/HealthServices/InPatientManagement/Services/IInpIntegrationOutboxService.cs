@@ -3,25 +3,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
     /// <summary>
     /// Antarmuka untuk pendaftaran event outbox integrasi Rawat Inap ke Billing dalam satu scope transaksi DbContext.
     /// </summary>
+    /// <remarks>
+    /// Sejak kontrak <c>integrasi-billing</c> <c>1.1.0</c> (<c>BE-RWI-151</c>, <c>INV-RWF-05</c>) isi
+    /// pesan disusun dari parameter bertipe, bukan dari objek bebas. Tanda tangan lama yang menerima
+    /// <c>object payload</c> dihapus, sehingga ruang, kelas, waktu hunian, tarif, dan status kasir
+    /// tidak dapat lagi ikut terbawa ke Billing.
+    /// </remarks>
     public interface IInpIntegrationOutboxService
     {
         /// <summary>
-        /// Mendaftarkan event integrasi ke dalam tabel outbox lokal.
+        /// Mendaftarkan satu ketukan pintu ke tabel outbox lokal, di dalam transaksi pemanggil.
         /// </summary>
-        /// <param name="eventType">Jenis event bisnis, e.g. ADMISSION_CONFIRMED, BED_OCCUPIED, OCCUPANCY_CORRECTED, BED_RELEASED.</param>
-        /// <param name="idempotencyKey">Kunci keunikan gabungan: SourceDomain:SourceType:SourceDetailId:Version.</param>
-        /// <param name="sourceDomain">Domain asal, e.g. INPATIENT.</param>
-        /// <param name="sourceType">Tipe entitas pelayanan, e.g. ADMISSION, ROOM_STAY, DISCHARGE.</param>
-        /// <param name="sourceDetailId">ID unik entitas sumber.</param>
-        /// <param name="payload">Objek payload event.</param>
+        /// <param name="eventType"><c>ADMISSION_CONFIRMED</c>, <c>BED_OCCUPIED</c>, <c>OCCUPANCY_CORRECTED</c>, atau <c>BED_RELEASED</c>.</param>
+        /// <param name="episodeId">Episode rawat inap.</param>
+        /// <param name="encounterId">Kunjungan rawat inap; kunci invoice di Billing.</param>
+        /// <param name="sourceType"><c>ADMISSION</c>, <c>ROOM_STAY</c>, atau <c>DISCHARGE</c>.</param>
+        /// <param name="sourceId">Entitas sumber: episode untuk admisi, penempatan untuk hunian dan pelepasan bed.</param>
+        /// <param name="version">Versi entitas sumber; bagian kunci idempotensi.</param>
+        /// <param name="occurredAtUtc">Waktu kejadian di Rawat Inap.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
+        /// <remarks>
+        /// Kunci idempotensi disusun di sini: <c>INPATIENT:&lt;SourceType&gt;:&lt;SourceId&gt;:&lt;Version&gt;</c>
+        /// (<c>RWI-DEC-161</c> butir 4). Pemanggil wajib menyimpan perubahannya sendiri.
+        /// </remarks>
         Task EnqueueEventAsync(
             string eventType,
-            string idempotencyKey,
-            string sourceDomain,
+            Guid episodeId,
+            Guid encounterId,
             string sourceType,
-            string sourceDetailId,
-            object payload,
+            Guid sourceId,
+            int version,
+            DateTime occurredAtUtc,
             CancellationToken cancellationToken = default);
     }
 }

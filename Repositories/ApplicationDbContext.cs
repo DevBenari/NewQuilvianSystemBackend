@@ -634,6 +634,12 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilCollectionHandoff> BilCollectionHandoffs { get; set; }
         public DbSet<BilPrescriptionClearanceHandoff> BilPrescriptionClearanceHandoffs { get; set; }
         public DbSet<BilInpatientClearanceHandoff> BilInpatientClearanceHandoffs { get; set; }
+
+        /// <summary>
+        /// Tanda terima ketukan pintu Rawat Inap — kontrak integrasi-billing 1.1.0 kamus data 6.7
+        /// (<c>BE-RWI-149</c>, migration <c>I2</c>).
+        /// </summary>
+        public DbSet<BilInpatientEventReceipt> BilInpatientEventReceipts { get; set; }
         public DbSet<BilCashierShift> BilCashierShifts { get; set; }
         public DbSet<BilCashVarianceReview> BilCashVarianceReviews { get; set; }
         public DbSet<BilCashierShiftHandover> BilCashierShiftHandovers { get; set; }

@@ -22,7 +22,7 @@
 | `FR-RWF-032` Pesanan darah lewat modul Bank Darah | `RWI-DEC-171` | Backend 12.3–12.5 | API 13.2, 13.4 | `BE-RWI-162`, `BE-RWI-164` | `FE-RWI-174` | Pesanan `Pending`, penginput perawat (`AC-RWF-033`, `UAT-RWF-08`) | Belum dikerjakan |
 | `FR-RWF-033` Status dan hasil dibaca dari modul pemilik | `RWI-DEC-171` (7) | Backend 12.11 | Endpoint baca modul pemilik (sudah ada) | — (`EXISTING / REUSE`) | `FE-RWI-173`, `FE-RWI-174` | Manual: daftar pesanan dan hasil dari modul pemilik | Belum dikerjakan |
 | `FR-RWF-034` Status tanggungan dan harga saat memilih pemeriksaan | `RWI-DEC-218`, `219` (menggantikan tafsiran G-05) | Backend 12.13 | API 13.2 `coverage-status` | `BE-RWI-163` | `FE-RWI-172`, `173`, `176`, `177`; Pemesanan Ruangan Bedah: `episode-rawat-inap` `FE-RWI-193` | API dua akun (`NOT_PERMITTED` tanpa field harga); `RWI-AC-335`, `337`; `UAT-RWF-36`, `37` | Belum dikerjakan |
-| `FR-RWF-035` Rehab Medik *placeholder*; Hemodialisa tetap | `RWI-DEC-108`; **`DEC-INP-019` `OPEN`** (KK-3) | `04-prd-to-mvp.md` 23.8 | — | — | `FE-RWI-179` ⛔ | Pencarian kode: nol `procedureId` buatan | ⛔ menunggu `DEC-INP-019` |
+| `FR-RWF-035` Rehab Medik *placeholder*; Hemodialisa tetap | `RWI-DEC-108`; `RWI-DEC-222` (menutup `DEC-INP-019`) | `04-prd-to-mvp.md` 23.8 | — | — | `FE-RWI-179` | Pencarian kode: nol `procedureId` buatan; kartu kembali 'Integrasi belum tersedia' (`RWI-AC-341`, `342`) | Belum dikerjakan |
 | `FR-RWF-036` Aturan pemesan seragam | `RWI-DEC-171`, `188` | Backend 12.2 (`INV-RWF-20`, `21`) | API 13.2; validasi `VAL-RWF-60`, `61`, `65` | `BE-RWI-164`; Lab/Rad: `BE-RWI-104` ✅ | `FE-RWI-172`, `FE-RWI-174` | Dokter tanpa penugasan → 403, tanpa pesanan di modul tujuan (`AC-RWF-034`, `UAT-RWF-30`) | Belum dikerjakan |
 | `FR-RWF-037` Verifikasi dokter | `RWI-DEC-188`, `191` | Backend 12.2 (`INV-RWF-22`, `23`) | API 13.3, 13.4; validasi `VAL-RWF-63`, `64` | `BE-RWI-161`, `BE-RWI-162`; diet: `keperawatan` `BE-RWI-166` | `FE-RWI-175` | Verifikasi tersimpan di Bank Darah (`AC-RWF-035`); dokter lain 403 | Belum dikerjakan |
 | `FR-RWF-038` Pesanan bukan tagihan; pesanan ganda ikut modul pemilik | `RWI-DEC-171` (5) | Backend 12.2 (`INV-RWF-24`) | API 13.2 (`confirm-duplicate`) | `BE-RWI-164` | `FE-RWI-174` | Tidak ada baris tagihan saat pesan; regresi poliklinik (`AC-RWF-036`) | Belum dikerjakan |
@@ -45,7 +45,7 @@
 | Temuan | Task | Status |
 |---|---|---|
 | IMP-RWF-01, IMP-RWF-02 (Gizi, Bank Darah) | `FE-RWI-174` | Belum dikerjakan |
-| IMP-RWF-03 (Rehab Medik) | `FE-RWI-179` | ⛔ `DEC-INP-019` |
+| IMP-RWF-03 (Rehab Medik) | `FE-RWI-179` | Belum dikerjakan (Bebas Blokir — `DEC-INP-019` ditutup `RWI-DEC-222`) |
 | IMP-RWF-05 (Lab/Radiologi harga tetap dan katalog contoh) | `FE-RWI-173` | Belum dikerjakan |
 | IMP-RWF-06 (order tindakan "Ditanggung" bawaan dan harga `0`) — temuan perencanaan 2 Oktober 2026 | `FE-RWI-176` | Belum dikerjakan |
 
@@ -53,7 +53,7 @@
 
 | ID | Gap | Penanganan | Pemilik |
 |---|---|---|---|
-| `DEC-INP-019` | Rehab Medik dibuka atau tetap *placeholder* (KK-3 vs `RWI-DEC-108`/`FR-RWF-035`) | `grill-me`; hanya `FE-RWI-179` yang tertahan | Muhammad Hamzah |
+| `DEC-INP-019` | Rehab Medik dibuka atau tetap *placeholder* (KK-3 vs `RWI-DEC-108`/`FR-RWF-035`) | **TERTUTUP** lewat `grill-me` 2026-10-02 (`RWI-DEC-222`: tetap *placeholder*); `FE-RWI-179` unblocked | Muhammad Hamzah |
 | IMP-RWF-04 | Daftar pemicu capability map 19.9 tidak lengkap | `trace-existing-capabilities` impact scan ruang kerja dokter; bukan task delivery | Muhammad Hamzah |
 | IMP-RWF-06 | Belum tercatat di gate `1.10` | Dicatat di sini; dimasukkan pada evaluasi gate berikutnya | Muhammad Hamzah |
 | — | Regresi `BE-RWI-104` `NOT RUN`, padahal `RWI-DEC-168` mensyaratkan "terbukti berjalan" | Langkah pertama `FE-RWI-172` | Muhammad Hamzah |

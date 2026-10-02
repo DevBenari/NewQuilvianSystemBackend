@@ -634,33 +634,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             _dbContext.Set<InpStatusHistory>().Add(history);
             episode.StatusHistories.Add(history);
 
-            // BE-RWI-130 / RWI-DEC-156 — Event ADMISSION_CONFIRMED saat status menjadi Admitted
+            // BE-RWI-130 / RWI-DEC-156 — Event ADMISSION_CONFIRMED saat status menjadi Admitted.
+            // BE-RWI-151 / INV-RWF-05: isi pesan hanya penanda kejadian (daftar putih); penjamin,
+            // pasien, dan waktu admisi tidak lagi ikut terbawa. Billing membacanya dari sumbernya.
             if (toStatus == InpEpisodeStatus.Admitted)
             {
-                var guarantor = await _dbContext.RegPatientEncounterGuarantors
-                    .AsNoTracking()
-                    .Where(x => x.EncounterId == episode.EncounterId && x.IsActive && !x.IsDelete)
-                    .OrderByDescending(x => x.IsPrimary)
-                    .ThenBy(x => x.Priority)
-                    .Select(x => (Guid?)x.Id)
-                    .FirstOrDefaultAsync(cancellationToken);
-
-                var admissionPayload = new
-                {
-                    encounterId = episode.EncounterId,
-                    episodeId = episode.Id,
-                    patientId = episode.PatientId,
-                    admissionDateTime = episode.AdmittedAt ?? now,
-                    guarantorId = guarantor
-                };
-
                 await _outboxService.EnqueueEventAsync(
                     eventType: "ADMISSION_CONFIRMED",
-                    idempotencyKey: $"INPATIENT:ADMISSION:{episode.Id}:1",
-                    sourceDomain: "INPATIENT",
+                    episodeId: episode.Id,
+                    encounterId: episode.EncounterId,
                     sourceType: "ADMISSION",
-                    sourceDetailId: episode.Id.ToString(),
-                    payload: admissionPayload,
+                    sourceId: episode.Id,
+                    version: 1,
+                    occurredAtUtc: episode.AdmittedAt ?? now,
                     cancellationToken: cancellationToken);
             }
         }

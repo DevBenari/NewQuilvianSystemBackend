@@ -207,32 +207,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 episode.UpdateDateTime = now;
                 episode.UpdateBy = actorUserId;
 
-                // Terbitkan event BED_RELEASED via Transactional Outbox
-                var idempotencyKey = $"INPATIENT:DISCHARGE:{episode.Id}:{activePlacement.Version}";
-                var payload = new
-                {
-                    EpisodeId = episode.Id,
-                    EncounterId = episode.EncounterId,
-                    BedId = activePlacement.BedId,
-                    RoomId = activePlacement.RoomId,
-                    RoomClassId = activePlacement.PatientClassId,
-                    OccupancyStartAt = activePlacement.StartDateTime,
-                    OccupancyEndAt = activePlacement.EndDateTime ?? dischargeTime,
-                    PhysicallyLeftAt = dischargeTime,
-                    ClearanceStatus = episode.ClearanceStatus.ToString(),
-                    IsSupervisorOverridden = episode.IsSupervisorOverridden,
-                    SupervisorOverrideReason = episode.SupervisorOverrideReason,
-                    ReleasedByUserId = actorUserId,
-                    Notes = request?.Notes
-                };
-
+                // Terbitkan event BED_RELEASED via Transactional Outbox.
+                // BE-RWI-151 / INV-RWF-05: isi pesan hanya penanda kejadian (daftar putih) —
+                // status kasir, ruang, kelas, dan waktu hunian tidak lagi ikut. SourceId adalah
+                // penempatan yang dilepas, mengikuti kontrak integrasi-billing 1.1.0 integrasi 4.2.
                 await _outboxService.EnqueueEventAsync(
                     eventType: "BED_RELEASED",
-                    idempotencyKey: idempotencyKey,
-                    sourceDomain: "INPATIENT",
+                    episodeId: episode.Id,
+                    encounterId: episode.EncounterId,
                     sourceType: "DISCHARGE",
-                    sourceDetailId: episode.Id.ToString(),
-                    payload: payload,
+                    sourceId: activePlacement.Id,
+                    version: activePlacement.Version,
+                    occurredAtUtc: dischargeTime,
                     cancellationToken: cancellationToken);
 
                 await _dbContext.SaveChangesAsync(cancellationToken);

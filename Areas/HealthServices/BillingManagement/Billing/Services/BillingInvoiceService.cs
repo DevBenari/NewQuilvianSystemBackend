@@ -1465,6 +1465,202 @@ public sealed class BillingInvoiceService
     /// <see cref="UpsertChargeAsync"/>. Jembatan folio memanggil <see cref="UpsertChargeAsync"/>
     /// langsung sehingga tidak terhalang pengaman ini.
     /// </summary>
+    /// <summary>
+    /// Membuka invoice <c>RANAP</c> untuk satu kunjungan rawat inap bila belum ada — dipanggil
+    /// <see cref="BillingInpatientEventReceiver"/> saat menerima ketukan pintu Rawat Inap
+    /// (<c>BE-RWI-150</c>, <c>INT-RWF-01</c>, <c>RWI-DEC-192</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Method ini <b>tidak</b> membuka transaksi sendiri; pemanggil wajib sudah berada di dalam
+    /// transaksi Billing, karena kunci <c>BIL_ENCOUNTER_*</c> adalah advisory lock tingkat transaksi.
+    /// </para>
+    /// <para>
+    /// Satu kunjungan hanya punya satu invoice (<c>INV-RWF-06</c>): kunci encounter mencegah dua
+    /// pemanggil membuka bersamaan, dan index unik <c>BilInvoice.EncounterId</c> menjadi jaring
+    /// pengaman terakhir. Label <c>ServiceType</c> mengikuti pemetaan tunggal
+    /// <see cref="MapServiceType"/>, sehingga kunjungan rawat inap selalu <c>RANAP</c>.
+    /// </para>
+    /// </remarks>
+    public async Task<(BilInvoice Invoice, bool Created)> OpenInpatientInvoiceAsync(
+        Guid encounterId,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == encounterId && !x.IsDelete && !x.IsCancel, cancellationToken)
+            ?? throw new KeyNotFoundException("Encounter tidak ditemukan.");
+        if (encounter.EncounterType != EncounterType.Inpatient)
+            throw new BillingInvoiceValidationException(
+                "Invoice RANAP hanya dibuka untuk kunjungan rawat inap.");
+
+        if (_dbContext.Database.IsRelational())
+            await AcquireLockAsync($"BIL_ENCOUNTER_{encounterId:N}", cancellationToken);
+
+        var existing = await _dbContext.BilInvoices
+            .FirstOrDefaultAsync(x => x.EncounterId == encounterId && !x.IsDelete, cancellationToken);
+        if (existing is not null)
+            return (existing, false);
+
+        var now = DateTime.UtcNow;
+        var invoice = new BilInvoice
+        {
+            EncounterId = encounterId,
+            InvoiceNumber = await _numberSeries.AllocateInvoiceNumberAsync(actorUserId, DateTimeOffset.UtcNow, cancellationToken),
+            ServiceType = MapServiceType(encounter.EncounterType),
+            Status = BillingInvoiceStatuses.Open,
+            CurrentCalculationVersion = 0,
+            RowVersion = Guid.NewGuid(),
+            CreateDateTime = now,
+            CreateBy = actorUserId
+        };
+        _dbContext.BilInvoices.Add(invoice);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _loggerService.AuditAsync(LogCategory, "BillingInvoice.OpenInpatient",
+            "Invoice rawat inap dibuka otomatis dari ketukan pintu Rawat Inap.", new
+            {
+                InvoiceId = invoice.Id,
+                invoice.EncounterId,
+                invoice.ServiceType,
+                ActorUserId = actorUserId
+            });
+
+        return (invoice, true);
+    }
+
+    /// <summary>
+    /// Antrean invoice "perlu diperiksa" — <c>BE-RWI-155</c>, kontrak <c>integrasi-billing</c>
+    /// <c>1.1.0</c> API 3.9. Tanpa nominal; kasir membuka detail invoice untuk memeriksanya.
+    /// </summary>
+    public async Task<PagedResult<InvoiceReviewItemResponse>> GetReviewQueueAsync(
+        InvoiceReviewQueueQuery request,
+        CancellationToken cancellationToken)
+    {
+        var pageNumber = Math.Max(1, request.PageNumber);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+
+        var query =
+            from invoice in _dbContext.BilInvoices.AsNoTracking()
+            join encounter in _dbContext.RegPatientEncounters.AsNoTracking() on invoice.EncounterId equals encounter.Id
+            join patient in _dbContext.MstPatients.AsNoTracking() on encounter.PatientId equals patient.Id
+            where !invoice.IsDelete && invoice.RequiresReview
+            select new { invoice, patient.FullName, patient.MedicalRecordNumber };
+
+        if (!string.IsNullOrWhiteSpace(request.ServiceType))
+        {
+            var serviceType = request.ServiceType.Trim().ToUpperInvariant();
+            query = query.Where(x => x.invoice.ServiceType == serviceType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ReasonCode))
+        {
+            var reasonCode = request.ReasonCode.Trim().ToUpperInvariant();
+            query = query.Where(x => x.invoice.ReviewReasonCode == reasonCode);
+        }
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderBy(x => x.invoice.ReviewFlaggedAt)
+            .ThenBy(x => x.invoice.InvoiceNumber)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new InvoiceReviewItemResponse
+            {
+                InvoiceId = x.invoice.Id,
+                InvoiceNumber = x.invoice.InvoiceNumber,
+                EncounterId = x.invoice.EncounterId,
+                ServiceType = x.invoice.ServiceType,
+                Status = x.invoice.Status,
+                PatientName = x.FullName,
+                MedicalRecordNumber = x.MedicalRecordNumber,
+                ReviewReasonCode = x.invoice.ReviewReasonCode,
+                ReviewFlaggedAt = x.invoice.ReviewFlaggedAt,
+                RowVersion = x.invoice.RowVersion
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<InvoiceReviewItemResponse>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
+            Items = items
+        };
+    }
+
+    /// <summary>
+    /// Kasir menyatakan pemeriksaan invoice selesai — <c>BE-RWI-155</c>, kontrak state 5.5.
+    /// </summary>
+    /// <remarks>
+    /// Ditolak <c>422 BIL-REV-001</c> selama biaya kamar manual dan tarif kamar otomatis masih
+    /// sama-sama aktif (<c>VAL-RWF-15</c>). Kasir lebih dulu membatalkan baris yang dobel lewat
+    /// void item, lalu menyelesaikan pemeriksaan dengan catatan.
+    /// </remarks>
+    public async Task<InvoiceDetailResponse> ResolveReviewAsync(
+        Guid invoiceId,
+        ResolveInvoiceReviewRequest request,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(request.Note))
+            throw new BillingInvoiceValidationException("Catatan penyelesaian pemeriksaan wajib diisi.");
+        if (request.RowVersion == Guid.Empty)
+            throw new BillingInvoiceValidationException("RowVersion invoice wajib diisi.");
+
+        var invoice = await _dbContext.BilInvoices
+            .Include(x => x.Items).ThenInclude(x => x.Category)
+            .Include(x => x.Items).ThenInclude(x => x.Tariff)
+            .FirstOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Invoice tidak ditemukan.");
+
+        if (!invoice.RequiresReview)
+            throw new BillingInvoiceValidationException("Invoice ini tidak sedang ditandai perlu diperiksa.");
+        if (invoice.RowVersion != request.RowVersion)
+            throw new BillingInvoiceConflictException("Data telah berubah. Muat ulang sebelum melanjutkan.");
+
+        var hasManualRoomCharge = invoice.Items.Any(BillingCalculationService.IsManualRoomChargeItem);
+        var automaticRoomCharge = await _dbContext.BilCalculationVersions.AsNoTracking()
+            .Where(x => x.InvoiceId == invoice.Id && x.VersionNo == invoice.CurrentCalculationVersion && !x.IsDelete)
+            .Select(x => (decimal?)x.RoomChargeAmount)
+            .FirstOrDefaultAsync(cancellationToken) ?? 0m;
+        if (hasManualRoomCharge && automaticRoomCharge > 0)
+            throw new BillingInvoiceReviewException(
+                BillingInvoiceReviewException.ManualAndAutomaticStillActive,
+                "Masih ada biaya kamar yang dicatat manual bersamaan dengan hitungan otomatis. Batalkan salah satunya lebih dulu.");
+
+        var now = DateTimeOffset.UtcNow;
+        invoice.RequiresReview = false;
+        invoice.ReviewResolvedAt = now;
+        invoice.ReviewResolvedByUserId = actorUserId;
+        invoice.ReviewResolutionNote = request.Note.Trim();
+        invoice.RowVersion = Guid.NewGuid();
+        invoice.UpdateDateTime = DateTime.UtcNow;
+        invoice.UpdateBy = actorUserId;
+
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            throw new BillingInvoiceConflictException("Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
+        }
+
+        // Catatan penyelesaian adalah kolom sensitif; tidak ikut ke log.
+        await _loggerService.AuditAsync(LogCategory, "BillingInvoice.ResolveReview",
+            "Pemeriksaan invoice perlu diperiksa diselesaikan kasir.", new
+            {
+                InvoiceId = invoice.Id,
+                invoice.ReviewReasonCode,
+                ActorUserId = actorUserId
+            });
+
+        return await GetDetailAsync(invoice.Id, cancellationToken);
+    }
+
     public async Task<InvoiceDetailResponse> UpsertManualChargeAsync(
         UpsertChargeRequest request,
         Guid idempotencyKey,
@@ -1475,10 +1671,14 @@ public sealed class BillingInvoiceService
         var domain = request.SourceDomain?.Trim();
         if (!string.IsNullOrEmpty(domain) && BridgeOwnedOutpatientDomains.Contains(domain) && request.EncounterId != Guid.Empty)
         {
-            var isOutpatient = await _dbContext.RegPatientEncounters.AsNoTracking()
-                .AnyAsync(x => x.Id == request.EncounterId && !x.IsDelete && x.EncounterType == EncounterType.Outpatient,
+            // BE-RWI-155 / RWI-DEC-192: sejak jembatan folio juga menagih kunjungan rawat inap,
+            // domain klinis rawat inap pun dimiliki jembatan. Mencatatnya manual lewat from-source
+            // membuka jalan baris dobel (satu baris tagihan, satu pengirim).
+            var isBridgeOwnedEncounter = await _dbContext.RegPatientEncounters.AsNoTracking()
+                .AnyAsync(x => x.Id == request.EncounterId && !x.IsDelete
+                    && (x.EncounterType == EncounterType.Outpatient || x.EncounterType == EncounterType.Inpatient),
                     cancellationToken);
-            if (isOutpatient)
+            if (isBridgeOwnedEncounter)
                 throw new BillingManualClinicalSourceException();
         }
 
@@ -1619,7 +1819,8 @@ public sealed class BillingInvoiceService
                     }
 
                     // BE-BKC-075 / BKC-DEC-116 / BKC-DES-046 / BIL-VAL-123: Auto-Reblock jika invoice rawat inap sudah berstatus CLEARED
-                    if (newCharge > oldCharge && string.Equals(invoice.ServiceType, "INPATIENT", StringComparison.OrdinalIgnoreCase))
+                    // BE-RWI-147 / FIN-CON-01: label rawat inap seragam "RANAP".
+                    if (newCharge > oldCharge && string.Equals(invoice.ServiceType, "RANAP", StringComparison.OrdinalIgnoreCase))
                     {
                         await _consumerHandoffService.TriggerInpatientAutoReblockIfApplicableAsync(
                             invoice.Id,
@@ -1671,7 +1872,8 @@ public sealed class BillingInvoiceService
                     invoice.RowVersion = Guid.NewGuid();
 
                     // BE-BKC-075 / BKC-DEC-116 / BKC-DES-046 / BIL-VAL-123: Auto-Reblock jika invoice rawat inap sudah berstatus CLEARED
-                    if (string.Equals(invoice.ServiceType, "INPATIENT", StringComparison.OrdinalIgnoreCase))
+                    // BE-RWI-147 / FIN-CON-01: label rawat inap seragam "RANAP".
+                    if (string.Equals(invoice.ServiceType, "RANAP", StringComparison.OrdinalIgnoreCase))
                     {
                         await _consumerHandoffService.TriggerInpatientAutoReblockIfApplicableAsync(
                             invoice.Id,
@@ -2314,11 +2516,25 @@ public sealed class BillingInvoiceService
 
 public sealed class BillingInvoiceValidationException(string message) : Exception(message);
 
-/// <summary>RJE-VAL-010 — pelayanan klinis Rawat Jalan tidak boleh dicatat lewat from-source.</summary>
+/// <summary>
+/// RJE-VAL-010 — pelayanan klinis Rawat Jalan, dan sejak <c>BE-RWI-155</c> juga Rawat Inap, tidak
+/// boleh dicatat lewat from-source karena ditagihkan otomatis oleh jembatan folio.
+/// </summary>
 public sealed class BillingManualClinicalSourceException()
-    : Exception("Pelayanan Rawat Jalan ditagihkan otomatis dari pelayanan klinis dan tidak dapat dicatat lewat jalur ini.")
+    : Exception("Pelayanan Rawat Jalan dan Rawat Inap ditagihkan otomatis dari pelayanan klinis dan tidak dapat dicatat lewat jalur ini.")
 {
     public const string Code = "RJE-VAL-010";
+}
+
+/// <summary>
+/// Penolakan penyelesaian pemeriksaan invoice — kontrak <c>integrasi-billing</c> <c>1.1.0</c> API 3.9.
+/// </summary>
+public sealed class BillingInvoiceReviewException(string code, string message) : Exception(message)
+{
+    /// <summary><c>BIL-REV-001</c> — biaya kamar manual dan otomatis masih sama-sama aktif.</summary>
+    public const string ManualAndAutomaticStillActive = "BIL-REV-001";
+
+    public string Code { get; } = code;
 }
 
 public sealed class BillingInvoiceConflictException : Exception

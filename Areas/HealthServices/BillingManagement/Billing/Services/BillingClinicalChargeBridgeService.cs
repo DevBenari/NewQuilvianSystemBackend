@@ -108,8 +108,12 @@ public sealed class BillingClinicalChargeBridgeService
             .FirstOrDefaultAsync(cancellationToken);
         if (encounter is null)
             return SyncPlan.Done(SyncOutcome.Reconcile(BillingBridgeCodes.EncounterNotFound, "Kunjungan untuk efek folio ini tidak ditemukan."));
-        if (encounter.EncounterType != EncounterType.Outpatient)
-            return SyncPlan.Done(SyncOutcome.NotApplicable(BillingBridgeCodes.NotOutpatient, "Kunjungan bukan Rawat Jalan."));
+        // BE-RWI-155 / RWI-DEC-192 / INT-RWF-04: kunjungan rawat inap kini dijembatani dengan titik
+        // tagih yang sama seperti rawat jalan (tindakan saat Completed, Lab saat spesimen diterima,
+        // Radiologi saat kualitas citra diputuskan, obat saat diserahkan — RWI-DEC-195). Invoice
+        // tujuannya invoice kunjungan itu sendiri, yang untuk rawat inap berlabel RANAP.
+        if (encounter.EncounterType is not (EncounterType.Outpatient or EncounterType.Inpatient))
+            return SyncPlan.Done(SyncOutcome.NotApplicable(BillingBridgeCodes.NotOutpatient, "Kunjungan bukan Rawat Jalan maupun Rawat Inap."));
 
         var domain = MapDomain(effect.SourceContext);
 

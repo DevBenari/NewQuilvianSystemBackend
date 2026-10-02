@@ -592,6 +592,11 @@ try
     builder.Services.AddScoped<IInpBillingDepositAdapter, InpBillingDepositAdapter>();
     builder.Services.AddScoped<InpBillingDepositAdapter>();
 
+    // BE-RWI-154 — satu-satunya pembaca status kasir untuk Rawat Inap (INT-RWF-02/03) dan
+    // koreksi salah catat penempatan yang memakainya sebagai gerbang status invoice.
+    builder.Services.AddScoped<IInpBillingClearanceAdapter, InpBillingClearanceAdapter>();
+    builder.Services.AddScoped<InpPlacementCorrectionService>();
+
     // BE-RWI-086 — penyusun usulan isian resume pulang. Hanya membaca, tidak pernah
     // menyimpan, dan tidak dipakai service Rawat Inap lain; ia dipanggil langsung controller.
     builder.Services.AddScoped<InpDischargeSummaryPrefillService>();
@@ -601,6 +606,11 @@ try
     // dan gerbang clearance pemulangan / auto-reblock / supervisor override.
     builder.Services.AddScoped<IInpIntegrationOutboxService, InpIntegrationOutboxService>();
     builder.Services.AddScoped<InpIntegrationOutboxService>();
+    // BE-RWI-151 / kontrak integrasi-billing 1.1.0 bagian 9.11: masa sewa pemrosesan, ukuran
+    // batch, dan batas coba ulang worker outbox dapat diubah lewat konfigurasi tanpa rilis kode.
+    builder.Services.Configure<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options.InpatientIntegrationOutboxOptions>(
+        builder.Configuration.GetSection(
+            QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options.InpatientIntegrationOutboxOptions.SectionName));
     builder.Services.AddScoped<IInpatientBillingQueryService, InpatientBillingQueryService>();
     builder.Services.AddScoped<InpatientBillingQueryService>();
     builder.Services.AddScoped<IInpatientClearanceGateService, InpatientClearanceGateService>();
