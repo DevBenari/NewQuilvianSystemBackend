@@ -1,4 +1,3 @@
-﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,110 +10,109 @@ namespace QuilvianSystemBackend.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<Guid>(
-                name: "CancelBy",
-                schema: "public",
-                table: "FinPurchasingIdempotencyRecord",
-                type: "uuid",
-                nullable: false,
-                defaultValue: new Guid("00000000-0000-0000-0000-000000000000"));
+            migrationBuilder.Sql(@"
+DO $$
+BEGIN
+    -- CancelBy
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+          AND table_name = 'FinPurchasingIdempotencyRecord' 
+          AND column_name = 'CancelBy'
+    ) THEN
+        ALTER TABLE public.""FinPurchasingIdempotencyRecord"" 
+        ADD COLUMN ""CancelBy"" uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'::uuid;
+    END IF;
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "CancelDateTime",
-                schema: "public",
-                table: "FinPurchasingIdempotencyRecord",
-                type: "timestamp with time zone",
-                nullable: true);
+    -- CancelDateTime
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+          AND table_name = 'FinPurchasingIdempotencyRecord' 
+          AND column_name = 'CancelDateTime'
+    ) THEN
+        ALTER TABLE public.""FinPurchasingIdempotencyRecord"" 
+        ADD COLUMN ""CancelDateTime"" timestamp with time zone NULL;
+    END IF;
 
-            migrationBuilder.AddColumn<Guid>(
-                name: "DeleteBy",
-                schema: "public",
-                table: "FinPurchasingIdempotencyRecord",
-                type: "uuid",
-                nullable: false,
-                defaultValue: new Guid("00000000-0000-0000-0000-000000000000"));
+    -- DeleteBy
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+          AND table_name = 'FinPurchasingIdempotencyRecord' 
+          AND column_name = 'DeleteBy'
+    ) THEN
+        ALTER TABLE public.""FinPurchasingIdempotencyRecord"" 
+        ADD COLUMN ""DeleteBy"" uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'::uuid;
+    END IF;
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "DeleteDateTime",
-                schema: "public",
-                table: "FinPurchasingIdempotencyRecord",
-                type: "timestamp with time zone",
-                nullable: true);
+    -- DeleteDateTime
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+          AND table_name = 'FinPurchasingIdempotencyRecord' 
+          AND column_name = 'DeleteDateTime'
+    ) THEN
+        ALTER TABLE public.""FinPurchasingIdempotencyRecord"" 
+        ADD COLUMN ""DeleteDateTime"" timestamp with time zone NULL;
+    END IF;
 
-            migrationBuilder.AddColumn<bool>(
-                name: "IsCancel",
-                schema: "public",
-                table: "FinPurchasingIdempotencyRecord",
-                type: "boolean",
-                nullable: false,
-                defaultValue: false);
+    -- IsCancel
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+          AND table_name = 'FinPurchasingIdempotencyRecord' 
+          AND column_name = 'IsCancel'
+    ) THEN
+        ALTER TABLE public.""FinPurchasingIdempotencyRecord"" 
+        ADD COLUMN ""IsCancel"" boolean NOT NULL DEFAULT false;
+    ELSE
+        ALTER TABLE public.""FinPurchasingIdempotencyRecord"" 
+        ALTER COLUMN ""IsCancel"" SET DEFAULT false;
+    END IF;
 
-            migrationBuilder.AddColumn<bool>(
-                name: "IsDelete",
-                schema: "public",
-                table: "FinPurchasingIdempotencyRecord",
-                type: "boolean",
-                nullable: false,
-                defaultValue: false);
+    -- IsDelete
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+          AND table_name = 'FinPurchasingIdempotencyRecord' 
+          AND column_name = 'IsDelete'
+    ) THEN
+        ALTER TABLE public.""FinPurchasingIdempotencyRecord"" 
+        ADD COLUMN ""IsDelete"" boolean NOT NULL DEFAULT false;
+    ELSE
+        ALTER TABLE public.""FinPurchasingIdempotencyRecord"" 
+        ALTER COLUMN ""IsDelete"" SET DEFAULT false;
+    END IF;
 
-            migrationBuilder.AddColumn<Guid>(
-                name: "UpdateBy",
-                schema: "public",
-                table: "FinPurchasingIdempotencyRecord",
-                type: "uuid",
-                nullable: false,
-                defaultValue: new Guid("00000000-0000-0000-0000-000000000000"));
+    -- UpdateBy
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+          AND table_name = 'FinPurchasingIdempotencyRecord' 
+          AND column_name = 'UpdateBy'
+    ) THEN
+        ALTER TABLE public.""FinPurchasingIdempotencyRecord"" 
+        ADD COLUMN ""UpdateBy"" uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'::uuid;
+    END IF;
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "UpdateDateTime",
-                schema: "public",
-                table: "FinPurchasingIdempotencyRecord",
-                type: "timestamp with time zone",
-                nullable: true);
+    -- UpdateDateTime
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+          AND table_name = 'FinPurchasingIdempotencyRecord' 
+          AND column_name = 'UpdateDateTime'
+    ) THEN
+        ALTER TABLE public.""FinPurchasingIdempotencyRecord"" 
+        ADD COLUMN ""UpdateDateTime"" timestamp with time zone NULL;
+    END IF;
+END $$;
+");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "CancelBy",
-                schema: "public",
-                table: "FinPurchasingIdempotencyRecord");
-
-            migrationBuilder.DropColumn(
-                name: "CancelDateTime",
-                schema: "public",
-                table: "FinPurchasingIdempotencyRecord");
-
-            migrationBuilder.DropColumn(
-                name: "DeleteBy",
-                schema: "public",
-                table: "FinPurchasingIdempotencyRecord");
-
-            migrationBuilder.DropColumn(
-                name: "DeleteDateTime",
-                schema: "public",
-                table: "FinPurchasingIdempotencyRecord");
-
-            migrationBuilder.DropColumn(
-                name: "IsCancel",
-                schema: "public",
-                table: "FinPurchasingIdempotencyRecord");
-
-            migrationBuilder.DropColumn(
-                name: "IsDelete",
-                schema: "public",
-                table: "FinPurchasingIdempotencyRecord");
-
-            migrationBuilder.DropColumn(
-                name: "UpdateBy",
-                schema: "public",
-                table: "FinPurchasingIdempotencyRecord");
-
-            migrationBuilder.DropColumn(
-                name: "UpdateDateTime",
-                schema: "public",
-                table: "FinPurchasingIdempotencyRecord");
         }
     }
 }
