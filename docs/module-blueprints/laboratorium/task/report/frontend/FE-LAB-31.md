@@ -152,3 +152,25 @@ dokter konfirmator — **belum satu pun diklik**.
 
 **Nol operasi git dijalankan.** Satu dev server sisa dari sesi ini ditemukan masih hidup
 (`PID 8880`) dan sudah dihentikan.
+
+---
+
+## 8. Perbaikan susulan 2026-10-01 — kadar antibiogram kehilangan desimal
+
+**Masalah.** Kadar antibiogram diketik lewat `BaseTextField` dengan `type: "number"`, yang membuang pemisah desimal
+(`normalizeNumberInputValue`: hanya digit, lalu `Math.trunc`). Kadar MIC `0,5` tersimpan `5` — salah sepuluh kali lipat. Ditemukan saat `FE-LAB-36`; diperbaiki
+atas instruksi pemilik modul.
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/components/view/.../microbiology/lab-microbiology-result-form.jsx (kadar)` | Ruas bertipe teks dengan `DECIMAL_FIELD_PROPS` (`inputMode: decimal` + `normalizeDecimalInput`) |
+| `src/lib/hooks/.../lab-microbiology-result-rules.js` | `hasNumber`, `optionalNumber`, dan batas negatif memakai `parseDecimal` — koma diterima. Tanpa ini `"0,5"` dianggap bukan angka dan **dikirim kosong** |
+| `src/lib/hooks/.../lab-decimal-input-rules.js` | **Baru** — normalizer desimal bersama Laboratorium |
+
+| Verifikasi | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `tests/unit/lab-decimal-input-rules.test.mjs` | 6/6 — kadar `0,5` → `0.5`, volume `1,5` → `1.5`, `VAL-112` tetap berlaku, kedua ruas tidak lagi `type: "number"` | `PASS` |
+| Uji unit Mikrobiologi lama | Lolos | `PASS` |
+| Layar (akun analis, permintaan simpan **dicegat** — nol data berubah) | Isian menampilkan `0,5` / `1,5`; badan permintaan `concentration: 0.5`, `volumeAmount: 1.5` | `PASS` |
+
+Rincian di [`FE-LAB-36.md`](FE-LAB-36.md) bagian 10.4-10.5.
