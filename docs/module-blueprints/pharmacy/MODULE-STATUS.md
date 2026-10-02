@@ -4,12 +4,53 @@
 | --- | --- |
 | Blueprint ID | `PHA-BP-001` |
 | Module name | Farmasi |
-| Revision | `3` |
-| Module status | `PARTIAL` — modul terbesar yang sudah berjalan; gelombang terakhir menunggu Billing |
-| Current phase | Gelombang Financial Clearance — `PHA-BE-004`/`005`/`006` source selesai, verifikasi belum |
-| Last verified at | `2026-09-29T09:45:00+07:00` |
-| Backend source SHA | `4585f463ea3498e19fcdf2c475f567b052ec152a` (branch `Ikbal`) |
-| Frontend source SHA | `1b4209ce9d10039565860c7d67c23e4c859754c5` (branch `Ikbalv2`) |
+| Revision | `4` |
+| Module status | `SUBSTANTIAL` — alurnya kini tersambung ujung ke ujung dan terbukti runtime |
+| Current phase | Gelombang Financial Clearance **terverifikasi runtime**; menunggu approval policy charge pra-dispense milik owner Billing |
+| Last verified at | `2026-10-01T15:40:00+07:00` |
+| Backend source SHA | `98355a495956dea291b2f195d642fb91ead1cb71` (branch `Ikbal`) |
+| Frontend source SHA | `f43dbdeb1612dfdb6b2e4973cf45b5dafd7dd56e` (branch `Ikbalv2`) |
+
+## Yang berubah pada revisi 4
+
+Empat hal tertutup sejak revisi 3, dan satu hal baru terbuka.
+
+| Hal | Keadaan |
+|---|---|
+| `GAP-PHA-FE-001` workflow farmasi tengah tanpa UI | **Selesai** — panel tiga tab pada detail resep: telaah, penyiapan, telaah obat akhir |
+| `GAP-PHA-FE-002` Etiket Obat tanpa entry point | **Selesai** — bagian Etiket Obat pada detail resep, tanpa butir menu baru |
+| `GAP-PHA-BE-001` resep tidak pernah dapat difinalkan | **Selesai** — keputusan status awal dipindah ke `PrescriptionWorkflowService.ApplyInitialClinicalState`, dijaga 8 uji regresi |
+| `BE-BKC-067` penerbitan financial clearance | **Terverifikasi runtime** — rantai penuh terbukti; rincian pada [`verifikasi-runtime-be-bkc-067.md`](verifikasi-runtime-be-bkc-067.md) |
+| Producer tagihan obat | **Baru** — `PrescriptionBillingChargeProducer` mengirim tagihan pada transisi tahap 1 → 2. **Belum menyala** sampai policy Billing disetujui; lihat [`requirement-billing-charge-pra-dispense.md`](requirement-billing-charge-pra-dispense.md) |
+
+Tangga tahap yang berlaku dan sudah terbukti ujung ke ujung:
+
+```
+1 WaitingForClinicalFinalization
+  -> 2 WaitingForPayment      finalisasi konsultasi yang sah
+  -> 4 QueuedAtPharmacy       konsumsi surat clearance Billing (PHA-DEC-069, melompati tahap 3)
+  -> 5 VerifiedByPharmacy     telaah disetujui
+  -> 6 BeingPrepared          penyiapan dimulai
+  -> 12 WaitingForFinalCheck  penyiapan diselesaikan
+  -> 7 ReadyForHandover       telaah obat akhir lolos
+```
+
+| Sumbu | Status |
+|---|---|
+| Backend | `SUBSTANTIAL` |
+| Frontend | `SUBSTANTIAL` |
+| Integrasi | `SUBSTANTIAL` — clearance terbukti ujung ke ujung; producer tagihan menunggu approval Billing |
+| Verifikasi | `MODERATE` — **17 uji** regresi ditambah bukti runtime penuh; masih tipis untuk 31.982 baris |
+
+**Perkiraan ketuntasan: ~90%.** Diukur ketat "berfungsi hari ini di integration", producer
+tagihan belum menyala sehingga angkanya lebih dekat ~86%.
+
+Uji pada `Tests/QuilvianSystemBackend.PharmacyTests`:
+
+| Berkas | Jumlah | Yang dijaga |
+|---|---|---|
+| `PrescriptionFulfillmentStageTests` | 8 | regresi `GAP-PHA-BE-001`; tangga tahap pemenuhan dan penomorannya |
+| `BillingChargeProducerTests` | 9 | kunci idempotensi deterministik dan nilainya yang sudah terpakai; gerbang resep tanpa item maupun tanpa harga; penolakan tegas saat kategori tarif farmasi tidak ada; `SourceStatus` dan `ContractVersion` yang diterima Billing |
 
 ## Permukaan yang sudah berdiri
 
