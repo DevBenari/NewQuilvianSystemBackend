@@ -1,3 +1,5 @@
+using System.Globalization;
+using QuilvianSystemBackend.Constants;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -6,25 +8,51 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Configuration.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJournal.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.PostingRule.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.LeaveAndOvertime.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Services;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Services;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Workers;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Services;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
@@ -35,6 +63,7 @@ using QuilvianSystemBackend.Hubs;
 using QuilvianSystemBackend.Middlewares;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Seeders;
 using QuilvianSystemBackend.Seeders;
 using QuilvianSystemBackend.Services.Language;
 using QuilvianSystemBackend.Services.Logging;
@@ -47,6 +76,9 @@ using Serilog.Formatting.Compact;
 using System.Diagnostics;
 using System.Security.Claims;
 using System.Text;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
 
 
 Log.Logger = new LoggerConfiguration()
@@ -56,6 +88,15 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
+    // ISSUE-DOK-001 ISS-01. Culture aplikasi dikunci ke invariant sebelum apa pun dibangun.
+    // RangeAttribute(Type, string, string) mem-parsing batasnya memakai CurrentCulture, sehingga
+    // pada server ber-locale id-ID batas pecahan seperti "0.0001" melempar FormatException saat
+    // validasi model - sebelum controller action sempat jalan, dan untuk request apa pun yang
+    // menyentuh DTO tersebut. Mengunci di sini menutup seluruh titik sekaligus dan mencegah
+    // atribut baru mengulang cacat yang sama.
+    CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+    CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+
     var builder = WebApplication.CreateBuilder(args);
 
     var backendVersionManifest = BackendVersionManifest.Load(builder.Environment.ContentRootPath);
@@ -155,6 +196,25 @@ try
             builder.Configuration.GetConnectionString("DefaultConnection")
         );
     });
+
+    // Factory konteks, dipakai NumberSeriesAllocator untuk membuka koneksi dan transaksinya
+    // SENDIRI. Tanpa ini, kenaikan pencacah nomor akan ikut dibatalkan bersama transaksi bisnis
+    // pemanggil, sehingga nomor yang sudah sempat terbit dipakai ulang - persis yang dilarang
+    // DEC-PLT-008.
+    //
+    // Lifetime SENGAJA Scoped, bukan Singleton yang menjadi bawaan AddDbContextFactory.
+    // Singleton akan mendaftarkan DbContextOptions<ApplicationDbContext> sebagai Singleton pula,
+    // berdampingan dengan pendaftaran Scoped milik AddDbContext di atas. Kompatibilitas keduanya
+    // sudah diverifikasi, bukan diasumsikan - lihat NumberSeriesCompositionTests, yang dijalankan
+    // dengan validateScopes aktif.
+    builder.Services.AddDbContextFactory<ApplicationDbContext>(
+        options =>
+        {
+            options.UseNpgsql(
+                builder.Configuration.GetConnectionString("DefaultConnection")
+            );
+        },
+        lifetime: ServiceLifetime.Scoped);
 
     // ASP.NET Core Identity
     builder.Services
@@ -273,18 +333,80 @@ try
     builder.Services.AddSingleton(backendVersionManifest);
     builder.Services.AddScoped<LanguageService>();
     builder.Services.AddScoped<LoggerService>();
+    builder.Services.AddScoped<ICompanyGuarantorReimbursementRouteService, CompanyGuarantorReimbursementRouteService>();
+    builder.Services.AddScoped<CompanyGuarantorReimbursementRouteService>();
+    builder.Services.AddScoped<ICompanyGuarantorCoverageRuleService, CompanyGuarantorCoverageRuleService>();
+    builder.Services.AddScoped<CompanyGuarantorCoverageRuleService>();
     builder.Services.AddScoped<WfpCertificationFileStorageService>();
     builder.Services.AddScoped<ApplicationVersionService>();
     builder.Services.AddScoped<AccessPermissionService>();
+    builder.Services.AddScoped<PermissionRegistryValidator>();
+    builder.Services.AddScoped<OrganizationAuthorizationProjectionService>();
     builder.Services.AddScoped<QueueVoiceService>();
     builder.Services.AddScoped<QueueRealtimeService>();
     builder.Services.AddScoped<LabOrderService>();
+    builder.Services.AddScoped<LabOrderNumberService>();
     builder.Services.AddScoped<LabSpecimenService>();
+    builder.Services.AddScoped<LabValueBoundService>();
+    builder.Services.AddScoped<LabCriticalBoundApprovalService>();
+    builder.Services.AddScoped<LabRejectionReasonService>();
+    builder.Services.AddScoped<LabSpecimenTypeService>();
+    builder.Services.AddScoped<LabPathologyParameterService>();
+    builder.Services.AddScoped<LabPathologyCategoryService>();
+    builder.Services.AddScoped<LabProcedurePathologyCategoryService>();
+    builder.Services.AddScoped<LabPathologyReportService>();
+    builder.Services.AddScoped<LabOrganismService>();
+    builder.Services.AddScoped<LabAntibioticService>();
+    builder.Services.AddScoped<LabSusceptibilityBreakpointService>();
+    builder.Services.AddScoped<LabSusceptibilityInterpreter>();
+    builder.Services.AddScoped<LabProcedureMicrobiologyProfileService>();
+    builder.Services.AddScoped<LabSpecimenDetailTypeService>();
+    builder.Services.AddScoped<LabMicrobiologyCriticalRuleService>();
+    builder.Services.AddScoped<LabFieldChangeRecorder>();
+    builder.Services.AddScoped<LabSpecimenCorrectionService>();
+    builder.Services.AddScoped<LabReportNumberService>();
+    builder.Services.AddScoped<LabDisciplineSettingService>();
+    builder.Services.AddScoped<LabConfirmingDoctorResolver>();
+    builder.Services.AddScoped<LabMicrobiologyResultService>();
+    builder.Services.AddScoped<LabExaminationService>();
+    builder.Services.AddScoped<LabWorklistService>();
+    builder.Services.AddScoped<LabMonitoringService>();
+    builder.Services.AddScoped<LabCatalogService>();
+    builder.Services.AddScoped<LabPatientRegistrationService>();
+    builder.Services.AddScoped<RadOrderService>();
+    builder.Services.AddScoped<RadStudyService>();
+    builder.Services.AddScoped<RadSafetyPolicyService>();
+    builder.Services.AddScoped<RadModalityService>();
+    builder.Services.AddScoped<RadSafetyRequirementService>();
+    builder.Services.AddScoped<RadReportService>();
+    builder.Services.AddScoped<RadReportNumberService>();
+    builder.Services.AddScoped<RadOrderNumberService>();
     builder.Services.AddScoped<BillingFolioService>();
+
+    // BE-RWI-126 / FR-KEP-082 / RWI-DEC-154. Ringkasan tagihan pasien rawat inap baca-saja tanpa
+    // harga per item, dibaca ruang kerja keperawatan lewat hak PatientBillingSummary : Read.
+    builder.Services.AddScoped<PatientBillingSummaryService>();
     builder.Services.AddScoped<ClinicalMilestoneFactProducer>();
 
+    builder.Services.AddScoped<EncounterIntakeService>();
+    builder.Services.AddScoped<PatientEncounterNumberService>();
+
+    // BE-EXT-05 — penutupan otomatis kunjungan kiosk yang tidak dilanjutkan.
+    //
+    // Urutannya penting untuk dibaca, bukan untuk dijalankan: penjawab tiap unit didaftarkan
+    // sebagai IEncounterContinuationProbe, dan KioskEncounterClosureService hanya menutup
+    // kunjungan yang tujuan kiosknya punya penjawab. Mencabut satu baris AddScoped di bawah
+    // membuat unit itu berhenti ikut ditutup — bukan membuatnya ditutup membabi buta.
+    builder.Services.AddScoped<IEncounterContinuationProbe, LabEncounterContinuationProbe>();
+    builder.Services.AddScoped<KioskEncounterClosureService>();
+    builder.Services.Configure<KioskEncounterClosureOptions>(
+        builder.Configuration.GetSection("HealthServices:KioskEncounterClosure"));
+    builder.Services.AddHostedService<KioskEncounterClosureHostedService>();
+
+    builder.Services.AddScoped<EncounterPaymentSourceService>();
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();
+    builder.Services.AddScoped<CompanyGuarantorCoverageService>();
     builder.Services.AddScoped<PrescriptionNumberService>();
     builder.Services.AddScoped<PrescriptionSummaryService>();
     builder.Services.AddScoped<PrescriptionWorkflowService>();
@@ -294,22 +416,114 @@ try
     builder.Services.AddScoped<ConsultationValidationService>();
     builder.Services.AddScoped<DoctorConsultationLifecycleService>();
     builder.Services.AddScoped<ConsultationFinalizationService>();
+
+    // BE-RWI-039 / CON-INP-015. Satu tempat yang menjawab konteks perawatan rawat inap beserta
+    // kewenangan dokternya, dipakai bersama jalur catatan dokter dan jalur pengkajian sesuai
+    // INT-DOK-09. Tanpa pendaftaran ini controller yang memakainya gagal dibuat oleh dependency
+    // injection dan endpoint-nya membalas 500 sebelum kode modul sempat berjalan.
+    builder.Services.AddScoped<InpatientClinicalContextService>();
+    builder.Services.AddScoped<InpatientDocumentCorrectionAuthorityService>();
+    builder.Services.AddScoped<CpptVerificationService>();
+
+    // BE-RWI-097 / R7. Service pesanan tindakan rawat inap oleh dokter atau perawat atas instruksi,
+    // aturan penginput (INV-DOK-17), dan pembatalan otomatis saat penutupan episode (Langkah 5).
+    builder.Services.AddScoped<PatientProcedureOrderService>();
+
+    // BE-RWI-099 / R4. Resep Harian: saring periode pada zona waktu rumah sakit, butir beserta
+    // penghentiannya, dan racikan beserta bahannya. Hanya membaca.
+    builder.Services.AddScoped<InpatientPrescriptionService>();
+
+    // BE-RWI-101 / R5. Rekonsiliasi obat bawaan: pencatatan perawat, keputusan dokter berriwayat,
+    // dan pengisian butir draft resep untuk keputusan "Lanjut".
+    builder.Services.AddScoped<MedicationReconciliationService>();
+
+    // BE-RWI-102 dan BE-RWI-103 / R6. Protokol sliding scale berversi yang disahkan, dan order per
+    // pasien yang menyalin rentang versi sah. Nomor order dari NumberSeriesAllocator.
+    builder.Services.AddScoped<SlidingScaleTemplateService>();
+    builder.Services.AddScoped<SlidingScaleOrderService>();
+
+    // BE-RWI-058 / BE-RWI-064. Pembacaan lini masa pengkajian, keadaan tenggat, dan daftar
+    // pantau kepatuhan pengkajian awal. Seluruhnya hanya membaca; nol tabel baru.
+    builder.Services.AddScoped<NursingAssessmentMonitoringService>();
+
+    // BE-RWI-059 / CAP-013. Rencana asuhan keperawatan. NursingActorService menemukan pegawai
+    // di balik pengguna yang masuk, karena dokumentasi keperawatan menyimpan siapa perawatnya,
+    // bukan siapa akunnya. Tanpa pendaftaran ini controller-nya gagal dibuat dependency
+    // injection dan endpoint-nya membalas 500 sebelum kode modul sempat berjalan.
+    builder.Services.AddScoped<NursingActorService>();
+    builder.Services.AddScoped<NursingCarePlanService>();
+
+    // BE-RWI-061 / BE-RWI-062 / CAP-014. Pencatatan tindakan keperawatan, finalisasi, koreksi,
+    // dan mesin keadaan pengiriman tagihan yang terpisah dari keadaan klinisnya.
+    builder.Services.AddScoped<NursingInterventionService>();
+
+    // BE-RWI-107 s.d. BE-RWI-113, BE-RWI-121 — keperawatan rawat inap revision 7 (KEP-V2-1).
+    // Penjaga tulis episode bersama, instrumen klinis berversi beserta pengesahannya, dokumen
+    // Pengkajian Pasien V2, progres lima bagian, Evaluasi Awal MPP, dan deret tanda vital per episode.
+    builder.Services.AddScoped<NursingEpisodeWriteGuard>();
+    builder.Services.AddScoped<ClinicalInstrumentService>();
+    builder.Services.AddScoped<NursingAssessmentDocumentService>();
+    builder.Services.AddScoped<NursingAssessmentProgressService>();
+    builder.Services.AddScoped<CaseManagementEvaluationService>();
+    builder.Services.AddScoped<InpatientVitalSignService>();
+
+    // BE-RWI-114 s.d. BE-RWI-123 — keperawatan rawat inap revision 7 (KEP-V2-2). Pengawasan Harian
+    // (cairan, GDS bangsal, observasi, shift, balance), dugaan reaksi obat, MAR milik PharmacyManagement
+    // beserta pembentukan dosis terjadwal, dan pelaksanaan sliding scale satu transaksi. Pembentukan
+    // dosis terjadwal menyala bawaan; MAR yang dibuka tetap membentuk dosisnya sendiri bila dimatikan.
+    builder.Services.AddScoped<DailyMonitoringService>();
+    builder.Services.AddScoped<AdverseDrugReactionService>();
+    builder.Services.AddScoped<MedicationAdministrationService>();
+    builder.Services.AddScoped<SlidingScaleExecutionService>();
+    builder.Services.Configure<MedicationDoseSchedulerOptions>(
+        builder.Configuration.GetSection("HealthServices:MedicationDoseScheduler"));
+    builder.Services.AddHostedService<MedicationDoseSchedulerHostedService>();
+
+    // BE-RWI-041 / CAP-025. Kejadian visite dokter beserta penyedia nomor bisnisnya. Nomor
+    // dialokasikan service, tidak pernah oleh controller - QBE-CODE-002.
+    builder.Services.AddScoped<PhysicianVisitNumberService>();
+    builder.Services.AddScoped<PhysicianVisitService>();
+
+    // Modul Rekam Medis — keutuhan dokumen klinis
+    builder.Services.AddScoped<ClinicalDocumentIntegrityService>();
+    builder.Services.AddScoped<ClinicalNoteAddendumService>();
+    builder.Services.AddScoped<ClinicalNoteAuthorDelegationService>();
+    builder.Services.AddScoped<MedicalRecordBackfillService>();
+    builder.Services.AddScoped<MedicalRecordAccessAuditService>();
+    builder.Services.AddScoped<MedicalRecordAccessReviewService>();
+    builder.Services.AddScoped<MedicalRecordTimelineService>();
+
     builder.Services.AddScoped<PrescriptionAggregateService>();
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
     builder.Services.AddScoped<PrescriptionFinalCheckService>();
+    builder.Services.AddScoped<PrescriptionFinancialClearanceService>();
     builder.Services.AddScoped<PharmacyDepotRoutingService>();
+    builder.Services.AddScoped<StockRequestService>();
+    builder.Services.AddScoped<DrugStockService>();
+    builder.Services.AddScoped<DrugUnitConversionResolver>();
+    builder.Services.AddScoped<StockTransferService>();
+    builder.Services.AddScoped<DrugUsageService>();
+    builder.Services.AddScoped<DrugReturnService>();
+    builder.Services.AddScoped<PrescriptionLabelService>();
+    builder.Services.AddScoped<PrescriptionDispensingService>();
+    builder.Services.AddScoped<PrescriptionCopyService>();
+    builder.Services.AddScoped<NutritionOrderService>();
+    builder.Services.AddScoped<NutritionDietService>();
+    builder.Services.AddSingleton<OperatingRoomRuleRelaxation>();
     builder.Services.AddScoped<OperatingRoomCaseService>();
     builder.Services.AddScoped<OperatingRoomCredentialResolver>();
     // Buffer dan durasi jadwal operasi dikonfigurasi (OPS-DEC-016), bukan ditanam di kode.
     builder.Services.Configure<OperatingRoomSchedulingOptions>(
-        builder.Configuration.GetSection("OperatingRoom:Scheduling"));
+    builder.Configuration.GetSection("OperatingRoom:Scheduling"));
     builder.Services.AddScoped<OperatingRoomSchedulingService>();
     builder.Services.AddScoped<OperatingRoomPreparationService>();
     builder.Services.AddScoped<OperatingRoomExecutionService>();
     builder.Services.AddScoped<OperatingRoomRecoveryService>();
     builder.Services.AddScoped<OperatingRoomIntegrationService>();
     builder.Services.AddScoped<OperatingRoomMaterialService>();
+    builder.Services.AddScoped<OperatingRoomInventoryDispatchService>();
+    builder.Services.AddScoped<OperatingRoomStockSourceService>();
     builder.Services.AddScoped<OperatingRoomReportService>();
 
     // Instalasi Gawat Darurat (IGD). Tanpa pendaftaran ini seluruh controller IGD gagal
@@ -323,6 +537,7 @@ try
     builder.Services.AddScoped<EmergencyDispositionService>();
     builder.Services.AddScoped<EmergencyDepartureService>();
     builder.Services.AddScoped<EmergencyUnitAuthorityService>();
+    builder.Services.AddScoped<EmergencyDoctorAssignmentService>();
     builder.Services.AddScoped<EmergencySettingService>();
 
     // Rawat Inap. Tanpa pendaftaran ini seluruh controller Rawat Inap gagal dibuat oleh
@@ -340,11 +555,94 @@ try
     builder.Services.AddScoped<InpDischargeService>();
     builder.Services.AddScoped<InpCensusQueryService>();
 
+    // BE-RWI-071 & BE-RWI-072 — Adapter posisi deposit dan tagihan episode dari Billing
+    builder.Services.AddScoped<IInpBillingDepositAdapter, InpBillingDepositAdapter>();
+    builder.Services.AddScoped<InpBillingDepositAdapter>();
+
+    // BE-RWI-086 — penyusun usulan isian resume pulang. Hanya membaca, tidak pernah
+    // menyimpan, dan tidak dipakai service Rawat Inap lain; ia dipanggil langsung controller.
+    builder.Services.AddScoped<InpDischargeSummaryPrefillService>();
+
+    // BE-RWI-127 s.d. BE-RWI-134 (INP-S22) — Integrasi Rawat Inap ↔ Kasir / Billing.
+    // Layanan outbox transaksional, background worker polling outbox, kueri status kasir bangsal,
+    // dan gerbang clearance pemulangan / auto-reblock / supervisor override.
+    builder.Services.AddScoped<IInpIntegrationOutboxService, InpIntegrationOutboxService>();
+    builder.Services.AddScoped<InpIntegrationOutboxService>();
+    builder.Services.AddScoped<IInpatientBillingQueryService, InpatientBillingQueryService>();
+    builder.Services.AddScoped<InpatientBillingQueryService>();
+    builder.Services.AddScoped<IInpatientClearanceGateService, InpatientClearanceGateService>();
+    builder.Services.AddScoped<InpatientClearanceGateService>();
+    builder.Services.AddHostedService<InpatientIntegrationOutboxWorker>();
+
     // Master data Rawat Inap. Dipakai dua controller pada layar admin, bukan oleh service
     // Rawat Inap. Keduanya memegang seluruh pembacaan dan perubahan tabel masternya supaya
     // controller tidak menyentuh ApplicationDbContext langsung.
     builder.Services.AddScoped<InpatientSettingService>();
     builder.Services.AddScoped<InpatientClearanceItemService>();
+
+    // Pembuatan data induk obat, termasuk pendaftaran obat bawaan pasien. Service ini menjaga
+    // validasi dan persistence tetap di luar controller serta memakai NumberSeriesAllocator
+    // untuk kode DRG-RSMMC yang atomik dan durabel.
+    builder.Services.AddScoped<DrugRegistrationService>();
+
+    // Master keperluan akses rekam medis. Selama tabelnya kosong, pembukaan berkas pasien di
+    // luar rawatan pengguna selalu ditolak — service ini yang memberi unit rekam medis cara
+    // mengisinya tanpa meminta perubahan kode.
+    builder.Services.AddScoped<MedicalRecordAccessPurposeService>();
+
+    // BE-RWI-055 / FR-KEP-010. Master batas waktu pengkajian beserta pemilihan kebijakan
+    // yang berlaku saat pengkajian dibuat. Dipakai layar master dan jalur pembuatan
+    // pengkajian; selama masternya kosong tidak satu pun pengkajian dinyatakan terlambat.
+    builder.Services.AddScoped<ClinicalAssessmentPolicyService>();
+
+    // Daftar pilihan data induk perujuk — baca saja. Tanpa ini, layar pendaftaran rujukan luar
+    // tidak punya sumber pilihan dan petugas terpaksa mengetik nama, yang justru dilarang
+    // LAB-DEC-035.
+    builder.Services.AddScoped<ReferralMasterDataService>();
+
+    // Pemeriksaan golongan darah Bank Darah — sumber sah golongan darah pasien (DEC-BD-015),
+    // bukan MstPatient.BloodType. Service ini memegang deteksi perbedaan hasil (BD-XINV-04)
+    // dan penyelesaiannya lewat pemeriksaan ulang (DEC-BD-031); keduanya dijaga dua butir hak
+    // akses yang berbeda pada controller, bukan oleh pemeriksaan peran di dalam kode.
+    builder.Services.AddScoped<BbkBloodGroupExamService>();
+    builder.Services.AddScoped<BbkEncounterStatusReader>();
+    builder.Services.AddScoped<BbkBloodOrderService>();
+    builder.Services.AddScoped<BbkProviderRequestService>();
+    builder.Services.AddScoped<BbkBloodUnitService>();
+    builder.Services.AddScoped<BbkBloodBankProcedureService>();
+
+    // Master data Bank Darah: katalog komponen darah, lokasi penyimpanan, dan daftar alasan
+    // terkendali. Ketiganya di-inject langsung oleh controller master masing-masing, sehingga
+    // tanpa registrasi ini controller-nya gagal diaktifkan dan setiap action-nya menjawab 500 —
+    // termasuk jalur yang menyuplai gerbang alokasi BE-BD-006 (VAL-BD-016, VAL-BD-063/064).
+    builder.Services.AddScoped<BloodComponentService>();
+    builder.Services.AddScoped<BloodStorageLocationService>();
+    builder.Services.AddScoped<BloodBankReasonService>();
+
+    // HMD-BP-001, BE-HMD-03. Sepuluh service modul Hemodialisa, tanpa interface mengikuti pola
+    // modul terdekat. Seluruh controller Hemodialisa menyerahkan CRUD dan orkestrasinya ke sini
+    // dan tidak pernah menyentuh ApplicationDbContext langsung (QBE-SVC-001). Penyerahan ke Billing
+    // sengaja service tersendiri karena ia dijalankan di luar transaksi pengesahan.
+    builder.Services.AddScoped<HmdOrderService>();
+    builder.Services.AddScoped<HmdEpisodeService>();
+    builder.Services.AddScoped<HmdPrescriptionService>();
+    builder.Services.AddScoped<HmdScheduleService>();
+    builder.Services.AddScoped<HmdSessionService>();
+    builder.Services.AddScoped<HmdSessionFinalizationService>();
+    builder.Services.AddScoped<HmdBillingHandoffService>();
+    builder.Services.AddScoped<HmdUnitReadinessService>();
+    builder.Services.AddScoped<HmdResourceService>();
+    builder.Services.AddScoped<HmdCompetencyGateService>();
+
+    // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
+    // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,
+    // sehingga pencacahnya bertahan walau transaksi bisnis pemanggil dibatalkan (DEC-PLT-008).
+    builder.Services.AddScoped<NumberSeriesAllocator>();
+
+    // Pembaca keadaan deret untuk layar pemantauan administrator (PLT-BE-005). Sengaja terpisah
+    // dari alokator: service ini hanya membaca dan tidak pernah memanggil SaveChanges, sehingga
+    // jalur layar tidak pernah menjadi jalan masuk untuk menyunting pencacah (INV-PLT-001).
+    builder.Services.AddScoped<NumberSeriesQueryService>();
 
     // Pemantau pelampauan target respons triage. Mengikuti pola lima hosted service pada
     // modul Human Resource; frekuensinya dikonfigurasi, bukan ditanam di kode.
@@ -390,6 +688,29 @@ try
     builder.Services.AddScoped<AttendanceSchedulerService>();
     builder.Services.AddHostedService<AttendanceSchedulerHostedService>();
 
+    // CORPORATE - ACCOUNTING MANAGEMENT
+    // Satu baris per service modul, sesuai 02-backend-architecture.md bagian 6. Pemanggilan
+    // seeder dan logika startup Accounting sengaja TIDAK ditaruh di sini.
+    builder.Services.AddScoped<AccChartOfAccountService>();
+    builder.Services.AddScoped<AccJournalTypeService>();
+    builder.Services.AddScoped<AccEventTypeService>();
+    builder.Services.AddScoped<AccPostingRuleService>();
+    builder.Services.AddScoped<AccAccountingConfigurationService>();
+    builder.Services.AddScoped<AccAccountingPeriodService>();
+    builder.Services.AddScoped<AccPeriodClosingService>();
+    builder.Services.AddScoped<AccYearEndClosingService>();
+    builder.Services.AddScoped<AccRecurringJournalService>();
+    builder.Services.Configure<AccRecurringJournalSchedulerOptions>(
+        builder.Configuration.GetSection("Accounting:RecurringJournalScheduler"));
+    builder.Services.AddHostedService<AccRecurringJournalSchedulerHostedService>();
+    builder.Services.AddScoped<AccJournalService>();
+    builder.Services.AddScoped<AccGeneralLedgerService>();
+    builder.Services.AddScoped<AccControlAccountReconciliationService>();
+    builder.Services.Configure<AccAccountingEventSchedulerOptions>(
+        builder.Configuration.GetSection("Accounting:AccountingEventScheduler"));
+    builder.Services.AddScoped<AccAccountingEventService>();
+    builder.Services.AddHostedService<AccAccountingEventSchedulerHostedService>();
+
     builder.Services.AddScoped<LeaveEntitlementBalanceQueryService>();
     builder.Services.AddScoped<LeaveAdjustmentPostingService>();
     builder.Services.AddScoped<LeaveAdjustmentWorkflowLifecycleService>();
@@ -429,7 +750,6 @@ try
     builder.Services.AddScoped<LeaveCancellationService>();
     builder.Services.AddScoped<LeaveRecallService>();
     builder.Services.AddScoped<LeaveFinalReconciliationService>();
-
     builder.Services.AddScoped<OvertimePolicyResolverService>();
     builder.Services.AddScoped<OvertimeRateResolverService>();
     builder.Services.AddScoped<OvertimePlanQueryService>();
@@ -459,9 +779,110 @@ try
     builder.Services.AddScoped<OvertimeSelfServiceQueryService>();
     builder.Services.AddScoped<OvertimeSelfServiceService>();
 
+    //billing - master data
+    builder.Services.AddScoped<AdministrationFeePolicyService>();
+    builder.Services.AddScoped<DiscountPolicyService>();
+    builder.Services.AddScoped<RegisterService>();
+    builder.Services.AddScoped<RoomChargePolicyService>();
+    builder.Services.AddScoped<TaxRuleService>();
+    // ============================================================
+    // BILLING - ADAPTERS
+    // ============================================================
+
+    builder.Services.AddScoped<
+        IBillingChargeSourceAdapter,
+        ContractBillingChargeSourceAdapter>();
+
+    builder.Services.AddScoped<
+        IBillingCoverageAdapter,
+        RegistrationBillingCoverageAdapter>();
+
+    builder.Services.AddScoped<
+        IBillingPaymentProviderAdapter,
+        DeferredBillingPaymentProviderAdapter>();
+
+
+    // ============================================================
+    // BILLING - CORE SERVICES
+    // ============================================================
+
+    builder.Services.AddScoped<BillingModuleService>();
+
+    builder.Services.AddScoped<BillingNumberSeriesService>();
+
+    // Registrasi ini tertinggal ketika BilConsumerHandoffService dibuat: sembilan service
+    // Billing menuntutnya lewat konstruktor, sehingga validasi service provider menolak
+    // membangun aplikasi dan backend TIDAK DAPAT START sama sekali — bukan hanya modul
+    // Billing. Satu baris ini mengembalikan keadaannya, tanpa menyentuh aturan bisnis.
+    builder.Services.AddScoped<BilConsumerHandoffService>();
+
+    builder.Services.AddScoped<BillingAllocationService>();
+
+    builder.Services.AddScoped<BillingCalculationService>();
+
+    builder.Services.AddScoped<BillingInvoiceService>();
+
+    builder.Services.AddScoped<BillingInsuranceInvoiceDocumentService>();
+
+    builder.Services.AddScoped<BillingDiscountService>();
+
+    builder.Services.AddScoped<BillingDepositService>();
+
+    builder.Services.AddScoped<BillingSettlementService>();
+
+    builder.Services.AddScoped<BillingRefundService>();
+
+    builder.Services.AddScoped<BillingFinalizationService>();
+
+    // Empat layanan di bawah masuk lewat merge 4ba789b2 dari QuilvianIntegrationBackend
+    // bersama BillingManagementServiceCollectionExtensions.AddBillingManagement(), TETAPI
+    // extension itu nol pernah dipanggil dari mana pun — sedangkan Program.cs cabang ini
+    // mendaftarkan Billing satu per satu. Akibatnya BillingAllocationService,
+    // BillingFinalizationService, dan BillingFinancialExceptionService menuntut
+    // BilConsumerHandoffService yang tidak terdaftar, dan APLIKASI GAGAL MENYALA pada
+    // validasi DI — bukan pada saat dibuild.
+    //
+    // Mendaftarkannya satu per satu dicoba lebih dulu dan TERBUKTI KELIRU: kekurangannya
+    // berantai — BilConsumerHandoffService, lalu FinanceAccountingOutboxService, dan
+    // seterusnya. Extension itulah daftar lengkapnya, jadi ia yang dipanggil.
+    //
+    // Sebagian layanan menjadi terdaftar dua kali, dan itu aman: keduanya Scoped atas tipe
+    // implementasi yang sama. Pemilik modul Billing tetap perlu memutuskan satu tempat
+    // pendaftaran dan mencabut yang lain.
+    builder.Services.AddBillingManagement();
+
+    builder.Services.AddScoped<BillingArApHandoffService>();
+
+    builder.Services.AddScoped<BillingPayerEditService>();
+
+    builder.Services.AddScoped<BillingCompanyGuarantorInvoiceDocumentService>();
+
+    builder.Services.AddScoped<BillingReminderService>();
+
+    builder.Services.AddScoped<BillingFinancialExceptionService>();
+    
+    builder.Services.AddScoped<BillingInvoiceClosureService>();
+
+    // ============================================================
+    // CASHIER
+    // ============================================================
+
+    builder.Services.AddScoped<CashierShiftService>();
+
+    // billing petty cash
+    builder.Services.AddScoped<PettyCashCategoryService>();
+    builder.Services.AddScoped<PettyCashVoucherService>();
+    builder.Services.AddScoped<PettyCashBudgetService>();
+
+    // Registrasi kanonik Billing/Kasir/Petty Cash/Finance. Wajib dipanggil: hanya di sini
+    // BilConsumerHandoffService, service Finance, dan options penomoran didaftarkan. Diletakkan
+    // setelah registrasi manual di atas supaya adapter payment provider berbasis konfigurasi
+    // (Billing:PaymentProvider:AutoAcceptWithoutProvider) yang berlaku.
+    builder.Services.AddBillingManagement();
+
     builder.Services.AddAuthorization(options =>
     {
-        options.AddPolicy("KioskRead", policy =>
+        options.AddPolicy(AuthorizationPolicies.KioskRead, policy =>
         {
             policy.RequireAuthenticatedUser();
 
@@ -488,7 +909,7 @@ try
         // Policy khusus akun display antrian.
         // Dipakai untuk endpoint runtime display supaya akun QueueDisplayDevice
         // tidak perlu lewat AccessPermission role/menu aplikasi umum.
-        options.AddPolicy("QueueDisplayRuntimeRead", policy =>
+        options.AddPolicy(AuthorizationPolicies.QueueDisplayRuntimeRead, policy =>
         {
             policy.RequireAuthenticatedUser();
 
@@ -519,7 +940,7 @@ try
         });
 
         // Alias jika nanti ada controller lain yang ingin memakai nama policy lebih umum.
-        options.AddPolicy("QueueDisplayRead", policy =>
+        options.AddPolicy(AuthorizationPolicies.QueueDisplayRead, policy =>
         {
             policy.RequireAuthenticatedUser();
 
@@ -557,6 +978,34 @@ try
 
     builder.Services.AddSwaggerGen(options =>
     {
+        // Keterangan pada endpoint, parameter, dan DTO ikut ditampilkan di halaman Swagger.
+        //
+        // Diperlukan karena beberapa perubahan perilaku tidak terlihat dari bentuk permintaan
+        // maupun responsnya — misalnya kolom yang tetap diterima tetapi nilainya diabaikan.
+        // Tanpa ini, satu-satunya cara mengetahuinya adalah membaca source.
+        //
+        // includeControllerXmlComments SENGAJA DIBIARKAN MATI. Bila dinyalakan, Swashbuckle
+        // menambahkan satu tag tingkat dokumen untuk tiap controller, dinamai menurut nama
+        // KELAS controller. Project ini mengelompokkan endpoint memakai atribut [Tags(...)]
+        // yang isinya kalimat panjang, sehingga kedua nama itu tidak pernah bertemu: tag dari
+        // nama kelas tidak dipakai satu endpoint pun, lalu tampil di Swagger sebagai judul grup
+        // besar yang kosong isinya.
+        //
+        // Mematikannya tidak menghilangkan keterangan apa pun yang dibutuhkan. Keterangan pada
+        // endpoint, parameter, dan schema tetap terbaca — di situlah keterangan perubahan
+        // perilaku diletakkan.
+        //
+        // Diperiksa keberadaannya lebih dulu supaya aplikasi tetap berjalan bila berkas
+        // dokumentasinya tidak ikut terbawa pada suatu keluaran build.
+        var xmlDokumentasi = Path.Combine(
+            AppContext.BaseDirectory,
+            $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml");
+
+        if (File.Exists(xmlDokumentasi))
+        {
+            options.IncludeXmlComments(xmlDokumentasi, includeControllerXmlComments: false);
+        }
+
         options.SwaggerDoc("auth", new OpenApiInfo
         {
             Title = $"{appName} - Authentication",
@@ -717,6 +1166,88 @@ try
             "Seeder master kriteria telaah resep selesai.");
     }
 
+    static async Task SeedOperatingRoomDemoAsync(
+        IServiceProvider services,
+        IHostEnvironment environment,
+        IConfiguration configuration,
+        CancellationToken cancellationToken = default)
+    {
+        await using var scope = services.CreateAsyncScope();
+
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>();
+
+        var logger = scope.ServiceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("OperatingRoomDemoSeeder");
+
+        // Akun yang akan ditautkan ke dokter demo. Bila kosong, dipakai SuperAdmin hasil
+        // SuperAdminSeeder, karena itulah satu-satunya akun yang pasti ada di database baru.
+        var targetUserName = configuration["Seeders:OperatingRoomDemoTargetUserName"];
+        if (string.IsNullOrWhiteSpace(targetUserName))
+        {
+            targetUserName = configuration["SeedSuperAdmin:Username"];
+        }
+
+        var result = await OperatingRoomDemoSeeder.SeedAsync(
+            dbContext,
+            environment.EnvironmentName,
+            targetUserName,
+            configuration.GetValue<bool>("Seeders:OperatingRoomDemoCreateCase"),
+            cancellationToken);
+
+        if (result.RefusedReason is not null)
+        {
+            logger.LogWarning("[OperatingRoomDemo] {Reason}", result.RefusedReason);
+            return;
+        }
+
+        logger.LogInformation(
+            "[OperatingRoomDemo] Dibuat: {Created}. Dipakai ulang: {Reused}.",
+            result.Created.Count == 0 ? "tidak ada" : string.Join(", ", result.Created),
+            result.Reused.Count == 0 ? "tidak ada" : string.Join(", ", result.Reused));
+
+        logger.LogInformation(
+            "[OperatingRoomDemo] Pakai nilai ini di form Kasus Operasi -> PatientId={PatientId}, " +
+            "EncounterId={EncounterId}, DoctorId={DoctorId}, PatientProcedureId={ProcedureIds}",
+            result.PatientId, result.EncounterId, result.DoctorId,
+            string.Join(", ", result.PatientProcedureIds));
+
+        logger.LogInformation(
+            "[OperatingRoomDemo] Penjadwalan -> RoomId={RoomId}, KetuaTim(WorkforceId)={SurgeonWorkforceId}, " +
+            "AnggotaTimLain={TeamWorkforceIds}",
+            result.RoomId, result.SurgeonWorkforceId, string.Join(", ", result.TeamWorkforceIds));
+
+        logger.LogInformation(
+            "[OperatingRoomDemo] Material -> ItemId={MaterialItemIds}. Serah terima -> UnitTujuan={DestinationUnitId}",
+            string.Join(", ", result.MaterialItemIds), result.DestinationUnitId);
+
+        logger.LogInformation("[OperatingRoomDemo] {Note}", result.UserLinkNote);
+
+        var demoUserNotes = await OperatingRoomDemoSeeder.EnsureDemoUsersAsync(
+            scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(),
+            result,
+            // Ikut kata sandi SuperAdmin bila tidak ditentukan sendiri, supaya seluruh akun
+            // demo di basis data pengembangan memakai sandi yang sama.
+            string.IsNullOrWhiteSpace(configuration["Seeders:OperatingRoomDemoUserPassword"])
+                ? configuration["SeedSuperAdmin:Password"]
+                : configuration["Seeders:OperatingRoomDemoUserPassword"],
+            cancellationToken);
+
+        foreach (var note in demoUserNotes)
+        {
+            logger.LogInformation("[OperatingRoomDemo] {Note}", note);
+        }
+
+        if (result.CaseId != Guid.Empty)
+        {
+            logger.LogInformation(
+                "[OperatingRoomDemo] Kasus contoh siap dicoba: CaseId={CaseId}. Kasus ini dibuat " +
+                "seeder, bukan lewat layar, jadi ia belum membuktikan form pembuatan berfungsi.",
+                result.CaseId);
+        }
+    }
+
     static async Task RunStartupSeederAsync(string seederName, Func<Task> seed)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -862,10 +1393,139 @@ try
 
     app.MapHealthChecks("/health");
 
+    if (builder.Configuration.GetValue("OperatingRoom:RelaxClinicalRules", false))
+    {
+        if (app.Environment.IsProduction())
+        {
+            Log.Warning(
+                "[Security] OperatingRoom:RelaxClinicalRules bernilai true, tetapi DIABAIKAN " +
+                "karena lingkungan ini produksi. Aturan pelaku klinis tetap berjalan penuh.");
+        }
+        else
+        {
+            Log.Warning(
+                "[Security] ATURAN KLINIS MODUL OPERASI DILEPAS pada lingkungan {Environment}. " +
+                "Siapa pun dapat membuat permintaan atas nama dokter lain, memulai operasi, dan " +
+                "memberi ketiga sign-off sendirian. Kesiapan tidak lagi menunggu consent maupun " +
+                "checklist. Kembalikan dengan OperatingRoom:RelaxClinicalRules = false sebelum " +
+                "menguji keselamatan atau menyerahkan lingkungan ini kepada orang lain.",
+                app.Environment.EnvironmentName);
+        }
+    }
+
+    // Peringatan mencolok bila pemeriksaan hak akses sedang dimatikan, supaya keadaan ini
+    // tidak berlalu tanpa disadari dan tidak ikut terbawa saat lingkungan disalin.
+    if (!builder.Configuration.GetValue("Security:Authorization:Enabled", true))
+    {
+        if (app.Environment.IsProduction())
+        {
+            Log.Warning(
+                "[Security] Security:Authorization:Enabled bernilai false, tetapi DIABAIKAN " +
+                "karena lingkungan ini produksi. Pemeriksaan hak akses tetap berjalan penuh.");
+        }
+        else
+        {
+            Log.Warning(
+                "[Security] PEMERIKSAAN HAK AKSES DIMATIKAN pada lingkungan {Environment}. " +
+                "Setiap pengguna yang berhasil login dapat membuka dan mengubah apa pun. " +
+                "Nyalakan kembali dengan Security:Authorization:Enabled = true sebelum " +
+                "menguji hak akses atau menyerahkan lingkungan ini kepada orang lain.",
+                app.Environment.EnvironmentName);
+        }
+    }
+
     await RunStartupSeederAsync("AppVersionSeeder", () => AppVersionSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("DefaultWorkScheduleSeeder", () => DefaultWorkScheduleSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("SuperAdminSeeder", () => SuperAdminSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
+    // Data induk OPERASIONAL Laboratorium. Keduanya sengaja tetap berdiri: alasan penolakan
+    // wadah dan jenis specimen adalah data yang dibutuhkan modul sejak hari pertama, bukan data
+    // contoh. Environment baru yang berangkat tanpa keduanya akan menolak setiap penerimaan
+    // wadah tanpa sebab yang dapat dipilih petugas.
+    //
+    // Hanya LabDummyDataSeeder yang dicabut 2026-09-17 atas instruksi pemilik modul — ia memang
+    // data CONTOH, mati secara bawaan dan menolak berjalan di produksi.
+    await RunStartupSeederAsync("LabRejectionReasonSeeder", () => LabRejectionReasonSeeder.SeedAsync(app.Services));
+    await RunStartupSeederAsync("LabSpecimenTypeSeeder", () => LabSpecimenTypeSeeder.SeedAsync(app.Services));
+
+    // Data induk Patologi Anatomi: golongan, ruas isian, dan keberlakuannya. Ketiganya TETAP —
+    // isinya datang dari LAB-EVD-003 bagian 5.6, bukan dari kebiasaan satu rumah sakit.
+    //
+    // Data induk KEEMPAT — pemetaan jenis pemeriksaan ke golongan — sengaja TIDAK diseed; ia
+    // bergantung katalog rumah sakit yang bersangkutan dan diisi kepala instalasi. Selama ia
+    // kosong, formulir hasil Patologi Anatomi kosong sama sekali (INV-39), dan seeder ini
+    // menuliskan peringatan penyalaan untuk keadaan itu.
+    await RunStartupSeederAsync("LabPathologyMasterDataSeeder", () => LabPathologyMasterDataSeeder.SeedAsync(app.Services));
+    await RunStartupSeederAsync("LabSpecimenDetailTypeSeeder", () => LabSpecimenDetailTypeSeeder.SeedAsync(app.Services));
+
+    await RunStartupSeederAsync("LabDisciplineSettingSeeder", () => LabDisciplineSettingSeeder.SeedAsync(app.Services));
+
+    // Data master Radiologi. Mengisi alat pencitraan dan butir keselamatan, lalu menyusun
+    // usulan aturan keselamatan sebagai DRAF — tidak pernah Active. Aturan yang menentukan
+    // kapan pasien boleh disinari hanya berlaku setelah disahkan penanggung jawab klinis
+    // (RJ-BIL-DEC-014, DEC-RAD-005).
+    await RunStartupSeederAsync("RadiologyMasterDataSeeder", () => RadiologyMasterDataSeeder.SeedAsync(app.Services));
+
+    // HMD-BP-001, BE-HMD-03. Data master awal Hemodialisa: unit HD, tindakan hemodialisis, dua belas
+    // butir checklist Pra-HD yang SELURUHNYA tidak boleh dilewati (HMD-ASM-001), lima butir kesiapan
+    // unit, dan satu baris pengaturan unit. Idempoten — baris yang sudah ada tidak diisi ulang.
+    await RunStartupSeederAsync("HemodialysisMasterDataSeeder", () => HemodialysisMasterDataSeeder.SeedAsync(app.Services));
+
+    // Gerbang integritas permission (Phase A0).
+    //
+    // Menyandingkan setiap [AccessPermission] dengan baris registry yang benar-benar dibuat
+    // seeder. Selisih di antara keduanya menghasilkan 403 permanen yang tidak dapat diperbaiki
+    // admin, dan tidak terlihat saat diuji dengan SuperAdmin karena SuperAdmin melewati seluruh
+    // pemeriksaan.
+    //
+    // Sengaja dijalankan SESUDAH seluruh seeder registry, termasuk RadiologyMasterDataSeeder,
+    // supaya yang diperiksa adalah keadaan akhir registry — bukan keadaan setengah jadi.
+    //
+    // Di luar Production kegagalan menghentikan startup supaya ketahuan sebelum rilis. Di
+    // Production ia hanya mencatat Critical: rumah sakit tidak boleh gagal boot karena satu
+    // anotasi yang salah.
+    using (var permissionValidationScope = app.Services.CreateScope())
+    {
+        var permissionRegistryValidator = permissionValidationScope.ServiceProvider
+            .GetRequiredService<PermissionRegistryValidator>();
+
+        permissionRegistryValidator.ValidateAndReport(
+            throwOnFailure: !app.Environment.IsProduction());
+    }
+
+
+    // Data induk contoh Laboratorium. Mati secara bawaan dan menolak berjalan di produksi.
+    var runLabDummySeed = builder.Configuration.GetValue<bool>("Seeders:RunLabDummySeed");
+
+
+    // BE-RWI-107 / RWI-DEC-124 butir 4.
+    // Instrumen dan formulir klinis awal sebagai DRAFT — tidak pernah
+    // disahkan oleh seeder.
+    await RunStartupSeederAsync(
+        "ClinicalInstrumentDraftSeeder",
+        () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
+
+    // LabDummyDataSeeder DICABUT 2026-09-17 atas instruksi pemilik modul, dan berkasnya
+    // dihapus pada commit 0bc921b0. Pemanggilnya sempat hidup kembali lewat merge
+    // 4ba789b2 dari QuilvianIntegrationBackend — cabang itu belum menerima pencabutannya —
+    // sehingga HEAD memanggil kelas yang tidak ada pada kedua sisi merge dan GAGAL DIBUILD.
+    // Dicabut ulang 2026-09-22 supaya instruksi pemilik modul kembali berlaku.
+    //
+    // Pengaturan `Seeders:RunLabDummySeed` dibiarkan ada pada appsettings dan nol dibaca.
+    // Mencabutnya adalah perubahan konfigurasi milik pemilik modul, bukan perbaikan build.
+
+    var runOperatingRoomDemoSeed =
+        builder.Configuration.GetValue<bool>("Seeders:RunOperatingRoomDemoSeed");
+
+    if (runOperatingRoomDemoSeed)
+    {
+        await RunStartupSeederAsync(
+            "OperatingRoomDemoSeeder",
+            () => SeedOperatingRoomDemoAsync(
+                app.Services,
+                app.Environment,
+                builder.Configuration));
+    }
 
     var runPrescriptionReviewCriterionSeed =
      builder.Configuration.GetValue<bool>(

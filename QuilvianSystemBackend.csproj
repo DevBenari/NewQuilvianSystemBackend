@@ -1,118 +1,321 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
 
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UserSecretsId>c5cea89b-03e0-4326-8dc2-62ee00ae859d</UserSecretsId>
+		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+		<DockerfileContext>.</DockerfileContext>
+		<PlatformTarget>x64</PlatformTarget>
 
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>c5cea89b-03e0-4326-8dc2-62ee00ae859d</UserSecretsId>
-    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-    <DockerfileContext>.</DockerfileContext>
-    <PlatformTarget>x64</PlatformTarget>
-    <DefaultItemExcludes>$(DefaultItemExcludes);QuilvianSystemBackend.Tests\**</DefaultItemExcludes>
-  </PropertyGroup>
+		<!--
+		XML documentation diperlukan oleh Swagger dan acceptance test.
+		Harus tersedia pada Development maupun Release.
+		-->
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<NoWarn>$(NoWarn);1591</NoWarn>
 
-  <ItemGroup>
-    <Compile Remove="QuilvianSystemBackend.Tests\**" />
-    <Compile Remove="Tests\**" />
-    <Content Remove="Tests\**" />
-    <Compile Remove="Areas\HealthServices\DeviceManagement\**" />
-    <Compile Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
-    <Compile Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
-    <Compile Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
-    <Compile Remove="Areas\HealthServices\PatientManagement\Patient\**" />
-    <Compile Remove="Areas\SelfServices\Models\**" />
-    <Compile Remove="Areas\SelfServices\Views\**" />
-    <Compile Remove="QuilvianSystemBackend.Tests\**" />
-    <Content Remove="QuilvianSystemBackend.Tests\**" />
-    <Content Remove="Areas\HealthServices\DeviceManagement\**" />
-    <Content Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
-    <Content Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
-    <Content Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
-    <Content Remove="Areas\HealthServices\PatientManagement\Patient\**" />
-    <Content Remove="Areas\SelfServices\Models\**" />
-    <Content Remove="Areas\SelfServices\Views\**" />
-    <Content Remove="QuilvianSystemBackend.Tests\**" />
-    <EmbeddedResource Remove="QuilvianSystemBackend.Tests\**" />
-    <EmbeddedResource Remove="Areas\HealthServices\DeviceManagement\**" />
-    <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
-    <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
-    <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
-    <EmbeddedResource Remove="Areas\HealthServices\PatientManagement\Patient\**" />
-    <EmbeddedResource Remove="Areas\SelfServices\Models\**" />
-    <EmbeddedResource Remove="Areas\SelfServices\Views\**" />
-    <None Remove="QuilvianSystemBackend.Tests\**" />
-    <None Remove="Areas\HealthServices\DeviceManagement\**" />
-    <None Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
-    <None Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
-    <None Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
-    <None Remove="Areas\HealthServices\PatientManagement\Patient\**" />
-    <None Remove="Areas\SelfServices\Models\**" />
-    <None Remove="Areas\SelfServices\Views\**" />
-    <None Remove="QuilvianSystemBackend.Tests\**" />
-  </ItemGroup>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.18" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.18" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.18">
+	<PropertyGroup Condition="'$(Configuration)'=='Release'">
 
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.18" />
-    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="9.0.18" />
+		<DebugType>None</DebugType>
+		<DebugSymbols>false</DebugSymbols>
 
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.18.1" />
-    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="9.0.12" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+		<RunAnalyzers>false</RunAnalyzers>
 
-    <PackageReference Include="QRCoder" Version="1.8.0" />
-    <PackageReference Include="Serilog.AspNetCore" Version="6.1.0" />
-    <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
-    <PackageReference Include="Serilog.Settings.Configuration" Version="3.4.0" />
-    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
-  </ItemGroup>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <Content Update="version.json">
+	<!-- =========================================================
+	     BUILD PERFORMANCE OPTIMIZATION
+	     =========================================================
+	     
+	     Migration tetap ada di repository untuk:
+	     - dotnet ef migrations add
+	     - dotnet ef database update
+	     - database maintenance
 
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-    </Content>
-  </ItemGroup>
+	     Tetapi tidak perlu ikut dikompilasi oleh aplikasi utama.
 
-  <ItemGroup>
-    <Folder Include=".github\workflows\" />
-    <Folder Include="Areas\Administrator\Dashboard\" />
-    <Folder Include="Areas\Administrator\DocumentManagement\" />
-    <Folder Include="Areas\Corporate\HumanResource\AttendanceManagement\Constants\" />
-    <Folder Include="Areas\Corporate\HumanResource\MasterData\AttendanceAndSchedule\" />
-    <Folder Include="Areas\Corporate\HumanResource\MasterData\LeaveAndOvertime\" />
-    <Folder Include="Areas\Corporate\HumanResource\MasterData\Workflow\" />
-    <Folder Include="Areas\Corporate\HumanResource\MasterData\Performance\" />
-    <Folder Include="Areas\Corporate\HumanResource\MasterData\PayrollAndBenefit\" />
-    <Folder Include="Areas\Corporate\HumanResource\MasterData\TravelAndExpense\" />
-    <Folder Include="Areas\Corporate\HumanResource\WorkforceCore\Controllers\" />
-    <Folder Include="Areas\Corporate\InventoryManagement\" />
-    <Folder Include="Areas\Corporate\AssetManagement\" />
-    <Folder Include="Areas\Corporate\FinancialManagement\" />
-    <Folder Include="Areas\Corporate\AccountingManagement\" />
-    <Folder Include="Areas\Corporate\PayrollManagement\" />
-    <Folder Include="Areas\Corporate\TaxManagement\" />
-    <Folder Include="Areas\Corporate\ProcurementManagement\" />
-    <Folder Include="Areas\HealthServices\InpatientManagement\" />
-    <Folder Include="Areas\HealthServices\MedicalRecordManagement\" />
-    <Folder Include="Areas\HealthServices\LaboratoryManagement\" />
-    <Folder Include="Areas\HealthServices\InsuranceManagement\" />
-    <Folder Include="Areas\HealthServices\DoctorAndScheduleManagement\" />
-    <Folder Include="Areas\HealthServices\OperatingRoomManagement\" />
-    <Folder Include="Areas\HealthServices\RadiologyManagement\" />
-    <Folder Include="Areas\HealthServices\OutpatientManagement\" />
-    <Folder Include="Logs\" />
-    <Folder Include="SeedData\ICD10\" />
-  </ItemGroup>
+	     Folder Migration sangat besar:
+	     - ratusan file migration
+	     - Designer.cs jutaan baris generated code
+	     - ModelSnapshot besar
+
+	     Exclude dari Compile mengurangi waktu build, tetapi lihat koreksi di bawah:
+	     pengecualian itu kini hanya berlaku bila dinyalakan secara sadar.
+	-->
+	<!--
+    KOREKSI 4 September 2026.
+
+    Pengecualian ini sebelumnya berlaku selalu, dengan alasan menghemat waktu build.
+    Alasannya benar — 126 berkas Designer dan snapshot berjumlah 6,7 juta baris — tetapi
+    akibatnya tidak seperti yang diperkirakan: EF Core TIDAK tetap bekerja.
+
+    Atribut [Migration("...")] yang dipakai EF untuk mengenali sebuah migration berada di
+    dalam berkas Designer, bukan di berkas migration utama. Ketika Designer tidak ikut
+    dikompilasi, EF hanya melihat migration yang atributnya ditulis tangan di berkas utama.
+    Yang terukur pada 4 September: `dotnet ef migrations list` hanya melihat 7 dari 131
+    migration, dan `dotnet ef migrations add` menghasilkan migration berisi 570 CreateTable
+    — seluruh skema dari nol, karena baseline-nya dianggap kosong. Migration seperti itu bila
+    terlanjur dijalankan akan membangun ulang database.
+
+    Karena itu bawaannya kini ikut dikompilasi. Penghematan build tetap tersedia lewat
+    properti di bawah, tetapi harus dinyalakan secara sadar:
+
+        dotnet build -p:SkipMigrationMetadata=true
+
+    JANGAN memakainya ketika menjalankan perkakas EF apa pun. Ia hanya aman untuk build
+    aplikasi yang tidak menyentuh migration.
+  -->
+	<PropertyGroup Condition="'$(SkipMigrationMetadata)' == ''">
+		<SkipMigrationMetadata>false</SkipMigrationMetadata>
+	</PropertyGroup>
+
+	<!--
+	  Temuan branch integration atas persoalan yang sama, dipertahankan karena memuat gejala
+	  yang tidak tercatat di atas:
+
+	  Designer.cs memuat atribut [Migration("...")]. Tanpa dikompilasi, seluruh migration hasil
+	  scaffold — yaitu semua migration sejak 2026-09-01 — menjadi TIDAK TERLIHAT oleh EF, dan
+	  akibatnya 'database update' tidak menerapkan apa pun namun tetap menjawab 'Done.'
+
+	  ApplicationDbContextModelSnapshot.cs adalah pembanding yang dipakai EF saat menyusun
+	  migration baru. Tanpa dikompilasi, EF menganggap belum ada schema sama sekali lalu
+	  menghasilkan migration berisi SELURUH database — satu kali terukur 70.815 baris — tanpa
+	  satu pun peringatan.
+
+	  Keduanya tidak terasa selama bin/ masih menyimpan hasil build lama yang memuat kedua
+	  berkas itu. Begitu ada full rebuild, kemampuan EF hilang diam-diam.
+	-->
+	<ItemGroup Condition="'$(SkipMigrationMetadata)' == 'true'">
+		<Compile Remove="Migrations\**\*.Designer.cs" />
+		<Compile Remove="Migrations\ApplicationDbContextModelSnapshot.cs" />
+	</ItemGroup>
+
+	<!-- =========================================================
+	     MIGRATION DESIGNER ARCHIVING
+	     =========================================================
+
+	     Ditambahkan 21 September 2026, setelah build gagal dengan
+	     System.OutOfMemoryException di dalam Roslyn LocalRewriter.
+
+	     Sebabnya bukan kode aplikasi. Migrations\ berisi 13,7 juta baris / 554 MB,
+	     sementara seluruh source aplikasi hanya 26,7 MB. Tiap *.Designer.cs memuat
+	     BuildTargetModel, yaitu snapshot penuh seluruh skema, sekitar 4,5 MB per
+	     berkas, diulang 204 kali. Roslyn melakukan lowering atas method-method
+	     raksasa itu secara paralel, sehingga csc menembus 20 GB lalu mati.
+
+	     -m:1 tidak menolong: yang dibatasinya adalah paralelisme MSBuild, bukan
+	     paralelisme internal compiler.
+
+	     Pendekatan yang dipakai:
+
+	       - Designer yang tidak lagi diperlukan dipindah ke Migrations\History\
+	         dan tidak ikut dikompilasi.
+	       - Atribut [DbContext] dan [Migration] miliknya dipindahkan ke
+	         Migrations\MigrationMetadata.g.cs, yang tetap dikompilasi. Inilah yang
+	         membedakannya dari SkipMigrationMetadata di atas: pendekatan lama itu
+	         membuang atributnya juga, sehingga migration lenyap dari pandangan EF.
+	       - Designer milik migration bermuatan data (InsertData/UpdateData/
+	         DeleteData) dan dua migration terbaru tetap dikompilasi utuh, karena
+	         TargetModel-nya masih dipakai: yang pertama untuk menentukan tipe kolom
+	         saat SQL dihasilkan, yang kedua oleh 'dotnet ef migrations remove'.
+	       - ApplicationDbContextModelSnapshot.cs selalu dikompilasi.
+
+	     Migration baru hasil 'dotnet ef migrations add' lahir di Migrations\ dan
+	     otomatis ikut dikompilasi, jadi tidak ada risiko ia tertinggal diam-diam.
+	     Pemangkasan lanjutan dilakukan dengan menjalankan
+	     tooling\migrations\Update-MigrationHistory.ps1, yang memindahkan berkas dan
+	     meregenerasi metadata dalam satu langkah agar keduanya tak bisa berselisih.
+
+	     Untuk mengompilasi seluruh Designer kembali (butuh RAM sangat besar):
+
+	         dotnet build -p:FullMigrationMetadata=true
+	  -->
+	<PropertyGroup Condition="'$(FullMigrationMetadata)' == ''">
+		<FullMigrationMetadata>false</FullMigrationMetadata>
+	</PropertyGroup>
+
+	<Import Project="Migrations\MigrationMetadata.g.props" Condition="Exists('Migrations\MigrationMetadata.g.props')" />
+
+	<ItemGroup Condition="'$(FullMigrationMetadata)' != 'true'">
+		<Compile Remove="Migrations\History\**\*.cs" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(FullMigrationMetadata)' == 'true'">
+		<!--
+		Designer asli kembali dikompilasi, jadi atribut penggantinya harus dibuang
+		agar tidak menjadi atribut ganda (CS0579).
+		-->
+		<Compile Remove="Migrations\MigrationMetadata.g.cs" />
+	</ItemGroup>
+
+	<!--
+	Penjaga agar kegagalan tidak pernah senyap. Bila ada Designer yang diarsipkan
+	tanpa atribut penggantinya, migration itu hilang dari pandangan EF tanpa satu
+	pun peringatan. Build harus berhenti di sini, bukan menghasilkan assembly cacat.
+	-->
+	<Target Name="ValidateMigrationHistoryCoverage"
+	        BeforeTargets="CoreCompile"
+	        Condition="'$(FullMigrationMetadata)' != 'true' And Exists('$(MSBuildProjectDirectory)\Migrations\History')">
+
+		<ItemGroup>
+			<_ArchivedDesignerFile Include="$(MSBuildProjectDirectory)\Migrations\History\*.Designer.cs" />
+		</ItemGroup>
+
+		<PropertyGroup>
+			<_ArchivedDesignerCount>@(_ArchivedDesignerFile->Count())</_ArchivedDesignerCount>
+		</PropertyGroup>
+
+		<Error Condition="'$(MigrationMetadataDeclaredCount)' == ''"
+		       Text="Migrations\History\ berisi Designer yang diarsipkan, tetapi Migrations\MigrationMetadata.g.props tidak ada. Jalankan: powershell -NoProfile -File tooling\migrations\Update-MigrationHistory.ps1" />
+
+		<Error Condition="'$(_ArchivedDesignerCount)' != '$(MigrationMetadataDeclaredCount)'"
+		       Text="Metadata migration tidak sinkron: $(_ArchivedDesignerCount) Designer diarsipkan di Migrations\History\ tetapi $(MigrationMetadataDeclaredCount) dideklarasikan di Migrations\MigrationMetadata.g.cs. Jalankan: powershell -NoProfile -File tooling\migrations\Update-MigrationHistory.ps1" />
+
+	</Target>
+
+	<ItemGroup>
+
+		<Compile Remove="Areas\HealthServices\DeviceManagement\**" />
+		<Compile Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
+		<Compile Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
+		<Compile Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
+		<Compile Remove="Areas\HealthServices\PatientManagement\Patient\**" />
+
+		<Compile Remove="Areas\SelfServices\Models\**" />
+		<Compile Remove="Areas\SelfServices\Views\**" />
+
+		<!--
+		Tests\ berisi proyek-proyek .csproj terpisah (masing-masing dengan referensi Xunit dan
+		AssemblyInfo-nya sendiri). Tanpa exclusion ini, glob default SDK-style project ini ikut
+		menyertakan berkas hasil generate mereka (obj\**\GlobalUsings.g.cs, AssemblyInfo.cs),
+		menyebabkan CS0579 (duplicate assembly attribute) dan CS0400 (Xunit tidak ditemukan,
+		karena proyek utama tidak mereferensikannya).
+		-->
+		<Compile Remove="Tests\**" />
+		<Content Remove="Tests\**" />
+		<EmbeddedResource Remove="Tests\**" />
+		<None Remove="Tests\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!--
+		Data induk Spesifik Specimen (LAB-DEC-129, LAB-DEC-130), 1.767 baris dari LAB-EVD-007.
+
+		DITANAM KE DALAM DLL, bukan disalin ke samping aplikasi: berkas tertanam tidak dapat
+		hilang saat deployment, dan tidak ada langkah "jangan lupa salin berkasnya" yang dapat
+		terlewat.
+
+		Kenapa berkas, bukan daftar di dalam kode C#: 1.767 baris data di dalam berkas C#
+		adalah berkas yang nol dapat ditinjau siapa pun, dan setiap pembaruan dataset menjadi
+		diff raksasa. Alternatifnya InsertData pada migration — lebih buruk, sebab barisnya
+		masuk ke berkas yang nol boleh disunting lagi sesudah diterapkan.
+
+		Ini pola seeder berbasis berkas PERTAMA pada repository ini, dinyatakan terbuka pada
+		02-backend-architecture.md bagian 18.2 — bukan diselundupkan.
+		-->
+		<EmbeddedResource Include="Areas\HealthServices\LaboratoryManagement\Seeders\Data\lab-specimen-detail-types.csv" />
+
+
+		<Content Remove="Areas\HealthServices\DeviceManagement\**" />
+		<Content Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
+		<Content Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
+		<Content Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
+		<Content Remove="Areas\HealthServices\PatientManagement\Patient\**" />
+
+		<Content Remove="Areas\SelfServices\Models\**" />
+		<Content Remove="Areas\SelfServices\Views\**" />
+
+
+		<EmbeddedResource Remove="Areas\HealthServices\DeviceManagement\**" />
+		<EmbeddedResource Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
+		<EmbeddedResource Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
+		<EmbeddedResource Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
+		<EmbeddedResource Remove="Areas\HealthServices\PatientManagement\Patient\**" />
+
+		<EmbeddedResource Remove="Areas\SelfServices\Models\**" />
+		<EmbeddedResource Remove="Areas\SelfServices\Views\**" />
+
+
+		<None Remove="Areas\HealthServices\DeviceManagement\**" />
+		<None Remove="Areas\HealthServices\PatientManagement\Controllers\**" />
+		<None Remove="Areas\HealthServices\PatientManagement\DTOs\**" />
+		<None Remove="Areas\HealthServices\PatientManagement\PatientMember\**" />
+		<None Remove="Areas\HealthServices\PatientManagement\Patient\**" />
+
+		<None Remove="Areas\SelfServices\Models\**" />
+		<None Remove="Areas\SelfServices\Views\**" />
+
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.18" />
+		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.18" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.18">
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		  <PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.18">
+
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.18" />
+		<PackageReference Include="Microsoft.Extensions.Identity.Core" Version="9.0.18" />
+
+		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.18.1" />
+		<PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="9.0.12" />
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+
+		<PackageReference Include="QRCoder" Version="1.8.0" />
+		<PackageReference Include="Serilog.AspNetCore" Version="6.1.0" />
+		<PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
+		<PackageReference Include="Serilog.Settings.Configuration" Version="3.4.0" />
+		<PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+		<PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Update="version.json">
+
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Include=".github\workflows\" />
+		<Folder Include="Areas\Administrator\Dashboard\" />
+		<Folder Include="Areas\Administrator\DocumentManagement\" />
+		<Folder Include="Areas\Corporate\HumanResource\AttendanceManagement\Constants\" />
+		<Folder Include="Areas\Corporate\HumanResource\MasterData\AttendanceAndSchedule\" />
+		<Folder Include="Areas\Corporate\HumanResource\MasterData\LeaveAndOvertime\" />
+		<Folder Include="Areas\Corporate\HumanResource\MasterData\Workflow\" />
+		<Folder Include="Areas\Corporate\HumanResource\MasterData\Performance\" />
+		<Folder Include="Areas\Corporate\HumanResource\MasterData\PayrollAndBenefit\" />
+		<Folder Include="Areas\Corporate\HumanResource\MasterData\TravelAndExpense\" />
+		<Folder Include="Areas\Corporate\HumanResource\WorkforceCore\Controllers\" />
+		<Folder Include="Areas\Corporate\InventoryManagement\" />
+		<Folder Include="Areas\Corporate\AssetManagement\" />
+		<Folder Include="Areas\Corporate\FinancialManagement\" />
+		<Folder Include="Areas\Corporate\AccountingManagement\" />
+		<Folder Include="Areas\Corporate\PayrollManagement\" />
+		<Folder Include="Areas\Corporate\TaxManagement\" />
+		<Folder Include="Areas\Corporate\ProcurementManagement\" />
+		<Folder Include="Areas\HealthServices\InpatientManagement\" />
+		<Folder Include="Areas\HealthServices\MedicalRecordManagement\" />
+		<Folder Include="Areas\HealthServices\LaboratoryManagement\" />
+		<Folder Include="Areas\HealthServices\InsuranceManagement\" />
+		<Folder Include="Areas\HealthServices\DoctorAndScheduleManagement\" />
+		<Folder Include="Areas\HealthServices\OperatingRoomManagement\" />
+		<Folder Include="Areas\HealthServices\RadiologyManagement\" />
+		<Folder Include="Areas\HealthServices\OutpatientManagement\" />
+		<Folder Include="Logs\" />
+		<Folder Include="SeedData\ICD10\" />
+	</ItemGroup>
 
 </Project>

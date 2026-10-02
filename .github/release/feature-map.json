@@ -1,0 +1,67 @@
+{
+  "Microbiology Workflow": [
+    "LabMicrobiology",
+    "LabOrganism",
+    "LabAntibiotic"
+  ],
+
+  "Susceptibility Management": [
+    "LabSusceptibility",
+    "LabIsolate",
+    "Breakpoint"
+  ],
+
+  "Laboratory Reporting": [
+    "LabReport",
+    "LabReportNumber",
+    "ReportNumber"
+  ],
+
+  "Specimen Management": [
+    "LabSpecimen",
+    "Specimen"
+  ],
+
+  "Laboratory Master Data": [
+    "LabDiscipline",
+    "LabProcedure",
+    "LabMaster"
+  ],
+
+  "Result Validation": [
+    "LabResult",
+    "ResultValidation",
+    "CriticalRule"
+  ],
+
+  "Billing Workflow": [
+    "Billing",
+    "Invoice",
+    "Collection"
+  ],
+
+  "Finance Workflow": [
+    "Finance",
+    "Journal",
+    "CashManagement",
+    "Receivable"
+  ],
+
+  "Pharmacy Workflow": [
+    "Prescription",
+    "Drug",
+    "Pharmacy"
+  ],
+
+  "Radiology Workflow": [
+    "Radiology",
+    "RadReport",
+    "RadOrder"
+  ],
+
+  "Blood Bank Workflow": [
+    "Blood",
+    "Compatibility",
+    "Issuance"
+  ]
+}

@@ -5,7 +5,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.D
 public sealed class DepositAllocationRequest
 {
     public Guid InvoiceId { get; set; }
-    [Range(typeof(decimal), "0.01", "9999999999999999.99")]
+    [Range(
+        typeof(decimal),
+        "0.01",
+        "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
     public decimal Amount { get; set; }
     public Guid ExpectedDepositRowVersion { get; set; }
     public Guid ExpectedInvoiceRowVersion { get; set; }

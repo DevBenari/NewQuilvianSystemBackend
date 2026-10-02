@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 {
@@ -16,8 +17,19 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.EncounterId)
                 .IsRequired();
 
+            // =========================================================================
+            // BE-RWI-068 / INT-DOK-10 - konteks diagnosis terstruktur
+            // =========================================================================
+            // ConsultationId turun dari wajib menjadi boleh kosong supaya diagnosis dapat
+            // lahir dari kajian medis awal, yang memang ada sebelum catatan harian pertama.
+            // Nol baris lama berubah nilainya. Aturan "salah satu wajib" tidak dapat
+            // ditegakkan NOT NULL - tidak ada kolom yang selalu terisi pada kedua jalur -
+            // sehingga penjagaannya pindah ke VAL-DOK-36 pada controller.
             entity.Property(x => x.ConsultationId)
-                .IsRequired();
+                .IsRequired(false);
+
+            entity.Property(x => x.InpEpisodeId)
+                .IsRequired(false);
 
             entity.Property(x => x.PatientId)
                 .IsRequired();
@@ -181,6 +193,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .HasForeignKey(x => x.DiagnosisId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Pola relasinya sama persis dengan kolom sejenis pada TrxPatientAssessment dan
+            // TrxPatientProcedure sejak BE-RWI-040: tanpa navigation property, Restrict.
+            entity.HasOne<InpEpisode>()
+                .WithMany()
+                .HasForeignKey(x => x.InpEpisodeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasOne(x => x.ResolvedByUser)
                 .WithMany()
                 .HasForeignKey(x => x.ResolvedByUserId)
@@ -289,6 +308,14 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 x.EncounterId,
                 x.SortOrder,
                 x.IsDelete
+            });
+
+            // BE-RWI-068. Daftar masalah kajian medis dibaca per perawatan milik satu pasien -
+            // data/data-dictionary.md bagian 10.1.
+            entity.HasIndex(x => new
+            {
+                x.InpEpisodeId,
+                x.PatientId
             });
 
             entity.HasIndex(x => x.ResolvedByUserId);

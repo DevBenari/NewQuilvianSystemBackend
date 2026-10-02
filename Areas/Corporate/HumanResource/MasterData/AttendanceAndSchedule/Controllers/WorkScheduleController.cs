@@ -111,7 +111,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
             ,"Pilihan berhasil diambil."));
         }
 
-        [HttpGet("{id:guid}")] public async Task<IActionResult> GetWorkScheduleById(Guid id,CancellationToken ct)
+        [HttpGet("{id:guid}")]
+    [AccessAction("Read","Read WorkSchedule",AccessType=AccessTypes.Read,SortOrder=1)]
+    [AccessPermission("WorkSchedule","Read")]
+        public async Task<IActionResult> GetWorkScheduleById(Guid id,CancellationToken ct)
         {
             var x=await BuildBaseQuery().FirstOrDefaultAsync(x=>x.Id==id,ct);
             if(x==null)return NotFound(ApiResponse<object>.Fail(404,"Data tidak ditemukan."));
@@ -141,7 +144,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
             return await GetWorkScheduleById(e.Id,ct);
         }
 
-        [HttpPut("{id:guid}")] public async Task<IActionResult> UpdateWorkSchedule(Guid id,[FromBody]UpdateWorkScheduleRequest request,CancellationToken ct)
+        [HttpPut("{id:guid}")]
+    [AccessAction("Update","Update WorkSchedule",AccessType=AccessTypes.Update,SortOrder=3)]
+    [AccessPermission("WorkSchedule","Update")]
+        public async Task<IActionResult> UpdateWorkSchedule(Guid id,[FromBody]UpdateWorkScheduleRequest request,CancellationToken ct)
         {
             var e=await _dbContext.MstWorkSchedules.FirstOrDefaultAsync(x=>x.Id==id&&!x.IsDelete,ct);
             if(e==null)return NotFound(ApiResponse<object>.Fail(404,"Data tidak ditemukan."));
@@ -162,7 +168,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
             return await GetWorkScheduleById(id,ct);
         }
 
-        [HttpPatch("{id:guid}/status")] public async Task<IActionResult> UpdateWorkScheduleStatus(Guid id,[FromBody]UpdateWorkScheduleStatusRequest request,CancellationToken ct)
+        [HttpPatch("{id:guid}/status")]
+    [AccessAction("Update","Update WorkSchedule",AccessType=AccessTypes.Update,SortOrder=3)]
+    [AccessPermission("WorkSchedule","Update")]
+        public async Task<IActionResult> UpdateWorkScheduleStatus(Guid id,[FromBody]UpdateWorkScheduleStatusRequest request,CancellationToken ct)
         {
             var e=await _dbContext.MstWorkSchedules.FirstOrDefaultAsync(x=>x.Id==id&&!x.IsDelete,ct);
             if(e==null)return NotFound(ApiResponse<object>.Fail(404,"Data tidak ditemukan."));
@@ -173,7 +182,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
             return Ok(ApiResponse<object>.Ok(null,"Status berhasil diperbarui."));
         }
 
-        [HttpDelete("{id:guid}")] public async Task<IActionResult> DeleteWorkSchedule(Guid id,CancellationToken ct)
+        [HttpDelete("{id:guid}")]
+    [AccessAction("Delete","Delete WorkSchedule",AccessType=AccessTypes.Delete,SortOrder=4)]
+    [AccessPermission("WorkSchedule","Delete")]
+        public async Task<IActionResult> DeleteWorkSchedule(Guid id,CancellationToken ct)
         {
             var e=await _dbContext.MstWorkSchedules.FirstOrDefaultAsync(x=>x.Id==id&&!x.IsDelete,ct);
             if(e==null)return NotFound(ApiResponse<object>.Fail(404,"Data tidak ditemukan."));

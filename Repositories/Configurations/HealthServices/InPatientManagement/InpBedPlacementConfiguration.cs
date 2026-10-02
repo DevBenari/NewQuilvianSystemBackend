@@ -15,6 +15,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.InPat
 
             builder.Property(x => x.EndReason).HasConversion<int>();
             builder.Property(x => x.TransferReason).HasMaxLength(500);
+            builder.Property(x => x.ChangeReason).HasMaxLength(500);
 
             builder.HasIndex(x => x.EpisodeId);
             builder.HasIndex(x => x.BedId);
@@ -23,6 +24,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.InPat
             builder.HasIndex(x => x.PatientClassId);
             builder.HasIndex(x => x.StartDateTime);
             builder.HasIndex(x => x.EndDateTime);
+            builder.HasIndex(x => x.IsSuperseded);
             builder.HasIndex(x => new { x.EpisodeId, x.SequenceNumber }).IsUnique();
 
             // INV-INP-02 — satu tempat tidur paling banyak satu penempatan aktif.

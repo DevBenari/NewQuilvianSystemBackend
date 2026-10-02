@@ -41,6 +41,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
         [MaxLength(500)]
         public string? TransferReason { get; set; }
 
+        public DateTime? PhysicallyLeftAt { get; set; }
+
+        public int Version { get; set; } = 1;
+
+        [MaxLength(500)]
+        public string? ChangeReason { get; set; }
+
+        public bool IsSuperseded { get; set; } = false;
+
+        public DateTime? SupersededAtUtc { get; set; }
+
         [Required]
         public Guid PlacedByUserId { get; set; }
 

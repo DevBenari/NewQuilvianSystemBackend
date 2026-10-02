@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
@@ -85,6 +86,52 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 or EmergencyVisitStatus.InTreatment
                 or EmergencyVisitStatus.UnderObservation
                 or EmergencyVisitStatus.AwaitingDisposition;
+
+        /// <summary>
+        /// Menghitung nomor urut penilaian berikutnya pada satu kunjungan IGD, beserta
+        /// penilaian terakhir yang menjadi pendahulunya.
+        /// </summary>
+        /// <remarks>
+        /// Nomor urut SENGAJA dihitung tanpa menyaring <c>IsDelete</c>. Index unik
+        /// <c>IX_EmgTriage_EmergencyVisitId_Sequence</c> tidak memakai filter, sehingga baris
+        /// yang sudah di-soft-delete tetap menempati nomornya. Menyaringnya di sini membuat
+        /// nomor yang dihitung menabrak baris terhapus, dan setiap simpan pada kunjungan itu
+        /// gagal selamanya dengan <c>23505</c>.
+        ///
+        /// Pendahulunya justru dibaca dari penilaian yang MASIH berlaku, karena rangkaian
+        /// riwayat tidak boleh menunjuk baris yang sudah dicabut.
+        /// </remarks>
+        private async Task<(int Sequence, Guid? PreviousTriageId)> HitungUrutanPenilaianBerikutnyaAsync(
+            Guid emergencyVisitId,
+            CancellationToken cancellationToken)
+        {
+            var nomorTertinggi = await _dbContext.Set<EmgTriage>()
+                .AsNoTracking()
+                .Where(x => x.EmergencyVisitId == emergencyVisitId)
+                .Select(x => (int?)x.Sequence)
+                .MaxAsync(cancellationToken) ?? 0;
+
+            var pendahulu = await _dbContext.Set<EmgTriage>()
+                .AsNoTracking()
+                .Where(x => x.EmergencyVisitId == emergencyVisitId && !x.IsDelete)
+                .OrderByDescending(x => x.Sequence)
+                .Select(x => (Guid?)x.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return (nomorTertinggi + 1, pendahulu);
+        }
+
+        /// <summary>
+        /// Membedakan tabrakan nomor urut penilaian dari kegagalan penyimpanan lain, supaya
+        /// penolakannya dapat menyebutkan sebab yang benar dan hanya kasus inilah yang diulang.
+        /// </summary>
+        private static bool AdalahBentrokNomorUrutPenilaian(DbUpdateException exception)
+            => exception.InnerException is PostgresException postgres
+                && postgres.SqlState == PostgresErrorCodes.UniqueViolation
+                && string.Equals(
+                    postgres.ConstraintName,
+                    "IX_EmgTriage_EmergencyVisitId_Sequence",
+                    StringComparison.Ordinal);
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<EmergencyTriageResponse>>), StatusCodes.Status200OK)]
@@ -214,12 +261,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             var triageLevel = await _emergencyTriageService.GetTriageLevelAsync(request.TriageLevelId, cancellationToken);
 
-            var nextSequence = request.Sequence > 0
-                ? request.Sequence
-                : (await _dbContext.Set<EmgTriage>()
-                    .Where(x => x.EmergencyVisitId == request.EmergencyVisitId && !x.IsDelete)
-                    .Select(x => (int?)x.Sequence)
-                    .MaxAsync(cancellationToken) ?? 0) + 1;
+            // BE-IGD-047 - nomor urut, penanda penilaian ulang, dan penunjuk pendahulu
+            // ditetapkan server. Acceptance BE-IGD-004 sudah mengunci ketiganya sebagai
+            // "tidak dapat dikirim pemanggil"; cabang lama yang menghormati request.Sequence
+            // melanggarnya dan membuka jalur tabrakan nomor urut dari luar.
+            var urutan = await HitungUrutanPenilaianBerikutnyaAsync(
+                request.EmergencyVisitId, cancellationToken);
 
             var entity = new EmgTriage
             {
@@ -227,9 +274,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 EmergencyVisitId = request.EmergencyVisitId,
                 TriageLevelId = request.TriageLevelId,
                 PatientVitalSignId = request.PatientVitalSignId,
-                Sequence = request.Sequence,
-                IsRetriage = request.IsRetriage,
-                PreviousTriageId = request.PreviousTriageId,
+                Sequence = urutan.Sequence,
+                IsRetriage = urutan.PreviousTriageId != null,
+                PreviousTriageId = urutan.PreviousTriageId,
                 TriageSystem = request.TriageSystem,
                 TriageStatus = request.TriageStatus,
                 StartedAt = request.StartedAt == default ? now : request.StartedAt,
@@ -255,7 +302,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 IsCancel = false
             };
 
-            entity.Sequence = nextSequence;
             entity.TriageSystem = triageLevel.TriageSystem;
             entity.MaxWaitingMinutesSnapshot = triageLevel.MaxWaitingMinutes;
             entity.ImmediateCareAllowed = triageLevel.AllowsTreatmentBeforeRegistration;
@@ -318,13 +364,58 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             }
 
             _dbContext.Set<EmgTriage>().Add(entity);
-            try
+
+            // BE-IGD-047 - dua permintaan yang memperebutkan nomor urut yang sama tidak lagi
+            // menjadi galat bagi perawat. Percobaan kedua menghitung ulang nomornya; kalau
+            // masih bentrok juga, barulah ditolak - dan penolakannya menyebutkan sebabnya.
+            var tersimpan = false;
+            for (var percobaan = 1; percobaan <= 2 && !tersimpan; percobaan++)
             {
-                await _dbContext.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateException)
-            {
-                return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "Data triage IGD gagal disimpan karena melanggar relasi atau data unik."));
+                try
+                {
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    tersimpan = true;
+                }
+                catch (DbUpdateException ex)
+                {
+                    var bentrokNomorUrut = AdalahBentrokNomorUrutPenilaian(ex);
+
+                    await _loggerService.ErrorAsync(
+                        LogCategory,
+                        "EmergencyTriage.Create",
+                        "Gagal menyimpan penilaian triage IGD.",
+                        ex,
+                        new
+                        {
+                            EntityId = entity.Id,
+                            entity.EmergencyVisitId,
+                            SequenceDicoba = entity.Sequence,
+                            Percobaan = percobaan,
+                            BentrokNomorUrut = bentrokNomorUrut,
+                            Controller = "EmergencyTriage",
+                            Action = "Create"
+                        });
+
+                    if (bentrokNomorUrut && percobaan == 1)
+                    {
+                        var ulang = await HitungUrutanPenilaianBerikutnyaAsync(
+                            entity.EmergencyVisitId, cancellationToken);
+                        entity.Sequence = ulang.Sequence;
+                        entity.IsRetriage = ulang.PreviousTriageId != null;
+                        entity.PreviousTriageId = ulang.PreviousTriageId;
+                        continue;
+                    }
+
+                    return Conflict(ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        bentrokNomorUrut
+                            ? "Penilaian triage gagal disimpan karena nomor urutnya sedang "
+                              + "dipakai penilaian lain pada kunjungan yang sama. Muat ulang "
+                              + "halaman lalu simpan sekali lagi."
+                            : "Penilaian triage gagal disimpan karena data rujukannya tidak "
+                              + "sah - kunjungan, level triage, atau tanda vital yang "
+                              + "ditunjuk tidak ditemukan. Muat ulang halaman lalu coba lagi."));
+                }
             }
 
             await _loggerService.InfoAsync(
@@ -368,9 +459,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             entity.EmergencyVisitId = request.EmergencyVisitId;
             entity.TriageLevelId = request.TriageLevelId;
             entity.PatientVitalSignId = request.PatientVitalSignId;
-            entity.Sequence = request.Sequence;
-            entity.IsRetriage = request.IsRetriage;
-            entity.PreviousTriageId = request.PreviousTriageId;
+            // BE-IGD-047 - Sequence, IsRetriage, dan PreviousTriageId SENGAJA tidak disentuh
+            // di sini. Ketiganya menyatakan letak penilaian ini dalam riwayat kunjungan, dan
+            // acceptance BE-IGD-004 sudah mengunci ketiganya sebagai milik server. Kode lama
+            // menimpanya dengan nilai kiriman, sehingga satu PUT tanpa ruas itu cukup untuk
+            // mengacaukan urutan riwayat - persis jenis penimpaan yang dilarang rancangan
+            // tambah-saja.
             entity.StartedAt = request.StartedAt;
             entity.TriageReason = NormalizeText(request.TriageReason);
             entity.AirwaySummary = NormalizeText(request.AirwaySummary);

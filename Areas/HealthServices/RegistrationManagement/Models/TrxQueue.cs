@@ -117,7 +117,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         [MaxLength(500)]
         public string? Notes { get; set; }
 
-        public TrxPatientEncounter? Encounter { get; set; }
+        public RegPatientEncounter? Encounter { get; set; }
 
         public MstPatient? Patient { get; set; }
 

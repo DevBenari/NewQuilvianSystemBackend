@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -65,7 +65,7 @@ public sealed class BillingArApHandoffService
         var payerAmount = calculation.PrimaryAmount + calculation.ExcessAmount;
         if (payerAmount > 0)
         {
-            var guarantor = await _dbContext.TrxPatientEncounterGuarantors.AsNoTracking()
+            var guarantor = await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
                 .Where(x => x.EncounterId == invoice.EncounterId && x.IsActive && !x.IsDelete)
                 .FirstOrDefaultAsync(cancellationToken);
             _dbContext.BilArHandoffs.Add(new BilArHandoff
@@ -88,7 +88,7 @@ public sealed class BillingArApHandoffService
             });
         }
 
-        var doctorId = await _dbContext.TrxPatientEncounters.AsNoTracking()
+        var doctorId = await _dbContext.RegPatientEncounters.AsNoTracking()
             .Where(x => x.Id == invoice.EncounterId)
             .Select(x => x.DoctorId)
             .FirstOrDefaultAsync(cancellationToken);
@@ -133,7 +133,13 @@ public sealed class BillingArApHandoffService
 
     /// <summary>
     /// Dipanggil setelah adjustment/write-off diposting; hanya membuat correction bila invoice
-    /// sudah FINAL dan memiliki AR handoff yang ada. Idempotent per source (at-least-once safe).
+    /// sudah FINAL atau CLOSED dan memiliki AR handoff yang ada. Idempotent per source
+    /// (at-least-once safe). BKC-DES-035/BKC-DEC-101: CLOSED diterima sejak invoice lunas kini
+    /// dapat berpindah otomatis ke CLOSED (BKC-DEC-100) - tanpa ini, koreksi yang diposting
+    /// SESUDAH tagihan lunas (kasus paling umum) akan gagal tercatat diam-diam, persis lubang
+    /// yang didokumentasikan pada temuan 2 September 2026. OPEN dan SETTLED_BY_WRITE_OFF tetap
+    /// ditolak - belum pernah ada handoff AR untuk OPEN, dan piutang SETTLED_BY_WRITE_OFF sudah
+    /// dihapusbukukan (pertanyaan yang berbeda, belum diputuskan).
     /// </summary>
     public async Task RecordCorrectionIfLinkedAsync(
         Guid invoiceId,
@@ -147,7 +153,10 @@ public sealed class BillingArApHandoffService
     {
         var invoice = await _dbContext.BilInvoices.AsNoTracking()
             .SingleOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken);
-        if (invoice is null || invoice.Status != BillingInvoiceStatuses.Final) return;
+        if (invoice is null
+            || (invoice.Status != BillingInvoiceStatuses.Final
+                && invoice.Status != BillingInvoiceStatuses.Closed))
+            return;
 
         var arHandoff = await _dbContext.BilArHandoffs.AsNoTracking()
             .Where(x => x.InvoiceId == invoiceId && !x.IsDelete)

@@ -1,17 +1,38 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Models;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Models;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalBillingIntegration.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Configuration.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.PostingRule.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJournal.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.AttendanceAndSchedule.Models;
@@ -45,11 +66,10 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.HrServiceManagement.Mo
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.EmployeeRelation.Models;
-using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
-using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
+#pragma warning disable CS8618 // DbSet properties are initialized by Entity Framework Core.
 
 namespace QuilvianSystemBackend.Repositories
 {
@@ -60,7 +80,7 @@ namespace QuilvianSystemBackend.Repositories
             : base(options)
         {
         }
-
+        
         #region GLOBAL
         public DbSet<SysAppVersion> SysAppVersions { get; set; }
         public DbSet<SysAppVersionBuild> SysAppVersionBuilds { get; set; }
@@ -517,6 +537,39 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxWorkflowApproverAssignment> TrxWorkflowApproverAssignments { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - WORKFLOW MANAGEMENT
 
+        #region CORPORATE - ACCOUNTING MANAGEMENT - MASTER DATA
+        public DbSet<AccChartOfAccount> AccChartOfAccounts { get; set; }
+        public DbSet<AccJournalType> AccJournalTypes { get; set; }
+        public DbSet<AccAccountingConfiguration> AccAccountingConfigurations { get; set; }
+        public DbSet<AccEventType> AccEventTypes { get; set; }
+        public DbSet<AccPostingRule> AccPostingRules { get; set; }
+        public DbSet<AccPostingRuleLine> AccPostingRuleLines { get; set; }
+        #endregion CORPORATE - ACCOUNTING MANAGEMENT - MASTER DATA
+
+        #region CORPORATE - ACCOUNTING MANAGEMENT - ACCOUNTING EVENT
+        public DbSet<AccAccountingEvent> AccAccountingEvents { get; set; }
+        public DbSet<AccAccountingEventAttempt> AccAccountingEventAttempts { get; set; }
+        public DbSet<AccAccountingEventComponent> AccAccountingEventComponents { get; set; }
+        #endregion CORPORATE - ACCOUNTING MANAGEMENT - ACCOUNTING EVENT
+
+        #region CORPORATE - ACCOUNTING MANAGEMENT - ACCOUNTING PERIOD
+        public DbSet<AccAccountingPeriod> AccAccountingPeriods { get; set; }
+        public DbSet<AccPeriodClosingApproval> AccPeriodClosingApprovals { get; set; }
+        #endregion CORPORATE - ACCOUNTING MANAGEMENT - ACCOUNTING PERIOD
+
+        #region CORPORATE - ACCOUNTING MANAGEMENT - JOURNAL MANAGEMENT
+        public DbSet<AccJournal> AccJournals { get; set; }
+        public DbSet<AccJournalLine> AccJournalLines { get; set; }
+        public DbSet<AccJournalApproval> AccJournalApprovals { get; set; }
+        public DbSet<AccNumberSeries> AccNumberSeries { get; set; }
+        #endregion CORPORATE - ACCOUNTING MANAGEMENT - JOURNAL MANAGEMENT
+
+        #region CORPORATE - ACCOUNTING MANAGEMENT - RECURRING JOURNAL
+        public DbSet<AccRecurringJournalTemplate> AccRecurringJournalTemplates { get; set; }
+        public DbSet<AccRecurringJournalTemplateLine> AccRecurringJournalTemplateLines { get; set; }
+        public DbSet<AccRecurringJournalRun> AccRecurringJournalRuns { get; set; }
+        #endregion CORPORATE - ACCOUNTING MANAGEMENT - RECURRING JOURNAL
+
         #endregion CORPORATE
 
         #region HEALTH SERVICE        
@@ -537,16 +590,21 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstInsuranceProvider> MstInsuranceProviders { get; set; }
         public DbSet<MstPatientInsurance> MstPatientInsurances { get; set; }
         public DbSet<MstCompanyGuarantor> MstCompanyGuarantors { get; set; }
+        public DbSet<MstCompanyGuarantorReimbursementRoute> MstCompanyGuarantorReimbursementRoutes { get; set; }
         public DbSet<MstPatientCompanyGuarantor> MstPatientCompanyGuarantors { get; set; }
         public DbSet<MstPaymentMethod> MstPaymentMethods { get; set; }
-        public DbSet<MstBillingItemCategory> MstBillingItemCategories { get; set; }
+        public DbSet<MstPaymentMethodAccount> MstPaymentMethodAccounts { get; set; }
         public DbSet<MstAdministrationFeePolicy> MstAdministrationFeePolicies { get; set; }
         public DbSet<MstDiscountPolicy> MstDiscountPolicies { get; set; }
         public DbSet<MstTaxRule> MstTaxRules { get; set; }
         public DbSet<MstRoomChargePolicy> MstRoomChargePolicies { get; set; }
+        public DbSet<MstDepositPolicy> MstDepositPolicies { get; set; }
         public DbSet<MstRegister> MstRegisters { get; set; }
         public DbSet<BilInvoice> BilInvoices { get; set; }
         public DbSet<BilInvoiceItem> BilInvoiceItems { get; set; }
+        public DbSet<BilInvoiceItemPayerAssignment> BilInvoiceItemPayerAssignments { get; set; }
+        public DbSet<BilInvoiceItemBillingDisposition> BilInvoiceItemBillingDispositions { get; set; }
+        public DbSet<BilInvoicePayerChangeCommand> BilInvoicePayerChangeCommands { get; set; }
         public DbSet<BilCalculationVersion> BilCalculationVersions { get; set; }
         public DbSet<BilDiscountApplication> BilDiscountApplications { get; set; }
         public DbSet<BilChargeReceipt> BilChargeReceipts { get; set; }
@@ -563,18 +621,115 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilWriteOffCase> BilWriteOffCases { get; set; }
         public DbSet<BilFinalizationRecord> BilFinalizationRecords { get; set; }
         public DbSet<BilArHandoff> BilArHandoffs { get; set; }
+        public DbSet<BilPaymentReminder> BilPaymentReminders { get; set; }
         public DbSet<BilApHandoff> BilApHandoffs { get; set; }
         public DbSet<BilHandoffAdjustment> BilHandoffAdjustments { get; set; }
+        public DbSet<BilCollectionHandoff> BilCollectionHandoffs { get; set; }
+        public DbSet<BilPrescriptionClearanceHandoff> BilPrescriptionClearanceHandoffs { get; set; }
+        public DbSet<BilInpatientClearanceHandoff> BilInpatientClearanceHandoffs { get; set; }
         public DbSet<BilCashierShift> BilCashierShifts { get; set; }
         public DbSet<BilCashVarianceReview> BilCashVarianceReviews { get; set; }
         public DbSet<BilCashierShiftHandover> BilCashierShiftHandovers { get; set; }
         public DbSet<BilCashierShiftCommand> BilCashierShiftCommands { get; set; }
+        // Petty Cash (Kas Kecil) — BE-BKC-033, PC-DES-001. Anggaran dan kategori dipindahkan
+        // ke Corporate/FinanceManagement (Clean Architecture & DDD).
+        public DbSet<MstPettyCashCategory> MstPettyCashCategories { get; set; }
+        // Data induk Finance — BE-FIN-002, FIN-DES-003. MstBank Finance sengaja TIDAK dibuat:
+        // "MstBank" sudah dipakai Areas/Administrator/MasterData (tabel dan controller aktif,
+        // dipakai WfpBankAccount) — dipakai ulang apa adanya (keputusan pemilik repository,
+        // 21 September 2026, preseden FIN-DEC-014/MstSupplier). MstBankAccount.BankId merujuk
+        // MstBank milik Administrator, bukan master Bank baru. Lihat laporan task BE-FIN-002.
+        public DbSet<MstBankAccount> MstBankAccounts { get; set; }
+        public DbSet<MstCurrency> MstCurrencies { get; set; }
+        public DbSet<MstExchangeRate> MstExchangeRates { get; set; }
+        // BE-FIN-005, FIN-DES-008: satu pintu masuk seluruh fakta dari Billing. Migration
+        // AddFinanceBillingIntake (BE-FIN-007) dibuat tangan, belum dijalankan. Service konsumen
+        // (FinanceBillingIntakeService) belum ada task pemilik eksplisit.
+        public DbSet<FinBillingHandoffIntake> FinBillingHandoffIntakes { get; set; }
+        // BE-FIN-006, FIN-DES-010..013: buku piutang. Migration AddFinanceReceivableAndCollection
+        // (BE-FIN-007) dibuat tangan untuk 5 tabel ini saja.
+        public DbSet<FinReceivable> FinReceivables { get; set; }
+        public DbSet<FinReceivableItem> FinReceivableItems { get; set; }
+        public DbSet<FinReceivableDocument> FinReceivableDocuments { get; set; }
+        public DbSet<FinReceivableAdjustment> FinReceivableAdjustments { get; set; }
+        public DbSet<FinReceivableWriteOff> FinReceivableWriteOffs { get; set; }
+        // BE-FIN-016, FIN-DES-010..012: buku penerimaan. Migration AddFinanceCollection dibuat
+        // tangan, belum dijalankan. FinReceiptAllocation belum punya penulis — pembagian
+        // bayar-vs-piutang adalah tanggung jawab FinanceReceiptService (BE-FIN-017, BLOCKED).
+        public DbSet<FinReceipt> FinReceipts { get; set; }
+        public DbSet<FinReceiptAllocation> FinReceiptAllocations { get; set; }
+        // BE-FIN-010, FIN-DES-017..019: kotak keluar kejadian Finance -> Accounting (transactional
+        // outbox). Migration AddFinanceAccountingOutbox dibuat tangan, belum dijalankan. Worker
+        // pengiriman (FIN-DES-020) dan endpoint penerima Accounting belum ada (FIN-CAP-018) — di
+        // luar lingkup task ini.
+        public DbSet<FinAccountingEventOutbox> FinAccountingEventOutboxes { get; set; }
+        public DbSet<FinAccountingEventAttempt> FinAccountingEventAttempts { get; set; }
+        // BE-FIN-013, FIN-DES-018..020: Kas dan setoran bank. Migration AddFinanceCashManagement.
+        public DbSet<FinBankDeposit> FinBankDeposits { get; set; }
+        public DbSet<FinDailyCashSnapshot> FinDailyCashSnapshots { get; set; }
+        // BE-FIN-019, FIN-DES-015 (bagian supplier): utang supplier input manual. Migration
+        // AddFinanceSupplierPayable dibuat tangan, belum dijalankan.
+        public DbSet<FinSupplierPayable> FinSupplierPayables { get; set; }
+        public DbSet<FinSupplierPayableItem> FinSupplierPayableItems { get; set; }
+        public DbSet<FinPayableAdjustment> FinPayableAdjustments { get; set; }
+        // BE-FIN-020, FIN-DES-015, FIN-DES-026, FIN-DES-027: pembayaran keluar, alokasi utang,
+        // serta potongan dan tambahan transfer (FR-FIN-050, FR-FIN-051). Migration AddFinancePayment
+        // dibuat tangan, belum dijalankan.
+        public DbSet<FinPayment> FinPayments { get; set; }
+        public DbSet<FinPaymentAllocation> FinPaymentAllocations { get; set; }
+        public DbSet<FinPaymentDeduction> FinPaymentDeductions { get; set; }
+        // BE-FIN-021, FIN-DES-025, FIN-CAP-021: utang jasa tenaga medis (dokter, perawat, praktisi lain).
+        // Migration AddFinanceMedicalServicePayable dibuat tangan, belum dijalankan.
+        public DbSet<FinMedicalServicePayable> FinMedicalServicePayables { get; set; }
+        public DbSet<FinMedicalServicePayableItem> FinMedicalServicePayableItems { get; set; }
+        public DbSet<FinPettyCashBudget> FinPettyCashBudgets { get; set; }
+        public DbSet<FinPettyCashBudgetMovement> FinPettyCashBudgetMovements { get; set; }
+        public DbSet<BilPettyCashVoucher> BilPettyCashVouchers { get; set; }
+        public DbSet<BilPettyCashVoucherCommand> BilPettyCashVoucherCommands { get; set; }
         public DbSet<BilFolio> BilFolios { get; set; }
         public DbSet<BilChargeLine> BilChargeLines { get; set; }
         public DbSet<BilChargeComponent> BilChargeComponents { get; set; }
         public DbSet<BilProcessingEffect> BilProcessingEffects { get; set; }
-        public DbSet<TrxClinicalMilestoneFact> TrxClinicalMilestoneFacts { get; set; }
+        public DbSet<CliClinicalMilestoneFact> CliClinicalMilestoneFacts { get; set; }
+        public DbSet<CliPhysicianVisit> CliPhysicianVisits { get; set; }
+
+        // BE-RWI-059 / CAP-013. Rencana asuhan keperawatan beserta butir masalahnya. Tabelnya
+        // milik ClinicalManagement - RWI-DEC-081 menaruh seluruh tabel dokumentasi klinis rawat
+        // inap di sini, bukan di InPatientManagement.
+        public DbSet<CliNursingCarePlan> CliNursingCarePlans { get; set; }
+        public DbSet<CliNursingCarePlanItem> CliNursingCarePlanItems { get; set; }
+
+        // BE-RWI-060 / AC-CAP013-02. Riwayat versi butir asuhan. Mesin versi, bukan mesin
+        // addendum: perubahan rencana asuhan adalah perkembangan klinis, bukan pembetulan
+        // kesalahan - RWI-DEC-091.
+        public DbSet<CliNursingCarePlanItemRevision> CliNursingCarePlanItemRevisions { get; set; }
+
+        // BE-RWI-061 / CAP-014. Catatan tindakan keperawatan. TrxPatientProcedure sengaja tidak
+        // dipakai ulang: ia mewajibkan ConsultationId dan DoctorId, dan melonggarkannya akan
+        // melemahkan penjagaan bagi tindakan dokter yang membutuhkan keduanya untuk penagihan.
+        public DbSet<CliNursingIntervention> CliNursingInterventions { get; set; }
+
+        // BE-RWI-107 s.d. BE-RWI-121 / migration K1, K3, K5 — keperawatan rawat inap revision 7.
+        // Seluruh tabel milik ClinicalManagement (RWI-DEC-081); nol tabel di InPatientManagement.
+        public DbSet<CliClinicalInstrument> CliClinicalInstruments { get; set; }
+        public DbSet<CliClinicalInstrumentVersion> CliClinicalInstrumentVersions { get; set; }
+        public DbSet<CliAssessmentInstrumentResponse> CliAssessmentInstrumentResponses { get; set; }
+        public DbSet<CliCaseManagementEvaluation> CliCaseManagementEvaluations { get; set; }
+        public DbSet<CliFluidBalanceEntry> CliFluidBalanceEntries { get; set; }
+        public DbSet<CliFluidBalanceEntryRevision> CliFluidBalanceEntryRevisions { get; set; }
+        public DbSet<CliBloodGlucoseReading> CliBloodGlucoseReadings { get; set; }
+        public DbSet<CliBloodGlucoseReadingRevision> CliBloodGlucoseReadingRevisions { get; set; }
+        public DbSet<CliDailyObservation> CliDailyObservations { get; set; }
+        public DbSet<CliDailyObservationRevision> CliDailyObservationRevisions { get; set; }
+        public DbSet<CliNursingShift> CliNursingShifts { get; set; }
+
         public DbSet<MstProcedure> MstProcedures { get; set; }
+
+        // Data induk perujuk (LAB-DEC-035, BE-EXT-02). Global: Laboratorium, Rawat
+        // Jalan, dan IGD sama-sama menerima pasien rujukan.
+        public DbSet<MstReferralInstitution> MstReferralInstitutions { get; set; }
+
+        public DbSet<MstReferralDoctor> MstReferralDoctors { get; set; }
         public DbSet<MstDiagnosisChapter> MstDiagnosisChapters { get; set; }
         public DbSet<MstDiagnosis> MstDiagnoses { get; set; }
         public DbSet<MstMeasurement> MstMeasurements { get; set; }
@@ -585,10 +740,18 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstDrugCategory> MstDrugCategories { get; set; }
         public DbSet<MstDrug> MstDrugs { get; set; }
         public DbSet<MstInsuranceCoverageRule> MstInsuranceCoverageRules { get; set; }
+        public DbSet<MstCompanyGuarantorCoverageRule> MstCompanyGuarantorCoverageRules { get; set; }
         public DbSet<MstInsuranceTariff> MstInsuranceTariffs { get; set; }
         public DbSet<MstDoctorSchedule> MstDoctorSchedules { get; set; }
         public DbSet<MstDoctorServiceRule> MstDoctorServiceRules { get; set; }
         public DbSet<MstInpatientSetting> MstInpatientSettings { get; set; }
+
+        /// <summary>
+        /// Kebijakan batas waktu penyelesaian pengkajian, berversi lewat periode berlaku —
+        /// <c>BE-RWI-055</c>. Selama kosong, tidak satu pun pengkajian dinyatakan terlambat.
+        /// </summary>
+        public DbSet<MstClinicalAssessmentPolicy> MstClinicalAssessmentPolicies { get; set; }
+
         public DbSet<MstInpatientClearanceItem> MstInpatientClearanceItems { get; set; }
         public DbSet<InpEpisode> InpEpisodes { get; set; }
         public DbSet<InpDoctorAssignment> InpDoctorAssignments { get; set; }
@@ -601,9 +764,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<InpFinancialClearance> InpFinancialClearances { get; set; }
         public DbSet<InpStatusHistory> InpStatusHistories { get; set; }
         public DbSet<InpCorrectionSession> InpCorrectionSessions { get; set; }
+        public DbSet<InpIntegrationOutbox> InpIntegrationOutboxes { get; set; }
         public DbSet<TrxKioskScanSession> TrxKioskScanSessions { get; set; }
-        public DbSet<TrxPatientEncounter> TrxPatientEncounters { get; set; }
-        public DbSet<TrxPatientEncounterGuarantor> TrxPatientEncounterGuarantors { get; set; }
+        public DbSet<RegPatientEncounter> RegPatientEncounters { get; set; }
+        public DbSet<RegPatientEncounterGuarantor> RegPatientEncounterGuarantors { get; set; }
         public DbSet<TrxQueue> TrxQueues { get; set; }
         public DbSet<TrxPatientAssessment> TrxPatientAssessments { get; set; }
         public DbSet<TrxDoctorConsultation> TrxDoctorConsultations { get; set; }
@@ -620,10 +784,53 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxMedicalCertificate> TrxMedicalCertificates { get; set; }
         public DbSet<TrxClinicalNoteAttachment> TrxClinicalNoteAttachments { get; set; }
         public DbSet<TrxPatientIntegratedProgressNote> TrxPatientIntegratedProgressNotes { get; set; }
-        public DbSet<TrxPrescription> TrxPrescriptions { get; set; }
-        public DbSet<TrxPrescriptionItem> TrxPrescriptionItems { get; set; }
-        public DbSet<TrxPrescriptionCompound> TrxPrescriptionCompounds { get; set; }
-        public DbSet<TrxPrescriptionCompoundItem> TrxPrescriptionCompoundItems { get; set; }
+        public DbSet<PhmStockRequest> PhmStockRequests { get; set; }
+        public DbSet<PhmStockRequestItem> PhmStockRequestItems { get; set; }
+        public DbSet<PhmStockRequestHistory> PhmStockRequestHistories { get; set; }
+
+        // Salinan keadaan finansial resep menurut Billing (PHA-DES-001). Bukan sumber kebenaran.
+        public DbSet<PhmPrescriptionFinancialProjection> PhmPrescriptionFinancialProjections { get; set; }
+
+        public DbSet<PhmDrugBatch> PhmDrugBatches { get; set; }
+        public DbSet<PhmDrugStockBalance> PhmDrugStockBalances { get; set; }
+        public DbSet<PhmDrugStockMutation> PhmDrugStockMutations { get; set; }
+
+        public DbSet<PhmDrugReturn> PhmDrugReturns { get; set; }
+        public DbSet<PhmDrugReturnItem> PhmDrugReturnItems { get; set; }
+        public DbSet<PhmDrugReturnHistory> PhmDrugReturnHistories { get; set; }
+
+        public DbSet<PhmDrugUsage> PhmDrugUsages { get; set; }
+        public DbSet<PhmDrugUsageItem> PhmDrugUsageItems { get; set; }
+        public DbSet<PhmDrugUsageAllocation> PhmDrugUsageAllocations { get; set; }
+
+        public DbSet<PhmStockTransfer> PhmStockTransfers { get; set; }
+        public DbSet<PhmStockTransferItem> PhmStockTransferItems { get; set; }
+        public DbSet<PhmStockTransferAllocation> PhmStockTransferAllocations { get; set; }
+        public DbSet<PhmStockTransferHistory> PhmStockTransferHistories { get; set; }
+
+        public DbSet<PhmPrescription> PhmPrescriptions { get; set; }
+        public DbSet<PhmPrescriptionItem> PhmPrescriptionItems { get; set; }
+
+        // BE-RWI-101 / migration R5 — rekonsiliasi obat bawaan, milik PharmacyManagement (RWI-DEC-132).
+        public DbSet<PhmMedicationReconciliationItem> PhmMedicationReconciliationItems { get; set; }
+        public DbSet<PhmMedicationReconciliationDecision> PhmMedicationReconciliationDecisions { get; set; }
+
+        // BE-RWI-102 dan BE-RWI-103 / migration R6 — sliding scale milik PharmacyManagement (RWI-DEC-147).
+        public DbSet<PhmSlidingScaleTemplate> PhmSlidingScaleTemplates { get; set; }
+        public DbSet<PhmSlidingScaleTemplateVersion> PhmSlidingScaleTemplateVersions { get; set; }
+        public DbSet<PhmSlidingScaleRange> PhmSlidingScaleRanges { get; set; }
+        public DbSet<PhmSlidingScaleOrder> PhmSlidingScaleOrders { get; set; }
+        public DbSet<PhmSlidingScaleOrderVersion> PhmSlidingScaleOrderVersions { get; set; }
+
+        // BE-RWI-114 s.d. BE-RWI-123 / migration K4 dan K7 — MAR dan pelaksanaan sliding scale milik
+        // PharmacyManagement (RWI-DEC-117, RWI-DEC-147).
+        public DbSet<PhmMedicationAdministration> PhmMedicationAdministrations { get; set; }
+        public DbSet<PhmMedicationAdministrationRevision> PhmMedicationAdministrationRevisions { get; set; }
+        public DbSet<PhmMedicationScheduleTime> PhmMedicationScheduleTimes { get; set; }
+        public DbSet<PhmMedicationAdministrationSetting> PhmMedicationAdministrationSettings { get; set; }
+        public DbSet<PhmSlidingScaleExecution> PhmSlidingScaleExecutions { get; set; }
+        public DbSet<PhmPrescriptionCompound> PhmPrescriptionCompounds { get; set; }
+        public DbSet<PhmPrescriptionCompoundItem> PhmPrescriptionCompoundItems { get; set; }
         public DbSet<MstPrescriptionTemplate> MstPrescriptionTemplates { get; set; }
         public DbSet<MstPrescriptionTemplateItem> MstPrescriptionTemplateItems { get; set; }
         public DbSet<MstPrescriptionTemplateCompound> MstPrescriptionTemplateCompounds { get; set; }
@@ -650,11 +857,85 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<LabOrder> LabOrders { get; set; }
 
-        public DbSet<TrxLabSpecimen> TrxLabSpecimens { get; set; }
+        public DbSet<LabSpecimen> LabSpecimens { get; set; }
 
-        public DbSet<TrxLabTransitionHistory> TrxLabTransitionHistories { get; set; }
+        public DbSet<LabExamination> LabExaminations { get; set; }
+
+        public DbSet<LabOrderedProcedure> LabOrderedProcedures { get; set; }
+
+        public DbSet<LabTransitionHistory> LabTransitionHistories { get; set; }
 
         public DbSet<MstLabRejectionReason> MstLabRejectionReasons { get; set; }
+
+        public DbSet<LabSpecimenType> LabSpecimenTypes { get; set; }
+
+        public DbSet<LabValueBound> LabValueBounds { get; set; }
+
+        public DbSet<LabValueOption> LabValueOptions { get; set; }
+
+        public DbSet<LabValueBoundChangeRequest> LabValueBoundChangeRequests { get; set; }
+
+        public DbSet<LabValueBoundHistory> LabValueBoundHistories { get; set; }
+
+        public DbSet<LabPathologyCategory> LabPathologyCategories { get; set; }
+
+        public DbSet<LabPathologyParameter> LabPathologyParameters { get; set; }
+
+        public DbSet<LabPathologyParameterCategory> LabPathologyParameterCategories { get; set; }
+
+        public DbSet<LabProcedurePathologyCategory> LabProcedurePathologyCategories { get; set; }
+
+        public DbSet<LabPathologyReport> LabPathologyReports { get; set; }
+
+        public DbSet<LabPathologyReportValue> LabPathologyReportValues { get; set; }
+
+        public DbSet<LabPathologyOrderContext> LabPathologyOrderContexts { get; set; }
+
+        public DbSet<LabOrganism> LabOrganisms { get; set; }
+
+        public DbSet<LabAntibiotic> LabAntibiotics { get; set; }
+
+        public DbSet<LabMicrobiologyIsolate> LabMicrobiologyIsolates { get; set; }
+
+        public DbSet<LabIsolateSusceptibility> LabIsolateSusceptibilities { get; set; }
+
+        public DbSet<LabSusceptibilityBreakpoint> LabSusceptibilityBreakpoints { get; set; }
+
+        public DbSet<LabProcedureMicrobiologyProfile> LabProcedureMicrobiologyProfiles { get; set; }
+
+        public DbSet<LabSpecimenDetailType> LabSpecimenDetailTypes { get; set; }
+
+        public DbSet<LabSpecimenDetail> LabSpecimenDetails { get; set; }
+
+        public DbSet<LabMicrobiologyCriticalRule> LabMicrobiologyCriticalRules { get; set; }
+
+        public DbSet<LabFieldChangeLog> LabFieldChangeLogs { get; set; }
+
+        public DbSet<LabDisciplineSetting> LabDisciplineSettings { get; set; }
+
+        #endregion
+
+        #region HEALTH SERVICE - Radiology Management
+
+        public DbSet<MstRadModality> MstRadModalities { get; set; }
+
+        public DbSet<MstRadSafetyRequirement> MstRadSafetyRequirements { get; set; }
+
+        public DbSet<MstRadModalitySafetyRule> MstRadModalitySafetyRules { get; set; }
+
+        public DbSet<RadOrder> RadOrders { get; set; }
+
+        public DbSet<RadStudy> RadStudies { get; set; }
+
+        public DbSet<RadStudySafetyCheck> RadStudySafetyChecks { get; set; }
+
+        public DbSet<RadAcquisitionConsumption> RadAcquisitionConsumptions { get; set; }
+
+        public DbSet<RadTransitionHistory> RadTransitionHistories { get; set; }
+
+        public DbSet<RadReport> RadReports { get; set; }
+
+        public DbSet<RadReportVersion> RadReportVersions { get; set; }
 
         #endregion
 
@@ -671,6 +952,7 @@ namespace QuilvianSystemBackend.Repositories
 
         #region transaction
         public DbSet<EmgVisit> EmgVisits { get; set; }
+        public DbSet<EmgDoctorAssignment> EmgDoctorAssignments { get; set; }
         public DbSet<EmgTriage> EmgTriages { get; set; }
         public DbSet<EmgTriageDetail> EmgTriageDetails { get; set; }
         public DbSet<EmgResuscitation> EmgResuscitations { get; set; }
@@ -681,7 +963,24 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<EmgDeparture> EmgDepartures { get; set; }
         public DbSet<EmgDepartureEvent> EmgDepartureEvents { get; set; }
         public DbSet<EmgHandoverOrderItem> EmgHandoverOrderItems { get; set; }
+        public DbSet<EmgEncounterReconciliationRun> EmgEncounterReconciliationRuns { get; set; }
+        public DbSet<EmgEncounterReconciliationItem> EmgEncounterReconciliationItems { get; set; }
         #endregion
+
+        #endregion
+
+        #region HEALTH SERVICE - Nutrition Management
+
+        public DbSet<GziNutritionOrder> GziNutritionOrders { get; set; }
+        public DbSet<GziNutritionCareRecord> GziNutritionCareRecords { get; set; }
+        public DbSet<GziNutritionOrderHistory> GziNutritionOrderHistories { get; set; }
+        public DbSet<GziDietType> GziDietTypes { get; set; }
+        public DbSet<GziFoodForm> GziFoodForms { get; set; }
+        public DbSet<GziMealSchedule> GziMealSchedules { get; set; }
+        public DbSet<GziPatientDiet> GziPatientDiets { get; set; }
+        public DbSet<GziProductionBatch> GziProductionBatches { get; set; }
+        public DbSet<GziProductionBatchDetail> GziProductionBatchDetails { get; set; }
+        public DbSet<GziMealDelivery> GziMealDeliveries { get; set; }
 
         #endregion
 
@@ -700,10 +999,80 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<OprHandover> OprHandovers { get; set; }
         public DbSet<OprStatusHistory> OprStatusHistories { get; set; }
         public DbSet<OprIntegrationDelivery> OprIntegrationDeliveries { get; set; }
+        public DbSet<PhmPrescriptionCopy> PhmPrescriptionCopies { get; set; }
+        public DbSet<PhmPrescriptionCopyItem> PhmPrescriptionCopyItems { get; set; }
+
+        public DbSet<OprStockSource> OprStockSources { get; set; }
 
         #endregion
 
+        #region MEDICAL RECORD MANAGEMENT
+        public DbSet<MrcClinicalDocumentIntegrity> MrcClinicalDocumentIntegrities { get; set; }
+        public DbSet<MrcClinicalNoteAddendum> MrcClinicalNoteAddendums { get; set; }
+        public DbSet<MrcClinicalNoteAuthorDelegation> MrcClinicalNoteAuthorDelegations { get; set; }
+        public DbSet<MrcAccessLog> MrcAccessLogs { get; set; }
+        public DbSet<MstMedicalRecordAccessPurpose> MstMedicalRecordAccessPurposes { get; set; }
+        #endregion MEDICAL RECORD MANAGEMENT
+
+        #region BLOOD BANK MANAGEMENT
+        public DbSet<MstBloodComponent> MstBloodComponents { get; set; }
+        public DbSet<MstBloodStorageLocation> MstBloodStorageLocations { get; set; }
+        public DbSet<MstBloodBankReason> MstBloodBankReasons { get; set; }
+
+        public DbSet<BbkBloodGroupExam> BbkBloodGroupExams { get; set; }
+        public DbSet<BbkBloodGroupSample> BbkBloodGroupSamples { get; set; }
+        public DbSet<BbkBloodGroupConflictResolution> BbkBloodGroupConflictResolutions { get; set; }
+
+        public DbSet<BbkBloodOrder> BbkBloodOrders { get; set; }
+        public DbSet<BbkBloodOrderLine> BbkBloodOrderLines { get; set; }
+        public DbSet<BbkTransitionHistory> BbkTransitionHistories { get; set; }
+
+        public DbSet<BbkProviderRequest> BbkProviderRequests { get; set; }
+        public DbSet<BbkBloodUnitReceipt> BbkBloodUnitReceipts { get; set; }
+        public DbSet<BbkBloodUnit> BbkBloodUnits { get; set; }
+        public DbSet<BbkBloodBankProcedure> BbkBloodBankProcedures { get; set; }
+        public DbSet<BbkBloodUnitPlacement> BbkBloodUnitPlacements { get; set; }
+        public DbSet<BbkBloodUnitAllocation> BbkBloodUnitAllocations { get; set; }
+        public DbSet<BbkCompatibilityEvidence> BbkCompatibilityEvidences { get; set; }
+        public DbSet<BbkEmergencyAuthorization> BbkEmergencyAuthorizations { get; set; }
+        public DbSet<BbkIssuanceCorrection> BbkIssuanceCorrections { get; set; }
+        #endregion BLOOD BANK MANAGEMENT
+
+        #region HEMODIALYSIS MANAGEMENT
+        // HMD-BP-001, BE-HMD-01. 22 tabel Hmd* milik modul Hemodialisa (registry Hmd / ACTIVE,
+        // HMD-DEC-007). Master milik modul — mesin, station, butir checklist, butir kesiapan, dan
+        // pengaturan unit — sengaja berprefix Hmd, bukan Mst.
+        public DbSet<HmdOrder> HmdOrders { get; set; }
+        public DbSet<HmdEpisode> HmdEpisodes { get; set; }
+        public DbSet<HmdEligibilityAssessment> HmdEligibilityAssessments { get; set; }
+        public DbSet<HmdVascularAccess> HmdVascularAccesses { get; set; }
+        public DbSet<HmdSerologyReview> HmdSerologyReviews { get; set; }
+        public DbSet<HmdIsolationDecision> HmdIsolationDecisions { get; set; }
+        public DbSet<HmdPrescription> HmdPrescriptions { get; set; }
+        public DbSet<HmdSession> HmdSessions { get; set; }
+        public DbSet<HmdSessionChecklist> HmdSessionChecklists { get; set; }
+        public DbSet<HmdSessionAssessment> HmdSessionAssessments { get; set; }
+        public DbSet<HmdSessionObservation> HmdSessionObservations { get; set; }
+        public DbSet<HmdSessionMedication> HmdSessionMedications { get; set; }
+        public DbSet<HmdSessionComplication> HmdSessionComplications { get; set; }
+        public DbSet<HmdSessionStaffAssignment> HmdSessionStaffAssignments { get; set; }
+        public DbSet<HmdMachine> HmdMachines { get; set; }
+        public DbSet<HmdMachineStatusHistory> HmdMachineStatusHistories { get; set; }
+        public DbSet<HmdStation> HmdStations { get; set; }
+        public DbSet<HmdChecklistItem> HmdChecklistItems { get; set; }
+        public DbSet<HmdReadinessItem> HmdReadinessItems { get; set; }
+        public DbSet<HmdUnitReadiness> HmdUnitReadinesses { get; set; }
+        public DbSet<HmdUnitReadinessDetail> HmdUnitReadinessDetails { get; set; }
+        public DbSet<HmdSetting> HmdSettings { get; set; }
+        #endregion HEMODIALYSIS MANAGEMENT
+
         #endregion HEALTH SERVICE
+
+        #region PLATFORM
+        // Pencacah deret nomor bisnis bersama. Dipakai lintas modul lewat NumberSeriesAllocator,
+        // tidak pernah disunting lewat layar mana pun (INV-PLT-001, INV-PLT-002).
+        public DbSet<NumNumberSeries> NumNumberSeries { get; set; }
+        #endregion PLATFORM
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

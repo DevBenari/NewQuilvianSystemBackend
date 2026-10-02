@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
+﻿using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
@@ -30,6 +30,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public Guid? CaseTypeId { get; set; }
 
         public DateTime ArrivalDateTime { get; set; } = DateTime.UtcNow;
+
+        public EmergencyArrivalTimeSource ArrivalTimeSource { get; set; }
+            = EmergencyArrivalTimeSource.Unverified;
+
+        public Guid? ArrivalConfirmedByUserId { get; set; }
+
+        public DateTime? ArrivalConfirmedAt { get; set; }
 
         [MaxLength(1000)]
         public string? ChiefComplaint { get; set; }
@@ -95,7 +102,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// </summary>
         public Guid? DuplicateEpisodeOverrideOfVisitId { get; set; }
 
-        public TrxPatientEncounter? Encounter { get; set; }
+        public RegPatientEncounter? Encounter { get; set; }
 
         public MstPatient? Patient { get; set; }
 
@@ -107,8 +114,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public ApplicationUser? RegistrationCompletedByUser { get; set; }
 
+        public ApplicationUser? ArrivalConfirmedByUser { get; set; }
+
         public ICollection<EmgTriage> Triages { get; set; }
             = new List<EmgTriage>();
+
+        /// <summary>
+        /// Riwayat dokter penanggung jawab kunjungan ini, tambah-saja.
+        /// </summary>
+        /// <remarks>
+        /// Dokter yang sedang bertanggung jawab adalah baris dengan
+        /// <c>EffectiveTo IS NULL</c> — <c>IGD-DEC-130</c>. Koleksi ini memuat
+        /// seluruh riwayatnya, bukan hanya yang berjalan.
+        /// </remarks>
+        public ICollection<EmgDoctorAssignment> DoctorAssignments { get; set; }
+            = new List<EmgDoctorAssignment>();
 
         public ICollection<EmgResuscitation> Resuscitations { get; set; }
             = new List<EmgResuscitation>();

@@ -10,6 +10,26 @@
 Folder ini memuat alur bisnis modul HR. Satu berkas untuk satu alur. Diagram memakai Mermaid dan
 disimpan sebagai teks, bukan gambar.
 
+## 0. Kedudukan folder ini setelah `flowcharts/` ada
+
+Folder ini **bukan** artefak kontrak `design-business-module`. Artefak kontraknya adalah
+[`../flowcharts/`](../flowcharts/).
+
+| Folder | Isi | Pembaca |
+| --- | --- | --- |
+| [`../flowcharts/`](../flowcharts/) | **Artefak kontrak.** Langkah yang dikerjakan orang, digambar sebagai flowchart beserta tabel langkah. Tidak memuat nama tabel, kolom, endpoint, maupun nama class | Petugas, analis, penguji UAT |
+| `flows/` — folder ini | **Bukti dan penalaran** di balik aturan bisnis: purpose, actor, trigger, precondition, aturan yang terbukti dari source, beserta penanda provenance per aturan | Perancang dan implementer yang perlu tahu **dari mana** sebuah aturan berasal |
+
+Folder ini **dipertahankan** karena memuat jejak asal-usul yang tidak ada di tempat lain —
+termasuk aturan mana yang masih `[OPEN]` dan karena itu tidak boleh dijadikan dasar
+implementasi. Ia adalah keluaran pass `PHASE 2A` sampai `PHASE 2C` yang tercatat pada decision
+log revision `6` sampai `10`.
+
+**Bila keduanya bertentangan**, `../flowcharts/` yang berlaku untuk **urutan langkah**, dan
+folder ini yang berlaku untuk **asal-usul aturan**. Pertentangan yang sebenarnya — bukan sekadar
+beda kata — **MUST** dicatat sebagai Open Question baru pada decision log, bukan diselesaikan
+dengan menyunting salah satunya diam-diam.
+
 ---
 
 ## 1. Aturan provenance
@@ -60,16 +80,20 @@ Mermaid.
 | 02 | [`02-attendance.md`](./02-attendance.md) | Ada |
 | 03 | [`03-leave.md`](./03-leave.md) | Ada |
 | 04 | [`04-overtime.md`](./04-overtime.md) | Ada |
-| 05 | `05-work-scheduling.md` | Belum ditulis — `PHASE 2B` |
-| 06 | `06-shift-change-swap.md` | Belum ditulis — `PHASE 2B` |
-| 07 | `07-attendance-correction.md` | Belum ditulis — `PHASE 2B` |
-| 08 | `08-early-leave-permission.md` | Belum ditulis — `PHASE 2B` |
-| 09 | `09-unified-approval.md` | Belum ditulis — `PHASE 2B` |
-| 10 | `10-payroll-processing-handoff.md` | Belum ditulis — `PHASE 2B`, sebagian `BLOCKED` |
-| 11 | `11-lifecycle-offboarding.md` | Belum ditulis — `PHASE 2B` |
-| 12 | `12-competency-training.md` | Belum ditulis — `PHASE 2B` |
-| 13 | `13-performance-management.md` | Belum ditulis — `PHASE 2B` |
-| 14 | `14-employee-relations-discipline.md` | Belum ditulis — `PHASE 2B` |
+| 05 | [`05-work-scheduling.md`](./05-work-scheduling.md) | Ada — ditulis `PHASE 2B` |
+| 06 | [`06-shift-change-swap.md`](./06-shift-change-swap.md) | Ada — ditulis `PHASE 2B` |
+| 07 | [`07-attendance-correction.md`](./07-attendance-correction.md) | Ada — ditulis `PHASE 2B` |
+| 08 | [`08-early-leave-permission.md`](./08-early-leave-permission.md) | Ada — ditulis `PHASE 2B` |
+| 09 | [`09-unified-approval.md`](./09-unified-approval.md) | Ada — ditulis `PHASE 2B` |
+| 10 | [`10-payroll-processing-handoff.md`](./10-payroll-processing-handoff.md) | Ada — ditulis `PHASE 2C`. Status **`PARTIAL`**: didesain sampai batas HR/Finance `HRD-DEC-009`; sesudahnya tetap `[BLOCKED]` oleh `HRD-Q-10`/`HRD-Q-11` |
+| 11 | [`11-lifecycle-offboarding.md`](./11-lifecycle-offboarding.md) | Ada — ditulis `PHASE 2C` |
+| 12 | [`12-competency-training.md`](./12-competency-training.md) | Ada — ditulis `PHASE 2C` |
+| 13 | [`13-performance-management.md`](./13-performance-management.md) | Ada — ditulis `PHASE 2C` |
+| 14 | [`14-employee-relations-discipline.md`](./14-employee-relations-discipline.md) | Ada — ditulis `PHASE 2C` |
+
+Cakupan `PHASE 2C` adalah flow 10–14 (dikoreksi `PHASE 2B.1`, lihat `00-interview-decisions.md`
+bagian 23.10). Seluruh lima flow selesai ditulis 28 Agustus 2026 — lihat bagian 25 pada
+`00-interview-decisions.md` untuk ringkasan temuan lengkap.
 
 ## 4. Yang sengaja tidak dibuat
 

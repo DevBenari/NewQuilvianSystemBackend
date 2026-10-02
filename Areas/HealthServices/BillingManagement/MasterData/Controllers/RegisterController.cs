@@ -31,6 +31,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
             _service = service;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<RegisterFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Register", Description = "Melihat data register", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("Register", "Read")]
+        public IActionResult GetFilterMetadata() =>
+            Ok(ApiResponse<RegisterFilterMetadataResponse>.Ok(
+                _service.GetFilterMetadata(), "Metadata filter register berhasil diambil."));
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<RegisterSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Register", Description = "Melihat data register", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("Register", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken) =>
+            Ok(ApiResponse<RegisterSummaryResponse>.Ok(
+                await _service.GetSummaryAsync(cancellationToken), "Ringkasan register berhasil diambil."));
+
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<RegisterResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Register", Description = "Melihat data register", AccessType = AccessTypes.Read, SortOrder = 1)]

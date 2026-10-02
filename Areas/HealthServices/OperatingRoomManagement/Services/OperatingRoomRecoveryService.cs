@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -29,9 +30,13 @@ public sealed class OperatingRoomRecoveryService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly LoggerService _loggerService;
 
+    private readonly OperatingRoomRuleRelaxation _relaxation;
+
     public OperatingRoomRecoveryService(ApplicationDbContext dbContext,
-        IHttpContextAccessor httpContextAccessor, LoggerService loggerService)
+        IHttpContextAccessor httpContextAccessor, LoggerService loggerService,
+        OperatingRoomRuleRelaxation relaxation)
     {
+        _relaxation = relaxation;
         _dbContext = dbContext;
         _httpContextAccessor = httpContextAccessor;
         _loggerService = loggerService;
@@ -426,6 +431,10 @@ public sealed class OperatingRoomRecoveryService
     private async Task EnsureTeamRoleAsync(OprCase entity, Guid actorUserId, OprTeamRole[] allowedRoles,
         string message, CancellationToken cancellationToken)
     {
+        // Dilepas saat aturan klinis dilonggarkan: siapa pun boleh mencatat recovery dan
+        // serah terima tanpa perlu terdaftar sebagai anggota tim.
+        if (_relaxation.IsRelaxed) return;
+
         var workforceId = await _dbContext.Users.AsNoTracking()
             .Where(x => x.Id == actorUserId).Select(x => x.WorkforceProfileId)
             .FirstOrDefaultAsync(cancellationToken);

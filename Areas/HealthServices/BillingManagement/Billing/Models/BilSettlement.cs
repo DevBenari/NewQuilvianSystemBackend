@@ -11,6 +11,9 @@ public sealed class BilSettlement : IdentityModel
     public Guid? InvoiceId { get; set; }
     public Guid? DepositAccountId { get; set; }
     [Required, MaxLength(30)] public string Purpose { get; set; } = string.Empty;
+    // Catatan internal kasir untuk settlement ini (mis. alasan pembayaran sebagian). Internal
+    // saja - tidak pernah dikembalikan pada payload/template cetak Dokumen Kasir (BKC-DEC-048).
+    [MaxLength(500)] public string? Note { get; set; }
     public decimal RequestedAmount { get; set; }
     public decimal SuccessfulAmount { get; set; }
     public decimal AllocatedAmount { get; set; }

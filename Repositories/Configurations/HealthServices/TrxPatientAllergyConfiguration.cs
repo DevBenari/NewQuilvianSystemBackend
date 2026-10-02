@@ -174,6 +174,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Configur
                 .WithMany()
                 .HasForeignKey(x => x.CancelledByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // BE-RWI-117 / migration K6 - dugaan reaksi obat tertaut dosis MAR dan episode.
+            builder.Property(x => x.InpEpisodeId)
+                .IsRequired(false);
+
+            builder.Property(x => x.SourceMedicationAdministrationId)
+                .IsRequired(false);
+
+            builder.HasOne<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models.InpEpisode>()
+                .WithMany()
+                .HasForeignKey(x => x.InpEpisodeId)
+                .HasConstraintName("FK_TrxPatientAllergy_InpEpisodeId")
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne<QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmMedicationAdministration>()
+                .WithMany()
+                .HasForeignKey(x => x.SourceMedicationAdministrationId)
+                .HasConstraintName("FK_TrxPatientAllergy_SourceMedicationAdministrationId")
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasIndex(x => x.InpEpisodeId, "IX_TrxPatientAllergy_InpEpisodeId");
+
+            builder.HasIndex(
+                x => x.SourceMedicationAdministrationId,
+                "IX_TrxPatientAllergy_SourceMedicationAdministrationId");
         }
     }
 }

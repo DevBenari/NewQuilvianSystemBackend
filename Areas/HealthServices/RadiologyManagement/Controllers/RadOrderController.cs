@@ -1,0 +1,347 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Services;
+using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
+using QuilvianSystemBackend.Responses;
+
+namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Controllers
+{
+    [ApiController]
+    [Authorize]
+    [Route("api/v1/health-services/radiology-management/rad-orders")]
+    [AccessController(
+        moduleCode: "HEALTH_SERVICE_RADIOLOGY_MANAGEMENT",
+        moduleName: "Health Service Radiology Management",
+        displayName: "Rad Order",
+        AreaName = "HealthServices",
+        ControllerName = "RadOrder",
+        Description = "Pencatatan order pemeriksaan radiologi",
+        SortOrder = 1
+    )]
+    [Tags("Health Services / Radiology Management / Rad Order")]
+    public class RadOrderController : ControllerBase
+    {
+        private readonly RadOrderService _radOrderService;
+
+        public RadOrderController(RadOrderService radOrderService)
+        {
+            _radOrderService = radOrderService;
+        }
+
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<RadOrderFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Rad Order", Description = "Melihat daftar pilihan penyaring order radiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RadOrder", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var hasil = _radOrderService.GetFilterMetadata();
+
+            return Ok(ApiResponse<RadOrderFilterMetadataResponse>.Ok(
+                hasil, "Metadata filter order radiologi berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<RadOrderSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Rad Order", Description = "Melihat rekap order radiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RadOrder", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var hasil = await _radOrderService.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<RadOrderSummaryResponse>.Ok(
+                hasil, "Rekap order radiologi berhasil diambil."));
+        }
+
+        [HttpGet]
+        [ProducesResponseType(typeof(ApiResponse<List<RadOrderListResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Rad Order", Description = "Melihat daftar order radiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RadOrder", "Read")]
+        // RAD-CONF-001 bagian 8 butir 3. Penyaring pindah ke satu objek query supaya lima
+        // kategori daftar pasien radiologi dan delapan kriteria riwayat dilayani dari sini.
+        //
+        // Pemanggil lama tidak perlu berubah: ?encounterId=, ?sortBy=, dan ?sortDirection=
+        // tetap terikat ke properti bernama sama pada RadOrderListQuery.
+        public async Task<IActionResult> GetList(
+            [FromQuery] RadOrderListQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _radOrderService.GetListAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<List<RadOrderListResponse>>.Ok(
+                result, "Daftar order radiologi berhasil diambil."));
+        }
+
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<RadOrderDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Rad Order", Description = "Melihat detail order radiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RadOrder", "Read")]
+        public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
+        {
+            var result = await _radOrderService.GetDetailAsync(id, cancellationToken);
+
+            if (result == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Order radiologi tidak ditemukan.",
+                    new { Code = RadErrorCodes.OrderNotFound }));
+            }
+
+            return Ok(ApiResponse<RadOrderDetailResponse>.Ok(
+                result, "Detail order radiologi berhasil diambil."));
+        }
+
+        // Pesanan radiologi dan ketersediaan hasilnya untuk satu perawatan rawat inap.
+        //
+        // BE-RWI-052, api-contract.md bagian 8. Hasil yang belum final ditandai dan TIDAK
+        // disajikan sebagai hasil sah — VAL-DOK-30. Tidak ada satu pun baris hasil yang
+        // disalin ke Rawat Inap — RUL-DOK-02.
+        [HttpGet("episodes/{episodeId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<List<RadOrderListResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Rad Order", Description = "Melihat pesanan dan hasil radiologi satu perawatan rawat inap", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RadOrder", "Read")]
+        public async Task<IActionResult> GetByEpisode(
+            Guid episodeId,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _radOrderService.GetByEpisodeAsync(episodeId, cancellationToken);
+
+            return Ok(ApiResponse<List<RadOrderListResponse>>.Ok(
+                result,
+                "Pesanan radiologi perawatan rawat inap berhasil diambil."));
+        }
+
+        // ISSUE-DOK-001 ISS-06. Operasi create menjawab 201 seperti keluarga endpoint create lain
+        // pada repository ini - physician-visits, lab-orders, dan patient-procedures.
+        [HttpPost]
+        [ProducesResponseType(typeof(ApiResponse<RadOrderDetailResponse>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Create", "Create Rad Order", Description = "Membuat order radiologi", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("RadOrder", "Create")]
+        public Task<IActionResult> Create(
+            [FromBody] CreateRadOrderRequest request,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radOrderService.CreateAsync(request, cancellationToken),
+                "Order radiologi berhasil dibuat.",
+                StatusCodes.Status201Created);
+
+        /// <summary>
+        /// Dokter pemberi instruksi memverifikasi pesanan radiologi rawat inap yang dibuat perawat —
+        /// <c>BE-RWI-104</c>, api-contract 0.6.0 bagian 12.12.
+        /// </summary>
+        /// <remarks>
+        /// Hak akses baru <c>RadOrder : Verify</c>, disetujui pemilik modul lewat <c>RWI-DEC-153</c>.
+        /// Jawaban: <c>200</c>; <c>403</c> bukan pemberi instruksi; <c>404</c>; <c>409</c> sudah
+        /// diverifikasi atau tidak memerlukan verifikasi.
+        /// </remarks>
+        [HttpPut("{id:guid}/verify-instruction")]
+        [ProducesResponseType(typeof(ApiResponse<RadOrderDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Verify", "Verify Rad Order Instruction", Description = "Dokter pemberi instruksi memverifikasi pesanan radiologi yang dibuat perawat", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("RadOrder", "Verify")]
+        public Task<IActionResult> VerifyInstruction(
+            Guid id,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radOrderService.VerifyInstructionAsync(id, cancellationToken),
+                "Instruksi order radiologi berhasil diverifikasi.");
+
+        /// <summary>
+        /// Pesanan radiologi yang menunggu verifikasi dokter login — <c>BE-RWI-104</c>.
+        /// </summary>
+        [HttpGet("instruction-verification-worklist")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<RadOrderInstructionVerificationItemResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction("Read", "Read Rad Order", Description = "Melihat pesanan radiologi yang menunggu verifikasi dokter login", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RadOrder", "Read")]
+        public Task<IActionResult> GetInstructionVerificationWorklist(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radOrderService.GetInstructionVerificationWorklistAsync(pageNumber, pageSize, cancellationToken),
+                "Daftar tunggu verifikasi instruksi radiologi berhasil diambil.");
+
+        [HttpPut("{id:guid}/accept")]
+        [AccessAction("Process", "Process Rad Order", Description = "Menerima order radiologi", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("RadOrder", "Process")]
+        public Task<IActionResult> Accept(
+            Guid id, [FromBody] RadOrderTransitionRequest request,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radOrderService.AcceptAsync(id, request, cancellationToken),
+                "Order radiologi berhasil diterima.");
+
+        [HttpPut("{id:guid}/schedule")]
+        [AccessAction("Schedule", "Schedule Rad Order", Description = "Menjadwalkan order radiologi", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("RadOrder", "Schedule")]
+        public Task<IActionResult> Schedule(
+            Guid id, [FromBody] RadOrderTransitionRequest request,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radOrderService.ScheduleAsync(id, request, cancellationToken),
+                "Order radiologi berhasil dijadwalkan.");
+
+        [HttpPut("{id:guid}/start")]
+        [AccessAction("Process", "Process Rad Order", Description = "Memulai pengerjaan order radiologi", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("RadOrder", "Process")]
+        public Task<IActionResult> Start(
+            Guid id, [FromBody] RadOrderTransitionRequest request,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radOrderService.StartAsync(id, request, cancellationToken),
+                "Order radiologi mulai dikerjakan.");
+
+        [HttpPut("{id:guid}/complete")]
+        [AccessAction("Process", "Process Rad Order", Description = "Menyelesaikan order radiologi", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("RadOrder", "Process")]
+        public Task<IActionResult> Complete(
+            Guid id, [FromBody] RadOrderTransitionRequest request,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radOrderService.CompleteAsync(id, request, cancellationToken),
+                "Order radiologi berhasil diselesaikan.");
+
+        [HttpPut("{id:guid}/hold")]
+        [AccessAction("Hold", "Hold Rad Order", Description = "Menahan order radiologi", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("RadOrder", "Hold")]
+        public Task<IActionResult> Hold(
+            Guid id, [FromBody] RadOrderTransitionRequest request,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radOrderService.HoldAsync(id, request, cancellationToken),
+                "Order radiologi berhasil ditahan.");
+
+        [HttpPut("{id:guid}/resume")]
+        [AccessAction("Hold", "Hold Rad Order", Description = "Melanjutkan order radiologi yang ditahan", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("RadOrder", "Hold")]
+        public Task<IActionResult> Resume(
+            Guid id, [FromBody] RadOrderTransitionRequest request,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radOrderService.ResumeAsync(id, request, cancellationToken),
+                "Order radiologi berhasil dilanjutkan.");
+
+        [HttpPut("{id:guid}/reject")]
+        [AccessAction("Update", "Update Rad Order", Description = "Menolak order radiologi", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("RadOrder", "Update")]
+        public Task<IActionResult> Reject(
+            Guid id, [FromBody] RadOrderTransitionRequest request,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radOrderService.RejectAsync(id, request, cancellationToken),
+                "Order radiologi berhasil ditolak.");
+
+        [HttpPut("{id:guid}/cancel")]
+        [AccessAction("Cancel", "Cancel Rad Order", Description = "Membatalkan order radiologi", AccessType = AccessTypes.Update, SortOrder = 7)]
+        [AccessPermission("RadOrder", "Cancel")]
+        public Task<IActionResult> Cancel(
+            Guid id, [FromBody] RadOrderTransitionRequest request,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radOrderService.CancelAsync(id, request, cancellationToken),
+                "Order radiologi berhasil dibatalkan.");
+
+        // Daftar kerja petugas pada satu alat — RAD-DEC-012.
+        //
+        // Diletakkan pada controller pesanan, bukan controller study, dan itu disengaja: daftar
+        // kerja dimulai dari pesanan yang sudah diterima tetapi belum tentu punya study. Kalau
+        // diletakkan di controller study, pekerjaan yang belum direncanakan sama sekali tidak
+        // akan muncul — padahal justru itu yang paling perlu dikerjakan.
+        [HttpGet("worklist")]
+        [ProducesResponseType(typeof(ApiResponse<List<RadWorklistItemResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Read", "Read Rad Order", Description = "Melihat daftar kerja petugas pada satu alat pencitraan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RadOrder", "Read")]
+        public Task<IActionResult> GetWorklist(
+            [FromQuery] Guid? modalityId = null,
+            [FromQuery] DateTime? date = null,
+            [FromQuery] RadOrderStatus? status = null,
+            CancellationToken cancellationToken = default) =>
+            Execute(
+                () => _radOrderService.GetWorklistAsync(modalityId, date, status, cancellationToken),
+                "Daftar kerja berhasil diambil.");
+
+        // Mengubah penanda cito setelah pesanan dibuat. POST, bukan PATCH: perubahannya masuk
+        // riwayat dan punya pelaku, sehingga ia perintah — bukan suntingan atribut.
+        //
+        // Kontrak RAD-API-001 menuliskannya sebagai PUT. Bentuk yang dipakai mengikuti kontrak;
+        // selisihnya terhadap aturan verb pada transaction-endpoint-standard.md dicatat pada
+        // laporan BE-RAD-13.
+        [HttpPut("{id:guid}/urgency")]
+        [ProducesResponseType(typeof(ApiResponse<RadOrderDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Update", "Update Rad Order", Description = "Mengubah penanda cito pesanan radiologi", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("RadOrder", "Update")]
+        public Task<IActionResult> SetUrgency(
+            Guid id,
+            [FromBody] RadOrderUrgencyRequest request,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radOrderService.SetUrgencyAsync(id, request, cancellationToken),
+                request is { IsUrgent: true }
+                    ? "Pesanan berhasil ditandai cito."
+                    : "Penanda cito berhasil dicabut.");
+
+        /// <summary>
+        /// Menjalankan satu tindakan dan memetakan hasilnya menjadi status HTTP.
+        ///
+        /// Pemetaan ini yang membuat perbedaan jenis penolakan sampai ke pemanggil.
+        /// `SafetyBlocked` dan `PolicyNotConfigured` sama-sama menjadi <c>422</c>, bukan
+        /// <c>400</c>: permintaannya sendiri sah, yang belum terpenuhi adalah prasyaratnya.
+        /// Kode galatnya tetap berbeda supaya layar dapat menuntun ke tindakan yang benar.
+        /// </summary>
+        private async Task<IActionResult> Execute<T>(
+            Func<Task<RadOperationResult<T>>> action,
+            string successMessage,
+            int successStatusCode = StatusCodes.Status200OK)
+        {
+            try
+            {
+                var result = await action();
+
+                return result.Kind switch
+                {
+                    RadOperationResultKind.Success =>
+                        StatusCode(successStatusCode, ApiResponse<T>.Ok(result.Value, successMessage)),
+
+                    RadOperationResultKind.NotFound =>
+                        NotFound(ApiResponse<object>.Fail(
+                            StatusCodes.Status404NotFound,
+                            result.ErrorMessage ?? "Data tidak ditemukan.",
+                            new { Code = result.ErrorCode })),
+
+                    RadOperationResultKind.Conflict =>
+                        Conflict(ApiResponse<object>.Fail(
+                            StatusCodes.Status409Conflict,
+                            result.ErrorMessage ?? "Terjadi konflik.",
+                            new { Code = result.ErrorCode })),
+
+                    // BE-RWI-104. Sebelumnya tidak ada jalur RadOrderService yang menghasilkan
+                    // Forbidden, sehingga penambahan cabang ini tidak mengubah jawaban endpoint lama.
+                    RadOperationResultKind.Forbidden =>
+                        StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                            StatusCodes.Status403Forbidden,
+                            result.ErrorMessage ?? "Anda tidak berwenang.",
+                            new { Code = result.ErrorCode })),
+
+                    RadOperationResultKind.SafetyBlocked or
+                    RadOperationResultKind.PolicyNotConfigured =>
+                        UnprocessableEntity(ApiResponse<object>.Fail(
+                            StatusCodes.Status422UnprocessableEntity,
+                            result.ErrorMessage ?? "Prasyarat belum terpenuhi.",
+                            new { Code = result.ErrorCode })),
+
+                    _ => BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        result.ErrorMessage ?? "Permintaan tidak valid.",
+                        new { Code = result.ErrorCode })),
+                };
+            }
+            catch (RadConcurrencyException exception)
+            {
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    exception.Message,
+                    new { Code = RadErrorCodes.ConcurrencyConflict }));
+            }
+        }
+    }
+}

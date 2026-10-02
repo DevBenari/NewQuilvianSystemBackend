@@ -33,6 +33,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
     {
         private const string LogCategory = "HealthServices.EmergencyInstallation";
 
+        // IGD-DEC-119 — sama dengan kapasitas kolom CompletionSummary dan EscalationReason.
+        private const int MaxObservationStatusNotesLength = 1000;
+
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly EmergencyObservationService _emergencyObservationService;
@@ -289,6 +292,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 _ => (EmergencyVisitStatus?)null
             };
 
+            // BE-IGD-040 — batas panjang catatan (IGD-DEC-119), hanya untuk target yang
+            // catatannya disimpan. Panjang dihitung sesudah dirapikan, karena yang disimpan
+            // adalah catatan yang sudah dirapikan; catatan tidak pernah dipotong.
+            //
+            // Diperiksa sebelum TryApplyVisitStatus supaya penolakan 400 tidak didahului
+            // perubahan status kunjungan di memori. Penolakan 409 penjaga kunjungan tetap
+            // didahulukan: bila transisinya tidak sah, pemeriksaan ini dilewati dan
+            // TryApplyVisitStatus di bawah yang menjawab dengan pesannya sendiri.
+            var catatan = NormalizeText(request.Notes);
+            var catatanDisimpan = request.ObservationStatus is EmergencyObservationStatus.Completed
+                or EmergencyObservationStatus.Escalated;
+
+            if (catatanDisimpan &&
+                catatan is { Length: > MaxObservationStatusNotesLength } &&
+                (!targetVisitStatus.HasValue ||
+                 _emergencyVisitService.CanTransition(visit.VisitStatus, targetVisitStatus.Value)))
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Catatan paling banyak 1000 karakter."));
+            }
+
             if (targetVisitStatus.HasValue &&
                 !_emergencyVisitService.TryApplyVisitStatus(
                     visit, targetVisitStatus.Value, actorUserId, now, out var penolakanStatusKunjungan))
@@ -299,12 +322,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             entity.ObservationStatus = request.ObservationStatus;
             if (request.ObservationStatus != EmergencyObservationStatus.Active)
                 entity.EndedAt ??= now;
-            if (request.ObservationStatus == EmergencyObservationStatus.Escalated)
-                entity.EscalationReason = NormalizeText(request.Notes) ?? entity.EscalationReason;
-            if (!string.IsNullOrWhiteSpace(request.Notes) && entity.GetType().GetProperty("Notes") != null)
+
+            // Catatan disimpan ke kolom yang sesuai arti status tujuannya (IGD-DEC-115). Catatan
+            // kosong tidak menghapus isi lama, karena kesimpulan bersifat opsional (IGD-DEC-121).
+            // Cancelled sengaja tidak menyimpan catatan: tempat alasan pembatalan belum
+            // diputuskan (IGD-OQ-083).
+            switch (request.ObservationStatus)
             {
-                entity.GetType().GetProperty("Notes")?.SetValue(entity, NormalizeText(request.Notes));
+                case EmergencyObservationStatus.Completed:
+                    entity.CompletionSummary = catatan ?? entity.CompletionSummary;
+                    break;
+                case EmergencyObservationStatus.Escalated:
+                    entity.EscalationReason = catatan ?? entity.EscalationReason;
+                    break;
             }
+
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 

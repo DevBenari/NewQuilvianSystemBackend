@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
@@ -17,8 +17,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
         [Required]
         public Guid EncounterId { get; set; }
 
-        [Required]
-        public Guid ConsultationId { get; set; }
+        /// <summary>
+        /// Tautan ke konsultasi dokter. Dilonggarkan sejak R7 (BE-RWI-097): boleh kosong pada
+        /// pesanan rawat inap perawat atas instruksi dokter (VAL-DOK-45). Tetap wajib pada rawat jalan.
+        /// </summary>
+        public Guid? ConsultationId { get; set; }
 
         [Required]
         public Guid PatientId { get; set; }
@@ -29,6 +32,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
         public Guid? ServiceUnitId { get; set; }
 
         public Guid? ClinicId { get; set; }
+
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi tindakan ini. Boleh kosong — <c>INV-DOK-01</c>.
+        /// </summary>
+        public Guid? InpEpisodeId { get; set; }
+
+        /// <summary>
+        /// Tautan <b>opsional</b> ke kejadian visite dokter pada <c>CliPhysicianVisit</c>.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-040</c>. Perilaku hapusnya <c>SetNull</c> dengan alasan yang sama seperti
+        /// pada catatan dokter: kejadian visite yang dibatalkan tidak menyeret catatan tindakan.
+        /// </remarks>
+        public Guid? PhysicianVisitId { get; set; }
+
+        /// <summary>
+        /// Kunci permintaan. Percobaan ulang dengan kunci yang sama tidak melahirkan tindakan
+        /// maupun tagihan ganda — <c>AC-CAP024-02</c>.
+        /// </summary>
+        /// <remarks>
+        /// Dijaga unique parsial di database, bukan hanya oleh service: dua permintaan yang tiba
+        /// bersamaan tidak dapat dicegah oleh pemeriksaan di dalam aplikasi saja.
+        /// </remarks>
+        [MaxLength(100)]
+        public string? IdempotencyKey { get; set; }
 
         [Required]
         public Guid ProcedureId { get; set; }
@@ -207,9 +235,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
         [MaxLength(250)]
         public string? CancelReason { get; set; }
 
+        /// <summary>
+        /// Penginput pesanan tindakan — RWI-DEC-139 / BE-RWI-097. Null pada baris lama.
+        /// </summary>
+        public Guid? OrderedByUserId { get; set; }
+
+        /// <summary>
+        /// Dokter pemberi instruksi pada pesanan tindakan rawat inap yang dibuat perawat — BE-RWI-097.
+        /// </summary>
+        public Guid? InstructingDoctorId { get; set; }
+
+        /// <summary>
+        /// Status verifikasi instruksi dokter (0: NotRequired, 1: Pending, 2: Verified) — BE-RWI-097.
+        /// </summary>
+        public PatientProcedureInstructionVerificationStatus InstructionVerificationStatus { get; set; } =
+            PatientProcedureInstructionVerificationStatus.NotRequired;
+
+        public DateTime? InstructionVerifiedAt { get; set; }
+
+        public Guid? InstructionVerifiedByUserId { get; set; }
+
+        /// <summary>
+        /// True bila pesanan dibatalkan otomatis oleh sistem saat penutupan episode rawat inap — RWI-DEC-143 (3).
+        /// </summary>
+        public bool CancelledByEpisodeClosure { get; set; } = false;
+
         public bool IsActive { get; set; } = true;
 
-        public TrxPatientEncounter? Encounter { get; set; }
+        public RegPatientEncounter? Encounter { get; set; }
 
         public TrxDoctorConsultation? Consultation { get; set; }
 
@@ -236,5 +289,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
         public ApplicationUser? PerformedByUser { get; set; }
 
         public ApplicationUser? CancelledByUser { get; set; }
+
+        public ApplicationUser? OrderedByUser { get; set; }
+
+        public MstDoctor? InstructingDoctor { get; set; }
+
+        public ApplicationUser? InstructionVerifiedByUser { get; set; }
     }
 }

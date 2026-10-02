@@ -6,7 +6,12 @@ public sealed class CreateAdjustmentRequest
 {
     public Guid InvoiceId { get; set; }
     [Required, MaxLength(10)] public string Direction { get; set; } = string.Empty;
-    [Range(typeof(decimal), "0.01", "9999999999999999.99")]
+    [Range(
+        typeof(decimal),
+        "0.01",
+        "9999999999999999.99",
+        ParseLimitsInInvariantCulture = true,
+        ConvertValueInInvariantCulture = true)]
     public decimal Amount { get; set; }
     public Guid ExpectedInvoiceRowVersion { get; set; }
     [Required, MaxLength(500)] public string Reason { get; set; } = string.Empty;
@@ -50,4 +55,11 @@ public sealed class InvoiceFinancialExceptionsResponse
     public IReadOnlyList<AdjustmentResponse> Adjustments { get; set; } = [];
     public IReadOnlyList<WriteOffResponse> WriteOffs { get; set; } = [];
     public IReadOnlyList<RefundResponse> Refunds { get; set; } = [];
+
+    // BE-BKC-029/BKC-DES-025: sisa selisih tidak dapat ditagihkan yang BELUM ditulis-off, dibaca
+    // dari kolom BilCalculationVersion.NonBillableResidualAmount (BE-BKC-027/028) - bukan dihitung
+    // ulang di layar dari daftar WriteOffs di atas, supaya perhitungan uang tidak menyimpang dari
+    // server begitu ada case yang tidak ikut terkirim karena paging. Bernilai 0 bila invoice belum
+    // pernah dihitung sama sekali (bukan error - sekadar belum ada apa pun untuk dilaporkan).
+    public decimal NonBillableResidualRemaining { get; set; }
 }

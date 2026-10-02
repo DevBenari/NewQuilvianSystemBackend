@@ -132,9 +132,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         [Required, MaxLength(200)] public string TemplateName { get; set; } = string.Empty;
         [MaxLength(100)] public string? TemplateCategory { get; set; }
         [MaxLength(500)] public string? Description { get; set; }
-        [Required] public Guid OwnerDoctorId { get; set; }
+
+        /// <summary>
+        /// BE-RWI-105 / FR-DOK-088. Pemilik selalu dokter akun login. Boleh kosong; bila diisi dengan
+        /// dokter lain, permintaan ditolak 403 tanpa menyimpan apa pun.
+        /// </summary>
+        public Guid OwnerDoctorId { get; set; }
+
         public bool IsShared { get; set; }
         public bool IsFavorite { get; set; }
+
+        /// <summary>
+        /// BE-RWI-105 / RWI-DEC-135 butir (3). Isi <c>Inpatient</c> dari ruang kerja rawat inap: template
+        /// tersimpan pribadi (<c>IsShared</c> dipaksa <c>false</c>). Kosong untuk poliklinik dan Farmasi.
+        /// </summary>
+        [MaxLength(30)] public string? ServiceContext { get; set; }
+
         public List<PrescriptionTemplateItemRequest> Items { get; set; } = new();
         public List<PrescriptionTemplateCompoundRequest> Compounds { get; set; } = new();
     }
@@ -205,6 +218,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         [MaxLength(500)] public string? Description { get; set; }
         public bool IsShared { get; set; }
         public bool IsFavorite { get; set; }
+
+        /// <summary>BE-RWI-105. Resep berkonteks rawat inap selalu menghasilkan template pribadi.</summary>
+        [MaxLength(30)] public string? ServiceContext { get; set; }
     }
 
     public class ApplyPrescriptionTemplateRequest
@@ -225,6 +241,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         public decimal PatientPayAmount { get; set; }
         public bool IsNeedApproval { get; set; }
         public bool IsApproved { get; set; }
+
+        /// <summary>BE-RWI-105 / FR-DOK-090. Benar bila ada butir bertanda bentrok alergi atau tidak tersedia.</summary>
+        public bool HasFlaggedItems { get; set; }
+
+        /// <summary>Hasil per butir template beserta penandanya.</summary>
+        public List<ApplyPrescriptionTemplateItemResult> Items { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Hasil pemakaian satu butir template — BE-RWI-105, api-contract 0.6.0 bagian 12.7.
+    /// </summary>
+    /// <remarks>
+    /// <c>Flags</c> berisi <c>AllergyConflict</c> dan/atau <c>Unavailable</c>. Butir bentrok alergi
+    /// tetap masuk draft (penunjuk butir terisi); butir tidak tersedia tidak masuk draft (penunjuk
+    /// butir kosong) dan wajib diganti dokter.
+    /// </remarks>
+    public class ApplyPrescriptionTemplateItemResult
+    {
+        public Guid? PrescriptionItemId { get; set; }
+        public Guid? PrescriptionCompoundId { get; set; }
+        public Guid? PrescriptionCompoundItemId { get; set; }
+        public Guid DrugId { get; set; }
+        public string DrugName { get; set; } = string.Empty;
+        public bool IsCompoundIngredient { get; set; }
+        public string? CompoundName { get; set; }
+        public List<string> Flags { get; set; } = new();
     }
 
     public class CancelPrescriptionTemplateRequest

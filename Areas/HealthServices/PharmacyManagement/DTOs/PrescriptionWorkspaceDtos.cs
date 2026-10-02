@@ -6,6 +6,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
 {
     public class PrescriptionWorkspaceResponse
     {
+        /// <summary>
+        /// Keadaan finansial resep menurut Billing (PHA-BE-006). Di sinilah petugas membaca
+        /// mengapa sebuah resep tidak dapat dilanjutkan, di tempat ia bekerja.
+        /// </summary>
+        public PrescriptionFinancialClearanceResponse? FinancialClearance { get; set; }
+
         public Guid PrescriptionId { get; set; }
         public string PrescriptionNumber { get; set; } = string.Empty;
         public Guid EncounterId { get; set; }

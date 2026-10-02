@@ -79,6 +79,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         private readonly ApplicationDbContext _dbContext;
         private readonly InpSettingService _settingService;
         private readonly InpEpisodeNumberService _episodeNumberService;
+        private readonly IInpIntegrationOutboxService _outboxService;
 
         /// <remarks>
         /// <b>Arah dependency dibalik pada `BE-RWI-011`.</b> Sampai `BE-RWI-008`, service ini
@@ -93,11 +94,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         public InpEpisodeService(
             ApplicationDbContext dbContext,
             InpSettingService settingService,
-            InpEpisodeNumberService episodeNumberService)
+            InpEpisodeNumberService episodeNumberService,
+            IInpIntegrationOutboxService outboxService)
         {
             _dbContext = dbContext;
             _settingService = settingService;
             _episodeNumberService = episodeNumberService;
+            _outboxService = outboxService;
         }
 
         // =====================================================================
@@ -175,14 +178,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 return contextCheck;
             }
 
-            TrxPatientEncounter? encounter = null;
+            RegPatientEncounter? encounter = null;
             var encounterCreatedByAdmission = false;
 
             if (request.EncounterId.HasValue && request.EncounterId.Value != Guid.Empty)
             {
                 var requestedEncounterId = request.EncounterId.Value;
 
-                var existingEncounter = await _dbContext.Set<TrxPatientEncounter>()
+                var existingEncounter = await _dbContext.Set<RegPatientEncounter>()
                     .FirstOrDefaultAsync(
                         x => x.Id == requestedEncounterId && !x.IsDelete,
                         cancellationToken);
@@ -271,7 +274,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     encounter = BuildInpatientEncounter(request, actorUserId, now);
                     encounterCreatedByAdmission = true;
 
-                    _dbContext.Set<TrxPatientEncounter>().Add(encounter);
+                    _dbContext.Set<RegPatientEncounter>().Add(encounter);
                 }
 
                 var episode = new InpEpisode
@@ -295,11 +298,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 _dbContext.Set<InpEpisode>().Add(episode);
 
                 // INV-INP-03 — DPJP ada sejak detik pertama, bukan dilengkapi kemudian.
+                // Perannya ditulis eksplisit sejak BE-RWI-074; nilai bawaan database ada
+                // untuk baris lama, bukan sebagai pengganti nilai domain pada baris baru.
                 var doctorAssignment = new InpDoctorAssignment
                 {
                     Id = Guid.NewGuid(),
                     EpisodeId = episode.Id,
                     DoctorId = request.DoctorId,
+                    AssignmentRole = InpDoctorAssignmentRole.Dpjp,
                     SequenceNumber = 1,
                     StartDateTime = now,
                     EndDateTime = null,
@@ -627,6 +633,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             _dbContext.Set<InpStatusHistory>().Add(history);
             episode.StatusHistories.Add(history);
+
+            // BE-RWI-130 / RWI-DEC-156 — Event ADMISSION_CONFIRMED saat status menjadi Admitted
+            if (toStatus == InpEpisodeStatus.Admitted)
+            {
+                var guarantor = await _dbContext.RegPatientEncounterGuarantors
+                    .AsNoTracking()
+                    .Where(x => x.EncounterId == episode.EncounterId && x.IsActive && !x.IsDelete)
+                    .OrderByDescending(x => x.IsPrimary)
+                    .ThenBy(x => x.Priority)
+                    .Select(x => (Guid?)x.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                var admissionPayload = new
+                {
+                    encounterId = episode.EncounterId,
+                    episodeId = episode.Id,
+                    patientId = episode.PatientId,
+                    admissionDateTime = episode.AdmittedAt ?? now,
+                    guarantorId = guarantor
+                };
+
+                await _outboxService.EnqueueEventAsync(
+                    eventType: "ADMISSION_CONFIRMED",
+                    idempotencyKey: $"INPATIENT:ADMISSION:{episode.Id}:1",
+                    sourceDomain: "INPATIENT",
+                    sourceType: "ADMISSION",
+                    sourceDetailId: episode.Id.ToString(),
+                    payload: admissionPayload,
+                    cancellationToken: cancellationToken);
+            }
         }
 
         // =====================================================================
@@ -908,7 +944,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             DateTime now,
             CancellationToken cancellationToken)
         {
-            var encounter = await _dbContext.Set<TrxPatientEncounter>()
+            var encounter = await _dbContext.Set<RegPatientEncounter>()
                 .FirstOrDefaultAsync(x => x.Id == encounterId && !x.IsDelete, cancellationToken);
 
             if (encounter == null || encounter.EncounterStatus == EncounterStatus.Cancelled)
@@ -1002,8 +1038,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         : null,
                     CancelReason = x.CancelReason,
                     Notes = x.Notes,
+                    // DPJP aktif, bukan penugasan terbuka mana pun — BE-RWI-074.
                     ActiveDoctor = x.DoctorAssignments
-                        .Where(d => d.EndDateTime == null && !d.IsDelete)
+                        .Where(d =>
+                            d.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
+                            d.EndDateTime == null &&
+                            !d.IsDelete)
                         .OrderByDescending(d => d.SequenceNumber)
                         .Select(d => new InpatientEpisodeActiveDoctorResponse
                         {
@@ -1090,7 +1130,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// sama dengan <see cref="InpEpisodeNumberService"/>. Alokator lama milik pendaftaran
         /// menyisir seluruh baris lalu memakai celah pertama, dan cara itu dilarang
         /// QBE-CODE-003 untuk kode baru karena dua permintaan bersamaan membaca angka yang
-        /// sama. Index unik pada <c>TrxPatientEncounter.EncounterNumber</c> menjadi penjaga
+        /// sama. Index unik pada <c>RegPatientEncounter.EncounterNumber</c> menjadi penjaga
         /// terakhirnya. Bentuk nomor ini berbeda dari nomor kunjungan pendaftaran, dan
         /// bedanya dicatat pada laporan task untuk ditinjau pemilik modul Registrasi.
         ///
@@ -1101,12 +1141,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// inap tidak tersentuh olehnya.
         /// </para>
         /// </remarks>
-        private static TrxPatientEncounter BuildInpatientEncounter(
+        private static RegPatientEncounter BuildInpatientEncounter(
             OpenAdmissionRequest request,
             Guid actorUserId,
             DateTime now)
         {
-            return new TrxPatientEncounter
+            return new RegPatientEncounter
             {
                 Id = Guid.NewGuid(),
                 EncounterNumber = BuildInpatientEncounterNumber(now),
@@ -1274,6 +1314,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         public string Message { get; }
 
         public List<string> Warnings { get; }
+
+        /// <summary>
+        /// Akibat penutupan episode yang benar-benar tersimpan. Hanya terisi oleh
+        /// <c>InpDischargeService.CloseEpisodeInternalAsync</c>; <c>null</c> pada setiap
+        /// tindakan lain. Ditambahkan <c>BE-RWI-084</c>.
+        /// </summary>
+        /// <remarks>
+        /// Diletakkan di sini, bukan pada bentuk hasil tersendiri, supaya kedua jalur penutupan
+        /// — biasa dan jalan keluar supervisor — mengembalikannya lewat satu jalan yang sama.
+        /// Bentuk hasil kedua akan memaksa controller memilih di antara dua cabang, dan yang
+        /// paling mungkin terlewat adalah cabang yang lebih jarang dipakai.
+        /// </remarks>
+        public ClosureSideEffectsResponse? SideEffects { get; set; }
 
         public static InpEpisodeOperationResult Success(
             InpEpisode episode,

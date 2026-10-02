@@ -124,6 +124,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         public string? MergedToPatientName { get; set; }
 
+        /// <summary>
+        /// Pasien sedang punya kunjungan yang belum ditutup.
+        /// </summary>
+        /// <remarks>
+        /// Tiga keadaan, bukan dua. <c>null</c> berarti <b>tidak dihitung</b> pada endpoint yang
+        /// mengembalikan balasan ini — bukan berarti tidak punya kunjungan aktif. Pembedaan itu
+        /// mengikat: nilai <c>false</c> yang keliru akan membuat layar rekam medis melewatkan
+        /// permintaan keperluan akses yang seharusnya diminta.
+        ///
+        /// Nilainya dihitung server memakai aturan yang sama persis dengan
+        /// <c>MedicalRecordAccessAuditService.PunyaKunjunganAktifAsync</c>, sehingga selalu
+        /// sepadan dengan <c>access.hasActiveEncounter</c> pada balasan ringkasan rekam medis.
+        /// Server tetap pemutus akhir; nilai ini hanya memberi tahu lebih dulu.
+        ///
+        /// Sengaja TIDAK dihitung pada endpoint pilihan pasien, yang dipakai bersama kiosk:
+        /// perangkat kiosk tidak berkepentingan mengetahui keadaan rawatan seorang pasien.
+        /// </remarks>
+        public bool? HasActiveEncounter { get; set; }
+
         public bool IsActive { get; set; }
 
         public DateTime CreateDateTime { get; set; }

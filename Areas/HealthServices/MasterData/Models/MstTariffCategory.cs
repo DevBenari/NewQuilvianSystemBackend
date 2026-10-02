@@ -28,6 +28,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         public bool IsPharmacy { get; set; }
         public bool IsSurgery { get; set; }
         public bool IsPackage { get; set; }
+
+        // Dipakai perhitungan billing untuk menentukan komponen mana yang boleh ditanggung
+        // penjamin (BillingCalculationService.BuildCoverageComponents). Dipindahkan dari
+        // MstBillingItemCategory saat kategori billing digabung ke kategori tarif.
+        public bool IsCoveredByInsuranceDefault { get; set; } = true;
+
         public int SortOrder { get; set; }
 
         [MaxLength(250)]

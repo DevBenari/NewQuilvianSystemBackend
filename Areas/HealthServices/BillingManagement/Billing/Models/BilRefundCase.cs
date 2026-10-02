@@ -9,7 +9,9 @@ public sealed class BilRefundCase : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid InvoiceId { get; set; }
-    public Guid RefundableCreditId { get; set; }
+    public Guid? RefundableCreditId { get; set; }
+    [Required, MaxLength(30)] public string RefundCategory { get; set; } = "BILLING";
+    public string? SelectedBillingItemIdsJson { get; set; }
     public decimal RequestedAmount { get; set; }
     [Required, MaxLength(30)] public string Status { get; set; } = BillingRefundCaseStatuses.Submitted;
     public Guid RequestedBy { get; set; }
@@ -26,7 +28,7 @@ public sealed class BilRefundCase : IdentityModel
     public Guid RowVersion { get; set; } = Guid.NewGuid();
 
     public BilInvoice Invoice { get; set; } = null!;
-    public BilRefundableCredit RefundableCredit { get; set; } = null!;
+    public BilRefundableCredit? RefundableCredit { get; set; }
     public ICollection<BilRefundLine> Lines { get; set; } = new List<BilRefundLine>();
 }
 

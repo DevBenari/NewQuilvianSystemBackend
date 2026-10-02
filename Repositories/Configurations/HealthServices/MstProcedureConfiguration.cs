@@ -46,6 +46,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.IsRadiology)
                 .HasDefaultValue(false);
 
+            // Enum disimpan sebagai int, mengikuti seluruh enum modul Laboratorium.
+            entity.Property(x => x.LabDiscipline)
+                .HasConversion<int>();
+
             entity.Property(x => x.IsTherapy)
                 .HasDefaultValue(false);
 
@@ -121,6 +125,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.HasIndex(x => x.ProcedureCategoryName);
 
             entity.HasIndex(x => x.ProcedureType);
+
+            // Penyaringan katalog per disiplin. Difilter agar index hanya memuat baris yang
+            // benar-benar bermakna — tindakan non-laboratorium tidak punya disiplin.
+            entity.HasIndex(x => x.LabDiscipline)
+                .HasFilter("\"LabDiscipline\" IS NOT NULL");
 
             entity.HasIndex(x => x.ExternalProcedureCode)
                 .HasFilter("\"ExternalProcedureCode\" IS NOT NULL");

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
@@ -173,8 +174,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             var now = DateTime.UtcNow;
 
+            // BE-IGD-047 - nomor urut dihitung tanpa menyaring IsDelete, karena index unik
+            // (EmergencyVisitId, Sequence) juga tidak memakai filter. Baris yang sudah
+            // di-soft-delete tetap menempati nomornya, sehingga menyaringnya di sini membuat
+            // nomor yang dihitung menabraknya.
             var nextSequence = (await _dbContext.Set<EmgTriage>()
-                .Where(x => x.EmergencyVisitId == previous.EmergencyVisitId && !x.IsDelete)
+                .Where(x => x.EmergencyVisitId == previous.EmergencyVisitId)
                 .Select(x => (int?)x.Sequence)
                 .MaxAsync(cancellationToken) ?? 0) + 1;
 
@@ -233,12 +238,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 // Superseded tanpa penilaian penggantinya ikut tersimpan.
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
-                // Termasuk dua permintaan bersamaan yang memperebutkan nomor urut yang sama;
-                // index unik (EmergencyVisitId, Sequence) menolak yang kedua.
+                // BE-IGD-047 - dua sebab yang berbeda tidak lagi memakai satu pesan.
+                // Tabrakan nomor urut berarti ada penilaian lain yang menyusul lebih dulu;
+                // kegagalan lain berarti data rujukannya yang bermasalah.
+                var bentrokNomorUrut = ex.InnerException is PostgresException postgres
+                    && postgres.SqlState == PostgresErrorCodes.UniqueViolation
+                    && string.Equals(
+                        postgres.ConstraintName,
+                        "IX_EmgTriage_EmergencyVisitId_Sequence",
+                        StringComparison.Ordinal);
+
                 return RetriageOutcome.Conflict(
-                    "Penilaian ulang gagal disimpan karena data sedang diubah pihak lain. Muat ulang halaman lalu coba lagi.");
+                    bentrokNomorUrut
+                        ? "Penilaian ulang gagal disimpan karena penilaian lain pada kunjungan "
+                          + "yang sama tersimpan lebih dulu. Muat ulang halaman lalu coba lagi."
+                        : "Penilaian ulang gagal disimpan karena data rujukannya tidak sah - "
+                          + "kunjungan, level triage, atau tanda vital yang ditunjuk tidak "
+                          + "ditemukan. Muat ulang halaman lalu coba lagi.");
             }
 
             return RetriageOutcome.Success(retriage, previous);

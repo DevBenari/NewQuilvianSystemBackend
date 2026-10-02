@@ -1,0 +1,83 @@
+# Endpoint warisan yang disetujui memakai fallback kompatibilitas.
+# Satu baris = <DeclaringController>.<MethodName>.
+#
+# Fallback berarti endpoint punya [AccessAction] tanpa [AccessPermission],
+# sehingga identitasnya didaftarkan memakai nama controller. Menambah baris
+# di sini adalah KEPUTUSAN GOVERNANCE, bukan perbaikan teknis: endpoint
+# terproteksi yang baru wajib memakai [AccessPermission].
+#
+# Dibandingkan sebagai HIMPUNAN, bukan jumlah, supaya pertukaran diam-diam
+# (satu diperbaiki, satu baru masuk) tetap tertangkap.
+#
+# Baseline 11 September 2026: 69 entri.
+# Dua di antaranya milik audio antrean dan akan berkurang saat BE-SEC-003
+# Fase C memindahkannya ke QueueVoice.PlayAudio.
+Clinic.GetClinicOptionsForKiosk
+Clinic.GetClinicsForKiosk
+Clinic.GetFilterMetadataForKiosk
+CompanyGuarantor.GetCompanyGuarantorOptionsForKiosk
+CompanyGuarantor.GetCompanyGuarantorsForKiosk
+CompanyGuarantor.GetFilterMetadataForKiosk
+DoctorSchedule.GetAvailableClinicsForKiosk
+DoctorSchedule.GetDoctorScheduleOptionsForKiosk
+DoctorSchedule.GetDoctorSchedulesForKiosk
+DoctorSchedule.GetFilterMetadataForKiosk
+HumanResourceContext.GetCurrent
+InsuranceProvider.GetFilterMetadataForKiosk
+InsuranceProvider.GetInsuranceProviderOptionsForKiosk
+InsuranceProvider.GetInsuranceProvidersForKiosk
+KioskScanSession.CreateFromScanResultForKiosk
+KioskScanSession.GetFilterMetadataForKiosk
+KioskScanSession.GetSessionOptionsForKiosk
+MyAttendance.CheckIn
+MyAttendance.CheckOut
+MyAttendance.GetCaptureStatus
+MyAttendance.GetDetail
+MyAttendance.GetHistory
+MyAttendance.GetMetadata
+MyAttendance.GetSummary
+Patient.CreatePatient
+Patient.GetFilterMetadata
+Patient.GetPatientById
+Patient.GetPatientOptions
+PatientCompanyGuarantor.CreatePatientCompanyGuarantor
+PatientCompanyGuarantor.GetFilterMetadata
+PatientCompanyGuarantor.GetPatientCompanyGuarantorOptions
+PatientCompanyGuarantor.GetPatientCompanyGuarantors
+PatientEmergencyContact.CreatePatientEmergencyContact
+PatientEmergencyContact.GetFilterMetadata
+PatientEmergencyContact.GetPatientEmergencyContactOptions
+PatientEmergencyContact.GetPatientEmergencyContacts
+PatientEncounter.CreateEncounterForKiosk
+PatientEncounter.GetEncounterOptionsForKiosk
+PatientEncounter.GetFilterMetadataForKiosk
+PatientIdentityDocument.CreatePatientIdentityDocument
+PatientIdentityDocument.GetFilterMetadata
+PatientIdentityDocument.GetPatientIdentityDocumentOptions
+PatientIdentityDocument.GetPatientIdentityDocuments
+PatientInsurance.CreatePatientInsurance
+PatientInsurance.GetFilterMetadata
+PatientInsurance.GetPatientInsuranceOptions
+PatientInsurance.GetPatientInsurances
+PatientMembership.CreatePatientMembership
+PatientMembership.GetFilterMetadata
+PatientMembership.GetPatientMembershipOptions
+PatientMembership.GetPatientMemberships
+PatientRelationship.CreatePatientRelationship
+QueueDisplayRuntime.GetCalled
+QueueDisplayRuntime.GetCurrent
+QueueDisplayRuntime.GetItems
+QueueDisplayRuntime.GetSummary
+QueueVoice.DownloadAudio
+QueueVoice.GetAudio
+Region.GetCitiesForKiosk
+Region.GetCityOptionsForKiosk
+Region.GetCountriesForKiosk
+Region.GetCountryOptionsForKiosk
+Region.GetDistrictOptionsForKiosk
+Region.GetDistrictsForKiosk
+Region.GetFilterMetadataForKiosk
+Region.GetPostalCodeOptionsForKiosk
+Region.GetPostalCodesForKiosk
+Region.GetProvinceOptionsForKiosk
+Region.GetProvincesForKiosk

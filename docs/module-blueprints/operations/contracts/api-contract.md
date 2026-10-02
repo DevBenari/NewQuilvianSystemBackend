@@ -12,6 +12,7 @@ Base URL: `api/v1/health-services/operating-room-management/cases`
 | `GET` | `/{id}` | Workspace lengkap kasus | `OperatingRoomCase : Read` | - | `ApiResponse<OprCaseDetailResponse>` | Rencana |
 | `POST` | `/` | Membuat permintaan operasi | `OperatingRoomCase : Create` | `CreateOprCaseRequest` | `ApiResponse<OprCaseDetailResponse>` | Rencana |
 | `PUT` | `/{id}` | Memperbaiki data permintaan sebelum mulai | `OperatingRoomCase : Update` | `UpdateOprCaseRequest` + version | `ApiResponse<OprCaseDetailResponse>` | Rencana |
+| `GET` | `/{id}/schedule/history` | Riwayat revisi jadwal, terbaru lebih dulu | `OperatingRoomCase : Read` | - | `ApiResponse<List<OprScheduleResponse>>` | Tersedia; tambahan di luar revisi awal kontrak |
 | `PATCH` | `/{id}/schedule` | Menetapkan/revisi jadwal dan tim | `OperatingRoomSchedule : Update` | `ScheduleOprCaseRequest` | `ApiResponse<OprScheduleResponse>` | Rencana |
 | `PATCH` | `/{id}/postpone` | Menunda kasus | `OperatingRoomSchedule : Update` | `PostponeOprCaseRequest` | `ApiResponse<OprCaseStatusResponse>` | Rencana |
 | `PATCH` | `/{id}/start` | Memulai operasi | `OperatingRoomExecution : Update` | `StartOprCaseRequest` | `ApiResponse<OprCaseStatusResponse>` | Rencana |

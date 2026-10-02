@@ -14,6 +14,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public int NoShowEncounter { get; set; }
         public int CashEncounter { get; set; }
         public int InsuranceEncounter { get; set; }
+
+        public int CompanyGuarantorEncounter { get; set; }
         public int ReferralEncounter { get; set; }
         public int FromKioskEncounter { get; set; }
     }
@@ -226,11 +228,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         public DateTime? EffectiveEndDateSnapshot { get; set; }
 
+        public Guid? PatientCompanyGuarantorId { get; set; }
+
+        public Guid? CompanyGuarantorId { get; set; }
+
+        public string? CompanyGuarantorCodeSnapshot { get; set; }
+
+        public string? EmployeeNumberSnapshot { get; set; }
+
+        public string? EmployeeNameSnapshot { get; set; }
+
         public bool IsEligible { get; set; }
 
         public bool IsPolicyActive { get; set; }
 
         public bool IsActive { get; set; }
+
+        public int Priority { get; set; } = 1;
+
+        public bool IsPrimary { get; set; } = true;
 
         public DateTime CreateDateTime { get; set; }
     }
@@ -431,6 +447,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         /// </summary>
         public Guid? PatientInsuranceId { get; set; }
 
+        /// <summary>
+        /// Diisi hanya ketika PaymentType = Penjamin Perusahaan dan harus merupakan
+        /// MstPatientCompanyGuarantor aktif milik PatientId yang sama. Hanya route
+        /// /admin yang menerimanya; route kiosk tetap Tunai/Asuransi.
+        /// </summary>
+        public Guid? PatientCompanyGuarantorId { get; set; }
+
         public Guid? KioskScanSessionId { get; set; }
 
         /// <summary>
@@ -446,6 +469,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
             EncounterRegistrationSource.FrontDesk;
 
         public EncounterPaymentType PaymentType { get; set; } = EncounterPaymentType.Cash;
+
+        public int Priority { get; set; } = 1;
+
+        public bool IsPrimary { get; set; } = true;
 
         [MaxLength(500)]
         public string? ChiefComplaint { get; set; }

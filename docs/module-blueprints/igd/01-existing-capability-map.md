@@ -433,3 +433,262 @@ tetap dihitung pada `f69e9e48` dan **tetap stale** terhadap `300922c` — termas
 `ClinicalManagement`, `PharmacyManagement`, dan seluruh area yang tersentuh merge
 "Hamzah, Ikbal, Yasmina". `/qv-trace` penuh tetap dibutuhkan sebelum gelombang yang menyentuh
 area-area itu.
+
+---
+
+# Suplemen revision 3.2 — impact scan encounter-first pada `0d13f3a8` / `c941012ac`
+
+| Field | Nilai |
+| --- | --- |
+| Tanggal | 22 September 2026 |
+| Jenis | **Impact scan terbatas**, read-only. Nol source diubah, nol migration, nol kueri basis data |
+| Backend | `NewQuilvianSystemBackend` branch `rizkiG` `0d13f3a8` — **671 commit** sesudah `f69e9e48` |
+| Frontend | `QuilvianSystemFrontendDev` branch `RizkiV2` `c941012ac` — **383 commit** sesudah `96a91201` |
+| Keputusan yang menjadi batas | `IGD-DEC-139`…`150` (encounter-first dan kasus tepinya) |
+| Status revisi 3 | **Stale seluruhnya** untuk area di luar suplemen ini. Keempat pemicu bagian 10 menyala: berkas `.cs` berubah di `EmergencyInstallationManagement` (69), `RegistrationManagement` (12), `ClinicalManagement` (68), `BillingManagement` (124), `Repositories/Configurations` (193), `Migrations/` (232); frontend `src/lib/state` (71), `src/lib/services` (67), `src/app/health-services` (245); puluhan migration diterapkan ke basis data bersama |
+| Yang **tidak** diaudit ulang | Pengkajian klinis, penunjang, obat, kepergian, serah terima, kewenangan unit (`IGD-CAP-17`…`42` selain yang disebut di bawah). Nama `Trx*` pada revisi 3 sudah menjadi `Emg*`/`Reg*` — baca dengan catatan itu |
+
+Suplemen ini **bukan** arsitektur target dan **bukan** rencana kerja. Ia hanya menjawab: kemampuan
+apa yang sudah ada, dalam bentuk apa, untuk setiap keputusan encounter-first.
+
+## S3.2.1 Kemampuan lama yang berubah status
+
+| ID | Capability | Status revisi 3 | Status sekarang | Bukti (`@0d13f3a8` / `@c941012ac`) |
+| --- | --- | --- | --- | --- |
+| `IGD-CAP-01` | Kunjungan pasien sebagai jangkar episode | `Ready to reuse` | `Ready to reuse` — nama kini `RegPatientEncounter` | `RegistrationManagement/Models/RegPatientEncounter.cs:15-26` |
+| `IGD-CAP-02` | Kunjungan IGD sebagai perluasan kunjungan | `Ready to reuse` | `Ready to reuse` — `EmgVisit`; unique index `EncounterId` **tanpa filter** (termasuk baris hapus lunak) | `EmergencyInstallationManagement/Models/EmgVisit.cs:21-23`; `Repositories/Configurations/HealthServices/EmergencyInstallationManagement/EmgVisitConfiguration.cs:31` |
+| `IGD-CAP-03` | Jenis kunjungan `Emergency` | `Conflict` | `Ready to reuse` — layar menulis `Emergency`; backend menerima `Emergency` dan `Outpatient` masa transisi (`IGD-DEC-109`) | `EmergencyVisitService.cs:261`; `tests/unit/emergency-registration-payload.test.mjs:35` (`FE-IGD-014 K1`) |
+| `IGD-CAP-07` | Pasien tanpa identitas | `Ready to reuse` | **`Conflict`** — backend siap, layar tidak memakainya. Lihat `IGD-CONF-06` | Backend `EmergencyVisitService.cs:145-157`; frontend `use-emergency-registration.js:937-942` |
+| `IGD-CAP-08` | Pencegahan episode ganda | `Missing` | `Reuse with adapter` — aturan ada tetapi hanya membaca kunjungan (klausa B `IGD-DEC-139`); klausa A (encounter) belum ada | `EmergencyVisitService.cs:343-364` (`CariEpisodeAktifAsync`); `EmergencyVisitController.cs:196` (`GET active-episode`) |
+| `IGD-CAP-09` | Antrean untuk pasien IGD | `Missing` (disengaja) | **`Unknown`** — kode IGD tetap nol rujukan `TrxQueue`, tetapi pintu encounter membuat `TrxQueue` bila unit/klinik `IsQueueRequired`; nilainya untuk unit IGD belum diketahui (`IGD-UNK-06`) | `PatientEncounterController.cs:544, 634-670` |
+| `IGD-CAP-14` | Status kunjungan mengikuti transisi | `Repair` | `Ready to reuse` — satu penjaga `TryApplyVisitStatus`, enam pemanggil | `EmergencyVisitService.cs:459-484`; pemanggil di `EmergencyDispositionController.cs:337`, `EmergencyObservationController.cs:316`, `EmergencyResuscitationController.cs:300`, `EmergencyTriageController.cs:349, 547`, `EmergencyVisitController.cs:546` |
+| `IGD-CAP-15` | Penetapan dokter sesudah triage | `Extend` | `Ready to reuse` untuk riwayat; **`Missing`** untuk kelayakan (`IGD-DEC-141`) | `EmergencyDoctorAssignmentController.cs:58-160`; `EmergencyDoctorAssignmentService.cs:173, 261` |
+| `IGD-CAP-16` | Riwayat penugasan dokter | `Missing` | `Ready to reuse` — `EmgDoctorAssignment`, `EmergencyVisitId` wajib | `Models/EmgDoctorAssignment.cs:44-91` |
+| `IGD-CAP-43` | Prasarana uji backend | `Extend` | **`Missing`** — seluruh proyek test dihapus 11 September 2026 | commit `cefd927d` "Remove backend test projects and simplify Integration gate" |
+| `IGD-CAP-45` | Realtime untuk IGD | `Missing` | `Missing` — tetap nol rujukan hub di IGD; daftar *Menunggu Triage* terpadu tidak realtime | `grep Hub Areas/HealthServices/EmergencyInstallationManagement` → kosong |
+| `IGD-CAP-46` | Layar pendaftaran IGD | `Extend` | `Extend` — dua panggilan berurutan + pra-cek `active-episode` (`FE-IGD-034`) | `use-emergency-registration.js:80, 1023, 1050` |
+| `IGD-CAP-47` | Layar triase | `Ready to reuse` | `Extend` — daftar hanya membaca kunjungan (`GET /emergency-visits`) | `emergency-management-triage-slice.jsx:125, 137-160` |
+
+## S3.2.2 Kemampuan yang dibutuhkan keputusan encounter-first
+
+| ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-CAP-51` | Satu pintu pembuatan encounter `Emergency` | Registration Management | `PatientEncounterController.cs:427` (`CreateEncounterCoreAsync`), `:559` transaksi, `:591` `EncounterType = request.EncounterType`; `EncounterIntakeService.cs:317-326` (`Outpatient` tetap); `InpEpisodeService.cs:1116-1125` (`Inpatient` tetap); DI `Program.cs:348`; konsumen `use-emergency-registration.js:1023` | `Reuse with adapter` | Belum ada penjaga episode, tanpa-antrean, maupun catatan override. Semua masuk pintu yang sama | Menengah — berkas milik Registrasi; pemiliknya belum dipetakan |
+| `IGD-CAP-52` | Serentak pada pintu encounter | Registration Management | `PatientEncounterNumberService.cs:28-35` mengambil `pg_advisory_xact_lock(hashtext('REG_PATIENT_ENCOUNTER_NUMBER'))`; dipanggil **di dalam** transaksi `CreateEncounterCoreAsync` (`:567`), dipegang sampai commit (`:693`) | `Reuse with adapter` | **Fakta baru:** seluruh pembuatan encounter lewat pintu ini **sudah antre satu per satu** sejak alokasi nomor. Penjaga episode yang dijalankan **sesudah** kunci itu sudah bebas balapan pada pintu ini. Tetapi `POST /emergency-visits` tidak mengambil kunci apa pun, dan bersandar pada kunci penomoran untuk invariant bisnis itu rapuh. Lihat catatan desain di S3.2.6 | Rendah untuk pintu encounter; tinggi bila hanya bersandar kunci penomoran |
+| `IGD-CAP-53` | Penutupan encounter oleh IGD | Registration (tabel) + IGD (pemicu) | IGD menyebut `EncounterStatus` **nol** kali; `PATCH …/status` (`PatientEncounterController.cs:906-962`) dan `PATCH …/cancel` (`:1046-1085`) menulis tanda berbeda; `ClinicalDocumentIntegrityService.LockOpenDocumentsForEncounterAsync` tidak menyimpan sendiri, DI `Program.cs:392` | `Missing` (pemicu) / `Ready to reuse` (penguncian catatan) | Titik panggil di `EmergencyVisitController.cs:496, 562` | Menengah-tinggi |
+| `IGD-CAP-54` | Tanda "encounter berakhir" yang dibaca modul lain | Blood Bank, Medical Record | `BbkEncounterStatusReader.cs:58-60`, `MedicalRecordAccessAuditService.cs:75-92`, `MedicalRecordBackfillService.cs:49-51, 98-101` — semuanya menganggap `Completed`/`Cancelled`/`NoShow` tertutup; sebagian juga membaca `IsCancel`/`CompletedAt` | `Ready to reuse` | Status `NoShow` dari `IGD-DEC-142` otomatis dibaca tertutup oleh modul-modul ini | Rendah |
+| `IGD-CAP-55` | Ruas NoShow pada encounter | Registration Management | `RegPatientEncounter.cs:171-176` (`NoShowAt`, `NoShowByUserId`, `NoShowReason`); penulis tunggal `DoctorQueueController.cs:663-676` (antrean dokter) | `Reuse with adapter` | Aksi IGD untuk baris tanpa kunjungan **belum ada**; `PATCH …/status` menerima `NoShow` **tanpa** mengisi ketiga ruas (`IGD-CONF-07`) | Rendah |
+| `IGD-CAP-56` | Billing untuk NoShow | Billing Management | `BillingInvoiceService.cs:1205-1227`; `BillingDepositService.cs:264`; pembuatan encounter tidak membuat tagihan | `Ready to reuse` | Nol perubahan (`IGD-DEC-142`) | Rendah |
+| `IGD-CAP-57` | Daftar *Menunggu Triage* terpadu | Emergency Installation Management | Hari ini layar membaca `GET /emergency-visits` saja (`emergency-management-triage-slice.jsx:125, 137-160`); proyeksi daftar kunjungan `EmergencyVisitController.cs:760-790` | `Missing` | Endpoint gabungan encounter + kunjungan belum ada | Menengah |
+| `IGD-CAP-58` | Kelahiran kunjungan dari encounter (Mulai Triage / Tangani Segera) | Emergency Installation Management | `POST /emergency-visits` (`EmergencyVisitController.cs:240-332`), `GenerateVisitNumberAsync` (`EmergencyVisitService.cs:487`), `TryApplyVisitStatus`, unique index `EncounterId` | `Extend` | Belum ada titik lahir idempoten dengan dua status awal; Tangani Segera hari ini (`PATCH …/visit-status`, `emergency-management-triage-slice.jsx:176-192`) hanya untuk kunjungan yang sudah ada | Menengah |
+| `IGD-CAP-59` | Pencegahan antrean untuk encounter `Emergency` | Registration Management | `PatientEncounterController.cs:544` (`isQueueRequired` dari klinik/unit), `:634-670` (pembuatan `TrxQueue`) | `Missing` | Penjaga kode `IGD-DEC-144` belum ada | Rendah |
+| `IGD-CAP-60` | Penyimpanan override pendaftaran ganda | Emergency Installation Management | Encounter tanpa ruas override; `EmgVisit.DuplicateEpisodeOverride*` (`EmgVisit.cs:84-96`) hanya untuk jalur kunjungan | `Missing` | Entity baru `IGD-DEC-145` — butuh registrasi prefix QBE dan migration | Rendah |
+| `IGD-CAP-61` | Waktu tiba beserta penanda konfirmasi | Emergency Installation Management | `EmgVisit.ArrivalDateTime` (`EmgVisit.cs:32`, bawaan `UtcNow`); `PUT /emergency-visits/{id}` menimpanya (`EmergencyVisitController.cs:378`); layar: validasi dikomentari, jatuh ke jam browser (`IGD-EV-141`) | `Repair` (nilai) / `Missing` (penanda) | Penanda `IGD-DEC-147` butuh migration pada tabel IGD | Menengah — lihat koreksi fakta S3.2.5 |
+| `IGD-CAP-62` | Pola preview lalu eksekusi untuk operasi admin | Accounting, HR | `YearEndClosingController.cs:73` (`GET preview`); `LeaveAccrualController.cs:103` (`POST preview`) | `Reuse with adapter` | Jejak audit per run **tidak** ada sebagai tabel: `LoggerService.AuditAsync` menulis ke Serilog (`IGD-CAP-24`) — `IGD-DEC-148` butuh penyimpanan run tersendiri | Menengah |
+| `IGD-CAP-63` | Penautan pasien tanpa identitas ke encounter | Emergency Installation Management | `PUT /emergency-visits/{id}` sudah dapat menimpa `EncounterId`, `PatientId`, `IsUnknownPatient` (`EmergencyVisitController.cs:349-394`), lewat `ValidateRequestAsync` | `Reuse with adapter` | Jalur itu penimpaan umum tanpa jejak khusus penautan identitas; `IGD-DEC-149` butuh aksi eksplisit | Menengah — penimpaan umum dapat mengubah identitas tanpa alasan tercatat |
+| `IGD-CAP-64` | Kelayakan dokter jaga IGD | — | Pilihan dokter = seluruh master aktif (`emergency-management-triage-slice.jsx:553-576`); `MstDoctorSchedule` ber-DNA poliklinik (`IGD-EV-140`) | `Unknown` | Menunggu E1–E3. `MstDoctorSchedule` **bukan** sumber final | Tinggi (keselamatan) |
+| `IGD-CAP-65` | Hak akses aksi baru IGD | Administrator | Aksi terdaftar lewat pasangan `[AccessAction]` + `[AccessPermission]` pada method; `EmergencyVisitController.cs:26-29` (`AccessController` resource `Emergency Visit`) | `Ready to reuse` | Aksi NoShow, Mulai Triage, tautkan identitas, dan rekonsiliasi admin memilih resource/aksi saat desain; pemberian hak ke peran ada di basis data (`IGD-UNK-11`) | Rendah |
+
+## S3.2.3 Kontrak as-is yang disentuh perjalanan encounter-first
+
+#### Health Services / Registration Management / Patient Encounter
+
+| Method | Path | Perilaku hari ini | Hak akses |
+| --- | --- | --- | --- |
+| `POST` | `/api/v1/health-services/registration-management/patient-encounters` (juga `/admin`, `/kiosk`) | Membuat encounter dalam transaksi; mengambil kunci penomoran global; membuat `TrxQueue` bila `IsQueueRequired`; **nol** penjaga episode | `PatientEncounter : Create` |
+| `PATCH` | `/api/v1/health-services/registration-management/patient-encounters/{id}/status` | Status apa pun tanpa validasi transisi; `NoShow` tanpa ruas NoShow; `Completed` tanpa `CompletedAt` tetapi mengunci catatan klinis | `PatientEncounter : Update` |
+| `PATCH` | `/api/v1/health-services/registration-management/patient-encounters/{id}/cancel` | `IsCancel`, `CancelledAt`/`By`, `CancelReason`, `IsActive = false`, antrean dibatalkan; `EncounterStatus` **tidak** berubah | `PatientEncounter : Update` |
+
+#### Health Services / Emergency Installation Management / Emergency Visit
+
+| Method | Path | Perilaku hari ini | Hak akses |
+| --- | --- | --- | --- |
+| `GET` | `/api/v1/health-services/emergency-installation-management/emergency-visits` | Daftar kunjungan; filter/urut `ArrivalDateTime` | `EmergencyVisit : Read` |
+| `GET` | `/api/v1/health-services/emergency-installation-management/emergency-visits/active-episode?patientId=` | Pra-cek; hanya klausa B | `EmergencyVisit : Create` |
+| `POST` | `/api/v1/health-services/emergency-installation-management/emergency-visits` | Melahirkan kunjungan; menolak `409` episode ganda (klausa B); **tanpa** kunci serentak; mendukung pasien tanpa identitas | `EmergencyVisit : Create` |
+| `PUT` | `/api/v1/health-services/emergency-installation-management/emergency-visits/{id}` | Menimpa seluruh ruas termasuk `EncounterId`, `PatientId`, `ArrivalDateTime` | `EmergencyVisit : Update` |
+| `PATCH` | `/api/v1/health-services/emergency-installation-management/emergency-visits/{id}/visit-status` | Transisi lewat penjaga; menolak `Completed`; dipakai Tangani Segera | `EmergencyVisit : Update` |
+| `PATCH` | `/api/v1/health-services/emergency-installation-management/emergency-visits/{id}/complete` | Gerbang penutupan lalu `Completed`; encounter **tidak** ikut ditutup | `EmergencyVisit : Update` |
+
+## S3.2.4 Conflict baru
+
+| ID | Conflict | Tingkat | Bukti | Terkait |
+| --- | --- | --- | --- | --- |
+| `IGD-CONF-06` | **Jalur U1 tidak punya penghasil di layar.** `IGD-DEC-140` menyatakan pasien tanpa identitas "tetap memakai jalur kunjungan-lebih-dulu seperti hari ini" (kunjungan tanpa `PatientId`/`EncounterId`). Kenyataannya layar pendaftaran selalu mulai dari langkah Pasien, menolak lanjut tanpa `patientId`, dan selalu membuat encounter; kotak "pasien tanpa identitas" hanya menandai kunjungan. Artinya di lapangan pasien tanpa identitas **harus** dibuatkan rekam `MstPatient` dulu — praktik yang menyerupai U2 tanpa tata kelola Master Patient, atau pasien itu tidak dapat didaftarkan lewat layar | `HIGH` | `use-emergency-registration.js:937-942` (`"ID pasien belum tersedia."`), `:1023`; `emergency-registration.constants.js` langkah `PATIENT` → `EMERGENCY_VISIT`; `emergency-visit-step.jsx:78-80, 412-437` | `IGD-DEC-140`, `IGD-DEC-149`, `IGD-OQ-098` |
+| `IGD-CONF-07` | **Dua jalur menulis NoShow dengan hasil berbeda.** Antrean dokter mengisi status dan ketiga ruas; `PATCH …/status` hanya status. Encounter IGD yang ditutup lewat jalur Registrasi umum tidak memenuhi `IGD-DEC-142` (pelaku dan alasan kosong) | `MEDIUM` | `DoctorQueueController.cs:663-676` lawan `PatientEncounterController.cs:906-962` | `IGD-DEC-142` |
+| `IGD-CONF-08` | **Penimpaan identitas lewat `PUT` umum.** `PUT /emergency-visits/{id}` dapat mengganti `PatientId`/`EncounterId` tanpa alasan tercatat, padahal `IGD-DEC-149` menuntut penautan yang dapat diaudit | `MEDIUM` | `EmergencyVisitController.cs:349-394` | `IGD-DEC-149` |
+
+Revisi 3 memakai `IGD-CONF-01`…`05`; penomoran dilanjutkan dari `06`.
+
+## S3.2.5 Koreksi fakta — waktu tiba bukan dasar SLA triage
+
+Pada wawancara 22 September 2026 (pertanyaan F dan F2) dan pada evidence
+`2026-09-22-desain-encounter-first.md` bagian 2, agent menulis bahwa waktu tiba adalah titik nol
+SLA triage (`EmgTriage.ResponseDueAt`), sehingga nilai fallback membuat "angka SLA triage tampak
+lebih baik". **Itu keliru.**
+
+| Yang ditulis | Yang benar menurut source |
+| --- | --- |
+| `ResponseDueAt` dihitung dari waktu tiba | `ResponseDueAt = StartedAt + MaxWaitingMinutes` level triage — dari **mulai triage**, bukan waktu tiba (`EmergencyTriageController.cs:311-313`; `EmergencyTriageService.cs:206-208`) |
+| Waktu tiba memengaruhi daftar pantau pelanggaran SLA | Tidak. Pemantau SLA (`MarkSlaBreachesAsync`) membaca `ResponseDueAt` (`EmergencyTriageService.cs:273-299`) |
+| Ada pengukuran *door-to-triage* | Tidak ada di kode. `IGD-DEC-127` hanya menyebutnya sebagai pengukuran yang mungkin dilakukan dari dua kolom terpisah |
+
+**Pemakai `ArrivalDateTime` yang sebenarnya:** filter dan urutan tanggal daftar kunjungan
+(`EmergencyVisitController.cs:138-148`), penjaga "penugasan dokter tidak boleh sebelum waktu tiba"
+(`EmergencyDoctorAssignmentService.cs:173, 261`), tampilan layar pengkajian, dan fallback
+`EffectiveFrom` pada `BE-IGD-048`.
+
+**Akibat pada keputusan.** `IGD-DEC-147` dan `IGD-DEC-142`…`150` **tidak** berubah isinya. Yang
+berubah adalah **alasan** `IGD-DEC-147` butir penanda (F2): penanda konfirmasi tetap berguna untuk
+kejujuran catatan waktu tiba dan untuk laporan *door-to-triage* **bila kelak dibuat**, tetapi **tidak**
+memengaruhi SLA triage yang berjalan hari ini. Satu akibat baru yang harus dirancang: **koreksi waktu
+tiba ke arah lebih lambat** dapat membuat penugasan dokter yang sudah ada tampak "sebelum pasien tiba"
+— penjaga di `EmergencyDoctorAssignmentService` hanya memeriksa saat penugasan dibuat. Dicatat sebagai
+pertanyaan penutup `IGD-TRQ-09`.
+
+## S3.2.6 Catatan desain dari fakta — bukan keputusan
+
+| Fakta | Yang perlu diperhitungkan `design-business-module` |
+| --- | --- |
+| Kunci penomoran global sudah membuat pintu encounter antre (`IGD-CAP-52`) | `IGD-DEC-146` tetap dipakai sebagai kunci **eksplisit** per pasien, supaya invariant bisnis tidak bersandar pada efek samping penomoran dan supaya `POST /emergency-visits` (yang tidak mengambil kunci penomoran) ikut terjaga. Urutan pengambilan kunci di pintu encounter harus konsisten (per pasien lalu penomoran, atau sebaliknya — sekali ditetapkan) supaya tidak terjadi *deadlock* |
+| Seluruh pendaftaran rumah sakit sudah antre pada satu kunci penomoran | Penjaga episode yang ditambahkan di dalam jendela kunci itu memperpanjang antrean semua pendaftaran (rawat jalan juga). Kueri episode harus satu kueri berindeks (`PatientId` sudah berindeks: `RegPatientEncounterConfiguration.cs:368`) |
+| Unique index `EmgVisit.EncounterId` tanpa filter | Idempotensi Mulai Triage/Tangani Segera dapat memakai tangkapan `UniqueViolation` (pola `BbkProviderRequestService.cs:404`); K4 tidak dapat diberi kunjungan baru |
+| Tidak ada proyek test backend | Acceptance uji paralel (`IGD-DEC-146`) harus dijalankan sebagai uji API/manual oleh pemilik, bukan test otomatis |
+
+## S3.2.7 Unknown
+
+| ID | Yang belum diketahui | Kenapa audit ini tidak dapat menjawab |
+| --- | --- | --- |
+| `IGD-UNK-06` | Nilai `IsQueueRequired` unit/klinik IGD, dan jumlah `TrxQueue` yang tertaut encounter `Emergency` | Butuh kueri basis data |
+| `IGD-UNK-07` | Jumlah encounter `Emergency` belum berakhir per kelas K1–K4 (kueri D) | Butuh kueri basis data — milik pemilik |
+| `IGD-UNK-08` | Apakah jadwal dokter IGD ada di `MstDoctorSchedule` (kueri E1–E3) | Sama |
+| `IGD-UNK-09` | Kandidat encounter yatim (kueri A/B `BE-IGD-050`) | Sama |
+| `IGD-UNK-10` | Bagaimana pasien tanpa identitas **benar-benar** didaftarkan di lapangan hari ini: berapa `EmgVisit` ber-`IsUnknownPatient = true`, apakah semuanya punya `PatientId`/`EncounterId`, dan rekam `MstPatient` macam apa yang dipakai | Butuh kueri basis data dan keterangan petugas |
+| `IGD-UNK-11` | Peran mana yang memegang `EmergencyVisit : Read/Create/Update` dan `PatientEncounter : Update` | Pemberian hak ada di basis data |
+
+## S3.2.8 Pertanyaan penutup untuk `grill-me`
+
+| ID | Pertanyaan | Memblokir | Dasar |
+| --- | --- | --- | --- |
+| `IGD-TRQ-08` | `IGD-CONF-06`: karena layar tidak pernah membuat kunjungan tanpa pasien, apa arti "U1 seperti hari ini"? (a) Layar pendaftaran diberi jalur U1 sungguhan — kunjungan tanpa pasien dan tanpa encounter; (b) praktik lapangan (rekam `MstPatient` pengganti) diakui sebagai cara transisi, yang berarti menyentuh wilayah pemilik Master Patient; (c) ditahan sampai `IGD-UNK-10` terjawab | `DESIGN` untuk `IGD-DEC-140`/`149` | `IGD-CONF-06`, `IGD-UNK-10` |
+| `IGD-TRQ-09` | Bolehkah waktu tiba dikoreksi menjadi **lebih lambat** dari penugasan dokter atau mulai triage yang sudah tercatat? Bila tidak, koreksi itu ditolak; bila boleh, riwayat penugasan menjadi tampak tidak masuk akal | `DESIGN` untuk `IGD-DEC-147` | S3.2.5 |
+| `IGD-TRQ-10` | `IGD-CONF-07`: apakah encounter `Emergency` boleh tetap ditutup lewat `PATCH …/status` dan `…/cancel` umum milik Registrasi, atau jalur itu harus menolak tipe `Emergency` supaya penutupan IGD selalu lewat aksi IGD yang mengisi pelaku dan alasan? | `DESIGN` untuk `IGD-DEC-142`; menyentuh berkas Registrasi | `IGD-CONF-07` |
+| `IGD-TRQ-11` | `IGD-CONF-08`: haruskah `PUT /emergency-visits/{id}` berhenti menerima perubahan `PatientId`/`EncounterId` begitu aksi penautan `IGD-DEC-149` ada? | `DESIGN` | `IGD-CONF-08` |
+
+> **Dijawab 22 September 2026 (malam):** `IGD-TRQ-08` → `IGD-DEC-151`, `IGD-TRQ-09` → `IGD-DEC-152`, `IGD-TRQ-10` →
+> `IGD-DEC-153`, `IGD-TRQ-11` → `IGD-DEC-154`. `IGD-CONF-06`…`08` terselesaikan. Fakta tambahan `IGD-FACT-021`…`023`
+> dicatat pada decision log.
+
+## S3.2.9 Pemicu audit ulang suplemen ini
+
+Suplemen menjadi tidak sahih bila `PatientEncounterController.cs`, `PatientEncounterNumberService.cs`,
+`EmergencyVisitController.cs`, `EmergencyVisitService.cs`, `EmergencyDoctorAssignmentService.cs`,
+`use-emergency-registration.js`, atau `emergency-management-triage-slice.jsx` berubah sesudah
+`0d13f3a8`/`c941012ac`. Pemeriksaan cukup dengan `git diff --stat` atas berkas-berkas itu.
+
+---
+
+# Suplemen revision 3.3 — impact scan untuk `IGD-DEC-163`…`168` pada `dce1f138`
+
+Scan terbatas, bukan audit ulang seluruh modul. Tujuannya satu: memastikan keputusan baru — **disposisi yang
+dilaksanakan menutup kunjungan IGD**, dan penutupan menyusul otomatis saat penahan terakhir dibereskan — berdiri di
+atas kemampuan yang benar-benar ada hari ini, bukan di atas peta yang dibuat 78 commit yang lalu.
+
+| Butir | Isi |
+| --- | --- |
+| Baseline lama | Backend `0d13f3a8` / frontend `c941012ac` (revisi 3 + suplemen 3.2) |
+| Baseline baru | Backend `rizkiG` **`dce1f138`** — 78 commit sesudahnya, termasuk merge `62c8360a` dari `QuilvianIntegrationBackend` |
+| Frontend | `RizkiV2` `c941012ac` — **nol commit** sejak suplemen 3.2, jadi tidak di-scan ulang |
+| Keputusan yang dilayani | `IGD-DEC-163`…`168` (amendment pass 23 September 2026) |
+| Batas | Read-only terhadap source kedua repository; nol kueri basis data; nol perubahan source |
+
+## 0. Di mana source benar-benar bergeser
+
+| Area | Berkas berubah | Relevansi terhadap keputusan baru |
+| --- | ---: | --- |
+| `LaboratoryManagement` | 91 | **Ya** — pembaca status encounter baru (lihat `IGD-CAP-70`) |
+| `Repositories` | 71 | Tidak langsung — `DbSet` dan configuration modul lain |
+| `ClinicalManagement` | 69 | Tidak — nol sentuhan ke kunjungan IGD |
+| `PharmacyManagement` | 54 | Tidak — nol pembaca status encounter yang menahan |
+| `InPatientManagement` | 43 | **Ya** — jalur disposisi rawat inap (lihat `IGD-CAP-68`) |
+| `BillingManagement` | 31 | Tidak berubah perilakunya terhadap IGD |
+| `BloodBankManagement` | 17 | **Ya** — pembaca status encounter baru (lihat `IGD-CAP-69`) |
+| `EmergencyInstallationManagement` | 14 | Seluruhnya pekerjaan `BE-IGD-051` dan `BE-IGD-055` |
+| `RegistrationManagement` | 8 | Tidak mengubah jalur penutupan encounter |
+
+**Temuan paling melegakan:** `EmergencyObservationService.cs`, `EmergencyDepartureService.cs`, dan
+`EmergencyDispositionService.cs` — ketiga service yang akan menjadi pemicu penutupan susulan — **tidak berubah
+satu baris pun** sejak `0d13f3a8`. Peta lama masih berlaku penuh untuk ketiganya. Yang berubah di modul IGD hanya
+`EmergencyVisitService.cs` (+408/-2), dan itu pekerjaan kita sendiri.
+
+## 1. Kemampuan yang dipakai ulang keputusan baru
+
+| ID | Capability | Status | Bukti | Catatan untuk desain |
+| --- | --- | --- | --- | --- |
+| `IGD-CAP-66` | Penjaga "pesanan penahan" pada penutupan kunjungan | `READY TO REUSE` | `EmergencyDepartureService.AmbilPesananPenahanPenutupanAsync:574-585`; dipanggil `ValidateVisitClosureAsync:144` | Kueri hanya menyentuh `EmgHandoverOrderItem` milik IGD sendiri — `IsEffective`, `AcceptanceStatus = Rejected`, tertaut kepergian kunjungan itu. **Nol ketergantungan pada Lab atau Farmasi**, sehingga perubahan 91 + 54 berkas di kedua modul itu tidak memindahkan pemicunya |
+| `IGD-CAP-67` | Penetapan sikap pesanan dan status serah terima | `READY TO REUSE` | Seluruh penulis `AcceptanceStatus =` dan `HandoverStatus =` berada di `EmergencyDepartureService` (`:204`, `:212`, `:300`, `:582`, `:682`, `:703`, `:807`, `:822`) dan `EmergencyDepartureController` (`:57`, `:167`, `:177`) | Semua pemicu "penahan terakhir dibereskan" tinggal di **satu service milik IGD**. `PendingHandoverStatus` pada `BillingManagement/Cashier/Services/CashierShiftService.cs:1040` adalah kemiripan nama untuk serah terima kasir, **bukan** serah terima pasien |
+| `IGD-CAP-68` | Admisi rawat inap sebagai tujuan disposisi | `READY TO REUSE` | `InPatientManagement` memuat **nol** rujukan ke `EmgVisit`, `EmergencyVisit`, `EncounterType.Emergency`, maupun `EmgDeparture` | `IGD-FACT-025` tetap benar sesudah 43 berkas berubah: admisi membuat encounter `Inpatient` baru dan tidak pernah menyentuh encounter IGD. Serah terima ke ranap tetap dicatat dan diterima di sisi IGD, sehingga pemicu penutupan tidak berpindah modul |
+
+## 2. Kemampuan baru yang muncul sejak baseline — dan konsekuensinya
+
+| ID | Capability | Status | Bukti | Akibat bagi keputusan baru |
+| --- | --- | --- | --- | --- |
+| `IGD-CAP-69` | Bank Darah membaca "kunjungan sudah berakhir" | `CONFLICT` (konsekuensi, bukan cacat) | `BbkEncounterStatusReader.cs:50-147` — `Completed`, `Cancelled`, `NoShow` dibaca sebagai tertutup; dipakai `BbkBloodOrderService:502`, penolakan pada `:629-632`, dan `BbkBloodUnitService:2768-2776` | Begitu encounter tertutup, Bank Darah **menolak order darah baru** dan **menolak alokasi kantong** ke baris kebutuhan order itu |
+| `IGD-CAP-70` | Laboratorium menolak pemesanan pada kunjungan yang sudah selesai | `CONFLICT` (konsekuensi, bukan cacat) | `LabOrderService.CreateByExaminationsAsync:741`, penjaga `VAL-67` pada `:773-780` | Begitu encounter tertutup, **pemeriksaan laboratorium baru tidak dapat dipesankan**. Hanya satu titik penjagaan di service itu, dan letaknya pada pembuatan order — **pencatatan hasil order yang sudah ada tidak ikut tertahan** |
+
+### `IGD-CONF-09` — penutupan yang lebih rajin mematikan pemesanan susulan
+
+Sampai `BE-IGD-051`, encounter IGD **tidak pernah** tertutup. Akibatnya kedua penjaga di atas praktis tidak pernah
+menyala untuk pasien IGD: order darah dan pemeriksaan laboratorium selalu diterima, berapa lama pun sesudah pasien
+pulang.
+
+`IGD-DEC-163` dan `IGD-DEC-165` mengubah itu secara mendasar — bukan karena artinya berubah, melainkan karena
+**waktunya** berubah. Encounter kini tertutup pada saat disposisi dilaksanakan, atau menyusul otomatis begitu
+penahan terakhir dibereskan. Sejak detik itu, untuk encounter tersebut:
+
+- order darah baru ditolak, dan kantong tidak dapat dialokasikan ke order lamanya;
+- pemeriksaan laboratorium baru ditolak.
+
+*Contoh.* Pasien pulang pukul 14.00 dan disposisinya dilaksanakan saat itu juga. Pukul 16.10 perawat menutup
+observasi terakhir, dan kunjungan ikut tertutup otomatis (`IGD-DEC-165`). Pukul 16.30 dokter ingin menambahkan satu
+pemeriksaan laboratorium susulan atas spesimen yang sudah diambil tadi siang — permintaan itu **ditolak** dengan
+pesan *"Kunjungan ini sudah selesai, pemeriksaan baru tidak dapat dipesankan."*
+
+Ini bukan cacat: justru itulah arti episode yang berakhir, dan pasien yang benar-benar butuh layanan baru
+seharusnya didaftarkan ulang. Tetapi konsekuensinya **harus disadari dan diterima pemilik**, bukan ditemukan
+petugas di lapangan. Pencatatan hasil untuk order yang sudah terlanjur dibuat tidak terdampak.
+
+**Status:** `open` — bukan blocker teknis, tetapi wajib dijawab sebelum kontrak susulan dikunci.
+
+## 3. Jawaban sisi source untuk `IGD-OQ-110`
+
+Pertanyaannya: adakah jalur yang menulis `RegPatientEncounter.IsActive = false` **tanpa** mengisi satu pun dari lima
+tanda berakhir? Seluruh penulisnya ditelusuri:
+
+| Jalur | Bukti | Mengisi tanda berakhir? |
+| --- | --- | --- |
+| Penutupan encounter oleh IGD | `EmergencyVisitService.cs:627` | **Ya** — `EncounterStatus = Cancelled`, `IsCancel`, `CancelledAt` |
+| Rollback encounter jangkar admisi | `InpEpisodeService.cs:956-965` | **Ya** — `Cancelled`, `IsCancel`, `CancelledAt` |
+| Pembatalan encounter oleh Registrasi | `PatientEncounterController.cs:1070-1075` | **Ya** — `IsCancel = true` |
+| Penutup otomatis pendaftaran kiosk | `KioskEncounterClosureService.cs:246-250` | **Ya** — `NoShow`, `NoShowAt` |
+| **Hapus lunak encounter** | `PatientEncounterController.DeleteEncounter:1096-1117` | **Tidak** — tetapi baris itu juga diberi `IsDelete = true`, dan **seluruh** kueri IGD menyaring `!IsDelete`, sehingga baris itu tidak pernah terbaca sebagai "masih terbuka" |
+
+**Kesimpulan sisi source:** tidak ada jalur yang meninggalkan encounter dalam keadaan "nonaktif, belum berakhir, dan
+belum terhapus". `IGD-OQ-110` karena itu dipersempit: yang tersisa hanya kemungkinan **data lama** yang ditulis jalur
+yang sudah tidak ada lagi, atau lewat SQL langsung. Kuerinya tetap milik pemilik; agent tidak menjalankannya.
+
+## 4. Pertanyaan untuk pemilik
+
+| ID | Pertanyaan | Mengapa penting | Pemilik |
+| --- | --- | --- | --- |
+| ~~`IGD-TRQ-12`~~ **dijawab `IGD-DEC-169`** (23 September 2026: diterima apa adanya, nol perubahan modul lain, nol tenggang waktu) | Apakah konsekuensi `IGD-CONF-09` diterima apa adanya — sesudah kunjungan tertutup, order darah dan pemeriksaan laboratorium baru untuk encounter itu ditolak? | Menentukan apakah desain cukup menutup kunjungan begitu saja, atau perlu tenggang waktu, atau perlu pesan yang mengarahkan petugas mendaftarkan episode baru | Product/Domain Owner IGD, dengan tinjauan pemilik Bank Darah dan Laboratorium |
+
+## 5. Kesimpulan scan
+
+1. **Peta lama masih dapat dipercaya untuk inti keputusan ini.** Ketiga service pemicu tidak berubah, dan seluruh
+   pemicu penutupan susulan berada di dalam modul IGD sendiri — satu service, bukan tersebar lintas modul seperti
+   yang sempat saya duga sebelum pengukuran.
+2. **Yang benar-benar baru ada di hilir**, bukan di hulu: dua pembaca status encounter (`IGD-CAP-69`, `IGD-CAP-70`)
+   yang akan mulai menyala untuk pasien IGD justru karena encounter kini benar-benar ditutup.
+3. **Satu keputusan pemilik dibutuhkan sebelum desain dikunci** (`IGD-TRQ-12`). Selain itu, desain boleh berjalan.
+4. Frontend tidak perlu di-scan ulang: nol commit sejak suplemen 3.2.

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 {
@@ -13,6 +14,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         public Guid? EncounterId { get; set; }
         public string? EncounterNumber { get; set; }
+
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi catatan ini - <c>BE-RWI-063</c>, <c>INT-KEP-03</c>.
+        /// Kosong untuk catatan poliklinik, medical check-up, dan IGD.
+        /// </summary>
+        public Guid? InpEpisodeId { get; set; }
 
         public Guid? QueueId { get; set; }
         public string? QueueCode { get; set; }
@@ -36,6 +43,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string? ClinicName { get; set; }
 
         public DateTime NoteDateTime { get; set; }
+
+        /// <summary>
+        /// Jenis catatan - <c>BE-RWI-094</c>, <c>FR-DOK-085</c>. Entri lama bernilai
+        /// <c>Unspecified</c> apa adanya, tanpa pengisian tebakan.
+        /// </summary>
+        public CpptNoteKind NoteKind { get; set; }
+
+        /// <summary>Label jenis catatan yang siap ditampilkan, ditentukan server.</summary>
+        public string NoteKindName { get; set; } = string.Empty;
+
         public string ProfessionType { get; set; } = string.Empty;
         public string? ProfessionName { get; set; }
 
@@ -55,6 +72,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public bool IsReadOnlyGenerated { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
+
+        /// <summary>
+        /// Keadaan verifikasi DPJP atas catatan ini, apa adanya seperti yang tersimpan pada
+        /// barisnya - <c>BE-RWI-066</c>.
+        /// </summary>
+        /// <remarks>
+        /// Nilainya <b>tidak</b> diturunkan ulang di sini. <c>Overdue</c> lahir dari
+        /// perbandingan <see cref="VerificationDueAt"/> terhadap waktu sekarang dan dihitung
+        /// pada daftar pantau, bukan disimpan; mengarangnya di sini akan membuat dua sumber
+        /// kebenaran yang saling menyalip.
+        /// </remarks>
+        public CpptVerificationStatus VerificationStatus { get; set; }
+
+        /// <summary>Waktu verifikasi. Kosong selama catatan belum diverifikasi.</summary>
+        public DateTime? VerifiedAt { get; set; }
+
+        /// <summary>
+        /// Pengguna yang memverifikasi. <b>Bukan</b> penulis catatan pada
+        /// <see cref="ProviderUserId"/> - <c>INV-DOK-11</c>.
+        /// </summary>
+        public Guid? VerifiedByUserId { get; set; }
+
+        /// <summary>
+        /// Nama verifikator. Kosong berarti belum diverifikasi, atau verifikatornya tidak lagi
+        /// dapat dikenali - <b>bukan</b> nama tebakan dan <b>bukan</b> nama penulis.
+        /// </summary>
+        public string? VerifiedByUserName { get; set; }
+
+        /// <summary>
+        /// Batas waktu verifikasi. Kosong berarti catatan ini tidak dipantau; nilai batasnya
+        /// datang dari kebijakan <c>RWI-RULE-021</c> yang belum disahkan, dan nol angka
+        /// ditanam di kode.
+        /// </summary>
+        public DateTime? VerificationDueAt { get; set; }
     }
 
     public class PatientIntegratedProgressNoteDetailResponse : PatientIntegratedProgressNoteResponse
@@ -78,6 +129,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid Id { get; set; }
         public string ProgressNoteNumber { get; set; } = string.Empty;
         public DateTime NoteDateTime { get; set; }
+
+        /// <summary>Jenis catatan - <c>BE-RWI-094</c>, dipakai penyaring lini masa.</summary>
+        public CpptNoteKind NoteKind { get; set; }
+
+        public string NoteKindName { get; set; } = string.Empty;
+
         public string ProfessionType { get; set; } = string.Empty;
         public string ProfessionName { get; set; } = string.Empty;
         public string ProfessionTone { get; set; } = "neutral";
@@ -94,6 +151,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string NoteText { get; set; } = string.Empty;
         public bool IsGeneratedFromSource { get; set; }
         public bool IsReadOnlyGenerated { get; set; }
+
+        /// <summary>
+        /// Keadaan verifikasi DPJP atas catatan ini, apa adanya seperti yang tersimpan pada
+        /// barisnya - <c>BE-RWI-066</c>.
+        /// </summary>
+        /// <remarks>
+        /// Nilainya <b>tidak</b> diturunkan ulang di sini. <c>Overdue</c> lahir dari
+        /// perbandingan <see cref="VerificationDueAt"/> terhadap waktu sekarang dan dihitung
+        /// pada daftar pantau, bukan disimpan; mengarangnya di sini akan membuat dua sumber
+        /// kebenaran yang saling menyalip.
+        /// </remarks>
+        public CpptVerificationStatus VerificationStatus { get; set; }
+
+        /// <summary>Waktu verifikasi. Kosong selama catatan belum diverifikasi.</summary>
+        public DateTime? VerifiedAt { get; set; }
+
+        /// <summary>
+        /// Pengguna yang memverifikasi. <b>Bukan</b> penulis catatan pada
+        /// <see cref="ProviderUserId"/> - <c>INV-DOK-11</c>.
+        /// </summary>
+        public Guid? VerifiedByUserId { get; set; }
+
+        /// <summary>
+        /// Nama verifikator. Kosong berarti belum diverifikasi, atau verifikatornya tidak lagi
+        /// dapat dikenali - <b>bukan</b> nama tebakan dan <b>bukan</b> nama penulis.
+        /// </summary>
+        public string? VerifiedByUserName { get; set; }
+
+        /// <summary>
+        /// Batas waktu verifikasi. Kosong berarti catatan ini tidak dipantau; nilai batasnya
+        /// datang dari kebijakan <c>RWI-RULE-021</c> yang belum disahkan, dan nol angka
+        /// ditanam di kode.
+        /// </summary>
+        public DateTime? VerificationDueAt { get; set; }
     }
 
     public class PatientIntegratedProgressNoteFilterMetadataResponse
@@ -157,6 +248,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid PatientId { get; set; }
 
         public Guid? EncounterId { get; set; }
+
+        /// <summary>
+        /// Perawatan rawat inap yang dituju - <c>BE-RWI-063</c>, <c>INT-KEP-03</c>. Boleh kosong;
+        /// bila kosong, backend menurunkannya sendiri dari kunjungan. Bila diisi dan tidak cocok
+        /// dengan perawatan milik kunjungan itu, permintaan ditolak.
+        /// </summary>
+        public Guid? InpEpisodeId { get; set; }
+
         public Guid? QueueId { get; set; }
         public Guid? ConsultationId { get; set; }
         public Guid? AssessmentId { get; set; }
@@ -167,13 +266,44 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         public DateTime? NoteDateTime { get; set; }
 
+        /// <summary>
+        /// Jenis catatan yang disimpan - <c>BE-RWI-094</c>, <c>FR-DOK-085</c>,
+        /// <c>VAL-DOK-59</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Diperiksa terhadap profesi penulis: perawat tidak dapat menyimpan catatan berjenis
+        /// dokter. Pasangan yang tidak sah ditolak <c>400</c> beserta daftar jenis yang sah bagi
+        /// profesinya, bukan sekadar "nilai tidak valid".
+        /// </para>
+        /// <para>
+        /// Kosong berarti server memilih jenis bawaan yang paling sesuai dengan profesi penulis.
+        /// Profesi penulis diturunkan dari tautan akun ke data dokter/pegawai; nilai
+        /// <c>ProfessionType</c> dari request dipertahankan hanya untuk kompatibilitas klien dan
+        /// tidak menjadi sumber kewenangan.
+        /// </para>
+        /// </remarks>
+        public CpptNoteKind? NoteKind { get; set; }
+
+        /// <summary>
+        /// Dipertahankan untuk kompatibilitas klien. Backend menyimpan profesi dari tautan akun
+        /// terautentikasi dan mengabaikan nilai ini sebagai sumber kewenangan.
+        /// </summary>
         [Required]
         [MaxLength(50)]
         public string ProfessionType { get; set; } = "Doctor";
 
+        /// <summary>
+        /// Dipertahankan untuk kompatibilitas klien; label profesi tersimpan berasal dari master
+        /// profesi akun terautentikasi.
+        /// </summary>
         [MaxLength(100)]
         public string? ProfessionName { get; set; }
 
+        /// <summary>
+        /// Dipertahankan untuk kompatibilitas klien dan diabaikan. Penulis selalu pengguna yang
+        /// sedang terautentikasi.
+        /// </summary>
         public Guid? ProviderUserId { get; set; }
 
         [MaxLength(150)]
@@ -214,13 +344,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
     {
         public DateTime? NoteDateTime { get; set; }
 
+        /// <summary>
+        /// Jenis catatan - <c>BE-RWI-094</c>, <c>VAL-DOK-59</c>. Diperiksa terhadap profesi
+        /// penulis dengan aturan yang sama seperti pada pembuatan. Kosong berarti jenis yang
+        /// sudah tersimpan dipertahankan apa adanya — termasuk <c>Unspecified</c> pada entri
+        /// lama, yang sengaja tidak diisi tebakan.
+        /// </summary>
+        public CpptNoteKind? NoteKind { get; set; }
+
+        /// <summary>
+        /// Dipertahankan untuk kompatibilitas klien. Profesi aktual dibaca ulang dari akun
+        /// penulis dan nilai ini tidak dapat memindahkan profesi sebuah catatan.
+        /// </summary>
         [Required]
         [MaxLength(50)]
         public string ProfessionType { get; set; } = "Doctor";
 
+        /// <summary>
+        /// Dipertahankan untuk kompatibilitas klien; label yang disimpan berasal dari master
+        /// profesi akun.
+        /// </summary>
         [MaxLength(100)]
         public string? ProfessionName { get; set; }
 
+        /// <summary>
+        /// DIABAIKAN pada permintaan ubah. Nilai yang dikirim di sini tidak mengubah apa pun.
+        ///
+        /// Penulis catatan ditetapkan sekali saat catatan dibuat dan tidak dapat dipindahkan
+        /// lewat permintaan ubah. Penentu penulis yang sah adalah kolom penulis pada daftar
+        /// keutuhan dokumen, bukan nilai yang dikirim klien.
+        ///
+        /// Permintaan yang tetap mengirim kolom ini TIDAK ditolak — supaya klien lama tidak
+        /// putus — tetapi nilainya tidak berpengaruh.
+        /// </summary>
         public Guid? ProviderUserId { get; set; }
 
         [MaxLength(150)]
@@ -253,7 +409,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string? PrivateNote { get; set; }
 
         public bool IsGeneratedFromSource { get; set; } = false;
+
+        /// <summary>
+        /// DIABAIKAN pada permintaan ubah. Nilai yang dikirim di sini tidak mengubah apa pun.
+        ///
+        /// Penanda hanya-baca menentukan apakah sebuah catatan boleh disunting. Bila penanda itu
+        /// dapat dilepas lewat permintaan ubah, penandanya tidak melindungi apa pun.
+        ///
+        /// Permintaan yang tetap mengirim kolom ini TIDAK ditolak — supaya klien lama tidak
+        /// putus — tetapi nilainya tidak berpengaruh.
+        /// </summary>
         public bool IsReadOnlyGenerated { get; set; } = false;
+
         public bool IsActive { get; set; } = true;
     }
 
@@ -263,9 +430,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string ProgressNoteNumber { get; set; } = string.Empty;
         public Guid PatientId { get; set; }
         public Guid? EncounterId { get; set; }
+        public Guid? InpEpisodeId { get; set; }
         public Guid? QueueId { get; set; }
         public Guid? ConsultationId { get; set; }
         public DateTime NoteDateTime { get; set; }
+        public CpptNoteKind NoteKind { get; set; }
+        public string NoteKindName { get; set; } = string.Empty;
         public string ProfessionType { get; set; } = string.Empty;
         public string? ProfessionName { get; set; }
         public string? SourceModule { get; set; }

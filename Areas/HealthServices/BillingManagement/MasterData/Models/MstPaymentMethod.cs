@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Models;
+using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
 
@@ -81,5 +81,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
         public string? Description { get; set; }
 
         public bool IsActive { get; set; } = true;
+
+        public ICollection<MstPaymentMethodAccount> Accounts { get; set; } = new List<MstPaymentMethodAccount>();
     }
 }

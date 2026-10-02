@@ -39,7 +39,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
         public DateTime? ClosedAt { get; set; }
         public bool IsActive { get; set; } = true;
 
-        public TrxPrescription? Prescription { get; set; }
+        public PhmPrescription? Prescription { get; set; }
         public TrxPrescriptionReview? PrescriptionReview { get; set; }
         public TrxPrescriptionReviewItem? PrescriptionReviewItem { get; set; }
     }

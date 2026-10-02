@@ -65,6 +65,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
         [MaxLength(500)]
         public string? ClosedWithoutClearanceReason { get; set; }
 
+        public BillingClearanceStatus ClearanceStatus { get; set; } = BillingClearanceStatus.None;
+
+        [MaxLength(1000)]
+        public string? ClearanceRevokedReason { get; set; }
+
+        public bool IsSupervisorOverridden { get; set; } = false;
+
+        [MaxLength(1000)]
+        public string? SupervisorOverrideReason { get; set; }
+
+        public Guid? SupervisorOverriddenByUserId { get; set; }
+
+        public DateTime? SupervisorOverriddenAtUtc { get; set; }
+
         [MaxLength(500)]
         public string? CancelReason { get; set; }
 
@@ -73,7 +87,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
 
         public bool IsActive { get; set; } = true;
 
-        public TrxPatientEncounter? Encounter { get; set; }
+        public RegPatientEncounter? Encounter { get; set; }
 
         public MstPatient? Patient { get; set; }
 

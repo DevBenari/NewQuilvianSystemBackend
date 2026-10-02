@@ -88,6 +88,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
             entity.InitialAssessmentTargetHours = request.InitialAssessmentTargetHours;
             entity.ProgressNoteVerificationTargetHours = request.ProgressNoteVerificationTargetHours;
             entity.PendingClosureThresholdHours = request.PendingClosureThresholdHours;
+            entity.DepositFollowUpIntervalDays = request.DepositFollowUpIntervalDays;
             entity.EpisodeNumberPrefix = NormalizePrefix(request.EpisodeNumberPrefix);
             entity.IsActive = request.IsActive;
             entity.Notes = NormalizeText(request.Notes);
@@ -148,6 +149,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
 
             if (request.PendingClosureThresholdHours is < 1 or > 720)
                 return "Ambang episode tertahan menunggu penutupan harus antara 1 dan 720 jam.";
+
+            if (request.DepositFollowUpIntervalDays is < 1 or > 365)
+                return "Ambang tindak lanjut kekurangan deposit harus antara 1 dan 365 hari.";
 
             if (!request.IsActive && entity.IsActive)
             {

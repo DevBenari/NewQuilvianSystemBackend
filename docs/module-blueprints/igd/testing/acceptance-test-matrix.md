@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `IGD-BP-001` revision `5` |
+| Blueprint | `IGD-BP-001` revision `5`; **bagian encounter-first (`AT-IGD-166`…`185`) ditambahkan 22 September 2026** |
 | Status | `draft` |
 | Kontrak | API `0.3.0`, state `0.3.0`, validation `0.3.0`, permission/audit `0.3.0` |
 | Prasarana uji backend | `QuilvianSystemBackend.Tests` — xunit 2.9.2, EFCore InMemory 9.0.18, pola `IsolatedBillingDbContextFactory` |
@@ -220,3 +220,42 @@ Empat belas skenario baru, `AT-IGD-152` sampai `AT-IGD-165`. Seluruhnya lahir da
 
 Dua baris ini dicatat supaya `AT-IGD-152` **tidak** dibaca sebagai bukti bahwa sistem tahu
 keadaan laboratorium. Ia hanya membuktikan sikapnya tercatat beserta pelakunya.
+
+---
+
+## Encounter-first — 22 September 2026 (**Rencana (belum tersedia)**)
+
+Dua puluh skenario baru, `AT-IGD-166` sampai `AT-IGD-185`, untuk `EPIC IGD-11`. Diturunkan dari
+`IGD-DEC-139`, `142`…`148`, `150`…`154`; pesan mengikat ada di validation `0.8.0` §10. Proyek test backend
+sudah dihapus (capability map `IGD-CAP-43`), sehingga skenario backend dibuktikan lewat **uji API dan
+kueri baca-saja oleh pemilik**, bukan test otomatis. Tidak satu pun ditulis `UAT PASS` oleh agent.
+
+| ID | Skenario | Hasil | Yang dibuktikan | Keputusan |
+| --- | --- | --- | --- | --- |
+| `AT-IGD-166` | Pasien beridentitas didaftarkan di loket IGD | Berhasil | Satu encounter Emergency, **nol** kunjungan IGD, nol baris antrean | `IGD-DEC-139`, `144` |
+| `AT-IGD-167` | Daftar triage dibuka sesudah `AT-IGD-166` | Berhasil | Pasien tampil *Menunggu Triage* dengan label **"Terdaftar"**, bukan "Tiba"; satu baris per episode | `IGD-DEC-139` |
+| `AT-IGD-168` | Pasien yang sedang *Menunggu Triage* didaftarkan lagi tanpa alasan | Gagal `409` | Pesan menyebut nomor encounter dan "Menunggu Triage"; jumlah encounter tidak bertambah | `IGD-DEC-139`, validation §10.1 aturan 3 |
+| `AT-IGD-169` | Dua pendaftaran Emergency paralel untuk pasien yang sama | Satu `200`, satu `409` | Tepat satu episode terbuka di basis data; hitungan dicatat | `IGD-DEC-146` |
+| `AT-IGD-170` | Pendaftaran kedua dengan alasan | Berhasil | Encounter kedua lahir; catatan override berisi alasan, pelaku token, waktu server, episode yang dilangkahi; tabel encounter tanpa ruas baru | `IGD-DEC-145` |
+| `AT-IGD-171` | Unit/klinik IGD diset `IsQueueRequired = true`, lalu pasien didaftarkan | Berhasil | Nol baris `TrxQueue` untuk encounter itu | `IGD-DEC-144` |
+| `AT-IGD-172` | Mulai Triage dengan waktu tiba 10 menit sebelum waktu terdaftar | Berhasil `201` | Kunjungan `WaitingForTriage`; waktu tiba tersimpan; sumber **Confirmed** | `IGD-DEC-139`, `147` |
+| `AT-IGD-173` | Tangani Segera pada baris tanpa kunjungan | Berhasil `201` | Kunjungan `InTreatment` dalam **satu** permintaan tanpa isian; waktu tiba = waktu terdaftar, sumber **Fallback** | `IGD-DEC-143`, `147` |
+| `AT-IGD-174` | Mulai Triage dan Tangani Segera dikirim paralel untuk encounter yang sama | `201` + `200` | Tepat satu kunjungan; status akhir `InTreatment` | `IGD-DEC-143` |
+| `AT-IGD-175` | Waktu tiba dikoreksi menjadi sesudah mulai triage | Gagal `409` | Pesan menyebut "mulai triage" dan jamnya; waktu tiba tidak berubah | `IGD-DEC-152` |
+| `AT-IGD-176` | Perawat menandai pasien pergi tanpa alasan | Gagal `400` | Alasan wajib | `IGD-DEC-142` |
+| `AT-IGD-177` | Perawat menandai pasien pergi dengan alasan; lalu pasien kembali | Berhasil | Encounter `NoShow` + pelaku/waktu/alasan; hilang dari daftar triage; tidak di daftar tagihan; pendaftaran ulang **berhasil** membuat encounter baru | `IGD-DEC-142` |
+| `AT-IGD-178` | Kunjungan diselesaikan | Berhasil | Kunjungan dan encounter `Completed` pada satu penyimpanan; catatan klinis belum bertanda tangan terkunci | `IGD-DEC-139` |
+| `AT-IGD-179` | Kunjungan dihapus lunak; di data lain, kunjungan ber-encounter `Outpatient` diselesaikan | Berhasil | Encounter kunjungan terhapus **tetap terbuka**; encounter `Outpatient` tertaut **ikut** `Completed` | `IGD-DEC-148` TK-1, TK-2 |
+| `AT-IGD-180` | Petugas memakai `PATCH …/status` pada encounter Emergency; lalu `PATCH …/cancel` pada encounter Emergency yang sudah punya kunjungan | Gagal `409` keduanya | Pesan validation §10.1 aturan 8 dan 9 | `IGD-DEC-153` |
+| `AT-IGD-181` | `PUT /emergency-visits/{id}` mengubah `patientId` | Gagal `409` | Identitas kunjungan terkunci; ruas lain tetap dapat diubah | `IGD-DEC-154` |
+| `AT-IGD-182` | Pratinjau rekonsiliasi di basis data berkandidat | Berhasil | Jumlah K1–K4 sama dengan kueri D; **nol** baris berubah | `IGD-DEC-148` |
+| `AT-IGD-183` | Eksekusi dengan `expectedCount` basi; lalu eksekusi benar; lalu dibalik | `409`, `201`, `200` | Hanya K1 berubah; `CompletedAt` hanya dari bukti; pembalikan mengembalikan nilai sebelum dan melewati baris yang sudah berubah | `IGD-DEC-148` |
+| `AT-IGD-184` | Pasien tanpa identitas didaftarkan dengan rekam pengganti lalu ditangani | Berhasil | Tanda vital, SOAP, pesanan lab dapat dibuat; kunjungan bertanda `IsUnknownPatient` dengan alias | `IGD-DEC-151` |
+| `AT-IGD-185` | Klien memanggil `POST /patient-encounters` Emergency **tanpa** pra-cek untuk pasien berepisode terbuka | Gagal `409` | Penjaga ada di server, bukan di layar — celah (b) `IGD-OQ-093` tertutup | `IGD-DEC-139`, `146` |
+
+### Yang tidak dapat diuji otomatis pada slice ini
+
+| Yang tidak diuji | Sebab |
+| --- | --- |
+| Kebenaran waktu tiba yang diketik perawat | Sistem hanya dapat membuktikan batas dan penandanya, bukan bahwa pasien memang tiba jam itu |
+| Kelayakan dokter jaga | `S7` ditahan `IGD-OQ-102`/`103` |

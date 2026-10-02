@@ -1,0 +1,124 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
+
+namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.LaboratoryManagement
+{
+    public class LabExaminationConfiguration : IEntityTypeConfiguration<LabExamination>
+    {
+        public void Configure(EntityTypeBuilder<LabExamination> builder)
+        {
+            builder.ToTable("LabExamination", "public");
+            builder.HasKey(x => x.Id);
+
+            builder.Property(x => x.LabOrderId).IsRequired();
+            builder.Property(x => x.SpecimenId).IsRequired();
+            builder.Property(x => x.ProcedureId).IsRequired();
+
+            builder.Property(x => x.ProcedureCodeSnapshot).HasMaxLength(50);
+            builder.Property(x => x.ProcedureNameSnapshot).HasMaxLength(200);
+            builder.Property(x => x.TariffCodeSnapshot).HasMaxLength(50);
+            builder.Property(x => x.UnitPriceSnapshot).HasPrecision(18, 2);
+
+            builder.Property(x => x.ExaminationStatus).HasConversion<int>().IsRequired();
+            builder.Property(x => x.Urgency).HasConversion<int>().IsRequired();
+
+            builder.Property(x => x.IsDuplo).IsRequired();
+            builder.Property(x => x.Version).IsConcurrencyToken();
+
+            // BR-20 dan AC-35: satu wadah menopang banyak pemeriksaan, tetapi tidak boleh
+            // menopang jenis pemeriksaan yang sama dua kali. Keunikan ditegakkan database supaya
+            // dua permintaan bersamaan tidak dapat sama-sama berhasil; jalur penolakan beserta
+            // pesannya adalah pekerjaan endpoint pada BE-LAB-16.
+            //
+            // Filter IsDelete mengikuti soft delete base model audit: baris yang sudah dihapus
+            // tidak boleh menghalangi pemesanan ulang jenis pemeriksaan yang sama pada wadah itu.
+            //
+            // Pengerjaan ganda tidak melanggar keunikan ini karena duplo adalah penanda pada satu
+            // baris — IsDuplo — bukan dua baris pemeriksaan yang sama.
+            builder.HasIndex(x => new { x.SpecimenId, x.ProcedureId })
+                .IsUnique()
+                .HasDatabaseName("IX_LabExamination_SpecimenId_ProcedureId")
+                .HasFilter("\"IsDelete\" = false");
+
+            builder.HasIndex(x => x.LabOrderId);
+            builder.HasIndex(x => x.ExaminationStatus);
+            builder.HasIndex(x => x.ChargeEligibleAt);
+            builder.HasIndex(x => x.Urgency);
+
+            // Restrict di ketiga relasi. Pemeriksaan adalah satuan yang ditagihkan, sehingga
+            // pesanan, wadah, maupun data induk jenis pemeriksaan yang masih dirujuk tidak boleh
+            // hilang dari bawahnya dan memutus tautan tagihan.
+            builder.HasOne(x => x.LabOrder)
+                .WithMany(x => x.Examinations)
+                .HasForeignKey(x => x.LabOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.Specimen)
+                .WithMany(x => x.Examinations)
+                .HasForeignKey(x => x.SpecimenId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.Procedure)
+                .WithMany()
+                .HasForeignKey(x => x.ProcedureId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // TariffId sengaja tanpa foreign key, mengikuti LabSpecimen. Tarif milik Master
+            // Data dan disimpan di sini sebagai salinan bukti nilai saat kejadian; menautkannya
+            // secara fisik akan membuat penataan ulang tarif di sana menyandera baris pemeriksaan
+            // yang sudah terlanjur terbentuk.
+
+            // =============================================================
+            // Pengisian hasil — slice S4a (LAB-DEC-005, LAB-DEC-076)
+            // =============================================================
+
+            // Presisi ditetapkan eksplisit. Bawaan Npgsql untuk decimal tanpa keterangan adalah
+            // numeric tanpa batas, dan hasil laboratorium dibandingkan terhadap batas nilai —
+            // dua angka yang presisinya berbeda akan berselisih pada pembulatan tanpa satu pun
+            // galat yang terlihat.
+            builder.Property(x => x.ResultNumeric).HasPrecision(18, 4);
+
+            // Keduanya Restrict, sebab yang sama dengan ketiga relasi di atas: batas nilai dan
+            // pilihan hasil adalah BUKTI nilai saat kejadian. Menghapusnya dari bawah hasil yang
+            // sudah terisi akan membuat angka itu kehilangan artinya.
+            builder.HasOne(x => x.ResultOption)
+                .WithMany()
+                .HasForeignKey(x => x.ResultOptionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.ResultValueBound)
+                .WithMany()
+                .HasForeignKey(x => x.ResultValueBoundId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Dipakai penyaring Kategori Periode pilihan Tanggal Pemeriksaan (REC3-NEW-002).
+            builder.HasIndex(x => x.ExaminedAt);
+
+            // =============================================================
+            // Hasil Mikrobiologi berstruktur — slice S4b (BE-LAB-53)
+            // =============================================================
+
+            // Keempat enum disimpan sebagai int, mengikuti ExaminationStatus dan Urgency di
+            // atas. Seluruhnya NULLABLE: tabel ini sudah berisi data, dan kolom wajib tanpa
+            // default akan menolak migration pada baris yang sudah ada.
+            builder.Property(x => x.MicrobiologyFinding).HasConversion<int>();
+            builder.Property(x => x.ResultQualifier).HasConversion<int>();
+            builder.Property(x => x.CultureType).HasConversion<int>();
+            builder.Property(x => x.SusceptibilityMethod).HasConversion<int>();
+
+            // ReopenCount BUKAN nullable dan berdefault 0 — kolom hitung yang kosong tidak
+            // dapat dibedakan dari nol kali dibuka kembali.
+            builder.Property(x => x.ReopenCount).IsRequired().HasDefaultValue(0);
+
+            builder.Property(x => x.ConsultedToName).HasMaxLength(200);
+
+            // Nol foreign key bagi FinalizedByUserId maupun ConsultedByUserId, mengikuti
+            // ResultEnteredByUserId dan UrgencyMarkedByUserId pada entity yang sama —
+            // LabExamination memang nol punya foreign key yang menunjuk pengguna.
+
+            // Dipakai membaca "hasil mana yang sudah selesai ditulis" tanpa memindai tabel.
+            builder.HasIndex(x => x.FinalizedAt);
+        }
+    }
+}

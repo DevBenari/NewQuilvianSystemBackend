@@ -29,6 +29,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         /// <summary>Ambang episode dianggap tertahan menunggu penutupan, dalam jam. Bawaan 4 jam.</summary>
         public int PendingClosureThresholdHours { get; set; }
 
+        /// <summary>
+        /// Berapa hari sekali kekurangan uang muka ditagih ulang. Bawaan 3 hari.
+        /// </summary>
+        public int DepositFollowUpIntervalDays { get; set; }
+
         /// <summary>Awalan nomor episode, misalnya <c>RI</c>.</summary>
         public string EpisodeNumberPrefix { get; set; } = string.Empty;
 
@@ -74,6 +79,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
         [Range(1, 720)]
         public int PendingClosureThresholdHours { get; set; }
+
+        /// <summary>
+        /// Antara 1 hari dan 365 hari. Batas bawah 1 karena ambang <c>0</c> berarti
+        /// kekurangan ditagih ulang tanpa jeda; batas atas 365 karena tidak ada episode
+        /// rawat inap yang berjalan selama itu, sehingga nilai di atasnya hanya dapat
+        /// berarti salah ketik yang mematikan pengingat tanpa siapa pun menyadarinya.
+        /// </summary>
+        [Range(1, 365)]
+        public int DepositFollowUpIntervalDays { get; set; } = 3;
 
         [Required]
         [MaxLength(20)]

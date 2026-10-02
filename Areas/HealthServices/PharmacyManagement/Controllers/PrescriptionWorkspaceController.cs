@@ -45,7 +45,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             Guid prescriptionId,
             CancellationToken cancellationToken = default)
         {
-            var result = await _workspaceService.GetAsync(prescriptionId, cancellationToken);
+            var result = await _workspaceService.GetAsync(prescriptionId, GetCurrentUserId(), cancellationToken);
             if (result == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
@@ -69,6 +69,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         {
             var result = await _workspaceService.GetByConsultationAsync(
                 consultationId,
+                GetCurrentUserId(),
                 cancellationToken);
 
             if (result == null)

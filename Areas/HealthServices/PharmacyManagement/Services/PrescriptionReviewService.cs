@@ -11,10 +11,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
     public class PrescriptionReviewService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly PrescriptionFinancialClearanceService _financialClearanceService;
 
-        public PrescriptionReviewService(ApplicationDbContext dbContext)
+        public PrescriptionReviewService(
+            ApplicationDbContext dbContext,
+            PrescriptionFinancialClearanceService financialClearanceService)
         {
             _dbContext = dbContext;
+            _financialClearanceService = financialClearanceService;
         }
 
         public async Task<PrescriptionReviewResponse?> GetActiveAsync(
@@ -38,7 +42,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             string? generalNote,
             CancellationToken cancellationToken = default)
         {
-            var prescription = await _dbContext.Set<TrxPrescription>()
+            var prescription = await _dbContext.Set<PhmPrescription>()
                 .Include(x => x.Items.Where(i => !i.IsDelete && !i.IsCancel && i.IsActive))
                 .Include(x => x.Compounds.Where(c => !c.IsDelete && !c.IsCancel && c.IsActive))
                     .ThenInclude(x => x.Items.Where(i => !i.IsDelete && !i.IsCancel && i.IsActive))
@@ -54,6 +58,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             {
                 throw new InvalidOperationException("Status resep belum siap untuk proses telaah farmasi.");
             }
+
+            // Gerbang finansial pertama dari empat (PHA-BE-005). Telaah tidak dimulai selama
+            // kasir belum memastikan pembayarannya, dan berhenti begitu izinnya dicabut.
+            await _financialClearanceService.EnsureGateAllowedAsync(
+                prescriptionId, PrescriptionClearanceGate.Review, cancellationToken);
 
             var active = await _dbContext.Set<TrxPrescriptionReview>()
                 .Include(x => x.Items)
@@ -353,7 +362,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             review.HasCompoundFormulaProblem = HasProblem(PrescriptionReviewCategory.CompoundFormula);
         }
 
-        private static string BuildPrescriptionSignature(TrxPrescription prescription)
+        private static string BuildPrescriptionSignature(PhmPrescription prescription)
         {
             var raw = string.Join("|", new[]
             {

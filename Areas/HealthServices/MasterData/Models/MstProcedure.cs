@@ -1,4 +1,5 @@
-﻿using QuilvianSystemBackend.Models;
+﻿using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
+using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -35,6 +36,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         public bool IsSurgery { get; set; } = false;
 
         public bool IsLaboratory { get; set; } = false;
+
+        /// <summary>
+        /// Disiplin laboratorium yang menaungi jenis pemeriksaan ini — Patologi Klinik,
+        /// Patologi Anatomi, atau Mikrobiologi (<c>LAB-DEC-036</c>, <c>BE-EXT-01</c>).
+        ///
+        /// <b>Klasifikasi, bukan atribut operasional.</b> Kolom ini sejenis dengan
+        /// <see cref="IsLaboratory"/> dan <see cref="IsRadiology"/> di atas: ia menggolongkan
+        /// jenis tindakan. Satuan hasil, batas nilai, dan jenis wadah <b>tetap dilarang</b>
+        /// masuk ke sini — seluruhnya berada di tabel milik Laboratorium.
+        ///
+        /// Hanya bermakna bila <see cref="IsLaboratory"/> bernilai benar. Boleh kosong karena
+        /// tindakan non-laboratorium memang tidak punya disiplin, dan karena katalog yang sudah
+        /// ada belum digolongkan.
+        /// </summary>
+        public LabDiscipline? LabDiscipline { get; set; }
 
         public bool IsRadiology { get; set; } = false;
 

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
@@ -49,6 +50,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             "Other"
         };
 
+        // Sumbernya enum `LabDiscipline` milik Laboratorium, bukan daftar teks tersendiri.
+        // Menyalinnya menjadi konstanta di sini membuat disiplin baru diterima controller ini
+        // sementara Laboratorium tidak mengenalinya — atau sebaliknya.
+        private static readonly string[] AllowedLabDisciplines =
+            Enum.GetNames<LabDiscipline>();
+
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
 
@@ -82,6 +89,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     })
                     .ToList(),
                 QueryParameters = BuildQueryParameterInfo(),
+                LabDisciplineOptions = AllowedLabDisciplines
+                    .Select(x => new ProcedureStringOptionResponse
+                    {
+                        Value = x,
+                        Label = BuildLabDisciplineLabel(Enum.Parse<LabDiscipline>(x))
+                    })
+                    .ToList(),
                 CreateFields = BuildCreateFieldMetadata(),
                 UpdateFields = BuildUpdateFieldMetadata(),
                 ResetButtonLabel = "Reset"
@@ -367,6 +381,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsNursingAction = request.IsNursingAction,
                 IsSurgery = request.IsSurgery,
                 IsLaboratory = request.IsLaboratory,
+                LabDiscipline = ParseLabDiscipline(request.LabDiscipline),
                 IsRadiology = request.IsRadiology,
                 IsTherapy = request.IsTherapy,
                 IsNeedDoctor = request.IsNeedDoctor,
@@ -447,6 +462,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.IsNursingAction = request.IsNursingAction;
             entity.IsSurgery = request.IsSurgery;
             entity.IsLaboratory = request.IsLaboratory;
+
+            // Dikirim kosong berarti golongannya dicabut. Ini juga yang mengosongkan disiplin
+            // ketika penanda Laboratorium dimatikan, karena validasi menolak keduanya bersamaan.
+            entity.LabDiscipline = ParseLabDiscipline(request.LabDiscipline);
+
             entity.IsRadiology = request.IsRadiology;
             entity.IsTherapy = request.IsTherapy;
             entity.IsNeedDoctor = request.IsNeedDoctor;
@@ -724,6 +744,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 return (false, "Tipe procedure tidak valid. Gunakan salah satu: General, Nursing, DoctorAction, Surgery, Laboratory, Radiology, Therapy, Other.");
             }
 
+            var labDiscipline = NormalizeNullableText(request.LabDiscipline);
+
+            if (labDiscipline != null)
+            {
+                if (!AllowedLabDisciplines.Contains(labDiscipline, StringComparer.OrdinalIgnoreCase))
+                {
+                    return (false, $"Disiplin laboratorium tidak valid. Gunakan salah satu: {string.Join(", ", AllowedLabDisciplines)}.");
+                }
+
+                // Ditolak, bukan dikosongkan diam-diam. Petugas yang salah menaruh golongan pada
+                // tindakan non-laboratorium perlu tahu bahwa isiannya tidak tersimpan.
+                if (!request.IsLaboratory)
+                {
+                    return (false, "Disiplin laboratorium hanya berlaku untuk procedure berpenanda Laboratorium.");
+                }
+            }
+
             if (request.EstimatedDurationMinutes < 0)
                 return (false, "Estimasi durasi procedure tidak boleh kurang dari 0 menit.");
 
@@ -877,6 +914,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsNursingAction = entity.IsNursingAction,
                 IsSurgery = entity.IsSurgery,
                 IsLaboratory = entity.IsLaboratory,
+                LabDiscipline = entity.LabDiscipline?.ToString(),
+                LabDisciplineName = entity.LabDiscipline is { } d ? BuildLabDisciplineLabel(d) : null,
                 IsRadiology = entity.IsRadiology,
                 IsTherapy = entity.IsTherapy,
                 IsNeedDoctor = entity.IsNeedDoctor,
@@ -913,6 +952,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsNursingAction = entity.IsNursingAction,
                 IsSurgery = entity.IsSurgery,
                 IsLaboratory = entity.IsLaboratory,
+                LabDiscipline = entity.LabDiscipline?.ToString(),
+                LabDisciplineName = entity.LabDiscipline is { } d ? BuildLabDisciplineLabel(d) : null,
                 IsRadiology = entity.IsRadiology,
                 IsTherapy = entity.IsTherapy,
                 IsNeedDoctor = entity.IsNeedDoctor,
@@ -952,6 +993,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsNursingAction = entity.IsNursingAction,
                 IsSurgery = entity.IsSurgery,
                 IsLaboratory = entity.IsLaboratory,
+                LabDiscipline = entity.LabDiscipline?.ToString(),
+                LabDisciplineName = entity.LabDiscipline is { } d ? BuildLabDisciplineLabel(d) : null,
                 IsRadiology = entity.IsRadiology,
                 IsTherapy = entity.IsTherapy,
                 IsNeedDoctor = entity.IsNeedDoctor,
@@ -1016,6 +1059,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             return matched ?? "General";
         }
+
+        private static LabDiscipline? ParseLabDiscipline(string? value)
+        {
+            var trimmed = NormalizeNullableText(value);
+
+            if (trimmed == null)
+            {
+                return null;
+            }
+
+            return Enum.TryParse<LabDiscipline>(trimmed, ignoreCase: true, out var discipline) &&
+                   Enum.IsDefined(discipline)
+                ? discipline
+                : null;
+        }
+
+        // Label berbahasa Indonesia yang sama dengan yang dipakai Laboratorium pada
+        // `LabFilterMetadataFactory`, supaya satu golongan tidak terbaca dengan dua nama.
+        private static string BuildLabDisciplineLabel(LabDiscipline value) => value switch
+        {
+            LabDiscipline.ClinicalPathology => "Patologi Klinik",
+            LabDiscipline.AnatomicalPathology => "Patologi Anatomi",
+            LabDiscipline.Microbiology => "Mikrobiologi",
+            _ => value.ToString()
+        };
 
         private static string BuildProcedureTypeLabel(string value)
         {
@@ -1160,19 +1228,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 new() { Name = "isNursingAction", Label = "Tindakan Perawat", Section = "Rule", InputType = "switch", SortOrder = 8 },
                 new() { Name = "isSurgery", Label = "Surgery", Section = "Rule", InputType = "switch", SortOrder = 9 },
                 new() { Name = "isLaboratory", Label = "Laboratory", Section = "Rule", InputType = "switch", SortOrder = 10 },
-                new() { Name = "isRadiology", Label = "Radiology", Section = "Rule", InputType = "switch", SortOrder = 11 },
-                new() { Name = "isTherapy", Label = "Therapy", Section = "Rule", InputType = "switch", SortOrder = 12 },
-                new() { Name = "isNeedDoctor", Label = "Butuh Dokter", Section = "Rule", InputType = "switch", SortOrder = 13 },
-                new() { Name = "isNeedApproval", Label = "Butuh Approval", Section = "Rule", InputType = "switch", SortOrder = 14 },
-                new() { Name = "isCoveredByInsuranceDefault", Label = "Default Ditanggung Asuransi", Section = "Coverage", InputType = "switch", SortOrder = 15 },
-                new() { Name = "isAvailableForOutpatient", Label = "Tersedia Rawat Jalan", Section = "Availability", InputType = "switch", SortOrder = 16 },
-                new() { Name = "isAvailableForInpatient", Label = "Tersedia Rawat Inap", Section = "Availability", InputType = "switch", SortOrder = 17 },
-                new() { Name = "isAvailableForEmergency", Label = "Tersedia IGD", Section = "Availability", InputType = "switch", SortOrder = 18 },
-                new() { Name = "externalProcedureCode", Label = "Kode External", Section = "Integration", InputType = "text", MaxLength = 50, SortOrder = 19 },
-                new() { Name = "integrationCode", Label = "Kode Integrasi", Section = "Integration", InputType = "text", MaxLength = 50, SortOrder = 20 },
-                new() { Name = "sortOrder", Label = "Urutan", Section = "Display", InputType = "number", SortOrder = 21 },
-                new() { Name = "clinicalNoteTemplate", Label = "Template Catatan Klinis", Section = "Clinical", InputType = "textarea", MaxLength = 500, SortOrder = 22 },
-                new() { Name = "description", Label = "Deskripsi", Section = "Additional", InputType = "textarea", MaxLength = 250, SortOrder = 23 }
+                new() { Name = "labDiscipline", Label = "Disiplin Laboratorium", Section = "Rule", InputType = "select", OptionsSource = "labDisciplineOptions", Description = "Hanya berlaku bila Laboratory aktif. Kosongkan bila jenis pemeriksaan ini belum digolongkan.", Example = "ClinicalPathology", SortOrder = 11 },
+                new() { Name = "isRadiology", Label = "Radiology", Section = "Rule", InputType = "switch", SortOrder = 12 },
+                new() { Name = "isTherapy", Label = "Therapy", Section = "Rule", InputType = "switch", SortOrder = 13 },
+                new() { Name = "isNeedDoctor", Label = "Butuh Dokter", Section = "Rule", InputType = "switch", SortOrder = 14 },
+                new() { Name = "isNeedApproval", Label = "Butuh Approval", Section = "Rule", InputType = "switch", SortOrder = 15 },
+                new() { Name = "isCoveredByInsuranceDefault", Label = "Default Ditanggung Asuransi", Section = "Coverage", InputType = "switch", SortOrder = 16 },
+                new() { Name = "isAvailableForOutpatient", Label = "Tersedia Rawat Jalan", Section = "Availability", InputType = "switch", SortOrder = 17 },
+                new() { Name = "isAvailableForInpatient", Label = "Tersedia Rawat Inap", Section = "Availability", InputType = "switch", SortOrder = 18 },
+                new() { Name = "isAvailableForEmergency", Label = "Tersedia IGD", Section = "Availability", InputType = "switch", SortOrder = 19 },
+                new() { Name = "externalProcedureCode", Label = "Kode External", Section = "Integration", InputType = "text", MaxLength = 50, SortOrder = 20 },
+                new() { Name = "integrationCode", Label = "Kode Integrasi", Section = "Integration", InputType = "text", MaxLength = 50, SortOrder = 21 },
+                new() { Name = "sortOrder", Label = "Urutan", Section = "Display", InputType = "number", SortOrder = 22 },
+                new() { Name = "clinicalNoteTemplate", Label = "Template Catatan Klinis", Section = "Clinical", InputType = "textarea", MaxLength = 500, SortOrder = 23 },
+                new() { Name = "description", Label = "Deskripsi", Section = "Additional", InputType = "textarea", MaxLength = 250, SortOrder = 24 }
             };
 
             if (isUpdate)

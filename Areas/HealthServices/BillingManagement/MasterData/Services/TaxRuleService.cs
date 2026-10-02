@@ -23,11 +23,6 @@ public sealed class TaxRuleService
     {
         var query = _dbContext.MstTaxRules.AsNoTracking().Where(x => !x.IsDelete);
         if (request.IsActive.HasValue) query = query.Where(x => x.IsActive == request.IsActive.Value);
-        if (!string.IsNullOrWhiteSpace(request.TaxableCategory))
-        {
-            var category = Required(request.TaxableCategory, "TaxableCategory").ToUpperInvariant();
-            query = query.Where(x => x.TaxableCategory == category);
-        }
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = request.Search.Trim().ToUpper();
@@ -40,7 +35,7 @@ public sealed class TaxRuleService
         }
 
         var total = await query.CountAsync(cancellationToken);
-        var items = await query.OrderBy(x => x.TaxableCategory).ThenByDescending(x => x.EffectiveFrom)
+        var items = await query.OrderByDescending(x => x.EffectiveFrom).ThenBy(x => x.Code)
             .Skip((request.PageNumber - 1) * request.PageSize).Take(request.PageSize)
             .Select(x => Map(x)).ToListAsync(cancellationToken);
         return new PagedResult<TaxRuleResponse>
@@ -50,12 +45,66 @@ public sealed class TaxRuleService
         };
     }
 
+    public async Task<TaxRuleResponse> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        return Map(entity);
+    }
+
+    public async Task<List<TaxRuleOptionResponse>> GetOptionsAsync(
+        bool onlyActive,
+        string? search,
+        CancellationToken cancellationToken)
+    {
+        var query = _dbContext.MstTaxRules.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (onlyActive) query = query.Where(x => x.IsActive);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var keyword = search.Trim().ToUpper();
+            query = query.Where(x => x.Code.ToUpper().Contains(keyword) || x.Name.ToUpper().Contains(keyword));
+        }
+
+        return await query
+            .OrderBy(x => x.Name)
+            .Select(x => new TaxRuleOptionResponse
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.Name,
+                Rate = x.Rate,
+                IsActive = x.IsActive
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<TaxRuleSummaryResponse> GetSummaryAsync(CancellationToken cancellationToken)
+    {
+        var query = _dbContext.MstTaxRules.AsNoTracking().Where(x => !x.IsDelete);
+
+        return new TaxRuleSummaryResponse
+        {
+            TotalRule = await query.CountAsync(cancellationToken),
+            ActiveRule = await query.CountAsync(x => x.IsActive, cancellationToken),
+            InactiveRule = await query.CountAsync(x => !x.IsActive, cancellationToken)
+        };
+    }
+
+    public Task<TaxRuleFilterMetadataResponse> GetFilterMetadataAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(new TaxRuleFilterMetadataResponse
+        {
+            DefaultFilter = new TaxRuleDefaultFilterResponse(),
+            PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+            RoundingModes = TaxRuleValues.RoundingModes.OrderBy(x => x).ToList(),
+            AllocationRules = TaxRuleValues.AllocationRules.OrderBy(x => x).ToList()
+        });
+
     public async Task<TaxRuleResponse> CreateAsync(CreateTaxRuleRequest request, Guid actorUserId, CancellationToken cancellationToken)
     {
         var values = await ValidateAsync(request, null, cancellationToken);
         var entity = new MstTaxRule
         {
-            Code = values.Code, Name = values.Name, TaxableCategory = values.Category, Rate = request.Rate,
+            Code = values.Code, Name = values.Name, Rate = request.Rate,
             RoundingMode = values.RoundingMode, AllocationRule = values.AllocationRule,
             EffectiveFrom = request.EffectiveFrom, EffectiveTo = request.EffectiveTo, IsActive = request.IsActive,
             CreateDateTime = DateTime.UtcNow, CreateBy = actorUserId
@@ -72,7 +121,7 @@ public sealed class TaxRuleService
         if (entity.EffectiveFrom <= DateTimeOffset.UtcNow)
             throw new TaxRuleValidationException("Tax rule yang sudah efektif tidak dapat diubah; buat versi baru.");
         var values = await ValidateAsync(request, id, cancellationToken);
-        entity.Code = values.Code; entity.Name = values.Name; entity.TaxableCategory = values.Category;
+        entity.Code = values.Code; entity.Name = values.Name;
         entity.Rate = request.Rate; entity.RoundingMode = values.RoundingMode; entity.AllocationRule = values.AllocationRule;
         entity.EffectiveFrom = request.EffectiveFrom; entity.EffectiveTo = request.EffectiveTo; entity.IsActive = request.IsActive;
         entity.UpdateDateTime = DateTime.UtcNow; entity.UpdateBy = actorUserId;
@@ -89,6 +138,51 @@ public sealed class TaxRuleService
         await _dbContext.SaveChangesAsync(cancellationToken);
         await AuditAsync("TaxRule.Deactivate", entity, actorUserId, request.Reason.Trim());
         return Map(entity);
+    }
+
+    // Mengaktifkan kembali tax rule yang sebelumnya dinonaktifkan tanpa perlu membuat versi baru.
+    // Tidak mensyaratkan alasan (berbeda dari DeactivateAsync).
+    public async Task<TaxRuleResponse> ActivateAsync(Guid id, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        if (entity.IsActive) return Map(entity);
+
+        var overlaps = await _dbContext.MstTaxRules.AnyAsync(x => !x.IsDelete && x.IsActive && x.Id != entity.Id
+            && x.EffectiveFrom < (entity.EffectiveTo ?? DateTimeOffset.MaxValue)
+            && (x.EffectiveTo == null || entity.EffectiveFrom < x.EffectiveTo), cancellationToken);
+        if (overlaps)
+            throw new TaxRuleConflictException("Tidak dapat mengaktifkan; ada tax rule lain yang masih aktif dan bertumpang tindih periodenya.");
+
+        entity.IsActive = true;
+        entity.UpdateDateTime = DateTime.UtcNow;
+        entity.UpdateBy = actorUserId;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await AuditAsync("TaxRule.Activate", entity, actorUserId, null);
+        return Map(entity);
+    }
+
+    // Soft delete - baris tidak pernah dihapus fisik agar riwayat TaxCalculationResponse yang
+    // sudah menyimpan snapshot TaxRuleId tetap dapat ditelusuri. Hanya tax rule nonaktif yang
+    // boleh dihapus.
+    public async Task<TaxRuleDeleteResponse> DeleteAsync(Guid id, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        if (entity.IsActive)
+            throw new TaxRuleValidationException("Tax rule yang masih aktif tidak dapat dihapus; nonaktifkan terlebih dahulu.");
+
+        entity.IsDelete = true;
+        entity.DeleteDateTime = DateTime.UtcNow;
+        entity.DeleteBy = actorUserId;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await AuditAsync("TaxRule.Delete", entity, actorUserId, null);
+
+        return new TaxRuleDeleteResponse
+        {
+            Id = entity.Id,
+            Code = entity.Code,
+            Name = entity.Name,
+            IsDelete = entity.IsDelete
+        };
     }
 
     public static decimal CalculateTax(decimal grossAmount, decimal itemDiscount, decimal rate, string roundingMode, int decimalPlaces = 2)
@@ -112,12 +206,11 @@ public sealed class TaxRuleService
         return rounded / factor;
     }
 
-    private async Task<(string Code, string Name, string Category, string RoundingMode, string AllocationRule)> ValidateAsync(
+    private async Task<(string Code, string Name, string RoundingMode, string AllocationRule)> ValidateAsync(
         CreateTaxRuleRequest request, Guid? excludedId, CancellationToken cancellationToken)
     {
         var code = Required(request.Code, "Code").ToUpperInvariant();
         var name = Required(request.Name, "Name");
-        var category = Required(request.TaxableCategory, "TaxableCategory").ToUpperInvariant();
         var rounding = Normalize(request.RoundingMode, TaxRuleValues.RoundingModes, "RoundingMode");
         var allocation = Normalize(request.AllocationRule, TaxRuleValues.AllocationRules, "AllocationRule");
         if (request.Rate <= 0 || request.Rate > 100) throw new TaxRuleValidationException("Rate pajak harus lebih dari 0 sampai 100 persen.");
@@ -125,11 +218,11 @@ public sealed class TaxRuleService
             throw new TaxRuleValidationException("EffectiveTo harus lebih besar dari EffectiveFrom.");
         if (await _dbContext.MstTaxRules.AnyAsync(x => !x.IsDelete && x.Id != excludedId && x.Code == code, cancellationToken))
             throw new TaxRuleConflictException("Kode tax rule sudah digunakan.");
-        if (request.IsActive && await _dbContext.MstTaxRules.AnyAsync(x => !x.IsDelete && x.IsActive && x.Id != excludedId && x.TaxableCategory == category
+        if (request.IsActive && await _dbContext.MstTaxRules.AnyAsync(x => !x.IsDelete && x.IsActive && x.Id != excludedId
             && x.EffectiveFrom < (request.EffectiveTo ?? DateTimeOffset.MaxValue)
             && (x.EffectiveTo == null || request.EffectiveFrom < x.EffectiveTo), cancellationToken))
-            throw new TaxRuleConflictException("Periode tax rule bertumpang tindih untuk taxable category yang sama.");
-        return (code, name, category, rounding, allocation);
+            throw new TaxRuleConflictException("Periode tax rule bertumpang tindih dengan tax rule aktif lain.");
+        return (code, name, rounding, allocation);
     }
 
     private async Task<MstTaxRule> FindAsync(Guid id, CancellationToken cancellationToken) =>
@@ -138,7 +231,7 @@ public sealed class TaxRuleService
     private Task AuditAsync(string action, MstTaxRule entity, Guid actorUserId, string? reason) =>
         _loggerService.AuditAsync(LogCategory, action, "Perubahan tax rule.", new
         {
-            PolicyId = entity.Id, entity.Code, entity.TaxableCategory, entity.Rate, entity.RoundingMode,
+            PolicyId = entity.Id, entity.Code, entity.Rate, entity.RoundingMode,
             entity.AllocationRule, entity.EffectiveFrom, entity.EffectiveTo, entity.IsActive,
             ActorUserId = actorUserId, Reason = reason
         });
@@ -156,7 +249,7 @@ public sealed class TaxRuleService
     }
     private static TaxRuleResponse Map(MstTaxRule entity) => new()
     {
-        Id = entity.Id, Code = entity.Code, Name = entity.Name, TaxableCategory = entity.TaxableCategory,
+        Id = entity.Id, Code = entity.Code, Name = entity.Name,
         Rate = entity.Rate, RoundingMode = entity.RoundingMode, AllocationRule = entity.AllocationRule,
         EffectiveFrom = entity.EffectiveFrom, EffectiveTo = entity.EffectiveTo, IsActive = entity.IsActive,
         CreateDateTime = entity.CreateDateTime, UpdateDateTime = entity.UpdateDateTime

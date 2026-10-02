@@ -327,8 +327,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     "Dokter penanggung jawab yang dipilih tidak ditemukan atau tidak aktif.");
             }
 
+            // Hanya baris DPJP yang ditutup pengalihan. Konsulen dan dokter jaga yang sedang
+            // aktif TIDAK ikut tergusur — itulah inti RWI-DEC-099, dan tanpa saringan peran
+            // ini pengalihan DPJP akan mengakhiri seluruh konsultasi yang masih berjalan.
             var activeAssignments = await _dbContext.Set<InpDoctorAssignment>()
-                .Where(x => x.EpisodeId == episode.Id && x.EndDateTime == null && !x.IsDelete)
+                .Where(x =>
+                    x.EpisodeId == episode.Id &&
+                    x.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
+                    x.EndDateTime == null &&
+                    !x.IsDelete)
                 .OrderBy(x => x.SequenceNumber)
                 .ToListAsync(cancellationToken);
 
@@ -378,6 +385,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     Id = Guid.NewGuid(),
                     EpisodeId = episode.Id,
                     DoctorId = request.DoctorId,
+                    AssignmentRole = InpDoctorAssignmentRole.Dpjp,
                     SequenceNumber = lastSequence + 1,
                     StartDateTime = now,
                     EndDateTime = null,
@@ -403,8 +411,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 await transaction.RollbackAsync(cancellationToken);
 
                 // Dua pengalihan pada saat hampir bersamaan. Unique index parsial
-                // IX_InpDoctorAssignment_EpisodeId_Active menolak yang kalah, sehingga
-                // INV-INP-03 tetap tidak pernah dilanggar.
+                // IX_InpDoctorAssignment_EpisodeId_ActiveDpjp menolak yang kalah, sehingga
+                // INV-INP-03 tetap tidak pernah dilanggar. Sejak BE-RWI-074 filternya
+                // membaca peran, sehingga penolakan itu hanya mengenai baris DPJP.
                 return InpEpisodeOperationResult.Conflict(
                     "Pengalihan DPJP lain sedang tersimpan untuk episode ini. Muat ulang " +
                     "layar lalu coba lagi.",
@@ -432,6 +441,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     EpisodeId = x.EpisodeId,
                     DoctorId = x.DoctorId,
                     DoctorName = x.Doctor != null ? x.Doctor.FullName : null,
+                    AssignmentRole = (int)x.AssignmentRole,
+                    AssignmentPurpose = (int)x.AssignmentPurpose,
                     SequenceNumber = x.SequenceNumber,
                     StartDateTime = x.StartDateTime,
                     EndDateTime = x.EndDateTime,
@@ -459,6 +470,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 .AsNoTracking()
                 .Where(x =>
                     x.EpisodeId == episodeId &&
+                    x.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
                     !x.IsDelete &&
                     x.StartDateTime <= pointInTime &&
                     (x.EndDateTime == null || x.EndDateTime > pointInTime))
@@ -469,6 +481,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     EpisodeId = x.EpisodeId,
                     DoctorId = x.DoctorId,
                     DoctorName = x.Doctor != null ? x.Doctor.FullName : null,
+                    AssignmentRole = (int)x.AssignmentRole,
+                    AssignmentPurpose = (int)x.AssignmentPurpose,
                     SequenceNumber = x.SequenceNumber,
                     StartDateTime = x.StartDateTime,
                     EndDateTime = x.EndDateTime,
@@ -480,13 +494,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         }
 
         /// <summary>Identitas DPJP yang sedang berlaku, atau <c>null</c> bila tidak ada.</summary>
+        /// <remarks>
+        /// <b>Sejak <c>BE-RWI-074</c> query ini menyaring peran, bukan hanya masa berlaku.</b>
+        /// Sebelum kolom <c>AssignmentRole</c> lahir, "punya penugasan aktif" dan "DPJP aktif"
+        /// adalah kalimat yang sama. Keduanya kini berbeda: satu episode dapat punya konsulen
+        /// dan dokter jaga yang aktif bersamaan, dan tidak satu pun dari mereka DPJP. Tanpa
+        /// saringan ini, konsulen dengan nomor urut terbesar akan terbaca sebagai DPJP dan
+        /// diam-diam memperoleh kewenangan keempat penjaga —
+        /// <c>permission-audit-matrix.md</c> bagian 4-A.1.
+        /// </remarks>
         public Task<Guid?> GetActiveDoctorIdAsync(
             Guid episodeId,
             CancellationToken cancellationToken = default)
         {
             return _dbContext.Set<InpDoctorAssignment>()
                 .AsNoTracking()
-                .Where(x => x.EpisodeId == episodeId && x.EndDateTime == null && !x.IsDelete)
+                .Where(x =>
+                    x.EpisodeId == episodeId &&
+                    x.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
+                    x.EndDateTime == null &&
+                    !x.IsDelete)
                 .OrderByDescending(x => x.SequenceNumber)
                 .Select(x => (Guid?)x.DoctorId)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -497,6 +524,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// tersebut. Inilah isi <c>GUARD-INP-01</c>, <c>GUARD-INP-02</c>, <c>GUARD-INP-03</c>,
         /// dan <c>GUARD-INP-04</c>.
         /// </summary>
+        /// <remarks>
+        /// Keempat penjaga berbunyi <c>AssignmentRole = Dpjp</c>. Konsulen dan dokter jaga
+        /// <b>boleh</b> menulis dokumen klinis, tetapi tidak boleh memutuskan pulang,
+        /// menandatangani resume, memindahkan pasien, maupun mengubah kebutuhan isolasi:
+        /// keempatnya adalah keputusan atas arah perawatan, bukan pencatatan. Baris konsulen
+        /// pada keputusan pulang sengaja <b>fail-closed</b> sampai ada kebijakan yang
+        /// disetujui — dilacak <c>OPEN-MVP-004</c>.
+        /// </remarks>
         public async Task<bool> IsActiveDoctorAsync(
             Guid episodeId,
             Guid? doctorId,
@@ -510,6 +545,377 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             var activeDoctorId = await GetActiveDoctorIdAsync(episodeId, cancellationToken);
 
             return activeDoctorId.HasValue && activeDoctorId.Value == doctorId.Value;
+        }
+
+        // =====================================================================
+        // BE-RWI-080 — Penugasan konsulen, dokter jaga, dan penugasan singkat
+        // =====================================================================
+
+        /// <summary>Nilai <c>ActionType</c> untuk pelibatan dokter pendukung.</summary>
+        public const string ActionAssignSupportingDoctor = "AssignSupportingDoctor";
+
+        /// <summary>Nilai <c>ActionType</c> untuk pengakhiran penugasan dokter pendukung.</summary>
+        public const string ActionEndSupportingAssignment = "EndSupportingAssignment";
+
+        /// <summary>
+        /// Melibatkan dokter pendukung pada satu episode: konsulen, dokter jaga, atau penugasan
+        /// singkat penulisan catatan terlambat.
+        /// </summary>
+        /// <param name="actorIsWardHeadOrSupervisor">
+        /// Benar bila pelakunya kepala ruangan atau supervisor. Hanya mereka yang boleh
+        /// melibatkan dokter lain — <c>RWI-DEC-130</c> (4). Penjaga ini berada di service
+        /// dengan alasan yang sama seperti <see cref="HandoverDoctorAsync"/>: pelibatan dokter
+        /// memakai butir hak akses yang sama dengan seluruh perubahan episode lain, yaitu
+        /// <c>InpatientEpisode : Update</c>, sehingga mesin hak akses tidak dapat
+        /// membedakannya.
+        /// </param>
+        /// <remarks>
+        /// <b>Tiga hal yang membuat jalur ini berbeda dari pengalihan DPJP.</b>
+        ///
+        /// <list type="number">
+        /// <item><description>
+        /// <b>Tidak ada baris yang ditutup.</b> Konsulen dan dokter jaga berdampingan dengan
+        /// DPJP dan satu sama lain. Satu pasien dapat dikonsultasikan ke penyakit dalam, bedah,
+        /// dan anestesi pada hari yang sama — <c>RWI-DEC-099</c>.
+        /// </description></item>
+        /// <item><description>
+        /// <b>DPJP tidak pernah tergeser.</b> Peran <c>Dpjp</c> ditolak di jalur ini, dan
+        /// karenanya unique index parsial <c>IX_InpDoctorAssignment_EpisodeId_ActiveDpjp</c>
+        /// tidak pernah tersentuh — <c>INV-INP-12</c>.
+        /// </description></item>
+        /// <item><description>
+        /// <b>Penugasan singkat punya penjaga tambahan.</b> Ia wajib berperan dokter jaga,
+        /// wajib berwaktu selesai, dan waktu mulainya selalu "sekarang" walau pemanggil
+        /// mengirim nilai lain. Ketiganya ditegakkan di sini <b>dan</b> di database lewat
+        /// <c>CK_InpDoctorAssignment_LateDocumentation</c>.
+        /// </description></item>
+        /// </list>
+        ///
+        /// <para>
+        /// <b>Kenapa waktu mulai penugasan singkat tidak dapat dimundurkan.</b> Jendela inilah
+        /// yang dibaca penjaga kewenangan menulis catatan klinis. Jendela yang dapat
+        /// dimundurkan pemanggil membuat sebuah catatan dapat ditulis seolah-olah dibuat pada
+        /// masa yang sudah lewat — dan pada rekam medis, itu bukan kemudahan melainkan
+        /// pemalsuan.
+        /// </para>
+        /// </remarks>
+        public async Task<InpEpisodeOperationResult> AssignSupportingDoctorAsync(
+            Guid episodeId,
+            AssignSupportingDoctorRequest request,
+            Guid actorUserId,
+            bool actorIsWardHeadOrSupervisor,
+            CancellationToken cancellationToken = default)
+        {
+            if (request == null || request.DoctorId == Guid.Empty)
+            {
+                return InpEpisodeOperationResult.Invalid("Dokter yang dilibatkan belum dipilih.");
+            }
+
+            if (!HasMeaningfulReason(request.Reason))
+            {
+                return InpEpisodeOperationResult.Invalid(
+                    "Alasan pelibatan dokter wajib diisi dengan kalimat yang dapat dibaca.");
+            }
+
+            if (!actorIsWardHeadOrSupervisor)
+            {
+                return InpEpisodeOperationResult.Forbidden(
+                    "Hanya kepala ruangan atau supervisor yang dapat melibatkan dokter " +
+                    "pendukung pada episode ini.");
+            }
+
+            if (!Enum.IsDefined(typeof(InpDoctorAssignmentRole), request.AssignmentRole))
+            {
+                return InpEpisodeOperationResult.Invalid(
+                    "Peran penugasan yang dipilih tidak dikenal.");
+            }
+
+            var role = (InpDoctorAssignmentRole)request.AssignmentRole;
+
+            // VAL-INP-09 — DPJP tidak pernah lahir dari jalur ini. Membiarkannya berarti
+            // menyediakan jalan kedua menuju INV-INP-03 yang tidak melewati satu pun penjaga
+            // pengalihan DPJP.
+            if (role == InpDoctorAssignmentRole.Dpjp)
+            {
+                return InpEpisodeOperationResult.BusinessRuleRejected(
+                    "VAL-INP-09 — penugasan DPJP tidak dibuat lewat jalur ini. Gunakan " +
+                    "pengalihan DPJP.");
+            }
+
+            if (!Enum.IsDefined(typeof(InpDoctorAssignmentPurpose), request.AssignmentPurpose))
+            {
+                return InpEpisodeOperationResult.Invalid(
+                    "Tujuan penugasan yang dipilih tidak dikenal.");
+            }
+
+            var purpose = (InpDoctorAssignmentPurpose)request.AssignmentPurpose;
+            var isLateDocumentation = purpose == InpDoctorAssignmentPurpose.LateDocumentation;
+
+            // VAL-INP-08 — penugasan singkat tanpa waktu selesai bukan penugasan singkat; ia
+            // jendela penulisan yang tidak pernah tertutup.
+            if (isLateDocumentation && !request.EndDateTime.HasValue)
+            {
+                return InpEpisodeOperationResult.Invalid(
+                    "VAL-INP-08 — penugasan singkat penulisan catatan terlambat wajib punya " +
+                    "waktu selesai.");
+            }
+
+            if (isLateDocumentation && role != InpDoctorAssignmentRole.OnCallDoctor)
+            {
+                return InpEpisodeOperationResult.BusinessRuleRejected(
+                    "Penugasan singkat penulisan catatan terlambat selalu berperan dokter jaga.");
+            }
+
+            var episode = await LoadEpisodeForWriteAsync(episodeId, cancellationToken);
+
+            if (episode == null)
+            {
+                return InpEpisodeOperationResult.NotFound("Episode rawat inap tidak ditemukan.");
+            }
+
+            if (await ExpireDraftIfDueAsync(episode, cancellationToken))
+            {
+                return InpEpisodeOperationResult.Conflict(
+                    "Admisi ini sudah gugur karena ditinggalkan melewati batas waktu.",
+                    episode);
+            }
+
+            // Dokter pendukung hanya masuk akal pada episode yang pasiennya sedang dirawat atau
+            // sedang menunggu pulang. Episode Draft belum punya pasien di ruangan; episode
+            // Closed dan Cancelled sudah tidak menerima catatan klinis baru.
+            if (episode.EpisodeStatus != InpEpisodeStatus.Admitted &&
+                episode.EpisodeStatus != InpEpisodeStatus.DischargePending)
+            {
+                return InpEpisodeOperationResult.BusinessRuleRejected(
+                    "Dokter pendukung hanya dapat dilibatkan pada episode yang sedang dirawat " +
+                    "atau sedang menunggu pulang.",
+                    episode);
+            }
+
+            var doctorExists = await _dbContext.Set<MstDoctor>()
+                .AsNoTracking()
+                .AnyAsync(
+                    x => x.Id == request.DoctorId && !x.IsDelete && x.IsActive,
+                    cancellationToken);
+
+            if (!doctorExists)
+            {
+                return InpEpisodeOperationResult.BusinessRuleRejected(
+                    "Dokter yang dipilih tidak ditemukan atau tidak aktif.",
+                    episode);
+            }
+
+            var now = DateTime.UtcNow;
+
+            // Acceptance criteria 3 — waktu mulai penugasan singkat SELALU sekarang, walau
+            // pemanggil mengirim nilai lain. Nilai kiriman diabaikan, bukan ditolak: menolaknya
+            // hanya memindahkan masalah ke layar tanpa membuat jendelanya lebih aman.
+            var startDateTime = isLateDocumentation
+                ? now
+                : (request.StartDateTime ?? now);
+
+            var endDateTime = request.EndDateTime;
+
+            if (endDateTime.HasValue && endDateTime.Value <= startDateTime)
+            {
+                return InpEpisodeOperationResult.Invalid(
+                    "Waktu selesai penugasan harus lebih besar dari waktu mulainya.");
+            }
+
+            // Penugasan berganda dengan peran yang sama pada periode yang bertindih adalah
+            // riwayat yang tidak dapat dijawab: pertanyaan "atas dasar baris mana dokter ini
+            // menulis" punya dua jawaban sekaligus.
+            var hasOverlappingAssignment = await _dbContext.Set<InpDoctorAssignment>()
+                .AsNoTracking()
+                .AnyAsync(
+                    x => x.EpisodeId == episode.Id &&
+                         x.DoctorId == request.DoctorId &&
+                         x.AssignmentRole == role &&
+                         !x.IsDelete &&
+                         (x.EndDateTime == null || x.EndDateTime > startDateTime) &&
+                         (endDateTime == null || x.StartDateTime < endDateTime),
+                    cancellationToken);
+
+            if (hasOverlappingAssignment)
+            {
+                return InpEpisodeOperationResult.Conflict(
+                    "Dokter ini sudah punya penugasan aktif dengan peran yang sama pada " +
+                    "periode tersebut.",
+                    episode);
+            }
+
+            var reason = request.Reason.Trim();
+
+            var lastSequence = await _dbContext.Set<InpDoctorAssignment>()
+                .Where(x => x.EpisodeId == episode.Id)
+                .Select(x => (int?)x.SequenceNumber)
+                .MaxAsync(cancellationToken) ?? 0;
+
+            await using var transaction = await _dbContext.Database
+                .BeginTransactionAsync(cancellationToken);
+
+            try
+            {
+                var assignment = new InpDoctorAssignment
+                {
+                    Id = Guid.NewGuid(),
+                    EpisodeId = episode.Id,
+                    DoctorId = request.DoctorId,
+                    AssignmentRole = role,
+                    AssignmentPurpose = purpose,
+                    SequenceNumber = lastSequence + 1,
+                    StartDateTime = startDateTime,
+                    EndDateTime = endDateTime,
+                    AssignedByUserId = actorUserId,
+                    HandoverReason = Truncate(reason, 500),
+                    IsActive = endDateTime == null || endDateTime > now,
+                    CreateDateTime = now,
+                    CreateBy = actorUserId
+                };
+
+                _dbContext.Set<InpDoctorAssignment>().Add(assignment);
+
+                episode.UpdateDateTime = now;
+                episode.UpdateBy = actorUserId;
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                return InpEpisodeOperationResult.Success(
+                    episode,
+                    isLateDocumentation
+                        ? "Penugasan singkat penulisan catatan terlambat berhasil dibuat."
+                        : "Dokter pendukung berhasil dilibatkan.");
+            }
+            catch (DbUpdateException)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+
+                // Check constraint CK_InpDoctorAssignment_LateDocumentation menolak baris yang
+                // lolos penjaga di atas — misalnya lewat balapan dua permintaan. Penolakannya
+                // diterjemahkan, bukan dilemparkan mentah ke pemanggil.
+                return InpEpisodeOperationResult.BusinessRuleRejected(
+                    "Penugasan ini ditolak penjaga database. Periksa peran, waktu selesai, " +
+                    "dan alasannya lalu coba lagi.",
+                    episode);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Mengakhiri penugasan konsulen atau dokter jaga. Penugasan DPJP tidak dapat diakhiri
+        /// lewat jalur ini.
+        /// </summary>
+        /// <remarks>
+        /// <b><c>VAL-INP-09</c>.</b> Mengakhiri DPJP lewat jalur ini akan meninggalkan episode
+        /// berjalan <b>tanpa</b> DPJP sama sekali — dan keempat penjaga <c>GUARD-INP-01</c>
+        /// sampai <c>GUARD-INP-04</c> menolak setiap keputusan klinis sejak saat itu, termasuk
+        /// keputusan pulang. DPJP berganti lewat pengalihan yang membuka penggantinya pada
+        /// tindakan yang sama, tidak pernah lewat pengakhiran sepihak.
+        /// </remarks>
+        public async Task<InpEpisodeOperationResult> EndSupportingAssignmentAsync(
+            Guid episodeId,
+            Guid assignmentId,
+            EndSupportingAssignmentRequest? request,
+            Guid actorUserId,
+            bool actorIsWardHeadOrSupervisor,
+            CancellationToken cancellationToken = default)
+        {
+            if (!actorIsWardHeadOrSupervisor)
+            {
+                return InpEpisodeOperationResult.Forbidden(
+                    "Hanya kepala ruangan atau supervisor yang dapat mengakhiri penugasan " +
+                    "dokter pendukung.");
+            }
+
+            var episode = await LoadEpisodeForWriteAsync(episodeId, cancellationToken);
+
+            if (episode == null)
+            {
+                return InpEpisodeOperationResult.NotFound("Episode rawat inap tidak ditemukan.");
+            }
+
+            var assignment = await _dbContext.Set<InpDoctorAssignment>()
+                .FirstOrDefaultAsync(
+                    x => x.Id == assignmentId && x.EpisodeId == episodeId && !x.IsDelete,
+                    cancellationToken);
+
+            if (assignment == null)
+            {
+                return InpEpisodeOperationResult.NotFound(
+                    "Penugasan dokter yang dimaksud tidak ditemukan pada episode ini.");
+            }
+
+            if (assignment.AssignmentRole == InpDoctorAssignmentRole.Dpjp)
+            {
+                return InpEpisodeOperationResult.Conflict(
+                    "VAL-INP-09 — penugasan DPJP tidak dapat diakhiri lewat jalur ini. " +
+                    "Gunakan pengalihan DPJP.",
+                    episode);
+            }
+
+            if (assignment.EndDateTime.HasValue)
+            {
+                return InpEpisodeOperationResult.Conflict(
+                    "Penugasan ini sudah berakhir.",
+                    episode);
+            }
+
+            var now = DateTime.UtcNow;
+            var endDateTime = request?.EndDateTime ?? now;
+
+            if (endDateTime > now)
+            {
+                return InpEpisodeOperationResult.Invalid(
+                    "Waktu berakhir penugasan tidak boleh melewati waktu sekarang.");
+            }
+
+            if (endDateTime <= assignment.StartDateTime)
+            {
+                return InpEpisodeOperationResult.Invalid(
+                    "Waktu berakhir penugasan harus lebih besar dari waktu mulainya.");
+            }
+
+            var reason = NormalizeText(request?.Reason);
+
+            await using var transaction = await _dbContext.Database
+                .BeginTransactionAsync(cancellationToken);
+
+            try
+            {
+                assignment.EndDateTime = endDateTime;
+                assignment.IsActive = false;
+
+                // Alasan pengakhiran menimpa alasan pelibatan hanya bila benar-benar dikirim.
+                // Mengosongkannya diam-diam akan menghapus alasan seorang konsulen pernah
+                // dilibatkan, dan itulah satu-satunya keterangan yang dibaca auditor.
+                if (reason != null)
+                {
+                    assignment.HandoverReason = Truncate(reason, 500);
+                }
+
+                assignment.UpdateDateTime = now;
+                assignment.UpdateBy = actorUserId;
+
+                episode.UpdateDateTime = now;
+                episode.UpdateBy = actorUserId;
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                return InpEpisodeOperationResult.Success(
+                    episode,
+                    "Penugasan dokter pendukung berhasil diakhiri.");
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
         }
 
         // =====================================================================

@@ -56,10 +56,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public Guid? PatientVitalSignId { get; set; }
 
-        public int Sequence { get; set; } = 1;
+        /// <summary>
+        /// USANG sejak BE-IGD-047 - tetap diterima, tetapi diabaikan sepenuhnya.
+        /// </summary>
+        /// <remarks>
+        /// Nilai bawaan <c>1</c> pada properti ini adalah akar masalah 23505 pada
+        /// <c>IX_EmgTriage_EmergencyVisitId_Sequence</c>: pemanggil yang tidak mengirim
+        /// <c>sequence</c> tetap membuat controller membaca <c>1</c>, sehingga cabang
+        /// <c>request.Sequence &gt; 0</c> selalu benar dan penghitungan nomor urut di server
+        /// tidak pernah berjalan. Penilaian kedua pada satu kunjungan karena itu selalu
+        /// menabrak penilaian pertama. Nomor urut kini sepenuhnya ditetapkan server, sesuai
+        /// acceptance BE-IGD-004.
+        /// </remarks>
+        public int Sequence { get; set; }
 
+        /// <summary>
+        /// USANG sejak BE-IGD-047 - diabaikan; ditetapkan server dari ada tidaknya penilaian
+        /// terdahulu pada kunjungan yang sama.
+        /// </summary>
         public bool IsRetriage { get; set; }
 
+        /// <summary>
+        /// USANG sejak BE-IGD-047 - diabaikan; ditetapkan server ke penilaian terakhir yang
+        /// masih berlaku pada kunjungan yang sama.
+        /// </summary>
         public Guid? PreviousTriageId { get; set; }
 
         public EmergencyTriageSystem TriageSystem { get; set; } = EmergencyTriageSystem.ATS;

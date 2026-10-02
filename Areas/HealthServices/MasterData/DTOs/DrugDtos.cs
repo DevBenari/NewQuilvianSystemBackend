@@ -431,4 +431,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string DrugName { get; set; } = string.Empty;
         public DateTime? DeleteDateTime { get; set; }
     }
+
+    /// <summary>
+    /// Pendaftaran obat bawaan pasien yang belum ada di master obat — BE-RWI-101 kriteria 6,
+    /// RWI-DEC-134, api-contract 0.6.0 bagian 12.9.
+    /// </summary>
+    /// <remarks>
+    /// Sengaja <b>tidak</b> punya isian penanda formularium. Server selalu menulis
+    /// <c>IsFormulary = false</c>, sehingga tidak ada isian yang dapat keliru (RWI-AC-194).
+    /// </remarks>
+    public class CreateNonFormularyDrugRequest
+    {
+        public Guid DrugCategoryId { get; set; }
+
+        [MaxLength(200)]
+        public string? DrugName { get; set; }
+
+        [MaxLength(200)]
+        public string? GenericName { get; set; }
+
+        [MaxLength(100)]
+        public string? DrugForm { get; set; }
+
+        public string? Strength { get; set; }
+
+        public Guid? BaseUnitMeasurementId { get; set; }
+
+        public Guid? DispenseUnitMeasurementId { get; set; }
+
+        public Guid? DefaultDoseUnitMeasurementId { get; set; }
+    }
 }

@@ -64,6 +64,71 @@ public sealed class AdministrationFeePolicyService
         };
     }
 
+    public async Task<AdministrationFeePolicyResponse> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        return Map(entity);
+    }
+
+    public async Task<List<AdministrationFeePolicyOptionResponse>> GetOptionsAsync(
+        string? serviceType,
+        bool onlyActive,
+        string? search,
+        CancellationToken cancellationToken)
+    {
+        var query = _dbContext.MstAdministrationFeePolicies.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (onlyActive)
+            query = query.Where(x => x.IsActive);
+        if (!string.IsNullOrWhiteSpace(serviceType))
+        {
+            var normalized = serviceType.Trim().ToUpperInvariant();
+            query = query.Where(x => x.ServiceType == normalized);
+        }
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var keyword = search.Trim().ToUpper();
+            query = query.Where(x => x.Code.ToUpper().Contains(keyword) || x.Name.ToUpper().Contains(keyword));
+        }
+
+        return await query
+            .OrderBy(x => x.ServiceType)
+            .ThenBy(x => x.Name)
+            .Select(x => new AdministrationFeePolicyOptionResponse
+            {
+                Id = x.Id,
+                Code = x.Code,
+                Name = x.Name,
+                ServiceType = x.ServiceType,
+                Amount = x.Amount,
+                IsActive = x.IsActive
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<AdministrationFeePolicySummaryResponse> GetSummaryAsync(CancellationToken cancellationToken)
+    {
+        var query = _dbContext.MstAdministrationFeePolicies.AsNoTracking().Where(x => !x.IsDelete);
+
+        return new AdministrationFeePolicySummaryResponse
+        {
+            TotalPolicy = await query.CountAsync(cancellationToken),
+            ActivePolicy = await query.CountAsync(x => x.IsActive, cancellationToken),
+            InactivePolicy = await query.CountAsync(x => !x.IsActive, cancellationToken),
+            RajalPolicy = await query.CountAsync(x => x.ServiceType == AdministrationFeeServiceTypes.Rajal, cancellationToken),
+            IgdPolicy = await query.CountAsync(x => x.ServiceType == AdministrationFeeServiceTypes.Igd, cancellationToken),
+            OtcPolicy = await query.CountAsync(x => x.ServiceType == AdministrationFeeServiceTypes.Otc, cancellationToken),
+            RanapPolicy = await query.CountAsync(x => x.ServiceType == AdministrationFeeServiceTypes.Ranap, cancellationToken)
+        };
+    }
+
+    public AdministrationFeePolicyFilterMetadataResponse GetFilterMetadata() => new()
+    {
+        DefaultFilter = new AdministrationFeePolicyDefaultFilterResponse(),
+        PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+        ServiceTypes = AdministrationFeeServiceTypes.All.OrderBy(x => x).ToList()
+    };
+
     public async Task<AdministrationFeePolicyResponse> CreateAsync(
         CreateAdministrationFeePolicyRequest request,
         Guid actorUserId,
@@ -141,11 +206,77 @@ public sealed class AdministrationFeePolicyService
         return Map(entity);
     }
 
+    // Mengaktifkan kembali policy yang sebelumnya dinonaktifkan, tanpa perlu membuat versi baru
+    // dari awal. Tidak mensyaratkan alasan (berbeda dari DeactivateAsync) karena mengaktifkan
+    // kembali konfigurasi yang sudah pernah disetujui bukan tindakan sensitif yang sama dengan
+    // menonaktifkan biaya yang sedang berjalan; namun tetap diaudit seperti aksi lain.
+    public async Task<AdministrationFeePolicyResponse> ActivateAsync(
+        Guid id,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        if (entity.IsActive)
+            return Map(entity);
+
+        await EnsureNoActiveOverlapAsync(entity.ServiceType, entity.EffectiveFrom, entity.EffectiveTo, entity.Id, cancellationToken);
+
+        entity.IsActive = true;
+        entity.UpdateDateTime = DateTime.UtcNow;
+        entity.UpdateBy = actorUserId;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await AuditAsync("AdministrationFeePolicy.Activate", entity, actorUserId, null);
+        return Map(entity);
+    }
+
+    // Soft delete - baris tidak pernah dihapus fisik agar riwayat BilCalculationVersion yang
+    // sudah menyimpan snapshot PolicyId/Code/Amount pada saat kalkulasi tetap dapat ditelusuri,
+    // dan konsisten dengan pola IsDelete yang dipakai seluruh master data pada modul ini. Hanya
+    // policy yang sudah nonaktif yang boleh dihapus - mencegah penghapusan diam-diam atas policy
+    // yang masih hidup memengaruhi kalkulasi tanpa melalui DeactivateAsync (dan alasannya)
+    // terlebih dahulu.
+    public async Task<AdministrationFeePolicyDeleteResponse> DeleteAsync(
+        Guid id,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var entity = await FindAsync(id, cancellationToken);
+        if (entity.IsActive)
+            throw new AdministrationFeePolicyValidationException(
+                "Policy yang masih aktif tidak dapat dihapus; nonaktifkan terlebih dahulu.");
+
+        entity.IsDelete = true;
+        entity.DeleteDateTime = DateTime.UtcNow;
+        entity.DeleteBy = actorUserId;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await AuditAsync("AdministrationFeePolicy.Delete", entity, actorUserId, null);
+
+        return new AdministrationFeePolicyDeleteResponse
+        {
+            Id = entity.Id,
+            Code = entity.Code,
+            Name = entity.Name,
+            IsDelete = entity.IsDelete
+        };
+    }
+
     public static DateOnly GetBusinessDate(DateTimeOffset instant)
     {
         var zone = ResolveBusinessTimeZone();
         var local = TimeZoneInfo.ConvertTime(instant, zone);
         return DateOnly.FromDateTime(local.DateTime);
+    }
+
+    // Rentang UTC [Start, EndExclusive) yang mencakup satu businessDate penuh di zona bisnis
+    // (Asia/Jakarta). Dipakai sebagai pre-filter SQL pada kolom relasional (mis. CalculatedAt)
+    // sebelum pencarian yang lebih presisi lewat GetBusinessDate di memori - lihat
+    // BillingCalculationService.CalculateAdministrationFeeAsync untuk kenapa ini dibutuhkan.
+    public static (DateTimeOffset Start, DateTimeOffset EndExclusive) GetBusinessDateUtcRange(DateOnly businessDate)
+    {
+        var zone = ResolveBusinessTimeZone();
+        var localStart = DateTime.SpecifyKind(businessDate.ToDateTime(TimeOnly.MinValue), DateTimeKind.Unspecified);
+        var utcStart = TimeZoneInfo.ConvertTimeToUtc(localStart, zone);
+        return (new DateTimeOffset(utcStart, TimeSpan.Zero), new DateTimeOffset(utcStart.AddDays(1), TimeSpan.Zero));
     }
 
     private async Task<MstAdministrationFeePolicy> FindAsync(Guid id, CancellationToken cancellationToken) =>
@@ -183,6 +314,27 @@ public sealed class AdministrationFeePolicyService
             throw new AdministrationFeePolicyConflictException("Periode policy biaya administrasi bertumpang tindih untuk jenis layanan yang sama.");
 
         return (code, name, serviceType);
+    }
+
+    // Aktivasi ulang hanya boleh bentrok dengan policy yang MASIH AKTIF - policy nonaktif lain
+    // untuk periode/jenis layanan yang sama tidak relevan bagi pengecekan ini, berbeda dari
+    // ValidateAsync (Create/Update) yang sengaja memeriksa terhadap seluruh policy non-delete
+    // apa pun status aktifnya.
+    private async Task EnsureNoActiveOverlapAsync(
+        string serviceType,
+        DateTimeOffset effectiveFrom,
+        DateTimeOffset? effectiveTo,
+        Guid excludedId,
+        CancellationToken cancellationToken)
+    {
+        var overlaps = await _dbContext.MstAdministrationFeePolicies.AnyAsync(
+            x => !x.IsDelete && x.IsActive && x.Id != excludedId && x.ServiceType == serviceType
+                && x.EffectiveFrom < (effectiveTo ?? DateTimeOffset.MaxValue)
+                && (x.EffectiveTo == null || effectiveFrom < x.EffectiveTo),
+            cancellationToken);
+        if (overlaps)
+            throw new AdministrationFeePolicyConflictException(
+                "Tidak dapat mengaktifkan; ada policy lain yang masih aktif dan bertumpang tindih untuk jenis layanan yang sama.");
     }
 
     private Task AuditAsync(string action, MstAdministrationFeePolicy entity, Guid actorUserId, string? reason) =>

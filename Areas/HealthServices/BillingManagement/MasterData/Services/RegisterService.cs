@@ -107,6 +107,32 @@ public sealed class RegisterService
         return await BuildBaseQuery().AnyAsync(x => x.Id == id && x.IsActive, cancellationToken);
     }
 
+    public async Task<RegisterSummaryResponse> GetSummaryAsync(CancellationToken cancellationToken)
+    {
+        var query = BuildBaseQuery();
+
+        return new RegisterSummaryResponse
+        {
+            TotalRegister = await query.CountAsync(cancellationToken),
+            ActiveRegister = await query.CountAsync(x => x.IsActive, cancellationToken),
+            InactiveRegister = await query.CountAsync(x => !x.IsActive, cancellationToken)
+        };
+    }
+
+    public RegisterFilterMetadataResponse GetFilterMetadata() => new()
+    {
+        DefaultFilter = new RegisterDefaultFilterResponse(),
+        SortOptions = new List<RegisterSortOptionResponse>
+        {
+            new() { Value = "registerName", Label = "Nama register" },
+            new() { Value = "registerCode", Label = "Kode register" },
+            new() { Value = "createDateTime", Label = "Tanggal dibuat" },
+            new() { Value = "isActive", Label = "Status aktif" }
+        },
+        SortDirections = new List<string> { "asc", "desc" },
+        PageSizeOptions = new List<int> { 10, 25, 50, 100 }
+    };
+
     public async Task<RegisterResponse> CreateAsync(
         CreateRegisterRequest request,
         Guid actorUserId,

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
@@ -16,13 +16,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             _dbContext = dbContext;
         }
 
+        /// <param name="expectedEncounterId">
+        /// Kunjungan milik konsultasi yang sedang divalidasi. Dipakai memeriksa keutuhan relasi
+        /// resep terhadap kunjungannya (<c>RJ-DOC-BE-002</c>).
+        /// </param>
         public async Task<List<ConsultationFinalizationIssueResponse>> ValidateForConsultationAsync(
             Guid consultationId,
+            Guid expectedEncounterId,
             CancellationToken cancellationToken = default)
         {
             var issues = new List<ConsultationFinalizationIssueResponse>();
 
-            var prescriptions = await _dbContext.Set<TrxPrescription>()
+            var prescriptions = await _dbContext.Set<PhmPrescription>()
                 .AsNoTracking()
                 .Include(x => x.Items.Where(i => !i.IsDelete && !i.IsCancel && i.IsActive))
                 .Include(x => x.Compounds.Where(c => !c.IsDelete && !c.IsCancel && c.IsActive))
@@ -38,15 +43,98 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
 
             foreach (var prescription in prescriptions)
             {
+                ValidateEncounterRelation(prescription, expectedEncounterId, issues);
                 ValidateHeader(prescription, issues);
                 ValidateRegularItems(prescription, issues);
                 ValidateCompounds(prescription, issues);
+                await ValidateInpatientSafetyFlagsAsync(prescription, issues, cancellationToken);
             }
 
             return issues;
         }
 
-        private static void ValidateHeader(TrxPrescription prescription, List<ConsultationFinalizationIssueResponse> issues)
+        /// <summary>
+        /// <c>VAL-DOK-57</c>, <c>BE-RWI-105</c> kriteria 5: draft resep rawat inap yang masih membawa
+        /// butir bentrok alergi atau obat tidak tersedia ditolak saat disimpan.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Hanya resep <b>draft berkonteks rawat inap</b>; resep poliklinik dan IGD tidak tersentuh aturan
+        /// ini (validation matrix 0.6.0 bagian 10 — aturan hanya menyala untuk kunjungan rawat inap).
+        /// </para>
+        /// <para>
+        /// Penanda dihitung ulang dari alergi aktif pasien dan status master obat saat disimpan, karena
+        /// kamus data 0.5 tidak menyimpan penanda per butir. Akibatnya jujur: aturan ini berlaku bagi
+        /// seluruh butir draft rawat inap, bukan hanya butir yang lahir dari template — butir bentrok
+        /// alergi yang diketik manual juga tertahan.
+        /// </para>
+        /// <para>
+        /// <b>Contoh.</b> Budi alergi Paracetamol. Draft resepnya masih berisi Paracetamol 500 mg dari
+        /// template "Pneumonia dewasa" → penyelesaian catatan dokter ditolak: "Masih ada obat yang bentrok
+        /// alergi atau tidak tersedia: Paracetamol 500 mg. Hapus atau ganti sebelum menyimpan."
+        /// </para>
+        /// </remarks>
+        private async Task ValidateInpatientSafetyFlagsAsync(
+            PhmPrescription prescription,
+            List<ConsultationFinalizationIssueResponse> issues,
+            CancellationToken cancellationToken)
+        {
+            if (!prescription.InpEpisodeId.HasValue || prescription.PrescriptionStatus != PrescriptionStatus.Draft)
+                return;
+
+            var butir = prescription.Items
+                .Select(x => (x.DrugId, x.DrugNameSnapshot))
+                .Concat(prescription.Compounds.SelectMany(c => c.Items.Select(i => (i.DrugId, i.DrugNameSnapshot))))
+                .ToList();
+
+            if (butir.Count == 0)
+                return;
+
+            var penanda = await PrescriptionSafetyFlagEvaluator.EvaluateAsync(
+                _dbContext,
+                prescription.PatientId,
+                butir.Select(x => x.DrugId).ToList(),
+                cancellationToken);
+
+            var bermasalah = butir
+                .Where(x => penanda.TryGetValue(x.DrugId, out var flags) && flags.Count > 0)
+                .Select(x => x.DrugNameSnapshot)
+                .Distinct()
+                .ToList();
+
+            if (bermasalah.Count == 0)
+                return;
+
+            issues.Add(Issue("INPATIENT_PRESCRIPTION_FLAGGED_ITEMS", ConsultationValidationSeverity.Error,
+                $"Masih ada obat yang bentrok alergi atau tidak tersedia: {string.Join(", ", bermasalah)}. " +
+                "Hapus atau ganti sebelum menyimpan.",
+                "Prescription", "prescription", null, "Prescription", prescription.Id));
+        }
+
+        /// <summary>
+        /// Memastikan resep benar-benar menempel pada kunjungan yang sama dengan konsultasinya.
+        ///
+        /// <c>RJ-DOC-BE-002</c>, kontrak <c>RJ-DOC-COMPLETION-001@1.0.0</c> bagian 1.6 —
+        /// *clinical order state tidak authoritative*. Resep menyimpan `EncounterId` dan
+        /// `ConsultationId` secara terpisah, sehingga keduanya dapat berbeda. Bila itu terjadi,
+        /// fakta klinis yang diterbitkan pada finalisasi memakai `EncounterId` milik resep dan
+        /// akan mendarat pada kunjungan yang salah. Lebih baik menolak finalisasi daripada
+        /// menerbitkan fakta ke kunjungan orang lain.
+        /// </summary>
+        private static void ValidateEncounterRelation(
+            PhmPrescription prescription,
+            Guid expectedEncounterId,
+            List<ConsultationFinalizationIssueResponse> issues)
+        {
+            if (expectedEncounterId == Guid.Empty || prescription.EncounterId == expectedEncounterId)
+                return;
+
+            issues.Add(Issue("PRESCRIPTION_ENCOUNTER_MISMATCH", ConsultationValidationSeverity.Error,
+                "Resep tidak menempel pada kunjungan yang sama dengan konsultasinya.",
+                "Prescription", "prescription", "EncounterId", "Prescription", prescription.Id));
+        }
+
+        private static void ValidateHeader(PhmPrescription prescription, List<ConsultationFinalizationIssueResponse> issues)
         {
             if (prescription.PrescriptionStatus != PrescriptionStatus.Draft)
                 return;
@@ -80,7 +168,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             }
         }
 
-        private static void ValidateRegularItems(TrxPrescription prescription, List<ConsultationFinalizationIssueResponse> issues)
+        private static void ValidateRegularItems(PhmPrescription prescription, List<ConsultationFinalizationIssueResponse> issues)
         {
             var items = prescription.Items.ToList();
 
@@ -115,7 +203,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             }
         }
 
-        private static void ValidateCompounds(TrxPrescription prescription, List<ConsultationFinalizationIssueResponse> issues)
+        private static void ValidateCompounds(PhmPrescription prescription, List<ConsultationFinalizationIssueResponse> issues)
         {
             foreach (var compound in prescription.Compounds)
             {
@@ -175,11 +263,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                 issues.Add(Issue("GUARANTEE_LETTER_REQUIRED", ConsultationValidationSeverity.Information, $"{name} membutuhkan surat jaminan pada proses billing.", "Prescription", "prescription", null, entityType, id));
         }
 
-        private static ConsultationFinalizationIssueResponse ItemIssue(string code, ConsultationValidationSeverity severity, TrxPrescriptionItem item, string? field, string message)
+        private static ConsultationFinalizationIssueResponse ItemIssue(string code, ConsultationValidationSeverity severity, PhmPrescriptionItem item, string? field, string message)
             => Issue(code, severity, message, "Prescription", "prescription", field, "PrescriptionItem", item.Id);
-        private static ConsultationFinalizationIssueResponse CompoundIssue(string code, ConsultationValidationSeverity severity, TrxPrescriptionCompound item, string? field, string message)
+        private static ConsultationFinalizationIssueResponse CompoundIssue(string code, ConsultationValidationSeverity severity, PhmPrescriptionCompound item, string? field, string message)
             => Issue(code, severity, message, "Prescription", "prescription", field, "PrescriptionCompound", item.Id);
-        private static ConsultationFinalizationIssueResponse CompoundItemIssue(string code, ConsultationValidationSeverity severity, TrxPrescriptionCompoundItem item, string? field, string message)
+        private static ConsultationFinalizationIssueResponse CompoundItemIssue(string code, ConsultationValidationSeverity severity, PhmPrescriptionCompoundItem item, string? field, string message)
             => Issue(code, severity, message, "Prescription", "prescription", field, "PrescriptionCompoundItem", item.Id);
 
         private static ConsultationFinalizationIssueResponse Issue(string code, ConsultationValidationSeverity severity, string message,

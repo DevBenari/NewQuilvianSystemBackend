@@ -37,10 +37,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             if (consultation.ConsultationStatus == DoctorConsultationStatus.Cancelled)
                 issues.Add(Issue("CONSULTATION_CANCELLED", ConsultationValidationSeverity.Error, "Konsultasi dokter sudah dibatalkan.", "Consultation", "soap"));
 
-            ValidateSoap(consultation, issues);
-            ValidateDiagnosis(consultation, issues);
-            issues.AddRange(await _prescriptionValidationService.ValidateForConsultationAsync(consultationId, cancellationToken));
-            await ValidateProceduresAsync(consultationId, issues, cancellationToken);
+            // BE-RWI-046 / VAL-DOK-12. Catatan harian rawat inap dinilai dengan aturan yang
+            // berbeda dari catatan poliklinik, dan itu disengaja. Menuntut keempat bagian SOAP
+            // beserta diagnosis utama pada setiap catatan harian membuat dokter menulis kalimat
+            // kosong demi lolos validasi - itu menurunkan mutu rekam medis, bukan menaikkannya.
+            // Diagnosis kerja pasien rawat inap hidup pada kajian medis, bukan diulang setiap
+            // hari pada catatan perkembangan.
+            //
+            // Rawat jalan, medical check-up, dan IGD tidak tersentuh: penyaringnya adalah
+            // keberadaan konteks perawatan pada catatan itu sendiri, kolom yang hanya terisi
+            // bagi catatan yang lahir di atas perawatan rawat inap - INV-DOK-01, RWI-AC-143.
+            if (consultation.InpEpisodeId.HasValue)
+            {
+                ValidateInpatientDailyNote(consultation, issues);
+            }
+            else
+            {
+                ValidateSoap(consultation, issues);
+                ValidateDiagnosis(consultation, issues);
+            }
+            issues.AddRange(await _prescriptionValidationService.ValidateForConsultationAsync(
+                consultationId, consultation.EncounterId, cancellationToken));
+            await ValidateProceduresAsync(consultationId, consultation.EncounterId, issues, cancellationToken);
 
             return Build(consultationId, issues);
         }
@@ -57,13 +75,44 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 issues.Add(Issue("MISSING_PLAN", ConsultationValidationSeverity.Error, "Plan wajib diisi.", "SOAP", "soap", "Plan"));
         }
 
+        /// <summary>
+        /// Kelayakan finalisasi catatan harian rawat inap - <c>VAL-DOK-12</c>.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-046</c>. Cukup satu bagian terisi. Yang ditolak hanya catatan yang benar-benar
+        /// kosong, dan kalimatnya diambil apa adanya dari validation matrix supaya pengguna
+        /// membaca sebab yang sama dengan yang tertulis pada kontrak.
+        /// </remarks>
+        private static void ValidateInpatientDailyNote(TrxDoctorConsultation c, List<ConsultationFinalizationIssueResponse> issues)
+        {
+            var adaIsi =
+                !string.IsNullOrWhiteSpace(c.Subjective) ||
+                !string.IsNullOrWhiteSpace(c.Objective) ||
+                !string.IsNullOrWhiteSpace(c.Assessment) ||
+                !string.IsNullOrWhiteSpace(c.Plan);
+
+            if (!adaIsi)
+                issues.Add(Issue("EMPTY_INPATIENT_NOTE", ConsultationValidationSeverity.Error, "Catatan masih kosong.", "SOAP", "soap"));
+        }
+
         private static void ValidateDiagnosis(TrxDoctorConsultation c, List<ConsultationFinalizationIssueResponse> issues)
         {
             if (!c.HasPrimaryDiagnosis || c.DiagnosisCount <= 0)
                 issues.Add(Issue("MISSING_PRIMARY_DIAGNOSIS", ConsultationValidationSeverity.Error, "Diagnosis utama wajib tersedia sebelum konsultasi diselesaikan.", "Diagnosis", "diagnosis"));
         }
 
-        private async Task ValidateProceduresAsync(Guid consultationId, List<ConsultationFinalizationIssueResponse> issues, CancellationToken cancellationToken)
+        /// <summary>
+        /// Memvalidasi tindakan yang menempel pada konsultasi.
+        ///
+        /// Dua pemeriksaan terakhir ditambahkan <c>RJ-DOC-BE-002</c> untuk memenuhi kontrak
+        /// <c>RJ-DOC-COMPLETION-001@1.0.0</c> bagian 1.6 — *clinical order state tidak
+        /// authoritative*. Keduanya memakai state yang sudah ada; tidak ada status baru.
+        /// </summary>
+        private async Task ValidateProceduresAsync(
+            Guid consultationId,
+            Guid expectedEncounterId,
+            List<ConsultationFinalizationIssueResponse> issues,
+            CancellationToken cancellationToken)
         {
             var procedures = await _dbContext.Set<TrxPatientProcedure>()
                 .AsNoTracking()
@@ -78,6 +127,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     issues.Add(Issue("MISSING_PROCEDURE_TARIFF", ConsultationValidationSeverity.Error, $"Tarif tindakan {item.ProcedureNameSnapshot} belum tersedia.", "Procedure", "procedure", "TariffId", "PatientProcedure", item.Id));
                 if (item.IsNeedApproval && !item.IsApproved)
                     issues.Add(Issue("UNAPPROVED_PROCEDURE", ConsultationValidationSeverity.Error, $"Tindakan {item.ProcedureNameSnapshot} membutuhkan approval.", "Procedure", "procedure", null, "PatientProcedure", item.Id));
+
+                // Baris tindakan yang berstatus dibatalkan tetapi tidak ditandai batal adalah
+                // keadaan yang tidak dapat dipastikan: ia lolos penyaring baris aktif, ikut
+                // terhitung sebagai tindakan konsultasi, dan akan dibawa ke hilir seolah sah.
+                if (item.ProcedureStatus == PatientProcedureStatus.Cancelled)
+                    issues.Add(Issue("INCONSISTENT_PROCEDURE_STATUS", ConsultationValidationSeverity.Error, $"Status tindakan {item.ProcedureNameSnapshot} dibatalkan tetapi barisnya masih aktif.", "Procedure", "procedure", "ProcedureStatus", "PatientProcedure", item.Id));
+
+                // Tindakan menyimpan kunjungan dan konsultasi secara terpisah, sehingga keduanya
+                // dapat berbeda. Bila berbeda, tindakan ini bukan milik kunjungan yang sedang
+                // diselesaikan dan tidak boleh ikut difinalisasi.
+                if (expectedEncounterId != Guid.Empty && item.EncounterId != expectedEncounterId)
+                    issues.Add(Issue("PROCEDURE_ENCOUNTER_MISMATCH", ConsultationValidationSeverity.Error, $"Tindakan {item.ProcedureNameSnapshot} tidak menempel pada kunjungan yang sama dengan konsultasinya.", "Procedure", "procedure", "EncounterId", "PatientProcedure", item.Id));
             }
         }
 

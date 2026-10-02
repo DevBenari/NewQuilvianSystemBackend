@@ -12,6 +12,7 @@ public sealed class BilWriteOffCase : IdentityModel
     public decimal Amount { get; set; }
     public bool IsFullSettlement { get; set; }
     [Required, MaxLength(30)] public string Status { get; set; } = BillingWriteOffCaseStatuses.Submitted;
+    [Required, MaxLength(30)] public string Category { get; set; } = BillingWriteOffCategories.PatientAr;
     public Guid RequestedBy { get; set; }
     public Guid? ApprovedBy { get; set; }
     [Required, MaxLength(500)] public string Reason { get; set; } = string.Empty;
@@ -31,4 +32,10 @@ public static class BillingWriteOffCaseStatuses
     public const string Submitted = "SUBMITTED";
     public const string Posted = "POSTED";
     public const string Rejected = "REJECTED";
+}
+
+public static class BillingWriteOffCategories
+{
+    public const string PatientAr = "PATIENT_AR";
+    public const string NonBillableResidual = "NON_BILLABLE_RESIDUAL";
 }

@@ -16,13 +16,19 @@ public sealed class BillingAllocationService
     private const string LogCategory = "HealthServices.BillingManagement.Billing";
     private const decimal MaxMoneyAmount = 9999999999999999.99m;
     private readonly ApplicationDbContext _dbContext;
+    private readonly BillingInvoiceClosureService _closureService;
+    private readonly BilConsumerHandoffService _consumerHandoffService;
     private readonly LoggerService _loggerService;
 
     public BillingAllocationService(
         ApplicationDbContext dbContext,
+        BillingInvoiceClosureService closureService,
+        BilConsumerHandoffService consumerHandoffService,
         LoggerService loggerService)
     {
         _dbContext = dbContext;
+        _closureService = closureService;
+        _consumerHandoffService = consumerHandoffService;
         _loggerService = loggerService;
     }
 
@@ -195,10 +201,32 @@ public sealed class BillingAllocationService
                 NetAllocatedAmount = positionBefore.NetAllocatedAmount + request.Amount,
                 OutstandingAmount = Math.Max(positionBefore.OutstandingAmount - request.Amount, 0)
             };
+            // BKC-DES-029: dipasang untuk konsistensi dengan lima peristiwa lain yang
+            // menggerakkan sisa tagihan. Baris 114 di atas MEWAJIBKAN invoice.Status == OPEN
+            // sebagai prasyarat method ini, dan alokasi deposit tidak mengubah Status - sehingga
+            // penjaga SyncClosureAsync (hanya FINAL/CLOSED) SELALU melewatkannya pada source
+            // saat ini. Dipertahankan sebagai jaring pengaman, bukan jalur aktif - lihat catatan
+            // KNOWN ISSUES pada laporan task BE-BKC-062.
+            var closureChange = await SyncClosureInsideTransactionAsync(
+                invoice.Id, actorUserId, now, cancellationToken);
+            if (closureChange.Changed && closureChange.StatusAfter == BillingInvoiceStatuses.Closed)
+            {
+                await _consumerHandoffService.PublishForClearanceChangeAsync(
+                    invoice.Id,
+                    PrescriptionClearanceReasonCodes.InvoiceSettled,
+                    actorUserId,
+                    now,
+                    request.CorrelationId,
+                    request.CorrelationId,
+                    cancellationToken);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             await AuditAllocationAsync(
                 allocation, account, invoice, positionAfter,
                 actorUserId, request.Reason, request.CorrelationId, false, beforeBalance);
+            if (closureChange.Changed)
+                await AuditClosureChangeAsync(closureChange, actorUserId);
             return MapResponse(
                 allocation, settlement, account, invoice, positionAfter, false);
         }
@@ -454,13 +482,24 @@ public sealed class BillingAllocationService
         var refundable = await _dbContext.BilRefundableCredits.AsNoTracking()
             .Where(x => x.InvoiceId == invoiceId && !x.IsDelete)
             .SumAsync(x => (decimal?)x.AvailableAmount, cancellationToken) ?? 0;
+        // BE-BKC-029/BKC-DES-024: writeOffTotal HANYA menyaring kategori PATIENT_AR - write-off
+        // residual non-billable tidak pernah mengurangi piutang pasien (BE-BKC-028). adjustmentNet
+        // mengecualikan reversal yang menunjuk case residual - satu paket dengan penyaringan di
+        // atas, sama seperti BillingFinancialExceptionService.CalculateOutstandingAsync.
         var writeOffTotal = await _dbContext.BilWriteOffCases.AsNoTracking()
             .Where(x => x.InvoiceId == invoiceId
-                && x.Status == BillingWriteOffCaseStatuses.Posted && !x.IsDelete)
+                && x.Status == BillingWriteOffCaseStatuses.Posted
+                && x.Category == BillingWriteOffCategories.PatientAr && !x.IsDelete)
             .SumAsync(x => (decimal?)x.Amount, cancellationToken) ?? 0;
+        var residualCaseIds = await _dbContext.BilWriteOffCases.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId && x.Category == BillingWriteOffCategories.NonBillableResidual)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
         var adjustmentNet = await _dbContext.BilAdjustments.AsNoTracking()
             .Where(x => x.InvoiceId == invoiceId
-                && x.Status == BillingAdjustmentStatuses.Posted && !x.IsDelete)
+                && x.Status == BillingAdjustmentStatuses.Posted && !x.IsDelete
+                && (x.ReversesWriteOffCaseId == null
+                    || !residualCaseIds.Contains(x.ReversesWriteOffCaseId.Value)))
             .SumAsync(
                 x => (decimal?)(x.Direction == BillingAdjustmentDirections.Credit ? x.Amount : -x.Amount),
                 cancellationToken) ?? 0;
@@ -519,6 +558,43 @@ public sealed class BillingAllocationService
     private Task AcquireLockAsync(string key, CancellationToken cancellationToken) =>
         _dbContext.Database.ExecuteSqlRawAsync(
             "SELECT pg_advisory_xact_lock(hashtext({0}));", [key], cancellationToken);
+
+    // BKC-DES-029/030: dipanggil SESUDAH SaveChanges peristiwa itu sendiri, SEBELUM
+    // CommitAsync - pola yang sama dengan BillingSettlementService/BillingFinancialExceptionService.
+    private async Task<InvoiceClosureChange> SyncClosureInsideTransactionAsync(
+        Guid invoiceId, Guid actorUserId, DateTimeOffset occurredAt, CancellationToken cancellationToken)
+    {
+        InvoiceClosureChange change;
+        try
+        {
+            change = await _closureService.SyncClosureAsync(
+                invoiceId, actorUserId, occurredAt, cancellationToken);
+        }
+        catch (BillingInvoiceClosureValidationException exception)
+        {
+            throw new BillingAllocationValidationException(exception.Message);
+        }
+        if (change.Changed)
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        return change;
+    }
+
+    // BKC-DES-029/030: audit perpindahan FINAL<->CLOSED sebagai efek langsung alokasi deposit.
+    // Kategori/bentuk payload sama dengan yang dipakai service lain untuk peristiwa closure ini.
+    private Task AuditClosureChangeAsync(InvoiceClosureChange change, Guid actorUserId) =>
+        _loggerService.AuditAsync(
+            LogCategory,
+            "BillingInvoice.ClosureSynced",
+            "Status penutupan invoice diselaraskan berdasarkan sisa tagihan pasien.",
+            new
+            {
+                change.InvoiceId,
+                StatusBefore = change.StatusBefore,
+                StatusAfter = change.StatusAfter,
+                change.Outstanding,
+                Trigger = "DepositAllocated",
+                ActorUserId = actorUserId
+            });
 
     private Task AuditAllocationAsync(
         BilPaymentAllocation allocation,

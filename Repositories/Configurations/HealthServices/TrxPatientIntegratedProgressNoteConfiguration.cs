@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Models;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
@@ -268,6 +271,83 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .WithMany()
                 .HasForeignKey(x => x.CancelledByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // =========================================================================
+            // BE-RWI-040 - konteks perawatan dan verifikasi DPJP
+            // =========================================================================
+            entity.Property(x => x.InpEpisodeId)
+                .IsRequired(false);
+
+            // Satu-satunya kolom baru yang wajib pada task ini. Bawaannya NotRequired supaya
+            // baris lama, dan catatan pada rumah sakit yang tidak mewajibkan verifikasi, tidak
+            // pernah terhitung menunggu.
+            entity.Property(x => x.VerificationStatus)
+                .HasConversion<int>()
+                .HasDefaultValue(CpptVerificationStatus.NotRequired)
+                .IsRequired();
+
+            entity.Property(x => x.VerifiedAt)
+                .HasColumnType("timestamp with time zone")
+                .IsRequired(false);
+
+            entity.Property(x => x.VerifiedByUserId)
+                .IsRequired(false);
+
+            entity.Property(x => x.VerificationDueAt)
+                .HasColumnType("timestamp with time zone")
+                .IsRequired(false);
+
+            entity.HasOne<InpEpisode>()
+                .WithMany()
+                .HasForeignKey(x => x.InpEpisodeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Verifikator disimpan terpisah dari penulis asli pada ProviderUserId - INV-DOK-11.
+            // BE-RWI-066 memasang navigation-nya supaya nama verifikator dapat ikut dibaca.
+            // Relasi, kolom kunci asing, principal key, dan perilaku hapusnya TIDAK berubah
+            // sedikit pun; yang bertambah hanya navigation pada model CLR, sehingga tidak ada
+            // beda schema dan tidak ada migration yang dibutuhkan.
+            entity.HasOne(x => x.VerifiedByUser)
+                .WithMany()
+                .HasForeignKey(x => x.VerifiedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => new
+            {
+                x.InpEpisodeId,
+                x.NoteDateTime
+            });
+
+            entity.HasIndex(x => x.VerificationStatus);
+
+            // Index parsial hanya pada baris yang menunggu verifikasi: daftar pantau hanya
+            // membaca baris itu, dan meng-index seluruh baris memboroskan tanpa dipakai.
+            entity.HasIndex(x => x.VerificationDueAt)
+                .HasFilter("\"VerificationStatus\" = 1 AND \"IsDelete\" = false");
+
+            // =========================================================================
+            // BE-RWI-094 - jenis catatan pada lembar terpadu (migration R3)
+            // =========================================================================
+
+            // data-dictionary.md 13.9. Bawaannya Unspecified, bukan PhysicianNote: seluruh entri
+            // lama memang tidak pernah punya jenis, dan menebaknya dari isi catatan adalah
+            // pemalsuan data klinis. Keabsahan pasangan jenis-profesi ditegakkan jalur tulis
+            // (VAL-DOK-59), bukan check constraint - pemetaannya melibatkan kolom teks
+            // ProfessionType yang nilainya ditentukan aplikasi, bukan enum basis data.
+            entity.Property(x => x.NoteKind)
+                .HasConversion<int>()
+                .HasDefaultValue(CpptNoteKind.Unspecified)
+                .IsRequired();
+
+            // Index penyaring lini masa per perawatan: saringnya berangkat dari perawatan, lalu
+            // jenis, lalu waktu klinis - persis urutan kolom di sini.
+            entity.HasIndex(x => new
+            {
+                x.InpEpisodeId,
+                x.NoteKind,
+                x.NoteDateTime
+            })
+            .HasDatabaseName("IX_TrxPatientIntegratedProgressNote_Episode_Kind_Time");
         }
     }
 }

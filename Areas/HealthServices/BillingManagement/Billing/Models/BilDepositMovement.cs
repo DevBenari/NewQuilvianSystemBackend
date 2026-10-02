@@ -13,6 +13,8 @@ public sealed class BilDepositMovement : IdentityModel
     public decimal Amount { get; set; }
     public Guid? SettlementId { get; set; }
     public Guid? PaymentMethodId { get; set; }
+    public Guid? PaymentMethodAccountId { get; set; }
+    [MaxLength(150)] public string? ReferenceNumber { get; set; }
     public Guid? CashierShiftId { get; set; }
     public Guid IdempotencyKey { get; set; }
     [Required, MaxLength(64)] public string PayloadHash { get; set; } = string.Empty;

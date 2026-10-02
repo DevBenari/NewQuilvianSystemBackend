@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
@@ -10,8 +10,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid EncounterId { get; set; }
         public string EncounterNumber { get; set; } = string.Empty;
 
-        public Guid ConsultationId { get; set; }
-        public string ConsultationNumber { get; set; } = string.Empty;
+        public Guid? ConsultationId { get; set; }
+        public string? ConsultationNumber { get; set; }
 
         public Guid PatientId { get; set; }
         public string PatientName { get; set; } = string.Empty;
@@ -85,6 +85,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
         public DateTime? UpdateDateTime { get; set; }
+
+        // Kolom instruksi dokter & penutupan rawat inap — R7 / BE-RWI-097
+        public Guid? OrderedByUserId { get; set; }
+        public string? OrderedByUserName { get; set; }
+        public Guid? InstructingDoctorId { get; set; }
+        public string? InstructingDoctorName { get; set; }
+        public PatientProcedureInstructionVerificationStatus InstructionVerificationStatus { get; set; }
+        public DateTime? InstructionVerifiedAt { get; set; }
+        public Guid? InstructionVerifiedByUserId { get; set; }
+        public string? InstructionVerifiedByUserName { get; set; }
+        public bool CancelledByEpisodeClosure { get; set; }
 
         // Metadata aksi untuk frontend. Nilainya ditentukan backend berdasarkan
         // status tindakan dan status konsultasi, sehingga frontend tidak perlu
@@ -229,6 +240,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid ProcedureId { get; set; }
     }
 
+    /// <summary>
+    /// Permintaan pembuatan pesanan tindakan rawat inap oleh dokter atau perawat — BE-RWI-097 / FR-DOK-100.
+    /// Tidak menuntut ConsultationId.
+    /// </summary>
+    public class CreateInpatientProcedureOrderRequest
+    {
+        [Required]
+        public Guid InpEpisodeId { get; set; }
+
+        [Required]
+        public Guid ProcedureId { get; set; }
+
+        public decimal Quantity { get; set; } = 1;
+
+        public bool IsPrimaryProcedure { get; set; } = false;
+
+        public bool IsEmergencyProcedure { get; set; } = false;
+
+        [MaxLength(1000)]
+        public string? ClinicalReason { get; set; }
+
+        [MaxLength(500)]
+        public string? InstructionNote { get; set; }
+
+        /// <summary>
+        /// Dokter pemberi instruksi. Wajib jika pembuat pesanan adalah perawat.
+        /// </summary>
+        public Guid? InstructingDoctorId { get; set; }
+
+        [MaxLength(100)]
+        public string? IdempotencyKey { get; set; }
+    }
+
     public class CreatePatientProcedureRequest
     {
         [Required]
@@ -239,6 +283,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         [Required]
         public Guid ProcedureId { get; set; }
+
+        /// <summary>
+        /// Pasien yang menerima tindakan. Boleh kosong; bila terisi tetapi tidak cocok dengan
+        /// pasien pada kunjungannya, permintaan ditolak <c>400</c>.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-051</c> kriteria 1. Penjaga salah pasien. Layar dokter rawat inap membuka
+        /// satu pasien lalu mengirim tindakan; bila pasien pada layar dan pasien pada kunjungan
+        /// berbeda, yang terjadi adalah tindakan tercatat pada rekam medis orang lain.
+        /// </remarks>
+        public Guid? PatientId { get; set; }
+
+        /// <summary>
+        /// Perawatan rawat inap yang menaungi tindakan. Boleh kosong; bila terisi tetapi tidak
+        /// cocok dengan perawatan milik kunjungan, permintaan ditolak <c>400</c> —
+        /// <c>VAL-DOK-26</c>.
+        /// </summary>
+        public Guid? InpEpisodeId { get; set; }
+
+        /// <summary>
+        /// Kejadian visite yang menaungi tindakan. <b>Opsional</b> — <c>BE-RWI-051</c>
+        /// kriteria 5. Tindakan yang dikerjakan di luar kunjungan dokter tetap sah dicatat.
+        /// </summary>
+        public Guid? PhysicianVisitId { get; set; }
+
+        /// <summary>
+        /// Kunci permintaan. Opsional, tetapi sangat dianjurkan: tanpa kunci, percobaan ulang
+        /// karena jaringan terputus melahirkan tindakan kedua beserta tagihannya.
+        /// </summary>
+        [MaxLength(100)]
+        public string? IdempotencyKey { get; set; }
 
         public PatientProcedureSource ProcedureSource { get; set; } = PatientProcedureSource.DoctorOrder;
 
@@ -338,7 +413,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         public Guid EncounterId { get; set; }
 
-        public Guid ConsultationId { get; set; }
+        public Guid? ConsultationId { get; set; }
 
         public Guid ProcedureId { get; set; }
 
@@ -394,6 +469,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         public DateTime? UpdateDateTime { get; set; }
 
+        public Guid? OrderedByUserId { get; set; }
+        public Guid? InstructingDoctorId { get; set; }
+        public PatientProcedureInstructionVerificationStatus InstructionVerificationStatus { get; set; }
+        public bool CancelledByEpisodeClosure { get; set; }
+
         public bool CanEdit { get; set; }
 
         public bool CanRemoveFromDraft { get; set; }
@@ -431,5 +511,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         [Required]
         [MaxLength(250)]
         public string CancelReason { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Satu baris daftar tunggu verifikasi instruksi milik dokter login — BE-RWI-098,
+    /// api-contract 0.6.0 bagian 12.5. Identitas pasien sengaja minimum.
+    /// </summary>
+    public class InstructionVerificationItemResponse
+    {
+        public Guid PatientProcedureId { get; set; }
+        public Guid? InpEpisodeId { get; set; }
+        public string? EpisodeNumber { get; set; }
+        public Guid PatientId { get; set; }
+        public string PatientName { get; set; } = string.Empty;
+        public string MedicalRecordNumber { get; set; } = string.Empty;
+        public Guid ProcedureId { get; set; }
+        public string ProcedureCodeSnapshot { get; set; } = string.Empty;
+        public string ProcedureNameSnapshot { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public PatientProcedureStatus ProcedureStatus { get; set; }
+        public bool IsExecuted { get; set; }
+        public DateTime OrderedAt { get; set; }
+        public Guid? OrderedByUserId { get; set; }
+        public string? OrderedByUserName { get; set; }
+        public PatientProcedureInstructionVerificationStatus InstructionVerificationStatus { get; set; }
     }
 }

@@ -1,0 +1,85 @@
+{
+  "Accounting Management": [
+    "Areas/Corporate/AccountingManagement"
+  ],
+
+  "Finance Management": [
+    "Areas/Corporate/FinanceManagement"
+  ],
+
+  "Human Resource Management": [
+    "Areas/Corporate/HumanResource",
+    "Areas/Corporate/HRD",
+    "Areas/Corporate/Workforce"
+  ],
+
+  "Billing Management": [
+    "Areas/HealthServices/BillingManagement"
+  ],
+
+  "Blood Bank Management": [
+    "Areas/HealthServices/BloodBankManagement"
+  ],
+
+  "Clinical Management": [
+    "Areas/HealthServices/ClinicalManagement"
+  ],
+
+  "Emergency Management": [
+    "Areas/HealthServices/EmergencyInstallationManagement",
+    "Areas/HealthServices/EmergencyManagement"
+  ],
+
+  "Inpatient Management": [
+    "Areas/HealthServices/InPatientManagement",
+    "Areas/HealthServices/InpatientManagement"
+  ],
+
+  "Laboratory Management": [
+    "Areas/HealthServices/LaboratoryManagement"
+  ],
+
+  "Medical Record Management": [
+    "Areas/HealthServices/MedicalRecordManagement"
+  ],
+
+  "Nutrition Management": [
+    "Areas/HealthServices/NutritionManagement"
+  ],
+
+  "Operating Room Management": [
+    "Areas/HealthServices/OperatingRoomManagement"
+  ],
+
+  "Patient Management": [
+    "Areas/HealthServices/PatientManagement"
+  ],
+
+  "Pharmacy Management": [
+    "Areas/HealthServices/PharmacyManagement"
+  ],
+
+  "Radiology Management": [
+    "Areas/HealthServices/RadiologyManagement"
+  ],
+
+  "Registration Management": [
+    "Areas/HealthServices/RegistrationManagement"
+  ],
+
+  "Number Series Management": [
+    "Areas/Platform/NumberSeriesManagement"
+  ],
+
+  "Self Service Management": [
+    "Areas/SelfServices"
+  ],
+
+  "Administrator Management": [
+    "Areas/Administrator"
+  ],
+
+  "Platform Management": [
+    "Areas/Platform"
+  ]
+}

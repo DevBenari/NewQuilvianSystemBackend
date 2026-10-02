@@ -1,0 +1,18 @@
+{
+  "currentVersion": "0.5.0",
+
+  "rules": {
+    "major": {
+      "breakingMigration": true
+    },
+
+    "minor": {
+      "moduleChange": true,
+      "databaseMigration": true
+    },
+
+    "patch": {
+      "bugFixOnly": true
+    }
+  }
+}

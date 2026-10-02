@@ -90,6 +90,47 @@ public sealed class BillingPatientFundsController : ControllerBase
         }
     }
 
+    [HttpGet("deposit-policies")]
+    [AccessAction("Read", "Read Deposit Policy", AccessType = AccessTypes.Read, SortOrder = 4)]
+    [AccessPermission("BillingDeposit", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<DepositPolicyResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDepositPolicy(
+        [FromQuery] Guid? guarantorId,
+        [FromQuery] Guid? patientClassId,
+        CancellationToken cancellationToken)
+    {
+        var result = await _service.GetDepositPolicyAsync(
+            guarantorId, patientClassId, cancellationToken);
+        return Ok(ApiResponse<DepositPolicyResponse>.Ok(
+            result, "Kebijakan deposit berhasil diambil."));
+    }
+
+    [HttpGet("deposits/episodes/{episodeId:guid}")]
+    [AccessAction("Read", "Read Episode Deposit Summary", AccessType = AccessTypes.Read, SortOrder = 5)]
+    [AccessPermission("BillingDeposit", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<EpisodeDepositSummaryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetEpisodeDepositSummary(
+        Guid episodeId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetEpisodeDepositSummaryAsync(episodeId, cancellationToken);
+            return Ok(ApiResponse<EpisodeDepositSummaryResponse>.Ok(
+                result, "Ringkasan deposit episode rawat inap berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(
+                StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingDepositValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
     [HttpPost("deposits/{encounterId:guid}/top-ups")]
     [AccessAction("Create", "Create Inpatient Deposit Top Up", AccessType = AccessTypes.Create, SortOrder = 2)]
     [AccessPermission("BillingDeposit", "Create")]

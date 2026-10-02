@@ -4,12 +4,14 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using System.Linq.Expressions;
 using System.Security.Claims;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Controllers
@@ -33,13 +35,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly EmergencyObservationService _emergencyObservationService;
 
         public EmergencyObservationDetailController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            EmergencyObservationService emergencyObservationService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _emergencyObservationService = emergencyObservationService;
         }
 
         [HttpGet]
@@ -101,9 +106,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             };
 
             var totalData = await query.CountAsync(cancellationToken);
-            var entities = await query
+
+            // BE-IGD-046 - angka tanda vital dan nama pencatat ikut terbawa oleh kueri
+            // daftar yang sama. Layar riwayat pemantauan tidak lagi perlu memanggil endpoint
+            // tanda vital sekali per baris hanya untuk menampilkan angkanya.
+            var items = await query
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
+                .Select(ProyeksiResponse)
                 .ToListAsync(cancellationToken);
 
             var result = new PagedResult<EmergencyObservationDetailResponse>
@@ -112,7 +122,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 PageSize = pageSize,
                 TotalData = totalData,
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
-                Items = entities.Select(ToResponse).ToList()
+                Items = items
             };
 
             return Ok(ApiResponse<PagedResult<EmergencyObservationDetailResponse>>.Ok(result, "Data detail observasi IGD berhasil diambil."));
@@ -125,11 +135,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyObservationDetail", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<EmgObservationDetail>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
-            if (entity == null)
+            var response = await BacaResponseAsync(id, cancellationToken);
+            if (response == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data detail observasi IGD tidak ditemukan."));
 
-            return Ok(ApiResponse<EmergencyObservationDetailResponse>.Ok(ToResponse(entity), "Detail detail observasi IGD berhasil diambil."));
+            return Ok(ApiResponse<EmergencyObservationDetailResponse>.Ok(response, "Detail detail observasi IGD berhasil diambil."));
         }
 
         [HttpPost]
@@ -140,9 +150,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyObservationDetail", "Create")]
         public async Task<IActionResult> Create([FromBody] CreateEmergencyObservationDetailRequest request, CancellationToken cancellationToken = default)
         {
-            var validationMessage = await ValidateRequestAsync(request, cancellationToken);
-            if (validationMessage != null)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validationMessage));
+            // BE-IGD-046 - seluruh pemeriksaan selesai sebelum satu pun data berubah, dengan
+            // urutan yang dikunci validation 0.6.0 bagian 9.1: periode ada, periode belum
+            // ditutup, baru tautannya. Pencatatan baru menolak periode Completed dan
+            // Cancelled (IGD-DEC-126).
+            var pemeriksaan = await _emergencyObservationService.ValidateDetailScopeAsync(
+                request.EmergencyObservationId,
+                request.PatientVitalSignId,
+                request.ProgressNoteId,
+                tolakPeriodeTertutup: true,
+                cancellationToken);
+
+            if (!pemeriksaan.Lolos)
+                return Failure(pemeriksaan.StatusCode, pemeriksaan.Penolakan!);
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
@@ -154,7 +174,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 PatientVitalSignId = request.PatientVitalSignId,
                 ProgressNoteId = request.ProgressNoteId,
                 RecordedAt = request.RecordedAt == default ? now : request.RecordedAt,
-                RecordedByUserId = request.RecordedByUserId == Guid.Empty ? actorUserId : request.RecordedByUserId,
+                // BE-IGD-046 - pelaku pencatat selalu dari pengguna yang terautentikasi.
+                // Nilai RecordedByUserId yang dikirim pemanggil sengaja diabaikan, bukan
+                // ditolak, supaya pemanggil lama tetap dilayani (validation 0.6.0 bagian 9
+                // aturan 9, IGD-DEC-057).
+                RecordedByUserId = actorUserId,
                 ClinicalConditionSummary = NormalizeText(request.ClinicalConditionSummary),
                 InterventionSummary = NormalizeText(request.InterventionSummary),
                 PatientResponseSummary = NormalizeText(request.PatientResponseSummary),
@@ -188,7 +212,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 new { EntityId = entity.Id, Controller = "EmergencyObservationDetail", Action = "Create" }
             );
 
-            return Ok(ApiResponse<EmergencyObservationDetailResponse>.Ok(ToResponse(entity), "Data detail observasi IGD berhasil dibuat."));
+            return Ok(ApiResponse<EmergencyObservationDetailResponse>.Ok(
+                (await BacaResponseAsync(entity.Id, cancellationToken))!,
+                "Data detail observasi IGD berhasil dibuat."));
         }
 
         [HttpPut("{id:guid}")]
@@ -204,9 +230,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data detail observasi IGD tidak ditemukan."));
 
-            var validationMessage = await ValidateRequestAsync(request, cancellationToken);
-            if (validationMessage != null)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, validationMessage));
+            // BE-IGD-046 - lingkup tautan diperiksa pada perubahan juga (validation 0.6.0
+            // bagian 9 berlaku untuk POST dan PUT). Penolakan periode tertutup sengaja TIDAK
+            // dinyalakan di sini: aturan 2 menolak "pemantauan baru", dan memperluasnya ke
+            // PUT berarti mengubah perilaku yang tidak diperintahkan kontrak. Perbaikan PUT
+            // menjadi tambah-saja (IGD-DEC-080) tetap di luar lingkup task ini.
+            var pemeriksaan = await _emergencyObservationService.ValidateDetailScopeAsync(
+                request.EmergencyObservationId,
+                request.PatientVitalSignId,
+                request.ProgressNoteId,
+                tolakPeriodeTertutup: false,
+                cancellationToken);
+
+            if (!pemeriksaan.Lolos)
+                return Failure(pemeriksaan.StatusCode, pemeriksaan.Penolakan!);
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
@@ -214,7 +251,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             entity.PatientVitalSignId = request.PatientVitalSignId;
             entity.ProgressNoteId = request.ProgressNoteId;
             entity.RecordedAt = request.RecordedAt;
-            entity.RecordedByUserId = request.RecordedByUserId;
+            // BE-IGD-046 - RecordedByUserId tidak lagi diambil dari badan permintaan.
+            // Pencatat aslinya dipertahankan apa adanya; pelaku perubahan tercatat pada
+            // UpdateBy di bawah. Sebelumnya nilai dari pemanggil menimpa pencatat asli, dan
+            // badan tanpa field itu bahkan mengosongkannya menjadi GUID nol.
             entity.ClinicalConditionSummary = NormalizeText(request.ClinicalConditionSummary);
             entity.InterventionSummary = NormalizeText(request.InterventionSummary);
             entity.PatientResponseSummary = NormalizeText(request.PatientResponseSummary);
@@ -244,7 +284,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 new { EntityId = id, Controller = "EmergencyObservationDetail", Action = "Update" }
             );
 
-            return Ok(ApiResponse<EmergencyObservationDetailResponse>.Ok(ToResponse(entity), "Data detail observasi IGD berhasil diubah."));
+            return Ok(ApiResponse<EmergencyObservationDetailResponse>.Ok(
+                (await BacaResponseAsync(id, cancellationToken))!,
+                "Data detail observasi IGD berhasil diubah."));
         }
 
         [HttpDelete("{id:guid}")]
@@ -276,38 +318,58 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             return Ok(ApiResponse<object>.Ok(null, "Data detail observasi IGD berhasil dihapus."));
         }
 
-        private async Task<string?> ValidateRequestAsync(CreateEmergencyObservationDetailRequest request, CancellationToken cancellationToken)
-        {
-            if (request.EmergencyObservationId == Guid.Empty)
-                return "EmergencyObservationId wajib diisi.";
-
-            if (!await _dbContext.Set<EmgObservation>().AsNoTracking().AnyAsync(x => x.Id == request.EmergencyObservationId && !x.IsDelete, cancellationToken))
-                return "EmergencyObservationId tidak ditemukan.";
-
-            if (request.PatientVitalSignId.HasValue && request.PatientVitalSignId.Value != Guid.Empty &&
-                !await _dbContext.Set<TrxPatientVitalSign>().AsNoTracking().AnyAsync(x => x.Id == request.PatientVitalSignId.Value && !x.IsDelete, cancellationToken))
-                return "PatientVitalSignId tidak ditemukan.";
-
-            if (request.ProgressNoteId.HasValue && request.ProgressNoteId.Value != Guid.Empty &&
-                !await _dbContext.Set<TrxPatientIntegratedProgressNote>().AsNoTracking().AnyAsync(x => x.Id == request.ProgressNoteId.Value && !x.IsDelete, cancellationToken))
-                return "ProgressNoteId tidak ditemukan.";
-
-            return null;
-        }
-
-        private Task<string?> ValidateRequestAsync(UpdateEmergencyObservationDetailRequest request, CancellationToken cancellationToken)
-            => ValidateRequestAsync((CreateEmergencyObservationDetailRequest)request, cancellationToken);
-
-        private static EmergencyObservationDetailResponse ToResponse(EmgObservationDetail x)
-        {
-            return new EmergencyObservationDetailResponse
+        /// <summary>
+        /// Proyeksi baca satu baris pemantauan beserta angka tanda vital yang ditautkan dan
+        /// nama petugas pencatatnya.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-IGD-046</c>, API 0.6.0 bagian 7.2. Ditulis sebagai satu expression supaya
+        /// daftar, detail, pembuatan, dan perubahan memakai bentuk balasan yang sama persis,
+        /// dan supaya seluruhnya terbawa satu kueri lewat relasi <c>PatientVitalSign</c> dan
+        /// <c>RecordedByUser</c> yang sudah dikonfigurasi. Baris lama yang
+        /// <c>PatientVitalSignId</c>-nya kosong tetap terbaca dengan <c>VitalSign</c>
+        /// bernilai <c>null</c>; tidak ada pengisian mundur.
+        /// </remarks>
+        private static readonly Expression<Func<EmgObservationDetail, EmergencyObservationDetailResponse>> ProyeksiResponse =
+            x => new EmergencyObservationDetailResponse
             {
                 Id = x.Id,
                 EmergencyObservationId = x.EmergencyObservationId,
                 PatientVitalSignId = x.PatientVitalSignId,
+                VitalSign = x.PatientVitalSign == null
+                    ? null
+                    : new EmergencyObservationDetailVitalSignResponse
+                    {
+                        Id = x.PatientVitalSign.Id,
+                        ObservationDateTime = x.PatientVitalSign.ObservationDateTime,
+                        BloodPressureSystolic = x.PatientVitalSign.BloodPressureSystolic,
+                        BloodPressureDiastolic = x.PatientVitalSign.BloodPressureDiastolic,
+                        PulseRate = x.PatientVitalSign.PulseRate,
+                        RespiratoryRate = x.PatientVitalSign.RespiratoryRate,
+                        Temperature = x.PatientVitalSign.Temperature,
+                        OxygenSaturation = x.PatientVitalSign.OxygenSaturation,
+                        GcsEye = x.PatientVitalSign.GcsEye,
+                        GcsVerbal = x.PatientVitalSign.GcsVerbal,
+                        GcsMotor = x.PatientVitalSign.GcsMotor,
+                        GcsTotal = x.PatientVitalSign.GcsTotal,
+                        ConsciousnessStatus = x.PatientVitalSign.ConsciousnessStatus,
+                        IsUsingOxygen = x.PatientVitalSign.IsUsingOxygen,
+                        OxygenSupportType = x.PatientVitalSign.OxygenSupportType,
+                        OxygenFlowRate = x.PatientVitalSign.OxygenFlowRate,
+                        OxygenSupportNote = x.PatientVitalSign.OxygenSupportNote,
+                        VitalSignStatus = x.PatientVitalSign.VitalSignStatus,
+                        IsAbnormal = x.PatientVitalSign.IsAbnormal,
+                        IsCritical = x.PatientVitalSign.IsCritical
+                    },
                 ProgressNoteId = x.ProgressNoteId,
                 RecordedAt = x.RecordedAt,
                 RecordedByUserId = x.RecordedByUserId,
+                // Nama pencatat memakai urutan yang sudah dipakai backend lain:
+                // DisplayName, lalu UserName, Email, dan UserCode. Pengguna yang tidak
+                // ditemukan menghasilkan null, bukan GUID.
+                RecordedByName = x.RecordedByUser == null
+                    ? null
+                    : x.RecordedByUser.DisplayName ?? x.RecordedByUser.UserName ?? x.RecordedByUser.Email ?? x.RecordedByUser.UserCode,
                 ClinicalConditionSummary = x.ClinicalConditionSummary,
                 InterventionSummary = x.InterventionSummary,
                 PatientResponseSummary = x.PatientResponseSummary,
@@ -321,7 +383,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 CreateDateTime = x.CreateDateTime,
                 UpdateDateTime = x.UpdateDateTime
             };
-        }
+
+        private Task<EmergencyObservationDetailResponse?> BacaResponseAsync(Guid id, CancellationToken cancellationToken)
+            => _dbContext.Set<EmgObservationDetail>()
+                .AsNoTracking()
+                .Where(x => x.Id == id && !x.IsDelete)
+                .Select(ProyeksiResponse)
+                .FirstOrDefaultAsync(cancellationToken);
+
+        private IActionResult Failure(int statusCode, string message)
+            => StatusCode(statusCode, ApiResponse<object>.Fail(statusCode, message));
 
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
         {

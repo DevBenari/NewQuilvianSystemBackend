@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `IGD-BP-001` revision `5` |
+| Blueprint | `IGD-BP-001` revision `5`; **bagian 8 (encounter-first, `EPIC IGD-11`/`12`) ditambahkan 22 September 2026** |
 | Status | `draft` — **belum disetujui**; memuat pertanyaan memblokir |
 | Commit diaudit | backend `f69e9e48`, frontend `96a91201` |
 | Turunan dari | `02-backend-architecture.md`, `03-frontend-architecture.md`, `erd/`, `contracts/`, `testing/` |
@@ -318,3 +318,200 @@ boleh berstatus `draft`, tetapi **tidak boleh** diteruskan ke `/qv-plan` sebelum
 
 Pengecualiannya: **`MVP-0` tidak bergantung pada satu pun pertanyaan di atas** dan dapat
 direncanakan lebih dulu.
+
+---
+
+## 8. Encounter-first — 22 September 2026
+
+Bagian ini **menurunkan** dari dokumen yang sudah ada — `02-backend-architecture.md` §13, `03-frontend-architecture.md`
+§13, `erd/data-dictionary.md` §6, kontrak API `0.11.0` §8, validation `0.8.0` §10, state `0.5.0` §8, integration
+`0.4.0` §5, permission/audit `0.5.0` §7 — dan **tidak** menciptakan entity, status, permission, atau endpoint baru.
+Status: `draft`; approval tetap tindakan pemilik.
+
+**Catatan penomoran gelombang.** Bagian 5 dokumen ini masih memakai penomoran revisi 5; roadmap revisi 3
+memakai penomoran `MVP-0`…`MVP-6` yang berbeda. Slice ini memakai **`MVP-7`** pada penomoran roadmap.
+
+### 8.1 Batas slice
+
+| Titik | Isi |
+| --- | --- |
+| **Mulai** | Pasien tiba dan petugas loket memilih/mendaftarkan pasiennya (termasuk rekam pengganti untuk pasien tanpa identitas) |
+| **Akhir** | Episode IGD pasien berakhir dengan encounter dan kunjungan **konsisten**: pergi sebelum ditriage (NoShow), batal karena salah daftar, atau kunjungan selesai/batal yang ikut menutup encounter; ditambah encounter lama yang dibereskan lewat rekonsiliasi |
+
+*Dalam satu kalimat:* pasien IGD selalu punya tepat satu episode terbuka yang lahir di loket, menjadi kunjungan
+saat proses klinis dimulai, dan berakhir bersih — tidak ada encounter yang tertinggal terbuka.
+
+### 8.2 Kemampuan `MUST HAVE`
+
+| Kemampuan | ID kemampuan asal (capability map suplemen 3.2) | Disposisi |
+| --- | --- | --- |
+| Penjaga satu pasien satu episode di pintu encounter, serentak aman | `IGD-CAP-51`, `IGD-CAP-52`, `IGD-CAP-08` | `EXTEND` |
+| Override pendaftaran ganda tercatat | `IGD-CAP-60` | `MISSING / NEW` |
+| Encounter Emergency tanpa antrean | `IGD-CAP-59`, `IGD-CAP-09` | `EXTEND` |
+| Daftar *Menunggu Triage* terpadu | `IGD-CAP-57`, `IGD-CAP-47` | `MISSING / NEW` |
+| Kelahiran kunjungan: Mulai Triage dan Tangani Segera | `IGD-CAP-58` | `EXTEND` |
+| Waktu tiba oleh perawat + penanda + batas koreksi | `IGD-CAP-61` | `REPAIR` → `EXTEND` |
+| Pasien pergi sebelum ditriage | `IGD-CAP-55`, `IGD-CAP-56` | `EXTEND` |
+| Encounter ikut ditutup bersama kunjungan | `IGD-CAP-53`, `IGD-CAP-54` | `MISSING / NEW` (pemicu) + `EXISTING / REUSE` (penguncian catatan) |
+| Jalur umum Registrasi dibatasi untuk Emergency | `IGD-CAP-51` | `EXTEND` |
+| Identitas kunjungan terkunci | `IGD-CAP-63` | `EXTEND` |
+| Rekonsiliasi encounter historis | `IGD-CAP-62` | `MISSING / NEW` |
+| Pasien tanpa identitas lewat rekam pengganti | `IGD-CAP-07` | `EXISTING / REUSE` (alur pasien baru yang ada) |
+
+### 8.3 Kemampuan yang ditunda
+
+| Ditunda | Alasan bersebab | Pengganti selama MVP |
+| --- | --- | --- |
+| Kelayakan dokter jaga dan override (`IGD-CAP-64`) | `IGD-OQ-102` (sumber roster) dan `IGD-OQ-103` (penyimpanan penanda) belum dijawab; angka E1–E3 belum ada | Penetapan dokter berjalan seperti hari ini (`BE-IGD-045`, `FE-IGD-027` ✅) — pilihan dari seluruh master dokter aktif |
+| Layar rekonsiliasi admin | `IGD-DEC-162` (menjawab `IGD-OQ-107`) — tanpa layar | Admin menjalankan lewat API dengan hak akses khusus. **Koreksi B4, 22 September 2026:** Swagger hanya aktif di Development (`Program.cs:1330`); lingkungan lain lewat HTTP client bertoken |
+| Penggabungan rekam pasien pengganti dengan rekam asli | Milik Master Patient (`IGD-OQ-098`, pemilik belum dipetakan) | Rekam pengganti tetap terpisah; kunjungan bertanda `IsUnknownPatient` untuk ditelusuri |
+| Layar laporan override dan "pergi sebelum ditriage" | Slice kemudian (gate §5.2) | Datanya tersimpan; kueri baca-saja oleh pemilik |
+| Tindak lanjut pasien berisiko yang pergi | Menunggu Clinical Governance (`IGD-DEC-150`) | Prosedur manual di luar sistem |
+
+### 8.4 Epic dan functional requirement
+
+#### `EPIC IGD-11` — Encounter-first dan episode yang selalu tertutup rapi · `EXTEND` + `MISSING / NEW`
+
+| ID | Functional requirement | Disposisi | Bukti uji |
+| --- | --- | --- | --- |
+| `FR-IGD-069` | Pendaftaran IGD pasien beridentitas membuat encounter Emergency **tanpa** kunjungan IGD | `EXTEND` | `AT-IGD-166` |
+| `FR-IGD-070` | Encounter tanpa kunjungan tampil *Menunggu Triage* pada satu daftar terpadu, berlabel waktu terdaftar | `MISSING / NEW` | `AT-IGD-167` |
+| `FR-IGD-071` | Pendaftaran Emergency kedua ditolak di pintu encounter selama episode terbuka (klausa A atau B) | `EXTEND` | `AT-IGD-168`, `AT-IGD-185` |
+| `FR-IGD-072` | Dua pendaftaran serentak menghasilkan tepat satu episode terbuka | `MISSING / NEW` | `AT-IGD-169` |
+| `FR-IGD-073` | Pendaftaran ganda beralasan tercatat di catatan IGD; tabel encounter tanpa ruas baru | `MISSING / NEW` | `AT-IGD-170` |
+| `FR-IGD-074` | Encounter Emergency tidak pernah membuat antrean | `EXTEND` | `AT-IGD-171` |
+| `FR-IGD-075` | Mulai Triage melahirkan kunjungan menunggu triage dengan waktu tiba wajib dan dikonfirmasi | `EXTEND` | `AT-IGD-172` |
+| `FR-IGD-076` | Tangani Segera melahirkan kunjungan sedang ditangani tanpa isian, dengan waktu tiba sementara | `EXTEND` | `AT-IGD-173` |
+| `FR-IGD-077` | Mulai Triage/Tangani Segera idempoten dan aman serentak; Tangani Segera menang; status tidak mundur | `EXTEND` | `AT-IGD-174` |
+| `FR-IGD-078` | Koreksi waktu tiba ditolak bila di masa depan atau sesudah peristiwa klinis pertama | `MISSING / NEW` | `AT-IGD-175` |
+| `FR-IGD-079` | Pasien pergi sebelum ditriage ditandai perawat dengan alasan; final; tidak ditagih; pasien yang kembali didaftarkan ulang | `EXTEND` | `AT-IGD-176`, `AT-IGD-177` |
+| `FR-IGD-080` | Kunjungan selesai/batal menutup encounter pada penyimpanan yang sama; catatan klinis terbuka terkunci | `MISSING / NEW` | `AT-IGD-178` |
+| `FR-IGD-081` | Hapus lunak kunjungan tidak menutup encounter; encounter `Outpatient` tertaut ikut ditutup | `MISSING / NEW` | `AT-IGD-179` |
+| `FR-IGD-082` | Jalur umum Registrasi menolak perubahan status encounter Emergency; batal hanya sebelum kunjungan lahir | `EXTEND` | `AT-IGD-180` |
+| `FR-IGD-083` | Pasien dan encounter sebuah kunjungan IGD tidak dapat diganti lewat ubah kunjungan | `EXTEND` | `AT-IGD-181` |
+| `FR-IGD-084` | Rekonsiliasi: pratinjau K1–K4 tanpa menulis; eksekusi hanya K1 dengan penjaga data basi; dapat dibalik | `MISSING / NEW` | `AT-IGD-182`, `AT-IGD-183` |
+| `FR-IGD-085` | Pasien tanpa identitas dapat ditangani penuh lewat rekam pengganti | `EXISTING / REUSE` | `AT-IGD-184` |
+
+**UAT berhasil.** Pak Rayyan didaftarkan 09.35 dan muncul *Menunggu Triage — Terdaftar 09.35*. Perawat menekan
+Mulai Triage, mengoreksi waktu tiba menjadi 09.20, mengisi triage, dan pasien ditangani. Pukul 13.10 dokter
+menyelesaikan kunjungan; encounter-nya ikut selesai, dan catatan SOAP yang lupa ditandatangani terkunci. Pukul
+15.00 Pak Rayyan kembali karena keluhan baru dan dapat didaftarkan tanpa penolakan.
+
+**UAT gagal.** (a) Petugas kedua mencoba mendaftarkan Pak Rayyan pukul 09.40 tanpa alasan → ditolak dengan nomor
+encounter dan keterangan *Menunggu Triage*. (b) Bu Sari dipanggil tiga kali dan tidak ada → perawat menandai
+*pergi sebelum ditriage* tanpa alasan → ditolak; dengan alasan → berhasil, dan Bu Sari tidak muncul di daftar
+tagihan. (c) Perawat mencoba mengoreksi waktu tiba Pak Rayyan menjadi 10.00, padahal triage dimulai 09.42 → ditolak
+dengan menyebut "mulai triage 09.42".
+
+#### `EPIC IGD-12` — Kelayakan dokter jaga IGD · `OPEN DECISION`
+
+Tidak masuk gelombang mana pun sampai `IGD-OQ-102` dan `IGD-OQ-103` dijawab. Prinsipnya sudah `approved`
+(`IGD-DEC-141`): kandidat layak saja, validasi ulang di backend, override beralasan, tidak pernah buntu.
+
+### 8.5 Urutan pengiriman
+
+| Gelombang | Isi | Prasyarat |
+| --- | --- | --- |
+| `MVP-7` | `EPIC IGD-11` | `MVP-2` (satu pasien satu episode) dan `EPIC IGD-04` selesai — keduanya ✅ |
+
+Urutan **di dalam** `MVP-7` yang mengikat (rinciannya milik `plan-module-delivery`):
+
+1. Encounter ikut ditutup bersama kunjungan (`FR-IGD-080`, `081`) — supaya tidak ada encounter tertinggal baru.
+2. Rekonsiliasi encounter lama (`FR-IGD-084`) — sesudah butir 1; **eksekusi** tiap lingkungan menunggu angka kueri D.
+3. Penjaga di pintu encounter, serentak, override, tanpa antrean, pembatasan jalur Registrasi (`FR-IGD-071`…`074`, `082`) — sesudah butir 2.
+4. Kelahiran kunjungan, waktu tiba, NoShow, kunci identitas (`FR-IGD-075`…`079`, `083`) — boleh paralel dengan butir 2–3.
+5. Layar: daftar terpadu, lalu loket berhenti membuat kunjungan (`FR-IGD-069`, `070`) — **hanya sesudah** butir 3 aktif.
+
+`POST-MVP`: `EPIC IGD-12` (setelah keputusannya), layar laporan, layar rekonsiliasi (bila `IGD-OQ-107` meminta).
+
+### 8.6 Definition of Done — `EPIC IGD-11`
+
+| No | Butir | Bukti yang diterima |
+| ---: | --- | --- |
+| 1 | `AT-IGD-166`…`185` dijalankan pemilik dan hasilnya tercatat per skenario | Laporan task beserta angka/badan respons — pernyataan tanpa lampiran dicatat apa adanya |
+| 2 | Uji paralel `AT-IGD-169` dan `AT-IGD-174` menunjukkan tepat satu episode / satu kunjungan | Hitungan baris dicatat |
+| 3 | Tiga migration punya `Down()` berpenjaga yang diuji di basis data terpisah | Catatan uji (pola `BE-IGD-048`) |
+| 4 | Snapshot EF hanya bertambah blok tabel slice ini | `git diff` snapshot |
+| 5 | Nol kolom baru pada `RegPatientEncounter`; nol baris baru `Program.cs` | `git diff --stat` |
+| 6 | Kueri invariant "kunjungan berakhir, encounter terbuka" sesudah rilis = 0 | Kueri baca-saja pemilik |
+| 7 | Kontrak `0.11.0`/`0.8.0`/`0.5.0`/`0.4.0`/`0.5.0` dinyatakan `approved` oleh pemilik dan hash dihitung ulang | `blueprint-manifest.md` — **terpenuhi 22 September 2026** (`IGD-DEC-157`; manifest bagian 2) |
+| 8 | Perubahan pada berkas Registrasi disetujui pemilik Registrasi secara tertulis | **Belum dapat dijawab "ya"** — pemilik belum dipetakan; berjalan di bawah `IGD-DEC-135` |
+| 9 | Butir wajib tinjau klinis (`IGD-DEC-150`) tercatat belum ditinjau | Manifest dan MODULE-STATUS |
+| 10 | UAT oleh tim UAT terpisah | Status UAT dipisah; agent tidak pernah menulis `UAT PASS` |
+
+### 8.7 Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir |
+| --- | --- | :-: |
+| `IGD-OQ-102`, `IGD-OQ-103` | Sumber roster dan penanda override dokter | **Ya** — hanya `EPIC IGD-12` (tidak di gelombang mana pun) |
+| `IGD-OQ-104` | Waktu tiba hanya lewat `PATCH …/arrival-time` | **Dijawab `IGD-DEC-159`** (22 September 2026) — pilihan desain disahkan |
+| `IGD-OQ-105` | Backend tidak menahan triage karena waktu tiba sementara | **Dijawab `IGD-DEC-160`** — disahkan; wajib tinjau Nursing authority |
+| `IGD-OQ-106` | Letak ruas kunjungan non-waktu (Mulai Triage) | **Dijawab `IGD-DEC-161`** — ruas pindah ke Mulai Triage; keluhan utama tetap di loket |
+| `IGD-OQ-107` | Rekonsiliasi tanpa layar | **Dijawab `IGD-DEC-162`** — tanpa layar |
+| `IGD-OQ-108` | Encounter kedua hasil override belum dapat Mulai Triage selama kunjungan lama berjalan | Tidak — kontrak berlaku sampai pemilik mengubahnya; sebaiknya dijawab sebelum `FE-IGD-036` dirilis |
+| Kueri D | Angka K1–K4 per lingkungan | Tidak untuk development; **Ya** untuk eksekusi rekonsiliasi |
+| `IGD-OQ-098`, `IGD-OQ-099` | Pemilik Master Patient; penunjukan Clinical Governance / Nursing | Tidak |
+| Pemilik Registrasi | Persetujuan tertulis atas titik sentuh | Tidak untuk development (`IGD-DEC-135`); **Ya** untuk DoD butir 8 |
+
+**Kesimpulan.** `EPIC IGD-11` tidak memuat pertanyaan pemblokir untuk development. Dokumen ini tetap `draft`
+sampai pemilik menyetujui bagian 8 beserta kontrak `0.11.0` dan kawan-kawannya; sesudah itu slice ini boleh
+diteruskan ke `plan-module-delivery` final.
+
+## 9. `EPIC IGD-13` — penutupan kunjungan lewat disposisi yang dilaksanakan
+
+Gelombang **`MVP-8`**, sesudah `MVP-7` (encounter-first). Sumber: `IGD-DEC-163`…`169`; kemampuan asal
+`IGD-CAP-66`, `IGD-CAP-67`, `IGD-CAP-68` (capability map suplemen 3.3).
+
+**Status: `draft`** — menunggu approval pemilik.
+
+### 9.1 Batas slice
+
+| Butir | Isi |
+| --- | --- |
+| Titik mulai | Petugas menandai disposisi pasien sebagai dilaksanakan |
+| Titik akhir | Kunjungan IGD tertutup beserta encounter-nya, atau tercatat menunggu penutupan dengan alasan yang terbaca |
+| Di luar slice | Data lama (`IGD-DEC-167`); perubahan pada modul Bank Darah dan Laboratorium (`IGD-DEC-169`); rekonsiliasi `BE-IGD-052` |
+
+### 9.2 Functional requirement
+
+| ID | Requirement | Disposisi |
+| --- | --- | --- |
+| `FR-IGD-086` | Disposisi yang berpindah ke dilaksanakan memicu penutupan kunjungan, untuk semua jenis disposisi | `MISSING / NEW` |
+| `FR-IGD-087` | Bila masih ada penahan, disposisi tetap tercatat dilaksanakan dan kunjungan ditandai menunggu penutupan beserta alasannya | `MISSING / NEW` |
+| `FR-IGD-088` | Kunjungan yang menunggu penutupan tertutup otomatis pada aksi yang membereskan penahan terakhir, atas nama petugas yang melakukannya | `MISSING / NEW` |
+| `FR-IGD-089` | Asal penutupan terbaca pada kunjungan — dari disposisi yang mana, atau manual | `MISSING / NEW` |
+| `FR-IGD-090` | Pembatalan disposisi atas kunjungan yang sudah selesai ditolak | `EXTEND` — menumpang endpoint status disposisi yang sudah ada |
+| `FR-IGD-091` | Petugas dapat menyaring daftar kunjungan untuk melihat yang menunggu penutupan beserta jumlahnya | `EXTEND` — menumpang daftar kunjungan yang sudah ada |
+
+### 9.3 Skenario UAT
+
+| # | Jalur | Langkah | Hasil yang diharapkan |
+| ---: | --- | --- | --- |
+| `AT-IGD-186` | Berhasil | Pasien tanpa penahan; tandai disposisi dilaksanakan | Kunjungan langsung selesai, encounter ikut tertutup, asal penutupan menunjuk disposisi itu |
+| `AT-IGD-187` | Berhasil (menyusul) | Ada satu observasi aktif; tandai disposisi dilaksanakan, lalu tutup observasinya | Langkah pertama: disposisi berhasil, kunjungan menunggu penutupan dengan alasan observasi. Langkah kedua: kunjungan tertutup atas nama petugas yang menutup observasi |
+| `AT-IGD-188` | Berhasil (kepergian) | Ada serah terima menggantung; terima serah terima itu | Kunjungan tertutup pada aksi penerimaan |
+| `AT-IGD-189` | Gagal | Batalkan disposisi pada kunjungan yang sudah selesai | Ditolak dengan pesan yang menyuruh mendaftarkan episode baru |
+| `AT-IGD-190` | Gagal (hilir) | Sesudah kunjungan tertutup, coba pesan pemeriksaan laboratorium baru pada encounter itu | Ditolak modul Laboratorium dengan pesannya sendiri — perilaku yang diterima `IGD-DEC-169` |
+| `AT-IGD-191` | Daftar | Saring daftar kunjungan dengan "menunggu penutupan" | Hanya kunjungan berdisposisi dilaksanakan yang belum selesai yang tampil, masing-masing dengan alasan penahannya |
+
+### 9.4 Definition of Done
+
+| # | Butir | Cara menjawab |
+| ---: | --- | --- |
+| 1 | Keempat titik pemicu terpasang dan diuji satu per satu | Uji `AT-IGD-186`…`188` ditambah uji sikap pesanan |
+| 2 | Kunjungan tidak pernah tertutup saat masih ada penahan | Uji `AT-IGD-187` langkah pertama |
+| 3 | Pelaku penutupan susulan adalah petugas yang membereskan penahan, bukan sistem | Baca baris kunjungan sesudah `AT-IGD-187` |
+| 4 | Asal penutupan terbaca dan dapat dibedakan dari penutupan manual | Bandingkan dua kunjungan: satu ditutup manual, satu lewat disposisi |
+| 5 | Pembatalan disposisi atas kunjungan selesai ditolak | Uji `AT-IGD-189` |
+| 6 | Saringan menunggu penutupan menampilkan jumlah dan alasan | Uji `AT-IGD-191` |
+| 7 | Migration satu kolom diterapkan; `Down()` berpenjaga diuji di basis data terpisah | Catatan uji migration |
+| 8 | Nol perubahan `Program.cs`; nol perubahan modul Bank Darah dan Laboratorium | `git diff --stat` |
+| 9 | Build 0 error | Keluaran build milik pemilik |
+
+### 9.5 Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir? |
+| --- | --- | :-: |
+| `IGD-OQ-110` | Jumlah encounter `IsActive = false` tanpa tanda berakhir pada data lama | Tidak — memengaruhi angka, bukan bentuk aturan |
+
+Nol pertanyaan memblokir. Slice ini boleh diteruskan ke `plan-module-delivery` begitu pemilik menyetujui kontraknya.

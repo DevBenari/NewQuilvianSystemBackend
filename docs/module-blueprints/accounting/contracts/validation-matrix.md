@@ -1,0 +1,311 @@
+# Accounting — Validation Matrix
+
+| Field | Value |
+|---|---|
+| `contract_version` | `ACC-VALIDATION-0.3` |
+| Status | `draft` — approval adalah tindakan manusia |
+| Owner | Rizki (Product/Domain Owner Accounting) |
+| `approved_by` / `approved_at` | Belum ada |
+| `input_revision` | `00-interview-decisions.md@3`, `02-backend-architecture.md@3` |
+| Traceability | `ACC-DEC-014`, `ACC-DEC-016`, `ACC-DEC-019` sampai `ACC-DEC-025`, `ACC-DEC-027`, `ACC-DEC-037` |
+| Perubahan `0.1` → `0.2` | Bagian 8 ditambahkan: aturan mata uang MVP (`ACC-DEC-020`, `ACC-DEC-021`) dimaterialisasikan |
+| Dampak kompatibilitas | Kontrak baru |
+
+Pesan pada kolom "Pesan bagi pengguna" ditulis apa adanya untuk ditampilkan di layar. Ditulis
+dalam Bahasa Indonesia yang dipahami orang umum, bukan istilah teknis.
+
+## 1. Daftar akun
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| Kode akun wajib | Tambah, ubah | `AccountCode` kosong atau lebih dari 20 karakter | "Kode akun wajib diisi dan maksimal 20 karakter." | `400` |
+| Nama akun wajib | Tambah, ubah | `AccountName` kosong atau lebih dari 200 karakter | "Nama akun wajib diisi dan maksimal 200 karakter." | `400` |
+| Kode unik per badan hukum | Tambah, ubah | Sudah ada akun berkode sama pada badan hukum yang sama | "Kode akun {kode} sudah dipakai pada badan hukum ini." | `409` |
+| Tingkat akun masuk akal | Tambah, ubah | `AccountLevel` di luar 1 sampai 5 | "Tingkat akun harus antara 1 sampai 5." | `400` |
+| Induk harus badan hukum sama | Tambah, ubah | `ParentAccountId` menunjuk akun milik badan hukum berbeda | "Akun induk harus berasal dari badan hukum yang sama." | `409` |
+| Induk tidak boleh dirinya sendiri | Ubah | `ParentAccountId` sama dengan `Id`, atau membentuk lingkaran | "Akun tidak dapat menjadi induk bagi dirinya sendiri." | `409` |
+| Akun induk tidak menerima transaksi | Tambah, ubah | `IsPostable` benar padahal akun punya anak | "Akun induk tidak dapat menerima transaksi. Gunakan akun turunannya." | `409` |
+| Menambah anak ke akun bertransaksi | Tambah | Akun yang hendak dijadikan induk sudah punya baris jurnal disahkan | "Akun {kode} sudah memiliki transaksi, sehingga tidak dapat diberi akun turunan." | `409` |
+| Kode tidak berubah setelah dipakai | Ubah | `AccountCode` diubah padahal sudah ada baris jurnal disahkan | "Kode akun tidak dapat diubah karena sudah dipakai pada jurnal yang disahkan." | `409` |
+| Akun bersaldo tidak dinonaktifkan | Nonaktifkan | Saldo akun bukan nol | "Akun masih bersaldo Rp {jumlah} dan tidak dapat dinonaktifkan. Pindahkan saldonya lebih dahulu lewat jurnal." | `409` |
+
+**Contoh aturan saldo.** Akun `1-1201 Piutang Asuransi X` bersaldo Rp 15.000.000. Petugas menekan
+Nonaktifkan. Sistem menolak dengan pesan "Akun masih bersaldo Rp 15.000.000 dan tidak dapat
+dinonaktifkan. Pindahkan saldonya lebih dahulu lewat jurnal." Setelah petugas memindahkan
+saldonya ke `1-1209 Piutang Lain-lain` lewat jurnal yang disahkan, saldo menjadi nol dan
+penonaktifan berhasil.
+
+## 2. Jenis jurnal
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| Kode jenis wajib dan unik | Tambah, ubah | Kosong, lebih dari 10 karakter, atau sudah dipakai | "Kode jenis jurnal wajib diisi, maksimal 10 karakter, dan belum boleh dipakai jenis lain." | `400` atau `409` |
+| Awalan nomor wajib | Tambah, ubah | `NumberPrefix` kosong | "Awalan nomor jurnal wajib diisi." | `400` |
+| Jenis sistem terkunci | Ubah | Mengubah kode atau awalan nomor pada jenis bertanda sistem | "Jenis jurnal {kode} dipakai sistem dan kode maupun awalan nomornya tidak dapat diubah." | `409` |
+
+## 3. Jurnal — saat disimpan sebagai draft
+
+Aturan pada bagian ini berlaku sejak penyimpanan. Perhatikan bahwa keseimbangan **tidak** termasuk
+di sini, sesuai `ACC-DEC-025`.
+
+| Aturan | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|
+| Badan hukum wajib | `LegalEntityId` kosong | "Badan hukum wajib dipilih." | `400` |
+| Jenis jurnal wajib | `JournalTypeId` kosong atau tidak aktif | "Jenis jurnal wajib dipilih." | `400` |
+| Tanggal akuntansi wajib | `AccountingDate` kosong | "Tanggal akuntansi wajib diisi." | `400` |
+| Periode harus ada | Tidak ada periode yang memuat tanggal akuntansi pada badan hukum itu | "Belum ada periode akuntansi untuk {bulan tahun}. Minta administrator membangkitkan periode tahun buku ini." | `422` |
+| Keterangan wajib | `Description` kosong atau lebih dari 500 karakter | "Keterangan jurnal wajib diisi dan maksimal 500 karakter." | `400` |
+| Satu baris satu sisi | Ada baris yang mengisi debit dan kredit sekaligus, atau keduanya nol | "Baris ke-{n}: isi salah satu saja, debit atau kredit, dan nilainya harus lebih dari nol." | `400` |
+| Nilai tidak negatif | Ada `DebitAmount` atau `CreditAmount` bernilai negatif | "Baris ke-{n}: nilai tidak boleh negatif. Untuk membalik arah, pindahkan ke sisi sebaliknya." | `400` |
+| Nomor baris unik | Ada `LineNumber` kembar dalam satu jurnal | "Nomor baris tidak boleh kembar." | `400` |
+| Akun wajib ada dan aktif | `AccountId` tidak ditemukan atau tidak aktif | "Baris ke-{n}: akun tidak ditemukan atau sudah tidak aktif." | `400` |
+| Akun harus menerima transaksi | Akun yang dipilih adalah akun induk | "Baris ke-{n}: akun {kode} adalah akun induk dan tidak dapat menerima transaksi." | `409` |
+| Akun harus badan hukum sama | Akun milik badan hukum berbeda dari jurnalnya | "Baris ke-{n}: akun {kode} bukan milik badan hukum jurnal ini." | `409` |
+| Cost Center wajib pada akun beban | Akun berjenis beban tetapi `CostCenterId` kosong | "Baris ke-{n}: akun beban {kode} wajib menyebutkan unit biaya." | `400` |
+| Cost Center harus aktif dan sesuai | Cost Center tidak aktif, atau milik badan hukum berbeda | "Baris ke-{n}: unit biaya tidak aktif atau bukan milik badan hukum jurnal ini." | `409` |
+| **Periode menerima jenis jurnal ini** | Status periode menolak jenis jurnal itu | "Periode {nama periode} sudah {status}. {keterangan jenis jurnal yang masih diterima}." | `422` |
+
+**Baris terakhir diratifikasi owner 3 September 2026** (`ACC-TD-014`), menaikkan
+`ACC-VALIDATION` dari `0.2` ke `0.3`. Sebelumnya aturan itu hanya terdaftar di bagian 4 — saat
+pengajuan dan pengesahan — sehingga draft `JU` ke periode yang sudah tutup sementara tetap
+tersimpan dan baru ditolak saat diajukan. Memeriksanya sejak penyimpanan menolak lebih awal
+dengan pesan yang sama, dan tidak menghilangkan data apa pun.
+
+Pemeriksaan di bagian 4 **tetap wajib dan tidak berkurang**: periode dapat berubah status sesudah
+draft tersimpan, dan hanya pemeriksaan kedualah yang mencegah jurnal masuk ke periode yang sudah
+terkunci.
+
+**Contoh pesan bernomor baris.** Petugas mengisi baris ketiga dengan akun `5-1001 Beban Obat`
+tetapi lupa mengisi unit biaya. Pesan yang muncul: "Baris ke-3: akun beban 5-1001 wajib
+menyebutkan unit biaya." Nomor baris disertakan supaya petugas langsung tahu baris mana yang
+harus diperbaiki, tanpa menebak.
+
+## 4. Jurnal — saat diajukan dan saat disahkan
+
+Sembilan syarat berikut diperiksa saat pengajuan, lalu **diperiksa ulang** saat pengesahan.
+Seluruh aturan bagian 3 juga tetap berlaku.
+
+| Aturan | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|
+| Minimal dua baris | Jurnal punya kurang dari dua baris | "Jurnal harus memiliki sekurang-kurangnya dua baris." | `400` |
+| Debit sama dengan kredit | Total debit tidak sama persis dengan total kredit | "Jurnal belum seimbang. Total debit Rp {debit}, total kredit Rp {kredit}, selisih Rp {selisih}." | `400` |
+| Periode menerima jenis ini | Status periode menolak jenis jurnal ini | "Periode {nama periode} sudah {status}. {keterangan jenis jurnal yang masih diterima}." | `422` |
+| Bukan menyetujui jurnal sendiri | Penyetuju sama dengan pembuat jurnal | "Anda tidak dapat menyetujui jurnal yang Anda buat sendiri." | `403` |
+| Alasan penolakan wajib | Menolak tanpa mengisi alasan | "Alasan penolakan wajib diisi." | `400` |
+
+**Contoh pesan selisih.** Petugas menyusun jurnal berisi debit Beban Obat Rp 3.000.000, debit
+Beban Alat Habis Pakai Rp 1.500.000, dan kredit Persediaan Farmasi Rp 4.000.000. Saat menekan
+Ajukan, muncul pesan: "Jurnal belum seimbang. Total debit Rp 4.500.000, total kredit
+Rp 4.000.000, selisih Rp 500.000." Angka selisih disertakan supaya petugas tidak perlu
+menghitung sendiri.
+
+**Contoh pesan periode.** Jurnal Umum hendak disahkan ke periode yang sudah tutup sementara.
+Pesan yang muncul: "Periode September 2026 sudah ditutup sementara. Hanya jurnal penyesuaian dan
+pembalikan yang masih dapat disahkan."
+
+## 5. Pembalikan dan koreksi
+
+| Aturan | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|
+| Hanya jurnal disahkan yang dapat dibalik | Jurnal belum berstatus disahkan | "Hanya jurnal yang sudah disahkan yang dapat dibalik." | `409` |
+| Tidak boleh dibalik dua kali | Sudah ada jurnal pembalik yang menunjuk jurnal ini | "Jurnal ini sudah pernah dibalik dengan jurnal {nomor}." | `409` |
+| Alasan wajib | `Reason` kosong | "Alasan pembalikan wajib diisi." | `400` |
+| Cara koreksi wajib dipilih | `CorrectionType` kosong | "Pilih cara koreksi: pembalikan penuh atau jurnal penyesuaian." | `400` |
+| Penyesuaian wajib punya baris | Cara koreksi penyesuaian tetapi `AdjustmentLines` kosong | "Jurnal penyesuaian harus memiliki baris selisih." | `400` |
+| Penyesuaian harus seimbang | Baris selisih tidak seimbang | "Baris penyesuaian belum seimbang. Selisih Rp {selisih}." | `400` |
+| Periode tujuan menerima | Periode tujuan jurnal pembalik menolak | "Periode {nama periode} tidak menerima jurnal pembalik." | `422` |
+
+> **Sejak Phase 2:** penyesuaian yang **barisnya** menunjuk control account ditolak `422`; pembalikan
+> penuh tidak terkena. Lihat bagian 3b Phase 2 (`ACC-DEC-072`, usulan `ACC-VALIDATION-0.7`).
+
+## 6. Periode akuntansi
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| Tahun buku belum ada | Bangkitkan | Periode tahun buku itu sudah pernah dibangkitkan | "Periode tahun buku {tahun} sudah pernah dibuat untuk badan hukum ini." | `409` |
+| Tahun buku masuk akal | Bangkitkan | Tahun di luar 2000 sampai 2100 | "Tahun buku tidak masuk akal." | `400` |
+| Alasan pembukaan wajib | Buka kembali | `Reason` kosong | "Alasan pembukaan kembali wajib diisi." | `400` |
+| Hanya periode tertutup yang dibuka | Buka kembali | Periode masih terbuka | "Periode ini masih terbuka." | `409` |
+| Hanya periode terbuka yang ditutup | Tutup | Periode sudah tutup permanen | "Periode ini sudah ditutup permanen." | `409` |
+| Periode tidak dapat dihapus | Hapus | Selalu | "Periode akuntansi tidak dapat dihapus." | `409` |
+
+## 7. Aturan yang bukan validasi isian
+
+Empat hal berikut sering disangka validasi, padahal bukan. Semuanya ditegakkan di service dan
+tidak pernah bergantung pada isian yang dikirim frontend.
+
+| Hal | Kenapa bukan validasi isian |
+|---|---|
+| Nomor jurnal | Dibangkitkan sistem saat penyimpanan, tidak pernah dikirim pengguna |
+| Periode akuntansi jurnal | Ditentukan sistem dari tanggal akuntansi, tidak pernah dipilih pengguna |
+| `TotalDebit` dan `TotalCredit` pada jurnal | Dihitung sistem dari baris, nilai yang dikirim frontend diabaikan |
+| Pengguna yang mengajukan, menyetujui, dan mengesahkan | Diambil dari pengguna yang sedang masuk, tidak pernah dari isian form |
+
+Aturan terakhir penting untuk keamanan: **jangan pernah menerima identitas pelaku dari isian
+form.** Bila diterima dari form, siapa pun dapat mengaku sebagai orang lain, dan `ACC-DEC-016`
+menjadi tidak berarti.
+
+## 8. Mata uang — `ACC-DEC-020` dan `ACC-DEC-021`
+
+Bagian ini memateralisasikan dua keputusan yang sudah tertutup. Ia tidak membuka keduanya
+kembali dan tidak menambah kemampuan apa pun ke MVP.
+
+| Aspek | Ketentuan MVP |
+|---|---|
+| Base currency | `IDR` |
+| Mata uang transaksi yang diterima untuk posting | `IDR` **saja** |
+| Keseimbangan `TotalDebit` = `TotalCredit` | Diukur dalam `IDR` |
+| Kolom `CurrencyCode` pada tabel jurnal MVP | **Tidak ada** |
+
+Jurnal MVP seluruhnya dibuat manusia lewat layar Jurnal Manual dan implisit berdenominasi `IDR`.
+Karena tidak ada jalur masuk mata uang lain, tidak ada kolom mata uang, dan **tidak ada validasi
+isian mata uang di MVP** — tidak ada isian yang perlu divalidasi.
+
+### Yang berlaku ketika Phase 2 menerima kejadian dari luar
+
+Envelope kejadian Finance/AR/AP → Accounting **wajib** membawa `CurrencyCode` walaupun MVP hanya
+`IDR`, supaya penolakan dapat dilakukan secara sah. Bila `CurrencyCode != "IDR"`:
+
+| Ketentuan | Isi |
+|---|---|
+| Konversi otomatis | **Jangan dilakukan** |
+| Posting ke buku besar | **Jangan dilakukan** |
+| Hasil | State pemrosesan tertolak yang eksplisit dan terlihat, dapat diambil ulang setelah keputusan multi-currency turun |
+
+Kontraknya ada di [cross-module-contract.md](cross-module-contract.md) bagian 4.
+
+### `DEFERRED` — jangan ditambahkan ke MVP
+
+Posting multi-currency, kurs, selisih kurs terealisasi, selisih kurs belum terealisasi, dan
+revaluasi mata uang asing. Kelimanya menunggu keputusan tersendiri.
+
+
+---
+
+# PHASE 2 (`ACC-PH-006`) — Rencana, belum tersedia
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `ACC-VALIDATION-0.6` |
+| `last_changed_in` | `ACC-VALIDATION-0.6` — 9 September 2026, dua bidang penelusuran wajib `ACC-DEC-060`. Sebelumnya `0.5` (baris posting `ACC-DEC-058`) dan `0.4` |
+| Amandemen menunggu ratifikasi | **`ACC-VALIDATION-0.7` (usulan) — 11 September 2026.** Bagian 3 dan 3b diselaraskan dengan `ACC-DEC-072` dan `ACC-DEC-073`: penyesuaian `JP` dan template berulang ikut terkena larangan control account, template dicabut dari daftar jalur sah, pesan penolakan menyebut akunnya, dan tabel jalur yang terkena ditambahkan. **Status `approved` di bawah belum diubah** — menunggu ratifikasi Rizki |
+| Penyesuaian atas keputusan owner | **`ACC-VALIDATION-0.8` — approved Rizki, 24 September 2026 (`GATE-DESAIN-0924`).** Menuliskan `ACC-DEC-084`..`087`: pengecualian `Amount` untuk pesan saldo, empat aturan `SubledgerBalance`, balasan kiriman ulang membawa tanda terima keadaan terkini, dan larangan tertulis `JASA_MEDIS` pada aturan `PENGAKUAN-PIUTANG`. Dasarnya keputusan owner yang sudah `approved`, sehingga tidak menunggu ratifikasi `0.7` |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Rizki / 8 September 2026 |
+| Traceability | `ACC-DEC-044` sampai `ACC-DEC-057`; `ACC-DEC-084` sampai `ACC-DEC-087` *(`0.8`)* |
+
+## 1. Menerima kejadian keuangan
+
+| Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
+|---|---|---|---|---|
+| **Dua belas** bidang wajib terisi | Terima | Salah satu bidang `ACC-DEC-048` atau `ACC-DEC-060` kosong | `400` | "Pesan kejadian tidak lengkap. Bidang berikut wajib diisi: ..." |
+| `CorrelationId` dan `CausationId` wajib | Terima | Salah satunya kosong atau bernilai `Guid.Empty` | `400` | "Pesan kejadian wajib membawa penelusuran ke transaksi asal." |
+| Mata uang harus rupiah | Terima | `CurrencyCode` bukan `IDR` | `409` | "Sistem akuntansi hanya menerima rupiah." |
+| Nilai tidak boleh nol atau negatif | Terima | `Amount <= 0`, **kecuali** pesan saldo subledger | `400` | "Nilai kejadian harus lebih besar dari nol." — pesan saldo boleh nol atau negatif (`ACC-DEC-087`) |
+| **Rincian saldo wajib pada pesan saldo** *(`0.8`)* | Terima | `EventTypeCode` kode saldo tetapi `SubledgerBalance` kosong, **atau** jenis lain membawa `SubledgerBalance` | `400` | "Rincian saldo subledger hanya dan wajib ada pada pesan saldo subledger." |
+| **Kode periode saldo sah** *(`0.8`)* | Terima | `SubledgerBalance.AccountingPeriodCode` bukan bentuk `YYYY-MM`, atau periodenya tidak ada untuk badan hukum itu | `400` | "Periode akuntansi {kode} tidak dikenal untuk badan hukum ini." |
+| **Akun saldo harus control account** *(`0.8`)* | Terima | `SubledgerBalance.ControlAccountCode` tidak ada, beda badan hukum, atau bukan control account | `400` | "Akun {kode} bukan akun kontrol pada badan hukum ini." |
+| **Versi pesan saldo berupa bilangan bulat** *(`0.8`)* | Terima | Pesan saldo dengan `SourceVersion` yang bukan bilangan bulat positif | `400` | "Versi pesan saldo harus bilangan bulat positif." — urutan versi menentukan saldo mana yang berlaku (`02-backend-architecture.md` bagian 22.6) |
+| **Pesan saldo tanpa komponen** *(`0.8`)* | Terima | Pesan saldo membawa `Components` | `400` | "Pesan saldo subledger tidak boleh membawa rincian komponen." |
+| Jenis kejadian harus dikenal | Terima | `EventTypeCode` tidak ada di daftar jenis | `422` | "Jenis kejadian belum terdaftar. Kejadian ditahan sampai jenisnya ditambahkan." |
+| Badan hukum harus ada dan aktif | Terima | `LegalEntityId` tidak ditemukan | `422` | "Badan hukum tidak ditemukan." |
+| **Nomor kejadian unik** | Terima | `EventNumber` sudah pernah diterima | `200` | Bukan penolakan. Mengembalikan `AccountingEventReceiptDto` keadaan terkini — nomor jurnal yang sama bila sudah terjurnal (`ACC-DEC-035`, `ACC-DEC-085`) |
+| **Kunci gabungan unik** | Terima | Modul asal + nomor transaksi + jenis + versi sudah pernah | `200` | Sama seperti di atas; jaring pengaman kedua |
+| Aturan posting harus ada | Proses | Jenis kejadian belum punya aturan aktif | `422` | "Jenis kejadian ini belum dipetakan ke akun mana pun. Kejadian ditahan." |
+| **Tidak boleh memuat pengenal pasien** | Terima | Pesan memuat nama, nomor rekam medis, atau nomor kunjungan | `400` | "Pesan kejadian tidak boleh memuat identitas pasien." |
+
+## 2. Aturan posting
+
+| Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
+|---|---|---|---|---|
+| Satu jenis kejadian satu aturan aktif per badan hukum | Tambah, Ubah | Jenis itu sudah punya aturan aktif | `409` | "Jenis kejadian ini sudah punya aturan posting aktif." |
+| **Minimal dua baris** | Tambah, Ubah | Baris kurang dari dua | `400` | "Aturan posting minimal memiliki dua baris." |
+| **Aturan harus dapat seimbang** | Tambah, Ubah | Total sisi debit tidak dapat sama dengan sisi kredit untuk komponen mana pun | `400` | "Aturan posting ini tidak akan pernah menghasilkan jurnal yang seimbang." |
+| Akun tiap baris harus menerima transaksi | Tambah, Ubah | Salah satu baris menunjuk akun induk | `422` | "Akun induk tidak dapat menerima transaksi." |
+| Seluruh akun harus sebadan hukum | Tambah, Ubah | Ada baris berakun badan hukum berbeda | `409` | "Seluruh akun pada aturan posting harus berasal dari badan hukum yang sama." |
+| Baris akun beban wajib cost center | Tambah, Ubah | Baris berakun `Expense` tanpa `CostCenterId` | `400` | "Baris akun beban wajib mencantumkan cost center." (`ACC-DEC-019`) |
+| **Komponen kejadian harus terpakai** | Proses kejadian | Kejadian membawa komponen yang tidak dipakai baris aturan mana pun | `422` | "Kejadian membawa rincian nilai yang belum dipetakan. Kejadian ditahan." |
+| **Komponen baris aturan harus tersedia** | Proses kejadian | Baris aturan memakai komponen yang tidak dibawa kejadian | `422` | "Rincian nilai yang dibutuhkan aturan posting tidak ada pada kejadian." |
+| Aturan yang masih dipakai tidak boleh dihapus | Nonaktifkan | Masih ada kejadian tertahan yang menunggunya | `409` | "Masih ada kejadian yang menunggu aturan ini." |
+| **`PENGAKUAN-PIUTANG` tanpa `JASA_MEDIS`** *(`0.8`, aturan tertulis)* | Tambah, Ubah | Aturan jenis `PENGAKUAN-PIUTANG` memuat baris berkomponen `JASA_MEDIS` | — | **Tidak ditegakkan kode** (`ACC-DEC-086`). Diperiksa saat penyusunan dan peninjauan aturan posting. Bila terlanggar, setiap kejadian piutang Tertahan lewat aturan "komponen baris aturan harus tersedia" di atas |
+
+## 3. Jurnal berulang
+
+| Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
+|---|---|---|---|---|
+| Baris template harus seimbang | Tambah, Ubah | Total debit tidak sama dengan total kredit | `400` | "Total debit dan kredit template harus sama." |
+| Minimal dua baris | Tambah, Ubah | Baris kurang dari dua | `400` | "Template jurnal minimal memiliki dua baris." |
+| Satu baris hanya satu sisi | Tambah, Ubah | Debit dan kredit terisi bersamaan pada satu baris | `400` | "Satu baris hanya boleh diisi debit saja atau kredit saja." |
+| Akun beban wajib cost center | Tambah, Ubah | Baris berakun `Expense` tanpa `CostCenterId` | `400` | "Baris akun beban wajib mencantumkan cost center." (`ACC-DEC-019`) |
+| **Satu template satu terbit per periode** | Terbitkan | Template sudah terbit untuk periode itu | `409` | "Template ini sudah diterbitkan untuk periode tersebut." |
+| Periode harus menerima pencatatan | Terbitkan | Periode `SoftClosed`, `Closed`, atau `PendingClosingApproval` | `422` | "Periode tujuan tidak menerima pencatatan baru." |
+| Template nonaktif tidak terbit | Terbitkan | `IsActive = false` | `409` | "Template sedang tidak aktif." |
+| **Template tidak menunjuk control account** *(usulan `0.7`)* | Tambah, Ubah, **Aktifkan** | Ada baris template menunjuk akun ber-`IsControlAccount = true` | `422` | Lihat bagian 3b (`ACC-DEC-073`). **Tidak** diperiksa ulang saat terbit |
+
+## 3b. Jurnal manual ke control account
+
+> **Amandemen menunggu ratifikasi — `ACC-VALIDATION-0.7`, 11 September 2026.** Bagian ini
+> diselaraskan dengan `ACC-DEC-072` dan `ACC-DEC-073`. Tiga perubahan terhadap `0.6`: (1) jalur
+> penyesuaian `JP` dan template berulang ikut terkena aturan; (2) **template berulang dicabut dari
+> daftar jalur sah** — kalimat `0.6` bertentangan dengan `ACC-DEC-064`, yang hanya mengizinkan
+> kejadian akuntansi atau subledger; (3) pesan penolakan menyebut akunnya, sesuai acceptance (1)
+> `BE-ACC-P2-012`. Kalimat `0.6` yang digantikan: *"Jurnal yang lahir dari kejadian akuntansi,
+> template berulang, dan jurnal penutup tahun tidak terkena aturan ini."*
+
+| Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
+|---|---|---|---|---|
+| **Control account menolak jurnal manual** | Simpan, Ubah, Ajukan | Ada baris jurnal manual menunjuk akun ber-`IsControlAccount = true` | `422` | "Akun {kode} {nama} hanya dapat dicatat lewat kejadian akuntansi, bukan jurnal manual." |
+| **Penyesuaian tidak boleh menyentuh control account** | Balik — `CorrectionType = Adjustment` | Ada **baris penyesuaian** menunjuk akun control, apa pun isi jurnal asalnya | `422` | "Akun {kode} {nama} hanya dapat dicatat lewat kejadian akuntansi, bukan jurnal penyesuaian." (`ACC-DEC-072`) |
+| **Template tidak boleh menunjuk control account** | Tambah, Ubah, Aktifkan template | Ada baris template menunjuk akun control | `422` | "Akun {kode} {nama} hanya dapat dicatat lewat kejadian akuntansi, bukan template jurnal berulang." (`ACC-DEC-073`) |
+| Penandaan control account hanya oleh yang berhak | Ubah akun | Pengguna tanpa hak mengubah `IsControlAccount` | `403` | — |
+
+Bila lebih dari satu baris menunjuk akun control, pesannya menyebut seluruh akun itu — penolakan
+satu per satu memaksa petugas menyimpan berulang kali hanya untuk menemukan semuanya.
+
+### Jalur yang terkena dan yang tidak
+
+| Jalur | Terkena? | Alasan |
+|---|:---:|---|
+| Form Jurnal — Simpan, Ubah, Ajukan | **Ya** | Baris disusun manusia |
+| Penyesuaian `JP` lewat `POST /journals/{id}/reverse` | **Ya** | Baris penyesuaian diketik bebas dan dapat dibuat atas jurnal Disahkan mana pun (`ACC-DEC-072`) |
+| Template berulang — Tambah, Ubah, Aktifkan | **Ya** | Ditolak di hulu, selagi masih ada manusia yang membaca pesannya (`ACC-DEC-073`) |
+| Draft hasil template, atau jurnal pembalik, yang **barisnya diubah** lewat Form Jurnal | **Ya** | Begitu diubah manusia, barisnya bukan lagi hasil jalur otomatis |
+| Pembalikan penuh `JB` lewat `POST /journals/{id}/reverse` | Tidak | Hanya membalik baris jurnal asal; tidak dapat memasukkan akun yang tidak ada di jurnal asal (`ACC-DEC-072`) |
+| Draft hasil template yang barisnya belum diubah, saat diajukan | Tidak | Templatenya sudah diperiksa saat disimpan dan diaktifkan (`ACC-DEC-073`) |
+| Jurnal penutup tahun hasil `POST /year-end-closing/generate` | Tidak | Disusun sistem dari saldo pendapatan dan beban |
+| Jurnal dari kejadian akuntansi (`P2-1`) | Tidak | Jalur sah menurut `ACC-DEC-064`. Belum berdiri |
+
+**Asal-usul jurnal dikenali dari datanya, bukan dari kode jenis jurnal.** Form Jurnal menerima
+jenis jurnal apa pun, termasuk `JB` dan `JT`. Diperiksa 11 September 2026: `JB/2026/09/00001`
+berjenis Jurnal Pembalik tetapi dibuat lewat Form Jurnal. Pengecualian menurut kode jenis dapat
+diakali siapa pun yang memilih jenis itu di layar. Penanda asal-usul yang dipakai ditetapkan dan
+dibuktikan pada `BE-ACC-P2-012`.
+
+**Sisa risiko yang diterima (`ACC-DEC-073`):** template yang sudah aktif, lalu salah satu akunnya
+baru ditandai control, tetap terbit sampai dinonaktifkan atau diubah.
+
+## 4. Penutupan periode
+
+| Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
+|---|---|---|---|---|
+| Tidak boleh ada jurnal belum disahkan | Ajukan | Ada jurnal `Draft`, `PendingApproval`, atau `Approved` di periode itu | `409` | "Masih ada N jurnal yang belum disahkan." |
+| Tidak boleh ada kejadian gagal | Ajukan | Ada kejadian berstatus `Gagal` pada periode itu | `409` | "Masih ada N kejadian keuangan yang gagal diproses." |
+| **Seluruh shift kasir periode itu harus tertutup** | Ajukan | Belum ada kejadian `CASH_SHIFT_CLOSED` untuk salah satu shift pada periode itu | `409` | "Masih ada shift kasir yang belum ditutup." (`ACC-DEC-065`) |
+| Periode harus berstatus `Open` | Ajukan | Status bukan `Open` | `409` | "Periode ini tidak dalam keadaan terbuka." |
+| **Penyetuju bukan pengaju** | Setujui | `ActionBy == ClosingSubmittedBy` | `403` | "Penutupan tidak dapat disetujui oleh orang yang mengajukannya." |
+| Penolakan wajib beralasan | Tolak | `ActionNote` kosong | `400` | "Alasan penolakan wajib diisi." |
+| Pembukaan kembali wajib beralasan | Buka kembali | Alasan kosong | `400` | "Alasan pembukaan kembali wajib diisi." (`ACC-DEC-027`) |
+
+**Kejadian tertahan bukan penghalang, hanya peringatan.** Ini penerapan `ACC-DEC-051` yang mudah
+salah baca: yang menghalangi adalah kejadian **`Gagal`**, bukan **`Tertahan`**. Keduanya tetap
+ditampilkan pada daftar periksa, tetapi hanya yang pertama menahan tombol Ajukan.
+
+## 5. Tutup tahun
+
+| Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
+|---|---|---|---|---|
+| Seluruh periode tahun itu harus tertutup | Susun | Ada periode masih `Open` atau `PendingClosingApproval` | `409` | "Masih ada periode tahun ini yang belum ditutup." |
+| Akun laba ditahan harus sudah ditetapkan | Susun | Pengaturan akuntansi kosong | `422` | "Akun laba ditahan belum ditetapkan pada pengaturan akuntansi." |
+| Akun laba ditahan harus berjenis Ekuitas | Simpan pengaturan | Akun bukan `Equity` | `422` | "Akun laba ditahan harus akun berjenis Ekuitas." |
+| Jurnal penutup tahun tidak boleh ganda | Susun | Tahun itu sudah punya jurnal `JT` | `409` | "Jurnal penutup tahun ini sudah pernah disusun." |
+| Tidak menyusun bila tidak ada saldo | Susun | Seluruh akun pendapatan dan beban bersaldo nol | `422` | "Tidak ada saldo pendapatan maupun beban yang perlu ditutup." |

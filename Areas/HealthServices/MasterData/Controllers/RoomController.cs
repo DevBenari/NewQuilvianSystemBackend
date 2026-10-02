@@ -456,7 +456,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     .AsNoTracking()
                     .AnyAsync(x => x.RoomId == id && !x.IsDelete);
 
-                var isUsedByEncounter = await _dbContext.Set<TrxPatientEncounter>()
+                var isUsedByEncounter = await _dbContext.Set<RegPatientEncounter>()
                     .AsNoTracking()
                     .AnyAsync(x => x.RoomId == id && !x.IsDelete);
 
@@ -650,7 +650,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
-            var isUsedByEncounter = await _dbContext.Set<TrxPatientEncounter>()
+            var isUsedByEncounter = await _dbContext.Set<RegPatientEncounter>()
                 .AsNoTracking()
                 .AnyAsync(x => x.RoomId == id && !x.IsDelete);
 

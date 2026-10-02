@@ -44,3 +44,47 @@ public class RecordOprDeliveryAttemptRequest
     [MaxLength(100)] public string? ErrorCode { get; set; }
     [Required, MaxLength(100)] public string IdempotencyKey { get; set; } = string.Empty;
 }
+
+/// <summary>Hasil pembukuan satu pesan pemakaian material ke kartu stok Farmasi.</summary>
+public class OprInventoryDispatchResultResponse
+{
+    public Guid DeliveryId { get; set; }
+    public string IdempotencyKey { get; set; } = string.Empty;
+    public bool Accepted { get; set; }
+
+    /// <summary>Id mutasi kartu stok yang terbentuk, dipisah koma bila lebih dari satu batch.</summary>
+    public string? AcceptedReference { get; set; }
+
+    public string? ErrorCode { get; set; }
+    public string? ErrorMessage { get; set; }
+}
+
+public class OprInventoryDispatchResponse
+{
+    public Guid OprCaseId { get; set; }
+    public string CaseNumber { get; set; } = string.Empty;
+    public int ProcessedCount { get; set; }
+    public int AcceptedCount { get; set; }
+    public int FailedCount { get; set; }
+    public List<OprInventoryDispatchResultResponse> Results { get; set; } = [];
+}
+
+/// <summary>Pemetaan kamar operasi ke depo farmasi sumber stoknya.</summary>
+public class OprStockSourceResponse
+{
+    public Guid Id { get; set; }
+    public Guid RoomId { get; set; }
+    public string RoomName { get; set; } = string.Empty;
+    public Guid StorageLocationId { get; set; }
+    public string StorageLocationName { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+    public string? Note { get; set; }
+}
+
+public class SaveOprStockSourceRequest
+{
+    [Required] public Guid RoomId { get; set; }
+    [Required] public Guid StorageLocationId { get; set; }
+    public bool IsActive { get; set; } = true;
+    [MaxLength(500)] public string? Note { get; set; }
+}

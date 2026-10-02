@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -222,7 +222,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
-            var entity = new TrxPrescriptionCompound
+            var entity = new PhmPrescriptionCompound
             {
                 Id = Guid.NewGuid(),
                 PrescriptionId = request.PrescriptionId,
@@ -261,7 +261,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 IsCancel = false
             };
 
-            _dbContext.Set<TrxPrescriptionCompound>().Add(entity);
+            _dbContext.Set<PhmPrescriptionCompound>().Add(entity);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             var aggregate = await _prescriptionAggregateService.RebuildAsync(
@@ -296,7 +296,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             [FromBody] UpdatePrescriptionCompoundRequest request,
             CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxPrescriptionCompound>()
+            var entity = await _dbContext.Set<PhmPrescriptionCompound>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
 
             if (entity == null)
@@ -372,7 +372,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         [AccessPermission("PrescriptionCompound", "Delete")]
         public async Task<IActionResult> DeleteCompound(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<TrxPrescriptionCompound>()
+            var entity = await _dbContext.Set<PhmPrescriptionCompound>()
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
 
             if (entity == null)
@@ -399,7 +399,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
-            var items = await _dbContext.Set<TrxPrescriptionCompoundItem>()
+            var items = await _dbContext.Set<PhmPrescriptionCompoundItem>()
                 .Where(x => x.PrescriptionCompoundId == entity.Id && !x.IsDelete)
                 .ToListAsync(cancellationToken);
 
@@ -420,9 +420,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             return Ok(ApiResponse<object>.Ok(null, "Racikan resep berhasil dihapus."));
         }
 
-        private IQueryable<TrxPrescriptionCompound> BuildBaseQuery()
+        private IQueryable<PhmPrescriptionCompound> BuildBaseQuery()
         {
-            return _dbContext.Set<TrxPrescriptionCompound>()
+            return _dbContext.Set<PhmPrescriptionCompound>()
                 .Include(x => x.Prescription)
                 .Include(x => x.PackageUnitMeasurement)
                 .Include(x => x.FinalQuantityMeasurement)
@@ -490,8 +490,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                     "Satuan jumlah akhir racikan wajib diisi.");
         }
 
-        private static IQueryable<TrxPrescriptionCompound> ApplySorting(
-            IQueryable<TrxPrescriptionCompound> query,
+        private static IQueryable<PhmPrescriptionCompound> ApplySorting(
+            IQueryable<PhmPrescriptionCompound> query,
             string? sortBy,
             string? sortDirection)
         {
@@ -506,7 +506,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             };
         }
 
-        private static PrescriptionCompoundResponse ToResponse(TrxPrescriptionCompound x)
+        private static PrescriptionCompoundResponse ToResponse(PhmPrescriptionCompound x)
         {
             return new PrescriptionCompoundResponse
             {
@@ -560,7 +560,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         }
 
         private static PrescriptionCompoundMutationResponse ToMutationResponse(
-            TrxPrescriptionCompound entity,
+            PhmPrescriptionCompound entity,
             PrescriptionAggregateResult aggregate)
         {
             var result = new PrescriptionCompoundMutationResponse

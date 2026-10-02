@@ -12,10 +12,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
     /// Daftar pantau Rawat Inap: keadaan yang perlu dibetulkan orang, bukan ditolak sistem.
     /// </summary>
     /// <remarks>
-    /// <b>Lima daftar pantau.</b> <c>GET /monitoring/isolation-mismatch</c> dibuka
-    /// <c>BE-RWI-015</c>; empat sisanya — <c>pending-closures</c>,
+    /// <b>Enam daftar pantau.</b> <c>GET /monitoring/isolation-mismatch</c> dibuka
+    /// <c>BE-RWI-015</c>; empat berikutnya — <c>pending-closures</c>,
     /// <c>closures-without-financial-clearance</c>, <c>unassigned-nurse-episodes</c>, dan
-    /// <c>bed-drift</c> — dibuka <c>BE-RWI-029</c>.
+    /// <c>bed-drift</c> — dibuka <c>BE-RWI-029</c>; dan
+    /// <c>billed-pending-procedure-orders</c> dibuka <c>BE-RWI-083</c>.
     ///
     /// <para>
     /// <b>Daftar pantau ketiga pada <c>RWI-RULE-023</c> sengaja tidak ada.</b> Kepatuhan
@@ -46,10 +47,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
     public class InpatientMonitoringController : ControllerBase
     {
         private readonly InpCensusQueryService _censusQueryService;
+        private readonly InpDischargeService _dischargeService;
 
-        public InpatientMonitoringController(InpCensusQueryService censusQueryService)
+        public InpatientMonitoringController(
+            InpCensusQueryService censusQueryService,
+            InpDischargeService dischargeService)
         {
             _censusQueryService = censusQueryService;
+            _dischargeService = dischargeService;
         }
 
         /// <summary>
@@ -177,6 +182,64 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
             return Ok(ApiResponse<BedDriftPagedResult>.Ok(
                 result,
                 "Laporan selisih salinan status tempat tidur berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Daftar pesanan tindakan yang masih tertunda, <b>sudah ditagih</b>, dan episodenya
+        /// sudah ditutup.
+        /// </summary>
+        /// <remarks>
+        /// <b>Daftar ini ada justru karena pesanannya sengaja tidak dibatalkan.</b> Penutupan
+        /// episode membatalkan pesanan tindakan tertunda yang belum ditagih; yang sudah ditagih
+        /// dibiarkan, karena membatalkannya berarti menghapus dasar sebuah tagihan tanpa ada
+        /// yang memutuskannya — <c>RWI-DEC-143</c> jalur tidak normal (c). Yang dilakukan
+        /// sistem adalah memunculkannya supaya ada orang yang menindaklanjutinya bersama
+        /// Billing.
+        ///
+        /// <para>
+        /// <b>Apa tindak lanjutnya belum diputuskan.</b> <c>04-prd-to-mvp.md</c> 22.7 nomor 1
+        /// masih terbuka dan milik Muhammad Hamzah bersama pemilik Billing. Endpoint ini
+        /// menampilkan, tidak menyelesaikan.
+        /// </para>
+        /// </remarks>
+        [HttpGet("billed-pending-procedure-orders")]
+        [ProducesResponseType(typeof(ApiResponse<BilledPendingProcedureOrderPagedResult>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Monitoring", Description = "Melihat daftar pantau pesanan tindakan tertagih yang tidak dibatalkan saat penutupan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientMonitoring", "Read")]
+        public async Task<IActionResult> GetBilledPendingProcedureOrders(
+            [FromQuery] BilledPendingProcedureOrderQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _dischargeService.GetBilledPendingProcedureOrdersAsync(
+                query,
+                cancellationToken);
+
+            return Ok(ApiResponse<BilledPendingProcedureOrderPagedResult>.Ok(
+                result,
+                "Daftar pantau pesanan tindakan tertagih berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Daftar pantau episode aktif yang depositnya masih di bawah minimum kebijakan,
+        /// muncul kembali tiap kelipatan ambang tindak lanjut (BE-RWI-071).
+        /// </summary>
+        /// <remarks>
+        /// Sesuai RWI-DEC-096 dan FR-RI-177. Angka kekurangan dibaca dari ringkasan episode Billing,
+        /// bukan dihitung ulang di Rawat Inap. Ambang hari diambil dari MstInpatientSetting.
+        /// </remarks>
+        [HttpGet("deposit-shortfall")]
+        [ProducesResponseType(typeof(ApiResponse<DepositShortfallPagedResult>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Monitoring", Description = "Melihat daftar pantau kekurangan deposit", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientMonitoring", "Read")]
+        public async Task<IActionResult> GetDepositShortfall(
+            [FromQuery] DepositShortfallQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _censusQueryService.GetDepositShortfallAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<DepositShortfallPagedResult>.Ok(
+                result,
+                "Daftar pantau kekurangan deposit berhasil diambil."));
         }
     }
 }

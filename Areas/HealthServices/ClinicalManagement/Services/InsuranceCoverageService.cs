@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Repositories;
@@ -29,9 +29,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             Guid drugId,
             decimal quantity = 1,
             DateTime? serviceDate = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            EncounterInsuranceContext? explicitContext = null)
         {
-            var context = await _encounterInsuranceService.GetContextAsync(
+            var context = explicitContext ?? await _encounterInsuranceService.GetContextAsync(
                 encounterId,
                 serviceDate,
                 cancellationToken);
@@ -65,9 +66,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             Guid procedureId,
             decimal quantity = 1,
             DateTime? serviceDate = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            EncounterInsuranceContext? explicitContext = null)
         {
-            var context = await _encounterInsuranceService.GetContextAsync(
+            var context = explicitContext ?? await _encounterInsuranceService.GetContextAsync(
                 encounterId,
                 serviceDate,
                 cancellationToken);
@@ -99,9 +101,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             Guid tariffId,
             decimal quantity = 1,
             DateTime? serviceDate = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            EncounterInsuranceContext? explicitContext = null)
         {
-            var context = await _encounterInsuranceService.GetContextAsync(
+            var context = explicitContext ?? await _encounterInsuranceService.GetContextAsync(
                 encounterId,
                 serviceDate,
                 cancellationToken);
@@ -217,9 +220,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 
             var coveragePercent = Math.Clamp(rule?.CoveragePercent ?? 100m, 0m, 100m);
 
+            // Bug fix (di luar roadmap, laporan pengguna): form master data Insurance Coverage Rule
+            // sudah lama menjanjikan "Isi 0 jika tidak dibatasi" untuk kelima field batas ini -
+            // tapi kode di bawah sebelumnya memakai HasValue saja (true bahkan untuk 0), sehingga
+            // rule yang diisi 0 mengikuti instruksi form itu justru MEMOTONG coverage jadi nol.
+            // GetValueOrDefault() > 0 menyelaraskan kode dengan janji form: 0 sama seperti kosong.
             decimal coveredQuantity = quantity;
-            if (rule?.MaxQuantityPerVisit.HasValue == true &&
-                coveredQuantity > rule.MaxQuantityPerVisit.Value)
+            if (rule?.MaxQuantityPerVisit.GetValueOrDefault() > 0 &&
+                coveredQuantity > rule.MaxQuantityPerVisit!.Value)
             {
                 coveredQuantity = rule.MaxQuantityPerVisit.Value;
                 warnings.Add("Jumlah yang melebihi batas per kunjungan menjadi tanggungan pasien.");
@@ -228,11 +236,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             var eligibleAmount = RoundMoney(contractUnitPrice * coveredQuantity);
             var coveredAmount = RoundMoney(eligibleAmount * coveragePercent / 100m);
 
-            if (rule?.MaxCoverageAmount.HasValue == true)
-                coveredAmount = Math.Min(coveredAmount, rule.MaxCoverageAmount.Value);
+            if (rule?.MaxCoverageAmount.GetValueOrDefault() > 0)
+                coveredAmount = Math.Min(coveredAmount, rule.MaxCoverageAmount!.Value);
 
-            if (rule?.MaxAmountPerVisit.HasValue == true)
-                coveredAmount = Math.Min(coveredAmount, rule.MaxAmountPerVisit.Value);
+            if (rule?.MaxAmountPerVisit.GetValueOrDefault() > 0)
+                coveredAmount = Math.Min(coveredAmount, rule.MaxAmountPerVisit!.Value);
 
             if (context.RemainingLimitAmount.HasValue)
             {
@@ -241,16 +249,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     warnings.Add("Coverage dibatasi oleh sisa limit polis pasien.");
             }
 
-            var coPaymentPercent = rule?.CoPaymentPercent
-                ?? context.PolicyCoPaymentPercent
-                ?? 0m;
+            // Keputusan pengguna (di luar roadmap): CoveragePercent dan CoPaymentPercent SALING
+            // MELENGKAPI (selalu berjumlah 100), bukan dua pengurang independen - CoveragePercent
+            // (dipakai di atas) satu-satunya input yang menentukan porsi tertanggung,
+            // CoPaymentPercent murni nilai turunan/tampilan (diturunkan server-side di
+            // InsuranceCoverageRuleController), TIDAK dipakai sebagai pengurang terpisah di sini
+            // lagi. Sebelumnya kode ini MENUMPUK keduanya (coveredAmount dipotong lagi persentase
+            // co-payment dari nilai yang sudah dipotong CoveragePercent). CoPaymentAmount TETAP
+            // independen (nominal tetap, bukan persentase yang tumpang tindih).
             var coPaymentAmount = rule?.CoPaymentAmount
                 ?? context.PolicyCoPaymentAmount
                 ?? 0m;
-
-            coPaymentPercent = Math.Clamp(coPaymentPercent, 0m, 100m);
-            var coPaymentFromPercent = RoundMoney(coveredAmount * coPaymentPercent / 100m);
-            var totalCoPayment = RoundMoney(coPaymentFromPercent + Math.Max(0m, coPaymentAmount));
+            var totalCoPayment = RoundMoney(Math.Max(0m, coPaymentAmount));
 
             coveredAmount = Math.Max(0m, RoundMoney(coveredAmount - totalCoPayment));
             var patientPayAmount = Math.Max(0m, RoundMoney(totalPrice - coveredAmount));
@@ -261,8 +271,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             if (!allowExcessPayment && patientPayAmount > 0)
                 warnings.Add("Provider tidak mengizinkan excess dibayar pasien. Perlu konfirmasi petugas.");
 
-            if (rule?.MaxQuantityPerMonth.HasValue == true ||
-                rule?.MaxAmountPerMonth.HasValue == true)
+            if (rule?.MaxQuantityPerMonth.GetValueOrDefault() > 0 ||
+                rule?.MaxAmountPerMonth.GetValueOrDefault() > 0)
             {
                 warnings.Add("Rule mempunyai batas bulanan dan memerlukan pemeriksaan pemakaian kumulatif.");
             }

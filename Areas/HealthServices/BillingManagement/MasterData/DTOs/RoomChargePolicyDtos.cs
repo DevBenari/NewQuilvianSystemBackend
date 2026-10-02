@@ -61,3 +61,44 @@ public sealed class RoomChargePolicyResponse
     public DateTime CreateDateTime { get; set; }
     public DateTime? UpdateDateTime { get; set; }
 }
+
+public sealed class RoomChargePolicyDeleteResponse
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public bool IsDelete { get; set; }
+}
+
+public sealed class RoomChargePolicyOptionResponse
+{
+    public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public int MinimumMinutes { get; set; }
+    public int PeriodMinutes { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public sealed class RoomChargePolicySummaryResponse
+{
+    public int TotalPolicy { get; set; }
+    public int ActivePolicy { get; set; }
+    public int InactivePolicy { get; set; }
+}
+
+public sealed class RoomChargePolicyDefaultFilterResponse
+{
+    public bool? IsActive { get; set; }
+    public string? Search { get; set; }
+    public DateTimeOffset? EffectiveAt { get; set; }
+}
+
+public sealed class RoomChargePolicyFilterMetadataResponse
+{
+    public RoomChargePolicyDefaultFilterResponse DefaultFilter { get; set; } = new();
+    public List<int> PageSizeOptions { get; set; } = new();
+    public List<string> RemainderRoundings { get; set; } = new();
+    public List<string> TariffMoments { get; set; } = new();
+    public List<string> LeaveRules { get; set; } = new();
+}

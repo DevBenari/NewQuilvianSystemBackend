@@ -1,9 +1,56 @@
 # Roadmap Backend — Rawat Jalan Billing
 
+> ## `DOWNSTREAM — NOT PART OF DOCTOR DEFINITION OF DONE`
+>
+> Seluruh task `RJ-BIL-BE-*` di dokumen ini adalah **consumer** dari clinical fact yang
+> diterbitkan modul klinis. Tidak satu pun menjadi Definition of Done developer Dokter /
+> Rawat Jalan.
+>
+> | | |
+> |---|---|
+> | **Owner** | Billing / Revenue Cycle, bersama Finance, Payer, Pharmacy, Lab, dan Radiologi |
+> | **Producer** | Doctor / Clinical — [doctor-consultation-roadmap.md](doctor-consultation-roadmap.md) |
+> | **Batas masuk** | `TrxClinicalMilestoneFact` yang diterbitkan `ClinicalMilestoneFactProducer` |
+> | **Blocks Doctor DoD** | `NO` untuk seluruh task, tanpa kecuali |
+>
+> Folio, charge, tarif, alokasi payer, patient responsibility, financial action, approval
+> finansial, rekonsiliasi, klaim, pembayaran, dan settlement **tidak boleh** dihitung sebagai
+> kekurangan pekerjaan Dokter. Sebaliknya, progress dokumen ini juga **tidak boleh** dipakai
+> sebagai progress Dokter: `5 dari 9` adalah angka Billing.
+>
+> Satu arah ketergantungan yang perlu diketahui pemilik Billing: `RJ-BIL-BE-002` **tidak akan
+> pernah menerima fakta resep** sebelum `RJ-DOC-BE-001` selesai, karena milestone *"resep
+> difinalkan bersama konsultasi dokter"* tidak pernah tercapai pada alur dokter yang sebenarnya.
+> Buktinya pada [doctor-consultation-roadmap.md](doctor-consultation-roadmap.md) bagian `2.1`.
+
+> ## `HISTORICAL SNAPSHOT — DO NOT USE AS CURRENT STATUS`
+>
+> Seluruh metadata, progress, dan bukti di bawah adalah potret per `2026-08-24`. Ia **tidak**
+> diverifikasi ulang terhadap backend `HEAD` `801a4f52459e1251ec9bb03c1abfe5e17dd3639c`.
+>
+> Dua kontradiksi internal yang perlu diketahui pembaca dan **tidak diselesaikan sepihak** dari
+> task koreksi roadmap Dokter, karena keduanya wewenang pemilik Billing:
+>
+> | Kontradiksi | Rincian |
+> |---|---|
+> | **Progress `3 dari 9` vs `5 dari 9`** | Tabel di bawah menyatakan `3 dari 9` per `2026-08-24`. `MODULE-STATUS.md` dan `requirement-traceability.md` menyatakan `5 dari 9` per `2026-08-27`/`28`. Keduanya adalah snapshot berbeda; **tidak satu pun** terverifikasi terhadap `HEAD` |
+> | **Source `BE-006`/`BE-007` tidak ditemukan** | Audit `2026-08-31` tidak menemukan `BilFinancialAction`, approval policy, maupun endpoint rekonsiliasi pada `HEAD`. `BillingFolioController` hanya memuat `3` route baseline `BE-001`. Manifest revisi `21` mencatat keduanya sebagai working tree yang belum di-commit — bukti menunjukkan working tree itu tidak pernah masuk cabang ini |
+>
+> Sebaliknya `RJ-BIL-BE-004` yang tercatat `NOT_STARTED` justru **ada** pada source
+> (`Areas/HealthServices/RadiologyManagement/**`, `17` berkas, beserta dua berkas test).
+> Statusnya karena itu bukan `COMPLETE` melainkan
+> **`SOURCE EXISTS — ROADMAP TASK STATUS NEEDS REVERIFICATION`**: keberadaan folder bukan bukti
+> acceptance criteria terpenuhi.
+>
+> Rincian bukti pada
+> [doctor-consultation-roadmap.md](doctor-consultation-roadmap.md) bagian `2` dan
+> [requirement-traceability.md](requirement-traceability.md) bagian `1`.
+
 | Field | Nilai |
 |---|---|
 | Blueprint | `RJ-BIL-BP-001` revision `11` |
 | Roadmap revision | `1` |
+| Snapshot kind | `HISTORICAL_SNAPSHOT`, observed at `2026-08-24` — **bukan** status saat ini |
 | Status roadmap | `APPROVED_FOR_EXECUTION` — approval seluruh task diberikan; handoff dan wewenang tulis tetap wajib saat eksekusi |
 | Scope | Core internal/manual |
 | Contract | `RJ-BIL-CONTRACT-001@1.0.0` |

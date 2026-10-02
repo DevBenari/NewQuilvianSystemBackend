@@ -1,0 +1,565 @@
+# API Contract — Modul Rawat Inap
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint ID | `RWI-BP-001` |
+| `contract_version` | **`0.9.0`** — bagian 10, `draft` |
+| `last_changed_in` | **`0.9.0`** — census dokter, penugasan pendukung, tiga isian resume, akibat penutupan. Sebelumnya `0.8.0` — pencabutan aturan jenis kelamin tingkat kamar |
+| Status | **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
+| Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006`; nama belum diisi |
+| `approved_by` / `approved_at` | **Muhammad Hamzah — Product/Domain owner (`RWI-DEC-061`), 10 September 2026**, lewat instruksi eksplisit untuk mengerjakan `BE-RWI-069`. Mengikuti pola approval per-task yang sudah dipakai `BE-RWI-036` pada 1 September 2026 |
+| `input_revision` | `02-backend-architecture.md` revision `0.4`; `00-interview-decisions.md` revision `15`; `04-prd-to-mvp.md` revision `0.6.0` |
+| Backend SHA | `44099e4` — hasil merge `QuilvianIntegrationBackend`. Sebelumnya `5afb54b` |
+| Dampak kompatibilitas | **Seluruhnya aditif.** Tidak ada endpoint existing yang berubah bentuknya. Satu endpoint existing berubah **perilakunya**, lihat bagian 7 |
+
+
+### Perubahan pada `contract_version` `0.8.0`
+
+**Status: `approved` sejak 11 September 2026** lewat `RWI-DEC-105`. Amandemen ini menyerap `RWI-DEC-101`, yang menutup temuan `P0` nomor satu pada `PRD-to-MVP-Rawat-Inap-V2`.
+
+**Masalah yang ditutupnya.** Kelayakan tempat tidur ikut menilai jenis kelamin **penghuni kamar
+lain**. Akibatnya kamar berisi satu pasien laki-laki menolak seluruh pasien perempuan, walaupun
+tempat tidur yang dituju memang dikonfigurasi Admin Master Data untuk menerima keduanya. Keputusan
+privasi berubah menjadi akibat sampingan dari siapa yang kebetulan datang lebih dulu, dan petugas
+admisi tidak punya jalan keluar selain memindahkan pasien yang sudah dirawat.
+
+| Yang berubah | Dasar |
+| --- | --- |
+| Kode penolakan `ROOM_GENDER_MIXED` **dihapus seluruhnya**. Ia tidak lagi muncul pada `failures[]` mana pun, baik pada pencarian, pemesanan, penempatan, maupun perpindahan | `RWI-DEC-101`; `MVP-RWI-D-002` |
+| Aturan nomor 6 pada Kelayakan Penempatan **dipensiunkan**. Nomor 6 dibiarkan kosong dan tidak dipakai ulang | `RWI-DEC-101` |
+| Aturan nomor 5 `PATIENT_GENDER_UNKNOWN` **dipersempit**: syaratnya kini hanya tempat tidur menerima laki-laki dan perempuan sekaligus. Syarat "kamar belum berpenghuni" dicabut | `RWI-DEC-101`; `FR-MVP-EP-006` |
+| `BED_GENDER_MISMATCH` aturan 4 **tidak berubah sama sekali** | `RWI-RULE-012` B.1 tetap berlaku |
+| `ISOLATION_REQUIRED` aturan 7 dan `ISOLATION_BED_RESERVED` aturan 8 **tidak berubah sama sekali** | `RWI-RULE-012` bagian A tidak tersentuh |
+| Pengecualian boks bayi **tidak berubah** | `RWI-RULE-012` B.5 tetap berlaku |
+
+**Kenapa ini perubahan yang merusak, dan bagi siapa.** Bagi pemanggil yang hanya membaca daftar
+bed yang lolos, perubahan ini **menambah** bed yang sebelumnya tertolak, sehingga tidak ada bentuk
+response yang berubah. Yang rusak adalah pemanggil yang **memetakan kode penolakan**: frontend
+menyimpan `ROOM_GENDER_MIXED` pada `inpatient-placement-utils.jsx`, dan tiga berkas test
+menguncinya, yaitu `tests/unit/inpatient-placement.test.mjs` pada tiga tempat serta
+`tests/e2e/inpatient-episode-detail.spec.mjs`. Karena itu backend dan frontend **wajib berada pada
+satu gelombang rilis**; menurunkan salah satunya lebih dulu meninggalkan test yang menguji kode
+yang sudah tidak pernah terbit.
+
+**Contoh perubahan perilaku yang dapat diuji.** Kamar Melati 1 berisi tiga tempat tidur yang
+seluruhnya dikonfigurasi `IsForMale` dan `IsForFemale` bernilai benar. Pukul 08:00 Tn. Budi
+menempati `MELATI-01-A`.
+
+| Keadaan | Sebelum `0.8.0` | Sejak `0.8.0` |
+| --- | --- | --- |
+| Ny. Sari ditempatkan ke `MELATI-01-B` | **Ditolak** `422 ROOM_GENDER_MIXED` | **Berhasil** |
+| Pasien laki-laki ke tempat tidur bertanda perempuan saja | Ditolak `422 BED_GENDER_MISMATCH` | **Tetap ditolak** `422 BED_GENDER_MISMATCH` |
+| Pasien tanpa jenis kelamin tercatat ke `MELATI-01-B` | **Ditolak** `422 PATIENT_GENDER_UNKNOWN` karena kamar sudah berpenghuni | **Berhasil**, karena tempat tidurnya menerima keduanya |
+| Pasien tanpa jenis kelamin tercatat ke tempat tidur perempuan saja | Ditolak `422 PATIENT_GENDER_UNKNOWN` | **Tetap ditolak** `422 PATIENT_GENDER_UNKNOWN` |
+| Pasien tanpa kebutuhan isolasi ke tempat tidur isolasi | Ditolak `422 ISOLATION_BED_RESERVED` | **Tetap ditolak** `422 ISOLATION_BED_RESERVED` |
+
+### Perubahan pada `contract_version` `0.7.0`
+
+**Status: `approved` sejak 10 September 2026.** Gerbang persetujuan pemilik dicabut hari itu,
+dan `BE-RWI-069` langsung dikerjakan pada tanggal yang sama — lihat
+[laporan `BE-RWI-069`](../task/report/backend/BE-RWI-069.md). `FE-RWI-057` pada roadmap frontend
+**tidak** ikut terbuka oleh approval ini; gerbangnya sendiri diputuskan terpisah.
+
+> **Keadaan sebelumnya, disimpan sebagai jejak.** Sampai 9 September 2026 versi ini berstatus
+> `draft`, dan selama itu `BE-RWI-069` serta `FE-RWI-057` berstatus
+> `BLOCKED_PENDING_OWNER_APPROVAL` pada roadmap masing-masing.
+
+Masalah yang ditutupnya. Layar pemilihan tempat tidur hari ini hanya menerima daftar bed yang
+**lolos** kelayakan. Bed yang ditolak hilang begitu saja tanpa satu pun keterangan, sehingga layar
+terpaksa menebak dari kolom seadanya dan berakhir pada kalimat "Tidak lolos kelayakan". Kalimat itu
+tidak memberitahu petugas apa pun. Padahal server sudah menghitung alasannya lengkap untuk setiap
+bed, lalu membuangnya di `SearchAvailableBedsAsync`.
+
+| Yang berubah | Dasar |
+| --- | --- |
+| `GET /bed-occupancies/available-beds` menerima query baru `includeIneligible`, bawaannya `false` | `RWI-RULE-012`; bukti runtime pemilik 9 September 2026 |
+| `AvailableBedPagedResult` mendapat field baru `ineligible`, berisi daftar `{ bedId, failures[] }` | Bentuk `failures[]` **sudah ada**, dipakai jawaban 422 pada bagian Bed Occupancy |
+| Nol Resource baru, nol Action baru, nol endpoint baru | Hak aksesnya tetap `InpatientBedOccupancy : Read` |
+
+**Kenapa aditif dan aman.** `includeIneligible` bawaannya mati, sehingga setiap pemanggil lama
+menerima jawaban yang sama persis seperti sebelumnya. Field `ineligible` terkirim sebagai array
+kosong bagi pemanggil yang tidak memintanya. Tidak ada bentuk lama yang berubah dan tidak ada
+pemanggil lama yang perlu disesuaikan.
+
+**Batas yang mengikat.** Daftar `ineligible` hanya diisi ketika `episodeId` ikut dikirim. Tanpa
+episode, empat dari delapan aturan kelayakan tidak dapat dinilai sama sekali, sehingga alasan yang
+dikirim akan menyesatkan. Permintaan `includeIneligible=true` tanpa `episodeId` dijawab dengan
+`ineligible` kosong, bukan dengan tebakan sebagian.
+
+Contoh jawaban, dipersingkat pada bagian yang tidak berubah.
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "data": {
+    "pageNumber": 1,
+    "pageSize": 100,
+    "totalData": 1,
+    "totalPage": 1,
+    "items": [
+      { "bedId": "ea773e3d-5cca-4883-b112-26b83b6746b1", "bedCode": "BD-RSMMC-00003" }
+    ],
+    "ineligible": [
+      {
+        "bedId": "4842ce58-a1c9-481f-b691-aa6c5cbc88f9",
+        "failures": [
+          {
+            "ruleNumber": 4,
+            "code": "BED_GENDER_MISMATCH",
+            "message": "Tempat tidur ini hanya menerima pasien perempuan.",
+            "statusCode": 422
+          }
+        ]
+      },
+      {
+        "bedId": "f24fe210-b852-45c7-9813-8253597c1e71",
+        "failures": [
+          {
+            "ruleNumber": 8,
+            "code": "ISOLATION_BED_RESERVED",
+            "message": "Tempat tidur isolasi hanya untuk pasien yang membutuhkan isolasi.",
+            "statusCode": 422
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Perubahan pada `contract_version` `0.2.0`
+
+| Yang berubah | Dasar |
+| --- | --- |
+| Endpoint baru `POST /discharges/{episodeId}/record-departure` | `RWI-DEC-055` |
+| Kode 409 baru pada penempatan: pasien sudah punya episode yang hadir | `RWI-DEC-054` |
+| `POST /bed-occupancies/placements/transfer` menolak pasien yang kepergiannya sudah dicatat | `RWI-DEC-055` |
+| `GET /discharges/{episodeId}/summary` dapat menyertakan riwayat versi resume | `RWI-DEC-057` |
+
+Tidak ada endpoint yang dihapus dan tidak ada bentuk request atau response yang berubah.
+
+### Perubahan pada `contract_version` `0.3.0`
+
+| Yang berubah | Dasar |
+| --- | --- |
+| Endpoint baru `PATCH /episodes/{id}/isolation-requirement` | `RWI-DEC-065` |
+| Endpoint baru `GET /monitoring/isolation-mismatch` | `RWI-DEC-065` aturan 7 |
+| Penempatan dan perpindahan menolak lima keadaan baru: jenis kelamin tidak cocok, jenis kelamin belum tercatat, kamar sudah dihuni jenis kelamin berbeda, dan dua aturan isolasi | `RWI-DEC-064`, `RWI-DEC-066` |
+| `GET /bed-occupancies/available-beds` menyaring hasil memakai kedelapan aturan Kelayakan Penempatan | `RWI-DEC-064` |
+
+### Perubahan pada `contract_version` `0.4.0`
+
+| Yang berubah | Dasar |
+| --- | --- |
+| `POST /placements` menolak satu keadaan baru: pasien asal IGD yang belum tercatat tiba | `RWI-DEC-072` |
+| `POST /placements` tidak lagi selalu menetapkan waktu mulai sendiri; untuk pasien asal IGD waktunya dibaca dari catatan kepergian IGD | `RWI-DEC-072` |
+| `GET /available-beds` menyaring memakai **sembilan** aturan Kelayakan Penempatan, bukan delapan | `RWI-DEC-072` |
+
+**Tidak ada bentuk request atau response yang berubah, dan tidak ada endpoint baru.** Keduanya
+hanya berlaku pada jalur serah terima IGD, yaitu `INP-S09` yang di luar scope revisi ini. Untuk
+seluruh endpoint yang dipakai MVP, perilakunya sama persis seperti `0.3.0`.
+
+> **DIPERBARUI 26 Agustus 2026 — ke-49 endpoint baru berstatus `Tersedia`.** Lihat pemutakhiran
+> 1 September 2026 di bawah.
+>
+> Catatan sebelumnya berbunyi *"Seluruh endpoint pada dokumen ini berstatus `Rencana (belum
+> tersedia)`. Tidak satu pun sudah ada di dalam kode pada SHA `5afb54b`."* Pernyataan itu benar
+> pada SHA tersebut dan **sudah tidak berlaku**.
+>
+> Buktinya bukan pembacaan source, melainkan aplikasi yang benar-benar menyala:
+>
+> | Bukti | Hasil |
+> | --- | --- |
+> | Migration diterapkan ke PostgreSQL | 13 tabel `Inp*`/`MstInpatient*` terbentuk; 6 unique index parsial hidup |
+> | Aplikasi menyala dan melayani | `GET /health` → **200** |
+> | Dokumen Swagger `health-services` | **HTTP 200**, 4.230.239 byte |
+> | Operasi HTTP pada path `inpatient` | **49** — cocok persis dengan jumlah baris pada dokumen ini |
+> | Lima endpoint dipanggil tanpa token | **401** semuanya — `[Authorize]` tegak saat runtime |
+>
+> Baris `PATCH /{id}/availability` pada bagian Bed saat itu **tetap** `Rencana perubahan
+> perilaku`, karena `BE-RWI-006` masih terblokir `FE-RWI-001`.
+>
+> **DIPERBARUI 1 September 2026 — kontrak modul tertutup penuh.**
+>
+> | Perubahan | Task |
+> | --- | --- |
+> | Endpoint baru ke-50, `GET /discharges/{episodeId}/financial-clearance`, berstatus `Tersedia` | `BE-RWI-034` |
+> | Sembilan baris kolom hak akses dibetulkan menjadi pasangan yang benar-benar didaftarkan `AccessMenuSeeder` | `BE-RWI-034` |
+> | Baris `PATCH /{id}/availability` naik dari `Rencana perubahan perilaku` menjadi **`Diterapkan`** | `BE-RWI-006` |
+>
+> Tidak ada lagi baris berstatus `Rencana` pada dokumen ini.
+
+### Koreksi pada `contract_version` `0.6.1`
+
+Trace terhadap source `44099e4` menemukan tiga baris `0.6.0` yang salah, bukan sekadar kurang.
+
+| Yang dikoreksi | Buktinya |
+| --- | --- |
+| `episodeId` **tidak jadi** ditambahkan pada `top-ups`, dan kolom `EpisodeId` dibatalkan | `BilDepositAccountConfiguration.cs:27` dan `InpEpisodeConfiguration.cs:26` sama-sama mengunci `EncounterId` unique; episodenya terbaca lewat join |
+| Rute `POST /deposits/episodes/{episodeId}/refunds` **dicabut** | `BillingFinancialExceptionsController.cs:112` sudah menyediakan `POST /financial-exceptions/refunds` beserta `approve`, di bawah `BIL-API-0.4` yang sudah disetujui |
+| Idempotensi tidak perlu dibangun | `BillingPatientFundsController.cs:99` memakai header `Idempotency-Key`; `BilDepositMovementConfiguration.cs:31` menguncinya unique |
+
+`POST /deposits/episodes/{episodeId}/settle` **dipertahankan sebagai rencana**: alokasi yang ada
+hari ini bekerja per kunjungan dan belum menghasilkan posisi settlement per episode.
+
+### Perubahan pada `contract_version` `0.5.0` dan `0.6.0`
+
+| Yang berubah | Dasar |
+| --- | --- |
+| Bagian baru **Deposit Rawat Inap** pada `BillingManagement`, berisi tujuh baris: tiga rute `patient-funds` yang sudah ada dan empat rute baru | `EPIC RI-35`, `FR-RI-163` s.d. `FR-RI-178` |
+| ~~`POST /patient-funds/deposits/{encounterId}/top-ups` wajib menerima `episodeId`~~ — **dicabut `0.6.1`** | `FR-RI-163`, `RWI-DEC-093` sebagaimana dikoreksi |
+| Rute baru `GET /patient-funds/deposit-policies` sebagai sumber minimum deposit pada langkah admisi | `FR-RI-175`, `RWI-DEC-094` |
+| Rute baru `GET /patient-funds/deposits/episodes/{episodeId}` dan `POST …/settle`. Bagian `…/refunds` **dicabut `0.6.1`** | `FR-RI-167`, `FR-RI-170`, `FR-RI-171` |
+| Usulan base URL `billing-management/inpatient-deposits` **dicabut** sebelum sempat dipakai | `04-prd-to-mvp.md` `0.6.0` |
+| `GET /monitoring/deposit-shortfall` sebagai daftar pantau kekurangan deposit | `FR-RI-177`, `RWI-DEC-096` |
+
+Tidak ada endpoint yang dihapus. Seluruh perubahan aditif, kecuali penambahan `episodeId` pada
+`top-ups` yang bersifat **aditif pada request body** dan tidak mengubah pemanggilan lama.
+
+Base URL modul: `api/v1/health-services/inpatient-management/`
+
+---
+
+## Health Services / Inpatient Management / Inpatient Episode
+
+Base URL: `api/v1/health-services/inpatient-management/episodes`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/filters/metadata` | Mengambil pilihan penyaring beserta nilai bawaannya untuk layar daftar episode | `InpatientEpisode : Read` | – | `ApiResponse<InpatientEpisodeFilterMetadataResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/summary` | Ringkasan jumlah episode per status | `InpatientEpisode : Read` | Query | `ApiResponse<InpatientEpisodeSummaryResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/` | Daftar episode bertingkat, dapat disaring unit layanan, status, tanggal, dan nama pasien | `InpatientEpisode : Read` | Query | `ApiResponse<InpatientEpisodePagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/{id}` | Detail satu episode beserta DPJP aktif, perawat aktif, dan lokasi terkini | `InpatientEpisode : Read` | – | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/{id}/status-history` | Riwayat perpindahan status episode | `InpatientEpisode : Read` | – | `ApiResponse<List<InpatientStatusHistoryResponse>>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/` | Membuka admisi. Membuat episode `Draft` dan menetapkan DPJP pertama | `InpatientEpisode : Create` | `OpenAdmissionRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PUT` | `/{id}` | Mengubah isian admisi selama episode masih `Draft` | `InpatientEpisode : Update` | `UpdateAdmissionRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PATCH` | `/{id}/cancel` | Membatalkan admisi. Melepas pemesanan dan penempatan dalam satu tindakan | `InpatientEpisode : Update` | `CancelAdmissionRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/{id}/doctor-assignments` | Mengalihkan DPJP. Menutup penugasan lama dan membuka penugasan baru | `InpatientEpisode : Update` | `HandoverDoctorRequest` | `ApiResponse<InpatientDoctorAssignmentResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/{id}/doctor-assignments` | Riwayat DPJP episode | `InpatientEpisode : Read` | – | `ApiResponse<List<InpatientDoctorAssignmentResponse>>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/{id}/nurse-assignments` | Menugaskan atau mengganti perawat penanggung jawab | `InpatientEpisode : Update` | `AssignNurseRequest` | `ApiResponse<InpatientNurseAssignmentResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PATCH` | `/{id}/isolation-requirement` | Menetapkan atau mengubah kebutuhan isolasi episode | `InpatientEpisode : SetIsolation` | `SetIsolationRequirementRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/{id}/nurse-assignments` | Riwayat perawat penanggung jawab | `InpatientEpisode : Read` | – | `ApiResponse<List<InpatientNurseAssignmentResponse>>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/{id}/correction-sessions` | Membuka sesi koreksi pada episode yang sudah ditutup | `InpatientEpisode : Reopen` | `OpenCorrectionSessionRequest` | `ApiResponse<InpatientCorrectionSessionResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PATCH` | `/{id}/correction-sessions/{sessionId}/close` | Menutup sesi koreksi beserta daftar perubahannya | `InpatientEpisode : Reopen` | `CloseCorrectionSessionRequest` | `ApiResponse<InpatientCorrectionSessionResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+
+Kode status yang mungkin muncul dan artinya bagi pengguna:
+
+| Kode | Arti bagi pengguna |
+| --- | --- |
+| 200 | Permintaan berhasil |
+| 400 | Isian tidak lengkap atau tidak masuk akal, misalnya alasan pembatalan kosong |
+| 401 | Pengguna belum login atau sesi sudah berakhir |
+| 403 | Pengguna tidak punya hak akses untuk tindakan ini |
+| 404 | Episode yang dimaksud tidak ditemukan |
+| 409 | Tindakan bertabrakan dengan keadaan sekarang, misalnya episode sudah ditutup |
+| 422 | Aturan bisnis menolak, misalnya membatalkan episode yang sudah punya catatan klinis |
+
+---
+
+## Health Services / Inpatient Management / Bed Occupancy
+
+Base URL: `api/v1/health-services/inpatient-management/bed-occupancies`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/available-beds` | Mencari tempat tidur yang benar-benar dapat ditempati, sudah memperhitungkan pemesanan yang masih berlaku. Sejak `0.7.0` dapat sekaligus menyebutkan tempat tidur yang **ditolak** beserta aturan yang menolaknya | `InpatientBedOccupancy : Read` | Query, termasuk `includeIneligible` sejak `0.7.0` | `ApiResponse<AvailableBedPagedResult>`, dengan field `ineligible` sejak `0.7.0` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026. Bagian `ineligible` ikut ✅ **Tersedia** sejak 10 Sep 2026 lewat `BE-RWI-069` |
+| `GET` | `/bed-board` | Papan ketersediaan tempat tidur per unit layanan dan kamar | `InpatientBedOccupancy : Read` | Query | `ApiResponse<BedBoardResponse>` + metadata aditif [`RWI-BED-BOARD-RESERVATION-001 1.0.0`](bed-board-reservation-metadata-contract.md) | ✅ **Tersedia** — metadata reservasi aktif dilengkapi `BE-RWI-036` pada 1 Sep 2026 |
+| `POST` | `/reservations` | Memesan tempat tidur untuk satu episode `Draft` | `InpatientBedOccupancy : Create` | `ReserveBedRequest` | `ApiResponse<BedReservationResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PATCH` | `/reservations/{id}/cancel` | Membatalkan pemesanan sebelum dipakai | `InpatientBedOccupancy : Update` | `CancelReservationRequest` | `ApiResponse<BedReservationResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/placements` | Menempatkan pasien ke tempat tidur dan mengaktifkan episode | `InpatientBedOccupancy : Create` | `PlacePatientRequest` | `ApiResponse<BedPlacementResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/placements/transfer` | Memindahkan pasien ke tempat tidur lain dalam satu tindakan utuh | `InpatientBedOccupancy : Transfer` | `TransferPatientRequest` | `ApiResponse<BedPlacementResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/placements/by-episode/{episodeId}` | Riwayat penempatan satu episode, dari tempat tidur pertama sampai terakhir | `InpatientBedOccupancy : Read` | – | `ApiResponse<List<BedPlacementResponse>>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+
+Kode status tambahan yang khas bagian ini:
+
+| Kode | Arti bagi pengguna |
+| --- | --- |
+| 409 | Tempat tidur sudah ditempati atau sudah dipesan pasien lain. Ini yang muncul ketika dua petugas merebut tempat tidur yang sama |
+| 422 | Tempat tidur tidak lolos pemeriksaan kelayakan. Sejak `0.3.0` ini mencakup lima alasan baru: penanda tempat tidur tidak menerima jenis kelamin pasien, jenis kelamin pasien belum tercatat, kamar sudah dihuni pasien berjenis kelamin berbeda, pasien butuh isolasi tetapi tempat tidurnya bukan isolasi, dan pasien tidak butuh isolasi tetapi tempat tidurnya isolasi |
+| 422 | Sejak `0.4.0` bertambah satu alasan lagi: pasien berasal dari serah terima IGD tetapi belum tercatat tiba di bangsal. Hanya berlaku pada jalur `INP-S09`, yang di luar scope revisi ini |
+
+**Waktu mulai penempatan.** Untuk pasien asal IGD, `StartDateTime` pada jawaban **bukan** waktu
+endpoint dipanggil, melainkan waktu tiba yang dibaca dari catatan kepergian IGD. Untuk jalur
+datang langsung dan poliklinik nilainya tetap waktu penempatan dibuat. Dasarnya `RWI-DEC-072`.
+
+**Bentuk jawaban penolakan kelayakan.** Jawaban 422 menyertakan **daftar aturan yang gagal**, bukan
+satu kalimat umum. Petugas perlu tahu apakah yang menghalangi jenis kelaminnya, isolasinya, atau
+keadaan tempat tidurnya, karena tindakan lanjutannya berbeda.
+
+---
+
+## Health Services / Inpatient Management / Inpatient Discharge
+
+Base URL: `api/v1/health-services/inpatient-management/discharges`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/{episodeId}/decide` | DPJP memutuskan pasien boleh pulang beserta cara pulangnya | `InpatientDischarge : Update` | `DecideDischargeRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/{episodeId}/record-departure` | Mencatat pasien sudah meninggalkan ruangan. Melepas tempat tidur seketika **tanpa** menutup episode | `InpatientDischarge : RecordDeparture` | `RecordDepartureRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/{episodeId}/summary` | Mengambil resume pulang episode beserta daftar versi sebelumnya bila ada | `InpatientDischarge : Read` | Query `includeRevisions` | `ApiResponse<DischargeSummaryResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PUT` | `/{episodeId}/summary` | Menyusun atau memperbarui resume pulang | `InpatientDischarge : Update` | `UpsertDischargeSummaryRequest` | `ApiResponse<DischargeSummaryResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PATCH` | `/{episodeId}/summary/sign` | DPJP menandatangani resume pulang | `InpatientDischarge : Sign` | `SignDischargeSummaryRequest` | `ApiResponse<DischargeSummaryResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/{episodeId}/clearance` | Daftar butir administrasi beserta status penandaannya | `InpatientDischarge : Read` | – | `ApiResponse<ClearanceChecklistResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/{episodeId}/clearance/{itemId}/mark` | Menandai satu butir daftar periksa administrasi | `InpatientDischarge : Update` | `MarkClearanceItemRequest` | `ApiResponse<ClearanceChecklistResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/{episodeId}/financial-clearance` | Petugas kasir menandai kelayakan keuangan | `InpatientDischarge : MarkFinancialClearance` | `MarkFinancialClearanceRequest` | `ApiResponse<FinancialClearanceResponse>` | ✅ **Tersedia** — hak akses diperbaiki `BE-RWI-034` pada 1 Sep 2026 |
+| `GET` | `/{episodeId}/financial-clearance` | Membaca penandaan kelayakan keuangan beserta seluruh riwayatnya. Hak aksesnya butir tersendiri supaya kasir dapat diberi kemampuan ini tanpa ikut membaca isi resume pulang | `InpatientDischarge : ReadFinancialClearance` | – | `ApiResponse<FinancialClearanceResponse>` | ✅ **Tersedia** — dibuka `BE-RWI-034` pada 1 Sep 2026 |
+| `GET` | `/{episodeId}/closure-readiness` | Memeriksa kelima syarat penutupan dan menampilkan mana yang belum terpenuhi | `InpatientDischarge : Read` | – | `ApiResponse<ClosureReadinessResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/{episodeId}/close` | Menutup episode dan melepas tempat tidur | `InpatientDischarge : Close` | `CloseEpisodeRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — hak akses diperbaiki `BE-RWI-034` pada 1 Sep 2026 |
+| `POST` | `/{episodeId}/close-with-override` | Supervisor menutup episode menembus gerbang keuangan | `InpatientDischarge : CloseOverride` | `CloseEpisodeOverrideRequest` | `ApiResponse<InpatientEpisodeDetailResponse>` | ✅ **Tersedia** — hak akses diperbaiki `BE-RWI-034` pada 1 Sep 2026 |
+
+Kode status tambahan yang khas bagian ini:
+
+| Kode | Arti bagi pengguna |
+| --- | --- |
+| 422 | Ada syarat penutupan yang belum terpenuhi. Jawabannya menyebut syarat mana saja, bukan sekadar menolak |
+
+**Catatan bentuk jawaban `/record-departure`.** Endpoint ini **tidak** mengubah status episode.
+Episode tetap `DischargePending` dan tetap wajib ditutup. Yang berubah hanya tiga hal: kolom waktu
+kepergian pada episode terisi, baris penempatan ditutup dengan alasan kepergian pasien, dan salinan
+status tempat tidur kembali `Available`. Jawabannya tetap berupa detail episode supaya layar dapat
+langsung memperbarui tampilannya.
+
+Endpoint ini juga tidak dapat dibatalkan. Bila ternyata pasien belum jadi pulang, jalannya adalah
+menutup episode lalu menjalankan admisi baru, sesuai `RWI-RULE-036`.
+
+**Catatan bentuk jawaban `closure-readiness`.** Endpoint ini sengaja mengembalikan **daftar syarat
+yang belum terpenuhi**, bukan sekadar boleh atau tidak. Petugas admisi perlu tahu apa yang harus
+dikejar, bukan hanya bahwa tombol tutup masih mati.
+
+---
+
+## Health Services / Billing Management / Deposit Rawat Inap
+
+Base URL: `api/v1/health-services/billing-management/billing/patient-funds`
+
+Bagian ini **milik `BillingManagement`**, bukan `InPatientManagement`. Ia dicantumkan di sini karena
+`EPIC RI-35` bergantung padanya dan karena `EpisodeId` adalah kontrak lintas modulnya. Tidak boleh
+ada controller deposit di area Rawat Inap.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/deposits/{encounterId}` | Membaca akun deposit satu kunjungan | `BillingDeposit : Read` | – | `ApiResponse<BillingDepositResponse>` | ✅ **Tersedia** — `BillingPatientFundsController.cs:67` |
+| `POST` | `/deposits/{encounterId}/top-ups` | Menerima deposit awal dan top-up. Header `Idempotency-Key` **wajib** | `BillingDeposit : Create` | `DepositTopUpRequest` | `ApiResponse<SettlementResponse>` | ✅ **Tersedia apa adanya** — `BillingPatientFundsController.cs:93`. Koreksi `0.6.1`: tidak perlu `episodeId` |
+| `POST` | `/deposits/{encounterId}/allocations` | Mengalokasikan deposit ke tagihan | `BillingDeposit : Allocate` | `AllocateDepositRequest` | `ApiResponse<BillingAllocationResponse>` | ✅ **Tersedia apa adanya** — `BillingPatientFundsController.cs:31` |
+| `GET` | `/deposit-policies` | Kebijakan deposit untuk kombinasi penjamin dan kelas perawatan | `BillingDeposit : Read` | `guarantorId`, `patientClassId` | `ApiResponse<DepositPolicyResponse>` | **Rencana `0.6.0`** |
+| `GET` | `/deposits/episodes/{episodeId}` | Ringkasan deposit satu episode | `BillingDeposit : Read` | – | `ApiResponse<EpisodeDepositSummaryResponse>` | **Rencana `0.6.0`** |
+| `POST` | `/deposits/episodes/{episodeId}/settle` | Alokasi deposit terhadap tagihan final beserta selisihnya | `BillingDeposit : Settle` | `SettleEpisodeDepositRequest` | `ApiResponse<EpisodeDepositSettlementResponse>` | **Rencana `0.6.0`** |
+| ~~`POST`~~ | ~~`/deposits/episodes/{episodeId}/refunds`~~ | **Dicabut `0.6.1`** — bertabrakan dengan kontrak Billing yang sudah disetujui | – | – | – | ❌ **Dicabut** |
+| `POST` | `/financial-exceptions/refunds` dan `/refunds/{id}/approve` | Refund kelebihan deposit beserta persetujuannya | `BillingRefund : Create` / `Approve` | Kontrak `BIL-API-0.4` | – | ✅ **Tersedia** — `BillingFinancialExceptionsController.cs:112,157` |
+| `GET` | `/invoices/encounters/{encounterId}/charge-summary` | Rekap tagihan satu kunjungan; sumber angka tagihan final pada settlement | `BillingInvoice : Read` | – | `ApiResponse<EncounterChargeSummaryResponse>` | ✅ **Tersedia** — `BillingInvoicesController.cs:122` |
+
+**Ringkasan episode wajib memuat dua angka kekurangan yang berbeda.** Kekurangan terhadap **minimum
+kebijakan** dipakai langkah admisi dan daftar pantau; kekurangan terhadap **tagihan final** dipakai
+settlement dan gerbang `FinancialClearance`. Menyatukan keduanya membuat episode yang depositnya
+kurang tampak seperti episode yang tagihannya kurang.
+
+---
+
+## Health Services / Inpatient Management / Inpatient Census
+
+Base URL: `api/v1/health-services/inpatient-management/census`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/filters/metadata` | Pilihan penyaring census | `InpatientCensus : Read` | – | `ApiResponse<CensusFilterMetadataResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/summary` | Ringkasan jumlah pasien dirawat per unit layanan dan per kelas | `InpatientCensus : Read` | Query | `ApiResponse<CensusSummaryResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/` | Daftar pasien yang sedang dirawat beserta lokasi, DPJP, perawat, dan lama dirawat | `InpatientCensus : Read` | Query | `ApiResponse<CensusPagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+
+---
+
+## Health Services / Inpatient Management / Inpatient Monitoring
+
+Base URL: `api/v1/health-services/inpatient-management/monitoring`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/pending-closures` | Daftar pantau episode yang sudah boleh pulang tetapi belum ditutup melewati ambang waktu | `InpatientMonitoring : Read` | Query | `ApiResponse<PendingClosurePagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/closures-without-financial-clearance` | Daftar pantau episode yang ditutup menembus gerbang keuangan | `InpatientMonitoring : Read` | Query | `ApiResponse<OverrideClosurePagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/deposit-shortfall` | Daftar pantau episode aktif yang depositnya masih di bawah minimum kebijakan, muncul kembali tiap kelipatan ambang tindak lanjut | `InpatientMonitoring : Read` | Query | `ApiResponse<DepositShortfallPagedResult>` | ✅ **Tersedia** — terpasang di `InpatientMonitoringController` 17 Sep 2026 |
+| `GET` | `/unassigned-nurse-episodes` | Daftar episode aktif yang belum punya perawat penanggung jawab | `InpatientMonitoring : Read` | Query | `ApiResponse<UnassignedNursePagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/bed-drift` | Laporan selisih antara salinan status tempat tidur dan catatan penempatan | `InpatientMonitoring : Read` | Query | `ApiResponse<BedDriftPagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/isolation-mismatch` | Daftar pantau episode yang kebutuhan isolasinya tidak cocok dengan sifat tempat tidur yang sedang ditempati | `InpatientMonitoring : Read` | Query | `ApiResponse<IsolationMismatchPagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+
+**Daftar pantau ketiga yang tidak ada di sini.** `RWI-RULE-023` menyebut tiga daftar pantau, dan
+salah satunya adalah kepatuhan pengkajian awal dan verifikasi CPPT. Daftar itu **tidak** dirancang
+pada revisi ini karena bergantung pada slice dokumentasi klinis yang masih menunggu `DEC-INP-001`.
+
+---
+
+## Health Services / Master Data / Inpatient Setting
+
+Base URL: `api/v1/health-services/master-data/inpatient-settings`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Membaca pengaturan Rawat Inap yang berlaku | `InpatientSetting : Read` | – | `ApiResponse<InpatientSettingResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PUT` | `/{id}` | Mengubah nilai pengaturan | `InpatientSetting : Update` | `UpdateInpatientSettingRequest` | `ApiResponse<InpatientSettingResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+
+---
+
+## Health Services / Master Data / Inpatient Clearance Item
+
+Base URL: `api/v1/health-services/master-data/inpatient-clearance-items`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar butir administrasi | `InpatientClearanceItem : Read` | Query | `ApiResponse<InpatientClearanceItemPagedResult>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `GET` | `/{id}` | Detail satu butir | `InpatientClearanceItem : Read` | – | `ApiResponse<InpatientClearanceItemResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `POST` | `/` | Menambah butir baru | `InpatientClearanceItem : Create` | `CreateInpatientClearanceItemRequest` | `ApiResponse<InpatientClearanceItemResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PUT` | `/{id}` | Mengubah butir | `InpatientClearanceItem : Update` | `UpdateInpatientClearanceItemRequest` | `ApiResponse<InpatientClearanceItemResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `PATCH` | `/{id}/status` | Mengaktifkan atau menonaktifkan butir | `InpatientClearanceItem : Update` | `UpdateStatusRequest` | `ApiResponse<InpatientClearanceItemResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+| `DELETE` | `/{id}` | Menandai butir terhapus | `InpatientClearanceItem : Delete` | `DeleteRequest` | `ApiResponse<InpatientClearanceItemResponse>` | ✅ **Tersedia** — terbukti berjalan 26 Agu 2026 |
+
+---
+
+## 7. Perubahan pada endpoint yang sudah ada
+
+### Health Services / Master Data / Bed
+
+Base URL: `api/v1/health-services/master-data/beds`
+Sumber as-is: `Areas/HealthServices/MasterData/Controllers/BedController.cs` pada SHA `5afb54b`
+
+| Method | Path | Perubahan | Alasan | Status |
+| --- | --- | --- | --- | --- |
+| `PATCH` | `/{id}/availability` | Menolak nilai `Reserved` dan `Occupied` dengan kode 422, juga menolak saat tempat tidur masih ditempati. Nilai `Available`, `Cleaning`, `Maintenance`, `Blocked`, dan `Inactive` tetap diterima | `RWI-RULE-027` aturan 4 dan 5: status penghunian hanya boleh lahir dari tindakan Rawat Inap | ✅ **Diterapkan** — `BE-RWI-006` pada 1 Sep 2026, dengan test regresi `BE-RWI-032` |
+
+Pesan penolakannya: *"Status Terisi dan Dipesan hanya dapat diubah lewat modul Rawat Inap. Untuk
+menutup tempat tidur sementara, pakai status Pembersihan, Perbaikan, atau Diblokir."*
+
+**Yang tidak berubah:** bentuk request, bentuk response, kode status yang sudah ada, dan seluruh
+endpoint lain pada grup ini. Ini perubahan perilaku, bukan perubahan kontrak.
+
+**Persetujuan:** Pemilik `MasterData` HealthServices, tercatat sebagai `RWI-OQ-033` — **sudah diberikan** 21 Agustus 2026 lewat `RWI-DEC-062`. Diterapkan `BE-RWI-006` pada 1 September 2026, bersama test regresi
+`BE-RWI-032`.
+
+---
+
+## 8. Yang sengaja tidak dibuat
+
+| Endpoint yang tidak dibuat | Alasan |
+| --- | --- |
+| Endpoint apa pun untuk mengubah atau menghapus `InpStatusHistory` | Riwayat status tidak dapat diubah dan tidak dapat dihapus, sesuai `RWI-RULE-031` aturan 5 |
+| Endpoint apa pun untuk mengubah atau menghapus `InpDischargeSummaryRevision` | Salinan versi resume juga tidak dapat diubah dan tidak dapat dihapus, sesuai `RWI-DEC-057` |
+| Endpoint untuk membatalkan pencatatan kepergian fisik | `RWI-RULE-036` menetapkan tidak ada pembatalan. Pasien yang ternyata belum jadi pulang menjalani admisi baru |
+| `PATCH /episodes/{id}/status` yang menerima status bebas | Melanggar `RWI-RULE-031` aturan 4 tentang satu pintu. Setiap perpindahan status punya endpoint bermakna sendiri |
+| Endpoint pengkajian, catatan dokter, tindakan, dan resep | Memakai modul Clinical dan Pharmacy yang sudah ada. Menunggu `DEC-INP-001` |
+| Endpoint serah terima dari IGD | Menunggu `DEC-INP-002` |
+| Endpoint pengiriman SATUSEHAT | Menunggu `DEC-INP-005` |
+
+Baris kedua adalah yang paling perlu diperhatikan. Pola `PATCH /{id}/status` memang dipakai hampir
+seluruh master di repository ini, tetapi untuk episode rawat inap pola itu **tidak dipakai**, karena
+akan membuat status dapat disetel ke nilai apa pun tanpa memeriksa aturan perpindahan — persis
+cacat yang sudah ditemukan pada `PatientEncounterController` dan tercatat sebagai `RWI-TF-007`.
+
+---
+
+## 9. Traceability
+
+| Grup endpoint | Requirement dan decision asal |
+| --- | --- |
+| Inpatient Episode | `RWI-RULE-003`, `RWI-RULE-004`, `RWI-RULE-005`, `RWI-RULE-020`, `RWI-RULE-030`, `RWI-RULE-033` |
+| Bed Occupancy | `RWI-RULE-001`, `RWI-RULE-002`, `RWI-RULE-006`, `RWI-RULE-007`, `RWI-RULE-008`, `RWI-RULE-012`, `RWI-RULE-015`, `RWI-RULE-027` |
+| Inpatient Discharge | `RWI-RULE-009`, `RWI-RULE-010`, `RWI-RULE-011`, `RWI-RULE-018`, `RWI-RULE-028`, `RWI-RULE-032`, `RWI-RULE-036` |
+| Inpatient Census | `RWI-RULE-019`, CAP-008 |
+| Inpatient Monitoring | `RWI-RULE-023`, `RWI-RULE-027` aturan 6 |
+| Master Data Inpatient Setting dan Clearance Item | `RWI-RULE-018`, `RWI-RULE-034` |
+| Perubahan Bed | `RWI-RULE-027`, `RWI-DEC-039` |
+
+---
+
+## 10. Perubahan pada `contract_version` `0.9.0` — amandemen terbatas penyelarasan `PRD-RWI-V2-001` ★ 15 September 2026
+
+| Field | Nilai |
+| --- | --- |
+| Status | **`draft`** — belum disetujui manusia |
+| `input_revision` | `02-backend-architecture.md` `0.8` bagian 11; `data/data-dictionary.md` `0.5` bagian 18; decision log `21` |
+| Dampak kompatibilitas | **Aditif** untuk query, isian, dan endpoint baru. **Perubahan perilaku** pada `close` dan `close-with-override`: penutupan kini ikut mengunci konsep, membatalkan pesanan tindakan tertunda, dan membatalkan dosis obat masa depan. Bentuk request tidak berubah; response bertambah `SideEffects` |
+| Keputusan | `RWI-DEC-111`, `112`, `130`, `138`, `143` |
+
+### 10.1 Health Services / Inpatient Management / Inpatient Census — query baru
+
+Base URL: `api/v1/health-services/inpatient-management/census`
+Judul grup: `[Tags("Health Services / Inpatient Management / Inpatient Census")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Census. Dengan `assignedToMe=true`: hanya pasien yang dokter login punya penugasan aktif sebagai DPJP, konsulen, atau dokter jaga; `DoctorId` query diabaikan | `InpatientCensus : Read` | `CensusQuery` + **`AssignedToMe`** (`bool`, bawaan `false`) | `ApiResponse<PagedResult<CensusItemResponse>>` + **`MyAssignmentRole`**, **`MyAssignmentPurpose`** | ✅ **Tersedia**, query dan isian **Rencana (belum tersedia)** |
+| `GET` | `/summary` | Angka dari daftar yang sama; bertambah `NeedsReviewCount` bila `assignedToMe=true` | `InpatientCensus : Read` | Sama | `ApiResponse<CensusSummaryResponse>` + **`NeedsReviewCount`** | ✅ **Tersedia**, query dan isian **Rencana** |
+
+Contoh: dr. Ahmad DPJP Budi dan konsulen Sari; 120 pasien lain dirawat → `TotalCount = 2`; baris Sari
+`MyAssignmentRole = Consultant`, kolom DPJP tetap "dr. Rina". Pengguna tanpa data dokter → daftar kosong,
+`Message` "Akun Anda tidak terhubung dengan data dokter" — **bukan** `403`, karena hak baca census tetap sah.
+
+### 10.2 Health Services / Inpatient Management / Inpatient Episode — penugasan pendukung
+
+Base URL: `api/v1/health-services/inpatient-management/episodes`
+Judul grup: `[Tags("Health Services / Inpatient Management / Inpatient Episode")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/{id}/doctor-assignments/supporting` | Kepala ruangan atau supervisor melibatkan konsulen, memanggil dokter jaga, atau membuat **penugasan singkat penulisan catatan terlambat** | `InpatientEpisode : Update` + penjaga kepala ruangan/supervisor | `AssignSupportingDoctorRequest` (`DoctorId`, `AssignmentRole` `Consultant`/`OnCallDoctor`, `AssignmentPurpose` `Regular`/`LateDocumentation`, `StartDateTime`, `EndDateTime`, `Reason` wajib) + `Idempotency-Key` | `ApiResponse<InpatientDoctorAssignmentResponse>` + `AssignmentPurpose` | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/doctor-assignments/{assignmentId}/end` | Mengakhiri konsulen atau dokter jaga | Sama | `EndSupportingAssignmentRequest` (`EndDateTime`, `Reason` opsional) | Sama | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/doctor-assignments` | Riwayat penugasan. **Perubahan:** bertambah `AssignmentPurpose` | `InpatientEpisode : Read` | — | Sama | ✅ **Tersedia**, isian **Rencana** |
+
+Contoh `LateDocumentation`: dr. Rina, `OnCallDoctor`, Kamis 10.00–11.00, alasan "penulisan kajian medis Selasa 15.00" →
+`201`. Tanpa `EndDateTime` → `400` `VAL-INP-01`.
+
+| Kode | Artinya bagi pengguna |
+| --- | --- |
+| `400` | Waktu selesai wajib untuk penugasan singkat; alasan kosong; waktu selesai sebelum waktu mulai |
+| `403` | Hanya kepala ruangan atau supervisor yang dapat menugaskan dokter pendukung |
+| `404` | Episode atau penugasan tidak ditemukan |
+| `409` | Dokter ini sudah punya penugasan aktif dengan peran yang sama pada periode itu; penugasan sudah berakhir; penugasan DPJP diakhiri lewat pengalihan DPJP |
+| `422` | Episode tidak berstatus `Admitted` atau `DischargePending`; penugasan singkat berperan selain dokter jaga; dokter tidak aktif |
+
+### 10.3 Health Services / Inpatient Management / Inpatient Discharge — resume, penutupan
+
+Base URL: `api/v1/health-services/inpatient-management/discharges`
+Judul grup: `[Tags("Health Services / Inpatient Management / Inpatient Discharge")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/{episodeId}/summary` | Resume. **Perubahan:** tiga isian | `InpatientDischarge : Read` | Query `includeRevisions` | `DischargeSummaryResponse` + `ImportantFindingsSummary`, `DischargeConditionNote`, `EducationSummary` | ✅ **Tersedia**, isian **Rencana** |
+| `PUT` | `/{episodeId}/summary` | Simpan draf. **Perubahan:** tiga isian | `InpatientDischarge : Update` | `UpsertDischargeSummaryRequest` + tiga isian | Sama | ✅ **Tersedia**, isian **Rencana** |
+| `GET` | `/{episodeId}/summary-prefill` | Usulan isian dari sumber klinis, **tidak menyimpan** | `InpatientDischarge : Read` | — | `ApiResponse<DischargeSummaryPrefillResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{episodeId}/closure-readiness` | **Perubahan:** bertambah `Warnings[]` yang tidak mempengaruhi `CanClose` | `InpatientDischarge : Read` | — | `ClosureReadinessResponse` + `Warnings[]` (`Code`, `Count`, `Message`, `Details[]`) | ✅ **Tersedia**, isian **Rencana** |
+| `POST` | `/{episodeId}/close` | **Perilaku baru:** langkah 4–6 `02-backend-architecture.md` 11.5.4 dalam transaksi yang sama | `InpatientDischarge : Close` | Tidak berubah | `InpatientEpisodeDetailResponse` + **`SideEffects`** (`LockedDraftCount`, `CancelledProcedureOrderCount`, `BilledPendingProcedureOrderCount`, `CancelledFutureDoseCount`) | ✅ **Tersedia**, perilaku **Rencana** |
+| `POST` | `/{episodeId}/close-with-override` | Sama | `InpatientDischarge : CloseOverride` | Tidak berubah | Sama | ✅ **Tersedia**, perilaku **Rencana** |
+
+**`DischargeSummaryPrefillResponse`** — satu objek per isian:
+
+| Isian | `Value` | `Sources[]` | `SourceStatus` |
+| --- | --- | --- | --- |
+| `PrimaryDiagnosisText`, `SecondaryDiagnosisText` | Diagnosis kerja/akhir encounter | Kode, dokter, waktu | `Available`/`Empty`/`Unavailable` |
+| `ProcedureSummary` | Tindakan `Completed` episode | Nama, pelaksana, waktu | Sama |
+| `DischargeMedicationNote` | Butir resep pulang | Nomor resep, dokter | Sama |
+| `ImportantFindingsSummary` | Hasil laboratorium/radiologi final yang kritis atau abnormal | Nama pemeriksaan, nilai, waktu | Sama |
+| `EducationSummary` | Materi dari Assesment Edukasi selesai | Perawat, waktu | Sama |
+| `ClinicalSummary`, `DischargeConditionNote`, `FollowUpInstruction` | Tidak diusulkan | — | `Empty` |
+
+Contoh `closure-readiness` Joko 12.55: `CanClose = true`; `Warnings`: 1 konsep SOAP dr. Yoga akan terkunci; 1 pesanan cek
+GDS akan batal; 1 dosis 08.00 belum dicatat.
+
+| Kode | Artinya bagi pengguna |
+| --- | --- |
+| `500` pada penutupan | "Penutupan gagal disimpan, coba lagi" — tidak ada satu pun langkah yang tersimpan; aman diulang |
+
+### 10.4 Health Services / Inpatient Management / Inpatient Monitoring — daftar pantau baru
+
+Base URL: `api/v1/health-services/inpatient-management/monitoring`
+Judul grup: `[Tags("Health Services / Inpatient Management / Inpatient Monitoring")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/billed-pending-procedure-orders` | Pesanan tindakan tertunda **yang sudah ditagih** pada episode `Closed` — tidak dibatalkan saat penutupan dan perlu ditindaklanjuti bersama Billing | `InpatientMonitoring : Read` | Query `serviceUnitId`, `closedFrom`, `closedTo`, `pageNumber`, `pageSize` | `ApiResponse<PagedResult<BilledPendingProcedureOrderItem>>` (pasien, episode, tindakan, penginput, waktu pesan, waktu tutup, nomor tagihan) | **Rencana (belum tersedia)** |
+
+### 10.5 Yang tidak ada di kontrak `0.9.0`
+
+| Tidak ada | Alasan |
+| --- | --- |
+| Endpoint membuat penugasan oleh dokter sendiri | `RWI-DEC-130` (4) |
+| Endpoint menyimpan usulan isian resume | `RWI-DEC-112` |
+| Endpoint Resume ODC | `RWI-DEC-123` |
+| Endpoint "Catatan Saya" | `RWI-DEC-142` |
+| Membatalkan pesanan tertagih dari Rawat Inap | `RWI-DEC-143` (c) |

@@ -1,3 +1,5 @@
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.DTOs;
@@ -26,14 +28,20 @@ public sealed class OperatingRoomMaterialService
     private readonly LoggerService _loggerService;
     private readonly OperatingRoomIntegrationService _integrationService;
 
+    private readonly OperatingRoomRuleRelaxation _relaxation;
+    private readonly DrugUnitConversionResolver _unitResolver;
+
     public OperatingRoomMaterialService(ApplicationDbContext dbContext,
         IHttpContextAccessor httpContextAccessor, LoggerService loggerService,
-        OperatingRoomIntegrationService integrationService)
+        OperatingRoomIntegrationService integrationService, OperatingRoomRuleRelaxation relaxation,
+        DrugUnitConversionResolver unitResolver)
     {
+        _relaxation = relaxation;
         _dbContext = dbContext;
         _httpContextAccessor = httpContextAccessor;
         _loggerService = loggerService;
         _integrationService = integrationService;
+        _unitResolver = unitResolver;
     }
 
     public async Task<OprMaterialUsageResponse> RecordAsync(Guid caseId, CreateOprMaterialUsageRequest request,
@@ -50,7 +58,7 @@ public sealed class OperatingRoomMaterialService
 
         var actorUserId = GetUserId(_httpContextAccessor);
         var fingerprint = Hash(string.Join('|', request.ExternalItemId, (int)request.ItemType, request.Quantity,
-            request.UnitCode.Trim(), (int)request.Outcome, Normalize(request.BatchNumber),
+            request.UnitCode.Trim(), request.UnitMeasurementId, (int)request.Outcome, Normalize(request.BatchNumber),
             Normalize(request.SerialNumber), request.OccurredAt?.ToUniversalTime().Ticks,
             request.CorrectionOfUsageId, Normalize(request.CorrectionReason)));
 
@@ -87,14 +95,39 @@ public sealed class OperatingRoomMaterialService
         }
 
         var resolution = await ResolveItemAsync(request.ExternalItemId, cancellationToken);
+
+        // Satuannya diperiksa di sini, bukan nanti saat pembukuan, supaya kesalahannya
+        // ketahuan selagi petugas masih di depan layar dan dapat memperbaikinya.
+        //
+        // Hanya untuk item yang sudah dikenal Farmasi. Item yang belum ada masternya memang
+        // boleh dicatat — itu keputusan yang sudah berlaku — dan tidak ada satuan stok yang
+        // dapat dijadikan pembanding. Pembukuan ke kartu stok tetap menolaknya nanti, jadi
+        // tidak ada jalan yang lolos ke saldo tanpa satuan yang sah.
+        if (resolution.Resolved)
+        {
+            try
+            {
+                await _unitResolver.EnsureConvertibleAsync(request.ExternalItemId,
+                    request.UnitMeasurementId, cancellationToken);
+            }
+            catch (DrugStockUnprocessableException exception)
+            {
+                // Diterjemahkan supaya controller Operasi mengembalikan `422` dengan sebabnya,
+                // bukan `500` karena bertemu tipe kesalahan milik modul lain.
+                throw new OperatingRoomUnprocessableException(exception.Code, exception.Message);
+            }
+        }
+
         var now = DateTime.UtcNow;
         var usage = new OprMaterialUsage
         {
             OprCaseId = caseId, ExternalItemId = request.ExternalItemId, ItemType = request.ItemType,
-            Quantity = request.Quantity, UnitCode = request.UnitCode.Trim(), Outcome = request.Outcome,
+            Quantity = request.Quantity, UnitCode = request.UnitCode.Trim(),
+            UnitMeasurementId = request.UnitMeasurementId, Outcome = request.Outcome,
             BatchNumber = Normalize(request.BatchNumber), SerialNumber = Normalize(request.SerialNumber),
             OccurredAt = request.OccurredAt?.ToUniversalTime() ?? now, RecordedBy = actorUserId,
             Revision = revision, CorrectionReason = Normalize(request.CorrectionReason),
+            CorrectionOfUsageId = request.CorrectionOfUsageId,
             CreateDateTime = now, CreateBy = actorUserId
         };
         _dbContext.OprMaterialUsages.Add(usage);
@@ -172,6 +205,10 @@ public sealed class OperatingRoomMaterialService
 
     private async Task EnsureTeamMemberAsync(OprCase entity, Guid actorUserId, CancellationToken cancellationToken)
     {
+        // Dilepas saat aturan klinis dilonggarkan: siapa pun boleh mencatat pemakaian
+        // material tanpa perlu terdaftar sebagai anggota tim.
+        if (_relaxation.IsRelaxed) return;
+
         var workforceId = await _dbContext.Users.AsNoTracking()
             .Where(x => x.Id == actorUserId).Select(x => x.WorkforceProfileId)
             .FirstOrDefaultAsync(cancellationToken);
@@ -213,6 +250,7 @@ public sealed class OperatingRoomMaterialService
         IsItemResolved = resolution.Resolved, ItemName = resolution.Name, ItemType = usage.ItemType,
         Quantity = usage.Quantity, UnitCode = usage.UnitCode, Outcome = usage.Outcome,
         BatchNumber = usage.BatchNumber, SerialNumber = usage.SerialNumber, OccurredAt = usage.OccurredAt,
+        UnitMeasurementId = usage.UnitMeasurementId,
         RecordedBy = usage.RecordedBy, Revision = usage.Revision, CorrectionReason = usage.CorrectionReason
     };
 

@@ -110,6 +110,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders
                 InitialAssessmentTargetHours = 24,
                 ProgressNoteVerificationTargetHours = 24,
                 PendingClosureThresholdHours = 4,
+                DepositFollowUpIntervalDays = 3,
                 EpisodeNumberPrefix = "RI",
                 IsDefault = true,
                 IsActive = true,

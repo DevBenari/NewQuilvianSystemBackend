@@ -3,13 +3,13 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `BIL-CASH-001` |
-| Capability-map revision | `0.2` |
+| Capability-map revision | `0.4` — bertambah section 22 (impact scan 24 September 2026 integrasi Rawat Inap ↔ Billing Pass B); section 1–21 tidak diubah |
 | Status | `source-audited`; belum menyatakan siap implementasi atau siap produksi |
-| Tanggal audit | 20 Agustus 2026 (`Asia/Jakarta`) |
-| Business input | [`00-interview-decisions.md`](./00-interview-decisions.md), approved decision revision `0.2` |
+| Tanggal audit | 24 September 2026 (`Asia/Jakarta`) |
+| Business input | [`00-interview-decisions.md`](./00-interview-decisions.md), approved decision revision `0.3` (`BKC-DEC-112` s.d. `BKC-DEC-119`) |
 | Supplemental evidence | [`05-servicebilling-attachment-evidence.md`](./evidence/05-servicebilling-attachment-evidence.md), ZIP SHA-256 `2b948721cee4154eaecaf9ac57d7621fb34cb7b61fb31a5fd6dff04df7ad218d` |
-| Backend snapshot | `e6f6ecba1537783ea2eb379ac12cc97790707303` (current branch `Yasmina`) |
-| Frontend snapshot | `e555bf2ad6848a1d6cc097ab8c6c5f5259edb151` |
+| Backend snapshot | `dcb9c88e` |
+| Frontend snapshot | `fdebb9059` |
 | Audit method | Pembacaan statis source, konfigurasi EF, migration, route, DI, state/service frontend, dan test inventory |
 | Write boundary | Hanya dokumen blueprint ini; source aplikasi tidak diubah |
 
@@ -344,3 +344,877 @@ Hasil audit revision `0.2` menegaskan bahwa desain tidak boleh berangkat dari as
 Billing sudah ada”. Bukti legacy membantu menemukan pola dan konflik, tetapi tidak menjadi current
 capability. Handoff ke requirement gate wajib membawa approved decision revision `0.2`, termasuk
 `BKC-DEC-031`–`BKC-DEC-044`, tanpa mengadopsi policy legacy sebagai target.
+
+## 15. Impact scan — 27 Agustus 2026
+
+| Field | Nilai |
+| --- | --- |
+| Trigger | Permintaan `/trace-existing-capabilities` setelah amendment `/grill-me` (`BKC-DEC-045`–`056`, Menu Pembayaran + Dokumen Kasir/Kwitansi) |
+| Backend SHA dibandingkan | `e6f6ecba1537783ea2eb379ac12cc97790707303` (audit revision `0.2`) → `b3c8363f0b1d81cdfe3ad76c031a1fba0c94b8c5` (HEAD saat ini) + working tree belum commit |
+| Commit di antara kedua SHA | 90 commit, di luar sesi ini (kemungkinan branch/sesi lain pada `Yasmina`) |
+| Working tree belum commit | Seluruh implementasi Menu Pembayaran + Dokumen Kasir/Kwitansi sesi ini (`git status --short`, 35 file) — lihat `blueprint-manifest.md` untuk daftar task terkait |
+| Status peta ini | **STALE untuk section 4 (evidence map)** — sebagian besar baris `Missing` pada bagian itu sudah punya implementasi source (lihat 15.1). Section 1–3 dan 5–14 (batas scope, kontrak as-is legacy yang TIDAK disentuh) masih valid berdasarkan bukti di bawah. |
+
+### 15.1 Baris `Missing` pada section 4 yang sudah punya implementasi source
+
+Bukti: `find`/`grep` atas `Areas/HealthServices/BillingManagement` menemukan model, service, dan
+controller berikut yang tidak ada pada audit `0.2`. Ini BUKAN hasil kerja sesi ini (sesi ini hanya
+menambah Menu Pembayaran, Kwitansi, dan Activate/Delete master data) — sudah ada di source sebelum
+sesi ini dimulai, kemungkinan dari sesi/branch lain yang belum tercermin di kolom "Status" section 4.
+
+| Baris section 4 (revision `0.2`) | Bukti source yang ditemukan sekarang |
+| --- | --- |
+| Aggregate invoice satu encounter (`Missing`) | `Billing/Models/BilInvoice.cs`, `Billing/Controllers/BillingInvoicesController.cs`, `Billing/Services/BillingInvoiceService.cs` |
+| Billing item dan idempotensi sumber (`Missing`) | `Billing/Services/BillingChargeSourceAdapter.cs` (`IBillingChargeSourceAdapter`, `UpsertChargeAsync` per `SourceDomain`+`SourceDetailId`) |
+| Payment, split tender, dan outstanding (`Missing`) | `Billing/Models/BilSettlement.cs`, `BilTender.cs`, `Billing/Services/BillingSettlementService.cs`, `Billing/Controllers/BillingSettlementsController.cs` |
+| Deposit/top-up/progress payment ranap (`Missing`) | `Billing/Models/BilDepositAccount.cs`, `BilDepositMovement.cs`, `Billing/Services/BillingDepositService.cs`, `Billing/Controllers/BillingPatientFundsController.cs` |
+| Refund dan reversal (`Missing`) | `Billing/Models/BilRefundCase.cs`, `BilRefundLine.cs`, `BilRefundableCredit.cs`, `Billing/Services/BillingRefundService.cs` |
+| Write-off pasien (`Missing`) | `Billing/Models/BilWriteOffCase.cs`, `Billing/Dtos/BillingWriteOffDtos.cs` (service/controller belum diverifikasi eksplisit pada scan ini) |
+| AP dokter readiness policy / AR penjamin (`Missing`) | `Billing/Models/BilHandoffAdjustment.cs`, `Billing/Services/BillingArApHandoffService.cs`, `BillingFinancialExceptionService.cs` |
+| Shift kasir dan selisih kas (`Missing`) | `Cashier/Models/BilCashierShift.cs`, `BilCashierShiftHandover.cs`, `BilCashVarianceReview.cs`, `Cashier/Services/CashierShiftService.cs`, `Cashier/Controllers/CashierShiftsController.cs` |
+| Workspace frontend Billing/Kasir (`Missing`) | Route `src/app/health-services/billing-management/**` sudah ada (invoice list/detail, Menu Pembayaran) — belum di-commit menurut `MODULE-STATUS.md` |
+
+Cross-check: temuan ini konsisten dengan rekonsiliasi yang SUDAH tercatat di
+[`MODULE-STATUS.md`](./MODULE-STATUS.md) tanggal 25 Agustus 2026 (`ISSUE-FE-003`). Dokumen itu
+sudah lebih akurat mengenai status implementasi transaksi Billing dibanding section 4 pada file
+ini — **rujuk `MODULE-STATUS.md` sebagai sumber current-state, bukan section 4 di atas**, sampai
+section 4 diperbarui formal ke revision baru.
+
+### 15.2 Temuan baru — belum tercatat di `MODULE-STATUS.md` manapun (perlu keputusan/tindak lanjut)
+
+**A. Fakta klinis (`ClinicalMilestoneFactProducer`) dan charge-source-adapter Billing TIDAK terhubung.**
+
+- Commit di luar sesi ini (bagian dari 90 commit di atas) menambahkan
+  `Areas/HealthServices/ClinicalBillingIntegration/` (`TrxClinicalMilestoneFact`,
+  `ClinicalMilestoneFactProducer`) di bawah blueprint **`rawat-jalan`** (dokumen
+  `docs/module-blueprints/rawat-jalan/execution-evidence-RJ-BIL-BE-002.md`,
+  `RJ-BIL-CONFLICT-001-source-audit.md`). `PatientProcedureController.ExecuteProcedure`/
+  `CancelProcedure` dan `PrescriptionWorkflowService` sudah diubah untuk MENYERAHKAN fakta klinis
+  lewat producer ini alih-alih menyatakan sendiri `IsBillingGenerated`/`PaymentStatus` (perbaikan
+  tepat atas baris "Tindakan pasien -> Billing" dan "Resep -> Billing" yang ditandai `Repair` pada
+  section 4).
+- `Billing/Services/BillingChargeSourceAdapter.cs` sudah punya `SourceDomain` yang cocok untuk
+  menerima fakta itu: `PROCEDURE`, `LABORATORY`, `RADIOLOGY`, `PHARMACY`, `CONSUMABLE` (plus
+  `ADHOC` yang ditambah sesi ini).
+- **Tidak ditemukan satu pun kode yang membaca `TrxClinicalMilestoneFact` dan memanggil
+  `UpsertChargeAsync`/endpoint `from-source` untuk domain `PROCEDURE`/`LABORATORY`/`RADIOLOGY`/
+  `PHARMACY`/`CONSUMABLE`** (`grep -rl "TrxClinicalMilestoneFact"` hanya menunjuk ke folder
+  `ClinicalBillingIntegration` sendiri; `grep` pemanggil `UpsertChargeAsync`/`from-source` hanya
+  menunjuk ke Billing sendiri dan FE ad-hoc sesi ini). Produser fakta klinis dan konsumer Billing
+  sama-sama sudah dibangun, tetapi oleh dua alur kerja yang tampaknya tidak saling mengetahui.
+- **Dampak**: jalur `order pelayanan -> billing item idempotent` yang dinyatakan `Missing`
+  end-to-end pada audit `0.2` (lihat bagian 3) **masih belum terbukti end-to-end hari ini** —
+  gap-nya berpindah dari "belum ada produser maupun konsumer" menjadi "produser dan konsumer ada,
+  belum disambungkan". Ini TIDAK sama dengan `BKC-BLK-INT-001` (yang soal kontrak konsumer AR/AP di
+  hilir, bukan soal intake fakta klinis di hulu) — belum tercatat sebagai dependency/blocker di
+  `MODULE-STATUS.md` mana pun yang ditemukan pada scan ini.
+- **Perlu keputusan**: siapa pemilik pekerjaan menyambungkan keduanya (billing-kasir konsumsi
+  `TrxClinicalMilestoneFact`, atau rawat-jalan memanggil Billing langsung) — pertanyaan lintas
+  modul, tidak diputuskan pada scan ini.
+
+**B. Konflik granularitas nomor Kwitansi (`BKC-DEC-054`) vs bukti legacy `KasirQuilvian1`.**
+
+- `KasirQuilvian1/BeKasir/MainKasirDetail.cs` menyimpan `NoKwitansi` pada level **detail
+  pembayaran per angsuran** (`MainKasirDetailId`, `AngsuranKe`, `NominalPembayaran`,
+  `MetodePembayaranId` — satu baris per tender), bukan pada level header (`MainKasirId`/invoice).
+  `MainKasirController.cs` memanggil `_noKwitansiService.GenerateNoKwitansiAsync(...)` di dalam
+  loop per detail dengan komentar eksplisit "kwitansi unik per baris" (baris 437, 940-941, 1225) dan
+  "kwitansi sekarang per baris" (baris 1013).
+- `BKC-DEC-054` (hasil `/grill-me` sesi ini) memutuskan SATU nomor Kwitansi per **invoice**,
+  dialokasikan sekali dan dipakai ulang untuk semua reprint — sudah diimplementasikan di
+  `BilInvoice.KwitansiNumber` + `BillingInvoiceService.GetOrAllocateKwitansiNumberAsync`.
+- Rekomendasi yang saya berikan saat `/grill-me` (dipilih user sebagai opsi "Direkomendasikan")
+  DIBUAT TANPA memeriksa pola legacy ini terlebih dahulu. Kode `GenerateNoKwitansiAsync` yang
+  sebelumnya di-paste user sebagai referensi eksplisit ("saya menggunakan kode itu") berasal dari
+  file yang SAMA (`MainKasirController.cs`) yang justru memanggilnya per baris/tender, bukan sekali
+  per invoice.
+- **Perlu keputusan pemilik produk**: apakah granularitas per-invoice (sudah dibangun) tetap
+  dipertahankan, atau diganti ke per-tender (`BilTender` belum punya field nomor Kwitansi — akan
+  perlu kolom baru + alokasi per `AddTenderAsync`, bukan sekadar perubahan kecil) agar konsisten
+  dengan pola legacy dan kebutuhan audit "satu bukti bayar per transaksi tunai/transfer yang
+  benar-benar terjadi". Tidak diubah pada trace ini — hanya dicatat sebagai conflict.
+
+**C. Scope "Struk Pasien" pada Dokumen Kasir kemungkinan salah ditempatkan sebagai "milik modul lain".**
+
+- `BKC-DEC-052` (sesi ini) memutuskan hanya Kwitansi yang menjadi tanggung jawab billing-kasir;
+  Struk Pasien dkk. hanya placeholder tab yang menaut ke modul lain.
+- Bukti legacy: `KasirQuilvian1/FE kasir view/detail-pembayaran-sukses/Struk-Pasien.jsx` dan
+  `pembayaran-sukses.jsx` menunjukkan Struk Pasien historisnya JUSTRU dibangun dan dimiliki oleh
+  Kasir/Billing sendiri — data diambil dari `fetchBillingByKunjunganId` (slice Billing legacy),
+  berisi rincian obat/tindakan/racikan/biaya admin (identik dengan data yang sudah tampil di tabel
+  "Tagihan Pasien" pada Menu Pembayaran sesi ini), dan tombol WhatsApp/Email/Cetak pada layar itu
+  justru terpasang di komponen Struk Pasien ini, bukan di komponen Kwitansi terpisah.
+- Free-text jawaban user saat `/grill-me` ("Dokumen kasir terdiri dari SPT, Claim Letter, LML,
+  LMA, Resep Obat, dan Bukti Pembayaran") tidak menyebut "Struk Pasien" secara eksplisit — tab itu
+  hanya muncul dari screenshot referensi UI, sehingga belum tentu user bermaksud memasukkannya ke
+  daftar "bukan tanggung jawab billing-kasir".
+- **Perlu keputusan pemilik produk**: apakah Struk Pasien (rincian tagihan tercetak) sebenarnya
+  IN-SCOPE billing-kasir — dan bisa dibangun dengan reuse data yang sudah ada di Menu Pembayaran —
+  alih-alih tetap sebagai placeholder "milik modul lain". Tidak diubah pada trace ini.
+
+### 15.3 Verifikasi non-duplikasi (tidak ada tindak lanjut diperlukan)
+
+`InvoicePatientSummaryResponse` (baru, sesi ini, `Billing/Dtos/BillingInvoiceDtos.cs`) vs
+`PatientSummaryResponse` (`PatientManagement/MasterData/Controllers/PatientController.cs`) —
+DIPERIKSA, bukan duplikasi. `PatientSummaryResponse` adalah agregat dashboard (total/active/
+inactive/newborn/member/deceased/merged count pasien), bukan detail per-invoice/encounter. Nama
+mirip hanya kebetulan; tidak ada capability yang seharusnya di-reuse yang terlewat.
+
+### 15.4 Rekomendasi tindak lanjut
+
+1. Temuan 15.2.A (integrasi fakta klinis <-> charge intake) berdampak LEBIH LUAS dari sekadar
+   billing-kasir — melibatkan blueprint `rawat-jalan`. Sebaiknya dibawa ke pemilik kedua modul
+   sebagai keputusan lintas modul, bukan diputuskan sepihak oleh salah satu sesi build.
+2. Temuan 15.2.B dan 15.2.C berdampak langsung pada implementasi Kwitansi/Dokumen Kasir yang baru
+   selesai dibangun sesi ini — sebaiknya diklarifikasi ke Product/Domain Owner SEBELUM revision
+   `BKC-DEC-052`/`054` dinaikkan statusnya dari `draft` ke `approved`, karena keduanya berpotensi
+   mengubah desain yang sudah diimplementasikan.
+3. Section 4 pada file ini (revision `0.2`) sebaiknya di-refresh formal ke revision baru bila
+   kapasitas tersedia — `MODULE-STATUS.md` sudah menjadi sumber current-state yang lebih akurat
+   untuk sementara, tetapi bukan pengganti permanen capability map ini.
+
+## 16. Impact scan — 2 September 2026 (entri manual katalog tarif + coverage per item)
+
+| Field | Nilai |
+| --- | --- |
+| Trigger | `/trace-existing-capabilities` setelah amendment `/grill-me` (`BKC-DEC-059`–`062`, form "Buat Invoice Manual (Testing)" berbasis `MstTariff` + coverage per item) |
+| Backend SHA diaudit | `17b9c0e21e32b41a8dfd6dbde31462d52717646b` (branch `Yasmina`) |
+| Frontend SHA diaudit | `60febdcdbb39de6cebc2d825906bce949f3b5af3` (branch `yasmina`) |
+| Batas scan | Terbatas pada touch point `BKC-DEC-059`–`062`: ingestion charge ADHOC, master data `MstTariff`/`MstTariffCategory`, mesin coverage (`BillingManagement` dan `ClinicalManagement`), `MstTaxRule`, dan konsumer frontend form testing. BUKAN audit ulang menyeluruh section 1-15. |
+| Status peta ini | Section 1-15 tetap berlaku apa adanya (di luar batas scan ini). Section baru ini menambah, tidak menggantikan. |
+
+### 16.1 Tabel bukti kemampuan
+
+| ID | Kebutuhan | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap/adapter | Risiko |
+| --- | --- | --- | --- | --- | --- | --- |
+| CAP-01 | Kategori Biaya dari `MstTariffCategory` pada form testing | Billing FE | `QuilvianSystemFrontendDev/src/lib/hooks/.../use-create-manual-invoice.js#L78` (`getTariffCategoryOptions`)@60febdc | **Ready to reuse** | Tidak ada — sudah jalan | - |
+| CAP-02 | Dropdown item searchable dari `MstTariff`, difilter kategori+konteks encounter (`BKC-DEC-061`) | Billing BE+FE | `NewQuilvianSystemBackend/Areas/HealthServices/MasterData/Controllers/TariffController.cs#GetTariffOptions@17b9c0e` (query params `tariffCategoryId`, `serviceUnitId`, `clinicId`, `patientClassId`, `search`, plus `NormalPrice`+nama scope pada response); `QuilvianSystemFrontendDev/.../master-data-tariff-slice.jsx#getTariffOptions@60febdc` | **Ready to reuse** (backend+FE data layer) / **Missing** (komposisi UI dropdown-searchable di form testing itu sendiri — belum ada, tapi pola serverSide-searchable sudah dipakai field `encounterId` pada form yang sama) | UI baru menyusun `BaseSelectField` serverSide memakai thunk yang sudah ada; tidak perlu endpoint baru | Rendah |
+| CAP-03 | Harga otomatis dari `MstTariff.NormalPrice`, tidak bisa diinput manual (`A.3`) | Billing BE | `NewQuilvianSystemBackend/Areas/HealthServices/BillingManagement/Billing/Dtos/BillingInvoiceDtos.cs#UpsertChargeRequest.UnitPrice@17b9c0e` — `UnitPrice` saat ini SELALU dipercaya dari client untuk seluruh pemanggil publik `POST from-source` (dipakai form testing) | **Missing** | Perlu endpoint/parameter baru yang menolak `UnitPrice` dari client untuk kasus tarif-katalog, dan mengambil `NormalPrice` dari `MstTariff` sisi server sebelum memanggil pipeline `UpsertChargeAsync` yang sudah ada (idempotensi/locking/invoice-upsert tetap dipakai ulang) | Sedang — harus dipastikan pemanggil server-to-server lain (adapter klinis) tidak terdampak |
+| CAP-04 | Endpoint preview coverage per item (`BKC-DEC-060`) | Billing BE (baru) + ClinicalManagement (reuse) | `NewQuilvianSystemBackend/Areas/HealthServices/ClinicalManagement/Services/InsuranceCoverageService.cs#ResolveTariffAsync@17b9c0e` — method generik `(encounterId, tariffId, quantity, serviceDate)` SUDAH ADA, tapi **tidak pernah dipanggil dari controller manapun** (hanya `ResolveDrugAsync`/`ResolveProcedureAsync` yang dipakai, selalu di dalam alur commit resep/tindakan, bukan sebagai preview read-only berdiri sendiri) | **Reuse with adapter** | Bungkus `ResolveTariffAsync` dengan endpoint `GET` tipis baru (read-only, tanpa side effect) — TIDAK perlu menulis ulang logika matching rule dari nol | Rendah — method sudah teruji lewat jalur resep/tindakan produksi |
+| CAP-05 | `IsNeedApproval`/`IsNeedGuaranteeLetter` tidak menggagalkan penghitungan coverage (`BKC-DEC-062`) | Billing BE + ClinicalManagement | `InsuranceCoverageService.cs#ResolveTariffInternalAsync@17b9c0e` baris ~228-289: `CoveredAmount`/`PatientPayAmount` **SUDAH dihitung penuh terlepas dari** `IsNeedApproval`/`IsNeedGuaranteeLetter`/limit bulanan — kedua flag itu HANYA jadi informasi/warning pada hasil, bukan gating. Sebaliknya, `RegistrationBillingCoverageAdapter.cs#ResolveAsync@17b9c0e` (dipakai kalkulasi invoice resmi Menu Pembayaran) MEMANG menggeser ke "unresolved" saat flag itu true. | **Conflict** (lihat 16.2.A) | `BKC-DEC-062` sebaiknya diarahkan untuk MENYELARASKAN `RegistrationBillingCoverageAdapter` ke pola yang sudah ada di `InsuranceCoverageService`, bukan menulis perilaku baru dari nol | Lihat 16.2.A |
+| CAP-06 | Field service unit/klinik/kelas pasien pada encounter untuk disambiguasi `MstTariff` (`BKC-DEC-061`) | Billing BE | `TrxPatientEncounter.cs@17b9c0e` PUNYA `ServiceUnitId`(Guid, wajib), `ClinicId`(Guid?), `PatientClassId`(Guid?) — tapi `ActiveEncounterOptionResponse@17b9c0e` (dipakai picker "Pasien/Kunjungan" pada form testing) TIDAK mengekspos ketiganya, hanya `GuarantorName` (string) | **Extend** | Tambah 3 field Guid ke `ActiveEncounterOptionResponse` + mapping-nya; data sumber sudah ada, tidak perlu join/kolom baru | Rendah |
+| CAP-07 | Nilai `MstTaxRule.AllocationRule` aktif saat ini (untuk memverifikasi apakah "pajak hanya ke Subtotal Mandiri" sudah tercapai lewat config) | Finance/Tax Owner | `MstTaxRule.cs@17b9c0e` tidak memiliki `HasData`/seed di migration manapun (`grep AllocationRule` pada `Migrations/*.cs` hanya schema, bukan `INSERT`) — dikelola murni lewat `TaxRuleService` CRUD, nilai aktual ada di data runtime, bukan source | **Unknown** | Perlu query data (lewat halaman Master Data > Tax Rule di FE, atau akses DB langsung oleh yang berwenang) — di luar wewenang baca statis trace ini | Menentukan apakah `BKC-DEC-062`/tax perlu kerja tambahan atau cukup verifikasi config |
+| CAP-08 | Endpoint ingestion ADHOC existing, untuk menilai reuse vs endpoint baru (`BKC-DEC-059`) | Billing BE | `POST other-charges@BillingInvoicesController.cs` (dipakai "Tambah Biaya Lain-lain", kategori di-hardcode ke "Biaya Lain-Lain", TIDAK menerima `CategoryId` dari client) TERPISAH dari `POST from-source@BillingInvoicesController.cs` (dipakai form testing langsung, MENERIMA `CategoryId` bebas) — keduanya sama-sama berujung ke `BillingInvoiceService.UpsertChargeAsync` dengan `SourceDomain="ADHOC"` yang SAMA | **Ready to reuse** (pemisahan endpoint publik yang diminta `BKC-DEC-059` SUDAH ADA secara alami) | Cukup tambah validasi/lookup tarif pada jalur `from-source` (atau endpoint sibling baru); TIDAK perlu SourceDomain baru untuk pemisahan dari "Tambah Biaya Lain-lain" — keduanya sudah terpisah di layer HTTP meski sama-sama `SourceDomain=ADHOC` di database | Rendah, tapi lihat 16.2.B soal keterlacakan `SourceDomain` yang sama |
+| CAP-09 | Field kalkulasi untuk split Subtotal Mandiri/Asuransi di Menu Pembayaran (`BKC-DEC-062`) | Billing BE+FE | `BilCalculationVersion.PatientAmount`/`PrimaryAmount`/`ExcessAmount@erd/01-billing-account-charge.md` SUDAH dikembalikan `CalculationResponse` dan SUDAH dikonsumsi `menu-pembayaran-view.jsx@60febdc` (`harusDibayar`, `subtotalAsuransi`) — hanya belum ditampilkan sebagai dua baris subtotal sejajar (saat ini satu total dikurangi baris penjamin) | **Ready to reuse** (data); **Missing** (komposisi tampilan dua baris sejajar) | Murni perubahan JSX/komposisi tampilan di `menu-pembayaran-view.jsx`, tidak perlu field response backend baru | Rendah |
+
+### 16.2 Temuan yang perlu keputusan/tindak lanjut
+
+**A. CONFLICT — dua mesin coverage independen bisa saling tidak sepakat untuk tarif+pasien yang sama.**
+
+- `RegistrationBillingCoverageAdapter` (`BillingManagement/Billing/Services/BillingCoverageAdapter.cs`, dipakai `BillingCalculationService` pada SETIAP kalkulasi invoice resmi) hanya mencocokkan `MstInsuranceCoverageRule`, dan menggeser ke "unresolved" bila rule butuh approval/surat jaminan/py sudah kena limit bulanan.
+- `InsuranceCoverageService.ResolveTariffAsync/ResolveDrugAsync/ResolveProcedureAsync` (`ClinicalManagement/Services/InsuranceCoverageService.cs`, dipakai `PatientProcedureController`, `PrescribingDrugController`, `PrescriptionItemController`, `PrescriptionCompoundItemController` saat commit tindakan/resep) mensyaratkan **positive-list `MstInsuranceTariff`** lebih dulu ("tidak ada insurance tariff berarti tidak dicover") SEBELUM mengecek `MstInsuranceCoverageRule` — gate yang SAMA SEKALI TIDAK ADA pada `RegistrationBillingCoverageAdapter`. Dan seperti dicatat CAP-05, flag approval/surat jaminan diperlakukan sebagai informasi, bukan gating.
+- **Akibat konkret**: untuk tarif yang sama, pasien yang sama, kedua mesin ini bisa menghasilkan kesimpulan coverage yang BERBEDA — satu bisa bilang "tercover" (lewat `MstInsuranceCoverageRule` saja) sementara yang lain bilang "tidak tercover" (karena tidak ada baris `MstInsuranceTariff`), atau sebaliknya untuk kasus butuh-approval.
+- Ini BUKAN sekadar soal `BKC-DEC-062` — ini gap arsitektur yang sudah ada SEBELUM permintaan sesi ini, baru terlihat karena `BKC-DEC-060` mengharuskan billing-kasir memanggil salah satu dari keduanya untuk preview coverage.
+- **Perlu keputusan `/design-business-module`**: apakah endpoint preview baru (`BKC-DEC-060`) memanggil `InsuranceCoverageService.ResolveTariffAsync` (konsisten dengan alur klinis produksi, tapi BEDA dari mesin yang dipakai Menu Pembayaran hari ini), memanggil `RegistrationBillingCoverageAdapter` (konsisten dengan Menu Pembayaran, tapi mengabaikan gate `MstInsuranceTariff` yang sudah dipakai alur klinis), atau menyelaraskan keduanya jadi SATU mesin (paling konsisten jangka panjang, effort paling besar, dan menyentuh modul `ClinicalManagement`+kemungkinan `insurance-management` sekaligus — bukan keputusan sepihak billing-kasir).
+- Konsekuensi ke `BKC-DEC-062`: keputusan "abaikan gating approval, ikuti `CoverageStatus=Covered`" yang dijawab user PERSIS MENIRU perilaku `InsuranceCoverageService` yang sudah ada — memperkuat rekomendasi memilih opsi "selaraskan ke `InsuranceCoverageService`" di atas, tapi TETAP perlu keputusan eksplisit karena menyentuh gate `MstInsuranceTariff` yang belum pernah dibahas user sama sekali.
+
+**B. Ketertelusuran — item dari form testing baru dan "Tambah Biaya Lain-lain" akan sama-sama `SourceDomain=ADHOC`.**
+
+- Karena keduanya menghasilkan `BilInvoiceItem.SourceDomain="ADHOC"` yang identik (lihat CAP-08), laporan/audit yang hanya memfilter `SourceDomain` tidak bisa membedakan item yang harganya "terverifikasi tarif resmi" vs "bebas diisi kasir" setelah `BKC-DEC-059` berjalan.
+- **Perlu keputusan `/design-business-module`**: apakah perlu penanda tambahan (mis. konvensi pada `SourceDetailId`, atau kolom baru) supaya kedua jenis ADHOC ini bisa dibedakan di laporan/audit — terutama karena `BKC-DEC-047` menjadikan audit log sebagai satu-satunya kompensasi kontrol untuk jalur bebas, dan sekarang ada jalur ADHOC kedua yang TIDAK butuh kompensasi yang sama.
+
+### 16.3 Rekomendasi tindak lanjut
+
+1. Bawa temuan 16.2.A ke `/design-business-module` sebagai keputusan arsitektur eksplisit — dampaknya lebih besar dari cakupan `BKC-DEC-062` semula, karena menyentuh konsistensi coverage lintas `ClinicalManagement`/`BillingManagement`, bukan cuma form testing.
+2. Verifikasi CAP-07 (`MstTaxRule.AllocationRule` aktif) lewat halaman Master Data Tax Rule sebelum desain final memutuskan apakah `BKC-DEC-062`/pajak butuh kerja tambahan.
+3. CAP-01, CAP-02 (data layer), CAP-04, dan CAP-08 sudah **Ready to reuse**/**Reuse with adapter** — desain final sebaiknya eksplisit menandai ini supaya implementasi tidak membangun ulang endpoint yang sudah ada.
+
+---
+
+## 17. Impact scan — 4 September 2026 (baseline `ffeb45a8` → `HEAD` `fd4a605`)
+
+| Field | Nilai |
+| --- | --- |
+| Trigger | Perubahan SHA. Manifest blueprint mencatat baseline bukti `ffeb45a8`; `HEAD` ternyata sudah jauh di depannya. Dipicu oleh penyusunan roadmap revisi `2` (`BE-BKC-022`–`032`, `FE-BKC-018`–`021`) yang seluruhnya disusun di atas baseline lama |
+| Backend SHA diaudit | `fd4a605` (branch `Yasmina`) — **52 commit dan 237 berkas source non-dokumentasi** di depan `ffeb45a8` |
+| Frontend SHA diaudit | **Tidak dapat diaudit** — repository frontend tidak tersedia pada mesin ini. Seluruh baris frontend di bawah berstatus `Unknown` |
+| Batas scan | Terbatas pada capability dan kontrak as-is yang **terdampak perubahan SHA** untuk scope Billing: mesin tanggungan (`BillingCoverageAdapter`), mesin kalkulasi (`BillingCalculationService`), DTO kalkulasi (`BillingInvoiceDtos`), ingestion charge (`BillingInvoiceService`), mesin coverage klinis (`InsuranceCoverageService`), dan model pengecualian finansial. **BUKAN** audit ulang menyeluruh section 1–16 |
+| Metode | Pembacaan statis source dan riwayat Git. **Tidak ada build, tidak ada eksekusi test, tidak ada perubahan source** |
+| Status peta | Section 1–16 tetap berlaku di luar batas scan ini. Section ini menambah dan **membatalkan sebagian**, tidak menggantikan |
+
+### 17.1 Ringkasan satu kalimat
+
+Lima berkas Billing berubah sejak baseline, dan perubahan itu **sudah menyelesaikan sebagian
+pekerjaan yang direncanakan roadmap revisi `2`** — termasuk satu gelombang penuh yang semula
+ditandai menunggu jawaban Finance lebih dulu.
+
+> **Diperbarui sesudah jawaban pemilik 4 September 2026.** Temuan "gelombang yang mendahului
+> gerbangnya" (`MVP-8`) sudah **tertutup dengan paparan finansial nol** — lihat 17.4.A. Yang
+> tersisa dari section ini bukan lagi risiko yang sedang berjalan, melainkan **peluang reuse**:
+> sebagian besar `BE-BKC-022`, `024`, dan `026` sudah selesai lewat task ad-hoc di luar roadmap,
+> dan roadmap revisi `2` wajib menandainya supaya tidak dibangun ulang.
+
+### 17.2 Berkas yang berubah di dalam batas scan
+
+| Berkas | Baris berubah | Isi perubahan |
+| --- | ---: | --- |
+| `Billing/Services/BillingCoverageAdapter.cs` | 140 | Pencocokan aturan per dimensi, pencabutan sebagian gerbang, hasil per komponen |
+| `Billing/Services/BillingCalculationService.cs` | 144 | Gerbang PPN per jenis kunjungan, penyaluran hasil per komponen ke tiap baris |
+| `Billing/Dtos/BillingInvoiceDtos.cs` | 37 | Field rupiah tanggungan per baris |
+| `Billing/Services/BillingInvoiceService.cs` | 10 | Satuan item farmasi |
+| `ClinicalManagement/Services/InsuranceCoverageService.cs` | 37 | Perbaikan penumpukan persentase co-payment |
+
+### 17.3 Tabel bukti kemampuan
+
+| ID | Kebutuhan (task roadmap yang merencanakannya) | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap/adapter | Risiko |
+| --- | --- | --- | --- | --- | --- | --- |
+| CAP-10 | Rupiah tanggungan per komponen berkunci `(ComponentId, ComponentType)` — `BE-BKC-022`, `BKC-DES-015`/`016` | Billing BE | `NewQuilvianSystemBackend/Areas/HealthServices/BillingManagement/Billing/Services/BillingCoverageAdapter.cs#BillingCoverageComponentOutcome@fd4a605` (record berkunci `ComponentId`+`ComponentType`); field per baris pada `Billing/Dtos/BillingInvoiceDtos.cs#L462-465@fd4a605` (`ItemPrimaryAmount`, `ItemUnresolvedAmount`, `TaxPrimaryAmount`, `TaxUnresolvedAmount`); biaya administrasi dan biaya kamar pada `L394-395`, `L414-415` | **Ready to reuse** | Tidak ada. Inti `MVP-4` **sudah berjalan** lewat `BE-BKC-FIX-003` yang kini ter-commit | Rendah |
+| CAP-11 | Penanda `isPerItemAllocationAvailable` — `BE-BKC-022`, `FR-BKC-012`, `BKC-DES-004`/`017` | Billing BE | Pencarian `IsPerItemAllocationAvailable` pada seluruh `Areas/` **tidak menemukan satu pun kemunculan**@fd4a605 | **Missing** | Perlu dibuat. Tanpa ini, versi kalkulasi lama terbaca Rp 0 dan tidak dapat dibedakan dari "penjamin menanggung Rp 0" | Sedang — membedakan "tidak ada rincian" dari "rincian bernilai nol" |
+| CAP-12 | Penjaga jumlah baris sama dengan total tanggungan — `BE-BKC-022`, `BIL-VAL-028` | Billing BE | Tidak ditemukan pemeriksaan penjumlahan alokasi pada `ApplyCoverageWaterfall@fd4a605` | **Missing** | Perlu dibuat | Sedang — tanpa penjaga, lembar tagihan yang tidak menjumlah lolos ke petugas klaim |
+| CAP-13 | Lembar "Invoice Asuransi" — `BE-BKC-023`, `FR-BKC-014`–`017` | Billing BE | Pencarian `insurance-invoice-document` dan `InsuranceInvoiceDocument` pada seluruh `Areas/` **tidak menemukan satu pun kemunculan**@fd4a605 | **Missing** | Seluruh `MVP-5` belum tersentuh | Rendah |
+| CAP-14 | Penanda butuh persetujuan/surat jaminan tidak lagi menahan tanggungan — `BE-BKC-024`, `FR-BKC-021` | Billing BE | `BillingCoverageAdapter.cs#ResolveAsync@fd4a605` L125-146 — `IsNeedApproval`/`IsNeedGuaranteeLetter` **sudah tidak ada** pada kondisi penahan, dengan komentar yang menyebut `BKC-DEC-062` | **Ready to reuse** | Tidak ada. Sudah dikerjakan `BE-BKC-021` | Rendah |
+| CAP-15 | `CoverageStatus = "NeedApproval"` dan limit bulanan tidak lagi menahan tanggungan — `BE-BKC-024`, `FR-BKC-021`/`022`, `BKC-DEC-071` | Billing BE | `BillingCoverageAdapter.cs@fd4a605` L139-146 — keduanya **MASIH menahan**: `CoverageStatus=="NeedApproval" \|\| MaxAmountPerMonth>0 \|\| MaxQuantityPerMonth>0` → `unresolved += component.Amount` | **Extend** | **Jawaban pemilik 4 September 2026, `BKC-CQ-04` dan `BKC-CQ-07` — DITUTUP (lihat 17.4.E).** Keduanya dicabut penuh untuk rilis ini. `NeedApproval` memang tidak diperlukan. Limit bulanan diperlakukan **selalu tersedia** sampai mesin pemakaian kumulatif dibangun — kemampuan itu ditunda, dicatat sebagai coverage gap tertunda, bukan bagian rilis ini | Rendah — cakupan `BE-BKC-024` kembali ke rencana semula, dua gerbang dicabut tanpa kemampuan baru |
+| CAP-16 | Tarif tanpa aturan cocok menjadi tanggungan pasien — `BE-BKC-024`, `FR-BKC-023`, `BKC-DEC-072` | Billing BE | `BillingCoverageAdapter.cs@fd4a605` L110-121 — cabang `rule is null` menulis hasil `0/0` dan **tidak** menambah `unresolved`, dengan komentar yang menyebutnya keputusan pengguna di luar roadmap | **Ready to reuse** | Tidak ada. Sudah dikerjakan `BE-BKC-FIX-004` | Rendah |
+| CAP-17 | Batas per kunjungan tetap berlaku — `BE-BKC-024`, `FR-BKC-024` | Billing BE | `BillingCoverageAdapter.cs@fd4a605` L158-163 — `MaxAmountPerVisit` masih dijepit beserta akumulasi `appliedPerVisit` | **Ready to reuse** | Tidak ada. Regresi yang dikhawatirkan roadmap tidak terjadi | Rendah |
+| CAP-18 | Anomali data penjamin — `BE-BKC-025`, `FR-BKC-027`–`031`, `BKC-DES-010`–`012` | Billing BE | `BillingCoverageAdapter.cs@fd4a605` L80-81 — penjamin tidak layak / polis tidak aktif / perusahaan asuransi kosong masih menghasilkan `Unresolved(context.Components, "REJECTED")`. Pencarian `DataAnomaly`, `AnomalyCodes`, `hasDataAnomaly` **nihil** | **Missing** | Seluruh `EPIC BKC-07` belum tersentuh. Perilaku hari ini persis yang hendak diganti: nominalnya menggantung, bukan jatuh ke pasien | Tinggi — inilah keadaan yang membuat kasir tidak punya angka yang dapat ditagihkan |
+| CAP-19 | **Gerbang PPN rawat inap versus rawat jalan — `BE-BKC-026`, `EPIC BKC-08`, `BKC-DEC-078`/`079`** | Billing BE | `BillingCalculationService.cs@fd4a605` L174 `var isOutpatientForTax = invoice.ServiceType != AdministrationFeeServiceTypes.Ranap;`; L176 diteruskan ke `ApplyInvoiceTax`; L760 tanda tangan `ApplyInvoiceTax(..., bool isOutpatient)`; L749-759 komentar menyebut rawat jalan versus rawat inap sebagai faktor penentu kedua | **Conflict** — lihat 17.4.A | **Sudah terimplementasi seluruhnya**. Roadmap menandainya `BLOCKED` menunggu `BKC-OQ-085`, tetapi **gerbang itu kini tertutup** — lihat 17.4.A | **Rendah** (turun dari Tinggi setelah jawaban pemilik 4 September 2026) |
+| CAP-20 | Basis pajak hanya obat dan alat kesehatan — `BE-BKC-026`, `FR-BKC-034` | Billing BE | `BillingCalculationService.cs@fd4a605` L772 `if (!item.IsPharmacy) continue;` di dalam `ApplyInvoiceTax`; L694-710 basis dibentuk dari `item.Category.IsPharmacy` | **Ready to reuse** | Tidak ada | Rendah |
+| CAP-21 | Jenis kunjungan diambil dari tagihan, bukan pendaftaran terkini — `BE-BKC-026`, `FR-BKC-035` | Billing BE | `BillingCalculationService.cs@fd4a605` L174 membaca `invoice.ServiceType`, bukan mengambil ulang dari `TrxPatientEncounter` | **Ready to reuse** | Tidak ada | Rendah |
+| CAP-22 | Jenis kunjungan tak dikenal tetap dikenai PPN — `BE-BKC-026`, `FR-BKC-036` | Billing BE | `BillingCalculationService.cs@fd4a605` L174 — bentuk `!= Ranap` membuat nilai kosong maupun teks asing jatuh ke sisi dikenai pajak, dan tidak menghentikan perhitungan | **Ready to reuse** | Tidak ada. Perilaku yang diminta `BKC-DES-019` tercapai sebagai akibat bentuk perbandingannya | Rendah — tetapi lihat 17.4.B soal `MCU`/`TELEMEDICINE`/`OTC` |
+| CAP-23 | Ember `NonBillableResidualAmount` — `BE-BKC-027`/`028`, `BKC-DES-021`/`022` | Billing BE | Pencarian `NonBillableResidual` pada seluruh `Areas/` **nihil**@fd4a605. `BillingCoverageAdapter.cs@fd4a605` L166-170 masih menulis residual ke `unresolved` | **Missing** | Seluruh `MVP-11` bagian mesin belum tersentuh | Sedang |
+| CAP-24 | Kolom `Category` pada kasus write-off — `BE-BKC-027`/`029`, `BKC-DES-024` | Billing BE | `Billing/Models/BilWriteOffCase.cs@fd4a605` L10-20 memuat `Id`, `InvoiceId`, `Amount`, `IsFullSettlement`, `Status`, `RequestedBy`, `ApprovedBy`, `Reason`, `IdempotencyKey`, `PayloadHash`, `CorrelationId` — **tanpa `Category`**. Pencarian `BillingWriteOffCategories` **nihil** | **Missing** | Migration dua kolom `BE-BKC-027` tetap diperlukan apa adanya | Sedang |
+| CAP-25 | Jalur aturan `NotCovered` masih ke nominal menggantung — `BE-BKC-030`, revisi `0.9` | Billing BE | `BillingCoverageAdapter.cs@fd4a605` L148-155 — `NotCovered` + `IsAllowExcessPaymentByPatient=false` masih menambah `unresolved` | **Extend** | Sesuai baseline revisi `0.8`. `BE-BKC-030` tetap berlaku apa adanya | Rendah |
+| CAP-26 | Nominal penjamin kedua permanen nol — `BKC-DES-014` | Billing BE | `BillingCoverageAdapter.cs@fd4a605` L176-178 — `ExcessStatus` selalu `"NOT_CONFIGURED"` dan `ExcessAmount` selalu `0` | **Ready to reuse** | Tidak ada | Rendah |
+| CAP-27 | Penyelarasan dua mesin coverage (tindak lanjut 16.2.A) | Billing BE + ClinicalManagement | `BillingCoverageAdapter.cs#Matches@fd4a605` L184-199 — gerbang tunggal `ItemType == CoverageItemType` **sudah diganti** rantai per dimensi, dengan komentar yang menyatakan penyelarasan ke pola `InsuranceCoverageService.FindCoverageRuleAsync` | **Repair** (sebagian selesai) | Pola pencocokan sudah selaras. Gerbang daftar positif `MstInsuranceTariff` yang hanya ada di mesin klinis **belum** dibahas dan tetap menjadi selisih antar mesin | Sedang — 16.2.A belum tertutup penuh |
+| CAP-28 | Konsumen frontend seluruh gelombang — `FE-BKC-018`–`021` | Billing FE | Repository frontend tidak tersedia pada mesin ini; tidak ada bukti yang dapat dikutip@— | **Unknown** | Wajib dipindai terpisah sebelum task frontend disetujui | Sedang — `FE-BKC-018`–`021` disusun di atas bukti frontend yang belum dikonfirmasi ulang |
+
+### 17.4 Temuan yang perlu keputusan atau tindak lanjut
+
+**A. ~~CONFLICT~~ — gerbang PPN mendahului gerbangnya, tetapi paparannya nol. DITUTUP 4 September 2026.**
+
+Temuan awal audit ini: pembebasan PPN rawat inap sudah ada di dalam kode lewat `BE-BKC-FIX-004`
+(task ad-hoc di luar roadmap), padahal `BKC-OQ-085` mensyaratkan dampak penurunan tagihan rawat
+inap dihitung lebih dulu, dan roadmap revisi `2` menandai `BE-BKC-026` sebagai `BLOCKED` karena itu.
+
+**Pemilik menjawab 4 September 2026: belum ada satu pun tagihan rawat inap yang masuk — pengembangan
+masih diuji pada rawat jalan saja.** Konsekuensinya berurutan dan menutup temuan ini:
+
+1. Tidak ada tagihan rawat inap yang kehilangan PPN, karena tagihan rawat inap belum ada.
+2. Tidak ada deposit yang telanjur diterima sebesar total lama, sehingga **tidak ada kelebihan bayar**.
+3. `BKC-OQ-085` karena itu terjawab: penurunan **nol**, kelebihan bayar **tidak ada**.
+
+Yang semula risiko justru berbalik menjadi keuntungan waktu: perubahan itu mendarat **sebelum**
+rawat inap hidup, sehingga rawat inap nanti langsung berjalan dengan perilaku yang benar dan tidak
+perlu perubahan perilaku di tengah jalan.
+
+Contoh berangka untuk pembacaan ke depan: pasien rawat inap dengan obat Rp 1.000.000 dan biaya
+kamar Rp 2.000.000 pada tarif PPN 11% akan ditagih Rp 3.000.000, bukan Rp 3.110.000 — dan itu
+angka pertama yang akan dilihat kasir, bukan koreksi dari angka sebelumnya.
+
+**Satu syarat yang tetap berlaku.** Kesimpulan ini sah **selama** rawat inap belum menerima
+tagihan. `BIL-AT-044` tetap wajib dijalankan sebelum rawat inap dinyatakan hidup, karena sesudah
+itu tidak ada lagi kesempatan memverifikasi tanpa menyentuh tagihan sungguhan.
+
+**B. ~~Ketiga jenis kunjungan pada `BKC-OQ-083` sudah dikenai PPN hari ini.~~ DITUTUP 4 September 2026.**
+
+`BKC-OQ-083` menanyakan apakah pemeriksaan kesehatan berkala (`MCU`), konsultasi jarak jauh
+(`TELEMEDICINE`), dan penjualan bebas (`OTC`) dikenai PPN atau dibebaskan. Bentuk perbandingan
+`invoice.ServiceType != Ranap` membuat ketiganya dikenai PPN sebagai perilaku bawaan.
+
+**Pemilik menjawab 4 September 2026: ketiganya belum dipakai sama sekali.** Karena itu tidak ada
+pasien yang telanjur dipungut pajak, dan `BKC-OQ-083` turun dari memblokir menjadi pertanyaan yang
+perlu dijawab **sebelum** salah satu dari ketiganya diaktifkan — bukan sebelum `MVP-8` berjalan.
+
+**C. Empat dari sebelas task backend roadmap revisi `2` perlu dinilai ulang cakupannya —
+diperbarui sesudah jawaban pemilik 4 September 2026 atas `BKC-CQ-04`, `07`, dan `08`.**
+
+| Task | Rencana semula | Keadaan sebenarnya |
+| --- | --- | --- |
+| `BE-BKC-022` | Membangun alokasi per komponen dari awal | Inti alokasinya **sudah ada** (CAP-10). Sisanya tinggal dua hal: penanda ketersediaan rincian (CAP-11) dan penjaga penjumlahan (CAP-12) |
+| `BE-BKC-024` | Mencabut empat gerbang | **Menyempit kembali ke rencana semula.** Dua gerbang sudah tercabut (CAP-14, CAP-16) dan batas per kunjungan aman (CAP-17). Sisa dua gerbang (`NeedApproval`, limit bulanan) **dicabut penuh** sesuai jawaban pemilik — limit bulanan diperlakukan selalu tersedia sampai mesin pemakaian kumulatif dibangun kelak. **Tidak ada kemampuan baru** yang perlu dibangun pada task ini (17.4.E) |
+| `BE-BKC-026` | Membangun gerbang PPN | **Sudah selesai seluruhnya** (CAP-19–CAP-22), dan gerbang `BKC-OQ-085` kini **tertutup** karena paparannya nol (17.4.A). Yang tersisa hanya menjalankan `BIL-AT-044` sebelum rawat inap hidup — bukan koding |
+| `BE-BKC-032` | Regresi lintas gelombang | **Beban tidak bertambah.** Karena paparan rawat inap nol (17.4.A), tidak ada tagihan lama yang perlu diperiksa ulang. Regresi PPN cukup diverifikasi lewat `BIL-AT-044`/`045`/`046` seperti rencana semula |
+
+Tiga task lain — `BE-BKC-023`, `BE-BKC-025`, dan `BE-BKC-027`–`029` — **cakupannya tetap utuh**;
+tidak ada satu pun bagiannya yang sudah dikerjakan.
+
+**D. Peluang reuse yang sebaiknya dinyatakan eksplisit sebelum implementasi.**
+
+`BE-BKC-022` **tidak boleh** membangun ulang `BillingCoverageComponentOutcome` maupun keempat field
+per baris yang sudah ada. Menulis ulangnya berarti dua bentuk berbeda untuk angka yang sama, dan
+itu persis kesalahan yang dicegah `BKC-DES-015`.
+
+**E. Limit bulanan menuntut tiga keadaan, bukan dua — jawaban pemilik 4 September 2026.**
+
+Audit ini menanyakan apakah limit bulanan dicabut dari perhitungan, tetap menahan dengan jalur
+bypass, atau menahan hanya ketika pemakaian nyata terlampaui. Pemilik menjawab dengan rumusan yang
+lebih tajam dari ketiganya:
+
+> Jangan langsung membuat item menjadi menggantung hanya karena limit bulanan belum
+> terpakai/terhitung. Sistem harus membedakan antara **tanggungan tersedia**, **tanggungan habis**,
+> dan **tanggungan belum dapat ditentukan**.
+
+**Cacat perilaku hari ini, dinyatakan tepat.** Kode sekarang menyamakan *"aturan ini punya limit
+bulanan"* dengan *"limit bulanan itu sudah habis"*. Keduanya keadaan yang sama sekali berbeda, dan
+menyamakannya membuat tanggungan yang sebenarnya masih tersedia ikut menggantung.
+
+**Contoh berangka dari pemilik.** Aturan tanggungan 100% dengan limit bulanan Rp 500.000, pemakaian
+bulan berjalan Rp 0, sehingga sisa limit Rp 500.000. Item konsultasi Rp 100.000.
+
+| Nilai | Hasil yang benar | Perilaku hari ini |
+| --- | ---: | ---: |
+| Biaya yang memenuhi syarat | Rp 100.000 | Rp 100.000 |
+| Ditanggung penjamin | **Rp 100.000** | Rp 0 |
+| Tanggungan pasien | **Rp 0** | Rp 0 |
+| Sisa tagihan | **Rp 0** | Rp 0 |
+| Nominal menggantung | **Rp 0** | **Rp 100.000** |
+
+Tiga keadaan yang wajib dibedakan, beserta ke mana nominalnya pergi:
+
+| Keadaan | Kapan terjadi | Ke mana nominalnya |
+| --- | --- | --- |
+| Tanggungan **tersedia** | Sisa limit bulan berjalan masih menutup nominal item | Ditanggung penjamin, seperti aturan tanpa limit |
+| Tanggungan **habis** | Sisa limit sudah tidak menutup nominal item | Bagian yang tidak tertutup mengikuti aturan residual yang sudah berlaku, bergantung penanda boleh-tidaknya ditagihkan ke pasien |
+| Tanggungan **belum dapat ditentukan** | Sistem tidak dapat menghitung pemakaian bulan berjalan | Menggantung — dan **hanya keadaan inilah** yang sah menggantung |
+
+**Kemampuan yang belum ada.** Ketiga keadaan itu menuntut sistem menghitung *pemakaian bulan
+berjalan* dan *sisa limit* per aturan per pasien. Pencarian pada `BillingCoverageAdapter.cs@fd4a605`
+tidak menemukan satu pun akumulasi lintas kunjungan; yang ada hanya `appliedPerVisit`, yaitu
+akumulasi **dalam satu tagihan** untuk `MaxAmountPerVisit`. Membangun ketiga keadaan sekaligus
+berarti kemampuan baru, bukan pencabutan gerbang.
+
+**Jawaban pemilik 4 September 2026, `BKC-CQ-07` — DITUTUP.** Mesin pemakaian kumulatif **tidak**
+dibangun pada rilis ini. Sampai mesinnya ada, limit bulanan **diperlakukan sebagai selalu tersedia**
+— sama artinya dengan mencabut gerbangnya sepenuhnya, persis seperti `NeedApproval`. Keadaan
+"tanggungan habis" dan "tanggungan belum dapat ditentukan" **keduanya ditunda**; hanya "tersedia"
+yang berlaku untuk sementara.
+
+**Akibatnya, `BE-BKC-024` kembali ke cakupan semula.** Kedua gerbang — `NeedApproval` dan limit
+bulanan (`MaxAmountPerMonth`/`MaxQuantityPerMonth`) — dicabut penuh dari kondisi penahan pada
+`ResolveAsync`, tanpa mesin pemakaian kumulatif apa pun. Ini **tidak** melebarkan scope roadmap
+revisi `2`; ia mengembalikannya persis seperti rencana semula, hanya dengan alasan yang sekarang
+tercatat eksplisit.
+
+**Mesin pemakaian kumulatif dicatat sebagai kemampuan tertunda**, bukan dibuang. Ia akan
+dibutuhkan begitu Finance/AR ingin gerbang limit bulanan benar-benar ditegakkan, bukan sekadar
+disetel dan tidak berpengaruh. Sampai saat itu, kolom `MaxAmountPerMonth`/`MaxQuantityPerMonth`
+tetap ada dan tetap dapat diisi admin (sesuai `BKC-DEC-071` asli), tetapi nilainya **murni
+informasi** — sama seperti nasib `IsNeedApproval`/`IsNeedGuaranteeLetter` sejak `BE-BKC-021`.
+
+**`BKC-DES-027`, jawaban pemilik — DITUTUP, boleh direvisi.** Karena keadaan "belum dapat
+ditentukan" **tidak** diimplementasikan pada rilis ini, kesimpulan revisi `0.9` bahwa nominal
+menggantung selalu bernilai nol **tetap berlaku untuk rilis ini** — tidak ada perubahan mendesak
+pada `BE-BKC-030`. Pemilik mengonfirmasi `BKC-DES-027` **boleh direvisi kelak**, pada saat mesin
+pemakaian kumulatif benar-benar dibangun dan keadaan "belum dapat ditentukan" diaktifkan. Sampai
+saat itu tiba, `BKC-DES-027` dicatat sebagai desain yang **valid untuk keadaan saat ini, dan
+diketahui akan direvisi di masa depan** — bukan desain yang salah hari ini.
+
+### 17.5 Fact, inference, dan recommendation
+
+**Fact.** `HEAD` `fd4a605` berada 52 commit di depan baseline `ffeb45a8`. Lima berkas Billing
+berubah. Alokasi per komponen, pencabutan dua gerbang, pencocokan aturan per dimensi, dan gerbang
+PPN per jenis kunjungan sudah ada di source. Anomali data penjamin, ember selisih tidak dapat
+ditagihkan, kategori write-off, penanda ketersediaan rincian, penjaga penjumlahan, dan lembar
+Invoice Asuransi tidak ada.
+
+**Inference.** Sebagian besar pekerjaan yang sudah mendarat masuk lewat task ad-hoc di luar
+roadmap (`BE-BKC-FIX-003` sampai `FIX-007`), bukan lewat gelombang yang direncanakan. Pola ini
+menjelaskan kenapa dokumen blueprint tertinggal dari source: perbaikan berjalan lebih cepat
+daripada pencatatannya. Ini inferensi atas pola kerja, bukan penilaian atas kualitas kodenya.
+
+**Recommendation.** Empat hal, berurut, sesudah jawaban pemilik 4 September 2026 atas seluruh
+pertanyaan PPN dan limit bulanan.
+
+1. Nilai ulang cakupan `BE-BKC-022`, `024`, `026`, dan `032` pada roadmap revisi `2` mengikuti 17.4.C. Ketiga dari empat task justru **menyempit** dari rencana semula — hanya `BE-BKC-022` yang tetap mengandung pekerjaan baru (CAP-11, CAP-12).
+2. Catat mesin pemakaian kumulatif bulanan sebagai **coverage gap tertunda** pada roadmap, bukan bagian rilis ini. Ini keputusan produk yang sudah diambil (17.4.E), bukan lagi pertanyaan terbuka.
+3. Jadwalkan `BIL-AT-044` sebagai syarat sebelum rawat inap dinyatakan hidup. Ini satu-satunya sisa `MVP-8`, dan kesempatan menjalankannya tanpa menyentuh tagihan sungguhan akan hilang begitu rawat inap dibuka.
+4. Jalankan pemindaian terpisah untuk repository frontend. Seluruh task `FE-BKC-018`–`021` saat ini berdiri di atas bukti yang belum dikonfirmasi ulang (CAP-28).
+
+### 17.6 Closure question untuk `/grill-me`
+
+Enam pertanyaan sudah dijawab pemilik pada 4 September 2026; dua sisanya masih terbuka.
+
+> **Catatan wewenang.** Jawaban di bawah dicatat sebagai **bukti apa yang dinyatakan pemilik**,
+> bukan sebagai keputusan bisnis yang sudah berkekuatan. Penerbitan ID keputusan resmi
+> (`BKC-DEC-092` dan seterusnya) beserta pencatatannya di `00-interview-decisions.md` adalah
+> pekerjaan `/qv-grill`, bukan skill audit ini.
+
+| ID | Pertanyaan | Siapa yang menjawab | Keadaan |
+| --- | --- | --- | --- |
+| ~~`BKC-CQ-01`~~ | Pembebasan PPN rawat inap berjalan tanpa hitungan dampak `BKC-OQ-085` lebih dulu — dipertahankan atau dikembalikan? | Billing Owner + Finance/AR | **TERJAWAB.** Belum ada tagihan rawat inap sama sekali, sehingga tidak ada yang perlu dikembalikan. Perilaku dipertahankan; lihat 17.4.A |
+| ~~`BKC-CQ-02`~~ | Berapa tagihan rawat inap yang sudah kehilangan PPN dan berapa nilai kelebihan bayarnya? | Finance/AR | **TERJAWAB.** Nol tagihan, nol kelebihan bayar — pengembangan masih diuji pada rawat jalan saja |
+| ~~`BKC-CQ-03`~~ | `MCU`, `TELEMEDICINE`, dan `OTC` sudah dikenai PPN sebagai perilaku bawaan. Disahkan atau dibebaskan? | Product/Domain Owner + Finance/Tax | **TERTUNDA, tidak lagi mendesak.** Ketiganya belum dipakai. Wajib dijawab **sebelum** salah satunya diaktifkan, bukan sebelum `MVP-8` berjalan |
+| ~~`BKC-CQ-04`~~ | `CoverageStatus = "NeedApproval"` dan limit bulanan masih menahan tanggungan, padahal `BKC-DEC-071` memerintahkan dicabut. Belum dikerjakan, atau sengaja? | Billing Owner + Finance/AR | **TERJAWAB.** Keduanya dicabut penuh — lihat `BKC-CQ-07` untuk cara limit bulanan dicabut |
+| ~~`BKC-CQ-07`~~ | Keadaan "tanggungan belum dapat ditentukan" membutuhkan mesin pemakaian kumulatif bulanan yang belum ada. Masuk rilis ini, atau limit bulanan sementara "selalu tersedia"? | Product/Domain Owner + Finance/AR | **TERJAWAB.** Limit bulanan **selalu tersedia** sampai mesinnya dibangun. Mesin pemakaian kumulatif **ditunda**, dicatat sebagai coverage gap — lihat 17.4.E |
+| ~~`BKC-CQ-08`~~ | `BKC-DES-027` menyimpulkan nominal menggantung selalu nol sesudah revisi `0.9`. Direvisi, atau keadaan "belum dapat ditentukan" diberi ember tersendiri? | Product/Domain Owner | **TERJAWAB.** Boleh direvisi — tetapi baru **saat** mesin pemakaian kumulatif dibangun dan keadaan "belum dapat ditentukan" diaktifkan. Untuk rilis ini `BKC-DES-027` tetap berlaku apa adanya |
+| `BKC-CQ-05` | Gerbang daftar positif `MstInsuranceTariff` masih hanya ada di mesin coverage klinis dan tidak ada di mesin Billing (sisa 16.2.A). Apakah selisih ini disahkan sebagai perbedaan yang memang dikehendaki, atau tetap harus disatukan? | Product/Domain Owner + Payer/Insurance | Menyentuh `ClinicalManagement` dan `insurance-management` sekaligus; bukan keputusan sepihak Billing |
+| `BKC-CQ-06` | Sebagian besar perubahan mendarat lewat task ad-hoc di luar roadmap. Apakah task ad-hoc semacam itu tetap diizinkan menyentuh mesin perhitungan uang tanpa melewati gerbang roadmap? | Product/Domain Owner | Pertanyaan tata kelola, bukan pertanyaan teknis |
+| `BKC-CQ-09` | **Baru.** Kapan mesin pemakaian kumulatif bulanan direncanakan — rilis berikutnya, atau menunggu prioritas lain? | Product/Domain Owner + Finance/AR | Menentukan apakah gap ini masuk backlog dekat atau `POST-MVP` jangka panjang; keputusan penjadwalan, bukan temuan audit |
+
+### 17.7 Limitasi audit ini
+
+1. **Tidak ada build dan tidak ada eksekusi test.** Seluruh kesimpulan berasal dari pembacaan statis source dan riwayat Git.
+2. **Repository frontend tidak tersedia.** Seluruh capability frontend berstatus `Unknown`, bukan `Missing` — ketidakhadiran bukti bukan bukti ketidakhadiran.
+3. **Bukan audit ulang menyeluruh.** Hanya capability yang terdampak perubahan SHA yang diperiksa; section 1–16 di luar batas itu tidak dinilai ulang.
+4. **Nilai data runtime tidak diperiksa.** `MstTaxRule.AllocationRule` (CAP-07) tetap `Unknown` seperti pada section 16, dan jumlah tagihan terdampak pada `BKC-CQ-02` tidak dapat dijawab dari source.
+
+### 17.8 Pemicu impact scan berikutnya
+
+| Yang berubah | Yang wajib ditinjau ulang |
+| --- | --- |
+| `BillingCoverageAdapter.cs` atau `BillingCalculationService.cs` | CAP-10 sampai CAP-27 seluruhnya — kedua berkas ini memegang perhitungan uang |
+| `BilWriteOffCase.cs` atau service pengecualian finansial | CAP-24, beserta rencana migration `BE-BKC-027` |
+| `InsuranceCoverageService.cs` | CAP-27 dan sisa temuan 16.2.A |
+| SHA frontend | CAP-28 dan seluruh task `FE-BKC-018`–`021` |
+| Munculnya `NonBillableResidual`, `DataAnomaly`, atau `IsPerItemAllocationAvailable` di source | CAP-11, CAP-18, CAP-23 — berarti gelombang terkait sudah mendarat di luar roadmap |
+
+---
+
+## 18. Audit kapabilitas baru — Petty Cash (Voucher Kas Kecil), 7 September 2026
+
+| Field | Nilai |
+| --- | --- |
+| Trigger | Amendment `00-interview-decisions.md` (`PC-DEC-001`–`013`, 7 September 2026) mengunci kapabilitas baru Petty Cash untuk `billing-kasir`. Sesuai `CLAUDE.md` (chain requirement/desain), langkah wajib berikutnya sebelum `/design-business-module` adalah `trace-existing-capabilities` |
+| Backend SHA diaudit | `dd31bc91818566c0b53e1b68c0129f5a6cf01a2b` (branch `Yasmina`). Working tree memiliki perubahan belum commit di luar scope Petty Cash (`Program.cs`, dokumen roadmap `billing-kasir`, laporan `FE-BKC-018.md`) — tidak menyentuh `BilNumberSeries`/`BillingManagement`, sehingga tidak mengubah kesimpulan audit ini |
+| Frontend SHA diaudit | `12f9242ce62e4d80dbdb719f80bb0e7a2848474c` (branch `QuilvianIntegrationFrontend`). Working tree memiliki perubahan belum commit pada `menu-pembayaran`/`dokumen-kasir` — di luar scope Petty Cash |
+| Batas scan (revisi setelah scope change pemilik modul) | Terbatas pada `billing-kasir` sendiri: (1) pencarian luas "Kas Kecil"/"Uang Muka Kerja"/"Cash Advance"/"Voucher Kas"/istilah sejenis pada kedua repository, termasuk khusus di dalam `Areas/HealthServices/BillingManagement` dan consumer frontend-nya, untuk memastikan tidak ada kapabilitas serupa dengan nama lain; (2) mekanisme `BilNumberSeries`/`BillingNumberSeriesService` sebagai kandidat reuse penomoran voucher; (3) pola "Tambah Biaya Lain-lain" (`BKC-DEC-047`) sebagai pembanding pola kategori/katalog, dalam lingkup `billing-kasir`; (4) apakah referensi actor/user `billing-kasir` sendiri sudah menyentuh employee master data di tempat lain, cukup untuk menutup pertanyaan "Nama Penerima" secara cepat. **Perbandingan lintas modul ke `Corporate/HumanResource/ExpenseManagement`, `BusinessTravelManagement`, dan reuse `MstExpenseCategory` DIHENTIKAN atas instruksi pemilik modul — dicatat satu baris di 18.3 tanpa pendalaman lebih lanjut.** BUKAN audit ulang section 1–17 |
+| Metode | Pembacaan statis source, migration, `ApplicationDbContext.cs`, `Program.cs`, dan frontend. **Tidak ada build, tidak ada eksekusi test, tidak ada perubahan source** |
+| Status peta | Section 1–17 tetap berlaku di luar batas scan ini. Section ini murni menambah temuan untuk kapabilitas baru Petty Cash; tidak membatalkan section manapun |
+
+### 18.1 Ringkasan satu kalimat
+
+Tidak ditemukan kapabilitas Petty-Cash-like apa pun di dalam `billing-kasir` sendiri atau consumer frontend-nya dengan nama lain; mekanisme penomoran (`BilNumberSeries`/`BillingNumberSeriesService`) layak dipakai ulang langsung; pola "Tambah Biaya Lain-lain" (`BKC-DEC-047`) tidak layak ditiru untuk Kategori karena arahnya berlawanan (bebas-teks vs master data terkelola) — pola master data `billing-kasir` sendiri (`MstPaymentMethod`/`MstBillingItemCategory`/`MstTaxRule`) adalah preseden yang tepat; dan "Nama Penerima" bebas teks konsisten dengan pola actor `billing-kasir` sendiri yang sudah memakai `ApplicationUser`/`ActorUserId`, bukan employee master. **Petty Cash boleh melanjutkan ke `/design-business-module` sebagai kapabilitas baru murni scoped `billing-kasir`, tanpa blocking `Conflict`.**
+
+> **Catatan lingkup (out of scope per instruksi pemilik modul).** Audit awal sempat menelusuri `Corporate/HumanResource/ExpenseManagement` (`TrxExpenseClaim`, `MstReimbursementPolicy`) dan `BusinessTravelManagement` (`TrxTravelAdvanceRequest`) sebagai clue lintas modul. Temuan singkat sebelum dihentikan: keduanya ADA di schema database tetapi TIDAK memiliki satu pun Controller/Service/DTO/konsumen frontend (`Unknown`, bukan `Conflict`) — `TrxExpenseClaim` polanya reimbursement (klaim-setelah-belanja), bukan advance; `TrxTravelAdvanceRequest` memang pola advance tetapi terikat wajib employee master formal dan parent perjalanan dinas. **Sesuai arahan pemilik modul, perbandingan ini dihentikan di sini dan TIDAK dijadikan syarat/blocker keputusan Petty Cash** — `PC-DEC-012` tetap berlaku apa adanya: Kategori Petty Cash adalah master data sendiri yang dikelola Finance, scoped ke `billing-kasir`, tidak dibagi dengan tabel manapun milik HR.
+
+### 18.2 Tabel bukti kemampuan (scoped `billing-kasir`)
+
+| ID | Kebutuhan (dari `PC-DEC-*`) | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap/adapter | Risiko |
+| --- | --- | --- | --- | --- | --- | --- |
+| CAP-29 | Tidak ada kapabilitas Petty-Cash-like dengan nama lain di dalam `billing-kasir` sendiri | Billing/Kasir | Pencarian `voucher\|Voucher\|uang muka\|Advance\|kas kecil\|petty\|Petty` pada seluruh `Areas/HealthServices/BillingManagement/**` **nihil**@dd31bc9; pencarian `Kas Kecil`/`Uang Muka Kerja`/`Cash Advance`/`Voucher Kas` pada kedua repository hanya menunjuk ke `00-interview-decisions.md` sendiri | **Missing** (dikonfirmasi genuinely baru, bukan duplikasi tersembunyi) | Tidak ada — ini adalah hasil yang diharapkan, mengkonfirmasi kapabilitas benar-benar baru | Rendah |
+| CAP-30 | Mekanisme penomoran voucher Petty Cash — reuse `BilNumberSeries`/`BillingNumberSeriesService` | Billing/Kasir | `Areas/HealthServices/BillingManagement/Billing/Models/BilNumberSeries.cs@dd31bc9` (tabel sequence generik: `SequenceKey`, `ScopeKey`, `ResetPolicy`, `CurrentValue`); `Billing/Services/BillingNumberSeriesService.cs#AllocateKwitansiNumberAsync/AllocateInvoiceNumberAsync/AllocateCashierShiftNumberAsync@dd31bc9` — pola `Allocate<X>NumberAsync` sudah dipakai berulang 3x (Invoice `BIL`, Deposit `DEP`, Cashier Shift `CSH`, Kwitansi `KWS`) di atas SATU tabel dan SATU service yang sama, termasuk `pg_advisory_xact_lock` untuk keunikan under concurrency (baris 170-177) | **Ready to reuse** (Extend pada service, bukan tabel/mekanisme baru) | Tidak ada — tinggal tambah `PettyCashVoucherNumberOptions` + `AllocatePettyCashVoucherNumberAsync` + sequence key baru mengikuti pola identik | Rendah |
+| CAP-31 | Pola kategori/katalog "Tambah Biaya Lain-lain" (`BKC-DEC-047`) sebagai pembanding desain Kategori Petty Cash | Billing/Kasir | `BKC-DEC-047@00-interview-decisions.md:498` — kasir isi nama item/harga BEBAS tanpa katalog, dikompensasi murni `LoggerService.AuditAsync`, TANPA approval tambahan. Dibandingkan `PC-DEC-012` yang EKSPLISIT minta Kategori sebagai MASTER DATA terkelola Finance, disamakan sendiri dengan pola `MstTaxRule`/`MstInsuranceCoverageRule` | **Conflict pola, bukan Conflict keputusan** — kedua kebutuhan berlawanan arah by design, sudah diketahui dan disengaja oleh masing-masing `BKC-DEC-047` dan `PC-DEC-012` | Pola yang justru relevan ditiru: CRUD master data yang SUDAH ada di `billing-kasir` sendiri, `PaymentMethodController.cs`/`BillingItemCategoryController.cs` (lihat section 4/5.1) — Kategori Petty Cash sebaiknya entity master data baru sejenis, prefix `Bil`, BUKAN meniru pola bebas-teks `BKC-DEC-047` | Rendah — arah desain sudah jelas dari `PC-DEC-012` sendiri |
+| CAP-32 | Referensi actor/user `billing-kasir` sendiri — apakah sudah menyentuh employee master data di tempat lain (relevan untuk pertanyaan "Nama Penerima") | Billing/Kasir | `Areas/HealthServices/BillingManagement/Cashier/Models/BilCashierShiftCommand.cs#ActorUserId@dd31bc9` (`Guid ActorUserId`) — actor kasir/finance di `billing-kasir` SELALU direferensikan lewat `ApplicationUser`/`ActorUserId` (identity login), BUKAN `MstEmployee`/`WorkforceProfileId`; pencarian `MstEmployee\|WorkforceProfile\|EmployeeId` pada seluruh `Areas/HealthServices/BillingManagement/**` **nihil** | **Ready to reuse** (pola existing, bukan gap) | Tidak ada — `PC-DEC-011` (Nama Penerima bebas teks, bukan dari employee master) justru KONSISTEN dengan pola actor `billing-kasir` sendiri yang memang tidak pernah menyentuh employee master di tempat lain manapun dalam modul ini | Rendah |
+
+### 18.3 Catatan ringkas — clue lintas modul (dihentikan atas instruksi pemilik modul)
+
+Sebelum scope change, audit sempat memverifikasi `Corporate/HumanResource/ExpenseManagement` (`TrxExpenseClaim`/`TrxExpenseClaimItem`/`MstReimbursementPolicy`) dan `BusinessTravelManagement` (`TrxTravelAdvanceRequest`) sebagai clue potensi duplikasi. Ringkasan satu-baris per temuan, tanpa pendalaman lebih lanjut sesuai arahan:
+
+- `TrxExpenseClaim` mengimplementasikan pola **reimbursement** (klaim-setelah-belanja, `ClaimStatus: Draft→Submitted→…→PaymentProcessing→Paid`, bukti nota jadi syarat pengajuan) — pola terbalik dari Petty Cash (bayar-dulu, nota menyusul non-blocking).
+- `TrxTravelAdvanceRequest` memang pola **advance**, tetapi terikat wajib `WorkforceProfileId` (employee master formal) dan parent `BusinessTravelRequestId` (perjalanan dinas) — dua prasyarat yang tidak dimiliki/tidak diinginkan Petty Cash.
+- Kedua model beserta `MstExpenseCategory` HANYA ada sebagai schema database (migrasi lewat `initializeBigModulHRD2`) — nol Controller/Service/DTO/konsumen di seluruh backend dan frontend, sehingga tidak ada satu baris kode pun yang secara teknis bisa "direbut" atau berkonflik dengan implementasi Petty Cash.
+
+**Kesimpulan yang berlaku untuk keputusan Petty Cash:** tidak ada `Conflict` yang memblokir. `PC-DEC-012` (Kategori sebagai master data Finance milik `billing-kasir` sendiri, tidak dibagi ke tabel HR manapun) tetap berlaku apa adanya tanpa perlu direvisi. Rincian teknis lebih lanjut (pola bisnis, status ownership registry) TIDAK diperdalam lebih lanjut pada audit ini sesuai instruksi pemilik modul — bila kelak dibutuhkan, ini bisa diminta ulang sebagai audit terpisah yang eksplisit lintas modul (`HumanResource` + `billing-kasir`), bukan bagian dari audit `billing-kasir` ini.
+
+### 18.4 Verifikasi pencarian luas istilah Petty Cash dan false positive "Reimbursement"
+
+Pencarian case-insensitive untuk `Kas Kecil`, `Uang Muka Kerja`, `Cash Advance`, `Voucher Kas` pada SELURUH monorepo (backend + frontend) hanya menemukan kemunculan di `00-interview-decisions.md` sendiri (dokumen keputusan yang memicu audit ini) — nol kemunculan di source aplikasi manapun. Ini mengkonfirmasi pernyataan `PC-DEC-*`: kapabilitas ini benar-benar baru dari nol.
+
+Dua match "Reimbursement" yang sudah dicurigai sebagai false positive SEBELUM audit ini dimulai, diverifikasi ulang secara langsung:
+
+1. `QuilvianSystemFrontendDev/src/utils/dataPiutangKorporat.jsx` — field `spk: "Reimbursement"` adalah nilai kategori metode klaim piutang KORPORAT/ASURANSI (bersama `namaPerusahaan` seperti "PT Prudential (Asuransi - Reimbursement)"). Ini metode klaim PENJAMIN/asuransi pasien (bagaimana penjamin membayar rumah sakit: cashless vs reimbursement), sama sekali bukan reimbursement belanja PEGAWAI.
+2. `QuilvianSystemFrontendDev/src/lib/constants/administrator/master-data/insurance-provider/insurance-provider-editor-config.jsx` — opsi dropdown metode klaim penjamin: `Cashless`, `Reimbursement`, `GuaranteeLetter`, `Mixed`. Konteksnya sama: master data provider asuransi, bukan expense pegawai.
+
+**Kesimpulan: bacaan false-positive yang sudah diduga terkonfirmasi independen.** Tidak ada kapabilitas "reimbursement pegawai" yang tersembunyi di balik istilah ini pada frontend.
+
+### 18.5 Verifikasi folder `FinancialManagement` dan `AccountingManagement`
+
+`Areas/Corporate/FinancialManagement` dan `Areas/Corporate/AccountingManagement` dicek langsung isinya (bukan hanya nama folder pada `.csproj`) — KEDUANYA benar-benar kosong, nol file apapun di dalamnya. Entri `<Folder Include="Areas\Corporate\FinancialManagement\" />` dan `<Folder Include="Areas\Corporate\AccountingManagement\" />` pada `QuilvianSystemBackend.csproj` (baris 180-181) hanya berfungsi mempertahankan folder kosong di source control (perilaku standar SDK-style csproj), BUKAN indikasi ada capability finansial tersembunyi. Konsisten dengan dugaan awal sebelum audit ini dimulai.
+
+### 18.6 Verdict — "Nama Penerima" (`PC-DEC-011`), scoped ke pola `billing-kasir` sendiri
+
+Sesuai instruksi pemilik modul, pertanyaan ini ditutup cepat dan HANYA dilihat dari pola yang sudah dipakai `billing-kasir` sendiri (bukan dikejar ke employee master HR). Bukti pada CAP-32: setiap referensi actor di `billing-kasir` (mis. `BilCashierShiftCommand.ActorUserId`) memakai `Guid` yang menunjuk `ApplicationUser` (identity login kasir/finance yang sedang bekerja), dan pencarian `MstEmployee`/`WorkforceProfile`/`EmployeeId` pada seluruh `Areas/HealthServices/BillingManagement/**` nihil — modul ini memang tidak pernah menyentuh employee master di tempat lain manapun.
+
+**Kesimpulan: `PC-DEC-011` (Nama Penerima bebas teks) konsisten dengan pola `billing-kasir` sendiri, cukup untuk ditutup tanpa investigasi lebih lanjut ke HR.** Ini masuk akal secara bisnis juga: "Nama Penerima" adalah SIAPA voucher itu diperuntukkan (bisa pegawai, vendor, atau pihak lain), sedangkan `ActorUserId` yang sudah dipakai `billing-kasir` adalah SIAPA yang login dan menekan tombol (selalu kasir/petugas admin) — dua konsep berbeda yang keduanya sudah tercakup oleh pola existing tanpa perlu field employee-lookup baru.
+
+### 18.7 Verdict — reuse mekanisme penomoran (`BilNumberSeries`/`BillingNumberSeriesService`)
+
+**Rekomendasi kuat: REUSE, bukan bangun mekanisme baru.** `BilNumberSeries` (`Areas/HealthServices/BillingManagement/Billing/Models/BilNumberSeries.cs`) adalah tabel sequence GENERIK (`SequenceKey`, `ScopeKey`, `ResetPolicy`, `CurrentValue`, `LastAllocatedAt`) yang sudah dipakai berulang kali untuk empat jenis nomor berbeda di dalam `billing-kasir` sendiri — Invoice (`BIL`), Deposit Account (`DEP`), Cashier Shift (`CSH`), dan Kwitansi (`KWS`) — semuanya lewat SATU `BillingNumberSeriesService` yang sama (`Areas/HealthServices/BillingManagement/Billing/Services/BillingNumberSeriesService.cs`), masing-masing dengan `Options` class sendiri (`Prefix`, `ResetPolicy`, `SequenceDigits`) dan method `Allocate<X>NumberAsync` sendiri yang memanggil helper privat `AllocateNumberAsync` yang sama.
+
+Pola ini SUDAH TERBUKTI berulang menambah jenis nomor baru (bukti komentar eksplisit di baris 106-110: "nomor Kwitansi memakai mekanisme sequence generik yang sama dengan Invoice Number/Cashier Shift Number ... bukan tabel sequence terpisah"). Menambahkan nomor voucher Petty Cash tinggal mengikuti pola yang identik: `PettyCashVoucherNumberOptions` (mis. prefix `PTC`, `ResetPolicy` sesuai kebutuhan bisnis), `AllocatePettyCashVoucherNumberAsync` baru pada `BillingNumberSeriesService`, dan sequence key baru (mis. `BILLING_PETTY_CASH_VOUCHER`) — TANPA tabel baru, TANPA service baru, dan mewarisi gratis mekanisme `pg_advisory_xact_lock` yang sudah menjamin keunikan nomor di bawah concurrency (baris 170-177).
+
+**Status: `Ready to reuse` (Extend pada service, bukan tabel/mekanisme baru).**
+
+### 18.8 Perbandingan pola — "Tambah Biaya Lain-lain" (`BKC-DEC-047`) vs `Kategori` Petty Cash (`PC-DEC-012`)
+
+`BKC-DEC-047` mengizinkan kasir mengisi nama item/harga BEBAS tanpa katalog/master resmi, dikompensasi murni oleh audit log (`LoggerService.AuditAsync`) tanpa approval tambahan. Ini SECARA SENGAJA adalah pola BEBAS-TEKS, kebalikan dari yang diminta `PC-DEC-012` untuk Petty Cash: Kategori Petty Cash EKSPLISIT diputuskan sebagai MASTER DATA terkelola (tambah/ubah/nonaktifkan oleh Finance), eksplisit disamakan dengan pola `MstTaxRule`/`MstInsuranceCoverageRule` yang SUDAH ada di `billing-kasir` sendiri (CRUD authorized, effective-dated/aktif-nonaktif, dikelola lewat menu Master Data tersendiri).
+
+**Kesimpulan: pola "Tambah Biaya Lain-lain" TIDAK layak ditiru untuk Kategori Petty Cash** — kedua kebutuhan business justru berlawanan arah (satu sengaja bebas-teks dengan kompensasi audit log, satu sengaja terkelola sebagai master data). Pola yang justru relevan untuk ditiru adalah CRUD master data yang SUDAH ada di `billing-kasir` sendiri untuk `MstPaymentMethod`/`MstBillingItemCategory` (`PaymentMethodController.cs`, `BillingItemCategoryController.cs` — lihat section 4/5.1) atau `MstTaxRule`/`MstInsuranceCoverageRule` yang disebut eksplisit oleh `PC-DEC-012` sendiri sebagai preseden. Kategori Petty Cash sebaiknya menjadi entity master data BARU yang di-scope ke `billing-kasir` (prefix `Bil`, sudah terdaftar registry), berdiri sendiri tanpa dibagi ke tabel domain manapun di luar `billing-kasir`.
+
+### 18.9 Fact, inference, dan recommendation
+
+**Fact.**
+
+- Tidak ditemukan kapabilitas Petty-Cash-like dengan nama lain di dalam `billing-kasir` atau consumer frontend-nya — pencarian istilah sejenis (`voucher`, `uang muka`, `cash advance`, `kas kecil`) di `Areas/HealthServices/BillingManagement/**` dan di seluruh monorepo nihil di luar dokumen keputusan sendiri.
+- `BilNumberSeries`/`BillingNumberSeriesService` adalah mekanisme generik yang sudah terbukti dipakai ulang empat kali (Invoice, Deposit, Cashier Shift, Kwitansi) di dalam `billing-kasir` sendiri, lengkap dengan penguncian concurrency (`pg_advisory_xact_lock`).
+- `BKC-DEC-047` (Tambah Biaya Lain-lain, bebas-teks) berlawanan arah dengan `PC-DEC-012` (Kategori sebagai master data terkelola) — bukan preseden yang bisa ditiru langsung untuk Kategori, tetapi CRUD master data `billing-kasir` sendiri (`MstPaymentMethod`/`MstBillingItemCategory`/`MstTaxRule`) adalah preseden yang tepat.
+- Referensi actor `billing-kasir` sendiri (`ActorUserId` pada `BilCashierShiftCommand`, dan pola serupa di seluruh modul) selalu memakai identity `ApplicationUser`, tidak pernah menyentuh employee master di tempat lain manapun dalam modul ini — cukup untuk menutup pertanyaan "Nama Penerima" tanpa mengejar ke HR.
+
+**Inference.**
+
+- Ketiadaan kapabilitas serupa dengan nama lain di dalam `billing-kasir` memperkuat pernyataan `00-interview-decisions.md` bahwa Petty Cash benar-benar baru untuk modul ini, bukan reimplementasi tersembunyi dari sesuatu yang sudah ada.
+- Pola numbering dan pola master data `billing-kasir` sudah cukup matang dan konsisten sehingga Petty Cash bisa mengikuti preseden internal modul ini sepenuhnya tanpa perlu mendesain mekanisme baru dari nol.
+
+**Recommendation.**
+
+1. **Petty Cash boleh melanjutkan ke `/design-business-module` sebagai kapabilitas baru murni scoped `billing-kasir`.** Tidak ditemukan `Conflict` yang memblokir dari dalam modul ini sendiri.
+2. **Kategori Petty Cash (`PC-DEC-012`) sebaiknya menjadi entity master data baru milik `billing-kasir` sendiri** (prefix `Bil`, mengikuti pola CRUD `MstPaymentMethod`/`MstBillingItemCategory`/`MstTaxRule` yang sudah ada di modul yang sama).
+3. **Penomoran voucher Petty Cash sebaiknya extend `BillingNumberSeriesService`/`BilNumberSeries` yang sudah ada**, bukan membangun mekanisme sequence baru — pola ini sudah terbukti dipakai ulang empat kali sebelumnya di modul yang sama.
+4. **Nama Penerima tetap bebas teks (`PC-DEC-011`) tanpa perubahan** — konsisten dengan pola actor existing `billing-kasir` sendiri.
+
+> Catatan: pertanyaan lintas modul terkait `Corporate/HumanResource/ExpenseManagement`/`BusinessTravelManagement` (lihat 18.3) TIDAK dijadikan bagian recommendation di atas sesuai instruksi pemilik modul — dianggap tertutup untuk keperluan keputusan Petty Cash, terlepas dari status governance-nya sendiri di sisi HR.
+
+### 18.10 Closure question untuk `/grill-me` atau `/design-business-module`
+
+| ID | Pertanyaan | Siapa yang menjawab | Keadaan |
+| --- | --- | --- | --- |
+| `PC-CQ-01` | Kategori Petty Cash dibuat sebagai entity master data baru milik `billing-kasir` (prefix `Bil`) — disetujui sebagai keputusan desain, atau ada preferensi lain? | Product/Domain Owner + Billing Owner | Terbuka untuk `/design-business-module`; rekomendasi audit ini adalah entity baru (lihat 18.9.2) |
+| `PC-CQ-02` | Penomoran voucher Petty Cash memakai prefix apa pada `BilNumberSeries` (mis. `PTC`) dan `ResetPolicy` apa (Daily/Monthly/Never)? | Product/Domain Owner + Finance | Terbuka; keputusan konfigurasi, bukan blocker arsitektur (lihat pola serupa "format nomor invoice final" yang sudah dicatat sebagai non-blocking pada section Open Questions `00-interview-decisions.md`) |
+
+## 19. Audit kapabilitas baru — Edit Tagihan & Multi-Payer Coverage, 11 September 2026
+
+| Field | Nilai |
+| --- | --- |
+| Trigger | Amendment `00-interview-decisions.md` (`MPY-DEC-001`–`010`, 11 September 2026) mengunci sepuluh keputusan bisnis untuk rumpun baru "Edit Tagihan & Multi-Payer Coverage". Sesuai chain requirement/desain, langkah wajib sebelum `/design-business-module` adalah `trace-existing-capabilities` |
+| Backend SHA diaudit | `d295c4d59b68d223edc597c8b165b7ef4282b49f` (branch `Yasmina`). **Working tree memiliki perubahan belum commit YANG RELEVAN untuk rumpun ini** — lihat 19.0 di bawah, berbeda dari kasus Petty Cash yang working tree-nya di luar scope |
+| Frontend SHA diaudit | `0eafa76bf397a47ceb9d44a6f69006ee25f8ba51` (branch `yasmina`) |
+| Batas scan | Sembilan klaster: (1) kapabilitas ubah payer encounter existing di `RegistrationManagement`; (2) mesin komputasi coverage (`InsuranceCoverageService`, `BillingCoverageAdapter`); (3) `MstCompanyGuarantor`/`MstPatientCompanyGuarantor`; (4) `MstInsuranceCoverageRule` sebagai template; (5) `BilInvoice`/`BilInvoiceItem`; (6) dokumen Invoice Asuransi existing sebagai template; (7) pola registrasi permission/Resource; (8) frontend Menu Pembayaran + base component; (9) pola nomor seri. Tidak termasuk: audit ulang section 1–18 di luar titik singgung MPY |
+| Metode | Pembacaan statis source `.cs`/`.jsx` LANGSUNG (bukan prosa dokumentasi blueprint) sebagai bukti utama — dokumentasi `.md` hanya dipakai sebagai petunjuk arah pencarian, setiap klaim diverifikasi ulang ke source. Disiplin ini diterapkan sesudah amendment `00-interview-decisions.md` sebelumnya sempat salah mengutip nama class dari dokumentasi blueprint yang stale (`TrxPatientEncounterGuarantor` vs `RegPatientEncounterGuarantor` aktual). Tidak ada build, tidak ada eksekusi test, tidak ada perubahan source |
+| Status peta | Section 1–18 tetap berlaku di luar batas scan ini. Section ini murni menambah temuan untuk rumpun baru MPY |
+
+### 19.0 Working tree tidak ter-commit yang RELEVAN untuk rumpun ini
+
+Berbeda dari audit Petty Cash (section 18) yang working tree-nya di luar scope, audit ini menemukan working tree backend memiliki perubahan belum commit yang **langsung menyentuh file inti** yang akan disentuh rumpun MPY:
+
+- Modified: `Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs`, `Areas/HealthServices/BillingManagement/Billing/Controllers/BillingInvoicesController.cs`, `Areas/HealthServices/BillingManagement/Billing/Dtos/BillingInvoiceDtos.cs`, `Areas/HealthServices/BillingManagement/Billing/Services/BillingInvoiceService.cs`, `Repositories/ApplicationDbContext.cs`, `Services/Logging/LoggerService.cs`
+- Untracked baru: `Areas/HealthServices/BillingManagement/Billing/Dtos/CashierBillingInvoiceDtos.cs`, `Areas/HealthServices/BillingManagement/Billing/Models/BilPaymentReminder.cs`, `Areas/HealthServices/BillingManagement/Billing/Services/BillingReminderService.cs`, `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilPaymentReminderConfiguration.cs`
+
+Berdasarkan penamaan (`BilPaymentReminder`/`BillingReminderService`), perubahan ini tampak sebagai kapabilitas **pengingat pembayaran** yang sedang dikerjakan terpisah — BUKAN bagian rumpun MPY, dan TIDAK diverifikasi lebih lanjut isinya pada audit ini (di luar scope). Yang **wajib** dicatat: `BillingInvoicesController.cs`, `BillingInvoiceDtos.cs`, dan `BillingInvoiceService.cs` — tiga file yang MPY juga akan sentuh (endpoint invoice, DTO invoice, service kalkulasi) — sudah punya perubahan tidak ter-commit dari pekerjaan lain. Ini **bukan** blocker desain, tapi **MUST** diperhitungkan sebelum implementasi: kemungkinan konflik merge/rebase saat kedua pekerjaan (Payment Reminder dan MPY) sama-sama menyentuh file yang sama. Rekomendasi: koordinasikan urutan commit dengan pemilik pekerjaan Payment Reminder sebelum `build-module-backend` untuk MPY menulis ke file-file ini.
+
+### 19.1 Ringkasan satu kalimat
+
+`RegistrationManagement` saat ini **create-only** untuk payer encounter (nol endpoint ubah payer pada encounter yang sudah ada, dikonfirmasi lewat pembacaan penuh seluruh controller/service-nya) — ini `Missing` sejati, bukan gap kecil; kedua mesin coverage (`InsuranceCoverageService`, `BillingCoverageAdapter`) matang secara logika tapi 100% hard-wired ke satu payer aktif encounter (`Reuse with adapter`); `MstCompanyGuarantor`/`MstPatientCompanyGuarantor` beserta CRUD-nya sudah lengkap dan solid (`Ready to reuse`); `MstInsuranceCoverageRule` adalah cetakan 1:1 untuk `MstCompanyGuarantorCoverageRule` yang sendirinya `Missing`; `BilInvoiceItem` **tidak punya** representasi payer-per-item apa pun (`Missing`); dokumen Invoice Asuransi existing adalah template kuat untuk Invoice Company Guarantor tapi source-nya secara eksplisit MENOLAK kasus CompanyGuarantor hari ini (`Reuse with adapter`); pola registrasi permission murni attribute-driven reflection, tidak perlu file seed terpisah (`Ready to reuse`); base component frontend generik ADA lengkap di lokasi yang BERBEDA dari asumsi awal (`src/components/features/base-features/`, bukan `src/components/ui/`), termasuk `BasePayerWorkspace` yang sangat relevan untuk UI ganti payer (`Reuse with adapter`).
+
+### 19.2 Tabel bukti kemampuan
+
+| ID | Kebutuhan (dari `MPY-DEC-*`) | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap/adapter | Risiko |
+| --- | --- | --- | --- | --- | --- | --- |
+| CAP-33 | Kapabilitas ubah payer aktif pada encounter yang SUDAH ADA (`MPY-DEC-003`/`007`) | RegistrationManagement | `PatientEncounterController.cs` (2787 baris, di-grep+dibaca menyeluruh) — `RegPatientEncounterGuarantor` hanya disentuh di `CreateEncounterCoreAsync` (insert, baris ~632) dan `DeleteEncounter` (soft-delete ikutan, baris 1125-1136)@d295c4d5; `EncounterIntakeService.RegisterAsync` juga create-only dan eksplisit menolak `CompanyGuarantor` ("Penjamin perusahaan hanya dapat dipilih lewat pendaftaran loket")@d295c4d5 | **Missing** | Model `RegPatientEncounterGuarantor` sudah punya `Priority`/`IsPrimary` (basis skema tersedia), tapi endpoint/service ubah payer wajib dibangun baru sepenuhnya, termasuk DTO request/response dan audit trail perubahan (tidak ada `PreviousPaymentSourceId`/`ChangedBy` sekarang) | Sedang — area kepemilikan `RegistrationManagement`, wajib approval Muhammad Hamzah (`MPY-DEC-010`) sebelum endpoint baru ditulis |
+| CAP-34 | Coverage engine dapat dipanggil dengan payer eksplisit, bukan hanya payer aktif encounter (`MPY-DEC-004`) | ClinicalManagement + BillingManagement | `InsuranceCoverageService.cs` (`ResolveDrugAsync`/`ResolveProcedureAsync`/`ResolveTariffAsync`, parameter hanya `encounterId`)@d295c4d5; `EncounterInsuranceService.GetContextAsync` membaca navigation `PaymentSource` tunggal, gagal eksplisit bila `PaymentType != Insurance`@d295c4d5; `BillingCoverageAdapter.cs#ResolveAsync` baris 103-104 query `RegPatientEncounterGuarantors...FirstOrDefaultAsync(x => x.EncounterId == ... && x.IsActive)`, tanpa parameter payer@d295c4d5; endpoint `GET catalog-charges/coverage-preview` (`BillingInvoicesController.cs` baris 262-284) juga tanpa query param payer eksplisit@d295c4d5 | **Reuse with adapter** | Logika matching rule dan perhitungan coverage sudah matang dan benar (dipakai ulang apa adanya); seluruh permukaan API (service method + endpoint) perlu parameter payer eksplisit baru supaya bisa dipanggil untuk payer manapun yang tersedia di encounter, bukan hanya payer aktif — dibutuhkan `MPY-DEC-003` (switch) dan preview perbandingan asuransi | Sedang — menyentuh mesin kalkulasi yang sudah dipakai banyak konsumen lain, perlu backward-compatible |
+| CAP-35 | Master company guarantor + kartu pasien-perusahaan sebagai payer pilihan (`MPY-DEC-003`) | Administrator + PatientManagement | `MstCompanyGuarantor.cs` (header/kontrak perusahaan, field lengkap: `BillingMethod`, `CreditLimitAmount`, PIC, dst) + `CompanyGuarantorController.cs` (CRUD lengkap, `[AccessPermission("CompanyGuarantor",...)]`)@d295c4d5; `MstPatientCompanyGuarantor.cs` (kartu pasien-perusahaan: `EmployeeNumber`, `BenefitPlanCode`, `IsPrimary`, `RemainingLimitAmount`, dst) + `PatientCompanyGuarantorController.cs`, termasuk `SetPatientCompanyGuarantorPrimaryFromKiosk` (`PATCH kiosk/{id}/primary`, pola `UnsetOtherPrimaryAsync` + dua `SaveChangesAsync`)@d295c4d5 | **Ready to reuse** | Tidak ada — kedua model dan CRUD-nya lengkap dan solid, langsung dipakai sebagai master data lookup. Pola `SetPrimaryFromKiosk` adalah referensi bagus untuk operasi "jadikan payer X aktif" pada CAP-33 | Rendah |
+| CAP-36 | Struktur coverage rule setara Insurance untuk Company Guarantor (`Company coverage` — bagian dari `MPY-DEC-001` scope) | HealthServices/MasterData | `MstInsuranceCoverageRule.cs` (`ItemType`, lima dimensi rujukan Tariff/Drug/DrugCategory/Procedure/TariffCategory, `CoverageStatus`, `CoveragePercent`, `Max*`, `Priority`, dst) + `InsuranceCoverageRuleController.cs` (CRUD lengkap; `CoPaymentPercent` diturunkan server-side dari `CoveragePercent` via `Math.Clamp`, input client diabaikan)@d295c4d5; `MstCompanyGuarantorCoverageRule` — 0 hasil `find -iname "*CompanyGuarantorCoverageRule*"` di seluruh repo | **Ready to reuse as template** (untuk `MstInsuranceCoverageRule` itu sendiri); `MstCompanyGuarantorCoverageRule` — **Missing** | Struktur field adalah cetakan 1:1 (tinggal ganti `InsuranceProviderId`→`CompanyGuarantorId`); pola derivasi server-side `CoPaymentPercent` WAJIB ditiru, bukan diterima dari client | Rendah — pola sudah terbukti dan matang |
+| CAP-37 | Representasi "assigned payer per item" pada invoice (`MPY-DEC-004`, Edit Status Tagihan) | BillingManagement | `BilInvoiceItem.cs` (39 field, di-scan lengkap) — `Status` hanya `BillingInvoiceItemStatuses.Active`/`Voided` (2 state lifecycle void, bukan payer); TIDAK ADA kolom `PayerId`/`GuarantorId`/`PaymentSourceId`/`CoverageSourceId` apa pun@d295c4d5. Coverage per item dihitung dinamis saat kalkulasi oleh `BillingCoverageAdapter` (CAP-34), hasil tersimpan di `BilCalculationVersion` (snapshot per versi), BUKAN di `BilInvoiceItem` | **Missing** | Kolom/relasi baru wajib ditambahkan (`BilInvoiceItemPayerAssignment` sesuai desain PDF, atau setara) — tidak ada yang bisa dipakai ulang langsung dari `BilInvoiceItem` untuk kebutuhan ini | Sedang — migration baru pada tabel inti yang sudah dipakai banyak konsumen |
+| CAP-38 | Dokumen invoice terpisah untuk payer non-insurance (`MPY-DEC-006`, Invoice Company Guarantor) | BillingManagement | `BillingInsuranceInvoiceDtos.cs` (`InsuranceInvoiceDocumentResponse` lengkap dengan `PayerKind`, `Payer`, `Items`, `Totals`)@d295c4d5; `BillingInsuranceInvoiceDocumentService.GetDocumentAsync` — baca-saja dari `BilCalculationVersion`/`PreviewCalculationAsync`, filter `CoveredAmount>0` server-side; **baris 92-93 eksplisit**: `case CompanyGuarantor: warnings.Add("...Dokumen ini belum mendukung penjamin perusahaan.")`, `Payer` tidak pernah diisi, `IsPrintable` selalu `false` untuk kasus ini@d295c4d5; endpoint `GET {id}/insurance-invoice-document` (`BillingInvoicesController.cs` baris 374-396, `[AccessPermission("BillingInvoice","Read")]`)@d295c4d5; frontend `invoice-asuransi-document.jsx` (`InvoiceAsuransiDocument`, presentational, props match DTO 1:1, lebar A4 untuk 2 kolom coverage)@0eafa76b | **Reuse with adapter** | Struktur DTO, pola service (read-only dari snapshot kalkulasi), route, dan component React adalah template LANGSUNG kuat — tapi source SAAT INI secara eksplisit menolak kasus CompanyGuarantor (bukti tertulis), jadi `CompanyGuarantorInvoiceDocumentResponse`/`Service`/endpoint baru wajib dibuat, hanya meniru pola | Rendah — pola sudah terbukti, murni duplikasi terstruktur |
+| CAP-39 | Registrasi permission/Resource baru untuk master data Company Guarantor Route/Coverage Rule | Platform/Security | `AccessControllerAttribute.cs`/`AccessPermissionAttribute.cs`; `Seeders/AccessMenuSeeder.cs#SeedAsync` (baris 15-87) — scan REFLECTION seluruh `ControllerActionDescriptor` saat startup, baca `[AccessController]`/`[AccessAction]`, upsert ke `SysApplicationModule`/`SysControllerAccess`/`SysActionAccess`@d295c4d5. **KOREKSI asumsi awal**: TIDAK ada file seed/constant statis berisi daftar nama Resource (`find "*ResourceSeed*"`/`"*PermissionSeed*"` nihil) | **Ready to reuse** | Tidak ada — cukup buat Controller baru dengan attribute yang benar, baris Resource otomatis muncul di tabel Role Access saat aplikasi start berikutnya. Konsisten dipakai puluhan controller existing (`CompanyGuarantor`, `PatientCompanyGuarantor`, `InsuranceCoverageRule`, `PaymentMethod`, `BillingInvoice`, dst) | Rendah |
+| CAP-40 | Base component frontend untuk UI Edit Asuransi/Status Tagihan/Billing | Frontend shared | `menu-pembayaran-view.jsx` (1345 baris) — tab "tagihan" SUDAH punya tombol "✏️ Edit Tagihan" tapi HANYA untuk tambah biaya ad-hoc, TIDAK ADA UI ganti payer/assign payer per item@0eafa76b. **KOREKSI lokasi**: base component generik (`BaseButton`, `DataTable`, `StatusBadge`, `ConfirmModal`, `InformationAlert`, `ToastStack`, `BaseSelectField`) ada di `src/components/features/base-features/` — BUKAN `src/components/ui/` seperti asumsi awal (folder itu isinya hanya file klinis+layout generik). **Temuan bonus**: `base-payer-workspace.jsx` (`BasePayerWorkspace` + 6 named export, 520 baris) — komponen generik category-selector/saved-payer-card/editor-panel yang sudah membedakan Asuransi vs Perusahaan (`prop isCompany`), kontrak data+callback murni@0eafa76b | **Reuse with adapter** | Base component siap pakai lengkap termasuk `BasePayerWorkspace` yang sangat relevan sebagai basis modal "Ganti Payer Aktif"; `menu-pembayaran-view.jsx` sendiri wajib ditambah elemen UI baru (toolbar Edit Asuransi/Status Tagihan/Billing sesuai `MPY-DEC-*`), tombol "Edit Tagihan" existing TIDAK dipakai ulang langsung (beda tujuan) | Rendah — komponen dasar sudah matang, tinggal komposisi baru |
+| CAP-41 | Kebutuhan nomor seri dokumen baru untuk Invoice Company Guarantor | BillingManagement | `BilNumberSeries.cs`/`BillingNumberSeriesService.cs` — 5 sequence key tetap (`BILLING_INVOICE`, `BILLING_DEPOSIT_ACCOUNT`, `BILLING_CASHIER_SHIFT`, `BILLING_KWITANSI`, `BILLING_PETTY_CASH_VOUCHER`)@d295c4d5; `BillingInsuranceInvoiceDtos.cs` baris 3-5 (komentar eksplisit): "dokumen 'Invoice Asuransi' bukan Claim Letter formal — nomornya sama dengan InvoiceNumber, tidak ada seri nomor tersendiri"; `GetDocumentAsync` baris 59: `DocumentNumber = invoice.InvoiceNumber`@d295c4d5 | **Ready to reuse pattern only** (tidak relevan langsung) | Tidak ada sequence baru dibutuhkan — Invoice Company Guarantor hampir pasti mengikuti pola sama (pakai ulang `InvoiceNumber`, tanpa `BilNumberSeries` baru), dikonfirmasi via kode+komentar eksplisit, bukan dugaan | Rendah |
+
+### 19.3 Verdict — `RegistrationManagement` create-only (menutup evidence untuk `MPY-OQ-001`/`MPY-DEC-007`)
+
+Pembacaan penuh `PatientEncounterController.cs` (2787 baris) mengonfirmasi TIDAK ADA satu pun `[HttpPatch]`/`[HttpPut]` yang menyasar sub-resource payer/guarantor. Endpoint mutasi yang ada (`UpdateEncounterStatus`, `CheckInEncounter`, `AssignEncounterDoctor`, `CancelEncounter`) seluruhnya mengubah field `RegPatientEncounter` sendiri (status, checked-in, doctor, cancel reason) — tidak satu pun menyentuh `PaymentType`/`PatientInsuranceId`/`PatientCompanyGuarantorId`/`PaymentMethodId` pada guarantor. `RegPatientEncounterGuarantor` hanya disentuh saat create (insert satu baris) dan saat encounter dihapus (soft-delete ikutan).
+
+**Konsekuensi langsung untuk `MPY-DEC-007`**: keputusan "billing mengorkestrasi lewat service RegistrationManagement" BENAR secara arsitektur, tapi service target itu **harus dibangun dari nol** — bukan memanggil endpoint yang sudah ada dengan cara baru. Ini memperkuat kebutuhan approval eksplisit dari Muhammad Hamzah (`MPY-DEC-010`) sebelum endpoint baru ditulis di sisi `RegistrationManagement`, karena ini BUKAN extend kecil, melainkan kapabilitas baru di controller/service milik modul lain.
+
+**Catatan positif**: field `Priority`/`IsPrimary` sudah ada di `RegPatientEncounterGuarantor` sejak awal (mendukung ordering/multi-baris), walau kode aplikasi saat ini selalu hanya insert satu baris (`Priority=1`, `IsPrimary=true`). Ini BUKAN bukti bahwa multi-payer sudah didukung (`MPY-DEC-001` tetap berlaku: satu payer aktif) — field ini kemungkinan disiapkan untuk skenario lain (mis. riwayat payer, bukan payer simultan) dan TIDAK diubah maknanya oleh audit ini.
+
+### 19.4 Verdict — mesin coverage hard-wired ke satu payer (menutup evidence untuk `MPY-DEC-003`/`004`)
+
+Baik `InsuranceCoverageService` (advisory/preview) maupun `BillingCoverageAdapter` (kalkulasi riil yang dipakai invoice) SELALU membaca payer dari `EncounterId` saja — tidak satu pun method menerima `PatientInsuranceId`/`CompanyGuarantorId` sebagai parameter eksplisit. `EncounterInsuranceService` bahkan menolak eksplisit encounter yang `PaymentType`-nya bukan `Insurance`.
+
+**Konsekuensi untuk desain**: fitur "preview perbandingan asuransi" (Edit Asuransi, `MPY-DEC-003`) dan "assign item ke payer manapun yang tersedia di encounter" (Edit Status Tagihan, `MPY-DEC-004`) TIDAK BISA dibangun hanya dengan memanggil service yang ada apa adanya — permukaan API-nya (baik service method C# maupun endpoint HTTP `coverage-preview`) wajib diperluas dengan parameter payer eksplisit. Logika inti (matching rule, perhitungan persen/nominal/limit) tetap dipakai ulang penuh; yang berubah murni "payer mana yang dipakai untuk menghitung", bukan cara menghitungnya.
+
+### 19.5 Verdict — dokumen Invoice Asuransi sebagai template Invoice Company Guarantor (menutup evidence untuk `MPY-DEC-006`)
+
+Source `BillingInsuranceInvoiceDocumentService.cs` memuat bukti tertulis eksplisit bahwa kasus Company Guarantor SENGAJA ditolak hari ini (baris 92-93, dikutip lengkap di CAP-38) — bukan kelalaian, melainkan batas scope slice sebelumnya yang sudah dikonfirmasi sejalan dengan `BKC-DEC-067` (informasi perusahaan dikunci ke `MstInsuranceProvider`, bukan `MstCompanyGuarantor`, untuk dokumen INI). Karena `MPY-DEC-006` menetapkan dokumen Company Guarantor sebagai dokumen TERPISAH (bukan perluasan dokumen ini), pola yang tepat adalah: duplikasi terstruktur (DTO baru, service baru, endpoint baru) yang MENIRU pola read-only-dari-snapshot yang sudah terbukti benar di sini — bukan menambah cabang `if CompanyGuarantor` ke dalam service yang sudah ada, yang akan mencampur dua dokumen berbeda pemilik (`MPY-DEC-006` sendiri sudah menolak ini secara implisit lewat "dokumen terpisah").
+
+### 19.6 Fact, inference, dan recommendation
+
+**Fact.**
+
+- `RegistrationManagement` (`PatientEncounterController.cs`, `EncounterIntakeService.cs`) create-only untuk payer encounter — dikonfirmasi lewat pembacaan penuh + grep pola `Guarantor|HttpPatch|HttpPut`, nol hasil endpoint update guarantor.
+- `InsuranceCoverageService`/`BillingCoverageAdapter`/endpoint `coverage-preview` seluruhnya menerima `EncounterId` saja, tidak ada parameter payer eksplisit di manapun.
+- `MstCompanyGuarantor`/`MstPatientCompanyGuarantor` beserta CRUD controller-nya lengkap dan solid, termasuk pola `SetPrimaryFromKiosk` yang relevan langsung untuk operasi "aktifkan payer X".
+- `MstInsuranceCoverageRule` adalah cetakan struktural 1:1 untuk `MstCompanyGuarantorCoverageRule`; yang terakhir dikonfirmasi 0 hasil pencarian di seluruh repo (`Missing` murni, bukan tersembunyi dengan nama lain).
+- `BilInvoiceItem` tidak punya kolom payer-per-item apa pun; `Status`-nya murni lifecycle `Active`/`Voided`.
+- `BillingInsuranceInvoiceDocumentService` menolak kasus `CompanyGuarantor` secara eksplisit dan tertulis di source, bukan asumsi.
+- Registrasi permission murni attribute-driven reflection (`AccessMenuSeeder`), tidak ada file seed manual yang perlu disunting untuk Resource baru.
+- Base component generik frontend ada lengkap di `src/components/features/base-features/` (bukan `src/components/ui/`), termasuk `BasePayerWorkspace` yang belum pernah disebut di dokumen PDF sumber maupun sesi wawancara sebelumnya — temuan baru yang relevan langsung.
+- Working tree backend punya perubahan tidak ter-commit dari pekerjaan lain (kemungkinan "Payment Reminder") yang menyentuh tiga file inti yang juga akan disentuh MPY (`BillingInvoicesController.cs`, `BillingInvoiceDtos.cs`, `BillingInvoiceService.cs`).
+
+**Inference.**
+
+- Gap terbesar bukan pada lapisan MasterData (sudah matang, `Ready to reuse`/`Reuse with adapter`) melainkan pada dua lapisan operasional inti: (a) `RegistrationManagement`, yang perlu kapabilitas ubah-payer baru sepenuhnya, dan (b) representasi payer-per-item pada `BilInvoiceItem`, yang perlu kolom/tabel baru. Keduanya konsisten dengan `MPY-DEC-007` (butuh koordinasi lintas modul) dan rancangan `BilInvoiceItemPayerAssignment` pada dokumen PDF sumber.
+- Ditemukannya `BasePayerWorkspace` yang sudah membedakan Asuransi vs Perusahaan menunjukkan ada pekerjaan frontend sebelumnya (di luar billing-kasir, kemungkinan modul Registrasi/Kiosk) yang sudah memikirkan pola UI serupa — layak dicek lebih lanjut sebagai referensi desain, bukan dibangun dari nol.
+
+**Recommendation.**
+
+1. **MPY boleh melanjutkan ke `/design-business-module`.** Tidak ada `Conflict` yang memblokir dari audit ini — seluruh gap yang ditemukan (`Missing` pada CAP-33/36/37) sudah diperkirakan oleh keputusan `MPY-DEC-*` sebelumnya (khususnya `MPY-DEC-007` yang eksplisit menyatakan service RegistrationManagement "belum ada, perlu dibangun").
+2. **Desain backend WAJIB memakai `MstInsuranceCoverageRule` sebagai cetakan literal untuk `MstCompanyGuarantorCoverageRule`** (CAP-36), termasuk pola derivasi server-side `CoPaymentPercent`.
+3. **Desain dokumen Invoice Company Guarantor WAJIB meniru struktur `BillingInsuranceInvoiceDtos`/`BillingInsuranceInvoiceDocumentService`/route/component React** (CAP-38), sebagai duplikasi terstruktur — bukan menambah cabang pada service yang sudah ada.
+4. **Desain frontend WAJIB mengevaluasi reuse `BasePayerWorkspace`** (CAP-40) sebagai basis UI Edit Asuransi sebelum membangun komponen baru dari nol.
+5. **Sebelum `build-module-backend` menulis ke `BillingInvoicesController.cs`/`BillingInvoiceDtos.cs`/`BillingInvoiceService.cs`, koordinasikan dengan pemilik pekerjaan "Payment Reminder"** yang working tree-nya sudah menyentuh ketiga file yang sama (19.0) — risiko konflik merge nyata, bukan hipotetis.
+6. **Endpoint baru di `RegistrationManagement` (CAP-33) WAJIB menunggu approval eksplisit Muhammad Hamzah** sebelum ditulis — bukan sekadar "boleh dikerjakan karena arsitekturnya sudah jelas" (`MPY-DEC-007`/`010`).
+
+### 19.7 Closure question untuk `/design-business-module`
+
+| ID | Pertanyaan | Siapa yang menjawab | Keadaan |
+| --- | --- | --- | --- |
+| `MPY-CQ-01` | Endpoint baru di `RegistrationManagement` untuk ubah payer (CAP-33) sebaiknya berbentuk apa — satu endpoint generik "switch payment source" yang menerima `PaymentType` apa pun, atau tiga endpoint terpisah per tipe target? | Pemilik arsitektur backend + Muhammad Hamzah (`RegistrationManagement`) | Terbuka untuk `/design-business-module`; audit ini tidak menemukan preseden pola serupa di `RegistrationManagement` sendiri untuk dijadikan acuan langsung |
+| `MPY-CQ-02` | `BasePayerWorkspace` (CAP-40) berasal dari modul apa dan sudah dipakai di layar mana saat ini? Perlu dicek konsumennya sebelum dipakai ulang di billing-kasir supaya tidak mengubah kontraknya untuk modul asal | Pemilik arsitektur frontend | Terbuka; audit ini menemukan filenya tapi tidak menelusuri konsumen existing-nya (di luar 9 area yang diminta) |
+| `MPY-CQ-03` | Koordinasi commit/rebase dengan pekerjaan "Payment Reminder" (19.0) — siapa commit duluan, atau digabung dalam satu PR? | Pemilik modul billing-kasir | Terbuka; murni koordinasi tim, bukan keputusan arsitektur |
+
+## 20. Impact scan — Revisi Petty Cash (kasir cairkan langsung, anggaran per periode), 15 September 2026
+
+| Field | Nilai |
+| --- | --- |
+| Trigger | Amendment `00-interview-decisions.md` (`PC-DEC-016`–`022`, 15 September 2026) merevisi rumpun Petty Cash yang SUDAH `approved` dan SUDAH dibangun (section 18, 7 September). SHA yang diaudit section 18 (`dd31bc91...`/`12f9242c...`) berasal dari SEBELUM Petty Cash dibangun, sehingga sudah basi untuk keperluan revisi ini — impact scan terbatas ini menutup gap tersebut |
+| Backend SHA diaudit | `0ca85ba4610f2745b761d5e092b495bfc35396b0` (branch `Yasmina`). Working tree hanya berubah pada `QuilvianSystemBackend.csproj` (perbaikan exclude `Tests\**`, di luar scope Petty Cash) dan `00-interview-decisions.md` sendiri |
+| Frontend SHA diaudit | `1f2f2c93c9e4369db6c60246776de4c3bd52b3af` (branch `yasmina`). Working tree bersih |
+| Metode | `git diff`/`git log` terhadap SHA section 18, pembacaan langsung model/service/controller/permission Petty Cash saat ini, dan pencarian konsumen `AccJournalService`. **Tidak ada build, tidak ada eksekusi test, tidak ada perubahan source** |
+| Status peta | Section 1–19 tetap berlaku. Section ini menutup kebasian SHA section 18 khusus untuk rumpun Petty Cash dan menambah temuan baru (modul Accounting) yang tidak ada saat section 18 ditulis |
+
+### 20.1 Ringkasan satu kalimat
+
+Implementasi Petty Cash yang diaudit section 18 sebagai `Missing` sudah SEPENUHNYA dibangun sesuai `PC-DES-001`–`014` dan stabil sejak commit `fea81edf` (tidak ada perubahan lagi setelahnya) — baseline ini solid untuk direvisi; temuan baru satu-satunya yang mengubah kalkulasi adalah modul Accounting (`AccJournal`/`AccChartOfAccount`) yang kini ada tapi dibangun sebagai jurnal manual berjenjang approval, bukan jalur posting otomatis yang dibutuhkan `PC-DEC-016`/BR-PC-016.
+
+### 20.2 Tabel bukti kemampuan
+
+| Kemampuan dibutuhkan (revisi) | Evidence | Status | Catatan |
+| --- | --- | --- | --- |
+| Baseline Voucher/Budget/Category Petty Cash | `BilPettyCashVoucher.cs`, `BilPettyCashBudget.cs`, `BilPettyCashBudgetMovement.cs`, `MstPettyCashCategory.cs`, `PettyCashVoucherService.cs`, `PettyCashBudgetService.cs`, dua controller, EF configuration — seluruhnya utuh, tidak berubah sejak `fea81edf` | `Ready to reuse` (sebagai basis), `Extend`/`Repair` untuk bagian yang direvisi | Baseline terpercaya untuk mulai revisi |
+| Hapus gate approval (`PC-DEC-016`) | `PettyCashVoucherService.ApproveAsync`/`RejectAsync` (baris 239–320) menegakkan transisi `WaitingApproval`→`Approved`→(lewat `DisburseAsync`, baris 323, digerbangi `Status != Approved`); `GetSummaryAsync` (baris 123–160) membangun kartu ringkasan dari hitungan status yang sama; `AllowedActions` (baris 641–652) memetakan aksi per status | `Repair` | State machine, kartu ringkasan, dan `AllowedActions` HARUS ditulis ulang bersamaan — bukan sekadar melewati pemanggilan Approve/Reject, karena `DisburseAsync` secara eksplisit menolak status selain `Approved` |
+| Permission Approve/Reject existing | `PettyCashVouchersController.cs` baris 81–94: `[AccessAction("Approve"...)]`/`[AccessPermission("PettyCashVoucher","Approve")]` dan pasangan `Reject` | `Repair` (deprecate) | Action permission ini tidak boleh dihapus diam-diam (riwayat audit lama mereferensikannya) — putuskan di desain: dinonaktifkan dari UI saja, atau dihapus dari registry permission |
+| Anggaran per periode (`PC-DEC-017`) | `BilPettyCashBudget.cs`: hanya `PoolCode`/`PoolName`/`CurrentBalance`/`Status Active-Inactive` — TIDAK ADA `PeriodStart`/`PeriodEnd`/`Status Draft-Active-Closed` | `Missing` | Perlu perubahan skema nyata (kolom baru atau entity baru) — keputusan desain, bukan sekadar data |
+| Carry-forward saldo & tipe movement baru (`PC-DEC-018`, `PC-DEC-022`) | `PettyCashBudgetMovementTypes`: hanya `TopUp`/`Disbursement`/`Adjustment` — TIDAK ADA `CarryForward`/`Return`/`Reversal` | `Missing` | Enum dan logika pembuatan movement baru dibutuhkan; unique index parsial existing (`VoucherId` + `MovementType=DISBURSEMENT`, "satu voucher maksimal satu pengurangan") perlu ditinjau ulang supaya tidak menghalangi `REVERSAL` yang menunjuk voucher yang sama |
+| Reversal oleh kasir biasa (`PC-DEC-022`) | Tidak ada action/permission `Reversal`/`Return` pada `PettyCashBudgetController.cs` (hanya `Read`/`TopUp`/`Adjust`, baris 24–64) maupun `PettyCashVouchersController.cs` | `Missing` | Permission resource baru dibutuhkan pada salah satu controller (keputusan desain: milik `PettyCashBudget` atau `PettyCashVoucher`) |
+| Evidence tetap teks referensi (`PC-DEC-021`) | `BilPettyCashVoucher.ProofReferenceNumber`/`ProofSubmittedBy`/`ProofSubmittedAt` (baris 51–55) sudah ada; `PettyCashVouchersController` action `AttachProof` (baris 129–130) sudah ada | `Ready to reuse` | Tidak ada perubahan skema/kontrak dibutuhkan — tinggal ubah PERILAKU (tidak lagi memblokir pencairan), bukan bentuk datanya |
+| Kategori tetap wajib (`PC-DEC-020`) | `MstPettyCashCategory` + FK wajib `BilPettyCashVoucher.CategoryId` (baris 26, non-nullable) | `Ready to reuse` | Tidak ada perubahan dibutuhkan sama sekali |
+| Satu halaman gabungan (penggabungan Anggaran + Voucher) | Frontend: `/petty-cash/budget/page.jsx` dan `/petty-cash/vouchers/page.jsx` — dua route App Router terpisah, masing-masing dengan client component, hook (`use-petty-cash-budget.js`/`use-petty-cash-vouchers.js`), dan Redux slice sendiri (`petty-cash-budget-slice.jsx`/`petty-cash-voucher-slice.jsx`); komponen UI (`petty-cash-budget-view.jsx`, `petty-cash-vouchers-view.jsx`, empat modal) sudah modular per fungsi (top-up, adjust, create-voucher, attach-proof, voucher-detail) | `Reuse with adapter` | Komponen/hook/slice individual bisa dipakai ulang sebagai panel di satu halaman baru; yang perlu dibangun baru murni komposisi/layout halaman gabungan dan redirect route lama, BUKAN menulis ulang logic data |
+| Integrasi Accounting/subledger otomatis (`BR-PC-016`, `PC-OQ-004`) | `AccJournalService.CreateAsync` (baris 176–265): SETIAP jurnal baru SELALU `JournalStatus = Draft`, tidak ada parameter/jalur untuk langsung `Posted`. Siklus wajib: `Draft`→`SubmitAsync`→`PendingApproval`→`ApproveAsync`→`PostAsync`. `grep` konsumen `AccJournalService` di luar `AccountingManagement` sendiri: **nol hasil** — belum ada satu modul domain pun (termasuk Billing) yang memanggilnya | `Missing` (untuk kebutuhan spesifik "posting otomatis tanpa jurnal manual") / `Conflict` potensial dengan BR-PC-016 | Modul Accounting SEKARANG ADA (tidak ada saat section 18, 7 September) tapi HANYA sebagai jurnal manual berjenjang approval manusia — persis pola yang BR-PC-016 minta dihindari ("tidak boleh dimanipulasi lewat jurnal manual bebas"). Memakai `AccJournalService` apa adanya berarti Petty Cash tetap butuh approval jurnal manual di sisi Accounting, walau `PC-DEC-016` sudah menghapus approval di sisi Petty Cash sendiri — potensi kontradiksi butuh keputusan desain + pemilik Accounting |
+
+### 20.3 Fact, inference, dan recommendation
+
+**Fact.**
+
+- Baseline Petty Cash (section 18's `Missing`) sudah 100% terealisasi persis sesuai `PC-DES-001`–`014` yang disetujui, dan tidak tersentuh lagi sejak commit `fea81edf` — tidak ada drift antara desain yang disetujui dan kode yang berjalan.
+- Modul Accounting (`AccJournal`/`AccChartOfAccount`/`AccJournalType`/`AccNumberSeries`, 6.252 baris) benar-benar baru sejak SHA section 18 — tidak exist sama sekali saat audit Petty Cash pertama dilakukan.
+- `AccJournalService` belum pernah dipanggil modul domain manapun di luar `AccountingManagement` sendiri — tidak ada preseden pola integrasi cross-module posting untuk ditiru.
+- Baik `BilPettyCashBudget` maupun `PettyCashBudgetMovementTypes` secara struktural TIDAK mendukung periode maupun return/reversal/carry-forward — ini genuinely `Missing`, bukan `Extend` kosmetik.
+- Frontend Petty Cash sudah modular per-fungsi (hook/slice/komponen terpisah untuk budget vs voucher), bukan monolitik — penggabungan halaman secara teknis murni soal komposisi, risiko rendah.
+
+**Inference.**
+
+- `PC-DEC-016` (hapus approval di Petty Cash) dan realita `AccJournalService` (approval wajib di Accounting) berpotensi membuat revisi ini "menghapus approval di satu tempat, memindahkannya diam-diam ke tempat lain" kalau desain nanti memakai `AccJournalService.CreateAsync`+`SubmitAsync` apa adanya untuk posting Petty Cash. Ini bertentangan dengan semangat BR-PC-016 sendiri.
+- Karena permission `Approve`/`Reject` pada `PettyCashVoucherController` sudah terdaftar dan mungkin sudah dipakai role tertentu, menghapusnya total (bukan sekadar deprecate) berisiko menyisakan role assignment yatim — perlu keputusan eksplisit, bukan dihapus otomatis oleh `build-module-backend`.
+
+**Recommendation.**
+
+1. **Revisi Petty Cash boleh melanjutkan ke `/design-business-module`.** Tidak ada `Conflict` yang memblokir SELURUH revisi — hanya satu titik (integrasi Accounting) yang butuh keputusan desain eksplisit sebelum bagian ITU dikunci; bagian lain (state machine, model anggaran, frontend) aman dirancang sekarang.
+2. **Desain backend WAJIB memutuskan pola integrasi Accounting sebelum menulis kode**: (a) Petty Cash memanggil `AccJournalService` dan MENERIMA bahwa transaksi Petty Cash tetap perlu "disahkan" di sisi Accounting (kontradiksi parsial dengan BR-PC-016, tapi reuse penuh), (b) Accounting perlu jalur posting otomatis baru (`PostAsync` varian sistem, tanpa `Submit`/`Approve` manusia) — perubahan pada modul Accounting, butuh sign-off pemiliknya, atau (c) `BilPettyCashBudgetMovement` DIANGGAP sebagai subledger yang sudah cukup untuk MVP, dan posting ke `AccJournal` ditunda jadi rilis berikutnya (rekonsiliasi periodik manual, bukan real-time). Ini menggantikan `PC-OQ-004` dengan pertanyaan yang lebih tajam — lihat `PC-CQ-03` di bawah.
+3. **Skema `BilPettyCashBudget` dan `PettyCashBudgetMovementTypes` WAJIB diperluas** (`PeriodStart`/`PeriodEnd`/`Status Draft-Active-Closed` pada budget; `CarryForward`/`Return`/`Reversal` pada movement type) — tidak ada jalan pintas reuse murni untuk `PC-DEC-017`/`018`/`022`.
+4. **Unique index parsial `(VoucherId, MovementType=DISBURSEMENT)` WAJIB ditinjau ulang** saat menambah `Reversal` — pastikan invariant "satu voucher maksimal satu pengurangan" tidak sengaja memblokir pembalikannya.
+5. **Frontend WAJIB reuse hook/slice/komponen existing** (`use-petty-cash-budget.js`, `use-petty-cash-vouchers.js`, empat modal, dua slice) sebagai panel di halaman gabungan baru — jangan menulis ulang logic data yang sudah ada dan stabil.
+
+### 20.4 Closure question untuk `/design-business-module`
+
+| ID | Pertanyaan | Siapa yang menjawab | Keadaan |
+| --- | --- | --- | --- |
+| `PC-CQ-03` | Pola integrasi Accounting untuk Petty Cash: (a) reuse `AccJournalService` apa adanya (transaksi tetap butuh pengesahan manual di Accounting), (b) minta jalur posting otomatis baru dari pemilik Accounting, atau (c) tunda ke rilis berikutnya dan anggap `BilPettyCashBudgetMovement` cukup sebagai subledger untuk MVP? | Product/Domain Owner + pemilik modul Accounting | Terbuka untuk `/design-business-module`; menggantikan `PC-OQ-004` dengan pilihan konkret hasil impact scan ini |
+| `PC-CQ-04` | Permission `PettyCashVoucher.Approve`/`Reject` yang sudah terdaftar (mungkin sudah di-assign ke role tertentu) — dihapus dari registry, atau dibiarkan ada tapi tidak dipakai UI/flow baru (dormant)? | Pemilik arsitektur backend | Terbuka; audit ini tidak menelusuri role assignment aktual (di luar 9 klaster yang diminta) |
+
+## 21. Impact scan — gap `FINAL`→`CLOSED` pada `BilInvoice` (18 September 2026)
+
+| Field | Value |
+| --- | --- |
+| Trigger | Amendment `00-interview-decisions.md` (`BKC-DEC-100`–`102`, 18 September 2026) menutup gap: invoice yang sudah lunas penuh macet permanen di status `FINAL` karena syarat transisi `FINAL`→`CLOSED` ("AR/AP posting sukses") tidak pernah terjadi. Impact scan ini memverifikasi klaim source pada amendment tersebut dan permukaan yang akan disentuh desainnya sebelum `/design-business-module` |
+| Backend SHA diaudit | `21b4733154e91962cbd7094a102615b1d9eb2bf2`, 18 September 2026 15:13 WIB. `git status --short` bersih — tidak ada perubahan working tree |
+| Frontend SHA diaudit | Tidak diaudit ulang — scan ini dibatasi backend atas instruksi cakupan pass ini (lihat 21.2, status `CLOSED` sudah punya representasi frontend sejak audit sebelumnya) |
+| Metode | `rg`/grep langsung ke source (`BillingFinalizationService.cs`, `BillingArApHandoffService.cs`, `BillingSettlementService.cs`, `BillingAllocationService.cs`, `BillingFinancialExceptionService.cs`, `BilInvoice.cs`, `BilSettlement.cs`, `BilArHandoff.cs`, konfigurasi EF), pembacaan implementasi relevan. **Tidak ada build, tidak ada eksekusi test, tidak ada perubahan source maupun blueprint** |
+| Status peta | Section 1–20 tetap berlaku. Section ini murni menambah audit baru untuk topik `FINAL`→`CLOSED`, tidak menyentuh temuan section lain |
+
+### 21.1 Ringkasan satu kalimat
+
+Seluruh klaim source pada `BKC-DEC-100`–`102` terverifikasi akurat pada HEAD saat ini (guard baris 150 tidak berubah, `ClosedAt` tetap tidak pernah di-set, nol titik tulis `BillingInvoiceStatuses.Closed`), DAN impact scan ini menemukan tiga fakta arsitektur baru yang belum tercatat sebelumnya: `BilSettlement` bersifat satu-ke-banyak terhadap `BilInvoice` (bukan 1:1, sehingga recompute TIDAK bisa berpatokan ke satu settlement saja), `CalculateOutstandingAsync` terduplikasi persis logikanya di dua service, dan `BillingHandoffStatuses` belum punya nilai status yang berarti "piutang tertagih" — sehingga konsekuensi desain `BKC-DEC-102` (menandai `BilArHandoff` selesai) genuinely `Missing`, bukan sekadar pemanggilan method existing.
+
+### 21.2 Tabel bukti kemampuan
+
+| Kemampuan/klaim yang diverifikasi | Evidence | Status | Catatan |
+| --- | --- | --- | --- |
+| Guard `RecordCorrectionIfLinkedAsync` hanya menerima `FINAL` | `BillingArApHandoffService.cs:150` — `if (invoice is null \|\| invoice.Status != BillingInvoiceStatuses.Final) return;` — tidak berubah dari audit sebelumnya | `Ready to reuse` (sebagai titik ubah `BKC-DEC-101`) | Perubahan tunggal-baris: `!= Final` menjadi kondisi yang juga menerima `Closed` |
+| Nol titik tulis `BillingInvoiceStatuses.Closed` di seluruh backend | Grep menyeluruh `BillingInvoiceStatuses\.Closed` pada `*.cs`: SATU hasil, `BillingFinancialExceptionService.cs:796` — itu pun BACA (kondisi guard), bukan tulis. `BilInvoice.ClosedAt` (model, baris 17): tidak muncul di sisi kiri assignment manapun pada grep `ClosedAt` | Confirmed `Missing` | Konsisten dengan `BKC-DEC-100`; tidak ada regresi/perubahan sejak temuan 2 September 2026 |
+| `BillingArApHandoffService` belum punya konsumen AR/AP nyata | Doc-comment kelas baris 12–15 tidak berubah: "belum ada konsumen AR/AP nyata di repository ini" | Confirmed `Missing` (disengaja, bukan bug) | Tidak berubah sejak temuan; `BKC-DEC-100` sengaja TIDAK menunggu ini (memakai outstanding, bukan AR/AP posting, sebagai syarat baru) |
+| Kardinalitas `BilSettlement` ↔ `BilInvoice` | `BilSettlement.cs:11` `InvoiceId` nullable, TANPA `[Required]`. `BilSettlementConfiguration.cs:48-50`: `HasIndex(x => new { x.InvoiceId, x.Status })` (bukan unique), `HasOne<BilInvoice>().WithMany()` — relasi **satu-ke-banyak**, satu invoice boleh punya banyak `BilSettlement` sepanjang waktu (konsisten dengan pola cicilan multi-kwitansi yang sudah dikonfirmasi di frontend, `billing-invoice-constants.js` `derivePaymentInstallmentSummary`) | Fakta baru (belum tercatat sebelum pass ini) | **Implikasi desain**: trigger recompute TIDAK boleh hanya memeriksa `settlement.Status == Settled` pada satu settlement — harus menghitung outstanding KUMULATIF invoice lintas seluruh settlement/tender-nya, sama seperti `CalculateOutstandingAsync` yang sudah ada |
+| Duplikasi `CalculateOutstandingAsync` | Dua implementasi privat dengan logika identik: `BillingFinalizationService.cs:247+` dan `BillingFinancialExceptionService.cs:669-722` — keduanya: `BilCalculationVersions` versi current → jumlah `BilPaymentAllocations` (dikurangi yang di-reverse) → dikurangi `BilRefundableCredits` (`AllocationExcess`) → dikurangi `BilWriteOffCases` kategori `PATIENT_AR` yang `Posted` | Confirmed `Missing` (perlu konsolidasi) | Komentar source `BillingFinalizationService.cs:265` sudah mengakui duplikasi ini secara eksplisit ("sama seperti BillingFinancialExceptionService.CalculateOutstandingAsync"). Menambah trigger `BKC-DEC-100` sebagai PEMANGGIL KETIGA logika yang sama tanpa konsolidasi akan memperparah drift risk — rekomendasi ke `/design-business-module`: ekstrak jadi satu shared helper sebelum dipakai titik ketiga |
+| Titik nyata dimana outstanding invoice bergerak | `BillingAllocationService.ReconcileSettlementAsync` (baris 229+) — SATU-SATUNYA tempat `BilPaymentAllocations` baru dibuat untuk pembayaran invoice (baris 279), dipanggil `BillingSettlementService` tepat sesudah `RecalculateSettlement` (baris 507-511 pada method penerima hasil provider/cash) | Fakta baru | Kandidat titik hook untuk recompute+transisi `CLOSED`: SESUDAH `ReconcileSettlementAsync` selesai di dalam transaksi yang sama milik `BillingSettlementService`, bukan di `RecalculateSettlement` (yang hanya menghitung status settlement, bukan outstanding invoice) |
+| Status yang tersedia pada `BilArHandoff` untuk menandai piutang tertagih | `BillingHandoffStatuses` (`BilArHandoff.cs:35-39`) HANYA punya `CREATED` dan `ACKNOWLEDGED` — grep konsumen: satu-satunya assignment adalah `Status = BillingHandoffStatuses.Created` saat pembuatan (`BillingArApHandoffService.cs:54`, `80`). Tidak ada nilai status maupun field lain yang berarti "piutang ini sudah tertagih/lunas" | Confirmed `Missing` | Konsekuensi desain `BKC-DEC-102` ("`BilArHandoff` MUST ikut ditandai selesai/collected") TIDAK bisa memakai status existing — perlu keputusan desain: nilai status baru (mis. `COLLECTED`), field `DateTimeOffset? CollectedAt` baru, atau cukup menyimpulkan dari `invoice.Status == Closed` tanpa menyentuh baris `BilArHandoff` sama sekali (opsi paling murah, tapi berarti `BilArHandoff` bisa "basi" — masih `CREATED` walau piutangnya sudah lunas) |
+| Representasi status `CLOSED` di frontend | `billing-invoice-constants.js`: `BILLING_INVOICE_STATUS_OPTIONS` sudah punya `{ value: "CLOSED", label: "Closed" }` dan `BILLING_INVOICE_STATUS_BADGE_CONFIG` sudah punya `closed: { label: "Closed", className: "region-status-active" }` — TIDAK ditemukan filter/kondisi yang mengecualikan `CLOSED` dari tampilan manapun pada file ini | `Ready to reuse` | Frontend TIDAK butuh perubahan untuk sekadar menampilkan invoice yang pindah ke `CLOSED` — badge dan opsi filter sudah siap sejak sebelum pass ini. `MODULE-STATUS.md` mencatat `FE-BKC-009` sempat punya gap "`isFinal` tidak mencakup status `CLOSED`" yang SUDAH diperbaiki (30 Agustus 2026) — MUST diverifikasi ulang saat desain bahwa perbaikan itu memang mencakup skenario invoice yang BARU pindah ke `CLOSED` lewat jalur otomatis ini (bukan cuma invoice yang sudah `CLOSED` sejak awal) |
+
+### 21.3 Fact, inference, dan recommendation
+
+**Fact.**
+
+- Seluruh premis teknis `BKC-DEC-100`–`102` (guard baris 150, nol titik tulis `Closed`, `ClosedAt` tidak pernah di-set, ketiadaan konsumen AR/AP) terverifikasi akurat pada HEAD `21b47331` — tidak ada drift sejak amendment ditulis.
+- `BilSettlement` satu-ke-banyak terhadap `BilInvoice`; outstanding invoice sudah punya logika kumulatif yang benar (`CalculateOutstandingAsync`), tapi logika itu terduplikasi persis di dua service.
+- `BillingAllocationService.ReconcileSettlementAsync` adalah titik tunggal tempat `BilPaymentAllocations` invoice bertambah — kandidat hook alami untuk recompute.
+- `BillingHandoffStatuses` tidak punya kosakata "piutang tertagih"; konsekuensi `BKC-DEC-102` genuinely butuh keputusan skema/kosakata baru, bukan pemanggilan yang sudah ada.
+- Frontend sudah siap menampilkan `CLOSED` tanpa perubahan apa pun.
+
+**Inference.**
+
+- Karena outstanding invoice sudah dihitung kumulatif lintas settlement oleh `CalculateOutstandingAsync`, trigger `BKC-DEC-100` SEBAIKNYA memanggil ulang logika yang sama (setelah dikonsolidasi) tepat sesudah `ReconcileSettlementAsync`, bukan menambahkan logika penghitungan baru yang keempat.
+- Duplikasi `CalculateOutstandingAsync` yang sudah ada (dua salinan) ditambah kebutuhan pemanggil ketiga adalah momentum alami untuk konsolidasi — menunda konsolidasi akan mewariskan tiga tempat yang harus disinkronkan manual setiap kali aturan outstanding berubah.
+
+**Recommendation.**
+
+1. **Lanjut ke `/design-business-module`** — tidak ada `Conflict` yang memblokir seluruh topik; satu closure question (`BKC-CQ-01` di bawah) perlu dijawab sebelum kontrak `BilArHandoff` dikunci, tapi tidak memblokir desain bagian lain (titik hook, konsolidasi outstanding, guard AR).
+2. **Konsolidasikan `CalculateOutstandingAsync`** menjadi satu shared helper (mis. di service/kelas yang dipakai bersama) sebelum menambah pemanggil ketiga dari trigger `FINAL`→`CLOSED` yang baru.
+3. **Hook recompute ditempatkan sesudah `BillingAllocationService.ReconcileSettlementAsync`**, di dalam transaksi `SaveChanges` yang sama milik `BillingSettlementService`, mengikuti pola existing di `BillingFinancialExceptionService.PostWriteOffAsync` (baris 422-423) yang sudah mengubah `invoice.Status` sebagai side-effect satu transaksi finansial.
+4. **Verifikasi ulang perbaikan `isFinal`/`CLOSED` `FE-BKC-009`** (dicatat selesai 30 Agustus 2026 di `MODULE-STATUS.md`) benar-benar mencakup invoice yang BARU berpindah status via jalur otomatis ini, bukan hanya invoice yang sudah `CLOSED` sejak sebelumnya.
+
+### 21.4 Closure question untuk `/design-business-module`
+
+| ID | Pertanyaan | Siapa yang menjawab | Keadaan |
+| --- | --- | --- | --- |
+| `BKC-CQ-01` | Konsekuensi desain `BKC-DEC-102` (menandai `BilArHandoff` selesai saat piutang departure exception tertagih) — pakai yang mana: (a) status baru `COLLECTED` pada `BillingHandoffStatuses`, (b) field `CollectedAt` terpisah tanpa mengubah kosakata status, atau (c) tidak menyentuh `BilArHandoff` sama sekali dan cukup berpatokan ke `invoice.Status == Closed` (murah, tapi `BilArHandoff` bisa basi)? | Pemilik arsitektur backend (Billing/Finance/AR) | Terbuka untuk `/design-business-module`; tidak memblokir bagian desain lain |
+
+---
+
+## 22. Impact Scan 24 September 2026 — Verifikasi Source Kemampuan Integrasi Rawat Inap ↔ Billing (Pass B — `BKC-DEC-112` s.d. `BKC-DEC-119`)
+
+| Field | Nilai |
+|---|---|
+| Backend SHA diaudit | `dcb9c88e` |
+| Frontend SHA diaudit | `fdebb9059` |
+| Dasar Keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) revision `0.3` (`BKC-DEC-112` s.d. `BKC-DEC-119`) dan [`PRD Integrasi-Rawat-Inap-dengan-Billing.md`](../../Modul-RS/Rawat-Inap-To-Billing/PRD%20Integrasi-Rawat-Inap-dengan-Billing.md) |
+| Metode Audit | Pembacaan statis source backend ASP.NET Core (`BillingChargeSourceAdapter.cs`, `BillingCalculationService.cs`, `PatientBillingSummaryService.cs`, `BilConsumerHandoffService.cs`, model EF, configuration) dan frontend Next.js App Router (`consumer-handoffs-view.jsx`, hook, utils). Tidak ada modifikasi kode aplikasi |
+
+### 22.1 Ringkasan Satu Kalimat
+Backend `dcb9c88e` sudah memiliki pondasi kalkulasi sewa kamar dinamis in-process (`CalculateRoomChargeAsync`) dan mekanisme prioritas biaya administrasi, namun terbukti **menolak domain `ROOM_STAY` pada adapter charge**, belum mengimplementasikan formula diskon jam masuk (`BKC-DEC-114`) maupun pro-rata jam pindah kamar (`BKC-DEC-115`), masih menggunakan persentase administrasi dan deposit nominal flat tanpa parameter cap/persentase, mengalami anomali arsitektur **inverted source of truth** pada *financial clearance* (`PatientBillingSummaryService.cs:88`), serta belum memiliki jalur penerbitan handoff kelayakan pulang ke Rawat Inap di backend maupun frontend.
+
+### 22.2 Tabel Bukti Kemampuan (Capability Evidence Table)
+
+| ID | Kebutuhan Bisnis | Pemilik Modul | Bukti (`repo/path#symbol@SHA`) | Status | Gap / Kebutuhan Adapter | Risiko Operasional |
+|:---|:---|:---|:---|:---:|:---|:---|
+| `CAP-BIL-01` | **Penerimaan Beban Kamar (`ROOM_STAY` / `INPATIENT`)** (`BKC-DEC-112`) | Billing (`BillingManagement`) | `BE@dcb9c88e Areas/HealthServices/BillingManagement/Billing/Services/BillingChargeSourceAdapter.cs:20-53 #SourcePolicies` | **Extend** | `SourcePolicies` hanya mendukung `PROCEDURE`, `LABORATORY`, `RADIOLOGY`, `PHARMACY`, `CONSUMABLE`, `ADHOC`, `ADHOC_CATALOG`. `ROOM_STAY` belum terdaftar. | Event `BED_OCCUPIED` dari Rawat Inap akan langsung ditolak HTTP 422 jika dikirimkan ke endpoint `/from-source`. |
+| `CAP-BIL-02` | **Potongan Tarif Jam Masuk Hari Pertama** (`BKC-DEC-114`) | Billing (`BillingManagement`) | `BE@dcb9c88e Areas/HealthServices/BillingManagement/Billing/Services/BillingCalculationService.cs:575-680 #CalculateRoomChargeAsync`<br>`BE@dcb9c88e Areas/HealthServices/BillingManagement/MasterData/Services/RoomChargePolicyService.cs:189-204 #CalculateChargeUnits` | **Extend** | `CalculateRoomChargeAsync` membaca `InpBedPlacement` langsung in-process dan menghitung unit via `CalculateChargeUnits`, namun **belum** memiliki evaluasi potongan jam masuk (`>= 18:00` 50%, `>= 22:00` 20%, `00:00` 0%). | Pasien yang masuk malam hari ditagih 100% penuh, melanggar kebijakan rumah sakit dan memicu keluhan pasien. |
+| `CAP-BIL-03` | **Split Transfer Kamar Multipel Berbasis Durasi Jam Riil** (`BKC-DEC-115`) | Billing (`BillingManagement`) | `BE@dcb9c88e Areas/HealthServices/BillingManagement/Billing/Services/BillingCalculationService.cs:605-676` | **Extend** | Penghitungan unit saat ini memperlakukan setiap `InpBedPlacement` secara terpisah dengan pembulatan unit (`CalculateChargeUnits`) tanpa pembobotan pro-rata jam riil terhadap total jam harian jika terjadi >1 perpindahan pada tanggal yang sama. | Terjadi over-billing tarif kamar tinggi jika pasien hanya singgah sebentar di kamar transit sebelum pindah ke ICU. |
+| `CAP-BIL-04` | **Biaya Administrasi Rawat Inap 7% Cap Rp 6 Juta** (`BKC-DEC-113`) | Billing & Finance | `BE@dcb9c88e Areas/HealthServices/BillingManagement/MasterData/Models/MstAdministrationFeePolicy.cs:8-34`<br>`BE@dcb9c88e Areas/HealthServices/BillingManagement/Billing/Services/BillingCalculationService.cs:494-568 #CalculateAdministrationFeeAsync` | **Extend** | Model `MstAdministrationFeePolicy` hanya memiliki kolom `Amount` (flat nominal), belum ada kolom `Percentage` dan `CapAmount`. Formula kalkulasi belum menghitung persentase dari *eligible bill*. | Biaya administrasi ranap tertagih nominal flat lama, menghilangkan potensi pendapatan sah rumah sakit. |
+| `CAP-BIL-05` | **Penggantian Biaya Administrasi Rajal → Ranap** (`BKC-DEC-119`) | Billing & Finance | `BE@dcb9c88e Areas/HealthServices/BillingManagement/Billing/Services/BillingCalculationService.cs:546-555` | **Extend** | Logika `replacesEarlierFee` sudah ada (prioritas RANAP 100 > RAJAL 10), tetapi hanya melakukan pengurangan flat `policy.Amount - priorApplied`. Belum ada mekanisme void otomatis item invoice rajal atau pengkreditan nominal rajal yang telah dibayar kasir poliklinik ke settlement ranap. | Pasien rawat jalan yang dialihkan ke ranap berisiko terkena tagihan administrasi ganda. |
+| `CAP-BIL-06` | **Validasi Deposit 100% Porsi Pasien Sebelum Tindakan Besar** (`BKC-DEC-116`) | Billing (`BillingManagement`) | `BE@dcb9c88e Areas/HealthServices/BillingManagement/MasterData/Models/MstDepositPolicy.cs:8-22`<br>`BE@dcb9c88e Areas/HealthServices/BillingManagement/Billing/Services/BillingDepositService.cs:56-140` | **Extend** | `MstDepositPolicy` hanya memuat `MinimumAmount` flat. Belum ada formula penghitungan shortfall deposit berbasis *Patient Responsibility / Excess* tindakan besar (`EstimasiTindakan - JaminanAsuransi - SaldoDeposit`). | Operasi bedah besar berisiko berjalan tanpa proteksi deposit finansial memadai dari porsi bayar mandiri pasien. |
+| `CAP-BIL-07` | **Integritas *Financial Clearance* Inpatient** (`BKC-DEC-117`) | Billing (`BillingManagement`) | `BE@dcb9c88e Areas/HealthServices/BillingManagement/Operational/Services/PatientBillingSummaryService.cs:88-93` | **Repair** | `PatientBillingSummaryService` membaca kelayakan secara terbalik dari `_dbContext.Set<InpFinancialClearance>()` milik Rawat Inap. Billing belum mengevaluasi status lunas invoice-nya sendiri untuk menentukan clearance. | Terjadi inkonsistensi status pulang pasien jika status tagihan di kasir sudah lunas tetapi data rawat inap belum di-update manual. |
+| `CAP-BIL-08` | **Penerbitan Sinyal Handoff Clearance ke Rawat Inap** (`BKC-DEC-117`) | Billing & Rawat Inap | `BE@dcb9c88e Areas/HealthServices/BillingManagement/Billing/Services/BilConsumerHandoffService.cs:184-360`<br>`FE@fdebb9059 src/components/view/health-services/billing-management/consumer-handoffs/consumer-handoffs-view.jsx:45-60` | **Extend** | Handoff service dan tampilan antarmuka kasir saat ini hanya mengenal tipe handoff `collection` (Finance) dan `prescription` (Pharmacy). Belum ada tipe `inpatient` (Rawat Inap) untuk clearance dan auto-reblock. | Bangsal rawat inap tidak menerima pemberitahuan otomatis saat kasir membatalkan kelayakan (*revoked*) akibat tagihan susulan. |
+| `CAP-BIL-09` | **Konsolidasi Tagihan Alihan IGD ke Rawat Inap** (`BKC-DEC-118`) | Billing & Kasir | `BE@dcb9c88e Areas/HealthServices/BillingManagement/Billing/Services/BillingSettlementService.cs:500-600` | **Extend** | Settlement kasir saat ini beroperasi per invoice/folio tunggal. Belum ada alur checkout multi-folio non-destruktif untuk melunasi tagihan IGD dan Ranap sekaligus dalam satu kali pembayaran. | Pasien harus mengantre dua kali di loket kasir berbeda atau kasir kesulitan menutup billing encounter secara terpadu. |
+| `CAP-BIL-10` | **Antarmuka Kasir untuk Informasi Rawat Inap** | Frontend Billing | `FE@fdebb9059 src/utils/health-services/billing-management/patient-billing-summary-utils.js:109-115`<br>`FE@fdebb9059 src/components/view/health-services/billing-management/consumer-handoffs/consumer-handoffs-view.jsx` | **Extend** | Frontend kasir sudah siap merender status clearance pasif dari response summary, namun belum memiliki tab/filter consumer handoffs khusus rawat inap dan modal pemicu evaluasi ulang kelayakan. | Kasir tidak dapat melihat daftar pasien rawat inap yang menunggu persetujuan pemulangan secara terpusat. |
+
+---
+
+### 22.3 Fakta, Inferensi, dan Rekomendasi
+
+**Fakta (Facts):**
+1. **Dukungan In-Process vs Outbox Event:** Modul Billing di `BillingCalculationService.CalculateRoomChargeAsync` saat ini membaca tabel Rawat Inap (`InpEpisode` dan `InpBedPlacement`) secara langsung in-process melalui `DbContext`. Sementara itu, modul Rawat Inap telah membangun `InpIntegrationOutbox` yang memancarkan event `BED_OCCUPIED` dengan kunci `INPATIENT:ROOM_STAY:{placementId}:{version}`.
+2. **Keterbatasan Adapter:** `ContractBillingChargeSourceAdapter.cs` membatasi domain secara ketat melalui `SourcePolicies`. Jika Rawat Inap menembak endpoint `POST /invoices/from-source` dengan `SourceDomain = "INPATIENT"` atau `"ROOM_STAY"`, request akan ditolak dengan galat validasi 422.
+3. **Admin Fee Model:** `MstAdministrationFeePolicy` dan tabel database-nya saat ini belum memiliki kolom `Percentage` maupun `CapAmount`, sehingga penetapan 7% maksimal Rp 6.000.000 menuntut perluasan skema model EF dan migrasi database.
+4. **Inverted Source of Truth:** `PatientBillingSummaryService.cs` baris 88 mengekstrak kelayakan dari `InpFinancialClearance`. Ini membuktikan bahwa Billing saat ini belum menjadi pemilik mandiri atas status kelayakan keuangan pemulangan.
+5. **Pola Handoff Terbukti:** Billing sudah memiliki arsitektur handoff yang matang untuk Farmasi (`BilPrescriptionClearanceHandoff` dan `BilConsumerHandoffService`), sehingga penambahan handoff rawat inap dapat mereplikasi pola yang sama persis tanpa menciptakan paradigma baru.
+
+**Inferensi (Inferences):**
+1. Karena Billing sudah membaca `InpBedPlacement` secara in-process saat kalkulasi invoice berjalan, implementasi `Room Charge Engine` paling aman dan efisien adalah dengan **memperkaya method `CalculateRoomChargeAsync` yang sudah ada** dengan logika jam masuk (`BKC-DEC-114`) dan pro-rata transfer kamar (`BKC-DEC-115`), sekaligus mendaftarkan domain `ROOM_STAY` pada `ContractBillingChargeSourceAdapter` untuk mendukung rekonsiliasi berbasis event outbox.
+2. Anomali pembacaan `InpFinancialClearance` di `PatientBillingSummaryService` dapat diperbaiki dengan mengarahkan kalkulasi kelayakan langsung ke status outstanding invoice dan saldo deposit Billing itu sendiri (`outstanding == 0` dan tidak ada blocker aktif).
+
+**Rekomendasi (Recommendations):**
+1. **Lanjut ke `/design-business-module`:** Seluruh bukti teknis as-is dan kesenjangannya telah dipetakan secara tuntas. Tidak ada blocker investigasi yang tersisa.
+2. **Perluas Model EF `MstAdministrationFeePolicy`:** Tambahkan kolom nullable `Percentage` (decimal) dan `CapAmount` (decimal) pada konfigurasi EF dan DTO master data untuk mengakomodasi `BKC-DEC-113`.
+3. **Replikasi Pola Handoff Farmasi ke Rawat Inap:** Buat entitas `BilInpatientClearanceHandoff` dan integrasikan ke dalam `BilConsumerHandoffService` saat settlement lunas (`CLEARED`) atau saat timbul tagihan susulan (`REVOKED`).
+4. **Perbaiki `PatientBillingSummaryService`:** Hapus dependensi query ke `InpFinancialClearance` dan gantikan dengan evaluasi status pembayaran internal Billing.
+
+---
+
+### 22.4 Pertanyaan Penutup untuk `/design-business-module`
+
+| ID | Pertanyaan Penutup Desain | Pemilik Jawaban | Status |
+|:---|:---|:---|:---:|
+| `BKC-CQ-02` | Apakah penerimaan room charge dari Rawat Inap akan murni dihitung in-process melalui `CalculateRoomChargeAsync` saat kalkulasi invoice, ataukah outbox event `BED_OCCUPIED` dari Rawat Inap tetap harus dipersist sebagai `BilInvoiceItem` tersendiri di database Billing? | Tech Lead / Domain Architect | Terbuka untuk diputuskan saat desain arsitektur |
+| `BKC-CQ-03` | Untuk pengkreditan biaya administrasi rajal yang sudah dibayar di kasir poli (`BKC-DEC-119`), apakah nominal tersebut dicatat sebagai `BilPaymentAllocation` bertipe kredit ataukah mengurangi nilai dasar hitungan administrasi ranap secara langsung? | Billing / Finance Architect | Terbuka untuk diputuskan saat desain arsitektur |
+
+
+## 23. Impact Scan 24 September 2026 — Verifikasi Source Revisi UI Billing (`BUI-DEC-001`–`013`)
+
+| Field | Nilai |
+|---|---|
+| Backend SHA diaudit | `505d8d78` (branch `Yasmina`) |
+| Frontend SHA diaudit | `b3f45db7b` (branch `yasmina`) |
+| Dasar Keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) — Amendment 24 September 2026, `BUI-DEC-001`–`013` |
+| Metode Audit | `rg`/`grep` terarah lalu pembacaan langsung file backend (ASP.NET Core: DTO, service, controller) dan frontend (Next.js App Router: view, hook, komponen bersama). Tidak ada modifikasi kode aplikasi |
+
+### 23.1 Ringkasan Satu Kalimat
+
+Temuan paling penting pass ini: rumpun **Edit Tagihan & Perbandingan Penjamin** (`MPY-DES-*`, dibangun sebelumnya) sudah menyediakan hampir seluruh data yang dibutuhkan 5 dari 13 keputusan (`BUI-DEC-004`/`005`/`006`/`007`, dan rumpun **Refund** sudah menyediakan **seluruhnya** untuk `BUI-DEC-011`/`012`) — tetapi frontend belum memakainya sama sekali di beberapa titik, dan pada satu titik (`BUI-DEC-007`) backend **sudah berjalan dengan aturan yang berbeda** dari yang baru saja dikunci owner.
+
+### 23.2 Tabel Bukti Kemampuan
+
+| ID | Kebutuhan | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap/adapter | Risiko |
+|---|---|---|---|:---:|---|---|
+| `CAP-BUI-01` | Filter Tanggal Awal/Akhir (`BUI-DEC-001`) | Billing FE | `BE@505d8d78 Areas/HealthServices/BillingManagement/Billing/Dtos/BillingInvoiceDtos.cs#BillingInvoiceQuery` — sudah punya `StartDate`, `EndDate` (juga `VisitDateFrom/To`, `Period`, `PeriodPreset`) | **Ready to reuse** | Backend nol perubahan. Frontend (`billing-invoices-view.jsx` via `billing-invoices-client.jsx`) tinggal menambah dua input tanggal dan mengirim sebagai query param yang sudah diterima endpoint `GET /invoices` | Rendah |
+| `CAP-BUI-02` | Default invoice hari ini status `OPEN` (`BUI-DEC-002`) | Billing FE | Sama seperti `CAP-BUI-01` — `Status` dan `StartDate`/`EndDate` di query yang sama | **Ready to reuse** | Murni nilai state awal (`StartDate=EndDate=hari ini, Status="OPEN"`) sebelum filter pertama diterapkan pengguna | Rendah |
+| `CAP-BUI-03` | Label "Drug" → "Obat / Medicine" (`BUI-DEC-003`) | Billing FE | `FE@b3f45db7b src/components/view/health-services/billing-management/billing-invoices/edit-tagihan/edit-tagihan-view.jsx` — 1 kemunculan kata "Drug" berdiri sendiri ditemukan pada pencarian bertarget `view/`+`app/` | **Extend** | Pencarian ini **hanya mencakup** folder `components/view` dan `app` dengan word-boundary `\bDrug\b` (tidak menangkap identifier seperti `DrugName` yang memang bukan teks tampilan). Sebelum implementasi, MUST disisir ulang menyeluruh (termasuk `hooks/`, `utils/`, konstanta label) supaya tidak ada yang terlewat | Rendah — murni string, tapi cakupan pencarian pass ini belum menyeluruh |
+| `CAP-BUI-04` | Perbandingan hanya tampilkan Insurance provider (`BUI-DEC-004`) | Billing BE+FE | `BE@505d8d78 .../Billing/Services/BillingPayerEditService.cs#BuildAvailablePayerOptionsAsync` (baris ~1355-1460) — `AvailablePayerOptions` (dari `GET /{id}/edit-context`) mengembalikan **CASH + seluruh kartu INSURANCE + seluruh kartu COMPANY_GUARANTOR** tercampur, ditandai `PayerType` per baris | **Extend** | Backend TIDAK memfilter menurut jenis. Frontend (`edit-asuransi-panel.jsx` → `BasePayerCategorySelector`, `panel.optionsForSelectedCategory`) MUST menyaring daftar kandidat ke `PayerType == "INSURANCE"` saja sebelum dirender pada langkah perbandingan | Rendah — penyaringan sisi klien atas data yang sudah lengkap |
+| `CAP-BUI-05` | Asuransi aktif dikecualikan dari pembanding (`BUI-DEC-005`) | Billing BE | `BE@505d8d78 .../BillingPayerEditService.cs` baris 1374-1382, komentar eksplisit `// Requirement 5: Jika pasien sudah menggunakan asuransi (misal Allianz), maka Allianz tidak boleh muncul sebagai pilihan pembanding.` | **Ready to reuse** | **SUDAH DIBANGUN SEBELUMNYA**, identik dengan `BUI-DEC-005`. Backend mem-`continue` (skip) kartu asuransi yang `InsuranceProviderId`-nya sama dengan payer aktif kunjungan. Nol pekerjaan backend maupun frontend tambahan — frontend otomatis benar begitu memakai `AvailablePayerOptions` apa adanya | Nihil |
+| `CAP-BUI-06` | Payment method satu baris horizontal (`BUI-DEC-006`) | Billing FE | `FE@b3f45db7b .../base-payer-workspace.jsx#BasePayerCategorySelector` + `.../base-payer-workspace.module.css` baris 13-20 — `.categorySelector { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }` | **Extend** | Layout SEKARANG adalah grid **2 kolom** (3 kategori akan pecah jadi 2+1, bukan vertikal bertumpuk seperti dugaan awal, dan juga bukan satu baris). Perbaikan: ubah `grid-template-columns` jadi `repeat(3, minmax(0, 1fr))` — **hanya 1 konsumen** komponen ini di seluruh frontend (`edit-asuransi-panel.jsx`), jadi perubahan CSS aman tanpa merusak layar lain | Rendah, tapi verifikasi 1-konsumen ini MUST dicek ulang saat implementasi bila ada penambahan pemakai baru |
+| `CAP-BUI-06b` | Field `PaymentMethodRow` — kandidat lain untuk kebutuhan yang sama | Billing BE | `BE@505d8d78 .../Dtos/BillingPayerEditDtos.cs#PaymentMethodRow` + komentar service persis `// Payment Method satu struktur row: [ Tunai ] [ Asuransi ] [ Penjamin Perusahaan ]` (baris ~223) | **Unknown — perlu keputusan desain** | Field `PaymentMethodRow` (3 baris: `Code`, `Label` Indonesia yang sudah pas, `IsSelected`, `IsEnabled`) ADA di response `GET /{id}/edit-context` tapi **frontend TIDAK PERNAH memakainya** (dicek: nol kemunculan `paymentMethodRow` di `edit-tagihan-view.jsx` maupun `edit-asuransi-panel.jsx`). Komentarnya secara harfiah menyebut format satu baris yang diminta `BUI-DEC-006` — sangat mungkin field inilah yang **dimaksudkan** sebagai sumber data untuk kebutuhan ini, BUKAN `BasePayerCategorySelector`/`categories` yang dipakai sekarang | Sedang — dua sumber data (`categories` dari hook vs `PaymentMethodRow` dari server) yang tumpang tindih secara konsep; MUST dipilih SATU saat desain, jangan render dari keduanya sekaligus |
+| `CAP-BUI-07` | Default status tagihan ikut coverage (`BUI-DEC-007`) | Billing BE | `BE@505d8d78 .../BillingPayerEditService.cs` baris 118-147, `suggestedBillingStatus` — `(anyItemCoveredByInsurance ? "INSURANCE" : "CASH")` | **Conflict** | Lihat 23.4 — aturan yang SUDAH BERJALAN adalah "cukup SATU item tercover → default Asuransi", **bukan** "SELURUH item harus tercover" yang baru dikunci `BUI-DEC-007`. Contoh tunggal yang diberikan owner (nol item tercover → Pribadi) konsisten dengan KEDUA aturan sehingga tidak pernah membedakan keduanya sampai kode ini dibaca langsung | **Tinggi** — salah pilih berarti piutang salah klasifikasi; MUST diputuskan owner sebelum desain mengunci perilaku ini |
+| `CAP-BUI-08` | Card Billing/Status Tagihan compact (`BUI-DEC-008`) | Billing FE | Tidak dicari mendalam — murni tata letak komponen existing, tidak membutuhkan data baru | **Ready to reuse** | Nol dependency data; murni CSS/markup penataan ulang komponen yang sudah ada | Rendah |
+| `CAP-BUI-09` | Catatan Penting timeline lintas modul (`BUI-DEC-009`) | Lintas modul (Kiosk/Admisi/IGD/Rawat Inap) | Pencarian `PatientNote`/`ConsolidatedNote`/`PatientTimeline` di seluruh `Areas/HealthServices/**/*.cs` — nol hasil | **Missing** | Tidak ditemukan satu pun endpoint yang mengonsolidasikan note pasien lintas tahap kunjungan. Mewujudkan poin 9 **persis seperti dispesifikasikan** (note dari Kiosk→Admisi→IGD→Rawat Inap dalam satu timeline) menuntut **kemampuan backend baru** — ini KELUAR dari batas scope frontend murni yang dikunci di `00-interview-decisions.md` bagian "Di luar scope" pass ini | Sedang — berisiko scope creep bila dipaksakan tanpa mengubah batas pass |
+| `CAP-BUI-10` | Upload Memo Dokter TTD (`BUI-DEC-010`) | Billing BE+FE | `BE@505d8d78 .../Dtos/BillingDiscountDtos.cs#ApplyDiscountRequest.DoctorDiscountMemoFile` (`string?`, `MaxLength(500)`, **bukan** `[Required]`) — field SUDAH ADA juga di `ApproveDiscountRequest`, `DiscountResponse`, `DoctorDiscountApprovalResponse` | **Extend** | Field string sudah ada di kontrak, tapi (a) TIDAK ada `[Required]` di backend — validasi wajib murni tanggung jawab frontend sesuai `BUI-DEC-010`, dan backend **bisa dilewati** lewat panggilan API langsung; (b) **tidak ditemukan endpoint upload file apa pun di `BillingManagement`** (dicari `Attachment`/`Upload`/`MemoFile`, nol hasil) — tidak jelas bagaimana `File` menjadi `string` ini. Frontend sekarang (`menu-pembayaran-view.jsx`, form Apply Discount) TIDAK memakai field ini sama sekali | **Tinggi untuk mekanisme upload** — lihat 23.4, ini `BUI-CQ-01` |
+| `CAP-BUI-11` | Refundable credit hilang dari UI (`BUI-DEC-011`) | Billing FE | `FE@b3f45db7b .../detail/create-refund-modal.jsx` — modal SEKARANG memang menampilkan dropdown "Refundable Credit" tunggal (`refundableCredits`, `refundableCreditId`) sebagai **satu-satunya** cara memilih sumber refund | **Ready to reuse** (tidak perlu perubahan backend) | Modal ini akan digantikan bentuknya oleh `CAP-BUI-12` (dua sumber Billing/Deposito) — sehingga UI dropdown "Refundable Credit" lama otomatis tidak terpakai lagi begitu modal baru dipasang, bukan sesuatu yang perlu "disembunyikan" terpisah | Rendah |
+| `CAP-BUI-12` | Modal refund dua sumber: Billing (multi-select item) / Deposito (`BUI-DEC-012`) | Billing BE | `BE@505d8d78`: `Dtos/BillingRefundDtos.cs#CreateRefundRequest` (`RefundCategory: "BILLING"|"DEPOSITO"`, `SelectedBillingItemIds`), `#BillingRefundableItemResponse` (`BillingItemId`,`ItemName`,`Qty`,`Amount`,`RefundableAmount`), `#RemainingDepositResponse` (`RemainingDepositAmount`); `Controllers/BillingInvoicesController.cs:788` `GET {id}/refundable-items`, `:805` `GET {id}/remaining-deposit`, `:822` `POST {id}/refunds` | **Extend** | **Backend SUDAH mendukung SELURUH kebutuhan bisnis poin 12** — dua sumber, multi-select item, sisa deposito otomatis. Frontend (`create-refund-modal.jsx`) sekarang sama sekali TIDAK memakai `RefundCategory`, `SelectedBillingItemIds`, endpoint `refundable-items`, maupun `remaining-deposit` — modal ini murni dropdown "Refundable Credit" tunggal + input nominal manual, model interaksi yang berbeda dari yang diminta. **Satu gap nyata**: `BillingRefundableItemResponse` **tidak punya kolom Tanggal** yang diminta datatable poin 12 (hanya `BillingItemId`,`ItemName`,`Qty`,`Amount`,`RefundableAmount`) — perlu ditambahkan (kemungkinan `item.CreateDateTime` atau tanggal layanan dari `BilInvoiceItem`, service sudah meng-`Include` item ini jadi datanya ada, tinggal diproyeksikan) | Rendah — ini murni "frontend belum mengejar backend", risiko implementasi kecil |
+| `CAP-BUI-13` | Pindah tombol Refund/Adjustment/Write-off ke Riwayat Pembayaran (`BUI-DEC-013`) | Billing FE | Sumber: `FE@b3f45db7b .../billing-invoices/menu-pembayaran/menu-pembayaran-view.jsx` (satu-satunya pemakai `BillingFinancialExceptionPanel` beserta `openRefund`/`openAdjustment`/`openWriteOff` dari `use-billing-financial-exception.js`). Target: `.../billing-invoices/payment-history-view.jsx` — SUDAH punya kolom `key: "actions"` tapi **untuk keperluan berbeda** (header "Kwitansi" — cetak struk, baris ~197-216), bukan refund/adjustment/write-off | **Extend** | "Halaman detail lama" yang dimaksud owner = **Menu Pembayaran** (bukan halaman "detail invoice" generik). Modal-modal (`create-refund-modal.jsx`, `create-adjustment-modal.jsx`, dan padanan write-off) SUDAH ADA dan bisa dipakai ulang; yang perlu dipindah adalah pemicu (tombol) dan pengambilalihan hook `use-billing-financial-exception.js` oleh halaman Riwayat Pembayaran, TANPA mengganggu kolom "Kwitansi" yang sudah ada di sana | Rendah — relokasi UI murni, logika tidak berubah |
+
+### 23.3 Fakta, Inferensi, Rekomendasi
+
+**Fakta:**
+1. Rumpun "Edit Tagihan & Multi-Payer Coverage" (`MPY-DES-001`–`017`, dibangun atas amendment 11 September 2026) sudah membangun **hampir seluruh** data yang dibutuhkan `BUI-DEC-004`–`007`, termasuk satu baris komentar kode yang secara harfiah menyebut "Requirement 5" (persis nomor urut permintaan owner hari ini) — kuat mengindikasikan kebutuhan poin 4-7 sebagian **sudah pernah diminta dan sebagian sudah dikerjakan** pada rumpun itu, bukan sepenuhnya kebutuhan baru.
+2. Rumpun Refund (`BillingRefundService`, kontrak `CreateRefundRequest.RefundCategory`) sudah 100% mendukung model dua-sumber yang diminta `BUI-DEC-012` — frontend-nya yang tertinggal, bukan backend-nya.
+3. `PaymentMethodRow` (DTO) dan `BasePayerCategorySelector` (komponen) adalah **dua jalur berbeda** yang sama-sama bisa dipakai untuk kebutuhan `BUI-DEC-006`, dan keduanya BELUM disatukan.
+4. `suggestedBillingStatus` pada `BillingPayerEditService.cs:145` menghitung "ANY item tercover → Asuransi", bukan "ALL item tercover → Asuransi" yang baru dikunci `BUI-DEC-007`.
+
+**Inferensi:**
+1. Karena `AvailablePayerOptions` sudah mengembalikan `PayerType` per baris dan sudah mengecualikan asuransi aktif, `BUI-DEC-004` dan `BUI-DEC-005` paling aman diimplementasikan sebagai **filter sisi klien murni** atas data yang sudah benar — tidak perlu menyentuh backend sama sekali.
+2. Karena `PaymentMethodRow` sudah dihitung server dengan `IsSelected` yang mengikuti `effectivePaymentType` (turunan `suggestedBillingStatus`), memakai field ini untuk `BUI-DEC-006` akan **otomatis mewarisi** konflik `BUI-DEC-007` — dua keputusan ini SALING TERKAIT dan MUST diputuskan bersamaan, bukan terpisah.
+3. Karena modal refund lama (`create-refund-modal.jsx`) dan modal baru yang dibutuhkan (`BUI-DEC-012`) punya model interaksi yang sepenuhnya berbeda (dropdown tunggal vs radio dua-sumber + datatable), ini kemungkinan besar adalah **penggantian isi modal**, bukan penambahan kecil pada modal yang ada.
+
+**Rekomendasi:**
+1. **Lanjut ke `/design-business-module`** untuk seluruh keputusan yang berstatus `Ready to reuse`/`Extend` (`BUI-DEC-001`,`002`,`003`,`004`,`005`,`008`,`009` dengan catatan pengecilan scope,`011`,`012`,`013`). Tidak ada yang memblokirnya.
+2. **`BUI-DEC-006` dan `BUI-DEC-007` MUST ditahan** dari desain sampai closure question 23.4 dijawab — keduanya berbagi satu sumber data (`PaymentMethodRow`/`suggestedBillingStatus`) yang perilakunya sedang disengketakan.
+3. **`BUI-DEC-009`** (Catatan Penting) direkomendasikan **dipersempit** pada pass desain: tampilkan timeline dari sumber data yang **sudah ada** per modul (bila ada) tanpa menjanjikan agregasi lintas Kiosk/Admisi/IGD/Rawat Inap yang menuntut endpoint baru — atau eksplisit ditandai sebagai dependency backend terpisah, bukan dikerjakan diam-diam di luar batas scope frontend.
+4. **`BUI-DEC-010`** (memo dokter): validasi wajib sisi frontend AMAN dilanjutkan ke desain sekarang. Mekanisme upload file sesungguhnya (`BUI-CQ-01`) TIDAK memblokir desain — desain boleh menetapkan kontraknya sebagai `TBD: endpoint upload`, dengan implementasi menunggu jawabannya.
+
+### 23.4 Conflict — Wajib Diputuskan Owner Sebelum Desain
+
+> **Ini BUKAN keluhan tentang keputusan Anda di `/grill-me`.** Contoh yang Anda berikan (pasien
+> Allianz, semua item tidak tercover → default Pribadi) benar dan konsisten dengan pilihan yang
+> Anda pilih. Yang baru terlihat SEKARANG, dari membaca kode langsung, adalah bahwa contoh itu
+> **tidak cukup membedakan** dua aturan yang berbeda — dan backend yang SUDAH BERJALAN
+> ternyata memakai yang berbeda dari yang Anda kunci.
+
+**Dua aturan yang bersaing:**
+
+| | Aturan yang Anda kunci (`BUI-DEC-007`) | Aturan yang SUDAH BERJALAN di backend |
+|---|---|---|
+| Bunyi | Default Asuransi **hanya jika SELURUH** item tercover | Default Asuransi **jika SATU SAJA** item tercover |
+| Kode | — | `BillingPayerEditService.cs:145`, `anyItemCoveredByInsurance` |
+| Skenario nol item tercover | → Pribadi | → Pribadi (**sama**) |
+| Skenario seluruh item tercover | → Asuransi | → Asuransi (**sama**) |
+| Skenario SEBAGIAN tercover (mis. 2 dari 5 item) | → **Pribadi** | → **Asuransi** (**BEDA**) |
+
+Contoh konkret: tagihan 5 item, Allianz menanggung 2 item (obat), 3 item (tindakan) tidak
+ditanggung. Aturan Anda → default **Pribadi**. Aturan yang sudah berjalan → default
+**Asuransi**. Selisihnya bukan nol — inilah kasus yang paling sering terjadi pada asuransi
+swasta (coverage per kategori layanan), bukan kasus tepi.
+
+**Pertanyaan penutup:**
+
+| ID | Pertanyaan | Pemilik jawaban | Memblokir |
+|---|---|---|:---:|
+| `BUI-CQ-02` | Kasus coverage SEBAGIAN (bukan nol, bukan semua): default status yang benar Pribadi atau Asuransi? | Yasmin | `BUI-DEC-006`, `BUI-DEC-007` |
+| `BUI-CQ-03` | Bila jawabannya "Pribadi" (aturan yang baru Anda kunci): backend `BillingPayerEditService.cs:145` MUST diubah — apakah ini diotorisasi sebagai bagian pass ini (menambah backend murni-logika, TANPA skema/endpoint baru), atau ditunda sebagai dependency backend terpisah dan frontend sementara mengikuti perilaku backend yang ADA (aturan "any")? | Yasmin + Backend Owner | `BUI-DEC-007` |
+| `BUI-CQ-04` | `PaymentMethodRow` (server, sudah dihitung, label Indonesia sudah pas) atau `BasePayerCategorySelector`/`categories` (client, sedang dipakai) — mana yang jadi sumber data untuk 3 tombol horizontal `BUI-DEC-006`? | Backend/Frontend Owner (keputusan teknis, bukan bisnis) | `BUI-DEC-006` |
+| `BUI-CQ-05` (dahulu `BUI-OQ-02`) | Catatan Penting: lanjut dengan cakupan dipersempit (sumber yang sudah ada saja), atau tetap minta agregasi lintas modul sebagai dependency backend terpisah? | Yasmin | `BUI-DEC-009` — tidak memblokir keputusan lain |
+| `BUI-CQ-06` (dahulu `BUI-OQ-01`) | Endpoint upload untuk Memo Dokter TTD: pakai mekanisme baru khusus Billing, atau ada mekanisme umum yang belum ditemukan pass ini? | Backend Owner | Implementasi `BUI-DEC-010`, bukan desainnya |
+
+`BUI-OQ-03`, `BUI-OQ-04`, `BUI-OQ-05` (dari amendment interview) dinyatakan **tertutup** oleh
+pass ini: `BUI-OQ-03` dijawab `CAP-BUI-07` (coverage per-item memang sudah dikirim server,
+tapi aturan pemakaiannya yang disengketakan — jadi ditutup sebagai fakta, dibuka lagi sebagai
+`BUI-CQ-02`), `BUI-OQ-04` dijawab `CAP-BUI-04` (daftar berisi seluruh provider di master data
+pasien, bukan hanya yang berkontrak — filter yang diminta murni soal `PayerType`, tidak
+menyentuh soal kontrak aktif provider), `BUI-OQ-05` dijawab `CAP-BUI-12` (kontrak refund sudah
+sepenuhnya kompatibel, nol penyesuaian backend diperlukan).

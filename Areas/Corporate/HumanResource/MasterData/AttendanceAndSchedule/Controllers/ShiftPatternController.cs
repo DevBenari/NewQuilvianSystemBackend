@@ -111,7 +111,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
             ,"Pilihan berhasil diambil."));
         }
 
-        [HttpGet("{id:guid}")] public async Task<IActionResult> GetShiftPatternById(Guid id,CancellationToken ct)
+        [HttpGet("{id:guid}")]
+    [AccessAction("Read","Read ShiftPattern",AccessType=AccessTypes.Read,SortOrder=1)]
+    [AccessPermission("ShiftPattern","Read")]
+        public async Task<IActionResult> GetShiftPatternById(Guid id,CancellationToken ct)
         {
             var x=await BuildBaseQuery().FirstOrDefaultAsync(x=>x.Id==id,ct);
             if(x==null)return NotFound(ApiResponse<object>.Fail(404,"Data tidak ditemukan."));
@@ -141,7 +144,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
             return await GetShiftPatternById(e.Id,ct);
         }
 
-        [HttpPut("{id:guid}")] public async Task<IActionResult> UpdateShiftPattern(Guid id,[FromBody]UpdateShiftPatternRequest request,CancellationToken ct)
+        [HttpPut("{id:guid}")]
+    [AccessAction("Update","Update ShiftPattern",AccessType=AccessTypes.Update,SortOrder=3)]
+    [AccessPermission("ShiftPattern","Update")]
+        public async Task<IActionResult> UpdateShiftPattern(Guid id,[FromBody]UpdateShiftPatternRequest request,CancellationToken ct)
         {
             var e=await _dbContext.MstShiftPatterns.FirstOrDefaultAsync(x=>x.Id==id&&!x.IsDelete,ct);
             if(e==null)return NotFound(ApiResponse<object>.Fail(404,"Data tidak ditemukan."));
@@ -160,7 +166,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
             return await GetShiftPatternById(id,ct);
         }
 
-        [HttpPatch("{id:guid}/status")] public async Task<IActionResult> UpdateShiftPatternStatus(Guid id,[FromBody]UpdateShiftPatternStatusRequest request,CancellationToken ct)
+        [HttpPatch("{id:guid}/status")]
+    [AccessAction("Update","Update ShiftPattern",AccessType=AccessTypes.Update,SortOrder=3)]
+    [AccessPermission("ShiftPattern","Update")]
+        public async Task<IActionResult> UpdateShiftPatternStatus(Guid id,[FromBody]UpdateShiftPatternStatusRequest request,CancellationToken ct)
         {
             var e=await _dbContext.MstShiftPatterns.FirstOrDefaultAsync(x=>x.Id==id&&!x.IsDelete,ct);
             if(e==null)return NotFound(ApiResponse<object>.Fail(404,"Data tidak ditemukan."));
@@ -171,7 +180,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
             return Ok(ApiResponse<object>.Ok(null,"Status berhasil diperbarui."));
         }
 
-        [HttpDelete("{id:guid}")] public async Task<IActionResult> DeleteShiftPattern(Guid id,CancellationToken ct)
+        [HttpDelete("{id:guid}")]
+    [AccessAction("Delete","Delete ShiftPattern",AccessType=AccessTypes.Delete,SortOrder=4)]
+    [AccessPermission("ShiftPattern","Delete")]
+        public async Task<IActionResult> DeleteShiftPattern(Guid id,CancellationToken ct)
         {
             var e=await _dbContext.MstShiftPatterns.FirstOrDefaultAsync(x=>x.Id==id&&!x.IsDelete,ct);
             if(e==null)return NotFound(ApiResponse<object>.Fail(404,"Data tidak ditemukan."));

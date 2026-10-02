@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using QuilvianSystemBackend.Responses;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 {
@@ -178,6 +179,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public bool IsReadyWithOverride { get; set; }
 
         public List<ClosureConditionResponse> Conditions { get; set; } = new();
+
+        /// <summary>
+        /// Peringatan yang perlu diketahui petugas sebelum menutup, dan yang <b>tidak</b>
+        /// mempengaruhi <see cref="IsReady"/> maupun <see cref="IsReadyWithOverride"/> sama
+        /// sekali. Ditambahkan <c>BE-RWI-084</c> untuk <c>FR-RI-201</c>.
+        /// </summary>
+        /// <remarks>
+        /// <b>Daftar ini tidak pernah boleh dibaca sebagai syarat.</b> Seluruh
+        /// <c>VAL-INP-13</c> sampai <c>VAL-INP-17</c> bersifat peringatan — roadmap
+        /// <c>BE-RWI-084</c> acceptance criteria 2. Layar yang mematikan tombol tutup karena
+        /// daftar ini tidak kosong sedang menegakkan aturan yang sengaja tidak dibuat.
+        /// </remarks>
+        public List<ClosureWarningResponse> Warnings { get; set; } = new();
     }
 
     /// <summary>Bentuk permintaan menutup episode.</summary>
@@ -220,5 +234,155 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         [MaxLength(500)]
         public string? Note { get; set; }
+    }
+
+    /// <summary>
+    /// Satu peringatan penutupan episode: keadaan yang perlu diketahui petugas sebelum menekan
+    /// tutup, tetapi <b>tidak</b> menahan penutupannya. <c>BE-RWI-084</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Bentuknya sengaja berbeda dari <see cref="ClosureConditionResponse"/>.</b> Syarat
+    /// punya <c>IsSatisfied</c> dan menahan; peringatan punya <c>Count</c> dan tidak pernah
+    /// menahan. Memakai satu bentuk untuk keduanya membuat layar hanya perlu salah membaca satu
+    /// field untuk mengubah peringatan menjadi penghalang — dan pasien yang sudah pulang
+    /// tertahan di sistem karena sebuah konsep catatan yang belum ditandatangani.
+    /// </remarks>
+    public class ClosureWarningResponse
+    {
+        /// <summary>Penanda peringatan; lihat <c>ClosureWarningCode</c>.</summary>
+        public string Code { get; set; } = string.Empty;
+
+        /// <summary>Banyaknya hal yang terdampak.</summary>
+        public int Count { get; set; }
+
+        /// <summary>Kalimat sebagaimana dibaca petugas di layar.</summary>
+        public string Message { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Rincian singkat per butir, bila ada. Tidak pernah memuat isi klinis — permission
+        /// matrix bagian 5.4.
+        /// </summary>
+        public List<string> Details { get; set; } = new();
+
+        /// <summary>
+        /// Benar bila angkanya benar-benar dihitung dari sumbernya. Bernilai salah ketika sumber
+        /// yang bersangkutan belum tersedia pada repository ini; <see cref="Count"/> kemudian
+        /// bernilai <c>0</c> karena <b>belum terbaca</b>, bukan karena tidak ada.
+        /// </summary>
+        /// <remarks>
+        /// Perbedaan ini wajib terlihat. Angka nol yang berarti "tidak ada" dan angka nol yang
+        /// berarti "belum dapat dibaca" akan menuntun petugas pada dua keputusan yang berbeda,
+        /// dan layar tidak punya cara membedakannya tanpa field ini.
+        /// </remarks>
+        public bool IsMeasured { get; set; } = true;
+    }
+
+    /// <summary>
+    /// Akibat penutupan episode yang <b>benar-benar tersimpan</b>, bukan yang diperkirakan
+    /// sebelumnya. <c>BE-RWI-084</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Kenapa angkanya diambil dari hasil, bukan dari perkiraan.</b> Antara layar
+    /// menampilkan peringatan dan petugas menekan tutup, seorang dokter dapat menandatangani
+    /// konsepnya. Menyalin angka perkiraan ke dalam ringkasan akibat akan membuat layar
+    /// melaporkan sebuah penguncian yang tidak pernah terjadi — roadmap <c>BE-RWI-084</c>
+    /// acceptance criteria 3.
+    /// </remarks>
+    public class ClosureSideEffectsResponse
+    {
+        /// <summary>Konsep catatan dokter yang terkunci menjadi "Tidak Ditandatangani".</summary>
+        public int LockedDraftCount { get; set; }
+
+        /// <summary>Pesanan tindakan tertunda belum ditagih yang dibatalkan.</summary>
+        public int CancelledProcedureOrderCount { get; set; }
+
+        /// <summary>
+        /// Pesanan tindakan tertunda <b>sudah ditagih</b> yang sengaja <b>tidak</b> dibatalkan
+        /// dan kini menunggu tindak lanjut bersama Billing.
+        /// </summary>
+        public int BilledPendingProcedureOrderCount { get; set; }
+
+        /// <summary>Dosis obat berjadwal setelah waktu tutup yang dibatalkan.</summary>
+        public int CancelledFutureDoseCount { get; set; }
+
+        /// <summary>
+        /// Langkah penutupan yang <b>belum terpasang</b> pada rilis ini beserta sebabnya. Dibaca
+        /// layar supaya ringkasan akibat tidak menyatakan "0 pesanan dibatalkan" untuk langkah
+        /// yang sebenarnya belum berjalan sama sekali.
+        /// </summary>
+        public List<string> NotYetWiredSteps { get; set; } = new();
+    }
+
+    /// <summary>Penyaring daftar pantau pesanan tindakan tertagih yang tidak dibatalkan.</summary>
+    public class BilledPendingProcedureOrderQuery
+    {
+        public Guid? ServiceUnitId { get; set; }
+
+        /// <summary>Batas bawah waktu penutupan episode.</summary>
+        public DateTime? ClosedFrom { get; set; }
+
+        /// <summary>Batas atas waktu penutupan episode.</summary>
+        public DateTime? ClosedTo { get; set; }
+
+        public int PageNumber { get; set; } = 1;
+
+        public int PageSize { get; set; } = 25;
+    }
+
+    /// <summary>
+    /// Satu pesanan tindakan yang masih tertunda, sudah ditagih, dan episodenya sudah ditutup.
+    /// <c>BE-RWI-083</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Daftar ini ada justru karena pesanannya sengaja tidak disentuh.</b> Membatalkan
+    /// pesanan yang uangnya sudah masuk tagihan berarti menghapus dasar sebuah tagihan tanpa ada
+    /// yang memutuskannya — <c>RWI-DEC-143</c> (c). Yang dilakukan sistem adalah
+    /// <b>memunculkannya</b>, supaya ada orang yang menindaklanjutinya bersama Billing. Apa
+    /// tindak lanjut itu belum diputuskan; <c>04-prd-to-mvp.md</c> 22.7 nomor 1 masih terbuka.
+    /// </remarks>
+    public class BilledPendingProcedureOrderItem
+    {
+        public Guid ProcedureId { get; set; }
+
+        public string? ProcedureCode { get; set; }
+
+        public string? ProcedureName { get; set; }
+
+        public int ProcedureStatus { get; set; }
+
+        public string ProcedureStatusName { get; set; } = string.Empty;
+
+        public Guid EpisodeId { get; set; }
+
+        public string? EpisodeNumber { get; set; }
+
+        public Guid PatientId { get; set; }
+
+        public string? PatientName { get; set; }
+
+        public string? MedicalRecordNumber { get; set; }
+
+        public Guid? ServiceUnitId { get; set; }
+
+        public string? ServiceUnitName { get; set; }
+
+        /// <summary>Dokter yang memesan tindakan ini.</summary>
+        public Guid OrderedByDoctorId { get; set; }
+
+        public string? OrderedByDoctorName { get; set; }
+
+        public DateTime OrderedAt { get; set; }
+
+        public DateTime? EpisodeClosedAt { get; set; }
+
+        /// <summary>Butir tagihan yang sudah terbentuk untuk pesanan ini, bila ada.</summary>
+        public Guid? BillingItemId { get; set; }
+
+        public DateTime? BillingGeneratedAt { get; set; }
+    }
+
+    /// <summary>Daftar pantau pesanan tindakan tertagih, bertingkat.</summary>
+    public class BilledPendingProcedureOrderPagedResult : PagedResult<BilledPendingProcedureOrderItem>
+    {
     }
 }

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.EmergencyInstallationManagement
@@ -26,6 +27,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Emerg
 
             builder.Property(x => x.RegistrationStatus).HasConversion<int>();
             builder.Property(x => x.VisitStatus).HasConversion<int>();
+            builder.Property(x => x.ArrivalTimeSource)
+                .HasConversion<int>()
+                .HasDefaultValue(EmergencyArrivalTimeSource.Unverified);
 
             builder.HasIndex(x => x.EmergencyVisitNumber).IsUnique();
             builder.HasIndex(x => x.EncounterId).IsUnique();
@@ -72,6 +76,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Emerg
             builder.HasOne(x => x.RegistrationCompletedByUser)
                 .WithMany()
                 .HasForeignKey(x => x.RegistrationCompletedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.ArrivalConfirmedByUser)
+                .WithMany()
+                .HasForeignKey(x => x.ArrivalConfirmedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasMany(x => x.Triages)

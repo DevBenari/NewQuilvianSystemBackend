@@ -4,8 +4,10 @@
 | --- | --- |
 | Blueprint | `IGD-BP-001` revision `5` |
 | Status | `draft` |
+| Encounter-first (22 September 2026) | Alur kunjungan pada dokumen ini **mendahului** `IGD-DEC-139`: di sini kunjungan masih digambar lahir di loket. Alur target kini: encounter lahir di loket, kunjungan lahir saat Mulai Triage/Tangani Segera — lihat [`flowcharts/00-alur-utama.md`](../flowcharts/00-alur-utama.md), `02-backend-architecture.md` §13, dan `data-dictionary.md` §6. Dokumen ini tidak ditulis ulang (susunan `erd/` dipertahankan atas keputusan pemilik 22 September 2026) |
 | Bounded context | Emergency Installation — kunjungan, triase, dan penetapan dokter |
-| Keputusan | `IGD-DEC-067`, `074`, `075`, `076`, `082`, `084` |
+| Keputusan | `IGD-DEC-067`, `074`, `075`, `076`, `082`, `084`, `116` |
+| Diselaraskan | 15 September 2026 — `TrxEmergencyDoctorAssignment` menjadi `EmgDoctorAssignment` (`IGD-DEC-116`). Nama entity lain pada dokumen ini masih nama rancangan sebelum prefix `Emg` 27 Agustus 2026 |
 
 ---
 
@@ -60,13 +62,13 @@ erDiagram
         string IndicatorCodeSnapshot "50"
         bool IsMatched
     }
-    TrxEmergencyDoctorAssignment {
+    EmgDoctorAssignment {
         uuid Id PK
         uuid EmergencyVisitId FK
         uuid DoctorId FK
         datetime EffectiveFrom
         datetime EffectiveTo "nullable"
-        uuid AssignedByUserId FK
+        uuid AssignedByUserId FK "nullable, legacy only"
         string AssignmentReason "nullable, 500"
     }
     MstEmergencyTriageLevel {
@@ -90,7 +92,7 @@ erDiagram
     TrxEmergencyTriage ||--o{ TrxEmergencyTriageDetail : "indikator"
     TrxEmergencyTriage |o--o| TrxEmergencyTriage : "PreviousTriageId"
     TrxEmergencyTriage }o--|| MstEmergencyTriageLevel : "level"
-    TrxEmergencyVisit ||--o{ TrxEmergencyDoctorAssignment : "dokter"
+    TrxEmergencyVisit ||--o{ EmgDoctorAssignment : "dokter"
 ```
 
 ---
@@ -103,7 +105,7 @@ erDiagram
 | `TrxEmergencyVisit` | `Existing` | Emergency Installation | Tidak berubah |
 | `TrxEmergencyTriage` | `Existing` | Emergency Installation | Tidak berubah |
 | `TrxEmergencyTriageDetail` | `Existing` | Emergency Installation | Tidak berubah |
-| `TrxEmergencyDoctorAssignment` | `New` | Emergency Installation | Tabel baru |
+| `EmgDoctorAssignment` | `New` | Emergency Installation | Tabel baru (`IGD-DEC-116`) |
 | `MstEmergencyTriageLevel` | `Existing` | Master Data | Tidak berubah |
 | `MstPatientClass` | `Existing` | Master Data | Tidak berubah strukturnya; `IsForEmergency` mulai dipakai |
 

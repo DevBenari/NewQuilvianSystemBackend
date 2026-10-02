@@ -83,6 +83,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
 
         public bool IsUsedForRegistration { get; set; } = false;
 
+        /// <summary>
+        /// Layanan yang dituju pasien, dinyatakan olehnya sendiri di kiosk.
+        ///
+        /// Ditambahkan atas persetujuan lintas modul <c>LAB-REQ-006</c>, 2026-09-15.
+        ///
+        /// <b>Boleh kosong, dan itu disengaja.</b> Seluruh sesi yang dibuat sebelum ruas ini ada
+        /// tidak menyatakannya. Kolom wajib akan menggagalkan migration atau memaksa pengisian
+        /// tebakan atas sesi yang sudah benar-benar terjadi.
+        /// </summary>
+        public KioskServiceTarget? TargetService { get; set; }
+
+        /// <summary>
+        /// Apakah pasien membawa permintaan dokter, atau memeriksakan diri sendiri.
+        ///
+        /// Ditambahkan atas persetujuan lintas modul <c>LAB-REQ-006</c>, 2026-09-15. Kedua jalur
+        /// berbeda perlakuan sampai ke penjamin dan tagihan.
+        ///
+        /// Tiga keadaan, dan ketiganya bermakna: <c>true</c> membawa permintaan, <c>false</c>
+        /// memeriksakan diri sendiri, dan <c>null</c> <b>belum ditanyakan</b> — bukan sama dengan
+        /// <c>false</c>.
+        /// </summary>
+        public bool? HasPhysicianRequest { get; set; }
+
         public MstKioskDevice? KioskDevice { get; set; }
 
         public MstIdentityScannerProfile? IdentityScannerProfile { get; set; }

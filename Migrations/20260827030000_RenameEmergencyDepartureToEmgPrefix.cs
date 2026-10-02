@@ -6,8 +6,6 @@ using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260827030000_RenameEmergencyDepartureToEmgPrefix")]
     public partial class RenameEmergencyDepartureToEmgPrefix : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

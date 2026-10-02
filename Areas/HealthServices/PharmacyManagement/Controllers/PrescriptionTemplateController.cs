@@ -84,10 +84,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             [FromQuery] string? sortBy = "templateName",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 25)
+            [FromQuery] int pageSize = 25,
+            [FromQuery] string? ownerScope = null)
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
             var query = BuildBaseQuery().AsNoTracking();
+
+            // BE-RWI-105 / FR-DOK-089. ownerScope=Mine hanya template milik dokter login, TANPA template
+            // Bersama milik dokter lain — dipakai ruang kerja rawat inap. Tanpa ownerScope perilaku
+            // daftar poliklinik tidak berubah.
+            if (string.Equals(ownerScope?.Trim(), "Mine", StringComparison.OrdinalIgnoreCase))
+            {
+                var dokterLogin = await _templateService.ResolveActorDoctorIdAsync(User, GetCurrentUserId());
+
+                if (!dokterLogin.HasValue)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                        StatusCodes.Status403Forbidden,
+                        "Akun Anda belum tertaut ke data dokter, sehingga template pribadi tidak dapat ditampilkan."));
+                }
+
+                query = query.Where(x => x.OwnerDoctorId == dokterLogin.Value);
+                ownerDoctorId = null;
+                isShared = null;
+            }
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -137,11 +157,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         {
             try
             {
-                var entity = await _templateService.CreateAsync(request, GetCurrentUserId());
+                var entity = await _templateService.CreateAsync(request, User, GetCurrentUserId());
                 var response = ToResponse(await BuildBaseQuery().AsNoTracking().FirstAsync(x => x.Id == entity.Id));
                 await _loggerService.InfoAsync(LogCategory, "PrescriptionTemplate.Create", "Membuat template resep.", response);
                 return Ok(ApiResponse<PrescriptionTemplateResponse>.Ok(response, "Template resep berhasil dibuat."));
             }
+            catch (PrescriptionTemplateForbiddenException ex) { return StatusCode(403, ApiResponse<object>.Fail(403, ex.Message)); }
             catch (InvalidOperationException ex) { return BadRequest(ApiResponse<object>.Fail(400, ex.Message)); }
         }
 
@@ -152,11 +173,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         {
             try
             {
-                var entity = await _templateService.CreateFromPrescriptionAsync(request, GetCurrentUserId());
+                var entity = await _templateService.CreateFromPrescriptionAsync(request, User, GetCurrentUserId());
                 var response = ToResponse(await BuildBaseQuery().AsNoTracking().FirstAsync(x => x.Id == entity.Id));
                 await _loggerService.InfoAsync(LogCategory, "PrescriptionTemplate.CreateFromPrescription", "Membuat template dari resep.", response);
                 return Ok(ApiResponse<PrescriptionTemplateResponse>.Ok(response, "Template dari resep berhasil dibuat."));
             }
+            catch (PrescriptionTemplateForbiddenException ex) { return StatusCode(403, ApiResponse<object>.Fail(403, ex.Message)); }
             catch (InvalidOperationException ex) { return BadRequest(ApiResponse<object>.Fail(400, ex.Message)); }
         }
 
@@ -167,11 +189,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         {
             try
             {
-                await _templateService.UpdateAsync(id, request, GetCurrentUserId());
+                await _templateService.UpdateAsync(id, request, User, GetCurrentUserId());
                 var response = ToDetailResponse(await BuildDetailQuery().AsNoTracking().FirstAsync(x => x.Id == id));
                 await _loggerService.InfoAsync(LogCategory, "PrescriptionTemplate.Update", "Mengubah template resep.", response);
                 return Ok(ApiResponse<PrescriptionTemplateDetailResponse>.Ok(response, "Template resep berhasil diubah."));
             }
+            catch (PrescriptionTemplateForbiddenException ex) { return StatusCode(403, ApiResponse<object>.Fail(403, ex.Message)); }
             catch (InvalidOperationException ex) { return BadRequest(ApiResponse<object>.Fail(400, ex.Message)); }
         }
 
@@ -182,10 +205,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         {
             try
             {
-                var response = await _templateService.ApplyAsync(id, request, GetCurrentUserId());
-                await _loggerService.InfoAsync(LogCategory, "PrescriptionTemplate.Apply", "Menerapkan template ke resep.", response);
-                return Ok(ApiResponse<ApplyPrescriptionTemplateResponse>.Ok(response, "Template berhasil diterapkan ke resep."));
+                var response = await _templateService.ApplyAsync(id, request, User, GetCurrentUserId());
+                await _loggerService.InfoAsync(LogCategory, "PrescriptionTemplate.Apply", "Menerapkan template ke resep.",
+                    new { response.TemplateId, response.PrescriptionId, response.AddedRegularItemCount, response.AddedCompoundCount, response.HasFlaggedItems });
+                return Ok(ApiResponse<ApplyPrescriptionTemplateResponse>.Ok(response,
+                    response.HasFlaggedItems
+                        ? "Template diterapkan ke draft resep. Periksa butir yang bertanda bentrok alergi atau tidak tersedia."
+                        : "Template berhasil diterapkan ke resep."));
             }
+            catch (PrescriptionTemplateForbiddenException ex) { return StatusCode(403, ApiResponse<object>.Fail(403, ex.Message)); }
             catch (InvalidOperationException ex) { return BadRequest(ApiResponse<object>.Fail(400, ex.Message)); }
         }
 
@@ -194,13 +222,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         [AccessPermission("PrescriptionTemplate", "Delete")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            var entity = await _dbContext.Set<MstPrescriptionTemplate>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-            if (entity == null) return NotFound(ApiResponse<object>.Fail(404, "Template resep tidak ditemukan."));
-            var now = DateTime.UtcNow; var actor = GetCurrentUserId();
-            entity.IsDelete = true; entity.IsActive = false; entity.DeleteDateTime = now; entity.DeleteBy = actor; entity.UpdateDateTime = now; entity.UpdateBy = actor;
-            await _dbContext.SaveChangesAsync();
-            await _loggerService.InfoAsync(LogCategory, "PrescriptionTemplate.Delete", "Menghapus template resep.", new { id });
-            return Ok(ApiResponse<object>.Ok(null, "Template resep berhasil dihapus."));
+            try
+            {
+                // BE-RWI-105 / VAL-DOK-56a. Hanya pemilik template yang dapat menghapus.
+                var ditemukan = await _templateService.DeleteAsync(id, User, GetCurrentUserId());
+                if (!ditemukan) return NotFound(ApiResponse<object>.Fail(404, "Template resep tidak ditemukan."));
+                await _loggerService.InfoAsync(LogCategory, "PrescriptionTemplate.Delete", "Menghapus template resep.", new { id });
+                return Ok(ApiResponse<object>.Ok(null, "Template resep berhasil dihapus."));
+            }
+            catch (PrescriptionTemplateForbiddenException ex) { return StatusCode(403, ApiResponse<object>.Fail(403, ex.Message)); }
         }
 
         private IQueryable<MstPrescriptionTemplate> BuildBaseQuery() => _dbContext.Set<MstPrescriptionTemplate>().Include(x => x.OwnerDoctor).Where(x => !x.IsDelete);

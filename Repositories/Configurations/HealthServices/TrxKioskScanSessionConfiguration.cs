@@ -27,6 +27,17 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .HasDefaultValue(KioskScanSessionStatus.Started)
                 .IsRequired();
 
+            // LAB-REQ-006. Keduanya nullable dan TANPA nilai bawaan: sesi yang sudah tersimpan
+            // sebelum kedua ruas ini ada memang tidak menyatakannya, dan menebakkan nilai untuk
+            // kejadian yang sudah lewat akan mengubah maknanya.
+            //
+            // Perhatikan bedanya dengan ScanSource dan ScanStatus di atas, yang memang punya
+            // nilai bawaan karena setiap sesi selalu memilikinya sejak awal.
+            entity.Property(x => x.TargetService)
+                .HasConversion<int>();
+
+            entity.HasIndex(x => x.TargetService);
+
             entity.Property(x => x.KioskDeviceId)
                 .IsRequired(false);
 

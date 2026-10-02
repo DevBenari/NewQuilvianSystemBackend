@@ -12,6 +12,7 @@ public sealed class BilCalculationVersion : IdentityModel
     public int VersionNo { get; set; }
     public decimal GrossAmount { get; set; }
     public decimal AdministrationFeeAmount { get; set; }
+    public decimal RoomChargeAmount { get; set; }
     public decimal ItemDiscount { get; set; }
     public decimal TotalDiscount { get; set; }
     public decimal TaxAmount { get; set; }
@@ -19,6 +20,7 @@ public sealed class BilCalculationVersion : IdentityModel
     public decimal PrimaryAmount { get; set; }
     public decimal ExcessAmount { get; set; }
     public decimal UnresolvedCoverageAmount { get; set; }
+    public decimal NonBillableResidualAmount { get; set; }
     public decimal RoundingAmount { get; set; }
     public bool IsLocked { get; set; }
     public DateTimeOffset CalculatedAt { get; set; }
