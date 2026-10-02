@@ -6,7 +6,73 @@ module_name: Finance Management
 module_slug: finance-management
 module_prefix: Fin
 module_area: Areas/Corporate/FinanceManagement
-revision: 14
+revision: 15
+approval_revision_15: >
+  APPROVED 2 Oktober 2026 oleh pemilik (Yasmin), dinyatakan langsung pada sesi perencanaan: FIN-DES-092,
+  FIN-DES-093, beserta kelima kontrak turunannya — FIN-API-1.6, FIN-VAL-1.8, FIN-PERM-1.8, FIN-TEST-1.9,
+  dan FIN-MVP-1.10. Status kelimanya naik dari `draft` menjadi `approved`.
+  YANG TIDAK IKUT DISETUJUI, karena memang tidak bergerak pada revisi 15: FIN-STATE-1.6 dan
+  FIN-INTEGRATION-1.7 tetap pada status revisi 14 masing-masing.
+  YANG TETAP TERBUKA SESUDAH APPROVAL INI, dan approval ini TIDAK menutupnya: FIN-OQ-081 (nama dan versi
+  paket XLSX — tetap dikonfirmasi pada task yang membawanya menurut AGENTS.md), FIN-OQ-074/076/082 (nilai
+  konfigurasi, fail-closed), FIN-OQ-045/047/048 (milik Accounting), FIN-OQ-079/080 (UI). Approval desain
+  BUKAN approval nilai konfigurasi dan BUKAN wewenang menambah paket.
+revision_15_note: >
+  Revisi 15 (2 Oktober 2026) adalah /design-business-module yang menggambar DUA keputusan closure pass
+  1 Oktober 2026: FIN-DEC-139 (aturan berkas bukti) dan FIN-DEC-140 (dua format migrasi beserta batas
+  wewenang paket). Keputusan arsitekturnya FIN-DES-092 dan FIN-DES-093 — keduanya `draft`, BELUM
+  disetujui owner.
+  SIFAT REVISI INI BERBEDA dari revisi 13 dan 14: ia TIDAK menambah epic, tabel, migration, resource
+  hak akses, maupun layar. Ia MEMBUKA dua epic yang revisi 14 tahan sebagai OPEN DECISION, dan
+  menggambar bagian yang revisi 14 sendiri tulis sebagai "MUST NOT diimplementasikan sebelum
+  FIN-OQ-075 turun" (FIN-DES-087).
+  YANG DIGAMBAR FIN-DES-092: delapan pemeriksaan berkas bukti yang berjalan BERURUT, dan DUA kunci
+  konfigurasi yang sengaja berperilaku BERBEDA ketika kosong — daftar ekstensi memakai bawaan karena
+  daftarnya sudah diputuskan FIN-DEC-139, sedangkan batas ukuran FAIL-CLOSED `503` karena nilainya
+  belum pernah diputuskan (FIN-OQ-082). Memberi bawaan pada yang kedua berarti mengarang keputusan
+  owner. Perbedaan kode status 400 vs 503 disengaja: 400 berarti "berkas Anda salah", 503 berarti
+  "sistem belum siap menerima berkas apa pun".
+  AKIBAT PALING TAJAM: larangan mengganti bukti diterjemahkan menjadi NOL endpoint PUT dan DELETE pada
+  grup bukti — bukan endpoint yang ada lalu menolak. Itu juga berarti NOL action `Delete`/`Update`
+  didaftarkan, karena action tanpa endpoint akan muncul di layar Akses Role sebagai kemampuan yang
+  dapat dicentang padahal tidak menjalankan apa pun. Layar pun kehilangan tombol "Ganti Bukti", dan
+  jalan koreksinya adalah membalik pembayaran lalu mencatat ulang.
+  YANG DIGAMBAR FIN-DES-093: letak batas lapisan pembaca. Antarmuka IOpeningItemFileReader memulangkan
+  BARIS TERURAI, bukan DataTable/Stream/tipe milik paket — sehingga validasi FIN-VAL-186..191 dan
+  214..227 bekerja di SATU tempat untuk kedua format, dan paketnya dapat diganti kelak tanpa menyentuh
+  validasi. Diuji J.3.8 dengan mengganti pembaca jadi ganda palsu. Format ditentukan dari tipe media
+  dan ekstensi, BUKAN dari ruas yang diisi pengguna — supaya pengguna tidak dapat memaksa pembaca yang
+  salah. EMPAT berkas templat (dua jenis item kali dua format), bukan dua.
+  SATU KOLOM DITAMBAHKAN, dan alasannya dicatat: FinOpeningItemBatch.SourceFormat. FIN-DEC-140 sendiri
+  mencatat bahwa jalur format yang jarang dipakai akan jarang teruji; ketika kelak muncul batch yang
+  uraiannya mencurigakan, pertanyaan pertamanya adalah "berkas ini tadinya CSV atau XLSX?" dan ekstensi
+  pada UploadedFileName dapat berbeda dari isi sebenarnya. Kolom ini masuk ke migration KEEMPAT yang
+  BELUM DIBUAT (FIN-OQ-051 masih terbuka), BUKAN menjadi migration kelima — dan bila migration keempat
+  ternyata sudah dibuat lebih dulu, rencana itu MUST dibaca ulang, bukan diikuti apa adanya.
+  DUA EPIC MASUK GELOMBANG: EPIC FIN-23 menjadi MVP-14D, EPIC FIN-24 menjadi MVP-14E. MVP-14D sengaja
+  TIDAK digantungkan pada MVP-14B/14C — ia hanya butuh buku mutasi sebagai tempat menulis ProofId, dan
+  menundanya berarti memperpanjang keadaan pembayaran tanpa batas nilai yang justru epic itu ada untuk
+  menutup. MVP-14E menunggu MVP-14B karena validasi barisnya membandingkan terhadap CutoverDate dan
+  rekonsiliasinya terhadap saldo awal yang dinyatakan — keduanya lahir di 14B. Bagian CSV MVP-14E dapat
+  berjalan SEBELUM FIN-OQ-081 dijawab; yang menunggu hanya satu implementasi pembaca.
+  SEPULUH FUNCTIONAL REQUIREMENT BARU: FR-FIN-174..183. SEMBILAN BUTIR DoD BARU: 17-25, memetakan
+  kesembilan kriteria penerimaan closure pass satu per satu supaya tidak ada yang hilang saat task
+  mengerjakannya.
+  SATU KESALAHAN HITUNG REVISI 14 DIKOREKSI, bukan didiamkan: header revisi 14 pada 04-prd-to-mvp.md
+  menulis "Epic baru: EPIC FIN-20..EPIC FIN-23" dan catatan revisi 14 di manifest ini menulis "EMPAT
+  EPIC BARU", padahal revisi 14 membangun LIMA epic — FIN-20 (bagian 44), FIN-21 (45), FIN-22 (46),
+  FIN-23 (47), dan FIN-24 (48). Baris header PRD dikoreksi beserta keterangan koreksinya; narasi
+  revisi_14_note di bawah DIBIARKAN APA ADANYA karena ia catatan sejarah pass lain, dan selisihnya
+  dicatat di sini supaya pembaca berikutnya tidak menyangka ada epic yang hilang.
+  DUA BATAS YANG DITERIMA SADAR dan MUST disampaikan saat serah terima: (a) staf AR/AP pemegang
+  FinanceTransactionProof : Read dapat melihat bukti transaksi yang BUKAN miliknya — pembatasan per
+  pemilik menuntut mekanisme platform yang belum ada, dan menambahkannya menahan EPIC FIN-23 lagi;
+  (b) jalur format yang jarang dipakai akan jarang teruji di lapangan.
+  STATE-TRANSITION DAN INTEGRATION CONTRACT TIDAK BERGERAK, dan itu disengaja: bukti tidak punya
+  kolom status, dukungan dua format tidak menambah transisi, dan nol ruas payload berubah. Keduanya
+  MUST NOT disunting hanya untuk menaikkan angka.
+  NOL source aplikasi disentuh. NOL migration dibuat. NOL paket benar-benar ditambahkan — wewenangnya
+  diberikan, pemasangannya milik task.
 revision_14_note: >
   Revisi 14 (1 Oktober 2026) adalah /design-business-module yang menggambar DUA PULUH TUJUH keputusan
   closure pass hari yang sama: FIN-DEC-111..137. Keputusan arsitekturnya FIN-DES-078..091 —
@@ -523,6 +589,42 @@ status_note_revision_14: >
   docs/module-blueprints/finance-management/evidence/, tempat owner Accounting membaca surat Finance —
   pola yang sama dengan evidence/15, 16, dan 21 yang dirujuk balasan Accounting evidence/16.
   Pemberitahuan langsung kepada Rizki di luar repository BUKAN tindakan agent.
+contract_versions_revision_15: >
+  DRAFT untuk revisi 15 (AMENDMENT REVISI 15 / bagian M pada 02-backend-architecture.md, bagian 20 pada
+  03-frontend-architecture.md, bagian 53-55 pada 04-prd-to-mvp.md). LIMA sumbu bergerak, DUA sengaja
+  TIDAK:
+    api-contract: FIN-API-1.6 (`draft`) — F.2 bertambah ruas `format` pada GET /template beserta
+                          subbagian "Dua format pada satu endpoint"; F.3 menggantikan catatan
+                          "menunggu FIN-OQ-075" dengan aturan berkas yang sesungguhnya, dan kode
+                          statusnya bertambah 413 dan 503. NOL endpoint baru
+    validation-matrix: FIN-VAL-1.8 (`draft`) — bagian G baru: FIN-VAL-214..227. Delapan aturan berkas
+                          bukti berurut, empat aturan dua format, dan daftar LIMA hal yang sengaja
+                          TIDAK divalidasi — termasuk pengakuan bahwa bukti palsu atau salah foto
+                          tidak terdeteksi sistem
+    permission-audit-matrix: FIN-PERM-1.8 (`draft`) — bagian H baru. NOL resource dan NOL action baru;
+                          H.3 mencatat lengkap batas akses per pemilik transaksi yang diterima sadar,
+                          beserta apa yang MUST disampaikan saat serah terima. Satu baris stale pada
+                          G.5 ("Menunggu FIN-OQ-075") diperbarui
+    acceptance-test-matrix: FIN-TEST-1.9 (`draft`) — bagian J baru, 24 skenario. Kesembilan kriteria
+                          penerimaan closure pass dipetakan satu per satu, ditambah DUA test yang
+                          sengaja dibuat untuk menangkap kelalaian: pemilihan pembaca yang terlalu
+                          longgar (J.4.1) dan penomoran baris yang bergeser antar format (J.4.2)
+    prd-to-mvp: FIN-MVP-1.10 (`draft`) — bagian 53-55. Dua epic keluar dari OPEN DECISION dan masuk
+                          gelombang MVP-14D/14E, sepuluh FR baru (FR-FIN-174..183), sembilan butir DoD
+                          baru (17-25), skenario UAT untuk kedua epic, dan koreksi atas salah hitung
+                          epic revisi 14
+    state-transition-matrix: FIN-STATE-1.6 — **TIDAK BERGERAK.** Bukti tidak punya kolom status, dan
+                          dukungan dua format tidak menambah satu transisi pun. MUST NOT disunting
+                          hanya untuk menaikkan angka
+    integration-contract: FIN-INTEGRATION-1.7 — **TIDAK BERGERAK.** NOL ruas payload berubah; item
+                          migrasi tetap tidak menerbitkan kejadian akuntansi (FR-FIN-171)
+  Artefak baru di luar kontrak: flowcharts/bukti-pembayaran-langsung.md dan
+  flowcharts/migrasi-tagihan-lama.md — mengikuti preseden revisi 13 yang menambah flowchart per proses.
+  00-alur-utama.md tetap BELUM ada; blueprint ini mendahului kontrak flowchart, dan membuatnya adalah
+  pekerjaan tersendiri, bukan efek samping pass ini.
+  Langkah berikutnya: /plan-module-delivery lanjutan memberi nomor task pada EPIC FIN-23 dan FIN-24
+  serta memperbarui bagian REV-14 pada ketiga roadmap yang kini stale (keduanya tercatat tanpa task) —
+  itu pekerjaan skill tersebut, BUKAN pass ini. Approval desain tetap tindakan manusia.
 contract_versions_revision_14: >
   DRAFT untuk revisi 14 (AMENDMENT REVISI 14 / bagian L pada 02-backend-architecture.md, bagian 19 pada
   03-frontend-architecture.md, bagian 42-52 pada 04-prd-to-mvp.md). TUJUH sumbu bergerak — seluruh

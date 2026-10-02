@@ -500,7 +500,7 @@ supplier (`FIN-API-1.5` F.8). Keduanya **TIDAK** jatuh pada REV-14A sampai REV-1
 | Hal | Keadaan |
 |---|---|
 | Yang membuatnya memutus | `PaymentMethod` menjadi wajib, ditambah sumber dana, nomor rujukan, dan bukti wajib |
-| Epic pembawanya | **`EPIC FIN-23`**, berstatus `OPEN DECISION` dan di luar seluruh gelombang |
+| Epic pembawanya | **`EPIC FIN-23`** — **diperbarui revisi 15:** ~~berstatus `OPEN DECISION` dan di luar seluruh gelombang~~. Kini gelombang `REV-14D`, dibawa `BE-FIN-077`/`078` dan `FE-FIN-030`; urutan rilis layar **MUST** dijaga |
 | Yang dilakukan REV-14A pada endpoint itu | **Hanya** mulai menulis baris buku mutasi. Bentuk request dan response **tidak berubah** |
 
 Artinya: **layar pembayaran langsung yang sudah berjalan tidak tersentuh REV-14A sampai REV-14C.**
@@ -535,7 +535,7 @@ REV-14B   BE-FIN-065 ─> FE-FIN-027        (pemetaan akun ─> layarnya)
 REV-14C   (nol task frontend — lihat bagian di bawah)
 
 {FIN-OQ-079} ─> (penempatan butir menu untuk ketujuh layar — sengaja belum bernomor)
-{FIN-OQ-075} ─> (layar pembayaran langsung berkontrol — EPIC FIN-23, di luar gelombang)
+{FIN-OQ-075} ✅ ─> (layar pembayaran langsung berkontrol — TERJAWAB FIN-DEC-139; kini FE-FIN-030 pada REV-14D)
 ```
 
 | Gelombang | Task | Boleh mulai setelah |
@@ -573,10 +573,10 @@ REV-14C   (nol task frontend — lihat bagian di bawah)
 | Yang tidak dibuat | Alasan |
 |---|---|
 | Penempatan tujuh butir menu baru | Tertahan `FIN-OQ-079`. `FIN-DEC-094` mengikat menu pada bentuk V1 yang **tidak memuat** ketujuh layar ini, sehingga penempatannya keputusan pemilik — **bukan** `DEV_DISCRETION` |
-| Penyesuaian layar pembayaran langsung piutang dan utang | Milik **`EPIC FIN-23`** yang berstatus `OPEN DECISION` (`FIN-OQ-075`). Selama itu, kedua layar **tetap berjalan seperti sekarang** dan **tidak tersentuh** REV-14 |
+| Penyesuaian layar pembayaran langsung piutang dan utang | Milik **`EPIC FIN-23`**. Tidak dibuat pada REV-14A-14C, dan kedua layar tetap berjalan seperti sekarang selama itu. **Diperbarui revisi 15:** gerbangnya (`FIN-OQ-075`) sudah dijawab `FIN-DEC-139`, dan penyesuaiannya kini dibawa `FE-FIN-030` pada `REV-14D` |
 | Layar unggah bukti pembayaran | Alasan yang sama; aturan jenis dan ukuran berkasnya belum ada |
 | Layar ambang pembayaran langsung | Alasan yang sama; ditambah `FIN-OQ-080` (apakah ambang ditampilkan kepada staf) belum dijawab |
-| Layar batch migrasi tagihan lama | Milik **`EPIC FIN-24`** yang berstatus `OPEN DECISION` (`FIN-OQ-077`) |
+| Layar batch migrasi tagihan lama | Milik **`EPIC FIN-24`**. **Diperbarui revisi 15:** gerbangnya (`FIN-OQ-077`) sudah dijawab `FIN-DEC-140`, dan layarnya kini dibawa `FE-FIN-032` pada `REV-14E` |
 | Layar saldo per rekening bank | Ditolak `FIN-DEC-137` — milik Accounting |
 | Tombol membuka kembali rekap kas harian | Ditolak `FIN-DEC-125` |
 | Automated test frontend | Mengikuti kebijakan test yang berlaku; ketiadaannya **bukan** coverage gap |
@@ -595,3 +595,111 @@ REV-14C   (nol task frontend — lihat bagian di bawah)
 | Tab, modal, atau drawer untuk riwayat mutasi | `DEV_DISCRETION` |
 | Cara menampilkan nilai negatif dan keadaan dinonaktifkan | `DEV_DISCRETION` |
 | Warna dan ikon | `DEV_DISCRETION` |
+
+---
+
+# REV-14D dan REV-14E (frontend) — Layar pembayaran berkontrol dan batch migrasi
+
+```yaml
+blueprint_id: FIN-BP-001
+roadmap_revision: REV-14D-14E
+blueprint_revision: 15
+status: SIAP DIEKSEKUSI
+decisions: [FIN-DEC-126, FIN-DEC-134, FIN-DEC-136, FIN-DEC-139, FIN-DEC-140]
+designs: [FIN-DES-092, FIN-DES-093]
+contract_versions: [FIN-API-1.6, FIN-VAL-1.8, FIN-PERM-1.8, FIN-MVP-1.10]
+contract_status: approved 2026-10-02 (Yasmin)
+epics: [EPIC FIN-23, EPIC FIN-24]
+task_range_frontend: FE-FIN-030..FE-FIN-032
+```
+
+**Penomoran melanjutkan REV-14C.** `FE-FIN-024`..`029` sudah dipakai REV-14A-14C. Roadmap ini mulai
+dari **`FE-FIN-030`**.
+
+## Satu syarat rilis yang MUST dijaga, dan ia membalik urutan biasa
+
+`BE-FIN-077` dan `BE-FIN-078` mengubah kontrak **dua endpoint yang sudah berjalan** — metode, sumber
+dana, nomor rujukan, dan `ProofId` menjadi **wajib**. Artinya layar lama akan **gagal mengirim
+pembayaran** begitu backend naik.
+
+| Hal | Aturan |
+|---|---|
+| Urutan rilis | `FE-FIN-030` dirilis **sebelum atau bersamaan** dengan `BE-FIN-077`/`078` — **tidak sesudahnya** |
+| Bila terbalik | Petugas kehilangan kemampuan mencatat pembayaran langsung sampai layar menyusul. Ini **satu-satunya** jalur pembayaran langsung yang ada |
+| Siapa yang menjaga | Laporan `BE-FIN-077` dan `BE-FIN-078` **MUST** mencatat urutan rilis yang dipakai, dan laporan `FE-FIN-030` **MUST** menyebut kontrak mana yang sudah ia konsumsi |
+
+## `FIN-OQ-079` — penempatan butir menu tetap tertahan
+
+Ketiga layar roadmap ini **tidak ada** pada sistem V1, sedangkan `FIN-DEC-094` mengikat menu pada
+bentuk V1. Keadaannya **tidak berubah** dari REV-14:
+
+| Yang boleh dikerjakan | Keadaan |
+|---|---|
+| Membangun layarnya beserta route-nya | **BOLEH** |
+| Memasang butir menunya | **TERTAHAN** `FIN-OQ-079`. Bukan `DEV_DISCRETION` |
+| Cara mencapai layar selama menu tertahan | Laporan task **MUST** menyebutnya (misalnya tautan langsung dari layar induk atau URL) |
+
+## Grafik urutan dependency — REV-14D dan REV-14E (frontend)
+
+```text
+BE-FIN-076 [BE] ───> FE-FIN-031
+
+BE-FIN-077 [BE] ─┐
+                 ├─> FE-FIN-030 🟡
+BE-FIN-078 [BE] ─┘
+
+BE-FIN-082 [BE] ───> FE-FIN-032 <── (pilihan XLSX menyusul BE-FIN-083 [BE])
+
+{FIN-OQ-079} ─> (penempatan butir menu ketiga layar — sengaja belum bernomor)
+{FIN-OQ-080} ─> (apakah angka ambang ditampilkan kepada staf — menyempitkan FE-FIN-031)
+
+Legenda:
+  [BE]           cermin baca-saja: task milik 01-backend-roadmap.md, bukan milik roadmap ini
+  {FIN-OQ-xxx}   gerbang yang masih terbuka; tidak diberi nomor gelombang
+```
+
+| Gelombang | Task | Boleh mulai setelah |
+|---|---|---|
+| `REV-14D` | `FE-FIN-030` 🟡, `FE-FIN-031` | Kontrak `FIN-API-1.6` F.3/F.4 terkunci — **sudah** (approved 2 Oktober 2026). `FE-FIN-030` **MUST** rilis sebelum atau bersamaan `BE-FIN-077`/`078` |
+| `REV-14E` | `FE-FIN-032` | `BE-FIN-082` selesai. Pilihan format XLSX menyusul `BE-FIN-083` |
+
+**Kenapa `FE-FIN-031` tidak menunggu `FE-FIN-030`.** Layar ambang hanya membaca dan menulis satu baris
+master; ia tidak berbagi komponen maupun state dengan layar pembayaran. Menggandengkannya hanya
+memperlambat tanpa menurunkan risiko.
+
+## Task REV-14D dan REV-14E (frontend)
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `FE-FIN-030` 🟡 | Petugas dapat mencatat pembayaran langsung beserta metode, sumber dana, nomor rujukan, dan bukti — dan tahu lebih dulu berkas seperti apa yang diterima | `FR-FIN-160`..`162`, `FR-FIN-174`..`177`; `FIN-DEC-126`, `FIN-DEC-134`, `FIN-DEC-139`; `03-frontend-architecture.md` 20.1 | `FIN-API-1.6` F.3/F.8; `FIN-VAL-1.8` G.1; `FIN-PERM-1.8` H.1/H.3 | Pola form dan unggah berkas rumpun Finance yang sudah ada; base component unggah; resource hak akses yang **sudah ada** | 2 layar pembayaran langsung diperbarui (piutang dan utang): pilihan metode, pilihan rekening sumber bila transfer, kolom nomor rujukan, unggah bukti **wajib**, peringatan ambang **sebelum** dikirim, tautan unduh bukti pada riwayat mutasi | `BE-FIN-077`, `BE-FIN-078` | **Nol tombol "Ganti Bukti"** — jalan koreksinya membalik pembayaran lalu mencatat ulang; jenis berkas dan batas ukuran disebut **sebelum** pengguna memilih berkas; `413` berbunyi ukuran melewati batas; **`503` berbunyi konfigurasi belum lengkap beserta arahan ke administrator, dan tombol unggah dinonaktifkan** — **MUST NOT** menyarankan mengganti berkas; `409` berbunyi "bukti sudah dipakai pada pembayaran lain", bukan galat teknis; tautan unduh bukti milik transaksi orang lain **tidak disembunyikan** untuk menyamarkan batas hak akses | `npm run lint` dan `npm run build` PASS; verifikasi manual keempat jalur tolak (`400`, `409`, `413`, `503`) | Frontend Owner — **risiko utama:** dirilis **sesudah** backend. Itu mematikan satu-satunya jalur pembayaran langsung. **Risiko kedua:** menyembunyikan tautan bukti transaksi orang lain, yang menyamarkan keadaan sebenarnya (`FIN-PERM-1.8` H.3) padahal URL-nya tetap dapat dipanggil. **Sebagian tertahan** `FIN-OQ-079` untuk menu | Lint dan build PASS; urutan rilis terhadap `BE-FIN-077`/`078` tercatat; laporan menyebut cara mencapai layar selama menu tertahan |
+| `FE-FIN-031` | Pejabat berwenang dapat melihat dan mengubah ambang pembayaran langsung, dan setiap perubahan membawa alasannya | `FR-FIN-163`..`165`; `FIN-DEC-134`; `FIN-DES-086` | `FIN-API-1.6` F.4; `FIN-PERM-1.8` H.1; `FIN-PERM-1.7` G.5 | Pola form master data rumpun Finance | 1 layar master ambang: nilai aktif, alasan perubahan terakhir, form ubah dengan `ChangeReason` **wajib** | `BE-FIN-076` | `ChangeReason` kosong dicegah **di layar**, bukan diserahkan ke backend; keadaan "ambang belum pernah ditetapkan" (`404`) berbunyi **seluruh pembayaran langsung sedang ditolak** — keadaan nyata, bukan kolom kosong; layar **MUST NOT** menjanjikan ada jenjang persetujuan atas perubahan ambang, karena memang tidak ada (`FIN-PERM-1.7` G.5) | `npm run lint` dan `npm run build` PASS; verifikasi manual jalur `404` dan alasan kosong | Frontend Owner — **tertahan sebagian** `FIN-OQ-080`: apakah **angka** ambang ditampilkan kepada staf biasa belum diputuskan. Sampai dijawab, layar ini hanya untuk pemegang hak ubah, dan layar pembayaran **tidak** menyebut angkanya. **Sebagian tertahan** `FIN-OQ-079` untuk menu | Lint dan build PASS; laporan menyebut keputusan `FIN-OQ-080` masih terbuka dan bagaimana layar menahan diri |
+| `FE-FIN-032` | Penyiap cutover dapat mengunduh templat, mengunggah tagihan lama, memperbaiki baris yang salah, lalu menyerahkannya untuk disetujui | `FR-FIN-167`..`170`, `FR-FIN-178`, `FR-FIN-181`..`183`; `FIN-DEC-136`, `FIN-DEC-140`; `03-frontend-architecture.md` 20.2 | `FIN-API-1.6` F.2; `FIN-VAL-1.8` G.2; `FIN-STATE-1.6` F | Pola layar daftar, unggah berkas, dan `POST /{id}/<aksi>` yang sudah ada | 1 layar batch migrasi: pilihan **jenis item dan format** untuk unduh templat, satu pemilih unggah yang menerima CSV **dan** XLSX, daftar galat **beserta nomor baris**, kolom menyatakan saldo awal Accounting beserta rujukan dokumen, aksi setujui dan tolak, penanda asal format batch | `BE-FIN-082` | Unduh templat menuntut **jenis dan format** dipilih keduanya — tombolnya dinonaktifkan sampai keduanya terisi; pemilih unggah **tidak** meminta format dari pengguna (backend menentukannya dari berkas) — menambahkan pemilih format pada unggah **MUST NOT** dibuat; galat baris **selalu** menampilkan nomor barisnya dan dapat disalin atau diunduh supaya petugas memperbaiki berkasnya di luar sistem; penolakan rekonsiliasi (`422`) menampilkan **kedua angka berdampingan**, bukan hanya "tidak cocok"; asal format batch ditampilkan | `npm run lint` dan `npm run build` PASS; verifikasi manual jalur galat baris dan jalur selisih rekonsiliasi | Frontend Owner — **risiko:** menambahkan pemilih format pada unggah, yang membuka jalan memaksa pembaca yang salah. **Pilihan XLSX pada unduh templat MUST dinonaktifkan sampai `BE-FIN-083` selesai** — menampilkannya lebih dulu menghasilkan unduhan yang gagal. **Sebagian tertahan** `FIN-OQ-079` untuk menu | Lint dan build PASS; laporan menyebut keadaan pilihan XLSX dan cara mencapai layar selama menu tertahan |
+
+## Traceability frontend REV-14D dan REV-14E
+
+| Functional requirement | Task pembawa | Bukti verifikasi |
+|---|---|---|
+| `FR-FIN-160`, `161`, `162` | `FE-FIN-030` 🟡 | Verifikasi manual kedua layar pembayaran |
+| `FR-FIN-163`, `164`, `165` | `FE-FIN-030` 🟡 (peringatan ambang) + `FE-FIN-031` (master ambang) | Verifikasi manual jalur ambang dan `404` |
+| `FR-FIN-174`, `175`, `177` | `FE-FIN-030` 🟡 | Verifikasi manual keempat jalur tolak |
+| `FR-FIN-176` | `FE-FIN-030` 🟡 — **nol tombol ganti bukti** | Verifikasi manual: ketiadaan tombolnya adalah hasil yang diuji |
+| `FR-FIN-167`, `182` | `FE-FIN-032` | Verifikasi manual unduh templat per jenis dan format |
+| `FR-FIN-168`, `178`, `181` | `FE-FIN-032` | Verifikasi manual unggah kedua format dan galat baris |
+| `FR-FIN-169`, `170` | `FE-FIN-032` | Verifikasi manual jalur selisih dan persetujuan |
+| `FR-FIN-183` | `FE-FIN-032` | Verifikasi manual penanda asal format |
+
+**Satu gap yang dicatat terbuka, dan ia bukan gap verifikasi.** `FR-FIN-171` dan `FR-FIN-172`
+(item migrasi tidak menerbitkan kejadian akuntansi; sesudah diposting mengikuti proses normal)
+**tidak punya** task frontend — keduanya perilaku backend yang tidak terlihat di layar mana pun.
+Keduanya terpetakan penuh ke `BE-FIN-082` pada roadmap backend.
+
+## Task yang sengaja **tidak** dibuat pada REV-14D dan REV-14E (frontend)
+
+| Yang dipertimbangkan | Alasan ditolak |
+|---|---|
+| Tombol "Ganti Bukti" beserta konfirmasinya | `FIN-DEC-139` melarang penggantian, dan `FIN-DES-092` meniadakan endpointnya. Tombol yang memanggil endpoint yang tidak ada adalah tautan mati |
+| Pemilih format pada layar unggah batch | Backend menentukan format dari berkasnya (`FIN-DES-093`). Pemilih di layar membuka jalan memaksa pembaca yang salah |
+| Menyembunyikan tautan bukti milik transaksi orang lain | Bukan pengganti pembatasan hak akses. URL-nya tetap dapat dipanggil, sehingga menyembunyikannya hanya menyamarkan keadaan (`FIN-PERM-1.8` H.3) |
+| Layar daftar bukti lintas transaksi | Tidak diminta requirement mana pun, dan justru memperbesar akibat batas akses per pemilik yang belum ada |
+| Menampilkan angka ambang pada layar pembayaran | **Tertahan `FIN-OQ-080`.** Peringatan "melewati ambang" tetap ditampilkan tanpa menyebut angkanya |
+| Memasang butir menu ketiga layar | **Tertahan `FIN-OQ-079`**, sama seperti REV-14 |

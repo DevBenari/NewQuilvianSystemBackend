@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Repositories;
@@ -94,7 +95,7 @@ public sealed class FinanceNonPatientReceivableService
     /// satu definisi kelompok.</summary>
     public async Task<List<ReceivableAgingBucketResult>> GetAgingAsync(DateOnly? asOfDate, string? category, CancellationToken cancellationToken)
     {
-        var referenceDate = asOfDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var referenceDate = asOfDate ?? FinanceBusinessDate.Today();
         var query = _dbContext.FinNonPatientReceivables.AsNoTracking()
             .Where(x => !x.IsDelete && x.OutstandingAmount > 0);
         if (!string.IsNullOrWhiteSpace(category)) query = query.Where(x => x.Category == category);
@@ -150,7 +151,7 @@ public sealed class FinanceNonPatientReceivableService
     public static NonPatientReceivableResponse Map(FinNonPatientReceivable x)
     {
         var totalBilled = x.BilledAmount + x.LateFeeAmount;
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = FinanceBusinessDate.Today();
         return new NonPatientReceivableResponse
         {
             Id = x.Id,

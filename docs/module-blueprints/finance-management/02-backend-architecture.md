@@ -3938,7 +3938,7 @@ menambahkan master tanpa keputusan baru.
 | Dampak skema | **BESAR.** **Delapan tabel baru**, **dua tabel berjalan diperbarui** (`FinReceivable`, `FinSupplierPayable`), **empat migration** |
 | Dampak runtime | **ADA.** **Tiga hosted service baru** didaftarkan di blok `runBackgroundJobs` — yang pertama bagi modul Finance. Dibangun dalam keadaan mati |
 | Dampak hak akses | **ADA.** Tiga resource baru beserta action-nya — lihat `L.9` |
-| Gerbang yang menahan implementasi | `FIN-OQ-051` (wewenang migration), `FIN-OQ-077` (paket pembaca spreadsheet), `FIN-OQ-045`/`047`/`048` (persetujuan Accounting), `FIN-OQ-075` (aturan berkas bukti) |
+| Gerbang yang menahan implementasi | `FIN-OQ-051` (wewenang migration), `FIN-OQ-045`/`047`/`048` (persetujuan Accounting). **Diperbarui revisi 15:** ~~`FIN-OQ-077` (paket pembaca spreadsheet)~~ dan ~~`FIN-OQ-075` (aturan berkas bukti)~~ **sudah tertutup** oleh `FIN-DEC-140` dan `FIN-DEC-139`; penggantinya `FIN-OQ-081` yang menahan **bagian XLSX saja** — lihat bagian `M` |
 | Nilai yang sengaja kosong | `FIN-OQ-074` (angka ambang) dan `FIN-OQ-076` (jumlah tagihan lama) — **data konfigurasi**, tidak dikarang di desain ini |
 
 ## L.1 Apa yang diperiksa pada source
@@ -4697,7 +4697,7 @@ tidak pernah menulis ke kotak keluar.
 | **Lokasi file** | `Areas/Corporate/FinanceManagement/Collection/Services/FinanceTransactionProofService.cs` |
 | Kategori | Service |
 | Tanggung jawab utama | Menyimpan dan membaca berkas bukti beserta metadatanya |
-| Catatan desain | Memakai `FileStorage:UploadRootPath` yang sudah ada. **MUST NOT** memanggil kelas unggah milik HR. Aturan jenis dan ukuran berkas menunggu `FIN-OQ-075` |
+| Catatan desain | Memakai `FileStorage:UploadRootPath` yang sudah ada. **MUST NOT** memanggil kelas unggah milik HR. ~~Aturan jenis dan ukuran berkas menunggu `FIN-OQ-075`~~ — **diperbarui revisi 15:** aturannya sudah turun (`FIN-DEC-139`) dan digambar `FIN-DES-092` beserta kedelapan pemeriksaannya pada bagian `M.3` |
 
 | Aspek | Penjelasan |
 |---|---|
@@ -4955,3 +4955,292 @@ harian, bukan pembukaan buku.
 | Penyatuan lima salinan helper zona waktu | **Bukan scope Finance.** Task tersendiri lintas modul (`FIN-DES-082`) |
 | Perbaikan namespace bersarang `AppDateTimeHelper` | Menyentuh berkas bersama di luar scope; **MUST NOT** dirapikan diam-diam |
 | Provider nomor seri atomik untuk tabel baru | Rumpun ini memakai pola tanggal + GUID beserta komentar `KNOWN ISSUE`-nya. Memperbaikinya hanya untuk tabel baru membuat satu rumpun punya dua cara menomori — utang teknis yang **diwarisi**, persis seperti revisi 13 |
+
+---
+
+# AMENDMENT REVISI 15 — Aturan berkas bukti dan pembaca dua format
+
+| Field | Nilai |
+|---|---|
+| Keputusan yang diturunkan | `FIN-DEC-139` (aturan berkas bukti, menutup `FIN-OQ-075`), `FIN-DEC-140` (dua format migrasi beserta batas wewenang paket, menutup `FIN-OQ-077` dan memperjelas `FIN-DEC-136`) |
+| Keputusan arsitektur baru | `FIN-DES-092`, `FIN-DES-093` — keduanya `draft`, **belum** disetujui owner |
+| Yang dibuka kembali | `FIN-DES-087` menyisakan bagian unggah bukti sebagai **MUST NOT diimplementasikan** sampai `FIN-OQ-075` turun. Bagian itu kini **dibuka**, dan aturannya digambar `FIN-DES-092` |
+| Dampak skema | **Satu kolom baru** (`FinOpeningItemBatch.SourceFormat`), **nol tabel baru**, **nol migration baru** — lihat `M.7` |
+| Dampak paket | **Satu paket** pembaca XLSX ditambahkan ke `QuilvianSystemBackend.csproj`. Nama dan versinya **belum** ditetapkan (`FIN-OQ-081`) |
+
+## M.1 Apa yang diperiksa pada source
+
+Fakta `F21`-`F25` pada `00-interview-decisions.md` closure pass 1 Oktober 2026 dipakai apa adanya dan
+tidak dibaca ulang di sini. Yang ditambahkan pass ini hanya dua hal yang menentukan bentuk kode:
+
+| # | Fakta | Lokasi | Akibat pada desain |
+|---|---|---|---|
+| F26 | `ValidateFile` memeriksa berkas kosong, panjang nama, ekstensi wajib, daftar terlarang, daftar diizinkan, dan batas ukuran — **enam** pemeriksaan berurut, bukan satu | `WorkflowFileStorageService.ValidateFile:248-288` | `FIN-DES-092` menyalin **urutannya**, bukan hanya daftarnya |
+| F27 | `ResolveAllowedExtensions()` membaca `<Modul>:<Fitur>:AllowedExtensions` dan memulangkan daftar bawaan bila kuncinya tidak ada | `ResolveAllowedExtensions()` | Perilaku bawaan itu **MUST NOT** ditiru untuk batas ukuran — lihat butir fail-closed pada `M.3` |
+
+## M.2 Tabel kepemilikan data
+
+Nol perubahan dari `L.2`. Pass ini tidak menyentuh kepemilikan satu kelompok data pun: berkas bukti
+tetap milik Finance (`FIN-DEC-135`), retensi dokumen keuangan tetap **bukan** milik modul ini, dan
+mekanisme hak akses per pemilik transaksi tetap milik Platform.
+
+## M.3 Keputusan arsitektur baru
+
+### `FIN-DES-092` — Aturan berkas bukti: delapan pemeriksaan berurut, dua sumber konfigurasi, fail-closed
+
+`FIN-DEC-139` memilih mengikuti preseden repository. Yang digambar di sini adalah **urutan**
+pemeriksaannya dan **apa yang terjadi ketika konfigurasinya kosong** — dua hal yang paling sering
+salah ditebak implementer.
+
+| # | Pemeriksaan | Sumber aturan | Bila dilanggar |
+|---:|---|---|---|
+| 1 | Berkas ada dan tidak kosong | Tertanam | `400` |
+| 2 | Nama berkas maksimal 255 karakter | Tertanam | `400` |
+| 3 | Ekstensi wajib ada | Tertanam | `400` |
+| 4 | Ekstensi **tidak** ada pada daftar terlarang | Tertanam, dipakai ulang dari preseden | `400` |
+| 5 | Ekstensi ada pada `FinanceManagement:TransactionProof:AllowedExtensions` | **Konfigurasi** | `400` |
+| 6 | Tipe media cocok dengan ekstensinya | **Konfigurasi**, dipasangkan dengan butir 5 | `400` |
+| 7 | Ukuran tidak melewati `FinanceManagement:TransactionProof:MaxFileSizeBytes` | **Konfigurasi** | `413` |
+| 8 | Jalur simpan berada di bawah `FileStorage:UploadRootPath` | Tertanam | `400`, dan **MUST** dicatat sebagai percobaan keluar akar |
+
+**Dua kunci konfigurasi, dan keduanya berperilaku berbeda ketika kosong.** Ini bukan
+ketidakkonsistenan, melainkan pilihan yang disengaja:
+
+| Kunci | Bila kuncinya tidak ada | Alasan |
+|---|---|---|
+| `FinanceManagement:TransactionProof:AllowedExtensions` | Memakai daftar bawaan `.pdf`, `.jpg`, `.jpeg`, `.png` beserta tipe medianya | Daftarnya **sudah diputuskan** `FIN-DEC-139`; konfigurasi hanya tempat mengubahnya kelak. Mengosongkannya tidak membuat aturannya hilang |
+| `FinanceManagement:TransactionProof:MaxFileSizeBytes` | **Unggah ditolak seluruhnya** (`503`, bukan `400`) | Nilainya **belum pernah** diputuskan (`FIN-OQ-082`). Memberi bawaan di sini berarti mengarang keputusan owner, dan batas yang terlalu besar membuka pintu berkas raksasa. Fail-closed, dan pesannya **MUST** menyebut bahwa konfigurasi belum lengkap — bukan menyalahkan berkas penggunanya |
+
+Perbedaan kode status itu disengaja: `400` berarti *berkas Anda salah*, `503` berarti *sistem belum
+siap menerima berkas apa pun*. Menyatukan keduanya membuat petugas mengganti-ganti berkas untuk
+masalah yang bukan miliknya.
+
+**Bukti tidak dapat diganti, dan itu membentuk permukaan API.** `FIN-DEC-139` melarang penggantian
+sesudah baris mutasi tertulis. Akibatnya **nol** endpoint `PUT` maupun `DELETE` pada grup bukti —
+bukan endpoint yang ada lalu menolak, melainkan **tidak dibuat sama sekali**. Koreksi berjalan lewat
+jalur yang sudah ada: pembayarannya dibalik, lalu dicatat ulang beserta bukti baru.
+
+| Hal | Keputusan |
+|---|---|
+| Bukti terunggah tetapi pembayarannya gagal | Barisnya **menggantung tanpa mutasi**, dan itu **dibiarkan**. Ia tetap sah dipakai percobaan berikutnya; yang dilarang hanya memakai bukti yang **sudah** terpakai satu mutasi |
+| Baris bukti menggantung dibersihkan otomatis | **Tidak.** `FIN-DEC-139` melarang penghapusan otomatis, dan pembersih berkala akan menghapus bukti sah yang pembayarannya sedang disiapkan |
+| Penghapusan | Hanya `IsDelete` (`IdentityModel`). Berkas fisiknya **tidak** ikut dihapus — konsekuensi langsung dari "sistem tidak pernah menghapus bukti otomatis" |
+| Akses | `FinanceTransactionProof : Read`, **tanpa** pembatasan per pemilik transaksi. Dicatat sebagai kewenangan yang tidak dijaga mesin hak akses pada `permission-audit-matrix.md` bagian `H.3` |
+
+### `FIN-DES-093` — Pembaca dua format di balik satu antarmuka, satu paket, templat kembar
+
+`FIN-DEC-140` menetapkan CSV dan XLSX pada satu endpoint unggah. Yang digambar di sini adalah **letak
+batas lapisannya** — karena di situlah risiko "jalur yang jarang terpakai" dijinakkan atau dibiarkan.
+
+```text
+POST /opening-item-batches          (satu endpoint, dua format)
+        |
+        v
+  IOpeningItemFileReader            <- antarmuka; memulangkan List<OpeningItemRawRow>
+        |                              NOL pengetahuan tentang piutang/utang
+        +-- CsvOpeningItemFileReader    <- kemampuan bawaan .NET, NOL paket
+        +-- XlsxOpeningItemFileReader   <- SATU paket (FIN-OQ-081)
+        |
+        v
+  FinanceOpeningItemBatchService     <- FIN-VAL-186..191 bekerja di atas baris terurai,
+                                        BUKAN di atas berkasnya
+```
+
+| Hal | Keputusan |
+|---|---|
+| Letak batasnya | Antarmuka memulangkan **baris terurai** (`OpeningItemRawRow`), bukan `DataTable`, bukan `Stream`, bukan tipe milik paket XLSX. Tipe milik paket **MUST NOT** bocor melewati batas ini — itulah yang membuat paketnya dapat diganti kelak tanpa menyentuh validasi |
+| Letak validasinya | **Satu** tempat, di atas baris terurai. `FIN-VAL-186`..`191` dan `FIN-VAL-214`..`220` tidak pernah ditulis dua kali |
+| Pemilihan pembaca | Dari **tipe media dan ekstensi berkas**, bukan dari ruas yang diisi pengguna. Pengguna tidak dapat memaksa pembaca yang salah |
+| Jumlah paket | **Tepat satu.** `QuilvianSystemBackend.csproj` **MUST** memuat satu paket pembaca XLSX, dan task yang membawanya **MUST** menyatakan wewenangnya sendiri (`AGENTS.md`) |
+| Lisensi | **MUST** permisif. `ClosedXML` (MIT) memenuhi syarat. **`EPPlus` v5+ DILARANG** — lisensinya komersial sejak v5, dan memakainya memasukkan kewajiban lisensi ke sistem rumah sakit |
+| Bentuk angka dan tanggal | CSV: satu format dikunci templat; baris yang tidak sesuai **ditolak beserta nomor barisnya**, **MUST NOT** ditebak. XLSX: sel bertipe, dibaca apa adanya |
+| Templat | **Dua berkas per jenis item**, isinya setara, satu per format. Kolomnya **MUST** sama persis; perbedaan kolom antar keduanya adalah **cacat**, bukan variasi |
+
+**Kenapa `SourceFormat` dicatat pada batch.** `FIN-DEC-140` sendiri mencatat risikonya: staf hampir
+pasti memakai satu format saja, sehingga jalur yang lain jarang teruji. Ketika kelak muncul batch yang
+hasil uraiannya mencurigakan, pertanyaan pertama yang ditanyakan adalah *berkas ini tadinya CSV atau
+XLSX?* — dan tanpa kolom itu jawabannya hanya dapat diterka dari ekstensi pada `UploadedFileName`,
+yang dapat berbeda dari isi sebenarnya. Satu kolom `string(10)` menutup pertanyaan itu permanen.
+
+**Yang TIDAK dilakukan, dan ini batas yang MUST dijaga:**
+
+| Yang mungkin disangka | Kenyataannya |
+|---|---|
+| Dua endpoint unggah, satu per format | **Tidak.** `FIN-DEC-140` mengunci satu endpoint. Dua endpoint melahirkan dua jalur validasi yang berselisih |
+| Pembaca menentukan jenis item (`RECEIVABLE`/`SUPPLIER_PAYABLE`) | **Tidak.** Pembaca hanya menguraikan baris; jenis item datang dari `ItemKind` batch, dan baris yang kolomnya tidak sesuai jenis itu ditolak validasi |
+| Paket XLSX juga dipakai menulis templat XLSX | **Boleh**, dan justru disarankan — satu paket untuk baca dan tulis tetap **satu** paket. Templat CSV ditulis tanpa paket |
+| Konversi XLSX menjadi CSV lebih dulu lalu dibaca satu jalur | **Ditolak.** Konversi menghilangkan tipe sel, sehingga justru membuang keunggulan XLSX dan menambah bentuk kegagalan ketiga |
+
+## M.4 Class diagram
+
+Nol class domain baru. Yang bertambah hanya **satu antarmuka beserta dua implementasinya** pada
+rumpun `AccountingIntegration`, dan **satu kolom** pada entity yang sudah digambar `L.4.3`.
+
+```mermaid
+classDiagram
+    class IOpeningItemFileReader {
+        <<interface>>
+        +CanRead(mediaType, extension) bool
+        +Read(stream) List~OpeningItemRawRow~
+    }
+    class CsvOpeningItemFileReader {
+        +CanRead(mediaType, extension) bool
+        +Read(stream) List~OpeningItemRawRow~
+    }
+    class XlsxOpeningItemFileReader {
+        +CanRead(mediaType, extension) bool
+        +Read(stream) List~OpeningItemRawRow~
+    }
+    class OpeningItemRawRow {
+        +int RowNumber
+        +Dictionary~string,string~ Cells
+    }
+    class FinOpeningItemBatch {
+        +string SourceFormat
+    }
+    class FinanceOpeningItemBatchService {
+        +UploadAsync()
+        +ValidateAsync()
+    }
+    IOpeningItemFileReader <|.. CsvOpeningItemFileReader
+    IOpeningItemFileReader <|.. XlsxOpeningItemFileReader
+    IOpeningItemFileReader ..> OpeningItemRawRow : memulangkan
+    FinanceOpeningItemBatchService ..> IOpeningItemFileReader : memilih satu
+    FinanceOpeningItemBatchService ..> FinOpeningItemBatch : mencatat SourceFormat
+```
+
+### Penjelasan class
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/AccountingIntegration/Readers/IOpeningItemFileReader.cs` |
+| Kategori | Antarmuka |
+| Tanggung jawab utama | Menguraikan berkas menjadi baris mentah bernomor. **Nol** pengetahuan tentang piutang, utang, validasi, maupun database |
+| Dipanggil oleh | `FinanceOpeningItemBatchService` |
+| Membuka transaksi database | Tidak |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/AccountingIntegration/Readers/CsvOpeningItemFileReader.cs` |
+| Kategori | Implementasi pembaca |
+| Tanggung jawab utama | Membaca CSV dengan kemampuan bawaan .NET; menolak baris yang format angka/tanggalnya tidak sesuai templat beserta nomor barisnya |
+| Paket yang dibutuhkan | **Nol** |
+| Membuka transaksi database | Tidak |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/AccountingIntegration/Readers/XlsxOpeningItemFileReader.cs` |
+| Kategori | Implementasi pembaca |
+| Tanggung jawab utama | Membaca XLSX lewat **satu** paket berlisensi permisif; membaca sel bertipe apa adanya |
+| Paket yang dibutuhkan | **Satu**, nama dan versinya `FIN-OQ-081`. `EPPlus` v5+ **DILARANG** |
+| Membuka transaksi database | Tidak |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/AccountingIntegration/Readers/OpeningItemRawRow.cs` |
+| Kategori | DTO internal (bukan DTO API) |
+| Field | `RowNumber` (`int`, nomor baris pada berkas asal, dipakai seluruh pesan galat), `Cells` (`Dictionary<string,string>`, nilai sel sebagai teks mentah) |
+| Catatan desain | Nilai disimpan sebagai **teks mentah** supaya penguraian angka/tanggal terjadi di satu tempat — lapisan validasi — bukan tersebar di dua pembaca |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Diperbarui` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Collection/Services/FinanceTransactionProofService.cs` |
+| Kategori | Service |
+| Yang berubah | Bagian unggah yang `FIN-DES-087` tahan kini **dibuka**: delapan pemeriksaan `M.3` ditegakkan berurut, dua kunci konfigurasi dibaca, dan fail-closed ketika `MaxFileSizeBytes` kosong |
+| Membuka transaksi database | Ya — baris metadata ditulis sesudah berkasnya tersimpan. Bila penulisan metadata gagal, berkas yang sudah tersimpan **MUST** dihapus pada jalur gagal itu; ini satu-satunya penghapusan berkas yang diizinkan, dan ia **bukan** penghapusan otomatis berkala |
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Diperbarui` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/AccountingIntegration/Services/FinanceOpeningItemBatchService.cs` |
+| Kategori | Service |
+| Yang berubah | Memilih pembaca dari tipe media/ekstensi, mencatat `SourceFormat`, menjalankan validasi di atas baris terurai, dan memulangkan templat sesuai ruas `format` |
+| Membuka transaksi database | Ya, tidak berubah dari `L.4.3` |
+
+## M.5 Arsitektur folder
+
+```text
+Areas/Corporate/FinanceManagement/AccountingIntegration/
+├── Readers/                                                   # FOLDER BARU
+│   ├── IOpeningItemFileReader.cs                              # BARU
+│   ├── CsvOpeningItemFileReader.cs                            # BARU
+│   ├── XlsxOpeningItemFileReader.cs                           # BARU
+│   └── OpeningItemRawRow.cs                                   # BARU
+├── Models/FinOpeningItemBatch.cs                              # diperbarui: SourceFormat
+└── Services/FinanceOpeningItemBatchService.cs                 # diperbarui
+
+Areas/Corporate/FinanceManagement/Collection/
+└── Services/FinanceTransactionProofService.cs                 # diperbarui: bagian unggah dibuka
+
+Storage/templates/finance/                                     # FOLDER BARU (berkas statis, bukan kode)
+├── opening-item-receivable.csv                                # BARU
+├── opening-item-receivable.xlsx                               # BARU
+├── opening-item-supplier-payable.csv                          # BARU
+└── opening-item-supplier-payable.xlsx                         # BARU
+```
+
+`Readers/` adalah folder baru di dalam submodule yang **sudah terdaftar** prefix `Fin`, sehingga
+**nol** gerbang `QBE-MOD-003` — sama seperti revisi 14.
+
+**Empat berkas templat, bukan dua.** `ItemKind` sudah memisahkan piutang dari utang (`L.4.3`), dan
+`FIN-DEC-140` menuntut satu templat per format. Dua jenis kali dua format = empat berkas, dan
+keempatnya **MUST** dijaga sinkron berpasangan.
+
+## M.6 Endpoint
+
+Perubahan kontrak selengkapnya pada `contracts/api-contract.md` bagian `F.2` dan `F.3`. Ringkasnya:
+
+| Method dan path | Yang berubah | Hak akses |
+|---|---|---|
+| `GET /opening-item-batches/template` | **Ruas `format` ditambahkan** di samping `itemKind`. Keduanya wajib; `format` di luar `CSV`/`XLSX` ditolak `400` | `FinanceOpeningItemBatch : Read` |
+| `POST /opening-item-batches` | Menerima **CSV dan XLSX** pada endpoint yang sama. Format ditentukan dari tipe media/ekstensi, bukan dari ruas pengguna | `FinanceOpeningItemBatch : Create` |
+| `POST /transaction-proofs` | Bagian unggah **dibuka**: aturan berkas `M.3` ditegakkan. Kode status bertambah `413` dan `503` | `FinanceTransactionProof : Create` |
+| `GET /transaction-proofs/{id}` | Bentuknya tidak berubah. Batas akses per pemilik dicatat pada `permission-audit-matrix.md` `H.3` | `FinanceTransactionProof : Read` |
+
+**Nol endpoint `PUT` dan `DELETE` pada grup bukti** — lihat `FIN-DES-092`.
+
+## M.7 Status model, migration, dan data master
+
+| Model | Status | Dampak migration |
+|---|---|---|
+| `FinOpeningItemBatch` | **`Diperbarui`** | **Satu kolom**: `SourceFormat` `string(10)`, wajib, tanpa bawaan, tanpa index |
+| `FinTransactionProof` | `Sudah ada` (rencana revisi 14) | **Nol perubahan kolom.** Dua keterangan kolom yang menyebut "menunggu `FIN-OQ-075`" diperbarui pada kamus data, bukan skemanya |
+| Seluruh model lain | `Sudah ada` | **Nol perubahan** |
+
+### Rencana migration
+
+| # | Nama | Status | Alasan |
+|---:|---|---|---|
+| 4 | `AddFinanceOpeningItemMigration` | **Diperbarui, bukan ditambah** | Keempat migration revisi 14 **belum dibuat** (`FIN-OQ-051` masih terbuka; catatan revisi 14 menulis "NOL migration dibuat"). `SourceFormat` karena itu **MUST** masuk ke migration keempat yang sudah direncanakan, **bukan** menjadi migration kelima |
+
+**Nol migration baru pada revisi ini.** Bila `FIN-OQ-051` sudah dijawab dan migration keempat sudah
+dibuat sebelum kolom ini turun, barulah ia menjadi migration kelima tersendiri — dan pada keadaan itu
+rencana ini **MUST** dibaca ulang, bukan diikuti apa adanya.
+
+### Rencana data master awal
+
+| Isi | Minimum | Catatan |
+|---|---|---|
+| `FinanceManagement:TransactionProof:AllowedExtensions` | `.pdf`, `.jpg`, `.jpeg`, `.png` beserta tipe medianya | Nilai bawaan sah dipakai bila kuncinya belum ada |
+| `FinanceManagement:TransactionProof:MaxFileSizeBytes` | **Belum ada nilainya** (`FIN-OQ-082`) | Tanpa nilai, unggah bukti **ditolak** — fail-closed yang disengaja |
+| Empat berkas templat | Keempatnya ada dan kolomnya sinkron berpasangan | Modul tidak dapat dipakai tanpa templat: petugas tidak punya bentuk berkas yang sah |
+
+## M.8 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+|---|---|
+| Endpoint `PUT`/`DELETE` bukti | `FIN-DEC-139` melarang penggantian. Endpoint yang ada lalu selalu menolak lebih buruk daripada endpoint yang tidak ada |
+| Pembersih berkala baris bukti menggantung | Melanggar "sistem tidak pernah menghapus bukti otomatis", dan berisiko menghapus bukti yang pembayarannya sedang disiapkan |
+| Kolom `RetentionUntil` pada bukti | Retensi dokumen keuangan **bukan** milik modul ini (batas scope closure pass `FIN-DEC-139`) |
+| Pembatasan akses bukti per pemilik transaksi | Menuntut mekanisme hak akses yang belum dimiliki platform; menambahkannya menahan `EPIC FIN-23` lagi (`FIN-DEC-139`) |
+| Dua paket XLSX — satu baca, satu tulis | `FIN-DEC-140` mengunci **tepat satu**. Satu paket yang mampu keduanya memenuhi kebutuhan |
+| `EPPlus` versi 5 ke atas | **DILARANG** `FIN-DEC-140`: lisensinya komersial sejak v5 |
+| Deteksi format dari ruas yang diisi pengguna | Pengguna dapat memaksa pembaca yang salah; tipe media dan ekstensi lebih sulit dipalsukan dan sudah tersedia |
+| Konversi XLSX ke CSV sebelum dibaca | Menghilangkan tipe sel, membuang keunggulan XLSX, dan menambah bentuk kegagalan ketiga |
+| Satu berkas templat untuk kedua jenis item | `ItemKind` memisahkan keduanya; satu templat bersama memaksa kolom yang tidak relevan ikut terbaca |
+| Penguraian angka/tanggal di dalam masing-masing pembaca | Melahirkan dua aturan format yang dapat berselisih. Penguraian terjadi di lapisan validasi, dan pembaca memulangkan teks mentah |

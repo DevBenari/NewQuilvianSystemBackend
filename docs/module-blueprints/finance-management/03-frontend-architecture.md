@@ -1012,3 +1012,73 @@ Ketiga hosted service **tidak** mendapat layar apa pun: tidak ada tombol "kirim 
 ada tombol "jalankan snapshot sekarang" di luar yang sudah ada. Pemicu manual sengaja tidak dibuat
 supaya tidak menjadi jalan memutar gerbang `FIN-DES-078`. Keadaan pengiriman terbaca dari layar
 Snapshot Saldo Subledger dan daftar kejadian akuntansi yang sudah ada.
+
+---
+
+## 20. Amendment 2 Oktober 2026 (revisi 15) — aturan berkas bukti dan pilihan format migrasi
+
+| Field | Nilai |
+|---|---|
+| Keputusan yang diturunkan | `FIN-DEC-139`, `FIN-DEC-140` |
+| Rancangan backend | `FIN-DES-092`, `FIN-DES-093`, `02-backend-architecture.md` AMENDMENT REVISI 15 |
+| Layar yang terdampak | **Dua**, keduanya sudah digambar bagian 19 — tidak ada layar baru pada revisi ini: layar 1 (Pembayaran langsung piutang/utang) dan layar 9 (Batch migrasi tagihan lama) |
+| Wewenang UI | Aturan berkas dan paritas format adalah **invariant**, bukan pilihan rupa. Letak kontrol, bunyi tombol, dan tata letaknya tetap `DEV_DISCRETION`. Penempatan menu tetap `FIN-OQ-079`, **belum** diputuskan |
+
+### 20.1 Layar 1 — Pembayaran langsung: tiga akibat yang mengubah bentuk layar
+
+| # | Akibat | Kenapa ia mengubah layar, bukan hanya pesan galat |
+|---:|---|---|
+| 1 | **Nol tombol "Ganti Bukti"** | `FIN-DEC-139` melarang penggantian sesudah mutasi tertulis, dan `FIN-DES-092` meniadakan endpointnya. Tombol yang memanggil endpoint yang tidak ada adalah tautan mati. Layar **MUST** menyediakan jalan yang benar: **batalkan/balik pembayarannya, lalu catat ulang** |
+| 2 | **Jenis dan batas ukuran ditampilkan sebelum memilih berkas** | Petugas memotret kuitansi dengan ponsel; berkas foto modern mudah melewati batas. Memberitahu batasnya **sesudah** unggah gagal berarti menunggu unggahan besar selesai hanya untuk ditolak |
+| 3 | **Keadaan "sistem belum siap" dibedakan dari "berkas Anda salah"** | `503` (`FIN-VAL-220`) berarti administrator belum mengisi batas ukuran. Layar **MUST** menampilkannya sebagai masalah konfigurasi beserta arahan menghubungi administrator — **MUST NOT** menyarankan petugas mengganti berkas |
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Pemilih berkas bukti | Satu berkas; menyebut jenis yang diterima (PDF/JPG/JPEG/PNG) dan batas ukurannya | Jenis dari kontrak; batas ukuran **tidak** dibaca layar dari konfigurasi — layar menampilkan batas yang dikembalikan backend bila tersedia, dan menahan diri bila tidak | `FinanceTransactionProof : Create` | `400` → pesan backend ditampilkan apa adanya; `413` → "Ukuran berkas melewati batas"; `503` → pesan konfigurasi beserta arahan ke administrator |
+| Keterangan bukti terunggah | Nama berkas, ukuran, waktu unggah | `POST /transaction-proofs` response | `FinanceTransactionProof : Create` | — |
+| Tautan unduh bukti pada riwayat mutasi | Satu tautan per mutasi yang punya `ProofId` | `GET /transaction-proofs/{id}` | `FinanceTransactionProof : Read` | Mutasi tanpa bukti menampilkan tanda hubung, bukan tautan mati |
+| Aksi koreksi | **Balik pembayaran lalu catat ulang** | Jalur pembalikan yang sudah ada | Sesuai hak jalur pembalikan | — |
+
+**Satu hal yang MUST NOT dilakukan layar.** Menyembunyikan tautan unduh bukti milik transaksi orang
+lain **bukan** pengganti pembatasan hak akses. Batas per pemilik transaksi memang belum ada
+(`permission-audit-matrix.md` `H.3`); menyembunyikannya di layar hanya menyamarkan keadaan sebenarnya,
+karena URL unduhnya tetap dapat dipanggil langsung. Layar menampilkan apa yang backend izinkan.
+
+### 20.2 Layar 9 — Batch migrasi: pilihan format pada dua tempat
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Unduh templat | Pilihan **jenis item** (piutang/utang) **dan format** (CSV/XLSX); keduanya wajib dipilih sebelum tombol unduh aktif | `GET /opening-item-batches/template?itemKind=&format=` | `FinanceOpeningItemBatch : Read` | `400` bila salah satu belum dipilih — dicegah di layar dengan menonaktifkan tombolnya |
+| Unggah berkas | **Satu** pemilih berkas yang menerima CSV **dan** XLSX | `POST /opening-item-batches` | `FinanceOpeningItemBatch : Create` | `400` → pesan menyebut kedua format yang diterima |
+| Asal berkas pada rincian batch | Menampilkan `sourceFormat` (CSV/XLSX) | `OpeningItemBatchResponse.sourceFormat` | `FinanceOpeningItemBatch : Read` | — |
+| Galat per baris | Daftar galat beserta **nomor baris** | `GET /opening-item-batches/{id}` | `FinanceOpeningItemBatch : Read` | Nol galat → batch `VALIDATED` |
+
+**Dua pemilih format, bukan satu.** Unduh templat **meminta** format dari pengguna (ia belum punya
+berkas). Unggah **tidak** meminta format — format ditentukan backend dari berkasnya (`FIN-DES-093`).
+Menambahkan pemilih format pada unggah berarti membuka jalan pengguna memaksa pembaca yang salah,
+dan itu **MUST NOT** dibuat.
+
+### 20.3 Penanganan state yang ditambahkan
+
+| State | Yang dilihat pengguna |
+|---|---|
+| `413` pada unggah bukti | "Ukuran berkas melewati batas yang diizinkan." Berkas **tidak** terkirim ulang otomatis |
+| `503` pada unggah bukti | Pesan konfigurasi belum lengkap beserta arahan menghubungi administrator. Tombol unggah **dinonaktifkan** selama keadaan itu, bukan dibiarkan dicoba berulang |
+| `409` pada pembayaran karena bukti terpakai | "Bukti ini sudah dipakai pada pembayaran lain. Unggah bukti baru." — bukan galat teknis |
+| Galat baris berkas migrasi | Nomor baris **selalu** ditampilkan; daftar galat dapat diunduh atau disalin supaya petugas memperbaiki berkasnya di luar sistem |
+
+### 20.4 Privasi
+
+| Hal | Aturan |
+|---|---|
+| Isi berkas bukti | **MUST NOT** masuk log klien, telemetri, maupun pesan galat yang dikirim ke pihak ketiga |
+| Pratayang bukti di layar | Diizinkan bagi pemegang `Read`; **MUST NOT** disimpan ke cache yang dapat dibaca pengguna lain pada perangkat bersama |
+| Hasil validasi batch | Dapat memuat nama debitur dan supplier (bertanda **Sensitif** pada kamus data). Hanya ditampilkan pada layar batch bagi pemegang haknya — tidak berubah dari 19.6 |
+
+### 20.5 Pertanyaan terbuka frontend yang tetap terbuka
+
+| ID | Pertanyaan | Akibat selama belum dijawab |
+|---|---|---|
+| `FIN-OQ-079` | Penempatan menu tujuh layar baru revisi 14, termasuk layar batch migrasi | Layar dapat dibangun; **butir menunya** belum dapat didaftarkan. **MUST NOT** diputuskan sendiri — `FIN-DEC-094` mengikat menu pada bentuk V1, dan ketujuh layar ini tidak ada di V1 |
+| `FIN-OQ-080` | Apakah ambang pembayaran ditampilkan kepada staf | Layar 1 menahan diri menampilkan angka ambang; peringatan "melewati ambang" tetap ditampilkan tanpa menyebut angkanya |
+| `FIN-OQ-082` | Nilai awal batas ukuran berkas | Layar **MUST** menangani `503` sebagai keadaan nyata, bukan kasus teoretis |

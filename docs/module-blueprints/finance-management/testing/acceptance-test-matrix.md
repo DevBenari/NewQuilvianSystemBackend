@@ -678,3 +678,58 @@ Jalur gagal ditulis bersama jalur berhasil, bukan sesudahnya.
 | Pembayaran yang dipecah di bawah ambang | Sengaja tidak dideteksi (`FIN-DEC-134`) |
 | Buku mutasi utang jasa medis | Belum dibangun karena tabelnya belum punya penulis (`FIN-DES-091`) |
 | Posisi saldo untuk tanggal sebelum cutover | Sengaja ditolak, dan penolakannya **diuji** pada `I.1` |
+
+---
+
+# AMENDMENT REVISI 15 — Berkas bukti dan paritas dua format
+
+`last_changed_in`: `FIN-TEST-1.9` — status `draft`, 2 Oktober 2026.
+Diturunkan dari `FIN-DEC-139`, `FIN-DEC-140`; dirancang `FIN-DES-092`, `FIN-DES-093`.
+Kesembilan kriteria penerimaan pada closure pass 1 Oktober 2026 dipetakan di bawah, **tidak**
+diringkas — supaya tidak ada yang hilang saat task mengerjakannya.
+
+## J.1 Berkas bukti — jalur berhasil
+
+| # | Skenario | Hasil yang diharapkan |
+|---:|---|---|
+| J.1.1 | Unggah `.pdf` berukuran di bawah batas konfigurasi | `201`, `ProofId` terbit, satu baris metadata tertulis, berkas ada di bawah akar penyimpanan |
+| J.1.2 | Unggah `.jpg` hasil foto ponsel, lalu catat pembayaran memakai `ProofId` itu | Pembayaran tercatat, satu baris mutasi membawa `ProofId`, saldo bergerak |
+| J.1.3 | Unduh bukti memakai pemegang `FinanceTransactionProof : Read` | Berkas terkirim apa adanya; satu baris log pengunduh tercatat **tanpa** isi berkas |
+
+## J.2 Berkas bukti — jalur gagal (kriteria penerimaan 1-5 closure pass)
+
+| # | Kriteria asal | Skenario | Hasil yang diharapkan |
+|---:|---|---|---|
+| J.2.1 | Kriteria 1 | Unggah `.docx` (di luar daftar konfigurasi) | `400`, pesan menyebut jenis yang diterima, **nol** baris metadata, **nol** berkas tertulis |
+| J.2.2 | Kriteria 2 | Unggah berkas bernama `bukti.pdf` yang isinya sebenarnya ZIP | `400` — ekstensi lolos, **tipe media ditolak** (`FIN-VAL-218`) |
+| J.2.3 | Kriteria 3 | Hapus `MaxFileSizeBytes` dari konfigurasi, lalu unggah `.pdf` kecil yang sah | `503`, pesan menyebut **konfigurasi belum lengkap**; **MUST NOT** `400` dan **MUST NOT** diterima sebagai tak terbatas |
+| J.2.4 | Kriteria 4 | Pakai `ProofId` yang sudah terpakai satu mutasi untuk pembayaran kedua | `409`, pesan "bukti sudah dipakai"; **nol** mutasi kedua tertulis |
+| J.2.5 | Kriteria 4 | Cari endpoint untuk **mengganti** bukti sebuah mutasi | **Tidak ada** endpoint `PUT`/`DELETE` pada grup bukti — ketiadaannya adalah hasil yang diuji, bukan galat |
+| J.2.6 | Kriteria 5 | Unggah dengan nama berkas memuat `../` sehingga jalurnya keluar akar | `400`, dan percobaannya **tercatat** |
+| J.2.7 | — | Unggah berkas nol byte | `400` (`FIN-VAL-214`) |
+| J.2.8 | — | Unggah berkas bernama 300 karakter | `400` (`FIN-VAL-215`) |
+| J.2.9 | — | Unggah berhasil, lalu pembayarannya gagal karena saldo; ulangi pembayaran dengan `ProofId` yang sama | Pembayaran kedua **berhasil** — bukti menggantung tetap sah selama belum terpakai mutasi |
+| J.2.10 | — | Penulisan metadata gagal sesudah berkas tersimpan | Berkas yang sudah tersimpan **dihapus** pada jalur gagal itu; **nol** berkas yatim tertinggal |
+
+## J.3 Paritas dua format — kriteria penerimaan 6-9 closure pass
+
+Bagian ini adalah **inti** mitigasi risiko `FIN-DEC-140`: jalur yang jarang dipakai staf hanya akan
+teruji bila kasus ujinya memaksanya.
+
+| # | Kriteria asal | Skenario | Hasil yang diharapkan |
+|---:|---|---|---|
+| J.3.1 | **Kriteria 6** | Siapkan **satu** isi data 120 baris; simpan sebagai `.csv` **dan** `.xlsx`; unggah keduanya sebagai dua batch terpisah | Kedua batch menghasilkan **baris terurai yang identik**: jumlah baris sama, nilai per sel sama, galat per baris sama, `TotalOutstandingAmount` sama. Satu-satunya yang berbeda adalah `SourceFormat` |
+| J.3.2 | **Kriteria 7** | CSV dengan satu baris bernilai `1.500.000,00` saat templat mengunci format lain | Baris itu **ditolak beserta nomor barisnya** (`FIN-VAL-226`); **MUST NOT** ditebak menjadi angka apa pun; batch tetap `DRAFT` |
+| J.3.3 | **Kriteria 8** | Bandingkan baris judul keempat berkas templat | Kolom pada pasangan CSV/XLSX jenis yang sama **sama persis**; perbedaan apa pun adalah **cacat** |
+| J.3.4 | **Kriteria 9** | Periksa `QuilvianSystemBackend.csproj` sesudah task XLSX selesai | **Tepat satu** paket pembaca XLSX; lisensinya permisif; **nol** `EPPlus` v5+ |
+| J.3.5 | — | XLSX dengan sel tanggal bertipe teks yang tidak dapat diurai | Baris ditolak beserta nomor barisnya (`FIN-VAL-227`) — bentuk kegagalan yang **berbeda** dari J.3.2, dan diuji tersendiri |
+| J.3.6 | — | Unduh templat tanpa ruas `format` | `400` (`FIN-VAL-224`) |
+| J.3.7 | — | Unggah berkas `.ods` | `400` (`FIN-VAL-225`), pesan menyebut CSV dan XLSX |
+| J.3.8 | — | Ganti implementasi pembaca XLSX dengan ganda palsu pada test | Validasi `FIN-VAL-186`..`191` tetap lulus **tanpa diubah** — bukti bahwa tipe milik paket tidak bocor melewati antarmuka (`FIN-DES-093`) |
+
+## J.4 Satu test yang sengaja dibuat untuk menangkap kelalaian
+
+| # | Skenario | Kenapa test ini ada |
+|---:|---|---|
+| J.4.1 | Tambahkan format ketiga palsu pada test (misalnya `.tsv`) tanpa menambah implementasi pembaca | Unggahan **MUST** ditolak `400`, **bukan** jatuh ke pembaca CSV secara diam-diam. Test ini menangkap pemilihan pembaca yang terlalu longgar — bentuk cacat yang tidak terlihat sampai ada format baru |
+| J.4.2 | Jalankan J.3.1 dengan berkas yang **satu barisnya bergalat** | Nomor baris yang dilaporkan **sama** pada kedua format. Penomoran baris yang bergeser satu (karena baris judul dihitung pada satu format saja) adalah cacat paritas yang paling mudah lolos review |

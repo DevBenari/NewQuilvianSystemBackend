@@ -1422,7 +1422,7 @@ kapabilitasnya, sehingga `MVP-13D` boleh berjalan.
 | Contract version | `FIN-MVP-1.9` — status **`draft`** |
 | Naik dari | `FIN-MVP-1.8` (`approved` 1 Oktober 2026) |
 | Diturunkan dari | `FIN-DEC-111`..`137`; `FIN-DES-078`..`091`; `01-existing-capability-map.md` bagian 18 dan 19 |
-| Epic baru | `EPIC FIN-20`..`EPIC FIN-23` |
+| Epic baru | `EPIC FIN-20`..`EPIC FIN-24` — **lima**, bukan empat. *Dikoreksi revisi 15:* baris ini semula menulis `EPIC FIN-20`..`EPIC FIN-23` dan catatan manifest revisi 14 menulis "EMPAT EPIC BARU", padahal `EPIC FIN-24` dibangun pada revisi yang sama (bagian 48). Salah hitung, bukan epic yang hilang |
 
 ## 42. Masalah produk yang diselesaikan revisi 14
 
@@ -1521,60 +1521,88 @@ dibangun dan diuji dengan nilai sementara; **mengisinya** menunggu Accounting.
 | `FIN-OQ-047` (ratifikasi `PEMBUKAAN-SHIFT-KASIR`) | **Pengiriman** ketiga penanda shift |
 | Kredensial akun layanan (G3) | **Pengaktifan** pengiriman di lingkungan nyata |
 
-## 47. `EPIC FIN-23` — Pembayaran langsung berkontrol — **`OPEN DECISION`**
+## 47. `EPIC FIN-23` — Pembayaran langsung berkontrol
+
+> **Diperbarui 2 Oktober 2026 (revisi 15).** Epic ini **tidak lagi `OPEN DECISION`**. `FIN-OQ-075`
+> ditutup `FIN-DEC-139`, dan aturan berkasnya digambar `FIN-DES-092`. Status sebelumnya —
+> ~~`OPEN DECISION`, di luar seluruh gelombang~~ — **superseded**, dicatat apa adanya supaya
+> riwayatnya tidak hilang.
 
 | Field | Nilai |
 |---|---|
 | Kemampuan asal | `FIN-CAP-053` (`Extend`), bukti pembayaran (`Missing`) |
-| Disposisi menyeluruh | **`OPEN DECISION`** |
-| Gelombang | **Di luar seluruh gelombang** |
-| Yang membuatnya terbuka | `FIN-OQ-075` — jenis dan ukuran berkas bukti, lama simpan, siapa boleh melihat dan menggantinya. `FIN-DEC-126` membuat bukti **wajib**, sehingga tanpa aturan berkas, jalur pembayaran langsung tidak dapat dinyalakan |
+| Disposisi menyeluruh | **`MISSING / NEW`** untuk bukti dan ambang; **`EXTEND`** untuk jalur pembayaran yang sudah ada |
+| Gelombang | **`MVP-14D`** |
+| Yang sebelumnya menahannya | `FIN-OQ-075` — **CLOSED** oleh `FIN-DEC-139` (jenis dan ukuran dari konfigurasi, nol penghapusan otomatis, bukti tidak dapat diganti, akses tanpa batas per pemilik) |
+| Yang masih terbuka tetapi **tidak** menahan | `FIN-OQ-074` (angka ambang) dan `FIN-OQ-082` (nilai batas ukuran berkas) — keduanya **data konfigurasi**, bukan keputusan desain. Keduanya berperilaku **fail-closed**: tanpa ambang, pembayaran langsung ditolak; tanpa batas ukuran, unggah bukti ditolak |
 
 | # | Functional requirement | Disposisi |
 |---:|---|---|
-| `FR-FIN-160` | Pembayaran langsung piutang dan utang menerima tunai maupun non-tunai dengan satu mekanisme | `OPEN DECISION` |
-| `FR-FIN-161` | Metode, sumber dana, nomor rujukan, dan bukti wajib disimpan | `OPEN DECISION` |
-| `FR-FIN-162` | Pembayaran tunai menambah atau mengurangi Kas Kasir; anggaran kas kecil tidak tersentuh | `OPEN DECISION` |
-| `FR-FIN-163` | Pembayaran di atas ambang ditolak dan diarahkan ke jalur berjenjang | `OPEN DECISION` |
-| `FR-FIN-164` | Tanpa ambang aktif, seluruh pembayaran langsung ditolak | `OPEN DECISION` |
-| `FR-FIN-165` | Pejabat berwenang dapat mengubah ambang beserta alasan yang wajib | `OPEN DECISION` |
-| `FR-FIN-166` | Metode dan sumber dana diteruskan ke Accounting | `OPEN DECISION` |
+| `FR-FIN-160` | Pembayaran langsung piutang dan utang menerima tunai maupun non-tunai dengan satu mekanisme | `EXTEND` |
+| `FR-FIN-161` | Metode, sumber dana, nomor rujukan, dan bukti wajib disimpan | `MISSING / NEW` |
+| `FR-FIN-162` | Pembayaran tunai menambah atau mengurangi Kas Kasir; anggaran kas kecil tidak tersentuh | `EXTEND` |
+| `FR-FIN-163` | Pembayaran di atas ambang ditolak dan diarahkan ke jalur berjenjang | `MISSING / NEW` |
+| `FR-FIN-164` | Tanpa ambang aktif, seluruh pembayaran langsung ditolak | `MISSING / NEW` |
+| `FR-FIN-165` | Pejabat berwenang dapat mengubah ambang beserta alasan yang wajib | `MISSING / NEW` |
+| `FR-FIN-166` | Metode dan sumber dana diteruskan ke Accounting | `MISSING / NEW` |
+| `FR-FIN-174` | Berkas bukti divalidasi berurut: ada dan tidak kosong, panjang nama, ekstensi, daftar terlarang, daftar diizinkan, tipe media, ukuran, dan jalur simpan di bawah akar penyimpanan | `MISSING / NEW` |
+| `FR-FIN-175` | Tanpa nilai batas ukuran pada konfigurasi, unggah bukti **ditolak** beserta keterangan konfigurasi belum lengkap — bukan dianggap tak terbatas | `MISSING / NEW` |
+| `FR-FIN-176` | Bukti **tidak dapat diganti** sesudah baris mutasi tertulis; koreksi dilakukan dengan membalik pembayarannya lalu mencatat ulang | `MISSING / NEW` |
+| `FR-FIN-177` | Sistem **tidak pernah** menghapus berkas bukti otomatis; penghapusan hanya penandaan dan berkas fisiknya tetap ada | `MISSING / NEW` |
 
-**Perlakuan sementara selama epic ini tertahan.** Jalur pembayaran langsung **tetap berjalan seperti
-sekarang**: ia menerima metode lalu mengabaikannya, dan tidak punya ambang. Yang **sudah** berubah
-sejak `EPIC FIN-20` adalah ia mulai menulis buku mutasi — sehingga posisi saldo tetap benar walaupun
-kontrolnya belum ada. Petugas **tidak** kehilangan pekerjaan yang selama ini dapat dilakukan.
+**Batas yang diterima sadar, dan MUST disampaikan saat menyerahkan modul.** Staf AR/AP yang memegang
+`FinanceTransactionProof : Read` dapat melihat bukti pembayaran transaksi yang **bukan** miliknya.
+Pembatasan per pemilik menuntut mekanisme hak akses yang belum dimiliki platform
+(`permission-audit-matrix.md` `H.3`). Mitigasinya: jalur unduh tetap bergerbang hak akses, setiap
+unduhan tercatat, dan isi berkas **MUST NOT** masuk logger.
 
-**Risiko yang berjalan selama itu, dicatat terbuka:** pembayaran langsung masih tanpa batas nilai dan
-tanpa bukti. `FIN-OQ-074` (angka ambang) ikut tertahan, tetapi ia **bukan** penyebab epic ini
-terbuka — ia data konfigurasi yang dapat diisi kapan saja sesudah tabelnya ada.
+**Perubahan memutus yang MUST dijaga urutannya.** Dua endpoint yang sudah berjalan
+(`POST /receivables/{id}/payment` dan `POST /supplier-payables/{id}/direct-payment`) berubah
+kontraknya. Layar **MUST** disesuaikan sebelum atau bersamaan dengan backend, tidak sesudahnya —
+tidak berubah dari revisi 14.
 
-## 48. `EPIC FIN-24` — Migrasi tagihan lama — **`OPEN DECISION`**
+## 48. `EPIC FIN-24` — Migrasi tagihan lama
+
+> **Diperbarui 2 Oktober 2026 (revisi 15).** Epic ini **tidak lagi `OPEN DECISION`**. `FIN-OQ-077`
+> ditutup `FIN-DEC-140`: **dua format** didukung (CSV dan XLSX), dan wewenang penambahan **satu**
+> paket pembaca XLSX **diberikan** dengan batas lisensi yang tegas. Status sebelumnya —
+> ~~`OPEN DECISION`, di luar seluruh gelombang~~ — **superseded**, dicatat apa adanya.
 
 | Field | Nilai |
 |---|---|
 | Kemampuan asal | Mekanisme impor (`Missing`), `FinReceivable` (`Repair`) |
-| Disposisi menyeluruh | **`OPEN DECISION`** |
-| Gelombang | **Di luar seluruh gelombang** |
-| Yang membuatnya terbuka | `FIN-OQ-077` — penambahan paket pembaca spreadsheet, yang **belum ada di proyek** dan menuntut wewenang eksplisit menurut `AGENTS.md` |
+| Disposisi menyeluruh | **`MISSING / NEW`** |
+| Gelombang | **`MVP-14E`** |
+| Yang sebelumnya menahannya | `FIN-OQ-077` — **CLOSED** oleh `FIN-DEC-140`. CSV dibaca dengan kemampuan bawaan .NET (nol paket); XLSX memakai **tepat satu** paket berlisensi permisif |
+| Yang masih terbuka tetapi **tidak** menahan seluruh epic | `FIN-OQ-081` (nama dan versi paket XLSX) memblokir **bagian XLSX saja** — bagian CSV, validasi, rekonsiliasi, dan persetujuan batch **tidak** tertahan. `FIN-OQ-076` (jumlah tagihan lama) adalah data konfigurasi yang menentukan batas baris per unggahan |
+| Batas lisensi yang MUST dijaga | Lisensi paket **MUST** permisif. `ClosedXML` (MIT) memenuhi syarat. **`EPPlus` v5+ DILARANG** — lisensinya komersial sejak v5, dan memakainya memasukkan kewajiban lisensi ke sistem rumah sakit |
 
 | # | Functional requirement | Disposisi |
 |---:|---|---|
-| `FR-FIN-167` | Petugas dapat mengunduh templat spreadsheet per jenis tagihan | `OPEN DECISION` |
-| `FR-FIN-168` | Petugas dapat mengunggah tagihan lama, dan sistem memvalidasi setiap baris | `OPEN DECISION` |
-| `FR-FIN-169` | Batch tidak dapat disetujui bila total sisanya berbeda dari saldo awal Accounting yang dinyatakan | `OPEN DECISION` |
-| `FR-FIN-170` | Persetujuan batch melahirkan item tagihan beserta mutasi pembukanya dalam satu transaksi | `OPEN DECISION` |
-| `FR-FIN-171` | Item migrasi tidak menerbitkan kejadian akuntansi apa pun | `OPEN DECISION` |
-| `FR-FIN-172` | Sesudah diposting, item migrasi mengikuti proses penagihan, pelunasan, umur piutang, dan snapshot yang normal | `OPEN DECISION` |
-| `FR-FIN-173` | Piutang non-migrasi tetap wajib berasal dari serah terima Billing | `OPEN DECISION` |
+| `FR-FIN-167` | Petugas dapat mengunduh templat per jenis tagihan **dan per format** | `MISSING / NEW` |
+| `FR-FIN-168` | Petugas dapat mengunggah tagihan lama, dan sistem memvalidasi setiap baris | `MISSING / NEW` |
+| `FR-FIN-169` | Batch tidak dapat disetujui bila total sisanya berbeda dari saldo awal Accounting yang dinyatakan | `MISSING / NEW` |
+| `FR-FIN-170` | Persetujuan batch melahirkan item tagihan beserta mutasi pembukanya dalam satu transaksi | `MISSING / NEW` |
+| `FR-FIN-171` | Item migrasi tidak menerbitkan kejadian akuntansi apa pun | `MISSING / NEW` |
+| `FR-FIN-172` | Sesudah diposting, item migrasi mengikuti proses penagihan, pelunasan, umur piutang, dan snapshot yang normal | `MISSING / NEW` |
+| `FR-FIN-173` | Piutang non-migrasi tetap wajib berasal dari serah terima Billing | `MISSING / NEW` |
+| `FR-FIN-178` | Satu endpoint unggah menerima **CSV dan XLSX**; formatnya ditentukan dari tipe media dan ekstensi berkas, **bukan** dari ruas yang diisi pengguna | `MISSING / NEW` |
+| `FR-FIN-179` | Berkas CSV dan XLSX yang isinya sama **MUST** menghasilkan baris terurai yang identik, termasuk nomor baris pada pesan galatnya | `MISSING / NEW` |
+| `FR-FIN-180` | Pembacanya berupa lapisan terpisah di balik satu antarmuka; validasi per baris bekerja di atas baris terurai, sehingga aturannya **tunggal** untuk kedua format | `MISSING / NEW` |
+| `FR-FIN-181` | Berkas CSV yang format angka atau tanggalnya tidak sesuai templat **ditolak beserta nomor barisnya**, **MUST NOT** ditebak | `MISSING / NEW` |
+| `FR-FIN-182` | Tersedia **empat** berkas templat (dua jenis item kali dua format); kolom pada pasangan jenis yang sama **MUST** identik | `MISSING / NEW` |
+| `FR-FIN-183` | Asal format setiap batch dicatat supaya cacat paritas antar format dapat ditelusuri | `MISSING / NEW` |
 
-**Perlakuan sementara selama epic ini tertahan.** Tagihan lama **tidak** dapat ditagih lewat sistem.
-Penagihannya berjalan di luar sistem seperti sekarang, dan saldo Finance akan **berselisih tetap**
-dari buku besar sebesar saldo awal piutang dan utang. Selisih itu **MUST** dijelaskan Accounting
-secara manual setiap bulan sampai epic ini jalan — dan itulah biaya langsung dari menundanya.
+**Risiko yang lahir langsung dari mendukung dua format, dan ia MUST dijaga.** Staf hampir pasti
+memakai satu format saja, sehingga jalur yang lain menjadi jalur yang jarang terpakai dan jarang
+teruji. Mitigasinya **bukan** harapan, melainkan kasus uji: paritas `FR-FIN-179` diuji dengan berkas
+contoh yang isinya sama (`testing/acceptance-test-matrix.md` `J.3.1`), dan kedua format punya bentuk
+kegagalan **berbeda** yang masing-masing diuji sendiri (CSV: format tidak sesuai templat; XLSX: tipe
+sel tidak sesuai harapan).
 
-**`FIN-OQ-076`** (jumlah tagihan lama) ikut tertahan dan menentukan batas baris per unggahan. Ia
-**bukan** penyebab epic ini terbuka.
+**Biaya menunda yang sudah berjalan sampai epic ini jalan.** Tagihan lama belum dapat ditagih lewat
+sistem, dan saldo Finance **berselisih tetap** dari buku besar sebesar saldo awal piutang dan utang.
+Selisih itu **MUST** dijelaskan Accounting secara manual setiap bulan sampai `MVP-14E` selesai.
 
 ## 49. Skenario UAT revisi 14
 
@@ -1590,8 +1618,16 @@ Satu jalur berhasil dan satu jalur gagal untuk setiap epic `MUST HAVE`. Rinciann
 | `FIN-22` | Snapshot terbit otomatis tanggal 1 pukul 00.05 WIB tanpa dipicu manual | Kotak masuk Accounting menjawab galat → baris menjadi gagal beserta catatan percobaan, dicoba ulang siklus berikutnya |
 | `FIN-22` | Shift `CLOSED_WITH_VARIANCE` yang belum pernah terlihat menerbitkan penanda pembukaan | Penanda shift **tidak** terkirim selama G6 belum siap; barisnya tetap menunggu |
 
-`EPIC FIN-23` dan `EPIC FIN-24` berstatus `OPEN DECISION` dan karena itu **tidak** memiliki skenario
-UAT pada revisi ini.
+**Ditambahkan revisi 15.** `EPIC FIN-23` dan `EPIC FIN-24` **tidak lagi `OPEN DECISION`**, sehingga
+keduanya kini wajib punya skenario UAT jalur berhasil **dan** jalur gagal. Rinciannya pada
+`testing/acceptance-test-matrix.md` bagian `J`.
+
+| Epic | UAT berhasil | UAT gagal |
+|---|---|---|
+| `FIN-23` | Petugas memotret kuitansi `.jpg` di bawah batas ukuran, bukti tersimpan, pembayaran tercatat, satu baris mutasi membawa buktinya, posisi saldo bergerak | Berkas bernama `.pdf` tetapi isinya ZIP → ditolak karena **tipe medianya** tidak cocok, bukan karena ekstensinya |
+| `FIN-23` | Nominal salah ketik dikoreksi dengan membalik pembayarannya lalu mencatat ulang beserta bukti baru | Batas ukuran dikosongkan dari konfigurasi → seluruh unggah ditolak beserta keterangan **konfigurasi belum lengkap**, bukan menyalahkan berkas petugas |
+| `FIN-24` | 120 tagihan lama disiapkan sebagai `.xlsx`, tiga baris bertanggal melewati cutover ditolak beserta nomor barisnya, diperbaiki, diunggah ulang, saldo awal dinyatakan, total cocok, batch disetujui dan terkunci | Berkas yang sama disimpan sebagai `.csv` menghasilkan jumlah baris atau nomor baris yang **berbeda** → itu cacat paritas, dan test `J.3.1` memang dibuat untuk menangkapnya |
+| `FIN-24` | Templat diunduh per jenis item **dan** per format; kolom pasangan CSV/XLSX terbukti identik | CSV memuat `1.500.000,00` saat templat mengunci format lain → baris ditolak beserta nomor barisnya, nilainya **tidak** ditebak |
 
 ## 50. Definition of Done revisi 14
 
@@ -1615,6 +1651,15 @@ Setiap butir dapat dijawab "ya" atau "belum" beserta buktinya.
 | 14 | Layar pembayaran langsung disesuaikan **sebelum atau bersamaan** dengan backend | Urutan rilis tercatat; tidak ada jeda ketika layar lama memanggil kontrak baru |
 | 15 | `dotnet build` lulus tanpa galat | Keluaran build |
 | 16 | Wewenang migration diminta dan diberikan terpisah | Pernyataan pemilik, bukan asumsi |
+| 17 | **(revisi 15)** Kedelapan pemeriksaan berkas bukti ditegakkan **berurut**, dan yang pertama gagal menghentikan sisanya | Delapan kasus test lulus, satu per pemeriksaan (`J.2`) |
+| 18 | **(revisi 15)** Tanpa nilai batas ukuran, unggah bukti ditolak `503` — bukan `400`, bukan diterima | Test lulus (`J.2.3`) |
+| 19 | **(revisi 15)** Grup bukti **nol** endpoint `PUT` dan `DELETE` | Pemeriksaan permukaan API: ketiadaannya terbukti, bukan ada lalu menolak (`J.2.5`) |
+| 20 | **(revisi 15)** Berkas yatim tidak tertinggal ketika penulisan metadata gagal sesudah berkas tersimpan | Test lulus (`J.2.10`) |
+| 21 | **(revisi 15)** Berkas CSV dan XLSX berisi data yang sama menghasilkan baris terurai **identik**, termasuk nomor baris pada galatnya | Dua test lulus (`J.3.1`, `J.4.2`) |
+| 22 | **(revisi 15)** Keempat berkas templat ada, dan kolom pasangan jenis yang sama identik | Pemeriksaan baris judul keempat berkas (`J.3.3`) |
+| 23 | **(revisi 15)** Tepat **satu** paket pembaca XLSX terpasang, lisensinya permisif, **nol** `EPPlus` v5+ | Pemeriksaan `QuilvianSystemBackend.csproj` (`J.3.4`) |
+| 24 | **(revisi 15)** Tipe milik paket XLSX **tidak** bocor melewati antarmuka pembaca | Validasi tetap lulus ketika pembaca diganti ganda palsu (`J.3.8`) |
+| 25 | **(revisi 15)** Wewenang penambahan paket dinyatakan eksplisit pada task yang membawanya | Pernyataan pemilik pada task itu, bukan merujuk keputusan ini saja |
 
 ## 51. Urutan pengiriman revisi 14
 
@@ -1623,19 +1668,42 @@ Setiap butir dapat dijawab "ya" atau "belum" beserta buktinya.
 | **`MVP-14A`** | `EPIC FIN-20` — buku mutasi, posisi per tanggal, WIB, Kas Kasir | Wewenang migration (`FIN-OQ-051`) |
 | **`MVP-14B`** | `EPIC FIN-21` — pemetaan akun control dan saldo awal cutover | `MVP-14A` selesai; wewenang migration |
 | **`MVP-14C`** | `EPIC FIN-22` — worker pengiriman, penjadwal snapshot, pemicu penanda shift | `MVP-14B` selesai. Pengaktifannya menunggu G3 dan `FIN-OQ-047` |
-| **`POST-MVP`** | `EPIC FIN-23`, `EPIC FIN-24` | **Di luar gelombang.** Keduanya `OPEN DECISION` |
+| **`MVP-14D`** | `EPIC FIN-23` — pembayaran langsung berkontrol beserta bukti wajib | `MVP-14A` selesai (buku mutasi menampung `ProofId`); wewenang migration ketiga. **Tidak** menunggu `MVP-14B`/`14C` |
+| **`MVP-14E`** | `EPIC FIN-24` — migrasi tagihan lama, dua format | `MVP-14B` selesai (saldo awal cutover dan `CutoverDate` sudah terkunci); wewenang migration keempat. Bagian XLSX menunggu `FIN-OQ-081`; bagian CSV **tidak** |
+
+> **Diperbarui revisi 15.** Baris `POST-MVP` yang sebelumnya memuat ~~`EPIC FIN-23` dan `EPIC FIN-24`
+> di luar gelombang karena keduanya `OPEN DECISION`~~ **dicabut**: kedua gerbangnya tertutup
+> (`FIN-DEC-139`, `FIN-DEC-140`), sehingga keduanya masuk gelombang sebagai `MVP-14D` dan `MVP-14E`.
 
 Urutan ini bukan pilihan gaya: `MVP-14C` mengirim saldo yang bentuknya ditentukan `MVP-14B`, dan
 `MVP-14B` menghitung dari buku mutasi yang dibangun `MVP-14A`. Membaliknya berarti mengirim angka
 yang belum dapat dipertanggungjawabkan.
 
+**Kenapa `MVP-14D` tidak menunggu `MVP-14B` dan `MVP-14C`.** Pembayaran langsung berkontrol hanya
+menuntut buku mutasi sebagai tempat menuliskan `ProofId` — ia tidak menyentuh pemetaan akun control
+maupun jalur pengiriman. Menggantungkannya pada `MVP-14B` berarti menunda kontrol atas pembayaran
+tanpa batas nilai lebih lama daripada yang perlu, dan itu justru risiko yang `EPIC FIN-23` ada untuk
+menutup.
+
+**Kenapa `MVP-14E` menunggu `MVP-14B`.** Validasi baris migrasi membandingkan tanggal dokumen
+terhadap `CutoverDate`, dan rekonsiliasi batch membandingkan totalnya terhadap saldo awal yang
+dinyatakan. Keduanya lahir di `MVP-14B`. Menjalankan `MVP-14E` lebih dulu berarti memvalidasi
+terhadap angka yang belum ada.
+
+**Bagian CSV `MVP-14E` dapat berjalan sebelum `FIN-OQ-081` dijawab.** `FIN-DES-093` menempatkan kedua
+pembaca di balik satu antarmuka, sehingga jalur CSV, validasi per baris, rekonsiliasi, dan persetujuan
+batch **tidak** menunggu paket apa pun. Yang menunggu hanya satu implementasi pembaca — dan itu
+pemisahan yang memang disengaja, bukan kebetulan.
+
 ## 52. Pertanyaan terbuka sebelum development lock — revisi 14
 
 | ID | Pertanyaan | Pemilik | Memblokir |
 |---|---|---|---|
-| `FIN-OQ-051` | Wewenang pembuatan dan eksekusi empat migration | Yasmin | **MEMBLOKIR** `MVP-14A` dan `MVP-14B` |
-| `FIN-OQ-077` | Penambahan paket pembaca spreadsheet | Yasmin | **MEMBLOKIR** `EPIC FIN-24` |
-| `FIN-OQ-075` | Aturan berkas bukti | Yasmin | **MEMBLOKIR** `EPIC FIN-23` |
+| `FIN-OQ-051` | Wewenang pembuatan dan eksekusi empat migration | Yasmin | **MEMBLOKIR** `MVP-14A`, `MVP-14B`, `MVP-14D`, `MVP-14E` |
+| ~~`FIN-OQ-077`~~ | ~~Penambahan paket pembaca spreadsheet~~ | Yasmin | **CLOSED** 1 Oktober 2026 oleh `FIN-DEC-140` — dua format, satu paket, lisensi permisif wajib |
+| ~~`FIN-OQ-075`~~ | ~~Aturan berkas bukti~~ | Yasmin | **CLOSED** 1 Oktober 2026 oleh `FIN-DEC-139` — jenis dan ukuran dari konfigurasi, nol penghapusan otomatis, bukti tidak dapat diganti |
+| `FIN-OQ-081` | Nama dan versi paket pembaca XLSX. `ClosedXML` (MIT) adalah usulan; **`EPPlus` v5+ dilarang**. Dikonfirmasi pada task yang membawanya (`AGENTS.md`) | Yasmin | **MEMBLOKIR bagian XLSX saja** pada `MVP-14E`. Bagian CSV, validasi, rekonsiliasi, dan persetujuan batch **tidak** tertahan |
+| `FIN-OQ-082` | Nilai awal batas ukuran berkas bukti | Yasmin | Data konfigurasi. **Tidak** memblokir `DESIGN` maupun pembangunan; tanpa nilainya unggah bukti **ditolak fail-closed** — perilaku yang disengaja |
 | `FIN-OQ-045` | Accounting menyetujui dimensi shift dan metode | Rizki | Pengaktifan kontrak, bukan pembangunan |
 | `FIN-OQ-047` | Ratifikasi `PEMBUKAAN-SHIFT-KASIR` | Rizki | Pengiriman penanda shift |
 | `FIN-OQ-048` | Accounting menerima konvensi tanggal WIB | Rizki | Tidak memblokir |
@@ -1648,3 +1716,55 @@ yang belum dapat dipertanggungjawabkan.
 
 Dokumen ini **MUST NOT** diteruskan ke `/plan-module-delivery` sebelum `FIN-OQ-051` dijawab, karena
 ketiga gelombang bergantung pada wewenang migration.
+
+---
+
+# Revisi 15 — Dua gerbang tertutup: aturan berkas bukti dan dua format migrasi
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-MVP-1.10` — status **`draft`** |
+| Naik dari | `FIN-MVP-1.9` (`draft`, revisi 14) |
+| Diturunkan dari | `FIN-DEC-139`, `FIN-DEC-140`; dirancang `FIN-DES-092`, `FIN-DES-093` |
+| Epic baru | **Nol.** Revisi ini tidak menambah epic — ia **membuka** dua epic yang revisi 14 tahan |
+| Functional requirement baru | `FR-FIN-174`..`FR-FIN-183` (sepuluh), menempel pada `EPIC FIN-23` dan `EPIC FIN-24` |
+
+## 53. Apa yang berubah pada revisi 15, dan apa yang tidak
+
+| Hal | Sebelum (revisi 14) | Sesudah (revisi 15) |
+|---|---|---|
+| `EPIC FIN-23` | `OPEN DECISION`, di luar seluruh gelombang | **`MVP-14D`**, disposisi `EXTEND` + `MISSING / NEW` |
+| `EPIC FIN-24` | `OPEN DECISION`, di luar seluruh gelombang | **`MVP-14E`**, disposisi `MISSING / NEW` |
+| Jumlah gelombang revisi 14 | Tiga (`MVP-14A`..`14C`) | **Lima** (`MVP-14A`..`14E`) |
+| Skenario UAT kedua epic | Tidak ada — keduanya `OPEN DECISION` | Dua jalur berhasil dan dua jalur gagal per epic (bagian 49) |
+| Butir Definition of Done | 16 | **25** (butir 17-25 ditambahkan) |
+| Tabel, kolom, dan migration | Delapan tabel baru, empat migration | **Nol tabel baru, nol migration baru.** Satu kolom (`FinOpeningItemBatch.SourceFormat`) masuk ke migration keempat yang **belum dibuat** |
+| Paket | Nol paket ditambahkan | **Satu** paket pembaca XLSX, wewenangnya diberikan dengan batas lisensi tegas. Namanya `FIN-OQ-081` |
+| Resource dan action hak akses | Empat resource, satu action baru | **Nol resource baru, nol action baru** |
+
+## 54. Yang MUST disampaikan kepada pemilik saat menyerahkan modul
+
+Dua hal, dan keduanya **bukan** cacat implementasi melainkan batas yang diterima sadar:
+
+| # | Batas | Kenapa diterima | Kapan ditinjau ulang |
+|---:|---|---|---|
+| 1 | **Staf AR/AP yang memegang hak baca dapat melihat bukti pembayaran transaksi yang bukan miliknya** | Pembatasan per pemilik menuntut mekanisme hak akses yang belum dimiliki platform; menambahkannya menahan `EPIC FIN-23` lagi, sedangkan hari ini pembayaran langsung berjalan **tanpa bukti sama sekali** — keadaan yang lebih buruk | Ketika platform punya mekanisme hak akses per pemilik data. Pemberian `FinanceTransactionProof : Read` **SHOULD** dibatasi pada peran yang memang perlu |
+| 2 | **Jalur format yang jarang dipakai staf akan jarang teruji di lapangan** | Konsekuensi langsung dari mendukung dua format atas permintaan owner. Mitigasinya kasus uji paritas, bukan harapan | Setiap kali templat atau pembaca berubah, paritas **MUST** diuji ulang |
+
+## 55. Pertanyaan terbuka sesudah revisi 15
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-051` | Wewenang pembuatan dan eksekusi migration | Yasmin | **MEMBLOKIR** `MVP-14A`, `14B`, `14D`, `14E` |
+| `FIN-OQ-081` | Nama dan versi paket pembaca XLSX | Yasmin | **MEMBLOKIR bagian XLSX saja** pada `MVP-14E` |
+| `FIN-OQ-074` | Angka ambang pembayaran langsung | Yasmin | Data konfigurasi — fail-closed tanpa nilainya |
+| `FIN-OQ-076` | Jumlah tagihan lama (batas baris per unggahan) | Yasmin | Data konfigurasi |
+| `FIN-OQ-082` | Nilai awal batas ukuran berkas bukti | Yasmin | Data konfigurasi — fail-closed tanpa nilainya |
+| `FIN-OQ-045`, `047`, `048` | Ratifikasi Accounting atas dimensi shift, kode pembukaan shift, konvensi tanggal WIB | Rizki (Accounting) | Pengaktifan pengiriman, **bukan** pembangunan. Sudah diminta lewat `evidence/22` |
+| `FIN-OQ-079` | Penempatan butir menu tujuh layar baru revisi 14 | Yasmin | Pendaftaran butir menu, **bukan** pembangunan layar |
+| `FIN-OQ-080` | Apakah angka ambang ditampilkan kepada staf | Yasmin | Tidak memblokir |
+| `FIN-OQ-057`, `065`, `069`, `078` | — | Yasmin | Tidak memblokir |
+
+**Nol keputusan bisnis yang menahan desain lagi.** Yang tersisa pada daftar di atas hanyalah nilai
+konfigurasi, satu konfirmasi paket, wewenang migration, dan persetujuan Accounting — tidak satu pun
+di antaranya menuntut pass desain baru.

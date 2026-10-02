@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegrat
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
@@ -94,6 +95,9 @@ public sealed class FinanceReceiptService
             throw new BillingIntakeValidationException(
                 "Penerimaan tunai tidak dapat diproses karena shift kasirnya tidak diketahui.");
 
+        // BE-FIN-069, FIN-INTEGRATION-1.7 §5.12.1: dimensi shift dan metode pembayaran kejadian ini.
+        var cashierShiftNumber = await ResolveCashierShiftNumberAsync(handoff.CashierShiftId, cancellationToken);
+
         var receipt = new FinReceipt
         {
             ReceiptNumber = GenerateReceiptNumber(),
@@ -131,11 +135,15 @@ public sealed class FinanceReceiptService
             EventTypeCode = eventTypeCode,
             SourceTransactionId = receipt.ReceiptNumber,
             EventOccurredAt = handoff.OccurredAt,
-            AccountingDate = DateOnly.FromDateTime(handoff.OccurredAt.UtcDateTime),
+            AccountingDate = FinanceBusinessDate.ToDateOnly(handoff.OccurredAt),
             Amount = receipt.Amount,
             CorrelationId = receipt.CorrelationId,
             CausationId = receipt.CausationId,
-            ActorUserId = actorUserId
+            ActorUserId = actorUserId,
+            CashierShiftId = handoff.CashierShiftId,
+            CashierShiftNumber = cashierShiftNumber,
+            PaymentMethodCode = paymentMethod.PaymentMethodCode,
+            PaymentMethodAccountId = handoff.PaymentMethodAccountId
         }, cancellationToken);
 
         return receipt;
@@ -161,6 +169,15 @@ public sealed class FinanceReceiptService
         // fakta pembalikan yang sama disinkron ulang, bukan membuat baris pembalik kedua).
         if (await _dbContext.FinReceipts.AnyAsync(x => !x.IsDelete && x.ReversalOfReceiptId == original.Id, cancellationToken))
             throw new InvalidOperationException("Penerimaan ini sudah pernah dibalik.");
+
+        // BE-FIN-069, FIN-INTEGRATION-1.7 §5.12.2: kuitansi pembalik membawa shift SAAT PEMBALIKAN
+        // terjadi (handoff ini), bukan shift kuitansi asli — FIN-DEC-120. Metode pembayaran
+        // pembalik juga diambil dari handoff ini, bukan disalin dari metode penerimaan asli.
+        var reversalPaymentMethodCode = await _dbContext.MstPaymentMethods.AsNoTracking()
+            .Where(x => x.Id == handoff.PaymentMethodId && !x.IsDelete)
+            .Select(x => x.PaymentMethodCode)
+            .SingleOrDefaultAsync(cancellationToken);
+        var reversalCashierShiftNumber = await ResolveCashierShiftNumberAsync(handoff.CashierShiftId, cancellationToken);
 
         var reversal = new FinReceipt
         {
@@ -204,11 +221,16 @@ public sealed class FinanceReceiptService
             EventTypeCode = reversalEventTypeCode,
             SourceTransactionId = reversal.ReceiptNumber,
             EventOccurredAt = handoff.OccurredAt,
-            AccountingDate = DateOnly.FromDateTime(handoff.OccurredAt.UtcDateTime),
+            AccountingDate = FinanceBusinessDate.ToDateOnly(handoff.OccurredAt),
             Amount = reversal.Amount,
             CorrelationId = reversal.CorrelationId,
             CausationId = reversal.CausationId,
-            ActorUserId = actorUserId
+            ActorUserId = actorUserId,
+            CashierShiftId = handoff.CashierShiftId,
+            CashierShiftNumber = reversalCashierShiftNumber,
+            PaymentMethodCode = reversalPaymentMethodCode,
+            PaymentMethodAccountId = handoff.PaymentMethodAccountId,
+            ReversalOfSourceTransactionId = original.ReceiptNumber
         }, cancellationToken);
 
         return reversal;
@@ -267,6 +289,17 @@ public sealed class FinanceReceiptService
     {
         var candidate = $"DED-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}";
         return candidate.Length <= 50 ? candidate : candidate[..50];
+    }
+
+    // BE-FIN-069, FIN-INTEGRATION-1.7 §5.12.1: rujukan shift yang terbaca manusia untuk payload
+    // Accounting — null bila penerimaan tidak melibatkan shift kasir (non-tunai).
+    private async Task<string?> ResolveCashierShiftNumberAsync(Guid? cashierShiftId, CancellationToken cancellationToken)
+    {
+        if (!cashierShiftId.HasValue) return null;
+        return await _dbContext.Set<BilCashierShift>().AsNoTracking()
+            .Where(x => x.Id == cashierShiftId.Value)
+            .Select(x => x.ShiftNumber)
+            .SingleOrDefaultAsync(cancellationToken);
     }
 
     // ------------------------------------------------------------------------------------
@@ -581,10 +614,6 @@ public sealed class FinanceReceiptService
             var now = DateTimeOffset.UtcNow;
             foreach (var line in lines)
             {
-                // FR-FIN-042 ditegakkan di dalam ApplyAllocationAsync — satu-satunya penulis OutstandingAmount.
-                if (line.ReceivableId.HasValue)
-                    await _receivableService.ApplyAllocationAsync(line.ReceivableId.Value, line.Amount, actorUserId, cancellationToken);
-
                 var allocation = new FinReceiptAllocation
                 {
                     Id = Guid.NewGuid(),
@@ -600,16 +629,24 @@ public sealed class FinanceReceiptService
                 };
                 _dbContext.Set<FinReceiptAllocation>().Add(allocation);
 
+                // FR-FIN-042 ditegakkan di dalam ApplyAllocationAsync — satu-satunya penulis OutstandingAmount.
+                // BE-FIN-060, FIN-DES-079: Meneruskan rujukan alokasi dan nomor kuitansi ke mutasi subledger (Jalur 2).
+                if (line.ReceivableId.HasValue)
+                {
+                    await _receivableService.ApplyAllocationAsync(
+                        line.ReceivableId.Value,
+                        line.Amount,
+                        actorUserId,
+                        cancellationToken,
+                        movementType: FinReceivableMovementTypes.AlokasiPenerimaan,
+                        sourceAllocationId: allocation.Id,
+                        referenceNumber: receipt.ReceiptNumber);
+                }
+
                 if (line.Deductions is not { Count: > 0 }) continue;
 
                 foreach (var deductionLine in line.Deductions)
                 {
-                    // FIN-VAL-033 diperluas (FIN-DES-048): uang alokasi + seluruh potongan ≤ sisa piutang.
-                    // Dipanggil beruntun terhadap FinReceivable yang sama (tracked oleh DbContext yang
-                    // sama), sehingga setiap panggilan memeriksa sisa TERKINI, bukan sisa sebelum baris ini.
-                    var receivable = await _receivableService.ApplyAllocationAsync(
-                        line.ReceivableId!.Value, deductionLine.Amount, actorUserId, cancellationToken);
-
                     var deduction = new FinReceiptDeduction
                     {
                         Id = Guid.NewGuid(),
@@ -626,6 +663,20 @@ public sealed class FinanceReceiptService
                     };
                     _dbContext.Set<FinReceiptDeduction>().Add(deduction);
 
+                    // FIN-VAL-033 diperluas (FIN-DES-048): uang alokasi + seluruh potongan ≤ sisa piutang.
+                    // Dipanggil beruntun terhadap FinReceivable yang sama (tracked oleh DbContext yang
+                    // sama), sehingga setiap panggilan memeriksa sisa TERKINI, bukan sisa sebelum baris ini.
+                    // BE-FIN-060, FIN-DES-079: Mutasi subledger POTONGAN (Jalur 4).
+                    var receivable = await _receivableService.ApplyAllocationAsync(
+                        line.ReceivableId!.Value,
+                        deductionLine.Amount,
+                        actorUserId,
+                        cancellationToken,
+                        movementType: FinReceivableMovementTypes.Potongan,
+                        sourceAllocationId: allocation.Id,
+                        referenceNumber: deduction.DeductionNumber,
+                        notes: $"{deductionLine.DeductionType}: {deductionLine.Reason}");
+
                     // FIN-DES-050/052: kode dipilih dari DeductionType — POTONGAN-PIUTANG-NON-TUNAI
                     // MUST NOT ditulis lagi (superseded, AMENDMENT REVISI 6).
                     var eventTypeCode = deductionLine.DeductionType == FinReceiptDeductionTypes.Pph23
@@ -637,7 +688,7 @@ public sealed class FinanceReceiptService
                         EventTypeCode = eventTypeCode,
                         SourceTransactionId = deduction.DeductionNumber,
                         EventOccurredAt = now,
-                        AccountingDate = DateOnly.FromDateTime(now.UtcDateTime),
+                        AccountingDate = FinanceBusinessDate.ToDateOnly(now),
                         Amount = deduction.Amount,
                         CorrelationId = receivable.CorrelationId,
                         CausationId = deduction.Id,
@@ -693,6 +744,8 @@ public sealed class FinanceReceiptService
             if (original.ReceivableId.HasValue)
                 await AcquireLockAsync($"FIN_RECEIVABLE_{original.ReceivableId.Value:N}", cancellationToken);
 
+            var receipt = await _dbContext.FinReceipts.SingleAsync(x => x.Id == original.ReceiptId, cancellationToken);
+
             var now = DateTimeOffset.UtcNow;
             var reversal = new FinReceiptAllocation
             {
@@ -711,7 +764,15 @@ public sealed class FinanceReceiptService
 
             if (original.ReceivableId.HasValue)
             {
-                await _receivableService.ReverseAllocationAsync(original.ReceivableId.Value, original.Amount, actorUserId, cancellationToken);
+                // BE-FIN-060, FIN-DES-079: Mutasi subledger PEMBALIKAN-ALOKASI (Jalur 3).
+                await _receivableService.ReverseAllocationAsync(
+                    original.ReceivableId.Value,
+                    original.Amount,
+                    actorUserId,
+                    cancellationToken,
+                    movementType: FinReceivableMovementTypes.PembalikanAlokasi,
+                    sourceAllocationId: reversal.Id,
+                    referenceNumber: receipt.ReceiptNumber);
 
                 // BE-FIN-040, FIN-DES-049: seluruh potongan pada alokasi ini ikut dibalik dalam
                 // transaksi yang sama — potongan tidak dapat dibalik sendirian tanpa alokasinya.
@@ -721,9 +782,6 @@ public sealed class FinanceReceiptService
 
                 foreach (var deduction in deductions)
                 {
-                    var receivable = await _receivableService.ReverseAllocationAsync(
-                        original.ReceivableId.Value, deduction.Amount, actorUserId, cancellationToken);
-
                     var deductionReversal = new FinReceiptDeduction
                     {
                         DeductionNumber = GenerateDeductionNumber(),
@@ -740,6 +798,17 @@ public sealed class FinanceReceiptService
                     };
                     _dbContext.Set<FinReceiptDeduction>().Add(deductionReversal);
 
+                    // BE-FIN-060, FIN-DES-079: Mutasi subledger PEMBALIKAN-POTONGAN (Jalur 4).
+                    var receivable = await _receivableService.ReverseAllocationAsync(
+                        original.ReceivableId.Value,
+                        deduction.Amount,
+                        actorUserId,
+                        cancellationToken,
+                        movementType: FinReceivableMovementTypes.PembalikanPotongan,
+                        sourceAllocationId: reversal.Id,
+                        referenceNumber: deductionReversal.DeductionNumber,
+                        notes: $"Pembalikan {deduction.DeductionType}: {deduction.Reason}");
+
                     // FIN-DES-050/052: kebalikan kode 32/34 — nilai baris pembalik SELALU positif.
                     var reversalEventTypeCode = deduction.DeductionType == FinReceiptDeductionTypes.Pph23
                         ? FinAccountingEventTypeCodes.PembalikanPotonganPph23Piutang
@@ -750,7 +819,7 @@ public sealed class FinanceReceiptService
                         EventTypeCode = reversalEventTypeCode,
                         SourceTransactionId = deductionReversal.DeductionNumber,
                         EventOccurredAt = now,
-                        AccountingDate = DateOnly.FromDateTime(now.UtcDateTime),
+                        AccountingDate = FinanceBusinessDate.ToDateOnly(now),
                         Amount = deduction.Amount,
                         CorrelationId = receivable.CorrelationId,
                         CausationId = deductionReversal.Id,
@@ -758,8 +827,6 @@ public sealed class FinanceReceiptService
                     }, cancellationToken);
                 }
             }
-
-            var receipt = await _dbContext.FinReceipts.SingleAsync(x => x.Id == original.ReceiptId, cancellationToken);
             receipt.AllocatedAmount -= original.Amount;
             receipt.UnallocatedAmount += original.Amount;
             receipt.Status = FinReceiptStatuses.Received; // tidak lagi ALLOCATED penuh setelah sebagian dibalik

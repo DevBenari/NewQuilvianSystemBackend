@@ -2178,6 +2178,7 @@ Lokasi model:
 | `DeclaredAccountingOpeningAmount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Angka yang **dinyatakan petugas** dari dokumen Accounting (`FIN-DES-090`) |
 | `AccountingReferenceDocument` | `string(200)` | Ya | — | — | — | — | Tidak | Wajib sebelum `APPROVED` |
 | `UploadedFileName` | `string(260)` | Ya | — | — | — | — | Tidak | Nama berkas asli yang diunggah |
+| `SourceFormat` | `string(10)` | Ya | — | — | — | — | Tidak | **Kolom baru revisi 15** (`FIN-DES-093`). `CSV` atau `XLSX`, ditetapkan dari tipe media/ekstensi saat unggah — **bukan** dari ruas yang diisi pengguna. Dicatat supaya cacat paritas antar format dapat ditelusuri; ekstensi pada `UploadedFileName` dapat berbeda dari isi sebenarnya |
 | `ValidationSummaryJson` | `text?` | Tidak | — | — | — | — | **Ya** | Hasil validasi per baris; dapat memuat nama debitur atau supplier |
 | `RejectionReason` | `string(500)?` | Tidak | — | — | — | — | Tidak | Wajib bila `REJECTED` |
 | `ApprovedBy` | `Guid?` | Tidak | — | — | — | — | Tidak | — |
@@ -2196,8 +2197,8 @@ Lokasi model: `Areas/Corporate/FinanceManagement/Collection/Models/FinTransactio
 | `OriginalFileName` | `string(260)` | Ya | — | — | — | — | Tidak | Nama berkas dari pengguna |
 | `StoredFileName` | `string(260)` | Ya | — | **Unique** | — | — | Tidak | Nama hasil penormalan, mencegah tabrakan |
 | `RelativePath` | `string(500)` | Ya | — | — | — | — | Tidak | Relatif terhadap `FileStorage:UploadRootPath`; **MUST** divalidasi berada di bawah akarnya |
-| `MediaType` | `string(100)` | Ya | — | — | — | — | Tidak | Jenis yang diterima menunggu `FIN-OQ-075` |
-| `SizeBytes` | `long` | Ya | — | — | — | — | Tidak | Batas ukuran menunggu `FIN-OQ-075` |
+| `MediaType` | `string(100)` | Ya | — | — | — | — | Tidak | **Diperbarui revisi 15** (`FIN-DEC-139`, `FIN-DES-092`): `application/pdf`, `image/jpeg`, `image/png`. Daftarnya dari `FinanceManagement:TransactionProof:AllowedExtensions`; tipe media **MUST** diperiksa, bukan hanya ekstensinya |
+| `SizeBytes` | `long` | Ya | — | — | — | — | Tidak | **Diperbarui revisi 15** (`FIN-DEC-139`, `FIN-DES-092`): batas dari `FinanceManagement:TransactionProof:MaxFileSizeBytes`. Nilai awalnya **belum ditetapkan** (`FIN-OQ-082`); tanpa nilai itu unggah **ditolak** `503`, bukan dianggap tak terbatas |
 | `UploadedBy` | `Guid` | Ya | — | Index | — | — | Tidak | — |
 | `UploadedAt` | `DateTimeOffset` | Ya | — | — | — | — | Tidak | — |
 

@@ -532,9 +532,9 @@ Pesan ditulis sebagaimana dibaca pengguna.
 
 | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
 |---|---|---|---|---|
-| `FIN-VAL-207` | Unggah bukti | Jenis berkas di luar daftar yang diterima | *"Jenis berkas tidak diterima."* | `400` — **daftarnya menunggu `FIN-OQ-075`** |
-| `FIN-VAL-208` | Unggah bukti | Ukuran melebihi batas | *"Ukuran berkas melebihi batas."* | `400` — **batasnya menunggu `FIN-OQ-075`** |
-| `FIN-VAL-209` | Unggah bukti | Jalur simpan keluar dari akar penyimpanan | *"Berkas tidak dapat disimpan."* | `400` — pemeriksaan keamanan, pesannya sengaja tidak merinci |
+| ~~`FIN-VAL-207`~~ | Unggah bukti | ~~Jenis berkas di luar daftar yang diterima~~ | — | **SUPERSEDED revisi 15** oleh `FIN-VAL-217` (daftar ekstensi) dan `FIN-VAL-218` (tipe media) pada bagian `G.1`. Daftarnya sudah turun lewat `FIN-DEC-139`, dan satu aturan dipecah dua karena ekstensi dan tipe media diperiksa terpisah |
+| ~~`FIN-VAL-208`~~ | Unggah bukti | ~~Ukuran melebihi batas~~ | — | **SUPERSEDED revisi 15** oleh `FIN-VAL-219` (`413`) dan `FIN-VAL-220` (`503`, batas belum dikonfigurasi). **Kode statusnya berubah dari `400` menjadi `413`** — perubahan kontrak yang disengaja, dicatat terbuka: `400` tidak membedakan "berkas Anda terlalu besar" dari "isian Anda salah" |
+| `FIN-VAL-209` | Unggah bukti | Jalur simpan keluar dari akar penyimpanan | *"Berkas tidak dapat disimpan."* | `400` — pemeriksaan keamanan, pesannya sengaja tidak merinci. Diperjelas `FIN-VAL-221` (`G.1`): percobaannya **MUST** dicatat |
 
 ## F.7 Tanggal WIB dan nilai saldo
 
@@ -558,3 +558,60 @@ Daftar ini ditulis supaya ketiadaannya tidak disangka kelalaian.
 | Kesesuaian metode pembayaran terhadap akun debit atau kredit | Milik aturan posting Accounting |
 | Saldo rekening bank mencukupi sebelum pembayaran transfer | Ditolak `FIN-DEC-137` — Finance tidak memegang saldo bank |
 | Nama penyewa, supplier, atau debitur kembar karena ejaan berbeda pada berkas migrasi | Hanya nomor dokumen yang diperiksa kembar |
+
+---
+
+# AMENDMENT REVISI 15 — Berkas bukti dan dua format migrasi
+
+`last_changed_in`: `FIN-VAL-1.8` — status `draft`, 2 Oktober 2026.
+Diturunkan dari `FIN-DEC-139`, `FIN-DEC-140`; dirancang `FIN-DES-092`, `FIN-DES-093`.
+Dampak kompatibilitas: **aditif murni** — nol aturan lama diubah atau dicabut.
+
+## G.1 Berkas bukti pembayaran (`FIN-DES-092`)
+
+Kedelapan pemeriksaan berjalan **berurut**, dan yang pertama gagal menghentikan sisanya. Urutannya
+penting: petugas yang mengunggah berkas 40 MB berekstensi `.exe` **MUST** diberi tahu soal
+ekstensinya, bukan soal ukurannya.
+
+| ID | Endpoint | Aturan | Pesan | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-214` | `POST /transaction-proofs` | Berkas tidak dilampirkan, atau ukurannya nol byte | *"Berkas bukti wajib dilampirkan dan tidak boleh kosong."* | `400` |
+| `FIN-VAL-215` | `POST /transaction-proofs` | Nama berkas lebih dari 255 karakter | *"Nama berkas terlalu panjang. Maksimal 255 karakter."* | `400` |
+| `FIN-VAL-216` | `POST /transaction-proofs` | Berkas tanpa ekstensi, atau ekstensinya ada pada daftar terlarang | *"Jenis berkas ini tidak dapat diunggah."* | `400` |
+| `FIN-VAL-217` | `POST /transaction-proofs` | Ekstensi di luar `FinanceManagement:TransactionProof:AllowedExtensions` | *"Bukti hanya dapat berupa PDF, JPG, JPEG, atau PNG."* | `400` |
+| `FIN-VAL-218` | `POST /transaction-proofs` | Ekstensi lolos tetapi **tipe medianya tidak cocok** dengan ekstensi itu | *"Isi berkas tidak sesuai dengan jenis berkasnya. Unggah ulang berkas aslinya."* | `400` |
+| `FIN-VAL-219` | `POST /transaction-proofs` | Ukuran melewati `MaxFileSizeBytes` | *"Ukuran berkas melewati batas yang diizinkan."* | `413` |
+| `FIN-VAL-220` | `POST /transaction-proofs` | `MaxFileSizeBytes` **belum dikonfigurasi** | *"Unggah bukti belum dapat dipakai: batas ukuran berkas belum dikonfigurasi. Hubungi administrator."* | `503` |
+| `FIN-VAL-221` | `POST /transaction-proofs` | Jalur simpan hasil penormalan mengarah **keluar** `FileStorage:UploadRootPath` | *"Nama berkas tidak dapat diterima."* — dan percobaannya **MUST** dicatat | `400` — **memperjelas `FIN-VAL-209`** (`F.6`), bukan menggantikannya: yang ditambahkan hanya kewajiban mencatat percobaannya |
+| `FIN-VAL-222` | `POST api/finance/receivable/payment`, `POST api/finance/payable/payment` | `ProofId` menunjuk bukti yang **sudah** terpakai satu baris mutasi | *"Bukti ini sudah dipakai pada pembayaran lain. Unggah bukti baru."* | `409` |
+| `FIN-VAL-223` | `POST api/finance/receivable/payment`, `POST api/finance/payable/payment` | `ProofId` tidak ditemukan, atau sudah bertanda `IsDelete` | *"Bukti tidak ditemukan. Unggah ulang buktinya."* | `404` |
+
+**Kenapa `FIN-VAL-220` memakai `503` dan bukan `400`.** Keduanya menolak unggahan, tetapi artinya
+berlawanan bagi petugas: `400` berarti *perbaiki berkas Anda*, sedangkan `503` berarti *tidak ada
+berkas yang akan diterima sampai administrator mengisi konfigurasi*. Menyatukannya membuat petugas
+mencoba berkas demi berkas untuk masalah yang bukan miliknya.
+
+## G.2 Dua format berkas migrasi (`FIN-DES-093`)
+
+| ID | Endpoint | Aturan | Pesan | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-224` | `GET /opening-item-batches/template` | `format` tidak diisi, atau di luar `CSV`/`XLSX` | *"Pilih format templat: CSV atau XLSX."* | `400` |
+| `FIN-VAL-225` | `POST /opening-item-batches` | Tipe media dan ekstensi berkas bukan CSV maupun XLSX | *"Berkas migrasi hanya dapat berupa CSV atau XLSX."* | `400` |
+| `FIN-VAL-226` | `POST /opening-item-batches` | Berkas CSV: nilai angka atau tanggal pada satu baris tidak sesuai format templat | *"Baris &lt;n&gt;: format angka atau tanggal tidak sesuai templat."* — **MUST** menyebut nomor barisnya, **MUST NOT** menebak nilainya | Galat baris, batch tetap `DRAFT` |
+| `FIN-VAL-227` | `POST /opening-item-batches` | Berkas XLSX: sel yang seharusnya angka atau tanggal bertipe teks dan tidak dapat diurai | *"Baris &lt;n&gt;: isi sel tidak dapat dibaca sebagai angka atau tanggal."* | Galat baris, batch tetap `DRAFT` |
+
+**Dua bentuk kegagalan yang berbeda, dan keduanya disengaja dicatat terpisah** (`FIN-VAL-226` vs
+`FIN-VAL-227`). CSV membawa seluruh nilai sebagai teks, sehingga kegagalannya berbentuk *format tidak
+sesuai templat*. XLSX membawa sel bertipe, sehingga kegagalannya berbentuk *tipe sel tidak sesuai
+harapan*. Menyatukan keduanya menjadi satu aturan menyembunyikan fakta bahwa keduanya menuntut kasus
+uji sendiri — dan itu justru risiko utama yang dicatat `FIN-DEC-140`.
+
+## G.3 Yang sengaja TIDAK divalidasi pada revisi ini
+
+| Yang tidak divalidasi | Alasan |
+|---|---|
+| Isi berkas bukti benar-benar menggambarkan pembayaran itu | Sistem tidak membaca isi gambar maupun PDF. Bukti palsu atau salah foto **tidak** terdeteksi — hanya jejak pengunggah dan waktunya yang tercatat |
+| Berkas bukti kembar (dua unggahan berisi gambar yang sama) | Tidak ada pembandingan isi berkas. Unique index hanya menjaga satu bukti tidak dipakai **dua mutasi** |
+| Paritas CSV/XLSX pada waktu berjalan | Paritas dijaga **kasus uji** (`FIN-TEST-1.9` `J.3`), bukan pemeriksaan runtime. Sistem tidak menerima dua berkas sekaligus untuk dibandingkan |
+| Kesinkronan kolom antar keempat berkas templat | Dijaga kasus uji dan review, bukan kode. Templat adalah berkas statis |
+| Ekstensi pada `UploadedFileName` cocok dengan `SourceFormat` | Sengaja dibiarkan: justru ketidakcocokannya yang membuat `SourceFormat` berguna. Format ditentukan dari tipe media, bukan dari nama berkas |

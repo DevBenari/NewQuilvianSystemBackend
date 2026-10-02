@@ -1,4 +1,5 @@
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
@@ -55,10 +56,17 @@ public sealed class FinSupplierPayable : IdentityModel
     public Guid? SourcePurchasingInvoiceId { get; set; }
     public FinPurchasingInvoice? SourcePurchasingInvoice { get; set; }
 
+    /// <summary>BE-FIN-079, FIN-DES-093: terisi hanya untuk item migrasi utang lama. Nol kolom lain berubah — SupplierId tetap wajib (R14.10).</summary>
+    public Guid? OpeningItemBatchId { get; set; }
+    public FinOpeningItemBatch? OpeningItemBatch { get; set; }
+
     public Guid RowVersion { get; set; } = Guid.NewGuid();
 
     public ICollection<FinSupplierPayableItem> Items { get; set; } = new List<FinSupplierPayableItem>();
     public ICollection<FinPayableAdjustment> Adjustments { get; set; } = new List<FinPayableAdjustment>();
+
+    /// <summary>BE-FIN-058, FIN-DES-079: Buku mutasi perubahan saldo utang supplier.</summary>
+    public ICollection<FinSupplierPayableMovement> Movements { get; set; } = new List<FinSupplierPayableMovement>();
 }
 
 public static class FinSupplierPayableStatuses

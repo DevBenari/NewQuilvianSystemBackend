@@ -978,7 +978,7 @@ Pemisahan ini **MUST NOT** dipakai sebagai dasar menambahkan jenjang approval pa
 |---|---|---|
 | Satu orang dapat memegang `Create` **dan** `Approve` sekaligus | Maker-checker pada saldo awal dan batch migrasi dapat dilewati satu orang | Mesin hak akses tidak mengenal pemisahan tugas. Pencegahannya **pemberian hak** oleh admin, dan itu **MUST** disebutkan saat menyerahkan modul |
 | Perubahan ambang tidak punya jenjang | Pejabat berwenang dapat menaikkannya lalu membayar di bawahnya | `ChangeReason` wajib dan tercatat logger (`FIN-DEC-134`) |
-| Siapa boleh melihat berkas bukti | Hak akses hanya membedakan `Read` dan `Create`, bukan per pemilik transaksi | Menunggu `FIN-OQ-075` |
+| Siapa boleh melihat berkas bukti | Hak akses hanya membedakan `Read` dan `Create`, bukan per pemilik transaksi | **Diputuskan revisi 15** — `FIN-DEC-139` menerima batas ini secara sadar. Rinciannya `H.3` |
 | Pembayaran dipecah di bawah ambang | Tidak terdeteksi | Diterima sadar (`FIN-DEC-134`) |
 
 ## G.6 Nol resource untuk hosted service
@@ -990,3 +990,55 @@ bagian kontrak hak akses ini.
 
 Pemicu manual untuk worker pengiriman **sengaja tidak dibuat** (`FIN-API-1.5` bagian `F.9`), sehingga
 tidak ada permukaan hak akses yang dapat memutar gerbang `FIN-DES-078`.
+
+---
+
+# AMENDMENT REVISI 15 — Hak akses berkas bukti dan dua format migrasi
+
+`last_changed_in`: `FIN-PERM-1.8` — status `draft`, 2 Oktober 2026.
+Diturunkan dari `FIN-DEC-139`, `FIN-DEC-140`; dirancang `FIN-DES-092`, `FIN-DES-093`.
+Dampak kompatibilitas: **nol resource baru, nol action baru**.
+
+## H.1 Nol resource dan nol action baru
+
+| Hal | Nilai |
+|---|---|
+| Resource baru | **Nol.** `FinanceTransactionProof` (`Read`, `Create`) dan `FinanceOpeningItemBatch` (`Read`, `Create`, `Update`, `Approve`) sudah didaftarkan revisi 14 bagian `G.1` |
+| Action baru | **Nol.** Membuka bagian unggah bukti tidak menambah action — ia memakai `Create` yang sudah terdaftar |
+| Atribut controller | **Nol perubahan** dari `G.2` |
+
+**Kenapa tidak ada action `Delete` maupun `Update` pada bukti.** `FIN-DEC-139` melarang penggantian
+bukti, dan `FIN-DES-092` menerjemahkannya menjadi **nol endpoint** `PUT`/`DELETE`. Action yang tidak
+punya endpoint **MUST NOT** didaftarkan: ia akan muncul pada layar Akses Role sebagai kemampuan yang
+dapat dicentang padahal tidak menjalankan apa pun.
+
+## H.2 Pencatatan logger
+
+| Jalur | Yang dicatat | Yang **MUST NOT** dicatat |
+|---|---|---|
+| `POST /transaction-proofs` | `ProofId`, `ProofType`, `SizeBytes`, `MediaType`, pengunggah, waktu | **Isi berkas**, dan **`OriginalFileName` apa adanya** bila memuat nama orang — dicatat sesudah dipotong, bukan utuh |
+| `GET /transaction-proofs/{id}` | `ProofId`, pengunduh, waktu | Isi berkas |
+| Percobaan jalur keluar akar penyimpanan (`FIN-VAL-221`) | Percobaannya, pengunggah, dan jalur yang diminta | — ini satu-satunya tempat jalur mentah **memang** dicatat, karena ia bukti percobaan |
+| `POST /opening-item-batches` | `BatchId`, `SourceFormat`, `ItemKind`, jumlah baris, pengunggah | Isi baris — `ValidationSummaryJson` dapat memuat nama debitur/supplier dan sudah bertanda **Sensitif** pada kamus data |
+
+## H.3 Kewenangan yang TIDAK dijaga mesin hak akses — batas yang diterima sadar
+
+Satu baris pada `G.5` kini punya keputusannya, dan ia dicatat lengkap di sini karena **MUST**
+disampaikan saat menyerahkan modul.
+
+| Hal | Keadaan pada rilis pertama |
+|---|---|
+| Yang dijaga | Jalur unggah dijaga `FinanceTransactionProof : Create`; jalur unduh dijaga `FinanceTransactionProof : Read` |
+| Yang **tidak** dijaga | **Pembatasan per pemilik transaksi.** Staf AR/AP mana pun yang memegang `Read` dapat mengunduh bukti pembayaran transaksi yang **bukan** miliknya — termasuk transaksi unit atau rekan kerja lain |
+| Kenapa diterima | Pembatasan per pemilik menuntut mekanisme hak akses yang **belum dimiliki platform**. Menambahkannya lebih dulu berarti menahan `EPIC FIN-23` lagi, sedangkan jalur pembayaran langsung sudah berjalan tanpa bukti sama sekali hari ini — keadaan yang lebih buruk |
+| Mitigasi yang ada | Jalur unduh tetap bergerbang hak akses (bukan terbuka); isi berkas **MUST NOT** masuk logger; setiap unduhan tercatat beserta pengunduhnya |
+| Yang **MUST** dilakukan saat serah terima | Batas ini **MUST** disampaikan eksplisit kepada pemilik dan kepada admin yang memberi hak, bukan ditemukan sendiri belakangan. Pemberian `FinanceTransactionProof : Read` karena itu **SHOULD** dibatasi pada peran yang memang perlu melihat bukti |
+| Kapan ditinjau ulang | Ketika platform punya mekanisme hak akses per pemilik data (`FIN-OQ-068` bersinggungan). Peninjauannya keputusan tersendiri, bukan efek samping task mana pun |
+
+## H.4 Nol dampak hak akses dari dukungan dua format
+
+| Yang mungkin disangka | Kenyataannya |
+|---|---|
+| Format XLSX butuh hak akses sendiri | **Tidak.** `FinanceOpeningItemBatch : Create` menjaga unggahan, apa pun formatnya |
+| Unduh templat butuh action sendiri | **Tidak.** `Read` yang sudah terdaftar menjaga `GET /template`, dan ruas `format` tidak mengubah kewenangan |
+| Paket pembaca XLSX membawa permukaan baru yang perlu digerbang | **Tidak.** Ia dipakai di dalam proses, tidak memperkenalkan endpoint, port, maupun jalur berkas baru selain yang sudah dijaga |

@@ -769,8 +769,8 @@ Base URL: `api/v1/corporate/finance-management/opening-item-batches`
 |---|---|---|---|---|---|---|
 | `GET` | `/` | Daftar batch migrasi, bersaring jenis dan status | `FinanceOpeningItemBatch : Read` | `OpeningItemBatchPagedQuery` | `ApiResponse<PagedResult<OpeningItemBatchResponse>>` | **Rencana (belum tersedia)** |
 | `GET` | `/{id:guid}` | Rincian batch beserta hasil validasi per baris | `FinanceOpeningItemBatch : Read` | — | `ApiResponse<OpeningItemBatchDetailResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/template` | Mengunduh templat spreadsheet sesuai jenis item | `FinanceOpeningItemBatch : Read` | `?itemKind=` | Berkas | **Rencana (belum tersedia)** |
-| `POST` | `/` | Mengunggah spreadsheet; membuat batch `DRAFT` | `FinanceOpeningItemBatch : Create` | `multipart/form-data` | `ApiResponse<OpeningItemBatchResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/template` | Mengunduh templat sesuai jenis item **dan format** | `FinanceOpeningItemBatch : Read` | `?itemKind=&format=` | Berkas | **Rencana (belum tersedia)** |
+| `POST` | `/` | Mengunggah berkas **CSV atau XLSX**; membuat batch `DRAFT` | `FinanceOpeningItemBatch : Create` | `multipart/form-data` | `ApiResponse<OpeningItemBatchResponse>` | **Rencana (belum tersedia)** |
 | `POST` | `/{id:guid}/validate` | Menjalankan validasi per baris; batch menjadi `VALIDATED` bila nol galat | `FinanceOpeningItemBatch : Update` | — | `ApiResponse<OpeningItemBatchDetailResponse>` | **Rencana (belum tersedia)** |
 | `POST` | `/{id:guid}/declare-accounting-opening` | Menyatakan total saldo awal Accounting beserta rujukan dokumennya | `FinanceOpeningItemBatch : Update` | `DeclareAccountingOpeningRequest` | `ApiResponse<OpeningItemBatchResponse>` | **Rencana (belum tersedia)** |
 | `POST` | `/{id:guid}/approve` | Membuat item piutang atau utang beserta mutasi pembukanya, lalu mengunci batch | `FinanceOpeningItemBatch : Approve` | `ApproveOpeningItemBatchRequest` | `ApiResponse<OpeningItemBatchResponse>` | **Rencana (belum tersedia)** |
@@ -778,9 +778,21 @@ Base URL: `api/v1/corporate/finance-management/opening-item-batches`
 
 | Kode | Artinya bagi pengguna |
 |---|---|
-| `400` | Berkas tidak dapat dibaca, atau kolom templat tidak lengkap |
+| `400` | Berkas tidak dapat dibaca, kolom templat tidak lengkap, atau `format`/`itemKind` di luar nilai yang sah |
 | `409` | Batch sudah `APPROVED`, `LOCKED`, atau `REJECTED` sehingga tindakan itu tidak berlaku lagi |
 | `422` | Total sisa item tidak sama dengan saldo awal Accounting yang dinyatakan, atau masih ada baris bergalat |
+
+### Dua format pada satu endpoint (revisi 15, `FIN-DEC-140`, `FIN-DES-093`)
+
+| Hal | Ketentuan |
+|---|---|
+| Nilai `format` pada `GET /template` | `CSV` atau `XLSX`. **Wajib**, sama wajibnya dengan `itemKind`. Nilai lain ditolak `400` |
+| Jumlah berkas templat | **Empat**: dua jenis item kali dua format. Kolom pada pasangan CSV/XLSX jenis yang sama **MUST** identik |
+| Penentuan format saat unggah | Dari **tipe media dan ekstensi berkas**, bukan dari ruas yang diisi pengguna |
+| Format di luar CSV/XLSX saat unggah | Ditolak `400` beserta keterangan format yang diterima |
+| Paritas hasil urai | Berkas CSV dan XLSX yang isinya sama **MUST** menghasilkan baris terurai yang identik — kriteria penerimaan tersendiri, bukan harapan |
+| Format angka dan tanggal CSV | Dikunci templat. Baris yang tidak sesuai ditolak **beserta nomor barisnya**, **MUST NOT** ditebak |
+| `SourceFormat` pada response | `OpeningItemBatchResponse` membawa `sourceFormat` (`CSV`/`XLSX`) supaya layar dapat menampilkan asal berkas tanpa menerka dari nama berkas |
 
 ## F.3 Corporate / Finance Management / Transaction Proof
 
@@ -795,11 +807,26 @@ Base URL: `api/v1/corporate/finance-management/transaction-proofs`
 
 | Kode | Artinya bagi pengguna |
 |---|---|
-| `400` | Jenis atau ukuran berkas tidak diterima |
+| `400` | Berkas kosong, nama lebih dari 255 karakter, tanpa ekstensi, ekstensi tidak diterima, tipe media tidak cocok dengan ekstensinya, atau jalur simpan keluar akar penyimpanan |
+| `403` | Hak akses tidak mencukupi |
+| `404` | Bukti tidak ditemukan |
 | `409` | Bukti sudah terpakai pada pembayaran lain |
+| `413` | Ukuran berkas melewati batas konfigurasi |
+| `503` | **Batas ukuran belum dikonfigurasi** — sistem belum siap menerima berkas apa pun. Pesannya **MUST** menyebut konfigurasi yang belum lengkap, bukan menyalahkan berkas pengguna (`FIN-OQ-082`) |
 
-> Jenis dan ukuran berkas yang diterima, lama simpan, dan siapa boleh menggantinya **belum
-> ditetapkan** (`FIN-OQ-075`). Bagian unggah **MUST NOT** dibangun sebelum itu turun.
+### Aturan berkas bukti (revisi 15, `FIN-DEC-139`, `FIN-DES-092`)
+
+| Hal | Ketentuan |
+|---|---|
+| Jenis yang diterima | `.pdf`, `.jpg`, `.jpeg`, `.png` beserta tipe medianya `application/pdf`, `image/jpeg`, `image/png`. Daftarnya dari `FinanceManagement:TransactionProof:AllowedExtensions` |
+| Tipe media | **Diperiksa**, bukan hanya ekstensinya. Ekstensi lolos tetapi tipe media tidak cocok → `400` |
+| Batas ukuran | Dari `FinanceManagement:TransactionProof:MaxFileSizeBytes`. **Tanpa nilai itu, unggah ditolak `503`** — bukan dianggap tak terbatas |
+| Lama simpan | Sistem **tidak pernah** menghapus bukti otomatis. Retensinya mengikuti kebijakan dokumen keuangan rumah sakit, di luar modul ini |
+| Penggantian | **Tidak dapat diganti** sesudah baris mutasi tertulis. Karena itu grup ini **nol** endpoint `PUT` dan `DELETE` — bukan endpoint yang ada lalu menolak. Koreksi = **balik pembayarannya, lalu catat ulang** beserta bukti baru |
+| Bukti menggantung | Bukti yang terunggah tetapi pembayarannya gagal **dibiarkan** dan tetap sah dipakai percobaan berikutnya. Yang dilarang hanya memakai bukti yang **sudah** terpakai satu mutasi (`409`) |
+| Penghapusan | Hanya penandaan `IsDelete`. Berkas fisiknya **tidak** ikut dihapus |
+| Akses | Siapa pun pemegang `FinanceTransactionProof : Read`, **tanpa** pembatasan per pemilik transaksi pada rilis pertama — batas yang diterima sadar, dicatat `permission-audit-matrix.md` `H.3` |
+| Privasi | Isi berkas dapat memuat data pihak ketiga. Jalur unduh dijaga hak akses, dan isi berkas **MUST NOT** dicatat logger |
 
 ## F.4 Corporate / Finance Management / Master Data / Direct Payment Threshold
 
@@ -822,9 +849,10 @@ Ditambahkan pada grup yang sudah ada, bukan grup baru.
 
 | Grup | Method | Path | Kegunaan | Hak akses | Status |
 |---|---|---|---|---|---|
-| `Receivable` | `GET` | `/receivables/{id:guid}/movements` | Buku mutasi satu piutang, berurut tanggal | `FinanceReceivable : Read` | **Rencana (belum tersedia)** |
-| `Supplier Payable` | `GET` | `/supplier-payables/{id:guid}/movements` | Buku mutasi satu utang | `FinanceSupplierPayable : Read` | **Rencana (belum tersedia)** |
-| `Daily Cash` | `GET` | `/daily-cash/cash-movements` | Buku mutasi kas, bersaring tanggal, arah, dan jenis | `FinanceCashManagement : Read` | **Rencana (belum tersedia)** |
+| `Receivable` | `GET` | `/receivables/{id:guid}/movements` | Buku mutasi satu piutang, berurut tanggal | `FinanceReceivable : Read` | **Tersedia** (`BE-FIN-063`) |
+| `Supplier Payable` | `GET` | `/supplier-payables/{id:guid}/movements` | Buku mutasi satu utang | `FinanceSupplierPayable : Read` | **Tersedia** (`BE-FIN-063`) |
+| `Daily Cash` | `GET` | `/daily-cash/cash-movements` | Buku mutasi kas, bersaring tanggal, arah, dan jenis | `FinanceCashManagement : Read` | **Tersedia** (`BE-FIN-063`) |
+
 
 ## F.6 Permukaan baca posisi dan selisih
 
@@ -848,12 +876,19 @@ Base URL: `api/v1/corporate/finance-management/accounting-events`
 ## F.8 Perubahan memutus pada endpoint yang sudah berjalan
 
 Dua endpoint di bawah **mengubah kontrak requestnya**. Keduanya dicatat terbuka karena konsumen
-frontend-nya perlu disesuaikan bersamaan — lihat `03-frontend-architecture.md` bagian 19.
+frontend-nya perlu disesuaikan bersamaan — lihat `03-frontend-architecture.md` bagian 20.
+
+**Koreksi path (dicatat di sini agar tidak diulang).** Revisi sebelumnya menulis path gaya
+REST ber-parameter (`/receivables/{id:guid}/payment`, `/supplier-payables/{id:guid}/direct-payment`)
+yang **tidak** cocok dengan controller yang benar-benar berjalan. `FIN-DES-085` hanya menambah
+ruas pada **body** endpoint yang sudah ada — ia tidak pernah menuntut path baru. Path di bawah
+sudah dikoreksi memakai route literal yang dibaca langsung dari
+`FinanceArController`/`FinanceApController` dan sudah dipakai frontend saat ini.
 
 | Endpoint | Sebelum | Sesudah | Alasan |
 |---|---|---|---|
-| `POST /receivables/{id:guid}/payment` | `PaymentMethod` punya bawaan `"TRANSFER"` dan **diabaikan**; `ReferenceNumber` dan `Notes` diterima lalu dibuang | `PaymentMethod` **wajib**; ditambah `FundingSourceType`, `FundingSourceId`, `ReferenceNumber`, dan `ProofId` — seluruhnya **wajib** kecuali `FundingSourceId` saat metodenya tunai | `FIN-DEC-126`, `FIN-DEC-135` |
-| `POST /supplier-payables/{id:guid}/direct-payment` | `bankAccountId`, `paymentMethod`, `notes` diterima lalu **dibuang** | Ruas yang sama menjadi **wajib dan disimpan**; ditambah `ProofId` wajib | `FIN-DEC-130`, `FIN-DEC-135` |
+| `POST api/finance/receivable/payment` (body `ReceivableId`, bukan path parameter) | `PaymentMethod` punya bawaan `"TRANSFER"` dan **diabaikan**; `ReferenceNumber` dan `Notes` diterima lalu dibuang | `PaymentMethod` **wajib**; ditambah `FundingSourceType`, `FundingSourceId`, `ReferenceNumber`, dan `ProofId` — seluruhnya **wajib** kecuali `FundingSourceId` saat metodenya tunai | `FIN-DEC-126`, `FIN-DEC-135` |
+| `POST api/finance/payable/payment` (body `SupplierPayableId`, bukan path parameter) | `BankAccountId`, `PaymentMethod`, `Notes` diterima lalu **dibuang** | Ruas yang sama menjadi **wajib dan disimpan**; ditambah `FundingSourceType`, `ProofId` wajib | `FIN-DEC-130`, `FIN-DEC-135` |
 
 Kode status baru pada keduanya:
 

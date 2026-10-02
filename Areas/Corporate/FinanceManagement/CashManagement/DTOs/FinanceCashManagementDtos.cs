@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.DTOs;
 
 /// <summary>
@@ -171,3 +173,38 @@ public sealed class CloseDailyCashRequest
     public decimal? DisbursementAmount { get; set; }
     public string? Notes { get; set; }
 }
+
+// ----------------------------------------------------------------------------------------
+// BE-FIN-063 (FIN-DES-081, FIN-DEC-124..127, 132..133, FIN-API-1.5 F.5): Buku Mutasi Kas
+// ----------------------------------------------------------------------------------------
+
+public sealed class CashMovementQuery
+{
+    [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
+    [Range(1, 100)] public int PageSize { get; set; } = 25;
+    public DateOnly? DateFrom { get; set; }
+    public DateOnly? DateTo { get; set; }
+    public string? Direction { get; set; }
+    public string? MovementType { get; set; }
+    public string? SourceReferenceType { get; set; }
+    public Guid? CashierShiftId { get; set; }
+    public string SortDirection { get; set; } = "desc";
+}
+
+public sealed class CashMovementResponse
+{
+    public Guid Id { get; set; }
+    public string MovementType { get; set; } = string.Empty;
+    public string Direction { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public DateOnly BusinessDate { get; set; }
+    public DateTimeOffset OccurredAt { get; set; }
+    public string SourceReferenceType { get; set; } = string.Empty;
+    public string SourceReferenceId { get; set; } = string.Empty;
+    public Guid? CashierShiftId { get; set; }
+    public string? PaymentMethodCode { get; set; }
+    public string? Notes { get; set; }
+    public Guid CorrelationId { get; set; }
+    public Guid CausationId { get; set; }
+}
+

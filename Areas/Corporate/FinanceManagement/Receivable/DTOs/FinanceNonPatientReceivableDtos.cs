@@ -31,7 +31,7 @@ public sealed class NonPatientReceivableSummaryQuery
     public string? Category { get; set; }
 }
 
-public sealed class CreateNonPatientReceivableRequest
+public class CreateNonPatientReceivableRequest
 {
     [Required(ErrorMessage = "Jenis sewa wajib diisi.")]
     public string Category { get; set; } = string.Empty;

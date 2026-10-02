@@ -82,6 +82,22 @@ public sealed class FinanceReceivablesController : ControllerBase
         catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
     }
 
+    [HttpGet("{id:guid}/movements")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<ReceivableMovementResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMovements(Guid id, [FromQuery] ReceivableMovementQuery query, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetMovementsPagedAsync(id, query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<ReceivableMovementResponse>>.Ok(result, "Riwayat mutasi piutang berhasil diambil."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+
     [HttpPost("{id:guid}/adjustments")]
     [AccessAction("RequestAdjustment", "Request Receivable Adjustment", AccessType = AccessTypes.Create, SortOrder = 2)]
     [AccessPermission("FinanceReceivable", "RequestAdjustment")]

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Models;
 using QuilvianSystemBackend.Repositories;
@@ -20,15 +21,18 @@ public sealed class FinanceSupplierPayableService
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
     private readonly FinanceAccountingOutboxService _accountingOutboxService;
+    private readonly FinanceSubledgerMovementService _subledgerMovementService;
 
     public FinanceSupplierPayableService(
         ApplicationDbContext dbContext,
         LoggerService loggerService,
-        FinanceAccountingOutboxService accountingOutboxService)
+        FinanceAccountingOutboxService accountingOutboxService,
+        FinanceSubledgerMovementService subledgerMovementService)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
         _accountingOutboxService = accountingOutboxService;
+        _subledgerMovementService = subledgerMovementService;
     }
 
     // ------------------------------------------------------------------------------------
@@ -120,23 +124,66 @@ public sealed class FinanceSupplierPayableService
 
         _dbContext.FinSupplierPayables.Add(payable);
 
-        // Stage event PENGAKUAN-HUTANG-SUPPLIER ke Accounting Integration Outbox. accountingEventAmountOverride
-        // (BE-FIN-034) hanya memengaruhi ANGKA KEJADIAN ini, bukan payable.OriginalAmount di atas.
-        await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+        IDbContextTransaction? localTransaction = null;
+        try
         {
-            EventTypeCode = FinAccountingEventTypeCodes.PengakuanHutangSupplier,
-            SourceTransactionId = payable.PayableNumber,
-            EventOccurredAt = DateTimeOffset.UtcNow,
-            AccountingDate = payable.SupplierInvoiceDate,
-            Amount = accountingEventAmountOverride ?? payable.OriginalAmount,
-            CorrelationId = payable.Id,
-            CausationId = payable.Id,
-            ActorUserId = actorUserId
-        }, cancellationToken);
+            if (_dbContext.Database.CurrentTransaction is null)
+            {
+                localTransaction = await BeginTransactionAsync(cancellationToken);
+                await AcquireLockAsync($"FIN_PAYABLE_{payable.Id:N}", cancellationToken);
+            }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
-        await AuditAsync("Create", payable.Id, payable.Id, actorUserId);
-        return payable;
+            // Stage event PENGAKUAN-HUTANG-SUPPLIER ke Accounting Integration Outbox. accountingEventAmountOverride
+            // (BE-FIN-034) hanya memengaruhi ANGKA KEJADIAN ini, bukan payable.OriginalAmount di atas.
+            await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+            {
+                EventTypeCode = FinAccountingEventTypeCodes.PengakuanHutangSupplier,
+                SourceTransactionId = payable.PayableNumber,
+                EventOccurredAt = DateTimeOffset.UtcNow,
+                AccountingDate = payable.SupplierInvoiceDate,
+                Amount = accountingEventAmountOverride ?? payable.OriginalAmount,
+                CorrelationId = payable.Id,
+                CausationId = payable.Id,
+                ActorUserId = actorUserId
+            }, cancellationToken);
+
+            // BE-FIN-061, FIN-DES-079: Mutasi subledger PENGAKUAN utang supplier (Jalur 1)
+            await _subledgerMovementService.RecordSupplierPayableMovementAsync(
+                payable: payable,
+                movementType: FinSupplierPayableMovementTypes.Pengakuan,
+                deltaAmount: payable.OriginalAmount,
+                balanceBefore: 0m,
+                occurredAt: DateTimeOffset.UtcNow,
+                actorUserId: actorUserId,
+                correlationId: payable.Id,
+                causationId: payable.Id,
+                businessDateOverride: payable.SupplierInvoiceDate,
+                referenceNumber: payable.SupplierInvoiceNumber,
+                notes: payable.Description,
+                cancellationToken: cancellationToken);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            if (localTransaction is not null)
+            {
+                await CommitAsync(localTransaction, cancellationToken);
+            }
+            await AuditAsync("Create", payable.Id, payable.Id, actorUserId);
+            return payable;
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            if (localTransaction is not null) await RollbackAsync(localTransaction);
+            throw Stale(exception);
+        }
+        catch
+        {
+            if (localTransaction is not null) await RollbackAsync(localTransaction);
+            throw;
+        }
+        finally
+        {
+            if (localTransaction is not null) await localTransaction.DisposeAsync();
+        }
     }
 
     // ------------------------------------------------------------------------------------
@@ -204,12 +251,19 @@ public sealed class FinanceSupplierPayableService
             .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Utang supplier tidak ditemukan.");
 
+    // BE-FIN-078, FIN-DES-085, FIN-DEC-126/133/134: bentuk SAMA PERSIS dengan
+    // FinanceReceivableService.RecordPaymentAsync (BE-FIN-077) — perbedaan bentuk antar kedua jalur
+    // adalah cacat (acceptance criteria roadmap). ProofId dan ambang BARU pada task ini;
+    // fundingSourceId/referenceNumber SUDAH diteruskan sejak sebelumnya (berbeda dari sisi piutang
+    // yang sebelumnya membuang BankAccountId — lihat laporan task bagian 1). PERUBAHAN MEMUTUS —
+    // lihat laporan task BE-FIN-078 bagian 7 untuk urutan rilis yang MUST dijaga bersama FE-FIN-030.
     public async Task<SupplierPayablePaymentResponse> RecordDirectPaymentAsync(
         Guid supplierPayableId,
         decimal amount,
         Guid? bankAccountId,
         string paymentMethod,
         string? referenceNumber,
+        Guid proofId,
         string? notes,
         Guid actorUserId,
         CancellationToken cancellationToken)
@@ -218,6 +272,63 @@ public sealed class FinanceSupplierPayableService
         var refNumber = string.IsNullOrWhiteSpace(referenceNumber)
             ? $"PAY-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}"[..25]
             : referenceNumber.Trim();
+
+        // FIN-VAL-199: PaymentMethod kosong atau di luar TRANSFER/CASH (400).
+        var normalizedPaymentMethod = paymentMethod?.Trim().ToUpperInvariant();
+        if (normalizedPaymentMethod is not ("CASH" or "TRANSFER"))
+        {
+            throw new PayableBadRequestException("Metode pembayaran wajib dipilih.");
+        }
+
+        // FIN-VAL-200: TRANSFER tanpa rekening sumber (422).
+        if (normalizedPaymentMethod == "TRANSFER" && !bankAccountId.HasValue)
+        {
+            throw new PayableValidationException("Rekening sumber dana wajib dipilih untuk pembayaran transfer.");
+        }
+
+        // FIN-VAL-201: CASH tetapi rekening bank diisi (400).
+        if (normalizedPaymentMethod == "CASH" && bankAccountId.HasValue)
+        {
+            throw new PayableBadRequestException("Pembayaran tunai tidak memakai rekening bank.");
+        }
+
+        // FIN-VAL-202: ProofId kosong (422).
+        if (proofId == Guid.Empty)
+        {
+            throw new PayableValidationException("Bukti pembayaran wajib dilampirkan.");
+        }
+
+        // FIN-VAL-197: tanpa baris ambang aktif, jalur ini belum dapat dipakai — fail-closed (404),
+        // BUKAN dianggap tak terbatas (FIN-DES-086). Ambang berlaku SAMA untuk piutang dan utang.
+        var threshold = await _dbContext.MstDirectPaymentThresholds.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.IsActive && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException(
+                "Ambang pembayaran langsung belum ditetapkan, sehingga jalur ini belum dapat dipakai.");
+
+        // FIN-VAL-198: nominal melewati ambang aktif (422) — diarahkan ke jalur FinPayment berjenjang.
+        if (amount > threshold.Amount)
+        {
+            throw new PayableValidationException(
+                "Nominal melewati batas pembayaran langsung. Gunakan jalur pembayaran berjenjang.");
+        }
+
+        // FIN-VAL-223: ProofId tidak ditemukan, atau sudah bertanda IsDelete (404).
+        var proofExists = await _dbContext.FinTransactionProofs.AsNoTracking()
+            .AnyAsync(x => x.Id == proofId && !x.IsDelete, cancellationToken);
+        if (!proofExists)
+        {
+            throw new KeyNotFoundException("Bukti tidak ditemukan. Unggah ulang buktinya.");
+        }
+
+        // FIN-VAL-203: ProofId sudah dipakai mutasi lain (409) — diperiksa di KEDUA tabel mutasi,
+        // persis pola BE-FIN-077 (FIN-DES-087: satu bukti untuk tepat satu pembayaran).
+        var proofAlreadyUsed =
+            await _dbContext.FinSupplierPayableMovements.AnyAsync(x => x.ProofId == proofId && !x.IsDelete, cancellationToken) ||
+            await _dbContext.FinReceivableMovements.AnyAsync(x => x.ProofId == proofId && !x.IsDelete, cancellationToken);
+        if (proofAlreadyUsed)
+        {
+            throw new PayableConflictException("Bukti ini sudah dipakai pada pembayaran lain. Unggah bukti baru.");
+        }
 
         IDbContextTransaction? transaction = null;
         try
@@ -250,12 +361,53 @@ public sealed class FinanceSupplierPayableService
                 EventTypeCode = FinAccountingEventTypeCodes.PembayaranHutangSupplier,
                 SourceTransactionId = payable.PayableNumber,
                 EventOccurredAt = eventOccurredAt,
-                AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                AccountingDate = FinanceBusinessDate.ToDateOnly(eventOccurredAt),
                 Amount = amount,
                 CorrelationId = payable.Id,
                 CausationId = payable.Id,
                 ActorUserId = actorUserId
             }, cancellationToken);
+
+            // BE-FIN-061, FIN-DES-079: Mutasi subledger PEMBAYARAN-LANGSUNG utang supplier (Jalur 3).
+            // BE-FIN-078, FIN-DES-085: proofId kini diteruskan juga — fundingSourceId sudah diteruskan sejak sebelumnya.
+            var fundingSourceType = normalizedPaymentMethod == "CASH" ? "CASH" : "BANK_ACCOUNT";
+            var payMovement = await _subledgerMovementService.RecordSupplierPayableMovementAsync(
+                payable: payable,
+                movementType: FinSupplierPayableMovementTypes.PembayaranLangsung,
+                deltaAmount: -amount,
+                balanceBefore: prevOutstanding,
+                occurredAt: eventOccurredAt,
+                actorUserId: actorUserId,
+                correlationId: payable.Id,
+                causationId: payable.Id,
+                businessDateOverride: FinanceBusinessDate.ToDateOnly(eventOccurredAt),
+                paymentMethodCode: normalizedPaymentMethod,
+                fundingSourceType: fundingSourceType,
+                fundingSourceId: bankAccountId,
+                referenceNumber: refNumber,
+                proofId: proofId,
+                notes: notes,
+                cancellationToken: cancellationToken);
+
+            // BE-FIN-062, FIN-DES-081: Mutasi kas keluar PEMBAYARAN-TUNAI-LANGSUNG (Sumber 3).
+            // FIN-DEC-133: anggaran kas kecil TIDAK PERNAH tersentuh jalur ini — hanya Kas Kasir.
+            if (normalizedPaymentMethod == "CASH")
+            {
+                await _subledgerMovementService.RecordCashMovementAsync(
+                    movementType: FinCashMovementTypes.PembayaranTunaiLangsung,
+                    direction: FinCashMovementDirections.Out,
+                    amount: amount,
+                    businessDate: FinanceBusinessDate.ToDateOnly(eventOccurredAt),
+                    occurredAt: eventOccurredAt,
+                    sourceReferenceType: FinCashMovementSourceReferenceTypes.PayableMovement,
+                    sourceReferenceId: payMovement.Id.ToString(),
+                    actorUserId: actorUserId,
+                    correlationId: payable.Id,
+                    causationId: payable.Id,
+                    paymentMethodCode: "CASH",
+                    notes: notes,
+                    cancellationToken: cancellationToken);
+            }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
             await CommitAsync(transaction, cancellationToken);
@@ -272,7 +424,10 @@ public sealed class FinanceSupplierPayableService
                 TotalPaid = payable.PaidAmount,
                 Status = payable.Status,
                 PaymentDate = eventOccurredAt.UtcDateTime,
-                ReferenceNumber = refNumber
+                ReferenceNumber = refNumber,
+                PaymentMethod = normalizedPaymentMethod,
+                FundingSourceId = bankAccountId,
+                ProofId = proofId
             };
         }
         catch (DbUpdateConcurrencyException exception)
@@ -293,7 +448,7 @@ public sealed class FinanceSupplierPayableService
 
     public async Task<List<SupplierPayableAgingBucketResult>> GetAgingSummaryAsync(DateOnly? asOfDate, CancellationToken cancellationToken)
     {
-        var date = asOfDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var date = asOfDate ?? FinanceBusinessDate.Today();
         var outstandingPayables = await _dbContext.FinSupplierPayables.AsNoTracking()
             .Where(x => !x.IsDelete && x.Status != FinSupplierPayableStatuses.Paid && x.Status != FinSupplierPayableStatuses.Cancelled && x.OutstandingAmount > 0)
             .Select(x => new { x.DueDate, x.OutstandingAmount })
@@ -329,7 +484,7 @@ public sealed class FinanceSupplierPayableService
 
     public async Task<SupplierPayableReportResponse> GetReportSummaryAsync(DateOnly? asOfDate, CancellationToken cancellationToken)
     {
-        var date = asOfDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var date = asOfDate ?? FinanceBusinessDate.Today();
         var payables = await _dbContext.FinSupplierPayables.AsNoTracking()
             .Where(x => !x.IsDelete)
             .ToListAsync(cancellationToken);
@@ -445,13 +600,17 @@ public sealed class FinanceSupplierPayableService
                     throw new PayableValidationException(
                         $"Nilai koreksi melebihi sisa utang. Sisa saat ini Rp {payable.OutstandingAmount:N0}.");
 
+                var balanceBefore = payable.OutstandingAmount;
+                decimal deltaAmount;
                 if (adjustment.Direction == FinPayableAdjustmentDirections.Debit)
                 {
+                    deltaAmount = -adjustment.Amount;
                     payable.OutstandingAmount -= adjustment.Amount;
                     payable.AdjustedAmount += adjustment.Amount;
                 }
                 else
                 {
+                    deltaAmount = +adjustment.Amount;
                     payable.OutstandingAmount += adjustment.Amount;
                     payable.AdjustedAmount -= adjustment.Amount;
                 }
@@ -460,17 +619,36 @@ public sealed class FinanceSupplierPayableService
                 payable.RowVersion = Guid.NewGuid();
 
                 adjustment.Status = FinPayableAdjustmentStatuses.Approved;
+                adjustment.ApprovedBy = actorUserId;
+                adjustment.ApprovedAt = DateTimeOffset.UtcNow;
+                adjustment.UpdateDateTime = DateTime.UtcNow;
+                adjustment.UpdateBy = actorUserId;
+                adjustment.RowVersion = Guid.NewGuid();
+
+                // BE-FIN-061, FIN-DES-079: Mutasi subledger PENYESUAIAN utang supplier disetujui (Jalur 4)
+                await _subledgerMovementService.RecordSupplierPayableMovementAsync(
+                    payable: payable,
+                    movementType: FinSupplierPayableMovementTypes.Penyesuaian,
+                    deltaAmount: deltaAmount,
+                    balanceBefore: balanceBefore,
+                    occurredAt: adjustment.ApprovedAt.Value,
+                    actorUserId: actorUserId,
+                    correlationId: payable.Id,
+                    causationId: adjustment.Id,
+                    referenceNumber: adjustment.AdjustmentNumber,
+                    notes: adjustment.Reason,
+                    cancellationToken: cancellationToken);
             }
             else
             {
                 adjustment.Status = FinPayableAdjustmentStatuses.Rejected;
                 adjustment.RejectionReason = rejectionReason;
+                adjustment.ApprovedBy = actorUserId;
+                adjustment.ApprovedAt = DateTimeOffset.UtcNow;
+                adjustment.UpdateDateTime = DateTime.UtcNow;
+                adjustment.UpdateBy = actorUserId;
+                adjustment.RowVersion = Guid.NewGuid();
             }
-            adjustment.ApprovedBy = actorUserId;
-            adjustment.ApprovedAt = DateTimeOffset.UtcNow;
-            adjustment.UpdateDateTime = DateTime.UtcNow;
-            adjustment.UpdateBy = actorUserId;
-            adjustment.RowVersion = Guid.NewGuid();
 
             await _dbContext.SaveChangesAsync(cancellationToken);
             await CommitAsync(transaction, cancellationToken);
@@ -604,6 +782,78 @@ public sealed class FinanceSupplierPayableService
         _loggerService.AuditAsync(LogCategory, $"FinanceSupplierPayable.{action}",
             $"Perubahan utang supplier dicatat. EntityId={entityId} PayableId={payableId}",
             new { EntityId = entityId, PayableId = payableId, ActorUserId = actorUserId });
+
+    /// <summary>
+    /// Membaca buku mutasi satu utang supplier secara berpaging dan tersaring (BE-FIN-063, FR-FIN-140, FIN-API-1.5 F.5).
+    /// </summary>
+    public async Task<PagedResult<SupplierPayableMovementResponse>> GetMovementsPagedAsync(
+        Guid supplierPayableId, SupplierPayableMovementQuery query, CancellationToken cancellationToken)
+    {
+        var exists = await _dbContext.FinSupplierPayables.AsNoTracking()
+            .AnyAsync(x => x.Id == supplierPayableId && !x.IsDelete, cancellationToken);
+        if (!exists) throw new KeyNotFoundException($"Utang supplier dengan ID '{supplierPayableId}' tidak ditemukan.");
+
+        var q = _dbContext.FinSupplierPayableMovements.AsNoTracking()
+            .Where(x => x.SupplierPayableId == supplierPayableId && !x.IsDelete);
+
+        if (!string.IsNullOrWhiteSpace(query.MovementType))
+        {
+            var movementType = query.MovementType.Trim().ToUpperInvariant();
+            q = q.Where(x => x.MovementType == movementType);
+        }
+
+        if (query.DateFrom.HasValue)
+            q = q.Where(x => x.BusinessDate >= query.DateFrom.Value);
+
+        if (query.DateTo.HasValue)
+            q = q.Where(x => x.BusinessDate <= query.DateTo.Value);
+
+        var total = await q.CountAsync(cancellationToken);
+
+        var descending = string.Equals(query.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+        q = descending
+            ? q.OrderByDescending(x => x.BusinessDate).ThenByDescending(x => x.OccurredAt).ThenByDescending(x => x.CreateDateTime)
+            : q.OrderBy(x => x.BusinessDate).ThenBy(x => x.OccurredAt).ThenBy(x => x.CreateDateTime);
+
+        var pageNumber = query.PageNumber < 1 ? 1 : query.PageNumber;
+        var pageSize = query.PageSize < 1 ? 25 : query.PageSize;
+
+        var items = await q
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new SupplierPayableMovementResponse
+            {
+                Id = x.Id,
+                SupplierPayableId = x.SupplierPayableId,
+                MovementType = x.MovementType,
+                Amount = x.Amount,
+                BalanceBefore = x.BalanceBefore,
+                BalanceAfter = x.BalanceAfter,
+                BusinessDate = x.BusinessDate,
+                OccurredAt = x.OccurredAt,
+                PaymentId = x.PaymentId,
+                PaymentAllocationId = x.PaymentAllocationId,
+                PaymentMethodCode = x.PaymentMethodCode,
+                FundingSourceType = x.FundingSourceType,
+                FundingSourceId = x.FundingSourceId,
+                ReferenceNumber = x.ReferenceNumber,
+                ProofId = x.ProofId,
+                OpeningItemBatchId = x.OpeningItemBatchId,
+                Notes = x.Notes,
+                CorrelationId = x.CorrelationId,
+                CausationId = x.CausationId
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<SupplierPayableMovementResponse>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
+            Items = items
+        };
+    }
 }
 
 /// <summary>Satu baris rincian invoice pada CreateAsync — bukan DTO folder karena belum ada controller yang mengonsumsinya (lihat laporan BE-FIN-019).</summary>

@@ -19,7 +19,8 @@ public sealed class ReceivableResponse
 {
     public Guid Id { get; set; }
     public string ReceivableNumber { get; set; } = string.Empty;
-    public Guid InvoiceId { get; set; }
+    // BE-FIN-079: nullable — kosong untuk item migrasi tagihan lama (lihat FinReceivable.OpeningItemBatchId).
+    public Guid? InvoiceId { get; set; }
     public string DebtorType { get; set; } = string.Empty;
     public Guid? DebtorReferenceId { get; set; }
     public decimal OriginalAmount { get; set; }
@@ -177,3 +178,40 @@ public sealed class ReceivableWriteOffRowResponse
     /// untuk kedua keputusan (lihat FinanceReceivableService.DecideWriteOffAsync).</summary>
     public DateTimeOffset? DecidedAt { get; set; }
 }
+
+// ----------------------------------------------------------------------------------------
+// BE-FIN-063 (FIN-DES-079, FIN-DEC-123, FIN-API-1.5 F.5): Buku Mutasi Piutang
+// ----------------------------------------------------------------------------------------
+
+public sealed class ReceivableMovementQuery
+{
+    [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
+    [Range(1, 100)] public int PageSize { get; set; } = 25;
+    public DateOnly? DateFrom { get; set; }
+    public DateOnly? DateTo { get; set; }
+    public string? MovementType { get; set; }
+    public string SortDirection { get; set; } = "asc";
+}
+
+public sealed class ReceivableMovementResponse
+{
+    public Guid Id { get; set; }
+    public Guid ReceivableId { get; set; }
+    public string MovementType { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public decimal BalanceBefore { get; set; }
+    public decimal BalanceAfter { get; set; }
+    public DateOnly BusinessDate { get; set; }
+    public DateTimeOffset OccurredAt { get; set; }
+    public Guid? SourceAllocationId { get; set; }
+    public string? PaymentMethodCode { get; set; }
+    public string? FundingSourceType { get; set; }
+    public Guid? FundingSourceId { get; set; }
+    public string? ReferenceNumber { get; set; }
+    public Guid? ProofId { get; set; }
+    public Guid? OpeningItemBatchId { get; set; }
+    public string? Notes { get; set; }
+    public Guid CorrelationId { get; set; }
+    public Guid CausationId { get; set; }
+}
+

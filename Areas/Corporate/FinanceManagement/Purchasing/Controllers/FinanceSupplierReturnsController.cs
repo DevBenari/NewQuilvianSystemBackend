@@ -22,7 +22,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Con
 /// terpisah, dan roadmap `BE-FIN-035` Cakupan eksplisit menyebut "catat, konfirmasi, batal".
 /// Tanpa endpoint ini retur tidak pernah bisa mencapai `CONFIRMED` (sehingga Deposit Retur tidak
 /// pernah diterbitkan) maupun `CANCELLED` — kapabilitasnya tidak berfungsi tanpa keduanya. Dibuat
-/// mengikuti pola `POST /{id}/<aksi>` yang sudah baku di rumpun ini (`FinanceInvoiceExchangesController.Cancel`),
+/// mengikuti pola `POST /{id}/&lt;aksi&gt;` yang sudah baku di rumpun ini (`FinanceInvoiceExchangesController.Cancel`),
 /// bukan kebijakan baru — action/permission `Confirm`/`Cancel` ikut ditambahkan pada resource
 /// `FinanceSupplierReturn` karena `permission-audit-matrix.md` §B.5 juga belum mendaftarkannya.
 /// </summary>

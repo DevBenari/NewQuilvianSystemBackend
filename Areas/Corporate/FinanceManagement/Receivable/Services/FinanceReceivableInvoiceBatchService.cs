@@ -472,7 +472,16 @@ public sealed class FinanceReceivableInvoiceBatchService
 
         foreach (var item in batch.Items.Where(x => !x.IsDelete && x.Receivable is not null))
         {
-            var invoiceDocument = await _documentService.GetDocumentAsync(item.Receivable!.InvoiceId, actorUserId, cancellationToken);
+            // BE-FIN-079: item migrasi tagihan lama tidak punya InvoiceId (asalnya bukan Billing) —
+            // tidak ada dokumen tagihan Billing untuk diambil, sehingga dilewati dengan peringatan
+            // alih-alih memanggil _documentService dengan Guid kosong.
+            if (item.Receivable!.InvoiceId is not { } invoiceId)
+            {
+                response.Warnings.Add($"Anggota {item.Receivable.ReceivableNumber} adalah item migrasi tagihan lama — nol dokumen Billing untuk diambil.");
+                continue;
+            }
+
+            var invoiceDocument = await _documentService.GetDocumentAsync(invoiceId, actorUserId, cancellationToken);
             response.Invoices.Add(invoiceDocument);
             response.Warnings.AddRange(invoiceDocument.Warnings);
         }

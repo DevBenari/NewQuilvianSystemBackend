@@ -22,7 +22,8 @@ public sealed class EligibleReceivableResponse
 {
     public Guid Id { get; set; }
     public string ReceivableNumber { get; set; } = string.Empty;
-    public Guid InvoiceId { get; set; }
+    // BE-FIN-079: nullable — kosong untuk item migrasi tagihan lama.
+    public Guid? InvoiceId { get; set; }
     public decimal OriginalAmount { get; set; }
     public decimal OutstandingAmount { get; set; }
     public DateOnly DueDate { get; set; }
@@ -100,7 +101,8 @@ public sealed class ReceivableInvoiceBatchMemberResponse
     public Guid Id { get; set; }
     public Guid ReceivableId { get; set; }
     public string ReceivableNumber { get; set; } = string.Empty;
-    public Guid InvoiceId { get; set; }
+    // BE-FIN-079: nullable — kosong untuk item migrasi tagihan lama.
+    public Guid? InvoiceId { get; set; }
     public decimal OriginalAmount { get; set; }
     public decimal OutstandingAmount { get; set; }
     public string ReceivableStatus { get; set; } = string.Empty;
