@@ -384,6 +384,8 @@ try
     builder.Services.AddScoped<LabPathologyReportService>();
     builder.Services.AddScoped<LabOrganismService>();
     builder.Services.AddScoped<LabAntibioticService>();
+    builder.Services.AddScoped<LabResultCorrectionReasonService>();
+    builder.Services.AddScoped<LabFourEyesExceptionReasonService>();
     builder.Services.AddScoped<LabSusceptibilityBreakpointService>();
     builder.Services.AddScoped<LabSusceptibilityInterpreter>();
     builder.Services.AddScoped<LabProcedureMicrobiologyProfileService>();
@@ -394,9 +396,14 @@ try
     builder.Services.AddScoped<LabReportNumberService>();
     builder.Services.AddScoped<LabDisciplineSettingService>();
     builder.Services.AddScoped<LabConfirmingDoctorResolver>();
+    builder.Services.AddScoped<LabClinicalPrivilegeResolver>();
+    builder.Services.AddScoped<LabResultValidationService>();
     builder.Services.AddScoped<LabMicrobiologyResultService>();
     builder.Services.AddScoped<LabExaminationService>();
+    builder.Services.AddScoped<LabCitoTurnaroundPolicy>();
     builder.Services.AddScoped<LabWorklistService>();
+    builder.Services.AddScoped<LabOperationalReportService>();
+    builder.Services.AddScoped<LabReportCsvWriter>();
     builder.Services.AddScoped<LabMonitoringService>();
     builder.Services.AddScoped<LabCatalogService>();
     builder.Services.AddScoped<LabPatientRegistrationService>();
@@ -429,21 +436,27 @@ try
     // membuat unit itu berhenti ikut ditutup — bukan membuatnya ditutup membabi buta.
     builder.Services.AddScoped<IEncounterContinuationProbe, LabEncounterContinuationProbe>();
     builder.Services.AddScoped<KioskEncounterClosureService>();
+    // RJ-DOC-REV-BE-009 — Daftar Pasien Rawat Jalan bercakupan dokter/perawat.
+    builder.Services.AddScoped<ClinicalActorScopeService>();
+    builder.Services.AddScoped<OutpatientEncounterListService>();
     builder.Services.Configure<KioskEncounterClosureOptions>(
     builder.Configuration.GetSection("HealthServices:KioskEncounterClosure"));
     builder.Services.AddScoped<EncounterPaymentSourceService>();
+    builder.Services.AddScoped<DoctorQueuePatientContextService>();
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();
     builder.Services.AddScoped<CompanyGuarantorCoverageService>();
     builder.Services.AddScoped<PrescriptionNumberService>();
     builder.Services.AddScoped<PrescriptionSummaryService>();
     builder.Services.AddScoped<PrescriptionWorkflowService>();
+    builder.Services.AddScoped<PrescriptionBillingChargeProducer>();
     builder.Services.AddScoped<PrescriptionWorkspaceService>();
     builder.Services.AddScoped<PrescriptionTemplateService>();
     builder.Services.AddScoped<PrescriptionValidationService>();
     builder.Services.AddScoped<ConsultationValidationService>();
     builder.Services.AddScoped<DoctorConsultationLifecycleService>();
     builder.Services.AddScoped<ConsultationFinalizationService>();
+    builder.Services.AddScoped<DoctorCertificateService>();
 
     // BE-RWI-039 / CON-INP-015. Satu tempat yang menjawab konteks perawatan rawat inap beserta
     // kewenangan dokternya, dipakai bersama jalur catatan dokter dan jalur pengkajian sesuai
@@ -543,6 +556,7 @@ try
     builder.Services.AddScoped<NutritionOrderService>();
     builder.Services.AddScoped<NutritionDietService>();
     builder.Services.AddScoped<NutritionRequirementService>();
+    builder.Services.AddScoped<NutritionReportService>();
 
     // Pencari rumus kebutuhan nutrisi. Didaftarkan singleton karena isinya hanya pemetaan
     // kunci ke kelas perhitungan, dan pada V1 pemetaan itu KOSONG: rumus belum diserahkan
@@ -1629,6 +1643,12 @@ try
         await RunStartupSeederAsync(
             "ClinicalInstrumentDraftSeeder",
             () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
+
+    // RJ-DOC-REV-BE-006 — kelompok ICD Diagnosa (DTD) dan pemetaannya ke MstDiagnosis.
+    // Idempoten; sesudah impor pertama hanya diagnosa yang kelompoknya masih kosong diperiksa.
+    await RunStartupSeederAsync(
+        "IcdDiagnosisGroupSeeder",
+        () => IcdDiagnosisGroupSeeder.SeedAsync(app.Services));
 
     // Master data 3S asuhan keperawatan (SDKI, SLKI, SIKI) — 10 diagnosa prioritas rawat inap.
     await RunStartupSeederAsync(

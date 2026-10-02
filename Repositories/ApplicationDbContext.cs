@@ -725,6 +725,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilChargeComponent> BilChargeComponents { get; set; }
         public DbSet<BilProcessingEffect> BilProcessingEffects { get; set; }
         public DbSet<CliClinicalMilestoneFact> CliClinicalMilestoneFacts { get; set; }
+        public DbSet<CliDoctorCertificate> CliDoctorCertificates { get; set; }
         public DbSet<CliPhysicianVisit> CliPhysicianVisits { get; set; }
 
         // BE-RWI-059 / CAP-013. Rencana asuhan keperawatan beserta butir masalahnya. Tabelnya
@@ -766,6 +767,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstReferralDoctor> MstReferralDoctors { get; set; }
         public DbSet<MstDiagnosisChapter> MstDiagnosisChapters { get; set; }
         public DbSet<MstDiagnosis> MstDiagnoses { get; set; }
+        public DbSet<MstDiagnosisGroup> MstDiagnosisGroups { get; set; }
 
         // Master Data 3S Asuhan Keperawatan: Standar Diagnosis (SDKI), Luaran (SLKI), dan Intervensi (SIKI)
         public DbSet<MstNursingDiagnosisGroup> MstNursingDiagnosisGroups { get; set; }
@@ -954,6 +956,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<LabFieldChangeLog> LabFieldChangeLogs { get; set; }
 
         public DbSet<LabDisciplineSetting> LabDisciplineSettings { get; set; }
+
+        public DbSet<LabResultCorrectionReason> LabResultCorrectionReasons { get; set; }
+
+        public DbSet<LabFourEyesExceptionReason> LabFourEyesExceptionReasons { get; set; }
 
         #endregion
 

@@ -388,3 +388,25 @@ agency-local/
 /Tests/
 
 DataProtectionKeys/key-*.xml
+
+# Proyek uji modul Operasi dikecualikan dari aturan di atas. Uji itu adalah bukti acceptance
+# criteria `BE-OPR-011`; bila ia tidak ikut masuk repositori, aturan yang dijaganya hanya
+# berlaku di mesin yang kebetulan pernah menjalankannya.
+!/Tests/
+/Tests/*
+!/Tests/QuilvianSystemBackend.OperatingRoomTests/
+/Tests/QuilvianSystemBackend.OperatingRoomTests/bin/
+/Tests/QuilvianSystemBackend.OperatingRoomTests/obj/
+
+# Alasan yang sama untuk regresi Farmasi `GAP-PHA-BE-001`: uji tangga tahap pemenuhan resep
+# menjaga agar resep tidak lagi lahir pada tahap 2, dan itu hanya berlaku di mesin yang kebetulan
+# pernah menjalankannya bila berkasnya tidak ikut masuk repositori.
+!/Tests/QuilvianSystemBackend.PharmacyTests/
+/Tests/QuilvianSystemBackend.PharmacyTests/bin/
+/Tests/QuilvianSystemBackend.PharmacyTests/obj/
+
+# Begitu pula regresi Gizi: `GIZ004` sampai `GIZ020` ditegakkan di dalam service, dan satu-satunya
+# yang menjaganya tetap ditegakkan adalah uji ini.
+!/Tests/QuilvianSystemBackend.NutritionTests/
+/Tests/QuilvianSystemBackend.NutritionTests/bin/
+/Tests/QuilvianSystemBackend.NutritionTests/obj/

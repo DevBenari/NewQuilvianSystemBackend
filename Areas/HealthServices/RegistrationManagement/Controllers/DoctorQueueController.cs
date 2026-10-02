@@ -66,6 +66,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         // RJ-DOC-BE-001. Jalur antrean memakai implementasi finalisasi yang sama dengan endpoint
         // konsultasi canonical. Dependency-nya service, bukan controller.
         private readonly ConsultationFinalizationService _consultationFinalizationService;
+        private readonly DoctorQueuePatientContextService _patientContextService;
 
         public DoctorQueueController(
             ApplicationDbContext dbContext,
@@ -74,7 +75,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             QueueRealtimeService queueRealtimeService,
             DoctorConsultationLifecycleService doctorConsultationLifecycleService,
             ClinicalDocumentIntegrityService integrityService,
-            ConsultationFinalizationService consultationFinalizationService)
+            ConsultationFinalizationService consultationFinalizationService,
+            DoctorQueuePatientContextService patientContextService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
@@ -83,6 +85,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             _doctorConsultationLifecycleService = doctorConsultationLifecycleService;
             _integrityService = integrityService;
             _consultationFinalizationService = consultationFinalizationService;
+            _patientContextService = patientContextService;
         }
 
         [HttpGet("filters/metadata")]
@@ -712,6 +715,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     .ThenInclude(x => x.PaymentSource)
                         .ThenInclude(x => x.InsuranceProvider)
                 .Include(x => x.Encounter)
+                    .ThenInclude(x => x.PaymentSource)
+                        .ThenInclude(x => x.CompanyGuarantor)
+                .Include(x => x.Encounter)
                     .ThenInclude(x => x.Room)
                 .Include(x => x.Patient)
                 .Include(x => x.ServiceUnit)
@@ -965,6 +971,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 .Include(x => x.Encounter)
                     .ThenInclude(x => x.PaymentSource)
                         .ThenInclude(x => x.InsuranceProvider)
+                .Include(x => x.Encounter)
+                    .ThenInclude(x => x.PaymentSource)
+                        .ThenInclude(x => x.CompanyGuarantor)
                 .Include(x => x.Encounter)
                     .ThenInclude(x => x.Room)
                 .Include(x => x.Patient)
@@ -1265,6 +1274,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             var serverNowUtc = DateTime.UtcNow;
 
+            // RJ-DOC-REV-BE-001 — alergi, foto, KTP, dan kartu asuransi untuk header dokter.
+            var patientContexts = await _patientContextService.LoadAsync(
+                queues
+                    .Select(x => (x.PatientId, x.EncounterId, x.Encounter?.PaymentSource?.PatientInsuranceId))
+                    .ToList());
+
             return queues
                 .Select(x => MapResponse(
                     x,
@@ -1272,6 +1287,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     doctorPhotoPaths,
                     doctorCredentialSnapshots,
                     consultationMap,
+                    patientContexts,
                     serverNowUtc))
                 .ToList();
         }
@@ -1282,9 +1298,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             IReadOnlyDictionary<Guid, string> doctorPhotoPaths,
             IReadOnlyDictionary<Guid, DoctorWorkforceCredentialSnapshot> doctorCredentialSnapshots,
             IReadOnlyDictionary<Guid, DoctorConsultationQueueSnapshot> consultationMap,
+            IReadOnlyDictionary<Guid, DoctorQueuePatientContext> patientContexts,
             DateTime serverNowUtc)
         {
             var encounter = x.Encounter;
+            var primaryPayer = EncounterPrimaryPayerSummary.From(encounter);
+            var patientContext = patientContexts.TryGetValue(x.EncounterId, out var contextSnapshot)
+                ? contextSnapshot
+                : DoctorQueuePatientContext.Empty;
             var doctorPhotoPath = ResolveDoctorPhotoPath(x.DoctorId, doctorPhotoPaths);
             var paymentType = encounter?.PaymentType ?? EncounterPaymentType.Cash;
             var paymentSourceName = NormalizeNullableText(
@@ -1392,12 +1413,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     ?? encounter?.PaymentSource?.PaymentSourceNameSnapshot,
                 IsInsuranceEligible = encounter?.PaymentSource?.IsEligible ?? paymentType == EncounterPaymentType.Cash,
                 IsInsurancePolicyActive = encounter?.PaymentSource?.IsPolicyActive ?? false,
+                PrimaryGuarantorNameSnapshot = primaryPayer.PrimaryGuarantorName,
+                PrimaryGuarantorTypeSnapshot = primaryPayer.PrimaryGuarantorTypeName,
+                IsInsurancePatient = primaryPayer.IsInsurancePatient,
+                IsCompanyPatient = primaryPayer.IsCompanyPatient,
+                GenderName = BuildGenderName(x.Patient?.Gender),
+                BirthDate = x.Patient?.BirthDate,
+                HasAllergy = patientContext.HasAllergy,
+                AllergySummary = patientContext.AllergySummary,
+                PatientPhotoPath = patientContext.PatientPhotoPath,
+                IdentityDocumentPath = patientContext.IdentityDocumentPath,
+                InsuranceCardImagePath = patientContext.InsuranceCardImagePath,
                 PatientTotalVisitCount = totalVisitCount,
                 PatientVisitNumber = totalVisitCount,
                 ChiefComplaint = encounter?.ChiefComplaint,
-                AgeTextAtEncounter = null,
-                AgeCategoryCodeSnapshot = null,
-                AgeCategoryNameSnapshot = null,
+                AgeTextAtEncounter = encounter?.AgeTextAtEncounter,
+                AgeCategoryCodeSnapshot = encounter?.AgeCategoryCodeSnapshot,
+                AgeCategoryNameSnapshot = encounter?.AgeCategoryNameSnapshot,
                 Notes = x.Notes,
                 CreateDateTime = x.CreateDateTime
             };
@@ -1708,6 +1740,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         private static string? NormalizeNullableText(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+        private static string? BuildGenderName(Enum? gender)
+        {
+            if (gender == null) return null;
+            var display = gender.GetType().GetMember(gender.ToString()).FirstOrDefault()?
+                .GetCustomAttributes(typeof(System.ComponentModel.DataAnnotations.DisplayAttribute), false)
+                .OfType<System.ComponentModel.DataAnnotations.DisplayAttribute>()
+                .FirstOrDefault();
+            return display?.Name ?? gender.ToString();
+        }
 
         private static string? MergeNotes(string? currentNotes, string? newNotes)
         {

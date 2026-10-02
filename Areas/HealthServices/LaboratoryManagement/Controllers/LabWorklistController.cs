@@ -72,5 +72,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             return Ok(ApiResponse<PagedResult<LabCitoOverdueResponse>>.Ok(
                 hasil, "Daftar pantau keterlambatan cito berhasil diambil."));
         }
+
+        // Antrean hasil Patologi Klinik dan Mikrobiologi yang menunggu validasi atau rilis (r34 29.4,
+        // r35 30.4). Tahap wajib dipilih (VAL-139); disiplin kosong = keduanya, disiplin lain 422
+        // (VAL-145); hasil Mikrobiologi Sementara tidak masuk. Cito lebih dulu, lalu yang paling lama
+        // menunggu, lintas disiplin. Hak aksesnya sama dengan kedua daftar saudaranya — pemvalidasi
+        // dan perilis wajib diberi LabWorklist:Read.
+        [HttpGet("validation-queue")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<LabValidationQueueItemResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Read", "Read Lab Worklist", Description = "Melihat antrean validasi dan rilis hasil Patologi Klinik dan Mikrobiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabWorklist", "Read")]
+        public async Task<IActionResult> GetValidationQueue(
+            [FromQuery] LabValidationQueueQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var hasil = await _labWorklistService.GetValidationQueueAsync(query, cancellationToken);
+
+                return Ok(ApiResponse<PagedResult<LabValidationQueueItemResponse>>.Ok(
+                    hasil, "Antrean validasi dan rilis berhasil diambil."));
+            }
+            catch (LabExaminationValidationException exception)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity, exception.Message));
+            }
+        }
     }
 }

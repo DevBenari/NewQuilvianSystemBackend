@@ -3,7 +3,8 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-API-v1` |
-| Revision | **`36` — `approved`** 2026-09-25, bagian 31 (penjaga penyelesaian order, `LAB-DEC-154`) — disetujui Yoga Aji Pratama beserta keempat butir `02-backend-architecture.md` 22.7. Sebelumnya: **`35` — `approved`** 2026-09-25, bagian 30 (`S4d-1` validasi dan rilis Mikrobiologi) — disetujui Yoga Aji Pratama beserta kelima butir `02-backend-architecture.md` 21.10, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
+| Revision | **`38` — `approved`** 2026-10-01, bagian 33 (identitas pasien pada rincian order, `LAB-DEC-166`) — aditif, disetujui Yoga Aji Pratama. Sebelumnya: **`37` — `approved`** 2026-09-28, bagian 32 (`S16a` tiga laporan operasional) — disetujui Yoga Aji Pratama beserta kedelapan butir `02-backend-architecture.md` 23.10. Sebelumnya: **`36` — `approved`** 2026-09-25, bagian 31 (penjaga penyelesaian order, `LAB-DEC-154`) — disetujui Yoga Aji Pratama beserta keempat butir `02-backend-architecture.md` 22.7. Sebelumnya: **`35` — `approved`** 2026-09-25, bagian 30 (`S4d-1` validasi dan rilis Mikrobiologi) — disetujui Yoga Aji Pratama beserta kelima butir `02-backend-architecture.md` 21.10, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
+| `r38` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-01** — *"Informasi pasien … tambahkan di backend"* |
 | `r36` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-25** — termasuk bunyi pesan `409` yang disesuaikan dan `400` → `409` bagi order bukan `InProcess` |
 | `r35` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-25** — termasuk perubahan bunyi `VAL-126` (`LAB-VAL-v1` `r13`) |
 | `r33` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-24** — termasuk pencabutan tiga route Mikrobiologi |
@@ -3519,3 +3520,179 @@ Mikrobiologi `Sementara` berlabel *Menunggu Validasi*.
 | Pemeriksaan tanpa jalur validasi menahan order | `LAB-DEC-154` butir 5 | `AC-245` |
 | Label pada rincian | `LAB-DEC-156` | `AC-247` bagian backend |
 | `409` bagi order bukan `InProcess` | `LAB-STATE-v1` bagian 1 | Baris matriks uji |
+
+## 32. Amandemen `r37` — Tiga laporan operasional (`S16a`), 2026-09-25
+
+> ### ✅ STATUS: `approved` — 2026-09-28
+>
+> | Butir | Isi |
+> |---|---|
+> | Status | **`approved`** |
+> | `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-28 |
+> | Dasar persetujuan | Instruksi pemilik modul pada sesi 2026-09-28, apa adanya: *"saya setujui semuanya yaa sebagai pemilik modul lab atas nama yoga aji pratama"* — diberikan sesudah ketiga kontrak dan kedelapan butir 23.10 disajikan satu per satu. **Kedelapan butir `02-backend-architecture.md` 23.10 termasuk yang disetujui**, dalam bunyi kolom *Usulan rancangan*: CSV UTF-8 BOM berpemisah titik koma, `Export` terpisah dari `Read`, 366 hari, rincian per jenis pemeriksaan, batas cito saat laporan dibuka, tiga usulan arsitektur, unduhan dicatat, butir menu tersendiri |
+> | `input_revision` | decisions rev 81; `LAB-RCG-001-r11` bagian 0F; `LAB-DA-001` rev 10 bagian A7; `02-backend-architecture.md` rev 13 bagian 23 |
+> | Keputusan | `LAB-DEC-155`, `LAB-DEC-159`, `LAB-DEC-160`, `LAB-DEC-071` |
+> | Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_READY` |
+> | Dibangun di atas | `r34` bagian 29 (**approved**, belum dibangun) — `ReleasedAt` dan penjaga disiplin `VAL-126` |
+> | Sifat | **Aditif** — satu grup endpoint baru; nol endpoint lama berubah |
+> | Migration | **Satu index**, `AddLabSpecimenDecidedAtIndex`; nol kolom |
+> | Permission | Satu resource baru `LabOperationalReport` — `LAB-PERM-v1` revision 12 |
+> | Yang wajib disetujui tersendiri | Delapan butir `02-backend-architecture.md` 23.10 — butir 8 (letak menu) keputusan tampilan |
+
+### 32.1 Kenapa amandemen ini ada
+
+Kepala instalasi dan manajemen belum punya satu pun angka ringkas tentang **berapa banyak** hasil yang
+keluar, **seberapa sering** sampel ditolak, dan **seberapa cepat** hasil sampai ke dokter. Pemilik modul
+memutuskan tiga laporan pertama beserta definisinya (`LAB-DEC-159`) dan pembacanya (`LAB-DEC-160`).
+
+### 32.2 `[Tags("Health Services / Laboratory Management / Lab Operational Report")]`
+
+Base URL: `api/v1/health-services/laboratory-management/lab-operational-reports`
+Contract version: `LAB-API-v1` `r37` — status `approved` 2026-09-28
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/filters/metadata` | Pilihan penyaring — periode dan disiplin | `LabOperationalReport : Read` | - | `ApiResponse<LabOperationalReportFilterMetadataResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/examination-count` | Jumlah pemeriksaan yang **dirilis** pada periode itu, per disiplin dan per jenis pemeriksaan | `LabOperationalReport : Read` | `LabOperationalReportQuery` | `ApiResponse<LabExaminationCountReportResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/specimen-rejection` | Angka penolakan wadah per disiplin, beserta rincian per alasan | `LabOperationalReport : Read` | `LabOperationalReportQuery` | `ApiResponse<LabSpecimenRejectionReportResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/turnaround-time` | Waktu penyelesaian dari wadah layak sampai hasil dirilis, per disiplin dan kesegeraan | `LabOperationalReport : Read` | `LabOperationalReportQuery` | `ApiResponse<LabTurnaroundTimeReportResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/examination-count/export` | Mengunduh laporan jumlah pemeriksaan sebagai CSV | `LabOperationalReport : Export` | `LabOperationalReportQuery` | Berkas `text/csv` | **Rencana (belum tersedia)** |
+| `GET` | `/specimen-rejection/export` | Mengunduh laporan penolakan sebagai CSV | `LabOperationalReport : Export` | `LabOperationalReportQuery` | Berkas `text/csv` | **Rencana (belum tersedia)** |
+| `GET` | `/turnaround-time/export` | Mengunduh laporan waktu penyelesaian sebagai CSV | `LabOperationalReport : Export` | `LabOperationalReportQuery` | Berkas `text/csv` | **Rencana (belum tersedia)** |
+
+**Kode status:**
+
+| Kode | Kapan | Yang dibaca pengguna |
+|---|---|---|
+| `200` | Laporan terbentuk — termasuk periode tanpa data | Angka, atau baris kosong beralasan |
+| `400` | Periode tidak diisi (`VAL-147`); tanggal awal sesudah tanggal akhir (`VAL-148`); disiplin tidak dikenal | *"Periode laporan wajib diisi."* / *"Tanggal awal tidak boleh melewati tanggal akhir."* |
+| `403` | Pengguna tidak memegang izin laporan, atau memegang `Read` tanpa `Export` saat mengunduh | Pesan izin yang berlaku di platform |
+| `422` | Periode lebih dari 366 hari (`VAL-149`) | *"Periode laporan paling panjang 366 hari. Persempit rentang tanggalnya."* |
+
+### 32.3 Bentuk permintaan dan respons
+
+**`LabOperationalReportQuery`**
+
+| Ruas | Tipe | Wajib | Isi |
+|---|---|:---:|---|
+| `startDate` | tanggal `YYYY-MM-DD` | Ya | Tanggal operasional **WIB**, inklusif |
+| `endDate` | tanggal `YYYY-MM-DD` | Ya | Tanggal operasional **WIB**, inklusif |
+| `discipline` | `ClinicalPathology` / `AnatomicalPathology` / `Microbiology` | Tidak | Kosong = seluruh disiplin |
+
+**Contoh respons `/turnaround-time`** — data samaran:
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Laporan waktu penyelesaian berhasil dibentuk.",
+  "data": {
+    "period": { "startDate": "2026-09-01", "endDate": "2026-09-30", "generatedAt": "2026-10-01T02:15:00Z" },
+    "rows": [
+      { "discipline": "ClinicalPathology", "disciplineName": "Patologi Klinik", "urgency": "Cito",
+        "isCountable": true, "notCountableReason": null, "releasedCount": 412,
+        "averageMinutes": 48.6, "overdueCount": 19, "withoutLimitCount": 3 },
+      { "discipline": "ClinicalPathology", "disciplineName": "Patologi Klinik", "urgency": "Routine",
+        "isCountable": true, "notCountableReason": null, "releasedCount": 3905,
+        "averageMinutes": 131.2, "overdueCount": null, "withoutLimitCount": null },
+      { "discipline": "AnatomicalPathology", "disciplineName": "Patologi Anatomi", "urgency": "Routine",
+        "isCountable": false, "notCountableReason": "Rilis hasil Patologi Anatomi belum tersedia.",
+        "releasedCount": null, "averageMinutes": null, "overdueCount": null, "withoutLimitCount": null }
+    ]
+  },
+  "errors": null
+}
+```
+
+| Ruas | Arti |
+|---|---|
+| `isCountable` | `false` bila disiplin itu **belum punya jalur rilis** — angkanya kosong, **bukan 0** |
+| `averageMinutes` | Rata-rata selang *wadah layak → hasil dirilis*, satu desimal; kosong bila `releasedCount` 0 |
+| `overdueCount` | Pemeriksaan **cito** yang selangnya melebihi batas cito — batas yang **sama** dengan daftar pantau keterlambatan |
+| `withoutLimitCount` | Pemeriksaan cito yang batas waktunya belum diatur, sehingga tidak dapat dinilai terlambat |
+| `rejectionRatePercent` | Wadah tidak layak ÷ wadah yang diputuskan × 100, satu desimal; kosong bila nol wadah diputuskan |
+| `procedures[]` | Rincian jumlah per jenis pemeriksaan, memakai nama yang tersimpan saat dipesan |
+
+**Berkas CSV** — UTF-8 dengan BOM, pemisah **titik koma**, desimal **koma**, baris pertama periode
+laporan, judul kolom Bahasa Indonesia. Contoh isi `/specimen-rejection/export`:
+
+```text
+Periode;1 September 2026 - 30 September 2026
+Disiplin;Wadah diputuskan;Wadah ditolak;Angka penolakan (%)
+Patologi Klinik;400;12;3,0
+```
+
+### 32.4 Kompatibilitas
+
+| Perubahan | Sifat | Konsumen terdampak |
+|---|---|---|
+| Grup endpoint baru | Aditif | Nol |
+| Index `LabSpecimen.DecidedAt` | Aditif | Nol |
+| Batas cito dan disiplin yang dapat dirilis dipindah ke tempat bersama | Nol perubahan perilaku | Daftar pantau cito dan validasi — harus terbukti tidak berubah |
+
+### 32.5 Traceability
+
+| Yang dikontrakkan | Keputusan | Arsitektur domain | AC |
+|---|---|---|---|
+| Jumlah pemeriksaan | `LAB-DEC-159` butir 2 | `INV-55` | `AC-250` |
+| Penolakan wadah | `LAB-DEC-159` butir 3 | `INV-56` | `AC-251` |
+| Waktu penyelesaian | `LAB-DEC-159` butir 4; `AC-17` | `INV-57` | `AC-252` |
+| Izin tersendiri | `LAB-DEC-160` | A7.8 | `AC-253` |
+
+## 33. Amandemen `r38` — Identitas pasien pada rincian order, 2026-10-01
+
+| Field | Nilai |
+|---|---|
+| Status | **`approved`** 2026-10-01 — Yoga Aji Pratama, pemilik modul |
+| Keputusan | `LAB-DEC-166` |
+| Alasan | Halaman Hasil Patologi Klinik per order (`03-frontend-architecture.md` amandemen 2026-09-24) wajib menampilkan *Informasi pasien* dengan "sumber sama dengan halaman Mikrobiologi" — rincian order. Rincian order tidak membawa satu pun ruas pasien, sehingga hasil diisi tanpa identitas pasien di layar |
+| Sifat | **Aditif** — nol ruas berubah arti, nol ruas dihapus, nol endpoint baru |
+| Task | `BE-LAB-87` (backend), `FE-LAB-36` (layar) |
+
+### 33.1 Endpoint
+
+`[Tags("Health Services / Laboratory Management / Lab Order")]` — base URL
+`api/v1/health-services/laboratory-management/lab-orders`.
+
+| Method | Path | Kegunaan | Hak akses | Response | Status |
+|---|---|---|---|---|---|
+| `GET` | `/{id}` | Rincian order — kini beserta identitas pasien | `LabOrder : Read` — **tidak berubah** | `ApiResponse<LabOrderDetailResponse>` — **ruas bertambah**, 33.2 | Sudah ada — **diperbarui** |
+
+### 33.2 Ruas yang bertambah pada `LabOrderDetailResponse`
+
+| Ruas | Tipe | Boleh kosong | Arti |
+|---|---|:---:|---|
+| `patientId` | Guid | Ya | Pasien kunjungan order |
+| `patientName` | string | Ya | Nama pasien |
+| `medicalRecordNumber` | string | Ya | No. rekam medis |
+| `gender` | string | Ya | Nama enum, `Male` atau `Female` — sama dengan daftar pantau |
+| `birthDate` | DateTime | Ya | Tanggal lahir; **umur dihitung layar** pada tanggal hari ini, supaya tidak usang |
+| `encounterNumber` | string | Ya | No. kunjungan |
+| `encounterType` | string | Ya | Nama enum tipe kunjungan (`Outpatient`, `Emergency`, `Inpatient`, `MedicalCheckup`, `Telemedicine`) |
+| `serviceUnitName` | string | Ya | Nama unit layanan kunjungan |
+
+**Satu pasien terbaca sama di semua layar.** Ruas dibaca lewat jalur yang sama dengan daftar pantau
+(`MstPatient` lewat `Encounter.PatientId`), sehingga nama dan No. RM pada rincian order identik dengan
+daftar pantau.
+
+**Hanya `GET /{id}`.** Respons tindakan tulis yang memakai bentuk yang sama — pembuatan dan pemecahan
+order — mengirim kedelapan ruas ini **kosong**; pemanggilnya sudah memegang identitas pasien.
+
+**Contoh** — order `LAB-RSMMC-000001`:
+
+| Ruas | Nilai |
+|---|---|
+| `patientName` | `AGNES YULIANI RAJA GUK GUK` |
+| `medicalRecordNumber` | `00-00-00-13` |
+| `gender` | `Female` → tampil *Perempuan* |
+| `birthDate` | `2000-07-13T00:00:00` → tampil *26 tahun* pada 1 Oktober 2026 |
+| `encounterType` | `Outpatient` → tampil *Rawat Jalan* |
+| `serviceUnitName` | `Laboratorium Klinik` |
+
+### 33.3 Privasi dan dampak
+
+| Hal | Isi |
+|---|---|
+| Privasi | Identitas yang sama sudah dibuka daftar pantau kepada pemegang `LabMonitoring : Read`; rincian order kini membukanya kepada pemegang `LabOrder : Read` — keduanya petugas laboratorium. Nol nilai hasil ikut |
+| Konsumen lama | Nol dampak — ruas baru diabaikan pembaca lama. Laporan Patologi Anatomi yang **sudah** membaca `patientName`/`medicalRecordNumber` dari rincian order kini terisi (sebelumnya "-") |
+| Kinerja | Lima sub-query satu baris per pembacaan rincian — pola daftar pantau |
