@@ -14,6 +14,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             _dbContext = dbContext;
         }
 
+        /// <summary>
+        /// Menetapkan keadaan awal resep yang baru lahir dan masih menunggu finalisasi klinis
+        /// (`GAP-PHA-BE-001`).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Ketiga status ditetapkan di satu tempat, bukan di controller, karena ketiganya saling
+        /// mengunci: resep berstatus <c>Draft</c> secara definisi belum difinalkan dokter, jadi
+        /// tahap pemenuhannya tidak boleh sudah melewati finalisasi itu.
+        /// </para>
+        /// <para>
+        /// Sebelum ini controller pembuatan resep menetapkan
+        /// <see cref="PrescriptionFulfillmentStatus.WaitingForPayment"/> pada resep yang sekaligus
+        /// ditandai <c>Draft</c>. Dua pernyataan itu bertentangan, dan akibatnya tidak terlihat
+        /// sampai konsultasinya diselesaikan: <see cref="FinalizeFromConsultationAsync"/> menuntut
+        /// tahap <c>WaitingForClinicalFinalization</c>, dan <c>PrescriptionValidationService</c>
+        /// menolak selainnya sebagai <b>Error</b> — keparahan yang tidak dapat diakui lewat
+        /// <c>AcknowledgedWarningKeys</c>. Resep karena itu tidak pernah dapat difinalkan, dan
+        /// seluruh alur farmasi sesudahnya tidak pernah terbuka.
+        /// </para>
+        /// <para>Dipanggil saat resep dibuat, sebelum disimpan.</para>
+        /// </remarks>
+        public static void ApplyInitialClinicalState(PhmPrescription entity)
+        {
+            ArgumentNullException.ThrowIfNull(entity);
+
+            entity.PrescriptionStatus = PrescriptionStatus.Draft;
+            entity.PaymentStatus = PrescriptionPaymentStatus.NotBilled;
+            entity.FulfillmentStatus = PrescriptionFulfillmentStatus.WaitingForClinicalFinalization;
+        }
+
         public async Task<PrescriptionWorkflowResult> FinalizeFromConsultationAsync(
             PhmPrescription entity,
             Guid actorUserId,
