@@ -11,6 +11,44 @@ Keduanya punya roadmap, progress, dan Definition of Done sendiri, dan **tidak bo
 | Billing / Revenue Cycle | `RJ-BIL` | [roadmap/backend-roadmap.md](roadmap/backend-roadmap.md), [roadmap/frontend-roadmap.md](roadmap/frontend-roadmap.md) | `PARTIAL — NEEDS REVERIFICATION` | `1` — `HISTORICAL SNAPSHOT` per `2026-08-24`/`28` | Dimulai sebagai **consumer** clinical fact. `DOWNSTREAM — NOT PART OF DOCTOR DEFINITION OF DONE` |
 | **Rawat Jalan → Invoice V2** | `RJ-E2E` (dokumen: `RJE`) | [roadmap/e2e-backend-roadmap.md](roadmap/e2e-backend-roadmap.md), [roadmap/e2e-frontend-roadmap.md](roadmap/e2e-frontend-roadmap.md) | **Desain `APPROVED` · roadmap `DRAFT`** | `1` | Jembatan fakta klinis → `BilInvoice`, obat dua tahap, jasa konsultasi, rekonsiliasi, Ringkasan Billing. Lihat bagian *Revisi 27* di bawah |
 
+## Revisi 28 — Amendment DP: Daftar Pasien Rawat Jalan (`2026-10-02`)
+
+| Field | Nilai |
+|---|---|
+| `revision` | `28` |
+| `status` | **`approved`** — desain dan kontrak disetujui (`RJ-DOC-DEC-024`) |
+| Scope | `RJ-DOC` (revisi roadmap `RJ-DOC-REV-*`). Layar daftar kunjungan RJ bercakupan, pembatalan kunjungan menggantung, dan pelonggaran pemblokir pendaftaran |
+| `blueprint_shape` | `SINGLE` (`RJ-DOC-DEC-011`, `USER_CONFIRMED`) |
+| `backend_commit_sha` / `frontend_commit_sha` | `245f0464` / `b7e9b7fd4` |
+| `contract_versions` | **`RJ-DOC-ENCLIST-001@1.0.0 (approved)`** — bagian *Amendment DP* pada `api-contract`, `state-transition-matrix`, `validation-matrix`, `integration-contract`, `permission-audit-matrix`. Kontrak lain tidak berubah |
+| `decision_revision` | `RJ-DOC-DEC-011`..`023`, `RJ-DOC-FE-005`..`009` |
+| `requirement_readiness` | `GATE_NOT_RUN` — dilewati atas persetujuan pemilik (scope kecil, keputusan tertutup berbukti) |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN` — tanpa bounded context, master, atau dampak billing baru |
+| Capability | [01-capability-impact-scan-daftar-pasien-rj.md](01-capability-impact-scan-daftar-pasien-rj.md) |
+| Migration | Tidak ada |
+| `owners` | Product/Domain, API, Security/Privacy, Frontend authority: Sukma Giri |
+| `approved_by`, `approved_at` | Sukma Giri, `2026-10-02` ("lanjutkan" atas pertanyaan "Setujui sekarang dan lanjut?") |
+| `implementation_authority` | `NOT_GRANTED` — diberikan per task |
+| Roadmap | [roadmap/doctor-consultation-roadmap.md](roadmap/doctor-consultation-roadmap.md) bagian 11 — `RJ-DOC-REV-BE-008`..`010` (`MVP-0`), `RJ-DOC-REV-FE-010`..`011` (`MVP-1`) |
+| Implementasi | ✅ `RJ-DOC-REV-BE-008`..`010`, `RJ-DOC-REV-FE-010`..`011` selesai `2026-10-02` (`RJ-DOC-DEC-025`); belum di-commit |
+| Langkah berikutnya | Keputusan pemilik atas akun uji `UJI-RJDP` dan hak jabatan uji; commit oleh pemilik; opsional `verify-module-readiness` |
+
+| Artifact | SHA-256 | Keadaan |
+|---|---|---|
+| `00-interview-decisions.md` | `1D295036A86AE525A3A4918FF782FB6CE4FE6CEFF58926FB7952EF27C3F3560D` | `CHANGED` — Amendment Pass + Closure 2026-10-02 |
+| `01-capability-impact-scan-daftar-pasien-rj.md` | `734E603A45F533330851002B3377DDA08189E6319615E12E0F7DFDD22D4C0E60` | `NEW` |
+| `02-backend-architecture.md` | `1E507D7574153B71F207BF9868EC0179BB27D9713723118EA0D876F351B76328` | `CHANGED` — Amendment DP |
+| `03-frontend-architecture.md` | `B3B41C2164A795FB49CBF6F0A135B0612F33588F773CDBCACD1EC81C3B0A2E3F` | `CHANGED` — Amendment DP |
+| `04-prd-to-mvp.md` | `FC6BED21E07F3BCD6020B7BCA5B6621CB9DEDB35B4BD6E8D81F74E424026C2F6` | `CHANGED` — Amendment DP |
+| `flowcharts/daftar-pasien-rawat-jalan.md` | `A9A6D137A860250E6026587B348127B8AB023AD362D4B1DDD25985372AE0FB8E` | `NEW` |
+| `data/data-dictionary.md` | `3A9069C1FFF1C5CD19821F8A157C9AED940CE5C273FA737097EB81FC3E36A785` | `CHANGED` — kolom kunci saja |
+| `contracts/api-contract.md` | `BD8AE89DABAE8C8847A2C83964CBAAD7BADDB2D75480C4A5E977474BD21D51DB` | `CHANGED` |
+| `contracts/state-transition-matrix.md` | `7C355B329B6DC7F5D6BE8DAFA1E34557ABC43CC31481BD7B9C756D80665B8EBE` | `CHANGED` |
+| `contracts/validation-matrix.md` | `60CCDD231E7AE1C1BDE3F2605C1D8D7BAE1E2EAE83DB68A56BE4C986DE80DB73` | `CHANGED` |
+| `contracts/integration-contract.md` | `AE6EC521930E1C1FF427F6A86DB237BEBE501A576DF0848609D633D0C49B49ED` | `CHANGED` — satu paragraf "tidak berlaku" |
+| `contracts/permission-audit-matrix.md` | `8CDCAD7C17F78C500200F9C9B9BE87B9A5A27AEFDF245A88760B87E2E8FFB0E9` | `CHANGED` |
+| `testing/acceptance-test-matrix.md` | `A6326CD3BFF8F3D5E893D390DC6A1FBACB6A77CC942EFB7597CA1C8B2D2DD26F` | `CHANGED` |
+
 ## Revisi 27 — Amendment V2 (`2026-09-28`)
 
 | Field | Nilai |

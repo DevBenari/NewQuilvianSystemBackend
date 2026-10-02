@@ -429,6 +429,9 @@ try
     // membuat unit itu berhenti ikut ditutup — bukan membuatnya ditutup membabi buta.
     builder.Services.AddScoped<IEncounterContinuationProbe, LabEncounterContinuationProbe>();
     builder.Services.AddScoped<KioskEncounterClosureService>();
+    // RJ-DOC-REV-BE-009 — Daftar Pasien Rawat Jalan bercakupan dokter/perawat.
+    builder.Services.AddScoped<ClinicalActorScopeService>();
+    builder.Services.AddScoped<OutpatientEncounterListService>();
     builder.Services.Configure<KioskEncounterClosureOptions>(
     builder.Configuration.GetSection("HealthServices:KioskEncounterClosure"));
     builder.Services.AddScoped<EncounterPaymentSourceService>();

@@ -51,25 +51,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         // dan mengabaikan spasi berlebih.
         private const string DefaultOutpatientPatientClassName = "RAWAT JALAN";
 
+        /// <summary>
+        /// Saklar pemblokir "satu pasien satu kunjungan aktif" (RJ-DOC-REV-BE-007/008).
+        /// Ditangguhkan sementara oleh RJ-DOC-DEC-026: bawaannya <c>false</c>, sehingga pendaftaran
+        /// tidak ditolak karena kunjungan lama yang belum selesai. Isi <c>true</c> untuk
+        /// menghidupkan kembali aturan tanpa perubahan kode.
+        /// </summary>
+        private const string BlockActiveEncounterConfigKey = "HealthServices:Registration:BlockActiveEncounter";
+
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly QueueRealtimeService _queueRealtimeService;
         private readonly ClinicalDocumentIntegrityService _integrityService;
         private readonly PatientEncounterNumberService _patientEncounterNumberService;
+        private readonly IConfiguration? _configuration;
 
         public PatientEncounterController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             QueueRealtimeService queueRealtimeService,
             ClinicalDocumentIntegrityService integrityService,
-            PatientEncounterNumberService? patientEncounterNumberService = null)
+            PatientEncounterNumberService? patientEncounterNumberService = null,
+            IConfiguration? configuration = null)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _queueRealtimeService = queueRealtimeService;
             _integrityService = integrityService;
             _patientEncounterNumberService = patientEncounterNumberService ?? new PatientEncounterNumberService(dbContext);
+            _configuration = configuration;
         }
+
+        private bool IsActiveEncounterBlockEnabled =>
+            _configuration?.GetValue(BlockActiveEncounterConfigKey, false) ?? false;
 
         [HttpGet("admin/filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<PatientEncounterFilterMetadataResponse>), StatusCodes.Status200OK)]
@@ -566,21 +580,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             // datang bersamaan (ketukan ganda kiosk, dua loket). Kunci per pasien dipegang
             // database dan lepas sendiri saat transaction berakhir; permintaan kedua menunggu,
             // lalu melihat kunjungan yang baru dibuat dan ditolak.
-            if (_dbContext.Database.IsNpgsql())
+            //
+            // RJ-DOC-DEC-026: selama saklar mati, kunci dan cek ulang ini dilewati sama sekali.
+            if (IsActiveEncounterBlockEnabled)
             {
-                await _dbContext.Database.ExecuteSqlRawAsync(
-                    "SELECT pg_advisory_xact_lock(hashtext({0}));",
-                    [$"REG_ENCOUNTER_ACTIVE_{request.PatientId:N}"],
-                    HttpContext.RequestAborted);
-            }
+                if (_dbContext.Database.IsNpgsql())
+                {
+                    await _dbContext.Database.ExecuteSqlRawAsync(
+                        "SELECT pg_advisory_xact_lock(hashtext({0}));",
+                        [$"REG_ENCOUNTER_ACTIVE_{request.PatientId:N}"],
+                        HttpContext.RequestAborted);
+                }
 
-            var kunjunganAktifTerkini = await FindActiveEncounterAsync(request.PatientId);
+                var kunjunganAktifTerkini = await FindActiveEncounterAsync(request.PatientId);
 
-            if (kunjunganAktifTerkini is not null)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    BuildActiveEncounterMessage(kunjunganAktifTerkini)));
+                if (kunjunganAktifTerkini is not null)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        BuildActiveEncounterMessage(kunjunganAktifTerkini)));
+                }
             }
 
             try
@@ -1304,14 +1323,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private sealed record ActiveEncounterInfo(string EncounterNumber, DateTime EncounterDate);
 
         /// <summary>
-        /// Kunjungan pasien yang masih berjalan, memakai definisi tunggal
-        /// <see cref="MedicalRecordAccessAuditService.KunjunganMasihBerjalan"/>
-        /// (RJ-DOC-REV-BE-007: satu pasien satu kunjungan aktif, tanggal berapa pun).
+        /// Kunjungan Rawat Jalan berklinik yang masih menghalangi pendaftaran, tanggal berapa pun
+        /// (RJ-DOC-REV-BE-007), memakai <see cref="OutpatientEncounterRules.WhereBlocksRegistration"/>.
+        /// Kunjungan status 7-8, penunjang tanpa klinik, IGD, dan Rawat Inap tidak menghalangi
+        /// (RJ-DOC-DEC-019, RJ-DOC-DEC-022).
         /// </summary>
         private Task<ActiveEncounterInfo?> FindActiveEncounterAsync(Guid patientId) =>
             _dbContext.Set<RegPatientEncounter>()
                 .AsNoTracking()
-                .Where(MedicalRecordAccessAuditService.KunjunganMasihBerjalan)
+                .WhereBlocksRegistration(_dbContext)
                 .Where(x => x.PatientId == patientId)
                 .OrderByDescending(x => x.EncounterDate)
                 .Select(x => new ActiveEncounterInfo(x.EncounterNumber, x.EncounterDate))
@@ -1379,11 +1399,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return (false, "Pasien tidak valid atau tidak aktif.");
             }
 
-            var kunjunganAktif = await FindActiveEncounterAsync(request.PatientId);
-
-            if (kunjunganAktif is not null)
+            if (IsActiveEncounterBlockEnabled)
             {
-                return (false, BuildActiveEncounterMessage(kunjunganAktif));
+                var kunjunganAktif = await FindActiveEncounterAsync(request.PatientId);
+
+                if (kunjunganAktif is not null)
+                {
+                    return (false, BuildActiveEncounterMessage(kunjunganAktif));
+                }
             }
 
             var serviceUnitExists = await _dbContext.Set<MstServiceUnit>()

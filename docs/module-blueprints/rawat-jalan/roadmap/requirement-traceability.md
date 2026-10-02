@@ -282,3 +282,12 @@ Keputusan `RJ-DOC-DEC-010`; definisi task pada [doctor-consultation-roadmap.md](
 | Skrining 1 — diastolik masuk perhitungan EWS | `RJ-DOC-REV-FE-009` | FE 🟡 `2026-10-01` — tampil sebagai baris informasi, tidak diskor (NEWS2/MEWS); uji klik layar belum | [RJ-DOC-REV-FE-009](../task/report/frontend/RJ-DOC-REV-FE-009.md) |
 | Skrining 2 — kategori berat badan kurang/normal/lebih/obesitas | `RJ-DOC-REV-FE-009` | FE 🟡 `2026-10-01` — logika terbukti; uji klik layar belum | [RJ-DOC-REV-FE-009](../task/report/frontend/RJ-DOC-REV-FE-009.md) |
 | Skrining 3 — satu No. RM tidak boleh punya dua kunjungan aktif | `RJ-DOC-REV-BE-007` | BE ✅ `2026-10-01` | [RJ-DOC-REV-BE-007](../task/report/backend/RJ-DOC-REV-BE-007.md) |
+
+## 6. Revisi `2026-10-02` — Daftar Pasien Rawat Jalan (Amendment DP)
+
+| Requirement pemilik | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Pasien yang hanya punya kunjungan status 7–8, penunjang, atau IGD dapat didaftarkan; RJ berklinik status 0–6 tetap memblokir (`RJ-DOC-DEC-019`/`022`) | `RJ-DOC-REV-BE-008` | BE ✅ `2026-10-02` | [RJ-DOC-REV-BE-008](../task/report/backend/RJ-DOC-REV-BE-008.md) |
+| Daftar kunjungan RJ bercakupan, summary, hak `ReadAll` (`RJ-DOC-DEC-012`..`014`) | `RJ-DOC-REV-BE-009` + `RJ-DOC-REV-FE-010` | BE ✅ `2026-10-02`; FE ✅ `2026-10-02` | [RJ-DOC-REV-BE-009](../task/report/backend/RJ-DOC-REV-BE-009.md), [RJ-DOC-REV-FE-010](../task/report/frontend/RJ-DOC-REV-FE-010.md) |
+| Pembatalan kunjungan menggantung dari frontend (`RJ-DOC-DEC-015`..`018`, `021`) | `RJ-DOC-REV-BE-010` + `RJ-DOC-REV-FE-011` | BE ✅ `2026-10-02`; FE ✅ `2026-10-02` | [RJ-DOC-REV-BE-010](../task/report/backend/RJ-DOC-REV-BE-010.md), [RJ-DOC-REV-FE-011](../task/report/frontend/RJ-DOC-REV-FE-011.md) |
+| Penangguhan sementara pemblokir pendaftaran; dapat dihidupkan lewat konfigurasi (`RJ-DOC-DEC-026`) | `RJ-DOC-REV-BE-011` | BE ✅ `2026-10-02` | [RJ-DOC-REV-BE-011](../task/report/backend/RJ-DOC-REV-BE-011.md) |
