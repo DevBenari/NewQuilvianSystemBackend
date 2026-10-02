@@ -1649,7 +1649,7 @@ Menurunkan dari `02-backend-architecture.md` 12, `03-frontend-architecture.md` 1
 | Field | Nilai |
 |---|---|
 | Produk | Quilvian — Rawat Inap, sub-modul `episode-rawat-inap` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Baseline | Backend `c8e99ce5` (HEAD `425cfeae`); frontend `22ad67330` |
 | Masukan | `PRD-RWI-FINISHING-001` v`0.4`; decision log revision `30`; gate `1.9` (`INP-S27`, `S31`, `S33`, `S36`, `S37` `READY_FOR_DOMAIN_DESIGN`; `INP-S32` `PARTIALLY_READY`) |
 | Arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — batas domain diambil dari keputusan `RWI-DEC-173` s.d. `205` dan source yang dibaca |

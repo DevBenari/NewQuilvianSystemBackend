@@ -422,7 +422,7 @@ wajib ditinjau sebelum modul dipakai melayani pasien sungguhan.
 | Field | Nilai |
 |---|---|
 | `last_changed_in` | `0.10.0` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Prinsip | Hak akses ditentukan **permission**, bukan nama peran (`RWI-DEC-166`). Baris registry lahir dari atribut endpoint (`PermissionRegistryDescriptor`), sehingga setiap permission baru di bawah punya endpoint sendiri |
 
 ### 9.1 Permission baru dan berubah

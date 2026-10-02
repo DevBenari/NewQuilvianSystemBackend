@@ -281,7 +281,7 @@ Kolom berikut **MUST NOT** masuk payload custom logger dan **MUST NOT** dipakai 
 | Field | Nilai |
 |---|---|
 | `last_changed_in` | `0.6.0` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Traceability | `RWI-DEC-179`, `180`, `188`, `189`, `200`, `202`, `203`; `PR-RWF-07` |
 
 Cara kerja hak akses sama dengan `integrasi-billing/contracts/permission-audit-matrix.md` 5.1: satu-satunya penjaga adalah `[AccessPermission]`, dan baris registry lahir dari atribut endpoint. Pemetaan endpoint ke hak akses tetap hanya di `api-contract.md` bagian 8.

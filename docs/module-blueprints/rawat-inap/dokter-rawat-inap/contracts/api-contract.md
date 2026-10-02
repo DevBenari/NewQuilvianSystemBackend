@@ -755,7 +755,7 @@ Resume ODC: **tidak ada endpoint** — tab menampilkan "Integrasi belum tersedia
 | Field | Nilai |
 |---|---|
 | `last_changed_in` | `0.7.0` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Owner | Muhammad Hamzah; Ikbal Yulianto (Gizi) dan Sukma Giri Pratama (Bank Darah), disetujui `RWI-DEC-191` |
 | Dampak kompatibilitas | Tambahan saja. `master-options` menerima dua parameter baru opsional dengan bawaan perilaku lama |
 | Traceability | `FR-RWF-030` s.d. `038`, `070`; `RWI-DEC-114`, `171`, `188` |

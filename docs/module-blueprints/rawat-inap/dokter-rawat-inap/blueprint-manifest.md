@@ -10,10 +10,10 @@ manifest tingkat modul. Berkas ini memegang **status desain, `contract_versions`
 | `submodule_slug` | `dokter-rawat-inap` |
 | `judul` | Dokter Rawat Inap |
 | `blueprint_id` | `RWI-BP-001` — satu untuk seluruh modul |
-| `revision` | **`7`** — satu angka, dipegang tingkat modul. Amandemen penyelarasan `PRD-RWI-V2-001` pada bagian 9 |
-| `status` | **`approved`** — amandemen revision `7` / kontrak `0.6.0` **disetujui Muhammad Hamzah 2026-09-16 lewat `RWI-DEC-150`**; ditulis 2026-09-15. Sebelumnya `approved`: kontrak `0.5.0` 2026-09-11, `0.4.0` 2026-09-09, `0.3.0` 2026-09-03 |
+| `revision` | **`8`** — Finishing Rawat Inap pada bagian 10, **disetujui 2026-10-02 lewat `RWI-DEC-221`**. Sebelumnya: **`7`** — satu angka, dipegang tingkat modul. Amandemen penyelarasan `PRD-RWI-V2-001` pada bagian 9 |
+| `status` | **`approved`** — amandemen revision `8` / kontrak `0.7.0` **disetujui Muhammad Hamzah 2026-10-02 lewat `RWI-DEC-221`**. Sebelumnya: **`approved`** — amandemen revision `7` / kontrak `0.6.0` **disetujui Muhammad Hamzah 2026-09-16 lewat `RWI-DEC-150`**; ditulis 2026-09-15. Sebelumnya `approved`: kontrak `0.5.0` 2026-09-11, `0.4.0` 2026-09-09, `0.3.0` 2026-09-03 |
 | `upstream_realignment` | **`REALIGNED_APPROVED` sejak 2026-09-16** lewat `RWI-DEC-150`; `REALIGNED_DRAFT` sejak 2026-09-15 — amandemen revision `7` menyerap `PRD-RWI-V2-001`; `STALE_AGAINST_UPSTREAM` berakhir saat revision `7` disetujui. Riwayat: **`STALE_AGAINST_UPSTREAM` sejak 2026-09-14.** `PRD-RWI-V2-001` v`2.0` didaftarkan sebagai masukan hulu dan menuntut layout **sama persis** dengan Dokter Rawat Jalan V2 serta delapan tab: SOAP, CPPT, Kajian Pasien, Resep, Tindakan, Resume Medis, Visit, Penunjang Medis. Status tetap `approved` dan task yang sudah ✅ tetap sah, tetapi **task baru sub-modul ini tidak boleh diturunkan** sampai amandemen `RLN-PH-06` disetujui. Temuan yang menyangkut sub-modul ini: `RLN-02`, `RLN-03`, `RLN-04`, `RLN-05`, `RLN-09`, `RLN-10`. Rincian di [`../blueprint-manifest.md`](../blueprint-manifest.md) bagian 0-B |
-| `contract_versions` | **`0.6.0`** — seluruh enam kontrak, **`approved` 2026-09-16 lewat `RWI-DEC-150`**, bagian 9.1. `0.5.0` `approved` 2026-09-11 lewat `RWI-DEC-105`. Tabel bagian 4 tetap sebagai jejak `0.4.0` |
+| `contract_versions` | **`0.7.0`** — **`approved` 2026-10-02 lewat `RWI-DEC-221`**, bagian 10.1. Sebelumnya: **`0.6.0`** — seluruh enam kontrak, **`approved` 2026-09-16 lewat `RWI-DEC-150`**, bagian 9.1. `0.5.0` `approved` 2026-09-11 lewat `RWI-DEC-105`. Tabel bagian 4 tetap sebagai jejak `0.4.0` |
 | `pending_amendment` | **Nihil** — revision `7` / kontrak `0.6.0` **disetujui 2026-09-16** lewat `RWI-DEC-150`. Amandemennya menaikkan atau menambah lima belas artefak; dua flowchart tidak bergerak. Rinciannya bagian 9 |
 | `artifact_readiness` | **`CURRENT`** — tujuh artefak diamendemen ke `0.4` / kontrak `0.4.0` pada 2026-09-09 menyerap temuan `FE-RWI-044` dan melahirkan `INT-DOK-10`, **disetujui hari itu juga**; enam berkas lain sengaja tidak bergerak. Terikat `BE@93b3227` dan `FE@863f24b` |
 | `delivery_readiness` | **`READY_FOR_PLANNING`** — kontrak **`0.6.0`** terkunci dan disetujui 2026-09-16 lewat `RWI-DEC-150`, nol pertanyaan memblokir. **Gelombang `DOK-V2-0` s.d. `DOK-V2-4` kini boleh direncanakan** mulai `BE-RWI-079` dan `FE-RWI-063`; scope dan verification-nya dikunci `plan-module-delivery`. Jejak sebelumnya: kontrak `0.4.0` terkunci 2026-09-09 membuka `BE-RWI-068`. Build tetap menunggu task yang disetujui dan gerbang produksi pada bagian 6 |
@@ -23,7 +23,7 @@ manifest tingkat modul. Berkas ini memegang **status desain, `contract_versions`
 | `domain_architecture` | Revision `0.2`, 2026-09-02, **`DOMAIN_ARCHITECTURE_READY`** untuk ketujuh capability. [`../evidence/03-hospital-domain-architecture.md`](../evidence/03-hospital-domain-architecture.md) Bagian Kedua, bagian O s.d. AB |
 | `prefix` | Entity `Inp`; task `BE-RWI-###` dan `FE-RWI-###`, deret bersama seluruh modul |
 | `approved_by` | **Muhammad Hamzah** — Product/Domain owner, `RWI-DEC-061` |
-| `approved_at` | **2026-09-16** untuk revision `7` / kontrak `0.6.0` lewat `RWI-DEC-150`; **2026-09-11** untuk kontrak `0.5.0`; **2026-09-09** untuk kontrak `0.4.0`; **2026-09-03** untuk revision `5` / kontrak `0.3.0` |
+| `approved_at` | **`2026-10-02`** untuk revision `8` / kontrak `0.7.0` lewat `RWI-DEC-221`; **2026-09-16** untuk revision `7` / kontrak `0.6.0` lewat `RWI-DEC-150`; **2026-09-11** untuk kontrak `0.5.0`; **2026-09-09** untuk kontrak `0.4.0`; **2026-09-03** untuk revision `5` / kontrak `0.3.0` |
 | `rumpun kemampuan` | Dokumentasi dokter — kajian medis, SOAP, CPPT, tindakan, visite, resep, dan penunjang |
 | `kemampuan` | **7** — `CAP-015`, `CAP-020` s.d. `CAP-025`, sesuai `RWI-DEC-083` |
 | `uji pemecahan` | **3/5** syarat `bentuk-blueprint.md` bagian 4.1, sebagaimana dicatat `RWI-DEC-082` |
@@ -513,11 +513,11 @@ protokol sliding scale belum ada, sehingga nol versi protokol dapat dinaikkan `A
 
 ## 10. Amandemen kontrak `0.7.0` — Finishing Rawat Inap ★ 1 Oktober 2026
 
-**Status amandemen: `draft`.** Revision `7` / kontrak `0.6.0` tetap berlaku untuk isi yang tidak disentuh. Approval adalah tindakan manusia; dokumen ini **tidak** menandai apa pun `approved`. **Diselaraskan 2 Oktober 2026** dengan decision log revision `31` (`RWI-DEC-206` s.d. `220`) tanpa menaikkan versi kontrak; artefak yang terdampak memuat bagian Penyelarasan decision log revision `31`.
+**Status amandemen: `approved`** — disetujui Muhammad Hamzah 2026-10-02 lewat `RWI-DEC-221`. Revision `7` / kontrak `0.6.0` tetap berlaku untuk isi yang tidak disentuh. Approval dicatat atas pernyataan pemilik pada sesi 2 Oktober 2026; ini approval desain dan kontrak, **bukan** wewenang menulis source, migration, database, maupun deployment. **Diselaraskan 2 Oktober 2026** dengan decision log revision `31` (`RWI-DEC-206` s.d. `220`) tanpa menaikkan versi kontrak; artefak yang terdampak memuat bagian Penyelarasan decision log revision `31`.
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.6.0` → **`0.7.0`** (`draft`) |
+| `contract_version` | `0.6.0` → **`0.7.0`** (`approved` 2026-10-02, `RWI-DEC-221`) |
 | `input_revision` | `PRD-RWI-FINISHING-001` v`0.4`; decision log revision `31` (diselaraskan 2 Oktober 2026); gate `1.9` bagian 18; capability map `1.6` bagian 19 |
 | `backend_commit_sha` | Audit `c8e99ce5`; diperiksa ulang terhadap HEAD **`8d96a978`** (1 dan 2 Oktober 2026) — perubahan sesudah audit hanya saringan pencarian census dan daftar pantau; tidak menyentuh area yang dirancang |
 | `frontend_commit_sha` | Audit `22ad67330`; diperiksa ulang terhadap HEAD **`bf5af8090`** — gaya tampilan, pencarian, label menu Dashboard; tidak menyentuh area yang dirancang |
@@ -530,20 +530,23 @@ protokol sliding scale belum ada, sehingga nol versi protokol dapat dinaikkan `A
 
 | Artefak | Bagian | Status | SHA-256 |
 | --- | --- | --- | --- |
-| [`02-backend-architecture.md`](./02-backend-architecture.md) | bagian 12 | `draft` | `f62928c6ae8d974d3e2914785132477af7db7925793604d0a2ab15f4c6d22c24` |
-| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | bagian 11 | `draft` | `b0de9bd5a3c2c8138c65e397c33c7f9f50550cf422a84786a0fe29c804622cd1` |
-| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | bagian 23 | `draft` | `5a4ffa9b95855810e5691ae387989a47e50d82ba91513928bd2f386e00aa8a67` |
-| [`contracts/api-contract.md`](./contracts/api-contract.md) | bagian 13 | `draft` | `591a4b64077f2453d6560186f8ccc934e20f6051f557ca101f746a474b1bca98` |
-| [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | bagian 9 | `draft` | `f2cf2c32493e4167ff3b73097027336034edfabd212c813b54840973a8b40e72` |
-| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | bagian 11 | `draft` | `9224f9ef742ee1b87abc36b0b12a541fdf6bb7c8e00c63fa12e182a8d34f60bb` |
-| [`contracts/integration-contract.md`](./contracts/integration-contract.md) | bagian 13 | `draft` | `1c6def4d1c6c945bde7b2f8c361f386dd682ff9e2399e9073d5160a8e46e65e9` |
-| [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | bagian 10 | `draft` | `4cf7de6d2e7e2745d5d3f62b271f8481f3cb88cca361ecc5d4b31509c6ffcfbc` |
-| [`data/data-dictionary.md`](./data/data-dictionary.md) | bagian 14 | `draft` | `c0ced2e73f35b260849f7ff9a8295fe2b3d8a44ac3fccbb4e382d884548cf8f8` |
-| [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md) | bagian 15 | `draft` | `e7c6da47bef16fe9e7469e35b6103613a059c93920e99127bb1c79127898f109` |
-| [`flowcharts/00-alur-utama.md`](./flowcharts/00-alur-utama.md) | bagian 5 | `draft` | `3f0b1efa88c5da2953bd57f54121578081859bcccc704d21c4cf3e919994f545` |
-| [`flowcharts/06-pesanan-gizi-dan-bank-darah.md`](./flowcharts/06-pesanan-gizi-dan-bank-darah.md) | baru | `draft` | `83809c7810a10b9a3c7618558f850ae8900470c3a6e5fc57089ab902225df79c` |
+| [`02-backend-architecture.md`](./02-backend-architecture.md) | bagian 12 | `approved` | `3dd1a36f89f80768250a1ebe9c24cc3875cfd67fb810d85f77e96fdcc2788c1f` |
+| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | bagian 11 | `approved` | `b0de9bd5a3c2c8138c65e397c33c7f9f50550cf422a84786a0fe29c804622cd1` |
+| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | bagian 23 | `approved` | `ed0e0b45d0cfa3ff94b4782f673c67d43d12d1703f4af712b84f76b07e8b88b4` |
+| [`contracts/api-contract.md`](./contracts/api-contract.md) | bagian 13 | `approved` | `bab898df2b7aabe7ab1cf36ec03855333ee3d36a8132b6fc74cd35378afbbe11` |
+| [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | bagian 9 | `approved` | `9fadbdd054ba0d107c6b9ed52ffa0800246f2020a7af0fdaae5d8a54e367c57e` |
+| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | bagian 11 | `approved` | `f7b13344ced1a84361b92777761b88f5075b881a6b498b2a6ae7eab1b00a4dda` |
+| [`contracts/integration-contract.md`](./contracts/integration-contract.md) | bagian 13 | `approved` | `bce868cedcac3226f34536de43f7680c4d8de8beacdeaad10823a034fce20f72` |
+| [`contracts/permission-audit-matrix.md`](./contracts/permission-audit-matrix.md) | bagian 10 | `approved` | `84765e653be0a5b939a9a35132c2a33ae269da64dbd1437a0f729be8f6306d70` |
+| [`data/data-dictionary.md`](./data/data-dictionary.md) | bagian 14 | `approved` | `c0ced2e73f35b260849f7ff9a8295fe2b3d8a44ac3fccbb4e382d884548cf8f8` |
+| [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md) | bagian 15 | `approved` | `e7c6da47bef16fe9e7469e35b6103613a059c93920e99127bb1c79127898f109` |
+| [`flowcharts/00-alur-utama.md`](./flowcharts/00-alur-utama.md) | bagian 5 | `approved` | `3f0b1efa88c5da2953bd57f54121578081859bcccc704d21c4cf3e919994f545` |
+| [`flowcharts/06-pesanan-gizi-dan-bank-darah.md`](./flowcharts/06-pesanan-gizi-dan-bank-darah.md) | baru | `approved` | `83809c7810a10b9a3c7618558f850ae8900470c3a6e5fc57089ab902225df79c` |
+| [`roadmap/backend-roadmap-finishing.md`](./roadmap/backend-roadmap-finishing.md) | revision `1` — `BE-RWI-160` s.d. `164` | `DRAFT` — menunggu approval roadmap | `4b70f7f4a03f77f516100681a1af6586963cf625dc8239061f0ef7d5d74a435e` |
+| [`roadmap/frontend-roadmap-finishing.md`](./roadmap/frontend-roadmap-finishing.md) | revision `1` — `FE-RWI-172` s.d. `179` | `DRAFT` — menunggu approval roadmap | `b604fbcad81e8b22d7a2c27a4c277a2c16615048e973a51561b821c6d95ddbde` |
+| [`roadmap/requirement-traceability-finishing.md`](./roadmap/requirement-traceability-finishing.md) | revision `1` — requirement → task → bukti | `DRAFT` | `39529bd78dae963d24d35facd11866441b733c5be30f046f60f2235b8836e83a` |
 
-Hash di bawah adalah hash saat amandemen ditulis, **bukan** hash approval. Approval tetap tindakan manusia; saat disetujui, hash dihitung ulang dan menjadi acuan deteksi perubahan berikutnya.
+SHA-256 di atas adalah **hash saat approval 2 Oktober 2026** (`RWI-DEC-221`) dan menjadi acuan deteksi perubahan berikutnya.
 
 ### 10.2 Dependency dan gerbang
 
@@ -552,12 +555,13 @@ Hash di bawah adalah hash saat amandemen ditulis, **bukan** hash approval. Appro
 | Gizi — Ikbal Yulianto | Kolom verifikasi `GziNutritionOrder` (`R10`) | **Disetujui** `RWI-DEC-191` | Tidak |
 | Bank Darah — Sukma Giri Pratama | Kolom verifikasi `BbkBloodOrder` (`R11`) | **Disetujui** `RWI-DEC-191`; konfirmasi clinical governance tetap gerbang produksi (`RWI-DEC-171`) | Gerbang produksi |
 | Lab/Radiologi | Pesanan perawat (`BE-RWI-104`) | Backend sudah ada; dibuktikan berjalan sebelum `MVP-0` | Tidak |
+| Gerbang rilis — gate `1.10` bagian 19.5 | Frontend `f74758af5` ruang kerja dokter: IMP-RWF-01 (pesanan Gizi dan Bank Darah langsung ke modul pemilik, peminta = DPJP saat admisi, tanpa pemeriksaan penugasan), IMP-RWF-02 (`bloodComponentId` tetap), IMP-RWF-03 (Rehab Medik dengan `procedureId` palsu, bertentangan dengan `RWI-DEC-108`) | Ditemukan 2 Oktober 2026, sesudah approval | Rilis form Gizi, Bank Darah, dan Rehab Medik ruang kerja dokter sampai diperbaiki lewat task `plan-module-delivery`. **2026-10-02:** ditambah IMP-RWF-05 (gate 19.12: Lab/Radiologi harga tetap dan katalog contoh) dan IMP-RWF-06 (temuan perencanaan: order tindakan "Ditanggung" bawaan dan harga `0`); task perbaikan `FE-RWI-174`, `FE-RWI-179` ⛔, `FE-RWI-173`, `FE-RWI-176` |
 
 ### 10.3 Handoff
 
 | Field | Nilai |
 | --- | --- |
 | `blueprint_id` / `contract_version` | `RWI-BP-001` / `0.7.0` |
-| `approval_status` | **`draft`** — `approved_by` dan `approved_at` kosong |
+| `approval_status` | **`approved`** — `approved_by` Muhammad Hamzah, `approved_at` 2026-10-02, lewat `RWI-DEC-221` |
 | `blocking_questions` | **Nol.** G-05 diputuskan `RWI-DEC-218`, `219`: perkiraan harga di layar pemesanan (`02-backend-architecture.md` 12.13) |
-| `next_owner` | Approval pemilik atas kontrak `0.7.0` (Muhammad Hamzah) → `plan-module-delivery` untuk `RWF-W0` (katalog, tombol Lab/Rad) dan `RWF-W2` |
+| `next_owner` | ~~Approval pemilik atas kontrak `0.7.0` (Muhammad Hamzah)~~ **selesai 2026-10-02 (`RWI-DEC-221`)** → ~~`plan-module-delivery`~~ **roadmap Finishing revision `1` `DRAFT` ditulis 2026-10-02** (`BE-RWI-160` s.d. `164`, `FE-RWI-172` s.d. `179`). Gerbang rilis IMP-RWF-01, 02, 03, 05, 06 → `FE-RWI-174`, `FE-RWI-179` ⛔ (`DEC-INP-019`), `FE-RWI-173`, `FE-RWI-176`. Roadmap `*-v2.md` tidak diubah. Langkah berikutnya: approval pemilik atas roadmap, lalu `build-module-backend` dan `build-module-frontend` mengikuti tabel gelombang |

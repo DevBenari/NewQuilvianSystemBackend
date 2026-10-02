@@ -4,7 +4,7 @@
 |---|---|
 | Dokumen | `02-module-map.md` — hanya lahir pada `blueprint_shape: COMPOSITE` |
 | Revision | **`4`** — Finishing Rawat Inap, 1 Oktober 2026: bagian 7. Sebelumnya revision `3` pendaftaran sub-modul `integrasi-billing` (17 September 2026) dan revision `2` (15 September 2026) |
-| Status | **`draft`** — revision `4` memberi keempat sub-modul kontrak baru berstatus `draft` (`integrasi-billing` `1.1.0`, `keperawatan` `0.6.0`, `dokter-rawat-inap` `0.7.0`, `episode-rawat-inap` `0.10.0`). Approval sebelumnya tetap berlaku untuk isi yang tidak disentuh |
+| Status | **`approved`** — revision `4` **disetujui Muhammad Hamzah 2026-10-02 lewat `RWI-DEC-221`**, bersama keempat kontrak baru (`integrasi-billing` `1.1.0`, `keperawatan` `0.6.0`, `dokter-rawat-inap` `0.7.0`, `episode-rawat-inap` `0.10.0`). Approval sebelumnya tetap berlaku untuk isi yang tidak disentuh |
 | Tanggal | 2026-09-02; revision `2` ditulis 2026-09-15, disetujui 2026-09-16; revision `3` ditulis 2026-09-17; **revision `4` ditulis 2026-10-01** |
 | Modul | `rawat-inap` / `InPatientManagement`, prefix entity `Inp` |
 | Bentuk blueprint | `COMPOSITE`, ditetapkan `RWI-DEC-082`, `shape_decided_by: USER_CONFIRMED` |
@@ -497,7 +497,7 @@ kemampuan `MUST HAVE` milik `keperawatan`.
 
 | Field | Nilai |
 |---|---|
-| Status | **`draft`** — keempat sub-modul memperoleh kontrak baru berstatus `draft`; baseline yang sudah disetujui **tidak** diturunkan |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`); keempat sub-modul memperoleh kontrak baru yang disetujui bersama |
 | Masukan | `PRD-RWI-FINISHING-001` v`0.4`; decision log revision `30` (`RWI-DEC-163` s.d. `205`); gate `1.9` bagian 18; capability map `1.6` bagian 19 |
 | Ditulis oleh | `design-business-module`, `DOMAIN_ARCHITECTURE_NOT_RUN` |
 | Bentuk | Tetap `COMPOSITE` empat sub-modul (`RWI-DEC-164`). **Nol sub-modul baru** — data klaster Pasca Operasi dimiliki Kamar Operasi, Clinical, Bank Darah, atau episode (`RWI-DEC-197`, `198`) |
@@ -506,12 +506,12 @@ kemampuan `MUST HAVE` milik `keperawatan`.
 
 | Slug | Kontrak sebelumnya | Kontrak baru | Bagian amandemen | Kemampuan Finishing | Status |
 |---|---|---|---|---|---|
-| `integrasi-billing` | `1.0.0` | **`1.1.0`** | `02` 9, `03` 6, `04` 8, kontrak 3–5, data 6, testing 4, flowchart `04`–`06` | `CAP-RWF-01` s.d. `04`, `15` | `draft` |
-| `keperawatan` | `0.5.0` | **`0.6.0`** | `02` 12, `03` 11, `04` 23, kontrak 6–9, data 12, testing 10, flowchart `05`–`09` | `CAP-RWF-05`, `09` s.d. `13`, `20`, `21` | `draft` |
-| `dokter-rawat-inap` | `0.6.0` | **`0.7.0`** | `02` 12, `03` 11, `04` 23, kontrak 9–13, data 14, testing 15, flowchart `06` | `CAP-RWF-06`, `14` | `draft` |
-| `episode-rawat-inap` | `0.9.0` | **`0.10.0`** | `02` 12, `03` 13, `04` 23, kontrak 9–14, data 19, testing 20, **folder `flowcharts/` baru** `00`–`04` | `CAP-RWF-07`, `08`, `16`, `18`, `19`, `22`, `23` | `draft` |
+| `integrasi-billing` | `1.0.0` | **`1.1.0`** | `02` 9, `03` 6, `04` 8, kontrak 3–5, data 6, testing 4, flowchart `04`–`06` | `CAP-RWF-01` s.d. `04`, `15` | `approved` (`RWI-DEC-221`) |
+| `keperawatan` | `0.5.0` | **`0.6.0`** | `02` 12, `03` 11, `04` 23, kontrak 6–9, data 12, testing 10, flowchart `05`–`09` | `CAP-RWF-05`, `09` s.d. `13`, `20`, `21` | `approved` (`RWI-DEC-221`) |
+| `dokter-rawat-inap` | `0.6.0` | **`0.7.0`** | `02` 12, `03` 11, `04` 23, kontrak 9–13, data 14, testing 15, flowchart `06` | `CAP-RWF-06`, `14` | `approved` (`RWI-DEC-221`) |
+| `episode-rawat-inap` | `0.9.0` | **`0.10.0`** | `02` 12, `03` 13, `04` 23, kontrak 9–14, data 19, testing 20, **folder `flowcharts/` baru** `00`–`04` | `CAP-RWF-07`, `08`, `16`, `18`, `19`, `22`, `23` | `approved` (`RWI-DEC-221`) |
 
-Status modul tetap diturunkan: seluruh sub-modul punya isi `draft` → modul **`draft`** untuk revision `4`.
+Status modul tetap diturunkan: seluruh sub-modul `approved` pada revision `8` → modul **`approved`** (`RWI-DEC-221`, 2026-10-02).
 
 ### 7.2 Tabel kepemilikan data revision `4`
 
@@ -622,8 +622,8 @@ Resource permission `MasterData` di source **tidak** memakai awalan `Mst` (`Tari
 
 | Butir | Menahan | Pemilik jawaban |
 |---|---|---|
-| Approval kontrak `integrasi-billing` `1.1.0` | Seluruh isi sub-modul itu | Muhammad Hamzah & Yasmina |
-| Approval kontrak `keperawatan` `0.6.0`, `dokter-rawat-inap` `0.7.0`, `episode-rawat-inap` `0.10.0` | Seluruh isi masing-masing | Muhammad Hamzah |
+| ~~Approval kontrak `integrasi-billing` `1.1.0`~~ | **Disetujui 2026-10-02, `RWI-DEC-221`** (Billing-side `RWI-DEC-192`, `207`) | — |
+| ~~Approval kontrak `keperawatan` `0.6.0`, `dokter-rawat-inap` `0.7.0`, `episode-rawat-inap` `0.10.0`~~ | **Disetujui 2026-10-02, `RWI-DEC-221`** | — |
 | ~~`DEC-INP-018`~~ | **Ditutup `RWI-DEC-207`, 2 Oktober 2026** | — |
 | ~~`RWI-OQ-108`, `RWI-OQ-114` (a)(c), `RWI-OQ-115`~~ | **Disetujui `RWI-DEC-208` s.d. `210`, 2 Oktober 2026** | — |
 | ~~`UI-RWF-01` s.d. `05`~~ | **Diputuskan `RWI-DEC-211` s.d. `216`, 2 Oktober 2026** | — |
@@ -632,7 +632,7 @@ Resource permission `MasterData` di source **tidak** memakai awalan `Mst` (`Tari
 
 ### 7.8 Penyelarasan decision log revision `31` ★ 2 Oktober 2026
 
-Revision `4` tetap `draft` dan tidak dinaikkan: isinya diselaraskan di tempat dengan `RWI-DEC-206` s.d. `220`. **Tidak ada lagi keputusan bisnis pemblokir maupun gerbang persetujuan modul tetangga untuk Finishing.** Yang menahan `approved` tinggal approval kontrak keempat sub-modul dan revision `4` ini.
+Revision `4` tidak dinaikkan — **dan disetujui 2026-10-02 lewat `RWI-DEC-221`** — isinya diselaraskan di tempat dengan `RWI-DEC-206` s.d. `220`. **Tidak ada lagi keputusan bisnis pemblokir maupun gerbang persetujuan modul tetangga untuk Finishing.** Yang menahan `approved` tinggal approval kontrak keempat sub-modul dan revision `4` ini.
 
 | Perubahan | Bagian |
 |---|---|

@@ -64,7 +64,7 @@ Seluruh tindakan yang mempengaruhi status keuangan, durasi sewa kamar, atau pemu
 | Field | Nilai |
 |---|---|
 | `last_changed_in` | `1.1.0` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Traceability | `FR-RWF-001`, `005`, `017`, `019`, `022`, `024`; `RWI-DEC-170`, `187`, `192` (f); `PR-RWF-07` |
 
 **Bagian 1 s.d. 3 di atas tidak berlaku lagi.** Keenam string pada bagian 1 (`InpatientNurse:Read`, `InpatientNurse:Write`, `InpatientSupervisor:Override`, `InpatientBilling:View`, `BillingStaff:Write`) tidak pernah ada di source dan tidak dipakai. Pemetaan endpoint ke hak akses hanya hidup di kolom `Hak akses` pada `api-contract.md` bagian 3; berkas ini tidak mengulangnya.

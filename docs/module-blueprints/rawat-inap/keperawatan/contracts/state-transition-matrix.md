@@ -319,7 +319,7 @@ Order yang disesuaikan atau dihentikan setelahnya **tidak** mengubah pelaksanaan
 | Field | Nilai |
 |---|---|
 | `last_changed_in` | `0.6.0` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Traceability | `BP-RWF-04`, `BP-RWF-06`, `BP-RWF-08`; `RWI-DEC-179`, `200`, `202`, `203`, `178` |
 
 ### 6.1 Pemakaian alat (`CliEquipmentUsageStatus`)

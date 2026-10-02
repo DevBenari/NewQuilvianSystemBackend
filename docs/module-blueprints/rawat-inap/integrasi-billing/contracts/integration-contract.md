@@ -147,7 +147,7 @@ Modul Kasir/Billing memberikan informasi status tagihan dan sinyal persetujuan c
 | Field | Nilai |
 |---|---|
 | `last_changed_in` | `1.1.0` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Owner | Muhammad Hamzah (produsen Rawat Inap); Yasmina (konsumen Billing, disetujui `RWI-DEC-192`); pemilik `PharmacyManagement` Ikbal Yulianto, persetujuan `RWI-DEC-210` |
 | Traceability | `FR-RWF-002`, `010` s.d. `018`; `RWI-DEC-166`, `167`, `169`, `192`, `195` |
 

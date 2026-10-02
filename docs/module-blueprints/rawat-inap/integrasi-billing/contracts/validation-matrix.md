@@ -29,7 +29,7 @@
 | Field | Nilai |
 |---|---|
 | `last_changed_in` | `1.1.0` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Traceability | `FR-RWF-005` s.d. `008`, `014`, `017`, `019`, `022`, `024`; `RWI-DEC-167`, `186`, `187`, `192` |
 
 Baris bagian 1 yang menyangkut webhook, supervisor override pulang fisik, PIN, dan syarat kasir pada pulang fisik **dicabut**.

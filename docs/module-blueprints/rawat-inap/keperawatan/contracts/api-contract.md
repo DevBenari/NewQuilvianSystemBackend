@@ -526,7 +526,7 @@ Mengubah jadwal **tidak** memindahkan dosis `Due` yang sudah terbentuk; berlaku 
 | Field | Nilai |
 |---|---|
 | `last_changed_in` | `0.6.0` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Owner | Muhammad Hamzah (sisi Rawat Inap dan Clinical); Ikbal Yulianto (Gizi, disetujui `RWI-DEC-191`); Sukma Giri Pratama (Bank Darah — **disetujui `RWI-DEC-209`**); `MasterData` milik seluruh tim (`RWI-DEC-193`) |
 | `input_revision` | Decision log revision `30`; PRD Finishing v`0.4`; gate `1.9` |
 | Dampak kompatibilitas | Tambahan saja, kecuali `POST nutrition-management/diets` yang menerima field baru opsional. Alur poliklinik tidak berubah |

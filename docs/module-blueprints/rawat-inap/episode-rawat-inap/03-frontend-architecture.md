@@ -818,7 +818,7 @@ Peringatan memakai warna netral atau kuning (`DEV_DISCRETION`), **tidak** merah 
 
 | Field | Nilai |
 | --- | --- |
-| Status | **`draft`** — belum disetujui manusia |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Frontend SHA | `22ad67330` |
 | Masukan | `02-backend-architecture.md` `0.9` bagian 12; kontrak `0.10.0`; PRD Finishing v`0.4` `EPIC-RWF-05`, `08`, `09` |
 | Peta menu | [`../02-module-map.md`](../02-module-map.md) bagian 7.3 revision `4` — **dua butir menu baru**: Butir Persiapan Bedah di Master Data, dan Laporan Rawat Inap sebagai butir tingkat dua Rawat Inap ke-10 (`IA-INP-05` menjadi sepuluh, `RWI-DEC-214`) |

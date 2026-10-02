@@ -822,7 +822,7 @@ Bagian ini menurunkan isi dari `02-backend-architecture.md` 12, `contracts/` bag
 | Field | Nilai |
 |---|---|
 | Produk | Quilvian — Rawat Inap, sub-modul `keperawatan` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Baseline | Backend `c8e99ce5` (HEAD `425cfeae`); frontend `22ad67330` (HEAD `ee75e055b`) |
 | Masukan | `PRD-RWI-FINISHING-001` v`0.4`; decision log revision `30`; gate `1.9` |
 | Cakupan | Delapan menu keperawatan V1 tanpa menu kosong (kecuali Rehab Medik), WSD per selang, Pemakaian Alat bertagihan, Diet Medis atas instruksi, surveilans infeksi luka operasi, monitoring transfusi, dan Tagihan Pasien tanpa rupiah bagi perawat |

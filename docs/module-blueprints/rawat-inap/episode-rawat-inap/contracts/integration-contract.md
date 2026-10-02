@@ -275,7 +275,7 @@ isolasi sudah tertutup bagi `OnCallDoctor` oleh `GUARD-INP-01` s.d. `04`.
 | Field | Nilai |
 |---|---|
 | `last_changed_in` | `0.10.0` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Pemilik pihak lain | Kamar Operasi — Ikbal Yulianto (**disetujui Ikbal Yulianto, `RWI-DEC-208`**); Billing — `RWI-DEC-192`, `196`; Clinical — Muhammad Hamzah |
 | Keputusan yang belum ada | **Tidak ada.** ~~`DEC-INP-018`~~ ditutup `RWI-DEC-207`. `INT-RWF-22` tetap mengirim dengan `EncounterId` kasus OK; Billing menautkan kunjungan itu ke invoice `RANAP` (`INT-RWF-25`) |
 

@@ -150,7 +150,7 @@ Grup endpoint ini melayani gerbang pemulangan pasien, webhook sinyal clearance d
 | Field | Nilai |
 |---|---|
 | `last_changed_in` | `1.1.0` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Owner | Muhammad Hamzah (sisi Rawat Inap); Yasmina (endpoint Billing, disetujui lewat `RWI-DEC-192`) |
 | `approved_by` / `approved_at` | — / — |
 | `input_revision` | Decision log revision `30`; `PRD-RWI-FINISHING-001` v`0.4`; gate `1.9`; capability map `1.6` bagian 19 |

@@ -1093,7 +1093,7 @@ Urutan antar sub-modul dipegang `../02-module-map.md` bagian 3.4 revision `2`.
 
 | Hal | Isi |
 |---|---|
-| Status | **`draft`**. Baseline kontrak `0.5.0` (`RWI-DEC-150`) tetap berlaku untuk seluruh isi yang tidak disentuh bagian ini |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`). Baseline kontrak `0.5.0` (`RWI-DEC-150`) tetap berlaku untuk seluruh isi yang tidak disentuh bagian ini |
 | Kemampuan | `CAP-RWF-05` (layar), `CAP-RWF-09`, `CAP-RWF-10`, `CAP-RWF-11`, `CAP-RWF-12`, `CAP-RWF-13` (dulu `CAP-016`, `EPIC KEP-06`), `CAP-RWF-20`, `CAP-RWF-21` |
 | Slice gate | `INP-S25` (layar), `INP-S28`, `INP-S29`, `INP-S34`, `INP-S35` — seluruhnya `READY_FOR_DOMAIN_DESIGN` pada gate `1.9` |
 | Keputusan | `RWI-DEC-170`, `172`, `178`, `179`, `180`, `188`, `193`, `200`, `202`, `203`. `RWI-DEC-089` `superseded` oleh `RWI-DEC-179`, sehingga `CAP-016` keluar dari `DEFERRED` |

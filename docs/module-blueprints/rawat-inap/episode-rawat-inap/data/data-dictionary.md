@@ -687,7 +687,7 @@ ALTER TABLE public."InpDischargeSummaryRevision" ADD COLUMN "EducationSummary" v
 | Field | Nilai |
 | --- | --- |
 | Sumber | [`../02-backend-architecture.md`](../02-backend-architecture.md) revision `0.9` bagian 12 |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Backend SHA | `c8e99ce5` (HEAD `425cfeae`) |
 | Keputusan | `RWI-DEC-173` s.d. `177`, `182`, `189`, `196`, `199`, `201`, `204`, `205` |
 

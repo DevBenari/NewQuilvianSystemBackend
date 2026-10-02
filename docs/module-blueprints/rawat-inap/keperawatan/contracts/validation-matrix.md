@@ -199,7 +199,7 @@ di bawah dan tidak diulang per baris.
 | Field | Nilai |
 |---|---|
 | `last_changed_in` | `0.6.0` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Traceability | `FR-RWF-054`, `055`, `058`, `060` s.d. `069`, `083` s.d. `085`, `091` s.d. `093` |
 
 | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |

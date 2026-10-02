@@ -61,7 +61,7 @@ Sistem wajib menggagalkan upaya transisi ilegal berikut dan melemparkan exceptio
 | Field | Nilai |
 |---|---|
 | `last_changed_in` | `1.1.0` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Owner | Muhammad Hamzah; sisi Billing Yasmina (`RWI-DEC-192`) |
 | `input_revision` | Decision log revision `30`; PRD Finishing v`0.4`; gate `1.9` |
 | Traceability | `BP-RWF-01`, `BP-RWF-02`; `RWI-DEC-166`, `167`, `169`, `186`, `187` |

@@ -1048,7 +1048,7 @@ Menurunkan dari `02-backend-architecture.md` 12, `contracts/` bagian `0.7.0`, `d
 | Field | Nilai |
 |---|---|
 | Produk | Quilvian — Rawat Inap, sub-modul `dokter-rawat-inap` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Baseline | Backend `c8e99ce5` (HEAD `425cfeae`); frontend `22ad67330` |
 | Masukan | `PRD-RWI-FINISHING-001` v`0.4`; decision log revision `30`; gate `1.9` |
 | Cakupan | Penunjang Medis lengkap dari bangsal (Lab, Radiologi, Gizi, Bank Darah), verifikasi dokter terpadu, dan katalog tindakan rawat inap |

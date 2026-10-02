@@ -1430,7 +1430,7 @@ sudah ada.
 
 | Hal | Isi |
 |---|---|
-| Status | **`draft`**. Baseline kontrak `0.9.0` (`RWI-DEC-150`) tetap berlaku untuk isi yang tidak disentuh |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`). Baseline kontrak `0.9.0` (`RWI-DEC-150`) tetap berlaku untuk isi yang tidak disentuh |
 | Kemampuan | `CAP-RWF-07`, `CAP-RWF-08` (`CAP-018` keluar dari `DEFERRED` untuk pemesanan dari bangsal), `CAP-RWF-16` (`CAP-017`, `P2`), `CAP-RWF-18`, `CAP-RWF-19`, `CAP-RWF-22`, `CAP-RWF-23` (`P2`) |
 | Slice gate | `INP-S27`, `INP-S31`, `INP-S33`, `INP-S36`, `INP-S37` — `READY_FOR_DOMAIN_DESIGN`; `INP-S32` tercatat `PARTIALLY_READY` di gate `1.9` karena `DEC-INP-018`; **keputusan itu ditutup `RWI-DEC-207` (2 Oktober 2026)** dan dirancang pada 12.15 serta `integrasi-billing` 9.14 |
 | Keputusan | `RWI-DEC-173` s.d. `177`, `182`, `189`, `191`, `196`, `199`, `201`, `204`, `205` |

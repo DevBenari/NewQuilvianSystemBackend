@@ -488,7 +488,7 @@ maupun panggilan HTTP antar modul. "Transaksi yang sama" berarti satu `DbContext
 | Field | Nilai |
 |---|---|
 | `last_changed_in` | `0.7.0` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Traceability | `RWI-DEC-171`, `188`, `191` |
 
 | ID | Arah | Mekanisme | Kegagalan | Gerbang |

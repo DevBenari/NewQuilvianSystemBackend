@@ -409,7 +409,7 @@ Pelaksanaan dari order `Stopped` ditolak pada kontrak `keperawatan` `0.5.0` — 
 | Field | Nilai |
 |---|---|
 | `last_changed_in` | `0.7.0` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Traceability | `BP-RWF-05`; `RWI-DEC-171`, `188` |
 
 Status pesanan (`GziOrderStatus`, `BbkBloodOrderStatus`) tetap milik modul Gizi dan Bank Darah dan **tidak berubah**. Yang bertambah hanya status verifikasi instruksi, yang bergerak terpisah.

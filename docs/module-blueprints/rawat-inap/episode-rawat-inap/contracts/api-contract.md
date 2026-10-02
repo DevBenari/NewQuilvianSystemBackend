@@ -571,7 +571,7 @@ Judul grup: `[Tags("Health Services / Inpatient Management / Inpatient Monitorin
 | Field | Nilai |
 |---|---|
 | `last_changed_in` | `0.10.0` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Owner | Muhammad Hamzah (Rawat Inap dan Clinical); Ikbal Yulianto (Kamar Operasi — **disetujui Ikbal Yulianto, `RWI-DEC-208`**); `MasterData` milik seluruh tim (`RWI-DEC-193`); Billing untuk `SourceContext = OPERATING_ROOM` (`RWI-DEC-192`, `196`) |
 | `input_revision` | `02-backend-architecture.md` `0.9` bagian 12; `data/data-dictionary.md` bagian 19; decision log revision `30`; PRD Finishing v`0.4`; gate `1.9` |
 | Dampak kompatibilitas | **Aditif** untuk endpoint dan isian baru. **Perubahan permission** pada dua endpoint serah terima OK (`Update` → `Send`/`Receive`). **Perubahan perilaku**: penundaan kasus menandai pra-operasi "perlu diperbarui"; gerbang "Siap" bertambah syarat; penerimaan serah terima memeriksa penerima dan bed; `POST episodes` menolak admisi pasien yang punya permintaan admisi `Pending` tanpa merujuknya |

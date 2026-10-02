@@ -307,7 +307,7 @@ transaksi database sungguhan, bukan koordinasi antarlayanan.
 | Field | Nilai |
 |---|---|
 | `last_changed_in` | `0.6.0` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Traceability | `RWI-DEC-179`, `180`, `188`, `200`, `202`, `203`; `integrasi-billing/contracts/integration-contract.md` bagian 4 |
 
 ### 9.1 Daftar integrasi

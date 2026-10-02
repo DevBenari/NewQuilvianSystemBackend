@@ -334,7 +334,7 @@ Perpindahan status episode **tidak berubah**. Yang bertambah adalah akibatnya di
 | Field | Nilai |
 |---|---|
 | `last_changed_in` | `0.10.0` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Dampak kompatibilitas | Status `Episode` dan `BedPlacement` **tidak berubah**. Kasus OK bertambah satu status akhir; empat lifecycle baru |
 | Traceability | `RWI-DEC-173`, `176`, `177`, `182`, `199`, `201`, `204`; `INV-RWF-25` s.d. `33` |
 

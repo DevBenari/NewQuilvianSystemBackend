@@ -341,7 +341,7 @@ Tiga isian baru **tidak wajib**. Menambahkannya ke syarat tanda tangan menunggu 
 | Field | Nilai |
 |---|---|
 | `last_changed_in` | `0.10.0` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 | Traceability | `FR-RWF-040` s.d. `049`, `071`, `080` s.d. `082`, `086` s.d. `090` |
 
 Kalimat pesan di bawah adalah bunyi yang dilihat pengguna. Kode `400` untuk bentuk isian; `422` untuk aturan bisnis; `403` untuk hak akses.

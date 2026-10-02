@@ -341,7 +341,7 @@ Bagian ini **mengamendemen** kontrak `1.0.0` di atas. Bagian 1 s.d. 8 tetap dibi
 
 | Hal | Isi |
 |---|---|
-| Status | **`draft`** — approval adalah tindakan manusia. Baseline `1.0.0` yang disetujui `RWI-DEC-162` tetap tercatat, tetapi isinya yang dicabut pada 9.1 tidak boleh lagi dijadikan dasar task |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`). Baseline `1.0.0` yang disetujui `RWI-DEC-162` tetap tercatat, tetapi isinya yang dicabut pada 9.1 tidak boleh lagi dijadikan dasar task |
 | Kemampuan | `CAP-RWF-01`, `CAP-RWF-02`, `CAP-RWF-03`, `CAP-RWF-04`, `CAP-RWF-15`, serta sisi backend `CAP-RWF-05` (rincian Tagihan Pasien milik Billing; layarnya milik `keperawatan`) |
 | Slice gate | `INP-S23`, `INP-S24`, dan sisi backend `INP-S25` — seluruhnya `READY_FOR_DOMAIN_DESIGN` pada gate revision `1.9` |
 | Keputusan | `RWI-DEC-163` s.d. `170`, `RWI-DEC-186`, `187`, `192`, `195`, dan `196` (butir yang menyentuh Billing). `RWI-DEC-185` `superseded` dan **tidak** dipakai |

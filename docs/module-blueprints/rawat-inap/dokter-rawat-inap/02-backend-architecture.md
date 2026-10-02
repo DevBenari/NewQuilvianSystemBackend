@@ -1589,7 +1589,7 @@ bukan data awal.
 
 | Hal | Isi |
 |---|---|
-| Status | **`draft`**. Baseline kontrak `0.6.0` (`RWI-DEC-150`) tetap berlaku untuk isi yang tidak disentuh |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`). Baseline kontrak `0.6.0` (`RWI-DEC-150`) tetap berlaku untuk isi yang tidak disentuh |
 | Kemampuan | `CAP-RWF-06` (Penunjang Medis lengkap dari bangsal: Lab, Radiologi, Gizi, Bank Darah), `CAP-RWF-14` (katalog tindakan rawat inap) |
 | Slice gate | `INP-S26`, `INP-S30` — `READY_FOR_DOMAIN_DESIGN` (gate `1.8`, tidak berubah pada `1.9`) |
 | Keputusan | `RWI-DEC-114`, `153`, `171`, `188`, `191`; `RWI-DEC-108` dan `113` diamendemen untuk Gizi dan Bank Darah |

@@ -328,7 +328,7 @@ rentang → `400` sampai rentang "< 150" ditambahkan.
 | Field | Nilai |
 |---|---|
 | `last_changed_in` | `0.7.0` |
-| Status | **`draft`** |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
 
 | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
 |---|---|---|---|---|
