@@ -178,6 +178,41 @@ public sealed class NutritionHarness : IDisposable
             CreateDateTime = DateTime.UtcNow
         });
 
+        konteks.GziMealSchedules.Add(new GziMealSchedule
+        {
+            Id = JadwalMakanId,
+            MealScheduleCode = "UJI-JADWAL-1",
+            MealScheduleName = "Makan Siang (Uji)",
+            ServingTime = new TimeOnly(12, 0),
+            IsMainMeal = true,
+            IsActive = true,
+            CreateDateTime = DateTime.UtcNow
+        });
+
+        // Jadwal makan kedua, dipakai menguji bahwa larangan batch ganda terikat pada PASANGAN
+        // tanggal dan jadwal — bukan pada tanggalnya saja.
+        konteks.GziMealSchedules.Add(new GziMealSchedule
+        {
+            Id = JadwalMakanLainId,
+            MealScheduleCode = "UJI-JADWAL-2",
+            MealScheduleName = "Makan Malam (Uji)",
+            ServingTime = new TimeOnly(18, 0),
+            IsMainMeal = true,
+            IsActive = true,
+            CreateDateTime = DateTime.UtcNow
+        });
+
+        konteks.GziMealSchedules.Add(new GziMealSchedule
+        {
+            Id = JadwalMakanNonaktifId,
+            MealScheduleCode = "UJI-JADWAL-OFF",
+            MealScheduleName = "Jadwal Nonaktif (Uji)",
+            ServingTime = new TimeOnly(21, 0),
+            IsMainMeal = false,
+            IsActive = false,
+            CreateDateTime = DateTime.UtcNow
+        });
+
         konteks.Set<RegPatientEncounter>().Add(new RegPatientEncounter
         {
             Id = KunjunganPulangId,
@@ -235,6 +270,9 @@ public sealed class NutritionHarness : IDisposable
     public Guid JenisDietNonaktifId { get; } = Guid.NewGuid();
     public Guid BentukMakananId { get; } = Guid.NewGuid();
     public Guid BentukMakananNonaktifId { get; } = Guid.NewGuid();
+    public Guid JadwalMakanId { get; } = Guid.NewGuid();
+    public Guid JadwalMakanLainId { get; } = Guid.NewGuid();
+    public Guid JadwalMakanNonaktifId { get; } = Guid.NewGuid();
     public Guid RumusId { get; } = Guid.NewGuid();
     public Guid OrderId { get; } = Guid.NewGuid();
     public Guid OrderTertutupId { get; } = Guid.NewGuid();

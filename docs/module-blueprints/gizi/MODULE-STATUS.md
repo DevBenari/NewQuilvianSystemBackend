@@ -7,21 +7,23 @@ Diukur dari source 1 Oktober 2026, bukan disalin dari dokumen sebelumnya.
 | Backend | `SUBSTANTIAL` | 5 controller · 5 service · 41 endpoint · 16 tabel · 5.298 baris |
 | Frontend | `SUBSTANTIAL` | 9 halaman · 10 folder view · 4 service |
 | Integrasi | `PARTIAL` | membaca asesmen keperawatan dan CPPT; tidak menerbitkan fakta ke modul lain |
-| Verifikasi | `STRONG` | **95 uji**, naik dari **nol** |
+| Verifikasi | `STRONG` | **153 uji**, naik dari **nol** |
 
-**Perkiraan ketuntasan: ~88%.**
+**Perkiraan ketuntasan: ~92%.**
 
-| Berkas | Jumlah | Service yang ditutup |
+| Berkas | Jumlah | Yang ditutup |
 |---|---|---|
 | `RequirementRuleTests` | 20 | `NutritionRequirementService` — kebutuhan nutrisi |
 | `DiagnosisRuleTests` | 10 | `NutritionRequirementService` — diagnosis, plus penomoran enum |
 | `OrderRuleTests` | 24 | `NutritionOrderService` |
 | `DietRuleTests` | 21 | `NutritionDietService` — diet pasien |
 | `ReportRuleTests` | 20 | `NutritionReportService` |
+| `ProductionBatchRuleTests` | 32 | `NutritionDietService` — batch produksi dan distribusi |
+| `MasterControllerTests` | 26 | `NutritionMasterController` |
 
-Keempat service utama kini tertutup. Yang belum: bagian produksi dapur pada
-`NutritionDietService` (`CreateBatchAsync`, `ChangeBatchStatusAsync`, `RecordDeliveryAsync`) dan
-`NutritionMasterController`.
+**Seluruh service dan controller modul kini tertutup uji.** Yang tersisa pada sumbu verifikasi
+hanyalah hal yang tidak dapat dibuktikan dari dalam modul: permission matrix tingkat HTTP dan
+integrasi ujung ke ujung ke modul lain.
 
 ## Permukaan
 
