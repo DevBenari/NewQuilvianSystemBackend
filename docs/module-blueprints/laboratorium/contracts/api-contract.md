@@ -3,7 +3,8 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-API-v1` |
-| Revision | **`37` — `approved`** 2026-09-28, bagian 32 (`S16a` tiga laporan operasional) — disetujui Yoga Aji Pratama beserta kedelapan butir `02-backend-architecture.md` 23.10. Sebelumnya: **`36` — `approved`** 2026-09-25, bagian 31 (penjaga penyelesaian order, `LAB-DEC-154`) — disetujui Yoga Aji Pratama beserta keempat butir `02-backend-architecture.md` 22.7. Sebelumnya: **`35` — `approved`** 2026-09-25, bagian 30 (`S4d-1` validasi dan rilis Mikrobiologi) — disetujui Yoga Aji Pratama beserta kelima butir `02-backend-architecture.md` 21.10, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
+| Revision | **`38` — `approved`** 2026-10-01, bagian 33 (identitas pasien pada rincian order, `LAB-DEC-166`) — aditif, disetujui Yoga Aji Pratama. Sebelumnya: **`37` — `approved`** 2026-09-28, bagian 32 (`S16a` tiga laporan operasional) — disetujui Yoga Aji Pratama beserta kedelapan butir `02-backend-architecture.md` 23.10. Sebelumnya: **`36` — `approved`** 2026-09-25, bagian 31 (penjaga penyelesaian order, `LAB-DEC-154`) — disetujui Yoga Aji Pratama beserta keempat butir `02-backend-architecture.md` 22.7. Sebelumnya: **`35` — `approved`** 2026-09-25, bagian 30 (`S4d-1` validasi dan rilis Mikrobiologi) — disetujui Yoga Aji Pratama beserta kelima butir `02-backend-architecture.md` 21.10, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
+| `r38` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-01** — *"Informasi pasien … tambahkan di backend"* |
 | `r36` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-25** — termasuk bunyi pesan `409` yang disesuaikan dan `400` → `409` bagi order bukan `InProcess` |
 | `r35` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-25** — termasuk perubahan bunyi `VAL-126` (`LAB-VAL-v1` `r13`) |
 | `r33` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-24** — termasuk pencabutan tiga route Mikrobiologi |
@@ -3637,3 +3638,61 @@ Patologi Klinik;400;12;3,0
 | Penolakan wadah | `LAB-DEC-159` butir 3 | `INV-56` | `AC-251` |
 | Waktu penyelesaian | `LAB-DEC-159` butir 4; `AC-17` | `INV-57` | `AC-252` |
 | Izin tersendiri | `LAB-DEC-160` | A7.8 | `AC-253` |
+
+## 33. Amandemen `r38` — Identitas pasien pada rincian order, 2026-10-01
+
+| Field | Nilai |
+|---|---|
+| Status | **`approved`** 2026-10-01 — Yoga Aji Pratama, pemilik modul |
+| Keputusan | `LAB-DEC-166` |
+| Alasan | Halaman Hasil Patologi Klinik per order (`03-frontend-architecture.md` amandemen 2026-09-24) wajib menampilkan *Informasi pasien* dengan "sumber sama dengan halaman Mikrobiologi" — rincian order. Rincian order tidak membawa satu pun ruas pasien, sehingga hasil diisi tanpa identitas pasien di layar |
+| Sifat | **Aditif** — nol ruas berubah arti, nol ruas dihapus, nol endpoint baru |
+| Task | `BE-LAB-87` (backend), `FE-LAB-36` (layar) |
+
+### 33.1 Endpoint
+
+`[Tags("Health Services / Laboratory Management / Lab Order")]` — base URL
+`api/v1/health-services/laboratory-management/lab-orders`.
+
+| Method | Path | Kegunaan | Hak akses | Response | Status |
+|---|---|---|---|---|---|
+| `GET` | `/{id}` | Rincian order — kini beserta identitas pasien | `LabOrder : Read` — **tidak berubah** | `ApiResponse<LabOrderDetailResponse>` — **ruas bertambah**, 33.2 | Sudah ada — **diperbarui** |
+
+### 33.2 Ruas yang bertambah pada `LabOrderDetailResponse`
+
+| Ruas | Tipe | Boleh kosong | Arti |
+|---|---|:---:|---|
+| `patientId` | Guid | Ya | Pasien kunjungan order |
+| `patientName` | string | Ya | Nama pasien |
+| `medicalRecordNumber` | string | Ya | No. rekam medis |
+| `gender` | string | Ya | Nama enum, `Male` atau `Female` — sama dengan daftar pantau |
+| `birthDate` | DateTime | Ya | Tanggal lahir; **umur dihitung layar** pada tanggal hari ini, supaya tidak usang |
+| `encounterNumber` | string | Ya | No. kunjungan |
+| `encounterType` | string | Ya | Nama enum tipe kunjungan (`Outpatient`, `Emergency`, `Inpatient`, `MedicalCheckup`, `Telemedicine`) |
+| `serviceUnitName` | string | Ya | Nama unit layanan kunjungan |
+
+**Satu pasien terbaca sama di semua layar.** Ruas dibaca lewat jalur yang sama dengan daftar pantau
+(`MstPatient` lewat `Encounter.PatientId`), sehingga nama dan No. RM pada rincian order identik dengan
+daftar pantau.
+
+**Hanya `GET /{id}`.** Respons tindakan tulis yang memakai bentuk yang sama — pembuatan dan pemecahan
+order — mengirim kedelapan ruas ini **kosong**; pemanggilnya sudah memegang identitas pasien.
+
+**Contoh** — order `LAB-RSMMC-000001`:
+
+| Ruas | Nilai |
+|---|---|
+| `patientName` | `AGNES YULIANI RAJA GUK GUK` |
+| `medicalRecordNumber` | `00-00-00-13` |
+| `gender` | `Female` → tampil *Perempuan* |
+| `birthDate` | `2000-07-13T00:00:00` → tampil *26 tahun* pada 1 Oktober 2026 |
+| `encounterType` | `Outpatient` → tampil *Rawat Jalan* |
+| `serviceUnitName` | `Laboratorium Klinik` |
+
+### 33.3 Privasi dan dampak
+
+| Hal | Isi |
+|---|---|
+| Privasi | Identitas yang sama sudah dibuka daftar pantau kepada pemegang `LabMonitoring : Read`; rincian order kini membukanya kepada pemegang `LabOrder : Read` — keduanya petugas laboratorium. Nol nilai hasil ikut |
+| Konsumen lama | Nol dampak — ruas baru diabaikan pembaca lama. Laporan Patologi Anatomi yang **sudah** membaca `patientName`/`medicalRecordNumber` dari rincian order kini terisi (sebelumnya "-") |
+| Kinerja | Lima sub-query satu baris per pembacaan rincian — pola daftar pantau |

@@ -383,7 +383,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                             .FirstOrDefault(),
                     InstructionVerificationStatus = x.InstructionVerificationStatus.ToString(),
                     InstructionVerifiedAt = x.InstructionVerifiedAt,
-                    InstructionVerifiedByUserId = x.InstructionVerifiedByUserId
+                    InstructionVerifiedByUserId = x.InstructionVerifiedByUserId,
+
+                    // r38 33.2 (BE-LAB-87, LAB-DEC-166). Sub-query ke MstPatient lewat
+                    // Encounter.PatientId — jalur yang sama dengan LabMonitoringService, bukan
+                    // navigation property baru.
+                    PatientId = x.Encounter != null ? x.Encounter.PatientId : null,
+                    PatientName = x.Encounter == null
+                        ? null
+                        : _dbContext.MstPatients
+                            .Where(p => p.Id == x.Encounter.PatientId)
+                            .Select(p => p.FullName)
+                            .FirstOrDefault(),
+                    MedicalRecordNumber = x.Encounter == null
+                        ? null
+                        : _dbContext.MstPatients
+                            .Where(p => p.Id == x.Encounter.PatientId)
+                            .Select(p => p.MedicalRecordNumber)
+                            .FirstOrDefault(),
+                    Gender = x.Encounter == null
+                        ? null
+                        : _dbContext.MstPatients
+                            .Where(p => p.Id == x.Encounter.PatientId)
+                            .Select(p => p.Gender.HasValue ? p.Gender.Value.ToString() : null)
+                            .FirstOrDefault(),
+                    BirthDate = x.Encounter == null
+                        ? null
+                        : _dbContext.MstPatients
+                            .Where(p => p.Id == x.Encounter.PatientId)
+                            .Select(p => p.BirthDate)
+                            .FirstOrDefault(),
+                    EncounterNumber = x.Encounter != null ? x.Encounter.EncounterNumber : null,
+                    EncounterType = x.Encounter != null ? x.Encounter.EncounterType.ToString() : null,
+                    ServiceUnitName = x.Encounter != null && x.Encounter.ServiceUnit != null
+                        ? x.Encounter.ServiceUnit.ServiceUnitName
+                        : null
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 

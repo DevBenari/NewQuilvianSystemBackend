@@ -2522,7 +2522,7 @@ hak akses **bukan** data induk dan ditangani 19.7.
 | No | Hal | Usulan rancangan | Bila tidak disetujui |
 |---:|---|---|---|
 | 1 | ✅ **Disetujui 2026-09-24 bersama `LAB-API-v1` `r33`.** **Perubahan yang memecah kompatibilitas:** `POST /result/microbiology/finalize`, `POST /result/microbiology/reopen`, dan `PUT /result/microbiology/consultation` **dicabut**, digantikan route netral `POST /result/finalize`, `POST /result/reopen`, `PUT /result/consultation` | Setujui. **Konsumennya dinilai:** satu berkas frontend, `src/lib/constants/health-services/laboratory-management/lab-microbiology-result-constants.jsx:16,19,22`; nol konsumen lain di kedua repository; `S4b` belum masuk Rilis 1 | Patologi Klinik memanggil route bernama `microbiology`. Tidak salah perilaku, tetapi menyesatkan pemelihara berikutnya |
-| 2 | ⏳ **Masih terbuka** — tidak termasuk persetujuan 2026-09-24. Penanda hasil **pilihan** yang di luar rujukan tidak punya arah, sehingga tidak dapat dicetak `L` atau `H` | Tampil sebagai teks **"Di luar rujukan"** — tetap berupa teks, sesuai maksud `LAB-FE-015` | Pemilik menetapkan huruf lain |
+| 2 | ✅ **Disetujui 2026-10-01 — `LAB-DEC-165`:** teks **"Di luar rujukan"** di belakang nilai (`+2 — Di luar rujukan`), sesuai usulan di kolom berikutnya; diterapkan `FE-LAB-36`. *Semula:* ⏳ **Masih terbuka** — tidak termasuk persetujuan 2026-09-24. Penanda hasil **pilihan** yang di luar rujukan tidak punya arah, sehingga tidak dapat dicetak `L` atau `H` | Tampil sebagai teks **"Di luar rujukan"** — tetap berupa teks, sesuai maksud `LAB-FE-015` | Pemilik menetapkan huruf lain |
 
 ### 19.11 Keamanan, privasi, dan pencatatan
 

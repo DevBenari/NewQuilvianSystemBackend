@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `a95f07a6` (branch `yoga`) |
 | Tanggal | 2026-09-29 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — **batasnya menyempit 2026-09-29 sore (bagian 8)**. Kini terbukti terhadap aplikasi sungguhan: validator lolos **lewat startup** (1572 kunci); Swagger nol memuat route lama, dan route lama menjawab `404`; **`VAL-122` `422`** pada ketiga tindakan atas pemeriksaan Patologi Anatomi. **Yang tersisa hanya uji dua akun `AC-221`/`AC-222`** — nol jabatan di dev memegang `LabExaminationResult : Update`, dan pemberiannya (langkah rilis 6aj.5) belum diinstruksikan. *Semula: seluruh kode status HTTP tertahan seeder Hemodialisa* |
+| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — **batasnya menyempit lagi 2026-10-01 (bagian 9):** `AC-221` sisi penolakan terbukti dengan **dua akun analis asli** di `QuilvianNewDevYoga` — kelima tindakan hasil `403`, isi hasil identik sebelum dan sesudah. **Yang tersisa: `AC-222`** (menunggu pemberian `LabExaminationResult : Update`, langkah rilis 6aj.5) dan `PUT /urgency` `200` (menulis data klinis). Sebelumnya **batasnya menyempit 2026-09-29 sore (bagian 8)**. Kini terbukti terhadap aplikasi sungguhan: validator lolos **lewat startup** (1572 kunci); Swagger nol memuat route lama, dan route lama menjawab `404`; **`VAL-122` `422`** pada ketiga tindakan atas pemeriksaan Patologi Anatomi. **Yang tersisa hanya uji dua akun `AC-221`/`AC-222`** — nol jabatan di dev memegang `LabExaminationResult : Update`, dan pemberiannya (langkah rilis 6aj.5) belum diinstruksikan. *Semula: seluruh kode status HTTP tertahan seeder Hemodialisa* |
 
 ### Backend Governance Preflight
 
@@ -275,3 +275,43 @@ yang belum diinstruksikan.
 
 **Status tetap ⚠ `SELESAI DENGAN BATAS VERIFIKASI`**, dengan batas yang menyempit: seluruh kode
 status yang dapat dibuktikan tanpa izin baru kini terbukti. Yang tersisa hanya uji dua akun.
+
+## 9. Verifikasi susulan — 2026-10-01, akun analis asli
+
+Pemilik modul menyediakan **dua akun analis Laboratorium** di `QuilvianNewDevYoga` (jabatan yang
+sama; kredensial tidak dicatat di sini). Keduanya memegang **28 izin Laboratorium**, termasuk
+`LabExamination : Create/Read/Update`, `LabWorklist : Read`, dan `LabSpecimen : Accept/Receive`,
+tetapi **tidak** memegang `LabExaminationResult : Update` — persis profil yang diuji `AC-221`.
+
+**Lingkungan.** Backend dijalankan pada commit `55b032b0` (merge `origin/QuilvianIntegrationBackend`
+ke `yoga`) di `https://localhost:7184`. Merge itu membawa migration modul lain yang belum diterapkan,
+dan startup gagal pada `MstNursingDiagnosisSeeder` (`42P01 MstNursingDiagnosisGroup`). Atas instruksi
+pemilik modul, **22 migration tertunda diterapkan ke `QuilvianNewDevYoga`**: skrip idempoten dibaca
+lebih dulu, diuji kering di dalam transaksi yang di-rollback (riwayat 253 → 275 di dalam transaksi,
+kembali 253 sesudahnya), lalu dijalankan sebagai satu transaksi — riwayat 253 → 275, EF melaporkan
+nol migration tertunda. Penghapusan tiga kolom `GziNutritionCareRecord` aman: seluruh tabel Gizi
+berisi 0 baris. Sesudahnya startup lolos tanpa satu pun baris `Error`/`Fatal`.
+
+**Cara uji tanpa menulis.** Setiap sasaran dipilih supaya, andaikan penjaga izin bocor, aturan lain
+tetap menolak: simpan, Final, konsultasi, dan simpan Patologi Klinik diarahkan ke pemeriksaan
+Mikrobiologi yang **sudah Final** (penjaga `VAL-120`/`VAL-121`/Final ganda); Buka Kembali diarahkan ke
+pemeriksaan yang **belum Final** (`VAL-107`).
+
+| Skenario (akun analis, kedua akun diuji) | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `GET /{id}/result/microbiology` (Final dan belum Final) | `200` — analis tetap membaca hasil | `PASS` |
+| `PUT /{id}/result/microbiology` | `403` *"Anda tidak memiliki akses ke menu atau fitur ini."* | `PASS` |
+| `POST /{id}/result/finalize` | `403` | `PASS` |
+| `PUT /{id}/result/consultation` | `403` | `PASS` |
+| `PUT /{id}/result` | `403` | `PASS` |
+| `POST /{id}/result/reopen` | `403` | `PASS` |
+| Isi kedua hasil sebelum dan sesudah | Identik | `PASS` |
+| `AC-221` bagian kedua — `PUT /urgency` oleh akun yang sama tetap `200` | Tidak dijalankan — menulis penanda cito pada data klinis. Bukti tak langsung: kedua akun memegang `LabExamination : Update`, izin yang menjaga `/urgency` | `NOT RUN` |
+| `AC-222` — pemegang `LabExaminationResult : Update` saja | Tidak dijalankan — nol jabatan memegangnya | `NOT RUN` |
+
+**Temuan untuk rilis.** Jabatan analis tidak memegang `LabExaminationResult : Update`. Begitu
+`MVP-8a` dirilis, analis **tidak dapat mengisi hasil sama sekali** sampai izin itu diberikan —
+pemberiannya (langkah rilis 6aj.5) wajib berada di jendela rilis yang sama.
+
+**Status tetap ⚠ `SELESAI DENGAN BATAS VERIFIKASI`**; yang tersisa `AC-222` dan bagian `200`
+`AC-221`, keduanya menunggu langkah rilis 6aj.5.
