@@ -425,6 +425,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// dua arti yang belum diselaraskan (<c>LAB-CONFLICT-014</c>).
         /// </summary>
         public string? ResultProgress { get; set; }
+
+        // Delapan ruas di bawah ditambahkan r38 33.2 (BE-LAB-87, LAB-DEC-166): identitas pasien
+        // pada halaman hasil per order, supaya hasil tidak diisi tanpa melihat pasiennya. Dibaca
+        // dengan sub-query yang sama dengan daftar pantau (LabMonitoringService), supaya satu
+        // pasien terbaca sama di semua layar. Seluruhnya boleh kosong — order tanpa kunjungan.
+
+        public Guid? PatientId { get; set; }
+
+        public string? PatientName { get; set; }
+
+        public string? MedicalRecordNumber { get; set; }
+
+        /// <summary>Nama enum (<c>Male</c>/<c>Female</c>), mengikuti daftar pantau.</summary>
+        public string? Gender { get; set; }
+
+        /// <summary>Tanggal lahir; umur dihitung layar pada tanggal hari ini.</summary>
+        public DateTime? BirthDate { get; set; }
+
+        public string? EncounterNumber { get; set; }
+
+        /// <summary>Nama enum tipe kunjungan (<c>Outpatient</c>, <c>Inpatient</c>, ...).</summary>
+        public string? EncounterType { get; set; }
+
+        public string? ServiceUnitName { get; set; }
     }
 
     /// <summary>

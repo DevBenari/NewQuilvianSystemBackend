@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `68195b2be` (branch `YogaV2`), di atas perubahan `FE-LAB-44`/`FE-LAB-45` yang belum ter-commit |
 | Commit backend yang dijadikan rujukan | `7ff35b8c` (branch `yoga`) beserta perubahan `BE-LAB-67`..`BE-LAB-86` yang belum ter-commit; DLL hasil build 2026-09-30 13:21, lebih baru dari seluruh source |
 | Tanggal | 2026-10-01 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — Final, Buka Kembali, dan Konsultasi memanggil route netral; nol rujukan tersisa ke route lama; penolakan `409`/`403` tampil dengan kalimatnya sendiri dan **nilai yang diketik tetap di isian**; tanpa izin hasil halaman menjadi baca-saja. Uji unit **8/8**, lint 0 error, build hijau. Layar hasil build **dijalankan terhadap backend lokal `BE-LAB-67`/`BE-LAB-68`**: simpan, Final, dan konsultasi atas hasil yang sudah Final ditolak **`409` sungguhan**, nilai tetap di isian, dan isi hasil di database identik sebelum dan sesudah — **29/29** butir. **Batas:** bagian antarmuka `AC-221` dibuktikan dengan daftar izin yang disuapkan, karena belum ada jabatan di dev yang memegang `LabExaminationResult : Update`; `403` asli tidak dapat dipancing lewat superadmin. **Belum dirilis** — wajib dirilis bersama `BE-LAB-67`/`BE-LAB-68` |
+| Status | ✅ **`SELESAI`** — 2026-10-01, sesudah verifikasi susulan dengan **dua akun analis asli** (bagian 9): halaman baca-saja terbukti pada akun tanpa izin hasil, `403` asli backend terbukti berbentuk sama dengan yang diuji, dan cacat lama *"Hasil Mikrobiologi gagal dimuat."* pada pembatalan diperbaiki (uji unit **11/11**). **Belum dirilis** — tetap wajib serempak dengan `BE-LAB-67`/`BE-LAB-68`, beserta pemberian izin hasil kepada jabatan analis. *Semula ⚠ `SELESAI DENGAN BATAS VERIFIKASI`:* Final, Buka Kembali, dan Konsultasi memanggil route netral; nol rujukan tersisa ke route lama; penolakan `409`/`403` tampil dengan kalimatnya sendiri dan **nilai yang diketik tetap di isian**; tanpa izin hasil halaman menjadi baca-saja. Uji unit **8/8**, lint 0 error, build hijau. Layar hasil build **dijalankan terhadap backend lokal `BE-LAB-67`/`BE-LAB-68`**: simpan, Final, dan konsultasi atas hasil yang sudah Final ditolak **`409` sungguhan**, nilai tetap di isian, dan isi hasil di database identik sebelum dan sesudah — **29/29** butir. **Batas:** bagian antarmuka `AC-221` dibuktikan dengan daftar izin yang disuapkan, karena belum ada jabatan di dev yang memegang `LabExaminationResult : Update`; `403` asli tidak dapat dipancing lewat superadmin. **Belum dirilis** — wajib dirilis bersama `BE-LAB-67`/`BE-LAB-68` |
 
 ---
 
@@ -207,7 +207,7 @@ Uji manual: `PASS` — dengan batas di bawah.
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
 | `AC-228` — halaman Mikrobiologi menerima `409`: pesan terbaca; nilai yang diketik tetap di isian | Terpenuhi | Uji unit 8/8; layar S1-S3 terhadap `409` sungguhan |
-| `AC-221` bagian antarmuka — akun tanpa izin hasil melihat halaman baca-saja | Terpenuhi pada build dengan izin disuapkan; akun asli **belum** | Layar S5 |
+| `AC-221` bagian antarmuka — akun tanpa izin hasil melihat halaman baca-saja | Terpenuhi — dengan izin disuapkan (S5) dan, sejak 2026-10-01, dengan **dua akun analis asli** | Layar S5; bagian 9 |
 | Verifikasi roadmap — unit test pemetaan `409` dan pelestarian isian | Terpenuhi | 8/8 |
 | Verifikasi roadmap — dijalankan terhadap backend `BE-LAB-68`: simpan hasil Final ditolak dan nilai tetap di isian | Terpenuhi | S1 |
 | DoD — nol rujukan tersisa ke `/result/microbiology/finalize\|reopen\|consultation` | Terpenuhi | `grep` nol hasil |
@@ -223,8 +223,66 @@ Uji manual: `PASS` — dengan batas di bawah.
 | --- | --- |
 | Peringatan | Warning lint lama pada efek pengisi ulang formulir (`use-lab-microbiology-result-editor.jsx`), ada sejak HEAD; tidak diperbaiki karena di luar lingkup |
 | Masalah yang diketahui | **1. Risiko rilis — wajib serempak.** Dirilis tanpa backend, Final/Buka Kembali/konsultasi memanggil route yang belum ada; backend dirilis tanpa ini, halaman memanggil route yang sudah dicabut (`404`). **2. Izin harus diberikan di jendela rilis yang sama** (`FR-14.13`, `backend-roadmap.md` 6aj.5): hari ini nol jabatan memegang `LabExaminationResult : Update`, sehingga tanpa pemberian itu **seluruh analis akan melihat halaman baca-saja**. **3. Pengamatan di luar lingkup:** bagian *Informasi Specimen* (`FE-LAB-32`) tidak disaring izin di layar — tombol *Simpan Koreksi Specimen* tampil bagi pembaca yang hanya memegang `LabSpecimen : Read`; penegakannya tetap `403` backend. Tidak diubah karena bukan cakupan task ini |
-| Dependency backend | `BE-LAB-67` ⚠ — batas tersisa `AC-221`/`AC-222` dengan akun asli, menunggu langkah rilis 6aj.5. `BE-LAB-68` ✅ |
-| Perubahan sampingan | `NONE` — verifikasi layar memakai skrip Playwright di luar repository (bukan `playwright test`), sehingga `test-results/` tidak tersentuh; `git status` hanya memuat berkas task |
+| Dependency backend | `BE-LAB-67` ⚠ — `AC-221` sisi penolakan kini terbukti dengan akun asli (bagian 9 [`BE-LAB-67.md`](../backend/BE-LAB-67.md)); tersisa `AC-222`, menunggu langkah rilis 6aj.5. `BE-LAB-68` ✅ |
+| Perubahan sampingan | Verifikasi layar memakai skrip Playwright di luar repository (bukan `playwright test`), sehingga `test-results/` tidak tersentuh. **2026-10-01:** satu baris di luar lingkup ditambahkan pada `src/utils/menu-sidebar/menu-items.jsx` — impor `RiSafeLine`. Ikon itu dipakai tanpa diimpor oleh commit `5adc9f3160` di `origin/QuilvianIntegrationFrontend` dan ikut masuk lewat merge `e613321c5`; akibatnya **seluruh halaman `500`** (`ReferenceError: RiSafeLine is not defined`) dan verifikasi tidak dapat berjalan. Perbaikan yang sama perlu dikirim ke branch integrasi |
 | Interupsi | Sesi sebelumnya terputus sesudah implementasi dan lint. Dilanjutkan dari `git diff` yang diperiksa ulang; nol pekerjaan diulang. Backend lokal dan server standalone dinyalakan untuk verifikasi lalu dimatikan |
-| Status Git | Frontend: ` M` `lab-microbiology-completion-bar.jsx`, `lab-microbiology-result-panel.jsx`, `lab-microbiology-result-constants.jsx`, `lab-microbiology-result-rules.js`, `use-lab-microbiology-result-editor.jsx`, `lab-microbiology-result.service.js`, `lab-microbiology-result-slice.jsx`; `??` `tests/unit/lab-microbiology-result-fe35-rules.test.mjs` — milik `FE-LAB-35`. Sisanya (` M` `laboratory-constants.jsx`, `menu-items.jsx`; `??` berkas `lab-operational-report*`, spec e2e) milik `FE-LAB-44`/`FE-LAB-45`. Backend: laporan ini, `frontend-roadmap.md`, `traceability.md`. **Nol operasi Git dijalankan** |
-| Langkah berikutnya | Rilis `MVP-8a` serempak: deploy `BE-LAB-67` + `BE-LAB-68` + `FE-LAB-35`, dan pada jendela yang sama beri `LabExaminationResult : Update` kepada jabatan analis (6aj.5); lalu jalankan `AC-221`/`AC-222` dengan dua akun asli |
+| Status Git | Pekerjaan awal `FE-LAB-35` ter-commit pemilik modul pada `82ee64597` (branch `YogaV2`). Sesudah verifikasi susulan 2026-10-01, frontend (`e613321c5`): ` M` `lab-microbiology-result-slice.jsx` dan `tests/unit/lab-microbiology-result-fe35-rules.test.mjs` (perbaikan pembatalan), ` M` `src/utils/menu-sidebar/menu-items.jsx` (impor `RiSafeLine`). Backend (`55b032b0`): laporan ini, `BE-LAB-67.md`, `backend-roadmap.md`, `frontend-roadmap.md`, `traceability.md`. **Nol operasi Git dijalankan** |
+| Langkah berikutnya | Rilis `MVP-8a` serempak: deploy `BE-LAB-67` + `BE-LAB-68` + `FE-LAB-35`, dan pada jendela yang sama beri `LabExaminationResult : Update` kepada jabatan analis (6aj.5); lalu jalankan `AC-222` dan bagian `200` `AC-221` dengan akun asli |
+
+---
+
+## 9. Verifikasi susulan — 2026-10-01, akun analis asli
+
+Pemilik modul menyediakan **dua akun analis Laboratorium** di `QuilvianNewDevYoga` (kredensial tidak
+dicatat di sini). Pengecekan dijalankan pada `localhost`, persis seperti pemakaian sehari-hari:
+frontend `next dev` di `http://localhost:3000` (lewat `.env.local`) dan backend hasil merge `55b032b0`
+di `https://localhost:7184`. Agar backend hasil merge dapat start, 22 migration modul lain yang
+tertunda diterapkan ke `QuilvianNewDevYoga` atas instruksi pemilik modul (rincian di bagian 9
+[`BE-LAB-67.md`](../backend/BE-LAB-67.md)).
+
+### 9.1 Yang dialami analis di layar
+
+| Langkah | Hasil sebenarnya (kedua akun sama) |
+| --- | --- |
+| Login lewat halaman login | Berhasil, masuk ke dashboard |
+| Izin dari `/v1/auth/permissions` | 28 izin Laboratorium; **ada** `LabExamination : Update`, **tidak ada** `LabExaminationResult : Update` |
+| Pantau Mikrobiologi | Terbuka, 5 order |
+| Daftar Kerja | Terbuka, 9 baris |
+| Halaman hasil Mikrobiologi (order uji BTA) | Catatan baca-saja tampil; **nol** tombol Simpan Draft, Simpan Final, Buka Kembali, Catat Konsultasi; **nol** permintaan tulis |
+| `403` asli backend bila tindakan hasil dipaksa lewat API | Badan `ApiResponse` dengan kalimat *"Anda tidak memiliki akses ke menu atau fitur ini."* — **bentuk yang sama** dengan respons suapan pada S4, sehingga pemetaan ke kalimat kontrak berlaku untuk `403` sungguhan |
+
+### 9.2 Cacat lama yang ditemukan dan diperbaiki
+
+**Gejala.** Alert merah *"Hasil Mikrobiologi gagal dimuat."* tampil padahal hasilnya termuat (`GET`
+menjawab `200`, Kelengkapan dan Analis terisi). Muncul untuk analis **dan** superadmin pada `next dev`,
+jadi bukan soal izin.
+
+**Sebab.** Hook editor membatalkan permintaan hasil saat cleanup (`request.abort()`). Redux Toolkit
+lalu mengirim `rejected` **tanpa payload**, dan reducer (sejak `FE-LAB-31`) memasang kalimat cadangan
+"gagal dimuat". Penolakan itu tiba **sesudah** permintaan penggantinya dimulai, sedangkan `fulfilled`
+penggantinya tidak membersihkan galat. Di `next dev` hal ini selalu terjadi karena StrictMode
+menjalankan efek dua kali. Di produksi terjadi bila analis berpindah pemeriksaan sebelum hasil pertama
+termuat.
+
+**Perbaikan.** Pola baku repository (299 pemakaian): `if (action.meta?.aborted) return;` di awal
+reducer penolakan keenam thunk baca yang dapat dibatalkan di
+`lab-microbiology-result-slice.jsx` — hasil, dokter konfirmator, jejak perubahan specimen, dan tiga
+katalog. Pada ketiga katalog, penolakan karena pembatalan juga tidak lagi mematikan penanda memuat
+milik permintaan penggantinya.
+
+| Bukti | Hasil | Klasifikasi |
+| --- | --- | --- |
+| 3 uji baru di `tests/unit/lab-microbiology-result-fe35-rules.test.mjs`: urutan pembatalan, penolakan sungguhan tetap tampil, penanda memuat katalog | **11/11** | `PASS` |
+| `npx eslint` pada kedua berkas | Nol masalah | `PASS` |
+| `npm run lint:errors` (seluruh repository, sesudah impor `RiSafeLine`) | Exit 0 | `PASS` |
+| Layar `next dev`, akun analis — buka halaman hasil lalu Muat Ulang | Alert **tidak** muncul lagi; sebelum perbaikan selalu muncul | `PASS` |
+
+### 9.3 Temuan di luar lingkup task
+
+| Temuan | Dampak | Pemilik |
+| --- | --- | --- |
+| Jabatan analis tidak memegang `LabExaminationResult : Update` | Sesudah `MVP-8a` dirilis, analis tidak dapat mengisi hasil sampai izin diberikan | **Diselesaikan di dev 2026-10-01** (6aj.5 langkah 1 dan 3): izin diberikan kepada *Analis Laboratorium* saja; layar hasil kini menampilkan kontrol tulis, konsultasi atas hasil Final menampilkan `409` `VAL-121` sungguhan dan nama tetap di isian |
+| `GET /health-services/master-data/measurements/options` menjawab `403` bagi analis | Pilihan *Satuan* pada Informasi Specimen (dan satuan kadar antibiogram) kosong bagi analis | **Diselesaikan di dev 2026-10-01** atas instruksi pemilik modul: `Measurement : Read` diberikan kepada *Analis Laboratorium*; endpoint `200` |
+| Lima data dashboard menjawab `403` bagi analis (pasien, dokter, poliklinik, jadwal dokter, kunjungan) | Dashboard menampilkan *"Data dashboard belum dapat dimuat sepenuhnya."* | **Sebagian diselesaikan 2026-10-01:** `PatientEncounter : Read` diberikan, data kunjungan termuat. Empat lainnya dijaga kebijakan Identity `KioskRead` (role `SuperAdmin`/`Administrator`/`Kiosk`), **bukan** izin jabatan — tidak dapat dibuka lewat Akses Role; dashboard kini menulis *"Sebagian sumber dashboard belum tersedia."*. Pemilik: dashboard dan modul data induk |
+| Akun bertanda `mustChangePassword`, tetapi frontend langsung meneruskan ke dashboard | Penggantian sandi pertama tidak dipaksakan | Pemilik autentikasi |
+| `SESSION_SIGNING_SECRET` tidak ada di `.env` maupun environment mesin | `next dev` tidak dapat membuat sesi tanpa nilai yang diberikan saat menjalankan | Pengembang yang menjalankan lokal |
