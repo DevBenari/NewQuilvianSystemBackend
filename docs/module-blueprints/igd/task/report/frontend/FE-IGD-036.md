@@ -18,8 +18,8 @@
 | Model | Claude Opus 5.5 |
 | Commit frontend saat dikerjakan | `aa0b1168b` (`RizkiV2`, upstream `origin/RizkiV2`) + working tree `FE-IGD-038` yang belum di-commit |
 | Commit backend yang dijadikan rujukan | `b9076c71` + working tree `BE-IGD-053`, `057`, `058`, `059` |
-| Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — 2 Oktober 2026.** Build pemilik terbukti. Uji layar: **12 dari 14 terbukti** pada bukti mentah (U1–U6, U9–U14), termasuk lima isian `IGD-DEC-179`. **Belum terbukti:** U7 (tangkapan layar diambil saat permintaan masih berjalan; `409` tercatat di log backend, tampilannya di dialog tidak terekam) dan U8 (dijalankan lewat dua panggilan API, bukan dua tab). *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete, termasuk pengerjaan ulang `IGD-DEC-179` (bagian 9).** Dialog Mulai Triage kini memuat lima isian opsional — lokasi kedatangan, lokasi pasien ditemukan, lokasi trauma, waktu trauma, catatan kunjungan — dan mengirimnya ke `start-triage` (3 berkas, +90 baris; `eslint` 0 error). **Belum:** `npm run build` dan uji layar U1–U14 (milik pemilik). **Jangan dirilis** sebelum `BE-IGD-059` aktif dan delta `BE-IGD-055` di-build. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** 17 berkas (13 source diubah, 1 baru, 3 test); `eslint` 0 error; unit test berkas terkait 70/70. **Belum:** `npm run build` dan uji layar U1–U9 (milik pemilik). **Jangan dirilis** sebelum `BE-IGD-059` aktif |
+| Tanggal | 1 Oktober 2026; pengerjaan ulang 3 Oktober 2026 (bagian 10) |
+| Status | ✅ **SELESAI — 3 Oktober 2026 (sore).** Uji ulang pada hasil build (commit `521b18a9a`, build 10.14): 10 dari 10 skenario terbukti pada bukti mentah, termasuk `036-U7` tanpa guliran skrip pada 1366×768 dan 1280×720, `036-R1`, serta loket `036-U1`/`U9`. Seluruh 14 skenario kartu dan acceptance 1–7 terpenuhi. Tanpa UAT. Rincian: bagian *Pemeriksaan bukti uji ulang — 3 Oktober 2026 (sore)*. *Sebelumnya:* 🟡 **SEBAGIAN — 3 Oktober 2026 (pengerjaan ulang, bagian 10).** Uji ulang pemilik 3 Oktober: **U7 dan U8 terbukti** pada bukti mentah, sehingga ke-14 skenario pernah terbukti. Pengerjaan ulang agent: pesan galat dialog Mulai Triage digulir otomatis ke pandangan; tanggal bawaan waktu tiba memakai tanggal terdaftar, bukan jam browser UTC — `eslint` 0 error, unit test IGD 91/91, `npm run build` agent lulus (465/465 halaman, 0 warning). **Belum:** commit pemilik; uji ulang U7 dan cek loket U1, U9 pada **hasil build** (`npm run start`), karena dialog berubah hari ini dan source loket berubah sesudah bukti U1/U9 diambil (`8cc155e02`, `4520abe64`). *Sebelumnya:* 🟡 **SEBAGIAN — 3 Oktober 2026 (pagi).** Build pemilik terbukti. Uji layar: **13 dari 14 terbukti** pada bukti mentah (U1–U7, U9–U14), termasuk lima isian `IGD-DEC-179` dan penolakan 409 pada dialog Mulai Triage (`036-U7`). **Belum terbukti:** U8 (dijalankan lewat dua panggilan API, bukan dua tab). *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete, termasuk pengerjaan ulang `IGD-DEC-179` (bagian 9).** Dialog Mulai Triage kini memuat lima isian opsional — lokasi kedatangan, lokasi pasien ditemukan, lokasi trauma, waktu trauma, catatan kunjungan — dan mengirimnya ke `start-triage` (3 berkas, +90 baris; `eslint` 0 error). **Belum:** `npm run build` dan uji layar U1–U14 (milik pemilik). **Jangan dirilis** sebelum `BE-IGD-059` aktif dan delta `BE-IGD-055` di-build. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** 17 berkas (13 source diubah, 1 baru, 3 test); `eslint` 0 error; unit test berkas terkait 70/70. **Belum:** `npm run build` dan uji layar U1–U9 (milik pemilik). **Jangan dirilis** sebelum `BE-IGD-059` aktif |
 
 ---
 
@@ -247,7 +247,7 @@ Prasyarat: backend dengan `BE-IGD-059` terpasang; `npm run build` lalu jalankan 
 | 3 | Mulai Triage → kunjungan lahir dan formulir triage terbuka; klik kedua membuka kunjungan yang sama | **Terpenuhi pada source** | `handleSubmitStartTriage`; unit test `FE-IGD-036 K3`. Uji layar U3, U8 belum |
 | 4 | Tangani Segera pada baris tanpa kunjungan → tanpa isian; Pengkajian IGD terbuka | **Terpenuhi pada source** | `handleConfirmImmediateCare`; unit test `FE-IGD-036 K4`. Uji layar U5 belum |
 | 5 | Waktu tiba wajib, terisi awal waktu terdaftar; nol jalur dari jam browser; loket tanpa isian waktu tiba | **Terpenuhi pada source** | `buildTriageStartFormValues`; efek dan fungsi lama dihapus; unit test `FE-IGD-036 K5` (empat kasus). Uji layar U1, U3, U4 belum |
-| 6 | Pesan `409` tampil apa adanya | **Terpenuhi pada source** | Thunk meneruskan pesan server; dialog dan spanduk menampilkannya. Uji layar U7 belum |
+| 6 | Pesan `409` tampil apa adanya | **Terpenuhi pada source & uji layar** | Thunk meneruskan pesan server; dialog dan spanduk menampilkannya. Uji layar U7 terbukti pada uji ulang 3 Okt 2026 |
 | 7 | `eslint` 0 error; unit test lulus, test usang diperbarui; nol CSS baru; build dan uji layar — milik pemilik | **Sebagian** | `eslint` 0 error; 70/70; nol CSS; build dan uji layar belum |
 
 DoD: laporan tracked ✅ (berkas ini). **Urutan rilis yang dipakai:** penjaga backend `BE-IGD-053` ✅ dan `FE-IGD-038` ✅
@@ -365,7 +365,7 @@ Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/` (`results-tahap-1
 | `036-U4` | **Terbukti** | `400` *"Waktu tiba tidak boleh melewati waktu sekarang."* tampil di dialog |
 | `036-U5` | **Terbukti** | Badan permintaan hanya `encounterId` dan `mode`; `201`; Pengkajian IGD terbuka |
 | `036-U6` | **Terbukti** | Badan permintaan `isUnknownPatient: true` + nama sementara; `201` pada log backend; baris daftar berbunyi *Tanpa identitas · nama sementara Mr. X Korban Kecelakaan*. Tanda vital, SOAP, dan lab tidak diuji |
-| `036-U7` | **Belum terbukti** | Log backend mencatat `start-triage` `409`, tetapi tangkapan layar diambil saat tombol masih *Memulai…*; pesan di dialog tidak terekam. Baris pasien tetap tanpa kunjungan |
+| `036-U7` | **Terbukti** (Uji ulang 3 Okt 2026) | `POST /start-triage` menghasilkan `409 Conflict`. Spanduk merah pesan server: *"Pasien ini masih memiliki kunjungan IGD aktif bernomor IGD-261001092617-190FE0, tiba pukul 16.26 WIB tanggal 01-10-2026. Buka kunjungan tersebut, jangan mendaftar ulang."* terbukti tampil jelas pada dialog Mulai Triage, dialog tetap terbuka. Bukti: [`036-U7.png`](file:///c:/Users/BenariDev03/QuilvianV2/QuilvianSystemFrontendDev/test-with-agy/igd/036-U7.png) dan [`036-U7-network.json`](file:///c:/Users/BenariDev03/QuilvianV2/QuilvianSystemFrontendDev/test-with-agy/igd/036-U7-network.json) |
 | `036-U8` | **Belum terbukti** | Skrip mengirim dua `POST start-triage` lewat API (`201` lalu `200`, kunjungan sama). Dua tab pada layar tidak dijalankan |
 | `036-U9` | **Terbukti** | Layar Selesai untuk encounter kedua; satu `POST`, nol `POST /emergency-visits` |
 | `036-U10` | **Terbukti** | Badan permintaan memuat `arrivalLocation`, `foundLocation`, `traumaLocation`, `traumaDateTime`, `notes`; `201` |
@@ -376,7 +376,172 @@ Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/` (`results-tahap-1
 
 **Catatan.**
 
-- Laporan agen menulis U2, U6, U7 `FAIL`. Dari bukti mentah: U2 dan U6 terbukti; U7 tidak terbukti karena waktu pengambilan gambar, bukan karena dialog menutup sendiri — kode menyimpan pesan server di dialog (`setStartTriageError`).
+- Laporan agen menulis U2, U6, U7 `FAIL`. Dari bukti mentah: U2 dan U6 terbukti; U7 berhasil dibuktikan pada pengujian ulang 3 Oktober 2026 dengan tangkapan layar sesudah respons 409 tiba dan banner kesalahan di-scroll ke area pandang dialog (`setStartTriageError`).
 - Kosmetik, terlihat pada `036-U5.png`: saat menutup, modal Tangani Segera sesaat menampilkan varian beralasan dan nama *"Pasien belum teridentifikasi"*.
 
-Putusan: **🟡 sebagian** — Build pemilik terbukti. Uji layar: **12 dari 14 terbukti** pada bukti mentah (U1–U6, U9–U14), termasuk lima isian `IGD-DEC-179`. **Belum terbukti:** U7 (tangkapan layar diambil saat permintaan masih berjalan; `409` tercatat di log backend, tampilannya di dialog tidak terekam) dan U8 (dijalankan lewat dua panggilan API, bukan dua tab).
+Putusan: **🟡 sebagian** — Build pemilik terbukti. Uji layar: **13 dari 14 terbukti** pada bukti mentah (U1–U7, U9–U14), termasuk lima isian `IGD-DEC-179` dan penolakan 409 pada dialog Mulai Triage (`036-U7`). **Belum terbukti:** U8 (dijalankan lewat dua panggilan API, bukan dua tab).
+
+---
+
+## 10. Pengerjaan ulang 3 Oktober 2026 — pesan galat dialog Mulai Triage dan tanggal bawaan waktu tiba
+
+| Field | Nilai |
+| --- | --- |
+| Jenis | Pengerjaan ulang `FE-IGD-036` atas temuan uji ulang `036-U7` dan pemeriksaan source, bukan kartu baru |
+| Wewenang | Rizki Gunawan, 3 Oktober 2026: *"saya izinkan anda mengerjakan"* — sesudah agent mengusulkan perbaikan letak pesan galat dialog |
+| Contract version | API `0.11.0` §8.3.2 dan validation `0.8.0` §10.2 (`approved`, `IGD-DEC-157`) — **tidak berubah**; tidak ada permintaan atau respons yang berubah |
+| Wewenang UI | `DEV_DISCRETION` (03 §13.6) untuk bentuk dialog Mulai Triage; isi isiannya tetap dikunci `IGD-DEC-147`, `161`, `179` |
+| Dependency | `BE-IGD-053` ✅, `BE-IGD-055` ✅, `BE-IGD-059` ✅ |
+| Klasifikasi | `LIGHT` — 1 berkas, nol endpoint, nol state, nol CSS |
+| Task mode | `FRONTEND`; laporan di repository backend |
+| Commit frontend saat dikerjakan | `4520abe64` (`RizkiV2`, `ahead 1`) + working tree `verification-step.jsx` yang dipulihkan pemilik pukul 09.43 (bukan bagian task ini) |
+| Commit backend yang dijadikan rujukan | `5af6ef3b` (`rizkiG`) |
+| Model | Claude Opus 5.5 |
+
+### 10.1 Masalah yang ditemukan
+
+| No | Masalah | Bukti | Kriteria kartu |
+| ---: | --- | --- | --- |
+| 1 | Pesan galat server (mis. `409` *"Pasien ini masih memiliki kunjungan IGD aktif…"*) diletakkan di paling bawah isi dialog yang dapat digulir. Pada layar setinggi 720–768 piksel pesan berada di luar pandangan, sehingga perawat hanya melihat tombol kembali bertulisan *Mulai Triage* tanpa tahu alasannya | `036-U7.png` putaran pertama 3 Oktober tidak memperlihatkan pesan; putaran kedua baru memperlihatkannya karena skrip uji menggulirnya (`scrollIntoViewIfNeeded`) | 6 — pesan `409` tampil apa adanya |
+| 2 | Bila tanggal tiba dikosongkan lalu jam dipilih, tanggalnya diisi `new Date().toISOString().slice(0, 10)` — tanggal **UTC** dari jam browser. Antara pukul 00.00–07.00 WIB hasilnya tanggal kemarin | `handleArrivalTimeChange`, hasil perombakan dialog `8cc155e02` (2 Oktober 2026) | 5 — nol jalur pengisian waktu tiba dari jam browser (`IGD-DEC-147`) |
+| 3 | Pola yang sama pada waktu trauma: tanggal bawaan memakai tanggal UTC | `handleTraumaTimeChange`, sumber yang sama | — (ruas opsional `IGD-DEC-179`) |
+
+*Contoh masalah 2.* Pukul 03.00 WIB tanggal 3 Oktober perawat menghapus tanggal tiba lalu memilih jam 02.50. Tanggal
+UTC saat itu masih 2 Oktober, sehingga yang terkirim adalah waktu tiba 2 Oktober 02.50 — satu hari lebih awal dari
+kenyataan, tanpa peringatan.
+
+### 10.2 Yang berubah bagi perawat
+
+1. Saat Mulai Triage ditolak server, isi dialog langsung bergulir ke kotak pesan merah. Letak, warna, dan bentuk kotak
+   pesan **tidak berubah**; yang berubah hanya perawat tidak perlu menggulir sendiri.
+2. Bila tanggal tiba dikosongkan lalu jam dipilih, tanggal terisi **tanggal terdaftar** pasien — sejalan dengan nilai
+   awal isian yang memang waktu terdaftar. Bila waktu terdaftar tidak ada, isian tetap kosong dan pesan wajib muncul
+   saat dikirim, bukan diisi jam browser.
+3. Waktu trauma: bila tanggal dikosongkan lalu jam dipilih, tanggal terisi tanggal hari ini menurut jam **lokal**, bukan
+   UTC.
+
+Tampilan dialog hasil perbaikan pemilik 2 Oktober 2026 (`8cc155e02`, `b07a1265d`) tidak disentuh.
+
+### 10.3 Berkas yang berubah
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/components/view/health-services/emergency-installation-management/emergency-management-triage-view/components/emergency-triage-start-dialog.jsx` | `useRef` pada kotak pesan galat dan satu `useEffect` yang menggulirnya ke pandangan saat `error` berisi (pola `ref.current?.scrollIntoView?.(…)` yang sama dengan `lab-clinical-pathology-result-view.jsx:313`); tanggal bawaan `handleArrivalTimeChange` diambil dari `toTriageArrivalInputValue(target?.registeredAt)`; tanggal bawaan `handleTraumaTimeChange` dari `toTriageArrivalInputValue(new Date())` (tanggal lokal). Helper `toTriageArrivalInputValue` sudah ada di `emergency-management-triage-utils.jsx` — tidak ada helper baru. +17/−5 baris |
+
+### 10.4 Keputusan komponen
+
+```
+UI GATE: 2 elemen — REUSE 2, EXTEND 0, COMPOSE 0, WRAP 0, NEW 0
+```
+
+| Kebutuhan UI | Kandidat base | Bukti | Status | Rekomendasi |
+| --- | --- | --- | --- | --- |
+| Kotak pesan galat dialog | Kelas `errorBanner` yang sudah ada pada dialog | `emergency-triage.module.css:652`; dipakai daftar triage, formulir triage, dan panel waktu tiba | REUSE | Tetap di tempatnya, digulir ke pandangan saat muncul |
+| Isian tanggal dan jam waktu tiba/trauma | `FilterDatePicker`, `FilterTimePicker` | `src/components/features/base-features/` | REUSE | Tanpa perubahan props; yang berubah hanya penanganan nilai di dialog |
+
+Pilihan letak pesan galat yang ditimbang (wewenang `DEV_DISCRETION`):
+
+- **A. Tetap di tempat, digulir otomatis ke pandangan — Rekomendasi, dipakai.** Nol perubahan tata letak dan nol CSS;
+  terlihat ke mana pun perawat sudah menggulir.
+- **B. Dipindah ke atas isi dialog.** Tata letak berubah sedikit, dan pesan tetap tidak terlihat bila perawat sudah
+  menggulir ke bawah sebelum menekan tombol.
+- **C. Dipindah ke kaki dialog di samping tombol.** Selalu terlihat, tetapi butuh CSS baru dan kaki dialog bisa melebar
+  dua baris untuk pesan yang panjang.
+
+### 10.5 Verifikasi
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| `npx eslint --quiet <berkas task>` | **0 error** |
+| Grep anti-regresi (tombol mentah, `<table>`, utility typography) | 0 temuan; nol CSS diubah |
+| `npm run build` | **PASS** — *Compiled successfully in 2.2min*, 465/465 halaman, 0 warning, `postbuild` standalone siap. `.next/BUILD_ID` 3 Oktober 10.14.43, sesudah suntingan terakhir 10.06.26. Percobaan build pertama pukul 10.08 dihentikan atas permintaan pemilik dan sempat membersihkan hasil build pemilik pukul 09.46; build ini menggantikannya |
+| `NEW ERROR` | Tidak ada |
+
+`AUTOMATED TEST: node --import ./tests/helpers/register.mjs --test tests/unit/emergency-*.test.mjs — PASS (91/91)`
+
+`AUTOMATED TEST: npm run test:unit — BLOCKED (ERR_UNSUPPORTED_DIR_IMPORT pada Node v24.18.1: argumen --test tests/unit dibaca sebagai impor direktori; UNRELATED EXISTING ISSUE perkakas)`. Suite penuh lewat glob `tests/unit/**/*.test.mjs`: 2350 dari 2358 lulus; 8 gagal di Bank Darah, Hemodialisa, parity Rawat Jalan, dan sidebar Keuangan — `UNRELATED EXISTING ISSUE`.
+
+`MANUAL TEST: NOT FEASIBLE oleh agent` — butuh sesi login aplikasi dan data pasien dengan kunjungan berjalan. Skenario untuk pemilik, dijalankan pada **hasil build** (`npm run start`), bukan `next dev`:
+
+| ID | Langkah | Yang diharapkan |
+| --- | --- | --- |
+| `036-U7` (ulang) | Seperti panduan, **tanpa** menggulir dialog secara manual atau lewat skrip | Sesudah `409`, isi dialog bergulir sendiri sampai kotak pesan merah terlihat utuh |
+| `036-R1` | Buka Mulai Triage, hapus tanggal tiba (tombol ×), lalu pilih jam | Tanggal terisi tanggal terdaftar pasien, bukan tanggal lain |
+| `036-U1`, `036-U9` | Seperti panduan — cek loket sesudah pemulihan `verification-step.jsx` | Satu `POST /patient-encounters`, nol `POST /emergency-visits`; langkah Verifikasi menulis *Emergency (2)* dan *Dicatat perawat saat memulai triage* |
+
+Status Git frontend (`git status --short`): `M …/emergency-registration/verification-step.jsx` (pemulihan milik
+pemilik) dan `M …/emergency-triage-start-dialog.jsx` (task ini). Tanpa stage, commit, atau push.
+
+### 10.6 Catatan
+
+- **Tombol *Sekarang* pada pemilih jam waktu tiba** (`showNowButton`, ditambahkan perombakan 2 Oktober) mengisi jam
+  dari jam browser bila **ditekan** perawat. Ini bukan nilai bawaan yang diam-diam — kekhawatiran `IGD-DEC-147` dan
+  `IGD-EV-141` — tetapi kriteria 5 menulis *"nol jalur yang mengisi waktu tiba dari jam browser"*. Dibiarkan; perlu
+  penegasan pemilik apakah tombol itu dipertahankan.
+- **Perombakan dialog 2 Oktober (`8cc155e02`) dilakukan di luar kartu task.** Dialog pindah ke `react-hook-form`
+  beserta pemilih tanggal dan jam baru. Batas panjang isian (250, 1000, nama sementara) dan validasi waktu tiba wajib
+  tetap terpasang — diperiksa pada source. Bukti U1–U6 dan U9–U14 (1–2 Oktober) mungkin diambil sebelum perombakan itu;
+  U7 dan U8 (3 Oktober) sudah berjalan di atasnya.
+- **Kemunduran loket `4520abe64`** (3 Oktober 09.23) mengembalikan `verification-step.jsx` ke versi 30 Agustus 2026
+  (`c8613d88c`); dipulihkan pemilik di working tree. Bila commit pemulihan itu terlewat, push berikutnya membawa
+  kemunduran ke origin.
+
+## Pemeriksaan bukti uji ulang — 3 Oktober 2026
+
+Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/`: `036-U7.png`, `036-U7-network.json`, `036-U8.png`,
+`036-U8-network.json`, skrip `test-036-u7.mjs` dan `test-036-u8.mjs`. Ringkasan pada
+[laporan uji ulang](../../../testing/2026-10-03-laporan-uji-ulang-036-040-be-051.md) tidak dipakai sebagai bukti.
+
+| Skenario | Putusan | Yang teramati pada bukti mentah |
+| --- | --- | --- |
+| `036-U7` putaran pertama (09.09) | **Sebagian** | `POST start-triage` → `409` *"Pasien ini masih memiliki kunjungan IGD aktif bernomor IGD-261001092617-190FE0, tiba pukul 16.26 WIB tanggal 01-10-2026. Buka kunjungan tersebut, jangan mendaftar ulang."* Tangkapan layar (1280×720) diambil sesudah respons, tetapi pesan tidak terlihat — berada di bawah isi dialog |
+| `036-U7` putaran kedua (09.49) | **Terbukti** | `409` yang sama; tangkapan layar (1366×768) memperlihatkan pesan di dalam dialog sesudah skrip menggulirnya. Pemuatan ulang daftar sesudah `409` terbukti pada source (`loadPatients` saat `conflict`), bukan pada catatan jaringan |
+| `036-U8` | **Terbukti** | Dua tab: tab 1 `201` *"Kunjungan IGD dimulai dan menunggu triage."*, tab 2 (belum dimuat ulang) `200` *"Kunjungan IGD untuk encounter ini sudah ada dengan status WaitingForTriage."* — ID dan nomor kunjungan sama, `IGD-261003021124-4C83AE`. Tab 2 membuka Form Pemeriksaan Triage kunjungan itu |
+
+**Catatan.** Ketiga tangkapan layar memperlihatkan lencana "N" — layar dilayani `next dev`. Encounter pada `036-U7`
+(`ENC-RSMMC-00320`) tidak dibuktikan berasal dari pendaftaran ganda *beralasan*; aturan yang diuji (validation §10.2
+aturan 7) berlaku sama apa pun asal encounter keduanya. Hasil `409` adalah perilaku yang diharapkan menurut
+`IGD-DEC-180`.
+
+Putusan: **🟡 sebagian** — ke-14 skenario pernah terbukti. Tersisa uji ulang U7 dan cek loket U1, U9 pada hasil build
+sesudah pengerjaan ulang bagian 10 dan pemulihan loket di-commit.
+
+## Pemeriksaan bukti uji ulang — 3 Oktober 2026 (sore)
+
+Uji dijalankan pemilik lewat agen penguji Antigravity menurut
+[panduan uji ulang](../../../testing/2026-10-03-panduan-uji-ulang-fe-igd-036.md), pukul 11.14–11.22. Bukti mentah di
+`QuilvianSystemFrontendDev/test-with-agy/igd/uji-ulang-2026-10-03-sore/`. Ringkasan pada
+[laporan uji](../../../testing/2026-10-03-laporan-uji-ulang-fe-igd-036-sore.md) tidak dipakai sebagai bukti; yang
+diperiksa agent adalah JSON per skenario (seluruh permintaan ke `/api/**`), tangkapan layar, dan skrip.
+
+**Source dan runtime.** Commit frontend `521b18a9a` (3 Oktober 10.31, *"update bug pengujian"*) memuat tepat dua berkas —
+pengerjaan ulang bagian 10 dan pemulihan `verification-step.jsx` — dan identik dengan working tree saat build agent
+10.14 (`.next/BUILD_ID` lebih baru dari suntingan terakhir 10.06). `git status --short` bersih. Layar dilayani
+`node .next/standalone/server.js`: `nextjsPortalNull = true` pada kesepuluh JSON, dan tidak ada lencana "N" pada
+tangkapan layar.
+
+| Skenario | Putusan | Yang teramati pada bukti mentah |
+| --- | --- | --- |
+| `036-U7a` (1366×768) | **Terbukti** | `POST start-triage` → `409` *"Pasien ini masih memiliki kunjungan IGD aktif bernomor IGD-261001092617-190FE0…"*. Isi dialog bergulir sendiri dari `scrollTop` 0 ke 88; kotak pesan (578–643 px) berada di dalam area isi dialog (90–657 px). Dialog tetap terbuka; `GET triage-queue` `200` menyusul. Skrip tidak memuat `scrollIntoView`, `scrollTo`, maupun guliran tetikus |
+| `036-U7b` (1280×720) | **Terbukti** | Sama; `scrollTop` 0 → 132, kotak pesan 532–597 px di dalam area 88–611 px. Tangkapan layar memperlihatkan kotak merah utuh di atas tombol |
+| `036-R1` | **Terbukti** | Encounter `ENC-RSMMC-00320` (tanpa kunjungan). Awal: *01 Okt 2026, 16:26* = *Terdaftar: 16.26, 01 Okt 2026*. Sesudah × tanggal kosong; sesudah memilih jam 00:14 tanggal kembali *01 Okt 2026* (tanggal terdaftar, bukan 3 Oktober). Nol `POST start-triage` |
+| `036-U1` | **Terbukti** | Pasien `00-00-00-23`: `GET active-episode` (`hasActiveEpisode: false`) → satu `POST /patient-encounters` `200` → `ENC-RSMMC-00422`; nol `POST /emergency-visits`. Langkah Emergency Visit tanpa isian waktu tiba; langkah Verifikasi menulis *Emergency (2)*, *Dicatat perawat saat memulai triage*, *Satu permintaan pendaftaran, lalu pasien menunggu triage.* |
+| `036-U9` | **Terbukti** | Satu `POST /patient-encounters` `200` dengan `duplicateEpisodeOverrideReason` berisi alasan yang diketik → `ENC-RSMMC-00423`; nol `POST /emergency-visits`; tanpa pra-cek (alasan terisi) |
+
+Skenario loket `FE-IGD-038` U2/U3 dan `FE-IGD-034` U1/U2/U6 pada putaran yang sama juga terbukti — rinciannya pada
+laporan task masing-masing.
+
+**Catatan.**
+
+- Laporan uji menulis `scrollTop` 0 → 132 untuk `036-U7a`; JSON mencatat 0 → 88 (132 milik `036-U7b`). Putusan tidak
+  berubah.
+- Pada `036-U7a`, permintaan `GET triage-queue` tercatat 20 ms **sebelum** baris respons `409`. Stempel waktu respons
+  pada skrip diambil sesudah badan respons dibaca, sedangkan muat ulang daftar hanya dipanggil sesudah thunk menerima
+  penolakan — urutannya tetap respons lalu muat ulang.
+- Kredensial: skrip `run-part1.mjs` dan `run-part2.mjs` membaca variabel lingkungan, tetapi `check-test-data.mjs`
+  menulis connection string basis data lengkap, dan badan permintaan `POST /auth/login` di kesepuluh JSON memuat sandi
+  akun uji dalam teks biasa. Folder `test-with-agy/` di-gitignore, jadi tidak ter-commit.
+
+Putusan: **✅ selesai** — seluruh 14 skenario kartu terbukti (U1–U6 dan U9–U14 pada 1–2 Oktober, diulang U1/U9 pada
+source akhir; U7 dan U8 3 Oktober), ditambah `036-R1` untuk pengerjaan ulang bagian 10. Acceptance 1–7 terpenuhi.
+Tanpa UAT.

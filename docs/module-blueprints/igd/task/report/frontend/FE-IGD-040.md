@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `aa0b1168b` (`RizkiV2`) + working tree `FE-IGD-038`, `036`, `039` yang belum di-commit |
 | Commit backend yang dijadikan rujukan | `b9076c71` + working tree `BE-IGD-053`, `057`, `058`, `059` |
 | Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — 2 Oktober 2026.** Build pemilik terbukti. Uji layar: **4 terbukti** (U1, U2, U3, U7), **1 sebagian** (U6), **2 belum terbukti** (U4, U5). U4 dijalankan dengan waktu di masa depan (`400`), bukan waktu sesudah mulai penanganan (`409`); U5 tidak memperlihatkan penahanan simpan. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** Sembilan berkas (tujuh source diubah, satu panel baru, satu test); `eslint` 0 error; unit test berkas terkait 79/79. **Belum:** `npm run build` dan uji layar U1–U7 (milik pemilik) |
+| Status | ✅ **SELESAI — 3 Oktober 2026.** Ketujuh skenario uji layar terbukti pada bukti mentah; U4, U5, dan U6 diuji ulang pemilik 3 Oktober (bagian *Pemeriksaan bukti uji ulang — 3 Oktober 2026*). `npm run build` pemilik 3 Oktober 09.46, sesudah suntingan source terakhir 09.43. Layar dilayani `next dev`. Tanpa UAT. *Sebelumnya:* 🟡 **SEBAGIAN — 2 Oktober 2026.** Build pemilik terbukti. Uji layar: **4 terbukti** (U1, U2, U3, U7), **1 sebagian** (U6), **2 belum terbukti** (U4, U5). U4 dijalankan dengan waktu di masa depan (`400`), bukan waktu sesudah mulai penanganan (`409`); U5 tidak memperlihatkan penahanan simpan. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** Sembilan berkas (tujuh source diubah, satu panel baru, satu test); `eslint` 0 error; unit test berkas terkait 79/79. **Belum:** `npm run build` dan uji layar U1–U7 (milik pemilik) |
 
 ---
 
@@ -231,3 +231,36 @@ Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/` (`results-tahap-1
 - Laporan agen menulis U3 `FAIL` dan U4, U5 `PASS`; bukti mentah menunjukkan sebaliknya.
 
 Putusan: **🟡 sebagian** — Build pemilik terbukti. Uji layar: **4 terbukti** (U1, U2, U3, U7), **1 sebagian** (U6), **2 belum terbukti** (U4, U5). U4 dijalankan dengan waktu di masa depan (`400`), bukan waktu sesudah mulai penanganan (`409`); U5 tidak memperlihatkan penahanan simpan.
+
+## Pemeriksaan bukti uji ulang — 3 Oktober 2026
+
+Uji ulang dijalankan pemilik lewat agen penguji (Playwright) pada 3 Oktober 2026 pukul 09.12–09.19. Bukti mentah
+di `QuilvianSystemFrontendDev/test-with-agy/igd/`: `040-U4.png`, `040-U4-network.json`, `040-U5.png`,
+`040-U5-network.json`, `040-U6.png`, `040-U6-network.json`, beserta skrip `test-040-u4.mjs`, `test-040-u5-u6.mjs`, dan
+`test-040-u6-complete.mjs`. Ringkasan pada
+[laporan uji ulang](../../../testing/2026-10-03-laporan-uji-ulang-036-040-be-051.md) **tidak** dipakai sebagai bukti;
+yang diperiksa agent adalah badan permintaan dan respons pada JSON, tangkapan layar, dan urutan langkah pada skrip.
+
+| Skenario | Putusan | Yang teramati pada bukti mentah |
+| --- | --- | --- |
+| `040-U4` | **Terbukti** | Kunjungan `IGD-261002020240-5D8E6C` (mulai penanganan 09.02 WIB, 2 Oktober). `PATCH …/arrival-time` membawa `2026-10-02T03:00:00.000Z` (10.00 WIB) → `409` *"Waktu tiba tidak boleh lebih lambat dari mulai penanganan pukul 09.02 WIB tanggal 02-10-2026."* Tangkapan layar: pesan tampil di bawah isian, panel tetap kuning *Waktu tiba sementara* |
+| `040-U5` | **Terbukti** | Kunjungan `IGD-261001034358-B98C47`, `arrivalTimeSource = 0` dan status Menunggu Triage (respons `GET emergency-visits?patientId=…`). Sesudah tombol Simpan Pemeriksaan ditekan, catatan jaringan — yang merekam **semua** permintaan halaman — tidak memuat satu pun permintaan baru. Tangkapan layar: kalimat *"Konfirmasi waktu tiba lebih dulu pada panel Waktu tiba, lalu simpan pemeriksaan."* tepat di atas tombol |
+| `040-U6` | **Terbukti** | Kunjungan `IGD-261001033716-45CD48` (sumber `0`). `PATCH …/arrival-time` `200`, respons `arrivalTimeSource = 2`; lalu `POST /emergency-triages` `200` *"Data triage IGD berhasil dibuat."* dan `POST /emergency-triage-details` `200`. Tangkapan layar: spanduk hijau *"Pemeriksaan triage berhasil disimpan…"* |
+
+**Catatan.**
+
+- `040-U6` dijalankan pada kunjungan lain, bukan lanjutan `040-U5` seperti panduan. Percobaan pertama pada kunjungan
+  `040-U5` sempat mengonfirmasi waktu tibanya (`PATCH` `200`, diperiksa skrip `check-visit-after-patch.mjs`), tetapi
+  simpan triage tidak terjadi — kemungkinan besar karena *Kesimpulan Pengkajian* (wajib) masih kosong, terlihat pada
+  `040-U5.png`. Bukti percobaan itu tertimpa dan tidak dilaporkan pada laporan uji ulang. Kunjungan
+  `IGD-261001034358-B98C47` kini bersumber `2` dan masih Menunggu Triage.
+- Baris hijau *"Tiba … · dikonfirmasi <nama>"* tidak terekam pada `040-U6.png` karena halaman sudah tergulir ke bawah;
+  tampilannya sudah terbukti pada uji 2 Oktober (`040-U3`) dan terlihat lagi pada `036-U8.png` 3 Oktober.
+- Ketiga tangkapan layar memperlihatkan lencana "N" — layar dilayani `next dev`, bukan hasil build (aturan uji §2 butir
+  3). Build pemilik pada source yang sama ada: `.next/BUILD_ID` 3 Oktober 09.46, sesudah suntingan source terakhir
+  09.43, diperiksa agent sebelum terhapus oleh build agent yang dihentikan pukul 10.08.
+- Berkas task ini tidak berubah sejak bukti diambil. Pengerjaan ulang `FE-IGD-036` 3 Oktober menyentuh dialog Mulai
+  Triage saja, bukan panel waktu tiba maupun formulir triage.
+
+Putusan: **✅ selesai** — ketujuh skenario (U1–U7) terbukti pada bukti mentah; acceptance 1–5 terpenuhi (`eslint` 0
+error dan unit test 79/79 pada 1 Oktober; build pemilik 3 Oktober). Tanpa UAT.

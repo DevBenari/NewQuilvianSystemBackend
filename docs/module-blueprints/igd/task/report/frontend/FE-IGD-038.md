@@ -227,3 +227,26 @@ DoD: laporan tracked ✅ (berkas ini). Task ini dirilis bersama `BE-IGD-053`.
 | Interupsi | `NONE` |
 | Status Git | Enam berkas berubah oleh task; `src/utils/menu-sidebar/menu-items.jsx` berubah sebelum task (milik pemilik). Tanpa stage, commit, atau push |
 | Langkah berikutnya | `BE-IGD-059`, lalu `FE-IGD-036` |
+
+---
+
+## Verifikasi ulang sesudah kemunduran loket — 3 Oktober 2026
+
+**Mengapa diulang.** Commit frontend `4520abe64` (3 Oktober 09.23) mengembalikan `verification-step.jsx` ke versi
+30 Agustus 2026 (`c8613d88c`). Kotak kuning *"Pasien ini sudah terdaftar di IGD dan masih menunggu triage"* beserta
+tombol *Buka Triage Pasien* — keluaran task ini — hilang dari layar; hook dan payload tidak berubah. Pemilik memulihkan
+berkas itu (commit `521b18a9a`, 10.31), lalu skenario langkah Verifikasi diuji ulang pada **hasil build** (build agent
+10.14) lewat agen penguji Antigravity.
+
+Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/uji-ulang-2026-10-03-sore/`, diperiksa agent; panduan:
+[2026-10-03-panduan-uji-ulang-fe-igd-036.md](../../../testing/2026-10-03-panduan-uji-ulang-fe-igd-036.md).
+
+| Skenario | Putusan | Yang teramati pada bukti mentah |
+| --- | --- | --- |
+| U2 | **Terbukti** | Pasien `00-00-00-23` dengan encounter `ENC-RSMMC-00422` menunggu triage, alasan kosong: `GET active-episode` `200` (`hasActiveEpisode: true`, `encounter` terisi, `visit` kosong); kotak kuning memuat *"Encounter ENC-RSMMC-00422 · Menunggu Triage sejak 03/10/2026, 11.21"* dan tombol *Buka Triage Pasien*; nol `POST /patient-encounters` |
+| U3 | **Terbukti** | Tombol *Buka Triage Pasien* → `/health-services/emergency-installation-management/emergency-triage` |
+
+Laporan uji menyebut `038-U2` sebagai percobaan kedua (percobaan pertama gagal pada pemilih elemen skrip, bukan pada
+perilaku layar), tetapi JSON-nya bernomor percobaan 1 dan bukti percobaan pertama tidak disimpan.
+
+Putusan: **tetap ✅** — perilaku task ini terbukti pulih pada source `521b18a9a`.
