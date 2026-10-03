@@ -7,7 +7,7 @@
 | `pengaju` | Rizki Gunawan — Product/Domain Owner IGD (`IGD-DEC-089`) |
 | `penerima` | Pemegang modul Registration Management — **nama diisi pengaju saat mengirim**: ______________________ |
 | `rujukan` | PRD `04-prd-to-mvp.md` §8.6 butir 8; kontrak API `0.11.0` §8.1 dan §8.2, integration `0.4.0` §5 (`IGD-DEC-157`); laporan [`BE-IGD-053`](../task/report/backend/BE-IGD-053.md) dan [`BE-IGD-059`](../task/report/backend/BE-IGD-059.md); [audit kesiapan `MVP-7`](../evidence/2026-10-03-kesiapan-mvp-7.md) syarat C2 |
-| `status` | `disiapkan` — **belum dikirim**. Persetujuan dicatat pada decision log hanya sesudah jawaban tertulis penerima ada |
+| `status` | ✅ **`disetujui` — `IGD-DEC-181`, 3 Oktober 2026.** Butir 1–5 bagian 3 disetujui secara lisan oleh pemegang dan pengembang modul Registrasi (tim Rizki Gunawan). Pemilik IGD memutuskan konfirmasi tertulis dan pencatatan nama tidak disyaratkan untuk tim internal. Butir 4 bagian 4 (pemilik layar loket) tidak dijawab — keadaan sekarang tetap. Pembatasan `DELETE` ikut disetujui untuk direncanakan sebagai task baru. *Sebelumnya:* **`disetujui lisan` — menunggu konfirmasi tertulis.** Pengaju melaporkan pada 3 Oktober 2026 bahwa pemegang modul Registrasi dan pengembang Registrasi menyetujui perubahan ini secara **lisan**. Nama keduanya dan tanggal persetujuan belum tercatat. PRD §8.6 butir 8 meminta persetujuan **tertulis beserta nama**, sehingga keputusan baru pada decision log ditulis sesudah konfirmasi tertulis ada. *Sebelumnya:* `disiapkan` — belum dikirim |
 | `sifat` | Operasional. **Bukan** artefak desain — tidak masuk daftar hash manifest |
 
 ---

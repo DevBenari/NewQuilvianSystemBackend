@@ -4,7 +4,7 @@
 | --- | --- |
 | Blueprint | `IGD-BP-001` · revision **`8`** · status `draft` (irisan encounter-first `approved` lewat `IGD-DEC-157`) |
 | Slice | `MVP-7` = `EPIC IGD-11`: `FR-IGD-069`…`085`, `AT-IGD-166`…`185`; task `BE-IGD-051`…`055`, `057`…`059`, `FE-IGD-035`, `036`, `038`, `039`, `040`. **Di luar slice:** `EPIC IGD-12` (`BE-IGD-056`, `FE-IGD-037`, ⛔ `IGD-OQ-102`/`103`) |
-| **Putusan** | **`READY_WITH_CONDITIONS`** — siap masuk UAT dan rilis bertahap ke lingkungan berikutnya dengan tujuh syarat pada bagian 5. **Belum** siap ditandatangani untuk produksi: DoD butir 8 dan 10 belum terpenuhi |
+| **Putusan** | **`READY_WITH_CONDITIONS`** — siap masuk UAT dan rilis bertahap ke lingkungan berikutnya dengan tujuh syarat pada bagian 5. **Belum** siap ditandatangani untuk produksi: DoD butir 10 (UAT) belum terpenuhi. *Diperbarui 3 Oktober 2026 (sore): C6 dan C2 lunas — DoD butir 8 terpenuhi lewat `IGD-DEC-181`; sisa syarat C1, C3, C4, C5, C7* |
 | Skill | `verify-module-readiness` — hanya membaca source dan bukti; tidak mengerjakan perbaikan |
 | Wewenang tulis | `MODULE BLUEPRINT MODE` untuk berkas ini, diberikan Rizki Gunawan 3 Oktober 2026 (*"lanjutkan langkah berikutnya sesuai rekomendasi anda"*) |
 | Backend diperiksa | `NewQuilvianSystemBackend` `rizkiG` **`5af6ef3b`**, source tanpa perubahan working tree (`ahead 3` terhadap origin) |
@@ -43,25 +43,25 @@ tertinggal terbuka akan **ditolak** saat didaftarkan ulang, padahal kunjungan la
 | Functional requirement `FR-IGD-069`…`085` | 17 | 17 terpetakan ke task dan skenario uji (traceability R3.13.2) |
 | Skenario uji `AT-IGD-166`…`185` | 20 | 20 terpetakan; seluruhnya dijalankan pemilik — 9 task berbukti mentah yang diperiksa agent, 4 task atas pernyataan pemilik (bagian 4) |
 | Task `MVP-7` | 13 | 13 ✅ — backend 8, frontend 5; 13 laporan tracked ada |
-| Butir DoD PRD §8.6 | 10 | 7 terpenuhi, 1 sebagian, 2 belum (bagian 3) |
+| Butir DoD PRD §8.6 | 10 | 8 terpenuhi, 1 sebagian, 1 belum (bagian 4) — *sebelum C2: 7, 1, 2* |
 
 ---
 
 ## 3. Skor per dimensi
 
 **Kemajuan pengerjaan (scaffold dan implementasi): 13 dari 13 task = 100%.**
-**Kesiapan ujung-ke-ujung (berbobot): ±80%** — rinciannya di bawah. Kedua angka itu sengaja dipisah: semua task
+**Kesiapan ujung-ke-ujung (berbobot): ±87%** (sesudah C6 dan C2 lunas; ±80% saat audit pertama) — rinciannya di bawah. Kedua angka itu sengaja dipisah: semua task
 selesai tidak sama dengan siap dipakai.
 
 | Dimensi | Bobot | Skor | Bukti | Gap/blocker |
 | --- | ---: | ---: | --- | --- |
-| Fondasi — keputusan, kontrak, traceability | 15% | 5/6 (83%) | Kontrak `approved` dan hash utuh (manifest 0j.4); 17/17 FR dan 20/20 AT terpetakan; gate requirement `S1`…`S6`, `S8` siap (`evidence/02-requirement-completeness-gate.md`) | Empat ketidaksesuaian dokumen — bagian 6 |
+| Fondasi — keputusan, kontrak, traceability | 15% | 6/6 (100%) | Kontrak `approved` dan hash utuh (manifest 0j.4); 17/17 FR dan 20/20 AT terpetakan; gate requirement `S1`…`S6`, `S8` siap (`evidence/02-requirement-completeness-gate.md`) | — (empat ketidaksesuaian dokumen bagian 6 dibereskan C6) |
 | Backend | 25% | 8/8 (100%) | `…/Services/EmergencyEpisodeRule.cs#IsEncounterEnded,FindOpenEpisodeAsync@5af6ef3b`; `…/Controllers/EmergencyVisitController.cs#triage-queue,start-triage,no-show,arrival-time@5af6ef3b`; `…/Controllers/EmergencyEncounterReconciliationController.cs#preview,runs,reverse@5af6ef3b`; `…/RegistrationManagement/Controllers/PatientEncounterController.cs#GuardEncounterRegistrationAsync(:619),Emergency status(:1001),LockPatientEpisodeAsync(:1152)@5af6ef3b`; tiga migration (`20260923021224`, `20260923061124`, `20261001023520`) dengan `Down()` berpenjaga | — |
 | Frontend | 20% | 5/5 (100%) | Build agent `521b18a9a` 465/465 halaman 0 warning; `eslint` 0 error; unit test IGD 91/91; kemunduran loket `4520abe64` dipulihkan dan diuji ulang pada hasil build (`FE-IGD-034`, `038`) | — |
-| Integrasi dan runtime | 20% | 2/5 (40%) | Dev: tiga migration diterapkan; rekonsiliasi K1 dijalankan (`BE-IGD-052` R4); urutan rilis R3.13.5 dipatuhi di dev (`051` 22 Sep → `052` 23 Sep → `053` 1 Okt) | Peran nyata belum diuji (C4); lingkungan lain belum dirilis (C3); persetujuan pemilik Registrasi (C2) |
+| Integrasi dan runtime | 20% | 3/5 (60%) | Dev: tiga migration diterapkan; rekonsiliasi K1 dijalankan (`BE-IGD-052` R4); urutan rilis R3.13.5 dipatuhi di dev (`051` 22 Sep → `052` 23 Sep → `053` 1 Okt) ; persetujuan Registrasi `IGD-DEC-181` | Peran nyata belum diuji (C4); lingkungan lain belum dirilis (C3) |
 | Verifikasi | 20% | 4,5/6 (75%) | DoD 1, 3, 4, 6 terpenuhi; seluruh uji layar terakhir pada hasil build | DoD 2 sebagian (C5); DoD 10 UAT belum (C1) |
 
-Skor berbobot: 0,15×83 + 0,25×100 + 0,20×100 + 0,20×40 + 0,20×75 ≈ **80%**.
+Skor berbobot: 0,15×100 + 0,25×100 + 0,20×100 + 0,20×60 + 0,20×75 ≈ **87%** (audit pertama: 0,15×83 + 0,25×100 + 0,20×100 + 0,20×40 + 0,20×75 ≈ 80%).
 
 ---
 
@@ -76,7 +76,7 @@ Skor berbobot: 0,15×83 + 0,25×100 + 0,20×100 + 0,20×40 + 0,20×75 ≈ **80%*
 | 5 | Nol kolom baru pada `RegPatientEncounter`; nol baris baru `Program.cs` | **Terpenuhi** | `git log 0d13f3a8..5af6ef3b -- …/Models/RegPatientEncounter.cs` kosong; perubahan `Program.cs` pada rentang itu milik modul lain — baris IGD satu-satunya hanya bergeser indentasi |
 | 6 | Kueri invarian "kunjungan berakhir, encounter terbuka" = 0 sesudah rilis | **Terpenuhi di dev** | 0 baris sejak 22 September dan atas seluruh data, dua kali 3 Oktober (pernyataan pemilik; keluaran kueri tidak disimpan). Lingkungan lain: sesudah rilis di sana (C3) |
 | 7 | Kontrak `approved`, hash dihitung ulang | **Terpenuhi** | `IGD-DEC-157`; hash utuh (manifest 0j.4) |
-| 8 | Perubahan berkas Registrasi disetujui pemilik Registrasi secara tertulis | **Belum** | Pemilik Registrasi belum dipetakan; `BE-IGD-053` dan `059` berjalan di bawah `IGD-DEC-135` (C2) |
+| 8 | Perubahan berkas Registrasi disetujui pemilik Registrasi secara tertulis | **Terpenuhi — atas keputusan pemilik** | `IGD-DEC-181` (3 Oktober 2026): pemegang dan pengembang modul Registrasi menyetujui `IGD-REQ-002` butir 1–5 secara lisan; pemilik IGD memutuskan konfirmasi tertulis dan nama tidak disyaratkan untuk tim internal. *Sebelumnya: belum — pemilik Registrasi belum dipetakan* |
 | 9 | Butir wajib tinjau klinis (`IGD-DEC-150`) tercatat belum ditinjau | **Terpenuhi** | Traceability R3.13.5 baris *Tinjauan klinis*: `IGD-DEC-142`, `147`, `152`, `160`, `IGD-ASM-001`/`002` |
 | 10 | UAT oleh tim UAT terpisah | **Belum** | Seluruh laporan menulis *tanpa UAT* (C1) |
 
@@ -87,7 +87,7 @@ Skor berbobot: 0,15×83 + 0,25×100 + 0,20×100 + 0,20×40 + 0,20×75 ≈ **80%*
 | Kode | Syarat | Pemilik | Mitigasi / cara memenuhi | Risiko bila dilewati |
 | --- | --- | --- | --- | --- |
 | **C1** | UAT oleh tim terpisah atas `AT-IGD-166`…`185` dan cerita UAT PRD §8.4 (Pak Rayyan, Bu Sari) | Rizki → tim UAT | Pakai cerita berhasil/gagal PRD §8.4 sebagai naskah; jalankan dengan akun peran nyata (C4) | Alur pendaftaran–triage berubah total bagi petugas; kebiasaan lama (loket mengisi waktu tiba) dapat menimbulkan salah pakai |
-| **C2** | 🟡 **Surat [`IGD-REQ-002`](../approval-requests/2026-10-03-permintaan-persetujuan-pemilik-registrasi.md) disiapkan 3 Oktober 2026, belum dikirim** — pemegang modul Registrasi sudah ditunjuk menurut Rizki, tetapi namanya belum tercatat di blueprint. Persetujuan tertulis pemilik Registrasi atas titik sentuh: penjaga `POST /patient-encounters` Emergency, penolakan `PATCH …/status`, pembatasan `…/cancel` | Rizki — memetakan pemilik Registrasi | Ajukan ringkasan API §8.1 nomor 1–4 dan integration §5; sampai disetujui, perubahan Registrasi tidak dirilis ke produksi | Tim Registrasi mengubah `PatientEncounterController` tanpa tahu penjaga IGD, sehingga pendaftaran ganda kembali terbuka |
+| **C2** | ✅ **Lunas 3 Oktober 2026 — `IGD-DEC-181`.** *Sebelumnya:* 🟡 **Disetujui lisan, menunggu konfirmasi tertulis** — Rizki melaporkan 3 Oktober 2026 bahwa pemegang modul Registrasi dan pengembang Registrasi menyetujui secara lisan ([`IGD-REQ-002`](../approval-requests/2026-10-03-permintaan-persetujuan-pemilik-registrasi.md)); nama dan konfirmasi tertulis belum ada, sehingga DoD butir 8 belum terpenuhi. Persetujuan tertulis pemilik Registrasi atas titik sentuh: penjaga `POST /patient-encounters` Emergency, penolakan `PATCH …/status`, pembatasan `…/cancel` | Rizki — memetakan pemilik Registrasi | Ajukan ringkasan API §8.1 nomor 1–4 dan integration §5; sampai disetujui, perubahan Registrasi tidak dirilis ke produksi | Tim Registrasi mengubah `PatientEncounterController` tanpa tahu penjaga IGD, sehingga pendaftaran ganda kembali terbuka |
 | **C3** | Rilis per lingkungan mengikuti R3.13.5: `051` → `052` + **jalankan rekonsiliasi K1** (pratinjau → `expectedCount` → eksekusi) → `053` bersama `FE-IGD-038` → `057`, `059` → `FE-IGD-036`; lalu kueri invarian | Rizki | Urutan tidak ditegakkan perkakas — jadikan daftar periksa rilis; catat angka pratinjau dan hasil invarian per lingkungan | Pasien dengan encounter lama tertinggal terbuka (K1) ditolak saat datang lagi |
 | **C4** | Pemetaan izin pada **peran nyata**, lalu satu putaran uji dengan akun non-SuperAdmin: `EmergencyVisit : NoShow` untuk perawat triage; `EmergencyEncounterReconciliation : Read/Process/Reverse` hanya untuk admin data (permission §7.1); `EmergencyVisit : Create` dipakai bersama loket dan Mulai Triage (`IGD-DEC-158`) | Rizki / admin peran | Katalog izin terbentuk otomatis dari atribut `[AccessController]`/`[AccessAction]`; pemberian ke peran lewat layar Akses Role. Seluruh uji sejauh ini memakai SuperAdmin; `FE-IGD-035` U10 (tanpa hak) hanya disimulasikan | Perawat tidak bisa menandai pasien pergi, atau peran klinis bisa menjalankan rekonsiliasi |
 | **C5** | Bukti hitungan baris `AT-IGD-174` | Rizki | Ulangi `BE-IGD-055` S6 dengan kueri hitungan laporan §6 (`SELECT COUNT(*) … FROM "EmgVisit" WHERE "EncounterId" = …`), simpan keluarannya | Rendah — perilaku serentak sudah dikuatkan `057-S8` dan `036-U8` |

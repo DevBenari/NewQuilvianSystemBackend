@@ -622,7 +622,7 @@ Seluruh `FR-IGD-069`…`085` dan `AT-IGD-166`…`185` terpetakan ke minimal satu
 | Angka kueri A/B `BE-IGD-050` | Masih tanpa angka sejak 21 September 2026 |
 | `IGD-UNK-06` | Jumlah `TrxQueue` lama yang tertaut encounter Emergency — tidak dibersihkan `BE-IGD-053` |
 | `IGD-UNK-10` | Praktik lapangan pendaftaran pasien tanpa identitas — memengaruhi `AT-IGD-184` |
-| Persetujuan pemilik Registrasi | PRD §8.6 butir 8 belum dapat dijawab "ya"; `BE-IGD-053` dan `059` berjalan di bawah `IGD-DEC-135` |
+| ~~Persetujuan pemilik Registrasi~~ | **Ditutup 3 Oktober 2026 — `IGD-DEC-181`**: pemegang dan pengembang modul Registrasi menyetujui `IGD-REQ-002` secara lisan; PRD §8.6 butir 8 terpenuhi atas keputusan pemilik. *Sebelumnya:* butir 8 belum dapat dijawab "ya"; `BE-IGD-053` dan `059` berjalan di bawah `IGD-DEC-135` |
 | Tinjauan klinis | `IGD-DEC-142`, `147`, `152`, `160`, `IGD-ASM-001`/`002` wajib ditinjau Clinical Governance / Nursing authority saat ditunjuk |
 | Urutan rilis | Tidak ditegakkan perkakas — manual, mengikuti backend R3.13.5 |
 | SLA triage baris tanpa kunjungan | Tidak ikut SLA sampai triage dimulai (`ResponseDueAt` dihitung dari mulai triage) — sesuai desain, dinyatakan |
