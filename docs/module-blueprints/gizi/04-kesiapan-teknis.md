@@ -3,9 +3,44 @@
 | Field | Nilai |
 |---|---|
 | Blueprint ID | `gizi` |
-| Status desain domain | **`BLOCKED / WAITING BUSINESS DECISION`** — lihat [`03-desain-domain.md`](03-desain-domain.md) |
-| Sifat dokumen | Audit **read-only** atas source pada `597cdde9`, 24 September 2026 |
-| Nol keputusan bisnis | Dokumen ini **tidak** menjawab `GIZ-OQ-002`, `004`, maupun `006`, dan tidak menurunkan struktur tabel apa pun dari tebakan |
+| Status desain domain | **`READY / TERIMPLEMENTASI`** — disegarkan 1 Oktober 2026 |
+| Sifat dokumen | Audit read-only 24 September 2026, **disegarkan** 1 Oktober 2026 |
+
+> ## ⚠️ Badan dokumen di bawah sudah usang sejak 1 Oktober 2026
+>
+> Lembar ini ditulis ketika desain domain Gizi masih `BLOCKED`. Keadaan itu **sudah berubah**;
+> badan dokumen di bawah dipertahankan apa adanya sebagai catatan sejarah audit.
+>
+> ### Yang berubah
+>
+> `GIZ-OQ-002`, `GIZ-OQ-004`, dan `GIZ-OQ-006` **sudah dijawab pemilik proses 25 September 2026**
+> sebagai `GIZ-DEC-011`, `GIZ-DEC-012`, dan `GIZ-DEC-014`, dan ketiganya kini **sudah
+> terimplementasi di source**. Daftar "yang TIDAK boleh dikerjakan sebelum keputusan" di bawah
+> karena itu tidak lagi berlaku.
+>
+> | Keputusan | Bukti di source |
+> |---|---|
+> | `GIZ-DEC-011` master diagnosis gizi berkode milik Gizi, baseline **IDNT**, domain `NI`/`NC`/`NB` | `GziNutritionDiagnosisMasters.cs`; tiga domain ditanam `HasData`, master diagnosisnya sengaja dibiarkan kosong karena isinya keputusan instalasi gizi |
+> | `GIZ-DEC-012` kebutuhan nutrisi berhistori: nilai kalkulasi, nilai final, alasan, pelaku, waktu | `GziNutritionRequirement.cs` — `CalculatedValue`, `FinalValue`, `AdjustmentReason`, `RevisionNumber`, `IsCurrent`; lima parameter ditanam `HasData` |
+> | `GIZ-DEC-014` pemilik proses Kepala Instalasi Gizi | `00-interview-decisions.md` |
+>
+> Dua temuan teknis di bawah juga **sudah tertutup**: rename `Gz` → `Gzi` tuntas (snapshot nol
+> sisa nama lama), dan tabel Gizi kini **16**, bukan 10.
+>
+> ### Yang masih terbuka, dan tidak memblokir
+>
+> `GIZ-OQ-003` isi `MstProfession` untuk ahli gizi — milik Human Resource. `GIZ-OQ-005` interval
+> skrining ulang. `GIZ-OQ-007` rumus kalkulasi — **DEFERRED atas keputusan pemilik proses**, bukan
+> menunggu: nilai kebutuhan diinput dan difinalisasi ahli gizi, sementara registry rumusnya
+> (`GziNutritionFormula`) sudah berdiri agar rumus dapat ditambahkan kemudian tanpa membongkar
+> tabel. Mengisinya dengan rumus mana pun — termasuk Harris-Benedict maupun Mifflin-St Jeor —
+> berarti **membatalkan keputusan yang sudah disahkan**, bukan mengisi kekosongan.
+>
+> ### Verifikasi
+>
+> Nol menjadi **30 uji** pada `Tests/QuilvianSystemBackend.NutritionTests`, menjaga `GIZ004`,
+> `GIZ005`, `GIZ006`, `GIZ013`, `GIZ014`, `GIZ015`, `GIZ016`, `GIZ017`, `GIZ018`, `GIZ019`, dan
+> penomoran enum yang ikut tersimpan di basis data.
 
 ## Mengapa lembar ini ada
 
