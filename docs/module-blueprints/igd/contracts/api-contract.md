@@ -652,6 +652,19 @@ implementasi dikembalikan ke perencanaan, bukan ditambal di berkas ini.
 **Urutan rilis wajib.** Nomor 1, 3, 4, 7 (penjaga) dirilis **sebelum** layar pendaftaran berhenti membuat
 kunjungan (`FE-IGD-036`). Membalik urutannya membuka pendaftaran ganda (roadmap frontend R3.12).
 
+**Catatan rute petugas — 3 Oktober 2026 (`IGD-DEC-182`).** "`POST /patient-encounters`" pada tabel ini berarti
+**kedua** rute pembuat encounter, yang sama-sama menjalankan proses inti `CreateEncounterCoreAsync` beserta penjaga
+nomor 1, 2, dan 9:
+
+| Rute | Untuk | Otorisasi |
+| --- | --- | --- |
+| `POST /patient-encounters/admin` | **Petugas** — termasuk layar loket IGD | `[AccessPermission("PatientEncounter", "Create")]` |
+| `POST /patient-encounters` dan `POST /patient-encounters/kiosk` | **Kiosk** | Policy `KioskRead` — hanya SuperAdmin, Administrator, dan akun kiosk (commit `27c48484`, 4 Juli 2026) |
+
+Layar loket IGD **wajib** memakai rute `/admin`. Rute tanpa akhiran menolak petugas loket dengan `403` — ditemukan uji
+izin peran nyata `C4-01` (3 Oktober 2026), sebelumnya tersembunyi karena seluruh uji memakai SuperAdmin. Catatan ini
+tidak mengubah perilaku backend dan tidak menaikkan versi kontrak.
+
 ### 8.2 Titik sentuh Registrasi — grup `Patient Encounter`
 
 `[Tags("Patient Encounter")]` · Base URL `api/v1/health-services/registration-management/patient-encounters`

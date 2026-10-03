@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `aa0b1168b` (`RizkiV2`, upstream `origin/RizkiV2`) + working tree `FE-IGD-038` yang belum di-commit |
 | Commit backend yang dijadikan rujukan | `b9076c71` + working tree `BE-IGD-053`, `057`, `058`, `059` |
 | Tanggal | 1 Oktober 2026; pengerjaan ulang 3 Oktober 2026 (bagian 10) |
-| Status | ✅ **SELESAI — 3 Oktober 2026 (sore).** Uji ulang pada hasil build (commit `521b18a9a`, build 10.14): 10 dari 10 skenario terbukti pada bukti mentah, termasuk `036-U7` tanpa guliran skrip pada 1366×768 dan 1280×720, `036-R1`, serta loket `036-U1`/`U9`. Seluruh 14 skenario kartu dan acceptance 1–7 terpenuhi. Tanpa UAT. Rincian: bagian *Pemeriksaan bukti uji ulang — 3 Oktober 2026 (sore)*. *Sebelumnya:* 🟡 **SEBAGIAN — 3 Oktober 2026 (pengerjaan ulang, bagian 10).** Uji ulang pemilik 3 Oktober: **U7 dan U8 terbukti** pada bukti mentah, sehingga ke-14 skenario pernah terbukti. Pengerjaan ulang agent: pesan galat dialog Mulai Triage digulir otomatis ke pandangan; tanggal bawaan waktu tiba memakai tanggal terdaftar, bukan jam browser UTC — `eslint` 0 error, unit test IGD 91/91, `npm run build` agent lulus (465/465 halaman, 0 warning). **Belum:** commit pemilik; uji ulang U7 dan cek loket U1, U9 pada **hasil build** (`npm run start`), karena dialog berubah hari ini dan source loket berubah sesudah bukti U1/U9 diambil (`8cc155e02`, `4520abe64`). *Sebelumnya:* 🟡 **SEBAGIAN — 3 Oktober 2026 (pagi).** Build pemilik terbukti. Uji layar: **13 dari 14 terbukti** pada bukti mentah (U1–U7, U9–U14), termasuk lima isian `IGD-DEC-179` dan penolakan 409 pada dialog Mulai Triage (`036-U7`). **Belum terbukti:** U8 (dijalankan lewat dua panggilan API, bukan dua tab). *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete, termasuk pengerjaan ulang `IGD-DEC-179` (bagian 9).** Dialog Mulai Triage kini memuat lima isian opsional — lokasi kedatangan, lokasi pasien ditemukan, lokasi trauma, waktu trauma, catatan kunjungan — dan mengirimnya ke `start-triage` (3 berkas, +90 baris; `eslint` 0 error). **Belum:** `npm run build` dan uji layar U1–U14 (milik pemilik). **Jangan dirilis** sebelum `BE-IGD-059` aktif dan delta `BE-IGD-055` di-build. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** 17 berkas (13 source diubah, 1 baru, 3 test); `eslint` 0 error; unit test berkas terkait 70/70. **Belum:** `npm run build` dan uji layar U1–U9 (milik pemilik). **Jangan dirilis** sebelum `BE-IGD-059` aktif |
+| Status | 🟡 **SEBAGIAN — 3 Oktober 2026 (pengerjaan ulang kedua, bagian 11).** Uji izin peran nyata `C4-01` menemukan loket memanggil rute kiosk `POST /patient-encounters` sehingga petugas loket ditolak `403`; rute diganti ke `/patient-encounters/admin` (`IGD-DEC-182`). `eslint` 0 error, unit test IGD 91/91. **Belum:** `npm run build` (terhalang server uji yang berjalan) dan uji ulang `C4-01`, `038-U2`, `036-U9` dengan akun Petugas Pendaftaran. *Sebelumnya:* ✅ **SELESAI — 3 Oktober 2026 (sore).** Uji ulang pada hasil build (commit `521b18a9a`, build 10.14): 10 dari 10 skenario terbukti pada bukti mentah, termasuk `036-U7` tanpa guliran skrip pada 1366×768 dan 1280×720, `036-R1`, serta loket `036-U1`/`U9`. Seluruh 14 skenario kartu dan acceptance 1–7 terpenuhi. Tanpa UAT. Rincian: bagian *Pemeriksaan bukti uji ulang — 3 Oktober 2026 (sore)*. *Sebelumnya:* 🟡 **SEBAGIAN — 3 Oktober 2026 (pengerjaan ulang, bagian 10).** Uji ulang pemilik 3 Oktober: **U7 dan U8 terbukti** pada bukti mentah, sehingga ke-14 skenario pernah terbukti. Pengerjaan ulang agent: pesan galat dialog Mulai Triage digulir otomatis ke pandangan; tanggal bawaan waktu tiba memakai tanggal terdaftar, bukan jam browser UTC — `eslint` 0 error, unit test IGD 91/91, `npm run build` agent lulus (465/465 halaman, 0 warning). **Belum:** commit pemilik; uji ulang U7 dan cek loket U1, U9 pada **hasil build** (`npm run start`), karena dialog berubah hari ini dan source loket berubah sesudah bukti U1/U9 diambil (`8cc155e02`, `4520abe64`). *Sebelumnya:* 🟡 **SEBAGIAN — 3 Oktober 2026 (pagi).** Build pemilik terbukti. Uji layar: **13 dari 14 terbukti** pada bukti mentah (U1–U7, U9–U14), termasuk lima isian `IGD-DEC-179` dan penolakan 409 pada dialog Mulai Triage (`036-U7`). **Belum terbukti:** U8 (dijalankan lewat dua panggilan API, bukan dua tab). *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete, termasuk pengerjaan ulang `IGD-DEC-179` (bagian 9).** Dialog Mulai Triage kini memuat lima isian opsional — lokasi kedatangan, lokasi pasien ditemukan, lokasi trauma, waktu trauma, catatan kunjungan — dan mengirimnya ke `start-triage` (3 berkas, +90 baris; `eslint` 0 error). **Belum:** `npm run build` dan uji layar U1–U14 (milik pemilik). **Jangan dirilis** sebelum `BE-IGD-059` aktif dan delta `BE-IGD-055` di-build. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** 17 berkas (13 source diubah, 1 baru, 3 test); `eslint` 0 error; unit test berkas terkait 70/70. **Belum:** `npm run build` dan uji layar U1–U9 (milik pemilik). **Jangan dirilis** sebelum `BE-IGD-059` aktif |
 
 ---
 
@@ -545,3 +545,75 @@ laporan task masing-masing.
 Putusan: **✅ selesai** — seluruh 14 skenario kartu terbukti (U1–U6 dan U9–U14 pada 1–2 Oktober, diulang U1/U9 pada
 source akhir; U7 dan U8 3 Oktober), ditambah `036-R1` untuk pengerjaan ulang bagian 10. Acceptance 1–7 terpenuhi.
 Tanpa UAT.
+
+---
+
+## 11. Pengerjaan ulang 3 Oktober 2026 (kedua) — loket memakai rute petugas `/admin`
+
+| Field | Nilai |
+| --- | --- |
+| Jenis | Pengerjaan ulang `FE-IGD-036` atas temuan uji izin peran nyata `C4-01`, bukan kartu baru |
+| Wewenang | Rizki Gunawan, 3 Oktober 2026: *"lakukan perbaikan loket dikerjakan sebagai pengerjaan ulang FE-IGD-036, ditambah catatan kecil di kontrak API §8.1 bahwa petugas memakai rute /admin"* |
+| Keputusan | `IGD-DEC-182` |
+| Contract version | API `0.11.0` §8.1 + catatan rute petugas (manifest 0j.5); versi tidak dinaikkan |
+| Wewenang UI | Tidak dipakai — nol perubahan tampilan |
+| Dependency | `BE-IGD-053` ✅ (penjaga ada di `CreateEncounterCoreAsync`, dipakai rute `/admin` maupun kiosk) |
+| Klasifikasi | `LIGHT` — 1 berkas service, 1 baris alamat + 1 baris komentar |
+| Task mode | `FRONTEND`; laporan di repository backend |
+| Commit frontend saat dikerjakan | `521b18a9a` (`RizkiV2`, `ahead 2`) |
+| Commit backend yang dijadikan rujukan | `a23e5e21` (`rizkiG`) |
+| Model | Claude Opus 5.5 |
+
+### 11.1 Masalah
+
+Uji `C4-01` dengan akun Petugas Pendaftaran sungguhan: tombol *Selesaikan Pendaftaran* ditolak `403` dan spanduk
+menulis *"Request failed with status code 403"*. Penyebabnya di source backend `PatientEncounterController`:
+
+| Rute | Handler | Otorisasi |
+| --- | --- | --- |
+| `POST /patient-encounters` dan `…/kiosk` | `CreateEncounterForKiosk` | Policy `KioskRead` — SuperAdmin, Administrator, akun kiosk (sejak `27c48484`, 4 Juli 2026) |
+| `POST /patient-encounters/admin` | `CreateEncounterForAdmin` | `PatientEncounter : Create` |
+
+Loket IGD memanggil rute pertama. Semua uji loket sebelumnya memakai SuperAdmin, sehingga penolakan ini tidak
+pernah terlihat. *Contoh:* petugas loket Rendy mendaftarkan pasien pukul 14.40 → `403`, pasien tidak terdaftar;
+SuperAdmin melakukan hal yang sama → `200`.
+
+### 11.2 Yang berubah
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/lib/services/health-services/registration-management/emergency-registration.service.js` | `EMERGENCY_REGISTRATION_API_URLS.patientEncounters` → `…/registration-management/patient-encounters/admin`, ditambah satu baris komentar. Konstanta ini hanya dipakai `createEmergencyPatientEncounter` |
+
+Badan permintaan, respons, pra-cek `active-episode`, alasan pendaftaran ganda, dan seluruh tampilan **tidak berubah**.
+Kedua rute menjalankan `CreateEncounterCoreAsync` yang sama (`allowCompanyGuarantor: true`), termasuk penjaga episode
+`BE-IGD-053` dan pembuatan tanpa antrean.
+
+`UI GATE: N/A — perubahan hanya pada service HTTP, nol JSX dan nol CSS`
+
+### 11.3 Verifikasi
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| `npx eslint --quiet <berkas>` | **0 error** |
+| Pemakaian konstanta | Satu-satunya pemakai: `createEmergencyPatientEncounter` (`git grep`) |
+| `npm run build` | **BLOCKED** — `EBUSY: resource busy or locked, rmdir '.next\standalone'`: server produksi uji (`node .next/standalone/server.js`, PID 20176) sedang berjalan. Langkah pembersihan build sempat menghapus isi `.next` sebelum gagal, sehingga server itu tidak lagi dapat menyajikan berkas statis (`500`). Proses tidak dimatikan agent |
+
+`AUTOMATED TEST: node --import ./tests/helpers/register.mjs --test tests/unit/emergency-*.test.mjs — PASS (91/91)`
+
+`MANUAL TEST: NOT FEASIBLE oleh agent` — butuh akun Petugas Pendaftaran. Skenario untuk pemilik, pada hasil build
+sesudah server dihentikan, dibuild ulang, dan dijalankan lagi:
+
+| ID | Langkah | Yang diharapkan |
+| --- | --- | --- |
+| `C4-01` (ulang) | Akun Petugas Pendaftaran: Pendaftaran IGD → pasien bersih → selesaikan | `GET …/active-episode` `200`; **`POST /patient-encounters/admin` `200`**; nol `POST /emergency-visits`; layar Selesai *Menunggu Triage* |
+| `038-U2` (ulang, akun loket) | Pasien yang sama, alasan kosong | Kotak kuning *Menunggu Triage* + *Buka Triage Pasien*; nol `POST` |
+| `036-U9` (ulang, akun loket) | Pasien yang sama, isi alasan | Satu `POST /patient-encounters/admin` membawa `duplicateEpisodeOverrideReason` → `200` |
+
+### 11.4 Catatan
+
+- Pada sesi Petugas Pendaftaran, `GET …/patient-insurances` dan `…/patient-company-guarantors` juga ditolak `403`
+  walau izin *Read*-nya ada. Di luar lingkup perbaikan ini; perlu ditelusuri bersama pemilik Patient Management.
+- Layar kiosk (`kiosk-*-registration.service.js`) tetap memakai rute kiosk — tidak disentuh.
+
+Putusan: **🟡 sebagian** — perbaikan source selesai, `eslint` dan unit test lulus; **belum:** `npm run build` (terhalang
+server berjalan) dan uji ulang `C4-01`, `038-U2`, `036-U9` dengan akun Petugas Pendaftaran.
