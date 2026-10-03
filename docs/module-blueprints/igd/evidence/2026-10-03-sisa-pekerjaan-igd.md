@@ -38,7 +38,7 @@ Kolom *Bisa mulai sekarang?* menjawab apakah pekerjaan itu menunggu pihak lain.
 | 1.2 | ✅ **Selesai 3 Oktober 2026 — `IGD-DEC-181`.** Kirim [permintaan persetujuan Registrasi](../approval-requests/2026-10-03-permintaan-persetujuan-pemilik-registrasi.md) (`IGD-REQ-002`), lalu catat jawabannya (C2, DoD 8) | Rizki → pemegang modul Registrasi | Ya |
 | 1.3 | Beri izin pada peran nyata — `EmergencyVisit : NoShow` untuk perawat triage, `EmergencyEncounterReconciliation` untuk admin data saja — lalu uji dengan akun non-SuperAdmin (C4) | Rizki / admin peran | Ya |
 | 1.4 | Ulangi uji serentak `BE-IGD-055` S6 dengan hitungan baris tersimpan (C5) | Rizki | Ya |
-| 1.5 | Jawab `IGD-OQ-110` (jumlah encounter nonaktif tanpa tanda berakhir pada data lama) — **sebaiknya sebelum** `BE-IGD-053` dirilis ke lingkungan berikutnya | Rizki | Ya |
+| 1.5 | ✅ **Dev: 0 baris (3 Oktober 2026)** — ulangi per lingkungan sebelum rilis `BE-IGD-053`. Jawab `IGD-OQ-110` (jumlah encounter nonaktif tanpa tanda berakhir pada data lama) — **sebaiknya sebelum** `BE-IGD-053` dirilis ke lingkungan berikutnya | Rizki | Ya |
 | 1.6 | Rilis per lingkungan sesuai urutan R3.13.5 + rekonsiliasi K1 + kueri invarian sesudah rilis (C3) | Rizki | Sesudah 1.1 |
 | 1.7 | UAT oleh tim terpisah (C1, DoD 10) | Tim UAT | Sesudah 1.3 dan 1.6 |
 | 1.8 | Jawab soal tombol *Sekarang* pada pemilih jam waktu tiba (laporan `FE-IGD-036` §10.6) | Rizki | Ya |

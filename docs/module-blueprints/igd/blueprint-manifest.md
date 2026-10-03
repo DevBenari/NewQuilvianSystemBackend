@@ -152,7 +152,7 @@ byte-nya dinormalkan dulu. HEAD lokal `5af6ef3b`, belum di-commit):
 
 | Artifact | SHA-256 |
 |---|---|
-| `00-interview-decisions.md` | `6415760bd4707313d17794505a7c88ecea4e27bb35df1ebdb95bea0dc060c326` |
+| `00-interview-decisions.md` | `07c5c0728869759744fd28931321a7f78db4a6b112fe55bae87c846d19bfd62c` |
 
 *Diperbarui 3 Oktober 2026:* nilai di atas sudah mencakup penyelarasan status `IGD-OQ-093` (syarat C6) dan
 keputusan `IGD-DEC-181` (persetujuan Registrasi atas `IGD-REQ-002`, PRD §8.6 butir 8). Keduanya tidak mengubah kontrak.
