@@ -127,6 +127,35 @@ public sealed class FinanceOpeningItemBatchesController : ControllerBase
     }
 
     /// <summary>
+    /// Mengunggah ulang berkas pada batch DRAFT (state-transition-matrix.md F.2: DRAFT -> DRAFT). Hasil validasi
+    /// sebelumnya dibuang; saldo awal Accounting yang sudah dinyatakan dipertahankan. Batch selain DRAFT dijawab 409.
+    /// </summary>
+    [HttpPost("{id:guid}/reupload")]
+    [AccessAction("Update", "Update Opening Item Batch", AccessType = AccessTypes.Update, SortOrder = 3)]
+    [AccessPermission("FinanceOpeningItemBatch", "Update")]
+    [ProducesResponseType(typeof(ApiResponse<OpeningItemBatchResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> Reupload(
+        Guid id, [FromForm] ReuploadOpeningItemBatchRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var entity = await _service.ReuploadAsync(
+                id, request.File, request.ExpectedRowVersion, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<OpeningItemBatchResponse>.Ok(
+                FinanceOpeningItemBatchService.Map(entity), "Berkas batch migrasi tagihan lama berhasil diunggah ulang."));
+        }
+        catch (Exception exception) when (IsHandled(exception))
+        {
+            return Failure(exception);
+        }
+    }
+
+    /// <summary>
     /// Menjalankan validasi per baris (FIN-VAL-187..191, 226). Batch berpindah ke VALIDATED hanya
     /// bila nol baris bergalat; sebaliknya tetap DRAFT beserta daftar galatnya.
     /// </summary>

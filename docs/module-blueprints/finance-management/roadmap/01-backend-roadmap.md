@@ -1119,3 +1119,54 @@ coverage gap, dan **nol** task "write unit tests" dimunculkan.
 | 10 | QBE preflight untuk tiga entity baru | Diselesaikan **pada waktu eksekusi** dari `AGENTS.md` backend dan `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`. Prefix `Fin` dan `Mst` sudah terdaftar; **nol** folder submodul baru, sehingga **nol** gerbang `QBE-MOD-003`. Folder `Readers/` berada di dalam submodule yang sudah terdaftar |
 | 11 | Kesesuaian engineering contract | Diselesaikan pada waktu eksekusi dari `BACKEND_ENGINEERING_CONTRACT.md`. Ketiga model baru berstatus `NEW CODE` |
 | 12 | Urutan rilis layar untuk dua perubahan memutus | **MUST** dijaga: `FE-FIN-030` dirilis sebelum atau bersamaan dengan `BE-FIN-077`/`078` |
+
+---
+
+# REV-14F — Penyelarasan saldo awal cutover (amandemen pasca-`FE-FIN-028`)
+
+```yaml
+blueprint_id: FIN-BP-001
+roadmap_revision: REV-14F
+status: SOURCE SELESAI — menunggu build, migration, dan pengamatan pengguna
+decisions: [FIN-DEC-128]   # ditambah keputusan pemilik 3 Oktober 2026 (lihat di bawah) — BELUM bernomor FIN-DEC
+designs: [FIN-DES-088]
+contract_versions: [FIN-API-1.5 F.1, FIN-STATE-1.6 F.1, FIN-VAL-1.7 FIN-VAL-168]   # bagian terkait diperbarui 3 Oktober 2026
+task_range_backend: BE-FIN-084
+```
+
+**Kenapa ada gelombang ini.** Saat `FE-FIN-028` dibangun, layar saldo awal cutover menemukan empat selisih antara
+kontrak dan backend `BE-FIN-066`. Pemilik (Yasmin) memutuskan penyelesaiannya pada **3 Oktober 2026**:
+
+| # | Selisih | Keputusan pemilik |
+|:--:|---|---|
+| 1 | `Notes` pada `approve`/`lock` diterima tetapi tidak disimpan | **Hapus** `Notes` dari kedua DTO dan dari kontrak |
+| 2 | `ApprovedBy` hanya `Guid` | **Tambah** `ApprovedByName` pada `OpeningBalanceResponse` |
+| 3 | Penguncian `KAS-KASIR` bernominal nol tidak menerbitkan mutasi kas | Mutasi **selalu terbit**, sehingga `FIN-VAL-168` diberi **satu pengecualian**: mutasi `SALDO-AWAL` boleh bernilai nol |
+| 4 | `api-contract.md` F.1 masih berlabel "Rencana (belum tersedia)" | Dikoreksi menjadi **Tersedia** |
+
+> **Catatan pencatatan keputusan.** Keputusan 1–3 diambil langsung oleh pemilik dalam sesi `FE-FIN-028` dan **belum
+> dicatat** di `00-interview-decisions.md` sebagai `FIN-DEC-nnn`. Nomor tidak dikarang di sini. Pencatatan resminya
+> adalah pekerjaan `qv-grill` (Amendment Pass) dan harus dilakukan sebelum blueprint revisi berikutnya disetujui.
+
+## Task REV-14F
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 🟡 `BE-FIN-084` | Saldo awal cutover menyampaikan nama penyetuju, tidak menjanjikan catatan yang tidak disimpan, dan penguncian `KAS-KASIR` selalu meninggalkan satu mutasi `SALDO-AWAL` | `FR-FIN-146`..`148`; `FIN-DEC-128`; keputusan pemilik 3 Oktober 2026; `FIN-DES-088` | `FIN-API-1.5` F.1; `FIN-STATE-1.6` F.1; `FIN-VAL-1.7` `FIN-VAL-168` | `BE-FIN-066`; pola pencarian nama `PettyCashBudgetService`; `FinanceSubledgerMovementService` | Perubahan `SubledgerOpeningBalanceDtos` (hapus `Notes` ×2, tambah `ApprovedByName`); `FinanceOpeningBalanceService` (pencarian nama; syarat `Amount > 0` pada penguncian dihapus); `RecordCashMovementAsync` (pengecualian nol khusus `SALDO-AWAL`); `FinCashMovementConfiguration`; migration `RelaxFinCashMovementAmountForZeroOpeningBalance` | `BE-FIN-066`, `BE-FIN-062` | `Approve`/`Lock` tidak lagi memuat `Notes`; setiap respons saldo awal memuat `ApprovedByName` (`null` bila belum disetujui atau pengguna tidak ditemukan); mengunci `KAS-KASIR` bernominal 0 menerbitkan tepat satu mutasi `SALDO-AWAL` bernilai 0; mutasi **negatif** tetap ditolak untuk semua jenis; mutasi **nol** untuk jenis selain `SALDO-AWAL` tetap ditolak `400`; `CK_FinCashMovement_Amount` di DB selaras dengan aturan itu | Kontrak API dan `FIN-VAL-168` terverifikasi; migration **dibuat, belum dijalankan**; `dotnet build` dan uji manual penguncian nol **menunggu pengguna** | Backend Owner — **risiko:** pengecualian nol bocor ke jenis mutasi lain dan melemahkan invariant buku kas (dijaga oleh `movementType == SaldoAwal` pada service **dan** pada constraint DB). Migration menyentuh tabel yang **sudah berjalan** | 🟡 **SOURCE SELESAI 3 Oktober 2026.** Seluruh cakupan tertulis; migration ditulis **manual** (tanpa `dotnet ef`). Pengguna melaporkan `dotnet build` dan penerapan migrasi **sukses** (bukan pengamatan agent). Sisa untuk ✅: `has-pending-model-changes` bersih dan uji manual penguncian `KAS-KASIR` bernominal 0. Bukti: [laporan BE-FIN-084](../task/report/backend/BE-FIN-084.md) |
+
+## Wewenang migration pada REV-14F
+
+| Hal | Keadaan |
+|---|---|
+| Membuat berkas migration | Diminta eksplisit pengguna 3 Oktober 2026, **ditulis tangan tanpa `dotnet ef`/build**. Syarat `FIN-DEC-138` ("sesuai snapshot") dipenuhi dengan memperbarui `ApplicationDbContextModelSnapshot` pada satu baris yang sama dan menurunkan `Designer` dari snapshot itu — **belum dibuktikan** oleh tooling EF |
+| Menerapkan ke database | **MILIK YASMIN.** Tidak dijalankan |
+| Pembuktian kesesuaian | Menunggu pengguna: `dotnet ef migrations has-pending-model-changes` **MUST** menyatakan nol perubahan tertunda |
+
+## Prasyarat eksekusi REV-14F
+
+| # | Prasyarat | Keadaan |
+|:--:|---|---|
+| 1 | `BE-FIN-066` selesai | ✅ |
+| 2 | Wewenang tulis backend dan artefak kontrak | ✅ Diberikan pengguna 3 Oktober 2026 |
+| 3 | Pencatatan keputusan sebagai `FIN-DEC-nnn` | ❌ Belum — tidak menahan source, menahan persetujuan blueprint revisi berikutnya |
+| 4 | Migration diterapkan ke database | ❌ **Milik Yasmin.** Sampai dijalankan, penguncian `KAS-KASIR` bernominal 0 ditolak database |

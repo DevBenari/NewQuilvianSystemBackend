@@ -22,6 +22,19 @@ public sealed class UploadOpeningItemBatchRequest
     public string? ItemKind { get; set; }
 }
 
+/// <summary>
+/// Mengunggah ulang berkas pada batch DRAFT (state-transition-matrix.md F.2). Jenis item tidak dikirim: ia tetap
+/// milik batch. Format tetap tidak ditanyakan (FIN-DES-093); `ExpectedRowVersion` wajib supaya unggah ulang tidak
+/// menimpa batch yang sudah diubah orang lain.
+/// </summary>
+public sealed class ReuploadOpeningItemBatchRequest
+{
+    [Required]
+    public IFormFile File { get; set; } = null!;
+
+    [Required] public Guid ExpectedRowVersion { get; set; }
+}
+
 /// <summary>BE-FIN-081, FIN-API-1.6 F.2: ringkasan batch, tanpa rincian baris (dipakai respons POST /).</summary>
 public class OpeningItemBatchResponse
 {

@@ -538,7 +538,8 @@ Transisi yang **tidak sah** dan MUST ditolak:
 | Menghapus baris `LOCKED` | Penghapusan penandaan sekalipun akan membuat posisi tidak dapat dihitung |
 
 **Akibat `LOCKED` yang MUST dipahami.** Mengunci kelompok `KAS-KASIR` menerbitkan satu mutasi kas
-`SALDO-AWAL` bertanggal `CutoverDate`. Mutasi itu juga tidak dapat dibatalkan.
+`SALDO-AWAL` bertanggal `CutoverDate` — **termasuk bernilai nol** bila saldo awal kas kosong (pengecualian `FIN-VAL-168`
+khusus `SALDO-AWAL`, diputuskan pemilik 3 Oktober 2026). Mutasi itu juga tidak dapat dibatalkan.
 
 ## F.2 `FinOpeningItemBatch` — batch migrasi tagihan lama
 

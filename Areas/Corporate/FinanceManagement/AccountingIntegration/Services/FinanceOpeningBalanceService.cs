@@ -38,7 +38,9 @@ public sealed class FinanceOpeningBalanceService
             .OrderBy(x => x.BalanceGroup)
             .ToListAsync(cancellationToken);
 
-        return items.Select(MapToResponse).ToList();
+        var names = await GetUserNamesAsync(items.Select(x => x.ApprovedBy), cancellationToken);
+
+        return items.Select(x => MapToResponse(x, names)).ToList();
     }
 
     /// <summary>
@@ -55,7 +57,7 @@ public sealed class FinanceOpeningBalanceService
             throw new KeyNotFoundException("Saldo awal cutover tidak ditemukan.");
         }
 
-        return MapToResponse(entity);
+        return await MapToResponseAsync(entity, cancellationToken);
     }
 
     /// <summary>
@@ -136,7 +138,7 @@ public sealed class FinanceOpeningBalanceService
             "Saldo awal cutover DRAFT berhasil dicatat. Id: {Id}, Group: {Group}, Amount: {Amount}, CutoverDate: {CutoverDate}",
             entity.Id, entity.BalanceGroup, entity.Amount, entity.CutoverDate);
 
-        return MapToResponse(entity);
+        return await MapToResponseAsync(entity, cancellationToken);
     }
 
     /// <summary>
@@ -213,7 +215,7 @@ public sealed class FinanceOpeningBalanceService
             "Saldo awal cutover berhasil diperbarui. Id: {Id}, Group: {Group}, Amount: {Amount}",
             entity.Id, entity.BalanceGroup, entity.Amount);
 
-        return MapToResponse(entity);
+        return await MapToResponseAsync(entity, cancellationToken);
     }
 
     /// <summary>
@@ -241,7 +243,7 @@ public sealed class FinanceOpeningBalanceService
         // Idempoten bila sudah APPROVED
         if (entity.Status == FinOpeningBalanceStatuses.Approved)
         {
-            return MapToResponse(entity);
+            return await MapToResponseAsync(entity, cancellationToken);
         }
 
         if (entity.Status != FinOpeningBalanceStatuses.Draft)
@@ -274,7 +276,7 @@ public sealed class FinanceOpeningBalanceService
             "Saldo awal cutover APPROVED. Id: {Id}, Group: {Group}, Amount: {Amount}, ApprovedBy: {ApprovedBy}",
             entity.Id, entity.BalanceGroup, entity.Amount, entity.ApprovedBy);
 
-        return MapToResponse(entity);
+        return await MapToResponseAsync(entity, cancellationToken);
     }
 
     /// <summary>
@@ -299,7 +301,7 @@ public sealed class FinanceOpeningBalanceService
         // Idempoten bila sudah LOCKED
         if (entity.Status == FinOpeningBalanceStatuses.Locked)
         {
-            return MapToResponse(entity);
+            return await MapToResponseAsync(entity, cancellationToken);
         }
 
         if (entity.Status == FinOpeningBalanceStatuses.Draft)
@@ -327,8 +329,9 @@ public sealed class FinanceOpeningBalanceService
         entity.UpdateBy = userId;
         entity.UpdateDateTime = DateTime.UtcNow;
 
-        // Akibat penguncian: kelompok KAS-KASIR menerbitkan tepat satu mutasi kas SALDO-AWAL bertanggal CutoverDate (FIN-DES-088)
-        if (entity.BalanceGroup == FinSubledgerBalanceGroups.KasKasir && entity.Amount > 0m)
+        // Akibat penguncian: kelompok KAS-KASIR menerbitkan tepat satu mutasi kas SALDO-AWAL bertanggal CutoverDate (FIN-DES-088),
+        // termasuk bernilai nol (pengecualian FIN-VAL-168 khusus SALDO-AWAL)
+        if (entity.BalanceGroup == FinSubledgerBalanceGroups.KasKasir)
         {
             await _movementService.RecordCashMovementAsync(
                 movementType: FinCashMovementTypes.SaldoAwal,
@@ -353,10 +356,44 @@ public sealed class FinanceOpeningBalanceService
             "Saldo awal cutover LOCKED permanen. Id: {Id}, Group: {Group}, Amount: {Amount}, CutoverDate: {CutoverDate}",
             entity.Id, entity.BalanceGroup, entity.Amount, entity.CutoverDate);
 
-        return MapToResponse(entity);
+        return await MapToResponseAsync(entity, cancellationToken);
     }
 
-    private static OpeningBalanceResponse MapToResponse(FinOpeningBalance entity) => new()
+    private async Task<OpeningBalanceResponse> MapToResponseAsync(
+        FinOpeningBalance entity,
+        CancellationToken cancellationToken)
+    {
+        var names = await GetUserNamesAsync(new[] { entity.ApprovedBy }, cancellationToken);
+        return MapToResponse(entity, names);
+    }
+
+    /// <summary>
+    /// Mengambil nama tampilan pengguna untuk sekumpulan ID; ID yang tidak ditemukan tidak ikut dikembalikan.
+    /// </summary>
+    private async Task<Dictionary<Guid, string?>> GetUserNamesAsync(
+        IEnumerable<Guid?> userIds,
+        CancellationToken cancellationToken)
+    {
+        var ids = userIds
+            .Where(x => x.HasValue)
+            .Select(x => x!.Value)
+            .Distinct()
+            .ToList();
+
+        if (ids.Count == 0)
+        {
+            return new Dictionary<Guid, string?>();
+        }
+
+        return await _dbContext.Users.AsNoTracking()
+            .Where(x => ids.Contains(x.Id))
+            .Select(x => new { x.Id, Name = x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode })
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+    }
+
+    private static OpeningBalanceResponse MapToResponse(
+        FinOpeningBalance entity,
+        IReadOnlyDictionary<Guid, string?> names) => new()
     {
         Id = entity.Id,
         BalanceGroup = entity.BalanceGroup,
@@ -366,6 +403,9 @@ public sealed class FinanceOpeningBalanceService
         Reason = entity.Reason,
         AccountingReferenceDocument = entity.AccountingReferenceDocument,
         ApprovedBy = entity.ApprovedBy,
+        ApprovedByName = entity.ApprovedBy.HasValue && names.TryGetValue(entity.ApprovedBy.Value, out var approverName)
+            ? approverName
+            : null,
         ApprovedAt = entity.ApprovedAt,
         LockedAt = entity.LockedAt,
         RowVersion = entity.RowVersion,

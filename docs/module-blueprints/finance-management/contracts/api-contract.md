@@ -737,16 +737,16 @@ Base URL: `api/v1/corporate/finance-management/subledger-setup`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|
-| `GET` | `/control-accounts` | Daftar pemetaan kelompok dan segmen ke kode akun control | `FinanceSubledgerSetup : Read` | `ControlAccountMapPagedQuery` | `ApiResponse<PagedResult<ControlAccountMapResponse>>` | **Rencana (belum tersedia)** |
-| `GET` | `/control-accounts/coverage` | Memeriksa kelengkapan cakupan sebelum snapshot; mengembalikan kelompok dan segmen yang belum terpetakan | `FinanceSubledgerSetup : Read` | — | `ApiResponse<ControlAccountCoverageResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/control-accounts` | Menambah satu pemetaan | `FinanceSubledgerSetup : Create` | `CreateControlAccountMapRequest` | `ApiResponse<ControlAccountMapResponse>` | **Rencana (belum tersedia)** |
-| `PUT` | `/control-accounts/{id:guid}` | Mengoreksi pemetaan yang belum dipakai snapshot | `FinanceSubledgerSetup : Update` | `UpdateControlAccountMapRequest` | `ApiResponse<ControlAccountMapResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/control-accounts/{id:guid}/deactivate` | Menonaktifkan pemetaan; barisnya disimpan sebagai riwayat | `FinanceSubledgerSetup : Update` | `DeactivateControlAccountMapRequest` | `ApiResponse<ControlAccountMapResponse>` | **Rencana (belum tersedia)** |
-| `GET` | `/opening-balances` | Daftar saldo awal per kelompok | `FinanceSubledgerSetup : Read` | — | `ApiResponse<List<OpeningBalanceResponse>>` | **Rencana (belum tersedia)** |
-| `POST` | `/opening-balances` | Mencatat saldo awal satu kelompok, status `DRAFT` | `FinanceSubledgerSetup : Create` | `CreateOpeningBalanceRequest` | `ApiResponse<OpeningBalanceResponse>` | **Rencana (belum tersedia)** |
-| `PUT` | `/opening-balances/{id:guid}` | Mengoreksi saldo awal yang masih `DRAFT` | `FinanceSubledgerSetup : Update` | `UpdateOpeningBalanceRequest` | `ApiResponse<OpeningBalanceResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/opening-balances/{id:guid}/approve` | Menyetujui saldo awal | `FinanceSubledgerSetup : Approve` | `ApproveOpeningBalanceRequest` | `ApiResponse<OpeningBalanceResponse>` | **Rencana (belum tersedia)** |
-| `POST` | `/opening-balances/{id:guid}/lock` | Mengunci; sesudahnya nilainya tidak dapat diubah | `FinanceSubledgerSetup : Approve` | `LockOpeningBalanceRequest` | `ApiResponse<OpeningBalanceResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/control-accounts` | Daftar pemetaan kelompok dan segmen ke kode akun control | `FinanceSubledgerSetup : Read` | `ControlAccountMapPagedQuery` | `ApiResponse<PagedResult<ControlAccountMapResponse>>` | **Tersedia** (`BE-FIN-065`) |
+| `GET` | `/control-accounts/coverage` | Memeriksa kelengkapan cakupan sebelum snapshot; mengembalikan kelompok dan segmen yang belum terpetakan | `FinanceSubledgerSetup : Read` | — | `ApiResponse<ControlAccountCoverageResponse>` | **Tersedia** (`BE-FIN-065`) |
+| `POST` | `/control-accounts` | Menambah satu pemetaan | `FinanceSubledgerSetup : Create` | `CreateControlAccountMapRequest` | `ApiResponse<ControlAccountMapResponse>` | **Tersedia** (`BE-FIN-065`) |
+| `PUT` | `/control-accounts/{id:guid}` | Mengoreksi pemetaan yang belum dipakai snapshot | `FinanceSubledgerSetup : Update` | `UpdateControlAccountMapRequest` | `ApiResponse<ControlAccountMapResponse>` | **Tersedia** (`BE-FIN-065`) |
+| `POST` | `/control-accounts/{id:guid}/deactivate` | Menonaktifkan pemetaan; barisnya disimpan sebagai riwayat | `FinanceSubledgerSetup : Update` | `DeactivateControlAccountMapRequest` | `ApiResponse<ControlAccountMapResponse>` | **Tersedia** (`BE-FIN-065`) |
+| `GET` | `/opening-balances` | Daftar saldo awal per kelompok | `FinanceSubledgerSetup : Read` | — | `ApiResponse<List<OpeningBalanceResponse>>` | **Tersedia** (`BE-FIN-066`) |
+| `POST` | `/opening-balances` | Mencatat saldo awal satu kelompok, status `DRAFT` | `FinanceSubledgerSetup : Create` | `CreateOpeningBalanceRequest` | `ApiResponse<OpeningBalanceResponse>` | **Tersedia** (`BE-FIN-066`) |
+| `PUT` | `/opening-balances/{id:guid}` | Mengoreksi saldo awal yang masih `DRAFT` | `FinanceSubledgerSetup : Update` | `UpdateOpeningBalanceRequest` | `ApiResponse<OpeningBalanceResponse>` | **Tersedia** (`BE-FIN-066`) |
+| `POST` | `/opening-balances/{id:guid}/approve` | Menyetujui saldo awal | `FinanceSubledgerSetup : Approve` | `ApproveOpeningBalanceRequest` | `ApiResponse<OpeningBalanceResponse>` | **Tersedia** (`BE-FIN-066`) |
+| `POST` | `/opening-balances/{id:guid}/lock` | Mengunci; sesudahnya nilainya tidak dapat diubah | `FinanceSubledgerSetup : Approve` | `LockOpeningBalanceRequest` | `ApiResponse<OpeningBalanceResponse>` | **Tersedia** (`BE-FIN-066`) |
 
 Kode status beserta artinya bagi pengguna:
 
@@ -759,6 +759,20 @@ Kode status beserta artinya bagi pengguna:
 | `404` | Baris tidak ditemukan |
 | `409` | Bertabrakan dengan keadaan sekarang, misalnya kelompok itu sudah punya baris aktif, atau saldo awal sudah `LOCKED` |
 | `422` | Nilai melanggar aturan bisnis, misalnya saldo awal kelompok piutang diisi selain nol |
+
+### Bentuk body saldo awal (`BE-FIN-066`, diperbarui 3 Oktober 2026)
+
+| Body | Ruas |
+|---|---|
+| `CreateOpeningBalanceRequest` | `BalanceGroup` (`string(30)`, **wajib**); `Amount` (`decimal`); `CutoverDate` (`date`); `Reason` (`string(500)`, **wajib**); `AccountingReferenceDocument` (`string(200)`, **wajib**) |
+| `UpdateOpeningBalanceRequest` | `Amount`; `CutoverDate`; `Reason` (**wajib**); `AccountingReferenceDocument` (**wajib**); `RowVersion` (`Guid`) |
+| `ApproveOpeningBalanceRequest` | `RowVersion` (`Guid`) **saja** |
+| `LockOpeningBalanceRequest` | `RowVersion` (`Guid`) **saja** |
+| `OpeningBalanceResponse` | `Id`; `BalanceGroup`; `Amount`; `CutoverDate`; `Status`; `Reason`; `AccountingReferenceDocument`; `ApprovedBy` (`Guid?`); `ApprovedByName` (`string?` — nama tampilan penyetuju, `null` bila belum disetujui atau penggunanya tidak lagi ditemukan); `ApprovedAt`; `LockedAt`; `RowVersion`; `CreateDateTime`; `UpdateDateTime` |
+
+Ruas `Notes` **dihapus** dari `ApproveOpeningBalanceRequest` dan `LockOpeningBalanceRequest`: ruas itu pernah diterima
+tetapi tidak disimpan oleh entitas, sehingga menjanjikan sesuatu yang hilang. Klien lama yang masih mengirim `Notes`
+tidak ditolak — ruas yang tidak dikenal diabaikan.
 
 ## F.2 Corporate / Finance Management / Opening Item Batch
 

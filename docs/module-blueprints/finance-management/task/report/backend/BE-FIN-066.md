@@ -105,6 +105,18 @@ Sebelum task ini:
 
 ---
 
+## 3.4 Pembaruan 3 Oktober 2026 (atas permintaan pemilik, saat `FE-FIN-028`)
+
+| Perubahan | Berkas | Alasan |
+| --- | --- | --- |
+| `Notes` **dihapus** dari `ApproveOpeningBalanceRequest` dan `LockOpeningBalanceRequest` | `DTOs/SubledgerOpeningBalanceDtos.cs` | Ruas diterima tetapi tidak pernah disimpan oleh entitas |
+| `ApprovedByName` (`string?`) **ditambahkan** pada `OpeningBalanceResponse`; diisi lewat `GetUserNamesAsync` (`DisplayName ?? UserName ?? Email ?? UserCode`) | `DTOs/SubledgerOpeningBalanceDtos.cs`, `Services/FinanceOpeningBalanceService.cs` | Layar perlu menampilkan siapa yang menyetujui; `ApprovedBy` hanya `Guid` |
+| Mutasi kas `SALDO-AWAL` **boleh bernilai nol** (pengecualian `FIN-VAL-168`; negatif tetap ditolak). `LockAsync` tidak lagi mensyaratkan `Amount > 0`, sehingga penguncian `KAS-KASIR` selalu menerbitkan satu mutasi | `Services/FinanceSubledgerMovementService.cs` (`RecordCashMovementAsync`), `Services/FinanceOpeningBalanceService.cs`, `Repositories/Configurations/Corporate/FinanceManagement/CashManagement/FinCashMovementConfiguration.cs` | Keputusan pemilik 3 Oktober 2026: saldo awal kas kosong tetap meninggalkan jejak di buku kas |
+
+**Status database — PERLU TINDAKAN PENGGUNA.** Perubahan terakhir mengubah `CK_FinCashMovement_Amount` dari `"Amount" > 0` menjadi `"Amount" > 0 OR ("MovementType" = 'SALDO-AWAL' AND "Amount" = 0)`. Seluruh perubahan §3.4 kini dilacak sebagai task **`BE-FIN-084`** (REV-14F); migration `RelaxFinCashMovementAmountForZeroOpeningBalance` **sudah ditulis (manual, tanpa `dotnet ef`) tetapi belum dijalankan**. Selama belum diterapkan, penguncian `KAS-KASIR` bernominal 0 ditolak database. `dotnet build` **tidak dijalankan** (instruksi pengguna); seluruh perubahan §3.4 belum terkompilasi. Rincian dan langkah pengguna: [laporan BE-FIN-084](BE-FIN-084.md).
+
+---
+
 ## 4. Dokumentasi Endpoint API
 
 Tag Grup: `[Tags("Corporate / Finance Management / Subledger Setup")]`  

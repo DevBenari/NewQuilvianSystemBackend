@@ -2359,7 +2359,7 @@ CREATE TABLE public."FinCashMovement" (
     "CausationId"           uuid           NOT NULL,
     CONSTRAINT "PK_FinCashMovement" PRIMARY KEY ("Id"),
     CONSTRAINT "CK_FinCashMovement_Direction" CHECK ("Direction" IN ('IN','OUT')),
-    CONSTRAINT "CK_FinCashMovement_Amount" CHECK ("Amount" > 0)
+    CONSTRAINT "CK_FinCashMovement_Amount" CHECK ("Amount" > 0 OR ("MovementType" = 'SALDO-AWAL' AND "Amount" = 0))
 );
 
 CREATE UNIQUE INDEX "IX_FinCashMovement_Source"

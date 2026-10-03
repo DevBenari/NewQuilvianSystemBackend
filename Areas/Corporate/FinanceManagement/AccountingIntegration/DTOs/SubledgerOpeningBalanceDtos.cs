@@ -23,6 +23,11 @@ public class OpeningBalanceResponse
 
     public Guid? ApprovedBy { get; set; }
 
+    /// <summary>
+    /// Nama tampilan penyetuju; null bila belum disetujui atau penggunanya tidak lagi ditemukan.
+    /// </summary>
+    public string? ApprovedByName { get; set; }
+
     public DateTimeOffset? ApprovedAt { get; set; }
 
     public DateTimeOffset? LockedAt { get; set; }
@@ -115,12 +120,6 @@ public sealed class ApproveOpeningBalanceRequest
     /// Concurrency token baris saldo awal yang akan disetujui.
     /// </summary>
     public Guid RowVersion { get; set; }
-
-    /// <summary>
-    /// Catatan persetujuan opsional.
-    /// </summary>
-    [MaxLength(300, ErrorMessage = "Catatan maksimal 300 karakter.")]
-    public string? Notes { get; set; }
 }
 
 /// <summary>
@@ -132,10 +131,4 @@ public sealed class LockOpeningBalanceRequest
     /// Concurrency token baris saldo awal yang akan dikunci.
     /// </summary>
     public Guid RowVersion { get; set; }
-
-    /// <summary>
-    /// Catatan penguncian opsional.
-    /// </summary>
-    [MaxLength(300, ErrorMessage = "Catatan maksimal 300 karakter.")]
-    public string? Notes { get; set; }
 }

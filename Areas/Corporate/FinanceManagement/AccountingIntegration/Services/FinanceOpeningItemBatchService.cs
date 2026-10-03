@@ -32,6 +32,9 @@ public sealed class FinanceOpeningItemBatchService
     private const string DateFormat = "yyyy-MM-dd";
     private const string FormatMismatchCode = "FIN-VAL-226";
 
+    // Angka pada pesan galat ditulis dengan dua desimal dan pemisah Indonesia, bukan mengikuti budaya server.
+    private static readonly CultureInfo IndonesianCulture = CultureInfo.GetCultureInfo("id-ID");
+
     private static readonly string[] ReceivableRequiredColumns =
     [
         "NomorDokumen", "JenisDebitur", "NamaDebitur", "TanggalDokumen", "TanggalJatuhTempo", "SisaTagihan"
@@ -69,69 +72,9 @@ public sealed class FinanceOpeningItemBatchService
     public async Task<FinOpeningItemBatch> UploadAsync(
         IFormFile? file, string? itemKind, Guid actorUserId, CancellationToken cancellationToken)
     {
-        if (file == null || file.Length <= 0)
-            throw new OpeningItemBatchBadRequestException("Berkas migrasi wajib dilampirkan dan tidak boleh kosong.");
-
-        var normalizedItemKind = itemKind?.Trim().ToUpperInvariant();
-        if (normalizedItemKind is not (FinOpeningItemBatchItemKinds.Receivable or FinOpeningItemBatchItemKinds.SupplierPayable))
-            throw new OpeningItemBatchBadRequestException("Pilih jenis item: RECEIVABLE atau SUPPLIER_PAYABLE.");
-
-        var originalFileName = Path.GetFileName(file.FileName);
-        var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
-        var mediaType = file.ContentType?.Trim();
-
-        // FIN-DES-093: format=XLSX kontraktual sah (FIN-VAL-225 tidak boleh menolaknya sebagai
-        // "format salah"), tetapi pembacanya belum ada — BE-FIN-083, terblokir FIN-OQ-081. Pola
-        // sama dengan GET /template (BE-FIN-080): nilai benar, sistem belum siap memenuhinya.
-        if (extension == ".xlsx" || string.Equals(mediaType, XlsxMediaType, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new OpeningItemBatchNotReadyException(
-                "Berkas XLSX belum dapat diproses — pembaca XLSX menunggu wewenang paket pembaca (FIN-OQ-081). Gunakan format CSV.");
-        }
-
-        var reader = _readers.FirstOrDefault(r => r.CanRead(mediaType, extension))
-            ?? throw new OpeningItemBatchBadRequestException("Berkas migrasi hanya dapat berupa CSV atau XLSX.");
-
-        // KNOWN LIMITATION (BE-FIN-083 MUST meninjau ulang): SourceFormat ditetapkan "CSV" begitu
-        // saja karena CsvOpeningItemFileReader adalah satu-satunya IOpeningItemFileReader terdaftar
-        // saat ini — menebak dari ekstensi berkas di sini salah untuk berkas yang diterima pembaca
-        // lewat sinyal tipe media saja (mis. ".txt" bertipe media "text/csv"). Begitu
-        // XlsxOpeningItemFileReader ada, SourceFormat MUST ditentukan dari pembaca mana yang
-        // sungguh-sungguh menerima berkasnya (mis. lewat properti nama format pada antarmuka),
-        // bukan dari ekstensi secara terpisah.
-        const string sourceFormat = "CSV";
-
-        using var buffer = new MemoryStream();
-        await using (var inputStream = file.OpenReadStream())
-        {
-            await inputStream.CopyToAsync(buffer, cancellationToken);
-        }
-
-        List<OpeningItemRawRow> rows;
-        try
-        {
-            buffer.Position = 0;
-            rows = reader.Read(buffer);
-        }
-        catch (Exception)
-        {
-            // FIN-VAL-186: berkas tidak terbaca.
-            throw new OpeningItemBatchBadRequestException("Berkas tidak dapat dibaca. Gunakan templat yang disediakan.");
-        }
-
-        // FIN-VAL-186 ("kolom templat tidak lengkap"): IOpeningItemFileReader hanya memulangkan
-        // baris data (header dikonsumsi di dalam pembaca), sehingga kelengkapan kolom diperiksa
-        // dari kunci Cells baris pertama. Berkas tanpa baris data sama sekali juga ditolak di sini
-        // — templat kosong bukan unggahan yang bermakna.
-        if (rows.Count == 0)
-            throw new OpeningItemBatchBadRequestException("Berkas tidak dapat dibaca. Gunakan templat yang disediakan.");
-
-        var requiredColumns = normalizedItemKind == FinOpeningItemBatchItemKinds.Receivable
-            ? ReceivableRequiredColumns
-            : SupplierPayableRequiredColumns;
-
-        if (!requiredColumns.All(column => rows[0].Cells.ContainsKey(column)))
-            throw new OpeningItemBatchBadRequestException("Berkas tidak dapat dibaca. Gunakan templat yang disediakan.");
+        var (buffer, originalFileName, sourceFormat) = await ReadAndCheckUploadAsync(file, itemKind, cancellationToken);
+        using var bufferLease = buffer;
+        var normalizedItemKind = itemKind!.Trim().ToUpperInvariant();
 
         // FIN-DES-089: CutoverDate batch MUST sama dengan FinOpeningBalance (satu nilai dipakai
         // bersama seluruh kelompok saldo, BE-FIN-064/065). Nol baris berarti saldo awal cutover
@@ -194,6 +137,175 @@ public sealed class FinanceOpeningItemBatchService
         _logger.LogInformation(
             "Batch migrasi tagihan lama diunggah. Id: {Id}, BatchNumber: {BatchNumber}, ItemKind: {ItemKind}, SourceFormat: {SourceFormat}",
             entity.Id, entity.BatchNumber, entity.ItemKind, entity.SourceFormat);
+
+        return entity;
+    }
+
+    /// <summary>
+    /// Memeriksa berkas unggahan: terlampir dan tidak kosong, jenis item sah, bukan XLSX (pembaca belum ada),
+    /// dapat dibaca, memuat baris data, dan memuat seluruh kolom templat jenis itu (FIN-VAL-186, 225).
+    /// Dipakai bersama <see cref="UploadAsync"/> dan <see cref="ReuploadAsync"/> supaya aturan unggah
+    /// **satu**, bukan dua salinan yang dapat berselisih. Penyimpanan ke disk dan basis data bukan tugasnya.
+    /// Pemanggil MUST membuang <c>Buffer</c> yang dikembalikan; pada galat, buffer sudah dibuang di sini.
+    /// </summary>
+    private async Task<(MemoryStream Buffer, string OriginalFileName, string SourceFormat)> ReadAndCheckUploadAsync(
+        IFormFile? file, string? itemKind, CancellationToken cancellationToken)
+    {
+        if (file == null || file.Length <= 0)
+            throw new OpeningItemBatchBadRequestException("Berkas migrasi wajib dilampirkan dan tidak boleh kosong.");
+
+        var normalizedItemKind = itemKind?.Trim().ToUpperInvariant();
+        if (normalizedItemKind is not (FinOpeningItemBatchItemKinds.Receivable or FinOpeningItemBatchItemKinds.SupplierPayable))
+            throw new OpeningItemBatchBadRequestException("Pilih jenis item: RECEIVABLE atau SUPPLIER_PAYABLE.");
+
+        var originalFileName = Path.GetFileName(file.FileName);
+        var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
+        var mediaType = file.ContentType?.Trim();
+
+        // FIN-DES-093: format=XLSX kontraktual sah (FIN-VAL-225 tidak boleh menolaknya sebagai
+        // "format salah"), tetapi pembacanya belum ada — BE-FIN-083, terblokir FIN-OQ-081. Pola
+        // sama dengan GET /template (BE-FIN-080): nilai benar, sistem belum siap memenuhinya.
+        if (extension == ".xlsx" || string.Equals(mediaType, XlsxMediaType, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new OpeningItemBatchNotReadyException(
+                "Berkas XLSX belum dapat diproses — pembaca XLSX menunggu wewenang paket pembaca (FIN-OQ-081). Gunakan format CSV.");
+        }
+
+        var reader = _readers.FirstOrDefault(r => r.CanRead(mediaType, extension))
+            ?? throw new OpeningItemBatchBadRequestException("Berkas migrasi hanya dapat berupa CSV atau XLSX.");
+
+        // KNOWN LIMITATION (BE-FIN-083 MUST meninjau ulang): SourceFormat ditetapkan "CSV" begitu
+        // saja karena CsvOpeningItemFileReader adalah satu-satunya IOpeningItemFileReader terdaftar
+        // saat ini — menebak dari ekstensi berkas di sini salah untuk berkas yang diterima pembaca
+        // lewat sinyal tipe media saja (mis. ".txt" bertipe media "text/csv"). Begitu
+        // XlsxOpeningItemFileReader ada, SourceFormat MUST ditentukan dari pembaca mana yang
+        // sungguh-sungguh menerima berkasnya (mis. lewat properti nama format pada antarmuka),
+        // bukan dari ekstensi secara terpisah.
+        const string sourceFormat = "CSV";
+
+        var buffer = new MemoryStream();
+        try
+        {
+            await using (var inputStream = file.OpenReadStream())
+            {
+                await inputStream.CopyToAsync(buffer, cancellationToken);
+            }
+
+            List<OpeningItemRawRow> rows;
+            try
+            {
+                buffer.Position = 0;
+                rows = reader.Read(buffer);
+            }
+            catch (Exception)
+            {
+                // FIN-VAL-186: berkas tidak terbaca.
+                throw new OpeningItemBatchBadRequestException("Berkas tidak dapat dibaca. Gunakan templat yang disediakan.");
+            }
+
+            // FIN-VAL-186 ("kolom templat tidak lengkap"): IOpeningItemFileReader hanya memulangkan
+            // baris data (header dikonsumsi di dalam pembaca), sehingga kelengkapan kolom diperiksa
+            // dari kunci Cells baris pertama. Berkas tanpa baris data sama sekali juga ditolak di sini
+            // — templat kosong bukan unggahan yang bermakna.
+            if (rows.Count == 0)
+                throw new OpeningItemBatchBadRequestException("Berkas tidak dapat dibaca. Gunakan templat yang disediakan.");
+
+            var requiredColumns = normalizedItemKind == FinOpeningItemBatchItemKinds.Receivable
+                ? ReceivableRequiredColumns
+                : SupplierPayableRequiredColumns;
+
+            if (!requiredColumns.All(column => rows[0].Cells.ContainsKey(column)))
+                throw new OpeningItemBatchBadRequestException("Berkas tidak dapat dibaca. Gunakan templat yang disediakan.");
+
+            return (buffer, originalFileName, sourceFormat);
+        }
+        catch
+        {
+            buffer.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Mengunggah ulang berkas pada batch yang masih DRAFT (state-transition-matrix.md F.2: DRAFT -> DRAFT,
+    /// hak `Update`). Hasil validasi sebelumnya dibuang karena tidak lagi berlaku untuk berkas yang baru; saldo awal
+    /// Accounting yang sudah dinyatakan **dipertahankan** (itu pernyataan petugas, bukan hasil berkas). Jenis item
+    /// tidak dapat diganti. Batch yang sudah VALIDATED, APPROVED, LOCKED, atau REJECTED ditolak `409`.
+    /// </summary>
+    public async Task<FinOpeningItemBatch> ReuploadAsync(
+        Guid id, IFormFile? file, Guid expectedRowVersion, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var entity = await _dbContext.FinOpeningItemBatches.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Batch migrasi tagihan lama tidak ditemukan.");
+
+        if (entity.Status != FinOpeningItemBatchStatuses.Draft)
+        {
+            throw new OpeningItemBatchConflictException(
+                "Berkas hanya dapat diunggah ulang selama batch berstatus DRAFT.");
+        }
+
+        EnsureCurrentRowVersion(entity.RowVersion, expectedRowVersion);
+
+        var (buffer, originalFileName, sourceFormat) = await ReadAndCheckUploadAsync(file, entity.ItemKind, cancellationToken);
+        using var bufferLease = buffer;
+
+        // FIN-DES-089: CutoverDate batch MUST tetap sama dengan FinOpeningBalance; diambil ulang seperti saat unggah.
+        var cutoverDate = await _dbContext.FinOpeningBalances
+            .AsNoTracking()
+            .Where(x => !x.IsDelete)
+            .Select(x => x.CutoverDate)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (cutoverDate == default)
+        {
+            throw new OpeningItemBatchValidationException(
+                "Saldo awal cutover belum ditetapkan. Catat saldo awal cutover terlebih dahulu sebelum mengunggah tagihan lama.");
+        }
+
+        var finalPath = ResolvePhysicalPath(entity.Id, sourceFormat);
+        var previousPath = ResolvePhysicalPath(entity.Id, entity.SourceFormat);
+        var tempPath = $"{finalPath}.{Guid.NewGuid():N}.tmp";
+        Directory.CreateDirectory(Path.GetDirectoryName(finalPath)!);
+
+        // Berkas baru ditulis ke jalur sementara dulu; berkas lama tidak disentuh sampai basis data berhasil disimpan.
+        buffer.Position = 0;
+        await using (var outputStream = new FileStream(
+            tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None,
+            81920, FileOptions.Asynchronous | FileOptions.SequentialScan))
+        {
+            await buffer.CopyToAsync(outputStream, cancellationToken);
+        }
+
+        entity.UploadedFileName = originalFileName;
+        entity.SourceFormat = sourceFormat;
+        entity.CutoverDate = cutoverDate;
+        entity.TotalItemCount = 0;
+        entity.TotalOutstandingAmount = 0m;
+        entity.ValidationSummaryJson = null;
+        entity.UpdateBy = actorUserId;
+        entity.UpdateDateTime = DateTime.UtcNow;
+        entity.RowVersion = Guid.NewGuid();
+
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch
+        {
+            DeleteIfExists(tempPath);
+            throw;
+        }
+
+        // Basis data sudah menunjuk berkas baru; gantikan berkas fisik, lalu buang berkas lama bila lokasinya berbeda.
+        File.Move(tempPath, finalPath, overwrite: true);
+        if (!string.Equals(previousPath, finalPath, StringComparison.OrdinalIgnoreCase))
+        {
+            DeleteIfExists(previousPath);
+        }
+
+        _logger.LogInformation(
+            "Berkas batch migrasi tagihan lama diunggah ulang. Id: {Id}, BatchNumber: {BatchNumber}, SourceFormat: {SourceFormat}",
+            entity.Id, entity.BatchNumber, entity.SourceFormat);
 
         return entity;
     }
@@ -438,7 +550,7 @@ public sealed class FinanceOpeningItemBatchService
             if (totalOutstanding != entity.DeclaredAccountingOpeningAmount)
             {
                 throw new OpeningItemBatchValidationException(
-                    $"Total sisa tagihan (Rp {totalOutstanding:N0}) tidak sama dengan saldo awal Accounting yang dinyatakan (Rp {entity.DeclaredAccountingOpeningAmount:N0}).");
+                    $"Total sisa tagihan (Rp {totalOutstanding.ToString("N2", IndonesianCulture)}) tidak sama dengan saldo awal Accounting yang dinyatakan (Rp {entity.DeclaredAccountingOpeningAmount.ToString("N2", IndonesianCulture)}). Batch tidak dapat disetujui.");
             }
 
             var now = DateTimeOffset.UtcNow;

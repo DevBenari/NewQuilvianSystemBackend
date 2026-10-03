@@ -209,6 +209,7 @@ public sealed class FinanceSubledgerMovementService
     /// <summary>
     /// Mencatat satu baris mutasi kas (FinCashMovement) — FIN-DES-081, FIN-DEC-124..127, 132..133.
     /// Invariant: Amount selalu positif (> 0, FIN-VAL-168, ditegakkan CK_FinCashMovement_Amount di DB).
+    /// Satu-satunya pengecualian: mutasi SALDO-AWAL boleh bernilai nol (saldo awal kas kosong); nilai negatif tetap ditolak.
     /// Direction: IN / OUT (ditegakkan CK_FinCashMovement_Direction di DB).
     /// Menegakkan FIN-VAL-166 (transaksi aktif) dan FIN-VAL-169 (idempotensi via unique index IX_FinCashMovement_Source).
     /// </summary>
@@ -235,8 +236,9 @@ public sealed class FinanceSubledgerMovementService
         if (direction is not (FinCashMovementDirections.In or FinCashMovementDirections.Out))
             throw new ArgumentException("Direction mutasi kas harus IN atau OUT.", nameof(direction));
 
-        // FIN-VAL-168: Nominal mutasi kas harus lebih besar dari nol (400)
-        if (amount <= 0m)
+        // FIN-VAL-168: Nominal mutasi kas harus lebih besar dari nol (400); mutasi SALDO-AWAL boleh nol
+        var allowsZeroAmount = movementType == FinCashMovementTypes.SaldoAwal;
+        if (amount < 0m || (amount == 0m && !allowsZeroAmount))
         {
             throw new FinanceSubledgerException("Nominal mutasi kas harus lebih besar dari nol.", 400);
         }
