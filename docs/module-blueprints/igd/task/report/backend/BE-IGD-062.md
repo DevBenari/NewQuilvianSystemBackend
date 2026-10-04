@@ -128,8 +128,8 @@ Request: `{ "dispositionStatus": <angka>, "notes": "…" }`.
 | QBE checker Strict (working tree) | 0 `VIOLATION`, 0 `REVIEW`, `Final result: PASS` | `PASS` | Keluaran perintah 1 Oktober 2026 |
 | Review diff | +17/−0 pada satu action; akhiran baris CRLF dipertahankan; jumlah baris komentar tetap 12 | `PASS` | `git diff --numstat`, hitungan komentar |
 | Jalur lain yang membuka kembali kunjungan selesai | Nol: seluruh penulisan `VisitStatus` melewati `EmergencyVisitService.CanTransition`, yang menolak apa pun dari `Completed` | `PASS` | Pencarian `VisitStatus =` dan `TryApplyVisitStatus` pada seluruh `Areas/` |
-| `dotnet build` | — | `NOT RUN` | Milik pemilik |
-| Uji API S1–S5 | — | `NOT RUN` | Menunggu build pemilik |
+| `dotnet build` | Build pemilik 1 Oktober 2026 (DLL 15.18; jumlah warning tidak dilaporkan); build Rizki 3 Oktober 2026 atas `c1f79f79`, yang memuat source task ini tanpa perubahan: 0 error, 0 warning | `PASS` | Bagian *Pemeriksaan bukti uji gabungan — 2 Oktober 2026*; laporan `BE-IGD-061`, *Build pemilik — dicatat 4 Oktober 2026*. *Ditulis 1 Oktober: `NOT RUN`* |
+| Uji API S1–S5 | 5 dari 5 terbukti pada bukti mentah | `PASS` | Bagian *Pemeriksaan bukti uji gabungan — 2 Oktober 2026*. *Ditulis 1 Oktober: `NOT RUN`* |
 
 Uji manual: `REQUIRED` — lewat API saja; layar tidak pernah menawarkan Batalkan untuk tindak lanjut `Executed`.
 
@@ -149,12 +149,12 @@ Uji manual: `REQUIRED` — lewat API saja; layar tidak pernah menawarkan Batalka
 
 | # | Kriteria | Status | Bukti |
 | ---: | --- | --- | --- |
-| 1 | Batalkan `Executed` pada kunjungan `Completed`, beralasan → `409` kalimat aturan 8 persis; nol perubahan | **Terpenuhi pada source** | Kalimat sama huruf demi huruf dengan validation §11 aturan 8. Uji S1 belum |
-| 2 | Tanpa alasan → tetap `409`, bukan `400` | **Terpenuhi pada source** | Pemeriksaan baru mendahului pemeriksaan alasan. Uji S2 belum |
-| 3 | `Executed` pada kunjungan belum selesai → tetap `400` penjaga | **Terpenuhi pada source** | `CanTransition` tidak diubah. Uji S3 belum |
-| 4 | `Draft`/`Confirmed` beralasan → tetap berhasil | **Terpenuhi pada source** | Pemeriksaan baru hanya untuk tindak lanjut `Executed`. Uji S4 belum |
+| 1 | Batalkan `Executed` pada kunjungan `Completed`, beralasan → `409` kalimat aturan 8 persis; nol perubahan | **Terpenuhi — 2 Oktober 2026** | Kalimat sama huruf demi huruf dengan validation §11 aturan 8; uji S1 terbukti |
+| 2 | Tanpa alasan → tetap `409`, bukan `400` | **Terpenuhi — 2 Oktober 2026** | Pemeriksaan baru mendahului pemeriksaan alasan; uji S2 terbukti |
+| 3 | `Executed` pada kunjungan belum selesai → tetap `400` penjaga | **Terpenuhi — 2 Oktober 2026** | `CanTransition` tidak diubah; uji S3 terbukti |
+| 4 | `Draft`/`Confirmed` beralasan → tetap berhasil | **Terpenuhi — 2 Oktober 2026** | Pemeriksaan baru hanya untuk tindak lanjut `Executed`; uji S4 terbukti (S5 pembanding alasan wajib juga terbukti) |
 | 5 | Nol jalur lain yang membuka kembali kunjungan selesai | **Terpenuhi** | Bagian 5, baris ketiga |
-| 6 | Build 0 error | **Belum** | Build milik pemilik |
+| 6 | Build 0 error | **Terpenuhi** | Build pemilik 1 Oktober 2026 (artefak DLL); build Rizki 3 Oktober 2026 atas `c1f79f79`: 0 error, 0 warning |
 
 DoD: laporan tracked ✅ (berkas ini).
 
@@ -166,11 +166,11 @@ DoD: laporan tracked ✅ (berkas ini).
 | --- | --- |
 | Peringatan | Pemanggil yang mencocokkan kode `400` untuk keadaan ini kini menerima `409` |
 | Masalah yang diketahui | Membuat tindak lanjut **baru** pada kunjungan `Completed` tidak ditolak saat dibuat, tetapi tidak dapat dipindahkan ke `Executed` dan tidak membuka kembali kunjungan — dicatat kartu, bukan cakupan task ini |
-| Risiko tersisa | Belum ada build |
+| Risiko tersisa | Rendah. *Ditulis 1 Oktober: "Belum ada build" — sudah tidak berlaku sejak build 1 Oktober 2026* |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Satu berkas source berubah oleh task ini; laporan ini; status roadmap/traceability. Tanpa stage, commit, atau push |
-| Langkah berikutnya | Pemilik: build, lalu S1–S5. Agent: `BE-IGD-063` |
+| Langkah berikutnya | Selesai — tidak ada. *Ditulis 1 Oktober: "Pemilik: build, lalu S1–S5. Agent: `BE-IGD-063`"* |
 
 ---
 
@@ -189,3 +189,15 @@ Build pemilik terbukti dari artefak: `bin/Debug/net9.0/QuilvianSystemBackend.dll
 | `062-S5` | **Terbukti** | `400` *"Alasan pembatalan wajib diisi ketika tindak lanjut dibatalkan."* |
 
 Putusan: **✅ selesai** — Build pemilik dan uji API S1–S5 **5 dari 5** pada bukti mentah. Tanpa UAT.
+
+---
+
+## Koreksi laporan — 4 Oktober 2026
+
+Syarat C6 [kesiapan `MVP-8`](../../../evidence/2026-10-04-kesiapan-mvp-8.md). Bagian 5, 6, dan 7 di atas masih
+menulis keadaan 1 Oktober (*"Uji belum"*, *"Build belum"*, `NOT RUN`) walau bagian *Pemeriksaan bukti uji gabungan — 2
+Oktober 2026* sudah membuktikannya. Baris-baris itu diselaraskan dengan bukti tersebut; teks lama dipertahankan sebagai
+catatan miring. **Nol perubahan source, nol build baru, status tetap ✅.** Jalur pembatalan tindak lanjut tidak disentuh
+pengerjaan ulang `BE-IGD-061` 3 Oktober 2026, sehingga bukti 2 Oktober tetap berlaku untuk source `c1f79f79`.
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`

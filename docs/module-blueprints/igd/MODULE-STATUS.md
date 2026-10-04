@@ -269,7 +269,7 @@ sama-sama berhenti di pembuktian.
 >
 > | Urutan | Tindakan | Pemilik |
 > | ---: | --- | --- |
-> | 1 | ~~`verify-module-readiness` untuk `MVP-8`~~ — **selesai 4 Oktober 2026: `READY_WITH_CONDITIONS`** (siap UAT untuk alur tanpa serah terima dan sikap pesanan; belum siap produksi; DoD 10 dari 11 terpenuhi, butir 1 sebagian; kesiapan berbobot ±82%; syarat C1–C6) — [evidence/2026-10-04-kesiapan-mvp-8.md](evidence/2026-10-04-kesiapan-mvp-8.md) | Agent |
+> | 1 | ~~`verify-module-readiness` untuk `MVP-8`~~ — **selesai 4 Oktober 2026: `READY_WITH_CONDITIONS`** (siap UAT untuk alur tanpa serah terima dan sikap pesanan; belum siap produksi; DoD 10 dari 11 terpenuhi, butir 1 sebagian; kesiapan berbobot ±82%; syarat C1–C6, **C6 lunas 4 Oktober 2026** — manifest 0k.2, laporan `BE-IGD-062`/`063`, pengantar R3.13.1, snapshot R3.14) — [evidence/2026-10-04-kesiapan-mvp-8.md](evidence/2026-10-04-kesiapan-mvp-8.md) | Agent |
 > | 2 | Putuskan `IGD-OQ-113` (`EmergencyDeparture : Approve` pada Perawat IGD). Sandi SuperAdmin **tidak** diganti — milik lead (`IGD-DEC-189`); uji berikutnya memakai akun peran lain | Rizki |
 > | 3 | Lengkapi izin baca Ruang Kerja untuk Perawat IGD (riwayat triage, tanda vital, pengkajian, jenis tindak lanjut — `403` pada uji) sebelum UAT | Rizki |
 > | 4 | Kueri `IGD-OQ-112` di lingkungan selain dev | Rizki |

@@ -178,8 +178,8 @@ Nilai `visitStatus` pada contoh hanya ilustrasi; angka enum sebenarnya mengikuti
 | Review diff | DTO +3, service +42, controller +29/−2; akhiran baris CRLF dipertahankan; hitungan baris komentar ketiga berkas tidak berubah | `PASS` | Hitungan baris sebelum dan sesudah |
 | Nol `N+1` atas seluruh hasil | Penjaga hanya dipanggil di dalam `AmbilAlasanMenungguPenutupanAsync`, yang menerima baris halaman (`entities` sesudah `Skip`/`Take`) | `PASS` | Baca source |
 | Tanpa parameter, kueri daftar tidak berubah | Saringan hanya dipasang bila `awaitingClosure.HasValue` | `PASS` | Baca source |
-| `dotnet build` | — | `NOT RUN` | Milik pemilik |
-| Uji API S1–S8 | — | `NOT RUN` | Menunggu build pemilik |
+| `dotnet build` | Build pemilik 1 Oktober 2026 (DLL 15.18; jumlah warning tidak dilaporkan); build Rizki 3 Oktober 2026 atas `c1f79f79`, yang memuat source task ini tanpa perubahan: 0 error, 0 warning | `PASS` | Bagian *Pemeriksaan bukti uji gabungan — 2 Oktober 2026*; laporan `BE-IGD-061`, *Build pemilik — dicatat 4 Oktober 2026*. *Ditulis 1 Oktober: `NOT RUN`* |
+| Uji API S1–S8 | 6 terbukti penuh (S1, S4–S8), 2 sebagian (S2, S3 — dikecualikan) | `PASS` dengan pengecualian | Bagian *Pemeriksaan bukti uji gabungan — 2 Oktober 2026*; dikuatkan uji gabungan `MVP-8` 4 Oktober 2026. *Ditulis 1 Oktober: `NOT RUN`* |
 
 Uji manual: `REQUIRED` — lewat API; layar menyusul pada `FE-IGD-041`.
 
@@ -202,12 +202,12 @@ Uji manual: `REQUIRED` — lewat API; layar menyusul pada `FE-IGD-041`.
 
 | # | Kriteria | Status | Bukti |
 | ---: | --- | --- | --- |
-| 1 | `awaitingClosure=true` hanya menampilkan kunjungan berdisposisi dilaksanakan yang belum selesai | **Terpenuhi pada source** | `SaringMenungguPenutupan`. Uji S1, S5, S7 belum |
-| 2 | Tiap baris memuat alasan penahan memakai kalimat penjaga yang sudah ada | **Terpenuhi pada source** | Alasan diambil dari `ValidateVisitClosureAsync`, tanpa kalimat baru. Uji S2 belum |
-| 3 | Tanpa parameter, hasil daftar sama persis seperti sebelumnya | **Terpenuhi pada source** | Saringan bersyarat `HasValue`; tambahan hanya dua ruas aditif. Uji S3 belum |
-| 4 | `totalData` memberi jumlah kunjungan yang menunggu penutupan | **Terpenuhi pada source** | `CountAsync` dijalankan sesudah saringan. Uji S4 belum |
+| 1 | `awaitingClosure=true` hanya menampilkan kunjungan berdisposisi dilaksanakan yang belum selesai | **Terpenuhi — 2 Oktober 2026** | `SaringMenungguPenutupan`; uji S1, S5, S7 terbukti. 4 Oktober 2026: `061-S13` dan `061-S19-S5` (daftar `awaitingClosure=true&search=…` tepat satu baris) |
+| 2 | Tiap baris memuat alasan penahan memakai kalimat penjaga yang sudah ada | **Terpenuhi dengan pengecualian — 2 Oktober 2026** | Alasan diambil dari `ValidateVisitClosureAsync`, tanpa kalimat baru. Kalimat observasi dan kepergian teramati (S2; 4 Oktober 2026 juga `061-S13` observasi Dieskalasi dan `061-S19-S5` kepergian, sesudah penjaga diubah `BE-IGD-061`); kalimat pesanan tidak teramati — pesanan tidak dapat dibuat karena `403` kewenangan unit (`BE-IGD-039`) |
+| 3 | Tanpa parameter, hasil daftar sama persis seperti sebelumnya | **Terpenuhi dengan pengecualian — 2 Oktober 2026** | Saringan bersyarat `HasValue`; tambahan hanya dua ruas aditif. S3: ruas lama tetap dan dua ruas baru ada; pembandingan sebelum–sesudah build tidak dilakukan |
+| 4 | `totalData` memberi jumlah kunjungan yang menunggu penutupan | **Terpenuhi — 2 Oktober 2026** | `CountAsync` dijalankan sesudah saringan; uji S4 terbukti. 4 Oktober 2026: *"23 kunjungan menunggu penutupan"* = `totalData` (`FE-IGD-041`) |
 | 5 | Alasan dihitung hanya untuk baris halaman | **Terpenuhi** | Bagian 3.4 dan bagian 5, baris ketiga |
-| 6 | Build 0 error | **Belum** | Build milik pemilik |
+| 6 | Build 0 error | **Terpenuhi** | Build pemilik 1 Oktober 2026 (artefak DLL); build Rizki 3 Oktober 2026 atas `c1f79f79`: 0 error, 0 warning |
 
 DoD: laporan tracked ✅ (berkas ini). `FE-IGD-041` boleh mulai pada sisi source; uji layarnya menunggu build ini.
 
@@ -219,11 +219,11 @@ DoD: laporan tracked ✅ (berkas ini). `FE-IGD-041` boleh mulai pada sisi source
 | --- | --- |
 | Peringatan | Response aksi tulis kunjungan (buat, ubah, ubah status, selesaikan, mulai triage, konfirmasi waktu tiba) memakai DTO yang sama tetapi **tidak** menghitung dua ruas baru: nilainya selalu `false` dan `null`. Layar membaca kedua ruas dari `GET /` atau `GET /{id}` |
 | Masalah yang diketahui | Kunjungan lama yang tindak lanjutnya `Executed` tetapi statusnya belum `Disposed` ikut tampil sebagai menunggu penutupan dengan kalimat *"Kunjungan hanya dapat diselesaikan setelah keputusan tindak lanjut ditetapkan."* — benar menurut definisi kontrak, tetapi kalimatnya kurang menjelaskan keadaan data lama itu |
-| Risiko tersisa | Belum ada build. Pada `awaitingClosure=true` dengan `pageSize` maksimum (100), penjaga dijalankan sampai 100 kali — sampai ±400 kueri kecil per permintaan. Pada ukuran halaman bawaan (25) paling banyak ±100 |
+| Risiko tersisa | *Ditulis 1 Oktober: "Belum ada build" — tidak berlaku lagi sejak build 1 Oktober 2026.* Pada `awaitingClosure=true` dengan `pageSize` maksimum (100), penjaga dijalankan sampai 100 kali — sampai ±400 kueri kecil per permintaan. Pada ukuran halaman bawaan (25) paling banyak ±100 |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Tiga berkas source berubah oleh task ini; laporan ini; status roadmap/traceability. Tanpa stage, commit, atau push |
-| Langkah berikutnya | Pemilik: build, lalu S1–S8. Agent: `FE-IGD-042`, lalu `FE-IGD-041` |
+| Langkah berikutnya | Selesai — tidak ada. *Ditulis 1 Oktober: "Pemilik: build, lalu S1–S8. Agent: `FE-IGD-042`, lalu `FE-IGD-041`"* |
 
 ---
 
@@ -249,3 +249,22 @@ Build pemilik terbukti dari artefak: `bin/Debug/net9.0/QuilvianSystemBackend.dll
 - **Temuan lama, bukan dari task ini.** `search` pada `GET /emergency-visits` mencari nomor kunjungan, keluhan, tiga lokasi, nama sementara, dan catatan — **tidak** nama pasien maupun nomor rekam medis. Layar Pengkajian menulis *"Cari No. RM, nama pasien…"*; lihat laporan `FE-IGD-041`.
 
 Putusan: **✅ selesai** — Build pemilik dan uji API: **6 terbukti penuh** (S1, S4–S8), **2 sebagian** (S2, S3) pada bukti mentah. Dikecualikan dan dicatat: kalimat penahan jenis *pesanan* tidak teramati (data uji tidak dapat membuat pesanan — `403` kewenangan unit), dan pembandingan sebelum–sesudah build tidak dilakukan. Tanpa UAT.
+
+---
+
+## Koreksi laporan — 4 Oktober 2026
+
+Syarat C6 [kesiapan `MVP-8`](../../../evidence/2026-10-04-kesiapan-mvp-8.md). Bagian 5, 6, dan 7 di atas masih
+menulis keadaan 1 Oktober (*"Uji belum"*, *"Build belum"*, `NOT RUN`) walau bagian *Pemeriksaan bukti uji gabungan — 2
+Oktober 2026* sudah membuktikannya. Baris-baris itu diselaraskan dengan bukti tersebut; teks lama dipertahankan sebagai
+catatan miring. **Nol perubahan source, nol build baru, status tetap ✅** dengan dua pengecualian yang sudah tercatat
+2 Oktober (kalimat penahan pesanan; pembandingan sebelum–sesudah build).
+
+**Bukti ulang sesudah perubahan penjaga.** Pengerjaan ulang `BE-IGD-061` (3 Oktober 2026, `c1f79f79`) mengubah
+`ValidateVisitClosureAsync`, sumber alasan penahan task ini. Uji gabungan `MVP-8` 4 Oktober 2026 membuktikan saringan
+dan alasannya tetap benar sesudah perubahan itu: `061-S13` (alasan *"Masih ada observasi yang belum diselesaikan."*
+untuk observasi Dieskalasi), `061-S19-S5` (alasan kepergian sesudah observasi diselesaikan), dan `FE-IGD-041` U2, U6,
+U7, R pada hasil build — lihat laporan [`BE-IGD-061`](BE-IGD-061.md) dan [`FE-IGD-041`](../frontend/FE-IGD-041.md),
+bagian *Pemeriksaan bukti uji gabungan `MVP-8`*.
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`

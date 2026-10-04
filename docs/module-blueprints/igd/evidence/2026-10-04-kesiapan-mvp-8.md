@@ -4,7 +4,7 @@
 | --- | --- |
 | Blueprint | `IGD-BP-001` · revision **`8`** · status `draft` (irisan penutupan lewat disposisi `approved` lewat `IGD-DEC-170`, amandemen `IGD-DEC-175` dan `IGD-DEC-186`) |
 | Slice | `MVP-8` = `EPIC IGD-13`: `FR-IGD-086`…`095`, `AT-IGD-186`…`197` (`AT-IGD-190` konsekuensi hilir modul Laboratorium, bukan FR IGD); task `BE-IGD-060`…`063`, `FE-IGD-041`, `042`. **Di luar slice** (PRD §9.1): data lama (`IGD-DEC-167`), perubahan modul Bank Darah dan Laboratorium (`IGD-DEC-169`), rekonsiliasi `BE-IGD-052` |
-| **Putusan** | **`READY_WITH_CONDITIONS`** — siap masuk UAT untuk alur penutupan **tanpa** serah terima dan sikap pesanan, dengan enam syarat pada bagian 5. **Belum** siap produksi: DoD butir 1 baru terpenuhi sebagian (pemicu serah terima dan sikap pesanan tertahan `BE-IGD-039`) dan UAT belum berjalan |
+| **Putusan** | **`READY_WITH_CONDITIONS`** — siap masuk UAT untuk alur penutupan **tanpa** serah terima dan sikap pesanan, dengan enam syarat pada bagian 5 (*diperbarui 4 Oktober 2026: C6 lunas; sisa C1–C5*). **Belum** siap produksi: DoD butir 1 baru terpenuhi sebagian (pemicu serah terima dan sikap pesanan tertahan `BE-IGD-039`) dan UAT belum berjalan |
 | Skill | `verify-module-readiness` — hanya membaca source dan bukti; tidak mengerjakan perbaikan |
 | Wewenang tulis | Berkas ini dan satu baris status pada `MODULE-STATUS.md`, atas perintah Rizki Gunawan 4 Oktober 2026 (*"lanjut sesuai saran anda jalankan … verify-module-readness MVP-8"*) |
 | Backend diperiksa | `NewQuilvianSystemBackend` `rizkiG` **`c1f79f79`** (`ahead 12`); source IGD tanpa perubahan working tree — yang berubah hanya dokumen blueprint 4 Oktober. Build Rizki 3 Oktober 2026: 0 error, 0 warning |
@@ -94,7 +94,7 @@ Skor berbobot: 0,15×83 + 0,25×88 + 0,20×100 + 0,20×50 + 0,20×88 ≈ **82%**
 | **C3** | Konfigurasi peran klinis untuk UAT: izin baca Ruang Kerja perawat (`emergency-triages`, `patient-assessments`, `patient-vital-signs`, `master-data/emergency-disposition-types` — `403` pada uji 4 Okt); putuskan `IGD-OQ-113` (`EmergencyDeparture : Approve`); tetapkan peran yang membuat tindak lanjut (perawat atau dokter) | Rizki / admin peran — **bukan** agen penguji dan bukan SuperAdmin (`IGD-DEC-189`) | Atur lewat Akses Role; buktikan dengan `GET /auth/permissions` tiap akun UAT | Tanpa izin jenis tindak lanjut, pilihan disposisi kosong di layar; riwayat triage dan tanda vital tidak tampil bagi perawat |
 | **C4** | Commit dan push: dua berkas `FE-IGD-042` di `RizkiV2`; dokumen blueprint 4 Oktober di `rizkiG` | Rizki | Commit kedua berkas frontend bersama; build 11.46 yang diuji memuat keduanya | Lingkungan bersama menerima layar tanpa tombol nonaktif aturan 18 — perawat menekan *Selesaikan* dan selalu ditolak `409` |
 | **C5** | Rilis per lingkungan: migration `20260930064430`, backend `c1f79f79`, frontend dengan `FE-IGD-042`; kueri `IGD-OQ-112` per lingkungan (dev: 4 sebelum uji, 3 sesudah) | Rizki | Daftar periksa rilis; observasi Dieskalasi lama dibiarkan (`IGD-DEC-184`) dan hanya dapat dibatalkan | Kunjungan lama yang punya observasi Dieskalasi sekaligus penahan lain ikut tertahan oleh observasi itu sesudah rilis (validation §11.2 aturan 20) |
-| **C6** | Rapikan dokumen: hash decision log dan `input_revisions` manifest (`IGD-DEC-188`/`189`); tabel acceptance laporan `BE-IGD-062` dan `063` yang masih menulis *"Uji belum"*/*"Build belum"* walau tambahan 2 Oktober membuktikannya; paragraf pengantar R3.13.1 frontend (masih API `0.13.0`/validation `0.10.0`/state `0.7.0`); baris snapshot source R3.14 backend | Agent — `manage-module-blueprint` | Hanya baris status, hash, dan tautan bukti; tanpa perubahan kontrak | Pembaca roadmap dan laporan salah membaca keadaan `MVP-8` |
+| **C6** | ✅ **Lunas 4 Oktober 2026** — manifest bagian 0k.2 (hash decision log `d44df2b6…`, `input_revisions` 189 keputusan, `status_check_sha`); laporan `BE-IGD-062` dan `063` diselaraskan dengan bukti 2 Oktober (bagian *Koreksi laporan — 4 Oktober 2026*); pengantar R3.13.1 dan baris snapshot R3.14 diperbarui. *Rumusan awal:* Rapikan dokumen: hash decision log dan `input_revisions` manifest (`IGD-DEC-188`/`189`); tabel acceptance laporan `BE-IGD-062` dan `063` yang masih menulis *"Uji belum"*/*"Build belum"* walau tambahan 2 Oktober membuktikannya; paragraf pengantar R3.13.1 frontend (masih API `0.13.0`/validation `0.10.0`/state `0.7.0`); baris snapshot source R3.14 backend | Agent — `manage-module-blueprint` | Hanya baris status, hash, dan tautan bukti; tanpa perubahan kontrak | Pembaca roadmap dan laporan salah membaca keadaan `MVP-8` |
 
 ---
 
@@ -133,8 +133,7 @@ Skor berbobot: 0,15×83 + 0,25×88 + 0,20×100 + 0,20×50 + 0,20×88 ≈ **82%**
 
 ## 8. Langkah berikutnya
 
-Satu task terdekat yang langsung dapat dikerjakan: **C6** — penyelarasan dokumen lewat `manage-module-blueprint`
-(hash dan `input_revisions` manifest, tabel acceptance `BE-IGD-062`/`063`, paragraf R3.13.1). Pemilik menjalankan
+**C6 lunas 4 Oktober 2026.** Pemilik menjalankan
 **C4** (commit dan push) dan **C3** (izin peran untuk UAT) sebelum **C1** (UAT). **C2** adalah jalur terpisah yang
 menentukan kapan `BE-IGD-061` dapat ✅ dan kapan alur rawat inap/rujukan boleh masuk UAT; **C5** wajib sebelum rilis
 ke lingkungan berikutnya.

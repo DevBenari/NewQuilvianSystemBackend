@@ -1596,10 +1596,12 @@ amendment desain layar; tidak menahan `FE-IGD-036` maupun `FE-IGD-040`.
 
 ## R3.13.1 — `EPIC IGD-13`: saringan menunggu penutupan dan kalimat aksi penutupan (`MVP-8`)
 
-Dua task frontend untuk gelombang backend R3.14. Approval `IGD-DEC-170` (23 September 2026) dan `IGD-DEC-175`
-(30 September 2026, amandemen observasi); kontrak API **`0.13.0`** §9, validation **`0.10.0`** §11.1, state
-**`0.7.0`** §9.5; desain layar `03-frontend-architecture.md` §14. `FE-IGD-042` ditambahkan 30 September 2026
-(`plan-module-delivery`) sebagai pasangan layar `BE-IGD-061`, dengan keputusan tombol Eskalasi `IGD-DEC-177`.
+Dua task frontend untuk gelombang backend R3.14. Approval `IGD-DEC-170` (23 September 2026), `IGD-DEC-175`
+(30 September 2026, amandemen observasi), dan `IGD-DEC-186` (3 Oktober 2026, amandemen observasi Dieskalasi);
+kontrak API **`0.14.0`** §9, validation **`0.11.0`** §11.1–§11.2, state **`0.8.0`** §9.5–§9.6 (*sebelumnya
+API `0.13.0`, validation `0.10.0`, state `0.7.0`*); desain layar `03-frontend-architecture.md` §14. `FE-IGD-042`
+ditambahkan 30 September 2026 (`plan-module-delivery`) sebagai pasangan layar `BE-IGD-061`, dengan keputusan tombol
+Eskalasi `IGD-DEC-177`, dan dibuka ulang 3 Oktober 2026 untuk kunjungan yang sudah berakhir (`IGD-DEC-187`).
 
 **Nol butir menu baru dan nol layar baru** (`IGD-DEC-168`) — seluruhnya menumpang layar daftar kunjungan IGD
 dan ruang kerja pemeriksaan IGD yang sudah ada.

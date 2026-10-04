@@ -2734,7 +2734,7 @@ petugas menekan tombol selesaikan.
 | Keputusan | `IGD-DEC-163`…`169` (amendment pass 23 September 2026); `IGD-DEC-171`…`174` (amendment pass 30 September 2026); `IGD-DEC-176`, `177` (perencanaan 30 September 2026); `IGD-DEC-183`…`187` (amendment pass dan approval 3 Oktober 2026) |
 | Desain | `02-backend-architecture.md` §14; `erd/data-dictionary.md` §7; `flowcharts/penutupan-lewat-disposisi.md` |
 | PRD | `04-prd-to-mvp.md` §9 — `EPIC IGD-13`, `FR-IGD-086`…`095`, `AT-IGD-186`…`197` |
-| Snapshot source | Backend `rizkiG` `dce1f138`; frontend `RizkiV2` `c941012ac`. **Perluasan 30 September 2026** diperiksa pada backend `327ccad3` + working tree `BE-IGD-060`, frontend `2c2190858` |
+| Snapshot source | Backend `rizkiG` `dce1f138`; frontend `RizkiV2` `c941012ac`. **Perluasan 30 September 2026** diperiksa pada backend `327ccad3` + working tree `BE-IGD-060`, frontend `2c2190858`. **Perluasan 3 Oktober 2026:** backend `2a63a3bb` (source IGD identik dengan `5af6ef3b`), frontend `521b18a9a`. **Uji gabungan dan kesiapan 4 Oktober 2026:** backend `c1f79f79`, frontend `19ba512de` + working tree `FE-IGD-042` ([evidence/2026-10-04-kesiapan-mvp-8.md](../evidence/2026-10-04-kesiapan-mvp-8.md)) |
 | Manifest | Revisi **8**, bagian 0i; hash terbaru di bagian **0k** (3 Oktober 2026). *Sebelumnya bagian 0j (30 September 2026)* |
 
 ### R3.14.1 Mengapa urutannya begini

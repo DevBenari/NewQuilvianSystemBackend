@@ -638,7 +638,7 @@ identitas U1 (dibatalkan `IGD-DEC-151`).
 
 | Butir | Isi |
 | --- | --- |
-| Snapshot source | Backend `rizkiG` `dce1f138`; frontend `RizkiV2` `c941012ac`. Perluasan 30 September 2026: backend `327ccad3` + working tree `BE-IGD-060`, frontend `2c2190858`. Perluasan 3 Oktober 2026: backend `2a63a3bb` (source IGD identik dengan `5af6ef3b`), frontend `521b18a9a` |
+| Snapshot source | Backend `rizkiG` `dce1f138`; frontend `RizkiV2` `c941012ac`. Perluasan 30 September 2026: backend `327ccad3` + working tree `BE-IGD-060`, frontend `2c2190858`. Perluasan 3 Oktober 2026: backend `2a63a3bb` (source IGD identik dengan `5af6ef3b`), frontend `521b18a9a`. Uji gabungan dan kesiapan 4 Oktober 2026: backend `c1f79f79`, frontend `19ba512de` + working tree `FE-IGD-042` ([kesiapan `MVP-8`](../evidence/2026-10-04-kesiapan-mvp-8.md): `READY_WITH_CONDITIONS`) |
 | Kontrak terkunci | API `0.14.0` §9; validation `0.11.0` §6 aturan 2, §11, §11.1, §11.2; state `0.8.0` §9, §9.5, §9.6; permission/audit `0.6.0` §8; integration `0.5.0` §6. Hash di manifest bagian 0k. *Sebelumnya API `0.13.0`, validation `0.10.0`, state `0.7.0` (bagian 0j); sebelumnya lagi `0.12.0`, `0.9.0`, `0.6.0`* |
 | Approval | `IGD-DEC-170` — Rizki Gunawan, 23 September 2026; `IGD-DEC-175` — amandemen observasi, 30 September 2026 (sementara, `IGD-DEC-174`); keputusan perencanaan `IGD-DEC-176`, `177`; `IGD-DEC-186` — amandemen observasi Dieskalasi, 3 Oktober 2026 (sementara); keputusan layar `IGD-DEC-187` |
 | Desain turunan | `02-backend-architecture.md` §14; `03-frontend-architecture.md` §14; `erd/data-dictionary.md` §7; `flowcharts/penutupan-lewat-disposisi.md`; `04-prd-to-mvp.md` §9 |
