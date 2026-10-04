@@ -47,8 +47,10 @@ Kolom *Bisa mulai sekarang?* menjawab apakah pekerjaan itu menunggu pihak lain.
 
 | No | Pekerjaan | Pemilik | Bisa mulai sekarang? |
 | ---: | --- | --- | --- |
-| 2.1 | `FE-IGD-041` 🟡 — kolom PENUTUPAN terdorong keluar layar pada lebar 1440 piksel; perbaiki tata letak, lalu uji U2, U6, U7 | Agent (`build-module-frontend`) | Ya |
-| 2.2 | Temuan `BE-IGD-061` S6: observasi berstatus *Dieskalasi* tidak menahan penutupan, sehingga kunjungan bisa selesai sementara observasinya tertinggal dan tidak dapat diselesaikan lagi. Perlu keputusan aturan | Rizki lewat `grill-me` | Ya |
+| 2.1 | `FE-IGD-041` 🟡 — **tata letak diperbaiki 3 Oktober 2026 (petang):** penanda pindah ke bawah lencana STATUS KUNJUNGAN, kolom PENUTUPAN dihapus, build lulus 17.03. **Sisa:** uji layar U2, U6, U7, dan R pada hasil build | Rizki (Antigravity) | Ya |
+| 2.2 | ✅ **Diputuskan 3 Oktober 2026 — `IGD-DEC-183`…`185`.** Observasi Dieskalasi menahan penutupan; data lama dibiarkan dengan pesan yang diperjelas; dikerjakan sebagai pengerjaan ulang `BE-IGD-061`. *Temuan asal:* observasi berstatus *Dieskalasi* tidak menahan penutupan, sehingga kunjungan bisa selesai sementara observasinya tertinggal | Rizki lewat `grill-me` | — |
+| 2.2a | 🟡 **Dikerjakan 3 Oktober 2026 (petang)** — kontrak `approved` (`IGD-DEC-186`), kartu diperluas, source `BE-IGD-061` dikerjakan (QBE `PASS`). **Sisa:** `dotnet build` dan uji API S13–S19 | Rizki | Ya |
+| 2.2b | Pengerjaan ulang `FE-IGD-042` — tombol *Selesaikan*/*Eskalasi* nonaktif beserta keterangan pada kunjungan berakhir (`IGD-DEC-187`); `FE-IGD-042` turun dari ✅ ke 🟡 | Agent (`build-module-frontend`) | Ya |
 | 2.3 | `BE-IGD-061` S2, S3, S12 — pemicu serah terima dan sikap pesanan | Agent | **Tidak** — tertahan `BE-IGD-039` |
 | 2.4 | `verify-module-readiness` untuk `MVP-8` | Agent | Sesudah 2.1–2.3 |
 | 2.5 | `IGD-OQ-111` — pencatatan pasien yang memburuk sesudah disposisi dilaksanakan (tidak menahan) | Rizki + Clinical Governance | Ya |
@@ -84,7 +86,8 @@ tertahan serah terima tidak dapat dimulai kunjungan barunya (`IGD-DEC-180`).
 | ID | Pertanyaan | Menahan |
 | --- | --- | --- |
 | `IGD-OQ-102`, `IGD-OQ-103` | Sumber roster dokter jaga, kriteria dokter layak, dan tempat penanda override | `EPIC IGD-12` — `BE-IGD-056` ⛔, `FE-IGD-037` ⛔ |
-| Temuan `BE-IGD-061` S6 | Apakah observasi *Dieskalasi* menahan penutupan kunjungan | Penyelesaian `MVP-8` |
+| ~~Temuan `BE-IGD-061` S6~~ | ~~Apakah observasi *Dieskalasi* menahan penutupan kunjungan~~ — **dijawab `IGD-DEC-183` (3 Oktober 2026): ya** | — |
+| `IGD-OQ-112` | Jumlah observasi Dieskalasi yang sudah tertinggal pada kunjungan selesai, per lingkungan | Tidak menahan |
 | `IGD-DEC-100`…`102` | Sikap pesanan, pesanan lab manual, penerimaan per pesanan — masih `draft` | DoD butir 10 `EPIC IGD-07` |
 | `IGD-OQ-083` | Tempat menyimpan alasan pembatalan observasi | Bagian `Cancelled` `IGD-DEC-115` |
 | `IGD-OQ-089` | Bentuk terstruktur alat jalan napas (OPA, NPA, ETT, LMA, dll.) | Pelaporan alat jalan napas |

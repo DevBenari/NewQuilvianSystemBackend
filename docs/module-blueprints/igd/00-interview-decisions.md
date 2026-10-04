@@ -5143,3 +5143,104 @@ percakapan.
 | ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
 | --- | --- | --- | --- | --- | --- | --- |
 | `IGD-DEC-182` | Decision | **Layar loket IGD membuat encounter lewat rute petugas `POST /patient-encounters/admin`, bukan rute tanpa akhiran.** Fakta source: `POST /patient-encounters` dan `…/kiosk` adalah `CreateEncounterForKiosk` dengan policy `KioskRead` (SuperAdmin, Administrator, akun kiosk — commit `27c48484`, 4 Juli 2026); `POST /patient-encounters/admin` adalah `CreateEncounterForAdmin` dengan `PatientEncounter : Create`. Keduanya memanggil `CreateEncounterCoreAsync` yang sama, termasuk penjaga episode `BE-IGD-053`. Loket IGD memakai rute kiosk sehingga petugas loket sungguhan ditolak `403`; tersembunyi karena seluruh uji sebelumnya memakai SuperAdmin. Perbaikan dikerjakan sebagai pengerjaan ulang `FE-IGD-036` (bagian 11 laporannya). Kontrak API §8.1 diberi catatan rute petugas; **nomor versi kontrak tidak dinaikkan** dan **nol perubahan backend** — pola koreksi `IGD-DEC-178`/`179` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-03** | Percakapan 3 Oktober 2026: *"lakukan perbaikan loket dikerjakan sebagai pengerjaan ulang FE-IGD-036, ditambah catatan kecil di kontrak API §8.1 bahwa petugas memakai rute /admin"* |
+
+## Amendment pass 3 Oktober 2026 — observasi Dieskalasi dan penutupan kunjungan (temuan `BE-IGD-061` S6)
+
+Pass ini menjawab **satu temuan uji** `BE-IGD-061` skenario S6 (2 Oktober 2026). Sebuah observasi dieskalasi saat
+kunjungan masih ditangani, lalu disposisinya dilaksanakan. Kunjungan langsung tertutup, padahal observasi itu masih
+berstatus Dieskalasi. Sesudahnya observasi tersebut tidak dapat diselesaikan lagi, dan kesimpulannya hilang.
+
+| Butir | Isi |
+| --- | --- |
+| Mode | `Amendment pass` — blueprint revisi 8; keputusan lama tidak ditimpa |
+| Snapshot source | Backend `rizkiG` `5af6ef3b` (source IGD tanpa perubahan working tree); frontend `RizkiV2` `521b18a9a` |
+| Capability map | **Berpotensi basi** — suplemen 3.2 dicatat pada `0d13f3a8`. Seluruh fakta pass ini diverifikasi langsung pada source `5af6ef3b` |
+| Di dalam scope | Apakah observasi Dieskalasi menahan penutupan kunjungan; nasib observasi Dieskalasi yang sudah tertinggal pada kunjungan selesai; pesan yang dibaca perawat |
+| Di luar scope | Pasien yang memburuk sesudah disposisi dilaksanakan (`IGD-OQ-111`); entri susulan sesudah periode observasi ditutup (`IGD-OQ-090`); tempat alasan pembatalan observasi (`IGD-OQ-083`); membuka kembali kunjungan selesai (`IGD-DEC-166` tetap berlaku) |
+| Bentuk blueprint | Tidak dinilai ulang — sudah diputuskan 22 September 2026 |
+| Pengambil keputusan | Rizki Gunawan, Product/Domain Owner IGD, lewat pilihan interaktif 3 Oktober 2026 |
+| Konfirmasi scope | Batas scope disampaikan bersama pertanyaan pertama; pemilik menjawab tanpa keberatan |
+
+### Fakta source yang diverifikasi pada pass ini
+
+| ID | Fakta | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-032` | Eskalasi observasi memindahkan kunjungan ke `InTreatment`, mengisi `EndedAt`, dan menyimpan catatannya ke `EscalationReason` | `EmergencyObservationController.UpdateObservationStatus` (pemetaan `Escalated => InTreatment`; `EndedAt ??= now`; `EscalationReason = catatan`) |
+| `IGD-FACT-033` | Periode `Escalated` **tetap menerima** pemantauan baru, sama seperti `Active`; hanya `Completed` dan `Cancelled` yang menolak. Menurut `IGD-DEC-126`, periode Dieskalasi termasuk periode yang **belum ditutup** | `EmergencyObservationService` (parameter `tolakPeriodeTertutup`); `IGD-DEC-126` |
+| `IGD-FACT-034` | `Escalated → Completed` dan `Escalated → Cancelled` sah. Pada kunjungan yang masih berjalan, menyelesaikan observasi Dieskalasi memindahkan kunjungan ke `AwaitingDisposition`; pada kunjungan `Disposed` tidak memindahkan apa pun (`IGD-DEC-171`). Eskalasi karena itu dirancang sebagai keadaan antara yang diakhiri dengan *Selesaikan* | `EmergencyObservationService.CanTransition`; pemetaan `Completed when !kunjunganDisposed` |
+| `IGD-FACT-035` | Penjaga penutupan `ValidateVisitClosureAsync` dipakai tiga jalur: penutupan susulan (`TryCloseAfterDispositionAsync`), tombol *Selesaikan kunjungan* (`EmergencyVisitController`), dan alasan pada daftar menunggu penutupan (`AmbilAlasanMenungguPenutupanAsync`). Saringan daftar itu sendiri membaca status kunjungan dan disposisi `Executed`, bukan penjaga | `EmergencyDispositionService.cs:108`; `EmergencyVisitService.SaringMenungguPenutupan` |
+| `IGD-FACT-036` | Uji S6, 2 Oktober 2026: observasi dieskalasi saat `InTreatment` → disposisi dilaksanakan → kunjungan langsung `Completed` → menyelesaikan observasi itu ditolak `409` *"Status kunjungan tidak dapat berubah dari Completed ke AwaitingDisposition."* Hanya *Batalkan* yang lolos | Laporan `BE-IGD-061` bagian *Pemeriksaan bukti uji gabungan* |
+
+`IGD-FACT-031` (penjaga penutupan hanya menghitung observasi `Active`) tetap berlaku sebagai fakta source; bersama
+`IGD-FACT-033` ia membentuk **conflict**: keputusan `IGD-DEC-126` memperlakukan periode Dieskalasi sebagai belum
+ditutup, sedangkan penjaga penutupan memperlakukannya sebagai sudah selesai.
+
+### Keputusan
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-183` | Decision | **Observasi Dieskalasi menahan penutupan kunjungan, sama seperti observasi Aktif.** Periode Dieskalasi adalah urusan yang belum selesai: pasien sempat memburuk, ditangani lagi, dan periode itu baru tuntas ketika perawat menyelesaikannya beserta kesimpulan atau membatalkannya. Penjaga penutupan menghitung observasi `Active` **dan** `Escalated`, sehingga ketiga jalur pada `IGD-FACT-035` ikut berubah bersamaan. Kunjungan yang disposisinya sudah dilaksanakan tetapi masih punya observasi Dieskalasi masuk daftar menunggu penutupan (`IGD-DEC-164`). Perawat menyelesaikan observasi itu lewat jalur `IGD-DEC-171` — kesimpulan tersimpan, status kunjungan tidak dipindahkan — lalu kunjungan tertutup pada penyimpanan yang sama bila tak ada penahan lain (`IGD-DEC-165`). Menjawab conflict `IGD-FACT-031` ↔ `IGD-FACT-033` dengan berpihak pada `IGD-DEC-126`. *Contoh:* pukul 10.00 observasi dieskalasi karena saturasi turun; pasien ditangani dan membaik. Pukul 13.00 dokter memutuskan pulang dan disposisinya dilaksanakan. Kunjungan **tidak** langsung tertutup, tetapi tampil *Menunggu penutupan — Masih ada observasi yang belum diselesaikan.* Pukul 13.10 perawat menyelesaikan observasi pukul 10.00 dengan kesimpulan *"membaik sesudah penanganan, layak pulang"*, dan kunjungan tertutup atas nama perawat tersebut. **Konsekuensi yang diterima:** satu langkah tambahan untuk setiap eskalasi, termasuk bila sesudahnya sudah dibuka periode observasi baru | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-03** (sementara, pola `IGD-DEC-174` — wajib ditinjau ulang bila Clinical Governance atau Nursing authority IGD ditunjuk) | Pilihan interaktif 3 Oktober 2026 (opsi *Masih terbuka, menahan*, direkomendasikan agent); temuan uji `BE-IGD-061` S6 |
+
+### Asumsi sementara — pemilik boleh membatalkan kapan saja
+
+| ID | Isi | Dasar |
+| --- | --- | --- |
+| `IGD-ASM-003` | Alasan penahan untuk observasi Dieskalasi memakai kalimat yang sudah ada, *"Masih ada observasi yang belum diselesaikan."* — tindakan perawatnya sama: membuka tab Observasi dan menyelesaikan periode yang belum tuntas | Kalimat penjaga sekarang; `FE-IGD-041` menampilkan alasan apa adanya dari server |
+
+### Keputusan lanjutan — data lama dan kartu task
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-184` | Decision | **Observasi Dieskalasi yang sudah tertinggal pada kunjungan selesai dibiarkan apa adanya; pesannya diperjelas.** `IGD-DEC-183` berlaku ke depan saja (pola `IGD-DEC-167`). Observasi semacam itu **tidak** diubah massal, **tidak** dibatalkan lewat skrip, dan kunjungannya **tidak** dibuka kembali (`IGD-DEC-166`). Upaya *menyelesaikan*, *mengeskalasi*, atau *mengaktifkan* observasi milik kunjungan `Completed` atau `Cancelled` tetap ditolak `409`, tetapi dengan kalimat yang dipahami perawat sebagai pengganti pesan teknis penjaga transisi (*"Status kunjungan tidak dapat berubah dari Completed ke AwaitingDisposition."*). Kalimat mengikatnya dikunci pada amandemen validation matrix; usulan agent: *"Kunjungan IGD ini sudah selesai; observasinya tidak dapat diubah lagi."* Aksi *batalkan* pada kunjungan selesai **tidak** diubah oleh keputusan ini — tetap lolos seperti tertulis pada state §9.5 *Yang tidak berubah*. Jumlah observasi tertinggal dihitung per lingkungan (`IGD-OQ-112`). **Konsekuensi yang diterima:** observasi lama itu tetap tanpa kesimpulan. Menyelesaikannya susulan berarti membuka jalur entri susulan pada kunjungan tertutup, yang harus dirancang tersendiri (`IGD-OQ-090`) | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-03** (sementara, pola `IGD-DEC-174`) | Pilihan interaktif 3 Oktober 2026 (opsi *Dibiarkan, pesan diperjelas*, direkomendasikan agent) |
+| `IGD-DEC-185` | Decision | **`IGD-DEC-183` dan `184` dikerjakan sebagai pengerjaan ulang `BE-IGD-061`**, bukan kartu baru. Skenario S6 dan kriteria 8 memang milik kartu itu, yang masih 🟡; satu siklus uji cukup (pola `IGD-DEC-173`). Kartu diperluas lewat `plan-module-delivery` sesudah kontrak diamandemen. Konsekuensinya `BE-IGD-061` tetap tidak dapat mencapai ✅ sebelum S2, S3, dan S12 terbukti — yang tertahan `BE-IGD-039` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-03** | Pilihan interaktif 3 Oktober 2026 (opsi *Pengerjaan ulang BE-IGD-061*, direkomendasikan agent) |
+
+### Pertanyaan terbuka
+
+| ID | Jenis | Isi | Pembacaan yang berlaku sekarang | Pemilik | Status | Menahan |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-112` | Open Question | Berapa observasi berstatus `Escalated` yang tertinggal pada kunjungan `Completed` atau `Cancelled`, per lingkungan. Penjaga lama dipakai juga oleh tombol *Selesaikan kunjungan*, jadi data semacam ini dapat ada sejak sebelum `MVP-8`, termasuk di produksi | Dev: sedikitnya satu — kunjungan uji S6. Lingkungan lain belum diketahui. Kueri milik pemilik; agent dilarang menjalankannya | Rizki | `open` | **Tidak** menahan desain maupun implementasi; angkanya menentukan apakah perlu tindak lanjut operasional |
+
+### Yang berubah dan yang tidak
+
+| Bagian | Sesudah pass ini |
+| --- | --- |
+| Penjaga penutupan | Menghitung observasi `Active` **dan** `Escalated` (`IGD-DEC-183`) |
+| Penutupan susulan, tombol *Selesaikan kunjungan*, alasan daftar menunggu penutupan | Ikut berubah lewat penjaga yang sama (`IGD-FACT-035`) |
+| Pesan aksi observasi pada kunjungan selesai | Kalimat yang dipahami perawat (`IGD-DEC-184`) |
+| `IGD-DEC-171` (selesaikan pada `Disposed`) dan `IGD-DEC-172` (eskalasi pada `Disposed` ditolak) | Tidak berubah. `IGD-DEC-171` kini juga menjadi jalan keluar observasi Dieskalasi |
+| Aksi *batalkan* pada kunjungan selesai | Tidak berubah — tetap lolos |
+| Frontend | Diperkirakan nol perubahan: `FE-IGD-041` menampilkan alasan apa adanya dari server, dan tab Observasi (`FE-IGD-042`) sudah menyediakan *Selesaikan* untuk observasi Dieskalasi pada kunjungan `Disposed`. Dipastikan ulang oleh `plan-module-delivery` |
+| Kontrak | **Belum** diubah. Yang perlu diamandemen: validation §11 (aturan penjaga penutupan + kalimat `IGD-DEC-184`), state §9.4–9.5 (catatan *"Observasi Escalated tidak menahan penutupan"* diganti), API §9.2 (arti alasan penahan observasi) |
+
+### Acceptance yang kini dapat diuji
+
+| No | Skenario | Hasil yang diharapkan |
+| ---: | --- | --- |
+| 1 | Observasi dieskalasi saat `InTreatment`, lalu disposisi dilaksanakan | Kunjungan tetap `Disposed`; tampil pada `GET /emergency-visits?awaitingClosure=true` dengan alasan *"Masih ada observasi yang belum diselesaikan."* |
+| 2 | Lanjutan no. 1: observasi Dieskalasi diselesaikan beserta catatan | `200`; `CompletionSummary` tersimpan; kunjungan `Completed` pada penyimpanan yang sama, ditandai berasal dari disposisi, atas nama perawat itu |
+| 3 | Lanjutan no. 1, variasi: observasi Dieskalasi dibatalkan | `200`; kunjungan tertutup bila tak ada penahan lain |
+| 4 | Kunjungan `Disposed` dengan observasi Dieskalasi: tombol *Selesaikan kunjungan* | Ditolak dengan alasan *"Masih ada observasi yang belum diselesaikan."* |
+| 5 | Kunjungan punya observasi Dieskalasi lama **dan** periode observasi baru yang sudah `Completed`; disposisi dilaksanakan | Kunjungan tetap menunggu penutupan sampai observasi Dieskalasi diselesaikan atau dibatalkan — konsekuensi yang diterima `IGD-DEC-183` |
+| 6 | Kunjungan `Completed` dengan observasi Dieskalasi lama: selesaikan, eskalasi, atau aktifkan | `409` dengan kalimat `IGD-DEC-184`; observasi tidak berubah. *Batalkan* tetap lolos |
+| 7 | Regresi `BE-IGD-061` S1, S5, S7–S10 | Tidak berubah |
+
+### Blocker desain
+
+Nol. Ketiga keputusan cukup untuk amandemen kontrak. `IGD-OQ-112` dan `IGD-OQ-111` tidak menahan.
+
+### Langkah berikutnya
+
+`design-business-module` (amendment) menurunkan `IGD-DEC-183`…`185` ke validation §11, state §9, dan API §9.2,
+termasuk mengunci kalimat `IGD-DEC-184`. Sesudah approval kontrak, `plan-module-delivery` memperluas `BE-IGD-061`,
+lalu `build-module-backend` mengerjakannya. Build backend dan uji API tetap milik pemilik.
+
+### Approval amandemen desain — 3 Oktober 2026
+
+Pass `design-business-module` menurunkan `IGD-DEC-183`…`185` ke kontrak (manifest bagian 0k). Dua hal ditemukan saat
+desain dan diajukan bersama approval: usulan aturan 21 (pemantauan baru pada kunjungan berakhir) dan dampak pada tab
+Observasi. Pemilik menjawab lewat pilihan interaktif, keduanya opsi yang direkomendasikan agent.
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-186` | Decision | **Amandemen kontrak "observasi Dieskalasi dan kunjungan yang sudah berakhir" disetujui seluruhnya.** Bagian baru berstatus `approved`: validation **`0.11.0`** — §6 aturan 2 dan §11.2 aturan 16–21, termasuk urutan pemeriksaan dan dua kalimat mengikat (aturan 18: *"Kunjungan IGD ini sudah berakhir; observasinya tidak dapat diselesaikan, dieskalasi, atau diaktifkan kembali."*; aturan 21: *"Kunjungan IGD ini sudah berakhir; pemantauan observasi tidak dapat ditambahkan lagi."*); state **`0.8.0`** §9.6 beserta baris baru §9.4; API **`0.14.0`** §9.1 nomor 6–8, catatan §9.2, perluasan §9.4. Disetujui pula turunannya: `02-backend-architecture.md` §14.3–14.4 (`EmergencyDispositionService`, `EmergencyObservationController`, `EmergencyObservationDetailController`) dan `04-prd-to-mvp.md` §9 (`FR-IGD-094`, `095`, `AT-IGD-194`…`197`, DoD butir 11, `IGD-OQ-112`). **Aturan 21 — usulan agent, perluasan `IGD-DEC-184`** — ikut disetujui: pemantauan baru (`POST /emergency-observation-details`) pada kunjungan `Completed`/`Cancelled` ditolak `409`; `PUT` tidak berubah. Kalimat aturan 18 menggantikan draf pada `IGD-DEC-184` — *"berakhir"* mencakup kunjungan batal, dan *"tidak dapat diubah lagi"* akan menyesatkan karena *batalkan* tetap diizinkan. Permission/audit `0.6.0` dan integration `0.5.0` tidak berubah. `flowcharts/penutupan-lewat-disposisi.md` tetap `draft`. Revisi blueprint **tetap 8**. Approval **sementara** mengikuti pola `IGD-DEC-174`. Konsekuensinya `plan-module-delivery` boleh memperluas `BE-IGD-061` (`IGD-DEC-185`) | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-03** (sementara, pola `IGD-DEC-174`) | Pilihan interaktif *"Setujui seluruhnya"*; gerbang `plan-module-delivery` |
+| `IGD-DEC-187` | Decision | **Tab Observasi pada kunjungan yang sudah berakhir: *Selesaikan* dan *Eskalasi* tampil nonaktif beserta keterangan; *Batalkan* tetap aktif.** Pola `IGD-DEC-177`: layar tidak mengirim permintaan yang pasti ditolak, tetapi perawat diberi tahu alasannya — kalimat validation §11.2 aturan 18. Pesan `409` tetap ditampilkan apa adanya bila data berubah di antara muat layar dan penekanan tombol. Rupa keterangan `DEV_DISCRETION`, asalkan terbaca tanpa kursor. Dikerjakan sebagai **pengerjaan ulang `FE-IGD-042`**, direncanakan `plan-module-delivery` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-03** (sementara, pola `IGD-DEC-174`) | Pilihan interaktif *"Tombol nonaktif + keterangan"* |

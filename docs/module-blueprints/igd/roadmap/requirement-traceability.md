@@ -638,9 +638,9 @@ identitas U1 (dibatalkan `IGD-DEC-151`).
 
 | Butir | Isi |
 | --- | --- |
-| Snapshot source | Backend `rizkiG` `dce1f138`; frontend `RizkiV2` `c941012ac`. Perluasan 30 September 2026: backend `327ccad3` + working tree `BE-IGD-060`, frontend `2c2190858` |
-| Kontrak terkunci | API `0.13.0` §9; validation `0.10.0` §11 dan §11.1; state `0.7.0` §9 dan §9.5; permission/audit `0.6.0` §8; integration `0.5.0` §6. Hash di manifest bagian 0j. *Sebelumnya API `0.12.0`, validation `0.9.0`, state `0.6.0`* |
-| Approval | `IGD-DEC-170` — Rizki Gunawan, 23 September 2026; `IGD-DEC-175` — amandemen observasi, 30 September 2026 (sementara, `IGD-DEC-174`); keputusan perencanaan `IGD-DEC-176`, `177` |
+| Snapshot source | Backend `rizkiG` `dce1f138`; frontend `RizkiV2` `c941012ac`. Perluasan 30 September 2026: backend `327ccad3` + working tree `BE-IGD-060`, frontend `2c2190858`. Perluasan 3 Oktober 2026: backend `2a63a3bb` (source IGD identik dengan `5af6ef3b`), frontend `521b18a9a` |
+| Kontrak terkunci | API `0.14.0` §9; validation `0.11.0` §6 aturan 2, §11, §11.1, §11.2; state `0.8.0` §9, §9.5, §9.6; permission/audit `0.6.0` §8; integration `0.5.0` §6. Hash di manifest bagian 0k. *Sebelumnya API `0.13.0`, validation `0.10.0`, state `0.7.0` (bagian 0j); sebelumnya lagi `0.12.0`, `0.9.0`, `0.6.0`* |
+| Approval | `IGD-DEC-170` — Rizki Gunawan, 23 September 2026; `IGD-DEC-175` — amandemen observasi, 30 September 2026 (sementara, `IGD-DEC-174`); keputusan perencanaan `IGD-DEC-176`, `177`; `IGD-DEC-186` — amandemen observasi Dieskalasi, 3 Oktober 2026 (sementara); keputusan layar `IGD-DEC-187` |
 | Desain turunan | `02-backend-architecture.md` §14; `03-frontend-architecture.md` §14; `erd/data-dictionary.md` §7; `flowcharts/penutupan-lewat-disposisi.md`; `04-prd-to-mvp.md` §9 |
 | Task | Backend R3.14: `BE-IGD-060`…`063` (4); frontend R3.13.1: `FE-IGD-041`, `FE-IGD-042` (2) |
 
@@ -649,11 +649,11 @@ identitas U1 (dibatalkan `IGD-DEC-151`).
 | Task | Requirement / keputusan | Target implementasi | Kontrak | Dependency | Requirement approved | Delivery planned | Implementation complete | Runtime verified |
 | --- | --- | --- | --- | --- | :-: | :-: | :-: | :-: |
 | ✅ `BE-IGD-060` | `FR-IGD-086`, `087`, `089`; `IGD-DEC-163`…`165`, `167` | Kolom `EmgVisit.ClosedByDispositionId` + `TryCloseAfterDispositionAsync` + pemicu disposisi `Executed`; 1 migration | val §11 a.1–7; state §9; int §6 | `BE-IGD-051` ✅, `BE-IGD-055` ✅ | Ya | Ya | **Ya — 30 September 2026**: source + migration `20260930064430` diterapkan ke dev ([laporan](../task/report/backend/BE-IGD-060.md)) | **Ya — 30 September 2026, atas penilaian pemilik**: uji S1–S6 `PASS` (Playwright pemilik; bukti mentah diperiksa agent); `Down()` berpenjaga lulus uji terpisah. Bukan UAT |
-| 🟡 `BE-IGD-061` | `FR-IGD-088`, `092`, `093`; `IGD-DEC-165`, `136`, `171`, `172`, `173` | Tiga titik pemicu susulan: observasi, serah terima, sikap pesanan; pemetaan observasi pada kunjungan `Disposed` (selesaikan tanpa memindahkan status, eskalasi `409`) | val §11 a.4–6, §11.1 a.12–15; state §9.2, §9.5; API §9.1 no.5, §9.4 | `BE-IGD-060` ✅ | Ya | Ya — **diperluas 30 September 2026** | **Ya — 1 Oktober 2026**: source ditulis (3 berkas), QBE checker `PASS` ([laporan](../task/report/backend/BE-IGD-061.md)) | **Sebagian — 2 Oktober 2026**: S1, S5, S7–S10 terbukti; S4, S11 sebagian; S2, S3, S6, S12 belum (403 kewenangan unit; prasyarat S6 tidak terpenuhi) |
+| 🟡 `BE-IGD-061` | `FR-IGD-088`, `092`, `093`, `094`, `095`; `IGD-DEC-165`, `136`, `171`, `172`, `173`, `183`, `184`, `185` | Tiga titik pemicu susulan: observasi, serah terima, sikap pesanan; pemetaan observasi pada kunjungan `Disposed` (selesaikan tanpa memindahkan status, eskalasi `409`); **3 Oktober 2026:** penjaga penutupan menghitung `Escalated`, aksi observasi dan pemantauan baru pada kunjungan berakhir ditolak `409` | val §6 a.2, §9.1 l.2a, §11 a.4–6, §11.1 a.12–15, §11.2 a.16–21; state §9.2, §9.5, §9.6; API §9.1 no.5–8, §9.4 | `BE-IGD-060` ✅ | Ya | Ya — **diperluas 30 September dan 3 Oktober 2026** | **Ya — 3 Oktober 2026 (pengerjaan ulang)**: 3 berkas, QBE checker Strict `PASS`; acceptance 13–18 pada source ([laporan](../task/report/backend/BE-IGD-061.md), *Pengerjaan ulang 3 Oktober 2026*). *Sebelumnya — 1 Oktober 2026*: source ditulis (3 berkas), QBE checker `PASS` | **Sebagian — 3 Oktober 2026**: perluasan belum dibuild dan belum diuji (S13–S19). *2 Oktober 2026*: S1, S5, S7–S10 terbukti; S4, S11 sebagian; S2, S3, S6, S12 belum (403 kewenangan unit; prasyarat S6 tidak terpenuhi) |
 | ✅ `BE-IGD-062` | `FR-IGD-090`; `IGD-DEC-166`, `176` | Penolakan `409` bermakna pembatalan disposisi `Executed` atas kunjungan selesai, didahulukan atas penjaga `400`; `Executed` tetap final | val §11 a.8–9; API §9.1 no.3 (dikoreksi), §9.3 | `BE-IGD-060` ✅ | Ya | Ya — **diperiksa ulang 30 September 2026** | **Ya — 1 Oktober 2026**: source ditulis (1 berkas), QBE checker `PASS` ([laporan](../task/report/backend/BE-IGD-062.md)) | **Ya — 2 Oktober 2026**: S1–S5 5 dari 5 pada bukti mentah |
 | ✅ `BE-IGD-063` | `FR-IGD-091`; `IGD-DEC-164`, `168` | Saringan `awaitingClosure` + dua ruas response | API §9.2; val §11 a.10 | `BE-IGD-060` ✅ | Ya | Ya | **Ya — 1 Oktober 2026**: source ditulis (3 berkas), QBE checker `PASS` ([laporan](../task/report/backend/BE-IGD-063.md)) | **Ya — 2 Oktober 2026**: S1, S4–S8 terbukti; S2 dan S3 sebagian (dikecualikan, lihat laporan) |
-| 🟡 `FE-IGD-041` | `FR-IGD-091`; `IGD-DEC-164`, `168` | Saringan dan penanda pada daftar kunjungan IGD; nol menu baru | API §9.2 | `BE-IGD-063` 🟡 | Ya | Ya | **Ya — 1 Oktober 2026**: source ditulis (4 berkas), `eslint` 0 error, tanpa unit test ([laporan](../task/report/frontend/FE-IGD-041.md)) | **Sebagian — 2 Oktober 2026**: U1, U3, U4, U5 terbukti; U2 sebagian; U6, U7 belum — kolom PENUTUPAN di luar bidang pandang |
-| ✅ `FE-IGD-042` | `FR-IGD-092`, `093`, `086`, `087` sisi layar; `IGD-DEC-171`, `172`, `177`, `163`, `164` | Kalimat konfirmasi *Selesaikan*/*Eskalasi*/*Jalankan* mengikuti status kunjungan terkini; *Eskalasi* nonaktif + keterangan pada kunjungan `Disposed` | val §11.1 a.12–14, §11 a.1–4; state §9.5; API §9.4 | `BE-IGD-061` 🟡 | Ya | Ya — **baru 30 September 2026** | **Ya — 1 Oktober 2026**: source ditulis (6 berkas), `eslint` 0 error, tanpa unit test ([laporan](../task/report/frontend/FE-IGD-042.md)) | **Ya — 2 Oktober 2026**: U1–U8 8 dari 8 pada bukti mentah |
+| 🟡 `FE-IGD-041` | `FR-IGD-091`; `IGD-DEC-164`, `168` | Saringan dan penanda pada daftar kunjungan IGD; nol menu baru | API §9.2 | `BE-IGD-063` 🟡 | Ya | Ya | **Ya — 1 Oktober 2026**: source ditulis (4 berkas), `eslint` 0 error, tanpa unit test ([laporan](../task/report/frontend/FE-IGD-041.md)) | **Sebagian — 3 Oktober 2026**: tata letak diperbaiki (penanda di bawah lencana STATUS KUNJUNGAN; harness 1440 piksel luber 0, penanda utuh); `npm run build` lulus 17.03; uji layar U2, U6, U7 revisi belum ([laporan](../task/report/frontend/FE-IGD-041.md), *Pengerjaan ulang 3 Oktober 2026*). *Sebelumnya — 2 Oktober 2026*: U1, U3, U4, U5 terbukti; U2 sebagian; U6, U7 belum — kolom PENUTUPAN di luar bidang pandang |
+| 🟡 `FE-IGD-042` | `FR-IGD-092`, `093`, `095`, `086`, `087` sisi layar; `IGD-DEC-171`, `172`, `177`, `163`, `164`, `187` | Kalimat konfirmasi *Selesaikan*/*Eskalasi*/*Jalankan* mengikuti status kunjungan terkini; *Eskalasi* nonaktif + keterangan pada kunjungan `Disposed`; **3 Oktober 2026:** *Selesaikan* dan *Eskalasi* nonaktif + keterangan pada kunjungan berakhir, *Batalkan* tetap aktif | val §11.1 a.12–14, §11.2 a.18–19, §11 a.1–4; state §9.5, §9.6; API §9.1 no.7, §9.4 | `BE-IGD-061` 🟡 | Ya | Ya — **baru 30 September 2026; dibuka ulang 3 Oktober 2026** (acceptance 10–13 belum dikerjakan; turun dari ✅) | **Ya — 1 Oktober 2026**: source ditulis (6 berkas), `eslint` 0 error, tanpa unit test ([laporan](../task/report/frontend/FE-IGD-042.md)) | **Ya — 2 Oktober 2026**: U1–U8 8 dari 8 pada bukti mentah |
 
 ### R3.14.2 Requirement ke task dan uji
 
@@ -667,10 +667,12 @@ identitas U1 (dibatalkan `IGD-DEC-151`).
 | `FR-IGD-091` saringan menunggu penutupan | `BE-IGD-063` | `FE-IGD-041` | `AT-IGD-191` | Lengkap |
 | `FR-IGD-092` observasi diselesaikan sesudah disposisi dilaksanakan | `BE-IGD-061` (acceptance 1, 8, 11) | `FE-IGD-042` (acceptance 1, 2, 5) | `AT-IGD-192` | Lengkap |
 | `FR-IGD-093` eskalasi sesudah disposisi dilaksanakan ditolak | `BE-IGD-061` (acceptance 9, 10) | `FE-IGD-042` (acceptance 3, 4) | `AT-IGD-193` | Lengkap |
+| `FR-IGD-094` observasi Dieskalasi menahan penutupan — **3 Oktober 2026** | `BE-IGD-061` (acceptance 13–16, 19) | `FE-IGD-041` (menampilkan alasan, nol perubahan); `FE-IGD-042` (acceptance 13) | `AT-IGD-194`, `195`, `196` | Lengkap |
+| `FR-IGD-095` aksi observasi dan pemantauan pada kunjungan berakhir ditolak dengan kalimat sendiri — **3 Oktober 2026** | `BE-IGD-061` (acceptance 17, 18) | `FE-IGD-042` (acceptance 10–12) | `AT-IGD-197` | Lengkap. Catatan: tombol tambah pemantauan pada kunjungan berakhir tidak dinonaktifkan — di luar `IGD-DEC-187` |
 | — (konsekuensi hilir, bukan requirement IGD) | — | — | `AT-IGD-190` | Diuji sebagai perilaku modul Bank Darah dan Laboratorium; **nol** perubahan pada keduanya (`IGD-DEC-169`) |
 
-**Coverage gap:** nihil untuk slice ini. Kedelapan requirement punya task dan skenario uji (`FR-IGD-092`, `093` ditambahkan
-30 September 2026). Catatan: `AT-IGD-189` hanya dapat diuji lewat API — layar tidak pernah menawarkan Batalkan untuk
+**Coverage gap:** nihil untuk slice ini. Kesepuluh requirement punya task dan skenario uji (`FR-IGD-092`, `093` ditambahkan
+30 September 2026; `FR-IGD-094`, `095` ditambahkan 3 Oktober 2026). Catatan: `AT-IGD-189` hanya dapat diuji lewat API — layar tidak pernah menawarkan Batalkan untuk
 disposisi `Executed` (`BE-IGD-062`).
 
 ### R3.14.3 Keputusan ke task
@@ -692,6 +694,11 @@ disposisi `Executed` (`BE-IGD-062`).
 | `IGD-DEC-175` approval amandemen kontrak | `approved` | Gerbang perluasan R3.14 |
 | `IGD-DEC-176` `BE-IGD-062` sesuai kontrak; `Executed` tetap final | `approved` | `BE-IGD-062`; koreksi fakta API §9.1 nomor 3 |
 | `IGD-DEC-177` Eskalasi nonaktif + keterangan pada `Disposed` | `approved` (sementara, `IGD-DEC-174`) | `FE-IGD-042` |
+| `IGD-DEC-183` observasi Dieskalasi menahan penutupan | `approved` (sementara, pola `IGD-DEC-174`) | `BE-IGD-061` (acceptance 13–16) |
+| `IGD-DEC-184` observasi Dieskalasi tertinggal dibiarkan; pesan pada kunjungan berakhir diperjelas | `approved` (sementara) | `BE-IGD-061` (acceptance 17); data lama tidak diubah |
+| `IGD-DEC-185` dikerjakan sebagai pengerjaan ulang `BE-IGD-061` | `approved` | Kartu `BE-IGD-061` diperluas 3 Oktober 2026 |
+| `IGD-DEC-186` approval amandemen kontrak, termasuk aturan 21 pemantauan | `approved` (sementara) | Gerbang perluasan R3.14 3 Oktober 2026; `BE-IGD-061` (acceptance 18) |
+| `IGD-DEC-187` tombol nonaktif + keterangan pada kunjungan berakhir | `approved` (sementara) | `FE-IGD-042` (acceptance 10–12) |
 
 ### R3.14.4 Pertanyaan terbuka
 
@@ -699,3 +706,4 @@ disposisi `Executed` (`BE-IGD-062`).
 | --- | --- | --- |
 | `IGD-OQ-110` | Jumlah encounter `IsActive = false` tanpa tanda berakhir pada data lama; sisi source sudah dijawab (nol jalur), sisi data milik pemilik | Tidak — memengaruhi angka, bukan bentuk aturan |
 | `IGD-OQ-111` | Cara mencatat pasien yang memburuk sesudah disposisinya dilaksanakan tetapi masih berada di IGD | Tidak — menahan kebijakan klinis kasus itu, bukan `BE-IGD-061`/`FE-IGD-042` |
+| `IGD-OQ-112` | Jumlah observasi Dieskalasi yang sudah tertinggal pada kunjungan berakhir, per lingkungan; kueri milik pemilik | Tidak — menentukan perlu tidaknya tindak lanjut operasional |

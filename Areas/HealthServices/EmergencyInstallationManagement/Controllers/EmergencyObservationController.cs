@@ -39,6 +39,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private const string PesanEskalasiPadaKunjunganDisposed =
             "Tindak lanjut pasien sudah dilaksanakan; eskalasi tidak dapat dicatat pada kunjungan ini.";
 
+        private const string PesanObservasiPadaKunjunganBerakhir =
+            "Kunjungan IGD ini sudah berakhir; observasinya tidak dapat diselesaikan, dieskalasi, atau diaktifkan kembali.";
+
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly EmergencyObservationService _emergencyObservationService;
@@ -281,6 +284,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var actorUserId = GetCurrentUserId();
             var visit = await _dbContext.Set<EmgVisit>().FirstAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
             var kunjunganDisposed = visit.VisitStatus == EmergencyVisitStatus.Disposed;
+
+            // IGD-DEC-184 — kunjungan yang sudah berakhir tidak dibuka kembali dan observasinya
+            // tidak diubah lagi, kecuali dibatalkan. Diperiksa sebelum eskalasi dan batas catatan.
+            if (!EmergencyVisitService.EpisodeMasihBerjalan(visit.VisitStatus) &&
+                request.ObservationStatus != EmergencyObservationStatus.Cancelled)
+                return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, PesanObservasiPadaKunjunganBerakhir));
 
             if (kunjunganDisposed && request.ObservationStatus == EmergencyObservationStatus.Escalated)
                 return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, PesanEskalasiPadaKunjunganDisposed));

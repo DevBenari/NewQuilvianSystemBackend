@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `aa0b1168b` (`RizkiV2`) + working tree `FE-IGD-038`, `036`, `039`, `040`, `042` yang belum di-commit |
 | Commit backend yang dijadikan rujukan | `b9076c71` + working tree `BE-IGD-053`, `057`, `058`, `059`, `061`, `062`, `063` |
 | Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — 2 Oktober 2026.** Build pemilik terbukti. Uji layar: **4 terbukti** (U1, U3, U4, U5), **1 sebagian** (U2), **2 belum terbukti** (U6, U7). **Kriteria 2 belum terpenuhi pada bukti:** pada lebar 1440 piksel kolom PENUTUPAN terdorong ke luar bidang pandang, sehingga penanda dan alasannya tidak terbaca tanpa menggulir ke samping. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** Empat berkas (tiga source diubah, satu util baru); `eslint` 0 error, 0 warning; unit test tidak dipakai atas perintah pemilik 1 Oktober 2026. **Belum:** `npm run build` dan uji layar U1–U7 (milik pemilik, sesudah build `BE-IGD-063`) |
+| Status | 🟡 **SEBAGIAN — 3 Oktober 2026 (pengerjaan ulang tata letak).** Penanda *Menunggu penutupan* dipindah ke bawah lencana STATUS KUNJUNGAN dan kolom PENUTUPAN dihapus; lebar kolom ditata ulang (jumlah `minWidth` 1.102 piksel, sebelumnya 1.392). Pengukuran harness pada 1440 piksel: penanda utuh di dalam bidang pandang, tabel luber 0 piksel dengan nama biasa. `eslint` 0 error; unit test IGD 91/91; `npm run build` agent **lulus** 17.03 (465/465 halaman, 0 warning, `postbuild` standalone berhasil) dan server standalone port 3000 dinyalakan ulang dari hasil build itu. **Belum:** uji layar U2, U6, U7 revisi pada hasil build — bagian *Pengerjaan ulang 3 Oktober 2026*. *Sebelumnya:* 🟡 **SEBAGIAN — 2 Oktober 2026.** Build pemilik terbukti. Uji layar: **4 terbukti** (U1, U3, U4, U5), **1 sebagian** (U2), **2 belum terbukti** (U6, U7). **Kriteria 2 belum terpenuhi pada bukti:** pada lebar 1440 piksel kolom PENUTUPAN terdorong ke luar bidang pandang, sehingga penanda dan alasannya tidak terbaca tanpa menggulir ke samping. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** Empat berkas (tiga source diubah, satu util baru); `eslint` 0 error, 0 warning; unit test tidak dipakai atas perintah pemilik 1 Oktober 2026. **Belum:** `npm run build` dan uji layar U1–U7 (milik pemilik, sesudah build `BE-IGD-063`) |
 
 ---
 
@@ -223,3 +223,117 @@ Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/` (`results-tahap-1
 - **Temuan lama, bukan dari task ini.** Hasil kosong pada `041-U6` berasal dari backend: `search` tidak mencari nama pasien maupun nomor rekam medis (lihat laporan `BE-IGD-063`). Gabungan saringan dengan pencarian nomor kunjungan terbukti lewat `063-S7`.
 
 Putusan: **🟡 sebagian** — Build pemilik terbukti. Uji layar: **4 terbukti** (U1, U3, U4, U5), **1 sebagian** (U2), **2 belum terbukti** (U6, U7). **Kriteria 2 belum terpenuhi pada bukti:** pada lebar 1440 piksel kolom PENUTUPAN terdorong ke luar bidang pandang, sehingga penanda dan alasannya tidak terbaca tanpa menggulir ke samping.
+
+---
+
+## Pengerjaan ulang — 3 Oktober 2026: letak penanda menunggu penutupan
+
+| Field | Nilai |
+| --- | --- |
+| Pemicu | Temuan uji gabungan 2 Oktober 2026 pada kriteria 2: kolom PENUTUPAN di luar bidang pandang pada 1440 piksel |
+| Wewenang | Rizki Gunawan, 3 Oktober 2026: *"tuntaskan MVP-8 — mulai dari perbaikan tata letak FE-IGD-041 (kolom PENUTUPAN pada 1440 piksel)"* |
+| Commit frontend dasar | `521b18a9a` (`RizkiV2`, `ahead 2`). Working tree juga memuat perbaikan loket `IGD-DEC-182` pada `emergency-registration.service.js` — **bukan** task ini, tidak disentuh |
+| Kontrak | Tidak berubah — API `0.12.0` §9.2 |
+| Wewenang UI | `DEV_DISCRETION` (rupa dan letak penanda). Batas yang dijaga: alasan penahan terbaca tanpa membuka detail |
+
+### Penyebab
+
+Bidang pandang tabel pada 1440 piksel dengan sidebar terbuka: 1440 − 260 (sidebar) − 30 (padding konten) − 24
+(padding halaman) − bilah gulir ≈ **1.099 piksel** (terukur). Jumlah `minWidth` tujuh kolom lama sudah 1.112 piksel;
+kolom PENUTUPAN (`minWidth` 280) menambah 280 lagi. Kolom itu berada di urutan ketujuh dan mulai sekitar piksel 960,
+sehingga hanya ±140 piksel pertamanya yang tampak. Nama pasien yang panjang melebarkan kolom NAMA PASIEN
+(`white-space: nowrap`) dan mendorong kolom itu makin jauh. Kedua gejala pada bukti 2 Oktober — terpotong di tepi
+kanan (U2) dan tangkapan layar berhenti di STATUS KUNJUNGAN (U7) — cocok dengan hitungan ini.
+
+### Perubahan
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/components/view/…/emergency-assessment-list-view.jsx` | Kolom PENUTUPAN bersyarat dihapus. Sel STATUS KUNJUNGAN kini memuat lencana status dan, bila `isAwaitingClosure`, kotak *"Menunggu penutupan — <alasan>"* di bawahnya. `minWidth`: TANGGAL MASUK 180→150, STATUS KUNJUNGAN 170→210, AKSI 150→130. +22/−32 |
+| `src/utils/…/emergency-assessment-list.utils.js` | `shouldShowClosureColumn` dihapus — tidak dipakai lagi. Fungsi itu ditambahkan task ini sendiri pada 1 Oktober. −6 |
+| `src/lib/constants/…/emergency-assessment-constant.jsx` | `awaitingClosureCountHint`: *"…begitu penahan pada kolom Penutupan dibereskan."* → *"…begitu penahan yang tertulis di bawah status kunjungannya dibereskan."* +1/−1 |
+| `src/style/…/emergency-assessment.module.css` | Kelas baru `.statusCell` (flex kolom, `gap: var(--space-2)`) untuk menumpuk lencana dan penanda. +11 |
+
+Nol komentar baru di JSX; satu baris komentar CSS mengikuti pola komentar per aturan pada berkas itu. Akhiran baris LF
+dipertahankan. Tidak disentuh: hook, slice, route, menu, base component, backend.
+
+### Keputusan base component
+
+`UI GATE: 1 elemen berubah — REUSE 0, EXTEND 0, COMPOSE 1, WRAP 0, NEW 0` (tiga elemen lain dari 1 Oktober tetap `REUSE`)
+
+| Kebutuhan UI | Kandidat | Bukti | Status | Rekomendasi |
+| --- | --- | --- | --- | --- |
+| Penanda dan alasan pada daftar | Kolom `DataTable` `render` + kelas `statusBadge` dan `formHint` | `data-table.jsx` (`render`, `minWidth`); kedua kelas di `emergency-assessment.module.css` | `COMPOSE` | Opsi A |
+
+- **A. Penanda di bawah lencana pada sel STATUS KUNJUNGAN — dipilih (rekomendasi).** Tabel tidak melebar dan tidak
+  berubah lebar saat berpindah halaman. Biayanya satu kelas CSS berbasis token.
+- **B. Kolom PENUTUPAN dipertahankan, dipindah sesudah NAMA PASIEN, dipersempit ke 200.** Penanda tampak, tetapi tabel
+  tetap ±1.312 piksel sehingga UNIT, STATUS, dan tombol *Pemeriksaan* yang terdorong keluar.
+- **C. Extend `DataTable` dengan baris rincian di bawah baris.** Alasan selebar tabel, tetapi mengubah base component
+  yang dipakai banyak modul; butuh persetujuan; biaya terbesar.
+
+### Pengukuran tata letak (harness)
+
+Halaman uji statis memuat CSS asli repository dengan urutan yang sama seperti `src/app/layout.js` (Bootstrap,
+`style.css`, `responsive.css`, `globals.css`, `v1-visual-parity.css`, Poppins, `base-data-components.module.css`,
+`emergency-assessment.module.css`). DOM tabelnya disusun sama dengan `DataTable` beserta tiga baris contoh rekaan.
+Pengukuran memakai Chromium headless shell 1234 (Playwright), viewport tinggi 900. **Ini bukan uji layar**: tidak ada
+login, backend, maupun data sungguhan. Gunanya membuktikan hitungan lebar sebelum build dan uji pemilik.
+
+| Susunan | 1440 · nama biasa | 1440 · nama panjang | 1366 · nama biasa | 1920 |
+| --- | --- | --- | --- | --- |
+| Sebelum task (`8cc155e02`, tanpa kolom PENUTUPAN) | luber 8 | luber 58 | luber 82 | luber 0 |
+| `FE-IGD-041` 1 Oktober (`de70687a9`) | luber 288 — **penanda terpotong** | luber 338 — **terpotong** | luber 362 — **terpotong** | luber 0 |
+| **Sesudah perbaikan** | **luber 0 — penanda utuh (3 baris), AKSI utuh** | luber 35 — penanda utuh, AKSI terpotong | luber 58 — penanda utuh | luber 0 |
+
+*Luber* = `scrollWidth` tabel − lebar tampak pembungkus, dalam piksel. Nama panjang yang dipakai: *"Pasien Uji Encounter
+First Petugas Loket Tiga"*. Susunan 1 Oktober mereproduksi temuan uji gabungan, sehingga harness ini sah sebagai
+pembanding.
+
+### Validasi
+
+| Perintah atau pemeriksaan | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `npx eslint` tiga berkas JS/JSX yang berubah | 0 error, 0 warning | `PASS` |
+| Grep anti-regresi 1–6 (`ui-consistency-checklist` G) pada baris tambahan | Nol temuan pada keenam pola | `PASS` |
+| `npm run test:unit` | Runner gagal sebelum menjalankan test: `ERR_UNSUPPORTED_DIR_IMPORT` — Node `24.18.1` menolak argumen folder `tests/unit` | `UNRELATED EXISTING ISSUE` |
+| Suite lengkap lewat pola berkas `tests/unit/**/*.test.mjs` | 2.358 test: 2.350 lulus, 8 gagal — sidebar Keuangan/petty cash, menu Hemodialisa, Bank Darah, paritas Rawat Jalan/Rawat Inap. Tak satu pun berkas test yang gagal mengimpor berkas task ini | `UNRELATED EXISTING ISSUE` |
+| `npm run build` | **Lulus** — `✓ Compiled successfully in 2.3min`, 465/465 halaman, 0 error, 0 warning; `postbuild` standalone berhasil; `.next/BUILD_ID` 17.03. Atas izin pemilik, server uji di port 3000 dihentikan lebih dulu: PID 22684 (standalone) dan `next dev` yang menggantikannya pukul 16.39 sudah berhenti sendiri saat akan dihentikan | `PASS` |
+| Isi hasil build | Chunk layar memuat `header:"STATUS KUNJUNGAN",minWidth:210`; nol chunk memuat `header:"PENUTUPAN"`; kalimat petunjuk baru ada dan kalimat lama tidak ada; kelas `statusCell` ada di CSS hasil build | `PASS` |
+| Server uji | `node .next/standalone/server.js` dinyalakan ulang dari hasil build ini (PID 22352, port 3000). `GET /login` `200`, chunk statis layar `200`, halaman Pengkajian `200` | `PASS` |
+
+`AUTOMATED TEST: node --import ./tests/helpers/register.mjs --test tests/unit/emergency-*.test.mjs — PASS (91/91)`
+
+`MANUAL TEST: NOT FEASIBLE — layar butuh login dan backend berjalan; uji layar dijalankan pemilik lewat Antigravity pada hasil build`
+
+### Skenario uji layar revisi — menggantikan U2, U6, U7 pada §6.1
+
+**Prasyarat:** hasil build (`npm run start` atau standalone), **bukan** `next dev` — tangkapan layar tanpa lencana
+"N". Viewport **1440 × 900** dengan sidebar terbuka. Akun pemegang `EmergencyVisit : Read`. Minimal 11 kunjungan
+menunggu penutupan di dev (2 Oktober: 20). Skrip wajib **memeriksa** setiap harapan; `pass = true` tanpa pemeriksaan
+tidak diterima.
+
+| # | Langkah | Yang diharapkan | Bukti yang diserahkan | Kriteria |
+| ---: | --- | --- | --- | ---: |
+| U2 | Pilih *Menunggu penutupan* | Permintaan membawa `awaitingClosure=true`. Tabel **tanpa** kolom PENUTUPAN. Tiap baris memuat lencana *Tindak lanjut ditetapkan* dan, di bawahnya, kotak kuning *"Menunggu penutupan — <alasan>"*. Seluruh kotak berada di dalam bidang pandang tanpa menggulir ke samping | Tangkapan layar 1440; catatan jaringan; JSON ukuran dari halaman: `clientWidth` dan `scrollWidth` pembungkus tabel, `scrollLeft` = 0, serta tepi kanan tiap kotak penanda ≤ tepi kanan pembungkus | 2 |
+| U6 | (a) Saringan aktif, cari nomor kunjungan **lengkap** milik satu baris tertahan. (b) Ganti pencarian menjadi `IGD`, lalu pindah ke halaman 2. (c) Di halaman 2, ubah *Status Kunjungan* | (a) Satu baris, tetap berpenanda; permintaan membawa `search` dan `awaitingClosure=true`. (b) Lebih dari sepuluh baris; permintaan halaman 2 membawa `pageNumber=2`, `awaitingClosure=true`, dan `search=IGD`; semua baris halaman 2 berpenanda. (c) Permintaan kembali ke `pageNumber=1` | Catatan jaringan ketiga langkah; tangkapan layar (a) dan (b) | 2 |
+| U7 | Pilih *Semua kunjungan*. Cari halaman yang memuat baris tertahan — atau cari nomor kunjungan tertahan tanpa saringan. Lalu pindah ke halaman tanpa baris tertahan | Baris tertahan menampilkan kotak penanda di bawah lencana; baris lain hanya lencana. Tidak ada kolom PENUTUPAN. `scrollWidth` tabel sama pada kedua halaman | Tangkapan layar kedua halaman; JSON `scrollWidth` kedua halaman | 2 |
+| R | Ulang singkat U1, U3, U4, U5 | Seperti §6.1. U3: kalimat petunjuk kini *"…begitu penahan yang tertulis di bawah status kunjungannya dibereskan."* | Tangkapan layar | 1, 3–5 |
+
+**Jangan memakai pencarian nama pasien atau nomor rekam medis.** Backend tidak mencari kedua ruas itu (temuan lama,
+laporan `BE-IGD-063`). Itulah penyebab hasil kosong `041-U6` pada 2 Oktober.
+
+### Catatan
+
+| Hal | Isi |
+| --- | --- |
+| Peringatan §8 lama | *"Lebar tabel dapat berubah saat berpindah halaman"* **tidak berlaku lagi** — tidak ada kolom yang muncul dan hilang |
+| Masalah lama, tidak diperbaiki | Nama pasien panjang melebarkan kolom NAMA PASIEN karena `.patientCell strong` memakai `white-space: nowrap` tanpa batas lebar sel. Pada 1440 piksel tombol AKSI dapat terpotong (harness: 35 piksel; susunan sebelum task: 58). Penanda tetap utuh. Perbaikannya berarti memotong nama pasien — menyangkut identifikasi pasien, jadi perlu keputusan tersendiri |
+| Masalah lama, tidak diperbaiki | Placeholder pencarian *"Cari No. RM, nama pasien, atau nomor kunjungan..."* menjanjikan dua ruas yang tidak dicari backend |
+| Masalah perkakas | `npm run test:unit` gagal pada Node 24 karena argumen folder; suite berjalan lewat pola berkas |
+| Status Git | Empat berkas oleh pengerjaan ulang ini (`git diff --stat`: view +22/−32, util −6, konstanta +1/−1, CSS +11), ditambah `emergency-registration.service.js` milik `IGD-DEC-182`. Tanpa stage, commit, atau push |
+| Langkah berikutnya | Pemilik menjalankan U2, U6, U7, dan R lewat Antigravity pada server standalone port 3000 (hasil build 17.03), lalu agent memeriksa bukti mentahnya |
+
+Putusan pengerjaan ulang: **🟡 sebagian** — kriteria 2 terpenuhi pada source dan pada pengukuran harness; kriteria 7
+(build) **terpenuhi** — `npm run build` lulus, dan `eslint` berkas task bersih. Yang tersisa hanya bukti uji layar U2,
+U6, U7 pada hasil build.
