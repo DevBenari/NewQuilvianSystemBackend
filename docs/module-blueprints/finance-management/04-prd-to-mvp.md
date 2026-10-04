@@ -1768,3 +1768,149 @@ Dua hal, dan keduanya **bukan** cacat implementasi melainkan batas yang diterima
 **Nol keputusan bisnis yang menahan desain lagi.** Yang tersisa pada daftar di atas hanyalah nilai
 konfigurasi, satu konfirmasi paket, wewenang migration, dan persetujuan Accounting — tidak satu pun
 di antaranya menuntut pass desain baru.
+
+
+---
+
+## 56. Revisi 16 — apa yang berubah pada batas MVP, dan apa yang tidak
+
+```yaml
+contract_version: FIN-MVP-1.11
+status: approved
+owner: Yasmin (Product/Domain Finance)
+approved_by: Yasmin (Product/Domain Finance)
+approved_at: 2026-10-04
+input_revision: 00-interview-decisions.md — dua Amendment pass 4 Oktober 2026 (FIN-DEC-141..FIN-DEC-160)
+naik_dari: FIN-MVP-1.10 (approved 2 Oktober 2026)
+```
+
+**Satu hal yang MUST dibaca lebih dulu.** Revisi 16 **tidak menambah epic, tidak menambah layar, dan tidak
+menambah tabel**. Ia menyelaraskan apa yang sudah dibangun terhadap keputusan yang lahir sesudahnya, dan
+**mengeluarkan satu kemampuan dari rilis pertama**. Jadi batas MVP di bawah menjadi **lebih kecil**, bukan
+lebih besar.
+
+### 56.1 Satu kemampuan keluar dari rilis pertama
+
+| Kemampuan | Keadaan revisi 15 | Keadaan revisi 16 | Keputusan |
+|---|---|---|---|
+| Membaca berkas migrasi berformat **XLSX** | Masuk `MVP-14E`, tertahan `FIN-OQ-081` (nama paket) | **DITUNDA ke `POST-MVP`.** Rilis pertama **CSV saja** | `FIN-DEC-149` |
+
+**Akibatnya pada gelombang pengiriman:**
+
+| Task | Keadaan revisi 15 | Keadaan revisi 16 |
+|---|---|---|
+| `BE-FIN-083` (pembaca XLSX) | `MVP-14E`, ⛔ `BLOCKED` `FIN-OQ-081` | **Pindah ke `POST-MVP`.** Tidak lagi menahan `MVP-14E` dinyatakan selesai |
+| `MVP-14E` sisanya (`BE-FIN-079`..`082`, `FE-FIN-032`) | Menunggu `BE-FIN-083` untuk kelengkapan dua format | **Dapat dinyatakan selesai tanpa XLSX.** Jalur CSV utuh |
+
+**Yang MUST dijaga ketika XLSX kelak dikerjakan.** `FIN-DEC-140` **tidak** dicabut: dua format tetap tujuan,
+`IOpeningItemFileReader` tetap memulangkan baris terurai, dan kriteria penerimaan paritas dua format
+(`FIN-TEST-1.9` `J.3`) **tetap berlaku** untuk slice itu. Yang ditunda pelaksanaannya, bukan keputusannya.
+
+### 56.2 Kemampuan yang disposisinya berubah
+
+Seluruhnya `EXTEND` atas kemampuan yang sudah ada. Nol `MISSING / NEW`.
+
+| FR | Kemampuan | Disposisi | ID capability | Keputusan |
+|---|---|---|---|---|
+| `FR-FIN-184` | Ambang hanya dapat diubah bila pengubah bekerja dari nilai terbaru | `EXTEND` | `FIN-CAP-063` | `FIN-DEC-146` |
+| `FR-FIN-185` | Ambang berlaku seketika; tidak ada perubahan terjadwal | `EXTEND` | `FIN-CAP-063` | `FIN-DEC-145`, `153` |
+| `FR-FIN-186` | Staf AR/AP mengetahui angka ambang sebelum mengirim pembayaran | `EXTEND` | `FIN-CAP-063` | `FIN-DEC-147` |
+| `FR-FIN-187` | Layar ambang dan batch menampilkan nama pelaku, bukan ID | `EXTEND` | `FIN-CAP-061`, `063` | `FIN-DEC-151` |
+| `FR-FIN-188` | Berkas migrasi dibatasi 10.000 baris, dan migrasi besar dipecah menjadi beberapa batch | `EXTEND` | `FIN-CAP-061` | `FIN-DEC-155` |
+| `FR-FIN-189` | Berkas batch yang masih Draf dapat diunggah ulang pada batch yang sama | `EXISTING / REUSE` | `FIN-CAP-061` | `FIN-DEC-144` |
+| `FR-FIN-190` | Periode tanpa rekap kas harian dinyatakan sebagai keadaan, bukan angka nol | `EXTEND` | `FIN-CAP-065` | `FIN-DEC-152` |
+| `FR-FIN-191` | Ketujuh layar baru dapat ditemukan dari menu | `EXTEND` | `FIN-CAP-059`, `061`, `063` | `FIN-DEC-148`, `160` |
+
+### 56.3 Skenario UAT revisi 16
+
+**Jalur berhasil:**
+
+| # | Skenario | Hasil yang diharapkan |
+|---:|---|---|
+| 1 | Pejabat menetapkan ambang pertama pada hari persiapan go-live, lalu staf mencatat pembayaran langsung di bawah ambang | Ambang tersimpan beserta alasannya; pembayaran diterima tanpa menunggu tanggal berlaku apa pun |
+| 2 | Staf AR melihat peringatan ambang sebelum mengirim pembayaran yang melewati batas | Peringatan **menyebut angkanya**, dan staf memperbaiki nominalnya sendiri tanpa perlu mencoba mengirim |
+| 3 | Petugas memecah 23.000 tagihan lama menjadi tiga berkas, lalu menyetujui ketiganya | Ketiga batch disetujui terpisah, masing-masing dengan dokumen rujukan Accounting sendiri |
+| 4 | Petugas memperbaiki tiga baris bergalat lalu mengunggah ulang pada batch yang sama | Nomor batch tetap; saldo awal Accounting yang sudah dinyatakan tetap; validasi dijalankan lagi |
+| 5 | Petugas membuka ketiga layar cutover dari menu, berurutan sesuai alur kerjanya | Submenu "Cutover & Subledger" memuat Pemetaan Akun → Saldo Awal → Batch Migrasi |
+
+**Jalur gagal:**
+
+| # | Skenario | Hasil yang diharapkan |
+|---:|---|---|
+| 6 | Dua pejabat mengubah ambang bersamaan | Yang kalah **ditolak** dan diminta memuat ulang. Nilai yang menang **tidak hilang** |
+| 7 | Petugas mengunggah berkas berisi 10.001 baris | Ditolak beserta pesan yang menyebut batas dan menyarankan memecah berkas. Nol batch terbentuk |
+| 8 | Petugas mengunggah berkas XLSX pada rilis pertama | Ditolak beserta keterangan pembaca XLSX belum tersedia dan saran memakai CSV — **bukan** "berkas Anda salah" |
+| 9 | Petugas membuka perbandingan kas pada periode yang belum punya rekap harian | Saldo penutupan berbunyi "Belum ada rekap", selisih "Tidak dapat dinyatakan". **Bukan** `Rp 0` |
+| 10 | Petugas mencoba mengunggah ulang berkas pada batch yang sudah Tervalidasi | Ditolak; batch itu harus ditolak lalu dibuat ulang |
+| 11 | Staf AR mencoba mengubah ambang | Ditolak backend, bukan hanya disembunyikan layar |
+
+### 56.4 Definition of Done revisi 16
+
+| # | Butir | Cara menjawabnya |
+|---:|---|---|
+| 26 | Ambang menolak perubahan dari nilai basi, dan penetapan pertama tetap dapat dilakukan tanpa penanda versi | Uji `K.1.1` dan `K.2.1` |
+| 27 | Kolom tanggal berlaku **tidak lagi ada** pada tabel ambang, dan penanda versi ada | Periksa skema sesudah migration; uji `K.2.6` |
+| 28 | Nama pelaku tampil pada layar ambang dan batch; ID mentah **tidak pernah** tampil | Uji `K.1.4` dan pengamatan layar |
+| 29 | Berkas 10.000 baris diterima, 10.001 ditolak, dan berkas yang ditolak nol meninggalkan jejak | Uji `K.3.1`, `K.3.2`, `K.3.3` |
+| 30 | Periode tanpa rekap kas harian **tidak pernah** menampilkan `Rp 0` sebagai saldo | Uji `K.5.1`, `K.5.2`, `K.5.7` |
+| 31 | Ketujuh layar baru dapat dicapai dari menu, dan menu Transaksi A/R serta A/P **tidak berubah** | Pengamatan menu, dibandingkan dengan daftar V1 |
+| 32 | Konfigurasi `MaxFileSizeBytes` bernilai `10485760` terisi, sehingga unggah bukti dapat dipakai | Periksa konfigurasi lingkungan; uji unggah bukti berhasil dan `K.7.2` |
+| 33 | Peran staf AR/AP diberi hak baca ambang, sehingga peringatan menyebut angkanya | Periksa pemberian hak; uji `K.1.5` |
+| 34 | Migration ambang diterapkan, dan `has-pending-model-changes` bersih | Laporan pengguna beserta keluaran perintahnya |
+| 35 | Keputusan `FIN-DEC-141`..`160` tercermin di kontrak, dan **tidak ada lagi** selisih keputusan-vs-source | Pemeriksaan silang kontrak terhadap source; impact scan lanjutan |
+
+### 56.5 Urutan pengiriman revisi 16
+
+Bukan tanggal, melainkan gelombang. Seluruhnya **sesudah** `MVP-14E`.
+
+| Gelombang | Isi | Boleh mulai setelah |
+|---|---|---|
+| `MVP-16A` | Migration ambang (penanda versi + buang kolom tanggal berlaku) beserta penyesuaian service, DTO, dan layar ambang | `has-pending-model-changes` bersih |
+| `MVP-16B` | Nama pelaku pada respons ambang dan batch; batas 10.000 baris; penanda "belum ada rekap" pada selisih kas | `MVP-16A` selesai, atau berjalan sejajar — keduanya tidak bertabrakan |
+| `MVP-16C` | Butir menu: submenu "Cutover & Subledger" dan Ambang pada Master Data | Kapan saja. **Tidak** bergantung pada 16A maupun 16B |
+| `POST-MVP` | `BE-FIN-083` pembaca XLSX beserta kriteria paritas dua format | `FIN-OQ-081` dijawab |
+
+**Kenapa `MVP-16C` tidak bergantung pada apa pun.** Butir menu hanya menambah jalan masuk ke layar yang
+sudah hidup seluruhnya. Mengerjakannya lebih dulu memberi manfaat paling cepat dengan risiko paling kecil,
+dan **tidak** menunggu migration apa pun.
+
+**Satu urutan yang MUST dijaga di dalam `MVP-16A`.** Membuang kolom tanggal berlaku pada tabel yang sudah
+berjalan **MUST NOT** dilakukan sementara aplikasi versi lama masih membacanya. Pilihannya: terapkan
+migration **bersamaan** dengan rilis aplikasi yang sudah berhenti memakai kolom itu, atau pecah menjadi dua
+rilis. Rinciannya pada `02-backend-architecture.md` N.7.
+
+### 56.6 Prasyarat go-live yang MUST dicentang saat menyerahkan modul
+
+Bukan kode, tetapi tanpanya kemampuan yang sudah dibangun **tidak dapat dipakai sama sekali**.
+
+| # | Prasyarat | Akibat bila dilewatkan |
+|---:|---|---|
+| 1 | `FinanceManagement:TransactionProof:MaxFileSizeBytes` = `10485760` | Unggah bukti selalu `503`, sehingga **seluruh jalur pembayaran langsung** tidak dapat dipakai |
+| 2 | Pejabat berwenang menetapkan ambang pertama lewat layar | Seluruh pembayaran langsung ditolak `404` |
+| 3 | Peran staf AR/AP diberi `MstDirectPaymentThreshold : Read` | Peringatan ambang tidak menyebut angkanya |
+| 4 | Seluruh migration Finance yang tertunda diterapkan | Kemampuan yang bergantung padanya gagal di tingkat basis data |
+| 5 | Ketiga hosted service dibiarkan **mati** sampai G3 dan keputusan operasional turun | Pengiriman ke Accounting berjalan sebelum kotak masuknya siap |
+
+### 56.7 Pertanyaan terbuka sesudah revisi 16
+
+| ID | Keadaan | Memblokir |
+|---|---|---|
+| `FIN-OQ-045`, `047`, `048` | **TERBUKA**, milik Accounting (Rizki) | `045`/`047` memblokir `IMPLEMENTATION` sisi `PENERIMAAN-KASIR` dan `PEMBUKAAN-SHIFT-KASIR`. `048` `LATER SLICE` |
+| `FIN-OQ-078` | **TERBUKA**, milik Accounting | `LATER SLICE` |
+| `FIN-OQ-081` | **DITUNDA** (`FIN-DEC-149`) | `POST-MVP` saja. **Tidak** memblokir rilis pertama |
+
+**Nol pertanyaan terbuka milik Finance.** Seluruh `FIN-OQ` yang menjadi milik Finance ditutup dua Amendment
+pass 4 Oktober 2026. Karena itu dokumen ini **boleh** diteruskan ke `/plan-module-delivery` begitu pemilik
+menyetujuinya — tidak ada pertanyaan memblokir yang menahannya.
+
+### 56.8 Yang MUST disampaikan kepada pemilik saat menyerahkan modul (tambahan revisi 16)
+
+| # | Hal |
+|---:|---|
+| 1 | **Pemisahan penyiap dan penyetuju tidak dijaga mesin** (`FIN-PERM-1.7` G.5) — tidak berubah, dan tetap berlaku untuk saldo awal maupun batch migrasi |
+| 2 | **Risiko pembayaran dipecah di bawah ambang diperlebar dengan sadar** oleh `FIN-DEC-147`: angka ambang kini diketahui staf yang mencatat pembayaran |
+| 3 | **Nama pegawai terlihat** oleh siapa pun yang boleh membaca layar ambang dan batch (`FIN-DEC-151`) |
+| 4 | **Rilis pertama hanya menerima CSV.** Staf yang bekerja di Excel **MUST** menyimpan sebagai CSV dengan format angka yang dikunci templat |
+| 5 | **Utang jasa medis lama tidak dimigrasikan** (`FIN-DEC-157`); saldo awalnya nol dan kewajiban sebelum cutover tidak terlacak di Finance sampai keputusan lanjutan |
+| 6 | **Piutang sewa non-pasien lama dicatat satu per satu** lewat layar yang sudah ada (`FIN-DEC-158`) |
+| 7 | **Saldo negatif terbit apa adanya** dan ditandai; penelusurannya manual (`FIN-DEC-159`) |

@@ -733,3 +733,101 @@ teruji bila kasus ujinya memaksanya.
 |---:|---|---|
 | J.4.1 | Tambahkan format ketiga palsu pada test (misalnya `.tsv`) tanpa menambah implementasi pembaca | Unggahan **MUST** ditolak `400`, **bukan** jatuh ke pembaca CSV secara diam-diam. Test ini menangkap pemilihan pembaca yang terlalu longgar — bentuk cacat yang tidak terlihat sampai ada format baru |
 | J.4.2 | Jalankan J.3.1 dengan berkas yang **satu barisnya bergalat** | Nomor baris yang dilaporkan **sama** pada kedua format. Penomoran baris yang bergeser satu (karena baris judul dihitung pada satu format saja) adalah cacat paritas yang paling mudah lolos review |
+
+
+---
+
+# AMENDMENT REVISI 16 — Benturan versi ambang, batas baris, dan keadaan tanpa rekap kas
+
+```yaml
+contract_version: FIN-TEST-1.10
+status: approved
+owner: Yasmin (Product/Domain Finance)
+approved_by: Yasmin (Product/Domain Finance)
+approved_at: 2026-10-04
+input_revision: 00-interview-decisions.md — dua Amendment pass 4 Oktober 2026 (FIN-DEC-141..FIN-DEC-160)
+input_design: 02-backend-architecture.md AMENDMENT REVISI 16; contracts/api-contract.md Bagian G; contracts/validation-matrix.md H.1
+naik_dari: FIN-TEST-1.9 (approved 2 Oktober 2026)
+```
+
+## K.1 Ambang pembayaran langsung — jalur berhasil
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `K.1.1` | Penetapan ambang pertama tanpa penanda versi | Tabel ambang kosong. Kirim `PUT` berisi nominal dan alasan, **tanpa** `ExpectedRowVersion` | `200`. Baris pertama terbentuk. **Ini jalur yang MUST ada** — tanpanya ambang tidak akan pernah dapat ditetapkan |
+| `K.1.2` | Ambang berlaku seketika | Tetapkan ambang Rp 10.000.000, lalu segera catat pembayaran langsung Rp 12.000.000 | Pembayaran ditolak `422` (`FIN-VAL-198`). Tidak ada jeda tanggal berlaku |
+| `K.1.3` | Ubah ambang dengan penanda versi yang cocok | `GET`, ambil `RowVersion`, kirim `PUT` membawanya | `200`. Nilai, alasan, dan nama pengubah pada respons mengikuti perubahan |
+| `K.1.4` | Nama pengubah terkirim | `GET` sesudah `K.1.3` | `LastChangedByName` berisi nama tampilan pelaku, bukan ID |
+| `K.1.5` | Staf AR pemegang `Read` membaca angkanya | `GET` memakai token staf AR yang diberi `MstDirectPaymentThreshold : Read` | `200` beserta angkanya. **Bukan** `403` |
+
+## K.2 Ambang pembayaran langsung — jalur gagal
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `K.2.1` | Benturan versi ditolak, **bukan** ditimpa | Dua sesi membaca ambang Rp 5.000.000. Sesi A menyimpan Rp 8.000.000. Sesi B menyimpan Rp 3.000.000 memakai versi lama | Sesi B dijawab `409` (`FIN-VAL-228`). `GET` sesudahnya tetap **Rp 8.000.000** — nilai A tidak hilang |
+| `K.2.2` | Penanda versi tidak dikirim padahal baris sudah ada | `PUT` tanpa `ExpectedRowVersion` sementara ambang sudah ada | `409`. Pengecualian penetapan pertama **MUST NOT** berlaku di sini |
+| `K.2.3` | Urutan pemeriksaan | `PUT` dengan alasan **kosong** **dan** penanda versi basi sekaligus | `422` (`FIN-VAL-205`), **bukan** `409`. Isian yang jelas salah dijawab lebih dulu |
+| `K.2.4` | Nominal nol atau negatif | `PUT` bernilai `0` lalu `-1`, penanda versi cocok | Keduanya `400` (`FIN-VAL-206`) |
+| `K.2.5` | Staf tanpa `Update` mencoba mengubah | `PUT` memakai token pemegang `Read` saja | `403`. Pembatasan backend, bukan hanya layar |
+| `K.2.6` | Ruas tanggal berlaku yang masih dikirim klien lama | `PUT` menyertakan `EffectiveFrom` | `200`. Ruas diabaikan dan **tidak** tersimpan ke mana pun |
+
+## K.3 Batas baris berkas migrasi
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `K.3.1` | Tepat pada batas diterima | Unggah CSV berisi **10.000** baris data | `200`. Batas bersifat inklusif |
+| `K.3.2` | Melewati batas ditolak | Unggah CSV berisi **10.001** baris data | `400` (`FIN-VAL-229`) beserta pesan yang menyebut batas dan menyarankan memecah berkas |
+| `K.3.3` | Berkas yang ditolak **nol** meninggalkan jejak | Sesudah `K.3.2`: periksa daftar batch dan folder penyimpanan | Nol baris batch baru, dan nol berkas tersimpan di disk |
+| `K.3.4` | Batas berlaku pada unggah ulang | Batch `DRAFT` yang sah, lalu unggah ulang berkas 10.001 baris | `400` (`FIN-VAL-229`). Batch tetap memakai berkas lamanya, dan hasil validasi lamanya **tidak** terhapus |
+| `K.3.5` | Baris judul tidak dihitung | Unggah CSV dengan 1 baris judul + 10.000 baris data | `200`. Yang dihitung baris data |
+| `K.3.6` | Migrasi besar lewat beberapa batch | Pecah 23.000 tagihan menjadi 10.000 + 10.000 + 3.000, unggah ketiganya, nyatakan saldo awal masing-masing, setujui | Ketiganya disetujui terpisah. Bila batch kedua bergalat, batch pertama yang sudah disetujui **tidak** terpengaruh |
+
+## K.4 Unggah ulang berkas batch
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `K.4.1` | Unggah ulang pada `DRAFT` membuang hasil validasi lama | Batch `DRAFT` bergalat 3 baris. Unggah ulang berkas yang sudah diperbaiki | `200`. Nomor batch **sama**. Hasil validasi lama hilang; batch perlu divalidasi lagi |
+| `K.4.2` | Saldo awal Accounting yang sudah dinyatakan dipertahankan | Nyatakan saldo awal, lalu unggah ulang | Nominal dan rujukan dokumen **tetap** — ia pernyataan petugas, bukan hasil berkas |
+| `K.4.3` | Jenis item tidak dapat diganti | Unggah ulang batch piutang memakai berkas berformat utang supplier | `400` kolom templat tidak lengkap. Jenis item batch **tidak** berubah |
+| `K.4.4` | Status selain `DRAFT` ditolak | Unggah ulang pada batch `VALIDATED`, `APPROVED`, `LOCKED`, dan `REJECTED` | Keempatnya `409` |
+| `K.4.5` | Penanda versi basi ditolak | Unggah ulang memakai `ExpectedRowVersion` lama | `409` |
+| `K.4.6` | Berkas lama tidak rusak bila basis data gagal | Simulasi kegagalan `SaveChanges` saat unggah ulang | Berkas lama tetap utuh dan batch tetap dapat divalidasi memakai berkas itu |
+
+## K.5 Selisih kas — keadaan tanpa rekap kas harian
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `K.5.1` | Periode tanpa rekap dinyatakan eksplisit | Periode yang nol memiliki `FinDailyCashSnapshot`. Panggil endpoint selisih | `HasDailyCashSnapshot` **false**; `DailyCashClosingBalance` dan `VarianceAmount` **kosong**; `HasVariance` **false** |
+| `K.5.2` | Nol **tidak** lagi menyamar sebagai saldo | Respons `K.5.1` | Kedua ruas itu **MUST NOT** bernilai `0`. Ini inti `FIN-DEC-152` |
+| `K.5.3` | Posisi terhitung tetap dikirim | Respons `K.5.1` | `CalculatedCashPosition` berisi angka sebenarnya — ia tidak bergantung pada rekap harian |
+| `K.5.4` | Mutasi penjelas tetap dikirim | Periode tanpa rekap tetapi punya mutasi kas | `ExplainingMovements` berisi mutasi periode itu |
+| `K.5.5` | Periode dengan rekap dan angka sama | Rekap ada, saldo penutupan sama dengan posisi terhitung | `HasDailyCashSnapshot` true; selisih `0`; `HasVariance` **false** |
+| `K.5.6` | Periode dengan rekap dan angka berbeda | Rekap Rp 68.500.000, posisi terhitung Rp 70.000.000 | Kedua angka terkirim; selisih `-1.500.000`; `HasVariance` **true** |
+| `K.5.7` | Layar tidak menampilkan `Rp 0` pada keadaan tanpa rekap | Buka layar snapshot pada periode `K.5.1` | Kolom saldo penutupan berbunyi "Belum ada rekap", kolom selisih "Tidak dapat dinyatakan" |
+
+## K.6 Mutasi `SALDO-AWAL` bernilai nol
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `K.6.1` | Penguncian Kas Kasir bernilai nol menerbitkan mutasi | Catat, setujui, lalu kunci saldo awal `KAS-KASIR` bernilai `0` | `200`. **Tepat satu** mutasi `SALDO-AWAL` bernilai `0` muncul pada buku mutasi kas |
+| `K.6.2` | Jenis lain bernilai nol tetap ditolak | Coba catat mutasi kas bernilai `0` berjenis selain `SALDO-AWAL` | `400` (`FIN-VAL-168`) |
+| `K.6.3` | Nilai negatif tetap ditolak untuk semua jenis | Coba catat mutasi `SALDO-AWAL` bernilai `-1` | `400` |
+| `K.6.4` | Batasan basis data menjaga hal yang sama | Coba sisipkan baris mutasi bernilai `0` berjenis lain **langsung** lewat SQL | Ditolak batasan `CK_FinCashMovement_Amount`. Pengecualian dijaga **dua lapis**, bukan hanya di service |
+
+## K.7 Satu test yang sengaja dibuat untuk menangkap kelalaian
+
+| ID | Yang diuji | Kenapa test ini ada |
+|---|---|---|
+| `K.7.1` | Komponen tabel bersama meneruskan nama prop lama ke nama kanoniknya, dan **nama kanonik menang** | `FIN-CQ-10` menunjukkan 59 pemakaian nama prop yang diabaikan diam-diam selama berbulan-bulan. Yang berbahaya bukan cacatnya, melainkan **perbaikannya**: bila urutan prioritas terbalik, 307 pemakaian yang sudah benar ikut berubah tanpa ada yang tahu. Test ini menambatkan urutannya |
+| `K.7.2` | Konfigurasi `MaxFileSizeBytes` yang kosong membuat unggah bukti dijawab `503`, **bukan** diterima tanpa batas | Capability map 20.4 menemukan konfigurasi Finance kosong seluruhnya. Perilaku fail-closed inilah yang menjaga keadaan itu tetap aman, dan ia **MUST** tetap teruji walaupun kelak nilainya diisi |
+
+## K.8 Yang TIDAK diuji, beserta alasannya
+
+| Hal | Alasan |
+|---|---|
+| Paritas hasil urai CSV terhadap XLSX | Pembaca XLSX belum ada (`FIN-DEC-149`). Kriteria penerimaan `J.3` revisi 15 **tetap berlaku** dan diuji ketika slice XLSX dibuka |
+| Perubahan terjadwal ambang | Tidak ada kemampuannya; ambang berlaku seketika (`FIN-DEC-145`) |
+| Riwayat perubahan ambang | Tidak ada tabelnya (`FIN-DES-086`) |
+| Migrasi utang jasa medis lama | `FIN-DEC-157` menundanya; saldo awalnya tetap nol dan batch tidak mengenal jenis itu |
+| Migrasi piutang sewa non-pasien lewat batch | `FIN-DEC-158` menetapkan jalurnya lewat layar yang sudah ada |
+| Penahanan snapshot karena saldo negatif | `FIN-DEC-159` menetapkan saldo negatif terbit apa adanya dan ditandai |

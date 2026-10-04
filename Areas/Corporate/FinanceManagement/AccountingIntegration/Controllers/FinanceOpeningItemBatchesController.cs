@@ -118,7 +118,7 @@ public sealed class FinanceOpeningItemBatchesController : ControllerBase
         {
             var entity = await _service.UploadAsync(request.File, request.ItemKind, CurrentUserId(), cancellationToken);
             return Ok(ApiResponse<OpeningItemBatchResponse>.Ok(
-                FinanceOpeningItemBatchService.Map(entity), "Batch migrasi tagihan lama berhasil diunggah."));
+                await _service.MapWithNameAsync(entity, cancellationToken), "Batch migrasi tagihan lama berhasil diunggah."));
         }
         catch (Exception exception) when (IsHandled(exception))
         {
@@ -147,7 +147,7 @@ public sealed class FinanceOpeningItemBatchesController : ControllerBase
             var entity = await _service.ReuploadAsync(
                 id, request.File, request.ExpectedRowVersion, CurrentUserId(), cancellationToken);
             return Ok(ApiResponse<OpeningItemBatchResponse>.Ok(
-                FinanceOpeningItemBatchService.Map(entity), "Berkas batch migrasi tagihan lama berhasil diunggah ulang."));
+                await _service.MapWithNameAsync(entity, cancellationToken), "Berkas batch migrasi tagihan lama berhasil diunggah ulang."));
         }
         catch (Exception exception) when (IsHandled(exception))
         {
@@ -174,7 +174,7 @@ public sealed class FinanceOpeningItemBatchesController : ControllerBase
             var message = entity.Status == FinOpeningItemBatchStatuses.Validated
                 ? "Validasi selesai — nol baris bergalat, batch berpindah ke VALIDATED."
                 : "Validasi selesai — masih ada baris bergalat, batch tetap DRAFT.";
-            return Ok(ApiResponse<OpeningItemBatchDetailResponse>.Ok(FinanceOpeningItemBatchService.MapDetail(entity, rows), message));
+            return Ok(ApiResponse<OpeningItemBatchDetailResponse>.Ok(await _service.MapDetailWithNameAsync(entity, rows, cancellationToken), message));
         }
         catch (Exception exception) when (IsHandled(exception))
         {
@@ -202,7 +202,7 @@ public sealed class FinanceOpeningItemBatchesController : ControllerBase
                 id, request.ExpectedRowVersion, request.DeclaredAccountingOpeningAmount, request.AccountingReferenceDocument,
                 CurrentUserId(), cancellationToken);
             return Ok(ApiResponse<OpeningItemBatchResponse>.Ok(
-                FinanceOpeningItemBatchService.Map(entity), "Saldo awal Accounting berhasil dinyatakan."));
+                await _service.MapWithNameAsync(entity, cancellationToken), "Saldo awal Accounting berhasil dinyatakan."));
         }
         catch (Exception exception) when (IsHandled(exception))
         {
@@ -229,7 +229,7 @@ public sealed class FinanceOpeningItemBatchesController : ControllerBase
         {
             var entity = await _service.ApproveAsync(id, request.ExpectedRowVersion, CurrentUserId(), cancellationToken);
             return Ok(ApiResponse<OpeningItemBatchResponse>.Ok(
-                FinanceOpeningItemBatchService.Map(entity), "Batch migrasi tagihan lama disetujui dan dikunci."));
+                await _service.MapWithNameAsync(entity, cancellationToken), "Batch migrasi tagihan lama disetujui dan dikunci."));
         }
         catch (Exception exception) when (IsHandled(exception))
         {
@@ -251,7 +251,7 @@ public sealed class FinanceOpeningItemBatchesController : ControllerBase
         try
         {
             var entity = await _service.RejectAsync(id, request.ExpectedRowVersion, request.RejectionReason, CurrentUserId(), cancellationToken);
-            return Ok(ApiResponse<OpeningItemBatchResponse>.Ok(FinanceOpeningItemBatchService.Map(entity), "Batch migrasi tagihan lama ditolak."));
+            return Ok(ApiResponse<OpeningItemBatchResponse>.Ok(await _service.MapWithNameAsync(entity, cancellationToken), "Batch migrasi tagihan lama ditolak."));
         }
         catch (Exception exception) when (IsHandled(exception))
         {

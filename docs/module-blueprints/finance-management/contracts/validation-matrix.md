@@ -615,3 +615,89 @@ uji sendiri — dan itu justru risiko utama yang dicatat `FIN-DEC-140`.
 | Paritas CSV/XLSX pada waktu berjalan | Paritas dijaga **kasus uji** (`FIN-TEST-1.9` `J.3`), bukan pemeriksaan runtime. Sistem tidak menerima dua berkas sekaligus untuk dibandingkan |
 | Kesinkronan kolom antar keempat berkas templat | Dijaga kasus uji dan review, bukan kode. Templat adalah berkas statis |
 | Ekstensi pada `UploadedFileName` cocok dengan `SourceFormat` | Sengaja dibiarkan: justru ketidakcocokannya yang membuat `SourceFormat` berguna. Format ditentukan dari tipe media, bukan dari nama berkas |
+
+
+---
+
+# AMENDMENT REVISI 16 — Benturan versi ambang dan batas baris berkas migrasi
+
+```yaml
+contract_version: FIN-VAL-1.9
+status: approved
+owner: Yasmin (Product/Domain Finance)
+approved_by: Yasmin (Product/Domain Finance)
+approved_at: 2026-10-04
+input_revision: 00-interview-decisions.md — dua Amendment pass 4 Oktober 2026 (FIN-DEC-141..FIN-DEC-160)
+input_design: 02-backend-architecture.md AMENDMENT REVISI 16 (FIN-DES-094, FIN-DES-096, FIN-DES-098)
+naik_dari: FIN-VAL-1.8 (approved 2 Oktober 2026)
+dampak_kompatibilitas: Aditif — dua aturan baru; satu redaksi diperjelas; satu aturan diberi pengecualian
+```
+
+## H.1 Dua aturan baru
+
+| Kode | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode status |
+|---|---|---|---|---|
+| `FIN-VAL-228` | `PUT /master-data/direct-payment-threshold` | `ExpectedRowVersion` tidak dikirim atau tidak cocok, **sementara baris ambang aktif sudah ada** | *"Ambang sudah diubah oleh orang lain. Muat ulang sebelum melanjutkan."* | `409` |
+| `FIN-VAL-229` | `POST /opening-item-batches`, `POST /opening-item-batches/{id}/reupload` | Berkas memuat lebih dari **10.000 baris data** | *"Berkas memuat lebih dari 10.000 baris. Pecah menjadi beberapa berkas, lalu unggah masing-masing sebagai batch tersendiri."* | `400` |
+
+### `FIN-VAL-228` — satu pengecualian yang MUST ditegakkan
+
+| Keadaan | Perilaku |
+|---|---|
+| Belum ada baris ambang aktif (penetapan pertama) | `ExpectedRowVersion` **tidak** diperiksa. Permintaan diterima |
+| Sudah ada baris ambang aktif | `ExpectedRowVersion` **wajib** dan **MUST** cocok |
+
+**Kenapa.** Pada penetapan pertama belum ada versi yang dapat dibaca klien. Tanpa pengecualian ini ambang
+tidak akan pernah dapat ditetapkan, dan seluruh pembayaran langsung terkunci permanen (`FIN-DES-086`).
+
+**Urutan pemeriksaan pada `PUT` sesudah revisi ini** — penting karena menentukan kode status yang diterima
+pengguna ketika ada lebih dari satu kesalahan sekaligus:
+
+| Urutan | Yang diperiksa | Bila gagal |
+|---:|---|---|
+| 1 | `ChangeReason` tidak kosong | `422` (`FIN-VAL-205`) |
+| 2 | `Amount` lebih besar dari nol | `400` (`FIN-VAL-206`) |
+| 3 | Baris ambang aktif dicari | — |
+| 4 | Bila baris ada: `ExpectedRowVersion` cocok | `409` (`FIN-VAL-228`) |
+
+Urutan 1 dan 2 **MUST** tetap mendahului 4, mengikuti urutan yang sudah berlaku pada `BE-FIN-076`: isian
+yang jelas salah dijawab lebih dulu, sebelum pengguna disuruh memuat ulang karena benturan versi.
+
+### `FIN-VAL-229` — kapan diperiksa, dan kenapa di situ
+
+| Hal | Ketentuan |
+|---|---|
+| Kapan | **Sesudah** berkas diurai menjadi baris, **sebelum** berkas disimpan ke disk dan basis data |
+| Kenapa sesudah diurai | Jumlah baris sebenarnya hanya diketahui setelah penguraian. Menghitung dari ukuran berkas adalah terkaan, dan `FIN-DEC-140` melarang menebak |
+| Kenapa sebelum disimpan | Berkas yang ditolak **MUST NOT** meninggalkan jejak, baik berkas fisik maupun baris batch |
+| Yang dihitung | **Baris data**, bukan baris berkas. Baris judul tidak ikut dihitung |
+| Berkas tepat 10.000 baris | **Diterima.** Batasnya inklusif |
+
+## H.2 Satu aturan yang diberi pengecualian
+
+| Kode | Perubahan |
+|---|---|
+| `FIN-VAL-168` | Sudah diberi pengecualian pada revisi sebelumnya dan ditegaskan di sini: mutasi kas bernilai **nol** diterima **hanya** untuk jenis `SALDO-AWAL` (`FIN-DEC-143`). Nilai **negatif** tetap ditolak untuk semua jenis; nilai nol untuk jenis lain tetap ditolak `400`. Pengecualian dijaga **dua lapis**: pemeriksaan service dan batasan basis data `CK_FinCashMovement_Amount` |
+
+## H.3 Satu redaksi yang diperjelas
+
+| Kode | Redaksi sesudah revisi ini | Yang berubah |
+|---|---|---|
+| `FIN-VAL-192` | *"Total sisa tagihan (Rp A) tidak sama dengan saldo awal Accounting yang dinyatakan (Rp B). Batch tidak dapat disetujui."* | Kedua angka ditulis dengan **dua desimal** dan pemisah Indonesia, bukan dibulatkan ke satuan rupiah |
+
+**Kenapa dua desimal penting.** Dengan pembulatan ke satuan, selisih di bawah Rp 1 **hilang dari pesan**:
+pengguna membaca dua angka yang tampak sama persis, lalu diberi tahu keduanya tidak sama. Selisih sekecil
+itu nyata terjadi karena nilai uang disimpan dua desimal.
+
+**Catatan bagi pembaca pesan ini.** Layar `FE-FIN-032` **tidak** mengurai angka dari teks pesan ini; ia
+menampilkan kedua angka dari data batch. Pesan ini untuk dibaca manusia, bukan untuk diurai mesin.
+
+## H.4 Aturan yang sengaja TIDAK dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+|---|---|
+| Menolak ambang baru yang nilainya sama dengan ambang berlaku | Mengubah ambang ke nilai yang sama beserta alasan baru adalah tindakan sah — misalnya menegaskan ulang kebijakan setelah ditinjau. Menolaknya akan menghalangi pencatatan yang benar |
+| Batas minimum atau maksimum nilai ambang | `FIN-DEC-154` menyerahkan angkanya kepada pejabat berwenang. Batas yang dikarang desain akan menjadi kebijakan yang tidak pernah diputuskan siapa pun |
+| Batas jumlah batch aktif per jenis item | Belum ada bukti ia menjadi masalah. Batch yang menumpuk dapat ditolak, dan `FIN-DEC-155` sudah menjawab kebutuhan memecah berkas besar |
+| Memeriksa batas baris dari ukuran berkas sebelum diurai | Terkaan; berkas CSV dan XLSX dengan jumlah baris sama dapat berbeda ukuran jauh |
+| Menolak penguncian saldo awal Kas Kasir bernilai nol | Diputuskan sebaliknya (`FIN-DEC-143`) |

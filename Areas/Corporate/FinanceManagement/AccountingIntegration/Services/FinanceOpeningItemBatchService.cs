@@ -32,6 +32,15 @@ public sealed class FinanceOpeningItemBatchService
     private const string DateFormat = "yyyy-MM-dd";
     private const string FormatMismatchCode = "FIN-VAL-226";
 
+    /// <summary>
+    /// Batas baris data per berkas migrasi (BE-FIN-088, FIN-DEC-155, FIN-DES-096, FIN-VAL-229).
+    /// SENGAJA konstanta kode, BUKAN konfigurasi — ia batas ketahanan transaksi (persetujuan batch
+    /// melahirkan seluruh item dalam satu transaksi), bukan nilai operasional seperti batas ukuran
+    /// berkas bukti. Menjadikannya konfigurasi membuka jalan seseorang menaikkannya tanpa memahami
+    /// akibatnya pada ukuran transaksi persetujuan.
+    /// </summary>
+    private const int MaxUploadRowCount = 10_000;
+
     // Angka pada pesan galat ditulis dengan dua desimal dan pemisah Indonesia, bukan mengikuti budaya server.
     private static readonly CultureInfo IndonesianCulture = CultureInfo.GetCultureInfo("id-ID");
 
@@ -217,6 +226,19 @@ public sealed class FinanceOpeningItemBatchService
             if (!requiredColumns.All(column => rows[0].Cells.ContainsKey(column)))
                 throw new OpeningItemBatchBadRequestException("Berkas tidak dapat dibaca. Gunakan templat yang disediakan.");
 
+            // FIN-VAL-229 (BE-FIN-088, FIN-DEC-155): batas baris data diperiksa SESUDAH berkas
+            // berhasil diurai — jumlah baris sebenarnya hanya diketahui setelah penguraian, dan
+            // menghitung dari ukuran berkas adalah terkaan yang dilarang FIN-DEC-140 — dan SEBELUM
+            // berkas disimpan ke disk maupun basis data, supaya berkas yang ditolak meninggalkan
+            // NOL jejak (nol berkas fisik, nol baris batch). `rows` sudah TIDAK memuat baris judul
+            // (header dikonsumsi di dalam pembaca, lihat ringkasan class), sehingga `rows.Count`
+            // adalah jumlah baris data persis. Batas INKLUSIF: tepat 10.000 diterima.
+            if (rows.Count > MaxUploadRowCount)
+            {
+                throw new OpeningItemBatchBadRequestException(
+                    "Berkas memuat lebih dari 10.000 baris. Pecah menjadi beberapa berkas, lalu unggah masing-masing sebagai batch tersendiri.");
+            }
+
             return (buffer, originalFileName, sourceFormat);
         }
         catch
@@ -381,9 +403,13 @@ public sealed class FinanceOpeningItemBatchService
 
         var items = await q.Skip((query.PageNumber - 1) * query.PageSize).Take(query.PageSize).ToListAsync(cancellationToken);
 
+        // BE-FIN-089, FIN-DES-095: nama seluruh penyetuju SATU HALAMAN diambil SEKALI di sini —
+        // bukan satu kueri per baris. Pola sama dengan FinanceOpeningBalanceService.GetUserNamesAsync.
+        var names = await GetUserNamesAsync(items.Select(x => x.ApprovedBy), cancellationToken);
+
         return new PagedResult<OpeningItemBatchResponse>
         {
-            Items = items.Select(Map).ToList(),
+            Items = items.Select(x => MapWithName(x, names)).ToList(),
             PageNumber = query.PageNumber,
             PageSize = query.PageSize,
             TotalData = totalData,
@@ -402,7 +428,7 @@ public sealed class FinanceOpeningItemBatchService
             ? []
             : JsonSerializer.Deserialize<List<OpeningItemBatchRowValidationResult>>(entity.ValidationSummaryJson) ?? [];
 
-        return MapDetail(entity, rows);
+        return await MapDetailWithNameAsync(entity, rows, cancellationToken);
     }
 
     /// <summary>
@@ -974,6 +1000,74 @@ public sealed class FinanceOpeningItemBatchService
         {
             File.Delete(path);
         }
+    }
+
+    /// <summary>
+    /// Nama tampilan sekumpulan pengguna, diambil SEKALI (BE-FIN-089, FIN-DES-095). Mengikuti pola
+    /// <c>GetUserNamesAsync</c> pada <c>FinanceOpeningBalanceService</c>: ID yang tidak ditemukan
+    /// tidak ikut dikembalikan. Dipakai <see cref="GetPagedAsync"/> supaya daftar berpaging tidak
+    /// menimbulkan satu kueri per baris.
+    /// </summary>
+    private async Task<Dictionary<Guid, string?>> GetUserNamesAsync(
+        IEnumerable<Guid?> userIds, CancellationToken cancellationToken)
+    {
+        var ids = userIds.Where(x => x.HasValue).Select(x => x!.Value).Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<Guid, string?>();
+        }
+
+        return await _dbContext.Users.AsNoTracking()
+            .Where(x => ids.Contains(x.Id))
+            .Select(x => new { x.Id, Name = x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode })
+            .ToDictionaryAsync(x => x.Id, x => x.Name, cancellationToken);
+    }
+
+    /// <summary>
+    /// Nama tampilan satu pengguna (BE-FIN-089, FIN-DES-095). Mengikuti pola
+    /// <c>DirectPaymentThresholdService.GetUserNameAsync</c> (BE-FIN-086): <c>null</c> bila ID
+    /// kosong atau penggunanya tidak ditemukan. Dipakai respons tunggal (unggah, unggah ulang,
+    /// validasi, deklarasi, setuju, tolak) — bukan daftar berpaging, yang memakai pencarian
+    /// batch <see cref="GetUserNamesAsync"/> di atas.
+    /// </summary>
+    private async Task<string?> GetUserNameAsync(Guid? userId, CancellationToken cancellationToken)
+    {
+        if (userId is null || userId == Guid.Empty)
+        {
+            return null;
+        }
+
+        return await _dbContext.Users.AsNoTracking()
+            .Where(x => x.Id == userId.Value)
+            .Select(x => x.DisplayName ?? x.UserName ?? x.Email ?? x.UserCode)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    /// <summary>Sisipan <see cref="ApprovedByName"/> dari kamus yang sudah diambil sekali (BE-FIN-089).</summary>
+    private static OpeningItemBatchResponse MapWithName(FinOpeningItemBatch x, IReadOnlyDictionary<Guid, string?> names)
+    {
+        var response = Map(x);
+        response.ApprovedByName = x.ApprovedBy.HasValue && names.TryGetValue(x.ApprovedBy.Value, out var name)
+            ? name
+            : null;
+        return response;
+    }
+
+    /// <summary>Pembungkus <see cref="Map"/> yang menyertakan pencarian nama satu pengguna (BE-FIN-089).</summary>
+    public async Task<OpeningItemBatchResponse> MapWithNameAsync(FinOpeningItemBatch x, CancellationToken cancellationToken)
+    {
+        var response = Map(x);
+        response.ApprovedByName = await GetUserNameAsync(x.ApprovedBy, cancellationToken);
+        return response;
+    }
+
+    /// <summary>Pembungkus <see cref="MapDetail"/> yang menyertakan pencarian nama satu pengguna (BE-FIN-089).</summary>
+    public async Task<OpeningItemBatchDetailResponse> MapDetailWithNameAsync(
+        FinOpeningItemBatch x, List<OpeningItemBatchRowValidationResult> rows, CancellationToken cancellationToken)
+    {
+        var response = MapDetail(x, rows);
+        response.ApprovedByName = await GetUserNameAsync(x.ApprovedBy, cancellationToken);
+        return response;
     }
 
     public static OpeningItemBatchResponse Map(FinOpeningItemBatch x) => new()

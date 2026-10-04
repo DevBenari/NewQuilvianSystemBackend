@@ -1042,3 +1042,47 @@ disampaikan saat menyerahkan modul.
 | Format XLSX butuh hak akses sendiri | **Tidak.** `FinanceOpeningItemBatch : Create` menjaga unggahan, apa pun formatnya |
 | Unduh templat butuh action sendiri | **Tidak.** `Read` yang sudah terdaftar menjaga `GET /template`, dan ruas `format` tidak mengubah kewenangan |
 | Paket pembaca XLSX membawa permukaan baru yang perlu digerbang | **Tidak.** Ia dipakai di dalam proses, tidak memperkenalkan endpoint, port, maupun jalur berkas baru selain yang sudah dijaga |
+
+---
+
+# AMENDMENT REVISI 16 — Nol resource baru, satu pemberian hak peran yang berubah
+
+`last_changed_in`: `FIN-PERM-1.8` — **status tidak berubah**, 4 Oktober 2026.
+Diturunkan dari `FIN-DEC-147`; dirancang `FIN-DES-094`..`098`.
+Dampak kompatibilitas: **nol resource baru, nol action baru**.
+
+## I.1 Kenapa versi kontrak ini TIDAK dinaikkan
+
+Revisi 16 tidak menambah satu pun resource maupun action. `MstDirectPaymentThreshold` sudah punya
+`Read` dan `Update` sejak `FIN-PERM-1.8` G.1, dan keduanya dipakai apa adanya. Menaikkan nomor versi
+hanya untuk menandai pass ini akan membuat pembaca mencari perubahan yang tidak ada.
+
+## I.2 Satu pemberian hak peran yang MUST dikerjakan admin
+
+`FIN-DEC-147` menetapkan **angka ambang ditampilkan kepada staf AR/AP**. Mesin hak akses sudah mampu
+melakukannya tanpa perubahan apa pun; yang dibutuhkan adalah **pemberian hak**:
+
+| Peran | Hak yang perlu diberikan | Akibat bila tidak diberikan |
+|---|---|---|
+| Staf AR | `MstDirectPaymentThreshold : Read` | Layar pembayaran langsung jatuh ke peringatan **tanpa** menyebut angka ambang |
+| Staf AP | `MstDirectPaymentThreshold : Read` | Sama |
+| Pejabat berwenang ambang | `MstDirectPaymentThreshold : Read` **dan** `Update` | Tidak dapat menetapkan maupun mengubah ambang |
+
+**Batas yang tetap berlaku.** Pemegang `Read` saja **tidak** melihat kendali ubah pada layar master ambang;
+pembatasan itu dijaga layar, dan backend tetap menolak `PUT` tanpa `Update`.
+
+## I.3 Risiko yang diperlebar dengan sadar
+
+`FIN-PERM-1.7` G.5 sudah mencatat bahwa pembayaran yang dipecah di bawah ambang tidak terdeteksi, dan
+mitigasinya hanya jejak mutasi. `FIN-DEC-147` **memperlebar** risiko itu: angka ambang kini diketahui
+staf yang mencatat pembayaran, sehingga memecah pembayaran menjadi lebih mudah dilakukan dengan sengaja.
+
+Pemilik memilih ini dengan sadar, dengan pertimbangan bahwa staf yang tahu batasnya lebih sedikit
+mengirim pembayaran yang akan ditolak. **MUST** disampaikan saat menyerahkan modul, bersama batas G.5
+yang sudah ada.
+
+## I.4 Pencatatan logger — tidak berubah
+
+Perubahan ambang tetap dicatat `LoggerService.AuditAsync` beserta nominal, alasan, dan pelakunya.
+Nama pengubah yang kini dikirim pada respons **tidak** menambah apa pun ke logger — ia dibaca saat
+menyusun respons dan bukan data baru.

@@ -15,7 +15,7 @@
 | Task mode | `BACKEND` — diberikan eksplisit pengguna 3 Oktober 2026 (backend source dan artefak kontrak) |
 | Target tulis | `NewQuilvianSystemBackend` |
 | Tanggal | 3 Oktober 2026 |
-| Status | 🟡 **Source selesai; build dan migrasi dilaporkan sukses oleh pengguna (3 Oktober 2026).** Sisa: `dotnet ef migrations has-pending-model-changes` dan uji manual penguncian `KAS-KASIR` bernominal 0 belum dilaporkan. Sesi agent **tidak** menjalankan build maupun migrasi; hasil di bawah adalah laporan pengguna, bukan pengamatan agent |
+| Status | 🟡 **Source selesai; build dan migrasi dilaporkan sukses oleh pengguna (3 Oktober 2026).** `has-pending-model-changes` dinyatakan **BERSIH** 4 Oktober 2026. Sisa: **hanya** uji manual penguncian `KAS-KASIR` bernominal 0. Sesi agent **tidak** menjalankan build maupun migrasi; hasil di bawah adalah laporan pengguna, bukan pengamatan agent |
 
 ---
 
@@ -54,7 +54,7 @@ Controller tidak berubah (meneruskan request apa adanya).
 Catatan pembuatan, supaya tidak ada klaim yang melebihi bukti:
 
 - **Tidak** memakai `dotnet ef` dan **tidak** membangun proyek (instruksi pengguna). Berkas ditulis tangan dan Designer-nya disalin dari snapshot.
-- `FIN-DEC-138` mensyaratkan migration "sesuai snapshot, dihasilkan dari perubahan model". Kesesuaiannya di sini **diupayakan lewat disiplin satu baris**, tetapi **belum dibuktikan** oleh EF. Pembuktiannya: `dotnet ef migrations has-pending-model-changes` harus menyatakan tidak ada perubahan tertunda.
+- `FIN-DEC-138` mensyaratkan migration "sesuai snapshot, dihasilkan dari perubahan model". Kesesuaiannya di sini diupayakan lewat disiplin satu baris, dan **sudah dibuktikan** oleh EF: `dotnet ef migrations has-pending-model-changes --configuration Release` menyatakan nol perubahan tertunda (dilaporkan pengguna 4 Oktober 2026). Syarat `FIN-DEC-138` terpenuhi dengan bukti tooling, bukan hanya pembacaan berkas.
 - Designer baru ikut dikompilasi karena berada di `Migrations/` (aturan `QuilvianSystemBackend.csproj`); `MigrationMetadata.g.cs`/`.g.props` **tidak disentuh**, sehingga penjaga `ValidateMigrationHistoryCoverage` tidak terpengaruh. Pemangkasan Designer lama lewat `Update-MigrationHistory.ps1` **tidak** dijalankan.
 - `Down` **gagal** bila sudah ada mutasi `SALDO-AWAL` bernilai nol; sengaja tidak menghapus baris apa pun karena buku mutasi bersifat append-only.
 
@@ -74,7 +74,7 @@ Catatan pembuatan, supaya tidak ada klaim yang melebihi bukti:
 | Pemeriksaan | Status | Keterangan |
 | --- | :--: | --- |
 | `dotnet build` | `PASS` (dilaporkan pengguna 3 Oktober 2026) | Dijalankan pengguna, bukan agent. Agent tidak membangun proyek (instruksi pengguna) |
-| `dotnet ef migrations has-pending-model-changes` | `BELUM DILAPORKAN` | Pengguna melaporkan build dan migrasi sukses, tetapi bukan hasil pemeriksaan ini; hanya ia yang membuktikan migration tulisan tangan sesuai snapshot |
+| `dotnet ef migrations has-pending-model-changes` | `PASS` (dilaporkan pengguna 4 Oktober 2026, `--configuration Release`) | Keluarannya *"No changes have been made to the model since the last migration."* Inilah yang membuktikan migration **tulisan tangan** ini sesuai snapshot — disiplin satu baris itu terbukti benar, bukan hanya diupayakan |
 | Migration ke database | **Diterapkan** (dilaporkan pengguna 3 Oktober 2026: sukses) | Dijalankan Yasmin, bukan agent. Constraint `CK_FinCashMovement_Amount` baru berlaku |
 | Pembacaan statis | `PASS` | Snapshot berbeda tepat satu baris dari sebelumnya; Designer baru memuat satu kemunculan constraint baru; kode memakai `FinCashMovementTypes.SaldoAwal` yang sudah ada |
 | Uji manual penguncian `KAS-KASIR` bernominal 0 | `BELUM DILAPORKAN` | Prasyaratnya (build dan migrasi) kini terpenuhi; hasil pengamatannya belum dilaporkan pengguna |
@@ -107,7 +107,7 @@ Catatan pembuatan, supaya tidak ada klaim yang melebihi bukti:
 ## 6. Langkah yang Perlu Pengguna Jalankan
 
 1. `dotnet build` — pastikan perubahan source dan Designer baru terkompilasi.
-2. `dotnet ef migrations has-pending-model-changes` — harus tanpa perubahan tertunda; bila ada, migration/snapshot tulisan tangan ini perlu disesuaikan.
+2. ~~`dotnet ef migrations has-pending-model-changes`~~ — ✅ **SELESAI** 4 Oktober 2026, nol perubahan tertunda.
 3. Terapkan migration `RelaxFinCashMovementAmountForZeroOpeningBalance` ke database (milik Yasmin).
 4. Uji manual: kunci saldo awal `KAS-KASIR` bernominal 0 → muncul tepat satu mutasi `SALDO-AWAL` bernilai 0 pada buku kas; coba mutasi kas nol jenis lain → ditolak `400`.
 5. Setelah itu task dapat ditandai ✅ pada roadmap.

@@ -201,3 +201,28 @@ luput dari pembuatan tangan berkas ini.
 | Interupsi | `NONE` |
 | Status Git | `git status --short` pada akhir task menunjukkan 10 berkas task ini (7 baru, 3 dimodifikasi), tercampur dengan modifikasi tidak ter-commit dari task `BE-FIN-058`..`073` yang memang belum di-commit sejak sebelum task ini dimulai. Tidak ada file di luar scope Finance Management yang tersentuh |
 | Langkah berikutnya | (1) Pengguna menjalankan `dotnet build` lalu `dotnet ef migrations has-pending-model-changes` untuk memvalidasi snapshot hand-written ini sebelum migration dieksekusi; (2) Yasmin menjalankan migration ke database target; (3) pemilik modul memutuskan apakah FK `ProofId`→`FinTransactionProof` dibuat sebagai migration tersendiri (dan kapan — sebelum atau sesudah `BE-FIN-077`/`078` mulai menulis data), atau sengaja dibiarkan sebagai integritas level aplikasi saja; (4) `BE-FIN-075` melanjutkan dengan membangun `FinanceTransactionProofService` dan endpoint unggah di atas fondasi ini |
+
+---
+
+## Catatan verifikasi tertunda — DITUTUP 4 Oktober 2026
+
+Laporan ini (bagian 3.2, serta tabel verifikasi dan peringatannya) mencatat satu risiko terbuka: migration
+dan `Designer.cs` dibuat **tangan**, sehingga kesesuaian `ApplicationDbContextModelSnapshot.cs` hanya
+terverifikasi lewat perbandingan manual baris demi baris — bukan oleh tooling EF.
+
+**Risiko itu sekarang tertutup.** Pengguna menjalankan:
+
+```
+dotnet ef migrations has-pending-model-changes --configuration Release
+```
+
+pada 4 Oktober 2026, dan keluarannya *"No changes have been made to the model since the last migration."*
+
+**Kenapa hasil itu juga berlaku untuk laporan ini.** Pemeriksaan tersebut membandingkan **seluruh model**
+terhadap snapshot kumulatif, bukan hanya migration terakhir. Snapshot hari ini sudah memuat blok entity
+yang ditulis tangan oleh task ini. Hasil bersih berarti blok itu **selaras** dengan model — kesalahan ketik
+pada berkas 125 ribu+ baris yang dikhawatirkan laporan ini **tidak ada**.
+
+**Yang TIDAK dinyatakan hasil ini:** pemeriksaan tersebut **tidak** menyambung ke basis data dan **tidak**
+menyatakan apa pun tentang apakah migration sudah diterapkan. Penerapan tetap milik Yasmin, dan status
+penerapan migration task ini tidak berubah oleh catatan ini.

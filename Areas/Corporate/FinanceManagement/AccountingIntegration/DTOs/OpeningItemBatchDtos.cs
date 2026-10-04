@@ -51,6 +51,15 @@ public class OpeningItemBatchResponse
     public string SourceFormat { get; set; } = string.Empty;
     public string? RejectionReason { get; set; }
     public Guid? ApprovedBy { get; set; }
+
+    /// <summary>
+    /// Nama tampilan penyetuju (BE-FIN-089, FIN-DEC-151, FIN-DES-095). Dibaca saat menyusun
+    /// respons, TIDAK disalin ke tabel Finance — menyalinnya membuat nama membeku ketika nama
+    /// aslinya berubah. <c>null</c> bila belum disetujui (<see cref="ApprovedBy"/> kosong) atau
+    /// penggunanya tidak ditemukan; layar MUST NOT menampilkan ID mentah.
+    /// </summary>
+    public string? ApprovedByName { get; set; }
+
     public DateTimeOffset? ApprovedAt { get; set; }
     public DateTimeOffset? LockedAt { get; set; }
     public Guid RowVersion { get; set; }

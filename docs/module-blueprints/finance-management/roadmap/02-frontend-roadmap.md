@@ -703,3 +703,108 @@ Keduanya terpetakan penuh ke `BE-FIN-082` pada roadmap backend.
 | Layar daftar bukti lintas transaksi | Tidak diminta requirement mana pun, dan justru memperbesar akibat batas akses per pemilik yang belum ada |
 | Menampilkan angka ambang pada layar pembayaran | **Tertahan `FIN-OQ-080`.** Peringatan "melewati ambang" tetap ditampilkan tanpa menyebut angkanya |
 | Memasang butir menu ketiga layar | **Tertahan `FIN-OQ-079`**, sama seperti REV-14 |
+
+
+---
+
+# REV-16 (frontend) — Butir menu yang akhirnya terpasang, angka ambang yang akhirnya terbaca, dan tiga penyesuaian kontrak
+
+```yaml
+blueprint_id: FIN-BP-001
+roadmap_revision: REV-16
+blueprint_revision: 16
+status: SIAP DIEKSEKUSI — approval revisi 16 diberikan Yasmin 4 Oktober 2026
+decisions: [FIN-DEC-145, FIN-DEC-146, FIN-DEC-147, FIN-DEC-148, FIN-DEC-149, FIN-DEC-150, FIN-DEC-151, FIN-DEC-152, FIN-DEC-153, FIN-DEC-155, FIN-DEC-156, FIN-DEC-160]
+designs: [FIN-DES-094, FIN-DES-095, FIN-DES-096, FIN-DES-098]
+input_design: 03-frontend-architecture.md bagian 21
+contract_versions: [FIN-API-1.7, FIN-VAL-1.9, FIN-TEST-1.10, FIN-MVP-1.11]
+contract_status: approved 2026-10-04 (Yasmin)
+frontend_source_sha: d962574d6
+task_range_frontend: FE-FIN-033..FE-FIN-037
+tanggal: 4 Oktober 2026
+```
+
+## Sifat gelombang ini
+
+**Nol layar baru.** Seluruh layar yang disentuh sudah dibangun dan sudah berjalan. Yang dikerjakan REV-16
+frontend ada tiga jenis, dan ketiganya perlu dibedakan karena risikonya berbeda:
+
+| Jenis | Task | Kenapa risikonya berbeda |
+|---|---|---|
+| Gerbang UI yang akhirnya terbuka | `FE-FIN-034`, `FE-FIN-037` | Keduanya **mencabut** pembatasan yang sempat dipasang layar sendiri selama pertanyaannya belum dijawab. Tidak ada kontrak yang berubah; yang berubah adalah izin menampilkannya |
+| Penyesuaian karena kontraknya berubah | `FE-FIN-033`, `FE-FIN-035`, `FE-FIN-036` | Masing-masing **MUST** menunggu backend-nya rilis, sebab layar membaca ruas yang belum ada |
+| Perubahan memutus yang sudah ditahan lebih dulu | bagian `FE-FIN-036` | Layar sudah tahan nilai kosong hari ini, sehingga backend boleh rilis lebih dulu tanpa merusak apa pun |
+
+## Gerbang — approval sudah terbuka
+
+| Hal | Keadaan |
+|---|---|
+| Approval desain revisi 16 | ✅ **DIBERIKAN** Yasmin, 4 Oktober 2026. `03-frontend-architecture.md` bagian 21 naik menjadi `approved` |
+| `FIN-OQ-079` penempatan butir menu | ✅ **CLOSED** oleh `FIN-DEC-148` dan `FIN-DEC-160` — membuka `FE-FIN-037` |
+| `FIN-OQ-080` angka ambang bagi staf | ✅ **CLOSED** oleh `FIN-DEC-147` — membuka `FE-FIN-034` |
+| `FIN-OQ-082` nilai batas ukuran berkas bukti | ✅ **CLOSED** oleh `FIN-DEC-156`. Layar **MUST** tetap menangani `503`, sebab nilainya baru berlaku sesudah administrator mengisinya |
+| `FIN-OQ-081` pembaca XLSX | ❌ **DITUNDA** ke `POST-MVP` (`FIN-DEC-149`). Tidak menahan task mana pun di sini; pilihan XLSX tetap nonaktif |
+| Task yang menunggu backend | `FE-FIN-033` (butuh `BE-FIN-086`), `FE-FIN-035` (butuh `BE-FIN-088`, `089`), `FE-FIN-036` (butuh `BE-FIN-090`) |
+| Task yang **boleh mulai sekarang** | `FE-FIN-037` — nol dependency backend, nol kontrak baru |
+
+## Grafik urutan dependency — REV-16 frontend
+
+```text
+BE-FIN-086 (rilis) ──> FE-FIN-033 ──> FE-FIN-034   (ambang: penanda versi, lalu angka dibuka bagi staf)
+                                          └── butuh juga: hak `MstDirectPaymentThreshold : Read` pada peran staf (admin)
+
+BE-FIN-088 + BE-FIN-089 (rilis) ──> FE-FIN-035     (batch migrasi)
+BE-FIN-090 (rilis) ─────────────────> FE-FIN-036   (snapshot: penanda rekap kas)
+(boleh mulai sekarang) ─────────────> FE-FIN-037   (butir menu)
+
+{FIN-OQ-081} ─> [tidak ada task frontend]   (pilihan XLSX tetap nonaktif, FIN-DEC-149)
+
+Legenda:
+  {xxx}   gerbang keputusan yang masih tertutup
+  (xxx)   tidak tertahan apa pun
+```
+
+| Gelombang | Task frontend | Boleh mulai setelah |
+|---|---|---|
+| `REV-16F1` | `FE-FIN-037` | **Sekarang.** Hanya `menu-items.jsx` |
+| `REV-16F2` | `FE-FIN-033` → `FE-FIN-034` | `BE-FIN-086` rilis di lingkungan yang dipakai layar |
+| `REV-16F3` | `FE-FIN-035`, `FE-FIN-036` | `BE-FIN-088`/`089` dan `BE-FIN-090` masing-masing rilis |
+
+**Kenapa `FE-FIN-034` menyusul `FE-FIN-033` dan tidak berjalan sejajar.** Keduanya menyentuh berkas yang
+sama (`direct-payment-threshold-constants.jsx`, `use-direct-payment-threshold.jsx`,
+`direct-payment-threshold-view.jsx`). Menjalankannya sejajar menimbulkan benturan pada berkas yang sama
+tanpa manfaat apa pun, sebab `FE-FIN-034` sendiri ringan.
+
+## Task REV-16 frontend
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ⬜ `FE-FIN-033` | Pejabat yang mengubah ambang bekerja dari nilai terbaru, dan layar menyebut siapa yang terakhir mengubahnya | `FR-FIN-184`, `FR-FIN-185`, `FR-FIN-187`; `FIN-DEC-145`, `146`, `151`, `153`; `03-frontend-architecture.md` 21.4 nomor 1 dan 2 | `FIN-API-1.7` G.1; `FIN-VAL-1.9` `FIN-VAL-228` | Pola `expectedRowVersion` + penanganan `409` yang sudah dipakai `FE-FIN-028` dan `FE-FIN-032` | Kolom tanggal berlaku **dihapus** dari form dan tampilan; `rowVersion` diserap dari respons, disimpan di state, dan dikirim kembali saat menyimpan; `409` ditangani dengan memuat ulang lalu memberi tahu; `lastChangedByName` ditampilkan. Berkas: `direct-payment-threshold-utils.jsx`, `...-constants.jsx`, `use-direct-payment-threshold.jsx`, `direct-payment-threshold-view.jsx` | `BE-FIN-086` **rilis** | Penetapan **pertama** (`404`) tetap berhasil **tanpa** `expectedRowVersion`; ambang yang sudah ada mengirim `expectedRowVersion` pada setiap penyimpanan; `409` menampilkan *"Ambang sudah diubah oleh orang lain. Muat ulang sebelum melanjutkan."* lalu memuat ulang nilai, alasan, dan nama pengubah terbaru; nama pengubah tampil, dan bila `null` ditulis keterangannya — **MUST NOT** menampilkan ID mentah; penanda versi **MUST NOT** ditampilkan kepada pengguna; `effectiveFrom` **tidak** lagi dikirim | `npm run lint:errors`, `npm run test:unit`, `npm run build` (dijalankan pengguna); uji `K.1.3`, `K.1.4`, `K.2.1`, `K.2.2`, `K.2.6` | Frontend Owner — **risiko:** mengirim `expectedRowVersion` juga pada penetapan pertama akan menjadikan ambang **tidak pernah dapat ditetapkan**, dan jalur pembayaran langsung terkunci permanen. Ini kegagalan paling mahal di REV-16 frontend | Build/lint/test dilaporkan PASS oleh pengguna; laporan task tracked ada; laporan **MUST** menyatakan bahwa jalur penetapan pertama diuji terpisah |
+| ⬜ `FE-FIN-034` | Staf AR/AP melihat angka ambangnya, bukan hanya diberi tahu bahwa ada ambang | `FR-FIN-186`; `FIN-DEC-147`; `03-frontend-architecture.md` 21.3 | `FIN-API-1.7` G.1; `FIN-PERM-1.8` I — **tanpa perubahan kontrak** | `use-direct-payment-threshold.jsx` yang sudah ada, dipakai dari layar pembayaran | Gerbang hak pada layar ambang **diturunkan** dari `Update` menjadi `Read`; kendali ubah tetap hanya bagi pemegang `Update`; banner `FIN-OQ-080` **dihapus**; konfirmasi pembayaran langsung pada `finance-payment-ar-view.jsx` dan `finance-payment-ap-view.jsx` **menyebut angkanya** | `FE-FIN-033`; **dan** hak `MstDirectPaymentThreshold : Read` diberikan kepada peran staf AR/AP — **milik administrator, bukan kode** | Pemegang `Read` saja membuka layar dan melihat angkanya, **tanpa** kendali ubah; pemegang `Update` melihat kendali ubahnya; banner `FIN-OQ-080` tidak ada lagi; konfirmasi pembayaran menyebut nominal ambang; **bila** hak baca belum diberikan (`403`) atau ambang belum ditetapkan (`404`), konfirmasi jatuh kembali ke kalimat tanpa angka **tanpa** menampilkan galat teknis; pernyataan bahwa perubahan ambang **tidak** melalui jenjang persetujuan **MUST** tetap ada | `npm run lint:errors`, `npm run test:unit`, `npm run build` (dijalankan pengguna); uji `K.1.5` | Frontend Owner — **keputusan ini berbeda dari rekomendasi agent**; pemilik memilih menampilkan angkanya dan keputusan pemilik yang berlaku (`FIN-DEC-147`). **Risiko:** jalur mundur `403` yang tidak ditangani akan memunculkan galat teknis pada layar pembayaran yang dipakai setiap hari | Build/lint/test dilaporkan PASS; laporan task tracked ada; laporan **MUST** menyebut bahwa angka baru terbaca staf setelah administrator memberi hak `Read` |
+| ⬜ `FE-FIN-035` | Petugas cutover tahu siapa yang menyetujui batch, dan tahu apa yang harus dilakukan ketika berkasnya terlalu besar | `FR-FIN-187`, `FR-FIN-188`; `FIN-DEC-149`, `150`, `151`, `155`; `03-frontend-architecture.md` 21.4 nomor 3 | `FIN-API-1.7` G.2; `FIN-VAL-1.9` `FIN-VAL-229` | Kerangka keterangan galat `opening-item-batch-utils.jsx` yang sudah ada | `approvedByName` ditampilkan pada daftar dan panel rincian; keadaan `400` batas **10.000 baris** ditampilkan sebagai keterangan yang menyebut batasnya dan menyarankan memecah berkas; `accept` pemilih unggah dipersempit menjadi **CSV saja** (`FIN-DEC-150`), dan keterangan pemilih diselaraskan | `BE-FIN-088` dan `BE-FIN-089` **rilis** | Nama penyetuju tampil; `null` ditulis keterangannya, **bukan** ID; `400` batas baris memunculkan keterangan yang dapat ditindaklanjuti dan berkas **tidak** dikirim ulang otomatis; pemilih unggah **hanya** menawarkan CSV; pilihan XLSX pada unduh templat **tetap nonaktif** beserta alasannya; isi baris berkas **MUST NOT** masuk keterangan galat — hanya nomor baris dan sebabnya | `npm run lint:errors`, `npm run test:unit`, `npm run build` (dijalankan pengguna); uji `K.3.2`, `K.3.4` | Frontend Owner — **risiko privasi:** berkas batch memuat nama debitur dan kode supplier. Keterangan galat, salinan, dan unduhan **MUST** membawa nomor baris dan sebabnya saja | Build/lint/test dilaporkan PASS; laporan task tracked ada |
+| ⬜ `FE-FIN-036` | Layar snapshot berhenti menebak keadaan "belum ada rekap" dan mulai membaca penanda resminya | `FR-FIN-190`; `FIN-DEC-152`; `FIN-DES-098`; `03-frontend-architecture.md` 21.4 nomor 4 | `FIN-API-1.7` G.4 — **PERUBAHAN MEMUTUS di sisi backend** | `subledger-snapshot-utils.jsx` dan `cash-variance-section.jsx` yang sudah menangani keadaan ini | `hasDailyCashSnapshot` diserap dan dipakai sebagai dasar kesimpulan, menggantikan terkaan dari `dailyCashSnapshotDate` yang kosong; `dailyCashClosingBalance` dan `varianceAmount` diperlakukan **boleh kosong** dan **MUST NOT** jatuh ke `0` | `BE-FIN-090` **rilis** | Periode tanpa rekap: saldo penutupan berbunyi *"Belum ada rekap"* dan selisih *"Tidak dapat dinyatakan"* — **MUST NOT** `Rp 0`; posisi kas terhitung dan mutasi penjelas tetap tampil; periode dengan rekap dan angka sama menampilkan selisih `0` tanpa penanda selisih; periode dengan rekap dan angka berbeda menampilkan keduanya beserta penandanya; layar **tetap** benar bila backend lama masih mengirim `0` tanpa `hasDailyCashSnapshot` | `npm run lint:errors`, `npm run test:unit`, `npm run build` (dijalankan pengguna); uji `K.5.1`..`K.5.7` | Frontend Owner — **bukan perbaikan cacat.** Layar sudah benar hari ini; yang dipindahkan adalah dasar kesimpulannya dari terkaan ke penanda resmi. Perilaku yang dilihat pengguna tidak berubah. **Risiko:** menghapus jalur mundur lama sebelum `BE-FIN-090` rilis akan memunculkan `Rp 0` yang justru dilarang `FIN-DEC-152` | Build/lint/test dilaporkan PASS; laporan task tracked ada; laporan **MUST** menyatakan bahwa jalur mundur untuk respons backend lama dipertahankan |
+| ⬜ `FE-FIN-037` | Tujuh layar cutover dan master ambang dapat ditemukan dari menu, bukan hanya dari alamat langsung | `FR-FIN-191`; `FIN-DEC-148`, `FIN-DEC-160`; `03-frontend-architecture.md` 21.2 | **Nol kontrak API.** `FIN-PERM-1.8` untuk `permissionKey` tiap butir | Pola grup `subMenu`/`subItems` `menu-items.jsx` yang sudah ada | Satu submenu **baru** `Cutover & Subledger` pada grup Finance, berisi tiga butir berurutan: Pemetaan Akun Control → Saldo Awal Cutover → Batch Migrasi Tagihan Lama. Satu butir **Ambang Pembayaran Langsung** menyusul butir yang sudah ada pada submenu `Master Data`. Berkas: `src/utils/menu-sidebar/menu-items.jsx` | **Nol dependency backend** | Ketiga butir cutover muncul berurutan mengikuti urutan kerja petugas (`FIN-DEC-160`); butir ambang muncul paling akhir pada `Master Data`; setiap butir membawa `permissionKey` yang benar sehingga tersembunyi bagi yang tidak berhak; submenu **Transaksi A/R** dan **Transaksi A/P** **MUST NOT** berubah sama sekali (`FIN-DEC-094`); Buku Mutasi Kas dan Riwayat Mutasi Piutang/Utang Supplier **MUST NOT** diberi butir menu — keduanya dicapai dari layar induknya | `npm run lint:errors`, `npm run test:unit`, `npm run build` (dijalankan pengguna); periksa menu secara manual sebagai pemegang hak dan sebagai yang tidak berhak | Frontend Owner — **risiko:** `menu-items.jsx` berkas bersama 2.129 baris milik seluruh modul. Menyisipkan butir ke dalam grup A/R atau A/P melanggar `FIN-DEC-094`; submenu baru **MUST** berdiri di sampingnya | Build/lint/test dilaporkan PASS; laporan task tracked ada; laporan **MUST** menyatakan bahwa grup A/R dan A/P diperiksa tidak berubah |
+
+## Yang sengaja TIDAK dibuat pada REV-16 frontend
+
+| Yang tidak dibuat | Alasan |
+|---|---|
+| Butir menu untuk Buku Mutasi Kas dan Riwayat Mutasi Piutang/Utang Supplier | Keduanya permukaan baca di dalam layar induknya (`03-frontend-architecture.md` 21.2) |
+| Layar riwayat perubahan ambang | Tidak ada datanya — tabel riwayat ditolak `FIN-DES-086`, dan `FIN-DEC-145` menghapus alasan teknis terakhir untuk membuatnya |
+| Menampilkan penanda versi ambang kepada pengguna | Urusan mesin. Yang berguna bagi pejabat adalah nilai, alasan, nama pengubah, dan waktunya (`03-frontend-architecture.md` 21.8) |
+| Mengaktifkan pilihan XLSX | Pembaca XLSX belum ada (`FIN-DEC-149`). Mengaktifkannya lebih dulu menghasilkan unduhan dan unggahan yang gagal |
+| Kemampuan mengubah ambang dari layar pembayaran | Memisahkan wewenang: staf mencatat pembayaran, pejabat mengubah ambang |
+| Tombol menghidupkan penjadwal dan worker dari layar | Menjadi jalan memutar gerbang G3 dan keputusan operasional |
+| Task mengisi nilai konfigurasi dan memberi hak `Read` kepada peran staf | **Bukan kode.** Keduanya prasyarat go-live (`04-prd-to-mvp.md` 56.6), dikerjakan administrator |
+
+## Prasyarat eksekusi REV-16 frontend
+
+| # | Prasyarat | Keadaan |
+|:--:|---|---|
+| 1 | `approval_revision_16` terisi | ✅ **DIBERIKAN** Yasmin, 4 Oktober 2026 |
+| 2 | `FIN-OQ-079` dan `FIN-OQ-080` dijawab | ✅ `FIN-DEC-148`/`160` dan `FIN-DEC-147` |
+| 3 | `BE-FIN-086` rilis | ❌ Menahan `FE-FIN-033` dan `FE-FIN-034` |
+| 4 | `BE-FIN-088` dan `BE-FIN-089` rilis | ❌ Menahan `FE-FIN-035` |
+| 5 | `BE-FIN-090` rilis | ❌ Menahan `FE-FIN-036` |
+| 6 | Hak `MstDirectPaymentThreshold : Read` pada peran staf AR/AP | ❌ **Milik administrator.** Tidak menahan `FE-FIN-034` dikerjakan, tetapi menahan hasilnya terlihat staf |
+| 7 | Nol prasyarat untuk `FE-FIN-037` | ✅ **Boleh mulai sekarang** |
