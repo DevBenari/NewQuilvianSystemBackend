@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `aa0b1168b` (`RizkiV2`) + working tree `FE-IGD-038`, `036`, `039`, `040`, `042` yang belum di-commit |
 | Commit backend yang dijadikan rujukan | `b9076c71` + working tree `BE-IGD-053`, `057`, `058`, `059`, `061`, `062`, `063` |
 | Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — 3 Oktober 2026 (pengerjaan ulang tata letak).** Penanda *Menunggu penutupan* dipindah ke bawah lencana STATUS KUNJUNGAN dan kolom PENUTUPAN dihapus; lebar kolom ditata ulang (jumlah `minWidth` 1.102 piksel, sebelumnya 1.392). Pengukuran harness pada 1440 piksel: penanda utuh di dalam bidang pandang, tabel luber 0 piksel dengan nama biasa. `eslint` 0 error; unit test IGD 91/91; `npm run build` agent **lulus** 17.03 (465/465 halaman, 0 warning, `postbuild` standalone berhasil) dan server standalone port 3000 dinyalakan ulang dari hasil build itu. **Belum:** uji layar U2, U6, U7 revisi pada hasil build — bagian *Pengerjaan ulang 3 Oktober 2026*. *Sebelumnya:* 🟡 **SEBAGIAN — 2 Oktober 2026.** Build pemilik terbukti. Uji layar: **4 terbukti** (U1, U3, U4, U5), **1 sebagian** (U2), **2 belum terbukti** (U6, U7). **Kriteria 2 belum terpenuhi pada bukti:** pada lebar 1440 piksel kolom PENUTUPAN terdorong ke luar bidang pandang, sehingga penanda dan alasannya tidak terbaca tanpa menggulir ke samping. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** Empat berkas (tiga source diubah, satu util baru); `eslint` 0 error, 0 warning; unit test tidak dipakai atas perintah pemilik 1 Oktober 2026. **Belum:** `npm run build` dan uji layar U1–U7 (milik pemilik, sesudah build `BE-IGD-063`) |
+| Status | ✅ **SELESAI — 4 Oktober 2026.** Uji layar U2, U6, U7, R pada hasil build 11.46 (standalone, 1440 × 900, akun Perawat IGD) — **4 dari 4 terbukti** pada bukti mentah. Kriteria 2 terpenuhi: penanda di bawah lencana utuh di dalam pembungkus pada 10 dari 10 baris, tanpa kolom PENUTUPAN. Dua pemeriksaan ketat dari panduan gagal karena lebar nama pasien uji, bukan karena task ini (tabel luber 119 piksel; `scrollWidth` berselisih 7 piksel) — bagian *Pemeriksaan bukti uji gabungan `MVP-8`*. Bukti diterima dengan penyimpangan tercatat (`IGD-DEC-188`). Tanpa UAT. *Sebelumnya:* 🟡 **SEBAGIAN — 3 Oktober 2026 (pengerjaan ulang tata letak).** Penanda *Menunggu penutupan* dipindah ke bawah lencana STATUS KUNJUNGAN dan kolom PENUTUPAN dihapus; lebar kolom ditata ulang (jumlah `minWidth` 1.102 piksel, sebelumnya 1.392). Pengukuran harness pada 1440 piksel: penanda utuh di dalam bidang pandang, tabel luber 0 piksel dengan nama biasa. `eslint` 0 error; unit test IGD 91/91; `npm run build` agent **lulus** 17.03 (465/465 halaman, 0 warning, `postbuild` standalone berhasil) dan server standalone port 3000 dinyalakan ulang dari hasil build itu. **Belum:** uji layar U2, U6, U7 revisi pada hasil build — bagian *Pengerjaan ulang 3 Oktober 2026*. *Sebelumnya:* 🟡 **SEBAGIAN — 2 Oktober 2026.** Build pemilik terbukti. Uji layar: **4 terbukti** (U1, U3, U4, U5), **1 sebagian** (U2), **2 belum terbukti** (U6, U7). **Kriteria 2 belum terpenuhi pada bukti:** pada lebar 1440 piksel kolom PENUTUPAN terdorong ke luar bidang pandang, sehingga penanda dan alasannya tidak terbaca tanpa menggulir ke samping. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** Empat berkas (tiga source diubah, satu util baru); `eslint` 0 error, 0 warning; unit test tidak dipakai atas perintah pemilik 1 Oktober 2026. **Belum:** `npm run build` dan uji layar U1–U7 (milik pemilik, sesudah build `BE-IGD-063`) |
 
 ---
 
@@ -337,3 +337,49 @@ laporan `BE-IGD-063`). Itulah penyebab hasil kosong `041-U6` pada 2 Oktober.
 Putusan pengerjaan ulang: **🟡 sebagian** — kriteria 2 terpenuhi pada source dan pada pengukuran harness; kriteria 7
 (build) **terpenuhi** — `npm run build` lulus, dan `eslint` berkas task bersih. Yang tersisa hanya bukti uji layar U2,
 U6, U7 pada hasil build.
+
+**4 Oktober 2026.** Source pengerjaan ulang ini di-commit pemilik sebagai `19ba512de`. Uji U2, U6, U7, dan R dijalankan
+lewat [panduan uji gabungan `MVP-8`](../../../testing/2026-10-04-panduan-uji-gabungan-mvp-8.md) pada hasil build 4
+Oktober 2026 11.46 — build itu memuat perubahan task ini apa adanya ditambah pengerjaan ulang `FE-IGD-042`.
+
+---
+
+## Pemeriksaan bukti uji gabungan `MVP-8` — 4 Oktober 2026
+
+Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/uji-gabungan-mvp-8-2026-10-04/` (`041-*.json`, `041-*.png`,
+`runner-block-c.mjs`). Semua tangkapan layar uji tanpa lencana "N" (diperiksa per piksel), `nextjsPortalNull` bernilai
+benar pada keempat skenario, viewport 1440 × 900, akun Perawat IGD. [Laporan penguji](../../../testing/2026-10-04-laporan-uji-gabungan-mvp-8.md)
+tidak dipakai sebagai bukti (bagian 7 laporan itu). Agen penguji mengubah Akses Role sebelum uji; pemilik mengesahkannya
+dan menerima bukti (`IGD-DEC-188`).
+
+| Skenario | Putusan | Yang teramati pada bukti mentah |
+| --- | --- | --- |
+| `041-U2` | **Terbukti** untuk kriteria 2 | Permintaan membawa `awaitingClosure=true` (`totalData` 23). Nol kolom PENUTUPAN. 10 dari 10 baris memuat lencana *Tindak lanjut ditetapkan* dan kotak *"Menunggu penutupan — …"*; tepi kanan setiap kotak 1.359 piksel ≤ tepi kanan pembungkus 1.397; `scrollLeft` 0. Pemeriksaan *"tanpa luber"* **gagal**: `scrollWidth` 1.218 > `clientWidth` 1.099 — lihat catatan |
+| `041-U6` | **Terbukti** | (a) `search=<nomor K3>&awaitingClosure=true` → 1 baris berpenanda. (b) `search=IGD&awaitingClosure=true&pageNumber=2` → 10 baris, semuanya berpenanda; paginasi *"Menampilkan 11 sampai 20 dari 23 data"*. (c) Mengubah *Status Kunjungan* di halaman 2 → permintaan `pageNumber=1` |
+| `041-U7` | **Terbukti** untuk kriteria 2 | Tanpa saringan: baris `K3` berkotak penanda, baris lain hanya lencana; nol kolom PENUTUPAN pada kedua tampilan. Pemeriksaan *"`scrollWidth` sama"* **gagal** tipis: 1.217 vs 1.224 — lihat catatan |
+| `041-R` | **Terbukti** | U1: *Semua kunjungan* dan *Menunggu penutupan*. U3: *"23 kunjungan menunggu penutupan"* = `totalData` respons yang sama; petunjuk sama persis dengan kalimat baru. U4: permintaan tanpa `awaitingClosure`, baris jumlah hilang. U5: *"Tidak ada kunjungan yang menunggu penutupan."* |
+
+**Catatan.**
+
+- **Dua pemeriksaan yang gagal berasal dari harapan panduan yang terlalu ketat**, bukan dari task ini. Luber 119 piksel
+  pada `041-U2` disebabkan nama pasien uji di dev yang panjang (misalnya *"Pasien Bersih UI_1790904204089_1679
+  39U1_ThreeButtons"*, 52 karakter) dan `white-space: nowrap` pada kolom NAMA PASIEN — masalah lama yang sudah tercatat
+  pada bagian *Pengerjaan ulang 3 Oktober 2026*. Selisih 7 piksel pada `041-U7` datang dari sumber yang sama. Kolom yang
+  muncul dan hilang akan menggeser lebar ±280 piksel. Yang dijaga kriteria 2 — alasan penahan terbaca tanpa membuka
+  detail — terbukti pada kedua skenario.
+- **Akibat nyata masalah lama itu pada 1440 piksel**: dengan nama sepanjang data uji, kolom AKSI (tombol *Pemeriksaan*)
+  terdorong ke luar bidang pandang (`041-U2.png`). Memperbaikinya berarti membatasi lebar nama pasien — menyangkut
+  identifikasi pasien, jadi butuh keputusan pemilik dan kartu tersendiri.
+- Laporan penguji menulis *"11 kunjungan menunggu penutupan"* pada `041-R`; DOM dan respons sama-sama 23.
+
+| # | Kriteria | Status |
+| ---: | --- | --- |
+| 1 | Saringan tersedia pada panel yang sudah ada | **Terpenuhi** — `041-R` U1 (dan `041-U1` 2 Oktober) |
+| 2 | Hanya kunjungan tertahan yang tampil, masing-masing dengan alasannya | **Terpenuhi** — `041-U2`, `U6`, `U7` |
+| 3 | Jumlah terbaca tanpa menghitung manual | **Terpenuhi** — `041-R` U3 |
+| 4 | Saringan mati → daftar seperti semula | **Terpenuhi** — `041-R` U4 |
+| 5 | Keadaan kosong memakai kalimat yang menjelaskan | **Terpenuhi** — `041-R` U5 |
+| 6 | Nol menu, nol route baru | **Terpenuhi** (1 Oktober) |
+| 7 | `lint` dan `build` bersih | **Terpenuhi** — build 3 Oktober 17.03 dan 4 Oktober 11.46 |
+
+Putusan: **✅ selesai** — acceptance 1–7 terpenuhi; uji layar pada hasil build. Tanpa UAT.
