@@ -223,3 +223,49 @@ CREATE INDEX "IX_CliClinicalMilestoneFact_DispatchStatus_NextDispatchAttemptAt"
 ```
 
 Tidak ada kolom `-- SENSITIF` pada amendment ini.
+
+
+---
+
+# Amendment DP — Daftar Pasien Rawat Jalan (revisi `28`, `draft`)
+
+Tidak ada tabel atau kolom `Baru`/`Diperbarui`. Kolom kunci tabel `Sudah ada` yang dipakai aturan
+fitur ini:
+
+| Tabel (pemilik) | Kolom | Dipakai untuk | Sensitif |
+|---|---|---|:---:|
+| `RegPatientEncounter` (Registration) — `Areas/HealthServices/RegistrationManagement/Models/RegPatientEncounter.cs` | `Id` (PK) | Kunci | |
+| | `EncounterType` | Penyaring RJ (= 1) | |
+| | `ClinicId` (FK `MstClinic`, nullable) | Penyaring RJ berklinik, cakupan perawat | |
+| | `DoctorId` (FK `MstDoctor`, nullable) | Cakupan dokter | |
+| | `EncounterStatus` | Kelompok summary, boleh batal, pemblokir | |
+| | `EncounterDate` | Mode hari ini, kunjungan menggantung | |
+| | `IsCancel`, `CancelledAt`, `CancelledByUserId`, `CancelReason` (maks 250) | Diisi saat batal | `CancelReason`: Ya |
+| | `CompletedAt` | Pemblokir | |
+| | `IsActive` | Diisi `false` saat batal | |
+| | `PatientId` (FK `MstPatient`) | Nama pasien, no. RM | — (nama dan no. RM di `MstPatient`: Ya) |
+| `EmgVisit` (Emergency) | `EncounterId` | Membuang kunjungan IGD | |
+| `TrxDoctorConsultation` (Clinical) | `EncounterId`, `IsCancel`, `IsDelete` | Konsultasi aktif | |
+| `TrxQueue` (Registration) | `EncounterId`, `CompletedAt`, `CancelledAt`, `NoShowAt` | Antrean yang ikut batal | |
+| `MstNurseStationClusterStaff` | `EmployeeId`, `NurseStationClusterId` | Cakupan perawat | |
+| `MstDoctor` | `WorkforceProfileId`, `Email` | Pengenal dokter | `Email`: Ya |
+
+Seluruh tabel mewarisi `IdentityModel`. Tidak ada DDL.
+
+---
+
+# Amendment KT — Konsultasi Tertunda (revisi `29`, `draft`)
+
+Tidak ada tabel baru atau tabel yang diperbarui. Kolom kunci yang dibaca fitur ini (semua tabel
+`Sudah ada`):
+
+| Tabel | Pemilik | Kolom yang dipakai | Untuk | Model |
+|---|---|---|---|---|
+| `TrxQueue` | Registration | `Id`, `DoctorId`, `QueueDate`, `QueueStatus`, `EncounterId`, `IsDoctorRequired`, `IsActive`, `IsDelete` | Dasar daftar, syarat KT.3.1 | `TrxQueue` |
+| `RegPatientEncounter` | Registration | `Id`, `EncounterType`, `ClinicId`, `EncounterStatus`, `IsCancel`, `CompletedAt`, `IsDelete` | Syarat kunjungan tertahan | `RegPatientEncounter` |
+| `TrxDoctorConsultation` | Clinical | `Id`, `QueueId`, `ConsultationStatus`, `IsCancel`, `IsDelete` | Konsultasi aktif | `TrxDoctorConsultation` |
+| `PhmPrescription` | Pharmacy | `ConsultationId`, `PrescriptionStatus`, `IsActive`, `IsCancel`, `IsDelete` | `draftPrescriptionCount` | `PhmPrescription` |
+| `TrxPatientProcedure` | Clinical | `ConsultationId`, `IsActive`, `IsCancel`, `IsDelete` | `procedureCount` | `TrxPatientProcedure` |
+| `EmgVisit` | Emergency | `EncounterId` | Penyaring IGD | `EmgVisit` |
+
+Kolom sensitif yang ikut dikembalikan sama dengan `GET /doctor-queues` (nama pasien, no. RM).

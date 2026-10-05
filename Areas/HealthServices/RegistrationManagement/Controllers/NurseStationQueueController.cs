@@ -525,6 +525,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     .ThenInclude(x => x.PaymentSource)
                         .ThenInclude(x => x.InsuranceProvider)
                 .Include(x => x.Encounter)
+                    .ThenInclude(x => x.PaymentSource)
+                        .ThenInclude(x => x.CompanyGuarantor)
+                .Include(x => x.Encounter)
                     .ThenInclude(x => x.Room)
                 .Include(x => x.Patient)
                     .ThenInclude(x => x.Country)
@@ -1066,6 +1069,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     .ThenInclude(x => x.PaymentSource)
                         .ThenInclude(x => x.InsuranceProvider)
                 .Include(x => x.Encounter)
+                    .ThenInclude(x => x.PaymentSource)
+                        .ThenInclude(x => x.CompanyGuarantor)
+                .Include(x => x.Encounter)
                     .ThenInclude(x => x.Room)
                 .Include(x => x.Patient)
                 .Include(x => x.Clinic)
@@ -1111,6 +1117,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var encounter = x.Encounter;
             var patient = x.Patient;
             var paymentSource = encounter?.PaymentSource;
+            var primaryPayer = EncounterPrimaryPayerSummary.From(encounter);
             var serverNowUtc = DateTime.UtcNow;
 
             return new NurseStationQueueResponse
@@ -1197,6 +1204,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     ?? paymentSource?.PaymentSourceNameSnapshot,
                 IsInsuranceEligible = paymentSource?.IsEligible ?? (encounter?.PaymentType == EncounterPaymentType.Cash),
                 IsInsurancePolicyActive = paymentSource?.IsPolicyActive ?? false,
+                PrimaryGuarantorNameSnapshot = primaryPayer.PrimaryGuarantorName,
+                PrimaryGuarantorTypeSnapshot = primaryPayer.PrimaryGuarantorTypeName,
+                IsInsurancePatient = primaryPayer.IsInsurancePatient,
+                IsCompanyPatient = primaryPayer.IsCompanyPatient,
                 IsReferral = encounter?.IsReferral ?? false,
                 ReferralNumber = encounter?.ReferralNumber,
 
@@ -1367,7 +1378,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private static string? BuildOptionalLabel(object? value)
         {
             if (value == null) return null;
-            if (value is Enum enumValue) return BuildEnumLabel(enumValue);
+            if (value is Enum enumValue)
+            {
+                // RJ-DOC-REV-BE-001: BuildEnumLabel<Enum> membaca typeof(Enum), sehingga label
+                // [Display] tidak pernah ditemukan (mis. "Female" bukan "Perempuan").
+                var display = enumValue.GetType().GetMember(enumValue.ToString()).FirstOrDefault()?
+                    .GetCustomAttributes(typeof(DisplayAttribute), false)
+                    .OfType<DisplayAttribute>()
+                    .FirstOrDefault();
+                return display?.Name ?? SplitPascalCase(enumValue.ToString());
+            }
             var text = value.ToString();
             return string.IsNullOrWhiteSpace(text) ? null : text;
         }
