@@ -2,12 +2,12 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.11.0` — observasi Dieskalasi dan kunjungan yang sudah berakhir, 3 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-186`): bagian 11.2 baru (aturan 16–21, `IGD-DEC-183`, `184`; asumsi `IGD-ASM-003`) dan §6 aturan 2 diubah. **Bukan aditif murni**: penjaga penutupan kini juga menahan kunjungan yang punya observasi `Escalated`, sehingga `PATCH /emergency-visits/{id}/complete` yang dulu berhasil kini dapat dijawab `409`, dan penutupan susulan tertunda; pada kunjungan `Completed`/`Cancelled`, penolakan `409` aksi observasi berganti pesan. Nol ruas request/response baru. *Sebelumnya* `0.10.0` — observasi yang diakhiri sesudah disposisi dilaksanakan, 30 September 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-175`): bagian 11.1 baru (aturan 12–15, `IGD-DEC-171`, `172`). **Bukan aditif murni** pada `PATCH .../emergency-observations/{id}/observation-status`: pada kunjungan `Disposed`, target `Completed` yang dulu ditolak `409` kini **diterima** (penolakan dilonggarkan), dan penolakan `409` target `Escalated` **berganti pesan** — dari pesan teknis penjaga transisi menjadi kalimat mengikat aturan 14. Nol aturan lama berubah teksnya; §8 tetap berlaku utuh. Sebelumnya `0.9.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 11 baru (penutupan kunjungan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol aturan lama berubah. Sebelumnya `0.8.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. Bagian 10 baru (enam sub-bagian); **bukan aditif murni**: sumber aturan §1.2 aturan 5 (dan §1 aturan 4) berganti dari `CariEpisodeAktifAsync` ke rumus §10.1 aturan 2 (klausa A+B). Kalimat aturan lama **tidak** diubah; teks penggantian dicatat di §10.1. Sebelumnya `0.7.0` — pra-cek episode IGD berjalan, 21 September 2026. **Aditif**: bagian 1.2 baru (`BE-IGD-050`, `IGD-DEC-138`); nol aturan lama diubah teksnya — aturan 4 bagian 1 dan penolakan `409`-nya tetap sebagai jaring pengaman. Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026. **Aditif**: bagian 9 baru; nol aturan lama diubah teksnya. Empat penolakan baru pada `POST .../emergency-observation-details` (`IGD-DEC-122`, `IGD-DEC-126`). *Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: pesan bagian 1 aturan 2 (`IGD-DEC-120`), pesan bagian 6 aturan 4 (`IGD-DEC-118`), dan bagian 8 baru (`IGD-DEC-119`, `IGD-DEC-121`)* |
-| Status | `draft`, **kecuali bagian 2 aturan 4 dan 5, dan bagian 10 (encounter-first), yang `approved`**. Bagian 11 aturan 1–11 **`approved`** (`IGD-DEC-170`, 23 September 2026). Bagian 11.1 (aturan 12–15) **`approved`** (`IGD-DEC-175`, 30 September 2026). Bagian 11.2 (aturan 16–21) dan perubahan §6 aturan 2 **`approved`** (`IGD-DEC-186`, 3 Oktober 2026) |
+| `contract_version` | `0.13.0` — pesanan tanpa sikap dan kepergian yang dibatalkan, 5 Oktober 2026 (sore), **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-209`): §5 aturan 12 dan §6 aturan 4 diberi pengecualian kepergian yang dibatalkan; §5.1 diperjelas (arti *tanpa sikap*, *ditolak*, pengecualian, dan batas cakupan); §6.1 butir (d) diselaraskan dengan source, butir (e)–(f) baru (`IGD-DEC-203`, `205`). **Bukan aditif murni**: pesanan milik kepergian yang fisiknya `Cancelled` — tanpa sikap maupun ditolak — tidak lagi menahan penutupan, sehingga kunjungan yang dulu tertahan pesanan ditolak pada kepergian yang dibatalkan kini dapat ditutup. Pesanan tanpa sikap yang **menahan** bukan perubahan kontrak — itu sudah bunyi §5.1 dan §6 aturan 4 yang `approved` (`IGD-DEC-108`); yang berubah adalah kode (`IGD-DEC-203`). Nol endpoint, nol ruas request/response, nol kalimat pesan baru. *Sebelumnya* `0.12.0` — kewenangan unit, 5 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-199`): bagian 7 diamandemen — aturan 1 ditegaskan (jembatan lewat simpul organisasi penugasan HR, `IGD-DEC-193`), aturan 3 diputuskan (fail-closed dan kalimat `IGD-DEC-195`), aturan 6–9 baru (`IGD-DEC-194`, `197`). **Bukan aditif murni**: pengguna yang penugasan HR-nya cocok dengan simpul unit kini lolos — sebelumnya setiap pengguna ditolak `403` karena jembatannya salah — dan pesan `403` untuk unit yang belum dipetakan berganti. Nol endpoint, nol ruas request/response. *Sebelumnya* `0.11.0` — observasi Dieskalasi dan kunjungan yang sudah berakhir, 3 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-186`): bagian 11.2 baru (aturan 16–21, `IGD-DEC-183`, `184`; asumsi `IGD-ASM-003`) dan §6 aturan 2 diubah. **Bukan aditif murni**: penjaga penutupan kini juga menahan kunjungan yang punya observasi `Escalated`, sehingga `PATCH /emergency-visits/{id}/complete` yang dulu berhasil kini dapat dijawab `409`, dan penutupan susulan tertunda; pada kunjungan `Completed`/`Cancelled`, penolakan `409` aksi observasi berganti pesan. Nol ruas request/response baru. *Sebelumnya* `0.10.0` — observasi yang diakhiri sesudah disposisi dilaksanakan, 30 September 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-175`): bagian 11.1 baru (aturan 12–15, `IGD-DEC-171`, `172`). **Bukan aditif murni** pada `PATCH .../emergency-observations/{id}/observation-status`: pada kunjungan `Disposed`, target `Completed` yang dulu ditolak `409` kini **diterima** (penolakan dilonggarkan), dan penolakan `409` target `Escalated` **berganti pesan** — dari pesan teknis penjaga transisi menjadi kalimat mengikat aturan 14. Nol aturan lama berubah teksnya; §8 tetap berlaku utuh. Sebelumnya `0.9.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 11 baru (penutupan kunjungan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol aturan lama berubah. Sebelumnya `0.8.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. Bagian 10 baru (enam sub-bagian); **bukan aditif murni**: sumber aturan §1.2 aturan 5 (dan §1 aturan 4) berganti dari `CariEpisodeAktifAsync` ke rumus §10.1 aturan 2 (klausa A+B). Kalimat aturan lama **tidak** diubah; teks penggantian dicatat di §10.1. Sebelumnya `0.7.0` — pra-cek episode IGD berjalan, 21 September 2026. **Aditif**: bagian 1.2 baru (`BE-IGD-050`, `IGD-DEC-138`); nol aturan lama diubah teksnya — aturan 4 bagian 1 dan penolakan `409`-nya tetap sebagai jaring pengaman. Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026. **Aditif**: bagian 9 baru; nol aturan lama diubah teksnya. Empat penolakan baru pada `POST .../emergency-observation-details` (`IGD-DEC-122`, `IGD-DEC-126`). *Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: pesan bagian 1 aturan 2 (`IGD-DEC-120`), pesan bagian 6 aturan 4 (`IGD-DEC-118`), dan bagian 8 baru (`IGD-DEC-119`, `IGD-DEC-121`)* |
+| Status | `draft`, **kecuali bagian 2 aturan 4 dan 5, dan bagian 10 (encounter-first), yang `approved`**. Bagian 11 aturan 1–11 **`approved`** (`IGD-DEC-170`, 23 September 2026). Bagian 11.1 (aturan 12–15) **`approved`** (`IGD-DEC-175`, 30 September 2026). Bagian 11.2 (aturan 16–21) dan perubahan §6 aturan 2 **`approved`** (`IGD-DEC-186`, 3 Oktober 2026). Bagian 7 (aturan 1–9) **`approved`** (`IGD-DEC-199`, 5 Oktober 2026). §5 aturan 12, §5.1 bagian *Diperjelas pada `0.13.0`*, §6 aturan 4, dan §6.1 butir (d)–(f) **`approved`** (`IGD-DEC-209`, 5 Oktober 2026 sore) |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
-| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 2 aturan 4 dan 5 lewat `IGD-DEC-093`. **Rizki Gunawan / 2026-09-22** — bagian 10 (encounter-first) lewat `IGD-DEC-157` — termasuk koreksi pesan §10.4 aturan 4 (B2). **Rizki Gunawan / 2026-09-23** — bagian 11 aturan 1–11 lewat `IGD-DEC-170`. **Rizki Gunawan / 2026-09-30** — bagian 11.1 aturan 12–15 lewat `IGD-DEC-175` (sementara, `IGD-DEC-174`). **Rizki Gunawan / 2026-10-03** — §6 aturan 2 dan bagian 11.2 aturan 16–21 lewat `IGD-DEC-186` (sementara, pola `IGD-DEC-174`). Seluruh aturan lain tetap `draft` |
-| `input_revision` | `0.11.0`: `00-interview-decisions.md` **185 keputusan**, terakhir `IGD-DEC-185` (amendment pass 3 Oktober 2026); fakta `IGD-FACT-032`…`036` diverifikasi pada backend `rizkiG` `2a63a3bb` (source IGD identik dengan `5af6ef3b`). `0.10.0`: `00-interview-decisions.md` **174 keputusan**, terakhir `IGD-DEC-174` (amendment pass 30 September 2026); fakta `IGD-FACT-029`…`031` diverifikasi ulang pada backend `rizkiG` `327ccad3` + working tree `BE-IGD-060` |
-| Versi sebelumnya | `0.10.0`, `0.9.0`, `0.8.0`, `0.7.0`, `0.6.0`, sebelumnya `0.5.0`, `0.4.0`, `0.3.0`, dan `0.2.0` |
+| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 2 aturan 4 dan 5 lewat `IGD-DEC-093`. **Rizki Gunawan / 2026-09-22** — bagian 10 (encounter-first) lewat `IGD-DEC-157` — termasuk koreksi pesan §10.4 aturan 4 (B2). **Rizki Gunawan / 2026-09-23** — bagian 11 aturan 1–11 lewat `IGD-DEC-170`. **Rizki Gunawan / 2026-09-30** — bagian 11.1 aturan 12–15 lewat `IGD-DEC-175` (sementara, `IGD-DEC-174`). **Rizki Gunawan / 2026-10-03** — §6 aturan 2 dan bagian 11.2 aturan 16–21 lewat `IGD-DEC-186` (sementara, pola `IGD-DEC-174`). **Rizki Gunawan / 2026-10-05** — bagian 7 aturan 1–9 lewat `IGD-DEC-199` (sementara, pola `IGD-DEC-174`; approver akhir Security/Privacy owner, belum ditunjuk). **Rizki Gunawan / 2026-10-05 (sore)** — §5 aturan 12, §5.1, §6 aturan 4, §6.1 butir (d)–(f) lewat `IGD-DEC-209` (sementara, pola `IGD-DEC-174`; Nursing authority belum ditunjuk). Seluruh aturan lain tetap `draft` |
+| `input_revision` | `0.13.0`: `00-interview-decisions.md` **208 keputusan**, terakhir `IGD-DEC-208` (amendment pass `grill-me` 5 Oktober 2026 sore, `IGD-DEC-204`…`208`); fakta `IGD-FACT-051`, `054`, `055`, `057` diverifikasi pada backend `rizkiG` `8d81d361` + working tree `EmergencyUnitAuthorityService.cs` dan frontend `RizkiV2` `57b1d360f`. `0.12.0`: `00-interview-decisions.md` **198 keputusan**, terakhir `IGD-DEC-198` (amendment pass 5 Oktober 2026, pass C2); fakta `IGD-FACT-044`…`048` diverifikasi pada backend `rizkiG` `8d81d361` (area IGD identik dengan `c1f79f79`) dan frontend `RizkiV2` `57b1d360f`. `0.11.0`: `00-interview-decisions.md` **185 keputusan**, terakhir `IGD-DEC-185` (amendment pass 3 Oktober 2026); fakta `IGD-FACT-032`…`036` diverifikasi pada backend `rizkiG` `2a63a3bb` (source IGD identik dengan `5af6ef3b`). `0.10.0`: `00-interview-decisions.md` **174 keputusan**, terakhir `IGD-DEC-174` (amendment pass 30 September 2026); fakta `IGD-FACT-029`…`031` diverifikasi ulang pada backend `rizkiG` `327ccad3` + working tree `BE-IGD-060` |
+| Versi sebelumnya | `0.12.0`, `0.11.0`, `0.10.0`, `0.9.0`, `0.8.0`, `0.7.0`, `0.6.0`, sebelumnya `0.5.0`, `0.4.0`, `0.3.0`, dan `0.2.0` |
 
 Aturan penulisan pesan: pesan penolakan **wajib** menyebut apa yang salah dan apa yang harus
 dilakukan petugas. Pesan yang hanya menyebut nama kolom teknis dianggap belum selesai.
@@ -160,7 +160,7 @@ Diperluas revisi 6 oleh `IGD-DEC-100`, `101`, `102`, dan `103`.
 | 9 | Sikap **`Cancel` hanya untuk pesanan yang belum dimulai**, dan hanya oleh klinisi berwenang | `409` | "Pesanan yang sudah dikerjakan tidak dapat dibatalkan; tetapkan Continue atau Handover." | **`IGD-DEC-100`** butir (a) dan (c) |
 | 10 | Sikap `Handover` menuntut unit penerima, dan menunggu **penerimaan eksplisit** | `400` | "Sikap serah terima wajib menyebutkan unit penerima." | **`IGD-DEC-102`** |
 | 11 | Penolakan sebuah pesanan **tidak** membatalkan penerimaan pasien | — | Tidak menolak. Perpindahan pasien tetap sah | **`IGD-DEC-102`** butir (a) dan (d) |
-| 12 | Pesanan yang **ditolak** unit penerima wajib diberi **sikap pengganti** sebelum kunjungan ditutup | `409` | "Ada pesanan yang ditolak unit penerima dan belum ditetapkan sikap penggantinya." | **`IGD-DEC-102`** butir (b) dan (c) |
+| 12 | Pesanan yang **ditolak** unit penerima wajib diberi **sikap pengganti** sebelum kunjungan ditutup — *kecuali pesanan milik kepergian yang fisiknya `Cancelled` (ditambahkan pada `0.13.0`, `IGD-DEC-205`; lihat §5.1)* | `409` | "Ada pesanan yang ditolak unit penerima dan belum ditetapkan sikap penggantinya." | **`IGD-DEC-102`** butir (b) dan (c) |
 | 13 | `AcceptanceStatus` = `Rejected` wajib beralasan | `400` | "Alasan penolakan pesanan wajib diisi." | **`IGD-DEC-102`** |
 | 14 | Sikap pengganti ditulis sebagai **baris baru** yang menunjuk baris lama; baris lama ditandai tidak berlaku dan **tidak dihapus** | — | — | **`IGD-DEC-102`**, mengikuti `IGD-DEC-090` |
 
@@ -172,6 +172,25 @@ dan tidak boleh ikut menahan penutupan kunjungan pada bagian 6 aturan 4.
 
 Yang menahan penutupan hanyalah pesanan **tanpa sikap sama sekali** (aturan 1) dan pesanan
 **ditolak yang belum diberi sikap pengganti** (aturan 12).
+
+**Diperjelas pada `0.13.0`** (`IGD-DEC-203`, `IGD-DEC-205`; **`approved`** lewat `IGD-DEC-209`, 5 Oktober 2026). Dua kalimat di atas
+tetap berlaku. Tabel ini mengunci arti setiap istilahnya, supaya penjaga penutupan, tombol *Selesaikan* kunjungan,
+penutupan susulan, dan alasan pada daftar menunggu penutupan membaca hal yang sama.
+
+| Ketentuan | Isi |
+| --- | --- |
+| Pesanan **tanpa sikap** | Baris pesanan kepergian yang **berlaku** — tidak dihapus dan belum digantikan baris lain — yang belum punya sikap `Continue`, `Handover`, atau `Cancel`. Arti yang sama dipakai aturan 1 saat dokumen diajukan. Baris semacam ini lahir dari pesanan luar sistem yang didaftarkan tanpa sikap, atau dari pengajuan dokumen yang ditolak aturan 1: barisnya **tetap tersimpan** supaya sikapnya dapat ditetapkan (`IGD-FACT-054`) |
+| Pesanan **ditolak** | Baris berlaku yang penerimaannya `Rejected` dan belum digantikan sikap pengganti (aturan 12 dan 14) |
+| Kepergian yang **dibatalkan** | Pesanan milik kepergian yang rangkaian fisiknya `Cancelled` **tidak** menahan penutupan, untuk kedua jenis di atas. Sejalan dengan §6 aturan 3 dan `IGD-DEC-106`: kepergian yang dibatalkan memang tuntas — pasien tidak jadi pergi, sehingga pesanannya tetap urusan IGD dan tidak butuh sikap *saat pergi* (`IGD-DEC-205`). Barisnya tidak diubah dan tidak dihapus |
+| Yang tidak menahan | Sikap `Continue`; `Handover` yang masih menunggu penerimaan atau sudah diterima; `Cancel`; baris yang sudah digantikan sikap pengganti |
+| Batas cakupan | Pesanan yang **belum pernah** menjadi baris pesanan kepergian — misalnya resep encounter yang dokumen serah terimanya belum pernah diajukan — **tidak** dihitung. Daftar pesanan dibentuk saat dokumen diajukan (`02-backend-architecture.md` §11.1), dan penjaga hanya membaca baris yang sudah ada. Menghitung pesanan yang belum terbentuk adalah keputusan bisnis tersendiri, bukan bagian versi ini |
+
+*Contoh berangka.* Kepergian Ny. Sari (data samaran) ke Rawat Inap Melati memuat tiga pesanan: *Resep R-0012* tanpa
+sikap, *Darah lengkap* ditolak Melati, *Ureum* bersikap `Continue`. Pasien sudah tiba; tindak lanjut dilaksanakan pukul
+14.00 → kunjungan **menunggu penutupan** karena dua penahan, *Resep R-0012* dan *Darah lengkap*; *Ureum* tidak dihitung.
+Pada pasien lain, kepergian ke HCU dibatalkan dengan satu baris *Resep R-0020* tanpa sikap dan satu baris *Elektrolit*
+ditolak HCU → keduanya **tidak** menahan; tindak lanjut yang dilaksanakan menutup kunjungan saat itu juga, dan kedua baris
+tetap tersimpan apa adanya.
 
 ### 5.2 Yang **tidak** ditegakkan sistem, dan sebabnya
 
@@ -193,7 +212,7 @@ Sampai saat itu, aturan 5 melarang sistem berpura-pura tahu.
 | 1 | Status wajib `Disposed` | `409` | "Kunjungan hanya dapat diselesaikan setelah keputusan tindak lanjut ditetapkan." |
 | 2 | Tidak boleh ada observasi `Active` **atau `Escalated`** — *diubah pada `0.11.0`* (§11.2 aturan 16, `IGD-DEC-183`); sebelumnya hanya `Active` | `409` | "Masih ada observasi yang belum diselesaikan." |
 | 3 | Tidak boleh ada kepergian yang fisiknya belum `Arrived` atau `Cancelled` | `409` | "Masih ada proses kepergian pasien yang belum selesai." |
-| 4 | Tidak boleh ada pesanan tanpa sikap | `409` | "Masih ada pesanan yang belum ditentukan sikapnya: {daftar pesanan}." |
+| 4 | Tidak boleh ada pesanan tanpa sikap — *diperjelas pada `0.13.0`*: pesanan tanpa sikap **atau** ditolak tanpa sikap pengganti menurut §5.1, **kecuali** milik kepergian yang fisiknya `Cancelled` (`IGD-DEC-205`) | `409` | "Masih ada pesanan yang belum ditentukan sikapnya: {daftar pesanan}." |
 | 5 | Status tagihan **tidak** diperiksa | — | Sesuai `IGD-DEC-021` |
 
 ### 6.1 Daftar pesanan pada aturan 4 — diubah pada `0.5.0`
@@ -206,8 +225,10 @@ diganti karena petugas tidak dapat mengetahui pesanan mana yang menahan penutupa
 | (a) Jumlah yang ditampilkan | Paling banyak **5** pesanan |
 | (b) Bila lebih dari 5 | Ditambahkan *"dan N lainnya"*, N = sisa pesanan yang tidak ditampilkan |
 | (c) Aturan kueri | **Tidak** diduplikasi — pesanan yang disebut adalah pesanan yang memang menahan penutupan |
-| (d) Titik penegakan | `EmergencyDepartureService.ValidatePesananSebelumPenutupanAsync` yang sudah ada |
-| Kode dan kondisi | Tetap `409`; kondisi penolakan **tidak** berubah |
+| (d) Titik penegakan | `EmergencyDepartureService.ValidatePesananSebelumPenutupanAsync` yang sudah ada. *Diselaraskan pada `0.13.0`:* sejak `BE-IGD-041` (16 September 2026) aturan kuerinya tinggal di `EmergencyDepartureService.AmbilPesananPenahanPenutupanAsync`, dan dipakai ketiga jalur penutupan lewat penjaga yang sama (§11 aturan 2 dan 10). `ValidatePesananSebelumPenutupanAsync` tetap memegang kalimat aturan 12 dan hanya boleh menyebut pesanan **ditolak** |
+| (e) Isi daftar — *baru pada `0.13.0`* | Pesanan tanpa sikap dan pesanan ditolak disebut bersama dalam satu daftar, dengan aturan (a) dan (b) yang sama. Pesanan milik kepergian yang dibatalkan tidak disebut |
+| (f) Data lama — *baru pada `0.13.0`* | Berlaku ke depan (pola `IGD-DEC-167`). Kunjungan yang sudah `Completed` atau `Cancelled` tidak dibuka kembali (§11 aturan 7 dan 9). Kunjungan yang sedang menunggu penutupan dan punya pesanan tanpa sikap mulai tertahan sejak aturan ini aktif, lalu tertutup lewat penutupan susulan begitu sikapnya ditetapkan |
+| Kode dan kondisi | Tetap `409`; kondisi penolakan **tidak** berubah. *Pada `0.13.0` kondisinya diperjelas lewat §5.1 — termasuk pengecualian kepergian yang dibatalkan; kode dan kalimat tetap* |
 
 *Contoh:* tujuh pesanan ditolak Rawat Inap → *"Masih ada pesanan yang belum ditentukan sikapnya:
 Darah lengkap, Elektrolit, Ureum, Kreatinin, Gula darah sewaktu dan 2 lainnya."*
@@ -216,18 +237,47 @@ Darah lengkap, Elektrolit, Ureum, Kreatinin, Gula darah sewaktu dan 2 lainnya."*
 
 ## 7. Kewenangan unit
 
-| No | Aturan | Kode | Keputusan |
-| ---: | --- | :-: | --- |
-| 1 | Pengguna wajib punya penugasan organisasi yang sedang berlaku pada simpul organisasi milik unit | `403` | `IGD-DEC-086` |
-| 2 | Penugasan yang `EffectiveEndDate`-nya sudah lewat tidak memberi kewenangan | `403` | `IGD-DEC-086` |
-| 3 | Unit yang kolom simpul organisasinya kosong | **Perilaku wajib disengaja dan tertulis** | `IGD-DEC-086` butir 4 |
-| 4 | Kewenangan unit **tidak** dengan sendirinya memberi kemampuan klinis | `403` | `IGD-DEC-058` |
-| 5 | Pelayanan klinis darurat **tidak pernah** diblokir ketiadaan penugasan | — | `IGD-DEC-086` butir 7 |
+Aturan 1 dan 2 serta 4 dan 5 berlaku sejak `0.2.0`; aturan 1 ditegaskan, aturan 3 diputuskan, dan aturan 6–9 ditambahkan
+pada `0.12.0` (5 Oktober 2026, `IGD-DEC-193`…`197`). Lapis izin kemampuan `[AccessPermission]` diperiksa lebih dulu
+oleh atribut endpoint; aturan bagian ini baru berjalan sesudahnya (permission/audit §1).
 
-> **Aturan 3 belum diputuskan.** Dua kemungkinan: menolak semua orang (fail-closed) atau
-> mengizinkan semua orang (fail-open). Untuk data master yang belum lengkap, fail-closed
-> menghentikan pelayanan dan fail-open menghapus penjagaan. Keduanya buruk, dan pilihannya
-> milik Security/Privacy owner. Dicatat sebagai `IGD-OQ-071`.
+| No | Aturan | Kode | Pesan | Keputusan |
+| ---: | --- | :-: | --- | --- |
+| 1 | Pengguna wajib punya penempatan organisasi yang sedang berlaku (`AspNetUserOrganization`), yang **sumbernya** — penugasan HR `WfpOrganizationAssignment` lewat `SourceAssignmentId` — menunjuk simpul organisasi yang **sama persis** dengan `MstServiceUnit.OrganizationUnitId` milik unit. Departemen penempatan **tidak** dipakai sebagai jembatan | `403` | "Anda tidak bertugas di unit {nama unit}, sehingga tidak dapat {tindakan}." | `IGD-DEC-086`, `IGD-DEC-193` |
+| 2 | Penempatan yang tidak aktif, terhapus, belum mulai berlaku, atau `EffectiveEndDate`-nya sudah lewat tidak memberi kewenangan | `403` | Sama dengan aturan 1 | `IGD-DEC-086` |
+| 3 | Unit yang kolom simpul organisasinya kosong **ditolak** (fail-closed). Pesannya **tidak** menjanjikan jalan keluar yang tidak tersedia | `403` | "Unit {nama unit} belum dipetakan ke simpul organisasi, sehingga kewenangan {tindakan} belum dapat diperiksa sistem. Minta Master Data melengkapi pemetaan unit ini." | `IGD-DEC-092` (bagian fail-closed), `IGD-DEC-195` |
+| 4 | Kewenangan unit **tidak** dengan sendirinya memberi kemampuan klinis | `403` | — | `IGD-DEC-058` |
+| 5 | Pelayanan klinis darurat **tidak pernah** diblokir ketiadaan penugasan | — | — | `IGD-DEC-086` butir 7 |
+| 6 | Penugasan pada simpul **induk** unit tidak memberi kewenangan atas unit turunannya; pemeriksaan tidak menelusuri pohon simpul | `403` | Sama dengan aturan 1 | `IGD-DEC-194` |
+| 7 | Penempatan warisan yang sumbernya kosong (`SourceAssignmentId` = `null`) tidak memberi kewenangan | `403` | Sama dengan aturan 1 | `IGD-DEC-193` |
+| 8 | Penempatan **sekunder** yang berlaku memberi kewenangan yang sama dengan penempatan utama (`IsPrimary` bukan syarat) | — | — | `IGD-DEC-194` |
+| 9 | Bagian ini dipakai **lima** tindakan kepergian: mencatat kedatangan, menerima atau menolak serah terima, menerima atau menolak pesanan (unit **tujuan**); menetapkan sikap pesanan dan mendaftarkan pesanan luar sistem (unit **asal**). Tindakan unit asal lain belum dijaga — permission/audit §3, `IGD-CONFLICT-006` | — | — | `IGD-DEC-197` |
+
+**Urutan pemeriksaan** di dalam penjaga: unit ditemukan → unit sudah dipetakan (aturan 3) → penempatan berlaku pada
+simpul yang sama (aturan 1, 2, 6–8). Pesan aturan 1 dan 3 diisi nama unit pelayanan dan kata kerja tindakan, misalnya
+*"meninjau serah terima"* atau *"menerima atau menolak pesanan"*. Kepergian yang unit asalnya kosong tetap ditolak `403`
+dengan pesan lama *"Unit asal belum tercatat sehingga kewenangan tindakan tidak dapat diperiksa."* — tidak berubah pada
+`0.12.0`.
+
+*Contoh.* Unit pelayanan *Rawat Inap Melati* dipetakan ke simpul *Bangsal Melati*, di bawah simpul induk *Instalasi Rawat
+Inap*. Pasien IGD dikirim ke Rawat Inap Melati.
+
+| Petugas | Penugasan HR | Hasil *Terima serah terima* | Aturan |
+| --- | --- | --- | --- |
+| Ns. Wati | Simpul *Bangsal Melati*, berlaku | `200` | 1 |
+| Ns. Budi | Simpul *Bangsal Mawar*, departemen sama dengan Ns. Wati | `403` *"Anda tidak bertugas di unit Rawat Inap Melati, sehingga tidak dapat meninjau serah terima."* | 1 |
+| Kepala Instalasi Rawat Inap | Simpul *Instalasi Rawat Inap* saja | `403`, pesan sama | 6 |
+| Kepala Instalasi Rawat Inap | Ditambah penugasan sekunder pada simpul *Bangsal Melati* | `200` | 8 |
+| Ns. Wati | Penugasan *Bangsal Melati* berakhir kemarin | `403`, pesan sama | 2 |
+| Siapa pun | — (unit *Rawat Inap Melati* belum dipetakan) | `403` *"Unit Rawat Inap Melati belum dipetakan ke simpul organisasi, sehingga kewenangan meninjau serah terima belum dapat diperiksa sistem. Minta Master Data melengkapi pemetaan unit ini."* | 3 |
+
+> **Aturan 3 diputuskan.** Catatan lama berbunyi *"Aturan 3 belum diputuskan … Dicatat sebagai `IGD-OQ-071`"*. Ia dijawab
+> sementara oleh `IGD-DEC-092` (24 Agustus 2026: fail-closed beserta jalan keluar beralasan), lalu dipersempit
+> `IGD-DEC-195` (5 Oktober 2026): fail-closed tetap, sedangkan jalan keluar beralasan **ditunda**. Jalan keluar itu
+> dirancang bila pemetaan unit sudah dinyatakan selesai dan sisa celahnya terbukti, atau bila Security/Privacy owner
+> ditunjuk — sesuai syarat `IGD-DEC-092` sendiri bahwa jalan keluar diperuntukkan bagi sisa celah, bukan keadaan kosong
+> massal. Pemetaan unit diisi pemilik lewat basis data per lingkungan sampai Master Data membuka kolomnya di API
+> (`IGD-DEC-196`). Approver akhir aturan ini tetap Security/Privacy owner, yang belum ditunjuk.
 
 ---
 

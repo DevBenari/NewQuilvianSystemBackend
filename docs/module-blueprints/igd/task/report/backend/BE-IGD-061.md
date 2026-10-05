@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `b9076c71` (`rizkiG`) + working tree `BE-IGD-053`, `057`, `058`, `059` yang belum di-commit |
 | Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — 4 Oktober 2026 (uji gabungan `MVP-8`).** Uji API S13–S19 pada bukti mentah: **13 terbukti** (S13, S14, S15, S16, S17, S18, dan S19 butir S1, S5, S7, S8, S9, S10, S11 kaki `cancel`); `NOT RUN`: kaki `PUT` S18 (periode `D-S6` tanpa baris pemantauan) dan kaki `reject-handover` S11 (opsional). Acceptance 13–19 terpenuhi; 18 untuk `PUT` hanya lewat pembacaan source. Bukti diterima dengan penyimpangan tercatat (`IGD-DEC-188`: agen penguji mengubah Akses Role Perawat IGD lewat SuperAdmin). **Tetap 🟡:** acceptance 2 dan 3 (S2, S3, S12) tertahan `BE-IGD-039`; acceptance 4 sebagian (kaki kepergian dan pesanan) — bagian *Pemeriksaan bukti uji gabungan `MVP-8` — 4 Oktober 2026*. *Sebelumnya:* 🟡 **SEBAGIAN — 4 Oktober 2026 (build pemilik).** `dotnet build` Rizki 3 Oktober 2026: **0 error, 0 warning** (dilaporkan pemilik 4 Oktober 2026); `QuilvianSystemBackend.dll` 18.55, sesudah edit source terakhir 18.34; source di-commit pemilik sebagai `c1f79f79`. Kriteria 7 terpenuhi. **Belum:** uji API S13–S19 — bagian *Build pemilik — dicatat 4 Oktober 2026*. *Sebelumnya:* 🟡 **SEBAGIAN — 3 Oktober 2026 (pengerjaan ulang, `IGD-DEC-185`).** Penjaga penutupan menghitung observasi `Escalated`; aksi observasi selain *batalkan* dan pemantauan baru pada kunjungan berakhir ditolak `409` dengan kalimat validation `0.11.0` §11.2 aturan 18 dan 21. Tiga berkas source (+32/−5); QBE checker Strict `PASS` (3 berkas, 0 `VIOLATION`, 0 `REVIEW`). Acceptance 13–18 terpetakan ke source. **Belum:** `dotnet build` pemilik (kriteria 7) dan uji API S13–S19 — bagian *Pengerjaan ulang 3 Oktober 2026*. *Sebelumnya:* 🟡 **SEBAGIAN — 2 Oktober 2026.** Build pemilik terbukti. Uji API: **6 terbukti** (S1, S5, S7, S8, S9, S10), **2 sebagian** (S4, S11), **4 belum terbukti** (S2, S3, S6, S12). Pemicu lewat observasi dan lewat pembatalan kepergian terbukti; pemicu `accept-handover`, `reject-handover`, dan sikap pesanan **belum** — tertahan `403` kewenangan unit sebelum sampai ke kode task ini. Kriteria 8 (observasi Dieskalasi pada kunjungan `Disposed`) belum terbukti lewat API. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** Tiga berkas source; QBE checker `PASS`. **Belum:** build pemilik dan uji API S1–S12 (bagian 5.1) |
+| Status | ✅ **SELESAI — 5 Oktober 2026.** Acceptance 2, 3, dan kaki tersisa acceptance 4 terbukti pada putaran uji `BE-IGD-039` (bukti mentah dan log backend 5 Oktober; diterima `IGD-DEC-200`) — bagian *Uji ulang acceptance 2–4 — 5 Oktober 2026*. Seluruh acceptance 1–19 kini terpenuhi; kaki `PUT` acceptance 18 dibuktikan lewat source. Tanpa UAT. *Sebelumnya:* 🟡 **SEBAGIAN — 4 Oktober 2026 (uji gabungan `MVP-8`).** Uji API S13–S19 pada bukti mentah: **13 terbukti** (S13, S14, S15, S16, S17, S18, dan S19 butir S1, S5, S7, S8, S9, S10, S11 kaki `cancel`); `NOT RUN`: kaki `PUT` S18 (periode `D-S6` tanpa baris pemantauan) dan kaki `reject-handover` S11 (opsional). Acceptance 13–19 terpenuhi; 18 untuk `PUT` hanya lewat pembacaan source. Bukti diterima dengan penyimpangan tercatat (`IGD-DEC-188`: agen penguji mengubah Akses Role Perawat IGD lewat SuperAdmin). **Tetap 🟡:** acceptance 2 dan 3 (S2, S3, S12) tertahan `BE-IGD-039`; acceptance 4 sebagian (kaki kepergian dan pesanan) — bagian *Pemeriksaan bukti uji gabungan `MVP-8` — 4 Oktober 2026*. *Sebelumnya:* 🟡 **SEBAGIAN — 4 Oktober 2026 (build pemilik).** `dotnet build` Rizki 3 Oktober 2026: **0 error, 0 warning** (dilaporkan pemilik 4 Oktober 2026); `QuilvianSystemBackend.dll` 18.55, sesudah edit source terakhir 18.34; source di-commit pemilik sebagai `c1f79f79`. Kriteria 7 terpenuhi. **Belum:** uji API S13–S19 — bagian *Build pemilik — dicatat 4 Oktober 2026*. *Sebelumnya:* 🟡 **SEBAGIAN — 3 Oktober 2026 (pengerjaan ulang, `IGD-DEC-185`).** Penjaga penutupan menghitung observasi `Escalated`; aksi observasi selain *batalkan* dan pemantauan baru pada kunjungan berakhir ditolak `409` dengan kalimat validation `0.11.0` §11.2 aturan 18 dan 21. Tiga berkas source (+32/−5); QBE checker Strict `PASS` (3 berkas, 0 `VIOLATION`, 0 `REVIEW`). Acceptance 13–18 terpetakan ke source. **Belum:** `dotnet build` pemilik (kriteria 7) dan uji API S13–S19 — bagian *Pengerjaan ulang 3 Oktober 2026*. *Sebelumnya:* 🟡 **SEBAGIAN — 2 Oktober 2026.** Build pemilik terbukti. Uji API: **6 terbukti** (S1, S5, S7, S8, S9, S10), **2 sebagian** (S4, S11), **4 belum terbukti** (S2, S3, S6, S12). Pemicu lewat observasi dan lewat pembatalan kepergian terbukti; pemicu `accept-handover`, `reject-handover`, dan sikap pesanan **belum** — tertahan `403` kewenangan unit sebelum sampai ke kode task ini. Kriteria 8 (observasi Dieskalasi pada kunjungan `Disposed`) belum terbukti lewat API. *Sebelumnya:* 🟡 **SEBAGIAN — Implementation Complete.** Tiga berkas source; QBE checker `PASS`. **Belum:** build pemilik dan uji API S1–S12 (bagian 5.1) |
 
 ### Backend Governance Preflight
 
@@ -505,3 +505,49 @@ encounter oleh akun Petugas Pendaftaran lewat `POST /patient-encounters/admin`; 
 Putusan: **🟡 sebagian** — acceptance 1, 5–19 terpenuhi pada bukti; acceptance 4 sebagian (kaki observasi saja, 2
 Oktober). **Belum:** acceptance 2 dan 3 — pemicu `accept-handover`/`reject-handover` dan sikap pesanan tertahan `403`
 kewenangan unit (`BE-IGD-039`), sesuai `IGD-DEC-185`.
+
+---
+
+## Uji ulang acceptance 2–4 — 5 Oktober 2026
+
+Dijalankan pada putaran uji [`BE-IGD-039`](BE-IGD-039.md) — [panduan](../../../testing/2026-10-05-panduan-uji-be-igd-039.md),
+bukti mentah `QuilvianSystemFrontendDev/test-with-agy/igd/uji-be-igd-039-20261005/`, log backend
+`Logs/quilvian-backend-20261005.json`. Bukti diterima dengan penyimpangan tercatat (`IGD-DEC-200`); 115 dari 115 badan
+respons cocok dengan log. Source task ini tidak berubah sejak `c1f79f79`; backend berjalan dari build pemilik 5 Oktober
+yang juga memuat `BE-IGD-039`.
+
+**Mengapa sekarang dapat diuji.** Sampai 4 Oktober, aksi serah terima dan sikap pesanan ditolak `403` untuk setiap
+pengguna karena jembatan kewenangan unit salah. `BE-IGD-039` ✅ 5 Oktober 2026 (`IGD-DEC-201`) memperbaikinya, dan pemilik
+memetakan unit IGD dan Rawat Inap di dev.
+
+**Cara kunjungan dibuat menunggu penutupan.** Gerbang penutupan hanya ditahan kepergian yang **fisiknya** belum *Tiba*
+(`IGD-DEC-106`), dan *Catat Tiba* bukan titik pemicu. Karena itu resep uji mencatat tiba lebih dulu, sehingga kunjungan
+tetap `Disposed` tanpa penahan, lalu menjalankan aksi pemicu yang diuji. Pesanan yang menahan dibentuk dengan penolakan
+oleh unit penerima — satu-satunya pesanan penahan menurut source (`IGD-FACT-051`).
+
+| Skenario | Kriteria | Putusan | Yang teramati pada bukti mentah dan log |
+| --- | ---: | --- | --- |
+| `061-S2` (= `039-S1`) | 2 | **Terbukti** | Sesudah tindak lanjut dilaksanakan: kunjungan 7, alasan *"Masih ada proses kepergian pasien yang belum selesai."*. *Catat Tiba* `PENERIMA` `200` → kunjungan tetap 7. *Terima Dokumen* `PENERIMA` 13.14.11 WIB `200` → kunjungan 9; `ClosedByDispositionId` = tindak lanjut `V1`; `UpdateBy` = `PENERIMA`; `EncounterStatus` 9 |
+| `061-S11` kaki `reject-handover` (`061-S11-tolak`) | 2 | **Terbukti** | Sesudah *Catat Tiba*: *Tolak Dokumen* `PENERIMA` 13.15.33 WIB `200`, dokumen 4 → kunjungan 9 atas nama `PENERIMA` |
+| `061-S3` + `061-S12` kaki tolak (= `039-S8`) | 3 | **Terbukti** | Kunjungan `V4` 7. Unit penerima menolak pesanan `200` → kunjungan **tetap** 7, alasan *"Masih ada pesanan yang belum ditentukan sikapnya: Uji pesanan 039 V4."*. Perawat IGD menetapkan sikap `Continue` `200` → kunjungan 9; `ClosedByDispositionId` = tindak lanjut `V4`; `UpdateBy` = `KLINIS` |
+| `061-S12` kaki terima (`061-S12-terima`) | 3 | **Terbukti** | Kunjungan `V5` 7 sesudah *Catat Tiba*. Unit penerima menerima pesanan `200` (diterima 3) → kunjungan 9; `ClosedByDispositionId` = tindak lanjut `V5`; `UpdateBy` = `PENERIMA` |
+| `061-S4` kaki kepergian (= `039-S6` dengan `PENERIMA`) | 4 | **Terbukti** | Kunjungan `V2` masih 4 (tanpa tindak lanjut). *Terima Dokumen* `200`, dokumen 3; kunjungan tetap 4. Juga `039-S9`: batal kepergian `200`, kunjungan `V3` tetap 4 |
+| `061-S4` kaki pesanan (= `039-S8a`) | 4 | **Terbukti** | Kunjungan `V2` 4: tolak pesanan `200`, sikap `Continue` `200` (baris pengganti benar); kunjungan tetap 4 |
+
+| # | Kriteria | Status sesudah 5 Oktober 2026 |
+| ---: | --- | --- |
+| 1 | Observasi diselesaikan → kunjungan tertutup atas nama perawat | Terpenuhi (2 dan 4 Oktober) |
+| 2 | Serah terima diterima → kunjungan tertutup | **Terpenuhi** — `061-S2`; kaki tolak `061-S11-tolak` |
+| 3 | Sikap pesanan ditetapkan → kunjungan tertutup | **Terpenuhi** — `061-S3`, `061-S12` (terima dan tolak) |
+| 4 | Aksi yang sama pada kunjungan yang tidak menunggu penutupan tidak berefek | **Terpenuhi** — kaki observasi (2 Oktober), kepergian dan pesanan (5 Oktober) |
+| 5–19 | — | Terpenuhi (2–4 Oktober); kaki `PUT` acceptance 18 lewat source |
+
+**Putusan: ✅ — 5 Oktober 2026.** Tanpa UAT.
+
+**Catatan.**
+
+- Pesanan **tanpa sikap** tidak menahan penutupan (`PROBE-1`, `IGD-CONFLICT-007`). Itu aturan gerbang milik `BE-IGD-041`,
+  bukan titik pemicu kartu ini; ditangani pengerjaan ulang `BE-IGD-041` (`IGD-DEC-203`). Sesudah perbaikan itu, regresi
+  acceptance 3 kartu ini ikut diuji.
+- `arrive` tetap bukan titik pemicu (catatan 3.4, kesiapan `MVP-8` bagian 7): bila serah terima diterima **sebelum** pasien
+  dicatat tiba, pencatatan tiba sesudahnya tidak menutup kunjungan. Belum diputuskan pemilik.

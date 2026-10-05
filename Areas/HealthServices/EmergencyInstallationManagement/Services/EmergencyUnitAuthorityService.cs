@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
@@ -74,21 +75,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     false,
                     true,
                     $"Unit {unit.ServiceUnitName} belum dipetakan ke simpul organisasi, sehingga " +
-                    $"kewenangan {tindakan} belum dapat diperiksa sistem. Lanjutkan dengan " +
-                    "menyertakan alasan, atau minta Master Data melengkapi pemetaan unit ini.");
+                    $"kewenangan {tindakan} belum dapat diperiksa sistem. Minta Master Data " +
+                    "melengkapi pemetaan unit ini.");
             }
 
             var berwenang = await _dbContext.Set<ApplicationUserOrganization>()
                 .AsNoTracking()
                 .AnyAsync(
                     x => x.UserId == userId
-                        && x.DepartmentId == unit.OrganizationUnitId.Value
+                        && x.SourceAssignmentId != null
                         && x.IsActive
                         && !x.IsDelete
                         && (x.EffectiveStartDate == null || x.EffectiveStartDate <= now)
                         // Validation bagian 7 aturan 2 - penugasan yang sudah lewat tidak
                         // memberi kewenangan.
-                        && (x.EffectiveEndDate == null || x.EffectiveEndDate >= now),
+                        && (x.EffectiveEndDate == null || x.EffectiveEndDate >= now)
+                        && _dbContext.Set<WfpOrganizationAssignment>().Any(
+                            penugasan => penugasan.Id == x.SourceAssignmentId
+                                && penugasan.OrganizationUnitId == unit.OrganizationUnitId.Value),
                     cancellationToken);
 
             if (berwenang)

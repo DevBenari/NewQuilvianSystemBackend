@@ -2,11 +2,11 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.6.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 8 baru (penutupan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol resource dan nol aksi baru. Sebelumnya `0.5.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif**: bagian 7 baru — aksi `EmergencyVisit : NoShow`, resource baru `EmergencyEncounterReconciliation` (`Read`/`Process`/`Reverse`), jejak audit override, NoShow, waktu tiba, rekonsiliasi. Sebelumnya `0.4.0` — bagian 3.1 (kewenangan atas pesanan) ditambahkan correction pass revisi 6. **Aditif** |
-| Status | `draft`, **kecuali bagian 7 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026). Bagian 8 **`approved`** (`IGD-DEC-170`, 23 September 2026) |
+| `contract_version` | `0.7.0` — kewenangan unit, 5 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-199`): catatan baru di bawah tabel §3 (tindakan yang benar-benar dijaga kode, `IGD-CONFLICT-006` ditunda `IGD-DEC-197`), paragraf *"Yang belum terjawab"* §3.1 diganti (`IGD-DEC-195`, `196`), dan baris §6 *Perilaku unit tanpa simpul organisasi* diselaraskan. Nol resource, nol aksi baru. *Sebelumnya* `0.6.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 8 baru (penutupan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol resource dan nol aksi baru. Sebelumnya `0.5.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif**: bagian 7 baru — aksi `EmergencyVisit : NoShow`, resource baru `EmergencyEncounterReconciliation` (`Read`/`Process`/`Reverse`), jejak audit override, NoShow, waktu tiba, rekonsiliasi. Sebelumnya `0.4.0` — bagian 3.1 (kewenangan atas pesanan) ditambahkan correction pass revisi 6. **Aditif** |
+| Status | `draft`, **kecuali bagian 7 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026). Bagian 8 **`approved`** (`IGD-DEC-170`, 23 September 2026). Catatan §3, paragraf §3.1, dan baris §6 versi `0.7.0` **`approved`** (`IGD-DEC-199`, 5 Oktober 2026); isi lain bagian 3 dan 6 tetap `draft` |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
-| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-09-22** — bagian 7 (encounter-first) lewat `IGD-DEC-157`; keterbatasan izin bersama pada §7.1 diterima lewat `IGD-DEC-158`. **Rizki Gunawan / 2026-09-23** — bagian 8 (penutupan lewat disposisi) lewat `IGD-DEC-170`. Bagian lain tetap `draft`. Amendment 30 September 2026 (`IGD-DEC-171`, `172`) **tidak** mengubah matriks ini: menyelesaikan dan mengeskalasi observasi tetap memakai `EmergencyObservation : Update` (§8.1) |
-| Versi sebelumnya | `0.3.0`, sebelumnya `0.2.0` |
+| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-09-22** — bagian 7 (encounter-first) lewat `IGD-DEC-157`; keterbatasan izin bersama pada §7.1 diterima lewat `IGD-DEC-158`. **Rizki Gunawan / 2026-09-23** — bagian 8 (penutupan lewat disposisi) lewat `IGD-DEC-170`. Bagian lain tetap `draft`. Amendment 30 September 2026 (`IGD-DEC-171`, `172`) **tidak** mengubah matriks ini: menyelesaikan dan mengeskalasi observasi tetap memakai `EmergencyObservation : Update` (§8.1). **Rizki Gunawan / 2026-10-05** — catatan §3, §3.1, dan baris §6 versi `0.7.0` lewat `IGD-DEC-199` (sementara, pola `IGD-DEC-174`; approver akhir Security/Privacy owner, belum ditunjuk). Konfigurasi peran 5 Oktober 2026 (`IGD-DEC-190`, `191`, `198`) adalah pemberian hak ke peran (§7.1 *"Pemberian hak ke peran ada di basis data"*), **bukan** perubahan matriks ini |
+| Versi sebelumnya | `0.6.0`, `0.5.0`, `0.4.0`, `0.3.0`, sebelumnya `0.2.0` |
 
 ---
 
@@ -68,6 +68,21 @@ melewatkan pemetaan ini membuat seluruh petugas kehilangan akses tanpa pesan yan
 | **Menetapkan sikap pesanan** (`Continue`/`Handover`/`Cancel`) | Unit **asal** | `IGD-DEC-100`. `Cancel` menuntut klinisi berwenang, bukan sekadar petugas unit |
 | **Mendaftarkan pesanan luar sistem** | Unit **asal** | `IGD-DEC-103` — revisi 6 |
 
+> **Yang benar-benar dijaga kode — dicatat 5 Oktober 2026 (`0.7.0`).** Tabel di atas adalah target. Pada backend
+> `8d81d361`, penjaga kewenangan unit baru dipanggil pada **lima** tindakan: mencatat kedatangan, menerima atau menolak
+> serah terima, menerima atau menolak pesanan (unit tujuan), serta menetapkan sikap pesanan dan mendaftarkan pesanan luar
+> sistem (unit asal). Membuat catatan kepergian, mencatat keberangkatan, dan membatalkan kepergian **belum** dijaga —
+> selisih `IGD-CONFLICT-006`, ditunda `IGD-DEC-197`, dijadwalkan lewat `IGD-OQ-115`. Membalik dan mengoreksi kejadian
+> serta menetapkan dan mengalihkan dokter juga belum dijaga, dan dicatat bersama selisih yang sama. Perbaikan `BE-IGD-039`
+> **hanya** membetulkan kelima tindakan yang sudah dijaga dan tidak melebar ke tindakan lain.
+>
+> *Contoh risiko yang diterima selama selisih ini terbuka:* Ns. Wati, perawat Bangsal Melati yang memegang
+> `EmergencyDeparture : Update` untuk menerima serah terima (`IGD-DEC-198`), secara teknis dapat membatalkan kepergian
+> pasien IGD yang menuju Bangsal Mawar. Lapis izin kemampuan tetap berlaku, dan pembatalan itu tercatat atas nama Ns. Wati.
+>
+> Aturan rinci kewenangan unit — jembatan lewat simpul organisasi penugasan HR, simpul sama persis, penempatan sekunder,
+> dan unit yang belum dipetakan — ada di validation §7 (`0.12.0`, `IGD-DEC-193`…`195`).
+
 ### 3.1 Kewenangan atas pesanan — ditambahkan correction pass revisi 6
 
 `IGD-DEC-102` memisahkan penerimaan pasien dari penerimaan tiap pesanan, tetapi revisi 6 belum
@@ -90,11 +105,16 @@ Penjaganya **`EmergencyUnitAuthorityService`** yang sudah dirancang pada bagian 
 > memblokir pelayanan klinis darurat. Aturan di atas menahan pencatatan penerimaan pesanan,
 > **bukan** pengerjaan pesanannya.
 >
-> **Yang belum terjawab.** `IGD-DEC-092` menetapkan unit yang belum dipetakan ke simpul
-> organisasi bersifat fail-closed dengan jalan keluar beralasan. Sampai pemetaan terisi,
-> **seluruh** aturan di atas berjalan lewat jalan keluar itu — dan itu berarti catatannya
-> menjadi derau, persis yang diperingatkan `IGD-DEC-092`. Penyalaan penjagaan pesanan karena
-> itu terikat pada gelombang `MVP-6`, bukan `MVP-5`.
+> **Yang sudah diputuskan — 5 Oktober 2026 (`0.7.0`).** Unit yang belum dipetakan ke simpul organisasi **ditolak**
+> (fail-closed) dengan pesan yang meminta pemetaan ke Master Data (validation §7 aturan 3, `IGD-DEC-195`). Jalan keluar
+> beralasan `IGD-DEC-092` **ditunda**. Ia baru dirancang bila pemetaan sudah dinyatakan selesai dan sisa celahnya
+> terbukti, atau bila Security/Privacy owner ditunjuk. Akibatnya, sebelum unit tujuan dipetakan, pesanan dan serah terima
+> ke unit itu tidak dapat diterima siapa pun. Pemetaan diisi pemilik lewat basis data per lingkungan (`IGD-DEC-196`).
+> Penjagaan pesanan tetap terikat gelombang `MVP-6` dan hanya bermakna di sebuah lingkungan sesudah pemetaannya selesai.
+>
+> *Catatan lama, digantikan:* *"Yang belum terjawab. `IGD-DEC-092` menetapkan unit yang belum dipetakan … bersifat
+> fail-closed dengan jalan keluar beralasan. Sampai pemetaan terisi, seluruh aturan di atas berjalan lewat jalan keluar
+> itu …"* — jalan keluar itu tidak pernah dibangun, dan pesan `403` yang menjanjikannya dikoreksi `IGD-DEC-195`.
 
 ---
 
@@ -160,7 +180,7 @@ tidak dapat dijawab**. Ini keterbatasan yang disadari, bukan kelalaian.
 | --- | --- | --- |
 | Pemisahan kewenangan SuperAdmin | Security/Privacy owner | Boleh dibangun dan diuji; **tidak boleh diaktifkan di produksi** |
 | Break-glass akses darurat | Security/Privacy owner, `IGD-OQ-037` | Wajib tersedia sebelum pemisahan SuperAdmin diaktifkan |
-| Perilaku unit tanpa simpul organisasi | Security/Privacy owner, `IGD-OQ-071` | Penjagaan kewenangan unit **tidak boleh dinyalakan** sebelum diputuskan |
+| Perilaku unit tanpa simpul organisasi | **Diputuskan sementara** — `IGD-DEC-092`, dipersempit `IGD-DEC-195` (fail-closed, pesan dikoreksi, jalan keluar ditunda); pengesahan akhir Security/Privacy owner masih ditunggu | Penjagaan menyala fail-closed; baru bermakna di sebuah lingkungan sesudah pemetaan unitnya selesai (`IGD-DEC-196`). *Sebelumnya: "tidak boleh dinyalakan sebelum diputuskan" (`IGD-OQ-071`)* |
 | Pengisian data penugasan unit | Corporate/HR | Sama |
 | Kewenangan sementara perawat bantuan | `IGD-OQ-067` | Sama |
 

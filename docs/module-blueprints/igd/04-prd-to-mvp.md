@@ -267,7 +267,7 @@ Gelombang, bukan tanggal. Epic `OPEN DECISION` tidak muncul di sini.
 | `MVP-2` | `EPIC IGD-04`, `EPIC IGD-10` | `MVP-1` |
 | `MVP-3` | `EPIC IGD-05`, `EPIC IGD-06` | `MVP-1`; angka `IGD-UNK-03` diketahui |
 | `MVP-4` | `EPIC IGD-07` | `MVP-3` |
-| `MVP-5` | `EPIC IGD-08` | `IGD-OQ-071` terjawab; data penugasan terisi |
+| `MVP-5` | `EPIC IGD-08` | `IGD-OQ-071` terjawab — **sementara lewat `IGD-DEC-092`, dipersempit `IGD-DEC-195` (diselaraskan 5 Oktober 2026)**; data penugasan terisi |
 | `POST-MVP` | `EPIC IGD-09`; pelengkapan `LabOrder`; catatan pemberian obat; realtime | Pemilik modul ditunjuk |
 
 `MVP-0` sengaja didahulukan karena satu-satunya isinya yang menyangkut kode — perbaikan status
@@ -305,7 +305,7 @@ Butir 10 **belum dapat dijawab "ya"** untuk gelombang mana pun yang menyentuh
 | `IGD-OQ-068` | Apakah penafsiran dua kolom status ditambah tabel kejadian dapat diterima? | **Ya** — `EPIC IGD-05`, `06` |
 | `IGD-OQ-069` | Apakah dua kolom pengaturan mati benar dicabut? | Tidak |
 | `IGD-OQ-070` | Apakah penggantian nama `TrxEmergencyTransfer` diterima? | **Ya** — `EPIC IGD-05` |
-| `IGD-OQ-071` | Perilaku unit yang belum dipetakan ke simpul organisasi | **Ya** — `EPIC IGD-08` |
+| `IGD-OQ-071` | Perilaku unit yang belum dipetakan ke simpul organisasi | **Dijawab sementara** — `IGD-DEC-092`, dipersempit `IGD-DEC-195`; pengesahan akhir Security/Privacy owner masih ditunggu. *Diselaraskan 5 Oktober 2026; sebelumnya "**Ya** — `EPIC IGD-08`"* |
 | `IGD-OQ-067` | Kewenangan sementara perawat bantuan | Tidak — dapat menyusul |
 | `IGD-OQ-037` | Break-glass | Tidak untuk MVP |
 | `IGD-OQ-038` | Approver bernama roadmap | **Ya** untuk approval, bukan untuk desain |
@@ -466,7 +466,8 @@ Gelombang **`MVP-8`**, sesudah `MVP-7` (encounter-first). Sumber: `IGD-DEC-163`�
 `193`, butir DoD 10, dan `IGD-OQ-111` berasal dari amendment 30 September 2026 (`IGD-DEC-171`, `172`) dan
 **`approved`** lewat `IGD-DEC-175` (30 September 2026). Baris `FR-IGD-094`, `095`, `AT-IGD-194`…`197`, butir DoD
 11, dan `IGD-OQ-112` berasal dari amendment 3 Oktober 2026 (`IGD-DEC-183`, `184`) dan **`approved`** lewat
-`IGD-DEC-186` (3 Oktober 2026).
+`IGD-DEC-186` (3 Oktober 2026). Baris `AT-IGD-198`, `199` dan butir DoD 12 berasal dari amendment 5 Oktober 2026 (sore)
+(`IGD-DEC-203`, `205`) dan **`approved`** lewat `IGD-DEC-209` (5 Oktober 2026).
 
 ### 9.1 Batas slice
 
@@ -507,6 +508,8 @@ Gelombang **`MVP-8`**, sesudah `MVP-7` (encounter-first). Sumber: `IGD-DEC-163`�
 | `AT-IGD-195` | Gagal (selesaikan manual) | Kunjungan yang disposisinya sudah dilaksanakan dengan satu observasi dieskalasi; tekan selesaikan kunjungan | Ditolak dengan pesan bahwa masih ada observasi yang belum diselesaikan |
 | `AT-IGD-196` | Berhasil (observasi dieskalasi dibatalkan) | Kunjungan menunggu penutupan dengan observasi dieskalasi sebagai penahan terakhir; batalkan observasi itu | Kunjungan tertutup atas nama petugas yang membatalkan |
 | `AT-IGD-197` | Gagal (kunjungan sudah berakhir) | Kunjungan yang sudah selesai dengan observasi dieskalasi lama; coba selesaikan observasi itu, lalu coba batalkan | Selesaikan ditolak dengan pesan bahwa kunjungan sudah berakhir; observasi tidak berubah. Batalkan diterima. Menambah pemantauan juga ditolak dengan pesan bahwa kunjungan sudah berakhir |
+| `AT-IGD-198` | Berhasil (menyusul pesanan) | Pasien pergi dengan satu pesanan yang belum diberi sikap; pasien tiba di unit tujuan; tandai disposisi dilaksanakan; lalu tetapkan sikap pesanan itu | Langkah ketiga: kunjungan **tidak** tertutup, tampil menunggu penutupan dengan alasan pesanan yang menyebut uraiannya. Langkah keempat: kunjungan tertutup atas nama petugas yang menetapkan sikap |
+| `AT-IGD-199` | Berhasil (kepergian dibatalkan) | Kepergian yang memuat pesanan tanpa sikap dan pesanan yang ditolak unit penerima dibatalkan; tandai disposisi dilaksanakan | Kunjungan langsung selesai — pesanan milik kepergian yang dibatalkan tidak menahan, dan barisnya tetap tersimpan apa adanya |
 
 ### 9.4 Definition of Done
 
@@ -523,6 +526,7 @@ Gelombang **`MVP-8`**, sesudah `MVP-7` (encounter-first). Sumber: `IGD-DEC-163`�
 | 9 | Build 0 error | Keluaran build milik pemilik |
 | 10 | Pada kunjungan yang disposisinya sudah dilaksanakan, observasi dapat diselesaikan dan eskalasinya ditolak | Uji `AT-IGD-192`, `AT-IGD-193` |
 | 11 | Observasi yang dieskalasi menahan penutupan pada ketiga jalur, dan aksi observasi pada kunjungan berakhir ditolak dengan pesannya sendiri | Uji `AT-IGD-194`…`197` beserta regresi `AT-IGD-187`, `192`, `193` |
+| 12 | Pesanan tanpa sikap menahan penutupan pada ketiga jalur sampai sikapnya ditetapkan; pesanan milik kepergian yang dibatalkan tidak menahan — *5 Oktober 2026 (sore), `IGD-DEC-209`* | Uji `AT-IGD-198`, `AT-IGD-199`, `AT-IGD-122` beserta regresi `AT-IGD-188` |
 
 ### 9.5 Pertanyaan terbuka sebelum development lock
 

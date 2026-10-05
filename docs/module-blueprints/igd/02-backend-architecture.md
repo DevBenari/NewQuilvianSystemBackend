@@ -803,6 +803,12 @@ menyimpan **snapshot** uraian pesanan pada `OrderDescription`. Snapshot dipakai 
 tetap terbaca meski baris sumbernya kelak berubah — pola yang sama dengan
 `OrderLabelSnapshot` yang sudah ada.
 
+*Catatan 5 Oktober 2026 (sore, `approved` lewat `IGD-DEC-209`).* Di source, pembentukan ini tinggal di
+`EmergencyDepartureService.BentukPesananInternalAsync` dan berjalan pada `submit-handover`. Baris yang terbentuk
+**tetap tersimpan** walau pengajuan ditolak karena masih ada pesanan tanpa sikap (`IGD-FACT-054`), dan sejak validation
+`0.13.0` §5.1 baris itu ikut menahan penutupan kunjungan sampai sikapnya ditetapkan — kecuali milik kepergian yang
+dibatalkan. Pesanan yang belum pernah dibentuk tidak dihitung (batas cakupan validation §5.1).
+
 ### 11.2 Unique constraint yang mendukung tiga keadaan sekaligus
 
 Rancangan revisi 6 menulis *"tepat satu baris `IsEffective = true` per pesanan yang sama"*.
@@ -1301,7 +1307,8 @@ satu kolom baru, nol tabel baru, nol endpoint baru. Status bagian ini: **`approv
 berasal dari amendment 30 September 2026 (`IGD-DEC-171`, `172`) dan **`approved`** lewat `IGD-DEC-175` (30 September 2026).
 Baris `EmergencyDispositionService` dan `EmergencyObservationDetailController`, serta perluasan baris
 `EmergencyObservationController` bertanda *3 Oktober 2026*, berasal dari amendment `IGD-DEC-183`, `184` dan
-**`approved`** lewat `IGD-DEC-186` (3 Oktober 2026).
+**`approved`** lewat `IGD-DEC-186` (3 Oktober 2026). Baris `EmergencyDepartureService` bertanda *5 Oktober 2026* berasal
+dari `IGD-DEC-203` dan `IGD-DEC-205` dan **`approved`** lewat `IGD-DEC-209` (5 Oktober 2026).
 
 Masukan: decision log bagian "Amendment pass 23 September 2026"; capability map suplemen revision 3.3
 (`dce1f138`); gerbang requirement `S5` `READY_FOR_DOMAIN_DESIGN`. Keberlakuan QBE: `TOUCHED LEGACY` untuk
@@ -1346,7 +1353,7 @@ classDiagram
         +ValidateVisitClosureAsync(visit, ct) string?
     }
     class EmergencyDepartureService {
-        <<Sudah ada · IGD>>
+        <<Diperbarui · IGD · 5 Okt>>
         +AmbilPesananPenahanPenutupanAsync(visitId, ct) string[]
     }
     EmergencyVisitService ..> EmergencyDispositionService : memanggil penjaga
@@ -1371,6 +1378,7 @@ boleh memanggilnya. Keduanya sudah terdaftar di `Program.cs` (`:515`, `:520`), s
 | `EmergencyDispositionService` | Service | **Diperbarui** *(3 Oktober 2026, `IGD-DEC-186`)* | `…/Services/EmergencyDispositionService.cs` | `ValidateVisitClosureAsync` menghitung observasi `Active` **dan** `Escalated` sebagai penahan (`IGD-DEC-183`; validation §11.2 aturan 16). Kalimat penolakan tidak berubah (`IGD-ASM-003`). Satu perubahan ini berlaku pada ketiga pemakai penjaga: penutupan susulan, `PATCH /emergency-visits/{id}/complete`, dan alasan saringan menunggu penutupan. Tidak membuka transaksi; tetap baca-saja (`AsNoTracking`) |
 | `EmergencyObservationDetailController` | Controller | **Diperbarui** *(3 Oktober 2026, `IGD-DEC-186` — aturan 21, usulan agent yang disetujui)* | `…/Controllers/EmergencyObservationDetailController.cs` | `POST /`: pemantauan baru pada periode milik kunjungan `Completed`/`Cancelled` ditolak `409` (validation §11.2 aturan 21), disisipkan sesudah pemeriksaan periode tertutup. Tempat pemeriksaannya — di controller atau sebagai langkah tambahan `EmergencyObservationService.ValidateDetailScopeAsync` (dipanggil dengan `tolakPeriodeTertutup: true` hanya oleh `POST`) — ditetapkan task; `PUT` tidak berubah |
 | `EmergencyDepartureController` | Controller | **Diperbarui** | `…/Controllers/EmergencyDepartureController.cs` | Sesudah serah terima diterima/ditolak/dibatalkan (`:162`, `:172`, `:206`) dan sesudah sikap pesanan ditetapkan (`:118`, `:129`, `:135`), panggil penutupan susulan |
+| `EmergencyDepartureService` | Service | **Diperbarui** *(5 Oktober 2026, `IGD-DEC-203`, `205` — `approved` `IGD-DEC-209`)* | `…/Services/EmergencyDepartureService.cs` | `AmbilPesananPenahanPenutupanAsync` — satu-satunya tempat aturan kueri pesanan penahan — menghitung baris berlaku yang **tanpa sikap** (arti yang sama dengan `SubmitHandoverAsync`) **dan** yang **ditolak**, pada kepergian yang fisiknya **tidak** `Cancelled` (validation `0.13.0` §5.1). Satu perubahan ini berlaku pada ketiga pemakai penjaga lewat `EmergencyDispositionService.ValidateVisitClosureAsync`, yang tidak berubah. `ValidatePesananSebelumPenutupanAsync` (kalimat aturan 12, nol pemanggil) tetap hanya menyebut pesanan ditolak. Tidak membuka transaksi; baca-saja (`AsNoTracking`). Nol migration, nol `Program.cs` |
 | `EmergencyVisitController` | Controller | **Diperbarui** | `…/Controllers/EmergencyVisitController.cs` | `GET /` bertambah saringan `awaitingClosure`; `EmergencyVisitResponse` bertambah dua ruas penahan |
 | `EmergencyVisitDtos.cs` | DTO | **Diperbarui** | `…/DTOs/EmergencyVisitDtos.cs` | + `IsAwaitingClosure`, `AwaitingClosureReason` pada response |
 | `EmgVisitConfiguration` | Configuration | **Diperbarui** | `Repositories/Configurations/HealthServices/EmergencyInstallationManagement/EmgVisitConfiguration.cs` | FK `ClosedByDispositionId` → `EmgDisposition`, `Restrict` |
@@ -1390,7 +1398,9 @@ Areas/HealthServices/EmergencyInstallationManagement/
 ├── Models/EmgVisit.cs                        Diperbarui  (+1 kolom)
 └── Services/
     ├── EmergencyVisitService.cs              Diperbarui  (+1 method)
-    └── EmergencyDispositionService.cs        Diperbarui  (penjaga menghitung Escalated, 3 Okt)
+    ├── EmergencyDispositionService.cs        Diperbarui  (penjaga menghitung Escalated, 3 Okt)
+    └── EmergencyDepartureService.cs          Diperbarui  (pesanan penahan: tanpa sikap + ditolak,
+                                                          kecuali kepergian dibatalkan, 5 Okt)
 
 Repositories/Configurations/…/EmgVisitConfiguration.cs   Diperbarui  (+1 FK)
 Migrations/                                              1 migration — dibuat Rizki

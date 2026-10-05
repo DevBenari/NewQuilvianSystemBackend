@@ -93,7 +93,7 @@ IGD **hanya membaca**. Tidak ada penulisan ke tabel milik Corporate/HR.
 | Sistem tidak dapat dipakai saat pasien tiba | Petugas memakai catatan manual, lalu mencatat menyusul dengan waktu kedatangan sebenarnya | `IGD-DEC-065` |
 | Pemberitahuan koreksi kejadian gagal terkirim | Koreksi **tetap berlaku**; kegagalan kirim tercatat sebagai pekerjaan yang belum tuntas | `IGD-DEC-085` |
 | Master kelas pasien IGD belum diisi | Pendaftaran IGD ditolak dengan pesan yang menyebut master mana yang kurang | `IGD-DEC-076` |
-| Simpul organisasi unit belum dipetakan | **Belum diputuskan** — `IGD-OQ-071` | — |
+| Simpul organisasi unit belum dipetakan | Tindakan yang dijaga kewenangan unit **ditolak `403`** (fail-closed) dengan pesan validation §7 aturan 3, yang meminta pemetaan unit ke Master Data; jalan keluar beralasan ditunda. Pelayanan klinis darurat tidak terpengaruh. *Diselaraskan 5 Oktober 2026; sebelumnya "Belum diputuskan — `IGD-OQ-071`"* | `IGD-DEC-092`, `IGD-DEC-195` |
 | Data pesanan tidak dapat dibaca dari modul pemiliknya | Daftar sikap menampilkan keterangan bahwa daftarnya tidak lengkap, bukan daftar kosong yang tampak lengkap | `IGD-DEC-078` |
 
 Prinsip yang berlaku di seluruh tabel: **konfigurasi atau bukti yang belum tersedia bersifat
