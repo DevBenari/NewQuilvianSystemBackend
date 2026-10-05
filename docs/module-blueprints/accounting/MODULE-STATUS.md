@@ -312,13 +312,26 @@ selesai sesuai lingkup yang sudah dibentuk.
 |---|---|---|
 | Operasional | Pengguna "Sistem Akuntansi" di tiap lingkungan (`ACC-DEC-122`); tujuh peran dan pemberian hak di Akses Role | Admin sistem |
 | Konfigurasi | Tiga nilai di server bersama dan produksi: pelaku sistem kedua penjadwal dan penjadwal jurnal berulang nyala (`ACC-DEC-123`). Kuncinya sudah ada di kode | Platform |
-| Data | Bagan akun sah dari ekspor `gl_coa` lengkap, aturan posting per kode kejadian, akun laba ditahan | Pemilik proses akuntansi |
-| Integrasi | Finance sudah menjawab `evidence/14` dan `15` (surat Finance 15, 16, 21); dibalas `evidence/16` 1 Oktober 2026 dengan `ACC-DEC-125`..`131` — katalog kini 34 kode aktif (`ACC-XMOD-0.6`). Sisa: lima pertanyaan balik `evidence/16`; gerbang G3, G4, G6 — termasuk penegakan shift kasir dan akun debit refund `REFERRED_OUTPATIENT_ADMIN` | Yasmin, Rizki, owner Billing, Platform |
+| Data | Bagan akun sah dari ekspor `gl_coa` lengkap, aturan posting per kode kejadian, akun laba ditahan. *(5 Oktober 2026)* Ditambah: akun Piutang Sewa tersendiri yang **tidak** ditandai control account (`ACC-DEC-137`), cara memisahkan rekening non-tunai (OQ-132-2), akun pengakuan, denda, dan penghapusan sewa (OQ-136-1), serta ketetapan pajak sewa termasuk sewa lahan parkir (OQ-139-1) | Pemilik proses akuntansi; PIC Pajak RS untuk pajak sewa |
+| Integrasi | Finance menjawab `evidence/16` lewat surat Finance 22 dan meminta kode sewa lewat `evidence/17`; dibalas `evidence/18` 5 Oktober 2026 dengan `ACC-DEC-132`..`140` (`ACC-XMOD-0.7`): kas kasir tetap per shift dan dipisah per metode bayar, penanda ketiga `PEMBUKAAN-SHIFT-KASIR`, konvensi tanggal WIB, dan 12 kode sewa usulan. Finance sendiri menyatakan G4 **bersyarat** — pengirimnya baru dibangun dan dalam keadaan mati. Sisa: empat permintaan `evidence/18` (18.1–18.4); gerbang G3, G4, G6 — termasuk penegakan shift kasir dengan tiga penanda dan akun debit refund `REFERRED_OUTPATIENT_ADMIN`; sesudah pengiriman dimulai, daftar periksa saldo periode pertama (`ACC-DEC-135`) | Yasmin, Rizki, owner Billing, Platform |
 | Uji penerimaan | Skenario UAT Phase 2 | Tim UAT |
 
 **Catatan untuk impor bagan akun.** API tambah akun tidak menolak jenis akun atau saldo normal
 bernilai `0`. Berkas impor wajib mengirim jenis akun `1`..`5` dan saldo normal `1` (Debit) atau `2`
 (Kredit); berkas `gl_coa_all_request_body_swagger.json` yang ada tidak dipakai.
+
+### TITIK LANJUT — 5 Oktober 2026: jawaban atas surat Finance 22 dan permintaan kode sewa
+
+Dokumen saja — nol perubahan source, nol kartu baru (arahan Rizki 5 Oktober 2026). Development tetap ✅ selesai.
+
+| Hal | Keadaan |
+|---|---|
+| Keputusan | `ACC-DEC-132`..`140`, decision log revisi 18 — ditulis dari keputusan tertulis Rizki sesudah review kedua surat Finance terhadap source |
+| Kontrak | `ACC-XMOD-0.7`: penanda ketiga (bagian 3a.2b), 12 kode piutang sewa usulan (3a.2c), pemisahan per metode bayar (3a.2d), sisa terbuka (9), G4 bersyarat dan daftar periksa saldo periode pertama (13). Bagian basi ikut dirapikan: baris *Implementasi*, bagian 4, contoh `SourceTransactionId` saldo per akun di bagian 8, dan bagian 10 |
+| Surat | `evidence/18-balasan-accounting-atas-surat-finance-22-dan-permintaan-kode-sewa.md`, untuk Yasmin dengan tembusan owner Billing |
+| Pertanyaan terbuka | Finance: OQ-132-1 (bentuk kas kasir dan kode per metode bayar), OQ-133-1 (pengaktifan pengirim dan frekuensi pemeriksaan shift), OQ-136-2 (saluran pelunasan sewa), nama final kode sewa. G2: OQ-132-2, OQ-136-1. PIC Pajak: OQ-139-1 |
+| Tertutup | OQ-131-1..4 dan OQ-124-1 |
+| Tetap syarat G6, tidak dibuka sekarang | Penerimaan `Amount = 0` untuk tiga kode penanda dan penegakan shift kasir (`ACC-DEC-124`, `127`, `133`) |
 
 ### TITIK LANJUT — 30 September 2026: T-1, T-2, dan OQ-034 tuntas; sisa T-3..T-9
 

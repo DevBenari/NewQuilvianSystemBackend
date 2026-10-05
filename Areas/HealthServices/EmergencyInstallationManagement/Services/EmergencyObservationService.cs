@@ -24,6 +24,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             "Periode observasi ini sudah ditutup, pemantauan baru tidak dapat ditambahkan. " +
             "Buka periode observasi baru bila pasien masih perlu dipantau.";
 
+        // Validation 0.11.0 bagian 11.2 aturan 21 (IGD-DEC-186).
+        public const string PesanKunjunganBerakhir =
+            "Kunjungan IGD ini sudah berakhir; pemantauan observasi tidak dapat ditambahkan lagi.";
+
         public const string PesanTandaVitalTidakDitemukan =
             "Tanda vital yang dipilih tidak ditemukan. Pilih tanda vital lain atau catat tanda vital baru.";
 
@@ -132,7 +136,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// <param name="tolakPeriodeTertutup">
         /// <c>true</c> untuk pencatatan pemantauan baru. Periode <c>Completed</c> dan
         /// <c>Cancelled</c> menolak pemantauan baru (<c>IGD-DEC-126</c>); periode
-        /// <c>Active</c> dan <c>Escalated</c> tidak berubah perilakunya.
+        /// <c>Active</c> dan <c>Escalated</c> tidak berubah perilakunya, kecuali kunjungannya
+        /// sudah berakhir — saat itu periode mana pun menolak (<c>IGD-DEC-186</c>).
         /// </param>
         /// <param name="cancellationToken">Token pembatalan permintaan.</param>
         /// <remarks>
@@ -173,7 +178,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 {
                     x.ObservationStatus,
                     PatientId = x.EmergencyVisit != null ? x.EmergencyVisit.PatientId : null,
-                    EncounterId = x.EmergencyVisit != null ? x.EmergencyVisit.EncounterId : null
+                    EncounterId = x.EmergencyVisit != null ? x.EmergencyVisit.EncounterId : null,
+                    VisitStatus = x.EmergencyVisit != null ? x.EmergencyVisit.VisitStatus : (EmergencyVisitStatus?)null
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -186,6 +192,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     or EmergencyObservationStatus.Cancelled)
             {
                 return HasilPemeriksaanPemantauan.Gagal(StatusCodes.Status409Conflict, PesanPeriodeTertutup);
+            }
+
+            // Langkah 2a - kunjungan yang sudah berakhir menolak pemantauan baru pada periode mana
+            // pun, termasuk periode Dieskalasi yang menurut aturan 3 masih menerima pemantauan.
+            if (tolakPeriodeTertutup &&
+                periode.VisitStatus.HasValue &&
+                !EmergencyVisitService.EpisodeMasihBerjalan(periode.VisitStatus.Value))
+            {
+                return HasilPemeriksaanPemantauan.Gagal(StatusCodes.Status409Conflict, PesanKunjunganBerakhir);
             }
 
             // Aturan 4 sampai 7 - tautan tanda vital. Tautan bersifat opsional: pemantauan
