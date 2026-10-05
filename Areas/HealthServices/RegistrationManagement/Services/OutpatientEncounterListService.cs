@@ -381,7 +381,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 return $"Kunjungan dengan status {GetDisplayName(status)} tidak dapat dibatalkan.";
 
             if (status == EncounterStatus.InConsultation && hasActiveConsultation)
-                return "Konsultasi masih aktif. Selesaikan atau batalkan konsultasi lewat workspace dokter.";
+                return "Konsultasi masih aktif. Dokter penanggung jawab menyelesaikan atau membatalkannya di Klinis Dokter (antrean hari ini, atau Konsultasi tertunda untuk kunjungan hari sebelumnya).";
 
             return null;
         }

@@ -154,3 +154,27 @@ saat ini membaca semua kunjungan tanpa cakupan; memakai ulang butir itu berarti 
 
 Kolom sensitif pada respons: `patientName`, `medicalRecordNumber`. Hanya untuk kunjungan dalam
 cakupan; tidak boleh muncul di log maupun penyimpanan peramban.
+
+---
+
+# Amendment KT — Konsultasi Tertunda (`RJ-DOC-PENDCONS-001@1.0.0`, `draft`)
+
+`last_changed_in`: `RJ-DOC-PENDCONS-001@1.0.0` · Owner: Sukma Giri (Security/Privacy authority)
+
+**Tidak ada butir hak akses baru.**
+
+| Aksi | Butir | Penjaga tambahan (lama) |
+|---|---|---|
+| Lihat Konsultasi tertunda | `[AccessPermission("DoctorQueue", "Read")]` | Cakupan dokter `ResolveAllowedDoctorIdAsync` |
+| Simpan | `[AccessPermission("DoctorQueue", "FinishConsultation")]` | Cakupan antrean, penjaga penulis, keutuhan dokumen |
+| Batalkan konsultasi | `[AccessPermission("DoctorConsultation", "Cancel")]` | Penjaga penulis tunggal (`EnsureSoleAuthorAsync`) |
+| Penanda `canCancelConsultation` | `AccessPermissionService.HasAccessAsync(user, "DoctorConsultation", "Cancel")` | Hanya tampilan |
+
+| Audit | Pencatat |
+|---|---|
+| Simpan | Endpoint finalisasi lama (logger + registrasi keutuhan dokumen) |
+| Batalkan konsultasi | Endpoint batal lama: `CancelledByUserId`, `CancelledAt`, `CancelReason`, registrasi keutuhan `Cancelled` |
+| Membaca daftar | Tidak dicatat, sama dengan daftar antrean hari ini |
+
+Catatan risiko: jalur `IsCurrentUserSuperAdminAsync` (nama role) adalah utang teknis existing di
+`DoctorQueueController`; fitur ini tidak menambah pemeriksaan role baru (`02` KT.3.2).

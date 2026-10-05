@@ -141,3 +141,24 @@ dibersihkan lewat endpoint aplikasi. Asal AC: `00-interview-decisions.md` (AC 1-
 | `AT-DP-22` | FE: tombol bersyarat | Login dokter tanpa `Cancel`; baris status 6 berkonsultasi | Tidak ada tombol Batalkan; keterangan `cancelBlockedReason` tampil | `RJ-DOC-FE-008` |
 | `AT-DP-23` | FE: menu | Login pemegang `Read` | Butir "Daftar Pasien Rawat Jalan" tepat di bawah "Skrining Pasien"; tanpa `Read` tidak tampil | `RJ-DOC-FE-005` |
 | `AT-DP-24` | FE: kasus pemicu | Kartu Menggantung → cari ENC-RSMMC-00146 → Batalkan → daftar ulang pasien | Pendaftaran berhasil | Pemicu |
+
+---
+
+# Amendment KT — Konsultasi Tertunda (`RJ-DOC-PENDCONS-001@1.0.0`, `draft`)
+
+Pola Bank Darah: uji runtime HTTP terhadap `QuilvianNewDevSukma`; data uji dibuat dan dibersihkan
+lewat endpoint aplikasi.
+
+| ID | Skenario | Hasil yang diharapkan | Trace |
+|---|---|---|---|
+| `AT-KT-01` | Dokter A, antrean kemarin `InConsultation`, kunjungan 6, konsultasi `InProgress` | Muncul di `pending-consultations` | `RJ-DOC-DEC-029`, `030` |
+| `AT-KT-02` | Antrean yang sama tetapi bertanggal hari ini | Tidak muncul | KT.3.1 |
+| `AT-KT-03` | Antrean kemarin, status `WaitingForDoctor`; kunjungan status 7; konsultasi `Cancelled` | Tidak muncul (tiga kasus) | `RJ-DOC-DEC-030` |
+| `AT-KT-04` | Dokter B memanggil, juga dengan `doctorId` = A | Antrean dokter A tidak muncul | KT.3.2 |
+| `AT-KT-05` | Pengguna tanpa data dokter dan bukan super admin | `403` | `RJKT-VAL-001` |
+| `AT-KT-06` | Konsultasi punya 1 resep draf dan 2 tindakan | `draftPrescriptionCount = 1`, `procedureCount = 2`; `queueId` mempersempit ke satu baris | KT.3.3 |
+| `AT-KT-07` | `finish-consultation` pada antrean `AT-KT-01` | `200`; kunjungan 7; baris hilang; dengan `BlockActiveEncounter = true` pasien dapat didaftarkan | `RJ-DOC-DEC-031` |
+| `AT-KT-08` | Batal konsultasi antrean tertunda lain, lalu batal kunjungan lewat Daftar Pasien Rawat Jalan | Baris hilang; batal kunjungan `200` | `RJ-DOC-DEC-031`, `RJ-DOC-DEC-021` |
+| `AT-KT-09` | `GET /doctor-queues`, `/summary`, `/call-lock` hari ini sebelum dan sesudah perubahan | Hasil sama | Kompatibilitas |
+| `AT-KT-10` | Batal kunjungan status 6 dengan konsultasi aktif | `400` dengan bunyi baru `RJDP-VAL-005` | KT.3.4 |
+| `AT-KT-11` | Frontend: `UAT-KT-01`..`07` | Sesuai `04-prd-to-mvp.md` *Amendment KT* | `RJ-DOC-FE-010`..`012` |

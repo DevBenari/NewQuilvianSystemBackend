@@ -138,6 +138,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DateTime CreateDateTime { get; set; }
     }
 
+    /// <summary>
+    /// Satu konsultasi tertunda: antrean hari sebelumnya yang masih Sedang Konsultasi dengan
+    /// konsultasi aktif (RJ-DOC-DEC-029, RJ-DOC-DEC-030). Bentuknya sama dengan antrean hari ini
+    /// supaya workspace dokter dapat membukanya tanpa pemetaan kedua (RJ-DOC-REV-BE-012).
+    /// </summary>
+    public class DoctorPendingConsultationResponse : DoctorQueueResponse
+    {
+        /// <summary>Resep draf aktif yang akan diteruskan ke farmasi saat konsultasi disimpan.</summary>
+        public int DraftPrescriptionCount { get; set; }
+
+        /// <summary>Tindakan aktif milik konsultasi.</summary>
+        public int ProcedureCount { get; set; }
+
+        /// <summary>Jumlah hari sejak tanggal antrean sampai tanggal operasional hari ini.</summary>
+        public int PendingDays { get; set; }
+
+        /// <summary>Penanda tampilan: pengguna memegang <c>DoctorConsultation : Cancel</c>.</summary>
+        public bool CanCancelConsultation { get; set; }
+    }
+
     public class DoctorQueueActionRequest
     {
         [MaxLength(250)]

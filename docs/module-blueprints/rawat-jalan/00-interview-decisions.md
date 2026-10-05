@@ -901,3 +901,101 @@ Tidak ada conflict atau invariant kritis yang masih terbuka untuk desain.
 | `RJ-DOC-DEC-026` | Decision | **Pemblokir "satu pasien satu kunjungan aktif" ditangguhkan sementara.** Pendaftaran (`POST /patient-encounters`, `/admin`, `/kiosk`) tidak lagi ditolak karena pasien masih punya kunjungan Rawat Jalan berklinik yang belum selesai. Aturan `RJ-DOC-DEC-010` (c) beserta amandemen `RJ-DOC-DEC-019`/`022` **tidak dicabut**: logikanya tetap ada dan dapat dihidupkan kembali lewat konfigurasi `HealthServices:Registration:BlockActiveEncounter` (bawaan `false`) tanpa perubahan kode. Daftar Pasien Rawat Jalan dan pembatalan tetap berjalan. **Contoh:** pasien dengan ENC-RSMMC-00146 (status 3) mendaftar ke poli → diterima, dan kunjungan lama tetap terlihat di kartu Menggantung | Sukma Giri | `approved` | Sukma Giri, 2 Okt 2026 ("hilangkan dulu batasan untuk pasien yang belum terselesaikan kunjungannya untuk sementara") | `RJ-DOC-REV-BE-007`, `RJ-DOC-REV-BE-008` |
 | `RJ-DOC-DEC-027` | Approval | **`IMPLEMENTATION_AUTHORITY` `GRANTED` untuk `RJ-DOC-REV-BE-011`**: source dan validasi runtime terhadap `QuilvianNewDevSukma`. Tanpa migration, commit, push, merge, maupun deployment | Sukma Giri | `approved` | Sukma Giri, 2 Okt 2026 (instruksi yang sama) | `roadmap/doctor-consultation-roadmap.md` bagian 12 |
 
+## Amendment Pass 2026-10-05 — Konsultasi Tertunda di Klinis Dokter
+
+| Field | Nilai |
+|---|---|
+| Mode | `Amendment pass` — keputusan lama tidak ditimpa |
+| Pemicu | Saklar `HealthServices:Registration:BlockActiveEncounter` dihidupkan. Pasien IKBAL YULIYANTO (00-00-00-15) ditolak mendaftar karena ENC-RSMMC-00172 (30 Sep 2026, Poli Anak, dr. Arif Lesmana) masih `Sedang Konsultasi` (6) dengan konsultasi aktif. Daftar Pasien Rawat Jalan menyuruh "selesaikan atau batalkan konsultasi lewat workspace dokter", tetapi Klinis Dokter hanya memuat antrean **hari ini**, sehingga dr. Arif tidak dapat membuka kunjungan itu. Kunjungan tertahan tanpa jalan keluar lewat UI |
+| Source | BE `bb46ccc8`, FE `d232feb2b`. Capability map tidak diperbarui; fakta di bawah diambil langsung dari source pada sesi ini |
+| Prefix keputusan | `RJ-DOC-DEC-028` dst., `RJ-DOC-FE-010` dst., `RJ-DOC-OQ-012` dst. Task nantinya `RJ-DOC-REV-*` |
+| Pengambil keputusan | Sukma Giri, pemilik blueprint |
+
+### Fakta dari source
+
+| ID | Fakta | Evidence |
+|---|---|---|
+| F-KT-1 | Frontend Klinis Dokter selalu meminta antrean tanggal hari ini; layar tidak punya pemilih tanggal | `V2QuilvianSystemFrontendDev/src/lib/hooks/health-services/registration-management/doctor-queue/use-doctor-queue.js:81` |
+| F-KT-2 | `GET /doctor-queues` memfilter `QueueDate.Date == selectedDate`. Parameter `queueDate` sudah diterima, tetapi hanya satu tanggal | `DoctorQueueController.cs:706-732` |
+| F-KT-3 | Aksi antrean dan konsultasi berdasarkan id **tidak** memfilter tanggal. Yang terkunci hanya daftarnya | `DoctorQueueController.cs:966-983` (`GetAllowedQueueWithEncounterAsync`) |
+| F-KT-4 | Finalisasi konsultasi memindahkan kunjungan ke `Konsultasi Selesai` (7), sehingga tidak lagi memblokir pendaftaran | `ConsultationFinalizationService.cs:159`; `OutpatientEncounterRules.cs:23` |
+| F-KT-5 | Batal konsultasi tidak mengubah status kunjungan. Sesudahnya kunjungan status 6 tanpa konsultasi aktif dapat dibatalkan petugas di Daftar Pasien Rawat Jalan | `RJ-DOC-DEC-021`; `OutpatientEncounterListService.cs:299-309` |
+
+### Batas scope amendment
+
+**Satu kalimat:** dokter dapat menemukan dan membuka kunjungan Rawat Jalan bertanggal lampau
+yang masih tertahan di tahap konsultasinya, lalu menyelesaikan atau membatalkan konsultasi itu
+dari Klinis Dokter.
+
+| Di dalam scope | Di luar scope — pemiliknya |
+|---|---|
+| Daftar "Konsultasi tertunda" lintas tanggal di panel Pasien Dokter | Aturan validasi finalisasi konsultasi — tetap seperti sekarang |
+| Membuka kunjungan tertunda di workspace dan menjalankan Selesaikan/Batalkan konsultasi | Transisi `Billing → Completed` — **Registration + Billing** (`RJ-E2E-OQ-004`) |
+| Peringatan untuk kunjungan bertanggal lampau | Aturan pemblokir pendaftaran (`RJ-DOC-DEC-019`/`022`/`026`) |
+| Teks petunjuk di Daftar Pasien Rawat Jalan agar menunjuk ke tempat yang benar | Kunjungan status 0–5 — sudah ditangani petugas lewat Daftar Pasien Rawat Jalan |
+| | IGD dan Rawat Inap |
+
+### Keputusan
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `RJ-DOC-DEC-028` | Decision | **Bentuk blueprint `SINGLE`** — masuk roadmap doctor-consultation sebagai task revisi `RJ-DOC-REV-*`. `shape_decided_by = USER_CONFIRMED`. Hasil uji: 0 dari 5 syarat pemecahan; tidak ada bounded context, kosakata status, Resource, atau master data baru. Tidak ada kemampuan tanpa rumpun | Sukma Giri | `approved` | Sukma Giri, 5 Okt 2026 | Jawaban sesi |
+| `RJ-DOC-DEC-029` | Decision | **Kunjungan lama ditemukan lewat daftar "Konsultasi tertunda", bukan pemilih tanggal.** Daftar memuat kunjungan milik dokter yang login dari tanggal **sebelum hari ini**, tanggal berapa pun, sehingga dokter tidak perlu mengingat tanggalnya. Penyaringan per dokter memakai aturan yang sama dengan antrean dokter hari ini (dokter hanya melihat antrean dengan `DoctorId` dirinya). Antrean hari ini tidak berubah. **Contoh:** pada 5 Okt 2026, dr. Arif membuka Klinis Dokter; antrean hari ini kosong, tetapi Konsultasi tertunda berisi 1 pasien: IKBAL YULIYANTO, ENC-RSMMC-00172, 30 Sep 2026 | Sukma Giri | `approved` | Sukma Giri, 5 Okt 2026 | F-KT-1, F-KT-2 |
+| `RJ-DOC-DEC-030` | Decision | **Isi daftar Konsultasi tertunda hanya antrean berstatus `Sedang Konsultasi` yang kunjungannya masih status 6 dan punya konsultasi aktif** (belum batal, belum selesai). Kunjungan status 0–5 dari hari lalu tidak dimuat karena sudah dapat dibatalkan petugas di Daftar Pasien Rawat Jalan (`RJ-DOC-DEC-016`). **Contoh:** pasien kemarin yang masih `Menunggu Dokter` tidak muncul di daftar dokter; petugas membatalkannya dari Daftar Pasien Rawat Jalan | Sukma Giri | `approved` | Sukma Giri, 5 Okt 2026 | F-KT-5; `RJ-DOC-DEC-021` |
+| `RJ-DOC-DEC-031` | Decision | **Pada konsultasi tertunda, dokter boleh Selesaikan dan Batalkan, sama seperti konsultasi hari ini.** Validasi finalisasi, penjaga penulis tunggal (`EnsureSoleAuthorAsync`), dan penjaga keutuhan dokumen tetap berlaku tanpa pengecualian. Waktu tanda tangan tercatat saat finalisasi dilakukan, bukan tanggal kunjungan. Sesudah Selesaikan, kunjungan menjadi status 7. Sesudah Batalkan, kunjungan tetap 6 tanpa konsultasi aktif dan petugas membatalkannya di Daftar Pasien Rawat Jalan (`RJ-DOC-DEC-021`). **Contoh:** dr. Arif menyelesaikan konsultasi IKBAL pada 5 Okt; ENC-RSMMC-00172 menjadi status 7 dan IKBAL dapat didaftarkan lagi | Sukma Giri | `approved` | Sukma Giri, 5 Okt 2026 | F-KT-3, F-KT-4, F-KT-5 |
+
+### Frontend Decision Authority
+
+| Decision ID | Area | Owner | Status | Allowed range | Evidence |
+|---|---|---|---|---|---|
+| `RJ-DOC-FE-010` | Letak daftar | Sukma Giri | `approved` | Di panel kiri "Pasien Dokter" Klinis Dokter, terpisah dari antrean hari ini dan menampilkan jumlahnya. Bentuk tab atau bagian terpisah: `DEV_DISCRETION` dengan base component Quilvian | `RJ-DOC-DEC-029` |
+| `RJ-DOC-FE-011` | Peringatan kunjungan lampau | Sukma Giri | `approved` | (a) Banner di workspace selama kunjungan bertanggal sebelum hari ini terbuka, menyebut tanggal kunjungan, contoh: "Kunjungan tanggal 30 Sep 2026 — pasien mungkin sudah pulang." (b) Saat Selesaikan, bila konsultasi memuat resep atau order yang akan terkirim, tampil konfirmasi tambahan sebelum finalisasi. Hanya frontend; aturan finalisasi backend tidak berubah | Jawaban sesi |
+| `RJ-DOC-FE-012` | Teks petunjuk Daftar Pasien Rawat Jalan | Developer | `DEV_DISCRETION` | Petunjuk baris status 6 dengan konsultasi aktif menyebut lokasi yang benar, contoh: "Selesaikan atau batalkan lewat Klinis Dokter → Konsultasi tertunda." | Gambar pengguna 5 Okt 2026 |
+| `RJ-DOC-FE-013` | Bentuk daftar tertunda (menetapkan sebagian `RJ-DOC-FE-010`) | Sukma Giri | `approved` | **Tab** di atas judul "Pasien Dokter": "Hari ini (N)" dan "Tertunda (N)", supaya antrean hari ini dan konsultasi tertunda tidak tercampur. Bawaan tab Hari ini. Memakai `ClinicalTabNav` yang sudah ada. Diputuskan 5 Okt 2026 setelah melihat versi bagian terpisah | Permintaan pemilik |
+
+### Acceptance criteria yang sudah dapat diuji
+
+1. Dokter A dengan antrean `Sedang Konsultasi` bertanggal kemarin atau lebih lama, yang
+   kunjungannya status 6 dan punya konsultasi aktif, melihat antrean itu di Konsultasi tertunda.
+2. Antrean milik dokter lain tidak pernah muncul di Konsultasi tertunda dokter A. Mengirim
+   parameter dokter lain tidak melebarkan hasil.
+3. Antrean bertanggal hari ini tidak muncul di Konsultasi tertunda; antrean hari ini tetap
+   berperilaku seperti sebelum perubahan.
+4. Kunjungan lampau berstatus 0–5, status 7 ke atas, batal, atau status 6 tanpa konsultasi aktif
+   tidak muncul di Konsultasi tertunda.
+5. Dokter dapat membuka konsultasi tertunda, mengisi, lalu Selesaikan. Kunjungan berubah ke
+   status 7, hilang dari Konsultasi tertunda, dan pasien dapat didaftarkan lagi saat
+   `BlockActiveEncounter = true`.
+6. Dokter dapat Batalkan konsultasi tertunda. Kunjungan hilang dari Konsultasi tertunda dan
+   petugas dapat membatalkannya dari Daftar Pasien Rawat Jalan.
+7. Dokter bukan penulis konsultasi tetap ditolak saat Selesaikan/Batalkan (penjaga lama).
+8. Workspace menampilkan banner tanggal kunjungan selama kunjungan lampau terbuka. Selesaikan
+   yang memuat resep/order meminta konfirmasi tambahan.
+9. Contoh nyata: ENC-RSMMC-00172 (IKBAL YULIYANTO) muncul di Konsultasi tertunda dr. Arif
+   Lesmana dan dapat diselesaikan.
+
+### Open question dan blocker
+
+| ID | Isi | Owner | Memblokir |
+|---|---|---|---|
+| `RJ-DOC-OQ-012` | Antrean dengan status kunjungan 6 tetapi status antrean bukan `Sedang Konsultasi` (data tidak konsisten), bila ada, tidak tertangkap daftar ini. Perlu dicek di data saat desain; bila ada, diputuskan apakah ikut dimuat | Desain | `DESIGN` (bukan invariant kritis) |
+| `RJ-DOC-OQ-013` | Bentuk endpoint: parameter baru pada `GET /doctor-queues` atau endpoint terpisah, beserta `AccessPermission`-nya | Desain | `DESIGN` |
+
+Tidak ada invariant klinis atau bisnis kritis yang masih terbuka.
+
+### Hasil desain 2026-10-05 (revisi `29`, `draft`)
+
+| ID | Status | Jawaban / isi |
+|---|---|---|
+| `RJ-DOC-OQ-012` | `open`, tidak memblokir | Desain mensyaratkan antrean `InConsultation` karena `finish-consultation` menuntutnya. Task backend menghitung kasus yang tidak tertangkap di DB uji dan melaporkannya (`02` KT.3.1) |
+| `RJ-DOC-OQ-013` | `closed` oleh desain (menunggu approval) | Endpoint terpisah `GET /doctor-queues/pending-consultations`, `DoctorQueue : Read`, tanpa butir hak akses baru (`02` KT.7) |
+| `RJ-DOC-OQ-014` | `open`, `POST-MVP` | Frontend belum punya tombol Batalkan konsultasi untuk antrean hari ini. Amendment KT menambahkannya hanya untuk konsultasi tertunda. Perluasan ke antrean hari ini diputuskan pemilik terpisah |
+| `RJ-DOC-OQ-015` | `open`, di luar scope | Batal konsultasi tidak membatalkan resep draf milik konsultasi itu (perilaku lama `CancelConsultation`) |
+
+### Approval 2026-10-05 — desain Amendment KT
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `RJ-DOC-DEC-032` | Approval | **Desain Amendment KT (revisi `29`) dan kontrak `RJ-DOC-PENDCONS-001@1.0.0` disetujui**: bagian *Amendment KT* pada `02`, `03`, `04`, `data/`, `contracts/`, `testing/`, serta `flowcharts/konsultasi-tertunda.md`. `RJ-DOC-OQ-013` tertutup. Approval ini **bukan** izin menulis code; `IMPLEMENTATION_AUTHORITY` tetap per task | Sukma Giri | `approved` | Sukma Giri, 5 Okt 2026 ("oke lanjutkan" atas "Setujui desain dan kontrak … Setuju?") | `blueprint-manifest.md` revisi `29` |
+| `RJ-DOC-DEC-033` | Approval | **`IMPLEMENTATION_AUTHORITY` `GRANTED` untuk `RJ-DOC-REV-BE-012` lalu `RJ-DOC-REV-FE-012`**, berurutan sesuai grafik dependency: penulisan source dan validasi runtime terhadap `QuilvianNewDevSukma`, termasuk data uji yang dibersihkan lewat endpoint aplikasi. Tanpa migration, commit, push, merge, maupun deployment | Sukma Giri | `approved` | Sukma Giri, 5 Okt 2026 ("ok lanjutkan") | `roadmap/doctor-consultation-roadmap.md` bagian 13 |
+

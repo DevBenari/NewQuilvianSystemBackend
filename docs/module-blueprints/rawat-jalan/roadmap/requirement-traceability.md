@@ -291,3 +291,11 @@ Keputusan `RJ-DOC-DEC-010`; definisi task pada [doctor-consultation-roadmap.md](
 | Daftar kunjungan RJ bercakupan, summary, hak `ReadAll` (`RJ-DOC-DEC-012`..`014`) | `RJ-DOC-REV-BE-009` + `RJ-DOC-REV-FE-010` | BE ✅ `2026-10-02`; FE ✅ `2026-10-02` | [RJ-DOC-REV-BE-009](../task/report/backend/RJ-DOC-REV-BE-009.md), [RJ-DOC-REV-FE-010](../task/report/frontend/RJ-DOC-REV-FE-010.md) |
 | Pembatalan kunjungan menggantung dari frontend (`RJ-DOC-DEC-015`..`018`, `021`) | `RJ-DOC-REV-BE-010` + `RJ-DOC-REV-FE-011` | BE ✅ `2026-10-02`; FE ✅ `2026-10-02` | [RJ-DOC-REV-BE-010](../task/report/backend/RJ-DOC-REV-BE-010.md), [RJ-DOC-REV-FE-011](../task/report/frontend/RJ-DOC-REV-FE-011.md) |
 | Penangguhan sementara pemblokir pendaftaran; dapat dihidupkan lewat konfigurasi (`RJ-DOC-DEC-026`) | `RJ-DOC-REV-BE-011` | BE ✅ `2026-10-02` | [RJ-DOC-REV-BE-011](../task/report/backend/RJ-DOC-REV-BE-011.md) |
+
+## 7. Revisi `2026-10-05` — Konsultasi Tertunda di Klinis Dokter (Amendment KT)
+
+| Requirement pemilik | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Dokter melihat konsultasi tertundanya dari hari sebelumnya, lintas tanggal, hanya Sedang Konsultasi dengan konsultasi aktif (`RJ-DOC-DEC-029`, `030`) | `RJ-DOC-REV-BE-012` + `RJ-DOC-REV-FE-012` | BE ✅ `2026-10-05`; FE ✅ `2026-10-05` | [RJ-DOC-REV-BE-012](../task/report/backend/RJ-DOC-REV-BE-012.md), [RJ-DOC-REV-FE-012](../task/report/frontend/RJ-DOC-REV-FE-012.md) |
+| Dokter menyimpan atau membatalkan konsultasi tertunda, dengan banner dan konfirmasi resep/tindakan (`RJ-DOC-DEC-031`, `RJ-DOC-FE-011`) | `RJ-DOC-REV-BE-012` + `RJ-DOC-REV-FE-012` | BE ✅ `2026-10-05`; FE ✅ `2026-10-05` | [RJ-DOC-REV-BE-012](../task/report/backend/RJ-DOC-REV-BE-012.md), [RJ-DOC-REV-FE-012](../task/report/frontend/RJ-DOC-REV-FE-012.md) |
+| Petunjuk Daftar Pasien Rawat Jalan menunjuk Klinis Dokter (`RJ-DOC-FE-012`) | `RJ-DOC-REV-BE-012` | BE ✅ `2026-10-05` | [RJ-DOC-REV-BE-012](../task/report/backend/RJ-DOC-REV-BE-012.md) |

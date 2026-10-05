@@ -141,3 +141,24 @@ didaftarkan lagi.
 | RJ berklinik, status 7-8 | **Tidak** (sebelumnya ya) |
 | Penunjang tanpa klinik, IGD, Rawat Inap | **Tidak** (sebelumnya ya) |
 | Batal, selesai, tidak hadir | Tidak (tidak berubah) |
+
+---
+
+# Amendment KT — Konsultasi Tertunda (`RJ-DOC-PENDCONS-001@1.0.0`, `draft`)
+
+`last_changed_in`: `RJ-DOC-PENDCONS-001@1.0.0` · Owner: Sukma Giri
+
+**Tidak ada transisi baru.** Fitur ini hanya membuka jalan ke transisi yang sudah ada untuk antrean
+bertanggal lampau. Tabel berikut mencatat transisi yang terjadi agar pengujian dapat memeriksanya.
+
+| Aksi | Konsultasi | Antrean | Kunjungan | Keluar dari Konsultasi tertunda |
+|---|---|---|---|---|
+| Simpan | `Draft`/`InProgress` → `Completed` | `InConsultation` → `Completed` | 6 → 7 | Ya |
+| Batalkan konsultasi | `Draft`/`InProgress` → `Cancelled` | Tetap `InConsultation` | Tetap 6 | Ya (tidak ada konsultasi aktif) |
+| Petugas membatalkan kunjungan sesudahnya | — | → batal | 6 → batal | — |
+
+| Transisi ilegal | Penolakan (endpoint lama) |
+|---|---|
+| Simpan konsultasi yang sudah `Completed`/`Cancelled` | `400` "Status konsultasi tidak valid untuk finalisasi." |
+| Batalkan konsultasi yang sudah `Completed` | `400` "Konsultasi yang sudah completed tidak dapat dibatalkan." |
+| Simpan bila antrean bukan `InConsultation` | `400` "Konsultasi dokter belum dimulai." |

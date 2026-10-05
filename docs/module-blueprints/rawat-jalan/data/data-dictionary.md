@@ -251,3 +251,21 @@ fitur ini:
 | `MstDoctor` | `WorkforceProfileId`, `Email` | Pengenal dokter | `Email`: Ya |
 
 Seluruh tabel mewarisi `IdentityModel`. Tidak ada DDL.
+
+---
+
+# Amendment KT — Konsultasi Tertunda (revisi `29`, `draft`)
+
+Tidak ada tabel baru atau tabel yang diperbarui. Kolom kunci yang dibaca fitur ini (semua tabel
+`Sudah ada`):
+
+| Tabel | Pemilik | Kolom yang dipakai | Untuk | Model |
+|---|---|---|---|---|
+| `TrxQueue` | Registration | `Id`, `DoctorId`, `QueueDate`, `QueueStatus`, `EncounterId`, `IsDoctorRequired`, `IsActive`, `IsDelete` | Dasar daftar, syarat KT.3.1 | `TrxQueue` |
+| `RegPatientEncounter` | Registration | `Id`, `EncounterType`, `ClinicId`, `EncounterStatus`, `IsCancel`, `CompletedAt`, `IsDelete` | Syarat kunjungan tertahan | `RegPatientEncounter` |
+| `TrxDoctorConsultation` | Clinical | `Id`, `QueueId`, `ConsultationStatus`, `IsCancel`, `IsDelete` | Konsultasi aktif | `TrxDoctorConsultation` |
+| `PhmPrescription` | Pharmacy | `ConsultationId`, `PrescriptionStatus`, `IsActive`, `IsCancel`, `IsDelete` | `draftPrescriptionCount` | `PhmPrescription` |
+| `TrxPatientProcedure` | Clinical | `ConsultationId`, `IsActive`, `IsCancel`, `IsDelete` | `procedureCount` | `TrxPatientProcedure` |
+| `EmgVisit` | Emergency | `EncounterId` | Penyaring IGD | `EmgVisit` |
+
+Kolom sensitif yang ikut dikembalikan sama dengan `GET /doctor-queues` (nama pasien, no. RM).

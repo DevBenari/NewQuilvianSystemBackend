@@ -20,9 +20,13 @@ using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using QuilvianSystemBackend.Services.Security;
 using System.Security.Claims;
 
-using ResponseDoctorQueuePagedResult = QuilvianSystemBackend.Responses.PagedResult<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs.DoctorQueueResponse>;
+using PharmacyPrescription = QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmPrescription;
+using PharmacyPrescriptionStatus = QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums.PrescriptionStatus;
+using ResponseDoctorPendingConsultationPagedResult = QuilvianSystemBackend.Responses.PagedResult<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs.DoctorPendingConsultationResponse>;
+using ResponseDoctorQueuePagedResult =QuilvianSystemBackend.Responses.PagedResult<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs.DoctorQueueResponse>;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Controllers
 {
@@ -68,6 +72,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private readonly ConsultationFinalizationService _consultationFinalizationService;
         private readonly DoctorQueuePatientContextService _patientContextService;
 
+        // RJ-DOC-REV-BE-012. Hanya untuk penanda tampilan canCancelConsultation pada konsultasi
+        // tertunda; endpoint batal konsultasi tetap menegakkan haknya sendiri.
+        private readonly AccessPermissionService _accessPermissionService;
+
         public DoctorQueueController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
@@ -76,8 +84,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             DoctorConsultationLifecycleService doctorConsultationLifecycleService,
             ClinicalDocumentIntegrityService integrityService,
             ConsultationFinalizationService consultationFinalizationService,
-            DoctorQueuePatientContextService patientContextService)
+            DoctorQueuePatientContextService patientContextService,
+            AccessPermissionService accessPermissionService)
         {
+            _accessPermissionService = accessPermissionService;
             _dbContext = dbContext;
             _loggerService = loggerService;
             _queueVoiceService = queueVoiceService;
@@ -191,6 +201,122 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             };
 
             return Ok(ApiResponse<ResponseDoctorQueuePagedResult>.Ok(result, "Data antrean dokter berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Konsultasi tertunda milik dokter yang login: antrean hari sebelumnya yang masih Sedang
+        /// Konsultasi dan belum disimpan atau dibatalkan (RJ-DOC-REV-BE-012,
+        /// RJ-DOC-PENDCONS-001@1.0.0). Cakupan dokter sama dengan daftar antrean hari ini.
+        /// </summary>
+        [HttpGet("pending-consultations")]
+        [ProducesResponseType(typeof(ApiResponse<ResponseDoctorPendingConsultationPagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [AccessAction("Read", "Read Doctor Queue", Description = "Melihat konsultasi tertunda dokter login", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("DoctorQueue", "Read")]
+        public async Task<IActionResult> GetPendingConsultations(
+            [FromQuery] Guid? doctorId,
+            [FromQuery] Guid? queueId,
+            [FromQuery] string? search,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25,
+            CancellationToken ct = default)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            var isSuperAdmin = await IsCurrentUserSuperAdminAsync();
+            var allowedDoctorId = isSuperAdmin && (!doctorId.HasValue || doctorId.Value == Guid.Empty)
+                ? null
+                : await ResolveAllowedDoctorIdAsync(doctorId);
+
+            if (!isSuperAdmin && !allowedDoctorId.HasValue) return Forbid();
+
+            var query = BuildPendingConsultationQuery(allowedDoctorId);
+
+            if (queueId.HasValue && queueId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.Id == queueId.Value);
+            }
+
+            // Kode antrean, pasien, no. RM, no. kunjungan, poli, dan ruang — sama dengan antrean hari ini.
+            query = ApplySearchFilter(query, search);
+
+            var totalData = await query.CountAsync(ct);
+            var queues = await query
+                .OrderBy(x => x.QueueDate)
+                .ThenBy(x => x.QueueNumber)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(ct);
+
+            var items = await MapResponsesAsync<DoctorPendingConsultationResponse>(queues);
+
+            if (items.Count > 0)
+            {
+                var queueIds = items.Select(x => x.Id).ToList();
+                var consultationByQueue = await _dbContext.Set<TrxDoctorConsultation>()
+                    .AsNoTracking()
+                    .Where(c =>
+                        c.QueueId != null &&
+                        queueIds.Contains(c.QueueId.Value) &&
+                        !c.IsDelete &&
+                        !c.IsCancel &&
+                        (c.ConsultationStatus == DoctorConsultationStatus.Draft ||
+                         c.ConsultationStatus == DoctorConsultationStatus.InProgress))
+                    .Select(c => new { QueueId = c.QueueId!.Value, c.Id })
+                    .ToListAsync(ct);
+                var consultationIds = consultationByQueue.Select(x => x.Id).ToList();
+
+                // Hitungan mengikuti aturan ConsultationFinalizationService: resep draf aktif
+                // diteruskan saat disimpan, tindakan aktif ikut terhitung.
+                var prescriptionCounts = await _dbContext.Set<PharmacyPrescription>()
+                    .AsNoTracking()
+                    .Where(p =>
+                        consultationIds.Contains(p.ConsultationId) &&
+                        !p.IsDelete && !p.IsCancel && p.IsActive &&
+                        p.PrescriptionStatus == PharmacyPrescriptionStatus.Draft)
+                    .GroupBy(p => p.ConsultationId)
+                    .Select(g => new { ConsultationId = g.Key, Count = g.Count() })
+                    .ToDictionaryAsync(x => x.ConsultationId, x => x.Count, ct);
+                var procedureCounts = await _dbContext.Set<TrxPatientProcedure>()
+                    .AsNoTracking()
+                    .Where(p =>
+                        p.ConsultationId != null &&
+                        consultationIds.Contains(p.ConsultationId.Value) &&
+                        !p.IsDelete && !p.IsCancel && p.IsActive)
+                    .GroupBy(p => p.ConsultationId!.Value)
+                    .Select(g => new { ConsultationId = g.Key, Count = g.Count() })
+                    .ToDictionaryAsync(x => x.ConsultationId, x => x.Count, ct);
+
+                var canCancelConsultation = await _accessPermissionService.HasAccessAsync(
+                    User, "DoctorConsultation", "Cancel");
+                var today = AppDateTimeHelper.OperationalDate().Date;
+
+                foreach (var item in items)
+                {
+                    var consultationIdsOfQueue = consultationByQueue
+                        .Where(x => x.QueueId == item.Id)
+                        .Select(x => x.Id)
+                        .ToList();
+
+                    item.DraftPrescriptionCount = consultationIdsOfQueue.Sum(id => prescriptionCounts.GetValueOrDefault(id));
+                    item.ProcedureCount = consultationIdsOfQueue.Sum(id => procedureCounts.GetValueOrDefault(id));
+                    item.PendingDays = Math.Max(1, (today - item.QueueDate.Date).Days);
+                    item.CanCancelConsultation = canCancelConsultation;
+                }
+            }
+
+            var result = new ResponseDoctorPendingConsultationPagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+
+            return Ok(ApiResponse<ResponseDoctorPendingConsultationPagedResult>.Ok(result, "Konsultasi tertunda berhasil diambil."));
         }
 
         [HttpGet("call-lock")]
@@ -707,22 +833,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         {
             var selectedDate = AppDateTimeHelper.ResolveOperationalDate(queueDate);
 
-            var query = _dbContext.Set<TrxQueue>()
-                .AsNoTracking()
-                .Include(x => x.Encounter)
-                    .ThenInclude(x => x.PaymentMethod)
-                .Include(x => x.Encounter)
-                    .ThenInclude(x => x.PaymentSource)
-                        .ThenInclude(x => x.InsuranceProvider)
-                .Include(x => x.Encounter)
-                    .ThenInclude(x => x.PaymentSource)
-                        .ThenInclude(x => x.CompanyGuarantor)
-                .Include(x => x.Encounter)
-                    .ThenInclude(x => x.Room)
-                .Include(x => x.Patient)
-                .Include(x => x.ServiceUnit)
-                .Include(x => x.Clinic)
-                .Include(x => x.Doctor)
+            var query = BuildQueueDisplayQuery()
                 .Where(x =>
                     !x.IsDelete &&
                     x.IsActive &&
@@ -739,12 +850,79 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return query;
         }
 
+        /// <summary>
+        /// Antrean dengan relasi yang dibutuhkan kartu dan header workspace dokter.
+        /// </summary>
+        private IQueryable<TrxQueue> BuildQueueDisplayQuery() =>
+            _dbContext.Set<TrxQueue>()
+                .AsNoTracking()
+                .Include(x => x.Encounter)
+                    .ThenInclude(x => x.PaymentMethod)
+                .Include(x => x.Encounter)
+                    .ThenInclude(x => x.PaymentSource)
+                        .ThenInclude(x => x.InsuranceProvider)
+                .Include(x => x.Encounter)
+                    .ThenInclude(x => x.PaymentSource)
+                        .ThenInclude(x => x.CompanyGuarantor)
+                .Include(x => x.Encounter)
+                    .ThenInclude(x => x.Room)
+                .Include(x => x.Patient)
+                .Include(x => x.ServiceUnit)
+                .Include(x => x.Clinic)
+                .Include(x => x.Doctor);
+
+        /// <summary>
+        /// Konsultasi tertunda (RJ-DOC-REV-BE-012, RJ-DOC-DEC-029, RJ-DOC-DEC-030): antrean
+        /// sebelum hari ini yang masih Sedang Konsultasi, kunjungannya Rawat Jalan berklinik
+        /// berstatus 6 yang belum batal/selesai, dan masih punya konsultasi Draft/InProgress.
+        /// Status antrean wajib InConsultation karena finish-consultation menuntutnya
+        /// (RJ-DOC-OQ-012).
+        /// </summary>
+        private IQueryable<TrxQueue> BuildPendingConsultationQuery(Guid? allowedDoctorId)
+        {
+            var today = AppDateTimeHelper.OperationalDate().Date;
+            var outpatientClinicEncounters = _dbContext.Set<RegPatientEncounter>()
+                .WhereOutpatientClinicEncounter(_dbContext);
+
+            var query = BuildQueueDisplayQuery()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    x.IsDoctorRequired &&
+                    x.DoctorId.HasValue &&
+                    x.QueueDate.Date < today &&
+                    x.QueueStatus == QueueStatus.InConsultation &&
+                    outpatientClinicEncounters.Any(e =>
+                        e.Id == x.EncounterId &&
+                        !e.IsCancel &&
+                        e.CompletedAt == null &&
+                        e.EncounterStatus == EncounterStatus.InConsultation) &&
+                    _dbContext.Set<TrxDoctorConsultation>().Any(c =>
+                        c.QueueId == x.Id &&
+                        !c.IsDelete &&
+                        !c.IsCancel &&
+                        (c.ConsultationStatus == DoctorConsultationStatus.Draft ||
+                         c.ConsultationStatus == DoctorConsultationStatus.InProgress)));
+
+            if (allowedDoctorId.HasValue && allowedDoctorId.Value != Guid.Empty)
+            {
+                query = query.Where(x => x.DoctorId == allowedDoctorId.Value);
+            }
+
+            return query;
+        }
+
         private static IQueryable<TrxQueue> ApplyStandardFilter(IQueryable<TrxQueue> query, QueueStatus? queueStatus, string? search)
         {
             query = queueStatus.HasValue
                 ? query.Where(x => x.QueueStatus == queueStatus.Value)
                 : ApplyDoctorOperationalStatusFilter(query);
 
+            return ApplySearchFilter(query, search);
+        }
+
+        private static IQueryable<TrxQueue> ApplySearchFilter(IQueryable<TrxQueue> query, string? search)
+        {
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
@@ -1171,11 +1349,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return unchecked((long)hash);
         }
 
-        private async Task<List<DoctorQueueResponse>> MapResponsesAsync(List<TrxQueue> queues)
+        private Task<List<DoctorQueueResponse>> MapResponsesAsync(List<TrxQueue> queues) =>
+            MapResponsesAsync<DoctorQueueResponse>(queues);
+
+        // RJ-DOC-REV-BE-012. Generik agar konsultasi tertunda memakai pemetaan yang sama persis
+        // dengan antrean hari ini, lalu hanya menambah field miliknya.
+        private async Task<List<TResponse>> MapResponsesAsync<TResponse>(List<TrxQueue> queues)
+            where TResponse : DoctorQueueResponse, new()
         {
             if (queues.Count == 0)
             {
-                return new List<DoctorQueueResponse>();
+                return new List<TResponse>();
             }
 
             var patientIds = queues
@@ -1281,7 +1465,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     .ToList());
 
             return queues
-                .Select(x => MapResponse(
+                .Select(x => MapResponse<TResponse>(
                     x,
                     visitCounts,
                     doctorPhotoPaths,
@@ -1292,7 +1476,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 .ToList();
         }
 
-        private static DoctorQueueResponse MapResponse(
+        private static TResponse MapResponse<TResponse>(
             TrxQueue x,
             IReadOnlyDictionary<Guid, int> visitCounts,
             IReadOnlyDictionary<Guid, string> doctorPhotoPaths,
@@ -1300,6 +1484,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             IReadOnlyDictionary<Guid, DoctorConsultationQueueSnapshot> consultationMap,
             IReadOnlyDictionary<Guid, DoctorQueuePatientContext> patientContexts,
             DateTime serverNowUtc)
+            where TResponse : DoctorQueueResponse, new()
         {
             var encounter = x.Encounter;
             var primaryPayer = EncounterPrimaryPayerSummary.From(encounter);
@@ -1321,7 +1506,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ? consultationSnapshot
                 : null;
 
-            return new DoctorQueueResponse
+            return new TResponse
             {
                 Id = x.Id,
                 EncounterId = x.EncounterId,
