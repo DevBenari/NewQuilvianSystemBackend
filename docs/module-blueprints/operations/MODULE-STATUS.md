@@ -59,7 +59,7 @@ kontrak pemiliknya.
 | Tes penerimaan `BE-OPR-011` | tinggi | didelegasikan ke analis pemilik kebutuhan; bukan pekerjaan source |
 | Indeks unik serial implant di basis data | sedang | butuh keputusan bisnis: syarat "belum digantikan koreksi" tidak dapat dinyatakan sebagai indeks tersaring |
 | Adapter consumer Billing dan Inventory | sedang | menunggu kontrak pemilik API masing-masing |
-| Penolakan `403` runtime per peran | sedang | tidak dapat dibuktikan dari proyek uji: keputusannya milik filter otorisasi atas pemetaan peran-ke-izin lingkungan, dan pada Development pemeriksaan itu dimatikan. Memalsukan pemetaannya hanya membuktikan tiruannya bekerja |
+| Penolakan `403` runtime per peran | tinggi | **terhalang lingkungan**: aplikasi tidak dapat dijalankan pada basis data dev sejak integration HEAD terbaru — lihat [`blocker-startup-seeder-tabel-hilang.md`](../../engineering/blocker-startup-seeder-tabel-hilang.md). Kontrak izinnya sudah dijaga 13 uji; yang belum terbukti hanya jawaban runtime-nya |
 | Performa laporan | rendah | belum diukur pada volume besar |
 
 ## Bug yang sudah ditutup
@@ -67,9 +67,11 @@ kontrak pemiliknya.
 | ID | Isi |
 |---|---|
 | [`BUG-OPR-BE-001`](bug-opr-be-001-tanggal-akhir-tidak-inklusif.md) | ✅ Tanggal akhir laporan membuang seluruh data hari itu. Ketiga laporan kini memakai penolong `NormalkanRentang`; rentang terbalik ditolak 400 |
+
 ## Penghalang di luar modul
 
 | Hal | Catatan |
 |---|---|
 | Rantai migration | [`docs/engineering/blocker-rantai-migration.md`](../../engineering/blocker-rantai-migration.md) — basis data dev dibangun dari baseline hasil squash |
+| Startup seeder | [`docs/engineering/blocker-startup-seeder-tabel-hilang.md`](../../engineering/blocker-startup-seeder-tabel-hilang.md) — dua seeder mematikan startup pada basis data yang belum lengkap |
 | `LoggerService` audit user | [`docs/engineering/task-core-logger-audit-user.md`](../../engineering/task-core-logger-audit-user.md) — task Core/shared, sengaja tidak diperbaiki dari modul Operasi |
