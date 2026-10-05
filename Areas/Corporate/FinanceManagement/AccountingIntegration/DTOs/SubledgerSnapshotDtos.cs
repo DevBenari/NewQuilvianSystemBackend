@@ -22,10 +22,11 @@ public static class SubledgerAccountCategories
     public const string PettyCash = "KAS-KECIL";
     public const string Receivables = "PIUTANG";
     public const string SupplierPayables = "UTANG-SUPPLIER";
+    public const string MedicalServicePayables = "UTANG-JASA-MEDIS";
 }
 
 /// <summary>
-/// Permintaan pembuatan / regenerasi snapshot saldo subledger untuk satu periode akuntansi (BE-FIN-049).
+/// Permintaan pembuatan / regenerasi snapshot saldo subledger untuk satu periode akuntansi (BE-FIN-049, BE-FIN-068).
 /// </summary>
 public sealed class GenerateSubledgerSnapshotsRequest
 {
@@ -37,26 +38,30 @@ public sealed class GenerateSubledgerSnapshotsRequest
     public required string AccountingPeriodCode { get; set; }
 
     /// <summary>
-    /// Override opsional kode akun kontrol Kas Kasir (default: "1-1002").
+    /// Override opsional kode akun kontrol Kas Kasir.
     /// </summary>
+    [Obsolete("Override kode akun ini sudah usang. Kode akun kini dibaca dari pemetaan aktif FinSubledgerControlAccountMap (FIN-DEC-113, BE-FIN-065).")]
     [MaxLength(50)]
     public string? CashierControlAccountCode { get; set; }
 
     /// <summary>
-    /// Override opsional kode akun kontrol Kas Kecil (default: "1-1003").
+    /// Override opsional kode akun kontrol Kas Kecil.
     /// </summary>
+    [Obsolete("Override kode akun ini sudah usang. Kode akun kini dibaca dari pemetaan aktif FinSubledgerControlAccountMap (FIN-DEC-113, BE-FIN-065).")]
     [MaxLength(50)]
     public string? PettyCashControlAccountCode { get; set; }
 
     /// <summary>
-    /// Override opsional kode akun kontrol Piutang (default: "1-2001").
+    /// Override opsional kode akun kontrol Piutang.
     /// </summary>
+    [Obsolete("Override kode akun ini sudah usang. Kode akun kini dibaca dari pemetaan aktif FinSubledgerControlAccountMap (FIN-DEC-113, BE-FIN-065).")]
     [MaxLength(50)]
     public string? ReceivableControlAccountCode { get; set; }
 
     /// <summary>
-    /// Override opsional kode akun kontrol Utang Supplier (default: "2-1001").
+    /// Override opsional kode akun kontrol Utang Supplier.
     /// </summary>
+    [Obsolete("Override kode akun ini sudah usang. Kode akun kini dibaca dari pemetaan aktif FinSubledgerControlAccountMap (FIN-DEC-113, BE-FIN-065).")]
     [MaxLength(50)]
     public string? PayableControlAccountCode { get; set; }
 

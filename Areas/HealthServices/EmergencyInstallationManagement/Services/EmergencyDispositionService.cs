@@ -112,15 +112,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (visit.VisitStatus != EmergencyVisitStatus.Disposed)
                 return "Kunjungan hanya dapat diselesaikan setelah keputusan tindak lanjut ditetapkan.";
 
-            var adaObservasiAktif = await _dbContext.Set<EmgObservation>()
+            // IGD-DEC-183: periode Dieskalasi belum ditutup (IGD-DEC-126), sehingga menahan
+            // penutupan seperti periode Aktif, dengan kalimat penolakan yang sama.
+            var adaObservasiBelumSelesai = await _dbContext.Set<EmgObservation>()
                 .AsNoTracking()
                 .AnyAsync(
                     x => x.EmergencyVisitId == visit.Id
                         && !x.IsDelete
-                        && x.ObservationStatus == EmergencyObservationStatus.Active,
+                        && (x.ObservationStatus == EmergencyObservationStatus.Active
+                            || x.ObservationStatus == EmergencyObservationStatus.Escalated),
                     cancellationToken);
 
-            if (adaObservasiAktif)
+            if (adaObservasiBelumSelesai)
                 return "Masih ada observasi yang belum diselesaikan.";
 
             // IGD-DEC-106: hanya keadaan fisik pasien yang menahan penutupan. Dokumen

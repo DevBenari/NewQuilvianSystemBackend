@@ -175,7 +175,7 @@ public sealed class FinanceSupplierReturnService
             _dbContext.FinSupplierReturnDeposits.Add(deposit);
 
             var occurredAt = DateTimeOffset.UtcNow;
-            var accountingDate = DateOnly.FromDateTime(occurredAt.UtcDateTime);
+            var accountingDate = FinanceBusinessDate.ToDateOnly(occurredAt);
 
             // FIN-VAL-136: RETUR-PEMBELIAN bernilai POKOK SAJA, tanpa PPN. Nilai ini TIDAK berubah
             // oleh BE-FIN-043 — pemisahan PPN justru yang membuatnya tetap benar (syarat kedua

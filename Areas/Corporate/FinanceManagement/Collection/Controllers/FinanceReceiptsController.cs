@@ -13,12 +13,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Con
 /// <summary>
 /// Resource permission `FinanceReceipt` — nama kanonikal penuh sejak `BE-FIN-042`
 /// (`FIN-DEC-078`, `permission-audit-matrix.md` §D.5). Sebelumnya memakai nama pendek `Receipt`.
-/// Hanya endpoint yang sudah punya logika service nyata yang dibangun di sini (BE-FIN-018,
-/// pembaruan 23 September 2026): rincian satu penerimaan, alokasi, dan pembalikan alokasi.
-/// `GET /receipts` (daftar), `GET /receipts/register`, `GET /receipts/shift-reconciliation`,
-/// `POST /receipts` (pembuatan manual), dan `POST /receipts/{id}/reverse` (pembalikan penerimaan
-/// penuh secara manual) ada pada kontrak `FIN-API-1.0`/`FIN-PERM-1.0` tetapi service-nya belum
-/// ada — dicatat sebagai gap terbuka pada laporan task, bukan dikarang di sini.
+/// `GET /receipts` (daftar), `GET /receipts/{id}`, alokasi, dan pembalikan alokasi dibangun
+/// BE-FIN-018 (pembaruan 23 September 2026). `GET /receipts/register` dan
+/// `GET /receipts/shift-reconciliation` dibangun BE-FIN-050 — keduanya eksplisit dikecualikan
+/// BE-FIN-018 ("di luar cakupan literal roadmap task ini"). `POST /receipts` (pembuatan manual
+/// non-kasir) dan `POST /receipts/{id}/reverse` (pembalikan penerimaan penuh secara manual) pada
+/// kontrak `FIN-API-1.0`/`FIN-PERM-1.0` MASIH belum ada service-nya — tetap gap terbuka, tidak
+/// dikarang di sini.
+/// `GET /receipts/reversed-allocations` dibangun BE-FIN-054 (FIN-DES-073) — permukaan BACA baris
+/// alokasi yang dibalik, nol aksi baru. Pembalikan tetap lewat
+/// POST /{id}/allocations/{allocationId}/reverse yang sudah ada.
 /// </summary>
 [ApiController]
 [Authorize]
@@ -38,6 +42,37 @@ public sealed class FinanceReceiptsController : ControllerBase
     public async Task<IActionResult> Get([FromQuery] FinReceiptQuery request, CancellationToken cancellationToken) =>
         Ok(ApiResponse<PagedResult<FinReceiptResponse>>.Ok(
             await _service.GetPagedAsync(request, cancellationToken), "Daftar penerimaan berhasil diambil."));
+
+    [HttpGet("register")]
+    [AccessAction("Read", "Read Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceipt", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<ReceiptRegisterResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetRegister([FromQuery] ReceiptRegisterQuery request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<PagedResult<ReceiptRegisterResponse>>.Ok(
+            await _service.GetRegisterAsync(request, cancellationToken), "Buku penerimaan kasir berhasil diambil."));
+
+    [HttpGet("shift-reconciliation")]
+    [AccessAction("Read", "Read Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceipt", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<ShiftReconciliationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetShiftReconciliation([FromQuery] ShiftReconciliationQuery request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetShiftReconciliationAsync(request.CashierShiftId, cancellationToken);
+            return Ok(ApiResponse<ShiftReconciliationResponse>.Ok(result, "Rekonsiliasi shift berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
+    }
+
+    [HttpGet("reversed-allocations")]
+    [AccessAction("Read", "Read Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceipt", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<ReversedAllocationRowResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetReversedAllocations([FromQuery] ReversedAllocationQuery request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<PagedResult<ReversedAllocationRowResponse>>.Ok(
+            await _service.GetReversedAllocationsAsync(request, cancellationToken), "Daftar alokasi yang dibalik berhasil diambil."));
 
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]

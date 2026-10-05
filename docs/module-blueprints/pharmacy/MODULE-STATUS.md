@@ -4,12 +4,79 @@
 | --- | --- |
 | Blueprint ID | `PHA-BP-001` |
 | Module name | Farmasi |
-| Revision | `3` |
-| Module status | `PARTIAL` — modul terbesar yang sudah berjalan; gelombang terakhir menunggu Billing |
-| Current phase | Gelombang Financial Clearance — `PHA-BE-004`/`005`/`006` source selesai, verifikasi belum |
-| Last verified at | `2026-09-29T09:45:00+07:00` |
-| Backend source SHA | `4585f463ea3498e19fcdf2c475f567b052ec152a` (branch `Ikbal`) |
-| Frontend source SHA | `1b4209ce9d10039565860c7d67c23e4c859754c5` (branch `Ikbalv2`) |
+| Revision | `5` |
+| Module status | `SUBSTANTIAL` — alurnya kini tersambung ujung ke ujung dan terbukti runtime |
+| Current phase | Gelombang Financial Clearance **terverifikasi runtime**; menunggu approval policy charge pra-dispense milik owner Billing |
+| Last verified at | `2026-10-05T11:30:00+07:00` |
+| Backend source SHA | `38142748a4d6b5e1c84156acf93681c593b0a06d` (branch `Ikbal`) |
+| Frontend source SHA | `f43dbdeb1612dfdb6b2e4973cf45b5dafd7dd56e` (branch `Ikbalv2`) |
+
+## Yang berubah pada revisi 4
+
+Empat hal tertutup sejak revisi 3, dan satu hal baru terbuka.
+
+| Hal | Keadaan |
+|---|---|
+| `GAP-PHA-FE-001` workflow farmasi tengah tanpa UI | **Selesai** — panel tiga tab pada detail resep: telaah, penyiapan, telaah obat akhir |
+| `GAP-PHA-FE-002` Etiket Obat tanpa entry point | **Selesai** — bagian Etiket Obat pada detail resep, tanpa butir menu baru |
+| `GAP-PHA-BE-001` resep tidak pernah dapat difinalkan | **Selesai** — keputusan status awal dipindah ke `PrescriptionWorkflowService.ApplyInitialClinicalState`, dijaga 8 uji regresi |
+| `BE-BKC-067` penerbitan financial clearance | **Terverifikasi runtime** — rantai penuh terbukti; rincian pada [`verifikasi-runtime-be-bkc-067.md`](verifikasi-runtime-be-bkc-067.md) |
+| Producer tagihan obat | **Baru** — `PrescriptionBillingChargeProducer` mengirim tagihan pada transisi tahap 1 → 2. **Belum menyala** sampai policy Billing disetujui; lihat [`requirement-billing-charge-pra-dispense.md`](requirement-billing-charge-pra-dispense.md) |
+
+Tangga tahap yang berlaku dan sudah terbukti ujung ke ujung:
+
+```
+1 WaitingForClinicalFinalization
+  -> 2 WaitingForPayment      finalisasi konsultasi yang sah
+  -> 4 QueuedAtPharmacy       konsumsi surat clearance Billing (PHA-DEC-069, melompati tahap 3)
+  -> 5 VerifiedByPharmacy     telaah disetujui
+  -> 6 BeingPrepared          penyiapan dimulai
+  -> 12 WaitingForFinalCheck  penyiapan diselesaikan
+  -> 7 ReadyForHandover       telaah obat akhir lolos
+```
+
+| Sumbu | Status |
+|---|---|
+| Backend | `SUBSTANTIAL` |
+| Frontend | `SUBSTANTIAL` |
+| Integrasi | `SUBSTANTIAL` — clearance terbukti ujung ke ujung; producer tagihan menunggu approval Billing |
+| Verifikasi | `STRONG` — **530 uji** regresi ditambah bukti runtime penuh |
+
+**Perkiraan ketuntasan: ~96%.** Diukur ketat "berfungsi hari ini di integration", producer
+tagihan belum menyala sehingga angkanya lebih dekat ~91%.
+
+Uji pada `Tests/QuilvianSystemBackend.PharmacyTests`:
+
+| Berkas | Jumlah | Yang dijaga |
+|---|---|---|
+| `PrescriptionFulfillmentStageTests` | 8 | regresi `GAP-PHA-BE-001`; tangga tahap pemenuhan dan penomorannya |
+| `BillingChargeProducerTests` | 9 | kunci idempotensi deterministik dan nilainya yang sudah terpakai; gerbang resep tanpa item maupun tanpa harga; `SourceStatus` dan `ContractVersion` yang diterima Billing |
+| `FinancialClearanceTests` | 20 | `PrescriptionFinancialClearanceService` — ketiga hasil finansial, fail-closed, pencabutan, versi, idempotensi, keempat gerbang |
+| `PharmacyWorkflowTests` | 34 | telaah resep, klarifikasi dokter, penyiapan, telaah obat akhir, tangga tahap 2 → 7 |
+| `DispensingGuardTests` | 20 | `PrescriptionDispensingService` — penjagaan tahap, izin finansial, depo, petugas, baris dan jumlah, pembatalan |
+| `DispenseFlowTests` | 18 | `DispenseAsync` — penyerahan penuh dan sebagian, mutasi stok, idempotensi, fakta klinis, gerbang finansial |
+| `LabelAndStockTests` | 14 | `PrescriptionLabelService`, `DrugStockService` — penahanan, pelepasan, FEFO, pengeluaran |
+
+Uji penyerahan memakai **container DI sungguhan** (`ServiceCollection`/`BuildServiceProvider`)
+dengan registrasi yang sama seperti aplikasi, karena rantai fakta klinis membuka scope-nya
+sendiri lewat `IServiceScopeFactory`; tiruan kosong akan membuat jalur itu diam-diam tidak
+berjalan.
+
+| `DrugReturnTests` | 51 | `DrugReturnService` — daur hidup `Draft → Submitted → Verified/Rejected`, `Cancelled` dari dua keadaan, efek stok, histori, versi |
+
+**Belum teruji:** `DrugReturnService.UpdateAsync` dan `GetPagedAsync`, permission matrix tingkat
+HTTP, dan 19 controller Farmasi lainnya.
+
+**Bug yang sudah ditutup:**
+
+| ID | Isi |
+|---|---|
+| [`BUG-PHA-BE-002`](bug-pha-be-002-klarifikasi-tertutup.md) | ✅ Klarifikasi yang sudah ditutup masih dapat dijawab dokter. Penjaga sekarang `ClosedAt != null` |
+| [`BUG-PHA-BE-003`](bug-pha-be-003-retur-tanpa-batas-serah.md) | ✅ Retur obat tidak dibatasi jumlah yang pernah diserahkan. `SourceDrugUsageId` kini wajib dan jumlahnya dibandingkan per batch secara kumulatif |
+
+**Kebutuhan baru yang belum punya task:** flow `Legacy/Untracked Return` untuk retur obat yang
+penyerahannya tidak tercatat — alasan wajib, otorisasi khusus, penandaan pada barisnya, dan batas
+atas. Rinciannya pada dokumen `BUG-PHA-BE-003`.
 
 ## Permukaan yang sudah berdiri
 
@@ -35,23 +102,42 @@ baris dengan 37 endpoint. Farmasi adalah modul dengan permukaan terbesar.
 
 `PHA-PH-008` dinyatakan selesai berdasarkan source, bukan berdasarkan laporan task: resolver
 routing Depo ada sebagai `PharmacyDepotRoutingService.cs` beserta `PharmacyDepotRoutingDtos.cs`.
-Laporan task `PHA-BE-001` tidak pernah ditulis, sehingga bukti acceptance-nya belum tercatat.
+Laporan task `PHA-BE-001` kini sudah ditulis — [`task/report/backend/PHA-BE-001.md`](task/report/backend/PHA-BE-001.md), retroaktif, memeriksa source yang sudah ada tanpa mengubahnya.
 
 ## Delivery state
 
 | Backend | Frontend | Integration | Verification |
 | --- | --- | --- | --- |
-| `SUBSTANTIAL` | `SUBSTANTIAL` | `PARTIAL` | `WEAK` |
+| `SUBSTANTIAL` | `SUBSTANTIAL` | `PARTIAL` | `STRONG` |
 
-`Verification` dinyatakan `WEAK` karena **Farmasi belum memiliki satu pun uji otomatis**.
-Satu-satunya proyek uji pada repositori adalah `Tests/QuilvianSystemBackend.OperatingRoomTests`.
-Dengan 137 endpoint, itu risiko terbesar yang masih tersisa.
+`Verification` dinyatakan `STRONG` karena Farmasi kini dijaga **530 uji** otomatis, naik dari
+**nol**. Pernyataan revisi 4 bahwa "Farmasi belum memiliki satu pun uji otomatis" sudah tidak
+berlaku.
 
-Pengujiannya diserahkan ke analis penguji (keputusan 29 September 2026). Karena itu task yang
-sumbernya sudah lengkap dan hanya menunggu pembuktian ditandai **`Selesai — kurang tes`**, bukan
-`Sebagian`: yang tertinggal bukan pekerjaan pembangunan. Penandaan itu **tidak** dipakai untuk
-task yang masih menunggu keputusan bisnis atau dependency modul lain — keduanya bukan soal
-pengujian dan tetap ditandai apa adanya.
+| Berkas | Deklarasi | Yang dijaga |
+|---|---|---|
+| `DrugReturnTests.cs` | 48 | siklus retur obat: `PHM080`–`PHM083`, batas kumulatif per batch terhadap satu penyerahan |
+| `DrugReturnUpdateAndListTests.cs` | 34 | `UpdateAsync` dan `GetPagedAsync` — penggantian baris, `PHM070`, `PHM083`, tujuh saringan daftar, batas ukuran halaman |
+| `DepotRoutingTests.cs` | 26 | `PHA-BE-002` — resolver routing Depo: sembilan acceptance criteria `PHA-BE-001` |
+| `PermissionMatrixTests.cs` | 18 | matriks izin tingkat HTTP: 23 controller, 137 endpoint, satu kode modul kanonik, nol `AllowAnonymous`, keselarasan `AccessAction` dengan `AccessPermission` |
+| `ModuleCodeConsolidationTests.cs` | 16 | `PharmacyModuleCodeConsolidationSeeder` — `Id` registry dipertahankan sehingga nol izin existing terputus |
+| `PharmacyWorkflowTests.cs` | 33 | tangga status resep, klarifikasi, pemeriksaan akhir |
+| `DispensingGuardTests.cs` | 20 | gerbang penahanan sebelum penyerahan |
+| `DispenseFlowTests.cs` | 18 | `DispenseAsync` dengan DI container nyata |
+| `FinancialClearanceTests.cs` | 18 | gerbang finansial dan pembacaan surat clearance |
+| `LabelAndStockTests.cs` | 14 | label obat dan perencanaan stok FEFO |
+| `BillingChargeProducerTests.cs` | 9 | `PrescriptionBillingChargeProducer`, idempotency key deterministik |
+| `PrescriptionFulfillmentStageTests.cs` | 8 | tangga tahap pemenuhan resep |
+
+Jumlah di atas adalah deklarasi `[Fact]`/`[Theory]`; setelah `InlineData` dibentangkan, suite
+berjalan **530 uji** dan seluruhnya lulus. Dibangun dengan `-p:SkipMigrationMetadata=true` di
+atas SQLite dalam memori, dengan dua adaptasi engine yang terdokumentasi di `TestDatabase.cs`.
+
+Keputusan 29 September 2026 yang menyerahkan pengujian Farmasi ke analis penguji **sudah
+terlampaui**: uji regresinya dibuat dari sisi pembangunan. Penandaan **`Selesai — kurang tes`**
+tetap dipakai untuk task yang sumbernya lengkap dan hanya menunggu pembuktian runtime, bukan uji
+unit. Penandaan itu **tidak** dipakai untuk task yang masih menunggu keputusan bisnis atau
+dependency modul lain — keduanya bukan soal pengujian dan tetap ditandai apa adanya.
 
 ## Gelombang Financial Clearance
 
@@ -84,6 +170,14 @@ Lingkungan lain belum diperiksa. Wewenang eksekusi migration tetap terpisah seba
 | `PHA-DEP-002` | Saldo, ledger, reservasi atomik, batch, dan mutasi stok belum tersedia | Pharmacy/Inventory | Dispensing dan persediaan | Arsitektur domain dan roadmap dapat disusun |
 | `PHA-DEP-003` | SOP dan approval formal kewenangan apoteker, checker kedua, retur, recall, obat khusus belum tersedia | Pharmacy/Clinical Governance | Permission dan safety control | Slice routing Depo dapat dirancang independen |
 
+**Temuan 5 Oktober 2026 — sudah ditutup hari itu juga:** modul izin Farmasi terbelah menjadi dua
+kode — [`temuan-modul-izin-terbelah.md`](temuan-modul-izin-terbelah.md). Nol endpoint rusak dan
+85/85 izin terdaftar aktif, tetapi administrator melihat Farmasi sebagai dua modul, sehingga
+memberi izin satu modul hanya memberi sebagian Farmasi. ✅ Dikonsolidasikan ke satu kode kanonik
+`HEALTH_SERVICE_PHARMACY_MANAGEMENT`: 12 controller dipindahkan, dan
+`PharmacyModuleCodeConsolidationSeeder` memindahkan relasi modul pada registry sebelum
+`AccessMenuSeeder` berjalan sehingga nol `SysAccessPolicy` kehilangan acuan.
+
 Seluruh lanjutan gelombang Financial Clearance menunggu sisi penerbit Billing berdiri. Itu bukan
 urutan yang dipilih: tanpa surat yang terbit, slice ini tidak punya masukan apa pun.
 
@@ -94,18 +188,24 @@ urutan yang dipilih: tanpa surat yang terbit, slice ini tidak punya masukan apa 
 | `00-interview-decisions.md` | `36d7eca7cd3d4b3f1f6520a6fe9340936cced320` | `4585f463ea3498e19fcdf2c475f567b052ec152a` | Sinkronisasi metadata keputusan; keputusan bisnis tetap berasal dari persetujuan owner |
 | `01-existing-capability-map.md` | `39b8b69f...` | `4585f463ea3498e19fcdf2c475f567b052ec152a` | Map belum dinormalisasi ke struktur template dan belum mencerminkan 137 endpoint yang sekarang ada |
 | `roadmap/backend-roadmap.md` | — | — | Menyatakan migration clearance belum dijalankan; lihat koreksi di atas |
-| `PHA-BE-001` | — | — | Source ada, laporan task tidak pernah ditulis; bukti acceptance belum tercatat |
+| `PHA-BE-001` | — | — | ✅ **Ditutup 5 Oktober 2026** — laporan acceptance retroaktif ada di [`task/report/backend/PHA-BE-001.md`](task/report/backend/PHA-BE-001.md); sembilan acceptance criteria terpenuhi by inspection, dua penyimpangan dicatat |
 
 ## Next recommended task
 
-1. **Tulis laporan acceptance `PHA-BE-001`** supaya `PHA-PH-008` punya bukti, bukan hanya source.
+1. **Putuskan protokol pengakuan surat dan nilai kolom pembayaran saat `REVOKED`** — dua
+   keputusan yang menahan `PHA-BE-004`, dan tidak akan terselesaikan oleh pengujian.
 2. **Serahkan `PHA-BE-006` ke analis penguji** untuk verifikasi runtime.
-3. **Putuskan protokol pengakuan surat dan nilai kolom pembayaran saat `REVOKED`** — dua keputusan
-   yang menahan `PHA-BE-004`, dan tidak akan terselesaikan oleh pengujian.
+3. **Tunggu `BE-BKC-067`/`068` dari owner Billing** sebelum `PHA-BE-004`/`005`/`006` dapat
+   diverifikasi runtime.
 
-Pengujian otomatis Farmasi diserahkan ke analis penguji. Bila nanti dibuat dari sisi
-pembangunan, polanya sudah terbukti pada `Tests/QuilvianSystemBackend.OperatingRoomTests`: xunit,
-SQLite dalam memori, dibangun dengan `-p:SkipMigrationMetadata=true`.
+`PHA-BE-001` dan `PHA-BE-002` keduanya sudah ditutup 5 Oktober 2026 — laporan acceptance dan
+`DepotRoutingTests.cs`. Keduanya tidak lagi menjadi sisa pekerjaan.
+
+Uji regresi Farmasi **sudah dibuat dari sisi pembangunan**:
+`Tests/QuilvianSystemBackend.PharmacyTests`, 530 uji, pola sama dengan
+`Tests/QuilvianSystemBackend.OperatingRoomTests` — xunit, SQLite dalam memori, dibangun dengan
+`-p:SkipMigrationMetadata=true`. Yang masih diserahkan ke analis penguji hanyalah **verifikasi
+runtime** `PHA-BE-006`, bukan uji unitnya.
 
 Setelah Billing menerbitkan `BE-BKC-067`/`068`, lanjutkan verifikasi runtime `PHA-BE-004`/`005`/
 `006` dan kerjakan `PHA-FE-002`.

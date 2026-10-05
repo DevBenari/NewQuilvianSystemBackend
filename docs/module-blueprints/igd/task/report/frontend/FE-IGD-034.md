@@ -238,3 +238,24 @@ penilaian ulang `FE-IGD-014` dicatat pada [laporannya](FE-IGD-014.md) bagian 9.
 | Interupsi | `NONE` |
 | Status Git | **Diperbarui 21 September 2026 (malam):** frontend **bersih** — pemilik meng-commit kelima berkas task (bersama dua berkas `FE-IGD-017`) sebagai `c941012ac`; `RizkiV2` `ahead 1` terhadap `origin` (belum di-push). Backend: source `BE-IGD-049`/`050` dan dokumen `igd/**` masih `M`/`??`, belum di-commit. Agent tidak melakukan stage atau commit |
 | Langkah berikutnya | (1) ~~Build dan uji layar~~ — dilaporkan lulus. (2) `FE-IGD-014` dinilai ulang — selesai ([laporan](FE-IGD-014.md) bagian 9). (3) Pemilik: push `c941012ac`; commit backend (`BE-IGD-049`, `BE-IGD-050`, dokumen). (4) Kueri audit encounter yatim A/B (`BE-IGD-050` acceptance 8). (5) Putuskan `IGD-OQ-093` bersama pemilik Registrasi |
+
+---
+
+## Verifikasi ulang sesudah kemunduran loket — 3 Oktober 2026
+
+**Mengapa diulang.** Commit frontend `4520abe64` (3 Oktober 09.23) mengembalikan `verification-step.jsx` ke versi
+30 Agustus 2026 (`c8613d88c`). Kotak kuning *"Pasien ini masih punya kunjungan IGD yang berjalan"*, tombol *Buka
+Kunjungan IGD*, dan penanda `processing` yang mencegah klik ganda — keluaran task ini — hilang dari layar. Logika
+pra-cek di hook tidak ikut berubah. Pemilik memulihkan berkas itu (commit `521b18a9a`, 10.31), lalu skenario yang
+menyentuh langkah Verifikasi diuji ulang pada **hasil build** (build agent 10.14) lewat agen penguji Antigravity.
+
+Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/uji-ulang-2026-10-03-sore/`, diperiksa agent; panduan:
+[2026-10-03-panduan-uji-ulang-fe-igd-036.md](../../../testing/2026-10-03-panduan-uji-ulang-fe-igd-036.md).
+
+| Skenario | Putusan | Yang teramati pada bukti mentah |
+| --- | --- | --- |
+| U1 | **Terbukti** | Pasien `00-00-02-25` (kunjungan `IGD-261003021124-4C83AE` menunggu triage), alasan kosong: `GET active-episode` `200` (`hasActiveEpisode: true`, `visit` terisi); kotak kuning memuat nomor kunjungan, status *Menunggu triage*, dan tombol *Buka Kunjungan IGD*; nol `POST /patient-encounters` |
+| U2 | **Terbukti** | Tombol *Buka Kunjungan IGD* → status kunjungan 2 → layar Triage `…/emergency-triage/rivaldo-januar-…` |
+| U6 | **Terbukti** | `dblclick` pada *Selesaikan Pendaftaran*: tepat satu `GET active-episode`; tombol nonaktif bertulisan *Memeriksa pendaftaran…*; nol `POST /patient-encounters` |
+
+Putusan: **tetap ✅** — perilaku task ini terbukti pulih pada source `521b18a9a`.

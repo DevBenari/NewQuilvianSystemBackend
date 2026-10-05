@@ -207,6 +207,11 @@ public sealed class InvoiceDetailResponse : InvoiceSummaryResponse
     public bool IsReplay { get; set; }
     public IReadOnlyList<InvoiceItemResponse> Items { get; set; } = [];
     public IReadOnlyList<DiscountResponse> Discounts { get; set; } = [];
+
+    // GET {id} (GetDetailAsync) hanya mengisi versi kalkulasi yang sedang berlaku, jadi satu elemen. Jalur tulis
+    // yang me-return InvoiceDetailResponse yang sama (from-source, void, catalog charge, other charge) tetap
+    // membawa seluruh riwayat versi invoice. Pembaca wajib memilih versi lewat CurrentCalculationVersion,
+    // bukan memakai posisi dalam daftar.
     public IReadOnlyList<CalculationResponse> CalculationVersions { get; set; } = [];
     // Hanya diisi oleh GetDetailAsync (layar Menu Pembayaran) - konteks pasien/kunjungan untuk
     // ditampilkan kasir, bukan bagian dari alur charge/void/recalculate lain yang me-return

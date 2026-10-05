@@ -17,6 +17,7 @@ public sealed class BilInvoiceConfiguration : IEntityTypeConfiguration<BilInvoic
         entity.Property(x => x.RowVersion).IsConcurrencyToken();
         entity.Property(x => x.InvoiceDate).HasColumnType("timestamp with time zone");
         entity.Property(x => x.ClosedAt).HasColumnType("timestamp with time zone");
+        entity.Property(x => x.VisitDate).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
         entity.Property(x => x.CreateDateTime).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
         entity.Property(x => x.UpdateDateTime).HasColumnType("timestamp with time zone");
         entity.Property(x => x.DeleteDateTime).HasColumnType("timestamp with time zone");
@@ -25,6 +26,15 @@ public sealed class BilInvoiceConfiguration : IEntityTypeConfiguration<BilInvoic
         entity.Property(x => x.IsCancel).HasDefaultValue(false);
         entity.HasIndex(x => x.EncounterId).IsUnique();
         entity.HasIndex(x => x.InvoiceNumber).IsUnique();
+
+        // Indeks untuk daftar Running Invoice (GET /billing/invoices). Dibuat parsial pada IsDelete = false
+        // karena setiap query daftar selalu menyaring data yang belum dihapus.
+        // 1) Status + CreateDateTime menurun: saringan status dan urutan terbaru-dulu terlayani satu indeks.
+        // 2) VisitDate: saringan rentang tanggal kunjungan (periode hari ini, 7 hari, 30 hari, atau rentang bebas).
+        entity.HasIndex(x => new { x.Status, x.CreateDateTime })
+            .IsDescending(false, true)
+            .HasFilter("\"IsDelete\" = false");
+        entity.HasIndex(x => x.VisitDate).HasFilter("\"IsDelete\" = false");
         entity.HasMany(x => x.Items).WithOne(x => x.Invoice).HasForeignKey(x => x.InvoiceId).OnDelete(DeleteBehavior.Restrict);
         entity.HasMany(x => x.CalculationVersions).WithOne(x => x.Invoice).HasForeignKey(x => x.InvoiceId).OnDelete(DeleteBehavior.Restrict);
     }

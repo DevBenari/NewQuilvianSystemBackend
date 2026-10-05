@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | Baseline task `48a78703` pada branch `rizkiG`. Source task ini di-commit pemilik sebagai `3bd999ef`; lalu merge `62c8360a` dari `QuilvianIntegrationBackend`; lalu migration dan snapshot sebagai `dce1f138`. Seluruhnya sudah di-push ke `origin/rizkiG` |
 | Tanggal | 22 September 2026 (implementasi); 23 September 2026 (merge, migration, uji, penandaan) |
-| Status | ✅ **SELESAI atas penilaian pemilik — 23 September 2026.** Implementation Complete; **Build Verified** dari artefak (DLL 10.23, memuat literal penjaga `Down()`; jumlah warning tidak dilaporkan); **migration `20260923021224_AddEmergencyArrivalTimeSource` dibuat dan diterapkan pemilik** ke dev, `Up()` diperiksa agent dan bersih; **uji `Down()` berpenjaga dijalankan agent** pada basis data terpisah dan lulus empat tahap; **uji API S1–S15 dinyatakan lulus semua oleh pemilik** (lingkungan Development, dengan tangkapan layar S13 sebagai lampiran; skenario lain tanpa badan respons, agent tidak mengamati). Kriteria 10 terpenuhi sebagian: 0 error terbukti dari artefak, tetapi jumlah warning tidak dilaporkan sehingga kesamaannya dengan baseline tidak dapat dinyatakan. Sebelumnya 🟡 pada 22 September 2026 |
+| Status | ✅ **SELESAI — 2 Oktober 2026.** Delta `IGD-DEC-179` terbukti: build pemilik (DLL 1 Oktober 2026 15.18) dan uji API D1–D6 **6 dari 6** pada bukti mentah. Sepuluh kriteria asli tetap seperti 23 September 2026. Jumlah warning build tidak dilaporkan. Tanpa UAT. *Sebelumnya:* 🟡 **SEBAGIAN — 1 Oktober 2026 (delta `IGD-DEC-179`, bagian 8).** Sepuluh kriteria asli tidak berubah (keadaan 23 September 2026 di bawah). Atas perintah pemilik, `start-triage` kini menerima lima ruas kunjungan opsional; source ditulis (2 berkas, +41/−2), QBE checker `PASS`; **belum** build pemilik dan uji API D1–D6. *Sebelumnya:* ✅ **SELESAI atas penilaian pemilik — 23 September 2026.** Implementation Complete; **Build Verified** dari artefak (DLL 10.23, memuat literal penjaga `Down()`; jumlah warning tidak dilaporkan); **migration `20260923021224_AddEmergencyArrivalTimeSource` dibuat dan diterapkan pemilik** ke dev, `Up()` diperiksa agent dan bersih; **uji `Down()` berpenjaga dijalankan agent** pada basis data terpisah dan lulus empat tahap; **uji API S1–S15 dinyatakan lulus semua oleh pemilik** (lingkungan Development, dengan tangkapan layar S13 sebagai lampiran; skenario lain tanpa badan respons, agent tidak mengamati). Kriteria 10 terpenuhi sebagian: 0 error terbukti dari artefak, tetapi jumlah warning tidak dilaporkan sehingga kesamaannya dengan baseline tidak dapat dinyatakan. Sebelumnya 🟡 pada 22 September 2026 |
 
 ### Backend Governance Preflight
 
@@ -372,3 +372,122 @@ Source, migration, dan snapshot task ini **sudah di-commit dan di-push pemilik**
  M docs/module-blueprints/igd/roadmap/requirement-traceability.md    (penandaan status)
  M docs/module-blueprints/igd/task/report/backend/BE-IGD-055.md      (laporan ini)
 ```
+
+---
+
+## 8. Delta 1 Oktober 2026 — lima ruas kunjungan opsional (`IGD-DEC-179`)
+
+| Field | Nilai |
+| --- | --- |
+| Jenis | Pengerjaan ulang `BE-IGD-055` — tambahan kontrak atas perintah pemilik, bukan kartu baru |
+| Wewenang | Rizki Gunawan, 1 Oktober 2026: *"pulihkan lima ruas opsional di start-triage dan lima isian di dialog Mulai Triage, tanpa migration karena kolomnya sudah ada … saya perintahkan untuk di pulihkan"* |
+| Contract version | API `0.13.0` §8.3.2 (lima baris ruas baru), validation `0.10.0` §10.2 aturan 14–15; nomor versi tidak dinaikkan (manifest bagian 0j.3) |
+| Klasifikasi | `LIGHT` — 2 berkas source, nol endpoint baru, nol schema, nol izin baru |
+| Commit backend saat dikerjakan | `rizkiG` `b9076c71` + working tree R3.13/R3.14 yang belum di-commit |
+| Preflight | Tidak berubah dari tabel di atas: `HealthServices` / `EmergencyInstallationManagement`, prefix `Emg`, `TOUCHED LEGACY`; QBE yang berlaku `QBE-SVC-001`, `QBE-VAL-001`, `QBE-DTO-001`, `QBE-API-001` |
+| Status | 🟡 Implementation Complete — menunggu build pemilik dan uji API D1–D6 |
+
+### 8.1 Masalah
+
+Sejak `FE-IGD-036`, loket hanya membuat encounter, sehingga isian kunjungan tidak lagi dikirim dari loket. Kartu
+`FE-IGD-036` menyebut lokasi dan waktu trauma *pindah* ke Mulai Triage, tetapi `start-triage` tidak menerima
+ruasnya. Akibatnya lima kolom `EmgVisit` — lokasi kedatangan, lokasi ditemukan, lokasi trauma, waktu trauma,
+catatan — selalu kosong untuk kunjungan baru. Kolomnya sendiri tidak pernah dihapus.
+
+### 8.2 Perilaku baru
+
+1. `POST /start-triage` menerima lima ruas tambahan, seluruhnya opsional.
+2. Teks di-*trim*; teks kosong disimpan `null`.
+3. Waktu trauma dinormalkan ke UTC; bila melewati jam server, permintaan ditolak `400` **sebelum** apa pun dibaca
+   dari basis data.
+4. Kelima nilai ditulis **hanya saat kunjungan lahir** (`201`), pada kedua mode.
+5. Pada jawaban idempoten `200`, kelimanya diabaikan — sama seperti cara datang dan jenis kasus hari ini.
+
+*Contoh.* Perawat menekan Mulai Triage untuk korban kecelakaan, mengisi lokasi trauma "Jl. Sudirman km 3" dan
+waktu trauma 08.50. Kunjungan lahir `WaitingForTriage` dengan kedua nilai itu tersimpan dan tampil pada respons.
+
+### 8.3 Berkas yang berubah
+
+| Berkas | Perubahan |
+| --- | --- |
+| `…/DTOs/EmergencyVisitDtos.cs` | `StartEmergencyVisitRequest` + `ArrivalLocation`, `FoundLocation`, `TraumaLocation` (`MaxLength(250)`), `TraumaDateTime`, `Notes` (`MaxLength(1000)`) — +14 baris |
+| `…/Services/EmergencyVisitService.cs` | `MasukanMulaiKunjungan` + lima anggota; `StartVisitAsync` menormalkan dan memeriksa waktu trauma lalu meneruskan kelima nilai; `MulaiKunjunganDalamKunciAsync` mengisinya pada `EmgVisit` baru — +27/−2 baris |
+
+Nol perubahan pada controller, model, konfigurasi EF, `Program.cs`, `Migrations/`, dan berkas Registrasi. Nol baris
+komentar ditambah. Batas panjang mengikuti kolom yang sudah ada (`EmgVisit.cs`: 250, 250, 250, 1000).
+
+**Selisih yang boleh ditolak pemilik.**
+
+| No | Selisih | Alasan |
+| ---: | --- | --- |
+| 1 | Waktu trauma di masa depan ditolak `400` *"Waktu trauma tidak boleh melewati waktu sekarang."* | Tidak diperintahkan pemilik. Jalur lama `POST /emergency-visits` tidak memeriksanya. Diusulkan karena waktu trauma yang belum terjadi pasti salah ketik, dan aturannya sejenis dengan aturan waktu tiba |
+| 2 | Panjang berlebih dijawab `400` validasi model bawaan ASP.NET, bukan pesan berbahasa Indonesia | Sama dengan `chiefComplaint` hari ini; layar membatasi panjang isian sehingga jalur ini tidak tercapai dari layar |
+| 3 | `traumaDateTime` tanpa zona waktu dianggap UTC | Konvensi `NormalizeUtc` yang sama dengan waktu tiba (selisih 6 di bagian 3.2) |
+
+### 8.4 Dampak kontrak API, database, dan keamanan
+
+| Aspek | Dampak |
+| --- | --- |
+| Kontrak API | **Aditif.** Lima ruas request opsional pada `POST /start-triage`. Permintaan lama tetap sah. Response tidak berubah — kelima ruas sudah ada pada `EmergencyVisitResponse` |
+| Database | **Nol.** Kolom sudah ada; nol migration |
+| Keamanan/Auth | Tidak berubah — izin `EmergencyVisit : Create` |
+
+### 8.5 Verifikasi
+
+| Skenario atau perintah | Hasil | Klasifikasi |
+| --- | --- | --- |
+| Pembacaan diff dan scope | 2 berkas source, seluruhnya di modul IGD | `PASS` |
+| Nol baris komentar baru | `git diff -U0` baris tambahan berawalan komentar = 0 | `PASS` |
+| QBE checker `-Mode Strict` | 15 berkas, 0 `VIOLATION`, 0 `REVIEW` | `PASS` |
+| Format berkas | CRLF dan BOM dipertahankan | `PASS` |
+| `dotnet build` | Tidak dijalankan agent — milik pemilik | `NOT RUN` |
+| Uji API D1–D6 | Belum dijalankan | `NOT RUN` |
+
+AUTOMATED TEST: SKIPPED (opsional) — atas perintah pemilik 1 Oktober 2026 (tanpa unit test).
+
+Perintah build: `dotnet build ./QuilvianSystemBackend.sln -p:RunAnalyzers=false`.
+
+### 8.6 Skenario uji API untuk pemilik
+
+Token pemegang `EmergencyVisit : Create`. "Encounter baru" = encounter `Emergency` yang belum punya kunjungan.
+
+| Skenario | Langkah | Hasil yang diharapkan |
+| --- | --- | --- |
+| D1 | Encounter baru; `mode: "Triage"`, `arrivalDateTime` sah, ditambah `arrivalLocation: "  Pintu ambulans  "`, `foundLocation`, `traumaLocation`, `traumaDateTime` = 1 jam lalu, `notes` | `201`; respons membawa kelima ruas; `arrivalLocation` = `"Pintu ambulans"` (spasi tepi hilang); `GET /{id}` menampilkan nilai yang sama |
+| D2 | Encounter baru; `mode: "Triage"` tanpa kelima ruas | `201`; kelima ruas `null` — perilaku lama tidak berubah |
+| D3 | Encounter baru; `traumaDateTime` = sekarang + 1 jam | `400` *"Waktu trauma tidak boleh melewati waktu sekarang."*; encounter itu tetap tanpa kunjungan |
+| D4 | Encounter baru; `arrivalLocation` 251 karakter; lalu `notes` 1001 karakter | Keduanya `400`; encounter itu tetap tanpa kunjungan |
+| D5 | Ulangi `start-triage` pada encounter D1 dengan `traumaLocation` berbeda | `200`; `traumaLocation` **tetap** nilai D1 |
+| D6 | Encounter baru; `mode: "ImmediateCare"` ditambah `traumaLocation` dan `notes` | `201`; `visitStatus` 4; kedua ruas tersimpan; `arrivalTimeSource` tetap 1 (fallback) |
+
+### 8.7 Catatan
+
+| Hal | Isi |
+| --- | --- |
+| Pasangan layar | `FE-IGD-036` (pengerjaan ulang, hari yang sama) — dialog Mulai Triage mengirim kelima ruas |
+| Keterbatasan | Sesudah kunjungan lahir, kelima ruas hanya dapat diubah lewat `PUT /emergency-visits/{id}`; tidak ada layar yang memakainya. Tangani Segera dari layar tetap tanpa isian, jadi kelima ruas kosong pada jalur itu |
+| Perubahan sampingan | `NONE` |
+| Status Git | Tidak ada stage maupun commit |
+
+---
+
+## Pemeriksaan bukti uji gabungan — 2 Oktober 2026
+
+Bukti mentah di `QuilvianSystemFrontendDev/test-with-agy/igd/` (`results-tahap-1.json`…`results-tahap-4.json`, skrip `test-tahap-*.mjs`, tangkapan layar `<ID>.png`) dan log backend `Logs/quilvian-backend-20261001.json`, `quilvian-backend-20261002.json`. Ringkasan agen penguji ([laporan uji gabungan](../../../testing/2026-10-01-laporan-uji-gabungan-r313-r314.md)) **tidak** dipakai sebagai bukti: uraian skenarionya pada beberapa task tidak sama dengan panduan, dan daftar `FAIL`-nya tidak cocok dengan JSON mentah.
+
+Build pemilik terbukti dari artefak: `bin/Debug/net9.0/QuilvianSystemBackend.dll` bertanggal 1 Oktober 2026 15.18, sesudah edit source terakhir (14.54); jumlah warning tidak dilaporkan. Source di-commit pemilik sebagai `74a72399`.
+
+| Skenario | Putusan | Yang teramati pada bukti mentah |
+| --- | --- | --- |
+| `055-D1` | **Terbukti** | `201`; kelima ruas tersimpan; `arrivalLocation` terpangkas menjadi `"Pintu ambulans"`; `GET /{id}` sama |
+| `055-D2` | **Terbukti** | `201`; kelima ruas `null` |
+| `055-D3` | **Terbukti** | `400` *"Waktu trauma tidak boleh melewati waktu sekarang."*; `active-episode` masih menyebut pasien menunggu triage |
+| `055-D4` | **Terbukti** | 251 karakter → `400` validasi model `ArrivalLocation`; 1001 karakter → `400` validasi model `Notes` |
+| `055-D5` | **Terbukti** | `200` *"…sudah ada dengan status WaitingForTriage."*; `traumaLocation` tetap `"Halte Busway"` |
+| `055-D6` | **Terbukti** | `201`; `visitStatus` 4; `arrivalTimeSource` 1; `traumaLocation` dan `notes` tersimpan |
+
+**Catatan.**
+
+- Usulan agent "waktu trauma di masa depan → `400`" bekerja dan tidak ditolak pemilik sampai tanggal ini.
+
+Putusan: **✅ selesai** — Delta `IGD-DEC-179` terbukti: build pemilik (DLL 1 Oktober 2026 15.18) dan uji API D1–D6 **6 dari 6** pada bukti mentah. Sepuluh kriteria asli tetap seperti 23 September 2026. Jumlah warning build tidak dilaporkan. Tanpa UAT.

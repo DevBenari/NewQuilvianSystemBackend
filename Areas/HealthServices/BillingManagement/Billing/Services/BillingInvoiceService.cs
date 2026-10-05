@@ -98,6 +98,13 @@ public sealed class BillingInvoiceService
 
         var (utcFrom, utcTo) = ResolveDateRangeUtc(request.StartDate, request.EndDate, request.VisitDateFrom, request.VisitDateTo, period);
 
+        // Saringan tanggal memakai kolom VisitDate milik BilInvoice sendiri (salinan EncounterDate saat invoice
+        // dibuat, atau InvoiceDate/CreateDateTime bila kunjungannya tidak terbaca - lihat migration
+        // OptimizeRunningInvoiceQueries). Kolom ini ber-indeks, dan saringannya jalan sebelum join ke
+        // kunjungan/pasien sehingga tidak ada lagi CASE lintas tabel yang memaksa semua invoice digabung dulu.
+        if (utcFrom.HasValue) query = query.Where(x => x.VisitDate >= utcFrom.Value);
+        if (utcTo.HasValue) query = query.Where(x => x.VisitDate <= utcTo.Value);
+
         // Identitas pasien di-join dari encounter. Left join dipertahankan lewat DefaultIfEmpty
         // supaya invoice dengan encounter yang tidak terbaca tetap muncul di daftar - hilang dari
         // daftar tagihan jauh lebih berbahaya daripada tampil tanpa nama.
@@ -111,26 +118,25 @@ public sealed class BillingInvoiceService
             from patient in patientGroup.DefaultIfEmpty()
             select new { invoice, encounter, patient };
 
-        if (!string.IsNullOrWhiteSpace(request.Search))
+        // ILIKE (bukan UPPER(kolom) LIKE) supaya indeks trigram pg_trgm bisa dipasang kelak tanpa mengubah query.
+        // Saat ini indeks trigram BELUM ada (butuh ekstensi pg_trgm), jadi pencarian teks belum dipercepat.
+        // Karakter khusus pola (%, _, \) pada ketikan pengguna di-escape lebih dulu; Contains() sebelumnya
+        // melakukannya otomatis.
+        var hasSearch = !string.IsNullOrWhiteSpace(request.Search);
+        if (hasSearch)
         {
-            var search = request.Search.Trim().ToUpper();
+            var pattern = BuildContainsPattern(request.Search!);
             joined = joined.Where(x =>
-                x.invoice.InvoiceNumber.ToUpper().Contains(search) ||
-                (x.patient != null && x.patient.FullName.ToUpper().Contains(search)) ||
-                (x.patient != null && x.patient.MedicalRecordNumber.ToUpper().Contains(search)));
+                EF.Functions.ILike(x.invoice.InvoiceNumber, pattern, "\\") ||
+                (x.patient != null && EF.Functions.ILike(x.patient.FullName, pattern, "\\")) ||
+                (x.patient != null && EF.Functions.ILike(x.patient.MedicalRecordNumber, pattern, "\\")));
         }
 
-        if (utcFrom.HasValue)
-        {
-            joined = joined.Where(x => (x.encounter != null && x.encounter.EncounterDate != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) >= utcFrom.Value);
-        }
-
-        if (utcTo.HasValue)
-        {
-            joined = joined.Where(x => (x.encounter != null && x.encounter.EncounterDate != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) <= utcTo.Value);
-        }
-
-        var total = await joined.CountAsync(cancellationToken);
+        // Join ke kunjungan dan pasien bersifat left join pada kunci unik, jadi tidak pernah menambah atau
+        // mengurangi baris. Tanpa pencarian, jumlah total cukup dihitung dari tabel invoice saja.
+        var total = hasSearch
+            ? await joined.CountAsync(cancellationToken)
+            : await query.CountAsync(cancellationToken);
         // Pass 1: halaman yang dipaginasi, murni dari invoice/encounter/patient yang sudah di-join.
         var page = await joined.OrderByDescending(x => x.invoice.CreateDateTime)
             .Skip((request.PageNumber - 1) * request.PageSize).Take(request.PageSize)
@@ -144,9 +150,6 @@ public sealed class BillingInvoiceService
                 x.invoice.ServiceType,
                 x.invoice.Status,
                 x.invoice.CurrentCalculationVersion,
-                RunningGrossAmount = x.invoice.Items.Where(i => !i.IsDelete && i.Status != BillingInvoiceItemStatuses.Voided)
-                    .Sum(i => i.Quantity * i.UnitPrice),
-                ActiveItemCount = x.invoice.Items.Count(i => !i.IsDelete && i.Status != BillingInvoiceItemStatuses.Voided),
                 x.invoice.CreateDateTime,
                 x.invoice.RowVersion,
                 VisitDate = x.encounter != null ? (DateTime?)x.encounter.EncounterDate : null,
@@ -155,6 +158,27 @@ public sealed class BillingInvoiceService
 
         var encounterIds = page.Select(x => x.EncounterId).Distinct().ToList();
         var clinicIds = page.Where(x => x.ClinicId.HasValue).Select(x => x.ClinicId!.Value).Distinct().ToList();
+
+        // Pass 2 (total item): jumlah dan nilai kotor item aktif per invoice pada halaman ini, dihitung satu
+        // kali lewat GROUP BY. Sebelumnya dua subquery korelasi (Sum dan Count) dijalankan per baris halaman,
+        // masing-masing memindai item invoice yang sama.
+        var pageInvoiceIds = page.Select(x => x.Id).ToList();
+        var itemTotalsByInvoice = new Dictionary<Guid, (decimal GrossAmount, int ActiveCount)>();
+        if (pageInvoiceIds.Count > 0)
+        {
+            var itemTotalRows = await _dbContext.BilInvoiceItems.AsNoTracking()
+                .Where(i => pageInvoiceIds.Contains(i.InvoiceId) && !i.IsDelete && i.Status != BillingInvoiceItemStatuses.Voided)
+                .GroupBy(i => i.InvoiceId)
+                .Select(g => new
+                {
+                    InvoiceId = g.Key,
+                    GrossAmount = g.Sum(i => i.Quantity * i.UnitPrice),
+                    ActiveCount = g.Count()
+                })
+                .ToListAsync(cancellationToken);
+            foreach (var itemTotalRow in itemTotalRows)
+                itemTotalsByInvoice[itemTotalRow.InvoiceId] = (itemTotalRow.GrossAmount, itemTotalRow.ActiveCount);
+        }
 
         // Pass 2a: nama poliklinik untuk kunjungan RAJAL - hanya diambil bila memang dibutuhkan.
         var clinicNameById = clinicIds.Count == 0
@@ -209,6 +233,10 @@ public sealed class BillingInvoiceService
             primaryGuarantorByEncounter.TryGetValue(x.EncounterId, out var guarantor);
             var paymentType = guarantor?.PaymentType ?? EncounterPaymentType.Cash;
 
+            // Invoice tanpa item aktif tidak muncul di hasil GROUP BY; nilai bawaan tuple (0, 0) sama
+            // dengan hasil Sum/Count atas himpunan kosong pada query sebelumnya.
+            itemTotalsByInvoice.TryGetValue(x.Id, out var itemTotals);
+
             string? guarantorName = paymentType == EncounterPaymentType.Cash
                 ? null
                 : !string.IsNullOrWhiteSpace(guarantor!.PaymentSourceNameSnapshot)
@@ -239,8 +267,8 @@ public sealed class BillingInvoiceService
                 ServiceType = x.ServiceType,
                 Status = x.Status,
                 CurrentCalculationVersion = x.CurrentCalculationVersion,
-                RunningGrossAmount = x.RunningGrossAmount,
-                ActiveItemCount = x.ActiveItemCount,
+                RunningGrossAmount = itemTotals.GrossAmount,
+                ActiveItemCount = itemTotals.ActiveCount,
                 CreateDateTime = x.CreateDateTime,
                 RowVersion = x.RowVersion,
                 VisitDate = x.VisitDate,
@@ -263,6 +291,17 @@ public sealed class BillingInvoiceService
             TotalPage = (int)Math.Ceiling(total / (double)request.PageSize),
             Items = items
         };
+    }
+
+    // Pola ILIKE "mengandung teks": karakter khusus pola di-escape dengan backslash, lalu dibungkus %.
+    // Dipanggil bersama EF.Functions.ILike(kolom, pola, "\\").
+    private static string BuildContainsPattern(string search)
+    {
+        var escaped = search.Trim()
+            .Replace("\\", "\\\\")
+            .Replace("%", "\\%")
+            .Replace("_", "\\_");
+        return $"%{escaped}%";
     }
 
     // Label "Tipe Pasien" khusus daftar Running Invoice - berbeda dari MapPaymentTypeLabel yang
@@ -946,13 +985,29 @@ public sealed class BillingInvoiceService
 
     public async Task<InvoiceDetailResponse> GetDetailAsync(Guid id, CancellationToken cancellationToken)
     {
-        var invoice = await _dbContext.BilInvoices.AsNoTracking()
+        // AsSplitQuery: Items dan DiscountApplications adalah dua collection bersaudara. Dalam satu query,
+        // keduanya saling dikalikan (item x diskon) sehingga jumlah baris yang dikirim database membengkak.
+        // Dipecah menjadi query terpisah per collection, jumlah barisnya hanya dijumlahkan.
+        var invoice = await _dbContext.BilInvoices.AsNoTracking().AsSplitQuery()
             .Include(x => x.Items).ThenInclude(x => x.Category)
             .Include(x => x.Items).ThenInclude(x => x.Tariff).ThenInclude(x => x!.Drug).ThenInclude(x => x!.DispenseUnitMeasurement)
             .Include(x => x.DiscountApplications).ThenInclude(x => x.DiscountPolicy)
-            .Include(x => x.CalculationVersions)
             .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Invoice Billing tidak ditemukan.");
+
+        // Hanya versi kalkulasi yang sedang berlaku yang dikirim (kontrak BIL-API-1.0: field calculationVersions
+        // tetap ada, isinya satu elemen). Setiap versi membawa BreakdownSnapshot (jsonb) yang besar dan
+        // bertambah setiap kalkulasi ulang, sedangkan layar kasir hanya membaca versi yang berlaku
+        // (use-menu-pembayaran.js dan billing-invoice-calculation-breakdown.js). Bila versi yang berlaku
+        // tidak ada barisnya, versi tertinggi dipakai - sama dengan cadangan yang dipakai frontend.
+        var currentVersion = await _dbContext.BilCalculationVersions.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.InvoiceId == id && !x.IsDelete && x.VersionNo == invoice.CurrentCalculationVersion, cancellationToken)
+            ?? await _dbContext.BilCalculationVersions.AsNoTracking()
+                .Where(x => x.InvoiceId == id && !x.IsDelete)
+                .OrderByDescending(x => x.VersionNo)
+                .FirstOrDefaultAsync(cancellationToken);
+        if (currentVersion is not null) invoice.CalculationVersions.Add(currentVersion);
+
         var response = MapDetail(invoice, false);
         response.Patient = await LoadPatientSummaryAsync(invoice.EncounterId, cancellationToken);
         return response;
@@ -1366,69 +1421,77 @@ public sealed class BillingInvoiceService
     private async Task<InvoicePatientSummaryResponse?> LoadPatientSummaryAsync(
         Guid encounterId, CancellationToken cancellationToken)
     {
+        // Satu query untuk kunjungan, pasien, serta nama kamar, unit layanan, kelas, penjamin, dan dokter
+        // (subquery skalar per nama). Sebelumnya enam query berurutan, masing-masing satu round trip.
         var row = await (
             from encounter in _dbContext.RegPatientEncounters.AsNoTracking()
             join patient in _dbContext.MstPatients.AsNoTracking()
                 on encounter.PatientId equals patient.Id
             where encounter.Id == encounterId && !encounter.IsDelete
-            select new { encounter, patient })
+            select new
+            {
+                encounter,
+                patient,
+                RoomName = _dbContext.MstRooms
+                    .Where(x => x.Id == encounter.RoomId)
+                    .Select(x => (string?)x.RoomName)
+                    .FirstOrDefault(),
+                ServiceUnitName = _dbContext.MstServiceUnits
+                    .Where(x => x.Id == encounter.ServiceUnitId)
+                    .Select(x => (string?)x.ServiceUnitName)
+                    .FirstOrDefault(),
+                PatientClassName = _dbContext.MstPatientClasses
+                    .Where(x => x.Id == encounter.PatientClassId)
+                    .Select(x => (string?)x.PatientClassName)
+                    .FirstOrDefault(),
+                GuarantorName = _dbContext.RegPatientEncounterGuarantors
+                    .Where(x => x.EncounterId == encounterId && x.IsActive)
+                    .Select(x => x.PaymentSourceNameSnapshot)
+                    .FirstOrDefault(),
+                DoctorName = _dbContext.MstDoctors
+                    .Where(d => d.Id == encounter.DoctorId && !d.IsDelete)
+                    .Select(d => (string?)d.FullName)
+                    .FirstOrDefault()
+            })
             .FirstOrDefaultAsync(cancellationToken);
         if (row is null) return null;
 
-        var roomName = row.encounter.RoomId.HasValue
-            ? await _dbContext.MstRooms.AsNoTracking()
-                .Where(x => x.Id == row.encounter.RoomId.Value)
-                .Select(x => (string?)x.RoomName)
-                .FirstOrDefaultAsync(cancellationToken)
-            : null;
-        var serviceUnitName = await _dbContext.MstServiceUnits.AsNoTracking()
-            .Where(x => x.Id == row.encounter.ServiceUnitId)
-            .Select(x => (string?)x.ServiceUnitName)
-            .FirstOrDefaultAsync(cancellationToken);
-        var patientClassName = row.encounter.PatientClassId.HasValue
-            ? await _dbContext.MstPatientClasses.AsNoTracking()
-                .Where(x => x.Id == row.encounter.PatientClassId.Value)
-                .Select(x => (string?)x.PatientClassName)
-                .FirstOrDefaultAsync(cancellationToken)
-            : null;
-        var guarantorName = await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
-            .Where(x => x.EncounterId == encounterId && x.IsActive)
-            .Select(x => x.PaymentSourceNameSnapshot)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        string? doctorName = null;
-        if (row.encounter.DoctorId.HasValue)
-        {
-            doctorName = await _dbContext.MstDoctors.AsNoTracking()
-                .Where(d => d.Id == row.encounter.DoctorId.Value && !d.IsDelete)
-                .Select(d => d.FullName)
-                .FirstOrDefaultAsync(cancellationToken);
-        }
+        var roomName = row.RoomName;
+        var serviceUnitName = row.ServiceUnitName;
+        var patientClassName = row.PatientClassName;
+        var guarantorName = row.GuarantorName;
+        var doctorName = row.DoctorName;
 
         string? bedName = null;
         string? bedNumber = null;
         DateTime? admissionDateTime = null;
 
+        // Episode terbaru beserta tempat tidur aktif terakhirnya dalam satu query (dua subquery skalar),
+        // menggantikan query episode lalu query penempatan + Include(Bed).
         var episode = await _dbContext.Set<InpEpisode>().AsNoTracking()
             .Where(e => e.EncounterId == encounterId && !e.IsDelete)
             .OrderByDescending(e => e.CreateDateTime)
+            .Select(e => new
+            {
+                e.AdmittedAt,
+                BedName = _dbContext.InpBedPlacements
+                    .Where(p => p.EpisodeId == e.Id && !p.IsDelete && p.IsActive)
+                    .OrderByDescending(p => p.StartDateTime)
+                    .Select(p => (string?)p.Bed!.BedName)
+                    .FirstOrDefault(),
+                BedNumber = _dbContext.InpBedPlacements
+                    .Where(p => p.EpisodeId == e.Id && !p.IsDelete && p.IsActive)
+                    .OrderByDescending(p => p.StartDateTime)
+                    .Select(p => (string?)p.Bed!.BedNumber)
+                    .FirstOrDefault()
+            })
             .FirstOrDefaultAsync(cancellationToken);
 
         if (episode != null)
         {
             admissionDateTime = episode.AdmittedAt;
-
-            var placement = await _dbContext.InpBedPlacements.AsNoTracking()
-                .Where(p => p.EpisodeId == episode.Id && !p.IsDelete && p.IsActive)
-                .OrderByDescending(p => p.StartDateTime)
-                .Include(p => p.Bed)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (placement?.Bed != null)
-            {
-                bedName = placement.Bed.BedName;
-                bedNumber = placement.Bed.BedNumber;
-            }
+            bedName = episode.BedName;
+            bedNumber = episode.BedNumber;
         }
 
         return new InvoicePatientSummaryResponse
@@ -1540,6 +1603,8 @@ public sealed class BillingInvoiceService
                     Status = BillingInvoiceStatuses.Open,
                     CurrentCalculationVersion = 0,
                     RowVersion = Guid.NewGuid(),
+                    // Salinan tanggal kunjungan untuk filter dan indeks daftar Running Invoice (lihat BilInvoice.VisitDate).
+                    VisitDate = encounter.EncounterDate,
                     CreateDateTime = DateTime.UtcNow,
                     CreateBy = actorUserId
                 };
