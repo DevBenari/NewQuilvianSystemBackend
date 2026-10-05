@@ -1,15 +1,44 @@
 {
+  "backendVersion": "0.11.0",
+  "description": "Release 0.11.0 enhances Billing Management, Clinical Management, Emergency Management, Finance Management, Inpatient Management, Medical Record Management, Operating Room Management, Pharmacy Management, Registration Management capabilities. Includes improvements across Billing Workflow, Finance Workflow, Pharmacy Workflow. Includes 16 database migration update(s).",
   "releaseMetadata": {
-    "migrationCount": 0,
-    "generatedAt": "2026-10-02T06:56:43",
-    "modules": [
-      "Laboratory Management"
-    ],
+    "migrationCount": 16,
     "generatedBy": "Quilvian Release Generator",
-    "features": [],
-    "migrations": []
+    "migrations": [
+      "20260930080625_TableFinPurchasingIdempotencyRecord.cs",
+      "20261001023520_AddEmergencyDuplicateEpisodeOverride.cs",
+      "20261001040508_AddCliDoctorCertificate.cs",
+      "20261001043557_AddMstDiagnosisGroup.cs",
+      "20261001090000_AddClaimTrackingToFinReceivableInvoiceBatch.cs",
+      "20261001100000_AddFinNonPatientReceivable.cs",
+      "20261002091515_SetFinPurchasingIdempotencyRecordDefaultValues.cs",
+      "20261002093000_AddFinanceSubledgerMovementLedgers.cs",
+      "20261002103000_AddFinanceSubledgerSetup.cs",
+      "20261002120000_AddFinanceTransactionProofAndDirectPaymentThreshold.cs",
+      "20261002130000_AddFinanceOpeningItemMigration.cs",
+      "20261002140000_FixFinSupplierPayableMovementForeignKey.cs",
+      "20261002150000_FixFinPurchasingIdempotencyRecord.cs",
+      "20261003090000_RelaxFinCashMovementAmountForZeroOpeningBalance.cs",
+      "20261004090000_AlterMstDirectPaymentThresholdRowVersion.cs",
+      "20261005090000_OptimizeRunningInvoiceQueries.cs"
+    ],
+    "modules": [
+      "Billing Management",
+      "Clinical Management",
+      "Emergency Management",
+      "Finance Management",
+      "Inpatient Management",
+      "Medical Record Management",
+      "Operating Room Management",
+      "Pharmacy Management",
+      "Registration Management"
+    ],
+    "features": [
+      "Billing Workflow",
+      "Finance Workflow",
+      "Pharmacy Workflow"
+    ],
+    "generatedAt": "2026-10-05T08:42:06"
   },
-  "releaseName": "Quilvian 0.10.0 - Laboratory Management Enhancement",
-  "backendVersion": "0.10.0",
-  "description": "Release 0.10.0 enhances Laboratory Management capabilities."
+  "releaseName": "Quilvian 0.11.0 - Enterprise Platform Enhancement"
 }
