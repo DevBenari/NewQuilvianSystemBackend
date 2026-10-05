@@ -58,6 +58,18 @@ last_impact_scan_bagian_20: >
   sudah CLOSED hari yang sama oleh alias pada DataTable, dan ANGKANYA DIKOREKSI di 20.14: 59 pemakaian,
   bukan 191. FIN-OQ-084 juga CLOSED.
   Delapan keputusan 4 Oktober 2026 BELUM tercermin di source — source bukan lagi rujukan perilaku target.
+last_impact_scan_bagian_21: >
+  46fa2a91 (backend) dan 0ed37b5c4 (frontend), 5 Oktober 2026 — lihat bagian 21. Pass IMPACT SCAN TERARAH atas
+  klaster piutang manfaat karyawan (EPIC FIN-04) sesudah /grill-me FIN-DEC-161..175. Bagian 1-20 TIDAK diaudit
+  ulang menyeluruh dan tetap tertambat pada SHA masing-masing.
+  Working tree TIDAK bersih pada kedua repository (pekerjaan Data Tagihan BE-FIN-FIX-001 / FE-FIN-FIX-001 belum
+  di-commit); bukti dari berkas itu ditandai @working-tree-2026-10-05.
+  TEMUAN PALING MATERIAL: fakta F44 dan F47 pass /grill-me DIKOREKSI. Registrasi SUDAH punya mekanisme penjamin
+  perusahaan dengan nomor karyawan, plan, eligibilitas, dan plafon (hanya tanpa hubungan keluarga dan tanpa tautan
+  ke HR); HR SUDAH punya struktur sumber-luar pada potongan gaji (preseden modul Cuti). V1 menentukan Karyawan lewat
+  penjamin "RS Benefit". Serah terima PAYER untuk penjamin PERUSAHAAN tidak membawa DebtorReferenceId (Repair).
+  SEMBILAN BELAS ENTRI BARU: FIN-CAP-067..085. SATU CONFLICT BARU: FIN-CQ-11 (DEBTOR_TYPES.PATIENT di frontend
+  tidak cocok dengan PATIENT_GUARANTOR). EMPAT UNKNOWN: FIN-UQ-01..04.
 input_decisions: docs/module-blueprints/finance-management/00-interview-decisions.md revisi 1
 reused_capability_maps:
   - docs/module-blueprints/billing-kasir/01-existing-capability-map.md (approved, revisi terakhir
@@ -1468,3 +1480,143 @@ pernah muncul. Owner Finance memilih ini dengan sadar. **MUST** disampaikan kepa
 | `FIN-CAP-066` | Status berubah dari `Repair` menjadi **`Ready to reuse`** untuk sisi Finance. Nol layar Finance perlu disunting; 27 pemakaiannya kini terbaca komponen |
 | `FIN-OQ-084` | **CLOSED** oleh keputusan owner: alias di komponen bersama, bukan perbaikan per layar |
 | Pemicu impact scan | Bertambah: ulangi bila alias `DataTable` dicabut, atau bila owner health-services menolak perubahan tampilan ini |
+
+
+---
+
+## 21. Impact scan terarah — piutang manfaat karyawan (`EPIC FIN-04`), 5 Oktober 2026 (`46fa2a91` / `0ed37b5c4`)
+
+**Pemicu.** Pass `/grill-me` 5 Oktober 2026 (`FIN-DEC-161`..`175`, lihat `00-interview-decisions.md`) menutup aturan bisnis
+piutang karyawan sisi Finance, tetapi dua fakta pentingnya (F44 dan F47) hanya berasal dari pencarian nama properti,
+dan SHA sudah bergerak dari baseline bagian 20. Pass ini memeriksa ulang kemampuan yang disentuh keputusan itu
+**pada source sekarang**, dan hasilnya **mengoreksi** sebagian klaim pass sebelumnya (lihat 21.1).
+
+**Staleness dan baseline.** Baseline yang berlaku adalah bagian 20 (backend `5d6bb8bf`, frontend `ae2ed334e`).
+Sejak itu backend bergerak **4 commit** (9 berkas di bawah `Areas/Corporate/FinanceManagement`, +301/−31) dan
+frontend **31 commit** (52 berkas Finance). Bagian 1–20 **tidak** diaudit ulang menyeluruh; hanya klaster yang disebut
+di sini yang diverifikasi pada SHA ini.
+
+**Keadaan working tree saat audit.** **Tidak bersih pada kedua repository**, karena ada pekerjaan *Data Tagihan*
+(`BE-FIN-FIX-001`, `FE-FIN-FIX-001`) yang belum di-commit:
+
+- Backend: `FinanceReceivablesController.cs`, `FinanceReceivableInvoiceBatchService.cs`, dan `BillingManagementServiceCollectionExtensions.cs`
+  berubah; `FinanceReceivableBillingDataDtos.cs` dan `FinanceReceivableBillingDataService.cs` baru; ditambah dua laporan task dan
+  `00-interview-decisions.md` (hasil `/grill-me` pass yang sama).
+- Frontend: `receivable-invoice-batches/*`, `view/finance/receivable/billing-data/*`, dan beberapa hook, konstanta, serta utilitas baru.
+
+Bukti yang bersumber dari berkas-berkas itu ditandai `@working-tree-2026-10-05` dan **MUST** ditambatkan ulang ke SHA
+begitu pekerjaan itu di-commit. Seluruh bukti lain tertambat pada `46fa2a91` (backend) atau `0ed37b5c4` (frontend).
+
+**Batas audit pass ini.** Klaster **Identity/Master Owner** (pasien ↔ pegawai), **Episode/Transaction Owner** (kunjungan →
+serah terima AR), **Actor/Workforce** (benefit, tanggungan, penggajian, berhenti kerja), **Financial** (piutang, alokasi,
+mutasi, impor saldo awal), dan konsumen frontend-nya. **Tidak** mengaudit ulang internal Billing maupun Accounting di luar
+titik sentuh (`FIN-OOS-001`..`004`), dan **tidak** memeriksa isi basis data — apakah penjamin bernama "RS Benefit"
+benar-benar ada di data produksi **tidak dapat dijawab dari source** (lihat 21.5).
+
+### 21.1 Koreksi atas fakta dan premis pass `/grill-me` 5 Oktober 2026
+
+Pass sebelumnya jujur menandai F44 dan F47 sebagai "belum audit penuh". Audit ini menunjukkan keduanya **kurang tepat**.
+
+| Butir | Klaim sebelumnya | Temuan sekarang (`@46fa2a91`) | Akibat |
+|---|---|---|---|
+| F44 | Tidak ditemukan tautan yang dapat dibaca mesin antara pasien dan karyawan/keluarga karyawan | **Ada tautan**, tetapi bukan ke HR: `MstPatientCompanyGuarantor` menyimpan `EmployeeNumber`, `EmployeeName`, `BenefitPlanCode`, `IsEligible`, plafon, dan ko-bayar per pasien; `RegPatientEncounterGuarantor` menyalinnya sebagai snapshot pada setiap kunjungan. Yang **tidak ada**: hubungan keluarga (`SPOUSE`/`CHILD`) dan rujukan ke `MstWorkforceProfile` di HR — pegawai hanya berupa **teks nomor karyawan** | Premis `FIN-DEC-171` ("tautan harus dibangun") **sebagian keliru**: yang diperlukan adalah *menyambungkan* mekanisme Registrasi yang sudah ada, bukan membuat dari nol |
+| F47 | HR tidak punya potongan gaji yang merujuk sumber luar | **Strukturnya ada**: `TrxPayrollVariableInput` dan `TrxPayrollEmployeeComponent` punya `SourceType` dan `SourceId`, dan ada **preseden** modul lain yang memakainya (`LeavePayrollIntegrationService`). Yang belum ada: pemakai dari Finance | `FIN-DEC-167` (HR menerima jadwal dan mengirim hasil) lebih dekat dari yang diduga, tetapi arah **HR → Finance** tetap tidak ada (21.2, `FIN-CAP-074`) |
+| Premis `FIN-DEC-164` | Billing butuh data plafon dari HR untuk menghitung porsi pegawai | Billing **sudah** menghitung porsi penjamin perusahaan lewat aturan cakupan (batas maksimum, ko-bayar, kebijakan kelebihan). Namun **sisa plafon per kartu pasien** (`RemainingLimitAmount`) **tidak dirujuk dan tidak dikurangi** Billing — pencarian di `BillingManagement`: nol hasil | "Hanya kelebihan di atas plafon" **tidak otomatis terpenuhi** oleh mekanisme yang ada (`FIN-CAP-071`) |
+| Praktik V1 | Tidak diketahui | V1 menentukan tab Karyawan lewat penjamin bernama **"RS Benefit"** yang ditulis langsung di kode | Ada jalur sementara yang **tanpa kode baru** (`FIN-CAP-085`) |
+
+### 21.2 Capability evidence map — klaster piutang manfaat karyawan
+
+Format kontrak bukti: `repo/path#simbol@SHA`. Repo `BE` = `NewQuilvianSystemBackend` pada `46fa2a91`; `FE` = `QuilvianSystemFrontendDev` pada `0ed37b5c4`.
+
+| ID | Kebutuhan | Pemilik | Bukti | Status | Gap / adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `FIN-CAP-067` | Piutang Finance dapat menyimpan pemilik manfaat dan hubungannya | Finance | `BE Receivable/Models/FinReceivable.cs:48-52,98` (`BenefitOwnerId`, `BenefitRelationship`, `EmployeeBenefit`); `FinReceivableConfiguration.cs:13-30` (constraint `CK_FinReceivable_BenefitOwner`) | **Ready to reuse** | Tidak ada penulis: tidak satu pun kode yang mengisi `BenefitOwnerId` (pencarian di luar model/konfigurasi: hanya satu komentar) | Rendah |
+| `FIN-CAP-068` | Billing menghasilkan serah terima AR bertipe karyawan | Billing | `BE Billing/Models/BilArHandoff.cs:29-33` (hanya `PAYER`, `PATIENT_GUARANTOR`); `BillingArApHandoffService.cs:45-90` | **Missing** | Perluasan enum dan dua kolom (`FIN-DEC-006`); migration milik Billing | Menahan seluruh jalur intake karyawan |
+| `FIN-CAP-069` | Serah terima `PAYER` membawa identitas debitur untuk penjamin **perusahaan** | Billing | `BE BillingArApHandoffService.cs:77-78` (`DebtorReferenceId = guarantor?.InsuranceProviderId`; `CompanyGuarantorId` tidak dipakai); `@working-tree-2026-10-05` `BE-FIN-FIX-001` mencatat `NO_DEBTOR_REFERENCE` | **Repair → DIPERBAIKI di source** (`BE-FIN-FIX-002`, 5 Oktober 2026; `dotnet build` dan uji data `NOT RUN`) | Kunjungan yang dijamin perusahaan menghasilkan serah terima tanpa `DebtorReferenceId`, sehingga tidak dapat dikelompokkan atau digabung ke Batch Tagihan | **Tinggi → turun.** Serah terima BARU kini membawa Id perusahaan penjamin. Baris LAMA tetap kosong dan menuntut *backfill* database yang belum diberi wewenang |
+| `FIN-CAP-070` | Registrasi mengenali pasien sebagai pegawai/tanggungan | Registrasi (Patient Management) | `BE Patient…/MstPatientCompanyGuarantor.cs:14-72`; `Registration…/RegPatientEncounterGuarantor.cs:69,75,100,113,120`; `Registration…/Enums/EncounterPaymentType.cs:13-17` (kunjungan dijamin hubungan pasien–perusahaan) | **Reuse with adapter** | Kunci pegawai = teks `EmployeeNumber`; **tidak ada** hubungan keluarga; **tidak ada** rujukan ke profil pegawai HR; flag `IsNeedEmployeeVerification` hanya penanda (modul Patient/Registrasi hanya memakai *model* dan *enum* HR, tanpa memanggil data benefit) | Sedang — identitas pegawai rawan salah ketik |
+| `FIN-CAP-071` | Menghitung porsi yang ditanggung penjamin (plafon, ko-bayar) | Billing / Clinical | `BE ClinicalManagement/Services/CompanyGuarantorCoverageService.cs:126,143,189-192`; `BillingCoverageAdapter.cs:313-340` | **Reuse with adapter** | Memakai aturan cakupan per perusahaan (`MaxCoverageAmount`, `CoPaymentAmount`, `IsAllowExcessPaymentByPatient`), **bukan** sisa plafon per pegawai; `RemainingLimitAmount` tidak dikurangi oleh Billing (penulisnya hanya layar master) | Tinggi untuk `FIN-DEC-164` |
+| `FIN-CAP-072` | Sumber data benefit pegawai dan tanggungan | HR | `BE HumanResource/BenefitManagement/Models/TrxEmployeeBenefitEnrollment.cs:54-58`; `TrxEmployeeBenefitDependent.cs:28,31,46-50` (`RelationshipType`, `IdentityNumber`, plafon, terpakai, sisa); `WorkforceCore/Models/WfpFamilyMember.cs:19` | **Reuse with adapter** | Data ada, tetapi **tidak ada endpoint baca eligibilitas** untuk modul lain (pencarian atribut `Http*` bernama eligibility di seluruh controller HR: nol hasil) | Sedang |
+| `FIN-CAP-073` | Potongan gaji dari sumber luar (Finance → Payroll) | HR | `BE PayrollManagement/Models/TrxPayrollVariableInput.cs` (`SourceType`, `SourceId`, `Amount`, verifikasi); `TrxPayrollEmployeeComponent.cs`; preseden `LeaveManagement/Services/LeavePayrollIntegrationService.cs:215-216,463-464` | **Reuse with adapter** | Pola sudah dipakai modul Cuti, belum oleh Finance; `SourceType` berupa teks bebas (tanpa daftar nilai baku) | Sedang |
+| `FIN-CAP-074` | Hasil potongan HR → Finance | HR → Finance | `BE TrxEmployeeLoanInstallment.cs:51-53` (`FinanceTransactionId`, `GlHeaderId` — hanya kolom); pencarian penulisnya di HR: nol | **Missing** | Tidak ada pengirim di HR dan tidak ada penerima di Finance | Menahan `FIN-DEC-167` |
+| `FIN-CAP-075` | Melunasi piutang tanpa uang masuk | Finance | `BE Collection/Models/FinReceipt.cs:81-85` (`BILLING_TENDER`, `AR_COLLECTION`, `MANUAL`); `FinReceiptAllocation.cs:48-52` (`RECEIVABLE`, `INVOICE_DIRECT`); `Receivable/Models/FinReceivableMovement.cs:56-66` | **Extend** | Alokasi selalu berpangkal pada `FinReceipt`, dan **hanya** `BILLING_TENDER` yang pernah dibuat (`AR_COLLECTION` dan `MANUAL` tidak punya pemakai). Potongan gaji bukan tender dan bukan kas, sehingga perlu sumber atau jenis mutasi baru. **Lega:** kas harian dihitung dari `BilCashierShift`, bukan `FinReceipt` (`FinanceCashManagementService.cs:480`), sehingga bukan kas yang terganggu | Sedang |
+| `FIN-CAP-076` | Perjanjian dan jadwal cicilan piutang | Finance | Pencarian `Installment`, `Cicilan`, `PaymentSchedule`, `RepaymentPlan` di `Areas/Corporate/FinanceManagement`: **nol hasil**; HR punya `TrxEmployeeLoanInstallment` sendiri | **Missing** | Entity baru di Finance (`FIN-DEC-166`); duplikasi dengan model cicilan HR **disengaja** oleh keputusan itu | Sedang |
+| `FIN-CAP-077` | Write-off dan penyesuaian dengan pengaju ≠ penyetuju | Finance | `BE Receivable/Controllers/FinanceReceivablesController.cs:101-166`; `FinanceReceivableService.cs` | **Ready to reuse** | Tidak ditemukan pembatasan jenis debitur pada alur ini (belum diuji dengan data) | Rendah |
+| `FIN-CAP-078` | Pembalikan piutang dan serah terima pengganti atas debitur lain | Finance / Billing | `BE BillingArApHandoffService.cs:150-200` (`BilHandoffAdjustment` — koreksi nominal) | **Unknown** | Belum terbukti bahwa koreksi Billing dapat **membatalkan penuh** lalu menerbitkan serah terima baru atas orang lain (`FIN-DEC-173`) | Sedang |
+| `FIN-CAP-079` | Status "bebas tanggungan" per pegawai | Finance | Tidak ada kueri atau endpoint saldo per `BenefitOwnerId` | **Missing** | Dihitung dari saldo piutang aktif per pemilik manfaat (`FIN-DEC-170`) | Rendah |
+| `FIN-CAP-080` | Gerbang berhenti kerja di HR | HR | `BE LifecycleManagement/Models/TrxEmployeeSeparation.cs:34` (`IsExitClearanceCompleted`); `WfpOffboardingChecklist.cs:31`; `MstOffboardingTemplateTask.cs:23` (`CompletionSource`, bawaan `"Manual"`) | **Extend** | Kolom dan template tugas ada, tetapi **tidak ditemukan penulis atau aturan**; satu-satunya pemakai separation adalah `ResignationLifecycleHandoffService` | Sedang |
+| `FIN-CAP-081` | Impor saldo awal piutang karyawan | Finance | `BE AccountingIntegration/Services/FinanceOpeningItemBatchService.cs:776-785` (menolak, `FIN-VAL-187`); templat CSV tanpa kolom pemilik manfaat | **Extend** | Tambah kolom dan cabut penolakan hanya bila pemilik manfaat sah (`FIN-DEC-174`) | Sedang |
+| `FIN-CAP-082` | Segmen subledger "Manfaat Karyawan" | Finance | `BE AccountingIntegration/Services/FinanceSubledgerBalanceCalculator.cs:121-137` | **Ready to reuse** | Bernilai nol sampai ada piutang | Rendah |
+| `FIN-CAP-083` | Frontend: filter dan label jenis debitur | Frontend | `FE src/lib/constants/finance/receivable/receivable-constants.jsx:60-77` (`PATIENT`); `BE FinanceReceivableService.cs:63` (pencocokan persis `DebtorType`) | **Ready to reuse** (`FE-FIN-FIX-002`, 5 Oktober 2026) | Sudah diperbaiki: kuncinya kini `PATIENT_GUARANTOR`, dijaga `tests/unit/finance-receivable-debtor-types.test.mjs` yang membandingkan langsung dengan `FinReceivable.cs`. Terverifikasi di peramban: request mengirim `debtorType=PATIENT_GUARANTOR` dan barisnya tampil | Sedang |
+| `FIN-CAP-084` | Layar Data Tagihan tab Karyawan | Frontend / Finance | `@working-tree-2026-10-05` `BE FinanceReceivableBillingDataDtos.cs:8-17` (`employee` → `EMPLOYEE_BENEFIT`); `BE-FIN-FIX-001.md`; `FE-FIN-FIX-001.md` | **Reuse with adapter** | Kosong dengan catatan sampai ada piutang karyawan; pilihan karyawan memakai daftar **pasien**, belum daftar pegawai; validasi `NOT RUN` | Rendah |
+| `FIN-CAP-085` | Jalur sementara: benefit karyawan sebagai penjamin "RS Benefit" | Administrator / Billing | `FE1 QuilvianSystemFrontendDev1/…/TabelTagihanBilling.jsx:24` (`EMPLOYEE_BILLING_INSURANCE_NAME = "RS Benefit"`); `BE Administrator/…/InsuranceProviderController.cs:48-55` (`ProviderType`: `PrivateInsurance`, `TPA`, `GovernmentInsurance`, `CorporateInsurance`, `Other`) | **Reuse with adapter** | Penjamin bertipe `Other` dapat dibuat tanpa kode baru, dan serah terima `PAYER` membawa `InsuranceProviderId`-nya. **Tetapi** tidak ada pemilik manfaat per pegawai, tidak ada hubungan, dan keberadaan data "RS Benefit" **tidak diperiksa** | Sedang |
+
+### 21.3 Perjalanan end-to-end as-is — pegawai atau keluarganya dirawat hari ini
+
+**Contoh:** istri pegawai Budi dirawat inap, tagihan Rp 10.000.000.
+
+1. **Registrasi** memilih sumber pembayaran kunjungan: tunai, asuransi, atau penjamin perusahaan (`EncounterPaymentType`). Sistem **tidak punya** pilihan "pegawai RS". Petugas hanya bisa memakai *asuransi* (mis. penjamin "RS Benefit", praktik V1) atau *penjamin perusahaan* dengan nomor karyawan berupa teks.
+2. **Billing** menghitung porsi penjamin. Untuk penjamin perusahaan, batasnya adalah aturan cakupan perusahaan, bukan sisa plafon Budi.
+3. **Finalisasi** membuat serah terima `PAYER` dengan `DebtorReferenceId = InsuranceProviderId` (`FIN-CAP-069`). Pada jalur asuransi nilai ini terisi; pada jalur penjamin perusahaan **kosong**.
+4. **Finance intake** menyalin jenis dan nominal apa adanya menjadi `FinReceivable` bertipe `PAYER`. `BenefitOwnerId` **tidak pernah terisi**.
+5. **Pelunasan** hanya lewat penerimaan dari tender Billing yang dialokasikan manual. **Tidak ada** potong gaji, cicilan, maupun status bebas tanggungan.
+6. **Berhenti kerja** di HR tidak berhubungan dengan piutang sama sekali.
+
+### 21.4 Kontrak as-is dan ketidakcocokan
+
+| Hal | Backend | Frontend | Cocok? |
+|---|---|---|---|
+| Nilai `DebtorType` | `PAYER`, `PATIENT_GUARANTOR`, `EMPLOYEE_BENEFIT` (`FinReceivable.cs:94-99`) | `PAYER`, `PATIENT_GUARANTOR`, `EMPLOYEE_BENEFIT` | **Ya**, sejak `FE-FIN-FIX-002` (sebelumnya `FIN-CQ-11`) |
+| Filter daftar piutang | Pencocokan persis (`FinanceReceivableService.cs:63`) | Mengirim nilai konstanta di atas | Ketiganya efektif. **Catatan**: Buku Piutang memanggil `GET /api/finance/receivable` (`FinanceArController`), bukan `/v1/corporate/finance-management/receivables`; keduanya memakai `FinanceReceivableService.GetPagedAsync` dan `ReceivableQuery` yang sama |
+| Kategori Data Tagihan | `company`, `employee`, `generalPatient` → tiga `DebtorType` backend (working tree) | Tab sama | Ya, tetapi **tidak** memakai konstanta `DEBTOR_TYPES` frontend |
+
+### 21.5 Conflict dan Unknown
+
+**Conflict**
+
+| ID | Isi | Status |
+|---|---|---|
+| `FIN-CQ-11` | `DEBTOR_TYPES.PATIENT = "PATIENT"` di frontend tidak pernah cocok dengan `PATIENT_GUARANTOR` di backend. Filter "Pasien Umum" pada daftar piutang selalu kosong. Label tipe debitur `PATIENT_GUARANTOR` pada baris juga tidak menemukan padanan | **CLOSED** 5 Oktober 2026 oleh `FE-FIN-FIX-002`. Terverifikasi di peramban (9/9) dan dijaga test yang membandingkan konstanta frontend dengan source backend |
+
+**Unknown**
+
+| ID | Pertanyaan yang tidak dapat dijawab dari source | Cara menutup |
+|---|---|---|
+| `FIN-UQ-01` | Apakah penjamin "RS Benefit" benar-benar ada pada data produksi V2, dan jenis apa | Pemeriksaan data oleh pemilik Administrator; bukan audit source |
+| `FIN-UQ-02` | Apakah koreksi Billing dapat **membatalkan penuh** sebuah serah terima lalu menerbitkan yang baru atas orang lain (`FIN-CAP-078`) | `/trace-existing-capabilities` terarah pada `BilHandoffAdjustment` bersama pemilik Billing |
+| `FIN-UQ-03` | Apakah ada endpoint HR yang dapat membaca eligibilitas benefit untuk pasien tertentu di luar yang ditemukan lewat atribut `Http*` (mis. lewat layanan, bukan controller) | Konfirmasi pemilik HR |
+| `FIN-UQ-04` | Apakah `RemainingLimitAmount` pada kartu penjamin perusahaan dipakai layar lain sebagai batas keras | Konfirmasi pemilik Registrasi |
+
+### 21.6 Fakta, inferensi, dan rekomendasi
+
+**Fakta** (dibaca langsung): seluruh baris `Bukti` di 21.2 dan 21.4.
+
+**Inferensi** (disimpulkan, belum diuji data):
+
+1. Karena `DebtorReferenceId` kosong pada penjamin perusahaan, memakai *penjamin perusahaan* sebagai jalur sementara pegawai **lebih berisiko** daripada memakai *penjamin asuransi* bertipe `Other`.
+2. Karena kolom `IsExitClearanceCompleted` tidak punya penulis, gerbang berhenti (`FIN-DEC-170`) bukan sekadar "membaca status Finance"; HR juga perlu **mesin penutupnya**.
+3. Karena `AR_COLLECTION` dan `MANUAL` tidak punya pemakai, pelunasan potong gaji tidak boleh diasumsikan "tinggal memakai receipt manual".
+
+**Rekomendasi** (bukan keputusan; arsitektur target bukan bagian skill ini):
+
+1. Tinjau ulang di pass `/grill-me` berikutnya empat keputusan yang premisnya bergeser: `FIN-DEC-164` (sumber plafon), `FIN-DEC-167` (arah HR → Finance), `FIN-DEC-170` (mesin gerbang di HR), dan `FIN-DEC-171` (menyambung kartu penjamin yang ada).
+2. Minta pemilik Billing memilih antara **perluasan resmi** `FIN-DEC-006` dan **jalur sementara** penjamin bertipe `Other` (`FIN-CAP-085`); keduanya dituangkan di `evidence/23`.
+3. Perbaiki `FIN-CQ-11` dan `FIN-CAP-069` sebagai pekerjaan terpisah; keduanya merugikan piutang non-karyawan juga.
+
+### 21.7 Pemicu impact scan berikutnya
+
+Tandai bagian 21 **stale** dan lakukan impact scan terbatas bila salah satu terjadi:
+
+- Pekerjaan *Data Tagihan* (`BE-FIN-FIX-001`, `FE-FIN-FIX-001`) di-commit, sehingga bukti `@working-tree-2026-10-05` harus ditambatkan ulang.
+- `BilArHandoff`, `BillingArDebtorTypes`, atau `BillingArApHandoffService` berubah.
+- `MstPatientCompanyGuarantor`, `RegPatientEncounterGuarantor`, atau `CompanyGuarantorCoverageService` berubah.
+- HR menambah pemakai `TrxPayrollVariableInput`, endpoint eligibilitas, atau penulis `IsExitClearanceCompleted`.
+- `FinReceipt` mendapat jenis sumber baru, atau `FinReceivable` mendapat penulis `BenefitOwnerId`.
+- Salah satu butir `FIN-OQ-087`, `091`, `092`, `095`, `096`, `097`, `098` dijawab pemiliknya.
+
+### 21.8 Handoff
+
+Pass ini **tidak** menghasilkan arsitektur target atau pekerjaan implementasi. Langkah berikutnya yang tersedia:
+
+1. Mengirim `evidence/23-permintaan-konfirmasi-piutang-manfaat-karyawan.md` kepada pemilik Billing, Registrasi, dan HR.
+2. `/grill-me` pass lanjutan untuk meninjau ulang empat keputusan di 21.6, **setelah** jawaban pemilik modul ada.
+3. `/design-business-module` untuk `EPIC FIN-04` hanya setelah blocker `FIN-OQ-087`, `091`, `092`, `095`, `096`, `097`, `098` tertutup.
