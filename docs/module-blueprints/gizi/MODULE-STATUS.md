@@ -32,7 +32,7 @@ integrasi ujung ke ujung ke modul lain.
 | Controller | `NutritionOrderController` (8), `NutritionDietController` (9), `NutritionMasterController` (14), `NutritionRequirementController` (6), `NutritionReportController` (4) |
 | Service | `NutritionOrderService`, `NutritionDietService`, `NutritionRequirementService`, `NutritionRequirementCalculator`, `NutritionReportService` |
 | Model | `GziNutritionOrder`, `GziNutritionOrderHistory`, `GziNutritionCareRecord`, `GziNutritionRequirement`, `GziNutritionDiagnosisMasters`, `GziNutritionMasters`, `GziPatientDiet`, `GziProductionBatch` |
-| Uji | `Tests/QuilvianSystemBackend.NutritionTests` — 30 uji |
+| Uji | `Tests/QuilvianSystemBackend.NutritionTests` — 153 uji |
 
 ## Keputusan yang sudah berlaku dan terimplementasi
 
@@ -66,11 +66,16 @@ Ditambah penomoran `GziOrderStatus`, `GziPatientDietStatus`, `GziMealDeliverySta
 
 | Hal | Prioritas | Catatan |
 |---|---|---|
-| Uji `NutritionOrderService` dan `NutritionDietService` | tinggi | 30 uji sekarang terpusat pada kebutuhan nutrisi dan diagnosis; tangga status order serta penggantian diet belum terjaga |
-| Uji `NutritionReportService` | sedang | laporan belum punya uji sama sekali |
-| Integrasi keluar | sedang | Gizi belum menerbitkan fakta apa pun ke modul lain; diet yang dibaca dapur masih berhenti di dalam modul |
+| Integrasi keluar | sedang | Gizi belum menerbitkan fakta apa pun ke modul lain; diet yang dibaca dapur masih berhenti di dalam modul. Butuh keputusan: konsumen mana yang dituju lebih dulu |
+| Uji `NutritionOrderService.GetPagedAsync` pada volume besar | rendah | tangga status dan paging sudah terjaga 24 uji; perilakunya pada volume besar belum diukur |
 | `GIZ-OQ-003` | rendah | isi `MstProfession` untuk ahli gizi — milik Human Resource, bukan Gizi |
 | `GIZ-OQ-005` | rendah | interval skrining ulang pasien tidak berisiko |
+
+Tiga baris yang sebelumnya ada di tabel ini — uji `NutritionOrderService`,
+`NutritionDietService`, dan `NutritionReportService` — **sudah ditutup** dan karena itu dihapus:
+`OrderRuleTests.cs` (24 deklarasi), `DietRuleTests.cs` (21), `ReportRuleTests.cs` (19), ditambah
+`ProductionBatchRuleTests.cs` (30) dan `MasterControllerTests.cs` (26) yang menyusul. Suite Gizi
+kini berjalan **153 uji** dan seluruhnya lulus.
 
 ## Yang sengaja tidak dikerjakan
 

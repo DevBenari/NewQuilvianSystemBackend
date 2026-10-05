@@ -4,11 +4,11 @@
 | --- | --- |
 | Blueprint ID | `PHA-BP-001` |
 | Module name | Farmasi |
-| Revision | `4` |
+| Revision | `5` |
 | Module status | `SUBSTANTIAL` — alurnya kini tersambung ujung ke ujung dan terbukti runtime |
 | Current phase | Gelombang Financial Clearance **terverifikasi runtime**; menunggu approval policy charge pra-dispense milik owner Billing |
-| Last verified at | `2026-10-01T15:40:00+07:00` |
-| Backend source SHA | `98355a495956dea291b2f195d642fb91ead1cb71` (branch `Ikbal`) |
+| Last verified at | `2026-10-05T11:30:00+07:00` |
+| Backend source SHA | `38142748a4d6b5e1c84156acf93681c593b0a06d` (branch `Ikbal`) |
 | Frontend source SHA | `f43dbdeb1612dfdb6b2e4973cf45b5dafd7dd56e` (branch `Ikbalv2`) |
 
 ## Yang berubah pada revisi 4
@@ -102,23 +102,38 @@ baris dengan 37 endpoint. Farmasi adalah modul dengan permukaan terbesar.
 
 `PHA-PH-008` dinyatakan selesai berdasarkan source, bukan berdasarkan laporan task: resolver
 routing Depo ada sebagai `PharmacyDepotRoutingService.cs` beserta `PharmacyDepotRoutingDtos.cs`.
-Laporan task `PHA-BE-001` tidak pernah ditulis, sehingga bukti acceptance-nya belum tercatat.
+Laporan task `PHA-BE-001` kini sudah ditulis — [`task/report/backend/PHA-BE-001.md`](task/report/backend/PHA-BE-001.md), retroaktif, memeriksa source yang sudah ada tanpa mengubahnya.
 
 ## Delivery state
 
 | Backend | Frontend | Integration | Verification |
 | --- | --- | --- | --- |
-| `SUBSTANTIAL` | `SUBSTANTIAL` | `PARTIAL` | `WEAK` |
+| `SUBSTANTIAL` | `SUBSTANTIAL` | `PARTIAL` | `STRONG` |
 
-`Verification` dinyatakan `WEAK` karena **Farmasi belum memiliki satu pun uji otomatis**.
-Satu-satunya proyek uji pada repositori adalah `Tests/QuilvianSystemBackend.OperatingRoomTests`.
-Dengan 137 endpoint, itu risiko terbesar yang masih tersisa.
+`Verification` dinyatakan `STRONG` karena Farmasi kini dijaga **173 uji** otomatis, naik dari
+**nol**. Pernyataan revisi 4 bahwa "Farmasi belum memiliki satu pun uji otomatis" sudah tidak
+berlaku.
 
-Pengujiannya diserahkan ke analis penguji (keputusan 29 September 2026). Karena itu task yang
-sumbernya sudah lengkap dan hanya menunggu pembuktian ditandai **`Selesai — kurang tes`**, bukan
-`Sebagian`: yang tertinggal bukan pekerjaan pembangunan. Penandaan itu **tidak** dipakai untuk
-task yang masih menunggu keputusan bisnis atau dependency modul lain — keduanya bukan soal
-pengujian dan tetap ditandai apa adanya.
+| Berkas | Deklarasi | Yang dijaga |
+|---|---|---|
+| `DrugReturnTests.cs` | 48 | siklus retur obat: `PHM080`–`PHM083`, batas kumulatif per batch terhadap satu penyerahan |
+| `PharmacyWorkflowTests.cs` | 33 | tangga status resep, klarifikasi, pemeriksaan akhir |
+| `DispensingGuardTests.cs` | 20 | gerbang penahanan sebelum penyerahan |
+| `DispenseFlowTests.cs` | 18 | `DispenseAsync` dengan DI container nyata |
+| `FinancialClearanceTests.cs` | 18 | gerbang finansial dan pembacaan surat clearance |
+| `LabelAndStockTests.cs` | 14 | label obat dan perencanaan stok FEFO |
+| `BillingChargeProducerTests.cs` | 9 | `PrescriptionBillingChargeProducer`, idempotency key deterministik |
+| `PrescriptionFulfillmentStageTests.cs` | 8 | tangga tahap pemenuhan resep |
+
+Jumlah di atas adalah deklarasi `[Fact]`/`[Theory]`; setelah `InlineData` dibentangkan, suite
+berjalan **173 uji** dan seluruhnya lulus. Dibangun dengan `-p:SkipMigrationMetadata=true` di
+atas SQLite dalam memori, dengan dua adaptasi engine yang terdokumentasi di `TestDatabase.cs`.
+
+Keputusan 29 September 2026 yang menyerahkan pengujian Farmasi ke analis penguji **sudah
+terlampaui**: uji regresinya dibuat dari sisi pembangunan. Penandaan **`Selesai — kurang tes`**
+tetap dipakai untuk task yang sumbernya lengkap dan hanya menunggu pembuktian runtime, bukan uji
+unit. Penandaan itu **tidak** dipakai untuk task yang masih menunggu keputusan bisnis atau
+dependency modul lain — keduanya bukan soal pengujian dan tetap ditandai apa adanya.
 
 ## Gelombang Financial Clearance
 
@@ -161,18 +176,20 @@ urutan yang dipilih: tanpa surat yang terbit, slice ini tidak punya masukan apa 
 | `00-interview-decisions.md` | `36d7eca7cd3d4b3f1f6520a6fe9340936cced320` | `4585f463ea3498e19fcdf2c475f567b052ec152a` | Sinkronisasi metadata keputusan; keputusan bisnis tetap berasal dari persetujuan owner |
 | `01-existing-capability-map.md` | `39b8b69f...` | `4585f463ea3498e19fcdf2c475f567b052ec152a` | Map belum dinormalisasi ke struktur template dan belum mencerminkan 137 endpoint yang sekarang ada |
 | `roadmap/backend-roadmap.md` | — | — | Menyatakan migration clearance belum dijalankan; lihat koreksi di atas |
-| `PHA-BE-001` | — | — | Source ada, laporan task tidak pernah ditulis; bukti acceptance belum tercatat |
+| `PHA-BE-001` | — | — | ✅ **Ditutup 5 Oktober 2026** — laporan acceptance retroaktif ada di [`task/report/backend/PHA-BE-001.md`](task/report/backend/PHA-BE-001.md); sembilan acceptance criteria terpenuhi by inspection, dua penyimpangan dicatat |
 
 ## Next recommended task
 
-1. **Tulis laporan acceptance `PHA-BE-001`** supaya `PHA-PH-008` punya bukti, bukan hanya source.
+1. **Kerjakan `PHA-BE-002`** — uji otomatis resolver routing Depo. Tanpa dependency, tanpa keputusan terbuka; satu-satunya task Farmasi yang dapat dimulai hari ini. Laporan acceptance `PHA-BE-001` sudah ditulis.
 2. **Serahkan `PHA-BE-006` ke analis penguji** untuk verifikasi runtime.
 3. **Putuskan protokol pengakuan surat dan nilai kolom pembayaran saat `REVOKED`** — dua keputusan
    yang menahan `PHA-BE-004`, dan tidak akan terselesaikan oleh pengujian.
 
-Pengujian otomatis Farmasi diserahkan ke analis penguji. Bila nanti dibuat dari sisi
-pembangunan, polanya sudah terbukti pada `Tests/QuilvianSystemBackend.OperatingRoomTests`: xunit,
-SQLite dalam memori, dibangun dengan `-p:SkipMigrationMetadata=true`.
+Uji regresi Farmasi **sudah dibuat dari sisi pembangunan**:
+`Tests/QuilvianSystemBackend.PharmacyTests`, 173 uji, pola sama dengan
+`Tests/QuilvianSystemBackend.OperatingRoomTests` — xunit, SQLite dalam memori, dibangun dengan
+`-p:SkipMigrationMetadata=true`. Yang masih diserahkan ke analis penguji hanyalah **verifikasi
+runtime** `PHA-BE-006`, bukan uji unitnya.
 
 Setelah Billing menerbitkan `BE-BKC-067`/`068`, lanjutkan verifikasi runtime `PHA-BE-004`/`005`/
 `006` dan kerjakan `PHA-FE-002`.
