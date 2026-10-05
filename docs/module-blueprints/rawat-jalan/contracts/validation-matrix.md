@@ -65,3 +65,47 @@ sejenisnya adalah kode sebab di antrean rekonsiliasi, dibaca petugas Billing.
 dengan `MaxDelaySeconds = 30` juga ditolak karena jeda maksimum lebih kecil dari jeda awal.
 `MaxAttemptCount = 0` **sah** dan berarti tidak ada kirim ulang otomatis — semua kegagalan langsung
 masuk antrean.
+
+
+---
+
+# Amendment DP — Daftar Pasien Rawat Jalan (`RJ-DOC-ENCLIST-001@1.0.0`, `draft`)
+
+`last_changed_in`: `RJ-DOC-ENCLIST-001@1.0.0` · Owner: Sukma Giri
+
+| Kode | Kondisi | Endpoint | Aturan | Pesan untuk petugas | HTTP |
+|---|---|---|---|---|---|
+| `RJDP-VAL-001` | Pengguna tanpa cakupan | Semua `GET`, `PATCH cancel` | Tidak terhubung ke dokter, tidak di cluster perawat, tanpa `ReadAll` | "Akun Anda belum terhubung ke data dokter atau cluster perawat. Hubungi admin untuk pengaturan akses." | `403` |
+| `RJDP-VAL-002` | Alasan kosong / terlalu panjang | `PATCH cancel` | Setelah dipangkas: 1-250 karakter | "Alasan pembatalan wajib diisi, maksimal 250 karakter." | `400` |
+| `RJDP-VAL-003` | Kunjungan tidak ada atau di luar cakupan | `PATCH cancel` | Bukan RJ berklinik, terhapus, atau tidak terlihat oleh pengguna | "Kunjungan tidak ditemukan." | `404` |
+| `RJDP-VAL-004` | Sudah dibatalkan | `PATCH cancel` | `IsCancel = true` | "Kunjungan sudah dibatalkan." | `400` |
+| `RJDP-VAL-005` | Konsultasi masih aktif | `PATCH cancel` | Status 6 dan ada konsultasi tidak batal | "Konsultasi masih aktif. Selesaikan atau batalkan konsultasi lewat workspace dokter." | `400` |
+| `RJDP-VAL-006` | Status tidak boleh dibatalkan | `PATCH cancel` | Status 7-11 atau `CompletedAt` terisi | "Kunjungan dengan status {nama status} tidak dapat dibatalkan." | `400` |
+| `RJDP-VAL-007` | Rentang tanggal salah | `GET /`, `/summary` | `mode=range` tanpa tanggal, `dateFrom > dateTo`, atau lebih dari 31 hari | "Rentang tanggal tidak valid. Maksimal 31 hari." | `400` |
+| `RJDP-VAL-008` | Pencarian terlalu panjang / `pageSize` > 100 | `GET /` | — | "Saringan tidak valid." | `400` |
+
+**Contoh `RJDP-VAL-006`:** kunjungan status 7 → "Kunjungan dengan status Konsultasi Selesai tidak
+dapat dibatalkan."
+
+**Contoh `RJDP-VAL-003`:** dr. A mencoba membatalkan kunjungan pasien dr. C lewat API → `404`,
+bukan `403`, supaya keberadaan kunjungan di luar cakupan tidak terbaca.
+
+---
+
+# Amendment KT — Konsultasi Tertunda (`RJ-DOC-PENDCONS-001@1.0.0`, `draft`)
+
+`last_changed_in`: `RJ-DOC-PENDCONS-001@1.0.0` · Owner: Sukma Giri
+
+| Kode | Kondisi | Endpoint | Aturan | Pesan | HTTP |
+|---|---|---|---|---|---|
+| `RJKT-VAL-001` | Bukan dokter dan bukan super admin | `GET /doctor-queues/pending-consultations` | `ResolveAllowedDoctorIdAsync` tidak menemukan dokter | Tanpa body (`Forbid()`), sama dengan `GET /doctor-queues` | `403` |
+| `RJKT-VAL-002` | Alasan batal kosong / lebih dari 250 karakter | `PATCH /doctor-consultations/{id}/cancel` (lama) | `[Required]`, `[MaxLength(250)]` | Pesan validasi model bawaan | `400` |
+| `RJKT-VAL-003` | Frontend: Simpan konsultasi lampau berisi resep draf/tindakan tanpa centang konfirmasi | — (frontend) | `RJ-DOC-FE-011` b | Tombol Simpan nonaktif | — |
+
+**Perubahan bunyi `RJDP-VAL-005`** (kondisi, endpoint, dan HTTP tetap):
+
+| Lama | Baru |
+|---|---|
+| "Konsultasi masih aktif. Selesaikan atau batalkan konsultasi lewat workspace dokter." | "Konsultasi masih aktif. Dokter penanggung jawab menyelesaikan atau membatalkannya di Klinis Dokter (antrean hari ini, atau Konsultasi tertunda untuk kunjungan hari sebelumnya)." |
+
+Bunyi ini juga dipakai sebagai petunjuk baris (`cancelBlockedReason`) di Daftar Pasien Rawat Jalan.

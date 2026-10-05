@@ -180,3 +180,200 @@ pernah melihat masalah penyerahan (`RJ-E2E-FE-004`).
 **Contoh:** Billing sempat tidak dapat dihubungi saat dr. B menekan Selesai. Respons `200` memuat
 `"billingHandoffIssues": ["Resep R/0912: CLIN_FACT_DISPATCH_PENDING"]`, dan layar menampilkan
 "penyerahan ke tagihan akan dicoba ulang otomatis". Konsultasi tetap selesai.
+
+
+---
+
+# Amendment DP — Daftar Pasien Rawat Jalan (`RJ-DOC-ENCLIST-001@1.0.0`)
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `RJ-DOC-ENCLIST-001@1.0.0` |
+| Status | `draft` |
+| Owner | Sukma Giri (Product/Domain, API authority) |
+| `approved_by` / `approved_at` | — / — |
+| Input | `00-interview-decisions.md` (Amendment Pass + Closure 2026-10-02), `01-capability-impact-scan-daftar-pasien-rj.md` |
+| Compatibility | **Aditif.** Endpoint baru; endpoint lama tidak berubah. Satu perubahan perilaku: pemblokir `POST /patient-encounters`, `/admin`, `/kiosk` menjadi lebih longgar (`RJ-DOC-DEC-019`/`022`) |
+| Traceability | `RJ-DOC-DEC-012`..`023` |
+
+## Health Services / Registration Management / Outpatient Encounter
+
+Base URL: `api/v1/health-services/registration-management/outpatient-encounters` — **Rencana (belum tersedia).**
+Seluruh respons dibungkus `ApiResponse<T>`.
+
+| Method | Path | Kegunaan | Hak akses | Kode status |
+|---|---|---|---|---|
+| `GET` | `/` | Daftar kunjungan RJ berklinik dalam cakupan pengguna, berhalaman | `[AccessPermission("OutpatientEncounter", "Read")]` | `200`, `400`, `401`, `403` |
+| `GET` | `/summary` | Jumlah per kelompok status untuk saringan yang sama | `[AccessPermission("OutpatientEncounter", "Read")]` | `200`, `401`, `403` |
+| `GET` | `/filters/metadata` | Cakupan pengguna dan opsi filter | `[AccessPermission("OutpatientEncounter", "Read")]` | `200`, `401`, `403` |
+| `PATCH` | `/{id}/cancel` | Membatalkan satu kunjungan | `[AccessPermission("OutpatientEncounter", "Cancel")]` | `200`, `400`, `401`, `403`, `404` |
+
+### `GET /` — query `OutpatientEncounterListQuery` (PagedQuery)
+
+| Parameter | Tipe | Wajib | Bawaan | Aturan |
+|---|---|---|---|---|
+| `mode` | `string` | Tidak | `today` | `today` = tanggal kunjungan hari ini (zona waktu RS); `active` = semua tanggal, hanya yang memblokir (DP.3.2); `range` = pakai `dateFrom`/`dateTo` |
+| `dateFrom`, `dateTo` | `date` | Wajib bila `mode=range` | — | `dateFrom ≤ dateTo`, rentang maks 31 hari |
+| `hangingOnly` | `bool` | Tidak | `false` | Bila `true`: hanya kunjungan yang memblokir dengan tanggal sebelum hari ini; memaksa `mode=active` |
+| `encounterStatus` | `int[]` | Tidak | semua | Nilai `EncounterStatus` 0-11 |
+| `clinicId` | `Guid` | Tidak | — | Mempersempit; di luar cakupan → hasil kosong |
+| `doctorId` | `Guid` | Tidak | — | Sama |
+| `search` | `string` | Tidak | — | Maks 100; no. kunjungan, no. RM, nama pasien |
+| `pageNumber`, `pageSize` | `int` | Tidak | `1`, `20` | `pageSize` maks 100 (nama mengikuti `GET /patient-encounters`) |
+
+Urutan: `EncounterDate` menurun, lalu `RegisteredAt` menurun.
+
+**Response** `PagedResult<OutpatientEncounterListItem>` (`Responses/PagedResult.cs`: `pageNumber`, `pageSize`, `totalData`, `totalPage`, `items`):
+
+| Field | Tipe | Sensitif | Keterangan |
+|---|---|:---:|---|
+| `id` | `Guid` | | |
+| `encounterNumber` | `string` | | |
+| `encounterDate` | `datetime` | | |
+| `patientId` | `Guid` | | |
+| `patientName` | `string` | Ya | |
+| `medicalRecordNumber` | `string` | Ya | |
+| `clinicId`, `clinicName` | `Guid`, `string` | | |
+| `doctorId`, `doctorName` | `Guid?`, `string?` | | Kosong bila belum ditetapkan |
+| `paymentLabel` | `string` | | "Tunai" atau nama penjamin |
+| `encounterStatus` | `int` | | |
+| `encounterStatusName` | `string` | | Dari `[Display]` enum |
+| `isCancelled` | `bool` | | |
+| `isHanging` | `bool` | | Memblokir dan bertanggal sebelum hari ini |
+| `hasActiveConsultation` | `bool` | | |
+| `canCancel` | `bool` | | Dihitung server: pengguna memegang `Cancel` **dan** DP.3.4 terpenuhi |
+| `cancelBlockedReason` | `string?` | | Diisi bila `canCancel=false` karena status, mis. "Konsultasi masih aktif. Selesaikan atau batalkan konsultasi lewat workspace dokter." |
+
+**Contoh** (`GET /?mode=active&hangingOnly=true`, petugas pendaftaran):
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [{
+      "id": "…", "encounterNumber": "ENC-RSMMC-00146", "encounterDate": "2026-07-30T02:10:00Z",
+      "patientName": "(sensitif)", "medicalRecordNumber": "(sensitif)",
+      "clinicName": "Poli Penyakit Dalam", "doctorName": "dr. …", "paymentLabel": "Tunai",
+      "encounterStatus": 3, "encounterStatusName": "Menunggu Perawat",
+      "isCancelled": false, "isHanging": true, "hasActiveConsultation": false,
+      "canCancel": true, "cancelBlockedReason": null
+    }],
+    "pageNumber": 1, "pageSize": 20, "totalData": 1, "totalPage": 1
+  }
+}
+```
+
+### `GET /summary` — query sama dengan `GET /` tanpa `encounterStatus`, `pageNumber`, `pageSize`
+
+| Field | Isi |
+|---|---|
+| `waiting` | Status 0-5, belum batal |
+| `inConsultation` | Status 6, belum batal |
+| `readyForBilling` | Status 7-8, belum batal |
+| `closed` | Batal, Selesai, atau Tidak Hadir |
+| `hanging` | Memblokir dan bertanggal sebelum hari ini — **selalu dihitung lintas tanggal**, tidak terpengaruh `mode` |
+
+### `GET /filters/metadata`
+
+| Field | Isi |
+|---|---|
+| `scope.canReadAll` | `bool` |
+| `scope.label` | "Pasien Anda", "Klinik cluster Anda", "Pasien Anda dan klinik cluster Anda", atau "Semua klinik" |
+| `statusOptions` | `{ value, label }` 0-11 |
+| `clinicOptions` | Klinik dalam cakupan (semua klinik aktif bila `canReadAll`) |
+| `doctorOptions` | Hanya bila `canReadAll`; selain itu kosong |
+
+### `PATCH /{id}/cancel` — body `OutpatientEncounterCancelRequest`
+
+| Field | Tipe | Wajib | Aturan |
+|---|---|:---:|---|
+| `cancelReason` | `string` | Ya | Dipangkas spasi; 1-250 karakter |
+
+Respons `200`: `{ "success": true, "data": { "id": "…", "cancelledAt": "…", "cancelledQueueCount": 1 }, "message": "Kunjungan berhasil dibatalkan." }`.
+Pesan penolakan ada di `contracts/validation-matrix.md` *Amendment DP*.
+
+## Perubahan perilaku endpoint yang sudah ada
+
+| Endpoint | Sebelum | Sesudah |
+|---|---|---|
+| `POST /patient-encounters`, `/admin`, `/kiosk` | Ditolak `400` bila pasien punya kunjungan apa pun yang belum selesai/batal/tidak hadir | Ditolak `400` **hanya** bila pasien punya kunjungan RJ berklinik berstatus 0-6 (DP.3.2). Bunyi pesan tidak berubah |
+| `PATCH /patient-encounters/{id}/cancel` | — | Tidak berubah |
+
+---
+
+# Amendment KT — Konsultasi Tertunda (`RJ-DOC-PENDCONS-001@1.0.0`)
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `RJ-DOC-PENDCONS-001@1.0.0` |
+| Status | `draft` |
+| Owner | Sukma Giri (Product/Domain, API authority) |
+| `approved_by` / `approved_at` | — / — |
+| Input | `00-interview-decisions.md` (Amendment Pass 2026-10-05), `02-backend-architecture.md` *Amendment KT* |
+| Compatibility | **Aditif.** Satu endpoint baru. Endpoint lama tidak berubah bentuk maupun perilakunya. Satu perubahan bunyi pesan `RJDP-VAL-005` (`validation-matrix.md` *Amendment KT*) |
+| Traceability | `RJ-DOC-DEC-028`..`031`, `RJ-DOC-FE-010`..`012`; menjawab `RJ-DOC-OQ-012`, `RJ-DOC-OQ-013` |
+
+## Health Services / Registration Management / Doctor Queue
+
+Base URL: `api/v1/health-services/registration-management/doctor-queues`. Respons dibungkus
+`ApiResponse<T>`.
+
+| Method | Path | Kegunaan | Hak akses | Kode status | Keadaan |
+|---|---|---|---|---|---|
+| `GET` | `/pending-consultations` | Konsultasi tertunda milik dokter yang login, lintas tanggal | `[AccessPermission("DoctorQueue", "Read")]` | `200`, `401`, `403` | **Rencana (belum tersedia)** |
+
+### `GET /pending-consultations` — query
+
+| Parameter | Tipe | Wajib | Bawaan | Aturan |
+|---|---|---|---|---|
+| `doctorId` | `Guid` | Tidak | dokter yang login | Diproses `ResolveAllowedDoctorIdAsync`: dokter lain diabaikan, tidak melebarkan hasil |
+| `queueId` | `Guid` | Tidak | — | Mempersempit ke satu antrean (baca ulang hitungan saat modal Simpan). Antrean di luar syarat → hasil kosong, bukan `404` |
+| `search` | `string` | Tidak | — | Sama dengan `GET /doctor-queues` (kode antrean, nama pasien, no. RM, no. kunjungan, poli, ruang) |
+| `pageNumber`, `pageSize` | `int` | Tidak | `1`, `25` | Dinormalkan `NormalizePaging`, sama dengan `GET /doctor-queues` |
+
+Urutan: `QueueDate` menaik (paling lama dulu), lalu nomor antrean.
+
+**Response** `PagedResult<DoctorPendingConsultationResponse>` (`pageNumber`, `pageSize`, `totalData`,
+`totalPage`, `items`). Setiap item berisi **seluruh field `DoctorQueueResponse`** (bentuk sama dengan
+`GET /doctor-queues`, termasuk `queueDate` dan `consultationId`) ditambah:
+
+| Field | Tipe | Sensitif | Keterangan |
+|---|---|:---:|---|
+| `draftPrescriptionCount` | `int` | | Resep draf aktif milik konsultasi |
+| `procedureCount` | `int` | | Tindakan aktif milik konsultasi |
+| `pendingDays` | `int` | | Hari sejak `queueDate` sampai tanggal operasional hari ini; minimal `1` |
+| `canCancelConsultation` | `bool` | | Pengguna memegang `DoctorConsultation : Cancel`. Penanda tampilan saja |
+
+**Contoh respons (dipangkas, data rekaan):**
+
+```json
+{
+  "success": true,
+  "message": "Konsultasi tertunda berhasil diambil.",
+  "data": {
+    "pageNumber": 1, "pageSize": 25, "totalData": 1, "totalPage": 1,
+    "items": [{
+      "id": "6f1c…", "queueDate": "2026-09-30T00:00:00",
+      "patientName": "Pasien Contoh", "medicalRecordNumber": "00-00-00-99",
+      "clinicName": "Poli Anak", "doctorName": "dr. Contoh",
+      "consultationId": "a8e2…",
+      "draftPrescriptionCount": 1, "procedureCount": 0,
+      "pendingDays": 5, "canCancelConsultation": true
+    }]
+  }
+}
+```
+
+| Kode | Kapan |
+|---|---|
+| `200` | Berhasil, termasuk daftar kosong |
+| `401` | Tidak login |
+| `403` | Tidak memegang `DoctorQueue : Read`, atau bukan super admin dan tidak terhubung ke data dokter (`Forbid()`, sama dengan `GET /doctor-queues`) |
+
+### Endpoint lama yang dipakai, tanpa perubahan
+
+| Method | Path | Dipakai untuk |
+|---|---|---|
+| `POST` | `/doctor-queues/{id}/finish-consultation` | Simpan konsultasi tertunda |
+| `PATCH` | `api/v1/health-services/clinical-management/doctor-consultations/{id}/cancel` | Batalkan konsultasi tertunda; body `{ "cancelReason": "…" }` |
+| `PATCH` | `api/v1/health-services/registration-management/outpatient-encounters/{id}/cancel` | Petugas membatalkan kunjungan sesudah konsultasi dibatalkan |

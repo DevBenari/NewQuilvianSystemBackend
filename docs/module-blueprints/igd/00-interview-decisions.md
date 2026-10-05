@@ -4456,7 +4456,7 @@ remediasi teknis dan **tidak** memindahkan kepemilikan modul mana pun.
 
 | ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
 | --- | --- | --- | --- | --- | --- | --- |
-| `IGD-OQ-093` | Open Question | Lapis A (`BE-IGD-050`: pra-cek episode aktif sebelum encounter dibuat, dipanggil layar) menutup kasus normal tetapi **tidak menutup dua celah**: (a) dua pendaftaran serentak untuk pasien yang sama, keduanya lolos pra-cek lalu salah satunya ditolak `409`; (b) klien mana pun yang memanggil `POST /patient-encounters` lalu `POST /emergency-visits` **tanpa** pra-cek. Untuk menutupnya, jaminan harus ditegakkan di sisi server. Tiga opsi: **B1** — guard episode ganda pada pembuatan encounter bertipe `Emergency` di modul Registrasi (menyentuh berkas milik Registrasi); **B2** — satu endpoint orkestrasi IGD yang membuat encounter dan kunjungan dalam satu transaksi (butuh logika pembuatan encounter yang dapat dipanggil dari luar controller); **B3** — kompensasi otomatis pada penolakan (ditolak: menghapus/membatalkan encounter tanpa audit referensi bertentangan dengan `IGD-DEC-138`) | Product/Domain Owner IGD + pemilik modul Registrasi (**belum dipetakan pada dokumen ini**) | ~~`open`~~ **`superseded` sebagian — 22 September 2026.** Keputusan bisnis dijawab `IGD-DEC-139` (bentuk B1: penjaga pada satu pintu encounter `Emergency`); mekanisme teknis dijawab `IGD-DEC-145` + `IGD-DEC-146`; **realisasi masih terbuka** sampai `BE-IGD-053` ✅. *Tulisan `closed` yang sempat dipasang pagi hari dikoreksi pada amendment pass sore hari yang sama* | Tidak menahan `BE-IGD-050` maupun `FE-IGD-034`. Menahan hanya klaim "tanpa encounter yatim dalam segala keadaan" | Keputusan pemilik: `IGD-DEC-138` butir 3 |
+| `IGD-OQ-093` | Open Question | Lapis A (`BE-IGD-050`: pra-cek episode aktif sebelum encounter dibuat, dipanggil layar) menutup kasus normal tetapi **tidak menutup dua celah**: (a) dua pendaftaran serentak untuk pasien yang sama, keduanya lolos pra-cek lalu salah satunya ditolak `409`; (b) klien mana pun yang memanggil `POST /patient-encounters` lalu `POST /emergency-visits` **tanpa** pra-cek. Untuk menutupnya, jaminan harus ditegakkan di sisi server. Tiga opsi: **B1** — guard episode ganda pada pembuatan encounter bertipe `Emergency` di modul Registrasi (menyentuh berkas milik Registrasi); **B2** — satu endpoint orkestrasi IGD yang membuat encounter dan kunjungan dalam satu transaksi (butuh logika pembuatan encounter yang dapat dipanggil dari luar controller); **B3** — kompensasi otomatis pada penolakan (ditolak: menghapus/membatalkan encounter tanpa audit referensi bertentangan dengan `IGD-DEC-138`) | Product/Domain Owner IGD + pemilik modul Registrasi (**belum dipetakan pada dokumen ini**) | ~~`open`~~ **`superseded` — realisasi terbukti 1 Oktober 2026** lewat `BE-IGD-053` ✅: kedua celah tertutup — pendaftaran serentak `[200, 409]` (S4) dan klien tanpa pra-cek ditolak `409` (S6), bukti mentah diperiksa agent. Dicatat pada pass penyelarasan 3 Oktober 2026 (audit kesiapan `MVP-7`, syarat C6). *Sebelumnya:* **`superseded` sebagian — 22 September 2026.** Keputusan bisnis dijawab `IGD-DEC-139` (bentuk B1: penjaga pada satu pintu encounter `Emergency`); mekanisme teknis dijawab `IGD-DEC-145` + `IGD-DEC-146`; **realisasi masih terbuka** sampai `BE-IGD-053` ✅. *Tulisan `closed` yang sempat dipasang pagi hari dikoreksi pada amendment pass sore hari yang sama* | Tidak menahan `BE-IGD-050` maupun `FE-IGD-034`. Menahan hanya klaim "tanpa encounter yatim dalam segala keadaan" | Keputusan pemilik: `IGD-DEC-138` butir 3 |
 
 **Rekomendasi agent.** B1 bila pemilik Registrasi setuju, karena ia menutup celah (a) dan (b) sekaligus
 di satu tempat; B2 bila tidak. **Agent tidak memilih**: keduanya menyentuh modul lain atau membuat pola baru.
@@ -4941,7 +4941,7 @@ sudah disetujui sudah menetapkan perilakunya, dan perilaku itu berlaku sampai pe
 
 | ID | Jenis | Isi | Pembacaan yang berlaku sekarang | Bila ditolak | Pemilik | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `IGD-OQ-108` | Open Question | Pendaftaran ganda beralasan (`IGD-DEC-145`) melahirkan **encounter** kedua. Tetapi Mulai Triage/Tangani Segera untuk encounter itu ditolak `409` selama kunjungan lama pasien belum berakhir (validation §10.2 aturan 7). Jadi sesudah `FE-IGD-036`, jalan keluar `IGD-DEC-084` hanya melahirkan encounter, tidak lagi kunjungan kedua. Jalur lama `POST /emergency-visits` masih mengizinkan kunjungan kedua beralasan | Kontrak berlaku: **satu kunjungan berjalan per pasien**. Perawat menutup atau membatalkan kunjungan lama dulu, baru Mulai Triage pada encounter kedua | `start-triage` menerima bila ada `EmgDuplicateEpisodeOverride` untuk encounter ini yang menunjuk kunjungan penghalang — amendment validation §10.2 aturan 7 dan `BE-IGD-055` | Product/Domain Owner IGD | `open` — sebaiknya dijawab sebelum `FE-IGD-036` dirilis |
+| `IGD-OQ-108` | Open Question | Pendaftaran ganda beralasan (`IGD-DEC-145`) melahirkan **encounter** kedua. Tetapi Mulai Triage/Tangani Segera untuk encounter itu ditolak `409` selama kunjungan lama pasien belum berakhir (validation §10.2 aturan 7). Jadi sesudah `FE-IGD-036`, jalan keluar `IGD-DEC-084` hanya melahirkan encounter, tidak lagi kunjungan kedua. Jalur lama `POST /emergency-visits` masih mengizinkan kunjungan kedua beralasan | Kontrak berlaku: **satu kunjungan berjalan per pasien**. Perawat menutup atau membatalkan kunjungan lama dulu, baru Mulai Triage pada encounter kedua | `start-triage` menerima bila ada `EmgDuplicateEpisodeOverride` untuk encounter ini yang menunjuk kunjungan penghalang — amendment validation §10.2 aturan 7 dan `BE-IGD-055` | Product/Domain Owner IGD | `superseded` oleh **`IGD-DEC-180`** (3 Oktober 2026) — jawaban: kontrak berlaku, satu kunjungan berjalan per pasien. *Sebelumnya:* `open` — sebaiknya dijawab sebelum `FE-IGD-036` dirilis |
 
 ## Amendment pass 23 September 2026 — penutupan kunjungan IGD lewat disposisi yang dilaksanakan
 
@@ -4982,7 +4982,7 @@ Pemeriksaan source hari ini menunjukkan jawabannya **tidak** — dan itulah seba
 | ID | Jenis | Isi | Pembacaan yang berlaku sekarang | Pemilik | Status |
 | --- | --- | --- | --- | --- | --- |
 | `IGD-OQ-109` | Open Question | Daftar **"menunggu penutupan"** (`IGD-DEC-164`) muncul di mana: endpoint baca-saja pada grup `Emergency Visit`, saringan tambahan pada daftar kunjungan yang sudah ada, atau kolom penanda pada kunjungan | Belum ditetapkan. Yang sudah pasti: alasan penahan harus terbaca, dan daftarnya harus dapat dihitung supaya celahnya terukur | Product/Domain Owner IGD | ~~`open`~~ **`superseded` oleh `IGD-DEC-168`** (23 September 2026) |
-| `IGD-OQ-110` | Open Question | Berapa banyak encounter bernilai `IsActive = false` tetapi **tanpa** satu pun dari lima tanda berakhir (`IGD-FACT-028`). Bila ada, berarti ada jalur yang menonaktifkan encounter tanpa menandainya berakhir, dan encounter itu akan terbaca "masih terbuka" oleh rekonsiliasi, daftar Menunggu Triage (`BE-IGD-054`), dan penjaga pendaftaran (`BE-IGD-053`) | Diasumsikan nol sampai angkanya ada. Kueri milik pemilik; agent dilarang menjalankannya | Rizki | `open` — tidak menahan; **sebaiknya dijawab sebelum `BE-IGD-053` dirilis** |
+| `IGD-OQ-110` | Open Question | Berapa banyak encounter bernilai `IsActive = false` tetapi **tanpa** satu pun dari lima tanda berakhir (`IGD-FACT-028`). Bila ada, berarti ada jalur yang menonaktifkan encounter tanpa menandainya berakhir, dan encounter itu akan terbaca "masih terbuka" oleh rekonsiliasi, daftar Menunggu Triage (`BE-IGD-054`), dan penjaga pendaftaran (`BE-IGD-053`) | Diasumsikan nol sampai angkanya ada. Kueri milik pemilik; agent dilarang menjalankannya | Rizki | **Terjawab untuk dev — 3 Oktober 2026: 0 baris.** Kueri OQ110-A dan OQ110-B dijalankan agen penguji atas perintah pemilik; keduanya kosong (bukti `QuilvianSystemFrontendDev/test-with-agy/igd/uji-tahap-1-2026-10-03/OQ110-A.json`, `OQ110-B.json`; [laporan uji tahap 1](testing/2026-10-03-laporan-uji-tahap-1-mvp-7.md)). Asumsi "nol" terbukti di dev; **tetap diulang di setiap lingkungan sebelum `BE-IGD-053` dirilis di sana** (syarat C3). *Sebelumnya:* `open` — tidak menahan; sebaiknya dijawab sebelum `BE-IGD-053` dirilis |
 
 ### Yang harus dikerjakan skill berikutnya
 
@@ -5099,3 +5099,351 @@ Dua temuan saat kartu R3.14 diperluas. Pemilik menjawab lewat pilihan interaktif
 | --- | --- | --- | --- | --- | --- | --- |
 | `IGD-DEC-176` | Decision | **`BE-IGD-062` dikerjakan sesuai kontrak; status disposisi `Executed` tetap final.** Fakta source: `EmergencyDispositionService.CanTransition` menolak **setiap** `Executed → Cancelled` dengan `400` teknis *"Perubahan status dari Executed ke Cancelled tidak diperbolehkan."* **sebelum** status kunjungan diperiksa, sehingga penolakan `409` validation §11 aturan 8 tidak pernah tercapai dan pesan yang menyebut alasan (`IGD-DEC-166`) tidak pernah terbaca. Keputusannya: pada kunjungan `Completed`, `Executed → Cancelled` dijawab `409` dengan kalimat aturan 8 dan **didahulukan** atas penjaga `400` maupun penolakan alasan-wajib; pada kunjungan yang belum selesai, `Executed → Cancelled` tetap `400` seperti sekarang — pembatalan disposisi yang sudah dilaksanakan **tidak** dibuka. Teks kompatibilitas API §9.1 nomor 3 (*"pembatalan disposisi yang dulu diterima"*) dikoreksi sebagai kesalahan fakta: dulu `400` teknis, kini `409` bermakna. Perilaku target kontrak tidak berubah | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-30** | Pilihan interaktif; catatan "Di luar scope" amendment pass 30 September 2026 |
 | `IGD-DEC-177` | Decision | **Tombol Eskalasi pada tab Observasi tampil nonaktif beserta keterangan pada kunjungan `Disposed`.** Layar tidak mengirim permintaan yang pasti ditolak (kebiasaan `OBSERVATION_STATUS_ACTIONS`), tetapi perawat tetap diberi tahu alasannya — maksud `IGD-DEC-172`. Pesan `409` validation §11 aturan 14 tetap ditampilkan apa adanya bila data berubah di antara muat layar dan penekanan tombol. Rupa keterangan (teks di samping, tooltip, atau lainnya) `DEV_DISCRETION` mengikuti design system layar itu, asalkan terbaca tanpa kursor. Direalisasikan `FE-IGD-042` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-30** (sementara, `IGD-DEC-174`) | Pilihan interaktif |
+
+### Keputusan pelaksanaan `BE-IGD-057` — 1 Oktober 2026
+
+Ditemukan saat `build-module-backend` memeriksa source sebelum menulis kode. Pemilik menjawab lewat pilihan interaktif.
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-178` | Decision | **Alasan pasien pergi sebelum ditriage dibatasi 250 karakter, tanpa migration.** Kontrak menulis 1–500 karakter (API §8.3.3, validation §10.3 aturan 2), tetapi kolom yang dipakai — `RegPatientEncounter.NoShowReason`, milik Registrasi — bertipe `character varying(250)`, dan `BE-IGD-057` dirancang nol schema. Alasan 251–500 karakter akan gagal disimpan. Keputusannya: endpoint menolak alasan lebih dari 250 karakter dengan pesan *"Alasan maksimal 250 karakter."*; kolom **tidak** dilebarkan dan alasan **tidak** dipotong diam-diam. Teks kontrak dikoreksi dari 500 ke 250 sebagai koreksi fakta. Berlaku pula untuk layar `FE-IGD-039` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-01** | Pilihan interaktif; `IGD-FACT-011` |
+
+### Keputusan pelaksanaan `FE-IGD-036` — 1 Oktober 2026 (lima ruas kunjungan)
+
+Ditemukan saat `build-module-frontend` mengerjakan `FE-IGD-036` dan dicatat sebagai selisih pada laporannya (bagian 3.4).
+Pemilik memutuskan lewat perintah tertulis pada percakapan.
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-179` | Decision | **Lima ruas kunjungan dipulihkan sebagai ruas opsional `POST /start-triage` dan isian dialog Mulai Triage, tanpa migration.** Sejak loket berhenti membuat kunjungan (`IGD-DEC-139`), lokasi kedatangan, lokasi ditemukan, lokasi trauma, waktu trauma, dan catatan kunjungan tidak punya tempat diisi: kartu `FE-IGD-036` menyebut lokasi dan waktu trauma *pindah* ke Mulai Triage, tetapi kontrak `start-triage` (API §8.3.2) tidak memuat ruasnya. Keputusannya: `StartEmergencyVisitRequest` menerima `arrivalLocation`, `foundLocation`, `traumaLocation` (maks. 250), `traumaDateTime`, dan `notes` (maks. 1000), seluruhnya opsional, disimpan ke kolom `EmgVisit` yang sudah ada saat kunjungan lahir. Dialog Mulai Triage menampilkan kelima isian itu; Tangani Segera tetap tanpa isian. Kunjungan yang sudah ada tidak ditimpa. Dikerjakan sebagai pengerjaan ulang `BE-IGD-055` dan `FE-IGD-036`, bukan kartu baru. **Satu aturan penyerta diusulkan agent, bukan bagian perintah pemilik, dan boleh ditolak:** waktu trauma di masa depan ditolak `400` (validation §10.2 aturan 15) | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-01** | Perintah pemilik pada percakapan; laporan `FE-IGD-036` bagian 3.4 |
+
+### Jawaban `IGD-OQ-108` — 3 Oktober 2026
+
+Ditanyakan saat menyiapkan uji ulang `036-U7` (penutupan `MVP-7`), karena jawabannya menentukan hasil yang diharapkan
+dari skenario itu. Pemilik menjawab lewat pilihan interaktif, memilih opsi yang direkomendasikan.
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-180` | Decision | **Encounter kedua hasil pendaftaran ganda beralasan tidak dapat dimulai selama kunjungan IGD lama pasien belum berakhir — kontrak berlaku apa adanya.** Menjawab `IGD-OQ-108`. Satu kunjungan berjalan per pasien: Mulai Triage dan Tangani Segera pada encounter kedua ditolak `409` dengan pesan validation §1 aturan 4 (validation §10.2 aturan 7); perawat menutup atau membatalkan kunjungan lama lebih dulu. Pendaftaran ganda beralasan (`IGD-DEC-145`) karena itu hanya melahirkan encounter, bukan kunjungan kedua. Nol perubahan kontrak, source, dan schema. Alternatif yang ditolak: `start-triage` menerima encounter yang punya `EmgDuplicateEpisodeOverride` menunjuk kunjungan penghalang (amendment validation §10.2 aturan 7 dan `BE-IGD-055`). **Keterbatasan yang diterima:** kunjungan `Disposed` yang masih menunggu penutupan dihitung belum berakhir. Selama penahannya tertahan `403` kewenangan unit (`BE-IGD-039`), pasien yang kembali ke IGD tidak dapat dimulai kunjungan barunya — termasuk lewat Tangani Segera — sampai kunjungan lama tertutup. *Contoh:* pasien pulang dengan kepergian yang serah terimanya belum diterima unit tujuan, lalu kembali dua jam kemudian; encounter barunya tampil *Menunggu Triage*, tetapi Mulai Triage ditolak sampai kepergian lama dibereskan. Hasil uji `036-U7` (`409`) adalah perilaku yang diharapkan. Wajib ditinjau ulang bila `BE-IGD-039` selesai, atau bila Clinical Governance atau Nursing authority ditunjuk | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-03** | Pilihan interaktif pada percakapan review status modul 3 Oktober 2026 (opsi *Kontrak berlaku*, direkomendasikan agent) |
+
+### Persetujuan Registrasi atas `IGD-REQ-002` — 3 Oktober 2026
+
+Menjawab syarat C2 audit kesiapan `MVP-7` dan PRD §8.6 butir 8. Pemilik menyatakannya pada percakapan sesudah agent
+meminta konfirmasi tertulis beserta nama.
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-181` | Decision | **Perubahan IGD pada modul Registrasi (`IGD-REQ-002` butir 1–5) disetujui, dan persetujuan lisan yang dilaporkan Product/Domain Owner diterima sebagai pemenuhan PRD §8.6 butir 8.** Pemegang modul Registration Management dan pengembang Registrasi — keduanya tim Rizki Gunawan — menyetujui secara lisan perubahan pada `PatientEncounterController` dan `PatientEncounterDtos` untuk encounter `Emergency`: tanpa antrean, penjaga episode terbuka dengan override beralasan, kunci serentak per pasien, penolakan `PATCH …/status`, dan `…/cancel` hanya sebelum kunjungan IGD lahir. Pemilik IGD memutuskan bahwa untuk tim internal sendiri **konfirmasi tertulis dan pencatatan nama tidak disyaratkan**; bentuk "tertulis beserta nama" pada butir 8 diganti dengan laporan Product/Domain Owner ini. **Tidak dijawab:** butir 4 surat (pemilik layar loket IGD di folder frontend `registration-management/emergency-registration`) — keadaan sekarang tetap: layar itu diubah lewat task IGD. **Usulan lanjutan yang ikut disetujui untuk direncanakan:** pembatasan `DELETE /patient-encounters/{id}` atas encounter IGD yang sudah punya kunjungan (laporan `BE-IGD-059`) — dikerjakan lewat kartu task baru, bukan bagian `MVP-7` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-03** | Percakapan 3 Oktober 2026: *"c2 saya sudah diberikan persetujuan sama pemilik dan yang mengerjakan registrasi"*, *"saya meminta by lisan"*, *"gaperlu ada ini, karena yang mengerjakan juga adalah tim saya … apa yang diberikan anda ke pemilik registrasi anda kerjakan saja"* |
+
+### Rute petugas untuk loket IGD — 3 Oktober 2026
+
+Lahir dari uji izin peran nyata `C4-01` (syarat C4 audit kesiapan `MVP-7`). Pemilik memerintahkan perbaikan pada
+percakapan.
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-182` | Decision | **Layar loket IGD membuat encounter lewat rute petugas `POST /patient-encounters/admin`, bukan rute tanpa akhiran.** Fakta source: `POST /patient-encounters` dan `…/kiosk` adalah `CreateEncounterForKiosk` dengan policy `KioskRead` (SuperAdmin, Administrator, akun kiosk — commit `27c48484`, 4 Juli 2026); `POST /patient-encounters/admin` adalah `CreateEncounterForAdmin` dengan `PatientEncounter : Create`. Keduanya memanggil `CreateEncounterCoreAsync` yang sama, termasuk penjaga episode `BE-IGD-053`. Loket IGD memakai rute kiosk sehingga petugas loket sungguhan ditolak `403`; tersembunyi karena seluruh uji sebelumnya memakai SuperAdmin. Perbaikan dikerjakan sebagai pengerjaan ulang `FE-IGD-036` (bagian 11 laporannya). Kontrak API §8.1 diberi catatan rute petugas; **nomor versi kontrak tidak dinaikkan** dan **nol perubahan backend** — pola koreksi `IGD-DEC-178`/`179` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-03** | Percakapan 3 Oktober 2026: *"lakukan perbaikan loket dikerjakan sebagai pengerjaan ulang FE-IGD-036, ditambah catatan kecil di kontrak API §8.1 bahwa petugas memakai rute /admin"* |
+
+## Amendment pass 3 Oktober 2026 — observasi Dieskalasi dan penutupan kunjungan (temuan `BE-IGD-061` S6)
+
+Pass ini menjawab **satu temuan uji** `BE-IGD-061` skenario S6 (2 Oktober 2026). Sebuah observasi dieskalasi saat
+kunjungan masih ditangani, lalu disposisinya dilaksanakan. Kunjungan langsung tertutup, padahal observasi itu masih
+berstatus Dieskalasi. Sesudahnya observasi tersebut tidak dapat diselesaikan lagi, dan kesimpulannya hilang.
+
+| Butir | Isi |
+| --- | --- |
+| Mode | `Amendment pass` — blueprint revisi 8; keputusan lama tidak ditimpa |
+| Snapshot source | Backend `rizkiG` `5af6ef3b` (source IGD tanpa perubahan working tree); frontend `RizkiV2` `521b18a9a` |
+| Capability map | **Berpotensi basi** — suplemen 3.2 dicatat pada `0d13f3a8`. Seluruh fakta pass ini diverifikasi langsung pada source `5af6ef3b` |
+| Di dalam scope | Apakah observasi Dieskalasi menahan penutupan kunjungan; nasib observasi Dieskalasi yang sudah tertinggal pada kunjungan selesai; pesan yang dibaca perawat |
+| Di luar scope | Pasien yang memburuk sesudah disposisi dilaksanakan (`IGD-OQ-111`); entri susulan sesudah periode observasi ditutup (`IGD-OQ-090`); tempat alasan pembatalan observasi (`IGD-OQ-083`); membuka kembali kunjungan selesai (`IGD-DEC-166` tetap berlaku) |
+| Bentuk blueprint | Tidak dinilai ulang — sudah diputuskan 22 September 2026 |
+| Pengambil keputusan | Rizki Gunawan, Product/Domain Owner IGD, lewat pilihan interaktif 3 Oktober 2026 |
+| Konfirmasi scope | Batas scope disampaikan bersama pertanyaan pertama; pemilik menjawab tanpa keberatan |
+
+### Fakta source yang diverifikasi pada pass ini
+
+| ID | Fakta | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-032` | Eskalasi observasi memindahkan kunjungan ke `InTreatment`, mengisi `EndedAt`, dan menyimpan catatannya ke `EscalationReason` | `EmergencyObservationController.UpdateObservationStatus` (pemetaan `Escalated => InTreatment`; `EndedAt ??= now`; `EscalationReason = catatan`) |
+| `IGD-FACT-033` | Periode `Escalated` **tetap menerima** pemantauan baru, sama seperti `Active`; hanya `Completed` dan `Cancelled` yang menolak. Menurut `IGD-DEC-126`, periode Dieskalasi termasuk periode yang **belum ditutup** | `EmergencyObservationService` (parameter `tolakPeriodeTertutup`); `IGD-DEC-126` |
+| `IGD-FACT-034` | `Escalated → Completed` dan `Escalated → Cancelled` sah. Pada kunjungan yang masih berjalan, menyelesaikan observasi Dieskalasi memindahkan kunjungan ke `AwaitingDisposition`; pada kunjungan `Disposed` tidak memindahkan apa pun (`IGD-DEC-171`). Eskalasi karena itu dirancang sebagai keadaan antara yang diakhiri dengan *Selesaikan* | `EmergencyObservationService.CanTransition`; pemetaan `Completed when !kunjunganDisposed` |
+| `IGD-FACT-035` | Penjaga penutupan `ValidateVisitClosureAsync` dipakai tiga jalur: penutupan susulan (`TryCloseAfterDispositionAsync`), tombol *Selesaikan kunjungan* (`EmergencyVisitController`), dan alasan pada daftar menunggu penutupan (`AmbilAlasanMenungguPenutupanAsync`). Saringan daftar itu sendiri membaca status kunjungan dan disposisi `Executed`, bukan penjaga | `EmergencyDispositionService.cs:108`; `EmergencyVisitService.SaringMenungguPenutupan` |
+| `IGD-FACT-036` | Uji S6, 2 Oktober 2026: observasi dieskalasi saat `InTreatment` → disposisi dilaksanakan → kunjungan langsung `Completed` → menyelesaikan observasi itu ditolak `409` *"Status kunjungan tidak dapat berubah dari Completed ke AwaitingDisposition."* Hanya *Batalkan* yang lolos | Laporan `BE-IGD-061` bagian *Pemeriksaan bukti uji gabungan* |
+
+`IGD-FACT-031` (penjaga penutupan hanya menghitung observasi `Active`) tetap berlaku sebagai fakta source; bersama
+`IGD-FACT-033` ia membentuk **conflict**: keputusan `IGD-DEC-126` memperlakukan periode Dieskalasi sebagai belum
+ditutup, sedangkan penjaga penutupan memperlakukannya sebagai sudah selesai.
+
+### Keputusan
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-183` | Decision | **Observasi Dieskalasi menahan penutupan kunjungan, sama seperti observasi Aktif.** Periode Dieskalasi adalah urusan yang belum selesai: pasien sempat memburuk, ditangani lagi, dan periode itu baru tuntas ketika perawat menyelesaikannya beserta kesimpulan atau membatalkannya. Penjaga penutupan menghitung observasi `Active` **dan** `Escalated`, sehingga ketiga jalur pada `IGD-FACT-035` ikut berubah bersamaan. Kunjungan yang disposisinya sudah dilaksanakan tetapi masih punya observasi Dieskalasi masuk daftar menunggu penutupan (`IGD-DEC-164`). Perawat menyelesaikan observasi itu lewat jalur `IGD-DEC-171` — kesimpulan tersimpan, status kunjungan tidak dipindahkan — lalu kunjungan tertutup pada penyimpanan yang sama bila tak ada penahan lain (`IGD-DEC-165`). Menjawab conflict `IGD-FACT-031` ↔ `IGD-FACT-033` dengan berpihak pada `IGD-DEC-126`. *Contoh:* pukul 10.00 observasi dieskalasi karena saturasi turun; pasien ditangani dan membaik. Pukul 13.00 dokter memutuskan pulang dan disposisinya dilaksanakan. Kunjungan **tidak** langsung tertutup, tetapi tampil *Menunggu penutupan — Masih ada observasi yang belum diselesaikan.* Pukul 13.10 perawat menyelesaikan observasi pukul 10.00 dengan kesimpulan *"membaik sesudah penanganan, layak pulang"*, dan kunjungan tertutup atas nama perawat tersebut. **Konsekuensi yang diterima:** satu langkah tambahan untuk setiap eskalasi, termasuk bila sesudahnya sudah dibuka periode observasi baru | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-03** (sementara, pola `IGD-DEC-174` — wajib ditinjau ulang bila Clinical Governance atau Nursing authority IGD ditunjuk) | Pilihan interaktif 3 Oktober 2026 (opsi *Masih terbuka, menahan*, direkomendasikan agent); temuan uji `BE-IGD-061` S6 |
+
+### Asumsi sementara — pemilik boleh membatalkan kapan saja
+
+| ID | Isi | Dasar |
+| --- | --- | --- |
+| `IGD-ASM-003` | Alasan penahan untuk observasi Dieskalasi memakai kalimat yang sudah ada, *"Masih ada observasi yang belum diselesaikan."* — tindakan perawatnya sama: membuka tab Observasi dan menyelesaikan periode yang belum tuntas | Kalimat penjaga sekarang; `FE-IGD-041` menampilkan alasan apa adanya dari server |
+
+### Keputusan lanjutan — data lama dan kartu task
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-184` | Decision | **Observasi Dieskalasi yang sudah tertinggal pada kunjungan selesai dibiarkan apa adanya; pesannya diperjelas.** `IGD-DEC-183` berlaku ke depan saja (pola `IGD-DEC-167`). Observasi semacam itu **tidak** diubah massal, **tidak** dibatalkan lewat skrip, dan kunjungannya **tidak** dibuka kembali (`IGD-DEC-166`). Upaya *menyelesaikan*, *mengeskalasi*, atau *mengaktifkan* observasi milik kunjungan `Completed` atau `Cancelled` tetap ditolak `409`, tetapi dengan kalimat yang dipahami perawat sebagai pengganti pesan teknis penjaga transisi (*"Status kunjungan tidak dapat berubah dari Completed ke AwaitingDisposition."*). Kalimat mengikatnya dikunci pada amandemen validation matrix; usulan agent: *"Kunjungan IGD ini sudah selesai; observasinya tidak dapat diubah lagi."* Aksi *batalkan* pada kunjungan selesai **tidak** diubah oleh keputusan ini — tetap lolos seperti tertulis pada state §9.5 *Yang tidak berubah*. Jumlah observasi tertinggal dihitung per lingkungan (`IGD-OQ-112`). **Konsekuensi yang diterima:** observasi lama itu tetap tanpa kesimpulan. Menyelesaikannya susulan berarti membuka jalur entri susulan pada kunjungan tertutup, yang harus dirancang tersendiri (`IGD-OQ-090`) | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-03** (sementara, pola `IGD-DEC-174`) | Pilihan interaktif 3 Oktober 2026 (opsi *Dibiarkan, pesan diperjelas*, direkomendasikan agent) |
+| `IGD-DEC-185` | Decision | **`IGD-DEC-183` dan `184` dikerjakan sebagai pengerjaan ulang `BE-IGD-061`**, bukan kartu baru. Skenario S6 dan kriteria 8 memang milik kartu itu, yang masih 🟡; satu siklus uji cukup (pola `IGD-DEC-173`). Kartu diperluas lewat `plan-module-delivery` sesudah kontrak diamandemen. Konsekuensinya `BE-IGD-061` tetap tidak dapat mencapai ✅ sebelum S2, S3, dan S12 terbukti — yang tertahan `BE-IGD-039` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-03** | Pilihan interaktif 3 Oktober 2026 (opsi *Pengerjaan ulang BE-IGD-061*, direkomendasikan agent) |
+
+### Pertanyaan terbuka
+
+| ID | Jenis | Isi | Pembacaan yang berlaku sekarang | Pemilik | Status | Menahan |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-112` | Open Question | Berapa observasi berstatus `Escalated` yang tertinggal pada kunjungan `Completed` atau `Cancelled`, per lingkungan. Penjaga lama dipakai juga oleh tombol *Selesaikan kunjungan*, jadi data semacam ini dapat ada sejak sebelum `MVP-8`, termasuk di produksi | Dev: sedikitnya satu — kunjungan uji S6. Lingkungan lain belum diketahui. Kueri milik pemilik; agent dilarang menjalankannya | Rizki | `open` | **Tidak** menahan desain maupun implementasi; angkanya menentukan apakah perlu tindak lanjut operasional |
+
+### Yang berubah dan yang tidak
+
+| Bagian | Sesudah pass ini |
+| --- | --- |
+| Penjaga penutupan | Menghitung observasi `Active` **dan** `Escalated` (`IGD-DEC-183`) |
+| Penutupan susulan, tombol *Selesaikan kunjungan*, alasan daftar menunggu penutupan | Ikut berubah lewat penjaga yang sama (`IGD-FACT-035`) |
+| Pesan aksi observasi pada kunjungan selesai | Kalimat yang dipahami perawat (`IGD-DEC-184`) |
+| `IGD-DEC-171` (selesaikan pada `Disposed`) dan `IGD-DEC-172` (eskalasi pada `Disposed` ditolak) | Tidak berubah. `IGD-DEC-171` kini juga menjadi jalan keluar observasi Dieskalasi |
+| Aksi *batalkan* pada kunjungan selesai | Tidak berubah — tetap lolos |
+| Frontend | Diperkirakan nol perubahan: `FE-IGD-041` menampilkan alasan apa adanya dari server, dan tab Observasi (`FE-IGD-042`) sudah menyediakan *Selesaikan* untuk observasi Dieskalasi pada kunjungan `Disposed`. Dipastikan ulang oleh `plan-module-delivery` |
+| Kontrak | **Belum** diubah. Yang perlu diamandemen: validation §11 (aturan penjaga penutupan + kalimat `IGD-DEC-184`), state §9.4–9.5 (catatan *"Observasi Escalated tidak menahan penutupan"* diganti), API §9.2 (arti alasan penahan observasi) |
+
+### Acceptance yang kini dapat diuji
+
+| No | Skenario | Hasil yang diharapkan |
+| ---: | --- | --- |
+| 1 | Observasi dieskalasi saat `InTreatment`, lalu disposisi dilaksanakan | Kunjungan tetap `Disposed`; tampil pada `GET /emergency-visits?awaitingClosure=true` dengan alasan *"Masih ada observasi yang belum diselesaikan."* |
+| 2 | Lanjutan no. 1: observasi Dieskalasi diselesaikan beserta catatan | `200`; `CompletionSummary` tersimpan; kunjungan `Completed` pada penyimpanan yang sama, ditandai berasal dari disposisi, atas nama perawat itu |
+| 3 | Lanjutan no. 1, variasi: observasi Dieskalasi dibatalkan | `200`; kunjungan tertutup bila tak ada penahan lain |
+| 4 | Kunjungan `Disposed` dengan observasi Dieskalasi: tombol *Selesaikan kunjungan* | Ditolak dengan alasan *"Masih ada observasi yang belum diselesaikan."* |
+| 5 | Kunjungan punya observasi Dieskalasi lama **dan** periode observasi baru yang sudah `Completed`; disposisi dilaksanakan | Kunjungan tetap menunggu penutupan sampai observasi Dieskalasi diselesaikan atau dibatalkan — konsekuensi yang diterima `IGD-DEC-183` |
+| 6 | Kunjungan `Completed` dengan observasi Dieskalasi lama: selesaikan, eskalasi, atau aktifkan | `409` dengan kalimat `IGD-DEC-184`; observasi tidak berubah. *Batalkan* tetap lolos |
+| 7 | Regresi `BE-IGD-061` S1, S5, S7–S10 | Tidak berubah |
+
+### Blocker desain
+
+Nol. Ketiga keputusan cukup untuk amandemen kontrak. `IGD-OQ-112` dan `IGD-OQ-111` tidak menahan.
+
+### Langkah berikutnya
+
+`design-business-module` (amendment) menurunkan `IGD-DEC-183`…`185` ke validation §11, state §9, dan API §9.2,
+termasuk mengunci kalimat `IGD-DEC-184`. Sesudah approval kontrak, `plan-module-delivery` memperluas `BE-IGD-061`,
+lalu `build-module-backend` mengerjakannya. Build backend dan uji API tetap milik pemilik.
+
+### Approval amandemen desain — 3 Oktober 2026
+
+Pass `design-business-module` menurunkan `IGD-DEC-183`…`185` ke kontrak (manifest bagian 0k). Dua hal ditemukan saat
+desain dan diajukan bersama approval: usulan aturan 21 (pemantauan baru pada kunjungan berakhir) dan dampak pada tab
+Observasi. Pemilik menjawab lewat pilihan interaktif, keduanya opsi yang direkomendasikan agent.
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-186` | Decision | **Amandemen kontrak "observasi Dieskalasi dan kunjungan yang sudah berakhir" disetujui seluruhnya.** Bagian baru berstatus `approved`: validation **`0.11.0`** — §6 aturan 2 dan §11.2 aturan 16–21, termasuk urutan pemeriksaan dan dua kalimat mengikat (aturan 18: *"Kunjungan IGD ini sudah berakhir; observasinya tidak dapat diselesaikan, dieskalasi, atau diaktifkan kembali."*; aturan 21: *"Kunjungan IGD ini sudah berakhir; pemantauan observasi tidak dapat ditambahkan lagi."*); state **`0.8.0`** §9.6 beserta baris baru §9.4; API **`0.14.0`** §9.1 nomor 6–8, catatan §9.2, perluasan §9.4. Disetujui pula turunannya: `02-backend-architecture.md` §14.3–14.4 (`EmergencyDispositionService`, `EmergencyObservationController`, `EmergencyObservationDetailController`) dan `04-prd-to-mvp.md` §9 (`FR-IGD-094`, `095`, `AT-IGD-194`…`197`, DoD butir 11, `IGD-OQ-112`). **Aturan 21 — usulan agent, perluasan `IGD-DEC-184`** — ikut disetujui: pemantauan baru (`POST /emergency-observation-details`) pada kunjungan `Completed`/`Cancelled` ditolak `409`; `PUT` tidak berubah. Kalimat aturan 18 menggantikan draf pada `IGD-DEC-184` — *"berakhir"* mencakup kunjungan batal, dan *"tidak dapat diubah lagi"* akan menyesatkan karena *batalkan* tetap diizinkan. Permission/audit `0.6.0` dan integration `0.5.0` tidak berubah. `flowcharts/penutupan-lewat-disposisi.md` tetap `draft`. Revisi blueprint **tetap 8**. Approval **sementara** mengikuti pola `IGD-DEC-174`. Konsekuensinya `plan-module-delivery` boleh memperluas `BE-IGD-061` (`IGD-DEC-185`) | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-03** (sementara, pola `IGD-DEC-174`) | Pilihan interaktif *"Setujui seluruhnya"*; gerbang `plan-module-delivery` |
+| `IGD-DEC-187` | Decision | **Tab Observasi pada kunjungan yang sudah berakhir: *Selesaikan* dan *Eskalasi* tampil nonaktif beserta keterangan; *Batalkan* tetap aktif.** Pola `IGD-DEC-177`: layar tidak mengirim permintaan yang pasti ditolak, tetapi perawat diberi tahu alasannya — kalimat validation §11.2 aturan 18. Pesan `409` tetap ditampilkan apa adanya bila data berubah di antara muat layar dan penekanan tombol. Rupa keterangan `DEV_DISCRETION`, asalkan terbaca tanpa kursor. Dikerjakan sebagai **pengerjaan ulang `FE-IGD-042`**, direncanakan `plan-module-delivery` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-03** (sementara, pola `IGD-DEC-174`) | Pilihan interaktif *"Tombol nonaktif + keterangan"* |
+
+### Izin Perawat IGD dan bukti uji gabungan `MVP-8` — 4 Oktober 2026
+
+Lahir dari pemeriksaan bukti mentah uji gabungan `MVP-8` ([panduan](testing/2026-10-04-panduan-uji-gabungan-mvp-8.md),
+[laporan penguji](testing/2026-10-04-laporan-uji-gabungan-mvp-8.md) bagian 7). Agent memaparkan pelanggaran aturan A3,
+A4, A5, dan A12 panduan; pemilik menjawab lewat pilihan interaktif.
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-188` | Decision | **Izin yang ditambahkan agen penguji pada peran Perawat IGD disahkan, dan bukti uji gabungan `MVP-8` 4 Oktober 2026 diterima dengan penyimpangan tercatat.** Fakta: pukul 13.04.19 agen penguji, login SuperAdmin, menyimpan Akses Role *Keperawatan · Perawat IGD* (`POST /api/v1/administrator/setting/role-access/policies` `200`, log backend `quilvian-backend-20261004.json`; skrip `apply-perawat-role.mjs`; `role-access-saved.png`). Sebelumnya peran itu hanya memegang 4 dari 67 aksi *Emergency Installation* (izin `EmergencyVisit`). Yang disahkan: `Read`, `Create`, `Update` pada `EmergencyObservation`, `EmergencyObservationDetail`, `EmergencyDisposition`, dan `EmergencyDeparture`. Aturan A4 panduan (*"seluruh putaran tidak sah"*) dikesampingkan untuk putaran ini: perilaku yang diuji tidak bergantung pada peran pemegang izin, dan metadata akses endpoint tidak berubah. **Tidak termasuk** pengesahan ini: `EmergencyDeparture : Approve`, yang ikut tercatat pada peran itu sesudah penyimpanan tanpa dicentang skrip (`IGD-OQ-113`). **Konsekuensi yang diterima:** konfigurasi peran Perawat IGD di dev kini berasal dari tindakan agen penguji yang disahkan sesudahnya; sandi SuperAdmin tertulis dalam teks biasa pada lima skrip uji dan perlu diganti; laporan penguji yang tidak cocok dengan bukti dikoreksi pada laporan task, bukan dipakai | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-04** | Pilihan interaktif *"Sahkan izin, terima bukti"* (direkomendasikan agent) |
+
+| ID | Jenis | Isi | Pembacaan yang berlaku sekarang | Pemilik | Status | Menahan |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-113` | Open Question | Apakah peran Perawat IGD memang boleh memegang `EmergencyDeparture : Approve` — aksi khusus untuk membalik dan mengoreksi kejadian kepergian (permission/audit §7). Izin itu tercatat pada `GET /auth/permissions` akun perawat sesudah agen penguji menyimpan Akses Role 4 Oktober 2026, walau skripnya hanya mencentang `Read`/`Create`/`Update` | Belum disahkan; tidak dipakai satu skenario pun pada putaran 4 Oktober | Rizki | `closed` — dijawab `IGD-DEC-191` (5 Oktober 2026): dicabut dari Perawat IGD | **Tidak** menahan task mana pun; menyangkut konfigurasi peran dev dan kesiapan UAT |
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-189` | Decision | **Sandi SuperAdmin dev tidak diganti; uji memakai akun peran lain, tidak pernah SuperAdmin.** Akun dan sandi SuperAdmin dibuat lead pemilik, jadi tidak diubah dari modul IGD. Menggantikan catatan *"sandi SuperAdmin … perlu diganti"* pada konsekuensi `IGD-DEC-188`. Fakta pendukung (diperiksa 4 Oktober 2026 tanpa menampilkan sandinya): sandi yang sama sudah ada pada riwayat Git ter-push — `appsettings.json` backend (commit `9813c7bd`, 17 Mei 2026), `.github/workflows/deployment.yml` frontend (tiga commit 3–4 Juni 2026) — dan pada dua dokumen ter-track: `igd/testing/2026-10-01-laporan-uji-layar-u1-u6-fe-igd-038.md` dan satu laporan modul Rawat Inap; skrip agen penguji tidak menambah paparan berarti. Panduan uji berikutnya menyatakan: langkah yang butuh hak administrator dikerjakan pemilik atau akun yang ia tunjuk, bukan agen penguji. **Konsekuensi yang diterima:** paparan sandi pada riwayat Git tetap ada; keputusan penanganannya milik lead | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-04** | Pernyataan pemilik pada percakapan: *"itu sudah dibuat oleh lead saya jadi jangan sembarangan ganti, mending pake akun lain"* |
+
+### Konfigurasi peran klinis untuk UAT `MVP-8` (syarat C3) — 5 Oktober 2026
+
+Amendment pass `grill-me` untuk syarat C3 [kesiapan `MVP-8`](evidence/2026-10-04-kesiapan-mvp-8.md) bagian 5: izin peran
+klinis yang harus diatur pemilik di layar Akses Role sebelum tim UAT mulai bekerja. Snapshot: backend `rizkiG` `d76279c0`
+(source IGD identik dengan `c1f79f79`), frontend `RizkiV2` `57b1d360f`. Capability map tercatat pada `f69e9e48`/`96a91201`
+dan berpotensi basi; fakta di bawah dibaca langsung dari source snapshot ini. Bentuk blueprint tidak dibahas ulang.
+
+| Batas | Isi |
+| --- | --- |
+| Di dalam scope | Izin Perawat IGD dan Dokter IGD atas resource IGD; izin **baca** panel Ruang Kerja yang datanya milik modul lain (pengkajian, tanda vital, CPPT, dan sejenisnya); `IGD-OQ-113`; peran yang membuat dan melaksanakan tindak lanjut; cara menguji `AT-IGD-195` dan langkah *Menunggu keputusan* pada naskah UAT |
+| Di luar scope | Perubahan kode atau kontrak, misalnya memecah izin konfirmasi dan pelaksanaan tindak lanjut; izin **tulis** modul lain; kewenangan unit dan peran unit tujuan (C2, `BE-IGD-039`); SuperAdmin (`IGD-DEC-189`); pemetaan jabatan MMC final (`IGD-DEC-034`, Security/Privacy owner) |
+| Konfirmasi | Rizki Gunawan, 5 Oktober 2026, pilihan interaktif *"Setuju"* |
+
+#### Fakta dari source
+
+| ID | Isi | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-037` | Akses Role menyimpan izin per pasangan *resource : aksi* sesuai atribut `[AccessPermission]` pada endpoint. Kontrak menetapkan resource dan aksinya, tetapi **tidak** menetapkan peran mana memegang apa; pemberian ke peran adalah konfigurasi basis data | permission/audit §2, §7.1 (*"Pemberian hak ke peran ada di basis data"*) |
+| `IGD-FACT-038` | Satu izin `EmergencyDisposition : Update` dipakai bersama untuk mengubah isi tindak lanjut (`PUT /{id}`) dan untuk mengubah statusnya — mengonfirmasi, menandai dilaksanakan, membatalkan (`PATCH /{id}/disposition-status`). Membuat tindak lanjut memakai `Create`. Tidak ada aksi tersendiri untuk *konfirmasi* atau *laksanakan*. *Contoh:* siapa pun yang boleh menandai pasien sudah pulang otomatis juga boleh mengonfirmasi tindak lanjut | `EmergencyDispositionController.Update`, `UpdateDispositionStatus` @`d76279c0` |
+| `IGD-FACT-039` | Decision log menulis penetapan disposisi sebagai wewenang dokter: tabel aktor (*"Dokter IGD … menetapkan disposition"*, `draft`) dan *Capability-Based Lifecycle Authority* (*"Hanya dokter IGD dengan clinical authority"*). Di dev, ketujuh tindak lanjut pada uji 4 Oktober dibuat akun Perawat IGD, dengan izin yang disahkan `IGD-DEC-188` | Bagian *Aktor dan Tanggung Jawab* dan *Capability-Based Lifecycle Authority* berkas ini; laporan `BE-IGD-061` |
+| `IGD-FACT-040` | Tindak lanjut hanya dapat dilaksanakan bila kunjungan berstatus *Menunggu keputusan* (`AwaitingDisposition` → `Disposed`). Di layar, satu-satunya jalan ke *Menunggu keputusan* adalah menyelesaikan observasi pada kunjungan yang masih berjalan (`IGD-FACT-034`); tidak ada tombol pindah status. Uji 4 Oktober menyisipkan `PATCH /emergency-visits/{id}/visit-status` `{ 6 }` lewat API | `EmergencyVisitService.CanTransition`, `EmergencyObservationController.UpdateObservationStatus` @`d76279c0`; frontend hanya memanggil `visit-status` untuk *Tangani Segera* (`emergency-management-triage-slice.jsx`) |
+| `IGD-FACT-041` | Frontend **tidak** memanggil `PATCH /emergency-visits/{id}/complete` di mana pun. *"Tombol Selesaikan kunjungan"* pada `AT-IGD-195` dan laporan task hanya ada sebagai endpoint API; uji sebelumnya (`BE-IGD-060` S3, `061-S16`) memanggilnya lewat API | Penelusuran `src/` frontend @`57b1d360f` |
+| `IGD-FACT-042` | Ruang Kerja Pengkajian IGD memuat panel dari modul lain, masing-masing dengan izin bacanya: `PatientAssessment`, `PatientVitalSign`, `PatientIntegratedProgressNote`, `NosocomialInfection`, `Prescription`, `LabOrder`, `ServiceUnit`, `Procedure` — ditambah resource IGD `EmergencyTriage`, `EmergencyProcedureDetail`, `EmergencyDeparture`, `EmergencyDispositionType`. Pada uji 4 Oktober empat di antaranya ditolak `403` untuk Perawat IGD: `emergency-triages`, `patient-assessments`, `patient-vital-signs`, `master-data/emergency-disposition-types` | `emergency-assessment-slice.jsx` @`57b1d360f`; [laporan uji 4 Oktober](testing/2026-10-04-laporan-uji-gabungan-mvp-8.md) §7.4 |
+| `IGD-FACT-043` | `EmergencyDeparture : Approve` hanya dipakai `POST /emergency-departures/{id}/events/{eventId}/reverse` — membalik kejadian kepergian yang salah pasien atau salah unit. Penyetuju pembalikan wajib berbeda dari pencatatnya. Tidak satu pun skenario UAT `MVP-8` memakainya | `EmergencyDepartureController.Reverse` @`d76279c0`; permission/audit §2, §4 |
+
+#### Keputusan
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-190` | Decision | **Dokter IGD menetapkan tindak lanjut; Perawat IGD melaksanakannya.** Dokter IGD membuat dan mengonfirmasi tindak lanjut; Perawat IGD menandainya *dilaksanakan* saat pasien benar-benar pergi. Konfigurasi peran untuk UAT `MVP-8`: **Dokter IGD** — `EmergencyDisposition : Read`, `Create`, `Update` dan `EmergencyDispositionType : Read`; **Perawat IGD** — `EmergencyDisposition : Read`, `Update` dan `EmergencyDispositionType : Read`. `EmergencyDisposition : Create` **dicabut** dari Perawat IGD, sehingga sebagian pengesahan `IGD-DEC-188` tidak lagi berlaku. *Contoh (`AT-IGD-186`):* dr. Andi (Dokter IGD) membuat tindak lanjut *Pulang* lalu mengonfirmasinya; pukul 14.10 Ns. Rina (Perawat IGD) menekan *Laksanakan* saat pasien keluar, dan kunjungan tertutup atas nama Ns. Rina. **Konsekuensi yang diterima:** karena `Update` dipakai bersama (`IGD-FACT-038`), perawat secara teknis tetap dapat mengonfirmasi tindak lanjut buatan dokter. Pelakunya terekam (`ConfirmedByUserId`); pemisahan bergantung pada kesepakatan kerja, pola `IGD-DEC-158`. Aksi tersendiri untuk konfirmasi baru dapat ditambahkan lewat amandemen kontrak secara aditif, bila diminta Clinical Governance. UAT memerlukan akun Dokter IGD; peran itu dibuat atau diatur admin peran, bukan agen penguji (`IGD-DEC-189`) | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-05** (sementara, pola `IGD-DEC-174` — ditinjau ulang bila Clinical Governance atau Nursing authority ditunjuk) | Pilihan interaktif *"Dokter tetapkan, perawat laksanakan"* (direkomendasikan agent); `IGD-FACT-038`, `039` |
+| `IGD-DEC-191` | Decision | **`EmergencyDeparture : Approve` dicabut dari Perawat IGD; belum ada peran klinis yang memegangnya.** Menjawab `IGD-OQ-113`. Izin itu hanya untuk membalik kejadian kepergian yang salah pasien atau salah unit (`IGD-FACT-043`), dan kontrak sengaja memisahkannya dari `Update` supaya pembalik dapat orang lain dari pencatat. Sampai peran penyetuju pembalikan ditetapkan — misalnya kepala ruang IGD — tidak satu pun peran klinis memegangnya (fail-closed). Perawat IGD tetap memegang `EmergencyDeparture : Read`, `Create`, `Update` (`IGD-DEC-188`). *Contoh:* Ns. Rina keliru mencatat *Berangkat* pada pasien lain. Di dev, kejadian itu belum dapat dibalik siapa pun dan tetap tercatat apa adanya sampai peran penyetuju ditetapkan. **Konsekuensi yang diterima:** pembalikan kejadian kepergian tidak tersedia di dev selama itu; tidak satu skenario UAT `MVP-8` pun memakainya. Sesudah izin dicabut lewat Akses Role, pemilik memastikan lewat `GET /auth/permissions` akun perawat bahwa `Approve` benar-benar hilang, karena pada 4 Oktober izin itu muncul tanpa dicentang | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-05** (sementara, pola `IGD-DEC-174` — peran penyetuju menunggu Security/Privacy owner) | Pilihan interaktif *"Cabut dari Perawat IGD"* (direkomendasikan agent); `IGD-OQ-113` |
+| `IGD-DEC-192` | Decision | **Naskah UAT `MVP-8` mengikuti jalan yang tersedia di layar; `AT-IGD-195` dikeluarkan dari UAT layar.** (1) Setiap kunjungan uji dibawa ke *Menunggu keputusan* dengan menyelesaikan observasi beserta kesimpulannya (`IGD-FACT-034`, `040`), bukan lewat pemanggilan API `visit-status`. (2) `AT-IGD-195` (tombol *Selesaikan kunjungan* ditolak karena observasi Dieskalasi) **tidak** diuji tim UAT, karena layar tidak menyediakan tombol itu (`IGD-FACT-041`). Perilakunya sudah terbukti lewat API pada uji 4 Oktober (`061-S16`: `409` *"Masih ada observasi yang belum diselesaikan."*). *Contoh naskah `AT-IGD-186`:* perawat menekan *Tangani Segera* → kunjungan *Sedang ditangani*; perawat memulai periode observasi lalu menyelesaikannya dengan kesimpulan → kunjungan *Menunggu keputusan*; dokter membuat dan mengonfirmasi tindak lanjut *Pulang*; perawat menekan *Laksanakan* → kunjungan *Selesai*. Observasi yang sudah selesai bukan penahan, jadi `AT-IGD-186` tetap bermakna *"tanpa penahan"*. **Konsekuensi yang diterima:** `AT-IGD-195` hanya berbukti uji API pengembang, tidak berbukti UAT; DoD §9.4 butir 11 untuk jalur selesaikan manual bertumpu pada bukti itu. Celah layarnya dicatat sebagai `IGD-OQ-114`, bukan kartu kode baru | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-05** (sementara, pola `IGD-DEC-174`) | Pilihan interaktif *"Ikuti layar, 195 keluar UAT"* (direkomendasikan agent); `IGD-FACT-040`, `041` |
+
+#### Pertanyaan terbuka
+
+| ID | Jenis | Isi | Pembacaan yang berlaku sekarang | Pemilik | Status | Menahan |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-114` | Open Question | Pasien IGD yang tidak menjalani observasi **tidak dapat diberi tindak lanjut dari layar**: tindak lanjut hanya dapat dilaksanakan dari *Menunggu keputusan*, dan layar hanya mencapai status itu lewat penyelesaian observasi. Perlukah layar menyediakan jalan langsung — misalnya tombol *Selesai ditangani* yang memanggil `PATCH /emergency-visits/{id}/visit-status` — dan siapa yang boleh menekannya? Sejenis: perlukah tombol *Selesaikan kunjungan* (`PATCH /{id}/complete`) untuk kunjungan yang tertahan? *Contoh:* pasien luka lecet ringan ditangani 20 menit lalu boleh pulang. Tanpa jalan langsung, perawat terpaksa membuka dan menutup periode observasi yang tidak pernah terjadi hanya agar tindak lanjut dapat dilaksanakan — catatan klinisnya menjadi tidak jujur | Naskah UAT memakai jalan observasi (`IGD-DEC-192`). Di luar itu, pasien semacam ini hanya dapat ditindaklanjuti lewat API | Rizki | `open` | **Tidak** menahan UAT `MVP-8` maupun task yang berjalan. Menahan pemakaian layar tindak lanjut untuk pasien tanpa observasi di produksi; bila dijawab *perlu*, jalurnya amandemen desain frontend lalu kartu FE baru |
+
+#### Konfigurasi peran untuk UAT `MVP-8` — yang diatur pemilik di Akses Role
+
+Turunan `IGD-DEC-188`, `190`, `191`, dan `IGD-FACT-042`. Agen penguji **tidak** mengubah Akses Role dan tidak memakai
+SuperAdmin (`IGD-DEC-189`); pengaturan dikerjakan pemilik atau admin peran yang ia tunjuk.
+
+| Resource | Aksi Perawat IGD | Aksi Dokter IGD | Dipakai untuk | Kelas |
+| --- | --- | --- | --- | --- |
+| `EmergencyVisit` | `Read`, `Create`, `Update` | `Read` | Daftar Pengkajian dan saringan menunggu penutupan (`Read`); Mulai Triage (`Create`); *Tangani Segera* (`Update`) | Wajib |
+| `EmergencyObservation` | `Read`, `Create`, `Update` | `Read` | Tab Observasi: mulai, selesaikan, eskalasi, batalkan | Wajib |
+| `EmergencyObservationDetail` | `Read`, `Create`, `Update` | `Read` | Lembar pemantauan observasi | Wajib |
+| `EmergencyDisposition` | `Read`, `Update` — **tanpa** `Create` | `Read`, `Create`, `Update` | Tab Tindak Lanjut: dokter membuat dan mengonfirmasi, perawat melaksanakan (`IGD-DEC-190`) | Wajib |
+| `EmergencyDispositionType` | `Read` | `Read` | Pilihan dan nama jenis tindak lanjut — tanpa izin ini pilihannya kosong (`403` pada 4 Oktober) | Wajib |
+| `EmergencyTriage` | `Read` | `Read` | Panel riwayat triage (`403` pada 4 Oktober) | Wajib |
+| `PatientAssessment` | `Read` | `Read` | Panel pengkajian (`403` pada 4 Oktober) | Wajib |
+| `PatientVitalSign` | `Read` | `Read` | Panel tanda vital (`403` pada 4 Oktober) | Wajib |
+| `EmergencyDeparture` | `Read`, `Create`, `Update` — **tanpa** `Approve` | `Read` | Tab Transfer; naskah UAT `MVP-8` hanya membacanya (`IGD-DEC-191`) | Wajib baca |
+| `EmergencyProcedureDetail` | `Read` | `Read` | Panel tindakan | Periksa |
+| `PatientIntegratedProgressNote` | `Read` | `Read` | Panel catatan terintegrasi (CPPT) | Periksa |
+| `NosocomialInfection` | `Read` | `Read` | Panel infeksi nosokomial | Periksa |
+| `Prescription` | `Read` | `Read` | Panel resep | Periksa |
+| `LabOrder` | `Read` | `Read` | Panel pesanan laboratorium | Periksa |
+| `ServiceUnit` | `Read` | `Read` | Pilihan unit tujuan pada tab Transfer | Periksa |
+| `Procedure` | `Read` | `Read` | Pilihan master tindakan | Periksa |
+
+*Wajib* berarti naskah UAT gagal atau panelnya kosong tanpa izin itu. *Periksa* berarti panel Ruang Kerja yang tidak
+teramati ditolak pada 4 Oktober — izinnya mungkin sudah ada, jadi cukup dicocokkan. Izin **tulis** klinis dokter di luar
+IGD (SOAP, resep, pesanan lab) berada di luar scope pass ini. Petugas Pendaftaran tidak berubah: konfigurasi yang terbukti
+4 Oktober (`POST /patient-encounters/admin`) dipakai apa adanya.
+
+**Perilaku layar yang harus diketahui tim UAT.** Tombol aksi Ruang Kerja tidak disembunyikan menurut izin. Perawat tetap
+melihat formulir *Tambah tindak lanjut*; bila ia menyimpan, server menolak `403` dan pesannya tampil di formulir. Itu
+perilaku yang diharapkan sesudah `IGD-DEC-190`, bukan cacat.
+
+#### Yang berubah dan yang tidak
+
+| Bagian | Sesudah pass ini |
+| --- | --- |
+| Konfigurasi peran dev | Perawat IGD kehilangan `EmergencyDisposition : Create` dan `EmergencyDeparture : Approve`, dan mendapat empat izin baca yang ditolak 4 Oktober. Dokter IGD mendapat izin tindak lanjut dan izin baca Ruang Kerja. Dikerjakan pemilik; **belum** dikerjakan |
+| `IGD-DEC-188` | Tetap berlaku, kecuali `EmergencyDisposition : Create` pada Perawat IGD yang dicabut `IGD-DEC-190` |
+| `IGD-OQ-113` | `closed` lewat `IGD-DEC-191` |
+| Naskah UAT `MVP-8` (C1) | Jalan observasi untuk *Menunggu keputusan*; dua akun klinis (Perawat IGD, Dokter IGD); tanpa `AT-IGD-195`, `AT-IGD-188`, dan sikap pesanan |
+| Kontrak | **Tidak** berubah. Permission/audit `0.6.0` tetap; resource dan aksi yang dipakai semuanya sudah ada |
+| Kode | Nol perubahan |
+
+#### Acceptance yang kini dapat diuji (syarat C3)
+
+| No | Pemeriksaan | Hasil yang diharapkan |
+| ---: | --- | --- |
+| 1 | `GET /auth/permissions` akun UAT Perawat IGD | Memuat seluruh aksi berkelas *Wajib* untuk perawat pada tabel di atas; **tidak** memuat `EmergencyDisposition : Create` dan `EmergencyDeparture : Approve` |
+| 2 | `GET /auth/permissions` akun UAT Dokter IGD | Memuat `EmergencyDisposition : Read`, `Create`, `Update`, `EmergencyDispositionType : Read`, dan izin baca berkelas *Wajib* |
+| 3 | Perawat membuka Ruang Kerja kunjungan berjalan pada hasil build | Riwayat triage, pengkajian, dan tanda vital tampil tanpa pesan tidak berhak akses |
+| 4 | Dokter membuka tab Tindak Lanjut | Pilihan jenis tindak lanjut terisi; tindak lanjut dapat dibuat dan dikonfirmasi |
+| 5 | Perawat menyimpan tindak lanjut baru | Ditolak `403` dengan pesan server di formulir |
+| 6 | Perawat menekan *Laksanakan* pada tindak lanjut terkonfirmasi buatan dokter, kunjungan *Menunggu keputusan* tanpa penahan | `200`; kunjungan *Selesai* atas nama perawat |
+
+#### Blocker desain
+
+Nol. Ketiga keputusan bersifat konfigurasi dan naskah uji; tidak ada kontrak yang perlu diamandemen. `IGD-OQ-114` tidak
+menahan UAT `MVP-8`.
+
+#### Langkah berikutnya
+
+1. Pemilik mengatur Akses Role sesuai tabel, lalu menjalankan pemeriksaan 1–2 dengan `GET /auth/permissions`.
+2. Naskah UAT `MVP-8` untuk tim UAT disusun dari PRD §9.3 dengan batas `IGD-DEC-192` (C1).
+3. C2 — `BE-IGD-039` lewat `grill-me` pass tersendiri.
+
+### Kewenangan unit `BE-IGD-039` (syarat C2) — 5 Oktober 2026
+
+Amendment pass `grill-me` untuk syarat C2 [kesiapan `MVP-8`](evidence/2026-10-04-kesiapan-mvp-8.md) bagian 5 dan kartu
+`BE-IGD-039` (⛔, [backend-roadmap](roadmap/backend-roadmap.md)). Hari ini penjaga kewenangan unit menolak **setiap**
+pengguna, sehingga serah terima tidak dapat diterima siapa pun dan kunjungan pasien rawat inap atau rujukan terus menunggu
+penutupan. Snapshot sama dengan pass C3: backend `d76279c0`, frontend `57b1d360f`. Pemilik sah aturan ini adalah
+Security/Privacy owner yang belum ditunjuk; pass ini berjalan sebagai keputusan sementara pola `IGD-DEC-174`.
+
+| Batas | Isi |
+| --- | --- |
+| Di dalam scope | Sumber kewenangan (jembatan dari akun pengguna ke unit pelayanan); cakupan simpul induk; jalan keluar beralasan atau koreksi pesan galat (`IGD-DEC-092`); titik sentuh data — siapa mengisi pemetaan unit dan peran unit penerima untuk uji ulang `061-S2`, `S3`, `S12` |
+| Di luar scope | Aturan internal HR, Master Data, dan platform-authorization (cara proyeksi penugasan dibuat); break-glass (`IGD-OQ-037`); perawat bantuan lintas unit (`IGD-OQ-067`); `arrive` sebagai pemicu penutupan; syarat klinisi untuk sikap pesanan `Cancel` (permission/audit §3.1) |
+| Konfirmasi | Rizki Gunawan, 5 Oktober 2026, pilihan interaktif *"Setuju"* |
+
+#### Fakta dari source
+
+| ID | Isi | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-044` | Penjaga kewenangan unit dipanggil pada lima aksi kepergian: catat kedatangan, terima atau tolak serah terima, terima atau tolak pesanan — ketiganya atas unit **tujuan** — serta sikap pesanan dan pesanan luar sistem atas unit **asal**. Membuat kepergian, berangkat, mengajukan serah terima, dan membatalkan kepergian **tidak** memanggilnya | `EmergencyDepartureService` `:145`, `:207`, `:231`, `:253`, `:296`, `PeriksaUnitAsalAsync` `:754` @`d76279c0` |
+| `IGD-FACT-045` | Penjaga membandingkan `AspNetUserOrganization.DepartmentId` (penunjuk ke `MstDepartment`) dengan `MstServiceUnit.OrganizationUnitId` (penunjuk ke `MstOrganizationUnit`). Kedua penunjuk mengarah ke tabel berbeda, jadi hasilnya **selalu** *tidak berwenang* — `403` *"Anda tidak bertugas di unit …"*. Bila unit belum dipetakan, pesannya *"… Lanjutkan dengan menyertakan alasan …"*, padahal tidak ada satu pun isian alasan pada permintaan mana pun, dan penanda `UnitBelumDipetakan` tidak pernah dibaca | `EmergencyUnitAuthorityService.PeriksaAsync` `:71`–`:101` @`d76279c0` |
+| `IGD-FACT-046` | Tersedia dua calon jembatan. (a) `MstOrganizationUnit.DepartmentId` — bertanda *"Bridge ke master department lama"*, dapat diisi lewat API simpul organisasi. (b) `WfpOrganizationAssignment.OrganizationUnitId` — simpul organisasi pada penugasan HR yang otoritatif, dapat diisi lewat API penugasan organisasi; terhubung ke proyeksi `AspNetUserOrganization` lewat `SourceAssignmentId`, yang kosong pada baris warisan. Proyeksi itu milik platform-authorization dan hanya menyalin departemen dan posisi. Akun terhubung ke profil pegawai lewat `ApplicationUser.WorkforceProfileId` | `MstOrganizationUnit.cs`, `WfpOrganizationAssignment.cs`, `ApplicationUserOrganization.cs`, `OrganizationAuthorizationProjectionService.cs` @`d76279c0` |
+| `IGD-FACT-047` | `MstServiceUnit.OrganizationUnitId` **tidak** ada pada DTO atau endpoint mana pun — hanya dapat diisi langsung di basis data. Per 15 September 2026, 0 dari 18 unit pelayanan di dev terisi | Penelusuran `Areas/HealthServices/MasterData` @`d76279c0`; kartu `BE-IGD-039`, *Catatan `MVP-6`* |
+| `IGD-FACT-048` | Unit asal kepergian diisi layar dari unit pelayanan kunjungan (`context.serviceUnitId`, tab Transfer). Bila kosong, sikap pesanan dan pesanan luar sistem ditolak *"Unit asal belum tercatat …"* | `emergency-assessment-transfer-tab.jsx` @`57b1d360f`; `PeriksaUnitAsalAsync` |
+
+#### Keputusan
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-193` | Decision | **Kewenangan unit diturunkan lewat simpul organisasi pada penugasan HR, bukan lewat departemen.** Seorang pengguna berwenang atas sebuah unit pelayanan bila ia punya penempatan yang **berlaku** (`AspNetUserOrganization`: aktif, tidak dihapus, dalam masa berlaku) yang **sumbernya** (`SourceAssignmentId` → `WfpOrganizationAssignment`) menunjuk simpul organisasi yang **sama** dengan `MstServiceUnit.OrganizationUnitId` unit itu. Ini jalur `IGD-DEC-086` apa adanya: pengguna → penugasan organisasi yang berlaku → simpul organisasi → unit pelayanan. Kelayakan penempatan tetap memakai predikat proyeksi milik platform-authorization; IGD tidak menulis definisi kelayakan sendiri. *Contoh:* Ns. Wati ditugaskan HR pada simpul *Bangsal Melati*; unit pelayanan *Rawat Inap Melati* dipetakan ke simpul yang sama → Ns. Wati boleh menerima serah terima. Ns. Budi ditugaskan pada simpul *Bangsal Mawar* → ditolak `403` untuk Melati walaupun keduanya satu departemen. **Konsekuensi yang diterima:** penempatan warisan yang sumbernya kosong (`SourceAssignmentId` null) tidak memberi kewenangan unit; HR wajib mengisi simpul organisasi pada penugasan petugas unit penerima. Menggantikan *"Dugaan perbaikan"* pada kartu `BE-IGD-039` (jembatan `MstOrganizationUnit.DepartmentId`) | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-05** (sementara, pola `IGD-DEC-174` — approver akhir Security/Privacy owner, belum ditunjuk) | Pilihan interaktif *"Lewat simpul organisasi"* (direkomendasikan agent); `IGD-FACT-045`, `046` |
+| `IGD-DEC-194` | Decision | **Kewenangan unit hanya dari simpul yang persis sama; simpul induk tidak mencakup turunannya.** Penugasan pada simpul *Instalasi Rawat Inap* tidak memberi kewenangan atas *Bangsal Melati* atau *Bangsal Mawar* yang berada di bawahnya. Pemeriksaan tidak menelusuri pohon simpul. *Contoh:* kepala Instalasi Rawat Inap perlu menerima serah terima di Bangsal Melati saat perawat bangsal berhalangan → HR menambahkan penugasan sekunder pada simpul Bangsal Melati; penempatan sekunder yang berlaku ikut memberi kewenangan (`ApplicationUserOrganization.IsPrimary` bukan syarat). **Konsekuensi yang diterima:** supervisor lintas bangsal butuh penugasan tambahan dari HR; kewenangan tidak pernah melebar otomatis karena struktur organisasi berubah | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-05** (sementara, pola `IGD-DEC-174` — approver akhir Security/Privacy owner, belum ditunjuk) | Pilihan interaktif *"Tidak, harus simpul yang sama"* (direkomendasikan agent) |
+| `IGD-DEC-195` | Decision | **Unit yang belum dipetakan tetap ditolak (fail-closed); pesannya dikoreksi; jalan keluar beralasan ditunda.** Penolakan `403` untuk unit yang `OrganizationUnitId`-nya kosong tidak lagi menjanjikan jalan yang tidak ada. Usulan kalimat agent, dikunci pada amandemen validation §7 aturan 3: *"Unit {nama unit} belum dipetakan ke simpul organisasi, sehingga kewenangan {tindakan} belum dapat diperiksa sistem. Minta Master Data melengkapi pemetaan unit ini."* Jalan keluar beralasan `IGD-DEC-092` **ditunda**, bukan dibatalkan. Ia dirancang bila pemetaan sudah dinyatakan selesai dan sisa celahnya terbukti, atau bila Security/Privacy owner ditunjuk — sesuai syarat `IGD-DEC-092` sendiri bahwa jalan keluar diperuntukkan bagi sisa celah, bukan keadaan kosong massal. Bagian fail-closed `IGD-DEC-092` tetap berlaku. *Contoh:* unit *Rawat Inap Melati* belum dipetakan; Ns. Wati menekan *Terima serah terima* → `403` dengan kalimat di atas. Kunjungan IGD pasien itu tetap menunggu penutupan sampai Master Data memetakan unit dan Ns. Wati menerima ulang. **Konsekuensi yang diterima:** sebelum unit tujuan dipetakan, serah terima ke unit itu tidak dapat diterima siapa pun. Pembatalan kepergian **bukan** jalan pintas yang sah bila pasien memang sudah pindah (risiko C2 kesiapan `MVP-8`). `BE-IGD-039` tetap kartu backend saja, tanpa perubahan layar | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-05** (sementara, pola `IGD-DEC-174` — approver akhir Security/Privacy owner, belum ditunjuk) | Pilihan interaktif *"Koreksi pesan, tunda jalan keluar"* (direkomendasikan agent); `IGD-FACT-045`, `IGD-DEC-092` |
+| `IGD-DEC-196` | Decision | **Pemetaan unit pelayanan ke simpul organisasi diisi pemilik lewat basis data untuk saat ini, dan pembukaan kolomnya di API diminta ke Master Data.** (1) Di dev dan setiap lingkungan berikutnya, Rizki — atau orang yang ia tunjuk — mengisi `MstServiceUnit.OrganizationUnitId` dari daftar pemetaan unit → simpul yang ia sahkan. Agent **tidak** menulis basis data; agent hanya menyiapkan kueri **baca** untuk memeriksa hasilnya: unit tanpa pemetaan, unit yang menunjuk simpul tidak aktif, dan simpul yang tidak dipakai unit mana pun. Pengisian ini masuk daftar rilis per lingkungan (syarat C5). (2) Pembukaan kolom `OrganizationUnitId` pada API dan layar Unit Pelayanan dicatat sebagai **permintaan kepada pemilik Master Data** — perubahan modul Master Data, bukan kartu IGD (`IGD-DEC-086`: pemeliharaan pemetaan adalah pekerjaan Master Data). *Contoh:* Rizki memetakan *Rawat Inap Melati* → simpul *Bangsal Melati* dan *IGD* → simpul *Instalasi Gawat Darurat*; kueri pemeriksa agent lalu melaporkan *"16 unit belum dipetakan"* tanpa mengubah apa pun. **Konsekuensi yang diterima:** pengisian lewat basis data tidak meninggalkan jejak audit aplikasi dan harus diulang di setiap lingkungan. Pengisian ini adalah konfigurasi data master, bukan rekayasa hasil uji (aturan UAT tim terpisah tetap berlaku). Syarat urutan `IGD-DEC-092` tetap: penjagaan baru bermakna di sebuah lingkungan sesudah pemetaannya dinyatakan selesai | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-05** (sementara, pola `IGD-DEC-174`; bagian permintaan menunggu pemilik Master Data) | Pilihan interaktif *"DB sekarang + minta Master Data"* (direkomendasikan agent); `IGD-FACT-047` |
+| `IGD-CONFLICT-006` | Conflict | **Permission/audit §3 mewajibkan kewenangan unit asal untuk membuat kepergian, mencatat keberangkatan, dan membatalkan kepergian; kode tidak menjaga ketiganya.** Penjaga hanya dipanggil pada lima aksi (`IGD-FACT-044`). Akibatnya, pemegang `EmergencyDeparture : Update` mana pun dapat memberangkatkan atau membatalkan kepergian IGD tanpa diperiksa unitnya. Lapis izin kemampuan tetap berlaku dan pelakunya terekam. *Contoh:* Ns. Wati, perawat Bangsal Melati yang diberi `Update` untuk menerima serah terima, secara teknis dapat membatalkan kepergian pasien IGD lain yang menuju Bangsal Mawar | Product/Domain Owner IGD + Security/Privacy owner | `open` — dijawab sementara `IGD-DEC-197` | — | Permission/audit §3; `EmergencyDepartureService` @`d76279c0` |
+| `IGD-DEC-197` | Decision | **`BE-IGD-039` hanya memperbaiki lima aksi yang sudah dijaga; selisih `IGD-CONFLICT-006` dikerjakan pada pass terpisah.** Kartu tidak diperluas ke aksi unit asal lainnya (membuat kepergian, berangkat, batal). Alasannya: menjaga aksi-aksi itu menuntut unit IGD sudah dipetakan **dan** setiap perawat IGD punya penugasan HR pada simpul IGD. Tanpa keduanya, alur kepergian yang hari ini berjalan dan sudah terbukti (`061-S19-S11`) ikut terblokir. **Konsekuensi yang diterima:** sampai `IGD-OQ-115` dijawab, risiko pada `IGD-CONFLICT-006` tetap ada, dengan pelaku terekam | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-05** (sementara, pola `IGD-DEC-174`) | Pilihan interaktif *"Tidak sekarang, catat selisihnya"* (direkomendasikan agent) |
+| `IGD-DEC-198` | Decision | **Izin penerima serah terima diberikan pada peran perawat rawat inap yang sudah ada.** Peran perawat bangsal rawat inap memperoleh `EmergencyDeparture : Read` dan `Update` — **tanpa** `Create` dan **tanpa** `Approve`. Kewenangan atas unit tertentu tetap datang dari penugasan HR pada simpul bangsalnya (`IGD-DEC-193`), bukan dari peran. Menerima pasien dari IGD memang tugas setiap perawat bangsal, sehingga tidak dibuat peran khusus. *Contoh (uji ulang `061-S2`):* akun Ns. Wati berperan perawat rawat inap dan punya penugasan HR pada simpul *Bangsal Melati*. Ia menerima serah terima pasien IGD yang menuju *Rawat Inap Melati* → `200`, dan kunjungan IGD tertutup atas nama Ns. Wati bila tidak ada penahan lain. **Konsekuensi yang diterima:** setiap pemegang peran itu memegang `Update`, termasuk risiko `IGD-CONFLICT-006`. Pengaturan peran dikerjakan pemilik atau admin peran, bukan agen penguji (`IGD-DEC-189`) | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-05** (sementara, pola `IGD-DEC-174`; peran milik modul Rawat Inap — titik sentuh saja) | Pilihan interaktif *"Peran perawat bangsal yang ada"* (direkomendasikan agent) |
+
+#### Pertanyaan terbuka
+
+| ID | Jenis | Isi | Pembacaan yang berlaku sekarang | Pemilik | Status | Menahan |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-115` | Open Question | Kapan dan bagaimana aksi unit asal yang belum dijaga — membuat kepergian, berangkat, membatalkan — mulai diperiksa kewenangan unitnya (`IGD-CONFLICT-006`)? Prasyaratnya: unit IGD dipetakan dan setiap perawat IGD punya penugasan HR pada simpul IGD | Belum dijaga; hanya lapis izin kemampuan (`IGD-DEC-197`) | Rizki + Security/Privacy owner | `open` | **Tidak** menahan `BE-IGD-039` maupun `MVP-8`. Menahan kesesuaian penuh dengan permission/audit §3 |
+
+#### Yang berubah dan yang tidak
+
+| Bagian | Sesudah pass ini |
+| --- | --- |
+| Kartu `BE-IGD-039` | Arah kerjanya kini ada: jembatan lewat simpul organisasi penugasan HR (`IGD-DEC-193`), simpul sama persis (`IGD-DEC-194`), pesan unit belum dipetakan dikoreksi (`IGD-DEC-195`). Cakupannya tetap lima aksi (`IGD-DEC-197`). *"Dugaan perbaikan"* lewat departemen digantikan. Status ⛔ baru dapat dibuka oleh `plan-module-delivery` sesudah amandemen kontrak |
+| `IGD-DEC-092` | Bagian fail-closed tetap berlaku; bagian jalan keluar beralasan **ditunda** (`IGD-DEC-195`). Status `draft` sementara tidak berubah |
+| Kontrak | Validation §7 aturan 1 **sudah** sesuai `IGD-DEC-193` — kodenya yang menyimpang. Yang perlu diamandemen: validation §7 aturan 3 beserta catatan *"belum diputuskan"* (fail-closed dan kalimat `IGD-DEC-195`); permission/audit §3.1 paragraf *"Yang belum terjawab"*; catatan `IGD-CONFLICT-006` pada permission/audit §3. Nol endpoint, nol isian, nol izin baru |
+| Schema | Nol perubahan, nol migration |
+| Data | Pemetaan unit diisi pemilik lewat basis data per lingkungan (`IGD-DEC-196`); penugasan HR simpul untuk akun uji diisi lewat API penugasan organisasi yang sudah ada |
+| Peran | Perawat rawat inap: `EmergencyDeparture : Read`, `Update` (`IGD-DEC-198`) |
+
+#### Acceptance yang kini dapat diuji (`BE-IGD-039`)
+
+| No | Skenario | Hasil yang diharapkan |
+| ---: | --- | --- |
+| 1 | Pengguna dengan penempatan berlaku yang bersumber penugasan HR pada simpul **sama** dengan unit tujuan menerima serah terima | `200`; kunjungan IGD tertutup bila itu penahan terakhir (`061-S2`, `AT-IGD-188`) |
+| 2 | Pengguna dengan penugasan pada simpul **lain** dalam departemen yang sama | `403` *"Anda tidak bertugas di unit …"* |
+| 3 | Pengguna yang hanya ditugaskan pada simpul **induk** unit tujuan | `403` — simpul induk tidak mencakup turunan |
+| 4 | Penempatan yang masa berlakunya sudah lewat | `403` |
+| 5 | Penempatan warisan tanpa sumber penugasan | `403` |
+| 6 | Penempatan **sekunder** yang berlaku pada simpul unit tujuan | `200` |
+| 7 | Unit tujuan belum dipetakan | `403` dengan kalimat `IGD-DEC-195`; tidak ada kata *"menyertakan alasan"* |
+| 8 | Perawat IGD dengan penugasan pada simpul IGD menetapkan sikap pesanan; unit IGD sudah dipetakan | `200`; kunjungan tertutup bila itu penahan terakhir (`061-S3`, `S12`) |
+| 9 | Regresi: membatalkan kepergian (`061-S19-S11`) | Tidak berubah — tidak dijaga kewenangan unit (`IGD-DEC-197`) |
+| 10 | Diff source | Satu berkas service IGD; nol `Program.cs`, nol migration, nol endpoint baru |
+
+#### Blocker desain
+
+Nol untuk `BE-IGD-039`. Approval akhir Security/Privacy owner tetap belum ada; keenam keputusan berlaku sementara
+menurut pola `IGD-DEC-174`. Uji ulang bergantung data (`IGD-DEC-196`), bukan desain.
+
+#### Langkah berikutnya
+
+1. `design-business-module` (amendment): validation §7 aturan 3 dan kalimat `IGD-DEC-195`; permission/audit §3 dan §3.1.
+2. `plan-module-delivery`: kartu `BE-IGD-039` diperbarui sesuai `IGD-DEC-193`…`197`, ⛔ dibuka, dan acceptance di atas dipasang.
+3. `build-module-backend` `BE-IGD-039` → build oleh pemilik → pengisian data `IGD-DEC-196` → uji ulang `061-S2`, `S3`,
+   `S4` kaki kepergian dan pesanan, `S12`, kaki `reject-handover` `S11`, lalu skenario 2–7 di atas.

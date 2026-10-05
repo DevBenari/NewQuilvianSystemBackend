@@ -27,8 +27,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
     [Authorize]
     [Route("api/v1/health-services/pharmacy-management/medication-administrations")]
     [AccessController(
-        moduleCode: "HEALTH_SERVICE_PHARMACY",
-        moduleName: "Health Service Pharmacy",
+        moduleCode: "HEALTH_SERVICE_PHARMACY_MANAGEMENT",
+        moduleName: "Health Service Pharmacy Management",
         displayName: "Medication Administration",
         AreaName = "HealthServices",
         ControllerName = "MedicationAdministration",

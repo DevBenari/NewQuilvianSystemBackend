@@ -442,9 +442,13 @@ try
     // membuat unit itu berhenti ikut ditutup — bukan membuatnya ditutup membabi buta.
     builder.Services.AddScoped<IEncounterContinuationProbe, LabEncounterContinuationProbe>();
     builder.Services.AddScoped<KioskEncounterClosureService>();
+    // RJ-DOC-REV-BE-009 — Daftar Pasien Rawat Jalan bercakupan dokter/perawat.
+    builder.Services.AddScoped<ClinicalActorScopeService>();
+    builder.Services.AddScoped<OutpatientEncounterListService>();
     builder.Services.Configure<KioskEncounterClosureOptions>(
     builder.Configuration.GetSection("HealthServices:KioskEncounterClosure"));
     builder.Services.AddScoped<EncounterPaymentSourceService>();
+    builder.Services.AddScoped<DoctorQueuePatientContextService>();
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();
     builder.Services.AddScoped<CompanyGuarantorCoverageService>();
@@ -458,6 +462,7 @@ try
     builder.Services.AddScoped<ConsultationValidationService>();
     builder.Services.AddScoped<DoctorConsultationLifecycleService>();
     builder.Services.AddScoped<ConsultationFinalizationService>();
+    builder.Services.AddScoped<DoctorCertificateService>();
 
     // BE-RWI-039 / CON-INP-015. Satu tempat yang menjawab konteks perawatan rawat inap beserta
     // kewenangan dokternya, dipakai bersama jalur catatan dokter dan jalur pengkajian sesuai
@@ -1603,6 +1608,12 @@ try
         await RunStartupSeederAsync("DefaultWorkScheduleSeeder", () => DefaultWorkScheduleSeeder.SeedAsync(app.Services));
         await RunStartupSeederAsync("SuperAdminSeeder", () => SuperAdminSeeder.SeedAsync(app.Services));
         await RunStartupSeederAsync("FinanceApprovalRoleSeeder", () => FinanceApprovalRoleSeeder.SeedAsync(app.Services));
+        // Konsolidasi kode modul Farmasi WAJIB mendahului AccessMenuSeeder. Seeder registry
+        // mengenali baris dari pasangan (ModuleId, ControllerName); kalau perpindahan modulnya
+        // belum terjadi, ia membuat baris baru ber-Id baru dan menutup yang lama, sehingga
+        // seluruh SysAccessPolicy Farmasi kehilangan acuan tanpa satu pun galat.
+        await RunStartupSeederAsync("PharmacyModuleCodeConsolidationSeeder",
+            () => PharmacyModuleCodeConsolidationSeeder.SeedAsync(app.Services));
         await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
         // Data induk OPERASIONAL Laboratorium. Keduanya sengaja tetap berdiri: alasan penolakan
         // wadah dan jenis specimen adalah data yang dibutuhkan modul sejak hari pertama, bukan data
@@ -1670,6 +1681,12 @@ try
         await RunStartupSeederAsync(
             "ClinicalInstrumentDraftSeeder",
             () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
+
+    // RJ-DOC-REV-BE-006 — kelompok ICD Diagnosa (DTD) dan pemetaannya ke MstDiagnosis.
+    // Idempoten; sesudah impor pertama hanya diagnosa yang kelompoknya masih kosong diperiksa.
+    await RunStartupSeederAsync(
+        "IcdDiagnosisGroupSeeder",
+        () => IcdDiagnosisGroupSeeder.SeedAsync(app.Services));
 
     // Master data 3S asuhan keperawatan (SDKI, SLKI, SIKI) — 10 diagnosa prioritas rawat inap.
     await RunStartupSeederAsync(
