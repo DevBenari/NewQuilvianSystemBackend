@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `e2ded614` (branch `MHamzah`), perubahan kerja belum di-commit |
 | Tanggal | 2 Oktober 2026 |
-| Status | ✅ Implementasi kode selesai. `dotnet build` dan migration `E7` **dikecualikan atas keputusan pengguna 2 Oktober 2026** |
+| Status | ✅ Implementasi kode dan penerapan skema maju selesai. Pembaruan 5 Oktober 2026: build terintegrasi `PASS` dan migration `20261005033044_AddRawatInapFinishing` diterapkan berdasarkan output pengguna; API/alur bisnis dan rollback belum dijalankan |
 
 ## Backend Governance Preflight
 
@@ -78,7 +78,7 @@ saat dipindah.
 | Aspek | Dampak |
 | --- | --- |
 | Kontrak API | Grup baru API 11.8 |
-| Database | Tabel baru. **Migration `E7` belum dibuat** (`P2`, `RWF-W5`) |
+| Database | tabel `CliTransferHandover`. Perubahan `E7` tercakup dalam `20261005033044_AddRawatInapFinishing`; pengguna melaporkan penerapan berhasil (`Done.`), bukti diterima 5 Oktober 2026. Nama database/lingkungan tidak disebut |
 | Keamanan/Auth | Permission baru `TransferHandover : Read/Send/Receive`; `Receive` terpisah (`RWI-DEC-189`) |
 
 ## 4. Dokumentasi endpoint
@@ -101,13 +101,19 @@ Base URL: `api/v1/health-services/clinical-management/transfer-handovers`
 | --- | --- | --- | --- |
 | QBE preflight dan kesesuaian | Prefix `Cli`; service pemilik `DbContext` | `PASS` | Review source |
 | Pemeriksaan bentrokan nama tipe (Clinical × Inpatient) | Tidak ada | `PASS` | Sesi 2 Oktober 2026 |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Dikecualikan atas keputusan pengguna 2 Oktober 2026 |
-| Migration `E7` | Tidak dibuat | `NOT RUN` | Keputusan pengguna |
+| Build project melalui `dotnet ef database update` | `Build succeeded.` | `PASS` | Output pengguna diterima 5 Oktober 2026; bukan eksekusi ulang oleh agent atau perintah `dotnet build` tersendiri; jumlah warning tidak disertakan |
+| Migration `E7` | Tercakup dalam `20261005033044_AddRawatInapFinishing`; `Up()`/`Down()` tersedia dan penerapan maju berhasil menurut output pengguna | `PASS` (penerapan maju); rollback `NOT RUN` | Output pengguna 5 Oktober 2026 dan source migration |
 | Proses bisnis transfer | Belum dijalankan | `NOT RUN` | Butuh build dan database |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 
-Uji manual: `NOT FEASIBLE` — belum ada build dan database termigrasi pada sesi ini.
+Uji manual: `NOT RUN`. Alasan belum ada build/database berlaku pada sesi 2 Oktober 2026; bukti terbaru menunjukkan build dan penerapan migration, tetapi belum ada hasil uji API/alur bisnis.
+
+### 5.1 Pembaruan bukti 5 Oktober 2026
+
+Build project saat `dotnet ef database update` **PASS** menurut output pengguna yang diterima 5 Oktober 2026 (`Build succeeded.`); migration `20261005033044_AddRawatInapFinishing` diterapkan sampai `Done.`. Uji API, regresi, alur klinis, dan rollback `Down()` tetap `NOT RUN`. Nama database dan lingkungan tidak tercantum pada output. Catatan pengecualian 2 Oktober 2026 adalah riwayat sesi implementasi, bukan status build/migration terkini.
+
+Perubahan `E7`: tabel `CliTransferHandover`. Output lengkap, source migration, dan pemetaan lintas task ada pada [laporan BE-RWI-172](BE-RWI-172.md#51-pembaruan-bukti-5-oktober-2026).
 
 ## 6. Acceptance criteria dan Definition of Done
 
@@ -118,7 +124,7 @@ Uji manual: `NOT FEASIBLE` — belum ada build dan database termigrasi pada sesi
 | 3. Kirim membekukan potret klinis | Terpenuhi (source) | `BuildSnapshotAsync` |
 | 4. Terima/tolak beralasan oleh pemegang `: Receive` | Terpenuhi (source) | `AcceptAsync`, atribut endpoint |
 | 5. Koreksi salah catat tidak membuat dokumen | Terpenuhi (source) | `CorrectsPlacementId` dan alasan akhir `Transfer` diperiksa |
-| DoD build | Dikecualikan atas keputusan pengguna 2 Oktober 2026 | — |
+| DoD build | Terpenuhi melalui build project terintegrasi pada perintah EF | Output pengguna: `Build succeeded.`; diterima 5 Oktober 2026 |
 
 ## 7. Catatan penutup
 
@@ -130,4 +136,4 @@ Uji manual: `NOT FEASIBLE` — belum ada build dan database termigrasi pada sesi
 | Perubahan sampingan | Konstruktor `InpBedOccupancyService` bertambah `CliTransferHandoverService` dan `ILogger` |
 | Interupsi | `NONE` |
 | Status Git | `??` enum, model, configuration, DTO, service, controller serah terima transfer; `M` `InpBedOccupancyService.cs`, `ApplicationDbContext.cs`, `Program.cs` |
-| Langkah berikutnya | Migration `E7`; admin memberikan `TransferHandover : Send/Receive` |
+| Langkah berikutnya | Admin memberikan `TransferHandover : Send/Receive`; jalankan verifikasi proses transfer antarunit. |

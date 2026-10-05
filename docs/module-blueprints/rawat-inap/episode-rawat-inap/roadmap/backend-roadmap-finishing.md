@@ -12,9 +12,9 @@
 | Deret ID | `BE-RWI-172` s.d. `BE-RWI-184` |
 | Roadmap pendamping | `frontend-roadmap-finishing.md`, `requirement-traceability-finishing.md` |
 
-**Pembaruan bukti 5 Oktober 2026.** Tiga belas laporan backend sudah tersedia. Dua belas task tercatat selesai pada implementasi kode dengan pengecualian build bertanggal pada laporan; `BE-RWI-172` sebagian karena migration yang menjadi kriteria 1 belum ada. Source pekerjaan EPS berada pada HEAD `e2ded614` beserta perubahan kerja yang belum di-commit; SHA `bf5c6bde` di atas tetap merupakan snapshot perencanaan. Pembaruan ini tidak mengubah status approval roadmap `DRAFT`.
+**Pembaruan bukti 5 Oktober 2026.** Build project saat `dotnet ef database update` **PASS** menurut output pengguna yang diterima 5 Oktober 2026 (`Build succeeded.`); migration `20261005033044_AddRawatInapFinishing` diterapkan sampai `Done.`. Uji API, regresi, alur klinis, dan rollback `Down()` tetap `NOT RUN`. Nama database dan lingkungan tidak tercantum pada output. Catatan pengecualian 2 Oktober 2026 adalah riwayat sesi implementasi, bukan status build/migration terkini. `BE-RWI-172` selesai pada tingkat source dan penerapan skema; API/regresi tetap menunggu. Source migration dicocokkan pada HEAD `f32b2308291c8d02b083319dac4210d3431f899e` beserta migration/snapshot yang belum di-commit. SHA metadata tetap snapshot perencanaan; approval roadmap tetap `DRAFT`. [Bukti lengkap](../task/report/backend/BE-RWI-172.md#51-pembaruan-bukti-5-oktober-2026).
 
-Build, pembuatan/penerapan migration, eksekusi seeder, dan verifikasi runtime tetap dicatat apa adanya pada setiap kartu. Migration `K8` + `E4`, kedua bagian `E5`, `E6`, dan `E7` belum dibuat. Kriteria migration yang secara eksplisit menjadi acceptance criteria tetap menahan tanda selesai penuh; contoh, empat kriteria source `BE-RWI-172` sudah terpetakan, tetapi satu berkas migration dengan `Down()` belum tersedia. Catatan pengecualian pengguna 2 Oktober 2026 dipertahankan, dan status ini tidak menyatakan siap produksi.
+Migration `K8` + `E4`, kedua bagian `E5`, `E6`, dan `E7` sudah tercakup dalam `20261005033044_AddRawatInapFinishing` yang berhasil diterapkan pengguna. Kriteria keberadaan migration dan `Down()` pada `BE-RWI-172` sudah terpenuhi di source. Build terintegrasi berhasil; eksekusi seeder, verifikasi API/alur bisnis, dan rollback belum dibuktikan. Catatan build `NOT RUN` pada kartu task lain merujuk sesi 2 Oktober 2026; bukti build project terbaru ada pada laporan `BE-RWI-172` bagian 5.1. Status ini belum menyatakan siap produksi.
 
 **Kebijakan verifikasi backend.** Mengikuti `rules/backend/TEST_POLICY.md`: bukti task backend adalah QBE preflight/conformance, review diff/scope, `dotnet build` project aplikasi, verifikasi API/kontrak, verifikasi proses bisnis dengan contoh, dan verifikasi runtime bila lingkungan tersedia. Tidak ada task automated test, dan tidak adanya automated test bukan gap.
 
@@ -34,7 +34,7 @@ Build, pembuatan/penerapan migration, eksekusi seeder, dan verifikasi runtime te
 ## Grafik Urutan Dependency
 
 ```text
-BE-RWI-172 🟡 ─┬─> BE-RWI-173 ✅ ───┬─> BE-RWI-176 ✅
+BE-RWI-172 ✅ ─┬─> BE-RWI-173 ✅ ───┬─> BE-RWI-176 ✅
                │                    │
                │   BE-RWI-174 ✅ ─┬─┘
                │                  │
@@ -97,11 +97,11 @@ Jumlah pasangan prasyarat→task: **13**, sama dengan isi kolom `Dependency`. Du
 
 ## Kartu task
 
-### 🟡 `BE-RWI-172` — Bentuk data `MasterData` Finishing (`K8` + `E4`)
+### ✅ `BE-RWI-172` — Bentuk data `MasterData` Finishing (`K8` + `E4`)
 
 | Field | Isi |
 |---|---|
-| **Status** | 🟡 **SEBAGIAN, diperbarui 5 Oktober 2026.** Empat dari lima kriteria (2–5) terpetakan ke model, enum, configuration, DTO dan validasi tarif serta pengaturan. Kriteria 1 belum terpenuhi: satu migration `K8` + `E4` beserta `Down()` belum dibuat. Sebelumnya ditandai selesai kode 2 Oktober 2026; laporan dan catatan bahwa build serta migration diambil alih pengguna tetap dipertahankan. `dotnet build` `NOT RUN` — dikecualikan atas keputusan pengguna 2 Oktober 2026; pengecualian itu tidak membuktikan keberadaan source migration. Verifikasi API dan regresi tarif belum dijalankan (butuh build dan database). Bukti: [laporan](../task/report/backend/BE-RWI-172.md) |
+| **Status** | ✅ **Selesai pada tingkat source dan penerapan skema maju**; bukti diperbarui 5 Oktober 2026. `K8` + `E4` tercakup dalam `20261005033044_AddRawatInapFinishing` yang berhasil diterapkan pengguna. Build project terintegrasi `PASS`; API, regresi, alur bisnis, dan rollback `NOT RUN`. Riwayat pengecualian 2 Oktober 2026 tetap pada laporan. Bukti: [laporan](../task/report/backend/BE-RWI-172.md#51-pembaruan-bukti-5-oktober-2026) |
 | **Outcome** | Seluruh perubahan `MasterData` Finishing tersedia dalam **satu** migration: master jenis alat, empat kolom baru `MstTariff`, master butir persiapan bedah, dan dua kolom ambang pengaturan Rawat Inap — beserta isian barunya pada endpoint tarif dan pengaturan |
 | **Requirement/decision** | `FR-RWF-045`, `047`, `060`, `061`, `088`; `RWI-DEC-173`, `179`, `193`, `196`; `02-module-map.md` 7.4 (satu-satunya migration bersama yang wajib digabung) |
 | **Kontrak** | Backend 12.8, 12.10, 12.11 (`E4`); `keperawatan` backend 12.7, 12.8, 12.10, 12.11 (`K8`) dan kamus data 12.14; API 11.9 (tarif tiga isian komponen operasi, pengaturan dua isian); `keperawatan` API 8.2 (tarif `MedicalEquipmentId`) |
@@ -133,7 +133,7 @@ Jumlah pasangan prasyarat→task: **13**, sama dengan isi kolom `Dependency`. Du
 
 | Field | Isi |
 |---|---|
-| **Status** | ✅ **SELESAI 2 Oktober 2026.** Lima kolom, status `Rejected`, `PATCH cases/{id}/reject` (`OPR-CASE-REJ-001`/`002`), respons dan laporan ditambah; tujuh kriteria terpetakan ke source. `dotnet build` NOT RUN dan migration `E5` bagian kasus belum dibuat — dikecualikan atas keputusan pengguna 2 Oktober 2026. Verifikasi `UAT-RWF-24` belum dijalankan (butuh build dan database). Bukti: [laporan](../task/report/backend/BE-RWI-174.md) |
+| **Status** | ✅ **Selesai pada tingkat source dan penerapan skema maju**; bukti diperbarui 5 Oktober 2026. `E5` bagian kasus tercakup dalam `20261005033044_AddRawatInapFinishing` yang berhasil diterapkan pengguna. Build project terintegrasi `PASS`; API, regresi, alur bisnis, dan rollback `NOT RUN`. Riwayat pengecualian 2 Oktober 2026 tetap pada laporan. Bukti: [laporan](../task/report/backend/BE-RWI-174.md#51-pembaruan-bukti-5-oktober-2026) |
 | **Outcome** | Kasus OK menyimpan jenis layanan bedah dan rencana anestesi saat dipesan. Petugas OK dapat menolak order berstatus Diminta dengan alasan; status Ditolak final dan terlihat beserta penolak dan waktunya |
 | **Requirement/decision** | `FR-RWF-043`, `044`, `086`; `RWI-DEC-175`, `RWI-DEC-204`, `RWI-DEC-208`; `INV-RWF-30`, `31`; `AC-RWF-085`, `099`; `UAT-RWF-24` |
 | **Kontrak** | API 11.5.1 (`POST cases` dua isian, respons ditambah, `PATCH cases/{id}/reject`, kode `OPR-CASE-REJ-001`/`002`), 11.9 (`RejectedCount`); backend 12.7, 12.8, 12.10 |
@@ -165,7 +165,7 @@ Jumlah pasangan prasyarat→task: **13**, sama dengan isi kolom `Dependency`. Du
 
 | Field | Isi |
 |---|---|
-| **Status** | ✅ **SELESAI 2 Oktober 2026.** Tiga model, `OprWardPreOpService` (`OPR-WPO-001` s.d. `005`), lima endpoint, syarat keempat gerbang Siap, penundaan menandai `NeedsUpdate`; delapan kriteria terpetakan ke source. `dotnet build` NOT RUN dan migration `E5` bagian pra-operasi belum dibuat — dikecualikan atas keputusan pengguna 2 Oktober 2026. Verifikasi dua akun belum dijalankan. Bukti: [laporan](../task/report/backend/BE-RWI-176.md) |
+| **Status** | ✅ **Selesai pada tingkat source dan penerapan skema maju**; bukti diperbarui 5 Oktober 2026. `E5` bagian pra-operasi tercakup dalam `20261005033044_AddRawatInapFinishing` yang berhasil diterapkan pengguna. Build project terintegrasi `PASS`; API, regresi, alur bisnis, dan rollback `NOT RUN`. Riwayat pengecualian 2 Oktober 2026 tetap pada laporan. Bukti: [laporan](../task/report/backend/BE-RWI-176.md#51-pembaruan-bukti-5-oktober-2026) |
 | **Outcome** | Perawat bangsal mengirim Catatan Pra-Operasi berisi potret tanda vital dan nyeri, checklist, dan penandaan area operasi; perawat OK mengonfirmasinya dari akun berbeda. Kasus hanya dapat "Siap" dengan versi terbaru terkonfirmasi kedua sisi; penundaan membuat versi itu "perlu diperbarui" |
 | **Requirement/decision** | `FR-RWF-045`, `048`, `090`; `RWI-DEC-173`, `174`, `199`; `INV-RWF-26`, `27`; `AC-RWF-042`, `046`, `093`, `094`; `UAT-RWF-21` |
 | **Kontrak** | API 11.3 (lima endpoint `ward-pre-op` dan kode `Blockers[]` baru, kode `OPR-WPO-001` s.d. `005`); backend 12.5, 12.7, 12.8 |
@@ -245,7 +245,7 @@ Jumlah pasangan prasyarat→task: **13**, sama dengan isi kolom `Dependency`. Du
 
 | Field | Isi |
 |---|---|
-| **Status** | ✅ **SELESAI 2 Oktober 2026.** `InpAdmissionReferral`, service, dua endpoint baca, `AdmissionReferralId` pada admisi (`INP-ADM-REF-001`/`002`), panggilan dari simpan kamar pulih; tujuh kriteria terpetakan ke source. `dotnet build` NOT RUN dan migration `E6` belum dibuat — dikecualikan atas keputusan pengguna 2 Oktober 2026; `E6` wajib sesudah `E5` dan sebelum `I6`. Verifikasi ujung ke ujung belum dijalankan. Bukti: [laporan](../task/report/backend/BE-RWI-181.md) |
+| **Status** | ✅ **Selesai pada tingkat source dan penerapan skema maju**; bukti diperbarui 5 Oktober 2026. `E6` tercakup dalam `20261005033044_AddRawatInapFinishing` yang berhasil diterapkan pengguna. Build project terintegrasi `PASS`; API, regresi, alur bisnis, dan rollback `NOT RUN`. Riwayat pengecualian 2 Oktober 2026 tetap pada laporan. Bukti: [laporan](../task/report/backend/BE-RWI-181.md#51-pembaruan-bukti-5-oktober-2026) |
 | **Outcome** | Bila kamar pulih memutuskan rawat inap atau ICU untuk pasien tanpa episode hadir, permintaan admisi lahir dan tampil bagi petugas admisi. Tidak ada admisi otomatis; admisi dari permintaan menyelesaikan permintaan dalam transaksi yang sama |
 | **Requirement/decision** | `FR-RWF-080`, `FR-RWF-089`; `RWI-DEC-201`, `207`, `208`, `220` butir 1; `INV-RWF-32`; `AC-RWF-080`, `088`, `089`; `UAT-RWF-16`, `33`, `41` |
 | **Kontrak** | API 11.6 (dua endpoint `admission-referrals`, `InpatientAdmissionReferral : Read`; `POST episodes` + `AdmissionReferralId`; kode `INP-ADM-REF-001`/`002`), 11.5.2 (`PUT …/execution/recovery` perilaku baru); backend 12.5, 12.7; kamus data 19.8 |
@@ -277,7 +277,7 @@ Jumlah pasangan prasyarat→task: **13**, sama dengan isi kolom `Dependency`. Du
 
 | Field | Isi |
 |---|---|
-| **Status** | ✅ **SELESAI 2 Oktober 2026.** `CliTransferHandover`, service (`CLI-TRH-001`/`002`), lima endpoint, pembuatan sesudah commit transfer antarunit dan pembuatan ulang saat daftar dibaca; lima kriteria terpetakan ke source. `dotnet build` NOT RUN dan migration `E7` belum dibuat — dikecualikan atas keputusan pengguna 2 Oktober 2026. Verifikasi proses transfer belum dijalankan. Bukti: [laporan](../task/report/backend/BE-RWI-183.md) |
+| **Status** | ✅ **Selesai pada tingkat source dan penerapan skema maju**; bukti diperbarui 5 Oktober 2026. `E7` tercakup dalam `20261005033044_AddRawatInapFinishing` yang berhasil diterapkan pengguna. Build project terintegrasi `PASS`; API, regresi, alur bisnis, dan rollback `NOT RUN`. Riwayat pengecualian 2 Oktober 2026 tetap pada laporan. Bukti: [laporan](../task/report/backend/BE-RWI-183.md#51-pembaruan-bukti-5-oktober-2026) |
 | **Outcome** | Setiap perpindahan bed ke unit lain otomatis membuat satu dokumen serah terima sembilan bagian V1 berstatus "Belum dikirim", tanpa pernah menahan transfer |
 | **Requirement/decision** | `FR-RWF-071`; `RWI-DEC-182`, `RWI-DEC-189`; `INV-RWF-33`; `AC-RWF-071`, `072`; `UAT-RWF-14` |
 | **Kontrak** | API 11.8 (lima endpoint `transfer-handovers`, `TransferHandover : Read/Send/Receive`); backend 12.5, 12.7; kamus data 19.9 |

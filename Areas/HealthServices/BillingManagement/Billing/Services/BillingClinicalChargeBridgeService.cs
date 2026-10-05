@@ -40,6 +40,20 @@ public sealed class BillingClinicalChargeBridgeService
         _logger = logger;
     }
 
+    public async Task<string> GetEquipmentChargeStateAsync(Guid usageId, CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var state = await (from fact in db.Set<CliClinicalMilestoneFact>().AsNoTracking()
+            join effect in db.Set<BilProcessingEffect>().AsNoTracking()
+                on new { fact.MilestoneFactId, fact.MilestoneFactVersion } equals new { effect.MilestoneFactId, effect.MilestoneFactVersion }
+            where fact.SourceContext == BillingSourceContract.EquipmentUsageSourceContext && fact.SourceAggregateId == usageId && !fact.IsDelete && !effect.IsDelete
+            orderby fact.MilestoneFactVersion descending
+            select new { effect.InvoiceSyncStatus, effect.InvoiceSyncErrorCode }).FirstOrDefaultAsync(cancellationToken);
+        return state?.InvoiceSyncErrorCode == BillingBridgeCodes.TariffNotFound ? "TARIFF_NOT_FOUND"
+            : state?.InvoiceSyncStatus == BillingInvoiceSyncStatus.Synced ? "RECOGNIZED" : "PENDING";
+    }
+
     /// <summary>Konteks folio yang menjadi calon penerusan ke invoice Rawat Jalan (V2.7.1).</summary>
     public static bool IsCandidateSourceContext(string? sourceContext) =>
         sourceContext is BillingSourceContract.ProcedureSourceContext
@@ -48,7 +62,8 @@ public sealed class BillingClinicalChargeBridgeService
             or BillingSourceContract.PrescriptionSourceContext
             or BillingSourceContract.ConsultationSourceContext
             // BE-RWI-179: komponen biaya Kamar Operasi (anestesi, sewa kamar operasi, bahan).
-            or BillingSourceContract.OperatingRoomSourceContext;
+            or BillingSourceContract.OperatingRoomSourceContext
+            or BillingSourceContract.EquipmentUsageSourceContext;
 
     /// <summary>
     /// Meneruskan efek bila statusnya <c>Pending</c> atau <c>Failed</c>. Efek dengan status lain
@@ -121,7 +136,7 @@ public sealed class BillingClinicalChargeBridgeService
 
         if (domain is not (BillingBridgeSourceDomains.Procedure or BillingBridgeSourceDomains.Laboratory
             or BillingBridgeSourceDomains.Radiology or BillingBridgeSourceDomains.Consultation
-            or BillingBridgeSourceDomains.Pharmacy or BillingBridgeSourceDomains.OperatingRoom))
+            or BillingBridgeSourceDomains.Pharmacy or BillingBridgeSourceDomains.OperatingRoom or BillingBridgeSourceDomains.EquipmentUsage))
             return SyncPlan.Done(SyncOutcome.StayPending(BillingBridgeCodes.SourcePendingSupport, $"Penerusan {domain} belum tersedia pada jembatan.", domain));
 
         var fact = await db.Set<CliClinicalMilestoneFact>().AsNoTracking()
@@ -138,7 +153,7 @@ public sealed class BillingClinicalChargeBridgeService
         // Tindakan, konsultasi, dan resep diidentifikasi oleh agregatnya; Lab dan Radiologi oleh
         // butirnya. Resep wajib memakai id resep karena clearance farmasi membacanya begitu.
         var detailId = domain is BillingBridgeSourceDomains.Procedure or BillingBridgeSourceDomains.Consultation
-            or BillingBridgeSourceDomains.Pharmacy
+            or BillingBridgeSourceDomains.Pharmacy or BillingBridgeSourceDomains.EquipmentUsage
             ? fact.SourceAggregateId
             : fact.SourceItemId;
         if (detailId is null || detailId == Guid.Empty)
@@ -604,6 +619,7 @@ public sealed class BillingClinicalChargeBridgeService
         BillingSourceContract.PrescriptionSourceContext => BillingBridgeSourceDomains.Pharmacy,
         BillingSourceContract.ConsultationSourceContext => BillingBridgeSourceDomains.Consultation,
         BillingSourceContract.OperatingRoomSourceContext => BillingBridgeSourceDomains.OperatingRoom,
+        BillingSourceContract.EquipmentUsageSourceContext => BillingBridgeSourceDomains.EquipmentUsage,
         _ => sourceContext.ToUpperInvariant()
     };
 
@@ -663,6 +679,7 @@ public sealed class BillingClinicalChargeBridgeService
         BillingBridgeSourceDomains.Consultation => "COMPLETED",
         // BE-RWI-179: komponen OK hanya ditagih saat kasus Completed (INV-RWF-30).
         BillingBridgeSourceDomains.OperatingRoom => "COMPLETED",
+        BillingBridgeSourceDomains.EquipmentUsage => "COMPLETED",
         _ => "PERFORMED"
     };
 
@@ -738,6 +755,7 @@ public static class BillingBridgeSourceDomains
 
     /// <summary>Komponen biaya Kamar Operasi (<c>BE-RWI-179</c>); butirnya per komponen.</summary>
     public const string OperatingRoom = "OPERATING_ROOM";
+    public const string EquipmentUsage = "EQUIPMENT_USAGE";
 }
 
 /// <summary>Kode sebab pada antrean rekonsiliasi — validation matrix V2.</summary>

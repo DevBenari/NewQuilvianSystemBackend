@@ -1021,6 +1021,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 .Where(x => x.Id == episodeId && !x.IsDelete)
                 .Select(x => new InpatientEpisodeDetailResponse
                 {
+                    Version = x.Version,
                     Id = x.Id,
                     EpisodeNumber = x.EpisodeNumber,
                     EncounterId = x.EncounterId,
@@ -1344,6 +1345,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// paling mungkin terlewat adalah cabang yang lebih jarang dipakai.
         /// </remarks>
         public ClosureSideEffectsResponse? SideEffects { get; set; }
+        public InpatientDepartureResponse? Departure { get; set; }
 
         public static InpEpisodeOperationResult Success(
             InpEpisode episode,

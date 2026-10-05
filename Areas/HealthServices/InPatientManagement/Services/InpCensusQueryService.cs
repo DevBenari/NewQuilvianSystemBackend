@@ -771,6 +771,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
                     ClosedAt = x.ClosedAt,
                     ClosedByUserId = x.UpdateBy,
+                    ClosureClearanceObserved = x.ClosureClearanceObserved,
                     ClosedWithoutClearanceReason = x.ClosedWithoutClearanceReason
                 })
                 .ToListAsync(cancellationToken);

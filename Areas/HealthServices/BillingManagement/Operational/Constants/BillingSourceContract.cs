@@ -82,6 +82,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
         public const string OperatingRoomSourceContext = "OPERATING_ROOM";
         public const string OperatingRoomChargeEffectType = "OperatingRoomCharge";
 
+        public const string EquipmentUsageSourceContext = "EQUIPMENT_USAGE";
+        public const string EquipmentUsageChargeEffectType = "EquipmentUsageCharge";
+
         private static readonly IReadOnlyDictionary<string, string[]> AllowedEffectTypes =
             new Dictionary<string, string[]>(StringComparer.Ordinal)
             {
@@ -92,6 +95,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
                 [RadiologySourceContext] = new[] { RadiologyChargeEffectType },
                 [BloodBankSourceContext] = new[] { BloodBankChargeEffectType },
                 [ConsultationSourceContext] = new[] { ConsultationChargeEffectType },
+                [EquipmentUsageSourceContext] = new[] { EquipmentUsageChargeEffectType },
                 [OperatingRoomSourceContext] = new[] { OperatingRoomChargeEffectType }
             };
 

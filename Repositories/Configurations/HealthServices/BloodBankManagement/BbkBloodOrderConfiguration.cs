@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Enums;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.BloodBankManagement
 {
@@ -46,6 +47,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Blood
             // Concurrency token sungguhan: UPDATE hanya berhasil bila versi di database masih
             // sama dengan yang dibaca. Tanpa ini, dua pembatalan serentak sama-sama tersimpan.
             builder.Property(x => x.Version).HasDefaultValue(0).IsConcurrencyToken();
+            builder.Property(x => x.InstructionVerificationStatus).HasConversion<int>()
+                .HasDefaultValue(BbkInstructionVerificationStatus.NotRequired);
+            builder.HasIndex(x => x.InstructionVerificationStatus);
+            builder.HasOne<QuilvianSystemBackend.Models.ApplicationUser>().WithMany()
+                .HasForeignKey(x => x.InstructionVerifiedByUserId).OnDelete(DeleteBehavior.Restrict);
 
             builder.HasIndex(x => x.OrderNumber).IsUnique();
             builder.HasIndex(x => new { x.PatientId, x.OrderStatus });

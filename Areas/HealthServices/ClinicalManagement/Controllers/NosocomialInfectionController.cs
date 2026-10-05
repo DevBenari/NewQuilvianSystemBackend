@@ -46,13 +46,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services.NosocomialRecordNumberService _numbers;
 
         public NosocomialInfectionController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services.NosocomialRecordNumberService numbers)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _numbers = numbers;
         }
 
         // ==========================================================
@@ -541,12 +544,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
         private async Task<string> GenerateRecordNumberAsync(DateTime now, CancellationToken cancellationToken)
         {
-            var prefix = $"NOS-{now:yyyyMMdd}";
-
-            var countToday = await _dbContext.Set<TrxNosocomialInfection>()
-                .CountAsync(x => x.NosocomialRecordNumber.StartsWith(prefix), cancellationToken);
-
-            return $"{prefix}-{countToday + 1:0000}";
+            return await _numbers.AllocateAsync(now, GetCurrentUserId(), cancellationToken);
         }
 
         /// <summary>

@@ -121,6 +121,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                 "Daftar pantau penutupan tertunda berhasil diambil."));
         }
 
+        [HttpGet("departures-before-clearance")]
+        [AccessAction("Read", "Read Inpatient Monitoring", AccessType = AccessTypes.Read)]
+        [AccessPermission("InpatientMonitoring", "Read")]
+        public async Task<IActionResult> GetDeparturesBeforeClearance([FromQuery] DepartureBeforeClearanceQuery query, CancellationToken cancellationToken)
+            => Ok(ApiResponse<PagedResult<DepartureBeforeClearanceItem>>.Ok(await _dischargeService.GetDeparturesBeforeClearanceAsync(query, cancellationToken)));
+
         /// <summary>Daftar episode yang ditutup menembus gerbang kelayakan keuangan.</summary>
         /// <remarks>
         /// Setiap baris di sini adalah keputusan supervisor yang melewati satu syarat

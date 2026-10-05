@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend | Kode task ini sudah di-commit pemilik pada `e2ded614` (branch `MHamzah`, 2 Oktober 2026) |
 | Tanggal | Kode 2 Oktober 2026; laporan 5 Oktober 2026 |
-| Status | ✅ Implementasi kode selesai. `dotnet build` serta pembuatan dan penerapan migration `I1`/`I2` **dikecualikan atas keputusan pengguna 2 Oktober 2026** |
+| Status | 🟡 Implementasi kode dan penerapan skema selesai; kriteria dua migration terpisah belum sesuai pengemasan gabungan. Pembaruan 5 Oktober 2026: build terintegrasi `PASS` dan migration `20261005033044_AddRawatInapFinishing` diterapkan berdasarkan output pengguna; API/alur bisnis dan rollback belum dijalankan |
 | Catatan wewenang | Header roadmap masih `DRAFT`; task dikerjakan atas instruksi eksplisit pengguna 2 Oktober 2026 |
 
 ## Backend Governance Preflight
@@ -68,7 +68,7 @@ Kamus data 6.3–6.8, model dan configuration `InpEpisode`, `InpBedPlacement`, `
 | Aspek | Dampak |
 | --- | --- |
 | Kontrak API | `NOT APPLICABLE` |
-| Database | Kolom dan tabel baru. **Migration `I1` dan `I2` belum dibuat** — dibuat pemilik |
+| Database | kolom `InpEpisode`, `InpBedPlacement`, `InpIntegrationOutboxes`, `BilInvoice`, serta tabel `BilInpatientEventReceipt`. Perubahan `I1` + `I2` tercakup dalam `20261005033044_AddRawatInapFinishing`; pengguna melaporkan penerapan berhasil (`Done.`), bukti diterima 5 Oktober 2026. Nama database/lingkungan tidak disebut |
 | Keamanan/Auth | `NOT APPLICABLE` |
 
 ## 4. Dokumentasi endpoint
@@ -80,12 +80,18 @@ Kamus data 6.3–6.8, model dan configuration `InpEpisode`, `InpBedPlacement`, `
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
 | Pencocokan nama, tipe, nullability, bawaan, index, FK terhadap kamus 6.3–6.7 | Sesuai | `PASS` | Review source |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Dikecualikan atas keputusan pengguna 2 Oktober 2026 |
-| Migration `I1`/`I2` (`Up()`/`Down()`) | Tidak dibuat | `NOT RUN` | Keputusan pengguna |
+| Build project melalui `dotnet ef database update` | `Build succeeded.` | `PASS` | Output pengguna diterima 5 Oktober 2026; bukan eksekusi ulang oleh agent atau perintah `dotnet build` tersendiri; jumlah warning tidak disertakan |
+| Migration `I1` + `I2` | Tercakup dalam `20261005033044_AddRawatInapFinishing`; `Up()`/`Down()` tersedia dan penerapan maju berhasil menurut output pengguna | `PASS` (penerapan maju); rollback `NOT RUN` | Output pengguna 5 Oktober 2026 dan source migration |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 
 Uji manual: `NOT APPLICABLE` — tanpa perubahan perilaku.
+
+### 5.1 Pembaruan bukti 5 Oktober 2026
+
+Build project saat `dotnet ef database update` **PASS** menurut output pengguna yang diterima 5 Oktober 2026 (`Build succeeded.`); migration `20261005033044_AddRawatInapFinishing` diterapkan sampai `Done.`. Uji API, regresi, alur klinis, dan rollback `Down()` tetap `NOT RUN`. Nama database dan lingkungan tidak tercantum pada output. Catatan pengecualian 2 Oktober 2026 adalah riwayat sesi implementasi, bukan status build/migration terkini.
+
+Perubahan `I1` + `I2`: kolom `InpEpisode`, `InpBedPlacement`, `InpIntegrationOutboxes`, `BilInvoice`, serta tabel `BilInpatientEventReceipt`. Output lengkap, source migration, dan pemetaan lintas task ada pada [laporan BE-RWI-172](../../../../episode-rawat-inap/task/report/backend/BE-RWI-172.md#51-pembaruan-bukti-5-oktober-2026).
 
 ## 6. Acceptance criteria dan Definition of Done
 
@@ -94,18 +100,18 @@ Uji manual: `NOT APPLICABLE` — tanpa perubahan perilaku.
 | 1. Bentuk data sama dengan kamus data 6.3–6.7 | Terpenuhi (source) | Daftar 3.2 |
 | 2. FK rantai koreksi ke diri sendiri `Restrict` | Terpenuhi (source) | `InpBedPlacementConfiguration` |
 | 3. Unique `IdempotencyKey` pada tanda terima | Terpenuhi (source) | `IX_BilInpatientEventReceipt_IdempotencyKey` |
-| 4. Kedua migration punya `Down()` | Dikecualikan atas keputusan pengguna 2 Oktober 2026 | Migration dibuat pemilik |
+| 4. Kedua migration punya `Down()` | Sebagian: perubahan `I1`/`I2` dan `Down()` ada dalam satu migration gabungan; tidak ada dua migration terpisah | `20261005033044_AddRawatInapFinishing` sudah diterapkan menurut output pengguna. Penyimpangan pengemasan dicatat, bukan perubahan otomatis acceptance criteria |
 | 5. Tidak ada perubahan perilaku endpoint | Terpenuhi (source) | Hanya model/configuration |
-| DoD build | Dikecualikan atas keputusan pengguna 2 Oktober 2026 | — |
+| DoD build | Terpenuhi melalui build project terintegrasi pada perintah EF | Output pengguna: `Build succeeded.`; diterima 5 Oktober 2026 |
 
 ## 7. Catatan penutup
 
 | Hal | Isi |
 | --- | --- |
 | Peringatan | `[Obsolete]` pada enam kolom lama `InpEpisode` memunculkan peringatan `CS0618` pada kode yang masih membacanya (`InpatientBillingQueryService`, `InpatientClearanceGateService`) sampai `BE-RWI-152`/`153` dikerjakan. Peringatan, bukan error |
-| Masalah yang diketahui | `NONE` |
-| Risiko tersisa | Migration `I1`/`I2` memakai satu snapshot bersama dengan migration sub-modul lain; urutan pada `02-module-map.md` 7.4 |
+| Masalah yang diketahui | Satu migration gabungan diterapkan, sedangkan kriteria 4 menyebut dua migration; penerapan berhasil tidak mengubah kriteria itu |
+| Risiko tersisa | `Down()` gabungan membalik perubahan beberapa task sekaligus; eksekusi rollback belum diuji |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Kode di `e2ded614`; laporan ini `??` |
-| Langkah berikutnya | Pemilik membuat migration `I1`/`I2` dan memeriksa `Down()` |
+| Langkah berikutnya | Catat penyimpangan pengemasan dua migration `I1`/`I2` menjadi satu gabungan; eksekusi rollback belum diuji. Jangan membuat ulang perubahan yang sudah diterapkan. |

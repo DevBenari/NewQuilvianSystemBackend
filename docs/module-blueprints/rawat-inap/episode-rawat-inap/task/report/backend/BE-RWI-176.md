@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `e2ded614` (branch `MHamzah`), perubahan kerja belum di-commit |
 | Tanggal | 2 Oktober 2026 |
-| Status | ✅ Implementasi kode selesai. `dotnet build` dan migration `E5` bagian pra-operasi **dikecualikan atas keputusan pengguna 2 Oktober 2026** |
+| Status | ✅ Implementasi kode dan penerapan skema maju selesai. Pembaruan 5 Oktober 2026: build terintegrasi `PASS` dan migration `20261005033044_AddRawatInapFinishing` diterapkan berdasarkan output pengguna; API/alur bisnis dan rollback belum dijalankan |
 
 ## Backend Governance Preflight
 
@@ -91,7 +91,7 @@ validasi 14, kamus data 19.4–19.6, DDL 19.12.
 | Aspek | Dampak |
 | --- | --- |
 | Kontrak API | Lima endpoint baru; `GET preparation` bertambah `Blockers[]` (kode untuk seluruh prasyarat, termasuk dua kode baru). **Delta:** `GET ward-pre-op` mengembalikan templat bila belum ada versi; `BodyView` berupa enum angka mengikuti gaya DTO OK |
-| Database | Tiga tabel baru. **Migration `E5` bagian pra-operasi belum dibuat** — sesudah `E4` |
+| Database | `OprWardPreOpNote`, `OprWardPreOpItem`, dan `OprWardPreOpSiteMark`. Perubahan `E5` bagian pra-operasi tercakup dalam `20261005033044_AddRawatInapFinishing`; pengguna melaporkan penerapan berhasil (`Done.`), bukti diterima 5 Oktober 2026. Nama database/lingkungan tidak disebut |
 | Keamanan/Auth | Permission baru `OperatingRoomWardPreOp : Read/Send/Confirm` |
 
 ## 4. Dokumentasi endpoint
@@ -116,13 +116,19 @@ Base URL: `api/v1/health-services/operating-room-management/cases/{caseId}/prepa
 | QBE preflight dan kesesuaian | Prefix `Opr`; service pemilik `DbContext` | `PASS` | Review source |
 | Review diff dan scope | Sesuai kartu | `PASS` | Daftar 3.2 |
 | Pemeriksaan bentrokan nama tipe | Tidak ada | `PASS` | Sesi 2 Oktober 2026 |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Dikecualikan atas keputusan pengguna 2 Oktober 2026 |
-| Migration `E5` bagian pra-operasi | Tidak dibuat | `NOT RUN` | Keputusan pengguna |
+| Build project melalui `dotnet ef database update` | `Build succeeded.` | `PASS` | Output pengguna diterima 5 Oktober 2026; bukan eksekusi ulang oleh agent atau perintah `dotnet build` tersendiri; jumlah warning tidak disertakan |
+| Migration `E5` bagian pra-operasi | Tercakup dalam `20261005033044_AddRawatInapFinishing`; `Up()`/`Down()` tersedia dan penerapan maju berhasil menurut output pengguna | `PASS` (penerapan maju); rollback `NOT RUN` | Output pengguna 5 Oktober 2026 dan source migration |
 | Verifikasi proses bisnis dua akun | Belum dijalankan | `NOT RUN` | Butuh build dan database |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 
-Uji manual: `NOT FEASIBLE` — belum ada build dan database termigrasi pada sesi ini.
+Uji manual: `NOT RUN`. Alasan belum ada build/database berlaku pada sesi 2 Oktober 2026; bukti terbaru menunjukkan build dan penerapan migration, tetapi belum ada hasil uji API/alur bisnis.
+
+### 5.1 Pembaruan bukti 5 Oktober 2026
+
+Build project saat `dotnet ef database update` **PASS** menurut output pengguna yang diterima 5 Oktober 2026 (`Build succeeded.`); migration `20261005033044_AddRawatInapFinishing` diterapkan sampai `Done.`. Uji API, regresi, alur klinis, dan rollback `Down()` tetap `NOT RUN`. Nama database dan lingkungan tidak tercantum pada output. Catatan pengecualian 2 Oktober 2026 adalah riwayat sesi implementasi, bukan status build/migration terkini.
+
+Perubahan `E5` bagian pra-operasi: `OprWardPreOpNote`, `OprWardPreOpItem`, dan `OprWardPreOpSiteMark`. Output lengkap, source migration, dan pemetaan lintas task ada pada [laporan BE-RWI-172](BE-RWI-172.md#51-pembaruan-bukti-5-oktober-2026).
 
 ## 6. Acceptance criteria dan Definition of Done
 
@@ -136,7 +142,7 @@ Uji manual: `NOT FEASIBLE` — belum ada build dan database termigrasi pada sesi
 | 6. Ditunda → `NeedsUpdate`; versi baru menyalin butir dan memuat TD terbaru | Terpenuhi (source) | `MarkNeedsUpdateAsync`, `CreateVersionAsync`, `SendAsync` |
 | 7. Kasus `Rejected`/`Cancelled`/`InProgress`/`Completed` → 422 `OPR-WPO-004` | Terpenuhi (source) | `EnsureCaseWritable` |
 | 8. Jalur bypass darurat tetap berlaku | Terpenuhi (source) | Syarat pra-operasi di dalam blok `!bypass` |
-| DoD build tanpa error | Dikecualikan atas keputusan pengguna 2 Oktober 2026 | — |
+| DoD build tanpa error | Terpenuhi melalui build project terintegrasi pada perintah EF | Output pengguna: `Build succeeded.`; diterima 5 Oktober 2026 |
 
 ## 7. Catatan penutup
 
@@ -148,4 +154,4 @@ Uji manual: `NOT FEASIBLE` — belum ada build dan database termigrasi pada sesi
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | `??` tiga model, tiga configuration, `OprWardPreOpDtos.cs`, `OprWardPreOpService.cs`; `M` `OperatingRoomPreparationService.cs`, `OperatingRoomPreparationController.cs`, `OperatingRoomPreparationDtos.cs`, `OperatingRoomSchedulingService.cs`, `OperatingRoomExecutionService.cs`, `ApplicationDbContext.cs`, `Program.cs` |
-| Langkah berikutnya | Build dan migration `E5` oleh pemilik; uji dua akun |
+| Langkah berikutnya | Jalankan verifikasi pra-operasi dengan dua akun dan regresi gerbang Siap. |

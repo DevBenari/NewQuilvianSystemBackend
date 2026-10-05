@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `e2ded614` (branch `MHamzah`), perubahan kerja belum di-commit |
 | Tanggal | 2 Oktober 2026 |
-| Status | ✅ Implementasi kode selesai. `dotnet build` dan migration `E5` bagian kasus **dikecualikan atas keputusan pengguna 2 Oktober 2026** |
+| Status | ✅ Implementasi kode dan penerapan skema maju selesai. Pembaruan 5 Oktober 2026: build terintegrasi `PASS` dan migration `20261005033044_AddRawatInapFinishing` diterapkan berdasarkan output pengguna; API/alur bisnis dan rollback belum dijalankan |
 
 ## Backend Governance Preflight
 
@@ -81,7 +81,7 @@ direncanakan. Petugas OK juga tidak dapat menolak pesanan bangsal: satu-satunya 
 | Aspek | Dampak |
 | --- | --- |
 | Kontrak API | Aditif pada `POST`/`GET cases`; endpoint baru `PATCH /{id}/reject`. **Delta kontrak:** hitungan terpisah tampil sebagai `RejectedCases` pada `reports/utilization` (pola nama `CancelledCases` yang sudah ada), karena `reports/operations` berbentuk daftar per baris dengan status `Rejected` tersendiri |
-| Database | Lima kolom `OprCase` + `CK_OprCase_Rejected`. **Migration `E5` bagian kasus belum dibuat** — dibuat pemilik sesudah migration `MasterData` `K8`+`E4` |
+| Database | lima kolom `OprCase` dan constraint `CK_OprCase_Rejected`. Perubahan `E5` bagian kasus tercakup dalam `20261005033044_AddRawatInapFinishing`; pengguna melaporkan penerapan berhasil (`Done.`), bukti diterima 5 Oktober 2026. Nama database/lingkungan tidak disebut |
 | Keamanan/Auth | Permission baru `OperatingRoomCase : Reject` (diberikan admin hak akses pada petugas penjadwalan OK) |
 
 ## 4. Dokumentasi endpoint
@@ -109,13 +109,19 @@ Base URL: `api/v1/health-services/operating-room-management/cases`
 | QBE preflight dan kesesuaian | Prefix `Opr`; argumen permission cocok | `PASS` | Review source |
 | Review diff dan scope | Sesuai kartu | `PASS` | Daftar 3.2 |
 | Pemeriksaan bentrokan nama tipe | Tidak ada | `PASS` | Sesi 2 Oktober 2026 |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Dikecualikan atas keputusan pengguna 2 Oktober 2026 |
-| Migration `E5` bagian kasus | Tidak dibuat | `NOT RUN` | Keputusan pengguna |
+| Build project melalui `dotnet ef database update` | `Build succeeded.` | `PASS` | Output pengguna diterima 5 Oktober 2026; bukan eksekusi ulang oleh agent atau perintah `dotnet build` tersendiri; jumlah warning tidak disertakan |
+| Migration `E5` bagian kasus | Tercakup dalam `20261005033044_AddRawatInapFinishing`; `Up()`/`Down()` tersedia dan penerapan maju berhasil menurut output pengguna | `PASS` (penerapan maju); rollback `NOT RUN` | Output pengguna 5 Oktober 2026 dan source migration |
 | Verifikasi API dan proses bisnis `UAT-RWF-24`, regresi alur OK | Belum dijalankan | `NOT RUN` | Butuh build dan database |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 
-Uji manual: `NOT FEASIBLE` — belum ada build dan database termigrasi pada sesi ini.
+Uji manual: `NOT RUN`. Alasan belum ada build/database berlaku pada sesi 2 Oktober 2026; bukti terbaru menunjukkan build dan penerapan migration, tetapi belum ada hasil uji API/alur bisnis.
+
+### 5.1 Pembaruan bukti 5 Oktober 2026
+
+Build project saat `dotnet ef database update` **PASS** menurut output pengguna yang diterima 5 Oktober 2026 (`Build succeeded.`); migration `20261005033044_AddRawatInapFinishing` diterapkan sampai `Done.`. Uji API, regresi, alur klinis, dan rollback `Down()` tetap `NOT RUN`. Nama database dan lingkungan tidak tercantum pada output. Catatan pengecualian 2 Oktober 2026 adalah riwayat sesi implementasi, bukan status build/migration terkini.
+
+Perubahan `E5` bagian kasus: lima kolom `OprCase` dan constraint `CK_OprCase_Rejected`. Output lengkap, source migration, dan pemetaan lintas task ada pada [laporan BE-RWI-172](BE-RWI-172.md#51-pembaruan-bukti-5-oktober-2026).
 
 ## 6. Acceptance criteria dan Definition of Done
 
@@ -128,7 +134,7 @@ Uji manual: `NOT FEASIBLE` — belum ada build dan database termigrasi pada sesi
 | 5. Laporan memisahkan Ditolak dari Dibatalkan | Terpenuhi (source) | `RejectedCases` |
 | 6. `POST cases` tetap menerima banyak tindakan bagi petugas OK | Terpenuhi (source) | Validasi `Procedures` tidak berubah |
 | 7. Alur OK lama tidak berubah | Terpenuhi (source, belum diuji) | Sidik jari idempotensi lama tetap sama bila isian baru bawaan |
-| DoD build tanpa error | Dikecualikan atas keputusan pengguna 2 Oktober 2026 | — |
+| DoD build tanpa error | Terpenuhi melalui build project terintegrasi pada perintah EF | Output pengguna: `Build succeeded.`; diterima 5 Oktober 2026 |
 
 ## 7. Catatan penutup
 
@@ -140,4 +146,4 @@ Uji manual: `NOT FEASIBLE` — belum ada build dan database termigrasi pada sesi
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | `M` `OperatingRoomEnums.cs`, `OprCase.cs`, `OprCaseConfiguration.cs`, `OperatingRoomCaseDtos.cs`, `OperatingRoomCaseService.cs`, `OperatingRoomCommandSupport.cs`, `OperatingRoomSchedulingService.cs`, `OperatingRoomExecutionService.cs`, `OperatingRoomCaseController.cs`, `OperatingRoomReportService.cs`, `OperatingRoomReportDtos.cs` |
-| Langkah berikutnya | Pemilik: build, migration `E5`; pemilik OK mengesahkan nilai rencana anestesi |
+| Langkah berikutnya | Pemilik OK mengesahkan nilai rencana anestesi; jalankan `UAT-RWF-24` dan regresi alur OK. |

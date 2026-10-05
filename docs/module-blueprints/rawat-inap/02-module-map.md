@@ -577,6 +577,8 @@ Satu baris per kelompok data yang **baru atau berubah bentuk** pada Finishing. T
 
 ### 7.4 Urutan migration lintas sub-modul revision `4`
 
+**Catatan penerapan aktual, bukti diterima 5 Oktober 2026.** Pengguna menjalankan `dotnet ef database update`: `Build succeeded.`, `Applying migration '20261005033044_AddRawatInapFinishing'.`, lalu `Done.`. Satu migration memuat `I1` + `I2`, `K8` + `E4`, `E5`, `E6`, dan `E7`; [pemetaan enam task dan log lengkap](episode-rawat-inap/task/report/backend/BE-RWI-172.md#51-pembaruan-bukti-5-oktober-2026). Tabel di bawah tetap rencana urutan/rilis; penerapan gabungan tidak berarti seluruh gelombang sudah dirilis. Rencana dua migration `I1`/`I2` berbeda dari pengemasan aktual, dicatat pada laporan `BE-RWI-149`. `I6` dan migration lain di luar cakupan ini belum dibuktikan output tersebut. Jangan membuat ulang perubahan yang sudah tercakup migration ini.
+
 Langkah per sub-modul: `integrasi-billing/02-backend-architecture.md` 9 (`I1`–`I5`), `keperawatan/02-backend-architecture.md` 12 (`K8`–`K12`), `dokter-rawat-inap/02-backend-architecture.md` 12 (`R10`, `R11`), `episode-rawat-inap/02-backend-architecture.md` 12.11 (`E4`–`E8`).
 
 | Gelombang | Langkah | Prasyarat | Dirilis bersama |

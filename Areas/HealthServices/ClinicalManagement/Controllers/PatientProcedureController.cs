@@ -125,8 +125,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             [FromQuery] Guid? patientClassId,
             [FromQuery] Guid? serviceUnitId,
             [FromQuery] string? serviceType,
-            [FromQuery] int take = 50)
+            [FromQuery] int take = 50,
+            [FromQuery] ProcedureCatalogCareSetting? careSetting = null,
+            [FromQuery] ProcedureCatalogAudience? audience = null)
         {
+            if ((careSetting.HasValue && !Enum.IsDefined(careSetting.Value)) ||
+                (audience.HasValue && !Enum.IsDefined(audience.Value)))
+                return BadRequest(ApiResponse<object>.Fail(400,
+                    "Konteks layanan atau pelaku katalog tindakan tidak valid."));
+
             if (take <= 0) take = 50;
             if (take > 100) take = 100;
 
@@ -140,6 +147,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             // Filter ketersediaan berdasarkan tipe layanan (Inpatient / Outpatient / Emergency)
             var normServiceType = serviceType?.Trim().ToLower();
+            if (careSetting.HasValue)
+                normServiceType = careSetting == ProcedureCatalogCareSetting.Inpatient
+                    ? "inpatient" : "outpatient";
             if (normServiceType == "inpatient")
             {
                 query = query.Where(x => x.IsAvailableForInpatient);
@@ -174,6 +184,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             {
                 query = query.Where(x => x.IsDoctorAction || x.IsNursingAction);
             }
+
+            // Parameter baru hanya mempersempit permintaan eksplisit; pemanggil lama
+            // tetap memakai saringan serviceType/procedureType yang sudah berjalan.
+            if (audience == ProcedureCatalogAudience.Doctor)
+                query = query.Where(x => x.IsDoctorAction);
 
             if (!string.IsNullOrWhiteSpace(search))
             {

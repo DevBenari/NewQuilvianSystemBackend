@@ -16,7 +16,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Service
 /// <summary>
 /// Alur makanan pasien rawat inap: daftar pasien, diet, produksi, dan distribusi.
 /// </summary>
-public sealed class NutritionDietService
+public sealed partial class NutritionDietService
 {
     private const string LogCategory = "NutritionManagement";
 
@@ -167,10 +167,22 @@ public sealed class NutritionDietService
         EnsureIdempotencyKey(request.IdempotencyKey);
         var actorUserId = GetCurrentUserId();
 
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+        await _dbContext.Set<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter>()
+            .FromSqlInterpolated($"SELECT * FROM public.\"RegPatientEncounter\" WHERE \"Id\" = {request.EncounterId} FOR UPDATE")
+            .FirstOrDefaultAsync(cancellationToken);
+
         var deterministicId = DeterministicId(request.IdempotencyKey);
         var replay = await BuildDietQuery().FirstOrDefaultAsync(x => x.Id == deterministicId,
             cancellationToken);
-        if (replay != null) return MapDiet(replay);
+        if (replay != null)
+        {
+            if (replay.EncounterId != request.EncounterId || replay.PatientId != request.PatientId || replay.PrescribedByWorkforceId != request.PrescribedByWorkforceId)
+                throw new NutritionConflictException("GIZ012", "IdempotencyKey sudah digunakan untuk permintaan lain.");
+            return MapDiet(replay);
+        }
+
+        var instructionStatus = await ResolveDietInstructionStatusAsync(request, actorUserId, cancellationToken);
 
         await EnsureActiveInpatientAsync(request.PatientId, request.EncounterId, cancellationToken);
         await EnsureMasterActiveAsync(request.DietTypeId, request.FoodFormId, cancellationToken);
@@ -197,6 +209,7 @@ public sealed class NutritionDietService
             current.Version++;
             current.UpdateDateTime = now;
             current.UpdateBy = actorUserId;
+            await SaveAsync(cancellationToken);
         }
 
         var diet = new GziPatientDiet
@@ -212,6 +225,7 @@ public sealed class NutritionDietService
             Status = GziPatientDietStatus.Active,
             StartAt = startAt,
             PrescribedByWorkforceId = request.PrescribedByWorkforceId,
+            InstructionVerificationStatus = instructionStatus,
             Version = 0,
             CreateDateTime = now,
             CreateBy = actorUserId
@@ -219,6 +233,7 @@ public sealed class NutritionDietService
 
         _dbContext.GziPatientDiets.Add(diet);
         await SaveAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         await _loggerService.AuditAsync(LogCategory, "NutritionDiet.Prescribe",
             "Menetapkan diet pasien.",
@@ -228,7 +243,7 @@ public sealed class NutritionDietService
     }
 
     public async Task<GziPatientDietResponse> StopAsync(Guid dietId, StopGzDietRequest request,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, Guid? instructedByWorkforceId = null, GziInstructionVerificationStatus? instructionStatus = null)
     {
         EnsureIdempotencyKey(request.IdempotencyKey);
         if (string.IsNullOrWhiteSpace(request.Reason))
@@ -236,7 +251,9 @@ public sealed class NutritionDietService
                 "Alasan penghentian diet wajib diisi.");
 
         var actorUserId = GetCurrentUserId();
+        await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
         var diet = await _dbContext.GziPatientDiets
+            .FromSqlInterpolated($"SELECT * FROM public.\"GziPatientDiet\" WHERE \"Id\" = {dietId} FOR UPDATE")
             .FirstOrDefaultAsync(x => x.Id == dietId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Diet pasien tidak ditemukan.");
 
@@ -249,6 +266,12 @@ public sealed class NutritionDietService
                 "Data telah diperbarui pengguna lain. Muat ulang lalu coba kembali.");
 
         var now = DateTime.UtcNow;
+        if (instructedByWorkforceId.HasValue)
+        {
+            diet.PrescribedByWorkforceId = instructedByWorkforceId.Value;
+            diet.InstructionVerificationStatus = instructionStatus ?? GziInstructionVerificationStatus.Pending;
+            diet.InstructionVerifiedAt = null; diet.InstructionVerifiedByUserId = null;
+        }
         diet.Status = GziPatientDietStatus.Stopped;
         diet.EndAt = now;
         diet.ChangeReason = request.Reason.Trim();
@@ -257,6 +280,7 @@ public sealed class NutritionDietService
         diet.UpdateBy = actorUserId;
 
         await SaveAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
         return MapDiet(await BuildDietQuery().FirstAsync(x => x.Id == dietId, cancellationToken));
     }
 
@@ -690,6 +714,9 @@ public sealed class NutritionDietService
         ChangeReason = x.ChangeReason,
         PrescribedByName = x.PrescribedByWorkforce != null
             ? x.PrescribedByWorkforce.DisplayName : string.Empty,
+        InstructionVerificationStatus = x.InstructionVerificationStatus,
+        InstructionVerifiedAt = x.InstructionVerifiedAt,
+        InstructionVerifiedByUserId = x.InstructionVerifiedByUserId,
         Version = x.Version
     };
 }

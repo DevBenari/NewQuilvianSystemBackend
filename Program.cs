@@ -444,6 +444,7 @@ try
     // INT-DOK-09. Tanpa pendaftaran ini controller yang memakainya gagal dibuat oleh dependency
     // injection dan endpoint-nya membalas 500 sebelum kode modul sempat berjalan.
     builder.Services.AddScoped<InpatientClinicalContextService>();
+    builder.Services.AddScoped<InpAncillaryOrderAdapter>();
     builder.Services.AddScoped<InpatientDocumentCorrectionAuthorityService>();
     builder.Services.AddScoped<CpptVerificationService>();
 
@@ -598,6 +599,18 @@ try
     builder.Services.AddScoped<InpBedOccupancyService>();
     builder.Services.AddScoped<InpEpisodeService>();
     builder.Services.AddScoped<InpDischargeService>();
+    builder.Services.AddScoped<CliWsdObservationService>();
+    builder.Services.AddScoped<InpDietOrderAdapter>();
+    builder.Services.AddScoped<MedicalEquipmentService>();
+    builder.Services.AddScoped<NosocomialRecordNumberService>();
+    builder.Services.AddScoped<CliSurgicalSiteSurveillanceService>();
+    builder.Services.AddScoped<CliTransfusionMonitoringService>();
+    builder.Services.AddScoped<CliTransfusionReactionDeliveryService>();
+    builder.Services.AddScoped<BbkTransfusionReactionNoticeService>();
+    builder.Services.AddScoped<CliEquipmentUsageService>();
+    builder.Services.AddHostedService<CliSurgicalSiteSurveillanceWorker>();
+    builder.Services.AddHostedService<CliTransfusionReactionNoticeWorker>();
+    builder.Services.AddHostedService<CliEquipmentUsageWorker>();
     builder.Services.AddScoped<InpCensusQueryService>();
 
     // BE-RWI-071 & BE-RWI-072 — Adapter posisi deposit dan tagihan episode dari Billing
@@ -633,8 +646,6 @@ try
             QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options.InpatientIntegrationOutboxOptions.SectionName));
     builder.Services.AddScoped<IInpatientBillingQueryService, InpatientBillingQueryService>();
     builder.Services.AddScoped<InpatientBillingQueryService>();
-    builder.Services.AddScoped<IInpatientClearanceGateService, InpatientClearanceGateService>();
-    builder.Services.AddScoped<InpatientClearanceGateService>();
 
     // Master data Rawat Inap. Dipakai dua controller pada layar admin, bukan oleh service
     // Rawat Inap. Keduanya memegang seluruh pembacaan dan perubahan tabel masternya supaya

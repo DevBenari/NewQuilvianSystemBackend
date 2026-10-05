@@ -27,22 +27,26 @@
 | ⛔ | Terblokir. Prasyaratnya belum terpenuhi, dan task **tidak boleh dimulai** |
 | tanpa tanda | Belum dikerjakan |
 
+**Otorisasi eksekusi 5 Oktober 2026.** Pengguna menyetujui implementasi BE-RWI-165–171, dependency BE-RWI-146/152/153 yang diperlukan, migration dan database update development. Build/update hanya pada tahap akhir seluruh kode. Status DRAFT pada metadata merupakan riwayat perencanaan.
+
+**Pembaruan bukti 5 Oktober 2026 (penyelesaian).** Ketujuh task `BE-RWI-165`–`171` ✅. Sesi Codex terhenti karena batas penggunaan dan dilanjutkan Claude: error kompilasi diperbaiki, kode direview, lalu satu build akhir `dotnet build` `0 Error(s)` dan satu migration gabungan `20261005071042_AddRawatInapKeperawatanFinishing` (bagian `K9`, `K10`, `K11`, plus `InpEpisode.Version` milik `BE-RWI-153`) dibuat dan diterapkan ke database development bersama migration tertunda `20261005050735_AddNutritionAndBloodInstructionVerification`. Pengemasan satu migration menggantikan migration per task pada catatan migration di bawah. Uji API/UAT runtime `NOT RUN`, dikecualikan atas instruksi pengguna 5 Oktober 2026.
+
 ## Grafik Urutan Dependency
 
 ```text
-BE-RWI-172 [EPS] ─> BE-RWI-167 ─┬─> BE-RWI-168
-                                │
-BE-RWI-155 [IB] ─────┐          │
-                     │          │
-BE-RWI-153 [IB] ─────┴──────────┘
+BE-RWI-172 ✅ [EPS] ─> BE-RWI-167 ✅ ─┬─> BE-RWI-168 ✅
+                                      │
+BE-RWI-155 ✅ [IB] ─────┐             │
+                        │             │
+BE-RWI-153 ✅ [IB] ─────┴─────────────┘
 
-BE-RWI-170 ─> BE-RWI-171
+BE-RWI-170 ✅ ─> BE-RWI-171 ✅
 
-BE-RWI-165
+BE-RWI-165 ✅
 
-BE-RWI-166
+BE-RWI-166 ✅
 
-BE-RWI-169
+BE-RWI-169 ✅
 ```
 
 | Label | Asal |
@@ -77,11 +81,11 @@ Keduanya cermin baca-saja. Jumlah pasangan prasyarat→task: **5**, sama dengan 
 
 ## Kartu task
 
-### `BE-RWI-165` — Observasi WSD per selang (`K9` bagian WSD)
+### ✅ `BE-RWI-165` — Observasi WSD per selang (`K9` bagian WSD)
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 5 Oktober 2026.** Ketujuh acceptance criteria terpetakan ke source. `dotnet build` build akhir `0 Error(s)`, 233 warning (nol di berkas baru); migration gabungan `20261005071042_AddRawatInapKeperawatanFinishing` dibuat dan diterapkan ke database development (`Done.`, nol `Pending`). Uji API/UAT runtime `NOT RUN`; butir DoD itu **dikecualikan atas instruksi pengguna 5 Oktober 2026**. Bukti: [laporan](../task/report/backend/BE-RWI-165.md) |
 | **Outcome** | Perawat mendaftarkan selang WSD dan mencatat pembacaan per shift per selang. Server menghitung volume yang bertambah dan membuat tepat satu entri cairan per pembacaan, sehingga Spooling Cairan, Pengawasan Harian, dan WSD membaca data yang sama |
 | **Requirement/decision** | `FR-RWF-054`, `FR-RWF-058`; `RWI-DEC-200`; `INV-RWF-10`, `11`, `12`; `AC-RWF-052`, `057`, `058`; `UAT-RWF-09`, `UAT-RWF-22` |
 | **Kontrak** | `0.6.0`: API 8.4 (delapan endpoint `wsd-drains`); kamus data `CliWsdDrain`, `CliWsdReading`; backend 12.6.2, 12.7, 12.8 |
@@ -93,11 +97,11 @@ Keduanya cermin baca-saja. Jumlah pasangan prasyarat→task: **5**, sama dengan 
 | **Risiko/pemilik** | Permission memakai Resource `FluidBalance` yang sudah ada (gate G-15). Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; `dotnet build` tanpa error; laporan `../task/report/backend/BE-RWI-165.md` mencatat status penerapan migration apa adanya; roadmap dan traceability diperbarui |
 
-### `BE-RWI-166` — Diet Medis atas instruksi dan verifikasi dokter (`K10`)
+### ✅ `BE-RWI-166` — Diet Medis atas instruksi dan verifikasi dokter (`K10`)
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 5 Oktober 2026.** Kedelapan acceptance criteria terpetakan ke source. `dotnet build` build akhir `0 Error(s)`, 233 warning (nol di berkas baru); migration gabungan `20261005071042_AddRawatInapKeperawatanFinishing` dibuat dan diterapkan ke database development (`Done.`, nol `Pending`). Uji API/UAT runtime `NOT RUN`; butir DoD itu **dikecualikan atas instruksi pengguna 5 Oktober 2026**. Catatan untuk pemilik: penghentian diet atas instruksi menimpa penetap (lihat laporan). Bukti: [laporan](../task/report/backend/BE-RWI-166.md) |
 | **Outcome** | Perawat menetapkan, mengganti, atau menghentikan diet pasien lewat Rawat Inap atas instruksi dokter berpenugasan. Diet tersimpan di modul Gizi berstatus menunggu verifikasi, lalu dokter penetap memverifikasinya |
 | **Requirement/decision** | `FR-RWF-055`; `RWI-DEC-178`, `RWI-DEC-188`, `RWI-DEC-191`; `INV-RWF-19`; `AC-RWF-055`; `UAT-RWF-26`; `RWI-AC-303` |
 | **Kontrak** | API 8.8 (`POST episodes/{episodeId}/diets`, `POST …/{dietId}/stop`), 8.9 (`POST nutrition-management/diets` diperluas, worklist, `verify-instruction`); integrasi 9.5 (`INT-RWF-13`); backend 12.7 |
@@ -109,11 +113,11 @@ Keduanya cermin baca-saja. Jumlah pasangan prasyarat→task: **5**, sama dengan 
 | **Risiko/pemilik** | Enum dipakai bersama `BE-RWI-161`; `K10` boleh satu migration dengan `R10`. Modul Gizi milik Ikbal Yulianto (persetujuan `RWI-DEC-191`) |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### `BE-RWI-167` — Master jenis alat medis
+### ✅ `BE-RWI-167` — Master jenis alat medis
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 5 Oktober 2026.** Kelima acceptance criteria terpetakan ke source. `dotnet build` build akhir `0 Error(s)`, 233 warning (nol di berkas baru); tanpa perubahan skema (tabel dan kolom tarif dari `BE-RWI-172`). Uji API/UAT runtime `NOT RUN`; butir DoD itu **dikecualikan atas instruksi pengguna 5 Oktober 2026**. Isi `filters/metadata` masih minimal terhadap standar master data (dicatat di laporan). Bukti: [laporan](../task/report/backend/BE-RWI-167.md) |
 | **Outcome** | Admin Master Data mengelola jenis alat medis besar beserta satuan tagih dan pembulatannya; tarif alat per kelas memakai master tarif yang sama dengan tindakan dan obat |
 | **Requirement/decision** | `FR-RWF-060`, `FR-RWF-061`, `FR-RWF-068`; `RWI-DEC-179`, `RWI-DEC-180`, `RWI-DEC-193`; `AC-RWF-060` |
 | **Kontrak** | API 8.2 (`master-data/medical-equipments`, lima endpoint; tarif alat lewat master tarif dengan field `MedicalEquipmentId`); backend 12.7 |
@@ -125,11 +129,11 @@ Keduanya cermin baca-saja. Jumlah pasangan prasyarat→task: **5**, sama dengan 
 | **Risiko/pemilik** | Satuan dan pembulatan tiap jenis alat disahkan pemilik tarif (`02-backend-architecture.md` 12.12). Pemilik: Muhammad Hamzah; `MasterData` milik seluruh tim (`RWI-DEC-193`) |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### `BE-RWI-168` — Pemakaian alat dan tagihannya (`K9` bagian pemakaian alat)
+### ✅ `BE-RWI-168` — Pemakaian alat dan tagihannya (`K9` bagian pemakaian alat)
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 5 Oktober 2026.** Kesembilan acceptance criteria terpetakan ke source. `dotnet build` build akhir `0 Error(s)`, 233 warning (nol di berkas baru); migration gabungan `20261005071042_AddRawatInapKeperawatanFinishing` dibuat dan diterapkan ke database development (`Done.`, nol `Pending`). Verifikasi dengan Billing sungguhan dan UAT `NOT RUN`; butir DoD itu **dikecualikan atas instruksi pengguna 5 Oktober 2026**. Gap integrasi 9.2: harga kontrak penjamin (`MstInsuranceTariff`) belum diterapkan resolver. Bukti: [laporan](../task/report/backend/BE-RWI-168.md) |
 | **Outcome** | Perawat mencatat mulai dan selesai pemakaian alat. Server menghitung unit dan menerbitkan tagihan ke invoice `RANAP` lewat jalur klinis yang sama dengan tindakan. Pemakaian yang masih berjalan ditutup otomatis saat pasien keluar ruangan |
 | **Requirement/decision** | `FR-RWF-062` s.d. `066`, `FR-RWF-069`; `RWI-DEC-179`, `RWI-DEC-192` butir 4; `INV-RWF-13`, `14`; `INT-RWF-06`, `07`, `08`; `AC-RWF-061` s.d. `064`; `UAT-RWF-06`, `UAT-RWF-27` |
 | **Kontrak** | API 8.3 (lima endpoint `equipment-usages`); integrasi 9.2 (`INT-RWF-07`), `INT-RWF-06`, `INT-RWF-08`; backend 12.5, 12.7 |
@@ -141,11 +145,11 @@ Keduanya cermin baca-saja. Jumlah pasangan prasyarat→task: **5**, sama dengan 
 | **Risiko/pemilik** | Menyentuh jembatan folio Billing (Yasmina) dan alur keluar ruangan. Pemilik: Muhammad Hamzah, Yasmina |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### `BE-RWI-169` — Surveilans infeksi luka operasi (`K9` bagian surveilans, `K12`)
+### ✅ `BE-RWI-169` — Surveilans infeksi luka operasi (`K9` bagian surveilans, `K12`)
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 5 Oktober 2026.** Kesembilan acceptance criteria terpetakan ke source. `dotnet build` build akhir `0 Error(s)`, 233 warning (nol di berkas baru); migration gabungan `20261005071042_AddRawatInapKeperawatanFinishing` dibuat dan diterapkan ke database development (`Done.`, nol `Pending`). Verifikasi dengan kasus OK di lingkungan uji `NOT RUN`; **dikecualikan atas instruksi pengguna 5 Oktober 2026**. Gerbang produksi G-21 tetap terbuka. Bukti: [laporan](../task/report/backend/BE-RWI-169.md) |
 | **Outcome** | Formulir surveilans per kasus operasi terbentuk otomatis sesudah operasi selesai — bila versi formulir sudah disahkan — lalu diisi harian dengan suhu dibaca dari tanda vital, berhenti saat pasien keluar ruangan, dan dapat ditandai "dicurigai" oleh tim PPI lewat register infeksi nosokomial |
 | **Requirement/decision** | `FR-RWF-083`, `084`, `091`, `092`; `RWI-DEC-202`; `INV-RWF-15`, `16`; `INT-RWF-09`, `10`; `AC-RWF-083`, `095`, `096`; `UAT-RWF-18`, `UAT-RWF-28` |
 | **Kontrak** | API 8.5; integrasi 9.3; backend 12.6.3, 12.7, 12.12 |
@@ -157,11 +161,11 @@ Keduanya cermin baca-saja. Jumlah pasangan prasyarat→task: **5**, sama dengan 
 | **Risiko/pemilik** | Gerbang produksi G-21: formulir wajib disahkan (versi `Approved` beserta nama pengesah) sebelum dipakai pasien sungguhan. Pemilik: Muhammad Hamzah; pengesahan oleh pemilik klinis atau komite PPI |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### `BE-RWI-170` — Monitoring transfusi per kantong (`K9` bagian transfusi)
+### ✅ `BE-RWI-170` — Monitoring transfusi per kantong (`K9` bagian transfusi)
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 5 Oktober 2026.** Kedelapan acceptance criteria terpetakan ke source. `dotnet build` build akhir `0 Error(s)`, 233 warning (nol di berkas baru); migration gabungan `20261005071042_AddRawatInapKeperawatanFinishing` dibuat dan diterapkan ke database development (`Done.`, nol `Pending`). Verifikasi dengan kantong di lingkungan uji `NOT RUN`; **dikecualikan atas instruksi pengguna 5 Oktober 2026**. Gerbang produksi G-21 dan G-22 tetap terbuka. Bukti: [laporan](../task/report/backend/BE-RWI-170.md) |
 | **Outcome** | Perawat memantau transfusi per kantong yang sudah diserahkan Bank Darah kepada pasien itu: empat titik ukur dengan tanda terlambat, hentikan, selesai, batal, dan catat reaksi |
 | **Requirement/decision** | `FR-RWF-085`, `FR-RWF-093`; `RWI-DEC-203`, `RWI-DEC-209`; `INV-RWF-17`, `18`; `INT-RWF-11`; `AC-RWF-084`, `097`, `098`; `UAT-RWF-19` (bagian Clinical), `UAT-RWF-29` |
 | **Kontrak** | API 8.6 (delapan endpoint `transfusion-monitorings`); integrasi 9.4; backend 12.6.4, 12.7, 12.12 (`LateToleranceMinutes = 10`) |
@@ -173,11 +177,11 @@ Keduanya cermin baca-saja. Jumlah pasangan prasyarat→task: **5**, sama dengan 
 | **Risiko/pemilik** | Gerbang produksi G-21 (titik ukur) dan G-22 (toleransi) disahkan pemilik klinis. Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### `BE-RWI-171` — Pemberitahuan reaksi transfusi ke Bank Darah (`K11`)
+### ✅ `BE-RWI-171` — Pemberitahuan reaksi transfusi ke Bank Darah (`K11`)
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 5 Oktober 2026.** Kelima acceptance criteria terpetakan ke source. `dotnet build` build akhir `0 Error(s)`, 233 warning (nol di berkas baru); migration gabungan `20261005071042_AddRawatInapKeperawatanFinishing` dibuat dan diterapkan ke database development (`Done.`, nol `Pending`). Verifikasi disaksikan petugas Bank Darah `NOT RUN`; **dikecualikan atas instruksi pengguna 5 Oktober 2026**. Bukti: [laporan](../task/report/backend/BE-RWI-171.md) |
 | **Outcome** | Reaksi transfusi yang dicatat bangsal sampai di kotak masuk Bank Darah. Pengiriman yang gagal dicoba ulang tiap menit tanpa menghilangkan catatan klinisnya, dan petugas Bank Darah menyatakan sudah menindaklanjuti |
 | **Requirement/decision** | `FR-RWF-085` (reaksi); `RWI-DEC-203`, `RWI-DEC-209`; `INT-RWF-12`; `UAT-RWF-19` (bagian Bank Darah); `RWI-AC-303` |
 | **Kontrak** | API 8.7 (tiga endpoint `transfusion-reaction-notices`); integrasi 9.4; backend 12.5, 12.7 |

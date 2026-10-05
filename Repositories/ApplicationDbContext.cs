@@ -766,6 +766,18 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<CliDailyObservationRevision> CliDailyObservationRevisions { get; set; }
         public DbSet<CliNursingShift> CliNursingShifts { get; set; }
 
+        // Finishing Rawat Inap keperawatan K9 (BE-RWI-165, BE-RWI-168, BE-RWI-169, BE-RWI-170).
+        public DbSet<CliWsdDrain> CliWsdDrains { get; set; }
+        public DbSet<CliWsdReading> CliWsdReadings { get; set; }
+        public DbSet<CliEquipmentUsage> CliEquipmentUsages { get; set; }
+        public DbSet<CliEquipmentUsageRevision> CliEquipmentUsageRevisions { get; set; }
+        public DbSet<CliSurgicalSiteSurveillance> CliSurgicalSiteSurveillances { get; set; }
+        public DbSet<CliSurgicalSiteSurveillanceEntry> CliSurgicalSiteSurveillanceEntries { get; set; }
+        public DbSet<CliSurgicalSiteSurveillanceEntryRevision> CliSurgicalSiteSurveillanceEntryRevisions { get; set; }
+        public DbSet<CliTransfusionMonitoring> CliTransfusionMonitorings { get; set; }
+        public DbSet<CliTransfusionMonitoringPoint> CliTransfusionMonitoringPoints { get; set; }
+        public DbSet<CliTransfusionReaction> CliTransfusionReactions { get; set; }
+
         public DbSet<MstProcedure> MstProcedures { get; set; }
 
         // Data induk perujuk (LAB-DEC-035, BE-EXT-02). Global: Laboratorium, Rawat
@@ -1114,6 +1126,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BbkCompatibilityEvidence> BbkCompatibilityEvidences { get; set; }
         public DbSet<BbkEmergencyAuthorization> BbkEmergencyAuthorizations { get; set; }
         public DbSet<BbkIssuanceCorrection> BbkIssuanceCorrections { get; set; }
+
+        // Kotak masuk reaksi transfusi dari bangsal (BE-RWI-171, migration K11).
+        public DbSet<BbkTransfusionReactionNotice> BbkTransfusionReactionNotices { get; set; }
         #endregion BLOOD BANK MANAGEMENT
 
         #region HEMODIALYSIS MANAGEMENT
@@ -1151,6 +1166,25 @@ namespace QuilvianSystemBackend.Repositories
         // tidak pernah disunting lewat layar mana pun (INV-PLT-001, INV-PLT-002).
         public DbSet<NumNumberSeries> NumNumberSeries { get; set; }
         #endregion PLATFORM
+
+        private void StampEpisodeVersions()
+        {
+            ChangeTracker.DetectChanges();
+            foreach (var entry in ChangeTracker.Entries<InpEpisode>().Where(x => x.State == EntityState.Modified))
+                entry.Entity.Version = entry.Property(x => x.Version).OriginalValue + 1;
+        }
+
+        public override int SaveChanges(bool acceptAllChangesOnSuccess)
+        {
+            StampEpisodeVersions();
+            return base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+
+        public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+        {
+            StampEpisodeVersions();
+            return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

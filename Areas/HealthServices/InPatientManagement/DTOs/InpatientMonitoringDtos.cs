@@ -141,6 +141,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// <summary>Satu episode yang ditutup menembus gerbang keuangan.</summary>
     public class OverrideClosureItemResponse
     {
+        public QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums.InpClearanceObservation? ClosureClearanceObserved { get; set; }
         public Guid EpisodeId { get; set; }
 
         public string EpisodeNumber { get; set; } = string.Empty;

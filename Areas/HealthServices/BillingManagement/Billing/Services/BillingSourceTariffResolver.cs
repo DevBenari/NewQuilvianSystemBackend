@@ -38,10 +38,26 @@ public sealed class BillingSourceTariffResolver
             BillingBridgeSourceDomains.Consultation => await ResolveConsultationAsync(request, cancellationToken),
             BillingBridgeSourceDomains.Pharmacy => await ResolvePharmacyAsync(request, cancellationToken),
             BillingBridgeSourceDomains.OperatingRoom => await ResolveOperatingRoomAsync(request, cancellationToken),
+            BillingBridgeSourceDomains.EquipmentUsage => await ResolveEquipmentUsageAsync(request, cancellationToken),
             _ => BillingTariffResolution.Pending(
                 BillingBridgeCodes.SourcePendingSupport,
                 $"Penetapan tarif untuk {request.SourceDomain} belum tersedia pada jembatan.")
         };
+    }
+
+    private async Task<BillingTariffResolution> ResolveEquipmentUsageAsync(BillingTariffResolutionRequest request, CancellationToken cancellationToken)
+    {
+        var usage = await _dbContext.Set<CliEquipmentUsage>().AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == request.SourceAggregateId && !x.IsDelete, cancellationToken);
+        if (usage == null) return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Pemakaian alat tidak ditemukan.");
+        var candidates = await EffectiveTariffs(request.OccurredAt)
+            .Where(x => x.MedicalEquipmentId == usage.MedicalEquipmentId
+                && (x.PatientClassId == null || x.PatientClassId == request.PatientClassId)
+                && (x.ClinicId == null || x.ClinicId == request.EncounterClinicId))
+            .ToListAsync(cancellationToken);
+        var tariff = candidates.OrderByDescending(x => (x.PatientClassId != null ? 2 : 0) + (x.ClinicId != null ? 1 : 0))
+            .ThenBy(x => x.TariffCode, StringComparer.Ordinal).FirstOrDefault();
+        return Build(tariff, request.FactQuantity ?? usage.BilledUnits ?? 0);
     }
 
     private async Task<BillingTariffResolution> ResolveProcedureAsync(

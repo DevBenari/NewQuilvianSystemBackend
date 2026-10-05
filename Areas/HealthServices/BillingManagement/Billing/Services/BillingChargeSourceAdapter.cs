@@ -60,6 +60,7 @@ public sealed class ContractBillingChargeSourceAdapter : IBillingChargeSourceAda
             // ditagih saat kasus Completed. Layanan yang sudah selesai tidak di-void normal;
             // koreksinya adjustment, sama seperti konsultasi.
             ["OPERATING_ROOM"] = Policy(["COMPLETED"], [], ["CANCELLED", "VOIDED"]),
+            ["EQUIPMENT_USAGE"] = Policy(["COMPLETED"], [], ["CANCELLED", "VOIDED"]),
             ["CONSUMABLE"] = Policy(["USED"], [], []),
             // Biaya bebas yang diketik langsung oleh kasir pada Menu Pembayaran (BKC-DEC-047):
             // nama/harga bebas, tanpa gerbang approval, tapi tetap boleh dibatalkan kasir sendiri

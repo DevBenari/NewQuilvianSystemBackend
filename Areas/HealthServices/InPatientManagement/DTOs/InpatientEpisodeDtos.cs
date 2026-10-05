@@ -132,6 +132,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// </remarks>
     public class InpatientEpisodeDetailResponse
     {
+        public int Version { get; set; }
         public Guid Id { get; set; }
 
         public string EpisodeNumber { get; set; } = string.Empty;

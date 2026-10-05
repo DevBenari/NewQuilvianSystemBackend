@@ -2,9 +2,9 @@
 
 | Field | Nilai |
 |---|---|
-| Roadmap | `dokter-rawat-inap/roadmap/backend-roadmap-finishing.md` — revision `1` |
+| Roadmap | `dokter-rawat-inap/roadmap/backend-roadmap-finishing.md` — revision `2` |
 | Blueprint | `RWI-BP-001` revision `8`, sub-modul `dokter-rawat-inap`, kontrak **`0.7.0` `approved`** 2026-10-02 lewat `RWI-DEC-221` |
-| Status roadmap | **`DRAFT`** — menunggu approval pemilik atas roadmap ini. Task belum boleh dikirim ke `build-module-backend` sebelum approval itu tercatat |
+| Status roadmap | **Eksekusi backend diotorisasi user 2026-10-05; coding BE-RWI-160–164 selesai**. QBE dan sintaks statis PASS; build/migration/API/runtime NOT RUN sesuai batas instruksi. DoD penuh belum dibuktikan |
 | Ditulis | 2 Oktober 2026 oleh `plan-module-delivery` |
 | Masukan dan hash approval | `02-backend-architecture.md` bagian 12 (`3dd1a36f…`), `contracts/api-contract.md` bagian 13 (`bab898df…`), `data/data-dictionary.md` bagian Finishing (`c0ced2e7…`), `testing/acceptance-test-matrix.md` bagian 15 (`e7c6da47…`), `contracts/validation-matrix.md` (`VAL-RWF-60` s.d. `68`). Hash lengkap pada `../blueprint-manifest.md` bagian 10 |
 | Keputusan | `RWI-DEC-114`, `153`, `165`, `168`, `171`, `188`, `191`, `218`, `219`, `220`, `221`; gate `1.10` |
@@ -64,7 +64,7 @@ Jumlah pasangan prasyarat→task: **3**, sama dengan isi kolom `Dependency`. Tid
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | 🟡 **Coding selesai 2026-10-05**; validasi statis PASS; build/penerapan database/API/runtime NOT RUN oleh agent; status file migration terbaru di catatan bawah. [Laporan BE-RWI-160](../task/report/backend/BE-RWI-160.md) |
 | **Outcome** | Pemilih tindakan di bangsal menampilkan tindakan yang boleh dipakai di rawat inap, dan pemilih perawat ikut menampilkan tindakan khusus perawat. Pemanggil lama mendapat hasil yang sama persis |
 | **Requirement/decision** | `FR-RWF-070`; `RWI-DEC-165` butir 1; `AC-RWF-070`; `UAT-RWF-31` |
 | **Kontrak** | `0.7.0`: API 13.5 (`GET clinical-management/patient-procedures/master-options` + `careSetting`, `audience`); backend 12.5, 12.6 |
@@ -80,7 +80,7 @@ Jumlah pasangan prasyarat→task: **3**, sama dengan isi kolom `Dependency`. Tid
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | 🟡 **Coding selesai 2026-10-05**; validasi statis PASS; build/penerapan database/API/runtime NOT RUN oleh agent; status file migration terbaru di catatan bawah. [Laporan BE-RWI-161](../task/report/backend/BE-RWI-161.md) |
 | **Outcome** | Pesanan konsultasi gizi menyimpan status verifikasi instruksi. Dokter peminta melihat pesanan yang menunggu verifikasinya dan memverifikasinya |
 | **Requirement/decision** | `FR-RWF-031`, `FR-RWF-037`; `RWI-DEC-171`, `RWI-DEC-188`, `RWI-DEC-191`; `INV-RWF-22`, `INV-RWF-23` |
 | **Kontrak** | API 13.3 (`POST orders` diperluas, `GET orders/instruction-verification-worklist`, `POST orders/{id}/verify-instruction`); backend 12.5, 12.8, 12.9 (`R10`); validasi `VAL-RWF-63`, `64` |
@@ -96,7 +96,7 @@ Jumlah pasangan prasyarat→task: **3**, sama dengan isi kolom `Dependency`. Tid
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | 🟡 **Coding selesai 2026-10-05**; validasi statis PASS; build/penerapan database/API/runtime NOT RUN oleh agent; status file migration terbaru di catatan bawah. [Laporan BE-RWI-162](../task/report/backend/BE-RWI-162.md) |
 | **Outcome** | Pesanan darah menyimpan status verifikasi instruksi; dokter peminta melihat dan memverifikasinya. Alur `confirm-duplicate` dan pesanan dari poliklinik serta IGD tidak berubah |
 | **Requirement/decision** | `FR-RWF-032`, `FR-RWF-037`; `RWI-DEC-171`, `RWI-DEC-188`, `RWI-DEC-191`; `INV-RWF-22`, `INV-RWF-23` |
 | **Kontrak** | API 13.4; backend 12.5, 12.6 (`BbkInstructionVerificationStatus`), 12.8, 12.9 (`R11`); validasi `VAL-RWF-63`, `64` |
@@ -112,7 +112,7 @@ Jumlah pasangan prasyarat→task: **3**, sama dengan isi kolom `Dependency`. Tid
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | 🟡 **Coding selesai 2026-10-05**; validasi statis PASS; build/penerapan database/API/runtime NOT RUN oleh agent; status file migration terbaru di catatan bawah. [Laporan BE-RWI-163](../task/report/backend/BE-RWI-163.md) |
 | **Outcome** | Layar pemesanan bangsal dapat menampilkan, per pemeriksaan, status tanggungan penjamin dan perkiraan harga sesuai penjamin dan kelas pasien — hanya kepada pemegang hak membuat pesanan jenis itu |
 | **Requirement/decision** | `FR-RWF-034` (digantikan sebagian); `RWI-DEC-218`, `RWI-DEC-219`, `RWI-DEC-220` butir 5; `RWI-AC-335`, `RWI-AC-337`; `UAT-RWF-36`, `UAT-RWF-37` |
 | **Kontrak** | API 13.2 (`GET episodes/{episodeId}/ancillary-orders/coverage-status`, `CoverageStatusItem`); backend 12.13; validasi `VAL-RWF-66` s.d. `68` |
@@ -128,7 +128,7 @@ Jumlah pasangan prasyarat→task: **3**, sama dengan isi kolom `Dependency`. Tid
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | 🟡 **Coding selesai 2026-10-05**; validasi statis PASS; build/penerapan database/API/runtime NOT RUN oleh agent; status file migration terbaru di catatan bawah. [Laporan BE-RWI-164](../task/report/backend/BE-RWI-164.md) |
 | **Outcome** | Dokter dan perawat bangsal memesan konsultasi gizi dan darah lewat Rawat Inap. Rawat Inap memeriksa penugasan dokter lebih dulu, menentukan dokter peminta dan status verifikasi, lalu meneruskan pesanan ke modul pemiliknya |
 | **Requirement/decision** | `FR-RWF-031`, `032`, `036`, `038`; `RWI-DEC-171`, `RWI-DEC-188`; `INV-RWF-20`, `21`, `24`; `NFR-RWF-10`; `AC-RWF-032` s.d. `034`; `UAT-RWF-07`, `08`, `30`; `INT-RWF-16` |
 | **Kontrak** | API 13.2 (`POST nutrition-consultations`, `POST blood-orders`, `POST blood-orders/confirm-duplicate`); validasi `VAL-RWF-60` s.d. `62`; backend 12.2, 12.5 |
@@ -139,3 +139,29 @@ Jumlah pasangan prasyarat→task: **3**, sama dengan isi kolom `Dependency`. Tid
 | **Verifikasi** | QBE preflight; review diff; `dotnet build`; verifikasi API; verifikasi proses bisnis dengan modul Gizi dan Bank Darah sungguhan, runtime bila tersedia |
 | **Risiko/pemilik** | Menyentuh modul milik Ikbal Yulianto dan Sukma Giri Pratama (disetujui `RWI-DEC-191`). Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
+
+## Catatan implementasi backend — 5 Oktober 2026
+
+User secara eksplisit meminta seluruh task dalam berkas ini dikerjakan sampai coding tuntas melalui build-module-backend, dengan larangan menjalankan dotnet build dan migration. Otorisasi ini berlaku pada backend dan dokumentasi hasilnya; bukan otorisasi frontend atau publikasi. Kelima task sudah diimplementasikan berurutan. Tanda 🟡 dipertahankan karena bukti build/database/API dan DoD penuh belum tersedia.
+
+| Task | Status coding | Bukti |
+| --- | --- | --- |
+| BE-RWI-160 | Selesai; schema tidak berubah | [Laporan](../task/report/backend/BE-RWI-160.md) |
+| BE-RWI-161 | Selesai; model/configuration R10 disiapkan | [Laporan](../task/report/backend/BE-RWI-161.md) |
+| BE-RWI-162 | Selesai; model/configuration R11 disiapkan | [Laporan](../task/report/backend/BE-RWI-162.md) |
+| BE-RWI-163 | Selesai; endpoint coverage read-only | [Laporan](../task/report/backend/BE-RWI-163.md) |
+| BE-RWI-164 | Selesai; adapter Gizi/darah bangsal | [Laporan](../task/report/backend/BE-RWI-164.md) |
+
+Validasi: QBE Strict ExplicitFiles 25 source PASS (0 VIOLATION, 0 REVIEW); parsing C# 25 berkas tanpa error; 59 pemeriksaan statis lulus, termasuk metadata 9 endpoint; review diff dan whitespace source PASS. Ini bukan hasil dotnet build atau pembuktian API/runtime.
+
+Migration R10/R11 **belum dibuat/dijalankan**. Perubahan model berisi tiga kolom verifikasi pada GziNutritionOrder dan tiga pada BbkBloodOrder, default NotRequired=0, index status dan FK user Restrict. Snapshot dan migration 20261005033044_AddRawatInapFinishing dari pekerjaan sebelumnya tidak diubah; keberhasilan update database yang user laporkan untuk migration itu tidak mencakup perubahan model baru ini.
+
+Hubungan task lain: GziInstructionVerificationStatus sudah dibuat oleh BE-RWI-161 untuk dipakai juga Keperawatan BE-RWI-166 (diet). Coding diet tidak termasuk roadmap ini. Gizi dan Bank Darah tetap pemilik order, transaksi dan audit. Integrasi frontend: FE-RWI-174 untuk pemesanan, FE-RWI-175 untuk verifikasi, FE-RWI-176 untuk katalog; coverage dipakai juga FE-RWI-172/173/177 dan Episode Rawat Inap FE-RWI-193. Tidak ada perubahan source frontend.
+
+Delta internal: public route tetap sesuai kontrak, tetapi tiga controller digunakan agar metadata permission masing-masing cocok dengan InpatientEpisode, NutritionOrder dan BloodOrder. Parameter katalog nullable mempertahankan hasil caller lama di HEAD saat ini; konsumen poliklinik perlu setting Outpatient eksplisit. Worklist memakai NutritionOrderVerificationItem dan BloodOrderVerificationItem sebagai bentuk konkret OrderVerificationItem milik masing-masing modul. ClinicalNote darah mengikuti batas history 500 karakter; idempotensi memakai owner transaction/history dan deterministic order id tanpa kolom kunci tambahan. Rincian ada di laporan masing-masing; kontrak desain approved dan hash approval tidak ditulis ulang.
+
+## Pembaruan ketersediaan migration R10/R11 — 5 Oktober 2026
+
+Preferensi user diperjelas: file migration disertakan dalam implementasi schema supaya user cukup menjalankan `dotnet ef database update`. Pada pemeriksaan ulang, `20261005050735_AddNutritionAndBloodInstructionVerification.cs` dan Designer sudah tersedia di Migrations, beserta snapshot yang telah diperbarui. Tidak dibuat ulang oleh agent. Status "belum dibuat" pada catatan implementasi awal di atas kini merupakan riwayat; status terbaru **FILE TERSEDIA, penerapan database belum dibuktikan**.
+
+Migration berisi enam kolom verifikasi GziNutritionOrder/BbkBloodOrder, empat index dan dua FK user Restrict; parsing sintaks tiga file serta pemeriksaan kesamaan Designer/snapshot dan scope Up/Down PASS. Dibandingkan target AddRawatInapFinishing, perubahan snapshot terbatas pada dua model order dan relasinya. Tidak menjalankan dotnet build, dotnet ef atau database update. Laporan BE-RWI-161, BE-RWI-162 dan BE-RWI-164 bagian 7.1 memuat bukti terbaru. Instruksi persiapan migration untuk task berikutnya dicatat dalam AGENTS.md.

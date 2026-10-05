@@ -21,6 +21,9 @@ manifest tingkat modul. Berkas ini memegang **status desain, `contract_versions`
 | `kemampuan` | **5** — `CAP-012`, `CAP-013`, `CAP-014`, `CAP-016`, `CAP-027`, sesuai `RWI-DEC-083`. Empat aktif; **`CAP-016` berstatus `DEFERRED`** sejak `RWI-DEC-089` |
 | `uji pemecahan` | **3/5** syarat `bentuk-blueprint.md` bagian 4.1, sebagaimana dicatat `RWI-DEC-082` |
 | `peran pemilik` | Perawat pelaksana dan kepala ruangan |
+| `updated_at` | `2026-10-05` — pembaruan bukti build dan penerapan migration dari output pengguna |
+
+**Bukti migration diperbarui 5 Oktober 2026.** Build project melalui `dotnet ef database update` berhasil dan `20261005033044_AddRawatInapFinishing` diterapkan sampai `Done.` menurut output pengguna. Cakupan aktual: `I1` + `I2`, `K8` + `E4`, `E5`, `E6`, dan `E7`; enam task pemilik perubahan skema. [Bukti lengkap](../episode-rawat-inap/task/report/backend/BE-RWI-172.md#51-pembaruan-bukti-5-oktober-2026). `I1`/`I2` dikemas sebagai satu migration gabungan; catatan kesesuaian kriteria ada di `BE-RWI-149`. Nama database/lingkungan tidak disebut; API, regresi, rollback, frontend, data seeder, serta kesiapan rilis belum dibuktikan output ini. Revision, snapshot SHA desain, kontrak, artifact hash persetujuan, dan approval roadmap dipertahankan.
 
 ---
 
@@ -365,4 +368,4 @@ SHA-256 di atas adalah **hash saat approval 2 Oktober 2026** (`RWI-DEC-221`) dan
 | `blueprint_id` / `contract_version` | `RWI-BP-001` / `0.6.0` |
 | `approval_status` | **`approved`** — `approved_by` Muhammad Hamzah, `approved_at` 2026-10-02, lewat `RWI-DEC-221` |
 | `blocking_questions` | **Nol.** Letak `FE-KEP-29` dan `FE-KEP-31` diputuskan (`RWI-DEC-211`, `212`); Bank Darah disetujui (`RWI-DEC-209`). Tersisa gerbang produksi G-21 |
-| `next_owner` | ~~Approval pemilik atas kontrak `0.6.0` (Muhammad Hamzah)~~ **selesai 2026-10-02 (`RWI-DEC-221`)** → ~~`plan-module-delivery`~~ **roadmap Finishing revision `1` `DRAFT` ditulis 2026-10-02** (`BE-RWI-165` s.d. `171`, `FE-RWI-180` s.d. `191`). `BE-RWI-167` menunggu `BE-RWI-172` milik `episode-rawat-inap` (migration `K8` + `E4`). Langkah berikutnya: approval pemilik atas roadmap, lalu `build-module-backend` dan `build-module-frontend` mengikuti tabel gelombang |
+| `next_owner` | ~~Approval pemilik atas kontrak `0.6.0` (Muhammad Hamzah)~~ **selesai 2026-10-02 (`RWI-DEC-221`)** → ~~`plan-module-delivery`~~ **roadmap Finishing revision `1` `DRAFT` ditulis 2026-10-02** (`BE-RWI-165` s.d. `171`, `FE-RWI-180` s.d. `191`). Prasyarat skema `BE-RWI-172` untuk `BE-RWI-167` sudah tersedia melalui migration gabungan yang diterapkan pengguna; pelaksanaan/verifikasi `BE-RWI-167` tetap terpisah. Langkah berikutnya: approval pemilik atas roadmap, lalu `build-module-backend` dan `build-module-frontend` mengikuti tabel gelombang |

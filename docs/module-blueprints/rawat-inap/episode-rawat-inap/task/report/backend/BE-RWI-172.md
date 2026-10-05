@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `e2ded614` (branch `MHamzah`; sebagian berkas task ini sudah di-commit pemilik pada `e2ded614`, sisanya masih perubahan kerja) |
 | Tanggal | 2 Oktober 2026 |
-| Status | ✅ Implementasi kode selesai. `dotnet build` dan pembuatan migration **dikecualikan atas keputusan pengguna 2 Oktober 2026** (pengguna menjalankannya sendiri) |
+| Status | ✅ Implementasi kode dan penerapan skema maju selesai. Pembaruan 5 Oktober 2026: build terintegrasi `PASS` dan migration `20261005033044_AddRawatInapFinishing` diterapkan berdasarkan output pengguna; API/alur bisnis dan rollback belum dijalankan |
 
 ## Backend Governance Preflight
 
@@ -82,7 +82,7 @@ tidak punya tempat menyimpan konfigurasinya.
 | Aspek | Dampak |
 | --- | --- |
 | Kontrak API | Aditif: tarif empat isian opsional; pengaturan dua isian. Pemanggil lama tetap berfungsi (regresi `RWI-DEC-193`) |
-| Database | Dua tabel baru dan enam kolom baru. **Migration belum dibuat** — dibuat pemilik sebagai **satu** migration `MasterData` gabungan `K8` + `E4` (`02-module-map.md` 7.4) |
+| Database | `MstMedicalEquipment`, `MstSurgicalPreparationItem`, empat kolom `MstTariff`, dan dua kolom `MstInpatientSetting`. Perubahan `K8` + `E4` tercakup dalam `20261005033044_AddRawatInapFinishing`; pengguna melaporkan penerapan berhasil (`Done.`), bukti diterima 5 Oktober 2026. Nama database/lingkungan tidak disebut |
 | Keamanan/Auth | `NOT APPLICABLE` — tidak ada endpoint atau permission baru |
 
 ## 4. Dokumentasi endpoint
@@ -108,35 +108,71 @@ tidak punya tempat menyimpan konfigurasinya.
 | QBE preflight dan kesesuaian engineering | Prefix `Mst`, `IdentityModel`, DTO terpisah, tanpa generic repository | `PASS` | Review source sesi 2 Oktober 2026 |
 | Review diff dan scope | Perubahan hanya pada cakupan kartu | `PASS` | Daftar 3.2 |
 | Pemeriksaan bentrokan nama tipe antar-namespace (pencarian teks) | Tidak ada nama ganda | `PASS` | Sesi 2 Oktober 2026 |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Dikecualikan atas keputusan pengguna 2 Oktober 2026 |
-| Pembuatan dan pemeriksaan skrip migration | Tidak dibuat | `NOT RUN` | Dikecualikan atas keputusan pengguna 2 Oktober 2026 |
+| Build project melalui `dotnet ef database update` | `Build succeeded.` | `PASS` | Output pengguna diterima 5 Oktober 2026; bukan eksekusi ulang oleh agent atau perintah `dotnet build` tersendiri; jumlah warning tidak disertakan |
+| Keberadaan migration dan `Up()`/`Down()` | File `.cs` dan `.Designer.cs` tersedia; perubahan `K8` + `E4` tercakup | `PASS` | `Migrations/20261005033044_AddRawatInapFinishing.cs`; pemeriksaan skrip SQL khusus dan eksekusi rollback belum dijalankan |
 | Verifikasi API tarif dan pengaturan, regresi tarif | Dibaca dari source; belum dijalankan | `NOT RUN` | Butuh build dan database termigrasi |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 
-Uji manual: `NOT FEASIBLE` — belum ada build dan database termigrasi pada sesi ini.
+Uji manual: `NOT RUN`. Alasan belum ada build/database berlaku pada sesi 2 Oktober 2026; bukti terbaru menunjukkan build dan penerapan migration, tetapi belum ada hasil uji API/alur bisnis.
 
-**Tidak dijalankan:** `dotnet build`, pembuatan migration, dan pemeriksaan skrip migration, atas instruksi pengguna "Jangan lakukan dotnet build dan migrasi".
+**Riwayat 2 Oktober 2026:** agent tidak menjalankan `dotnet build`, pembuatan migration, atau pemeriksaan skrip migration atas instruksi pengguna "Jangan lakukan dotnet build dan migrasi". Bukti terbaru pada bagian 5.1; perintah `dotnet build` tersendiri dan pemeriksaan skrip SQL khusus tidak dibuktikan output ini.
+
+### 5.1 Pembaruan bukti 5 Oktober 2026
+
+Pengguna mengirim output berikut dan meminta dokumen diperbarui. Perintah dijalankan pengguna dari repository `NewQuilvianSystemBackend`; agent tidak menjalankan ulang build atau operasi database.
+
+```text
+dotnet ef database update
+Build started...
+Build succeeded.
+Acquiring an exclusive lock for migration application. See https://aka.ms/efcore-docs-migrations-lock for more information if this takes too long.
+Applying migration '20261005033044_AddRawatInapFinishing'.
+Done.
+```
+
+| Bukti | Status | Batas bukti |
+| --- | --- | --- |
+| Build project yang dipanggil perintah EF | `PASS` | `Build succeeded.`; bukan hasil perintah `dotnet build` terpisah; jumlah warning tidak disertakan |
+| Penerapan migration maju | `PASS` berdasarkan output pengguna | `Applying migration` lalu `Done.`; nama database/lingkungan tidak disertakan |
+| Source migration | `PASS` (pemeriksaan statis) | `Up()` membuat delapan tabel dan 27 kolom; `Down()` memuat penghapusan delapan tabel dan 27 kolom yang sama. Ini membuktikan keberadaan operasi, bukan keberhasilan rollback |
+| Eksekusi rollback, pemeriksaan skrip SQL khusus, dan query katalog/riwayat database oleh agent | `NOT RUN` | Tidak dijalankan pada pembaruan dokumentasi ini |
+| API, regresi, dan alur klinis ujung ke ujung | `NOT RUN` | Output penerapan database tidak membuktikan perilaku aplikasi |
+
+Pemetaan perubahan dalam satu migration aktual:
+
+| Task | Langkah desain | Perubahan utama |
+| --- | --- | --- |
+| `BE-RWI-149` | `I1` + `I2` | kolom `InpEpisode`, `InpBedPlacement`, `InpIntegrationOutboxes`, `BilInvoice`, serta tabel `BilInpatientEventReceipt` |
+| `BE-RWI-172` | `K8` + `E4` | `MstMedicalEquipment`, `MstSurgicalPreparationItem`, empat kolom `MstTariff`, dan dua kolom `MstInpatientSetting` |
+| `BE-RWI-174` | `E5` bagian kasus | lima kolom `OprCase` dan constraint `CK_OprCase_Rejected` |
+| `BE-RWI-176` | `E5` bagian pra-operasi | `OprWardPreOpNote`, `OprWardPreOpItem`, dan `OprWardPreOpSiteMark` |
+| `BE-RWI-181` | `E6` | tabel `InpAdmissionReferral` |
+| `BE-RWI-183` | `E7` | tabel `CliTransferHandover` |
+
+Source dibaca pada HEAD `f32b2308291c8d02b083319dac4210d3431f899e` ditambah dua file migration baru dan perubahan snapshot yang belum di-commit. File: `Migrations/20261005033044_AddRawatInapFinishing.cs`, `Migrations/20261005033044_AddRawatInapFinishing.Designer.cs`, dan `Migrations/ApplicationDbContextModelSnapshot.cs`. SHA desain/perencanaan tetap menjadi snapshot historis.
+
+**Pengemasan aktual.** Satu migration memuat `I1` + `I2`, `K8` + `E4`, `E5`, `E6`, dan `E7`. Pada `Up()`, master persiapan dibuat sebelum tabel pra-operasi dan kolom `OprCase` ditambah sebelum `InpAdmissionReferral`. Rencana `BE-RWI-149` menyebut dua migration terpisah; laporan task itu mempertahankan penyimpangan tersebut. Penerapan ini tidak membuktikan `I6`, data seeder `E8`, rilis produksi, atau kesiapan seluruh modul. Contoh: tabel pra-operasi sudah tercakup migration, tetapi konfirmasi oleh dua akun tetap perlu diverifikasi terpisah.
 
 ## 6. Acceptance criteria dan Definition of Done
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| 1. Satu migration memuat seluruh perubahan dan punya `Down()` | Belum terpenuhi — migration dibuat pemilik | Model dan configuration siap; keputusan pengguna 2 Oktober 2026 |
+| 1. Satu migration memuat seluruh perubahan dan punya `Down()` | Terpenuhi (source); penerapan maju berhasil menurut output pengguna | `20261005033044_AddRawatInapFinishing` mencakup seluruh perubahan `K8` + `E4`, bersama perubahan task lain; `Down()` tersedia, belum diuji eksekusinya |
 | 2. Nama, tipe, nullability, bawaan, index, FK `Restrict` sama dengan kamus data | Terpenuhi (source) | `MstSurgicalPreparationItemConfiguration`, `MstMedicalEquipmentConfiguration`, `MstTariffConfiguration` |
 | 3. Tarif lama tidak berubah; endpoint lama tetap menerima permintaan tanpa isian baru | Terpenuhi (source) | Isian `null` = bawaan saat tambah, pertahankan saat ubah (`TariffController`) |
 | 4. Pengaturan menolak ambang di luar 1–1440 | Terpenuhi (source) | `[Range(1,1440)]` dan `InpatientSettingService.ValidateAsync` |
 | 5. Tidak ada perubahan perilaku Billing | Terpenuhi | Billing tidak disentuh task ini |
-| DoD `dotnet build` tanpa error | Dikecualikan atas keputusan pengguna 2 Oktober 2026 | — |
+| DoD `dotnet build` tanpa error | Terpenuhi melalui build project terintegrasi pada perintah EF | Output pengguna: `Build succeeded.`; diterima 5 Oktober 2026 |
 
 ## 7. Catatan penutup
 
 | Hal | Isi |
 | --- | --- |
 | Peringatan | `RowVersion` diterapkan sebagai `Guid` bertanda konkurensi; kamus data menulis `xmin`, sedangkan repository belum memakai `xmin` di mana pun |
-| Masalah yang diketahui | Migration `K8` + `E4` belum ada |
-| Risiko tersisa | `MstTariff` dibaca Billing; kolom baru nullable/berbawaan aman, tetapi belum dibuktikan build |
+| Masalah yang diketahui | Kekurangan file migration `K8` + `E4` sudah ditutup. Migration aktual juga mencakup task lain; pemetaan pada bagian 5.1 |
+| Risiko tersisa | `MstTariff` dibaca Billing; build terintegrasi berhasil, tetapi API, regresi tarif lama, dan rollback belum diverifikasi |
 | Perubahan sampingan | `NONE` |
 | Interupsi | Pergantian konteks sesi; dilanjutkan dari keadaan source yang dibaca ulang. Sebagian berkas sudah di-commit pemilik pada `e2ded614` |
 | Status Git | Perubahan kerja task ini: `M` `MstTariff.cs`, `MstInpatientSetting.cs`, `TariffController.cs`, `TariffDtos.cs`, `InpatientSettingController.cs`, `InpatientSettingDtos.cs`, `InpatientSettingService.cs`, `InpSettingService.cs`, `MstTariffConfiguration.cs`, `MstInpatientSettingConfiguration.cs`; berkas baru task ini sudah ada di `e2ded614` |
-| Langkah berikutnya | Pemilik menjalankan `dotnet build` dan membuat satu migration `MasterData` `K8` + `E4` |
+| Langkah berikutnya | Jalankan verifikasi API tarif/pengaturan dan regresi tarif lama; build terintegrasi dan penerapan migration maju sudah dibuktikan output pengguna. |

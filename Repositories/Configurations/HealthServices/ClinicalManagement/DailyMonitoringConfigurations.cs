@@ -21,7 +21,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Clini
         {
             builder.ToTable("CliFluidBalanceEntry", "public", table =>
             {
-                table.HasCheckConstraint("CK_CliFluidBalanceEntry_Volume", "\"VolumeMl\" > 0 AND \"VolumeMl\" <= 10000");
+                table.HasCheckConstraint("CK_CliFluidBalanceEntry_Volume", "(\"SourceCategory\" = 14 AND \"VolumeMl\" >= 0) OR (\"VolumeMl\" > 0 AND \"VolumeMl\" <= 10000)");
                 table.HasCheckConstraint("CK_CliFluidBalanceEntry_MedicationLink", "(\"SourceCategory\" = 5) = (\"MedicationAdministrationId\" IS NOT NULL)");
             });
 

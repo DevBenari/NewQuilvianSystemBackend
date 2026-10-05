@@ -12,9 +12,9 @@
 | Deret ID | `BE-RWI-146` s.d. `BE-RWI-159`. Deret satu modul (`02-module-map.md` 1.3); ID bebas berikutnya dicatat di manifest modul |
 | Roadmap pendamping | `frontend-roadmap-finishing.md`, `requirement-traceability-finishing.md`. Roadmap kontrak `1.0.0` (`backend-roadmap.md`) tetap sebagai riwayat; task yang dicabut kontrak `1.1.0` ditandai di sana |
 
-**Pembaruan bukti 5 Oktober 2026.** Laporan dan source dicocokkan pada HEAD `e2ded614` beserta perubahan kerja yang belum di-commit. Lima task (`BE-RWI-147`, `150`, `151`, `154`, `155`) selesai pada implementasi kode dengan pengecualian build bertanggal yang tercatat di laporan; `BE-RWI-149` sebagian karena migration belum ada; delapan task lain belum dikerjakan. Header `DRAFT` tetap menyatakan status approval roadmap. Laporan mencatat instruksi pengguna 2 Oktober 2026 untuk mengerjakan prasyarat IB; pembaruan ini mencatat hasil pekerjaan itu dan tidak memberikan wewenang task baru.
+**Pembaruan bukti 5 Oktober 2026.** Build project saat `dotnet ef database update` **PASS** menurut output pengguna yang diterima 5 Oktober 2026 (`Build succeeded.`); migration `20261005033044_AddRawatInapFinishing` diterapkan sampai `Done.`. Uji API, regresi, alur klinis, dan rollback `Down()` tetap `NOT RUN`. Nama database dan lingkungan tidak tercantum pada output. Catatan pengecualian 2 Oktober 2026 adalah riwayat sesi implementasi, bukan status build/migration terkini. `BE-RWI-149` sebagian hanya karena pengemasan dua migration terpisah menjadi satu gabungan; kekurangan file/skema sudah ditutup. Task lain yang belum dikerjakan tetap demikian. Source migration dicocokkan pada HEAD `f32b2308291c8d02b083319dac4210d3431f899e` beserta migration/snapshot yang belum di-commit. SHA metadata tetap snapshot perencanaan; approval roadmap tetap `DRAFT`. [Bukti lengkap](../task/report/backend/BE-RWI-149.md#51-pembaruan-bukti-5-oktober-2026).
 
-`dotnet build` tetap `NOT RUN`, dikecualikan atas keputusan pengguna 2 Oktober 2026 menurut laporan task. Migration `I1`/`I2` belum dibuat maupun diterapkan dan uji API/proses bisnis dengan database belum dijalankan. Tanda selesai kode tidak membuktikan kesiapan runtime atau produksi. Sebagai contoh, source penerima sudah menangani pesan ganda, tetapi satu invoice pada database belum dibuktikan lewat pengiriman dua pesan nyata.
+Build project yang dipanggil `dotnet ef database update` sudah berhasil menurut output pengguna 5 Oktober 2026; perintah `dotnet build` tersendiri tidak dijalankan ulang. Perubahan `I1`/`I2` sudah dibuat dan diterapkan melalui satu migration gabungan, dengan `Down()` tersedia di source. Pengemasan dua migration pada kriteria `BE-RWI-149` tetap dicatat sebagai selisih. Catatan build `NOT RUN` pada kartu task lain merujuk sesi 2 Oktober 2026. Uji API/proses bisnis belum dijalankan. Sebagai contoh, source penerima sudah menangani pesan ganda, tetapi satu invoice pada database belum dibuktikan lewat pengiriman dua pesan nyata.
 
 **Kebijakan verifikasi backend.** Mengikuti `rules/backend/TEST_POLICY.md`: bukti task backend adalah QBE preflight/conformance, review diff/scope, `dotnet build` project aplikasi (wajib pada setiap task yang menyentuh source), verifikasi API/kontrak, verifikasi proses bisnis dengan contoh berangka, dan verifikasi manual/runtime bila lingkungan tersedia. Roadmap ini **tidak** memuat task automated test, dan tidak adanya automated test bukan gap.
 
@@ -28,6 +28,10 @@
 | 🟡 | Sebagian. Source-nya sudah ada, tetapi acceptance criteria belum terbukti penuh. **Belum selesai** |
 | ⛔ | Terblokir. Prasyaratnya belum terpenuhi, dan task **tidak boleh dimulai** |
 | tanpa tanda | Belum dikerjakan |
+
+**Otorisasi eksekusi 5 Oktober 2026.** Pengguna menyetujui implementasi BE-RWI-165–171, dependency BE-RWI-146/152/153 yang diperlukan, migration dan database update development. Build/update hanya pada tahap akhir seluruh kode. Status DRAFT pada metadata merupakan riwayat perencanaan.
+
+**Pembaruan bukti 5 Oktober 2026 (penyelesaian).** `BE-RWI-146`, `152`, dan `153` ✅ sebagai dependency `BE-RWI-168` keperawatan. Satu build akhir `dotnet build` `0 Error(s)`; migration gabungan `20261005071042_AddRawatInapKeperawatanFinishing` (memuat `InpEpisode.Version`) diterapkan ke database development. Uji API/runtime `NOT RUN`, dikecualikan atas instruksi pengguna 5 Oktober 2026.
 
 ## Grafik Urutan Dependency
 
@@ -46,11 +50,11 @@ BE-RWI-149 🟡 ─┬─┘                  │                  └───�
                │                                                           │
                │                                BE-RWI-181 [EPS] ✅ ───────┘
                │
-               └───────┬─> BE-RWI-153
+               └───────┬─> BE-RWI-153 ✅
                        │
-BE-RWI-146 ──┐         │
-             │         │
-BE-RWI-152 ──┴─────────┘
+BE-RWI-146 ✅ ──┐      │
+                │      │
+BE-RWI-152 ✅ ──┴──────┘
 ```
 
 `[EPS]` = task backend sub-modul `episode-rawat-inap` pada `../../episode-rawat-inap/roadmap/backend-roadmap-finishing.md`, cermin baca-saja.
@@ -96,11 +100,11 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 
 ## Kartu task
 
-### `BE-RWI-146` — Webhook izin pulang dan override pulang fisik dicabut
+### ✅ `BE-RWI-146` — Webhook izin pulang dan override pulang fisik dicabut
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 5 Oktober 2026.** Kelima acceptance criteria terpetakan ke source. `dotnet build` build akhir `0 Error(s)`, 233 warning; tanpa perubahan skema. Percobaan Swagger `UAT-RWF-02` `NOT RUN`; butir DoD itu **dikecualikan atas instruksi pengguna 5 Oktober 2026**. Rilis bersama `FE-RWI-167` dan `FE-RWI-168`. Bukti: [laporan](../task/report/backend/BE-RWI-146.md) |
 | **Outcome** | Tidak ada lagi jalan masuk tanpa login atau berPIN yang mengubah status kepulangan. Penutupan tanpa izin kasir hanya bisa dilakukan pemegang `InpatientDischarge : CloseOverride` dengan alasan tertulis |
 | **Requirement/decision** | `FR-RWF-001`, `FR-RWF-005`; `RWI-DEC-166`, `RWI-DEC-167`, `RWI-DEC-186`, `RWI-DEC-187`; `UAT-RWF-02`, `UAT-RWF-12` |
 | **Kontrak** | `1.1.0`: API 3.1 (tiga endpoint dihapus), 3.2 (`close-with-override`); validasi 2; permission 5 |
@@ -148,7 +152,7 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 
 | Field | Isi |
 |---|---|
-| **Status** | 🟡 **SEBAGIAN, diperbarui 5 Oktober 2026.** Empat dari lima kriteria terpetakan ke source: bentuk model/configuration, FK koreksi `Restrict`, unique `IdempotencyKey`, dan tidak ada perubahan perilaku endpoint pada task ini. Kriteria 4 belum terpenuhi: migration `I1`/`I2` beserta `Down()` belum dibuat. Laporan mencatat kode selesai 2 Oktober 2026 serta build dan migration diambil alih pengguna; pengecualian build tetap berlaku (`NOT RUN`), sedangkan ketiadaan berkas migration tetap dicatat sebagai kekurangan source. Bukti: [laporan](../task/report/backend/BE-RWI-149.md) |
+| **Status** | 🟡 **SEBAGIAN**: skema diterapkan; kriteria dua migration terpisah belum sesuai pengemasan aktual. `I1` + `I2` tercakup dalam `20261005033044_AddRawatInapFinishing` yang berhasil diterapkan pengguna. Build project terintegrasi `PASS`; API, regresi, alur bisnis, dan rollback `NOT RUN`. Riwayat pengecualian 2 Oktober 2026 tetap pada laporan. Bukti: [laporan](../task/report/backend/BE-RWI-149.md#51-pembaruan-bukti-5-oktober-2026) |
 | **Outcome** | Kolom pengamatan status kasir, rantai koreksi penempatan, pemrosesan outbox, tanda "perlu diperiksa", dan tabel tanda terima tersedia tanpa mengubah perilaku |
 | **Requirement/decision** | `FR-RWF-006`, `007`, `014`, `019`; `RWI-DEC-166`, `192` |
 | **Kontrak** | Data 6.3 (`InpEpisode`), 6.4 (`InpBedPlacement`), 6.5 (`InpIntegrationOutboxes`), 6.6 (`BilInvoice`), 6.7 (`BilInpatientEventReceipt`), 6.8 DDL; backend 9.7, 9.9, 9.10 |
@@ -192,11 +196,11 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Pesan lama yang dulu ditandai `Published` tanpa terkirim ditangani putar ulang (`BE-RWI-157`). Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### `BE-RWI-152` — Satu pembaca status kasir
+### ✅ `BE-RWI-152` — Satu pembaca status kasir
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 5 Oktober 2026.** Keempat acceptance criteria terpetakan ke source. `dotnet build` build akhir `0 Error(s)`, 233 warning; tanpa perubahan skema. Uji API runtime `NOT RUN`; butir DoD itu **dikecualikan atas instruksi pengguna 5 Oktober 2026**. Bukti: [laporan](../task/report/backend/BE-RWI-152.md) |
 | **Outcome** | Status kasir di Rawat Inap selalu dibaca langsung dari Billing, tanpa salinan dan tanpa rupiah |
 | **Requirement/decision** | `FR-RWF-002`, `FR-RWF-003`, `FR-RWF-004`; `RWI-DEC-167`; `INT-RWF-02`, `INT-RWF-03` |
 | **Kontrak** | API 3.1 (`billing-details`, tulis `financial-clearance` dihapus), 3.3 (`billing-status`); integrasi 4.3 |
@@ -208,11 +212,11 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### `BE-RWI-153` — Keluar ruangan berjejak dan gerbang penutupan
+### ✅ `BE-RWI-153` — Keluar ruangan berjejak dan gerbang penutupan
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 5 Oktober 2026.** Kelima acceptance criteria terpetakan ke source. `dotnet build` build akhir `0 Error(s)`, 233 warning; kolom `InpEpisode.Version` masuk migration gabungan `20261005071042_AddRawatInapKeperawatanFinishing` dan diterapkan ke database development (`Done.`, nol `Pending`). Uji runtime `NOT RUN`; butir DoD itu **dikecualikan atas instruksi pengguna 5 Oktober 2026**. Delta kontrak: kolom versi menyimpang dari kamus data 6.3 ("tidak ada kolom versi baru") demi `ExpectedVersion` API 3.2, menunggu keputusan pemilik. Bukti: [laporan](../task/report/backend/BE-RWI-153.md) |
 | **Outcome** | Perawat dapat mencatat pasien meninggalkan ruangan tanpa ditahan kasir, dengan peringatan dan jejak status kasir; episode hanya ditutup normal bila izin kasir `CLEARED` |
 | **Requirement/decision** | `FR-RWF-005` s.d. `FR-RWF-008`; `RWI-DEC-186`, `RWI-DEC-187`; `UAT-RWF-03`, `UAT-RWF-12` |
 | **Kontrak** | API 3.2 (`record-departure`, `closure-readiness`, `close`, `close-with-override`), 3.5 (dua daftar pantau); state 5; validasi 2 (`INP-DEP-001`) |

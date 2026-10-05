@@ -25,6 +25,9 @@ Manifest tingkat sub-modul untuk **Integrasi Rawat Inap ↔ Kasir / Billing** (`
 | `requirement_gate` | `docs/module-blueprints/rawat-inap/evidence/02-requirement-completeness-gate.md` revision `1.7` Bagian 16 (`READY_FOR_DOMAIN_DESIGN`) |
 | `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN` — batas bounded context dan relasi aggregate sudah diputuskan secara tegas oleh Product Owner lewat `RWI-DEC-156` s.d. `161` |
 | `compatibility_impact` | Penambahan 1 tabel outbox baru (`InpIntegrationOutbox`), penambahan event publisher worker, penambahan endpoint pembacaan status kasir operasional (tanpa rupiah), penambahan webhook clearance & endpoint supervisor override pemulangan darurat |
+| `updated_at` | `2026-10-05` — pembaruan bukti build dan penerapan migration dari output pengguna |
+
+**Bukti migration diperbarui 5 Oktober 2026.** Build project melalui `dotnet ef database update` berhasil dan `20261005033044_AddRawatInapFinishing` diterapkan sampai `Done.` menurut output pengguna. Cakupan aktual: `I1` + `I2`, `K8` + `E4`, `E5`, `E6`, dan `E7`; enam task pemilik perubahan skema. [Bukti lengkap](task/report/backend/BE-RWI-149.md#51-pembaruan-bukti-5-oktober-2026). `I1`/`I2` dikemas sebagai satu migration gabungan; catatan kesesuaian kriteria ada di `BE-RWI-149`. Nama database/lingkungan tidak disebut; API, regresi, rollback, frontend, data seeder, serta kesiapan rilis belum dibuktikan output ini. Revision, snapshot SHA desain, kontrak, artifact hash persetujuan, dan approval roadmap dipertahankan.
 
 ---
 

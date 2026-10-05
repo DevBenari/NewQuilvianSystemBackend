@@ -80,6 +80,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
         [MaxLength(500)]
         public string? IsolationNote { get; set; }
 
+        public int Version { get; set; } = 1;
+
         public DateTime? ClosedAt { get; set; }
 
         public InpDischargeType DischargeType { get; set; } = InpDischargeType.Unknown;
