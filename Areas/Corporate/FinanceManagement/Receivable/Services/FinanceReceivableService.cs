@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
@@ -36,12 +37,18 @@ public sealed class FinanceReceivableService
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
     private readonly FinanceAccountingOutboxService _accountingOutboxService;
+    private readonly FinanceSubledgerMovementService _subledgerMovementService;
 
-    public FinanceReceivableService(ApplicationDbContext dbContext, LoggerService loggerService, FinanceAccountingOutboxService accountingOutboxService)
+    public FinanceReceivableService(
+        ApplicationDbContext dbContext,
+        LoggerService loggerService,
+        FinanceAccountingOutboxService accountingOutboxService,
+        FinanceSubledgerMovementService subledgerMovementService)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
         _accountingOutboxService = accountingOutboxService;
+        _subledgerMovementService = subledgerMovementService;
     }
 
     // ------------------------------------------------------------------------------------
@@ -198,11 +205,20 @@ public sealed class FinanceReceivableService
     /// terlambat dianggap nol), bukan keputusan bisnis baru, sekadar nilai aman untuk kasus
     /// yang tidak diatur.
     /// </summary>
-    public async Task<List<ReceivableAgingBucketResult>> GetAgingSummaryAsync(DateOnly? asOfDate, CancellationToken cancellationToken)
+    /// <summary>BE-FIN-055: parameter debtorType opsional, nilai PAYER/PATIENT_GUARANTOR/
+    /// EMPLOYEE_BENEFIT (FinReceivableDebtorTypes). Null/kosong berarti seluruh FinReceivable
+    /// tanpa saringan — perilaku bawaan sebelum task ini, TIDAK berubah bila dipanggil tanpa
+    /// argumen ini (dipakai GetSummaryAsync di bawah).</summary>
+    public async Task<List<ReceivableAgingBucketResult>> GetAgingSummaryAsync(
+        DateOnly? asOfDate, CancellationToken cancellationToken, string? debtorType = null)
     {
-        var referenceDate = asOfDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
-        var receivables = await _dbContext.FinReceivables.AsNoTracking()
-            .Where(x => !x.IsDelete && x.OutstandingAmount > 0)
+        var referenceDate = asOfDate ?? FinanceBusinessDate.Today();
+        var query = _dbContext.FinReceivables.AsNoTracking()
+            .Where(x => !x.IsDelete && x.OutstandingAmount > 0);
+        if (!string.IsNullOrWhiteSpace(debtorType))
+            query = query.Where(x => x.DebtorType == debtorType);
+
+        var receivables = await query
             .Select(x => new { x.DueDate, x.OutstandingAmount })
             .ToListAsync(cancellationToken);
 
@@ -285,6 +301,9 @@ public sealed class FinanceReceivableService
                 .SingleOrDefaultAsync(x => x.Id == adjustment.ReceivableId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Piutang tidak ditemukan.");
 
+            var balanceBefore = receivable.OutstandingAmount;
+            decimal deltaAmount = 0m;
+
             if (approve)
             {
                 // FIN-VAL-024: koreksi pengurang (CREDIT) tidak boleh melebihi sisa piutang.
@@ -300,11 +319,13 @@ public sealed class FinanceReceivableService
                 {
                     receivable.OutstandingAmount -= adjustment.Amount;
                     receivable.AdjustedAmount += adjustment.Amount;
+                    deltaAmount = -adjustment.Amount;
                 }
                 else
                 {
                     receivable.OutstandingAmount += adjustment.Amount;
                     receivable.AdjustedAmount -= adjustment.Amount;
+                    deltaAmount = +adjustment.Amount;
                 }
                 receivable.UpdateDateTime = DateTime.UtcNow;
                 receivable.UpdateBy = actorUserId;
@@ -332,12 +353,26 @@ public sealed class FinanceReceivableService
                     EventTypeCode = FinAccountingEventTypeCodes.PenyesuaianPiutang,
                     SourceTransactionId = receivable.ReceivableNumber,
                     EventOccurredAt = adjustment.ApprovedAt!.Value,
-                    AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    AccountingDate = FinanceBusinessDate.ToDateOnly(adjustment.ApprovedAt!.Value),
                     Amount = adjustment.Amount,
                     CorrelationId = receivable.CorrelationId,
                     CausationId = adjustment.Id,
                     ActorUserId = actorUserId
                 }, cancellationToken);
+
+                // BE-FIN-060, FIN-DES-079: Mutasi subledger PENYESUAIAN piutang disetujui (Jalur 5)
+                await _subledgerMovementService.RecordReceivableMovementAsync(
+                    receivable: receivable,
+                    movementType: FinReceivableMovementTypes.Penyesuaian,
+                    deltaAmount: deltaAmount,
+                    balanceBefore: balanceBefore,
+                    occurredAt: adjustment.ApprovedAt!.Value,
+                    actorUserId: actorUserId,
+                    correlationId: receivable.CorrelationId,
+                    causationId: adjustment.Id,
+                    referenceNumber: adjustment.AdjustmentNumber,
+                    notes: adjustment.Reason,
+                    cancellationToken: cancellationToken);
             }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -364,6 +399,53 @@ public sealed class FinanceReceivableService
     // ------------------------------------------------------------------------------------
     // Penghapusan buku (FinReceivableWriteOff) — FIN-VAL-014, FIN-DES-014
     // ------------------------------------------------------------------------------------
+
+    /// <summary>BE-FIN-053 (FIN-DES-073) — daftar LINTAS piutang, baca saja. Pembuatan dan
+    /// keputusan write-off tetap lewat RequestWriteOffAsync/DecideWriteOffAsync di bawah.</summary>
+    public async Task<PagedResult<ReceivableWriteOffRowResponse>> GetWriteOffsAsync(
+        ReceivableWriteOffQuery request, CancellationToken cancellationToken)
+    {
+        var query = _dbContext.FinReceivableWriteOffs.AsNoTracking()
+            .Include(x => x.Receivable)
+            .Where(x => !x.IsDelete);
+
+        if (!string.IsNullOrWhiteSpace(request.Status)) query = query.Where(x => x.Status == request.Status);
+        if (request.DebtorReferenceId.HasValue) query = query.Where(x => x.Receivable!.DebtorReferenceId == request.DebtorReferenceId.Value);
+        if (request.StartDate.HasValue) query = query.Where(x => x.RequestedAt >= request.StartDate.Value.ToDateTime(TimeOnly.MinValue));
+        if (request.EndDate.HasValue) query = query.Where(x => x.RequestedAt < request.EndDate.Value.AddDays(1).ToDateTime(TimeOnly.MinValue));
+
+        var descending = !string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+        query = request.SortBy.Trim().ToLowerInvariant() switch
+        {
+            "amount" => descending ? query.OrderByDescending(x => x.Amount) : query.OrderBy(x => x.Amount),
+            "status" => descending ? query.OrderByDescending(x => x.Status) : query.OrderBy(x => x.Status),
+            _ => descending ? query.OrderByDescending(x => x.RequestedAt) : query.OrderBy(x => x.RequestedAt)
+        };
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query
+            .Skip((request.PageNumber - 1) * request.PageSize).Take(request.PageSize)
+            .Select(x => new ReceivableWriteOffRowResponse
+            {
+                Id = x.Id,
+                WriteOffNumber = x.WriteOffNumber,
+                ReceivableId = x.ReceivableId,
+                ReceivableNumber = x.Receivable!.ReceivableNumber,
+                DebtorReferenceId = x.Receivable.DebtorReferenceId,
+                Amount = x.Amount,
+                Reason = x.Reason,
+                Status = x.Status,
+                RequestedAt = x.RequestedAt,
+                DecidedAt = x.ApprovedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<ReceivableWriteOffRowResponse>
+        {
+            PageNumber = request.PageNumber, PageSize = request.PageSize, TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)request.PageSize), Items = items
+        };
+    }
 
     public async Task<FinReceivableWriteOff> RequestWriteOffAsync(
         Guid receivableId, decimal amount, string reason, Guid actorUserId, CancellationToken cancellationToken)
@@ -427,6 +509,8 @@ public sealed class FinanceReceivableService
                 .SingleOrDefaultAsync(x => x.Id == writeOff.ReceivableId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Piutang tidak ditemukan.");
 
+            var balanceBefore = receivable.OutstandingAmount;
+
             if (approve)
             {
                 if (receivable.Status == FinReceivableStatuses.Settled)
@@ -468,12 +552,26 @@ public sealed class FinanceReceivableService
                     EventTypeCode = FinAccountingEventTypeCodes.PemutihanPiutang,
                     SourceTransactionId = receivable.ReceivableNumber,
                     EventOccurredAt = writeOff.ApprovedAt!.Value,
-                    AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    AccountingDate = FinanceBusinessDate.ToDateOnly(writeOff.ApprovedAt!.Value),
                     Amount = writeOff.Amount,
                     CorrelationId = receivable.CorrelationId,
                     CausationId = writeOff.Id,
                     ActorUserId = actorUserId
                 }, cancellationToken);
+
+                // BE-FIN-060, FIN-DES-079: Mutasi subledger PENGHAPUSAN piutang disetujui (Jalur 6A)
+                await _subledgerMovementService.RecordReceivableMovementAsync(
+                    receivable: receivable,
+                    movementType: FinReceivableMovementTypes.Penghapusan,
+                    deltaAmount: -writeOff.Amount,
+                    balanceBefore: balanceBefore,
+                    occurredAt: writeOff.ApprovedAt!.Value,
+                    actorUserId: actorUserId,
+                    correlationId: receivable.CorrelationId,
+                    causationId: writeOff.Id,
+                    referenceNumber: writeOff.WriteOffNumber,
+                    notes: writeOff.Reason,
+                    cancellationToken: cancellationToken);
             }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -509,7 +607,15 @@ public sealed class FinanceReceivableService
     // ------------------------------------------------------------------------------------
 
     /// <summary>FR-FIN-042: alokasi tidak boleh melebihi sisa piutang.</summary>
-    public async Task<FinReceivable> ApplyAllocationAsync(Guid receivableId, decimal amount, Guid actorUserId, CancellationToken cancellationToken)
+    public async Task<FinReceivable> ApplyAllocationAsync(
+        Guid receivableId,
+        decimal amount,
+        Guid actorUserId,
+        CancellationToken cancellationToken,
+        string movementType = FinReceivableMovementTypes.AlokasiPenerimaan,
+        Guid? sourceAllocationId = null,
+        string? referenceNumber = null,
+        string? notes = null)
     {
         var receivable = await _dbContext.FinReceivables
             .SingleOrDefaultAsync(x => x.Id == receivableId && !x.IsDelete, cancellationToken)
@@ -523,12 +629,30 @@ public sealed class FinanceReceivableService
             throw new ReceivableValidationException(
                 $"Alokasi melebihi sisa piutang. Sisa saat ini Rp {receivable.OutstandingAmount:N0}.");
 
+        var balanceBefore = receivable.OutstandingAmount;
+        var now = DateTimeOffset.UtcNow;
+
         receivable.OutstandingAmount -= amount;
         receivable.AllocatedAmount += amount;
         receivable.Status = receivable.OutstandingAmount == 0m ? FinReceivableStatuses.Settled : FinReceivableStatuses.Partial;
         receivable.UpdateDateTime = DateTime.UtcNow;
         receivable.UpdateBy = actorUserId;
         receivable.RowVersion = Guid.NewGuid();
+
+        // BE-FIN-060, FIN-DES-079: Mutasi subledger alokasi penerimaan / potongan piutang (Jalur 2 & 4)
+        await _subledgerMovementService.RecordReceivableMovementAsync(
+            receivable: receivable,
+            movementType: movementType,
+            deltaAmount: -amount,
+            balanceBefore: balanceBefore,
+            occurredAt: now,
+            actorUserId: actorUserId,
+            correlationId: receivable.CorrelationId,
+            causationId: sourceAllocationId ?? receivable.Id,
+            sourceAllocationId: sourceAllocationId,
+            referenceNumber: referenceNumber,
+            notes: notes,
+            cancellationToken: cancellationToken);
 
         return receivable;
     }
@@ -538,11 +662,22 @@ public sealed class FinanceReceivableService
     /// FinReceiptAllocation pembalik sendiri (Collection tidak dikenal di sini). Method ini murni
     /// mengembalikan nilai piutang, persis kebalikan ApplyAllocationAsync.
     /// </summary>
-    public async Task<FinReceivable> ReverseAllocationAsync(Guid receivableId, decimal amount, Guid actorUserId, CancellationToken cancellationToken)
+    public async Task<FinReceivable> ReverseAllocationAsync(
+        Guid receivableId,
+        decimal amount,
+        Guid actorUserId,
+        CancellationToken cancellationToken,
+        string movementType = FinReceivableMovementTypes.PembalikanAlokasi,
+        Guid? sourceAllocationId = null,
+        string? referenceNumber = null,
+        string? notes = null)
     {
         var receivable = await _dbContext.FinReceivables
             .SingleOrDefaultAsync(x => x.Id == receivableId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Piutang tidak ditemukan.");
+
+        var balanceBefore = receivable.OutstandingAmount;
+        var now = DateTimeOffset.UtcNow;
 
         receivable.OutstandingAmount += amount;
         receivable.AllocatedAmount -= amount;
@@ -555,6 +690,21 @@ public sealed class FinanceReceivableService
         receivable.UpdateBy = actorUserId;
         receivable.RowVersion = Guid.NewGuid();
 
+        // BE-FIN-060, FIN-DES-079: Mutasi subledger pembalikan alokasi / pembalikan potongan piutang (Jalur 3 & 4)
+        await _subledgerMovementService.RecordReceivableMovementAsync(
+            receivable: receivable,
+            movementType: movementType,
+            deltaAmount: +amount,
+            balanceBefore: balanceBefore,
+            occurredAt: now,
+            actorUserId: actorUserId,
+            correlationId: receivable.CorrelationId,
+            causationId: sourceAllocationId ?? receivable.Id,
+            sourceAllocationId: sourceAllocationId,
+            referenceNumber: referenceNumber,
+            notes: notes,
+            cancellationToken: cancellationToken);
+
         return receivable;
     }
 
@@ -562,16 +712,82 @@ public sealed class FinanceReceivableService
     // Endpoint V2: Pembayaran Langsung, Penghapusan Langsung, dan Laporan Agregat Piutang
     // ------------------------------------------------------------------------------------
 
+    // BE-FIN-077, FIN-DES-085, FIN-DEC-126/132/134: metode, sumber dana, nomor rujukan, dan ProofId
+    // kini WAJIB dan benar-benar tersimpan di baris mutasi — sebelumnya BankAccountId sudah diterima
+    // RecordReceivablePaymentRequest tetapi tidak pernah diteruskan ke sini (temuan F1/F3,
+    // 00-interview-decisions.md). PERUBAHAN MEMUTUS pada kontrak POST api/finance/receivable/payment
+    // — lihat laporan task BE-FIN-077 bagian 7 untuk urutan rilis yang MUST dijaga bersama FE-FIN-030.
     public async Task<ReceivablePaymentResponse> RecordPaymentAsync(
         Guid receivableId,
         decimal amount,
         string paymentMethod,
+        Guid? fundingSourceId,
         string? referenceNumber,
+        Guid proofId,
         string? notes,
         Guid actorUserId,
         CancellationToken cancellationToken)
     {
         ValidateAmount(amount);
+
+        // FIN-VAL-199: PaymentMethod kosong atau di luar TRANSFER/CASH (400).
+        var normalizedPaymentMethod = paymentMethod?.Trim().ToUpperInvariant();
+        if (normalizedPaymentMethod is not ("CASH" or "TRANSFER"))
+        {
+            throw new ReceivableBadRequestException("Metode pembayaran wajib dipilih.");
+        }
+
+        // FIN-VAL-200: TRANSFER tanpa rekening sumber (422).
+        if (normalizedPaymentMethod == "TRANSFER" && !fundingSourceId.HasValue)
+        {
+            throw new ReceivableValidationException("Rekening sumber dana wajib dipilih untuk pembayaran transfer.");
+        }
+
+        // FIN-VAL-201: CASH tetapi rekening bank diisi (400).
+        if (normalizedPaymentMethod == "CASH" && fundingSourceId.HasValue)
+        {
+            throw new ReceivableBadRequestException("Pembayaran tunai tidak memakai rekening bank.");
+        }
+
+        // FIN-VAL-202: ProofId kosong (422).
+        if (proofId == Guid.Empty)
+        {
+            throw new ReceivableValidationException("Bukti pembayaran wajib dilampirkan.");
+        }
+
+        // FIN-VAL-197: tanpa baris ambang aktif, jalur ini belum dapat dipakai — fail-closed (404),
+        // BUKAN dianggap tak terbatas (FIN-DES-086).
+        var threshold = await _dbContext.MstDirectPaymentThresholds.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.IsActive && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException(
+                "Ambang pembayaran langsung belum ditetapkan, sehingga jalur ini belum dapat dipakai.");
+
+        // FIN-VAL-198: nominal melewati ambang aktif (422) — diarahkan ke jalur FinPayment berjenjang.
+        if (amount > threshold.Amount)
+        {
+            throw new ReceivableValidationException(
+                "Nominal melewati batas pembayaran langsung. Gunakan jalur pembayaran berjenjang.");
+        }
+
+        // FIN-VAL-223: ProofId tidak ditemukan, atau sudah bertanda IsDelete (404).
+        var proofExists = await _dbContext.FinTransactionProofs.AsNoTracking()
+            .AnyAsync(x => x.Id == proofId && !x.IsDelete, cancellationToken);
+        if (!proofExists)
+        {
+            throw new KeyNotFoundException("Bukti tidak ditemukan. Unggah ulang buktinya.");
+        }
+
+        // FIN-VAL-203: ProofId sudah dipakai mutasi lain (409) — diperiksa di KEDUA tabel mutasi
+        // (piutang dan utang supplier), karena FIN-DES-087 menetapkan satu bukti hanya untuk tepat
+        // satu pembayaran, bukan hanya satu pembayaran per jenis buku. Pre-check praktik baik; jaring
+        // pengaman sebenarnya tetap unique index IX_FinReceivableMovement_ProofId/IX_FinSupplierPayableMovement_ProofId.
+        var proofAlreadyUsed =
+            await _dbContext.FinReceivableMovements.AnyAsync(x => x.ProofId == proofId && !x.IsDelete, cancellationToken) ||
+            await _dbContext.FinSupplierPayableMovements.AnyAsync(x => x.ProofId == proofId && !x.IsDelete, cancellationToken);
+        if (proofAlreadyUsed)
+        {
+            throw new ReceivableConflictException("Bukti ini sudah dipakai pada pembayaran lain. Unggah bukti baru.");
+        }
 
         IDbContextTransaction? transaction = null;
         try
@@ -604,12 +820,54 @@ public sealed class FinanceReceivableService
                 EventTypeCode = FinAccountingEventTypeCodes.PenerimaanPiutang,
                 SourceTransactionId = receivable.ReceivableNumber,
                 EventOccurredAt = eventOccurredAt,
-                AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                AccountingDate = FinanceBusinessDate.ToDateOnly(eventOccurredAt),
                 Amount = amount,
                 CorrelationId = receivable.CorrelationId,
                 CausationId = receivable.Id,
                 ActorUserId = actorUserId
             }, cancellationToken);
+
+            var fundingSourceType = normalizedPaymentMethod == "CASH" ? "CASH" : "BANK_ACCOUNT";
+
+            // BE-FIN-060, FIN-DES-079: Mutasi subledger PEMBAYARAN-LANGSUNG piutang (Jalur 7).
+            // BE-FIN-077, FIN-DES-085: fundingSourceId dan proofId kini diteruskan — RecordReceivableMovementAsync
+            // sudah mendukung keduanya sejak BE-FIN-058, hanya belum pernah dipanggil dengan nilainya.
+            var recMovement = await _subledgerMovementService.RecordReceivableMovementAsync(
+                receivable: receivable,
+                movementType: FinReceivableMovementTypes.PembayaranLangsung,
+                deltaAmount: -amount,
+                balanceBefore: prevOutstanding,
+                occurredAt: eventOccurredAt,
+                actorUserId: actorUserId,
+                correlationId: receivable.CorrelationId,
+                causationId: receivable.Id,
+                paymentMethodCode: normalizedPaymentMethod,
+                fundingSourceType: fundingSourceType,
+                fundingSourceId: fundingSourceId,
+                referenceNumber: referenceNumber,
+                proofId: proofId,
+                notes: notes,
+                cancellationToken: cancellationToken);
+
+            // BE-FIN-062, FIN-DES-081: Mutasi kas masuk PENERIMAAN-TUNAI-LANGSUNG (Sumber 2).
+            // FIN-DES-085: anggaran kas kecil TIDAK PERNAH tersentuh jalur ini — hanya Kas Kasir.
+            if (normalizedPaymentMethod == "CASH")
+            {
+                await _subledgerMovementService.RecordCashMovementAsync(
+                    movementType: FinCashMovementTypes.PenerimaanTunaiLangsung,
+                    direction: FinCashMovementDirections.In,
+                    amount: amount,
+                    businessDate: FinanceBusinessDate.ToDateOnly(eventOccurredAt),
+                    occurredAt: eventOccurredAt,
+                    sourceReferenceType: FinCashMovementSourceReferenceTypes.ReceivableMovement,
+                    sourceReferenceId: recMovement.Id.ToString(),
+                    actorUserId: actorUserId,
+                    correlationId: receivable.CorrelationId,
+                    causationId: receivable.Id,
+                    paymentMethodCode: "CASH",
+                    notes: notes,
+                    cancellationToken: cancellationToken);
+            }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
             await CommitAsync(transaction, cancellationToken);
@@ -625,7 +883,10 @@ public sealed class FinanceReceivableService
                 TotalAllocated = receivable.AllocatedAmount,
                 Status = receivable.Status,
                 PaymentDate = eventOccurredAt.UtcDateTime,
-                ReferenceNumber = referenceNumber
+                ReferenceNumber = referenceNumber,
+                PaymentMethod = normalizedPaymentMethod,
+                FundingSourceId = fundingSourceId,
+                ProofId = proofId
             };
         }
         catch (DbUpdateConcurrencyException exception)
@@ -683,6 +944,7 @@ public sealed class FinanceReceivableService
                 CreateBy = actorUserId
             };
 
+            var balanceBefore = receivable.OutstandingAmount;
             receivable.OutstandingAmount -= amount;
             receivable.WrittenOffAmount += amount;
             receivable.Status = receivable.OutstandingAmount <= 0m ? FinReceivableStatuses.WrittenOff : FinReceivableStatuses.Partial;
@@ -698,12 +960,26 @@ public sealed class FinanceReceivableService
                 EventTypeCode = FinAccountingEventTypeCodes.PemutihanPiutang,
                 SourceTransactionId = receivable.ReceivableNumber,
                 EventOccurredAt = writeOff.ApprovedAt.Value,
-                AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                AccountingDate = FinanceBusinessDate.ToDateOnly(writeOff.ApprovedAt.Value),
                 Amount = writeOff.Amount,
                 CorrelationId = receivable.CorrelationId,
                 CausationId = writeOff.Id,
                 ActorUserId = actorUserId
             }, cancellationToken);
+
+            // BE-FIN-060, FIN-DES-079: Mutasi subledger PENGHAPUSAN piutang langsung (Jalur 6B)
+            await _subledgerMovementService.RecordReceivableMovementAsync(
+                receivable: receivable,
+                movementType: FinReceivableMovementTypes.Penghapusan,
+                deltaAmount: -amount,
+                balanceBefore: balanceBefore,
+                occurredAt: writeOff.ApprovedAt.Value,
+                actorUserId: actorUserId,
+                correlationId: receivable.CorrelationId,
+                causationId: writeOff.Id,
+                referenceNumber: writeOff.WriteOffNumber,
+                notes: writeOff.Reason,
+                cancellationToken: cancellationToken);
 
             await _dbContext.SaveChangesAsync(cancellationToken);
             await CommitAsync(transaction, cancellationToken);
@@ -728,7 +1004,7 @@ public sealed class FinanceReceivableService
 
     public async Task<ReceivableReportResponse> GetReportSummaryAsync(DateOnly? asOfDate, CancellationToken cancellationToken)
     {
-        var date = asOfDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var date = asOfDate ?? FinanceBusinessDate.Today();
         var receivables = await _dbContext.FinReceivables.AsNoTracking()
             .Where(x => !x.IsDelete)
             .ToListAsync(cancellationToken);
@@ -829,6 +1105,77 @@ public sealed class FinanceReceivableService
         _loggerService.AuditAsync(LogCategory, $"FinanceReceivable.{action}",
             $"Perubahan piutang dicatat. EntityId={entityId} ReceivableId={receivableId}",
             new { EntityId = entityId, ReceivableId = receivableId, ActorUserId = actorUserId });
+
+    /// <summary>
+    /// Membaca buku mutasi satu piutang secara berpaging dan tersaring (BE-FIN-063, FR-FIN-140, FIN-API-1.5 F.5).
+    /// </summary>
+    public async Task<PagedResult<ReceivableMovementResponse>> GetMovementsPagedAsync(
+        Guid receivableId, ReceivableMovementQuery query, CancellationToken cancellationToken)
+    {
+        var exists = await _dbContext.FinReceivables.AsNoTracking()
+            .AnyAsync(x => x.Id == receivableId && !x.IsDelete, cancellationToken);
+        if (!exists) throw new KeyNotFoundException($"Piutang dengan ID '{receivableId}' tidak ditemukan.");
+
+        var q = _dbContext.FinReceivableMovements.AsNoTracking()
+            .Where(x => x.ReceivableId == receivableId && !x.IsDelete);
+
+        if (!string.IsNullOrWhiteSpace(query.MovementType))
+        {
+            var movementType = query.MovementType.Trim().ToUpperInvariant();
+            q = q.Where(x => x.MovementType == movementType);
+        }
+
+        if (query.DateFrom.HasValue)
+            q = q.Where(x => x.BusinessDate >= query.DateFrom.Value);
+
+        if (query.DateTo.HasValue)
+            q = q.Where(x => x.BusinessDate <= query.DateTo.Value);
+
+        var total = await q.CountAsync(cancellationToken);
+
+        var descending = string.Equals(query.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+        q = descending
+            ? q.OrderByDescending(x => x.BusinessDate).ThenByDescending(x => x.OccurredAt).ThenByDescending(x => x.CreateDateTime)
+            : q.OrderBy(x => x.BusinessDate).ThenBy(x => x.OccurredAt).ThenBy(x => x.CreateDateTime);
+
+        var pageNumber = query.PageNumber < 1 ? 1 : query.PageNumber;
+        var pageSize = query.PageSize < 1 ? 25 : query.PageSize;
+
+        var items = await q
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new ReceivableMovementResponse
+            {
+                Id = x.Id,
+                ReceivableId = x.ReceivableId,
+                MovementType = x.MovementType,
+                Amount = x.Amount,
+                BalanceBefore = x.BalanceBefore,
+                BalanceAfter = x.BalanceAfter,
+                BusinessDate = x.BusinessDate,
+                OccurredAt = x.OccurredAt,
+                SourceAllocationId = x.SourceAllocationId,
+                PaymentMethodCode = x.PaymentMethodCode,
+                FundingSourceType = x.FundingSourceType,
+                FundingSourceId = x.FundingSourceId,
+                ReferenceNumber = x.ReferenceNumber,
+                ProofId = x.ProofId,
+                OpeningItemBatchId = x.OpeningItemBatchId,
+                Notes = x.Notes,
+                CorrelationId = x.CorrelationId,
+                CausationId = x.CausationId
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<ReceivableMovementResponse>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
+            Items = items
+        };
+    }
 }
 
 /// <summary>Nama kelompok umur tetap sesuai FIN-DEC-010 — bukan enum karena dipakai sebagai label tampilan langsung.</summary>

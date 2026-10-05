@@ -497,6 +497,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         [MaxLength(500)]
         public string? Notes { get; set; }
+
+        public string? DuplicateEpisodeOverrideReason { get; set; }
     }
 
     /// <summary>

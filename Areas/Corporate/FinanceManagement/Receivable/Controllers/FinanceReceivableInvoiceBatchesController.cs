@@ -16,6 +16,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Con
 /// (transaction-endpoint-standard.md). Resource hak akses memakai nama kanonikal penuh
 /// `FinanceReceivableInvoiceBatch` sesuai `permission-audit-matrix.md` dan `FIN-DES-062` —
 /// bukan nama pendek `Receivable` yang masih dipakai controller legacy sebelum `FIN-CQ-08`.
+/// BE-FIN-052 (FIN-DEC-097, FIN-DES-070/071): tiga aksi klaim penjamin (claim/verify,
+/// claim/approve, claim/close) menulis sumbu KEDUA (ClaimStatus) yang terpisah dari Status di
+/// atas — lihat state-transition-matrix.md §D.1. Memakai FinanceReceivableInvoiceBatch : Update
+/// yang sudah terdaftar, NOL action baru.
 /// </summary>
 [ApiController]
 [Authorize]
@@ -106,6 +110,53 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
 
+    // ------------------------------------------------------------------------------------
+    // Sumbu klaim penjamin (BE-FIN-052, FIN-API-1.3 §D.1). Ketiganya memakai
+    // FinanceReceivableInvoiceBatch : Update yang sudah terdaftar — NOL action baru (FIN-DES-072).
+    // ------------------------------------------------------------------------------------
+
+    [HttpPost("{id:guid}/claim/verify")]
+    [AccessAction("Update", "Update Receivable Invoice Batch", AccessType = AccessTypes.Update, SortOrder = 4)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Update")]
+    public async Task<IActionResult> ClaimVerify(Guid id, [FromBody] ClaimVerifyRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var batch = await _service.VerifyClaimAsync(
+                id, request.ExpectedRowVersion, request.PayerClaimReference, request.ClaimNote, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<ReceivableInvoiceBatchResponse>.Ok(Map(batch), "Klaim ditandai sudah diverifikasi penjamin."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    [HttpPost("{id:guid}/claim/approve")]
+    [AccessAction("Update", "Update Receivable Invoice Batch", AccessType = AccessTypes.Update, SortOrder = 4)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Update")]
+    public async Task<IActionResult> ClaimApprove(Guid id, [FromBody] ClaimApproveRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var batch = await _service.ApproveClaimAsync(
+                id, request.ExpectedRowVersion, request.ApprovedAmount!.Value, request.PayerClaimReference,
+                request.ClaimNote, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<ReceivableInvoiceBatchResponse>.Ok(Map(batch), "Nominal persetujuan klaim berhasil dicatat."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    [HttpPost("{id:guid}/claim/close")]
+    [AccessAction("Update", "Update Receivable Invoice Batch", AccessType = AccessTypes.Update, SortOrder = 4)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Update")]
+    public async Task<IActionResult> ClaimClose(Guid id, [FromBody] ClaimCloseRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var batch = await _service.CloseClaimAsync(id, request.ExpectedRowVersion, request.ClaimNote, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<ReceivableInvoiceBatchResponse>.Ok(Map(batch), "Klaim berhasil ditutup."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
     private static ReceivableInvoiceBatchResponse Map(FinReceivableInvoiceBatch batch) => new()
     {
         Id = batch.Id,
@@ -117,7 +168,15 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
         TotalAmount = batch.TotalAmount,
         Status = batch.Status,
         IssuedAt = batch.IssuedAt,
-        RowVersion = batch.RowVersion
+        RowVersion = batch.RowVersion,
+        ClaimStatus = batch.ClaimStatus,
+        ApprovedAmount = batch.ApprovedAmount,
+        ClaimVarianceAmount = batch.ApprovedAmount.HasValue ? batch.TotalAmount - batch.ApprovedAmount.Value : null,
+        PayerClaimReference = batch.PayerClaimReference,
+        ClaimNote = batch.ClaimNote,
+        PayerVerifiedAt = batch.PayerVerifiedAt,
+        ClaimApprovedAt = batch.ClaimApprovedAt,
+        ClaimClosedAt = batch.ClaimClosedAt
     };
 
     private IActionResult Failure(Exception exception) => exception switch

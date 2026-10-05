@@ -649,6 +649,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstBankAccount> MstBankAccounts { get; set; }
         public DbSet<MstCurrency> MstCurrencies { get; set; }
         public DbSet<MstExchangeRate> MstExchangeRates { get; set; }
+        // BE-FIN-074, FIN-DES-086: ambang nilai pembayaran langsung, master berjejak satu baris aktif.
+        public DbSet<MstDirectPaymentThreshold> MstDirectPaymentThresholds { get; set; }
         // BE-FIN-005, FIN-DES-008: satu pintu masuk seluruh fakta dari Billing. Migration
         // AddFinanceBillingIntake (BE-FIN-007) dibuat tangan, belum dijalankan. Service konsumen
         // (FinanceBillingIntakeService) belum ada task pemilik eksplisit.
@@ -660,11 +662,15 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<FinReceivableDocument> FinReceivableDocuments { get; set; }
         public DbSet<FinReceivableAdjustment> FinReceivableAdjustments { get; set; }
         public DbSet<FinReceivableWriteOff> FinReceivableWriteOffs { get; set; }
+        // BE-FIN-058, FIN-DES-079: buku mutasi piutang.
+        public DbSet<FinReceivableMovement> FinReceivableMovements { get; set; }
         // BE-FIN-038, FIN-DES-041: Batch Tagihan AR ke penjamin. Migration
         // AddArInvoiceBatchAndReceiptDeduction — berkas migration MENUNGGU otorisasi terpisah
         // (prasyarat #10 01-backend-roadmap.md), belum dibuat pada task ini.
         public DbSet<FinReceivableInvoiceBatch> FinReceivableInvoiceBatches { get; set; }
         public DbSet<FinReceivableInvoiceBatchItem> FinReceivableInvoiceBatchItems { get; set; }
+        public DbSet<FinNonPatientReceivable> FinNonPatientReceivables { get; set; }
+        public DbSet<FinNonPatientReceivableSettlement> FinNonPatientReceivableSettlements { get; set; }
         // BE-FIN-016, FIN-DES-010..012: buku penerimaan. Migration AddFinanceCollection dibuat
         // tangan, belum dijalankan. FinReceiptAllocation belum punya penulis — pembagian
         // bayar-vs-piutang adalah tanggung jawab FinanceReceiptService (BE-FIN-017, BLOCKED).
@@ -674,20 +680,34 @@ namespace QuilvianSystemBackend.Repositories
         // MENGGANTIKAN §C.15 yang belum pernah dibangun. Belum ada penulis; pemilihan EventTypeCode
         // dari DeductionType adalah tanggung jawab BE-FIN-040.
         public DbSet<FinReceiptDeduction> FinReceiptDeductions { get; set; }
+        // BE-FIN-074, FIN-DES-087: metadata bukti pembayaran langsung. ProofId pada
+        // FinReceivableMovement/FinSupplierPayableMovement MASIH belum ber-FK ke tabel ini — lihat
+        // laporan task BE-FIN-074 bagian 7.
+        public DbSet<FinTransactionProof> FinTransactionProofs { get; set; }
         // BE-FIN-010, FIN-DES-017..019: kotak keluar kejadian Finance -> Accounting (transactional
         // outbox). Migration AddFinanceAccountingOutbox dibuat tangan, belum dijalankan. Worker
         // pengiriman (FIN-DES-020) dan endpoint penerima Accounting belum ada (FIN-CAP-018) — di
         // luar lingkup task ini.
         public DbSet<FinAccountingEventOutbox> FinAccountingEventOutboxes { get; set; }
         public DbSet<FinAccountingEventAttempt> FinAccountingEventAttempts { get; set; }
+        // BE-FIN-064, FIN-DES-080, FIN-DES-088: pemetaan akun control dan saldo awal cutover subledger.
+        public DbSet<FinSubledgerControlAccountMap> FinSubledgerControlAccountMaps { get; set; }
+        public DbSet<FinOpeningBalance> FinOpeningBalances { get; set; }
+        // BE-FIN-079, FIN-DES-089/090/093: batch migrasi tagihan lama. Migration AddFinanceOpeningItemMigration
+        // dibuat tangan, belum dijalankan — lihat laporan task BE-FIN-079.
+        public DbSet<FinOpeningItemBatch> FinOpeningItemBatches { get; set; }
         // BE-FIN-013, FIN-DES-018..020: Kas dan setoran bank. Migration AddFinanceCashManagement.
         public DbSet<FinBankDeposit> FinBankDeposits { get; set; }
         public DbSet<FinDailyCashSnapshot> FinDailyCashSnapshots { get; set; }
+        // BE-FIN-058, FIN-DES-081: buku mutasi kas.
+        public DbSet<FinCashMovement> FinCashMovements { get; set; }
         // BE-FIN-019, FIN-DES-015 (bagian supplier): utang supplier input manual. Migration
         // AddFinanceSupplierPayable dibuat tangan, belum dijalankan.
         public DbSet<FinSupplierPayable> FinSupplierPayables { get; set; }
         public DbSet<FinSupplierPayableItem> FinSupplierPayableItems { get; set; }
         public DbSet<FinPayableAdjustment> FinPayableAdjustments { get; set; }
+        // BE-FIN-058, FIN-DES-079: buku mutasi utang supplier.
+        public DbSet<FinSupplierPayableMovement> FinSupplierPayableMovements { get; set; }
         // BE-FIN-020, FIN-DES-015, FIN-DES-026, FIN-DES-027: pembayaran keluar, alokasi utang,
         // serta potongan dan tambahan transfer (FR-FIN-050, FR-FIN-051). Migration AddFinancePayment
         // dibuat tangan, belum dijalankan.
@@ -716,6 +736,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<FinSupplierReturnItem> FinSupplierReturnItems { get; set; }
         public DbSet<FinSupplierReturnDeposit> FinSupplierReturnDeposits { get; set; }
         public DbSet<FinSupplierReturnDepositUsage> FinSupplierReturnDepositUsages { get; set; }
+        // BE-FIN-051, FIN-DES-006: ledger idempotensi bersama untuk kelima aggregate root
+        // Purchasing di atas — menutup gap header Idempotency-Key yang dicatat FE-FIN-008.
+        public DbSet<FinPurchasingIdempotencyRecord> FinPurchasingIdempotencyRecords { get; set; }
         public DbSet<FinPettyCashBudget> FinPettyCashBudgets { get; set; }
         public DbSet<FinPettyCashBudgetMovement> FinPettyCashBudgetMovements { get; set; }
         public DbSet<BilPettyCashVoucher> BilPettyCashVouchers { get; set; }
@@ -1013,6 +1036,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<EmgHandoverOrderItem> EmgHandoverOrderItems { get; set; }
         public DbSet<EmgEncounterReconciliationRun> EmgEncounterReconciliationRuns { get; set; }
         public DbSet<EmgEncounterReconciliationItem> EmgEncounterReconciliationItems { get; set; }
+        public DbSet<EmgDuplicateEpisodeOverride> EmgDuplicateEpisodeOverrides { get; set; }
         #endregion
 
         #endregion

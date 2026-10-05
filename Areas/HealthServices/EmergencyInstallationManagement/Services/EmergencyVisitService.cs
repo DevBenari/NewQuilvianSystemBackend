@@ -76,7 +76,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             Guid? CaseTypeId,
             string? ChiefComplaint,
             bool IsUnknownPatient,
-            string? TemporaryPatientAlias);
+            string? TemporaryPatientAlias,
+            string? ArrivalLocation,
+            string? FoundLocation,
+            string? TraumaLocation,
+            DateTime? WaktuTrauma,
+            string? Notes);
 
         private static readonly TimeZoneInfo ZonaWaktuPesan = TentukanZonaWaktuPesan();
 
@@ -165,7 +170,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public async Task<string?> ValidateRequestAsync(
             CreateEmergencyVisitRequest request,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            Guid? kecualiVisitId = null)
         {
             if (request.ServiceUnitId == Guid.Empty)
                 return "ServiceUnitId wajib diisi.";
@@ -237,7 +243,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 var encounterSudahDipakai = await _dbContext.Set<EmgVisit>()
                     .AsNoTracking()
                     .AnyAsync(
-                        x => x.EncounterId == request.EncounterId.Value,
+                        x => x.EncounterId == request.EncounterId.Value
+                             && (kecualiVisitId == null || x.Id != kecualiVisitId.Value),
                         cancellationToken);
 
                 if (encounterSudahDipakai)
@@ -270,8 +277,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public Task<string?> ValidateRequestAsync(
             UpdateEmergencyVisitRequest request,
-            CancellationToken cancellationToken = default)
-            => ValidateRequestAsync((CreateEmergencyVisitRequest)request, cancellationToken);
+            CancellationToken cancellationToken = default,
+            Guid? kecualiVisitId = null)
+            => ValidateRequestAsync((CreateEmergencyVisitRequest)request, cancellationToken, kecualiVisitId);
 
         /// <summary>
         /// Jenis encounter yang diterima pendaftaran IGD. Mengembalikan pesan penolakan, atau
@@ -381,28 +389,47 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// — menjalankan kueri yang persis sama seperti sebelumnya.
         /// </para>
         /// </remarks>
-        public async Task<EmgVisit?> CariEpisodeAktifAsync(
+        public Task<EmergencyEpisodeRule.OpenEpisode?> CariEpisodeAktifAsync(
             Guid? patientId,
-            Guid? kecualiVisitId = null,
+            Guid? kecualiEncounterId = null,
             CancellationToken cancellationToken = default,
             bool sertakanPasien = false)
         {
             if (!patientId.HasValue || patientId.Value == Guid.Empty)
-                return null;
+                return Task.FromResult<EmergencyEpisodeRule.OpenEpisode?>(null);
 
-            IQueryable<EmgVisit> kueri = _dbContext.Set<EmgVisit>().AsNoTracking();
+            return EmergencyEpisodeRule.FindOpenEpisodeAsync(
+                _dbContext,
+                patientId.Value,
+                kecualiEncounterId,
+                cancellationToken,
+                sertakanPasien);
+        }
 
-            if (sertakanPasien)
-                kueri = kueri.Include(x => x.Patient);
+        public static string PesanEpisodeTerbukaSaatPendaftaran(EmergencyEpisodeRule.OpenEpisode episode)
+        {
+            ArgumentNullException.ThrowIfNull(episode);
 
-            return await kueri
-                .Where(x => x.PatientId == patientId.Value
-                    && !x.IsDelete
-                    && x.VisitStatus != EmergencyVisitStatus.Completed
-                    && x.VisitStatus != EmergencyVisitStatus.Cancelled)
-                .Where(x => kecualiVisitId == null || x.Id != kecualiVisitId.Value)
-                .OrderByDescending(x => x.ArrivalDateTime)
-                .FirstOrDefaultAsync(cancellationToken);
+            if (episode.Kind == EmergencyEpisodeRule.OpenEpisodeKind.Visit && episode.Visit != null)
+                return $"Pasien ini masih memiliki kunjungan IGD {episode.Visit.EmergencyVisitNumber}, " +
+                       $"tiba pukul {FormatWaktuLokal(episode.Visit.ArrivalDateTime)}. " +
+                       "Buka kunjungan tersebut, jangan mendaftar ulang. " +
+                       "Bila pendaftaran kedua memang sah, isi alasan pendaftaran ganda.";
+
+            if (episode.Encounter != null)
+                return PesanEncounterMenungguTriage(episode.Encounter);
+
+            throw new ArgumentException("Episode terbuka tidak memuat kunjungan maupun encounter.", nameof(episode));
+        }
+
+        public static string PesanEncounterMenungguTriage(RegPatientEncounter encounter)
+        {
+            ArgumentNullException.ThrowIfNull(encounter);
+
+            return $"Pasien ini sudah terdaftar di IGD dengan encounter {encounter.EncounterNumber} " +
+                   $"dan sedang Menunggu Triage sejak {FormatWaktuLokal(encounter.RegisteredAt)}. " +
+                   "Jangan mendaftar ulang. " +
+                   "Bila pendaftaran kedua memang sah, isi alasan pendaftaran ganda.";
         }
 
         /// <summary>
@@ -696,6 +723,76 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             return new HasilPenutupanSusulan(true, dispositionId, null, encounterDitutup);
         }
 
+        public async Task<HasilPenutupanSusulan> TryCloseAfterBlockerResolvedAsync(
+            Func<CancellationToken, Task<Guid?>> resolveBlocker,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(resolveBlocker);
+
+            await using var transaksi = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+            var emergencyVisitId = await resolveBlocker(cancellationToken);
+
+            if (!emergencyVisitId.HasValue)
+                return HasilPenutupanSusulan.Dilewati;
+
+            var penutupan = await TryCloseAfterDispositionAsync(
+                emergencyVisitId.Value,
+                actorUserId,
+                DateTime.UtcNow,
+                cancellationToken: cancellationToken);
+
+            if (penutupan.Ditutup)
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+            await transaksi.CommitAsync(cancellationToken);
+
+            return penutupan;
+        }
+
+        public IQueryable<EmgVisit> SaringMenungguPenutupan(IQueryable<EmgVisit> query, bool menungguPenutupan)
+        {
+            var disposisiTerlaksana = _dbContext.Set<EmgDisposition>()
+                .Where(x => !x.IsDelete && x.DispositionStatus == EmergencyDispositionStatus.Executed);
+
+            return menungguPenutupan
+                ? query.Where(x =>
+                    x.VisitStatus != EmergencyVisitStatus.Completed
+                    && x.VisitStatus != EmergencyVisitStatus.Cancelled
+                    && disposisiTerlaksana.Any(d => d.EmergencyVisitId == x.Id))
+                : query.Where(x =>
+                    x.VisitStatus == EmergencyVisitStatus.Completed
+                    || x.VisitStatus == EmergencyVisitStatus.Cancelled
+                    || !disposisiTerlaksana.Any(d => d.EmergencyVisitId == x.Id));
+        }
+
+        public async Task<IReadOnlyDictionary<Guid, string?>> AmbilAlasanMenungguPenutupanAsync(
+            IReadOnlyCollection<EmgVisit> kunjungan,
+            CancellationToken cancellationToken = default)
+        {
+            var alasan = new Dictionary<Guid, string?>();
+            var kandidat = kunjungan.Where(x => EpisodeMasihBerjalan(x.VisitStatus)).ToList();
+
+            if (kandidat.Count == 0)
+                return alasan;
+
+            var kandidatIds = kandidat.Select(x => x.Id).ToList();
+            var berdisposisiTerlaksana = await _dbContext.Set<EmgDisposition>()
+                .AsNoTracking()
+                .Where(x => kandidatIds.Contains(x.EmergencyVisitId)
+                            && !x.IsDelete
+                            && x.DispositionStatus == EmergencyDispositionStatus.Executed)
+                .Select(x => x.EmergencyVisitId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            foreach (var visit in kandidat.Where(x => berdisposisiTerlaksana.Contains(x.Id)))
+                alasan[visit.Id] = await _dispositionService.ValidateVisitClosureAsync(visit, cancellationToken);
+
+            return alasan;
+        }
+
         public async Task<Hasil<EmgVisit>> StartVisitAsync(
             StartEmergencyVisitRequest request,
             Guid actorUserId,
@@ -722,6 +819,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
                 if (waktuTiba.Value > now)
                     return Hasil<EmgVisit>.Gagal(StatusCodes.Status400BadRequest, "Waktu tiba tidak boleh melewati waktu sekarang.");
+            }
+
+            DateTime? waktuTrauma = null;
+
+            if (request.TraumaDateTime.HasValue && request.TraumaDateTime.Value != default)
+            {
+                waktuTrauma = NormalizeUtc(request.TraumaDateTime.Value);
+
+                if (waktuTrauma.Value > now)
+                    return Hasil<EmgVisit>.Gagal(StatusCodes.Status400BadRequest, "Waktu trauma tidak boleh melewati waktu sekarang.");
             }
 
             var alias = NormalizeText(request.TemporaryPatientAlias);
@@ -752,7 +859,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 caseTypeId,
                 NormalizeText(request.ChiefComplaint),
                 request.IsUnknownPatient,
-                alias);
+                alias,
+                NormalizeText(request.ArrivalLocation),
+                NormalizeText(request.FoundLocation),
+                NormalizeText(request.TraumaLocation),
+                waktuTrauma,
+                NormalizeText(request.Notes));
 
             try
             {
@@ -848,6 +960,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 ArrivalConfirmedByUserId = triage ? pelaku : null,
                 ArrivalConfirmedAt = triage ? now : null,
                 ChiefComplaint = masukan.ChiefComplaint ?? NormalizeText(encounter.ChiefComplaint),
+                ArrivalLocation = masukan.ArrivalLocation,
+                FoundLocation = masukan.FoundLocation,
+                TraumaLocation = masukan.TraumaLocation,
+                TraumaDateTime = masukan.WaktuTrauma,
                 IsUnknownPatient = masukan.IsUnknownPatient,
                 TemporaryPatientAlias = masukan.TemporaryPatientAlias,
                 IsImmediateCareAllowed = true,
@@ -855,6 +971,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 RegistrationCompletedAt = NormalizeUtc(encounter.RegisteredAt),
                 VisitStatus = triage ? EmergencyVisitStatus.WaitingForTriage : EmergencyVisitStatus.InTreatment,
                 TreatmentStartedAt = triage ? null : now,
+                Notes = masukan.Notes,
                 IsActive = true,
                 CreateDateTime = now,
                 CreateBy = actorUserId,
@@ -877,6 +994,217 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             await transaksi.CommitAsync(cancellationToken);
 
             return Hasil<EmgVisit>.Dibuat(await MuatKunjunganAsync(kunjunganBaru.Id, cancellationToken) ?? kunjunganBaru);
+        }
+
+        public const int PanjangMaksimalAlasanNoShow = 250;
+
+        public const string PesanIdentitasKunjunganTerkunci =
+            "Pasien, encounter, dan waktu tiba kunjungan IGD tidak dapat diubah dari sini. " +
+            "Waktu tiba diubah lewat konfirmasi waktu tiba. " +
+            "Perubahan identitas pasien belum dapat dilakukan dari layar IGD; hubungi petugas rekam medis.";
+
+        public sealed record PenolakanWaktuTiba(int StatusCode, string Pesan);
+
+        public async Task<Hasil<EmergencyEncounterNoShowResponse>> MarkNoShowAsync(
+            MarkEmergencyEncounterNoShowRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            if (!request.EncounterId.HasValue || request.EncounterId.Value == Guid.Empty)
+                return Hasil<EmergencyEncounterNoShowResponse>.Gagal(StatusCodes.Status400BadRequest, "encounterId wajib diisi.");
+
+            var alasan = NormalizeText(request.Reason);
+
+            if (alasan == null)
+                return Hasil<EmergencyEncounterNoShowResponse>.Gagal(
+                    StatusCodes.Status400BadRequest,
+                    "Alasan pasien dinyatakan pergi sebelum ditriage wajib diisi.");
+
+            if (alasan.Length > PanjangMaksimalAlasanNoShow)
+                return Hasil<EmergencyEncounterNoShowResponse>.Gagal(
+                    StatusCodes.Status400BadRequest,
+                    "Alasan maksimal 250 karakter.");
+
+            await using var transaksi = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+            var terbaca = await CariEncounterAsync(request.EncounterId.Value, cancellationToken);
+            if (terbaca == null)
+                return Hasil<EmergencyEncounterNoShowResponse>.Gagal(StatusCodes.Status404NotFound, "Encounter tidak ditemukan.");
+
+            if (terbaca.EncounterType != EncounterType.Emergency)
+                return Hasil<EmergencyEncounterNoShowResponse>.Gagal(StatusCodes.Status400BadRequest, "Encounter ini bukan kunjungan gawat darurat.");
+
+            await EmergencyEpisodeRule.LockPatientEpisodeAsync(_dbContext, terbaca.PatientId, cancellationToken);
+
+            var encounter = await _dbContext.Set<RegPatientEncounter>()
+                .FirstOrDefaultAsync(x => x.Id == request.EncounterId.Value && !x.IsDelete, cancellationToken);
+
+            if (encounter == null)
+                return Hasil<EmergencyEncounterNoShowResponse>.Gagal(StatusCodes.Status404NotFound, "Encounter tidak ditemukan.");
+
+            if (EmergencyEpisodeRule.IsEncounterEnded(encounter))
+                return Hasil<EmergencyEncounterNoShowResponse>.Gagal(
+                    StatusCodes.Status409Conflict,
+                    $"Encounter ini sudah berakhir ({StatusAkhirEncounter(encounter)}).");
+
+            var nomorKunjungan = await _dbContext.Set<EmgVisit>()
+                .AsNoTracking()
+                .Where(x => x.EncounterId == encounter.Id && !x.IsDelete)
+                .Select(x => x.EmergencyVisitNumber)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (nomorKunjungan != null)
+                return Hasil<EmergencyEncounterNoShowResponse>.Gagal(
+                    StatusCodes.Status409Conflict,
+                    $"Pasien ini sudah memiliki kunjungan IGD {nomorKunjungan}. Tutup lewat kunjungan tersebut.");
+
+            var now = DateTime.UtcNow;
+            var pelaku = actorUserId == Guid.Empty ? (Guid?)null : actorUserId;
+
+            encounter.EncounterStatus = EncounterStatus.NoShow;
+            encounter.NoShowAt = now;
+            encounter.NoShowByUserId = pelaku;
+            encounter.NoShowReason = alasan;
+            encounter.UpdateDateTime = now;
+            encounter.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await transaksi.CommitAsync(cancellationToken);
+
+            return Hasil<EmergencyEncounterNoShowResponse>.Ok(new EmergencyEncounterNoShowResponse
+            {
+                EncounterId = encounter.Id,
+                EncounterStatus = encounter.EncounterStatus,
+                NoShowAt = now,
+                NoShowByName = await CariNamaPenggunaAsync(pelaku, cancellationToken),
+                NoShowReason = alasan
+            });
+        }
+
+        public async Task<PenolakanWaktuTiba?> ValidateArrivalTimeAsync(
+            EmgVisit visit,
+            DateTime waktuTiba,
+            DateTime now,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(visit);
+
+            if (waktuTiba > now)
+                return new PenolakanWaktuTiba(
+                    StatusCodes.Status400BadRequest,
+                    "Waktu tiba tidak boleh melewati waktu sekarang.");
+
+            var peristiwa = new List<(string Nama, DateTime Waktu)>();
+
+            var mulaiTriage = await _dbContext.Set<EmgTriage>()
+                .AsNoTracking()
+                .Where(x => x.EmergencyVisitId == visit.Id && !x.IsDelete)
+                .OrderBy(x => x.StartedAt)
+                .Select(x => (DateTime?)x.StartedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (mulaiTriage.HasValue)
+                peristiwa.Add(("mulai triage", NormalizeUtc(mulaiTriage.Value)));
+
+            if (visit.TreatmentStartedAt.HasValue)
+                peristiwa.Add(("mulai penanganan", NormalizeUtc(visit.TreatmentStartedAt.Value)));
+
+            var penugasanPertama = await _dbContext.Set<EmgDoctorAssignment>()
+                .AsNoTracking()
+                .Where(x => x.EmergencyVisitId == visit.Id && !x.IsDelete)
+                .OrderBy(x => x.EffectiveFrom)
+                .Select(x => (DateTime?)x.EffectiveFrom)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (penugasanPertama.HasValue)
+                peristiwa.Add(("penugasan dokter pertama", NormalizeUtc(penugasanPertama.Value)));
+
+            if (peristiwa.Count == 0)
+                return null;
+
+            var terawal = peristiwa.OrderBy(x => x.Waktu).First();
+
+            if (waktuTiba > terawal.Waktu)
+                return new PenolakanWaktuTiba(
+                    StatusCodes.Status409Conflict,
+                    $"Waktu tiba tidak boleh lebih lambat dari {terawal.Nama} pukul {FormatWaktuLokal(terawal.Waktu)}.");
+
+            return null;
+        }
+
+        public async Task<Hasil<EmgVisit>> UpdateArrivalTimeAsync(
+            Guid emergencyVisitId,
+            UpdateEmergencyArrivalTimeRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            var visit = await _dbContext.Set<EmgVisit>()
+                .FirstOrDefaultAsync(x => x.Id == emergencyVisitId && !x.IsDelete, cancellationToken);
+
+            if (visit == null)
+                return Hasil<EmgVisit>.Gagal(StatusCodes.Status404NotFound, "Data kunjungan IGD tidak ditemukan.");
+
+            if (!request.ArrivalDateTime.HasValue || request.ArrivalDateTime.Value == default)
+                return Hasil<EmgVisit>.Gagal(StatusCodes.Status400BadRequest, "Waktu tiba wajib diisi.");
+
+            var now = DateTime.UtcNow;
+            var waktuTiba = NormalizeUtc(request.ArrivalDateTime.Value);
+
+            var penolakan = await ValidateArrivalTimeAsync(visit, waktuTiba, now, cancellationToken);
+            if (penolakan != null)
+                return Hasil<EmgVisit>.Gagal(penolakan.StatusCode, penolakan.Pesan);
+
+            visit.ArrivalDateTime = waktuTiba;
+            visit.ArrivalTimeSource = EmergencyArrivalTimeSource.Confirmed;
+            visit.ArrivalConfirmedByUserId = actorUserId == Guid.Empty ? null : actorUserId;
+            visit.ArrivalConfirmedAt = now;
+            visit.UpdateDateTime = now;
+            visit.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return Hasil<EmgVisit>.Ok(await MuatKunjunganAsync(visit.Id, cancellationToken) ?? visit);
+        }
+
+        public static bool IdentitasKunjunganBerubah(
+            EmgVisit visit,
+            Guid? patientId,
+            Guid? encounterId,
+            DateTime arrivalDateTime)
+        {
+            ArgumentNullException.ThrowIfNull(visit);
+
+            if (ToNullableReference(patientId) != visit.PatientId)
+                return true;
+
+            if (ToNullableReference(encounterId) != visit.EncounterId)
+                return true;
+
+            return arrivalDateTime != default
+                   && NormalizeUtc(arrivalDateTime) != NormalizeUtc(visit.ArrivalDateTime);
+        }
+
+        private async Task<string?> CariNamaPenggunaAsync(Guid? userId, CancellationToken cancellationToken)
+        {
+            if (!userId.HasValue)
+                return null;
+
+            var pengguna = await _dbContext.Set<QuilvianSystemBackend.Models.ApplicationUser>()
+                .AsNoTracking()
+                .Where(x => x.Id == userId.Value)
+                .Select(x => new { x.DisplayName, x.UserName, x.Email, x.UserCode })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (pengguna == null)
+                return null;
+
+            return new[] { pengguna.DisplayName, pengguna.UserName, pengguna.Email, pengguna.UserCode }
+                .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x))
+                ?.Trim();
         }
 
         private Task<RegPatientEncounter?> CariEncounterAsync(Guid encounterId, CancellationToken cancellationToken)

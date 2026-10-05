@@ -22,13 +22,16 @@ public sealed class FinanceAccountingEventsController : ControllerBase
 {
     private readonly FinanceAccountingEventService _service;
     private readonly FinanceSubledgerSnapshotService _subledgerSnapshotService;
+    private readonly FinanceSubledgerBalanceCalculator _balanceCalculator;
 
     public FinanceAccountingEventsController(
         FinanceAccountingEventService service,
-        FinanceSubledgerSnapshotService subledgerSnapshotService)
+        FinanceSubledgerSnapshotService subledgerSnapshotService,
+        FinanceSubledgerBalanceCalculator balanceCalculator)
     {
         _service = service;
         _subledgerSnapshotService = subledgerSnapshotService;
+        _balanceCalculator = balanceCalculator;
     }
 
     [HttpGet("filters/metadata")]
@@ -71,6 +74,7 @@ public sealed class FinanceAccountingEventsController : ControllerBase
     [AccessPermission("FinanceAccountingEvent", "Create")]
     [ProducesResponseType(typeof(ApiResponse<GenerateSubledgerSnapshotsResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> GenerateSubledgerSnapshots(
         [FromBody] GenerateSubledgerSnapshotsRequest request,
         CancellationToken cancellationToken)
@@ -82,7 +86,7 @@ public sealed class FinanceAccountingEventsController : ControllerBase
         }
         catch (FinanceSubledgerSnapshotValidationException exception)
         {
-            return BadRequest(ApiResponse<object>.Fail(400, exception.Message));
+            return UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message));
         }
         catch (AccountingOutboxException exception)
         {
@@ -105,6 +109,93 @@ public sealed class FinanceAccountingEventsController : ControllerBase
             return Ok(ApiResponse<SubledgerPeriodSnapshotsResponse>.Ok(result, "Snapshot saldo subledger periode berhasil diambil."));
         }
         catch (FinanceSubledgerSnapshotValidationException exception)
+        {
+            return BadRequest(ApiResponse<object>.Fail(400, exception.Message));
+        }
+    }
+
+    /// <summary>
+    /// Mengambil posisi terhitung per kelompok saldo dan segmen pada tanggal tertentu sejak cutover (BE-FIN-067, FIN-API-1.5 F.6, FIN-VAL-170).
+    /// </summary>
+    [HttpGet("subledger-balances/position")]
+    [AccessAction("Read", "Read Accounting Events", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceAccountingEvent", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<SubledgerPositionResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> GetSubledgerPosition(
+        [FromQuery] DateOnly asOfDate,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _balanceCalculator.CalculatePositionAsync(asOfDate, cancellationToken);
+            return Ok(ApiResponse<SubledgerPositionResponse>.Ok(result, "Posisi saldo subledger berhasil dihitung."));
+        }
+        catch (FinanceSubledgerValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+        catch (FinanceSubledgerBadRequestException exception)
+        {
+            return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, exception.Message));
+        }
+    }
+
+    /// <summary>
+    /// Mengambil perbandingan selisih rekap kas harian terhadap posisi kas terhitung pada satu periode akuntansi (BE-FIN-067, FIN-DEC-125, FIN-API-1.5 F.6).
+    /// </summary>
+    [HttpGet("subledger-balances/{accountingPeriodCode}/variance")]
+    [AccessAction("Read", "Read Accounting Events", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceAccountingEvent", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<CashVarianceResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> GetCashVariance(
+        string accountingPeriodCode,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _balanceCalculator.CalculateCashVarianceAsync(accountingPeriodCode, cancellationToken);
+            return Ok(ApiResponse<CashVarianceResponse>.Ok(result, "Data selisih kas subledger berhasil diambil."));
+        }
+        catch (FinanceSubledgerValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+        catch (FinanceSubledgerBadRequestException exception)
+        {
+            return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, exception.Message));
+        }
+    }
+
+    /// <summary>
+    /// Memeriksa dan menerbitkan ulang saldo subledger yang berubah untuk satu periode (BE-FIN-072,
+    /// FIN-DEC-114, FIN-API-1.5 F.6, FIN-INTEGRATION-1.7 5.12.5). Memakai mekanisme SAMA dengan
+    /// <see cref="GenerateSubledgerSnapshots"/> — StageEventAsync yang sudah menaikkan SourceVersion
+    /// otomatis — sehingga akun yang nilainya tidak berubah TIDAK diterbitkan ulang.
+    /// </summary>
+    [HttpPost("subledger-balances/restate")]
+    [AccessAction("Create", "Generate Subledger Balance Snapshots", AccessType = AccessTypes.Create, SortOrder = 2)]
+    [AccessPermission("FinanceAccountingEvent", "Create")]
+    [ProducesResponseType(typeof(ApiResponse<GenerateSubledgerSnapshotsResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> RestateSubledgerSnapshots(
+        [FromBody] GenerateSubledgerSnapshotsRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _subledgerSnapshotService.GenerateMonthlySnapshotsAsync(request, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<GenerateSubledgerSnapshotsResponse>.Ok(result, result.Message));
+        }
+        catch (FinanceSubledgerSnapshotValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+        catch (AccountingOutboxException exception)
         {
             return BadRequest(ApiResponse<object>.Fail(400, exception.Message));
         }

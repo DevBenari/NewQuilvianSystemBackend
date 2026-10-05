@@ -51,11 +51,19 @@ public sealed class FinSupplierPayableConfiguration : IEntityTypeConfiguration<F
             .HasForeignKey(x => x.SourcePurchasingInvoiceId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        // BE-FIN-079: FinOpeningItemBatch berada di submodule AccountingIntegration — satu bounded
+        // context, sehingga FK sungguhan dipakai.
+        entity.HasOne(x => x.OpeningItemBatch)
+            .WithMany()
+            .HasForeignKey(x => x.OpeningItemBatchId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         entity.HasIndex(x => x.PayableNumber).IsUnique().HasFilter("\"IsDelete\" = false").HasDatabaseName("IX_FinSupplierPayable_PayableNumber");
         // Penjaga tunggal terhadap invoice supplier dobel (FIN-DEC-015, state-transition-matrix.md §5).
         entity.HasIndex(x => new { x.SupplierId, x.SupplierInvoiceNumber })
             .IsUnique().HasFilter("\"IsDelete\" = false").HasDatabaseName("IX_FinSupplierPayable_Supplier_InvoiceNumber");
         entity.HasIndex(x => new { x.Status, x.DueDate }).HasDatabaseName("IX_FinSupplierPayable_Status_DueDate");
         entity.HasIndex(x => x.SourcePurchasingInvoiceId).HasDatabaseName("IX_FinSupplierPayable_SourcePurchasingInvoiceId");
+        entity.HasIndex(x => x.OpeningItemBatchId).HasDatabaseName("IX_FinSupplierPayable_OpeningItemBatchId");
     }
 }

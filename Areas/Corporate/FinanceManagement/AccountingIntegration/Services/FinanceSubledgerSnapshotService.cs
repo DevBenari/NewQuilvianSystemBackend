@@ -4,36 +4,39 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
-using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Models;
-using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models;
-using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 
 /// <summary>
-/// Layanan kalkulasi snapshot saldo subledger bulanan untuk 4 akun kontrol Finance (BE-FIN-049, FIN-DEC-090).
-/// Mengagregasi saldo Kas Kasir, Kas Kecil, Piutang, dan Utang Supplier per akhir bulan,
-/// serta menerbitkan tepat 4 kejadian SALDO-SUBLEDGER ke FinAccountingEventOutbox (termasuk yang bernilai 0.00).
-/// Membuka transaksi database eksplisit (Serializable) dan memanggil SaveChangesAsync sesudah pementasan outbox.
+/// Layanan kalkulasi dan penerbitan snapshot saldo subledger bulanan (BE-FIN-049, BE-FIN-068, FIN-DEC-112..114, FIN-DEC-122, FIN-DES-080).
+/// Mengagregasi saldo Kas Kasir, Kas Kecil, Piutang, Utang Supplier, dan Utang Jasa Medis per akhir bulan,
+/// serta menerbitkan kejadian SALDO-SUBLEDGER ke FinAccountingEventOutbox untuk setiap akun control aktif.
+/// Prinsip: Sumber angka murni dari FinanceSubledgerBalanceCalculator, gagal tertutup bila pemetaan tidak lengkap,
+/// nilai negatif dikirim apa adanya, dan jumlah baris mengikuti pemetaan aktif.
 /// </summary>
 public sealed class FinanceSubledgerSnapshotService
 {
     private static readonly Regex AccountingPeriodRegex = new(@"^\d{4}-(0[1-9]|1[0-2])$", RegexOptions.Compiled);
     private readonly ApplicationDbContext _dbContext;
     private readonly FinanceAccountingOutboxService _outboxService;
+    private readonly FinanceSubledgerBalanceCalculator _balanceCalculator;
+    private readonly FinanceSubledgerControlAccountService _controlAccountService;
 
     public FinanceSubledgerSnapshotService(
         ApplicationDbContext dbContext,
-        FinanceAccountingOutboxService outboxService)
+        FinanceAccountingOutboxService outboxService,
+        FinanceSubledgerBalanceCalculator balanceCalculator,
+        FinanceSubledgerControlAccountService controlAccountService)
     {
         _dbContext = dbContext;
         _outboxService = outboxService;
+        _balanceCalculator = balanceCalculator;
+        _controlAccountService = controlAccountService;
     }
 
     /// <summary>
-    /// Menghitung posisi saldo 4 akun kontrol dan menerbitkan 4 pesan SALDO-SUBLEDGER ke outbox dalam satu transaksi serializable.
+    /// Menghitung posisi saldo subledger dan menerbitkan kejadian SALDO-SUBLEDGER ke outbox dalam satu transaksi serializable (FIN-DEC-112..114).
     /// </summary>
     public async Task<GenerateSubledgerSnapshotsResponse> GenerateMonthlySnapshotsAsync(
         GenerateSubledgerSnapshotsRequest request,
@@ -50,27 +53,59 @@ public sealed class FinanceSubledgerSnapshotService
         var periodParts = request.AccountingPeriodCode.Split('-');
         var periodYear = int.Parse(periodParts[0]);
         var periodMonth = int.Parse(periodParts[1]);
-        var periodEndDate = new DateOnly(periodYear, periodMonth, DateTime.DaysInMonth(periodYear, periodMonth));
+        var periodEndDate = FinanceBusinessDate.GetPeriodEndDate(periodYear, periodMonth);
 
-        var cashierCode = !string.IsNullOrWhiteSpace(request.CashierControlAccountCode)
-            ? request.CashierControlAccountCode.Trim()
-            : SubledgerControlAccountDefaults.CashierCash;
-
-        var pettyCashCode = !string.IsNullOrWhiteSpace(request.PettyCashControlAccountCode)
-            ? request.PettyCashControlAccountCode.Trim()
-            : SubledgerControlAccountDefaults.PettyCash;
-
-        var receivableCode = !string.IsNullOrWhiteSpace(request.ReceivableControlAccountCode)
-            ? request.ReceivableControlAccountCode.Trim()
-            : SubledgerControlAccountDefaults.Receivables;
-
-        var payableCode = !string.IsNullOrWhiteSpace(request.PayableControlAccountCode)
-            ? request.PayableControlAccountCode.Trim()
-            : SubledgerControlAccountDefaults.SupplierPayables;
-
-        if (cashierCode.Length > 50 || pettyCashCode.Length > 50 || receivableCode.Length > 50 || payableCode.Length > 50)
+        // 1. Audit Cakupan Pemetaan Akun Control (FIN-DES-080, FIN-VAL-177, FIN-VAL-178 - Gagal Tertutup / Fail-Closed)
+        var coverage = await _controlAccountService.GetCoverageAsync(cancellationToken);
+        if (!coverage.IsComplete)
         {
-            throw new FinanceSubledgerSnapshotValidationException("Kode akun kontrol melebihi panjang maksimal 50 karakter.");
+            var uncompletedGroup = coverage.GroupSummaries.FirstOrDefault(x => !x.IsComplete);
+            if (uncompletedGroup != null)
+            {
+                if (uncompletedGroup.MappingMode == "UNMAPPED")
+                {
+                    // FIN-VAL-177: Kelompok tanpa pemetaan aktif
+                    throw new FinanceSubledgerSnapshotValidationException(
+                        $"Snapshot tidak dapat diterbitkan: kelompok {uncompletedGroup.GroupName} belum punya kode akun.");
+                }
+
+                if (uncompletedGroup.MappingMode == "SEGMENTED" && uncompletedGroup.MissingSegments.Count > 0)
+                {
+                    // FIN-VAL-178: Segmen terpetakan sebagian
+                    var missingSegment = uncompletedGroup.MissingSegments.First();
+                    throw new FinanceSubledgerSnapshotValidationException(
+                        $"Snapshot tidak dapat diterbitkan: segmen {missingSegment} pada kelompok {uncompletedGroup.GroupName} belum punya kode akun.");
+                }
+            }
+
+            throw new FinanceSubledgerSnapshotValidationException(
+                "Snapshot tidak dapat diterbitkan: pemetaan akun control subledger belum lengkap.");
+        }
+
+        // 2. Ambil seluruh pemetaan akun control aktif
+        var activeMappings = await _dbContext.FinSubledgerControlAccountMaps
+            .AsNoTracking()
+            .Where(x => x.IsActive && !x.IsDelete)
+            .OrderBy(x => x.BalanceGroup)
+            .ThenBy(x => x.SegmentKey ?? string.Empty)
+            .ToListAsync(cancellationToken);
+
+        if (activeMappings.Count == 0)
+        {
+            throw new FinanceSubledgerSnapshotValidationException(
+                "Snapshot tidak dapat diterbitkan: tidak ada pemetaan akun control aktif yang terkonfigurasi.");
+        }
+
+        // 3. Hitung Posisi Saldo Menggunakan Kalkulator (BE-FIN-067, FIN-VAL-170, FIN-DEC-112)
+        // Nol pembacaan OutstandingAmount atau ClosingBalance!
+        SubledgerPositionResponse positionResponse;
+        try
+        {
+            positionResponse = await _balanceCalculator.CalculatePositionAsync(periodEndDate, cancellationToken);
+        }
+        catch (FinanceSubledgerValidationException ex)
+        {
+            throw new FinanceSubledgerSnapshotValidationException(ex.Message);
         }
 
         var correlationId = Guid.NewGuid();
@@ -82,81 +117,114 @@ public sealed class FinanceSubledgerSnapshotService
             transaction = await BeginTransactionAsync(cancellationToken);
             await AcquireLockAsync($"FIN_SUBLEDGER_SNAPSHOT_{request.AccountingPeriodCode}", cancellationToken);
 
-            // 1. Kas Kasir (KAS-KASIR)
-            // Closing balance kas harian terakhir pada atau sebelum tanggal akhir periode yang sudah berstatus CLOSED
-            var lastClosedCashSnapshot = await _dbContext.FinDailyCashSnapshots.AsNoTracking()
-                .Where(x => !x.IsDelete && x.CashDate <= periodEndDate && x.Status == FinDailyCashSnapshotStatuses.Closed)
-                .OrderByDescending(x => x.CashDate)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            var cashierBalance = lastClosedCashSnapshot != null ? Math.Max(0m, lastClosedCashSnapshot.ClosingBalance) : 0.00m;
-
-            // 2. Kas Kecil (KAS-KECIL)
-            // Total saldo berjalan kas kecil aktif yang dimulai pada atau sebelum tanggal akhir periode
-            var pettyCashBalance = await _dbContext.FinPettyCashBudgets.AsNoTracking()
-                .Where(x => !x.IsDelete && x.Status == PettyCashBudgetStatuses.Active && x.PeriodStart <= periodEndDate)
-                .SumAsync(x => (decimal?)x.CurrentBalance, cancellationToken) ?? 0.00m;
-
-            pettyCashBalance = Math.Max(0m, pettyCashBalance);
-
-            // 3. Piutang Usaha / Pasien & Penjamin (PIUTANG)
-            // Total sisa piutang penjamin dan pasien (OutstandingAmount) yang diakui sampai akhir periode
-            var endOfPeriodUtc = new DateTimeOffset(periodEndDate.Year, periodEndDate.Month, periodEndDate.Day, 23, 59, 59, 999, TimeSpan.Zero);
-            var receivableBalance = await _dbContext.FinReceivables.AsNoTracking()
-                .Where(x => !x.IsDelete &&
-                            (x.Status == FinReceivableStatuses.Outstanding || x.Status == FinReceivableStatuses.Partial) &&
-                            x.RecognizedAt <= endOfPeriodUtc)
-                .SumAsync(x => (decimal?)x.OutstandingAmount, cancellationToken) ?? 0.00m;
-
-            receivableBalance = Math.Max(0m, receivableBalance);
-
-            // 4. Utang Usaha / Supplier (UTANG-SUPPLIER)
-            // Total sisa tagihan utang supplier (OutstandingAmount) sampai akhir periode (nilai positif sesuai ACC-DEC-109)
-            var payableBalance = await _dbContext.FinSupplierPayables.AsNoTracking()
-                .Where(x => !x.IsDelete &&
-                            (x.Status == FinSupplierPayableStatuses.Outstanding || x.Status == FinSupplierPayableStatuses.Partial) &&
-                            x.SupplierInvoiceDate <= periodEndDate)
-                .SumAsync(x => (decimal?)x.OutstandingAmount, cancellationToken) ?? 0.00m;
-
-            payableBalance = Math.Max(0m, payableBalance);
-
-            var targetAccounts = new[]
-            {
-                new { Category = SubledgerAccountCategories.CashierCash, Name = "Kas Kasir", Code = cashierCode, Amount = cashierBalance },
-                new { Category = SubledgerAccountCategories.PettyCash, Name = "Kas Kecil", Code = pettyCashCode, Amount = pettyCashBalance },
-                new { Category = SubledgerAccountCategories.Receivables, Name = "Piutang Usaha / Pasien & Penjamin", Code = receivableCode, Amount = receivableBalance },
-                new { Category = SubledgerAccountCategories.SupplierPayables, Name = "Utang Usaha / Supplier", Code = payableCode, Amount = payableBalance }
-            };
-
             var stagedItems = new List<SubledgerAccountSnapshotItemResponse>();
 
-            foreach (var account in targetAccounts)
-            {
-                var outboxRequest = new AccountingOutboxEventRequest
-                {
-                    EventTypeCode = FinAccountingEventTypeCodes.SaldoSubledger,
-                    SourceTransactionId = $"SUBLEDGER-{request.AccountingPeriodCode}-{account.Code}",
-                    EventOccurredAt = DateTimeOffset.UtcNow,
-                    AccountingDate = periodEndDate,
-                    Amount = account.Amount,
-                    CorrelationId = correlationId,
-                    CausationId = causationId,
-                    ActorUserId = actorUserId,
-                    SubledgerBalance = new SubledgerBalanceRequest
-                    {
-                        AccountingPeriodCode = request.AccountingPeriodCode,
-                        ControlAccountCode = account.Code
-                    }
-                };
+            // Ambil grup-grup dari hasil kalkulasi
+            var kasKasirGroup = positionResponse.Groups.FirstOrDefault(x => x.BalanceGroup == FinSubledgerBalanceGroups.KasKasir);
+            var kasKecilGroup = positionResponse.Groups.FirstOrDefault(x => x.BalanceGroup == FinSubledgerBalanceGroups.KasKecil);
+            var piutangGroup = positionResponse.Groups.FirstOrDefault(x => x.BalanceGroup == FinSubledgerBalanceGroups.Piutang);
+            var utangSupplierGroup = positionResponse.Groups.FirstOrDefault(x => x.BalanceGroup == FinSubledgerBalanceGroups.UtangSupplier);
 
-                var stagedEvent = await _outboxService.StageEventAsync(outboxRequest, cancellationToken);
+            foreach (var mapping in activeMappings)
+            {
+                decimal amount;
+                string category;
+                string accountName;
+
+                if (mapping.BalanceGroup == FinSubledgerBalanceGroups.KasKasir)
+                {
+                    amount = kasKasirGroup?.CalculatedPosition ?? 0.00m;
+                    category = SubledgerAccountCategories.CashierCash;
+                    accountName = "Kas Kasir";
+                }
+                else if (mapping.BalanceGroup == FinSubledgerBalanceGroups.KasKecil)
+                {
+                    amount = kasKecilGroup?.CalculatedPosition ?? 0.00m;
+                    category = SubledgerAccountCategories.PettyCash;
+                    accountName = "Kas Kecil";
+                }
+                else if (mapping.BalanceGroup == FinSubledgerBalanceGroups.Piutang)
+                {
+                    category = SubledgerAccountCategories.Receivables;
+                    if (mapping.SegmentKey == null)
+                    {
+                        amount = piutangGroup?.CalculatedPosition ?? 0.00m;
+                        accountName = "Piutang Usaha / Pasien & Penjamin";
+                    }
+                    else
+                    {
+                        var segmentItem = piutangGroup?.Segments.FirstOrDefault(s => s.SegmentKey == mapping.SegmentKey);
+                        amount = segmentItem?.Amount ?? 0.00m;
+                        accountName = segmentItem != null ? $"Piutang - {segmentItem.SegmentName}" : $"Piutang - {mapping.SegmentKey}";
+                    }
+                }
+                else if (mapping.BalanceGroup == FinSubledgerBalanceGroups.UtangSupplier)
+                {
+                    amount = utangSupplierGroup?.CalculatedPosition ?? 0.00m;
+                    category = SubledgerAccountCategories.SupplierPayables;
+                    accountName = "Utang Usaha / Supplier";
+                }
+                else if (mapping.BalanceGroup == FinSubledgerBalanceGroups.UtangJasaMedis)
+                {
+                    // FIN-DEC-122: Utang jasa medis dikirim 0.00 selama tabel belum ada penulisnya
+                    amount = 0.00m;
+                    category = SubledgerAccountCategories.MedicalServicePayables;
+                    accountName = mapping.SegmentKey != null ? $"Utang Jasa Medis - {mapping.SegmentKey}" : "Utang Jasa Medis";
+                }
+                else
+                {
+                    amount = 0.00m;
+                    category = mapping.BalanceGroup;
+                    accountName = mapping.BalanceGroup;
+                }
+
+                var sourceTransactionId = $"SUBLEDGER-{request.AccountingPeriodCode}-{mapping.ControlAccountCode}";
+
+                // 4. Jalur Pernyataan Ulang (FIN-DEC-114): Periksa baris outbox terakhir untuk akun ini
+                var latestExistingEvent = await _dbContext.Set<FinAccountingEventOutbox>().AsNoTracking()
+                    .Where(x => !x.IsDelete &&
+                                x.SourceModule == FinAccountingEventSourceModules.Finance &&
+                                x.SourceTransactionId == sourceTransactionId &&
+                                x.EventTypeCode == FinAccountingEventTypeCodes.SaldoSubledger)
+                    .OrderByDescending(x => x.CreateDateTime)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                FinAccountingEventOutbox stagedEvent;
+
+                if (latestExistingEvent != null && latestExistingEvent.Amount == amount)
+                {
+                    // Nilai tidak berubah: jangan terbitkan versi baru (FIN-DEC-114)
+                    stagedEvent = latestExistingEvent;
+                }
+                else
+                {
+                    // Belum pernah terbit atau nilainya berubah: pementasan versi baru ke outbox
+                    var outboxRequest = new AccountingOutboxEventRequest
+                    {
+                        EventTypeCode = FinAccountingEventTypeCodes.SaldoSubledger,
+                        SourceTransactionId = sourceTransactionId,
+                        EventOccurredAt = DateTimeOffset.UtcNow,
+                        AccountingDate = periodEndDate,
+                        Amount = amount, // Boleh negatif apa adanya, tanpa Math.Max (FIN-DEC-112, FIN-VAL-211)
+                        CorrelationId = correlationId,
+                        CausationId = causationId,
+                        ActorUserId = actorUserId,
+                        SubledgerBalance = new SubledgerBalanceRequest
+                        {
+                            AccountingPeriodCode = request.AccountingPeriodCode,
+                            ControlAccountCode = mapping.ControlAccountCode
+                        }
+                    };
+
+                    stagedEvent = await _outboxService.StageEventAsync(outboxRequest, cancellationToken);
+                }
 
                 stagedItems.Add(new SubledgerAccountSnapshotItemResponse
                 {
-                    AccountCategory = account.Category,
-                    AccountName = account.Name,
-                    ControlAccountCode = account.Code,
-                    Amount = account.Amount,
+                    AccountCategory = category,
+                    AccountName = accountName,
+                    ControlAccountCode = mapping.ControlAccountCode,
+                    Amount = stagedEvent.Amount,
                     EventNumber = stagedEvent.EventNumber,
                     OutboxEventId = stagedEvent.Id,
                     SourceTransactionId = stagedEvent.SourceTransactionId,
@@ -178,7 +246,7 @@ public sealed class FinanceSubledgerSnapshotService
                 TotalBalance = stagedItems.Sum(x => x.Amount),
                 GeneratedAt = DateTimeOffset.UtcNow,
                 Items = stagedItems,
-                Message = $"Snapshot saldo subledger untuk periode {request.AccountingPeriodCode} berhasil dikalkulasi dan {stagedItems.Count} kejadian SALDO-SUBLEDGER berhasil diterbitkan ke kotak keluar."
+                Message = $"Snapshot saldo subledger untuk periode {request.AccountingPeriodCode} berhasil dikalkulasi dan {stagedItems.Count} akun control subledger berhasil diproses."
             };
         }
         catch (Exception)
@@ -199,7 +267,7 @@ public sealed class FinanceSubledgerSnapshotService
     }
 
     /// <summary>
-    /// Mengambil rincian snapshot saldo subledger per periode yang tercatat di FinAccountingEventOutbox.
+    /// Mengambil rincian snapshot saldo subledger per periode yang tercatat di FinAccountingEventOutbox (FIN-DEC-113).
     /// </summary>
     public async Task<SubledgerPeriodSnapshotsResponse> GetSnapshotsByPeriodAsync(
         string accountingPeriodCode,
@@ -213,7 +281,7 @@ public sealed class FinanceSubledgerSnapshotService
         var periodParts = accountingPeriodCode.Split('-');
         var periodYear = int.Parse(periodParts[0]);
         var periodMonth = int.Parse(periodParts[1]);
-        var periodEndDate = new DateOnly(periodYear, periodMonth, DateTime.DaysInMonth(periodYear, periodMonth));
+        var periodEndDate = FinanceBusinessDate.GetPeriodEndDate(periodYear, periodMonth);
 
         var prefix = $"SUBLEDGER-{accountingPeriodCode}-";
 
@@ -232,6 +300,15 @@ public sealed class FinanceSubledgerSnapshotService
             .Select(g => g.First())
             .ToList();
 
+        // Ambil pemetaan aktif untuk resolve nama dan evaluasi kelengkapan
+        var activeMappings = await _dbContext.FinSubledgerControlAccountMaps.AsNoTracking()
+            .Where(x => x.IsActive && !x.IsDelete)
+            .ToListAsync(cancellationToken);
+
+        var activeControlAccountCodes = activeMappings
+            .Select(x => x.ControlAccountCode)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         var items = new List<SubledgerAccountSnapshotItemResponse>();
         foreach (var ev in latestPerSource)
         {
@@ -239,7 +316,7 @@ public sealed class FinanceSubledgerSnapshotService
                 ? ev.SourceTransactionId[prefix.Length..]
                 : string.Empty;
 
-            var (category, name) = ResolveAccountInfo(controlAccountCode);
+            var (category, name) = ResolveAccountInfo(controlAccountCode, activeMappings);
 
             items.Add(new SubledgerAccountSnapshotItemResponse
             {
@@ -257,18 +334,37 @@ public sealed class FinanceSubledgerSnapshotService
             });
         }
 
+        // FIN-DEC-113 & Catatan Desain 4654:
+        // IsComplete bukan lagi items.Count >= 4, melainkan apakah seluruh pemetaan aktif sudah terbit
+        var isComplete = activeControlAccountCodes.Count > 0 &&
+                         activeControlAccountCodes.All(code => items.Any(it => string.Equals(it.ControlAccountCode, code, StringComparison.OrdinalIgnoreCase)));
+
         return new SubledgerPeriodSnapshotsResponse
         {
             AccountingPeriodCode = accountingPeriodCode,
             AccountingDate = periodEndDate,
-            IsComplete = items.Count >= 4,
+            IsComplete = isComplete,
             TotalBalance = items.Sum(x => x.Amount),
             Items = items
         };
     }
 
-    private static (string Category, string Name) ResolveAccountInfo(string controlAccountCode) =>
-        controlAccountCode switch
+    private static (string Category, string Name) ResolveAccountInfo(
+        string controlAccountCode,
+        List<FinSubledgerControlAccountMap> activeMappings)
+    {
+        var mapping = activeMappings.FirstOrDefault(x => string.Equals(x.ControlAccountCode, controlAccountCode, StringComparison.OrdinalIgnoreCase));
+        if (mapping != null)
+        {
+            var category = mapping.BalanceGroup;
+            var groupName = GetBalanceGroupName(mapping.BalanceGroup);
+            var name = mapping.SegmentKey != null
+                ? $"{groupName} - {mapping.SegmentKey}"
+                : groupName;
+            return (category, name);
+        }
+
+        return controlAccountCode switch
         {
             SubledgerControlAccountDefaults.CashierCash => (SubledgerAccountCategories.CashierCash, "Kas Kasir"),
             SubledgerControlAccountDefaults.PettyCash => (SubledgerAccountCategories.PettyCash, "Kas Kecil"),
@@ -276,6 +372,17 @@ public sealed class FinanceSubledgerSnapshotService
             SubledgerControlAccountDefaults.SupplierPayables => (SubledgerAccountCategories.SupplierPayables, "Utang Usaha / Supplier"),
             _ => ("UNKNOWN", $"Akun Kontrol ({controlAccountCode})")
         };
+    }
+
+    private static string GetBalanceGroupName(string balanceGroup) => balanceGroup switch
+    {
+        FinSubledgerBalanceGroups.KasKasir => "Kas Kasir",
+        FinSubledgerBalanceGroups.KasKecil => "Kas Kecil",
+        FinSubledgerBalanceGroups.Piutang => "Piutang Usaha / Pasien & Penjamin",
+        FinSubledgerBalanceGroups.UtangSupplier => "Utang Usaha / Supplier",
+        FinSubledgerBalanceGroups.UtangJasaMedis => "Utang Jasa Medis",
+        _ => balanceGroup
+    };
 
     // ------------------------------------------------------------------------------------
     // Concurrency & Database Helpers
