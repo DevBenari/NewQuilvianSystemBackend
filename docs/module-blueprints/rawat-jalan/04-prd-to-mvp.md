@@ -434,3 +434,191 @@ UAT dijalankan sebagai validasi runtime lewat HTTP sungguhan terhadap `QuilvianN
 
 Tidak ada pertanyaan yang memblokir. Setelah pemilik menyetujui blueprint dan kontrak V2, dokumen
 ini boleh diteruskan ke `plan-module-delivery`.
+
+
+---
+
+# Amendment DP — Daftar Pasien Rawat Jalan (revisi `28`, `draft`)
+
+Bagian ini **menambah** batas rilis untuk satu fitur; isi `04-prd-to-mvp.md` di atas tidak berubah.
+Semua entity, endpoint, permission, dan status di bawah sudah ada di `02-backend-architecture.md`
+*Amendment DP*, `contracts/` *Amendment DP*, dan `flowcharts/daftar-pasien-rawat-jalan.md`.
+
+## DP-1. Masalah dan tujuan
+
+Petugas menolak pendaftaran pasien karena kunjungan lama masih aktif, tetapi tidak ada layar untuk
+menutupnya. Di DB dev ada 159 kunjungan aktif sejak 24 Jun 2026. Tujuan: setiap kunjungan yang
+memblokir pendaftaran dapat ditemukan dan ditutup petugas yang berwenang dari frontend.
+
+## DP-2. Batas MVP
+
+| Titik | Isi |
+|---|---|
+| Mulai | Pengguna membuka menu "Daftar Pasien Rawat Jalan" |
+| Akhir | Kunjungan menggantung dibatalkan dan pasien berhasil didaftarkan ulang (`AT-DP-24`) |
+
+## DP-3. Kemampuan `MUST HAVE`
+
+| Kemampuan | Asal | Disposisi |
+|---|---|---|
+| Daftar kunjungan RJ berklinik bercakupan | `CAP-DP-01`, `02`, `03`, `04` | `EXTEND` (endpoint baru di atas data yang ada) |
+| Summary per kelompok + menggantung | `CAP-DP-02` | `MISSING / NEW` |
+| Hak `ReadAll`, `Read`, `Cancel` | `CAP-DP-05` | `MISSING / NEW` (pola ada) |
+| Batal dengan guard status + konsultasi | `CAP-DP-06`, `08` | `EXTEND` |
+| Pemblokir pendaftaran hanya RJ berklinik status < 7 | `CAP-DP-09` | `EXTEND` |
+| Layar dari base component + butir menu | `CAP-DP-11`, `12`, `13` | `EXISTING / REUSE` |
+
+## DP-4. Yang ditunda
+
+| Kemampuan | Alasan | Pengganti selama MVP |
+|---|---|---|
+| Menutup kunjungan ke `Completed` | Milik Registration + Billing (`RJ-E2E-OQ-004`) | Status 7-8 tidak lagi memblokir |
+| Pengetatan `PATCH /patient-encounters/{id}/cancel` | `RJ-DOC-OQ-008` | Frontend tidak memakainya |
+| Pembatalan massal data lama | `RJ-DOC-OQ-011` | Batal satu per satu lewat kartu Menggantung |
+| Refactor antrean memakai `ClinicalActorScopeService` | Di luar scope | Logika ganda dicatat sebagai utang teknis |
+
+## DP-5. Epic dan functional requirement
+
+| Epic | FR | Bunyi | Disposisi |
+|---|---|---|---|
+| `EP-DP-1` Backend daftar | `FR-DP-01` | Server mengembalikan hanya kunjungan RJ berklinik dalam cakupan pengguna | `EXTEND` |
+| | `FR-DP-02` | Summary lima kelompok, `hanging` lintas tanggal | `MISSING / NEW` |
+| | `FR-DP-03` | Metadata cakupan dan opsi filter | `MISSING / NEW` |
+| | `FR-DP-04` | Butir `OutpatientEncounter : Read/Cancel/ReadAll` terdaftar | `MISSING / NEW` |
+| `EP-DP-2` Backend batal & pemblokir | `FR-DP-05` | Batal status 0-5 dan 6 tanpa konsultasi aktif, dengan alasan, antrean ikut batal | `EXTEND` |
+| | `FR-DP-06` | Pemblokir pendaftaran memakai `BlocksRegistration` | `EXTEND` |
+| `EP-DP-3` Frontend | `FR-DP-07` | Layar `FE-RJDP-01` sesuai skema DP-FE.3 | `MISSING / NEW` |
+| | `FR-DP-08` | Butir menu di bawah Skrining Pasien | `MISSING / NEW` |
+| | `FR-DP-09` | Modal batal dengan tombol bersyarat | `MISSING / NEW` |
+
+## DP-6. Skenario UAT
+
+| Epic | Jalur berhasil | Jalur gagal |
+|---|---|---|
+| `EP-DP-1` | `AT-DP-01`, `03`, `05` | `AT-DP-02`, `04`, `06` |
+| `EP-DP-2` | `AT-DP-07`, `08`, `15`, `17` | `AT-DP-09`..`14`, `16` |
+| `EP-DP-3` | `AT-DP-23`, `24` | `AT-DP-22` |
+
+## DP-7. Definition of Done
+
+| No | Butir | Bukti |
+|---:|---|---|
+| 1 | Build Release backend `0 Error`, QBE Strict `PASS` pada berkas yang disentuh | Laporan task BE |
+| 2 | `AT-DP-01`..`21` lulus runtime terhadap `QuilvianNewDevSukma` | Log runtime di laporan task |
+| 3 | Endpoint lama dan akses rekam medis tidak berubah (`AT-DP-18`, `19`) | Log runtime |
+| 4 | Butir hak akses muncul di layar Akses Role | Tangkapan layar / query read-only |
+| 5 | Layar dan menu FE lulus `AT-DP-22`..`24`; build FE lulus | Laporan task FE |
+| 6 | ENC-RSMMC-00146 dapat ditutup dan pasiennya didaftarkan ulang | `AT-DP-24` |
+
+## DP-8. Gelombang pengiriman
+
+| Gelombang | Isi |
+|---|---|
+| `MVP-0` | `EP-DP-1` + `EP-DP-2` (backend; dapat dirilis sendiri — pemblokir lebih longgar langsung membantu pendaftaran) |
+| `MVP-1` | `EP-DP-3` (frontend; bergantung `MVP-0`) |
+| `POST-MVP` | Butir DP-4 |
+
+## DP-9. Pertanyaan terbuka sebelum development lock
+
+| ID | Isi | Memblokir |
+|---|---|---|
+| — | Approval desain dan kontrak `RJ-DOC-ENCLIST-001@1.0.0` oleh pemilik | Ya — `plan-module-delivery` |
+| `R-DP-1` | Panggilan dokter bersamaan dengan pembatalan | Tidak — risiko sisa |
+
+---
+
+# Amendment KT — Konsultasi Tertunda di Klinis Dokter (revisi `29`, `draft`)
+
+Diturunkan dari `02-backend-architecture.md` *Amendment KT*, `03-frontend-architecture.md`
+*Amendment KT*, `contracts/` *Amendment KT* (`RJ-DOC-PENDCONS-001@1.0.0`), dan
+`flowcharts/konsultasi-tertunda.md`. Tidak ada entity baru.
+
+## KT-1. Masalah dan tujuan
+
+Saat pemblokir pendaftaran dihidupkan (`BlockActiveEncounter = true`), pasien dengan konsultasi
+dokter yang tertinggal dari hari sebelumnya tidak dapat didaftarkan. Daftar Pasien Rawat Jalan
+menyuruh petugas menghubungi dokter, tetapi Klinis Dokter hanya menampilkan antrean hari ini,
+sehingga dokter tidak dapat membuka konsultasi itu. Tujuan: dokter dapat menemukan, membuka, lalu
+menyelesaikan atau membatalkan konsultasinya yang tertunda dari Klinis Dokter.
+
+## KT-2. Batas MVP
+
+| Titik | Isi |
+|---|---|
+| Mulai | Dokter membuka Klinis Dokter dan punya konsultasi dari hari sebelumnya yang belum selesai |
+| Akhir | Konsultasi itu selesai (kunjungan menjadi status 7), atau dibatalkan sehingga petugas dapat membatalkan kunjungannya di Daftar Pasien Rawat Jalan |
+
+## KT-3. Kemampuan `MUST HAVE`
+
+| ID | Kemampuan | Asal |
+|---|---|---|
+| `KT-CAP-01` | Daftar Konsultasi tertunda per dokter, lintas tanggal | `RJ-DOC-DEC-029`, `030`; `F-KT-1`, `F-KT-2` |
+| `KT-CAP-02` | Membuka konsultasi tertunda di workspace yang sama | `RJ-DOC-DEC-031`; `F-KT-3` |
+| `KT-CAP-03` | Simpan (finalisasi) konsultasi tertunda dengan konfirmasi tambahan | `RJ-DOC-DEC-031`, `RJ-DOC-FE-011`; `F-KT-4` |
+| `KT-CAP-04` | Batalkan konsultasi tertunda dengan alasan | `RJ-DOC-DEC-031`; `F-KT-5` |
+| `KT-CAP-05` | Petunjuk Daftar Pasien Rawat Jalan menunjuk tempat yang benar | `RJ-DOC-FE-012` |
+
+## KT-4. Yang ditunda
+
+| Hal | Alasan | Pengganti selama MVP |
+|---|---|---|
+| Tombol Batalkan konsultasi untuk antrean hari ini (`RJ-DOC-OQ-014`) | Di luar scope amendment | Konsultasi hari ini diselesaikan lewat Simpan |
+| Kunjungan status 6 yang antreannya bukan `InConsultation` (`RJ-DOC-OQ-012`) | Menunggu hitungan data | Bila ada, ditangani manual oleh pemilik |
+| Resep draf ikut batal saat konsultasi dibatalkan (`RJ-DOC-OQ-015`) | Perilaku lama, di luar scope | Farmasi tidak menerima resep draf karena resep draf tidak pernah diteruskan |
+
+## KT-5. Epic dan functional requirement
+
+**Epic KT-E1 — Konsultasi tertunda** (`MUST HAVE`)
+
+| FR | Requirement | Disposisi |
+|---|---|---|
+| `KT-FR-01` | Backend mengembalikan antrean milik dokter yang memenuhi syarat `02` KT.3.1, urut tanggal paling lama | `MISSING / NEW` |
+| `KT-FR-02` | Setiap baris membawa `draftPrescriptionCount`, `procedureCount`, `pendingDays`, `canCancelConsultation` | `MISSING / NEW` |
+| `KT-FR-03` | Panel kiri menampilkan bagian Konsultasi tertunda beserta jumlahnya; tidak tampil bila kosong | `MISSING / NEW` |
+| `KT-FR-04` | Item tertunda dapat dibuka di workspace | `EXTEND` (`useDoctorConsultationWorkspace`) |
+| `KT-FR-05` | Banner tanggal tampil selama item lampau terbuka | `MISSING / NEW` |
+| `KT-FR-06` | Modal Simpan meminta centang konfirmasi bila item lampau memuat resep draf atau tindakan; hitungan dibaca ulang saat modal dibuka | `EXTEND` (`FinalizeConsultationModal`) |
+| `KT-FR-07` | Simpan memakai `finish-consultation` yang ada tanpa perubahan aturan | `EXISTING / REUSE` |
+| `KT-FR-08` | Batalkan konsultasi dengan alasan wajib maks 250, lewat `PATCH /doctor-consultations/{id}/cancel` | `EXTEND` (endpoint ada, UI baru) |
+| `KT-FR-09` | Pesan petunjuk/penolakan di Daftar Pasien Rawat Jalan memakai bunyi baru | `EXTEND` |
+
+## KT-6. Skenario UAT
+
+| ID | Skenario | Hasil yang diharapkan |
+|---|---|---|
+| `UAT-KT-01` | dr. Arif membuka Klinis Dokter pada 5 Okt; ENC-RSMMC-00172 (30 Sep) masih Sedang Konsultasi | Konsultasi tertunda (1) berisi IKBAL, tertunda 5 hari |
+| `UAT-KT-02` | dr. Arif membuka item itu, melengkapi SOAP, menekan Simpan; ada 1 resep draf | Modal meminta centang "1 resep akan diteruskan ke farmasi"; sesudah dicentang dan disimpan, item hilang; kunjungan status 7; IKBAL dapat didaftarkan dengan `BlockActiveEncounter = true` |
+| `UAT-KT-03` | dr. Arif membatalkan konsultasi tertunda dengan alasan "Pasien pulang sebelum diperiksa" | Item hilang; pesan meminta petugas membatalkan kunjungan; petugas berhasil membatalkannya di Daftar Pasien Rawat Jalan |
+| `UAT-KT-04` (gagal) | dr. Budi membuka Klinis Dokter | Konsultasi tertunda milik dr. Arif tidak tampil |
+| `UAT-KT-05` (gagal) | dr. Arif membatalkan tanpa alasan | Tombol tidak dapat ditekan / server `400` |
+| `UAT-KT-06` (gagal) | Pengguna bukan penulis konsultasi mencoba Simpan atau Batalkan | Ditolak backend dengan pesan penjaga penulis |
+| `UAT-KT-07` (gagal) | Daftar tertunda gagal dimuat | Antrean hari ini tetap tampil; bagian tertunda menampilkan pesan dan Coba lagi |
+
+## KT-7. Definition of Done
+
+| Butir | Bukti |
+|---|---|
+| `GET /doctor-queues/pending-consultations` sesuai kontrak `RJ-DOC-PENDCONS-001@1.0.0` | Uji runtime HTTP `AT-KT-01`..`08` |
+| Antrean hari ini dan endpoint lain `DoctorQueueController` tidak berubah perilakunya | `AT-KT-09` |
+| Bunyi pesan Daftar Pasien Rawat Jalan berubah, kondisi tidak | `AT-KT-10` |
+| Hitungan `RJ-DOC-OQ-012` di DB uji dilaporkan | Laporan task backend |
+| Layar memenuhi `UAT-KT-01`..`07` | Laporan task frontend beserta bukti runtime |
+| `dotnet build` 0 error, QBE Strict lulus pada berkas yang disentuh; `npm run lint`/build frontend lulus | Laporan task |
+
+## KT-8. Gelombang pengiriman
+
+| Gelombang | Isi |
+|---|---|
+| `MVP-0` | Backend: endpoint `pending-consultations`, DTO, bunyi pesan (`KT-FR-01`, `02`, `09`) |
+| `MVP-1` | Frontend: bagian tertunda, buka item, banner, konfirmasi Simpan, Batalkan konsultasi (`KT-FR-03`..`08`) |
+| `POST-MVP` | `RJ-DOC-OQ-014`, `RJ-DOC-OQ-015`, penanganan hasil `RJ-DOC-OQ-012` bila perlu |
+
+## KT-9. Pertanyaan terbuka sebelum development lock
+
+| ID | Isi | Memblokir |
+|---|---|---|
+| `RJ-DOC-OQ-012` | Jumlah kunjungan status 6 dengan konsultasi aktif yang antreannya bukan `InConsultation` | Tidak — dihitung di task backend |
+| `RJ-DOC-OQ-014` | Tombol Batalkan konsultasi juga untuk antrean hari ini | Tidak — `POST-MVP` |
+| `RJ-DOC-OQ-015` | Resep draf saat konsultasi dibatalkan | Tidak — perilaku lama |
+
+Tidak ada pertanyaan yang memblokir.

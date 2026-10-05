@@ -88,6 +88,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string? InsuranceProviderName { get; set; }
         public bool IsInsuranceEligible { get; set; }
         public bool IsInsurancePolicyActive { get; set; }
+
+        // RJ-DOC-REV-BE-001 — penjamin utama dari sumber pembayaran aktif kunjungan.
+        public string PrimaryGuarantorNameSnapshot { get; set; } = string.Empty;
+        public string PrimaryGuarantorTypeSnapshot { get; set; } = string.Empty;
+        public bool IsInsurancePatient { get; set; }
+        public bool IsCompanyPatient { get; set; }
+
         public bool IsReferral { get; set; }
         public string? ReferralNumber { get; set; }
 

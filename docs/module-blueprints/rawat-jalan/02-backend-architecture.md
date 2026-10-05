@@ -806,3 +806,527 @@ test otomatis.
 | Producer `CONSUMABLE` | Ditunda (`RJ-E2E-DEC-011`) |
 | Memindahkan ringkasan rawat inap dari folio ke invoice | Di luar scope (`RJ-E2E-DEC-003`) |
 | Project/folder test otomatis | Dilarang; pola Bank Darah (`V2.13`) |
+
+
+---
+
+# Amendment DP — Daftar Pasien Rawat Jalan (revisi `28`, `draft`)
+
+| Field | Nilai |
+|---|---|
+| Status | `draft` — menunggu approval pemilik |
+| Keputusan | `RJ-DOC-DEC-011`..`023`, `RJ-DOC-FE-005`..`009` ([00-interview-decisions.md](00-interview-decisions.md), *Amendment Pass 2026-10-02* dan *Closure 2026-10-02*) |
+| Capability | [01-capability-impact-scan-daftar-pasien-rj.md](01-capability-impact-scan-daftar-pasien-rj.md) (`CAP-DP-01`..`13`) |
+| Snapshot | BE `245f0464`, FE `b7e9b7fd4` |
+| Kontrak | `RJ-DOC-ENCLIST-001@1.0.0` (`draft`) — bagian *Amendment DP* pada setiap berkas `contracts/` |
+| `requirement_readiness` | `GATE_NOT_RUN` — `requirement-completeness-gate` dilewati atas persetujuan pemilik (2 Okt 2026) karena scope kecil dan seluruh keputusan tertutup berbukti. Dicatat agar terlihat saat approval |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN` — tidak ada bounded context, master data, atau dampak billing baru; memakai `RegPatientEncounter` milik Registration |
+
+## DP.1 Tujuan dan batas
+
+Petugas, dokter, dan perawat dapat melihat kunjungan Rawat Jalan yang menjadi tanggung jawabnya,
+melihat statusnya, dan membatalkan kunjungan yang menggantung, sehingga pasien tidak lagi
+terkunci di pendaftaran tanpa jalan keluar.
+
+**Contoh kasus pemicu:** pasien lama ditolak mendaftar karena ENC-RSMMC-00146 (30 Jul 2026,
+status 3 `Menunggu Perawat`) belum ditutup. Setelah fitur ini, petugas pendaftaran pemegang hak
+"lihat semua" membuka Daftar Pasien Rawat Jalan, kartu **Menggantung**, menemukan kunjungan itu,
+menekan **Batalkan**, mengisi alasan "Pasien tidak kembali sejak 30 Jul", lalu mendaftarkan pasien.
+
+## DP.2 Tabel kepemilikan data
+
+| Kelompok data | Pemilik | Dipakai fitur ini | Dibuat ulang |
+|---|---|:---:|---|
+| Kunjungan pasien (`RegPatientEncounter`) | Registration | Ya — baca dan batalkan | Tidak |
+| Antrean (`TrxQueue`) | Registration | Ya — ikut dibatalkan | Tidak |
+| Konsultasi dokter (`TrxDoctorConsultation`) | Clinical | Ya — hanya dibaca (ada konsultasi aktif atau tidak) | Tidak |
+| Kunjungan IGD (`EmgVisit`) | Emergency | Ya — hanya dibaca (penyaring) | Tidak |
+| Dokter (`MstDoctor`), pegawai (`MstEmployee`) | Master Data / Workforce | Ya — menentukan pengguna yang login | Tidak |
+| Cluster perawat (`MstNurseStationCluster`, `MstNurseStationClusterStaff`) | Registration (nurse station) | Ya — cakupan perawat | Tidak |
+| Pasien, klinik, penjamin | Master Data / Registration | Ya — kolom tampilan | Tidak |
+
+Tidak ada tabel, kolom, enum, atau migration baru.
+
+## DP.3 Aturan inti
+
+### DP.3.1 Kunjungan Rawat Jalan berklinik
+
+Satu definisi, dipakai daftar **dan** pemblokir pendaftaran (`RJ-DOC-DEC-012`, `RJ-DOC-DEC-022`):
+
+| Syarat | Alasan |
+|---|---|
+| `EncounterType = Outpatient` (1) | Membuang IGD (2) dan Rawat Inap (3) |
+| `ClinicId` terisi | Membuang pasien penunjang langsung (lab/radiologi) yang juga bertipe `Outpatient` |
+| Tidak punya baris `EmgVisit` | Membuang kunjungan IGD lama yang tercatat `Outpatient` |
+| `IsDelete = false` | Data yang dihapus tidak pernah tampil |
+
+### DP.3.2 Kunjungan yang memblokir pendaftaran (`RJ-DOC-DEC-019`, `RJ-DOC-DEC-022`)
+
+Kunjungan Rawat Jalan berklinik **dan** `IsCancel = false` **dan** `CompletedAt` kosong **dan**
+status di bawah 7 (`Draft` sampai `Sedang Konsultasi`).
+
+| Kunjungan aktif pasien | Pendaftaran poliklinik baru |
+|---|---|
+| RJ berklinik status 3 | Ditolak — pesan `RJ-DOC-REV-BE-007` |
+| RJ berklinik status 6 | Ditolak |
+| RJ berklinik status 7 atau 8 | **Diterima** |
+| Lab walk-in tanpa klinik, status 1 | **Diterima** |
+| IGD status 5 | **Diterima** |
+
+`MedicalRecordAccessAuditService.KunjunganMasihBerjalan` **tidak diubah**; definisi itu tetap
+menjaga hak akses rekam medis.
+
+### DP.3.3 Cakupan pengguna (`RJ-DOC-DEC-013`, `RJ-DOC-DEC-014`)
+
+| Pengguna | Kunjungan yang terlihat |
+|---|---|
+| Pemegang `OutpatientEncounter : ReadAll` | Semua kunjungan RJ berklinik; boleh menyaring per klinik dan dokter |
+| Terhubung ke data dokter | Kunjungan dengan `DoctorId` = dirinya |
+| Terdaftar di cluster nurse station | Kunjungan di klinik cluster tersebut, apa pun dokternya |
+| Dokter **dan** perawat | Gabungan keduanya |
+| Bukan ketiganya | Ditolak `403`: "Akun Anda belum terhubung ke data dokter atau cluster perawat. Hubungi admin untuk pengaturan akses." |
+
+Parameter `doctorId` dan `clinicId` dari pengguna tanpa `ReadAll` hanya **mempersempit** cakupan.
+**Contoh:** dr. A mengirim `doctorId` milik dr. C → hasilnya kosong, bukan pasien dr. C.
+
+Pengguna dikenali dengan urutan yang sama seperti layar antrean (`CAP-DP-03`, `CAP-DP-04`):
+klaim `doctor_id`/`employee_id` → `workforce_profile_id` → kecocokan email. Cabang SuperAdmin
+berbasis nama role **tidak** dibawa.
+
+### DP.3.4 Boleh dibatalkan (`RJ-DOC-DEC-016`, `RJ-DOC-DEC-021`)
+
+| Keadaan kunjungan | Boleh dibatalkan |
+|---|---|
+| Status 0-5, belum batal/selesai/tidak hadir | Ya |
+| Status 6, **tanpa** konsultasi aktif | Ya |
+| Status 6, **dengan** konsultasi aktif | Tidak — dokter menyelesaikan/membatalkan konsultasi dulu |
+| Status 7, 8, 9, 10, 11 | Tidak |
+| Sudah batal (`IsCancel`) | Tidak — pesan "sudah dibatalkan" |
+
+Konsultasi aktif = baris `TrxDoctorConsultation` untuk kunjungan itu dengan `IsDelete = false`
+dan `IsCancel = false` (termasuk yang `Completed`).
+
+## DP.4 Class diagram
+
+```mermaid
+classDiagram
+    class OutpatientEncounterController {
+        <<Baru>>
+        +GetList(query)
+        +GetSummary(query)
+        +GetFilterMetadata()
+        +Cancel(id, request)
+    }
+    class OutpatientEncounterListService {
+        <<Baru>>
+        +GetPagedAsync(user, query)
+        +GetSummaryAsync(user, query)
+        +GetFilterMetadataAsync(user)
+        +CancelAsync(user, id, reason)
+    }
+    class ClinicalActorScopeService {
+        <<Baru>>
+        +ResolveAsync(user) ClinicalActorScope
+    }
+    class OutpatientEncounterRules {
+        <<Baru, static>>
+        +IsOutpatientClinicEncounter
+        +BlocksRegistration
+        +IsCancellableStatus
+    }
+    class PatientEncounterController {
+        <<Diperbarui>>
+        -FindActiveEncounterAsync(patientId)
+    }
+    class AccessPermissionService {
+        <<Sudah ada>>
+        +HasAccessAsync(user, resource, action)
+    }
+    class QueueRealtimeService {
+        <<Sudah ada>>
+        +NotifyQueueCancelledAsync()
+    }
+    class RegPatientEncounter {
+        <<Sudah ada>>
+    }
+    OutpatientEncounterController --> OutpatientEncounterListService
+    OutpatientEncounterListService --> ClinicalActorScopeService
+    OutpatientEncounterListService --> OutpatientEncounterRules
+    OutpatientEncounterListService --> AccessPermissionService
+    OutpatientEncounterListService --> QueueRealtimeService
+    OutpatientEncounterListService --> RegPatientEncounter
+    PatientEncounterController --> OutpatientEncounterRules
+```
+
+## DP.5 Penjelasan class
+
+| Class | Status | Lokasi file | Tugas | Dipanggil oleh | Transaksi DB |
+|---|---|---|---|---|---|
+| `OutpatientEncounterController` | Baru | `Areas/HealthServices/RegistrationManagement/Controllers/OutpatientEncounterController.cs` | Empat endpoint DP.7. Tanpa akses `ApplicationDbContext` langsung (`QBE-SVC-001`). Atribut: `[AccessController(moduleCode: "HEALTH_SERVICE_REGISTRATION_MANAGEMENT", displayName: "Outpatient Encounter", ControllerName = "OutpatientEncounter")]`, `[Tags("Health Services / Registration Management / Outpatient Encounter")]` | Frontend | Tidak |
+| `OutpatientEncounterListService` | Baru | `Areas/HealthServices/RegistrationManagement/Services/OutpatientEncounterListService.cs` | Menyusun query bercakupan, daftar berhalaman, ringkasan, metadata filter, dan pembatalan | Controller di atas | Ya, hanya `CancelAsync` |
+| `ClinicalActorScopeService` | Baru | `Areas/HealthServices/RegistrationManagement/Services/ClinicalActorScopeService.cs` | Mengembalikan `ClinicalActorScope { CanReadAll, DoctorId?, ClinicIds[] }` dari pengguna yang login. Logika pengenalan diangkat dari `DoctorQueueController.ResolveAllowedDoctorIdAsync` dan `NurseStationQueueController.GetAllowedClusterIdsAsync` **tanpa** cabang SuperAdmin; `CanReadAll` dari `HasAccessAsync(user, "OutpatientEncounter", "ReadAll")` | `OutpatientEncounterListService` | Tidak |
+| `OutpatientEncounterRules` | Baru | `Areas/HealthServices/RegistrationManagement/Services/OutpatientEncounterRules.cs` | Tiga `Expression<Func<RegPatientEncounter, bool>>` statis sesuai DP.3.1, DP.3.2, DP.3.4 (bagian status) — satu sumber aturan | Service di atas, `PatientEncounterController` | — |
+| `OutpatientEncounterExplicitPermissions` | Baru | `Areas/HealthServices/RegistrationManagement/OutpatientEncounterExplicitPermissions.cs` | `[assembly: AccessExplicitPermission(moduleCode: "HEALTH_SERVICE_REGISTRATION_MANAGEMENT", resourceName: "OutpatientEncounter", actionName: "ReadAll", ...)]` — pola `RadiologyExplicitPermissions.cs` | Seeder dan verifier hak akses | — |
+| `OutpatientEncounterDtos` | Baru | `Areas/HealthServices/RegistrationManagement/DTOS/OutpatientEncounterDtos.cs` (folder `DTOS` mengikuti folder yang sudah ada, lihat DP.6) | DTO pada DP.7 | Controller, service | — |
+| `PatientEncounterController` | Diperbarui | `Areas/HealthServices/RegistrationManagement/Controllers/PatientEncounterController.cs` | **Hanya** `FindActiveEncounterAsync` (baris 1311-1318): `.Where(KunjunganMasihBerjalan)` diganti `.Where(OutpatientEncounterRules.BlocksRegistration)`. Endpoint lain, termasuk `PATCH /{id}/cancel`, tidak diubah (`RJ-DOC-DEC-017`/`023`) | — | Tidak berubah |
+| `Program.cs` | Diperbarui | `Program.cs` (dekat baris 418-431, blok service Registration) | `AddScoped<OutpatientEncounterListService>()`, `AddScoped<ClinicalActorScopeService>()` | — | — |
+
+## DP.6 Arsitektur folder
+
+```text
+Areas/HealthServices/RegistrationManagement/
+├── OutpatientEncounterExplicitPermissions.cs      Baru
+├── Controllers/
+│   ├── OutpatientEncounterController.cs           Baru
+│   ├── PatientEncounterController.cs              Diperbarui (FindActiveEncounterAsync saja)
+│   ├── DoctorQueueController.cs                   Sudah ada, tidak disentuh
+│   └── NurseStationQueueController.cs             Sudah ada, tidak disentuh
+├── DTOS/
+│   └── OutpatientEncounterDtos.cs                 Baru
+└── Services/
+    ├── OutpatientEncounterListService.cs          Baru
+    ├── ClinicalActorScopeService.cs               Baru
+    └── OutpatientEncounterRules.cs                Baru
+```
+
+**Utang teknis yang tidak dirapikan diam-diam:** folder `DTOS` (huruf besar) menyimpang dari pola
+`DTOs`; berkas baru mengikuti folder yang ada agar namespace tetap konsisten. Logika pengenal
+dokter/perawat tetap ganda di dua controller antrean sampai ada task refactor tersendiri.
+
+## DP.7 Endpoint (ringkas — rincian di `contracts/api-contract.md` *Amendment DP*)
+
+Grup Swagger `Health Services / Registration Management / Outpatient Encounter`,
+base `api/v1/health-services/registration-management/outpatient-encounters`. **Rencana (belum tersedia).**
+
+| Method | Path | Hak akses |
+|---|---|---|
+| `GET` | `/` | `OutpatientEncounter : Read` |
+| `GET` | `/summary` | `OutpatientEncounter : Read` |
+| `GET` | `/filters/metadata` | `OutpatientEncounter : Read` |
+| `PATCH` | `/{id}/cancel` | `OutpatientEncounter : Cancel` |
+
+## DP.8 Pembatalan — transaksi dan kegagalan
+
+1. Service memastikan pengguna memegang `Cancel` dan kunjungan ada di cakupannya; bila tidak →
+   `404` (kunjungan di luar cakupan diperlakukan seolah tidak ada, agar tidak membocorkan
+   keberadaan data).
+2. Membuka transaksi, mengunci baris kunjungan (`SELECT … FOR UPDATE`), lalu memeriksa ulang
+   DP.3.4 di dalam transaksi — termasuk konsultasi aktif.
+3. Mengisi `IsCancel`, `CancelledAt`, `CancelledByUserId`, `CancelReason`, `CancelDateTime`,
+   `CancelBy`, `IsActive = false`, `EncounterStatus` **tetap** seperti adanya (sama dengan endpoint
+   lama), `UpdateDateTime`, `UpdateBy`.
+4. Membatalkan antrean kunjungan yang belum selesai/batal/tidak hadir (perilaku
+   `CancelQueuesByEncounterAsync` disalin ke service; versi di controller lama tidak disentuh).
+5. `SaveChanges`, commit, lalu mengirim notifikasi antrean batal **setelah** commit. Gagal
+   notifikasi tidak membatalkan pembatalan; hanya dicatat di log.
+6. Mencatat log: `EntityId`, controller, action `Cancel`, status hasil. **Tanpa** alasan batal,
+   nama pasien, atau keluhan.
+
+| Kejadian | Hasil |
+|---|---|
+| Dua petugas membatalkan bersamaan | Yang kedua menunggu kunci, lalu mendapat `400` "Kunjungan sudah dibatalkan." |
+| Dokter memulai konsultasi tepat saat dibatalkan | Bila konsultasi tercatat lebih dulu → pembatalan `400`. Bila pembatalan lebih dulu → antrean sudah batal; risiko sisa dicatat `R-DP-1` |
+| Gagal database di tengah | Seluruh perubahan dibatalkan (rollback); petugas mencoba lagi |
+
+## DP.9 Status model dan dampak migration
+
+| Model | Status | Kolom berubah | Migration |
+|---|---|---|---|
+| `RegPatientEncounter` | Sudah ada | Tidak ada | Tidak ada |
+| `TrxQueue` | Sudah ada | Tidak ada | Tidak ada |
+
+Index yang dibutuhkan sudah ada: `(EncounterStatus, EncounterType, IsActive, …)`, `ClinicId`,
+`DoctorId`, `(PatientId, EncounterDate, IsDelete)` (`RegPatientEncounterConfiguration.cs:368-430`).
+
+## DP.10 Rencana migration
+
+Tidak ada migration. Rilis dapat dilakukan tanpa mematikan layanan. **Langkah mundur:** kembalikan
+deploy sebelumnya; tidak ada data yang perlu dipulihkan karena pembatalan memakai kolom yang sudah
+ada.
+
+## DP.11 Rencana data master awal
+
+Tidak ada master baru. **Konfigurasi hak akses awal** (lewat layar Akses Role, bukan seed):
+
+| Peran (contoh) | Butir yang disarankan |
+|---|---|
+| Petugas pendaftaran | `OutpatientEncounter : Read`, `ReadAll`, `Cancel` |
+| Kepala ruangan / perawat poli | `Read`, `Cancel` |
+| Dokter | `Read` (`Cancel` sesuai kebijakan RS) |
+| Super Admin | `Read`, `ReadAll`, `Cancel` |
+
+Pegawai perawat wajib terdaftar di `MstNurseStationClusterStaff`, dan dokter wajib terhubung lewat
+klaim/`WorkforceProfileId`/email; bila tidak, mereka menerima `403` (lihat DP.3.3).
+
+## DP.12 Otorisasi, privasi, audit
+
+- Penyaringan cakupan **selalu** di server; frontend hanya menyembunyikan tombol.
+- Respons daftar memuat nama pasien dan no. RM (sensitif) — hanya untuk kunjungan dalam cakupan.
+- `GET` tidak dicatat di log; `PATCH cancel` dicatat tanpa data medis.
+- Jejak pembatalan tetap di baris kunjungan (`CancelledByUserId`, `CancelledAt`, `CancelReason`).
+
+## DP.13 Strategi verifikasi
+
+Pola Bank Darah (`V2.13`), tanpa project test: build Release, QBE Strict pada berkas yang disentuh,
+dan uji runtime HTTP terhadap `QuilvianNewDevSukma` sesuai `testing/acceptance-test-matrix.md`
+*Amendment DP*.
+
+## DP.14 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Tombol/endpoint **Selesaikan** kunjungan | Melanggar `RJ-E2E-DEC-007`; penutupan `Completed` milik Registration + Billing (`RJ-E2E-OQ-004`) |
+| Mengubah `PATCH /patient-encounters/{id}/cancel` | `RJ-DOC-DEC-017`/`023`; pengetatannya `RJ-DOC-OQ-008` (later slice) |
+| Mengubah `KunjunganMasihBerjalan` | Menjaga akses rekam medis; pemblokir pendaftaran memakai definisi sendiri |
+| Penyaringan cakupan pada `GET /patient-encounters` lama | Di luar scope; dicatat sebagai temuan `CAP-DP-02` |
+| Refactor `DoctorQueueController`/`NurseStationQueueController` agar memakai `ClinicalActorScopeService` | Menyentuh perilaku antrean (di luar scope); kandidat task terpisah |
+| Master alasan pembatalan | `RJ-DOC-DEC-018` |
+| Pembatalan massal | Di luar scope (`RJ-DOC-OQ-011`) |
+| Mengubah status kunjungan ke `Cancelled` (10) saat batal | Endpoint lama tidak melakukannya; seluruh pembaca memakai `IsCancel`. Menyamakan keduanya adalah keputusan Registration tersendiri |
+
+**Risiko sisa:** `R-DP-1` — `DoctorQueueController` memulai konsultasi tanpa memeriksa
+`IsCancel` kunjungan; bila panggilan dokter dan pembatalan terjadi pada milidetik yang sama,
+kunjungan batal dapat menerima konsultasi. Peluangnya kecil karena antrean ikut batal; dicatat
+untuk penguatan di task antrean.
+
+---
+
+# Amendment KT — Konsultasi Tertunda di Klinis Dokter (revisi `29`, `draft`)
+
+| Field | Nilai |
+|---|---|
+| Status | `draft` — menunggu approval pemilik |
+| Keputusan | `RJ-DOC-DEC-028`..`031`, `RJ-DOC-FE-010`..`012` ([00-interview-decisions.md](00-interview-decisions.md), *Amendment Pass 2026-10-05*) |
+| Capability | Fakta `F-KT-1`..`5` pada decision log, ditambah penelusuran desain ini (BE `bb46ccc8`, FE `d232feb2b`). Tidak ada capability map baru |
+| Kontrak | `RJ-DOC-PENDCONS-001@1.0.0` (`draft`) — bagian *Amendment KT* pada setiap berkas `contracts/` |
+| `requirement_readiness` | `GATE_NOT_RUN` — scope kecil dan keputusan tertutup berbukti, sama seperti Amendment DP |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN` — tanpa bounded context, master data, atau dampak billing baru |
+
+## KT.1 Tujuan dan batas
+
+Dokter dapat melihat dan membuka konsultasinya yang **tertunda**, yaitu konsultasi dari hari
+sebelumnya yang belum diselesaikan atau dibatalkan. Dengan begitu kunjungan pasien tidak lagi
+tertahan di status `Sedang Konsultasi` (6) tanpa jalan keluar.
+
+Yang **tidak** berubah: aturan finalisasi konsultasi, aturan batal konsultasi, antrean hari ini,
+aturan pemblokir pendaftaran, dan Daftar Pasien Rawat Jalan (selain bunyi satu pesan, KT.3.4).
+
+**Contoh:** 5 Okt 2026, dr. Arif Lesmana membuka Klinis Dokter. Antrean hari ini kosong.
+Bagian Konsultasi tertunda berisi IKBAL YULIYANTO, ENC-RSMMC-00172, 30 Sep 2026, Poli Anak,
+tertunda 5 hari. dr. Arif membukanya, melengkapi SOAP, lalu menekan Simpan. Kunjungan menjadi
+`Konsultasi Selesai` (7) dan IKBAL dapat didaftarkan lagi.
+
+## KT.2 Tabel kepemilikan data
+
+| Kelompok data | Pemilik | Dipakai fitur ini | Dibuat ulang |
+|---|---|:---:|---|
+| Antrean (`TrxQueue`) | Registration | Ya — dibaca (dasar daftar) | Tidak |
+| Kunjungan pasien (`RegPatientEncounter`) | Registration | Ya — dibaca (penyaring status) | Tidak |
+| Konsultasi dokter (`TrxDoctorConsultation`) | Clinical | Ya — dibaca (konsultasi aktif); diselesaikan/dibatalkan lewat endpoint lama | Tidak |
+| Resep (`PhmPrescription`) | Pharmacy | Ya — hanya dihitung (resep draf yang diteruskan saat finalisasi) | Tidak |
+| Tindakan (`TrxPatientProcedure`) | Clinical | Ya — hanya dihitung | Tidak |
+| Kunjungan IGD (`EmgVisit`) | Emergency | Ya — hanya dibaca (penyaring, lewat `OutpatientEncounterRules`) | Tidak |
+| Dokter (`MstDoctor`) | Master Data / Workforce | Ya — menentukan dokter yang login | Tidak |
+
+Tidak ada tabel, kolom, atau entity baru.
+
+## KT.3 Aturan inti
+
+### KT.3.1 Konsultasi tertunda (`RJ-DOC-DEC-029`, `RJ-DOC-DEC-030`; menjawab `RJ-DOC-OQ-012`)
+
+Satu antrean masuk daftar Konsultasi tertunda bila **semua** syarat berikut terpenuhi:
+
+| Syarat | Alasan |
+|---|---|
+| Antrean tidak dihapus, aktif, butuh dokter, `DoctorId` terisi | Sama dengan antrean dokter hari ini |
+| `QueueDate` **sebelum** tanggal operasional hari ini (`AppDateTimeHelper.OperationalDate()`) | Antrean hari ini tetap di daftar biasa; tidak tampil dua kali |
+| Status antrean `InConsultation` | Syarat endpoint `finish-consultation` (`DoctorQueueController.cs:459`). Antrean berstatus lain tidak dapat diselesaikan lewat jalur ini |
+| Kunjungan adalah Rawat Jalan berklinik (`WhereOutpatientClinicEncounter`) | Definisi tunggal `RJ-DOC-DEC-022` |
+| Kunjungan belum batal, `CompletedAt` kosong, status `InConsultation` (6) | Hanya kunjungan yang memang tertahan |
+| Ada konsultasi untuk antrean itu yang belum dihapus, belum batal, dan berstatus `Draft` (0) atau `InProgress` (1) | Hanya konsultasi yang dapat diselesaikan atau dibatalkan dokter |
+
+Urutan: tanggal antrean paling lama lebih dulu.
+
+**Jawaban `RJ-DOC-OQ-012`:** syarat status antrean `InConsultation` dipertahankan karena jalur
+finalisasi menuntutnya. Bila data ternyata memuat kunjungan status 6 dengan konsultasi aktif
+tetapi antreannya bukan `InConsultation`, kunjungan itu **tidak** tertangkap. Task backend wajib
+menghitung jumlahnya di DB uji dengan query baca-saja dan melaporkannya. Bila jumlahnya lebih dari
+nol, pemilik memutuskan penanganannya di amandemen terpisah. Ini bukan blocker desain.
+
+| Keadaan | Masuk daftar? |
+|---|---|
+| Antrean 30 Sep, `InConsultation`, kunjungan 6, konsultasi `InProgress` | **Ya** |
+| Antrean hari ini, `InConsultation` | Tidak — sudah ada di antrean hari ini |
+| Antrean 30 Sep, `WaitingForDoctor`, kunjungan 5 | Tidak — petugas membatalkannya di Daftar Pasien Rawat Jalan |
+| Antrean 30 Sep, `InConsultation`, konsultasinya sudah `Cancelled` | Tidak — petugas membatalkan kunjungannya (`RJ-DOC-DEC-021`) |
+| Antrean 30 Sep, kunjungan 7 | Tidak — sudah selesai |
+| Antrean 30 Sep milik dr. B | Tidak, bagi dr. Arif |
+
+### KT.3.2 Cakupan dokter
+
+Cakupan sama persis dengan `GET /doctor-queues`: memakai `ResolveAllowedDoctorIdAsync` yang sudah
+ada. Dokter hanya melihat antreannya sendiri; mengirim `doctorId` dokter lain tidak melebarkan
+hasil. Jalur `IsCurrentUserSuperAdminAsync` yang sudah ada di controller ini ikut berlaku apa
+adanya. Jalur itu utang teknis existing; `RJ-DOC-DEC-014` melarang meniru pola nama role untuk
+fitur **baru**. Fitur ini tidak menambah pemeriksaan role baru. Ia memakai ulang penentu cakupan
+yang sama agar dua daftar di satu layar tidak punya aturan berbeda.
+
+### KT.3.3 Hitungan untuk peringatan (`RJ-DOC-FE-011` b)
+
+Setiap baris membawa field tambahan berikut, dibaca saat permintaan:
+
+| Field | Isi | Sumber aturan |
+|---|---|---|
+| `draftPrescriptionCount` | Resep konsultasi itu yang aktif, belum batal/dihapus, dan berstatus `Draft`. Resep inilah yang diteruskan ke farmasi saat finalisasi | `ConsultationFinalizationService.cs:99-138` |
+| `procedureCount` | Tindakan konsultasi itu yang aktif dan belum batal/dihapus | `ConsultationFinalizationService.cs:164-165` |
+| `pendingDays` | Selisih hari antara tanggal operasional hari ini dan `QueueDate` | — |
+| `canCancelConsultation` | `true` bila pengguna memegang `DoctorConsultation : Cancel`, dihitung sekali per permintaan dengan `AccessPermissionService.HasAccessAsync`. Hanya penanda tampilan; endpoint batal tetap memeriksa sendiri | Pola `canCancel` Amendment DP (`CAP-DP-05`) |
+
+Frontend membaca ulang hitungan saat modal Simpan dibuka (parameter `queueId`, KT.7), sebab
+dokter dapat menambah resep setelah daftar dimuat.
+
+### KT.3.4 Pesan petunjuk Daftar Pasien Rawat Jalan (`RJ-DOC-FE-012`)
+
+`OutpatientEncounterListService.GetCancelBlockedReason` memakai satu kalimat untuk petunjuk baris
+dan untuk pesan `400` saat batal. Kalimat diganti agar menunjuk tempat yang benar, untuk kunjungan
+hari ini maupun hari sebelumnya:
+
+| Lama | Baru |
+|---|---|
+| "Konsultasi masih aktif. Selesaikan atau batalkan konsultasi lewat workspace dokter." | "Konsultasi masih aktif. Dokter penanggung jawab menyelesaikan atau membatalkannya di Klinis Dokter (antrean hari ini, atau Konsultasi tertunda untuk kunjungan hari sebelumnya)." |
+
+Hanya bunyi yang berubah; kondisi penolakan tidak berubah.
+
+### KT.3.5 Selesaikan dan Batalkan (`RJ-DOC-DEC-031`)
+
+Tidak ada endpoint aksi baru.
+
+| Aksi | Endpoint lama | Efek pada data |
+|---|---|---|
+| Simpan (finalisasi) | `POST /doctor-queues/{id}/finish-consultation` | Konsultasi `Completed`, antrean `Completed`, kunjungan 7, resep draf diteruskan. Waktu selesai = saat tombol ditekan |
+| Batalkan konsultasi | `PATCH /doctor-consultations/{id}/cancel` (alasan wajib, maks 250) | Konsultasi `Cancelled`. Antrean tetap `InConsultation` dan kunjungan tetap 6 (perilaku lama). Kunjungan keluar dari Konsultasi tertunda; petugas membatalkannya di Daftar Pasien Rawat Jalan |
+
+Kedua aksi tetap melewati penjaga penulis tunggal dan penjaga keutuhan dokumen. Aksi berdasarkan
+id tidak memeriksa tanggal (`F-KT-3`), jadi keduanya sudah berlaku untuk antrean lampau.
+
+## KT.4 Class diagram
+
+```mermaid
+classDiagram
+    class DoctorQueueController {
+        +GetPendingConsultations(doctorId, queueId, search, pageNumber, pageSize)
+        -BuildPendingConsultationQuery(allowedDoctorId)
+        -MapResponsesAsync(queues)
+        -ResolveAllowedDoctorIdAsync(doctorId)
+    }
+    class DoctorQueueResponse {
+        QueueDate
+        ConsultationId
+    }
+    class DoctorPendingConsultationResponse {
+        DraftPrescriptionCount
+        ProcedureCount
+        PendingDays
+        CanCancelConsultation
+    }
+    class OutpatientEncounterRules {
+        +WhereOutpatientClinicEncounter()
+    }
+    class OutpatientEncounterListService {
+        +GetCancelBlockedReason()
+    }
+    DoctorPendingConsultationResponse --|> DoctorQueueResponse
+    DoctorQueueController ..> DoctorPendingConsultationResponse
+    DoctorQueueController ..> OutpatientEncounterRules
+```
+
+## KT.5 Penjelasan class
+
+| Class | Status | Lokasi file | Tugas | Dipanggil oleh | Transaksi DB |
+|---|---|---|---|---|---|
+| `DoctorQueueController` | Diperbarui | `Areas/HealthServices/RegistrationManagement/Controllers/DoctorQueueController.cs` | Endpoint baru `GET pending-consultations` dan method privat `BuildPendingConsultationQuery`. Memakai ulang `ResolveAllowedDoctorIdAsync`, `IsCurrentUserSuperAdminAsync`, dan `MapResponsesAsync`. Menambah dependency `AccessPermissionService` lewat konstruktor bila belum ada | Frontend Klinis Dokter | Tidak (baca-saja, `AsNoTracking`) |
+| `DoctorPendingConsultationResponse` | Baru | `Areas/HealthServices/RegistrationManagement/DTOS/DoctorQueueDtos.cs` | Turunan `DoctorQueueResponse` ditambah empat field KT.3.3, supaya kartu dan workspace frontend memakai bentuk yang sama dengan antrean hari ini | Controller | — |
+| `OutpatientEncounterRules` | Sudah ada | `Areas/HealthServices/RegistrationManagement/Services/OutpatientEncounterRules.cs` | `WhereOutpatientClinicEncounter` dipakai pada kunjungan antrean | Controller | — |
+| `OutpatientEncounterListService` | Diperbarui | `Areas/HealthServices/RegistrationManagement/Services/OutpatientEncounterListService.cs` | Hanya bunyi pesan di `GetCancelBlockedReason` (KT.3.4) | — | — |
+
+## KT.6 Arsitektur folder
+
+```text
+Areas/HealthServices/RegistrationManagement/
+├── Controllers/
+│   └── DoctorQueueController.cs            Diperbarui — endpoint pending-consultations
+├── DTOS/
+│   └── DoctorQueueDtos.cs                  Diperbarui — DoctorPendingConsultationResponse
+└── Services/
+    ├── OutpatientEncounterRules.cs         Sudah ada — dipakai ulang
+    └── OutpatientEncounterListService.cs   Diperbarui — bunyi pesan saja
+```
+
+Logika query di controller mengikuti pola `DoctorQueueController` yang sudah ada. Ini utang teknis
+existing (query di controller, bukan service) dan tidak dirapikan di amandemen ini.
+
+## KT.7 Endpoint (ringkas — rincian di `contracts/api-contract.md` *Amendment KT*)
+
+Base URL `api/v1/health-services/registration-management/doctor-queues`.
+
+| Method | Path | Hak akses | Status |
+|---|---|---|---|
+| `GET` | `/pending-consultations` | `DoctorQueue : Read` | Rencana (belum tersedia) |
+
+**Jawaban `RJ-DOC-OQ-013`:** endpoint terpisah, bukan parameter baru pada `GET /doctor-queues`.
+Alasannya: (1) syaratnya berbeda (lintas tanggal, wajib ada konsultasi aktif, membawa hitungan),
+sehingga parameter tambahan membuat satu endpoint punya dua arti; (2) kontrak `GET /doctor-queues`
+beserta ringkasan dan call-lock yang dipakai layar hari ini tidak tersentuh. Hak akses memakai
+`DoctorQueue : Read` yang sudah dimiliki dokter pengguna Klinis Dokter; tidak ada butir hak akses
+baru.
+
+## KT.8 Status model dan dampak migration
+
+Tidak ada model yang berubah. Tidak ada migration.
+
+## KT.9 Rencana migration
+
+Tidak berlaku — tidak ada perubahan schema.
+
+## KT.10 Rencana data master awal
+
+Tidak berlaku — tidak ada master baru. Dokter memerlukan `DoctorQueue : Read` (sudah dipakai layar
+hari ini). Untuk Batalkan konsultasi, dokter memerlukan `DoctorConsultation : Cancel`. Task backend
+wajib memeriksa apakah jabatan dokter di DB uji sudah memilikinya, lalu melaporkannya.
+
+## KT.11 Otorisasi, privasi, audit
+
+| Hal | Aturan |
+|---|---|
+| Cakupan | KT.3.2. Antrean dokter lain tidak pernah dikembalikan kepada dokter |
+| Privasi | Field sama dengan `GET /doctor-queues`; tidak ada data klinis tambahan selain dua hitungan |
+| Audit | Membaca daftar tidak dicatat (sama dengan daftar antrean hari ini). Selesaikan dan Batalkan dicatat oleh endpoint lama |
+| Logging | Tidak mencatat nama pasien atau no. RM ke custom logger |
+
+## KT.12 Strategi verifikasi
+
+Pola Bank Darah: tanpa project/folder test. Bukti berupa `dotnet build`, QBE Strict pada berkas yang
+disentuh, dan uji runtime HTTP terhadap `QuilvianNewDevSukma` sesuai
+`testing/acceptance-test-matrix.md` *Amendment KT*. Data uji dibuat dan dibersihkan lewat endpoint
+aplikasi.
+
+## KT.13 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+|---|---|
+| Parameter `includePastPending` pada `GET /doctor-queues` | Satu endpoint dua arti; menyentuh kontrak layar hari ini (KT.7) |
+| Pemilih tanggal | Ditolak pemilik (`RJ-DOC-DEC-029`) |
+| Service baru `DoctorPendingConsultationService` | Mapping `MapResponsesAsync` dan penentu cakupan bersifat privat di controller; memindahkannya adalah refactor di luar scope |
+| Membatalkan kunjungan otomatis saat konsultasi dibatalkan | Mengubah perilaku endpoint batal konsultasi dan `RJ-DOC-DEC-021`; di luar scope |
+| Penjaga backend khusus konsultasi lampau | Pemilik memutuskan aturan finalisasi tidak berubah (`RJ-DOC-DEC-031`); peringatan cukup di frontend |
+
+## KT.14 Perilaku existing yang terlihat selama desain
+
+1. Batal konsultasi tidak membatalkan resep draf milik konsultasi itu. Perilaku lama, di luar
+   scope; dicatat sebagai `RJ-DOC-OQ-015`.
+2. Batal konsultasi membiarkan antrean tetap `InConsultation`. Bila terjadi pada hari yang sama,
+   antrean tetap tampil di antrean hari ini tanpa konsultasi aktif. Perilaku lama, di luar scope.
+3. Frontend belum punya tombol Batalkan konsultasi sama sekali; `cancelDoctorConsultation` di
+   `doctor-consultation.service.js` belum dipanggil di mana pun. Amendment ini menambahkannya
+   khusus untuk konsultasi tertunda (`03` *Amendment KT*). Perluasan ke antrean hari ini dicatat
+   sebagai `RJ-DOC-OQ-014`.

@@ -752,3 +752,300 @@ working tree, dependency state, preflight, dan bukti acceptance yang diminta.
 Tidak satu pun task di dokumen ini memberi izin: mengubah application source, menjalankan builder,
 commit, push, merge, deployment, membuat atau menjalankan migration, mengubah database,
 mengaktifkan `RJ-BIL-DEP-009`, atau mengerjakan Billing.
+
+---
+
+## 9. Revisi UAT `2026-09-28` — `RJ-DOC-REV-*`
+
+### 9.0 Dasar dan wewenang
+
+| Field | Isi |
+| --- | --- |
+| **Sumber requirement** | Dua dokumen UAT pemilik: *Skrining Pasien* dan *Dokter Rawat Jalan* (catatan `28/9/2026`) |
+| **Keputusan** | `RJ-DOC-DEC-007` — `2026-10-01`, Sukma Giri. Kedua dokumen diterima sebagai requirement yang disetujui dan dicatat sebagai task `RJ-DOC-REV-*` |
+| **`RJ-DOC-OQ-003` dibuka ulang** | `RJ-DOC-DEC-008` — order Lab dan Radiologi dari workspace dokter **naik menjadi scope revisi ini**. `RJ-DOC-CAP-010` dan `CAP-011` tidak lagi `CONDITIONAL` |
+| **`IMPLEMENTATION_AUTHORITY`** | **`GRANTED`** untuk seluruh task `RJ-DOC-REV-BE-*` dan `RJ-DOC-REV-FE-*`, termasuk membuat migration dan menjalankan migration/seed ke `QuilvianNewDevSukma`. Commit, push, merge, deploy, dan database lain **tetap tidak** termasuk |
+| **CPPT** | Tetap disembunyikan (tab dan render dikomentari). Tidak ada task CPPT pada revisi ini |
+| **Tidak termasuk** | Penghapusan data test (`RJ-DOC-DEC-009`: tidak dilakukan) |
+| **Baseline source** | Backend `33ee2955` cabang `sukmagp`, worktree `CLEAN`. Frontend `7969f959` cabang `sukmagpV2`, worktree `CLEAN` |
+| **Verifikasi** | Pola Bank Darah: build, `has-pending-model-changes`, QBE Strict, runtime HTTP ke `QuilvianNewDevSukma`. Tidak ada project test |
+
+### 9.1 Temuan audit yang menjadi dasar task
+
+| # | Temuan | Bukti |
+| --- | --- | --- |
+| A1 | Layar perawat membaca `primaryGuarantorNameSnapshot`, `primaryGuarantorTypeSnapshot`, `isInsurancePatient`, `isCompanyPatient`, tetapi response antrean perawat tidak mengirim keempatnya, sehingga tampil kosong atau `Tidak` | `PatientInformationTab.jsx:46-66`; `NurseStationQueueController.cs:1189-1199` |
+| A2 | Endpoint surat dokter `/doctor-certificates` dipanggil frontend tetapi **tidak ada** di backend; surat tidak pernah tersimpan dan riwayat tidak mungkin dibuat | `doctor-queue.service.js:14-15`; nol hasil `DoctorCertificate` di `Areas/` |
+| A3 | Master tindakan (`5495` baris lolos filter dokter rawat jalan) dan master obat (`7862` baris) ada di DB; penyebab katalog kosong di layar perlu dibuktikan runtime | query read-only `QuilvianNewDevSukma` `2026-10-01` |
+| A4 | `MstDoctorServiceRule` hanya `2` baris, keduanya data test; `0` rule konsultasi untuk `11` dokter aktif berjadwal. Tarif konsultasi (`IsConsultationFee`) sudah ada `2130` baris untuk `113` tindakan konsultasi | query read-only |
+| A5 | Tab Penunjang Medis masih `WorkInProgressTab`; tab hasil hanya Radiologi | `doctor-queue-view.jsx:198-213` |
+| A6 | CSV ICD (`icd10_202609281504.csv`, `icd_diagnosa_202609281508.csv`) belum ada di repo | — |
+
+### 9.2 Backend
+
+| Task | Isi | Acceptance criteria | Dependency | Status |
+| --- | --- | --- | --- | --- |
+| ✅ `RJ-DOC-REV-BE-001` | Data penjamin dan identitas pasien pada antrean perawat dan dokter | 1. Antrean perawat dan dokter mengirim `PrimaryGuarantorNameSnapshot`, `PrimaryGuarantorTypeSnapshot`, `IsInsurancePatient`, `IsCompanyPatient` yang diturunkan dari penjamin aktif kunjungan (`RegPatientEncounterGuarantor`). 2. `PaymentType = Insurance` ⇒ `IsInsurancePatient = true`; `CompanyGuarantor` ⇒ `IsCompanyPatient = true`. 3. Antrean dokter juga mengirim jenis kelamin, umur, alergi aktif, dan rujukan foto KTP/kartu penjamin | — | ✅ `COMPLETE` `2026-10-01` — build `0 Error`, QBE Strict `PASS`, `has-pending-model-changes` bersih, runtime R0–R3 `4/4 PASS`; jalur `CompanyGuarantor` hanya terbukti lewat kode (tidak ada data valid). [Laporan](../task/report/backend/RJ-DOC-REV-BE-001.md) |
+| ✅ `RJ-DOC-REV-BE-002` | Risiko jatuh tidak dipilih tidak tersimpan dengan skor | Asesmen dengan `HasFallRisk = false` menyimpan `FallRiskScore` `null`/`0`, tidak lebih dari `0` | — | ✅ `COMPLETE` `2026-10-01` — tanpa perubahan kode: `50/50` asesmen tanpa risiko jatuh berskor `null` (query + runtime `GET /patient-assessments`). Angka `1` di layar adalah enum `FallRiskStatus.NoRisk`, diperbaiki di `REV-FE-002`. [Laporan](../task/report/backend/RJ-DOC-REV-BE-002.md) |
+| 🟡 `RJ-DOC-REV-BE-003` | Perbaiki simpan SOAP | `PATCH /doctor-consultations/{id}/soap` dari alur dokter rawat jalan berbalas `200` dan tersimpan; penyebab kegagalan dibuktikan runtime | — | 🟡 `PARTIAL` `2026-10-01` — tanpa perubahan kode; runtime R1–R5 `5/5 PASS` (buat konsultasi, diagnosis, rekomendasi, autosave, muat ulang). Kriteria *penyebab dibuktikan runtime* belum terpenuhi: kegagalan UAT `28/9` tidak dapat direproduksi; dugaan terkuat skema DB tertinggal (`20260930110000`) atau hak akses `WriteSoap`. [Laporan](../task/report/backend/RJ-DOC-REV-BE-003.md) |
+| ✅ `RJ-DOC-REV-BE-004` | Surat dokter: persistence, API, dan riwayat | 1. Entity + migration surat dokter. 2. `POST`, `PUT /{id}`, `GET active-by-queue/{queueId}`, dan riwayat per pasien. 3. Dokter yang tercatat adalah Dokter Penanggung Jawab kunjungan. 4. Tujuan rujukan disimpan sebagai rujukan master (unit/klinik) beserta snapshot namanya | — | ✅ `COMPLETE` `2026-10-01` — tabel `CliDoctorCertificate` + migration `20261001040508` diterapkan ke Sukma; build `0 Error`, QBE Strict `PASS` (17 berkas), drift nihil, runtime R0–R13 `PASS`. Hak akses `DoctorCertificate` perlu dicentang admin. [Laporan](../task/report/backend/RJ-DOC-REV-BE-004.md) |
+| ✅ `RJ-DOC-REV-BE-005` | Master data aturan layanan dokter dan relasinya | Seeder idempoten: setiap dokter aktif berjadwal punya `MstDoctorServiceRule` konsultasi per (unit layanan, klinik) yang menunjuk tindakan konsultasi bertarif `IsConsultationFee`; relasi `MstDoctor`, `MstServiceUnit`, `MstClinic`, `MstTariffCategory`, `MstTariff`, `MstProcedure`, `MstPatientClass` valid; resolver tarif konsultasi menemukan tarif untuk kelas `RAWAT JALAN` | — | ✅ `COMPLETE` `2026-10-01` — skrip idempoten `seed-doctor-service-rules-outpatient.sql` + `grant-doctor-certificate-access.sql` dijalankan 2× di Sukma: `20` aturan untuk `11` dokter, `0` tanpa tarif konsultasi, `12` policy hak akses; terbaca via API master (`200`, `totalData 20`). [Laporan](../task/report/backend/RJ-DOC-REV-BE-005.md) |
+| ✅ `RJ-DOC-REV-BE-006` | Grouping ICD-10 berdasarkan ICD Diagnosa | Mengikuti CSV pemilik | CSV `A6` | ✅ `COMPLETE` `2026-10-01` — `MstDiagnosisGroup` (`528` kelompok DTD) + `MstDiagnosis.DiagnosisGroupId`, migration `20261001043557` diterapkan ke Sukma; `18079/18543` kode ICD-10 terpetakan; seeder idempoten (`19 s` → `0,6 s`); QBE `PASS`; runtime `kolera`/`I10`/`J18`/`leukemia` terkelompok. CSV `icd10` terpotong `1000` baris — sisanya via rentang. [Laporan](../task/report/backend/RJ-DOC-REV-BE-006.md) |
+
+### 9.3 Frontend
+
+| Task | Isi | Acceptance criteria | Dependency | Status |
+| --- | --- | --- | --- | --- |
+| ✅ `RJ-DOC-REV-FE-001` | Skrining Pasien (perawat) | 1. Penjamin utama, jenis penjamin, pasien asuransi/perusahaan tampil benar. 2. Baris Pembayaran Campuran, Eligibility Diperlukan, Eligibility Selesai, No. Eligibility dihapus. 3. Alert isian tidak sesuai pada Tanda Vital tampil di field masing-masing | `REV-BE-001` | ✅ `COMPLETE` `2026-10-01` — lint `0 error`, `next build` `PASS`, unit `2169/2175` (6 gagal milik modul lain, `EXISTING`); manual klik `NOT FEASIBLE` (tanpa peramban) — kontrak data diuji runtime HTTP. Test baru `5/5`. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-001.md) |
+| ✅ `RJ-DOC-REV-FE-002` | Hasil Skrining dokter dan header pasien | 1. Risiko jatuh tidak dipilih tampil `0`/`-`. 2. Tanggal skrining berspasi. 3. Header menampilkan jenis kelamin, umur, alergi, dan foto KTP/kartu penjamin. 4. Label `Jenis Pembayaran` menjadi `Asuransi/ Penjamin` | `REV-BE-001`, `REV-BE-002` | ✅ `COMPLETE` `2026-10-01` — lint `0 error`, `next build` `PASS`, unit `2169/2175` (6 gagal milik modul lain, `EXISTING`); manual klik `NOT FEASIBLE` (tanpa peramban) — kontrak data diuji runtime HTTP. Test baru `5/5`. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-002.md) |
+| ✅ `RJ-DOC-REV-FE-003` | SOAP | 1. Badge nama pasien, No. RM, dan status `SOAP siap diedit` dihapus dari header. 2. Subjective = keluhan utama asesmen terakhir tersimpan. 3. Objective = vital sign dasar terakhir tersimpan. 4. Assessment = diagnosa ICD terpilih. 5. Simpan SOAP berhasil | `REV-BE-003` | ✅ `COMPLETE` `2026-10-01` — lint `0 error`, `next build` `PASS`, unit `2169/2175` (6 gagal milik modul lain, `EXISTING`); manual klik `NOT FEASIBLE` (tanpa peramban) — kontrak data diuji runtime HTTP. Test baru `3/3`; dependency `REV-BE-003` 🟡. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-003.md) |
+| ✅ `RJ-DOC-REV-FE-004` | Resep — tampilkan master obat | Katalog obat menampilkan master obat dan dapat dipilih | — | ✅ `COMPLETE` `2026-10-01` — lint `0 error`, `next build` `PASS`, unit `2169/2175` (6 gagal milik modul lain, `EXISTING`); manual klik `NOT FEASIBLE` (tanpa peramban) — kontrak data diuji runtime HTTP. Katalog obat langsung tampil (`3015` obat). [Laporan](../task/report/frontend/RJ-DOC-REV-FE-004.md) |
+| ✅ `RJ-DOC-REV-FE-005` | Tindakan — tampilkan master tindakan | Katalog tindakan menampilkan master tindakan dan dapat dipilih | — | ✅ `COMPLETE` `2026-10-01` — lint `0 error`, `next build` `PASS`, unit `2169/2175` (6 gagal milik modul lain, `EXISTING`); manual klik `NOT FEASIBLE` (tanpa peramban) — kontrak data diuji runtime HTTP. Katalog tindakan langsung tampil (`50` baris). [Laporan](../task/report/frontend/RJ-DOC-REV-FE-005.md) |
+| ✅ `RJ-DOC-REV-FE-006` | Surat Dokter | 1. Diagnosa terisi dari Assessment SOAP terakhir. 2. Riwayat surat dokter. 3. Unit/Tujuan Rujukan berupa pilihan yang dapat dicari. 4. Label `Dokter Pemeriksa` menjadi `Dokter Penanggung Jawab` | `REV-BE-004` | ✅ `COMPLETE` `2026-10-01` — lint `0 error`, `next build` `PASS`, unit `2169/2175` (6 gagal milik modul lain, `EXISTING`); manual klik `NOT FEASIBLE` (tanpa peramban) — kontrak data diuji runtime HTTP. Test baru `2/2`; surat kini ikut tersimpan saat Selesai Konsultasi. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-006.md) |
+| ✅ `RJ-DOC-REV-FE-007` | Penunjang Medis — order Lab dan Radiologi dari dokter | Dokter dapat membuat dan melihat order Lab dan Radiologi kunjungan ini memakai endpoint `LabOrder`/`RadOrder` existing | — | ✅ `COMPLETE` `2026-10-01` — lint `0 error`, `next build` `PASS`, unit `2169/2175` (6 gagal milik modul lain, `EXISTING`); manual klik `NOT FEASIBLE` (tanpa peramban) — kontrak data diuji runtime HTTP. Runtime order Lab `201`, Radiologi `201`. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-007.md) |
+| ✅ `RJ-DOC-REV-FE-008` | Hasil Penunjang Medis | Tab `Hasil Radiologi` menjadi `Hasil Penunjang Medis` dan menampilkan hasil Lab dan Radiologi kunjungan per kategori penunjang | `REV-FE-007` | ✅ `COMPLETE` `2026-10-01` — lint `0 error`, `next build` `PASS`, unit `2169/2175` (6 gagal milik modul lain, `EXISTING`); manual klik `NOT FEASIBLE` (tanpa peramban) — kontrak data diuji runtime HTTP. Hasil Lab per disiplin + panel Radiologi. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-008.md) |
+
+## 10. Revisi `2026-10-01` — prioritas Skrining
+
+### 10.0 Dasar dan wewenang
+
+| Field | Isi |
+| --- | --- |
+| **Sumber requirement** | Catatan pemilik 1 Okt 2026 pukul 16.09, "Prioritas Screening" butir 1–3 |
+| **Keputusan** | `RJ-DOC-DEC-010` — `2026-10-01`, Sukma Giri (dipilih lewat sesi agent): (a) EWS mengacu NEWS2/MEWS; keduanya hanya menilai sistolik, sehingga diastolik **ditampilkan** di tabel EWS tanpa menambah skor, dengan interpretasi memakai ambang abnormal/kritis backend yang sudah ada (< 60 / > 110 abnormal, ≥ 120 kritis). (b) Kategori IMT dewasa memakai standar Kemenkes RI: < 18,5 kurang; 18,5–25,0 normal; > 25,0–27,0 lebih; > 27,0 obesitas; pasien < 18 tahun tidak dikategorikan (pakai IMT/U). (c) Satu pasien satu kunjungan aktif: pendaftaran rawat jalan (petugas dan Kiosk) ditolak selama pasien masih punya kunjungan yang belum Selesai/Batal/Tidak Hadir, **tanggal berapa pun** |
+| **`IMPLEMENTATION_AUTHORITY`** | `GRANTED` untuk `RJ-DOC-REV-BE-007` dan `RJ-DOC-REV-FE-009`. Tanpa migration. Commit, push, merge, deploy tidak termasuk |
+| **Baseline source** | Backend `27fd8fb4` (`sukmagp`), frontend `fa9d5dd2` (`sukmagpV2`), keduanya bersih |
+
+### 10.1 Temuan audit
+
+| # | Temuan | Bukti |
+| --- | --- | --- |
+| B1 | EWS tidak memuat diastolik di preview FE (dua salinan util: perawat dan dokter) maupun skor tersimpan BE | `ews.utils.js`; `PatientVitalSignCalculation.CalculateEwsScore` |
+| B2 | BMI hanya angka, tanpa kategori | `vital-preview.utils.js#calculateBmiPreview` |
+| B3 | Create kunjungan (admin dan Kiosk) tidak memeriksa kunjungan aktif. DB dev: `14` pasien punya lebih dari satu kunjungan yang belum selesai | `PatientEncounterController.ValidateCreateRequestAsync`; query read-only `2026-10-01` |
+
+### 10.2 Task
+
+| Task | Isi | Acceptance criteria | Status |
+| --- | --- | --- | --- |
+| ✅ `RJ-DOC-REV-BE-007` | Satu kunjungan aktif per pasien | 1. `POST /admin` dan `POST /kiosk` (alias `/`) menolak `400` bila pasien punya kunjungan yang masih berjalan menurut definisi tunggal `KunjunganMasihBerjalan`; pesan menyebut nomor dan tanggal kunjungan itu. 2. Setelah kunjungan itu dibatalkan/selesai, pendaftaran berhasil. 3. Dua permintaan bersamaan menghasilkan tepat satu kunjungan | ✅ `COMPLETE` `2026-10-01` — build Release `0 Error` (244 warning, tanpa warning baru di berkas task), QBE Strict `PASS` (2 berkas), runtime R0–R8 `9/9 PASS` (termasuk dua `POST` bersamaan → `200`/`400`). Tanpa migration. [Laporan](../task/report/backend/RJ-DOC-REV-BE-007.md) |
+| 🟡 `RJ-DOC-REV-FE-009` | EWS diastolik dan kategori BMI di Skrining Perawat dan Dokter | 1. Tabel EWS memuat baris "Tekanan Darah Diastolik" bertanda "Tidak diskor"; skor total tidak berubah. 2. Kartu BMI menampilkan "Kategori (Kemenkes): …" sesuai ambang `RJ-DOC-DEC-010`, dibulatkan satu desimal seperti tampilan. 3. Pasien < 18 tahun tidak diberi kategori dewasa | 🟡 `PARTIAL` `2026-10-01` — logika `30/30 PASS` (skrip node, kedua salinan util; batas 18,5/25,0/27,0 teruji), ESLint tanpa warning baru, `next build` `PASS`. Belum: uji klik layar, karena antrean perawat untuk SuperAdmin kosong (difilter cluster) dan akun perawat tidak tersedia. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-009.md) |
+
+
+## 11. Revisi `2026-10-02` — Daftar Pasien Rawat Jalan (Amendment DP)
+
+### 11.0 Dasar dan wewenang
+
+| Field | Isi |
+| --- | --- |
+| **Sumber requirement** | Pendaftaran pasien lama ditolak oleh ENC-RSMMC-00146 tanpa layar untuk menutup kunjungan (dampak `RJ-DOC-REV-BE-007` §5 risiko 1) |
+| **Keputusan** | `RJ-DOC-DEC-011`..`024`, `RJ-DOC-FE-005`..`009` ([00-interview-decisions.md](../00-interview-decisions.md)) |
+| **Desain** | Blueprint revisi `28` *Amendment DP*, `approved` (`RJ-DOC-DEC-024`) |
+| **Kontrak** | `RJ-DOC-ENCLIST-001@1.0.0` (`approved`) — `contracts/api-contract.md` SHA-256 `BD8AE89DABAE8C8847A2C83964CBAAD7BADDB2D75480C4A5E977474BD21D51DB` |
+| **Capability** | [01-capability-impact-scan-daftar-pasien-rj.md](../01-capability-impact-scan-daftar-pasien-rj.md) |
+| **Baseline source** | Backend `245f0464`, frontend `b7e9b7fd4` |
+| **`IMPLEMENTATION_AUTHORITY`** | `GRANTED` untuk kelima task (`RJ-DOC-DEC-025`, 2 Okt 2026). Tanpa migration, commit, push, merge, deploy |
+| **Migration** | Tidak ada di seluruh task bagian ini |
+| **Verifikasi** | Pola Bank Darah: tanpa project test; build, QBE Strict, dan runtime HTTP terhadap `QuilvianNewDevSukma` |
+| **Governance backend** | Setiap task backend menjalankan QBE preflight dan kesesuaian engineering pada waktu eksekusi, dari `AGENTS.md` backend dan dokumen engineering canonical (`rules/backend/engineering/`) |
+
+Legenda tanda status: `✅` selesai, `🟡` sebagian, `⛔` terblokir, tanpa tanda = belum dimulai.
+
+### Grafik Urutan Dependency
+
+**Backend (`MVP-0`):**
+
+```text
+RJ-DOC-REV-BE-008 ✅ ─> RJ-DOC-REV-BE-009 ✅ ─> RJ-DOC-REV-BE-010 ✅
+```
+
+| Gelombang | Task | Boleh mulai bila |
+| ---: | --- | --- |
+| 1 | `RJ-DOC-REV-BE-008` | Wewenang task diberikan |
+| 2 | `RJ-DOC-REV-BE-009` | `BE-008` ✅ |
+| 3 | `RJ-DOC-REV-BE-010` | `BE-009` ✅ |
+
+**Frontend (`MVP-1`):**
+
+```text
+[BE] RJ-DOC-REV-BE-009 ✅ ─> RJ-DOC-REV-FE-010 ✅ ─┬─> RJ-DOC-REV-FE-011 ✅
+                                                 │
+[BE] RJ-DOC-REV-BE-010 ✅ ────────────────────────┘
+```
+
+Legenda: `[BE]` = cermin baca-saja task backend dari grafik di atas; bukan task roadmap frontend.
+
+| Gelombang | Task | Boleh mulai bila |
+| ---: | --- | --- |
+| 1 | `RJ-DOC-REV-FE-010` | `[BE] BE-009` ✅ |
+| 2 | `RJ-DOC-REV-FE-011` | `FE-010` ✅ dan `[BE] BE-010` ✅ |
+
+Pasangan prasyarat → task: backend 2, frontend 3 — sama dengan kolom `Dependency` di bawah.
+Kontrak sudah `approved` dan terkunci hash-nya, sehingga `FE-010` **boleh** mulai menyusun layar
+lebih awal dengan data tiruan; namun statusnya hanya dapat menjadi `✅` setelah diuji terhadap
+`BE-009` yang nyata.
+
+### 11.1 Task backend
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| ✅ `RJ-DOC-REV-BE-008` | **Aturan kunjungan RJ berklinik dan pelonggaran pemblokir pendaftaran.** `OutpatientEncounterRules` (tiga expression: `IsOutpatientClinicEncounter`, `BlocksRegistration`, `IsCancellableStatus`); `PatientEncounterController.FindActiveEncounterAsync` memakai `BlocksRegistration`. `KunjunganMasihBerjalan` tidak disentuh | — | `AT-DP-15`, `AT-DP-16`, `AT-DP-17`, `AT-DP-18`, `AT-DP-19` | Build Release `0 Error`; QBE Strict `PASS` pada berkas yang disentuh; runtime: pasien dengan kunjungan status 7 / lab walk-in / IGD → `POST /patient-encounters/admin` `200`; status 5 → `400` pesan `RJ-DOC-REV-BE-007` | ✅ `COMPLETE` `2026-10-02` — build Release `0 Error` (244 warning, sama dengan baseline), QBE Strict `PASS` (3 berkas), runtime R0–R7 `8/8 PASS` (AT-DP-15/16/17/19); AT-DP-18 lewat diff; bagian IGD AT-DP-17 lewat aturan, tidak diuji runtime. Tanpa migration. [Laporan](../task/report/backend/RJ-DOC-REV-BE-008.md) |
+| ✅ `RJ-DOC-REV-BE-009` | **Daftar, summary, metadata bercakupan dan butir hak akses.** `ClinicalActorScopeService`; `OutpatientEncounterExplicitPermissions` (`ReadAll`); `OutpatientEncounterListService` (list, summary, metadata); `OutpatientEncounterController` tiga `GET`; DTO; registrasi DI | `BE-008` | `AT-DP-01`..`06`, `AT-DP-20`, `AT-DP-21`; butir `OutpatientEncounter : Read/ReadAll` muncul di layar Akses Role | Build, QBE Strict, runtime dengan empat akun: dokter, perawat ber-cluster, pendaftaran ber-`ReadAll`, akun tanpa cakupan (`403`) | ✅ `COMPLETE` `2026-10-02` — build Release `0 Error` (244 warning, sama dengan baseline), QBE Strict `PASS` (7 berkas), runtime SuperAdmin `17/17 PASS` + akun uji dokter/perawat/tanpa cakupan/pendaftaran `16/16 PASS` (AT-DP-01..06, 20, 21). Tanpa migration. Hak akses tiga jabatan digabung untuk uji (lihat laporan §4). [Laporan](../task/report/backend/RJ-DOC-REV-BE-009.md) |
+| ✅ `RJ-DOC-REV-BE-010` | **Pembatalan kunjungan.** `PATCH /outpatient-encounters/{id}/cancel`: kunci baris, periksa ulang aturan + konsultasi aktif, isi kolom batal, batalkan antrean, notifikasi setelah commit, log tanpa data medis. Butir `OutpatientEncounter : Cancel` | `BE-009` | `AT-DP-07`..`14`; pesan `RJDP-VAL-002`..`006` persis seperti `validation-matrix` | Build, QBE Strict, runtime termasuk dua `PATCH` paralel (`200`/`400`); data uji dibersihkan lewat endpoint aplikasi | ✅ `COMPLETE` `2026-10-02` — build Release `0 Error` (244 warning, sama dengan baseline), QBE Strict `PASS` (3 berkas), runtime AT-DP-07..14 seluruhnya `PASS` (termasuk dua `PATCH` paralel `200`/`400`; AT-DP-09 pada kunjungan nyata dengan penjaga baca-dulu, data tidak berubah). Tanpa migration. [Laporan](../task/report/backend/RJ-DOC-REV-BE-010.md) |
+
+### 11.2 Task frontend
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| ✅ `RJ-DOC-REV-FE-010` | **Layar Daftar Pasien Rawat Jalan (baca) dan butir menu.** Route `/health-services/registration-management/outpatient-encounters`; Hero dengan label cakupan; SummaryGrid lima kartu (klik Menggantung = mode aktif + `hangingOnly`); DataFilter; DataTable + pagination; keadaan memuat/kosong/gagal/`403`; butir menu di bawah Skrining Pasien dengan `requiredPermission` `OutpatientEncounter : Read` | `[BE] BE-009` | `AT-DP-23`; skema `DP-FE.3` keempat keadaan; default mode Hari ini; filter dokter hanya untuk `scope.canReadAll` | Lint tanpa error baru; `next build` `PASS`; runtime terhadap `BE-009` dengan akun dokter, perawat, pendaftaran | ✅ `COMPLETE` `2026-10-02` — ESLint `0 error, 0 warning`, `next build` `PASS`, UI GATE REUSE 12/12; uji layar Playwright (login lewat layar) SuperAdmin/dokter/perawat/tanpa cakupan/tanpa hak: menu, cakupan, tab bawaan, kartu Menggantung, rentang, keadaan memuat/kosong/gagal/berisi/403 seluruhnya `PASS` (satu deteksi filter Dokter dipastikan lewat tangkapan layar). [Laporan](../task/report/frontend/RJ-DOC-REV-FE-010.md) |
+| ✅ `RJ-DOC-REV-FE-011` | **Pembatalan dari layar.** Aksi baris Batalkan bersyarat (`item.canCancel` dan `usePermission("OutpatientEncounter", "Cancel")`); keterangan `cancelBlockedReason`; modal alasan 1-250; tombol nonaktif saat mengirim; pesan server di modal; toast dan muat ulang tabel + summary | `FE-010`, `[BE] BE-010` | `AT-DP-22`, `AT-DP-24` (kasus ENC-RSMMC-00146 atau padanannya pada data uji) | Lint, `next build`, runtime batal + daftar ulang pasien | ✅ `COMPLETE` `2026-10-02` — ESLint `0 error, 0 warning`, `npm run build` `PASS`, UI GATE REUSE 6/6; uji layar Playwright `12/12 PASS` (AT-DP-22 dokter tanpa Cancel + keterangan konsultasi aktif; AT-DP-24 batal lewat layar lalu daftar ulang pada data uji; data basi tampil di modal). ENC-RSMMC-00146 nyata tidak disentuh. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-011.md) |
+
+Butir menu menjadi AC `FE-010` agar tidak menganggur di antara task.
+
+### 11.3 Traceability
+
+| Requirement / keputusan | Task | Uji |
+| --- | --- | --- |
+| `RJ-DOC-DEC-012` hanya RJ | `BE-008`, `BE-009` | `AT-DP-06` |
+| `RJ-DOC-DEC-013` cakupan di server | `BE-009` | `AT-DP-01`..`04` |
+| `RJ-DOC-DEC-014` `ReadAll` tanpa nama role | `BE-009` | `AT-DP-05` |
+| `RJ-DOC-DEC-015` hak batal | `BE-010`, `FE-011` | `AT-DP-12`, `AT-DP-22` |
+| `RJ-DOC-DEC-016`/`021` batas status batal | `BE-008`, `BE-010` | `AT-DP-07`..`10` |
+| `RJ-DOC-DEC-017`/`023` endpoint lama tetap | `BE-008` | `AT-DP-19` |
+| `RJ-DOC-DEC-018` alasan | `BE-010`, `FE-011` | `AT-DP-11` |
+| `RJ-DOC-DEC-019`/`022` pemblokir | `BE-008` | `AT-DP-15`..`18` |
+| `RJ-DOC-DEC-020` status 6 lewat dokter | `BE-010`, `FE-011` | `AT-DP-09`, `AT-DP-22` |
+| `RJ-DOC-FE-005` menu | `FE-010` | `AT-DP-23` |
+| `RJ-DOC-FE-006`/`007` kerangka & default | `FE-010` | `AT-DP-21`, skema `DP-FE.3` |
+| `RJ-DOC-FE-008` modal batal | `FE-011` | `AT-DP-22`, `AT-DP-24` |
+| AC 13 pemblokir dapat ditemukan | `BE-009` | `AT-DP-20` |
+| Konkurensi batal | `BE-010` | `AT-DP-14` |
+
+**Coverage gap:**
+
+| Gap | Sebab | Penanganan |
+| --- | --- | --- |
+| `R-DP-1` — panggilan dokter bersamaan dengan pembatalan | Risiko sisa yang sengaja tidak ditutup (`02` DP.14) | Tidak diuji; dicatat untuk task antrean berikutnya |
+| `RJ-DOC-FE-009` kolom/gaya | `DEV_DISCRETION` | Tidak diuji sebagai keputusan produk |
+| Uji klik layar FE | Pengalaman `RJ-DOC-REV-FE-009`: akun perawat ber-cluster tidak tersedia | Siapkan akun dokter dan perawat ber-cluster di `QuilvianNewDevSukma` sebelum `FE-010`; bila tidak ada, laporan task wajib menyatakan `NOT FEASIBLE` |
+
+### 11.4 Definition of Done bagian ini
+
+Sama dengan `04-prd-to-mvp.md` *Amendment DP* DP-7: kelima task `✅`, `AT-DP-01`..`24` lulus, dan
+ENC-RSMMC-00146 (atau padanannya pada data uji) dapat ditutup lalu pasiennya didaftarkan ulang.
+
+## 12. Revisi `2026-10-02` — penangguhan sementara pemblokir pendaftaran
+
+| Field | Isi |
+| --- | --- |
+| **Keputusan** | `RJ-DOC-DEC-026` (penangguhan), `RJ-DOC-DEC-027` (wewenang) |
+| **Kontrak** | `RJ-DOC-ENCLIST-001@1.0.0` — bagian *Perubahan perilaku endpoint yang sudah ada* ditangguhkan selama saklar mati; bentuk request/response tidak berubah |
+| **Baseline source** | Backend `245f0464` + perubahan Amendment DP yang belum di-commit |
+| **Migration** | Tidak ada |
+
+### Grafik Urutan Dependency
+
+```text
+RJ-DOC-REV-BE-011 ✅
+```
+
+| Gelombang | Task | Boleh mulai bila |
+| ---: | --- | --- |
+| 1 | `RJ-DOC-REV-BE-011` | Wewenang diberikan (`RJ-DOC-DEC-027`) |
+
+### 12.1 Task
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| ✅ `RJ-DOC-REV-BE-011` | **Saklar pemblokir kunjungan aktif.** Konfigurasi `HealthServices:Registration:BlockActiveEncounter` (bawaan `false`). Bila `false`: validasi awal dan cek ulang dalam transaksi create dilewati, termasuk advisory lock-nya. Bila `true`: perilaku `RJ-DOC-REV-BE-008` utuh | — | 1. Saklar mati: pasien dengan kunjungan RJ berklinik status 0–6 dapat didaftarkan (`200`). 2. Saklar hidup: ditolak `400` dengan pesan `RJ-DOC-REV-BE-007`. 3. Daftar Pasien Rawat Jalan dan pembatalan tidak berubah | Build Release, QBE Strict, runtime kedua nilai saklar | ✅ `COMPLETE` `2026-10-02` — build Release `0 Error` (244 warning, sama dengan baseline), QBE Strict `PASS`, runtime saklar mati + hidup `7/7 PASS`. Bawaan `false` (aturan ditangguhkan). Tanpa migration. [Laporan](../task/report/backend/RJ-DOC-REV-BE-011.md) |
+
+
+## 13. Revisi `2026-10-05` — Konsultasi Tertunda di Klinis Dokter (Amendment KT)
+
+### 13.0 Dasar dan wewenang
+
+| Field | Isi |
+| --- | --- |
+| **Sumber requirement** | Saat `BlockActiveEncounter = true`, IKBAL YULIYANTO ditolak mendaftar karena ENC-RSMMC-00172 (30 Sep 2026) masih Sedang Konsultasi. Klinis Dokter hanya memuat antrean hari ini, sehingga dr. Arif Lesmana tidak dapat membuka konsultasi itu |
+| **Keputusan** | `RJ-DOC-DEC-028`..`032`, `RJ-DOC-FE-010`..`012` ([00-interview-decisions.md](../00-interview-decisions.md), *Amendment Pass 2026-10-05*) |
+| **Desain** | Blueprint revisi `29` *Amendment KT*, `approved` (`RJ-DOC-DEC-032`) |
+| **Kontrak** | `RJ-DOC-PENDCONS-001@1.0.0` (`approved`) — `contracts/api-contract.md` SHA-256 `20E2FCE45B8869889181A0EF1B1AD5DCF1B6CCE49FCB25A66F7EAC02B8AB8E38` |
+| **Capability** | Fakta `F-KT-1`..`5` pada decision log; `02-backend-architecture.md` KT.2–KT.3 |
+| **Baseline source** | Backend `bb46ccc8`, frontend `d232feb2b` |
+| **`IMPLEMENTATION_AUTHORITY`** | `GRANTED` untuk kedua task (`RJ-DOC-DEC-033`, 5 Okt 2026). Tanpa migration, commit, push, merge, deploy |
+| **Migration** | Tidak ada di seluruh task bagian ini |
+| **Verifikasi** | Pola Bank Darah: tanpa project test; build, QBE Strict, dan runtime HTTP terhadap `QuilvianNewDevSukma` |
+| **Governance backend** | Task backend menjalankan QBE preflight dan kesesuaian engineering pada waktu eksekusi, dari `AGENTS.md` backend dan dokumen engineering canonical (`rules/backend/engineering/`) |
+
+Legenda tanda status: `✅` selesai, `🟡` sebagian, `⛔` terblokir, tanpa tanda = belum dimulai.
+
+### Grafik Urutan Dependency
+
+**Backend (`MVP-0`):**
+
+```text
+RJ-DOC-REV-BE-012 ✅
+```
+
+| Gelombang | Task | Boleh mulai bila |
+| ---: | --- | --- |
+| 1 | `RJ-DOC-REV-BE-012` | Wewenang task diberikan |
+
+**Frontend (`MVP-1`):**
+
+```text
+[BE] RJ-DOC-REV-BE-012 ✅ ─> RJ-DOC-REV-FE-012 ✅
+```
+
+Legenda: `[BE]` = cermin baca-saja task backend dari grafik di atas; bukan task roadmap frontend.
+
+| Gelombang | Task | Boleh mulai bila |
+| ---: | --- | --- |
+| 1 | `RJ-DOC-REV-FE-012` | `[BE] BE-012` ✅ |
+
+Pasangan prasyarat → task: backend 0, frontend 1 — sama dengan kolom `Dependency` di bawah.
+Kontrak sudah `approved` dan terkunci hash-nya, sehingga `FE-012` **boleh** mulai menyusun tampilan
+dengan data tiruan; statusnya hanya dapat menjadi `✅` setelah diuji terhadap `BE-012` yang nyata.
+
+### 13.1 Task backend
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| ✅ `RJ-DOC-REV-BE-012` | **Endpoint konsultasi tertunda dan bunyi petunjuk.** (1) `GET /doctor-queues/pending-consultations` di `DoctorQueueController` dengan syarat `02` KT.3.1, cakupan `ResolveAllowedDoctorIdAsync` (KT.3.2), parameter `doctorId`, `queueId`, `search`, `pageNumber`, `pageSize`, urut `QueueDate` menaik; `[AccessPermission("DoctorQueue", "Read")]`. (2) `DoctorPendingConsultationResponse : DoctorQueueResponse` dengan `draftPrescriptionCount`, `procedureCount`, `pendingDays`, `canCancelConsultation` (KT.3.3). (3) Bunyi baru `RJDP-VAL-005` di `OutpatientEncounterListService.GetCancelBlockedReason` (KT.3.4). (4) Hitungan baca-saja `RJ-DOC-OQ-012` di DB uji, dilaporkan. (5) Periksa apakah jabatan dokter uji memegang `DoctorConsultation : Cancel` (KT.10), dilaporkan | — | `AT-KT-01`..`10`; endpoint lain `DoctorQueueController` tidak berubah (`AT-KT-09`); response persis seperti `contracts/api-contract.md` *Amendment KT* | Build Release `0 Error` tanpa warning baru; QBE Strict `PASS` pada berkas yang disentuh; runtime HTTP dengan akun dokter pemilik antrean, dokter lain, dan akun tanpa data dokter; data uji dibuat dan dibersihkan lewat endpoint aplikasi | ✅ `COMPLETE` `2026-10-05` — build Release `0 Error` (244 warning, sama dengan baseline), QBE Strict `PASS` (3 berkas), EF tanpa perubahan model, runtime AT-KT-01..10 seluruhnya `PASS` (termasuk perbandingan endpoint lama 5/5 identik dengan server lama). `RJ-DOC-OQ-012` = 0; jabatan dokter uji memegang `DoctorConsultation : Cancel`. Delta: `doctorId` dokter lain → `403` (sama dengan `GET /doctor-queues`). Tanpa migration. [Laporan](../task/report/backend/RJ-DOC-REV-BE-012.md) |
+
+### 13.2 Task frontend
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| ✅ `RJ-DOC-REV-FE-012` | **Konsultasi tertunda di Klinis Dokter.** (1) `getDoctorPendingConsultations` di `doctor-queue.service.js`. (2) State, muat, muat ulang (termasuk event realtime yang sama) di `use-doctor-queue.js`. (3) Wilayah (B) di panel kiri: judul + jumlah, kartu dengan tombol Buka saja, tidak tampil bila kosong, pesan gagal + Coba lagi. (4) `activeItem` dari gabungan antrean hari ini dan daftar tertunda (`useDoctorConsultationWorkspace.js`). (5) Banner (A) untuk item lampau. (6) Modal Simpan (D): baca ulang hitungan lewat `queueId`, centang wajib bila ada resep draf/tindakan. (7) Tombol (C) dan modal (E) Batalkan konsultasi lewat `cancelDoctorConsultation`, tampil bila `canCancelConsultation`, alasan 1–250. (8) Sesudah Simpan/Batalkan: muat ulang daftar tertunda dan ringkasan | `[BE] BE-012` | `AT-KT-11` (`UAT-KT-01`..`07`); skema `03` KT-FE.3 seluruh wilayah dan keadaan KT-FE.5; antrean hari ini berperilaku sama | Lint tanpa error baru; `npm run build` `PASS`; uji layar dengan akun dokter pemilik konsultasi tertunda dan dokter lain, data uji pada `QuilvianNewDevSukma` | ✅ `COMPLETE` `2026-10-05` — ESLint `0 error, 0 warning`, `npm run build` `PASS`, UI GATE REUSE 3 / EXTEND 3 / COMPOSE 1 / NEW 0; uji layar Playwright `22/22 PASS` (UAT-KT-01, 02, 03, 05, 07). Dikecualikan: UAT-KT-04 dan 06 di layar `NOT FEASIBLE` (tidak ada akun dokter kedua; terbukti di backend), muat ulang realtime tidak diuji langsung. Branch `sukmagpV2`, belum di-commit. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-012.md) |
+
+Bentuk kartu, tab atau bagian terpisah, ikon, dan warna tetap `DEV_DISCRETION` dengan base component
+Quilvian (`RJ-DOC-FE-006`, `RJ-DOC-FE-010`).
+
+### 13.3 Traceability
+
+| Requirement / keputusan | Task | Uji |
+| --- | --- | --- |
+| `RJ-DOC-DEC-029` daftar tertunda lintas tanggal per dokter | `BE-012`, `FE-012` | `AT-KT-01`, `AT-KT-02`, `AT-KT-04`, `UAT-KT-01`, `UAT-KT-04` |
+| `RJ-DOC-DEC-030` hanya Sedang Konsultasi dengan konsultasi aktif | `BE-012` | `AT-KT-03` |
+| `RJ-DOC-DEC-031` Simpan dan Batalkan seperti hari ini | `BE-012` (hitungan, penanda), `FE-012` | `AT-KT-06`..`08`, `UAT-KT-02`, `UAT-KT-03`, `UAT-KT-05`, `UAT-KT-06` |
+| `RJ-DOC-FE-010` letak dan jumlah | `FE-012` | `UAT-KT-01`, `UAT-KT-07` |
+| `RJ-DOC-FE-011` banner dan konfirmasi | `FE-012` | `UAT-KT-02` |
+| `RJ-DOC-FE-012` / `RJDP-VAL-005` bunyi petunjuk | `BE-012` | `AT-KT-10` |
+| Cakupan dan `403` | `BE-012` | `AT-KT-04`, `AT-KT-05` |
+| Kompatibilitas antrean hari ini | `BE-012`, `FE-012` | `AT-KT-09`, `AT-KT-11` |
+| `RJ-DOC-OQ-012` hitungan data | `BE-012` | Laporan task (bukan uji lulus/gagal) |
+
+**Coverage gap:**
+
+| Gap | Sebab | Penanganan |
+| --- | --- | --- |
+| `RJ-DOC-OQ-014` batal konsultasi untuk antrean hari ini | `POST-MVP` | Tidak diuji |
+| `RJ-DOC-OQ-015` resep draf saat konsultasi dibatalkan | Perilaku lama, di luar scope | Tidak diuji |
+| Akun dokter kedua untuk `AT-KT-04`/`UAT-KT-04` | Bergantung data `QuilvianNewDevSukma` | Bila tidak tersedia, laporan task wajib menyatakan `NOT FEASIBLE` untuk butir itu |
+| Uji Selesaikan pada ENC-RSMMC-00172 nyata | Data klinis nyata pasien | **Tidak** dipakai untuk uji otomatis; uji memakai data uji. Penyelesaian ENC-RSMMC-00172 dilakukan dr. Arif sendiri setelah fitur jadi |
+
+### 13.4 Definition of Done bagian ini
+
+Sama dengan `04-prd-to-mvp.md` *Amendment KT* KT-7: kedua task `✅`, `AT-KT-01`..`11` lulus atau
+dinyatakan `NOT FEASIBLE` beserta sebabnya, dan hitungan `RJ-DOC-OQ-012` dilaporkan.
