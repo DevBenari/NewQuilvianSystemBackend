@@ -7,7 +7,7 @@ Diukur dari source 1 Oktober 2026, bukan disalin dari dokumen sebelumnya.
 | Backend | `SUBSTANTIAL` | 5 controller · 5 service · 41 endpoint · 16 tabel · 5.298 baris |
 | Frontend | `SUBSTANTIAL` | 9 halaman · 10 folder view · 4 service |
 | Integrasi | `PARTIAL` | membaca asesmen keperawatan dan CPPT; tidak menerbitkan fakta ke modul lain |
-| Verifikasi | `STRONG` | **153 uji**, naik dari **nol** |
+| Verifikasi | `STRONG` | **209 uji**, naik dari **nol** |
 
 **Perkiraan ketuntasan: ~92%.**
 
@@ -20,10 +20,13 @@ Diukur dari source 1 Oktober 2026, bukan disalin dari dokumen sebelumnya.
 | `ReportRuleTests` | 20 | `NutritionReportService` |
 | `ProductionBatchRuleTests` | 32 | `NutritionDietService` — batch produksi dan distribusi |
 | `MasterControllerTests` | 26 | `NutritionMasterController` |
+| `PermissionMatrixTests` | 56 | matriks izin tingkat HTTP: 5 controller, 41 endpoint, satu kode modul, nol `AllowAnonymous` |
 
-**Seluruh service dan controller modul kini tertutup uji.** Yang tersisa pada sumbu verifikasi
-hanyalah hal yang tidak dapat dibuktikan dari dalam modul: permission matrix tingkat HTTP dan
-integrasi ujung ke ujung ke modul lain.
+**Seluruh service dan controller modul kini tertutup uji**, dan sejak 5 Oktober 2026 **permission
+matrix tingkat HTTP ikut tertutup** — 5 controller dan 41 endpoint dijaga `PermissionMatrixTests`.
+Yang tersisa pada sumbu verifikasi hanyalah hal yang benar-benar tidak dapat dibuktikan dari
+dalam modul: jawaban `403` runtime per peran, yang menuntut aplikasi berjalan, dan integrasi
+ujung ke ujung ke modul lain.
 
 ## Permukaan
 
@@ -32,7 +35,7 @@ integrasi ujung ke ujung ke modul lain.
 | Controller | `NutritionOrderController` (8), `NutritionDietController` (9), `NutritionMasterController` (14), `NutritionRequirementController` (6), `NutritionReportController` (4) |
 | Service | `NutritionOrderService`, `NutritionDietService`, `NutritionRequirementService`, `NutritionRequirementCalculator`, `NutritionReportService` |
 | Model | `GziNutritionOrder`, `GziNutritionOrderHistory`, `GziNutritionCareRecord`, `GziNutritionRequirement`, `GziNutritionDiagnosisMasters`, `GziNutritionMasters`, `GziPatientDiet`, `GziProductionBatch` |
-| Uji | `Tests/QuilvianSystemBackend.NutritionTests` — 153 uji |
+| Uji | `Tests/QuilvianSystemBackend.NutritionTests` — 209 uji |
 
 ## Keputusan yang sudah berlaku dan terimplementasi
 
@@ -75,7 +78,7 @@ Tiga baris yang sebelumnya ada di tabel ini — uji `NutritionOrderService`,
 `NutritionDietService`, dan `NutritionReportService` — **sudah ditutup** dan karena itu dihapus:
 `OrderRuleTests.cs` (24 deklarasi), `DietRuleTests.cs` (21), `ReportRuleTests.cs` (19), ditambah
 `ProductionBatchRuleTests.cs` (30) dan `MasterControllerTests.cs` (26) yang menyusul. Suite Gizi
-kini berjalan **153 uji** dan seluruhnya lulus.
+kini berjalan **209 uji** dan seluruhnya lulus.
 
 ## Yang sengaja tidak dikerjakan
 
