@@ -33,16 +33,19 @@ namespace QuilvianSystemBackend.Tests.Pharmacy;
 public class PermissionMatrixTests
 {
     /// <summary>
-    /// Farmasi terdaftar pada <b>dua</b> kode modul, bukan satu. Keduanya ada dan aktif pada
-    /// master modul, dan seluruh 23 controller terdaftar (12 + 11), sehingga tidak ada endpoint
-    /// yang kehilangan izinnya. Yang diterima di sini kenyataannya, bukan pembenarannya —
-    /// akibatnya dicatat pada `MODULE-STATUS.md` sebagai temuan terpisah.
+    /// Satu kode modul kanonik untuk seluruh Farmasi.
     /// </summary>
-    private static readonly string[] ModulFarmasi =
-    [
-        "HEALTH_SERVICE_PHARMACY",
-        "HEALTH_SERVICE_PHARMACY_MANAGEMENT"
-    ];
+    /// <remarks>
+    /// Sebelum 5 Oktober 2026 Farmasi terbelah dua: 12 controller memakai
+    /// <c>HEALTH_SERVICE_PHARMACY</c> dan 11 memakai
+    /// <c>HEALTH_SERVICE_PHARMACY_MANAGEMENT</c>, tanpa pola yang dapat dibaca — satu resep
+    /// melewati dua modul izin dalam satu alur. Administrator yang memberi izin satu modul
+    /// hanya memberi sebagian Farmasi, dan kegagalannya muncul sebagai <c>403</c> di tengah
+    /// alur klinis. Rinciannya pada <c>temuan-modul-izin-terbelah.md</c>.
+    /// </remarks>
+    private const string ModulFarmasi = "HEALTH_SERVICE_PHARMACY_MANAGEMENT";
+
+    private const string ModulFarmasiLegacy = "HEALTH_SERVICE_PHARMACY";
 
     private static readonly Assembly AssemblyFarmasi = typeof(DrugReturnService).Assembly;
 
@@ -100,7 +103,7 @@ public class PermissionMatrixTests
 
     [Theory]
     [MemberData(nameof(NamaController))]
-    public void Setiap_controller_terdaftar_pada_salah_satu_modul_farmasi(string namaController)
+    public void Setiap_controller_terdaftar_pada_modul_farmasi_kanonik(string namaController)
     {
         var controller = Ambil(namaController);
 
@@ -108,7 +111,78 @@ public class PermissionMatrixTests
 
         Assert.True(akses is not null,
             $"{controller.Name} tidak terdaftar pada modul izin mana pun.");
-        Assert.Contains(akses!.ModuleCode, ModulFarmasi);
+        Assert.Equal(ModulFarmasi, akses!.ModuleCode);
+        Assert.Equal("Health Service Pharmacy Management", akses.ModuleName);
+    }
+
+    /// <summary>
+    /// Regresi langsung atas temuan modul terbelah: nol controller Farmasi boleh kembali ke
+    /// kode lama, dan seluruh 23 harus berada pada satu kode yang sama.
+    /// </summary>
+    [Fact]
+    public void Kode_modul_legacy_tidak_dipakai_controller_farmasi_mana_pun()
+    {
+        var pemakaiLegacy = Controllers()
+            .Where(x => x.GetCustomAttribute<AccessControllerAttribute>()?.ModuleCode
+                == ModulFarmasiLegacy)
+            .Select(x => x.Name)
+            .ToList();
+
+        Assert.Empty(pemakaiLegacy);
+    }
+
+    [Fact]
+    public void Seluruh_controller_farmasi_memakai_satu_kode_modul_yang_sama()
+    {
+        var kode = Controllers()
+            .Select(x => x.GetCustomAttribute<AccessControllerAttribute>()!.ModuleCode)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        // Satu kode, bukan dua. Inilah yang membuat administrator melihat satu modul Farmasi.
+        Assert.Single(kode);
+        Assert.Equal(ModulFarmasi, kode[0]);
+    }
+
+    /// <summary>
+    /// Konsolidasi tidak boleh menimbulkan dua controller bernama sama di bawah satu modul:
+    /// registry memberi indeks unik pada <c>(ModuleId, ControllerName)</c>, sehingga nama
+    /// kembar akan menggagalkan pendaftarannya.
+    /// </summary>
+    [Fact]
+    public void Tidak_ada_nama_controller_kembar_sesudah_konsolidasi()
+    {
+        var nama = Controllers()
+            .Select(x =>
+                x.GetCustomAttribute<AccessControllerAttribute>()!.ControllerName
+                ?? x.Name.Replace("Controller", string.Empty, StringComparison.Ordinal))
+            .ToList();
+
+        Assert.Equal(nama.Count, nama.Distinct(StringComparer.Ordinal).Count());
+    }
+
+    /// <summary>
+    /// Konsolidasi juga tidak boleh menimbulkan pasangan <c>resource:action</c> kembar.
+    /// Pasangan itulah yang ditegakkan saat permintaan masuk, dan kembar berarti dua baris
+    /// registry memperebutkan satu keputusan izin.
+    /// </summary>
+    [Fact]
+    public void Tidak_ada_pasangan_sumber_daya_dan_tindakan_kembar()
+    {
+        var pasangan = new List<string>();
+
+        foreach (var controller in Controllers())
+        foreach (var aksi in Aksi(controller))
+        foreach (var izin in aksi.GetCustomAttributes<AccessPermissionAttribute>())
+        {
+            pasangan.Add($"{(string)izin.Arguments![0]!}:{(string)izin.Arguments[1]!}");
+        }
+
+        // 137 endpoint memakai 85 pasangan unik; beberapa endpoint memang sah berbagi pasangan
+        // yang sama, misalnya daftar dan detail yang keduanya `Read`. Yang dijaga di sini
+        // jumlah pasangan uniknya tidak berubah akibat konsolidasi.
+        Assert.Equal(137, pasangan.Count);
+        Assert.Equal(85, pasangan.Distinct(StringComparer.Ordinal).Count());
     }
 
     [Theory]

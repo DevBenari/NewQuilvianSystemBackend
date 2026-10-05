@@ -1603,6 +1603,12 @@ try
         await RunStartupSeederAsync("DefaultWorkScheduleSeeder", () => DefaultWorkScheduleSeeder.SeedAsync(app.Services));
         await RunStartupSeederAsync("SuperAdminSeeder", () => SuperAdminSeeder.SeedAsync(app.Services));
         await RunStartupSeederAsync("FinanceApprovalRoleSeeder", () => FinanceApprovalRoleSeeder.SeedAsync(app.Services));
+        // Konsolidasi kode modul Farmasi WAJIB mendahului AccessMenuSeeder. Seeder registry
+        // mengenali baris dari pasangan (ModuleId, ControllerName); kalau perpindahan modulnya
+        // belum terjadi, ia membuat baris baru ber-Id baru dan menutup yang lama, sehingga
+        // seluruh SysAccessPolicy Farmasi kehilangan acuan tanpa satu pun galat.
+        await RunStartupSeederAsync("PharmacyModuleCodeConsolidationSeeder",
+            () => PharmacyModuleCodeConsolidationSeeder.SeedAsync(app.Services));
         await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
         // Data induk OPERASIONAL Laboratorium. Keduanya sengaja tetap berdiri: alasan penolakan
         // wadah dan jenis specimen adalah data yang dibutuhkan modul sejak hari pertama, bukan data
