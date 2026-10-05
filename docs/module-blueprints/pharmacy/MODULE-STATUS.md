@@ -40,7 +40,7 @@ Tangga tahap yang berlaku dan sudah terbukti ujung ke ujung:
 | Backend | `SUBSTANTIAL` |
 | Frontend | `SUBSTANTIAL` |
 | Integrasi | `SUBSTANTIAL` — clearance terbukti ujung ke ujung; producer tagihan menunggu approval Billing |
-| Verifikasi | `STRONG` — **254 uji** regresi ditambah bukti runtime penuh |
+| Verifikasi | `STRONG` — **510 uji** regresi ditambah bukti runtime penuh |
 
 **Perkiraan ketuntasan: ~96%.** Diukur ketat "berfungsi hari ini di integration", producer
 tagihan belum menyala sehingga angkanya lebih dekat ~91%.
@@ -110,7 +110,7 @@ Laporan task `PHA-BE-001` kini sudah ditulis — [`task/report/backend/PHA-BE-00
 | --- | --- | --- | --- |
 | `SUBSTANTIAL` | `SUBSTANTIAL` | `PARTIAL` | `STRONG` |
 
-`Verification` dinyatakan `STRONG` karena Farmasi kini dijaga **254 uji** otomatis, naik dari
+`Verification` dinyatakan `STRONG` karena Farmasi kini dijaga **510 uji** otomatis, naik dari
 **nol**. Pernyataan revisi 4 bahwa "Farmasi belum memiliki satu pun uji otomatis" sudah tidak
 berlaku.
 
@@ -119,6 +119,7 @@ berlaku.
 | `DrugReturnTests.cs` | 48 | siklus retur obat: `PHM080`–`PHM083`, batas kumulatif per batch terhadap satu penyerahan |
 | `DrugReturnUpdateAndListTests.cs` | 34 | `UpdateAsync` dan `GetPagedAsync` — penggantian baris, `PHM070`, `PHM083`, tujuh saringan daftar, batas ukuran halaman |
 | `DepotRoutingTests.cs` | 26 | `PHA-BE-002` — resolver routing Depo: sembilan acceptance criteria `PHA-BE-001` |
+| `PermissionMatrixTests.cs` | 13 | matriks izin tingkat HTTP: 23 controller, 137 endpoint, nol `AllowAnonymous`, keselarasan `AccessAction` dengan `AccessPermission` |
 | `PharmacyWorkflowTests.cs` | 33 | tangga status resep, klarifikasi, pemeriksaan akhir |
 | `DispensingGuardTests.cs` | 20 | gerbang penahanan sebelum penyerahan |
 | `DispenseFlowTests.cs` | 18 | `DispenseAsync` dengan DI container nyata |
@@ -128,7 +129,7 @@ berlaku.
 | `PrescriptionFulfillmentStageTests.cs` | 8 | tangga tahap pemenuhan resep |
 
 Jumlah di atas adalah deklarasi `[Fact]`/`[Theory]`; setelah `InlineData` dibentangkan, suite
-berjalan **254 uji** dan seluruhnya lulus. Dibangun dengan `-p:SkipMigrationMetadata=true` di
+berjalan **510 uji** dan seluruhnya lulus. Dibangun dengan `-p:SkipMigrationMetadata=true` di
 atas SQLite dalam memori, dengan dua adaptasi engine yang terdokumentasi di `TestDatabase.cs`.
 
 Keputusan 29 September 2026 yang menyerahkan pengujian Farmasi ke analis penguji **sudah
@@ -168,6 +169,11 @@ Lingkungan lain belum diperiksa. Wewenang eksekusi migration tetap terpisah seba
 | `PHA-DEP-002` | Saldo, ledger, reservasi atomik, batch, dan mutasi stok belum tersedia | Pharmacy/Inventory | Dispensing dan persediaan | Arsitektur domain dan roadmap dapat disusun |
 | `PHA-DEP-003` | SOP dan approval formal kewenangan apoteker, checker kedua, retur, recall, obat khusus belum tersedia | Pharmacy/Clinical Governance | Permission dan safety control | Slice routing Depo dapat dirancang independen |
 
+**Temuan tambahan 5 Oktober 2026:** modul izin Farmasi terbelah menjadi dua kode —
+[`temuan-modul-izin-terbelah.md`](temuan-modul-izin-terbelah.md). Nol endpoint rusak dan 85/85
+izin terdaftar aktif, tetapi administrator melihat Farmasi sebagai dua modul, sehingga memberi
+izin satu modul hanya memberi sebagian Farmasi. Butuh satu keputusan: kode mana dipertahankan.
+
 Seluruh lanjutan gelombang Financial Clearance menunggu sisi penerbit Billing berdiri. Itu bukan
 urutan yang dipilih: tanpa surat yang terbit, slice ini tidak punya masukan apa pun.
 
@@ -192,7 +198,7 @@ urutan yang dipilih: tanpa surat yang terbit, slice ini tidak punya masukan apa 
 `DepotRoutingTests.cs`. Keduanya tidak lagi menjadi sisa pekerjaan.
 
 Uji regresi Farmasi **sudah dibuat dari sisi pembangunan**:
-`Tests/QuilvianSystemBackend.PharmacyTests`, 254 uji, pola sama dengan
+`Tests/QuilvianSystemBackend.PharmacyTests`, 510 uji, pola sama dengan
 `Tests/QuilvianSystemBackend.OperatingRoomTests` — xunit, SQLite dalam memori, dibangun dengan
 `-p:SkipMigrationMetadata=true`. Yang masih diserahkan ke analis penguji hanyalah **verifikasi
 runtime** `PHA-BE-006`, bukan uji unitnya.
