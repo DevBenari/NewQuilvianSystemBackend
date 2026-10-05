@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
@@ -187,6 +188,16 @@ public sealed class FinanceReceivableInvoiceBatchService
             throw new ReceivableInvoiceBatchBadRequestException(
                 $"Batch Tagihan AR hanya menerima piutang berjenis PAYER. Piutang {nonPayer[0].ReceivableNumber} berjenis {nonPayer[0].DebtorType}.");
 
+        // Sama dengan GET eligible-receivables: hanya piutang yang masih OUTSTANDING/PARTIAL dan bernilai positif
+        // yang boleh ditagihkan. Piutang CANCELLED, SETTLED, atau WRITTEN_OFF ditolak di server, tidak hanya
+        // disembunyikan dari daftar.
+        var notBillable = receivables.Where(x =>
+            (x.Status != FinReceivableStatuses.Outstanding && x.Status != FinReceivableStatuses.Partial)
+            || x.OriginalAmount <= 0).ToList();
+        if (notBillable.Count > 0)
+            throw new ReceivableInvoiceBatchValidationException(
+                $"Piutang {notBillable[0].ReceivableNumber} berstatus {notBillable[0].Status} dan tidak dapat ditagihkan. Hanya piutang OUTSTANDING atau PARTIAL dengan nilai lebih dari nol yang dapat digabung.");
+
         // FIN-VAL-115: seluruh piutang dalam satu batch harus milik penjamin yang sama.
         var debtorReferenceIds = receivables.Select(x => x.DebtorReferenceId).Distinct().ToList();
         if (debtorReferenceIds.Count > 1 || debtorReferenceIds[0] is null)
@@ -203,6 +214,19 @@ public sealed class FinanceReceivableInvoiceBatchService
         if (alreadyBatched.Count > 0)
             throw new ReceivableInvoiceBatchConflictException(
                 $"Piutang {string.Join(", ", alreadyBatched)} sudah tergabung dalam batch tagihan lain.");
+
+        // Batch yang dibatalkan tidak menghapus baris anggotanya, dan indeks unik
+        // IX_FinReceivableInvoiceBatchItem_ActiveReceivable (IsDelete = false) tetap menahan piutang itu.
+        // Dikenali di sini supaya pengguna mendapat penjelasan yang benar, bukan kesalahan database.
+        var stuckInCancelled = await _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+            .Where(x => !x.IsDelete
+                && distinctIds.Contains(x.ReceivableId)
+                && x.Batch!.Status == FinReceivableInvoiceBatchStatuses.Cancelled)
+            .Select(x => x.Receivable!.ReceivableNumber)
+            .ToListAsync(cancellationToken);
+        if (stuckInCancelled.Count > 0)
+            throw new ReceivableInvoiceBatchConflictException(
+                $"Piutang {string.Join(", ", stuckInCancelled)} masih tercatat pada batch tagihan yang sudah dibatalkan, sehingga belum dapat digabung ulang. Pembebasan piutang dari batch yang dibatalkan belum tersedia.");
 
         var batch = new FinReceivableInvoiceBatch
         {
@@ -236,7 +260,18 @@ public sealed class FinanceReceivableInvoiceBatchService
         }
 
         _dbContext.FinReceivableInvoiceBatches.Add(batch);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            // Dua permintaan bersamaan melewati pemeriksaan di atas; indeks unik ActiveReceivable menolak yang
+            // kedua. Hasilnya 409, bukan batch ganda dan bukan kesalahan server.
+            throw new ReceivableInvoiceBatchConflictException(
+                "Sebagian piutang sudah tergabung dalam batch tagihan lain oleh permintaan lain. Muat ulang daftar lalu coba lagi.",
+                exception);
+        }
 
         await AuditAsync("Create", batch.Id, actorUserId);
         return batch;
