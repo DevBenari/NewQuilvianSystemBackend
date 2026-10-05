@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using QuilvianSystemBackend.Repositories;
 
-namespace QuilvianSystemBackend.Tests.Pharmacy.Infrastructure
+namespace QuilvianSystemBackend.Tests.Nutrition.Infrastructure
 {
     /// <summary>
     /// Menyediakan satu basis data uji yang hidup di dalam memori.
@@ -49,13 +49,15 @@ namespace QuilvianSystemBackend.Tests.Pharmacy.Infrastructure
 
             // Penegakan foreign key dimatikan dengan sengaja, dan hanya pada basis data uji ini.
             //
-            // Yang diuji aturan alur Farmasi. Satu resep menunjuk pasien, kunjungan, konsultasi,
-            // dan dokter yang seluruhnya milik modul lain; menyediakan baris sungguhan untuk
-            // semuanya berarti menyeret pendaftaran, penjadwalan, dan master dokter ke dalam uji
-            // yang tidak membuktikan apa pun tentang Farmasi, sekaligus membuat uji ini pecah
-            // setiap kali modul lain menambah kolom wajib.
+            // Yang diuji proyek ini aturan domain Gizi — `GIZ005` sampai `GIZ020` — bukan
+            // keutuhan acuan antar modul. Satu order gizi menunjuk pasien, kunjungan, dan dokter
+            // yang ketiganya milik modul lain; menyediakan baris sungguhan untuk semuanya berarti
+            // menyeret pendaftaran, penjadwalan, dan master dokter ke dalam uji yang sama sekali
+            // tidak membuktikan apa pun tentang Gizi, sekaligus membuat uji ini pecah setiap kali
+            // modul lain menambah kolom wajib.
             //
-            // Keutuhan acuan tetap ditegakkan PostgreSQL pada lingkungan sungguhan.
+            // Keutuhan acuan tetap ditegakkan PostgreSQL pada lingkungan sungguhan; mematikannya
+            // di sini tidak melonggarkan apa pun di sana.
             using (var pragma = connection.CreateCommand())
             {
                 pragma.CommandText = "PRAGMA foreign_keys = OFF;";
@@ -158,12 +160,18 @@ namespace QuilvianSystemBackend.Tests.Pharmacy.Infrastructure
                     if (KhasPostgres(properti.GetComputedColumnSql())) properti.SetComputedColumnSql(null);
                 }
 
-                // Indeks unik TERSARING dilepas keunikannya di SQLite. Saringannya memakai tanda
-                // kutip ganda PostgreSQL — misalnya `"IsDelete" = false` — dan SQLite tidak
-                // membawanya, sehingga indeksnya menjadi unik TANPA syarat dan baris yang sudah
-                // ditandai terhapus tetap memegang tempatnya.
+                // Indeks unik TERSARING dilepas keunikannya di SQLite.
+                //
+                // Saringannya memakai tanda kutip ganda PostgreSQL — misalnya
+                // `"IsPrimary" = true AND "IsDelete" = false` — dan SQLite tidak membawanya,
+                // sehingga indeksnya menjadi unik TANPA syarat. Akibatnya baris yang sudah
+                // ditandai terhapus tetap memegang tempatnya, dan mengganti satu diagnosis
+                // primer dengan yang lain gagal padahal pada PostgreSQL ia lolos.
                 //
                 // Keunikan bersyaratnya tetap ditegakkan PostgreSQL pada lingkungan sungguhan.
+                // Yang hilang di sini cuma penegakan tingkat basis data; aturan yang sama
+                // (`GIZ005`, `GIZ018`) tetap diuji lewat service, dan di sanalah ia memang
+                // seharusnya ditolak lebih dulu dengan pesan yang terbaca pengguna.
                 foreach (var indeks in entitas.GetDeclaredIndexes()
                     .Where(x => x.IsUnique && x.GetFilter() is not null)
                     .ToList())
