@@ -3,6 +3,8 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
 using QuilvianSystemBackend.Repositories;
@@ -35,6 +37,7 @@ public sealed class BillingSourceTariffResolver
             BillingBridgeSourceDomains.Radiology => await ResolveRadiologyAsync(request, cancellationToken),
             BillingBridgeSourceDomains.Consultation => await ResolveConsultationAsync(request, cancellationToken),
             BillingBridgeSourceDomains.Pharmacy => await ResolvePharmacyAsync(request, cancellationToken),
+            BillingBridgeSourceDomains.OperatingRoom => await ResolveOperatingRoomAsync(request, cancellationToken),
             _ => BillingTariffResolution.Pending(
                 BillingBridgeCodes.SourcePendingSupport,
                 $"Penetapan tarif untuk {request.SourceDomain} belum tersedia pada jembatan.")
@@ -259,6 +262,90 @@ public sealed class BillingSourceTariffResolver
             Truncate($"Resep {prescription.PrescriptionNumber}", 250),
             1m,
             decimal.Round(total, 2, MidpointRounding.AwayFromZero));
+    }
+
+    /// <summary>
+    /// Komponen biaya Kamar Operasi (<c>BE-RWI-179</c>, <c>RWI-DEC-196</c>, backend 12.7). Butirnya
+    /// dikenali dari <c>SourceItemId</c>:
+    /// <list type="bullet">
+    /// <item><description>catatan anestesi → tarif ber-<c>SurgeryComponentType = AnesthesiaService</c>;</description></item>
+    /// <item><description>catatan operasi → tarif ber-<c>SurgeryComponentType = OperatingRoomRent</c>;</description></item>
+    /// <item><description>pemakaian bahan → tarif ber-<c>DrugId</c> = item bahan.</description></item>
+    /// </list>
+    /// Jumlah fakta untuk anestesi dan sewa kamar adalah durasi dalam menit; tarif <c>PerHour</c>
+    /// mengubahnya menjadi jam menurut <c>ChargeRounding</c> (dibulatkan ke atas, atau proporsional
+    /// dua desimal). Contoh: operasi 95 menit, sewa kamar Rp500.000/jam bulat ke atas → 2 jam →
+    /// Rp1.000.000; proporsional → 1,58 jam → Rp790.000. Tanpa tarif → "tarif belum ada"
+    /// (<c>TARIFF_NOT_FOUND</c>) dan invoice tidak dapat difinalkan (<c>BIL-FIN-021</c>).
+    /// </summary>
+    private async Task<BillingTariffResolution> ResolveOperatingRoomAsync(
+        BillingTariffResolutionRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.SourceItemId is not { } itemId || itemId == Guid.Empty)
+            return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Komponen biaya operasi tidak dikenali.");
+
+        var at = request.OccurredAt;
+
+        var isAnesthesia = await _dbContext.Set<OprAnesthesiaRecord>().AsNoTracking()
+            .AnyAsync(x => x.Id == itemId && x.OprCaseId == request.SourceAggregateId, cancellationToken);
+        var isRoomRent = !isAnesthesia && await _dbContext.Set<OprExecutionRecord>().AsNoTracking()
+            .AnyAsync(x => x.Id == itemId && x.OprCaseId == request.SourceAggregateId, cancellationToken);
+
+        if (isAnesthesia || isRoomRent)
+        {
+            var componentType = isAnesthesia
+                ? MstSurgeryComponentType.AnesthesiaService
+                : MstSurgeryComponentType.OperatingRoomRent;
+            var candidates = await EffectiveTariffs(at)
+                .Where(x => x.SurgeryComponentType == componentType
+                    && (x.ClinicId == null || x.ClinicId == request.EncounterClinicId)
+                    && (x.PatientClassId == null || x.PatientClassId == request.PatientClassId))
+                .ToListAsync(cancellationToken);
+            var tariff = candidates
+                .OrderByDescending(x => (x.ClinicId != null ? 2 : 0) + (x.PatientClassId != null ? 1 : 0))
+                .ThenBy(x => x.TariffCode, StringComparer.Ordinal)
+                .FirstOrDefault();
+            if (tariff is null)
+                return BillingTariffResolution.Rejected(
+                    BillingBridgeCodes.TariffNotFound,
+                    isAnesthesia
+                        ? "Tarif jasa anestesi belum ada untuk kelas pasien ini. Lengkapi tarif komponen operasi, lalu kirim ulang."
+                        : "Tarif sewa kamar operasi belum ada untuk kelas pasien ini. Lengkapi tarif komponen operasi, lalu kirim ulang.");
+
+            if (tariff.ChargeBasis != MstTariffChargeBasis.PerHour)
+                return Build(tariff, 1m);
+
+            var minutes = request.FactQuantity ?? 0m;
+            if (minutes <= 0)
+                return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceRejected,
+                    "Durasi operasi tidak tersedia, sehingga tarif per jam tidak dapat dihitung.");
+
+            var hours = minutes / 60m;
+            var billedHours = tariff.ChargeRounding == MstEquipmentRoundingRule.Proportional
+                ? decimal.Round(hours, 2, MidpointRounding.AwayFromZero)
+                : decimal.Ceiling(hours);
+            return Build(tariff, billedHours <= 0 ? 0.01m : billedHours);
+        }
+
+        var usage = await _dbContext.Set<OprMaterialUsage>().AsNoTracking()
+            .Where(x => x.Id == itemId && x.OprCaseId == request.SourceAggregateId && !x.IsDelete)
+            .Select(x => new { x.ExternalItemId, x.Quantity, x.Outcome })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (usage is null)
+            return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Komponen biaya operasi sumber tidak ditemukan.");
+        if (usage.Outcome != OprMaterialOutcome.Used)
+            return BillingTariffResolution.NotBillable(BillingBridgeCodes.NotBillable, "Bahan yang tidak terpakai tidak ditagihkan.");
+
+        var drugTariff = await FindDrugTariffAsync(
+            null, usage.ExternalItemId, request.EncounterClinicId, request.PatientClassId, at, cancellationToken);
+        if (drugTariff is null)
+            return BillingTariffResolution.Rejected(
+                BillingBridgeCodes.TariffNotFound,
+                "Tarif bahan atau implan operasi belum ada pada tanggal pelayanan. Lengkapi tarif, lalu kirim ulang.");
+
+        var quantity = request.FactQuantity is > 0 ? request.FactQuantity.Value : usage.Quantity;
+        return Build(drugTariff, quantity);
     }
 
     private async Task<MstTariff?> FindDrugTariffAsync(

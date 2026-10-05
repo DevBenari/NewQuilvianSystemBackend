@@ -756,6 +756,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<CliAssessmentInstrumentResponse> CliAssessmentInstrumentResponses { get; set; }
         public DbSet<CliCaseManagementEvaluation> CliCaseManagementEvaluations { get; set; }
         public DbSet<CliFluidBalanceEntry> CliFluidBalanceEntries { get; set; }
+
+        /// <summary>Serah terima klinis transfer antarunit (<c>BE-RWI-183</c>, kamus data 19.9, migration <c>E7</c>).</summary>
+        public DbSet<CliTransferHandover> CliTransferHandovers { get; set; }
         public DbSet<CliFluidBalanceEntryRevision> CliFluidBalanceEntryRevisions { get; set; }
         public DbSet<CliBloodGlucoseReading> CliBloodGlucoseReadings { get; set; }
         public DbSet<CliBloodGlucoseReadingRevision> CliBloodGlucoseReadingRevisions { get; set; }
@@ -801,6 +804,18 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstClinicalAssessmentPolicy> MstClinicalAssessmentPolicies { get; set; }
 
         public DbSet<MstInpatientClearanceItem> MstInpatientClearanceItems { get; set; }
+
+        /// <summary>
+        /// Master jenis alat medis — keperawatan kontrak 0.6.0 kamus data 12.13
+        /// (<c>BE-RWI-172</c>, migration <c>K8</c>).
+        /// </summary>
+        public DbSet<MstMedicalEquipment> MstMedicalEquipments { get; set; }
+
+        /// <summary>
+        /// Master butir persiapan bedah — episode-rawat-inap kontrak 0.10.0 kamus data 19.7
+        /// (<c>BE-RWI-172</c>, migration <c>E4</c>).
+        /// </summary>
+        public DbSet<MstSurgicalPreparationItem> MstSurgicalPreparationItems { get; set; }
         public DbSet<InpEpisode> InpEpisodes { get; set; }
         public DbSet<InpDoctorAssignment> InpDoctorAssignments { get; set; }
         public DbSet<InpNurseAssignment> InpNurseAssignments { get; set; }
@@ -813,6 +828,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<InpStatusHistory> InpStatusHistories { get; set; }
         public DbSet<InpCorrectionSession> InpCorrectionSessions { get; set; }
         public DbSet<InpIntegrationOutbox> InpIntegrationOutboxes { get; set; }
+
+        /// <summary>Permintaan admisi dari kamar pulih (<c>BE-RWI-181</c>, kamus data 19.8, migration <c>E6</c>).</summary>
+        public DbSet<InpAdmissionReferral> InpAdmissionReferrals { get; set; }
         public DbSet<TrxKioskScanSession> TrxKioskScanSessions { get; set; }
         public DbSet<RegPatientEncounter> RegPatientEncounters { get; set; }
         public DbSet<RegPatientEncounterGuarantor> RegPatientEncounterGuarantors { get; set; }
@@ -1058,6 +1076,11 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PhmPrescriptionCopyItem> PhmPrescriptionCopyItems { get; set; }
 
         public DbSet<OprStockSource> OprStockSources { get; set; }
+
+        // BE-RWI-176: Catatan Pra-Operasi bangsal berversi (kamus data 19.4 s.d. 19.6, migration E5).
+        public DbSet<OprWardPreOpNote> OprWardPreOpNotes { get; set; }
+        public DbSet<OprWardPreOpItem> OprWardPreOpItems { get; set; }
+        public DbSet<OprWardPreOpSiteMark> OprWardPreOpSiteMarks { get; set; }
 
         #endregion
 

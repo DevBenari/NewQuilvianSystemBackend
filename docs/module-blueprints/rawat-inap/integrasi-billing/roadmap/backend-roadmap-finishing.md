@@ -12,6 +12,10 @@
 | Deret ID | `BE-RWI-146` s.d. `BE-RWI-159`. Deret satu modul (`02-module-map.md` 1.3); ID bebas berikutnya dicatat di manifest modul |
 | Roadmap pendamping | `frontend-roadmap-finishing.md`, `requirement-traceability-finishing.md`. Roadmap kontrak `1.0.0` (`backend-roadmap.md`) tetap sebagai riwayat; task yang dicabut kontrak `1.1.0` ditandai di sana |
 
+**Pembaruan bukti 5 Oktober 2026.** Laporan dan source dicocokkan pada HEAD `e2ded614` beserta perubahan kerja yang belum di-commit. Lima task (`BE-RWI-147`, `150`, `151`, `154`, `155`) selesai pada implementasi kode dengan pengecualian build bertanggal yang tercatat di laporan; `BE-RWI-149` sebagian karena migration belum ada; delapan task lain belum dikerjakan. Header `DRAFT` tetap menyatakan status approval roadmap. Laporan mencatat instruksi pengguna 2 Oktober 2026 untuk mengerjakan prasyarat IB; pembaruan ini mencatat hasil pekerjaan itu dan tidak memberikan wewenang task baru.
+
+`dotnet build` tetap `NOT RUN`, dikecualikan atas keputusan pengguna 2 Oktober 2026 menurut laporan task. Migration `I1`/`I2` belum dibuat maupun diterapkan dan uji API/proses bisnis dengan database belum dijalankan. Tanda selesai kode tidak membuktikan kesiapan runtime atau produksi. Sebagai contoh, source penerima sudah menangani pesan ganda, tetapi satu invoice pada database belum dibuktikan lewat pengiriman dua pesan nyata.
+
 **Kebijakan verifikasi backend.** Mengikuti `rules/backend/TEST_POLICY.md`: bukti task backend adalah QBE preflight/conformance, review diff/scope, `dotnet build` project aplikasi (wajib pada setiap task yang menyentuh source), verifikasi API/kontrak, verifikasi proses bisnis dengan contoh berangka, dan verifikasi manual/runtime bila lingkungan tersedia. Roadmap ini **tidak** memuat task automated test, dan tidak adanya automated test bukan gap.
 
 **Pada setiap handoff ke `build-module-backend`:** QBE preflight dan kesesuaian engineering diselesaikan pada waktu eksekusi dari `AGENTS.md` backend dan `docs/engineering/BACKEND_ENGINEERING_CONTRACT.md` beserta `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`. Wewenang menerapkan migration ke database, menjalankan putar ulang, dan deployment **tidak** diberikan roadmap ini; ketiganya dinyatakan per task oleh pemilik.
@@ -28,21 +32,21 @@
 ## Grafik Urutan Dependency
 
 ```text
-BE-RWI-147 ───┬─> BE-RWI-150 ─┬─> BE-RWI-151 ─┬─> BE-RWI-154
-              │               │               │
-BE-RWI-149 ─┬─┘               │               └─────────────┐
-            │                 │                             │
-            │                 └─> BE-RWI-155 ─┬─────────────┴─> BE-RWI-157
-            │                                 │
-            │                                 ├─> BE-RWI-158
-            │                                 │
-            │                                 └───┬─> BE-RWI-156 ─┬─> BE-RWI-159
-            │                                     │               │
-            │                        BE-RWI-148 ──┘               │
-            │                                                     │
-            │                             BE-RWI-181 [EPS] ───────┘
-            │
-            └──────────┬─> BE-RWI-153
+BE-RWI-147 ✅ ───┬─> BE-RWI-150 ✅ ─┬─> BE-RWI-151 ✅ ─┬─> BE-RWI-154 ✅
+                 │                  │                  │
+BE-RWI-149 🟡 ─┬─┘                  │                  └─────────────┐
+               │                    │                                │
+               │                    └─> BE-RWI-155 ✅ ─┬─────────────┴─> BE-RWI-157
+               │                                       │
+               │                                       ├─> BE-RWI-158
+               │                                       │
+               │                                       └───┬─> BE-RWI-156 ─┬─> BE-RWI-159
+               │                                           │               │
+               │                              BE-RWI-148 ──┘               │
+               │                                                           │
+               │                                BE-RWI-181 [EPS] ✅ ───────┘
+               │
+               └───────┬─> BE-RWI-153
                        │
 BE-RWI-146 ──┐         │
              │         │
@@ -108,11 +112,11 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Frontend lama (`FE-RWI-098`, `FE-RWI-099`) masih memanggil endpoint yang dihapus; rilis bersama `FE-RWI-167` dan `FE-RWI-168`. Pemilik: Muhammad Hamzah |
 | **DoD** | Kelima kriteria terbukti; `dotnet build` tanpa error; laporan `../task/report/backend/BE-RWI-146.md`; roadmap dan `requirement-traceability-finishing.md` diperbarui |
 
-### `BE-RWI-147` — Tarif kamar satu jalur dan label `RANAP` seragam
+### ✅ `BE-RWI-147` — Tarif kamar satu jalur dan label `RANAP` seragam
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI KODE 2 Oktober 2026.** Empat kriteria terpetakan ke source: endpoint `occupancy-charges` dan registrasi DI dicabut, pembaca invoice memakai `RANAP`, hitungan kamar lewat satu jalur. Tiga berkas service/interface/DTO lama masih ada tetapi tidak dipanggil; penghapusan tertunda sebagaimana laporan. `dotnet build` `NOT RUN` — dikecualikan atas keputusan pengguna 2 Oktober 2026. Hitungan tiga hari dengan data belum diuji runtime. Bukti: [laporan](../task/report/backend/BE-RWI-147.md) |
 | **Outcome** | Tarif kamar hanya dihitung `BillingCalculationService` dari penempatan bed; tagihan susulan sesudah izin `CLEARED` masuk invoice yang sama karena labelnya seragam |
 | **Requirement/decision** | `FR-RWF-013`, `FR-RWF-018`; `RWI-DEC-192` butir (b) dan (e) |
 | **Kontrak** | `1.1.0`: API 3.1 (`occupancy-charges` dihapus); backend 9.6 |
@@ -140,11 +144,11 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Pemetaan peran ke `ViewAmount` adalah konfigurasi hak akses (`FIN-UNK-05`). Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### `BE-RWI-149` — Bentuk data integrasi `1.1.0` (`I1`, `I2`)
+### 🟡 `BE-RWI-149` — Bentuk data integrasi `1.1.0` (`I1`, `I2`)
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | 🟡 **SEBAGIAN, diperbarui 5 Oktober 2026.** Empat dari lima kriteria terpetakan ke source: bentuk model/configuration, FK koreksi `Restrict`, unique `IdempotencyKey`, dan tidak ada perubahan perilaku endpoint pada task ini. Kriteria 4 belum terpenuhi: migration `I1`/`I2` beserta `Down()` belum dibuat. Laporan mencatat kode selesai 2 Oktober 2026 serta build dan migration diambil alih pengguna; pengecualian build tetap berlaku (`NOT RUN`), sedangkan ketiadaan berkas migration tetap dicatat sebagai kekurangan source. Bukti: [laporan](../task/report/backend/BE-RWI-149.md) |
 | **Outcome** | Kolom pengamatan status kasir, rantai koreksi penempatan, pemrosesan outbox, tanda "perlu diperiksa", dan tabel tanda terima tersedia tanpa mengubah perilaku |
 | **Requirement/decision** | `FR-RWF-006`, `007`, `014`, `019`; `RWI-DEC-166`, `192` |
 | **Kontrak** | Data 6.3 (`InpEpisode`), 6.4 (`InpBedPlacement`), 6.5 (`InpIntegrationOutboxes`), 6.6 (`BilInvoice`), 6.7 (`BilInpatientEventReceipt`), 6.8 DDL; backend 9.7, 9.9, 9.10 |
@@ -156,11 +160,11 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Wewenang menerapkan migration ke database terpisah. Pemilik: Muhammad Hamzah (Rawat Inap), Yasmina (Billing) |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked mencatat status penerapan migration apa adanya; roadmap dan traceability diperbarui |
 
-### `BE-RWI-150` — Penerima ketukan pintu Billing dan invoice `RANAP` otomatis
+### ✅ `BE-RWI-150` — Penerima ketukan pintu Billing dan invoice `RANAP` otomatis
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI KODE 2 Oktober 2026.** Empat kriteria terpetakan ke `BillingInpatientEventReceiver.ReceiveAsync`: invoice `RANAP`, tanda terima, penanganan `DUPLICATE`, dan rollback Billing terpisah dari transaksi admisi. `dotnet build` `NOT RUN` — dikecualikan atas keputusan pengguna 2 Oktober 2026. Empat jenis event dan gangguan Billing belum diuji runtime; tabel tanda terima menunggu migration `I2` pada `BE-RWI-149` 🟡. Bukti: [laporan](../task/report/backend/BE-RWI-150.md) |
 | **Outcome** | Begitu episode `Admitted`, Billing membuka tepat satu invoice `RANAP` dan menjawab dengan tanda terima; pesan ganda tidak berefek dua kali |
 | **Requirement/decision** | `FR-RWF-010`, `FR-RWF-014`, `FR-RWF-016`; `RWI-DEC-166`, `RWI-DEC-192`; `INT-RWF-01`; `UAT-RWF-11` |
 | **Kontrak** | API 3.10 (penerima di dalam aplikasi); integrasi 4.2; data 6.7 |
@@ -172,11 +176,11 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Pemilik: Yasmina (Billing) |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### `BE-RWI-151` — Outbox jujur
+### ✅ `BE-RWI-151` — Outbox jujur
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI KODE 2 Oktober 2026.** Lima kriteria terpetakan ke source: daftar putih, `Published` hanya dengan tanda terima, backoff, `DeadLetter` setelah 10 kegagalan, dan pengambilan ulang sewa `Processing` yang habis. `dotnet build` `NOT RUN` — dikecualikan atas keputusan pengguna 2 Oktober 2026. Worker belum diuji dengan Billing hidup/mati; kolom pemrosesan menunggu migration `I1` pada `BE-RWI-149` 🟡. Bukti: [laporan](../task/report/backend/BE-RWI-151.md) |
 | **Outcome** | Pesan hanya berisi field daftar putih dan hanya `Published` setelah Billing benar-benar menerima |
 | **Requirement/decision** | `FR-RWF-014`, `FR-RWF-016`; `INV-RWF-05`; `RWI-DEC-161`, `RWI-DEC-166` |
 | **Kontrak** | Integrasi 4.2 (daftar putih, kunci idempotensi, kegagalan); backend 9.6, 9.11 (`ProcessingLeaseSeconds = 300`, `BatchSize = 50`, `MaxRetry = 10`) |
@@ -220,11 +224,11 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Perubahan perilaku pulang yang terasa bagi perawat dan kasir; penutupan pemakaian alat saat keluar ruangan ditambahkan `BE-RWI-168` (`keperawatan`). Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### `BE-RWI-154` — Koreksi salah catat penempatan
+### ✅ `BE-RWI-154` — Koreksi salah catat penempatan
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI KODE 2 Oktober 2026.** Empat kriteria terpetakan ke source: gerbang invoice, baris koreksi berantai, pemisahan transfer/koreksi, dan saringan Billing `SupersededByCorrectionId`. `dotnet build` `NOT RUN` — dikecualikan atas keputusan pengguna 2 Oktober 2026. Skenario `RSK-RWF-02` belum diuji dengan database; menunggu migration `I1`. Adapter status kasir sudah ada untuk koreksi, tetapi cakupan penuh `BE-RWI-152` tetap belum dikerjakan. Bukti: [laporan](../task/report/backend/BE-RWI-154.md) |
 | **Outcome** | Kepala ruangan atau admisi berwenang mengoreksi kamar, bed, kelas, atau waktu selama invoice `OPEN`; versi lama tetap tersimpan dan tarif kamar dihitung ulang tanpa dobel |
 | **Requirement/decision** | `FR-RWF-019`; `RWI-DEC-157`, `RWI-DEC-192` butir (g); `RSK-RWF-02`; `UAT-RWF-25` |
 | **Kontrak** | API 3.4 (`POST placements/{placementId}/corrections`, `InpatientBedOccupancy : Correct`; `placements/by-episode` bertambah tiga field; transfer menerbitkan `BED_OCCUPIED`); state 5 |
@@ -236,11 +240,11 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Penanda `IsSuperseded` dipakai transfer dan koreksi. Pemilik: Muhammad Hamzah, Yasmina |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### `BE-RWI-155` — Jembatan layanan klinis `RANAP`, biaya admin, dan finalisasi
+### ✅ `BE-RWI-155` — Jembatan layanan klinis `RANAP`, biaya admin, dan finalisasi
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI KODE 2 Oktober 2026.** Enam kriteria terpetakan ke source: jembatan `Inpatient`, obat saat penyerahan, biaya admin termasuk tarif kamar, penjaga `BIL-FIN-020`/`021`, penyelesaian `BIL-REV-001`, dan perluasan kondisi rawat jalan tanpa perubahan titik tagih. `dotnet build` `NOT RUN` — dikecualikan atas keputusan pengguna 2 Oktober 2026. Contoh berangka per layanan dan regresi rawat jalan belum diuji runtime; kolom pemeriksaan invoice menunggu migration `I2`. Bukti: [laporan](../task/report/backend/BE-RWI-155.md) |
 | **Outcome** | Tindakan, lab, radiologi, obat, dan konsultasi kunjungan rawat inap masuk invoice `RANAP` tanpa input kasir; invoice tidak dapat difinalkan selama "perlu diperiksa" atau ada tarif yang belum diatur |
 | **Requirement/decision** | `FR-RWF-011`, `FR-RWF-012`, `FR-RWF-015`; `RWI-DEC-192`, `RWI-DEC-195`; `VAL-RWF-15` s.d. `17` |
 | **Kontrak** | API 3.9 (`review-queue`, `review-resolution`); backend 9.6 |

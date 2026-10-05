@@ -31,19 +31,19 @@ public sealed class OperatingRoomExecutionService
     private readonly ApplicationDbContext _dbContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly LoggerService _loggerService;
-    private readonly OperatingRoomIntegrationService _integrationService;
 
     private readonly OperatingRoomRuleRelaxation _relaxation;
 
+    // BE-RWI-179: OperatingRoomIntegrationService tidak lagi dipakai di sini — penyiapan tagihan
+    // "procedure" saat finalisasi laporan dicabut (INV-RWF-29).
     public OperatingRoomExecutionService(ApplicationDbContext dbContext,
         IHttpContextAccessor httpContextAccessor, LoggerService loggerService,
-        OperatingRoomIntegrationService integrationService, OperatingRoomRuleRelaxation relaxation)
+        OperatingRoomRuleRelaxation relaxation)
     {
         _relaxation = relaxation;
         _dbContext = dbContext;
         _httpContextAccessor = httpContextAccessor;
         _loggerService = loggerService;
-        _integrationService = integrationService;
     }
 
     public async Task<OprCaseStatusResponse> StartAsync(Guid caseId, StartOprCaseRequest request,
@@ -64,6 +64,7 @@ public sealed class OperatingRoomExecutionService
 
         var entity = await LoadCaseAsync(caseId, cancellationToken)
             ?? throw new KeyNotFoundException("Kasus operasi tidak ditemukan.");
+        OperatingRoomCaseService.EnsureNotRejected(entity.Status);
         if (entity.Status != OprCaseStatus.Ready)
             throw new OperatingRoomConflictException("InvalidStateTransition",
                 "Operasi hanya dapat dimulai pada kasus berstatus Ready.");
@@ -120,6 +121,7 @@ public sealed class OperatingRoomExecutionService
 
         var entity = await LoadCaseAsync(caseId, cancellationToken)
             ?? throw new KeyNotFoundException("Kasus operasi tidak ditemukan.");
+        OperatingRoomCaseService.EnsureNotRejected(entity.Status);
         if (!CancellableStatuses.Contains(entity.Status))
             throw new OperatingRoomConflictException("InvalidStateTransition",
                 "Kasus hanya dapat dibatalkan sebelum operasi dimulai.");
@@ -142,6 +144,9 @@ public sealed class OperatingRoomExecutionService
             member.UpdateDateTime = now;
             member.UpdateBy = actorUserId;
         }
+
+        // BE-RWI-176 / state matrix 9.2: pra-operasi bangsal yang belum Superseded ikut gugur.
+        await OprWardPreOpService.SupersedeAllAsync(_dbContext, entity.Id, actorUserId, now, cancellationToken);
 
         var fromStatus = entity.Status;
         entity.Status = OprCaseStatus.Cancelled;
@@ -228,9 +233,10 @@ public sealed class OperatingRoomExecutionService
             entity.Version++;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
-            // Layanan aktual selesai memicu penyerahan tagihan ke Billing (`OPR-INT-002`).
-            await _integrationService.StageChargeDeliveryAsync(entity.Id, "procedure", record.Version,
-                actorUserId, now, cancellationToken);
+            // BE-RWI-179 / INV-RWF-29: finalisasi laporan operasi TIDAK lagi menyiapkan tagihan
+            // "procedure". Tindakan operasi ditagih sekali lewat order tindakannya, dan komponen OK
+            // (anestesi, sewa kamar, bahan) baru disiapkan OperatingRoomCompletionEffects saat kasus
+            // Completed — kasus yang batal atau ditolak tidak pernah menimbulkan biaya (INV-RWF-30).
         }
 
         _dbContext.OprStatusHistories.Add(NewHistory(entity.Id, entity.Status, entity.Status,

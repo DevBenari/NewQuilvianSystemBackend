@@ -122,10 +122,12 @@ public sealed class OperatingRoomReportService(ApplicationDbContext dbContext)
             .ToList();
 
         // Penundaan dan pembatalan dihitung dari histori supaya kasus yang sudah dijadwalkan
-        // ulang tetap terhitung pernah ditunda.
+        // ulang tetap terhitung pernah ditunda. BE-RWI-174: penolakan dihitung terpisah dari
+        // pembatalan — kasus Ditolak tidak pernah masuk CancelledCases.
         var histories = await dbContext.OprStatusHistories.AsNoTracking()
             .Where(x => !x.IsDelete && x.OccurredAt >= from && x.OccurredAt <= to &&
-                (x.ToStatus == OprCaseStatus.Postponed || x.ToStatus == OprCaseStatus.Cancelled))
+                (x.ToStatus == OprCaseStatus.Postponed || x.ToStatus == OprCaseStatus.Cancelled ||
+                 x.ToStatus == OprCaseStatus.Rejected))
             .Select(x => new { x.OprCaseId, x.ToStatus })
             .ToListAsync(cancellationToken);
 
@@ -139,6 +141,8 @@ public sealed class OperatingRoomReportService(ApplicationDbContext dbContext)
             PostponedCases = histories.Where(x => x.ToStatus == OprCaseStatus.Postponed)
                 .Select(x => x.OprCaseId).Distinct().Count(),
             CancelledCases = histories.Where(x => x.ToStatus == OprCaseStatus.Cancelled)
+                .Select(x => x.OprCaseId).Distinct().Count(),
+            RejectedCases = histories.Where(x => x.ToStatus == OprCaseStatus.Rejected)
                 .Select(x => x.OprCaseId).Distinct().Count()
         };
     }

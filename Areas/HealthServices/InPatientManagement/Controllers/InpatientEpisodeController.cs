@@ -789,29 +789,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         /// </summary>
         private IActionResult FromFailure(InpEpisodeOperationResult result)
         {
-            return FromStatus(result.Status, result.Message);
+            return FromStatus(result.Status, result.Message, result.Code);
         }
 
-        private IActionResult FromStatus(InpEpisodeOperationStatus status, string message)
+        private IActionResult FromStatus(InpEpisodeOperationStatus status, string message, string? code = null)
         {
+            // BE-RWI-181: penolakan berkode kontrak (mis. INP-ADM-REF-001) membawa kodenya pada errors.
+            object? errors = code != null ? new { Code = code } : null;
+
             return status switch
             {
                 InpEpisodeOperationStatus.Invalid => BadRequest(
-                    ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, message)),
+                    ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, message, errors)),
 
                 InpEpisodeOperationStatus.Forbidden => StatusCode(
                     StatusCodes.Status403Forbidden,
-                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, message)),
+                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, message, errors)),
 
                 InpEpisodeOperationStatus.NotFound => NotFound(
-                    ApiResponse<object>.Fail(StatusCodes.Status404NotFound, message)),
+                    ApiResponse<object>.Fail(StatusCodes.Status404NotFound, message, errors)),
 
                 InpEpisodeOperationStatus.Conflict => Conflict(
-                    ApiResponse<object>.Fail(StatusCodes.Status409Conflict, message)),
+                    ApiResponse<object>.Fail(StatusCodes.Status409Conflict, message, errors)),
 
                 _ => StatusCode(
                     StatusCodes.Status422UnprocessableEntity,
-                    ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, message))
+                    ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, message, errors))
             };
         }
     }

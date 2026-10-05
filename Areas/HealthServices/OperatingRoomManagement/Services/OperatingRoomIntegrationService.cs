@@ -1,4 +1,8 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
@@ -12,11 +16,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Ser
 /// Outbox penyerahan data operasi ke Inventory/Farmasi dan Billing (BE-OPR-009,
 /// `OPR-INT-001`/`OPR-INT-002`).
 ///
-/// Adapter nyata ke kedua consumer <b>belum dibangun</b> karena owner API-nya belum
-/// ditetapkan. Yang berjalan di sini adalah pencatatan lokal: baris delivery ditulis dalam
-/// transaksi yang sama dengan perubahan bisnis, berkunci idempotency, dan dapat direkonsiliasi
-/// atau diretry. Hasil pengiriman dicatat lewat <see cref="RecordAttemptAsync"/> sehingga
-/// ketika adapter tersedia ia hanya perlu memanggil metode itu.
+/// Baris delivery ditulis dalam transaksi yang sama dengan perubahan bisnis, berkunci
+/// idempotency, dan dapat direkonsiliasi atau diretry. Sejak <c>BE-RWI-179</c> tujuan Billing
+/// punya adapter nyata: <see cref="DeliverToBillingAsync"/> mengirim komponen anestesi, sewa
+/// kamar operasi, dan bahan sebagai fakta klinis <c>OPERATING_ROOM</c> lewat
+/// <c>ClinicalMilestoneFactProducer</c> → <c>BillingFolioService</c>. Hasil pengiriman manual
+/// tetap dapat dicatat lewat <see cref="RecordAttemptAsync"/>.
 /// </summary>
 public sealed class OperatingRoomIntegrationService
 {
@@ -28,27 +33,242 @@ public sealed class OperatingRoomIntegrationService
     private const string AttemptAction = "IntegrationAttempt";
     private const string RetryAction = "IntegrationRetry";
 
+    /// <summary>Komponen biaya OK yang dikirim ke Billing (<c>BE-RWI-179</c>, backend 12.8).</summary>
+    public const string AnesthesiaComponent = "ANESTHESIA";
+    public const string OperatingRoomRentComponent = "OR_RENT";
+    public const string MaterialComponentPrefix = "MATERIAL-";
+
+    /// <summary>
+    /// Komponen lama <c>procedure</c> yang dulu disiapkan saat laporan operasi difinalkan. Sejak
+    /// <c>INV-RWF-29</c> tindakan operasi hanya ditagih lewat order tindakan, sehingga baris lama
+    /// seperti ini tidak pernah dikirim ke Billing.
+    /// </summary>
+    public const string LegacyProcedureComponent = "procedure";
+
     /// <summary>
     /// Tujuan yang belum memiliki consumer, sehingga rekonsiliasinya masih manual.
     /// </summary>
     /// <remarks>
     /// <see cref="InventoryDestination"/> sudah keluar dari daftar ini: pemakaian material kini
     /// dibukukan ke kartu stok Farmasi oleh
-    /// <see cref="OperatingRoomInventoryDispatchService"/>. Billing masih tertahan karena tarif
-    /// dan tagihan adalah milik Billing, dan kontraknya belum tersedia.
+    /// <see cref="OperatingRoomInventoryDispatchService"/>. <see cref="BillingDestination"/> keluar
+    /// sejak <c>BE-RWI-179</c> (<c>RWI-DEC-196</c>): komponen biaya dikirim lewat
+    /// <see cref="DeliverToBillingAsync"/> dengan <c>SourceContext = OPERATING_ROOM</c>.
     /// </remarks>
-    private static readonly string[] BlockedDestinations = [BillingDestination];
+    private static readonly string[] BlockedDestinations = [];
 
     private readonly ApplicationDbContext _dbContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly LoggerService _loggerService;
+    private readonly ClinicalMilestoneFactProducer _factProducer;
 
     public OperatingRoomIntegrationService(ApplicationDbContext dbContext,
-        IHttpContextAccessor httpContextAccessor, LoggerService loggerService)
+        IHttpContextAccessor httpContextAccessor, LoggerService loggerService,
+        ClinicalMilestoneFactProducer factProducer)
     {
         _dbContext = dbContext;
         _httpContextAccessor = httpContextAccessor;
         _loggerService = loggerService;
+        _factProducer = factProducer;
+    }
+
+    /// <summary>
+    /// Mengirim setiap delivery Billing kasus ini yang masih <c>Pending</c>. Dipanggil
+    /// <see cref="OperatingRoomCompletionEffects"/> sesudah komponen disiapkan, di luar transaksi.
+    /// </summary>
+    /// <returns>Jumlah delivery yang diterima Billing pada pemanggilan ini.</returns>
+    public async Task<int> DeliverPendingBillingAsync(Guid caseId, Guid actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var pendingIds = await _dbContext.OprIntegrationDeliveries.AsNoTracking()
+            .Where(x => x.OprCaseId == caseId && x.Destination == BillingDestination &&
+                x.Status == OprDeliveryStatus.Pending && !x.IsDelete)
+            .OrderBy(x => x.CreateDateTime)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        var accepted = 0;
+        foreach (var deliveryId in pendingIds)
+        {
+            if (await DeliverToBillingAsync(deliveryId, actorUserId, cancellationToken) == OprDeliveryStatus.Accepted)
+                accepted++;
+        }
+        return accepted;
+    }
+
+    /// <summary>
+    /// Mengirim satu komponen biaya ke Billing sebagai fakta klinis <c>OPERATING_ROOM</c>
+    /// (<c>BE-RWI-179</c>, <c>RWI-DEC-196</c>, <c>RWI-DEC-207</c>: tetap dengan <c>EncounterId</c>
+    /// kasus OK). Fakta dengan isi sama tidak pernah menghasilkan revisi kedua, sehingga kirim ulang
+    /// tidak menggandakan baris tagihan (<c>INV-RWF-29</c>).
+    /// </summary>
+    /// <remarks>
+    /// Kegagalan tidak pernah membatalkan penyelesaian kasus: delivery menjadi <c>Failed</c> beserta
+    /// kodenya, lalu dapat diantrekan ulang lewat <see cref="RetryAsync"/>. Kasus yang tidak
+    /// <c>Completed</c> tidak pernah ditagih (<c>INV-RWF-30</c>).
+    /// </remarks>
+    public async Task<OprDeliveryStatus?> DeliverToBillingAsync(Guid deliveryId, Guid actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var delivery = await _dbContext.OprIntegrationDeliveries
+            .FirstOrDefaultAsync(x => x.Id == deliveryId && !x.IsDelete, cancellationToken);
+        if (delivery == null || delivery.Destination != BillingDestination) return null;
+        if (delivery.Status != OprDeliveryStatus.Pending) return delivery.Status;
+
+        var now = DateTime.UtcNow;
+        delivery.Status = OprDeliveryStatus.Processing;
+        delivery.LastAttemptAt = now;
+        delivery.RetryCount++;
+        delivery.UpdateDateTime = now;
+        delivery.UpdateBy = actorUserId;
+        await SaveAsync(cancellationToken);
+
+        string? failureCode = null;
+        string? acceptedReference = null;
+        try
+        {
+            var build = await BuildBillingFactAsync(delivery, cancellationToken);
+            if (build.FailureCode != null)
+            {
+                failureCode = build.FailureCode;
+            }
+            else
+            {
+                var emission = await _factProducer.EmitChargeEligibilityAsync(build.Request!, actorUserId, cancellationToken);
+                if (emission.Kind is ClinicalFactEmissionKind.Emitted or ClinicalFactEmissionKind.Replayed)
+                    acceptedReference = emission.ClinicalMilestoneFactId?.ToString("N");
+                else
+                    failureCode = emission.Code ?? emission.Kind.ToString();
+            }
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            failureCode = "BILLING_DELIVERY_ERROR";
+            await _loggerService.AuditAsync(LogCategory, "OperatingRoomIntegration.DeliverToBilling.Error",
+                "Pengiriman komponen biaya operasi ke Billing gagal dan akan dicoba ulang.",
+                new { delivery.OprCaseId, DeliveryId = delivery.Id, ExceptionType = exception.GetType().Name });
+            // Konteks dapat tertinggal dengan entity setengah jadi; baca ulang delivery dari database.
+            _dbContext.ChangeTracker.Clear();
+        }
+
+        var tracked = await _dbContext.OprIntegrationDeliveries
+            .FirstAsync(x => x.Id == deliveryId, cancellationToken);
+        tracked.Status = failureCode == null ? OprDeliveryStatus.Accepted : OprDeliveryStatus.Failed;
+        tracked.AcceptedReference = failureCode == null ? acceptedReference : null;
+        tracked.LastErrorCode = failureCode;
+        tracked.UpdateDateTime = DateTime.UtcNow;
+        tracked.UpdateBy = actorUserId;
+        await SaveAsync(cancellationToken);
+
+        await _loggerService.AuditAsync(LogCategory, "OperatingRoomIntegration.DeliverToBilling",
+            "Mengirim komponen biaya operasi ke Billing.",
+            new
+            {
+                tracked.OprCaseId, DeliveryId = tracked.Id, tracked.IdempotencyKey,
+                Status = tracked.Status.ToString(), tracked.LastErrorCode, tracked.RetryCount
+            });
+        return tracked.Status;
+    }
+
+    /// <summary>
+    /// Menyusun fakta klinis dari kunci delivery <c>case:charge:component:revision</c>. Data
+    /// klinisnya dibaca saat dikirim — anestesi dari catatan anestesi final, sewa kamar dari durasi
+    /// catatan operasi, bahan dari pemakaian <c>Used</c>.
+    /// </summary>
+    private async Task<(ClinicalMilestoneFactRequest? Request, string? FailureCode)> BuildBillingFactAsync(
+        OprIntegrationDelivery delivery, CancellationToken cancellationToken)
+    {
+        var parts = delivery.IdempotencyKey.Split(':');
+        if (parts.Length < 4 || parts[1] != "charge") return (null, "UNKNOWN_COMPONENT");
+        var component = parts[2];
+
+        // INV-RWF-29: komponen tindakan lama tidak pernah dikirim; tindakan ditagih lewat order.
+        if (string.Equals(component, LegacyProcedureComponent, StringComparison.OrdinalIgnoreCase))
+            return (null, "SUPERSEDED_BY_ORDER");
+
+        var opCase = await _dbContext.OprCases.AsNoTracking()
+            .Where(x => x.Id == delivery.OprCaseId && !x.IsDelete)
+            .Select(x => new { x.Id, x.CaseNumber, x.EncounterId, x.Status })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (opCase == null) return (null, "CASE_NOT_FOUND");
+        // INV-RWF-30: kasus Rejected, Cancelled, atau belum selesai tidak menimbulkan biaya.
+        if (opCase.Status != OprCaseStatus.Completed) return (null, "CASE_NOT_COMPLETED");
+
+        var execution = await _dbContext.OprExecutionRecords.AsNoTracking()
+            .Where(x => x.OprCaseId == opCase.Id && !x.IsDelete)
+            .Select(x => new { x.Id, x.StartedAt, x.FinishedAt })
+            .FirstOrDefaultAsync(cancellationToken);
+        var durationMinutes = execution?.FinishedAt is { } finishedAt
+            ? Math.Max(1m, decimal.Round((decimal)(finishedAt - execution.StartedAt).TotalMinutes, 0, MidpointRounding.AwayFromZero))
+            : (decimal?)null;
+        var serviceAt = execution?.FinishedAt ?? DateTime.UtcNow;
+
+        Guid sourceItemId;
+        decimal? quantity;
+        string? unit;
+        DateTime occurredAt;
+
+        if (component == AnesthesiaComponent)
+        {
+            var anesthesia = await _dbContext.OprAnesthesiaRecords.AsNoTracking()
+                .Where(x => x.OprCaseId == opCase.Id && !x.IsDelete && x.Status == OprRecordStatus.Final)
+                .Select(x => (Guid?)x.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (!anesthesia.HasValue) return (null, "ANESTHESIA_RECORD_NOT_FINAL");
+            sourceItemId = anesthesia.Value;
+            quantity = durationMinutes;
+            unit = durationMinutes.HasValue ? "MINUTE" : null;
+            occurredAt = serviceAt;
+        }
+        else if (component == OperatingRoomRentComponent)
+        {
+            if (execution == null || durationMinutes == null) return (null, "OPERATION_DURATION_MISSING");
+            sourceItemId = execution.Id;
+            quantity = durationMinutes;
+            unit = "MINUTE";
+            occurredAt = serviceAt;
+        }
+        else if (component.StartsWith(MaterialComponentPrefix, StringComparison.Ordinal) &&
+                 Guid.TryParseExact(component[MaterialComponentPrefix.Length..], "N", out var usageId))
+        {
+            var usage = await _dbContext.OprMaterialUsages.AsNoTracking()
+                .Where(x => x.Id == usageId && x.OprCaseId == opCase.Id && !x.IsDelete)
+                .Select(x => new { x.Id, x.Quantity, x.UnitCode, x.Outcome, x.OccurredAt })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (usage == null) return (null, "MATERIAL_USAGE_NOT_FOUND");
+            if (usage.Outcome != OprMaterialOutcome.Used) return (null, "MATERIAL_NOT_USED");
+            sourceItemId = usage.Id;
+            var hasUnit = usage.Quantity > 0 && !string.IsNullOrWhiteSpace(usage.UnitCode);
+            quantity = hasUnit ? usage.Quantity : null;
+            unit = hasUnit ? usage.UnitCode.Trim() : null;
+            occurredAt = usage.OccurredAt;
+        }
+        else
+        {
+            return (null, "UNKNOWN_COMPONENT");
+        }
+
+        return (new ClinicalMilestoneFactRequest
+        {
+            SourceContext = BillingSourceContract.OperatingRoomSourceContext,
+            SourceAggregateId = opCase.Id,
+            SourceItemId = sourceItemId,
+            EffectType = BillingSourceContract.OperatingRoomChargeEffectType,
+            // RWI-DEC-207: biaya OK tetap pada kunjungan kasus OK; Billing yang menautkannya ke RANAP.
+            EncounterId = opCase.EncounterId,
+            OccurredAt = occurredAt,
+            Quantity = quantity,
+            Unit = unit,
+            // Rujukan saja — harga selalu ditetapkan Billing dari MstTariff.
+            TariffSnapshot = JsonSerializer.Serialize(new
+            {
+                source = "OperatingRoom",
+                component = component.StartsWith(MaterialComponentPrefix, StringComparison.Ordinal) ? "MATERIAL" : component,
+                caseNumber = opCase.CaseNumber
+            }),
+            CorrelationId = opCase.Id,
+            CausationId = delivery.Id
+        }, null);
     }
 
     /// <summary>
@@ -223,6 +443,12 @@ public sealed class OperatingRoomIntegrationService
         await _loggerService.AuditAsync(LogCategory, "OperatingRoomIntegration.Retry",
             "Mengantrekan ulang pengiriman integrasi operasi.",
             new { OprCaseId = caseId, ActorUserId = actorUserId, DeliveryId = deliveryId, delivery.RetryCount });
+
+        // BE-RWI-179: Billing kini punya consumer; delivery yang diantrekan ulang langsung dicoba
+        // kirim. Gagal lagi → kembali Failed beserta kodenya, kasus tetap Completed.
+        if (delivery.Destination == BillingDestination)
+            await DeliverToBillingAsync(deliveryId, actorUserId, cancellationToken);
+
         return (await GetDeliveryAsync(deliveryId, cancellationToken))!;
     }
 

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
@@ -45,6 +46,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         private readonly InpEpisodeService _episodeService;
         private readonly IInpIntegrationOutboxService _outboxService;
 
+        /// <summary>
+        /// Dokumen serah terima klinis transfer antarunit, dibuat sesudah commit (<c>BE-RWI-183</c>,
+        /// <c>INV-RWF-33</c>).
+        /// </summary>
+        private readonly CliTransferHandoverService _transferHandoverService;
+
+        private readonly ILogger<InpBedOccupancyService> _logger;
+
         /// <remarks>
         /// Arah dependency ke <see cref="InpEpisodeService"/> ditetapkan `BE-RWI-011`:
         /// penempatan pasien wajib memindahkan status episode lewat satu-satunya pintu, yaitu
@@ -55,12 +64,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             ApplicationDbContext dbContext,
             InpSettingService settingService,
             InpEpisodeService episodeService,
-            IInpIntegrationOutboxService outboxService)
+            IInpIntegrationOutboxService outboxService,
+            CliTransferHandoverService transferHandoverService,
+            ILogger<InpBedOccupancyService> logger)
         {
             _dbContext = dbContext;
             _settingService = settingService;
             _episodeService = episodeService;
             _outboxService = outboxService;
+            _transferHandoverService = transferHandoverService;
+            _logger = logger;
         }
 
         // =====================================================================
@@ -1160,6 +1173,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
+
+                // BE-RWI-183 / INV-RWF-33: transfer ke unit lain membuat dokumen serah terima klinis
+                // SESUDAH commit. Gagal tidak pernah membatalkan transfer yang sudah sah; dokumennya
+                // dibuat ulang oleh pengecekan saat daftar serah terima dibaca.
+                if (currentPlacement.ServiceUnitId != placement.ServiceUnitId)
+                {
+                    try
+                    {
+                        await _transferHandoverService.CreateForTransferAsync(
+                            episode.Id, currentPlacement.Id, placement.Id, actorUserId, cancellationToken);
+                    }
+                    catch (Exception exception) when (exception is not OperationCanceledException)
+                    {
+                        _logger.LogWarning(exception,
+                            "Dokumen serah terima transfer untuk episode {EpisodeId} gagal dibuat sesudah transfer; " +
+                            "transfer tetap sah dan dokumen akan dibuat ulang saat daftar dibaca.",
+                            episode.Id);
+                    }
+                }
 
                 return InpBedOccupancyOperationResult.Success(
                     "Pasien berhasil dipindahkan.",

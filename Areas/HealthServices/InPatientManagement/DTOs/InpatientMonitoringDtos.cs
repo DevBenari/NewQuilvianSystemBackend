@@ -288,4 +288,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     public class DepositShortfallPagedResult : PagedResult<DepositShortfallItemResponse>
     {
     }
+
+    /// <summary>
+    /// Penyaring daftar pantau serah terima pasca operasi tertunda (<c>BE-RWI-182</c>, API 11.9).
+    /// Ambangnya selalu <c>MstInpatientSetting.PendingSurgicalHandoverAlertMinutes</c>.
+    /// </summary>
+    public class PendingSurgicalHandoverQuery
+    {
+        /// <summary>Unit tujuan serah terima; kosong berarti seluruh unit.</summary>
+        public Guid? DestinationUnitId { get; set; }
+
+        public int PageNumber { get; set; } = 1;
+
+        public int PageSize { get; set; } = 20;
+    }
+
+    /// <summary>
+    /// Penyaring daftar pantau permintaan admisi tertunda (<c>BE-RWI-182</c>, API 11.9). Ambangnya
+    /// selalu <c>MstInpatientSetting.PendingAdmissionReferralAlertMinutes</c>.
+    /// </summary>
+    public class PendingAdmissionReferralQuery
+    {
+        public string? Search { get; set; }
+
+        public int PageNumber { get; set; } = 1;
+
+        public int PageSize { get; set; } = 20;
+    }
 }

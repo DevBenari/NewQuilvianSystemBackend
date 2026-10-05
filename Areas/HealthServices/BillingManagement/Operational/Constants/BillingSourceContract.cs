@@ -71,6 +71,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
         public const string ConsultationSourceContext = "Consultation";
         public const string ConsultationChargeEffectType = "ConsultationCharge";
 
+        /// <summary>
+        /// Sumber Kamar Operasi, terdaftar sejak <c>BE-RWI-179</c> atas <c>RWI-DEC-192</c> dan
+        /// <c>RWI-DEC-196</c> (disetujui Ikbal Yulianto dan Yasmina, <c>RWI-DEC-191</c>/<c>208</c>).
+        /// Satu fakta per komponen kasus yang <c>Completed</c>: <c>ANESTHESIA</c>, <c>OR_RENT</c>, dan
+        /// <c>MATERIAL-{usageId}</c>. Tindakan operasinya sendiri <b>tidak</b> lewat sumber ini —
+        /// ia ditagih lewat order tindakan (<see cref="ProcedureSourceContext"/>, <c>INV-RWF-29</c>).
+        /// Nilai string mengikuti kontrak backend 12.7 (<c>SourceContext = OPERATING_ROOM</c>).
+        /// </summary>
+        public const string OperatingRoomSourceContext = "OPERATING_ROOM";
+        public const string OperatingRoomChargeEffectType = "OperatingRoomCharge";
+
         private static readonly IReadOnlyDictionary<string, string[]> AllowedEffectTypes =
             new Dictionary<string, string[]>(StringComparer.Ordinal)
             {
@@ -80,7 +91,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
                 [LaboratorySourceContext] = new[] { LaboratoryChargeEffectType },
                 [RadiologySourceContext] = new[] { RadiologyChargeEffectType },
                 [BloodBankSourceContext] = new[] { BloodBankChargeEffectType },
-                [ConsultationSourceContext] = new[] { ConsultationChargeEffectType }
+                [ConsultationSourceContext] = new[] { ConsultationChargeEffectType },
+                [OperatingRoomSourceContext] = new[] { OperatingRoomChargeEffectType }
             };
 
         public static bool IsKnownSourceContext(string? sourceContext)

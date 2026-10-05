@@ -56,6 +56,10 @@ public sealed class ContractBillingChargeSourceAdapter : IBillingChargeSourceAda
             // RJ-E2E-DEC-001/010: jasa konsultasi ditagih saat konsultasi Completed. Konsultasi
             // yang sudah selesai tidak dibuka ulang, sehingga koreksinya selalu adjustment.
             ["CONSULTATION"] = Policy(["COMPLETED"], [], []),
+            // BE-RWI-179 / RWI-DEC-196: komponen Kamar Operasi (anestesi, sewa kamar operasi, bahan)
+            // ditagih saat kasus Completed. Layanan yang sudah selesai tidak di-void normal;
+            // koreksinya adjustment, sama seperti konsultasi.
+            ["OPERATING_ROOM"] = Policy(["COMPLETED"], [], ["CANCELLED", "VOIDED"]),
             ["CONSUMABLE"] = Policy(["USED"], [], []),
             // Biaya bebas yang diketik langsung oleh kasir pada Menu Pembayaran (BKC-DEC-047):
             // nama/harga bebas, tanpa gerbang approval, tapi tetap boleh dibatalkan kasir sendiri

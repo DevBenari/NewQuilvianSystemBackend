@@ -1,6 +1,7 @@
 ﻿using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
 {
@@ -23,6 +24,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         public Guid? PatientClassId { get; set; }
         public Guid? ProcedureId { get; set; }
         public Guid? DrugId { get; set; }
+
+        /// <summary>
+        /// Tarif pemakaian alat per kelas — <c>keperawatan</c> kontrak <c>0.6.0</c> kamus data 12.14
+        /// (<c>BE-RWI-172</c>, migration <c>K8</c>).
+        /// </summary>
+        public Guid? MedicalEquipmentId { get; set; }
+
+        /// <summary>
+        /// Komponen biaya operasi yang ditagih Kamar Operasi — <c>episode-rawat-inap</c> kontrak
+        /// <c>0.10.0</c> (<c>BE-RWI-172</c>, migration <c>E4</c>). Bawaan <c>None</c> untuk seluruh
+        /// tarif lama, sehingga nilai tarif tindakan dan obat tidak berubah (<c>RWI-DEC-193</c>).
+        /// </summary>
+        public MstSurgeryComponentType SurgeryComponentType { get; set; } = MstSurgeryComponentType.None;
+
+        /// <summary>Dasar perhitungan tarif; bawaan <c>PerService</c>.</summary>
+        public MstTariffChargeBasis ChargeBasis { get; set; } = MstTariffChargeBasis.PerService;
+
+        /// <summary>Pembulatan unit; hanya berarti bila <see cref="ChargeBasis"/> = <c>PerHour</c>.</summary>
+        public MstEquipmentRoundingRule ChargeRounding { get; set; } = MstEquipmentRoundingRule.CeilingWholeUnit;
 
         [MaxLength(50)]
         public string? ExternalServiceCode { get; set; }
@@ -58,5 +78,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         public MstPatientClass? PatientClass { get; set; }
         public MstProcedure? Procedure { get; set; }
         public MstDrug? Drug { get; set; }
+        public MstMedicalEquipment? MedicalEquipment { get; set; }
     }
 }

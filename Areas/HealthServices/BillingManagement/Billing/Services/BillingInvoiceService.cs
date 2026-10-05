@@ -1458,7 +1458,7 @@ public sealed class BillingInvoiceService
     // (BillingClinicalChargeBridgeService) dengan harga dari MstTariff. Jalur HTTP from-source
     // menerima harga dari pemanggil, sehingga domain itu ditutup di sini untuk kunjungan Rawat Jalan.
     private static readonly HashSet<string> BridgeOwnedOutpatientDomains =
-        new(StringComparer.OrdinalIgnoreCase) { "PROCEDURE", "LABORATORY", "RADIOLOGY", "PHARMACY", "CONSULTATION" };
+        new(StringComparer.OrdinalIgnoreCase) { "PROCEDURE", "LABORATORY", "RADIOLOGY", "PHARMACY", "CONSULTATION", "OPERATING_ROOM" };
 
     /// <summary>
     /// Pintu HTTP <c>POST from-source</c>. Menolak domain klinis Rawat Jalan sebelum meneruskan ke
