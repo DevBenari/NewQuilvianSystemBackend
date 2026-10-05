@@ -175,6 +175,12 @@ public static class FinAccountingEventTypeCodes
     public const string PenutupanShiftKasir = "PENUTUPAN-SHIFT-KASIR";
     public const string PembalikanPenutupanShiftKasir = "PEMBALIKAN-PENUTUPAN-SHIFT-KASIR";
 
+    // Kode penanda pembukaan shift kasir (FIN-DEC-115, FIN-DEC-121, FIN-DES-084, BE-FIN-070).
+    // Diterbitkan saat Finance pertama kali melihat shift dengan status belum final
+    // (OPEN, HANDED_OVER, REOPENED, CLOSED_WITH_VARIANCE, PERLU_TINDAK_LANJUT).
+    // Gerbang FIN-OQ-047 hanya menahan PENGIRIMAN-nya oleh worker; penulisan baris outbox tidak tertahan.
+    public const string PembukaanShiftKasir = "PEMBUKAAN-SHIFT-KASIR";
+
     /// <summary>
     /// Daftar tertutup kode penanda yang diizinkan bernilai nol (FIN-DES-054, FIN-VAL-138).
     /// Berada di satu tempat untuk mencegah pemeriksaan Amount == 0 yang longgar.
@@ -183,7 +189,9 @@ public static class FinAccountingEventTypeCodes
     {
         PenutupanShiftKasir,
         PembalikanPenutupanShiftKasir,
-        SaldoSubledger
+        SaldoSubledger,
+        // BE-FIN-070, FIN-DES-084: penanda pembukaan shift bernilai nol — penanda status, bukan transaksi.
+        PembukaanShiftKasir
     };
 }
 

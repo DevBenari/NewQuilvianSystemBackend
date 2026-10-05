@@ -189,7 +189,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         public async Task<IActionResult> GetMasterDiagnosisOptions(
             [FromQuery] string? search,
             [FromQuery] Guid? diagnosisChapterId,
-            [FromQuery] Guid? diagnosisGroupId,
             [FromQuery] bool onlySelectable = true,
             [FromQuery] bool onlyActive = true,
             [FromQuery] int take = 50,
@@ -211,10 +210,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             if (diagnosisChapterId.HasValue && diagnosisChapterId.Value != Guid.Empty)
                 query = query.Where(x => x.DiagnosisChapterId == diagnosisChapterId.Value);
 
-            // RJ-DOC-REV-BE-006 — saring per kelompok ICD Diagnosa (DTD).
-            if (diagnosisGroupId.HasValue && diagnosisGroupId.Value != Guid.Empty)
-                query = query.Where(x => x.DiagnosisGroupId == diagnosisGroupId.Value);
-
             // BE-RWI-142. Kode tindakan ICD-9 disimpan pada tabel yang sama dengan diagnosa ICD-10
             // (Icd10DiagnosisSeeder). Tanpa penyaring versi, mengetik "99" di kolom diagnosa SOAP
             // dapat menawarkan kode tindakan. Nilai kosong mematikan penyaring untuk pemanggil lama.
@@ -230,11 +225,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             if (keyword != null)
             {
-                // RJ-DOC-REV-BE-006 — nama kelompok DTD (mis. "kolera") ikut dicari.
                 query = query.Where(x =>
                     x.DiagnosisCode.ToLower().Contains(keyword) ||
-                    x.DiagnosisName.ToLower().Contains(keyword) ||
-                    (x.DiagnosisGroup != null && x.DiagnosisGroup.GroupName.ToLower().Contains(keyword)));
+                    x.DiagnosisName.ToLower().Contains(keyword));
             }
 
             // BE-RWI-142. Urutan relevansi: kode persis, lalu awalan kode, lalu nama. Mengetik "J18"
@@ -259,10 +252,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     IcdVersion = x.IcdVersion,
                     IsSelectableForClinicalUse = x.IsSelectableForClinicalUse,
                     IsPrimaryDiagnosisAllowed = x.IsPrimaryDiagnosisAllowed,
-                    IsSecondaryDiagnosisAllowed = x.IsSecondaryDiagnosisAllowed,
-                    DiagnosisGroupId = x.DiagnosisGroupId,
-                    DiagnosisGroupDtdNumber = x.DiagnosisGroup != null ? x.DiagnosisGroup.DtdNumber : null,
-                    DiagnosisGroupName = x.DiagnosisGroup != null ? x.DiagnosisGroup.GroupName : null
+                    IsSecondaryDiagnosisAllowed = x.IsSecondaryDiagnosisAllowed
                 })
                 .ToListAsync();
 

@@ -12,6 +12,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Con
 /// <summary>
 /// Aggregate ber-lifecycle (transaksi, bukan master data) — perpindahan status lewat aksi
 /// POST /{id}/&lt;aksi&gt;, bukan PATCH /{id}/status generik (transaction-endpoint-standard.md).
+/// BE-FIN-053 (FIN-DES-073): GET /write-offs adalah permukaan BACA lintas piutang untuk layar
+/// "Pemutihan Piutang" — nol aksi baru, pembuatan/persetujuan/penolakan write-off tetap lewat
+/// endpoint per-piutang di bawah beserta maker-checker-nya.
+/// BE-FIN-055: GET /aging menerima parameter opsional DebtorType (PAYER/PATIENT_GUARANTOR/
+/// EMPLOYEE_BENEFIT) — BUKAN "segmen Kasir" seperti dugaan rancangan awal, karena nilai itu tidak
+/// ada pada FinReceivable. "Umur Piutang Kasir" pada menu V1 memanggil endpoint ini TANPA
+/// saringan apa pun.
 /// </summary>
 [ApiController]
 [Authorize]
@@ -46,7 +53,7 @@ public sealed class FinanceReceivablesController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<List<ReceivableAgingBucketResult>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAging([FromQuery] ReceivableAgingQuery request, CancellationToken cancellationToken) =>
         Ok(ApiResponse<List<ReceivableAgingBucketResult>>.Ok(
-            await _service.GetAgingSummaryAsync(request.AsOfDate, cancellationToken), "Umur piutang berhasil diambil."));
+            await _service.GetAgingSummaryAsync(request.AsOfDate, cancellationToken, request.DebtorType), "Umur piutang berhasil diambil."));
 
     [HttpGet]
     [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -55,6 +62,14 @@ public sealed class FinanceReceivablesController : ControllerBase
     public async Task<IActionResult> Get([FromQuery] ReceivableQuery request, CancellationToken cancellationToken) =>
         Ok(ApiResponse<PagedResult<ReceivableResponse>>.Ok(
             await _service.GetPagedAsync(request, cancellationToken), "Piutang berhasil diambil."));
+
+    [HttpGet("write-offs")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<ReceivableWriteOffRowResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetWriteOffs([FromQuery] ReceivableWriteOffQuery request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<PagedResult<ReceivableWriteOffRowResponse>>.Ok(
+            await _service.GetWriteOffsAsync(request, cancellationToken), "Daftar penghapusan piutang berhasil diambil."));
 
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -66,6 +81,22 @@ public sealed class FinanceReceivablesController : ControllerBase
         try { return Ok(ApiResponse<ReceivableDetailResponse>.Ok(await _service.GetByIdAsync(id, cancellationToken), "Detail piutang berhasil diambil. Menampilkan rincian, dokumen, koreksi, dan penghapusan — termasuk penelusuran ke tagihan asal (InvoiceId).")); }
         catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
     }
+
+    [HttpGet("{id:guid}/movements")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<ReceivableMovementResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMovements(Guid id, [FromQuery] ReceivableMovementQuery query, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetMovementsPagedAsync(id, query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<ReceivableMovementResponse>>.Ok(result, "Riwayat mutasi piutang berhasil diambil."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
 
     [HttpPost("{id:guid}/adjustments")]
     [AccessAction("RequestAdjustment", "Request Receivable Adjustment", AccessType = AccessTypes.Create, SortOrder = 2)]

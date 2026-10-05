@@ -23,7 +23,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Con
 public sealed class FinanceGoodsReceiptsController : ControllerBase
 {
     private readonly FinanceGoodsReceiptService _service;
-    public FinanceGoodsReceiptsController(FinanceGoodsReceiptService service) => _service = service;
+    private readonly PurchasingIdempotencyService _idempotency;
+    public FinanceGoodsReceiptsController(FinanceGoodsReceiptService service, PurchasingIdempotencyService idempotency)
+    {
+        _service = service;
+        _idempotency = idempotency;
+    }
 
     [HttpGet]
     [AccessAction("Read", "Read Goods Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -58,15 +63,23 @@ public sealed class FinanceGoodsReceiptsController : ControllerBase
     [HttpPost]
     [AccessAction("Create", "Create Goods Receipt", AccessType = AccessTypes.Create, SortOrder = 2)]
     [AccessPermission("FinanceGoodsReceipt", "Create")]
-    public async Task<IActionResult> Create([FromBody] CreateGoodsReceiptRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create(
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        [FromBody] CreateGoodsReceiptRequest request, CancellationToken cancellationToken)
     {
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        if (replay is not null) return Replay(replay);
+
         try
         {
             var items = request.Items
                 .Select(x => new GoodsReceiptItemRequest(x.PurchaseOrderItemId, x.ReceivedQuantity, x.Notes))
                 .ToList();
             var goodsReceipt = await _service.CreateAsync(request.PurchaseOrderId, request.ReceivedDate, items, CurrentUserId(), cancellationToken);
-            return StatusCode(201, ApiResponse<GoodsReceiptResponse>.Ok(Map(goodsReceipt), "Tanda Terima Barang berhasil dicatat."));
+            var response = ApiResponse<GoodsReceiptResponse>.Ok(Map(goodsReceipt), "Tanda Terima Barang berhasil dicatat.");
+            await _idempotency.SaveAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.GoodsReceipt,
+                FinPurchasingIdempotencyActions.Create, goodsReceipt.Id, 201, response, cancellationToken);
+            return StatusCode(201, response);
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
@@ -74,12 +87,20 @@ public sealed class FinanceGoodsReceiptsController : ControllerBase
     [HttpPost("{id:guid}/cancel")]
     [AccessAction("Cancel", "Cancel Goods Receipt", AccessType = AccessTypes.Update, SortOrder = 3)]
     [AccessPermission("FinanceGoodsReceipt", "Cancel")]
-    public async Task<IActionResult> Cancel(Guid id, [FromBody] GoodsReceiptRowVersionRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Cancel(
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        Guid id, [FromBody] GoodsReceiptRowVersionRequest request, CancellationToken cancellationToken)
     {
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        if (replay is not null) return Replay(replay);
+
         try
         {
             var goodsReceipt = await _service.CancelAsync(id, request.ExpectedRowVersion, CurrentUserId(), cancellationToken);
-            return Ok(ApiResponse<GoodsReceiptResponse>.Ok(Map(goodsReceipt), "Tanda Terima Barang berhasil dibatalkan."));
+            var response = ApiResponse<GoodsReceiptResponse>.Ok(Map(goodsReceipt), "Tanda Terima Barang berhasil dibatalkan.");
+            await _idempotency.SaveAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.GoodsReceipt,
+                FinPurchasingIdempotencyActions.Cancel, goodsReceipt.Id, 200, response, cancellationToken);
+            return Ok(response);
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
@@ -128,6 +149,9 @@ public sealed class FinanceGoodsReceiptsController : ControllerBase
     private static bool IsHandled(Exception exception) => exception is
         KeyNotFoundException or PurchasingForbiddenException or PurchasingConflictException
         or PurchasingValidationException or PurchasingBadRequestException;
+
+    private IActionResult Replay(PurchasingIdempotencyService.CachedResult cached) =>
+        new ContentResult { StatusCode = cached.StatusCode, Content = cached.ResponseBody, ContentType = "application/json" };
 
     private Guid CurrentUserId()
     {

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
@@ -23,11 +24,16 @@ public sealed class FinanceCashManagementService
     private const string LogCategory = "Corporate.FinanceManagement.CashManagement";
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
+    private readonly FinanceSubledgerMovementService _subledgerMovementService;
 
-    public FinanceCashManagementService(ApplicationDbContext dbContext, LoggerService loggerService)
+    public FinanceCashManagementService(
+        ApplicationDbContext dbContext,
+        LoggerService loggerService,
+        FinanceSubledgerMovementService subledgerMovementService)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
+        _subledgerMovementService = subledgerMovementService;
     }
 
     // ------------------------------------------------------------------------------------
@@ -121,7 +127,7 @@ public sealed class FinanceCashManagementService
     public async Task<AvailableCashBalanceResponse> GetAvailableCashBalanceAsync(
         DateOnly? date, Guid? cashierShiftId, CancellationToken cancellationToken)
     {
-        var effectiveDate = date ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var effectiveDate = date ?? FinanceBusinessDate.Today();
         decimal totalCashierCash = 0m;
 
         if (cashierShiftId.HasValue)
@@ -261,6 +267,21 @@ public sealed class FinanceCashManagementService
             deposit.UpdateDateTime = DateTime.UtcNow;
             deposit.UpdateBy = actorUserId;
 
+            // BE-FIN-062, FIN-DES-081: Mutasi subledger SETORAN-BANK kas keluar (Sumber 5)
+            await _subledgerMovementService.RecordCashMovementAsync(
+                movementType: FinCashMovementTypes.SetoranBank,
+                direction: FinCashMovementDirections.Out,
+                amount: deposit.Amount,
+                businessDate: deposit.DepositDate,
+                occurredAt: deposit.PostedAt!.Value,
+                sourceReferenceType: FinCashMovementSourceReferenceTypes.BankDeposit,
+                sourceReferenceId: deposit.Id.ToString(),
+                actorUserId: actorUserId,
+                correlationId: deposit.Id,
+                causationId: deposit.Id,
+                notes: deposit.Notes ?? $"Setoran bank {deposit.DepositNumber}",
+                cancellationToken: cancellationToken);
+
             await _dbContext.SaveChangesAsync(cancellationToken);
             await CommitAsync(transaction, cancellationToken);
 
@@ -333,56 +354,100 @@ public sealed class FinanceCashManagementService
     public async Task<BankDepositResponse> CancelBankDepositAsync(
         Guid id, CancelBankDepositRequest request, Guid actorUserId, CancellationToken cancellationToken)
     {
-        var deposit = await _dbContext.FinBankDeposits
-            .Include(x => x.BankAccount).ThenInclude(b => b!.Bank)
-            .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
-            ?? throw new KeyNotFoundException("Setoran bank tidak ditemukan.");
-
-        EnsureCurrent(deposit.RowVersion, request.ExpectedRowVersion);
-
-        if (deposit.Status == FinBankDepositStatuses.Verified)
-            throw new CashValidationException("Setoran yang sudah diverifikasi tidak dapat dibatalkan.");
-
-        if (deposit.Status == FinBankDepositStatuses.Cancelled)
-            throw new CashValidationException("Setoran sudah dibatalkan sebelumnya.");
-
-        if (deposit.Status == FinBankDepositStatuses.Posted)
+        IDbContextTransaction? transaction = null;
+        try
         {
-            var snapshot = await _dbContext.FinDailyCashSnapshots.AsNoTracking()
-                .SingleOrDefaultAsync(x => x.CashDate == deposit.DepositDate && !x.IsDelete, cancellationToken);
-            if (snapshot is not null && snapshot.Status == FinDailyCashSnapshotStatuses.Closed)
-                throw new CashValidationException("Kas harian tanggal ini sudah ditutup. Setoran yang sudah diposting tidak dapat dibatalkan.");
-        }
+            var deposit = await _dbContext.FinBankDeposits
+                .Include(x => x.BankAccount).ThenInclude(b => b!.Bank)
+                .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Setoran bank tidak ditemukan.");
 
-        deposit.Status = FinBankDepositStatuses.Cancelled;
-        if (!string.IsNullOrWhiteSpace(request.Reason))
+            EnsureCurrent(deposit.RowVersion, request.ExpectedRowVersion);
+
+            if (deposit.Status == FinBankDepositStatuses.Verified)
+                throw new CashValidationException("Setoran yang sudah diverifikasi tidak dapat dibatalkan.");
+
+            if (deposit.Status == FinBankDepositStatuses.Cancelled)
+                throw new CashValidationException("Setoran sudah dibatalkan sebelumnya.");
+
+            var isPosted = deposit.Status == FinBankDepositStatuses.Posted;
+            if (isPosted)
+            {
+                transaction = await BeginTransactionAsync(cancellationToken);
+                await AcquireLockAsync($"FIN_CASH_{deposit.DepositDate:yyyyMMdd}", cancellationToken);
+
+                var snapshot = await _dbContext.FinDailyCashSnapshots.AsNoTracking()
+                    .SingleOrDefaultAsync(x => x.CashDate == deposit.DepositDate && !x.IsDelete, cancellationToken);
+                if (snapshot is not null && snapshot.Status == FinDailyCashSnapshotStatuses.Closed)
+                    throw new CashValidationException("Kas harian tanggal ini sudah ditutup. Setoran yang sudah diposting tidak dapat dibatalkan.");
+            }
+
+            deposit.Status = FinBankDepositStatuses.Cancelled;
+            if (!string.IsNullOrWhiteSpace(request.Reason))
+            {
+                var reason = request.Reason.Trim();
+                deposit.Notes = string.IsNullOrWhiteSpace(deposit.Notes)
+                    ? $"Dibatalkan: {reason}"
+                    : $"{deposit.Notes} | Dibatalkan: {reason}";
+                if (deposit.Notes.Length > 500)
+                    deposit.Notes = deposit.Notes[..500];
+            }
+
+            deposit.RowVersion = Guid.NewGuid();
+            deposit.UpdateDateTime = DateTime.UtcNow;
+            deposit.UpdateBy = actorUserId;
+
+            // BE-FIN-062, FIN-DES-081: Mutasi kas masuk PEMBALIKAN-SETORAN-BANK untuk setoran yang sebelumnya POSTED (Sumber 6)
+            if (isPosted)
+            {
+                await _subledgerMovementService.RecordCashMovementAsync(
+                    movementType: FinCashMovementTypes.PembalikanSetoranBank,
+                    direction: FinCashMovementDirections.In,
+                    amount: deposit.Amount,
+                    businessDate: FinanceBusinessDate.Today(),
+                    occurredAt: DateTimeOffset.UtcNow,
+                    sourceReferenceType: FinCashMovementSourceReferenceTypes.BankDeposit,
+                    sourceReferenceId: deposit.Id.ToString(),
+                    actorUserId: actorUserId,
+                    correlationId: deposit.Id,
+                    causationId: deposit.Id,
+                    notes: $"Pembalikan setoran bank {deposit.DepositNumber}: {request.Reason}",
+                    cancellationToken: cancellationToken);
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            if (transaction is not null)
+            {
+                await CommitAsync(transaction, cancellationToken);
+            }
+
+            await AuditAsync("Deposit.Cancel", deposit.Id, actorUserId, new { deposit.DepositNumber });
+
+            string? shiftNumber = null;
+            if (deposit.CashierShiftId.HasValue)
+            {
+                shiftNumber = await _dbContext.BilCashierShifts.AsNoTracking()
+                    .Where(s => s.Id == deposit.CashierShiftId.Value)
+                    .Select(s => s.ShiftNumber)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
+            return MapDeposit(deposit, shiftNumber);
+        }
+        catch (DbUpdateConcurrencyException exception)
         {
-            var reason = request.Reason.Trim();
-            deposit.Notes = string.IsNullOrWhiteSpace(deposit.Notes)
-                ? $"Dibatalkan: {reason}"
-                : $"{deposit.Notes} | Dibatalkan: {reason}";
-            if (deposit.Notes.Length > 500)
-                deposit.Notes = deposit.Notes[..500];
+            if (transaction is not null) await RollbackAsync(transaction);
+            throw Stale(exception);
         }
-
-        deposit.RowVersion = Guid.NewGuid();
-        deposit.UpdateDateTime = DateTime.UtcNow;
-        deposit.UpdateBy = actorUserId;
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        await AuditAsync("Deposit.Cancel", deposit.Id, actorUserId, new { deposit.DepositNumber });
-
-        string? shiftNumber = null;
-        if (deposit.CashierShiftId.HasValue)
+        catch
         {
-            shiftNumber = await _dbContext.BilCashierShifts.AsNoTracking()
-                .Where(s => s.Id == deposit.CashierShiftId.Value)
-                .Select(s => s.ShiftNumber)
-                .FirstOrDefaultAsync(cancellationToken);
+            if (transaction is not null) await RollbackAsync(transaction);
+            throw;
         }
-
-        return MapDeposit(deposit, shiftNumber);
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
     }
 
     // ------------------------------------------------------------------------------------
@@ -391,7 +456,7 @@ public sealed class FinanceCashManagementService
 
     public async Task<DailyCashResponse> GetCurrentDailyCashAsync(CancellationToken cancellationToken)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = FinanceBusinessDate.Today();
         var snapshot = await _dbContext.FinDailyCashSnapshots.AsNoTracking()
             .SingleOrDefaultAsync(x => x.CashDate == today && !x.IsDelete, cancellationToken);
 
@@ -406,8 +471,8 @@ public sealed class FinanceCashManagementService
 
         var openingBalance = previousClosedSnapshot?.ClosingBalance ?? 0m;
 
-        var startOfDay = new DateTimeOffset(today.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
-        var endOfDay = startOfDay.AddDays(1);
+        var startOfDay = FinanceBusinessDate.GetStartOfDayUtc(today);
+        var endOfDay = FinanceBusinessDate.GetEndOfDayUtc(today);
         var shifts = await _dbContext.BilCashierShifts.AsNoTracking()
             .Where(x => !x.IsDelete && x.OpenedAt >= startOfDay && x.OpenedAt < endOfDay)
             .ToListAsync(cancellationToken);
@@ -614,8 +679,8 @@ public sealed class FinanceCashManagementService
             var openingBalance = expectedOpeningBalance;
 
             // Penerimaan kasir hari itu dari BilCashierShift (FIN-CAP-006, FIN-DEC-020)
-            var startOfDay = new DateTimeOffset(cashDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
-            var endOfDay = startOfDay.AddDays(1);
+            var startOfDay = FinanceBusinessDate.GetStartOfDayUtc(cashDate);
+            var endOfDay = FinanceBusinessDate.GetEndOfDayUtc(cashDate);
             var shifts = await _dbContext.BilCashierShifts.AsNoTracking()
                 .Where(x => !x.IsDelete && x.OpenedAt >= startOfDay && x.OpenedAt < endOfDay)
                 .ToListAsync(cancellationToken);
@@ -844,6 +909,83 @@ public sealed class FinanceCashManagementService
         ClosedAt = x.ClosedAt,
         RowVersion = x.RowVersion
     };
+
+    /// <summary>
+    /// Membaca buku mutasi kas secara berpaging dan tersaring (BE-FIN-063, FR-FIN-140, FIN-API-1.5 F.5).
+    /// </summary>
+    public async Task<PagedResult<CashMovementResponse>> GetCashMovementsPagedAsync(
+        CashMovementQuery query, CancellationToken cancellationToken)
+    {
+        var q = _dbContext.FinCashMovements.AsNoTracking()
+            .Where(x => !x.IsDelete);
+
+        if (!string.IsNullOrWhiteSpace(query.MovementType))
+        {
+            var movementType = query.MovementType.Trim().ToUpperInvariant();
+            q = q.Where(x => x.MovementType == movementType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Direction))
+        {
+            var direction = query.Direction.Trim().ToUpperInvariant();
+            q = q.Where(x => x.Direction == direction);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.SourceReferenceType))
+        {
+            var refType = query.SourceReferenceType.Trim().ToUpperInvariant();
+            q = q.Where(x => x.SourceReferenceType == refType);
+        }
+
+        if (query.CashierShiftId.HasValue)
+            q = q.Where(x => x.CashierShiftId == query.CashierShiftId.Value);
+
+        if (query.DateFrom.HasValue)
+            q = q.Where(x => x.BusinessDate >= query.DateFrom.Value);
+
+        if (query.DateTo.HasValue)
+            q = q.Where(x => x.BusinessDate <= query.DateTo.Value);
+
+        var total = await q.CountAsync(cancellationToken);
+
+        var ascending = string.Equals(query.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+        q = ascending
+            ? q.OrderBy(x => x.BusinessDate).ThenBy(x => x.OccurredAt).ThenBy(x => x.CreateDateTime)
+            : q.OrderByDescending(x => x.BusinessDate).ThenByDescending(x => x.OccurredAt).ThenByDescending(x => x.CreateDateTime);
+
+        var pageNumber = query.PageNumber < 1 ? 1 : query.PageNumber;
+        var pageSize = query.PageSize < 1 ? 25 : query.PageSize;
+
+        var items = await q
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new CashMovementResponse
+            {
+                Id = x.Id,
+                MovementType = x.MovementType,
+                Direction = x.Direction,
+                Amount = x.Amount,
+                BusinessDate = x.BusinessDate,
+                OccurredAt = x.OccurredAt,
+                SourceReferenceType = x.SourceReferenceType,
+                SourceReferenceId = x.SourceReferenceId,
+                CashierShiftId = x.CashierShiftId,
+                PaymentMethodCode = x.PaymentMethodCode,
+                Notes = x.Notes,
+                CorrelationId = x.CorrelationId,
+                CausationId = x.CausationId
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<CashMovementResponse>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
+            Items = items
+        };
+    }
 }
 
 public sealed class CashBadRequestException(string message) : Exception(message);

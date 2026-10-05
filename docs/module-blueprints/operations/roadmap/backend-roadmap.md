@@ -93,30 +93,12 @@ dinaikkan menjadi `Selesai`, karena menyatakan lulus tanpa bukti berarti mengara
 
 ### Ringkasan
 
-> **Disegarkan 1 Oktober 2026.** Tabel audit per-task di atas mencatat keadaan 21 September dan
-> dipertahankan sebagai catatan sejarah. Ringkasan di bawah ini keadaan sekarang.
-
 | Status | Jumlah | Task |
 | --- | :---: | --- |
-| Selesai | 10 | `BE-OPR-001` sampai `BE-OPR-010` |
-| Selesai — kurang tes pihak ketiga | 1 | `BE-OPR-011` |
-
-Yang mencabut ketiga penghalang lama:
-
-| Penghalang lama | Keadaan sekarang |
-|---|---|
-| **Tidak ada test project** — menahan delapan task di `Sebagian` | `Tests/QuilvianSystemBackend.OperatingRoomTests` berdiri dengan **70 uji**: permission matrix (25), transisi status (9), concurrency dan idempotensi (8), serial implant (8), audit dan privasi (3), outbox integrasi (10), smoke seed (4) |
-| **`BE-OPR-009` Blocked** — adapter consumer belum berkontrak | Dicabut pemilik kebutuhan. Diselesaikan sebagai **kontrak event outbox internal**, bukan adapter ke consumer tertentu: `OprIntegrationDelivery` berkolom `EventId` (indeks unik), `EventType`, `EventVersion`, `OccurredAt`, `PayloadJson`, dengan `EventId` deterministik dari `destination` + `idempotencyKey`. Migration `20260929000000_AddOperatingRoomOutboxEventContract`, aditif. Terbukti runtime: 3 permintaan menghasilkan 2 pesan |
-| **`BE-OPR-008` serial implant** — lingkup keunikan belum diputuskan | Aturan V1 disahkan pemilik kebutuhan: serial implant unik minimal dalam satu kasus operasi, ditegakkan `OPR014` pada `OperatingRoomMaterialService`. Indeks unik basis data **tidak** dibuat karena syarat "belum digantikan koreksi" tidak dapat dinyatakan sebagai indeks tersaring — dilaporkan sebagai keputusan bisnis terpisah, bukan diakali |
-
-`BE-OPR-011` berstatus **Selesai — kurang tes**: regression state/concurrency/idempotency beserta
-evidence report sudah ada, dan pengujian penerimaannya didelegasikan pemilik kebutuhan kepada
-analisnya. Bukti runtime pada
-[`docs/testing/OPR-backend-runtime-validation.md`](../../../testing/OPR-backend-runtime-validation.md).
-
-Dua temuan yang sengaja dikeluarkan dari modul Operasi dan dicatat sebagai task tersendiri:
-[rantai migration](../../../engineering/blocker-rantai-migration.md) dan
-[`LoggerService` audit user](../../../engineering/task-core-logger-audit-user.md).
+| Selesai | 1 | `BE-OPR-002` |
+| Sebagian | 8 | `BE-OPR-001`, `003`, `004`, `005`, `006`, `007`, `008`, `010` |
+| Blocked | 1 | `BE-OPR-009` |
+| Belum | 1 | `BE-OPR-011` |
 
 ### Penghalang yang tidak dapat dicabut oleh modul Operasi sendiri
 

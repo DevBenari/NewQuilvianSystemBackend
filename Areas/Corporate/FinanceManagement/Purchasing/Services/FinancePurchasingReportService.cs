@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models;
@@ -208,7 +209,7 @@ public sealed class FinancePurchasingReportService
     {
         var pageSize   = Math.Clamp(query.PageSize, 1, 100);
         var pageNumber = Math.Max(query.PageNumber, 1);
-        var today      = DateOnly.FromDateTime(DateTime.Today);
+        var today      = FinanceBusinessDate.Today();
 
         var q = _dbContext.FinPurchasingInvoices
             .AsNoTracking()
@@ -299,7 +300,7 @@ public sealed class FinancePurchasingReportService
     {
         var pageSize   = Math.Clamp(query.PageSize, 1, 100);
         var pageNumber = Math.Max(query.PageNumber, 1);
-        var today      = DateOnly.FromDateTime(DateTime.Today);
+        var today      = FinanceBusinessDate.Today();
 
         var q = _dbContext.FinInvoiceExchanges
             .AsNoTracking()

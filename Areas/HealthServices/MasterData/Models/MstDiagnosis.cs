@@ -15,9 +15,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         public Guid? ParentDiagnosisId { get; set; }
         // Contoh: A00 sebagai parent dari A00.0, A00.1, A00.9.
 
-        public Guid? DiagnosisGroupId { get; set; }
-        // RJ-DOC-REV-BE-006. Kelompok ICD Diagnosa (DTD), contoh 001.0 Kolera.
-
         [Required]
         [MaxLength(50)]
         public string DiagnosisCode { get; set; } = string.Empty;
@@ -49,8 +46,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         public MstDiagnosisChapter? DiagnosisChapter { get; set; }
 
         public MstDiagnosis? ParentDiagnosis { get; set; }
-
-        public MstDiagnosisGroup? DiagnosisGroup { get; set; }
 
         public ICollection<MstDiagnosis> ChildDiagnoses { get; set; } = new List<MstDiagnosis>();
 

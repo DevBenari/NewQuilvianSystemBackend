@@ -49,6 +49,22 @@ public sealed class FinanceDailyCashController : ControllerBase
         Ok(ApiResponse<DailyCashBreakdownResponse>.Ok(
             await _service.GetDailyCashBreakdownAsync(cashDate, cancellationToken), "Rincian kas harian berhasil diambil."));
 
+    [HttpGet("cash-movements")]
+    [HttpGet("/api/v1/corporate/finance-management/cash-movements")]
+    [AccessAction("Read", "Read Daily Cash", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceDailyCash", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<CashMovementResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCashMovements([FromQuery] CashMovementQuery query, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetCashMovementsPagedAsync(query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<CashMovementResponse>>.Ok(result, "Riwayat mutasi kas berhasil diambil."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+
     [HttpPost("{cashDate}/close")]
     [AccessAction("Close", "Close Daily Cash", AccessType = AccessTypes.Update, SortOrder = 2)]
     [AccessPermission("FinanceDailyCash", "Close")]

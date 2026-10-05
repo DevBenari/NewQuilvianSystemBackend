@@ -110,23 +110,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public bool IsInsuranceEligible { get; set; }
         public bool IsInsurancePolicyActive { get; set; }
 
-        // RJ-DOC-REV-BE-001 — penjamin utama dari sumber pembayaran aktif kunjungan.
-        public string PrimaryGuarantorNameSnapshot { get; set; } = string.Empty;
-        public string PrimaryGuarantorTypeSnapshot { get; set; } = string.Empty;
-        public bool IsInsurancePatient { get; set; }
-        public bool IsCompanyPatient { get; set; }
-
-        // RJ-DOC-REV-BE-001 — identitas klinis ringkas untuk header workspace dokter.
-        public string? GenderName { get; set; }
-        public DateTime? BirthDate { get; set; }
-        public string? AllergySummary { get; set; }
-        public bool HasAllergy { get; set; }
-        public string? PatientPhotoPath { get; set; }
-        /// <summary>Path dokumen identitas utama (KTP). Bisa berupa path lokal kiosk yang tidak dapat disajikan.</summary>
-        public string? IdentityDocumentPath { get; set; }
-        /// <summary>Path gambar kartu asuransi yang dipakai kunjungan ini.</summary>
-        public string? InsuranceCardImagePath { get; set; }
-
         public int PatientTotalVisitCount { get; set; }
         public int PatientVisitNumber { get; set; }
 
