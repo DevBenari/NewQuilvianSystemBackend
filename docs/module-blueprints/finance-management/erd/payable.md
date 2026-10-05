@@ -348,3 +348,89 @@ erDiagram
 Deposit **bukan** baris alokasi: satu faktur yang dilunasi sebagian dari transfer dan sebagian
 dari deposit tetap satu baris alokasi, sehingga `FIN-VAL-057` (satu utang sekali per pembayaran)
 tidak dilanggar (`FIN-DES-045`).
+
+---
+
+## Revisi 14 — Buku mutasi utang supplier dan item migrasi
+
+Diturunkan dari `FIN-DES-079`, `FIN-DES-085`, dan `FIN-DES-089`.
+Kolom audit `IdentityModel` tidak digambar.
+
+```mermaid
+erDiagram
+    FinSupplierPayable {
+        uuid Id PK
+        varchar PayableNumber UK
+        uuid SupplierId FK
+        varchar SupplierInvoiceNumber
+        date SupplierInvoiceDate
+        uuid OpeningItemBatchId FK "BARU, terisi = item migrasi"
+        numeric OriginalAmount
+        numeric OutstandingAmount
+        numeric PaidAmount
+        varchar Status
+        uuid SourcePurchasingInvoiceId
+    }
+    FinSupplierPayableMovement {
+        uuid Id PK
+        uuid SupplierPayableId FK
+        varchar MovementType
+        numeric Amount "bertanda, + menaikkan sisa"
+        numeric BalanceBefore
+        numeric BalanceAfter
+        date BusinessDate "tanggal WIB"
+        timestamptz OccurredAt
+        uuid PaymentId "rujukan FinPayment, bukan FK"
+        uuid PaymentAllocationId "rujukan alokasi, bukan FK"
+        varchar PaymentMethodCode "TRANSFER/CASH"
+        varchar FundingSourceType "BANK_ACCOUNT/CASH"
+        uuid FundingSourceId
+        varchar ReferenceNumber
+        uuid ProofId FK "UK"
+        uuid CorrelationId
+    }
+    FinPayment {
+        uuid Id PK
+        varchar PaymentMethod "TRANSFER/CASH"
+        uuid BankAccountId FK
+        numeric NetTransferAmount "dasar mutasi KAS, bukan alokasi"
+        varchar Status
+        timestamptz ApprovedAt
+    }
+    FinSupplierPayable ||--o{ FinSupplierPayableMovement : "1:N — Baru"
+    FinPayment |o--o{ FinSupplierPayableMovement : "0:N — Baru, satu baris per alokasi"
+```
+
+### Status entity
+
+| Entity | Status | Owner | Catatan |
+|---|---|---|---|
+| `FinSupplierPayable` | **Diperbarui** | Finance Management | Satu kolom FK batch ditambah; nol kolom lain berubah |
+| `FinSupplierPayableMovement` | **Baru** | Finance Management | Buku mutasi utang supplier |
+| `FinPayment`, `FinPaymentAllocation`, `FinPaymentDeduction` | Sudah ada | Finance Management | **Nol perubahan skema.** `FinPayment.NetTransferAmount` dipakai sebagai dasar mutasi kas — lihat peringatan di bawah |
+| `FinMedicalServicePayable` | Sudah ada | Finance Management | **Tidak** mendapat buku mutasi: nol penulis hari ini (`FIN-DES-091`) |
+| `FinPayableAdjustment` | Sudah ada | Finance Management | Tetap menjadi rincian kejadiannya |
+
+### Jenis mutasi utang supplier
+
+| `MovementType` | Tanda `Amount` | Ditulis oleh |
+|---|---|---|
+| `PENGAKUAN` | + | Pembuatan utang dari faktur pembelian |
+| `PEMBUKAAN-MIGRASI` | + | Persetujuan batch migrasi |
+| `PEMBAYARAN-DOKUMEN` | − | `FinancePaymentService`, satu baris per alokasi |
+| `PEMBAYARAN-LANGSUNG` | − | Pembayaran langsung; **membawa** metode, sumber dana, dan bukti |
+| `PENYESUAIAN` | + atau − | Penyesuaian disetujui |
+
+> **Peringatan yang menentukan kebenaran Kas Kasir.** Mutasi utang ditulis **satu baris per
+> alokasi**, sedangkan mutasi **kas** untuk `FinPayment` bermetode `CASH` ditulis **satu baris per
+> pembayaran** bernilai `NetTransferAmount`. Keduanya memang berbeda:
+> `NetTransferAmount = TotalAmount − DeductionAmount + AdditionAmount − DepositAppliedAmount`,
+> sehingga menjumlah alokasi sebagai kas keluar akan melebih-hitung setiap kali ada potongan atau
+> deposit retur terpakai. Lihat `FIN-DES-081`.
+
+### Tanggal bisnis mutasi pembayaran dokumen
+
+`FinPaymentAllocation` **tidak punya tanggal sendiri**, dan utang berkurang saat pembayaran
+**disetujui** (`FinancePaymentService.cs:575`), bukan saat `PaidAt`. Karena itu `BusinessDate` baris
+mutasi disalin dari `FinPayment.ApprovedAt` dalam kalender WIB pada saat mutasi ditulis — bukan
+dihitung ulang belakangan dari kolom yang dapat berubah.

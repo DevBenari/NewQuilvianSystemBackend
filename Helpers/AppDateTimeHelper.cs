@@ -1,4 +1,4 @@
-﻿namespace QuilvianSystemBackend.Helpers
+namespace QuilvianSystemBackend.Helpers
 {
     namespace QuilvianSystemBackend.Helpers
     {
@@ -43,6 +43,7 @@
             /// <c>2026-09-22T17:00:00Z</c>.
             /// </para>
             /// </remarks>
+            /// <summary>
             /// Mengubah nilai yang datang dari pemanggil menjadi UTC yang dapat ditulis Npgsql.
             ///
             /// <b>Kenapa ini dibutuhkan.</b> Ruas tanggal pada query string yang ditulis

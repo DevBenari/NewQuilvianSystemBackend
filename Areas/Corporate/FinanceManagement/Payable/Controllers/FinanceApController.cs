@@ -61,11 +61,17 @@ public sealed class FinanceApController : ControllerBase
         }
     }
 
+    // BE-FIN-078: metode, sumber dana, nomor rujukan, dan ProofId kini wajib (bentuk sama persis
+    // dengan BE-FIN-077) dan tersimpan di baris mutasi; ambang pembayaran langsung ditegakkan
+    // (FIN-DES-085, FIN-DES-086). PERUBAHAN MEMUTUS — lihat laporan task BE-FIN-078 bagian 7 untuk
+    // urutan rilis bersama FE-FIN-030.
     [HttpPost("payment")]
     [AccessAction("Payment", "Payment AP", AccessType = AccessTypes.Create, SortOrder = 2)]
     [AccessPermission("Finance.AP", "Payment")]
     [ProducesResponseType(typeof(ApiResponse<SupplierPayablePaymentResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> RecordPayment([FromBody] RecordSupplierPaymentRequest request, CancellationToken cancellationToken)
     {
@@ -77,6 +83,7 @@ public sealed class FinanceApController : ControllerBase
                 request.BankAccountId,
                 request.PaymentMethod,
                 request.ReferenceNumber,
+                request.ProofId,
                 request.Notes,
                 CurrentUserId(),
                 cancellationToken);

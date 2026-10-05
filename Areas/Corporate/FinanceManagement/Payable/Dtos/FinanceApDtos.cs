@@ -24,16 +24,28 @@ public sealed class RecordSupplierPaymentRequest
     [Range(0.01, double.MaxValue, ErrorMessage = "Nominal pembayaran utang harus lebih dari 0.")]
     public decimal Amount { get; set; }
 
-    [Required]
-    public Guid BankAccountId { get; set; }
+    // BE-FIN-078: menjadi opsional (sebelumnya [Required] Guid non-nullable, sehingga CASH pun
+    // "mewajibkan" rekening bank dan FIN-VAL-201 mustahil ditegakkan). Wajib untuk TRANSFER
+    // (FIN-VAL-200), MUST kosong untuk CASH (FIN-VAL-201) — bentuk SAMA PERSIS dengan
+    // RecordReceivablePaymentRequest (BE-FIN-077); perbedaan bentuk antar kedua jalur adalah cacat.
+    public Guid? BankAccountId { get; set; }
 
     [Required]
     [MaxLength(50)]
     public string PaymentMethod { get; set; } = "TRANSFER";
 
-    [Required]
+    // BE-FIN-078: menjadi opsional (sebelumnya [Required]) — service sudah lama membangkitkan
+    // nomor rujukan bawaan ("PAY-...") bila kosong; mewajibkannya di DTO hanya memaksa klien
+    // mengirim nilai yang tidak pernah benar-benar dipakai server. Menyamakan bentuk dengan sisi piutang.
     [MaxLength(150)]
-    public string ReferenceNumber { get; set; } = string.Empty;
+    public string? ReferenceNumber { get; set; }
+
+    /// <summary>
+    /// BE-FIN-078, FIN-DEC-126: wajib dilampirkan (FIN-VAL-202). SENGAJA TIDAK diberi <c>[Required]</c> —
+    /// Guid adalah value type sehingga atribut itu tidak akan menangkap Guid.Empty; pemeriksaan kosong
+    /// dilakukan manual di FinanceSupplierPayableService supaya pesan dan kode 422 persis kontrak.
+    /// </summary>
+    public Guid ProofId { get; set; }
 
     [MaxLength(500)]
     public string? Notes { get; set; }
@@ -51,6 +63,9 @@ public sealed class SupplierPayablePaymentResponse
     public string Status { get; set; } = string.Empty;
     public DateTime PaymentDate { get; set; }
     public string ReferenceNumber { get; set; } = string.Empty;
+    public string PaymentMethod { get; set; } = string.Empty;
+    public Guid? FundingSourceId { get; set; }
+    public Guid ProofId { get; set; }
 }
 
 public sealed class SupplierPayableAgingQuery

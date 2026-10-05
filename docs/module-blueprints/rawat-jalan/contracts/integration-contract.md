@@ -218,14 +218,3 @@ Jadwal kirim ulang dan batasnya dibaca dari `MstBillingSyncPolicy` (`FACT_DISPAT
 | Penerusan untuk kunjungan rawat inap, IGD, MCU, telemedicine | Pemilik modul masing-masing | Tetap `NotApplicable` (`NOT_OUTPATIENT`) |
 | `CONSUMABLE` / `USED` | Belum ada | `RJ-E2E-DEC-011` |
 | Pembagian jasa medis (`DoctorShare`) | Medical Fee | `0` pada amendment ini |
-
-
----
-
-# Amendment DP — Daftar Pasien Rawat Jalan (`RJ-DOC-ENCLIST-001@1.0.0`, `draft`)
-
-Tidak ada kontrak integrasi baru, karena fitur ini hanya membaca dan membatalkan data kunjungan di
-dalam aplikasi yang sama dan tidak memanggil sistem luar maupun modul Billing. Satu-satunya efek
-samping lintas komponen adalah notifikasi realtime antrean batal (`QueueRealtimeService`) yang
-sudah ada; ia dikirim setelah commit dan kegagalannya tidak membatalkan pembatalan. Ditinjau
-ulang bila pembatalan kunjungan kelak harus mengabari Billing atau BPJS.

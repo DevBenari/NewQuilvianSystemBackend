@@ -72,3 +72,61 @@ erDiagram
 | `cash-and-master-data.md` | Bank Deposit, Daily Cash, dan seluruh master Finance |
 | `accounting-integration.md` | Outbox, Attempt, Subledger Period Balance |
 | `data-dictionary.md` | Kamus data seluruh kolom dan bentuk DDL |
+
+---
+
+## Revisi 14 — Peta konteks sesudah buku mutasi dan jalur pengiriman
+
+Dua hal berubah pada peta konteks, dan keduanya bukan penambahan entity:
+
+1. **Arah ketergantungan ke Accounting menjadi dua arah secara nyata.** Sebelum revisi 14, Finance
+   hanya **menulis** baris kotak keluar yang tidak pernah terkirim. Sesudah `FIN-DES-078`, Finance
+   benar-benar memanggil kotak masuk Accounting.
+2. **Posisi saldo berpindah sumber.** Tiga buku mutasi menjadi lapisan di dalam Finance yang
+   menjawab "posisi pada tanggal", memisahkan pertanyaan itu dari agregat yang hanya menyimpan
+   posisi *sekarang*.
+
+```mermaid
+erDiagram
+    BILLING_KASIR {
+        string BilCashierShift "dibaca saja"
+        string BilArHandoff "dibaca saja"
+        string BilApHandoff "dibaca saja"
+    }
+    FINANCE_SUBLEDGER {
+        string FinReceivable "posisi sekarang"
+        string FinSupplierPayable "posisi sekarang"
+        string FinReceivableMovement "BARU posisi per tanggal"
+        string FinSupplierPayableMovement "BARU posisi per tanggal"
+        string FinCashMovement "BARU posisi kas per tanggal"
+    }
+    FINANCE_CUTOVER {
+        string FinOpeningBalance "BARU saldo awal"
+        string FinOpeningItemBatch "BARU batch migrasi"
+        string FinSubledgerControlAccountMap "BARU pemetaan akun"
+    }
+    FINANCE_OUTBOX {
+        string FinAccountingEventOutbox "kotak keluar"
+        string FinAccountingEventAttempt "riwayat kirim"
+    }
+    ACCOUNTING {
+        string AccAccountingEvent "kotak masuk, milik Accounting"
+        string ChartOfAccounts "bagan akun, milik Accounting"
+    }
+    BILLING_KASIR ||..o{ FINANCE_SUBLEDGER : "fakta masuk, nol tulisan balik"
+    FINANCE_CUTOVER ||..o{ FINANCE_SUBLEDGER : "titik awal dan item migrasi"
+    FINANCE_SUBLEDGER ||..o{ FINANCE_OUTBOX : "kejadian dan saldo"
+    FINANCE_CUTOVER ||..o{ FINANCE_OUTBOX : "pemetaan menentukan baris saldo"
+    FINANCE_OUTBOX ||..o{ ACCOUNTING : "BARU dikirim worker, satu arah"
+    ACCOUNTING ||..o{ FINANCE_CUTOVER : "kode akun control (G2) dan saldo awal (G5), lewat surat"
+```
+
+### Batas yang MUST dijaga pada peta ini
+
+| Batas | Isi |
+|---|---|
+| Finance → Billing | **Nol tulisan.** Shift, handoff, dan tender dibaca saja (`FIN-OOS-001`..`004`) |
+| Finance → Accounting | **Satu arah**, lewat kotak masuk yang sudah dikontrakkan. Finance **MUST NOT** membaca tabel `Acc*` — termasuk saldo awal, yang karena itu **dinyatakan petugas** (`FIN-DES-090`) |
+| Accounting → Finance | Lewat **surat**, bukan kode: kode akun control definitif (G2) dan angka saldo awal (G5) |
+| Saldo rekening bank | **Milik Accounting** (`FIN-DEC-137`). Finance menyimpan master rekening dan identitas rekening pada transaksi, bukan saldonya |
+| Posisi per tanggal | **Hanya** dari buku mutasi. Membaca `OutstandingAmount` atau `ClosingBalance` sebagai jawaban akan menghidupkan kembali cacat yang revisi 14 perbaiki |

@@ -83,6 +83,12 @@ using System.Security.Claims;
 using System.Text;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Services;
+// BE-FIN-071/072: Worker pengiriman dan penjadwal snapshot Finance ke Accounting (FIN-DES-078).
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
+// BE-FIN-073: Penjadwal penanda shift kasir Finance dan konfigurasinya (FIN-DES-078).
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Services;
+// BE-FIN-074: Konfigurasi bukti pembayaran langsung Finance (FIN-DES-092).
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
 
 
@@ -436,13 +442,9 @@ try
     // membuat unit itu berhenti ikut ditutup — bukan membuatnya ditutup membabi buta.
     builder.Services.AddScoped<IEncounterContinuationProbe, LabEncounterContinuationProbe>();
     builder.Services.AddScoped<KioskEncounterClosureService>();
-    // RJ-DOC-REV-BE-009 — Daftar Pasien Rawat Jalan bercakupan dokter/perawat.
-    builder.Services.AddScoped<ClinicalActorScopeService>();
-    builder.Services.AddScoped<OutpatientEncounterListService>();
     builder.Services.Configure<KioskEncounterClosureOptions>(
     builder.Configuration.GetSection("HealthServices:KioskEncounterClosure"));
     builder.Services.AddScoped<EncounterPaymentSourceService>();
-    builder.Services.AddScoped<DoctorQueuePatientContextService>();
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();
     builder.Services.AddScoped<CompanyGuarantorCoverageService>();
@@ -456,7 +458,6 @@ try
     builder.Services.AddScoped<ConsultationValidationService>();
     builder.Services.AddScoped<DoctorConsultationLifecycleService>();
     builder.Services.AddScoped<ConsultationFinalizationService>();
-    builder.Services.AddScoped<DoctorCertificateService>();
 
     // BE-RWI-039 / CON-INP-015. Satu tempat yang menjawab konteks perawatan rawat inap beserta
     // kewenangan dokternya, dipakai bersama jalur catatan dokter dan jalur pengkajian sesuai
@@ -934,6 +935,13 @@ try
     // (Billing:PaymentProvider:AutoAcceptWithoutProvider) yang berlaku.
     builder.Services.AddBillingManagement();
 
+    // BE-FIN-074: dua kunci konfigurasi bukti pembayaran langsung (FIN-DES-092). Diregistrasi
+    // tanpa syarat (bukan di dalam blok runBackgroundJobs) karena dikonsumsi endpoint HTTP
+    // (FinanceTransactionProofService, BE-FIN-075), bukan hosted service — harus tetap terbaca
+    // pada runtime role "Web". MaxFileSizeBytes sengaja TIDAK diberi nilai bawaan (FIN-OQ-082).
+    builder.Services.Configure<FinanceTransactionProofOptions>(
+        builder.Configuration.GetSection("FinanceManagement:TransactionProof"));
+
     // ============================================================
     // RUNTIME ROLE - BACKGROUND WORKERS
     // ============================================================
@@ -953,6 +961,25 @@ try
         builder.Services.AddHostedService<AttendanceSchedulerHostedService>();
         builder.Services.AddHostedService<AccRecurringJournalSchedulerHostedService>();
         builder.Services.AddHostedService<AccAccountingEventSchedulerHostedService>();
+        // BE-FIN-071: Worker pengiriman baris outbox Finance ke Accounting (FIN-DES-078).
+        // Dibangun mati: Enabled = false adalah nilai bawaan FinanceAccountingDispatchWorkerOptions.
+        // Aktifkan hanya setelah Finance:AccountingDispatch:AccountingInboxUrl dan ApiKey diisi
+        // dari konfigurasi lingkungan — BUKAN dari source code (G3).
+        builder.Services.Configure<FinanceAccountingDispatchWorkerOptions>(
+            builder.Configuration.GetSection("Finance:AccountingDispatch"));
+        builder.Services.AddHostedService<FinanceAccountingDispatchWorker>();
+        // BE-FIN-072: Penjadwal snapshot saldo subledger harian Finance (FIN-DES-078, FIN-DEC-092, FIN-DEC-114).
+        // Dibangun mati: Enabled = false adalah nilai bawaan FinanceSubledgerSnapshotSchedulerOptions.
+        // Jam jalan (WIB) dan actor sistemnya dibaca dari Finance:SubledgerSnapshotScheduler.
+        builder.Services.Configure<FinanceSubledgerSnapshotSchedulerOptions>(
+            builder.Configuration.GetSection("Finance:SubledgerSnapshotScheduler"));
+        builder.Services.AddHostedService<FinanceSubledgerSnapshotSchedulerHostedService>();
+        // BE-FIN-073: Penjadwal sinkronisasi penanda shift kasir Finance (FIN-DES-078, FIN-DEC-118).
+        // Dibangun mati: Enabled = false adalah nilai bawaan FinanceCashierShiftMarkerSchedulerOptions.
+        // Memanggil SyncCashierShiftClosureMarkersAsync yang sudah ada (BE-FIN-045/070), tidak diubah.
+        builder.Services.Configure<FinanceCashierShiftMarkerSchedulerOptions>(
+            builder.Configuration.GetSection("Finance:CashierShiftMarkerScheduler"));
+        builder.Services.AddHostedService<FinanceCashierShiftMarkerSchedulerHostedService>();
         builder.Services.AddHostedService<LeaveAccrualSchedulerHostedService>();
         builder.Services.AddHostedService<LeaveCarryForwardSchedulerHostedService>();
         builder.Services.AddHostedService<LeaveExecutionSchedulerHostedService>();
@@ -1643,12 +1670,6 @@ try
         await RunStartupSeederAsync(
             "ClinicalInstrumentDraftSeeder",
             () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
-
-    // RJ-DOC-REV-BE-006 — kelompok ICD Diagnosa (DTD) dan pemetaannya ke MstDiagnosis.
-    // Idempoten; sesudah impor pertama hanya diagnosa yang kelompoknya masih kosong diperiksa.
-    await RunStartupSeederAsync(
-        "IcdDiagnosisGroupSeeder",
-        () => IcdDiagnosisGroupSeeder.SeedAsync(app.Services));
 
     // Master data 3S asuhan keperawatan (SDKI, SLKI, SIKI) — 10 diagnosa prioritas rawat inap.
     await RunStartupSeederAsync(

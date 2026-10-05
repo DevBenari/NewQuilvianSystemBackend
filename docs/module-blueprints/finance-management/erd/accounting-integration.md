@@ -212,3 +212,113 @@ Setiap fakta milik **Billing** masuk lewat satu pintu yang sama, `FinBillingHand
 Keduanya **MUST** terlihat di layar pemantauan sejak hari pertama. Melewatkannya diam-diam adalah
 persis bahaya yang digambarkan Accounting di `evidence/14` bagian 4.2: kas bergerak tanpa kejadian,
 lalu rekonsiliasi toleransi nol tertahan tanpa ada yang tahu sebabnya.
+
+---
+
+## Revisi 14 — Pemetaan akun control, saldo awal, dan batch migrasi
+
+Diturunkan dari `FIN-DES-080`, `FIN-DES-088`, `FIN-DES-089`, dan `FIN-DES-090`.
+Kolom audit `IdentityModel` tidak digambar.
+
+```mermaid
+erDiagram
+    FinSubledgerControlAccountMap {
+        uuid Id PK
+        varchar BalanceGroup UK "bagian kunci unik"
+        varchar SegmentKey UK "NULL = seluruh kelompok"
+        varchar ControlAccountCode UK "unik untuk baris aktif"
+        boolean IsActive
+        varchar Notes
+    }
+    FinOpeningBalance {
+        uuid Id PK
+        varchar BalanceGroup UK "satu baris aktif per kelompok"
+        numeric Amount
+        date CutoverDate
+        varchar Status "DRAFT/APPROVED/LOCKED"
+        varchar Reason
+        varchar AccountingReferenceDocument
+        uuid ApprovedBy
+        timestamptz ApprovedAt
+        timestamptz LockedAt
+    }
+    FinOpeningItemBatch {
+        uuid Id PK
+        varchar BatchNumber UK
+        varchar ItemKind "RECEIVABLE/SUPPLIER_PAYABLE"
+        varchar Status "DRAFT/VALIDATED/APPROVED/LOCKED/REJECTED"
+        date CutoverDate
+        int TotalItemCount
+        numeric TotalOutstandingAmount
+        numeric DeclaredAccountingOpeningAmount
+        varchar AccountingReferenceDocument
+        varchar UploadedFileName
+        varchar ValidationSummaryJson
+        uuid ApprovedBy
+        timestamptz LockedAt
+    }
+    FinAccountingEventOutbox {
+        uuid Id PK
+        varchar EventNumber UK
+        varchar EventTypeCode
+        varchar SourceTransactionId UK
+        varchar SourceVersion UK
+        numeric Amount "boleh negatif sejak FIN-DEC-112"
+        date AccountingDate "tanggal WIB sejak FIN-DEC-116"
+        text PayloadJson "membawa dimensi shift dan metode"
+        varchar DeliveryStatus
+    }
+    FinAccountingEventAttempt {
+        uuid Id PK
+        uuid OutboxEventId FK
+        int AttemptNumber
+        varchar ResultStatus
+    }
+    FinSubledgerControlAccountMap ||..o{ FinAccountingEventOutbox : "menentukan jumlah baris SALDO-SUBLEDGER"
+    FinOpeningBalance ||..o{ FinAccountingEventOutbox : "titik awal posisi, bukan kejadian"
+    FinOpeningItemBatch ||..|| FinAccountingEventOutbox : "NOL kejadian — FIN-DEC-129"
+    FinAccountingEventOutbox ||--o{ FinAccountingEventAttempt : "1:N — Sudah ada"
+```
+
+### Status entity
+
+| Entity | Status | Owner | Catatan |
+|---|---|---|---|
+| `FinSubledgerControlAccountMap` | **Baru** | Finance Management | Isi kodenya milik Accounting; pemetaannya milik Finance |
+| `FinOpeningBalance` | **Baru** | Finance Management | Satu baris aktif per kelompok; `LOCKED` tidak dapat diubah |
+| `FinOpeningItemBatch` | **Baru** | Finance Management | Satu `ItemKind` per batch |
+| `FinAccountingEventOutbox` | Sudah ada | Finance Management | **Nol perubahan skema.** Yang berubah: `Amount` boleh negatif untuk pesan saldo, `AccountingDate` memakai WIB, `PayloadJson` membawa ruas dimensi baru |
+| `FinAccountingEventAttempt` | Sudah ada | Finance Management | Nol perubahan; mulai benar-benar terisi setelah worker hidup |
+| `AccAccountingEvent` dan turunannya | Sudah ada | **Accounting Management** | Dirujuk lewat kontrak, **MUST NOT** dibaca langsung (`FIN-DES-090`) |
+
+### Pemetaan kelompok dan segmen
+
+| `BalanceGroup` | `SegmentKey` yang sah | Sumber nilai segmen |
+|---|---|---|
+| `KAS-KASIR` | `NULL` saja | Kas tidak punya sumbu debitur |
+| `KAS-KECIL` | `NULL` saja | Alasan yang sama |
+| `PIUTANG` | `NULL`, atau `PAYER` / `PATIENT_GUARANTOR` / `EMPLOYEE_BENEFIT` | `FinReceivableDebtorTypes` |
+| `UTANG-SUPPLIER` | `NULL` saja | Belum ada sumbu pemecah yang disepakati |
+| `UTANG-JASA-MEDIS` | `NULL`, atau `DOCTOR` / `NURSE` / `OTHER_PRACTITIONER` | `FinMedicalServicePayeeTypes` |
+
+Satu kelompok **MUST NOT** punya baris `NULL` dan baris bersegmen sekaligus — dua tafsir yang
+membuat nilainya terhitung dua kali. Dijaga service, bukan constraint, karena syaratnya melintasi
+baris.
+
+### Alur batch migrasi
+
+```text
+DRAFT  --validate-->  VALIDATED  --approve-->  APPROVED  --(otomatis)-->  LOCKED
+  |                       |                        
+  +-------reject----------+---------> REJECTED
+```
+
+Syarat perpindahan `VALIDATED` → `APPROVED`: nol baris bergalat, `AccountingReferenceDocument`
+terisi, dan `TotalOutstandingAmount` **sama dengan** `DeclaredAccountingOpeningAmount`. Item piutang
+atau utang **baru dibuat** pada perpindahan ini — selama `DRAFT` dan `VALIDATED` nol baris lahir.
+
+### Yang sengaja tidak digambar
+
+Tabel saldo awal milik Accounting tidak digambar dan tidak dirujuk. `DeclaredAccountingOpeningAmount`
+adalah angka yang **dinyatakan petugas**, bukan angka yang dibaca dari modul Accounting
+(`FIN-DES-090`). Kelemahannya — salah ketik tidak terdeteksi — dicatat terbuka di sana.

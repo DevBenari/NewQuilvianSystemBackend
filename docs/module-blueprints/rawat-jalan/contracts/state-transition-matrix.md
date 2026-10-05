@@ -105,39 +105,3 @@ petugas Billing menekan Kirim Ulang → `Pending` → `Synced`, dan item konsult
 | `InConsultation` | Dokter Selesai Konsultasi | `ConsultationCompleted` | Dokter | Finalisasi canonical sukses | Tidak berubah |
 | `ConsultationCompleted` / `Billing` | Aksi Rawat Jalan apa pun ke `Completed` | — | Tidak ada di Rawat Jalan | **Tidak sah** untuk Rawat Jalan (`RJ-E2E-DEC-007`) | Tidak ada tombol maupun panggilan dari workspace Rawat Jalan |
 | `Billing` / `ConsultationCompleted` | Ke `Completed` | `Completed` | Belum diputuskan | `RJ-E2E-DEC-004` — `POST-MVP` | — |
-
-
----
-
-# Amendment DP — Daftar Pasien Rawat Jalan (`RJ-DOC-ENCLIST-001@1.0.0`, `draft`)
-
-`last_changed_in`: `RJ-DOC-ENCLIST-001@1.0.0` · Owner: Sukma Giri · Traceability: `RJ-DOC-DEC-016`, `019`, `021`, `022`
-
-## DP-A. Pembatalan kunjungan dari Daftar Pasien Rawat Jalan
-
-Pembatalan **tidak** mengubah `EncounterStatus`; ia mengisi penanda batal (`IsCancel`,
-`CancelledAt`, …), sama seperti endpoint lama. Status yang tercatat tetap menunjukkan sampai
-mana pasien sempat dilayani.
-
-| Dari status | Tindakan | Ke keadaan | Siapa yang boleh | Syarat | Bila dilanggar |
-|---|---|---|---|---|---|
-| `Draft` (0) .. `WaitingForDoctor` (5) | Batalkan | Batal (`IsCancel = true`), antrean ikut batal | Pemegang `OutpatientEncounter : Cancel` dalam cakupan | Alasan 1-250 karakter | `400` / `403` / `404` |
-| `InConsultation` (6) | Batalkan | Batal | Sama | **Tidak ada konsultasi aktif** (`RJ-DOC-DEC-021`) | `400` `RJDP-VAL-005` |
-| `InConsultation` (6) dengan konsultasi aktif | Batalkan | — | — | **Tidak sah** | `400` `RJDP-VAL-005` |
-| `ConsultationCompleted` (7), `Billing` (8) | Batalkan | — | — | **Tidak sah** — pelayanan sudah selesai; penutupan milik Registration + Billing | `400` `RJDP-VAL-006` |
-| `Completed` (9), `Cancelled` (10), `NoShow` (11) | Batalkan | — | — | **Tidak sah** | `400` `RJDP-VAL-006` |
-| Sudah batal (`IsCancel`) | Batalkan lagi | — | — | **Tidak sah** | `400` `RJDP-VAL-004` |
-| Batal | Dibuka kembali | — | Tidak ada | **Tidak sah** — tidak ada reopen; daftarkan kunjungan baru | — |
-
-**Contoh:** ENC-RSMMC-00146 (status 3, tanpa konsultasi) → Batalkan dengan alasan "Pasien tidak
-kembali sejak 30 Jul" → `IsCancel = true`, status tetap 3, antreannya `Cancelled`, pasien dapat
-didaftarkan lagi.
-
-## DP-B. Dampak terhadap pemblokir pendaftaran
-
-| Keadaan kunjungan lama pasien | Memblokir pendaftaran poliklinik baru |
-|---|---|
-| RJ berklinik, status 0-6, belum batal, `CompletedAt` kosong | Ya |
-| RJ berklinik, status 7-8 | **Tidak** (sebelumnya ya) |
-| Penunjang tanpa klinik, IGD, Rawat Inap | **Tidak** (sebelumnya ya) |
-| Batal, selesai, tidak hadir | Tidak (tidak berubah) |

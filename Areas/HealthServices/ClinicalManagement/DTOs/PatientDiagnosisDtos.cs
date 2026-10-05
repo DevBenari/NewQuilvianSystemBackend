@@ -98,11 +98,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public bool IsSelectableForClinicalUse { get; set; }
         public bool IsPrimaryDiagnosisAllowed { get; set; }
         public bool IsSecondaryDiagnosisAllowed { get; set; }
-
-        // RJ-DOC-REV-BE-006 — kelompok ICD Diagnosa (DTD) untuk pengelompokan hasil pencarian.
-        public Guid? DiagnosisGroupId { get; set; }
-        public string? DiagnosisGroupDtdNumber { get; set; }
-        public string? DiagnosisGroupName { get; set; }
     }
 
     public class PatientDiagnosisFilterMetadataResponse
