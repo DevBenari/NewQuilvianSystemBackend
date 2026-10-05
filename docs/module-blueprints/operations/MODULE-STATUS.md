@@ -13,15 +13,19 @@ Diukur dari source 1 Oktober 2026, disegarkan 2 Oktober 2026.
 
 ## Roadmap backend
 
-`BE-OPR-001` sampai `BE-OPR-010` **Selesai**. `BE-OPR-011` **Selesai — kurang tes**: pengujian
-penerimaannya didelegasikan pemilik kebutuhan kepada analisnya.
+`BE-OPR-001` sampai `BE-OPR-010` **Selesai**.
+
+`BE-OPR-011` = **Implemented / Contract Verified / Runtime Acceptance Blocked by Environment**.
+Kontraknya terpasang penuh dan sudah diverifikasi sebagai kontrak; jawaban `403` runtime per
+peran belum dapat diambil karena aplikasi tidak dapat dijalankan pada basis data dev. Rincian
+buktinya ada di [`verifikasi-kontrak-be-opr-011.md`](verifikasi-kontrak-be-opr-011.md).
 
 Rincian beserta pencabutan tiga penghalang lama ada di
 [`roadmap/backend-roadmap.md`](roadmap/backend-roadmap.md).
 
 ## Uji
 
-`Tests/QuilvianSystemBackend.OperatingRoomTests` — 70 uji:
+`Tests/QuilvianSystemBackend.OperatingRoomTests` — 117 uji:
 
 | Berkas | Jumlah | Yang dijaga |
 |---|---|---|
@@ -56,10 +60,10 @@ kontrak pemiliknya.
 
 | Hal | Prioritas | Catatan |
 |---|---|---|
-| Tes penerimaan `BE-OPR-011` | tinggi | didelegasikan ke analis pemilik kebutuhan; bukan pekerjaan source |
+| Tes penerimaan `BE-OPR-011` | tinggi | kontraknya sudah diverifikasi (41 uji + audit 36 endpoint); sisanya runtime `403`, terhalang lingkungan |
 | Indeks unik serial implant di basis data | sedang | butuh keputusan bisnis: syarat "belum digantikan koreksi" tidak dapat dinyatakan sebagai indeks tersaring |
 | Adapter consumer Billing dan Inventory | sedang | menunggu kontrak pemilik API masing-masing |
-| Penolakan `403` runtime per peran | tinggi | **terhalang lingkungan**: aplikasi tidak dapat dijalankan pada basis data dev sejak integration HEAD terbaru — lihat [`blocker-startup-seeder-tabel-hilang.md`](../../engineering/blocker-startup-seeder-tabel-hilang.md). Kontrak izinnya sudah dijaga 13 uji; yang belum terbukti hanya jawaban runtime-nya |
+| Penolakan `403` runtime per peran | tinggi | **terhalang lingkungan**: aplikasi tidak dapat dijalankan pada basis data dev sejak integration HEAD terbaru — lihat [`blocker-startup-seeder-tabel-hilang.md`](../../engineering/blocker-startup-seeder-tabel-hilang.md). Kontrak izinnya sudah dijaga 41 uji; yang belum terbukti hanya jawaban runtime-nya |
 | Performa laporan | rendah | belum diukur pada volume besar |
 
 ## Bug yang sudah ditutup

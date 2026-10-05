@@ -98,7 +98,7 @@ data peran dan izin dari basis data runtime, dan beberapa akun uji. Selama start
 proof itu tidak dapat dikerjakan sama sekali.
 
 Yang **sudah** dibuktikan tanpa runtime, dan tetap berlaku: kontrak izin ketiga laporan Operasi —
-13 uji pada `ReportPermissionTests`, termasuk bahwa laporan material menuntut
+41 uji pada `PermissionMatrixTests` dan `ReportPermissionTests`, termasuk bahwa laporan material menuntut
 `OperatingRoomMaterial` dan bukan `OperatingRoomCase`. Yang belum terbukti hanyalah jawaban
 runtime-nya.
 
@@ -108,3 +108,61 @@ Saat menelusuri ini, dua berkas CSV tracked sempat dipindahkan sementara untuk m
 berikutnya, lalu **dipulihkan utuh** — `git diff` pada `SeedData/` kosong. Saklar
 `Security:Authorization:Enabled` dinyalakan lewat **env var proses**, bukan dengan mengubah
 `appsettings` yang tracked, jadi tidak ada perubahan konfigurasi yang tertinggal.
+
+## Percobaan ulang 5 Oktober 2026 — pada integration `7787318d`
+
+Dicoba lagi setelah `Ikbal` disinkronkan penuh dengan `QuilvianIntegrationBackend` `7787318d`
+(merge PR #234). Build 0 error, uji Operasi 117/117, startup dijalankan dengan
+`Security__Authorization__Enabled=true` melalui env var proses.
+
+**Startup tetap mati.** Yang berubah hanya urutannya:
+
+```
+Npgsql.PostgresException 42P01: relation "public.MstNursingDiagnosisGroup" does not exist
+  at ...MasterData.Seeders.MstNursingDiagnosisSeeder.SeedAsync (line 35)
+```
+
+13 seeder berhasil lewat lebih dulu — terakhir `ClinicalInstrumentDraftSeeder`. Blocker pertama
+kini `MstNursingDiagnosisSeeder`; `IcdDiagnosisGroupSeeder` bahkan **belum tercapai**, karena
+urutannya sesudah seeder ini. Catatan sebelumnya yang menempatkan `IcdDiagnosisGroupSeeder`
+sebagai yang pertama berasal dari percobaan ketika dua CSV-nya sedang diparkir sementara.
+
+### Temuan baru: membetulkan startup saja belum cukup
+
+Pembacaan **read-only** pada `localhost / QuilvianNewDevIkbalFr` menunjukkan registry izinnya
+lengkap tetapi **kebijakannya kosong**:
+
+| Tabel | Baris |
+|---|---|
+| `SysControllerAccess` | 451 |
+| `SysActionAccess` | 1716 |
+| `SysAccessPolicy` | **0** |
+| `AspNetUserOrganization` | **0** |
+| `AspNetUsers` | 5 |
+| `AspNetRoles` | 4 — `SuperAdmin`, `User`, `Manajer Finance`, `Supervisor Finance` |
+
+Akibatnya pada `AccessPermissionService.HasAccessAsync`: tanpa satu pun baris
+`AspNetUserOrganization`, tidak ada `DepartmentId`/`PositionId` yang bisa dicocokkan; tanpa satu
+pun baris `SysAccessPolicy`, tidak ada `IsAllowed` yang bisa bernilai benar. Maka **setiap**
+pengguna non-SuperAdmin akan ditolak `403` pada **setiap** endpoint, di seluruh sistem.
+
+Itu berarti sisi `403` akan terpicu, tetapi **hampa** — ia tidak membuktikan otorisasinya
+selektif, dan justru sisi `200` yang menjadi **mustahil** dibuktikan. Acceptance `BE-OPR-011`
+menuntut keduanya. Jadi memperbaiki startup adalah syarat perlu, bukan syarat cukup.
+
+### Yang dibutuhkan untuk menutup `403` runtime
+
+Selain Jalur A atau B di atas, pemilik lingkungan masih perlu menyediakan:
+
+1. baris `AspNetUserOrganization` bagi akun uji, sehingga tiap akun punya
+   `DepartmentId` + `PositionId`;
+2. baris `SysAccessPolicy` yang memberi `IsAllowed` pada sebagian pasangan
+   `resource:action` Operasi dan menahan sisanya — tanpa kontras itu, `403` tidak membedakan
+   apa pun;
+3. jabatan dan departemen klinis pada master data; empat role yang ada sekarang tidak memuat
+   peran bedah, anestesi, maupun perawat.
+
+Akun dan role uji **tidak** dibuat dalam percobaan ini: aplikasinya tidak dapat dijalankan,
+sehingga mekanisme sah pembuatannya — endpoint administrator `role-access/policies` — juga tidak
+dapat dipakai. Membuatnya langsung lewat SQL akan menjadi data palsu yang tidak membuktikan
+pipeline apa pun.
