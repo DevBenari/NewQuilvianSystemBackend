@@ -1859,3 +1859,315 @@ pembayarannya dibalik, lalu dicatat ulang beserta bukti baru.
 7. CSV dengan format angka yang tidak sesuai templat ditolak beserta **nomor barisnya**, bukan ditebak.
 8. Templat CSV dan XLSX memiliki kolom yang sama persis.
 9. Tepat **satu** paket pembaca XLSX terpasang pada `QuilvianSystemBackend.csproj`.
+
+
+---
+
+## Amendment pass — Keputusan dari pembangunan `FE-FIN-027`..`032`: ambang, saldo awal, batch migrasi, selisih kas, dan menu, 4 Oktober 2026
+
+**Pemicu.** Antara 2 dan 4 Oktober 2026 layar `FE-FIN-027`..`032` dan perubahan backend `BE-FIN-084`/`085`
+dibangun. Pembangunan itu menemukan selisih antara kontrak dan source, dan sebagian sudah diputuskan owner
+langsung di sesi build. Pass ini mencatat semuanya sebagai keputusan bernomor dan menutup sisanya lewat
+wawancara. Seluruh keputusan di bawah `approved` sisi Finance (Yasmin).
+
+**Mode.** `Amendment pass`. Blueprint `FIN-BP-001` revisi 15 sudah disetujui, sehingga histori approval
+tidak ditimpa. Nomor revisi blueprint **tidak** dinaikkan di sini; itu pekerjaan pass desain.
+
+**Source SHA saat pass ini.** Backend `5d6bb8bf`, frontend `ae2ed334e`; keduanya working tree bersih.
+`01-existing-capability-map.md` masih pada backend `09101d05` / frontend `49b59cfaa`, sehingga **berpotensi
+basi** untuk bagian yang disentuh `FE-FIN-027`..`032`. Pass ini tidak bergantung padanya: yang ditanyakan
+adalah aturan bisnis, dan fakta source dibaca langsung dari kode.
+
+### Batas scope pass ini
+
+*Di dalam:* pencatatan empat keputusan owner yang belum bernomor; `EffectiveFrom` dan `RowVersion` pada
+ambang pembayaran langsung; `FIN-OQ-079`, `080`, `081`; nama pelaku pada layar ambang dan batch migrasi;
+perilaku selisih kas bila periode belum punya rekap kas harian.
+
+*Di luar (dan sengaja tidak dikejar):*
+
+| Hal | Pemilik |
+|---|---|
+| Pemberian hak akses kepada pengguna dan peran (termasuk apakah peran staf AR/AP diberi `MstDirectPaymentThreshold : Read`) | Admin dan Platform |
+| Penempatan menu di luar Finance | Platform dan UI global |
+| Nilai angka ambang (`FIN-OQ-074`), jumlah tagihan lama (`FIN-OQ-076`), batas ukuran berkas bukti (`FIN-OQ-082`) | Data konfigurasi |
+| Pertanyaan milik Accounting (`FIN-OQ-045`, `047`, `048`) | Accounting |
+| Siapa yang boleh memperbarui kontrak dan roadmap saat sebuah task selesai | Repository `QuilvianEngineeringSkills` |
+
+### Fakta source yang mendasari (dibaca 3–4 Oktober 2026)
+
+| # | Fakta | Lokasi |
+|---|---|---|
+| F26 | `EffectiveFrom` pada ambang disimpan, tetapi pemeriksaan pembayaran langsung piutang dan utang **tidak membacanya** | `FinanceReceivableService` baris 760, `FinanceSupplierPayableService` baris 303 |
+| F27 | `MstDirectPaymentThreshold` tidak punya penanda versi; `PUT` menimpa baris aktif tanpa memeriksa apa pun | `DirectPaymentThresholdService.UpdateAsync` |
+| F28 | `GET` ambang terbuka bagi pemegang `MstDirectPaymentThreshold : Read`; layar saat ini sementara hanya untuk pemegang `Read` **dan** `Update` | `DirectPaymentThresholdController`; `FE-FIN-031` |
+| F29 | Respons ambang (`LastChangedBy`) dan batch migrasi (`ApprovedBy`) hanya memuat ID pengguna, tanpa nama | `DirectPaymentThresholdDtos.cs`, `OpeningItemBatchDtos.cs` |
+| F30 | Periode tanpa rekap kas harian: saldo penutupan **0**, tanggal rekap kosong, dan `HasVariance = true` | `FinanceSubledgerBalanceCalculator.CalculateCashVarianceAsync` |
+| F31 | Nol paket pembaca XLSX terpasang; unduh templat dan unggah XLSX dijawab `503` | `FinanceOpeningItemBatchesController`, `FinanceOpeningItemBatchService` |
+| F32 | Permintaan setujui dan kunci saldo awal menerima `Notes` yang tidak pernah disimpan | `BE-FIN-066`, dihapus `BE-FIN-084` |
+| F33 | Batas bawah nominal mutasi kas dilonggarkan khusus `SALDO-AWAL` bernilai nol oleh migration `RelaxFinCashMovementAmountForZeroOpeningBalance`, sudah diterapkan owner | `BE-FIN-084` |
+| F34 | Endpoint `POST /opening-item-batches/{id}/reupload` sudah ada di source tetapi belum ada pada `api-contract.md` | `BE-FIN-085` |
+
+### Keputusan
+
+`FIN-DEC-141`..`144` dinyatakan langsung oleh owner pada sesi build 3 Oktober 2026 dan dicatat di sini
+tanpa ditanyakan ulang. `FIN-DEC-145`..`152` diputuskan interaktif lewat `/grill-me` 4 Oktober 2026.
+
+| ID | Pertanyaan | Keputusan | Dasar |
+|---|---|---|---|
+| `FIN-DEC-141` | Apakah permintaan setujui dan kunci saldo awal menerima catatan? | **Tidak.** `Notes` dihapus dari kedua permintaan karena tidak pernah disimpan. Memperjelas `FIN-DEC-128` | Pernyataan owner 3 Oktober 2026; `BE-FIN-084` |
+| `FIN-DEC-142` | Apakah layar saldo awal menampilkan nama penyetuju? | **Ya.** Respons saldo awal memuat `ApprovedByName` | Pernyataan owner 3 Oktober 2026; `BE-FIN-084` |
+| `FIN-DEC-143` | Apakah penguncian saldo awal Kas Kasir yang bernilai nol meninggalkan mutasi kas? | **Ya, selalu satu mutasi `SALDO-AWAL`, termasuk bernilai nol.** `FIN-VAL-168` diberi **satu pengecualian sempit**: hanya jenis `SALDO-AWAL` boleh nol. Nilai negatif tetap ditolak untuk semua jenis; jenis lain tetap harus lebih besar dari nol. Pengecualian dijaga di service **dan** di batasan basis data | Pernyataan owner 3 Oktober 2026; `BE-FIN-084`, migration diterapkan owner |
+| `FIN-DEC-144` | Bagaimana petugas memperbaiki berkas batch yang bergalat? | **Berkas batch yang masih Draf dapat diunggah ulang** pada batch yang sama (`DRAFT` → `DRAFT`, hak `Update`). Hasil validasi lama dibuang; saldo awal Accounting yang sudah dinyatakan **dipertahankan**; jenis item tidak dapat diganti; batch `VALIDATED`, `APPROVED`, `LOCKED`, `REJECTED` tidak dapat diunggah ulang (`409`) | Pernyataan owner 3 Oktober 2026; `BE-FIN-085`; menegaskan baris "Mengunggah ulang berkas" pada `FIN-STATE-1.6` F.2 |
+| `FIN-DEC-145` | Kapan ambang baru berlaku, dan apa nasib kolom tanggal berlaku? | **Selalu berlaku seketika.** Tanggal berlaku **dicabut dari kontrak** dan dari permintaan ubah ambang. Tidak ada perubahan ambang terjadwal, sejalan dengan `FIN-DES-086` yang menolak tabel riwayat. Memperjelas `FIN-DEC-134` | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-146` | Apa yang terjadi bila dua pejabat mengubah ambang bersamaan? | **Penyimpanan yang kalah ditolak** dan diminta memuat ulang. Ambang mendapat penanda versi; permintaan ubah wajib membawanya, **kecuali** penetapan ambang pertama kali karena belum ada baris | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-147` | `FIN-OQ-080` — apakah staf AR/AP boleh tahu angka ambang? | **Ya, angka ambang ditampilkan kepada staf AR/AP.** Jawaban ini **berbeda dari rekomendasi agent** (menyembunyikan angka dan mengunci `GET`); keputusan owner berlaku. Akibatnya: layar pembayaran langsung menampilkan angkanya; layar master ambang dapat dibuka pemegang `Read` dan hanya pemegang `Update` yang melihat kendali ubah; risiko pembayaran dipecah di bawah ambang tetap **diterima sadar** (`FIN-DEC-134`) | Jawaban owner |
+| `FIN-DEC-148` | `FIN-OQ-079` — di mana layar-layar baru Finance ditempatkan pada menu? | **Submenu baru "Cutover & Subledger"** pada grup Keuangan, memuat Pemetaan Akun Control, Saldo Awal Cutover, dan Batch Migrasi Tagihan Lama. **Ambang Pembayaran Langsung** masuk submenu **Master Data** yang sudah ada. **Buku Kas** dan **riwayat mutasi piutang/utang** dicapai dari layar kas dan detail piutang/utang, tanpa butir menu sendiri. Menu Transaksi A/R dan A/P (`FIN-DEC-094`) **tidak berubah** | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-149` | `FIN-OQ-081` — paket pembaca XLSX | **Ditunda: rilis pertama CSV saja.** Pembaca XLSX (`BE-FIN-083`) menjadi pekerjaan slice berikutnya. Nama dan versi paket **belum dikonfirmasi** (`ClosedXML` MIT tetap usulan; `EPPlus` v5+ tetap dilarang). `FIN-DEC-140` diperjelas, **tidak** digantikan: dua format tetap tujuan, tetapi XLSX tidak ikut rilis pertama. Jawaban ini **berbeda dari rekomendasi agent** | Jawaban owner |
+| `FIN-DEC-150` | Apa yang ditawarkan pemilih berkas unggah selama XLSX ditunda? | **Hanya CSV.** XLSX kembali ditawarkan ketika pembacanya ada. Pilihan XLSX pada unduh templat tetap nonaktif. Berkas XLSX yang tetap dipaksa masuk ditolak `503` dengan pesan jelas. Menunda bagian kontrak `FIN-API-1.6` F.2 "satu pemilih menerima CSV dan XLSX" | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-151` | Apakah layar ambang dan batch migrasi menampilkan nama pelaku? | **Ya, untuk keduanya.** Respons ambang memuat nama pengubah terakhir; respons batch memuat nama penyetuju. Nama terlihat oleh siapa pun yang boleh membaca layar itu | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-152` | Apa yang dinyatakan API perbandingan kas bila periode belum punya rekap kas harian? | **Dinyatakan eksplisit.** Saldo penutupan dan selisih **kosong** (bukan nol), `HasVariance` bernilai salah, dan ada penanda **belum ada rekap**. Menggantikan perilaku saat ini (nol dan selisih palsu) | Jawaban owner, rekomendasi dipilih |
+
+### Rincian dan contoh
+
+**Ambang (`FIN-DEC-145`, `146`, `147`, `151`).**
+Pejabat A dan pejabat B sama-sama membuka layar ambang yang bernilai Rp 5.000.000. A menyimpan
+Rp 8.000.000 beserta alasannya. B kemudian menyimpan Rp 3.000.000. Karena B bekerja dari nilai lama,
+sistem **menolak** simpanan B dan menyuruhnya memuat ulang; layar B lalu menampilkan Rp 8.000.000,
+alasan A, dan nama A beserta waktunya. Ambang yang baru disimpan **langsung berlaku**; tidak ada tanggal
+berlaku yang dapat dijadwalkan.
+
+Seorang staf AR memasukkan pembayaran langsung Rp 12.000.000 sementara ambang Rp 10.000.000. Layar
+pembayaran memperingatkan sebelum dikirim: *"Nominal melewati ambang pembayaran langsung (Rp 10.000.000).
+Gunakan jalur pembayaran berjenjang."* Angka ambang kini tertulis karena owner memutuskan staf boleh
+mengetahuinya.
+
+**Batch migrasi (`FIN-DEC-144`, `149`, `150`, `151`).**
+Staf mengunggah `tagihan-piutang.csv`; validasi menemukan tiga baris bergalat (baris 14, 27, 31). Staf
+memperbaiki berkasnya di luar sistem lalu memakai **Unggah Ulang Berkas** pada batch yang sama. Hasil
+validasi lama hilang, saldo awal Accounting yang sudah dinyatakan tetap, dan staf menjalankan validasi
+lagi. Bila batch sudah *Tervalidasi*, unggah ulang tidak ditawarkan; batch itu harus ditolak lalu dibuat
+ulang. Pemilih berkas hanya menawarkan `.csv` pada rilis pertama.
+
+**Selisih kas (`FIN-DEC-152`).**
+Petugas membuka perbandingan kas Oktober 2026, tetapi belum ada satu pun rekap kas harian untuk bulan itu.
+Sebelum keputusan ini, API menjawab "saldo penutupan Rp 0, selisih −Rp 70.000.000". Setelah keputusan ini,
+API menjawab saldo penutupan dan selisih **kosong** disertai penanda *belum ada rekap*, sehingga tidak ada
+angka nol yang bisa disangka saldo.
+
+### Endpoint yang terpengaruh (bergaya Swagger)
+
+| Grup Swagger | Method | Path | Perubahan | Status |
+|---|---|---|---|---|
+| `Corporate / Finance Management / Master Data / Direct Payment Threshold` | `GET` | `/` | Respons memuat penanda versi dan nama pengubah terakhir; **tanpa** tanggal berlaku | Direncanakan |
+| idem | `PUT` | `/` | Permintaan: penanda versi **wajib** kecuali penetapan pertama; **tanpa** tanggal berlaku. Versi basi dijawab `409` | Direncanakan |
+| `Corporate / Finance Management / Opening Item Batch` | `POST` | `/{id}/reupload` | **Baru.** `multipart/form-data`: berkas dan penanda versi. Hak `FinanceOpeningItemBatch : Update`. Kode: `400`, `404`, `409`, `422`, `503` | Sudah di source (`BE-FIN-085`) |
+| idem | `GET` | `/`, `/{id}` | Respons memuat nama penyetuju | Direncanakan |
+| idem | `GET` | `/template` | `format=XLSX` tetap `503` sampai slice XLSX | Sudah di source |
+| `Corporate / Finance Management / Subledger Setup` | `POST` | `/opening-balances/{id}/approve`, `/lock` | Permintaan **tanpa** `Notes`; respons memuat nama penyetuju | Sudah di source (`BE-FIN-084`) |
+| `Corporate / Finance Management / Accounting Events` | `GET` | `/subledger-balances/{accountingPeriodCode}/variance` | Saldo penutupan dan selisih boleh kosong; penanda *belum ada rekap*; `HasVariance` salah bila tidak ada rekap | Direncanakan |
+
+### Akibat yang MUST dijaga
+
+1. **Kontrak dan matriks kini STALE** pada bagian berikut, dan **MUST** diperbarui lewat
+   `/design-business-module`, bukan di sini: `api-contract.md` F.1 (permintaan tanpa `Notes`, nama penyetuju),
+   F.2 (endpoint `reupload`, pemilih CSV, nama penyetuju, label **Tersedia**), F.4 (versi, nama pengubah,
+   tanpa tanggal berlaku, label **Tersedia**), F.6 (selisih kosong); `validation-matrix.md` `FIN-VAL-168`
+   dan redaksi `FIN-VAL-192`; `state-transition-matrix.md` F.1 dan F.2; `erd/data-dictionary.md` untuk ambang.
+2. **Layar yang sudah dibangun perlu disesuaikan** lewat `/plan-module-delivery`:
+   - `FE-FIN-031` (layar ambang): terbuka bagi pemegang `Read`, kendali ubah hanya `Update`, tampil versi dan
+     nama pengubah, tanpa tanggal berlaku; banner pembatasan `FIN-OQ-080` dihapus.
+   - `FE-FIN-030` (pembayaran langsung): peringatan ambang menyebut angkanya.
+   - `FE-FIN-032` (batch migrasi): pemilih hanya CSV; nama penyetuju.
+   - `FE-FIN-029` (selisih kas): membaca nilai kosong dan penanda baru dari API, bukan tanggal kosong.
+   - Butir menu `FIN-DEC-148` untuk submenu baru dan Master Data.
+3. **Pekerjaan backend baru** (nol dikerjakan di pass ini): penanda versi dan nama pengubah pada ambang, tanggal
+   berlaku dicabut dari permintaan dan respons, nama penyetuju pada batch, penanda *belum ada rekap* pada
+   selisih kas. Penanda versi menuntut perubahan skema, sehingga memakai wewenang membuat migration
+   `FIN-DEC-138`; **menerapkannya tetap milik Yasmin**.
+4. **Peran staf AR/AP perlu hak `MstDirectPaymentThreshold : Read`** agar angka ambang terbaca di layar
+   pembayaran. Pemberian hak itu milik admin dan berada di luar scope pass ini; tanpa hak itu layar
+   pembayaran jatuh kembali ke peringatan tanpa angka.
+5. **`04-prd-to-mvp.md` dan roadmap** perlu dicatat ulang untuk `MVP-14D`/`14E`: XLSX keluar dari rilis
+   pertama dan `BE-FIN-083` pindah ke slice berikutnya.
+6. **Capability map basi.** `/trace-existing-capabilities` mode impact scan disarankan sebelum pass desain.
+7. **Batas yang tetap diterima sadar:** pembayaran dipecah di bawah ambang tidak terdeteksi (`FIN-DEC-134`),
+   dan satu orang dapat memegang hak mencatat dan menyetujui sekaligus (`FIN-PERM-1.7` G.5). `FIN-DEC-147`
+   memperlebar yang pertama karena angka kini diketahui staf; owner memilihnya dengan sadar.
+
+### Frontend Decision Authority — tambahan
+
+| Keputusan | Pemilik | Status | Rentang yang diizinkan |
+|---|---|---|---|
+| Penempatan butir menu layar baru Finance (`FIN-DEC-148`) | Owner | approved | Submenu "Cutover & Subledger"; Ambang di Master Data. **Bukan** `DEV_DISCRETION` |
+| Angka ambang tampil kepada staf AR/AP (`FIN-DEC-147`) | Owner | approved | Wajib tampil pada peringatan melewati ambang bagi pemegang hak baca |
+| Pemilih unggah hanya CSV selama XLSX ditunda (`FIN-DEC-150`) | Owner | approved | Dibalik saat pembaca XLSX ada |
+| Nama pelaku pada layar ambang dan batch (`FIN-DEC-151`) | Owner | approved | Ditampilkan apa adanya; tanpa ID mentah |
+| Urutan butir **di dalam** submenu "Cutover & Subledger" | — | **Asumsi** | Mengikuti urutan alur kerja: Pemetaan Akun → Saldo Awal → Batch Migrasi. Belum ditanyakan; owner dapat mengubahnya |
+| Tata letak, warna, ikon, bentuk kartu dan tabel | — | `DEV_DISCRETION` | Seperti sebelumnya |
+
+### Open question
+
+| ID | Status | Keterangan |
+|---|---|---|
+| `FIN-OQ-079` | **CLOSED** oleh `FIN-DEC-148` | — |
+| `FIN-OQ-080` | **CLOSED** oleh `FIN-DEC-147` | — |
+| `FIN-OQ-081` | **DITUNDA** oleh `FIN-DEC-149` | Tetap terbuka (nama dan versi paket belum dikonfirmasi) tetapi **tidak memblokir rilis pertama**. Memblokir `LATER SLICE` bagian XLSX saja. Pemilik: Yasmin |
+| `FIN-OQ-083` | **BARU** | Nasib **kolom fisik** `EffectiveFrom` pada tabel ambang: dihapus lewat migration, atau dipertahankan dan diisi tanggal perubahan. `FIN-DEC-145` hanya mencabutnya dari kontrak. Pemilik: Yasmin; diputuskan saat `/design-business-module`. Memblokir `DESIGN` kontrak F.4 dan data dictionary, bukan implementasi bagian lain |
+| `FIN-OQ-074`, `076`, `082` | **TERBUKA** | Data konfigurasi; tidak berubah |
+| `FIN-OQ-045`, `047`, `048` | **TERBUKA**, milik Accounting | Tidak berubah |
+| `FIN-OQ-057`, `065`, `069`, `078` | **TERBUKA** | Tidak memblokir |
+
+### Kriteria penerimaan tambahan
+
+1. Permintaan ubah ambang tidak lagi memuat tanggal berlaku, dan ambang baru langsung berlaku pada pembayaran langsung berikutnya.
+2. Permintaan ubah ambang dengan penanda versi basi ditolak `409` dan **tidak** mengubah ambang; penetapan ambang pertama tanpa penanda versi diterima.
+3. Staf AR/AP pemegang `MstDirectPaymentThreshold : Read` melihat angka ambang pada peringatan layar pembayaran langsung.
+4. Layar master ambang dapat dibuka pemegang `Read`; kendali ubah hanya tampil bagi pemegang `Update`.
+5. Respons ambang memuat nama pengubah terakhir; respons batch migrasi memuat nama penyetuju; respons saldo awal sudah memuatnya.
+6. Pemilih berkas unggah batch hanya menawarkan `.csv`; pilihan XLSX pada unduh templat nonaktif; berkas XLSX yang dipaksa masuk ditolak `503` dengan pesan jelas.
+7. Berkas batch `DRAFT` dapat diunggah ulang: hasil validasi lama dibuang, saldo awal Accounting yang dinyatakan tetap, jenis item tidak berubah, penanda versi basi ditolak `409`. Batch `VALIDATED`, `APPROVED`, `LOCKED`, atau `REJECTED` ditolak `409`.
+8. Mutasi `SALDO-AWAL` bernilai nol dapat tercatat; mutasi bernilai negatif ditolak untuk semua jenis; mutasi bernilai nol jenis lain ditolak `400`; mengunci saldo awal Kas Kasir bernilai nol menerbitkan tepat satu mutasi `SALDO-AWAL`.
+9. Permintaan setujui dan kunci saldo awal tidak memuat dan tidak menyimpan catatan.
+10. Perbandingan kas periode tanpa rekap kas harian menyatakan saldo penutupan dan selisih kosong, `HasVariance` salah, dan penanda *belum ada rekap*; layar menulis "Belum ada rekap", bukan angka nol.
+11. Menu memuat submenu "Cutover & Subledger" berisi tiga layar, Ambang di Master Data, dan menu Transaksi A/R dan A/P tidak berubah.
+
+### Langkah berikutnya
+
+Tidak ada keputusan kritis yang masih terbuka dan memblokir desain, kecuali `FIN-OQ-083` yang hanya
+menyentuh kontrak F.4. Pass ini **tidak** menulis kontrak, arsitektur, roadmap, migration, endpoint, atau UI.
+
+
+
+---
+
+## Amendment pass lanjutan — Penutupan open question milik Finance, 4 Oktober 2026
+
+**Pemicu.** Sesudah pass sebelumnya (`FIN-DEC-141`..`152`), owner meminta seluruh open question yang masih
+terbuka diselesaikan. Pass ini menutup yang menjadi milik Finance dan sengaja membiarkan yang bukan miliknya.
+Seluruh keputusan di bawah `approved` sisi Finance (Yasmin), diputuskan interaktif lewat `/grill-me`
+4 Oktober 2026.
+
+**Mode.** `Amendment pass`. Blueprint `FIN-BP-001` revisi 15; histori approval tidak ditimpa dan nomor revisi
+belum dinaikkan. SHA source sama dengan pass sebelumnya: backend `5d6bb8bf`, frontend `ae2ed334e`.
+`01-existing-capability-map.md` tetap **berpotensi basi** (lihat pass sebelumnya).
+
+### Batas scope pass ini
+
+Scope **diperluas atas permintaan owner** dari pass sebelumnya, dan dikonfirmasi eksplisit sebelum bertanya.
+
+*Di dalam:* `FIN-OQ-083`, `074`, `076`, `082`, `065`, `069`, `057`, dan urutan butir menu submenu
+"Cutover & Subledger".
+
+*Di luar (tetap terbuka, bukan milik Finance atau tidak dapat diputuskan sekarang):*
+
+| Hal | Pemilik | Alasan |
+|---|---|---|
+| `FIN-OQ-045`, `047`, `048` | Accounting (Rizki) | Persetujuan atas kontrak kejadian; bukan keputusan Finance |
+| `FIN-OQ-078` | Accounting | Bentuk jalur baca saldo awal bagi Accounting; kontrak milik Accounting, `LATER SLICE` |
+| `FIN-OQ-081` | Yasmin | Sudah ditunda `FIN-DEC-149`; baru dapat diputuskan saat slice XLSX dibuka |
+| Siapa yang diberi hak mengubah ambang | Admin dan Platform | Pemberian hak akses; bagian kedua `FIN-OQ-074` dicatat di sini, bukan dijawab |
+
+### Fakta source yang mendasari (dibaca 3–4 Oktober 2026)
+
+| # | Fakta | Lokasi |
+|---|---|---|
+| F35 | Berkas migrasi dibaca seluruhnya ke memori; hasil validasi per baris disimpan sebagai satu catatan; persetujuan batch berjalan dalam satu transaksi (semua item lahir, atau tidak sama sekali). Belum ada batas jumlah baris | `FinanceOpeningItemBatchService` |
+| F36 | Lampiran HR dibatasi 25 MB per permintaan; kunci `MaxFileSizeBytes` bukti pembayaran sengaja belum diberi nilai bawaan | `WorkflowAttachmentController`; `Program.cs` baris 946 |
+| F37 | Piutang non-pasien (`FinNonPatientReceivable`) sengaja tidak masuk buku mutasi piutang dan tidak disentuh amandemen migrasi | `02-backend-architecture.md` bagian migrasi |
+| F38 | Tabel utang jasa medis di Finance belum terisi; task penulisnya `BE-FIN-021` `BLOCKED`; snapshot mengirimnya `0,00` | `FIN-DEC-122`, roadmap backend |
+| F39 | Tanggal perubahan terakhir ambang sudah dicatat kolom audit tabel itu (`UpdateDateTime`, atau `CreateDateTime` bila belum pernah diubah) | `MstDirectPaymentThreshold`, `DirectPaymentThresholdService` |
+
+### Keputusan
+
+| ID | Pertanyaan | Keputusan | Dasar |
+|---|---|---|---|
+| `FIN-DEC-153` | `FIN-OQ-083` — nasib kolom fisik tanggal berlaku pada tabel ambang | **Kolom dihapus** pada migration yang **sama** dengan penanda versi ambang (`FIN-DEC-146`). Kapan ambang terakhir diubah tetap terbaca dari kolom audit dan log. Menyempurnakan `FIN-DEC-145` | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-154` | `FIN-OQ-074` — nilai awal ambang | **Sistem tidak mengisi angka bawaan.** Pejabat berwenang menetapkan ambang pertama lewat layar ambang sebagai **prasyarat go-live**; angka dan alasannya tercatat di log seperti perubahan lain. Selama belum ditetapkan, seluruh pembayaran langsung tetap ditolak (`FIN-DES-086`). Bagian "siapa pejabat berwenang" adalah pemberian hak akses dan dicatat di luar scope | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-155` | `FIN-OQ-076` — ukuran batch migrasi | **Maksimal 10.000 baris per berkas.** Berkas yang melewatinya **ditolak** beserta pesan yang menyebut batas dan menyarankan memecah berkas. Tagihan yang lebih banyak diunggah sebagai beberapa batch; **setiap batch** menyatakan saldo awal Accounting-nya sendiri, direkonsiliasi sendiri, dan disetujui sendiri (persetujuan tetap utuh per batch, `FIN-DEC-129`). Angka 10.000 adalah titik tengah pilihan owner karena perkiraan jumlah tagihan belum disebut | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-156` | `FIN-OQ-082` — batas ukuran berkas bukti pembayaran | **10 MB** (10.485.760 byte) per berkas. Nilainya diisi pada konfigurasi `FinanceManagement:TransactionProof:MaxFileSizeBytes`. Perilaku fail-closed `503` tanpa nilai tetap berlaku. Berkas yang lebih besar ditolak `413` | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-157` | `FIN-OQ-065` — utang jasa medis lama | **Tidak dimigrasikan pada rilis ini.** Saldo awal kelompok ini tetap nol (`FIN-VAL-181`) dan batch tidak mengenal jenis item jasa medis. Dibahas lagi bersama modul Medical Fee ketika penulis datanya (`BE-FIN-021`) tidak lagi `BLOCKED` | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-158` | `FIN-OQ-069` — piutang sewa non-pasien lama | **Tidak lewat batch migrasi.** Dicatat lewat layar piutang non-pasien yang sudah ada. Karena berada di luar buku mutasi, ia tidak memengaruhi posisi saldo maupun snapshot | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-159` | `FIN-OQ-057` — skenario saldo negatif selain Kas Kasir | **Tidak perlu daftar skenario.** Piutang atau utang supplier yang bersaldo negatif pada penutupan bulan **tetap diterbitkan apa adanya dan ditandai**; tidak memblokir penerbitan; penelusuran dilakukan manual. Meneguhkan `FIN-DEC-112` | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-160` | Urutan butir menu di submenu "Cutover & Subledger" | **Pemetaan Akun Control → Saldo Awal Cutover → Batch Migrasi Tagihan Lama**, mengikuti urutan kerja petugas. Menggantikan asumsi pada pass sebelumnya; memperjelas `FIN-DEC-148` | Jawaban owner, rekomendasi dipilih |
+
+### Rincian dan contoh
+
+**Ukuran batch (`FIN-DEC-155`).** Rumah sakit memiliki 23.000 tagihan piutang lama. Staf membaginya menjadi tiga
+berkas (10.000, 10.000, dan 3.000 baris) lalu mengunggah masing-masing. Setiap batch divalidasi, dinyatakan saldo
+awal Accounting-nya (misalnya tiga dokumen rujukan berbeda), direkonsiliasi, dan disetujui terpisah. Bila batch
+kedua bergalat, ia saja yang ditahan; batch pertama yang sudah disetujui tidak terpengaruh. Bila staf mencoba
+mengunggah 12.000 baris sekaligus, sistem menolak dengan pesan sejenis *"Berkas memuat lebih dari 10.000 baris.
+Pecah menjadi beberapa berkas."*
+
+**Berkas bukti (`FIN-DEC-156`).** Petugas memotret kuitansi dengan ponsel; hasilnya 4 MB dan diterima. Foto 14 MB
+ditolak dengan pesan *"Ukuran berkas melewati batas yang diizinkan."* dan petugas mengecilkannya lebih dulu.
+
+**Ambang saat go-live (`FIN-DEC-154`).** Pada hari persiapan go-live, pejabat berwenang membuka layar ambang yang
+berjudul *Tetapkan ambang pertama*, mengisi angka dan alasannya, lalu menyimpan. Sampai langkah itu dilakukan, staf
+yang mencoba pembayaran langsung melihat pesan bahwa ambang belum ditetapkan.
+
+**Saldo negatif (`FIN-DEC-159`).** Piutang penjamin tertentu kelebihan bayar sehingga saldonya −Rp 2.000.000 pada
+penutupan bulan. Snapshot tetap terbit dengan −Rp 2.000.000, layar menandainya "berlawanan dengan saldo normal akun",
+dan staf menelusurinya secara manual.
+
+### Akibat yang MUST dijaga
+
+1. **Aturan validasi baru** diperlukan untuk batas 10.000 baris pada unggah dan unggah ulang batch; nomor
+   `FIN-VAL` dan kode statusnya digambar pass desain.
+2. **Migration ambang menjadi satu**: menambah penanda versi **dan** menghapus kolom tanggal berlaku
+   (`FIN-DEC-146` + `153`). Membuatnya memakai wewenang `FIN-DEC-138`; **menerapkannya tetap milik Yasmin**.
+3. **Konfigurasi `MaxFileSizeBytes` bernilai 10.485.760** MUST diisi sebelum go-live; tanpa itu unggah bukti tetap
+   `503`. Ini langkah serah terima, bukan kode.
+4. **Daftar prasyarat go-live** bertambah dan MUST dibawa serah terima modul: ambang pertama ditetapkan pejabat;
+   peran staf AR/AP diberi hak baca ambang (`FIN-DEC-147`, urusan admin); konfigurasi ukuran berkas diisi;
+   migration yang tertunda diterapkan.
+5. **Kontrak dan matriks yang STALE** dari pass sebelumnya masih berlaku dan bertambah: kontrak unggah batch
+   (batas baris), data dictionary ambang (kolom tanggal berlaku dihapus), `validation-matrix.md`. Seluruhnya
+   **MUST** diperbarui lewat `/design-business-module`, bukan di sini.
+6. **Utang jasa medis** tetap nol dan kembali ke meja bersama Medical Fee; batas modulnya tidak berubah
+   (Medical Fee berhenti pada jasa kotor dan tidak pernah menulis ke tabel Finance).
+7. **Batch pecahan membuat rekonsiliasi lebih banyak.** Staf perlu satu dokumen rujukan Accounting per batch; layar
+   batch sudah mewajibkan rujukan dokumen per batch, sehingga tidak ada perubahan layar untuk ini.
+
+### Frontend Decision Authority — tambahan
+
+| Keputusan | Pemilik | Status | Rentang yang diizinkan |
+|---|---|---|---|
+| Urutan butir menu submenu "Cutover & Subledger" (`FIN-DEC-160`) | Owner | approved | Pemetaan Akun Control → Saldo Awal Cutover → Batch Migrasi Tagihan Lama. Menggantikan asumsi sebelumnya |
+| Pesan penolakan batas baris dan batas ukuran berkas | Owner | approved | Wajib menyebut batas yang dilanggar dan langkah perbaikan; redaksi persisnya `DEV_DISCRETION` |
+
+### Open question
+
+| ID | Status | Keterangan |
+|---|---|---|
+| `FIN-OQ-083` | **CLOSED** oleh `FIN-DEC-153` | — |
+| `FIN-OQ-074` | **CLOSED** oleh `FIN-DEC-154` | Cara penetapan diputuskan; **angka**-nya diisi pejabat saat go-live (prasyarat go-live, bukan open question). Siapa yang diberi hak mengubah ambang tetap urusan admin |
+| `FIN-OQ-076` | **CLOSED** oleh `FIN-DEC-155` | — |
+| `FIN-OQ-082` | **CLOSED** oleh `FIN-DEC-156` | Nilai diisi pada konfigurasi saat go-live |
+| `FIN-OQ-065` | **CLOSED** (untuk rilis ini) oleh `FIN-DEC-157` | Dibuka kembali bersama Medical Fee ketika `BE-FIN-021` tidak lagi `BLOCKED` |
+| `FIN-OQ-069` | **CLOSED** oleh `FIN-DEC-158` | — |
+| `FIN-OQ-057` | **CLOSED** oleh `FIN-DEC-159` | — |
+| `FIN-OQ-045`, `047`, `048` | **TERBUKA**, milik Accounting | Tidak dapat diputuskan Finance |
+| `FIN-OQ-078` | **TERBUKA**, milik Accounting | `LATER SLICE` |
+| `FIN-OQ-081` | **DITUNDA** (`FIN-DEC-149`) | Tidak memblokir rilis pertama |
+
+### Kriteria penerimaan tambahan
+
+1. Berkas batch berisi tepat 10.000 baris diterima; berisi 10.001 baris ditolak beserta pesan yang menyebut batas dan menyarankan memecah. Berlaku juga pada unggah ulang.
+2. Dua batch hasil pecahan direkonsiliasi dan disetujui terpisah; batch yang bergalat tidak mengubah batch lain yang sudah disetujui.
+3. Berkas bukti berukuran sampai 10.485.760 byte diterima, lebih dari itu ditolak `413`; tanpa nilai konfigurasi, unggah bukti tetap `503`.
+4. Tabel ambang tidak lagi memiliki kolom tanggal berlaku dan memiliki penanda versi, keduanya pada migration yang sama.
+5. Daftar prasyarat go-live memuat: penetapan ambang pertama, hak baca ambang bagi peran AR/AP, konfigurasi ukuran berkas bukti, dan penerapan migration yang tertunda.
+6. Saldo awal utang jasa medis tetap nol dan batch tidak menawarkan jenis item jasa medis.
+7. Piutang non-pasien tidak muncul pada batch migrasi; pencatatannya lewat layar piutang non-pasien.
+8. Snapshot bulan yang memuat saldo negatif pada piutang atau utang supplier terbit apa adanya dan tertandai, tanpa penahanan.
+9. Butir menu "Cutover & Subledger" berurutan: Pemetaan Akun Control, Saldo Awal Cutover, Batch Migrasi Tagihan Lama.
+
+### Langkah berikutnya
+
+**Tidak ada blocker desain dari sisi Finance.** Yang tersisa terbuka milik Accounting (`FIN-OQ-045`, `047`, `048`,
+`078`) dan tidak memblokir desain; `045`/`047` memblokir `IMPLEMENTATION` sisi `PENERIMAAN-KASIR` dan
+`PEMBUKAAN-SHIFT-KASIR` sebagaimana sudah tercatat. Pass ini **tidak** menulis kontrak, arsitektur, roadmap,
+migration, endpoint, atau UI.
+

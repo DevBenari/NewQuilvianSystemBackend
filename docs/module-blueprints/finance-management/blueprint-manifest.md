@@ -6,7 +6,67 @@ module_name: Finance Management
 module_slug: finance-management
 module_prefix: Fin
 module_area: Areas/Corporate/FinanceManagement
-revision: 15
+revision: 16
+revision_16_note: >
+  Revisi 16 (4 Oktober 2026) adalah /design-business-module yang menggambar DUA PULUH keputusan dari dua
+  Amendment pass hari yang sama: FIN-DEC-141..FIN-DEC-160. Keputusan arsitekturnya FIN-DES-094..FIN-DES-098
+  — seluruhnya APPROVED Yasmin, 4 Oktober 2026 (lihat approval_revision_16). Roadmap-nya diturunkan
+  /plan-module-delivery hari yang sama: roadmap/00, 01, dan 02 bagian REV-16 — BE-FIN-086..090 beserta
+  BE-FIN-085 yang didaftarkan retroaktif, dan FE-FIN-033..037. SATU prasyarat teknis masih menahan dua
+  task saja (BE-FIN-086/087): dotnet ef migrations has-pending-model-changes. Prasyarat itu DIPENUHI
+  4 Oktober 2026 — hasilnya bersih, sehingga NOL task REV-16 tertahan gerbang apa pun.
+  ARAHNYA BERBEDA dari revisi 13, 14, dan 15. Ketiganya menggambar kemampuan BARU. Revisi 16 MENYELARASKAN
+  kemampuan yang SUDAH DIBANGUN terhadap keputusan yang lahir SESUDAH source-nya jadi — sebab pada
+  REV-14A..14E sebagian urutannya terbalik: layar dibangun lebih dulu, dan pembangunannya MENEMUKAN
+  pertanyaan yang belum pernah ditanyakan. Capability map bagian 20.9 mencatat akibatnya: source hari ini
+  BUKAN lagi rujukan perilaku target.
+  NOL epic baru, NOL layar baru, NOL tabel baru, NOL bounded context baru. Yang ada: satu kolom dibuang
+  (MstDirectPaymentThreshold.EffectiveFrom, FIN-DEC-153), satu kolom ditambah (RowVersion, FIN-DEC-146),
+  tiga respons bertambah ruas nama pelaku (FIN-DEC-151), satu endpoint berubah bentuk responsnya, dan DUA
+  aturan validasi baru (FIN-VAL-228 benturan versi ambang, FIN-VAL-229 batas 10.000 baris).
+  SATU PERUBAHAN MEMUTUS, dan arah rilisnya BERBEDA dari revisi 14: pada GET
+  /subledger-balances/{period}/variance, dua ruas berubah dari selalu berisi menjadi BOLEH KOSONG
+  (FIN-DEC-152). Karena satu-satunya pembaca (FE-FIN-029) sudah tahan terhadap nilai kosong, BACKEND BOLEH
+  dirilis lebih dulu — tidak seperti FIN-API-1.5 F.8 yang menuntut layar lebih dulu.
+  SATU KEMAMPUAN KELUAR DARI RILIS PERTAMA: pembaca XLSX (BE-FIN-083) pindah ke POST-MVP, dan rilis pertama
+  CSV saja (FIN-DEC-149, FIN-DEC-150). FIN-DEC-140 TIDAK dicabut — dua format tetap tujuan, dan kriteria
+  penerimaan paritasnya tetap berlaku untuk slice itu. Yang ditunda pelaksanaannya, bukan keputusannya.
+  DUA GERBANG UI AKHIRNYA TERTUTUP: FIN-OQ-079 (penempatan menu) oleh FIN-DEC-148/160 — submenu baru
+  "Cutover & Subledger" beserta urutan butir mengikuti alur kerja, dan Ambang masuk Master Data; serta
+  FIN-OQ-080 oleh FIN-DEC-147 yang MELONGGARKAN pembatasan yang sempat dipasang layar: angka ambang
+  DITAMPILKAN kepada staf AR/AP. Jawaban kedua ini BERBEDA dari rekomendasi yang diajukan, dan keputusan
+  owner yang berlaku; risiko pembayaran dipecah di bawah ambang diperlebar dengan sadar.
+  NOL PERTANYAAN TERBUKA MILIK FINANCE. Yang tersisa milik Accounting (FIN-OQ-045, 047, 048, 078) dan satu
+  yang ditunda (FIN-OQ-081). Tidak ada pertanyaan memblokir yang menahan /plan-module-delivery.
+  LIMA PRASYARAT GO-LIVE dicatat dan MUST dicentang saat serah terima — bukan kode, tetapi tanpanya
+  kemampuan yang sudah dibangun tidak dapat dipakai sama sekali. Yang paling tajam: appsettings.json NOL
+  memuat kunci konfigurasi Finance (capability map 20.4), sehingga unggah bukti SELALU 503 dan seluruh jalur
+  pembayaran langsung belum dapat dipakai hari ini. Satu nilai — MaxFileSizeBytes = 10485760 (FIN-DEC-156) —
+  membuka seluruh jalur itu.
+  KONTRAK YANG BERGERAK: FIN-API-1.7, FIN-VAL-1.9, FIN-TEST-1.10, FIN-MVP-1.11.
+  KONTRAK YANG SENGAJA TIDAK BERGERAK, dan alasannya dicatat: FIN-STATE-1.6 (nol transisi baru — unggah
+  ulang adalah DRAFT -> DRAFT yang sudah tercatat F.2), FIN-PERM-1.8 (nol resource dan nol action baru;
+  yang berubah hanya pemberian hak peran, dan itu milik admin), FIN-INTEGRATION-1.7 (nol payload ke
+  Accounting berubah). Ketiganya MUST NOT disunting hanya untuk menaikkan angka.
+  NOL source aplikasi disentuh. NOL migration dibuat — rencananya digambar, pembuatan berkasnya milik task,
+  dan PENERAPANNYA ke basis data tetap milik Yasmin.
+approval_revision_16: >
+  APPROVED 4 Oktober 2026 oleh pemilik (Yasmin), dinyatakan langsung pada sesi perencanaan delivery:
+  FIN-DES-094..FIN-DES-098 beserta keempat kontrak turunannya — FIN-API-1.7, FIN-VAL-1.9, FIN-TEST-1.10,
+  dan FIN-MVP-1.11. Status keempatnya naik dari `draft` menjadi `approved`.
+  YANG TIDAK IKUT DISETUJUI, karena memang tidak bergerak pada revisi 16: FIN-STATE-1.6, FIN-PERM-1.8, dan
+  FIN-INTEGRATION-1.7 tetap pada status revisi sebelumnya masing-masing.
+  YANG TETAP TERBUKA SESUDAH APPROVAL INI, dan approval ini TIDAK menutupnya: FIN-OQ-081 (nama dan versi
+  paket XLSX — kini POST-MVP), FIN-OQ-045/047/048/078 (milik Accounting). Approval desain BUKAN approval
+  nilai konfigurasi dan BUKAN pernyataan bahwa migration sudah diterapkan.
+  SATU PRASYARAT TEKNIS yang sempat menahan dua task sudah DITUTUP 4 Oktober 2026: pengguna menjalankan
+  `dotnet ef migrations has-pending-model-changes --configuration Release` dan hasilnya BERSIH ("No changes
+  have been made to the model since the last migration"). Migration yang sebelumnya ditulis tangan
+  (RelaxFinCashMovementAmountForZeroOpeningBalance) terbukti TIDAK meninggalkan selisih snapshot, sehingga
+  BE-FIN-086 bebas dieksekusi. NOL task REV-16 tertahan gerbang apa pun. CATATAN 4 Oktober 2026:
+  BE-FIN-087 DICABUT sebelum pernah dieksekusi — FIN-DES-094 menetapkan SATU migration untuk
+  BE-FIN-086 (RowVersion ditambah, EffectiveFrom dibuang sekaligus), bukan dua task terpisah.
+  Keputusan pemilik; lihat section 0 pada laporan BE-FIN-086.
 approval_revision_15: >
   APPROVED 2 Oktober 2026 oleh pemilik (Yasmin), dinyatakan langsung pada sesi perencanaan: FIN-DES-092,
   FIN-DES-093, beserta kelima kontrak turunannya — FIN-API-1.6, FIN-VAL-1.8, FIN-PERM-1.8, FIN-TEST-1.9,
@@ -1568,13 +1628,26 @@ blocking_questions:
       null DITERIMA (normalisasi ?? new List<>). Dibetulkan saat /design-business-module berikutnya
       menyentuh berkas itu.
   - id: FIN-CQ-06
-    status: CLOSED 2026-09-28 (FIN-DEC-076)
+    status: CLOSED 2026-09-28 (FIN-DEC-076); mandatnya USANG sejak FIN-DEC-094, 1 Oktober 2026
     blocking_for: >
-      TIDAK LAGI MEMBLOKIR. Yasmin memutuskan: FIN-DEC-060 TETAP berlaku, menu yang sudah dibangun
-      ("Account Payable", "Purchase Order", dst., bahasa Inggris) MUST disesuaikan lewat task
-      frontend terpisah (relabel + tambah submenu "Pembelian" + butir "Tagihan Gabungan Penjamin").
-      Keputusan TIDAK diubah mengikuti implementasi yang mendahuluinya. Task ini belum tercatat di
-      roadmap manapun — MUST masuk /plan-module-delivery berikutnya.
+      TIDAK MEMBLOKIR, dan task yang dulu dituntut di sini SUDAH TIDAK PERLU DIBUAT.
+      Riwayatnya: FIN-DEC-076 (28 Sep 2026) menegakkan FIN-DEC-060 dan menuntut task frontend
+      terpisah (relabel + tambah submenu "Pembelian" + butir "Tagihan Gabungan Penjamin").
+      Task itu DIKERJAKAN FE-FIN-014 — 01-existing-capability-map.md bagian 17 mencatatnya
+      "Selesai". Sesudah itu FIN-DEC-094 (1 Okt 2026) men-supersede FIN-DEC-060 dan MENCABUT
+      submenu "Pembelian" sebagai struktur pengelompokan, menggantinya dengan bentuk flat V1 yang
+      sudah UAT-approved; FE-FIN-016 menerapkannya.
+      Diperiksa /plan-module-delivery REV-16, 4 Oktober 2026 pada
+      src/utils/menu-sidebar/menu-items.jsx@d962574d6: grup Finance memuat Master Data,
+      Transaksi A/R, Transaksi A/P, Petty Cash, dan Cash Monitoring — submenu "Pembelian" NOL,
+      sesuai FIN-DEC-094. Butir menu V1 yang rutenya belum ada didaftarkan oleh
+      FE-FIN-017/019/020/021 masing-masing saat layarnya selesai, bukan oleh task menu terpisah.
+      Karena itu NOL task dibuat untuk FIN-CQ-06 pada REV-16, dan kalimat lama
+      "MUST masuk /plan-module-delivery berikutnya" DICABUT sebagai basi.
+      CATATAN STALE yang belum dibetulkan: 01-existing-capability-map.md bagian 17 masih menulis
+      submenu "Pembelian" ada di menu-items.jsx baris 700-742. Itu benar saat ditulis, tetapi
+      TIDAK LAGI benar sesudah FE-FIN-016. Dibetulkan saat /trace-existing-capabilities berikutnya
+      menyentuh bagian itu — TIDAK MEMBLOKIR apa pun.
   - id: FIN-CQ-07
     status: OPEN — dibuka /trace-existing-capabilities 2026-09-28
     blocking_for: >
@@ -1681,9 +1754,9 @@ blocking_questions:
 | `evidence/17-permintaan-perbaikan-pembalikan-tender-deposit-untuk-billing.md` | **Ada (baru)** | Laporan temuan + permintaan perbaikan ke **owner Billing**, 28 September 2026 — pembalikan tender top-up deposit tidak menulis mutasi deposit apa pun, sehingga saldo deposit mencatat uang yang tidak pernah diterima dan dua kejadian pembalikan Finance tidak pernah terbit. Memuat contoh berangka, tiga kemungkinan perbaikan sebagai bahan diskusi (tanpa memilih), dan pendeteksi baca-saja yang Finance pasang sementara (`FIN-OQ-034`) |
 | `evidence/18-balasan-billing-atas-perbaikan-pembalikan-tender-deposit.md` | **Ada (masuk dari Billing)** | Balasan Billing atas `evidence/17`, 28 September 2026 — `FIN-OQ-034` **DITUTUP TUNTAS**. Solusi: pembatalan alokasi LIFO otomatis saat defisit saldo, dua mutasi `BilDepositMovement` (`RELEASE`+`REVERSAL`), `SyncClosureAsync` mengembalikan invoice ke `FINAL`, saldo dijamin `>= 0`, nol migration. Klaim teknisnya **diverifikasi langsung** ke `BillingSettlementService.cs` working tree — simbol kunci ditemukan cocok. Billing menyatakan `BE-FIN-036` unblocked |
 | `evidence/07-usulan-empat-kode-potongan-retur-deposit-untuk-accounting.md` | Ada | Usulan kode ke-26 s.d. 29 (`POTONGAN-PIUTANG-NON-TUNAI`, pembaliknya, `RETUR-PEMBELIAN`, `PEMAKAIAN-DEPOSIT-RETUR`), menutup sisi Finance `FIN-OQ-026`, 26 September 2026. Juga memberi tahu Accounting soal nama kode alias yang sudah ditulis source |
-| `roadmap/00-delivery-roadmap.md` | Ada | `FIN-ROADMAP-001` revisi 8, status `ACTIVE` — payung: gelombang, traceability, coverage gap, risiko. Revisi 8 menurunkan AMENDMENT REVISI 6 dan 8 (44 task BE, 14 task FE) |
-| `roadmap/01-backend-roadmap.md` | Ada | `FIN-ROADMAP-BE-001` revisi 6 — 44 task `BE-FIN-*` (`042`..`044` untuk revisi 6/8: granular FIN-CQ-08/controller/seeder/SQL, PPNAmount FinSupplierReturn, katalog akuntansi), urutan eksekusi, DoD backend |
-| `roadmap/02-frontend-roadmap.md` | Ada | `FIN-ROADMAP-FE-001` revisi 6 — 14 task `FE-FIN-*` (`014` ditambahkan: penyelarasan menu sidebar navigasi Finance ke FIN-DEC-060/FIN-DES-060), kebutuhan UI brief, `DEV_DISCRETION`, DoD frontend |
+| `roadmap/00-delivery-roadmap.md` | Ada | **Bagian terbaru: REV-16** (4 Oktober 2026) — traceability 8 FR revisi 16, coverage gap NOL, gelombang MVP-16A/B/C, lima prasyarat go-live yang bukan kode. Baris di bawah ini menggambarkan revisi 8 dan SUDAH BASI; `FIN-ROADMAP-001` revisi 8, status `ACTIVE` — payung: gelombang, traceability, coverage gap, risiko. Revisi 8 menurunkan AMENDMENT REVISI 6 dan 8 (44 task BE, 14 task FE) |
+| `roadmap/01-backend-roadmap.md` | Ada | **Bagian terbaru: REV-16** (4 Oktober 2026) — `BE-FIN-086`..`090` beserta `BE-FIN-085` yang didaftarkan retroaktif menutup utang traceability. Baris di bawah ini menggambarkan revisi 6 dan SUDAH BASI; `FIN-ROADMAP-BE-001` revisi 6 — 44 task `BE-FIN-*` (`042`..`044` untuk revisi 6/8: granular FIN-CQ-08/controller/seeder/SQL, PPNAmount FinSupplierReturn, katalog akuntansi), urutan eksekusi, DoD backend |
+| `roadmap/02-frontend-roadmap.md` | Ada | **Bagian terbaru: REV-16** (4 Oktober 2026) — `FE-FIN-033`..`037`, nol layar baru. Baris di bawah ini menggambarkan revisi 6 dan SUDAH BASI; `FIN-ROADMAP-FE-001` revisi 6 — 14 task `FE-FIN-*` (`014` ditambahkan: penyelarasan menu sidebar navigasi Finance ke FIN-DEC-060/FIN-DES-060), kebutuhan UI brief, `DEV_DISCRETION`, DoD frontend |
 
 Sub-pohon `task/report/` belum ada dan memang bukan keluaran pass perencanaan; ia menyusul dari
 kedua skill build.

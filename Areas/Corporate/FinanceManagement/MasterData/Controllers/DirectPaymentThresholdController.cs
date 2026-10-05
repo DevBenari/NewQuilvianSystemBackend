@@ -55,6 +55,7 @@ public sealed class DirectPaymentThresholdController : ControllerBase
     [AccessPermission("MstDirectPaymentThreshold", "Update")]
     [ProducesResponseType(typeof(ApiResponse<DirectPaymentThresholdResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Update([FromBody] UpdateDirectPaymentThresholdRequest request, CancellationToken cancellationToken)
     {
@@ -70,6 +71,11 @@ public sealed class DirectPaymentThresholdController : ControllerBase
         catch (DirectPaymentThresholdBadRequestException exception)
         {
             return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, exception.Message));
+        }
+        // FIN-VAL-228 (BE-FIN-086): penanda versi basi atau tidak dikirim sementara ambang sudah ada.
+        catch (DirectPaymentThresholdConflictException exception)
+        {
+            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message));
         }
     }
 

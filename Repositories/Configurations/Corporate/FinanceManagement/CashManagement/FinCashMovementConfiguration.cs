@@ -11,7 +11,8 @@ public sealed class FinCashMovementConfiguration : IEntityTypeConfiguration<FinC
         entity.ToTable("FinCashMovement", "public", table =>
         {
             table.HasCheckConstraint("CK_FinCashMovement_Direction", "\"Direction\" IN ('IN','OUT')");
-            table.HasCheckConstraint("CK_FinCashMovement_Amount", "\"Amount\" > 0");
+            // FIN-VAL-168: nominal harus positif; satu-satunya pengecualian adalah mutasi SALDO-AWAL bernilai nol (saldo awal kas kosong).
+            table.HasCheckConstraint("CK_FinCashMovement_Amount", "\"Amount\" > 0 OR (\"MovementType\" = 'SALDO-AWAL' AND \"Amount\" = 0)");
         });
 
         entity.HasKey(x => x.Id);

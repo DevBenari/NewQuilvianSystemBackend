@@ -131,8 +131,14 @@ public sealed class CashVarianceResponse
 
     /// <summary>
     /// Saldo akhir kas harian dari FinDailyCashSnapshot terakhir pada rentang periode terkait.
+    ///
+    /// BE-FIN-090 (FIN-DEC-152, FIN-DES-098) — PERUBAHAN MEMUTUS: ruas ini SEKARANG boleh
+    /// <c>null</c>. Sebelumnya selalu berisi dan bernilai <c>0</c> bila rekap tidak ada — nol itu
+    /// BUKAN angka rekap, dan menampilkannya sebagai saldo sungguhan adalah cacat yang task ini
+    /// perbaiki. <c>null</c> berarti periode itu belum punya rekap kas harian; periksa
+    /// <see cref="HasDailyCashSnapshot"/>, JANGAN menyimpulkan dari nilai <c>0</c>.
     /// </summary>
-    public decimal DailyCashClosingBalance { get; set; }
+    public decimal? DailyCashClosingBalance { get; set; }
 
     /// <summary>
     /// Tanggal snapshot kas harian terakhir yang ditemukan dalam periode terkait.
@@ -146,13 +152,29 @@ public sealed class CashVarianceResponse
 
     /// <summary>
     /// Besaran selisih antara rekap harian dan posisi terhitung (DailyCashClosingBalance - CalculatedCashPosition).
+    ///
+    /// BE-FIN-090 — PERUBAHAN MEMUTUS: boleh <c>null</c> ketika <see cref="HasDailyCashSnapshot"/>
+    /// bernilai salah, dengan alasan yang sama seperti <see cref="DailyCashClosingBalance"/>.
     /// </summary>
-    public decimal VarianceAmount { get; set; }
+    public decimal? VarianceAmount { get; set; }
 
     /// <summary>
-    /// Menandakan apakah terdapat selisih antara rekap kas harian dan posisi kas terhitung (VarianceAmount != 0).
+    /// Menandakan apakah terdapat selisih antara rekap kas harian dan posisi kas terhitung.
+    ///
+    /// BE-FIN-090 — PERUBAHAN MEMUTUS: sebelumnya bernilai <c>true</c> ketika rekap tidak ada
+    /// (karena <c>0 - posisi</c> hampir selalu bukan nol). Sekarang SELALU <c>false</c> ketika
+    /// <see cref="HasDailyCashSnapshot"/> salah — tidak ada selisih yang dapat dinyatakan tanpa
+    /// angka rekap sungguhan untuk dibandingkan. Hanya <c>true</c> bila rekap ADA dan berbeda.
     /// </summary>
     public bool HasVariance { get; set; }
+
+    /// <summary>
+    /// BE-FIN-090 (FIN-DEC-152, FIN-DES-098) — ruas BARU. <c>false</c> berarti periode itu belum
+    /// punya rekap kas harian (<c>FinDailyCashSnapshot</c> tidak ditemukan pada rentang periode).
+    /// Ditambahkan supaya tafsir "belum ada rekap" tertulis eksplisit pada kontrak, bukan
+    /// disimpulkan setiap pembaca dari ketiadaan <see cref="DailyCashSnapshotDate"/>.
+    /// </summary>
+    public bool HasDailyCashSnapshot { get; set; }
 
     /// <summary>
     /// Daftar mutasi kas FinCashMovement pada rentang periode terkait yang menjelaskan perubahan kas.

@@ -2205,7 +2205,7 @@ Lokasi model: `Areas/Corporate/FinanceManagement/Collection/Models/FinTransactio
 Berkasnya **tidak** disimpan di database. Isi berkas bukti dapat memuat data pihak ketiga, sehingga
 jalur unduhnya **MUST** dijaga hak akses dan **MUST NOT** dicatat logger beserta isinya.
 
-## R14.8 `MstDirectPaymentThreshold` — `Baru`
+## R14.8 `MstDirectPaymentThreshold` — `Diperbarui` (revisi 16)
 
 Lokasi model: `Areas/Corporate/FinanceManagement/MasterData/Models/MstDirectPaymentThreshold.cs`
 
@@ -2215,9 +2215,20 @@ Lokasi model: `Areas/Corporate/FinanceManagement/MasterData/Models/MstDirectPaym
 | `Amount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Ambang rupiah; **nilai awalnya belum ditetapkan** (`FIN-OQ-074`) |
 | `ChangeReason` | `string(500)` | Ya | — | — | — | — | Tidak | **Wajib** setiap kali diubah (`FIN-DEC-134`) |
 | `IsActive` | `bool` | Ya | `true` | **Unique** (parsial, hanya `true`) | — | — | Tidak | Satu baris aktif saja |
-| `EffectiveFrom` | `DateOnly` | Ya | — | — | — | — | Tidak | Tanggal mulai berlaku |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | **Kolom baru revisi 16** (`FIN-DEC-146`, `FIN-DES-094`). Penanda versi; `[ConcurrencyCheck]`. Diputar setiap kali ambang diubah |
+| ~~`EffectiveFrom`~~ | ~~`DateOnly`~~ | — | — | — | — | — | — | **DIBUANG revisi 16** (`FIN-DEC-153`). Tidak satu pun pemeriksaan pembayaran langsung pernah membacanya, sehingga ia menjanjikan perubahan terjadwal yang tidak ada. Kapan ambang terakhir diubah dibaca dari kolom audit `IdentityModel` |
 
 Tanpa baris aktif, seluruh pembayaran langsung **ditolak** — perilaku yang disengaja.
+
+**Ambang berlaku seketika** (`FIN-DEC-145`). Tidak ada perubahan terjadwal, dan tidak ada tabel riwayat
+perubahan ambang — keduanya ditolak `FIN-DES-086` dan tidak dihidupkan kembali revisi 16.
+
+**Perubahan bersamaan ditolak, bukan ditimpa** (`FIN-DEC-146`). Permintaan ubah wajib membawa
+`ExpectedRowVersion`, **kecuali** penetapan ambang pertama kali — saat itu belum ada baris sehingga belum
+ada versi yang dapat dikirim. Rinciannya pada `contracts/validation-matrix.md` `FIN-VAL-228`.
+
+**Nama pengubah terakhir tidak disimpan di tabel ini** (`FIN-DES-095`). Ia dibaca dari tabel pengguna milik
+Platform saat menyusun respons. Menyalinnya ke sini membuat nama membeku saat nama aslinya berubah.
 
 ## R14.9 `FinReceivable` — `Diperbarui`
 
@@ -2359,7 +2370,7 @@ CREATE TABLE public."FinCashMovement" (
     "CausationId"           uuid           NOT NULL,
     CONSTRAINT "PK_FinCashMovement" PRIMARY KEY ("Id"),
     CONSTRAINT "CK_FinCashMovement_Direction" CHECK ("Direction" IN ('IN','OUT')),
-    CONSTRAINT "CK_FinCashMovement_Amount" CHECK ("Amount" > 0)
+    CONSTRAINT "CK_FinCashMovement_Amount" CHECK ("Amount" > 0 OR ("MovementType" = 'SALDO-AWAL' AND "Amount" = 0))
 );
 
 CREATE UNIQUE INDEX "IX_FinCashMovement_Source"

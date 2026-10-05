@@ -1119,3 +1119,184 @@ coverage gap, dan **nol** task "write unit tests" dimunculkan.
 | 10 | QBE preflight untuk tiga entity baru | Diselesaikan **pada waktu eksekusi** dari `AGENTS.md` backend dan `MODULE_OWNERSHIP_PREFIX_REGISTRY.md`. Prefix `Fin` dan `Mst` sudah terdaftar; **nol** folder submodul baru, sehingga **nol** gerbang `QBE-MOD-003`. Folder `Readers/` berada di dalam submodule yang sudah terdaftar |
 | 11 | Kesesuaian engineering contract | Diselesaikan pada waktu eksekusi dari `BACKEND_ENGINEERING_CONTRACT.md`. Ketiga model baru berstatus `NEW CODE` |
 | 12 | Urutan rilis layar untuk dua perubahan memutus | **MUST** dijaga: `FE-FIN-030` dirilis sebelum atau bersamaan dengan `BE-FIN-077`/`078` |
+
+---
+
+# REV-14F — Penyelarasan saldo awal cutover (amandemen pasca-`FE-FIN-028`)
+
+```yaml
+blueprint_id: FIN-BP-001
+roadmap_revision: REV-14F
+status: SOURCE SELESAI — menunggu build, migration, dan pengamatan pengguna
+decisions: [FIN-DEC-128]   # ditambah keputusan pemilik 3 Oktober 2026 (lihat di bawah) — BELUM bernomor FIN-DEC
+designs: [FIN-DES-088]
+contract_versions: [FIN-API-1.5 F.1, FIN-STATE-1.6 F.1, FIN-VAL-1.7 FIN-VAL-168]   # bagian terkait diperbarui 3 Oktober 2026
+task_range_backend: BE-FIN-084
+```
+
+**Kenapa ada gelombang ini.** Saat `FE-FIN-028` dibangun, layar saldo awal cutover menemukan empat selisih antara
+kontrak dan backend `BE-FIN-066`. Pemilik (Yasmin) memutuskan penyelesaiannya pada **3 Oktober 2026**:
+
+| # | Selisih | Keputusan pemilik |
+|:--:|---|---|
+| 1 | `Notes` pada `approve`/`lock` diterima tetapi tidak disimpan | **Hapus** `Notes` dari kedua DTO dan dari kontrak |
+| 2 | `ApprovedBy` hanya `Guid` | **Tambah** `ApprovedByName` pada `OpeningBalanceResponse` |
+| 3 | Penguncian `KAS-KASIR` bernominal nol tidak menerbitkan mutasi kas | Mutasi **selalu terbit**, sehingga `FIN-VAL-168` diberi **satu pengecualian**: mutasi `SALDO-AWAL` boleh bernilai nol |
+| 4 | `api-contract.md` F.1 masih berlabel "Rencana (belum tersedia)" | Dikoreksi menjadi **Tersedia** |
+
+> **Catatan pencatatan keputusan.** Keputusan 1–3 diambil langsung oleh pemilik dalam sesi `FE-FIN-028` dan **belum
+> dicatat** di `00-interview-decisions.md` sebagai `FIN-DEC-nnn`. Nomor tidak dikarang di sini. Pencatatan resminya
+> adalah pekerjaan `qv-grill` (Amendment Pass) dan harus dilakukan sebelum blueprint revisi berikutnya disetujui.
+
+## Task REV-14F
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 🟡 `BE-FIN-084` | Saldo awal cutover menyampaikan nama penyetuju, tidak menjanjikan catatan yang tidak disimpan, dan penguncian `KAS-KASIR` selalu meninggalkan satu mutasi `SALDO-AWAL` | `FR-FIN-146`..`148`; `FIN-DEC-128`; keputusan pemilik 3 Oktober 2026; `FIN-DES-088` | `FIN-API-1.5` F.1; `FIN-STATE-1.6` F.1; `FIN-VAL-1.7` `FIN-VAL-168` | `BE-FIN-066`; pola pencarian nama `PettyCashBudgetService`; `FinanceSubledgerMovementService` | Perubahan `SubledgerOpeningBalanceDtos` (hapus `Notes` ×2, tambah `ApprovedByName`); `FinanceOpeningBalanceService` (pencarian nama; syarat `Amount > 0` pada penguncian dihapus); `RecordCashMovementAsync` (pengecualian nol khusus `SALDO-AWAL`); `FinCashMovementConfiguration`; migration `RelaxFinCashMovementAmountForZeroOpeningBalance` | `BE-FIN-066`, `BE-FIN-062` | `Approve`/`Lock` tidak lagi memuat `Notes`; setiap respons saldo awal memuat `ApprovedByName` (`null` bila belum disetujui atau pengguna tidak ditemukan); mengunci `KAS-KASIR` bernominal 0 menerbitkan tepat satu mutasi `SALDO-AWAL` bernilai 0; mutasi **negatif** tetap ditolak untuk semua jenis; mutasi **nol** untuk jenis selain `SALDO-AWAL` tetap ditolak `400`; `CK_FinCashMovement_Amount` di DB selaras dengan aturan itu | Kontrak API dan `FIN-VAL-168` terverifikasi; `dotnet build` **PASS** dan migration **diterapkan** (keduanya dilaporkan pengguna 3 Oktober 2026); `has-pending-model-changes` **bersih** (4 Oktober 2026); uji manual penguncian nol **masih menunggu pengguna** | Backend Owner — **risiko:** pengecualian nol bocor ke jenis mutasi lain dan melemahkan invariant buku kas (dijaga oleh `movementType == SaldoAwal` pada service **dan** pada constraint DB). Migration menyentuh tabel yang **sudah berjalan** | 🟡 **SOURCE SELESAI 3 Oktober 2026.** Seluruh cakupan tertulis; migration ditulis **manual** (tanpa `dotnet ef`). Pengguna melaporkan `dotnet build` dan penerapan migrasi **sukses** (bukan pengamatan agent). `has-pending-model-changes` dinyatakan **bersih** 4 Oktober 2026, sehingga migration tangan itu terbukti selaras dengan model. Sisa untuk ✅: **hanya** uji manual penguncian `KAS-KASIR` bernominal 0. Bukti: [laporan BE-FIN-084](../task/report/backend/BE-FIN-084.md) |
+
+## Wewenang migration pada REV-14F
+
+| Hal | Keadaan |
+|---|---|
+| Membuat berkas migration | Diminta eksplisit pengguna 3 Oktober 2026, **ditulis tangan tanpa `dotnet ef`/build**. Syarat `FIN-DEC-138` ("sesuai snapshot") dipenuhi dengan memperbarui `ApplicationDbContextModelSnapshot` pada satu baris yang sama dan menurunkan `Designer` dari snapshot itu — **belum dibuktikan** oleh tooling EF |
+| Menerapkan ke database | **MILIK YASMIN.** Tidak dijalankan |
+| Pembuktian kesesuaian | ✅ **TERBUKTI** 4 Oktober 2026. `dotnet ef migrations has-pending-model-changes --configuration Release` menyatakan nol perubahan tertunda, sehingga syarat `FIN-DEC-138` terbukti oleh tooling EF — bukan lagi hanya oleh pembacaan berkas |
+
+## Prasyarat eksekusi REV-14F
+
+| # | Prasyarat | Keadaan |
+|:--:|---|---|
+| 1 | `BE-FIN-066` selesai | ✅ |
+| 2 | Wewenang tulis backend dan artefak kontrak | ✅ Diberikan pengguna 3 Oktober 2026 |
+| 3 | Pencatatan keputusan sebagai `FIN-DEC-nnn` | ❌ Belum — tidak menahan source, menahan persetujuan blueprint revisi berikutnya |
+| 4 | Migration diterapkan ke database | ❌ **Milik Yasmin.** Sampai dijalankan, penguncian `KAS-KASIR` bernominal 0 ditolak database |
+
+
+---
+
+# REV-16 — Penyelarasan ambang, batas baris, dan penanda rekap kas (backend)
+
+```yaml
+blueprint_id: FIN-BP-001
+roadmap_revision: REV-16
+blueprint_revision: 16
+status: SIAP DIEKSEKUSI — approval revisi 16 diberikan Yasmin 4 Oktober 2026
+decisions: [FIN-DEC-141, FIN-DEC-142, FIN-DEC-143, FIN-DEC-144, FIN-DEC-145, FIN-DEC-146, FIN-DEC-151, FIN-DEC-152, FIN-DEC-153, FIN-DEC-154, FIN-DEC-155, FIN-DEC-156]
+designs: [FIN-DES-094, FIN-DES-095, FIN-DES-096, FIN-DES-097, FIN-DES-098]
+contract_versions: [FIN-API-1.7, FIN-VAL-1.9, FIN-TEST-1.10, FIN-MVP-1.11]
+contract_status: approved 2026-10-04 (Yasmin)
+backend_source_sha: 5d6bb8bf
+frontend_source_sha: d962574d6
+task_range_backend: BE-FIN-086, BE-FIN-088..BE-FIN-090 (BE-FIN-087 dicabut 4 Oktober 2026 — lihat §0 laporan BE-FIN-086)
+tanggal: 4 Oktober 2026
+```
+
+## Gerbang — SELURUHNYA TERBUKA sejak 4 Oktober 2026
+
+| Hal | Keadaan |
+|---|---|
+| Approval desain revisi 16 | ✅ **DIBERIKAN** Yasmin, 4 Oktober 2026. `FIN-DES-094`..`098` beserta `FIN-API-1.7`, `FIN-VAL-1.9`, `FIN-TEST-1.10`, `FIN-MVP-1.11` naik menjadi `approved` |
+| Keputusan yang mendasarinya | ✅ `FIN-DEC-141`..`160`, dua Amendment pass 4 Oktober 2026 |
+| Prasyarat teknis yang sempat menahan `BE-FIN-086`/`087` | ✅ **BERSIH.** Pengguna menjalankan `dotnet ef migrations has-pending-model-changes --configuration Release` 4 Oktober 2026; keluarannya *"No changes have been made to the model since the last migration."* |
+| Task yang tertahan gerbang apa pun | **NOL.** Kelima task REV-16 bebas dieksekusi |
+
+**Risiko yang pemeriksaan ini tutup, dan hasilnya.** Satu migration sebelumnya
+(`RelaxFinCashMovementAmountForZeroOpeningBalance`) **ditulis tangan** tanpa `dotnet ef`, termasuk berkas
+Designer dan satu baris pada snapshot. Bila snapshot berselisih dari model, migration `BE-FIN-086` akan
+membawa perubahan yang tidak seorang pun minta ke tabel yang sudah berjalan.
+
+**Snapshot terbukti selaras dengan model.** Migration yang ditulis tangan itu **tidak** meninggalkan
+selisih, sehingga `BE-FIN-086` boleh membuat migration tanpa kekhawatiran itu. Catatan ini dipertahankan
+sebagai jejak: yang membuktikannya adalah tooling EF, bukan pembacaan berkas oleh agent.
+
+**Pekerjaan yang dapat berjalan sejajar, tanpa menunggu apa pun:** lima prasyarat go-live pada
+`04-prd-to-mvp.md` 56.6 — seluruhnya **bukan kode**: mengisi konfigurasi batas ukuran berkas, menetapkan
+ambang pertama lewat layar, memberi hak baca ambang kepada peran staf, menerapkan migration yang tertunda,
+dan menjaga ketiga hosted service tetap mati.
+
+## Satu utang traceability yang ditutup roadmap ini
+
+`BE-FIN-085` **sudah dibangun** (source ada, dilaporkan, build dilaporkan berhasil) tetapi **belum pernah
+punya baris task** di roadmap mana pun. Laporannya sendiri mencatat itu sebagai kekurangan. Barisnya
+ditulis di bawah supaya traceability-nya tidak berlubang.
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 🟡 `BE-FIN-085` | Berkas batch migrasi yang masih Draf dapat diunggah ulang, dan pesan penolakan rekonsiliasi memuat dua desimal | `FR-FIN-189` (asalnya `FR-FIN-168`, `FR-FIN-169`); `FIN-DEC-144`; `FIN-STATE-1.6` F.2 baris "Mengunggah ulang berkas"; `FIN-VAL-192` | `FIN-API-1.6` F.2 (saat dikerjakan endpoint-nya belum ada di kontrak; disusulkan `FIN-API-1.7` G.2) | Pemeriksaan berkas `UploadAsync` yang sudah ada, diekstrak menjadi satu metode bersama | 1 endpoint `POST /{id}/reupload`; 1 DTO; refactor pemeriksaan berkas menjadi aturan tunggal; pesan `422` rekonsiliasi memakai dua desimal budaya `id-ID` | `BE-FIN-081`, `BE-FIN-082` | Hanya batch `DRAFT` yang dapat diunggah ulang; `VALIDATED`/`APPROVED`/`LOCKED`/`REJECTED` ditolak `409`; hasil validasi lama dibuang; saldo awal Accounting yang sudah dinyatakan **dipertahankan**; jenis item tidak dapat diganti; `ExpectedRowVersion` basi ditolak `409`; berkas lama **tidak** tersentuh bila basis data gagal | `dotnet build` dilaporkan **PASS** oleh pengguna 4 Oktober 2026; uji manual `K.4.1`..`K.4.6` **belum** dilaporkan | Backend Owner — **risiko:** refactor menyentuh jalur unggah yang sudah berjalan; dan jendela sempit ketika penggantian berkas fisik gagal **sesudah** basis data tersimpan | 🟡 Sebagian. Source selesai; build dilaporkan PASS; uji manual belum. Bukti: [laporan BE-FIN-085](../task/report/backend/BE-FIN-085.md) |
+
+## Grafik urutan dependency — REV-16
+
+```text
+(bersih 4 Okt 2026, source selesai 4 Okt 2026) ──> BE-FIN-086 🟡 ─> FE-FIN-033 ─> FE-FIN-034   (ambang: satu migration, FIN-DES-094)
+
+(boleh mulai sekarang) ──┬─> BE-FIN-088                  (batas 10.000 baris)
+                         ├─> BE-FIN-089 ────────────────> FE-FIN-035
+                         ├─> BE-FIN-090 ────────────────> FE-FIN-036
+                         └─────────────────────────────> FE-FIN-037   (butir menu; nol dependency backend)
+
+{FIN-OQ-081} ─> BE-FIN-083 [POST-MVP]   (pembaca XLSX — keluar dari rilis pertama, FIN-DEC-149)
+
+Legenda:
+  [xxx]   prasyarat teknis yang masih menahan
+  {xxx}   gerbang keputusan yang masih tertutup
+  (xxx)   tidak tertahan apa pun
+```
+
+**`BE-FIN-087` DICABUT 4 Oktober 2026**, sebelum pernah dieksekusi — lihat §0 pada
+[laporan BE-FIN-086](../task/report/backend/BE-FIN-086.md). `FIN-DES-094` menetapkan **satu** migration
+untuk ambang (tambah `RowVersion`, buang `EffectiveFrom` sekaligus); draf roadmap sebelumnya memecahnya
+menjadi dua task mengikuti opsi `02-backend-architecture.md` N.7, dan pertentangan itu diputuskan pemilik
+ke arah `FIN-DES-094`. Nomor task `BE-FIN-087` **tidak dipakai ulang** untuk task lain mana pun.
+
+| Gelombang | Task backend | Boleh mulai setelah |
+|---|---|---|
+| `REV-16A` | `BE-FIN-086` 🟡 | ✅ Source dan migration selesai ditulis 4 Oktober 2026. **Belum dikompilasi, belum diterapkan** — lihat DoD |
+| `REV-16B` | `BE-FIN-088`, `BE-FIN-089`, `BE-FIN-090` | **Boleh mulai sekarang.** Nol migration, nol dependency pada `REV-16A` |
+| `POST-MVP` | `BE-FIN-083` | `FIN-OQ-081` dijawab |
+
+## Task REV-16A — ambang pembayaran langsung
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 🟡 `BE-FIN-086` | Ambang hanya dapat diubah oleh pejabat yang bekerja dari nilai terbaru; layar dapat menampilkan siapa yang terakhir mengubahnya; kolom tanggal berlaku dibuang | `FR-FIN-184`, `FR-FIN-185`, `FR-FIN-187`; `FIN-DEC-145`, `146`, `151`, `153`; `FIN-DES-094`, `095` | `FIN-API-1.7` G.1; `FIN-VAL-1.9` `FIN-VAL-228`; `erd/data-dictionary.md` R14.8 | Pola `RowVersion` + `[ConcurrencyCheck]` pada `FinOpeningBalance` dan `FinOpeningItemBatch`; pola pencarian nama `PettyCashBudgetService` dan `FinanceOpeningBalanceService`; pola `IsUniqueViolation` pada `HmdServiceSupport` | 1 kolom `RowVersion` ditambah, 1 kolom `EffectiveFrom` dibuang pada `MstDirectPaymentThreshold` beserta configuration-nya; **1 migration** (`FIN-DES-094`: satu migration, bukan dua — `BE-FIN-087` DICABUT, lihat §0 laporan); `UpdateAsync` memeriksa `ExpectedRowVersion` dan memutarnya, dengan pengecualian penetapan pertama; dua lapis tambahan menangkap benturan (`DbUpdateConcurrencyException`, unique-violation penetapan pertama bersamaan); `DirectPaymentThresholdResponse` membawa `RowVersion` dan `LastChangedByName` | **NOL** | Penetapan ambang **pertama** diterima **tanpa** `ExpectedRowVersion`; ambang yang sudah ada menolak `PUT` tanpa penanda versi atau dengan penanda basi (`409`); dua penetapan pertama bersamaan **MUST NOT** menghasilkan `500`; urutan pemeriksaan tetap alasan kosong (`422`) → nominal tidak sah (`400`) → benturan versi (`409`); `LastChangedByName` berisi nama tampilan, dan `null` bila penggunanya tidak ditemukan; `EffectiveFrom` yang masih dikirim klien lama **diabaikan tanpa galat**; kolom `EffectiveFrom` **dibuang** dari basis data | Uji `K.1.1`..`K.1.5`, `K.2.1`..`K.2.6` **belum dilaporkan** — satu-satunya yang tersisa; `dotnet build` **PASS**, migration **diterapkan**, `has-pending-model-changes` retroaktif **PASS** (ketiganya dilaporkan pengguna 4 Oktober 2026) | Backend Owner — **risiko:** melewatkan pengecualian penetapan pertama akan mengunci jalur pembayaran langsung permanen; migration membuang kolom pada tabel berjalan — direncanakan nol baris (`FIN-DEC-154`), belum diverifikasi lewat query **sebelum** diterapkan. QBE preflight dan kesesuaian engineering diselesaikan pada waktu eksekusi dari `AGENTS.md` backend dan `docs/engineering/` | `dotnet build` **PASS**; migration **diterapkan**; `has-pending-model-changes` retroaktif **PASS** (ketiganya dilaporkan pengguna 4 Oktober 2026); uji manual **belum dilaporkan** — satu-satunya sisa untuk ✅; laporan task tracked ada. Bukti: [laporan BE-FIN-086](../task/report/backend/BE-FIN-086.md) |
+
+## Task REV-16B — batas baris, nama penyetuju, dan penanda rekap kas
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 🟡 `BE-FIN-088` | Berkas migrasi yang terlalu besar ditolak sebelum menyentuh penyimpanan, beserta arahan memecahnya | `FR-FIN-188`; `FIN-DEC-155`; `FIN-DES-096` | `FIN-API-1.7` G.2; `FIN-VAL-1.9` `FIN-VAL-229` | `ReadAndCheckUploadAsync` yang sudah menjadi aturan tunggal sejak `BE-FIN-085` | 1 pemeriksaan batas **10.000 baris data** di dalam pemeriksaan berkas yang sudah ada; 1 konstanta kode (**bukan** konfigurasi) | `BE-FIN-085` | Berkas **10.000** baris diterima (batas inklusif); **10.001** ditolak `400` beserta pesan yang menyebut batas dan menyarankan memecah; baris judul **tidak** dihitung; berkas yang ditolak meninggalkan **nol** berkas fisik dan **nol** baris batch; batas berlaku pada unggah **dan** unggah ulang | Uji `K.3.1`..`K.3.6` **belum dilaporkan**; nol migration | Backend Owner — **risiko:** memeriksa terlalu dini (dari ukuran berkas) berarti menebak, yang dilarang `FIN-DEC-140`; memeriksa terlalu lambat meninggalkan sampah di disk | `dotnet build` **NOT RUN** (instruksi pengguna); source selesai; laporan task tracked ada. Bukti: [laporan BE-FIN-088](../task/report/backend/BE-FIN-088.md) |
+| 🟡 `BE-FIN-089` | Layar batch dapat menampilkan siapa yang menyetujui, bukan hanya kapan | `FR-FIN-187`; `FIN-DEC-151`; `FIN-DES-095` | `FIN-API-1.7` G.2 | Pola pencarian nama yang sama dengan `BE-FIN-086` dan `BE-FIN-084` | `ApprovedByName` pada `OpeningItemBatchResponse` dan `OpeningItemBatchDetailResponse`; nama seluruh penyetuju satu halaman daftar diambil **sekali**, bukan satu kueri per baris | `BE-FIN-082` | `ApprovedByName` berisi nama tampilan penyetuju; `null` bila belum disetujui atau penggunanya tidak ditemukan; nama **tidak** disimpan ke tabel Finance; daftar berpaging **tidak** menimbulkan satu kueri per baris | Uji `K.1.4` (pola yang sama) **belum dilaporkan**; nol migration | Backend Owner — **risiko:** menyalin nama ke kolom tabel akan membuatnya membeku saat nama aslinya berubah (`FIN-DES-095` melarangnya) | `dotnet build` **NOT RUN** (instruksi pengguna); source selesai; laporan task tracked ada. Bukti: [laporan BE-FIN-089](../task/report/backend/BE-FIN-089.md) |
+| 🟡 `BE-FIN-090` | Periode yang belum punya rekap kas harian dinyatakan sebagai keadaan, bukan dijawab angka nol | `FR-FIN-190`; `FIN-DEC-152`; `FIN-DES-098` | `FIN-API-1.7` G.4 — **PERUBAHAN MEMUTUS** | `CalculateCashVarianceAsync` yang sudah ada | `DailyCashClosingBalance` dan `VarianceAmount` menjadi **boleh kosong**; `HasVariance` bernilai salah bila rekap tidak ada; 1 ruas baru `HasDailyCashSnapshot` | `BE-FIN-067` | Periode tanpa rekap: kedua ruas **kosong** (**MUST NOT** `0`), `HasVariance` salah, `HasDailyCashSnapshot` salah; posisi kas terhitung dan mutasi penjelas **tetap** dikirim; periode dengan rekap dan angka sama: selisih `0` dan `HasVariance` salah; periode dengan rekap dan angka berbeda: kedua angka terkirim dan `HasVariance` benar | Uji `K.5.1`..`K.5.6` **belum dilaporkan**; nol migration | Backend Owner — **risiko:** ini perubahan memutus. Satu-satunya pembaca (`FE-FIN-029`) sudah tahan nilai kosong, sehingga backend **boleh** rilis lebih dulu — **berbeda** dari `FIN-API-1.5` F.8 | `dotnet build` **NOT RUN** (instruksi pengguna); source selesai; laporan task tracked menyebut urutan rilis yang dipakai. Bukti: [laporan BE-FIN-090](../task/report/backend/BE-FIN-090.md) |
+
+## Task yang sengaja TIDAK dibuat pada REV-16
+
+| Yang tidak dibuat | Alasan |
+|---|---|
+| Task membuat tabel riwayat perubahan ambang | Ditolak `FIN-DES-086`, dan `FIN-DEC-145` menghapus alasan teknis terakhir untuk membuatnya |
+| Task menambah kolom nama pengubah pada tabel ambang | `FIN-DES-095`: nama dibaca saat menyusun respons, tidak disalin |
+| Task membuat batas baris sebagai konfigurasi | `FIN-DES-096`: ia batas ketahanan transaksi, bukan nilai operasional |
+| Task menegakkan `EffectiveFrom` pada jalur pembayaran | Kebalikan dari `FIN-DEC-145`; kolomnya justru dibuang |
+| `BE-FIN-083` pembaca XLSX | **Pindah ke `POST-MVP`** oleh `FIN-DEC-149`. Tidak lagi menahan `MVP-14E` dinyatakan selesai |
+| Task mengisi nilai konfigurasi dan memberi hak peran | **Bukan kode.** Keduanya prasyarat go-live (`04-prd-to-mvp.md` 56.6), dikerjakan administrator |
+| Task migrasi utang jasa medis dan piutang sewa non-pasien lama | `FIN-DEC-157` dan `FIN-DEC-158` menetapkan keduanya di luar batch migrasi |
+
+## Wewenang migration pada REV-16
+
+| Hal | Keadaan |
+|---|---|
+| **Membuat** berkas migration | **DIIZINKAN** (`FIN-DEC-138`), dengan syarat sesuai `ApplicationDbContextModelSnapshot` dan **dihasilkan dari perubahan model**, bukan ditulis tangan |
+| **Menerapkan** ke basis data | **MILIK YASMIN.** Agent **MUST NOT** menjalankan migration maupun SQL langsung |
+| Prasyarat yang MUST dipenuhi lebih dulu | ✅ **TERPENUHI.** `has-pending-model-changes` dinyatakan **bersih** 4 Oktober 2026, sehingga migration yang ditulis tangan sebelumnya terbukti tidak meninggalkan selisih |
+| Migration pada REV-16 | **Satu** migration untuk `BE-FIN-086` (`FIN-DES-094`). `BE-FIN-087` DICABUT 4 Oktober 2026 sebelum pernah dieksekusi — lihat §0 [laporan BE-FIN-086](../task/report/backend/BE-FIN-086.md) |
+| Kewajiban laporan | Setiap laporan task yang membawa migration **MUST** menyatakan migration itu **belum dijalankan** beserta langkah yang Yasmin perlu jalankan sendiri |
+
+## Prasyarat eksekusi REV-16
+
+| # | Prasyarat | Keadaan |
+|:--:|---|---|
+| 1 | `approval_revision_16` terisi | ✅ **DIBERIKAN** Yasmin, 4 Oktober 2026 |
+| 2 | `has-pending-model-changes` bersih | ✅ **BERSIH** 4 Oktober 2026 (`--configuration Release`). Tidak lagi menahan apa pun |
+| 3 | `BE-FIN-085` uji manual dilaporkan | ❌ Belum. Tidak menahan REV-16, tetapi menahan `BE-FIN-085` ditandai ✅ |
+| 4 | `BE-FIN-081`, `082`, `067` selesai | ✅ Source selesai; build dilaporkan PASS |
+| 5 | Wewenang membuat migration | ✅ `FIN-DEC-138` |
+| 6 | `FIN-OQ-081` dijawab | ❌ Belum. Menahan **`BE-FIN-083` saja** di `POST-MVP` |

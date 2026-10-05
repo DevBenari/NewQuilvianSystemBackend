@@ -5244,3 +5244,306 @@ rencana ini **MUST** dibaca ulang, bukan diikuti apa adanya.
 | Konversi XLSX ke CSV sebelum dibaca | Menghilangkan tipe sel, membuang keunggulan XLSX, dan menambah bentuk kegagalan ketiga |
 | Satu berkas templat untuk kedua jenis item | `ItemKind` memisahkan keduanya; satu templat bersama memaksa kolom yang tidak relevan ikut terbaca |
 | Penguraian angka/tanggal di dalam masing-masing pembaca | Melahirkan dua aturan format yang dapat berselisih. Penguraian terjadi di lapisan validasi, dan pembaca memulangkan teks mentah |
+
+
+---
+
+# AMENDMENT REVISI 16 — Penyelarasan ambang, batch migrasi, dan selisih kas (`FIN-DEC-141`..`FIN-DEC-160`)
+
+```yaml
+blueprint_id: FIN-BP-001
+revision: 16
+status: approved
+owner: Yasmin (Product/Domain Finance)
+approved_by: Yasmin (Product/Domain Finance)
+approved_at: 2026-10-04
+input_revision: 00-interview-decisions.md — dua Amendment pass 4 Oktober 2026 (FIN-DEC-141..FIN-DEC-160)
+input_capability_map: 01-existing-capability-map.md bagian 20 beserta addendum 20.14 (4 Oktober 2026)
+backend_source_sha: 5d6bb8bf
+frontend_source_sha: ae2ed334e
+contract_versions_dihasilkan: [FIN-API-1.7, FIN-VAL-1.9, FIN-TEST-1.10, FIN-MVP-1.11]
+contract_versions_TIDAK_bergerak: [FIN-STATE-1.6, FIN-PERM-1.8, FIN-INTEGRATION-1.7]
+dampak_kompatibilitas: ADA PERUBAHAN MEMUTUS pada satu endpoint yang sudah berjalan — bagian N.9
+```
+
+**Sifat revisi ini berbeda dari revisi 14 dan 15.** Keduanya menggambar kemampuan **baru**. Revisi 16
+**menyelaraskan kemampuan yang sudah dibangun** terhadap dua puluh keputusan yang lahir **sesudah**
+source-nya jadi. Jadi di sini tidak ada epic baru, tidak ada bounded context baru, dan tidak ada tabel
+baru. Yang ada: satu kolom dibuang, satu kolom ditambah, tiga respons bertambah ruas, satu endpoint
+diubah bentuknya, dan dua aturan validasi baru.
+
+**Kenapa arahnya begitu.** Urutan normalnya adalah keputusan → desain → task. Pada `REV-14A`..`14E`
+urutannya terbalik untuk sebagian hal: layar dibangun lebih dulu, dan pembangunannya **menemukan**
+pertanyaan yang belum pernah ditanyakan — misalnya "apa arti tanggal berlaku pada ambang kalau tidak ada
+yang membacanya". Revisi ini menutup selisih itu. Capability map bagian 20.9 mencatat akibatnya dengan
+jelas: **source hari ini bukan lagi rujukan perilaku target.**
+
+## N.1 Apa yang diperiksa pada source
+
+| Hal | Temuan | Lokasi |
+|---|---|---|
+| `EffectiveFrom` pada ambang | Disimpan, tetapi **tidak satu pun** pemeriksaan pembayaran langsung membacanya | `FinanceReceivableService.cs:760`, `FinanceSupplierPayableService.cs:303` |
+| Penanda versi pada ambang | **Tidak ada.** `PUT` menimpa baris aktif tanpa memeriksa apa pun | `DirectPaymentThresholdService.UpdateAsync` |
+| Nama pelaku | Respons ambang dan batch hanya memuat ID pengguna | `DirectPaymentThresholdDtos.cs`, `OpeningItemBatchDtos.cs` |
+| Periode tanpa rekap kas harian | Saldo penutupan `0`, tanggal rekap kosong, dan `HasVariance = true` | `FinanceSubledgerBalanceCalculator.CalculateCashVarianceAsync` |
+| Batas jumlah baris berkas migrasi | **Tidak ada.** Berkas dibaca seluruhnya ke memori | `FinanceOpeningItemBatchService.UploadAsync` |
+| Unggah ulang berkas batch | Sudah ada sejak `BE-FIN-085` | `FinanceOpeningItemBatchesController` `POST /{id}/reupload` |
+| Pengecualian nol pada mutasi `SALDO-AWAL` | Sudah ada sejak `BE-FIN-084`, dijaga service **dan** batasan basis data | `FinanceSubledgerMovementService`, `FinCashMovementConfiguration` |
+
+## N.2 Tabel kepemilikan data
+
+Pertahanan terhadap duplikasi entity. Revisi ini **nol** tabel baru.
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di sini |
+|---|---|:---:|:---:|
+| Ambang pembayaran langsung (`MstDirectPaymentThreshold`) | Finance Management | Ya | **Tidak** — kolomnya diubah, tabelnya tetap |
+| Batch migrasi tagihan lama (`FinOpeningItemBatch`) | Finance Management | Ya | **Tidak** |
+| Buku mutasi kas (`FinCashMovement`) | Finance Management | Ya | **Tidak** — hanya batasan nominalnya yang dilonggarkan |
+| Rekap kas harian (`FinDailyCashSnapshot`) | Finance Management | Ya, dibaca | **Tidak** |
+| Identitas pengguna (nama tampilan pelaku) | Platform (`Users`) | Ya, **dibaca saja** | **Tidak** — nama diambil saat menyusun respons, tidak disalin ke tabel Finance |
+| Saldo awal cutover (`FinOpeningBalance`) | Finance Management | Ya | **Tidak** |
+
+**Satu catatan penting tentang nama pelaku.** `FIN-DEC-151` menuntut nama pengubah dan penyetuju tampil di
+layar. Nama itu **MUST NOT** disalin menjadi kolom pada tabel Finance. Alasannya: nama pegawai berubah
+(menikah, koreksi ejaan), dan salinan akan membeku sambil mengaku sebagai fakta. Nama diambil saat
+menyusun respons dari tabel pengguna milik Platform, pola yang sudah dipakai `PettyCashBudgetService` dan
+kini juga `FinanceOpeningBalanceService` (`BE-FIN-084`).
+
+## N.3 Keputusan arsitektur baru
+
+### `FIN-DES-094` — Ambang memakai penanda versi, dan tanggal berlaku dibuang
+
+`FIN-DEC-145` menetapkan ambang **selalu berlaku seketika**, dan `FIN-DEC-153` membuang kolom tanggal
+berlakunya. `FIN-DEC-146` menuntut perubahan bersamaan tidak saling menimpa.
+
+| Hal | Keputusan |
+|---|---|
+| Kolom `EffectiveFrom` | **Dibuang.** Ia menjanjikan perubahan terjadwal yang tidak pernah ditegakkan siapa pun |
+| Kolom `RowVersion` | **Ditambah** (`Guid`, wajib, `[ConcurrencyCheck]`), mengikuti pola `FinOpeningBalance` dan `FinOpeningItemBatch` |
+| Bentuk permintaan ubah | `ExpectedRowVersion` **wajib**, **kecuali** penetapan ambang pertama kali — saat itu belum ada baris, sehingga tidak ada versi yang dapat dikirim |
+| Bila versi basi | `409` beserta pesan yang menyuruh memuat ulang. **Bukan** menimpa |
+| Kapan ambang berlaku | Seketika setelah tersimpan. Tanggal perubahan terakhir dibaca dari kolom audit `IdentityModel`, bukan dari kolom tersendiri |
+
+**Kenapa satu migration, bukan dua.** Menambah `RowVersion` dan membuang `EffectiveFrom` menyentuh tabel
+yang sama. Memecahnya menjadi dua migration berarti dua kali menyentuh tabel yang sudah berjalan tanpa
+manfaat apa pun.
+
+**Contoh.** Pejabat A dan B sama-sama membuka layar ambang bernilai Rp 5.000.000. A menyimpan
+Rp 8.000.000. B lalu menyimpan Rp 3.000.000 dari data lama; permintaan B membawa versi yang sudah basi,
+sehingga ditolak `409`. B memuat ulang, melihat Rp 8.000.000 beserta alasan dan nama A, lalu memutuskan
+apakah tetap mengubahnya.
+
+### `FIN-DES-095` — Nama pelaku dikirim pada respons, bukan disimpan
+
+`FIN-DEC-151` menuntut nama pengubah ambang dan nama penyetuju batch tampil.
+
+| Hal | Keputusan |
+|---|---|
+| Cara memperolehnya | Dibaca dari tabel pengguna saat menyusun respons: `DisplayName ?? UserName ?? Email ?? UserCode` — pola yang sudah berjalan (`PettyCashBudgetService`, `FinanceOpeningBalanceService`) |
+| Disimpan ke tabel Finance | **Tidak** (lihat N.2) |
+| Bila penggunanya tidak lagi ditemukan | Ruas nama bernilai kosong; layar menuliskan keterangan bahwa namanya tidak tersedia, **bukan** menampilkan ID mentah |
+| Biaya pembacaan | Satu kueri tambahan per permintaan. Untuk daftar batch, nama seluruh penyetuju diambil **sekali** untuk satu halaman, bukan satu kueri per baris |
+| Privasi | Nama pegawai terlihat oleh siapa pun yang boleh membaca layar itu. Diterima sadar; **MUST** disampaikan saat menyerahkan modul |
+
+### `FIN-DES-096` — Berkas migrasi dibatasi 10.000 baris, dan batasnya ditegakkan sebelum berkas disimpan
+
+`FIN-DEC-155` menetapkan batas 10.000 baris per berkas.
+
+| Hal | Keputusan |
+|---|---|
+| Tempat pemeriksaan | Di dalam pemeriksaan berkas yang sudah ada (`ReadAndCheckUploadAsync`), **sesudah** berkas berhasil diurai menjadi baris dan **sebelum** berkas disimpan ke disk maupun basis data |
+| Kenapa sesudah diurai | Jumlah baris sebenarnya hanya diketahui setelah penguraian. Menghitung dari ukuran berkas adalah terkaan, dan `FIN-DEC-140` melarang menebak |
+| Kenapa sebelum disimpan | Berkas yang ditolak **tidak boleh** meninggalkan jejak di disk maupun baris batch |
+| Perilaku bila melewati batas | `400` beserta pesan yang menyebut batasnya dan menyarankan memecah berkas |
+| Berlaku pada | Unggah **dan** unggah ulang — keduanya memakai pemeriksaan yang sama, sehingga aturannya tunggal |
+| Batas disimpan di mana | **Konstanta kode**, bukan konfigurasi. Ia keputusan desain (`FIN-DEC-155`), bukan nilai yang disetel per lingkungan seperti batas ukuran berkas bukti |
+
+**Kenapa bukan konfigurasi.** Batas ukuran berkas bukti (`FIN-OQ-082`) adalah nilai operasional yang
+bergantung pada penyimpanan. Batas jumlah baris adalah batas **ketahanan transaksi**: persetujuan batch
+melahirkan seluruh item dalam satu transaksi, dan angka ini menjaga transaksi itu tetap sanggup.
+Menjadikannya konfigurasi membuka jalan seseorang menaikkannya tanpa memahami akibatnya.
+
+### `FIN-DES-097` — Unggah ulang berkas batch Draf: aturan unggah tunggal, berkas lama baru diganti setelah basis data aman
+
+Sudah dibangun `BE-FIN-085`; digambar di sini supaya desain menyusul source, bukan sebaliknya.
+
+| Hal | Keputusan |
+|---|---|
+| Status yang boleh | **Hanya `DRAFT`.** `VALIDATED`, `APPROVED`, `LOCKED`, `REJECTED` ditolak `409` |
+| Jenis item | **Tidak dapat diganti.** Pemeriksaan berkas memakai `ItemKind` milik batch |
+| Hasil validasi lama | **Dibuang** — ia tidak lagi berlaku untuk berkas yang baru |
+| Saldo awal Accounting yang sudah dinyatakan | **Dipertahankan.** Itu pernyataan petugas atas dokumen Accounting, bukan hasil bacaan berkas |
+| Aturan pemeriksaan berkas | **Satu**, dipakai bersama unggah dan unggah ulang. Dua salinan aturan akan berselisih cepat atau lambat |
+| Urutan penyimpanan | Berkas baru ditulis ke jalur sementara → basis data disimpan → berkas sementara menggantikan berkas final → berkas lama berformat berbeda dibuang |
+| Bila basis data gagal | Berkas sementara dihapus; **berkas lama tidak tersentuh** |
+
+**Risiko yang tidak ditutup desain ini, dan disebut apa adanya.** Bila penggantian berkas fisik gagal
+**setelah** basis data tersimpan (misalnya berkas terkunci proses lain), metadata menunjuk berkas baru
+sementara isinya masih yang lama. Jendelanya sempit, tetapi tidak nol: tidak ada transaksi yang mencakup
+basis data dan sistem berkas sekaligus. Mitigasi yang dipilih adalah **urutan** di atas — basis data
+disimpan lebih dulu sehingga kegagalan menyisakan keadaan yang dapat diulang, bukan batch tanpa berkas.
+
+### `FIN-DES-098` — Selisih kas menyatakan "belum ada rekap" sebagai keadaan, bukan angka nol
+
+`FIN-DEC-152`. Ini satu-satunya **perubahan memutus** revisi ini (lihat N.9).
+
+| Hal | Keputusan |
+|---|---|
+| Masalahnya | Periode tanpa rekap kas harian dijawab saldo penutupan `0`, selisih = `0 − posisi`, dan `HasVariance = true`. Nol itu **bukan** angka rekap, dan selisihnya **bukan** selisih |
+| Bentuk baru | `DailyCashClosingBalance` dan `VarianceAmount` menjadi **boleh kosong**; `HasVariance` bernilai salah; satu ruas penanda baru menyatakan rekap belum ada |
+| Kenapa penanda tersendiri | Tanggal rekap yang kosong sudah menjadi petunjuk, tetapi itu **menyimpulkan** keadaan dari ketiadaan data. Penanda eksplisit membuat pembaca API mana pun — bukan hanya layar ini — membacanya sama |
+| Mutasi penjelas | Tetap dikirim. Mutasi kas periode itu tetap ada walaupun rekapnya tidak |
+| Posisi kas terhitung | Tetap dikirim apa adanya. Ia tidak bergantung pada rekap harian |
+
+**Contoh.** Petugas membuka perbandingan kas Oktober 2026 sementara belum ada satu pun rekap kas harian
+bulan itu. Sebelum keputusan ini layar menerima *"saldo penutupan Rp 0, selisih −Rp 70.000.000"* dan
+seorang pembaca yang teliti akan mengira kas rumah sakit kosong. Sesudahnya layar menerima keadaan
+*belum ada rekap* beserta posisi terhitung Rp 70.000.000, dan menulis "Belum ada rekap" pada kolom
+saldo penutupan.
+
+## N.4 Class diagram — hanya yang berubah
+
+```mermaid
+classDiagram
+    class MstDirectPaymentThreshold {
+        +Guid Id
+        +decimal Amount
+        +string ChangeReason
+        +bool IsActive
+        +Guid RowVersion
+        --DIBUANG--
+        -DateOnly EffectiveFrom
+    }
+    class DirectPaymentThresholdService {
+        +GetActiveAsync() DirectPaymentThresholdResponse
+        +UpdateAsync(request, actorUserId) DirectPaymentThresholdResponse
+        -GetUserNamesAsync(userIds) Dictionary
+    }
+    class FinanceOpeningItemBatchService {
+        +UploadAsync(file, itemKind, actor)
+        +ReuploadAsync(id, file, expectedRowVersion, actor)
+        -ReadAndCheckUploadAsync(file, itemKind)
+        -GetUserNamesAsync(userIds) Dictionary
+    }
+    class FinanceSubledgerBalanceCalculator {
+        +CalculatePositionAsync(asOfDate)
+        +CalculateCashVarianceAsync(periodCode)
+    }
+    DirectPaymentThresholdService --> MstDirectPaymentThreshold : membaca dan memperbarui
+    FinanceOpeningItemBatchService ..> MstDirectPaymentThreshold : tidak berhubungan
+```
+
+## N.5 Penjelasan class
+
+| Class | Status | Lokasi file | Keterangan |
+|---|---|---|---|
+| `MstDirectPaymentThreshold` | **Diperbarui** | `Areas/Corporate/FinanceManagement/MasterData/Models/MstDirectPaymentThreshold.cs` | `RowVersion` ditambah; `EffectiveFrom` dibuang |
+| `MstDirectPaymentThresholdConfiguration` | **Diperbarui** | `Repositories/Configurations/Corporate/FinanceManagement/MasterData/MstDirectPaymentThresholdConfiguration.cs` | Pemetaan `EffectiveFrom` dibuang; `RowVersion` ditambah. Unique index parsial satu baris aktif **tidak berubah** |
+| `DirectPaymentThresholdService` | **Diperbarui** | `Areas/Corporate/FinanceManagement/MasterData/Services/DirectPaymentThresholdService.cs` | Memeriksa `ExpectedRowVersion`, memutar `RowVersion`, mengambil nama pengubah |
+| `UpdateDirectPaymentThresholdRequest` | **Diperbarui** | `Areas/Corporate/FinanceManagement/MasterData/DTOs/DirectPaymentThresholdDtos.cs` | `EffectiveFrom` dibuang; `ExpectedRowVersion` ditambah |
+| `DirectPaymentThresholdResponse` | **Diperbarui** | idem | `EffectiveFrom` dibuang; `RowVersion` dan `LastChangedByName` ditambah |
+| `DirectPaymentThresholdController` | **Diperbarui** | `Areas/Corporate/FinanceManagement/MasterData/Controllers/DirectPaymentThresholdController.cs` | `PUT` menangani `409`. Atribut akses **tidak berubah** |
+| `FinanceOpeningItemBatchService` | **Diperbarui** | `Areas/Corporate/FinanceManagement/AccountingIntegration/Services/FinanceOpeningItemBatchService.cs` | Batas 10.000 baris; nama penyetuju pada respons |
+| `OpeningItemBatchResponse` | **Diperbarui** | `Areas/Corporate/FinanceManagement/AccountingIntegration/DTOs/OpeningItemBatchDtos.cs` | `ApprovedByName` ditambah |
+| `FinanceSubledgerBalanceCalculator` | **Diperbarui** | `Areas/Corporate/FinanceManagement/AccountingIntegration/Services/FinanceSubledgerBalanceCalculator.cs` | Keadaan "belum ada rekap" |
+| `CashVarianceResponse` | **Diperbarui** | `Areas/Corporate/FinanceManagement/AccountingIntegration/Dtos/SubledgerPositionDtos.cs` | Dua ruas menjadi boleh kosong; satu penanda baru |
+| `ReuploadOpeningItemBatchRequest` | **Sudah ada** | `.../DTOs/OpeningItemBatchDtos.cs` | Dibuat `BE-FIN-085` |
+
+## N.6 Arsitektur folder
+
+Nol folder baru. Nol berkas baru. Seluruh perubahan terjadi pada berkas yang sudah ada:
+
+```text
+Areas/Corporate/FinanceManagement/
+├── MasterData/
+│   ├── Models/MstDirectPaymentThreshold.cs            [Diperbarui]
+│   ├── DTOs/DirectPaymentThresholdDtos.cs             [Diperbarui]
+│   ├── Services/DirectPaymentThresholdService.cs      [Diperbarui]
+│   └── Controllers/DirectPaymentThresholdController.cs [Diperbarui]
+└── AccountingIntegration/
+    ├── DTOs/OpeningItemBatchDtos.cs                   [Diperbarui]
+    ├── Dtos/SubledgerPositionDtos.cs                  [Diperbarui]
+    └── Services/
+        ├── FinanceOpeningItemBatchService.cs          [Diperbarui]
+        └── FinanceSubledgerBalanceCalculator.cs       [Diperbarui]
+Repositories/Configurations/Corporate/FinanceManagement/MasterData/
+└── MstDirectPaymentThresholdConfiguration.cs          [Diperbarui]
+```
+
+**Utang teknis yang diwarisi, bukan dibuat revisi ini, dan jangan ditiru.** Dua folder DTO hidup
+berdampingan pada rumpun `AccountingIntegration`: `DTOs/` (huruf besar) dan `Dtos/`. Keduanya sudah ada
+sebelum revisi ini. Revisi ini **mengikuti** letak berkas yang sudah ada, dan **tidak** merapikannya
+diam-diam — perapian folder adalah task tersendiri yang menyentuh banyak `using`. Dicatat agar pembaca
+berikutnya tidak menyangka ini pilihan desain. Hal yang sama berlaku untuk pendaftaran DI layanan Finance
+yang tinggal di berkas registrasi milik Billing (capability map `FIN-CAP-060`).
+
+## N.7 Status model dan rencana migration
+
+| Tabel | Status | Kolom yang berubah |
+|---|---|---|
+| `MstDirectPaymentThreshold` | **Diperbarui** | `EffectiveFrom` **dibuang**; `RowVersion` (`Guid`, wajib) **ditambah** |
+| Tabel lain | Tidak berubah | — |
+
+### Rencana migration
+
+| Hal | Isi |
+|---|---|
+| Nama | `AlterMstDirectPaymentThresholdRowVersion` |
+| Urutan | Sesudah `RelaxFinCashMovementAmountForZeroOpeningBalance` (migration terakhir yang sudah diterapkan) |
+| Isi `Up` | (1) Tambah kolom `RowVersion` bertipe `uuid` `NOT NULL` dengan bawaan `gen_random_uuid()` agar baris yang sudah ada ikut terisi; (2) cabut bawaan itu sesudah terisi, supaya nilai berikutnya datang dari aplikasi; (3) buang kolom `EffectiveFrom` |
+| Dapat dijalankan tanpa mematikan layanan | **Tidak sepenuhnya.** Membuang kolom pada tabel yang sudah berjalan **MUST NOT** dilakukan sementara aplikasi versi lama masih membacanya. Urutan yang aman: terapkan migration **bersamaan** dengan rilis aplikasi yang sudah berhenti memakai `EffectiveFrom`, atau pecah menjadi dua rilis (rilis 1 berhenti memakai kolomnya; rilis 2 membuangnya) |
+| Pengisian data lama | Satu baris, atau nol baris bila ambang belum pernah ditetapkan. `gen_random_uuid()` menanganinya |
+| Langkah mundur (`Down`) | Tambah kembali `EffectiveFrom` (`date NOT NULL` dengan bawaan `CURRENT_DATE` lalu cabut bawaannya), lalu buang `RowVersion`. **Nilai tanggal lama tidak dapat dikembalikan** — ia memang dibuang `FIN-DEC-153` |
+| Wewenang | Pembuatan berkas migration memakai `FIN-DEC-138`; **penerapannya ke basis data tetap milik Yasmin** |
+
+**Peringatan yang MUST dibaca sebelum task mengerjakannya.** Satu migration sebelumnya
+(`RelaxFinCashMovementAmountForZeroOpeningBalance`) **ditulis tangan** tanpa `dotnet ef`. Sebelum migration
+baru dibuat, `dotnet ef migrations has-pending-model-changes` **MUST** dijalankan dan bersih; bila tidak,
+migration baru akan membawa perubahan yang tidak disengaja dari snapshot yang berselisih.
+
+### Rencana data master awal
+
+| Tabel master | Isi minimum |
+|---|---|
+| `MstDirectPaymentThreshold` | **Nol baris, dan itu disengaja.** `FIN-DEC-154` menetapkan sistem tidak mengisi angka bawaan; pejabat berwenang menetapkan ambang pertama lewat layar sebagai prasyarat go-live. Selama kosong, seluruh pembayaran langsung ditolak — perilaku yang diinginkan |
+
+## N.8 Nilai konfigurasi yang MUST diisi sebelum go-live
+
+Bukan kode, bukan migration — tetapi tanpanya kemampuan yang sudah dibangun tidak dapat dipakai.
+Capability map 20.4 menemukan `appsettings.json` **nol** memuat kunci Finance.
+
+| Kunci | Nilai yang diputuskan | Akibat bila kosong |
+|---|---|---|
+| `FinanceManagement:TransactionProof:MaxFileSizeBytes` | `10485760` (10 MB, `FIN-DEC-156`) | Unggah bukti **selalu** `503`, sehingga seluruh jalur pembayaran langsung tidak dapat dipakai |
+| `FinanceManagement:TransactionProof:AllowedExtensions` | Boleh dikosongkan — daftar bawaannya sudah diputuskan `FIN-DEC-139` | Memakai bawaan; aman |
+| `Finance:AccountingDispatch:*` | Menunggu G3 | Worker pengiriman mati; disengaja |
+| `Finance:SubledgerSnapshotScheduler:*` | Menunggu keputusan operasional | Penjadwal mati; disengaja |
+| `Finance:CashierShiftMarkerScheduler:*` | Menunggu keputusan operasional | Penjadwal mati; disengaja |
+
+## N.9 Perubahan memutus — satu, dan ia pada permukaan baca
+
+| Endpoint | Yang berubah | Siapa yang terdampak |
+|---|---|---|
+| `GET /accounting-events/subledger-balances/{accountingPeriodCode}/variance` | `DailyCashClosingBalance` dan `VarianceAmount` menjadi **boleh kosong**; satu ruas penanda ditambah | Pembaca mana pun yang mengira kedua ruas itu selalu berisi angka |
+
+**Siapa yang sebenarnya membacanya hari ini.** Hanya layar Snapshot Saldo Subledger (`FE-FIN-029`).
+Layar itu sudah menangani keadaan "belum ada rekap" dengan menyimpulkannya dari tanggal rekap yang kosong,
+sehingga ia **tidak akan rusak** oleh perubahan ini; penyesuaiannya adalah berhenti menyimpulkan dan mulai
+membaca penanda resmi. Tidak ada konsumen lain di dalam repository.
+
+**Urutan rilis.** Karena satu-satunya pembaca sudah tahan terhadap nilai kosong, backend **boleh** dirilis
+lebih dulu. Ini berbeda dari perubahan memutus revisi 14 (`FIN-API-1.5` F.8) yang menuntut layar dirilis
+lebih dulu.
+
+## N.10 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+|---|---|
+| Tabel riwayat perubahan ambang | Ditolak `FIN-DES-086` dan tidak dihidupkan kembali. Kolom audit dan logger sudah menjawab perubahan terakhir, dan `FIN-DEC-145` menghapus satu-satunya alasan teknis untuk mengingat ambang lama (perubahan terjadwal) |
+| Kolom `LastChangedByName` pada tabel ambang | Menyalin nama pegawai membuatnya membeku saat nama aslinya berubah. Nama dibaca saat menyusun respons (N.2) |
+| Mempertahankan `EffectiveFrom` dan menegakkannya | Menegakkan tanggal berlaku menuntut sistem mengingat ambang lama dan baru sekaligus, yaitu tabel riwayat yang sudah ditolak |
+| Batas jumlah baris sebagai konfigurasi | Ia batas ketahanan transaksi, bukan nilai operasional (`FIN-DES-096`) |
+| Memecah persetujuan batch besar menjadi beberapa transaksi | Melanggar `FIN-DEC-129`: seluruh item lahir atau tidak sama sekali. Batas 10.000 baris ada justru supaya transaksi tunggal tetap sanggup |
+| Menolak penguncian saldo awal Kas Kasir bernilai nol | Sudah diputuskan sebaliknya (`FIN-DEC-143`); mutasi nol tetap meninggalkan jejak |
+| Endpoint menghidupkan ketiga hosted service dari layar | Menjadi jalan memutar gerbang G3 dan keputusan operasional. Pengaktifan lewat konfigurasi lingkungan |
+| Mengembalikan `Notes` pada setujui/kunci saldo awal | Dibuang `FIN-DEC-141` karena tidak pernah disimpan. Menambah kolomnya berarti memutuskan retensi catatan persetujuan, yang belum pernah diminta |

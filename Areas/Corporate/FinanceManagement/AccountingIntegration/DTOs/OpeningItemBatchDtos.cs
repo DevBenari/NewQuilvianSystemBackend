@@ -22,6 +22,19 @@ public sealed class UploadOpeningItemBatchRequest
     public string? ItemKind { get; set; }
 }
 
+/// <summary>
+/// Mengunggah ulang berkas pada batch DRAFT (state-transition-matrix.md F.2). Jenis item tidak dikirim: ia tetap
+/// milik batch. Format tetap tidak ditanyakan (FIN-DES-093); `ExpectedRowVersion` wajib supaya unggah ulang tidak
+/// menimpa batch yang sudah diubah orang lain.
+/// </summary>
+public sealed class ReuploadOpeningItemBatchRequest
+{
+    [Required]
+    public IFormFile File { get; set; } = null!;
+
+    [Required] public Guid ExpectedRowVersion { get; set; }
+}
+
 /// <summary>BE-FIN-081, FIN-API-1.6 F.2: ringkasan batch, tanpa rincian baris (dipakai respons POST /).</summary>
 public class OpeningItemBatchResponse
 {
@@ -38,6 +51,15 @@ public class OpeningItemBatchResponse
     public string SourceFormat { get; set; } = string.Empty;
     public string? RejectionReason { get; set; }
     public Guid? ApprovedBy { get; set; }
+
+    /// <summary>
+    /// Nama tampilan penyetuju (BE-FIN-089, FIN-DEC-151, FIN-DES-095). Dibaca saat menyusun
+    /// respons, TIDAK disalin ke tabel Finance — menyalinnya membuat nama membeku ketika nama
+    /// aslinya berubah. <c>null</c> bila belum disetujui (<see cref="ApprovedBy"/> kosong) atau
+    /// penggunanya tidak ditemukan; layar MUST NOT menampilkan ID mentah.
+    /// </summary>
+    public string? ApprovedByName { get; set; }
+
     public DateTimeOffset? ApprovedAt { get; set; }
     public DateTimeOffset? LockedAt { get; set; }
     public Guid RowVersion { get; set; }

@@ -15,6 +15,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Mod
 ///
 /// Tanpa baris aktif, SELURUH pembayaran langsung ditolak — perilaku yang disengaja, bukan dianggap
 /// tak terbatas. Nilai awalnya belum ditetapkan desain ini (FIN-OQ-074).
+///
+/// BE-FIN-086 (FIN-DES-094, FIN-DEC-145/146/153): ambang SELALU berlaku seketika, sehingga kolom
+/// <c>EffectiveFrom</c> dibuang — ia menjanjikan perubahan terjadwal yang tidak pernah ditegakkan
+/// siapa pun. Penggantinya BUKAN kolom lain: tanggal perubahan terakhir dibaca dari kolom audit
+/// <see cref="IdentityModel"/>.
 /// </summary>
 [Table("MstDirectPaymentThreshold", Schema = "public")]
 public sealed class MstDirectPaymentThreshold : IdentityModel
@@ -31,5 +36,14 @@ public sealed class MstDirectPaymentThreshold : IdentityModel
     /// <summary>Hanya satu baris aktif pada satu waktu — dijaga unique index parsial.</summary>
     public bool IsActive { get; set; } = true;
 
-    public DateOnly EffectiveFrom { get; set; }
+    /// <summary>
+    /// Penanda versi optimistic concurrency (BE-FIN-086, FIN-DEC-146, FIN-VAL-228). Mengikuti pola
+    /// <c>FinOpeningBalance</c> dan <c>FinOpeningItemBatch</c>: <see cref="Guid"/> yang diputar service
+    /// pada setiap penyimpanan, bukan <c>byte[]</c> xmin PostgreSQL.
+    ///
+    /// Gunanya: dua pejabat yang sama-sama membuka layar ambang tidak saling menimpa diam-diam.
+    /// Penyimpanan yang membawa versi basi dijawab 409, BUKAN ditimpa.
+    /// </summary>
+    [ConcurrencyCheck]
+    public Guid RowVersion { get; set; } = Guid.NewGuid();
 }

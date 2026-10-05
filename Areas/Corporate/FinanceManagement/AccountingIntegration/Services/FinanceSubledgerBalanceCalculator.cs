@@ -259,11 +259,22 @@ public sealed class FinanceSubledgerBalanceCalculator
             .OrderByDescending(x => x.CashDate)
             .FirstOrDefaultAsync(cancellationToken);
 
-        var dailyCashClosingBalance = lastDailySnapshot?.ClosingBalance ?? 0.00m;
+        // BE-FIN-090 (FIN-DEC-152, FIN-DES-098) — PERUBAHAN MEMUTUS: periode tanpa rekap kas
+        // harian MUST NOT menjawab 0 sebagai saldo penutupan — nol itu bukan angka rekap, dan
+        // selisih yang dihitung darinya (0 - posisi) bukan selisih yang sah untuk ditampilkan.
+        // `hasDailyCashSnapshot` adalah penanda eksplisit; `dailyCashClosingBalance` dan
+        // `varianceAmount` SENGAJA dibiarkan null (BUKAN ?? 0.00m) ketika rekap tidak ada.
+        var hasDailyCashSnapshot = lastDailySnapshot != null;
+        var dailyCashClosingBalance = lastDailySnapshot?.ClosingBalance;
         var dailyCashSnapshotDate = lastDailySnapshot?.CashDate;
         var dailyCashSnapshotStatus = lastDailySnapshot?.Status;
 
-        var varianceAmount = dailyCashClosingBalance - calculatedCashPosition;
+        // Operator pengurangan terangkat (lifted): bila dailyCashClosingBalance null, varianceAmount
+        // ikut null tanpa pengecekan terpisah. Ditulis eksplisit dengan hasDailyCashSnapshot supaya
+        // niatnya terbaca, bukan bergantung diam-diam pada perilaku null-propagation operator.
+        var varianceAmount = hasDailyCashSnapshot
+            ? dailyCashClosingBalance - calculatedCashPosition
+            : null;
 
         // 3. Ambil mutasi kas periode terkait yang menjelaskan perubahan kas
         var explainingMovements = await _dbContext.FinCashMovements
@@ -302,7 +313,10 @@ public sealed class FinanceSubledgerBalanceCalculator
             DailyCashSnapshotDate = dailyCashSnapshotDate,
             DailyCashSnapshotStatus = dailyCashSnapshotStatus,
             VarianceAmount = varianceAmount,
-            HasVariance = varianceAmount != 0.00m,
+            // SELALU salah bila tidak ada rekap — tidak ada selisih yang dapat dinyatakan tanpa
+            // angka rekap sungguhan untuk dibandingkan. Hanya benar bila rekap ADA dan berbeda.
+            HasVariance = hasDailyCashSnapshot && varianceAmount != 0.00m,
+            HasDailyCashSnapshot = hasDailyCashSnapshot,
             ExplainingMovements = explainingMovements
         };
     }

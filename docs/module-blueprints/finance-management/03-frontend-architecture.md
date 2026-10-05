@@ -1082,3 +1082,124 @@ dan itu **MUST NOT** dibuat.
 | `FIN-OQ-079` | Penempatan menu tujuh layar baru revisi 14, termasuk layar batch migrasi | Layar dapat dibangun; **butir menunya** belum dapat didaftarkan. **MUST NOT** diputuskan sendiri — `FIN-DEC-094` mengikat menu pada bentuk V1, dan ketujuh layar ini tidak ada di V1 |
 | `FIN-OQ-080` | Apakah ambang pembayaran ditampilkan kepada staf | Layar 1 menahan diri menampilkan angka ambang; peringatan "melewati ambang" tetap ditampilkan tanpa menyebut angkanya |
 | `FIN-OQ-082` | Nilai awal batas ukuran berkas | Layar **MUST** menangani `503` sebagai keadaan nyata, bukan kasus teoretis |
+
+
+---
+
+## 21. Amendment 4 Oktober 2026 (revisi 16) — penempatan menu, angka ambang bagi staf, dan empat penyesuaian layar
+
+```yaml
+input_revision: 00-interview-decisions.md — dua Amendment pass 4 Oktober 2026 (FIN-DEC-141..FIN-DEC-160)
+input_design: 02-backend-architecture.md AMENDMENT REVISI 16; contracts/api-contract.md Bagian G
+frontend_source_sha: ae2ed334e
+status: approved — Yasmin, 4 Oktober 2026
+```
+
+**Sifat amandemen ini.** Nol layar baru. Yang ada: satu gerbang UI yang akhirnya terbuka (penempatan menu),
+satu keputusan yang **melonggarkan** pembatasan yang sempat dipasang layar (angka ambang), dan empat
+penyesuaian pada layar yang sudah dibangun karena kontraknya berubah.
+
+### 21.1 Dua gerbang UI yang akhirnya tertutup
+
+| Gerbang | Keadaan sebelum | Keputusan |
+|---|---|---|
+| `FIN-OQ-079` — penempatan butir menu tujuh layar baru | Layar dibangun, butir menunya **tertahan**. Dicapai hanya lewat alamat langsung dan tautan silang | **CLOSED** oleh `FIN-DEC-148` dan `FIN-DEC-160` |
+| `FIN-OQ-080` — apakah angka ambang ditampilkan kepada staf AR/AP | Layar ambang **membatasi diri**: hanya untuk pemegang hak ubah, dan layar pembayaran tidak menyebut angkanya | **CLOSED** oleh `FIN-DEC-147`: **angka ditampilkan** |
+
+### 21.2 Penempatan butir menu (`FIN-DEC-148`, `FIN-DEC-160`)
+
+Wewenang ini **milik pemilik**, bukan `DEV_DISCRETION` — `FIN-DEC-094` mengikat menu Transaksi A/R dan A/P
+pada bentuk V1, dan layar-layar ini tidak ada di V1.
+
+| Submenu | Butir | Urutan | Rute |
+|---|---|---:|---|
+| **Cutover & Subledger** (submenu **baru** pada grup Keuangan) | Pemetaan Akun Control | 1 | `/finance/subledger-setup/control-accounts` |
+| idem | Saldo Awal Cutover | 2 | `/finance/subledger-setup/opening-balances` |
+| idem | Batch Migrasi Tagihan Lama | 3 | `/finance/subledger-setup/opening-item-batches` |
+| **Master Data** (submenu yang **sudah ada**) | Ambang Pembayaran Langsung | menyusul butir yang sudah ada | `/finance/master-data/direct-payment-threshold` |
+
+**Urutan butir mengikuti urutan kerja petugas** (`FIN-DEC-160`): memetakan akun → mencatat saldo awal →
+memindahkan tagihan lama. Urutan itu bukan selera: batch migrasi **tidak dapat** diunggah sebelum saldo awal
+cutover dicatat, dan snapshot **ditolak** bila pemetaan akun belum lengkap. Menu membaca seperti alurnya.
+
+**Dua layar yang sengaja TIDAK diberi butir menu:**
+
+| Layar | Cara mencapainya | Alasan |
+|---|---|---|
+| Buku Mutasi Kas | Dari layar Kas & Bank yang sudah ada | Ia permukaan baca milik rumpun kas, bukan layar berdiri sendiri |
+| Riwayat Mutasi Piutang dan Utang Supplier | Dari layar rincian piutang dan rincian utang | Ia riwayat satu dokumen, bukan daftar yang dicari dari menu |
+
+**Yang MUST dijaga:** menu Transaksi A/R dan Transaksi A/P **tidak berubah sama sekali** (`FIN-DEC-094`).
+Submenu baru berdiri di sampingnya, bukan menyisipkan butir ke dalamnya.
+
+### 21.3 Angka ambang ditampilkan kepada staf AR/AP (`FIN-DEC-147`)
+
+Keputusan ini **mencabut** pembatasan yang sempat dipasang layar `FE-FIN-031` ketika `FIN-OQ-080` masih
+terbuka. Jawaban pemilik berbeda dari rekomendasi yang diajukan, dan keputusan pemilik yang berlaku.
+
+| Layar | Sebelum | Sesudah |
+|---|---|---|
+| Master Ambang (`FE-FIN-031`) | Hanya terbuka bagi pemegang `Read` **dan** `Update` | Terbuka bagi pemegang **`Read`**. Kendali ubah hanya tampil bagi pemegang `Update` |
+| idem | Banner menyatakan layar dibatasi karena `FIN-OQ-080` belum diputuskan | Banner itu **dihapus** — pertanyaannya sudah dijawab |
+| Pembayaran Langsung (`FE-FIN-030`) | Peringatan melewati ambang **tanpa** menyebut angka | Peringatan **menyebut angkanya**, misalnya *"Nominal melewati ambang pembayaran langsung (Rp 10.000.000). Gunakan jalur pembayaran berjenjang."* |
+
+**Yang MUST tetap ada:** pernyataan bahwa perubahan ambang **tidak melalui jenjang persetujuan**
+(`FIN-PERM-1.7` G.5). Layar **MUST NOT** menjanjikan pengawasan yang tidak ada.
+
+**Prasyarat yang berada di luar kendali layar.** Agar angka benar-benar terbaca staf, peran staf AR/AP
+**MUST** diberi hak `MstDirectPaymentThreshold : Read`. Pemberian hak itu milik admin. Tanpanya layar
+pembayaran jatuh kembali ke peringatan tanpa angka — dan layar **MUST** menangani keadaan itu tanpa
+menampilkan galat teknis.
+
+### 21.4 Empat penyesuaian layar karena kontraknya berubah
+
+| # | Layar | Yang berubah | Keputusan |
+|---:|---|---|---|
+| 1 | Master Ambang (`FE-FIN-031`) | Kolom tanggal berlaku **dihapus** dari form dan tampilan. Menampilkan penanda versi tidak perlu, tetapi layar **MUST** mengirimnya kembali saat menyimpan, dan **MUST** menangani `409` dengan memuat ulang lalu memberi tahu bahwa ambang sudah diubah orang lain | `FIN-DEC-145`, `146`, `153` |
+| 2 | Master Ambang | Menampilkan **nama** pengubah terakhir, bukan hanya waktunya. Bila nama tidak tersedia, tulis keterangannya — **MUST NOT** menampilkan ID mentah | `FIN-DEC-151` |
+| 3 | Batch Migrasi (`FE-FIN-032`) | Pemilih berkas hanya menawarkan **CSV**. Pilihan XLSX pada unduh templat tetap **nonaktif** beserta keterangannya. Menampilkan **nama penyetuju** batch. Keadaan `400` batas 10.000 baris ditampilkan sebagai keterangan yang dapat ditindaklanjuti: sebutkan batasnya dan sarankan memecah berkas | `FIN-DEC-149`, `150`, `151`, `155` |
+| 4 | Snapshot Saldo Subledger (`FE-FIN-029`) | Berhenti **menyimpulkan** keadaan "belum ada rekap" dari tanggal rekap yang kosong; mulai membaca penanda resmi `HasDailyCashSnapshot`. Saldo penutupan dan selisih kini **boleh kosong** dan **MUST NOT** ditampilkan sebagai `Rp 0` | `FIN-DEC-152` |
+
+**Catatan untuk penyesuaian nomor 4.** Layar ini sudah menangani keadaan "belum ada rekap" dengan benar
+hari ini, jadi penyesuaiannya **bukan** perbaikan cacat melainkan memindahkan dasar kesimpulannya dari
+terkaan ke penanda resmi. Perilaku yang dilihat pengguna tidak berubah.
+
+### 21.5 Penanganan state yang ditambahkan
+
+| State | Yang dilihat pengguna |
+|---|---|
+| `409` saat menyimpan ambang | *"Ambang sudah diubah oleh orang lain. Muat ulang sebelum melanjutkan."* Layar memuat ulang dan menampilkan nilai, alasan, serta nama pengubah terbaru — supaya pejabat dapat memutuskan apakah tetap mengubahnya |
+| `400` batas 10.000 baris saat unggah batch | Keterangan menyebut batasnya dan menyarankan memecah berkas. Berkas **tidak** terkirim ulang otomatis |
+| `503` berkas XLSX | Keterangan bahwa pembaca XLSX belum tersedia dan menyarankan CSV — **bukan** galat teknis dan **bukan** "berkas Anda salah" |
+| Periode tanpa rekap kas harian | Saldo penutupan dan selisih berbunyi *"Belum ada rekap"* dan *"Tidak dapat dinyatakan"*. **MUST NOT** menampilkan `Rp 0` |
+| Ambang belum ditetapkan (`404`) | Tetap seperti sebelumnya: keadaan nyata bahwa seluruh pembayaran langsung sedang ditolak, beserta form penetapan pertama |
+
+### 21.6 Hierarki wewenang untuk amandemen ini
+
+| Keputusan | Lapisan wewenang | Pemilik |
+|---|---|---|
+| Angka ambang terlihat staf; layar tidak menjanjikan jenjang persetujuan | **security/privacy/invariant** | Pemilik (`FIN-DEC-147`, `FIN-PERM-1.7` G.5) |
+| Saldo penutupan kosong **MUST NOT** tampil sebagai `Rp 0` | **invariant** | Pemilik (`FIN-DEC-152`) |
+| Penempatan submenu dan urutan butirnya | **approved product/UI brief** | Pemilik (`FIN-DEC-148`, `160`) — **bukan** `DEV_DISCRETION` |
+| Pemilih unggah hanya CSV | **approved product/UI brief** | Pemilik (`FIN-DEC-150`) |
+| Ikon submenu, lebar kolom, warna, tata letak kartu | `DEV_DISCRETION` | — |
+| Redaksi persis pesan batas baris dan `503` | `DEV_DISCRETION` dalam batas: **MUST** menyebut batas yang dilanggar dan langkah perbaikannya | — |
+
+### 21.7 Pertanyaan terbuka frontend sesudah amandemen ini
+
+| ID | Keadaan |
+|---|---|
+| `FIN-OQ-079` | **CLOSED** (21.2) |
+| `FIN-OQ-080` | **CLOSED** (21.3) |
+| `FIN-OQ-082` | **CLOSED** — nilai batas ukuran berkas bukti diputuskan `FIN-DEC-156`. Layar **MUST** tetap menangani `503` karena nilai itu baru berlaku setelah administrator mengisinya |
+| `FIN-OQ-081` | **DITUNDA.** Selama pembaca XLSX belum ada, pilihan XLSX tetap nonaktif (21.4 nomor 3) |
+
+### 21.8 Yang sengaja TIDAK dibuat pada amandemen ini
+
+| Yang dipertimbangkan | Alasan ditolak |
+|---|---|
+| Butir menu untuk Buku Mutasi Kas dan riwayat mutasi | Keduanya permukaan baca di dalam layar induknya (21.2) |
+| Menampilkan penanda versi ambang kepada pengguna | Ia urusan mesin, bukan informasi yang berguna bagi pejabat. Yang perlu dilihat pengguna adalah nilai, alasan, nama pengubah, dan waktunya |
+| Layar riwayat perubahan ambang | Tidak ada datanya — tabel riwayat ditolak `FIN-DES-086`, dan `FIN-DEC-145` menghapus alasan teknis terakhir untuk membuatnya |
+| Tombol menghidupkan penjadwal dan worker dari layar | Menjadi jalan memutar gerbang G3 dan keputusan operasional |
+| Memberi layar pembayaran langsung kemampuan mengubah ambang | Memisahkan wewenang: staf mencatat pembayaran, pejabat mengubah ambang |

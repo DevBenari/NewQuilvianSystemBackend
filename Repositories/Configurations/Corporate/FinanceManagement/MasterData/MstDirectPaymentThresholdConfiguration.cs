@@ -18,7 +18,10 @@ public sealed class MstDirectPaymentThresholdConfiguration : IEntityTypeConfigur
         entity.Property(x => x.Amount).HasPrecision(18, 2);
         entity.Property(x => x.ChangeReason).HasMaxLength(500).IsRequired();
         entity.Property(x => x.IsActive).HasDefaultValue(true);
-        entity.Property(x => x.EffectiveFrom).HasColumnType("date").IsRequired();
+
+        // BE-FIN-086 (FIN-DES-094): EffectiveFrom DIBUANG — ambang selalu berlaku seketika
+        // (FIN-DEC-145/153). Penggantinya penanda versi, mengikuti FinOpeningBalanceConfiguration.
+        entity.Property(x => x.RowVersion).IsConcurrencyToken();
 
         entity.Property(x => x.CreateDateTime).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
         entity.Property(x => x.UpdateDateTime).HasColumnType("timestamp with time zone");

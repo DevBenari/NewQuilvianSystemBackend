@@ -44,6 +44,20 @@ last_impact_scan_revision_6: >
   Accounting yang kini sudah dapat dibaca langsung.
   TUJUH entri berubah status, DUA klaim lama DIKOREKSI, dan LIMA entri baru ditambahkan
   (FIN-CAP-037..041).
+last_impact_scan_bagian_20: >
+  5d6bb8bf (backend) dan ae2ed334e (frontend), 4 Oktober 2026 — lihat bagian 20. Pass IMPACT SCAN
+  TERARAH atas hasil REV-14A..14E (BE-FIN-058..085, FE-FIN-025..032). Bagian 1-19 TIDAK diaudit ulang
+  menyeluruh dan tetap tertambat pada SHA masing-masing.
+  LIMA gap bagian 18/19 TERTUTUP (jalur pengiriman ke Accounting, FinReceivable nullable, kebocoran
+  pembayaran langsung utang supplier, mekanisme impor, penyimpanan bukti). SATU tetap Missing sesuai
+  keputusan: utang jasa medis (FIN-DEC-157).
+  TEMUAN PALING MATERIAL: nol kunci konfigurasi Finance di appsettings.json, sehingga unggah bukti
+  selalu 503 dan ketiga hosted service mati. Seluruhnya fail-closed, tetapi jalur pembayaran langsung
+  BELUM dapat dipakai hari ini.
+  SEMBILAN ENTRI BARU: FIN-CAP-058..066. SATU CONFLICT BARU: FIN-CQ-10 (prop DataTable tak dikenal) —
+  sudah CLOSED hari yang sama oleh alias pada DataTable, dan ANGKANYA DIKOREKSI di 20.14: 59 pemakaian,
+  bukan 191. FIN-OQ-084 juga CLOSED.
+  Delapan keputusan 4 Oktober 2026 BELUM tercermin di source — source bukan lagi rujukan perilaku target.
 input_decisions: docs/module-blueprints/finance-management/00-interview-decisions.md revisi 1
 reused_capability_maps:
   - docs/module-blueprints/billing-kasir/01-existing-capability-map.md (approved, revisi terakhir
@@ -1123,3 +1137,334 @@ disimpan) hanya menyentuh piutang; **utang supplier belum punya keputusan setara
 Ulangi bagian 19 bila backend bergerak dari `7f8c3014` pada `Receivable`, `Payable`, `Collection`, atau
 `BillingIntake`; bila layanan penyimpanan berkas bersama muncul di Platform; atau bila `Program.cs`
 mendaftarkan hosted service Finance.
+
+
+---
+
+## 20. Impact scan terarah — hasil `REV-14A`..`14E` (`BE-FIN-058`..`085`, `FE-FIN-025`..`032`), 4 Oktober 2026 (`5d6bb8bf` / `ae2ed334e`)
+
+**Pemicu.** Ketiga pemicu bagian 19.6 terpenuhi sekaligus: backend bergerak pada `Receivable`, `Payable`,
+dan `BillingIntake`; layanan penyimpanan berkas milik Finance muncul; dan `Program.cs` kini mendaftarkan
+tiga hosted service Finance. Pass ini juga dipicu permintaan owner sesudah `/grill-me` 4 Oktober 2026
+(`FIN-DEC-141`..`160`), supaya desain berikutnya berpijak pada keadaan source yang benar.
+
+**Staleness dan baseline.** Baseline yang berlaku adalah bagian 19 (backend `7f8c3014`, frontend
+`0b54fdce6`), **bukan** `backend_source_sha` di kepala dokumen. Sejak itu backend bergerak **36 commit**
+(81 berkas di bawah `Areas/Corporate/FinanceManagement`, +8.127/−292) dan frontend bergerak dengan
+**80 berkas Finance** berubah. Bagian 1–19 di bawah **tidak** diaudit ulang menyeluruh; hanya klaster
+yang disebut eksplisit di sini yang diverifikasi pada SHA ini.
+
+**Keadaan working tree saat audit.** Backend: satu berkas dokumentasi berubah dan belum di-commit
+(`docs/module-blueprints/finance-management/00-interview-decisions.md` — hasil `/grill-me` pass yang sama;
+**nol** source aplikasi). Frontend: **bersih**. Seluruh source `BE-FIN-058`..`085` dan `FE-FIN-025`..`032`
+sudah ter-commit, sehingga bukti di bawah tertambat pada SHA, bukan pada working tree.
+
+**Batas audit pass ini.** Klaster **Financial** (buku mutasi subledger, pemetaan akun control, saldo awal
+cutover, batch migrasi tagihan lama, bukti transaksi, master ambang), **External Integration** (permukaan
+posisi/selisih/snapshot dan tiga hosted service), dan **Authorization/Audit** (empat resource hak akses
+baru), ditambah konsumen frontend-nya. **Tidak** mengaudit ulang internal Billing maupun Accounting
+(`FIN-OOS-001`..`004`), dan **tidak** memverifikasi keadaan basis data (lihat 20.6).
+
+### 20.1 Lima gap bagian 18/19 yang kini TERTUTUP
+
+| Gap lama | Status lama | Bukti sekarang (`@5d6bb8bf`) | Status baru |
+|---|---|---|---|
+| Finance belum punya jalur pengiriman ke Accounting sama sekali (18.1) | `Missing` | `Program.cs:975,981,987` mendaftarkan `FinanceAccountingDispatchWorker`, `FinanceSubledgerSnapshotSchedulerHostedService`, `FinanceCashierShiftMarkerSchedulerHostedService` | **`Ready to reuse` dengan catatan 20.4** — terdaftar, tetapi dibangun **mati** |
+| `FinReceivable` tidak dapat menampung item tanpa Billing; `SourceHandoffKey`/`SourceHandoffId`/`InvoiceId` tidak nullable (19.3) | `Repair` | `Receivable/Models/FinReceivable.cs:29,32,34` — ketiganya kini `Guid?` (`BE-FIN-079`) | **`Ready to reuse`** |
+| Pembayaran langsung utang supplier tidak menulis riwayat bertanggal (19.1) | `Missing` | `FinanceSupplierPayableService.cs:151,374,629` dan `FinancePaymentService.cs:598` memanggil `RecordSupplierPayableMovementAsync`; penulis tunggalnya `FinanceSubledgerMovementService.cs:205` | **`Ready to reuse`** |
+| Tidak ada mekanisme impor yang dapat dipakai ulang (19.3) | `Missing` | `IOpeningItemFileReader` + `CsvOpeningItemFileReader` terdaftar (`BillingManagementServiceCollectionExtensions.cs:127`); dua templat nyata ada di `Storage/templates/finance/` | **`Extend`** — jalur CSV berjalan, pembaca XLSX belum ada (`FIN-DEC-149`) |
+| Bukti pembayaran tidak punya tempat penyimpanan (19.2) | `Missing` | `FinanceTransactionProofService` terdaftar (baris 124); tiga endpoint pada `FinanceTransactionProofsController` | **`Reuse with adapter`** — ada, tetapi **tidak dapat dipakai** sebelum konfigurasi diisi (20.4) |
+
+### 20.2 Satu gap bagian 19 yang TETAP terbuka
+
+| Gap | Bukti | Status |
+|---|---|---|
+| Utang jasa medis (`FinMedicalServicePayable`) tanpa penulis sama sekali | Pencarian `FinMedicalServicePayables.Add` dan `new FinMedicalServicePayable` di seluruh source **di luar** `Migrations/`: **nol hasil**. Snapshot tetap mengirimnya `0,00` | **`Missing`** — tidak berubah sejak 19.1 |
+
+Ini **sesuai keputusan**, bukan cacat: `FIN-DEC-157` (4 Oktober 2026) menetapkan utang jasa medis lama
+**tidak** dimigrasikan pada rilis ini dan saldo awalnya tetap nol.
+
+### 20.3 Kepemilikan backend — wiring, persistence, dan hak akses
+
+Seluruh pemeriksaan "kemampuan ini benar-benar hidup" dijawab bukti, bukan keberadaan berkas.
+
+| Hal yang diperiksa | Hasil | Bukti |
+|---|---|---|
+| Delapan tabel baru terdaftar pada `ApplicationDbContext` | **Ya, delapan-delapannya** | `ApplicationDbContext.cs:653,666,686,694,695,698,703,710` |
+| Delapan layanan baru terdaftar DI (`AddScoped`) | **Ya** | `BillingManagementServiceCollectionExtensions.cs:95,104,106,108,110,124,127,129` |
+| Empat resource hak akses baru dipasang pada controller | **Ya**: `FinanceSubledgerSetup` (10 titik), `FinanceOpeningItemBatch` (9), `FinanceTransactionProof` (3), `MstDirectPaymentThreshold` (2) | Keempat controller terkait |
+| Lima migration Finance baru ada di `Migrations/` | **Ya** | `AddFinanceSubledgerMovementLedgers`, `AddFinanceSubledgerSetup`, `AddFinanceTransactionProofAndDirectPaymentThreshold`, `AddFinanceOpeningItemMigration`, `RelaxFinCashMovementAmountForZeroOpeningBalance` |
+| Templat berkas migrasi nyata, bukan hanya jalur di kode | **Ya, dua berkas** | `Storage/templates/finance/opening-item-receivable.csv`, `opening-item-supplier-payable.csv` |
+
+**Catatan pola yang perlu diketahui, bukan cacat baru.** Seluruh layanan Finance didaftarkan di
+`Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs` — berkas
+registrasi milik **Billing**, bukan Finance. Pola ini sudah berlaku sejak sebelum pass ini dan diikuti apa
+adanya oleh `BE-FIN-058`..`085`. Akibatnya: orang yang mencari pendaftaran layanan Finance tidak akan
+menemukannya di folder Finance. Dicatat sebagai `FIN-CAP-060`, bukan diperbaiki di audit ini.
+
+### 20.4 Temuan paling material — nol konfigurasi Finance di `appsettings.json`
+
+**Fakta.** Pencarian `"Finance` pada `appsettings.json` memulangkan **nol hasil**. Tidak ada blok
+`FinanceManagement`, tidak ada blok `Finance:AccountingDispatch`, `Finance:SubledgerSnapshotScheduler`,
+maupun `Finance:CashierShiftMarkerScheduler`.
+
+**Akibat nyata, dan seluruhnya fail-closed (berperilaku aman, bukan diam-diam salah):**
+
+| Kemampuan | Perilaku hari ini | Bukti |
+|---|---|---|
+| Unggah bukti pembayaran (`POST /transaction-proofs`) | **Selalu ditolak `503`** beserta pesan *"batas ukuran berkas belum dikonfigurasi"* | `FinanceTransactionProofService.cs:137-141` |
+| Worker pengiriman baris outbox ke Accounting | **Mati.** `Enabled = false` adalah nilai bawaan dan tidak ada konfigurasi yang menghidupkannya | `Program.cs:969-975` |
+| Penjadwal snapshot saldo subledger harian | **Mati**, alasan sama | `Program.cs:976-981` |
+| Penjadwal penanda shift kasir | **Mati**, alasan sama | `Program.cs:982-987` |
+
+**Artinya untuk layar yang sudah dibangun.** `FE-FIN-030` (pembayaran langsung berkontrol) memakai bukti
+pembayaran yang **wajib**. Karena unggah bukti selalu `503`, jalur pembayaran langsung piutang dan utang
+supplier **belum dapat dipakai sama sekali** hari ini — bukan karena layarnya salah, melainkan karena satu
+nilai konfigurasi belum diisi. Layar sudah menangani `503` sebagai keadaan nyata (tombol dinonaktifkan
+beserta arahan menghubungi administrator), sehingga petugas melihat pesan yang benar, bukan galat teknis.
+
+**Hubungannya dengan keputusan 4 Oktober 2026.** `FIN-DEC-156` baru menetapkan batas ukuran **10 MB**
+(10.485.760 byte). Nilai itu **belum** masuk `appsettings.json`. Jadi temuan ini bukan keputusan yang
+hilang, melainkan **langkah serah terima yang belum dikerjakan**, dan sudah tercatat sebagai prasyarat
+go-live pada decision log.
+
+**Contoh konkret.** Petugas AR membuka layar pembayaran langsung piutang hari ini, memilih metode transfer,
+lalu memilih berkas kuitansi `.jpg` berukuran 2 MB. Sistem menolak dengan *"Unggah bukti belum dapat
+dipakai: batas ukuran berkas belum dikonfigurasi. Hubungi administrator."* Setelah administrator menuliskan
+`FinanceManagement:TransactionProof:MaxFileSizeBytes` bernilai `10485760`, berkas yang sama diterima dan
+pembayaran dapat dicatat.
+
+### 20.5 Konsumen frontend — dapat dicapai, tetapi belum ada di menu
+
+| Hal yang diperiksa | Hasil | Bukti |
+|---|---|---|
+| Rute baru benar-benar ada | **Lima rute**: `subledger-setup/control-accounts`, `subledger-setup/opening-balances`, `subledger-setup/opening-item-batches`, `master-data/direct-payment-threshold`, `cash-management/movements` | `src/app/finance/**` |
+| Reducer baru terdaftar pada store | **Empat-empatnya** | `src/lib/state/store.jsx:408,413,414,415` |
+| Endpoint unggah ulang batch (`BE-FIN-085`) sudah dikonsumsi | **Ya**, di lima berkas (utilitas, slice, hook, view, panel rincian) | `rg "reupload" src` |
+| Test unit Finance | **Delapan berkas**; empat yang terbaru memuat 22, 11, 12, dan 26 test | `tests/unit/` |
+| **Butir menu untuk kelima layar baru** | **Nol.** Pencarian `subledger`, `threshold`, `opening-item`, `cash-management/movements` pada berkas menu memulangkan nol hasil | `src/utils/menu-sidebar/menu-items.jsx` (2.129 baris) |
+
+**Artinya.** Kelima layar hanya dapat dicapai lewat alamat langsung dan tautan silang antar layar. Ini
+**sesuai** keadaan `FIN-OQ-079` saat layar dibangun. Namun `FIN-OQ-079` sudah **ditutup** `FIN-DEC-148` dan
+`FIN-DEC-160` (4 Oktober 2026): submenu "Cutover & Subledger" beserta urutan butirnya sudah diputuskan, dan
+Ambang masuk submenu Master Data. Jadi sekarang ada **selisih antara keputusan dan source**: keputusannya
+ada, pemasangannya belum. Submenu Master Data yang menjadi rumah bagi Ambang memang sudah ada
+(`menu-items.jsx:697,703,709` — Kategori Kas Kecil, Mata Uang, Rekening Bank), sehingga penempatannya tidak
+menuntut struktur baru.
+
+### 20.6 Yang TIDAK dapat dibuktikan audit ini
+
+| Hal | Alasan | Status |
+|---|---|---|
+| Apakah kelima migration Finance sudah diterapkan ke basis data | Audit ini membaca source, bukan basis data. Owner melaporkan `dotnet build` dan penerapan migrasi **berhasil** (3–4 Oktober 2026); laporan itu dicatat apa adanya dan **bukan** hasil pengamatan audit | **`Unknown`** terhadap keadaan basis data |
+| Apakah `dotnet ef migrations has-pending-model-changes` bersih | Belum dilaporkan. Penting karena migration `RelaxFinCashMovementAmountForZeroOpeningBalance` beserta snapshot-nya **ditulis tangan**, bukan dihasilkan `dotnet ef` | **`Unknown`** |
+| Apakah jalur XLSX menghasilkan baris terurai yang identik dengan CSV | Pembaca XLSX belum ada (`FIN-DEC-149`), sehingga kriteria penerimaan paritas format belum dapat diuji | **`Missing`** — sesuai keputusan |
+| Perilaku runtime layar `FE-FIN-025`..`032` | Audit ini tidak menjalankan aplikasi | Di luar batas audit |
+
+### 20.7 Conflict — satu, dan sifatnya lintas modul
+
+#### `FIN-CQ-10` — prop `DataTable` yang tidak dikenal, dan 15 layar Finance kehilangan kalimat keadaan kosongnya
+
+> **ANGKA PADA BAGIAN INI DIKOREKSI 20.14.** Hitungan "191 pemakaian app-wide / 34 di Finance" di bawah
+> **terlalu besar**: ia menghitung pemakaian pada komponen lain yang memang memiliki prop tersebut.
+> Angka yang benar adalah **59 pemakaian** pada `DataTable` (Finance 27, health-services 32). Conflict ini
+> juga sudah **CLOSED** oleh alias pada `DataTable`. Baca 20.14 lebih dulu.
+
+**Fakta.** Komponen bersama `DataTable` hanya membaca `rowKey`, `emptyTitle`, dan `emptyDescription`
+(`data-table.jsx:135,138`). Sementara itu layar-layar memberinya `getRowId`, `emptyText`, dan
+`emptyMessage` — nama yang **tidak dikenal komponen** dan karena itu diabaikan tanpa peringatan apa pun.
+
+**Luasnya, dan ini penting untuk menentukan pemiliknya:**
+
+| Lingkup | Jumlah pemakaian prop tak dikenal |
+|---|---|
+| `view/finance` | **34** (20 berkas) |
+| `view/health-services` | 126 |
+| `view/corporate` | 6 |
+| `view/administrator` | 5 |
+| **Total seluruh aplikasi** | **191** |
+
+**Akibat yang terlihat pengguna, diukur per berkas — bukan disamaratakan.** Dari 20 berkas Finance yang
+memakai prop tak dikenal, **lima** ternyata **juga** memberikan `emptyTitle` yang benar, sehingga kalimat
+keadaan kosongnya tetap tampil dan prop tak dikenal itu hanya menjadi kode mati:
+
+| Berkas | Keadaan |
+|---|---|
+| `cash-movements-view.jsx`, `finance-cash-management-view.jsx`, `finance-monitoring-view.jsx`, `finance-receivable-detail-view.jsx`, `goods-receipt-view.jsx` | **Aman.** `emptyTitle` diberikan; kalimatnya tampil |
+| 15 berkas sisanya (antara lain `finance-ap-aging-view.jsx`, `finance-ar-report-view.jsx`, `non-patient-receivable-view.jsx`, `subledger-control-accounts-view.jsx`, `purchase-order-form-view.jsx`) | **Terdampak.** Tidak memberikan `emptyTitle` sama sekali, sehingga pengguna selalu membaca kalimat bawaan *"Data tidak ditemukan."* |
+
+Khususnya untuk acceptance criteria `FE-FIN-025`/`026` yang menuntut keadaan kosong berbunyi "buku mutasi
+baru berjalan sejak tanggal cutover": kriteria itu **tetap terpenuhi**, karena `cash-movements-view.jsx`
+memberikan kalimat itu lewat `emptyTitle` (baris 177). Prop `emptyMessage` di sebelahnya yang mati.
+
+**Akibat kedua, pada kunci baris.** `getRowId` yang diabaikan (7 pemakaian) membuat kunci baris jatuh ke
+bawaan `item.id || item.Id || item.key || item.code || row-<indeks>`. Untuk tabel yang barisnya dikenali
+lewat kolom lain, kuncinya menjadi nomor urut, dan itu dapat membuat React salah memasangkan baris ketika
+urutannya berubah.
+
+**Rincian pemakaian di Finance:** `emptyMessage=` 19 kali, `emptyText=` 8 kali, `getRowId=` 7 kali.
+
+**Pemilik dan batas.** Karena 157 dari 191 pemakaian berada **di luar** Finance, bentuk akhir kontrak
+komponen `DataTable` adalah urusan pemilik komponen bersama (Platform/UI), **bukan** Finance. Yang menjadi
+milik Finance adalah 34 pemakaian di dalam `view/finance`, dan yang benar-benar merugikan pengguna adalah
+15 berkas yang tidak memberikan `emptyTitle`. Satu tabel sudah diselaraskan saat `FE-FIN-029` (tabel
+snapshot saldo subledger).
+
+**Status:** `Repair` untuk sisi Finance; titik sentuh untuk sisi komponen bersama. **Tidak** diperbaiki pada
+audit ini — audit tidak pernah menyentuh source.
+
+### 20.8 Entri kemampuan baru
+
+| ID | Kebutuhan | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap/adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `FIN-CAP-058` | Buku mutasi bertanggal untuk piutang, utang supplier, dan kas | Finance | `backend/Areas/Corporate/FinanceManagement/AccountingIntegration/Services/FinanceSubledgerMovementService.cs#RecordSupplierPayableMovementAsync@5d6bb8bf` | `Ready to reuse` | — | Rendah. Penulis tunggal; keempat pemanggil lewat satu pintu |
+| `FIN-CAP-059` | Pemetaan akun control dan saldo awal cutover | Finance | `backend/.../AccountingIntegration/Controllers/FinanceSubledgerSetupController.cs@5d6bb8bf`; `frontend/src/app/finance/subledger-setup/**@ae2ed334e` | `Ready to reuse` | Butir menu belum dipasang (20.5) | Rendah |
+| `FIN-CAP-060` | Pendaftaran DI layanan Finance | Platform/Billing | `backend/Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs:95-129@5d6bb8bf` | `Reuse with adapter` | Layanan Finance didaftarkan di berkas milik Billing | Rendah, tetapi menyulitkan penelusuran |
+| `FIN-CAP-061` | Batch migrasi tagihan lama lewat berkas | Finance | `backend/.../FinanceOpeningItemBatchService.cs@5d6bb8bf`; `backend/Storage/templates/finance/*.csv`; `frontend/src/app/finance/subledger-setup/opening-item-batches@ae2ed334e` | `Extend` | Pembaca XLSX belum ada (`FIN-DEC-149`); batas 10.000 baris (`FIN-DEC-155`) belum ditegakkan di kode | Sedang. Paritas dua format belum dapat diuji |
+| `FIN-CAP-062` | Penyimpanan bukti pembayaran milik Finance | Finance | `backend/.../Collection/Services/FinanceTransactionProofService.cs@5d6bb8bf` | `Reuse with adapter` | **Tidak dapat dipakai** sampai `MaxFileSizeBytes` diisi (20.4) | **Tinggi.** Menahan seluruh jalur pembayaran langsung |
+| `FIN-CAP-063` | Master ambang pembayaran langsung | Finance | `backend/.../MasterData/Services/DirectPaymentThresholdService.cs@5d6bb8bf`; `frontend/src/app/finance/master-data/direct-payment-threshold@ae2ed334e` | `Extend` | Belum ada penanda versi (`FIN-DEC-146`); kolom tanggal berlaku masih ada (`FIN-DEC-153`); nama pengubah belum dikirim (`FIN-DEC-151`) | Sedang. Perubahan bersamaan masih saling menimpa |
+| `FIN-CAP-064` | Jalur pengiriman Finance ke Accounting beserta penjadwalnya | Finance | `backend/Program.cs:975,981,987@5d6bb8bf` | `Ready to reuse` | Ketiganya **mati** tanpa konfigurasi (20.4); pengaktifan menunggu G3 | Sedang |
+| `FIN-CAP-065` | Permukaan baca posisi saldo dan selisih kas | Finance | `backend/.../Services/FinanceSubledgerBalanceCalculator.cs@5d6bb8bf`; `frontend/src/components/view/finance/monitoring/subledger-balances@ae2ed334e` | `Extend` | Periode tanpa rekap kas harian masih memulangkan nol dan selisih palsu (`FIN-DEC-152` belum dikerjakan) | Sedang. Angka nol dapat disangka saldo oleh pembaca API lain |
+| `FIN-CAP-066` | Keadaan kosong tabel pada layar Finance | Finance | `frontend/src/components/view/finance/**` (34 pemakaian prop tak dikenal pada 20 berkas)`@ae2ed334e` | `Repair` | 15 berkas tidak memberikan `emptyTitle`, sehingga keadaan kosongnya selalu berbunyi "Data tidak ditemukan" (20.7) | Sedang. Tidak menyentuh acceptance criteria `FE-FIN-025`/`026` — keduanya tetap terpenuhi lewat `emptyTitle` |
+
+### 20.9 Fakta, inferensi, dan rekomendasi
+
+**Fakta** (dapat diperiksa ulang pada SHA di atas): seluruh isi 20.1–20.8 bertanda bukti berkas dan baris.
+
+**Inferensi** (kesimpulan audit, bukan bacaan langsung):
+
+1. Jalur pembayaran langsung piutang dan utang supplier **belum dapat dipakai pengguna** hari ini, karena
+   bukti pembayaran wajib sedangkan unggahnya selalu `503`. Ini inferensi dari dua fakta — bukti wajib, dan
+   konfigurasi kosong — bukan dari pengamatan aplikasi berjalan.
+2. Delapan keputusan 4 Oktober 2026 (`FIN-DEC-145`, `146`, `147`, `150`, `151`, `152`, `153`, `155`) **belum
+   tercermin di source**. Itu wajar: keputusannya lahir **sesudah** source dibangun. Tetapi berarti source
+   hari ini **tidak** lagi menjadi rujukan perilaku target.
+3. Menu adalah satu-satunya hal yang menahan kelima layar baru dari dapat ditemukan petugas; semua jalur
+   data di belakangnya sudah hidup.
+
+**Rekomendasi** (bukan keputusan, dan bukan pekerjaan audit ini):
+
+1. Isi `FinanceManagement:TransactionProof:MaxFileSizeBytes` bernilai `10485760` sebelum apa pun yang lain —
+   satu nilai ini membuka seluruh jalur pembayaran langsung.
+2. Minta hasil `dotnet ef migrations has-pending-model-changes` sebelum pass desain, karena satu migration
+   ditulis tangan.
+3. Perbaiki 15 layar `FIN-CAP-066` dengan memberi `emptyTitle`; jangan menunggu pemilik komponen bersama,
+   karena perbaikan per layar tidak menyentuh 157 pemakaian modul lain.
+4. Bawa selisih keputusan-vs-source (inferensi 2) ke `/design-business-module`, lalu
+   `/plan-module-delivery`, supaya penyesuaiannya menjadi task bernomor — termasuk `FIN-CAP-066` yang
+   menyentuh acceptance criteria task yang sudah ditandai selesai.
+
+### 20.10 Yang TIDAK ditutup pass ini
+
+| Hal | Alasan |
+|---|---|
+| Internal Billing dan Accounting | `FIN-OOS-001`..`004`; hanya titik sentuh yang dibaca |
+| Keadaan basis data dan hasil kompilasi | Di luar kemampuan audit source (20.6) |
+| Bentuk akhir kontrak komponen `DataTable` | 157 dari 191 pemakaian di luar Finance; milik pemilik komponen bersama |
+| Bagian 1–19 dokumen ini | Tidak diaudit ulang menyeluruh; tetap tertambat pada SHA masing-masing |
+| `FIN-CQ-08` dan `FIN-CQ-09` | Tidak diperiksa ulang pada pass ini; status terakhirnya tetap berlaku |
+
+### 20.11 Open question baru
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-084` | Apakah 15 layar Finance yang keadaan kosongnya berbunyi "Data tidak ditemukan" diperbaiki satu per satu dengan memberi `emptyTitle`, atau pemilik komponen bersama lebih dulu diminta menerima nama prop lama sebagai alias supaya 157 pemakaian modul lain ikut terbantu sekaligus? | Yasmin untuk sisi Finance; pemilik komponen bersama untuk aliasnya | `IMPLEMENTATION` perbaikan `FIN-CAP-066`. Tidak memblokir `DESIGN` |
+
+### 20.12 Pemicu impact scan berikutnya
+
+Ulangi bagian 20 bila salah satu terjadi:
+
+1. `appsettings.json` mulai memuat blok `FinanceManagement` atau `Finance:*` — keempat baris 20.4 berubah
+   artinya seketika.
+2. Butir menu kelima layar baru dipasang (`FIN-DEC-148`, `160`).
+3. Keputusan `FIN-DEC-145`..`156` mulai dikerjakan di source — terutama penanda versi ambang, penghapusan
+   kolom tanggal berlaku, dan penanda *belum ada rekap* pada selisih kas.
+4. Paket pembaca XLSX ditambahkan pada `QuilvianSystemBackend.csproj` (`FIN-OQ-081`).
+5. Salah satu dari tiga hosted service Finance dihidupkan.
+6. Penulis `FinMedicalServicePayable` muncul (membuka kembali `FIN-DEC-157`).
+
+### 20.13 Handoff
+
+| Field | Nilai |
+|---|---|
+| Blueprint | `FIN-BP-001`, revisi 15, status `approved` |
+| Decision ID yang relevan | `FIN-DEC-111`..`140` (dasar pembangunan), `FIN-DEC-141`..`160` (keputusan 3–4 Oktober 2026 yang belum tercermin di source) |
+| Contract version yang berlaku | `FIN-API-1.5`/`1.6`, `FIN-STATE-1.6`, `FIN-VAL-1.7`/`1.8`, `FIN-PERM-1.7`/`1.8` |
+| Backend SHA pass ini | `5d6bb8bf` (branch `Yasmina`); working tree memuat satu berkas dokumentasi belum di-commit, nol source aplikasi |
+| Frontend SHA pass ini | `ae2ed334e` (branch `yasmina`); working tree bersih |
+| Masukan | `00-interview-decisions.md` sampai `FIN-DEC-160`; laporan task `BE-FIN-058`..`085`, `FE-FIN-025`..`032` |
+| Entri baru | `FIN-CAP-058`..`066` |
+| Conflict baru | `FIN-CQ-10` |
+| Open question baru | `FIN-OQ-084` |
+| Status pass | Selesai. Nol source aplikasi disentuh, nol perbaikan dilakukan |
+
+
+### 20.14 Addendum — koreksi angka `FIN-CQ-10` dan penutupannya, 4 Oktober 2026
+
+**Mengapa addendum ini ada.** Angka pada 20.7 **salah terlalu besar**, dan koreksinya ditulis di sini
+alih-alih menghapus angka lamanya. Bagian 20.7 menghitung setiap pemakaian `getRowId`, `emptyText`, dan
+`emptyMessage` di seluruh aplikasi sebagai cacat `DataTable`. Pemeriksaan ulang yang mengatribusikan setiap
+pemakaian ke **komponen induknya** menunjukkan sebagian besar bukan cacat sama sekali.
+
+#### Angka yang benar
+
+| Komponen induk | Pemakaian | Apakah cacat? |
+|---|---:|---|
+| `DataTable` | **59** | **Ya** — ketiga nama itu tidak pernah dibaca `DataTable` |
+| `ResourceFilterSelect` | 48 | Tidak. `emptyText` memang propnya |
+| `FilterSelect` | 18 | Tidak. `emptyText` memang propnya |
+| `BaseSelectField` | 12 | Tidak. `emptyText` diteruskannya ke select |
+| `SummaryGrid` | 5 | Tidak. `emptyText` memang propnya |
+| Komponen lain (`ClinicalDataTable`, `CompactTable`, `EmergencyAssessmentSection`, dll.) | 49 | Tidak diperiksa — kontrak milik modul masing-masing |
+| **Total yang semula disebut "191 cacat"** | 191 | **Hanya 59 yang benar-benar cacat** |
+
+Sebaran 59 cacat `DataTable` itu:
+
+| Modul | Pemakaian | Berkas |
+|---|---:|---:|
+| `view/finance` | 27 | 15 |
+| `view/health-services` | 32 | 19 |
+
+Jadi tiga pernyataan pada 20.7 **dikoreksi**: bukan "191 pemakaian", melainkan 59; bukan "34 di Finance",
+melainkan 27; dan bukan "84 berkas milik owner lain", melainkan 19 berkas (seluruhnya health-services).
+
+#### Keputusan owner dan perbaikan yang dikerjakan
+
+Owner memilih (4 Oktober 2026) **menambahkan alias pada komponen `DataTable` bersama**, bukan memperbaiki
+layar Finance satu per satu, dengan alasan satu perubahan menolong seluruh pemakaian sekaligus. Alasan yang
+disampaikan owner semula adalah "supaya integrasi Finance ke modul lain lancar dan tidak ada error"; itu
+**dikoreksi dan dicatat apa adanya**: prop yang tidak dikenal React **tidak** menimbulkan error dan **tidak**
+menyentuh integrasi antar modul — `DataTable` tidak meneruskan prop sisa, sehingga nama asing hanya dibuang
+diam-diam. Dampaknya murni tampilan. Keputusan owner tetap berlaku atas dasar daya angkatnya.
+
+**Bentuk perbaikannya** (`frontend/src/components/features/base-features/data-table.jsx`):
+
+| Hal | Isi |
+|---|---|
+| Alias diterima | `getRowId` → `rowKey`; `emptyText` dan `emptyMessage` → satu kalimat keadaan kosong |
+| Urutan prioritas | Nama kanonik **selalu menang**. Alias hanya dipakai ketika nama kanoniknya tidak diberikan |
+| Bila judul dan kalimat alias diberikan bersamaan | Kalimat alias menjadi **keterangan** (`emptyDescription`), sehingga keduanya tampil, bukan saling menimpa |
+| Nilai bawaan | Dilepas dari destructuring, supaya "tidak diberikan" dapat dibedakan dari "diberikan bernilai bawaan" |
+| Penjagaan | Satu test regresi ditambahkan pada `tests/unit/base-components-regression.test.mjs`, yang menambatkan **urutan prioritasnya**. Bila urutannya terbalik, 307 pemakaian yang sudah benar akan berubah diam-diam — kerusakan yang lebih besar daripada cacat yang diperbaiki |
+
+**Verifikasi yang sudah dilakukan** (pemeriksa berkas, **bukan** `npm run test:unit`):
+
+| Pemeriksaan | Hasil |
+|---|---|
+| Sembilan pernyataan test cocok dengan source | `PASS` |
+| Simulasi logika penyelesaian alias pada lima keadaan | `PASS` — termasuk keadaan terpenting: layar yang hanya memberi `emptyTitle` (307 pemakaian) **nol berubah** |
+| `npm run lint:errors`, `npm run test:unit`, `npm run build` | **NOT RUN** — dijalankan manual oleh owner |
+
+**Batas yang perlu diketahui.** Komponen `DataTable` adalah komponen bersama, dan 32 dari 59 pemakaian yang
+kini tertolong berada di `view/health-services` — milik owner lain. Perubahan ini **membuat kalimat keadaan
+kosong mereka mulai tampil**, padahal kalimat itu belum pernah ditinjau siapa pun karena selama ini tidak
+pernah muncul. Owner Finance memilih ini dengan sadar. **MUST** disampaikan kepada owner health-services.
+
+#### Dampak ke entri dan pertanyaan
+
+| ID | Status baru |
+|---|---|
+| `FIN-CQ-10` | **CLOSED** oleh alias pada `DataTable`, 4 Oktober 2026. Angkanya dikoreksi menjadi 59 pemakaian |
+| `FIN-CAP-066` | Status berubah dari `Repair` menjadi **`Ready to reuse`** untuk sisi Finance. Nol layar Finance perlu disunting; 27 pemakaiannya kini terbaca komponen |
+| `FIN-OQ-084` | **CLOSED** oleh keputusan owner: alias di komponen bersama, bukan perbaikan per layar |
+| Pemicu impact scan | Bertambah: ulangi bila alias `DataTable` dicabut, atau bila owner health-services menolak perubahan tampilan ini |
