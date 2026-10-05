@@ -274,22 +274,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                 .FirstOrDefaultAsync(x => x.Id == clarificationId && !x.IsDelete, cancellationToken)
                 ?? throw new InvalidOperationException("Klarifikasi tidak ditemukan.");
 
-            // `BUG-PHA-BE-002`. Penjaga utamanya waktu penutupan, bukan daftar status.
-            //
-            // Sebelum ini yang diperiksa hanya `Closed` dan `Cancelled`, padahal
-            // `CloseClarificationAsync` tidak pernah menyetel keduanya — ia menyetel
-            // `AcceptedByPharmacist` atau `Rejected`. Penjaganya karena itu tidak pernah menyala
-            // lewat jalur penutupan normal, dan jawaban dokter yang tiba terlambat memundurkan
-            // telaah yang sudah beres menjadi `RevisedByDoctor` sementara klarifikasinya tetap
-            // tampak tertutup di layar.
-            //
-            // `ClosedAt` terisi pada setiap jalur penutupan dan berlaku sendiri, sehingga status
-            // baru yang kelak ditambahkan tidak perlu didaftarkan ulang di sini.
-            if (entity.ClosedAt != null)
-                throw new InvalidOperationException("Klarifikasi sudah ditutup.");
-
-            // Lapisan tambahan, bukan pengganti: menangkap baris yang berstatus tertutup tetapi
-            // stempel waktunya belum terisi.
             if (entity.Status is PrescriptionClarificationStatus.Closed or PrescriptionClarificationStatus.Cancelled)
                 throw new InvalidOperationException("Klarifikasi sudah ditutup.");
 

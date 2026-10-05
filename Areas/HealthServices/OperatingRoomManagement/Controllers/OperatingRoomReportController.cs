@@ -24,20 +24,13 @@ public class OperatingRoomReportController(OperatingRoomReportService service) :
 {
     [HttpGet("operations")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<OprOperationReportRow>>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [AccessAction("Read", "Read Operating Room Case", Description = "Laporan kasus, tindakan, durasi, dan status operasi", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("OperatingRoomCase", "Read")]
     public async Task<IActionResult> GetOperations([FromQuery] OprReportQuery request,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var result = await service.GetOperationsAsync(request, cancellationToken);
-            return Ok(ApiResponse<PagedResult<OprOperationReportRow>>.Ok(result, "Laporan kasus operasi berhasil diambil."));
-        }
-        // `BUG-OPR-BE-001`. Rentang terbalik ditolak, bukan dijawab daftar kosong yang berbohong
-        // bahwa laporannya memang tidak punya data.
-        catch (ArgumentException ex) { return BadRequest(ApiResponse<object>.Fail(400, ex.Message)); }
+        var result = await service.GetOperationsAsync(request, cancellationToken);
+        return Ok(ApiResponse<PagedResult<OprOperationReportRow>>.Ok(result, "Laporan kasus operasi berhasil diambil."));
     }
 
     [HttpGet("utilization")]
@@ -58,18 +51,13 @@ public class OperatingRoomReportController(OperatingRoomReportService service) :
 
     [HttpGet("materials")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<OprMaterialReportRow>>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [AccessAction("Read", "Read Operating Room Material", Description = "Laporan traceability material dan implant", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("OperatingRoomMaterial", "Read")]
     public async Task<IActionResult> GetMaterials([FromQuery] OprMaterialReportQuery request,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var result = await service.GetMaterialsAsync(request, cancellationToken);
-            return Ok(ApiResponse<PagedResult<OprMaterialReportRow>>.Ok(result,
-                "Laporan traceability material operasi berhasil diambil."));
-        }
-        catch (ArgumentException ex) { return BadRequest(ApiResponse<object>.Fail(400, ex.Message)); }
+        var result = await service.GetMaterialsAsync(request, cancellationToken);
+        return Ok(ApiResponse<PagedResult<OprMaterialReportRow>>.Ok(result,
+            "Laporan traceability material operasi berhasil diambil."));
     }
 }

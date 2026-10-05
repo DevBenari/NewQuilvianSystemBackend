@@ -47,21 +47,6 @@ namespace QuilvianSystemBackend.Tests.Pharmacy.Infrastructure
                 context.Database.EnsureCreated();
             }
 
-            // Penegakan foreign key dimatikan dengan sengaja, dan hanya pada basis data uji ini.
-            //
-            // Yang diuji aturan alur Farmasi. Satu resep menunjuk pasien, kunjungan, konsultasi,
-            // dan dokter yang seluruhnya milik modul lain; menyediakan baris sungguhan untuk
-            // semuanya berarti menyeret pendaftaran, penjadwalan, dan master dokter ke dalam uji
-            // yang tidak membuktikan apa pun tentang Farmasi, sekaligus membuat uji ini pecah
-            // setiap kali modul lain menambah kolom wajib.
-            //
-            // Keutuhan acuan tetap ditegakkan PostgreSQL pada lingkungan sungguhan.
-            using (var pragma = connection.CreateCommand())
-            {
-                pragma.CommandText = "PRAGMA foreign_keys = OFF;";
-                pragma.ExecuteNonQuery();
-            }
-
             return database;
         }
 
@@ -156,19 +141,6 @@ namespace QuilvianSystemBackend.Tests.Pharmacy.Infrastructure
                 {
                     if (KhasPostgres(properti.GetDefaultValueSql())) properti.SetDefaultValueSql(null);
                     if (KhasPostgres(properti.GetComputedColumnSql())) properti.SetComputedColumnSql(null);
-                }
-
-                // Indeks unik TERSARING dilepas keunikannya di SQLite. Saringannya memakai tanda
-                // kutip ganda PostgreSQL — misalnya `"IsDelete" = false` — dan SQLite tidak
-                // membawanya, sehingga indeksnya menjadi unik TANPA syarat dan baris yang sudah
-                // ditandai terhapus tetap memegang tempatnya.
-                //
-                // Keunikan bersyaratnya tetap ditegakkan PostgreSQL pada lingkungan sungguhan.
-                foreach (var indeks in entitas.GetDeclaredIndexes()
-                    .Where(x => x.IsUnique && x.GetFilter() is not null)
-                    .ToList())
-                {
-                    indeks.IsUnique = false;
                 }
             }
         }

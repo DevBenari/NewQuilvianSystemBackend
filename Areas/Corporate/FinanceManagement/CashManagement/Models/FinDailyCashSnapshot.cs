@@ -52,3 +52,4 @@ public static class FinDailyCashSnapshotStatuses
     public static readonly IReadOnlySet<string> All =
         new HashSet<string>([Open, Closed], StringComparer.OrdinalIgnoreCase);
 }
+

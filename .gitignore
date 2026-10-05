@@ -404,9 +404,3 @@ DataProtectionKeys/key-*.xml
 !/Tests/QuilvianSystemBackend.PharmacyTests/
 /Tests/QuilvianSystemBackend.PharmacyTests/bin/
 /Tests/QuilvianSystemBackend.PharmacyTests/obj/
-
-# Begitu pula regresi Gizi: `GIZ004` sampai `GIZ020` ditegakkan di dalam service, dan satu-satunya
-# yang menjaganya tetap ditegakkan adalah uji ini.
-!/Tests/QuilvianSystemBackend.NutritionTests/
-/Tests/QuilvianSystemBackend.NutritionTests/bin/
-/Tests/QuilvianSystemBackend.NutritionTests/obj/

@@ -85,14 +85,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         /// menentukan kewenangan: pasien yang dianggap sedang dirawat pengguna tidak dimintai
         /// keperluan akses. Dua salinan aturan yang berbeda tipis akan membuat layar
         /// menjanjikan sesuatu yang ditolak server — atau lebih buruk, sebaliknya.
-        ///
-        /// Pemblokir pendaftaran rawat jalan sempat memakai definisi ini (RJ-DOC-REV-BE-007),
-        /// tetapi sejak RJ-DOC-REV-BE-008 memakai aturannya sendiri
-        /// (<c>OutpatientEncounterRules.WhereBlocksRegistration</c>), karena status 7-8 dan
-        /// kunjungan non-Rawat Jalan tidak lagi menghalangi pendaftaran (RJ-DOC-DEC-019/022).
-        /// Definisi di sini sengaja tidak ikut diubah: ia tetap menjaga hak akses rekam medis.
         /// </remarks>
-        internal static readonly Expression<Func<RegPatientEncounter, bool>> KunjunganMasihBerjalan =
+        private static readonly Expression<Func<RegPatientEncounter, bool>> KunjunganMasihBerjalan =
             x => !x.IsDelete
                  && !x.IsCancel
                  && x.CompletedAt == null

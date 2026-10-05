@@ -16,11 +16,9 @@ public sealed class OperatingRoomReportService(ApplicationDbContext dbContext)
     public async Task<PagedResult<OprOperationReportRow>> GetOperationsAsync(OprReportQuery request,
         CancellationToken cancellationToken = default)
     {
-        var (from, to) = NormalkanRentang(request.From, request.To);
-
         var query = dbContext.OprCases.AsNoTracking().Where(x => !x.IsDelete);
-        if (from.HasValue) query = query.Where(x => x.RequestedAt >= from.Value);
-        if (to.HasValue) query = query.Where(x => x.RequestedAt <= to.Value);
+        if (request.From.HasValue) query = query.Where(x => x.RequestedAt >= request.From.Value.ToUniversalTime());
+        if (request.To.HasValue) query = query.Where(x => x.RequestedAt <= request.To.Value.ToUniversalTime());
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status);
         if (request.CaseType.HasValue) query = query.Where(x => x.CaseType == request.CaseType);
         if (request.Priority.HasValue) query = query.Where(x => x.Priority == request.Priority);
@@ -79,9 +77,9 @@ public sealed class OperatingRoomReportService(ApplicationDbContext dbContext)
     public async Task<OprUtilizationReport> GetUtilizationAsync(OprUtilizationQuery request,
         CancellationToken cancellationToken = default)
     {
-        var (fromOpsional, toOpsional) = NormalkanRentang(request.From, request.To);
-        var from = fromOpsional!.Value;
-        var to = toOpsional!.Value;
+        var from = request.From.ToUniversalTime();
+        var to = request.To.ToUniversalTime();
+        if (to <= from) throw new ArgumentException("Rentang waktu laporan tidak valid.");
 
         var schedules = await dbContext.OprSchedules.AsNoTracking()
             .Where(x => x.IsCurrent && !x.IsDelete && x.StartAt < to && x.EndAt > from &&
@@ -148,12 +146,10 @@ public sealed class OperatingRoomReportService(ApplicationDbContext dbContext)
     public async Task<PagedResult<OprMaterialReportRow>> GetMaterialsAsync(OprMaterialReportQuery request,
         CancellationToken cancellationToken = default)
     {
-        var (from, to) = NormalkanRentang(request.From, request.To);
-
         var query = dbContext.OprMaterialUsages.AsNoTracking()
             .Where(x => !x.IsDelete && x.OprCase != null && !x.OprCase.IsDelete);
-        if (from.HasValue) query = query.Where(x => x.OccurredAt >= from.Value);
-        if (to.HasValue) query = query.Where(x => x.OccurredAt <= to.Value);
+        if (request.From.HasValue) query = query.Where(x => x.OccurredAt >= request.From.Value.ToUniversalTime());
+        if (request.To.HasValue) query = query.Where(x => x.OccurredAt <= request.To.Value.ToUniversalTime());
         if (request.ExternalItemId.HasValue) query = query.Where(x => x.ExternalItemId == request.ExternalItemId);
         if (request.ItemType.HasValue) query = query.Where(x => x.ItemType == request.ItemType);
         if (request.Outcome.HasValue) query = query.Where(x => x.Outcome == request.Outcome);
@@ -184,57 +180,5 @@ public sealed class OperatingRoomReportService(ApplicationDbContext dbContext)
             TotalPage = (int)Math.Ceiling(totalData / (double)request.PageSize),
             Items = items
         };
-    }
-
-    // ============================================================== rentang tanggal
-
-    /// <summary>
-    /// Menormalkan rentang tanggal laporan dan menolak rentang yang mustahil
-    /// (`BUG-OPR-BE-001`).
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Dipakai ketiga laporan supaya perilakunya tidak berbeda antar layar. Sebelum ini tiap
-    /// laporan memakai nilainya apa adanya, sehingga tanggal akhir berarti pukul 00:00 dan
-    /// laporan yang diminta "sampai hari ini" justru membuang seluruh kasus hari itu — tanpa
-    /// galat, hanya angka yang lebih kecil dan masuk akal.
-    /// </para>
-    /// <para>
-    /// Rentang terbalik kini ditolak, bukan dijawab daftar kosong. Daftar kosong berbohong: ia
-    /// menyatakan laporannya memang tidak punya data, padahal penyaringnya yang mustahil.
-    /// </para>
-    /// </remarks>
-    private static (DateTime? From, DateTime? To) NormalkanRentang(DateTime? from, DateTime? to)
-    {
-        var awal = from?.ToUniversalTime();
-        var akhir = to.HasValue ? AkhirHariBila(to.Value) : (DateTime?)null;
-
-        // Dibandingkan SESUDAH normalisasi, supaya tanggal yang sama pada kedua sisi tetap sah:
-        // `From=2 Okt`, `To=2 Okt` berarti sepanjang 2 Oktober, bukan rentang nol.
-        if (awal.HasValue && akhir.HasValue && akhir.Value < awal.Value)
-            throw new ArgumentException("Rentang waktu laporan tidak valid: tanggal awal melewati tanggal akhir.");
-
-        return (awal, akhir);
-    }
-
-    /// <summary>
-    /// Menjadikan tanggal akhir mencakup seluruh harinya, bila yang dikirim memang tanggal tanpa
-    /// jam.
-    /// </summary>
-    /// <remarks>
-    /// Jam diperiksa <b>sebelum</b> konversi ke UTC. Memeriksanya sesudah konversi keliru:
-    /// tanggal lokal pukul 00:00 berubah menjadi 17:00 UTC, sehingga tidak pernah dikenali
-    /// sebagai "tanggal tanpa jam" dan laporan tetap membuang data hari terakhir.
-    ///
-    /// Timestamp yang memang menyebut jam dihormati apa adanya — pengguna yang meminta "sampai
-    /// pukul 10:00" tidak sedang meminta sampai tengah malam.
-    /// </remarks>
-    private static DateTime AkhirHariBila(DateTime value)
-    {
-        var akhirHari = value.TimeOfDay == TimeSpan.Zero
-            ? value.AddDays(1).AddTicks(-1)
-            : value;
-
-        return akhirHari.ToUniversalTime();
     }
 }

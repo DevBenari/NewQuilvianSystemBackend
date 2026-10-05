@@ -316,9 +316,6 @@
 		<Folder Include="Areas\HealthServices\OutpatientManagement\" />
 		<Folder Include="Logs\" />
 		<Folder Include="SeedData\ICD10\" />
-		<!-- RJ-DOC-REV-BE-006: kelompok ICD Diagnosa (DTD) dibaca seeder saat startup. -->
-		<Content Include="SeedData\ICD10\icd_diagnosa_dtd.csv" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-		<Content Include="SeedData\ICD10\icd10_dtd_mapping.csv" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
 	</ItemGroup>
 
 </Project>

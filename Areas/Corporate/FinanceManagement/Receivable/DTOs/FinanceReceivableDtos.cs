@@ -19,7 +19,8 @@ public sealed class ReceivableResponse
 {
     public Guid Id { get; set; }
     public string ReceivableNumber { get; set; } = string.Empty;
-    public Guid InvoiceId { get; set; }
+    // BE-FIN-079: nullable — kosong untuk item migrasi tagihan lama (lihat FinReceivable.OpeningItemBatchId).
+    public Guid? InvoiceId { get; set; }
     public string DebtorType { get; set; } = string.Empty;
     public Guid? DebtorReferenceId { get; set; }
     public decimal OriginalAmount { get; set; }
@@ -112,6 +113,15 @@ public sealed class ReceivableFilterMetadataResponse
 public sealed class ReceivableAgingQuery
 {
     public DateOnly? AsOfDate { get; set; }
+
+    /// <summary>BE-FIN-055 (FIN-DEC-094, FIN-OQ-040). Saringan opsional, memakai nilai
+    /// FinReceivableDebtorTypes yang NYATA (PAYER/PATIENT_GUARANTOR/EMPLOYEE_BENEFIT) — bukan
+    /// "KASIR" seperti dugaan awal rancangan. Model FinReceivable tidak punya nilai "Kasir" sama
+    /// sekali; "Umur Piutang Kasir" pada menu V1 memetakan ke seluruh FinReceivable TANPA
+    /// saringan ini (lihat laporan BE-FIN-055 §3.3), karena Parkir/Tenant sudah dipisah penuh ke
+    /// FinNonPatientReceivable (BE-FIN-056/057). Parameter ini kemampuan teknis tambahan yang sah
+    /// (menyaring per jenis debitur bila dibutuhkan kelak), bukan penerapan "segmen Kasir".</summary>
+    public string? DebtorType { get; set; }
 }
 
 public sealed class RequestReceivableAdjustmentRequest
@@ -132,3 +142,76 @@ public sealed class RequestReceivableWriteOffRequest
     [Range(0.01, double.MaxValue)] public decimal Amount { get; set; }
     [Required, MaxLength(500)] public string Reason { get; set; } = string.Empty;
 }
+
+// ----------------------------------------------------------------------------------------
+// BE-FIN-053 (FIN-DEC-094, FIN-DES-073) — daftar penghapusan piutang LINTAS piutang, untuk
+// layar "Pemutihan Piutang" (03-frontend-architecture.md §17.2). Baca saja: pembuatan,
+// persetujuan, dan penolakan write-off TETAP lewat endpoint per-piutang di atas beserta
+// maker-checker-nya (FIN-DES-073 — tidak ada aksi baru di sini, murni permukaan baca).
+// ----------------------------------------------------------------------------------------
+
+public sealed class ReceivableWriteOffQuery
+{
+    public DateOnly? StartDate { get; set; }
+    public DateOnly? EndDate { get; set; }
+    public string? Status { get; set; }
+    public Guid? DebtorReferenceId { get; set; }
+    public string SortBy { get; set; } = "requestedAt";
+    public string SortDirection { get; set; } = "desc";
+    [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
+    [Range(1, 100)] public int PageSize { get; set; } = 25;
+}
+
+public sealed class ReceivableWriteOffRowResponse
+{
+    public Guid Id { get; set; }
+    public string WriteOffNumber { get; set; } = string.Empty;
+    public Guid ReceivableId { get; set; }
+    public string ReceivableNumber { get; set; } = string.Empty;
+    public Guid? DebtorReferenceId { get; set; }
+    public decimal Amount { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public DateTimeOffset RequestedAt { get; set; }
+
+    /// <summary>Terisi saat disetujui MAUPUN ditolak — model menamainya ApprovedAt/ApprovedBy
+    /// untuk kedua keputusan (lihat FinanceReceivableService.DecideWriteOffAsync).</summary>
+    public DateTimeOffset? DecidedAt { get; set; }
+}
+
+// ----------------------------------------------------------------------------------------
+// BE-FIN-063 (FIN-DES-079, FIN-DEC-123, FIN-API-1.5 F.5): Buku Mutasi Piutang
+// ----------------------------------------------------------------------------------------
+
+public sealed class ReceivableMovementQuery
+{
+    [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
+    [Range(1, 100)] public int PageSize { get; set; } = 25;
+    public DateOnly? DateFrom { get; set; }
+    public DateOnly? DateTo { get; set; }
+    public string? MovementType { get; set; }
+    public string SortDirection { get; set; } = "asc";
+}
+
+public sealed class ReceivableMovementResponse
+{
+    public Guid Id { get; set; }
+    public Guid ReceivableId { get; set; }
+    public string MovementType { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public decimal BalanceBefore { get; set; }
+    public decimal BalanceAfter { get; set; }
+    public DateOnly BusinessDate { get; set; }
+    public DateTimeOffset OccurredAt { get; set; }
+    public Guid? SourceAllocationId { get; set; }
+    public string? PaymentMethodCode { get; set; }
+    public string? FundingSourceType { get; set; }
+    public Guid? FundingSourceId { get; set; }
+    public string? ReferenceNumber { get; set; }
+    public Guid? ProofId { get; set; }
+    public Guid? OpeningItemBatchId { get; set; }
+    public string? Notes { get; set; }
+    public Guid CorrelationId { get; set; }
+    public Guid CausationId { get; set; }
+}
+

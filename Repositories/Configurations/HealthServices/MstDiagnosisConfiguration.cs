@@ -83,14 +83,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 
             entity.HasIndex(x => x.ParentDiagnosisId);
 
-            // RJ-DOC-REV-BE-006 — kelompok ICD Diagnosa (DTD).
-            entity.HasOne(x => x.DiagnosisGroup)
-                .WithMany(x => x.Diagnoses)
-                .HasForeignKey(x => x.DiagnosisGroupId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            entity.HasIndex(x => x.DiagnosisGroupId);
-
             entity.HasIndex(x => new { x.IcdVersion, x.DiagnosisCode })
                 .IsUnique();
 
