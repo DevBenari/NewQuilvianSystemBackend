@@ -87,28 +87,39 @@ Tanpa code ini, encounter yang tidak sah akan jatuh ke `PHA_ROUTE_SERVICE_UNSUPP
 menyalahkan jenis layanan atas masalah yang sebenarnya pada kunjungannya. Dicatat sebagai
 penambahan yang perlu diakui pemilik kontrak, bukan diselundupkan.
 
-## Yang laporan ini TIDAK mengklaim
+## Yang laporan ini TIDAK mengklaim — dan apa yang berubah sesudahnya
 
-`PHA-BE-002` — **pengujian otomatis resolver** — **masih terbuka**. Resolver ini belum punya satu
-pun uji: pencarian `DepotRouting` pada `Tests/` hanya menemukan berkas biner hasil build, bukan
-berkas uji. Itu sesuai Definition of Done `PHA-BE-001` sendiri, yang menyatakan "bukti perilaku
-otomatis tetap menjadi DoD `PHA-BE-002`, bukan diklaim selesai oleh task ini".
+Saat laporan ini pertama ditulis, `PHA-BE-002` — **pengujian otomatis resolver** — masih
+terbuka: resolver belum punya satu pun uji. Itu sesuai Definition of Done `PHA-BE-001` sendiri,
+yang menyatakan "bukti perilaku otomatis tetap menjadi DoD `PHA-BE-002`, bukan diklaim selesai
+oleh task ini".
 
-Jadi yang ditutup laporan ini adalah **bukti acceptance by inspection**, bukan bukti perilaku
-otomatis. Keduanya berbeda dan sengaja tidak dicampur.
+**`PHA-BE-002` kini sudah ditutup pada hari yang sama**, lewat
+`Tests/QuilvianSystemBackend.PharmacyTests/DepotRoutingTests.cs` — 26 deklarasi, 40 uji setelah
+`InlineData` dibentangkan, seluruhnya lulus. Sembilan acceptance criteria di atas kini dijaga
+otomatis, bukan hanya diperiksa dengan mata.
+
+Satu hal baru ditemukan saat menulis uji itu, dan sudah dikunci sebagai uji tersendiri:
+`EncounterType.Unknown` **tidak dapat tersimpan**. `RegPatientEncounterConfiguration` baris 95–97
+memberi kolomnya `HasDefaultValue(EncounterType.Outpatient)`, dan karena `Unknown = 0` sama
+dengan nilai bawaan CLR, EF Core memperlakukannya sebagai "belum diisi", menghilangkan kolomnya
+dari `INSERT`, lalu store menuliskan `Outpatient`. Akibatnya arm `_` pada `switch` resolver tidak
+dapat dijangkau oleh `Unknown` — bukan karena resolvernya salah, melainkan karena nilai itu tidak
+pernah sampai ke sana. `MedicalCheckup` dan `Telemedicine` tetap menjangkaunya dan tetap ditolak
+`PHA_ROUTE_SERVICE_UNSUPPORTED`.
 
 - API CONTRACT IMPACT: **Nol endpoint**. Resolver adalah service internal.
 - DATABASE IMPACT: **Nol**. Baca saja, dua query `AsNoTracking`, nol migration.
 - SECURITY IMPACT: Menutup kemungkinan obat dilayani dari Gudang Utama atau ruang karantina
   lewat jalur routing, dan menolak konfigurasi depo ganda alih-alih memilih sembarang.
-- VALIDATION: sembilan acceptance criteria terpenuhi by inspection; build `0 error`; suite
-  Farmasi 173/173 lulus (tidak satu pun menyentuh resolver — lihat bagian di atas).
+- VALIDATION: sembilan acceptance criteria terpenuhi by inspection DAN kini dijaga otomatis oleh `DepotRoutingTests.cs`; build `0 error`; suite
+  Farmasi 254/254 lulus, 40 di antaranya menyentuh resolver ini.
 - WARNINGS: resolver sudah terdaftar di DI tetapi belum dikonsumsi siapa pun. Itu **benar** untuk
   sekarang, karena `PHA-BE-003` yang menyambungkannya ke workflow masih `BLOCKED` oleh
   `PHA-OQ-014`/`PHA-OQ-015`. Perlu diingat agar tidak dibaca sebagai kode mati.
 - KNOWN ISSUES / OPEN QUESTION:
   1. pemilik kontrak perlu mengakui `PHA_ROUTE_ENCOUNTER_INVALID` sebagai code kedelapan;
   2. teks `Reuse` pada task perlu dikoreksi dari `TrxPatientEncounter` ke `RegPatientEncounter`;
-  3. `PHA-BE-002` belum dikerjakan.
-- NEXT TASKS: `PHA-BE-002` (uji otomatis resolver — dapat dikerjakan sekarang, tanpa dependency),
-  lalu `PHA-BE-003` setelah `PHA-OQ-014`/`PHA-OQ-015` terkunci.
+  3. ~~`PHA-BE-002` belum dikerjakan~~ — sudah ditutup 5 Oktober 2026 oleh `DepotRoutingTests.cs`.
+- NEXT TASKS: `PHA-BE-002` sudah selesai. Berikutnya `PHA-BE-003`, yang menyambungkan resolver
+  ini ke workflow, setelah `PHA-OQ-014` dan `PHA-OQ-015` terkunci.
