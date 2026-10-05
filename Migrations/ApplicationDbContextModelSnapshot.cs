@@ -74519,6 +74519,84 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("EmgDoctorAssignment", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgDuplicateEpisodeOverride", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("OverriddenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OverriddenByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("OverriddenEncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("OverriddenVisitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EncounterId")
+                        .IsUnique();
+
+                    b.HasIndex("OverriddenByUserId");
+
+                    b.HasIndex("OverriddenEncounterId");
+
+                    b.HasIndex("OverriddenVisitId");
+
+                    b.HasIndex("PatientId");
+
+                    b.ToTable("EmgDuplicateEpisodeOverride", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_EmgDuplicateEpisodeOverride_EpisodeYangDilangkahi", "\"OverriddenEncounterId\" IS NOT NULL OR \"OverriddenVisitId\" IS NOT NULL");
+                        });
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgEncounterReconciliationItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -119445,6 +119523,47 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Doctor");
 
                     b.Navigation("EmergencyVisit");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgDuplicateEpisodeOverride", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter", "Encounter")
+                        .WithMany()
+                        .HasForeignKey("EncounterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "OverriddenByUser")
+                        .WithMany()
+                        .HasForeignKey("OverriddenByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter", "OverriddenEncounter")
+                        .WithMany()
+                        .HasForeignKey("OverriddenEncounterId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgVisit", "OverriddenVisit")
+                        .WithMany()
+                        .HasForeignKey("OverriddenVisitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Encounter");
+
+                    b.Navigation("OverriddenByUser");
+
+                    b.Navigation("OverriddenEncounter");
+
+                    b.Navigation("OverriddenVisit");
+
+                    b.Navigation("Patient");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgEncounterReconciliationItem", b =>
