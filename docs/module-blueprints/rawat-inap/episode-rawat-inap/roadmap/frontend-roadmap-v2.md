@@ -39,9 +39,9 @@ frontend_repo: QuilvianSystemFrontendDev
 frontend_branch: HamzahV2
 frontend_source_sha: 1ce219b40f8e411f3c4e66975626ab33ae81616a
 backend_source_sha: df3679c0d5b2f08106702153eb242d3a6cb2929b
-task_id_range: FE-RWI-063..FE-RWI-066, FE-RWI-096, FE-RWI-101
-task_id_next_free: FE-RWI-102   # FE-RWI-095..100 dipakai integrasi-billing, FE-RWI-101 dipakai di sini 28-09-2026
-last_updated: "2026-09-28 — FE-RWI-101 ditambahkan dari hasil pengujian tambah asuransi admisi; keputusan pemilik opsi A sama persis dengan kiosk"
+task_id_range: FE-RWI-063..FE-RWI-066, FE-RWI-096, FE-RWI-101, FE-RWI-203..FE-RWI-207
+task_id_next_free: FE-RWI-208   # 06-10-2026: FE-RWI-203..207 dipakai di sini (ISSUE-EPS-003); angka tertinggi global sebelumnya FE-RWI-202
+last_updated: "2026-10-06 — FE-RWI-203 s.d. FE-RWI-207 ditambahkan dan diselesaikan dari PLAN-REPAIR-EPS-003 (ISSUE-EPS-003, Langkah 2 Pendaftaran Pasien Baru). Sebelumnya 2026-09-28 — FE-RWI-101 ditambahkan dari hasil pengujian tambah asuransi admisi; keputusan pemilik opsi A sama persis dengan kiosk"
 stack: "Next.js App Router, JavaScript/JSX, Redux, Axios, design token dan base component Quilvian"
 test_policy: "rules/frontend/test-policy.md — menulis test baru opsional; lint dan build wajib"
 write_authority: "TIDAK diberikan di sini. Wewenang tulis frontend dinyatakan terpisah per task"
@@ -70,6 +70,14 @@ BE-RWI-086 [BE] ─┘
 BE-RWI-084 [BE] ─> FE-RWI-065
 
 BE-RWI-083 [BE] ─> FE-RWI-066
+
+FE-RWI-203 ✅
+
+FE-RWI-204 ✅
+
+FE-RWI-205 ✅ ─> FE-RWI-206 ✅
+
+FE-RWI-207 ✅
 ```
 
 `[BE]` = task backend pada [`backend-roadmap-v2.md`](./backend-roadmap-v2.md), cermin baca-saja.
@@ -77,7 +85,9 @@ BE-RWI-083 [BE] ─> FE-RWI-066
 Keempat task frontend pada roadmap ini **tidak saling menunggu**. Yang ditunggu seluruhnya ada di
 backend. Karena itu grafiknya berupa empat rantai terpisah, bukan satu pohon.
 
-Jumlah pasangan prasyarat→task: **5**. Jumlah entri kolom `Dependency`: **5**. Cocok.
+Jumlah pasangan prasyarat→task: **6**. Jumlah entri kolom `Dependency`: **6**. Cocok.
+
+Kelima task perbaikan `ISSUE-EPS-003` (`FE-RWI-203` s.d. `207`) tidak menunggu backend. Satu-satunya prasyarat di antara mereka adalah `FE-RWI-205` → `FE-RWI-206`: susunan Data tambahan pasien memakai daftar Tier Membership dari `FE-RWI-205`.
 
 ### Tabel gelombang eksekusi
 
@@ -87,6 +97,8 @@ Jumlah pasangan prasyarat→task: **5**. Jumlah entri kolom `Dependency`: **5**.
 | 1 | `BE-RWI-084` [BE] mendarat | `FE-RWI-065` |
 | 1 | `BE-RWI-083` [BE] mendarat | `FE-RWI-066` |
 | 1 | `BE-RWI-085` **dan** `BE-RWI-086` [BE] mendarat | `FE-RWI-064` |
+| 1 | Tanpa prasyarat — perbaikan `ISSUE-EPS-003` | `FE-RWI-203` ✅, `FE-RWI-204` ✅, `FE-RWI-205` ✅, `FE-RWI-207` ✅ |
+| 2 | `FE-RWI-205` | `FE-RWI-206` ✅ |
 
 Keempatnya boleh dikerjakan paralel sepanjang prasyarat backend-nya sudah `✅`.
 
@@ -348,6 +360,144 @@ bukan tanggal, sehingga dicatat pada `notes` dan tidak mengisi `EffectiveStartDa
 **Definition of Done.** Lint hijau; build dijalankan; laporan tracked ada; roadmap dan
 traceability diperbarui.
 
+## Perbaikan `ISSUE-EPS-003` — Langkah 2 Pendaftaran Pasien Baru
+
+Dokumen issue: [`../docs/issue/issue-003-pendaftaran-pasien-baru.md`](../docs/issue/issue-003-pendaftaran-pasien-baru.md). Rencana perbaikan beserta register statusnya: [`../docs/plan-repair/plan-repair-003-pendaftaran-pasien-baru.md`](../docs/plan-repair/plan-repair-003-pendaftaran-pasien-baru.md). Kelima task diperintahkan pemilik untuk diimplementasikan pada 6 Oktober 2026; keputusan yang dipakai: `RWI-DEC-223` dan `RWI-DEC-224`.
+
+### ✅ `FE-RWI-203` — Panel scan KTP: tombol "Input Manual" yang tidak berfungsi disembunyikan, pesan galat scanner berbahasa Indonesia
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **Selesai 6 Oktober 2026** — [laporan](../task/report/frontend/FE-RWI-203.md); `npx eslint src --quiet` exit `0`; `npm run build` **PASS** (exit `0`, 474 halaman, standalone siap); unit test `inpatient-admission-registration-issue-003.test.mjs` 9/9 lulus; grep anti-regresi UI nol hasil; **verifikasi peramban NOT RUN — dikecualikan atas keputusan pemilik 1 dan 10 September 2026**; merujuk `ISS-EPS-003-01`, `ISS-EPS-003-T2` |
+| **Gelombang** | Di luar gelombang — task perbaikan pasca-pengujian `PLAN-REPAIR-EPS-003` |
+| **Wewenang UI** | Skema tampilan 3.3 yang sudah ada — tanpa tombol Input Manual, dengan kalimat isi manual |
+
+**Bisnis prosesnya.** Petugas admisi yang pemindainya mati tidak lagi menekan tombol yang tidak berbuat apa-apa. Panel menyebut masalahnya dalam Bahasa Indonesia beserta langkah perbaikannya, dan menunjuk formulir di bawahnya untuk diisi manual.
+
+**Acceptance criteria.**
+
+1. Agent mati: hanya "Cek Scanner" dan "Scan eKTP" tampil.
+2. Kalimat "Pemindai tidak tersedia? Isi formulir di bawah secara manual." tampil saat pemindai belum siap.
+3. Pemindai siap: tampilan tidak berubah.
+4. Pemakai panel yang memberi `onUseManual` tetap melihat tombolnya.
+5. Agent mati: tidak ada lagi "Failed to fetch".
+6. Pesan dari agent sendiri tetap tampil apa adanya.
+
+**Bukti verifikasi.** `eslint`; `npm run build`; grep anti-regresi; pembacaan source panel dan hook.
+
+**Yang dikecualikan.** Verifikasi peramban `NOT RUN`, sesuai kebijakan pemilik; bukti source, lint, build, dan unit test memadai untuk menutup task ini.
+
+**Risiko.** Rendah. Hook scanner dipakai bersama IGD — kegagalan jaringan di IGD ikut tampil berbahasa Indonesia.
+
+**Definition of Done.** Lint dan build hijau; laporan tracked ada; roadmap dan traceability diperbarui. Seluruh kriteria terpetakan ke source.
+
+### ✅ `FE-RWI-204` — Daftar Kota/Kabupaten memuat jenisnya; hasil scan KTP membedakan Kota dari Kabupaten
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **Selesai 6 Oktober 2026** — [laporan](../task/report/frontend/FE-RWI-204.md); `npx eslint src --quiet` exit `0`; `npm run build` **PASS** (exit `0`, 474 halaman, standalone siap); unit test `inpatient-admission-registration-issue-003.test.mjs` 9/9 lulus; grep anti-regresi UI nol hasil; **verifikasi peramban NOT RUN — dikecualikan atas keputusan pemilik 1 dan 10 September 2026**; merujuk `ISS-EPS-003-02`, `ISS-EPS-003-T1` |
+| **Gelombang** | Di luar gelombang — task perbaikan pasca-pengujian `PLAN-REPAIR-EPS-003` |
+| **Wewenang UI** | `PLAN-REPAIR-EPS-003`; skema tampilan 3.3 revision `0.6` baris Keadaan wilayah hasil scan |
+
+**Bisnis prosesnya.** Petugas dapat membedakan Kota Bekasi dari Kabupaten Bekasi. Hasil scan KTP yang menyebut jenisnya terpasang ke wilayah yang benar; yang tidak menyebut jenisnya tidak ditebak, dan petugas diberi tahu untuk memilih sendiri.
+
+**Acceptance criteria.**
+
+1. Jawa Barat memuat "Kabupaten Bekasi" dan "Kota Bekasi"; tidak ada dua label identik.
+2. Setelah dipilih, isian menampilkan "Kota Bekasi".
+3. Kota tanpa `CityType` tampil dengan nama saja.
+4. KTP "KOTA BEKASI" → Kota Bekasi; "KABUPATEN/KAB. BEKASI" → Kabupaten Bekasi.
+5. KTP hanya "BEKASI" → isian kosong dan peringatan wilayah tampil di bawah panel scan.
+6. Kota tanpa nama kembar tetap terisi otomatis.
+
+**Bukti verifikasi.** Unit test lima kasus wilayah; `eslint`; `npm run build`.
+
+**Yang dikecualikan.** Verifikasi peramban `NOT RUN`, sesuai kebijakan pemilik; bukti source, lint, build, dan unit test memadai untuk menutup task ini.
+
+**Risiko.** Sedang — isi otomatis sedikit lebih jarang demi kebenaran data. Pendaftaran IGD ikut berubah.
+
+**Definition of Done.** Lint dan build hijau; laporan tracked ada; roadmap dan traceability diperbarui. Seluruh kriteria terpetakan ke source.
+
+### ✅ `FE-RWI-205` — Formulir pasien baru tanpa isian UUID; Jam Lahir memakai `FilterTimePicker`
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **Selesai 6 Oktober 2026** — [laporan](../task/report/frontend/FE-RWI-205.md); `npx eslint src --quiet` exit `0`; `npm run build` **PASS** (exit `0`, 474 halaman, standalone siap); unit test `inpatient-admission-registration-issue-003.test.mjs` 9/9 lulus; grep anti-regresi UI nol hasil; **verifikasi peramban NOT RUN — dikecualikan atas keputusan pemilik 1 dan 10 September 2026**; merujuk `ISS-EPS-003-04`, `ISS-EPS-003-05` |
+| **Gelombang** | Di luar gelombang — task perbaikan pasca-pengujian `PLAN-REPAIR-EPS-003` |
+| **Wewenang UI** | `RWI-DEC-224`; aturan pemilik "UUID tidak boleh diinput user dan tidak boleh tampil di halaman frontend" |
+
+**Bisnis prosesnya.** Tier Membership dipilih dari daftar berlabel nama dan kode; membership aktif tidak lagi ditanyakan karena hanya sah untuk pasien yang sudah ada; Pasien Ibu dicari dengan nama atau nomor rekam medis. Jam Lahir memakai pemilih jam 24 jam.
+
+**Acceptance criteria.**
+
+1. Tidak ada isian yang meminta atau menampilkan UUID.
+2. "Active Patient Membership ID" dihapus; payload tidak membawa id membership aktif.
+3. Tier Membership berlabel nama — kode, hanya tier aktif yang boleh dipilih pada admisi.
+4. Daftar tier gagal dimuat menampilkan pesan yang jelas.
+5. Pasien Ibu berlabel nama dan No. RM; NIK tidak tampil.
+6. Jam Lahir memakai `FilterTimePicker`; 08:45 dikirim sebagai `08:45:00`.
+
+**Bukti verifikasi.** Unit test payload dan jam lahir; grep "UUID" dan `type="time"` nol; `eslint`; `npm run build`.
+
+**Yang dikecualikan.** Verifikasi peramban `NOT RUN`, sesuai kebijakan pemilik; bukti source, lint, build, dan unit test memadai untuk menutup task ini.
+
+**Risiko.** Sedang — izin `MembershipTier : Read` bagi peran admisi belum diverifikasi (`K-04`). Pendaftaran IGD ikut berubah.
+
+**Definition of Done.** Lint dan build hijau; laporan tracked ada; roadmap dan traceability diperbarui. Seluruh kriteria terpetakan ke source.
+
+### ✅ `FE-RWI-206` — Data tambahan pasien disusun menurut makna; "Metode Persalinan" pindah ke data kelahiran
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **Selesai 6 Oktober 2026** — [laporan](../task/report/frontend/FE-RWI-206.md); `npx eslint src --quiet` exit `0`; `npm run build` **PASS** (exit `0`, 474 halaman, standalone siap); unit test `inpatient-admission-registration-issue-003.test.mjs` 9/9 lulus; grep anti-regresi UI nol hasil; **verifikasi peramban NOT RUN — dikecualikan atas keputusan pemilik 1 dan 10 September 2026**; merujuk `ISS-EPS-003-06`, `ISS-EPS-003-T3` |
+| **Gelombang** | Di luar gelombang — task perbaikan pasca-pengujian `PLAN-REPAIR-EPS-003` |
+| **Wewenang UI** | `RWI-DEC-224`; skema tampilan 3.3 revision `0.6` wilayah Data tambahan pasien |
+
+**Bisnis prosesnya.** Admisi rawat inap hanya menawarkan kartu Pasien Member beserta Tier Membership wajib dan Catatan. Kategori bayi baru lahir tetap dipilih di Langkah 1; pasien meninggal tidak ditawarkan. Pendaftaran IGD tetap tiga kartu, tetapi kini mencerminkan aturan wajib server.
+
+**Acceptance criteria.**
+
+1. Admisi: Data tambahan hanya memuat Pasien Member, Tier Membership bila dicentang, dan Catatan.
+2. Admisi: mustahil menyimpan `IsNewborn` atau `IsDeceased` bernilai benar.
+3. Member tanpa tier → pesan wajib tanpa request.
+4. Centang member dilepas → tier tidak terkirim.
+5. IGD tetap tiga kartu; bayi tanpa Pasien Ibu menampilkan pesan wajib di layar.
+6. "Metode Persalinan" tidak lagi di Identitas Pasien.
+
+**Bukti verifikasi.** Unit test payload terkunci; pembacaan `validateField` react-hook-form 7.54; `eslint`; `npm run build`.
+
+**Yang dikecualikan.** Verifikasi peramban `NOT RUN`, sesuai kebijakan pemilik; bukti source, lint, build, dan unit test memadai untuk menutup task ini.
+
+**Risiko.** Sedang — validasi baru di IGD perlu diberitahukan kepada pemilik pendaftaran IGD.
+
+**Definition of Done.** Lint dan build hijau; laporan tracked ada; roadmap dan traceability diperbarui. Seluruh kriteria terpetakan ke source.
+
+### ✅ `FE-RWI-207` — Tombol "Simpan & Lanjut ke Pembayaran" selalu dapat ditekan; ringkasan dan fokus ke isian yang belum lengkap
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **Selesai 6 Oktober 2026** — [laporan](../task/report/frontend/FE-RWI-207.md); suite unit penuh 2502 dari 2510 lulus — 8 kegagalan di modul lain, `UNRELATED EXISTING ISSUE`; `npx eslint src --quiet` exit `0`; `npm run build` **PASS** (exit `0`, 474 halaman, standalone siap); unit test `inpatient-admission-registration-issue-003.test.mjs` 9/9 lulus; grep anti-regresi UI nol hasil; **verifikasi peramban NOT RUN — dikecualikan atas keputusan pemilik 1 dan 10 September 2026**; merujuk `ISS-EPS-003-07` |
+| **Gelombang** | Di luar gelombang — task perbaikan pasca-pengujian `PLAN-REPAIR-EPS-003` |
+| **Wewenang UI** | `RWI-DEC-223`; skema tampilan 3.3 dan 4.2 revision `0.6` |
+
+**Bisnis prosesnya.** Petugas dapat menekan Simpan kapan saja. Bila ada isian wajib yang kosong, tidak ada request; ringkasan isian yang kurang tampil di atas formulir, dan kursor dibawa ke isian pertama yang kosong.
+
+**Acceptance criteria.**
+
+1. Tombol dapat ditekan walau formulir kosong; terkunci hanya selama menyimpan.
+2. Isian kurang → tanpa request, ringkasan tampil, fokus ke isian pertama menurut urutan layar.
+3. Daftar pilihan, pemilih tanggal, dan isian di bagian tertutup tetap dapat menerima fokus.
+4. Nama isian pada ringkasan dapat ditekan untuk menuju isiannya.
+5. Formulir lengkap → tiga penyimpanan berurutan; dua klik cepat tetap satu pasien.
+
+**Bukti verifikasi.** Unit test urutan ringkasan; suite unit penuh; `eslint`; `npm run build`.
+
+**Yang dikecualikan.** Verifikasi peramban `NOT RUN`, sesuai kebijakan pemilik; bukti source, lint, build, dan unit test memadai untuk menutup task ini.
+
+**Risiko.** Rendah-sedang — fokus pada daftar pilihan bergantung pada elemen fokusabel pertama di dalam pembungkusnya.
+
+**Definition of Done.** Lint dan build hijau; laporan tracked ada; roadmap dan traceability diperbarui. Seluruh kriteria terpetakan ke source.
+
 ---
 
 ## Pilihan UI yang belum disetujui
@@ -382,6 +532,7 @@ Tabel penuh ada di [`requirement-traceability-v2.md`](./requirement-traceability
 | `FR-RI-196`, `FR-RI-197` | `RI-40` | `FE-INP-22` | `FE-RWI-064` | `BE-RWI-085`, `BE-RWI-086` | Acceptance 18.3, `UAT-49` |
 | `FR-RI-198`, `200`, `201` | `RI-41` | `FE-INP-23` | `FE-RWI-065` | `BE-RWI-084` | Acceptance 18.4, `UAT-50`, `UAT-51` |
 | `FR-RI-199` | `RI-41` | `FE-INP-24` | `FE-RWI-066` | `BE-RWI-083` | Acceptance 18.4 |
+| `ISSUE-EPS-003` — Langkah 2 Pendaftaran Pasien Baru | — | `FE-INP-03` skema 3.3 | `FE-RWI-203` s.d. `FE-RWI-207` | — | `PLAN-REPAIR-EPS-003` register status |
 
 **Gap keterkaitan requirement ke bukti verifikasi:** nol untuk permukaan frontend sub-modul ini.
 `FR-RI-191` dan `FR-RI-192` permukaannya ada di ruang kerja dokter `FE-DOK-09`, dan dicatat pada

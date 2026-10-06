@@ -7,7 +7,7 @@ submodule: episode-rawat-inap
 layar: "Admisi Rawat Inap — Langkah 2 Pendaftaran Pasien Baru (FE-INP-03, skema tampilan 3.3)"
 sumber_laporan: "Laporan pemilik 06-10-2026: 7 butir bernomor (butir 3 kosong), 8 lampiran screenshot dan capture database"
 tanggal_issue: "2026-10-06"
-status: TERBUKA
+status: SELESAI   # 2026-10-06: seluruh perbaikan yang disetujui ✅ (FE-RWI-203..207); butir 3 menunggu P-01; T4/T5 diteruskan ke Patient Management
 keparahan_tertinggi: High
 source_sha_backend: "00fc141f23a6cf04862235dfd3876be22e581b8a (MHamzah)"
 source_sha_frontend: "b010ffb9722f236160477c95c931c22467550200 (HamzahV2)"
@@ -680,3 +680,4 @@ menutupnya.
 | Tanggal | Perubahan | Oleh |
 | --- | --- | --- |
 | 2026-10-06 | Issue dibuat dari laporan pemilik: 7 butir (1 perlu konfirmasi), 5 temuan tambahan, 4 keputusan | `diagnose-module-issue` |
+| 2026-10-06 | Diperbaiki lewat `FE-RWI-203` s.d. `FE-RWI-207` — seluruh perbaikan pada `PLAN-REPAIR-EPS-003` ✅. `K-01` → `RWI-DEC-223`; `K-02` → `RWI-DEC-224`; `K-03` dan `K-04` masih terbuka. `ISS-EPS-003-03` menunggu jawaban pelapor (`P-01`); `ISS-EPS-003-T4` dan `T5` diteruskan ke pemilik Patient Management | `build-module-frontend` |

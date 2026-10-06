@@ -15,13 +15,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly EncounterInsuranceService _encounterInsuranceService;
+        private readonly CompanyGuarantorCoverageService? _companyGuarantorCoverageService;
 
         public InsuranceCoverageService(
             ApplicationDbContext dbContext,
-            EncounterInsuranceService encounterInsuranceService)
+            EncounterInsuranceService encounterInsuranceService,
+            CompanyGuarantorCoverageService? companyGuarantorCoverageService = null)
         {
             _dbContext = dbContext;
             _encounterInsuranceService = encounterInsuranceService;
+            _companyGuarantorCoverageService = companyGuarantorCoverageService;
         }
 
         public async Task<InsuranceCoverageResult> ResolveDrugAsync(
@@ -148,6 +151,69 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             quantity = quantity <= 0 ? 1 : quantity;
             var hospitalUnitPrice = Math.Max(0, tariff.NormalPrice);
             var hospitalTotalPrice = RoundMoney(hospitalUnitPrice * quantity);
+
+            if (context.PaymentType == EncounterPaymentType.CompanyGuarantor)
+            {
+                if (_companyGuarantorCoverageService != null && context.CompanyGuarantorId.HasValue)
+                {
+                    try
+                    {
+                        var compResult = await _companyGuarantorCoverageService.ResolveTariffAsync(
+                            context.EncounterId,
+                            tariff.Id,
+                            quantity,
+                            context.ServiceDate,
+                            cancellationToken);
+
+                        if (compResult.IsValid)
+                        {
+                            return new InsuranceCoverageResult
+                            {
+                                IsValid = true,
+                                TariffId = tariff.Id,
+                                TariffCode = tariff.TariffCode,
+                                TariffName = tariff.TariffName,
+                                PaymentType = EncounterPaymentType.CompanyGuarantor,
+                                PaymentTypeName = "Penjamin Perusahaan",
+                                PricingSource = compResult.PricingSource,
+                                IsCoverageApplicable = compResult.IsCoverageApplicable,
+                                IsCovered = compResult.IsCovered,
+                                CoverageStatus = compResult.CoverageStatus,
+                                CoveragePercent = compResult.CoveragePercent,
+                                Quantity = quantity,
+                                HospitalUnitPrice = compResult.HospitalUnitPrice,
+                                UnitPrice = compResult.UnitPrice,
+                                TotalPrice = compResult.TotalPrice,
+                                CoveredAmount = compResult.CoveredAmount,
+                                PatientPayAmount = compResult.PatientPayAmount,
+                                CoPaymentAmount = compResult.CoPaymentAmount,
+                                IsNeedApproval = compResult.IsNeedApproval,
+                                IsNeedGuaranteeLetter = compResult.IsNeedGuaranteeLetter,
+                                IsAllowExcessPaymentByPatient = compResult.IsAllowExcessPaymentByPatient,
+                                IsFallbackTariff = isFallbackTariff,
+                                PricingWarning = pricingWarning,
+                                CoverageNote = compResult.CoverageNote ?? pricingWarning,
+                                Warnings = compResult.Warnings != null && compResult.Warnings.Count > 0
+                                    ? compResult.Warnings
+                                    : (string.IsNullOrWhiteSpace(pricingWarning) ? new List<string>() : new List<string> { pricingWarning })
+                            };
+                        }
+                    }
+                    catch
+                    {
+                        // Fallback ke tarif rumah sakit jika service aturan mengalami kendala
+                    }
+                }
+
+                return BuildCashResult(
+                    tariff,
+                    context,
+                    quantity,
+                    hospitalUnitPrice,
+                    hospitalTotalPrice,
+                    isFallbackTariff,
+                    pricingWarning);
+            }
 
             if (context.PaymentType == EncounterPaymentType.Cash || !context.HasInsurance)
             {

@@ -109,6 +109,7 @@ frontend_roadmap: roadmap/frontend-roadmap-v2.md
 | `4` | 2026-09-16 | `FE-RWI-063` selesai diimplementasikan pada frontend (`QuilvianSystemFrontendDev`). Komposisi dialog dokter pendukung `FE-INP-21`, aksi tambah dan akhiri penugasan, penguncian peran dan waktu selesai pada `LateDocumentation`, penyembunyian tombol bagi selain kepala ruangan/supervisor (`UAT-48`), penanganan galat 422, dan auto-refresh riwayat penugasan terbukti di source. `npm run lint:errors` bersih (0 error), `npm run build` sukses (exit code 0). Laporan tracked: [FE-RWI-063.md](../task/report/frontend/FE-RWI-063.md) |
 | `5` | 2026-09-17 | Seluruh task backend V2 `BE-RWI-083`, `BE-RWI-084`, `BE-RWI-086`, `BE-RWI-087` diselesaikan `✅` sesudah dependensi `BE-RWI-097` (`PatientProcedureOrderService`) dan `BE-RWI-114`/`BE-RWI-118` (`MedicationAdministrationService`) mendarat penuh. Langkah 5 dan Langkah 6 penutupan episode telah terintegrasi di `InpDischargeService.Closure.cs`. Seluruh 9 task backend V2 kini `✅` SELESAI (9/9). |
 | `6` | 2026-09-23 | `ISSUE-EPS-002` dibuka dari pemeriksaan `testing/laporan-testing-semua-tipe-pasien.md`. Lima temuan, seluruhnya terverifikasi ke source. `FE-RWI-096` ✅ menutup jalan buntu admisi bayi baru lahir sesuai keputusan pemilik bahwa kemampuan itu belum masuk rilis ini; `FE-RWI-022` diturunkan ke 🟡 beserta `EPIC RI-33` dan milestone `F9`; laporan pengujian dikoreksi karena menyatakan lulus 100% dan mendokumentasikan dua endpoint yang tidak ada; penghitung nomor task diperbaiki karena basi. `BE-RWI-128` untuk endpoint episode ibu aktif **ditunda** ke rilis berikutnya |
+| `8` | 2026-10-06 | `ISSUE-EPS-003` dibuka dari laporan pemilik atas Langkah 2 Pendaftaran Pasien Baru (tujuh butir, satu perlu konfirmasi, lima temuan tambahan) dan diperbaiki lewat `PLAN-REPAIR-EPS-003`: `FE-RWI-203` s.d. `FE-RWI-207` ✅. `npx eslint src --quiet` exit `0`; `npm run build` PASS; unit test baru 9/9; uji peramban `NOT RUN`, dikecualikan atas keputusan pemilik. Keputusan `RWI-DEC-223` dan `RWI-DEC-224`; skema tampilan naik ke revision `0.6` |
 | `7` | 2026-09-28 | `FE-RWI-101` ✅ — tambah penjamin pada langkah Pembayaran admisi disamakan dengan kiosk atas keputusan pemilik (opsi A). Lint `0 errors`; build dan uji peramban `NOT RUN`, dikecualikan atas keputusan pemilik. Laporan tracked: [FE-RWI-101.md](../task/report/frontend/FE-RWI-101.md) |
 
 ---
@@ -140,3 +141,23 @@ alur tambah penjamin disamakan persis dengan kiosk pasien lama.
 | Isian ekstra pada tambah asuransi/perusahaan dihapus; alur cari master → panel kanan → simpan seperti kiosk | `FE-RWI-101` | ✅ | [Laporan](../task/report/frontend/FE-RWI-101.md) |
 | Masa aktif kartu penjamin baru wajib dipilih dan tersimpan ke `notes` | `FE-RWI-101` | ✅ | [Laporan](../task/report/frontend/FE-RWI-101.md) bagian 5 |
 | "Batalkan Pilihan" sebelumnya tidak berbuat apa-apa | `FE-RWI-101` | ✅ diperbaiki lewat `clearPayerSelection` | [Laporan](../task/report/frontend/FE-RWI-101.md) bagian 1 temuan 2 |
+
+---
+
+## Traceability perbaikan `ISSUE-EPS-003` — 6 Oktober 2026
+
+Sumber temuan: laporan pemilik atas Langkah 2 Pendaftaran Pasien Baru admisi rawat inap. Dokumen issue: [`../docs/issue/issue-003-pendaftaran-pasien-baru.md`](../docs/issue/issue-003-pendaftaran-pasien-baru.md); rencana dan register status: [`../docs/plan-repair/plan-repair-003-pendaftaran-pasien-baru.md`](../docs/plan-repair/plan-repair-003-pendaftaran-pasien-baru.md).
+
+| Butir | Keparahan | Perbaikan | Task | Status | Bukti |
+| --- | --- | --- | --- | --- | --- |
+| `ISS-EPS-003-01` — tombol Input Manual tidak berfungsi | Medium | `FIX-EPS-003-01` | `FE-RWI-203` | ✅ | [Laporan](../task/report/frontend/FE-RWI-203.md) |
+| `ISS-EPS-003-02` — dua pilihan "Bekasi" | High | `FIX-EPS-003-02` | `FE-RWI-204` | ✅ | [Laporan](../task/report/frontend/FE-RWI-204.md) |
+| `ISS-EPS-003-03` — butir 3 kosong | — | — | — | Menunggu jawaban pelapor (`P-01`) | Dokumen issue |
+| `ISS-EPS-003-04` — isian UUID | High | `FIX-EPS-003-04` | `FE-RWI-205` | ✅ | [Laporan](../task/report/frontend/FE-RWI-205.md) |
+| `ISS-EPS-003-05` — Jam Lahir kontrol bawaan peramban | Low | `FIX-EPS-003-05` | `FE-RWI-205` | ✅ | [Laporan](../task/report/frontend/FE-RWI-205.md) |
+| `ISS-EPS-003-06` — tiga kartu dapat dicentang bersamaan | High | `FIX-EPS-003-06` | `FE-RWI-206` | ✅ | [Laporan](../task/report/frontend/FE-RWI-206.md) |
+| `ISS-EPS-003-07` — tombol Simpan mati tanpa penjelasan | Medium | `FIX-EPS-003-07`, `FIX-EPS-003-10` | `FE-RWI-207` | ✅ | [Laporan](../task/report/frontend/FE-RWI-207.md); skema 3.3 revision `0.6`; `RWI-DEC-223` |
+| `ISS-EPS-003-T1` — scan KTP Kota Bekasi bisa ke Kabupaten | High | `FIX-EPS-003-03` | `FE-RWI-204` | ✅ | [Laporan](../task/report/frontend/FE-RWI-204.md) |
+| `ISS-EPS-003-T2` — pesan "Failed to fetch" | Low | `FIX-EPS-003-08` | `FE-RWI-203` | ✅ | [Laporan](../task/report/frontend/FE-RWI-203.md) |
+| `ISS-EPS-003-T3` — Metode Persalinan untuk semua pasien | Low | `FIX-EPS-003-09` | `FE-RWI-206` | ✅ | [Laporan](../task/report/frontend/FE-RWI-206.md) |
+| `ISS-EPS-003-T4`, `ISS-EPS-003-T5` — rute tier keliru; UUID di master data pasien | Medium | — | — | Di luar sub-modul ini — diteruskan ke pemilik Patient Management | Dokumen issue bagian 6 |

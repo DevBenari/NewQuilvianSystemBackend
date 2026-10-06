@@ -3,10 +3,10 @@
 ```yaml
 plan_id: PLAN-REPAIR-EPS-003
 issue: ../issue/issue-003-pendaftaran-pasien-baru.md
-status_rencana: MENUNGGU_PERSETUJUAN
+status_rencana: SELESAI   # seluruh 10 perbaikan ✅ pada 2026-10-06
 tanggal_rencana: "2026-10-06"
-diputuskan_oleh: null
-tanggal_keputusan: null
+diputuskan_oleh: "Pemilik modul — perintah implementasi 2026-10-06"
+tanggal_keputusan: "2026-10-06"
 basis_source_backend: "00fc141f23a6cf04862235dfd3876be22e581b8a (MHamzah)"
 basis_source_frontend: "b010ffb9722f236160477c95c931c22467550200 (HamzahV2)"
 perubahan_backend: "Tidak ada — seluruh perbaikan source berada di frontend"
@@ -24,19 +24,21 @@ desain, karena salah satu butir ternyata sesuai skema yang disetujui.
 
 | ID perbaikan | Menutup | Ringkasan | Area | Prioritas | Task ID | Status | Bukti |
 | --- | --- | --- | --- | :---: | --- | --- | --- |
-| `FIX-EPS-003-01` | `ISS-EPS-003-01` | Sembunyikan tombol "Input Manual" yang tidak berfungsi; tampilkan kalimat "isi formulir secara manual" | FE | 2 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-003-02` | `ISS-EPS-003-02` | Label daftar kota memuat jenisnya: "Kabupaten Bekasi" / "Kota Bekasi" | FE | 1 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-003-03` | `ISS-EPS-003-T1` | Pencocokan hasil scan KTP membedakan Kota dan Kabupaten; tidak menebak saat seri | FE | 1 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-003-04` | `ISS-EPS-003-04` | Hapus seluruh isian UUID; Tier Membership dan Pasien Ibu menjadi daftar pilihan | FE | 1 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-003-05` | `ISS-EPS-003-05` | Jam Lahir memakai `FilterTimePicker` | FE | 3 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-003-06` | `ISS-EPS-003-06` | Susun ulang Data tambahan pasien menurut makna | FE | 2 | — | ⛔ TERBLOKIR — menunggu keputusan `K-02` | — |
-| `FIX-EPS-003-07` | `ISS-EPS-003-07` | Tombol Simpan selalu dapat ditekan; ringkasan dan fokus ke isian yang kurang | FE | 1 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-003-08` | `ISS-EPS-003-T2` | Pesan galat scanner berbahasa Indonesia, bukan "Failed to fetch" | FE | 3 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-003-09` | `ISS-EPS-003-T3` | "Metode Persalinan" pindah ke data kelahiran bayi | FE | 3 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-003-10` | `ISS-EPS-003-07`, `ISS-EPS-003-06` | Revisi skema tampilan 3.3 dan 4.2 agar tidak membantah source | Dokumen | 1 | — | BELUM DIKERJAKAN — bagian (b) menunggu `K-02` | — |
+| `FIX-EPS-003-01` | `ISS-EPS-003-01` | Sembunyikan tombol "Input Manual" yang tidak berfungsi; tampilkan kalimat "isi formulir secara manual" | FE | 2 | `FE-RWI-203` | ✅ SELESAI 2026-10-06 | [FE-RWI-203](../../task/report/frontend/FE-RWI-203.md) |
+| `FIX-EPS-003-02` | `ISS-EPS-003-02` | Label daftar kota memuat jenisnya: "Kabupaten Bekasi" / "Kota Bekasi" | FE | 1 | `FE-RWI-204` | ✅ SELESAI 2026-10-06 | [FE-RWI-204](../../task/report/frontend/FE-RWI-204.md) |
+| `FIX-EPS-003-03` | `ISS-EPS-003-T1` | Pencocokan hasil scan KTP membedakan Kota dan Kabupaten; tidak menebak saat seri | FE | 1 | `FE-RWI-204` | ✅ SELESAI 2026-10-06 | [FE-RWI-204](../../task/report/frontend/FE-RWI-204.md) |
+| `FIX-EPS-003-04` | `ISS-EPS-003-04` | Hapus seluruh isian UUID; Tier Membership dan Pasien Ibu menjadi daftar pilihan | FE | 1 | `FE-RWI-205` | ✅ SELESAI 2026-10-06 | [FE-RWI-205](../../task/report/frontend/FE-RWI-205.md) |
+| `FIX-EPS-003-05` | `ISS-EPS-003-05` | Jam Lahir memakai `FilterTimePicker` | FE | 3 | `FE-RWI-205` | ✅ SELESAI 2026-10-06 | [FE-RWI-205](../../task/report/frontend/FE-RWI-205.md) |
+| `FIX-EPS-003-06` | `ISS-EPS-003-06` | Susun ulang Data tambahan pasien menurut makna | FE | 2 | `FE-RWI-206` | ✅ SELESAI 2026-10-06 — `K-02` diambil sebagai `RWI-DEC-224` | [FE-RWI-206](../../task/report/frontend/FE-RWI-206.md) |
+| `FIX-EPS-003-07` | `ISS-EPS-003-07` | Tombol Simpan selalu dapat ditekan; ringkasan dan fokus ke isian yang kurang | FE | 1 | `FE-RWI-207` | ✅ SELESAI 2026-10-06 | [FE-RWI-207](../../task/report/frontend/FE-RWI-207.md) |
+| `FIX-EPS-003-08` | `ISS-EPS-003-T2` | Pesan galat scanner berbahasa Indonesia, bukan "Failed to fetch" | FE | 3 | `FE-RWI-203` | ✅ SELESAI 2026-10-06 | [FE-RWI-203](../../task/report/frontend/FE-RWI-203.md) |
+| `FIX-EPS-003-09` | `ISS-EPS-003-T3` | "Metode Persalinan" pindah ke data kelahiran bayi | FE | 3 | `FE-RWI-206` | ✅ SELESAI 2026-10-06 | [FE-RWI-206](../../task/report/frontend/FE-RWI-206.md) |
+| `FIX-EPS-003-10` | `ISS-EPS-003-07`, `ISS-EPS-003-06` | Revisi skema tampilan 3.3 dan 4.2 agar tidak membantah source | Dokumen | 1 | — (dokumen) | ✅ SELESAI 2026-10-06 | `../../05-skema-tampilan.md` revision `0.6`; `RWI-DEC-223`, `RWI-DEC-224` pada `../../../00-interview-decisions.md` revision `34` |
 
-**Ringkasan: 0 dari 10 perbaikan selesai.** Seluruhnya menunggu persetujuan rencana; `FIX-EPS-003-06`
-juga menunggu keputusan `K-02`.
+**Ringkasan: 10 dari 10 perbaikan selesai** (6 Oktober 2026). Validasi bersama: `npx eslint src --quiet`
+exit `0`; `npm run build` PASS; unit test `inpatient-admission-registration-issue-003.test.mjs` 9/9; suite unit
+penuh 2502/2510 dengan 8 kegagalan di modul lain. Verifikasi peramban `NOT RUN`, dikecualikan atas keputusan
+pemilik 1 dan 10 September 2026.
 
 Kolom **Task ID** diisi saat task didaftarkan ke `roadmap/frontend-roadmap-v2.md`. Ruang nomor
 `FE-RWI-###` dipakai bersama seluruh sub-modul rawat inap, jadi nomornya diambil pada saat itu dengan
@@ -786,23 +788,26 @@ Isi revisinya ada pada bagian 7.
 ## 5. Urutan pengerjaan
 
 ```text
-FIX-EPS-003-10 (a)   revisi skema tombol Simpan — keputusan K-01 sudah diambil
-└── FIX-EPS-003-07   tombol Simpan selalu aktif + ringkasan + fokus
+FIX-EPS-003-10 ✅ (a)   revisi skema tombol Simpan — keputusan K-01 sudah diambil
+└── FIX-EPS-003-07 ✅   tombol Simpan selalu aktif + ringkasan + fokus
 
-FIX-EPS-003-04       hapus isian UUID; Tier Membership dan Pasien Ibu jadi daftar pilihan
-└── FIX-EPS-003-06   ⛔ susun ulang Data tambahan — juga menunggu K-02 dan FIX-EPS-003-10 (b)
-    └── FIX-EPS-003-09   Metode Persalinan pindah ke data kelahiran
+FIX-EPS-003-04 ✅       hapus isian UUID; Tier Membership dan Pasien Ibu jadi daftar pilihan
+└── FIX-EPS-003-06 ✅   susun ulang Data tambahan — K-02 diambil sebagai RWI-DEC-224
+    └── FIX-EPS-003-09 ✅   Metode Persalinan pindah ke data kelahiran
 
-FIX-EPS-003-02       label Kota/Kabupaten
-└── FIX-EPS-003-03   pencocokan scan KTP membedakan Kota/Kabupaten
+FIX-EPS-003-02 ✅       label Kota/Kabupaten
+└── FIX-EPS-003-03 ✅   pencocokan scan KTP membedakan Kota/Kabupaten
 
-FIX-EPS-003-01       sembunyikan tombol Input Manual          tanpa dependency
-FIX-EPS-003-05       Jam Lahir memakai FilterTimePicker       tanpa dependency
-FIX-EPS-003-08       pesan galat scanner berbahasa Indonesia  tanpa dependency
+FIX-EPS-003-01 ✅       sembunyikan tombol Input Manual          tanpa dependency
+FIX-EPS-003-05 ✅       Jam Lahir memakai FilterTimePicker       tanpa dependency
+FIX-EPS-003-08 ✅       pesan galat scanner berbahasa Indonesia  tanpa dependency
 ```
 
 **Usulan pengelompokan menjadi task builder** — satu baris satu task `build-module-frontend`, dikelompokkan
 menurut berkas agar tidak saling bertabrakan:
+
+Task builder yang benar-benar dipakai: A = `FE-RWI-203`, B = `FE-RWI-204`, C = `FE-RWI-205`, D = `FE-RWI-206`,
+E = `FE-RWI-207` — seluruhnya ✅ pada 6 Oktober 2026.
 
 | Task | Perbaikan | Berkas utama | Boleh mulai |
 | --- | --- | --- | --- |
@@ -821,9 +826,9 @@ Task C dan D sama-sama menyentuh `new-patient-form.jsx`, sehingga dikerjakan ber
 | No | Keputusan | Pilihan | Rekomendasi | Menahan |
 | ---: | --- | --- | --- | --- |
 | K-01 | Tombol Simpan selalu dapat ditekan dan mengarahkan ke isian yang kurang | — | **Sudah diambil** pelapor, laporan 06-10-2026 butir 7 | — |
-| K-02 | Isi bagian Data tambahan pasien pada admisi rawat inap | (a) Pasien Member + Tier Membership wajib + Catatan; (b) hapus seluruh bagian; (c) tiga kartu saling-kunci | **(a)** | `FIX-EPS-003-06`, `FIX-EPS-003-09`, `FIX-EPS-003-10` (b) |
+| K-02 | Isi bagian Data tambahan pasien pada admisi rawat inap | (a) Pasien Member + Tier Membership wajib + Catatan; (b) hapus seluruh bagian; (c) tiga kartu saling-kunci | **Diambil: (a)** sebagai `RWI-DEC-224` — pemilik memerintahkan implementasi rencana tanpa memilih opsi lain; dapat dikoreksi | `FIX-EPS-003-06`, `FIX-EPS-003-09`, `FIX-EPS-003-10` (b) |
 | K-03 | Aturan "UUID tidak boleh diinput dan tidak boleh tampil" menjadi aturan global frontend | Ya / tidak | **Ya** — dimasukkan ke `rules/frontend/ui-consistency-checklist.md` lewat repository skill | Tidak menahan |
-| K-04 | Bila peran petugas admisi belum punya izin baca Tier Membership | (a) tambah izin `MembershipTier : Read`; (b) backend menyediakan daftar tier berkebijakan baca registrasi | **(a)** bila izin itu layak bagi admisi | `FIX-EPS-003-04` — hanya bila verifikasi izin gagal |
+| K-04 | Bila peran petugas admisi belum punya izin baca Tier Membership | (a) tambah izin `MembershipTier : Read`; (b) backend menyediakan daftar tier berkebijakan baca registrasi | **(a)** bila izin itu layak bagi admisi. **Masih terbuka:** izinnya belum diverifikasi; layar menampilkan pesan jelas bila daftar gagal dimuat | `FIX-EPS-003-04` — hanya bila verifikasi izin gagal |
 
 ---
 
@@ -868,3 +873,5 @@ Dijalankan setelah task A sampai E selesai, dengan data pseudonim pada database 
 | Tanggal | Perubahan | Oleh |
 | --- | --- | --- |
 | 2026-10-06 | Rencana dibuat: 10 perbaikan, 4 keputusan; menunggu persetujuan pemilik | `diagnose-module-issue` |
+| 2026-10-06 | Pemilik memerintahkan implementasi. `K-01` dicatat sebagai `RWI-DEC-223`; `K-02` diambil sesuai rekomendasi (a) sebagai `RWI-DEC-224`. Task `FE-RWI-203` s.d. `FE-RWI-207` didaftarkan pada `roadmap/frontend-roadmap-v2.md` | `build-module-frontend` |
+| 2026-10-06 | Seluruh 10 perbaikan ✅. Selisih dari rencana: (1) `FIX-EPS-003-04` langkah 1 — payload mengirim GUID kosong, bukan `null`; setara karena server membacanya sebagai `null` (`NormalizeNullableGuid`). (2) `FIX-EPS-003-02` — helper kiosk **tidak** dipindah ke util bersama agar kiosk tidak tersentuh; logika jenis kota ditulis di service IGD dengan bobot yang sama. (3) `FIX-EPS-003-03` — admisi sebelumnya membuang daftar wilayah yang gagal dicocokkan; kini ditampilkan sebagai `InformationAlert` di bawah panel scan. (4) `FIX-EPS-003-07` — tautan pada ringkasan memakai `BaseButton` varian `ghost`. (5) Unit test baru `tests/unit/inpatient-admission-registration-issue-003.test.mjs` menangkap satu cacat sungguhan saat implementasi (ekspresi `\b` tertulis sebagai karakter backspace), yang langsung diperbaiki | `build-module-frontend` |

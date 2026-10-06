@@ -3,7 +3,7 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `0.5` — naik 12 September 2026 karena skema langkah **Deposit** `FE-INP-20` ditulis, menutup `RWI-UI-GAP-008`. Revision `0.4` tetap berlaku bagi kesembilan belas layar lainnya |
+| Revision | `0.6` — naik 6 Oktober 2026: bagian **3.3** (Langkah 2 Pendaftaran) dan baris **Fokus** pada 4.2 direvisi lewat `ISSUE-EPS-003` / `PLAN-REPAIR-EPS-003` (`RWI-DEC-223`, `RWI-DEC-224`); bagian lain tidak berubah. Sebelumnya `0.5` — naik 12 September 2026 karena skema langkah **Deposit** `FE-INP-20` ditulis, menutup `RWI-UI-GAP-008`. Revision `0.4` tetap berlaku bagi kesembilan belas layar lainnya |
 | Status | `draft` — menunggu persetujuan pemilik. Bagian 3.5A **belum disetujui**; ia disusun 12 September 2026 atas permintaan pemilik untuk membuka `FE-RWI-058` dan `FE-RWI-060` |
 | Cakupan revision ini | **`FE-INP-20` saja** — langkah Deposit pada alur admisi, bagian 3.5A. Kesembilan belas layar `FE-INP-01` s.d. `FE-INP-19` **tidak diubah satu baris pun** |
 | Masukan otoritatif | `00-interview-decisions.md` revision `7`; `03-frontend-architecture.md` revision `0.4`; kontrak `0.4.0` |
@@ -253,6 +253,13 @@ selalu membuat petugas mengira setiap admisi menuntut episode ibu.
   │ No. HP         [ 0812xxxxxxx ]  Email  [                    ]    │
   └──────────────────────────────────────────────────────────────────┘
 
+  ▸ Data tambahan pasien (opsional) ── tertutup secara bawaan ──────────
+    [ ] Pasien Member
+        ── tampil HANYA bila dicentang ──
+        Tier Membership * [ Cari nama tier…                    ▾ ]
+    Catatan Pasien      [                                          ]
+    Bayi baru lahir dipilih pada Langkah 1 — Tipe Pasien.
+
   ┌── Kontak Darurat ────────────────────────────────────────────────┐
   │ Nama *  [ Budi Santoso ]  Hubungan * [ Suami  ▾ ]                │
   │ No. HP *[ 0813xxxxxxx  ]                                         │
@@ -265,13 +272,14 @@ selalu membuat petugas mengira setiap admisi menuntut episode ibu.
 | --- | --- | --- | --- |
 | Scan KTP | Tombol pindai dan keadaan sambungannya | jembatan pemindai | `plustek-scan-panel` |
 | Identitas Pasien | Isian pasien baru | isian pengguna | `new-patient-form`, `base-form-control` |
+| Data tambahan pasien (opsional) | Satu kartu Pasien Member; Tier Membership wajib bila dicentang, berlabel nama dan kode tier; Catatan Pasien. **Tidak ada** kartu Bayi Baru Lahir maupun Pasien Meninggal, dan tidak ada isian yang meminta atau menampilkan UUID (`RWI-DEC-224`) | `GET /api/v1/administrator/master-data/membership-tiers/options` dengan `isSelectableInAdmission=true` | `new-patient-form` dengan `specialRegistrationFlags=["member"]` |
 | Kontak Darurat | Nama, hubungan, nomor | isian pengguna | idem |
 
 | Tombol | Jenis | Kapan aktif | Yang terjadi |
 | --- | --- | --- | --- |
 | Mulai Scan KTP | kedua | Pemindai tersedia | Mengisi otomatis wilayah Identitas |
 | Kembali | kedua | selalu | Kembali ke langkah 1 |
-| Simpan & Lanjut ke Pembayaran | utama | Seluruh isian wajib terisi; **mati selama permintaan berjalan** | Berurutan: `POST /patients` → `POST /patient-identity-documents` → `POST /patient-emergency-contacts`; baru lalu maju. Kegagalan berhenti pada operasi terkait |
+| Simpan & Lanjut ke Pembayaran | utama | **Selalu dapat ditekan**; mati hanya selama permintaan berjalan (`RWI-DEC-223`, menggantikan "Seluruh isian wajib terisi") | Isian wajib belum lengkap: **tidak ada request**, ringkasan isian yang kurang tampil, bagian tertutup dibuka bila perlu, lalu fokus pindah ke isian pertama yang kosong. Lengkap: berurutan `POST /patients` → `POST /patient-identity-documents` → `POST /patient-emergency-contacts`; baru lalu maju. Kegagalan berhenti pada operasi terkait |
 
 **Keadaan:**
 
@@ -279,6 +287,8 @@ selalu membuat petugas mengira setiap admisi menuntut episode ibu.
 | --- | --- |
 | Pemindai tidak tersedia | Wilayah Scan KTP tetap tampil disertai kalimat bahwa formulir dapat diisi manual. **Bukan** wilayah yang hilang tanpa penjelasan |
 | Server menolak | `InformationAlert` merah berisi pesan server apa adanya, **di atas** formulir. Isian **tidak hilang** |
+| Isian wajib belum lengkap saat Simpan ditekan | `InformationAlert` peringatan **di atas** formulir: jumlah isian dan nama setiap isian beserta bagiannya, masing-masing dapat diklik. Fokus pindah ke isian pertama yang kosong; ringkasan hilang sendiri setelah semua dilengkapi (`RWI-DEC-223`) |
+| Wilayah hasil scan KTP tidak dapat dicocokkan | `InformationAlert` peringatan di bawah wilayah Scan KTP yang menyebut wilayah yang perlu dipilih manual. Nama kota kembar — misalnya Kota dan Kabupaten Bekasi — tidak pernah ditebak bila jenisnya tidak terbaca dari KTP |
 
 ---
 
@@ -847,7 +857,7 @@ operasional.
 | Layar sedang | Filter membungkus ke beberapa baris; wilayah dua kolom menjadi satu kolom tanpa mengubah urutan baca |
 | Layar sempit | Tabel boleh digeser horizontal dengan kolom identitas dan aksi tetap mudah ditemukan; kartu bed menjadi satu kolom. Alur admisi tidak memotong langkah |
 | Keyboard | Semua kartu pilihan, tab, tautan, tombol, dialog, dan kontrol form dapat dicapai serta dijalankan tanpa mouse |
-| Fokus | Dialog menahan fokus dan mengembalikannya ke pemicu; setelah error fokus pindah ke ringkasan error |
+| Fokus | Dialog menahan fokus dan mengembalikannya ke pemicu; setelah error fokus pindah ke ringkasan error. **Pengecualian formulir pendaftaran pasien baru (3.3):** fokus pindah ke isian pertama yang salah, sedangkan ringkasannya tetap tampil di atas formulir (`RWI-DEC-223`) |
 | Status | Warna tidak menjadi satu-satunya pembeda; setiap badge punya teks dan nama aksesibel |
 | Tabel | Header terbaca pembaca layar; aksi baris memiliki nama yang menyebut episode atau bed sasaran |
 | Cetak | Urutan baca identitas → isi persetujuan → tanda tangan tetap benar tanpa navigasi aplikasi |
