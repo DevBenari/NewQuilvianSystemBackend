@@ -5895,3 +5895,59 @@ blueprint `9`, manifest bagian 0n): API `0.15.0` §10, validation `0.14.0` §12,
 | `IGD-DEC-230` | Decision | **Desain Ruang Kerja Dokter IGD (`EPIC IGD-14`, manifest bagian 0n) disetujui seluruhnya, termasuk delapan pilihan desain `02-backend-architecture.md` §15.11**: (1) tindakan keperawatan mencatat DPJP aktif dan ditolak tanpa DPJP; (2) arti *diagnosis yang dihitung* — ICD-10, `Active`/`Resolved`, bukan banding, catatan tidak dibatalkan; (3) konfirmasi tanpa diagnosis ditolak `409`; (4) tindak lanjut baru dibatasi Draft (`IGD-CONF-11`); (5) kajian medis dan tindakan keperawatan baru ditolak pada kunjungan berakhir; (6) perawat memesan lab dan radiologi atas instruksi, bank darah/hemodialisa/gizi hanya oleh dokter sampai `IGD-OQ-118`; (7) dokter pemberi instruksi yang sah = dokter aktif; (8) saringan *Pasien saya* memakai `doctorId` dari layar. Kartu yang bergantung pada `IGD-OQ-117` dan `IGD-OQ-119` ditandai ⛔ dengan nama blocker-nya; bagian lain boleh direncanakan. *Contoh:* `plan-module-delivery` boleh menerbitkan kartu daftar pasien dokter dan penjaga diagnosis sekarang, sedangkan kartu pesanan lab oleh perawat atas instruksi menunggu jawaban pemilik Laboratorium dan Radiologi | Product/Domain Owner IGD | `approved` (sementara, pola `IGD-DEC-174`) | **Rizki Gunawan / 2026-10-06** | Pilihan interaktif *"Setujui seluruhnya"* (direkomendasikan agent) |
 
 Langkah berikutnya: `plan-module-delivery` untuk `MVP-9` — kartu backend dan frontend berpasangan.
+
+### Keputusan perencanaan `plan-module-delivery` `MVP-9` — 6 Oktober 2026 (sore)
+
+*Amendment pass* `grill-me` sempit yang dijalankan saat `plan-module-delivery` menurunkan `EPIC IGD-14` menjadi kartu.
+Snapshot: backend `rizkiG` `e3cbc58d` (commit dokumen desain di atas `43dab6da`; **nol** berkas di luar `docs/` berubah —
+`git diff --stat 43dab6da e3cbc58d -- . ':(exclude)docs'` kosong), frontend `RizkiV2` `6680278a2`. Capability map
+suplemen 3.4 karena itu tidak basi untuk area ini.
+
+| Batas | Isi |
+| --- | --- |
+| Di dalam scope | Isi halaman *Catatan Saya* Ruang Kerja Dokter IGD (`SCR-IGD-D02`); dua fakta source lain yang ditemukan saat kartu disusun |
+| Di luar scope | Aturan pendaftaran draf catatan dokter milik Rawat Inap (`BE-RWI-091`, `RWI-DEC-144`, `RWI-DEC-151`); label status encounter di layar Registrasi |
+
+#### Fakta
+
+| ID | Isi | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-085` | Draf catatan dokter didaftarkan ke mesin keutuhan rekam medis sejak simpan pertama **hanya** bila pasien punya episode rawat inap. Draf poliklinik, medical check-up, dan IGD baru terdaftar saat catatan diselesaikan, langsung sebagai catatan tertanda tangan. Akibatnya daftar draf *Catatan Saya* (`GET …/clinical-document-integrities/my-unsigned`) tidak pernah memuat draf IGD, dan penguncian dokumen terbuka saat kunjungan IGD ditutup tidak menjangkau draf IGD. Catatan IGD yang sudah diselesaikan terbaca di `my-authored`. *Contoh:* dr. Ani menyimpan draf SOAP untuk Tn. Budi pukul 10.40 — draf itu ada di tab Catatan Dokter pasien, tetapi tidak di daftar draf *Catatan Saya* | `DoctorConsultationController.cs` `:663` (`RegisterAsync` hanya bila `inpEpisodeId` terisi; komentar *"BATASNYA: HANYA RAWAT INAP"*); `ConsultationFinalizationService.cs` `:185` (`RegisterSignedAsync`); `EmergencyVisitService.cs` `:639` (`LockOpenDocumentsForEncounterAsync`) @`e3cbc58d` |
+| `IGD-FACT-086` | Halaman *Catatan Saya* rawat inap selalu mengirim `serviceContext: "Inpatient"`. Backend hanya mengenal tiga konteks: `All`, `Inpatient`, dan `Outpatient` (= di luar rawat inap: poliklinik, medical check-up, IGD); **tidak ada** konteks khusus IGD. Catatan dokter IGD karena itu hanya terbaca bila halaman memakai `All` atau `Outpatient`. Status `IGD-CAP-74` pada capability map (*Ready to reuse*) dibaca sebagai *Reuse with adapter* | frontend `use-my-authored-notes.js` `:45`, `my-drafts-tab.jsx` `:77` @`6680278a2`; backend `ClinicalDocumentServiceContext`; `ClinicalDocumentIntegrityController.cs` `:243`, `:274` @`e3cbc58d` |
+| `IGD-FACT-087` | Membuat catatan dokter mengubah status encounter menjadi `InConsultation` (atau `ConsultationCompleted` bila langsung diselesaikan), dan menyelesaikan catatan mengubahnya menjadi `ConsultationCompleted` — untuk encounter jenis apa pun, termasuk `Emergency`. Perilaku ini sudah ada sejak `BE-IGD-028`. **Tidak ada** penjaga yang menganggap kedua status itu "berakhir": aturan episode IGD, penutupan kunjungan IGD, Lab `VAL-67`, Bank Darah, dan Hemodialisa hanya memakai `Completed`, `Cancelled`, `NoShow`, sehingga pesanan penunjang tetap diterima dan penutupan kunjungan tetap mengubah encounter ke `Completed`. Dampaknya terbatas pada label status encounter di layar Registrasi — *"Konsultasi Selesai"* selama pasien masih di IGD | `DoctorConsultationController.cs` `:630`; `ConsultationFinalizationService.cs` `:159`; `EmergencyEpisodeRule.cs` `:46`–`:48`; `EmergencyVisitService.cs` `:627`; `LabOrderService.cs` `:824`; `BbkEncounterStatusReader.cs` `:58`; `HmdServiceSupport.cs` `:59` @`e3cbc58d` |
+
+#### Keputusan
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-231` | Decision | **Halaman *Catatan Saya* Ruang Kerja Dokter IGD memuat catatan dokter yang sudah diselesaikan beserta addendum-nya; draf catatan dokter IGD dibuka dari tab Catatan Dokter pasien yang bersangkutan, bukan dari daftar draf *Catatan Saya*.** Menyempitkan `IGD-DEC-227` pada kata *"draf"* untuk halaman *Catatan Saya*; aturan kunci-dan-addendum `IGD-DEC-227` tetap utuh. Nol kode backend baru — perilakunya sama dengan catatan dokter poliklinik hari ini (`IGD-FACT-085`). Halaman memakai konteks layanan `Outpatient` atau `All` (`IGD-FACT-086`; pilihannya `DEV_DISCRETION` saat build). Konsekuensi yang diterima: tidak ada daftar draf lintas pasien untuk IGD, dan draf IGD yang terlupa tidak ikut terkunci saat kunjungan ditutup. *Contoh:* dr. Ani menyimpan draf SOAP untuk Tn. Budi pukul 10.40 lalu dipanggil ke pasien lain; draf itu tidak tampil di *Catatan Saya*, tetapi tampil di tab Catatan Dokter saat dr. Ani membuka Tn. Budi lagi. Catatan pukul 10.15 yang sudah diselesaikan tampil di *Catatan Saya* dan dapat diberi addendum | Product/Domain Owner IGD; Rekam Medis sebagai pemilik mekanisme keutuhan | `approved` (sementara, pola `IGD-DEC-174`) | **Rizki Gunawan / 2026-10-06** | Pilihan interaktif *"Terkunci + addendum"* (direkomendasikan agent) |
+
+Perubahan status keputusan lama — baris aslinya tidak diubah:
+
+| ID | Status sesudah pass ini |
+| --- | --- |
+| `IGD-DEC-227` | Kata *"draf"* untuk halaman *Catatan Saya* `superseded` oleh **`IGD-DEC-231`** (6 Oktober 2026); kunci sesudah selesai dan koreksi lewat addendum tetap `approved` |
+
+#### Catatan — bukan keputusan
+
+`IGD-FACT-087` bukan blocker dan tidak menjadi kartu: tidak satu pun penjaga membaca kedua status itu sebagai akhir
+kunjungan. Ia dicatat sebagai risiko pada kartu catatan dokter (`BE-IGD-067`, `FE-IGD-047`) dan pada skenario uji. Bila
+pemilik Registrasi menilai label itu menyesatkan petugas loket, itu keputusan tersendiri di luar slice ini.
+
+#### Yang berubah dan yang tidak
+
+| Butir | Keadaan |
+| --- | --- |
+| Kontrak | **Tidak berubah** — API `0.15.0`, validation `0.14.0`, state `0.10.0`, permission/audit `0.8.0`, integration `0.6.0` |
+| `03-frontend-architecture.md` §15.4 bagian B | Tidak disunting; dibaca bersama `IGD-DEC-231` |
+| `AT-IGD-203` | Berlaku apa adanya — skenario itu hanya menguji catatan terkunci dan addendum dari *Catatan Saya* |
+| Pertanyaan terbuka | Nol baru. `IGD-OQ-117`…`119` dan `IGD-UNK-12`…`17` tetap |
+| Blocker desain | Nol |
+
+#### Acceptance yang dapat diuji
+
+1. Catatan dokter IGD yang sudah diselesaikan tampil di *Catatan Saya* dokter penulisnya dan dapat diberi addendum;
+   isi lama tidak berubah (`AT-IGD-203`).
+2. Draf catatan dokter IGD tampil di tab Catatan Dokter pasien itu dan tidak tampil di daftar draf *Catatan Saya*.
+
+Langkah berikutnya: `plan-module-delivery` `MVP-9` diteruskan pada sesi yang sama (manifest bagian 0n.1).
