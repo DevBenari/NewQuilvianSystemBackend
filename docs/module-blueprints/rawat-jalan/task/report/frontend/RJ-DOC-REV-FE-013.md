@@ -189,3 +189,21 @@ server dev pemilik (`localhost:3000`, backend `7184`, `QuilvianNewDevSukma`) `20
 
 Data uji: `ENC-RSMMC-00212` dibatalkan lewat endpoint aplikasi.
 
+## 8. Revisi 6 Okt 2026 — Input Manual menggulir ke form pasien baru
+
+Permintaan pemilik: pada langkah 1 Pasien Baru, klik **Input Manual** langsung menggulir ke form
+*Data Pasien Baru*. Cakupan mengikuti `RJ-DOC-DEC-039`: Rawat Jalan saja.
+
+| Berkas | Perubahan |
+| --- | --- |
+| `patient-selection-step.jsx` | Prop opsional `scrollToManualFormOnOpen` (default `false`) dan `manualFormClassName`. Klik Input Manual menaikkan penghitung permintaan gulir; effect sesudah render memanggil `scrollIntoView({ behavior: "smooth", block: "start" })` pada section form. Tanpa setState di dalam effect |
+| `outpatient-registration-page.jsx` | Mengirim `scrollToManualFormOnOpen` dan `manualFormClassName` |
+| `outpatient-registration.module.css` | `.manualFormAnchor { scroll-margin-top: calc(var(--app-navbar-height) + var(--space-4)) }` supaya judul form tidak tertutup navbar |
+
+**Validasi:** ESLint pada berkas yang disentuh tanpa error dan tanpa warning baru (5 warning lama
+`patient-selection-step.jsx` tetap); `npm run build` `PASS`. Uji layar `ui_fe013_r3.cjs` di server dev
+pemilik `3/3 PASS`: M1 judul *Informasi Pasien* berhenti di `y=138` px (di bawah navbar 76 px);
+M2 field Nama Lengkap terlihat tanpa gulir manual; M3 IGD tidak digulir (`y=875`). Galat konsol
+`Performance.measure … negative time stamp` muncul juga di halaman IGD dan login — galat mode dev
+Next/React, bukan dari perubahan ini.
+
