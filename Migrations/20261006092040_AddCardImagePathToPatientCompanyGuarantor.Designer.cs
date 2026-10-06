@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,11 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261006092040_AddCardImagePathToPatientCompanyGuarantor")]
+    partial class AddCardImagePathToPatientCompanyGuarantor
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -62051,11 +62054,11 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("ReviewResolvedByUserId");
 
-                    b.HasIndex("Status", "CreateDateTime")
-                        .IsDescending(false, true)
+                    b.HasIndex("VisitDate")
                         .HasFilter("\"IsDelete\" = false");
 
-                    b.HasIndex("VisitDate")
+                    b.HasIndex("Status", "CreateDateTime")
+                        .IsDescending(false, true)
                         .HasFilter("\"IsDelete\" = false");
 
                     b.ToTable("BilInvoice", "public", t =>

@@ -60,6 +60,7 @@ using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Controllers;
 using QuilvianSystemBackend.Responses;
 using System.Threading.RateLimiting;
@@ -450,6 +451,8 @@ try
     builder.Services.AddScoped<EncounterPaymentSourceService>();
     builder.Services.AddScoped<DoctorQueuePatientContextService>();
     builder.Services.AddScoped<EncounterInsuranceService>();
+    // RJ-DOC-REV-BE-013 — penyimpanan foto kartu penjamin pasien hasil scan.
+    builder.Services.AddScoped<PatientPayerCardImageService>();
     builder.Services.AddScoped<InsuranceCoverageService>();
     builder.Services.AddScoped<CompanyGuarantorCoverageService>();
     builder.Services.AddScoped<PrescriptionNumberService>();
