@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `e613321c5` (branch `YogaV2`), di atas `FE-LAB-35`..`FE-LAB-37` yang belum ter-commit |
 | Commit backend yang dijadikan rujukan | `55b032b0` + `BE-LAB-87` (belum ter-commit), `https://localhost:7184` di atas `QuilvianNewDevYoga` |
 | Tanggal | 2026-10-01 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — kedua layar hidup; nol hapus; kode tak dapat diubah; pesan `VAL-140`..`VAL-142` tampil pada isian yang tepat. Uji unit 13/13, lint nol peringatan, build hijau, layar 35/35 terhadap backend lokal. **Batas verifikasi:** pemisahan kepala instalasi/admin dibuktikan dengan **daftar izin tiruan**, bukan akun sungguhan — sandi akun Kepala Instalasi dev tidak tersedia pada sesi ini, dan akun System Administrator belum ada — lihat 6. Naik menjadi ✅ sesudah dijalankan dengan akun Kepala Instalasi dan System Administrator |
+| Status | ✅ **`SELESAI`** (naik 2026-10-02) — pemisahan kepala instalasi/admin kini dibuktikan dengan **akun Kepala Instalasi asli** (dr. Bima) dan superadmin sebagai pengganti System Administrator yang belum punya akun: 7/7, nol tulis ke database. Lihat 9. *(Semula 2026-10-01: ⚠ — kedua layar hidup; nol hapus; kode tak dapat diubah; pesan `VAL-140`..`VAL-142` tampil pada isian yang tepat. Uji unit 13/13, lint nol peringatan, build hijau, layar 35/35 terhadap backend lokal. **Batas verifikasi:** pemisahan kepala instalasi/admin dibuktikan dengan **daftar izin tiruan**, bukan akun sungguhan — sandi akun Kepala Instalasi dev tidak tersedia pada sesi ini, dan akun System Administrator belum ada — lihat 6. Naik menjadi ✅ sesudah dijalankan dengan akun Kepala Instalasi dan System Administrator)* |
 
 ---
 
@@ -210,9 +210,9 @@ Layar: **35/35** `PASS`.
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
 | Pesan `VAL-140`..`VAL-142` tampil terbaca pada isian yang tepat | Terpenuhi | Uji unit; S6, S8, S10 |
-| Sakelar sistem tersembunyi bagi kepala instalasi dan tampil bagi admin | Terpenuhi pada layar dengan izin tiruan | S11, S12 |
+| Sakelar sistem tersembunyi bagi kepala instalasi dan tampil bagi admin | ✅ Terpenuhi — **akun Kepala Instalasi asli** (2026-10-02) dan admin (superadmin pengganti + izin tiruan `Read`/`SystemFlag`) | S11, S12; K1, K2, K5–K7 di 9 |
 | Verifikasi — unit test aturan pemetaan galat ke ruas | Terpenuhi | 13/13 |
-| Verifikasi — kedua layar terhadap backend `BE-LAB-71` dengan akun kepala instalasi dan admin | **Sebagian** — backend nyata dengan superadmin; peran dipisahkan lewat izin tiruan | 6 |
+| Verifikasi — kedua layar terhadap backend `BE-LAB-71` dengan akun kepala instalasi dan admin | ✅ Terpenuhi 2026-10-02 — kepala instalasi **asli**; admin diwakili superadmin, sebab akun System Administrator belum ada (`BE-LAB-71` 8.2) | 6; 9 |
 | DoD — kedua layar hidup; nol hapus; kode tak dapat diubah | Terpenuhi | S1, S3, S8, S10 |
 | DoD — lint dan build hijau; laporan | Terpenuhi | 6; berkas ini |
 
@@ -230,3 +230,29 @@ Layar: **35/35** `PASS`.
 | Interupsi | `NONE` |
 | Status Git | Frontend (`e613321c5`): ` M` `laboratory-constants.jsx`, `store.jsx`, `menu-items.jsx` (sebagian milik task ini; `menu-items.jsx` juga memuat perbaikan impor `RiSafeLine` dari `FE-LAB-35`); `??` seluruh berkas `lab-result-correction-reasons`, `lab-four-eyes-exception-reasons`, `lab-result-reason-rules.js`, `lab-result-reason-rules.test.mjs`; sisanya milik `FE-LAB-35`..`FE-LAB-37`. Backend: laporan ini, `frontend-roadmap.md`, `traceability.md`. **Nol operasi Git dijalankan** |
 | Langkah berikutnya | `FE-LAB-39` (`SIAP DIKERJAKAN`) — memakai `GET /options` kedua daftar ini untuk *Kembalikan ke analis* dan pertanyaan alasan pengecualian |
+
+---
+
+## 9. Verifikasi susulan 2026-10-02 — akun Kepala Instalasi asli
+
+**Lingkungan.** Backend lokal (`dotnet run`, `Development`) terhadap PostgreSQL dev bersama; `next dev`
+port 3000 dari working tree `YogaV2`; Chromium lewat Playwright; login **lewat formulir**. **Seluruh
+tulis dicegat** dan dijawab tiruan — nol data induk berubah.
+
+**Akun.** **dr. Bima (Kepala Instalasi, asli** — pemegang `Read`/`Create`/`Update`, tanpa `SystemFlag`);
+**superadmin** sebagai pengganti System Administrator, sebab akun itu belum ada di dev (`BE-LAB-71` 8.2).
+Daftar izin persis milik admin (`Read`/`SystemFlag` saja) sudah dibuktikan S12 dengan izin tiruan.
+
+| ID | Akun | Skenario | Hasil | Bukti |
+| --- | --- | --- | --- | --- |
+| K1 | dr. Bima | Alasan Pengembalian: Tambah, Perbarui, Aktif/Nonaktif ada; **sakelar wajib catatan TIDAK ada**; nol Hapus | `PASS` | Menu `["Perbarui","Nonaktifkan"]` |
+| K2 | dr. Bima | Alasan Empat Mata: sama | `PASS` | Menu `["Perbarui","Nonaktifkan"]` |
+| K3 | dr. Bima | `VAL-142` formulir ubah: *Kode Alasan* baca-saja | `PASS` | Alamat bertoken `…/sampel-tertukar-…/update` |
+| K4 | dr. Bima | Permintaan ubah **tidak** membawa kode, `isActive`, maupun `requiresNote` | `PASS` | Badan `{reasonName, description, sortOrder}` (dicegat) |
+| K5 | superadmin | Alasan Pengembalian: sakelar wajib catatan **tampil** | `PASS` | Menu `[… "Wajibkan Catatan"]` |
+| K6 | superadmin | Alasan Empat Mata: sama | `PASS` | — |
+| K7 | superadmin | Sakelar berkonfirmasi lalu `PUT …/{id}/system-flags {requiresNote}` | `PASS` | Badan `{"requiresNote":true}` (dicegat) |
+
+Nol perubahan kode diperlukan untuk task ini. Validasi akhir sesi (2026-10-06): uji unit 2308/2314
+(6 gagal = baseline, nol Laboratorium), `lint:errors` 0 error, `npm run build` hijau. **Nol operasi Git
+dijalankan.**

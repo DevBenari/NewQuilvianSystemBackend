@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `57` — `FE-LAB-43` ✅ `SELESAI`; tinggal `FE-LAB-42`, 2026-10-02. Sebelumnya `56` — `FE-LAB-41` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `FE-LAB-42` naik menjadi `SIAP DIKERJAKAN`, 2026-10-02. Sebelumnya `55` — `FE-LAB-40` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `FE-LAB-42` kini hanya menunggu `FE-LAB-41`, 2026-10-02. Sebelumnya `54` — `FE-LAB-39` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `FE-LAB-40` dan `FE-LAB-41` naik menjadi `SIAP DIKERJAKAN`, 2026-10-01. Sebelumnya `53` — **daftar urutan dan status seluruh 45 task** ditulis pada bagian 8.0; `FE-LAB-39` mulai dikerjakan; `FE-LAB-43` naik menjadi `SIAP DIKERJAKAN`, 2026-10-01. Sebelumnya `52` — `FE-LAB-38` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; kedua layar data induk alasan hidup, 2026-10-01. Sebelumnya `51` — `FE-LAB-37` ✅ `SELESAI`; **gelombang `MVP-8` frontend selesai pada kode**, 2026-10-01. Sebelumnya `50` — `FE-LAB-36` naik menjadi ✅ `SELESAI`; perbaikan desimal susulan `FE-LAB-31`/`FE-LAB-32`, 2026-10-01. Sebelumnya `49` — `FE-LAB-36` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `FE-LAB-37` dan `FE-LAB-39` naik menjadi `SIAP DIKERJAKAN`, 2026-10-01. Sebelumnya `48` — `FE-LAB-35` naik menjadi ✅ `SELESAI` sesudah verifikasi dengan akun analis asli; menunggu rilis serempak `MVP-8a`, 2026-10-01. Sebelumnya `47` — `FE-LAB-35` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; menunggu rilis serempak `MVP-8a`, 2026-10-01. Sebelumnya `46` — `FE-LAB-45` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; **`MVP-11b` selesai pada kode**, 2026-09-30. Sebelumnya `45` — `FE-LAB-44` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `FE-LAB-45` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30. Sebelumnya `44` — `FE-LAB-38` `SIAP DIKERJAKAN`; kedua daftar alasan sudah terisi, 2026-09-29. Sebelumnya `43` — gelombang `MVP-11` (`EPIC-LAB-17`, tiga laporan operasional) ditambahkan 2026-09-28: `FE-LAB-44`, `FE-LAB-45`. Sebelumnya `42` — `LAB-DEC-156` diturunkan 2026-09-25 malam; `FE-LAB-36`, `39`, `40`, `41` berubah cakupan. Sebelumnya `41` — gelombang `MVP-10` ditambahkan 2026-09-25. Sebelumnya `40` — gelombang `MVP-9` ditambahkan 2026-09-25. Sebelumnya `39` — gelombang `MVP-8` ditambahkan 2026-09-24. *Baris ini sempat tertinggal di `35` sementara riwayat sudah sampai `38`; dirapikan 2026-09-24* |
+| Roadmap revision | `58` — **verifikasi susulan di peramban:** `FE-LAB-27`, `28`, `29`, `31`, `33`, `34`, `38`, `44`, `45` naik ✅ `SELESAI`; `FE-LAB-32` tetap ⚠ dengan batas baru (respons specimen tanpa id Spesifik Specimen); rekap ✅ 37, ⚠ 4, 2026-10-06. Sebelumnya `57` — `FE-LAB-43` ✅ `SELESAI`; tinggal `FE-LAB-42`, 2026-10-02. Sebelumnya `56` — `FE-LAB-41` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `FE-LAB-42` naik menjadi `SIAP DIKERJAKAN`, 2026-10-02. Sebelumnya `55` — `FE-LAB-40` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `FE-LAB-42` kini hanya menunggu `FE-LAB-41`, 2026-10-02. Sebelumnya `54` — `FE-LAB-39` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `FE-LAB-40` dan `FE-LAB-41` naik menjadi `SIAP DIKERJAKAN`, 2026-10-01. Sebelumnya `53` — **daftar urutan dan status seluruh 45 task** ditulis pada bagian 8.0; `FE-LAB-39` mulai dikerjakan; `FE-LAB-43` naik menjadi `SIAP DIKERJAKAN`, 2026-10-01. Sebelumnya `52` — `FE-LAB-38` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; kedua layar data induk alasan hidup, 2026-10-01. Sebelumnya `51` — `FE-LAB-37` ✅ `SELESAI`; **gelombang `MVP-8` frontend selesai pada kode**, 2026-10-01. Sebelumnya `50` — `FE-LAB-36` naik menjadi ✅ `SELESAI`; perbaikan desimal susulan `FE-LAB-31`/`FE-LAB-32`, 2026-10-01. Sebelumnya `49` — `FE-LAB-36` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `FE-LAB-37` dan `FE-LAB-39` naik menjadi `SIAP DIKERJAKAN`, 2026-10-01. Sebelumnya `48` — `FE-LAB-35` naik menjadi ✅ `SELESAI` sesudah verifikasi dengan akun analis asli; menunggu rilis serempak `MVP-8a`, 2026-10-01. Sebelumnya `47` — `FE-LAB-35` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; menunggu rilis serempak `MVP-8a`, 2026-10-01. Sebelumnya `46` — `FE-LAB-45` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; **`MVP-11b` selesai pada kode**, 2026-09-30. Sebelumnya `45` — `FE-LAB-44` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `FE-LAB-45` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30. Sebelumnya `44` — `FE-LAB-38` `SIAP DIKERJAKAN`; kedua daftar alasan sudah terisi, 2026-09-29. Sebelumnya `43` — gelombang `MVP-11` (`EPIC-LAB-17`, tiga laporan operasional) ditambahkan 2026-09-28: `FE-LAB-44`, `FE-LAB-45`. Sebelumnya `42` — `LAB-DEC-156` diturunkan 2026-09-25 malam; `FE-LAB-36`, `39`, `40`, `41` berubah cakupan. Sebelumnya `41` — gelombang `MVP-10` ditambahkan 2026-09-25. Sebelumnya `40` — gelombang `MVP-9` ditambahkan 2026-09-25. Sebelumnya `39` — gelombang `MVP-8` ditambahkan 2026-09-24. *Baris ini sempat tertinggal di `35` sementara riwayat sudah sampai `38`; dirapikan 2026-09-24* |
 | Status | `DRAFT` |
 | Urutan dan status task | **Bagian [8.0](#80-urutan-dan-status-seluruh-task-frontend--per-2026-10-01)** — 45 task bertanda ✅/⚠/🔄/⏳/⏸/↪/❌, per 2026-10-01 |
 | Bentuk blueprint | `SINGLE` |
@@ -1264,7 +1264,7 @@ bersama `LAB-VAL-v1` `r8` dan `LAB-PERM-v1` rev 7.
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI` 2026-09-23** — ketiga layar terbangun (**37 berkas**: dua fitur data induk penuh, keberlakuan ruas, dan penggolongan jenis pemeriksaan), 10 uji unit baru lulus, lint 0 error, build hijau, **9 route terkompilasi**. `AC-143` ✅ terbukti; `AC-144` dan `AC-145` terbukti pada lapis aturan, **belum diklik di peramban**. Lihat [`FE-LAB-27.md`](../task/report/frontend/FE-LAB-27.md). *(Riwayat hari itu:)* ✅ **`SIAP DIKERJAKAN` — nol penahan tersisa, 2026-09-23.** `BE-LAB-66` selesai dan **izin jabatan Kepala Instalasi sudah diberikan**; kesebelas endpoint terbukti `200` bagi akun yang akan memakai layarnya, dan ketiga `summary` mengembalikan angka sungguhan. **Dua ketiadaan yang disengaja pada grup pemetaan dibaca dari metadata**, bukan disimpulkan: `supportsStatusToggle: false` dan `hasOptionsEndpoint: false`. *(Riwayat hari itu juga:)* ⛔ **`TERTAHAN`** oleh `BE-LAB-66` — *(dikoreksi 2026-09-23; sebelumnya ✅ `SIAP DIKERJAKAN`)*. Gelombang `MVP-6b1`. `BE-LAB-50` memang **selesai 2026-09-18**, tetapi kesepuluh endpoint yang berdiri **bukan permukaan yang dituntut `master-data-feature-standard`**: ketiga grup Patologi Anatomi nol punya `filters/metadata`, `summary`, maupun `GET /{id}`, dan kedua grup berstatus nol punya `PATCH /{id}/status`. **Ini penahan yang sudah diketahui sejak 2026-09-22 dan sengaja dicatat, bukan temuan baru** — `BE-LAB-65` bagian 6ad.1 menyapu kedua puluh dua controller Laboratorium, menemukan gapnya, dan meninggalkan ketiga grup PA justru supaya task ini nol tersandung diam-diam. **Persis kelas yang sudah dua kali menahan task frontend:** `FE-LAB-24` menunggu `BE-LAB-65`, `FE-LAB-34` menunggu `BE-LAB-64`. **`BE-LAB-66` dibuka 2026-09-23** untuk menutupnya — [`backend-roadmap.md`](backend-roadmap.md) bagian 6ae — dan penahan task itu sendiri tunggal serta bukan teknis: amandemen `LAB-API-v1` `r32` belum disetujui |
+| **Status** | ✅ **`SELESAI`** 2026-10-06 *(diverifikasi 2026-10-02)* — ketiga AC terbukti di peramban dengan akun Kepala Instalasi asli; satu cacat tata letak 390 px (kolom `Wajib` dan tombol `Konfirmasi` di luar layar) diperbaiki. Lihat [`FE-LAB-27.md`](../task/report/frontend/FE-LAB-27.md) bagian 8. *(Sebelumnya ⚠ `SELESAI DENGAN BATAS VERIFIKASI` 2026-09-23 — belum diklik di peramban.)* |
 | **Outcome** | Kepala instalasi dapat mengelola parameter, kategori, keberlakuan, dan **pemetaan jenis pemeriksaan** |
 | **Requirement/decision** | `FR-13.11`; `LAB-FE-014` |
 | **Reuse** | Layar `lab-organisms`/`lab-antibiotics` dari `FE-LAB-24`, dan `lab-specimen-types` |
@@ -1279,7 +1279,7 @@ bersama `LAB-VAL-v1` `r8` dan `LAB-PERM-v1` rev 7.
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI` 2026-09-23** — layar laporan berdiri (wilayah A–F), 15 uji unit lulus, lint 0 error, build hijau. **Aturan murninya dijalankan terhadap jawaban server sungguhan**: pesanan empat golongan membangkitkan **15 ruas dengan nol duplikat**, pesanan satu golongan **3 ruas**. `Simpan`/`Selesaikan`/`Buka Kembali` **sengaja nol dijalankan** terhadap pesanan pasien sungguhan. **Penahannya ditutup lebih dulu:** keenam pemeriksaan yang tersisa digolongkan atas instruksi pemilik modul — **10/10 terpetakan** — sebagai **data uji yang menunggu tinjauan `DR-LAB-003`**, terutama LBC dan FNAB. Satu cacat `FE-LAB-31` ikut ditemukan dan diperbaiki. Lihat [`FE-LAB-28.md`](../task/report/frontend/FE-LAB-28.md). *(Riwayat:)* ⚠ `MENUNGGU PEMETAAN TERISI` — gelombang `MVP-6b2`. `BE-LAB-52` **selesai 2026-09-18**, sehingga penahan teknisnya gugur. **Yang tersisa BUKAN pekerjaan programmer**: empat dari sepuluh pemeriksaan PA sudah dipetakan sebagai data uji dan **perlu ditinjau kepala instalasi**, enam sisanya belum |
+| **Status** | ✅ **`SELESAI`** 2026-10-06 *(diverifikasi 2026-10-02)* — ketujuh AC terbukti di peramban dengan akun analis asli; `Buka Kembali`, `Simpan`, `Selesaikan` dijalankan sungguhan (`200`) pada pesanan uji `LAB-RSMMC-000009` atas izin pemilik modul. Lihat [`FE-LAB-28.md`](../task/report/frontend/FE-LAB-28.md) bagian 9. *(Sebelumnya ⚠ 2026-09-23 — belum diklik; tiga jalur tulis sengaja nol dijalankan.)* |
 | **Outcome** | Patolog dapat mengisi laporan sesuai kategori pesanan, menyelesaikannya, dan membukanya kembali |
 | **Requirement/decision** | `FR-13.12`..`FR-13.17`; `LAB-FE-022`..`LAB-FE-029` |
 | **Reuse** | Pola formulir dinamis; pola muat-simpan `FE-LAB-23` |
@@ -1294,7 +1294,7 @@ bersama `LAB-VAL-v1` `r8` dan `LAB-PERM-v1` rev 7.
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI` 2026-09-23** — bagian konteks klinis berdiri pada layar pesanan, 9 uji unit lulus, lint 0 error, build hijau. `AC-154` dibuktikan **terbalik** pada lapis aturan. **Belum diklik di peramban**, dan **satu keputusan penempatan perlu dikonfirmasi pemilik modul** — lihat [`FE-LAB-29.md`](../task/report/frontend/FE-LAB-29.md) bagian 7. *(Riwayat:)* ✅ `SIAP DIKERJAKAN` — gelombang `MVP-6b2`. `BE-LAB-52` **selesai 2026-09-18**; kedua jalur konteks klinis berjalan dan berhak akses `LabOrder`, bukan `LabExamination` |
+| **Status** | ✅ **`SELESAI`** 2026-10-06 *(diverifikasi 2026-10-02)* — ketiga AC terbukti di peramban; `Simpan` `200` pada pesanan uji `LAB-RSMMC-000009`; **penempatan di layar detail pesanan dikonfirmasi pemilik modul**; satu cacat hak akses (isian dapat disunting tanpa `LabOrder : Update`) diperbaiki. Lihat [`FE-LAB-29.md`](../task/report/frontend/FE-LAB-29.md) bagian 8. *(Sebelumnya ⚠ 2026-09-23.)* |
 | **Outcome** | Dokter pemesan dapat menulis empat ruas konteks klinis saat memesan pemeriksaan PA |
 | **Requirement/decision** | `FR-13.10`; `LAB-DEC-091`, `INV-40` |
 | **Reuse** | Layar pemesanan yang **sudah berjalan** |
@@ -1351,7 +1351,7 @@ diputuskan:
 | ↪ | Pernah selesai atau dirancang, kemudian digantikan task lain |
 | ❌ | Dibatalkan |
 
-**Rekap:** 45 nomor task — **41 selesai** (✅ 28, ⚠ 13), **0 sedang dikerjakan**, **1 belum** (⏳ 1, ⏸ 0),
+**Rekap:** 45 nomor task — **41 selesai** (✅ 37, ⚠ 4), **0 sedang dikerjakan**, **1 belum** (⏳ 1, ⏸ 0),
 **2 digantikan** (`FE-LAB-23`, `FE-LAB-26`), **1 dibatalkan** (`FE-LAB-25`).
 
 #### 8.0.1 Yang belum selesai — urutan pengerjaan berikutnya
@@ -1360,8 +1360,9 @@ diputuskan:
 |---:|---|---|---|:---:|---|
 | 1 | `FE-LAB-42` | Penyaring disiplin pada antrean validasi | `MVP-10b` | ⏳ | Nol — `FE-LAB-40` ⚠ (antrean, disiplin tetap `ClinicalPathology` yang diganti task ini), `FE-LAB-41` ⚠ (halaman Mikrobiologi dapat bertindak); `BE-LAB-80` ✅ |
 
-**Selesai pada kode, menunggu verifikasi lanjutan (⚠):** `FE-LAB-27`, `28`, `29`, `31`, `32`, `33`,
-`34`, `38`, `39`, `40`, `41`, `44`, `45` — sebabnya pada laporan masing-masing.
+**Selesai pada kode, menunggu verifikasi lanjutan (⚠):** `FE-LAB-32`, `39`, `40`, `41` — sebabnya pada laporan
+masing-masing. *(Revisi 58, 2026-10-06: `FE-LAB-27`, `28`, `29`, `31`, `33`, `34`, `38`, `44`, `45` naik ✅
+sesudah diverifikasi di peramban dengan akun asli.)*
 
 #### 8.0.2 Seluruh task menurut urutan gelombang
 
@@ -1393,25 +1394,25 @@ diputuskan:
 | 24 | `FE-LAB-24` | Data induk Organisme dan Antibiotik | `MVP-6` | ✅ | Selesai 2026-09-22 | [`FE-LAB-24.md`](../task/report/frontend/FE-LAB-24.md) |
 | 25 | `FE-LAB-25` | Laporan Patologi Anatomi (rancangan lama) | `MVP-6` | ❌ | Dibekukan 2026-09-18, lalu **dibatalkan** — digantikan `FE-LAB-27`..`29` | — |
 | 26 | `FE-LAB-26` | Pengisian hasil Mikrobiologi (rancangan lama) | `MVP-6` | ↪ | **Sebagian besar digantikan** `FE-LAB-30`..`33` | — |
-| 27 | `FE-LAB-27` | Dua data induk Patologi Anatomi | `MVP-6b` | ⚠ | Selesai dengan batas verifikasi 2026-09-23 | [`FE-LAB-27.md`](../task/report/frontend/FE-LAB-27.md) |
-| 28 | `FE-LAB-28` | Laporan Patologi Anatomi | `MVP-6b` | ⚠ | Selesai dengan batas verifikasi 2026-09-23 | [`FE-LAB-28.md`](../task/report/frontend/FE-LAB-28.md) |
-| 29 | `FE-LAB-29` | Konteks klinis pada layar pemesanan | `MVP-6b` | ⚠ | Selesai dengan batas verifikasi 2026-09-23 | [`FE-LAB-29.md`](../task/report/frontend/FE-LAB-29.md) |
+| 27 | `FE-LAB-27` | Dua data induk Patologi Anatomi | `MVP-6b` | ✅ | Selesai 2026-10-06 — diverifikasi di peramban (akun Kepala Instalasi asli); satu perbaikan tata letak 390 px | [`FE-LAB-27.md`](../task/report/frontend/FE-LAB-27.md) |
+| 28 | `FE-LAB-28` | Laporan Patologi Anatomi | `MVP-6b` | ✅ | Selesai 2026-10-06 — diverifikasi di peramban; tulis sungguhan pada pesanan uji `LAB-RSMMC-000009` | [`FE-LAB-28.md`](../task/report/frontend/FE-LAB-28.md) |
+| 29 | `FE-LAB-29` | Konteks klinis pada layar pemesanan | `MVP-6b` | ✅ | Selesai 2026-10-06 — diverifikasi di peramban; penempatan dikonfirmasi; satu perbaikan hak akses | [`FE-LAB-29.md`](../task/report/frontend/FE-LAB-29.md) |
 | 30 | `FE-LAB-30` | Kerangka Halaman Hasil Mikrobiologi | `MVP-7` | ✅ | Selesai 2026-09-22 | [`FE-LAB-30.md`](../task/report/frontend/FE-LAB-30.md) |
-| 31 | `FE-LAB-31` | Isolat dan antibiogram | `MVP-7` | ⚠ | Selesai dengan batas verifikasi 2026-09-22; isian desimal diperbaiki 2026-10-01 | [`FE-LAB-31.md`](../task/report/frontend/FE-LAB-31.md) |
-| 32 | `FE-LAB-32` | Informasi Specimen yang dapat disunting | `MVP-7` | ⚠ | Selesai dengan batas verifikasi 2026-09-22; volume desimal diperbaiki 2026-10-01 | [`FE-LAB-32.md`](../task/report/frontend/FE-LAB-32.md) |
-| 33 | `FE-LAB-33` | Kelengkapan, konsultasi, dan dokter konfirmator | `MVP-7` | ⚠ | Selesai dengan batas verifikasi 2026-09-22 | [`FE-LAB-33.md`](../task/report/frontend/FE-LAB-33.md) |
-| 34 | `FE-LAB-34` | Tiga layar data induk baru | `MVP-7b` | ⚠ | Selesai dengan batas verifikasi 2026-09-22 | [`FE-LAB-34.md`](../task/report/frontend/FE-LAB-34.md) |
+| 31 | `FE-LAB-31` | Isolat dan antibiogram | `MVP-7` | ✅ | Selesai 2026-10-06 — seluruh AC layar termasuk `MVP-7b` terbukti; selisih `r27` 22.2 diputuskan dan diterapkan | [`FE-LAB-31.md`](../task/report/frontend/FE-LAB-31.md) |
+| 32 | `FE-LAB-32` | Informasi Specimen yang dapat disunting | `MVP-7` | ⚠ | Selesai dengan batas verifikasi — AC terbukti 2026-10-06; tertahan respons specimen tanpa id Spesifik Specimen (task backend) | [`FE-LAB-32.md`](../task/report/frontend/FE-LAB-32.md) |
+| 33 | `FE-LAB-33` | Kelengkapan, konsultasi, dan dokter konfirmator | `MVP-7` | ✅ | Selesai 2026-10-06 — diverifikasi di peramban; nomor WhatsApp dokter jaga ditambahkan (`AC-173`) | [`FE-LAB-33.md`](../task/report/frontend/FE-LAB-33.md) |
+| 34 | `FE-LAB-34` | Tiga layar data induk baru | `MVP-7b` | ✅ | Selesai 2026-10-06 — diverifikasi di peramban; satu perbaikan tombol menurut izin | [`FE-LAB-34.md`](../task/report/frontend/FE-LAB-34.md) |
 | 35 | `FE-LAB-35` | Halaman Mikrobiologi: izin hasil, route netral, penjaga Final | `MVP-8a` | ✅ | Selesai 2026-10-01 — diverifikasi dengan dua akun analis asli | [`FE-LAB-35.md`](../task/report/frontend/FE-LAB-35.md) |
 | 36 | `FE-LAB-36` | Halaman Hasil Patologi Klinik per order | `MVP-8c` | ✅ | Selesai 2026-10-01 | [`FE-LAB-36.md`](../task/report/frontend/FE-LAB-36.md) |
 | 37 | `FE-LAB-37` | Daftar Kerja membuka halaman order; dialog dicabut | `MVP-8c` | ✅ | Selesai 2026-10-01 | [`FE-LAB-37.md`](../task/report/frontend/FE-LAB-37.md) |
-| 38 | `FE-LAB-38` | Dua layar data induk alasan | `MVP-9c` | ⚠ | Selesai dengan batas verifikasi 2026-10-01 — pemisahan kepala instalasi/admin baru dengan izin tiruan | [`FE-LAB-38.md`](../task/report/frontend/FE-LAB-38.md) |
+| 38 | `FE-LAB-38` | Dua layar data induk alasan | `MVP-9c` | ✅ | Selesai 2026-10-06 — pemisahan kepala instalasi/admin dengan akun Kepala Instalasi asli | [`FE-LAB-38.md`](../task/report/frontend/FE-LAB-38.md) |
 | 39 | `FE-LAB-39` | Validasi, rilis, dan pengembalian — Patologi Klinik | `MVP-9c` | ⚠ | Selesai dengan batas verifikasi 2026-10-01 — dokter pemvalidasi/perilis yang ditunjuk belum ada di dev | [`FE-LAB-39.md`](../task/report/frontend/FE-LAB-39.md) |
 | 40 | `FE-LAB-40` | Antrean validasi | `MVP-9c` | ⚠ | Selesai dengan batas verifikasi 2026-10-02 — dev nol hasil PK Final; antrean berisi dan perpindahan tahap dengan baris suapan | [`FE-LAB-40.md`](../task/report/frontend/FE-LAB-40.md) |
 | 41 | `FE-LAB-41` | Validasi, rilis, dan pengembalian — Mikrobiologi | `MVP-10b` | ⚠ | Selesai dengan batas verifikasi 2026-10-02 — kode kewenangan Mikrobiologi (`LAB-COORD-016`) belum ada; jalur berhasil lewat pencegatan | [`FE-LAB-41.md`](../task/report/frontend/FE-LAB-41.md) |
 | 42 | `FE-LAB-42` | Penyaring disiplin pada antrean validasi | `MVP-10b` | ⏳ | Siap dikerjakan — berikutnya, task frontend terakhir yang belum dikerjakan | — |
 | 43 | `FE-LAB-43` | Label order pada daftar Pemeriksaan Mikrobiologi | `MVP-10b` | ✅ | Selesai 2026-10-02 | [`FE-LAB-43.md`](../task/report/frontend/FE-LAB-43.md) |
-| 44 | `FE-LAB-44` | Layar Laporan Operasional | `MVP-11b` | ⚠ | Selesai dengan batas verifikasi 2026-09-30 | [`FE-LAB-44.md`](../task/report/frontend/FE-LAB-44.md) |
-| 45 | `FE-LAB-45` | Unduhan laporan | `MVP-11b` | ⚠ | Selesai dengan batas verifikasi 2026-09-30 | [`FE-LAB-45.md`](../task/report/frontend/FE-LAB-45.md) |
+| 44 | `FE-LAB-44` | Layar Laporan Operasional | `MVP-11b` | ✅ | Selesai 2026-10-06 — tersambung langsung dengan akun asli | [`FE-LAB-44.md`](../task/report/frontend/FE-LAB-44.md) |
+| 45 | `FE-LAB-45` | Unduhan laporan | `MVP-11b` | ✅ | Selesai 2026-10-06 — dibuka di Excel; klik ganda = satu log | [`FE-LAB-45.md`](../task/report/frontend/FE-LAB-45.md) |
 
 **Cara memperbarui:** setiap kali sebuah task berubah keadaan, ubah tandanya pada 8.0.1 **dan** 8.0.2
 bersama baris *Status* pada bagian task itu, dalam revisi yang sama.
@@ -1513,6 +1514,7 @@ mengosongkan disiplin mencabut golongannya.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 58 | 2026-10-06 | **Verifikasi susulan task FE ⚠ — sembilan naik ✅ `SELESAI`** atas instruksi pemilik modul. Dijalankan di peramban (Playwright) terhadap backend lokal dan PostgreSQL dev dengan akun asli dr. Bima (Kepala Instalasi) dan Vina (analis); superadmin hanya pengganti peran yang belum punya akun (System Administrator, wewenang klinis Mikrobiologi, petugas koreksi specimen, dokter pemesan). Tulis sungguhan **hanya** pada pesanan uji yang diizinkan (`LAB-RSMMC-000009` PA, `LAB-RSMMC-000014` Mikrobiologi). Naik: `FE-LAB-27` (layar 15/15; perbaikan tata letak 390 px), `FE-LAB-28` (13/13), `FE-LAB-29` (10/10; perbaikan hak akses; penempatan dikonfirmasi), `FE-LAB-31` (seluruh AC layar termasuk `MVP-7b`; **selisih `r27` 22.2 diputuskan: ikuti `r27`**; perbaikan interpretasi terkirim ulang saat zona diubah), `FE-LAB-33` (nomor WhatsApp dokter jaga, `AC-173`), `FE-LAB-34` (perbaikan tombol menurut izin), `FE-LAB-38` (7/7 akun asli), `FE-LAB-44`, `FE-LAB-45` (tersambung langsung; Excel 16; satu log per klik ganda). **Tetap ⚠:** `FE-LAB-32` — AC terbukti, tetapi respons specimen backend nol memuat id Spesifik Specimen (butuh task backend); `FE-LAB-39`..`FE-LAB-41` atas instruksi. Perbaikan 2026-10-02 ter-commit `d05fb95e0`; perbaikan 2026-10-06 (aturan interpretasi, hitung ulang zona, nomor WhatsApp) belum ter-commit. Uji unit 2308/2314 (6 gagal baseline), lint 0 error, build hijau. Rekap 8.0: 41 selesai (✅ 37, ⚠ 4), tinggal **`FE-LAB-42`** | `DRAFT` |
 | 57 | 2026-10-02 | **`FE-LAB-43` dikerjakan — ✅ `SELESAI`** (gelombang `MVP-10b`, [`FE-LAB-43.md`](../task/report/frontend/FE-LAB-43.md)). Kolom *Keadaan Order* pada daftar Pemeriksaan Mikrobiologi saja, dari `resultProgress` lewat `LAB_RESULT_PROGRESS`; kosong → `-`; tidak dari `orderStatus` (`LAB-CONFLICT-014`). Uji unit 6 baru, lint nol peringatan, build hijau, layar 7/7, nol tulis. Repository frontend/backend di-commit dan di-merge pemegang repository di tengah pengerjaan; diff task tetap utuh. Rekap 8.0: 41 selesai (✅ 28, ⚠ 13), tinggal **`FE-LAB-42`** | `DRAFT` |
 | 56 | 2026-10-02 | **`FE-LAB-41` dikerjakan — ⚠ `SELESAI DENGAN BATAS VERIFIKASI`** (gelombang `MVP-10b`, [`FE-LAB-41.md`](../task/report/frontend/FE-LAB-41.md)). Halaman Hasil Mikrobiologi: keadaan dari `resultStatus` lewat konstanta bersama; *Validasi oleh*/*Petugas Otorisasi* dari backend beserta penanda sebagai teks; **Pemeriksaan Selesai** (peringatan lama dicabut); Validasi, Rilis, dan *Kembalikan ke analis* per izin ketat dengan pola dan ketiga fungsi service `FE-LAB-39`; `Sementara` tak menawarkan Validasi dan menyebut sebabnya; Buka Kembali hanya pada Menunggu Validasi; kartu *Keadaan Order* dari `resultProgress` (dengan `minWidth` supaya enam kartu tidak memotong label). Uji unit 23 baru, lint nol peringatan baru, build hijau, layar 21/21. **Batas:** `LAB-COORD-016` belum ada → nol akun dapat memvalidasi Mikrobiologi di dev. **Insiden verifikasi dicatat:** satu Rilis terteruskan ke backend asli karena skrip, ditolak `422`, nol tulis. Rekap 8.0: 40 selesai (⚠ 13), 2 belum; **`FE-LAB-42` naik menjadi `SIAP DIKERJAKAN`** | `DRAFT` |
 | 55 | 2026-10-02 | **`FE-LAB-40` dikerjakan — ⚠ `SELESAI DENGAN BATAS VERIFIKASI`** (gelombang `MVP-9c`, [`FE-LAB-40.md`](../task/report/frontend/FE-LAB-40.md)). Route `lab-worklists/validation-queue` dan butir menu *Antrean Validasi*; dua tahap sebagai tab pada `DataFilter`, nama *Menunggu Validasi* dari konstanta label keadaan bersama; kolom pasien/No. RM, No. order, pemeriksaan, CITO, penanda `H`/`L`/*Di luar rujukan*, menunggu sejak, dan *Divalidasi oleh* pada tahap rilis; urutan backend apa adanya; **Buka Hasil** membuka Halaman Hasil order itu; nol tombol Validasi/Rilis. **Selisih kontrak dicatat:** backend sudah `r35` — layar mengirim `discipline=ClinicalPathology` tetap supaya isi `r34` terjaga; `FE-LAB-42` menggantinya. Uji unit 22 baru, lint nol peringatan, build hijau, layar 26/26 (backend asli kosong + baris suapan dengan order nyata), nol tulis. **Batas:** dev nol hasil PK Final dan belum ada dokter pemvalidasi yang ditunjuk. Rekap 8.0: 39 selesai (⚠ 12), 3 belum; **`FE-LAB-42` kini hanya menunggu `FE-LAB-41`**. Lingkungan: cache Turbopack `.next/dev/cache/turbopack` 47,5 GB memenuhi disk C: dan dihapus (tergenerasi ulang) | `DRAFT` |
@@ -1623,7 +1625,7 @@ MVP-7c  FE-LAB-33  kelengkapan, konsultasi, dan konfirmator ← butuh 30
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** 2026-09-22 — lihat [`FE-LAB-31.md`](../task/report/frontend/FE-LAB-31.md). Permukaan terbangun, lint dan build hijau, 22 uji baru lulus. **Nol AC terbukti di layar** — verifikasi klik belum dijalankan |
+| **Status** | ✅ **`SELESAI`** 2026-10-06 — `AC-163`..`AC-166`, `AC-176`, dan cakupan `MVP-7b` (`AC-178`, `AC-186`..`AC-191`) terbukti di peramban dengan akun analis asli, tulis pada pesanan uji `LAB-RSMMC-000014`. **Selisih `r27` 22.2 diputuskan pemilik modul: ikuti `r27`** — baris berzona boleh tanpa S/I/R. Empat cacat diperbaiki, di antaranya interpretasi lama yang ikut terkirim saat zona diubah. Lihat [`FE-LAB-31.md`](../task/report/frontend/FE-LAB-31.md) bagian 9. *(Sebelumnya ⚠ 2026-09-22.)* |
 | **Outcome** | Analis mengisi status temuan, menambah isolat, dan mengisi baris kepekaan antibiotik |
 | **Requirement/decision** | `LAB-DEC-101`, `LAB-DEC-102`, `LAB-DEC-104`, `LAB-DEC-113` |
 | **Kontrak** | `r24` bagian 19.2; `r26` bagian 21.3 untuk penanda kritis |
@@ -1638,7 +1640,7 @@ MVP-7c  FE-LAB-33  kelengkapan, konsultasi, dan konfirmator ← butuh 30
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** 2026-09-22 — lihat [`FE-LAB-32.md`](../task/report/frontend/FE-LAB-32.md). Permukaan terbangun, lint dan build hijau, 22 uji baru lulus. **Nol AC terbukti di layar** — verifikasi klik belum dijalankan |
+| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — **batas baru 2026-10-06:** ketiga AC (`AC-160`, `AC-162`, `AC-170`) dan DoD-nya kini terbukti di peramban; yang menahan adalah outcome *"mengoreksi … dan dapat melihat nilai lamanya"*: formulir koreksi tidak terisi nilai tersimpan, dan **`LabSpecimenResponse` nol memuat id Spesifik Specimen** sehingga mencentang satu kotak mengganti seluruh set. Butuh **task backend** (ruas `detailTypeIds` pada respons specimen), lalu pengisian formulir di frontend. Lihat [`FE-LAB-32.md`](../task/report/frontend/FE-LAB-32.md) bagian 9.4. *(Sebelumnya: nol AC terbukti di layar.)* |
 | **Outcome** | Petugas melengkapi dan mengoreksi specimen dari halaman hasil, dan dapat melihat nilai lamanya |
 | **Requirement/decision** | `LAB-DEC-098`, `LAB-DEC-100`, `LAB-DEC-107`, `LAB-DEC-112` |
 | **Kontrak** | `r26` bagian 21.4 dan 21.5 |
@@ -1653,7 +1655,7 @@ MVP-7c  FE-LAB-33  kelengkapan, konsultasi, dan konfirmator ← butuh 30
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** 2026-09-22 — lihat [`FE-LAB-33.md`](../task/report/frontend/FE-LAB-33.md). Permukaan terbangun, lint dan build hijau, 22 uji baru lulus. **Nol AC terbukti di layar** — verifikasi klik belum dijalankan |
+| **Status** | ✅ **`SELESAI`** 2026-10-06 — `AC-157`, `AC-158`, `AC-168`, `AC-169`, `AC-173`, `AC-174` terbukti di peramban; nomor WhatsApp dokter jaga kini tampil (`AC-173`). `AC-177`/`AC-183` berbunyi tentang cetakan (`LAB-OPEN-039`). Lihat [`FE-LAB-33.md`](../task/report/frontend/FE-LAB-33.md) bagian 8. *(Sebelumnya ⚠ 2026-09-22.)* |
 | **Outcome** | Petugas menyimpan Draft/Final, membuka kembali, mencatat konsultasi, dan memilih dokter konfirmator |
 | **Requirement/decision** | `LAB-DEC-096`, `LAB-DEC-097`, `LAB-DEC-105`, `LAB-DEC-106`, `LAB-DEC-111` |
 | **Kontrak** | `r26` bagian 21.2, 21.3, 21.7 |
@@ -1698,12 +1700,13 @@ AC yang bertambah: `FE-LAB-31` memperoleh `AC-179`, `AC-186`, `AC-187`, `AC-188`
 > antibiogram, dan `AC-190` penanda isolat tidak diuji — seluruhnya berdiri, dengan **7 uji
 > unit baru**, lint 0 error, dan build hijau. **Kedua jalan buntu hilang:** kolom `Kadar` kini
 > punya pemilih satuannya, dan penimpaan `Hasil` kini punya tempat menulis alasannya. Lihat
-> [`FE-LAB-31-sisa-mvp7b.md`](../task/report/frontend/FE-LAB-31-sisa-mvp7b.md). **Belum diklik
-> di peramban.**
+> [`FE-LAB-31-sisa-mvp7b.md`](../task/report/frontend/FE-LAB-31-sisa-mvp7b.md). **Diklik di peramban
+> 2026-10-06** — keempatnya terbukti ([`FE-LAB-31.md`](../task/report/frontend/FE-LAB-31.md) bagian 9).
 >
 > **Satu selisih kontrak dilaporkan, nol diubah:** `r27` 22.2 menurunkan `result` dari wajib
 > menjadi opsional, sementara aturan frontend masih mewajibkannya mengutip `AC-165`/`VAL-83`
-> milik `r24`. Perlu keputusan pemilik modul.
+> milik `r24`. **Diputuskan pemilik modul 2026-10-06: ikuti `r27`** — baris berzona boleh dikirim tanpa
+> S/I/R; baris tanpa zona tetap wajib (`AC-165`). Diterapkan, lihat `FE-LAB-31.md` 9.3 (d).
 
 > *(Riwayat)* **Sinkronisasi bukti kode 2026-09-23 — cakupan tambahan ini BELUM tuntas, dan laporannya
 > memang nol mengklaimnya.** Laporan `FE-LAB-31`/`32`/`33` menelusuri `AC-157`..`AC-170` saja;
@@ -1720,7 +1723,7 @@ AC yang bertambah: `FE-LAB-31` memperoleh `AC-179`, `AC-186`, `AC-187`, `AC-188`
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** 2026-09-22 — ketiga layar terbangun sesuai `master-data-feature-standard` (38 berkas source, 6 registrasi), lint dan build hijau, 20 uji baru lulus, sepuluh route masuk keluaran build dan delapan di antaranya dipanggil `200`. **Hak aksesnya terbukti pada akun sungguhan bukan superadmin**: keenam endpoint baca dijawab `200` bagi Kepala Instalasi, dan `PATCH` status breakpoint dijawab **`403`** — pemisahan `DR-LAB-002` tegak di sisi server. **Nol kontrol diklik di peramban.** Lihat [`FE-LAB-34.md`](../task/report/frontend/FE-LAB-34.md). *(Sebelumnya `SIAP DIKERJAKAN`; blok ini sempat tertinggal `MENUNGGU PENDAHULU`.)* **Keempat penahan backend selesai:** `BE-LAB-60` ✅, `BE-LAB-62` ✅, `BE-LAB-63` ✅, dan **`BE-LAB-64` ✅** (permukaan baseline dua data induk dilengkapi 5→9 endpoint — tanpanya ketiga layar nol dapat dibangun sesuai standar) |
+| **Status** | ✅ **`SELESAI`** 2026-10-06 — ketiga layar diklik dengan Kepala Instalasi asli, analis asli, dan superadmin sebagai pengganti wewenang klinis Mikrobiologi; `403` breakpoint tampil sebagai pesan terbaca; satu cacat (Tambah/Perbarui/Hapus ditawarkan kepada pemegang `Read` saja) diperbaiki. Lihat [`FE-LAB-34.md`](../task/report/frontend/FE-LAB-34.md) bagian 7. *(Sebelumnya ⚠ 2026-09-22 — hak akses terbukti lewat HTTP, nol kontrol diklik.)* |
 | **Outcome** | Wewenang klinis mengelola breakpoint; kepala instalasi mengelola profil katalog dan pengaturan disiplin |
 | **Requirement/decision** | `LAB-DEC-119`, `122`, `125`, `127` |
 | **Kontrak** | `r27` bagian 22.5, 22.6, 22.7 **dan `r30` bagian 25** (delapan endpoint baseline) |
@@ -1843,7 +1846,7 @@ memutuskannya.
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — 2026-10-01 ([`FE-LAB-38.md`](../task/report/frontend/FE-LAB-38.md)). Kedua layar hidup terhadap `BE-LAB-71`: daftar, penyaring, ringkasan, tambah, ubah (kode baca-saja), aktif/nonaktif lewat `PATCH /{id}/status`, sakelar *wajib catatan* hanya bagi pemegang `SystemFlag`, nol hapus; `VAL-140`..`VAL-142` tampil pada isiannya. **Batas:** sandi akun Kepala Instalasi dev tidak tersedia pada sesi ini dan akun System Administrator belum ada, sehingga pemisahan keduanya dibuktikan dengan daftar izin tiruan; naik menjadi ✅ sesudah dijalankan dengan kedua akun itu. *Sebelumnya `SIAP DIKERJAKAN` sejak 2026-09-29 sore; semula `MENUNGGU PENDAHULU` — `BE-LAB-71`* |
+| **Status** | ✅ **`SELESAI`** 2026-10-06 *(diverifikasi 2026-10-02)* — pemisahan kepala instalasi/admin dibuktikan dengan **akun Kepala Instalasi asli** dan superadmin sebagai pengganti System Administrator yang belum punya akun (7/7). Lihat [`FE-LAB-38.md`](../task/report/frontend/FE-LAB-38.md) bagian 9. *(Sebelumnya ⚠ 2026-10-01 — pemisahan dengan izin tiruan.)* |
 | **Gelombang** | `MVP-9c` |
 | **Outcome** | Kepala instalasi mengisi dan mengelola daftar alasan pengembalian dan daftar alasan pengecualian dari aplikasi — bukan lewat SQL |
 | **Requirement/decision** | `FR-15.12`; `LAB-DEC-082`, `LAB-DEC-138`, `LAB-DEC-003`, `LAB-DEC-019` |
@@ -2061,7 +2064,7 @@ memutuskannya. Pesan `VAL-147`..`VAL-149` ditampilkan **apa adanya dari backend*
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — 2026-09-30. Layar, butir menu (`requiredPermission`), service, hook, dan berkas aturan terbangun; tiga bagian bertumpuk memuat sendiri-sendiri; periode bawaan tanggal 1 bulan berjalan sampai hari ini (WIB); menit satu desimal sama dengan CSV. Uji unit **17/17** (periode WIB, *3,0%*, *48,6 menit*, `isCountable = false` bukan 0, kolom cito kosong pada rutin); e2e **8/8** (memuat per laporan, `422` pada penyaring, `403`, tanpa izin, disiplin, reset); layar hasil build diberi **respons sungguhan** backend lokal — September 2026, `422`, `400` — dan menampilkannya benar; menu tampil bagi pemegang `Read`, tidak bagi analis. **Batas:** sambungan langsung ke backend dengan tiga akun asli menunggu langkah rilis `MVP-11c` 0-1 — build frontend mengarah ke API dev bersama yang belum menerima `MVP-11a`, dan belum ada jabatan pemegang izin laporan. Lihat [`FE-LAB-44.md`](../task/report/frontend/FE-LAB-44.md). *Semula `SIAP DIKERJAKAN` — kontrak approved; verifikasi menunggu `BE-LAB-83`, `BE-LAB-84`, `BE-LAB-85`, ketiganya ✅ 2026-09-30* |
+| **Status** | ✅ **`SELESAI`** 2026-10-06 — dijalankan tersambung langsung ke backend lokal dengan akun asli (Kepala Instalasi, analis tanpa izin), pemegang `Read` saja (izin `Export` dicabut di peramban), dan periode > 366 hari → `422` asli. Lihat [`FE-LAB-44.md`](../task/report/frontend/FE-LAB-44.md) bagian 9. Pemakaian di server dev bersama tetap menunggu langkah rilis `MVP-11c` 0-1. *(Sebelumnya ⚠ 2026-09-30.)* |
 | **Gelombang** | `MVP-11b` |
 | **Outcome** | Kepala instalasi membuka *Laporan Operasional* dari menu Laboratorium, memilih periode dan — bila perlu — satu disiplin, lalu membaca tiga angka: jumlah pemeriksaan, angka penolakan wadah beserta alasannya, dan waktu penyelesaian cito dan rutin. Disiplin yang belum dapat dihitung **tertulis sebabnya**, bukan 0. Analis tidak melihat menunya |
 | **Requirement/decision** | `FR-17.10`; bagian tampilan `FR-17.1`..`FR-17.3`, `FR-17.5`, `FR-17.9`; `LAB-DEC-159`, `LAB-DEC-160`; `ARCH-GAP-LAB-11`, `ARCH-GAP-LAB-13`; A7.12; 23.10 butir 4, 6, 8 |
@@ -2078,7 +2081,7 @@ memutuskannya. Pesan `VAL-147`..`VAL-149` ditampilkan **apa adanya dari backend*
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — 2026-09-30; **`MVP-11b` selesai pada kode**. `useLabOperationalReportExport`: tombol *Unduh CSV* per bagian hanya bila `usePermission("LabOperationalReport", "Export")` mengizinkan; parameter = `requestParams` laporan yang tampil, tombol nonaktif sampai laporannya tampil; penjaga ref satu-klik-satu-permintaan; berkas `Blob` disimpan apa adanya, `revokeObjectURL` sesudahnya; nama dari `Content-Disposition`, cadangan `<awalan>_<awal>_<akhir>.csv` sama dengan backend; galat `Blob` dibaca sebagai JSON. Uji unit **22/22**, e2e **13/13**; tiga CSV sungguhan backend (`BE-LAB-86`) diunduh lewat layar hasil build — **identik byte demi byte**; `422` sungguhan tampil pada bagiannya. **Temuan backend:** `FrontendCorsPolicy` tidak mengekspos `Content-Disposition`. **Batas:** unduhan dengan akun asli, satu log per dua klik di backend live, dan pembukaan di Excel menunggu `MVP-11c` 0-1. Lihat [`FE-LAB-45.md`](../task/report/frontend/FE-LAB-45.md). *Semula `SIAP DIKERJAKAN` sejak 2026-09-30 (`FE-LAB-44` ⚠, `BE-LAB-86` ✅); semula pula `MENUNGGU PENDAHULU` — `FE-LAB-44`; `BE-LAB-86` untuk diverifikasi* |
+| **Status** | ✅ **`SELESAI`** 2026-10-06 — ketiga unduhan tersambung langsung: berkas dibuka **Excel 16** dengan kolom terpisah dan angka desimal-koma terbaca sebagai angka; klik ganda = satu permintaan dan **satu** baris audit backend; pemegang `Read` saja nol tombol. Lihat [`FE-LAB-45.md`](../task/report/frontend/FE-LAB-45.md) bagian 9. *(Sebelumnya ⚠ 2026-09-30.)* |
 | **Gelombang** | `MVP-11b` |
 | **Outcome** | Pemegang izin unduh menyimpan setiap laporan sebagai berkas yang terbuka benar di Excel; pemegang izin lihat saja **tidak** melihat tombolnya |
 | **Requirement/decision** | Bagian tampilan `FR-17.7`, `FR-17.8`; `LAB-DEC-160`; 23.10 butir 1, 2, 7 |
