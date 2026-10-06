@@ -284,3 +284,21 @@ Pasangan: 1 (keputusan `RWI-DEC-222` / `DEC-INP-019` telah disetujui).
 | `FE-RWI-146` | Sama | `FE-RWI-179` (IMP-RWF-03); bagian Hemodialisa tidak diubah |
 
 Tanda pada roadmap lama tidak diubah oleh dokumen ini. Selisih tanda register 🟡 dan kartu ✅ pada ketiga task itu dicatat untuk pemilik roadmap tersebut.
+
+### Kelanjutan 6 Oktober 2026
+
+Pemilik meminta penyelesaian seluruh task. Import dependency frontend dan command validasi Windows diperbaiki; unit penuh sudah berjalan dengan 2167/2177 PASS (10 FAIL). Lint/build sedang diverifikasi. Laporan canonical seluruh task telah diperbarui; warna hijau menunggu bukti acceptance dan DoD, bukan perubahan tanda saja.
+
+Build ulang 6 Oktober: FAIL, tersisa satu import laci Pasca Operasi; sembilan module-not-found lainnya sudah diperbaiki. Laporan canonical memuat hasilnya.
+
+Lint penuh 6 Oktober: FAIL (1 error, 914 warning); konfigurasi plugin sudah pulih. Sembilan file unit terkait/dependency: PASS 44/44; bukti di laporan task.
+
+Early return laci Pra Operasi dipindahkan setelah useMemo; lint scope dependency PASS. Lint:errors penuh sedang diverifikasi ulang.
+
+Test interval penugasan aktif PASS 2/2. Pemeriksaan browser lokal awal diinterupsi untuk memperbaiki locator test button menjadi role radio existing; pemeriksaan ulang berjalan. Belum dinyatakan UAT nyata.
+
+Browser lokal terkontrol PASS 3/3 (Rehab, kirim Lab tanpa tarif/double-click, retry katalog); tidak menggantikan UAT backend nyata. Rincian pada laporan task.
+
+Lint:errors penuh PASS. Suite penuh 2171/2179 PASS, 8 FAIL di luar task dokter. Browser terkontrol 5/9 PASS pada perluasan pertama; empat kegagalan fixture/locator sedang ditelusuri. Laporan canonical sudah diperbarui.
+
+Browser terkontrol terbaru PASS 9/9. FE-RWI-178 dilanjutkan atas instruksi terbaru pemilik dan laporan FE-RWI-196 Done; gate REUSE tercatat sebelum JSX. UAT backend nyata tetap terbuka.

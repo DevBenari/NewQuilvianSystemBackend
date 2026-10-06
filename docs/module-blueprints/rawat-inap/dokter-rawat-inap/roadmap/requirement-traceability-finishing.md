@@ -101,3 +101,21 @@ R10 dan R11 menunggu user membuat/review/menerapkan migration bagi enam field ve
 | FE-RWI-179 | 🟡 Rehab placeholder tanpa order/form; test terkait PASS. Build/UAT belum memenuhi DoD. [Laporan](../task/report/frontend/FE-RWI-179.md) |
 
 Lint 31 source PASS (0 error/8 warning existing); 38 test terkait PASS. Suite penuh Windows eksplisit: 2168/2177 PASS, 9 kegagalan di luar task dokter. Lint global/runner default BLOCKED konfigurasi; build penuh FAIL pada 10 import roadmap lain. MANUAL TEST NOT FEASIBLE; belum ada task yang dinyatakan selesai tanpa DoD. Detail pada laporan masing-masing.
+
+### Validasi kelanjutan 6 Oktober 2026
+
+Command unit Windows kini berjalan: 2167/2177 PASS, 10 FAIL; lint/build sedang diverifikasi sesudah perbaikan import frontend. Bukti per task diperbarui pada laporan canonical FE-RWI-172 sampai FE-RWI-179. Status belum hijau; UAT nyata/dependency/kontrak yang belum lengkap masih terbuka.
+
+Build ulang 6 Oktober: FAIL, tersisa satu import laci Pasca Operasi; sembilan module-not-found lainnya sudah diperbaiki. Laporan canonical memuat hasilnya.
+
+Lint penuh 6 Oktober: FAIL (1 error, 914 warning); konfigurasi plugin sudah pulih. Sembilan file unit terkait/dependency: PASS 44/44; bukti di laporan task.
+
+Early return laci Pra Operasi dipindahkan setelah useMemo; lint scope dependency PASS. Lint:errors penuh sedang diverifikasi ulang.
+
+Test interval penugasan aktif PASS 2/2. Pemeriksaan browser lokal awal diinterupsi untuk memperbaiki locator test button menjadi role radio existing; pemeriksaan ulang berjalan. Belum dinyatakan UAT nyata.
+
+Browser lokal terkontrol PASS 3/3 (Rehab, kirim Lab tanpa tarif/double-click, retry katalog); tidak menggantikan UAT backend nyata. Rincian pada laporan task.
+
+Lint:errors penuh PASS. Suite penuh 2171/2179 PASS, 8 FAIL di luar task dokter. Browser terkontrol 5/9 PASS pada perluasan pertama; empat kegagalan fixture/locator sedang ditelusuri. Laporan canonical sudah diperbarui.
+
+Browser terkontrol terbaru PASS 9/9. FE-RWI-178 dilanjutkan atas instruksi terbaru pemilik dan laporan FE-RWI-196 Done; gate REUSE tercatat sebelum JSX. UAT backend nyata tetap terbuka.
