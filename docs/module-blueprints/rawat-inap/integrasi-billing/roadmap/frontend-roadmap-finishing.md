@@ -12,6 +12,8 @@
 | Deret ID | `FE-RWI-166` s.d. `FE-RWI-171` |
 | Roadmap pendamping | `backend-roadmap-finishing.md`, `requirement-traceability-finishing.md`. Roadmap kontrak `1.0.0` (`frontend-roadmap.md`) tetap sebagai riwayat; `FE-RWI-097` s.d. `FE-RWI-100` dicabut kontrak `1.1.0` dan pencabutannya dikerjakan task di sini |
 
+**Otorisasi eksekusi dan pembaruan bukti 6 Oktober 2026.** Pengguna memerintahkan seluruh `FE-RWI-166` s.d. `FE-RWI-171` dikerjakan sampai tuntas pada 5 Oktober 2026; perintah itu dicatat sebagai otorisasi eksekusi, sedangkan status `DRAFT` pada metadata tetap snapshot perencanaan. Hasilnya: `FE-RWI-166`, `167`, `168`, `169`, dan `171` ✅; `FE-RWI-170` 🟡 karena alasan koreksi belum dikirim `GET placements/by-episode`. Validasi bersama: `npm run lint:errors` exit 0 sesudah implementasi; `npm run test:unit` 2174 tes, 2167 lulus — 7 kegagalan sama dengan garis dasar di luar task; tujuh berkas tes task 113/113 lulus; `npm run build` `✓ Compiled successfully in 64s`. Butir DoD uji manual **dikecualikan atas keputusan pengguna 6 Oktober 2026**. Task gelombang 1 dikerjakan walau `BE-RWI-153`, `154`, dan `155` masih 🟡: source dan endpoint-nya tersedia, yang belum adalah UAT klinis backend. Gerbang rilis di bawah tetap berlaku.
+
 **Kebijakan verifikasi frontend.** Mengikuti `rules/frontend/test-policy.md`: bukti utama adalah verifikasi manual kontrol interaktif dengan backend berjalan, ditambah `npm run lint`, `npm run test:unit` (menjalankan suite yang sudah ada), dan `npm run build`. Menulis test unit baru bersifat **opsional**; disarankan hanya untuk logika murni seperti pemetaan status ke label atau validasi formulir. Jest dan `@testing-library` tidak dipakai. Laporan task memuat baris `AUTOMATED TEST` dan `MANUAL TEST` secara terpisah.
 
 **Kewenangan UI.** Bentuk dialog, warna badge, ikon, dan posisi daftar di dalam kelompoknya tetap `DEV_DISCRETION` (`03-frontend-architecture.md` 6.6). Yang mengikat: peringatan kasir dengan pengakuan sekali klik, tidak ada isian PIN, tidak ada rupiah bagi peran bangsal.
@@ -28,17 +30,17 @@
 ## Grafik Urutan Dependency
 
 ```text
-BE-RWI-153 [BE] ─┬───────────────────────────────────┬─> FE-RWI-167
-                 │                                   │
-                 │  BE-RWI-152 [BE] ─> FE-RWI-166 ─┬─┘
-                 │                                 │
-                 ├─────────────────────────────────┴─> FE-RWI-168
-                 │
-                 └─> FE-RWI-169
+BE-RWI-153 🟡 [BE] ─┬─────────────────────────────────────────┬─> FE-RWI-167 ✅
+                    │                                         │
+                    │  BE-RWI-152 ✅ [BE] ─> FE-RWI-166 ✅ ─┬─┘
+                    │                                       │
+                    ├───────────────────────────────────────┴─> FE-RWI-168 ✅
+                    │
+                    └─> FE-RWI-169 ✅
 
-BE-RWI-154 [BE] ─> FE-RWI-170
+BE-RWI-154 🟡 [BE] ─> FE-RWI-170 🟡
 
-BE-RWI-155 [BE] ─> FE-RWI-171
+BE-RWI-155 🟡 [BE] ─> FE-RWI-171 ✅
 ```
 
 `[BE]` = task backend sub-modul ini pada `backend-roadmap-finishing.md`, cermin baca-saja.
@@ -75,11 +77,11 @@ Seluruh task gelombang 1 baru boleh dimulai setelah task backend yang disebut na
 
 ## Kartu task
 
-### `FE-RWI-166` — Status kasir dari satu kartu; pembaca dan penulis lama dicabut
+### ✅ `FE-RWI-166` — Status kasir dari satu kartu; pembaca dan penulis lama dicabut
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 6 Oktober 2026.** Keenam acceptance criteria dipetakan ke source; pemanggil `billing-details` dan `POST financial-clearance` nol; `TRC-RWF-01` ditangani dengan menjadikan `FE-INP-08` riwayat baca saja. `npm run lint:errors` exit 0, nol error; `npm run test:unit` 2167 dari 2174 lulus — 7 kegagalan sama dengan garis dasar di luar task; tujuh berkas tes task 113/113 lulus; `npm run build` `✓ Compiled successfully in 64s`. Butir DoD uji manual **dikecualikan atas keputusan pengguna 6 Oktober 2026**. Bukti: [laporan](../task/report/frontend/FE-RWI-166.md) |
 | **Outcome** | Status kasir di Detail Episode, layar Pemulangan, dan ruang kerja keperawatan tampil dari satu kartu tanpa rupiah yang menyegarkan diri tiap 10 detik. Panel rincian finansial dan formulir penandaan kelayakan keuangan manual tidak ada lagi |
 | **Requirement/decision** | `FR-RWF-002`, `FR-RWF-003`, `FR-RWF-004`; `RWI-DEC-167`, `RWI-DEC-170`; `AC-RWF-003`; `FIN-CON-04` |
 | **Kontrak** | `1.1.0`: frontend 6.1 dan 6.3 `FE-INT-06`; API 3.1 (`billing-details` dan `POST financial-clearance` dihapus), 3.3 (`InpatientBillingStatusResponse`) |
@@ -91,11 +93,11 @@ Seluruh task gelombang 1 baru boleh dimulai setelah task backend yang disebut na
 | **Risiko/pemilik** | Layar `FE-INP-08` milik daftar layar `episode-rawat-inap`, dan perubahannya akibat langsung API 3.1; kontrak frontend bagian 6 belum menyebutnya (dicatat sebagai gap dokumen di traceability). Pemilik: Muhammad Hamzah |
 | **DoD** | Seluruh kriteria terbukti; lint dan build lulus; laporan `../task/report/frontend/FE-RWI-166.md` memuat baris `AUTOMATED TEST` dan `MANUAL TEST`; roadmap dan traceability diperbarui |
 
-### `FE-RWI-167` — Keluar ruangan dengan peringatan kasir
+### ✅ `FE-RWI-167` — Keluar ruangan dengan peringatan kasir
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 6 Oktober 2026.** Ketujuh acceptance criteria dipetakan ke source; pemanggil `supervisor-override` dan `confirm-physical-discharge` nol; kiriman pertama tanpa pengakuan, 409 `INP-DEP-001` berganti menjadi "Tetap catat keluar ruangan". `npm run lint:errors` exit 0, nol error; `npm run test:unit` 2167 dari 2174 lulus — 7 kegagalan sama dengan garis dasar di luar task; tujuh berkas tes task 113/113 lulus; `npm run build` `✓ Compiled successfully in 64s`. Butir DoD uji manual **dikecualikan atas keputusan pengguna 6 Oktober 2026**. `BE-RWI-153` masih 🟡 dan gerbang satu jendela rilis tetap berlaku. Bukti: [laporan](../task/report/frontend/FE-RWI-167.md) |
 | **Outcome** | Perawat mencatat pasien meninggalkan ruangan lewat satu dialog. Bila kasir belum memberi izin atau statusnya tidak terbaca, muncul peringatan beserta kendala, dan cukup satu klik pengakuan untuk melanjutkan. Tidak ada PIN dan tidak ada isian alasan |
 | **Requirement/decision** | `FR-RWF-006`, `FR-RWF-007`; `RWI-DEC-186`, `RWI-DEC-187`; `AC-RWF-006`, `AC-RWF-007` |
 | **Kontrak** | Frontend 6.3 `FE-INT-01`; API 3.2 (`record-departure`, `RecordDepartureRequest`, `InpatientDepartureResponse`, 409 `INP-DEP-001`) |
@@ -107,11 +109,11 @@ Seluruh task gelombang 1 baru boleh dimulai setelah task backend yang disebut na
 | **Risiko/pemilik** | Gerbang satu jendela rilis bersama `BE-RWI-146`. Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; lint dan build lulus; laporan tracked dengan `AUTOMATED TEST` dan `MANUAL TEST`; roadmap dan traceability diperbarui |
 
-### `FE-RWI-168` — Gerbang kasir pada Penutupan Episode
+### ✅ `FE-RWI-168` — Gerbang kasir pada Penutupan Episode
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 6 Oktober 2026.** Keenam acceptance criteria dipetakan ke source; syarat izin kasir disegarkan tiap 10 detik, penutupan mengirim `ExpectedVersion`, dan hak penutupan tanpa izin kasir dibaca dari `InpatientDischarge : CloseOverride`. `npm run lint:errors` exit 0, nol error; `npm run test:unit` 2167 dari 2174 lulus — 7 kegagalan sama dengan garis dasar di luar task; tujuh berkas tes task 113/113 lulus; `npm run build` `✓ Compiled successfully in 64s`. Butir DoD uji manual **dikecualikan atas keputusan pengguna 6 Oktober 2026**. Bukti: [laporan](../task/report/frontend/FE-RWI-168.md) |
 | **Outcome** | Petugas admisi melihat lima syarat penutupan; syarat izin kasir dibaca langsung dari Billing dan menyegarkan diri tiap 10 detik. Tombol Tutup aktif hanya bila seluruh syarat terpenuhi. Penutupan tanpa izin kasir hanya bagi pemegang permission, dengan alasan tertulis, tanpa PIN |
 | **Requirement/decision** | `FR-RWF-005`, `FR-RWF-008`; `RWI-DEC-187`; `AC-RWF-004`, `AC-RWF-008`; `UAT-RWF-03`, `UAT-RWF-12` |
 | **Kontrak** | Frontend 6.3 `FE-INT-02`; API 3.2 (`closure-readiness`, `close`, `close-with-override`, kode `INP-CLS-010`/`011`/`012`) |
@@ -123,11 +125,11 @@ Seluruh task gelombang 1 baru boleh dimulai setelah task backend yang disebut na
 | **Risiko/pemilik** | Gerbang satu jendela rilis. Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; lint dan build lulus; laporan tracked; roadmap dan traceability diperbarui |
 
-### `FE-RWI-169` — Daftar "Pulang sebelum izin kasir"
+### ✅ `FE-RWI-169` — Daftar "Pulang sebelum izin kasir"
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 6 Oktober 2026.** Kelima acceptance criteria dipetakan ke source. Kolom Unit dan Dicatat Oleh tampil "-" karena DTO backend belum mengirim `ServiceUnitName` dan `RecordedByUserName` yang tercantum di API 3.5; tidak menahan kriteria. `npm run lint:errors` exit 0, nol error; `npm run test:unit` 2167 dari 2174 lulus — 7 kegagalan sama dengan garis dasar di luar task; tujuh berkas tes task 113/113 lulus; `npm run build` `✓ Compiled successfully in 64s`. Butir DoD uji manual **dikecualikan atas keputusan pengguna 6 Oktober 2026**. Bukti: [laporan](../task/report/frontend/FE-RWI-169.md) |
 | **Outcome** | Kasir, admisi, dan kepala ruangan melihat pasien yang keluar ruangan sebelum izin kasir, lengkap dengan status kasir saat keluar dan status sekarang. Daftar penutupan tanpa izin kasir ikut menampilkan status kasir saat penutupan |
 | **Requirement/decision** | `FR-RWF-007`; `RWI-DEC-186` |
 | **Kontrak** | Frontend 6.3 `FE-INT-03`; API 3.5 (`departures-before-clearance`, `closures-without-financial-clearance` + `ClosureClearanceObserved`) |
@@ -139,11 +141,11 @@ Seluruh task gelombang 1 baru boleh dimulai setelah task backend yang disebut na
 | **Risiko/pemilik** | Urutan kelompok Daftar Pantau milik `episode-rawat-inap` (`02-module-map.md` 3.5). Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; lint dan build lulus; laporan tracked; roadmap dan traceability diperbarui |
 
-### `FE-RWI-170` — Koreksi penempatan
+### 🟡 `FE-RWI-170` — Koreksi penempatan
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | 🟡 **SEBAGIAN 6 Oktober 2026.** Kriteria 1, 2, 4, dan 5 terpetakan ke source; kriteria 3 sebagian — baris koreksi dan baris lama tercoret sudah tampil, tetapi alasan koreksi belum dapat ditampilkan di riwayat karena `GET placements/by-episode` tidak mengirim `ChangeReason`. Menunggu backend membuka alasan koreksi pada `BedPlacementResponse`; dicatat sebagai gap atas keputusan pengguna 6 Oktober 2026, tanpa wewenang tulis backend. `npm run lint:errors` exit 0, nol error; `npm run test:unit` 2167 dari 2174 lulus — 7 kegagalan sama dengan garis dasar di luar task; tujuh berkas tes task 113/113 lulus; `npm run build` `✓ Compiled successfully in 64s`. Butir DoD uji manual **dikecualikan atas keputusan pengguna 6 Oktober 2026**. Bukti sejauh ini: [laporan](../task/report/frontend/FE-RWI-170.md) |
 | **Outcome** | Kepala ruangan atau petugas admisi mengoreksi salah catat kamar, bed, kelas, atau waktu langsung dari riwayat penempatan; baris lama tetap terlihat tercoret beserta alasannya |
 | **Requirement/decision** | `FR-RWF-019`; `RWI-DEC-157`, `RWI-DEC-192` butir (g); `UAT-RWF-25` |
 | **Kontrak** | Frontend 6.3 `FE-INT-04`; API 3.4 (`CorrectPlacementRequest`, kode `INP-COR-001` s.d. `004`) |
@@ -155,11 +157,11 @@ Seluruh task gelombang 1 baru boleh dimulai setelah task backend yang disebut na
 | **Risiko/pemilik** | Pengguna mencampur koreksi dengan transfer; teks dialog menjelaskan bedanya. Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; lint dan build lulus; laporan tracked; roadmap dan traceability diperbarui |
 
-### `FE-RWI-171` — Antrean "perlu diperiksa" kasir
+### ✅ `FE-RWI-171` — Antrean "perlu diperiksa" kasir
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 6 Oktober 2026.** Kelima acceptance criteria dipetakan ke source. Tanda "perlu diperiksa" pada Menu Pembayaran dibaca dari `review-queue` karena `InvoiceDetailResponse` belum membawa `RequiresReview`. `npm run lint:errors` exit 0, nol error; `npm run test:unit` 2167 dari 2174 lulus — 7 kegagalan sama dengan garis dasar di luar task; tujuh berkas tes task 113/113 lulus; `npm run build` `✓ Compiled successfully in 64s`. Butir DoD uji manual **dikecualikan atas keputusan pengguna 6 Oktober 2026**. Bukti: [laporan](../task/report/frontend/FE-RWI-171.md) |
 | **Outcome** | Kasir melihat invoice yang ditandai "perlu diperiksa", membaca tandanya di layar invoice, dan menyatakan pemeriksaan selesai dengan catatan |
 | **Requirement/decision** | `FR-RWF-012`, `FR-RWF-015`, `FR-RWF-017`; `RWI-DEC-192`; `INV-RWF-08`; `AC-RWF-018` |
 | **Kontrak** | Frontend 6.3 `FE-INT-05`; API 3.9 (`review-queue`, `review-resolution`, kode `BIL-REV-001`, `BIL-FIN-020`, `BIL-FIN-021`) |
