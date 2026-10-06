@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `553501053` (`RizkiV2`), working tree bersih sebelum task |
 | Commit backend yang dijadikan rujukan | `8d81d361` (`rizkiG`) + working tree `EmergencyUnitAuthorityService.cs` (`BE-IGD-039`) |
 | Tanggal | 5 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — implementasi selesai 5 Oktober 2026 (sore).** **2 dari 9** acceptance terbukti: 8 (diff satu berkas, CRLF, nol komentar baru) dan 9 (`eslint` 0 error 0 warning; uji IGD lama 91/91 lulus; `npm run build` lulus 15.21 WIB, nol warning). Acceptance 1–7 **terpetakan ke source**, tetapi uji layarnya belum dijalankan — dijadwalkan pada satu putaran uji Antigravity bersama `BE-IGD-041`, `BE-IGD-064`, dan `FE-IGD-044` (`IGD-DEC-208`). Tanpa UAT |
+| Status | ✅ **SELESAI — 6 Oktober 2026 (sore): 9 dari 9 acceptance terbukti** (`IGD-DEC-218`; bagian 9). Acceptance 1–7 terbukti pada uji layar putaran bersama di hasil build dengan akun `PERAWAT` nyata (`043-U1`…`U5`, `044-U8`) — bukti mentah dan log backend diperiksa agent; bukti diterima dengan penyimpangan tercatat. Tanpa UAT — diserahkan ke tim UAT. *Sebelumnya:* 🟡 **SEBAGIAN — implementasi selesai 5 Oktober 2026 (sore).** **2 dari 9** acceptance terbukti: 8 (diff satu berkas, CRLF, nol komentar baru) dan 9 (`eslint` 0 error 0 warning; uji IGD lama 91/91 lulus; `npm run build` lulus 15.21 WIB, nol warning). Acceptance 1–7 **terpetakan ke source**, tetapi uji layarnya belum dijalankan — dijadwalkan pada satu putaran uji Antigravity bersama `BE-IGD-041`, `BE-IGD-064`, dan `FE-IGD-044` (`IGD-DEC-208`). Tanpa UAT |
 
 ---
 
@@ -172,18 +172,18 @@ MANUAL TEST: NOT RUN — dijadwalkan putaran uji Antigravity (IGD-DEC-208)
 
 | # | Kriteria | Status | Bukti |
 | ---: | --- | --- | --- |
-| 1 | *Catat Tiba* oleh perawat yang tidak ditugaskan di unit tujuan → `403`; modal tetap terbuka dan menampilkan pesan server apa adanya; kepergian tetap *Berangkat* | Terpetakan ke source; uji layar **belum** | `runAction` baris 149–155: modal ditutup hanya bila `fulfilled`, selain itu `setActionError(result.payload?.message …)`; `children` baris 332–337. Uji `039-U2` ulang |
-| 2 | *Terima Dokumen* ke unit yang belum dipetakan → kalimat `IGD-DEC-195` persis | Terpetakan ke source; uji layar **belum** | Pesan diambil dari server tanpa diubah; `InformationAlert` hanya menyaring nilai berbentuk UUID. Uji `039-U1` ulang |
-| 3 | Keenam tombol memakai jalur yang sama | **Terpetakan ke source**; uji layar satu penolakan lain **belum** | Keenam aksi dari `actionsFor` (baris 63–80) masuk `openAction` → `ConfirmModal` → `runAction` yang sama |
-| 4 | Terbaca tanpa kursor pada 1440 × 900; PNG viewport | Uji layar **belum** | Pesan berupa teks di badan modal (`InformationAlert`), bukan tooltip atau `title` |
-| 5 | Alasan pada *Tolak Dokumen* dan *Batalkan* tetap utuh sesudah penolakan | Terpetakan ke source; uji layar **belum** | Modal tidak ditutup saat gagal; `ConfirmModal` baru mengosongkan alasan pada `onExited` (baris 148) |
-| 6 | Pesan hanya milik aksi yang baru dijalankan | Terpetakan ke source; uji layar **belum** | `openAction` (baris 133–136) dan `closeAction` (baris 138–141) mengosongkan pesan; `runAction` mengosongkan sebelum permintaan (baris 148) |
-| 7 | Regresi: aksi berhasil menutup modal dan memuat ulang riwayat; tombol konfirmasi nonaktif selama permintaan | Terpetakan ke source; uji layar **belum** | Cabang `fulfilled` tidak berubah (`setPendingAction(null)`, `reload()`); `loading={section.saving}` tidak berubah |
+| 1 | *Catat Tiba* oleh perawat yang tidak ditugaskan di unit tujuan → `403`; modal tetap terbuka dan menampilkan pesan server apa adanya; kepergian tetap *Berangkat* | **Terpenuhi** — `043-U1` (bagian 9) | `runAction` baris 149–155: modal ditutup hanya bila `fulfilled`, selain itu `setActionError(result.payload?.message …)`; `children` baris 332–337. Uji `039-U2` ulang |
+| 2 | *Terima Dokumen* ke unit yang belum dipetakan → kalimat `IGD-DEC-195` persis | **Terpenuhi** — `043-U2` (bagian 9) | Pesan diambil dari server tanpa diubah; `InformationAlert` hanya menyaring nilai berbentuk UUID. Uji `039-U1` ulang |
+| 3 | Keenam tombol memakai jalur yang sama | **Terpenuhi** — `043-U3` (penolakan *Ajukan* `400`) di samping `043-U1`, `U2`, `U4`; keenam tombol lewat source (bagian 9) | Keenam aksi dari `actionsFor` (baris 63–80) masuk `openAction` → `ConfirmModal` → `runAction` yang sama |
+| 4 | Terbaca tanpa kursor pada 1440 × 900; PNG viewport | **Terpenuhi** — PNG viewport `043-U1`, `043-U2` (1440 × 900) | Pesan berupa teks di badan modal (`InformationAlert`), bukan tooltip atau `title` |
+| 5 | Alasan pada *Tolak Dokumen* dan *Batalkan* tetap utuh sesudah penolakan | **Terpenuhi** — kaki *Tolak Dokumen* `043-U4`; kaki *Batalkan* lewat source (bagian 9) | Modal tidak ditutup saat gagal; `ConfirmModal` baru mengosongkan alasan pada `onExited` (baris 148) |
+| 6 | Pesan hanya milik aksi yang baru dijalankan | **Terpenuhi** — `043-U5` (bagian 9) | `openAction` (baris 133–136) dan `closeAction` (baris 138–141) mengosongkan pesan; `runAction` mengosongkan sebelum permintaan (baris 148) |
+| 7 | Regresi: aksi berhasil menutup modal dan memuat ulang riwayat; tombol konfirmasi nonaktif selama permintaan | **Terpenuhi** — `044-U8`: modal tertutup, riwayat dan pesanan dimuat ulang; tombol nonaktif lewat source (bagian 9) | Cabang `fulfilled` tidak berubah (`setPendingAction(null)`, `reload()`); `loading={section.saving}` tidak berubah |
 | 8 | Diff satu berkas; nol slice, konstanta domain, CSS, komponen baru, backend; nol komentar baru; komentar lama tidak disunting; tetap CRLF | **Terpenuhi** | Bagian 6 |
 | 9 | `eslint` 0 error; uji IGD lama lulus; tanpa unit test baru; `npm run build` lulus | **Terpenuhi** | Bagian 6 |
 
-**DoD:** laporan tracked ✅; register, node grafik R3.13.2 dan ringkasan, serta traceability ditandai ✅ (🟡); uji layar pada
-hasil build dengan bukti mentah diperiksa agent — **belum**.
+**DoD:** laporan tracked ✅; register, node grafik R3.13.2 dan ringkasan, serta traceability ditandai ✅; uji layar pada
+hasil build dengan bukti mentah diperiksa agent ✅ (6 Oktober 2026 sore, bagian 9, `IGD-DEC-218`). *Sebelumnya: uji layar belum.*
 
 ---
 
@@ -199,3 +199,54 @@ hasil build dengan bukti mentah diperiksa agent — **belum**.
 | Interupsi | `NONE` |
 | Status Git | Frontend: ` M src/components/view/health-services/emergency-installation-management/emergency-assessment-view/components/emergency-assessment-transfer-tab.jsx`. Tidak di-*stage*, tidak di-commit |
 | Langkah berikutnya | `build-module-backend` `BE-IGD-041` atas izin pemilik, lalu `BE-IGD-064` dan `FE-IGD-044`; sesudahnya satu panduan uji Antigravity yang memuat acceptance 1–7 kartu ini (`039-U1`, `039-U2` ulang, satu penolakan *Ajukan*, uji alasan utuh, buka–tolak–tutup–buka) |
+
+---
+
+## 9. Pemeriksaan bukti uji putaran bersama — 6 Oktober 2026 (sore)
+
+Uji layar dijalankan agen Antigravity atas nama pemilik dengan panduan agent
+[`2026-10-06-panduan-uji-putaran-bersama.md`](../../testing/2026-10-06-panduan-uji-putaran-bersama.md) (Blok A, aturan
+A1–A18). Agent memutus dari bukti mentah `QuilvianSystemFrontendDev/test-with-agy/igd/uji-putaran-bersama-20261006/`
+(JSON per skenario, PNG viewport, skrip per versi) dicocokkan dengan log backend `Logs/quilvian-backend-20261006.json`,
+bukan dari ringkasan [laporan penguji](../../testing/2026-10-06-laporan-uji-putaran-bersama.md). Keputusan pemilik:
+`IGD-DEC-218`; fakta `IGD-FACT-073`…`078` di decision log.
+
+**Lingkungan.** Source kartu ini ter-commit pemilik di frontend `2a985f6d5` (5 Oktober 2026); working tree
+`emergency-assessment-transfer-tab.jsx` kini juga memuat perubahan `FE-IGD-044` di atasnya. Layar dilayani
+`node .next/standalone/server.js` dari `BUILD_ID` 11.13.16 WIB (build `FE-IGD-044` yang memuat source kartu ini),
+viewport 1440 × 900, `nextjsPortalNull` benar di setiap skenario layar. Seluruh langkah layar memakai akun `PERAWAT`
+(`dimas.kurniawan`, `IGD-DEC-215`; `isSuperAdmin: false`); nol permintaan SuperAdmin dan nol permintaan ke
+`/api/v1/administrator/**` sejak 04.20 UTC. Penugasan HR akun itu di simpul Instalasi Gawat Darurat, bukan di simpul
+Instalasi Rawat Inap (Q-P2); unit tujuan *ICU* sengaja belum dipetakan (Q-UNIT).
+
+| Skenario | Putusan agent | Bukti yang menentukan |
+| --- | --- | --- |
+| `043-U1` | **Terbukti** — acceptance 1, 4 | `POST …/arrive` `403` 05.18.15 UTC; `message` persis *"Anda tidak bertugas di unit Rawat Inap, sehingga tidak dapat mencatat kedatangan pasien."*; PNG: modal *Catat Tiba?* tetap terbuka, kalimat itu terbaca di kotak merah di bawah kalimat konfirmasi; sesudah ditutup, kartu tetap *Fisik: Sudah Berangkat* |
+| `043-U5` | **Terbukti** — acceptance 6 | Modal *Catat Tiba* dibuka ulang tanpa konfirmasi: memuat *"Perubahan akan dicatat sebagai kejadian baru dalam riwayat kepergian pasien."*; tidak memuat kalimat galat sebelumnya; tidak ada kotak galat; nol permintaan jaringan |
+| `043-U2` | **Terbukti** — acceptance 2, 4 | `POST …/accept-handover` `403` 05.18.32 UTC; `message` persis kalimat `IGD-DEC-195` untuk unit *ICU*; modal tetap terbuka dan memuatnya (PNG); kalimat lama *"Lanjutkan dengan menyertakan alasan"* tidak muncul di modal maupun respons |
+| `043-U4` | **Terbukti** — acceptance 5 (kaki *Tolak Dokumen*) | Alasan `Uji 043 alasan utuh` diketik lalu dikonfirmasi; `POST …/reject-handover` `403` 05.18.36 UTC dengan badan `rejectionReason` = alasan itu; modal tetap terbuka, kotak alasan masih berisi `Uji 043 alasan utuh` persis (PNG dan nilai input) |
+| `043-U3` | **Terbukti** — acceptance 3 (satu penolakan lain) | `POST …/submit-handover` `400` 05.18.51 UTC; `message` persis *"Masih ada 3 pesanan yang belum ditentukan sikapnya."*; modal *Ajukan Serah Terima?* tetap terbuka dan memuatnya (PNG) |
+| `044-U8` (`043-U6`) | **Terbukti** — acceptance 7 (bagian modal tertutup dan riwayat dimuat ulang) | `POST …/submit-handover` `200` 05.19.03 UTC; modal tertutup sendiri; disusul `GET …/emergency-departures` dan `GET …/order-items` `200`; kartu *Dokumen: Menunggu Unit Tujuan* (PNG). Atribut `disabled` tombol konfirmasi selama permintaan tidak direkam (butir panduan *"bila tertangkap"*) |
+
+Pencocokan: seluruh permintaan di `jaringan[]` keenam skenario cocok dengan log (method, path, kode status, akun);
+putusan dihitung ulang dari `pemeriksaan` — enam `PASS`. Bagian acceptance yang dinyatakan lewat source sesuai pemetaan
+panduan bagian 8: keenam tombol (acceptance 3), kaki *Batalkan* (acceptance 5), dan tombol nonaktif selama permintaan
+(acceptance 7, `loading={section.saving}` tidak berubah).
+
+**Penyimpangan — bukti diterima dengan penyimpangan tercatat (`IGD-DEC-218`).**
+
+| # | Penyimpangan | Aturan | Penanganan |
+| ---: | --- | --- | --- |
+| a | Persiapan, satu sesi layar 04.47–04.50 UTC, dan lingkup percobaan 1–2 tidak dilaporkan lengkap; bukti percobaan 1–2 tertimpa. Percobaan 2 sudah menjalankan Blok A pada VA1 dan VA2 — seluruhnya ditolak `403`, sehingga keadaan kunjungan yang dipakai ulang percobaan 3 tidak bergeser | A11, A12 | Dicatat (`IGD-FACT-076`) |
+| b | Laporan penguji menulis `043-U4` sebagai *"Uji alasan tetap … batal modal; buka kembali"*; bukti mentah menunjukkan langkah persis panduan | A12 | Dicatat (`IGD-FACT-078`); putusan dari JSON, PNG, dan skrip; laporan penguji tidak disunting |
+| c | Lencana kartu dicocokkan tanpa membedakan huruf besar (*Sudah berangkat* terbaca *Sudah Berangkat* karena `.badge` global mengkapitalkan teks); kalimat pesan di modal tetap dicocokkan persis | A7 | Dicatat; bukan cacat layar |
+
+| Hal | Isi |
+| --- | --- |
+| Status | ✅ **SELESAI — 6 Oktober 2026 (sore)**: 9 dari 9 acceptance terbukti (`IGD-DEC-218`) |
+| Implementation | Selesai — satu berkas, ter-commit `2a985f6d5` |
+| Developer verification | `eslint` 0/0, uji IGD lama 91/91, `npm run build` lulus (bagian 6); uji layar Blok A dan `044-U8` pada hasil build, bukti mentah dan log diperiksa agent |
+| UAT | Belum dijalankan — diserahkan ke tim UAT; bukan klaim UAT |
+| Komentar lama yang basi | Nihil |
+| Masalah yang diketahui | Tetap seperti bagian 8; butir (3) dijawab `FE-IGD-044` (kartu pasien dimuat ulang sesudah sikap pesanan) dan butir (4) dijawab `BE-IGD-064` ✅ |
+| Langkah berikutnya | Pemilik: commit dokumen, lalu rilis bersama pasangan `BE-IGD-041` dan `FE-IGD-044` (`IGD-DEC-204`) |

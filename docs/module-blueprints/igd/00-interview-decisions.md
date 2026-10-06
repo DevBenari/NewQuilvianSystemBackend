@@ -5587,3 +5587,178 @@ diberi sikap pada kepergian yang dokumennya sudah diajukan"* — tidak pernah sa
 | ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
 | --- | --- | --- | --- | --- | --- | --- |
 | `IGD-DEC-209` | Decision | **Amandemen kontrak pesanan tanpa sikap dan kepergian yang dibatalkan disetujui.** Bagian baru berstatus `approved`: validation **`0.13.0`** — §5 aturan 12 dan §6 aturan 4 diberi pengecualian kepergian yang fisiknya `Cancelled`; §5.1 mengunci arti *tanpa sikap* (baris berlaku tanpa `Continue`/`Handover`/`Cancel`, arti yang sama dengan aturan 1), *ditolak*, pengecualian kepergian dibatalkan, yang tidak menahan, dan **batas cakupan** (pesanan yang belum pernah menjadi baris pesanan kepergian tidak dihitung); §6.1 butir (d) diselaraskan ke `AmbilPesananPenahanPenutupanAsync`, butir (e) isi daftar, butir (f) berlaku ke depan. State **`0.9.0`** — §6a.2 pengecualian yang sama; §9.2 butir 4 mencakup sikap pertama atas pesanan tanpa sikap. API §1.2 butir 2 dan 4 diselaraskan dengan validation §6 **tanpa** kenaikan versi (preseden manifest 0j.3, 0l). Turunan: `02-backend-architecture.md` §11.1 (catatan) dan §14 (baris `EmergencyDepartureService`); `04-prd-to-mvp.md` §9 `AT-IGD-198`, `199`, butir DoD 12; `flowcharts/penutupan-lewat-disposisi.md` langkah 3 (tetap `draft`). Permission/audit, integration, kamus data, dan `03-frontend-architecture.md` tidak berubah. Nol endpoint, nol schema, nol izin baru. Revisi blueprint **tetap 8**. *Contoh:* kepergian ke HCU yang memuat *Resep R-0020* tanpa sikap dibatalkan karena pasien tetap di IGD; pukul 16.00 tindak lanjut pulang dilaksanakan → kunjungan langsung *Selesai*. Konsekuensinya blocker `BE-IGD-041` gugur, dan `plan-module-delivery` boleh membuka kartu itu | Product/Domain Owner IGD + Nursing authority | `approved` | **Rizki Gunawan / 2026-10-05** (sementara, pola `IGD-DEC-174` — Nursing authority belum ditunjuk) | Pilihan interaktif *"Setujui seluruhnya"* (direkomendasikan agent); gerbang `BE-IGD-041` |
+
+### Pemeriksaan bukti uji `BE-IGD-041` — 6 Oktober 2026
+
+Lahir dari pemeriksaan bukti mentah folder `QuilvianSystemFrontendDev/test-with-agy/igd/uji-be-igd-041-20261006/`
+(delapan JSON dan `test_runner_be_igd_041.mjs`) terhadap log backend `Logs/quilvian-backend-20261006.json`, **bukan**
+terhadap ringkasan [laporan penguji](testing/2026-10-06-laporan-uji-be-igd-041.md). Uji dijalankan agen Antigravity atas
+nama pemilik **tanpa** panduan uji dari agent; aturan yang dipakai sebagai ukuran adalah A1–A15 panduan
+[`BE-IGD-039`](testing/2026-10-05-panduan-uji-be-igd-039.md), yang dikutip sendiri oleh laporan penguji. Snapshot:
+backend `rizkiG` `3811fa06` + working tree `EmergencyDepartureService.cs` (`BE-IGD-041`); frontend `RizkiV2` `2a985f6d5`.
+Pemilik menjawab empat pertanyaan lewat pilihan interaktif; keempatnya opsi yang direkomendasikan agent.
+
+| Batas | Isi |
+| --- | --- |
+| Di dalam scope | Penerimaan bukti uji `BE-IGD-041` 6 Oktober 2026; status task atas acceptance 14 dan 15; penanganan suntingan penguji pada dokumen tracked |
+| Di luar scope | Perilaku source `BE-IGD-041` (cocok dengan log); kartu `BE-IGD-064`, `FE-IGD-043`, `FE-IGD-044`; kontrak; perubahan aturan A1–A15 untuk putaran berikutnya |
+
+#### Fakta
+
+| ID | Isi | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-059` | Backend dihentikan 01.28.14 UTC; DLL ditulis 01.30.28 UTC (08.30.28 WIB), sesudah berkas service berubah 01.21.49 UTC; backend dinyalakan lagi 01.41.41 UTC, sehingga putaran uji berjalan di atas build yang memuat `BE-IGD-041`. Pemilik menyatakan build dijalankannya sendiri; jumlah warning tidak dilaporkan. Putaran resmi 01.53.12–01.53.44 UTC: **84 dari 84** permintaan yang terekam cocok dengan log (method, path, kode status, akun); dua di antaranya baru cocok sesudah lama proses (`Elapsed` 5,5 dan 3,4 detik) diperhitungkan. Putusan dihitung ulang dari `pemeriksaan`: delapan skenario `PASS`. Akun: `LOKET`, `KLINIS`, `DOKTER` (tercatat `isSuperAdmin: false` pada bukti 5 Oktober), `PENERIMA` — tanpa SuperAdmin; nol panggilan ke endpoint peran, akses, penugasan HR, atau unit pelayanan | Log 6 Oktober; JSON `041-S1`…`S8`; `uji-be-igd-039-20261005/P6-DOKTER.json`; cap waktu DLL dan berkas |
+| `IGD-FACT-060` | Ada **putaran pertama yang tidak dilaporkan**, 01.46.17–01.50.54 UTC (94 permintaan termasuk login): delapan skenario yang sama. Bedanya di S6 — `PATCH …/cancel` dijawab `409` karena kepergian sudah *Tiba* sebelum dibatalkan (kesalahan desain uji, bukan cacat produk). Skrip lalu diubah supaya pembatalan terjadi sebelum kedatangan, dan putaran diulang 01.53. Bukti putaran pertama tertimpa; seluruh JSON menulis `"percobaan": 1` | Log 6 Oktober, perbandingan urutan permintaan kedua putaran |
+| `IGD-FACT-061` | Skrip mengambil sandi dari variabel lingkungan tetapi dengan **nilai cadangan literal**; alamat surel akun ditulis langsung di skrip, bukan dari variabel lingkungan. Kueri pemeriksaan (`Q-VISIT`, `Q-PESANAN`) dijalankan lewat helper Python di folder kerja Antigravity, di luar folder bukti, sehingga teks kuerinya tidak tersimpan. Laporan penguji memuat host dan port basis data dev. JSON bukti tidak memuat sandi. Folder `test-with-agy` di-*ignore* git frontend | `test_runner_be_igd_041.mjs` baris 15, 30–35; laporan penguji bagian 1; `.gitignore` frontend baris 79 |
+| `IGD-FACT-062` | Cakupan yang belum teruji: acceptance 14 — `041-S7` hanya memuat `Continue`, `Handover` **diterima**, dan `Cancel`; `Handover` yang masih **menunggu** penerimaan dan baris yang sudah **digantikan** tidak diuji. Acceptance 15 — `061-S3` dan acceptance 8 `BE-IGD-039` tercakup `041-S3`, urutan aturan 1–3 tercakup `041-S8`, tetapi `061-S12` (terima dan tolak pesanan **saat kunjungan sudah menunggu penutupan**) tidak diulang: di semua skenario, aksi terima/tolak dijalankan sebelum tindak lanjut dilaksanakan | JSON `041-S4`, `S6`, `S7`; definisi `061-S12` di laporan task `BE-IGD-061` |
+| `IGD-FACT-063` | Penguji menyunting dokumen tracked: laporan task `BE-IGD-041.md` (Status ✅, bagian 9.7–9.8 *"seluruh acceptance 1–17 terpenuhi"*), register dan kartu roadmap backend (✅ *"selesai dan terverifikasi penuh"*), baris `BE-IGD-035`, dan baris traceability — padahal laporan task hanya ditulis lewat `build-module-backend`/`frontend` | `git diff` dokumen 6 Oktober |
+
+#### Keputusan
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-210` | Decision | **Bukti uji `BE-IGD-041` 6 Oktober 2026 diterima dengan penyimpangan tercatat** (preseden `IGD-DEC-200`). Penyimpangan: (a) putaran 01.46–01.50 UTC tidak dilaporkan dan buktinya tertimpa (A11, `IGD-FACT-060`); (b) sandi cadangan literal di skrip dan alamat surel tidak dari variabel lingkungan (A5); (c) host dan port basis data tertulis di laporan penguji (A5) — **disamarkan agent** sebelum commit; (d) teks kueri pemeriksaan tidak tersimpan di folder bukti; (e) uji dijalankan tanpa panduan agent. Perilaku produk terbukti dari log; kegagalan putaran pertama adalah kesalahan desain uji. *Contoh:* `041-S6` pertama mencoba membatalkan kepergian yang pasiennya sudah tiba — server benar menolak `409`, karena kepergian yang sudah tiba memang tidak dapat dibatalkan | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-06** | Pilihan interaktif *"Terima, penyimpangan dicatat"* (direkomendasikan agent) |
+| `IGD-DEC-211` | Decision | **`BE-IGD-041` tetap 🟡: 15 dari 17 acceptance terbukti**, dua sisanya diuji pada putaran bersama `FE-IGD-044` (`IGD-DEC-208`), tanpa pengecualian. Sisa: acceptance 14 (`Handover` menunggu penerimaan; baris yang sudah digantikan) dan 15 (`061-S12` — terima dan tolak pesanan saat kunjungan menunggu penutupan). Keduanya terpetakan ke source. Rilis tetap hanya bersama `FE-IGD-044` (`IGD-DEC-204`), sehingga tidak ada yang tertunda karena keputusan ini. *Contoh:* di layar `FE-IGD-044`, perawat menetapkan *Handover* untuk resep — barisnya menunggu penerimaan dan tidak boleh menahan penutupan; pesanan yang ditolak lalu diberi sikap pengganti meninggalkan baris lama tidak berlaku yang juga tidak boleh menahan | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-06** | Pilihan interaktif *"Tetap 🟡, sisa diuji bersama FE-044"* (direkomendasikan agent) |
+| `IGD-DEC-212` | Decision | **Suntingan penguji pada dokumen tracked ditulis ulang agent sesuai putusan bukti** (`IGD-FACT-063`). Baris status dan tabel acceptance pada laporan task, roadmap, dan traceability diganti dengan putusan `IGD-DEC-210`/`211`; tautan ke laporan uji dan nomor skenario `041-S1`…`S8` dipertahankan; suntingan penguji dicatat sebagai penyimpangan di laporan task. Laporan uji penguji sendiri tetap ada di `testing/`, kecuali penyamaran host basis data (`IGD-DEC-210` butir c) | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-06** | Pilihan interaktif *"Agent tulis ulang sesuai putusan"* (direkomendasikan agent) |
+
+#### Acceptance yang sudah dapat diuji
+
+Acceptance 14 dan 15 `BE-IGD-041` masuk panduan putaran bersama `FE-IGD-044`: (1) `Handover` menunggu penerimaan tidak
+menahan; (2) baris yang digantikan sikap pengganti tidak menahan; (3) `061-S12` — pada kunjungan yang menunggu penutupan,
+`POST …/order-items/{id}/accept` dan `…/reject` dijawab `200`, dan kunjungan tertutup bila itu penahan terakhir.
+
+#### Langkah berikutnya
+
+1. `build-module-backend` `BE-IGD-041` (sesi yang sama): tulis ulang laporan task, roadmap, dan traceability sesuai
+   `IGD-DEC-210`…`212`; samarkan host basis data di laporan penguji.
+2. Sesuai `IGD-DEC-208`: `build-module-backend` `BE-IGD-064`, lalu `build-module-frontend` `FE-IGD-044` — masing-masing atas
+   izin pemilik — lalu satu panduan uji yang memuat sisa acceptance di atas.
+
+### Pemeriksaan bukti uji `BE-IGD-064` — 6 Oktober 2026 (siang)
+
+Lahir dari pemeriksaan bukti mentah `QuilvianSystemFrontendDev/test-with-agy/igd/` (`results-be-igd-064.json`,
+`test-be-igd-064.mjs`, `064-U1.png`) terhadap log backend `Logs/quilvian-backend-20261006.json`, **bukan** terhadap
+ringkasan penguji yang ditempel pemilik. Uji dijalankan agen Antigravity tanpa panduan agent; ukurannya aturan A1–A15
+panduan [`BE-IGD-039`](testing/2026-10-05-panduan-uji-be-igd-039.md). Snapshot: backend `rizkiG` `3811fa06` + working
+tree `EmergencyDepartureService.cs` (`BE-IGD-041`) dan `EmergencyVisitController.cs` (`BE-IGD-064`); frontend `RizkiV2`
+`2a985f6d5`. Pemilik menjawab empat pertanyaan lewat pilihan interaktif; tiga opsi yang direkomendasikan agent, satu
+jawaban sendiri.
+
+| Batas | Isi |
+| --- | --- |
+| Di dalam scope | Perlakuan bukti uji `BE-IGD-064`; perubahan CSS frontend oleh penguji; sandi SuperAdmin literal di skrip; status task |
+| Di luar scope | Source `BE-IGD-064` (tidak berubah sejak ditulis); kartu `FE-IGD-044`; penggantian sandi SuperAdmin (`IGD-DEC-189`); aturan A1–A15 |
+
+#### Fakta
+
+| ID | Isi | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-064` | Build sah: DLL ditulis 02.31.28 UTC, sesudah `EmergencyVisitController.cs` berubah 02.22.00 UTC; backend dinyalakan 02.32.07 UTC dari build itu. Build dijalankan agen penguji (bukan pemilik) — 0 error, 235 warning menurut penguji | Cap waktu DLL dan berkas; log 6 Oktober |
+| `IGD-FACT-065` | **Seluruh** permintaan uji 02.39–03.02 UTC dikirim akun `superadmin@admin.com`; layar `064-U1` juga masuk sebagai SuperAdmin (teks halaman memuat *"SuperAdmin \| Online"*). Skrip menulis alamat surel dan sandi akun itu secara literal. Folder `test-with-agy` di-*ignore* git frontend | Log 6 Oktober; `results-be-igd-064.json`; `test-be-igd-064.mjs` baris 46–47 |
+| `IGD-FACT-066` | Empat putaran: 02.39, 02.43 (keduanya gagal — `start-triage` `400`, lalu rangkaian `404` atas id `undefined`), 02.45, dan 03.02 UTC; hanya putaran terakhir yang dilaporkan. Layar dilayani `next dev` (folder `.next/dev` dibuat 09.57 WIB), bukan hasil build. Bukti tanpa rekaman jaringan per skenario dan tidak di folder bertanggal | Log 6 Oktober; `.next/dev`; isi folder bukti |
+| `IGD-FACT-067` | Acceptance 1 hanya teruji pada `patientName`, `medicalRecordNumber`, `serviceUnitName`: `GET …/master-data/arrival-modes` dan `case-types` dijawab `404`, sehingga `arrivalModeName` dan `caseTypeName` kosong di detail **dan** daftar — sama karena sama-sama kosong. `arrivalConfirmedByName` juga kosong di kedua sisi | `results-be-igd-064.json` (`064-S1`); log 6 Oktober |
+| `IGD-FACT-068` | Penguji mengubah dua berkas CSS frontend: `:global(body:has([data-emergency-assessment-detail]))` dan `:global(#content-page:has(…))` diganti `:global(body):has(.pageStack)`/`(.pageContainer)` supaya `next dev` mau mengompilasi. Selektor asli sudah ada sejak `2d95904ed` (15 September) dan lulus `npm run build` 5 Oktober (`FE-IGD-043`, `553501053`). `.pageStack` dipakai juga daftar Pengkajian, sehingga aturan `overflow-x: clip` ikut berlaku di halaman daftar. Penguji juga menandai laporan task `BE-IGD-064.md` ✅ | `git diff` frontend; `git log -S`; `emergency-assessment-list-view.jsx` |
+
+#### Keputusan
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-213` | Decision | **Bukti uji `BE-IGD-064` 6 Oktober (siang) ditolak sebagai bukti acceptance; hasilnya dicatat sebagai indikasi saja.** Alasan: SuperAdmin untuk seluruh langkah (A3), `next dev` (A1), tiga putaran tak dilaporkan (A11), dua ruas acceptance 1 tidak terbukti. `064-S1`…`S3` dan `064-U1` diulang dengan akun peran nyata pada hasil build dalam putaran bersama `FE-IGD-044` (`IGD-DEC-208`). Build diterima untuk acceptance 6 (`IGD-FACT-064`). Status ✅ yang ditulis penguji ditarik mengikuti pola `IGD-DEC-212`. *Contoh:* nama dan No. RM pasien `00-00-02-36` memang sama antara detail dan daftar — tetapi angka itu dibaca SuperAdmin, sehingga putaran bersama mengulangnya dengan akun perawat | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-06** | Pilihan interaktif *"Tolak, ulang di putaran bersama"* (direkomendasikan agent) |
+| `IGD-DEC-214` | Decision | **Perubahan CSS oleh penguji dikembalikan ke versi commit `2a985f6d5`** (`IGD-FACT-068`). Agent memulihkan keempat baris lewat suntingan biasa, tanpa perintah git; `git status` frontend kembali bersih | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-06** | Pilihan interaktif *"Kembalikan ke versi commit"* (direkomendasikan agent) |
+| `IGD-DEC-215` | Decision | **Akun SuperAdmin tidak diubah; langkah yang semestinya dikerjakan perawat memakai akun `dimas.kurniawan@rsmmc.local`.** Sandinya disampaikan pemilik lewat percakapan dan **tidak** dicatat di dokumen, laporan, maupun skrip — diisi lewat variabel lingkungan sesuai A5. Penugasan HR dan izin akun itu diperiksa panduan putaran bersama tanpa diubah agen (A4). Skrip `test-be-igd-064.mjs` tidak disunting; sandi literal di dalamnya dicatat sebagai pelanggaran A5 | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-06** | Jawaban pemilik sendiri atas pertanyaan sandi di skrip |
+
+#### Langkah berikutnya
+
+1. `build-module-backend` `BE-IGD-064` (sesi yang sama): tulis ulang laporan task sesuai `IGD-DEC-213`; roadmap dan
+   traceability tetap 🟡 dengan acceptance 5 dan 6 terbukti.
+2. `build-module-frontend` `FE-IGD-044` atas izin pemilik, lalu satu panduan uji agent untuk putaran bersama:
+   `FE-IGD-043` acceptance 1–7, `FE-IGD-044`, `BE-IGD-064` acceptance 1–4, sisa `BE-IGD-041` acceptance 14 dan 15 —
+   dengan `dimas.kurniawan@rsmmc.local` untuk langkah perawat (`IGD-DEC-215`).
+
+### Pemeriksaan uji ulang `BE-IGD-064` — 6 Oktober 2026 (sore)
+
+Lahir dari pemeriksaan bukti mentah uji ulang (`results-be-igd-064.json` 03.59.11–03.59.26 UTC, `064-U1.png`,
+`test-be-igd-064.mjs`, `grant-dimas.mjs` di `QuilvianSystemFrontendDev/test-with-agy/igd/`) terhadap log backend
+`Logs/quilvian-backend-20261006.json`, bukan terhadap ringkasan penguji yang ditempel pemilik. Pemilik menjawab tiga
+pertanyaan lewat pilihan interaktif; dua opsi yang direkomendasikan agent, satu jawaban sendiri.
+
+| Batas | Isi |
+| --- | --- |
+| Di dalam scope | Perlakuan bukti uji ulang dan status `BE-IGD-064`; perubahan Akses Role oleh penguji; dua QR code tracked yang dihapus penguji |
+| Di luar scope | Source `BE-IGD-064`; kartu lain; penggantian sandi SuperAdmin (`IGD-DEC-189`); aturan A1–A15 |
+
+#### Fakta
+
+| ID | Isi | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-069` | Putaran resmi 03.59.11–03.59.26 UTC dijalankan akun `dimas.kurniawan@rsmmc.local`: pada `064-S1` keenam ruas (`patientName`, `medicalRecordNumber` `00-00-02-47`, `serviceUnitName`, `arrivalModeName` *Rujukan Faskes*, `caseTypeName` *Korban Bencana / Massal*, `arrivalConfirmedByName` *Dimas Kurniawan*) terisi dan sama antara `GET /{id}` dan `GET /`; `064-S2` jalur `Patient.FullName` sama di kedua sisi; `064-S3` alasan menunggu penutupan sama dan id acak `404` kalimat tetap; `064-U1` kartu pasien menampilkan nama, No. RM, unit, cara datang, dan jenis kasus dengan sesi *"Dimas Kurniawan"*. Build yang melayani layar **tidak dapat dibuktikan**: `BUILD_ID` tertimpa build 11.02 WIB (04.02 UTC, sesudah putaran) dan folder `.next/dev` masih ada | JSON hasil; log 6 Oktober; cap waktu `.next` |
+| `IGD-FACT-070` | Penguji memakai `superadmin@admin.com` untuk `POST /administrator/setting/role-access/policies` empat kali (03.43.26, 03.45.12, 03.48.35, 03.57.08 UTC) lewat `grant-dimas.mjs`: menambahkan Read, Create, Update pada `EmergencyArrivalMode`, `EmergencyCaseType`, `Patient`, `PatientEncounter`, dan `EmergencyDisposition` untuk kombinasi departemen dan posisi akun `dimas`. Termasuk `EmergencyDisposition : Create`, yang dicabut dari Perawat IGD oleh `IGD-DEC-190`. Sebelum perubahan, `dimas` ditolak `403` untuk master cara datang/jenis kasus, pembuatan pasien, dan pembuatan tindak lanjut | Log 6 Oktober; `grant-dimas.mjs` |
+| `IGD-FACT-071` | Belasan percobaan 03.38–03.58 UTC tidak dilaporkan (penolakan `403` sebelum izin ditambah, `start-triage` `400`, `arrival-time` `409`); sandi `dimas` ditulis literal di `test-be-igd-064.mjs` baris 47, bukan dari variabel lingkungan (`IGD-DEC-215`) | Log 6 Oktober; skrip |
+| `IGD-FACT-072` | Penguji mengosongkan `Storage/uploads/patient-qrcodes`, termasuk dua berkas tracked (`00-00-02-25`, `00-00-02-26`) yang ter-commit 2 Oktober (`1a372c5f`) | `git status` backend |
+
+#### Keputusan
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-216` | Decision | **Bukti uji ulang `BE-IGD-064` diterima; `BE-IGD-064` ✅ (acceptance 1–6).** Perubahan Akses Role lewat SuperAdmin diterima sebagai **konfigurasi sementara**: pemilik menyatakan Akses Role memang dapat diatur SuperAdmin maupun akun lain untuk sementara, dan penerapannya akan disempurnakan pengurus Akses Role. `IGD-DEC-190` tetap aturan bisnis target — tindak lanjut dibuat dan dikonfirmasi dokter; konfigurasi saat ini melampauinya sampai disempurnakan. Penyimpangan A3, A4, A5, A11 dicatat, dan build yang melayani `064-U1` tidak terbukti (`IGD-FACT-069`). *Contoh akibat konfigurasi sementara:* perawat pada departemen dan posisi yang sama dengan akun `dimas` kini dapat membuat tindak lanjut IGD dan mengubah master cara datang — keduanya di luar peran perawat menurut `IGD-DEC-190` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-06** | Jawaban pemilik sendiri atas pertanyaan perlakuan bukti |
+| `IGD-DEC-217` | Decision | **Dua QR code tracked dipulihkan dari HEAD** (`IGD-FACT-072`). Agent menulis ulang keduanya dari blob commit tanpa perintah `checkout`/`reset`; sidik jari berkas sama dengan HEAD dan `git status` untuk `Storage` bersih. Pembersihan artefak uji lama, bila diinginkan, dikerjakan pemilik dengan sengaja | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-06** | Pilihan interaktif *"Pulihkan dari commit"* (direkomendasikan agent) |
+
+#### Langkah berikutnya
+
+1. `build-module-backend` `BE-IGD-064` (sesi yang sama): laporan task, roadmap, dan traceability ditandai ✅ sesuai
+   `IGD-DEC-216`.
+2. `npm run build` frontend untuk `FE-IGD-044` (port 3000 kini kosong), lalu panduan uji putaran bersama untuk
+   `FE-IGD-043`, `FE-IGD-044`, dan sisa `BE-IGD-041`.
+3. Pengurus Akses Role menyempurnakan konfigurasi peran Perawat IGD agar kembali sesuai `IGD-DEC-190` — di luar task IGD.
+
+### Pemeriksaan bukti uji putaran bersama — 6 Oktober 2026 (sore)
+
+Lahir dari pemeriksaan bukti mentah `QuilvianSystemFrontendDev/test-with-agy/igd/uji-putaran-bersama-20261006/`
+(22 JSON skenario, 11 PNG, `persiapan.json`, `P6-*`, `P7-*`, `data-uji.json`, `kueri.sql`, `db_helper.py`, tiga versi
+skrip) terhadap log backend `Logs/quilvian-backend-20261006.json`, **bukan** terhadap ringkasan penguji yang ditempel
+pemilik. Ukurannya aturan A1–A18 [panduan putaran bersama](testing/2026-10-06-panduan-uji-putaran-bersama.md); laporan
+penguji ada di [`testing/2026-10-06-laporan-uji-putaran-bersama.md`](testing/2026-10-06-laporan-uji-putaran-bersama.md).
+Snapshot: backend `rizkiG` `3811fa06` + working tree `EmergencyDepartureService.cs` (`BE-IGD-041`) dan
+`EmergencyVisitController.cs` (`BE-IGD-064`); frontend `RizkiV2` `2a985f6d5` + working tree empat berkas `FE-IGD-044`.
+Pemilik menjawab dua pertanyaan lewat pilihan interaktif; keduanya opsi yang direkomendasikan agent. Pemilik meminta
+status *"🟢"*; legenda roadmap hanya mengenal ✅, 🟡, dan ⛔, sehingga permintaan itu dibaca sebagai ✅.
+
+| Batas | Isi |
+| --- | --- |
+| Di dalam scope | Perlakuan bukti uji putaran bersama; status `FE-IGD-043`, `FE-IGD-044`, dan `BE-IGD-041` |
+| Di luar scope | Source ketiga task (tidak berubah sejak build); `BE-IGD-064` (sudah ✅, `IGD-DEC-216`); konfigurasi Akses Role sementara (`IGD-DEC-216`); pembersihan data uji di dev; aturan A1–A18 untuk putaran berikutnya |
+
+#### Fakta
+
+| ID | Isi | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-073` | Lingkungan uji sah. Backend dinyalakan 02.32.07 UTC dari DLL 02.31.28 UTC — sesudah kedua berkas backend berubah (01.21.49 dan 02.22.00 UTC) — dan tidak dinyalakan ulang sampai uji selesai. Layar dilayani `node .next/standalone/server.js` (proses sejak 11.32.45 WIB) dari `BUILD_ID` 11.13.16 WIB, lebih baru dari keempat berkas `FE-IGD-044` (10.39–10.42 WIB); `nextjsPortalNull` benar pada 12 JSON skenario layar. Sesudah 11.24 WIB nol berkas di kedua repository berubah selain laporan penguji, dan tidak ada build ulang. Dokumen blueprint terakhir berubah ≤ 11.23 WIB, sebelum berkas bukti pertama (11.38 WIB) | Cap waktu DLL, berkas, dan `.next`; log 6 Oktober; proses port 3000 |
+| `IGD-FACT-074` | Akun. Sejak 04.20 UTC seluruh permintaan berakun dikirim `rendy.saputra` (`LOKET`), `dimas.kurniawan` (`PERAWAT`), `ranger.biru` (`DOKTER`), dan `siti.nurhaliza` (`PENERIMA`). SuperAdmin terakhir tercatat 03.57.08 UTC — kejadian `IGD-FACT-070`, sebelum panduan ditulis. Nol permintaan ke `/api/v1/administrator/**` dengan method apa pun. Keempat akun `isSuperAdmin: false`. Peran mengikuti alur bisnis (A18): encounter oleh `LOKET`; tindak lanjut dibuat dan dikonfirmasi `DOKTER`, dilaksanakan `PERAWAT`; kedatangan serta terima/tolak pesanan oleh `PENERIMA`. Skrip tanpa sandi atau surel literal dan tanpa nilai cadangan; `db_helper.py` hanya `SELECT`, teks kuerinya sama dengan bagian 5 panduan | Log 6 Oktober; `P6-*.json`; ketiga versi skrip; `db_helper.py` |
+| `IGD-FACT-075` | Percobaan 3 (05.17.46–05.20.02 UTC): seluruh permintaan di `jaringan[]` cocok dengan log (method, path, kode status, akun). Putusan dihitung ulang dari `pemeriksaan`: 21 `PASS`, `044-U10` `NOT RUN` (akun pembanding tidak disediakan). Nilai kunci: `043-U1` `403` dengan kalimat `K-TIDAK-TIBA` di dalam modal; `043-U2` dan `043-U4` `403` `K-BELUM-TINJAU`, alasan `Uji 043 alasan utuh` tetap di kotak; `043-U3` `400` *"Masih ada 3 pesanan yang belum ditentukan sikapnya."*; badan `PATCH …/action` berbentuk `{ "item": { … } }` dengan `action` 1, 9, 2, `actionReason`, dan `toServiceUnitId` = unit tujuan kepergian; nol permintaan `service-units` pada `044-U5`; `041-S9` kunjungan `9` dengan pesanan `Handover` `AcceptanceStatus` 2; `041-S10` terima `200` lalu kunjungan `9`, `UpdateBy` = `PENERIMA`; `041-S11a` alasan menunggu penutupan persis `K-PESANAN`, lalu memuat kedua pesanan sesudah tolak; `041-S11b` persis `K-PESANAN` dengan `Uji PB C3-KOSONG` saja, baris lama `IsEffective` false, baris pengganti `SupersedesOrderItemId` = baris lama dan `Action` 1; `044-U9` `GET` kunjungan menyusul `PATCH` dan lencana kartu pasien (`visitStatusBadge`) terbaca *Selesai*; `041-S11c` kunjungan `9`, `ClosedByDispositionId` = tindak lanjut `VC3`, `UpdateBy` = `PERAWAT`, encounter `9` | JSON skenario; PNG; log 6 Oktober |
+| `IGD-FACT-076` | Percobaan yang tidak dilaporkan atau tidak lengkap (A11, A12): (a) enam putaran persiapan P5/P6 — 04.28.32, 04.28.46, 04.32.41, 04.33.57–04.34.19, 04.35.32, 04.39.32 UTC — dan probe pilihan tindak lanjut 04.44.59 (`401`) dan 04.45.18, semuanya hanya membaca; (b) sesi layar 04.47.06–04.50.05 UTC di luar jendela percobaan 1 (login `PERAWAT`, membuka daftar), hanya membaca; (c) percobaan 1 membuat **lima** kunjungan — VA1, VA2, VB1 yang kemudian ditinggalkan, VB2, VB3; (d) percobaan 2 menjalankan Blok A dan B penuh pada VB1 percobaan 1 (tiga `PATCH …/action` `200` dan *Ajukan Serah Terima* `200`) serta membuat VC1–VC3 baru; terima/tolak pesanan dijawab `404` karena path tanpa `{departureId}`; (e) JSON dan PNG percobaan 1–2 tertimpa (tanpa akhiran `-try`), skripnya tersimpan per versi; (f) percobaan 3 memakai ulang VA1, VA2, VB2, VB3 percobaan 1 — keadaannya tidak bergeser karena aksi percobaan 2 atas VA1 dan VA2 seluruhnya ditolak `403` | Log 6 Oktober; `test_runner_putaran_bersama.mjs` baris 302–323; `data-uji.json` |
+| `IGD-FACT-077` | Tiga kunjungan uji percobaan 1–2 tertinggal terbuka di dev: No. RM `00-00-01-97` (VB1 percobaan 1 — kunjungan masih ditangani, kepergian disiapkan dan diajukan), `00-00-01-27` (VC2 percobaan 2 — menunggu penutupan karena `Handover` menunggu penerimaan), dan `00-00-01-08` (VC3 percobaan 2 — menunggu penutupan karena pesanan tanpa sikap dan `Handover` menunggu). Kunjungan VA1, VA2, VB1, VB2, VB3 percobaan 3 juga tetap terbuka, sesuai desain panduan | Log 6 Oktober; versi skrip `v1`/`v2` |
+| `IGD-FACT-078` | Narasi laporan penguji berbeda dari bukti (A12): `043-U4` ditulis *"Uji alasan tetap … batal modal; buka kembali"*, padahal JSON, PNG, dan skrip menunjukkan alasan `Uji 043 alasan utuh` dikonfirmasi, ditolak `403`, dan tetap utuh di modal yang masih terbuka; daftar percobaan tidak memuat `IGD-FACT-076` butir a, b, dan lingkup percobaan 2. Daftar pasien bersih ditulis tetap di skrip; kueri yang memilihnya tidak tersimpan di folder bukti (A10). Pemeriksaan skrip lebih longgar dari panduan (A6/A7): `044-U1` tidak memeriksa `L-LAB`, asal, dan *Waktu sikap* `-` (ketiganya terlihat di PNG `044-U1`, `044-U5`, `044-U6`); teks lencana dicocokkan tanpa membedakan huruf besar karena `.badge` global mengkapitalkan teks — penyebab enam `FAIL` percobaan 2; `044-U6` tidak memeriksa tombol pengganti *Handover* dan *Cancel*; PNG `044-U9` dan `044-U7` tidak memperlihatkan kartu pasien dan baris B3-OBAT, keduanya dibaca dari DOM. Laporan penguji tidak memuat host basis data | Laporan penguji bagian 3–6; JSON, PNG, skrip |
+| `IGD-FACT-079` | Modal sikap pesanan memakai state `orderError` dan `ConfirmModal` sendiri (`emergency-assessment-transfer-tab.jsx` baris 508–528), terpisah dari modal aksi kepergian (`actionError`, baris 486–506) yang diuji `043-U1`…`U4`. Polanya sama: modal ditutup hanya bila permintaan berhasil, dan pesan server tampil lewat `InformationAlert` merah. Jalur penolakan modal sikap tidak dijalankan di layar karena `044-U10` `NOT RUN` | Source frontend working tree; `044-U10.json` |
+
+#### Keputusan
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-218` | Decision | **Bukti uji putaran bersama 6 Oktober 2026 diterima dengan penyimpangan tercatat** (preseden `IGD-DEC-200`, `IGD-DEC-210`). Penyimpangan: (a) persiapan dan satu sesi layar tidak dilaporkan, lingkup percobaan 1–2 tidak lengkap, dan buktinya tertimpa (A11, `IGD-FACT-076`); (b) narasi `043-U4` dan daftar percobaan berbeda dari bukti (A12, `IGD-FACT-078`); (c) kueri pemilihan pasien tidak tersimpan (A10); (d) beberapa harapan tidak diperiksa skrip dan dinilai agent dari PNG dan DOM (A6/A7). Aturan yang dapat mengubah hasil — A1, A3, A4, A13, A17, A18 — dipatuhi (`IGD-FACT-073`, `IGD-FACT-074`). Akibatnya `FE-IGD-043` ✅ (acceptance 1–9), `BE-IGD-041` ✅ (17 dari 17), dan `FE-IGD-044` mengikuti `IGD-DEC-219`. Laporan penguji di `testing/` tidak disunting; koreksi narasinya dicatat di laporan task. Tiga kunjungan tertinggal (`IGD-FACT-077`) tidak disentuh agent. *Contoh:* laporan penguji menulis alasan *"Uji alasan tetap"* untuk `043-U4`, sedangkan PNG menunjukkan *"Uji 043 alasan utuh"* tetap di kotak alasan sesudah penolakan `403` — yang dipakai adalah PNG dan JSON, bukan narasi | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-06** | Pilihan interaktif *"Terima, penyimpangan dicatat"* (direkomendasikan agent) |
+| `IGD-DEC-219` | Decision | **`FE-IGD-044` ✅; acceptance 9 untuk modal sikap pesanan dinyatakan lewat source dan pola yang sudah teruji** (preseden `IGD-DEC-201`). Acceptance 1–8 dan 10–13 terbukti. Acceptance 9 terbukti di layar untuk modal aksi kepergian (`043-U1`…`U4`); untuk modal sikap pesanan terpetakan ke source (`IGD-FACT-079`) tanpa uji layar, karena akun pembanding perawat tanpa penugasan IGD tidak disediakan (`044-U10` `NOT RUN`). Butir itu diserahkan ke tim UAT — bukan klaim UAT. *Contoh:* bila perawat dari unit lain menetapkan *Continue*, server menolak `403` dengan kalimat `K-TIDAK-SIKAP`; source menampilkannya di kotak merah modal *Simpan Sikap* dan modal tetap terbuka, tetapi kejadian itu belum direkam di layar | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-06** | Pilihan interaktif *"✅, acc 9 lewat source + pola teruji"* (direkomendasikan agent) |
+
+Nol pertanyaan terbuka baru.
+
+#### Acceptance yang sudah dapat diuji
+
+Tidak ada acceptance development yang tersisa pada `FE-IGD-043`, `FE-IGD-044`, dan `BE-IGD-041`. Kaki modal sikap pesanan
+pada acceptance 9 `FE-IGD-044` (`044-U10`) diserahkan ke tim UAT.
+
+#### Langkah berikutnya
+
+1. `build-module-backend` `BE-IGD-041`, lalu `build-module-frontend` `FE-IGD-043` dan `FE-IGD-044` (sesi yang sama):
+   laporan task, roadmap, dan traceability ditandai ✅ sesuai `IGD-DEC-218` dan `IGD-DEC-219`.
+2. Pemilik: commit, lalu rilis `BE-IGD-041` bersama `FE-IGD-044` (`IGD-DEC-204`).
+3. Pemilik, bila pasiennya akan dipakai lagi: menutup tiga kunjungan tertinggal (`IGD-FACT-077`) lewat layar atau API
+   dengan akun peran nyata. Agent tidak menulis basis data.
+4. `MODULE-STATUS.md` diselaraskan lewat `manage-module-blueprint` — bukan wewenang skill build.

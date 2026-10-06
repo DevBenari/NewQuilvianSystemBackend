@@ -210,7 +210,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyVisit", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<EmgVisit>().AsNoTracking().Include(x => x.ArrivalConfirmedByUser).FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgVisit>()
+                .AsNoTracking()
+                .Include(x => x.Patient)
+                .Include(x => x.ServiceUnit)
+                .Include(x => x.ArrivalMode)
+                .Include(x => x.CaseType)
+                .Include(x => x.ArrivalConfirmedByUser)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data kunjungan IGD tidak ditemukan."));
 
