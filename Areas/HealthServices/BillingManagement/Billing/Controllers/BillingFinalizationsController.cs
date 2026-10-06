@@ -118,6 +118,23 @@ public sealed class BillingFinalizationsController : ControllerBase
         }
     }
 
+    [HttpGet("invoices/{invoiceId:guid}/handoffs")]
+    [AccessAction("HandoffsByInvoice", "Read Billing Finalization Handoff Status By Invoice", AccessType = AccessTypes.Read, SortOrder = 4)]
+    [AccessPermission("BillingFinalization", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<HandoffStatusResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> HandoffsByInvoice(Guid invoiceId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _handoffService.GetHandoffStatusByInvoiceAsync(invoiceId, cancellationToken);
+            return Ok(ApiResponse<HandoffStatusResponse>.Ok(result, "Status handoff AR/AP berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+    }
+
     private static ApiResponse<T> Success<T>(T data, int statusCode, string message) => new()
     {
         Success = true,

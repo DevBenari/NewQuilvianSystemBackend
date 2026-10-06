@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
@@ -102,6 +103,10 @@ public sealed class FinanceReceivableInvoiceBatchService
             DebtorReferenceId = mapped.DebtorReferenceId,
             PeriodStart = mapped.PeriodStart,
             PeriodEnd = mapped.PeriodEnd,
+            InvoiceDate = mapped.InvoiceDate,
+            DueDate = mapped.DueDate,
+            PaymentTermDays = mapped.PaymentTermDays,
+            Note = mapped.Note,
             TotalAmount = mapped.TotalAmount,
             Status = mapped.Status,
             IssuedAt = mapped.IssuedAt,
@@ -127,6 +132,99 @@ public sealed class FinanceReceivableInvoiceBatchService
                     ReceivableStatus = x.Receivable.Status
                 })
                 .ToList()
+        };
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Konteks pembuatan batch — GET /create-context. Menyediakan metadata penjamin,
+    // default tanggal dokumen, Terms of Payment authoritative, dan estimasi jatuh tempo
+    // tanpa menduplikasi pembacaan daftar piutang (/billing-data).
+    // ------------------------------------------------------------------------------------
+
+    public async Task<ReceivableInvoiceBatchCreateContextResponse> GetCreateContextAsync(
+        Guid debtorReferenceId, string? category, CancellationToken cancellationToken)
+    {
+        // 1. Cek apakah ini Company Guarantor
+        var company = await _dbContext.MstCompanyGuarantors.AsNoTracking()
+            .Where(x => x.Id == debtorReferenceId && !x.IsDelete)
+            .Select(x => new { x.Id, x.CompanyGuarantorName, x.PaymentDueDays })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        string payerName;
+        string payerKind;
+        int? paymentTermDays = null;
+        string dueDateSource;
+
+        if (company != null)
+        {
+            payerName = company.CompanyGuarantorName;
+            payerKind = BillingDataPayerKinds.Company;
+            paymentTermDays = company.PaymentDueDays;
+            dueDateSource = ReceivableDueDateSources.CompanyGuarantorTerm;
+        }
+        else
+        {
+            // 2. Cek apakah ini Insurance Provider
+            var insurance = await _dbContext.MstInsuranceProviders.AsNoTracking()
+                .Where(x => x.Id == debtorReferenceId && !x.IsDelete)
+                .Select(x => new { x.Id, x.InsuranceProviderName })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (insurance != null)
+            {
+                payerName = insurance.InsuranceProviderName;
+                payerKind = BillingDataPayerKinds.Insurance;
+
+                // Asuransi belum memiliki kolom PaymentDueDays di master data.
+                // Audit apakah piutang aktif milik penjamin ini memiliki DueDate yang dapat ditarik selisihnya terhadap tanggal pengakuan.
+                var sampleReceivable = await _dbContext.FinReceivables.AsNoTracking()
+                    .Where(x => !x.IsDelete
+                        && x.DebtorType == FinReceivableDebtorTypes.Payer
+                        && x.DebtorReferenceId == debtorReferenceId)
+                    .OrderByDescending(x => x.RecognizedAt)
+                    .Select(x => new { x.RecognizedAt, x.DueDate })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (sampleReceivable != null)
+                {
+                    var recDate = FinanceBusinessDate.ToDateOnly(sampleReceivable.RecognizedAt);
+                    var days = sampleReceivable.DueDate.DayNumber - recDate.DayNumber;
+                    if (days > 0)
+                    {
+                        paymentTermDays = days;
+                        dueDateSource = ReceivableDueDateSources.ReceivableDueDate;
+                    }
+                    else
+                    {
+                        dueDateSource = ReceivableDueDateSources.NotConfigured;
+                    }
+                }
+                else
+                {
+                    dueDateSource = ReceivableDueDateSources.NotConfigured;
+                }
+            }
+            else
+            {
+                throw new KeyNotFoundException($"Penjamin dengan Id '{debtorReferenceId}' tidak ditemukan.");
+            }
+        }
+
+        var defaultInvoiceDate = FinanceBusinessDate.Today();
+        DateOnly? dueDatePreview = paymentTermDays.HasValue
+            ? defaultInvoiceDate.AddDays(paymentTermDays.Value)
+            : null;
+
+        return new ReceivableInvoiceBatchCreateContextResponse
+        {
+            DebtorReferenceId = debtorReferenceId,
+            PayerName = payerName,
+            PayerKind = payerKind,
+            DefaultInvoiceDate = defaultInvoiceDate,
+            PaymentTermDays = paymentTermDays,
+            DueDatePreview = dueDatePreview,
+            DueDateSource = dueDateSource,
+            IsTermConfigured = paymentTermDays.HasValue
         };
     }
 
@@ -171,7 +269,8 @@ public sealed class FinanceReceivableInvoiceBatchService
 
     public async Task<FinReceivableInvoiceBatch> CreateAsync(
         DateOnly periodStart, DateOnly periodEnd, IReadOnlyList<Guid> receivableIds,
-        Guid actorUserId, CancellationToken cancellationToken)
+        Guid actorUserId, CancellationToken cancellationToken,
+        DateOnly? invoiceDate = null, string? note = null)
     {
         var distinctIds = receivableIds.Distinct().ToList();
         var receivables = await _dbContext.FinReceivables
@@ -188,15 +287,19 @@ public sealed class FinanceReceivableInvoiceBatchService
             throw new ReceivableInvoiceBatchBadRequestException(
                 $"Batch Tagihan AR hanya menerima piutang berjenis PAYER. Piutang {nonPayer[0].ReceivableNumber} berjenis {nonPayer[0].DebtorType}.");
 
-        // Sama dengan GET eligible-receivables: hanya piutang yang masih OUTSTANDING/PARTIAL dan bernilai positif
-        // yang boleh ditagihkan. Piutang CANCELLED, SETTLED, atau WRITTEN_OFF ditolak di server, tidak hanya
-        // disembunyikan dari daftar.
+        // Hanya piutang yang masih bisa ditagihkan (OUTSTANDING/PARTIAL) ATAU sudah lunas dibayar (SETTLED, mis.
+        // gabungan asuransi + excess tunai) dan bernilai positif yang boleh ditagihkan. Status pembayaran (SETTLED)
+        // dan status pembuatan AR/Invoice (keanggotaan batch) adalah dua hal terpisah: piutang lunas yang belum
+        // pernah digabung tetap perlu dibuatkan AR/Invoice-nya untuk keperluan dokumentasi/klaim. Piutang
+        // CANCELLED atau WRITTEN_OFF tetap ditolak di server, tidak hanya disembunyikan dari daftar.
         var notBillable = receivables.Where(x =>
-            (x.Status != FinReceivableStatuses.Outstanding && x.Status != FinReceivableStatuses.Partial)
+            (x.Status != FinReceivableStatuses.Outstanding
+                && x.Status != FinReceivableStatuses.Partial
+                && x.Status != FinReceivableStatuses.Settled)
             || x.OriginalAmount <= 0).ToList();
         if (notBillable.Count > 0)
             throw new ReceivableInvoiceBatchValidationException(
-                $"Piutang {notBillable[0].ReceivableNumber} berstatus {notBillable[0].Status} dan tidak dapat ditagihkan. Hanya piutang OUTSTANDING atau PARTIAL dengan nilai lebih dari nol yang dapat digabung.");
+                $"Piutang {notBillable[0].ReceivableNumber} berstatus {notBillable[0].Status} dan tidak dapat ditagihkan. Hanya piutang OUTSTANDING, PARTIAL, atau SETTLED dengan nilai lebih dari nol yang dapat digabung.");
 
         // FIN-VAL-115: seluruh piutang dalam satu batch harus milik penjamin yang sama.
         var debtorReferenceIds = receivables.Select(x => x.DebtorReferenceId).Distinct().ToList();
@@ -228,6 +331,36 @@ public sealed class FinanceReceivableInvoiceBatchService
             throw new ReceivableInvoiceBatchConflictException(
                 $"Piutang {string.Join(", ", stuckInCancelled)} masih tercatat pada batch tagihan yang sudah dibatalkan, sehingga belum dapat digabung ulang. Pembebasan piutang dari batch yang dibatalkan belum tersedia.");
 
+        // Snapshot authoritative Terms of Payment dan kalkulasi Due Date
+        int? paymentTermDays = null;
+        var companyTerm = await _dbContext.MstCompanyGuarantors.AsNoTracking()
+            .Where(x => x.Id == debtorReferenceId && !x.IsDelete)
+            .Select(x => (int?)x.PaymentDueDays)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (companyTerm.HasValue)
+        {
+            paymentTermDays = companyTerm.Value;
+        }
+        else
+        {
+            var sampleReceivable = receivables.FirstOrDefault();
+            if (sampleReceivable != null)
+            {
+                var recDate = FinanceBusinessDate.ToDateOnly(sampleReceivable.RecognizedAt);
+                var days = sampleReceivable.DueDate.DayNumber - recDate.DayNumber;
+                if (days > 0)
+                {
+                    paymentTermDays = days;
+                }
+            }
+        }
+
+        var effectiveInvoiceDate = invoiceDate ?? FinanceBusinessDate.Today();
+        DateOnly? batchDueDate = paymentTermDays.HasValue
+            ? effectiveInvoiceDate.AddDays(paymentTermDays.Value)
+            : null;
+
         var batch = new FinReceivableInvoiceBatch
         {
             Id = Guid.NewGuid(),
@@ -236,6 +369,10 @@ public sealed class FinanceReceivableInvoiceBatchService
             DebtorReferenceId = debtorReferenceId,
             PeriodStart = periodStart,
             PeriodEnd = periodEnd,
+            InvoiceDate = effectiveInvoiceDate,
+            DueDate = batchDueDate,
+            PaymentTermDays = paymentTermDays,
+            Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
             TotalAmount = receivables.Sum(x => x.OriginalAmount),
             Status = FinReceivableInvoiceBatchStatuses.Draft,
             RowVersion = Guid.NewGuid(),
@@ -569,6 +706,10 @@ public sealed class FinanceReceivableInvoiceBatchService
         DebtorReferenceId = batch.DebtorReferenceId,
         PeriodStart = batch.PeriodStart,
         PeriodEnd = batch.PeriodEnd,
+        InvoiceDate = batch.InvoiceDate,
+        DueDate = batch.DueDate,
+        PaymentTermDays = batch.PaymentTermDays,
+        Note = batch.Note,
         TotalAmount = batch.TotalAmount,
         Status = batch.Status,
         IssuedAt = batch.IssuedAt,

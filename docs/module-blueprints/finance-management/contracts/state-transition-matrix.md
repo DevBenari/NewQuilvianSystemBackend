@@ -2,13 +2,14 @@
 
 | Field | Nilai |
 |---|---|
-| Contract version | `FIN-STATE-1.1` |
-| `last_changed_in` | `FIN-STATE-1.1` — amendment 25 September 2026 (bagian 1 dan 9) |
-| Status | `approved` dan `locked` — revisi 1.1 disetujui dan dikunci owner 25 September 2026 |
+| Contract version | `FIN-STATE-1.8` |
+| `last_changed_in` (1.8) | `FIN-STATE-1.8` — AMENDMENT REVISI 18, 6 Oktober 2026 (bagian P: transisi angsuran via event payroll HR dan pembatalan kartu piutang via reversal handoff Billing diresmikan). Status **`draft`** |
+| `last_changed_in` | `FIN-STATE-1.7` — AMENDMENT REVISI 17, 5 Oktober 2026 (bagian O: transisi status perjanjian angsuran dan pelunasan internal). Status `approved` (Yasmin, 5 Oktober 2026) |
+| Status | `approved` — Revisi 1.8 disetujui pemilik (Yasmin) 6 Oktober 2026 |
 | Owner | Yasmin (Product/Domain Owner Finance) |
-| `approved_by` / `approved_at` | Yasmin / 2026-09-25 |
-| Input revision | `00-interview-decisions.md` — `FIN-DEC-001`..`044` |
-| Dampak kompatibilitas | **Satu transisi dicabut** (`HELD_FOR_FINALIZATION` tidak lagi dihasilkan, bagian 9) dan **empat nilai `HandoffType` ditambahkan** (bagian 1). Tidak ada nilai status yang dihapus dari basis data |
+| `approved_by` / `approved_at` | Yasmin / 2026-10-06 (untuk `1.8`) |
+| Input revision | `00-interview-decisions.md` — `FIN-DEC-183`..`202`, `02-backend-architecture.md` bagian P |
+| Dampak kompatibilitas | **Aditif.** Kosakata status eksisting tidak berubah; transisi status angsuran dan pembatalan handoff resmi diaktifkan |
 
 Transisi yang **tidak sah** ikut dicantumkan. Matriks yang hanya memuat jalur sah tidak dapat
 dipakai menguji apa pun.
@@ -612,3 +613,111 @@ kedudukannya:
 
 Karena itu **nol** transisi baru, **nol** jalur pembukaan kembali, dan **nol** perubahan skema untuk
 tabel ini. Pembukaan kembali rekap harian ditolak sebagai desain — lihat `FIN-DES-081`.
+
+---
+
+# AMENDMENT REVISI 17 — Piutang Manfaat Karyawan, sisi Finance
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-STATE-1.7` |
+| `last_changed_in` | `FIN-STATE-1.7` — AMENDMENT REVISI 17, 5 Oktober 2026 (bagian O) |
+| Status | **`approved`** — disetujui pemilik (Yasmin, 5 Oktober 2026) |
+| Owner | Yasmin (Product/Domain Owner Finance) |
+| `approved_by` / `approved_at` | Yasmin / 2026-10-05 |
+| Input revision | `00-interview-decisions.md` `FIN-DEC-162`..`179`; `02-backend-architecture.md` bagian O |
+| Dampak kompatibilitas | **Nol.** Tiga kosakata status **baru** ditambahkan untuk entity baru. Nol transisi pada entity yang sudah ada berubah, dicabut, atau ditambah |
+
+Nama status di bawah dipakai **sama persis** pada flowchart dan pada kamus data. Transisi yang
+**tidak sah** ikut dicantumkan, karena matriks yang hanya memuat jalur sah tidak dapat menguji apa pun.
+
+## O.1 Perjanjian angsuran piutang
+
+Lima status: `MENUNGGU`, `DISETUJUI`, `DITOLAK`, `SELESAI`, `DIBATALKAN`.
+
+| Dari | Ke | Pemicu | Pelaku | Sah? |
+|---|---|---|---|:---:|
+| — | `MENUNGGU` | Staf Finance mengajukan perjanjian | Staf Finance | **Ya** |
+| `MENUNGGU` | `DISETUJUI` | Pihak berwenang lain menyetujui; seluruh baris jadwal dibangkitkan saat ini | Penyetuju Finance | **Ya** |
+| `MENUNGGU` | `DITOLAK` | Pihak berwenang lain menolak beserta alasannya | Penyetuju Finance | **Ya** |
+| `MENUNGGU` | `DIBATALKAN` | Pengaju menarik pengajuannya sebelum diputuskan | Staf Finance | **Ya** |
+| `DISETUJUI` | `SELESAI` | Seluruh angsuran berstatus terbayar | Sistem | **Ya** |
+| `DISETUJUI` | `DIBATALKAN` | Dibatalkan beserta alasannya; angsuran yang belum terbayar ikut dibatalkan | Penyetuju Finance | **Ya** |
+| `MENUNGGU` | `MENUNGGU` | Menyunting isi pengajuan sebelum diputuskan | Staf Finance | **Ya** |
+| `MENUNGGU` | `SELESAI` | — | — | **Tidak** — belum ada jadwal yang dibangkitkan |
+| `DITOLAK` | status apa pun | — | — | **Tidak** — ajukan perjanjian baru, jangan menghidupkan yang ditolak |
+| `DIBATALKAN` | status apa pun | — | — | **Tidak** |
+| `SELESAI` | status apa pun | — | — | **Tidak** |
+| `DISETUJUI` | `DITOLAK` | — | — | **Tidak** — yang sudah disetujui dibatalkan, bukan ditolak |
+| `MENUNGGU` | `DISETUJUI` oleh pengajunya sendiri | — | — | **Tidak** — `FIN-DEC-166`, ditegakkan check constraint |
+
+## O.2 Angsuran
+
+Lima status: `DIJADWALKAN`, `TERBAYAR_SEBAGIAN`, `TERBAYAR`, `TERTUNGGAK`, `DIBATALKAN`.
+
+| Dari | Ke | Pemicu | Pelaku | Sah? |
+|---|---|---|---|:---:|
+| — | `DIJADWALKAN` | Perjanjian disetujui | Sistem | **Ya** |
+| `DIJADWALKAN` | `TERBAYAR` | Hasil potongan gaji diterima **penuh** | Sistem, dari hasil HR | **Ya** |
+| `DIJADWALKAN` | `TERBAYAR_SEBAGIAN` | Hasil potongan diterima **sebagian** (`FIN-DEC-179`) | Sistem, dari hasil HR | **Ya** |
+| `DIJADWALKAN` | `TERTUNGGAK` | Periode gaji berlalu dan potongan **gagal** | Sistem, dari hasil HR | **Ya** |
+| `TERBAYAR_SEBAGIAN` | `TERBAYAR` | Sisa angsuran terpotong pada periode berikutnya | Sistem | **Ya** |
+| `TERBAYAR_SEBAGIAN` | `TERTUNGGAK` | Periode berlalu dan sisanya belum terpotong | Sistem | **Ya** |
+| `TERTUNGGAK` | `TERBAYAR_SEBAGIAN` | Sebagian tunggakan terpotong pada periode berikutnya | Sistem | **Ya** |
+| `TERTUNGGAK` | `TERBAYAR` | Seluruh tunggakan terpotong | Sistem | **Ya** |
+| `DIJADWALKAN` / `TERBAYAR_SEBAGIAN` / `TERTUNGGAK` | `DIBATALKAN` | Perjanjian induknya dibatalkan | Sistem | **Ya** |
+| `TERBAYAR` | status apa pun | — | — | **Tidak** — koreksi memakai pembalikan, bukan mengubah status |
+| `DIBATALKAN` | status apa pun | — | — | **Tidak** |
+| status apa pun | status apa pun | Diubah petugas langsung dari layar | — | **Tidak** — status angsuran hanya berpindah karena hasil potongan atau pembatalan induknya |
+
+**Jalur yang menghasilkan perpindahan ini tertahan.** Penerimaan hasil potongan dari HR adalah slice
+`S3`, tertahan `FIN-OQ-091`. Matriks ini sudah menetapkan perpindahannya supaya kontrak HR nanti
+menyesuaikan diri pada perpindahan yang sudah disepakati, bukan sebaliknya.
+
+## O.3 Pelunasan internal porsi benefit
+
+Tiga status: `DRAF`, `DITERBITKAN`, `DIBATALKAN`.
+
+| Dari | Ke | Pemicu | Pelaku | Sah? |
+|---|---|---|---|:---:|
+| — | `DRAF` | Staf Finance membuat pelunasan untuk satu periode dan satu penjamin internal | Staf Finance | **Ya** |
+| `DRAF` | `DITERBITKAN` | Diterbitkan; seluruh piutang pada daftar ditutup dalam satu transaksi | Staf Finance berwenang terbit | **Ya** |
+| `DRAF` | `DIBATALKAN` | Dibatalkan sebelum diterbitkan | Staf Finance | **Ya** |
+| `DITERBITKAN` | `DIBATALKAN` | Dibatalkan beserta alasannya; saldo piutang dibuka kembali dan buku mutasi menerima baris pembalik | Staf Finance berwenang batal | **Ya** |
+| `DITERBITKAN` | `DRAF` | — | — | **Tidak** — yang sudah terbit dibatalkan, bukan dikembalikan ke draf |
+| `DIBATALKAN` | status apa pun | — | — | **Tidak** — buat pelunasan baru |
+| `DRAF` | `DITERBITKAN` ketika periode dan penjamin yang sama sudah punya pelunasan yang tidak dibatalkan | — | — | **Tidak** — ditegakkan unique index |
+
+## O.4 Dampak pada status kartu piutang yang sudah ada
+
+Kosakata status `FinReceivable` — `OUTSTANDING`, `PARTIAL`, `SETTLED`, `WRITTEN_OFF`, `CANCELLED` —
+**tidak berubah**. Yang bertambah hanya dua **pemicu** baru yang menggerakkannya:
+
+| Dari | Ke | Pemicu baru | Jenis mutasi yang ditulis |
+|---|---|---|---|
+| `OUTSTANDING` | `PARTIAL` | Potongan gaji sebagian | `POTONGAN-GAJI` |
+| `OUTSTANDING` / `PARTIAL` | `SETTLED` | Potongan gaji yang melunasi sisanya | `POTONGAN-GAJI` |
+| `OUTSTANDING` / `PARTIAL` | `SETTLED` | Pelunasan internal porsi benefit diterbitkan | `PELUNASAN-INTERNAL` |
+| `SETTLED` | `OUTSTANDING` / `PARTIAL` | Pelunasan internal yang sudah terbit **dibatalkan** | `PELUNASAN-INTERNAL` arah pembalik |
+
+Perpindahan `SETTLED` kembali ke terbuka **sudah** sah pada matriks yang berjalan untuk pembalikan
+alokasi penerimaan (`FIN-DEC-021`). Pembatalan pelunasan internal memakai jalur yang sama; **tidak ada
+transisi baru** yang ditambahkan ke kartu piutang.
+
+---
+
+# AMENDMENT REVISI 18 — Piutang Manfaat Karyawan: Transisi Terbuka Penuh (`FIN-STATE-1.8`)
+
+```yaml
+contract_version: FIN-STATE-1.8
+last_changed_in: Revisi 18 (6 Oktober 2026)
+status: draft
+input_revision: 00-interview-decisions.md (FIN-DEC-189..FIN-DEC-202)
+```
+
+## P.1 Pembukaan Jalur Eksekusi Transisi Angsuran & Handoff
+
+Seluruh perpindahan status pada bagian O.2 (`DIJADWALKAN` -> `TERBAYAR` / `TERBAYAR_SEBAGIAN` / `TERTUNGGAK`) yang sebelumnya tertahan pada slice `S3` kini **RESMI DIBUKA DAN AKTIF BERDASARKAN KONTRAK**:
+1. Pemicu perpindahan berasal dari penerimaan hasil payroll otomatis `POST /receivables/installments/payroll-results` (`INT-HR-FIN-001`, `FIN-DEC-191`).
+2. Transisi pembatalan `FinReceivable` ke `CANCELLED` kini juga dipicu oleh serah terima pembalik `BilHandoffAdjustment` (`REVERSAL`) saat terjadi koreksi salah orang (`INT-BIL-FIN-002`, `FIN-DEC-187`, `FIN-DEC-200`).
+

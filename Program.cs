@@ -214,7 +214,12 @@ try
     builder.Configuration["Jwt:ExpireMinutes"] = AuthExpireMinutes.ToString();
 
     // Add services to the container.
-    builder.Services.AddControllers();
+    builder.Services.AddControllers()
+        .AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.Converters.Add(new QuilvianSystemBackend.Helpers.FlexibleNullableTimeSpanConverter());
+            options.JsonSerializerOptions.Converters.Add(new QuilvianSystemBackend.Helpers.FlexibleTimeSpanConverter());
+        });
 
     // SignalR untuk realtime antrean nurse station dan doctor queue.
     builder.Services.AddSignalR(options =>
