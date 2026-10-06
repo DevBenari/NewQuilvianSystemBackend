@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `IGD-BP-001` revision `5`; **bagian 6 ditambahkan 22 September 2026** (encounter-first) |
+| Blueprint | `IGD-BP-001` revision `5`; **bagian 6 ditambahkan 22 September 2026** (encounter-first); **bagian 8 ditambahkan 6 Oktober 2026** (Ruang Kerja Dokter IGD, `approved` `IGD-DEC-230`) |
 | Status | `draft` |
 | Commit diaudit | backend `f69e9e48` |
 | Diselaraskan | 15 September 2026 — nama tabel bagian 4 dan rujukan bagian 5.3 menjadi `EmgDoctorAssignment` (`IGD-DEC-116`); isi kolom tidak berubah |
@@ -395,3 +395,112 @@ kosong berarti kunjungan belum selesai — apa pun isi kolom lain.
 `EmgDisposition`, `EmgObservation`, `EmgDeparture`, `EmgHandoverOrderItem`, `EmgDispositionType`, dan
 `RegPatientEncounter` seluruhnya dibaca apa adanya. Nol kolom baru, nol index baru, nol perubahan perilaku hapus.
 `RegPatientEncounter` tetap ditulis hanya lewat daftar kolom tertutup integration §5.2.
+
+## 8. Ruang Kerja Dokter IGD — 6 Oktober 2026 (**Rencana (belum tersedia)**)
+
+Slice `IGD-DEC-220`…`229` **tidak membuat tabel dan tidak menambah kolom**. Semua tabel di bawah berstatus **Sudah
+ada**, sehingga hanya kolom kunci dan kolom yang dipakai aturan slice ini yang dicatat, beserta rujukan ke file model.
+Sepuluh kolom warisan `IdentityModel` tidak diulang; lihat kepala dokumen. Status bagian ini `approved` (`IGD-DEC-230`, Rizki Gunawan, 6 Oktober 2026).
+
+### `EmgDoctorAssignment` — Sudah ada (pemilik: IGD)
+
+Model: `Areas/HealthServices/EmergencyInstallationManagement/Models/EmgDoctorAssignment.cs`
+
+| Kolom | Tipe | Wajib | Dipakai untuk | Sensitif |
+| --- | --- | :-: | --- | :-: |
+| `EmergencyVisitId` | `uuid` | Ya | Menautkan penugasan ke kunjungan | Tidak |
+| `DoctorId` | `uuid` | Ya | DPJP; saringan *Pasien saya* (`doctorId`) dan `activeDoctorId` | Tidak |
+| `EffectiveFrom` | `timestamptz` | Ya | Awal penugasan | Tidak |
+| `EffectiveTo` | `timestamptz?` | Tidak | Kosong = penugasan **berjalan** (DPJP aktif) | Tidak |
+
+### `EmgDisposition` — Sudah ada (pemilik: IGD)
+
+Model: `Areas/HealthServices/EmergencyInstallationManagement/Models/EmgDisposition.cs`
+
+| Kolom | Tipe | Wajib | Dipakai untuk | Sensitif |
+| --- | --- | :-: | --- | :-: |
+| `EmergencyVisitId` | `uuid` | Ya | Kunjungan pemilik tindak lanjut; jalan ke encounter untuk penjaga diagnosis | Tidak |
+| `DispositionStatus` | `int` | Ya | Lahir hanya `1` (Draft); konfirmasi `1 → 2` dijaga diagnosis | Tidak |
+| `ConfirmedByUserId`, `ConfirmedAt` | `uuid?`, `timestamptz?` | Tidak | Pengonfirmasi — dokter dari layar dokter | Tidak |
+
+### `EmgProcedureDetail` — Sudah ada (pemilik: IGD) — dibekukan
+
+Model: `Areas/HealthServices/EmergencyInstallationManagement/Models/EmgProcedureDetail.cs`. Tidak ditambah baris oleh
+layar mana pun sejak slice ini (`IGD-DEC-225`); isinya tetap terbaca sebagai riwayat. Jumlah baris lama per lingkungan
+belum diketahui (`IGD-UNK-17`).
+
+### `TrxDoctorConsultation` — Sudah ada (pemilik: ClinicalManagement)
+
+Model: `Areas/HealthServices/ClinicalManagement/Models/TrxDoctorConsultation.cs`
+
+| Kolom | Dipakai untuk | Sensitif |
+| --- | --- | :-: |
+| `EncounterId` | Catatan dokter untuk encounter kunjungan IGD; timeline per encounter | Tidak |
+| `QueueId` | Kosong untuk pasien IGD | Tidak |
+| `DoctorId` | Penulis catatan | Tidak |
+| `ConsultationStatus` | Draf / selesai (terkunci) / dibatalkan; resep dan tindakan dokter hanya pada catatan yang belum selesai | Tidak |
+| Isi SOAP | Dokumentasi dokter | **Ya** — isi klinis, tidak ke log kustom |
+
+### `TrxPatientDiagnosis` — Sudah ada (pemilik: ClinicalManagement)
+
+Model: `Areas/HealthServices/ClinicalManagement/Models/TrxPatientDiagnosis.cs`
+
+| Kolom | Dipakai untuk | Sensitif |
+| --- | --- | :-: |
+| `EncounterId` | Penjaga konfirmasi tindak lanjut membaca diagnosis encounter kunjungan | Tidak |
+| `ConsultationId` | Diagnosis IGD selalu menempel ke catatan dokter | Tidak |
+| `DiagnosisMasterType` | Hanya `ICD10` yang dihitung | Tidak |
+| `DiagnosisType` | Dihitung: `Primary` (1), `Secondary` (2), `WorkingDiagnosis` (4), `FinalDiagnosis` (5); tidak: `Differential` (3) | Tidak |
+| `DiagnosisStatus` | Dihitung: `Active` (1), `Resolved` (2); tidak: `RuledOut` (3), `Cancelled` (4) | Tidak |
+| `IsActive`, `IsDelete` | Baris nonaktif atau terhapus tidak dihitung | Tidak |
+| `DiagnosisCode`, `DiagnosisName` | Ditampilkan di kartu pasien | **Ya** |
+
+### `TrxPatientAssessment` — Sudah ada (pemilik: ClinicalManagement)
+
+Model: `Areas/HealthServices/ClinicalManagement/Models/TrxPatientAssessment.cs`
+
+| Kolom | Dipakai untuk | Sensitif |
+| --- | --- | :-: |
+| `EncounterId` | Kajian medis untuk encounter kunjungan IGD; keunikan kajian medis awal per encounter IGD | Tidak |
+| `AssessmentType` | `MedicalInitial`, `MedicalReassessment` | Tidak |
+| `InpEpisodeId` | Kosong untuk pasien IGD | Tidak |
+| `DoctorId` | Dokter penulis, dari identitas pengguna | Tidak |
+| Isian kajian (`ChiefComplaint`, `PhysicalExamination`, `WorkingDiagnosis`, …) | Dokumentasi dokter | **Ya** |
+
+### `TrxPatientProcedure` — Sudah ada (pemilik: ClinicalManagement)
+
+Model: `Areas/HealthServices/ClinicalManagement/Models/TrxPatientProcedure.cs`
+
+| Kolom | Tindakan dokter | Tindakan keperawatan IGD | Sensitif |
+| --- | --- | --- | :-: |
+| `EncounterId` | Encounter kunjungan | Encounter kunjungan | Tidak |
+| `ConsultationId` | Catatan dokter terbuka (wajib) | Kosong | Tidak |
+| `DoctorId` (wajib) | Dokter penulis | **DPJP aktif** kunjungan | Tidak |
+| `InpEpisodeId` | Kosong | Kosong | Tidak |
+| `ProcedureSource` | `DoctorOrder` (1) | `NursingAction` (2) | Tidak |
+| `ProcedureStatus` | Mengikuti jalur yang ada | Lahir `Completed` (4) | Tidak |
+| `PerformedByUserId`, `PerformedAt` | Mengikuti jalur yang ada | Perawat pengirim; waktu pelaksanaan (tidak di masa depan) | Tidak |
+| `IdempotencyKey` | Mengikuti jalur yang ada | Wajib; cegah baris ganda | Tidak |
+| `ClinicalNote` | — | Catatan tindakan | **Ya** |
+
+### `LabOrder`, `RadOrder` — Sudah ada (pemilik: Laboratorium, Radiologi)
+
+Model: `Areas/HealthServices/LaboratoryManagement/Models/LabOrder.cs`, `Areas/HealthServices/RadiologyManagement/Models/RadOrder.cs`
+
+| Kolom | Dipakai untuk | Sensitif |
+| --- | --- | :-: |
+| `EncounterId` | Pesanan untuk encounter kunjungan IGD | Tidak |
+| `InpEpisodeId` | Kosong untuk pasien IGD | Tidak |
+| `RequestedByUserId` | Pembuat pesanan (dokter atau perawat) | Tidak |
+| `InstructingDoctorId` | Dokter pemberi instruksi bila pembuat bukan dokter (`IGD-OQ-117`) | Tidak |
+| `InstructionVerificationStatus` | `NotRequired` atau menunggu verifikasi | Tidak |
+
+### `PhmPrescription`, `BbkBloodOrder`, `HmdOrder`, `GziNutritionOrder` — Sudah ada
+
+Dibaca dan dibuat lewat endpoint modul pemiliknya dengan `EncounterId` encounter kunjungan IGD. Nol kolom yang dipakai
+aturan baru IGD. `BbkBloodOrder` mensyaratkan unit pemesan berizin (`MstServiceUnit.IsAvailableForBloodOrder`,
+`IGD-UNK-13`); `GziNutritionOrder` hanya satu order terbuka per encounter.
+
+### Tabel yang **tidak** berubah pada slice ini
+
+Seluruh tabel di atas. Nol kolom baru, nol index baru, nol perubahan perilaku hapus, nol migration.

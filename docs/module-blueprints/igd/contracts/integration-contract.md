@@ -2,11 +2,11 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.5.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 6 baru (penutupan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol modul baru yang disentuh. Sebelumnya `0.4.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif pada dokumen**: bagian 5 baru; bagian 1–4 tidak diubah. Secara perilaku **memutus** untuk Registrasi (penolakan Emergency pada jalur umum, pintu encounter memanggil aturan IGD). Sebelumnya `0.3.0` |
-| Status | `draft`, **kecuali bagian 5 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026). Bagian 6 **`approved`** (`IGD-DEC-170`, 23 September 2026) |
+| `contract_version` | `0.6.0` — Ruang Kerja Dokter IGD, 6 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-230`): bagian 7 baru — sepuluh modul disentuh secara sinkron tanpa salinan data; fakta tagih jasa konsultasi IGD tidak dikirim. Masukan: `00-interview-decisions.md` **229 keputusan**, terakhir `IGD-DEC-229` (grill-me 6 Oktober 2026 sore); capability map suplemen 3.4 (backend `43dab6da`, frontend `6680278a2`). *Sebelumnya:* `0.5.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 6 baru (penutupan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol modul baru yang disentuh. Sebelumnya `0.4.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif pada dokumen**: bagian 5 baru; bagian 1–4 tidak diubah. Secara perilaku **memutus** untuk Registrasi (penolakan Emergency pada jalur umum, pintu encounter memanggil aturan IGD). Sebelumnya `0.3.0` |
+| Status | `draft`, **kecuali bagian 7 (Ruang Kerja Dokter IGD) yang `approved`** (`IGD-DEC-230`, 6 Oktober 2026); **kecuali bagian 5 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026). Bagian 6 **`approved`** (`IGD-DEC-170`, 23 September 2026) |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
-| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-09-22** — bagian 5 (encounter-first) lewat `IGD-DEC-157` — termasuk koreksi B1 pada §5.2. **Rizki Gunawan / 2026-09-23** — bagian 6 (penutupan lewat disposisi) lewat `IGD-DEC-170`. Bagian 1–4 tetap `draft` |
-| Versi sebelumnya | `0.2.0` |
+| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-10-06** — bagian 7 (Ruang Kerja Dokter IGD) lewat `IGD-DEC-230`. **Rizki Gunawan / 2026-09-22** — bagian 5 (encounter-first) lewat `IGD-DEC-157` — termasuk koreksi B1 pada §5.2. **Rizki Gunawan / 2026-09-23** — bagian 6 (penutupan lewat disposisi) lewat `IGD-DEC-170`. Bagian 1–4 tetap `draft` |
+| Versi sebelumnya | `0.5.0`; sebelumnya `0.2.0` |
 
 ---
 
@@ -207,3 +207,51 @@ Method penutupan **tidak** membuka transaksi sendiri dan **tidak** menyimpan sen
 | Penguncian catatan klinis gagal saat kunjungan ikut tertutup | Seluruh penyimpanan batal — aksi pemicunya ikut gagal dan petugas mengulang |
 | Kunjungan sudah tertutup lebih dulu oleh jalur lain | Percobaan dilewati diam-diam; nol galat, nol penulisan ulang |
 | Order darah atau pemeriksaan laboratorium ditolak sesudah kunjungan tertutup | Perilaku yang diterima (`IGD-DEC-169`); petugas mendaftarkan episode baru |
+
+---
+
+## 7. Ruang Kerja Dokter IGD — baru pada `0.6.0`, **Rencana (belum tersedia)**
+
+Untuk `IGD-DEC-220`…`229`. Status **`approved`** (`IGD-DEC-230`, Rizki Gunawan, 6 Oktober 2026). Semua integrasi bersifat **sinkron dalam satu
+permintaan HTTP ke modul pemiliknya**; tidak ada antrean, tidak ada transaksi lintas modul, dan tidak ada salinan data
+milik modul lain di IGD.
+
+### 7.1 Modul yang disentuh
+
+| Modul | Titik sentuh | Arah | Perubahan di modul itu | Pemilik / persetujuan |
+| --- | --- | --- | --- | --- |
+| ClinicalManagement | Catatan dokter, diagnosis, CPPT, kajian medis, tindakan | Layar dokter → modul | (a) timeline catatan dokter per encounter IGD; (b) kajian medis untuk kunjungan IGD; (c) endpoint tindakan keperawatan IGD | Pemilik `OPEN`; sementara Rizki (pola `IGD-DEC-174`) |
+| IGD → ClinicalManagement (baca) | Diagnosis untuk penjaga konfirmasi tindak lanjut | IGD membaca | Nol — IGD membaca `TrxPatientDiagnosis` baca-saja | Sama |
+| Farmasi | Resep; penyelesaian catatan dokter | Layar dokter → modul | Penyelesaian catatan dokter tidak mengirim fakta jasa konsultasi untuk encounter `Emergency` (`IGD-DEC-229`) | Pemilik Farmasi meninjau pada desain |
+| Rekam Medis | Addendum, *Catatan Saya* | Layar dokter → modul | Nol | — |
+| Laboratorium, Radiologi | Pesanan, instruksi, verifikasi | Layar dokter/perawat → modul | Aturan instruksi untuk encounter IGD | `IGD-OQ-117` — pemilik Laboratorium; pemilik Radiologi (Yoga Aji Pratama) |
+| Bank Darah | Pesanan darah | Layar dokter → modul | Nol. Unit IGD wajib berizin memesan darah di data master | `IGD-UNK-13` — Master Data |
+| Hemodialisa | Pesanan hemodialisa | Layar dokter → modul | Nol | — |
+| Gizi | Pesanan konsultasi gizi | Layar dokter → modul | Nol | `IGD-OQ-119` — pemilik Gizi |
+| Billing | Fakta tagih dari catatan dokter dan tindakan | Modul klinis → Billing | Nol di Billing; jasa konsultasi IGD tidak dikirim | Billing IGD dirancang pada slice tersendiri |
+| Registration Management | Jenis encounter (`EncounterType.Emergency`) | Dibaca | Nol | — |
+
+### 7.2 Perilaku saat gagal
+
+| Kejadian | Perilaku |
+| --- | --- |
+| Modul tujuan menolak (`400`/`403`/`409`) | Layar menampilkan pesan modul itu **apa adanya** di tempat aksi; isian tidak dikosongkan |
+| Modul tujuan tidak dapat dihubungi | Aksi gagal tanpa efek di IGD; petugas mengulang. Tidak ada pencatatan sebagian di IGD |
+| Fakta tagih gagal terkirim sesudah catatan dokter selesai | Perilaku yang sudah ada: catatan tetap sah, kegagalan dicatat sebagai masalah serah-terima Billing |
+| Kirim ganda tindakan keperawatan | `idempotencyKey` yang sama mengembalikan baris yang sama (validation §12 aturan 12) |
+
+### 7.3 Fakta tagih dari layar dokter IGD
+
+| Sumber | Dikirim untuk pasien IGD? | Dasar |
+| --- | :-: | --- |
+| Jasa konsultasi per catatan dokter | **Tidak** | `IGD-DEC-229` — jasa dokter IGD ditetapkan slice billing IGD (`IGD-DEC-097`, `draft`) |
+| Resep yang difinalkan bersama catatan dokter | Ya | `IGD-DEC-229`; perilaku Farmasi yang sudah ada |
+| Tindakan dokter dan tindakan keperawatan | Dibaca Billing dari `TrxPatientProcedure` | `IGD-DEC-225`; perilaku Billing yang sudah ada — **tidak** diaudit ulang pada pass ini (`IGD-UNK-16`) |
+
+### 7.4 Yang sengaja tidak diintegrasikan
+
+| Tidak diintegrasikan | Sebab |
+| --- | --- |
+| Verifikasi pesanan perawat untuk bank darah, hemodialisa, gizi | `IGD-OQ-118` — ketiga modul belum punya status verifikasi instruksi; perawat tidak memesan ketiganya pada slice ini |
+| Jasa dokter IGD ke Billing | Slice billing IGD |
+| Tabel tindakan IGD (`EmgProcedureDetail`) ke Billing | `IGD-DEC-225` — tabel itu dibekukan, tidak ditambah lagi |

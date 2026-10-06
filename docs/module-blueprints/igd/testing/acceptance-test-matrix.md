@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `IGD-BP-001` revision `5`; **bagian encounter-first (`AT-IGD-166`…`185`) ditambahkan 22 September 2026** |
+| Blueprint | `IGD-BP-001` revision `5`; **bagian encounter-first (`AT-IGD-166`…`185`) ditambahkan 22 September 2026**; **bagian Ruang Kerja Dokter IGD (`AT-IGD-200`…`213`) ditambahkan 6 Oktober 2026**, `approved` `IGD-DEC-230` |
 | Status | `draft` |
 | Kontrak | API `0.3.0`, state `0.3.0`, validation `0.3.0`, permission/audit `0.3.0` |
 | Prasarana uji backend | `QuilvianSystemBackend.Tests` — xunit 2.9.2, EFCore InMemory 9.0.18, pola `IsolatedBillingDbContextFactory` |
@@ -259,3 +259,28 @@ kueri baca-saja oleh pemilik**, bukan test otomatis. Tidak satu pun ditulis `UAT
 | --- | --- |
 | Kebenaran waktu tiba yang diketik perawat | Sistem hanya dapat membuktikan batas dan penandanya, bukan bahwa pasien memang tiba jam itu |
 | Kelayakan dokter jaga | `S7` ditahan `IGD-OQ-102`/`103` |
+
+## Ruang Kerja Dokter IGD — 6 Oktober 2026 (**Rencana (belum tersedia)**)
+
+Skenario `AT-IGD-200`…`213` ditulis lengkap pada [PRD §10.3](../04-prd-to-mvp.md). Tabel ini memetakan setiap skenario ke
+functional requirement, aturan kontrak, dan cara membuktikannya. Status `approved` (`IGD-DEC-230`, Rizki Gunawan, 6 Oktober 2026).
+
+| Skenario | Functional requirement | Aturan kontrak | Bukti | Prasyarat |
+| --- | --- | --- | --- | --- |
+| `AT-IGD-200` | `FR-IGD-096` | API §10.2; validation §12 aturan 1–3 | PNG daftar pada dua saringan + rekaman `GET /emergency-visits` | Dua dokter dengan pasien masing-masing; satu pasien tanpa DPJP |
+| `AT-IGD-201`, `202` | `FR-IGD-097` | API §10.5; validation §12 aturan 4–6 | JSON respons + PNG tab Pengkajian Medis | Akun dokter dengan identitas dokter |
+| `AT-IGD-203` | `FR-IGD-098` | API §10.4, §10.8 | PNG catatan terkunci dan addendum | — |
+| `AT-IGD-204` | `FR-IGD-099`, `105` | API §10.4; validation §12 aturan 16; integration §7.3 | PNG tab Resep kedua layar + kueri baca fakta tagih (`SELECT`) | Pasien dengan penjamin yang sah untuk resep |
+| `AT-IGD-205`, `206` | `FR-IGD-100` | API §10.6; validation §12 aturan 7–12 | JSON respons + ringkasan tagihan pasien | DPJP sudah ditetapkan |
+| `AT-IGD-207` | `FR-IGD-100` | Validation §12 aturan 8, 9 | JSON `409` | Pasien tanpa DPJP; satu kunjungan selesai |
+| `AT-IGD-208` | `FR-IGD-101` | API §10.8 | PNG tab Penunjang + JSON tiap modul | Unit IGD berizin memesan darah (`IGD-UNK-13`); `IGD-OQ-119` untuk gizi |
+| `AT-IGD-209`, `210` | `FR-IGD-102` | API §10.7; validation §12 aturan 13 | JSON + PNG *Perlu Verifikasi* | **`IGD-OQ-117`** |
+| `AT-IGD-211` | `FR-IGD-104` | API §10.3; validation §12 aturan 15; state §10.1 | JSON `409` lalu `200` + PNG modal konfirmasi | Pasien tanpa diagnosis |
+| `AT-IGD-212` | `FR-IGD-104` | Validation §12 aturan 14; state §10.1 | JSON `400` | Uji API |
+| `AT-IGD-213` | `FR-IGD-103` | Permission §9.1, §9.2 | PNG tab Tindak Lanjut layar perawat + regresi `AT-IGD-186` | Tindak lanjut terkonfirmasi |
+
+### Yang tidak dapat diuji otomatis pada slice ini
+
+Keputusan bahwa setiap dokter IGD melihat semua pasien IGD (`IGD-DEC-222`) adalah kebijakan, bukan perilaku yang dapat
+gagal; yang diuji hanya saringan dan tampilannya. Pemisahan konfirmasi dan pelaksanaan tindak lanjut di tingkat API tidak
+diuji karena memang tidak ditegakkan API (permission §9.2).

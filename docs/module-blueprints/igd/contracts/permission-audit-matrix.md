@@ -2,11 +2,11 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.7.0` — kewenangan unit, 5 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-199`): catatan baru di bawah tabel §3 (tindakan yang benar-benar dijaga kode, `IGD-CONFLICT-006` ditunda `IGD-DEC-197`), paragraf *"Yang belum terjawab"* §3.1 diganti (`IGD-DEC-195`, `196`), dan baris §6 *Perilaku unit tanpa simpul organisasi* diselaraskan. Nol resource, nol aksi baru. *Sebelumnya* `0.6.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 8 baru (penutupan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol resource dan nol aksi baru. Sebelumnya `0.5.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif**: bagian 7 baru — aksi `EmergencyVisit : NoShow`, resource baru `EmergencyEncounterReconciliation` (`Read`/`Process`/`Reverse`), jejak audit override, NoShow, waktu tiba, rekonsiliasi. Sebelumnya `0.4.0` — bagian 3.1 (kewenangan atas pesanan) ditambahkan correction pass revisi 6. **Aditif** |
-| Status | `draft`, **kecuali bagian 7 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026). Bagian 8 **`approved`** (`IGD-DEC-170`, 23 September 2026). Catatan §3, paragraf §3.1, dan baris §6 versi `0.7.0` **`approved`** (`IGD-DEC-199`, 5 Oktober 2026); isi lain bagian 3 dan 6 tetap `draft` |
+| `contract_version` | `0.8.0` — Ruang Kerja Dokter IGD, 6 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-230`): bagian 9 baru — anjuran butir per peran Dokter IGD dan Perawat IGD, keterbatasan pemisahan tugas, jejak audit; **nol butir hak akses baru**. Masukan: `00-interview-decisions.md` **229 keputusan**, terakhir `IGD-DEC-229` (grill-me 6 Oktober 2026 sore); capability map suplemen 3.4 (backend `43dab6da`, frontend `6680278a2`). *Sebelumnya:* `0.7.0` — kewenangan unit, 5 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-199`): catatan baru di bawah tabel §3 (tindakan yang benar-benar dijaga kode, `IGD-CONFLICT-006` ditunda `IGD-DEC-197`), paragraf *"Yang belum terjawab"* §3.1 diganti (`IGD-DEC-195`, `196`), dan baris §6 *Perilaku unit tanpa simpul organisasi* diselaraskan. Nol resource, nol aksi baru. *Sebelumnya* `0.6.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 8 baru (penutupan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol resource dan nol aksi baru. Sebelumnya `0.5.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif**: bagian 7 baru — aksi `EmergencyVisit : NoShow`, resource baru `EmergencyEncounterReconciliation` (`Read`/`Process`/`Reverse`), jejak audit override, NoShow, waktu tiba, rekonsiliasi. Sebelumnya `0.4.0` — bagian 3.1 (kewenangan atas pesanan) ditambahkan correction pass revisi 6. **Aditif** |
+| Status | `draft`, **kecuali bagian 9 (Ruang Kerja Dokter IGD) yang `approved`** (`IGD-DEC-230`, 6 Oktober 2026); **kecuali bagian 7 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026). Bagian 8 **`approved`** (`IGD-DEC-170`, 23 September 2026). Catatan §3, paragraf §3.1, dan baris §6 versi `0.7.0` **`approved`** (`IGD-DEC-199`, 5 Oktober 2026); isi lain bagian 3 dan 6 tetap `draft` |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
-| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-09-22** — bagian 7 (encounter-first) lewat `IGD-DEC-157`; keterbatasan izin bersama pada §7.1 diterima lewat `IGD-DEC-158`. **Rizki Gunawan / 2026-09-23** — bagian 8 (penutupan lewat disposisi) lewat `IGD-DEC-170`. Bagian lain tetap `draft`. Amendment 30 September 2026 (`IGD-DEC-171`, `172`) **tidak** mengubah matriks ini: menyelesaikan dan mengeskalasi observasi tetap memakai `EmergencyObservation : Update` (§8.1). **Rizki Gunawan / 2026-10-05** — catatan §3, §3.1, dan baris §6 versi `0.7.0` lewat `IGD-DEC-199` (sementara, pola `IGD-DEC-174`; approver akhir Security/Privacy owner, belum ditunjuk). Konfigurasi peran 5 Oktober 2026 (`IGD-DEC-190`, `191`, `198`) adalah pemberian hak ke peran (§7.1 *"Pemberian hak ke peran ada di basis data"*), **bukan** perubahan matriks ini |
-| Versi sebelumnya | `0.6.0`, `0.5.0`, `0.4.0`, `0.3.0`, sebelumnya `0.2.0` |
+| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-10-06** — bagian 9 (Ruang Kerja Dokter IGD) lewat `IGD-DEC-230`. **Rizki Gunawan / 2026-09-22** — bagian 7 (encounter-first) lewat `IGD-DEC-157`; keterbatasan izin bersama pada §7.1 diterima lewat `IGD-DEC-158`. **Rizki Gunawan / 2026-09-23** — bagian 8 (penutupan lewat disposisi) lewat `IGD-DEC-170`. Bagian lain tetap `draft`. Amendment 30 September 2026 (`IGD-DEC-171`, `172`) **tidak** mengubah matriks ini: menyelesaikan dan mengeskalasi observasi tetap memakai `EmergencyObservation : Update` (§8.1). **Rizki Gunawan / 2026-10-05** — catatan §3, §3.1, dan baris §6 versi `0.7.0` lewat `IGD-DEC-199` (sementara, pola `IGD-DEC-174`; approver akhir Security/Privacy owner, belum ditunjuk). Konfigurasi peran 5 Oktober 2026 (`IGD-DEC-190`, `191`, `198`) adalah pemberian hak ke peran (§7.1 *"Pemberian hak ke peran ada di basis data"*), **bukan** perubahan matriks ini |
+| Versi sebelumnya | `0.7.0`, `0.6.0`, `0.5.0`, `0.4.0`, `0.3.0`, sebelumnya `0.2.0` |
 
 ---
 
@@ -267,3 +267,57 @@ tetap memastikan seluruh kewajiban klinis sudah tuntas lebih dulu. Pelakunya tet
 
 Alasan penahan **tidak** disimpan tahan lama: ia dihitung ulang saat dibaca, karena keadaannya berubah begitu
 penahannya dibereskan. Menyimpannya akan menghasilkan alasan basi yang terbaca sebagai fakta.
+
+---
+
+## 9. Ruang Kerja Dokter IGD — baru pada `0.8.0`, **Rencana (belum tersedia)**
+
+Untuk `IGD-DEC-220`…`229`. Status **`approved`** (`IGD-DEC-230`, Rizki Gunawan, 6 Oktober 2026). **Nol butir hak akses baru** — seluruh tindakan
+memakai Resource yang sudah ada dan diberikan admin lewat Pengaturan → Manajemen Role → Akses Role. Tabel di bawah adalah
+**anjuran pemberian** per peran, bukan sesuatu yang dikunci di kode.
+
+### 9.1 Butir hak akses per tindakan
+
+| Tindakan | Layar | Butir hak akses | Dokter IGD | Perawat IGD |
+| --- | --- | --- | :-: | :-: |
+| Membuka daftar dan kartu pasien | Dokter, perawat | `EmergencyVisit : Read`, `EmergencyDoctorAssignment : Read` | Ya | Ya |
+| Kajian medis dokter | Dokter | `PatientAssessment : Read`, `Create`, `Update`, `Complete`, `Amend` | Ya | Tidak |
+| Catatan dokter (SOAP) | Dokter | `DoctorConsultation : Read`, `Create`, `WriteSoap`, `Update`, `Complete`, `Cancel` | Ya | Baca saja (`Read`) |
+| Diagnosis | Dokter | `PatientDiagnosis : Read`, `Create`, `Update`, `SetPrimary`, `Cancel` | Ya | Baca saja |
+| CPPT | Dokter, perawat | `PatientIntegratedProgressNote : Read`, `Create` | Ya | Ya |
+| Resep | Dokter | `Prescription : Read`, `Create`, `Update`, `Stop` | Ya | Baca saja |
+| Tindakan dokter | Dokter | `PatientProcedure : Read`, `Create`, `Cancel` | Ya | — |
+| Tindakan keperawatan | Perawat | `PatientProcedure : Read`, `Create` | — | Ya |
+| Pesanan lab dan radiologi | Dokter; perawat atas instruksi | `LabOrder : Read`, `Create`; `RadOrder : Read`, `Create` | Ya | Ya (dengan dokter pemberi instruksi) |
+| Verifikasi instruksi | Dokter — *Perlu Verifikasi* | `LabOrder : Verify`, `RadOrder : Verify` | Ya | Tidak |
+| Pesanan darah, hemodialisa, gizi | Dokter | `BloodOrder : Read`, `Create`; `HemodialysisOrder : Read`, `Create`; `NutritionOrder : Read`, `Create` | Ya | Baca saja (`IGD-OQ-118`) |
+| Membuat dan mengonfirmasi tindak lanjut | Dokter | `EmergencyDisposition : Read`, `Create`, `Update` | Ya | Tidak |
+| Melaksanakan tindak lanjut | Perawat | `EmergencyDisposition : Read`, `Update` | — | Ya |
+| Addendum dan *Catatan Saya* | Dokter | `ClinicalNoteAddendum : Read`, `Create`; `ClinicalDocumentIntegrity : Read` | Ya | Tidak |
+
+### 9.2 Pemisahan tugas dan keterbatasannya
+
+| Keterbatasan | Akibat | Penanganan |
+| --- | --- | --- |
+| Konfirmasi dan pelaksanaan tindak lanjut memakai endpoint dan butir yang sama (`EmergencyDisposition : Update`) | Perawat yang memegang `Update` secara teknis dapat mengonfirmasi lewat API | Pemisahan dijaga **layar**: layar perawat hanya menawarkan *Jalankan* (`IGD-DEC-223`). Diterima sebagai keterbatasan, pola `IGD-DEC-158`. Pemisahan di tingkat API butuh butir baru dan keputusan tersendiri |
+| Tindakan dokter dan tindakan keperawatan memakai `PatientProcedure : Create` | Pemegang butir itu dapat memakai kedua endpoint | Endpoint dokter mewajibkan catatan dokter terbuka; endpoint keperawatan mencatat perawatnya sebagai pelaksana. Jejak pelaku tetap terpisah |
+| Layar dokter menampilkan semua pasien IGD | Setiap pemegang `EmergencyVisit : Read` melihat semua pasien IGD | Disengaja (`IGD-DEC-222`), sama dengan layar perawat hari ini |
+
+Konfigurasi Akses Role perawat yang sedang melampaui `IGD-DEC-190` (konfigurasi sementara `IGD-DEC-216`) dirapikan
+pengurus Akses Role mengikuti tabel 9.1.
+
+### 9.3 Yang dicatat pada jejak audit
+
+| Kejadian | Yang tercatat | Sumber |
+| --- | --- | --- |
+| Catatan dokter dibuat, diselesaikan, dikoreksi | Penulis, waktu; addendum dengan pelaku dan waktunya | ClinicalManagement, Rekam Medis |
+| Tindakan keperawatan | Perawat pelaksana (`PerformedByUserId`), waktu pelaksanaan, DPJP aktif sebagai dokter penanggung jawab | ClinicalManagement |
+| Pesanan perawat atas instruksi | Pembuat pesanan, dokter pemberi instruksi, waktu verifikasi | Laboratorium, Radiologi |
+| Tindak lanjut dikonfirmasi atau ditolak konfirmasinya | Pengonfirmasi dan waktunya; penolakan `409` tercatat pada log permintaan | IGD |
+
+Nama pasien, diagnosis, dan isi catatan klinis **tidak** ditulis ke log kustom.
+
+### 9.4 Menu
+
+Butir menu Ruang Kerja Dokter IGD tidak didefinisikan di source; letaknya di sidebar diatur admin (`IGD-UNK-14`). Menu
+itu tidak menggantikan hak akses — setiap aksi tetap dijaga butir pada tabel 9.1.

@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `IGD-BP-001` revision `5`; **bagian 13 ditambahkan 22 September 2026** (encounter-first) |
+| Blueprint | `IGD-BP-001` revision `5`; **bagian 13 ditambahkan 22 September 2026** (encounter-first); **bagian 15 ditambahkan 6 Oktober 2026** (Ruang Kerja Dokter IGD, `approved` `IGD-DEC-230`) |
 | Status | `draft` |
 | Commit diaudit | frontend `96a9120111f6acc6b7c0f37973ea0c717ba41f17` |
 | Kontrak yang diikuti | API `0.3.0`, state `0.3.0`, validation `0.3.0`, permission/audit `0.3.0` |
@@ -524,3 +524,168 @@ tanpa membuka detail, karena gunanya justru memberitahu apa yang harus dibereska
 | Layar khusus "menunggu penutupan" | `IGD-DEC-168` memilih saringan pada layar yang sudah ada |
 | Tombol "tutup sekarang" pada daftar | Penutupan bukan tindakan terpisah; ia mengikuti pembereskan penahan. Tombol semacam itu akan menabrak penjaga penutupan dan membingungkan petugas |
 | Pemberitahuan otomatis saat kunjungan tertutup sendiri | Belum ada keputusan pemiliknya; kunjungan yang tertutup cukup hilang dari saringan |
+
+## 15. Ruang Kerja Dokter IGD — 6 Oktober 2026 (**Rencana (belum tersedia)**)
+
+Kontrak fungsional untuk `IGD-DEC-220`…`229`. Status **`approved`** (`IGD-DEC-230`, Rizki Gunawan, 6 Oktober 2026). Brief pemilik: layar
+pemeriksaan IGD yang sekarang adalah layar **perawat**; dokter mendapat layar sendiri yang **mengikuti Ruang Kerja Dokter
+Rawat Inap** (`/health-services/inpatient-management/doctor-inpatient`). Karena itu susunan layar dokter IGD — daftar
+pasien di samping, kartu pasien, dan tab kerja — diambil dari layar rawat inap, bukan dirancang baru.
+
+### 15.1 Hierarki kewenangan untuk bagian ini
+
+| Lapis | Isi yang mengikat |
+| --- | --- |
+| Keamanan / privasi / invariant | Seluruh aturan klinis ditegakkan **backend**: penjaga diagnosis saat konfirmasi, status awal Draft, penulis tunggal catatan dokter, keunikan kajian medis awal, DPJP untuk tindakan keperawatan. Layar tidak menghitung sendiri dan menampilkan pesan server **apa adanya**. Pengguna ditampilkan dengan nama, bukan GUID |
+| Brief produk yang disetujui | `IGD-DEC-220`…`229` — terutama `IGD-DEC-221` (tab), `222` (daftar), `223` (tindak lanjut), `224` (pemesan), `225` (tindakan), `227` (catatan dokter) |
+| Konvensi proyek | Komponen dan gaya layar dokter rawat inap dipakai ulang; nol CSS global baru; komponen dasar dari `base-features` |
+| `DEV_DISCRETION` | Bagian 15.8 |
+
+### 15.2 Kebutuhan layar
+
+| ID (diberikan pada bagian ini) | Layar | Pemakai | Status |
+| --- | --- | --- | --- |
+| `SCR-IGD-D01` | Ruang Kerja Dokter IGD — daftar pasien dan enam tab kerja | Dokter | **Baru** |
+| `SCR-IGD-D02` | Catatan Saya — draf dan catatan terkunci milik dokter, beserta addendum | Dokter | **Baru** (memakai ulang tampilan rawat inap) |
+| `SCR-IGD-D03` | Perlu Verifikasi — pesanan lab dan radiologi yang dibuat perawat atas instruksi dokter itu | Dokter | **Baru** — bergantung `IGD-OQ-117` |
+| `SCR-IGD-P01` | Pengkajian Pasien IGD (layar perawat) — tab Tindak Lanjut, Penunjang, Tindakan | Perawat | Sudah ada — **isi berubah** |
+
+### 15.3 Peta butir menu
+
+```text
+Instalasi Gawat Darurat                  <- tingkat 0 (sudah ada)
+├── Pendaftaran Pasien                    -> /health-services/registration-management/emergency-registration
+├── Triage Pasien                         -> /health-services/emergency-installation-management/emergency-triage
+├── Pengkajian Pasien                     -> /health-services/emergency-installation-management/emergency-assessment   (layar perawat)
+└── Ruang Kerja Dokter                    -> /health-services/emergency-installation-management/doctor-emergency       (BARU)
+    ├── Catatan Saya                      -> .../doctor-emergency/my-notes                                             (BARU)
+    └── Perlu Verifikasi                  -> .../doctor-emergency/needs-review                                         (BARU)
+```
+
+| Butir menu / layar | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+| --- | :-: | --- | --- | --- | --- | --- |
+| Ruang Kerja Dokter | 1 | Instalasi Gawat Darurat | `/health-services/emergency-installation-management/doctor-emergency` | `SCR-IGD-D01` | `EmergencyVisit : Read`, `DoctorConsultation : Read` | **Baru** |
+| Catatan Saya | 2 | Ruang Kerja Dokter | `…/doctor-emergency/my-notes` | `SCR-IGD-D02` | `ClinicalDocumentIntegrity : Read` | **Baru** |
+| Perlu Verifikasi | 2 | Ruang Kerja Dokter | `…/doctor-emergency/needs-review` | `SCR-IGD-D03` | `LabOrder : Verify` atau `RadOrder : Verify` | **Baru** |
+| Pengkajian Pasien | 1 | Instalasi Gawat Darurat | `…/emergency-assessment` | `SCR-IGD-P01` | `EmergencyVisit : Read` | Sudah ada — isi berubah |
+
+Nama route mengikuti pola rawat inap `doctor-inpatient` (`DEV_DISCRETION`). Butir menu didaftarkan admin, bukan oleh kode
+(`IGD-UNK-14`). Layar dokter juga dapat dibuka dengan `?visitId=<id>` untuk langsung memilih satu pasien, sama seperti
+`?episodeId=` di rawat inap.
+
+### 15.4 Skema fitur per layar
+
+#### A. `SCR-IGD-D01` — Ruang Kerja Dokter IGD
+
+```text
++- Dokter - IGD ------------------------------------------------------------------------------+
+| [Pasien IGD berjalan: 18]   [Pasien saya: 6]   [Perlu verifikasi: 2]                         |
++------------------------------+--------------------------------------------------------------+
+| [Pasien saya ▾] [Cari _____] | Tn. Budi Santoso · RM 00-00-02-47 · IGD-2610…  DPJP dr. Ani   |
+|------------------------------| Instalasi Gawat Darurat · Sedang ditangani · Tiba 09.15        |
+| ● Budi Santoso   dr. Ani     | Alergi: Penisilin · Diagnosis kerja: J18.9 Pneumonia           |
+|   Sedang ditangani · 09.15   +--------------------------------------------------------------+
+| ○ Sari W.        (belum DPJP)| [Pengkajian Medis] [Catatan Dokter] [Resep] [Tindakan]         |
+|   Menunggu triage · 09.40    | [Penunjang] [Tindak Lanjut]                                    |
+| ○ ...                        |--------------------------------------------------------------|
+|                              |  isi tab yang dipilih                                         |
++------------------------------+--------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Hak akses | Kosong / gagal |
+| --- | --- | --- | --- | --- |
+| Ringkasan | Jumlah pasien IGD berjalan, pasien saya, perlu verifikasi | `GET /emergency-visits?ongoing=true` (total), `…&doctorId=` (total), worklist verifikasi lab + radiologi (total) | `EmergencyVisit : Read`; `LabOrder : Read`, `RadOrder : Read` | Angka worklist gagal → tampil *"—"*, daftar tetap jalan |
+| Daftar pasien | Nama, status kunjungan, waktu tiba, nama DPJP atau *"belum ada DPJP"*; saringan bawaan *Pasien saya*, dapat diganti *Semua pasien IGD*; cari nama/No. RM/nomor kunjungan | `GET /emergency-visits?ongoing=true[&doctorId=<doctorId pengguna>]` | `EmergencyVisit : Read` | Kosong *Pasien saya*: *"Belum ada pasien IGD dengan Anda sebagai DPJP. Ganti saringan ke Semua pasien IGD untuk melihat pasien lain."* Akun tanpa identitas dokter: saringan *Pasien saya* nonaktif dengan keterangan, daftar *Semua* tetap tampil |
+| Kartu pasien | Identitas, unit, status, waktu tiba, DPJP, alergi, diagnosis kerja | `GET /emergency-visits/{id}`; alergi dan diagnosis per encounter (modul klinis) | `EmergencyVisit : Read`, `PatientDiagnosis : Read` | Diagnosis kosong → *"Belum ada diagnosis"* |
+| Tab Pengkajian Medis | Kajian medis awal dan kajian ulang; daftar diagnosis | `POST`/`GET /patient-assessments` (tipe kajian medis); `GET /patient-diagnoses?encounterId=` | `PatientAssessment : Create/Read`, `PatientDiagnosis : Read` | Penolakan `409` (kunjungan berakhir, kajian awal sudah ada) tampil di tempat aksi |
+| Tab Catatan Dokter | Editor SOAP dengan bagian ICD; daftar riwayat catatan dokter; CPPT (dibaca dan ditulis) | `GET /doctor-consultations/encounters/{encounterId}/soap-timeline`; `POST /doctor-consultations`, `PATCH …/soap`, `PATCH …/complete`; diagnosis lewat catatan; `GET /patient-integrated-progress-notes?encounterId=` | `DoctorConsultation : Create/WriteSoap/Complete`, `PatientDiagnosis : Create`, `PatientIntegratedProgressNote : Read/Create` | Catatan selesai terkunci; koreksi lewat addendum (`IGD-DEC-227`) |
+| Tab Resep | Resep encounter ini; tulis resep pada catatan dokter yang belum diselesaikan; template | `GET /prescriptions?encounterId=`; `POST /prescriptions`; template resep | `Prescription : Read/Create` | Tanpa catatan dokter terbuka: *"Buat atau buka catatan dokter lebih dulu — resep menempel pada catatan dokter."* |
+| Tab Tindakan | Daftar tindakan dokter **dan** tindakan keperawatan; dokter mencatat tindakan pada catatan dokter terbuka | `GET /patient-procedures?encounterId=`; `POST /patient-procedures` | `PatientProcedure : Read/Create` | Sama dengan Resep untuk syarat catatan terbuka |
+| Tab Penunjang | Lima jenis: laboratorium, radiologi, bank darah, hemodialisa, gizi — daftar per jenis beserta status dan hasil yang disediakan modulnya; tombol pesan per jenis | `GET` per modul `?encounterId=` (gizi: `?patientId=` lalu disaring encounter di layar); `POST` per modul | Butir `Read`/`Create` tiap modul | Satu jenis gagal dimuat tidak menyembunyikan jenis lain. Bank darah ditolak karena unit belum berizin → pesan modul tampil apa adanya |
+| Tab Tindak Lanjut | Buat (Draft), konfirmasi, batalkan; riwayat | `POST /emergency-dispositions`; `PATCH …/disposition-status` | `EmergencyDisposition : Create/Update` | `409` tanpa diagnosis tampil di modal konfirmasi, dengan tautan ke tab Catatan Dokter |
+
+#### B. `SCR-IGD-D02` — Catatan Saya
+
+Memakai ulang tampilan *Catatan Saya* rawat inap (draf dan catatan terkunci, riwayat addendum, tambah addendum).
+Sumber: `GET /medical-record-management/clinical-document-integrities/my-authored`, `my-unsigned`; addendum lewat
+`…/clinical-note-addendums/by-document/{documentKind}/{documentId}`. Catatan dokter IGD tampil bersama catatan rawat inap
+milik dokter yang sama; label asal pelayanan membedakannya.
+
+#### C. `SCR-IGD-D03` — Perlu Verifikasi
+
+| Wilayah | Isi | Sumber data | Hak akses | Kosong / gagal |
+| --- | --- | --- | --- | --- |
+| Daftar | Pesanan lab dan radiologi pasien IGD yang dibuat perawat atas instruksi dokter ini dan belum diverifikasi | Worklist verifikasi lab dan radiologi | `LabOrder : Read`, `RadOrder : Read` | *"Tidak ada pesanan yang menunggu verifikasi Anda."* |
+| Verifikasi | Tombol verifikasi per baris | `PUT …/verify-instruction` | `LabOrder : Verify`, `RadOrder : Verify` | Penolakan modul tampil apa adanya |
+
+Layar ini baru diaktifkan sesudah `IGD-OQ-117` terjawab.
+
+#### D. `SCR-IGD-P01` — Pengkajian Pasien IGD (layar perawat): yang berubah
+
+| Tab | Sebelum | Sesudah | Dasar |
+| --- | --- | --- | --- |
+| Tindak Lanjut | *Simpan Draf*, *Konfirmasi*, *Jalankan*, *Batalkan* | Daftar tindak lanjut beserta statusnya; **hanya *Jalankan*** untuk tindak lanjut yang sudah dikonfirmasi | `IGD-DEC-223` |
+| Penunjang | Pesanan lab tanpa dokter pemberi instruksi | Pesan lab **dan radiologi** dengan **wajib memilih dokter pemberi instruksi**; daftar status kelima jenis penunjang (baca saja untuk bank darah, hemodialisa, gizi) | `IGD-DEC-224`; `IGD-OQ-117`, `118` |
+| Tindakan | Membaca tabel tindakan IGD lama | Membaca tindakan klinis umum `?encounterId=` + formulir *Catat tindakan keperawatan* (`emergency-nursing-actions`); bila ada isi tabel lama, tampil di bagian *Riwayat tindakan lama* (baca saja) | `IGD-DEC-225` |
+| Resep, Asuhan Keperawatan, Transfer | — | Tidak berubah | — |
+
+### 15.5 Pemakaian ulang dari layar dokter rawat inap
+
+| Bagian rawat inap | Status | Penyesuaian untuk IGD |
+| --- | --- | --- |
+| `doctor-inpatient-view.jsx`, `inpatient-physician-patient-list.jsx`, `inpatient-physician-patient-card.jsx`, `inpatient-physician-context-header.jsx` | Reuse with adapter | Sumber daftar = kunjungan IGD (`?ongoing=true&doctorId=`), bukan sensus rawat inap; tanpa tempat tidur dan lama rawat; istilah ringkasan IGD |
+| `physician-workspace-context.jsx`, `use-inpatient-physician-workspace` | Reuse with adapter | Konteks = kunjungan IGD dan encounter-nya (`GET /emergency-visits/{id}`), bukan episode |
+| Tab Pengkajian Medis (`medical-assessment-tab.jsx`, `use-inpatient-medical-assessment`) | Reuse with adapter | Kajian medis tanpa `inpEpisodeId`; diagnosis per encounter |
+| Tab Catatan Dokter (`physician-progress-tab.jsx`, `use-inpatient-progress-note`) | Reuse with adapter | Timeline dari `…/encounters/{encounterId}/soap-timeline` (butir berbentuk sama) |
+| CPPT (`integrated-progress-note-tab.jsx`, `use-inpatient-integrated-note`) | Reuse with adapter | `GET …?encounterId=`; verifikasi CPPT oleh DPJP tidak dibawa |
+| Tab Resep (`inpatient-prescription-tab.jsx`, `use-inpatient-prescription-tab`) | Reuse with adapter | `GET /prescriptions?encounterId=`; daftar catatan dokter dari timeline encounter |
+| Tab Tindakan (`inpatient-procedure-tab.jsx`, `use-inpatient-procedure-tab`) | Reuse with adapter | `GET /patient-procedures?encounterId=`; dokter memakai `POST /patient-procedures` (catatan terbuka), bukan `inpatient-orders` |
+| Tab Penunjang (`supporting-service-tab.jsx`, `use-inpatient-supporting-service`) | Reuse with adapter | Daftar per encounter, bukan per episode; tindakan tidak ditawarkan di tab ini karena sudah punya tab sendiri |
+| *Catatan Saya* (`my-notes/**`, `use-my-authored-notes`) | Ready to reuse | — |
+| Tab Visite, Resume, Skrining | Tidak dibawa | `IGD-DEC-221` |
+| Tab Tindak Lanjut | Reuse dari layar perawat IGD | Komponen tindak lanjut IGD yang sudah ada, dengan aksi buat/konfirmasi/batalkan untuk layar dokter |
+
+Penyesuaian dibuat sebagai sumber data yang dapat dipilih komponen (konteks rawat inap atau kunjungan IGD), bukan salinan
+komponen. Bila sebuah komponen terlalu terikat rawat inap untuk disesuaikan tanpa mengubah perilaku rawat inap, keputusan
+reuse atau buat baru diambil saat build lewat gerbang keputusan komponen dasar.
+
+### 15.6 Penanganan keadaan
+
+| Keadaan | Perilaku |
+| --- | --- |
+| Memuat | Kerangka daftar dan tab memakai indikator muat yang sudah ada |
+| Kosong | Kalimat pada tabel 15.4 |
+| Gagal | Pesan server apa adanya di tempat aksi; tombol *Coba lagi* pada daftar |
+| Data basi | Sesudah aksi berhasil (catatan selesai, resep, tindakan, pesanan, tindak lanjut), tab terkait dan kartu pasien dimuat ulang; kunjungan yang tertutup oleh tindak lanjut ikut hilang dari daftar `ongoing` |
+| Kirim ganda | Tombol nonaktif selama permintaan; tindakan keperawatan membawa `idempotencyKey` |
+| Hak akses kurang | `403` tampil sebagai pesan, tombol tidak disembunyikan diam-diam bila butirnya belum diketahui |
+
+### 15.7 Aturan layar yang mengikat
+
+1. Layar dokter dan layar perawat **terpisah**; tidak ada tombol buat/konfirmasi tindak lanjut di layar perawat.
+2. Resep dan tindakan dokter selalu menempel pada catatan dokter yang belum diselesaikan; layar menuntun dokter membuat
+   atau membuka catatan lebih dulu.
+3. Konfirmasi tindak lanjut tidak diperiksa di layar; layar mengirim dan menampilkan `409` bila diagnosis belum ada.
+4. Pesanan perawat atas instruksi wajib memilih dokter; daftar dokter hanya dokter aktif.
+5. Bank darah, hemodialisa, dan gizi tidak dapat dipesan dari layar perawat pada slice ini.
+6. Tidak ada tanggal `0001` atau GUID yang tampil kepada pengguna.
+
+### 15.8 Wewenang yang didelegasikan (`DEV_DISCRETION`)
+
+Nama route dan folder komponen, label ringkasan, urutan kolom daftar, ikon tab, dan susunan detail di dalam tab — selama
+mengikuti layar dokter rawat inap dan komponen dasar yang sudah ada.
+
+### 15.9 Yang sengaja tidak dibuat di frontend
+
+| Tidak dibuat | Sebab |
+| --- | --- |
+| Salinan komponen tab rawat inap untuk IGD | Penyesuaian sumber data cukup; salinan menciptakan dua layar yang menua berbeda |
+| Tab Visite, Resume, Skrining | `IGD-DEC-221` |
+| Pemesanan bank darah, hemodialisa, gizi di layar perawat | `IGD-OQ-118` |
+| Unit test baru | Arahan pemilik: verifikasi lewat lint, build, dan uji layar Antigravity |
+
+### 15.10 Ketergantungan uji
+
+Uji layar pada hasil build dengan akun peran nyata: dokter (`DOKTER`), perawat IGD (`dimas.kurniawan`, `IGD-DEC-215`),
+penerima. Skenario `AT-IGD-200`…`213` pada PRD §10.3. Bagian *Perlu Verifikasi* dan pesanan perawat atas instruksi baru
+dapat diuji sesudah `IGD-OQ-117`.

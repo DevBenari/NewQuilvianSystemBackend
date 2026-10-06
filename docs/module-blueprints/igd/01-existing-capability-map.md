@@ -692,3 +692,157 @@ yang sudah tidak ada lagi, atau lewat SQL langsung. Kuerinya tetap milik pemilik
    yang akan mulai menyala untuk pasien IGD justru karena encounter kini benar-benar ditutup.
 3. **Satu keputusan pemilik dibutuhkan sebelum desain dikunci** (`IGD-TRQ-12`). Selain itu, desain boleh berjalan.
 4. Frontend tidak perlu di-scan ulang: nol commit sejak suplemen 3.2.
+
+---
+
+# Suplemen revision 3.4 — impact scan Ruang Kerja Dokter IGD pada `43dab6da` / `6680278a2`
+
+Scan terbatas, bukan audit ulang seluruh modul. Tujuannya satu: memastikan keputusan `IGD-DEC-220`…`228` — **layar
+dokter IGD tersendiri yang mengikuti Ruang Kerja Dokter Rawat Inap, dengan penunjang lima jenis** — berdiri di atas
+kemampuan yang benar-benar ada hari ini. Status memakai tujuh status kontrak bukti (`Ready to reuse`, `Reuse with
+adapter`, `Extend`, `Repair`, `Missing`, `Conflict`, `Unknown`).
+
+| Butir | Isi |
+| --- | --- |
+| Baseline lama | Backend `dce1f138` (suplemen 3.3) / frontend `c941012ac` (suplemen 3.2); butir `IGD-CAP-17`…`20`, `24`, `29`…`31` masih dari revisi 3 (`f69e9e48`, Agustus 2026) |
+| Baseline baru | Backend `rizkiG` **`43dab6da`**, frontend `RizkiV2` **`6680278a2`** — keduanya sejajar origin, working tree bersih |
+| Keputusan yang dilayani | `IGD-DEC-220`…`228` (*amendment pass* 6 Oktober 2026) |
+| Batas | Read-only terhadap source kedua repository; nol kueri basis data; nol perubahan source; nol uji runtime |
+
+## 0. Ringkasan untuk pemilik
+
+1. **Backend sebagian besar sudah siap.** Konsultasi dokter, diagnosis, resep, addendum, dan kelima jenis pesanan penunjang
+   menerima pasien IGD hari ini. Contoh: dokter IGD dapat membuat catatan dokter tanpa antrean, menempelkan diagnosis
+   J18.9 di dalamnya, lalu menulis resep yang menempel ke catatan itu — semuanya lewat endpoint yang sudah ada.
+2. **Tiga perluasan backend wajib**: pengkajian medis dokter untuk pasien IGD (`IGD-CAP-75`, kini ditolak *"Pasien ini
+   tidak sedang dirawat inap."*), tindakan oleh perawat tanpa catatan dokter (`IGD-CAP-79`), dan daftar kunjungan yang
+   membawa DPJP serta saringan *"Pasien saya"* (`IGD-CAP-71`). Ditambah penjaga diagnosis pada tindak lanjut
+   (`IGD-CAP-86`).
+3. **Frontend**: komponen tab rawat inap dapat dipakai ulang, tetapi semua hook-nya membaca lewat rute
+   `…/episodes/{episodeId}` milik episode rawat inap, sehingga butuh varian per kunjungan IGD/encounter (adapter). Daftar
+   umum tiap modul sudah dapat disaring per encounter, kecuali gizi.
+4. **Satu conflict butuh keputusan pemilik** (`IGD-CONF-10`): menyelesaikan catatan dokter IGD otomatis mengirim fakta tagih
+   jasa konsultasi dan resep ke Billing, padahal desain billing IGD belum ada.
+
+## 1. Status ulang kemampuan revisi 3
+
+| ID | Capability | Status revisi 3 | Status sekarang | Bukti | Catatan |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-CAP-17` | Pengkajian pasien | `Conflict` (`QueueId` wajib) | **`Extend`** | `PatientAssessmentController` — pengkajian keperawatan IGD sudah dipakai layar perawat (`createPatientAssessment`); kajian medis (`MedicalInitial`, `MedicalReassessment`) memanggil `ResolveForDoctorWriteAsync` dan menolak pasien yang tidak dirawat inap | Lihat `IGD-CAP-75` |
+| `IGD-CAP-18` | Konsultasi dokter | `Conflict` (`QueueId` wajib) | **`Ready to reuse`** | `DoctorConsultationController.ValidateWithoutQueueGateAsync` — encounter yang punya `EmgVisit` lolos tanpa antrean (`BE-IGD-028`, `FR-IGD-062`); `CreateDoctorConsultationRequest.QueueId` opsional | Dasar catatan dokter, diagnosis, tindakan dokter, dan resep |
+| `IGD-CAP-19` | Diagnosis pasien | `Conflict` (`ConsultationId` wajib) | **`Ready to reuse`** — lewat catatan dokter | `PatientDiagnosisController` resolusi konteks: dengan konsultasi → sah untuk encounter apa pun; tanpa konsultasi → hanya `EncounterType.Inpatient` berepisode (*"Diagnosis harus melekat pada catatan dokter atau pada perawatan pasien yang sedang berjalan."*) | Sejalan dengan `IGD-DEC-226`/`227`: diagnosis IGD ditulis di catatan dokter |
+| `IGD-CAP-20` | Tindakan pasien | `Conflict` (`ConsultationId` wajib) | **`Extend`** | `PatientProcedureController` `POST /` — validasi `"ConsultationId wajib diisi."` dan konsultasi belum selesai; `POST /inpatient-orders` mewajibkan `InpEpisodeId` | Dokter: siap lewat catatan dokter (`IGD-CAP-78`); perawat: belum ada jalur (`IGD-CAP-79`) |
+| `IGD-CAP-24` | Riwayat versi catatan klinis | `Missing` | **`Ready to reuse`** untuk catatan dokter | `ClinicalNoteAddendumController` `by-document/{documentKind}/{documentId}`; `ClinicalNoteAddendumService.ResolveAuthorityAsync` — penulis asli atau pengganti berwenang; nol syarat rawat inap; `ClinicalDocumentKind.Consultation` | Menjawab `IGD-DEC-227`; jenis catatan lain tidak diperluas |
+| `IGD-CAP-29` | Pemesanan laboratorium | `Extend` | **`Reuse with adapter`** (dokter) / **`Extend`** (perawat atas instruksi) | `LabOrderPagedQuery.EncounterId`; `LabOrderService.ResolveInstructionAsync` — instruksi hanya bila `InpEpisodeId` terisi; penjaga `VAL-67` menolak encounter selesai | Lihat `IGD-CAP-80`, `85` |
+| `IGD-CAP-30` | Pemesanan radiologi | `Missing` | **`Reuse with adapter`** (dokter) / **`Extend`** (perawat) | `RadOrderController` `POST`, `GET ?encounterId=` (`RadOrderListQuery`); `RadiologyExplicitPermissions.cs` — `RadReport : ActAsRadiologist` kini *dapat dicentang* di Akses Role | Penahan `IGD-DEC-111` (d) gugur di source; `IGD-DEC-228` |
+| `IGD-CAP-31` | Peresepan obat | `Conflict` (`ConsultationId` wajib) | **`Reuse with adapter`** | `CreatePrescriptionRequest` — `EncounterId` + `ConsultationId` konsultasi yang belum *Completed*/*Cancelled*; `GET ?encounterId=` | `ClinicId` resep IGD kosong — `IGD-UNK-12` |
+
+## 2. Kemampuan yang dibutuhkan `IGD-DEC-220`…`228`
+
+| ID | Kebutuhan | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap/adapter | Risiko |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-CAP-71` | Daftar pasien dokter IGD dengan saringan *"Pasien saya"* dan nama DPJP (`IGD-DEC-222`) | EmergencyInstallationManagement | backend `EmergencyVisitController.GetList` (saringan: search, encounter, pasien, unit, status, `awaitingClosure`, tanggal — **tanpa** dokter)@43dab6da; `Models/EmgDoctorAssignment.cs` (`DoctorId`, `EffectiveFrom`, `EffectiveTo`); `EmergencyDoctorAssignmentController GET /active?emergencyVisitId=`; frontend rawat inap memakai sensus `assignedToMe=true` + `userInfo.doctorId` (`use-inpatient-physician-patients.jsx`)@6680278a2 | `Extend` | Ruas DPJP aktif pada respons daftar kunjungan dan saringan per dokter pada `GET /emergency-visits` | Tanpa perluasan, layar harus memanggil penugasan per baris (N+1) |
+| `IGD-CAP-72` | Kerangka layar dokter: daftar, kartu pasien, header konteks | Frontend IGD | `doctor-inpatient-view.jsx`, `physician-workspace-context.jsx`, `use-inpatient-physician-workspace.jsx` (episode, penempatan tempat tidur, alergi, diagnosis, lama rawat)@6680278a2 | `Reuse with adapter` | Konteks IGD = kunjungan IGD (`GET /emergency-visits/{id}` sudah membawa pasien, unit, cara datang, jenis kasus — `BE-IGD-064`), alergi dan diagnosis per encounter; tanpa tempat tidur dan lama rawat | Komponen terikat istilah rawat inap (*Dirawat*, *Discharge Pending*) |
+| `IGD-CAP-73` | Catatan dokter SOAP + diagnosis (`IGD-DEC-221`, `227`) | ClinicalManagement | `DoctorConsultationController` `POST`, `PATCH {id}/soap`, `PATCH {id}/complete` (penulis tunggal `EnsureSoleAuthorAsync`, keutuhan draf), `GET ?encounterId=`; `GET episodes/{episodeId}/soap-timeline` hanya rawat inap@43dab6da; `use-inpatient-progress-note.jsx` memakai `getSoapTimelineByEpisode`@6680278a2 | `Reuse with adapter` | Timeline SOAP per kunjungan IGD — `GET ?encounterId=` atau endpoint timeline per encounter | Pengurutan dan bentuk respons daftar umum belum tentu sama dengan timeline |
+| `IGD-CAP-74` | Addendum dan halaman *Catatan Saya* (`IGD-DEC-227`) | MedicalRecordManagement | `ClinicalNoteAddendumController`; `ClinicalDocumentIntegrityController GET my-authored`, `my-unsigned` — per penulis, nol syarat rawat inap@43dab6da; `use-my-authored-notes.js`@6680278a2 | `Ready to reuse` | Catatan dokter IGD muncul bila terdaftar di integritas dokumen — dibuktikan saat uji | Teks halaman berbau rawat inap |
+| `IGD-CAP-75` | Pengkajian medis dokter untuk pasien IGD | ClinicalManagement | `PatientAssessmentController` — kajian medis → `ResolveForDoctorWriteAsync`; gagal → *"Pasien ini tidak sedang dirawat inap."*; `MedicalInitial` unik per episode@43dab6da | `Extend` | Konteks kunjungan IGD untuk kajian medis, termasuk aturan keunikan `MedicalInitial` per kunjungan | Pemilik ClinicalManagement `OPEN` |
+| `IGD-CAP-76` | CPPT di layar dokter | ClinicalManagement | `PatientIntegratedProgressNoteController GET ?encounterId=`, `GET timeline?encounterId=`; verifikasi DPJP hanya per episode (`episodes/{id}/verification-status`, `verification-worklist`)@43dab6da | `Reuse with adapter` | Baca per encounter; verifikasi CPPT oleh DPJP tidak diputuskan untuk IGD — tidak dibawa | — |
+| `IGD-CAP-77` | Resep dari layar dokter IGD (`IGD-DEC-220`) | PharmacyManagement | `PrescriptionController POST`, `GET ?encounterId=`; template resep; rawat inap memakai `getPrescriptionsByEpisode` + timeline SOAP@6680278a2 | `Reuse with adapter` | Daftar resep per encounter; pilihan catatan dokter terbuka sebagai induk resep | `IGD-UNK-12` |
+| `IGD-CAP-78` | Tindakan oleh dokter (`IGD-DEC-225`) | ClinicalManagement | `PatientProcedureController POST /` (catatan dokter terbuka wajib), `GET ?encounterId=`@43dab6da | `Reuse with adapter` | Tindakan menempel ke catatan dokter yang belum diselesaikan | Dokter yang sudah menyelesaikan catatannya harus membuka catatan baru untuk menambah tindakan |
+| `IGD-CAP-79` | Tindakan oleh perawat tanpa catatan dokter (`IGD-DEC-225`) | ClinicalManagement | `POST /` wajib `ConsultationId`; `POST /inpatient-orders` wajib `InpEpisodeId`; layar perawat IGD hanya membaca `emergency-procedure-details`@43dab6da | `Missing` | Jalur tindakan perawat untuk encounter IGD | Pemilik ClinicalManagement `OPEN` |
+| `IGD-CAP-80` | Pesanan laboratorium | LaboratoryManagement | `POST /lab-orders`, `POST by-examinations`, `GET ?encounterId=`, `instruction-verification-worklist`@43dab6da | `Reuse with adapter` (dokter) / `Extend` (perawat) | Instruksi dan verifikasi untuk encounter IGD | `IGD-OQ-117` |
+| `IGD-CAP-81` | Pesanan radiologi | RadiologyManagement | `POST /rad-orders`, `GET ?encounterId=`, `instruction-verification-worklist`; `AccessExplicitPermission RadReport/ActAsRadiologist`@43dab6da | `Reuse with adapter` (dokter) / `Extend` (perawat) | Sama dengan lab | `IGD-OQ-117`; `IGD-UNK-15` |
+| `IGD-CAP-82` | Pesanan darah | BloodBankManagement | `CreateBloodOrderRequest` (`PatientId`, `EncounterId`, `ServiceUnitId`, `RequestingDoctorId` wajib); `BbkBloodOrderService` menolak encounter berakhir dan unit tanpa `MstServiceUnit.IsAvailableForBloodOrder`; `GET ?encounterId=`@43dab6da | `Reuse with adapter` | Unit pemesan = unit IGD | `IGD-UNK-13` |
+| `IGD-CAP-83` | Pesanan hemodialisa | HemodialysisManagement | `CreateHmdOrderRequest` (`PatientId` wajib; `EncounterId`, `InpEpisodeId`, `RequestingDoctorId` opsional — dokter aktif bila diisi); `HmdOrderPagedQuery.EncounterId`@43dab6da | `Reuse with adapter` | — | — |
+| `IGD-CAP-84` | Pesanan gizi | NutritionManagement | `CreateGzOrderRequest` (`PatientId`, `EncounterId`, `RequesterDoctorId`, alasan, idempotency); satu order terbuka per encounter; `GziOrderPagedQuery` **tanpa** `EncounterId` (hanya `PatientId`)@43dab6da; rawat inap menyaring di layar (`filterOrdersByEpisode`)@6680278a2 | `Reuse with adapter` | Saring per encounter di layar, atau perluasan query | `IGD-OQ-119` |
+| `IGD-CAP-85` | Verifikasi pesanan perawat atas instruksi (`IGD-DEC-224`) | Lab, Radiologi, ClinicalManagement; Bank Darah, Hemodialisa, Gizi | Worklist instruksi lab, radiologi, tindakan — semuanya untuk episode rawat inap; bank darah, hemodialisa, gizi tanpa status verifikasi@43dab6da | `Extend` (lab, radiologi, tindakan) / `Missing` (tiga lainnya) | Daftar *perlu verifikasi* untuk dokter IGD | `IGD-OQ-117`, `118` |
+| `IGD-CAP-86` | Tindak lanjut di layar dokter + penjaga diagnosis (`IGD-DEC-223`, `226`) | EmergencyInstallationManagement | `EmergencyDispositionController.UpdateDispositionStatus` (Confirmed baris 367); `Create` menyalin `request.DispositionStatus` apa adanya; `EmergencyDispositionService.ValidateRequestAsync` hanya memeriksa `Enum.IsDefined`@43dab6da | `Extend` + `Repair` | Penjaga diagnosis di konfirmasi; status awal create dibatasi atau ikut dijaga | `IGD-CONF-11` |
+| `IGD-CAP-87` | Layar perawat: tindak lanjut hanya *Laksanakan* (`IGD-DEC-223`) | Frontend IGD | Tab Tindak Lanjut perawat: *Simpan Draf*, *Konfirmasi*, *Jalankan*, *Batalkan* (`emergency-assessment-constant.jsx` baris 377–406)@6680278a2 | `Extend` | Sembunyikan buat/konfirmasi di layar perawat; label *Jalankan* ≠ *Laksanakan* pada keputusan | — |
+| `IGD-CAP-88` | Layar perawat: pesanan dengan dokter pemberi instruksi (`IGD-DEC-224`) | Frontend IGD | Tab Penunjang perawat memanggil `createLabOrder` tanpa dokter instruksi@6680278a2 | `Extend` | Pilihan dokter pemberi instruksi; kelima jenis pesanan | Bergantung `IGD-CAP-85` |
+| `IGD-CAP-89` | Layar perawat: input tindakan (`IGD-DEC-225`) | Frontend IGD | Tab Tindakan perawat membaca `emergency-procedure-details` saja (`fetchProcedures`)@6680278a2; `EmgProcedureDetail` hanya ditulis controller-nya sendiri dan tidak dibaca modul lain@43dab6da | `Extend` | Ganti sumber baca ke tindakan klinis umum dan tambah input | Bergantung `IGD-CAP-79` |
+| `IGD-CAP-90` | Hak akses layar dokter | Platform authorization | Resource yang ada: `DoctorConsultation` (Create, Complete), `PatientDiagnosis`, `PatientProcedure`, `Prescription`, `PatientAssessment`, `LabOrder`, `RadOrder`, pesanan darah, hemodialisa, gizi, `EmergencyDisposition` — diatur Akses Role@43dab6da | `Ready to reuse` (resource) / `Unknown` (menu) | Menu sidebar tidak didefinisikan di source; `AccessMenuSeeder` hanya menulis `RoutePath` API | `IGD-UNK-14` |
+| `IGD-CAP-91` | Identitas dokter pengguna | Platform | `userInfo.doctorId` dari `auth/me` (frontend rawat inap); klaim `doctor_id` (`PatientAssessmentController.ResolveCurrentDoctorIdAsync`); `InpatientClinicalContextService.ResolveActorDoctorIdAsync`@43dab6da | `Ready to reuse` | — | Akun dokter tanpa `doctorId` tidak dapat memakai saringan *"Pasien saya"* |
+
+## 3. Kontrak as-is yang disentuh
+
+| Method | Path (`/api/v1/health-services/…`) | Yang relevan untuk IGD |
+| --- | --- | --- |
+| `POST` | `clinical-management/doctor-consultations` | `EncounterId` wajib; `QueueId` opsional; encounter IGD lolos tanpa antrean |
+| `PATCH` | `clinical-management/doctor-consultations/{id}/complete` | Hanya penulis; memfinalkan resep draf dan mengirim fakta tagih (`IGD-CONF-10`) |
+| `GET` | `clinical-management/doctor-consultations?encounterId=` | Pengganti timeline per episode |
+| `POST` | `clinical-management/patient-diagnoses` | Untuk IGD wajib menempel ke catatan dokter yang belum *Completed* |
+| `POST` | `clinical-management/patient-procedures` | `ConsultationId` wajib (catatan dokter terbuka) |
+| `POST` | `clinical-management/patient-procedures/inpatient-orders` | `InpEpisodeId` wajib — tidak untuk IGD |
+| `POST` | `clinical-management/patient-assessments` | Kajian medis ditolak bila pasien tidak dirawat inap |
+| `POST` | `medical-record-management/clinical-note-addendums/by-document/{documentKind}/{documentId}` | Per penulis; tanpa syarat rawat inap |
+| `POST` | `pharmacy-management/prescriptions` | `EncounterId` + `ConsultationId` terbuka |
+| `POST` | `laboratory-management/lab-orders` | Encounter belum selesai; instruksi hanya rawat inap |
+| `POST` | `radiology-management/rad-orders` | Sama dengan lab |
+| `POST` | `blood-bank-management/blood-orders` | Unit wajib `IsAvailableForBloodOrder` |
+| `POST` | `hemodialysis-management/hemodialysis-orders` | `PatientId` wajib |
+| `POST` | `nutrition-management/orders` | Satu order terbuka per encounter |
+| `POST` | `emergency-installation-management/emergency-dispositions` | Status awal dari permintaan, tanpa pembatasan (`IGD-CONF-11`) |
+| `PATCH` | `emergency-installation-management/emergency-dispositions/{id}/disposition-status` | Titik konfirmasi; tempat penjaga `IGD-DEC-226` |
+
+## 4. Conflict
+
+### `IGD-CONF-10` — catatan dokter IGD yang diselesaikan mengirim fakta tagih
+
+`ConsultationFinalizationService.FinalizeAsync` (dipanggil `PATCH …/doctor-consultations/{id}/complete`) sesudah commit
+mengirim fakta `ConsultationCompleted` (jasa konsultasi, satu per catatan dokter) dan satu fakta per resep yang difinalkan
+lewat `ClinicalMilestoneFactProducer.EmitChargeEligibilityAsync`. Produsen itu **tidak** menyaring jenis kunjungan. Desain
+billing IGD belum ada; arah kerja `IGD-DEC-097` (`draft`) menyebut *jasa kunjungan IGD*, bukan jasa konsultasi per catatan.
+*Contoh:* dr. Ani menyelesaikan dua catatan dokter untuk Tn. Budi dalam satu kunjungan IGD — dua fakta jasa konsultasi
+terkirim. Apakah Billing menagih keduanya untuk encounter IGD belum diaudit (`IGD-UNK-16`); billing di luar scope pass ini.
+**Butuh keputusan pemilik** (`IGD-TRQ-13`).
+
+### `IGD-CONF-11` — tindak lanjut dapat lahir langsung *Confirmed* atau *Executed* (temuan lama, `Repair`)
+
+`POST /emergency-dispositions` menyimpan `request.DispositionStatus` apa adanya; validasinya hanya `Enum.IsDefined`.
+Akibatnya penjaga diagnosis `IGD-DEC-226` yang hanya dipasang di `PATCH …/disposition-status` dapat dilewati, dan tindak
+lanjut yang lahir *Executed* tidak memicu penutupan susulan (pemicu `BE-IGD-060` ada di jalur `PATCH`). Layar perawat saat
+ini selalu membuat *Draft* (*Simpan Draf*), sehingga belum terjadi dari layar. Rekomendasi desain: status awal create
+dibatasi *Draft* (perubahan kontrak — butuh approval pada desain).
+
+## 5. Unknown
+
+| ID | Hal | Pemilik | Cara menjawab |
+| --- | --- | --- | --- |
+| `IGD-UNK-12` | `ClinicId` kosong pada resep IGD — apakah telaah, penyiapan, penyerahan, dan penagihan Farmasi memerlukannya | Pemilik Farmasi | Uji runtime pada putaran uji |
+| `IGD-UNK-13` | Nilai `MstServiceUnit.IsAvailableForBloodOrder` untuk unit IGD di tiap lingkungan | Master Data / Rizki | Kueri `SELECT` oleh pemilik, atau uji runtime |
+| `IGD-UNK-14` | Cara menambah menu Ruang Kerja Dokter IGD di sidebar — tidak didefinisikan di source | Rizki (admin) | Konfirmasi pemilik |
+| `IGD-UNK-15` | Apakah `RadReport : ActAsRadiologist` sudah dicentang untuk peran radiolog di tiap lingkungan | Pemilik Radiologi | Layar Akses Role |
+| `IGD-UNK-16` | Perlakuan Billing atas fakta `ConsultationCompleted` dan resep dari encounter IGD | Pemilik Billing | Audit modul Billing pada slice billing IGD |
+| `IGD-UNK-17` | Jumlah baris lama `EmgProcedureDetail` per lingkungan | Rizki | Kueri `SELECT` oleh pemilik |
+
+## 6. Catatan desain dari fakta — bukan keputusan
+
+1. Tab SOAP di layar perawat menulis CPPT (`patient-integrated-progress-notes`) dengan pilihan profesi, bukan catatan
+   dokter; sesudah layar dokter ada, pilihan profesi *Dokter* di layar perawat layak ditinjau.
+2. Rawat inap memakai satu rute `…/episodes/{episodeId}` per modul; IGD cukup memakai daftar umum `?encounterId=` yang sudah
+   ada untuk CPPT, konsultasi, resep, tindakan, diagnosis, lab, radiologi, darah, dan hemodialisa. Hanya gizi yang tidak.
+3. Pola instruksi rawat inap (`InstructingDoctorId`, status verifikasi, worklist) adalah titik awal yang wajar untuk
+   `IGD-CAP-85`, tetapi pemeriksaan *"dokter sedang bertugas atas pasien"* rawat inap memakai episode, bukan kunjungan IGD.
+
+## 7. Pertanyaan penutup untuk `grill-me`
+
+| ID | Pertanyaan | Mengapa penting | Pemilik |
+| --- | --- | --- | --- |
+| ~~`IGD-TRQ-13`~~ **dijawab `IGD-DEC-229`** (6 Oktober 2026: resep tetap mengirim fakta tagih, jasa konsultasi per catatan tidak dikirim untuk pasien IGD) | Bolehkah fakta tagih jasa konsultasi dan resep dari catatan dokter IGD mengalir ke Billing sejak Ruang Kerja Dokter IGD dirilis (`IGD-CONF-10`), atau ditahan sampai slice billing IGD? | Menentukan apakah desain perlu menyaring encounter IGD di finalisasi, atau cukup mencatat konsekuensinya | Product/Domain Owner IGD, dengan pemilik Billing dan Finance |
+
+## 8. Pemicu audit ulang suplemen ini
+
+Commit yang menyentuh `DoctorConsultationController`, `PatientAssessmentController`, `PatientProcedureController`,
+`PatientDiagnosisController`, `PatientIntegratedProgressNoteController`, `ClinicalNoteAddendum*`,
+`ConsultationFinalizationService`, `ClinicalMilestoneFactProducer`, `PrescriptionController`, kelima service pesanan
+penunjang, `EmergencyDisposition*`, `EmergencyVisitController`, `EmergencyDoctorAssignment*`, atau hook
+`use-inpatient-*` dan komponen `physician-workspace/**` di frontend. Butir `IGD-CAP-17`…`20`, `24`, `29`…`31` revisi 3
+digantikan bagian 1 suplemen ini.
+
+## 9. Kesimpulan scan
+
+1. **Keputusan `IGD-DEC-220`…`228` dapat dirancang sekarang.** Mayoritas kebutuhan `Ready to reuse` atau `Reuse with
+   adapter`; empat perluasan backend (`IGD-CAP-71`, `75`, `79`, `86`) dan satu kekurangan lintas modul (`IGD-CAP-85`,
+   tergantung `IGD-OQ-117`/`118`) menjadi isi desain.
+2. **Satu keputusan pemilik dibutuhkan sebelum desain dikunci** (`IGD-TRQ-13`, atas `IGD-CONF-10`).
+3. **Satu temuan lama perlu diperbaiki bersama** (`IGD-CONF-11`), karena tanpanya penjaga diagnosis dapat dilewati.
