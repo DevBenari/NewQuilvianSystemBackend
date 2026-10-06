@@ -295,3 +295,214 @@ frontend.
 | `RJ-E2E-FE-003` | Tata letak, urutan field, gaya | `DEV_DISCRETION` |
 | `RJ-E2E-FE-004` | Bentuk pemberitahuan penyerahan | `DEV_DISCRETION` |
 | — | Tata letak `FE-RJE-03`, nama dan urutan butir menu | `DEV_DISCRETION` di dalam skema V2.4 |
+
+
+---
+
+# Amendment DP — Daftar Pasien Rawat Jalan (revisi `28`, `draft`)
+
+Masukan: `RJ-DOC-DEC-011`..`023`, `RJ-DOC-FE-005`..`009`; backend [02-backend-architecture.md](02-backend-architecture.md)
+*Amendment DP*; kontrak `RJ-DOC-ENCLIST-001@1.0.0` (`draft`). Snapshot FE `b7e9b7fd4`.
+
+## DP-FE.1 Kebutuhan layar
+
+| ID layar | Layar | Pengguna | Tujuan |
+|---|---|---|---|
+| `FE-RJDP-01` | Daftar Pasien Rawat Jalan | Dokter, perawat poli, petugas pendaftaran, Super Admin | Melihat kunjungan RJ dalam cakupan, statusnya, dan membatalkan kunjungan yang menggantung |
+
+Pembatalan memakai modal konfirmasi di layar yang sama (`RJ-DOC-FE-008`); tidak ada layar anak.
+
+## DP-FE.2 Peta butir menu
+
+```text
+Rawat Jalan                               <- tingkat 0 (sudah ada), field `subMenu`
+├── Skrining Pasien                       -> /health-services/registration-management/nurse-station-queue   (sudah ada)
+└── Daftar Pasien Rawat Jalan             -> /health-services/registration-management/outpatient-encounters  (Baru)
+```
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses (`requiredPermission`) | Status |
+|---|:---:|---|---|---|---|---|
+| Daftar Pasien Rawat Jalan | 1 | Rawat Jalan (`healthServicesRegistrationManagement`) | `/health-services/registration-management/outpatient-encounters` | `FE-RJDP-01` | `{ resource: "OutpatientEncounter", action: "Read" }` | Baru |
+
+Disisipkan tepat setelah "Skrining Pasien" di `src/utils/menu-sidebar/menu-items.jsx`
+(`RJ-DOC-FE-005`). Entri lama "Daftar Kunjungan" yang dikomentari (`patient-encounters`) tidak
+dihidupkan; route itu tidak ada. Pendaftaran butir menu menjadi acceptance criteria task FE
+layar ini.
+
+## DP-FE.3 Skema fitur `FE-RJDP-01`
+
+```text
++- Hero: Daftar Pasien Rawat Jalan -------------------------------------------------+
+| cakupan: "Pasien Anda" / "Klinik cluster Anda" / "Semua klinik"                    |
++-----------------------------------------------------------------------------------+
+| [Menunggu] [Sedang Konsultasi] [Siap Ditagih] [Batal/Tidak Hadir] [Menggantung!]  |  <- summary card, klik = filter
++-----------------------------------------------------------------------------------+
+| (Hari ini | Aktif semua tanggal)  [Tanggal] [Status v] [Klinik v] [Dokter v*]      |  <- base filter; *hanya ReadAll
+| [cari no. RM / nama / no. kunjungan]                                 [Atur ulang]  |
++-----------------------------------------------------------------------------------+
+| No. Kunjungan | Tanggal | Pasien / No. RM | Klinik | Dokter | Penjamin | Status | |
+| ENC-...00146  | 30 Jul  | ...             | ...    | ...    | Tunai    | chip   |[⋮]|  <- aksi: Batalkan
++-----------------------------------------------------------------------------------+
+| memuat -> kerangka baris                                                          |
+| kosong -> "Tidak ada kunjungan pada saringan ini."              [Atur ulang]      |
+| gagal  -> "Daftar kunjungan gagal dimuat."                      [Coba lagi]       |
+| 403    -> "Akun Anda belum terhubung ke data dokter atau cluster perawat. ..."    |
++- Halaman 1 dari n ---------------------------------- [< Sebelumnya] [Berikutnya >]+
+
+Modal Batalkan Kunjungan:
+  ENC-RSMMC-00146 · <nama pasien> · Poli ... · status Menunggu Perawat
+  Alasan pembatalan* [______________________] 0/250
+  [Kembali]  [Batalkan Kunjungan]
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Hero | Judul dan label cakupan | `GET /outpatient-encounters/filters/metadata` (`scope`) | `OutpatientEncounter : Read` | `403` → seluruh layar diganti pesan cakupan (`AccessDeniedGate`/`InformationAlert`) |
+| Summary card | Jumlah per kelompok: Menunggu (0-5), Sedang Konsultasi (6), Siap Ditagih (7-8), Batal/Tidak Hadir, **Menggantung** (aktif, status < 7, tanggal sebelum hari ini) | `GET /outpatient-encounters/summary` (saringan yang sama, tanpa saringan status) | `Read` | Gagal → kartu menampilkan "–" dan tabel tetap dimuat |
+| Filter | Mode Hari ini / Aktif semua tanggal; tanggal; status; klinik (opsi dari metadata); dokter (hanya bila `scope.canReadAll`); pencarian | `filters/metadata` | `Read` | Opsi gagal dimuat → filter tetap dapat dipakai tanpa daftar opsi |
+| Tabel | Kolom pada `OutpatientEncounterListItem` | `GET /outpatient-encounters` | `Read` | Lihat skema |
+| Aksi Batalkan | Menu baris; tampil hanya bila `item.canCancel = true` **dan** `usePermission("OutpatientEncounter", "Cancel")` | — | `OutpatientEncounter : Cancel` | Baris status 6 dengan konsultasi aktif menampilkan `item.cancelBlockedReason` sebagai keterangan, bukan tombol |
+| Modal batal | Ringkasan kunjungan, alasan wajib 1-250 karakter | `PATCH /outpatient-encounters/{id}/cancel` | `Cancel` | `400`/`404` → pesan dari server di modal, modal tetap terbuka; berhasil → toast, tabel dan summary dimuat ulang |
+
+Default saat layar dibuka: mode **Hari ini** (`RJ-DOC-FE-007`). Klik kartu **Menggantung** →
+mode Aktif semua tanggal + saringan `hangingOnly=true`.
+
+## DP-FE.4 Aksi per peran
+
+| Peran | Lihat | Saring dokter | Batalkan |
+|---|---|---|---|
+| Dokter (`Read`) | Pasien sendiri | Tidak | Hanya bila diberi `Cancel` |
+| Perawat poli (`Read`, `Cancel`) | Klinik clusternya | Tidak | Ya, status yang diizinkan |
+| Petugas pendaftaran (`Read`, `ReadAll`, `Cancel`) | Semua | Ya | Ya |
+
+## DP-FE.5 Penanganan keadaan
+
+| Keadaan | Perilaku |
+|---|---|
+| Kirim ganda | Tombol "Batalkan Kunjungan" nonaktif selama permintaan berjalan |
+| Data basi | Server menolak `400` "Kunjungan sudah dibatalkan." atau "sedang dalam konsultasi" → pesan di modal, lalu tabel dimuat ulang saat modal ditutup |
+| Ganti saringan | Halaman kembali ke 1; summary ikut dimuat ulang |
+| Sesi habis | Pola `InstanceAxios` yang sudah ada |
+| Privasi | Nama pasien dan no. RM tidak ditulis ke `console` maupun `localStorage` |
+
+## DP-FE.6 Berkas frontend yang terlibat
+
+Mengikuti pola layar registrasi yang ada (hook + service, bukan Redux slice baru) dan pola
+pemakaian base component di `administrator-bank-view.jsx`.
+
+| Berkas | Status |
+|---|---|
+| `src/app/health-services/registration-management/outpatient-encounters/page.jsx` | Baru |
+| `src/components/view/health-services/registration-management/outpatient-encounters/outpatient-encounter-list-client.jsx` | Baru |
+| `src/components/view/health-services/registration-management/outpatient-encounters/outpatient-encounter-list-view.jsx` | Baru |
+| `src/components/view/health-services/registration-management/outpatient-encounters/outpatient-encounter-table-columns.jsx` | Baru |
+| `src/components/view/health-services/registration-management/outpatient-encounters/cancel-outpatient-encounter-modal.jsx` | Baru |
+| `src/lib/hooks/health-services/registration-management/outpatient-encounters/use-outpatient-encounter-list.jsx` | Baru |
+| `src/lib/services/health-services/registration-management/outpatient-encounter.service.js` | Baru |
+| `src/lib/constants/health-services/registration-management/outpatient-encounter-constants.js` | Baru — label status dan kelompok summary |
+| `src/utils/menu-sidebar/menu-items.jsx` | Diperbarui — satu butir menu |
+| Base component `Hero`, `SummaryGrid`, `DataFilter`, `DataTable`, `StatusBadge`, `RowActionMenu`, `ConfirmModal`, `AccessDeniedGate`, `ToastStack`, `FilterDatePicker`, `FilterSelect`, `Pagination` | Sudah ada, dipakai ulang tanpa diubah |
+
+## DP-FE.7 Kewenangan UI
+
+| Decision ID | Area | Status |
+|---|---|---|
+| `RJ-DOC-FE-005` | Letak menu di bawah Skrining Pasien | `approved` |
+| `RJ-DOC-FE-006` | Hero, summary card, base filter, base table dari base component | `approved` |
+| `RJ-DOC-FE-007` | Default hari ini + Aktif semua tanggal + kartu Menggantung | `approved` |
+| `RJ-DOC-FE-008` | Modal batal, alasan wajib, tombol bersyarat | `approved` |
+| `RJ-DOC-FE-009` | Kolom, urutan, isi filter, gaya | `DEV_DISCRETION` di dalam skema DP-FE.3 |
+
+---
+
+# Amendment KT — Konsultasi Tertunda di Klinis Dokter (revisi `29`, `draft`)
+
+Keputusan `RJ-DOC-DEC-028`..`031`, `RJ-DOC-FE-010`..`012`; backend `02-backend-architecture.md`
+*Amendment KT*; kontrak `RJ-DOC-PENDCONS-001@1.0.0` (`draft`). Snapshot FE `d232feb2b`.
+
+## KT-FE.1 Kebutuhan layar
+
+Tidak ada layar baru. Perubahan berada di layar yang sudah ada:
+
+| ID | Layar | Perubahan |
+|---|---|---|
+| `FE-RJKT-01` | Klinis Dokter — Rawat Jalan (`/health-services/registration-management/doctor-queues`) | Bagian Konsultasi tertunda di panel kiri; banner kunjungan lampau; konfirmasi tambahan di modal Simpan; tombol dan modal Batalkan konsultasi untuk konsultasi tertunda |
+| `FE-RJDP-01` | Daftar Pasien Rawat Jalan | Tidak ada perubahan kode. Petunjuk baris berasal dari backend (`02` KT.3.4) |
+
+## KT-FE.2 Peta butir menu
+
+Tidak ada butir menu baru. `FE-RJKT-01` tetap dijangkau lewat butir yang sudah ada:
+
+| Butir | Tingkat | Induk | Route | Layar | Hak akses |
+|---|---|---|---|---|---|
+| Rawat Jalan (`healthServicesDoctorQueueOutpatient`) | 2 | Dokter | `/health-services/registration-management/doctor-queues` | `FE-RJKT-01` | `DoctorQueue : Read` |
+
+## KT-FE.3 Skema fitur `FE-RJKT-01`
+
+```text
+┌─ Klinis Dokter ─────────────────────────────── [ringkasan antrean hari ini] ─┐
+├──────────────────────────┬────────────────────────────────────────────────────┤
+│ Pasien Dokter            │ (A) ⚠ Kunjungan tanggal 30 Sep 2026 — tertunda     │
+│ 0 pasien hari ini        │     5 hari. Pasien mungkin sudah pulang.           │
+│ [kartu antrean hari ini] │ [tab klinis seperti biasa]                         │
+│                          │                                                    │
+│ (B) Konsultasi tertunda 1│                                                    │
+│ ┌──────────────────────┐ │                                                    │
+│ │ IKBAL YULIYANTO      │ │                                                    │
+│ │ 00-00-00-15 · Poli   │ │                                                    │
+│ │ Anak · 30 Sep 2026   │ │                                                    │
+│ │ 5 hari   [Buka]      │ │ (C) [Batalkan konsultasi]   [Simpan konsultasi]    │
+│ └──────────────────────┘ │                                                    │
+└──────────────────────────┴────────────────────────────────────────────────────┘
+(D) Modal Simpan: tambahan kotak centang konfirmasi bila kunjungan lampau dan ada resep/tindakan
+(E) Modal Batalkan konsultasi: alasan wajib, maks 250 karakter
+```
+
+| Wilayah | Isi | Sumber data | Hak akses | Keadaan kosong / gagal |
+|---|---|---|---|---|
+| (B) Konsultasi tertunda | Judul dan jumlah; kartu berisi nama, no. RM, poli, tanggal antrean, lama tertunda (`pendingDays`), tombol Buka. Urut paling lama di atas | `GET /doctor-queues/pending-consultations` | `DoctorQueue : Read` | Bila kosong, seluruh bagian (B) **tidak ditampilkan**. Bila gagal: "Konsultasi tertunda gagal dimuat." beserta tombol Coba lagi; antrean hari ini tetap tampil |
+| (A) Banner | "Kunjungan tanggal {tanggal antrean} — tertunda {n} hari. Pasien mungkin sudah pulang. Pastikan resep dan tindakan masih diperlukan sebelum menyimpan." | Item terpilih (`queueDate`, `pendingDays`) | — | Hanya tampil bila `queueDate` sebelum hari ini |
+| (C) Batalkan konsultasi | Tombol, hanya untuk item dari (B) | `PATCH /doctor-consultations/{consultationId}/cancel` | Tombol tampil bila field `canCancelConsultation` bernilai `true` (pola `canCancel` Daftar Pasien Rawat Jalan); server tetap menolak `403` | Gagal: pesan server ditampilkan di modal (E) |
+| (D) Modal Simpan | Bila item lampau **dan** `draftPrescriptionCount + procedureCount > 0`: kotak centang "Saya memahami kunjungan ini tanggal {tanggal}. {x} resep akan diteruskan ke farmasi dan {y} tindakan akan ditagihkan." Tombol Simpan nonaktif sampai dicentang. Hitungan dibaca ulang saat modal dibuka | `GET /doctor-queues/pending-consultations?queueId={id}` | Sama dengan Simpan hari ini | Bila baca ulang gagal: kotak centang tetap wajib, kalimat tanpa angka: "Resep dan tindakan yang ada akan diteruskan." |
+| (E) Modal Batalkan | Nama pasien, tanggal, kolom alasan (wajib, maks 250), tombol Batalkan konsultasi | — | — | Sesudah berhasil: pesan "Konsultasi dibatalkan. Minta petugas membatalkan kunjungan {no. kunjungan} di Daftar Pasien Rawat Jalan." |
+
+## KT-FE.4 Aksi per peran
+
+| Peran | Lihat (B) | Buka | Simpan | Batalkan konsultasi |
+|---|:---:|:---:|:---:|:---:|
+| Dokter penulis konsultasi | Ya, miliknya | Ya | Ya | Ya |
+| Dokter lain | Tidak | — | — | — |
+| Pengguna jalur super admin existing | Ya, semua dokter (perilaku `GET /doctor-queues`) | Ya | Ditolak backend bila bukan penulis | Ditolak backend bila bukan penulis |
+
+## KT-FE.5 Penanganan keadaan
+
+| Keadaan | Perilaku |
+|---|---|
+| Memuat | (B) menampilkan keadaan memuat sendiri; antrean hari ini tidak menunggu (B) |
+| Item aktif | `activeItem` dicari dari antrean hari ini **dan** daftar (B). Sekarang hanya dari antrean hari ini (`useDoctorConsultationWorkspace.js:72-77`), sehingga item (B) tidak dapat dibuka tanpa perubahan ini |
+| Sesudah Simpan atau Batalkan | Muat ulang (B) dan ringkasan; tutup workspace bila item hilang dari (B) |
+| Event realtime antrean | Event yang sudah memicu muat ulang antrean hari ini juga memuat ulang (B), dengan debounce yang sama |
+| Klik ganda | Tombol Simpan dan Batalkan nonaktif selama permintaan berjalan |
+| Data berubah di tab lain | `409` dari finalisasi ditampilkan seperti sekarang; (B) dimuat ulang |
+| Tombol hari ini | Tombol Panggil, Lewati, Tidak Hadir **tidak** tampil pada kartu (B); kartu (B) hanya punya Buka |
+
+## KT-FE.6 Berkas frontend yang terlibat
+
+| Berkas | Status | Perubahan |
+|---|---|---|
+| `src/lib/services/health-services/registration-management/doctor-queue.service.js` | Diperbarui | `getDoctorPendingConsultations(params)` |
+| `src/lib/hooks/health-services/registration-management/doctor-queue/use-doctor-queue.js` | Diperbarui | State, muat, dan muat ulang daftar tertunda; ikut event realtime |
+| `src/lib/hooks/health-services/registration-management/doctor-queue/useDoctorConsultationWorkspace.js` | Diperbarui | `activeItem` dari gabungan dua daftar; alur Batalkan konsultasi; baca ulang hitungan saat modal Simpan dibuka |
+| `src/components/view/health-services/registration-management/doctor-queues/doctor-queue-view.jsx` | Diperbarui | Wilayah (A), (B), (C), (E) |
+| `src/components/features/health-services/doctor-queue-features/FinalizeConsultationModal.jsx` | Diperbarui | Wilayah (D) |
+| `src/lib/services/health-services/clinical-management/doctor-consultation.service.js` | Sudah ada | `cancelDoctorConsultation` dipakai pertama kali |
+| Komponen kartu tertunda dan modal batal | Baru atau pakai ulang | `DEV_DISCRETION`, wajib base component Quilvian (`RJ-DOC-FE-006`) |
+
+## KT-FE.7 Kewenangan UI
+
+| Hal | Wewenang |
+|---|---|
+| Letak (B) di panel kiri, terpisah dari antrean hari ini, dengan jumlah | `RJ-DOC-FE-010` (`approved`) |
+| Bunyi banner (A) dan syarat konfirmasi (D) | `RJ-DOC-FE-011` (`approved`) |
+| Tab atau bagian terpisah untuk (B), gaya kartu, ikon, warna | `DEV_DISCRETION` |
+| Letak tombol (C) di workspace | `DEV_DISCRETION`, tidak boleh berdempetan dengan tombol Simpan tanpa jarak yang jelas |

@@ -30,11 +30,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private const string LogCategory = "HealthServices.EmergencyInstallation";
         private readonly EmergencyDepartureService _service;
         private readonly LoggerService _logger;
+        private readonly EmergencyVisitService _emergencyVisitService;
 
-        public EmergencyDepartureController(EmergencyDepartureService service, LoggerService logger)
+        public EmergencyDepartureController(
+            EmergencyDepartureService service,
+            LoggerService logger,
+            EmergencyVisitService emergencyVisitService)
         {
             _service = service;
             _logger = logger;
+            _emergencyVisitService = emergencyVisitService;
         }
 
         [HttpGet]
@@ -120,9 +125,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyDeparture", "Update")]
         public async Task<IActionResult> SetOrderAction(Guid id, Guid itemId, [FromBody] SetOrderItemActionRequest request, CancellationToken cancellationToken = default)
         {
-            var result = await _service.SetOrderActionAsync(id, itemId, request.Item, UserId(), cancellationToken);
+            var (result, pemicu) = await DenganPenutupanSusulanAsync(
+                ct => _service.SetOrderActionAsync(id, itemId, request.Item, UserId(), ct),
+                hasil => hasil.Berhasil,
+                (_, ct) => CariKunjunganAsync(id, ct),
+                cancellationToken);
             if (!result.Berhasil) return Failure(result.StatusCode, result.Penolakan!);
             await LogAsync("EmergencyDeparture.SetOrderAction", result.Data!.Id);
+            await LogPenutupanAsync("EmergencyDeparture.SetOrderAction", pemicu);
             return Ok(ApiResponse<EmergencyHandoverOrderItemResponse>.Ok(EmergencyDepartureService.ToResponse(result.Data), "Sikap pesanan berhasil dicatat."));
         }
 
@@ -166,7 +176,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         {
             request.HandoverStatus = EmergencyHandoverStatus.Accepted;
             return ExecuteDeparture(id, "EmergencyDeparture.AcceptHandover",
-                ct => _service.UpdateHandoverAsync(id, request, UserId(), ct), cancellationToken);
+                ct => _service.UpdateHandoverAsync(id, request, UserId(), ct), cancellationToken, true);
         }
 
         [HttpPost("{id:guid}/reject-handover")]
@@ -176,7 +186,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         {
             request.HandoverStatus = EmergencyHandoverStatus.Rejected;
             return ExecuteDeparture(id, "EmergencyDeparture.RejectHandover",
-                ct => _service.UpdateHandoverAsync(id, request, UserId(), ct), cancellationToken);
+                ct => _service.UpdateHandoverAsync(id, request, UserId(), ct), cancellationToken, true);
         }
 
         [HttpPost("{id:guid}/events/{eventId:guid}/amend")]
@@ -208,26 +218,107 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyDeparture", "Update")]
         public Task<IActionResult> Cancel(Guid id, [FromBody] CancelEmergencyDepartureRequest request, CancellationToken cancellationToken = default)
             => ExecuteDeparture(id, "EmergencyDeparture.Cancel",
-                ct => _service.CancelAsync(id, request, UserId(), ct), cancellationToken);
+                ct => _service.CancelAsync(id, request, UserId(), ct), cancellationToken, true);
 
         private async Task<IActionResult> SetOrderAcceptance(Guid id, Guid itemId,
             EmergencyOrderAcceptanceStatus target, string? reason, CancellationToken cancellationToken)
         {
-            var result = await _service.SetOrderAcceptanceAsync(id, itemId, target, reason, UserId(), cancellationToken);
+            var (result, pemicu) = await DenganPenutupanSusulanAsync(
+                ct => _service.SetOrderAcceptanceAsync(id, itemId, target, reason, UserId(), ct),
+                hasil => hasil.Berhasil,
+                (_, ct) => CariKunjunganAsync(id, ct),
+                cancellationToken);
             if (!result.Berhasil) return Failure(result.StatusCode, result.Penolakan!);
             await LogAsync($"EmergencyDeparture.Order{target}", result.Data!.Id);
+            await LogPenutupanAsync($"EmergencyDeparture.Order{target}", pemicu);
             return Ok(ApiResponse<EmergencyHandoverOrderItemResponse>.Ok(EmergencyDepartureService.ToResponse(result.Data), "Penerimaan pesanan berhasil diperbarui."));
         }
 
         private async Task<IActionResult> ExecuteDeparture(Guid id, string action,
             Func<CancellationToken, Task<EmergencyDepartureService.Hasil<EmgDeparture>>> operation,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            bool cobaPenutupanSusulan = false)
         {
-            var result = await operation(cancellationToken);
+            HasilPemicuPenutupan? pemicu = null;
+            EmergencyDepartureService.Hasil<EmgDeparture> result;
+
+            if (cobaPenutupanSusulan)
+            {
+                (result, pemicu) = await DenganPenutupanSusulanAsync(
+                    operation,
+                    hasil => hasil.Berhasil,
+                    (hasil, _) => Task.FromResult<Guid?>(hasil.Data!.EmergencyVisitId),
+                    cancellationToken);
+            }
+            else
+            {
+                result = await operation(cancellationToken);
+            }
+
             if (!result.Berhasil) return Failure(result.StatusCode, result.Penolakan!);
+
             await LogAsync(action, id);
+            await LogPenutupanAsync(action, pemicu);
             return Ok(ApiResponse<EmergencyDepartureResponse>.Ok(await _service.ToResponseAsync(result.Data!, cancellationToken), "Proses kepergian pasien IGD berhasil diperbarui."));
         }
+
+        private Task<Guid?> CariKunjunganAsync(Guid departureId, CancellationToken cancellationToken)
+            => _service.Query()
+                .Where(x => x.Id == departureId)
+                .Select(x => (Guid?)x.EmergencyVisitId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+        private sealed record HasilPemicuPenutupan(
+            Guid KunjunganId,
+            EmergencyVisitService.HasilPenutupanSusulan Penutupan);
+
+        private async Task<(T Hasil, HasilPemicuPenutupan? Pemicu)> DenganPenutupanSusulanAsync<T>(
+            Func<CancellationToken, Task<T>> operation,
+            Func<T, bool> berhasil,
+            Func<T, CancellationToken, Task<Guid?>> cariKunjungan,
+            CancellationToken cancellationToken)
+        {
+            T hasil = default!;
+            Guid? emergencyVisitId = null;
+
+            var penutupan = await _emergencyVisitService.TryCloseAfterBlockerResolvedAsync(
+                async ct =>
+                {
+                    hasil = await operation(ct);
+
+                    if (!berhasil(hasil))
+                        return null;
+
+                    emergencyVisitId = await cariKunjungan(hasil, ct);
+
+                    return emergencyVisitId;
+                },
+                UserId(),
+                cancellationToken);
+
+            HasilPemicuPenutupan? pemicu = emergencyVisitId.HasValue
+                ? new HasilPemicuPenutupan(emergencyVisitId.Value, penutupan)
+                : null;
+
+            return (hasil, pemicu);
+        }
+
+        private Task LogPenutupanAsync(string action, HasilPemicuPenutupan? pemicu)
+            => pemicu is { Penutupan.Ditutup: true }
+                ? _logger.InfoAsync(
+                    LogCategory,
+                    "EmergencyVisit.CompleteByDisposition",
+                    "Kunjungan IGD ditutup karena penahan terakhirnya dibereskan.",
+                    new
+                    {
+                        EntityId = pemicu.KunjunganId,
+                        Controller = "EmergencyDeparture",
+                        Action = action,
+                        DispositionId = pemicu.Penutupan.DispositionId,
+                        ActorUserId = UserId(),
+                        EncounterDitutup = pemicu.Penutupan.EncounterDitutup
+                    })
+                : Task.CompletedTask;
 
         private IActionResult Failure(int statusCode, string message)
             => StatusCode(statusCode, ApiResponse<object>.Fail(statusCode, message));

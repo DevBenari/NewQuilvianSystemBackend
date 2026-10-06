@@ -23,7 +23,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Con
 public sealed class FinanceInvoiceExchangesController : ControllerBase
 {
     private readonly FinanceInvoiceExchangeService _service;
-    public FinanceInvoiceExchangesController(FinanceInvoiceExchangeService service) => _service = service;
+    private readonly PurchasingIdempotencyService _idempotency;
+    public FinanceInvoiceExchangesController(FinanceInvoiceExchangeService service, PurchasingIdempotencyService idempotency)
+    {
+        _service = service;
+        _idempotency = idempotency;
+    }
 
     [HttpGet]
     [AccessAction("Read", "Read Invoice Exchange", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -58,15 +63,23 @@ public sealed class FinanceInvoiceExchangesController : ControllerBase
     [HttpPost]
     [AccessAction("Create", "Create Invoice Exchange", AccessType = AccessTypes.Create, SortOrder = 2)]
     [AccessPermission("FinanceInvoiceExchange", "Create")]
-    public async Task<IActionResult> Create([FromBody] CreateInvoiceExchangeRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create(
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        [FromBody] CreateInvoiceExchangeRequest request, CancellationToken cancellationToken)
     {
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        if (replay is not null) return Replay(replay);
+
         try
         {
             var invoiceExchange = await _service.CreateAsync(
                 request.SupplierId, request.PurchaseOrderId, request.GoodsReceiptId,
                 request.SupplierInvoiceNumber, request.SupplierInvoiceDate, request.ReceivedDate,
                 CurrentUserId(), cancellationToken);
-            return StatusCode(201, ApiResponse<InvoiceExchangeResponse>.Ok(Map(invoiceExchange), "Tukar Faktur berhasil dicatat."));
+            var response = ApiResponse<InvoiceExchangeResponse>.Ok(Map(invoiceExchange), "Tukar Faktur berhasil dicatat.");
+            await _idempotency.SaveAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.InvoiceExchange,
+                FinPurchasingIdempotencyActions.Create, invoiceExchange.Id, 201, response, cancellationToken);
+            return StatusCode(201, response);
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
@@ -74,12 +87,20 @@ public sealed class FinanceInvoiceExchangesController : ControllerBase
     [HttpPost("{id:guid}/cancel")]
     [AccessAction("Cancel", "Cancel Invoice Exchange", AccessType = AccessTypes.Update, SortOrder = 3)]
     [AccessPermission("FinanceInvoiceExchange", "Cancel")]
-    public async Task<IActionResult> Cancel(Guid id, [FromBody] InvoiceExchangeRowVersionRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Cancel(
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        Guid id, [FromBody] InvoiceExchangeRowVersionRequest request, CancellationToken cancellationToken)
     {
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        if (replay is not null) return Replay(replay);
+
         try
         {
             var invoiceExchange = await _service.CancelAsync(id, request.ExpectedRowVersion, CurrentUserId(), cancellationToken);
-            return Ok(ApiResponse<InvoiceExchangeResponse>.Ok(Map(invoiceExchange), "Tukar Faktur berhasil dibatalkan."));
+            var response = ApiResponse<InvoiceExchangeResponse>.Ok(Map(invoiceExchange), "Tukar Faktur berhasil dibatalkan.");
+            await _idempotency.SaveAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.InvoiceExchange,
+                FinPurchasingIdempotencyActions.Cancel, invoiceExchange.Id, 200, response, cancellationToken);
+            return Ok(response);
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
@@ -131,6 +152,9 @@ public sealed class FinanceInvoiceExchangesController : ControllerBase
     private static bool IsHandled(Exception exception) => exception is
         KeyNotFoundException or PurchasingForbiddenException or PurchasingConflictException
         or PurchasingValidationException or PurchasingBadRequestException;
+
+    private IActionResult Replay(PurchasingIdempotencyService.CachedResult cached) =>
+        new ContentResult { StatusCode = cached.StatusCode, Content = cached.ResponseBody, ContentType = "application/json" };
 
     private Guid CurrentUserId()
     {

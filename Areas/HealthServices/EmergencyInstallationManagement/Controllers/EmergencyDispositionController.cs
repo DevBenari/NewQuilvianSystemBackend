@@ -35,6 +35,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
     {
         private const string LogCategory = "HealthServices.EmergencyInstallation";
 
+        private const string PesanPembatalanPadaKunjunganSelesai =
+            "Kunjungan IGD ini sudah selesai, sehingga disposisinya tidak dapat dibatalkan. " +
+            "Daftarkan pasien sebagai episode baru bila ia kembali.";
+
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly EmergencyDispositionService _emergencyDispositionService;
@@ -309,6 +313,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var entity = await _dbContext.Set<EmgDisposition>().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data tindak lanjut IGD tidak ditemukan."));
+
+            if (request.DispositionStatus == EmergencyDispositionStatus.Cancelled &&
+                entity.DispositionStatus == EmergencyDispositionStatus.Executed)
+            {
+                var statusKunjungan = await _dbContext.Set<EmgVisit>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == entity.EmergencyVisitId && !x.IsDelete)
+                    .Select(x => (EmergencyVisitStatus?)x.VisitStatus)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (statusKunjungan == EmergencyVisitStatus.Completed)
+                    return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, PesanPembatalanPadaKunjunganSelesai));
+            }
 
             if (!_emergencyDispositionService.CanTransition(entity.DispositionStatus, request.DispositionStatus))
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, $"Perubahan status dari {entity.DispositionStatus} ke {request.DispositionStatus} tidak diperbolehkan."));

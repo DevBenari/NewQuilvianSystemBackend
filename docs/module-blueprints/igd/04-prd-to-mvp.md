@@ -464,7 +464,9 @@ Gelombang **`MVP-8`**, sesudah `MVP-7` (encounter-first). Sumber: `IGD-DEC-163`�
 
 **Status: `approved`** — `IGD-DEC-170`, Rizki Gunawan, 23 September 2026. Baris `FR-IGD-092`, `093`, `AT-IGD-192`,
 `193`, butir DoD 10, dan `IGD-OQ-111` berasal dari amendment 30 September 2026 (`IGD-DEC-171`, `172`) dan
-**`approved`** lewat `IGD-DEC-175` (30 September 2026).
+**`approved`** lewat `IGD-DEC-175` (30 September 2026). Baris `FR-IGD-094`, `095`, `AT-IGD-194`…`197`, butir DoD
+11, dan `IGD-OQ-112` berasal dari amendment 3 Oktober 2026 (`IGD-DEC-183`, `184`) dan **`approved`** lewat
+`IGD-DEC-186` (3 Oktober 2026).
 
 ### 9.1 Batas slice
 
@@ -486,6 +488,8 @@ Gelombang **`MVP-8`**, sesudah `MVP-7` (encounter-first). Sumber: `IGD-DEC-163`�
 | `FR-IGD-091` | Petugas dapat menyaring daftar kunjungan untuk melihat yang menunggu penutupan beserta jumlahnya | `EXTEND` — menumpang daftar kunjungan yang sudah ada |
 | `FR-IGD-092` | Perawat dapat menyelesaikan observasi beserta kesimpulannya sesudah disposisi dilaksanakan, tanpa memindahkan status kunjungan; bila observasi itu penahan terakhir, kunjungan tertutup pada penyimpanan yang sama (`IGD-DEC-171`) | `EXTEND` — menumpang endpoint status observasi yang sudah ada |
 | `FR-IGD-093` | Eskalasi observasi sesudah disposisi dilaksanakan ditolak dengan pesan yang dapat dipahami perawat, dan observasinya tetap aktif (`IGD-DEC-172`) | `EXTEND` — menumpang endpoint status observasi yang sudah ada |
+| `FR-IGD-094` | Observasi yang dieskalasi menahan penutupan kunjungan sampai diselesaikan beserta kesimpulannya atau dibatalkan — pada penutupan susulan, penyelesaian manual, dan alasan pada daftar menunggu penutupan (`IGD-DEC-183`) | `EXTEND` — menumpang penjaga penutupan yang sudah ada |
+| `FR-IGD-095` | Pada kunjungan yang sudah berakhir, aksi selesaikan, eskalasi, dan aktifkan observasi ditolak dengan kalimat yang dipahami perawat; batalkan tetap diterima; observasi yang sudah tertinggal tidak diubah massal (`IGD-DEC-184`); pemantauan baru pada kunjungan berakhir juga ditolak (`IGD-DEC-186`) | `EXTEND` — menumpang endpoint status observasi (dan pemantauan) yang sudah ada |
 
 ### 9.3 Skenario UAT
 
@@ -499,6 +503,10 @@ Gelombang **`MVP-8`**, sesudah `MVP-7` (encounter-first). Sumber: `IGD-DEC-163`�
 | `AT-IGD-191` | Daftar | Saring daftar kunjungan dengan "menunggu penutupan" | Hanya kunjungan berdisposisi dilaksanakan yang belum selesai yang tampil, masing-masing dengan alasan penahannya |
 | `AT-IGD-192` | Berhasil (observasi diselesaikan) | Kunjungan menunggu penutupan dengan satu observasi aktif sebagai penahan terakhir; selesaikan observasi itu dengan kesimpulan | Observasi selesai dan kesimpulannya tersimpan; kunjungan tidak kembali ke menunggu tindak lanjut; kunjungan tertutup atas nama perawat itu |
 | `AT-IGD-193` | Gagal (eskalasi) | Kunjungan yang disposisinya sudah dilaksanakan dengan satu observasi aktif; eskalasi observasi itu | Ditolak dengan pesan bahwa tindak lanjut sudah dilaksanakan; observasi tetap aktif; kunjungan tetap menunggu penutupan |
+| `AT-IGD-194` | Berhasil (menyusul eskalasi) | Eskalasi observasi saat pasien masih ditangani; tandai disposisi dilaksanakan; lalu selesaikan observasi yang dieskalasi itu dengan kesimpulan | Langkah kedua: kunjungan **tidak** tertutup, tampil menunggu penutupan dengan alasan observasi. Langkah ketiga: kesimpulan tersimpan dan kunjungan tertutup atas nama perawat itu |
+| `AT-IGD-195` | Gagal (selesaikan manual) | Kunjungan yang disposisinya sudah dilaksanakan dengan satu observasi dieskalasi; tekan selesaikan kunjungan | Ditolak dengan pesan bahwa masih ada observasi yang belum diselesaikan |
+| `AT-IGD-196` | Berhasil (observasi dieskalasi dibatalkan) | Kunjungan menunggu penutupan dengan observasi dieskalasi sebagai penahan terakhir; batalkan observasi itu | Kunjungan tertutup atas nama petugas yang membatalkan |
+| `AT-IGD-197` | Gagal (kunjungan sudah berakhir) | Kunjungan yang sudah selesai dengan observasi dieskalasi lama; coba selesaikan observasi itu, lalu coba batalkan | Selesaikan ditolak dengan pesan bahwa kunjungan sudah berakhir; observasi tidak berubah. Batalkan diterima. Menambah pemantauan juga ditolak dengan pesan bahwa kunjungan sudah berakhir |
 
 ### 9.4 Definition of Done
 
@@ -514,6 +522,7 @@ Gelombang **`MVP-8`**, sesudah `MVP-7` (encounter-first). Sumber: `IGD-DEC-163`�
 | 8 | Nol perubahan `Program.cs`; nol perubahan modul Bank Darah dan Laboratorium | `git diff --stat` |
 | 9 | Build 0 error | Keluaran build milik pemilik |
 | 10 | Pada kunjungan yang disposisinya sudah dilaksanakan, observasi dapat diselesaikan dan eskalasinya ditolak | Uji `AT-IGD-192`, `AT-IGD-193` |
+| 11 | Observasi yang dieskalasi menahan penutupan pada ketiga jalur, dan aksi observasi pada kunjungan berakhir ditolak dengan pesannya sendiri | Uji `AT-IGD-194`…`197` beserta regresi `AT-IGD-187`, `192`, `193` |
 
 ### 9.5 Pertanyaan terbuka sebelum development lock
 
@@ -521,5 +530,6 @@ Gelombang **`MVP-8`**, sesudah `MVP-7` (encounter-first). Sumber: `IGD-DEC-163`�
 | --- | --- | :-: |
 | `IGD-OQ-110` | Jumlah encounter `IsActive = false` tanpa tanda berakhir pada data lama | Tidak — memengaruhi angka, bukan bentuk aturan |
 | `IGD-OQ-111` | Cara mencatat pasien yang memburuk sesudah disposisinya dilaksanakan tetapi masih berada di IGD | Tidak — menahan kebijakan klinis kasus itu, bukan `FR-IGD-092`/`093` |
+| `IGD-OQ-112` | Jumlah observasi dieskalasi yang sudah tertinggal pada kunjungan berakhir, per lingkungan | Tidak — menentukan perlu tidaknya tindak lanjut operasional, bukan bentuk aturan |
 
 Nol pertanyaan memblokir. Slice ini boleh diteruskan ke `plan-module-delivery` begitu pemilik menyetujui kontraknya.

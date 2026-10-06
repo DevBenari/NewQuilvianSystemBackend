@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
@@ -21,14 +22,24 @@ public sealed class FinReceivable : IdentityModel
 
     [Required, MaxLength(50)] public string ReceivableNumber { get; set; } = string.Empty;
 
-    /// <summary>Idempotensi terhadap BilArHandoff.HandoffKey (FIN-DES-009).</summary>
-    public Guid SourceHandoffKey { get; set; }
+    /// <summary>
+    /// Idempotensi terhadap BilArHandoff.HandoffKey (FIN-DES-009). BE-FIN-079: nullable — kosong
+    /// berarti baris ini item migrasi tagihan lama (lihat OpeningItemBatchId), bukan intake Billing.
+    /// </summary>
+    public Guid? SourceHandoffKey { get; set; }
 
-    /// <summary>Id baris handoff milik Billing — bukan FK, agar tidak mengunci tabel modul lain.</summary>
-    public Guid SourceHandoffId { get; set; }
+    /// <summary>Id baris handoff milik Billing — bukan FK, agar tidak mengunci tabel modul lain. BE-FIN-079: nullable, lihat SourceHandoffKey.</summary>
+    public Guid? SourceHandoffId { get; set; }
 
-    /// <summary>Rujukan tagihan asal (BilInvoice) — bukan FK, lintas bounded context.</summary>
-    public Guid InvoiceId { get; set; }
+    /// <summary>Rujukan tagihan asal (BilInvoice) — bukan FK, lintas bounded context. BE-FIN-079: nullable, lihat SourceHandoffKey.</summary>
+    public Guid? InvoiceId { get; set; }
+
+    /// <summary>
+    /// BE-FIN-079, FIN-DES-093: terisi hanya untuk item migrasi tagihan lama (CK_FinReceivable_OpeningItem
+    /// menegakkan: ketiga kolom Billing di atas kosong DAN ini terisi, atau sebaliknya).
+    /// </summary>
+    public Guid? OpeningItemBatchId { get; set; }
+    public FinOpeningItemBatch? OpeningItemBatch { get; set; }
 
     [Required, MaxLength(30)] public string DebtorType { get; set; } = string.Empty;
 
@@ -66,6 +77,9 @@ public sealed class FinReceivable : IdentityModel
     /// <summary>BE-FIN-016: sisi lain jembatan FinReceiptAllocation.ReceivableId — boleh kosong bila
     /// piutang ini belum pernah dialokasikan penerimaan apa pun (BE-FIN-017, BLOCKED).</summary>
     public ICollection<FinReceiptAllocation> ReceiptAllocations { get; set; } = new List<FinReceiptAllocation>();
+
+    /// <summary>BE-FIN-058, FIN-DES-079: Buku mutasi perubahan saldo piutang.</summary>
+    public ICollection<FinReceivableMovement> Movements { get; set; } = new List<FinReceivableMovement>();
 }
 
 public static class FinReceivableStatuses

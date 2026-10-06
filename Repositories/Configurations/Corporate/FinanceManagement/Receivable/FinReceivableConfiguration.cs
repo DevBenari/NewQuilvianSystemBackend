@@ -18,6 +18,10 @@ public sealed class FinReceivableConfiguration : IEntityTypeConfiguration<FinRec
                 "\"OriginalAmount\" = \"OutstandingAmount\" + \"AllocatedAmount\" + \"AdjustedAmount\" + \"WrittenOffAmount\"");
             table.HasCheckConstraint("CK_FinReceivable_BenefitOwner",
                 "(\"DebtorType\" = 'EMPLOYEE_BENEFIT' AND \"BenefitOwnerId\" IS NOT NULL) OR (\"DebtorType\" <> 'EMPLOYEE_BENEFIT' AND \"BenefitOwnerId\" IS NULL)");
+            // BE-FIN-079, FIN-DES-093: baris Billing (tiga kolom asal) XOR baris migrasi (OpeningItemBatchId).
+            table.HasCheckConstraint("CK_FinReceivable_OpeningItem",
+                "(\"SourceHandoffKey\" IS NOT NULL AND \"SourceHandoffId\" IS NOT NULL AND \"InvoiceId\" IS NOT NULL AND \"OpeningItemBatchId\" IS NULL) " +
+                "OR (\"SourceHandoffKey\" IS NULL AND \"SourceHandoffId\" IS NULL AND \"InvoiceId\" IS NULL AND \"OpeningItemBatchId\" IS NOT NULL)");
         });
         entity.HasKey(x => x.Id);
 
@@ -42,8 +46,19 @@ public sealed class FinReceivableConfiguration : IEntityTypeConfiguration<FinRec
         entity.Property(x => x.IsDelete).HasDefaultValue(false);
         entity.Property(x => x.IsCancel).HasDefaultValue(false);
 
+        // BE-FIN-079: FinOpeningItemBatch berada di submodule AccountingIntegration — satu bounded
+        // context, sehingga FK sungguhan dipakai (berbeda dari SourceHandoffId/InvoiceId di atas
+        // yang lintas bounded context dengan Billing).
+        entity.HasOne(x => x.OpeningItemBatch)
+            .WithMany()
+            .HasForeignKey(x => x.OpeningItemBatchId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         entity.HasIndex(x => x.ReceivableNumber).IsUnique().HasFilter("\"IsDelete\" = false").HasDatabaseName("IX_FinReceivable_ReceivableNumber");
-        entity.HasIndex(x => x.SourceHandoffKey).IsUnique().HasFilter("\"IsDelete\" = false").HasDatabaseName("IX_FinReceivable_SourceHandoffKey");
+        // BE-FIN-079: filter ditambah "SourceHandoffKey IS NOT NULL" supaya baris migrasi (kolom ini
+        // NULL) tidak ikut diuji keunikannya — idempotensi intake Billing tetap terjaga.
+        entity.HasIndex(x => x.SourceHandoffKey).IsUnique().HasFilter("\"IsDelete\" = false AND \"SourceHandoffKey\" IS NOT NULL").HasDatabaseName("IX_FinReceivable_SourceHandoffKey");
         entity.HasIndex(x => new { x.Status, x.DueDate }).HasDatabaseName("IX_FinReceivable_Status_DueDate");
+        entity.HasIndex(x => x.OpeningItemBatchId).HasDatabaseName("IX_FinReceivable_OpeningItemBatchId");
     }
 }

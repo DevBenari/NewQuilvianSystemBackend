@@ -83,19 +83,101 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             return EncounterEndedCompiled(encounter);
         }
 
+        public const int PanjangMaksimalAlasanPendaftaranGanda = 500;
+
+        public const string PesanAlasanPendaftaranGandaTerlaluPanjang =
+            "Alasan pendaftaran ganda maksimal 500 karakter.";
+
+        public sealed record HasilPenjagaPendaftaran(
+            int StatusCode,
+            string? Penolakan,
+            EmgDuplicateEpisodeOverride? CatatanOverride)
+        {
+            public bool Lolos => Penolakan == null;
+
+            public static HasilPenjagaPendaftaran Diizinkan(EmgDuplicateEpisodeOverride? catatanOverride = null)
+                => new(StatusCodes.Status200OK, null, catatanOverride);
+
+            public static HasilPenjagaPendaftaran Ditolak(int statusCode, string penolakan)
+                => new(statusCode, penolakan, null);
+        }
+
+        public static string? NormalizeOverrideReason(string? reason)
+            => string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
+
+        public static async Task<HasilPenjagaPendaftaran> GuardEncounterRegistrationAsync(
+            ApplicationDbContext dbContext,
+            Guid patientId,
+            Guid newEncounterId,
+            string? overrideReason,
+            Guid actorUserId,
+            DateTime now,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(dbContext);
+
+            await LockPatientEpisodeAsync(dbContext, patientId, cancellationToken);
+
+            var episode = await FindOpenEpisodeAsync(
+                dbContext,
+                patientId,
+                newEncounterId,
+                cancellationToken);
+
+            if (episode == null)
+                return HasilPenjagaPendaftaran.Diizinkan();
+
+            var alasan = NormalizeOverrideReason(overrideReason);
+
+            if (alasan == null)
+                return HasilPenjagaPendaftaran.Ditolak(
+                    StatusCodes.Status409Conflict,
+                    EmergencyVisitService.PesanEpisodeTerbukaSaatPendaftaran(episode));
+
+            if (alasan.Length > PanjangMaksimalAlasanPendaftaranGanda)
+                return HasilPenjagaPendaftaran.Ditolak(
+                    StatusCodes.Status400BadRequest,
+                    PesanAlasanPendaftaranGandaTerlaluPanjang);
+
+            var catatan = new EmgDuplicateEpisodeOverride
+            {
+                Id = Guid.NewGuid(),
+                EncounterId = newEncounterId,
+                PatientId = patientId,
+                OverriddenEncounterId = episode.Kind == OpenEpisodeKind.Encounter ? episode.Encounter?.Id : null,
+                OverriddenVisitId = episode.Kind == OpenEpisodeKind.Visit ? episode.Visit?.Id : null,
+                Reason = alasan,
+                OverriddenByUserId = actorUserId,
+                OverriddenAt = now,
+                CreateDateTime = now,
+                CreateBy = actorUserId,
+                IsDelete = false,
+                IsCancel = false
+            };
+
+            dbContext.Set<EmgDuplicateEpisodeOverride>().Add(catatan);
+
+            return HasilPenjagaPendaftaran.Diizinkan(catatan);
+        }
+
         public static async Task<OpenEpisode?> FindOpenEpisodeAsync(
             ApplicationDbContext dbContext,
             Guid patientId,
             Guid? exceptEncounterId = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            bool includePatient = false)
         {
             ArgumentNullException.ThrowIfNull(dbContext);
 
             if (patientId == Guid.Empty)
                 return null;
 
-            var kunjungan = await dbContext.Set<EmgVisit>()
-                .AsNoTracking()
+            IQueryable<EmgVisit> kueriKunjungan = dbContext.Set<EmgVisit>().AsNoTracking();
+
+            if (includePatient)
+                kueriKunjungan = kueriKunjungan.Include(x => x.Patient);
+
+            var kunjungan = await kueriKunjungan
                 .Where(x => x.PatientId == patientId
                             && !x.IsDelete
                             && x.VisitStatus != EmergencyVisitStatus.Completed

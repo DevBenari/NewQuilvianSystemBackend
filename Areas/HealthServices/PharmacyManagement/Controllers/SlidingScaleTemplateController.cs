@@ -32,8 +32,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
     [Authorize]
     [Route("api/v1/health-services/pharmacy-management/sliding-scale-templates")]
     [AccessController(
-        moduleCode: "HEALTH_SERVICE_PHARMACY",
-        moduleName: "Health Service Pharmacy",
+        moduleCode: "HEALTH_SERVICE_PHARMACY_MANAGEMENT",
+        moduleName: "Health Service Pharmacy Management",
         displayName: "Sliding Scale Template",
         AreaName = "HealthServices",
         ControllerName = "SlidingScaleTemplate",

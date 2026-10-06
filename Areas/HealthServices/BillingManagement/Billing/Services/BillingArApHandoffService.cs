@@ -65,8 +65,14 @@ public sealed class BillingArApHandoffService
         var payerAmount = calculation.PrimaryAmount + calculation.ExcessAmount;
         if (payerAmount > 0)
         {
+            // FIN-CAP-069: penjamin kunjungan dipilih memakai urutan yang sama dengan
+            // BillingDepositService — penjamin yang sudah dibatalkan dibuang, lalu penjamin utama
+            // diutamakan dan sisanya mengikuti Priority. Tanpa urutan ini, kunjungan dengan lebih
+            // dari satu penjamin memulangkan baris yang berbeda-beda setiap kali dijalankan.
             var guarantor = await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
-                .Where(x => x.EncounterId == invoice.EncounterId && x.IsActive && !x.IsDelete)
+                .Where(x => x.EncounterId == invoice.EncounterId && x.IsActive && !x.IsDelete && !x.IsCancel)
+                .OrderByDescending(x => x.IsPrimary)
+                .ThenBy(x => x.Priority)
                 .FirstOrDefaultAsync(cancellationToken);
             _dbContext.BilArHandoffs.Add(new BilArHandoff
             {
@@ -75,7 +81,12 @@ public sealed class BillingArApHandoffService
                 FinalizationRecordId = finalizationRecord.Id,
                 FinalizationRecord = finalizationRecord,
                 DebtorType = BillingArDebtorTypes.Payer,
-                DebtorReferenceId = guarantor?.InsuranceProviderId,
+                // FIN-CAP-069: kunjungan yang dijamin PERUSAHAAN tidak punya InsuranceProviderId,
+                // sehingga sebelumnya piutangnya lahir tanpa identitas debitur dan tidak dapat
+                // dikelompokkan maupun digabung ke Batch Tagihan. Urutan InsuranceProviderId lalu
+                // CompanyGuarantorId mengikuti BillingDepositService, dan Finance sudah memetakan
+                // nilai ini ke kedua master saat menampilkan nama penjamin.
+                DebtorReferenceId = guarantor?.InsuranceProviderId ?? guarantor?.CompanyGuarantorId,
                 Amount = payerAmount,
                 Status = BillingHandoffStatuses.Created,
                 HandoffKey = Guid.NewGuid(),

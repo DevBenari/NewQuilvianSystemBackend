@@ -174,6 +174,21 @@ Jumlah pasangan prasyarat → task: 9 (`BE-KSK-001→003`, `003→004`, `004→0
 
 **Verifikasi:** lint, build, browser, cek DB baca-saja. **DoD:** AC 1–7 di `FE-KSK-008.md`.
 
+## Amandemen 1 Oktober 2026 — revisi minor Kiosk
+
+| Field | Isi |
+| --- | --- |
+| Sumber | Catatan pemilik (pesan 1 Okt 2026, 16.07–16.09): "perubahan minor di Kiosk" butir 1–3 dan "Prioritas di Kiosk" butir 1 |
+| Keputusan | `KSK-DEC-020` — ceklis pada kartu Jenis Kunjungan dan Pembayaran dihapus; kartu poli memakai nama lengkap saja, baris "Rawat Jalan \| Spesialis" dan estimasi menit dihapus, lokasi pindah ke kiri chip singkatan. `KSK-DEC-021` — masa berlaku kartu penjamin menjadi tanggal "Berlaku s/d" yang disimpan ke `effectiveEndDate`; penjamin tersimpan tidak dipilih ulang. Keduanya `approved`, Sukma Giri Pratama, 2026-10-01 (opsi rekomendasi dipilih lewat sesi agent) |
+| Wewenang | `TASK MODE: FRONTEND` untuk `FE-KSK-009..011`. Backend tidak diubah: endpoint kiosk asuransi/perusahaan sudah menerima `EffectiveEndDate` |
+| Baseline | FE `fa9d5dd2` (`sukmagpV2`), BE `27fd8fb4` (`sukmagp`), keduanya bersih |
+
+| Task ID | Outcome | Acceptance criteria | Status |
+| --- | --- | --- | --- |
+| 🟡 `FE-KSK-009` | Kartu Jenis Kunjungan, Pembayaran, dan Poliklinik lebih ringkas (Pasien Lama dan Baru) | 1. Tidak ada baris `✓ …` di kartu Jenis Kunjungan dan Pembayaran. 2. Kartu poli menampilkan nama lengkap; tanpa "Rawat Jalan \| Spesialis" dan tanpa estimasi menit. 3. Lokasi (gedung \| lantai \| ruang) tampil di kiri chip singkatan. 4. Lint tanpa warning baru, build `PASS` | 🟡 SEBAGIAN — 2026-10-01. AC 1–3 terpenuhi di source, AC 4 `PASS` (ESLint 0 error, jumlah warning sama dengan `HEAD`; `next build` `PASS`). Belum: uji browser karena akun perangkat Kiosk tidak tersedia di sesi. [Laporan](../task/report/frontend/FE-KSK-009.md) |
+| 🟡 `FE-KSK-010` | Masa berlaku kartu penjamin tersimpan dan tidak dipilih ulang | 1. Penjamin baru wajib mengisi "Kartu Berlaku Sampai" (tanggal ≥ hari ini), dikirim sebagai `effectiveEndDate`. 2. Penjamin tersimpan menampilkan tanggalnya read-only tanpa pilihan ulang. 3. Kartu kedaluwarsa ditolak dengan pesan. 4. Pasien Baru ikut menyimpan tanggal. 5. Konfirmasi menampilkan "Berlaku s/d …" | 🟡 SEBAGIAN — 2026-10-01. AC 1–5 di source; runtime HTTP: `POST …/patient-insurances/kiosk` dengan `effectiveEndDate` → `200`, terbaca kembali `2027-09-12` (R6); helper 7/7 `PASS`; lint/build `PASS`. Belum: uji browser alur Pembayaran (akun Kiosk). [Laporan](../task/report/frontend/FE-KSK-010.md) |
+| ⛔ `FE-KSK-011` | Cek Nomor Rekam Medis menampilkan hasil | Gejala "belum bisa tampil apa-apa" direproduksi, penyebab dibuktikan, lalu diperbaiki | ⛔ TERBLOKIR — 2026-10-01. Gejala belum dapat direproduksi: source tile → route → `POST …/kiosk-patient-lookups` utuh, endpoint dev hidup (`200`, `result 2` untuk KTP samaran, R7). Blocker: butuh lingkungan/URL tempat gejala terlihat dan akun perangkat Kiosk. [Laporan](../task/report/frontend/FE-KSK-011.md) |
+
 ## Coverage gap
 
 | Requirement | Status |

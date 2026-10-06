@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Models;
@@ -24,17 +25,20 @@ public sealed class FinancePaymentService
     private readonly LoggerService _loggerService;
     private readonly FinanceAccountingOutboxService _accountingOutboxService;
     private readonly FinanceSupplierReturnService _supplierReturnService;
+    private readonly FinanceSubledgerMovementService _subledgerMovementService;
 
     public FinancePaymentService(
         ApplicationDbContext dbContext,
         LoggerService loggerService,
         FinanceAccountingOutboxService accountingOutboxService,
-        FinanceSupplierReturnService supplierReturnService)
+        FinanceSupplierReturnService supplierReturnService,
+        FinanceSubledgerMovementService subledgerMovementService)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
         _accountingOutboxService = accountingOutboxService;
         _supplierReturnService = supplierReturnService;
+        _subledgerMovementService = subledgerMovementService;
     }
 
     // ------------------------------------------------------------------------------------
@@ -572,6 +576,7 @@ public sealed class FinancePaymentService
                         throw new PaymentValidationException(
                             $"Nilai alokasi Rp {alloc.Amount:N0} melebihi sisa utang {payable.PayableNumber} (Rp {payable.OutstandingAmount:N0}).");
 
+                    var prevOutstanding = payable.OutstandingAmount;
                     payable.OutstandingAmount -= alloc.Amount;
                     payable.PaidAmount += alloc.Amount;
 
@@ -583,6 +588,31 @@ public sealed class FinancePaymentService
                     payable.UpdateDateTime = DateTime.UtcNow;
                     payable.UpdateBy = actorUserId;
                     payable.RowVersion = Guid.NewGuid();
+
+                    // BE-FIN-061, FIN-DES-079: Mutasi subledger PEMBAYARAN-DOKUMEN (satu baris per alokasi utang supplier)
+                    // Tanggal bisnis disalin dari FinPayment.ApprovedAt dalam WIB (FIN-DEC-130), BUKAN dari PaidAt!
+                    var approvedAt = payment.ApprovedAt ?? DateTimeOffset.UtcNow;
+                    var approvedAtWibDate = FinanceBusinessDate.ToDateOnly(approvedAt);
+                    var fundingSourceType = string.Equals(payment.PaymentMethod, "CASH", StringComparison.OrdinalIgnoreCase) ? "CASH" : "BANK_ACCOUNT";
+
+                    await _subledgerMovementService.RecordSupplierPayableMovementAsync(
+                        payable: payable,
+                        movementType: FinSupplierPayableMovementTypes.PembayaranDokumen,
+                        deltaAmount: -alloc.Amount,
+                        balanceBefore: prevOutstanding,
+                        occurredAt: DateTimeOffset.UtcNow,
+                        actorUserId: actorUserId,
+                        correlationId: payable.Id,
+                        causationId: payment.Id,
+                        businessDateOverride: approvedAtWibDate,
+                        paymentId: payment.Id,
+                        paymentAllocationId: alloc.Id,
+                        paymentMethodCode: payment.PaymentMethod,
+                        fundingSourceType: fundingSourceType,
+                        fundingSourceId: payment.BankAccountId,
+                        referenceNumber: payment.PaymentNumber,
+                        notes: $"Pembayaran dokumen {payment.PaymentNumber} alokasi {alloc.Amount:N0}",
+                        cancellationToken: cancellationToken);
                 }
             }
 
@@ -599,6 +629,28 @@ public sealed class FinancePaymentService
             payment.UpdateBy = actorUserId;
             payment.RowVersion = Guid.NewGuid();
 
+            // BE-FIN-062, FIN-DES-081: Mutasi kas keluar PEMBAYARAN-TUNAI-DOKUMEN untuk FinPayment CASH (Sumber 4)
+            // PENTING: Nilai mutasi kas adalah NetTransferAmount, BUKAN jumlah alokasi! (FIN-VAL-168)
+            if (string.Equals(payment.PaymentMethod, "CASH", StringComparison.OrdinalIgnoreCase) && payment.NetTransferAmount > 0)
+            {
+                var approvedAt = payment.ApprovedAt ?? DateTimeOffset.UtcNow;
+                var approvedAtWibDate = FinanceBusinessDate.ToDateOnly(approvedAt);
+                await _subledgerMovementService.RecordCashMovementAsync(
+                    movementType: FinCashMovementTypes.PembayaranTunaiDokumen,
+                    direction: FinCashMovementDirections.Out,
+                    amount: payment.NetTransferAmount,
+                    businessDate: approvedAtWibDate,
+                    occurredAt: payment.PaidAt ?? DateTimeOffset.UtcNow,
+                    sourceReferenceType: FinCashMovementSourceReferenceTypes.Payment,
+                    sourceReferenceId: payment.Id.ToString(),
+                    actorUserId: actorUserId,
+                    correlationId: payment.Id,
+                    causationId: payment.Id,
+                    paymentMethodCode: "CASH",
+                    notes: $"Pembayaran kas dokumen {payment.PaymentNumber} net {payment.NetTransferAmount:N0}",
+                    cancellationToken: cancellationToken);
+            }
+
             var eventOccurredAt = DateTimeOffset.UtcNow;
             var apPaymentAmount = payment.TotalAmount - payment.DepositAppliedAmount;
 
@@ -610,7 +662,7 @@ public sealed class FinancePaymentService
                     EventTypeCode = FinAccountingEventTypeCodes.PembayaranHutangSupplier,
                     SourceTransactionId = payment.PaymentNumber,
                     EventOccurredAt = eventOccurredAt,
-                    AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    AccountingDate = FinanceBusinessDate.ToDateOnly(eventOccurredAt),
                     Amount = apPaymentAmount,
                     CorrelationId = payment.Id,
                     CausationId = payment.Id,
@@ -626,7 +678,7 @@ public sealed class FinancePaymentService
                     EventTypeCode = FinAccountingEventTypeCodes.PemakaianKreditReturPembelian,
                     SourceTransactionId = payment.PaymentNumber,
                     EventOccurredAt = eventOccurredAt,
-                    AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    AccountingDate = FinanceBusinessDate.ToDateOnly(eventOccurredAt),
                     Amount = payment.DepositAppliedAmount,
                     CorrelationId = payment.Id,
                     CausationId = payment.Id,

@@ -201,7 +201,7 @@ pada sesi wawancara ini — lihat `FIN-DEC-024`..`029` untuk detail dan bukti ti
 | `FIN-DEC-057` | Decision | **Menutup `FIN-OQ-023`.** Deposit Retur dipakai sebagai **baris alokasi non-tunai di dalam satu `FinPayment`**, bersanding dengan alokasi transfer bank biasa — satu pembayaran boleh sebagian dari deposit, sebagian dari transfer nyata. `NetTransferAmount` hanya menghitung porsi kas sungguhan; `OutstandingAmount` tetap berkurang sebesar seluruh alokasi (tunai + deposit), memakai ulang jalur penulis yang sudah ada (`FinancePaymentService`/`FinanceSupplierPayableService`) — nol penulis `OutstandingAmount` baru. Ini memakai ulang kemampuan `FinPayment` yang SUDAH BISA melunasi banyak `FinSupplierPayable` sekaligus dalam satu pembayaran (pola rekap `FIN-DES-015`), sehingga sifat lintas-invoice Deposit Retur (`FIN-DEC-047`) terpenuhi tanpa mekanisme terpisah. **Konsekuensi arsitektur yang BELUM digambar:** `FinPaymentAllocation` dan/atau `FinSupplierReturnDepositUsage` (`FIN-DES-038`) perlu jalur untuk menandai satu baris alokasi sebagai "dari deposit" alih-alih "dari transfer bank" — ini **MUST** digambar ulang pada amendment arsitektur berikutnya sebelum `BE-FIN-036` dapat dimulai; `/grill-me` ini hanya menutup keputusan bisnisnya, bukan skemanya. | Yasmin (Finance) | `approved` | Yasmin, 25 September 2026 | Jawaban eksplisit owner atas opsi yang direkomendasikan; preseden `FIN-DES-015` (satu pembayaran, banyak utang) |
 | `FIN-DEC-058` | Decision | **Menutup `FIN-OQ-024`.** Kode kejadian baru diusulkan untuk potongan AR, bernama **`POTONGAN-PIUTANG-NON-TUNAI`** (kode ke-26 pada katalog, setelah `PPN-MASUKAN-PEMBELIAN` di posisi 25) — mengikuti pola `FIN-DEC-053`: setiap pemicu bisnis berbeda mendapat kode sendiri, tidak digabung ke `AR_PAYMENT`/`PENERIMAAN-PIUTANG` (yang berarti kas masuk) maupun `PENYESUAIAN-PIUTANG` (yang berarti koreksi maker-checker disetujui — proses berbeda dari pencatatan potongan saat alokasi). Usulan ini **MUST** dikirim sebagai surat evidence terpisah ke Rizki, mengikuti pola `evidence/06`, **sebelum** `BE-FIN-040` mulai dikerjakan. **Mengikuti `FIN-DEC-056`:** gerbang ratifikasi ini HANYA menahan aktivasi worker pengiriman kode `POTONGAN-PIUTANG-NON-TUNAI`, TIDAK menahan seluruh `EPIC FIN-17` masuk `/plan-module-delivery` — baris outbox-nya tetap ditulis `PENDING` sejak potongan pertama dicatat. Lawan jurnal persisnya TIDAK diputuskan Finance sepihak, konsisten dengan pola seluruh kode lain. | Yasmin (Finance) — sisi Finance saja; ratifikasi tetap wewenang Rizki | `approved` (usulan sisi Finance); ratifikasi Accounting `open`, dicatat `FIN-OQ-026` | Yasmin, 25 September 2026 | Jawaban eksplisit owner atas opsi yang direkomendasikan; pola `FIN-DEC-053` |
 | `FIN-DEC-059` | Decision | **Menutup `FIN-OQ-025`.** Endpoint `GET /purchasing/reports/aging` **dicabut** dari `contracts/api-contract.md` — layar Aging Purchasing/AP memakai `GET api/finance/payable/aging` (`FinanceApController`) yang sudah berjalan, apa adanya. Nol endpoint duplikat, nol risiko dua angka umur utang yang bisa berselisih — inilah risiko yang membuka pertanyaan ini. Pencabutan ini **MUST** dicatat sebagai revisi kontrak bernomor pada `FIN-API-1.1` (bukan dihapus diam-diam), dan `FinancePurchasingReportService`/`Controller` (`BE-FIN-037`) dibangun tanpa endpoint ini. | Yasmin (Finance) | `approved` | Yasmin, 25 September 2026 | Jawaban eksplisit owner atas opsi yang direkomendasikan |
-| `FIN-DEC-060` | Decision | **Menutup `FIN-OQ-022`.** Lima layar (Purchase Order, Tanda Terima Barang, Tukar Faktur, Purchasing Invoice, Retur Pembelian & Deposit Retur, Laporan Pembelian) masuk **submenu baru "Pembelian"** pada group `corporateFinance`, sejajar submenu Master Data yang sudah ada — memisahkan konsep "proses pembelian" dari "Faktur & Tagihan Supplier" (layar existing di `/finance/payable/invoice`) yang tetap di bawah pengelompokan Utang, karena layar itu daftar utang, bukan proses pembelian. Purchasing Invoice diberi label **"Faktur Pembelian"** supaya tidak tertukar dengan "Faktur & Tagihan Supplier". Batch Tagihan AR menjadi **satu butir flat "Tagihan Gabungan Penjamin"**, sejajar butir "Piutang" yang sudah ada — bukan bagian submenu Pembelian karena ia rumpun AR, bukan AP. | Yasmin (Product Owner Finance) | `approved` | Yasmin, 25 September 2026 | Jawaban eksplisit owner atas opsi yang direkomendasikan |
+| `FIN-DEC-060` | Decision | ~~Menutup `FIN-OQ-022`. Lima layar (Purchase Order, Tanda Terima Barang, Tukar Faktur, Purchasing Invoice, Retur Pembelian & Deposit Retur, Laporan Pembelian) masuk submenu baru "Pembelian" pada group `corporateFinance`, sejajar submenu Master Data yang sudah ada — memisahkan konsep "proses pembelian" dari "Faktur & Tagihan Supplier" (layar existing di `/finance/payable/invoice`) yang tetap di bawah pengelompokan Utang. Purchasing Invoice diberi label "Faktur Pembelian". Batch Tagihan AR menjadi satu butir flat "Tagihan Gabungan Penjamin", sejajar butir "Piutang" yang sudah ada.~~ **`superseded` oleh `FIN-DEC-094`, 1 Oktober 2026 — owner memutuskan seluruh menu Transaksi A/R dan A/P mengikuti bentuk dan penempatan halaman persis sistem produksi V1 (`QuilvianSystemFrontendDev1`/`QuilvianSystemBackendDev1`, sudah UAT-approved), menggantikan pengelompokan submenu "Pembelian" dengan struktur flat sesuai V1.** | Yasmin (Product Owner Finance) | `superseded` | Yasmin, 25 September 2026 | Jawaban eksplisit owner atas opsi yang direkomendasikan |
 | `FIN-DEC-061` | Decision | **Dibuka dan ditutup `/design-business-module` revisi 5, 25 September 2026.** Retur Pembelian dan pemakaian Deposit Retur mendapat **dua kode kejadian baru**: **`RETUR-PEMBELIAN`** (kode ke-28) terbit saat retur `CONFIRMED` sebesar nilai retur — piutang RS ke supplier bertambah; **`PEMAKAIAN-DEPOSIT-RETUR`** (kode ke-29) terbit saat `FinPayment` `PAID` sebesar porsi yang dilunasi deposit. Untuk pembayaran yang memakai deposit, kejadian pembayaran utang yang sudah ada (`AP_PAYMENT`) **turun menjadi `TotalAmount − DepositAppliedAmount`** — pola yang sama dengan pemisahan pokok/PPN pada `BE-FIN-034`, supaya Kas di buku besar hanya bergerak sebesar uang yang benar-benar keluar. Alasan: tanpa pemisahan ini, pembayaran yang dilunasi deposit tercatat sebagai kas keluar penuh. Mengikuti `FIN-DEC-056`: ratifikasi Rizki hanya menahan worker pengiriman, tidak menahan pembangunan. Lawan jurnal persis wewenang Accounting. | Yasmin (Finance) — sisi Finance; ratifikasi wewenang Rizki | `approved` (usulan sisi Finance); ratifikasi dicatat `FIN-OQ-026` | Yasmin, 25 September 2026 | Jawaban eksplisit owner atas opsi yang direkomendasikan; temuan `FinancePaymentService.cs` baris 553-563 (`AP_PAYMENT` bernilai `TotalAmount`) |
 | `FIN-DEC-062` | Decision | **Dibuka dan ditutup `/design-business-module` revisi 5, 25 September 2026.** Pembalikan potongan AR memakai kode pasangan **`PEMBALIKAN-POTONGAN-PIUTANG-NON-TUNAI`** (kode ke-27), mengikuti preseden `FIN-DEC-044` bahwa setiap kode penerimaan punya kode pembalikan sendiri. Berlaku saat alokasi yang membawa potongan dibalik — termasuk pembalikan **otomatis** karena tender Billing dibatalkan (`FIN-DEC-021`), yang karena itu tidak dapat dilarang. Baris potongan pembalik dibuat, baris lama tidak dihapus. Diusulkan dalam surat yang sama dengan `POTONGAN-PIUTANG-NON-TUNAI`. | Yasmin (Finance) — sisi Finance; ratifikasi wewenang Rizki | `approved` (usulan sisi Finance); ratifikasi dicatat `FIN-OQ-026` | Yasmin, 25 September 2026 | Jawaban eksplisit owner atas opsi yang direkomendasikan; preseden `FIN-DEC-044` |
 
@@ -1033,4 +1033,1420 @@ pemberian hak granular. Yang tersisa sekarang: menunggu jawaban penerima.
 1. Kirim surat balasan resmi ke Accounting: `evidence/21-balasan-finance-atas-aturan-saldo-dan-nomor-jurnal.md` (selesai dibuat).
 2. Tambahkan task backend `BE-FIN-048` (pengetatan validasi `FinanceAccountingOutboxService`) dan `BE-FIN-049` (layanan snapshot kalkulasi saldo subledger bulanan) ke `01-backend-roadmap.md`.
 
+---
 
+## Amendment pass — Penyelarasan Menu ke Sistem Produksi V1 (Ayat Silang & Manajemen Klaim), 1 Oktober 2026
+
+**Pemicu.** Owner membandingkan menu Keuangan pada sistem produksi V1 (`QuilvianSystemFrontendDev1` branch `master`, remote `DevBenari/QuilvianSystemFrontendDev`, dan `QuilvianSystemBackendDev1`, remote `DevBenari/QuilvianSystemBackendDev` — repository terpisah, sudah berjalan produksi dan disetujui UAT, branding "Metropolitan Medical Centre") dengan menu `finance` pada sistem governed (`QuilvianSystemFrontendDev` branch `yasmina`), lewat empat tangkapan layar menu "Transaksi A/R" dan "Transaksi A/P". Sebelum pass ini, `trace-existing-capabilities` (4 agent paralel, dilaporkan di percakapan yang sama) sudah memverifikasi bahwa dari puluhan layar V1, hanya **dua kapabilitas** yang benar-benar tidak punya rujukan bisnis nyata di sistem manapun (V1 maupun governed): **Ayat Silang** dan **Manajemen Klaim**. Sisanya sudah tercakup (langsung atau terkonsolidasi) di `finance/`, atau sengaja dimiliki modul lain (Accounting untuk COA/GL/Jurnal; Administrator untuk Master Bank/Supplier; Health Services untuk Master Tarif; Medical Fee untuk Jasa Medis AP per `FIN-OQ-012`/`013`).
+
+**Keputusan baru:** `FIN-DEC-094` sampai `FIN-DEC-098`, seluruhnya `approved`, diputuskan interaktif via `/grill-me`, 1 Oktober 2026.
+
+| ID | Pertanyaan | Keputusan | Dasar |
+|---|---|---|---|
+| `FIN-DEC-094` | Bagaimana bentuk dan penempatan halaman menu Transaksi A/R dan Transaksi A/P pada sistem governed, menyusul owner menunjukkan menu V1 yang sudah UAT-approved? | **Supersedes `FIN-DEC-060`.** Seluruh layar Transaksi A/R dan Transaksi A/P MUST mengikuti bentuk dan penempatan halaman persis seperti V1 — termasuk memecah kembali kapabilitas yang sebelumnya dikonsolidasikan governed (Canceled Invoice, Pemutihan Piutang, Piutang Korporat, Receiveable AR Canceled, laporan AR per jenis, Penerima Pesanan/GR) menjadi halaman/rute berdiri sendiri, bukan modal/tab di dalam layar lain. Submenu "Pembelian" (`FIN-DEC-060`) **dicabut** sebagai struktur pengelompokan; label dan susunan flat mengikuti V1 apa adanya. | Jawaban eksplisit owner, 1 Oktober 2026, atas pilihan "pecah jadi halaman berdiri sendiri" vs "tautkan ke layar konsolidasi yang ada" |
+| `FIN-DEC-095` | Apa batas scope "Manajemen Klaim" — sisi keuangan (pelacakan status pelunasan) atau lifecycle verifikasi dokumen klaim penuh? | **Sisi keuangan saja.** Finance hanya melacak status pelunasan klaim per payer (asuransi/BPJS): diajukan, disetujui (sebagian/penuh), disengketakan, dibayar (sebagian/lunas). Verifikasi dokumen medis/SEP/kelengkapan administrasi klaim **tetap milik Billing/Casemix** — Finance tidak membangun ulang atau menduplikasi proses itu, hanya membaca/menautkan hasilnya bila diperlukan di masa depan (titik sentuh, bukan kepemilikan). | Jawaban eksplisit owner, 1 Oktober 2026, atas opsi yang direkomendasikan |
+| `FIN-DEC-096` | Apakah Ayat Silang (field legacy `AsuransiId`/`BankId`/`TotalPembayaran`/`IsSudahTerpakai`) butuh kapabilitas baru, atau sudah tercakup mekanisme yang ada? | **Sudah tercakup alokasi penerimaan (`FE-FIN-004`/`BE-FIN-016`..`018`).** Satu setoran bank gabungan dari asuransi = satu `FinReceipt`, dialokasikan manual ke banyak `FinReceivable` memakai mekanisme alokasi yang sudah dibangun. Ayat Silang di V1 adalah nama lama untuk proses yang secara fungsional sama. **Tidak ada kapabilitas backend/frontend baru yang dibangun** — menutup gap yang tercatat di `01-existing-capability-map.md` sebagai `MISSING`/unresolved sejak awal proyek; cakupannya murni menampilkan butir menu "Ayat Silang" yang mengarah ke layar alokasi penerimaan yang sudah ada. | Jawaban eksplisit owner, 1 Oktober 2026, atas opsi yang direkomendasikan |
+| `FIN-DEC-097` | Apa bentuk data "Manajemen Klaim" — entity baru, atau perluasan kapabilitas yang sudah ada? | **Perluasan `FinReceivableInvoiceBatch`/`FinanceReceivableInvoiceBatchesController` (`BE-FIN-038`/`039`, `FE-FIN-012`) — bukan entity baru.** Satu klaim = satu batch tagihan gabungan penjamin yang sudah ada, ditambah field status lifecycle: **Diajukan → Diverifikasi Payer → Disetujui (sebagian/penuh) → Dibayar Sebagian/Lunas → Ditutup**. Saat payer menyetujui nominal LEBIH KECIL dari yang ditagih, selisihnya **dicatat sebagai item terpisah yang memerlukan write-off manual** oleh staf AR memakai mekanisme write-off yang sudah ada (`FinanceReceivablesController` write-off, `FE-FIN-002`) — **tidak** otomatis terhapus/disesuaikan oleh sistem. | Jawaban eksplisit owner, 1 Oktober 2026, atas opsi "5 status + selisih jadi piutang tak tertagih (write-off manual)" |
+| `FIN-DEC-098` | Siapa berwenang mengubah status klaim, terutama menandai "Disengketakan"/"Disetujui Sebagian"? | **Staf AR biasa, manual, tanpa jenjang approval tambahan** — sama dengan hak akses yang sudah dipasang pada `FinanceReceivableInvoiceBatch` (`FE-FIN-012`). Tidak ada maker-checker terpisah untuk perubahan status klaim, berbeda dari pola approval berjenjang pembayaran AP/AR. | Jawaban eksplisit owner, 1 Oktober 2026, atas opsi yang direkomendasikan |
+
+**Open question yang ditutup pass ini:**
+
+| ID | Status baru | Keterangan |
+|---|---|---|
+| — | **Ayat Silang** (tercatat `MISSING`/unresolved di `01-existing-capability-map.md` sejak audit awal, belum pernah diberi nomor `FIN-OQ` formal) | **DITUTUP** oleh `FIN-DEC-096` — bukan kapabilitas baru, tercakup alokasi penerimaan yang sudah ada |
+
+**Penilaian bentuk blueprint.** Kedua kapabilitas (Ayat Silang, Manajemen Klaim) **tidak** memenuhi syarat pemisahan sub-modul (`COMPOSITE`) — Ayat Silang bukan kapabilitas berdiri sendiri sama sekali (`FIN-DEC-096`), dan Manajemen Klaim adalah perluasan field/status di atas aggregate yang sudah ada (`FIN-DEC-097`), tanpa bounded context, resource RBAC, atau MVP wave sendiri. Blueprint `finance-management` tetap `SINGLE`.
+
+**Acceptance criteria tambahan yang sudah dapat diuji:**
+
+1. Menu sidebar Transaksi A/R dan Transaksi A/P MUST menampilkan seluruh butir sesuai daftar V1 (lihat tangkapan layar owner, 1 Oktober 2026), dengan label dan urutan mengikuti V1 apa adanya, kecuali Jasa Medis (`FIN-OQ-012`/`013`, tetap di luar scope Finance).
+2. Setiap butir yang sebelumnya adalah modal/tab di dalam layar konsolidasi (Canceled Invoice, Pemutihan Piutang, Piutang Korporat, Receiveable AR Canceled, Report-* AR per jenis, Penerima Pesanan) MUST punya rute/halaman sendiri yang dapat diakses langsung dari menu, bukan hanya dari dalam layar lain.
+3. Ayat Silang MUST mengarah ke layar alokasi penerimaan yang sudah ada (`FE-FIN-004`) — nol endpoint/model baru.
+4. `FinReceivableInvoiceBatch` MUST memiliki field status klaim baru dengan lima nilai (`FIN-DEC-097`) dan dapat diubah staf AR tanpa approval tambahan (`FIN-DEC-098`).
+5. Selisih nominal saat status "Disetujui Sebagian" MUST tercatat sebagai item terpisah yang memerlukan write-off manual — bukan pengurangan `OutstandingAmount` otomatis.
+
+**Langkah berikutnya:** owner akan diminta memilih kelanjutan di bawah (`design-business-module` untuk menggambar skema field status + state-transition-matrix amandemen `FinReceivableInvoiceBatch`, lalu `plan-module-delivery` untuk memecah seluruh pekerjaan ini — restrukturisasi menu, halaman berdiri sendiri, field status klaim baru — menjadi task `FE-FIN-xxx`/`BE-FIN-xxx` bernomor).
+
+
+
+---
+
+## Addendum — `FIN-OQ-040` terjawab, dan jawabannya membuka gerbang baru, 1 Oktober 2026
+
+**Jawaban owner.** Grup "Umur Piutang (A/R Aging)" pada menu V1 berisi **tiga** butir:
+**Kasir**, **Parkir**, dan **Tenant**.
+
+| ID | Status baru | Keterangan |
+|---|---|---|
+| `FIN-OQ-040` | **CLOSED** | Isi grupnya terjawab: Kasir, Parkir, Tenant |
+| `FIN-OQ-043` | **DIBUKA — MEMBLOKIR dua dari tiga butir itu** | Piutang Parkir dan Tenant **tidak dapat diwakili** model piutang yang berjalan sekarang. Lihat di bawah |
+
+### Mengapa jawaban ini tidak langsung dapat dirancang
+
+Pemeriksaan source dilakukan sebelum menulis baris desain apa pun, dan hasilnya menghentikan dua
+dari tiga butir itu:
+
+| Temuan | Bukti |
+|---|---|
+| `FinReceivable` **hanya** mengenal tiga jenis debitur: `PAYER`, `PATIENT_GUARANTOR`, `EMPLOYEE_BENEFIT` | `Areas/Corporate/FinanceManagement/Receivable/Models/FinReceivable.cs` baris 80-85 |
+| Setiap piutang **wajib** berasal dari serah terima tagihan Billing — ada `SourceHandoffKey`, `SourceHandoffId`, dan `InvoiceId` yang menunjuk `BilInvoice` | `FinReceivable.cs` baris 25-31 |
+| Tidak ada jalur apa pun untuk menerbitkan piutang yang **bukan** tagihan pasien | Konsekuensi langsung dua baris di atas |
+| Endpoint umur piutang **tidak punya saringan segmen sama sekali** — hanya `AsOfDate` | `FinanceReceivableDtos.cs` baris 112-115 |
+| Layar Parkir dan Tenant di V1 **murni `generateDummyData()`**, nol panggilan API — sama seperti Manajemen Klaim | `src/components/view/Keuangan/transaksi-AR/tagihan/{parkir,tenant}/table/services/*.service.jsx` |
+
+Artinya Parkir dan Tenant bukan "saringan yang belum dipasang", melainkan **sumber piutang yang
+belum ada sama sekali**. Sewa lahan parkir dan sewa unit tenant adalah penagihan berulang atas
+kontrak sewa — bukan tagihan pasien, tidak lahir dari Billing, dan menuntut data induk yang belum
+dimiliki modul mana pun di sistem governed.
+
+### Bentuk bisnis yang terbaca dari data contoh V1
+
+Dicatat sebagai **petunjuk**, bukan sebagai aturan yang sudah sah — sumbernya data contoh yang
+di-hardcode, bukan sistem yang berjalan:
+
+| Hal | Parkir | Tenant |
+|---|---|---|
+| Objek yang disewakan | Area parkir (Basement A1/A2/B1/B2, Outdoor, Karyawan) | Unit (Lt.1 A-01, Lt.2 B-12, dst.) |
+| Penyewa | — (tidak terbaca) | Nama tenant (kantin, ATM, optik, apotek, laboratorium) |
+| Pola tagihan | Bulanan atau Tahunan | Bulanan atau Tahunan |
+| Nominal contoh | Rp 2.500.000 bulanan; Rp 37.000.000 tahunan | Bervariasi per unit |
+| Keterlambatan | Ada layar "Tagihan Keterlambatan" terpisah untuk keduanya | idem |
+
+### `FIN-OQ-043` — yang MUST diputuskan sebelum dua butir ini dirancang
+
+| # | Pertanyaan | Mengapa agent tidak boleh menjawabnya sendiri |
+|---:|---|---|
+| 1 | Apakah penagihan sewa parkir dan tenant **milik modul Finance**, atau modul pengelolaan properti/konsesi tersendiri yang hasilnya mengalir ke Finance sebagai piutang? | Pertanyaan kepemilikan bounded context — sama bentuknya dengan `FIN-DEC-095` untuk Manajemen Klaim. Menjawabnya sendiri berarti menetapkan batas modul tanpa wewenang |
+| 2 | Data induk apa yang dibutuhkan: kontrak sewa, objek sewa (area/unit), tarif, masa berlaku? Siapa pemiliknya? | Menebak berarti membuat master baru yang mungkin sudah dimiliki modul lain |
+| 3 | Bagaimana tagihan berulang diterbitkan — otomatis tiap periode, atau diterbitkan petugas? Siapa yang menyetujui? | Aturan bisnis dan kewenangan |
+| 4 | Aturan denda keterlambatan: dihitung bagaimana, sejak kapan, siapa yang boleh membebaskannya? | V1 punya layarnya, tetapi isinya data contoh — nol aturan yang bisa dirujuk |
+| 5 | Apakah piutang sewa masuk `FinReceivable` dengan jenis debitur baru, atau entity piutang tersendiri? | Keputusan skema yang menyentuh invariant "setiap piutang berasal dari Billing" |
+
+**Yang TIDAK terhambat.** Butir **Kasir** dan seluruh isi `EPIC FIN-18` lainnya berjalan terus.
+Umur piutang per segmen Kasir hanya menuntut satu saringan tambahan pada endpoint umur piutang yang
+sudah ada — bukan sumber piutang baru.
+
+---
+
+## Amendment pass — Penutupan `FIN-OQ-043`: Piutang Non-Pasien (Parkir & Tenant), 1 Oktober 2026
+
+**Pemicu.** `FIN-OQ-043` (dibuka pass desain hari yang sama) menahan dua butir menu "Umur Piutang —
+Parkir" dan "— Tenant" karena penagihan sewa parkir dan unit tenant bukan tagihan pasien, tidak
+lahir dari Billing, dan model `FinReceivable` yang berjalan tidak dapat menampungnya. V1 pun tidak
+punya aturan bisnis yang bisa dirujuk — layarnya murni data contoh (`generateDummyData()`).
+
+**Keputusan baru:** `FIN-DEC-099` sampai `FIN-DEC-104`, seluruhnya `approved`, diputuskan interaktif
+via `/grill-me`, 1 Oktober 2026.
+
+| ID | Pertanyaan | Keputusan | Dasar |
+|---|---|---|---|
+| `FIN-DEC-099` | Penagihan sewa parkir dan sewa unit tenant milik modul mana? | **Milik Finance sepenuhnya.** Finance merancang sendiri pencatatan tagihan sewa — tidak ada modul properti/konsesi terpisah di sistem ini saat ini, tidak ditunggu kehadirannya | Jawaban eksplisit owner, 1 Oktober 2026, atas opsi yang direkomendasikan |
+| `FIN-DEC-100` | Bagaimana tagihan berulang disusun — dari kontrak sewa master, atau dicatat manual tiap periode? | **Dicatat manual oleh staf AR tiap periode, TANPA entity kontrak sewa.** Tidak ada `MstLeaseContract`. Staf mengisi tagihan baru setiap periode (objek sewa, penyewa, nominal, periode) — risiko tagihan terlewat bila staf lupa **diterima sadar** oleh owner, bukan ditangani sistem | Jawaban eksplisit owner atas opsi "staf mencatat manual, tanpa master kontrak" |
+| `FIN-DEC-101` | Bagaimana piutang sewa ini disimpan, mengingat `FinReceivable` mewajibkan setiap barisnya berasal dari serah terima Billing (`SourceHandoffKey`/`InvoiceId`)? | **Entity piutang tersendiri, terpisah dari `FinReceivable`** — invariant "wajib dari Billing" pada `FinReceivable` **TIDAK dilonggarkan dan TIDAK mendapat pengecualian apa pun**. Piutang non-pasien punya jalur aging/write-off/alokasi sendiri yang serupa bentuknya tetapi berdiri sendiri | Jawaban eksplisit owner atas opsi yang direkomendasikan; alasan eksplisit: melonggarkan invariant `FinReceivable` berisiko disalahgunakan untuk piutang pasien juga |
+| `FIN-DEC-102` | Bagaimana aturan denda keterlambatan? | **Nominal tetap, dicatat manual oleh staf AR saat menagih ulang** — tidak ada perhitungan otomatis (persentase atau tarif harian) pada rilis ini. Konsisten dengan `FIN-DEC-100`: seluruh angka pada kapabilitas ini memang dicatat manual, bukan dihitung sistem | Jawaban eksplisit owner atas opsi yang direkomendasikan |
+| `FIN-DEC-103` | Siapa berwenang mencatat tagihan baru dan menghapus piutang sewa yang tidak tertagih? | **Staf AR penuh, TANPA jenjang approval untuk keduanya** — baik pencatatan maupun penghapusan. **Ini BERBEDA secara sadar** dari pola write-off `FinReceivable` (`BE-FIN-018`) yang memakai maker-checker. Owner memilih opsi tanpa approval sesudah disodorkan konsekuensinya (nol pemeriksa kedua untuk penghapusan nominal) | Jawaban eksplisit owner atas opsi "staf AR penuh tanpa approval", bukan opsi yang direkomendasikan |
+| `FIN-DEC-104` | Piutang Parkir dan Piutang Tenant — satu entity atau dua? | **Satu entity, `FinNonPatientReceivable`, dengan kolom `Category` (`PARKING`/`TENANT`)** — kedua butir menu menjadi pandangan tersaring atas entity yang sama, mengikuti pola `FinReceivable.DebtorType` yang sudah ada | Jawaban eksplisit owner atas opsi yang direkomendasikan |
+
+**Penegasan risiko yang MUST dicatat apa adanya, bukan didiamkan.** `FIN-DEC-103` membuka celah yang
+tidak dimiliki kapabilitas Finance lain: staf yang sama dapat mencatat piutang **dan**
+menghapusnya, tanpa pemeriksa kedua. Ini **diterima sadar** oleh owner untuk kapabilitas piutang
+non-pasien **saja** — `FIN-DEC-103` **MUST NOT** dijadikan preseden untuk melonggarkan maker-checker
+pada `FinReceivable` (piutang pasien) atau kapabilitas write-off mana pun yang sudah berjalan.
+
+**Open question yang ditutup pass ini:**
+
+| ID | Status baru | Keterangan |
+|---|---|---|
+| `FIN-OQ-043` | **CLOSED** oleh `FIN-DEC-099`..`104` | Kedua butir menu (Parkir, Tenant) kini dapat dirancang |
+
+**Acceptance criteria tambahan yang sudah dapat diuji:**
+
+1. `FinNonPatientReceivable` **MUST** punya kolom `Category` dengan tepat dua nilai: `PARKING`,
+   `TENANT`. Nilai lain **MUST** ditolak.
+2. `FinNonPatientReceivable` **MUST NOT** memiliki `SourceHandoffKey`, `SourceHandoffId`, atau
+   `InvoiceId` — baris ini **tidak pernah** berasal dari Billing, dan upaya menyamakannya dengan
+   `FinReceivable` adalah cacat desain.
+3. Pencatatan tagihan baru dan penghapusan piutang sewa **MUST NOT** menuntut approval jenjang
+   apa pun — keduanya selesai dalam satu aksi oleh staf AR.
+4. Denda keterlambatan **MUST** berupa field nominal yang diisi manual, **MUST NOT** dihitung
+   otomatis dari tanggal jatuh tempo.
+5. Layar "Umur Piutang — Parkir" dan "— Tenant" **MUST** menjadi pandangan tersaring
+   (`Category = PARKING` / `Category = TENANT`) atas satu endpoint umur piutang non-pasien,
+   **bukan** dua endpoint terpisah.
+
+**Langkah berikutnya:** `/design-business-module` amandemen kecil untuk menggambar `FinNonPatientReceivable`
+(model, migration, endpoint, kontrak) — menyusul `AMENDMENT REVISI 13` yang sudah ada, sebagai bagian
+dari revisi yang sama karena masih satu benang perubahan (penyelarasan navigasi V1). Sesudah itu,
+`FIN-OQ-040`/`FIN-OQ-043` tidak lagi menahan `EPIC FIN-18` sama sekali — seluruh isinya dapat masuk
+`/plan-module-delivery`.
+
+---
+
+## Addendum — Dua keputusan penutup sebelum perencanaan delivery, 1 Oktober 2026
+
+**Pemicu.** Dua butir yang disodorkan pass desain sebagai hal yang **MUST** diputuskan pemilik,
+dijawab langsung owner sebelum `/plan-module-delivery` dijalankan.
+
+| ID | Pertanyaan | Keputusan | Dasar |
+|---|---|---|---|
+| `FIN-DEC-105` | Menu V1 tidak punya butir "Tagihan Sewa" — satu-satunya jalan masuk ke pencatatan tagihan sewa adalah lewat laporan umur piutang, yang terasa berputar bila petugas harus mencatat tiap periode. Apakah butir menu tersendiri ditambahkan walau menyimpang dari V1? | **Ya, dibuat.** Butir menu tersendiri untuk mengelola tagihan sewa ditambahkan beserta layarnya. Ini **penyimpangan yang disetujui** dari bentuk V1 (`FIN-DEC-094`), dicatat terbuka sebagai pengecualian bernama — bukan pelonggaran umum atas aturan "ikuti V1 apa adanya" | Jawaban eksplisit owner, 1 Oktober 2026: "Jika belum ada maka buatkan konfigurasi tagihan sewanya juga" |
+| `FIN-DEC-106` | Apakah batas penularan `FIN-DEC-103` (wewenang tanpa jenjang approval hanya berlaku untuk piutang sewa) diratifikasi sebagai aturan yang mengikat? | **Ya, diratifikasi.** Kelonggaran tanpa jenjang approval berlaku **hanya** pada `FinNonPatientReceivable`. Ia **MUST NOT** dijadikan dasar melonggarkan maker-checker pada `FinReceivableWriteOff`, `FinReceivableAdjustment`, atau jalur persetujuan pembayaran mana pun yang sudah berjalan | Jawaban eksplisit owner, 1 Oktober 2026: "saya menyetujui point kedua" |
+
+### Batas `FIN-DEC-105` yang MUST dijaga
+
+Keputusan ini menambah **jalan masuk**, bukan kapabilitas baru. Yang **tidak** ikut disetujui, dan
+**MUST NOT** diturunkan diam-diam dari kata "konfigurasi":
+
+| Yang **tidak** termasuk | Alasan |
+|---|---|
+| Master kontrak sewa (`MstLeaseContract` atau sejenisnya) | Ditolak tegas `FIN-DEC-100` satu putaran sebelumnya. Tidak dibuka ulang oleh keputusan ini |
+| Master penyewa, master area parkir, master unit tenant | Turunan penolakan yang sama |
+| Pengaturan tarif bawaan atau rumus denda | Ditolak `FIN-DEC-102` — nominal diketik petugas tiap kali |
+| Penerbitan tagihan otomatis per periode | Ditolak `FIN-DEC-100` |
+
+Bila yang dimaksud owner ternyata lebih dari jalan masuk — misalnya pengaturan tarif bawaan per
+objek sewa — itu **keputusan baru** yang membuka kembali `FIN-DEC-100`/`FIN-DEC-102`, dan **MUST**
+melewati `/grill-me` tersendiri. Perencanaan ini berjalan di atas bacaan yang sempit dan konservatif.
+
+**Open question yang ditutup:** nol baru. `FIN-OQ-044` (integrasi kas dan kejadian akuntansi) **tetap
+terbuka** dan tidak tersentuh kedua keputusan ini.
+
+---
+
+## Addendum — Jawaban `FIN-OQ-041`, `FIN-OQ-042`, `FIN-OQ-044`, 1 Oktober 2026
+
+**Pemicu.** Yasmin (Product Owner Finance) menjawab tiga pertanyaan terbuka yang tersisa pada
+`03-frontend-architecture.md` §17.5 dan `blueprint-manifest.md`. Diputuskan interaktif.
+
+| ID | Pertanyaan | Keputusan | Dasar |
+|---|---|---|---|
+| `FIN-DEC-107` | Empat pasang butir V1 yang tampak kembar: (a) Laporan Aging AR / Umur Piutang (A/R Aging); (b) Receivable AR/Invoice / Piutang Tagihan; (c) Retur Produk / Retur Pembelian Supplier; (d) Ayat Silang / Settlement AR | **Keempatnya dua layar berbeda, seluruhnya dipertahankan.** Tidak ada butir yang dibuang atau digabung. Dibuat sesuai tabel 17.2 dengan saringan bawaan yang berbeda, persis seperti perlakuan sementara sebelumnya | Jawaban eksplisit owner, 1 Oktober 2026 |
+| `FIN-DEC-108` | Apakah kolom `PayerClaimReference` dibutuhkan? | **Ya, dipertahankan** sebagai kolom opsional pada migration. Tidak membawa aturan bisnis | Jawaban eksplisit owner, 1 Oktober 2026 |
+| `FIN-DEC-109` | `FIN-OQ-044(a)`: apakah pelunasan sewa masuk kas harian dan setoran bank? | **Tidak.** Piutang sewa non-pasien dikelola **terpisah** dari kas harian dan setoran bank. Pelunasan sewa tetap hanya tercatat pada `FinNonPatientReceivableSettlement`. `FinReceipt` **MUST NOT** diperluas untuk sewa | Jawaban eksplisit owner, 1 Oktober 2026 |
+| `FIN-DEC-110` | `FIN-OQ-044(c)`: bolehkah rilis pertama `EPIC FIN-19` berjalan tanpa penyambungan kas dan kode kejadian akuntansi? | **Boleh, dengan banner peringatan** yang tetap tampil. Batas ini sudah dikomunikasikan kepada pemilik | Jawaban eksplisit owner, 1 Oktober 2026 |
+
+### Akibat yang MUST dijaga
+
+1. `FIN-DEC-109` mengubah sifat `FIN-DES-075`: ketiadaan alur ke kas harian/setoran bank **bukan lagi
+   batas sementara**, melainkan keputusan. Task penyambungan pelunasan sewa ke kas harian dan setoran
+   bank (`FIN-19` bagian kas) **dicabut** dari roadmap, bukan lagi "tertahan".
+2. Banner peringatan pada layar piutang sewa (`FE-FIN-022`, `FE-FIN-023`) **tetap** dan
+   kata-katanya perlu disesuaikan: "dikelola terpisah dari kas harian", bukan "belum tersambung".
+3. Risiko yang diterima sadar: uang sewa yang diterima tidak tercocokkan dengan rekening koran lewat
+   kas harian. Mitigasi tetap pada alasan wajib dan jejak `IdentityModel`.
+
+### Yang **masih terbuka**
+
+| ID | Status | Keterangan |
+|---|---|---|
+| `FIN-OQ-044(b)` | **TERBUKA** | Kode kejadian akuntansi pendapatan sewa **belum** diratifikasi. Pemilik: Rizki (Accounting). Memblokir **kelengkapan akuntansi** `EPIC FIN-19`, bukan pembangunannya (`FIN-DEC-110`). Tidak dapat diputuskan Finance sepihak, mengikuti pola `FIN-DEC-053` |
+| `FIN-OQ-041` | **CLOSED** oleh `FIN-DEC-107` | — |
+| `FIN-OQ-042` | **CLOSED** oleh `FIN-DEC-108` | — |
+| `FIN-OQ-044(a)`, `(c)` | **CLOSED** oleh `FIN-DEC-109`, `FIN-DEC-110` | Hanya bagian (b) tersisa |
+
+**Langkah berikutnya:** amandemen kecil untuk menyelaraskan berkas turunan (`blueprint-manifest.md`,
+§17.5 dan §18.2 pada `03-frontend-architecture.md`, `04-prd-to-mvp.md`, `roadmap/*`, `FIN-DES-075`)
+dengan keputusan di atas. Penyelarasan itu belum dikerjakan; addendum ini baru mencatat keputusannya.
+
+---
+
+## Amendment pass — Penutupan gap Finance atas balasan Accounting `evidence/16`, 1 Oktober 2026
+
+**Pemicu.** Accounting membalas surat Finance 15, 16, dan 21 lewat
+`docs/module-blueprints/accounting/evidence/16-balasan-accounting-atas-surat-finance-15-16-21.md`
+dengan lima pertanyaan balik (16.1–16.5). Sesi `/grill-me` ini memeriksa pertanyaan itu terhadap
+source sisi Finance, menemukan gap tambahan, dan memutuskan sisi Finance secara interaktif.
+Keputusan di bawah `approved` **sisi Finance** (Yasmin, 1 Oktober 2026). Butir yang menuntut
+persetujuan Accounting atau modul lain ditandai tersendiri dan **belum** mengikat modul itu.
+
+**Batas scope pass ini.** *Di dalam:* apa yang Finance kirim ke kotak masuk Accounting (penerimaan
+kasir, snapshot saldo, penanda shift). *Di luar:* aturan posting dan bagan akun (Accounting), data
+shift dan akun refund `REFERRED_OUTPATIENT_ADMIN` (Billing bersama Accounting), aturan internal
+honor dokter (Medical Fee).
+
+### Fakta source yang mendasari (dibaca 1 Oktober 2026, bukan keputusan)
+
+| # | Fakta | Lokasi |
+|---:|---|---|
+| F1 | `PENERIMAAN-KASIR` terbit **per kuitansi**; `SourceTransactionId = receipt.ReceiptNumber`. `AccountingOutboxEventRequest` tidak punya rujukan shift maupun metode bayar | `FinanceReceiptService.cs:129-139`; `FinanceAccountingOutboxService.cs:221-234` |
+| F2 | Snapshot saldo **hanya** dapat dipicu lewat endpoint POST manual; tidak ada hosted service Finance yang memanggilnya, padahal `FIN-DEC-092` menjanjikan terbit otomatis tanggal 1 pukul 00.05 WIB | `FinanceAccountingEventsController.GenerateSubledgerSnapshots` |
+| F3 | Keempat saldo snapshot dipotong `Math.Max(0m, …)`: saldo negatif menjadi `0.00` tanpa jejak | `FinanceSubledgerSnapshotService.cs:92,100,111,121` |
+| F4 | Snapshot menerbitkan tepat 4 baris dengan kode default; tidak ada pemetaan per akun control dan tidak ada utang honor dokter | `FinanceSubledgerSnapshotService.cs:123-129` |
+| F5 | Kas kecil, piutang, dan utang memakai saldo **berjalan** (`CurrentBalance`, `OutstandingAmount`), bukan posisi pada tanggal akhir periode. Kas Kasir hanya status `CLOSED` dari hari tertutup terakhir | baris 87-121 |
+| F6 | `AccountingDate` penerimaan kasir, pembaliknya, dan penanda shift dihitung dari `UtcDateTime`; batas akhir periode snapshot piutang juga UTC | `FinanceReceiptService.cs:134,207`; `FinanceBillingIntakeService.cs:1111`; snapshot baris 104 |
+| F7 | Penanda shift hanya terbit untuk shift `Closed`, `Reviewed`, `Reopened`; shift berstatus terbuka tidak pernah terlihat Accounting | `FinanceBillingIntakeService.cs:1049-1054` |
+| F8 | `StageEventAsync` sudah menaikkan `SourceVersion` otomatis bila kejadian sama diterbitkan ulang | `FinanceAccountingOutboxService.cs:89-97` |
+
+### Keputusan
+
+| ID | Pertanyaan | Keputusan | Menjawab |
+|---|---|---|---|
+| `FIN-DEC-111` | `PENERIMAAN-KASIR` per kuitansi atau per shift? | **Tetap per kuitansi.** Finance menambahkan **nomor shift dan metode bayar** pada kejadian penerimaan kasir dan pembaliknya; Accounting yang meringkas menjadi satu jurnal per shift per metode lewat aturan posting. Finance **tidak** membongkar `BE-FIN-024` dan idempotensi tender | Accounting 16.1 |
+| `FIN-DEC-112` | Saldo tidak wajar (negatif) pada `SALDO-SUBLEDGER` | **Dikirim apa adanya, bertanda negatif**, artinya berlawanan dengan saldo normal akun. Amandemen `FIN-DEC-091`: larangan negatif **dicabut** untuk `SALDO-SUBLEDGER`. Pemotongan ke nol (F3) **MUST** dihapus | Accounting 16.3 |
+| `FIN-DEC-113` | Granularitas baris saldo | **Satu baris per akun control**, lewat **pemetaan terkonfigurasi** "kelompok saldo → kode akun control". Bila daftar dari Accounting memuat akun yang belum terpetakan, snapshot **MUST** menolak terbit dengan pesan jelas (gagal tertutup), bukan mengirim sebagian | Accounting 16.2 |
+| `FIN-DEC-114` | Shift tertutup sesudah snapshot; saldo bukan posisi per tanggal | Saldo dihitung sebagai **posisi per tanggal akhir periode** (transaksi bertanggal sampai akhir periode, shift `CLOSED` dan `REVIEWED`), terbit sekali, lalu **dinyatakan ulang otomatis** dengan `SourceVersion` lebih tinggi **hanya untuk akun yang nilainya berubah** | Accounting 16.4 |
+| `FIN-DEC-115` | Bagaimana Accounting tahu ada shift terbuka | **Penanda pembukaan shift per shift**, kode baru bernilai nol (nama usulan `PEMBUKAAN-SHIFT-KASIR`), diterbitkan saat Finance melihat shift berstatus terbuka. Penutupan final menggantikannya; pembukaan tanpa penutupan menahan tutup bulan sisi Accounting | Accounting 16.5 |
+| `FIN-DEC-116` | Konvensi tanggal akuntansi | **Seluruh `AccountingDate` dan batas periode memakai tanggal WIB (Asia/Jakarta)**, bukan UTC. Cakupan minimal tiga titik pada F6, dan **MUST** disisir ke sisa Finance sebelum diklaim tuntas | Temuan sesi ini |
+| `FIN-DEC-117` | Pengirim saldo utang honor dokter | **Medical Fee menerbitkan saldonya sendiri** dengan kode akun control miliknya, **bila** G2 menandainya sebagai control account. Finance **tidak** membaca data honor dokter dan tidak memasukkannya ke snapshot | Accounting 16.2 (bagian honor) |
+
+### Contoh
+
+Kuitansi tunai Rp 150.000 dan kuitansi QRIS Rp 200.000 pada shift 12 tanggal 1 Oktober 2026 pukul
+02.10 WIB. Finance mengirim dua kejadian, masing-masing membawa nomor shift 12 dan metodenya, dengan
+`AccountingDate = 2026-10-01` (bukan 2026-09-30, `FIN-DEC-116`). Accounting menggabungkannya menjadi
+dua jurnal untuk shift 12 (satu per metode). Bila kuitansi tunai dibalik sesudah shift tertutup,
+pembaliknya tetap menunjuk kuitansi aslinya dan shift yang sama.
+
+### Dampak turunan dan batas
+
+1. **Perbaikan atas janji yang sudah ada, bukan keputusan baru.** Snapshot tidak terjadwal (F2) adalah
+   pelanggaran `FIN-DEC-092` dan **MUST** dikerjakan sebagai bagian `BE-FIN-049`/penggantinya,
+   memakai pola hosted service yang sudah ada di source; Finance **tidak** boleh menyatakan G4 siap
+   sebelum ini terbukti jalan.
+2. `FIN-DEC-112` menggantikan sebagian `FIN-DEC-091`; `FIN-DEC-091` ditandai `superseded` **hanya**
+   pada klausa penolakan negatif untuk `SALDO-SUBLEDGER`. Kata "tanpa pengecualian" pada
+   `evidence/21` tidak lagi berlaku.
+3. Nilai `Amount` tetap mengikuti saldo normal akun (`ACC-DEC-109`); tanda minus hanya berarti
+   lawan dari saldo normal itu.
+4. **Migration tidak dibuat pada sesi ini.** `FIN-DEC-113` kemungkinan menuntut tabel atau
+   konfigurasi baru; pembuatannya butuh instruksi dan konfirmasi terpisah dari Yasmin.
+5. Pengirim penanda shift (`PENUTUPAN`/`PEMBALIKAN`) **tetap tidak diaktifkan** sampai Accounting
+   menyatakan G6 siap (`FIN-OQ-035`, `evidence/16` bagian 4). `FIN-DEC-115` menambah satu kode ke
+   gerbang yang sama.
+
+### Open question
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-045` | Accounting menyetujui `FIN-DEC-111`, termasuk mengubah `ACC-DEC-062` dan memperluas kontrak dengan dimensi shift dan metode bayar | Rizki (Accounting) | `IMPLEMENTATION` sisi `PENERIMAAN-KASIR`; G4 |
+| `FIN-OQ-046` | Apakah riwayat pembayaran, alokasi, pembalikan, dan setoran cukup untuk menghitung posisi **per tanggal** tanpa tabel baru? Perlu `/trace-existing-capabilities` | Yasmin / audit source | `IMPLEMENTATION` `FIN-DEC-114` |
+| `FIN-OQ-047` | Ratifikasi `PEMBUKAAN-SHIFT-KASIR` dan penambahannya ke daftar tertutup nilai nol G6; nama final | Rizki (Accounting) | `IMPLEMENTATION` `FIN-DEC-115`; G6 |
+| `FIN-OQ-048` | Accounting menerima konvensi tanggal WIB (`FIN-DEC-116`) | Rizki (Accounting) | `LATER SLICE` |
+| `FIN-OQ-049` | Apakah Medical Fee sanggup dan bersedia menerbitkan saldo honor dokter sendiri; jadwalnya selaras dengan snapshot Finance | Yasmin sebagai owner Medical Fee | `LATER SLICE`; G2/G4 |
+| `FIN-OQ-050` | Seberapa luas pola `UtcDateTime` pada `AccountingDate` di sisa Finance | Audit source | `IMPLEMENTATION` `FIN-DEC-116` |
+| `FIN-OQ-051` | Persetujuan pembuatan migration untuk pemetaan akun control (`FIN-DEC-113`) | Yasmin | `IMPLEMENTATION` `FIN-DEC-113` |
+
+### Bukan gap Finance (dicatat supaya tidak ditanyakan ulang)
+
+Refund `REFERRED_OUTPATIENT_ADMIN`: perlakuan sementara Finance (gagal terlihat, nol kejadian, tidak
+memakai `PENGEMBALIAN-UANG-MUKA`) sudah diterima Accounting (`ACC-DEC-129`). Akun debitnya ditentukan
+Billing bersama Accounting dan menjadi syarat G6 mereka.
+
+### Kriteria penerimaan yang kini dapat diuji
+
+1. Saldo piutang negatif terkirim sebagai nilai negatif, **bukan** `0.00`.
+2. Periode dengan akun control yang belum terpetakan: snapshot menolak terbit, nol baris outbox.
+3. Pembayaran pukul 02.00 WIB tanggal 1 Oktober menghasilkan `AccountingDate = 2026-10-01`.
+4. Dua kuitansi pada satu shift menghasilkan dua kejadian, masing-masing membawa nomor shift dan metode bayar.
+5. Shift yang tertutup sesudah snapshot menaikkan `SourceVersion` hanya pada akun yang berubah.
+6. Snapshot terbit otomatis tanggal 1 pukul 00.05 WIB tanpa dipicu manual, dan menjalankannya dua kali tidak menggandakan baris.
+
+**Langkah berikutnya:** lihat penawaran di pesan sesi. Surat balasan Finance untuk Accounting
+(`evidence/22`) belum ditulis.
+
+---
+
+## Closure pass — Penutupan `FIN-OQ-052`, `054`, `055`, `056`, `058` dan pengerasan `FIN-DEC-114`, 1 Oktober 2026
+
+**Pemicu.** Impact scan `01-existing-capability-map.md` §18 (`7f8c3014` / `85578363b`) menemukan bahwa
+Finance belum punya jalur pengiriman ke Accounting sama sekali, bahwa beberapa asumsi amandemen
+sebelumnya tidak cocok dengan source, dan bahwa jalur pembayaran langsung piutang tidak meninggalkan
+riwayat bertanggal. Keputusan di bawah `approved` sisi Finance (Yasmin, 1 Oktober 2026), diputuskan
+interaktif lewat `/grill-me`.
+
+**Batas scope pass ini.** *Di dalam:* apa yang Finance bangun untuk mengirim ke Accounting, dan kapan.
+*Di luar:* kredensial layanan antar-modul (G3, Platform bersama Accounting), aturan posting dan bagan
+akun (Accounting).
+
+### Keputusan
+
+| ID | Pertanyaan | Keputusan | Menutup |
+|---|---|---|---|
+| `FIN-DEC-118` | Apakah `EPIC FIN-12` (worker pengiriman) dibuka kembali? | **Ya, dibuka kembali sebagai syarat G4**, berupa satu paket tiga bagian: (1) worker pengiriman outbox yang menghormati gerbang yang sudah ada (penanda shift tetap `PENDING` sampai Accounting menyatakan G6 siap); (2) penjadwal snapshot tanggal 1 pukul 00.05 WIB; (3) pemicu otomatis penanda shift. Memakai pola hosted service di blok `runBackgroundJobs`. **Dibangun dalam keadaan mati** sampai mekanisme kredensial layanan (G3) diputuskan. Mencabut sebagian penundaan `EPIC FIN-12` | `FIN-OQ-058` |
+| `FIN-DEC-119` | Dari mana saldo Kas Kasir dihitung? | **Rekap kas harian Finance (`FinDailyCashSnapshot`, status `CLOSED`)**, bukan status shift Billing. Snapshot **MUST menolak terbit** bila rekap hari terakhir periode belum `CLOSED`; kebiasaan memakai hari sebelumnya secara diam-diam **MUST** dihapus. Koreksi: `evidence/21` bagian 3.2 yang menulis "shift `CLOSED`/`REVIEWED`" salah baca kode dan **MUST** diluruskan ke Accounting | `FIN-OQ-052` |
+| `FIN-DEC-120` | Kuitansi pembalik masuk shift yang mana? | **Shift saat pembalikan terjadi**, dengan rujukan ke kuitansi asli tetap dibawa. Menggantikan kalimat contoh `FIN-DEC-111` ("pembaliknya tetap menunjuk shift yang sama"): rujukan kuitansi asli tetap, tetapi shift adalah shift pembalikan, karena uang fisik keluar dari laci shift itu | `FIN-OQ-054` |
+| `FIN-DEC-121` | "Shift terbuka" mencakup status apa? | **Semua status selain `CLOSED` dan `REVIEWED`** (`OPEN`, `HANDED_OVER`, `REOPENED`, `CLOSED_WITH_VARIANCE`, `PERLU_TINDAK_LANJUT`). Penanda pembukaan terbit saat Finance pertama kali melihat shift belum final; penutupan final menggantikannya. Memperjelas `FIN-DEC-115` | `FIN-OQ-055` |
+| `FIN-DEC-122` | Siapa pengirim saldo utang honor dokter? | **Finance**, dari `FinMedicalServicePayable` miliknya sendiri. Selama tabel kosong (`BE-FIN-021` `BLOCKED`), Finance tetap mengirim `0.00`. **`FIN-DEC-117` menjadi `superseded`**: premisnya (data milik Medical Fee, Medical Fee mengirim sendiri) tidak cocok dengan source. Pemetaan `FIN-DEC-113` mendapat satu kelompok saldo tambahan | `FIN-OQ-056`, `FIN-OQ-049` |
+| `FIN-DEC-123` | Bagaimana saldo Piutang dan Utang dihitung per tanggal? | **Dibangun buku mutasi** untuk Piutang dan Utang supplier (pola `FinPettyCashBudgetMovement`: waktu kejadian, saldo sebelum, saldo sesudah). **Setiap jalur yang mengubah saldo MUST menulis ke buku mutasi**, termasuk pembayaran langsung piutang. Posisi per tanggal dibaca dari mutasi terakhir sampai akhir periode. Mengeraskan `FIN-DEC-114` | Turunan `FIN-OQ-046`, `FIN-OQ-053` |
+
+### Fakta source baru yang mendasari (dibaca 1 Oktober 2026)
+
+| # | Fakta | Lokasi |
+|---|---|---|
+| F9 | Tidak ada hosted service Finance yang terdaftar; `EPIC FIN-12` ditunda atas keputusan pemilik | `Program.cs:940-953`; `roadmap/00-delivery-roadmap.md:40,235` |
+| F10 | `FinReceiptDeduction` mengurangi `OutstandingAmount` **terpisah** dari alokasi, lewat panggilan sendiri ke `ApplyAllocationAsync` | `FinanceReceiptService.cs:611` |
+| F11 | Pembayaran langsung piutang mengurangi `OutstandingAmount` **tanpa** baris `FinReceipt`/`FinReceiptAllocation`; jejaknya hanya satu baris outbox dan satu catatan audit | `FinanceReceivableService.cs:621-701` |
+| F12 | Penghapusan langsung piutang **punya** baris `FinReceivableWriteOff` | `FinanceReceivableService.cs:729-749` |
+| F13 | `AccountingDate` dihitung dari UTC pada **20 titik** di lima service, bukan tiga | capability map §18.2 |
+| F14 | `FinPaymentAllocation` tidak punya tanggal sendiri; utang supplier berkurang saat pembayaran **disetujui**, bukan saat `PaidAt` | `FinancePaymentService.cs:575` |
+
+### Koreksi atas klaim sesi ini
+
+1. `FIN-OQ-046` sebelumnya dinyatakan "layak tanpa tabel baru". **Dicabut untuk Piutang** (F11) dan dengan syarat untuk Utang. `FIN-DEC-123` menggantikannya dengan buku mutasi; keputusan `FIN-DEC-114` tetap berlaku, hanya cara menghitungnya yang berubah.
+2. Contoh `FIN-DEC-112` (piutang lebih bayar menjadi `0.00`) tidak dapat terjadi karena invarian skema. `FIN-DEC-112` tetap sah sebagai aturan, dengan Kas Kasir sebagai kandidat saldo negatif satu-satunya yang diketahui.
+3. `FIN-DEC-117` ditandai `superseded` oleh `FIN-DEC-122`; `FIN-OQ-049` ikut tertutup tanpa pelaksana di Medical Fee.
+
+### Akibat yang MUST dijaga
+
+1. `FIN-DEC-118` mengubah janji "G4 siap" menjadi **bersyarat**: G4 baru boleh dinyatakan siap setelah ketiga bagian paket terbukti jalan. Balasan Finance ke Accounting (`evidence/22`) **MUST** mengatakannya apa adanya, tidak boleh menjanjikan pengiriman otomatis lebih dulu.
+2. `FIN-DEC-123` menyentuh setiap jalur yang menulis `FinReceivable.OutstandingAmount` (alokasi, pembalikan, penyesuaian, penghapusan, pembayaran langsung, potongan) dan `FinSupplierPayable.OutstandingAmount` (pembayaran, penyesuaian). Tidak boleh ada jalur yang terlewat; satu jalur tanpa mutasi membuat saldo per tanggal salah tanpa ada yang tahu.
+3. **Migration tidak dibuat pada pass ini.** `FIN-DEC-113` (pemetaan akun control) dan `FIN-DEC-123` (buku mutasi) sama-sama menuntut tabel baru; keduanya butuh instruksi dan konfirmasi terpisah dari Yasmin (`FIN-OQ-051`, diperluas).
+4. Prefix tabel baru **MUST** didaftarkan di `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` sebelum model dibuat (`QBE-MOD-003`).
+
+### Contoh
+
+Pembayaran langsung piutang Rp 500.000 pada 30 September pukul 23.50 WIB, lalu pembayaran Rp 200.000
+pada 1 Oktober pukul 00.02 WIB. Buku mutasi mencatat dua baris dengan tanggal WIB masing-masing
+(`FIN-DEC-116`). Snapshot periode `2026-09` membaca saldo sesudah mutasi pertama saja, sehingga angkanya
+tetap benar walaupun penjadwal baru jalan pukul 00.30. Tanpa buku mutasi, kedua pembayaran ikut terhitung.
+
+### Open question
+
+| ID | Status | Keterangan |
+|---|---|---|
+| `FIN-OQ-052`, `054`, `055`, `056`, `058` | **CLOSED** oleh `FIN-DEC-119`..`122`, `118` | — |
+| `FIN-OQ-053` | **CLOSED** (fakta F10) | Potongan mengurangi piutang terpisah; buku mutasi harus mencatatnya sebagai mutasi tersendiri |
+| `FIN-OQ-049` | **CLOSED** oleh `FIN-DEC-122` | Tanpa pelaksana di Medical Fee |
+| `FIN-OQ-051` | **DIPERLUAS** | Persetujuan migration untuk pemetaan akun control **dan** buku mutasi piutang/utang. Memblokir `IMPLEMENTATION` `FIN-DEC-113`, `123` |
+| `FIN-OQ-057` | **TERBUKA** | Skenario nyata saldo negatif selain Kas Kasir. Tidak memblokir |
+| `FIN-OQ-059` | **BARU** | Apakah ada jalur pengurang saldo utang supplier atau utang jasa medis yang tidak meninggalkan riwayat bertanggal, seperti F11 pada piutang? Perlu `/trace-existing-capabilities` terarah. Memblokir `IMPLEMENTATION` `FIN-DEC-123` bagian Utang |
+| `FIN-OQ-060` | **BARU** | Apakah pembayaran langsung piutang (F11) ikut masuk rekap kas harian, mengingat ia tidak punya `FinReceipt`? Bila tidak, Kas Kasir dan Piutang bisa tidak sinkron. Pemilik: Yasmin. Memblokir `IMPLEMENTATION` `FIN-DEC-119` |
+| `FIN-OQ-045`, `047`, `048` | **TERBUKA**, milik Accounting | Persetujuan `FIN-DEC-111`, kode `PEMBUKAAN-SHIFT-KASIR`, konvensi WIB |
+
+### Kriteria penerimaan tambahan
+
+1. Tanpa konfigurasi apa pun, worker pengiriman terdaftar tetapi **tidak** mengirim; menyalakannya membutuhkan aksi eksplisit.
+2. Snapshot tanggal 1 pukul 00.05 WIB terbit tanpa dipicu manual; dijalankan dua kali tidak menggandakan baris.
+3. Snapshot periode dengan rekap hari terakhir `OPEN`: ditolak, nol baris outbox.
+4. Kuitansi pembalik di shift berbeda dari kuitansi asli: kejadian membawa shift pembalikan dan rujukan kuitansi asli.
+5. Shift berstatus `CLOSED_WITH_VARIANCE` yang belum pernah terlihat sebelumnya: penanda pembukaan terbit.
+6. Pembayaran langsung piutang menulis tepat satu baris buku mutasi; saldo per tanggal akhir periode tidak ikut menghitung pembayaran sesudahnya.
+7. Saldo honor dokter terbit `0.00` selama tabel utang jasa kosong.
+
+**Langkah berikutnya:** lihat penawaran di pesan sesi. Surat `evidence/22` tetap **ditahan**.
+
+---
+
+## Closure pass lanjutan — Sumber Kas Kasir dan pembayaran langsung piutang, 1 Oktober 2026
+
+**Pemicu.** Pengecekan `FIN-OQ-060` menemukan fakta yang mengubah dasar `FIN-DEC-119`. Keputusan di bawah
+`approved` sisi Finance (Yasmin, 1 Oktober 2026), diputuskan interaktif lewat `/grill-me`.
+
+**Batas scope.** *Di dalam:* cara Finance menghitung dan mengirim saldo Kas Kasir, dan perlakuan pembayaran
+langsung piutang. *Di luar:* akun debit untuk tunai vs bank (aturan posting Accounting), data shift
+(Billing).
+
+### Fakta source baru (dibaca 1 Oktober 2026)
+
+| # | Fakta | Lokasi |
+|---|---|---|
+| F15 | `FinDailyCashSnapshot.CashReceiptAmount` dihitung dari `shifts.Sum(GetShiftCash)` atas `BilCashierShift` **tanpa melihat status shift**, bukan dari `FinReceipt` | `FinanceCashManagementService.cs:415,499` |
+| F16 | Menutup rekap harian hanya memeriksa setoran `DRAFT` dan kesesuaian saldo awal; **tidak memeriksa status shift**. Rekap yang sudah `CLOSED` tidak dapat diubah dan tidak ada jalur koreksi | `FinanceCashManagementService.cs:585-611` |
+| F17 | Batas hari rekap kas memakai `TimeSpan.Zero` (UTC) | `FinanceCashManagementService.cs:409` |
+| F18 | Pembayaran langsung piutang menerima `PaymentMethod` (bawaan `"TRANSFER"`) tetapi **tidak menyimpan dan tidak memakainya**; tidak punya `FinReceipt`, tidak ikut shift, tidak masuk kas | `FinanceReceivableService.cs:621-701`; `FinanceArDtos.cs:17` |
+
+### Keputusan
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-124` | Haruskah menutup rekap kas harian menuntut semua shift hari itu final? | **Tidak.** Rekap boleh ditutup walau masih ada shift belum final (pilihan pemilik: "lebih fleksibel"). Rekap harian menjadi **laporan operasional**, bukan dasar saldo ke Accounting |
+| `FIN-DEC-125` | Bagaimana Kas Kasir diperbaiki bila shift selesai setelah rekap ditutup? | **Snapshot Kas Kasir dihitung langsung** saat dijalankan: kas dari shift berstatus `CLOSED`/`REVIEWED` dikurangi setoran bank `POSTED`/`VERIFIED`, sampai tanggal akhir periode dalam **tanggal WIB**. Pernyataan ulang `FIN-DEC-114` berjalan dengan menghitung ulang dari shift final. **`FIN-DEC-119` menjadi `superseded`** (premisnya keliru, lihat F15–F16). Selisih antara rekap harian yang sudah ditutup dan angka snapshot **MUST** ditampilkan sebagai informasi |
+| `FIN-DEC-126` | Pembayaran langsung piutang: tunai atau non-tunai? | **Boleh tunai dan non-tunai, dengan satu mekanisme dan satu proses bisnis yang sama.** Satu-satunya perbedaan adalah metode pembayaran. **Metode wajib dipilih dan disimpan**, dan **bukti pembayaran disimpan**. Menutup `FIN-OQ-060` |
+
+### Akibat yang MUST dijaga
+
+1. Sebelum `FIN-DEC-126`, metode pembayaran langsung diabaikan; setelahnya ia **MUST** dibawa ke kejadian `PENERIMAAN-PIUTANG` supaya Accounting dapat menentukan akun debit. Ini menambah dimensi pada kontrak, sejalan dengan `FIN-DEC-111`.
+2. Pembayaran langsung piutang **MUST** menulis satu baris buku mutasi `FIN-DEC-123`, membawa metode dan rujukan bukti.
+3. Rumus Kas Kasir yang baru memakai shift final sebagai satu-satunya sumber kas masuk. **Kas tunai yang diterima langsung oleh Finance bukan bagian shift**, dan belum ada keputusan di mana ia dihitung (`FIN-OQ-063`).
+4. Batas hari rekap kas (F17) masuk lingkup `FIN-DEC-116` bersama 20 titik `AccountingDate`.
+
+### Contoh
+
+Penjamin membayar Rp 5.000.000 tunai langsung ke Finance pada 30 September 2026 pukul 16.00 WIB, dengan
+bukti kuitansi yang difoto. Finance mencatat satu pembayaran dengan metode "tunai", menyimpan foto bukti,
+menurunkan piutang, menulis satu baris mutasi, dan mengirim `PENERIMAAN-PIUTANG` Rp 5.000.000 membawa
+metode "tunai". Jika penjamin itu membayar transfer, prosesnya identik; hanya metodenya "transfer".
+
+### Open question
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-060` | **CLOSED** oleh `FIN-DEC-126` | — | — |
+| `FIN-OQ-061` | Dasar saldo awal Kas Kasir untuk rumus kumulatif `FIN-DEC-125` (saldo awal manual G5 atau kas sejak go-live) | Yasmin, lalu Accounting | `IMPLEMENTATION` `FIN-DEC-125` |
+| `FIN-OQ-062` | Bentuk bukti pembayaran (berkas, nomor referensi, atau keduanya) dan apakah `FinReceivableDocument` dapat dipakai ulang. Perlu `/trace-existing-capabilities` terarah | Audit source | `IMPLEMENTATION` `FIN-DEC-126` |
+| `FIN-OQ-063` | Tunai yang diterima langsung Finance dicatat di kas yang mana (bagian Kas Kasir, atau kas tersendiri)? | Yasmin, lalu Accounting | `IMPLEMENTATION` `FIN-DEC-125`, `126` |
+
+### Kriteria penerimaan tambahan
+
+1. Menutup rekap harian berhasil walau ada shift berstatus `OPEN`.
+2. Snapshot Kas Kasir menjumlah hanya shift `CLOSED`/`REVIEWED`; shift `OPEN` tidak ikut.
+3. Shift selesai setelah rekap ditutup: snapshot periode itu dinyatakan ulang dengan versi lebih tinggi.
+4. Pembayaran langsung tunai dan transfer menghasilkan kejadian yang identik kecuali metodenya, dan bukti tersimpan pada keduanya.
+5. Pembayaran langsung tanpa metode atau tanpa bukti ditolak dengan pesan jelas.
+
+### Penutup `FIN-OQ-063`
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-127` | Tunai yang diterima langsung Finance dicatat di kas yang mana? | **Komponen Kas Kasir.** Rumus Kas Kasir menjadi: kas dari shift `CLOSED`/`REVIEWED` **+ penerimaan tunai langsung Finance − setoran bank** `POSTED`/`VERIFIED`, sampai tanggal akhir periode (WIB). Tidak ada akun control baru. Penerimaan tunai langsung **MUST** punya jejak bertanggal lewat buku mutasi `FIN-DEC-123`. Melengkapi `FIN-DEC-125` |
+
+`FIN-OQ-063` **CLOSED** oleh `FIN-DEC-127`. Pembayaran langsung non-tunai tidak masuk Kas Kasir; ia mengikuti
+akun debit yang ditentukan Accounting menurut metode.
+
+### Penutup `FIN-OQ-061`
+
+**Fakta (F19).** Rekap harian pertama selalu berawal dari saldo awal `0`; nilai lain ditolak
+(`FinanceCashManagementService.cs:608-612`). Saat ini **tidak ada** cara memasukkan saldo kas yang sudah ada pada hari go-live.
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-128` | Dari mana rumus Kas Kasir kumulatif mulai? | **Finance menyimpan satu saldo awal Kas Kasir pada tanggal cutover**, diinput manual dan disetujui, bernilai **sama** dengan saldo awal manual Accounting (G5). Rumus `FIN-DEC-125`/`127` mulai dari saldo awal ini. Nilai hanya boleh diisi sekali; perubahan sesudahnya **MUST** membawa alasan dan jejak. Kemungkinan menuntut tempat penyimpanan baru (migration, butuh konfirmasi terpisah, `FIN-OQ-051` diperluas) |
+
+`FIN-OQ-061` **CLOSED** oleh `FIN-DEC-128`.
+
+**Celah serupa yang ditemukan dan belum diputuskan (`FIN-OQ-064`).** Bila sebelum go-live sudah ada piutang
+dan utang berjalan, Accounting memasukkannya sebagai saldo awal manual (G5). Finance menghitung Piutang
+dan Utang dari tabelnya sendiri, yang hanya berisi data sejak intake pertama. Tanpa keputusan,
+snapshot Piutang dan Utang berselisih dari buku besar sebesar saldo awal itu, persis seperti Kas Kasir
+sebelum `FIN-DEC-128`. Pertanyaannya: apakah piutang dan utang lama dimigrasikan ke tabel Finance, atau
+dicatat sebagai saldo awal tersendiri? Pemilik: Yasmin, lalu Accounting. Memblokir `IMPLEMENTATION`
+`FIN-DEC-123` dan G5.
+
+### Penutup `FIN-OQ-064`
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-129` | Piutang dan utang lama sebelum go-live: dimigrasikan atau saldo awal saja? | **Dimigrasikan sebagai item tagihan di Finance** (pilihan A, dijawab Yasmin 1 Oktober 2026). Setiap tagihan lama masuk dengan identitas dokumen, debitur atau supplier, tanggal dokumen, jatuh tempo, nilai awal, dan sisa pada saat cutover. Record **MUST** diberi penanda sebagai data migrasi/opening item dan dibuka lewat **mutasi pembuka** `FIN-DEC-123` |
+
+**Aturan yang mengikat `FIN-DEC-129`:**
+
+1. **Rekonsiliasi sebelum dikunci.** Total sisa migrasi **MUST** direkonsiliasi dengan saldo awal AR/AP Accounting pada G5/G6 **sebelum** batch migrasi boleh disetujui dan dikunci.
+2. **Sesudah diposting, tagihan lama mengikuti proses Finance yang normal:** aging, penagihan atau pembayaran, alokasi, settlement, snapshot, dan rekonsiliasi.
+3. **Tidak boleh ada jurnal atau pendapatan/beban baru.** Migrasi **MUST NOT** menerbitkan kejadian akuntansi atas aktivitas sebelum go-live, karena nilainya sudah tercakup dalam saldo awal Accounting. Artinya jalur pengakuan piutang yang biasanya menulis ke outbox **MUST** dilewati untuk item berpenanda migrasi.
+4. Cakupan: piutang (`FinReceivable`) dan utang supplier (`FinSupplierPayable`). Utang jasa medis (`FinMedicalServicePayable`) belum diputuskan (`FIN-OQ-065`).
+
+**Contoh.** Piutang penjamin lama Rp 800.000.000 dari 40 tagihan dimigrasikan sebagai 40 item berpenanda
+migrasi, masing-masing dengan mutasi pembuka. Jumlahnya dicocokkan dengan saldo awal AR Accounting
+Rp 800.000.000; bila cocok, batch disetujui dan dikunci. Penjamin membayar Rp 100.000.000 untuk dua tagihan:
+Finance mengalokasikannya seperti biasa dan mengirim `PENERIMAAN-PIUTANG`. Migrasi itu sendiri tidak
+mengirim apa pun ke Accounting.
+
+`FIN-OQ-064` **CLOSED** oleh `FIN-DEC-129`.
+
+| ID | Pertanyaan baru | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-065` | Apakah utang jasa medis lama (`FinMedicalServicePayable`) ikut dimigrasikan? Tabelnya belum terisi dan `BE-FIN-021` `BLOCKED` | Yasmin | `LATER SLICE` |
+| `FIN-OQ-066` | Mekanisme batch migrasi: bentuk impor, maker-checker persetujuan batch, siapa mengunci, dan bagaimana kegagalan sebagian ditangani. Perlu `/design-business-module` | Yasmin, lalu Accounting | `IMPLEMENTATION` `FIN-DEC-129`; G5/G6 |
+| `FIN-OQ-051` | **DIPERLUAS lagi**: penanda migrasi pada item dan batch migrasi kemungkinan menambah kolom/tabel | Yasmin | `IMPLEMENTATION` |
+
+### Kriteria penerimaan tambahan
+
+1. Item berpenanda migrasi tidak menulis baris outbox saat diposting (nol kejadian akuntansi).
+2. Batch migrasi dengan total sisa berbeda dari saldo awal Accounting **tidak dapat** disetujui atau dikunci.
+3. Setelah batch dikunci, item tidak dapat diubah nilai awalnya; perubahan hanya lewat penyesuaian normal.
+4. Pembayaran atas item migrasi menulis mutasi dan mengirim `PENERIMAAN-PIUTANG` seperti piutang biasa.
+5. Snapshot Piutang periode go-live sama dengan saldo awal Accounting ditambah mutasi sesudah go-live.
+
+---
+
+## Closure pass lanjutan — Pembayaran langsung utang supplier, 1 Oktober 2026
+
+**Pemicu.** Impact scan `01-existing-capability-map.md` §19 menemukan bahwa pembayaran langsung utang supplier
+bocor seperti pembayaran langsung piutang (`FIN-OQ-059`). Keputusan di bawah `approved` sisi Finance
+(Yasmin, 1 Oktober 2026), dijawab lewat `/grill-me`.
+
+**Batas scope.** *Di dalam:* aturan pembayaran langsung utang supplier dan efeknya ke Kas Kasir. *Di luar:*
+akun kredit kas atau bank (aturan posting Accounting), persetujuan berjenjang `FinPayment` yang sudah ada.
+
+### Fakta source (dibaca 1 Oktober 2026)
+
+| # | Fakta | Lokasi |
+|---|---|---|
+| F20 | Rekap kas harian memuat **pengeluaran kas** dalam rumusnya (`Opening + CashReceipt + OtherReceipt − Disbursement − BankDeposit`); nilainya diketik dari permintaan, bawaan `0` | `FinanceCashManagementService.cs:625-634` |
+| F21 | `FinPayment` sudah menyimpan `PaymentMethod` (`TRANSFER`/`CASH`) dan `BankAccountId` wajib; pembayaran langsung utang supplier menerima `bankAccountId`, `paymentMethod`, `notes` tetapi tidak menyimpannya | `FinPayment.cs:40,44,109-112`; `FinanceSupplierPayableService.cs:207-274` |
+
+### Keputusan
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-130` | Apakah pembayaran langsung utang supplier mengikuti aturan piutang? | **Ya, sama** (pilihan A). Mendukung tunai dan non-tunai, serta **menyimpan metode, sumber dana, catatan, dan bukti transaksi**. Setiap pembayaran langsung **MUST** menurunkan sisa utang dan menulis **satu mutasi** `FIN-DEC-123`. Metode `CASH` mengurangi Kas Kasir atau sumber kas terkait; metode `TRANSFER` mengurangi rekening bank sumber yang dipilih. **Metode dan sumber dana MUST diteruskan ke Accounting** agar akun kredit ditentukan eksplisit |
+| `FIN-DEC-131` | Jalur langsung vs `FinPayment` | **Tetap dibedakan berdasarkan kontrol.** Transaksi sederhana atau di bawah ambang tertentu boleh langsung; transaksi bernilai besar atau berisiko **MUST** lewat `FinPayment` dengan persetujuan berjenjang. Nilai ambang dan definisi "berisiko" belum ditetapkan (`FIN-OQ-071`) |
+| `FIN-DEC-132` | Koreksi rumus Kas Kasir | **Amandemen `FIN-DEC-125`/`127`**: rumus menjadi kas shift `CLOSED`/`REVIEWED` + penerimaan tunai langsung Finance **− pengeluaran kas tunai** (pembayaran supplier tunai, baik lewat `FinPayment` `CASH` maupun pembayaran langsung) − setoran bank `POSTED`/`VERIFIED`, sampai tanggal akhir periode (WIB). Menggantikan rumus tanpa pengeluaran pada `FIN-DEC-127`; pengeluaran **tidak lagi diketik manual** sebagai `DisbursementAmount` bebas pada snapshot kirim |
+
+`FIN-DEC-127` ditandai `superseded` **hanya pada rumusnya** oleh `FIN-DEC-132`; keputusan bahwa tunai langsung Finance
+adalah komponen Kas Kasir tetap berlaku.
+
+### Akibat yang MUST dijaga
+
+1. Jalur langsung dan jalur dokumen **MUST** menulis ke buku mutasi yang sama dan menghasilkan kejadian yang
+   memuat metode dan sumber dana, supaya Accounting tidak menebak akun kredit.
+2. Bukti transaksi mengikuti `FIN-OQ-068` (tempat penyimpanan belum diputuskan).
+3. `FIN-DEC-131` mengubah jalur langsung dari "bebas" menjadi **terbatas**; perilaku sekarang (tanpa batas) **MUST NOT** dipertahankan setelah diterapkan.
+
+### Contoh
+
+Staf membayar supplier Rp 750.000 tunai lewat jalur langsung, di bawah ambang. Finance menyimpan metode `CASH`,
+sumber kas, catatan, dan foto bukti; menurunkan sisa utang Rp 750.000; menulis satu mutasi; mengurangi Kas Kasir
+Rp 750.000 pada tanggal WIB hari itu; dan mengirim `PEMBAYARAN-HUTANG-SUPPLIER` membawa metode `CASH`. Pembayaran
+Rp 80.000.000 ke supplier yang sama, di atas ambang, ditolak di jalur langsung dan harus lewat `FinPayment`
+dengan persetujuan berjenjang.
+
+### Open question
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-067` | **CLOSED** oleh `FIN-DEC-130` | — | — |
+| `FIN-OQ-071` | Nilai ambang jalur langsung, definisi "berisiko" (mis. supplier baru, rekening baru), dan siapa yang menetapkannya. Apakah ambang sama untuk piutang | Yasmin; persetujuan berjenjang bila perlu | `DESIGN` `FIN-DEC-131` |
+| `FIN-OQ-072` | "Kas Kasir/cash source terkait": pembayaran tunai mengurangi **Kas Kasir** atau **Kas Kecil** (atau sumber kas lain)? Pengeluaran tunai bernilai kecil biasanya lewat kas kecil | Yasmin, lalu Accounting | `DESIGN` `FIN-DEC-132` |
+| `FIN-OQ-073` | Pembayaran `TRANSFER` mengurangi "rekening bank sumber": apakah Finance perlu mencatat saldo per rekening bank, atau cukup meneruskan identitas rekening ke Accounting? | Yasmin, lalu Accounting | `DESIGN` `FIN-DEC-130` |
+
+### Kriteria penerimaan tambahan
+
+1. Pembayaran langsung utang supplier tanpa metode atau tanpa sumber dana ditolak dengan pesan jelas.
+2. Pembayaran langsung tunai menurunkan Kas Kasir sebesar nilainya pada tanggal WIB kejadian.
+3. Pembayaran langsung melewati ambang ditolak dan diarahkan ke `FinPayment`.
+4. Setiap pembayaran langsung menulis tepat satu baris mutasi dan satu kejadian yang membawa metode dan sumber dana.
+5. Pembayaran `FinPayment` tunai juga mengurangi Kas Kasir; tidak ada `DisbursementAmount` yang bisa diketik bebas pada snapshot.
+
+### Penutup `FIN-OQ-072`
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-133` | Pembayaran tunai ke supplier mengurangi Kas Kasir atau Kas Kecil? | **Selalu Kas Kasir** (pilihan A, Yasmin 1 Oktober 2026). Pembayaran supplier tunai, baik jalur langsung maupun `FinPayment` `CASH`, mengurangi Kas Kasir. **Kas Kecil hanya lewat mekanisme voucher kas kecil yang sudah ada** (anggaran, kategori, voucher); pembayaran supplier **MUST NOT** memotong anggaran kas kecil. Modul Kas Kecil tidak diubah. Menegaskan `FIN-DEC-132` |
+
+`FIN-OQ-072` **CLOSED** oleh `FIN-DEC-133`. Konsekuensi yang diterima: pembayaran supplier kecil yang selama ini lewat kas kecil
+tidak otomatis dikurangkan dari anggaran itu; staf memakai voucher kas kecil bila memang ingin memakainya.
+
+### Penutup `FIN-OQ-071`
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-134` | Bagaimana ambang jalur langsung ditetapkan? | **Satu ambang rupiah tetap, bisa diubah oleh pejabat berwenang, berlaku sama untuk utang dan piutang** (pilihan A, Yasmin 1 Oktober 2026). Perubahan ambang **MUST** membawa alasan dan jejak. Pembayaran di atas ambang **MUST** diarahkan ke `FinPayment` dengan persetujuan berjenjang. Kriteria "berisiko" (supplier atau rekening baru, pembayaran berulang) **tidak** dipakai pada rilis ini; pilihan B ditolak. Menjawab `FIN-DEC-131` |
+
+`FIN-OQ-071` **CLOSED** oleh `FIN-DEC-134`. Diterima sadar: pembayaran yang dipecah-pecah di bawah ambang tidak otomatis tertangkap;
+mitigasinya hanya jejak mutasi `FIN-DEC-123` dan laporan, bukan blokir otomatis.
+
+| ID | Pertanyaan baru | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-074` | **Nilai awal ambang** (angka rupiah) dan siapa pejabat berwenang yang boleh mengubahnya. Belum disebut pada jawaban | Yasmin | `DESIGN` `FIN-DEC-134` (data konfigurasi, bukan kode) |
+
+Kriteria penerimaan tambahan: (1) pembayaran langsung di atas ambang ditolak dan diarahkan ke `FinPayment`; (2) perubahan ambang tanpa alasan
+ditolak dan meninggalkan jejak; (3) ambang yang sama berlaku pada pembayaran langsung piutang dan utang.
+
+### Penutup `FIN-OQ-068`
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-135` | Di mana bukti pembayaran disimpan? | **Finance membuat layanan penyimpanan bukti sendiri** (pilihan A, Yasmin 1 Oktober 2026), memakai pola dan konfigurasi unggah yang sudah ada (`FileStorage:UploadRootPath`, `UseStaticFiles`). **Bukan** memakai kelas HR (`WorkflowFileStorageService` dan sejenisnya) dan **bukan** `FinReceivableDocument`. Satu tabel metadata bukti (jenis, nama berkas, ukuran, jalur simpan, pengunggah) terikat ke mutasi pembayaran. Berlaku untuk pembayaran langsung piutang (`FIN-DEC-126`) dan utang (`FIN-DEC-130`) |
+
+`FIN-OQ-068` **CLOSED** oleh `FIN-DEC-135`. Akibat: migration tabel metadata masuk `FIN-OQ-051`; prefix tabel **MUST** didaftarkan lebih dulu
+di `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` (`QBE-MOD-003`); bila kelak Platform membuat layanan bersama, Finance yang memigrasikan.
+
+| ID | Pertanyaan baru | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-075` | Aturan berkas bukti: jenis dan ukuran yang diterima, lama simpan, siapa boleh melihat dan menghapus, dan apakah bukti boleh diganti setelah pembayaran terkunci | Yasmin | `DESIGN` `FIN-DEC-135` |
+
+Kriteria penerimaan tambahan: (1) pembayaran langsung tanpa bukti ditolak; (2) berkas di luar jenis atau ukuran yang ditetapkan ditolak;
+(3) bukti terikat ke tepat satu mutasi dan tidak dapat dikaitkan ke pembayaran lain; (4) penyimpanan tidak memakai kelas atau tabel milik HR.
+
+### Penutup `FIN-OQ-070`
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-136` | Dari mana data migrasi berasal dan bagaimana masuk? | **Spreadsheet standar yang disiapkan staf Finance dari sistem lama, diunggah, divalidasi, lalu diposting lewat persetujuan batch** (pilihan A, Yasmin 1 Oktober 2026). Finance menetapkan **satu templat per jenis** (piutang dan utang supplier). Sistem memeriksa baris dan total **sebelum** posting; batch hanya dapat disetujui dan dikunci setelah total cocok dengan saldo awal AR/AP Accounting (`FIN-DEC-129`). Menjawab sebagian `FIN-OQ-066` (bentuk impor) |
+
+`FIN-OQ-070` **CLOSED** oleh `FIN-DEC-136`. Yang tersisa pada `FIN-OQ-066`: persetujuan batch berjenjang (maker-checker), siapa mengunci, dan perilaku kegagalan sebagian.
+
+| ID | Pertanyaan baru | Pemilik | Memblokir |
+|---|---|---|---|
+| `FIN-OQ-076` | Jumlah kira-kira tagihan lama yang dimigrasikan (belum disebut), untuk menentukan ukuran batch, batas baris per unggahan, dan perilaku kegagalan sebagian | Yasmin | `DESIGN` `FIN-DEC-136` |
+| `FIN-OQ-077` | **Persetujuan penambahan paket pembaca spreadsheet.** Proyek tidak punya satu pun; AGENTS.md melarang penambahan atau perubahan package tanpa wewenang eksplisit pada task. Pilihan paket dan lisensinya ditentukan pada tahap desain | Yasmin | `IMPLEMENTATION` `FIN-DEC-136` |
+
+Kriteria penerimaan tambahan: (1) baris yang tidak lolos validasi tidak ikut diposting dan ditunjukkan per baris; (2) batch dengan total berbeda dari saldo awal
+Accounting tidak dapat disetujui; (3) unggahan ulang batch yang sama tidak menggandakan item; (4) migrasi tidak menulis baris outbox (`FIN-DEC-129`).
+
+### Penutup `FIN-OQ-073`
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-137` | Apakah Finance mencatat saldo per rekening bank? | **Tidak** (pilihan A, Yasmin 1 Oktober 2026). Finance menyimpan **master rekening** serta **identitas rekening sumber/tujuan** pada transaksi seperti pembayaran supplier dan setoran bank. Rekening, metode pembayaran, nominal, tanggal, dan referensi transaksi **diteruskan ke Accounting**. Saldo rekening bank, jurnal akun bank, dan rekonsiliasi rekening koran **tetap tanggung jawab Accounting**. Rekening bank **tidak** menjadi control account Finance dan **tidak** dikirim sebagai `SALDO-SUBLEDGER` |
+
+**Penafsiran yang mengikat.** Frasa "mengurangi rekening bank" pada `FIN-DEC-130` berarti rekening itu **sumber dana transaksi**, bukan Finance menghitung
+saldo berjalan rekening tersebut. `FIN-DEC-130` diperjelas, tidak digantikan.
+
+`FIN-OQ-073` **CLOSED** oleh `FIN-DEC-137`.
+
+Kriteria penerimaan tambahan: (1) pembayaran `TRANSFER` tanpa rekening sumber ditolak; (2) kejadian `PEMBAYARAN-HUTANG-SUPPLIER` bermetode `TRANSFER`
+membawa identitas rekening sumber; (3) tidak ada baris `SALDO-SUBLEDGER` untuk rekening bank.
+
+### Status akhir closure pass 1 Oktober 2026 (`FIN-DEC-118`..`137`)
+
+Seluruh keputusan bisnis yang diketahui menahan desain **sudah tertutup sisi Finance**. Yang tersisa adalah data konfigurasi, aturan rinci
+yang ditetapkan pada tahap desain, konfirmasi wewenang (migration, paket), dan persetujuan Accounting:
+
+| Kelompok | ID | Sifat |
+|---|---|---|
+| Wewenang | `FIN-OQ-051` | Konfirmasi migration (pemetaan akun control, buku mutasi, saldo awal Kas Kasir, penanda dan batch migrasi, metadata bukti, ambang) |
+| Wewenang | `FIN-OQ-077` | Penambahan paket pembaca spreadsheet |
+| Data konfigurasi | `FIN-OQ-074`, `076` | Angka awal ambang; jumlah tagihan lama |
+| Aturan rinci tahap desain | `FIN-OQ-066`, `075` | Maker-checker batch migrasi; aturan berkas bukti |
+| Tidak memblokir | `FIN-OQ-057`, `065`, `069` | Saldo negatif selain Kas Kasir; utang jasa medis lama; piutang sewa lama |
+| Milik Accounting | `FIN-OQ-045`, `047`, `048` | Persetujuan `FIN-DEC-111`, kode `PEMBUKAAN-SHIFT-KASIR`, konvensi WIB |
+| Dikirim dalam surat | `evidence/22` | Belum ditulis; **MUST** memuat janji bersyarat G4 (`FIN-DEC-118`) |
+
+---
+
+## Addendum — Approval desain revisi 14 dan jawaban `FIN-OQ-051`, 1 Oktober 2026
+
+**Pemicu.** Owner meninjau hasil `/design-business-module` revisi 14 dan menjawab gerbang wewenang
+migration yang dibuka pass itu.
+
+### Approval desain
+
+| Hal | Keadaan |
+|---|---|
+| `FIN-DES-078`..`FIN-DES-091` | **`approved`** 1 Oktober 2026 oleh Yasmin lewat pernyataan langsung "Saya setujui FIN-DES-078...091" |
+| Tujuh kontrak turunan (`FIN-API-1.5`, `FIN-INTEGRATION-1.7`, `FIN-STATE-1.6`, `FIN-VAL-1.7`, `FIN-PERM-1.7`, `FIN-TEST-1.8`, `FIN-MVP-1.9`) | **Ikut terangkat**, mengikuti preseden `status_note_revision_7`: bagian kontrak yang lahir dari pass desain yang sama ikut naik bersama approval keputusan arsitekturnya. Dicatat apa adanya; bila owner bermaksud lebih sempit, **MUST** dikoreksi |
+
+### Keputusan
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-138` | `FIN-OQ-051` — wewenang migration revisi 14 | **Pembuatan berkas migration DIIZINKAN**, dengan syarat berkasnya **sesuai `ApplicationDbContextModelSnapshot`** — yaitu dihasilkan dari perubahan model, bukan ditulis tangan menyimpang dari snapshot. **Penerapan ke database TETAP milik Yasmin**; agent **MUST NOT** menjalankan migration, `dotnet ef database update`, maupun eksekusi SQL ke database mana pun. Jawaban eksplisit owner: *"bisa membuat file migration yg sesuai DbSnapshot. tpi untuk aplikasi ke database, yg lakukan adalah saya."* |
+
+`FIN-OQ-051` **CLOSED** oleh `FIN-DEC-138`.
+
+### Batas yang MUST dijaga
+
+| Batas | Isi |
+|---|---|
+| Yang diizinkan | Membuat berkas migration di `Migrations/` beserta pasangan `.Designer.cs` dan pembaruan `ApplicationDbContextModelSnapshot.cs` yang konsisten |
+| Yang **TIDAK** diizinkan | Menjalankan migration, memperbarui database, menjalankan SQL langsung, maupun menyentuh database di luar lingkungan pengembangan Yasmin |
+| Kapan migration dibuat | **Di dalam task yang disetujui dari roadmap**, lewat `build-module-backend` — bukan sebagai pekerjaan lepas. Setiap task membawa migration-nya sendiri |
+| Migration nomor 3 dan 4 | Milik `EPIC FIN-23` dan `EPIC FIN-24` yang berstatus **`OPEN DECISION`** dan di luar seluruh gelombang. Keduanya **tidak akan dibuat** sampai `FIN-OQ-075` dan `FIN-OQ-077` dijawab dan epic-nya masuk gelombang. Ini akibat disiplin roadmap, **bukan** batasan tambahan atas `FIN-DEC-138` |
+| Urutan index migration nomor 4 | Pilihan antara `CREATE INDEX CONCURRENTLY` di luar transaksi atau membuat index bernama lain lebih dulu **tetap keputusan pemilik repository**, diambil bersama task yang menjalankannya — bukan sekarang |
+
+### Akibat langsung
+
+1. **`/plan-module-delivery` terbuka.** Satu-satunya gerbang yang menahannya (`FIN-OQ-051`) sudah tertutup.
+2. `MVP-14A` dan `MVP-14B` dapat direncanakan menjadi task bernomor.
+3. Setiap laporan task yang membuat migration **MUST** menyatakan bahwa migration itu **belum dijalankan**, dan menyebut langkah yang Yasmin perlu jalankan sendiri.
+
+---
+
+## Closure pass — Penutupan `FIN-OQ-075` dan `FIN-OQ-077`, 1 Oktober 2026
+
+**Pemicu.** Kedua gerbang ini menahan `EPIC FIN-23` dan `EPIC FIN-24` seluruhnya. Owner menjawab
+keduanya sesudah surat `evidence/22` terkirim. Keputusan di bawah `approved` sisi Finance
+(Yasmin, 1 Oktober 2026).
+
+**Batas scope pass ini.** *Di dalam:* aturan berkas bukti pembayaran Finance, dan format berkas
+migrasi beserta wewenang paket yang dibutuhkannya. *Di luar:* kebijakan retensi dokumen keuangan
+rumah sakit secara umum (bukan milik modul ini), dan mekanisme hak akses per pemilik transaksi
+(milik Platform).
+
+### Fakta source yang mendasari (dibaca 1 Oktober 2026)
+
+| # | Fakta | Lokasi |
+|---|---|---|
+| F21 | Repository sudah punya aturan berkas yang mapan: wajib ada, tidak boleh kosong, batas ukuran, nama berkas maksimal 255 karakter, ekstensi wajib, daftar ekstensi terlarang, dan daftar ekstensi diizinkan | `WorkflowFileStorageService.ValidateFile`, baris 248-288 |
+| F22 | Daftar yang sudah dipakai **dua** layanan: `.pdf`, `.jpg`, `.jpeg`, `.png`; tipe media `application/pdf`, `image/jpeg`, `image/png` | Dua layanan unggah HR |
+| F23 | Daftar ekstensi dapat dikonfigurasi per fitur, pola `<Modul>:<Fitur>:AllowedExtensions` | `ResolveAllowedExtensions()` |
+| F24 | Akar penyimpanan sudah berjalan: `FileStorage:UploadRootPath` bernilai `Storage/uploads` | `appsettings.json:58-59` |
+| F25 | **Nol paket pembaca spreadsheet** terpasang. Yang ada hanya `SixLabors.ImageSharp` dan `QRCoder` | `QuilvianSystemBackend.csproj` |
+
+### Keputusan
+
+| ID | Pertanyaan | Keputusan |
+|---|---|---|
+| `FIN-DEC-139` | `FIN-OQ-075` — aturan berkas bukti pembayaran | **Mengikuti preseden yang sudah berlaku di repository** (pilihan A). Rinciannya di bawah |
+| `FIN-DEC-140` | `FIN-OQ-077` — format berkas migrasi dan paket pembacanya | **Dua format didukung: CSV dan XLSX** (jawaban owner: *"bisa pakai csv dan xlsx"*). CSV dibaca dengan kemampuan bawaan .NET; XLSX menuntut **satu** paket pembaca, dan wewenang penambahannya **DIBERIKAN** dengan batas di bawah. Memperjelas `FIN-DEC-136` yang semula hanya menulis "spreadsheet standar" |
+
+### `FIN-DEC-139` — rincian aturan berkas bukti
+
+| Hal | Aturan |
+|---|---|
+| Jenis yang diterima | `.pdf`, `.jpg`, `.jpeg`, `.png` — sama dengan dua layanan unggah yang sudah berjalan. Tipe media diperiksa, bukan hanya ekstensinya |
+| Tempat daftarnya | **Konfigurasi**, bukan tertanam di kode: `FinanceManagement:TransactionProof:AllowedExtensions`, mengikuti pola `<Modul>:<Fitur>:AllowedExtensions` yang sudah ada |
+| Batas ukuran | Dari konfigurasi, bukan angka tertanam di kode. **Nilai awalnya belum ditetapkan** (`FIN-OQ-082`) |
+| Pemeriksaan lain | Berkas wajib ada dan tidak kosong; nama maksimal 255 karakter; ekstensi wajib; daftar terlarang tetap ditegakkan; jalur simpan **MUST** divalidasi berada di bawah akar penyimpanan |
+| Lama simpan | **Sistem tidak pernah menghapus bukti otomatis.** Retensinya mengikuti kebijakan dokumen keuangan rumah sakit, dan penghapusannya keputusan tersendiri di luar modul ini |
+| Penggantian bukti | **Tidak dapat diganti** setelah baris mutasi tertulis. Koreksi dilakukan dengan **membalik pembayarannya lalu mencatat ulang** — pola "tidak pernah mengubah, selalu menambah baris" yang berlaku di seluruh blueprint ini |
+| Penghapusan | Hanya penandaan (`IsDelete`), mengikuti `IdentityModel`. Berkas fisiknya **tidak** dihapus bersamaan |
+| Akses | Siapa pun yang memegang `FinanceTransactionProof : Read`, **tanpa** pembatasan per pemilik transaksi pada rilis pertama |
+
+**Batas yang diterima sadar, dan MUST disampaikan saat menyerahkan modul.** Staf AR/AP yang memegang
+hak baca dapat melihat bukti pembayaran transaksi yang bukan miliknya. Pembatasan per pemilik
+menuntut mekanisme hak akses yang belum dimiliki platform, dan menambahkannya akan menahan
+`EPIC FIN-23` lagi. Mitigasi yang ada: jalur unduh dijaga hak akses, dan isi berkas **MUST NOT**
+dicatat logger.
+
+### `FIN-DEC-140` — rincian dukungan dua format dan batas wewenang paket
+
+| Hal | Aturan |
+|---|---|
+| Format yang diterima | **CSV dan XLSX**, keduanya pada satu endpoint unggah yang sama |
+| Pembaca CSV | Kemampuan bawaan .NET; **nol** paket baru |
+| Pembaca XLSX | **Satu** paket, wewenang penambahannya diberikan owner |
+| Lisensi paket | **MUST** permisif. `ClosedXML` (MIT) memenuhi syarat. **`EPPlus` versi 5 dan sesudahnya DILARANG** — lisensinya berubah menjadi komersial, dan memakainya memasukkan kewajiban lisensi ke sistem rumah sakit |
+| Jumlah paket | **Tepat satu.** Dua pembaca XLSX sekaligus **MUST NOT** ditambahkan |
+| Bentuk kode | Pembacanya **MUST** berupa lapisan terpisah di balik satu antarmuka yang memulangkan baris terurai. Validasi per baris (`FIN-VAL-186`..`191`) bekerja di atas baris terurai itu, **bukan** di atas berkasnya — sehingga aturan validasinya **tunggal** untuk kedua format |
+| Templat | **Dua berkas templat** yang isinya setara, satu per format. Keduanya **MUST** dijaga sinkron; kolom yang berbeda antara keduanya adalah cacat |
+| Wewenang per task | Penambahan paket **MUST** dinyatakan eksplisit pada task yang membawanya, mengikuti `AGENTS.md`. Keputusan ini memberi wewenangnya **secara prinsip**; task tetap menyatakannya sendiri |
+
+**Risiko yang MUST dijaga, dan ia lahir langsung dari mendukung dua format.** Staf hampir pasti
+memakai salah satu saja, sehingga jalur yang lain menjadi jalur yang jarang terpakai dan jarang
+teruji. Karena itu:
+
+1. Kedua jalur **MUST** diuji dengan berkas contoh yang isinya sama, dan keduanya **MUST**
+   menghasilkan baris terurai yang identik.
+2. CSV **MUST** menetapkan satu format angka dan tanggal pada templatnya. Excel di lokal Indonesia
+   menulis `1.500.000,00`, dan baris yang tidak sesuai format **MUST** ditolak beserta nomor
+   barisnya — bukan ditebak.
+3. XLSX membawa sel bertipe, sehingga tanggal dan angkanya tidak ambigu. Itu justru membuat kedua
+   jalur punya **bentuk kegagalan yang berbeda**, dan keduanya perlu kasus ujinya sendiri.
+
+### Akibat yang MUST dijaga
+
+1. **`EPIC FIN-23` tidak lagi `OPEN DECISION`.** `FIN-OQ-075` tertutup, sehingga satu-satunya yang
+   tersisa adalah nilai awal batas ukuran berkas — data konfigurasi, bukan keputusan desain.
+2. **`EPIC FIN-24` tidak lagi `OPEN DECISION`.** `FIN-OQ-077` tertutup.
+3. **`04-prd-to-mvp.md` bagian 47, 48, dan 51 kini STALE.** Keduanya masih menyatakan kedua epic
+   `OPEN DECISION` dan di luar seluruh gelombang. **MUST** diperbarui lewat pass desain, bukan
+   di sini.
+4. **`roadmap/00`, `01`, dan `02` kini STALE** pada bagian REV-14: keduanya mencatat kedua epic
+   tanpa task. **MUST** diperbarui lewat `/plan-module-delivery` lanjutan.
+5. `FIN-DEC-136` diperjelas `FIN-DEC-140`, **tidak** digantikan: jalannya tetap spreadsheet yang
+   diunggah, divalidasi, lalu disetujui per batch.
+6. Endpoint templat (`GET /opening-item-batches/template`) kini butuh ruas format selain `itemKind`.
+   Perubahan kontraknya **MUST** digambar pass desain, bukan diputuskan di sini.
+
+### Contoh
+
+Staf menyiapkan 120 tagihan piutang lama di Excel lalu mengunggahnya sebagai `.xlsx`. Sistem
+membacanya menjadi 120 baris terurai, memvalidasi masing-masing, dan menolak tiga baris yang
+tanggal dokumennya melewati tanggal cutover beserta nomor barisnya. Staf memperbaiki ketiganya,
+mengunggah ulang, lalu menyatakan saldo awal AR dari dokumen Accounting. Karena totalnya cocok,
+batch disetujui dan dikunci. Bila staf yang sama menyimpan berkasnya sebagai `.csv`, hasil
+terurainya **wajib identik** — itu kriteria penerimaan tersendiri.
+
+Untuk pembayaran langsung: petugas memotret kuitansi dengan ponsel, menghasilkan `.jpg` berukuran
+di bawah batas konfigurasi. Berkas tersimpan, `ProofId` terbit, pembayaran dicatat, dan satu baris
+mutasi membawa `ProofId` itu. Bila nominalnya salah, petugas **tidak** mengganti buktinya —
+pembayarannya dibalik, lalu dicatat ulang beserta bukti baru.
+
+### Open question
+
+| ID | Status | Keterangan |
+|---|---|---|
+| `FIN-OQ-075` | **CLOSED** oleh `FIN-DEC-139` | — |
+| `FIN-OQ-077` | **CLOSED** oleh `FIN-DEC-140` | — |
+| `FIN-OQ-081` | **BARU** | Nama dan versi paket pembaca XLSX yang dipakai. `ClosedXML` (MIT) adalah usulan; `EPPlus` v5+ **dilarang**. Dikonfirmasi pada task yang membawanya, mengikuti `AGENTS.md`. Pemilik: Yasmin. Memblokir `IMPLEMENTATION` bagian XLSX saja — bagian CSV, validasi, dan batch tidak tertahan |
+| `FIN-OQ-082` | **BARU** | Nilai awal batas ukuran berkas bukti. Data konfigurasi; tanpa nilainya, unggah **ditolak fail-closed**. Pemilik: Yasmin. Tidak memblokir `DESIGN` |
+| `FIN-OQ-074`, `076` | **TERBUKA** | Angka ambang; jumlah tagihan lama. Keduanya data konfigurasi |
+| `FIN-OQ-045`, `047`, `048` | **TERBUKA**, milik Accounting | Diminta lewat `evidence/22` yang sudah terkirim |
+| `FIN-OQ-079`, `080` | **TERBUKA** | Penempatan menu; apakah ambang ditampilkan kepada staf |
+| `FIN-OQ-057`, `065`, `069`, `078` | **TERBUKA** | Tidak memblokir |
+
+### Kriteria penerimaan tambahan
+
+1. Berkas bukti ber-ekstensi di luar daftar konfigurasi ditolak beserta pesan yang dapat dipahami.
+2. Berkas bukti yang ekstensinya lolos tetapi tipe medianya tidak cocok **ditolak**.
+3. Tanpa nilai batas ukuran pada konfigurasi, unggah bukti **ditolak** — bukan dianggap tak terbatas.
+4. Bukti yang sudah terpakai satu mutasi tidak dapat dipakai mutasi lain, dan **tidak dapat diganti**.
+5. Jalur simpan yang mengarah keluar akar penyimpanan ditolak.
+6. Berkas migrasi CSV dan XLSX yang isinya sama menghasilkan baris terurai yang **identik**.
+7. CSV dengan format angka yang tidak sesuai templat ditolak beserta **nomor barisnya**, bukan ditebak.
+8. Templat CSV dan XLSX memiliki kolom yang sama persis.
+9. Tepat **satu** paket pembaca XLSX terpasang pada `QuilvianSystemBackend.csproj`.
+
+
+---
+
+## Amendment pass — Keputusan dari pembangunan `FE-FIN-027`..`032`: ambang, saldo awal, batch migrasi, selisih kas, dan menu, 4 Oktober 2026
+
+**Pemicu.** Antara 2 dan 4 Oktober 2026 layar `FE-FIN-027`..`032` dan perubahan backend `BE-FIN-084`/`085`
+dibangun. Pembangunan itu menemukan selisih antara kontrak dan source, dan sebagian sudah diputuskan owner
+langsung di sesi build. Pass ini mencatat semuanya sebagai keputusan bernomor dan menutup sisanya lewat
+wawancara. Seluruh keputusan di bawah `approved` sisi Finance (Yasmin).
+
+**Mode.** `Amendment pass`. Blueprint `FIN-BP-001` revisi 15 sudah disetujui, sehingga histori approval
+tidak ditimpa. Nomor revisi blueprint **tidak** dinaikkan di sini; itu pekerjaan pass desain.
+
+**Source SHA saat pass ini.** Backend `5d6bb8bf`, frontend `ae2ed334e`; keduanya working tree bersih.
+`01-existing-capability-map.md` masih pada backend `09101d05` / frontend `49b59cfaa`, sehingga **berpotensi
+basi** untuk bagian yang disentuh `FE-FIN-027`..`032`. Pass ini tidak bergantung padanya: yang ditanyakan
+adalah aturan bisnis, dan fakta source dibaca langsung dari kode.
+
+### Batas scope pass ini
+
+*Di dalam:* pencatatan empat keputusan owner yang belum bernomor; `EffectiveFrom` dan `RowVersion` pada
+ambang pembayaran langsung; `FIN-OQ-079`, `080`, `081`; nama pelaku pada layar ambang dan batch migrasi;
+perilaku selisih kas bila periode belum punya rekap kas harian.
+
+*Di luar (dan sengaja tidak dikejar):*
+
+| Hal | Pemilik |
+|---|---|
+| Pemberian hak akses kepada pengguna dan peran (termasuk apakah peran staf AR/AP diberi `MstDirectPaymentThreshold : Read`) | Admin dan Platform |
+| Penempatan menu di luar Finance | Platform dan UI global |
+| Nilai angka ambang (`FIN-OQ-074`), jumlah tagihan lama (`FIN-OQ-076`), batas ukuran berkas bukti (`FIN-OQ-082`) | Data konfigurasi |
+| Pertanyaan milik Accounting (`FIN-OQ-045`, `047`, `048`) | Accounting |
+| Siapa yang boleh memperbarui kontrak dan roadmap saat sebuah task selesai | Repository `QuilvianEngineeringSkills` |
+
+### Fakta source yang mendasari (dibaca 3–4 Oktober 2026)
+
+| # | Fakta | Lokasi |
+|---|---|---|
+| F26 | `EffectiveFrom` pada ambang disimpan, tetapi pemeriksaan pembayaran langsung piutang dan utang **tidak membacanya** | `FinanceReceivableService` baris 760, `FinanceSupplierPayableService` baris 303 |
+| F27 | `MstDirectPaymentThreshold` tidak punya penanda versi; `PUT` menimpa baris aktif tanpa memeriksa apa pun | `DirectPaymentThresholdService.UpdateAsync` |
+| F28 | `GET` ambang terbuka bagi pemegang `MstDirectPaymentThreshold : Read`; layar saat ini sementara hanya untuk pemegang `Read` **dan** `Update` | `DirectPaymentThresholdController`; `FE-FIN-031` |
+| F29 | Respons ambang (`LastChangedBy`) dan batch migrasi (`ApprovedBy`) hanya memuat ID pengguna, tanpa nama | `DirectPaymentThresholdDtos.cs`, `OpeningItemBatchDtos.cs` |
+| F30 | Periode tanpa rekap kas harian: saldo penutupan **0**, tanggal rekap kosong, dan `HasVariance = true` | `FinanceSubledgerBalanceCalculator.CalculateCashVarianceAsync` |
+| F31 | Nol paket pembaca XLSX terpasang; unduh templat dan unggah XLSX dijawab `503` | `FinanceOpeningItemBatchesController`, `FinanceOpeningItemBatchService` |
+| F32 | Permintaan setujui dan kunci saldo awal menerima `Notes` yang tidak pernah disimpan | `BE-FIN-066`, dihapus `BE-FIN-084` |
+| F33 | Batas bawah nominal mutasi kas dilonggarkan khusus `SALDO-AWAL` bernilai nol oleh migration `RelaxFinCashMovementAmountForZeroOpeningBalance`, sudah diterapkan owner | `BE-FIN-084` |
+| F34 | Endpoint `POST /opening-item-batches/{id}/reupload` sudah ada di source tetapi belum ada pada `api-contract.md` | `BE-FIN-085` |
+
+### Keputusan
+
+`FIN-DEC-141`..`144` dinyatakan langsung oleh owner pada sesi build 3 Oktober 2026 dan dicatat di sini
+tanpa ditanyakan ulang. `FIN-DEC-145`..`152` diputuskan interaktif lewat `/grill-me` 4 Oktober 2026.
+
+| ID | Pertanyaan | Keputusan | Dasar |
+|---|---|---|---|
+| `FIN-DEC-141` | Apakah permintaan setujui dan kunci saldo awal menerima catatan? | **Tidak.** `Notes` dihapus dari kedua permintaan karena tidak pernah disimpan. Memperjelas `FIN-DEC-128` | Pernyataan owner 3 Oktober 2026; `BE-FIN-084` |
+| `FIN-DEC-142` | Apakah layar saldo awal menampilkan nama penyetuju? | **Ya.** Respons saldo awal memuat `ApprovedByName` | Pernyataan owner 3 Oktober 2026; `BE-FIN-084` |
+| `FIN-DEC-143` | Apakah penguncian saldo awal Kas Kasir yang bernilai nol meninggalkan mutasi kas? | **Ya, selalu satu mutasi `SALDO-AWAL`, termasuk bernilai nol.** `FIN-VAL-168` diberi **satu pengecualian sempit**: hanya jenis `SALDO-AWAL` boleh nol. Nilai negatif tetap ditolak untuk semua jenis; jenis lain tetap harus lebih besar dari nol. Pengecualian dijaga di service **dan** di batasan basis data | Pernyataan owner 3 Oktober 2026; `BE-FIN-084`, migration diterapkan owner |
+| `FIN-DEC-144` | Bagaimana petugas memperbaiki berkas batch yang bergalat? | **Berkas batch yang masih Draf dapat diunggah ulang** pada batch yang sama (`DRAFT` → `DRAFT`, hak `Update`). Hasil validasi lama dibuang; saldo awal Accounting yang sudah dinyatakan **dipertahankan**; jenis item tidak dapat diganti; batch `VALIDATED`, `APPROVED`, `LOCKED`, `REJECTED` tidak dapat diunggah ulang (`409`) | Pernyataan owner 3 Oktober 2026; `BE-FIN-085`; menegaskan baris "Mengunggah ulang berkas" pada `FIN-STATE-1.6` F.2 |
+| `FIN-DEC-145` | Kapan ambang baru berlaku, dan apa nasib kolom tanggal berlaku? | **Selalu berlaku seketika.** Tanggal berlaku **dicabut dari kontrak** dan dari permintaan ubah ambang. Tidak ada perubahan ambang terjadwal, sejalan dengan `FIN-DES-086` yang menolak tabel riwayat. Memperjelas `FIN-DEC-134` | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-146` | Apa yang terjadi bila dua pejabat mengubah ambang bersamaan? | **Penyimpanan yang kalah ditolak** dan diminta memuat ulang. Ambang mendapat penanda versi; permintaan ubah wajib membawanya, **kecuali** penetapan ambang pertama kali karena belum ada baris | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-147` | `FIN-OQ-080` — apakah staf AR/AP boleh tahu angka ambang? | **Ya, angka ambang ditampilkan kepada staf AR/AP.** Jawaban ini **berbeda dari rekomendasi agent** (menyembunyikan angka dan mengunci `GET`); keputusan owner berlaku. Akibatnya: layar pembayaran langsung menampilkan angkanya; layar master ambang dapat dibuka pemegang `Read` dan hanya pemegang `Update` yang melihat kendali ubah; risiko pembayaran dipecah di bawah ambang tetap **diterima sadar** (`FIN-DEC-134`) | Jawaban owner |
+| `FIN-DEC-148` | `FIN-OQ-079` — di mana layar-layar baru Finance ditempatkan pada menu? | **Submenu baru "Cutover & Subledger"** pada grup Keuangan, memuat Pemetaan Akun Control, Saldo Awal Cutover, dan Batch Migrasi Tagihan Lama. **Ambang Pembayaran Langsung** masuk submenu **Master Data** yang sudah ada. **Buku Kas** dan **riwayat mutasi piutang/utang** dicapai dari layar kas dan detail piutang/utang, tanpa butir menu sendiri. Menu Transaksi A/R dan A/P (`FIN-DEC-094`) **tidak berubah** | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-149` | `FIN-OQ-081` — paket pembaca XLSX | **Ditunda: rilis pertama CSV saja.** Pembaca XLSX (`BE-FIN-083`) menjadi pekerjaan slice berikutnya. Nama dan versi paket **belum dikonfirmasi** (`ClosedXML` MIT tetap usulan; `EPPlus` v5+ tetap dilarang). `FIN-DEC-140` diperjelas, **tidak** digantikan: dua format tetap tujuan, tetapi XLSX tidak ikut rilis pertama. Jawaban ini **berbeda dari rekomendasi agent** | Jawaban owner |
+| `FIN-DEC-150` | Apa yang ditawarkan pemilih berkas unggah selama XLSX ditunda? | **Hanya CSV.** XLSX kembali ditawarkan ketika pembacanya ada. Pilihan XLSX pada unduh templat tetap nonaktif. Berkas XLSX yang tetap dipaksa masuk ditolak `503` dengan pesan jelas. Menunda bagian kontrak `FIN-API-1.6` F.2 "satu pemilih menerima CSV dan XLSX" | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-151` | Apakah layar ambang dan batch migrasi menampilkan nama pelaku? | **Ya, untuk keduanya.** Respons ambang memuat nama pengubah terakhir; respons batch memuat nama penyetuju. Nama terlihat oleh siapa pun yang boleh membaca layar itu | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-152` | Apa yang dinyatakan API perbandingan kas bila periode belum punya rekap kas harian? | **Dinyatakan eksplisit.** Saldo penutupan dan selisih **kosong** (bukan nol), `HasVariance` bernilai salah, dan ada penanda **belum ada rekap**. Menggantikan perilaku saat ini (nol dan selisih palsu) | Jawaban owner, rekomendasi dipilih |
+
+### Rincian dan contoh
+
+**Ambang (`FIN-DEC-145`, `146`, `147`, `151`).**
+Pejabat A dan pejabat B sama-sama membuka layar ambang yang bernilai Rp 5.000.000. A menyimpan
+Rp 8.000.000 beserta alasannya. B kemudian menyimpan Rp 3.000.000. Karena B bekerja dari nilai lama,
+sistem **menolak** simpanan B dan menyuruhnya memuat ulang; layar B lalu menampilkan Rp 8.000.000,
+alasan A, dan nama A beserta waktunya. Ambang yang baru disimpan **langsung berlaku**; tidak ada tanggal
+berlaku yang dapat dijadwalkan.
+
+Seorang staf AR memasukkan pembayaran langsung Rp 12.000.000 sementara ambang Rp 10.000.000. Layar
+pembayaran memperingatkan sebelum dikirim: *"Nominal melewati ambang pembayaran langsung (Rp 10.000.000).
+Gunakan jalur pembayaran berjenjang."* Angka ambang kini tertulis karena owner memutuskan staf boleh
+mengetahuinya.
+
+**Batch migrasi (`FIN-DEC-144`, `149`, `150`, `151`).**
+Staf mengunggah `tagihan-piutang.csv`; validasi menemukan tiga baris bergalat (baris 14, 27, 31). Staf
+memperbaiki berkasnya di luar sistem lalu memakai **Unggah Ulang Berkas** pada batch yang sama. Hasil
+validasi lama hilang, saldo awal Accounting yang sudah dinyatakan tetap, dan staf menjalankan validasi
+lagi. Bila batch sudah *Tervalidasi*, unggah ulang tidak ditawarkan; batch itu harus ditolak lalu dibuat
+ulang. Pemilih berkas hanya menawarkan `.csv` pada rilis pertama.
+
+**Selisih kas (`FIN-DEC-152`).**
+Petugas membuka perbandingan kas Oktober 2026, tetapi belum ada satu pun rekap kas harian untuk bulan itu.
+Sebelum keputusan ini, API menjawab "saldo penutupan Rp 0, selisih −Rp 70.000.000". Setelah keputusan ini,
+API menjawab saldo penutupan dan selisih **kosong** disertai penanda *belum ada rekap*, sehingga tidak ada
+angka nol yang bisa disangka saldo.
+
+### Endpoint yang terpengaruh (bergaya Swagger)
+
+| Grup Swagger | Method | Path | Perubahan | Status |
+|---|---|---|---|---|
+| `Corporate / Finance Management / Master Data / Direct Payment Threshold` | `GET` | `/` | Respons memuat penanda versi dan nama pengubah terakhir; **tanpa** tanggal berlaku | Direncanakan |
+| idem | `PUT` | `/` | Permintaan: penanda versi **wajib** kecuali penetapan pertama; **tanpa** tanggal berlaku. Versi basi dijawab `409` | Direncanakan |
+| `Corporate / Finance Management / Opening Item Batch` | `POST` | `/{id}/reupload` | **Baru.** `multipart/form-data`: berkas dan penanda versi. Hak `FinanceOpeningItemBatch : Update`. Kode: `400`, `404`, `409`, `422`, `503` | Sudah di source (`BE-FIN-085`) |
+| idem | `GET` | `/`, `/{id}` | Respons memuat nama penyetuju | Direncanakan |
+| idem | `GET` | `/template` | `format=XLSX` tetap `503` sampai slice XLSX | Sudah di source |
+| `Corporate / Finance Management / Subledger Setup` | `POST` | `/opening-balances/{id}/approve`, `/lock` | Permintaan **tanpa** `Notes`; respons memuat nama penyetuju | Sudah di source (`BE-FIN-084`) |
+| `Corporate / Finance Management / Accounting Events` | `GET` | `/subledger-balances/{accountingPeriodCode}/variance` | Saldo penutupan dan selisih boleh kosong; penanda *belum ada rekap*; `HasVariance` salah bila tidak ada rekap | Direncanakan |
+
+### Akibat yang MUST dijaga
+
+1. **Kontrak dan matriks kini STALE** pada bagian berikut, dan **MUST** diperbarui lewat
+   `/design-business-module`, bukan di sini: `api-contract.md` F.1 (permintaan tanpa `Notes`, nama penyetuju),
+   F.2 (endpoint `reupload`, pemilih CSV, nama penyetuju, label **Tersedia**), F.4 (versi, nama pengubah,
+   tanpa tanggal berlaku, label **Tersedia**), F.6 (selisih kosong); `validation-matrix.md` `FIN-VAL-168`
+   dan redaksi `FIN-VAL-192`; `state-transition-matrix.md` F.1 dan F.2; `erd/data-dictionary.md` untuk ambang.
+2. **Layar yang sudah dibangun perlu disesuaikan** lewat `/plan-module-delivery`:
+   - `FE-FIN-031` (layar ambang): terbuka bagi pemegang `Read`, kendali ubah hanya `Update`, tampil versi dan
+     nama pengubah, tanpa tanggal berlaku; banner pembatasan `FIN-OQ-080` dihapus.
+   - `FE-FIN-030` (pembayaran langsung): peringatan ambang menyebut angkanya.
+   - `FE-FIN-032` (batch migrasi): pemilih hanya CSV; nama penyetuju.
+   - `FE-FIN-029` (selisih kas): membaca nilai kosong dan penanda baru dari API, bukan tanggal kosong.
+   - Butir menu `FIN-DEC-148` untuk submenu baru dan Master Data.
+3. **Pekerjaan backend baru** (nol dikerjakan di pass ini): penanda versi dan nama pengubah pada ambang, tanggal
+   berlaku dicabut dari permintaan dan respons, nama penyetuju pada batch, penanda *belum ada rekap* pada
+   selisih kas. Penanda versi menuntut perubahan skema, sehingga memakai wewenang membuat migration
+   `FIN-DEC-138`; **menerapkannya tetap milik Yasmin**.
+4. **Peran staf AR/AP perlu hak `MstDirectPaymentThreshold : Read`** agar angka ambang terbaca di layar
+   pembayaran. Pemberian hak itu milik admin dan berada di luar scope pass ini; tanpa hak itu layar
+   pembayaran jatuh kembali ke peringatan tanpa angka.
+5. **`04-prd-to-mvp.md` dan roadmap** perlu dicatat ulang untuk `MVP-14D`/`14E`: XLSX keluar dari rilis
+   pertama dan `BE-FIN-083` pindah ke slice berikutnya.
+6. **Capability map basi.** `/trace-existing-capabilities` mode impact scan disarankan sebelum pass desain.
+7. **Batas yang tetap diterima sadar:** pembayaran dipecah di bawah ambang tidak terdeteksi (`FIN-DEC-134`),
+   dan satu orang dapat memegang hak mencatat dan menyetujui sekaligus (`FIN-PERM-1.7` G.5). `FIN-DEC-147`
+   memperlebar yang pertama karena angka kini diketahui staf; owner memilihnya dengan sadar.
+
+### Frontend Decision Authority — tambahan
+
+| Keputusan | Pemilik | Status | Rentang yang diizinkan |
+|---|---|---|---|
+| Penempatan butir menu layar baru Finance (`FIN-DEC-148`) | Owner | approved | Submenu "Cutover & Subledger"; Ambang di Master Data. **Bukan** `DEV_DISCRETION` |
+| Angka ambang tampil kepada staf AR/AP (`FIN-DEC-147`) | Owner | approved | Wajib tampil pada peringatan melewati ambang bagi pemegang hak baca |
+| Pemilih unggah hanya CSV selama XLSX ditunda (`FIN-DEC-150`) | Owner | approved | Dibalik saat pembaca XLSX ada |
+| Nama pelaku pada layar ambang dan batch (`FIN-DEC-151`) | Owner | approved | Ditampilkan apa adanya; tanpa ID mentah |
+| Urutan butir **di dalam** submenu "Cutover & Subledger" | — | **Asumsi** | Mengikuti urutan alur kerja: Pemetaan Akun → Saldo Awal → Batch Migrasi. Belum ditanyakan; owner dapat mengubahnya |
+| Tata letak, warna, ikon, bentuk kartu dan tabel | — | `DEV_DISCRETION` | Seperti sebelumnya |
+
+### Open question
+
+| ID | Status | Keterangan |
+|---|---|---|
+| `FIN-OQ-079` | **CLOSED** oleh `FIN-DEC-148` | — |
+| `FIN-OQ-080` | **CLOSED** oleh `FIN-DEC-147` | — |
+| `FIN-OQ-081` | **DITUNDA** oleh `FIN-DEC-149` | Tetap terbuka (nama dan versi paket belum dikonfirmasi) tetapi **tidak memblokir rilis pertama**. Memblokir `LATER SLICE` bagian XLSX saja. Pemilik: Yasmin |
+| `FIN-OQ-083` | **BARU** | Nasib **kolom fisik** `EffectiveFrom` pada tabel ambang: dihapus lewat migration, atau dipertahankan dan diisi tanggal perubahan. `FIN-DEC-145` hanya mencabutnya dari kontrak. Pemilik: Yasmin; diputuskan saat `/design-business-module`. Memblokir `DESIGN` kontrak F.4 dan data dictionary, bukan implementasi bagian lain |
+| `FIN-OQ-074`, `076`, `082` | **TERBUKA** | Data konfigurasi; tidak berubah |
+| `FIN-OQ-045`, `047`, `048` | **TERBUKA**, milik Accounting | Tidak berubah |
+| `FIN-OQ-057`, `065`, `069`, `078` | **TERBUKA** | Tidak memblokir |
+
+### Kriteria penerimaan tambahan
+
+1. Permintaan ubah ambang tidak lagi memuat tanggal berlaku, dan ambang baru langsung berlaku pada pembayaran langsung berikutnya.
+2. Permintaan ubah ambang dengan penanda versi basi ditolak `409` dan **tidak** mengubah ambang; penetapan ambang pertama tanpa penanda versi diterima.
+3. Staf AR/AP pemegang `MstDirectPaymentThreshold : Read` melihat angka ambang pada peringatan layar pembayaran langsung.
+4. Layar master ambang dapat dibuka pemegang `Read`; kendali ubah hanya tampil bagi pemegang `Update`.
+5. Respons ambang memuat nama pengubah terakhir; respons batch migrasi memuat nama penyetuju; respons saldo awal sudah memuatnya.
+6. Pemilih berkas unggah batch hanya menawarkan `.csv`; pilihan XLSX pada unduh templat nonaktif; berkas XLSX yang dipaksa masuk ditolak `503` dengan pesan jelas.
+7. Berkas batch `DRAFT` dapat diunggah ulang: hasil validasi lama dibuang, saldo awal Accounting yang dinyatakan tetap, jenis item tidak berubah, penanda versi basi ditolak `409`. Batch `VALIDATED`, `APPROVED`, `LOCKED`, atau `REJECTED` ditolak `409`.
+8. Mutasi `SALDO-AWAL` bernilai nol dapat tercatat; mutasi bernilai negatif ditolak untuk semua jenis; mutasi bernilai nol jenis lain ditolak `400`; mengunci saldo awal Kas Kasir bernilai nol menerbitkan tepat satu mutasi `SALDO-AWAL`.
+9. Permintaan setujui dan kunci saldo awal tidak memuat dan tidak menyimpan catatan.
+10. Perbandingan kas periode tanpa rekap kas harian menyatakan saldo penutupan dan selisih kosong, `HasVariance` salah, dan penanda *belum ada rekap*; layar menulis "Belum ada rekap", bukan angka nol.
+11. Menu memuat submenu "Cutover & Subledger" berisi tiga layar, Ambang di Master Data, dan menu Transaksi A/R dan A/P tidak berubah.
+
+### Langkah berikutnya
+
+Tidak ada keputusan kritis yang masih terbuka dan memblokir desain, kecuali `FIN-OQ-083` yang hanya
+menyentuh kontrak F.4. Pass ini **tidak** menulis kontrak, arsitektur, roadmap, migration, endpoint, atau UI.
+
+
+
+---
+
+## Amendment pass lanjutan — Penutupan open question milik Finance, 4 Oktober 2026
+
+**Pemicu.** Sesudah pass sebelumnya (`FIN-DEC-141`..`152`), owner meminta seluruh open question yang masih
+terbuka diselesaikan. Pass ini menutup yang menjadi milik Finance dan sengaja membiarkan yang bukan miliknya.
+Seluruh keputusan di bawah `approved` sisi Finance (Yasmin), diputuskan interaktif lewat `/grill-me`
+4 Oktober 2026.
+
+**Mode.** `Amendment pass`. Blueprint `FIN-BP-001` revisi 15; histori approval tidak ditimpa dan nomor revisi
+belum dinaikkan. SHA source sama dengan pass sebelumnya: backend `5d6bb8bf`, frontend `ae2ed334e`.
+`01-existing-capability-map.md` tetap **berpotensi basi** (lihat pass sebelumnya).
+
+### Batas scope pass ini
+
+Scope **diperluas atas permintaan owner** dari pass sebelumnya, dan dikonfirmasi eksplisit sebelum bertanya.
+
+*Di dalam:* `FIN-OQ-083`, `074`, `076`, `082`, `065`, `069`, `057`, dan urutan butir menu submenu
+"Cutover & Subledger".
+
+*Di luar (tetap terbuka, bukan milik Finance atau tidak dapat diputuskan sekarang):*
+
+| Hal | Pemilik | Alasan |
+|---|---|---|
+| `FIN-OQ-045`, `047`, `048` | Accounting (Rizki) | Persetujuan atas kontrak kejadian; bukan keputusan Finance |
+| `FIN-OQ-078` | Accounting | Bentuk jalur baca saldo awal bagi Accounting; kontrak milik Accounting, `LATER SLICE` |
+| `FIN-OQ-081` | Yasmin | Sudah ditunda `FIN-DEC-149`; baru dapat diputuskan saat slice XLSX dibuka |
+| Siapa yang diberi hak mengubah ambang | Admin dan Platform | Pemberian hak akses; bagian kedua `FIN-OQ-074` dicatat di sini, bukan dijawab |
+
+### Fakta source yang mendasari (dibaca 3–4 Oktober 2026)
+
+| # | Fakta | Lokasi |
+|---|---|---|
+| F35 | Berkas migrasi dibaca seluruhnya ke memori; hasil validasi per baris disimpan sebagai satu catatan; persetujuan batch berjalan dalam satu transaksi (semua item lahir, atau tidak sama sekali). Belum ada batas jumlah baris | `FinanceOpeningItemBatchService` |
+| F36 | Lampiran HR dibatasi 25 MB per permintaan; kunci `MaxFileSizeBytes` bukti pembayaran sengaja belum diberi nilai bawaan | `WorkflowAttachmentController`; `Program.cs` baris 946 |
+| F37 | Piutang non-pasien (`FinNonPatientReceivable`) sengaja tidak masuk buku mutasi piutang dan tidak disentuh amandemen migrasi | `02-backend-architecture.md` bagian migrasi |
+| F38 | Tabel utang jasa medis di Finance belum terisi; task penulisnya `BE-FIN-021` `BLOCKED`; snapshot mengirimnya `0,00` | `FIN-DEC-122`, roadmap backend |
+| F39 | Tanggal perubahan terakhir ambang sudah dicatat kolom audit tabel itu (`UpdateDateTime`, atau `CreateDateTime` bila belum pernah diubah) | `MstDirectPaymentThreshold`, `DirectPaymentThresholdService` |
+
+### Keputusan
+
+| ID | Pertanyaan | Keputusan | Dasar |
+|---|---|---|---|
+| `FIN-DEC-153` | `FIN-OQ-083` — nasib kolom fisik tanggal berlaku pada tabel ambang | **Kolom dihapus** pada migration yang **sama** dengan penanda versi ambang (`FIN-DEC-146`). Kapan ambang terakhir diubah tetap terbaca dari kolom audit dan log. Menyempurnakan `FIN-DEC-145` | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-154` | `FIN-OQ-074` — nilai awal ambang | **Sistem tidak mengisi angka bawaan.** Pejabat berwenang menetapkan ambang pertama lewat layar ambang sebagai **prasyarat go-live**; angka dan alasannya tercatat di log seperti perubahan lain. Selama belum ditetapkan, seluruh pembayaran langsung tetap ditolak (`FIN-DES-086`). Bagian "siapa pejabat berwenang" adalah pemberian hak akses dan dicatat di luar scope | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-155` | `FIN-OQ-076` — ukuran batch migrasi | **Maksimal 10.000 baris per berkas.** Berkas yang melewatinya **ditolak** beserta pesan yang menyebut batas dan menyarankan memecah berkas. Tagihan yang lebih banyak diunggah sebagai beberapa batch; **setiap batch** menyatakan saldo awal Accounting-nya sendiri, direkonsiliasi sendiri, dan disetujui sendiri (persetujuan tetap utuh per batch, `FIN-DEC-129`). Angka 10.000 adalah titik tengah pilihan owner karena perkiraan jumlah tagihan belum disebut | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-156` | `FIN-OQ-082` — batas ukuran berkas bukti pembayaran | **10 MB** (10.485.760 byte) per berkas. Nilainya diisi pada konfigurasi `FinanceManagement:TransactionProof:MaxFileSizeBytes`. Perilaku fail-closed `503` tanpa nilai tetap berlaku. Berkas yang lebih besar ditolak `413` | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-157` | `FIN-OQ-065` — utang jasa medis lama | **Tidak dimigrasikan pada rilis ini.** Saldo awal kelompok ini tetap nol (`FIN-VAL-181`) dan batch tidak mengenal jenis item jasa medis. Dibahas lagi bersama modul Medical Fee ketika penulis datanya (`BE-FIN-021`) tidak lagi `BLOCKED` | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-158` | `FIN-OQ-069` — piutang sewa non-pasien lama | **Tidak lewat batch migrasi.** Dicatat lewat layar piutang non-pasien yang sudah ada. Karena berada di luar buku mutasi, ia tidak memengaruhi posisi saldo maupun snapshot | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-159` | `FIN-OQ-057` — skenario saldo negatif selain Kas Kasir | **Tidak perlu daftar skenario.** Piutang atau utang supplier yang bersaldo negatif pada penutupan bulan **tetap diterbitkan apa adanya dan ditandai**; tidak memblokir penerbitan; penelusuran dilakukan manual. Meneguhkan `FIN-DEC-112` | Jawaban owner, rekomendasi dipilih |
+| `FIN-DEC-160` | Urutan butir menu di submenu "Cutover & Subledger" | **Pemetaan Akun Control → Saldo Awal Cutover → Batch Migrasi Tagihan Lama**, mengikuti urutan kerja petugas. Menggantikan asumsi pada pass sebelumnya; memperjelas `FIN-DEC-148` | Jawaban owner, rekomendasi dipilih |
+
+### Rincian dan contoh
+
+**Ukuran batch (`FIN-DEC-155`).** Rumah sakit memiliki 23.000 tagihan piutang lama. Staf membaginya menjadi tiga
+berkas (10.000, 10.000, dan 3.000 baris) lalu mengunggah masing-masing. Setiap batch divalidasi, dinyatakan saldo
+awal Accounting-nya (misalnya tiga dokumen rujukan berbeda), direkonsiliasi, dan disetujui terpisah. Bila batch
+kedua bergalat, ia saja yang ditahan; batch pertama yang sudah disetujui tidak terpengaruh. Bila staf mencoba
+mengunggah 12.000 baris sekaligus, sistem menolak dengan pesan sejenis *"Berkas memuat lebih dari 10.000 baris.
+Pecah menjadi beberapa berkas."*
+
+**Berkas bukti (`FIN-DEC-156`).** Petugas memotret kuitansi dengan ponsel; hasilnya 4 MB dan diterima. Foto 14 MB
+ditolak dengan pesan *"Ukuran berkas melewati batas yang diizinkan."* dan petugas mengecilkannya lebih dulu.
+
+**Ambang saat go-live (`FIN-DEC-154`).** Pada hari persiapan go-live, pejabat berwenang membuka layar ambang yang
+berjudul *Tetapkan ambang pertama*, mengisi angka dan alasannya, lalu menyimpan. Sampai langkah itu dilakukan, staf
+yang mencoba pembayaran langsung melihat pesan bahwa ambang belum ditetapkan.
+
+**Saldo negatif (`FIN-DEC-159`).** Piutang penjamin tertentu kelebihan bayar sehingga saldonya −Rp 2.000.000 pada
+penutupan bulan. Snapshot tetap terbit dengan −Rp 2.000.000, layar menandainya "berlawanan dengan saldo normal akun",
+dan staf menelusurinya secara manual.
+
+### Akibat yang MUST dijaga
+
+1. **Aturan validasi baru** diperlukan untuk batas 10.000 baris pada unggah dan unggah ulang batch; nomor
+   `FIN-VAL` dan kode statusnya digambar pass desain.
+2. **Migration ambang menjadi satu**: menambah penanda versi **dan** menghapus kolom tanggal berlaku
+   (`FIN-DEC-146` + `153`). Membuatnya memakai wewenang `FIN-DEC-138`; **menerapkannya tetap milik Yasmin**.
+3. **Konfigurasi `MaxFileSizeBytes` bernilai 10.485.760** MUST diisi sebelum go-live; tanpa itu unggah bukti tetap
+   `503`. Ini langkah serah terima, bukan kode.
+4. **Daftar prasyarat go-live** bertambah dan MUST dibawa serah terima modul: ambang pertama ditetapkan pejabat;
+   peran staf AR/AP diberi hak baca ambang (`FIN-DEC-147`, urusan admin); konfigurasi ukuran berkas diisi;
+   migration yang tertunda diterapkan.
+5. **Kontrak dan matriks yang STALE** dari pass sebelumnya masih berlaku dan bertambah: kontrak unggah batch
+   (batas baris), data dictionary ambang (kolom tanggal berlaku dihapus), `validation-matrix.md`. Seluruhnya
+   **MUST** diperbarui lewat `/design-business-module`, bukan di sini.
+6. **Utang jasa medis** tetap nol dan kembali ke meja bersama Medical Fee; batas modulnya tidak berubah
+   (Medical Fee berhenti pada jasa kotor dan tidak pernah menulis ke tabel Finance).
+7. **Batch pecahan membuat rekonsiliasi lebih banyak.** Staf perlu satu dokumen rujukan Accounting per batch; layar
+   batch sudah mewajibkan rujukan dokumen per batch, sehingga tidak ada perubahan layar untuk ini.
+
+### Frontend Decision Authority — tambahan
+
+| Keputusan | Pemilik | Status | Rentang yang diizinkan |
+|---|---|---|---|
+| Urutan butir menu submenu "Cutover & Subledger" (`FIN-DEC-160`) | Owner | approved | Pemetaan Akun Control → Saldo Awal Cutover → Batch Migrasi Tagihan Lama. Menggantikan asumsi sebelumnya |
+| Pesan penolakan batas baris dan batas ukuran berkas | Owner | approved | Wajib menyebut batas yang dilanggar dan langkah perbaikan; redaksi persisnya `DEV_DISCRETION` |
+
+### Open question
+
+| ID | Status | Keterangan |
+|---|---|---|
+| `FIN-OQ-083` | **CLOSED** oleh `FIN-DEC-153` | — |
+| `FIN-OQ-074` | **CLOSED** oleh `FIN-DEC-154` | Cara penetapan diputuskan; **angka**-nya diisi pejabat saat go-live (prasyarat go-live, bukan open question). Siapa yang diberi hak mengubah ambang tetap urusan admin |
+| `FIN-OQ-076` | **CLOSED** oleh `FIN-DEC-155` | — |
+| `FIN-OQ-082` | **CLOSED** oleh `FIN-DEC-156` | Nilai diisi pada konfigurasi saat go-live |
+| `FIN-OQ-065` | **CLOSED** (untuk rilis ini) oleh `FIN-DEC-157` | Dibuka kembali bersama Medical Fee ketika `BE-FIN-021` tidak lagi `BLOCKED` |
+| `FIN-OQ-069` | **CLOSED** oleh `FIN-DEC-158` | — |
+| `FIN-OQ-057` | **CLOSED** oleh `FIN-DEC-159` | — |
+| `FIN-OQ-045`, `047`, `048` | **TERBUKA**, milik Accounting | Tidak dapat diputuskan Finance |
+| `FIN-OQ-078` | **TERBUKA**, milik Accounting | `LATER SLICE` |
+| `FIN-OQ-081` | **DITUNDA** (`FIN-DEC-149`) | Tidak memblokir rilis pertama |
+
+### Kriteria penerimaan tambahan
+
+1. Berkas batch berisi tepat 10.000 baris diterima; berisi 10.001 baris ditolak beserta pesan yang menyebut batas dan menyarankan memecah. Berlaku juga pada unggah ulang.
+2. Dua batch hasil pecahan direkonsiliasi dan disetujui terpisah; batch yang bergalat tidak mengubah batch lain yang sudah disetujui.
+3. Berkas bukti berukuran sampai 10.485.760 byte diterima, lebih dari itu ditolak `413`; tanpa nilai konfigurasi, unggah bukti tetap `503`.
+4. Tabel ambang tidak lagi memiliki kolom tanggal berlaku dan memiliki penanda versi, keduanya pada migration yang sama.
+5. Daftar prasyarat go-live memuat: penetapan ambang pertama, hak baca ambang bagi peran AR/AP, konfigurasi ukuran berkas bukti, dan penerapan migration yang tertunda.
+6. Saldo awal utang jasa medis tetap nol dan batch tidak menawarkan jenis item jasa medis.
+7. Piutang non-pasien tidak muncul pada batch migrasi; pencatatannya lewat layar piutang non-pasien.
+8. Snapshot bulan yang memuat saldo negatif pada piutang atau utang supplier terbit apa adanya dan tertandai, tanpa penahanan.
+9. Butir menu "Cutover & Subledger" berurutan: Pemetaan Akun Control, Saldo Awal Cutover, Batch Migrasi Tagihan Lama.
+
+### Langkah berikutnya
+
+**Tidak ada blocker desain dari sisi Finance.** Yang tersisa terbuka milik Accounting (`FIN-OQ-045`, `047`, `048`,
+`078`) dan tidak memblokir desain; `045`/`047` memblokir `IMPLEMENTATION` sisi `PENERIMAAN-KASIR` dan
+`PEMBUKAAN-SHIFT-KASIR` sebagaimana sudah tercatat. Pass ini **tidak** menulis kontrak, arsitektur, roadmap,
+migration, endpoint, atau UI.
+
+---
+
+## Amendment pass — Piutang manfaat karyawan (`EPIC FIN-04`; `FIN-DEC-006`, `FIN-DEC-016`, `FIN-CQ-03`), 5 Oktober 2026
+
+**Pemicu.** Pengguna sesi bertanya apakah `FIN-DEC-006` belum selesai, karena sedang membuat AR untuk
+karyawan. Pemeriksaan hari ini mengonfirmasi: keputusan itu hanya `approved` dari sisi Finance
+(Yasmin, 20 September 2026), konfirmasi Billing dan HR belum turun, dan `EPIC FIN-04` masih
+`OPEN DECISION` (`blueprint-manifest.md`, `04-prd-to-mvp.md` bagian 8). Pass ini dibuka untuk menutup
+pertanyaan itu lewat wawancara `/grill-me`.
+
+**Mode.** `Amendment pass`. Blueprint `FIN-BP-001` revisi 16; histori approval tidak ditimpa dan nomor
+revisi belum dinaikkan. SHA source: backend `46fa2a91` (cabang `Yasmina`), frontend `0ed37b5c4`
+(cabang `yasmina`). `01-existing-capability-map.md` direkam pada `09101d05` dengan impact scan susulan
+sampai 28 September 2026, sehingga **berpotensi basi** terhadap SHA ini. Fakta source di bawah dibaca
+langsung hari ini, jadi tidak bergantung pada map itu.
+
+**Penjawab.** Pemilik keputusan Finance (**Yasmin**), dinyatakan langsung oleh penjawab pada wawancara 5 Oktober 2026
+(identitas dinyatakan lewat jawaban wawancara, bukan diverifikasi sistem). Keputusan sisi Finance dicatat `approved`;
+keputusan yang jatuh ke Billing, Registrasi, atau HR tetap `draft` sampai pemilik modul masing-masing mengonfirmasi.
+
+### Batas scope pass ini
+
+Scope **diperluas atas permintaan pengguna** (jawaban "gabungkan pilihan pertama dan kedua" atas tiga
+pilihan batas scope), dan dicatat sebagai `FIN-DEC-161`.
+
+*Satu kalimat:* aturan bisnis piutang karyawan di Finance — apa itu AR karyawan, kapan diakui,
+siapa debitur dan pemilik manfaatnya, bagaimana dilunasi, dan apa yang terjadi saat salah atau
+dibatalkan — **ditambah** cara pasien dikenali sebagai karyawan atau keluarga karyawan saat pelayanan.
+
+| Di dalam scope | Di luar scope (modul pemilik) |
+|---|---|
+| Arti "AR karyawan" di rumah sakit ini dan siapa debiturnya (`FIN-OQ-084`) | Aturan eligibilitas dan plafon benefit (**HR**) |
+| Kapan dan dari mana Finance mengakui piutang ini | Alur pendaftaran, antrean, dan isi kunjungan di Registrasi (**Registrasi**), selain titik sentuh di kiri |
+| Pelunasan, alokasi, koreksi, pembatalan, write-off, dan aging | Perhitungan nominal tagihan, tender, dan kasir (**Billing**) |
+| Hak akses, jejak audit, dan privasi data karyawan di sisi Finance | Eksekusi potong gaji di penggajian (**HR/Payroll**) — hanya titik sentuhnya |
+| **Cara pasien dikenali sebagai karyawan atau keluarga karyawan** — hanya: siapa yang menentukan, kapan, dan berdasarkan data apa | Aturan akun jurnal dan COA untuk piutang ini (**Accounting**) |
+| Kontrak titik sentuh ke Billing dan HR (`FIN-DEC-006`, `FIN-DEC-016`, `FIN-CQ-03`) | Kemampuan Finance lain yang sudah berjalan (AR penjamin, AP, kas, piutang sewa) |
+
+**Konsekuensi perluasan.** Bagian yang jatuh ke Registrasi atau Billing hanya dicatat sebagai keputusan
+`draft` beserta pemilik modulnya. Finance **tidak** dapat meng-`approve` aturan internal modul lain; yang
+dicatat di sini hanyalah apa yang Finance butuhkan dan usulan pembagian tanggung jawabnya.
+
+### Fakta source yang mendasari (dibaca 5 Oktober 2026)
+
+| # | Fakta | Lokasi |
+|---|---|---|
+| F40 | `FinReceivable` hanya dibuat di **dua** tempat: intake serah terima Billing dan impor saldo awal. Tidak ada jalur buat-AR manual; controller piutang hanya punya penyesuaian (*adjustment*) dan penghapusan (*write-off*) | `FinanceBillingIntakeService.cs` baris 443; `FinanceOpeningItemBatchService.cs` baris 646; `FinanceReceivablesController.cs` |
+| F41 | Intake menyalin `DebtorType` dari serah terima apa adanya. Billing hanya mengenal `PAYER` dan `PATIENT_GUARANTOR`, jadi jenis karyawan **tidak pernah dihasilkan**. Impor saldo awal sengaja menolak `EMPLOYEE_BENEFIT` (`FIN-VAL-187`) | `BilArHandoff.cs` baris 29-33; `FinanceBillingIntakeService.cs` baris 450; `FinanceOpeningItemBatchService.cs` baris 776-785 |
+| F42 | Sisi Finance sudah siap: `FinReceivable` punya `BenefitOwnerId` dan `BenefitRelationship`, serta constraint `CK_FinReceivable_BenefitOwner` yang mewajibkan `BenefitOwnerId` terisi untuk jenis karyawan | `FinReceivable.cs` baris 48-52, 98; `FinReceivableConfiguration.cs` |
+| F43 | HR sudah punya enrollment benefit dan tanggungan: hubungan keluarga (`RelationshipType`), `IsEligible`, plafon, terpakai, dan sisa | `TrxEmployeeBenefitEnrollment.cs`; `TrxEmployeeBenefitDependent.cs` |
+| F44 | **Tidak ditemukan tautan yang dapat dibaca mesin antara pasien dan karyawan/keluarga karyawan.** `MstPatient` tidak punya field karyawan atau workforce; `WfpFamilyMember` tidak punya `PatientId`; `TrxBenefitClaim` tidak punya field tagihan atau kunjungan. Temuan ini berasal dari pencarian nama properti, **belum** audit penuh — layak diperiksa ulang lewat `/trace-existing-capabilities` mode impact scan | `MstPatient.cs`; `WfpFamilyMember.cs`; `TrxBenefitClaim.cs` |
+| F45 | Istilah "piutang karyawan" punya **dua asal berbeda**: (a) `FIN-DEC-006` — `EMPLOYEE_BENEFIT`, pemilik manfaat dan hubungan keluarga; (b) `Keuangan.md` bagian 7.3 / `FIN-AR-011` — menu "Piutang Karyawan" di sistem lama (HiSys) untuk **dokter/pegawai**, dengan status tagihan dan pembayaran per orang, aksi bayar yang "detail konfirmasi dan hasil akhirnya tidak terbukti lengkap", dan pertanyaan approval yang tidak terjawab | `00-interview-decisions.md` baris 150; `Keuangan.md` baris 56, 77, 121, 311-315, 499 |
+| F46 | Preseden: piutang sewa Parkir/Tenant diputuskan memakai **entity sendiri** (`FinNonPatientReceivable`) tanpa serah terima Billing, dan invariant "`FinReceivable` wajib dari Billing" sengaja **tidak dilonggarkan** | `FIN-DEC-099`..`104`, `FIN-DEC-101` |
+| F47 | HR sudah punya modul penggajian: slip gaji dan *payroll run* menyimpan **total** potongan per pegawai, dan master jenis potongan (`MstDeductionType`) mengenal batas maksimum, potongan sebagian (`AllowPartialDeduction`), prioritas, dan kewajiban approval. Pinjaman pegawai (`TrxEmployeeLoan`) punya cicilan dan kolom referensi ke Finance (`FinanceReferenceNumber`, `FinanceTransactionId`). **Tidak ditemukan** baris potongan gaji yang menyimpan rujukan ke piutang Finance — ditemukan lewat pencarian nama properti, perlu dipastikan lewat `/trace-existing-capabilities` | `MstDeductionType.cs`; `TrxPayrollRunEmployee.cs`; `TrxPayrollPayslip.cs`; `TrxEmployeeLoan.cs` |
+
+### Pertanyaan yang dibuka pass ini
+
+| ID | Type | Pertanyaan | Owner | Status |
+|---|---|---|---|---|
+| `FIN-OQ-084` | Open Question | Apa yang dimaksud "AR karyawan" di rumah sakit ini: (A) tagihan layanan RS atas pegawai atau keluarganya yang menjadi tanggungan pegawai (`EMPLOYEE_BENEFIT`), (B) piutang internal pegawai/dokter yang tidak berasal dari kunjungan pasien (sistem lama "Piutang Karyawan"), atau keduanya? **Contoh A:** istri pegawai bernama Budi dirawat inap; tagihan Rp 3.000.000 dicatat sebagai piutang atas nama Budi. **Contoh B:** dokter Sari memiliki kasbon Rp 2.000.000 yang dicatat sebagai piutang atas nama dokter Sari tanpa ada kunjungan pasien | Pemilik keputusan Finance | **CLOSED** oleh `FIN-DEC-162` — dijawab opsi A (tagihan layanan RS atas pegawai/keluarganya) |
+| `FIN-OQ-085` | Open Question | Bagaimana piutang internal pegawai/dokter yang **bukan** dari kunjungan pasien (kasbon, selisih, dan sejenisnya — asal menu "Piutang Karyawan" di sistem lama, `FIN-AR-011`) dicatat dan dilunasi? **Contoh:** dokter Sari memiliki kasbon Rp 2.000.000 | Pemilik keputusan Finance | **TERBUKA** — di luar scope pass ini (`FIN-DEC-162`); perlu pass sendiri. `LATER SLICE`, tidak memblokir pass ini maupun `EPIC FIN-04` |
+| `FIN-OQ-086` | Open Question | Berapa nominal yang menjadi piutang pegawai dan dipotong dari gaji: **seluruh tagihan**, atau **hanya kelebihan di atas plafon benefit**? **Contoh:** tagihan Rp 10.000.000, sisa plafon Rp 6.000.000 — apakah piutang Rp 10.000.000 atau Rp 4.000.000? Jawaban atas `FIN-OQ-084` dan pertanyaan tanggungan hanya menyebut cara pelunasan ("dipotong dari gaji"), belum nominalnya | Yasmin (Finance); porsi plafon menyentuh HR | **CLOSED** oleh `FIN-DEC-164` — dijawab opsi B (hanya kelebihan di atas plafon) |
+| `FIN-OQ-087` | Open Question | Dari mana Billing mengetahui **sisa plafon** benefit saat menghitung porsi pegawai (`FIN-DEC-164`), dan bagaimana HR diberi tahu bahwa plafon terpakai? Plafon di HR tercatat per enrollment pegawai dan per tanggungan (F43), sehingga perlu diputuskan plafon mana yang berlaku untuk kunjungan anggota keluarga. **Contoh:** anak pegawai Budi dirawat — memakai plafon milik anak, atau plafon bersama keluarga Budi? | Pemilik Billing dan pemilik HR | **TERBUKA** — `draft`, butuh konfirmasi kedua owner; memblokir `IMPLEMENTATION` intake karyawan, bukan desain sisi Finance |
+| `FIN-OQ-088` | Open Question | Bagaimana **porsi yang ditanggung benefit** (Rp 6.000.000 pada contoh) diakui? Finance tidak mencatatnya sebagai piutang (`FIN-DEC-164`), tetapi tagihan Billing tetap berjumlah Rp 10.000.000 sehingga ada porsi yang tidak ditagih ke siapa pun. Apakah itu dicatat sebagai beban benefit (urusan Accounting/HR) atau cara lain? | Pemilik Billing dan Accounting | **SEBAGIAN TERJAWAB** oleh `FIN-DEC-177`: porsi benefit diakui sebagai piutang atas penjamin "RS Benefit", bukan dibiarkan tak tertagih ke siapa pun. Yang **masih terbuka** dan menjadi `FIN-OQ-101`: bagaimana piutang itu dilunasi atau ditutup, dan perlakuan akuntansinya |
+| `FIN-OQ-089` | Open Question | **Perjanjian cicilan** piutang pegawai: siapa yang mencatat, siapa yang menyetujui, apa isi minimalnya (besaran cicilan, jumlah atau jangka waktu, tanggal mulai potongan, dokumen perjanjian), dan di mana ia disimpan — di Finance atau memakai pinjaman pegawai yang sudah ada di HR (`TrxEmployeeLoan`)? **Contoh:** piutang Rp 4.000.000 disepakati 4 kali Rp 1.000.000 mulai gaji November | Yasmin (Finance); bagian HR menyentuh pemilik HR | **CLOSED** oleh `FIN-DEC-166` — dijawab opsi A (dicatat di Finance, disetujui pihak berwenang Finance) |
+| `FIN-OQ-090` | Open Question | Bagaimana **Finance tahu bahwa potongan gaji benar-benar terjadi**, dan bagaimana jadwal cicilan yang sudah disetujui sampai ke HR? **Contoh:** cicilan ke-1 Rp 1.000.000 dijadwalkan gaji November — siapa memberi tahu Finance bahwa potongan itu sudah dilakukan atau gagal? | Yasmin (Finance); eksekusi potongan menyentuh pemilik HR/Payroll | **CLOSED** oleh `FIN-DEC-167` — dijawab opsi A (HR mengirim hasil potongan otomatis) |
+| `FIN-OQ-091` | Open Question | Apakah pemilik HR/Payroll **menyetujui dan sanggup membangun** dua kemampuan yang diminta `FIN-DEC-167`: (1) menerima jadwal cicilan piutang yang sudah disetujui Finance sebagai potongan gaji, dan (2) mengirim hasil potongan (berhasil atau gagal) kembali ke Finance? Bentuk pesan, waktu kirim, dan penanganan kiriman ganda perlu disepakati | Pemilik HR/Payroll | **TERBUKA** — `draft`; memblokir `IMPLEMENTATION` slice pelunasan potong gaji. Tidak memblokir desain sisi Finance maupun jalur pembuatan piutang (intake) |
+| `FIN-OQ-092` | Open Question | Bila cicilan yang gagal menumpuk ke periode berikutnya (`FIN-DEC-168`), **berapa batas potongan per periode** agar gaji pegawai tidak habis, dan siapa yang menetapkannya — aturan batas di HR (`MstDeductionType`, F47) atau Finance? Apa yang terjadi bila jadwal perjanjian sudah berakhir tetapi masih ada sisa? **Contoh:** cicilan Rp 1.000.000 gagal dua bulan berturut-turut, lalu bulan ketiga dipotong Rp 3.000.000 | Yasmin (Finance) dan pemilik HR/Payroll | **SEBAGIAN TERJAWAB** oleh `FIN-DEC-179`, 5 Oktober 2026: bagian Finance **CLOSED** — Finance tidak menyimpan batas dan tidak menegakkannya. Yang **masih terbuka** dan menjadi milik HR sepenuhnya: nilai batasnya dan siapa yang menetapkannya di HR. Memblokir `IMPLEMENTATION` slice pelunasan bersama `FIN-OQ-091`, **tidak** memblokir desain sisi Finance |
+| `FIN-OQ-093` | Open Question | Apakah "harus dilunasi" saat pegawai berhenti (`FIN-DEC-169`) berarti **proses berhenti di HR tertahan** sampai Finance menyatakan piutang lunas (gerbang *clearance*), atau piutang hanya wajib dilunasi dan ditagih tanpa menahan HR? **Contoh:** hari terakhir kerja Budi, sisa Rp 2.500.000 — apakah HR boleh menandai Budi "selesai" sebelum lunas? | Yasmin (Finance); gerbang di HR menyentuh pemilik HR | **CLOSED** oleh `FIN-DEC-170` — dijawab opsi A (HR tertahan sampai Finance menyatakan lunas) |
+| `FIN-OQ-094` | Open Question | Bagaimana bila pegawai **meninggal** dengan piutang tersisa? Pelunasan wajib tidak dapat dilakukan oleh yang bersangkutan: siapa yang melunasi (ahli waris, keluarga), atau diselesaikan lewat write-off yang disetujui? | Yasmin (Finance) | **TERBUKA** — kasus tepi; tidak memblokir desain jalur utama |
+| `FIN-OQ-095` | Open Question | Apakah pemilik HR **menyetujui dan sanggup membangun gerbang berhenti** `FIN-DEC-170` — membaca status "bebas tanggungan" dari Finance sebelum administrasi berhenti pegawai dapat diselesaikan — termasuk jalur pengecualian bila pegawai meninggal (`FIN-OQ-094`)? | Pemilik HR | **TERBUKA** — `draft`; memblokir `IMPLEMENTATION` gerbang berhenti, bukan desain sisi Finance |
+| `FIN-OQ-096` | Open Question | Apakah pemilik **Registrasi** menyetujui dan sanggup membangun tautan kunjungan↔pegawai pemilik manfaat (`FIN-DEC-171`): layar pencarian pegawai/tanggungan dari data HR, penyimpanan pemilik manfaat dan hubungan pada kunjungan, dan aturan bila petugas salah memilih? Termasuk bagaimana pasien yang bukan keluarga inti, atau tanggungan tanpa nomor identitas, ditangani | Pemilik Registrasi dan pemilik HR | **TERBUKA** — `draft`; memblokir `IMPLEMENTATION` intake karyawan (tanpa tautan ini Billing tidak punya sumber `BenefitOwnerId`). Tidak memblokir desain sisi Finance |
+| `FIN-OQ-097` | Open Question | Alur koreksi di **Registrasi/Billing** untuk pemilik manfaat yang salah (`FIN-DEC-173`): siapa yang mengajukan, bagaimana serah terima pembalik dan serah terima baru diterbitkan, dan bagaimana **HR mengembalikan atau menyelesaikan potongan gaji yang sudah terjadi** pada pegawai yang salah? **Contoh:** Rp 1.000.000 sudah terpotong dari gaji Budi padahal pasiennya keluarga Andi | Pemilik Registrasi, Billing, dan HR | **TERBUKA** — `draft`; memblokir `IMPLEMENTATION` jalur koreksi, bukan desain sisi Finance |
+| `FIN-OQ-098` | Open Question | **Kunci pegawai** apa yang dipakai templat impor saldo lama (`FIN-DEC-174`): nomor pegawai, atau nomor identitas, atau kode lain? Constraint database mewajibkan `BenefitOwnerId` terisi, sedangkan piutang lama tidak punya kunjungan sebagai sumbernya. **Contoh:** baris "Budi, Rp 2.000.000" harus diterjemahkan menjadi satu profil pegawai di HR | Pemilik HR; detail teknis diputuskan saat `/design-business-module` | **TERBUKA** — tidak memblokir keputusan bisnis; memblokir `IMPLEMENTATION` perluasan templat |
+| `FIN-OQ-099` | Open Question | **UI brief** layar piutang karyawan: penempatan menu, bentuk daftar dan detail, layar perjanjian cicilan beserta jadwalnya, dan tampilan status "bebas tanggungan". Layar Piutang yang ada sudah punya filter "Manfaat Karyawan" (`DEBTOR_TYPE_OPTIONS`) sehingga dapat dipakai sebagai titik awal | Yasmin (Finance) | **TERBUKA** — memblokir task `FE-FIN` karyawan saja; backend dan kontrak tidak menunggu |
+| `FIN-OQ-100` | Open Question | Jalur mana yang dipilih pemilik **Billing** untuk menandai piutang karyawan: **Jalur A** (perluasan resmi `BilArHandoff`, `FIN-DEC-006`), **Jalur B** (penjamin sementara "RS Benefit" bertipe `Other`, praktik V1 dan pengganti di PRD), atau **B dahulu lalu A**? **Contoh:** Jalur B tanpa kode baru tetapi semua pegawai menjadi satu debitur; Jalur A memberi pemilik manfaat per pegawai tetapi butuh migration Billing | Pemilik Billing | **CLOSED** oleh `FIN-DEC-177`, 5 Oktober 2026 — dijawab **keduanya dipakai bersama untuk dua porsi berbeda**. Konfirmasi pemilik Billing atas bentuknya tetap diminta lewat `evidence/23` butir `B1`/`B2` |
+| `FIN-OQ-101` | Open Question | Bagaimana piutang atas penjamin **"RS Benefit"** (`FIN-DEC-177`) dilunasi atau ditutup, dan apa perlakuan akuntansinya? Penjamin ini adalah rumah sakit sendiri, sehingga piutangnya tidak ditagih ke pihak luar. Bila tidak pernah ditutup, ia akan menetap di umur piutang dan menggelembungkan saldo piutang. **Contoh:** porsi benefit Rp 6.000.000 atas nama "RS Benefit" — apakah ditutup berkala lewat penghapusan buku, pelunasan internal, atau jurnal beban benefit? | Yasmin (Finance) dan pemilik Accounting | **CLOSED** sisi Finance oleh `FIN-DEC-178`, 5 Oktober 2026. Yang pindah menjadi `FIN-OQ-103`: kesepakatan jenis kejadian dan jurnal beban benefit dengan Accounting |
+| `FIN-OQ-102` | Open Question | Master penjamin **"RS Benefit"**: apakah barisnya sudah ada pada data V2, dan ia dicatat sebagai penjamin **asuransi** (`MstInsuranceProvider`, jenis `Other`) atau penjamin **perusahaan** (`MstCompanyGuarantor`)? Pilihan ini menentukan master mana yang dirujuk `DebtorReferenceId`. Audit source tidak dapat menjawabnya (`FIN-UQ-01`) | Pemilik Administrator (master data) | **TERBUKA** — prasyarat `IMPLEMENTATION` Jalur B |
+| `FIN-OQ-103` | Open Question | Jenis kejadian dan **jurnal beban manfaat karyawan** untuk pelunasan internal piutang "RS Benefit" (`FIN-DEC-178`): apa nama kejadiannya, akun apa yang didebet dan dikredit, dan kapan ia dikirim? Finance mengusulkan satu kejadian berkala per periode, bukan satu per tagihan. **Contoh:** sebulan terkumpul Rp 85.000.000 porsi benefit; satu kejadian menutup seluruhnya | Pemilik Accounting, bersama Yasmin (Finance) | **TERBUKA** — memblokir `DESIGN` **kontrak jurnalnya saja**; pencatatan dan pelunasan internal di dalam Finance tetap dapat dirancang |
+
+### Keputusan pass ini
+
+| ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `FIN-DEC-161` | Decision | Batas scope pass ini = aturan piutang karyawan di Finance **ditambah** cara pasien dikenali sebagai karyawan/keluarga karyawan (titik sentuh Registrasi/Billing). Keputusan yang jatuh ke modul lain dicatat `draft` beserta pemilik modulnya | Yasmin (Finance) | `approved` (hanya untuk batas scope pass ini, bukan keputusan bisnis) | Yasmin, 5 Oktober 2026 | Jawaban "gabungkan pilihan pertama dan kedua" atas tiga opsi batas scope |
+| `FIN-DEC-162` | Decision | **AR karyawan = tagihan layanan rumah sakit atas pegawai atau keluarganya yang menjadi tanggungan pegawai** (`DebtorType = EMPLOYEE_BENEFIT`), lahir dari serah terima Billing seperti AR lain. **Contoh:** istri pegawai Budi dirawat inap, tagihan Rp 3.000.000 dicatat sebagai piutang atas nama Budi dengan hubungan `SPOUSE`. Piutang internal pegawai/dokter tanpa kunjungan pasien (kasbon, dan sejenisnya) **bukan** bagian keputusan ini dan dicatat sebagai `FIN-OQ-085` | Yasmin (Finance) | `approved` (sisi Finance; tidak mengikat Billing/Registrasi/HR) | Yasmin, 5 Oktober 2026 | Jawaban opsi A atas `FIN-OQ-084`; `FIN-DEC-006`; F42, F45 |
+| `FIN-DEC-163` | Decision | **Piutang karyawan dilunasi dengan potongan gaji pegawai pemilik manfaat.** **Contoh:** piutang Rp 3.000.000 atas nama Budi dipotong dari gaji Budi pada periode penggajian yang ditetapkan. Jawaban ini diberikan atas pertanyaan "siapa yang akhirnya menanggung dan berapa piutangnya"; yang diputuskan **hanya** cara pelunasannya. Siapa menanggung dan berapa nominalnya dibuka kembali sebagai `FIN-OQ-086`. Bagian yang menyentuh HR/penggajian (siapa yang memotong, kapan, dan bagaimana Finance diberi tahu) **belum** diputuskan | Yasmin (Finance) | `approved` (sisi Finance, hanya cara pelunasan); sisi HR/penggajian `draft` | Yasmin, 5 Oktober 2026 | Jawaban "dipotong dari gaji" atas pertanyaan tanggungan, 5 Oktober 2026; F43, F47 |
+| `FIN-DEC-164` | Decision | **Piutang pegawai hanya sebesar kelebihan tagihan di atas plafon benefit.** **Contoh:** tagihan Rp 10.000.000 dan sisa plafon Rp 6.000.000 — piutang yang diakui Finance dan dipotong dari gaji adalah **Rp 4.000.000**; Rp 6.000.000 ditanggung benefit dan **tidak** menjadi piutang **pegawai**. **KLAUSA INI DIPERHALUS `FIN-DEC-177` (5 Oktober 2026):** porsi Rp 6.000.000 itu tetap menjadi piutang, tetapi atas penjamin "RS Benefit" — bukan atas pegawai, dan bukan pula dibiarkan tak tertagih ke siapa pun. Kalimat semula yang berbunyi "tidak menjadi piutang" tanpa kualifikasi **MUST** dibaca sebagai "tidak menjadi piutang pegawai". Bila sisa plafon sama dengan atau lebih besar dari tagihan, **tidak ada piutang**. Finance tetap menyalin nominal dari serah terima Billing apa adanya dan tidak menghitung plafon sendiri (prinsip yang sama dengan `FIN-DES-011`); yang menghitung porsi pegawai adalah Billing berdasarkan data plafon HR | Yasmin (Finance) | `approved` (sisi Finance: nominal piutang); sisi Billing/HR (cara menghitung dan sumber plafon) `draft` — lihat `FIN-OQ-087`, `FIN-OQ-088` | Yasmin, 5 Oktober 2026 | Jawaban opsi B atas `FIN-OQ-086`; F43; `FIN-DES-011` |
+| `FIN-DEC-165` | Decision | **Piutang pegawai boleh dilunasi sekaligus ATAU dicicil. Cicilan selalu berdasarkan perjanjian yang memuat besaran cicilan dan waktu cicilan.** **Contoh 1 (sekaligus):** piutang Rp 4.000.000 dipotong penuh pada gaji periode berikutnya. **Contoh 2 (cicilan):** pegawai dan RS menyepakati 4 kali Rp 1.000.000; keempat potongan mengikuti perjanjian itu, bukan batas potongan HR secara otomatis. Jawaban ini menggantikan **bentuk** pilihan yang ditawarkan (A/B/C potong bertahap) dan menjadi aturan resmi cara pelunasan; ia **memperjelas** `FIN-DEC-163` (potong gaji), tidak menggantikannya. Siapa mencatat dan menyetujui perjanjian dibuka sebagai `FIN-OQ-089` | Yasmin (Finance) | `approved` (sisi Finance: aturan cara pelunasan); sisi HR/penggajian (eksekusi potongan sesuai perjanjian) `draft` | Yasmin, 5 Oktober 2026 | Jawaban "boleh langsung lunas dan boleh dicicil; saat cicilan ada perjanjian ketentuan besaran dan waktu cicilan", 5 Oktober 2026; F47 |
+| `FIN-DEC-166` | Decision | **Perjanjian cicilan dicatat di Finance dan disetujui pihak berwenang Finance lain dari pengaju (pola pengaju–penyetuju, seperti write-off `FIN-DEC-012`).** Isi minimalnya: besaran cicilan, jumlah cicilan atau jangka waktu, tanggal mulai potongan, dan dokumen perjanjian yang ditandatangani. **Contoh:** staf Finance A mencatat perjanjian piutang Rp 4.000.000 dalam 4 kali Rp 1.000.000 mulai gaji November; pihak berwenang B menyetujuinya; staf A **tidak** boleh menyetujui perjanjiannya sendiri. Wewenang penyetuju ditentukan lewat konfigurasi hak akses/peran, bukan nama jabatan yang ditulis tetap di kode (konsisten dengan `FIN-DEC-012`). Piutang tetap sepenuhnya milik Finance dan **tidak** memakai pinjaman pegawai HR (`TrxEmployeeLoan`) | Yasmin (Finance) | `approved` (sisi Finance); cara jadwal sampai ke HR `draft` — lihat `FIN-OQ-090` | Yasmin, 5 Oktober 2026 | Jawaban opsi A atas `FIN-OQ-089`; `FIN-DEC-012`; F47 |
+| `FIN-DEC-167` | Decision | **HR mengirim hasil potongan gaji (berhasil atau gagal) ke Finance secara otomatis, dan Finance menandai cicilan terbayar atau gagal dari kiriman itu.** **Contoh:** gaji November diproses; HR mengirim "cicilan ke-1 Budi Rp 1.000.000 berhasil dipotong"; Finance otomatis mengurangi piutang Budi menjadi Rp 3.000.000. Jadwal cicilan yang sudah disetujui (`FIN-DEC-166`) juga dikirim Finance ke HR. **Dicatat sadar:** pilihan ini BUKAN opsi yang direkomendasikan (rekomendasinya pencatatan manual dari rekap HR). Konsekuensi yang diterima owner: HR harus membangun kemampuan baru (potongan gaji yang merujuk piutang Finance dan pengiriman hasilnya, F47), sehingga slice pelunasan menunggu `FIN-OQ-091`. Kiriman ganda dari HR **MUST** aman (tidak memotong piutang dua kali) | Yasmin (Finance) | `approved` (sisi Finance: arah dan sifat otomatis); sisi HR/Payroll `draft` — lihat `FIN-OQ-091`. **DIPERHALUS `FIN-DEC-179`:** hasil potongan punya **tiga** keadaan — penuh, sebagian, gagal — bukan dua | Yasmin, 5 Oktober 2026 | Jawaban opsi A atas `FIN-OQ-090`; F47 |
+| `FIN-DEC-168` | Decision | **Cicilan yang gagal dipotong tetap terhutang dan otomatis ikut dipotong pada periode berikutnya, tanpa mengubah perjanjian.** **Contoh:** cicilan ke-2 Rp 1.000.000 gagal pada gaji Desember; ia ditandai tertunggak dan ikut dipotong pada gaji Januari bersama cicilan ke-3; pegawai tidak perlu menandatangani perjanjian baru. Umur tunggakan tetap berjalan dan tampil di aging. **Jalur ini dipilih sebagai bagian dari opsi yang direkomendasikan**; konsekuensi bahwa potongan bisa membesar dibuka sebagai `FIN-OQ-092` | Yasmin (Finance) | `approved` (sisi Finance); eksekusi di HR `draft`. **DIPERHALUS `FIN-DEC-179`:** batas potongan ditegakkan HR, bukan Finance, dan potongan **sebagian** ikut menurunkan tunggakan — bukan hanya berhasil atau gagal | Yasmin, 5 Oktober 2026 | Jawaban opsi A atas pertanyaan "potongan gagal", 5 Oktober 2026; `FIN-DEC-166`, `FIN-DEC-167` |
+| `FIN-DEC-169` | Decision | **Saat pegawai berhenti (resign, PHK), sisa piutang diprioritaskan dipotong dari gaji terakhir dan hak akhirnya; bila masih ada sisa, sisa itu WAJIB dilunasi pegawai dan ditagih manual oleh staf Finance. Sisa tidak diselesaikan dengan penghapusan otomatis; write-off tetap hanya lewat pengajuan dan persetujuan.** **Contoh:** sisa Rp 2.500.000 pada hari terakhir kerja; gaji terakhir dan hak akhir memotong Rp 1.800.000; sisa Rp 700.000 tetap piutang dan **wajib** dibayar pegawai. HR **MUST** memberi tahu Finance saat status pegawai berubah menjadi berhenti. Jawaban asli owner: "pilihan A tapi harus dilunasi" — pilihan A dengan penegasan wajib lunas. Maksud "wajib" (menahan proses di HR atau tidak) dibuka sebagai `FIN-OQ-093`; kasus meninggal sebagai `FIN-OQ-094` | Yasmin (Finance) | `approved` (sisi Finance); pemberitahuan status pegawai dari HR `draft` | Yasmin, 5 Oktober 2026 | Jawaban "pilihan A tpi harus dilunaskan", 5 Oktober 2026; `FIN-DEC-163`, `FIN-DEC-167` |
+| `FIN-DEC-170` | Decision | **Proses berhenti pegawai di HR tertahan sampai Finance menyatakan piutang karyawannya lunas.** Finance menyediakan status "bebas tanggungan" per pegawai untuk dibaca HR. **Contoh:** hari terakhir kerja Budi, sisa piutang Rp 2.500.000 — HR tidak dapat menandai Budi "selesai" sebelum Finance menyatakan piutangnya Rp 0. Status "bebas tanggungan" **MUST** dihitung dari saldo piutang aktif, bukan diisi tangan. Kasus pegawai meninggal memerlukan jalur pengecualian yang diputuskan lewat `FIN-OQ-094`. **Pilihan ini sesuai opsi yang direkomendasikan**; konsekuensinya (HR harus membangun pembacaan status Finance, proses berhenti dapat tertunda) diterima owner | Yasmin (Finance) | `approved` (sisi Finance: aturan dan status yang disediakan); gerbang di HR `draft` — lihat `FIN-OQ-095` | Yasmin, 5 Oktober 2026 | Jawaban opsi A atas `FIN-OQ-093`; `FIN-DEC-169` |
+| `FIN-DEC-171` | Decision | **Pasien ditetapkan sebagai pegawai atau keluarga pegawai oleh petugas Registrasi saat pendaftaran kunjungan, dibantu pencarian di data HR; hasilnya (pemilik manfaat dan hubungannya) melekat pada kunjungan dan dibaca Billing.** **Contoh:** istri pegawai Budi datang; petugas mencari "Budi" atau nomor identitas, memilih tanggungan istri, dan kunjungan tersimpan dengan pemilik manfaat Budi dan hubungan `SPOUSE`. Eligibilitas diperiksa pada saat pelayanan (sejalan dengan `FIN-DEC-016`); Finance **tidak** menentukan atau mengubah identitas ini sendiri. **Pilihan ini sesuai opsi yang direkomendasikan.** Keputusan ini menyentuh Registrasi dan HR, sehingga bagian itu `draft` sampai pemilik kedua modul menyetujui (`FIN-OQ-096`) | Yasmin (Finance) untuk kebutuhan Finance; pemilik Registrasi untuk bentuknya | `approved` (sisi Finance: kebutuhan dan pembagian tanggung jawab); sisi Registrasi/HR `draft` | Yasmin, 5 Oktober 2026 | Jawaban opsi A atas pertanyaan "siapa menentukan pasien adalah pegawai"; `FIN-DEC-016`; F44 |
+| `FIN-DEC-172` | Decision | **Piutang karyawan dapat dilihat dan diurus oleh siapa pun yang sudah berhak pada AR, sama seperti piutang penjamin biasa — TANPA hak akses terpisah dan tanpa penyamaran (*masking*) nama atau hubungan keluarga pada layar maupun respons.** **Contoh:** staf AR yang biasa mengurus piutang asuransi langsung melihat piutang atas nama Budi (hubungan `SPOUSE`, Rp 4.000.000) di daftar piutang yang sama. **Dicatat sadar:** pilihan ini BUKAN opsi yang direkomendasikan (rekomendasinya hak akses terpisah tanpa rincian medis). Risiko yang diterima owner: nama pegawai yang berutang dan hubungan keluarga yang dirawat terlihat oleh seluruh staf AR, termasuk yang tidak berkepentingan. Keputusan ini **MUST NOT** dijadikan preseden untuk data sensitif lain. **Yang TIDAK berubah:** `BenefitOwnerId` dan `BenefitRelationship` tetap bertanda Sensitif pada kamus data, sehingga **MUST NOT** masuk *custom logger* dan **MUST NOT** dipakai sebagai contoh data asli; keputusan ini hanya menjawab "siapa yang melihat" dan sekaligus menutup butir *SHOULD* peninjauan masking DTO pada kamus data (tidak ada masking bagi pengguna berhak AR) | Yasmin (Finance) | `approved` | Yasmin, 5 Oktober 2026 | Pilihan **B** atas pertanyaan hak akses, 5 Oktober 2026. Jawaban awal opsi A sempat terkirim lalu dikoreksi owner sebelum dicatat — **A tidak pernah menjadi keputusan**; `erd/data-dictionary.md` baris 19-21; `FIN-DEC-103` (preseden pola "diterima sadar") |
+| `FIN-DEC-173` | Decision | **Bila pemilik manfaat salah, piutang yang salah dibatalkan (*reversal*) dengan jejak yang terlihat, lalu serah terima baru diterbitkan atas pegawai yang benar. Finance TIDAK mengganti nama debitur pada piutang yang sama.** **Contoh:** piutang Rp 4.000.000 atas Budi dibalik menjadi Rp 0 dengan catatan koreksi; Billing menerbitkan serah terima baru Rp 4.000.000 atas Andi dengan hubungan yang benar; potongan Rp 1.000.000 pada gaji Budi diselesaikan HR. Sesuai `FIN-DEC-016` (Finance tidak menentukan ulang identitas). **Pilihan ini sesuai opsi yang direkomendasikan.** Alur di Registrasi/Billing/HR dibuka sebagai `FIN-OQ-097` | Yasmin (Finance) | `approved` (sisi Finance: pembalikan dan penerimaan serah terima pengganti); alur koreksi di modul lain `draft` | Yasmin, 5 Oktober 2026 | Jawaban opsi A atas pertanyaan koreksi pemilik manfaat; `FIN-DEC-016`; `FIN-DEC-021` (pola reversal-bukan-hapus) |
+| `FIN-DEC-174` | Decision | **Piutang karyawan lama (sebelum go-live) dimasukkan lewat batch migrasi tagihan lama yang diperluas.** Templat impor ditambah kolom pemilik manfaat dan hubungannya, dan penolakan jenis karyawan pada impor saldo awal (`FIN-VAL-187`) dicabut — **tetapi hanya setelah tautan pegawai tersedia**, sehingga jenis ini tidak dapat masuk tanpa pemilik manfaat yang sah. **Contoh:** Budi masih berutang Rp 2.000.000 dari tagihan Agustus; baris itu masuk lewat batch, tercatat di Finance atas nama Budi, lalu dijadwalkan potongan dan masuk aging dan gerbang berhenti (`FIN-DEC-170`) seperti piutang baru. Jalur ini menggantikan catatan `BE-FIN-082` bahwa jenis karyawan sengaja tidak diterima migrasi, **hanya untuk jenis ini** dan setelah syaratnya terpenuhi. **Pilihan ini sesuai opsi yang direkomendasikan** | Yasmin (Finance) | `approved` (sisi Finance); kunci pegawai dan sumber data di HR `draft` — lihat `FIN-OQ-098` | Yasmin, 5 Oktober 2026 | Jawaban opsi B atas pertanyaan saldo lama; `FIN-DEC-008`; F41; `FinanceOpeningItemBatchService.cs` baris 776-785 |
+| `FIN-DEC-175` | Decision | **Bentuk layar piutang karyawan diputuskan owner lewat UI brief tersendiri SEBELUM task frontend dibuat.** Hierarki wewenang UI: keamanan/privasi/invariant → UI brief yang disetujui → konvensi proyek → kebijaksanaan developer. Developer **MUST NOT** menetapkan sendiri penempatan menu, tab/modal/halaman perjanjian cicilan, atau tampilan status bebas tanggungan. **Contoh:** developer boleh memakai komponen dan pola layar Finance yang ada, tetapi tidak memilih apakah perjanjian cicilan berupa modal atau halaman penuh. **Pilihan ini sesuai opsi yang direkomendasikan**; konsekuensinya (task frontend karyawan menunggu `FIN-OQ-099`, backend jalan lebih dulu) diterima owner | Yasmin (Finance) | `approved` | Yasmin, 5 Oktober 2026 | Jawaban opsi A atas pertanyaan wewenang UI; pola `FIN-DEC-024`..`029` |
+| `FIN-DEC-176` | Decision | **Pengajuan penghapusan buku (*write-off*) dan penyesuaian piutang karyawan memakai pola pengaju–penyetuju yang sama dengan piutang penjamin (`FIN-DEC-012`): pengaju tidak boleh menyetujui permohonannya sendiri, wewenang penyetuju ditentukan lewat konfigurasi hak akses/peran, dan TIDAK ada ambang nominal bertingkat.** **Contoh:** piutang karyawan Rp 700.000 yang tidak tertagih diajukan staf Finance A; yang menyetujui MUST pengguna lain pemegang wewenang approval, berapa pun nominalnya. Keputusan ini menaikkan `FIN-ASM-EMP-01` dari asumsi menjadi keputusan, sehingga desain write-off karyawan tidak lagi menunggu. Tetap sejalan dengan `FIN-DEC-169`: sisa piutang pegawai yang berhenti **tidak** dihapus otomatis | Yasmin (Finance) | `approved` | Yasmin, 5 Oktober 2026 | Jawaban "Ya, sama seperti piutang penjamin" atas pertanyaan konfirmasi `FIN-ASM-EMP-01`, 5 Oktober 2026; `FIN-DEC-012` |
+| `FIN-DEC-177` | Decision | **Jalur A dan Jalur B dipakai BERSAMA untuk dua porsi tagihan yang berbeda, bukan berurutan.** (a) **Porsi yang menjadi tanggungan pegawai** — kelebihan di atas plafon — memakai **Jalur A**: serah terima bertipe `EMPLOYEE_BENEFIT` beserta pemilik manfaat dan hubungannya. (b) **Porsi yang ditanggung benefit rumah sakit** memakai **Jalur B**: serah terima bertipe `PAYER` atas penjamin **"RS Benefit"**, meneruskan praktik V1. **Contoh:** tagihan Rp 10.000.000 dengan sisa plafon Rp 6.000.000 menghasilkan **dua** serah terima — Rp 4.000.000 atas pegawai Budi (`EMPLOYEE_BENEFIT`, hubungan `SPOUSE`) dan Rp 6.000.000 atas "RS Benefit" (`PAYER`). **Melengkapi `FIN-DEC-164`, tidak menggantikannya:** `FIN-DEC-164` mengatur piutang **pegawai** dan tetap berlaku apa adanya; keputusan ini mengatur porsi sisanya. **Konsekuensi yang MUST dikonfirmasi pemilik Billing:** Billing menerbitkan **dua** baris serah terima untuk satu tagihan manfaat karyawan, bukan satu. Dua pertanyaan turunan dibuka: `FIN-OQ-101` (cara menutup piutang "RS Benefit") dan `FIN-OQ-102` (master "RS Benefit" yang dipakai) | Yasmin (Finance) | `approved` (sisi Finance: pembagian porsi dan jenis serah terima yang diterima); bentuk di Billing `draft` — `evidence/23` butir `B1`/`B2` | Yasmin, 5 Oktober 2026 | Jawaban "keduanya dipakai bersama, untuk dua porsi berbeda" atas `FIN-OQ-100`, 5 Oktober 2026; `FIN-CAP-085` (praktik V1 "RS Benefit"); `FIN-DEC-164` |
+| `FIN-DEC-178` | Decision | **Piutang atas penjamin "RS Benefit" ditutup BERKALA lewat pelunasan internal non-kas, dan lawan jurnalnya adalah beban manfaat karyawan.** Piutang itu **MUST NOT** ditutup lewat penghapusan buku, karena benefit yang memang direncanakan bukan piutang tak tertagih dan akan merusak laporan penghapusan. Ia juga **MUST NOT** dibiarkan terbuka, karena akan menetap di umur piutang dan menggelembungkan saldo piutang rumah sakit. **Contoh:** sebulan terkumpul Rp 85.000.000 porsi benefit atas nama "RS Benefit"; pada penutupan periode Finance menerbitkan satu pelunasan internal sebesar itu, piutangnya menjadi nol, dan Accounting membukukannya sebagai beban manfaat karyawan. Jejak per pegawai dan per kunjungan tetap utuh karena piutangnya tetap dicatat lebih dulu. **Konsekuensi yang diterima sadar:** Finance belum punya mekanisme pelunasan non-kas — alokasi yang berjalan selalu berpangkal pada penerimaan uang (`FIN-CAP-075`), sehingga mekanisme baru perlu dirancang. Kontrak jurnalnya milik Accounting dan dibuka sebagai `FIN-OQ-103` | Yasmin (Finance) | `approved` (sisi Finance: cara menutup dan larangan memakai penghapusan buku); kontrak jurnal ke Accounting `draft` | Yasmin, 5 Oktober 2026 | Jawaban opsi A atas `FIN-OQ-101`, 5 Oktober 2026; `FIN-DEC-177`; `FIN-CAP-075`; `FIN-CAP-077` |
+| `FIN-DEC-179` | Decision | **HR yang menegakkan batas potongan gaji per periode. Finance mengirim jadwal cicilan beserta jumlah terutang, lalu menerima hasilnya apa adanya; Finance TIDAK menyimpan batas potongan dan TIDAK menegakkannya.** Alasannya: hanya HR yang memiliki data gaji, dan HR sudah punya batas maksimum, potong sebagian, serta prioritas pada master jenis potongan (`FIN-CAP-073`). **Contoh:** cicilan Rp 1.000.000 gagal dua bulan berturut-turut sehingga bulan ketiga terutang Rp 3.000.000; HR memotong sebesar yang diizinkan, misalnya Rp 1.500.000, dan melaporkannya sebagai potongan **sebagian**; sisa Rp 1.500.000 tetap tertunggak dan ikut periode berikutnya sesuai `FIN-DEC-168`. **KONSEKUENSI YANG MEMPERHALUS DUA KEPUTUSAN SEBELUMNYA:** hasil potongan kini punya **tiga** keadaan — penuh, **sebagian**, dan gagal — sedangkan `FIN-DEC-167` dan `FIN-DEC-168` baru menyebut berhasil atau gagal. Keduanya dianotasi, tidak dicabut. Nilai batas dan siapa yang menetapkannya di HR tetap milik HR | Yasmin (Finance) | `approved` (sisi Finance); nilai batas di HR `draft` | Yasmin, 5 Oktober 2026 | Jawaban opsi A atas `FIN-OQ-092` bagian Finance, 5 Oktober 2026; `FIN-CAP-073`; `FIN-DEC-167`, `FIN-DEC-168` |
+| `FIN-ASM-EMP-01` | Assumption | **Pengajuan write-off dan penyesuaian piutang karyawan mengikuti pola pengaju–penyetuju `FIN-DEC-012`** (pengaju tidak boleh menyetujui sendiri, wewenang lewat konfigurasi hak akses, tanpa ambang nominal bertingkat). **Tidak ditanyakan** pada pass ini karena mengikuti pola yang sudah berlaku untuk piutang penjamin; pemilik **MUST** mengonfirmasi atau menggantinya sebelum `/design-business-module`. `FIN-DEC-169` tetap berlaku: penghapusan hanya lewat pengajuan dan persetujuan, bukan otomatis | Yasmin (Finance) | **`superseded` oleh `FIN-DEC-176`** — dikonfirmasi menjadi keputusan | Yasmin, 5 Oktober 2026 | `FIN-DEC-012`; `FIN-DEC-169` |
+
+### Rekap keputusan pass ini
+
+| ID | Ringkasan | Status |
+|---|---|---|
+| `FIN-DEC-161` | Batas scope pass diperluas ke cara pasien dikenali sebagai pegawai | `approved` (hanya batas scope) |
+| `FIN-DEC-162` | AR karyawan = tagihan layanan RS atas pegawai atau keluarganya (`EMPLOYEE_BENEFIT`) | `approved` sisi Finance |
+| `FIN-DEC-163` | Dilunasi dengan potongan gaji | `approved` sisi Finance; HR `draft` |
+| `FIN-DEC-164` | Piutang **pegawai** hanya sebesar kelebihan di atas plafon benefit (klausa porsi benefit diperhalus `FIN-DEC-177`) | `approved` sisi Finance; Billing/HR `draft` |
+| `FIN-DEC-165` | Boleh lunas sekaligus atau dicicil berdasarkan perjanjian | `approved` sisi Finance |
+| `FIN-DEC-166` | Perjanjian cicilan dicatat di Finance, pengaju ≠ penyetuju | `approved` sisi Finance |
+| `FIN-DEC-167` | HR mengirim hasil potongan otomatis ke Finance (bukan opsi yang direkomendasikan) | `approved` sisi Finance; HR `draft` |
+| `FIN-DEC-168` | Cicilan gagal tetap terhutang dan ikut potongan periode berikutnya | `approved` sisi Finance |
+| `FIN-DEC-169` | Pegawai berhenti: potong gaji/hak akhir, sisa wajib dilunasi, tanpa penghapusan otomatis | `approved` sisi Finance |
+| `FIN-DEC-170` | Proses berhenti di HR tertahan sampai Finance menyatakan lunas | `approved` sisi Finance; HR `draft` |
+| `FIN-DEC-171` | Registrasi menetapkan pemilik manfaat saat pendaftaran, dibantu data HR | `approved` sisi Finance; Registrasi/HR `draft` |
+| `FIN-DEC-172` | Dapat dilihat siapa pun yang berhak AR, tanpa masking (bukan opsi yang direkomendasikan) | `approved` |
+| `FIN-DEC-173` | Pemilik manfaat salah: reversal lalu serah terima baru, Finance tidak mengganti nama | `approved` sisi Finance; modul lain `draft` |
+| `FIN-DEC-174` | Saldo lama dimasukkan lewat batch migrasi yang diperluas | `approved` sisi Finance; HR `draft` |
+| `FIN-DEC-175` | Bentuk layar diputuskan owner lewat UI brief sebelum task frontend dibuat | `approved` |
+| `FIN-DEC-176` | Write-off dan penyesuaian piutang karyawan memakai pengaju–penyetuju `FIN-DEC-012` | `approved` |
+| `FIN-DEC-177` | Jalur A dan B dipakai bersama: porsi pegawai lewat `EMPLOYEE_BENEFIT`, porsi benefit lewat penjamin "RS Benefit" | `approved` sisi Finance; bentuk di Billing `draft` |
+| `FIN-DEC-178` | Piutang "RS Benefit" ditutup berkala lewat pelunasan internal, lawan jurnalnya beban benefit; bukan lewat penghapusan buku | `approved` sisi Finance; jurnal ke Accounting `draft` |
+| `FIN-DEC-179` | HR menegakkan batas potongan; Finance kirim jadwal dan terima hasil apa adanya, termasuk potongan **sebagian** | `approved` sisi Finance; nilai batas di HR `draft` |
+| `FIN-ASM-EMP-01` | Write-off karyawan mengikuti pola `FIN-DEC-012` | `superseded` oleh `FIN-DEC-176` (dikonfirmasi 5 Oktober 2026) |
+
+**Status keputusan lama.** `FIN-DEC-006` tetap `approved` sisi Finance dan **tetap belum dikonfirmasi** Billing dan
+HR; pass ini memperjelas isinya lewat `FIN-DEC-162`..`175`, tidak menggantikannya. `FIN-DEC-016` tetap berlaku dan
+konsisten dengan `FIN-DEC-171` dan `FIN-DEC-173`. `FIN-CQ-03` **tetap TERBUKA** dan kini dipecah menjadi
+`FIN-OQ-087`, `091`, `095`, `096`, `097`, dan `098` — masing-masing dengan pemilik yang jelas.
+
+### Open question dan blocker
+
+| Blocker | Butir | Pemilik | Memblokir |
+|---|---|---|---|
+| Konfirmasi pola write-off | `FIN-ASM-EMP-01` | Yasmin (Finance) | `DESIGN` sisi Finance (kecil) |
+| UI brief layar piutang karyawan (menu, daftar, perjanjian cicilan, status bebas tanggungan) | `FIN-OQ-099` | Yasmin (Finance) | `DESIGN` dan task `FE-FIN` karyawan saja |
+| Sumber sisa plafon dan plafon keluarga | `FIN-OQ-087` | Billing dan HR | `IMPLEMENTATION` intake karyawan |
+| Tautan kunjungan↔pegawai di Registrasi | `FIN-OQ-096` | Registrasi dan HR | `IMPLEMENTATION` intake karyawan |
+| Kemampuan HR: terima jadwal, kirim hasil potongan | `FIN-OQ-091` | HR/Payroll | `IMPLEMENTATION` slice pelunasan |
+| Batas potongan per periode saat menumpuk | `FIN-OQ-092` | Finance dan HR/Payroll | `IMPLEMENTATION` slice pelunasan |
+| Gerbang berhenti di HR | `FIN-OQ-095` | HR | `IMPLEMENTATION` gerbang berhenti |
+| Alur koreksi dan pengembalian potongan | `FIN-OQ-097` | Registrasi, Billing, HR | `IMPLEMENTATION` jalur koreksi |
+| Kunci pegawai pada templat impor | `FIN-OQ-098` | HR | `IMPLEMENTATION` perluasan templat |
+| Piutang internal pegawai/dokter tanpa kunjungan (kasbon) | `FIN-OQ-085` | Yasmin (Finance) | `LATER SLICE`; butuh pass sendiri |
+| Pengakuan porsi yang ditanggung benefit | `FIN-OQ-088` | Billing dan Accounting | `LATER SLICE` |
+| Pegawai meninggal dengan sisa piutang | `FIN-OQ-094` | Yasmin (Finance) | `LATER SLICE` |
+
+`EPIC FIN-04` **tetap `OPEN DECISION`** sampai pemilik Billing, Registrasi, dan HR mengonfirmasi butir di atas.
+Pass ini tidak mengubah status itu; yang berubah, aturan bisnis sisi Finance kini sudah tertulis dan siap dirancang.
+
+### Kriteria penerimaan tambahan (dapat diuji)
+
+1. Serah terima dengan jenis karyawan sebesar Rp 4.000.000 **MUST** menghasilkan piutang Rp 4.000.000 dengan pemilik manfaat dan hubungannya terisi; Finance **MUST NOT** menghitung ulang plafon.
+2. Serah terima jenis karyawan **tanpa** pemilik manfaat **MUST** ditolak (selaras `CK_FinReceivable_BenefitOwner`).
+3. Tagihan Rp 10.000.000 dengan sisa plafon Rp 6.000.000 **MUST** menjadi piutang Rp 4.000.000; bila sisa plafon sama atau lebih besar dari tagihan, **tidak ada** piutang (perhitungan di Billing, `FIN-DEC-164`).
+4. Finance **MUST NOT** mengganti pemilik manfaat pada piutang yang sudah terbentuk; koreksi **MUST** lewat pembalikan dan serah terima baru.
+5. Piutang dapat dilunasi sekaligus atau dicicil; cicilan **MUST NOT** dijadwalkan tanpa perjanjian yang sudah disetujui.
+6. Perjanjian cicilan **MUST** memuat besaran, jumlah atau jangka waktu, tanggal mulai, dan dokumen; pengaju **MUST NOT** menyetujui perjanjiannya sendiri.
+7. Hasil potongan berhasil dari HR **MUST** mengurangi piutang; hasil gagal **MUST** menandai cicilan tertunggak dan ikut potongan periode berikutnya tanpa mengubah perjanjian.
+8. Kiriman hasil potongan yang sama dua kali **MUST NOT** mengurangi piutang dua kali.
+9. Cicilan tertunggak **MUST** tampil pada aging menurut tanggal jatuh tempo cicilannya.
+10. Status "bebas tanggungan" **MUST** dihitung dari saldo piutang aktif: saldo Rp 0 berarti bebas, ada sisa berarti tidak; **MUST NOT** dapat diisi tangan.
+11. Saat pegawai berhenti, sisa **MUST NOT** dihapus otomatis; penghapusan hanya lewat pengajuan dan persetujuan.
+12. `BenefitOwnerId` dan `BenefitRelationship` **MUST NOT** masuk *custom logger* maupun contoh data asli, walau terlihat oleh pengguna berhak AR.
+13. Batch migrasi **MUST** menerima jenis karyawan hanya bila pemilik manfaatnya sah; sebelum tautan pegawai tersedia, penolakan `FIN-VAL-187` **MUST** tetap berlaku.
+14. Invariant "`FinReceivable` wajib berasal dari serah terima atau batch migrasi yang sah" **MUST NOT** dilonggarkan (preseden `FIN-DEC-101`).
+
+### Di luar scope — untuk modul lain (dicatat, tidak dikejar)
+
+| Hal | Pemilik | Alasan |
+|---|---|---|
+| Aturan eligibilitas dan plafon benefit | HR | Finance hanya memakai hasilnya (`FIN-OQ-087`) |
+| Cara Billing menghitung porsi pegawai | Billing | Finance menyalin nominal apa adanya |
+| Pengakuan porsi yang ditanggung benefit di pembukuan | Billing dan Accounting | `FIN-OQ-088` |
+| Eksekusi potong gaji di penggajian | HR/Payroll | `FIN-OQ-091`, `FIN-OQ-092` |
+| Piutang internal pegawai/dokter tanpa kunjungan (kasbon) | Finance, pass tersendiri | `FIN-OQ-085` |
+
+### Bentuk blueprint
+
+`blueprint_shape: SINGLE` **tidak berubah** (diputuskan pass desain 20 September 2026). Hasil uji pass ini: rumpun
+piutang karyawan memakai entity `FinReceivable`, kosakata status AR, dan resource hak akses AR yang sama
+(`FIN-DEC-172`), serta tidak dapat dirilis sendiri karena bergantung pada HR dan Registrasi — jadi tidak memenuhi
+3 dari 5 syarat pemecahan. Dicatat sebagai catatan, bukan bantahan.
+
+### Langkah berikutnya
+
+**Blocker disebut lebih dulu.** Aturan bisnis sisi Finance sudah tuntas, tetapi pekerjaan implementasi masih
+tertahan konfirmasi **Billing, Registrasi, dan HR** (`FIN-OQ-087`, `091`, `092`, `095`, `096`, `097`, `098`) serta
+dua butir milik Finance yang kecil (`FIN-ASM-EMP-01`, `FIN-OQ-099`). `EPIC FIN-04` tetap `OPEN DECISION` dan
+**MUST NOT** masuk gelombang pengiriman sebelum itu.
+
+Langkah yang ditawarkan, **tidak dijalankan** sebelum pengguna setuju:
+
+1. `/trace-existing-capabilities` mode *impact scan* — direkomendasikan lebih dulu: SHA source sudah bergerak
+   dari `09101d05` ke `46fa2a91`, dan fakta F44 serta F47 berasal dari pencarian nama properti sehingga perlu
+   dipastikan lewat audit.
+2. `/design-business-module` (amandemen kecil) untuk menggambar sisi Finance `EPIC FIN-04`, **di belakang gerbang
+   konfirmasi** Billing, Registrasi, dan HR — setelah impact scan, dan setelah `FIN-ASM-EMP-01` dikonfirmasi.
+3. Mengirim permintaan konfirmasi kepada pemilik Billing, Registrasi, dan HR memakai pola
+   `evidence/02-permintaan-kontrak-untuk-owner-billing.md`, agar blocker di atas bisa ditutup.
+
+Pass ini **tidak** menulis kontrak, arsitektur, roadmap, migration, endpoint, atau UI.
+
+### Koreksi fakta oleh impact scan (`01-existing-capability-map.md` bagian 21), 5 Oktober 2026
+
+Impact scan terarah atas klaster piutang karyawan, dijalankan sesudah wawancara di atas, **mengoreksi** dua fakta dan
+menggeser premis empat keputusan. **Status keputusan TIDAK diubah**; yang berubah hanya dasar faktanya, dan keempatnya
+perlu ditinjau ulang pada pass `/grill-me` berikutnya.
+
+| Butir | Dikoreksi menjadi | Rujukan |
+|---|---|---|
+| F44 | Tautan pasien ↔ pegawai **ada**, bukan di HR: kartu `MstPatientCompanyGuarantor` (nomor karyawan, plan, eligibilitas, plafon) dan snapshot per kunjungan `RegPatientEncounterGuarantor`. Yang tidak ada: hubungan keluarga dan rujukan ke profil pegawai HR (hanya teks) | `FIN-CAP-070` |
+| F47 | HR **punya** struktur sumber-luar pada potongan gaji (`SourceType`/`SourceId` pada input variabel dan komponen penggajian), dengan preseden modul Cuti. Belum ada pemakai Finance dan belum ada arah HR → Finance | `FIN-CAP-073`, `FIN-CAP-074` |
+
+| Keputusan | Premis yang bergeser | Perlu ditinjau |
+|---|---|---|
+| `FIN-DEC-164` | Billing menghitung porsi penjamin perusahaan lewat aturan cakupan, **bukan** sisa plafon per pegawai; `RemainingLimitAmount` tidak dikurangi Billing | Sumber plafon dan siapa yang mengurangi (`FIN-OQ-087`) |
+| `FIN-DEC-167` | Struktur penerima potongan di HR sudah ada, tetapi pengirim hasil ke Finance belum | Apakah tetap otomatis penuh (`FIN-OQ-091`) |
+| `FIN-DEC-170` | Kolom `IsExitClearanceCompleted` ada tetapi **tidak punya penulis**; HR perlu mesin penutupnya | Lingkup pekerjaan HR (`FIN-OQ-095`) |
+| `FIN-DEC-171` | Mekanisme Registrasi untuk pegawai sudah ada (kartu penjamin perusahaan); yang dibutuhkan adalah menyambungkannya, bukan membuat dari nol | Bentuk penyambungan (`FIN-OQ-096`) |
+
+**Temuan baru yang memengaruhi aturan ini:** V1 menandai Karyawan lewat penjamin bernama "RS Benefit" (`FIN-CAP-085`);
+serah terima `PAYER` untuk penjamin **perusahaan** tidak membawa identitas debitur (`FIN-CAP-069`, perlu `Repair`); dan
+filter "Pasien Umum" di frontend tidak pernah cocok dengan backend (`FIN-CQ-11`).
+
+**Pertanyaan baru:** `FIN-OQ-100` — jalur mana yang dipilih Billing untuk menandai piutang karyawan: perluasan resmi (Jalur A) atau penjamin
+sementara "RS Benefit" (Jalur B), atau B dahulu lalu A. Pemilik: Billing. Ditanyakan pada
+`evidence/23-permintaan-konfirmasi-piutang-manfaat-karyawan.md` (**DRAF**, belum dikirim).
+
+### Hasil gerbang kelengkapan requirement, 5 Oktober 2026
+
+`requirement-completeness-gate` dijalankan atas `EPIC FIN-04` karena `design-business-module` menolak
+menggambar tanpa bukti gerbang ini, dan `FIN-CQ-03` menandai rumpun ini sebagai satu-satunya titik modul
+yang requirement-nya belum pernah dinilai. Penilaian lengkapnya ada pada
+`evidence/24-gerbang-kelengkapan-requirement-piutang-manfaat-karyawan.md`.
+
+**Kesiapan: `PARTIALLY_READY`.** Kemampuan dipecah menjadi sepuluh slice; tiga siap dirancang, tujuh
+berhenti.
+
+| Slice | Kemampuan | Kesiapan | Blocker |
+|---|---|---|---|
+| `S2a` | Perjanjian dan jadwal cicilan beserta persetujuannya | **`READY_FOR_DOMAIN_DESIGN`** | — |
+| `S4a` | Menghitung status "bebas tanggungan" per pegawai | **`READY_FOR_DOMAIN_DESIGN`** | — |
+| `S8` | Penghapusan buku dan penyesuaian piutang karyawan | **`READY_FOR_DOMAIN_DESIGN`** (nol desain baru) | — |
+| `S1` | Mencatat piutang porsi pegawai dari serah terima Billing | `BUSINESS_DECISION_REQUIRED` | `FIN-OQ-096`, `FIN-OQ-087`, konfirmasi Billing atas `FIN-DEC-177`/`FIN-DEC-006` |
+| `S2b` | Penumpukan tunggakan dan batas potongan per periode | `BUSINESS_DECISION_REQUIRED` | `FIN-OQ-092` |
+| `S3` | Pelunasan lewat potongan gaji, dua arah dengan HR | `BUSINESS_DECISION_REQUIRED` | `FIN-OQ-091` |
+| `S4b` | Gerbang berhenti kerja di HR | `BUSINESS_DECISION_REQUIRED` | `FIN-OQ-095` |
+| `S5` | Koreksi ketika pemilik manfaat salah orang | `BUSINESS_DECISION_REQUIRED` | `FIN-OQ-097`, `FIN-CAP-078` masih `Unknown` |
+| `S6` | Batch migrasi piutang karyawan lama | `BUSINESS_DECISION_REQUIRED` | `FIN-OQ-098` |
+| `S7` | Porsi benefit atas penjamin "RS Benefit" | `BUSINESS_DECISION_REQUIRED` | `FIN-OQ-101`, `FIN-OQ-102` |
+
+**Klasifikasi bukti:** 14 `CONFIRMED`, 3 `PROPOSED`, 10 `MISSING`, dan 1 `CONFLICT` yang sudah
+diselesaikan hari itu juga (klausa porsi benefit pada `FIN-DEC-164` diperhalus `FIN-DEC-177`).
+
+**Dua hal yang MUST diingat dari gerbang ini:**
+
+1. **Tidak ada SOP atau kebijakan rumah sakit yang disahkan** tentang manfaat kesehatan pegawai yang
+   dapat dirujuk. Seluruh butir `CONFIRMED` berasal dari jawaban pemilik Finance pada wawancara, bukan
+   dari dokumen kebijakan. Itu sah sebagai keputusan pemilik, tetapi perlu diketahui bila kelak ada SOP
+   yang berbeda bunyinya.
+2. Ketiga slice yang siap **hanya siap dirancang, bukan siap dirilis.** Tanpa `S1` tidak ada piutang
+   karyawan yang bisa dilekati perjanjian maupun dihitung status bebas tanggungannya, sehingga
+   `plan-module-delivery` **MUST NOT** menjadwalkan `S2a`, `S4a`, atau `S8` sebagai gelombang rilis yang
+   berdiri sendiri. `EPIC FIN-04` tetap `OPEN DECISION` dan tetap di luar seluruh gelombang pengiriman.
+
+**Pembaruan pada hari yang sama, sesudah `FIN-DEC-178` dan `FIN-DEC-179`.** Dua butir pemblokir milik
+pemilik Finance ditutup lewat `grill-me` lanjutan, sehingga komposisi kesiapan berubah: **lima** slice
+siap dirancang, **enam** berhenti. Yang naik menjadi siap: `S2b` (penumpukan tunggakan dan batas
+potongan, sisi Finance) dan `S7a` (mencatat porsi benefit serta menutupnya berkala di Finance). `S7`
+dipecah menjadi `S7a` yang siap dan `S7b` (kontrak kejadian dan jurnal ke Accounting) yang terblokir
+`FIN-OQ-103`. Rinciannya, termasuk koreksi klasifikasi `FIN-OQ-102` dari memblokir desain menjadi
+memblokir implementasi saja, ada pada `evidence/24` bagian 11. Kesiapan keseluruhan tetap
+`PARTIALLY_READY`, dan `EPIC FIN-04` tetap `OPEN DECISION`.

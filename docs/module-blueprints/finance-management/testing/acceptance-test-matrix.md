@@ -509,3 +509,325 @@ Menurunkan `FIN-DES-064` dan `FIN-DES-065` via `FIN-DEC-080` dan `FIN-DEC-081`. 
 |---|---|---|---|
 | `FIN-DES-064` | Refund kas atas kredit `ALLOCATION_EXCESS` atau `SETTLEMENT` dieksekusi | Integrasi | `PENGEMBALIAN-UANG-MUKA` **tetap** terbit — kode ini tidak mati, hanya pemicunya dipersempit ke `BilRefundCase` |
 | `FIN-DES-064` | Seluruh mutasi `RELEASE` pada satu periode | Integrasi | **Nol** di antaranya menerbitkan `PENGEMBALIAN-UANG-MUKA` |
+
+## G.1 Pelacakan klaim penjamin dan pemecahan layar ke bentuk V1
+
+`last_changed_in`: `FIN-TEST-1.6` — status `draft`, 1 Oktober 2026.
+Diturunkan dari `FIN-DEC-094`..`FIN-DEC-098`.
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-DEC-097` | **Berhasil.** Batch `ISSUED` ditandai berkasnya diterima penjamin, lalu dicatat disetujui penuh sebesar total tagihan, lalu ditutup | Manual/runtime | `ClaimStatus` berpindah `SUBMITTED` ke `PAYER_VERIFIED` ke `APPROVED` ke `CLOSED`; ketiga tanda waktu terisi; `ClaimVarianceAmount` bernilai nol |
+| `FIN-DEC-097` | **Berhasil.** Penjamin menyetujui lebih kecil dari tagihan, disertai alasan | Manual/runtime | `ApprovedAmount` tersimpan; `ClaimVarianceAmount` sama dengan selisihnya; `OutstandingAmount` seluruh piutang anggota **tidak berubah sama sekali** |
+| `FIN-DES-071` | **Berhasil.** Petugas menindaklanjuti selisih lewat write-off pada piutang anggota | Manual/runtime | Write-off tetap melewati maker-checker yang sudah ada; `OutstandingAmount` baru berkurang setelah write-off **disetujui**, bukan saat klaim disetujui |
+| `FIN-VAL-147` | **Gagal.** Aksi klaim dijalankan pada batch yang masih `DRAFT` | Manual/runtime | `422` beserta pesan bahwa tagihan belum diterbitkan; `ClaimStatus` tetap kosong |
+| `FIN-VAL-150` | **Gagal.** Nominal disetujui melebihi total tagihan | Manual/runtime | `422`; nilai lama tidak tertimpa |
+| `FIN-VAL-151` | **Gagal.** Nominal disetujui lebih kecil dari tagihan tanpa alasan | Manual/runtime | `400`; perpindahan status tidak terjadi |
+| `FIN-VAL-152` | **Gagal.** Klaim yang sudah `CLOSED` dicoba diubah lagi | Manual/runtime | `422`; status tetap `CLOSED` |
+| `FIN-VAL-153` | **Gagal.** Dua petugas mengubah klaim batch yang sama dari layar yang dibuka bersamaan | Manual/runtime | Petugas kedua menerima `409` beserta ajakan memuat ulang; nol perubahan tertimpa diam-diam |
+| `FIN-DES-070` | **Berhasil.** Batch berstatus klaim `APPROVED` menerima pembayaran sebagian dari penjamin | Manual/runtime | `Status` berpindah ke `PARTIALLY_PAID` oleh sistem, sementara `ClaimStatus` **tetap** `APPROVED` — kedua sumbu bergerak sendiri-sendiri |
+| `FIN-DES-072` | **Gagal.** Pengguna tanpa `FinanceReceivableInvoiceBatch : Update` membuka layar Manajemen Klaim | Manual/runtime | Tombol aksi klaim tidak tampil; pemanggilan langsung endpoint ditolak `403` |
+| `FIN-DEC-094` | **Berhasil.** Seluruh butir menu Transaksi A/R dan Transaksi A/P dapat dibuka dari sidebar | Manual/runtime | Setiap butir pada peta menu `03-frontend-architecture.md` bagian 17 membuka layar yang benar; nol butir mengarah ke rute yang tidak ada |
+| `FIN-DEC-096` | **Berhasil.** Butir menu "Ayat Silang" membuka layar alokasi penerimaan yang sudah ada | Manual/runtime | Nol endpoint baru dipanggil; layar yang terbuka sama dengan yang dipakai `FE-FIN-004` |
+| `FIN-DEC-094` | **Gagal.** Pengguna tanpa hak akses pada salah satu layar hasil pemecahan | Manual/runtime | Butir menunya tersembunyi (penyaring *fail-closed*), bukan tampil lalu ditolak |
+
+## H.1 Piutang sewa non-pasien (Parkir dan Tenant)
+
+`last_changed_in`: `FIN-TEST-1.7` — status `draft`, 1 Oktober 2026.
+Diturunkan dari `FIN-DEC-099`..`FIN-DEC-104`.
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-DEC-104` | **Berhasil.** Catat tagihan sewa kategori Parkir dan satu lagi kategori Tenant | Manual/runtime | Keduanya tersimpan pada tabel yang sama dengan `Category` berbeda; keduanya muncul pada daftar saat disaring kategorinya masing-masing |
+| `FIN-DEC-100` | **Berhasil.** Catat tagihan untuk periode berikutnya bagi penyewa yang sama | Manual/runtime | Tersimpan sebagai baris baru yang berdiri sendiri; **nol** entity kontrak yang terbentuk |
+| `FIN-DEC-101` | **Berhasil.** Sesudah mencatat beberapa tagihan sewa | Review kode + runtime | Tabel `FinReceivable` **tidak bertambah satu baris pun**; umur piutang pasien tidak berubah angkanya |
+| `FIN-DES-074` | **Berhasil.** Buka umur piutang sewa dan umur piutang pasien | Manual/runtime | Kedua laporan memakai kelompok yang sama persis (`0-30`, `31-60`, `61-90`, `di atas 90 hari`), tetapi angkanya terpisah |
+| `FIN-DEC-102` | **Berhasil.** Catat denda keterlambatan pada tagihan yang lewat jatuh tempo | Manual/runtime | Nominal denda tersimpan apa adanya; **nol** perhitungan otomatis terjadi walau tagihan sudah lama lewat tempo |
+| `FIN-DEC-103` | **Berhasil.** Staf AR menghapus piutang sewa yang tidak tertagih | Manual/runtime | Status menjadi `WRITTEN_OFF` **dalam satu aksi**, tanpa antrean persetujuan; alasan tersimpan |
+| `FIN-VAL-158` | **Gagal.** Hapus piutang tanpa mengisi alasan | Manual/runtime | `400`; status tidak berubah |
+| `FIN-VAL-159` | **Gagal.** Koreksi tagihan yang sudah menerima pembayaran | Manual/runtime | `422`; isi tagihan tidak berubah |
+| `FIN-VAL-161` | **Gagal.** Catat pelunasan melebihi nilai tagihan | Manual/runtime | `422`; sisa tagihan tidak berubah |
+| `FIN-VAL-162` | **Gagal.** Catat pelunasan minus melebihi pembayaran yang pernah tercatat | Manual/runtime | `422` |
+| `FIN-VAL-164` | **Gagal.** Dua petugas mengubah tagihan yang sama dari layar yang dibuka bersamaan | Manual/runtime | Petugas kedua menerima `409`; nol perubahan tertimpa diam-diam |
+| `FIN-DES-075` | **Berhasil — dan inilah yang MUST diperiksa pemilik.** Catat pelunasan sewa, lalu buka kas harian, setoran bank, dan pemantauan kejadian akuntansi | Manual/runtime | Sisa tagihan sewa berkurang, **tetapi** uangnya **tidak muncul** pada ketiga layar itu, dan **nol** baris kotak keluar terbit. Ini perilaku yang dirancang dan **diputuskan** (`FIN-DEC-109`: sewa terpisah dari kas; `FIN-DEC-110`: rilis dengan banner), bukan cacat. Kejadian akuntansi masih menunggu ratifikasi Accounting (`FIN-OQ-044(b)`) |
+| `FIN-DES-077` | **Gagal.** Pengguna tanpa `FinanceNonPatientReceivable : Update` membuka layar tagihan sewa | Manual/runtime | Tombol catat pelunasan, hapus, dan batalkan tidak tampil; pemanggilan langsung endpoint ditolak `403` |
+| `FIN-DEC-104` | **Berhasil.** Butir menu "Umur Piutang — Parkir" dan "— Tenant" | Manual/runtime | Keduanya membuka laporan umur piutang yang sama dengan saringan kategori berbeda; **nol** endpoint terpisah dipanggil |
+
+---
+
+# Bagian I — Revisi 14: buku mutasi, pengiriman, cutover, dan pembayaran langsung
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-TEST-1.8` — status **`draft`** |
+| Naik dari | `FIN-TEST-1.7` (`approved` 1 Oktober 2026) |
+| Traceability | `FIN-DEC-111`..`137`; `FIN-DES-078`..`091` |
+
+Jalur gagal ditulis bersama jalur berhasil, bukan sesudahnya.
+
+## I.1 Buku mutasi dan posisi saldo
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-DEC-123` | Setiap jalur pada daftar `FIN-DES-079` menulis tepat satu baris mutasi | Integration, satu kasus per jalur | 17 kasus; masing-masing satu baris mutasi dengan `MovementType` yang benar |
+| `FIN-DEC-123` | **Gagal:** jalur yang tidak menulis mutasi terdeteksi | Integration | `BalanceAfter` mutasi terakhir **berbeda** dari `OutstandingAmount` → `FIN-VAL-167` memberi `500`. Test ini sengaja dibuat untuk menangkap jalur yang terlewat |
+| `FIN-DEC-123` | Pembayaran langsung piutang menulis mutasi membawa metode, sumber dana, dan bukti | Integration | Satu baris `PEMBAYARAN-LANGSUNG` dengan `PaymentMethodCode`, `FundingSourceType`, `ProofId` terisi |
+| `FIN-DEC-114` | Posisi piutang pada tanggal akhir periode **tidak** memuat pembayaran sesudahnya | Integration | Dua pembayaran, satu 30 September dan satu 1 Oktober; posisi periode `2026-09` hanya memuat yang pertama |
+| `FIN-DEC-114` | **Gagal:** posisi diminta untuk tanggal sebelum cutover | Integration | `FIN-VAL-170` memberi `422`, bukan angka yang kelihatan wajar |
+| `FIN-DES-079` | Mutasi bersamaan atas satu piutang tidak membuat rantai saldo bercabang | Integration, dua transaksi paralel | Satu berhasil, satu menunggu lock; rantai `BalanceBefore`/`BalanceAfter` tetap tunggal |
+| `FIN-DES-079` | **Gagal:** baris mutasi dengan `BalanceAfter` tidak konsisten ditolak database | Integration | `CK_FinReceivableMovement_Balance` menolak |
+
+## I.2 Kas Kasir
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-DEC-125` | Posisi Kas Kasir menjumlah hanya shift `CLOSED`/`REVIEWED` | Integration | Tiga shift: `CLOSED`, `REVIEWED`, `OPEN`. Hanya dua yang pertama menghasilkan mutasi `KAS-SHIFT` |
+| `FIN-DEC-132` | Pembayaran supplier tunai lewat `FinPayment` mengurangi kas sebesar `NetTransferAmount`, **bukan** jumlah alokasi | Integration | Pembayaran dengan potongan dan deposit terpakai: mutasi kas bernilai `NetTransferAmount`; jumlah alokasi lebih besar dan **tidak** dipakai |
+| `FIN-DEC-127` | Penerimaan tunai langsung piutang menambah Kas Kasir | Integration | Satu mutasi kas `IN` bertanggal WIB hari itu |
+| `FIN-DEC-133` | Pembayaran supplier tunai **tidak** mengurangi anggaran kas kecil | Integration | `FinPettyCashBudget.CurrentBalance` tidak berubah; posisi `KAS-KECIL` tidak berubah |
+| `FIN-DEC-124` | Rekap kas harian dapat ditutup walau ada shift `OPEN` | Integration | Penutupan berhasil; nol galat |
+| `FIN-DEC-125` | Shift yang tertutup sesudah rekap ditutup mengubah posisi periode | Integration | Mutasi `KAS-SHIFT` bertanggal tanggal shift; posisi periode berubah; penjadwal menerbitkan ulang dengan `SourceVersion` lebih tinggi |
+| `FIN-DEC-125` | Selisih rekap harian terhadap posisi terhitung ditampilkan | Integration | `GET .../variance` memuat kedua angka beserta mutasi yang menjelaskan selisihnya |
+| `FIN-DES-079` | **Gagal:** sinkronisasi penanda shift berjalan dua kali tidak menggandakan kas shift | Integration | Unique index `IX_FinCashMovement_Source` menahan; jumlah mutasi tetap satu |
+| `FIN-DEC-128` | Posisi Kas Kasir dimulai dari saldo awal cutover | Integration | Saldo awal `LOCKED` menerbitkan mutasi `SALDO-AWAL`; posisi tanggal cutover sama dengan nominalnya |
+
+## I.3 Pemetaan akun control dan snapshot
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-DEC-113` | Snapshot menerbitkan satu baris per akun control aktif | Integration | Enam pemetaan aktif → enam baris `SALDO-SUBLEDGER` |
+| `FIN-DEC-113` | **Gagal:** kelompok tanpa pemetaan menahan snapshot | Integration | `FIN-VAL-177` memberi `422`; **nol** baris outbox tertulis |
+| `FIN-DEC-113` | **Gagal:** kelompok dengan segmen terpetakan sebagian menahan snapshot | Integration | `FIN-VAL-178` memberi `422`; nol baris outbox. Ini bentuk kegagalan paling berbahaya, jadi diuji tersendiri |
+| `FIN-DES-080` | **Gagal:** satu kelompok dengan pemetaan menyeluruh **dan** per segmen ditolak | Unit | `FIN-VAL-176` memberi `422` |
+| `FIN-DEC-112` | Saldo negatif terkirim apa adanya | Integration | Kas Kasir bernilai negatif terkirim negatif, **bukan** `0.00` |
+| `FIN-DEC-122` | Saldo utang jasa medis terkirim `0.00` selama tabel kosong | Integration | Satu baris bernilai `0.00`, bukan baris yang hilang |
+| `FIN-DEC-114` | Pernyataan ulang hanya menyentuh akun yang berubah | Integration | Satu akun berubah dari enam; hanya satu baris baru ber-`SourceVersion` lebih tinggi |
+| `FIN-DEC-092` | Snapshot terbit otomatis tanggal 1 pukul 00.05 WIB tanpa dipicu manual | Integration dengan waktu disuntik | Baris outbox terbit; nol panggilan endpoint |
+| `FIN-DEC-092` | Penjadwal dijalankan dua kali untuk periode yang sama tidak menggandakan baris | Integration | Jumlah baris tetap; unique index outbox menahan |
+
+## I.4 Tanggal WIB
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-DEC-116` | Pembayaran pukul 02.00 WIB tanggal 1 Oktober menghasilkan `AccountingDate` `2026-10-01` | Unit | Bukan `2026-09-30` |
+| `FIN-DEC-116` | **Gagal:** kejadian pukul 23.30 WIB 30 September **tidak** jatuh ke Oktober | Unit | `AccountingDate` `2026-09-30` |
+| `FIN-DEC-116` | Batas akhir periode snapshot piutang memakai akhir hari WIB | Unit | Piutang yang diakui 30 September pukul 23.50 WIB **ikut** periode `2026-09` |
+| `FIN-DES-082` | Helper tetap bekerja ketika id zona `Asia/Jakarta` tidak tersedia | Unit | Cadangan `SE Asia Standard Time` dipakai; nol galat |
+| `FIN-VAL-210` | **Gagal:** pesan saldo dengan tanggal bukan akhir periode WIB ditolak | Unit | `400` beserta tanggal yang diharapkan |
+
+## I.5 Penanda shift dan dimensi kejadian
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-DEC-121` | Shift `CLOSED_WITH_VARIANCE` yang belum pernah terlihat menerbitkan penanda pembukaan | Integration | Satu baris `PEMBUKAAN-SHIFT-KASIR` bernilai nol |
+| `FIN-DEC-121` | Shift `CLOSED` **tidak** menerbitkan penanda pembukaan | Integration | Hanya `PENUTUPAN-SHIFT-KASIR` |
+| `FIN-DES-084` | Shift dibuka kembali lalu ditutup lagi menghasilkan urutan yang benar | Integration | `PEMBALIKAN-PENUTUPAN-` siklus lama terbit **sebelum** `PEMBUKAAN-` siklus baru |
+| `FIN-DES-084` | Sinkronisasi berjalan berulang tidak menggandakan penanda | Integration | Satu penanda per jenis per siklus |
+| `FIN-DEC-111` | Dua kuitansi pada satu shift menghasilkan dua kejadian, masing-masing membawa nomor shift dan metode | Integration | Dua baris outbox; payload memuat `CashierShiftNumber` dan `PaymentMethodCode` |
+| `FIN-DEC-120` | Kuitansi pembalik membawa shift pembalikan dan rujukan kuitansi asli | Integration | `CashierShiftId` shift pembalikan; `ReversalOfSourceTransactionId` nomor kuitansi asli |
+| `FIN-DEC-118` | Worker pengiriman **melewati** penanda shift selama G6 belum siap | Integration | Baris tetap `PENDING`; `AttemptCount` tidak bertambah |
+| `FIN-DEC-118` | Worker mati secara bawaan | Integration | Tanpa konfigurasi, nol pengiriman dan satu baris log yang menyatakan ia mati |
+| `FIN-DEC-118` | **Gagal:** kotak masuk Accounting menjawab galat | Integration | Baris menjadi `FAILED` beserta satu baris `FinAccountingEventAttempt`; dicoba ulang pada siklus berikutnya |
+| `FIN-DEC-093` | Balasan `200` dan `201` keduanya dianggap sukses | Unit | Kedua kode menghasilkan `SENT` |
+
+## I.6 Pembayaran langsung, ambang, dan bukti
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-DEC-126` | Pembayaran langsung tunai dan transfer menghasilkan kejadian identik kecuali metodenya | Integration | Dua kasus; selisih payload hanya `PaymentMethodCode` dan sumber dananya |
+| `FIN-DEC-126` | **Gagal:** pembayaran langsung tanpa metode ditolak | Integration | `FIN-VAL-199` memberi `400` |
+| `FIN-DEC-135` | **Gagal:** pembayaran langsung tanpa bukti ditolak | Integration | `FIN-VAL-202` memberi `422` |
+| `FIN-DEC-135` | **Gagal:** bukti yang sudah dipakai ditolak | Integration | `FIN-VAL-203` memberi `409`; unique index `ProofId` menahan |
+| `FIN-DEC-131` | **Gagal:** pembayaran melewati ambang ditolak dan diarahkan ke jalur berjenjang | Integration | `FIN-VAL-198` memberi `422` beserta pesan yang menyebut jalur `FinPayment` |
+| `FIN-DEC-134` | **Gagal:** tanpa baris ambang aktif, seluruh pembayaran langsung ditolak | Integration | `FIN-VAL-197` memberi `404`. Ini perilaku fail-closed yang disengaja |
+| `FIN-DEC-134` | **Gagal:** mengubah ambang tanpa alasan ditolak | Integration | `FIN-VAL-205` memberi `422` |
+| `FIN-DEC-134` | Ambang yang sama berlaku pada piutang dan utang | Integration | Dua kasus dengan nominal sama di atas ambang; keduanya ditolak |
+| `FIN-DEC-130` | Pembayaran langsung utang tunai mengurangi Kas Kasir | Integration | Satu mutasi kas `OUT` bertanggal WIB |
+| `FIN-DEC-137` | Pembayaran transfer membawa identitas rekening ke kejadian | Integration | Payload memuat `PaymentMethodAccountId` |
+| `FIN-DEC-137` | **Gagal:** pembayaran transfer tanpa rekening sumber ditolak | Integration | `FIN-VAL-200` memberi `422` |
+| `FIN-DEC-137` | **Nol** baris `SALDO-SUBLEDGER` untuk rekening bank | Integration | Daftar kelompok saldo tidak memuat bank |
+
+## I.7 Saldo awal dan migrasi
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-DEC-128` | Saldo awal kas dicatat, disetujui, lalu dikunci | Integration | Status berpindah `DRAFT` → `APPROVED` → `LOCKED`; satu mutasi kas `SALDO-AWAL` |
+| `FIN-DEC-128` | **Gagal:** kelompok yang sudah punya baris aktif ditolak | Integration | `FIN-VAL-180` memberi `409` |
+| `FIN-DES-088` | **Gagal:** saldo awal kelompok piutang diisi selain nol | Integration | `FIN-VAL-181` memberi `422`; dijaga juga check constraint |
+| `FIN-DES-088` | **Gagal:** mengubah saldo awal `LOCKED` | Integration | `FIN-VAL-183` memberi `409` |
+| `FIN-DEC-136` | Batch migrasi piutang: unggah, validasi, nyatakan, setujui | Integration | Status berpindah ke `LOCKED`; item lahir beserta mutasi `PEMBUKAAN-MIGRASI` |
+| `FIN-DEC-129` | Item migrasi **tidak** menerbitkan kejadian akuntansi | Integration | **Nol** baris outbox sesudah batch disetujui |
+| `FIN-DEC-129` | **Gagal:** batch dengan total berbeda dari saldo awal yang dinyatakan tidak dapat disetujui | Integration | `FIN-VAL-192` memberi `422` beserta kedua angka |
+| `FIN-DEC-129` | **Gagal:** batch dengan baris bergalat tidak dapat disetujui | Integration | `FIN-VAL-193` memberi `422` |
+| `FIN-DEC-129` | Item migrasi mengikuti proses normal sesudah diposting | Integration | Pembayaran atas item migrasi menulis mutasi dan menerbitkan `PENERIMAAN-PIUTANG` seperti piutang biasa |
+| `FIN-DES-089` | **Gagal:** piutang non-migrasi tanpa kolom asal Billing ditolak database | Integration | `CK_FinReceivable_OpeningItem` menolak |
+| `FIN-DES-089` | **Gagal:** item migrasi yang juga membawa kolom asal Billing ditolak | Integration | Check constraint yang sama menolak kedua cabang |
+| `FIN-DES-089` | Baris piutang lama tetap sah sesudah migration | Integration, atas data yang sudah ada | Nol baris melanggar check constraint baru |
+| `FIN-DES-089` | Idempotensi intake Billing tetap terjaga sesudah index diganti filternya | Integration | Handoff yang sama disinkron dua kali tetap menghasilkan satu piutang |
+| `FIN-DEC-136` | **Gagal:** unggah ulang batch yang sama tidak menggandakan item | Integration | Batch `LOCKED` menolak tindakan lanjutan (`FIN-VAL-196`) |
+| `FIN-DES-090` | Rekonsiliasi hanya memeriksa kecocokan angka, bukan kebenarannya | Unit | Angka dinyatakan salah tetapi cocok dengan total item → batch **lolos**. Didokumentasikan sebagai batas yang diterima, bukan cacat |
+
+## I.8 Yang TIDAK diuji, beserta alasannya
+
+| Yang tidak diuji | Alasan |
+|---|---|
+| Pembacaan berkas spreadsheet | Paketnya belum ada dan belum disetujui (`FIN-OQ-077`). Validasi per baris diuji dengan data yang disuntik langsung, bukan lewat berkas |
+| Jenis dan ukuran berkas bukti | Daftarnya belum ditetapkan (`FIN-OQ-075`) |
+| Pengiriman sungguhan ke kotak masuk Accounting di lingkungan nyata | Kredensial akun layanan belum diputuskan (G3). Diuji terhadap kotak masuk pada lingkungan integrasi |
+| Aturan posting kejadian | Milik Accounting |
+| Pembayaran yang dipecah di bawah ambang | Sengaja tidak dideteksi (`FIN-DEC-134`) |
+| Buku mutasi utang jasa medis | Belum dibangun karena tabelnya belum punya penulis (`FIN-DES-091`) |
+| Posisi saldo untuk tanggal sebelum cutover | Sengaja ditolak, dan penolakannya **diuji** pada `I.1` |
+
+---
+
+# AMENDMENT REVISI 15 — Berkas bukti dan paritas dua format
+
+`last_changed_in`: `FIN-TEST-1.9` — status `draft`, 2 Oktober 2026.
+Diturunkan dari `FIN-DEC-139`, `FIN-DEC-140`; dirancang `FIN-DES-092`, `FIN-DES-093`.
+Kesembilan kriteria penerimaan pada closure pass 1 Oktober 2026 dipetakan di bawah, **tidak**
+diringkas — supaya tidak ada yang hilang saat task mengerjakannya.
+
+## J.1 Berkas bukti — jalur berhasil
+
+| # | Skenario | Hasil yang diharapkan |
+|---:|---|---|
+| J.1.1 | Unggah `.pdf` berukuran di bawah batas konfigurasi | `201`, `ProofId` terbit, satu baris metadata tertulis, berkas ada di bawah akar penyimpanan |
+| J.1.2 | Unggah `.jpg` hasil foto ponsel, lalu catat pembayaran memakai `ProofId` itu | Pembayaran tercatat, satu baris mutasi membawa `ProofId`, saldo bergerak |
+| J.1.3 | Unduh bukti memakai pemegang `FinanceTransactionProof : Read` | Berkas terkirim apa adanya; satu baris log pengunduh tercatat **tanpa** isi berkas |
+
+## J.2 Berkas bukti — jalur gagal (kriteria penerimaan 1-5 closure pass)
+
+| # | Kriteria asal | Skenario | Hasil yang diharapkan |
+|---:|---|---|---|
+| J.2.1 | Kriteria 1 | Unggah `.docx` (di luar daftar konfigurasi) | `400`, pesan menyebut jenis yang diterima, **nol** baris metadata, **nol** berkas tertulis |
+| J.2.2 | Kriteria 2 | Unggah berkas bernama `bukti.pdf` yang isinya sebenarnya ZIP | `400` — ekstensi lolos, **tipe media ditolak** (`FIN-VAL-218`) |
+| J.2.3 | Kriteria 3 | Hapus `MaxFileSizeBytes` dari konfigurasi, lalu unggah `.pdf` kecil yang sah | `503`, pesan menyebut **konfigurasi belum lengkap**; **MUST NOT** `400` dan **MUST NOT** diterima sebagai tak terbatas |
+| J.2.4 | Kriteria 4 | Pakai `ProofId` yang sudah terpakai satu mutasi untuk pembayaran kedua | `409`, pesan "bukti sudah dipakai"; **nol** mutasi kedua tertulis |
+| J.2.5 | Kriteria 4 | Cari endpoint untuk **mengganti** bukti sebuah mutasi | **Tidak ada** endpoint `PUT`/`DELETE` pada grup bukti — ketiadaannya adalah hasil yang diuji, bukan galat |
+| J.2.6 | Kriteria 5 | Unggah dengan nama berkas memuat `../` sehingga jalurnya keluar akar | `400`, dan percobaannya **tercatat** |
+| J.2.7 | — | Unggah berkas nol byte | `400` (`FIN-VAL-214`) |
+| J.2.8 | — | Unggah berkas bernama 300 karakter | `400` (`FIN-VAL-215`) |
+| J.2.9 | — | Unggah berhasil, lalu pembayarannya gagal karena saldo; ulangi pembayaran dengan `ProofId` yang sama | Pembayaran kedua **berhasil** — bukti menggantung tetap sah selama belum terpakai mutasi |
+| J.2.10 | — | Penulisan metadata gagal sesudah berkas tersimpan | Berkas yang sudah tersimpan **dihapus** pada jalur gagal itu; **nol** berkas yatim tertinggal |
+
+## J.3 Paritas dua format — kriteria penerimaan 6-9 closure pass
+
+Bagian ini adalah **inti** mitigasi risiko `FIN-DEC-140`: jalur yang jarang dipakai staf hanya akan
+teruji bila kasus ujinya memaksanya.
+
+| # | Kriteria asal | Skenario | Hasil yang diharapkan |
+|---:|---|---|---|
+| J.3.1 | **Kriteria 6** | Siapkan **satu** isi data 120 baris; simpan sebagai `.csv` **dan** `.xlsx`; unggah keduanya sebagai dua batch terpisah | Kedua batch menghasilkan **baris terurai yang identik**: jumlah baris sama, nilai per sel sama, galat per baris sama, `TotalOutstandingAmount` sama. Satu-satunya yang berbeda adalah `SourceFormat` |
+| J.3.2 | **Kriteria 7** | CSV dengan satu baris bernilai `1.500.000,00` saat templat mengunci format lain | Baris itu **ditolak beserta nomor barisnya** (`FIN-VAL-226`); **MUST NOT** ditebak menjadi angka apa pun; batch tetap `DRAFT` |
+| J.3.3 | **Kriteria 8** | Bandingkan baris judul keempat berkas templat | Kolom pada pasangan CSV/XLSX jenis yang sama **sama persis**; perbedaan apa pun adalah **cacat** |
+| J.3.4 | **Kriteria 9** | Periksa `QuilvianSystemBackend.csproj` sesudah task XLSX selesai | **Tepat satu** paket pembaca XLSX; lisensinya permisif; **nol** `EPPlus` v5+ |
+| J.3.5 | — | XLSX dengan sel tanggal bertipe teks yang tidak dapat diurai | Baris ditolak beserta nomor barisnya (`FIN-VAL-227`) — bentuk kegagalan yang **berbeda** dari J.3.2, dan diuji tersendiri |
+| J.3.6 | — | Unduh templat tanpa ruas `format` | `400` (`FIN-VAL-224`) |
+| J.3.7 | — | Unggah berkas `.ods` | `400` (`FIN-VAL-225`), pesan menyebut CSV dan XLSX |
+| J.3.8 | — | Ganti implementasi pembaca XLSX dengan ganda palsu pada test | Validasi `FIN-VAL-186`..`191` tetap lulus **tanpa diubah** — bukti bahwa tipe milik paket tidak bocor melewati antarmuka (`FIN-DES-093`) |
+
+## J.4 Satu test yang sengaja dibuat untuk menangkap kelalaian
+
+| # | Skenario | Kenapa test ini ada |
+|---:|---|---|
+| J.4.1 | Tambahkan format ketiga palsu pada test (misalnya `.tsv`) tanpa menambah implementasi pembaca | Unggahan **MUST** ditolak `400`, **bukan** jatuh ke pembaca CSV secara diam-diam. Test ini menangkap pemilihan pembaca yang terlalu longgar — bentuk cacat yang tidak terlihat sampai ada format baru |
+| J.4.2 | Jalankan J.3.1 dengan berkas yang **satu barisnya bergalat** | Nomor baris yang dilaporkan **sama** pada kedua format. Penomoran baris yang bergeser satu (karena baris judul dihitung pada satu format saja) adalah cacat paritas yang paling mudah lolos review |
+
+
+---
+
+# AMENDMENT REVISI 16 — Benturan versi ambang, batas baris, dan keadaan tanpa rekap kas
+
+```yaml
+contract_version: FIN-TEST-1.10
+status: approved
+owner: Yasmin (Product/Domain Finance)
+approved_by: Yasmin (Product/Domain Finance)
+approved_at: 2026-10-04
+input_revision: 00-interview-decisions.md — dua Amendment pass 4 Oktober 2026 (FIN-DEC-141..FIN-DEC-160)
+input_design: 02-backend-architecture.md AMENDMENT REVISI 16; contracts/api-contract.md Bagian G; contracts/validation-matrix.md H.1
+naik_dari: FIN-TEST-1.9 (approved 2 Oktober 2026)
+```
+
+## K.1 Ambang pembayaran langsung — jalur berhasil
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `K.1.1` | Penetapan ambang pertama tanpa penanda versi | Tabel ambang kosong. Kirim `PUT` berisi nominal dan alasan, **tanpa** `ExpectedRowVersion` | `200`. Baris pertama terbentuk. **Ini jalur yang MUST ada** — tanpanya ambang tidak akan pernah dapat ditetapkan |
+| `K.1.2` | Ambang berlaku seketika | Tetapkan ambang Rp 10.000.000, lalu segera catat pembayaran langsung Rp 12.000.000 | Pembayaran ditolak `422` (`FIN-VAL-198`). Tidak ada jeda tanggal berlaku |
+| `K.1.3` | Ubah ambang dengan penanda versi yang cocok | `GET`, ambil `RowVersion`, kirim `PUT` membawanya | `200`. Nilai, alasan, dan nama pengubah pada respons mengikuti perubahan |
+| `K.1.4` | Nama pengubah terkirim | `GET` sesudah `K.1.3` | `LastChangedByName` berisi nama tampilan pelaku, bukan ID |
+| `K.1.5` | Staf AR pemegang `Read` membaca angkanya | `GET` memakai token staf AR yang diberi `MstDirectPaymentThreshold : Read` | `200` beserta angkanya. **Bukan** `403` |
+
+## K.2 Ambang pembayaran langsung — jalur gagal
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `K.2.1` | Benturan versi ditolak, **bukan** ditimpa | Dua sesi membaca ambang Rp 5.000.000. Sesi A menyimpan Rp 8.000.000. Sesi B menyimpan Rp 3.000.000 memakai versi lama | Sesi B dijawab `409` (`FIN-VAL-228`). `GET` sesudahnya tetap **Rp 8.000.000** — nilai A tidak hilang |
+| `K.2.2` | Penanda versi tidak dikirim padahal baris sudah ada | `PUT` tanpa `ExpectedRowVersion` sementara ambang sudah ada | `409`. Pengecualian penetapan pertama **MUST NOT** berlaku di sini |
+| `K.2.3` | Urutan pemeriksaan | `PUT` dengan alasan **kosong** **dan** penanda versi basi sekaligus | `422` (`FIN-VAL-205`), **bukan** `409`. Isian yang jelas salah dijawab lebih dulu |
+| `K.2.4` | Nominal nol atau negatif | `PUT` bernilai `0` lalu `-1`, penanda versi cocok | Keduanya `400` (`FIN-VAL-206`) |
+| `K.2.5` | Staf tanpa `Update` mencoba mengubah | `PUT` memakai token pemegang `Read` saja | `403`. Pembatasan backend, bukan hanya layar |
+| `K.2.6` | Ruas tanggal berlaku yang masih dikirim klien lama | `PUT` menyertakan `EffectiveFrom` | `200`. Ruas diabaikan dan **tidak** tersimpan ke mana pun |
+
+## K.3 Batas baris berkas migrasi
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `K.3.1` | Tepat pada batas diterima | Unggah CSV berisi **10.000** baris data | `200`. Batas bersifat inklusif |
+| `K.3.2` | Melewati batas ditolak | Unggah CSV berisi **10.001** baris data | `400` (`FIN-VAL-229`) beserta pesan yang menyebut batas dan menyarankan memecah berkas |
+| `K.3.3` | Berkas yang ditolak **nol** meninggalkan jejak | Sesudah `K.3.2`: periksa daftar batch dan folder penyimpanan | Nol baris batch baru, dan nol berkas tersimpan di disk |
+| `K.3.4` | Batas berlaku pada unggah ulang | Batch `DRAFT` yang sah, lalu unggah ulang berkas 10.001 baris | `400` (`FIN-VAL-229`). Batch tetap memakai berkas lamanya, dan hasil validasi lamanya **tidak** terhapus |
+| `K.3.5` | Baris judul tidak dihitung | Unggah CSV dengan 1 baris judul + 10.000 baris data | `200`. Yang dihitung baris data |
+| `K.3.6` | Migrasi besar lewat beberapa batch | Pecah 23.000 tagihan menjadi 10.000 + 10.000 + 3.000, unggah ketiganya, nyatakan saldo awal masing-masing, setujui | Ketiganya disetujui terpisah. Bila batch kedua bergalat, batch pertama yang sudah disetujui **tidak** terpengaruh |
+
+## K.4 Unggah ulang berkas batch
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `K.4.1` | Unggah ulang pada `DRAFT` membuang hasil validasi lama | Batch `DRAFT` bergalat 3 baris. Unggah ulang berkas yang sudah diperbaiki | `200`. Nomor batch **sama**. Hasil validasi lama hilang; batch perlu divalidasi lagi |
+| `K.4.2` | Saldo awal Accounting yang sudah dinyatakan dipertahankan | Nyatakan saldo awal, lalu unggah ulang | Nominal dan rujukan dokumen **tetap** — ia pernyataan petugas, bukan hasil berkas |
+| `K.4.3` | Jenis item tidak dapat diganti | Unggah ulang batch piutang memakai berkas berformat utang supplier | `400` kolom templat tidak lengkap. Jenis item batch **tidak** berubah |
+| `K.4.4` | Status selain `DRAFT` ditolak | Unggah ulang pada batch `VALIDATED`, `APPROVED`, `LOCKED`, dan `REJECTED` | Keempatnya `409` |
+| `K.4.5` | Penanda versi basi ditolak | Unggah ulang memakai `ExpectedRowVersion` lama | `409` |
+| `K.4.6` | Berkas lama tidak rusak bila basis data gagal | Simulasi kegagalan `SaveChanges` saat unggah ulang | Berkas lama tetap utuh dan batch tetap dapat divalidasi memakai berkas itu |
+
+## K.5 Selisih kas — keadaan tanpa rekap kas harian
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `K.5.1` | Periode tanpa rekap dinyatakan eksplisit | Periode yang nol memiliki `FinDailyCashSnapshot`. Panggil endpoint selisih | `HasDailyCashSnapshot` **false**; `DailyCashClosingBalance` dan `VarianceAmount` **kosong**; `HasVariance` **false** |
+| `K.5.2` | Nol **tidak** lagi menyamar sebagai saldo | Respons `K.5.1` | Kedua ruas itu **MUST NOT** bernilai `0`. Ini inti `FIN-DEC-152` |
+| `K.5.3` | Posisi terhitung tetap dikirim | Respons `K.5.1` | `CalculatedCashPosition` berisi angka sebenarnya — ia tidak bergantung pada rekap harian |
+| `K.5.4` | Mutasi penjelas tetap dikirim | Periode tanpa rekap tetapi punya mutasi kas | `ExplainingMovements` berisi mutasi periode itu |
+| `K.5.5` | Periode dengan rekap dan angka sama | Rekap ada, saldo penutupan sama dengan posisi terhitung | `HasDailyCashSnapshot` true; selisih `0`; `HasVariance` **false** |
+| `K.5.6` | Periode dengan rekap dan angka berbeda | Rekap Rp 68.500.000, posisi terhitung Rp 70.000.000 | Kedua angka terkirim; selisih `-1.500.000`; `HasVariance` **true** |
+| `K.5.7` | Layar tidak menampilkan `Rp 0` pada keadaan tanpa rekap | Buka layar snapshot pada periode `K.5.1` | Kolom saldo penutupan berbunyi "Belum ada rekap", kolom selisih "Tidak dapat dinyatakan" |
+
+## K.6 Mutasi `SALDO-AWAL` bernilai nol
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `K.6.1` | Penguncian Kas Kasir bernilai nol menerbitkan mutasi | Catat, setujui, lalu kunci saldo awal `KAS-KASIR` bernilai `0` | `200`. **Tepat satu** mutasi `SALDO-AWAL` bernilai `0` muncul pada buku mutasi kas |
+| `K.6.2` | Jenis lain bernilai nol tetap ditolak | Coba catat mutasi kas bernilai `0` berjenis selain `SALDO-AWAL` | `400` (`FIN-VAL-168`) |
+| `K.6.3` | Nilai negatif tetap ditolak untuk semua jenis | Coba catat mutasi `SALDO-AWAL` bernilai `-1` | `400` |
+| `K.6.4` | Batasan basis data menjaga hal yang sama | Coba sisipkan baris mutasi bernilai `0` berjenis lain **langsung** lewat SQL | Ditolak batasan `CK_FinCashMovement_Amount`. Pengecualian dijaga **dua lapis**, bukan hanya di service |
+
+## K.7 Satu test yang sengaja dibuat untuk menangkap kelalaian
+
+| ID | Yang diuji | Kenapa test ini ada |
+|---|---|---|
+| `K.7.1` | Komponen tabel bersama meneruskan nama prop lama ke nama kanoniknya, dan **nama kanonik menang** | `FIN-CQ-10` menunjukkan 59 pemakaian nama prop yang diabaikan diam-diam selama berbulan-bulan. Yang berbahaya bukan cacatnya, melainkan **perbaikannya**: bila urutan prioritas terbalik, 307 pemakaian yang sudah benar ikut berubah tanpa ada yang tahu. Test ini menambatkan urutannya |
+| `K.7.2` | Konfigurasi `MaxFileSizeBytes` yang kosong membuat unggah bukti dijawab `503`, **bukan** diterima tanpa batas | Capability map 20.4 menemukan konfigurasi Finance kosong seluruhnya. Perilaku fail-closed inilah yang menjaga keadaan itu tetap aman, dan ia **MUST** tetap teruji walaupun kelak nilainya diisi |
+
+## K.8 Yang TIDAK diuji, beserta alasannya
+
+| Hal | Alasan |
+|---|---|
+| Paritas hasil urai CSV terhadap XLSX | Pembaca XLSX belum ada (`FIN-DEC-149`). Kriteria penerimaan `J.3` revisi 15 **tetap berlaku** dan diuji ketika slice XLSX dibuka |
+| Perubahan terjadwal ambang | Tidak ada kemampuannya; ambang berlaku seketika (`FIN-DEC-145`) |
+| Riwayat perubahan ambang | Tidak ada tabelnya (`FIN-DES-086`) |
+| Migrasi utang jasa medis lama | `FIN-DEC-157` menundanya; saldo awalnya tetap nol dan batch tidak mengenal jenis itu |
+| Migrasi piutang sewa non-pasien lewat batch | `FIN-DEC-158` menetapkan jalurnya lewat layar yang sudah ada |
+| Penahanan snapshot karena saldo negatif | `FIN-DEC-159` menetapkan saldo negatif terbit apa adanya dan ditandai |
