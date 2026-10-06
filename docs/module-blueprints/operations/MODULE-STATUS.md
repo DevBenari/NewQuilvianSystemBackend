@@ -15,12 +15,13 @@ Diukur dari source 1 Oktober 2026, disegarkan 2 Oktober 2026.
 
 `BE-OPR-001` sampai `BE-OPR-010` **Selesai**.
 
-`BE-OPR-011` = **Implemented / Contract Verified / Runtime 401 Proven / 403 Pending Test Data**.
-Kontraknya terpasang penuh dan sudah diverifikasi. Sejak blocker startup dibuka 6 Oktober 2026,
-aplikasi dapat dijalankan dan **`401` sudah terbukti runtime** pada tiga endpoint Operasi tanpa
-login. Yang belum terbukti hanya `403` per peran, dan penahannya bukan lagi startup melainkan
-data uji: `SysAccessPolicy` dan `AspNetUserOrganization` keduanya nol baris, sehingga belum ada
-kontras izin yang dapat membedakan ditolak dari diizinkan. Rinciannya pada
+`BE-OPR-011` = **Implemented / Contract Verified / Runtime 401+403 Proven / 200 Blocked by One Column**.
+Kontraknya terpasang penuh dan sudah diverifikasi. Sejak 6 Oktober 2026 **`401` dan `403` terbukti
+runtime** — `403` dengan `EnforceClinicalPolicyForSuperAdmin` menyala, sehingga akun ujinya melewati
+jalur keputusan yang sama persis seperti pengguna biasa. Yang tersisa hanya `200`, dan penahannya
+tunggal: kolom `AspNetUserOrganization.SourceAssignmentId` tidak ada di basis data dev, sehingga
+projection izinnya tidak dapat ditulis lewat jalur apa pun. Kolom itu milik migration
+`20260901073655_A0AuthorizationIntegrityProjection` yang belum dijalankan. Rinciannya pada
 [`verifikasi-kontrak-be-opr-011.md`](verifikasi-kontrak-be-opr-011.md).
 
 Rincian beserta pencabutan tiga penghalang lama ada di
@@ -63,10 +64,10 @@ kontrak pemiliknya.
 
 | Hal | Prioritas | Catatan |
 |---|---|---|
-| Tes penerimaan `BE-OPR-011` | tinggi | kontraknya diverifikasi (41 uji + audit 36 endpoint), `401` terbukti runtime; sisanya `403` per peran, menunggu data uji peran dan kebijakan |
+| Tes penerimaan `BE-OPR-011` | tinggi | kontrak diverifikasi (41 uji + audit 36 endpoint), `401` dan `403` terbukti runtime; `200` menunggu satu kolom migration |
 | Indeks unik serial implant di basis data | sedang | butuh keputusan bisnis: syarat "belum digantikan koreksi" tidak dapat dinyatakan sebagai indeks tersaring |
 | Adapter consumer Billing dan Inventory | sedang | menunggu kontrak pemilik API masing-masing |
-| Penolakan `403` runtime per peran | tinggi | startup sudah terbuka 6 Oktober 2026 dan `401` terbukti runtime. Yang menahan kini **data uji**: `SysAccessPolicy` dan `AspNetUserOrganization` nol baris, jadi belum ada kontras antara ditolak dan diizinkan |
+| Penolakan `403` runtime per peran | — | ✅ **terbukti runtime 6 Oktober 2026**. Sisa yang terkait: `200` menunggu kolom `AspNetUserOrganization.SourceAssignmentId` dari migration `20260901073655` |
 | Performa laporan | rendah | belum diukur pada volume besar |
 
 ## Bug yang sudah ditutup

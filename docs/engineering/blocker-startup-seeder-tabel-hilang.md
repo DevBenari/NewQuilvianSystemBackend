@@ -249,3 +249,34 @@ migration yang sama, bukan akibat perubahan ini, dan milik pemilik modul masing-
 
 **Jalur A tetap dibutuhkan.** Yang berubah hanya bahwa ia tidak lagi memblokir seluruh pekerjaan
 modul lain sementara ia belum dikerjakan.
+
+## Lapis kedua: kolom hilang, bukan hanya tabel — 6 Oktober 2026
+
+Sesudah startup terbuka, pekerjaan berikutnya menampakkan bentuk drift yang berbeda dan lebih
+halus: bukan tabel yang hilang, melainkan **kolom**.
+
+```
+42703: column a.SourceAssignmentId does not exist
+```
+
+Model `ApplicationUserOrganization` memuat `SourceAssignmentId`; tabel `AspNetUserOrganization`
+di basis data dev tidak. Kolom itu milik migration
+`20260901073655_A0AuthorizationIntegrityProjection`, yang **belum tercatat** di
+`__EFMigrationsHistory`.
+
+Akibatnya spesifik dan mahal: `OrganizationAuthorizationProjectionService` — satu-satunya
+penulis projection izin — gagal pada setiap pemicunya. Tiga jalur sah dicoba dan ketiganya
+jatuh pada kolom yang sama: pembuatan external user dengan akun login, pembuatan organization
+assignment, dan seeder demo Operasi.
+
+Jadi **tidak ada satu pun pengguna yang dapat diberi departemen dan jabatan** pada basis data
+ini, dan karena itu tidak ada izin yang dapat diberikan kepada siapa pun. Otorisasi hanya dapat
+menolak, tidak dapat mengizinkan.
+
+Yang perlu dicatat: `AccessPermissionService` sendiri **tidak** ikut gagal, karena ia
+memproyeksikan hanya kolom yang dipakainya. Itu sebabnya `403` dapat dibuktikan runtime
+sementara `200` tidak — pipeline penegakannya sehat, yang rusak jalur penulisan datanya.
+
+Ini memperkuat kesimpulan di atas, bukan menggantikannya: **Jalur A tetap dibutuhkan.** Membuat
+seeder tidak fatal membuka aplikasinya, tetapi tidak dapat mengembalikan kolom dan tabel yang
+belum pernah dibuat.
