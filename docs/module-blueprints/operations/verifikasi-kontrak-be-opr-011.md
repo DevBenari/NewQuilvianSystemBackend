@@ -156,3 +156,48 @@ SQL akan menghasilkan data yang tidak melewati pipeline yang justru sedang diuji
 
 Begitu keempatnya tersedia, yang tersisa hanyalah menjalankan matriks `200 / 403 / 401` dengan
 akun non-SuperAdmin. Kontraknya sendiri sudah tidak menyisakan pertanyaan.
+
+---
+
+## Pembaruan 6 Oktober 2026 — `401` terbukti runtime
+
+Blocker startup dibuka lewat `Seeders:ContinueOnFailure`, satu saklar opt-in yang membuat
+`RunStartupSeederAsync` tidak fatal di luar Production —
+[`blocker-startup-seeder-tabel-hilang.md`](../../engineering/blocker-startup-seeder-tabel-hilang.md).
+Aplikasi dijalankan pada `localhost / QuilvianNewDevIkbalFr` dengan
+`Security__Authorization__Enabled=true`.
+
+| Permintaan | Harapan | Hasil |
+|---|---|---|
+| `GET /swagger/index.html` | hidup | **200** |
+| `POST /api/v1/Auth/login` badan kosong | validasi berjalan | **400** |
+| `GET .../operating-room-management/reports/operations` tanpa login | `401` | **401** |
+| `GET .../operating-room-management/reports/materials` tanpa login | `401` | **401** |
+| `GET .../operating-room-management/cases` tanpa login | `401` | **401** |
+
+Jadi lapis autentikasi pada `AccessPermissionFilter.cs:47-53` kini terbukti **runtime**, bukan
+hanya terbaca dari source. Sebelumnya tidak ada satu pun permintaan HTTP yang dapat dilayani.
+
+## Yang masih menahan `403`, dan penahannya sudah berganti
+
+Penahannya **bukan lagi startup**. Kini murni **data uji**, seperti yang sudah diperkirakan pada
+bagian 6 dan 7 di atas: `SysAccessPolicy` dan `AspNetUserOrganization` keduanya nol baris.
+
+Akibatnya tepat seperti yang dicatat sebelumnya: setiap pengguna non-SuperAdmin akan ditolak
+`403` pada setiap endpoint di seluruh sistem. Itu berarti sisi `403` akan terpicu, tetapi
+**hampa** — ia tidak membuktikan otorisasinya selektif — dan sisi `200` tetap mustahil.
+
+Bedanya sekarang: **mekanisme sahnya sudah hidup.** Endpoint administrator
+`POST api/v1/administrator/setting/role-access/policies` dapat dipanggil, sehingga akun, jabatan,
+dan kebijakan uji dapat dibuat lewat jalur resmi — bukan disuntik lewat SQL. Itu sebelumnya
+mustahil karena endpointnya ikut mati bersama aplikasinya.
+
+Yang dibutuhkan untuk menutup `403` tinggal tiga, dan ketiganya sekarang dapat dikerjakan:
+
+1. departemen dan jabatan klinis pada master data;
+2. akun uji dengan baris `AspNetUserOrganization` sehingga punya `DepartmentId` + `PositionId`;
+3. baris `SysAccessPolicy` yang **memberi** izin pada sebagian pasangan Operasi dan **menahan**
+   sisanya — tanpa kontras itu `403` tidak membedakan apa pun.
+
+Ketiganya membuat data baru pada lingkungan uji dan karena itu menunggu persetujuan pemilik
+kebutuhan, bukan terhalang lingkungan.

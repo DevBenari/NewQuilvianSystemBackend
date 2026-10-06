@@ -166,3 +166,86 @@ Akun dan role uji **tidak** dibuat dalam percobaan ini: aplikasinya tidak dapat 
 sehingga mekanisme sah pembuatannya — endpoint administrator `role-access/policies` — juga tidak
 dapat dipakai. Membuatnya langsung lewat SQL akan menjadi data palsu yang tidak membuktikan
 pipeline apa pun.
+
+---
+
+## ✅ Dibuka 6 Oktober 2026 — Jalur B langkah 1
+
+**Aplikasi kini dapat dijalankan.** Yang dikerjakan hanya langkah pertama Jalur B, yaitu membuat
+`RunStartupSeederAsync` tidak fatal. Dua langkah lainnya — kedua seeder menghormati
+`SeedDefaultData:Enabled`, dan `IcdDiagnosisGroupSeeder` memeriksa tabelnya alih-alih berkas CSV —
+**tidak dikerjakan**, karena keduanya menyentuh seeder milik modul lain.
+
+### Bentuknya: opt-in, bawaan tidak berubah
+
+```
+Seeders:ContinueOnFailure   // bawaan false
+```
+
+Tiga sifat yang disengaja:
+
+1. **Opt-in dan bawaannya `false`.** Perilaku setiap lingkungan yang sudah berjalan tidak berubah
+   sedikit pun oleh perubahan ini. Yang membutuhkannya harus memintanya secara sadar.
+2. **Diabaikan di Production**, mengikuti pola `Security:Authorization:Enabled`. Rumah sakit yang
+   berjalan dengan data master separuh terisi lebih berbahaya daripada rumah sakit yang menolak
+   boot: yang pertama gagal saat petugas sedang melayani pasien, dan sebabnya tidak terlihat.
+3. **Dicatat `Error`, bukan `Warning`**, per seeder yang gagal, ditambah satu ringkasan sesudah
+   seluruh seeder selesai. Yang berubah hanya bahwa startup tidak ikut mati — bukan bahwa
+   kegagalannya menjadi wajar. Satu baris di tengah ratusan baris log startup terlalu mudah
+   terlewat, karena itu ringkasannya menyebut nama seeder dan menunjuk `__EFMigrationsHistory`
+   sebagai tempat memeriksa lebih dulu.
+
+### Catatan polaritas
+
+`Program.cs` kini memuat dua aturan yang tampak berlawanan, dan keduanya benar:
+
+| Pemeriksaan | Di luar Production | Di Production |
+|---|---|---|
+| `PermissionRegistryValidator` | **menghentikan** startup | mencatat `Critical`, lanjut |
+| Seeder data master | lanjut bila diminta | **menghentikan** startup |
+
+Bedanya pada apa yang diperiksa. Validator memeriksa **anotasi pada source**, jadi kegagalannya
+cacat kode yang harus tertangkap sebelum rilis. Seeder data master gagal karena **basis datanya
+belum lengkap**, dan itu keadaan normal pada lingkungan pengembangan, bukan cacat kode.
+
+### Bukti runtime
+
+Dijalankan pada `localhost / QuilvianNewDevIkbalFr` dengan
+`Seeders__ContinueOnFailure=true` dan `Security__Authorization__Enabled=true`, keduanya lewat env
+var proses:
+
+| Hal | Hasil |
+|---|---|
+| `Unhandled exception` | **0** — sebelumnya startup mati di sini |
+| Seeder gagal dan dilewati | **3**: `IcdDiagnosisGroupSeeder`, `MstNursingDiagnosisSeeder`, `MstDailyNursingActionSeeder` |
+| Ringkasan akhir tercatat | ya, menyebut ketiganya |
+| `GET /swagger/index.html` | **200** |
+| `POST /api/v1/Auth/login` badan kosong | **400** — validasi berjalan, bukan mati |
+| `GET .../operating-room-management/reports/operations` tanpa login | **401** |
+| `GET .../operating-room-management/reports/materials` tanpa login | **401** |
+| `GET .../operating-room-management/cases` tanpa login | **401** |
+
+### Akar masalahnya tetap ada
+
+Perubahan ini **tidak** memulihkan data yang hilang. Angka sebenarnya, dibaca read-only:
+
+| | Jumlah |
+|---|---|
+| Migration di source | **287** |
+| Tercatat di `__EFMigrationsHistory` | **48** |
+| **Belum pernah dijalankan** | **239** |
+
+Migration terakhir yang tercatat `20260929000000_AddOperatingRoomOutboxEventContract`; source sudah
+sampai `20261005090000`. Dua migration yang menyediakan tabel pemicu blocker ini, keduanya belum
+tercatat:
+
+- `20260928093849_AddMasterNursingDiagnosisSdki` → `MstNursingDiagnosis`, `MstNursingDiagnosisGroup`
+- `20261001043557_AddMstDiagnosisGroup` → `MstDiagnosisGroup`
+
+Selain itu, beberapa **background worker** kini mencatat galat berulang atas tabel yang juga belum
+ada — `AccAccountingEvent` dan `MstBillingSyncPolicy`. Galat itu tidak mematikan host, tetapi
+membuat log ramai dan pekerjaan latar belakangnya tidak berjalan. Itu bagian dari kekurangan
+migration yang sama, bukan akibat perubahan ini, dan milik pemilik modul masing-masing.
+
+**Jalur A tetap dibutuhkan.** Yang berubah hanya bahwa ia tidak lagi memblokir seluruh pekerjaan
+modul lain sementara ia belum dikerjakan.

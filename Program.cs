@@ -1411,10 +1411,64 @@ try
         }
     }
 
-    static async Task RunStartupSeederAsync(string seederName, Func<Task> seed)
+    // Seeder yang gagal ketika `Seeders:ContinueOnFailure` menyala. Dilaporkan sekali lagi
+    // sebagai ringkasan sesudah seluruh seeder selesai, karena satu baris log di tengah ratusan
+    // baris startup terlalu mudah terlewat.
+    var seederYangGagal = new List<string>();
+
+    // Boleh melanjutkan startup ketika satu seeder gagal.
+    //
+    // OPT-IN, dan bawaannya `false` supaya perilaku setiap lingkungan yang sudah berjalan tidak
+    // berubah diam-diam oleh perubahan ini.
+    //
+    // DIABAIKAN DI PRODUCTION, mengikuti pola `Security:Authorization:Enabled`: kemudahan
+    // pengembangan tidak boleh melemahkan produksi. Rumah sakit yang berjalan dengan data master
+    // separuh terisi lebih berbahaya daripada rumah sakit yang menolak boot, karena yang pertama
+    // gagal pada saat petugas sedang melayani pasien dan sebabnya tidak terlihat.
+    var lanjutkanSaatSeederGagal =
+        builder.Configuration.GetValue<bool>("Seeders:ContinueOnFailure")
+        && !app.Environment.IsProduction();
+
+    // Catatan polaritas, karena berkas ini memuat dua aturan yang tampak berlawanan.
+    //
+    // `PermissionRegistryValidator` di bawah justru MENGHENTIKAN startup di luar Production dan
+    // hanya mencatat Critical di Production. Itu benar untuk kasusnya: yang diperiksanya anotasi
+    // pada source, jadi kegagalannya adalah cacat kode yang harus tertangkap sebelum rilis.
+    //
+    // Seeder data master berbeda. Kegagalannya hampir selalu berarti basis datanya belum lengkap
+    // — tabelnya belum dibuat migration yang belum dijalankan — dan itu keadaan NORMAL pada
+    // lingkungan pengembangan, bukan cacat kode. Mematikan seluruh aplikasi karenanya membuat
+    // seluruh modul tidak dapat dijalankan hanya karena satu data master milik modul lain belum
+    // ada. Karena itu kelonggarannya dibuka untuk pengembangan saja, dan tetap harus diminta
+    // secara sadar.
+    async Task RunStartupSeederAsync(string seederName, Func<Task> seed)
     {
         var stopwatch = Stopwatch.StartNew();
-        await seed();
+
+        try
+        {
+            await seed();
+        }
+        catch (Exception ex) when (lanjutkanSaatSeederGagal)
+        {
+            stopwatch.Stop();
+            seederYangGagal.Add(seederName);
+
+            // Error, bukan Warning: ini bukan hal yang boleh dianggap wajar. Yang berubah hanya
+            // bahwa startup tidak ikut mati — bukan bahwa kegagalannya menjadi tidak penting.
+            Log.Error(
+                ex,
+                "[StartupSeed] {Seeder} GAGAL setelah {ElapsedMilliseconds} ms. Startup " +
+                "dilanjutkan karena Seeders:ContinueOnFailure menyala pada lingkungan {Environment}. " +
+                "Data master yang disiapkan seeder ini TIDAK tersedia, sehingga fitur yang " +
+                "bergantung padanya akan gagal saat dipakai.",
+                seederName,
+                stopwatch.ElapsedMilliseconds,
+                app.Environment.EnvironmentName);
+
+            return;
+        }
+
         stopwatch.Stop();
         Log.Information("[StartupSeed] {Seeder} completed in {ElapsedMilliseconds} ms", seederName, stopwatch.ElapsedMilliseconds);
     }
@@ -1747,6 +1801,20 @@ try
         {
             await Icd10DiagnosisSeeder.SeedAsync(app.Services, icdSeedPath);
         }
+    }
+
+    // Ringkasan seeder yang dilewati karena gagal. Tanpa ini, kegagalannya terkubur di antara
+    // ratusan baris log startup dan aplikasi tampak sehat padahal sebagian data master kosong.
+    if (seederYangGagal.Count > 0)
+    {
+        Log.Error(
+            "[StartupSeed] {JumlahGagal} seeder GAGAL dan dilewati: {DaftarSeeder}. Aplikasi " +
+            "berjalan, tetapi data master yang disiapkan seeder itu tidak tersedia. Penyebab " +
+            "paling umum adalah migration yang belum dijalankan pada basis data ini — periksa " +
+            "__EFMigrationsHistory terhadap berkas di Migrations/ sebelum menyimpulkan ada cacat " +
+            "kode. Matikan Seeders:ContinueOnFailure untuk kembali menggagalkan startup.",
+            seederYangGagal.Count,
+            string.Join(", ", seederYangGagal));
     }
 
     if (runWebRuntime && app.Environment.IsDevelopment())

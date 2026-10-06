@@ -15,10 +15,13 @@ Diukur dari source 1 Oktober 2026, disegarkan 2 Oktober 2026.
 
 `BE-OPR-001` sampai `BE-OPR-010` **Selesai**.
 
-`BE-OPR-011` = **Implemented / Contract Verified / Runtime Acceptance Blocked by Environment**.
-Kontraknya terpasang penuh dan sudah diverifikasi sebagai kontrak; jawaban `403` runtime per
-peran belum dapat diambil karena aplikasi tidak dapat dijalankan pada basis data dev. Rincian
-buktinya ada di [`verifikasi-kontrak-be-opr-011.md`](verifikasi-kontrak-be-opr-011.md).
+`BE-OPR-011` = **Implemented / Contract Verified / Runtime 401 Proven / 403 Pending Test Data**.
+Kontraknya terpasang penuh dan sudah diverifikasi. Sejak blocker startup dibuka 6 Oktober 2026,
+aplikasi dapat dijalankan dan **`401` sudah terbukti runtime** pada tiga endpoint Operasi tanpa
+login. Yang belum terbukti hanya `403` per peran, dan penahannya bukan lagi startup melainkan
+data uji: `SysAccessPolicy` dan `AspNetUserOrganization` keduanya nol baris, sehingga belum ada
+kontras izin yang dapat membedakan ditolak dari diizinkan. Rinciannya pada
+[`verifikasi-kontrak-be-opr-011.md`](verifikasi-kontrak-be-opr-011.md).
 
 Rincian beserta pencabutan tiga penghalang lama ada di
 [`roadmap/backend-roadmap.md`](roadmap/backend-roadmap.md).
@@ -60,10 +63,10 @@ kontrak pemiliknya.
 
 | Hal | Prioritas | Catatan |
 |---|---|---|
-| Tes penerimaan `BE-OPR-011` | tinggi | kontraknya sudah diverifikasi (41 uji + audit 36 endpoint); sisanya runtime `403`, terhalang lingkungan |
+| Tes penerimaan `BE-OPR-011` | tinggi | kontraknya diverifikasi (41 uji + audit 36 endpoint), `401` terbukti runtime; sisanya `403` per peran, menunggu data uji peran dan kebijakan |
 | Indeks unik serial implant di basis data | sedang | butuh keputusan bisnis: syarat "belum digantikan koreksi" tidak dapat dinyatakan sebagai indeks tersaring |
 | Adapter consumer Billing dan Inventory | sedang | menunggu kontrak pemilik API masing-masing |
-| Penolakan `403` runtime per peran | tinggi | **terhalang lingkungan**: aplikasi tidak dapat dijalankan pada basis data dev sejak integration HEAD terbaru — lihat [`blocker-startup-seeder-tabel-hilang.md`](../../engineering/blocker-startup-seeder-tabel-hilang.md). Kontrak izinnya sudah dijaga 41 uji; yang belum terbukti hanya jawaban runtime-nya |
+| Penolakan `403` runtime per peran | tinggi | startup sudah terbuka 6 Oktober 2026 dan `401` terbukti runtime. Yang menahan kini **data uji**: `SysAccessPolicy` dan `AspNetUserOrganization` nol baris, jadi belum ada kontras antara ditolak dan diizinkan |
 | Performa laporan | rendah | belum diukur pada volume besar |
 
 ## Bug yang sudah ditutup
