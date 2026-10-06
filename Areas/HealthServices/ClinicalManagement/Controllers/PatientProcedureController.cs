@@ -49,28 +49,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private readonly EncounterInsuranceService _encounterInsuranceService;
         private readonly InsuranceCoverageService _insuranceCoverageService;
         private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
-        private readonly ClinicalDocumentIntegrityService _integrityService;
         private readonly InpatientClinicalContextService _inpatientClinicalContextService;
         private readonly PatientProcedureOrderService _procedureOrderService;
+        private readonly PatientProcedureExecutionService _executionService;
         private readonly LoggerService _loggerService;
 
+        // BE-RWI-178: ClinicalDocumentIntegrityService kini dipakai PatientProcedureExecutionService,
+        // bukan controller ini; parameternya dicabut dari konstruktor.
         public PatientProcedureController(
             ApplicationDbContext dbContext,
             EncounterInsuranceService encounterInsuranceService,
             InsuranceCoverageService insuranceCoverageService,
             ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
-            ClinicalDocumentIntegrityService integrityService,
             InpatientClinicalContextService inpatientClinicalContextService,
             PatientProcedureOrderService procedureOrderService,
+            PatientProcedureExecutionService executionService,
             LoggerService loggerService)
         {
             _dbContext = dbContext;
             _encounterInsuranceService = encounterInsuranceService;
             _insuranceCoverageService = insuranceCoverageService;
             _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
-            _integrityService = integrityService;
             _inpatientClinicalContextService = inpatientClinicalContextService;
             _procedureOrderService = procedureOrderService;
+            _executionService = executionService;
             _loggerService = loggerService;
         }
 
@@ -114,14 +116,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
         [HttpGet("master-options")]
         [ProducesResponseType(typeof(ApiResponse<List<PatientProcedureMasterOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Patient Procedure", Description = "Melihat pilihan master tindakan dokter rawat jalan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Patient Procedure", Description = "Melihat pilihan master tindakan klinis", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("PatientProcedure", "Read")]
         public async Task<IActionResult> GetMasterProcedureOptions(
             [FromQuery] string? search,
             [FromQuery] string? procedureCategoryName,
             [FromQuery] string? procedureType,
-            [FromQuery] int take = 50)
+            [FromQuery] Guid? patientClassId,
+            [FromQuery] Guid? serviceUnitId,
+            [FromQuery] string? serviceType,
+            [FromQuery] int take = 50,
+            [FromQuery] ProcedureCatalogCareSetting? careSetting = null,
+            [FromQuery] ProcedureCatalogAudience? audience = null)
         {
+            if ((careSetting.HasValue && !Enum.IsDefined(careSetting.Value)) ||
+                (audience.HasValue && !Enum.IsDefined(audience.Value)))
+                return BadRequest(ApiResponse<object>.Fail(400,
+                    "Konteks layanan atau pelaku katalog tindakan tidak valid."));
+
             if (take <= 0) take = 50;
             if (take > 100) take = 100;
 
@@ -130,10 +142,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 .Where(x =>
                     !x.IsDelete &&
                     x.IsActive &&
-                    x.IsDoctorAction &&
-                    x.IsAvailableForOutpatient &&
                     !x.IsLaboratory &&
                     !x.IsRadiology);
+
+            // Filter ketersediaan berdasarkan tipe layanan (Inpatient / Outpatient / Emergency)
+            var normServiceType = serviceType?.Trim().ToLower();
+            if (careSetting.HasValue)
+                normServiceType = careSetting == ProcedureCatalogCareSetting.Inpatient
+                    ? "inpatient" : "outpatient";
+            if (normServiceType == "inpatient")
+            {
+                query = query.Where(x => x.IsAvailableForInpatient);
+            }
+            else if (normServiceType == "outpatient")
+            {
+                query = query.Where(x => x.IsAvailableForOutpatient);
+            }
+            else if (normServiceType == "emergency")
+            {
+                query = query.Where(x => x.IsAvailableForEmergency);
+            }
+            else
+            {
+                query = query.Where(x => x.IsAvailableForOutpatient || x.IsAvailableForInpatient);
+            }
 
             if (!string.IsNullOrWhiteSpace(procedureCategoryName))
             {
@@ -148,6 +180,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 var type = procedureType.Trim().ToLower();
                 query = query.Where(x => x.ProcedureType.ToLower() == type);
             }
+            else
+            {
+                query = query.Where(x => x.IsDoctorAction || x.IsNursingAction);
+            }
+
+            // Parameter baru hanya mempersempit permintaan eksplisit; pemanggil lama
+            // tetap memakai saringan serviceType/procedureType yang sudah berjalan.
+            if (audience == ProcedureCatalogAudience.Doctor)
+                query = query.Where(x => x.IsDoctorAction);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -160,11 +201,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     (x.ProcedureCategoryName != null && x.ProcedureCategoryName.ToLower().Contains(keyword)));
             }
 
-            var data = await query
+            var procedures = await query
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.ProcedureName)
                 .Take(take)
-                .Select(x => new PatientProcedureMasterOptionResponse
+                .ToListAsync();
+
+            var procedureIds = procedures.Select(x => x.Id).ToList();
+            var today = DateTime.UtcNow.Date;
+
+            // Resolusi tarif master dari MstTariff (mendukung prioritas unit, kelas, dan tarif universal)
+            var candidateTariffs = await _dbContext.Set<MstTariff>()
+                .AsNoTracking()
+                .Where(t =>
+                    !t.IsDelete &&
+                    t.IsActive &&
+                    t.ProcedureId.HasValue &&
+                    procedureIds.Contains(t.ProcedureId.Value) &&
+                    (!t.EffectiveStartDate.HasValue || t.EffectiveStartDate.Value.Date <= today) &&
+                    (!t.EffectiveEndDate.HasValue || t.EffectiveEndDate.Value.Date >= today) &&
+                    (!serviceUnitId.HasValue || !t.ServiceUnitId.HasValue || t.ServiceUnitId == serviceUnitId.Value) &&
+                    (!patientClassId.HasValue || !t.PatientClassId.HasValue || t.PatientClassId == patientClassId.Value))
+                .OrderByDescending(t => t.ServiceUnitId.HasValue)
+                .ThenByDescending(t => t.PatientClassId.HasValue)
+                .ThenByDescending(t => t.EffectiveStartDate)
+                .ThenBy(t => t.SortOrder)
+                .ToListAsync();
+
+            var tariffByProcedure = candidateTariffs
+                .GroupBy(t => t.ProcedureId!.Value)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            var data = procedures.Select(x =>
+            {
+                tariffByProcedure.TryGetValue(x.Id, out var tariff);
+                var price = tariff?.NormalPrice ?? 0m;
+
+                return new PatientProcedureMasterOptionResponse
                 {
                     Id = x.Id,
                     ProcedureCode = x.ProcedureCode,
@@ -174,9 +247,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     ProcedureType = x.ProcedureType,
                     IsNeedApproval = x.IsNeedApproval,
                     IsSurgery = x.IsSurgery,
-                    EstimatedDurationMinutes = x.EstimatedDurationMinutes
-                })
-                .ToListAsync();
+                    EstimatedDurationMinutes = x.EstimatedDurationMinutes,
+                    Tariff = price,
+                    TotalPrice = price,
+                    TariffPatientClassId = tariff?.PatientClassId,
+                    CoverageStatus = tariff != null ? "Tarif RS" : "Belum Ditetapkan"
+                };
+            }).ToList();
 
             return Ok(ApiResponse<List<PatientProcedureMasterOptionResponse>>.Ok(
                 data,
@@ -1204,144 +1281,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [AccessPermission("PatientProcedure", "Execute")]
         public async Task<IActionResult> ExecuteProcedure(Guid id, [FromBody] ExecutePatientProcedureRequest request)
         {
-            var entity = await _dbContext.Set<TrxPatientProcedure>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
+            // BE-RWI-178: logika penyelesaian dipindah ke PatientProcedureExecutionService supaya
+            // Kamar Operasi dapat memakainya tanpa memanggil HTTP. Kode status, pesan, dokumen
+            // rekam medis, dan fakta tagih tetap sama dengan sebelum ekstraksi.
+            var result = await _executionService.ExecuteAsync(
+                id,
+                request,
+                User,
+                GetCurrentUserId(),
+                deviceInfo: Request.Headers.UserAgent.ToString(),
+                ipAddress: HttpContext.Connection.RemoteIpAddress?.ToString());
 
-            if (entity == null)
+            if (!result.IsSuccess)
             {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Tindakan pasien tidak ditemukan."
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(
+                    result.StatusCode,
+                    result.Message
                 ));
             }
-
-            if (entity.ProcedureStatus == PatientProcedureStatus.Cancelled)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Tindakan yang sudah cancelled tidak dapat dieksekusi."
-                ));
-            }
-
-            if (entity.IsNeedApproval && !entity.IsApproved)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Tindakan membutuhkan approval sebelum dieksekusi."
-                ));
-            }
-
-            // BE-RWI-051 kriteria 2. Tindakan yang sudah ditandai dikerjakan tidak dikerjakan
-            // ulang. Tanpa penjaga ini, permintaan yang diulang karena jaringan terputus
-            // menerbitkan fakta klinis kedua ke Billing - dan fakta kedua berujung pada pasien
-            // membayar dua kali untuk satu tindakan yang sama.
-            //
-            // Jawabannya 200, bukan 409: bagi dokter yang menekan tombol sekali lagi, hasilnya
-            // memang sudah tercapai. Menjawab 409 membuatnya mengira pencatatannya gagal.
-            if (entity.IsExecuted && entity.ProcedureStatus == PatientProcedureStatus.Completed)
-            {
-                return Ok(ApiResponse<object>.Ok(
-                    new { BillingHandoff = "AlreadyExecuted" },
-                    "Tindakan pasien sudah ditandai dikerjakan sebelumnya."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            // BE-RWI-098 kriteria 4 / FR-DOK-103, state matrix 0.6.0 bagian 8.3. Pada tindakan rawat
-            // inap, pelaksana dari akun login menjadi penulis dan penanda tangan catatan
-            // pelaksanaan, sehingga ia wajib berwenang: dokter lewat penugasan aktif, perawat lewat
-            // penempatan pada unit episode. Perawatan yang sudah ditutup ditolak 422. Tindakan
-            // poliklinik, medical check-up, dan IGD tidak membawa episode dan tidak tersentuh.
-            var penjagaPelaksana = await _procedureOrderService.EnsureInpatientExecutorAsync(
-                entity, User, actorUserId);
-
-            if (penjagaPelaksana != null)
-            {
-                return StatusCode(penjagaPelaksana.StatusCode, ApiResponse<object>.Fail(
-                    penjagaPelaksana.StatusCode,
-                    penjagaPelaksana.Message
-                ));
-            }
-
-            entity.ProcedureStatus = PatientProcedureStatus.Completed;
-            entity.IsExecuted = true;
-            entity.ExecutedAt = now;
-            entity.ExecutedByUserId = actorUserId;
-            entity.PerformedAt = request.PerformedAt ?? now;
-            entity.PerformedByUserId = actorUserId;
-            entity.StartedAt ??= now;
-            entity.CompletedAt = now;
-            entity.ResultNote = NormalizeNullableText(request.ResultNote) ?? entity.ResultNote;
-            entity.DispositionNote = NormalizeNullableText(request.DispositionNote) ?? entity.DispositionNote;
-            entity.ComplicationNote = NormalizeNullableText(request.ComplicationNote) ?? entity.ComplicationNote;
-            entity.FollowUpInstruction = NormalizeNullableText(request.FollowUpInstruction) ?? entity.FollowUpInstruction;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            // BE-RWI-038, RWI-AC-157. Menandai tindakan sudah dikerjakan sekaligus
-            // mendaftarkannya ke mesin keutuhan rekam medis sebagai dokumen tertanda tangan,
-            // pada SaveChanges yang sama.
-            //
-            // Kenapa satu SaveChanges: tindakan yang sudah Completed tidak dapat disunting
-            // lagi. Bila pendaftarannya gagal dan tetap dibiarkan, catatan tindakan itu tidak
-            // dapat disunting maupun dikoreksi selamanya. Karena itu kegagalan pendaftaran
-            // membatalkan penandaan, bukan didiamkan.
-            //
-            // Penanda tangan adalah PELAKSANA tindakan, karena dialah yang bertanggung jawab
-            // atas isi catatan pelaksanaan.
-            var authorUserId = entity.PerformedByUserId is { } pelaksana && pelaksana != Guid.Empty
-                ? pelaksana
-                : actorUserId;
-
-            try
-            {
-                await _integrityService.RegisterSignedAsync(
-                    ClinicalDocumentKind.Procedure,
-                    entity.Id,
-                    entity.PatientId,
-                    entity.EncounterId,
-                    authorUserId,
-                    deviceInfo: Request.Headers.UserAgent.ToString(),
-                    ipAddress: HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    nowUtc: now);
-            }
-            catch (InvalidOperationException pendaftaranGagal)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Tindakan tidak dapat ditandai dikerjakan karena pendaftaran pada rekam " +
-                    $"medis gagal: {pendaftaranGagal.Message}"
-                ));
-            }
-
-            await _dbContext.SaveChangesAsync();
-
-            // RJ-BIL-BE-002. Milestone charge tindakan menurut RJ-BIL-DEC-002 adalah tindakan
-            // benar-benar dieksekusi dan berstatus Completed; pemilihan atau order saja bukan
-            // pemicu charge. Fakta diserahkan setelah perubahan klinis tersimpan.
-            var emission = await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
-                BuildProcedureFactRequest(entity, now),
-                actorUserId);
-
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "PatientProcedure.ExecuteProcedure",
-                "Mengeksekusi tindakan pasien dan menyerahkan fakta ke Billing.",
-                new
-                {
-                    ProcedureId = entity.Id,
-                    entity.EncounterId,
-                    BillingHandoff = emission.Kind.ToString(),
-                    emission.MilestoneFactVersion
-                });
 
             return Ok(ApiResponse<object>.Ok(
-                new { BillingHandoff = emission.Kind.ToString() },
-                emission.IsClinicallySafe
-                    ? "Tindakan pasien berhasil dieksekusi."
-                    : "Tindakan pasien berhasil dieksekusi, tetapi penyerahan fakta ke Billing memerlukan tinjauan."
+                new { BillingHandoff = result.BillingHandoff },
+                result.Message
             ));
         }
 
@@ -1513,40 +1474,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         /// Snapshot sengaja hanya memuat harga kotor dan identitas tindakan. Nilai
         /// <c>CoveredAmount</c> dan <c>PatientPayAmount</c> tidak disertakan karena kepemilikan
         /// angka tersebut masih menjadi bahasan RJ-BIL-CONFLICT-001 dan cakupan RJ-BIL-BE-005.
+        ///
+        /// BE-RWI-178: definisinya kini tunggal di <see cref="PatientProcedureExecutionService"/>,
+        /// supaya penyelesaian dari layar tindakan, dari Kamar Operasi, dan pembatalan menerbitkan
+        /// fakta berbentuk sama.
         /// </summary>
         private static ClinicalMilestoneFactRequest BuildProcedureFactRequest(
             TrxPatientProcedure entity,
             DateTime occurredAt,
             bool includeSnapshot = true)
-        {
-            var hasQuantity = includeSnapshot &&
-                              entity.Quantity > 0 &&
-                              !string.IsNullOrWhiteSpace(entity.UnitNameSnapshot);
-
-            return new ClinicalMilestoneFactRequest
-            {
-                SourceContext = BillingSourceContract.ProcedureSourceContext,
-                SourceAggregateId = entity.Id,
-                EffectType = BillingSourceContract.ProcedureChargeEffectType,
-                EncounterId = entity.EncounterId,
-                OccurredAt = occurredAt,
-                Quantity = hasQuantity ? entity.Quantity : null,
-                Unit = hasQuantity ? entity.UnitNameSnapshot : null,
-                TariffSnapshot = includeSnapshot
-                    ? System.Text.Json.JsonSerializer.Serialize(new
-                    {
-                        source = "ClinicalSnapshot",
-                        procedureCode = entity.ProcedureCodeSnapshot,
-                        procedureName = entity.ProcedureNameSnapshot,
-                        unitPrice = entity.UnitPrice,
-                        totalPrice = entity.TotalPrice,
-                        isFreeOfCharge = entity.IsFreeOfCharge,
-                        isBillable = entity.IsBillable
-                    })
-                    : null,
-                CorrelationId = entity.ConsultationId
-            };
-        }
+            => PatientProcedureExecutionService.BuildProcedureFactRequest(entity, occurredAt, includeSnapshot);
 
         private IQueryable<TrxPatientProcedure> BuildBaseQuery()
         {

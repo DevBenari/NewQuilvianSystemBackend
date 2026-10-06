@@ -480,4 +480,53 @@ Untuk mematuhi aturan keterlacakan (*traceability*) dan membuktikan penegakan at
 | 6 | **Fase 6 s.d. 8** | [`laporan-testing-fase-6-clearance-penutupan-episode.md`](test-by-agy/laporan-testing-fase-6-clearance-penutupan-episode.md) | Kliring finansial kasir (`POST /financial-clearance`), pencatatan kepergian fisik (`POST /record-departure`), butir administrasi, evaluasi 5 syarat kesiapan, dan penutupan resmi episode (`POST /close`). | 🟢 **100% LULUS** |
 | 7 | **Siklus Lengkap (End-to-End)** | [`laporan-testing-siklus-lengkap-episode-rawat-inap.md`](test-by-agy/laporan-testing-siklus-lengkap-episode-rawat-inap.md) | Verifikasi live siklus utuh dari pendaftaran pasien lama, admisi, draf episode, reservasi bed, penempatan, tim medis PPJA, isolasi, alih rawat tempat tidur, keputusan pulang DPJP, resume medis digital, kliring kasir, kepergian fisik, hingga penutupan resmi dan verifikasi sensus bersih. | 🟢 **100% LULUS** |
 
+---
 
+## 20. Amandemen kontrak `0.10.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+Akibat di modul lain (Kamar Operasi, Billing, Clinical) lulus hanya bila terbukti di modul penerima (`RWI-DEC-168`). Skenario bertanda **OK** disaksikan pemilik modul OK; persetujuan OK atas `RWI-OQ-114` sudah tercatat (`RWI-DEC-208`).
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FR-RWF-041` / `AC-RWF-040` | Perawat memesan bedah untuk pasien samaran yang punya order "Appendektomi" | Integrasi dengan OK sungguhan + E2E | Kasus `Requested` di daftar Kasus Operasi; dokter operator dari order; penginput akun perawat; tepat satu `OprCaseProcedure` |
+| `FR-RWF-041` / `AC-RWF-048` | Pesan tanpa order, dengan order milik kunjungan lain, dan dengan order yang dibatalkan | Integrasi | Ketiganya `422 INP-SRG-001`; tidak ada kasus OK |
+| `FR-RWF-043` | Pesan dari tab Bedah Obgyn dengan isian `SurgicalServiceType = General` dari klien | Integrasi | Kasus tersimpan `Obstetric` |
+| `FR-RWF-044` / `AC-RWF-041` | OK menjadwalkan kasus, bangsal memuat ulang | E2E | Label "Terjadwal" beserta tanggal dan jam |
+| `FR-RWF-045` / `AC-RWF-042` | Pra-operasi dengan butir wajib belum dikonfirmasi penerima | Integrasi | Kesiapan OK memuat `WARD_PRE_OP_INCOMPLETE`; "Siap" ditolak |
+| `FR-RWF-048` / `AC-RWF-045` | Kasus sisi Kanan, penandaan Kiri | Integrasi | `422 OPR-WPO-001` saat kirim dan saat konfirmasi |
+| `AC-RWF-046` | Akun pengirim mencoba konfirmasi pra-operasi; akun pengirim serah terima mencoba menerima | Integrasi | `OPR-WPO-002`; `OPR-HO-002` |
+| `FR-RWF-090` / `AC-RWF-093` | Pra-operasi `Confirmed`, kasus ditunda | Integrasi | Versi 1 `NeedsUpdate` dalam transaksi tunda; versi 1 tetap terbaca; "Siap" ditolak `WARD_PRE_OP_NEEDS_UPDATE` |
+| `FR-RWF-090` / `AC-RWF-094` | Dijadwalkan ulang; TD baru dicatat; versi 2 dikirim lalu dikonfirmasi akun OK lain | Integrasi + E2E | Potret versi 2 = TD terbaru; versi 1 `Superseded`; "Siap" diterima |
+| `FR-RWF-046` / `AC-RWF-043` | Perawat bangsal pemegang `Receive` menerima serah terima | Integrasi | `Accepted`, penerima dan waktu dari akun login |
+| `FR-RWF-046` / `AC-RWF-047` | Serah terima ke ICU saat pasien masih di Melati; lalu transfer; lalu terima | E2E **OK** | `422 OPR-HO-001`, kemudian berhasil; bed tidak berpindah oleh penerimaan |
+| `INV-RWF-28` | Pemeriksaan lokasi bed gagal (layanan baca dimatikan di lingkungan uji) | Integrasi | Penerimaan ditolak, bukan diloloskan |
+| `FR-RWF-049` / `AC-RWF-049` | Kasus `InProgress` 08.00–11.00 | Integrasi dengan Billing | Bed asal tetap terisi; tarif kamar berjalan |
+| `FR-RWF-047` / `AC-RWF-044` | Kasus `Completed` dengan catatan anestesi final dan 2 bahan `Used`; kasus lain dibatalkan sebelum selesai | Integrasi dengan Clinical dan Billing **OK** | Kasus selesai: tepat satu baris tindakan (dari order), satu anestesi, satu sewa kamar, dua bahan; kasus batal: nol baris |
+| `INV-RWF-29` | Jalankan `OperatingRoomCompletionEffects` dua kali untuk kasus yang sama | Integrasi | Tidak ada baris ganda; order tindakan yang sudah `Completed` dilewati |
+| `AC-RWF-092` | Bahan tertagih lewat OK lalu diretur dan lolos pemeriksaan | Integrasi dengan Billing | Tidak ada tagihan Farmasi untuk bahan itu; retur membatalkan tagihan OK |
+| `FR-RWF-047` | Tarif sewa kamar operasi tidak ada di master | Integrasi dengan Billing | Baris "tarif belum ada"; invoice tidak dapat difinalkan (`VAL-RWF-17`) |
+| `FR-RWF-086` / `AC-RWF-085` | Tolak kasus Diminta tanpa alasan, lalu dengan alasan | Integrasi + E2E **OK** | `400`, lalu `Rejected` dengan penolak dan waktu; bangsal melihat label merah dan alasannya |
+| `AC-RWF-099` | Kasus `Rejected`: jadwalkan, ubah, batal, tolak lagi; bangsal pesan ulang order yang sama | Integrasi | Semua `422 OPR-CASE-REJ-002`/`001`; kasus baru `Requested`; invoice tanpa biaya kasus ditolak |
+| `FR-RWF-086` | Laporan Operasi periode berisi satu kasus ditolak dan satu dibatalkan | Integrasi | `RejectedCount = 1`, `CancelledCount = 1` |
+| `FR-RWF-080` / `AC-RWF-080` | Pasien samaran dari poliklinik; kamar pulih menyimpan keputusan `Inpatient` | Integrasi **OK** | Permintaan `Pending`; tidak ada episode |
+| `AC-RWF-088` | Admisi dari permintaan; bed ditempati; serah terima diterima | E2E | Permintaan `Completed` dengan episode; kasus OK `Completed`; tarif kamar sejak bed ditempati |
+| `FR-RWF-089` / `AC-RWF-089` | Keputusan `Inpatient` untuk pasien yang sudah punya episode; OK membatalkan permintaan beralasan; admisi biasa untuk pasien yang punya permintaan `Pending` | Integrasi | `AdmissionReferralState = NotNeeded` tanpa baris baru; permintaan `Cancelled` hilang dari daftar; `409 INP-ADM-REF-001` |
+| `INV-RWF-32` | Dua penyimpanan kamar pulih bersamaan untuk kasus yang sama | Integrasi konkurensi | Satu permintaan `Pending` (unique parsial) |
+| `FR-RWF-081`, `082` / `AC-RWF-081`, `082` | Bangsal membuka ringkasan laporan final, lalu laporan draft | Integrasi + E2E | Isian klinis tampil tanpa tombol ubah; draft → "Laporan operasi belum final" |
+| `FR-RWF-088` / `AC-RWF-087` | Serah terima belum diterima 61 menit dengan ambang 60 | Integrasi | Tampil di daftar pantau bangsal dan di daftar serah terima OK `overdueOnly` |
+| `FR-RWF-087` / `AC-RWF-086` | Laporan 1–7 Okt berisi satu transfer dan satu koreksi; ekspor | Integrasi + E2E | Baris transfer dan baris bertanda "Koreksi"; audit ekspor tercatat tanpa nama pasien |
+| `AC-RWF-100` | Pengguna berperan "Kepala Ruangan" tanpa permission laporan | Integrasi | `403` |
+| `FR-RWF-087` | Periode 45 hari | Integrasi | `400` `VAL-RWF-90` |
+| `FR-RWF-071` / `AC-RWF-071` | Transfer Melati → ICU; transfer di dalam Melati | Integrasi + E2E | Satu dokumen `NotSent` hanya untuk transfer antarunit; banner tampil di kedua unit |
+| `FR-RWF-071` / `AC-RWF-072` | Perawat ICU menolak tanpa alasan, lalu dengan alasan; pengirim mengirim ulang | Integrasi | `400`; `Rejected`; `Sent` kembali |
+| `INV-RWF-33` | Pembuatan dokumen serah terima gagal sesudah transfer | Integrasi | Transfer tetap tersimpan; Daftar Pantau menampilkan transfer tanpa dokumen |
+| Regresi OK | Kasus dibuat petugas OK dengan tiga tindakan; alur OK lama tanpa pra-operasi bangsal | Regresi | `POST cases` tetap menerima banyak tindakan; kasus darurat tetap dapat memakai bypass darurat yang sudah ada |
+| Regresi permission | Peran yang dulu memegang `OperatingRoomHandover : Update` | Regresi | Sesudah `E8`, peran itu memegang `Send`, **tidak** `Receive` |
+| `RWI-AC-330` / `RWI-DEC-207` | Admisi dari permintaan untuk pasien Poli Bedah | Integrasi dengan Billing | Pesan `ADMISSION_CONFIRMED` hanya berisi field daftar putih; Billing membuat satu tautan kunjungan asal |
+| `RWI-AC-331` / `RWI-DEC-220` butir 1 | Admisi biasa untuk pasien dengan permintaan `Pending` | Integrasi | `409 INP-ADM-REF-001` |
+| `RWI-AC-332` / butir 2 | Pesan ruang bedah untuk episode `DischargePending` | Integrasi | `422 INP-SRG-002` |
+| `RWI-AC-333` / butir 3 | Peran pemegang `OperatingRoomHandover : Update` lama sesudah `E8` | Regresi | Kirim boleh; terima `403` |
+| `RWI-AC-334` / butir 4 | Laporan transfer 32 hari | Integrasi | `400` `VAL-RWF-90` |
+| `RWI-AC-336` / butir 6 | Ambang daftar pantau diubah dari 60 ke 120 menit | Integrasi | Serah terima 61 menit tidak lagi tampil sampai lewat 120 menit |
+| `RWI-AC-338` / `RWI-DEC-219` | Pemesanan Ruangan Bedah | E2E | Perkiraan tarif tindakan dari order dan keterangan komponen OK |
+| `RWI-AC-340` / `RWI-DEC-214`, `215` | Sidebar Rawat Inap dengan dan tanpa permission laporan | E2E | Butir Laporan Rawat Inap hanya bagi pemegang permission; paling banyak sepuluh butir |

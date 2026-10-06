@@ -5,6 +5,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// <summary>Penyaring daftar pantau penempatan tidak sesuai kebutuhan isolasi.</summary>
     public class IsolationMismatchQuery
     {
+        public string? Search { get; set; }
+
         public Guid? ServiceUnitId { get; set; }
 
         public Guid? RoomId { get; set; }
@@ -77,7 +79,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// <summary>Penyaring daftar pantau yang dikelompokkan menurut unit layanan.</summary>
     public class InpatientMonitoringQuery
     {
+        public string? Search { get; set; }
+
         public Guid? ServiceUnitId { get; set; }
+
+        public int? MinDelayHours { get; set; }
 
         public int PageNumber { get; set; } = 1;
 
@@ -135,6 +141,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// <summary>Satu episode yang ditutup menembus gerbang keuangan.</summary>
     public class OverrideClosureItemResponse
     {
+        public QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums.InpClearanceObservation? ClosureClearanceObserved { get; set; }
         public Guid EpisodeId { get; set; }
 
         public string EpisodeNumber { get; set; } = string.Empty;
@@ -281,5 +288,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// <summary>Daftar pantau kekurangan deposit bertingkat (paged).</summary>
     public class DepositShortfallPagedResult : PagedResult<DepositShortfallItemResponse>
     {
+    }
+
+    /// <summary>
+    /// Penyaring daftar pantau serah terima pasca operasi tertunda (<c>BE-RWI-182</c>, API 11.9).
+    /// Ambangnya selalu <c>MstInpatientSetting.PendingSurgicalHandoverAlertMinutes</c>.
+    /// </summary>
+    public class PendingSurgicalHandoverQuery
+    {
+        /// <summary>Unit tujuan serah terima; kosong berarti seluruh unit.</summary>
+        public Guid? DestinationUnitId { get; set; }
+
+        public int PageNumber { get; set; } = 1;
+
+        public int PageSize { get; set; } = 20;
+    }
+
+    /// <summary>
+    /// Penyaring daftar pantau permintaan admisi tertunda (<c>BE-RWI-182</c>, API 11.9). Ambangnya
+    /// selalu <c>MstInpatientSetting.PendingAdmissionReferralAlertMinutes</c>.
+    /// </summary>
+    public class PendingAdmissionReferralQuery
+    {
+        public string? Search { get; set; }
+
+        public int PageNumber { get; set; } = 1;
+
+        public int PageSize { get; set; } = 20;
     }
 }

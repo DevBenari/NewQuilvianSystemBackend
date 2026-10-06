@@ -1580,3 +1580,215 @@ bukan data awal.
 | 11.5.9 | PRD v`2.0` bagian 43 | `RWI-DEC-114` | Acceptance bagian 13 |
 | Template resep | PRD v`2.0` bagian 19 | `RWI-DEC-122`, `RWI-DEC-135` | `RWI-AC-195` |
 | Gap non-blocking | Gate `1.6` `G-22`, `G-23`, `G-24`, `G-25`, `G-28`, `G-29` | — | Dikonfirmasi pemilik saat approval |
+
+---
+
+## 12. Amandemen revision `0.6` / kontrak `0.7.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+### 12.0 Masukan, batas, dan cara membaca bagian ini
+
+| Hal | Isi |
+|---|---|
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`). Baseline kontrak `0.6.0` (`RWI-DEC-150`) tetap berlaku untuk isi yang tidak disentuh |
+| Kemampuan | `CAP-RWF-06` (Penunjang Medis lengkap dari bangsal: Lab, Radiologi, Gizi, Bank Darah), `CAP-RWF-14` (katalog tindakan rawat inap) |
+| Slice gate | `INP-S26`, `INP-S30` — `READY_FOR_DOMAIN_DESIGN` (gate `1.8`, tidak berubah pada `1.9`) |
+| Keputusan | `RWI-DEC-114`, `153`, `171`, `188`, `191`; `RWI-DEC-108` dan `113` diamendemen untuk Gizi dan Bank Darah |
+| Bukti as-is | Capability map `1.6` bagian 19 `FIN-CAP-16` s.d. `18`, `20`, `32`; `RWI-FACT-043` |
+| Arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` |
+| Gerbang implementasi | Tidak ada; persetujuan Gizi dan Bank Darah sudah ada (`RWI-DEC-191`) |
+| ~~Usulan yang belum dikonfirmasi~~ | ~~Perawat hanya melihat status tanggungan tanpa harga (G-05)~~ — **digantikan `RWI-DEC-218`, `RWI-DEC-219` (2 Oktober 2026):** setiap pemesan melihat status tanggungan **dan** perkiraan harga sesuai penjamin dan kelas. Rincian di 12.13 |
+
+**Satu kalimat terpenting.** Rawat Inap memeriksa penugasan dokter sebelum meneruskan pesanan Gizi dan Bank Darah, sedangkan status verifikasi disimpan di tabel modul pemiliknya, persis seperti Lab dan Radiologi.
+
+### 12.1 Yang berubah dari revision `0.5`
+
+| Hal | Revision `0.5` | Revision `0.6` |
+|---|---|---|
+| Konsultasi Gizi dan Bank Darah di bangsal | "Integrasi belum tersedia" (`RWI-DEC-113`) | Pesanan nyata lewat adapter Rawat Inap ke modul pemiliknya |
+| Pesanan Lab/Rad oleh perawat | Backend siap, tombol frontend terkunci | Tombol dibuka setelah `BE-RWI-104` terbukti berjalan (`RWI-DEC-168`) |
+| Daftar "perlu diverifikasi" dokter | Tindakan, Lab, Rad, CPPT | Ditambah pesanan Gizi, pesanan darah, dan diet; disatukan di layar dokter |
+| Katalog tindakan | Saringan rawat jalan | Saringan rawat inap dan saringan pelaku |
+
+### 12.2 Invariant baru
+
+| ID | Invariant | Penjaga |
+|---|---|---|
+| `INV-RWF-20` | Pesanan Gizi dan darah dari bangsal hanya diteruskan bila dokter peminta berpenugasan aktif pada episode saat pesanan disimpan | `InpAncillaryOrderAdapter` lewat `IsDoctorAssignedAsync` |
+| `INV-RWF-21` | Penginput selalu dari akun login; bila dokter memesan sendiri, dokter peminta juga dari akun login | Adapter; `CreateBy`/`InputByUserId` modul pemilik |
+| `INV-RWF-22` | Status verifikasi terpisah dari status pesanan; pesanan perawat langsung terkirim berstatus `Pending` | Kolom verifikasi di modul pemilik |
+| `INV-RWF-23` | Hanya dokter peminta yang dapat memverifikasi pesanannya | Service verifikasi modul pemilik |
+| `INV-RWF-24` | Pesanan bukan tagihan | Tagihan tetap lahir dari layanan modul pemilik (`RWI-DEC-171` butir 5) |
+
+### 12.3 Kepemilikan data yang disentuh
+
+| Kelompok data | Pemilik | Diubah sub-modul ini | Dibuat ulang |
+|---|---|---|---|
+| Pesanan konsultasi gizi | `NutritionManagement` (`GziNutritionOrder`) | Ya — tiga kolom verifikasi | Tidak |
+| Pesanan darah | `BloodBankManagement` (`BbkBloodOrder`) | Ya — tiga kolom verifikasi | Tidak |
+| Pesanan Lab dan Radiologi | `LaboratoryManagement`, `RadiologyManagement` | Tidak; kolom verifikasi sudah ada | Tidak |
+| Master tindakan | `MasterData` (`MstProcedure.IsAvailableForInpatient` sudah ada) | Tidak | Tidak |
+| Status tanggungan penjamin | Clinical (`InsuranceCoverageService`) | Tidak; dibaca | Tidak |
+
+### 12.4 Class diagram
+
+```mermaid
+classDiagram
+    class InpAncillaryOrderAdapter {
+        +CreateNutritionConsultAsync(episodeId, request, actor)
+        +CreateBloodOrderAsync(episodeId, request, actor)
+        +ConfirmDuplicateBloodOrderAsync(episodeId, request, actor)
+        +GetCoverageStatusAsync(episodeId, items)
+    }
+    class InpatientClinicalContextService {
+        +IsDoctorAssignedAsync(episodeId, doctorId, atUtc) bool
+    }
+    class NutritionOrderService {
+        +CreateAsync(request, verificationStatus)
+        +GetInstructionVerificationWorklistAsync(doctorUserId)
+        +VerifyInstructionAsync(orderId, actor)
+    }
+    class BbkBloodOrderService {
+        +CreateAsync(request, verificationStatus)
+        +GetInstructionVerificationWorklistAsync(doctorUserId)
+        +VerifyInstructionAsync(orderId, actor)
+    }
+    class GziNutritionOrder {
+        +Guid RequesterDoctorId
+        +GziInstructionVerificationStatus InstructionVerificationStatus
+        +DateTime? InstructionVerifiedAt
+        +Guid? InstructionVerifiedByUserId
+    }
+    class BbkBloodOrder {
+        +Guid RequestingDoctorId
+        +Guid? InputByUserId
+        +BbkInstructionVerificationStatus InstructionVerificationStatus
+        +DateTime? InstructionVerifiedAt
+        +Guid? InstructionVerifiedByUserId
+    }
+    InpAncillaryOrderAdapter ..> InpatientClinicalContextService : periksa penugasan
+    InpAncillaryOrderAdapter ..> NutritionOrderService : teruskan pesanan gizi
+    InpAncillaryOrderAdapter ..> BbkBloodOrderService : teruskan pesanan darah
+    NutritionOrderService ..> GziNutritionOrder
+    BbkBloodOrderService ..> BbkBloodOrder
+```
+
+### 12.5 Penjelasan setiap class
+
+| Class | Status | Lokasi file | Kategori | Tanggung jawab | Penting | Dipanggil oleh / memakai | Transaksi | Catatan desain |
+|---|---|---|---|---|---|---|---|---|
+| `InpAncillaryOrderAdapter` | **Baru** | `Areas/HealthServices/InPatientManagement/Services/InpAncillaryOrderAdapter.cs` | Service (Rawat Inap) | Memeriksa penugasan, menentukan dokter peminta dan status verifikasi, lalu meneruskan ke modul pemilik; membaca status tanggungan dan perkiraan harga (12.13) | Method pada diagram | `InpatientAncillaryOrderController` | Tidak (transaksi milik modul tujuan) | Status verifikasi `NotRequired` bila akun login adalah dokter peminta; `Pending` bila penginput bukan dokter peminta |
+| `InpatientAncillaryOrderController` | **Baru** | `Areas/HealthServices/InPatientManagement/Controllers/InpatientAncillaryOrderController.cs` | Controller | Endpoint pesanan Gizi dan darah dari bangsal, serta status tanggungan | `contracts/api-contract.md` 13.2 | Adapter | — | Memakai string permission modul tujuan, sehingga peta peran tidak bertambah |
+| `GziNutritionOrder` | **Diperbarui** | `Areas/HealthServices/NutritionManagement/Models/GziNutritionOrder.cs` | Model (Gizi) | Status verifikasi instruksi | Tiga kolom baru; `RequesterDoctorId` adalah dokter pemberi instruksi | `NutritionOrderService` | — | Tanpa kolom dokter pemberi instruksi kedua: `RequesterDoctorId` sudah maknanya (`RWI-DEC-171` butir 2) |
+| `NutritionOrderService`, `NutritionOrderController` | **Diperbarui** | `Areas/HealthServices/NutritionManagement/Services/`, `/Controllers/` | Service + controller (Gizi) | Menerima status verifikasi dari adapter; daftar dan aksi verifikasi | `CreateAsync` (parameter baru), worklist, verify | Adapter; dokter | Ya | Pemanggil lama tetap `NotRequired` |
+| `BbkBloodOrder` | **Diperbarui** | `Areas/HealthServices/BloodBankManagement/Models/BbkBloodOrder.cs` | Model (Bank Darah) | Status verifikasi instruksi | Tiga kolom baru; `RequestingDoctorId` = pemberi instruksi; `InputByUserId` = penginput (sudah ada) | `BbkBloodOrderService` | — | — |
+| `BbkInstructionVerificationStatus` | **Baru** | `Areas/HealthServices/BloodBankManagement/Enums/BbkInstructionVerificationStatus.cs` | Enum (Bank Darah) | `NotRequired`, `Pending`, `Verified` | — | — | — | Enum milik modul sendiri, pola `LabOrderInstructionVerificationStatus` |
+| `GziInstructionVerificationStatus` | Dirancang `keperawatan` `0.6.0` | `NutritionManagement/Enums/` | Enum (Gizi) | Dipakai bersama diet | — | — | — | — |
+| `BbkBloodOrderService`, `BbkBloodOrderController` | **Diperbarui** | `Areas/HealthServices/BloodBankManagement/Services/`, `/Controllers/` | Service + controller (Bank Darah) | Sama dengan Gizi; `confirm-duplicate` tetap berlaku | — | Adapter; dokter | Ya | Regresi pesanan darah poliklinik dan IGD wajib |
+| `PatientProcedureController` (`master-options`) | **Diperbarui** | `Areas/HealthServices/ClinicalManagement/Controllers/PatientProcedureController.cs` | Controller | Saringan `careSetting=Inpatient` memakai `IsAvailableForInpatient`; `audience=Nurse` tidak memakai saringan `IsDoctorAction` | Baris `128-136` | Layar order tindakan dokter dan perawat | Tidak | Utang teknis: controller ini membaca `ApplicationDbContext` langsung; tidak dirapikan di task ini |
+
+### 12.6 Enum baru dan berubah
+
+| Enum | Lokasi | Nilai | Bawaan |
+|---|---|---|---|
+| `BbkInstructionVerificationStatus` | `BloodBankManagement/Enums/` | `NotRequired = 0`, `Pending = 1`, `Verified = 2` | `NotRequired` |
+| `GziInstructionVerificationStatus` | `NutritionManagement/Enums/` | Sama; dirancang `keperawatan` | `NotRequired` |
+| `ProcedureCatalogCareSetting` (parameter query, bukan kolom) | `ClinicalManagement/Enums/` | `Outpatient = 1`, `Inpatient = 2` | `Outpatient` — perilaku lama tidak berubah |
+| `ProcedureCatalogAudience` (parameter query) | `ClinicalManagement/Enums/` | `Doctor = 1`, `Nurse = 2` | `Doctor` |
+
+### 12.7 Arsitektur folder — delta revision `0.6`
+
+```text
+Areas/HealthServices/
+├── InPatientManagement/
+│   ├── Controllers/InpatientAncillaryOrderController.cs     [Baru]
+│   ├── DTOs/InpatientAncillaryOrderDtos.cs                   [Baru]
+│   └── Services/InpAncillaryOrderAdapter.cs                  [Baru]
+├── NutritionManagement/
+│   ├── Models/GziNutritionOrder.cs                           [Diperbarui]
+│   ├── Services/NutritionOrderService.cs                     [Diperbarui]
+│   └── Controllers/NutritionOrderController.cs               [Diperbarui]
+├── BloodBankManagement/
+│   ├── Models/BbkBloodOrder.cs                               [Diperbarui]
+│   ├── Enums/BbkInstructionVerificationStatus.cs             [Baru]
+│   ├── Services/BbkBloodOrderService.cs                      [Diperbarui]
+│   └── Controllers/BbkBloodOrderController.cs                [Diperbarui]
+└── ClinicalManagement/
+    ├── Enums/ProcedureCatalogCareSetting.cs                  [Baru]
+    ├── Enums/ProcedureCatalogAudience.cs                     [Baru]
+    └── Controllers/PatientProcedureController.cs             [Diperbarui: master-options]
+Repositories/Configurations/HealthServices/
+├── NutritionManagement/GziNutritionOrderConfiguration.cs    [Diperbarui]
+└── BloodBankManagement/BbkBloodOrderConfiguration.cs        [Diperbarui]
+```
+
+### 12.8 Status model dan dampak migration
+
+| Tabel | Status | Kolom yang berubah | Dampak |
+|---|---|---|---|
+| `GziNutritionOrder` | Diperbarui (Gizi) | Tambah `InstructionVerificationStatus` (`int`, bawaan `0`), `InstructionVerifiedAt` (`timestamp?`), `InstructionVerifiedByUserId` (`uuid?`) | Pesanan lama `NotRequired`; alur Gizi tidak berubah |
+| `BbkBloodOrder` | Diperbarui (Bank Darah) | Kolom yang sama | Pesanan lama `NotRequired` |
+
+### 12.9 Rencana migration di dalam sub-modul ini
+
+| Langkah | Isi | Tanpa downtime | Data lama | Mundur |
+|---|---|---|---|---|
+| `R10` | `NutritionManagement`: tiga kolom `GziNutritionOrder` (boleh satu migration dengan `K10`) | Ya | Bawaan `NotRequired` | `Down()` |
+| `R11` | `BloodBankManagement`: tiga kolom `BbkBloodOrder` | Ya | Bawaan `NotRequired` | `Down()` |
+
+### 12.10 Rencana data master dan konfigurasi awal
+
+| Master | Isi minimum | Sumber |
+|---|---|---|
+| `MstProcedure.IsAvailableForInpatient` (sudah ada, bawaan `true`) | Tindakan khusus poliklinik diberi `false`; tindakan khusus rawat inap `IsAvailableForOutpatient = false` | Admin Master Data bersama pemilik layanan |
+| Penugasan dokter episode (sudah ada) | DPJP, konsulen, dokter jaga terisi | Alur admisi dan penugasan |
+
+### 12.11 Yang sengaja tidak dibuat pada revision `0.6`
+
+| Yang ditolak | Alasan |
+|---|---|
+| Tabel pesanan gizi atau darah di Rawat Inap | `RWI-DEC-081`, `RWI-DEC-171` butir 7 |
+| Kolom `InstructingDoctorId` pada pesanan gizi dan darah | `RequesterDoctorId`/`RequestingDoctorId` sudah bermakna dokter pemberi instruksi; kolom kedua menciptakan dua kebenaran |
+| Endpoint agregat "perlu diverifikasi" di backend | Enam daftar milik enam pemilik; layar dokter menyatukannya di frontend, tanpa membaca tabel milik modul lain dari satu service |
+| ~~Harga pemeriksaan untuk perawat~~ | **Tidak lagi ditolak.** `RWI-DEC-218` mengamendemen `RWI-DEC-160` butir 2; desainnya di 12.13 |
+
+### 12.12 Traceability bagian 12
+
+| Bagian | Requirement | Keputusan | Acceptance |
+|---|---|---|---|
+| Pesanan Lab/Rad perawat | `FR-RWF-030`, `031` | `RWI-DEC-114`, `153` | `AC-RWF-030`, `031` |
+| Gizi dan Bank Darah dari bangsal | `FR-RWF-031`, `032`, `036`, `038` | `RWI-DEC-171` | `AC-RWF-032`, `033`, `034` |
+| Verifikasi | `FR-RWF-037` | `RWI-DEC-188`, `191` | `AC-RWF-035` |
+| Hasil dibaca dari pemilik | `FR-RWF-033` | `RWI-DEC-171` butir 7 | `AC-RWF-036` (regresi) |
+| Status tanggungan dan perkiraan harga | `FR-RWF-034` (digantikan sebagian) | `RWI-DEC-218`, `RWI-DEC-219` | `RWI-AC-335`, `RWI-AC-337` |
+| Katalog tindakan | `FR-RWF-070` | `RWI-DEC-165` butir 1 | `AC-RWF-070` |
+
+### 12.13 Penyelarasan decision log revision `31` — perkiraan harga di layar pemesanan ★ 2 Oktober 2026
+
+Kontrak tetap `0.7.0` `draft`. Bagian ini menyerap `RWI-DEC-218` dan `RWI-DEC-219`, yang mengganti pilihan bawaan G-05.
+
+**Fakta source yang dipakai** (`BE@8d96a978`):
+
+| Fakta | Bukti | Akibat |
+|---|---|---|
+| `InsuranceCoverageService.ResolveProcedureAsync(encounterId, procedureId, quantity, serviceDate)` sudah menghitung harga per penjamin, kelas, dan aturan tanggungan (`UnitPrice`, `IsCovered`, `CoverageStatus`), dan dipakai Billing untuk tarif advisori (`BKC-DEC-060`) | `ClinicalManagement/Services/InsuranceCoverageService.cs:64`, `:745-790`; `BillingInvoiceService.cs:28` | Perkiraan harga memakai resolver yang sama — Rawat Inap tidak menghitung sendiri (`RWI-DEC-160` butir 4) |
+| Daftar obat untuk resep (`GET clinical-management/prescribing-drugs`) **sudah** mengembalikan harga dan tanggungan per penjamin | `PrescribingDrugController.cs:156`; DTO `UnitPrice`, `CoverageStatus` | Tab Resep `FE-DOK-10` memakai ulang; tidak ada endpoint harga obat baru |
+| Daftar order tindakan (`GET patient-procedures`) mengembalikan `UnitPrice` dan `CoverageStatus` yang diresolusi saat order dibuat | `PatientProcedureResponse` (`PatientProcedureDtos.cs`), resolusi pada `PatientProcedureController.cs:697` | Pemesanan Ruangan Bedah (`episode-rawat-inap` `FE-INP-25`) memakai ulang harga order yang dirujuk |
+| Katalog tindakan `master-options` **tidak** mengembalikan harga | `PatientProcedureMasterOptionResponse` | Harga katalog tindakan, Lab, dan Radiologi diambil dari `coverage-status` |
+| Gizi tidak punya pemetaan tarif; biaya Bank Darah ditagih per tindakan Bank Darah (`BbkBloodBankProcedure.ProcedureRefId`) yang ditetapkan saat pemrosesan, bukan per pesanan komponen | `NutritionManagement` tanpa rujukan tarif; `BbkBloodBankProcedure.cs:87` | Konsultasi gizi dan pesanan darah menampilkan "tarif belum tersedia" (`RWI-DEC-218` butir 4) |
+| Layanan service boleh memeriksa permission lewat `AccessPermissionService.HasAccessAsync(user, resource, action)` | `SlidingScaleExecutionService.cs:194` | Harga hanya dikirim kepada pemegang hak membuat pesanan jenis itu |
+
+**Desain.**
+
+| Hal | Isi |
+|---|---|
+| Endpoint | `GET …/ancillary-orders/coverage-status` (13.2 kontrak API) diperluas: tetap `InpatientEpisode : Read`, respons bertambah `PriceStatus`, `EstimatedUnitPrice`, `PriceLabel` |
+| Hak lihat harga (`RWI-DEC-218` butir 2) | Per `ItemType`, harga dikirim hanya bila pemanggil memegang: `Laboratory` → `LabOrder : Create`; `Radiology` → `RadOrder : Create`; `Procedure` → `PatientProcedure : Create`; `Nutrition` → `NutritionOrder : Create`; `Blood` → `BloodOrder : Create`. Tanpa hak itu → `PriceStatus = NOT_PERMITTED`, `EstimatedUnitPrice` tidak ada di respons (bukan `0`) |
+| Resolusi | `Laboratory`, `Radiology`, `Procedure`: `InsuranceCoverageService.ResolveProcedureAsync(encounter episode, procedureId, 1, waktu sekarang)`. `Nutrition`, `Blood`: selalu `NOT_ESTIMABLE` sampai modul pemiliknya punya tarif per pesanan |
+| `PriceStatus` | `AVAILABLE` (perkiraan ada); `NOT_ESTIMABLE` (tarif tidak ada di master, sumber tanpa pemetaan tarif, atau resolver gagal — layar menulis "tarif belum tersedia"); `NOT_PERMITTED` |
+| Label | `PriceLabel = "perkiraan — tagihan final di kasir"`, selalu menyertai `EstimatedUnitPrice` |
+| Kegagalan | Resolver melempar galat untuk satu item → item itu `NOT_ESTIMABLE`; item lain tetap. Pemesanan tidak pernah ditahan oleh harga (`RWI-DEC-220` butir 5) |
+| Yang tidak berubah | Tagihan Pasien, status kasir, deposit, dan sisa tagihan tetap tanpa rupiah bagi perawat (`RWI-DEC-137`, `RWI-DEC-170`); `InpAncillaryOrderAdapter` tidak membuka transaksi |
+| Dua harga yang memakai endpoint lama | Harga obat (`prescribing-drugs`, `PrescribingDrug : Read`) dan harga order tindakan yang dirujuk Pemesanan Ruangan Bedah (`patient-procedures`, `PatientProcedure : Read`) sudah dikirim endpoint itu kepada pemegang hak bacanya, termasuk di rawat jalan. Desain ini **tidak** mempersempitnya; artinya untuk dua jalur itu hak lihat harga mengikuti hak baca endpoint, bukan hak membuat pesanan. Dicatat agar pemilik mengetahuinya saat approval |
+| Penanda klinis | `RWI-DEC-213`: panel Konteks pasien `FE-DOK-09` mendapat penanda "Pasca operasi" yang membuka laci `FE-INP-28` milik `episode-rawat-inap`; datanya dari `GET operating-room-management/cases?encounterId=` dan `…/post-operative-summary` (`OperatingRoomCase : Read`). Tidak ada class baru di sub-modul ini |
+
+**Contoh.** Perawat (memegang `LabOrder : Create`) memilih "Darah Lengkap" untuk pasien BPJS kelas 2 → `{ IsCovered: true, Label: "Ditanggung", PriceStatus: "AVAILABLE", EstimatedUnitPrice: 85000, PriceLabel: "perkiraan — tagihan final di kasir" }`. Petugas admisi yang hanya memegang `InpatientEpisode : Read` memanggil endpoint yang sama → `PriceStatus: "NOT_PERMITTED"` tanpa field harga.

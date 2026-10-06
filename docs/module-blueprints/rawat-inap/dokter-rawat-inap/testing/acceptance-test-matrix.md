@@ -472,3 +472,28 @@ pemeriksaan layar dengan peran nyata non-SuperAdmin.
 | Catatan terlambat yang belum pernah dimulai | Jalur tulis penugasan singkat milik `episode-rawat-inap` `0.9.0` belum dibangun | Setelah task episode selesai |
 | Pemakaian sliding scale untuk pasien sungguhan | Isi template belum disahkan pemilik klinis yang belum ditunjuk | Gerbang produksi |
 | Batas waktu verifikasi instruksi dan verifikasi CPPT | `RWI-RULE-021` belum final | Gerbang produksi |
+
+---
+
+## 15. Amandemen kontrak `0.7.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+Akibat di modul lain lulus hanya bila terbukti di modul penerima (`RWI-DEC-168`).
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FR-RWF-030` / `AC-RWF-030` | Perawat memesan "Darah Lengkap" dengan dokter pemberi instruksi | E2E dengan Lab sungguhan | Pesanan masuk worklist Laboratorium |
+| `FR-RWF-030` / `AC-RWF-031` | Perawat memesan Lab tanpa dokter | Integrasi | Ditolak dengan pesan modul Lab |
+| `FR-RWF-031` / `AC-RWF-032` | Dokter memesan konsultasi gizi | Integrasi dengan Gizi sungguhan | Tampil di `nutrition-management/orders`; peminta = akun dokter; `NotRequired` |
+| `FR-RWF-032` / `AC-RWF-033` | Perawat memesan 2 PRC atas instruksi dokter jaga | Integrasi dengan Bank Darah sungguhan | Tampil di `blood-bank-management/blood-orders`, `Pending`, penginput perawat |
+| `FR-RWF-036` / `AC-RWF-034` | Dokter tanpa penugasan sebagai peminta Gizi atau darah | Integrasi | 403; tidak ada pesanan di modul tujuan |
+| `FR-RWF-037` / `AC-RWF-035` | Dokter memverifikasi pesanan darah dari daftar gabungan | E2E | Status, waktu, dan nama pemverifikasi tersimpan pada pesanan di Bank Darah |
+| `INV-RWF-23` | Dokter lain memverifikasi | Integrasi | 403 |
+| `FR-RWF-038` / `AC-RWF-036` | Pesanan gizi, darah, dan diet dari poliklinik setelah perubahan | Regresi | Data dan status sama seperti sebelumnya |
+| `FR-RWF-034` / `RWI-AC-337` | Perawat pemegang `LabOrder : Create` memilih pemeriksaan | E2E | Status tanggungan dan perkiraan harga berlabel perkiraan tampil; Tagihan Pasien tetap tanpa rupiah (`RWI-DEC-218`) |
+| `INT-RWF-16` | Konteks penugasan tidak dapat dibaca | Integrasi | Pesanan darah ditolak |
+| `FR-RWF-070` / `AC-RWF-070` | Tindakan bertanda hanya rawat inap | Integrasi + E2E | Tampil di katalog bangsal dan dokter rawat inap; tidak tampil di poliklinik |
+| `FR-RWF-070` | Pemanggil lama `master-options` tanpa parameter | Regresi | Hasil identik dengan sebelum perubahan |
+| `RWI-DEC-218` butir 2 | Pengguna hanya `InpatientEpisode : Read` memanggil `coverage-status` | Integrasi | `PriceStatus = NOT_PERMITTED`; respons tidak memuat `estimatedUnitPrice` sama sekali |
+| `RWI-AC-335` | Tarif pemeriksaan tidak ada di master | Integrasi + E2E | `NOT_ESTIMABLE`, layar "tarif belum tersedia", pesanan tetap masuk worklist modul pemilik |
+| `RWI-DEC-219` | Konsultasi gizi dan pesanan darah | Integrasi | Selalu `NOT_ESTIMABLE` |
+| `RWI-AC-339` / `RWI-DEC-213` | Dokter membuka pasien dengan dan tanpa kasus OK `Completed` | E2E | Penanda "Pasca operasi" hanya pada pasien pertama; laci baca-saja; delapan tab tetap |

@@ -164,6 +164,8 @@ Sebelum mengubah perilaku persistence:
 
 Jangan otomatis membuat, menghapus, mereset, atau menulis ulang migration. Pembuatan migration memerlukan wewenang task eksplisit. Menjalankan migration atau `Update-Database` terhadap database apa pun memerlukan instruksi eksplisit terpisah. Perubahan model tidak dengan sendirinya memberi wewenang untuk salah satu tindakan tersebut.
 
+Preferensi pemilik yang diperjelas pada 2026-10-05: untuk task backend yang sudah diberi wewenang dan membutuhkan perubahan schema, sertakan file migration, Designer, dan pembaruan model snapshot dalam hasil implementasi. Instruksi pemilik ini memberi wewenang menyiapkan file migration untuk scope perubahan tersebut, kecuali task secara eksplisit melarang pembuatan file migration. Pemilik cukup menjalankan `dotnet ef database update` sendiri; jangan menerapkan migration ke database secara otomatis. Tetap patuhi batasan build pada task aktif. Bila migration yang sesuai sudah tersedia di workspace, periksa dan gunakan berkas tersebut agar tidak membuat migration ganda.
+
 ## Keselamatan Database
 
 Jangan pernah menjalankan operasi database destruktif secara otomatis. Jangan melakukan drop database atau table, truncate business table, mass-delete record, reset migration, menimpa konfigurasi environment, atau memperbarui database production/shared kecuali diberi wewenang secara eksplisit dengan target yang jelas dan terbatas.

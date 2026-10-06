@@ -21,6 +21,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums
         DischargePlanningForm = 5,
 
         /// <summary>Checklist Evaluasi Awal MPP.</summary>
-        CaseManagementChecklist = 6
+        CaseManagementChecklist = 6,
+        SurgicalSiteSurveillanceForm = 7
     }
 }

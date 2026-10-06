@@ -116,8 +116,9 @@ public class OperatingRoomRecoveryController(OperatingRoomRecoveryService servic
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-    [AccessAction("Update", "Update Operating Room Handover", Description = "Mengirim serah terima pasien", AccessType = AccessTypes.Update, SortOrder = 2)]
-    [AccessPermission("OperatingRoomHandover", "Update")]
+    // BE-RWI-177 / RWI-DEC-189: permission kirim dipisah dari terima (dulu keduanya OperatingRoomHandover : Update).
+    [AccessAction("Send", "Send Operating Room Handover", Description = "Mengirim serah terima pasien pasca operasi", AccessType = AccessTypes.Update, SortOrder = 2)]
+    [AccessPermission("OperatingRoomHandover", "Send")]
     public async Task<IActionResult> CreateHandover(Guid caseId, [FromBody] CreateOprHandoverRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -140,8 +141,10 @@ public class OperatingRoomRecoveryController(OperatingRoomRecoveryService servic
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-    [AccessAction("Update", "Update Operating Room Handover", Description = "Menerima atau menolak serah terima pasien", AccessType = AccessTypes.Update, SortOrder = 2)]
-    [AccessPermission("OperatingRoomHandover", "Update")]
+    // BE-RWI-177: penerima memegang : Receive, bukan pengirim (OPR-HO-002), dan pasien sudah menempati
+    // bed aktif di unit tujuan (OPR-HO-001). Hak : Receive diberikan admin, tidak disalin dari Update.
+    [AccessAction("Receive", "Receive Operating Room Handover", Description = "Menerima atau menolak serah terima pasien pasca operasi di unit tujuan", AccessType = AccessTypes.Update, SortOrder = 3)]
+    [AccessPermission("OperatingRoomHandover", "Receive")]
     public async Task<IActionResult> AcceptHandover(Guid caseId, Guid handoverId,
         [FromBody] AcceptOprHandoverRequest request, CancellationToken cancellationToken = default)
     {

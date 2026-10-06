@@ -42,6 +42,8 @@ frontend_tasks: FE-RWI-095..FE-RWI-100
 
 ## 1. Matriks Keterlacakan Utama (Requirement → Desain → Kontrak → Task → Bukti)
 
+**Bukti Finishing 5 Oktober 2026.** Kontrak 1.1.0 dan BE-RWI-146–159 dicatat pada [requirement-traceability-finishing.md](requirement-traceability-finishing.md). Source tersedia; build 0 error/233 warning; I6 terapkan development, nol pending; QBE Strict dan 35 pemeriksaan terbatas PASS. UAT klinis lengkap, replay tulis, retur nyata dan rollback belum dibuktikan. Matriks 1.0.0 berikut tetap baseline historis.
+
 Tabel berikut menghubungkan setiap Kebutuhan Fungsional (*Functional Requirement*), Epic, Keputusan Bisnis Terkait, Rujukan Desain Arsitektur, Kontrak Terkunci Versi `1.0.0`, Task Eksekusi Backend/Frontend, dan Kriteria Bukti Penerimaan (*Acceptance Proof*).
 
 | FR ID | Epic & Kemampuan | Keputusan Terkait | Rujukan Desain Arsitektur | Kontrak `1.0.0` | Task Backend | Task Frontend | Bukti Acceptance / Kasus Uji | Status Implementasi |

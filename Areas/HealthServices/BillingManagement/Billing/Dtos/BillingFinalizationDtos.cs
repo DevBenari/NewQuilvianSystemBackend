@@ -21,6 +21,14 @@ public sealed class FinalizationPreviewResponse
     public decimal Outstanding { get; set; }
     public bool IsReadyForNormalFinalization { get; set; }
     public IReadOnlyList<string> BlockingReasons { get; set; } = [];
+
+    /// <summary>
+    /// Kode penahan finalisasi yang dapat dibaca mesin — kontrak <c>integrasi-billing</c>
+    /// <c>1.1.0</c> API 3.9: <c>BIL-FIN-020</c> invoice "perlu diperiksa",
+    /// <c>BIL-FIN-021</c> masih ada layanan "tarif belum ada".
+    /// </summary>
+    public IReadOnlyList<string> BlockingCodes { get; set; } = [];
+
     public int CalculationVersion { get; set; }
     public Guid InvoiceRowVersion { get; set; }
 }

@@ -634,6 +634,12 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilCollectionHandoff> BilCollectionHandoffs { get; set; }
         public DbSet<BilPrescriptionClearanceHandoff> BilPrescriptionClearanceHandoffs { get; set; }
         public DbSet<BilInpatientClearanceHandoff> BilInpatientClearanceHandoffs { get; set; }
+
+        /// <summary>
+        /// Tanda terima ketukan pintu Rawat Inap — kontrak integrasi-billing 1.1.0 kamus data 6.7
+        /// (<c>BE-RWI-149</c>, migration <c>I2</c>).
+        /// </summary>
+        public DbSet<BilInpatientEventReceipt> BilInpatientEventReceipts { get; set; }
         public DbSet<BilCashierShift> BilCashierShifts { get; set; }
         public DbSet<BilCashVarianceReview> BilCashVarianceReviews { get; set; }
         public DbSet<BilCashierShiftHandover> BilCashierShiftHandovers { get; set; }
@@ -774,12 +780,27 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<CliAssessmentInstrumentResponse> CliAssessmentInstrumentResponses { get; set; }
         public DbSet<CliCaseManagementEvaluation> CliCaseManagementEvaluations { get; set; }
         public DbSet<CliFluidBalanceEntry> CliFluidBalanceEntries { get; set; }
+
+        /// <summary>Serah terima klinis transfer antarunit (<c>BE-RWI-183</c>, kamus data 19.9, migration <c>E7</c>).</summary>
+        public DbSet<CliTransferHandover> CliTransferHandovers { get; set; }
         public DbSet<CliFluidBalanceEntryRevision> CliFluidBalanceEntryRevisions { get; set; }
         public DbSet<CliBloodGlucoseReading> CliBloodGlucoseReadings { get; set; }
         public DbSet<CliBloodGlucoseReadingRevision> CliBloodGlucoseReadingRevisions { get; set; }
         public DbSet<CliDailyObservation> CliDailyObservations { get; set; }
         public DbSet<CliDailyObservationRevision> CliDailyObservationRevisions { get; set; }
         public DbSet<CliNursingShift> CliNursingShifts { get; set; }
+
+        // Finishing Rawat Inap keperawatan K9 (BE-RWI-165, BE-RWI-168, BE-RWI-169, BE-RWI-170).
+        public DbSet<CliWsdDrain> CliWsdDrains { get; set; }
+        public DbSet<CliWsdReading> CliWsdReadings { get; set; }
+        public DbSet<CliEquipmentUsage> CliEquipmentUsages { get; set; }
+        public DbSet<CliEquipmentUsageRevision> CliEquipmentUsageRevisions { get; set; }
+        public DbSet<CliSurgicalSiteSurveillance> CliSurgicalSiteSurveillances { get; set; }
+        public DbSet<CliSurgicalSiteSurveillanceEntry> CliSurgicalSiteSurveillanceEntries { get; set; }
+        public DbSet<CliSurgicalSiteSurveillanceEntryRevision> CliSurgicalSiteSurveillanceEntryRevisions { get; set; }
+        public DbSet<CliTransfusionMonitoring> CliTransfusionMonitorings { get; set; }
+        public DbSet<CliTransfusionMonitoringPoint> CliTransfusionMonitoringPoints { get; set; }
+        public DbSet<CliTransfusionReaction> CliTransfusionReactions { get; set; }
 
         public DbSet<MstProcedure> MstProcedures { get; set; }
 
@@ -820,6 +841,18 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstClinicalAssessmentPolicy> MstClinicalAssessmentPolicies { get; set; }
 
         public DbSet<MstInpatientClearanceItem> MstInpatientClearanceItems { get; set; }
+
+        /// <summary>
+        /// Master jenis alat medis — keperawatan kontrak 0.6.0 kamus data 12.13
+        /// (<c>BE-RWI-172</c>, migration <c>K8</c>).
+        /// </summary>
+        public DbSet<MstMedicalEquipment> MstMedicalEquipments { get; set; }
+
+        /// <summary>
+        /// Master butir persiapan bedah — episode-rawat-inap kontrak 0.10.0 kamus data 19.7
+        /// (<c>BE-RWI-172</c>, migration <c>E4</c>).
+        /// </summary>
+        public DbSet<MstSurgicalPreparationItem> MstSurgicalPreparationItems { get; set; }
         public DbSet<InpEpisode> InpEpisodes { get; set; }
         public DbSet<InpDoctorAssignment> InpDoctorAssignments { get; set; }
         public DbSet<InpNurseAssignment> InpNurseAssignments { get; set; }
@@ -832,6 +865,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<InpStatusHistory> InpStatusHistories { get; set; }
         public DbSet<InpCorrectionSession> InpCorrectionSessions { get; set; }
         public DbSet<InpIntegrationOutbox> InpIntegrationOutboxes { get; set; }
+        public DbSet<BilInvoiceEncounterLink> BilInvoiceEncounterLinks { get; set; }
+
+        /// <summary>Permintaan admisi dari kamar pulih (<c>BE-RWI-181</c>, kamus data 19.8, migration <c>E6</c>).</summary>
+        public DbSet<InpAdmissionReferral> InpAdmissionReferrals { get; set; }
         public DbSet<TrxKioskScanSession> TrxKioskScanSessions { get; set; }
         public DbSet<RegPatientEncounter> RegPatientEncounters { get; set; }
         public DbSet<RegPatientEncounterGuarantor> RegPatientEncounterGuarantors { get; set; }
@@ -1083,6 +1120,11 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<OprStockSource> OprStockSources { get; set; }
 
+        // BE-RWI-176: Catatan Pra-Operasi bangsal berversi (kamus data 19.4 s.d. 19.6, migration E5).
+        public DbSet<OprWardPreOpNote> OprWardPreOpNotes { get; set; }
+        public DbSet<OprWardPreOpItem> OprWardPreOpItems { get; set; }
+        public DbSet<OprWardPreOpSiteMark> OprWardPreOpSiteMarks { get; set; }
+
         #endregion
 
         #region MEDICAL RECORD MANAGEMENT
@@ -1115,6 +1157,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BbkCompatibilityEvidence> BbkCompatibilityEvidences { get; set; }
         public DbSet<BbkEmergencyAuthorization> BbkEmergencyAuthorizations { get; set; }
         public DbSet<BbkIssuanceCorrection> BbkIssuanceCorrections { get; set; }
+
+        // Kotak masuk reaksi transfusi dari bangsal (BE-RWI-171, migration K11).
+        public DbSet<BbkTransfusionReactionNotice> BbkTransfusionReactionNotices { get; set; }
         #endregion BLOOD BANK MANAGEMENT
 
         #region HEMODIALYSIS MANAGEMENT
@@ -1152,6 +1197,25 @@ namespace QuilvianSystemBackend.Repositories
         // tidak pernah disunting lewat layar mana pun (INV-PLT-001, INV-PLT-002).
         public DbSet<NumNumberSeries> NumNumberSeries { get; set; }
         #endregion PLATFORM
+
+        private void StampEpisodeVersions()
+        {
+            ChangeTracker.DetectChanges();
+            foreach (var entry in ChangeTracker.Entries<InpEpisode>().Where(x => x.State == EntityState.Modified))
+                entry.Entity.Version = entry.Property(x => x.Version).OriginalValue + 1;
+        }
+
+        public override int SaveChanges(bool acceptAllChangesOnSuccess)
+        {
+            StampEpisodeVersions();
+            return base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+
+        public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+        {
+            StampEpisodeVersions();
+            return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

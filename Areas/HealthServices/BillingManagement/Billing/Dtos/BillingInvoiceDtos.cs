@@ -207,6 +207,11 @@ public sealed class InvoiceDetailResponse : InvoiceSummaryResponse
     public bool IsReplay { get; set; }
     public IReadOnlyList<InvoiceItemResponse> Items { get; set; } = [];
     public IReadOnlyList<DiscountResponse> Discounts { get; set; } = [];
+
+    // GET {id} (GetDetailAsync) hanya mengisi versi kalkulasi yang sedang berlaku, jadi satu elemen. Jalur tulis
+    // yang me-return InvoiceDetailResponse yang sama (from-source, void, catalog charge, other charge) tetap
+    // membawa seluruh riwayat versi invoice. Pembaca wajib memilih versi lewat CurrentCalculationVersion,
+    // bukan memakai posisi dalam daftar.
     public IReadOnlyList<CalculationResponse> CalculationVersions { get; set; } = [];
     // Hanya diisi oleh GetDetailAsync (layar Menu Pembayaran) - konteks pasien/kunjungan untuk
     // ditampilkan kasir, bukan bagian dari alur charge/void/recalculate lain yang me-return
@@ -645,4 +650,41 @@ public sealed class PatientJourneyNoteResponse
     public string Source { get; set; } = string.Empty;
     public string Note { get; set; } = string.Empty;
     public DateTime? Timestamp { get; set; }
+}
+
+/// <summary>
+/// Saringan antrean invoice "perlu diperiksa" — kontrak <c>integrasi-billing</c> <c>1.1.0</c> API 3.9
+/// (<c>BE-RWI-155</c>).
+/// </summary>
+public sealed class InvoiceReviewQueueQuery
+{
+    [MaxLength(30)] public string? ServiceType { get; set; }
+    [MaxLength(50)] public string? ReasonCode { get; set; }
+    [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
+    [Range(1, 100)] public int PageSize { get; set; } = 25;
+}
+
+/// <summary>Satu invoice pada antrean "perlu diperiksa".</summary>
+public sealed class InvoiceReviewItemResponse
+{
+    public Guid InvoiceId { get; set; }
+    public string InvoiceNumber { get; set; } = string.Empty;
+    public Guid EncounterId { get; set; }
+    public string ServiceType { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string PatientName { get; set; } = string.Empty;
+    public string MedicalRecordNumber { get; set; } = string.Empty;
+    public string? ReviewReasonCode { get; set; }
+    public DateTimeOffset? ReviewFlaggedAt { get; set; }
+    public Guid RowVersion { get; set; }
+}
+
+/// <summary>Permintaan kasir menyatakan pemeriksaan invoice selesai.</summary>
+public sealed class ResolveInvoiceReviewRequest
+{
+    /// <summary>Catatan penyelesaian, misalnya baris biaya kamar manual mana yang dibatalkan.</summary>
+    [Required, MaxLength(500)] public string Note { get; set; } = string.Empty;
+
+    /// <summary><c>RowVersion</c> invoice yang terbaca di layar.</summary>
+    public Guid RowVersion { get; set; }
 }

@@ -37,6 +37,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         /// </remarks>
         public int DepositFollowUpIntervalDays { get; set; } = 3;
 
+        /// <summary>
+        /// Ambang menit serah terima pasca operasi yang belum diterima sebelum tampil di Daftar
+        /// Pantau. Bawaan 60 menit, rentang 1–1440 (<c>RWI-DEC-220</c> butir 6, gate G-18,
+        /// <c>BE-RWI-172</c>).
+        /// </summary>
+        public int PendingSurgicalHandoverAlertMinutes { get; set; } = 60;
+
+        /// <summary>
+        /// Ambang menit permintaan admisi dari kamar pulih yang belum ditindaklanjuti sebelum tampil
+        /// di Daftar Pantau. Bawaan 30 menit, rentang 1–1440 (<c>RWI-DEC-220</c> butir 6).
+        /// </summary>
+        public int PendingAdmissionReferralAlertMinutes { get; set; } = 30;
+
         [Required]
         [MaxLength(20)]
         public string EpisodeNumberPrefix { get; set; } = "RI";

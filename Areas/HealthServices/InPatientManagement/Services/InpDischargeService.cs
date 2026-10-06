@@ -43,6 +43,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         private readonly PatientProcedureOrderService _patientProcedureOrderService;
         private readonly MedicationAdministrationService _medicationAdministrationService;
         private readonly IInpBillingDepositAdapter? _billingDepositAdapter;
+        private readonly IInpBillingClearanceAdapter _billingClearanceAdapter;
+        private readonly IInpIntegrationOutboxService _outboxService;
+        private readonly IServiceScopeFactory _scopeFactory;
+        private readonly ILogger<InpDischargeService> _dischargeLogger;
 
         /// <remarks>
         /// <b>Kenapa service ini boleh memakai <see cref="InpBedOccupancyService"/>.</b>
@@ -89,6 +93,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             ClinicalDocumentIntegrityService clinicalDocumentIntegrityService,
             PatientProcedureOrderService patientProcedureOrderService,
             MedicationAdministrationService medicationAdministrationService,
+            IInpBillingClearanceAdapter billingClearanceAdapter,
+            IInpIntegrationOutboxService outboxService,
+            IServiceScopeFactory scopeFactory,
+            ILogger<InpDischargeService> dischargeLogger,
             IInpBillingDepositAdapter? billingDepositAdapter = null)
         {
             _dbContext = dbContext;
@@ -98,6 +106,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             _patientProcedureOrderService = patientProcedureOrderService;
             _medicationAdministrationService = medicationAdministrationService;
             _billingDepositAdapter = billingDepositAdapter;
+            _billingClearanceAdapter = billingClearanceAdapter; _outboxService = outboxService;
+            _scopeFactory = scopeFactory; _dischargeLogger = dischargeLogger;
         }
 
         // =====================================================================

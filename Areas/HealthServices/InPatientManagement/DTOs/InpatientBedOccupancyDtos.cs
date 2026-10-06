@@ -381,5 +381,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         /// <summary>Benar bila penempatan ini yang sedang berlaku, yaitu belum ditutup.</summary>
         public bool IsCurrent { get; set; }
+
+        /// <summary>Versi penempatan; dikirim balik sebagai <c>ExpectedVersion</c> saat koreksi.</summary>
+        public int Version { get; set; }
+
+        /// <summary>
+        /// Pada baris hasil koreksi: penempatan yang dikoreksinya (kontrak <c>integrasi-billing</c>
+        /// <c>1.1.0</c> API 3.4).
+        /// </summary>
+        public Guid? CorrectsPlacementId { get; set; }
+
+        /// <summary>
+        /// Pada baris yang sudah dikoreksi: penempatan penggantinya. Baris ini tidak lagi ikut
+        /// tarif kamar (<c>INV-RWF-07</c>), tetapi tetap ditampilkan sebagai jejak.
+        /// </summary>
+        public Guid? SupersededByCorrectionId { get; set; }
+
+        /// <summary>Benar bila baris ini lahir dari koreksi salah catat, bukan dari transfer.</summary>
+        public bool IsCorrection { get; set; }
     }
 }
