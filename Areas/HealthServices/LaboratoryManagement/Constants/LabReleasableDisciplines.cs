@@ -1,0 +1,40 @@
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
+
+namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Constants
+{
+    /// <summary>
+    /// Disiplin yang hasilnya <b>dapat divalidasi dan dirilis</b> — satu jawaban bagi penjaga
+    /// <c>VAL-126</c> dan laporan operasional (<c>ARCH-GAP-LAB-11</c>,
+    /// <c>02-backend-architecture.md</c> 23.4). Penjaga dan laporan yang berbeda pendapat akan
+    /// menampilkan angka 0 bagi disiplin yang sebenarnya belum dapat dirilis.
+    ///
+    /// <para>
+    /// Isinya mengikuti jalur yang sudah dibangun: <b>Patologi Klinik</b> (<c>S4</c>,
+    /// <c>BE-LAB-73</c>) dan <b>Mikrobiologi</b> (<c>S4d-1</c>, <c>BE-LAB-78</c>). Patologi Anatomi
+    /// ditambahkan di sini bersama <c>S4e</c>.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Menambah disiplin di sini saja tidak cukup:</b> <see cref="LabClinicalPrivilegeCodes.For"/>
+    /// wajib memberi disiplin itu kode kewenangannya sendiri pada perubahan yang sama. Tanpa kode,
+    /// resolver menolak setiap tindakan (<c>NotAppointed</c>) — aman, tetapi tidak berguna.
+    /// </para>
+    ///
+    /// <para>
+    /// <b>Konstanta, bukan data</b> — sama dengan <see cref="LabClinicalPrivilegeCodes"/>: himpunan
+    /// ini menentukan tindakan klinis mana yang terbuka, sehingga mengubahnya lewat tinjauan kode.
+    /// </para>
+    /// </summary>
+    public static class LabReleasableDisciplines
+    {
+        private static readonly LabDiscipline[] Disciplines =
+        {
+            LabDiscipline.ClinicalPathology,
+            LabDiscipline.Microbiology
+        };
+
+        /// <summary>Benar bila hasil disiplin ini dapat divalidasi dan dirilis.</summary>
+        public static bool Contains(LabDiscipline discipline) =>
+            Array.IndexOf(Disciplines, discipline) >= 0;
+    }
+}

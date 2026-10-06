@@ -17,7 +17,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingInte
 /// terjadi menurut roadmap MVP-5.
 ///
 /// PayloadJson dibangun DI SINI, bukan diterima mentah dari pemanggil, dari 12 field wajib
-/// ACC-XMOD-0.2 + Components & SubledgerBalance opsional — desain ini sengaja mengunci FR-FIN-073 (data pasien/DoctorId
+/// ACC-XMOD-0.2 + Components &amp; SubledgerBalance opsional — desain ini sengaja mengunci FR-FIN-073 (data pasien/DoctorId
 /// tidak pernah ikut) di level tipe: pemanggil tidak diberi jalan untuk menyisipkan field bebas
 /// ke payload sama sekali.
 /// </summary>
@@ -116,7 +116,16 @@ public sealed class FinanceAccountingOutboxService
             ["CurrencyCode"] = "IDR",
             ["LegalEntityId"] = legalEntityId,
             ["CorrelationId"] = request.CorrelationId,
-            ["CausationId"] = request.CausationId
+            ["CausationId"] = request.CausationId,
+            // BE-FIN-069, FIN-INTEGRATION-1.7 §5.12.1-5.12.2: lima ruas dimensi, selalu hadir
+            // (termasuk null) — bukan conditional seperti Components/SubledgerBalance di bawah,
+            // karena Accounting membacanya lewat AdditionalFields [JsonExtensionData] yang tidak
+            // mensyaratkan field ini pernah absen.
+            ["CashierShiftId"] = request.CashierShiftId,
+            ["CashierShiftNumber"] = request.CashierShiftNumber,
+            ["PaymentMethodCode"] = request.PaymentMethodCode,
+            ["PaymentMethodAccountId"] = request.PaymentMethodAccountId,
+            ["ReversalOfSourceTransactionId"] = request.ReversalOfSourceTransactionId
         };
 
         if (request.Components is { Count: > 0 })
@@ -186,7 +195,7 @@ public sealed class FinanceAccountingOutboxService
             var periodParts = request.SubledgerBalance.AccountingPeriodCode.Split('-');
             var periodYear = int.Parse(periodParts[0]);
             var periodMonth = int.Parse(periodParts[1]);
-            var expectedLastDate = new DateOnly(periodYear, periodMonth, DateTime.DaysInMonth(periodYear, periodMonth));
+            var expectedLastDate = FinanceBusinessDate.GetPeriodEndDate(periodYear, periodMonth);
 
             if (request.AccountingDate != expectedLastDate)
             {
@@ -231,6 +240,21 @@ public sealed class AccountingOutboxEventRequest
     public IReadOnlyList<AccountingEventComponent>? Components { get; init; }
     public SubledgerBalanceRequest? SubledgerBalance { get; init; }
     public Guid ActorUserId { get; init; }
+
+    /// <summary>BE-FIN-069, FIN-INTEGRATION-1.7 §5.12.1: terisi pada kejadian penerimaan kasir dan pembaliknya.</summary>
+    public Guid? CashierShiftId { get; init; }
+
+    /// <summary>BE-FIN-069, FIN-INTEGRATION-1.7 §5.12.1: rujukan shift yang terbaca manusia, pasangan <see cref="CashierShiftId"/>.</summary>
+    public string? CashierShiftNumber { get; init; }
+
+    /// <summary>BE-FIN-069, FIN-INTEGRATION-1.7 §5.12.1: terisi pada penerimaan kasir, penerimaan piutang, dan pembayaran utang supplier.</summary>
+    public string? PaymentMethodCode { get; init; }
+
+    /// <summary>BE-FIN-069, FIN-INTEGRATION-1.7 §5.12.1: rekening sumber/tujuan dana non-tunai, pasangan <see cref="PaymentMethodCode"/>.</summary>
+    public Guid? PaymentMethodAccountId { get; init; }
+
+    /// <summary>BE-FIN-069, FIN-INTEGRATION-1.7 §5.12.2: diisi hanya pada kejadian pembalik — SourceTransactionId kuitansi ASLI, bukan shift asli.</summary>
+    public string? ReversalOfSourceTransactionId { get; init; }
 }
 
 /// <summary>

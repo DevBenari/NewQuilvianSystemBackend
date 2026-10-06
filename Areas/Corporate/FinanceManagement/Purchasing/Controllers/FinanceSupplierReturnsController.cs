@@ -22,7 +22,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Con
 /// terpisah, dan roadmap `BE-FIN-035` Cakupan eksplisit menyebut "catat, konfirmasi, batal".
 /// Tanpa endpoint ini retur tidak pernah bisa mencapai `CONFIRMED` (sehingga Deposit Retur tidak
 /// pernah diterbitkan) maupun `CANCELLED` — kapabilitasnya tidak berfungsi tanpa keduanya. Dibuat
-/// mengikuti pola `POST /{id}/<aksi>` yang sudah baku di rumpun ini (`FinanceInvoiceExchangesController.Cancel`),
+/// mengikuti pola `POST /{id}/&lt;aksi&gt;` yang sudah baku di rumpun ini (`FinanceInvoiceExchangesController.Cancel`),
 /// bukan kebijakan baru — action/permission `Confirm`/`Cancel` ikut ditambahkan pada resource
 /// `FinanceSupplierReturn` karena `permission-audit-matrix.md` §B.5 juga belum mendaftarkannya.
 /// </summary>
@@ -35,7 +35,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Con
 public sealed class FinanceSupplierReturnsController : ControllerBase
 {
     private readonly FinanceSupplierReturnService _service;
-    public FinanceSupplierReturnsController(FinanceSupplierReturnService service) => _service = service;
+    private readonly PurchasingIdempotencyService _idempotency;
+    public FinanceSupplierReturnsController(FinanceSupplierReturnService service, PurchasingIdempotencyService idempotency)
+    {
+        _service = service;
+        _idempotency = idempotency;
+    }
 
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Supplier Return", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -52,13 +57,21 @@ public sealed class FinanceSupplierReturnsController : ControllerBase
     [HttpPost]
     [AccessAction("Create", "Create Supplier Return", AccessType = AccessTypes.Create, SortOrder = 2)]
     [AccessPermission("FinanceSupplierReturn", "Create")]
-    public async Task<IActionResult> Create([FromBody] CreateSupplierReturnRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create(
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        [FromBody] CreateSupplierReturnRequest request, CancellationToken cancellationToken)
     {
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        if (replay is not null) return Replay(replay);
+
         try
         {
             var supplierReturn = await _service.CreateAsync(
                 request.PurchasingInvoiceId, request.Reason, request.PPNAmount, request.Items, CurrentUserId(), cancellationToken);
-            return StatusCode(201, ApiResponse<SupplierReturnResponse>.Ok(Map(supplierReturn), "Retur Pembelian berhasil dicatat."));
+            var response = ApiResponse<SupplierReturnResponse>.Ok(Map(supplierReturn), "Retur Pembelian berhasil dicatat.");
+            await _idempotency.SaveAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.SupplierReturn,
+                FinPurchasingIdempotencyActions.Create, supplierReturn.Id, 201, response, cancellationToken);
+            return StatusCode(201, response);
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
@@ -66,12 +79,20 @@ public sealed class FinanceSupplierReturnsController : ControllerBase
     [HttpPost("{id:guid}/confirm")]
     [AccessAction("Confirm", "Confirm Supplier Return", AccessType = AccessTypes.Update, SortOrder = 3)]
     [AccessPermission("FinanceSupplierReturn", "Confirm")]
-    public async Task<IActionResult> Confirm(Guid id, [FromBody] SupplierReturnRowVersionRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Confirm(
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        Guid id, [FromBody] SupplierReturnRowVersionRequest request, CancellationToken cancellationToken)
     {
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        if (replay is not null) return Replay(replay);
+
         try
         {
             var supplierReturn = await _service.ConfirmAsync(id, request.ExpectedRowVersion, CurrentUserId(), cancellationToken);
-            return Ok(ApiResponse<SupplierReturnResponse>.Ok(Map(supplierReturn), "Retur Pembelian berhasil dikonfirmasi. Deposit Retur telah diterbitkan."));
+            var response = ApiResponse<SupplierReturnResponse>.Ok(Map(supplierReturn), "Retur Pembelian berhasil dikonfirmasi. Deposit Retur telah diterbitkan.");
+            await _idempotency.SaveAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.SupplierReturn,
+                FinPurchasingIdempotencyActions.Confirm, supplierReturn.Id, 200, response, cancellationToken);
+            return Ok(response);
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
@@ -79,12 +100,20 @@ public sealed class FinanceSupplierReturnsController : ControllerBase
     [HttpPost("{id:guid}/cancel")]
     [AccessAction("Cancel", "Cancel Supplier Return", AccessType = AccessTypes.Update, SortOrder = 4)]
     [AccessPermission("FinanceSupplierReturn", "Cancel")]
-    public async Task<IActionResult> Cancel(Guid id, [FromBody] SupplierReturnRowVersionRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Cancel(
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        Guid id, [FromBody] SupplierReturnRowVersionRequest request, CancellationToken cancellationToken)
     {
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        if (replay is not null) return Replay(replay);
+
         try
         {
             var supplierReturn = await _service.CancelAsync(id, request.ExpectedRowVersion, CurrentUserId(), cancellationToken);
-            return Ok(ApiResponse<SupplierReturnResponse>.Ok(Map(supplierReturn), "Retur Pembelian berhasil dibatalkan."));
+            var response = ApiResponse<SupplierReturnResponse>.Ok(Map(supplierReturn), "Retur Pembelian berhasil dibatalkan.");
+            await _idempotency.SaveAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.SupplierReturn,
+                FinPurchasingIdempotencyActions.Cancel, supplierReturn.Id, 200, response, cancellationToken);
+            return Ok(response);
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
@@ -167,6 +196,9 @@ public sealed class FinanceSupplierReturnsController : ControllerBase
     private static bool IsHandled(Exception exception) => exception is
         KeyNotFoundException or PurchasingForbiddenException or PurchasingConflictException
         or PurchasingValidationException or PurchasingBadRequestException;
+
+    private IActionResult Replay(PurchasingIdempotencyService.CachedResult cached) =>
+        new ContentResult { StatusCode = cached.StatusCode, Content = cached.ResponseBody, ContentType = "application/json" };
 
     private Guid CurrentUserId()
     {

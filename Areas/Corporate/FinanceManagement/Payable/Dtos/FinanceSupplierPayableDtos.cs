@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Dtos;
 
 public sealed class SupplierPayableItemResponse
@@ -84,3 +86,41 @@ public sealed class CancelSupplierPayableRequest
 {
     public Guid ExpectedRowVersion { get; set; }
 }
+
+// ----------------------------------------------------------------------------------------
+// BE-FIN-063 (FIN-DES-079, FIN-DEC-123, FIN-API-1.5 F.5): Buku Mutasi Utang Supplier
+// ----------------------------------------------------------------------------------------
+
+public sealed class SupplierPayableMovementQuery
+{
+    [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
+    [Range(1, 100)] public int PageSize { get; set; } = 25;
+    public DateOnly? DateFrom { get; set; }
+    public DateOnly? DateTo { get; set; }
+    public string? MovementType { get; set; }
+    public string SortDirection { get; set; } = "asc";
+}
+
+public sealed class SupplierPayableMovementResponse
+{
+    public Guid Id { get; set; }
+    public Guid SupplierPayableId { get; set; }
+    public string MovementType { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public decimal BalanceBefore { get; set; }
+    public decimal BalanceAfter { get; set; }
+    public DateOnly BusinessDate { get; set; }
+    public DateTimeOffset OccurredAt { get; set; }
+    public Guid? PaymentId { get; set; }
+    public Guid? PaymentAllocationId { get; set; }
+    public string? PaymentMethodCode { get; set; }
+    public string? FundingSourceType { get; set; }
+    public Guid? FundingSourceId { get; set; }
+    public string? ReferenceNumber { get; set; }
+    public Guid? ProofId { get; set; }
+    public Guid? OpeningItemBatchId { get; set; }
+    public string? Notes { get; set; }
+    public Guid CorrelationId { get; set; }
+    public Guid CausationId { get; set; }
+}
+

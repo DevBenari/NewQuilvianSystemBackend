@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
@@ -15,6 +16,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Ser
 /// mengikuti/meringkas status anggotanya (FIN-STATE-1.2 §B.7); FinanceReceivableService TETAP
 /// satu-satunya penulis OutstandingAmount. Service ini HANYA MEMBACA FinReceivable, tidak pernah
 /// menulis kolomnya.
+/// BE-FIN-052 (FIN-DEC-097, FIN-DES-070/071): sumbu klaim penjamin (ClaimStatus) adalah sumbu
+/// KEDUA yang berdiri di samping Status — bukan perluasan enum Status. VerifyClaimAsync,
+/// ApproveClaimAsync, CloseClaimAsync TIDAK PERNAH menulis Status/IssuedAt/OutstandingAmount;
+/// ApproveClaimAsync TIDAK PERNAH memanggil FinanceReceivableService. Selisih klaim
+/// (ClaimVarianceAmount) dihitung di Map(), TIDAK disimpan.
 /// </summary>
 public sealed class FinanceReceivableInvoiceBatchService
 {
@@ -100,6 +106,14 @@ public sealed class FinanceReceivableInvoiceBatchService
             Status = mapped.Status,
             IssuedAt = mapped.IssuedAt,
             RowVersion = mapped.RowVersion,
+            ClaimStatus = mapped.ClaimStatus,
+            ApprovedAmount = mapped.ApprovedAmount,
+            ClaimVarianceAmount = mapped.ClaimVarianceAmount,
+            PayerClaimReference = mapped.PayerClaimReference,
+            ClaimNote = mapped.ClaimNote,
+            PayerVerifiedAt = mapped.PayerVerifiedAt,
+            ClaimApprovedAt = mapped.ClaimApprovedAt,
+            ClaimClosedAt = mapped.ClaimClosedAt,
             Members = batch.Items
                 .Where(x => !x.IsDelete && x.Receivable is not null)
                 .Select(x => new ReceivableInvoiceBatchMemberResponse
@@ -174,6 +188,16 @@ public sealed class FinanceReceivableInvoiceBatchService
             throw new ReceivableInvoiceBatchBadRequestException(
                 $"Batch Tagihan AR hanya menerima piutang berjenis PAYER. Piutang {nonPayer[0].ReceivableNumber} berjenis {nonPayer[0].DebtorType}.");
 
+        // Sama dengan GET eligible-receivables: hanya piutang yang masih OUTSTANDING/PARTIAL dan bernilai positif
+        // yang boleh ditagihkan. Piutang CANCELLED, SETTLED, atau WRITTEN_OFF ditolak di server, tidak hanya
+        // disembunyikan dari daftar.
+        var notBillable = receivables.Where(x =>
+            (x.Status != FinReceivableStatuses.Outstanding && x.Status != FinReceivableStatuses.Partial)
+            || x.OriginalAmount <= 0).ToList();
+        if (notBillable.Count > 0)
+            throw new ReceivableInvoiceBatchValidationException(
+                $"Piutang {notBillable[0].ReceivableNumber} berstatus {notBillable[0].Status} dan tidak dapat ditagihkan. Hanya piutang OUTSTANDING atau PARTIAL dengan nilai lebih dari nol yang dapat digabung.");
+
         // FIN-VAL-115: seluruh piutang dalam satu batch harus milik penjamin yang sama.
         var debtorReferenceIds = receivables.Select(x => x.DebtorReferenceId).Distinct().ToList();
         if (debtorReferenceIds.Count > 1 || debtorReferenceIds[0] is null)
@@ -190,6 +214,19 @@ public sealed class FinanceReceivableInvoiceBatchService
         if (alreadyBatched.Count > 0)
             throw new ReceivableInvoiceBatchConflictException(
                 $"Piutang {string.Join(", ", alreadyBatched)} sudah tergabung dalam batch tagihan lain.");
+
+        // Batch yang dibatalkan tidak menghapus baris anggotanya, dan indeks unik
+        // IX_FinReceivableInvoiceBatchItem_ActiveReceivable (IsDelete = false) tetap menahan piutang itu.
+        // Dikenali di sini supaya pengguna mendapat penjelasan yang benar, bukan kesalahan database.
+        var stuckInCancelled = await _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+            .Where(x => !x.IsDelete
+                && distinctIds.Contains(x.ReceivableId)
+                && x.Batch!.Status == FinReceivableInvoiceBatchStatuses.Cancelled)
+            .Select(x => x.Receivable!.ReceivableNumber)
+            .ToListAsync(cancellationToken);
+        if (stuckInCancelled.Count > 0)
+            throw new ReceivableInvoiceBatchConflictException(
+                $"Piutang {string.Join(", ", stuckInCancelled)} masih tercatat pada batch tagihan yang sudah dibatalkan, sehingga belum dapat digabung ulang. Pembebasan piutang dari batch yang dibatalkan belum tersedia.");
 
         var batch = new FinReceivableInvoiceBatch
         {
@@ -223,7 +260,18 @@ public sealed class FinanceReceivableInvoiceBatchService
         }
 
         _dbContext.FinReceivableInvoiceBatches.Add(batch);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            // Dua permintaan bersamaan melewati pemeriksaan di atas; indeks unik ActiveReceivable menolak yang
+            // kedua. Hasilnya 409, bukan batch ganda dan bukan kesalahan server.
+            throw new ReceivableInvoiceBatchConflictException(
+                "Sebagian piutang sudah tergabung dalam batch tagihan lain oleh permintaan lain. Muat ulang daftar lalu coba lagi.",
+                exception);
+        }
 
         await AuditAsync("Create", batch.Id, actorUserId);
         return batch;
@@ -252,6 +300,8 @@ public sealed class FinanceReceivableInvoiceBatchService
 
         batch.Status = FinReceivableInvoiceBatchStatuses.Issued;
         batch.IssuedAt = DateTimeOffset.UtcNow;
+        // FIN-DES-070: sumbu klaim dimulai otomatis saat dokumen terbit — tidak menunggu aksi petugas.
+        batch.ClaimStatus = FinReceivableInvoiceBatchClaimStatuses.Submitted;
         batch.UpdateDateTime = DateTime.UtcNow;
         batch.UpdateBy = actorUserId;
         batch.RowVersion = Guid.NewGuid();
@@ -308,6 +358,130 @@ public sealed class FinanceReceivableInvoiceBatchService
     }
 
     // ------------------------------------------------------------------------------------
+    // Sumbu klaim penjamin (BE-FIN-052, FIN-DEC-097, FIN-DES-070/071) — state-transition-matrix.md
+    // §D.1. Sumbu INI tidak pernah menulis Status/IssuedAt/OutstandingAmount; RefreshStatusAsync dan
+    // seluruh jalur pelunasan di atas tidak pernah menulis kolom klaim. Keduanya MUST tetap terpisah.
+    // ------------------------------------------------------------------------------------
+
+    /// <summary>FIN-VAL-147: klaim hanya ada pada batch yang sudah terbit (Status ISSUED/PARTIALLY_PAID/PAID).
+    /// Batch lama yang terbit sebelum kolom ini ada (ClaimStatus masih kosong) diperlakukan seolah
+    /// SUBMITTED — tanpa backfill, sesuai rencana migration (02-backend-architecture.md §J.6).</summary>
+    private static string? ResolveEffectiveClaimStatus(FinReceivableInvoiceBatch batch)
+    {
+        if (!string.IsNullOrEmpty(batch.ClaimStatus)) return batch.ClaimStatus;
+
+        var alreadyIssued = batch.Status is FinReceivableInvoiceBatchStatuses.Issued
+            or FinReceivableInvoiceBatchStatuses.PartiallyPaid or FinReceivableInvoiceBatchStatuses.Paid;
+        return alreadyIssued ? FinReceivableInvoiceBatchClaimStatuses.Submitted : null;
+    }
+
+    public async Task<FinReceivableInvoiceBatch> VerifyClaimAsync(
+        Guid batchId, Guid expectedRowVersion, string? payerClaimReference, string? claimNote,
+        Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var batch = await _dbContext.FinReceivableInvoiceBatches
+            .SingleOrDefaultAsync(x => x.Id == batchId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Batch Tagihan AR tidak ditemukan.");
+
+        EnsureCurrent(batch.RowVersion, expectedRowVersion);
+
+        var effective = ResolveEffectiveClaimStatus(batch);
+        if (effective is null)
+            throw new ReceivableInvoiceBatchValidationException(
+                "Tagihan ini belum diterbitkan ke penjamin, jadi belum ada klaim yang bisa ditindaklanjuti. Terbitkan tagihannya lebih dulu.");
+        if (effective != FinReceivableInvoiceBatchClaimStatuses.Submitted)
+            throw new ReceivableInvoiceBatchValidationException("Langkah ini tidak bisa dilakukan dari status klaim saat ini.");
+
+        batch.ClaimStatus = FinReceivableInvoiceBatchClaimStatuses.PayerVerified;
+        if (payerClaimReference is not null) batch.PayerClaimReference = payerClaimReference;
+        if (claimNote is not null) batch.ClaimNote = claimNote;
+        batch.PayerVerifiedAt = DateTimeOffset.UtcNow;
+        batch.UpdateDateTime = DateTime.UtcNow;
+        batch.UpdateBy = actorUserId;
+        batch.RowVersion = Guid.NewGuid();
+
+        try { await _dbContext.SaveChangesAsync(cancellationToken); }
+        catch (DbUpdateConcurrencyException ex) { throw Stale(ex); }
+
+        await AuditAsync("ClaimVerify", batch.Id, actorUserId);
+        return batch;
+    }
+
+    public async Task<FinReceivableInvoiceBatch> ApproveClaimAsync(
+        Guid batchId, Guid expectedRowVersion, decimal approvedAmount, string? payerClaimReference,
+        string? claimNote, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var batch = await _dbContext.FinReceivableInvoiceBatches
+            .SingleOrDefaultAsync(x => x.Id == batchId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Batch Tagihan AR tidak ditemukan.");
+
+        EnsureCurrent(batch.RowVersion, expectedRowVersion);
+
+        var effective = ResolveEffectiveClaimStatus(batch);
+        if (effective is null)
+            throw new ReceivableInvoiceBatchValidationException(
+                "Tagihan ini belum diterbitkan ke penjamin, jadi belum ada klaim yang bisa ditindaklanjuti. Terbitkan tagihannya lebih dulu.");
+        // FIN-DES-070: Approve sah dari SUBMITTED (lompat verifikasi), PAYER_VERIFIED, maupun APPROVED (mencatat ulang).
+        var validFrom = effective is FinReceivableInvoiceBatchClaimStatuses.Submitted
+            or FinReceivableInvoiceBatchClaimStatuses.PayerVerified or FinReceivableInvoiceBatchClaimStatuses.Approved;
+        if (!validFrom)
+            throw new ReceivableInvoiceBatchValidationException("Langkah ini tidak bisa dilakukan dari status klaim saat ini.");
+
+        // FIN-VAL-150: nominal disetujui tidak boleh melebihi total tagihan.
+        if (approvedAmount > batch.TotalAmount)
+            throw new ReceivableInvoiceBatchValidationException("Nominal yang disetujui penjamin tidak boleh melebihi total tagihan.");
+        // FIN-VAL-151: nominal lebih kecil dari tagihan wajib disertai alasan.
+        if (approvedAmount < batch.TotalAmount && string.IsNullOrWhiteSpace(claimNote))
+            throw new ReceivableInvoiceBatchBadRequestException(
+                "Karena penjamin menyetujui lebih kecil dari tagihan, tuliskan alasannya supaya selisihnya bisa ditindaklanjuti.");
+
+        batch.ClaimStatus = FinReceivableInvoiceBatchClaimStatuses.Approved;
+        batch.ApprovedAmount = approvedAmount;
+        if (payerClaimReference is not null) batch.PayerClaimReference = payerClaimReference;
+        if (claimNote is not null) batch.ClaimNote = claimNote;
+        batch.ClaimApprovedAt = DateTimeOffset.UtcNow;
+        batch.UpdateDateTime = DateTime.UtcNow;
+        batch.UpdateBy = actorUserId;
+        batch.RowVersion = Guid.NewGuid();
+
+        try { await _dbContext.SaveChangesAsync(cancellationToken); }
+        catch (DbUpdateConcurrencyException ex) { throw Stale(ex); }
+
+        await AuditAsync("ClaimApprove", batch.Id, actorUserId);
+        return batch;
+    }
+
+    public async Task<FinReceivableInvoiceBatch> CloseClaimAsync(
+        Guid batchId, Guid expectedRowVersion, string? claimNote, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var batch = await _dbContext.FinReceivableInvoiceBatches
+            .SingleOrDefaultAsync(x => x.Id == batchId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Batch Tagihan AR tidak ditemukan.");
+
+        EnsureCurrent(batch.RowVersion, expectedRowVersion);
+
+        var effective = ResolveEffectiveClaimStatus(batch);
+        if (effective is null)
+            throw new ReceivableInvoiceBatchValidationException(
+                "Tagihan ini belum diterbitkan ke penjamin, jadi belum ada klaim yang bisa ditindaklanjuti. Terbitkan tagihannya lebih dulu.");
+        if (effective != FinReceivableInvoiceBatchClaimStatuses.Approved)
+            throw new ReceivableInvoiceBatchValidationException("Langkah ini tidak bisa dilakukan dari status klaim saat ini.");
+
+        batch.ClaimStatus = FinReceivableInvoiceBatchClaimStatuses.Closed;
+        if (claimNote is not null) batch.ClaimNote = claimNote;
+        batch.ClaimClosedAt = DateTimeOffset.UtcNow;
+        batch.UpdateDateTime = DateTime.UtcNow;
+        batch.UpdateBy = actorUserId;
+        batch.RowVersion = Guid.NewGuid();
+
+        try { await _dbContext.SaveChangesAsync(cancellationToken); }
+        catch (DbUpdateConcurrencyException ex) { throw Stale(ex); }
+
+        await AuditAsync("ClaimClose", batch.Id, actorUserId);
+        return batch;
+    }
+
+    // ------------------------------------------------------------------------------------
     // Dokumen tagihan gabungan — GET /{id}/document. Memanggil
     // BillingCompanyGuarantorInvoiceDocumentService (FIN-CAP-030) sekali per FinReceivable
     // anggota (lewat InvoiceId-nya), tidak menyalin logikanya.
@@ -333,7 +507,16 @@ public sealed class FinanceReceivableInvoiceBatchService
 
         foreach (var item in batch.Items.Where(x => !x.IsDelete && x.Receivable is not null))
         {
-            var invoiceDocument = await _documentService.GetDocumentAsync(item.Receivable!.InvoiceId, actorUserId, cancellationToken);
+            // BE-FIN-079: item migrasi tagihan lama tidak punya InvoiceId (asalnya bukan Billing) —
+            // tidak ada dokumen tagihan Billing untuk diambil, sehingga dilewati dengan peringatan
+            // alih-alih memanggil _documentService dengan Guid kosong.
+            if (item.Receivable!.InvoiceId is not { } invoiceId)
+            {
+                response.Warnings.Add($"Anggota {item.Receivable.ReceivableNumber} adalah item migrasi tagihan lama — nol dokumen Billing untuk diambil.");
+                continue;
+            }
+
+            var invoiceDocument = await _documentService.GetDocumentAsync(invoiceId, actorUserId, cancellationToken);
             response.Invoices.Add(invoiceDocument);
             response.Warnings.AddRange(invoiceDocument.Warnings);
         }
@@ -389,7 +572,16 @@ public sealed class FinanceReceivableInvoiceBatchService
         TotalAmount = batch.TotalAmount,
         Status = batch.Status,
         IssuedAt = batch.IssuedAt,
-        RowVersion = batch.RowVersion
+        RowVersion = batch.RowVersion,
+        ClaimStatus = batch.ClaimStatus,
+        ApprovedAmount = batch.ApprovedAmount,
+        // FIN-DES-071: dihitung di sini, TIDAK disimpan. Null selama belum APPROVED.
+        ClaimVarianceAmount = batch.ApprovedAmount.HasValue ? batch.TotalAmount - batch.ApprovedAmount.Value : null,
+        PayerClaimReference = batch.PayerClaimReference,
+        ClaimNote = batch.ClaimNote,
+        PayerVerifiedAt = batch.PayerVerifiedAt,
+        ClaimApprovedAt = batch.ClaimApprovedAt,
+        ClaimClosedAt = batch.ClaimClosedAt
     };
 
     private static string GenerateBatchNumber()

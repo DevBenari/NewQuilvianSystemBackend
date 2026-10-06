@@ -119,6 +119,37 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Labor
 
             // Dipakai membaca "hasil mana yang sudah selesai ditulis" tanpa memindai tabel.
             builder.HasIndex(x => x.FinalizedAt);
+
+            // =============================================================
+            // Validasi dan rilis — S4 (BE-LAB-70, kamus data 17.3 dan 17.6)
+            // =============================================================
+
+            // Seluruh empat belas kolom nullable TANPA nilai bawaan: di PostgreSQL penambahannya
+            // hanya mengubah metadata, dan nol baris lama ditulis ulang.
+            builder.Property(x => x.ValidatedByPositionNameSnapshot).HasMaxLength(200);
+            builder.Property(x => x.ValidationExceptionReasonNameSnapshot).HasMaxLength(200);
+            builder.Property(x => x.ReleasedByPositionNameSnapshot).HasMaxLength(200);
+            builder.Property(x => x.ReleaseExceptionReasonNameSnapshot).HasMaxLength(200);
+
+            // Restrict: alasan yang sudah dipakai hasil tidak boleh hilang dari bawahnya.
+            // Menonaktifkan alasan tidak menyentuh hasil yang sudah memakainya.
+            builder.HasOne(x => x.ValidationExceptionReason)
+                .WithMany()
+                .HasForeignKey(x => x.ValidationExceptionReasonId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.ReleaseExceptionReason)
+                .WithMany()
+                .HasForeignKey(x => x.ReleaseExceptionReasonId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Kolom pengguna, jabatan, dan kewenangan sengaja TANPA foreign key — mengikuti
+            // ResultEnteredByUserId; kewenangan milik Human Resource (lintas modul).
+
+            // Antrean validasi: hasil Final yang belum divalidasi, dan yang sudah divalidasi
+            // tetapi belum dirilis.
+            builder.HasIndex(x => new { x.FinalizedAt, x.ValidatedAt });
+            builder.HasIndex(x => x.ReleasedAt);
         }
     }
 }

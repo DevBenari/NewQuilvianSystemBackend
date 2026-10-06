@@ -2,11 +2,12 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.9.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 11 baru (penutupan kunjungan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol aturan lama berubah. Sebelumnya `0.8.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. Bagian 10 baru (enam sub-bagian); **bukan aditif murni**: sumber aturan §1.2 aturan 5 (dan §1 aturan 4) berganti dari `CariEpisodeAktifAsync` ke rumus §10.1 aturan 2 (klausa A+B). Kalimat aturan lama **tidak** diubah; teks penggantian dicatat di §10.1. Sebelumnya `0.7.0` — pra-cek episode IGD berjalan, 21 September 2026. **Aditif**: bagian 1.2 baru (`BE-IGD-050`, `IGD-DEC-138`); nol aturan lama diubah teksnya — aturan 4 bagian 1 dan penolakan `409`-nya tetap sebagai jaring pengaman. Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026. **Aditif**: bagian 9 baru; nol aturan lama diubah teksnya. Empat penolakan baru pada `POST .../emergency-observation-details` (`IGD-DEC-122`, `IGD-DEC-126`). *Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: pesan bagian 1 aturan 2 (`IGD-DEC-120`), pesan bagian 6 aturan 4 (`IGD-DEC-118`), dan bagian 8 baru (`IGD-DEC-119`, `IGD-DEC-121`)* |
-| Status | `draft`, **kecuali bagian 2 aturan 4 dan 5, dan bagian 10 (encounter-first), yang `approved`**. Bagian 11 **`approved`** (`IGD-DEC-170`, 23 September 2026) |
+| `contract_version` | `0.11.0` — observasi Dieskalasi dan kunjungan yang sudah berakhir, 3 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-186`): bagian 11.2 baru (aturan 16–21, `IGD-DEC-183`, `184`; asumsi `IGD-ASM-003`) dan §6 aturan 2 diubah. **Bukan aditif murni**: penjaga penutupan kini juga menahan kunjungan yang punya observasi `Escalated`, sehingga `PATCH /emergency-visits/{id}/complete` yang dulu berhasil kini dapat dijawab `409`, dan penutupan susulan tertunda; pada kunjungan `Completed`/`Cancelled`, penolakan `409` aksi observasi berganti pesan. Nol ruas request/response baru. *Sebelumnya* `0.10.0` — observasi yang diakhiri sesudah disposisi dilaksanakan, 30 September 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-175`): bagian 11.1 baru (aturan 12–15, `IGD-DEC-171`, `172`). **Bukan aditif murni** pada `PATCH .../emergency-observations/{id}/observation-status`: pada kunjungan `Disposed`, target `Completed` yang dulu ditolak `409` kini **diterima** (penolakan dilonggarkan), dan penolakan `409` target `Escalated` **berganti pesan** — dari pesan teknis penjaga transisi menjadi kalimat mengikat aturan 14. Nol aturan lama berubah teksnya; §8 tetap berlaku utuh. Sebelumnya `0.9.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 11 baru (penutupan kunjungan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol aturan lama berubah. Sebelumnya `0.8.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. Bagian 10 baru (enam sub-bagian); **bukan aditif murni**: sumber aturan §1.2 aturan 5 (dan §1 aturan 4) berganti dari `CariEpisodeAktifAsync` ke rumus §10.1 aturan 2 (klausa A+B). Kalimat aturan lama **tidak** diubah; teks penggantian dicatat di §10.1. Sebelumnya `0.7.0` — pra-cek episode IGD berjalan, 21 September 2026. **Aditif**: bagian 1.2 baru (`BE-IGD-050`, `IGD-DEC-138`); nol aturan lama diubah teksnya — aturan 4 bagian 1 dan penolakan `409`-nya tetap sebagai jaring pengaman. Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026. **Aditif**: bagian 9 baru; nol aturan lama diubah teksnya. Empat penolakan baru pada `POST .../emergency-observation-details` (`IGD-DEC-122`, `IGD-DEC-126`). *Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: pesan bagian 1 aturan 2 (`IGD-DEC-120`), pesan bagian 6 aturan 4 (`IGD-DEC-118`), dan bagian 8 baru (`IGD-DEC-119`, `IGD-DEC-121`)* |
+| Status | `draft`, **kecuali bagian 2 aturan 4 dan 5, dan bagian 10 (encounter-first), yang `approved`**. Bagian 11 aturan 1–11 **`approved`** (`IGD-DEC-170`, 23 September 2026). Bagian 11.1 (aturan 12–15) **`approved`** (`IGD-DEC-175`, 30 September 2026). Bagian 11.2 (aturan 16–21) dan perubahan §6 aturan 2 **`approved`** (`IGD-DEC-186`, 3 Oktober 2026) |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
-| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 2 aturan 4 dan 5 lewat `IGD-DEC-093`. **Rizki Gunawan / 2026-09-22** — bagian 10 (encounter-first) lewat `IGD-DEC-157` — termasuk koreksi pesan §10.4 aturan 4 (B2). Seluruh aturan lain tetap `draft` |
-| Versi sebelumnya | `0.6.0`, sebelumnya `0.5.0`, `0.4.0`, `0.3.0`, dan `0.2.0` |
+| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 2 aturan 4 dan 5 lewat `IGD-DEC-093`. **Rizki Gunawan / 2026-09-22** — bagian 10 (encounter-first) lewat `IGD-DEC-157` — termasuk koreksi pesan §10.4 aturan 4 (B2). **Rizki Gunawan / 2026-09-23** — bagian 11 aturan 1–11 lewat `IGD-DEC-170`. **Rizki Gunawan / 2026-09-30** — bagian 11.1 aturan 12–15 lewat `IGD-DEC-175` (sementara, `IGD-DEC-174`). **Rizki Gunawan / 2026-10-03** — §6 aturan 2 dan bagian 11.2 aturan 16–21 lewat `IGD-DEC-186` (sementara, pola `IGD-DEC-174`). Seluruh aturan lain tetap `draft` |
+| `input_revision` | `0.11.0`: `00-interview-decisions.md` **185 keputusan**, terakhir `IGD-DEC-185` (amendment pass 3 Oktober 2026); fakta `IGD-FACT-032`…`036` diverifikasi pada backend `rizkiG` `2a63a3bb` (source IGD identik dengan `5af6ef3b`). `0.10.0`: `00-interview-decisions.md` **174 keputusan**, terakhir `IGD-DEC-174` (amendment pass 30 September 2026); fakta `IGD-FACT-029`…`031` diverifikasi ulang pada backend `rizkiG` `327ccad3` + working tree `BE-IGD-060` |
+| Versi sebelumnya | `0.10.0`, `0.9.0`, `0.8.0`, `0.7.0`, `0.6.0`, sebelumnya `0.5.0`, `0.4.0`, `0.3.0`, dan `0.2.0` |
 
 Aturan penulisan pesan: pesan penolakan **wajib** menyebut apa yang salah dan apa yang harus
 dilakukan petugas. Pesan yang hanya menyebut nama kolom teknis dianggap belum selesai.
@@ -190,7 +191,7 @@ Sampai saat itu, aturan 5 melarang sistem berpura-pura tahu.
 | No | Aturan | Kode | Pesan |
 | ---: | --- | :-: | --- |
 | 1 | Status wajib `Disposed` | `409` | "Kunjungan hanya dapat diselesaikan setelah keputusan tindak lanjut ditetapkan." |
-| 2 | Tidak boleh ada observasi `Active` | `409` | "Masih ada observasi yang belum diselesaikan." |
+| 2 | Tidak boleh ada observasi `Active` **atau `Escalated`** — *diubah pada `0.11.0`* (§11.2 aturan 16, `IGD-DEC-183`); sebelumnya hanya `Active` | `409` | "Masih ada observasi yang belum diselesaikan." |
 | 3 | Tidak boleh ada kepergian yang fisiknya belum `Arrived` atau `Cancelled` | `409` | "Masih ada proses kepergian pasien yang belum selesai." |
 | 4 | Tidak boleh ada pesanan tanpa sikap | `409` | "Masih ada pesanan yang belum ditentukan sikapnya: {daftar pesanan}." |
 | 5 | Status tagihan **tidak** diperiksa | — | Sesuai `IGD-DEC-021` |
@@ -342,13 +343,15 @@ kunjungan dan pesan aturan 3 bagian "belum lahir" bila berupa encounter.
 | 11 | Pasien tanpa identitas wajib punya nama sementara | `400` | Pesan §1 aturan 3 | `IGD-DEC-151` |
 | 12 | Kunjungan yang sudah ada **tidak pernah** mundur statusnya; `ImmediateCare` hanya meneruskan `Arrived`/`WaitingForTriage` → `InTreatment` lewat penjaga transisi | — | — | `IGD-DEC-143` |
 | 13 | Dua panggilan serentak → tepat satu kunjungan (unique index + tangkap bentrokan) | — | — | `IGD-DEC-143` |
+| 14 | Lima ruas kunjungan opsional — `arrivalLocation`, `foundLocation`, `traumaLocation` (maks. 250), `notes` (maks. 1000), `traumaDateTime` — di-*trim*, kosong disimpan `null`, berlaku pada kedua `mode`, dan diabaikan bila kunjungan sudah ada. Melebihi panjang → `400` validasi model — **ditambahkan 1 Oktober 2026** | `400` | Pesan validasi model bawaan | `IGD-DEC-179` |
+| 15 | Waktu trauma tidak boleh di masa depan (waktu server) — aturan penyerta usulan agent | `400` | *"Waktu trauma tidak boleh melewati waktu sekarang."* | `IGD-DEC-179` |
 
 ### 10.3 Pasien pergi sebelum ditriage — `POST /no-show`
 
 | No | Aturan | Kode | Pesan | Keputusan |
 | ---: | --- | :-: | --- | --- |
 | 1 | Alasan wajib | `400` | *"Alasan pasien dinyatakan pergi sebelum ditriage wajib diisi."* | `IGD-DEC-142` |
-| 2 | Alasan maksimal 500 karakter | `400` | *"Alasan maksimal 500 karakter."* | `IGD-DEC-142` |
+| 2 | Alasan maksimal 250 karakter | `400` | *"Alasan maksimal 250 karakter."* — **dikoreksi 1 Oktober 2026 (`IGD-DEC-178`)**: semula 500, padahal kolom `RegPatientEncounter.NoShowReason` hanya 250 | `IGD-DEC-142`, `IGD-DEC-178` |
 | 3 | Encounter harus bertipe Emergency | `400` | Pesan §10.2 aturan 4 | `IGD-DEC-142` |
 | 4 | Encounter yang sudah punya kunjungan ditolak | `409` | *"Pasien ini sudah memiliki kunjungan IGD {nomor kunjungan}. Tutup lewat kunjungan tersebut."* | `IGD-DEC-142` |
 | 5 | Encounter yang sudah berakhir ditolak | `409` | *"Encounter ini sudah berakhir ({status})."* | `IGD-DEC-142` |
@@ -388,12 +391,14 @@ kunjungan dan pesan aturan 3 bagian "belum lahir" bila berupa encounter.
 
 Aturan untuk `IGD-DEC-163`…`169` (amendment pass 23 September 2026). Kalimat pesan di bawah **mengikat**.
 
-**Status bagian ini: `draft`** — menunggu approval pemilik.
+**Status bagian ini: `approved`** untuk aturan 1–11 — `IGD-DEC-170`, Rizki Gunawan, 23 September 2026; terkunci
+hash (manifest bagian 0j). **Bagian 11.1 (aturan 12–15): `approved`** — `IGD-DEC-175`, Rizki Gunawan, 30 September
+2026 (sementara, `IGD-DEC-174`). **Bagian 11.2 (aturan 16–21): `approved`** — `IGD-DEC-186`, Rizki Gunawan, 3 Oktober 2026 (sementara, pola `IGD-DEC-174`).
 
 | No | Aturan | Kode | Pesan | Keputusan |
 | ---: | --- | :-: | --- | --- |
 | 1 | Disposisi yang berpindah ke `Executed` **memicu** percobaan penutupan kunjungan. Berlaku untuk **semua** jenis disposisi | — | — | `IGD-DEC-163` |
-| 2 | Percobaan penutupan memakai penjaga yang sudah ada tanpa perubahan: status kunjungan `Disposed`, nol observasi aktif, nol kepergian belum tuntas, nol pesanan yang belum ditentukan sikapnya | — | — | `IGD-DEC-163`, §6 aturan 1–4 |
+| 2 | Percobaan penutupan memakai penjaga yang sudah ada tanpa perubahan: status kunjungan `Disposed`, nol observasi aktif, nol kepergian belum tuntas, nol pesanan yang belum ditentukan sikapnya. *Sejak `0.11.0`, "observasi aktif" dibaca sebagai observasi `Active` **atau `Escalated`** — aturan 16* | — | — | `IGD-DEC-163`, §6 aturan 1–4 |
 | 3 | Bila penjaga menolak, perpindahan disposisi ke `Executed` **tetap berhasil**. Kunjungan tidak ditutup dan ditandai **menunggu penutupan** beserta alasan penahannya | — | — (bukan penolakan) | `IGD-DEC-164` |
 | 4 | Kunjungan yang menunggu penutupan ditutup **otomatis** pada aksi pertama yang membereskan penahan terakhir: observasi ditutup, serah terima diterima/ditolak/dibatalkan, atau sikap pesanan ditetapkan | — | — | `IGD-DEC-165` |
 | 5 | Pelaku penutupan susulan adalah **petugas yang membereskan penahan terakhir**; waktunya waktu server saat aksi itu disimpan. Nol pelaku dikarang, nol proses latar | — | — | `IGD-DEC-165`, `IGD-DEC-136` |
@@ -413,3 +418,86 @@ satu observasi aktif, sehingga kunjungan **belum** tertutup dan muncul pada sari
 alasan *"Masih ada observasi yang belum diselesaikan."* Pukul 16.10 perawat menutup observasi itu — pada
 penyimpanan yang sama, kunjungan tertutup, encounter ikut tertutup, `ClosedByDispositionId` terisi disposisi
 pukul 14.00, dan pelakunya tercatat perawat pukul 16.10.
+
+### 11.1 Observasi pada kunjungan yang tindak lanjutnya sudah dilaksanakan — baru pada `0.10.0`
+
+Berlaku untuk `PATCH api/v1/health-services/emergency-installation-management/emergency-observations/{id}/observation-status`
+bila kunjungan IGD observasi itu berstatus `Disposed`. Dasar: `IGD-DEC-171`, `IGD-DEC-172` (amendment pass
+30 September 2026), disetujui sementara lewat `IGD-DEC-174`. Pemetaan statusnya di state matrix §9.5. Kalimat pesan
+aturan 14 **mengikat**.
+
+| No | Aturan | Kode | Pesan | Keputusan |
+| ---: | --- | :-: | --- | --- |
+| 12 | Pada kunjungan `Disposed`, observasi yang berpindah ke `Completed` — dari `Active` maupun `Escalated` — **diterima**. Status kunjungan **tetap** `Disposed` dan tidak dicoba dipindahkan ke `AwaitingDisposition`. Kesimpulan disimpan seperti biasa: §8 aturan 1, 3, 4 tetap berlaku | — | Tidak menolak | `IGD-DEC-171`, `IGD-DEC-115`, `IGD-DEC-121` |
+| 13 | Sesudah observasi aturan 12 disimpan, penutupan susulan dicoba **pada penyimpanan yang sama** (aturan 4–7). Bila kunjungan tidak punya disposisi `Executed` atau masih ada penahan lain, kunjungan tetap `Disposed`, observasi tetap tersimpan `Completed`, dan permintaan tetap berhasil | — | — (bukan penolakan) | `IGD-DEC-171`, `IGD-DEC-165` |
+| 14 | Pada kunjungan `Disposed`, observasi yang berpindah ke `Escalated` **ditolak**. Tidak ada yang berubah: status observasi, catatan eskalasi, dan status kunjungan tetap seperti semula | `409` | *"Tindak lanjut pasien sudah dilaksanakan; eskalasi tidak dapat dicatat pada kunjungan ini."* | `IGD-DEC-172` |
+| 15 | Pesan aturan 14 hanya menggantikan pesan penjaga transisi untuk **eskalasi pada kunjungan `Disposed`**. Target lain yang ditolak penjaga — misalnya `Active` pada kunjungan `Disposed`, atau target apa pun pada kunjungan `Completed` — tetap memakai pesan penjaga yang sudah ada. *Sejak `0.11.0`, bagian "target apa pun pada kunjungan `Completed`" digantikan aturan 18* | — | — | `IGD-DEC-172` |
+
+**Urutan pemeriksaan yang mengikat** — melanjutkan urutan yang sudah berlaku sejak `BE-IGD-040` (penolakan
+penjaga kunjungan didahulukan atas batas panjang catatan), dan **tidak boleh** ada data yang berubah sebelum
+seluruhnya lulus:
+
+1. observasi ada → `404` (sudah ada);
+2. perpindahan status observasi sah menurut rangkaian status observasi → `400` (sudah ada);
+3. eskalasi pada kunjungan `Disposed` (aturan 14) → `409`;
+4. catatan paling banyak 1000 karakter (§8 aturan 1–2) → `400`;
+5. baru observasi disimpan, lalu penutupan susulan dicoba (aturan 13).
+
+*Contoh — urutan.* Perawat menekan eskalasi dengan catatan 1.200 karakter pada kunjungan yang tindak lanjutnya
+sudah dilaksanakan. Yang dijawab adalah `409` aturan 14, bukan `400` batas catatan: walaupun catatannya diringkas,
+eskalasinya tetap ditolak.
+
+*Contoh — jalur berhasil.* Pasien menunggu penutupan dengan satu observasi aktif sebagai penahan terakhir. Perawat
+menyelesaikan observasi dengan kesimpulan *"tanda vital stabil"*. Respons `200`: observasi `Completed`, kesimpulan
+tersimpan, dan kunjungan tertutup pada penyimpanan yang sama atas nama perawat itu (aturan 4–6).
+
+**Yang tidak diatur di sini.** Cara mencatat pasien yang memburuk sesudah tindak lanjutnya dilaksanakan tetapi masih
+berada di IGD — `IGD-OQ-111`, milik Clinical Governance (`OPEN`) bersama Product/Domain Owner IGD. Aturan 14 hanya
+menutup pintu yang berbahaya; kebijakan penggantinya belum ada dan tidak menahan bagian ini.
+
+### 11.2 Observasi Dieskalasi dan kunjungan yang sudah berakhir — baru pada `0.11.0`
+
+Dasar: `IGD-DEC-183`, `IGD-DEC-184` (amendment pass 3 Oktober 2026), asumsi `IGD-ASM-003`; dikerjakan sebagai
+pengerjaan ulang `BE-IGD-061` (`IGD-DEC-185`). Pemetaan statusnya di state matrix §9.6. Kalimat pesan aturan 18 dan
+21 **mengikat**.
+
+**Status bagian ini: `approved`** — `IGD-DEC-186`, Rizki Gunawan, 3 Oktober 2026 (sementara). Aturan 21 berasal dari **usulan agent** di luar bunyi
+`IGD-DEC-184` dan ikut disetujui.
+
+**Masalah yang ditutup.** Temuan uji `BE-IGD-061` S6 (2 Oktober 2026). Penjaga penutupan hanya menghitung observasi
+`Active`, padahal periode `Escalated` belum ditutup menurut `IGD-DEC-126` — periode itu masih menerima pemantauan
+(§9 aturan 3). Akibatnya kunjungan dapat tertutup sementara observasinya masih Dieskalasi, dan sesudah itu observasi
+tersebut tidak dapat diselesaikan lagi: penjaga transisi menjawab `409` *"Status kunjungan tidak dapat berubah dari
+Completed ke AwaitingDisposition."*
+
+| No | Aturan | Kode | Pesan | Keputusan |
+| ---: | --- | :-: | --- | --- |
+| 16 | Penjaga penutupan menghitung observasi `Active` **dan** `Escalated` sebagai penahan. Menggantikan bunyi *"nol observasi aktif"* pada aturan 2 dan §6 aturan 2. Berlaku pada ketiga jalur yang memakai penjaga itu: penutupan susulan (aturan 1–4), penyelesaian manual `PATCH /emergency-visits/{id}/complete` (§6), dan alasan penahan pada saringan menunggu penutupan (aturan 10) | `409` pada penyelesaian manual; bukan penolakan pada jalur susulan (aturan 3) | *"Masih ada observasi yang belum diselesaikan."* — kalimat yang sama untuk kedua status | `IGD-DEC-183`, `IGD-ASM-003` |
+| 17 | Observasi `Escalated` pada kunjungan `Disposed` diakhiri dengan *selesaikan* — kesimpulan disimpan dan status kunjungan tidak dipindahkan (aturan 12) — atau dengan *batalkan*. Sesudahnya penutupan susulan dicoba pada penyimpanan yang sama (aturan 13) | — | Tidak menolak | `IGD-DEC-183`, `IGD-DEC-171` |
+| 18 | Pada kunjungan `Completed` atau `Cancelled`, observasi yang berpindah ke `Active`, `Completed`, atau `Escalated` **ditolak**. Tidak ada yang berubah: status observasi, catatannya, dan status kunjungan tetap seperti semula. Menggantikan pesan penjaga transisi yang sebelumnya menjawab kasus ini | `409` | *"Kunjungan IGD ini sudah berakhir; observasinya tidak dapat diselesaikan, dieskalasi, atau diaktifkan kembali."* | `IGD-DEC-184` |
+| 19 | Aturan 18 **tidak** berlaku untuk target `Cancelled`. Pembatalan observasi pada kunjungan yang sudah berakhir tetap lolos seperti sebelumnya, tidak memindahkan status kunjungan, dan tidak memicu penutupan apa pun | — | Tidak menolak | `IGD-DEC-184`; state §9.5 *Yang tidak berubah* |
+| 20 | Aturan 16 **tidak** berlaku surut. Observasi `Escalated` yang sudah tertinggal pada kunjungan berakhir tidak diubah massal, dan kunjungannya tidak dibuka kembali. Kunjungan yang masih `Disposed` menunggu penutupan karena penahan lain, dan kebetulan punya observasi `Escalated`, ikut tertahan oleh observasi itu sejak aturan ini aktif | — | — | `IGD-DEC-184`, `IGD-DEC-166`, pola `IGD-DEC-167` |
+| 21 | Pada kunjungan `Completed` atau `Cancelled`, **pemantauan baru** (`POST /emergency-observation-details`) ditolak pada periode mana pun — termasuk periode `Escalated` yang menurut §9 aturan 3 menerima pemantauan. Tidak ada data yang tersimpan | `409` | *"Kunjungan IGD ini sudah berakhir; pemantauan observasi tidak dapat ditambahkan lagi."* | `IGD-DEC-186` (usulan agent, perluasan `IGD-DEC-184`); entri susulan tetap milik `IGD-OQ-090` |
+
+**Urutan pemeriksaan yang mengikat** untuk `PATCH …/emergency-observations/{id}/observation-status` — menggantikan
+urutan §11.1. Tidak boleh ada data yang berubah sebelum seluruhnya lulus:
+
+1. observasi ada → `404` (sudah ada);
+2. perpindahan status observasi sah menurut rangkaian status observasi → `400` (sudah ada);
+3. kunjungan sudah berakhir dan target bukan `Cancelled` (aturan 18) → `409`;
+4. eskalasi pada kunjungan `Disposed` (aturan 14) → `409`;
+5. catatan paling banyak 1000 karakter (§8 aturan 1–2) → `400`;
+6. baru observasi disimpan, lalu penutupan susulan dicoba bila kunjungan `Disposed` (aturan 13, 17).
+
+Langkah 3 dan 4 tidak pernah bertabrakan karena status kunjungannya berbeda. Untuk pemantauan baru (aturan 21),
+langkahnya disisipkan pada §9.1 sesudah langkah 2: *2a. kunjungan belum berakhir → `409`*.
+
+*Contoh — jalur S6 sesudah aturan ini.* Pukul 10.00 observasi dieskalasi karena saturasi turun, dan kunjungan kembali
+ditangani. Pukul 13.00 disposisi pulang dilaksanakan. Kunjungan **tidak** tertutup; ia tampil pada saringan menunggu
+penutupan dengan alasan *"Masih ada observasi yang belum diselesaikan."* Pukul 13.10 perawat menyelesaikan observasi
+pukul 10.00 dengan kesimpulan *"membaik sesudah penanganan, layak pulang"*. Respons `200`: observasi `Completed`,
+kesimpulan tersimpan, dan kunjungan tertutup pada penyimpanan yang sama atas nama perawat itu.
+
+*Contoh — urutan.* Pada kunjungan yang sudah selesai sejak kemarin, perawat menyelesaikan observasi Dieskalasi lama
+dengan catatan 1.200 karakter. Yang dijawab adalah `409` aturan 18, bukan `400` batas catatan: walaupun catatannya
+diringkas, kunjungan itu sudah berakhir.

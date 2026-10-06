@@ -15,6 +15,12 @@ public sealed class BilInvoice : IdentityModel
     public int CurrentCalculationVersion { get; set; }
     public DateTimeOffset? InvoiceDate { get; set; }
     public DateTimeOffset? ClosedAt { get; set; }
+
+    // Salinan tanggal kunjungan (RegPatientEncounter.EncounterDate) pada saat invoice dibuat. Dipakai
+    // filter tanggal dan indeks daftar Running Invoice supaya pencarian tidak perlu menggabungkan tabel
+    // kunjungan lebih dulu. EncounterDate tidak diubah setelah kunjungan dibuat, sehingga salinan ini
+    // tetap sama dengan sumbernya; tampilan Tanggal Kunjungan di respons tetap dibaca dari encounter.
+    public DateTime VisitDate { get; set; }
     public Guid RowVersion { get; set; } = Guid.NewGuid();
 
     /// <summary>

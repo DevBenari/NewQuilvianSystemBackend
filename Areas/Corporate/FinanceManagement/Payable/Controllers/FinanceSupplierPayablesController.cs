@@ -45,6 +45,22 @@ public sealed class FinanceSupplierPayablesController : ControllerBase
         catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
     }
 
+    [HttpGet("{id:guid}/movements")]
+    [AccessAction("Read", "Read Supplier Payable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceSupplierPayable", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<SupplierPayableMovementResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMovements(Guid id, [FromQuery] SupplierPayableMovementQuery query, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetMovementsPagedAsync(id, query, cancellationToken);
+            return Ok(ApiResponse<PagedResult<SupplierPayableMovementResponse>>.Ok(result, "Riwayat mutasi utang supplier berhasil diambil."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+
     [HttpPost]
     [AccessAction("Create", "Create Supplier Payable", AccessType = AccessTypes.Create, SortOrder = 2)]
     [AccessPermission("FinanceSupplierPayable", "Create")]

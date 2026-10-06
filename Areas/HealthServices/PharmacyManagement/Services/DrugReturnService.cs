@@ -171,6 +171,10 @@ public sealed class DrugReturnService
         await EnsureWorkforceAsync(request.ReturnedByWorkforceId, cancellationToken);
         await EnsureReceivingLocationAsync(request.StorageLocationId, cancellationToken);
 
+        await EnsureReturnableAgainstSourceAsync(request.SourceDrugUsageId, request.EncounterId,
+            request.Items.Select(x => (x.DrugId, x.DrugBatchId, x.Quantity)).ToList(),
+            returnIdToExclude: null, cancellationToken);
+
         var drugs = await ResolveItemsAsync(request.Items, cancellationToken);
         var actorUserId = GetCurrentUserId();
         var now = DateTime.UtcNow;
@@ -221,6 +225,13 @@ public sealed class DrugReturnService
 
         EnsureVersion(entity.Version, request.ExpectedVersion);
         await EnsureReceivingLocationAsync(request.StorageLocationId, cancellationToken);
+
+        // Perubahan mengganti seluruh barisnya, jadi ia harus lolos pembanding penyerahan yang
+        // sama seperti saat dibuat. Retur ini sendiri dikeluarkan dari hitungan kumulatif —
+        // kalau tidak, barisnya sendiri dihitung sebagai retur yang sudah terjadi.
+        await EnsureReturnableAgainstSourceAsync(request.SourceDrugUsageId, entity.EncounterId,
+            request.Items.Select(x => (x.DrugId, x.DrugBatchId, x.Quantity)).ToList(),
+            returnIdToExclude: entity.Id, cancellationToken);
 
         var drugs = await ResolveItemsAsync(request.Items, cancellationToken);
         var actorUserId = GetCurrentUserId();
@@ -318,6 +329,14 @@ public sealed class DrugReturnService
             await _dbContext.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(hashtext({0}));",
                 [$"PHM_RETURN_SOURCE_{entity.SourceDrugUsageId ?? entity.SourceOprMaterialUsageId ?? entity.Id:N}"], cancellationToken);
         await _billingHandoff.ValidateAcceptedSourceAsync(entity, request, cancellationToken);
+
+        // `BUG-PHA-BE-003`, syarat 6: stok hanya boleh bertambah setelah seluruh pembanding
+        // penyerahan lolos. Diperiksa ulang di sini, bukan hanya saat retur dibuat — penyerahan
+        // sumbernya bisa dibatalkan, atau retur lain atas batch yang sama bisa diperiksa lebih
+        // dulu, di antara pembuatan dan pemeriksaan ini.
+        await EnsureReturnableAgainstSourceAsync(entity.SourceDrugUsageId, entity.EncounterId,
+            activeItems.Select(x => (x.DrugId, x.DrugBatchId, x.Quantity)).ToList(),
+            returnIdToExclude: entity.Id, cancellationToken);
 
         var byId = request.Items.ToDictionary(x => x.DrugReturnItemId, x => x);
         var actorUserId = GetCurrentUserId();
@@ -561,6 +580,121 @@ public sealed class DrugReturnService
         if (!location.IsAllowReceiving)
             throw new DrugReturnUnprocessableException("PHM076",
                 $"Lokasi {location.StorageLocationName} tidak diizinkan menerima barang.");
+    }
+
+    /// <summary>
+    /// Menegakkan `BUG-PHA-BE-003`: retur hanya sah terhadap penyerahan yang benar-benar terjadi.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Sebelum ini retur mengacu pada batch obat tanpa pembanding apa pun, sehingga retur 1.000
+    /// tablet atas resep berisi 10 tetap diterima dan jumlah itu benar-benar masuk ke saldo.
+    /// Salah ketik satu angka nol sudah cukup untuk menambah stok dari barang yang tidak pernah
+    /// keluar.
+    /// </para>
+    /// <para>
+    /// Pembandingnya <b>satu penyerahan tertentu</b>, bukan total seluruh penyerahan pada
+    /// kunjungan. Memakai total kunjungan terlalu longgar: ia mencampur beberapa penyerahan
+    /// berbeda, sehingga kelebihan retur atas satu penyerahan dapat tersembunyi di balik
+    /// penyerahan lain yang belum diretur.
+    /// </para>
+    /// <para>
+    /// Retur obat yang penyerahannya memang tidak tercatat di sistem — misalnya sisa obat yang
+    /// dibawa pasien dari rawatan lama — <b>tidak dipaksakan</b> lewat jalur ini. Kebutuhannya
+    /// dicatat terpisah sebagai flow <c>Legacy/Untracked Return</c> yang menuntut alasan dan
+    /// otorisasi khusus; lihat `docs/module-blueprints/pharmacy/bug-pha-be-003-retur-tanpa-batas-serah.md`.
+    /// </para>
+    /// </remarks>
+    private async Task EnsureReturnableAgainstSourceAsync(Guid? sourceDrugUsageId,
+        Guid encounterId, List<(Guid DrugId, Guid DrugBatchId, decimal Quantity)> items,
+        Guid? returnIdToExclude, CancellationToken cancellationToken)
+    {
+        // Syarat 1.
+        if (sourceDrugUsageId is null || sourceDrugUsageId == Guid.Empty)
+            throw new DrugReturnUnprocessableException("PHM080",
+                "Penyerahan sumber wajib disebut. Retur obat yang penyerahannya tidak tercatat " +
+                "memakai jalur retur tak terlacak yang terpisah.");
+
+        var usage = await _dbContext.PhmDrugUsages.AsNoTracking()
+            .Where(x => x.Id == sourceDrugUsageId.Value && !x.IsDelete)
+            .Select(x => new { x.Id, x.EncounterId, x.Status })
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new DrugReturnUnprocessableException("PHM080",
+                "Penyerahan sumber tidak ditemukan.");
+
+        // Syarat 2. Penyerahan milik kunjungan lain bukan sekadar salah rujuk — ia memindahkan
+        // hak retur satu pasien ke pasien lain.
+        if (usage.EncounterId != encounterId)
+            throw new DrugReturnUnprocessableException("PHM081",
+                "Penyerahan sumber bukan milik kunjungan pada retur ini.");
+
+        // Obat yang belum pernah benar-benar diserahkan tidak dapat dikembalikan.
+        if (usage.Status is DrugUsageStatus.Draft or DrugUsageStatus.Cancelled)
+            throw new DrugReturnUnprocessableException("PHM081",
+                "Penyerahan sumber belum terjadi atau sudah dibatalkan.");
+
+        // Jumlah per batch yang benar-benar diserahkan dari penyerahan itu.
+        var diserahkan = await _dbContext.PhmDrugUsageAllocations.AsNoTracking()
+            .Where(a => !a.IsDelete && a.DrugUsageItem != null
+                && !a.DrugUsageItem.IsDelete
+                && a.DrugUsageItem.DrugUsageId == usage.Id)
+            .Select(a => new
+            {
+                a.DrugBatchId,
+                a.Quantity,
+                DrugId = a.DrugUsageItem!.DrugId
+            })
+            .ToListAsync(cancellationToken);
+
+        // Syarat 7. Retur sebelumnya atas penyerahan yang sama ikut dihitung, supaya jumlah yang
+        // sama tidak dapat dikembalikan dua kali lewat dua retur terpisah. Yang sudah ditolak
+        // maupun dibatalkan tidak ikut — barangnya tidak pernah diterima kembali.
+        var sudahDiretur = await _dbContext.PhmDrugReturnItems.AsNoTracking()
+            .Where(i => !i.IsDelete && i.DrugReturn != null
+                && !i.DrugReturn.IsDelete
+                && i.DrugReturn.SourceDrugUsageId == usage.Id
+                && i.DrugReturn.Status != DrugReturnStatus.Rejected
+                && i.DrugReturn.Status != DrugReturnStatus.Cancelled
+                && (returnIdToExclude == null || i.DrugReturnId != returnIdToExclude.Value))
+            .Select(i => new
+            {
+                i.DrugBatchId,
+                // Yang sudah diperiksa dihitung sebesar yang DITERIMA; yang masih berjalan
+                // dihitung sebesar yang diajukan, karena jumlah itu sudah dipesan dan belum
+                // boleh dipesan ulang retur lain.
+                Jumlah = i.DrugReturn!.Status == DrugReturnStatus.Verified
+                    ? i.AcceptedQuantity
+                    : i.Quantity
+            })
+            .ToListAsync(cancellationToken);
+
+        foreach (var (drugId, batchId, jumlah) in items)
+        {
+            // Syarat 3 dan 4.
+            var barisSumber = diserahkan
+                .Where(x => x.DrugBatchId == batchId && x.DrugId == drugId)
+                .ToList();
+
+            if (barisSumber.Count == 0)
+            {
+                var obatAda = diserahkan.Any(x => x.DrugId == drugId);
+                throw new DrugReturnUnprocessableException("PHM082", obatAda
+                    ? "Batch yang dikembalikan tidak termasuk yang diserahkan pada penyerahan itu."
+                    : "Obat yang dikembalikan tidak termasuk yang diserahkan pada penyerahan itu.");
+            }
+
+            // Syarat 5.
+            var batasSerah = barisSumber.Sum(x => x.Quantity);
+            var terpakai = sudahDiretur.Where(x => x.DrugBatchId == batchId).Sum(x => x.Jumlah);
+            var sisa = batasSerah - terpakai;
+
+            if (jumlah > sisa)
+            {
+                throw new DrugReturnUnprocessableException("PHM083",
+                    $"Jumlah retur melebihi sisa yang pernah diserahkan. Diserahkan {batasSerah}, " +
+                    $"sudah diretur {terpakai}, sisa {sisa}.");
+            }
+        }
     }
 
     private static void EnsureItemsValid(List<DrugReturnItemInput> items)

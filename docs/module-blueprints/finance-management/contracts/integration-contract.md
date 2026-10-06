@@ -682,3 +682,173 @@ menambah satu ketergantungan baru** (baris terakhir).
 | **Akun debit refund `REFERRED_OUTPATIENT_ADMIN`** | Billing + Accounting | Terbuka (`FIN-OQ-031`, sebelumnya `FIN-OQ-018`) | Refund kategori itu menghasilkan baris intake `ERROR` dan nol kejadian — terlihat, tetapi belum terjurnal |
 | **Kode potongan AR untuk `DeductionType = OTHER`** | Accounting | Terbuka (`FIN-OQ-033`) | Potongan berjenis `OTHER` ditolak sampai kodenya ada |
 | **Gap pembalikan tender top-up deposit** | **Billing** | Terbuka (`FIN-OQ-034`) — surat evidence ke owner Billing belum dikirim | Saldo deposit dapat kelebihan catat tanpa jejak; kode 37 tidak pernah punya baris untuk dikirim |
+
+---
+
+# Bagian 5.12 — Revisi 14: dimensi kejadian, penanda pembukaan shift, dan saldo negatif
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-INTEGRATION-1.7` — status **`draft`** |
+| Naik dari | `FIN-INTEGRATION-1.6` (`approved` 29 September 2026) |
+| Kontrak Accounting yang berlaku | `ACC-XMOD-0.6` |
+| Traceability | `FIN-DEC-111`..`116`, `120`..`122`, `130`, `132`, `137`; `FIN-DES-078`, `083`, `084` |
+| Dampak kompatibilitas | **Aditif pada payload**, satu kode baru, satu aturan nilai dicabut |
+
+## 5.12.1 Ruas dimensi baru pada payload
+
+Lima ruas ditambahkan ke `PayloadJson`. Kotak masuk Accounting menerimanya lewat
+`AdditionalFields` yang ber-`[JsonExtensionData]`, sehingga **tidak ada perubahan kode** yang
+dibutuhkan di sisi Accounting untuk berhenti menolaknya. Yang dibutuhkan adalah **persetujuan
+kontraknya** (`FIN-OQ-045`).
+
+| Ruas | Tipe | Terisi pada | Kegunaan bagi Accounting |
+|---|---|---|---|
+| `CashierShiftId` | `uuid?` | Kejadian penerimaan kasir dan pembaliknya | Meringkas menjadi satu jurnal per shift (`ACC-DEC-062`) |
+| `CashierShiftNumber` | `string?` | Sama | Rujukan yang terbaca manusia |
+| `PaymentMethodCode` | `string?` | Penerimaan kasir, penerimaan piutang, pembayaran utang supplier | Menentukan akun debit atau kredit: kas atau bank |
+| `PaymentMethodAccountId` | `uuid?` | Sama | Rekening sumber atau tujuan dana (`FIN-DEC-137`) |
+| `ReversalOfSourceTransactionId` | `string?` | Kejadian pembalik | Menelusuri pembalik ke kejadian aslinya |
+
+**Contoh payload penerimaan kasir sesudah revisi 14** (nilai contoh, bukan data nyata):
+
+```json
+{
+  "EventNumber": "FIN-EVT-20261002-0001",
+  "EventTypeCode": "PENERIMAAN-KASIR",
+  "SourceModule": "Finance",
+  "SourceTransactionId": "RCP-20261002-0007",
+  "SourceVersion": "1",
+  "EventOccurredAt": "2026-10-01T19:10:00+00:00",
+  "AccountingDate": "2026-10-02",
+  "Amount": 150000.00,
+  "CashierShiftId": "0f6f1a9c-0000-0000-0000-000000000012",
+  "CashierShiftNumber": "SHIFT-20261002-12",
+  "PaymentMethodCode": "CASH",
+  "PaymentMethodAccountId": null,
+  "Components": null
+}
+```
+
+Perhatikan `EventOccurredAt` pukul 19.10 UTC menghasilkan `AccountingDate` **2 Oktober**, karena
+tanggal akuntansi kini dihitung dalam WIB (`FIN-DEC-116`). Sebelum revisi 14 ia akan tercatat
+1 Oktober — dan pada pergantian bulan itu berarti periode yang salah.
+
+## 5.12.2 Kuitansi pembalik dan shift-nya
+
+`FIN-DEC-120` menetapkan kuitansi pembalik memakai **shift saat pembalikan terjadi**, bukan shift
+kuitansi asli, karena uang fisik keluar dari laci shift itu.
+
+| Ruas pada kejadian pembalik | Isi |
+|---|---|
+| `CashierShiftId`, `CashierShiftNumber` | Shift **pembalikan** |
+| `ReversalOfSourceTransactionId` | Nomor kuitansi **asli** |
+
+Akibat bagi Accounting, dan ini **MUST** dipertimbangkan saat menyusun aturan posting: satu pasangan
+penerimaan dan pembaliknya **dapat tersebar di dua shift**, bahkan dua periode. Penelusuran pasangan
+karena itu memakai `ReversalOfSourceTransactionId`, **bukan** nomor shift.
+
+## 5.12.3 Kode baru: `PEMBUKAAN-SHIFT-KASIR`
+
+| Field | Nilai |
+|---|---|
+| Kode | `PEMBUKAAN-SHIFT-KASIR` |
+| Sifat | **Penanda status**, bukan transaksi. `Amount = 0`, nol lawan jurnal, nol aturan posting |
+| Pemicu | Finance pertama kali melihat shift berstatus **belum final** — seluruh status selain `CLOSED` dan `REVIEWED` (`FIN-DEC-121`) |
+| `SourceTransactionId` | Nomor shift |
+| `SourceVersion` | Nomor siklus, sama polanya dengan kedua penanda yang sudah ada |
+| `AccountingDate` | Tanggal shift, dalam WIB |
+| Yang diminta ke Accounting | **Ratifikasi nama kode** dan **penambahan ke daftar tertutup nilai nol** di kotak masuk Accounting — `FIN-OQ-047` |
+
+**Kenapa kode ini diminta.** Accounting menyatakan `CLOSED_WITH_VARIANCE` dan `PERLU_TINDAK_LANJUT`
+"tetap menahan tutup bulan" (`evidence/16` bagian 2 butir 2). Tetapi Accounting hanya dapat menahan
+sesuatu yang ia **ketahui**: shift yang dibuka lalu berakhir `CLOSED_WITH_VARIANCE` di antara dua
+sinkronisasi tidak pernah terlihat sebagai terbuka. Penanda pembukaan menutup celah itu — ia
+menjawab pertanyaan 16.5 Accounting dengan bentuk yang sama seperti dua penanda yang sudah
+disepakati, bukan bentuk baru.
+
+**Pasangan yang terbentuk per siklus shift:**
+
+| Penanda | Terbit saat |
+|---|---|
+| `PEMBUKAAN-SHIFT-KASIR` | Shift terlihat belum final |
+| `PENUTUPAN-SHIFT-KASIR` | Shift mencapai `CLOSED` atau `REVIEWED` |
+| `PEMBALIKAN-PENUTUPAN-SHIFT-KASIR` | Shift yang sudah tertutup dibuka kembali |
+
+Accounting menahan tutup bulan selama ada `PEMBUKAAN-` tanpa `PENUTUPAN-` pada siklus yang sama.
+
+## 5.12.4 Saldo subledger: nilai negatif dan jumlah baris
+
+Dua aturan berubah, keduanya menjawab pertanyaan Accounting 16.2 dan 16.3.
+
+| Aturan | Sebelum | Sesudah | Dasar |
+|---|---|---|---|
+| Nilai negatif pada `SALDO-SUBLEDGER` | Ditolak Finance **tanpa pengecualian** (`FIN-DEC-091`, `evidence/21` butir 15.2) | **Diterima**; nilai negatif berarti berlawanan dengan saldo normal akun | `FIN-DEC-112` — mengamandemen `FIN-DEC-091` |
+| Jumlah baris per periode | **Tepat empat**, satu per kelompok | **Sebanyak pemetaan akun control aktif**, satu baris per akun | `FIN-DEC-113` |
+
+> **Koreksi atas `evidence/21`.** Surat itu menyatakan nominal negatif "ditolak tanpa pengecualian".
+> Pernyataan itu **tidak lagi berlaku** dan **MUST** diluruskan dalam surat berikutnya. Kontrak
+> Accounting sendiri sudah mengizinkan negatif untuk akun yang saldonya sedang tidak wajar, dan
+> Finance kini mengikutinya.
+>
+> **Satu catatan kejujuran.** Pemeriksaan source menemukan skenario yang semula dipakai sebagai
+> contoh — piutang lebih bayar menjadi negatif — **tidak dapat terjadi**: `CK_FinReceivable_Outstanding`
+> menjaganya tetap `>= 0`, dan alokasi melebihi sisa ditolak. Kandidat saldo negatif yang diketahui
+> tinggal **Kas Kasir**. Aturannya tetap diambil karena ia benar secara prinsip, bukan karena
+> contohnya terbukti.
+
+### Kelompok saldo dan segmennya
+
+| Kelompok | Segmen | Sumber nilai |
+|---|---|---|
+| `KAS-KASIR`, `KAS-KECIL` | Tanpa segmen | — |
+| `PIUTANG` | Tanpa segmen, atau `PAYER` / `PATIENT_GUARANTOR` / `EMPLOYEE_BENEFIT` | Jenis debitur yang sudah berjalan |
+| `UTANG-SUPPLIER` | Tanpa segmen | Belum ada sumbu pemecah |
+| `UTANG-JASA-MEDIS` | Tanpa segmen, atau `DOCTOR` / `NURSE` / `OTHER_PRACTITIONER` | Jenis penerima jasa |
+
+**Utang jasa medis dikirim walaupun bernilai nol** (`FIN-DEC-122`), mengikuti aturan Accounting
+bahwa setiap akun control dikirim termasuk yang bersaldo `0.00`. Tabelnya belum punya penulis apa
+pun, jadi angkanya memang nol — bukan karena tidak dihitung.
+
+**Gagal tertutup.** Bila pemetaan tidak lengkap, Finance menerbitkan **nol** baris untuk periode itu
+dan menahan snapshot, bukan mengirim sebagian. Accounting akan melihat periode yang belum menerima
+saldo sama sekali — keadaan yang jelas — bukan periode yang menerima saldo kurang tanpa tanda.
+
+## 5.12.5 Pernyataan ulang saldo
+
+`FIN-DEC-114` menjanjikan pernyataan ulang bila posisi periode berubah sesudah snapshot terbit.
+Mekanismenya memakai `SourceVersion` yang **sudah ada**, tanpa penambahan kontrak:
+
+| Hal | Perilaku |
+|---|---|
+| Pemicu | Mutasi baru bertanggal di dalam periode yang snapshot-nya sudah terbit — misalnya shift malam yang baru ditutup |
+| Cakupan | **Hanya** akun yang nilainya berubah. Akun yang sama nilainya tidak diterbitkan ulang |
+| Identitas | `SourceTransactionId` tetap sama; `SourceVersion` naik |
+| Jadwal | Diperiksa penjadwal harian pukul 00.05 WIB |
+
+## 5.12.6 Jalur pengiriman dan apa yang masih tertahan
+
+`FIN-DEC-118` membuka kembali pembangunan worker pengiriman. Keadaan jujurnya:
+
+| Hal | Keadaan |
+|---|---|
+| Worker pengiriman | **Dibangun**, tetapi **mati secara bawaan**. Menyalakannya menuntut konfigurasi eksplisit |
+| Kredensial akun layanan (G3) | **Belum diputuskan** bersama Platform dan Accounting. Worker mengambilnya dari konfigurasi dan **MUST NOT** menanamkannya di source |
+| Penanda shift (ketiga kode) | **Tetap dilewati** worker sampai Accounting menyatakan G6 siap, mempertahankan `FIN-DES-059` |
+| Kode yang belum diratifikasi | Dilewati dengan alasan yang sama |
+| Balasan `200` dan `201` | Keduanya **sukses**; `AccountingReceiptNumber` diisi dari `AccountingEventId`. Sudah dikonfirmasi Accounting pada `evidence/16` bagian 5 |
+| Status `Gagal` dan `Diabaikan` | Diterima sebagai status tanda terima yang sah, bukan galat jaringan (`FIN-DEC-093`) |
+
+> **Janji yang MUST diluruskan.** `evidence/15` dan `21` menyatakan G4 siap dan snapshot terbit
+> otomatis. Pada tanggal surat itu ditulis, **nol** jalur pengiriman ada di source. Surat berikutnya
+> **MUST** menyatakan G4 **bersyarat**: siap sesudah ketiga hosted service terbukti jalan dan
+> kredensial G3 turun.
+
+## 5.12.7 Yang sengaja tidak diminta ke Accounting
+
+| Yang tidak diminta | Alasan |
+|---|---|
+| Jalur baca saldo awal Accounting | Akan memudahkan rekonsiliasi batch migrasi, tetapi ia kontrak baru. Dicatat `FIN-OQ-078` untuk kemudian hari; rilis ini memakai angka yang dinyatakan petugas |
+| Akun debit untuk refund `REFERRED_OUTPATIENT_ADMIN` | Sudah menjadi syarat G6 milik Accounting bersama Billing; tidak dibuka ulang |
+| Kode kejadian untuk pendapatan sewa | Tetap `FIN-OQ-044(b)`, di luar cakupan revisi 14 |
+| Kode kejadian untuk item migrasi | **Tidak ada dan tidak diminta.** `FIN-DEC-129` melarang migrasi menerbitkan kejadian; nilainya sudah tercakup saldo awal Accounting |

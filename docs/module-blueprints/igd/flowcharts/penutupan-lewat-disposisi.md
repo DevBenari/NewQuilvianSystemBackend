@@ -42,10 +42,10 @@ flowchart TD
 | ---: | --- | --- | --- | --- | --- |
 | 1 | Menetapkan tindak lanjut pasien | Dokter atau perawat IGD | Jenis tindak lanjut | Tindak lanjut tercatat, belum dilaksanakan | Ulangi pencatatan; kunjungan belum terpengaruh |
 | 2 | Menandai tindak lanjut sudah dilaksanakan | Perawat IGD | Tindak lanjut yang sudah ditetapkan | Kunjungan berpindah ke keadaan "keputusan sudah ditetapkan", lalu sistem mencoba menutupnya | Bila penandaan ditolak karena alasan lain, kunjungan tidak berubah sama sekali |
-| 3 | Sistem memeriksa kewajiban yang tersisa | Sistem | Observasi aktif, serah terima menggantung, pesanan yang belum disikapi | Boleh ditutup, atau daftar alasan penahan | — |
+| 3 | Sistem memeriksa kewajiban yang tersisa | Sistem | Observasi aktif **atau dieskalasi** (amendment 3 Oktober 2026, `IGD-DEC-183`), serah terima menggantung, pesanan yang belum disikapi | Boleh ditutup, atau daftar alasan penahan | — |
 | 4a | Menutup kunjungan | Sistem, atas nama petugas langkah 2 | — | Kunjungan selesai, encounter pasien ikut tertutup, catatan klinis yang belum ditandatangani dikunci | Seluruh penyimpanan batal; petugas mengulang langkah 2 |
 | 4b | Menandai menunggu penutupan | Sistem | Alasan penahan | Kunjungan muncul pada saringan "menunggu penutupan" beserta alasannya | — |
-| 5 | Membereskan penahan terakhir | Perawat atau petugas terkait | Observasi, serah terima, atau pesanan | Penahan itu tuntas, lalu sistem mencoba menutup lagi | Bila penyimpanan gagal, penahan tetap ada dan kunjungan tetap menunggu |
+| 5 | Membereskan penahan terakhir | Perawat atau petugas terkait | Observasi (diselesaikan beserta kesimpulannya, atau dibatalkan bila salah dibuka), serah terima, atau pesanan | Penahan itu tuntas, lalu sistem mencoba menutup lagi. Menyelesaikan observasi pada langkah ini **tidak** mengembalikan kunjungan ke keadaan menunggu tindak lanjut (`IGD-DEC-171`, amendment 30 September 2026) | Bila penyimpanan gagal, penahan tetap ada dan kunjungan tetap menunggu |
 | 6 | Kunjungan tertutup menyusul | Sistem, atas nama petugas langkah 5 | — | Sama dengan langkah 4a, dan asal penutupannya menunjuk tindak lanjut dari langkah 2 | Sama dengan langkah 4a |
 
 ## Jalur pengecualian
@@ -56,3 +56,6 @@ flowchart TD
 | Pasien butuh pemeriksaan laboratorium atau darah sesudah kunjungan tertutup | Ditolak modul yang bersangkutan | Daftarkan episode baru; episode lama memang sudah berakhir |
 | Kunjungan sudah tertutup lebih dulu lewat aksi selesaikan kunjungan manual | Percobaan penutupan dilewati tanpa galat | Tidak ada yang perlu dilakukan |
 | Penahan baru muncul sesudah kunjungan tertutup | Ditolak jalurnya masing-masing | Daftarkan episode baru bila memang dibutuhkan |
+| Pasien memburuk saat kunjungan menunggu penutupan, dan perawat hendak mengeskalasi observasinya (amendment 30 September 2026) | Ditolak (`IGD-DEC-172`). Observasinya tetap aktif, sehingga kunjungan **tidak** tertutup | Cara mencatat penanganan pasien pada keadaan ini belum diputuskan — `IGD-OQ-111` |
+| Observasi pernah dieskalasi **sebelum** tindak lanjut ditetapkan, lalu tindak lanjutnya dilaksanakan (amendment 3 Oktober 2026) | Kunjungan **tidak** tertutup; ia menunggu penutupan dengan alasan observasi (`IGD-DEC-183`) | Buka tab Observasi, selesaikan periode yang dieskalasi beserta kesimpulannya — atau batalkan bila periode itu salah dibuka. Kunjungan tertutup pada penyimpanan itu bila tak ada kewajiban lain |
+| Perawat hendak menyelesaikan observasi dieskalasi lama pada kunjungan yang **sudah** selesai (amendment 3 Oktober 2026) | Ditolak dengan pesan bahwa kunjungan sudah berakhir (`IGD-DEC-184`); observasi tidak berubah | Tidak ada yang perlu dilakukan. Kunjungan tidak dibuka kembali; observasi lama dibiarkan sebagai data lama |

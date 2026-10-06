@@ -52,3 +52,4 @@ public static class FinBankDepositStatuses
     public static readonly IReadOnlySet<string> All =
         new HashSet<string>([Draft, Posted, Verified, Cancelled], StringComparer.OrdinalIgnoreCase);
 }
+

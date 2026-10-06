@@ -4,6 +4,8 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegrat
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -41,17 +43,20 @@ public sealed class FinanceBillingIntakeService
     private readonly LoggerService _loggerService;
     private readonly FinanceAccountingOutboxService _accountingOutboxService;
     private readonly FinanceReceiptService _receiptService;
+    private readonly FinanceSubledgerMovementService _subledgerMovementService;
 
     public FinanceBillingIntakeService(
         ApplicationDbContext dbContext,
         LoggerService loggerService,
         FinanceAccountingOutboxService accountingOutboxService,
-        FinanceReceiptService receiptService)
+        FinanceReceiptService receiptService,
+        FinanceSubledgerMovementService subledgerMovementService)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
         _accountingOutboxService = accountingOutboxService;
         _receiptService = receiptService;
+        _subledgerMovementService = subledgerMovementService;
     }
 
     // ------------------------------------------------------------------------------------
@@ -454,7 +459,7 @@ public sealed class FinanceBillingIntakeService
                 // BilArHandoff.DueDate nullable; tidak diatur eksplisit dokumen manapun bila
                 // kosong — dipakai tanggal pengakuan hari ini sebagai nilai aman, dicatat di
                 // laporan task, bukan keputusan bisnis baru.
-                DueDate = handoff.DueDate.HasValue ? DateOnly.FromDateTime(handoff.DueDate.Value.UtcDateTime) : DateOnly.FromDateTime(now.UtcDateTime),
+                DueDate = handoff.DueDate.HasValue ? FinanceBusinessDate.ToDateOnly(handoff.DueDate.Value) : FinanceBusinessDate.ToDateOnly(now),
                 Status = FinReceivableStatuses.Outstanding,
                 ClaimStatus = FinReceivableClaimStatuses.NotRequired,
                 RecognizedAt = now,
@@ -478,6 +483,20 @@ public sealed class FinanceBillingIntakeService
             });
             _dbContext.FinReceivables.Add(receivable);
 
+            // BE-FIN-060, FIN-DES-079: Mutasi subledger PENGAKUAN piutang baru (Jalur 1)
+            await _subledgerMovementService.RecordReceivableMovementAsync(
+                receivable: receivable,
+                movementType: FinReceivableMovementTypes.Pengakuan,
+                deltaAmount: receivable.OriginalAmount,
+                balanceBefore: 0m,
+                occurredAt: now,
+                actorUserId: actorUserId,
+                correlationId: receivable.CorrelationId,
+                causationId: receivable.CausationId,
+                referenceNumber: receivable.ReceivableNumber,
+                notes: $"Pengakuan piutang dari intake Billing {handoff.HandoffKey}",
+                cancellationToken: cancellationToken);
+
             // BE-FIN-011, FIN-DES-017: kejadian PENGAKUAN-PIUTANG ditulis DI DALAM transaksi yang
             // sama dengan piutangnya sendiri (FR-FIN-070) — StageEventAsync hanya Add(), commit
             // sesungguhnya terjadi lewat SaveChangesAsync/CommitAsync di bawah, milik method ini.
@@ -486,7 +505,7 @@ public sealed class FinanceBillingIntakeService
                 EventTypeCode = FinAccountingEventTypeCodes.PengakuanPiutang,
                 SourceTransactionId = receivable.ReceivableNumber,
                 EventOccurredAt = now,
-                AccountingDate = DateOnly.FromDateTime(now.UtcDateTime),
+                AccountingDate = FinanceBusinessDate.ToDateOnly(now),
                 Amount = receivable.OriginalAmount,
                 CorrelationId = receivable.CorrelationId,
                 CausationId = receivable.CausationId,
@@ -661,7 +680,7 @@ public sealed class FinanceBillingIntakeService
                     SourceTransactionId = movement.Id.ToString(),
                     SourceVersion = "1",
                     EventOccurredAt = movement.OccurredAt,
-                    AccountingDate = DateOnly.FromDateTime(movement.OccurredAt.UtcDateTime),
+                    AccountingDate = FinanceBusinessDate.ToDateOnly(movement.OccurredAt),
                     Amount = movement.Amount,
                     CorrelationId = movement.CorrelationId,
                     CausationId = movement.CausationId,
@@ -712,7 +731,7 @@ public sealed class FinanceBillingIntakeService
                     SourceTransactionId = movement.Id.ToString(),
                     SourceVersion = "1",
                     EventOccurredAt = movement.OccurredAt,
-                    AccountingDate = DateOnly.FromDateTime(movement.OccurredAt.UtcDateTime),
+                    AccountingDate = FinanceBusinessDate.ToDateOnly(movement.OccurredAt),
                     Amount = movement.Amount,
                     CorrelationId = movement.CorrelationId,
                     CausationId = movement.CausationId,
@@ -740,7 +759,7 @@ public sealed class FinanceBillingIntakeService
                     SourceTransactionId = movement.Id.ToString(),
                     SourceVersion = "1",
                     EventOccurredAt = movement.OccurredAt,
-                    AccountingDate = DateOnly.FromDateTime(movement.OccurredAt.UtcDateTime),
+                    AccountingDate = FinanceBusinessDate.ToDateOnly(movement.OccurredAt),
                     Amount = movement.Amount,
                     CorrelationId = movement.CorrelationId,
                     CausationId = movement.CausationId,
@@ -822,7 +841,7 @@ public sealed class FinanceBillingIntakeService
                     SourceTransactionId = credit.Id.ToString(),
                     SourceVersion = "1",
                     EventOccurredAt = credit.RecognizedAt,
-                    AccountingDate = DateOnly.FromDateTime(credit.RecognizedAt.UtcDateTime),
+                    AccountingDate = FinanceBusinessDate.ToDateOnly(credit.RecognizedAt),
                     Amount = credit.OriginalAmount,
                     CorrelationId = credit.InvoiceId,
                     CausationId = credit.Id,
@@ -903,7 +922,7 @@ public sealed class FinanceBillingIntakeService
                     SourceTransactionId = refundCase.Id.ToString(),
                     SourceVersion = "1",
                     EventOccurredAt = eventTime,
-                    AccountingDate = DateOnly.FromDateTime(eventTime.UtcDateTime),
+                    AccountingDate = FinanceBusinessDate.ToDateOnly(eventTime),
                     Amount = refundCase.RequestedAmount,
                     CorrelationId = refundCase.CorrelationId,
                     CausationId = refundCase.CausationId,
@@ -987,7 +1006,7 @@ public sealed class FinanceBillingIntakeService
                     SourceTransactionId = shift.Id.ToString(),
                     SourceVersion = "1",
                     EventOccurredAt = review.ReviewedAt,
-                    AccountingDate = DateOnly.FromDateTime(shift.OpenedAt.UtcDateTime),
+                    AccountingDate = FinanceBusinessDate.ToDateOnly(shift.OpenedAt),
                     Amount = Math.Abs(shift.Variance),
                     CorrelationId = shift.Id,
                     CausationId = review.Id,
@@ -1018,8 +1037,8 @@ public sealed class FinanceBillingIntakeService
         }
     }
 
-    // ------------------------------------------------------------------------------------
     // BE-FIN-045: Penanda penutupan shift kasir (FIN-DES-054, FIN-DEC-070/072/073/075)
+    // BE-FIN-070: Penanda pembukaan shift kasir (FIN-DEC-115, FIN-DEC-121, FIN-DES-084)
     //
     // BENTUK YANG DIPILIH, dan alasannya — dicatat karena desain menetapkan pemicu, nilai, dan
     // aturan versinya, tetapi TIDAK menetapkan dari mana penanda ini ditulis:
@@ -1043,18 +1062,27 @@ public sealed class FinanceBillingIntakeService
     public async Task<CashierShiftClosureMarkerSyncResult> SyncCashierShiftClosureMarkersAsync(
         Guid actorUserId, CancellationToken cancellationToken)
     {
-        // FIN-DES-054: HANYA tiga status yang relevan. CLOSED_WITH_VARIANCE dan
-        // PERLU_TINDAK_LANJUT SENGAJA tidak ikut — keduanya justru HARUS tetap menahan tutup
-        // bulan, sesuai maksud ACC-DEC-065.
+        // BE-FIN-070, FIN-DEC-121: Diperluas dari 3 menjadi 7 status.
+        // "Final" = CLOSED atau REVIEWED (penanda penutupan diterbitkan).
+        // "Belum final" = OPEN, HANDED_OVER, REOPENED, CLOSED_WITH_VARIANCE, PERLU_TINDAK_LANJUT
+        //                 (penanda PEMBUKAAN-SHIFT-KASIR diterbitkan, menahan tutup bulan Accounting).
+        //
+        // Status OPEN sengaja TIDAK dikecualikan — FIN-DEC-121 menyatakan seluruh status
+        // selain CLOSED dan REVIEWED adalah "belum final" dan HARUS diterbitkan penanda pembukaannya.
+        // Dengan demikian Accounting dapat mendeteksi shift yang sama sekali belum ditutup.
         var shifts = await _dbContext.BilCashierShifts.AsNoTracking()
             .Where(x => !x.IsDelete && (
+                x.Status == CashierShiftStatuses.Open ||
+                x.Status == CashierShiftStatuses.HandedOver ||
                 x.Status == CashierShiftStatuses.Closed ||
+                x.Status == CashierShiftStatuses.ClosedWithVariance ||
                 x.Status == CashierShiftStatuses.Reviewed ||
-                x.Status == CashierShiftStatuses.Reopened))
+                x.Status == CashierShiftStatuses.Reopened ||
+                x.Status == CashierShiftStatuses.PerluTindakLanjut))
             .ToListAsync(cancellationToken);
 
         if (shifts.Count == 0)
-            return new CashierShiftClosureMarkerSyncResult(0, 0);
+            return new CashierShiftClosureMarkerSyncResult(0, 0, 0);
 
         var shiftKeys = shifts.Select(x => x.Id.ToString()).ToList();
 
@@ -1063,8 +1091,9 @@ public sealed class FinanceBillingIntakeService
                 && x.SourceModule == FinAccountingEventSourceModules.Finance
                 && shiftKeys.Contains(x.SourceTransactionId)
                 && (x.EventTypeCode == FinAccountingEventTypeCodes.PenutupanShiftKasir
-                 || x.EventTypeCode == FinAccountingEventTypeCodes.PembalikanPenutupanShiftKasir))
-            .Select(x => new { x.SourceTransactionId, x.EventTypeCode })
+                 || x.EventTypeCode == FinAccountingEventTypeCodes.PembalikanPenutupanShiftKasir
+                 || x.EventTypeCode == FinAccountingEventTypeCodes.PembukaanShiftKasir))
+            .Select(x => new { x.SourceTransactionId, x.EventTypeCode, x.SourceVersion })
             .ToListAsync(cancellationToken);
 
         var closureCounts = existingMarkers
@@ -1077,8 +1106,16 @@ public sealed class FinanceBillingIntakeService
             .GroupBy(x => x.SourceTransactionId)
             .ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
 
+        // BE-FIN-070: Kumpulan kunci idempotensi penanda PEMBUKAAN-SHIFT-KASIR berbentuk
+        // "<shiftId>:<SourceVersion>" sehingga satu shift multi-siklus tidak menggandakan baris.
+        var openingMarkerKeys = existingMarkers
+            .Where(x => x.EventTypeCode == FinAccountingEventTypeCodes.PembukaanShiftKasir)
+            .Select(x => $"{x.SourceTransactionId}:{x.SourceVersion}")
+            .ToHashSet(StringComparer.Ordinal);
+
         var closureIssued = 0;
         var reversalIssued = 0;
+        var openingIssued = 0;
 
         IDbContextTransaction? transaction = null;
         try
@@ -1093,6 +1130,27 @@ public sealed class FinanceBillingIntakeService
 
                 if (shift.Status is CashierShiftStatuses.Closed or CashierShiftStatuses.Reviewed)
                 {
+                    // BE-FIN-062, FIN-DES-081: Shift yang mencapai CLOSED/REVIEWED menulis mutasi kas KAS-SHIFT (Sumber 1)
+                    var shiftCash = FinanceCashManagementService.GetShiftCash(shift);
+                    if (shiftCash > 0m)
+                    {
+                        await _subledgerMovementService.RecordCashMovementAsync(
+                            movementType: FinCashMovementTypes.KasShift,
+                            direction: FinCashMovementDirections.In,
+                            amount: shiftCash,
+                            businessDate: FinanceBusinessDate.ToDateOnly(shift.OpenedAt),
+                            occurredAt: shift.ClosedAt ?? shift.OpenedAt,
+                            sourceReferenceType: FinCashMovementSourceReferenceTypes.CashierShift,
+                            sourceReferenceId: key,
+                            actorUserId: actorUserId,
+                            correlationId: shift.Id,
+                            causationId: shift.Id,
+                            cashierShiftId: shift.Id,
+                            notes: $"Penerimaan kas kasir shift {shift.ShiftNumber}",
+                            ignoreDuplicate: true,
+                            cancellationToken: cancellationToken);
+                    }
+
                     // Siklus berjalan = jumlah pembalik yang sudah terbit + 1. Bila penanda untuk
                     // siklus ini sudah ada, tidak ada yang dikerjakan — inilah idempotensinya.
                     var cycle = reversalCount + 1;
@@ -1108,7 +1166,7 @@ public sealed class FinanceBillingIntakeService
                         EventOccurredAt = shift.ClosedAt ?? shift.OpenedAt,
                         // FIN-DES-054: AccountingDate adalah TANGGAL SHIFT, bukan tanggal tutup —
                         // konvensi yang sama dengan SELISIH-KAS-* (BE-FIN-025).
-                        AccountingDate = DateOnly.FromDateTime(shift.OpenedAt.UtcDateTime),
+                        AccountingDate = FinanceBusinessDate.ToDateOnly(shift.OpenedAt),
                         // Amount = 0: penanda status, bukan transaksi. Diterima ValidateRequest
                         // HANYA karena kode ini ada pada daftar tertutup ZeroAmountAllowedEventTypes
                         // (FIN-VAL-138, BE-FIN-023). FIN-DEC-075 MENOLAK jalan pintas nilai
@@ -1122,7 +1180,7 @@ public sealed class FinanceBillingIntakeService
 
                     closureIssued++;
                 }
-                else
+                else if (shift.Status == CashierShiftStatuses.Reopened)
                 {
                     // REOPENED: terbitkan pembalik hanya bila siklus yang dibuka itu memang sudah
                     // pernah menerbitkan penanda penutupan. Shift yang dibuka kembali tanpa pernah
@@ -1138,7 +1196,7 @@ public sealed class FinanceBillingIntakeService
                         // kejadian diambil saat sinkronisasi ini berjalan. Dicatat sebagai
                         // keterbatasan pada laporan task, bukan ditebak dari kolom lain.
                         EventOccurredAt = DateTimeOffset.UtcNow,
-                        AccountingDate = DateOnly.FromDateTime(shift.OpenedAt.UtcDateTime),
+                        AccountingDate = FinanceBusinessDate.ToDateOnly(shift.OpenedAt),
                         Amount = 0m,
                         CorrelationId = shift.Id,
                         CausationId = shift.Id,
@@ -1146,10 +1204,64 @@ public sealed class FinanceBillingIntakeService
                     }, cancellationToken);
 
                     reversalIssued++;
+
+                    // BE-FIN-070, FIN-DEC-121: Setelah menerbitkan pembalik penutupan untuk siklus
+                    // lama, terbitkan juga penanda PEMBUKAAN-SHIFT-KASIR untuk siklus baru yang dimulai
+                    // oleh pembukaan kembali ini. Urutan: PEMBALIKAN-PENUTUPAN dulu, PEMBUKAAN sesudahnya.
+                    // SourceVersion penanda pembukaan = jumlah pembalik yang sudah terbit (setelah
+                    // penambahan di atas) = reversalCount + 1 = siklus baru ini.
+                    var newOpeningCycle = (reversalCount + 1).ToString();
+                    var openingKey = $"{key}:{newOpeningCycle}";
+                    if (!openingMarkerKeys.Contains(openingKey))
+                    {
+                        await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+                        {
+                            EventTypeCode = FinAccountingEventTypeCodes.PembukaanShiftKasir,
+                            SourceTransactionId = key,
+                            SourceVersion = newOpeningCycle,
+                            EventOccurredAt = DateTimeOffset.UtcNow,
+                            AccountingDate = FinanceBusinessDate.ToDateOnly(shift.OpenedAt),
+                            // Amount = 0: penanda status — diterima ValidateRequest karena kode ini
+                            // ada dalam ZeroAmountAllowedEventTypes (FIN-VAL-138, FIN-DEC-115).
+                            Amount = 0m,
+                            CorrelationId = shift.Id,
+                            CausationId = shift.Id,
+                            ActorUserId = actorUserId
+                        }, cancellationToken);
+
+                        openingIssued++;
+                    }
+                }
+                else
+                {
+                    // BE-FIN-070, FIN-DEC-121: Status "belum final": OPEN, HANDED_OVER,
+                    // CLOSED_WITH_VARIANCE, PERLU_TINDAK_LANJUT.
+                    // Terbitkan PEMBUKAAN-SHIFT-KASIR untuk siklus saat ini bila belum ada.
+                    // SourceVersion = jumlah pembalik yang sudah terbit + 1 (pola siklus yang sama).
+                    var cycle = reversalCount + 1;
+                    var openingKey = $"{key}:{cycle}";
+                    if (openingMarkerKeys.Contains(openingKey)) continue;
+
+                    await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+                    {
+                        EventTypeCode = FinAccountingEventTypeCodes.PembukaanShiftKasir,
+                        SourceTransactionId = key,
+                        SourceVersion = cycle.ToString(),
+                        EventOccurredAt = DateTimeOffset.UtcNow,
+                        AccountingDate = FinanceBusinessDate.ToDateOnly(shift.OpenedAt),
+                        // Amount = 0: penanda status, bukan transaksi. FIN-DEC-115 menetapkan
+                        // penanda ini sebagai sinyal keberadaan shift yang belum final.
+                        Amount = 0m,
+                        CorrelationId = shift.Id,
+                        CausationId = shift.Id,
+                        ActorUserId = actorUserId
+                    }, cancellationToken);
+
+                    openingIssued++;
                 }
             }
 
-            if (closureIssued + reversalIssued > 0)
+            if (closureIssued + reversalIssued + openingIssued > 0)
             {
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
@@ -1166,17 +1278,17 @@ public sealed class FinanceBillingIntakeService
             if (transaction is not null) await transaction.DisposeAsync();
         }
 
-        if (closureIssued + reversalIssued > 0)
+        if (closureIssued + reversalIssued + openingIssued > 0)
         {
             // AuditAsync milik kelas ini berbentuk per-intake (parameter keempatnya ReceivableId),
             // sedangkan jalur ini tidak punya baris intake. Karena itu logger dipanggil langsung
             // dengan bentuk yang sesuai — bukan memaksakan helper yang artinya berbeda.
             await _loggerService.AuditAsync(LogCategory, "FinanceBillingIntake.CashierShiftClosureMarker.Sync",
-                $"Penanda penutupan shift kasir diterbitkan. Penutupan={closureIssued} Pembalik={reversalIssued}",
-                new { ClosureIssued = closureIssued, ReversalIssued = reversalIssued, ActorUserId = actorUserId });
+                $"Penanda shift kasir diterbitkan. Penutupan={closureIssued} Pembalik={reversalIssued} Pembukaan={openingIssued}",
+                new { ClosureIssued = closureIssued, ReversalIssued = reversalIssued, OpeningIssued = openingIssued, ActorUserId = actorUserId });
         }
 
-        return new CashierShiftClosureMarkerSyncResult(closureIssued, reversalIssued);
+        return new CashierShiftClosureMarkerSyncResult(closureIssued, reversalIssued, openingIssued);
     }
 
     private async Task MarkErrorAsync(Guid intakeId, string errorMessage, Guid actorUserId, CancellationToken cancellationToken)
@@ -1250,8 +1362,8 @@ public sealed class FinanceBillingIntakeService
 public sealed class BillingIntakeValidationException(string message) : Exception(message);
 
 /// <summary>
-/// Hasil SyncCashierShiftClosureMarkersAsync (BE-FIN-045). Keduanya menghitung baris kotak keluar
-/// yang BENAR-BENAR diterbitkan pada pemanggilan itu — shift yang penandanya sudah ada tidak
-/// dihitung, karena jalur ini idempoten.
+/// Hasil SyncCashierShiftClosureMarkersAsync (BE-FIN-045, BE-FIN-070). Ketiganya menghitung baris
+/// kotak keluar yang BENAR-BENAR diterbitkan pada pemanggilan itu — shift yang penandanya sudah ada
+/// tidak dihitung, karena jalur ini idempoten.
 /// </summary>
-public sealed record CashierShiftClosureMarkerSyncResult(int ClosureIssued, int ReversalIssued);
+public sealed record CashierShiftClosureMarkerSyncResult(int ClosureIssued, int ReversalIssued, int OpeningIssued);

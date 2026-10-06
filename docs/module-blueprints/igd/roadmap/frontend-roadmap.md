@@ -8,7 +8,7 @@ roadmap_revision: 3
 wave: "Dikoreksi 2026-09-15: lima task selesai (FE-IGD-015, 016, 018, 020, 021); lima sebagian (FE-IGD-012, 013, 014, 017, 022); FE-IGD-010 belum dikerjakan. Klaim lama 'MVP-0..MVP-5 selesai' tidak akurat — lihat evidence/2026-09-15-pemeriksaan-status.md bagian 8"
 status: ACTIVE
 status_synced_at: "2026-09-15 — pemetaan ulang acceptance criteria pada frontend 43adae648; IGD-DEC-110, IGD-DEC-113"
-planning_updated_at: "2026-09-22 (penutup) — plan-module-delivery FINAL (docs saja) pada frontend c941012ac: R3.12 diselaraskan dengan IGD-DEC-142 sampai IGD-DEC-162 dan kontrak encounter-first yang disetujui IGD-DEC-157 (API 0.11.0 §8, validation 0.8.0 §10); FE-IGD-038 sampai FE-IGD-040 ditambahkan; FE-IGD-037 tetap ⛔ S7; pasien tanpa identitas kini lewat rekam pengganti (IGD-DEC-151). Sebelumnya 2026-09-22 — plan-module-delivery (MODULE BLUEPRINT MODE, docs saja) pada frontend c941012ac: R3.12 FE-IGD-035 sampai FE-IGD-037 ditambahkan (encounter-first, dokter jaga); IGD-DEC-139 sampai IGD-DEC-141; evidence 2026-09-22-desain-encounter-first.md; FE-IGD-027 tetap ✅. Sebelumnya 2026-09-16 (keempat) — plan-module-delivery: FE-IGD-031 dan FE-IGD-032 ditambahkan (tata letak riwayat pada ruang kerja pemeriksaan); IGD-DEC-133, IGD-DEC-134; evidence 2026-09-16-tata-letak-riwayat-pemeriksaan.md. Nol perubahan kontrak, nol perubahan backend. Revision roadmap tetap 3. Sebelumnya 2026-09-16 (kedua): FE-IGD-029 dan FE-IGD-030 (kunjungan keluar dari Arrived); IGD-DEC-127, IGD-DEC-128; evidence 2026-09-16-kunjungan-terjebak-arrived.md. Sebelumnya 2026-09-16: FE-IGD-028; 2026-09-15 (kedua): kartu susulan FE-IGD-019, FE-IGD-023 sampai FE-IGD-027, IGD-DEC-111, IGD-DEC-116 sampai IGD-DEC-121"
+planning_updated_at: "2026-10-03 — plan-module-delivery (docs saja) pada frontend 521b18a9a dan backend 2a63a3bb: FE-IGD-042 dibuka ulang (IGD-DEC-187) — tombol Selesaikan dan Eskalasi nonaktif beserta keterangan pada kunjungan Completed/Cancelled, Batalkan tetap aktif; acceptance 10-13. Status turun dari selesai ke sebagian. Kontrak API 0.14.0, validation 0.11.0, state 0.8.0 (IGD-DEC-186; manifest bagian 0k). Nol task baru, nol panah dependency baru. Sebelumnya 2026-09-30 — plan-module-delivery (docs saja) pada frontend 2c2190858 dan backend 327ccad3 + working tree BE-IGD-060: R3.13.1 diperluas — FE-IGD-042 baru (pasangan layar BE-IGD-061; kalimat konfirmasi Selesaikan/Eskalasi/Jalankan; tombol Eskalasi nonaktif + keterangan pada kunjungan Disposed, IGD-DEC-177); grafik R3.13.1.1 baru; node FE-IGD-041 dipindah dari grafik R3.12.1; baris register FE-IGD-041 dirapikan. Kontrak API 0.13.0, validation 0.10.0, state 0.7.0 (IGD-DEC-175). Sebelumnya 2026-09-22 (penutup) — plan-module-delivery FINAL (docs saja) pada frontend c941012ac: R3.12 diselaraskan dengan IGD-DEC-142 sampai IGD-DEC-162 dan kontrak encounter-first yang disetujui IGD-DEC-157 (API 0.11.0 §8, validation 0.8.0 §10); FE-IGD-038 sampai FE-IGD-040 ditambahkan; FE-IGD-037 tetap ⛔ S7; pasien tanpa identitas kini lewat rekam pengganti (IGD-DEC-151). Sebelumnya 2026-09-22 — plan-module-delivery (MODULE BLUEPRINT MODE, docs saja) pada frontend c941012ac: R3.12 FE-IGD-035 sampai FE-IGD-037 ditambahkan (encounter-first, dokter jaga); IGD-DEC-139 sampai IGD-DEC-141; evidence 2026-09-22-desain-encounter-first.md; FE-IGD-027 tetap ✅. Sebelumnya 2026-09-16 (keempat) — plan-module-delivery: FE-IGD-031 dan FE-IGD-032 ditambahkan (tata letak riwayat pada ruang kerja pemeriksaan); IGD-DEC-133, IGD-DEC-134; evidence 2026-09-16-tata-letak-riwayat-pemeriksaan.md. Nol perubahan kontrak, nol perubahan backend. Revision roadmap tetap 3. Sebelumnya 2026-09-16 (kedua): FE-IGD-029 dan FE-IGD-030 (kunjungan keluar dari Arrived); IGD-DEC-127, IGD-DEC-128; evidence 2026-09-16-kunjungan-terjebak-arrived.md. Sebelumnya 2026-09-16: FE-IGD-028; 2026-09-15 (kedua): kartu susulan FE-IGD-019, FE-IGD-023 sampai FE-IGD-027, IGD-DEC-111, IGD-DEC-116 sampai IGD-DEC-121"
 generated_at: "2026-08-24"
 revision_3_at: "2026-08-26"
 revision_3_1_at: "2026-08-27"
@@ -25,6 +25,7 @@ contract_versions:
   - "State 0.4.0 — bagian 1, 1.1, 1.2 APPROVED (IGD-DEC-093)"
   - "Validation 0.4.0 — bagian 2 aturan 4-5 APPROVED (IGD-DEC-093)"
   - "API 0.4.0 — draft. TIDAK dipakai: gelombang ini nol perubahan endpoint"
+  - "R3.13.1 (30 Sep 2026): API 0.13.0 §9, validation 0.10.0 §11 dan §11.1, state 0.7.0 §9.5 — APPROVED (IGD-DEC-170, IGD-DEC-175); hash di manifest bagian 0j"
   - "R3.12 (22 Sep 2026 penutup): API 0.11.0 §8 dan validation 0.8.0 §10 — bagian encounter-first APPROVED (IGD-DEC-157); hash: api-contract.md c0bcea54125879e328a1b4f28cfcc6adaa5356a7272316cb4dd56a6a8b9fcedd, validation-matrix.md 580832c37db3f3a1b73b03b6a366d5d5108ee745e4c408ece53b01034d98b504"
 artifact_hashes:
   03-frontend-architecture.md: "2b4339f9587ed1daff8444ccb68cb5415df578d76a2157dd3ec168f9a2a1fd95"
@@ -54,13 +55,14 @@ supersedes: "roadmap/archive/revision-1/frontend-roadmap.md"
 
 ## Grafik Urutan Dependency
 
-Roadmap ini memuat **31 task** menurut *Register status task* (23 September 2026: 30 baris + `FE-IGD-041` gelombang R3.13.1; sebelumnya 22 September 2026 penutup: 27 baris + `FE-IGD-038`…`040`; sebelumnya 24 baris + `FE-IGD-035`…`037`;
+Roadmap ini memuat **32 task** menurut *Register status task* (30 September 2026: 31 baris + `FE-IGD-042` gelombang R3.13.1; sebelumnya 23 September 2026: 30 baris + `FE-IGD-041` gelombang R3.13.1; sebelumnya 22 September 2026 penutup: 27 baris + `FE-IGD-038`…`040`; sebelumnya 24 baris + `FE-IGD-035`…`037`;
 angka `22` di bawah tertinggal sejak `FE-IGD-033`/`034`), dan bersama prasyarat backend dan revision `1` jumlah node
 melewati 25. Grafik dipecah: satu **grafik ringkasan** di bawah ini, lalu grafik per bagian di
 bawah judulnya masing-masing — bagian 1 (`MVP-0` dan warisan revision `1`), R3.2 (pendaftaran,
 pengkajian, kepergian, kebersihan), R3.4 (gelombang 27 Agustus), R3.5 (`FE-IGD-022`),
 R3.7 (pemantauan observasi), R3.8 (kunjungan keluar dari `Arrived`), R3.9 (tata letak
-riwayat pada ruang kerja pemeriksaan), R3.11 (pra-cek episode ganda), dan R3.12 (encounter-first dan dokter jaga).
+riwayat pada ruang kerja pemeriksaan), R3.11 (pra-cek episode ganda), R3.12 (encounter-first dan dokter jaga), dan
+R3.13.1 (penutupan lewat disposisi).
 
 *Jumlah task dikoreksi 16 September 2026: angka `11` tertinggal sejak revision `3` ditulis dan
 tidak pernah ikut diperbarui saat `FE-IGD-019` sampai `FE-IGD-028` ditambahkan. Dinaikkan
@@ -88,6 +90,7 @@ flowchart LR
         BMVP5["🟡 MVP-5<br/>Serah terima dan riwayat dokter"]:::luar
         BR312["✅ R3.12<br/>BE-IGD-049, BE-IGD-050"]:::luar
         BR313["R3.13<br/>BE-IGD-053 s.d. 059; BE-IGD-056 ⛔"]:::luar
+        BR314["🟡 R3.14<br/>BE-IGD-060 ✅; 061, 062, 063"]:::luar
     end
 
     FMVP0["🟡 Bagian 1<br/>Penolakan 409 tampil"]:::sebagian
@@ -102,7 +105,8 @@ flowchart LR
     FARRIVED["🟡 R3.8 Gelombang 16 September (kedua)<br/>FE-IGD-029, FE-IGD-030"]:::sebagian
     FTATA["🟡 R3.9 Gelombang 16 September (keempat)<br/>FE-IGD-031, FE-IGD-032"]:::sebagian
     FPRA["✅ R3.11 Gelombang 21 September (sore)<br/>FE-IGD-034"]:::selesai
-    FENC["R3.12 Gelombang 22 September<br/>FE-IGD-035 s.d. 040"]:::belum
+    FENC["🟡 R3.12 Gelombang 22 September<br/>FE-IGD-035 s.d. 040"]:::sebagian
+    FCLOSE["✅ R3.13.1 Penutupan lewat disposisi<br/>FE-IGD-041, FE-IGD-042"]:::selesai
 
     BMVP0 --> FMVP0
     BMVP0 --> FARRIVED
@@ -120,12 +124,14 @@ flowchart LR
     FDAFTAR --> FPRA
     BR313 --> FENC
     FPRA --> FENC
+    BR314 --> FCLOSE
 ```
 
 | Gelombang | Boleh mulai setelah | Bagian |
 | ---: | --- | --- |
 | 1 | Prasyarat backend masing-masing | Seluruh bagian **kecuali R3.9** — boleh paralel. Bagian 2 menunggu task revision `1` yang seluruhnya sudah selesai; Kebersihan tanpa prasyarat. Pada R3.6, `FE-IGD-023`, `025`, dan `026` tidak menunggu backend; `FE-IGD-024` menunggu `BE-IGD-040` (R3.8 **backend**); `FE-IGD-027` menunggu `BE-IGD-045` (`MVP-5`). Pada R3.8 **frontend**, `FE-IGD-029` dan `FE-IGD-030` boleh mulai sekarang: prasyarat backend-nya `BE-IGD-018` sudah ✅ dan endpoint-nya sudah berjalan |
 | 1–2 | R3.13 **backend** dan `FE-IGD-034` ✅ (R3.11): `BE-IGD-054` → `FE-IGD-035`; `BE-IGD-053` + `FE-IGD-034` → `FE-IGD-038`; `BE-IGD-058` → `FE-IGD-040`; `BE-IGD-057` + `FE-IGD-035` → `FE-IGD-039` (gelombang 2); `BE-IGD-053` + `055` + `059` + `FE-IGD-035` + `FE-IGD-038` → `FE-IGD-036` (gelombang 2); `BE-IGD-056` (⛔ `IGD-OQ-102`/`103`) → `FE-IGD-037` | R3.12 — **belum boleh dimulai** (menunggu backend); rincian di bagian R3.12.2. Panah `FPRA --> FENC` ditambahkan 22 September 2026 (penutup) untuk `FE-IGD-038` yang memperluas pra-cek `FE-IGD-034` |
+| 1 | R3.14 **backend**: `BE-IGD-063` → `FE-IGD-041`; `BE-IGD-061` → `FE-IGD-042` (masing-masing sesudah build backend terverifikasi) | R3.13.1 — boleh paralel. Ditambahkan 30 September 2026 |
 | 2 | R3.7 selesai — `FE-IGD-028` ✅ 16 September 2026 | R3.9 — `FE-IGD-031` lalu `FE-IGD-032`. Prasyaratnya **sudah** terpenuhi, jadi bagian ini boleh dimulai sekarang; nomor gelombangnya `2` semata-mata karena `FE-IGD-032` menata ulang tab Observasi yang dibangun `FE-IGD-028`. Nol prasyarat backend — gelombang ini tidak menyentuh backend sama sekali |
 
 ### Register status task
@@ -155,14 +161,15 @@ flowchart LR
 | `FE-IGD-031` | Segmen Formulir dan Riwayat pada tab pemeriksaan | ✅ **17 September 2026** — 13 kriteria terpetakan ke source; lint dan 866 unit test lulus; `npm run build` lulus; **uji layar pemilik LULUS**. Tanpa UAT | [FE-IGD-031](../task/report/frontend/FE-IGD-031.md) |
 | `FE-IGD-032` | Tata letak tab Observasi dan lembar pemantauan | ✅ **17 September 2026** — 14 kriteria terpetakan ke source; lint, 866 unit test, dan `npm run build` lulus; **uji layar pemilik LULUS** — pemilih periode, primary survey satu baris, lembar pemantauan berbentuk tabel, dan segmen Lembar/Catat terbukti di layar. **Dua delta (kriteria 3 dan 4) diterima pemilik.** Tanpa UAT | [FE-IGD-032](../task/report/frontend/FE-IGD-032.md) |
 | `FE-IGD-033` | Tombol Simpan Pemeriksaan berhenti aktif sesudah penilaian tersimpan | ✅ **17 September 2026** — lint, 866 unit test, dan `npm run build` lulus; **uji layar pemilik LULUS**: tombol nonaktif bertulisan "Pemeriksaan Tersimpan", **Tetapkan Dokter** bekerja sendiri, riwayat memuat tepat satu penilaian. Dirilis bersama `BE-IGD-047` ✅ | [FE-IGD-033](../task/report/frontend/FE-IGD-033.md) |
-| `FE-IGD-034` | Pendaftaran IGD memeriksa episode ganda sebelum membuat encounter (`IGD-DEC-138`) | ✅ **21 September 2026 (malam) — atas penilaian pemilik.** Implementation Complete; `BE-IGD-050` ✅ (kontrak `0.10.0`). Lima berkas frontend (commit `c941012ac`); **eslint 0 error**, unit test berkas task **14/14** (suite penuh 1420/1429; 9 gagal di luar cakupan). **`npm run build` dan uji layar dijalankan pemilik, dilaporkan lulus** (pernyataan pemilik; keluaran build dan rincian skenario tidak dilampirkan; artefak `.next` 16:03 diperiksa agent). `fail-open` diputuskan pemilik. `IGD-OQ-093` `open` tidak tertutup. Tanpa UAT. [Laporan](../task/report/frontend/FE-IGD-034.md) | [R3.11](#r311-gelombang-21-september-2026-sore--pra-cek-episode-ganda-dan-nama-pelaku) |
-| `FE-IGD-035` | Daftar Menunggu Triage membaca satu sumber (`triage-queue`) — `IGD-DEC-139` | tanpa tanda — menunggu `BE-IGD-054` | [R3.12](#r312-gelombang-22-september-2026--encounter-first-dan-dokter-jaga-sisi-layar) |
-| `FE-IGD-036` | Mulai Triage dan Tangani Segera melahirkan kunjungan; loket berhenti membuat kunjungan — `IGD-DEC-139`, `143`, `147`, `151` | tanpa tanda — menunggu `BE-IGD-053`, `BE-IGD-055`, `BE-IGD-059`, `FE-IGD-035`, `FE-IGD-038` | [R3.12](#r312-gelombang-22-september-2026--encounter-first-dan-dokter-jaga-sisi-layar) |
+| `FE-IGD-034` | Pendaftaran IGD memeriksa episode ganda sebelum membuat encounter (`IGD-DEC-138`) | ✅ **Diverifikasi ulang 3 Oktober 2026 (sore)** sesudah kemunduran loket `4520abe64` dipulihkan (commit `521b18a9a`): U1, U2, U6 terbukti pada hasil build ([laporan](../task/report/frontend/FE-IGD-034.md), bagian terakhir). *Sebelumnya:* ✅ **21 September 2026 (malam) — atas penilaian pemilik.** Implementation Complete; `BE-IGD-050` ✅ (kontrak `0.10.0`). Lima berkas frontend (commit `c941012ac`); **eslint 0 error**, unit test berkas task **14/14** (suite penuh 1420/1429; 9 gagal di luar cakupan). **`npm run build` dan uji layar dijalankan pemilik, dilaporkan lulus** (pernyataan pemilik; keluaran build dan rincian skenario tidak dilampirkan; artefak `.next` 16:03 diperiksa agent). `fail-open` diputuskan pemilik. `IGD-OQ-093` `open` tidak tertutup. Tanpa UAT. [Laporan](../task/report/frontend/FE-IGD-034.md) | [R3.11](#r311-gelombang-21-september-2026-sore--pra-cek-episode-ganda-dan-nama-pelaku) |
+| `FE-IGD-035` | Daftar Menunggu Triage membaca satu sumber (`triage-queue`) — `IGD-DEC-139` | ✅ **30 September 2026 — atas penilaian pemilik.** `eslint` 0 error, unit test 19/19; `npm run build` pemilik (artefak cocok); uji layar U1–U10: 7 `PASS`, U9/U10 `PASS` simulasi, **U3 `NOT RUN`** (tanpa data; diserahkan ke UAT). Tanpa UAT. *Sebelumnya: 🟡 pagi hari yang sama* | [FE-IGD-035](../task/report/frontend/FE-IGD-035.md) |
+| `FE-IGD-036` | Mulai Triage dan Tangani Segera melahirkan kunjungan; loket berhenti membuat kunjungan — `IGD-DEC-139`, `143`, `147`, `151` | ✅ **3 Oktober 2026 (akhir)** — uji ulang loket dengan akun Petugas Pendaftaran: 3 dari 3 terbukti (`/admin` `200`). Tanpa UAT. *Sebelumnya:* 🟡 **3 Oktober 2026 (pengerjaan ulang kedua)** — loket ditolak `403` untuk petugas sungguhan (`C4-01`); rute diganti ke `/admin` (`IGD-DEC-182`). Build lulus 15.31; belum: uji ulang dengan akun loket. *Sebelumnya:* ✅ **3 Oktober 2026 (sore)** — uji ulang pada hasil build (`521b18a9a`, build 10.14): 10 dari 10 terbukti pada bukti mentah, termasuk `036-U7a`/`U7b` tanpa guliran skrip, `036-R1`, `036-U1`, `036-U9`. Seluruh 14 skenario kartu terbukti. Tanpa UAT. *Sebelumnya:* 🟡 **3 Oktober 2026** — U7 dan U8 diuji ulang pemilik dan **terbukti**. Pengerjaan ulang agent: pesan galat dialog Mulai Triage digulir otomatis ke pandangan; tanggal bawaan waktu tiba memakai tanggal terdaftar, bukan jam browser UTC; `eslint` 0 error; unit test IGD 91/91. **Belum:** commit, `npm run build` pemilik, uji ulang U7 dan cek loket U1, U9 pada hasil build (source loket berubah sesudah buktinya diambil). *Sebelumnya: 🟡 **2 Oktober 2026** — build terbukti; uji layar **12 dari 14 terbukti** (U1–U6, U9–U14, termasuk lima isian `IGD-DEC-179`). Belum: U7 (tampilan `409` di dialog tidak terekam) dan U8 (dijalankan lewat API, bukan dua tab). Layar dilayani `next dev`. *Sebelumnya: 🟡 **1 Oktober 2026 — termasuk pengerjaan ulang `IGD-DEC-179`.** Dialog Mulai Triage memuat lima isian opsional (lokasi kedatangan, lokasi pasien ditemukan, lokasi trauma, waktu trauma, catatan kunjungan) dan mengirimnya ke `start-triage`: 3 berkas, +90 baris; eslint 0 error; tanpa unit test atas perintah pemilik. Belum: `npm run build` dan uji layar U1–U14 (pemilik); delta `BE-IGD-055` 🟡 harus di-build lebih dulu. *Sebelumnya: 🟡 **1 Oktober 2026** — Implementation Complete (17 berkas: 13 source diubah, 1 baru, 3 test); eslint 0 error; unit test terkait 70/70. Belum: `npm run build` dan uji layar U1–U9 (pemilik). Rilis menunggu `BE-IGD-059` aktif. [Laporan](../task/report/frontend/FE-IGD-036.md). *Sebelumnya: tanpa tanda*** | [R3.12](#r312-gelombang-22-september-2026--encounter-first-dan-dokter-jaga-sisi-layar) |
 | `FE-IGD-037` | Pemilih Dokter Penanggung Jawab IGD menawarkan dokter jaga, dengan override beralasan — `IGD-DEC-141` | ⛔ `BE-IGD-056` (⛔ `IGD-OQ-102`, `IGD-OQ-103`); isi kartu dibekukan | [R3.12](#r312-gelombang-22-september-2026--encounter-first-dan-dokter-jaga-sisi-layar) |
-| `FE-IGD-038` | Loket mengirim alasan pendaftaran ganda ke pintu encounter; pra-cek mengenali encounter *Menunggu Triage* — `IGD-DEC-145` — **baru** | tanpa tanda — menunggu `BE-IGD-053`; dirilis bersama `BE-IGD-053` | [R3.12](#r312-gelombang-22-september-2026--encounter-first-dan-dokter-jaga-sisi-layar) |
-| `FE-IGD-039` | Aksi *Pergi sebelum ditriage* pada daftar Menunggu Triage — `IGD-DEC-142` — **baru** | tanpa tanda — menunggu `BE-IGD-057`, `FE-IGD-035` | [R3.12](#r312-gelombang-22-september-2026--encounter-first-dan-dokter-jaga-sisi-layar) |
-| `FE-IGD-040` | Panel waktu tiba pada Detail triage — `IGD-DEC-147`, `152`, `159`, `160` — **baru** | tanpa tanda — menunggu `BE-IGD-058` | [R3.12](#r312-gelombang-22-september-2026--encounter-first-dan-dokter-jaga-sisi-layar) |
-| `FE-IGD-041` | Saringan dan penanda "menunggu penutupan" pada daftar kunjungan IGD — `IGD-DEC-164`, `168` — **baru** | R3.13.1 | tanpa tanda — menunggu `BE-IGD-063` | — |
+| `FE-IGD-038` | Loket mengirim alasan pendaftaran ganda ke pintu encounter; pra-cek mengenali encounter *Menunggu Triage* — `IGD-DEC-145` — **baru** | ✅ **Diverifikasi ulang 3 Oktober 2026 (sore)** sesudah kemunduran loket `4520abe64` dipulihkan (commit `521b18a9a`): U2, U3 terbukti pada hasil build ([laporan](../task/report/frontend/FE-IGD-038.md), bagian terakhir). *Sebelumnya:* ✅ **1 Oktober 2026** — build pemilik berhasil; uji layar U1–U6 terbukti 6 dari 6 pada bukti mentah (JSON, skrip, tangkapan layar diperiksa agent; layar dilayani `next dev`); unit test 28/28; eslint 0 error. Kriteria 9 `BE-IGD-053` terbukti lewat layar. Dirilis bersama `BE-IGD-053` ✅. Tanpa UAT | [FE-IGD-038](../task/report/frontend/FE-IGD-038.md) |
+| `FE-IGD-039` | Aksi *Pergi sebelum ditriage* pada daftar Menunggu Triage — `IGD-DEC-142` — **baru** | ✅ **2 Oktober 2026** — build pemilik; uji layar U1–U6 **6 dari 6** pada bukti mentah. Layar dilayani `next dev`. Tanpa UAT. *Sebelumnya: 🟡 **1 Oktober 2026** — Implementation Complete (7 berkas); eslint 0 error; unit test terkait 73/73; batas alasan 250 (`IGD-DEC-178`). Belum: `npm run build` dan uji layar U1–U6 (pemilik). [Laporan](../task/report/frontend/FE-IGD-039.md). *Sebelumnya: tanpa tanda** | [R3.12](#r312-gelombang-22-september-2026--encounter-first-dan-dokter-jaga-sisi-layar) |
+| `FE-IGD-040` | Panel waktu tiba pada Detail triage — `IGD-DEC-147`, `152`, `159`, `160` — **baru** | ✅ **3 Oktober 2026** — U4, U5, U6 diuji ulang pemilik dan **terbukti** pada bukti mentah; ketujuh skenario kini terbukti. Build pemilik 3 Oktober 09.46, sesudah suntingan source terakhir. Layar dilayani `next dev`. Tanpa UAT. *Sebelumnya: 🟡 **2 Oktober 2026** — build terbukti; uji layar 4 terbukti (U1, U2, U3, U7), U6 sebagian, **U4 dan U5 belum** (U4 diuji dengan waktu masa depan `400`, bukan `409`; U5 tidak memperlihatkan penahanan simpan). Layar dilayani `next dev`. *Sebelumnya: 🟡 **1 Oktober 2026** — Implementation Complete (9 berkas: 7 source diubah, 1 panel baru, 1 test); eslint 0 error; unit test terkait 79/79. Belum: `npm run build` dan uji layar U1–U7 (pemilik). [Laporan](../task/report/frontend/FE-IGD-040.md). *Sebelumnya: tanpa tanda** | [R3.12](#r312-gelombang-22-september-2026--encounter-first-dan-dokter-jaga-sisi-layar) |
+| `FE-IGD-041` | Saringan dan penanda "menunggu penutupan" pada daftar kunjungan IGD — `IGD-DEC-164`, `168` — **baru** | ✅ **SELESAI 4 Oktober 2026** — uji layar U2, U6, U7, R pada hasil build 11.46 (standalone, 1440 × 900, akun Perawat IGD): 4 dari 4 terbukti pada bukti mentah; penanda utuh di dalam pembungkus pada 10 dari 10 baris; dua pemeriksaan ketat gagal karena lebar nama pasien uji (masalah lama, kolom AKSI terdorong keluar pada nama panjang). Bukti diterima dengan penyimpangan tercatat (`IGD-DEC-188`). Tanpa UAT. *Sebelumnya:* 🟡 **3 Oktober 2026 (pengerjaan ulang tata letak)** — penanda dipindah ke bawah lencana STATUS KUNJUNGAN, kolom PENUTUPAN dihapus, lebar kolom ditata ulang (4 berkas); harness 1440 piksel: penanda utuh, tabel luber 0 piksel dengan nama biasa; `eslint` 0 error; unit test IGD 91/91; `npm run build` lulus 17.03 (465/465 halaman, 0 warning). **Belum:** uji layar U2, U6, U7 revisi pada hasil build. *Sebelumnya: 🟡 **2 Oktober 2026** — build terbukti; uji layar 4 terbukti (U1, U3, U4, U5), U2 sebagian, **U6 dan U7 belum**. Kolom PENUTUPAN terdorong ke luar layar pada lebar 1440 piksel (kriteria 2). Layar dilayani `next dev`. *Sebelumnya: 🟡 **1 Oktober 2026** — Implementation Complete (4 berkas: 3 diubah, 1 util baru; `eslint` 0 error; tanpa unit test atas perintah pemilik 1 Oktober 2026); belum: `npm run build` dan uji layar U1–U7, sesudah build `BE-IGD-063` 🟡. *Sebelumnya: tanpa tanda — menunggu `BE-IGD-063` (R3.13.1). *Baris ini semula memuat satu kolom lebih; dirapikan 30 September 2026**** | [FE-IGD-041](../task/report/frontend/FE-IGD-041.md) |
+| `FE-IGD-042` | Kalimat konfirmasi aksi dan tombol Eskalasi mengikuti aturan penutupan kunjungan — `IGD-DEC-171`, `172`, `177` — **baru 30 September 2026** | ✅ **SELESAI 4 Oktober 2026** — uji layar pada hasil build 11.46 (1440 × 900, akun Perawat IGD): acceptance 10–13 5 dari 5, regresi U1–U8 8 dari 8 terbukti pada bukti mentah dan log backend; tiga JSON `FAIL` karena kekeliruan skrip penguji. Bukti diterima dengan penyimpangan tercatat (`IGD-DEC-188`). Unit test dikecualikan atas perintah pemilik. Tanpa UAT. *Sebelumnya:* 🟡 **Pengerjaan ulang 4 Oktober 2026** (`IGD-DEC-187`) — 2 berkas (+22: konstanta `disabledWhenVisitEnded` + kalimat aturan 18, util `isVisitEnded`); nol JSX, nol CSS. `eslint` 0 error, 0 warning; uji IGD 91/91; `npm run build` agent lulus 11.46 (465/465, 0 warning); server standalone port 3000 dari hasil build itu. Acceptance 10–13 terpetakan ke source; **belum:** uji layar `042-U9`…`U13` dan regresi U1–U8 ([panduan uji gabungan `MVP-8`](../testing/2026-10-04-panduan-uji-gabungan-mvp-8.md)). *Sebelumnya: 🟡 **dibuka ulang 3 Oktober 2026** (`IGD-DEC-187`, kontrak `IGD-DEC-186`) — acceptance 10–13 belum dikerjakan.* *Sebelumnya: ✅ **2 Oktober 2026** — build pemilik; uji layar U1–U8 **8 dari 8** pada bukti mentah. Layar dilayani `next dev`. Tanpa UAT. *Sebelumnya: 🟡 **1 Oktober 2026** — Implementation Complete (6 berkas: 5 diubah, 1 util baru; `eslint` 0 error; tanpa unit test atas perintah pemilik 1 Oktober 2026); belum: `npm run build` dan uji layar U1–U8, satu siklus dengan uji `BE-IGD-061` 🟡. *Sebelumnya: tanpa tanda — menunggu `BE-IGD-061` (R3.13.1)*** | [FE-IGD-042](../task/report/frontend/FE-IGD-042.md) |
 
 `FE-IGD-019` sebelumnya belum punya kartu. Kartunya ditambahkan 15 September 2026 pada bagian
 R3.5, tepat sebelum `FE-IGD-022`.
@@ -1263,25 +1270,24 @@ flowchart LR
     classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
 
     subgraph backend["Prasyarat backend — backend-roadmap.md R3.13"]
-        BEIGD053["BE-IGD-053<br/>Penjaga episode di pintu encounter"]:::luar
-        BEIGD054["BE-IGD-054<br/>Daftar Menunggu Triage terpadu"]:::luar
-        BEIGD055["BE-IGD-055<br/>Kunjungan lahir lewat Mulai Triage"]:::luar
+        BEIGD053["✅ BE-IGD-053<br/>Penjaga episode di pintu encounter"]:::luar
+        BEIGD054["✅ BE-IGD-054<br/>Daftar Menunggu Triage terpadu"]:::luar
+        BEIGD055["✅ BE-IGD-055<br/>Kunjungan lahir lewat Mulai Triage"]:::luar
         BEIGD056["⛔ BE-IGD-056<br/>Dokter layak dan override"]:::luar
-        BEIGD057["BE-IGD-057<br/>Pasien pergi sebelum ditriage"]:::luar
-        BEIGD058["BE-IGD-058<br/>Waktu tiba satu jalur, identitas terkunci"]:::luar
-        BEIGD059["BE-IGD-059<br/>Jalur umum Registrasi dibatasi"]:::luar
+        BEIGD057["✅ BE-IGD-057<br/>Pasien pergi sebelum ditriage"]:::luar
+        BEIGD058["✅ BE-IGD-058<br/>Waktu tiba satu jalur, identitas terkunci"]:::luar
+        BEIGD059["✅ BE-IGD-059<br/>Jalur umum Registrasi dibatasi"]:::luar
     end
 
     subgraph frontendlain["Prasyarat frontend — gelombang lain yang sudah selesai"]
         FEIGD034["✅ FE-IGD-034<br/>Pra-cek episode ganda"]:::luar
     end
 
-    FEIGD035["FE-IGD-035<br/>Daftar triage membaca satu sumber"]:::belum
-    FEIGD038["FE-IGD-038<br/>Loket kirim alasan ke pintu encounter"]:::belum
-    FEIGD040["FE-IGD-040<br/>Panel waktu tiba Detail triage"]:::belum
-    FEIGD041["FE-IGD-041<br/>Saringan menunggu penutupan"]:::belum
-    FEIGD039["FE-IGD-039<br/>Aksi pergi sebelum ditriage"]:::belum
-    FEIGD036["FE-IGD-036<br/>Mulai Triage; loket berhenti membuat kunjungan"]:::belum
+    FEIGD035["✅ FE-IGD-035<br/>Daftar triage membaca satu sumber"]:::selesai
+    FEIGD038["✅ FE-IGD-038<br/>Loket kirim alasan ke pintu encounter"]:::selesai
+    FEIGD040["✅ FE-IGD-040<br/>Panel waktu tiba Detail triage"]:::selesai
+    FEIGD039["✅ FE-IGD-039<br/>Aksi pergi sebelum ditriage"]:::selesai
+    FEIGD036["✅ FE-IGD-036<br/>Mulai Triage; loket berhenti membuat kunjungan"]:::selesai
     FEIGD037["⛔ FE-IGD-037<br/>Pemilih dokter jaga dan override"]:::terblokir
 
     BEIGD054 --> FEIGD035
@@ -1298,7 +1304,8 @@ flowchart LR
     BEIGD056 --> FEIGD037
 ```
 
-Jumlah panah: **12**, sama dengan isi kolom `Dependency` keenam kartu (1 + 2 + 1 + 2 + 5 + 1). Node: 14.
+Jumlah panah: **12**, sama dengan isi kolom `Dependency` keenam kartu (1 + 2 + 1 + 2 + 5 + 1). Node: 14. *30 September
+2026: node `FE-IGD-041` yang semula tergambar di sini tanpa panah prasyarat dipindahkan ke grafik R3.13.1.1.*
 
 ### R3.12.2 Gelombang eksekusi
 
@@ -1327,11 +1334,11 @@ encounter tanpa kunjungan dapat ditutup lewat jalur umum Registrasi tanpa pelaku
 *Contoh.* Pukul 09.35 RAYYAN didaftarkan (encounter saja). Pukul 09.40 petugas lain mendaftarkannya lagi: tanpa
 penjaga, encounter kedua lahir, dan daftar triage memuat RAYYAN dua kali.
 
-### `FE-IGD-035` — Daftar Menunggu Triage membaca satu sumber (`triage-queue`)
+### ✅ `FE-IGD-035` — Daftar Menunggu Triage membaca satu sumber (`triage-queue`)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Tanpa tanda — menunggu `BE-IGD-054` (kontrak selesai **dan** build terverifikasi) |
+| **Status** | ✅ **SELESAI 30 September 2026 — atas penilaian pemilik.** Implementation Complete (tujuh berkas frontend, belum di-commit). `eslint` tujuh berkas **0 error, 0 warning**; unit test `emergency-visit-status.test.mjs` **19/19 lulus** (13 kasus baru); test IGD terkait 70/70 lulus; suite penuh 1805/1812 (7 gagal di rawat inap, menu Bank Darah, dan petty cash — di luar cakupan). Nol CSS baru; nol baris komentar baru. **`npm run build` dijalankan pemilik** (artefak `BUILD_ID` 11.30.28 sesudah perubahan source terakhir, memuat kode baru). **Uji layar U1–U10 dijalankan pemilik** lewat Playwright 12.14–12.15: 7 `PASS`, U9 dan U10 `PASS` lewat simulasi `page.route`, **U3 `NOT RUN`** karena dev tidak punya pasien tanpa identitas (kriteria 3 dibuktikan unit test; tampilan diserahkan ke UAT, pola `FE-IGD-027`). UAT belum dijalankan. **Jangan dirilis sendirian** — tunggu `FE-IGD-036`/`039`. Bukti: [laporan](../task/report/frontend/FE-IGD-035.md). *Sebelumnya: 🟡 30 September 2026 pagi; tanpa tanda — menunggu `BE-IGD-054`* |
 | **Outcome** | Perawat triage melihat pasien yang baru didaftarkan pada daftar *Menunggu Triage* walau kunjungannya belum lahir, dan waktu "Terdaftar" tidak pernah tampil sebagai waktu "Tiba" |
 | **Slice** | `S2` · `EPIC IGD-11` · `MVP-7` |
 | **Requirement** | `FR-IGD-070` (sisi layar) |
@@ -1371,11 +1378,11 @@ penjaga, encounter kedua lahir, dan daftar triage memuat RAYYAN dua kali.
 
 **DoD.** Acceptance 1–7; laporan tracked; roadmap dan traceability diperbarui.
 
-### `FE-IGD-036` — Mulai Triage dan Tangani Segera melahirkan kunjungan; loket berhenti membuat kunjungan
+### ✅ `FE-IGD-036` — Mulai Triage dan Tangani Segera melahirkan kunjungan; loket berhenti membuat kunjungan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Tanpa tanda — menunggu `BE-IGD-053`, `BE-IGD-055`, `BE-IGD-059`, `FE-IGD-035`, `FE-IGD-038`. Keputusan yang dulu menahan isinya (W1, `IGD-OQ-100`, U1) sudah dijawab `IGD-DEC-147`, `143`, `151`, `161` |
+| **Status** | ✅ **SELESAI — 3 Oktober 2026 (akhir).** Uji ulang loket dengan akun Petugas Pendaftaran sungguhan pada build 15.31: `C4-01`, `038-U2`, `036-U9` terbukti pada bukti mentah — `POST /patient-encounters/admin` `200`, nol panggilan rute kiosk. Tanpa UAT. Bukti: [laporan](../task/report/frontend/FE-IGD-036.md), bagian *Pemeriksaan bukti uji ulang loket*. *Sebelumnya:* 🟡 **SEBAGIAN — 3 Oktober 2026 (pengerjaan ulang kedua).** Uji izin peran nyata `C4-01`: loket memanggil rute kiosk `POST /patient-encounters` sehingga petugas loket ditolak `403`. Rute diganti ke `/patient-encounters/admin` (`IGD-DEC-182`, catatan API §8.1); `eslint` 0 error, unit test IGD 91/91. Build lulus 3 Oktober 2026 15.31 (465/465, 0 warning). **Belum:** uji ulang `C4-01`, `038-U2`, `036-U9` dengan akun Petugas Pendaftaran. Bukti: [laporan](../task/report/frontend/FE-IGD-036.md) bagian 11. *Sebelumnya:* ✅ **SELESAI — 3 Oktober 2026 (sore).** Uji ulang pada **hasil build** (`npm run start`, commit frontend `521b18a9a`, build 10.14) lewat agen penguji, diperiksa agent pada bukti mentah: **10 dari 10 terbukti** — `036-U7a`/`U7b` (`409`, kotak pesan tergulir otomatis dan terlihat utuh pada 1366×768 dan 1280×720 tanpa guliran skrip, daftar dimuat ulang), `036-R1` (tanggal bawaan kembali ke tanggal terdaftar, nol `POST`), `036-U1`/`U9` (satu `POST /patient-encounters`, nol `POST /emergency-visits`, langkah Verifikasi *Emergency (2)*), serta loket `FE-IGD-038` U2/U3 dan `FE-IGD-034` U1/U2/U6. Seluruh 14 skenario kartu terbukti; acceptance 1–7 terpenuhi (`eslint` 0 error, unit test IGD 91/91, build agent 465/465 halaman 0 warning). Tanpa UAT. Bukti: [laporan](../task/report/frontend/FE-IGD-036.md), bagian *Pemeriksaan bukti uji ulang — 3 Oktober 2026 (sore)*. *Sebelumnya:* 🟡 **SEBAGIAN — 3 Oktober 2026.** Uji ulang pemilik: **U7 terbukti** (`409` dengan kalimat server tampil di dialog) dan **U8 terbukti** (dua tab: `201` lalu `200`, kunjungan `IGD-261003021124-4C83AE` yang sama). Ke-14 skenario pernah terbukti. **Kemunduran loket:** commit `4520abe64` mengembalikan `verification-step.jsx` ke versi 30 Agustus (*Encounter Type: Outpatient*, waktu tiba di loket, peringatan pendaftaran ganda hilang); dipulihkan pemilik di working tree, belum di-commit. **Pengerjaan ulang agent** (laporan bagian 10): pesan galat dialog Mulai Triage digulir otomatis ke pandangan; tanggal bawaan waktu tiba memakai tanggal terdaftar, bukan jam browser UTC; `eslint` 0 error; unit test IGD 91/91. **Belum:** commit; `npm run build` pemilik; uji ulang U7 dan cek loket U1, U9 pada hasil build, karena source loket berubah sesudah buktinya diambil (`8cc155e02`, `4520abe64`). Bukti: [laporan](../task/report/frontend/FE-IGD-036.md). *Sebelumnya:* 🟡 **SEBAGIAN — 2 Oktober 2026.** Build pemilik terbukti. Uji layar: **12 dari 14 terbukti** pada bukti mentah (U1–U6, U9–U14), termasuk lima isian `IGD-DEC-179`. **Belum terbukti:** U7 (tangkapan layar diambil saat permintaan masih berjalan; `409` tercatat di log backend, tampilannya di dialog tidak terekam) dan U8 (dijalankan lewat dua panggilan API, bukan dua tab). Bukti: [laporan](../task/report/frontend/FE-IGD-036.md), bagian *Pemeriksaan bukti uji gabungan*. *Sebelumnya: 🟡 **SEBAGIAN — 1 Oktober 2026 (Implementation Complete, termasuk pengerjaan ulang `IGD-DEC-179`).** Selisih "ruas kunjungan tidak dapat diisi" **ditutup**: dialog Mulai Triage kini memuat lima isian opsional — lokasi kedatangan, lokasi pasien ditemukan, lokasi trauma, waktu trauma, catatan kunjungan — yang dikirim ke `POST /start-triage` hanya bila terisi. Tiga berkas (konstanta +9, pembentuk payload +10, dialog +71); nol CSS, nol slice, nol baris komentar; `eslint` 0 error; tanpa unit test atas perintah pemilik. Tangani Segera tetap tanpa isian. **Belum:** `npm run build` dan uji layar U1–U14. **Dependency:** delta `BE-IGD-055` 🟡 (belum di-build). **Keterbatasan:** nilai tersimpan belum ditampilkan layar mana pun dan tidak dapat diubah sesudah kunjungan lahir (laporan bagian 9.4). Bukti: [laporan bagian 9](../task/report/frontend/FE-IGD-036.md). *Sebelumnya: 🟡 **SEBAGIAN — 1 Oktober 2026 (Implementation Complete).** 17 berkas frontend (13 source diubah, 1 dialog baru, 3 test); nol CSS baru; nol baris komentar baru. Loket hanya memanggil `POST /patient-encounters`; isian waktu tiba dan ruas kunjungan dihapus dari loket; baris tanpa kunjungan punya **Mulai Triage** (dialog, waktu tiba wajib terisi awal waktu terdaftar) dan **Tangani Segera** (tanpa isian) lewat `POST /start-triage`. `eslint` berkas task **0 error** (3 warning lama); unit test empat berkas terkait **70/70**; suite penuh 2166/2172 (6 gagal di Hemodialisa, Bank Darah, petty cash — di luar cakupan). Test usang diganti: empat kasus payload kunjungan loket → tiga kasus baru; tujuh kasus `start-triage` ditambah. **Belum:** `npm run build` dan uji layar U1–U9 (kriteria 7 sebagian; kriteria 1–6 terbukti pada source dan unit test). **Selisih yang perlu diketahui pemilik:** lokasi kedatangan, lokasi ditemukan, lokasi trauma, dan waktu trauma tidak lagi dapat diisi — kontrak `start-triage` tidak punya ruasnya. **Rilis** menunggu `BE-IGD-059` aktif, bersama `FE-IGD-035` dan `FE-IGD-039`. Bukti: [laporan](../task/report/frontend/FE-IGD-036.md). *Sebelumnya: tanpa tanda — menunggu `BE-IGD-053`, `BE-IGD-055`, `BE-IGD-059`, `FE-IGD-035`, `FE-IGD-038`. Keputusan yang dulu menahan isinya (W1, `IGD-OQ-100`, U1) sudah dijawab `IGD-DEC-147`, `143`, `151`, `161`*** |
 | **Outcome** | Petugas loket cukup mendaftarkan pasien. Perawat triage menekan **Mulai Triage** (mengisi waktu tiba) atau **Tangani Segera** (tanpa isian), dan kunjungan IGD lahir saat itu. Waktu tiba tidak lagi jatuh diam-diam ke jam komputer loket |
 | **Slice** | `S3`, `S8` · `EPIC IGD-11` · `MVP-7` |
 | **Requirement** | `FR-IGD-069`, `FR-IGD-075`, `FR-IGD-076`, `FR-IGD-077` (sisi layar), `FR-IGD-085` |
@@ -1451,11 +1458,11 @@ dipakai (penjaga backend, `FE-IGD-038`, dan `BE-IGD-059` aktif lebih dulu).
 disusun ulang `plan-module-delivery` sesudah `IGD-OQ-102`/`103` dijawab. Riwayat penugasan dan tampilan "Data
 historis" dari `FE-IGD-027` tidak disentuh; penetapan dokter berjalan seperti hari ini.
 
-### `FE-IGD-038` — Loket mengirim alasan pendaftaran ganda ke pintu encounter; pra-cek mengenali encounter *Menunggu Triage*
+### ✅ `FE-IGD-038` — Loket mengirim alasan pendaftaran ganda ke pintu encounter; pra-cek mengenali encounter *Menunggu Triage*
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Tanpa tanda — **baru, direncanakan 22 September 2026 (penutup)**. Menunggu `BE-IGD-053` (build terverifikasi); **dirilis bersama** `BE-IGD-053` |
+| **Status** | ✅ **SELESAI — 1 Oktober 2026.** `npm run build` pemilik berhasil (`.next/BUILD_ID` 10.23, sesudah suntingan source terakhir); uji layar U1–U6 dijalankan pemilik lewat agen penguji, 6 dari 6 terbukti pada bukti mentah — JSON, skrip, dan delapan tangkapan layar diperiksa agent; unit test berkas task 28/28; eslint berkas task 0 error; nol CSS baru. **Catatan:** layar uji dilayani `next dev`, bukan hasil build; U6 memakai pra-cek yang dicegat skrip, penolakan `409`-nya dari server sungguhan. Kriteria 9 `BE-IGD-053` terbukti lewat layar loket (U1). Dirilis bersama `BE-IGD-053` ✅. Tanpa UAT. Bukti: [laporan](../task/report/frontend/FE-IGD-038.md). *Sebelumnya: tulisan agen penguji "LULUS PENUH (VERIFIED & CLOSED)" diluruskan; 🟡 menunggu build dan uji layar* |
 | **Outcome** | Petugas loket melihat bahwa pasien masih *Menunggu Triage* sebelum mendaftarkannya lagi; pendaftaran ganda yang sah tetap dapat disimpan dengan alasan; penolakan server tampil dengan pesannya |
 | **Slice** | `S1` · `EPIC IGD-11` · `MVP-7` |
 | **Requirement** | `FR-IGD-071`, `FR-IGD-073` (sisi layar) |
@@ -1499,11 +1506,11 @@ sah didaftarkan kedua kalinya, petugas mencentang *pendaftaran kedua memang sah*
 
 **DoD.** Acceptance 1–5; laporan tracked; laporan menyatakan task ini dirilis bersama `BE-IGD-053`.
 
-### `FE-IGD-039` — Aksi *Pergi sebelum ditriage* pada daftar Menunggu Triage
+### ✅ `FE-IGD-039` — Aksi *Pergi sebelum ditriage* pada daftar Menunggu Triage
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Tanpa tanda — **baru, direncanakan 22 September 2026 (penutup)**. Menunggu `BE-IGD-057` dan `FE-IGD-035` |
+| **Status** | ✅ **SELESAI — 2 Oktober 2026.** Build pemilik dan uji layar U1–U6 **6 dari 6** pada bukti mentah. Layar dilayani `next dev`, bukan hasil build. Tanpa UAT. Bukti: [laporan](../task/report/frontend/FE-IGD-039.md), bagian *Pemeriksaan bukti uji gabungan*. *Sebelumnya: 🟡 **SEBAGIAN — 1 Oktober 2026 (Implementation Complete).** Tujuh berkas frontend (enam source, satu test); nol CSS baru; nol baris komentar baru. Tombol **Pergi** pada baris tanpa kunjungan (dari `availableActions`), konfirmasi `ConfirmModal` dengan alasan wajib maksimal **250** karakter (`IGD-DEC-178`), `POST /no-show`, daftar dimuat ulang saat berhasil dan saat `409`. `eslint` berkas task **0 error**; unit test empat berkas terkait **73/73** (tiga kasus baru; kriteria 4 terbukti). **Belum:** `npm run build` dan uji layar U1–U6 (kriteria 5 sebagian; kriteria 1–3 terbukti pada source). Dependency `BE-IGD-057` 🟡 — endpoint terpasang. Bukti: [laporan](../task/report/frontend/FE-IGD-039.md). *Sebelumnya: tanpa tanda — menunggu `BE-IGD-057` dan `FE-IGD-035`. Catatan 1 Oktober 2026: batas isian alasan 250 karakter, bukan 500 (`IGD-DEC-178`) — menggantikan angka pada perilaku yang direncanakan di bawah** |
 | **Outcome** | Perawat triage menandai pasien yang pergi sebelum ditriage langsung dari daftar, dengan alasan; baris itu hilang dari daftar |
 | **Slice** | `S4` · `EPIC IGD-11` · `MVP-7` |
 | **Requirement** | `FR-IGD-079` (sisi layar) |
@@ -1537,11 +1544,11 @@ pukul 10.20–10.35, tidak ada di ruang tunggu"*, dan baris Bu Sari hilang.
 
 **DoD.** Acceptance 1–5; laporan tracked; roadmap dan traceability diperbarui.
 
-### `FE-IGD-040` — Panel waktu tiba pada Detail triage
+### ✅ `FE-IGD-040` — Panel waktu tiba pada Detail triage
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Tanpa tanda — **baru, direncanakan 22 September 2026 (penutup)**. Menunggu `BE-IGD-058` (build terverifikasi) |
+| **Status** | ✅ **SELESAI — 3 Oktober 2026.** Uji ulang pemilik: U4 `409` *"Waktu tiba tidak boleh lebih lambat dari mulai penanganan pukul 09.02 WIB tanggal 02-10-2026."* tampil di bawah isian dan panel tetap kuning; U5 nol permintaan simpan dan kalimat *"Konfirmasi waktu tiba lebih dulu…"* tampil di atas tombol; U6 konfirmasi `200` lalu simpan triage `200` (pada kunjungan bersumber `0` lain, bukan lanjutan U5). **Ketujuh skenario terbukti** pada bukti mentah. `npm run build` pemilik 3 Oktober 09.46, sesudah suntingan source terakhir 09.43. Layar dilayani `next dev`. Tanpa UAT. Bukti: [laporan](../task/report/frontend/FE-IGD-040.md), bagian *Pemeriksaan bukti uji ulang — 3 Oktober 2026*. *Sebelumnya:* 🟡 **SEBAGIAN — 2 Oktober 2026.** Build pemilik terbukti. Uji layar: **4 terbukti** (U1, U2, U3, U7), **1 sebagian** (U6), **2 belum terbukti** (U4, U5). U4 dijalankan dengan waktu di masa depan (`400`), bukan waktu sesudah mulai penanganan (`409`); U5 tidak memperlihatkan penahanan simpan. Bukti: [laporan](../task/report/frontend/FE-IGD-040.md), bagian *Pemeriksaan bukti uji gabungan*. *Sebelumnya: 🟡 **SEBAGIAN — 1 Oktober 2026 (Implementation Complete).** Sembilan berkas frontend (tujuh source diubah, satu panel baru, satu test); nol CSS baru; nol baris komentar baru. Panel kuning untuk sumber `0` (*Waktu tiba belum dikonfirmasi*) dan `1` (*Waktu tiba sementara*) dengan isian terisi awal nilai tercatat dan tombol Konfirmasi (`PATCH …/arrival-time`); baris hijau ringkas beserta nama pengonfirmasi untuk sumber `2`; tampil pada formulir triage **dan** Riwayat Triage; Simpan Pemeriksaan ditahan selagi belum dikonfirmasi. `eslint` berkas task **0 error**; unit test empat berkas terkait **79/79** (enam kasus baru); suite penuh 2175/2181 (6 gagal di modul lain). **Belum:** `npm run build` dan uji layar U1–U7 (kriteria 5 sebagian; kriteria 1–4 terbukti pada source dan unit test). **Catatan:** penahanan simpan berlaku pada formulir triage, tidak pada *Nilai Ulang Pasien*. Bukti: [laporan](../task/report/frontend/FE-IGD-040.md). *Sebelumnya: tanpa tanda — baru, direncanakan 22 September 2026 (penutup); menunggu `BE-IGD-058`** |
 | **Outcome** | Perawat melihat apakah waktu tiba pasien masih sementara, lalu mengonfirmasi atau mengoreksinya sebelum menyimpan triage; koreksi yang mustahil ditolak dengan menyebut peristiwa penghalangnya |
 | **Slice** | `S3` · `EPIC IGD-11` · `MVP-7` |
 | **Requirement** | `FR-IGD-078` (sisi layar) |
@@ -1587,19 +1594,53 @@ amendment desain layar; tidak menahan `FE-IGD-036` maupun `FE-IGD-040`.
 
 ---
 
-## R3.13.1 — `EPIC IGD-13`: saringan menunggu penutupan (`MVP-8`)
+## R3.13.1 — `EPIC IGD-13`: saringan menunggu penutupan dan kalimat aksi penutupan (`MVP-8`)
 
-Satu task frontend untuk gelombang backend R3.14. Approval `IGD-DEC-170` (23 September 2026); kontrak API
-**`0.12.0`** §9.2, desain layar `03-frontend-architecture.md` §14.
+Dua task frontend untuk gelombang backend R3.14. Approval `IGD-DEC-170` (23 September 2026), `IGD-DEC-175`
+(30 September 2026, amandemen observasi), dan `IGD-DEC-186` (3 Oktober 2026, amandemen observasi Dieskalasi);
+kontrak API **`0.14.0`** §9, validation **`0.11.0`** §11.1–§11.2, state **`0.8.0`** §9.5–§9.6 (*sebelumnya
+API `0.13.0`, validation `0.10.0`, state `0.7.0`*); desain layar `03-frontend-architecture.md` §14. `FE-IGD-042`
+ditambahkan 30 September 2026 (`plan-module-delivery`) sebagai pasangan layar `BE-IGD-061`, dengan keputusan tombol
+Eskalasi `IGD-DEC-177`, dan dibuka ulang 3 Oktober 2026 untuk kunjungan yang sudah berakhir (`IGD-DEC-187`).
 
 **Nol butir menu baru dan nol layar baru** (`IGD-DEC-168`) — seluruhnya menumpang layar daftar kunjungan IGD
-yang sudah ada.
+dan ruang kerja pemeriksaan IGD yang sudah ada.
 
-### `FE-IGD-041` — Saringan dan penanda "menunggu penutupan" pada daftar kunjungan IGD
+### R3.13.1.1 Grafik urutan
+
+```mermaid
+flowchart LR
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    subgraph backend14["Prasyarat backend — backend-roadmap.md R3.14"]
+        BEIGD061X["🟡 BE-IGD-061<br/>Penutupan menyusul + observasi pada Disposed"]:::luar
+        BEIGD063X["✅ BE-IGD-063<br/>Saringan menunggu penutupan"]:::luar
+    end
+
+    FEIGD041["✅ FE-IGD-041<br/>Saringan menunggu penutupan"]:::selesai
+    FEIGD042["✅ FE-IGD-042<br/>Kalimat aksi dan tombol Eskalasi"]:::selesai
+
+    BEIGD063X --> FEIGD041
+    BEIGD061X --> FEIGD042
+```
+
+Jumlah panah: **2**, sama dengan isi kolom `Dependency` kedua kartu (1 + 1). Node `FE-IGD-041` **dipindahkan** ke
+grafik ini dari grafik R3.12.1, tempat ia tergambar tanpa panah prasyaratnya.
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | `BE-IGD-063` (build terverifikasi) | `FE-IGD-041` |
+| 1 | `BE-IGD-061` (build terverifikasi) | `FE-IGD-042` — boleh paralel dengan `FE-IGD-041`; berkasnya berbeda |
+
+### ✅ `FE-IGD-041` — Saringan dan penanda "menunggu penutupan" pada daftar kunjungan IGD
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Tanpa tanda — menunggu `BE-IGD-063` |
+| **Status** | ✅ **SELESAI — 4 Oktober 2026.** Uji layar U2, U6, U7, R lewat panduan uji gabungan `MVP-8` pada hasil build 11.46 (standalone, 1440 × 900, akun Perawat IGD): **4 dari 4 terbukti** pada bukti mentah. Kriteria 2: penanda di bawah lencana utuh di dalam pembungkus pada 10 dari 10 baris (tepi kanan 1.359 ≤ 1.397 piksel), nol kolom PENUTUPAN; saringan dengan pencarian dan paginasi tetap tersaring; mengubah saringan kembali ke halaman 1. Dua pemeriksaan ketat panduan gagal karena lebar nama pasien uji, bukan task ini: tabel luber 119 piksel, `scrollWidth` berselisih 7 piksel. **Temuan lama untuk pemilik:** dengan nama sepanjang data uji, kolom AKSI terdorong ke luar bidang pandang pada 1440 piksel. Acceptance 1–7 terpenuhi. Agen penguji mengubah Akses Role Perawat IGD; pemilik mengesahkan dan menerima bukti (`IGD-DEC-188`). Tanpa UAT. Bukti: [laporan](../task/report/frontend/FE-IGD-041.md), bagian *Pemeriksaan bukti uji gabungan `MVP-8`*. *Sebelumnya:* 🟡 **SEBAGIAN — 3 Oktober 2026 (pengerjaan ulang tata letak).** Penanda *Menunggu penutupan* dipindah ke bawah lencana STATUS KUNJUNGAN dan kolom PENUTUPAN dihapus; `minWidth` TANGGAL MASUK 180→150, STATUS KUNJUNGAN 170→210, AKSI 150→130 (jumlah 1.102 piksel, sebelumnya 1.392); `shouldShowClosureColumn` dihapus; satu kelas CSS `.statusCell` berbasis token. Pengukuran harness (CSS asli, Chromium): pada 1440 piksel penanda utuh di dalam bidang pandang dan tabel luber 0 piksel dengan nama biasa (susunan 1 Oktober luber 288, penanda terpotong). `eslint` 0 error, 0 warning; unit test IGD 91/91. **Kriteria 2 terpenuhi pada source dan harness; belum pada uji layar.** Kriteria 7 terpenuhi: `npm run build` agent lulus 17.03 (465/465 halaman, 0 error, 0 warning; chunk hasil build memuat perubahan ini); server standalone port 3000 dinyalakan ulang dari hasil build itu. **Belum:** uji layar U2, U6, U7 revisi pada hasil build. Bukti: [laporan](../task/report/frontend/FE-IGD-041.md), bagian *Pengerjaan ulang 3 Oktober 2026*. *Sebelumnya: 🟡 **SEBAGIAN — 2 Oktober 2026.** Build pemilik terbukti. Uji layar: **4 terbukti** (U1, U3, U4, U5), **1 sebagian** (U2), **2 belum terbukti** (U6, U7). **Kriteria 2 belum terpenuhi pada bukti:** pada lebar 1440 piksel kolom PENUTUPAN terdorong ke luar bidang pandang, sehingga penanda dan alasannya tidak terbaca tanpa menggulir ke samping. Bukti: [laporan](../task/report/frontend/FE-IGD-041.md), bagian *Pemeriksaan bukti uji gabungan*. *Sebelumnya: 🟡 **SEBAGIAN — 1 Oktober 2026 (Implementation Complete).** Empat berkas, nol baris komentar, nol CSS, nol komponen/route/menu baru: konstanta saringan dan kalimat, util baru `emergency-assessment-list.utils.js`, thunk `fetchAssessmentPatients` (+2/−11 — parameter dibentuk util, ditambah `awaitingClosure`), layar daftar Pengkajian Pasien IGD (+53/−3 — pilihan *Penutupan Kunjungan*, kolom PENUTUPAN bersyarat, baris jumlah, kalimat kosong). `eslint` 0 error, 0 warning; unit test tidak dipakai atas perintah pemilik 1 Oktober 2026. Kriteria 6 terpenuhi; kriteria 1–5 terpetakan ke source. **Belum:** `npm run build` (kriteria 7) dan uji layar U1–U7, yang menunggu build `BE-IGD-063` 🟡. **Catatan:** "layar daftar kunjungan IGD" dibaca sebagai daftar Pengkajian Pasien IGD — satu-satunya layar yang membaca `GET /emergency-visits`; kolom PENUTUPAN hanya tampil saat saringan aktif atau halaman memuat baris tertahan. Bukti: [laporan](../task/report/frontend/FE-IGD-041.md). *Sebelumnya: Tanpa tanda — menunggu `BE-IGD-063`*** |
 | **Outcome** | Petugas dapat menyaring daftar kunjungan untuk melihat pasien yang tindak lanjutnya sudah dilaksanakan tetapi kunjungannya belum tertutup, langsung dengan alasan apa yang masih menahan |
 | **Slice** | `S5` · `EPIC IGD-13` · `MVP-8` |
 | **Requirement** | `FR-IGD-091` |
@@ -1624,3 +1665,89 @@ yang sudah ada.
 | 7 | `npm run lint` dan `npm run build` bersih | Keluaran perintah | — |
 
 **DoD.** Acceptance 1–7; laporan tracked.
+
+---
+
+### ✅ `FE-IGD-042` — Kalimat konfirmasi aksi dan tombol Eskalasi mengikuti aturan penutupan kunjungan
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **SELESAI — 4 Oktober 2026.** Uji layar lewat panduan uji gabungan `MVP-8`, satu siklus dengan `BE-IGD-061`, **pada hasil build** 11.46 (standalone, 1440 × 900, akun Perawat IGD): acceptance 10–13 (`042-U9`…`U13`) **5 dari 5** dan regresi U1–U8 **8 dari 8** terbukti pada bukti mentah. Tiga JSON berputusan `FAIL` karena skrip penguji (selector keterangan; pencocokan huruf besar-kecil) — perilakunya terbukti pada data mentah dan PNG; catatan jaringan `042-U13` disusun ulang penguji, peristiwanya dibuktikan log backend (`CompleteByDisposition` 14.01.31). Acceptance 1–13 terpenuhi; kriteria 9 dengan pengecualian unit test atas perintah pemilik 1 Oktober 2026. **Temuan konfigurasi:** akun Perawat IGD ditolak `403` untuk riwayat triage, tanda vital, pengkajian, dan jenis tindak lanjut di Ruang Kerja. Agen penguji mengubah Akses Role Perawat IGD; pemilik mengesahkan dan menerima bukti (`IGD-DEC-188`). Tanpa UAT. Bukti: [laporan](../task/report/frontend/FE-IGD-042.md), bagian *Pemeriksaan bukti uji gabungan `MVP-8`*. *Sebelumnya:* 🟡 **SEBAGIAN — pengerjaan ulang 4 Oktober 2026** (`build-module-frontend`, `IGD-DEC-187`). Konstanta: `disabledWhenVisitEnded` pada *Selesaikan* (Aktif dan Dieskalasi) dan *Eskalasi*, `OBSERVATION_VISIT_ENDED_HINT` berisi kalimat validation §11.2 aturan 18 (+6). Util: `isVisitEnded` (`Completed`/`Cancelled`) diperiksa sebelum cabang `Disposed` di `resolveObservationStatusActions` (+16). Tab Observasi tidak disentuh — tombol `disabled`, penjaga `openAction`, dan keterangan `formHint` yang sudah ada menangani daftar aksi baru. Nol JSX, nol CSS, nol komentar baru. `eslint` 0 error, 0 warning; uji IGD 91/91; pemeriksaan pemilih aksi 32 kombinasi lulus (skrip sementara, bukan unit test); `npm run build` agent **lulus** 11.46 (465/465 halaman, 0 warning; chunk memuat perubahan); server standalone port 3000 dari hasil build itu. Acceptance 10–13 terpetakan ke source. **Belum:** uji layar acceptance 10–13 (`042-U9`…`U13`) dan regresi U1–U8 pada hasil build, satu siklus dengan `BE-IGD-061` S13–S19 — [panduan uji gabungan `MVP-8`](../testing/2026-10-04-panduan-uji-gabungan-mvp-8.md). Bukti: [laporan](../task/report/frontend/FE-IGD-042.md), bagian *Pengerjaan ulang 4 Oktober 2026*. *Sebelumnya:* 🟡 **DIBUKA ULANG — 3 Oktober 2026** (`plan-module-delivery`; `IGD-DEC-187`, kontrak `IGD-DEC-186`). Pada kunjungan `Completed`/`Cancelled`, *Selesaikan* dan *Eskalasi* observasi tampil nonaktif beserta keterangan kalimat validation §11.2 aturan 18; *Batalkan* tetap aktif. Acceptance 10–13 **belum dikerjakan**; acceptance 1–9 tetap terpenuhi menurut bukti 2 Oktober. Statusnya turun dari ✅ karena kartu bertambah acceptance, bukan karena pekerjaan lama batal. *Sebelumnya:* ✅ **SELESAI — 2 Oktober 2026.** Build pemilik dan uji layar U1–U8 **8 dari 8** pada bukti mentah (tangkapan layar dan teks modal). Layar dilayani `next dev`, bukan hasil build. Tanpa UAT. Bukti: [laporan](../task/report/frontend/FE-IGD-042.md), bagian *Pemeriksaan bukti uji gabungan*. *Sebelumnya: 🟡 **SEBAGIAN — 1 Oktober 2026 (Implementation Complete).** Enam berkas, nol baris komentar, nol CSS, nol komponen/route/menu baru: konstanta aksi (kalimat *Jalankan* diganti; *Selesaikan* + kalimat keadaan `Disposed`; *Eskalasi* + penanda nonaktif), util baru `emergency-assessment-status-action.utils.js`, hook detail (`refreshVisit`), view detail, tab Observasi (+37/−8), dan tab Tindak Lanjut (+3/−1). `eslint` 0 error (1 warning lama); unit test tidak dipakai atas perintah pemilik 1 Oktober 2026. Kriteria 8 terpenuhi; kriteria 1–7 terpetakan ke source. **Belum:** `npm run build` (kriteria 9) dan uji layar U1–U8, yang menunggu build `BE-IGD-061` 🟡. **Tambahan terhadap kartu:** pesan penolakan kini tampil di modal juga untuk *Eskalasi* dan *Batalkan* (kriteria 4); kartu pasien dimuat ulang sesudah setiap aksi status pada kedua tab. **Catatan:** tab Transfer tidak memuat ulang kartu pasien. Bukti: [laporan](../task/report/frontend/FE-IGD-042.md). *Sebelumnya: Tanpa tanda — menunggu `BE-IGD-061` (build terverifikasi). **Kartu baru 30 September 2026**** |
+| **Outcome** | Sebelum menekan *Jalankan*, *Selesaikan*, atau *Eskalasi*, perawat membaca akibat yang benar menurut aturan penutupan kunjungan. Pada kunjungan yang tindak lanjutnya sudah dilaksanakan, *Selesaikan* observasi tidak lagi menjanjikan perpindahan ke Menunggu Tindak Lanjut, dan *Eskalasi* tampil nonaktif beserta alasannya |
+| **Slice** | `S5` · `EPIC IGD-13` · `MVP-8` |
+| **Requirement** | `FR-IGD-092`, `FR-IGD-093`, `FR-IGD-095` (sisi layar); `FR-IGD-086`, `FR-IGD-087` (sisi layar — kalimat *Jalankan*) |
+| **Keputusan** | `IGD-DEC-171`, `172`, `177`; `IGD-DEC-163`, `164` (kalimat *Jalankan*); `IGD-DEC-183`, `184`, `187` (pembukaan ulang 3 Oktober 2026); approval `IGD-DEC-170`, `IGD-DEC-175`, `IGD-DEC-186` |
+| **Kontrak** | validation `0.11.0` §11.1 aturan 12–14, §11.2 aturan 18–19 (pesan `409` ditampilkan apa adanya) dan §11 aturan 1–4; state `0.8.0` §9.5 dan §9.6; API `0.14.0` §9.1 nomor 7 dan §9.4. *Sebelumnya validation `0.10.0`, state `0.7.0`, API `0.13.0`* |
+| **Wewenang UI** | Rupa keterangan pada tombol nonaktif **`DEV_DISCRETION`** (`IGD-DEC-177`, `IGD-DEC-187`) — wajib terbaca tanpa kursor. Bunyi kalimat konfirmasi **`DEV_DISCRETION`** selama memuat isi wajib pada tabel di bawah. Nol komponen baru, nol CSS global |
+| **Reuse** | `OBSERVATION_STATUS_ACTIONS` dan `DISPOSITION_STATUS_ACTIONS` (`emergency-assessment-constant.jsx`); `ConfirmModal` yang sudah dipakai kedua tab; `visit.visitStatus` dari `useEmergencyAssessmentDetail` yang sudah dimuat untuk kartu pasien; thunk `fetchAssessmentVisitContext`; jalur `actionError` tab Observasi yang sudah menampilkan pesan backend apa adanya |
+| **Dependency** | `BE-IGD-061` |
+| **Pasangan backend** | `BE-IGD-061` — uji layar kartu ini sekaligus menjadi uji layar kriteria 1, 8, 9, 14, dan 17 kartu itu |
+| **Owner** | Frontend IGD |
+| **Risiko** | Rendah sampai menengah — kalimat yang keliru membuat perawat salah mengira akibat tindakan klinis. Status kunjungan yang basi di layar membuat kalimat yang dipilih ikut keliru, karena itu kriteria 5 |
+
+**Kenapa kalimat *Jalankan* ikut kartu ini.** `BE-IGD-060` ✅ tidak punya kartu layar pasangan, dan kalimat
+konfirmasi *Jalankan* hari ini masih berbunyi *"Ini belum menyelesaikan kunjungan — penyelesaian dilakukan terpisah
+setelah observasi dan perpindahan tuntas."* — keliru sejak `BE-IGD-060` aktif di dev. Berkasnya sama dan maknanya
+satu rangkaian dengan kalimat observasi, sehingga dibereskan di kartu ini, bukan kartu terpisah.
+
+#### Isi kalimat yang wajib
+
+| Aksi | Keadaan kunjungan | Isi yang wajib tersampaikan | Kalimat hari ini (frontend `2c2190858`) |
+| --- | --- | --- | --- |
+| *Selesaikan* observasi, dari Aktif atau Dieskalasi | `Disposed` | Status kunjungan **tidak** berpindah; bila tak ada kewajiban lain yang tersisa, kunjungan langsung selesai | *"Kunjungan pasien berpindah ke Menunggu Tindak Lanjut…"* — keliru |
+| *Selesaikan* observasi | Selain `Disposed` | Tidak berubah | Tetap |
+| *Eskalasi* observasi | `Disposed` | Tombol **nonaktif**; keterangan bermakna *tindak lanjut pasien sudah dilaksanakan, eskalasi tidak dapat dicatat pada kunjungan ini* (`IGD-DEC-177`) | Tombol aktif; *"Kunjungan kembali ke status Sedang Ditangani…"* — keliru |
+| *Eskalasi* observasi | Selain `Disposed` | Tidak berubah | Tetap |
+| *Batalkan* observasi | Semua | Tidak berubah — status kunjungan memang tidak ikut berubah | Tetap |
+| *Jalankan* tindak lanjut | Semua | Kunjungan langsung selesai bila tak ada kewajiban tersisa; bila masih ada, kunjungan **menunggu penutupan** dan tertutup sendiri saat kewajiban terakhir dibereskan | *"Ini belum menyelesaikan kunjungan…"* — keliru sejak `BE-IGD-060` |
+| *Selesaikan* observasi, dari Aktif atau Dieskalasi — **3 Oktober 2026** | `Completed` atau `Cancelled` | Tombol **nonaktif**; keterangan berbunyi kalimat validation §11.2 aturan 18: *"Kunjungan IGD ini sudah berakhir; observasinya tidak dapat diselesaikan, dieskalasi, atau diaktifkan kembali."* (`IGD-DEC-187`) | Tombol aktif; *"…Kunjungan pasien berpindah ke Menunggu Tindak Lanjut."* — keliru, dan sesudah `BE-IGD-061` diperluas selalu dijawab `409` (frontend `521b18a9a`) |
+| *Eskalasi* observasi — **3 Oktober 2026** | `Completed` atau `Cancelled` | Tombol **nonaktif** dengan keterangan yang sama | Tombol aktif |
+| *Batalkan* observasi — **3 Oktober 2026** | `Completed` atau `Cancelled` | Tetap **aktif**; kalimat tidak berubah — status kunjungan memang tidak ikut berubah (validation §11.2 aturan 19) | Tetap |
+
+**Pembukaan ulang 3 Oktober 2026.** Sesudah `BE-IGD-061` diperluas (`IGD-DEC-183`, `184`), aksi *Selesaikan* dan
+*Eskalasi* pada kunjungan yang sudah berakhir **pasti** ditolak `409`, sementara layar masih menawarkannya dan modalnya
+menjanjikan perpindahan status. Pemilik memutuskan pola yang sama dengan `IGD-DEC-177`: tombol nonaktif beserta
+alasannya (`IGD-DEC-187`). Yang mungkin disentuh: `resolveObservationStatusActions` di
+`emergency-assessment-status-action.utils.js` (hari ini hanya membedakan `Disposed`), konstanta keterangan di
+`emergency-assessment-constant.jsx`, dan tab Observasi bila keterangan per tombol belum tersedia. Status kunjungan
+sudah dimuat untuk kartu pasien (`visit.visitStatus`), jadi nol permintaan baru.
+
+*Contoh.* Perawat membuka pemeriksaan pasien yang kunjungannya selesai kemarin; tab Observasi masih memuat satu
+periode Dieskalasi lama. Tombol *Selesaikan* dan *Eskalasi* tampil nonaktif, dan di dekatnya terbaca *"Kunjungan IGD
+ini sudah berakhir; observasinya tidak dapat diselesaikan, dieskalasi, atau diaktifkan kembali."* Tombol *Batalkan*
+tetap dapat ditekan bila periode itu memang salah dibuka.
+
+*Contoh.* Perawat menekan *Jalankan* untuk pasien yang diputuskan pulang; modal menjelaskan bahwa kunjungan akan
+langsung selesai bila tak ada kewajiban tersisa. Ternyata observasinya masih berjalan. Di tab Observasi, tombol
+*Eskalasi* kini nonaktif dengan keterangan, dan modal *Selesaikan* menjelaskan bahwa kunjungan akan langsung
+selesai begitu observasi ini ditutup. Perawat mengisi kesimpulan *"tanda vital stabil"*, menekan Selesaikan, dan
+kartu pasien berubah menjadi *Selesai* tanpa memuat ulang halaman.
+
+#### Acceptance
+
+| # | Kriteria | Bukti yang diminta | `AT-IGD-*` |
+| ---: | --- | --- | --- |
+| 1 | Pada kunjungan `Disposed`, modal *Selesaikan* memuat isi wajib dan **tidak** menyebut Menunggu Tindak Lanjut — berlaku untuk periode Aktif maupun Dieskalasi | Uji layar | `192` |
+| 2 | Menyelesaikan observasi penahan terakhir dari layar → periode Selesai dengan kesimpulannya, dan status kunjungan pada kartu pasien terbaca Selesai tanpa memuat ulang halaman | Uji layar | `192` |
+| 3 | Pada kunjungan `Disposed`, tombol *Eskalasi* nonaktif dengan keterangan yang terbaca tanpa kursor; menekannya tidak mengirim permintaan apa pun | Uji layar + tab jaringan | `193` |
+| 4 | Bila server tetap menjawab `409` aturan 14 (status berubah di antara muat dan tekan), pesannya tampil apa adanya di modal dan isian tetap utuh | Uji layar atau simulasi | `193` |
+| 5 | Kalimat dan tombol mengikuti status kunjungan **terkini**: sesudah *Jalankan* dari tab Tindak Lanjut pada sesi layar yang sama, tab Observasi langsung memakai perilaku keadaan `Disposed` | Uji layar | — |
+| 6 | Pada kunjungan selain `Disposed`, kalimat dan tombol observasi sama persis seperti sebelumnya | Uji layar pembanding | — |
+| 7 | Modal *Jalankan* memuat isi wajib pada tabel dan tidak lagi menyatakan kunjungan belum selesai | Uji layar | `186`, `187` |
+| 8 | Nol komponen baru, nol route, nol butir menu, nol perubahan `globals.css` | `git diff --stat` | — |
+| 9 | `eslint` berkas task 0 error; unit test untuk pemilihan kalimat dan keadaan tombol per status kunjungan; `npm run build` milik pemilik | Keluaran perintah | — |
+| 10 | *(3 Oktober 2026)* Pada kunjungan `Completed` dan `Cancelled`, *Selesaikan* dan *Eskalasi* nonaktif dengan keterangan kalimat aturan 18 yang terbaca tanpa kursor; menekannya tidak mengirim permintaan apa pun | Uji layar + tab jaringan | `197` |
+| 11 | *(3 Oktober 2026)* Pada kunjungan berakhir, *Batalkan* tetap aktif dan berhasil; kalimat konfirmasinya tidak berubah | Uji layar | `197` |
+| 12 | *(3 Oktober 2026)* Bila server tetap menjawab `409` aturan 18 (status kunjungan berubah di antara muat dan tekan), pesannya tampil apa adanya di modal | Uji layar atau simulasi | `197` |
+| 13 | *(3 Oktober 2026)* Kunjungan menunggu penutupan karena observasi Dieskalasi: *Selesaikan* aktif dengan kalimat keadaan `Disposed`, dan menyelesaikannya mengubah kartu pasien menjadi Selesai tanpa memuat ulang halaman. Pada kunjungan yang masih berjalan dan `Disposed`, perilaku acceptance 1–6 tidak berubah | Uji layar | `194` |
+
+**DoD.** Acceptance 1–13; laporan tracked (berkas yang sama, bagian pengerjaan ulang); uji layar dijalankan dalam satu siklus bersama uji `BE-IGD-061`, **pada hasil build** (bukan `next dev`).
+
+**Di luar kartu ini.** Pesan galat aksi status di tab Tindak Lanjut jatuh ke `section.saveError` pada kartu formulir,
+bukan di dalam modal — tidak disentuh, karena tidak ada penolakan baru yang dapat dicapai dari tab itu
+(`BE-IGD-062` tidak punya jalur layar).
+
+**Juga di luar kartu ini (3 Oktober 2026).** Pemantauan baru pada kunjungan berakhir kini ditolak backend `409`
+(validation §11.2 aturan 21). `IGD-DEC-187` hanya menyebut tombol status observasi, jadi tombol tambah pemantauan
+**tidak** dinonaktifkan oleh kartu ini; penolakannya tampil lewat jalur galat formulir pemantauan yang sudah ada.
+Bila pemilik menghendaki tombol itu ikut nonaktif, keputusan itu dibuat terpisah.

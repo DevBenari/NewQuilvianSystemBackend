@@ -395,3 +395,309 @@ memakai mutasi `RELEASE` untuknya, mutasi itu datang **tanpa** pasangan `REVERSA
 menebak: baris intake ditandai `ERROR` dan muncul di layar pantauan, sehingga lubangnya terlihat
 pada hari pertama alih-alih menjadi kas keluar palsu di buku besar.
 
+
+# AMENDMENT REVISI 13 — Aturan pelacakan klaim penjamin
+
+`last_changed_in`: `FIN-VAL-1.5` — status `draft`, 1 Oktober 2026.
+Diturunkan dari `FIN-DEC-097`, `FIN-DEC-098`; dirancang `FIN-DES-070`, `FIN-DES-071`.
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-147` | `POST /receivable-invoice-batches/{id}/claim/verify`, `/claim/approve`, `/claim/close` | Batch belum pernah diterbitkan ke penjamin (`ClaimStatus` masih kosong dan `Status` belum `ISSUED`) | "Tagihan ini belum diterbitkan ke penjamin, jadi belum ada klaim yang bisa ditindaklanjuti. Terbitkan tagihannya lebih dulu." | `422` |
+| `FIN-VAL-148` | `POST /claim/approve` | `ApprovedAmount` tidak diisi | "Nominal yang disetujui penjamin wajib diisi." | `400` |
+| `FIN-VAL-149` | `POST /claim/approve` | `ApprovedAmount` bernilai minus | "Nominal yang disetujui tidak boleh kurang dari nol." | `400` |
+| `FIN-VAL-150` | `POST /claim/approve` | `ApprovedAmount` melebihi `TotalAmount` batch | "Nominal yang disetujui penjamin tidak boleh melebihi total tagihan." | `422` |
+| `FIN-VAL-151` | `POST /claim/approve` | `ApprovedAmount` lebih kecil dari `TotalAmount` tetapi `ClaimNote` kosong | "Karena penjamin menyetujui lebih kecil dari tagihan, tuliskan alasannya supaya selisihnya bisa ditindaklanjuti." | `400` |
+| `FIN-VAL-152` | Ketiga aksi klaim | Perpindahan status tidak sah menurut `state-transition-matrix.md` `D.1` — termasuk upaya memundurkan status dan mengubah klaim yang sudah `CLOSED` | "Langkah ini tidak bisa dilakukan dari status klaim saat ini." | `422` |
+| `FIN-VAL-153` | Ketiga aksi klaim | `ExpectedRowVersion` tidak cocok dengan data terkini | "Data tagihan ini sudah diubah pengguna lain. Muat ulang halaman sebelum melanjutkan." | `409` |
+
+## Yang sengaja **tidak** divalidasi
+
+| Yang tidak dilarang | Alasan |
+|---|---|
+| `ApprovedAmount` bernilai nol | Penjamin menolak klaim sepenuhnya adalah jawaban yang sah. Seluruh nilai tagihan menjadi selisih yang menunggu write-off |
+| Menutup klaim walaupun uang belum masuk sama sekali | Klaim yang ditolak penuh tetap perlu ditutup. Pelunasan ada pada sumbu lain (`B.7`) |
+| Mencatat ulang persetujuan pada klaim yang sudah `APPROVED` | Penjamin dapat merevisi keputusannya. Nilai lama tertimpa; perubahannya terbaca pada kolom audit |
+| Selisih yang belum di-write-off menahan penutupan klaim | `FIN-DEC-097` menempatkan write-off sebagai pekerjaan terpisah milik petugas, bukan syarat penutupan klaim. Menahan penutupan akan memaksa petugas menghapus piutang hanya agar klaimnya bisa ditutup |
+
+# AMENDMENT REVISI 13 (lanjutan) — Aturan piutang sewa non-pasien
+
+`last_changed_in`: `FIN-VAL-1.6` — status `draft`, 1 Oktober 2026.
+Diturunkan dari `FIN-DEC-100`..`FIN-DEC-104`; dirancang `FIN-DES-074`..`FIN-DES-077`.
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-154` | `POST /non-patient-receivables` | `Category` bukan `PARKING` atau `TENANT` | "Jenis sewa hanya boleh Parkir atau Tenant." | `400` |
+| `FIN-VAL-155` | `POST`, `PUT /non-patient-receivables` | `BilledAmount` bernilai nol atau minus | "Nominal tagihan harus lebih besar dari nol." | `400` |
+| `FIN-VAL-156` | `POST`, `PUT /non-patient-receivables` | `LateFeeAmount` bernilai minus | "Nominal denda tidak boleh kurang dari nol." | `400` |
+| `FIN-VAL-157` | `POST`, `PUT /non-patient-receivables` | `PeriodEnd` lebih awal dari `PeriodStart`, atau `DueDate` lebih awal dari `PeriodStart` | "Periode tagihan dan tanggal jatuh tempo tidak masuk akal. Periksa kembali tanggalnya." | `400` |
+| `FIN-VAL-158` | `POST /{id}/write-off`, `POST /{id}/cancel` | `Reason` kosong | "Tuliskan alasannya — penghapusan dan pembatalan tagihan sewa tidak melewati persetujuan siapa pun, jadi alasannya wajib tercatat." | `400` |
+| `FIN-VAL-159` | `PUT /non-patient-receivables/{id}` | Tagihan sudah pernah menerima pembayaran | "Tagihan yang sudah menerima pembayaran tidak bisa dikoreksi. Betulkan lewat pencatatan pelunasan." | `422` |
+| `FIN-VAL-160` | `POST /{id}/cancel` | Tagihan sudah pernah menerima pembayaran | "Tagihan yang sudah menerima pembayaran tidak bisa dibatalkan. Betulkan lewat pencatatan pelunasan bernilai minus." | `422` |
+| `FIN-VAL-161` | `POST /{id}/settlements` | Pelunasan membuat jumlah seluruh pembayaran melebihi total tagihan | "Jumlah pembayaran melebihi nilai tagihan. Periksa kembali nominalnya." | `422` |
+| `FIN-VAL-162` | `POST /{id}/settlements` | Pelunasan bernilai minus membuat jumlah seluruh pembayaran menjadi kurang dari nol | "Pembatalan pembayaran ini melebihi pembayaran yang pernah tercatat." | `422` |
+| `FIN-VAL-163` | Seluruh aksi | Perpindahan status tidak sah menurut `state-transition-matrix.md` bagian `E` | "Langkah ini tidak bisa dilakukan dari status tagihan saat ini." | `422` |
+| `FIN-VAL-164` | Seluruh aksi yang mengubah data | `ExpectedRowVersion` tidak cocok dengan data terkini | "Data tagihan ini sudah diubah pengguna lain. Muat ulang halaman sebelum melanjutkan." | `409` |
+
+## Yang sengaja **tidak** divalidasi
+
+| Yang tidak dilarang | Alasan |
+|---|---|
+| Dua tagihan dengan penyewa, objek sewa, dan periode yang sama persis | `FIN-DEC-100` meniadakan master kontrak, sehingga sistem tidak punya dasar menyatakan mana yang duplikat dan mana yang memang dua tagihan berbeda. Risiko tagihan ganda **diterima sadar** dan ditangani ketelitian petugas |
+| Nama penyewa yang dieja berbeda untuk penyewa yang sama | Turunan langsung dari ketiadaan master penyewa. Lihat catatan "Rencana data master awal" pada `02-backend-architecture.md` `K.7` |
+| Tagihan periode yang terlewat tidak dicatat sama sekali | Tidak ada kontrak yang bisa dijadikan acuan "seharusnya ada tagihan bulan ini". `FIN-DEC-100` menerima risiko ini apa adanya |
+| Denda yang tidak sebanding dengan lama keterlambatan | `FIN-DEC-102` menetapkan denda sebagai nominal yang diketik petugas, bukan hasil perhitungan — tidak ada rumus yang bisa dijadikan pembanding |
+
+---
+
+# Bagian F — Revisi 14: validasi buku mutasi, cutover, dan pembayaran langsung
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-VAL-1.7` — status **`draft`** |
+| Naik dari | `FIN-VAL-1.6` (`approved` 1 Oktober 2026) |
+| Aturan baru | `FIN-VAL-165`..`FIN-VAL-196` |
+| Traceability | `FIN-DEC-111`..`137`; `FIN-DES-078`..`091` |
+
+Pesan ditulis sebagaimana dibaca pengguna.
+
+## F.1 Buku mutasi dan posisi saldo
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-165` | Setiap penulisan mutasi | `BalanceAfter` tidak sama dengan `BalanceBefore + Amount` | *"Perhitungan saldo mutasi tidak konsisten. Hubungi pengelola sistem."* | `500` — ini cacat program, bukan kesalahan pengguna; dijaga juga check constraint |
+| `FIN-VAL-166` | Setiap penulisan mutasi | Pemanggil belum memegang advisory lock atas agregatnya | *"Perubahan saldo sedang diproses. Coba lagi beberapa saat."* | `409` |
+| `FIN-VAL-167` | Mutasi piutang dan utang | `BalanceAfter` baris terakhir berbeda dari `OutstandingAmount` agregatnya | *"Saldo buku mutasi tidak cocok dengan sisa tagihan. Hubungi pengelola sistem."* | `500` — pemeriksaan ini menangkap jalur yang lupa menulis mutasi |
+| `FIN-VAL-168` | `FinCashMovement` | `Amount` nol atau negatif. **Satu-satunya pengecualian:** mutasi `SALDO-AWAL` boleh bernilai **nol** (saldo awal kas kosong, diputuskan pemilik 3 Oktober 2026); nilai negatif tetap ditolak untuk semua jenis | *"Nominal mutasi kas harus lebih besar dari nol."* | `400` |
+| `FIN-VAL-169` | `FinCashMovement` | Pasangan (`SourceReferenceType`, `SourceReferenceId`, `MovementType`) sudah ada | *"Mutasi kas untuk sumber ini sudah tercatat."* | `409` — perilaku idempoten, bukan galat bagi penjadwal |
+| `FIN-VAL-170` | Permintaan posisi saldo | Tanggal yang diminta lebih awal daripada `CutoverDate` | *"Posisi saldo sebelum tanggal cutover tidak dapat dihitung karena buku mutasi belum berjalan pada tanggal itu."* | `422` |
+| `FIN-VAL-171` | Mutasi bukan pembayaran | `PaymentMethodCode`, `FundingSourceType`, atau `ProofId` terisi | *"Metode pembayaran hanya berlaku untuk mutasi pembayaran."* | `400` |
+
+## F.2 Pemetaan akun control
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-172` | Pemetaan | `BalanceGroup` di luar lima nilai yang sah | *"Kelompok saldo tidak dikenal."* | `400` |
+| `FIN-VAL-173` | Pemetaan | `SegmentKey` tidak sah bagi kelompok itu | *"Segmen ini tidak berlaku untuk kelompok saldo yang dipilih."* | `400` |
+| `FIN-VAL-174` | Pemetaan | Kelompok dan segmen yang sama sudah punya baris aktif | *"Kelompok dan segmen ini sudah dipetakan."* | `409` |
+| `FIN-VAL-175` | Pemetaan | Kode akun control sudah dipakai baris aktif lain | *"Kode akun ini sudah dipakai pemetaan lain."* | `409` |
+| `FIN-VAL-176` | Pemetaan | Kelompok itu sudah punya baris tanpa segmen, lalu ditambahkan baris bersegmen — atau sebaliknya | *"Satu kelompok saldo tidak boleh memakai pemetaan menyeluruh dan pemetaan per segmen sekaligus."* | `422` |
+| `FIN-VAL-177` | Snapshot saldo | Ada kelompok tanpa pemetaan aktif | *"Snapshot tidak dapat diterbitkan: kelompok <nama> belum punya kode akun."* | `422` — **nol** baris outbox ditulis |
+| `FIN-VAL-178` | Snapshot saldo | Ada kelompok yang segmennya terpetakan sebagian | *"Snapshot tidak dapat diterbitkan: segmen <nama> pada kelompok <nama> belum punya kode akun."* | `422` — **nol** baris outbox |
+| `FIN-VAL-179` | Pemetaan | Panjang kode akun melebihi 50 karakter | *"Kode akun maksimal 50 karakter."* | `400` |
+
+## F.3 Saldo awal cutover
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-180` | Saldo awal | Kelompok sudah punya baris aktif | *"Saldo awal untuk kelompok ini sudah pernah dicatat."* | `409` |
+| `FIN-VAL-181` | Saldo awal | Kelompok `PIUTANG`, `UTANG-SUPPLIER`, atau `UTANG-JASA-MEDIS` bernilai selain nol | *"Saldo awal kelompok ini harus nol karena rinciannya datang dari migrasi tagihan lama."* | `422` |
+| `FIN-VAL-182` | Saldo awal | `Reason` atau rujukan dokumen Accounting kosong | *"Alasan dan rujukan dokumen saldo awal wajib diisi."* | `422` |
+| `FIN-VAL-183` | Saldo awal | Mengubah baris berstatus `APPROVED` atau `LOCKED` | *"Saldo awal yang sudah disetujui tidak dapat diubah."* | `409` |
+| `FIN-VAL-184` | Saldo awal | `CutoverDate` melebihi hari ini saat dikunci | *"Tanggal cutover tidak boleh melewati hari ini."* | `422` |
+| `FIN-VAL-185` | Saldo awal | Nilai negatif pada kelompok kas | *"Saldo awal kas tidak boleh negatif."* | `422` |
+
+## F.4 Batch migrasi tagihan lama
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-186` | Unggah batch | Berkas tidak terbaca atau kolom templat tidak lengkap | *"Berkas tidak dapat dibaca. Gunakan templat yang disediakan."* | `400` |
+| `FIN-VAL-187` | Validasi baris piutang | Jenis debitur di luar tiga nilai yang sah | *"Baris <n>: jenis debitur tidak dikenal."* | Tercatat sebagai galat baris, batch tetap `DRAFT` |
+| `FIN-VAL-188` | Validasi baris utang | Supplier tidak ditemukan di master | *"Baris <n>: supplier tidak ditemukan."* | Galat baris |
+| `FIN-VAL-189` | Validasi baris | Sisa tagihan nol atau negatif | *"Baris <n>: sisa tagihan harus lebih besar dari nol."* | Galat baris |
+| `FIN-VAL-190` | Validasi baris | Tanggal dokumen melebihi `CutoverDate` | *"Baris <n>: tanggal dokumen tidak boleh melewati tanggal cutover."* | Galat baris |
+| `FIN-VAL-191` | Validasi baris | Nomor dokumen kembar di dalam satu berkas | *"Baris <n>: nomor dokumen kembar dengan baris <m>."* | Galat baris |
+| `FIN-VAL-192` | Persetujuan batch | `TotalOutstandingAmount` berbeda dari `DeclaredAccountingOpeningAmount` | *"Total sisa tagihan <A> tidak sama dengan saldo awal Accounting yang dinyatakan <B>. Batch tidak dapat disetujui."* | `422` |
+| `FIN-VAL-193` | Persetujuan batch | Masih ada baris bergalat | *"Masih ada <n> baris yang bermasalah. Perbaiki dahulu."* | `422` |
+| `FIN-VAL-194` | Persetujuan batch | `CutoverDate` batch berbeda dari `FinOpeningBalance` | *"Tanggal cutover batch berbeda dari tanggal cutover saldo awal."* | `422` |
+| `FIN-VAL-195` | Persetujuan batch | Rujukan dokumen Accounting kosong | *"Rujukan dokumen saldo awal Accounting wajib diisi."* | `422` |
+| `FIN-VAL-196` | Batch | Tindakan pada batch `LOCKED` atau `REJECTED` | *"Batch ini sudah final dan tidak dapat diubah."* | `409` |
+
+## F.5 Pembayaran langsung piutang dan utang
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-197` | Pembayaran langsung | Tidak ada baris ambang aktif | *"Ambang pembayaran langsung belum ditetapkan, sehingga jalur ini belum dapat dipakai."* | `404` — **fail-closed**, bukan dianggap tak terbatas |
+| `FIN-VAL-198` | Pembayaran langsung | Nominal melewati ambang aktif | *"Nominal melewati batas pembayaran langsung. Gunakan jalur pembayaran berjenjang."* | `422` |
+| `FIN-VAL-199` | Pembayaran langsung | `PaymentMethod` kosong atau di luar `TRANSFER`/`CASH` | *"Metode pembayaran wajib dipilih."* | `400` |
+| `FIN-VAL-200` | Pembayaran langsung | Metode `TRANSFER` tanpa rekening sumber | *"Rekening sumber dana wajib dipilih untuk pembayaran transfer."* | `422` |
+| `FIN-VAL-201` | Pembayaran langsung | Metode `CASH` tetapi rekening bank diisi | *"Pembayaran tunai tidak memakai rekening bank."* | `400` |
+| `FIN-VAL-202` | Pembayaran langsung | `ProofId` kosong | *"Bukti pembayaran wajib dilampirkan."* | `422` |
+| `FIN-VAL-203` | Pembayaran langsung | `ProofId` sudah dipakai mutasi lain | *"Bukti ini sudah dipakai pada pembayaran lain."* | `409` |
+| `FIN-VAL-204` | Pembayaran langsung | Nominal melebihi sisa tagihan | *"Nominal melebihi sisa tagihan."* | `422` — aturan yang sudah ada, dipertahankan |
+| `FIN-VAL-205` | Ambang | `ChangeReason` kosong saat mengubah | *"Alasan perubahan ambang wajib diisi."* | `422` |
+| `FIN-VAL-206` | Ambang | Nilai nol atau negatif | *"Ambang harus berupa angka lebih besar dari nol."* | `400` |
+
+## F.6 Bukti pembayaran
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| ~~`FIN-VAL-207`~~ | Unggah bukti | ~~Jenis berkas di luar daftar yang diterima~~ | — | **SUPERSEDED revisi 15** oleh `FIN-VAL-217` (daftar ekstensi) dan `FIN-VAL-218` (tipe media) pada bagian `G.1`. Daftarnya sudah turun lewat `FIN-DEC-139`, dan satu aturan dipecah dua karena ekstensi dan tipe media diperiksa terpisah |
+| ~~`FIN-VAL-208`~~ | Unggah bukti | ~~Ukuran melebihi batas~~ | — | **SUPERSEDED revisi 15** oleh `FIN-VAL-219` (`413`) dan `FIN-VAL-220` (`503`, batas belum dikonfigurasi). **Kode statusnya berubah dari `400` menjadi `413`** — perubahan kontrak yang disengaja, dicatat terbuka: `400` tidak membedakan "berkas Anda terlalu besar" dari "isian Anda salah" |
+| `FIN-VAL-209` | Unggah bukti | Jalur simpan keluar dari akar penyimpanan | *"Berkas tidak dapat disimpan."* | `400` — pemeriksaan keamanan, pesannya sengaja tidak merinci. Diperjelas `FIN-VAL-221` (`G.1`): percobaannya **MUST** dicatat |
+
+## F.7 Tanggal WIB dan nilai saldo
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-210` | Pesan saldo subledger | `AccountingDate` bukan tanggal akhir periode **menurut kalender WIB** | *"Tanggal akuntansi pesan saldo periode <kode> wajib tanggal akhir periode (<tanggal>)."* | `400` — aturan yang sudah ada (`FIN-VAL-082`), **pembandingnya** kini WIB |
+| `FIN-VAL-211` | Pesan saldo subledger | Nilai negatif | **Tidak lagi ditolak.** Mencabut sebagian `FIN-VAL-081` | — |
+| `FIN-VAL-212` | Kejadian bukan pesan saldo dan bukan penanda | `Amount <= 0` | *"Nilai kejadian harus lebih besar dari nol."* | `400` — aturan yang sudah ada, dipertahankan |
+| `FIN-VAL-213` | Penanda `PEMBUKAAN-SHIFT-KASIR` | `Amount` bukan nol | *"Penanda shift tidak membawa nilai."* | `400` |
+
+## F.8 Yang sengaja TIDAK divalidasi
+
+Daftar ini ditulis supaya ketiadaannya tidak disangka kelalaian.
+
+| Yang tidak divalidasi | Alasan |
+|---|---|
+| Pembayaran yang dipecah-pecah agar tetap di bawah ambang | `FIN-DEC-134` menolak kriteria "berisiko" pada rilis ini. Mitigasinya jejak mutasi dan laporan |
+| Kebenaran `DeclaredAccountingOpeningAmount` | Sistem hanya membandingkannya dengan total item. Salah ketik yang **kebetulan** sama dengan total item **tidak** terdeteksi (`FIN-DES-090`) |
+| Kecocokan kode akun control terhadap bagan akun Accounting | Finance tidak membaca bagan akun. Kode yang salah ketik baru tertangkap di kotak masuk Accounting |
+| Kelengkapan tagihan lama yang dimigrasikan | Sistem tidak tahu tagihan apa saja yang *seharusnya* ada. Hanya totalnya yang direkonsiliasi |
+| Kesesuaian metode pembayaran terhadap akun debit atau kredit | Milik aturan posting Accounting |
+| Saldo rekening bank mencukupi sebelum pembayaran transfer | Ditolak `FIN-DEC-137` — Finance tidak memegang saldo bank |
+| Nama penyewa, supplier, atau debitur kembar karena ejaan berbeda pada berkas migrasi | Hanya nomor dokumen yang diperiksa kembar |
+
+---
+
+# AMENDMENT REVISI 15 — Berkas bukti dan dua format migrasi
+
+`last_changed_in`: `FIN-VAL-1.8` — status `draft`, 2 Oktober 2026.
+Diturunkan dari `FIN-DEC-139`, `FIN-DEC-140`; dirancang `FIN-DES-092`, `FIN-DES-093`.
+Dampak kompatibilitas: **aditif murni** — nol aturan lama diubah atau dicabut.
+
+## G.1 Berkas bukti pembayaran (`FIN-DES-092`)
+
+Kedelapan pemeriksaan berjalan **berurut**, dan yang pertama gagal menghentikan sisanya. Urutannya
+penting: petugas yang mengunggah berkas 40 MB berekstensi `.exe` **MUST** diberi tahu soal
+ekstensinya, bukan soal ukurannya.
+
+| ID | Endpoint | Aturan | Pesan | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-214` | `POST /transaction-proofs` | Berkas tidak dilampirkan, atau ukurannya nol byte | *"Berkas bukti wajib dilampirkan dan tidak boleh kosong."* | `400` |
+| `FIN-VAL-215` | `POST /transaction-proofs` | Nama berkas lebih dari 255 karakter | *"Nama berkas terlalu panjang. Maksimal 255 karakter."* | `400` |
+| `FIN-VAL-216` | `POST /transaction-proofs` | Berkas tanpa ekstensi, atau ekstensinya ada pada daftar terlarang | *"Jenis berkas ini tidak dapat diunggah."* | `400` |
+| `FIN-VAL-217` | `POST /transaction-proofs` | Ekstensi di luar `FinanceManagement:TransactionProof:AllowedExtensions` | *"Bukti hanya dapat berupa PDF, JPG, JPEG, atau PNG."* | `400` |
+| `FIN-VAL-218` | `POST /transaction-proofs` | Ekstensi lolos tetapi **tipe medianya tidak cocok** dengan ekstensi itu | *"Isi berkas tidak sesuai dengan jenis berkasnya. Unggah ulang berkas aslinya."* | `400` |
+| `FIN-VAL-219` | `POST /transaction-proofs` | Ukuran melewati `MaxFileSizeBytes` | *"Ukuran berkas melewati batas yang diizinkan."* | `413` |
+| `FIN-VAL-220` | `POST /transaction-proofs` | `MaxFileSizeBytes` **belum dikonfigurasi** | *"Unggah bukti belum dapat dipakai: batas ukuran berkas belum dikonfigurasi. Hubungi administrator."* | `503` |
+| `FIN-VAL-221` | `POST /transaction-proofs` | Jalur simpan hasil penormalan mengarah **keluar** `FileStorage:UploadRootPath` | *"Nama berkas tidak dapat diterima."* — dan percobaannya **MUST** dicatat | `400` — **memperjelas `FIN-VAL-209`** (`F.6`), bukan menggantikannya: yang ditambahkan hanya kewajiban mencatat percobaannya |
+| `FIN-VAL-222` | `POST api/finance/receivable/payment`, `POST api/finance/payable/payment` | `ProofId` menunjuk bukti yang **sudah** terpakai satu baris mutasi | *"Bukti ini sudah dipakai pada pembayaran lain. Unggah bukti baru."* | `409` |
+| `FIN-VAL-223` | `POST api/finance/receivable/payment`, `POST api/finance/payable/payment` | `ProofId` tidak ditemukan, atau sudah bertanda `IsDelete` | *"Bukti tidak ditemukan. Unggah ulang buktinya."* | `404` |
+
+**Kenapa `FIN-VAL-220` memakai `503` dan bukan `400`.** Keduanya menolak unggahan, tetapi artinya
+berlawanan bagi petugas: `400` berarti *perbaiki berkas Anda*, sedangkan `503` berarti *tidak ada
+berkas yang akan diterima sampai administrator mengisi konfigurasi*. Menyatukannya membuat petugas
+mencoba berkas demi berkas untuk masalah yang bukan miliknya.
+
+## G.2 Dua format berkas migrasi (`FIN-DES-093`)
+
+| ID | Endpoint | Aturan | Pesan | Kode |
+|---|---|---|---|---|
+| `FIN-VAL-224` | `GET /opening-item-batches/template` | `format` tidak diisi, atau di luar `CSV`/`XLSX` | *"Pilih format templat: CSV atau XLSX."* | `400` |
+| `FIN-VAL-225` | `POST /opening-item-batches` | Tipe media dan ekstensi berkas bukan CSV maupun XLSX | *"Berkas migrasi hanya dapat berupa CSV atau XLSX."* | `400` |
+| `FIN-VAL-226` | `POST /opening-item-batches` | Berkas CSV: nilai angka atau tanggal pada satu baris tidak sesuai format templat | *"Baris &lt;n&gt;: format angka atau tanggal tidak sesuai templat."* — **MUST** menyebut nomor barisnya, **MUST NOT** menebak nilainya | Galat baris, batch tetap `DRAFT` |
+| `FIN-VAL-227` | `POST /opening-item-batches` | Berkas XLSX: sel yang seharusnya angka atau tanggal bertipe teks dan tidak dapat diurai | *"Baris &lt;n&gt;: isi sel tidak dapat dibaca sebagai angka atau tanggal."* | Galat baris, batch tetap `DRAFT` |
+
+**Dua bentuk kegagalan yang berbeda, dan keduanya disengaja dicatat terpisah** (`FIN-VAL-226` vs
+`FIN-VAL-227`). CSV membawa seluruh nilai sebagai teks, sehingga kegagalannya berbentuk *format tidak
+sesuai templat*. XLSX membawa sel bertipe, sehingga kegagalannya berbentuk *tipe sel tidak sesuai
+harapan*. Menyatukan keduanya menjadi satu aturan menyembunyikan fakta bahwa keduanya menuntut kasus
+uji sendiri — dan itu justru risiko utama yang dicatat `FIN-DEC-140`.
+
+## G.3 Yang sengaja TIDAK divalidasi pada revisi ini
+
+| Yang tidak divalidasi | Alasan |
+|---|---|
+| Isi berkas bukti benar-benar menggambarkan pembayaran itu | Sistem tidak membaca isi gambar maupun PDF. Bukti palsu atau salah foto **tidak** terdeteksi — hanya jejak pengunggah dan waktunya yang tercatat |
+| Berkas bukti kembar (dua unggahan berisi gambar yang sama) | Tidak ada pembandingan isi berkas. Unique index hanya menjaga satu bukti tidak dipakai **dua mutasi** |
+| Paritas CSV/XLSX pada waktu berjalan | Paritas dijaga **kasus uji** (`FIN-TEST-1.9` `J.3`), bukan pemeriksaan runtime. Sistem tidak menerima dua berkas sekaligus untuk dibandingkan |
+| Kesinkronan kolom antar keempat berkas templat | Dijaga kasus uji dan review, bukan kode. Templat adalah berkas statis |
+| Ekstensi pada `UploadedFileName` cocok dengan `SourceFormat` | Sengaja dibiarkan: justru ketidakcocokannya yang membuat `SourceFormat` berguna. Format ditentukan dari tipe media, bukan dari nama berkas |
+
+
+---
+
+# AMENDMENT REVISI 16 — Benturan versi ambang dan batas baris berkas migrasi
+
+```yaml
+contract_version: FIN-VAL-1.9
+status: approved
+owner: Yasmin (Product/Domain Finance)
+approved_by: Yasmin (Product/Domain Finance)
+approved_at: 2026-10-04
+input_revision: 00-interview-decisions.md — dua Amendment pass 4 Oktober 2026 (FIN-DEC-141..FIN-DEC-160)
+input_design: 02-backend-architecture.md AMENDMENT REVISI 16 (FIN-DES-094, FIN-DES-096, FIN-DES-098)
+naik_dari: FIN-VAL-1.8 (approved 2 Oktober 2026)
+dampak_kompatibilitas: Aditif — dua aturan baru; satu redaksi diperjelas; satu aturan diberi pengecualian
+```
+
+## H.1 Dua aturan baru
+
+| Kode | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode status |
+|---|---|---|---|---|
+| `FIN-VAL-228` | `PUT /master-data/direct-payment-threshold` | `ExpectedRowVersion` tidak dikirim atau tidak cocok, **sementara baris ambang aktif sudah ada** | *"Ambang sudah diubah oleh orang lain. Muat ulang sebelum melanjutkan."* | `409` |
+| `FIN-VAL-229` | `POST /opening-item-batches`, `POST /opening-item-batches/{id}/reupload` | Berkas memuat lebih dari **10.000 baris data** | *"Berkas memuat lebih dari 10.000 baris. Pecah menjadi beberapa berkas, lalu unggah masing-masing sebagai batch tersendiri."* | `400` |
+
+### `FIN-VAL-228` — satu pengecualian yang MUST ditegakkan
+
+| Keadaan | Perilaku |
+|---|---|
+| Belum ada baris ambang aktif (penetapan pertama) | `ExpectedRowVersion` **tidak** diperiksa. Permintaan diterima |
+| Sudah ada baris ambang aktif | `ExpectedRowVersion` **wajib** dan **MUST** cocok |
+
+**Kenapa.** Pada penetapan pertama belum ada versi yang dapat dibaca klien. Tanpa pengecualian ini ambang
+tidak akan pernah dapat ditetapkan, dan seluruh pembayaran langsung terkunci permanen (`FIN-DES-086`).
+
+**Urutan pemeriksaan pada `PUT` sesudah revisi ini** — penting karena menentukan kode status yang diterima
+pengguna ketika ada lebih dari satu kesalahan sekaligus:
+
+| Urutan | Yang diperiksa | Bila gagal |
+|---:|---|---|
+| 1 | `ChangeReason` tidak kosong | `422` (`FIN-VAL-205`) |
+| 2 | `Amount` lebih besar dari nol | `400` (`FIN-VAL-206`) |
+| 3 | Baris ambang aktif dicari | — |
+| 4 | Bila baris ada: `ExpectedRowVersion` cocok | `409` (`FIN-VAL-228`) |
+
+Urutan 1 dan 2 **MUST** tetap mendahului 4, mengikuti urutan yang sudah berlaku pada `BE-FIN-076`: isian
+yang jelas salah dijawab lebih dulu, sebelum pengguna disuruh memuat ulang karena benturan versi.
+
+### `FIN-VAL-229` — kapan diperiksa, dan kenapa di situ
+
+| Hal | Ketentuan |
+|---|---|
+| Kapan | **Sesudah** berkas diurai menjadi baris, **sebelum** berkas disimpan ke disk dan basis data |
+| Kenapa sesudah diurai | Jumlah baris sebenarnya hanya diketahui setelah penguraian. Menghitung dari ukuran berkas adalah terkaan, dan `FIN-DEC-140` melarang menebak |
+| Kenapa sebelum disimpan | Berkas yang ditolak **MUST NOT** meninggalkan jejak, baik berkas fisik maupun baris batch |
+| Yang dihitung | **Baris data**, bukan baris berkas. Baris judul tidak ikut dihitung |
+| Berkas tepat 10.000 baris | **Diterima.** Batasnya inklusif |
+
+## H.2 Satu aturan yang diberi pengecualian
+
+| Kode | Perubahan |
+|---|---|
+| `FIN-VAL-168` | Sudah diberi pengecualian pada revisi sebelumnya dan ditegaskan di sini: mutasi kas bernilai **nol** diterima **hanya** untuk jenis `SALDO-AWAL` (`FIN-DEC-143`). Nilai **negatif** tetap ditolak untuk semua jenis; nilai nol untuk jenis lain tetap ditolak `400`. Pengecualian dijaga **dua lapis**: pemeriksaan service dan batasan basis data `CK_FinCashMovement_Amount` |
+
+## H.3 Satu redaksi yang diperjelas
+
+| Kode | Redaksi sesudah revisi ini | Yang berubah |
+|---|---|---|
+| `FIN-VAL-192` | *"Total sisa tagihan (Rp A) tidak sama dengan saldo awal Accounting yang dinyatakan (Rp B). Batch tidak dapat disetujui."* | Kedua angka ditulis dengan **dua desimal** dan pemisah Indonesia, bukan dibulatkan ke satuan rupiah |
+
+**Kenapa dua desimal penting.** Dengan pembulatan ke satuan, selisih di bawah Rp 1 **hilang dari pesan**:
+pengguna membaca dua angka yang tampak sama persis, lalu diberi tahu keduanya tidak sama. Selisih sekecil
+itu nyata terjadi karena nilai uang disimpan dua desimal.
+
+**Catatan bagi pembaca pesan ini.** Layar `FE-FIN-032` **tidak** mengurai angka dari teks pesan ini; ia
+menampilkan kedua angka dari data batch. Pesan ini untuk dibaca manusia, bukan untuk diurai mesin.
+
+## H.4 Aturan yang sengaja TIDAK dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+|---|---|
+| Menolak ambang baru yang nilainya sama dengan ambang berlaku | Mengubah ambang ke nilai yang sama beserta alasan baru adalah tindakan sah — misalnya menegaskan ulang kebijakan setelah ditinjau. Menolaknya akan menghalangi pencatatan yang benar |
+| Batas minimum atau maksimum nilai ambang | `FIN-DEC-154` menyerahkan angkanya kepada pejabat berwenang. Batas yang dikarang desain akan menjadi kebijakan yang tidak pernah diputuskan siapa pun |
+| Batas jumlah batch aktif per jenis item | Belum ada bukti ia menjadi masalah. Batch yang menumpuk dapat ditolak, dan `FIN-DEC-155` sudah menjawab kebutuhan memecah berkas besar |
+| Memeriksa batas baris dari ukuran berkas sebelum diurai | Terkaan; berkas CSV dan XLSX dengan jumlah baris sama dapat berbeda ukuran jauh |
+| Menolak penguncian saldo awal Kas Kasir bernilai nol | Diputuskan sebaliknya (`FIN-DEC-143`) |

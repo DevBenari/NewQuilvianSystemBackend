@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Constants;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
@@ -340,7 +341,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             Guid id,
             CancellationToken cancellationToken = default)
         {
-            return await _dbContext.LabOrders
+            var detail = await _dbContext.LabOrders
                 .AsNoTracking()
                 .Where(x => x.Id == id && !x.IsDelete)
                 .Select(x => new LabOrderDetailResponse
@@ -382,9 +383,58 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                             .FirstOrDefault(),
                     InstructionVerificationStatus = x.InstructionVerificationStatus.ToString(),
                     InstructionVerifiedAt = x.InstructionVerifiedAt,
-                    InstructionVerifiedByUserId = x.InstructionVerifiedByUserId
+                    InstructionVerifiedByUserId = x.InstructionVerifiedByUserId,
+
+                    // r38 33.2 (BE-LAB-87, LAB-DEC-166). Sub-query ke MstPatient lewat
+                    // Encounter.PatientId — jalur yang sama dengan LabMonitoringService, bukan
+                    // navigation property baru.
+                    PatientId = x.Encounter != null ? x.Encounter.PatientId : null,
+                    PatientName = x.Encounter == null
+                        ? null
+                        : _dbContext.MstPatients
+                            .Where(p => p.Id == x.Encounter.PatientId)
+                            .Select(p => p.FullName)
+                            .FirstOrDefault(),
+                    MedicalRecordNumber = x.Encounter == null
+                        ? null
+                        : _dbContext.MstPatients
+                            .Where(p => p.Id == x.Encounter.PatientId)
+                            .Select(p => p.MedicalRecordNumber)
+                            .FirstOrDefault(),
+                    Gender = x.Encounter == null
+                        ? null
+                        : _dbContext.MstPatients
+                            .Where(p => p.Id == x.Encounter.PatientId)
+                            .Select(p => p.Gender.HasValue ? p.Gender.Value.ToString() : null)
+                            .FirstOrDefault(),
+                    BirthDate = x.Encounter == null
+                        ? null
+                        : _dbContext.MstPatients
+                            .Where(p => p.Id == x.Encounter.PatientId)
+                            .Select(p => p.BirthDate)
+                            .FirstOrDefault(),
+                    EncounterNumber = x.Encounter != null ? x.Encounter.EncounterNumber : null,
+                    EncounterType = x.Encounter != null ? x.Encounter.EncounterType.ToString() : null,
+                    ServiceUnitName = x.Encounter != null && x.Encounter.ServiceUnit != null
+                        ? x.Encounter.ServiceUnit.ServiceUnitName
+                        : null
                 })
                 .FirstOrDefaultAsync(cancellationToken);
+
+            // r34 29.5, r35 30.5 — label order turunan bagi disiplin yang dapat dirilis (Patologi
+            // Klinik dan Mikrobiologi). Dibaca, tidak pernah disimpan, dan orderStatus tidak disentuh
+            // — Completed tetap tindakan manual lewat PUT complete (LAB-DEC-154, BE-LAB-81).
+            if (detail is not null &&
+                Enum.TryParse<LabDiscipline>(detail.Discipline, out var disiplinDetail) &&
+                LabReleasableDisciplines.Contains(disiplinDetail))
+            {
+                var progres = await LabOrderResultProgressRules.ReadAsync(
+                    _dbContext, new[] { detail.Id }, cancellationToken);
+
+                detail.ResultProgress = progres.TryGetValue(detail.Id, out var label) ? label.ToString() : null;
+            }
+
+            return detail;
         }
 
         // =====================================================================
@@ -1048,16 +1098,153 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 note: null,
                 cancellationToken);
 
-        public Task<LabOrderDetailResponse> CompleteAsync(
+        /// <summary>
+        /// Menandai pesanan selesai — <b>hanya</b> bila setiap pemeriksaan tidak batal sudah
+        /// dirilis (<c>LAB-DEC-154</c>, <c>VAL-146</c>, rancangan 22.1).
+        ///
+        /// <para>
+        /// Urutannya: pesanan ada (<c>404</c>); berstatus <c>InProcess</c> — selain itu
+        /// <see cref="LabOrderConflictException"/> (<c>409</c>, bunyi pesan tetap); lalu pemeriksaan
+        /// yang dihitung, dengan definisi yang <b>sama</b> dengan label <c>resultProgress</c>
+        /// (<see cref="LabOrderResultProgressRules.Counted"/>). Tanpa satu pun pemeriksaan yang
+        /// dihitung, penyelesaian <b>diterima</b> (22.7 butir 3): pembatalan pesanan hanya sah pada
+        /// <c>Requested</c>/<c>Confirmed</c>, sehingga menolaknya mengunci pesanan itu selamanya.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Seluruh</b> pemeriksaan yang belum dirilis dikumpulkan, bukan berhenti pada yang
+        /// pertama — petugas tidak perlu mencoba berulang kali untuk mengetahui semua penahannya.
+        /// Penulisannya tetap <see cref="MoveOrderStatusAsync"/>, <b>tidak diubah</b>: tindakan lain
+        /// memakainya dan tetap menjawab seperti sebelumnya.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Risiko yang disadari</b> (22.6): jalur tambah pemeriksaan tidak menaikkan
+        /// <c>Version</c> pesanan, sehingga pemeriksaan yang ditambahkan pada detik yang sama dengan
+        /// penyelesaian lolos dari penjaga ini.
+        /// </para>
+        /// </summary>
+        /// <exception cref="LabOrderConflictException">Pesanan bukan <c>InProcess</c>.</exception>
+        /// <exception cref="LabOrderCompletionBlockedException"><c>VAL-146</c>.</exception>
+        public async Task<LabOrderDetailResponse> CompleteAsync(
             Guid id,
-            CancellationToken cancellationToken = default) =>
-            MoveOrderStatusAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await LoadTrackedAsync(id, cancellationToken);
+
+            // 22.7 butir 4 — 409 sesuai LAB-STATE-v1 bagian 1, bukan 400. Bunyinya dipertahankan.
+            if (entity.OrderStatus != LabOrderStatus.InProcess)
+            {
+                throw new LabOrderConflictException(
+                    $"Pesanan berstatus {entity.OrderStatus} tidak dapat dipindahkan ke {LabOrderStatus.Completed}.");
+            }
+
+            var penahan = await ReadCompletionBlockersAsync(entity, cancellationToken);
+
+            if (penahan.Count > 0)
+            {
+                throw new LabOrderCompletionBlockedException(penahan);
+            }
+
+            return await MoveOrderStatusAsync(
                 id,
                 new[] { LabOrderStatus.InProcess },
                 LabOrderStatus.Completed,
                 "Order.Complete",
                 note: null,
                 cancellationToken);
+        }
+
+        /// <summary>
+        /// Pemeriksaan yang menahan penyelesaian: yang dihitung dan belum dirilis, urut pemesanan.
+        ///
+        /// <para>
+        /// Keadaannya dari turunan yang <b>sama</b> dengan halaman hasil —
+        /// <see cref="LabExaminationService.DeriveResultStatus(DateTime?, DateTime?, DateTime?, DateTime?)"/>
+        /// — bukan rumus kedua. Disiplin dibaca seperti <see cref="LabExaminationService.ResolveDiscipline"/>:
+        /// disiplin pesanan, lalu katalog pemeriksaan.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Patologi Anatomi</b> tidak berhasil per pemeriksaan (<c>LAB-DEC-085</c>): turunan yang
+        /// sama diberi waktu laporan PA pesanan, sehingga belum ada laporan → <c>NotEntered</c>,
+        /// laporan belum difinalkan → <c>Draft</c>, difinalkan → <c>Final</c>. Hasil Mikrobiologi
+        /// <c>Sementara</c> tetap <c>Final</c> — kualifikasi, bukan keadaan (<c>LAB-DEC-114</c>).
+        /// </para>
+        /// </summary>
+        private async Task<List<LabOrderCompletionBlockedItem>> ReadCompletionBlockersAsync(
+            LabOrder order,
+            CancellationToken cancellationToken)
+        {
+            var rows = await _dbContext.LabExaminations
+                .AsNoTracking()
+                .Where(LabOrderResultProgressRules.Counted)
+                .Where(x => x.LabOrderId == order.Id && x.ReleasedAt == null)
+                .OrderBy(x => x.CreateDateTime)
+                .ThenBy(x => x.Id)
+                .Select(x => new
+                {
+                    x.Id,
+                    ProcedureName = x.ProcedureNameSnapshot ?? (x.Procedure != null ? x.Procedure.ProcedureName : null),
+                    ProcedureDiscipline = x.Procedure != null ? x.Procedure.LabDiscipline : null,
+                    x.ReleasedAt,
+                    x.ValidatedAt,
+                    x.FinalizedAt,
+                    x.ResultEnteredAt
+                })
+                .ToListAsync(cancellationToken);
+
+            if (rows.Count == 0)
+            {
+                return new List<LabOrderCompletionBlockedItem>();
+            }
+
+            bool IsAnatomicalPathology(LabDiscipline? procedureDiscipline) =>
+                (order.Discipline ?? procedureDiscipline) == LabDiscipline.AnatomicalPathology;
+
+            LabResultStatus? keadaanLaporanPa = null;
+
+            if (rows.Any(x => IsAnatomicalPathology(x.ProcedureDiscipline)))
+            {
+                var laporan = await _dbContext.LabPathologyReports
+                    .AsNoTracking()
+                    .Where(x => x.LabOrderId == order.Id && !x.IsDelete)
+                    .Select(x => new { x.CreateDateTime, x.FinalizedAt })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                keadaanLaporanPa = LabExaminationService.DeriveResultStatus(
+                    releasedAt: null,
+                    validatedAt: null,
+                    finalizedAt: laporan?.FinalizedAt,
+                    resultEnteredAt: laporan?.CreateDateTime);
+            }
+
+            return rows.Select(x =>
+            {
+                var keadaan = IsAnatomicalPathology(x.ProcedureDiscipline)
+                    ? keadaanLaporanPa!.Value
+                    : LabExaminationService.DeriveResultStatus(x.ReleasedAt, x.ValidatedAt, x.FinalizedAt, x.ResultEnteredAt);
+
+                return new LabOrderCompletionBlockedItem
+                {
+                    ExaminationId = x.Id,
+                    ProcedureName = x.ProcedureName ?? string.Empty,
+                    ResultStatus = keadaan.ToString(),
+                    Status = CompletionBlockedLabel(keadaan)
+                };
+            }).ToList();
+        }
+
+        // Label keadaan pemeriksaan LAB-DEC-156. Satu-satunya pemakaiannya di backend adalah
+        // rincian VAL-146; di layar, label ini milik frontend.
+        private static string CompletionBlockedLabel(LabResultStatus status) => status switch
+        {
+            LabResultStatus.NotEntered => "Menunggu Hasil",
+            LabResultStatus.Draft => "Draft",
+            LabResultStatus.Final => "Menunggu Validasi",
+            LabResultStatus.Validated => "Tervalidasi",
+            _ => "Dirilis"
+        };
 
         public async Task<LabOrderDetailResponse> HoldAsync(
             Guid id,
@@ -1475,4 +1662,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
     /// menetapkan kode yang berbeda untuk keduanya, dan layar membedakannya.
     /// </summary>
     public sealed class LabOrderConflictException(string message) : Exception(message);
+
+    /// <summary>
+    /// Penyelesaian pesanan ditolak karena masih ada pemeriksaan tidak batal yang belum dirilis
+    /// (<c>VAL-146</c>, <c>LAB-DEC-154</c>). Dipetakan menjadi <c>409</c>, dengan <see cref="Code"/>
+    /// dan <see cref="Details"/> di dalam <c>errors</c> — pola Farmasi <c>DrugReturnController</c>
+    /// (<c>LAB-API-v1</c> <c>r36</c> 31.3).
+    ///
+    /// Tersendiri, bukan <see cref="LabOrderConflictException"/>: yang itu hanya membawa pesan,
+    /// sedangkan penolakan ini wajib menyebut <b>setiap</b> pemeriksaan yang menahan.
+    /// </summary>
+    public sealed class LabOrderCompletionBlockedException(IReadOnlyList<LabOrderCompletionBlockedItem> details)
+        : Exception("Order belum dapat diselesaikan karena masih terdapat pemeriksaan yang belum dirilis.")
+    {
+        public string Code { get; } = "LAB_ORDER_COMPLETION_BLOCKED";
+
+        public IReadOnlyList<LabOrderCompletionBlockedItem> Details { get; } = details;
+    }
 }

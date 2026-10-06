@@ -5,7 +5,7 @@ blueprint_id: ACC-BP-001
 module_name: Accounting
 module_slug: accounting
 module_prefix: ACC
-revision: 15   # 30 Sep 2026 - amendment ACC-DEC-122..124 (dokumen saja, nol kode), GATE-DESAIN-0930; 14 = 29 Sep 2026 - amendment draft jurnal hasil kejadian (ACC-DEC-116..121), GATE-DESAIN-0929; 13 = 28 Sep 2026 rekonsiliasi saldo subledger (ACC-DEC-107..115), GATE-DESAIN-0928; 12 = 24 Sep 2026 pasca-ratifikasi Finance
+revision: 17   # 5 Okt 2026 - jawaban atas surat Finance 22 + permintaan kode sewa (ACC-DEC-132..140, ACC-XMOD-0.7, dokumen saja); 16 = 1 Okt 2026 - jawaban atas surat Finance 15/16/21 (ACC-DEC-125..131, ACC-XMOD-0.6, dokumen saja); 15 = 30 Sep 2026 - amendment ACC-DEC-122..124 (dokumen saja, nol kode), GATE-DESAIN-0930; 14 = 29 Sep 2026 - amendment draft jurnal hasil kejadian (ACC-DEC-116..121), GATE-DESAIN-0929; 13 = 28 Sep 2026 rekonsiliasi saldo subledger (ACC-DEC-107..115), GATE-DESAIN-0928; 12 = 24 Sep 2026 pasca-ratifikasi Finance
 status: approved
 current_phase: ACC-PH-005
 created_at: 2026-09-01T09:53:36+07:00
@@ -1027,3 +1027,52 @@ jenis akun dan saldo normal menjadi catatan impor bagan akun di `MODULE-STATUS.m
 |---|---|
 | OQ-124-1 — bagaimana Accounting mengetahui shift kasir yang dibuka; syarat G6 | Rizki + Yasmin |
 | Pengguna "Sistem Akuntansi" per lingkungan dan tiga nilai konfigurasi di server (`ACC-DEC-122`, `123`) | Admin sistem, Platform |
+
+## Amendment 1 Oktober 2026 — jawaban atas surat Finance 15, 16, dan 21
+
+| Field | Nilai |
+|---|---|
+| `revision` | **15 → 16**, 1 Oktober 2026. `00-interview-decisions.md` revision 16 → **17** (`ACC-DEC-125`..`131`, `approved`) |
+| Dikerjakan lewat | Surat Finance `finance-management/evidence/15`, `16`, `21` → `grill-me` (amendment pass, **selesai**) → penulisan keputusan ke kontrak (preseden `ACC-DEC-074`). **Tanpa `plan-module-delivery`**: nol kartu baru |
+| `backend_commit_sha` | `5c6632d2` (branch `rizkiG`) + working tree dokumen |
+| `frontend_commit_sha` | `5ec2b3b8c` (branch `RizkiV2`) |
+| Kode dan migration | Tidak ada |
+
+| Artefak | Versi | Perubahan |
+|---|---|---|
+| `00-interview-decisions.md` | revision 17 | `ACC-DEC-125`..`131`; OQ-131-1..4 |
+| `contracts/cross-module-contract.md` | `ACC-XMOD-0.6` | Katalog 34 kode aktif + dua kode penanda (bagian 3a.2b); bagian 3a.3 dan 9 dimutakhirkan; G6 bertambah nilai nol penanda dan akun debit refund `REFERRED_OUTPATIENT_ADMIN` |
+| `evidence/16-balasan-accounting-atas-surat-finance-15-16-21.md` | baru | Surat balasan beserta lima pertanyaan balik |
+
+### Yang masih `OPEN` sesudah amendment ini
+
+| Butir | Pemilik |
+|---|---|
+| OQ-131-1 kas per shift atau per kuitansi; OQ-131-2 saldo per akun dan utang honor dokter; OQ-131-3 saldo negatif; OQ-131-4 pernyataan ulang saldo Kas Kasir | Yasmin (jawaban atas `evidence/16`) |
+| OQ-124-1 shift yang dibuka; akun debit refund `REFERRED_OUTPATIENT_ADMIN` | Yasmin, Rizki, owner Billing, pemilik proses akuntansi — syarat G6 |
+
+## Amendment 5 Oktober 2026 — jawaban atas surat Finance 22 dan permintaan kode sewa
+
+| Field | Nilai |
+|---|---|
+| `revision` | **16 → 17**, 5 Oktober 2026. `00-interview-decisions.md` revision 17 → **18** (`ACC-DEC-132`..`140`, `approved`) |
+| Dikerjakan lewat | Surat Finance `finance-management/evidence/22` dan `evidence/17` → review terhadap source → keputusan tertulis Rizki (tanpa wawancara ulang, atas arahan Rizki) → penulisan keputusan ke kontrak (preseden `ACC-DEC-074`). **Tanpa `plan-module-delivery`**: nol kartu baru |
+| `backend_commit_sha` | `d006f603` (branch `rizkiG`) + working tree dokumen |
+| `frontend_commit_sha` | `57b1d360f` (branch `RizkiV2`) |
+| Kode dan migration | Tidak ada |
+
+| Artefak | Versi | Perubahan |
+|---|---|---|
+| `00-interview-decisions.md` | revision 18 | `ACC-DEC-132`..`140`; OQ-132-1, OQ-132-2, OQ-133-1, OQ-136-1, OQ-136-2, OQ-139-1 baru; OQ-131-1..4 dan OQ-124-1 tertutup |
+| `contracts/cross-module-contract.md` | `ACC-XMOD-0.7` | Penanda ketiga `PEMBUKAAN-SHIFT-KASIR` (bagian 3a.2b); dua belas kode piutang sewa usulan (3a.2c); pemisahan per metode bayar dan dua bentuk kas kasir (3a.2d); bagian 3a.3 dan 9 dimutakhirkan; bagian 13: G4 bersyarat, keadaan gerbang per 5 Oktober 2026, daftar periksa saldo periode pertama. Kebersihan dokumen: baris *Implementasi*, bagian 4, dan bagian 10 diselaraskan dengan keadaan terbangun; contoh `SourceTransactionId` saldo di bagian 8 menjadi per akun |
+| `evidence/18-balasan-accounting-atas-surat-finance-22-dan-permintaan-kode-sewa.md` | baru | Surat balasan beserta empat permintaan (18.1–18.4) |
+| `MODULE-STATUS.md` | — | Baris *Data* dan *Integrasi* pada sisa menuju produksi; titik lanjut 5 Oktober 2026 |
+
+### Yang masih `OPEN` sesudah amendment ini
+
+| Butir | Pemilik |
+|---|---|
+| OQ-132-1 pilihan bentuk kas kasir dan daftar final kode per metode bayar; OQ-133-1 pengaktifan pengirim dan frekuensi pemeriksaan shift; OQ-136-2 saluran pelunasan sewa; nama final kode sewa | Yasmin, owner Billing (jawaban atas `evidence/18`) |
+| OQ-132-2 rekening non-tunai; OQ-136-1 akun piutang sewa | Rizki + pemilik proses akuntansi — G2 |
+| OQ-139-1 pajak sewa, termasuk sewa lahan parkir | PIC Pajak RS + Rizki |
+| Akun debit refund `REFERRED_OUTPATIENT_ADMIN`; penegakan shift kasir dengan tiga penanda | Rizki, owner Billing, pemilik proses akuntansi — syarat G6 |

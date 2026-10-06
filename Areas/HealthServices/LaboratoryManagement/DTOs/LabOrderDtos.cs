@@ -418,6 +418,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public DateTime? InstructionVerifiedAt { get; set; }
 
         public Guid? InstructionVerifiedByUserId { get; set; }
+
+        /// <summary>
+        /// Label order turunan (<c>r34</c> 29.5): <c>InProgress</c> atau <c>AllReleased</c>, hanya
+        /// bagi order Patologi Klinik. <b>Tidak pernah mengubah</b> <c>orderStatus</c> — keduanya
+        /// dua arti yang belum diselaraskan (<c>LAB-CONFLICT-014</c>).
+        /// </summary>
+        public string? ResultProgress { get; set; }
+
+        // Delapan ruas di bawah ditambahkan r38 33.2 (BE-LAB-87, LAB-DEC-166): identitas pasien
+        // pada halaman hasil per order, supaya hasil tidak diisi tanpa melihat pasiennya. Dibaca
+        // dengan sub-query yang sama dengan daftar pantau (LabMonitoringService), supaya satu
+        // pasien terbaca sama di semua layar. Seluruhnya boleh kosong — order tanpa kunjungan.
+
+        public Guid? PatientId { get; set; }
+
+        public string? PatientName { get; set; }
+
+        public string? MedicalRecordNumber { get; set; }
+
+        /// <summary>Nama enum (<c>Male</c>/<c>Female</c>), mengikuti daftar pantau.</summary>
+        public string? Gender { get; set; }
+
+        /// <summary>Tanggal lahir; umur dihitung layar pada tanggal hari ini.</summary>
+        public DateTime? BirthDate { get; set; }
+
+        public string? EncounterNumber { get; set; }
+
+        /// <summary>Nama enum tipe kunjungan (<c>Outpatient</c>, <c>Inpatient</c>, ...).</summary>
+        public string? EncounterType { get; set; }
+
+        public string? ServiceUnitName { get; set; }
     }
 
     /// <summary>
@@ -439,5 +470,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public Guid? RequestedByUserId { get; set; }
         public string? RequestedByName { get; set; }
         public string InstructionVerificationStatus { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Satu pemeriksaan yang menahan penyelesaian pesanan (<c>VAL-146</c>, <c>LAB-API-v1</c>
+    /// <c>r36</c> 31.3). Rincian penolakan memuat <b>setiap</b> pemeriksaan tidak batal yang belum
+    /// dirilis. Nol nilai hasil (rancangan 22.8).
+    /// </summary>
+    public class LabOrderCompletionBlockedItem
+    {
+        public Guid ExaminationId { get; set; }
+
+        /// <summary>Nama pemeriksaan dari snapshot katalog.</summary>
+        public string ProcedureName { get; set; } = string.Empty;
+
+        /// <summary><c>NotEntered</c>, <c>Draft</c>, <c>Final</c>, atau <c>Validated</c> — tidak pernah <c>Released</c>.</summary>
+        public string ResultStatus { get; set; } = string.Empty;
+
+        /// <summary>Label <c>LAB-DEC-156</c>: <i>Menunggu Hasil</i>, <i>Draft</i>, <i>Menunggu Validasi</i>, <i>Tervalidasi</i>.</summary>
+        public string Status { get; set; } = string.Empty;
     }
 }

@@ -12,6 +12,7 @@ public sealed class FinReceivableInvoiceBatchConfiguration : IEntityTypeConfigur
         {
             table.HasCheckConstraint("CK_FinReceivableInvoiceBatch_DebtorType", "\"DebtorType\" = 'PAYER'");
             table.HasCheckConstraint("CK_FinReceivableInvoiceBatch_Status", "\"Status\" IN ('DRAFT','ISSUED','PARTIALLY_PAID','PAID','CANCELLED')");
+            table.HasCheckConstraint("CK_FinReceivableInvoiceBatch_ClaimStatus", "\"ClaimStatus\" IS NULL OR \"ClaimStatus\" IN ('SUBMITTED','PAYER_VERIFIED','APPROVED','CLOSED')");
         });
         entity.HasKey(x => x.Id);
 
@@ -21,6 +22,15 @@ public sealed class FinReceivableInvoiceBatchConfiguration : IEntityTypeConfigur
         entity.Property(x => x.Status).HasMaxLength(20).IsRequired().HasDefaultValue(FinReceivableInvoiceBatchStatuses.Draft);
         entity.Property(x => x.IssuedAt).HasColumnType("timestamp with time zone");
         entity.Property(x => x.RowVersion).IsConcurrencyToken();
+
+        // Sumbu klaim penjamin (BE-FIN-052, FIN-DEC-097) — seluruhnya nullable, lihat FIN-DES-070.
+        entity.Property(x => x.ClaimStatus).HasMaxLength(30);
+        entity.Property(x => x.ApprovedAmount).HasPrecision(18, 2);
+        entity.Property(x => x.PayerClaimReference).HasMaxLength(100);
+        entity.Property(x => x.ClaimNote).HasMaxLength(500);
+        entity.Property(x => x.PayerVerifiedAt).HasColumnType("timestamp with time zone");
+        entity.Property(x => x.ClaimApprovedAt).HasColumnType("timestamp with time zone");
+        entity.Property(x => x.ClaimClosedAt).HasColumnType("timestamp with time zone");
 
         entity.Property(x => x.CreateDateTime).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
         entity.Property(x => x.UpdateDateTime).HasColumnType("timestamp with time zone");
@@ -34,5 +44,6 @@ public sealed class FinReceivableInvoiceBatchConfiguration : IEntityTypeConfigur
         entity.HasIndex(x => x.DebtorReferenceId).HasDatabaseName("IX_FinReceivableInvoiceBatch_DebtorReferenceId");
         entity.HasIndex(x => x.PeriodStart).HasDatabaseName("IX_FinReceivableInvoiceBatch_PeriodStart");
         entity.HasIndex(x => x.Status).HasDatabaseName("IX_FinReceivableInvoiceBatch_Status");
+        entity.HasIndex(x => x.ClaimStatus).HasDatabaseName("IX_FinReceivableInvoiceBatch_ClaimStatus");
     }
 }

@@ -17,5 +17,12 @@ Contract `opr-validation-v1`; status `approved`; approved by pemilik kebutuhan p
 | `OPR011` | Handover harus diterima | Complete | Penerima/waktu belum ada | “Serah terima pasien belum diterima unit tujuan.” |
 | `OPR012` | Version wajib cocok | Semua command | Data sudah berubah | “Data telah diperbarui pengguna lain. Muat ulang lalu coba kembali.” |
 | `OPR013` | Idempotency wajib | Integrasi/command material | Key kosong/duplikat tidak cocok | “Permintaan tidak dapat diverifikasi sebagai permintaan yang sama.” |
+| `OPR014` | Serial implant unik per kasus | Material usage | Serial implant sudah tercatat `Used` dan belum dikoreksi pada kasus yang sama | “Nomor serial implant ini sudah tercatat dipakai pada kasus operasi yang sama.” |
+
+Cakupan `OPR014` sengaja dibatasi satu kasus operasi. Implant yang sama masih boleh muncul pada
+kasus lain, misalnya pada operasi revisi. Baris `Returned` dan `Wasted` tidak menutup nomor
+serinya karena keduanya justru menyatakan implant itu tidak jadi terpasang, dan baris yang sudah
+digantikan koreksi ikut dilepas supaya salah catat tidak mengunci sebuah nomor seri selamanya.
+Keunikan yang lebih luas — per pasien atau seluruh rumah sakit — belum diputuskan pemilik proses.
 
 Semua timestamp disimpan UTC dan ditampilkan sesuai zona waktu fasilitas. Data klinis tidak boleh masuk custom logger.

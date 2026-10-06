@@ -5,6 +5,8 @@ using Npgsql;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -20,6 +22,7 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Security.Claims;
 
 using ResponsePatientEncounterPagedResult =
@@ -49,26 +52,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         // berbeda antar-environment. Penulisan dibandingkan secara case-insensitive
         // dan mengabaikan spasi berlebih.
         private const string DefaultOutpatientPatientClassName = "RAWAT JALAN";
+        private const string EmergencyEncounterStatusLockedMessage =
+            "Status kunjungan gawat darurat tidak dapat diubah dari sini. " +
+            "Tutup lewat layar IGD: tandai pasien pergi sebelum ditriage, atau selesaikan/batalkan kunjungan IGD-nya.";
+
+        /// <summary>
+        /// Saklar pemblokir "satu pasien satu kunjungan aktif" (RJ-DOC-REV-BE-007/008).
+        /// Ditangguhkan sementara oleh RJ-DOC-DEC-026: bawaannya <c>false</c>, sehingga pendaftaran
+        /// tidak ditolak karena kunjungan lama yang belum selesai. Isi <c>true</c> untuk
+        /// menghidupkan kembali aturan tanpa perubahan kode.
+        /// </summary>
+        private const string BlockActiveEncounterConfigKey = "HealthServices:Registration:BlockActiveEncounter";
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly QueueRealtimeService _queueRealtimeService;
         private readonly ClinicalDocumentIntegrityService _integrityService;
         private readonly PatientEncounterNumberService _patientEncounterNumberService;
+        private readonly IConfiguration? _configuration;
 
         public PatientEncounterController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             QueueRealtimeService queueRealtimeService,
             ClinicalDocumentIntegrityService integrityService,
-            PatientEncounterNumberService? patientEncounterNumberService = null)
+            PatientEncounterNumberService? patientEncounterNumberService = null,
+            IConfiguration? configuration = null)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _queueRealtimeService = queueRealtimeService;
             _integrityService = integrityService;
             _patientEncounterNumberService = patientEncounterNumberService ?? new PatientEncounterNumberService(dbContext);
+            _configuration = configuration;
         }
+
+        private bool IsActiveEncounterBlockEnabled =>
+            _configuration?.GetValue(BlockActiveEncounterConfigKey, false) ?? false;
 
         [HttpGet("admin/filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<PatientEncounterFilterMetadataResponse>), StatusCodes.Status200OK)]
@@ -392,11 +412,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [HttpPost("admin")]
         [ProducesResponseType(typeof(ApiResponse<PatientEncounterCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessPermission("PatientEncounter", "Create")]
         public async Task<IActionResult> CreateEncounterForAdmin([FromBody] PatientEncounterCreateRequest request)
         {
-            // Jalur petugas admisi. Hanya route ini yang menerima Penjamin Perusahaan
-            // sesuai RWI-ENC-PAYER-001 bagian 7, sehingga wewenang kiosk tidak ikut meluas.
+            // Jalur petugas admisi. Menerima Penjamin Perusahaan sejak RWI-ENC-PAYER-001 1.0.0.
             return await CreateEncounterCoreAsync(
                 request,
                 allowCompanyGuarantor: true,
@@ -408,13 +428,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<PatientEncounterCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction("Create", "Create Patient Encounter", Description = "Membuat transaksi kunjungan pasien dengan satu sumber pembayaran", AccessType = AccessTypes.Create, SortOrder = 2)]
         public async Task<IActionResult> CreateEncounterForKiosk([FromBody] PatientEncounterCreateRequest request)
         {
-            // Kiosk tetap terbatas pada Tunai dan Asuransi.
+            // Kiosk menerima Tunai, Asuransi, dan Penjamin Perusahaan sejak RWI-ENC-PAYER-001
+            // 1.1.0 (KSK-DEC-013, BE-KSK-003), dengan validasi yang sama persis dengan /admin.
+            // Parameter tetap dipertahankan agar kedua jalur dapat dibedakan lagi tanpa
+            // mengubah proses inti, dan logScope tetap membedakan asal permintaan di audit.
             return await CreateEncounterCoreAsync(
                 request,
-                allowCompanyGuarantor: false,
+                allowCompanyGuarantor: true,
                 logScope: "PatientEncounter.CreateEncounterForKiosk");
         }
 
@@ -540,8 +564,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     .FirstAsync(x => x.Id == request.ClinicId.Value);
             }
 
+            var isEmergencyEncounter = request.EncounterType == EncounterType.Emergency;
             var isScreeningRequired = clinic?.IsScreeningRequired ?? serviceUnit.IsScreeningRequired;
-            var isQueueRequired = clinic?.IsQueueRequired ?? serviceUnit.IsQueueRequired;
+            var isQueueRequired = !isEmergencyEncounter && (clinic?.IsQueueRequired ?? serviceUnit.IsQueueRequired);
             var isDoctorRequired = clinic?.IsDoctorRequired ?? serviceUnit.IsDoctorRequired;
 
             var patient = await _dbContext.Set<MstPatient>()
@@ -559,11 +584,60 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
             var transactionCommitted = false;
 
+            // RJ-DOC-REV-BE-007: pemeriksaan di validasi tidak cukup untuk dua permintaan yang
+            // datang bersamaan (ketukan ganda kiosk, dua loket). Kunci per pasien dipegang
+            // database dan lepas sendiri saat transaction berakhir; permintaan kedua menunggu,
+            // lalu melihat kunjungan yang baru dibuat dan ditolak.
+            //
+            // RJ-DOC-DEC-026: selama saklar mati, kunci dan cek ulang ini dilewati sama sekali.
+            if (IsActiveEncounterBlockEnabled)
+            {
+                if (_dbContext.Database.IsNpgsql())
+                {
+                    await _dbContext.Database.ExecuteSqlRawAsync(
+                        "SELECT pg_advisory_xact_lock(hashtext({0}));",
+                        [$"REG_ENCOUNTER_ACTIVE_{request.PatientId:N}"],
+                        HttpContext.RequestAborted);
+                }
+
+                var kunjunganAktifTerkini = await FindActiveEncounterAsync(request.PatientId);
+
+                if (kunjunganAktifTerkini is not null)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        BuildActiveEncounterMessage(kunjunganAktifTerkini)));
+                }
+            }
+
             try
             {
+                var encounterId = Guid.NewGuid();
+
+                if (isEmergencyEncounter)
+                {
+                    var penjagaEpisode = await EmergencyEpisodeRule.GuardEncounterRegistrationAsync(
+                        _dbContext,
+                        request.PatientId,
+                        encounterId,
+                        request.DuplicateEpisodeOverrideReason,
+                        actorUserId,
+                        now,
+                        HttpContext.RequestAborted);
+
+                    if (!penjagaEpisode.Lolos)
+                    {
+                        await transaction.RollbackAsync();
+
+                        return StatusCode(
+                            penjagaEpisode.StatusCode,
+                            ApiResponse<object>.Fail(penjagaEpisode.StatusCode, penjagaEpisode.Penolakan!));
+                    }
+                }
+
                 var encounter = new RegPatientEncounter
                 {
-                    Id = Guid.NewGuid(),
+                    Id = encounterId,
                     EncounterNumber = await _patientEncounterNumberService.AllocateEncounterNumberAsync(HttpContext.RequestAborted),
                     PatientId = request.PatientId,
                     ServiceUnitId = request.ServiceUnitId,
@@ -907,6 +981,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [HttpPatch("admin/{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction("Update", "Update Patient Encounter Status", Description = "Mengubah status patient encounter", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("PatientEncounter", "Update")]
         public async Task<IActionResult> UpdateEncounterStatus(Guid id, [FromBody] PatientEncounterStatusRequest request)
@@ -921,6 +996,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             if (entity == null)
             {
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Kunjungan pasien tidak ditemukan."));
+            }
+
+            if (entity.EncounterType == EncounterType.Emergency)
+            {
+                return StatusCode(
+                    StatusCodes.Status409Conflict,
+                    ApiResponse<object>.Fail(StatusCodes.Status409Conflict, EmergencyEncounterStatusLockedMessage));
             }
 
             if (entity.IsCancel || entity.CancelledAt.HasValue || entity.CompletedAt.HasValue)
@@ -1047,6 +1129,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [HttpPatch("admin/{id:guid}/cancel")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction("Update", "Cancel Patient Encounter", Description = "Membatalkan patient encounter", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("PatientEncounter", "Update")]
         public async Task<IActionResult> CancelEncounter(Guid id, [FromBody] PatientEncounterCancelRequest request)
@@ -1058,9 +1141,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Kunjungan pasien tidak ditemukan."));
             }
 
+            var isEmergencyEncounter = entity.EncounterType == EncounterType.Emergency;
+
+            await using var episodeTransaction = isEmergencyEncounter
+                ? await _dbContext.Database.BeginTransactionAsync(HttpContext.RequestAborted)
+                : null;
+
+            if (isEmergencyEncounter)
+            {
+                await EmergencyEpisodeRule.LockPatientEpisodeAsync(_dbContext, entity.PatientId, HttpContext.RequestAborted);
+                await _dbContext.Entry(entity).ReloadAsync(HttpContext.RequestAborted);
+            }
+
             if (entity.CompletedAt.HasValue)
             {
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Kunjungan yang sudah selesai tidak dapat dibatalkan."));
+            }
+
+            if (isEmergencyEncounter)
+            {
+                var emergencyVisitNumber = await _dbContext.Set<EmgVisit>()
+                    .AsNoTracking()
+                    .Where(x => x.EncounterId == entity.Id && !x.IsDelete)
+                    .Select(x => x.EmergencyVisitNumber)
+                    .FirstOrDefaultAsync(HttpContext.RequestAborted);
+
+                if (emergencyVisitNumber != null)
+                {
+                    return StatusCode(
+                        StatusCodes.Status409Conflict,
+                        ApiResponse<object>.Fail(
+                            StatusCodes.Status409Conflict,
+                            $"Encounter ini sudah memiliki kunjungan IGD {emergencyVisitNumber}. Batalkan lewat kunjungan IGD tersebut; encounter akan ikut dibatalkan."));
+                }
             }
 
             var now = DateTime.UtcNow;
@@ -1078,6 +1191,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             var cancelledQueues = await CancelQueuesByEncounterAsync(entity.Id, now, actorUserId, request.CancelReason.Trim());
             await _dbContext.SaveChangesAsync();
+
+            if (episodeTransaction != null)
+            {
+                await episodeTransaction.CommitAsync();
+            }
 
             foreach (var queue in cancelledQueues)
             {
@@ -1277,6 +1395,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return query;
         }
 
+        private sealed record ActiveEncounterInfo(string EncounterNumber, DateTime EncounterDate);
+
+        /// <summary>
+        /// Kunjungan Rawat Jalan berklinik yang masih menghalangi pendaftaran, tanggal berapa pun
+        /// (RJ-DOC-REV-BE-007), memakai <see cref="OutpatientEncounterRules.WhereBlocksRegistration"/>.
+        /// Kunjungan status 7-8, penunjang tanpa klinik, IGD, dan Rawat Inap tidak menghalangi
+        /// (RJ-DOC-DEC-019, RJ-DOC-DEC-022).
+        /// </summary>
+        private Task<ActiveEncounterInfo?> FindActiveEncounterAsync(Guid patientId) =>
+            _dbContext.Set<RegPatientEncounter>()
+                .AsNoTracking()
+                .WhereBlocksRegistration(_dbContext)
+                .Where(x => x.PatientId == patientId)
+                .OrderByDescending(x => x.EncounterDate)
+                .Select(x => new ActiveEncounterInfo(x.EncounterNumber, x.EncounterDate))
+                .FirstOrDefaultAsync(HttpContext.RequestAborted);
+
+        private static string BuildActiveEncounterMessage(ActiveEncounterInfo kunjungan) =>
+            $"Pasien masih memiliki kunjungan aktif bernomor {kunjungan.EncounterNumber} " +
+            $"tanggal {kunjungan.EncounterDate.ToString("dd MMM yyyy", CultureInfo.GetCultureInfo("id-ID"))}. " +
+            "Selesaikan atau batalkan kunjungan tersebut sebelum mendaftar ke poliklinik atau layanan lain.";
+
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateRequestAsync(
             PatientEncounterCreateRequest request,
             DateTime targetEncounterDate,
@@ -1313,8 +1453,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return (false, "Tipe pembayaran tidak valid. Gunakan nilai dari endpoint filters/metadata.");
             }
 
-            // Penjamin Perusahaan hanya dibuka untuk registrasi petugas. Kiosk tetap
-            // pada dua metode lamanya supaya wewenangnya tidak ikut meluas.
+            // Penjaga jalur: kini kedua route (admin dan kiosk) mengirim allowCompanyGuarantor
+            // = true (RWI-ENC-PAYER-001 1.1.0). Dipertahankan untuk pemanggil yang kelak
+            // sengaja menutup Penjamin Perusahaan.
             if (request.PaymentType == EncounterPaymentType.CompanyGuarantor &&
                 !allowCompanyGuarantor)
             {
@@ -1331,6 +1472,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             if (!patientExists)
             {
                 return (false, "Pasien tidak valid atau tidak aktif.");
+            }
+
+            if (IsActiveEncounterBlockEnabled)
+            {
+                var kunjunganAktif = await FindActiveEncounterAsync(request.PatientId);
+
+                if (kunjunganAktif is not null)
+                {
+                    return (false, BuildActiveEncounterMessage(kunjunganAktif));
+                }
             }
 
             var serviceUnitExists = await _dbContext.Set<MstServiceUnit>()
@@ -2071,8 +2222,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     NormalizeNullableText(patientCompanyGuarantor.BenefitPlanName);
                 entity.ClassNameSnapshot =
                     NormalizeNullableText(patientCompanyGuarantor.ClassName);
-                entity.EffectiveStartDateSnapshot = patientCompanyGuarantor.EffectiveStartDate;
-                entity.EffectiveEndDateSnapshot = patientCompanyGuarantor.EffectiveEndDate;
+                // Kolom sumber bertipe date (Kind=Unspecified), sedangkan snapshot timestamptz
+                // hanya menerima UTC; tanpa konversi ini SaveChanges gagal (500).
+                entity.EffectiveStartDateSnapshot = ToUtcDate(patientCompanyGuarantor.EffectiveStartDate);
+                entity.EffectiveEndDateSnapshot = ToUtcDate(patientCompanyGuarantor.EffectiveEndDate);
                 entity.IsEligible = patientCompanyGuarantor.IsEligible;
                 entity.IsPolicyActive = true;
 
@@ -2095,8 +2248,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             entity.PlanNameSnapshot = NormalizeNullableText(patientInsurance.PlanName);
             entity.ClassNameSnapshot = NormalizeNullableText(patientInsurance.ClassName);
             entity.BenefitPlanCodeSnapshot = NormalizeNullableText(patientInsurance.BenefitPlanCode);
-            entity.EffectiveStartDateSnapshot = patientInsurance.EffectiveStartDate;
-            entity.EffectiveEndDateSnapshot = patientInsurance.EffectiveEndDate;
+            entity.EffectiveStartDateSnapshot = ToUtcDate(patientInsurance.EffectiveStartDate);
+            entity.EffectiveEndDateSnapshot = ToUtcDate(patientInsurance.EffectiveEndDate);
             entity.IsEligible = patientInsurance.IsEligible;
             entity.IsPolicyActive = true;
 
@@ -2681,6 +2834,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private static DateTime ToUtcDate(DateTime value)
         {
             return DateTime.SpecifyKind(value.Date, DateTimeKind.Utc);
+        }
+
+        private static DateTime? ToUtcDate(DateTime? value)
+        {
+            return value.HasValue ? ToUtcDate(value.Value) : null;
         }
 
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)

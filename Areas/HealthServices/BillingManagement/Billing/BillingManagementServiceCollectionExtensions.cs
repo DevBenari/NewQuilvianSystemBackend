@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Servi
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Readers;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Services;
@@ -93,6 +94,8 @@ public static class BillingManagementServiceCollectionExtensions
         // BE-FIN-004: rekening bank dan mata uang/kurs milik Finance.
         services.AddScoped<BankAccountService>();
         services.AddScoped<CurrencyService>();
+        // BE-FIN-076, FIN-DES-086: ambang nilai pembayaran langsung, master berjejak satu baris aktif.
+        services.AddScoped<DirectPaymentThresholdService>();
         // BE-FIN-011, FIN-DES-017: satu-satunya penulis FinAccountingEventOutbox. Dipakai
         // FinanceReceivableService dan FinanceBillingIntakeService lewat DI (scoped, DbContext sama).
         services.AddScoped<FinanceAccountingOutboxService>();
@@ -100,14 +103,36 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<FinanceAccountingEventService>();
         // BE-FIN-049: kalkulasi snapshot saldo subledger bulanan untuk 4 control account dan penerbitan ke outbox.
         services.AddScoped<FinanceSubledgerSnapshotService>();
+        // BE-FIN-065, FIN-DES-080: konfigurasi pemetaan akun control subledger ke COA Accounting.
+        services.AddScoped<FinanceSubledgerControlAccountService>();
+        // BE-FIN-066, FIN-DES-088: pencatatan dan siklus hidup saldo awal cutover subledger.
+        services.AddScoped<FinanceOpeningBalanceService>();
+        // BE-FIN-067, FIN-DES-081: kalkulator posisi saldo subledger per tanggal dan selisih kas harian.
+        services.AddScoped<FinanceSubledgerBalanceCalculator>();
+        // BE-FIN-060, FIN-DES-079: satu-satunya penulis buku mutasi subledger Finance (piutang, utang, kas).
+        services.AddScoped<FinanceSubledgerMovementService>();
         // BE-FIN-008: satu-satunya penulis OutstandingAmount piutang — aging, koreksi, write-off.
         services.AddScoped<FinanceReceivableService>();
         // BE-FIN-039, FIN-DEC-048/054: Batch Tagihan AR — hanya membaca FinReceivable, memanggil
         // BillingCompanyGuarantorInvoiceDocumentService untuk dokumen gabungan, tidak menyalinnya.
         services.AddScoped<FinanceReceivableInvoiceBatchService>();
+        // Data Tagihan (Tagihan/Billing): query baca saja atas FinReceivable + Billing + Registrasi + Pasien,
+        // satu query untuk daftar dan ringkasan. Tidak menulis apa pun.
+        services.AddScoped<FinanceReceivableBillingDataService>();
+        // BE-FIN-057, FIN-DEC-099..104: satu-satunya penulis FinNonPatientReceivable — aggregate
+        // BERDIRI SENDIRI (FIN-DEC-101), MUST NOT memanggil FinanceReceivableService/FinanceReceiptService.
+        services.AddScoped<FinanceNonPatientReceivableService>();
         // BE-FIN-017, 02-backend-architecture.md §4.22: pemilik logika penerimaan (pembuatan dari
         // tender + pembuktian FR-FIN-035). Dipakai FinanceBillingIntakeService lewat DI.
         services.AddScoped<FinanceReceiptService>();
+        // BE-FIN-075, FIN-DES-092: unggah dan metadata bukti pembayaran langsung, delapan pemeriksaan
+        // berurut. TIDAK memanggil kelas unggah milik HR.
+        services.AddScoped<FinanceTransactionProofService>();
+        // BE-FIN-080, FIN-DES-093: pembaca berkas migrasi tagihan lama — IEnumerable<IOpeningItemFileReader>
+        // menampung seluruh pembaca terdaftar; BE-FIN-083 menambah XlsxOpeningItemFileReader di baris terpisah.
+        services.AddScoped<IOpeningItemFileReader, CsvOpeningItemFileReader>();
+        // BE-FIN-081: bagian unggah dan validasi batch migrasi tagihan lama.
+        services.AddScoped<FinanceOpeningItemBatchService>();
         // BE-FIN-009: konsumen fakta AR dari Billing (gap FinanceBillingIntakeService ditutup di sini).
         services.AddScoped<FinanceBillingIntakeService>();
         // BE-FIN-014 / MVP-4: layanan perhitungan kas tersedia, setoran bank, dan penutupan harian.
@@ -129,6 +154,9 @@ public static class BillingManagementServiceCollectionExtensions
         // BE-FIN-035, FIN-DEC-047/061: Retur Pembelian dan Deposit Retur — satu-satunya penulis
         // AvailableAmount (FIN-DES-046, ditegakkan penuh oleh BE-FIN-036).
         services.AddScoped<FinanceSupplierReturnService>();
+        // BE-FIN-051, FIN-DES-006: ledger idempotensi bersama kelima controller Purchasing di
+        // atas — menutup gap header Idempotency-Key yang dicatat FE-FIN-008.
+        services.AddScoped<PurchasingIdempotencyService>();
         // BE-FIN-037, FIN-API-1.1 §B.6, FIN-DEC-059: Empat laporan Purchasing/AP read-only
         // (/summary, /invoice-exchanges, /due-dates, /reconciliation). Nol tabel baru.
         // /aging SENGAJA tidak ada — FIN-DEC-059 mencabut endpoint itu; layar AP memakai

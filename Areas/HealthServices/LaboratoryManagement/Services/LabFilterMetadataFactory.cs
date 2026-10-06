@@ -635,5 +635,84 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 SupportsStatusToggle = false,
                 HasOptionsEndpoint = false
             };
+
+        /// <summary>
+        /// Bentuk layar kedua data induk alasan — alasan pengembalian hasil dan alasan
+        /// pengecualian empat mata (<c>r34</c> 29.6, <c>BE-LAB-71</c>). Keduanya berbentuk sama.
+        ///
+        /// <c>SortOptions</c> KOSONG dengan alasan yang sama dengan ketiga data induk Patologi
+        /// Anatomi di atas: daftarnya diurutkan tetap di dalam service, dan query-nya tidak punya
+        /// ruas urut.
+        /// </summary>
+        public static LabResultReasonFilterMetadataResponse LabResultReason() =>
+            new()
+            {
+                SortOptions = new(),
+                SortDirections = new(),
+                PageSizeOptions = new(UkuranHalaman),
+                QueryParameters = new()
+                {
+                    new()
+                    {
+                        Name = "isActive",
+                        Type = "boolean",
+                        Description = "Menyaring aktif atau tidak. Kosong berarti keduanya ditampilkan.",
+                        Example = "true"
+                    },
+                    new()
+                    {
+                        Name = "search",
+                        Type = "string",
+                        Description = "Pencarian bebas pada kode, nama, dan keterangan alasan.",
+                        Example = "tertukar"
+                    },
+                    new() { Name = "pageNumber", Type = "integer", Description = "Halaman ke berapa, dimulai dari 1.", Example = "1" },
+                    new() { Name = "pageSize", Type = "integer", Description = "Jumlah baris per halaman, paling banyak 100.", Example = "20" }
+                },
+                SupportsServerSideFiltering = true,
+                SupportsServerSidePaging = true,
+                IsDeletable = false
+            };
+
+        // =================================================================
+        // Lab Operational Report
+        // =================================================================
+
+        /// <summary>
+        /// Penyaring ketiga laporan operasional (<c>r37</c> 32.3): periode wajib dan disiplin
+        /// pilihan. Tanpa urutan dan tanpa halaman — laporan adalah ringkasan, bukan daftar.
+        /// </summary>
+        public static LabOperationalReportFilterMetadataResponse LabOperationalReport() =>
+            new()
+            {
+                MaxPeriodDays = LabOperationalReportService.MaxPeriodDays,
+                Disciplines = Opsi<LabDiscipline>(LabelDisiplin),
+                QueryParameters = new()
+                {
+                    new()
+                    {
+                        Name = "startDate",
+                        Type = "date",
+                        Required = "Yes",
+                        Description = "Tanggal operasional WIB awal periode, inklusif.",
+                        Example = "2026-09-01"
+                    },
+                    new()
+                    {
+                        Name = "endDate",
+                        Type = "date",
+                        Required = "Yes",
+                        Description = "Tanggal operasional WIB akhir periode, inklusif. Paling panjang 366 hari sejak tanggal awal.",
+                        Example = "2026-09-30"
+                    },
+                    new()
+                    {
+                        Name = "discipline",
+                        Type = "string",
+                        Description = "ClinicalPathology, AnatomicalPathology, atau Microbiology. Kosong berarti seluruh disiplin.",
+                        Example = "ClinicalPathology"
+                    }
+                }
+            };
     }
 }
