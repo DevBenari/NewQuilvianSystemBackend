@@ -182,6 +182,11 @@ Tampil **sebelum** penanda langkah muncul, sama seperti pendaftaran IGD.
 | --- | --- | --- | --- |
 | Kartu Pasien Baru | kartu | selalu | Masuk jalur pasien baru, langkah 1 |
 | Kartu Pasien Lama | kartu | selalu | Masuk jalur pasien lama, langkah 1 |
+| Kartu Admisi Kamar Pulih | kartu | `InpatientAdmissionReferral : Read` | Masuk jalur rujukan kamar pulih (`FE-INP-29`), langkah 1 (lihat [05-skema-tampilan-admisi-kamar-pulih.md](./05-skema-tampilan-admisi-kamar-pulih.md)) |
+
+> [!NOTE]
+> **Pembaruan Desain Pintu Masuk (3-Card Admission Grid):**
+> Sesuai rancangan pada [`05-skema-tampilan-admisi-kamar-pulih.md`](./05-skema-tampilan-admisi-kamar-pulih.md), pintu masuk admisi diperbarui menjadi 3 kartu sejajar berdampingan (Pasien Baru, Pasien Lama, dan Admisi dari Kamar Pulih). Jalur Kamar Pulih membawa stepper 10 langkah dengan tahap pencarian/seleksi rujukan bedah terintegrasi.
 
 **Keadaan tidak berhak:** peran tanpa `InpatientEpisode : Create` **tidak membuka layar ini sama
 sekali** — bukan membukanya lalu menemukan kartu yang mati.
