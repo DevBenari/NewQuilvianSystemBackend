@@ -1,5 +1,102 @@
 # Laporan Perubahan Backend — `BE-RWI-149`
 
+## Pembaruan eksekusi menyeluruh — 5 Oktober 2026
+
+Bagian ini adalah bukti terbaru. Bagian laporan sebelumnya, bila ada, dipertahankan sebagai riwayat.
+
+### Metadata eksekusi terakhir
+
+| Field | Nilai |
+| --- | --- |
+| Task | `BE-RWI-149` — Bentuk data integrasi `1.1.0` (`I1`, `I2`) |
+| Roadmap / slice | [backend-roadmap-finishing.md](../../../roadmap/backend-roadmap-finishing.md), kartu `BE-RWI-149` |
+| Tanggal / mode | 5 Oktober 2026 / BACKEND |
+| Status | SEBAGIAN — source/schema tersedia, selisih pengemasan migration tetap terbuka |
+| Branch / upstream | `MHamzah` / `origin/MHamzah`; sesuai manifest |
+| SHA awal sesi | `0a10899435bcd4cd54e998a060465589b6652643` |
+| Kontrak / trace | `RWI-BP-001` revision 8; API `1.1.0 approved`; Data 6.3 (`InpEpisode`), 6.4 (`InpBedPlacement`), 6.5 (`InpIntegrationOutboxes`), 6.6 (`BilInvoice`), 6.7 (`BilInpatientEventReceipt`), 6.8 DDL; backend 9.7, 9.9, 9.10 |
+| Wewenang | Pengguna meminta seluruh BE-RWI-146–159, build dan migration pada akhir; database update development diotorisasi roadmap 5 Oktober 2026 |
+| Target tulis | NewQuilvianSystemBackend; source dalam slice task, migration I6, laporan, roadmap dan traceability integrasi-billing |
+| Dependency | —; source/schema dependency tersedia; bukti klinis lengkap tidak diturunkan dari status kode |
+| Area / Module / prefix | HealthServices / InPatientManagement (Inp), BillingManagement (Bil), ACTIVE |
+| Applicability | Review ulang source existing; tidak ada perubahan source task ini pada sesi terbaru; LEGACY MIGRATION NOT APPLICABLE |
+| Klasifikasi | `MEDIUM` — skor 6: repository 0, diperiksa 1, diubah 2, logika 0, kontrak API 0, database 2, keamanan 0, workflow 1 |
+| QBE applicable | QBE-ENT-001, QBE-NAM-001, QBE-CFG-001, QBE-MOD-002, QBE-AUD-001 |
+| Governance | AGENTS.md, engineering repository, dan rules/backend suite terbaca; engineering identik dengan suite, registry repository lebih baru pada domain lain; Bil/Inp/Phm sama ACTIVE. Repository canonical mengikuti AGENTS.md |
+| Model | Codex, GPT-6 |
+
+### Masalah, proses bisnis, dan perubahan
+
+Skema jejak keluar ruangan, rantai koreksi, lease outbox, pemeriksaan invoice, dan tanda terima sudah berada dalam migration gabungan I1/I2. Sesi ini memastikan database development tidak memiliki migration tertunda. Tidak membuat ulang migration yang telah diterapkan.
+
+Tidak mengubah migration I1/I2. Keduanya tetap dikemas dalam `20261005033044_AddRawatInapFinishing` dengan `Down()`; selisih terhadap dua migration terpisah tetap tercatat.
+
+Berkas bukti:
+
+- `Migrations/20261005033044_AddRawatInapFinishing.cs`
+- `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilInpatientEventReceiptConfiguration.cs`
+
+| Aspek | Dampak |
+| --- | --- |
+| Kontrak API | Kontrak existing dipertahankan sesuai kartu; perubahan removal yang disetujui tetap berlaku |
+| Database | I1/I2 sudah diterapkan sebagai migration gabungan; nol pending. Dua file terpisah belum sesuai kartu |
+| Audit / keamanan | Database audit tetap melalui IdentityModel/SaveChanges existing; application log terpisah. Hak akses mengikuti atribut Access; tidak ada wewenang dari nama peran |
+| Consumer frontend | Frontend dibaca saja; consumer lama masih perlu mengikuti pemisahan Read/ViewAmount dan pencabutan route sesuai task pendamping |
+
+### Endpoint
+
+NOT APPLICABLE — task ini memproses service/event/schema tanpa endpoint HTTP baru. Endpoint existing yang tidak berubah dijelaskan pada bagian riwayat bila ada.
+
+### Verifikasi terbaru
+
+| Pemeriksaan | Hasil | Klasifikasi |
+| --- | --- | --- |
+| QBE Strict WorkingTree akhir | 27 file; VIOLATION 0, REVIEW 0, INFO 0 | PASS |
+| Build awal | Dua CS1061 replay (`Status`); diperbaiki menjadi `EpisodeStatus` | NEW ERROR — sudah diperbaiki |
+| `dotnet build QuilvianSystemBackend.csproj --nologo --no-restore` | Build akhir mencakup semua source dan metadata migration; 0 Error(s), 233 Warning(s), 00:05:31.27, exit 0 | PASS |
+| `dotnet ef migrations add AddRawatInapBillingEncounterLink --project QuilvianSystemBackend.csproj --no-build` | Migration I6 dibuat setelah implementasi source lengkap; scope Up hanya tabel tautan | PASS |
+| `dotnet ef database update --project QuilvianSystemBackend.csproj --no-build` dengan Development | Applying I6, Done., exit 0; pemeriksaan `GetPendingMigrationsAsync` menghasilkan 0 | PASS |
+| Konfirmasi database setelah perbaikan penutup | Database already up to date, Done., exit 0; tidak ada migration tambahan | PASS |
+| Verifikasi runtime terbatas terhadap DLL akhir | 35 pemeriksaan PASS: serialisasi, 11 metadata action, filter 401/403, whitelist, DeadLetter, EF model, pending migration, DryRun, query rincian | PASS |
+| DryRun database development | 3 kandidat; data outbox dan RequiresReview/RowVersion sebelum/sesudah identik | PASS |
+| Pembacaan rincian tersimpan | Breakdown dan aggregate konsisten pada 3 episode development; tidak memanggil kalkulasi/tulis | PASS |
+| Sampel penyerahan resep untuk retur | 0 prescription sumber ditemukan; perhitungan retur nyata tidak dibuktikan | NOT RUN |
+| UAT klinis lengkap, akun HTTP nyata, replay tulis, gangguan worker, regresi rawat jalan dan rollback Down | Tidak dijalankan; hasil pemeriksaan terbatas tidak menjadi bukti skenario ini | NOT RUN |
+| QBE percobaan ulang | Git stderr peringatan CRLF memenuhi pipe checker dan menahan proses; dipulihkan dengan core.safecrlf=false hanya pada environment proses, tanpa mengubah konfigurasi repository atau mode Strict | EXISTING / ENVIRONMENT ISSUE, dipulihkan |
+| Warning compiler dan harness | 233 warning aplikasi; harness sementara menampilkan MSB3277 DependencyModel 9.0.12/9.0.18; tidak mengubah package aplikasi | EXISTING / ENVIRONMENT ISSUE — warning aplikasi tidak seluruhnya dibuktikan sebagai baseline |
+
+
+
+Uji manual: **PASS terbatas**. Principal filter berupa identitas sintetis bernama Cashier tanpa ID pengguna valid; hasil 403 membuktikan filter berjalan, bukan UAT akun rumah sakit dengan role-permission nyata. Pemeriksaan dijalankan melalui console sementara di luar repository; tidak ada task/project automated test baru. Database memakai konfigurasi Development, nama database bermarker development dan tanpa marker produksi; host remote, bukan loopback. Connection string dan data pasien tidak dicatat.
+
+Bukti output lokal (`%TEMP%` = `C:/Users/Admin/AppData/Local/Temp`):
+
+| File | SHA256 |
+| --- | --- |
+| `Quilvian-billing-finishing-final-build.log` | `7B241A1273B063C92AA2F5043DC119557AA202166AC296A66478215DD360FA41` |
+| `Quilvian-billing-finishing-database-update.log` | `6FE5D4EFB20FA0C5267EFDE2783F8698FEC643E2BE47982E9097DB5CDA894B14` |
+| `Quilvian-billing-finishing-database-final-check.log` | `DA95D2A434379F615CAE4C85266F2E21C49E4E8A120A4CE9F9F5EBEEFE2DFA7F` |
+| `Quilvian-billing-finishing-runtime-final.log` | `9322A732FA830AA4F40F9BB9BD53172B1D7F6C8D35D2436C85E70B7932A75F66` |
+| `Quilvian-billing-finishing-qbe-final.log` | `D9FB75C1901806EBA0CF386A83275FCB4598223561A895830C327013D9FB47DF` |
+
+### Acceptance criteria dan Definition of Done terbaru
+
+| Kriteria roadmap | Status | Bukti |
+| --- | --- | --- |
+| 1. Nama, tipe, nullability, bawaan, index, dan FK sama dengan kamus data 6.3–6.7. | Terpenuhi pada review schema; delta InpEpisode.Version BE-RWI-153 tetap terbuka | `Migrations/20261005033044_AddRawatInapFinishing.cs`; `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilInpatientEventReceiptConfiguration.cs` |
+| 2. FK rantai koreksi ke diri sendiri `Restrict`. | Terpenuhi pada review FK Restrict | `Migrations/20261005033044_AddRawatInapFinishing.cs`; `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilInpatientEventReceiptConfiguration.cs` |
+| 3. Unique `IdempotencyKey` pada tanda terima. | Terpenuhi pada review unique receipt | `Migrations/20261005033044_AddRawatInapFinishing.cs`; `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilInpatientEventReceiptConfiguration.cs` |
+| 4. Kedua migration punya `Down()`. | SEBAGIAN — satu migration gabungan memiliki Down; dua file terpisah tidak dibuat ulang; rollback NOT RUN | `Migrations/20261005033044_AddRawatInapFinishing.cs`; `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilInpatientEventReceiptConfiguration.cs` |
+| 5. Tidak ada perubahan perilaku endpoint | Terpenuhi — task schema tidak menambah perilaku endpoint | `Migrations/20261005033044_AddRawatInapFinishing.cs`; `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilInpatientEventReceiptConfiguration.cs` |
+
+Implementasi, build, migration development, dan laporan tersedia. DoD alur klinis lengkap tetap **belum terbukti** pada butir berstatus NOT RUN; status kode tidak sama dengan sign-off rilis.
+
+### Catatan penutup
+
+Pengemasan I1/I2 tetap satu migration gabungan; kriteria dua migration terpisah tidak ditandai terpenuhi. Dokumen `rules/backend/TEST_POLICY.md` yang dirujuk roadmap tidak tersedia pada suite ini. Semua governance canonical wajib lainnya terbaca; validasi mengikuti AGENTS.md dan review rules yang tersedia. Tidak ada project test repository. Dokumen luar slice yang sudah berubah sebelum atau selama sesi tidak disentuh. Tidak ada stage, commit, push, deployment, atau replay produksi.
+
+Status Git task: laporan M; source existing task diperiksa ulang. Laporan dibuat pada working tree yang belum di-commit. Interupsi: NONE. Langkah berikutnya: consumer frontend pendamping dan UAT klinis sesuai acceptance matrix.
+
 ## Metadata
 
 | Field | Nilai |

@@ -130,7 +130,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Workers
                 {
                     var receipt = await DispatchEventAsync(item, cancellationToken);
 
-                    if (receipt.Accepted)
+                    if (receipt.Accepted && receipt.ReceiptId != Guid.Empty)
                     {
                         item.MarkPublished(receipt.ReceiptId);
                         item.UpdateDateTime = DateTime.UtcNow;

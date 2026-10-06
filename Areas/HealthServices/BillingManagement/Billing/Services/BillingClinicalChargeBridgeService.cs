@@ -27,7 +27,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.S
 /// Jembatan tidak pernah melempar ke pemanggil. Kegagalannya hanya mengubah status sinkron efek,
 /// sehingga transaksi klinis dan folio yang sudah sah tidak pernah ikut batal (<c>AC-RJ-013</c>).
 /// </summary>
-public sealed class BillingClinicalChargeBridgeService
+public sealed partial class BillingClinicalChargeBridgeService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<BillingClinicalChargeBridgeService> _logger;
@@ -95,6 +95,13 @@ public sealed class BillingClinicalChargeBridgeService
         if (effect is null
             || effect.InvoiceSyncStatus is not (BillingInvoiceSyncStatus.Pending or BillingInvoiceSyncStatus.Failed))
             return effect?.InvoiceSyncStatus;
+
+        var returnFact = await db.Set<CliClinicalMilestoneFact>().AsNoTracking()
+            .FirstOrDefaultAsync(x => x.MilestoneFactId == effect.MilestoneFactId
+                && x.MilestoneFactVersion == effect.MilestoneFactVersion && x.SourceContext == effect.SourceContext
+                && x.EffectType == effect.EffectType && !x.IsDelete, cancellationToken);
+        if (effect.IsClinicalCancellation && IsDrugReturnSnapshot(returnFact?.RuleSnapshot))
+            return await RecordAsync(effect, await SyncDrugReturnAsync(db, readScope.ServiceProvider, effect, returnFact!, cancellationToken), cancellationToken);
 
         var plan = await BuildPlanAsync(db, readScope.ServiceProvider, effect, cancellationToken);
         if (plan.Outcome is not null)
@@ -176,7 +183,10 @@ public sealed class BillingClinicalChargeBridgeService
                 && x.SourceContext == effect.SourceContext
                 && x.MilestoneFactVersion > effect.MilestoneFactVersion
                 && x.IsClinicalCancellation
-                && !x.IsDelete, cancellationToken);
+                && !x.IsDelete
+                && !db.Set<CliClinicalMilestoneFact>().Any(f => f.MilestoneFactId == x.MilestoneFactId
+                    && f.MilestoneFactVersion == x.MilestoneFactVersion && f.RuleSnapshot != null
+                    && f.RuleSnapshot.Contains("\"milestone\":\"DrugReturn\"")), cancellationToken);
         if (cancelledLater)
             return SyncPlan.Done(SyncOutcome.NoChange(
                 "Pelayanan ini sudah dibatalkan pada versi yang lebih baru; versi ini tidak ditagihkan.",
@@ -192,6 +202,9 @@ public sealed class BillingClinicalChargeBridgeService
                 return SyncPlan.Done(SyncOutcome.Reconcile(BillingBridgeCodes.SourceRejected,
                     "Rincian tahap resep pada fakta klinis tidak dapat dibaca.", domain, detailId.Value.ToString("D")));
             sourceStatus = isDispensed ? PharmacyDispensedStatus : PharmacyPrescribedStatus;
+            if (encounter.EncounterType == EncounterType.Inpatient && !isDispensed)
+                return SyncPlan.Done(SyncOutcome.NotApplicable(BillingBridgeCodes.NoFinancialChange,
+                    "Resep rawat inap menunggu obat diserahkan sebelum ditagihkan."));
         }
 
         var invoice = await db.Set<BilInvoice>().AsNoTracking()

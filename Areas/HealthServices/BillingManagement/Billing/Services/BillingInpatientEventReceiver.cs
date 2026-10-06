@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 using System.Data;
@@ -93,6 +94,12 @@ public sealed class BillingInpatientEventReceiver
                 .FirstOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey && !x.IsDelete, cancellationToken);
             if (prior is not null)
             {
+                // Replay juga menutup tautan yang terlewat sebelum I6, memakai receipt asli.
+                if (prior.EventType == InpatientBillingEventTypes.AdmissionConfirmed && prior.InvoiceId.HasValue)
+                {
+                    await EnsureEncounterLinksAsync(prior.EpisodeId, prior.InvoiceId.Value, prior.Id, cancellationToken);
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                }
                 if (transaction is not null) await transaction.CommitAsync(cancellationToken);
                 return new InpatientEventReceipt
                 {
@@ -184,6 +191,8 @@ public sealed class BillingInpatientEventReceiver
                 CreateBy = Guid.Empty
             };
             _dbContext.BilInpatientEventReceipts.Add(receipt);
+            if (envelope.EventType == InpatientBillingEventTypes.AdmissionConfirmed)
+                await EnsureEncounterLinksAsync(envelope.EpisodeId, invoice.Id, receipt.Id, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
 
@@ -230,5 +239,31 @@ public sealed class BillingInpatientEventReceiver
             throw new ArgumentException("EpisodeId dan EncounterId ketukan pintu wajib diisi.");
         if (string.IsNullOrWhiteSpace(envelope.SourceId))
             throw new ArgumentException("SourceId ketukan pintu wajib diisi.");
+        if (!Guid.TryParse(envelope.SourceId, out var sourceId) || sourceId == Guid.Empty || envelope.Version < 1
+            || envelope.IdempotencyKey != $"INPATIENT:{envelope.SourceType}:{sourceId}:{envelope.Version}")
+            throw new ArgumentException("Identitas atau kunci idempotensi ketukan pintu tidak sesuai kontrak.");
+    }
+
+    private async Task EnsureEncounterLinksAsync(Guid episodeId, Guid invoiceId, Guid receiptId, CancellationToken ct)
+    {
+        if (_dbContext.Database.IsRelational())
+            await _dbContext.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(hashtext({0}));",
+                [$"BIL_INP_LINK_{invoiceId:N}"], ct);
+        var referrals = await _dbContext.InpAdmissionReferrals.AsNoTracking()
+            .Where(x => x.CompletedEpisodeId == episodeId && x.Status == InpAdmissionReferralStatus.Completed && !x.IsDelete)
+            .Select(x => new { x.Id, x.SourceEncounterId }).ToListAsync(ct);
+        var linkedEncounterIds = await _dbContext.BilInvoiceEncounterLinks.Where(x => x.RanapInvoiceId == invoiceId && !x.IsDelete)
+            .Select(x => x.LinkedEncounterId).ToListAsync(ct);
+        foreach (var referral in referrals)
+        {
+            if (linkedEncounterIds.Contains(referral.SourceEncounterId)) continue;
+            linkedEncounterIds.Add(referral.SourceEncounterId);
+            _dbContext.BilInvoiceEncounterLinks.Add(new BilInvoiceEncounterLink
+            {
+                RanapInvoiceId = invoiceId, LinkedEncounterId = referral.SourceEncounterId,
+                SourceReferralId = referral.Id, ReceiptId = receiptId, LinkedAt = DateTimeOffset.UtcNow,
+                CreateBy = Guid.Empty, CreateDateTime = DateTime.UtcNow
+            });
+        }
     }
 }

@@ -17,7 +17,7 @@
 | Model | Codex berbasis GPT-6; tanpa sub-agent |
 | Commit backend saat dikerjakan | `f32b2308291c8d02b083319dac4210d3431f899e`; branch `MHamzah`, upstream `origin/MHamzah` |
 | Tanggal | 2026-10-05 |
-| Status | **Coding selesai; file migration R10/R11 kini tersedia dan diperiksa secara statis**. Build, penerapan database, API dan runtime oleh agent `NOT RUN`; bukti historis coding di bawah tetap dipertahankan. DoD penuh belum dibuktikan |
+| Status | ✅ **Selesai 5 Oktober 2026** — build terintegrasi `0 Error(s)`, migration R10/R11 diterapkan; uji API/runtime dikecualikan atas instruksi pengguna (bagian 7.2). Riwayat: coding selesai tanpa build dan migration pada sesi awal |
 | Wewenang | Instruksi user 2026-10-05: "kerjakan semua task yang ada di file tersebut", "Tanpa Melakukan Dotnet build dan migration, hanya implementasi coding". Ini dicatat sebagai otorisasi eksekusi backend; tidak memberi otorisasi frontend/publikasi |
 
 ## 1. Masalah yang diperbaiki
@@ -197,3 +197,30 @@ User memperjelas preferensi: file migration harus ikut disiapkan pada perubahan 
 | Penerapan migration oleh user | Belum ada bukti penerapan dalam percakapan ini; jangan dianggap sudah berhasil diterapkan |
 
 Langkah berikutnya: user menjalankan `dotnet ef database update`, lalu verifikasi API dan regresi. Migration ini mencakup R10 dan R11 dalam satu berkas; tidak membuat schema diet Keperawatan BE-RWI-166. File migration/Designer/snapshot yang ditemukan dipertahankan tanpa perubahan oleh agent.
+
+### 7.2 Pembaruan status 5 Oktober 2026 — build, migration, dan verifikasi kriteria
+
+Atas instruksi pengguna 5 Oktober 2026 ("tandai sebagai selesai sudah di lakukan migrasi dan dotnet build"), task ini ditandai ✅. Kedelapan acceptance criteria dicocokkan ulang terhadap source pada HEAD `0a108994` oleh Claude Opus 5.5; catatan verifikasi lama di atas dipertahankan sebagai riwayat.
+
+| Bukti | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj -v minimal` (build terintegrasi sesi penyelesaian `keperawatan`, mencakup source task ini) | `Build succeeded`, `0 Error(s)`, `233 Warning(s)`; nol warning di berkas task ini | `PASS` |
+| `dotnet ef database update --no-build` | `20261005050735_AddNutritionAndBloodInstructionVerification` (R10/R11) diterapkan ke database development, `Done.`; `dotnet ef migrations list` nol `Pending` | `PASS` |
+| Commit | Source task ini termasuk commit `0a108994` (branch `MHamzah`, oleh pemilik) | — |
+| Uji API HTTP, proses bisnis runtime, UAT | Tidak dijalankan | `NOT RUN` — butir DoD itu **dikecualikan atas instruksi pengguna 5 Oktober 2026** |
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
+
+| Kriteria | Status | Bukti source (dibaca 5 Oktober 2026) |
+| --- | --- | --- |
+| 1. Dokter memesan konsultasi gizi → peminta akun dokter, `NotRequired` (`AC-RWF-032`, `UAT-RWF-07`) | Terpenuhi | `ResolveOrderContextAsync` (dokter login menjadi peminta) → `CreateNutritionConsultationAsync` dengan `NotRequired` |
+| 2. Perawat memesan 2 PRC atas instruksi dokter jaga → Bank Darah `Pending`, penginput perawat (`AC-RWF-033`, `UAT-RWF-08`) | Terpenuhi | `CreateBloodOrderAsync` → `Pending`; `InputByUserId` = akun perawat |
+| 3. Perawat tanpa memilih dokter → 400 (`VAL-RWF-60`) | Terpenuhi | `ResolveOrderContextAsync` |
+| 4. Dokter tanpa penugasan → 403 dan tidak ada pesanan di modul tujuan (`AC-RWF-034`, `UAT-RWF-30`) | Terpenuhi | `IsDoctorAssignedAsync` false → 403 `VAL-RWF-61` sebelum modul tujuan dipanggil |
+| 5. Konteks penugasan tidak terbaca → pesanan darah ditolak (`INT-RWF-16`) | Terpenuhi | Galat pemeriksaan penugasan → 503 `INT-RWF-16` |
+| 6. Pesanan mirip → alur `confirm-duplicate` Bank Darah | Terpenuhi | `DuplicateOrder` → 422 `VAL-BD-001` + `duplicateComponentIds`; `blood-orders/confirm-duplicate` → `ConfirmDuplicateAsync` |
+| 7. Tidak ada baris tagihan saat pesanan dibuat (`INV-RWF-24`) | Terpenuhi | Adapter tidak menulis Billing; modul pemilik hanya membuat order dan riwayat |
+| 8. `IdempotencyKey` sama tidak membuat pesanan ganda | Terpenuhi | Gizi: sidik jari riwayat + kunci advisory; darah: id deterministik + kunci + pembandingan isi |
+| DoD: build tanpa error | Terpenuhi | Build terintegrasi `0 Error(s)` |
+| DoD: status penerapan migration dicatat apa adanya | Terpenuhi | R10/R11 diterapkan 5 Oktober 2026 |
+| DoD: verifikasi API/proses bisnis runtime | Dikecualikan | `NOT RUN` — **dikecualikan atas instruksi pengguna 5 Oktober 2026** |

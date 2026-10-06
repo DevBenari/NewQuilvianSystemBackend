@@ -72,15 +72,8 @@ public sealed class InpatientClearanceController : ControllerBase
 
         try
         {
-            // Proteksi data sensitif finansial: hanya peran dengan hak finansial/kasir/admin yang menerima rincian angka rupiah
-            var hasFinancialPermission = User.Claims.Any(c =>
-                (c.Type == "permission" && (c.Value.Contains("BillingInvoice") || c.Value.Contains("BillingSettlement") || c.Value.Contains("Financial")))
-                || (c.Type == ClaimTypes.Role && (c.Value.Contains("Admin") || c.Value.Contains("Cashier") || c.Value.Contains("Finance"))));
-
-            var shouldIncludeFinancial = hasFinancialPermission && (includeFinancial ?? true);
-
             var result = await _clearanceService.GetInpatientBillingSummaryAsync(
-                encounterId, shouldIncludeFinancial, cancellationToken);
+                encounterId, includeFinancial ?? true, cancellationToken);
 
             return Ok(ApiResponse<InpatientBillingSummaryResponse>.Ok(
                 result, "Ringkasan tagihan rawat inap berhasil diambil."));

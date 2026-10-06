@@ -57,6 +57,7 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<InpatientClearanceService>();
         // BE-RWI-150 / INT-RWF-01: penerima ketukan pintu Rawat Inap di dalam aplikasi.
         services.AddScoped<BillingInpatientEventReceiver>();
+        services.AddScoped<BillingDrugReturnService>();
         services.AddOptions<BillingPaymentProviderOptions>()
             .BindConfiguration(BillingPaymentProviderOptions.SectionName);
 

@@ -17,7 +17,7 @@
 | Model | Codex berbasis GPT-6; tanpa sub-agent |
 | Commit backend saat dikerjakan | `f32b2308291c8d02b083319dac4210d3431f899e`; branch `MHamzah`, upstream `origin/MHamzah` |
 | Tanggal | 2026-10-05 |
-| Status | **Coding selesai** dalam wewenang user. Validasi statis `PASS`; build, migration, API dan runtime `NOT RUN`. DoD penuh belum dibuktikan |
+| Status | ✅ **Selesai 5 Oktober 2026** — build terintegrasi `0 Error(s)`, tanpa perubahan skema; uji API/runtime dikecualikan atas instruksi pengguna (bagian 7.1). Riwayat: coding selesai tanpa build dan migration pada sesi awal |
 | Wewenang | Instruksi user 2026-10-05: "kerjakan semua task yang ada di file tersebut", "Tanpa Melakukan Dotnet build dan migration, hanya implementasi coding". Ini dicatat sebagai otorisasi eksekusi backend; tidak memberi otorisasi frontend/publikasi |
 
 ## 1. Masalah yang diperbaiki
@@ -174,3 +174,28 @@ M Areas/HealthServices/BloodBankManagement/Controllers/BbkBloodOrderController.c
 ```
 
 Laporan `BE-RWI-163.md` ditambahkan pada lokasi canonical; roadmap backend, traceability Finishing dan manifest sub-modul diperbarui sesudah laporan. Tidak melakukan stage atau publikasi Git.
+
+### 7.1 Pembaruan status 5 Oktober 2026 — build, migration, dan verifikasi kriteria
+
+Atas instruksi pengguna 5 Oktober 2026 ("tandai sebagai selesai sudah di lakukan migrasi dan dotnet build"), task ini ditandai ✅. Ketujuh acceptance criteria dicocokkan ulang terhadap source pada HEAD `0a108994` oleh Claude Opus 5.5; catatan verifikasi lama di atas dipertahankan sebagai riwayat.
+
+| Bukti | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj -v minimal` (build terintegrasi sesi penyelesaian `keperawatan`, mencakup source task ini) | `Build succeeded`, `0 Error(s)`, `233 Warning(s)`; nol warning di berkas task ini | `PASS` |
+| Migration | Task ini tidak mengubah skema | `NOT APPLICABLE` |
+| Commit | Source task ini termasuk commit `0a108994` (branch `MHamzah`, oleh pemilik) | — |
+| Uji API HTTP, proses bisnis runtime, UAT | Tidak dijalankan | `NOT RUN` — butir DoD itu **dikecualikan atas instruksi pengguna 5 Oktober 2026** |
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
+
+| Kriteria | Status | Bukti source (dibaca 5 Oktober 2026) |
+| --- | --- | --- |
+| 1. Pemegang `LabOrder : Create` → `AVAILABLE`, `EstimatedUnitPrice`, `PriceLabel` "perkiraan — tagihan final di kasir" | Terpenuhi | `InpAncillaryOrderAdapter.GetCoverageStatusAsync`: `canCreate` + tarif valid → `AVAILABLE` beserta harga dan label |
+| 2. Hanya `InpatientEpisode : Read` → `NOT_PERMITTED` dan field harga tidak ada di JSON | Terpenuhi | `PriceStatus = NOT_PERMITTED`; `EstimatedUnitPrice`/`PriceLabel` ber-`JsonIgnore(WhenWritingNull)` |
+| 3. Tarif tidak ada di master → `NOT_ESTIMABLE` (`RWI-AC-335`) | Terpenuhi | Pemeriksaan `IsValid && TariffId` sebelum `AVAILABLE` |
+| 4. `Nutrition` dan `Blood` → selalu `NOT_ESTIMABLE` | Terpenuhi | Keduanya tidak memanggil resolver; tanpa hak membuat pesanan statusnya `NOT_PERMITTED` sesuai desain 12.13 |
+| 5. Satu item gagal diresolusi tidak menggagalkan item lain | Terpenuhi | `try/catch` per item; pembatalan pemanggil tetap diteruskan |
+| 6. `ItemIds` kosong → 400 (`VAL-RWF-66`) | Terpenuhi | `InpAncillaryOrderException(400, …, "VAL-RWF-66")` |
+| 7. Tidak ada penulisan data | Terpenuhi | Jalur coverage tanpa `SaveChanges` maupun transaksi |
+| DoD: build tanpa error | Terpenuhi | Build terintegrasi `0 Error(s)` |
+| DoD: verifikasi API/proses bisnis runtime | Dikecualikan | `NOT RUN` — **dikecualikan atas instruksi pengguna 5 Oktober 2026** |

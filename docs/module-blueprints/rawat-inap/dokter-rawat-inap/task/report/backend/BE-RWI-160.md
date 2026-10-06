@@ -17,7 +17,7 @@
 | Model | Codex berbasis GPT-6; tanpa sub-agent |
 | Commit backend saat dikerjakan | `f32b2308291c8d02b083319dac4210d3431f899e`; branch `MHamzah`, upstream `origin/MHamzah` |
 | Tanggal | 2026-10-05 |
-| Status | **Coding selesai** dalam wewenang user. Validasi statis `PASS`; build, migration, API dan runtime `NOT RUN`. DoD penuh belum dibuktikan |
+| Status | ✅ **Selesai 5 Oktober 2026** — build terintegrasi `0 Error(s)`, tanpa perubahan skema; uji API/runtime dikecualikan atas instruksi pengguna (bagian 7.1). Riwayat: coding selesai tanpa build dan migration pada sesi awal |
 | Wewenang | Instruksi user 2026-10-05: "kerjakan semua task yang ada di file tersebut", "Tanpa Melakukan Dotnet build dan migration, hanya implementasi coding". Ini dicatat sebagai otorisasi eksekusi backend; tidak memberi otorisasi frontend/publikasi |
 
 ## 1. Masalah yang diperbaiki
@@ -169,3 +169,25 @@ M Areas/HealthServices/BloodBankManagement/Controllers/BbkBloodOrderController.c
 ```
 
 Laporan `BE-RWI-160.md` ditambahkan pada lokasi canonical; roadmap backend, traceability Finishing dan manifest sub-modul diperbarui sesudah laporan. Tidak melakukan stage atau publikasi Git.
+
+### 7.1 Pembaruan status 5 Oktober 2026 — build, migration, dan verifikasi kriteria
+
+Atas instruksi pengguna 5 Oktober 2026 ("tandai sebagai selesai sudah di lakukan migrasi dan dotnet build"), task ini ditandai ✅. Keempat acceptance criteria dicocokkan ulang terhadap source pada HEAD `0a108994` oleh Claude Opus 5.5; catatan verifikasi lama di atas dipertahankan sebagai riwayat.
+
+| Bukti | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `dotnet build QuilvianSystemBackend.csproj -v minimal` (build terintegrasi sesi penyelesaian `keperawatan`, mencakup source task ini) | `Build succeeded`, `0 Error(s)`, `233 Warning(s)`; nol warning di berkas task ini | `PASS` |
+| Migration | Task ini tidak mengubah skema | `NOT APPLICABLE` |
+| Commit | Source task ini termasuk commit `0a108994` (branch `MHamzah`, oleh pemilik) | — |
+| Uji API HTTP, proses bisnis runtime, UAT | Tidak dijalankan | `NOT RUN` — butir DoD itu **dikecualikan atas instruksi pengguna 5 Oktober 2026** |
+
+`AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
+
+| Kriteria | Status | Bukti source (dibaca 5 Oktober 2026) |
+| --- | --- | --- |
+| 1. Tanpa parameter → hasil identik dengan sebelum perubahan | Terpenuhi | `PatientProcedureController.GetMasterProcedureOptions`: `careSetting` dan `audience` nullable; cabang barunya hanya berjalan bila parameter dikirim, saringan lama `serviceType`/`procedureType` tidak berubah |
+| 2. `careSetting=Inpatient` menampilkan `IsAvailableForInpatient = true` dan menyembunyikan yang `false` | Terpenuhi | `careSetting` memetakan ke saringan `IsAvailableForInpatient` |
+| 3. `audience=Nurse` menampilkan tindakan khusus perawat | Terpenuhi | `audience=Nurse` tidak menambah saringan `IsDoctorAction`; saringan dasar `IsDoctorAction || IsNursingAction` tetap memuat tindakan perawat |
+| 4. Tindakan khusus rawat inap tampil di bangsal, tidak di poliklinik (`UAT-RWF-31`) | Terpenuhi di tingkat API | `careSetting=Inpatient` menampilkan, `careSetting=Outpatient` menyembunyikan (`IsAvailableForOutpatient`). **Catatan integrasi:** layar poliklinik (`use-doctor-procedure.js`) memanggil tanpa parameter sehingga tetap mendapat saringan lama `Outpatient || Inpatient`; `UAT-RWF-31` di poliklinik baru lulus bila pemanggil itu mengirim `careSetting=Outpatient`, sedangkan `FE-RWI-176` mengecualikan berkas tersebut. Kontrak API 13.5 juga menyebut bawaan `Outpatient` sekaligus "pemanggil lama identik", dua hal yang tidak dapat dipenuhi bersamaan — perlu keputusan perencanaan |
+| DoD: build tanpa error | Terpenuhi | Build terintegrasi `0 Error(s)` |
+| DoD: verifikasi API/proses bisnis runtime | Dikecualikan | `NOT RUN` — **dikecualikan atas instruksi pengguna 5 Oktober 2026** |

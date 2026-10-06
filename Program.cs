@@ -536,6 +536,7 @@ try
     builder.Services.AddScoped<StockTransferService>();
     builder.Services.AddScoped<DrugUsageService>();
     builder.Services.AddScoped<DrugReturnService>();
+    builder.Services.AddScoped<DrugReturnBillingHandoffService>();
     builder.Services.AddScoped<PrescriptionLabelService>();
     builder.Services.AddScoped<PrescriptionDispensingService>();
     builder.Services.AddScoped<PrescriptionCopyService>();
@@ -639,6 +640,7 @@ try
     // dan gerbang clearance pemulangan / auto-reblock / supervisor override.
     builder.Services.AddScoped<IInpIntegrationOutboxService, InpIntegrationOutboxService>();
     builder.Services.AddScoped<InpIntegrationOutboxService>();
+    builder.Services.AddScoped<InpIntegrationReplayService>();
     // BE-RWI-151 / kontrak integrasi-billing 1.1.0 bagian 9.11: masa sewa pemrosesan, ukuran
     // batch, dan batas coba ulang worker outbox dapat diubah lewat konfigurasi tanpa rilis kode.
     builder.Services.Configure<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options.InpatientIntegrationOutboxOptions>(
