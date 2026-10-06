@@ -107,3 +107,11 @@ AUTOMATED TEST: perluasan Playwright - FAIL: 5/9 PASS. Lima skenario Lab/Rehab l
 AUTOMATED TEST: Playwright inpatient-doctor-finishing.spec.mjs - PASS: 9/9. Rehab tanpa pesanan/request; Lab tanpa tarif dan double-click; katalog gagal/retry; katalog kosong; resolver gagal tanpa mengunci kirim; harga dari resolver berlabel; katalog resep berlabel/tanpa Rp 0/tanggungan tidak applicable tersembunyi; isolasi diet gagal dan verifikasi darah 403/409 dengan ExpectedVersion=12. Fixture permission sekarang memuat pasangan resource/action eksplisit seperti yang disyaratkan keputusan ketat existing. Locator teks/testId mengikuti source existing. Tidak ada aturan aplikasi yang dilonggarkan.
 
 Hasil ini tetap terpisah dari UAT backend asli dan tidak membuka gerbang FE-RWI-172.
+
+### Hasil Validasi Akhir — 6 Oktober 2026
+
+1. **Lint Errors:** `npm.cmd run lint:errors` — PASS (exit 0).
+2. **Production Build:** `npm.cmd run build` — PASS (exit 0), Turbopack standalone output sukses penuh.
+3. **Unit Tests:** `tests/unit/inpatient-nursing-procedure-and-ancillary.test.mjs` — PASS (6/6 tests).
+4. **Status Tombol:** Tombol "Pesan" di penunjang perawat tetap aman terkunci `disabled={true}` sesuai klausul gerbang `RWI-DEC-168` dan kartu task roadmap ("Bila runtime BE-RWI-104 belum terbukti di lingkungan live, tombol tetap terkunci dan task berhenti aman sebagai 🟡").
+5. **Kesimpulan:** `FE-RWI-172` tetap berada pada status **🟡 Berhenti Aman / Terkunci**.

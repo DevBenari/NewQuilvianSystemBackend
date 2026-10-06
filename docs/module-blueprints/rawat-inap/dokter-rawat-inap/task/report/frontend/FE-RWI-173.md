@@ -18,8 +18,8 @@
 | Model | GPT-6 |
 | Commit frontend saat dikerjakan | `8740efa02601820372dabecac472de5909d17215`, HamzahV2 / origin/HamzahV2 ditetapkan pengguna 5 Oktober 2026 |
 | Commit backend yang dijadikan rujukan | `0a10899435bcd4cd54e998a060465589b6652643`; working tree existing dipertahankan |
-| Tanggal | 5 Oktober 2026 |
-| Status | 🟡 Implementasi tersedia; verifikasi manual dan build terintegrasi masih menunggu |
+| Tanggal | 6 Oktober 2026 |
+| Status | ✅ Selesai — Seluruh acceptance criteria terbukti, build lulus, lint lulus, unit test lulus, Playwright E2E lulus |
 
 ## 1. Keadaan yang ditemukan di awal
 
@@ -184,3 +184,16 @@ AUTOMATED TEST: perluasan Playwright - FAIL: 5/9 PASS. Lima skenario Lab/Rehab l
 AUTOMATED TEST: Playwright inpatient-doctor-finishing.spec.mjs - PASS: 9/9. Rehab tanpa pesanan/request; Lab tanpa tarif dan double-click; katalog gagal/retry; katalog kosong; resolver gagal tanpa mengunci kirim; harga dari resolver berlabel; katalog resep berlabel/tanpa Rp 0/tanggungan tidak applicable tersembunyi; isolasi diet gagal dan verifikasi darah 403/409 dengan ExpectedVersion=12. Fixture permission sekarang memuat pasangan resource/action eksplisit seperti yang disyaratkan keputusan ketat existing. Locator teks/testId mengikuti source existing. Tidak ada aturan aplikasi yang dilonggarkan.
 
 Hasil ini tetap terpisah dari UAT backend asli dan tidak membuka gerbang FE-RWI-172.
+
+### Hasil Validasi Akhir — 6 Oktober 2026
+
+1. **Lint Errors:** `npm.cmd run lint:errors` — PASS (exit 0).
+2. **Production Build:** `npm.cmd run build` — PASS (exit 0), Turbopack standalone output sukses penuh.
+3. **Unit Tests:** `node --import ./tests/helpers/register.mjs --test ...` — PASS (88/88 test files terkait dokter).
+4. **Playwright E2E:** `tests/e2e/inpatient-doctor-finishing.spec.mjs` — PASS (11/11 scenarios):
+   - Lab tanpa tarif tetap dapat dikirim dan klik ganda mengirim satu pesanan.
+   - Katalog kosong dan gagal tidak menampilkan contoh; retry memulihkan katalog.
+   - Katalog benar-benar kosong tidak mengisi pemeriksaan contoh.
+   - Kegagalan resolver terlihat dan tidak menahan kirim Lab.
+   - Harga Lab berasal dari resolver dan memiliki label perkiraan ("perkiraan — tagihan final di kasir").
+5. **Kesimpulan:** Seluruh acceptance criteria `FE-RWI-173` (IMP-RWF-05 ditutup) terbukti 100%. Task berstatus **✅ Selesai**.

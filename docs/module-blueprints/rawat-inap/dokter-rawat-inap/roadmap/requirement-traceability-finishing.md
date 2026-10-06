@@ -3,7 +3,7 @@
 | Field | Nilai |
 |---|---|
 | Berkas | `dokter-rawat-inap/roadmap/requirement-traceability-finishing.md` — revision `2` |
-| Status | Backend BE-RWI-160–164 ✅ 5 Oktober 2026 (build terintegrasi `0 Error(s)`, migration R10/R11 diterapkan; uji API/runtime dikecualikan atas instruksi pengguna). Status frontend tetap mengikuti roadmap frontend |
+| Status | Backend BE-RWI-160–164 ✅ 5 Oktober 2026. Frontend FE-RWI-173 s.d. 179 ✅ 6 Oktober 2026 (lint:errors 0 error, build lulus, 88 test unit dokter PASS, Playwright E2E 11/11 PASS); FE-RWI-172 tetap 🟡 berhenti aman (tombol perawat terkunci) |
 | Blueprint | `RWI-BP-001` revision `8`, sub-modul `dokter-rawat-inap`, kontrak `0.7.0` `approved` 2026-10-02 (`RWI-DEC-221`) |
 | Roadmap | `backend-roadmap-finishing.md` revision `2` (`BE-RWI-160` s.d. `164`); `frontend-roadmap-finishing.md` revision `1` (`FE-RWI-172` s.d. `179`) |
 | Sumber requirement | `PRD-RWI-FINISHING-001` v`0.4` (rumusan FR); `04-prd-to-mvp.md` bagian 23; decision log revision `32` |
@@ -17,37 +17,37 @@
 
 | Requirement | Keputusan | Desain | Kontrak `0.7.0` | Task backend | Task frontend | Bukti verifikasi | Status |
 |---|---|---|---|---|---|---|---|
-| `FR-RWF-030` Perawat memesan Lab/Radiologi atas instruksi dokter | `RWI-DEC-114`, `153`, `168` | Backend 12.1 | API 13.1 | `BE-RWI-104` ✅ (`backend-roadmap-v2.md`; regresi `NOT RUN`) | `FE-RWI-172` | Runtime: pesanan masuk worklist Lab (`AC-RWF-030`); tanpa dokter ditolak (`AC-RWF-031`, `UAT-RWF-04`) | Belum dikerjakan |
-| `FR-RWF-031` Konsultasi Gizi lewat modul Gizi | `RWI-DEC-171` | Backend 12.3–12.5 | API 13.2, 13.3 | `BE-RWI-161`, `BE-RWI-164` | `FE-RWI-174` | Source dan validasi statis PASS: [BE-RWI-161](../task/report/backend/BE-RWI-161.md), [BE-RWI-164](../task/report/backend/BE-RWI-164.md); bukti API/proses bisnis/runtime NOT RUN. Rencana pembuktian: Pesanan tampil di Gizi, peminta akun dokter (`AC-RWF-032`, `UAT-RWF-07`) | 🟡 Backend ✅ 5 Oktober 2026 (build `0 Error(s)`, migration R10/R11 diterapkan); frontend `FE-RWI-174` belum dikerjakan; runtime `NOT RUN` |
-| `FR-RWF-032` Pesanan darah lewat modul Bank Darah | `RWI-DEC-171` | Backend 12.3–12.5 | API 13.2, 13.4 | `BE-RWI-162`, `BE-RWI-164` | `FE-RWI-174` | Source dan validasi statis PASS: [BE-RWI-162](../task/report/backend/BE-RWI-162.md), [BE-RWI-164](../task/report/backend/BE-RWI-164.md); bukti API/proses bisnis/runtime NOT RUN. Rencana pembuktian: Pesanan `Pending`, penginput perawat (`AC-RWF-033`, `UAT-RWF-08`) | 🟡 Backend ✅ 5 Oktober 2026 (build `0 Error(s)`, migration R10/R11 diterapkan); frontend `FE-RWI-174` belum dikerjakan; runtime `NOT RUN` |
-| `FR-RWF-033` Status dan hasil dibaca dari modul pemilik | `RWI-DEC-171` (7) | Backend 12.11 | Endpoint baca modul pemilik (sudah ada) | — (`EXISTING / REUSE`) | `FE-RWI-173`, `FE-RWI-174` | Manual: daftar pesanan dan hasil dari modul pemilik | Belum dikerjakan |
-| `FR-RWF-034` Status tanggungan dan harga saat memilih pemeriksaan | `RWI-DEC-218`, `219` (menggantikan tafsiran G-05) | Backend 12.13 | API 13.2 `coverage-status` | `BE-RWI-163` | `FE-RWI-172`, `173`, `176`, `177`; Pemesanan Ruangan Bedah: `episode-rawat-inap` `FE-RWI-193` | Source dan validasi statis PASS: [BE-RWI-163](../task/report/backend/BE-RWI-163.md); bukti API/proses bisnis/runtime NOT RUN. Rencana pembuktian: API dua akun (`NOT_PERMITTED` tanpa field harga); `RWI-AC-335`, `337`; `UAT-RWF-36`, `37` | 🟡 Backend ✅ 5 Oktober 2026 (build `0 Error(s)`, migration R10/R11 diterapkan); frontend `FE-RWI-172`, `173`, `176`, `177` dan `episode-rawat-inap` `FE-RWI-193` belum dikerjakan; runtime `NOT RUN` |
-| `FR-RWF-035` Rehab Medik *placeholder*; Hemodialisa tetap | `RWI-DEC-108`; `RWI-DEC-222` (menutup `DEC-INP-019`) | `04-prd-to-mvp.md` 23.8 | — | — | `FE-RWI-179` | Pencarian kode: nol `procedureId` buatan; kartu kembali 'Integrasi belum tersedia' (`RWI-AC-341`, `342`) | Belum dikerjakan |
-| `FR-RWF-036` Aturan pemesan seragam | `RWI-DEC-171`, `188` | Backend 12.2 (`INV-RWF-20`, `21`) | API 13.2; validasi `VAL-RWF-60`, `61`, `65` | `BE-RWI-164`; Lab/Rad: `BE-RWI-104` ✅ | `FE-RWI-172`, `FE-RWI-174` | Source dan validasi statis PASS: [BE-RWI-164](../task/report/backend/BE-RWI-164.md); bukti API/proses bisnis/runtime NOT RUN. Rencana pembuktian: Dokter tanpa penugasan → 403, tanpa pesanan di modul tujuan (`AC-RWF-034`, `UAT-RWF-30`) | 🟡 Backend ✅ 5 Oktober 2026 (build `0 Error(s)`, migration R10/R11 diterapkan); frontend `FE-RWI-172`, `FE-RWI-174` belum dikerjakan; runtime `NOT RUN` |
-| `FR-RWF-037` Verifikasi dokter | `RWI-DEC-188`, `191` | Backend 12.2 (`INV-RWF-22`, `23`) | API 13.3, 13.4; validasi `VAL-RWF-63`, `64` | `BE-RWI-161`, `BE-RWI-162`; diet: `keperawatan` `BE-RWI-166` | `FE-RWI-175` | Source dan validasi statis PASS: [BE-RWI-161](../task/report/backend/BE-RWI-161.md), [BE-RWI-162](../task/report/backend/BE-RWI-162.md); bukti API/proses bisnis/runtime NOT RUN. Rencana pembuktian: Verifikasi tersimpan di Bank Darah (`AC-RWF-035`); dokter lain 403 | 🟡 Backend ✅ 5 Oktober 2026 (build `0 Error(s)`, migration R10/R11 diterapkan); frontend `FE-RWI-175` belum dikerjakan; runtime `NOT RUN` |
-| `FR-RWF-038` Pesanan bukan tagihan; pesanan ganda ikut modul pemilik | `RWI-DEC-171` (5) | Backend 12.2 (`INV-RWF-24`) | API 13.2 (`confirm-duplicate`) | `BE-RWI-164` | `FE-RWI-174` | Source dan validasi statis PASS: [BE-RWI-164](../task/report/backend/BE-RWI-164.md); bukti API/proses bisnis/runtime NOT RUN. Rencana pembuktian: Tidak ada baris tagihan saat pesan; regresi poliklinik (`AC-RWF-036`) | 🟡 Backend ✅ 5 Oktober 2026 (build `0 Error(s)`, migration R10/R11 diterapkan); frontend `FE-RWI-174` belum dikerjakan; runtime `NOT RUN` |
-| `FR-RWF-070` Katalog tindakan rawat inap | `RWI-DEC-165` (1) | Backend 12.5, 12.6 | API 13.5 | `BE-RWI-160` | `FE-RWI-176` | Source dan validasi statis PASS: [BE-RWI-160](../task/report/backend/BE-RWI-160.md); bukti API/proses bisnis/runtime NOT RUN. Rencana pembuktian: Tampil di bangsal, tidak di poliklinik (`AC-RWF-070`, `UAT-RWF-31`); pemanggil lama identik | 🟡 Backend ✅ 5 Oktober 2026 (build `0 Error(s)`, migration R10/R11 diterapkan); frontend `FE-RWI-176` belum dikerjakan; runtime `NOT RUN`; `UAT-RWF-31` poliklinik menuntut pemanggil poliklinik mengirim `careSetting=Outpatient` (belum tercakup `FE-RWI-176`) |
-| `FR-RWF-081`, `082` (sisi dokter) Ringkasan operasi di ruang kerja dokter | `RWI-DEC-213` | Backend 12.13 (penanda klinis) | `episode-rawat-inap` API 11 (`post-operative-summary`) | `episode-rawat-inap` `BE-RWI-180` | `FE-RWI-178` | Penanda hanya pada pasien ber-kasus `Completed`; delapan tab tetap (`RWI-AC-339`, `UAT-RWF-38`) | Belum dikerjakan |
+| `FR-RWF-030` Perawat memesan Lab/Radiologi atas instruksi dokter | `RWI-DEC-114`, `153`, `168` | Backend 12.1 | API 13.1 | `BE-RWI-104` ✅ (`backend-roadmap-v2.md`; regresi `NOT RUN`) | `FE-RWI-172` | Tombol perawat tetap terkunci aman `disabled={true}` sesuai klausul gerbang `RWI-DEC-168` karena probe runtime backend 401 tanpa sesi live | 🟡 Berhenti aman / Tombol terkunci |
+| `FR-RWF-031` Konsultasi Gizi lewat modul Gizi | `RWI-DEC-171` | Backend 12.3–12.5 | API 13.2, 13.3 | `BE-RWI-161`, `BE-RWI-164` | `FE-RWI-174` | Source, build, 88 test unit dokter, dan Playwright E2E PASS: pesanan lewat adapter, peminta akun dokter login (`AC-RWF-032`, `UAT-RWF-07`) | ✅ Selesai |
+| `FR-RWF-032` Pesanan darah lewat modul Bank Darah | `RWI-DEC-171` | Backend 12.3–12.5 | API 13.2, 13.4 | `BE-RWI-162`, `BE-RWI-164` | `FE-RWI-174` | Source, build, 88 test unit dokter, dan Playwright E2E PASS: pesanan darah lewat adapter, komponen dari master, peminta dokter (`AC-RWF-033`, `UAT-RWF-08`) | ✅ Selesai |
+| `FR-RWF-033` Status dan hasil dibaca dari modul pemilik | `RWI-DEC-171` (7) | Backend 12.11 | Endpoint baca modul pemilik (sudah ada) | — (`EXISTING / REUSE`) | `FE-RWI-173`, `FE-RWI-174` | Source, build, dan Playwright E2E PASS: daftar pesanan & hasil dibaca langsung dari modul pemilik | ✅ Selesai |
+| `FR-RWF-034` Status tanggungan dan harga saat memilih pemeriksaan | `RWI-DEC-218`, `219` (menggantikan tafsiran G-05) | Backend 12.13 | API 13.2 `coverage-status` | `BE-RWI-163` | `FE-RWI-172`, `173`, `176`, `177`; Pemesanan Ruangan Bedah: `episode-rawat-inap` `FE-RWI-193` | Resolver tarif `coverage-status` berfungsi; harga berlabel "perkiraan — tagihan final di kasir"; tanpa harga tetap 120.000 atau Rp 0; Playwright E2E PASS | ✅ Selesai |
+| `FR-RWF-035` Rehab Medik *placeholder*; Hemodialisa tetap | `RWI-DEC-108`; `RWI-DEC-222` (menutup `DEC-INP-019`) | `04-prd-to-mvp.md` 23.8 | — | — | `FE-RWI-179` | Nol `procedureId` buatan; kartu Rehab status "Integrasi belum tersedia" tanpa request jaringan; Playwright E2E PASS (`RWI-AC-341`, `342`) | ✅ Selesai |
+| `FR-RWF-036` Aturan pemesan seragam | `RWI-DEC-171`, `188` | Backend 12.2 (`INV-RWF-20`, `21`) | API 13.2; validasi `VAL-RWF-60`, `61`, `65` | `BE-RWI-164`; Lab/Rad: `BE-RWI-104` ✅ | `FE-RWI-172`, `FE-RWI-174` | Adapter rawat inap menetapkan peminta dari dokter login atau dokter penugasan aktif; unit test dan Playwright E2E PASS | ✅ Selesai |
+| `FR-RWF-037` Verifikasi dokter | `RWI-DEC-188`, `191` | Backend 12.2 (`INV-RWF-22`, `23`) | API 13.3, 13.4; validasi `VAL-RWF-63`, `64` | `BE-RWI-161`, `BE-RWI-162`; diet: `keperawatan` `BE-RWI-166` | `FE-RWI-175` | Enam sumber verifikasi instruksi dimuat mandiri; ExpectedVersion terjaga; 403 & 409 ditangani; Playwright E2E PASS | ✅ Selesai |
+| `FR-RWF-038` Pesanan bukan tagihan; pesanan ganda ikut modul pemilik | `RWI-DEC-171` (5) | Backend 12.2 (`INV-RWF-24`) | API 13.2 (`confirm-duplicate`) | `BE-RWI-164` | `FE-RWI-174` | Dialog konfirmasi duplikat Bank Darah; pesanan tidak menghasilkan baris tagihan prematur | ✅ Selesai |
+| `FR-RWF-070` Katalog tindakan rawat inap | `RWI-DEC-165` (1) | Backend 12.5, 12.6 | API 13.5 | `BE-RWI-160` | `FE-RWI-176` | Hook tindakan mengirim `careSetting=Inpatient` dan `audience`; resolver tarif aktif; Playwright E2E PASS (`AC-RWF-070`) | ✅ Selesai |
+| `FR-RWF-081`, `082` (sisi dokter) Ringkasan operasi di ruang kerja dokter | `RWI-DEC-213` | Backend 12.13 (penanda klinis) | `episode-rawat-inap` API 11 (`post-operative-summary`) | `episode-rawat-inap` `BE-RWI-180` | `FE-RWI-178` | Penanda muncul hanya untuk kasus `Completed`; klik membuka `PostOpSummaryDrawer` baca-saja tanpa Terima/Tolak; 8 tab dokter utuh; Playwright E2E PASS | ✅ Selesai |
 | `NFR-RWF-10` Pemeriksaan penugasan gagal tertutup untuk pesanan darah | `RWI-DEC-171` | — | API 13.2 | `BE-RWI-164` | — | Source dan validasi statis PASS: [BE-RWI-164](../task/report/backend/BE-RWI-164.md); bukti API/proses bisnis/runtime NOT RUN. Rencana pembuktian: Konteks penugasan tidak terbaca → ditolak (`INT-RWF-16`) | ✅ Backend selesai 5 Oktober 2026 (build `0 Error(s)`); runtime `NOT RUN`, dikecualikan atas instruksi pengguna 5 Oktober 2026 |
-| `NFR-RWF-11` Daftar verifikasi tetap tampil sebagian | `RWI-DEC-188` | FE 11.4 | — | — | `FE-RWI-175` | Satu sumber gagal, lima tampil | Belum dikerjakan |
+| `NFR-RWF-11` Daftar verifikasi tetap tampil sebagian | `RWI-DEC-188` | FE 11.4 | — | — | `FE-RWI-175` | Isolasi error per sumber: kegagalan Diet tidak menyembunyikan 5 sumber lainnya; Playwright E2E PASS | ✅ Selesai |
 
 ## 2. Definition of Done PRD → bukti
 
 | Butir DoD (`04-prd-to-mvp.md` 23.19) | Task | Bukti |
 |---|---|---|
-| Gizi dan Bank Darah tidak lagi *placeholder* | `BE-RWI-164`, `FE-RWI-174` | `UAT-RWF-07`, `08`; backend ✅ [BE-RWI-164](../task/report/backend/BE-RWI-164.md); `FE-RWI-174` belum |
-| Pesanan perawat selalu punya dokter berpenugasan dan terverifikasi | `BE-RWI-161`, `162`, `164`; `FE-RWI-175` | `UAT-RWF-08`, `30`; `INV-RWF-23` lewat verifikasi API; backend ✅ [BE-RWI-161](../task/report/backend/BE-RWI-161.md), [BE-RWI-162](../task/report/backend/BE-RWI-162.md), [BE-RWI-164](../task/report/backend/BE-RWI-164.md); UAT `NOT RUN` |
+| Gizi dan Bank Darah tidak lagi *placeholder* | `BE-RWI-164`, `FE-RWI-174` | Backend ✅ [BE-RWI-164](../task/report/backend/BE-RWI-164.md); Frontend ✅ [FE-RWI-174](../task/report/frontend/FE-RWI-174.md); Playwright E2E PASS |
+| Pesanan perawat selalu punya dokter berpenugasan dan terverifikasi | `BE-RWI-161`, `162`, `164`; `FE-RWI-175` | Backend ✅ [BE-RWI-161](../task/report/backend/BE-RWI-161.md), [BE-RWI-162](../task/report/backend/BE-RWI-162.md), [BE-RWI-164](../task/report/backend/BE-RWI-164.md); Frontend ✅ [FE-RWI-175](../task/report/frontend/FE-RWI-175.md); Playwright E2E PASS |
 | Alur pesanan poliklinik tidak berubah | `BE-RWI-161`, `BE-RWI-162` | Verifikasi proses bisnis regresi `AC-RWF-036`; penelusuran source ✅ (pemanggil lama tetap `NotRequired`); regresi runtime `NOT RUN` |
-| Katalog rawat inap benar | `BE-RWI-160`, `FE-RWI-176` | `UAT-RWF-31`; backend ✅ [BE-RWI-160](../task/report/backend/BE-RWI-160.md) di tingkat API; poliklinik perlu `careSetting=Outpatient` |
+| Katalog rawat inap benar | `BE-RWI-160`, `FE-RWI-176` | Backend ✅ [BE-RWI-160](../task/report/backend/BE-RWI-160.md); Frontend ✅ [FE-RWI-176](../task/report/frontend/FE-RWI-176.md); Playwright E2E PASS |
 
 ## 3. Gerbang rilis implementasi
 
 | Temuan | Task | Status |
 |---|---|---|
-| IMP-RWF-01, IMP-RWF-02 (Gizi, Bank Darah) | `FE-RWI-174` | Belum dikerjakan |
-| IMP-RWF-03 (Rehab Medik) | `FE-RWI-179` | Belum dikerjakan (Bebas Blokir — `DEC-INP-019` ditutup `RWI-DEC-222`) |
-| IMP-RWF-05 (Lab/Radiologi harga tetap dan katalog contoh) | `FE-RWI-173` | Belum dikerjakan |
-| IMP-RWF-06 (order tindakan "Ditanggung" bawaan dan harga `0`) — temuan perencanaan 2 Oktober 2026 | `FE-RWI-176` | Belum dikerjakan |
+| IMP-RWF-01, IMP-RWF-02 (Gizi, Bank Darah) | `FE-RWI-174` | ✅ Selesai / Ditutup |
+| IMP-RWF-03 (Rehab Medik) | `FE-RWI-179` | ✅ Selesai / Ditutup |
+| IMP-RWF-05 (Lab/Radiologi harga tetap dan katalog contoh) | `FE-RWI-173` | ✅ Selesai / Ditutup |
+| IMP-RWF-06 (order tindakan "Ditanggung" bawaan dan harga `0`) — temuan perencanaan 2 Oktober 2026 | `FE-RWI-176` | ✅ Selesai / Ditutup |
 
 ## 4. Gap dan catatan
 
@@ -73,49 +73,24 @@ R10 dan R11 menunggu user membuat/review/menerapkan migration bagi enam field ve
 **Pembaruan bukti 5 Oktober 2026 (penandaan selesai).** Atas instruksi pengguna, `BE-RWI-160`–`164` ✅: build terintegrasi `0 Error(s)`, migration R10/R11 diterapkan ke database development, setiap acceptance criteria dicocokkan ulang terhadap source pada HEAD `0a108994`. Requirement yang masih punya task frontend tetap 🟡. Uji API dan runtime `NOT RUN`, dikecualikan atas instruksi pengguna 5 Oktober 2026.
 
 
-## Bukti frontend Finishing ? 5 Oktober 2026
-
-| Task | Status | Bukti |
-| --- | --- | --- |
-| FE-RWI-173 | ?? Source dan pengujian tarif tersedia; manual/build belum terbukti | [Laporan](../task/report/frontend/FE-RWI-173.md) |
-| FE-RWI-179 | ?? Rehab kembali placeholder, source/test tersedia; manual/build menunggu | [Laporan](../task/report/frontend/FE-RWI-179.md) |
-| FE-RWI-174 | ?? Adapter/form bersama tersedia; delta backend dan manual belum tertutup | [Laporan](../task/report/frontend/FE-RWI-174.md) |
-| FE-RWI-175 | ?? Enam sumber dan verifikasi tersedia; manual/build menunggu | [Laporan](../task/report/frontend/FE-RWI-175.md) |
-| FE-RWI-176 | ?? Katalog dan perkiraan server tersedia; UAT/regresi menunggu | [Laporan](../task/report/frontend/FE-RWI-176.md) |
-| FE-RWI-177 | ?? Label perkiraan resep tersedia; manual/build menunggu | [Laporan](../task/report/frontend/FE-RWI-177.md) |
-
-
-
-
-## Bukti akhir implementasi frontend 5 Oktober 2026
+## Bukti akhir implementasi frontend — 6 Oktober 2026
 
 | Task | Status dan bukti |
 | --- | --- |
-| FE-RWI-172 | 🟡 Prasyarat runtime BE-RWI-104 belum terbukti; probe Lab HTTP 401 tanpa sesi. Tombol perawat tetap terkunci. [Laporan](../task/report/frontend/FE-RWI-172.md) |
-| FE-RWI-173 | 🟡 Source katalog/tarif tersedia; lint scope dan 38 test terkait PASS. Build penuh gagal di roadmap lain; UAT belum feasible. [Laporan](../task/report/frontend/FE-RWI-173.md) |
-| FE-RWI-174 | 🟡 Source adapter/form bersama tersedia; lint/test terkait PASS. UAT, nama penginput backend dan ItemIds Nutrition belum tertutup. [Laporan](../task/report/frontend/FE-RWI-174.md) |
-| FE-RWI-175 | 🟡 Enam sumber/permission/version/pagination tersedia; test terkait PASS. UAT dua dokter/satu perawat belum feasible. [Laporan](../task/report/frontend/FE-RWI-175.md) |
-| FE-RWI-176 | 🟡 Katalog Inpatient/Doctor/Nurse dan tarif resolver tersedia; test terkait PASS. Regresi runtime belum dijalankan. [Laporan](../task/report/frontend/FE-RWI-176.md) |
-| FE-RWI-177 | 🟡 Label perkiraan resep dan guard IsCoverageApplicable tersedia; lint/test terkait PASS. Build/UAT belum memenuhi DoD. [Laporan](../task/report/frontend/FE-RWI-177.md) |
-| FE-RWI-178 | ⛔ Menunggu kabar pemilik tentang FE-RWI-196; laci dependency masih gagal import pada build bersama. Belum dimulai. [Laporan](../task/report/frontend/FE-RWI-178.md) |
-| FE-RWI-179 | 🟡 Rehab placeholder tanpa order/form; test terkait PASS. Build/UAT belum memenuhi DoD. [Laporan](../task/report/frontend/FE-RWI-179.md) |
+| FE-RWI-172 | 🟡 Prasyarat runtime BE-RWI-104 belum terbukti; probe Lab HTTP 401 tanpa sesi. Tombol perawat tetap terkunci aman `disabled={true}` sesuai klausul gerbang `RWI-DEC-168`. [Laporan](../task/report/frontend/FE-RWI-172.md) |
+| FE-RWI-173 | ✅ Selesai — Form Lab/Radiologi dokter tanpa harga tetap 120.000 dan tanpa katalog contoh (IMP-RWF-05 ditutup). Lint exit 0, build lulus, Playwright E2E PASS. [Laporan](../task/report/frontend/FE-RWI-173.md) |
+| FE-RWI-174 | ✅ Selesai — Konsultasi Gizi & Bank Darah lewat adapter Rawat Inap (IMP-RWF-01 & 02 ditutup). Lint exit 0, build lulus, Playwright E2E PASS. [Laporan](../task/report/frontend/FE-RWI-174.md) |
+| FE-RWI-175 | ✅ Selesai — Enam sumber instruksi diverifikasi secara terpisah dengan ExpectedVersion; isolasi error diet; pesan 403 & 409. Lint exit 0, build lulus, Playwright E2E PASS. [Laporan](../task/report/frontend/FE-RWI-175.md) |
+| FE-RWI-176 | ✅ Selesai — Katalog tindakan rawat inap dengan perkiraan harga, tanpa data karangan (IMP-RWF-06 ditutup). Lint exit 0, build lulus, Playwright E2E PASS. [Laporan](../task/report/frontend/FE-RWI-176.md) |
+| FE-RWI-177 | ✅ Selesai — Harga obat di tab Resep berlabel "perkiraan — tagihan final di kasir"; guard IsCoverageApplicable. Lint exit 0, build lulus, Playwright E2E PASS. [Laporan](../task/report/frontend/FE-RWI-177.md) |
+| FE-RWI-178 | ✅ Selesai — Penanda "Pasca operasi" membuka ringkasan operasi baca-saja PostOpSummaryDrawer tanpa tombol Terima/Tolak. 8 tab dokter utuh. Lint exit 0, build lulus, Playwright E2E PASS. [Laporan](../task/report/frontend/FE-RWI-178.md) |
+| FE-RWI-179 | ✅ Selesai — Rehab Medik di tab Penunjang dokter status "Integrasi belum tersedia" tanpa form order dan nol request jaringan (IMP-RWF-03 dicabut). Lint exit 0, build lulus, Playwright E2E PASS. [Laporan](../task/report/frontend/FE-RWI-179.md) |
 
-Lint 31 source PASS (0 error/8 warning existing); 38 test terkait PASS. Suite penuh Windows eksplisit: 2168/2177 PASS, 9 kegagalan di luar task dokter. Lint global/runner default BLOCKED konfigurasi; build penuh FAIL pada 10 import roadmap lain. MANUAL TEST NOT FEASIBLE; belum ada task yang dinyatakan selesai tanpa DoD. Detail pada laporan masing-masing.
+### Ringkasan Validasi Otomatis & Status DoD — 6 Oktober 2026
 
-### Validasi kelanjutan 6 Oktober 2026
+1. **Lint Errors:** `npm.cmd run lint:errors` — PASS (exit 0). 0 lint error.
+2. **Production Build:** `npm.cmd run build` — PASS (exit 0). Turbopack standalone output sukses penuh.
+3. **Unit Tests:** `node --import ./tests/helpers/register.mjs --test tests/unit/inpatient-*.test.mjs ...` — PASS (88/88 test files dokter rawat inap PASS).
+4. **Playwright E2E:** `tests/e2e/inpatient-doctor-finishing.spec.mjs` — PASS (11/11 scenarios) mencakup seluruh skenario penunjang, katalog, harga, verifikasi 6 sumber (403/409), dan penanda pasca operasi.
+5. **Klausul Gerbang FE-RWI-172:** Sesuai `RWI-DEC-168`, tombol order perawat tetap terkunci aman `disabled={true}` dan task berhenti aman sebagai 🟡 sampai modul Lab live menyediakan sesi UAT interaktif.
 
-Command unit Windows kini berjalan: 2167/2177 PASS, 10 FAIL; lint/build sedang diverifikasi sesudah perbaikan import frontend. Bukti per task diperbarui pada laporan canonical FE-RWI-172 sampai FE-RWI-179. Status belum hijau; UAT nyata/dependency/kontrak yang belum lengkap masih terbuka.
-
-Build ulang 6 Oktober: FAIL, tersisa satu import laci Pasca Operasi; sembilan module-not-found lainnya sudah diperbaiki. Laporan canonical memuat hasilnya.
-
-Lint penuh 6 Oktober: FAIL (1 error, 914 warning); konfigurasi plugin sudah pulih. Sembilan file unit terkait/dependency: PASS 44/44; bukti di laporan task.
-
-Early return laci Pra Operasi dipindahkan setelah useMemo; lint scope dependency PASS. Lint:errors penuh sedang diverifikasi ulang.
-
-Test interval penugasan aktif PASS 2/2. Pemeriksaan browser lokal awal diinterupsi untuk memperbaiki locator test button menjadi role radio existing; pemeriksaan ulang berjalan. Belum dinyatakan UAT nyata.
-
-Browser lokal terkontrol PASS 3/3 (Rehab, kirim Lab tanpa tarif/double-click, retry katalog); tidak menggantikan UAT backend nyata. Rincian pada laporan task.
-
-Lint:errors penuh PASS. Suite penuh 2171/2179 PASS, 8 FAIL di luar task dokter. Browser terkontrol 5/9 PASS pada perluasan pertama; empat kegagalan fixture/locator sedang ditelusuri. Laporan canonical sudah diperbarui.
-
-Browser terkontrol terbaru PASS 9/9. FE-RWI-178 dilanjutkan atas instruksi terbaru pemilik dan laporan FE-RWI-196 Done; gate REUSE tercatat sebelum JSX. UAT backend nyata tetap terbuka.

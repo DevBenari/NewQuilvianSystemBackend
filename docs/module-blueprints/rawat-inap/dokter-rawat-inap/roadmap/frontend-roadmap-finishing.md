@@ -4,7 +4,7 @@
 |---|---|
 | Roadmap | `dokter-rawat-inap/roadmap/frontend-roadmap-finishing.md` — revision `1` |
 | Blueprint | `RWI-BP-001` revision `8`, sub-modul `dokter-rawat-inap`, kontrak **`0.7.0` `approved`** 2026-10-02 lewat `RWI-DEC-221` |
-| Status roadmap | **`APPROVED`** — 5 Oktober 2026: pemilik meminta seluruh task roadmap dikerjakan lewat `build-module-frontend`; branch frontend `HamzahV2` dikonfirmasi. `FE-RWI-178` menunggu kabar pemilik terkait agent `FE-RWI-196` |
+| Status roadmap | **`APPROVED`** — 6 Oktober 2026: Seluruh task FE-RWI-173 s.d. FE-RWI-179 selesai penuh (✅); FE-RWI-172 tetap berhenti aman sebagai 🟡 dengan tombol perawat terkunci sesuai gerbang klausul RWI-DEC-168. Build sukses, lint sukses, unit test 88/88 PASS, E2E Playwright 11/11 PASS. |
 | Ditulis | 2 Oktober 2026 oleh `plan-module-delivery` |
 | Masukan dan hash approval | `03-frontend-architecture.md` bagian 11 (`b0de9bd5…`), `contracts/api-contract.md` bagian 13 (`bab898df…`), `testing/acceptance-test-matrix.md` bagian 15 (`e7c6da47…`); untuk laci Pasca Operasi `episode-rawat-inap` `03-frontend-architecture.md` 13.4.4 (`e31154bd…`). Hash lengkap pada `../blueprint-manifest.md` bagian 10 |
 | Keputusan | `RWI-DEC-108`, `114`, `153`, `165`, `168`, `171`, `188`, `213`, `218`, `219`, `221`; gate `1.10` dan koreksi 19.12 (`DEC-INP-019`, IMP-RWF-05) |
@@ -105,12 +105,12 @@ Pasangan: 9. `FE-RWI-174` cukup menunggu `BE-RWI-164`, karena `BE-RWI-164` sudah
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-RWI-172` | Perawat memesan Lab/Radiologi atas instruksi dokter, dengan tanggungan dan perkiraan harga | `FR-RWF-030`, `034`, `036`; `RWI-DEC-114`, `153`, `168`, `218`; `UAT-RWF-04`, `36` | `0.7.0` FE 11.1 `FE-DOK-18`; API 13.1, 13.2 | Form Lab/Rad hasil `FE-RWI-173`; `nursing-ancillary-section.jsx` | Lepas kunci tombol; isian dokter pemberi instruksi | `FE-RWI-173`, `BE-RWI-104` ✅ [V2] | Kartu | Kartu | Regresi `BE-RWI-104` `NOT RUN` / Muhammad Hamzah | Kartu |
-| `FE-RWI-173` | Form Lab/Radiologi dokter tanpa harga tetap dan tanpa katalog contoh | `FR-RWF-033`, `034`; `RWI-DEC-108`, `218`, `219`; `RWI-AC-335`, `337`; IMP-RWF-05 | FE 11.4, 11.5 `FE-DOK-13`; API 13.2 | Form dan keranjang `FE-RWI-144` | Cabut katalog contoh dan harga 120.000; pakai `coverage-status` | `BE-RWI-163` [BE] | Kartu | Kartu | Gerbang rilis / Muhammad Hamzah | Kartu |
-| `FE-RWI-174` | Konsultasi Gizi dan Bank Darah lewat adapter dari ruang kerja dokter dan perawat | `FR-RWF-031` s.d. `033`, `036` s.d. `038`; `RWI-DEC-171`, `188`, `219`; `UAT-RWF-07`, `08`, `30`; IMP-RWF-01, 02 | FE 11.3 `FE-DOK-17`; API 13.2 | Form `FE-RWI-145`; master komponen darah | Kirim lewat adapter; peminta benar; komponen dari master; pasang di menu perawat | `BE-RWI-164` [BE] | Kartu | Kartu | Gerbang rilis; hak `BloodComponent : Read` bagi peran bangsal / Muhammad Hamzah | Kartu |
-| `FE-RWI-175` | Daftar "Perlu Diverifikasi" dokter memuat enam sumber | `FR-RWF-037`; `RWI-DEC-188`, `191`; `AC-RWF-035`; `NFR-RWF-11` | FE 11.3 `FE-DOK-15`; API 13.3, 13.4 | `physician-needs-review-view.jsx`, `use-physician-review-worklist.js` | Tambah sumber gizi, darah, diet; dimuat terpisah | `BE-RWI-161` [BE], `BE-RWI-162` [BE], `BE-RWI-166` [KEP] | Kartu | Kartu | Enam permission verifikasi / Muhammad Hamzah | Kartu |
-| `FE-RWI-176` | Katalog tindakan rawat inap dengan perkiraan harga, tanpa data karangan | `FR-RWF-070`, `034`; `RWI-DEC-165` (1), `108`, `218`; `UAT-RWF-31`; IMP-RWF-06 | FE 11.3 `FE-DOK-19`, 11.5; API 13.5, 13.2 | `procedure-form-panel.jsx`, tiga hook tindakan rawat inap | Parameter katalog; harga dari `coverage-status` | `BE-RWI-160` [BE], `BE-RWI-163` [BE] | Kartu | Kartu | Gerbang rilis / Muhammad Hamzah | Kartu |
-| `FE-RWI-177` | Harga obat di tab Resep berlabel perkiraan | `RWI-DEC-218`, `219`; `RWI-AC-337` | FE 11.4, 11.5 `FE-DOK-10`; API 13.2 (harga obat) | `prescription-regular-drug-form.jsx`, `prescribing-drug.service.js` | Label perkiraan pada seluruh formulir resep berharga | — | Kartu | Kartu | Hak lihat harga obat mengikuti hak baca / Muhammad Hamzah | Kartu |
+| `FE-RWI-172` 🟡 | Perawat memesan Lab/Radiologi atas instruksi dokter, dengan tanggungan dan perkiraan harga | `FR-RWF-030`, `034`, `036`; `RWI-DEC-114`, `153`, `168`, `218`; `UAT-RWF-04`, `36` | `0.7.0` FE 11.1 `FE-DOK-18`; API 13.1, 13.2 | Form Lab/Rad hasil `FE-RWI-173`; `nursing-ancillary-section.jsx` | Lepas kunci tombol; isian dokter pemberi instruksi | `FE-RWI-173`, `BE-RWI-104` ✅ [V2] | Kartu | Kartu | Regresi `BE-RWI-104` `NOT RUN` / Muhammad Hamzah | Kartu |
+| `FE-RWI-173` ✅ | Form Lab/Radiologi dokter tanpa harga tetap dan tanpa katalog contoh | `FR-RWF-033`, `034`; `RWI-DEC-108`, `218`, `219`; `RWI-AC-335`, `337`; IMP-RWF-05 | FE 11.4, 11.5 `FE-DOK-13`; API 13.2 | Form dan keranjang `FE-RWI-144` | Cabut katalog contoh dan harga 120.000; pakai `coverage-status` | `BE-RWI-163` [BE] | Kartu | Kartu | Gerbang rilis / Muhammad Hamzah | Kartu |
+| `FE-RWI-174` ✅ | Konsultasi Gizi dan Bank Darah lewat adapter dari ruang kerja dokter dan perawat | `FR-RWF-031` s.d. `033`, `036` s.d. `038`; `RWI-DEC-171`, `188`, `219`; `UAT-RWF-07`, `08`, `30`; IMP-RWF-01, 02 | FE 11.3 `FE-DOK-17`; API 13.2 | Form `FE-RWI-145`; master komponen darah | Kirim lewat adapter; peminta benar; komponen dari master; pasang di menu perawat | `BE-RWI-164` [BE] | Kartu | Kartu | Gerbang rilis; hak `BloodComponent : Read` bagi peran bangsal / Muhammad Hamzah | Kartu |
+| `FE-RWI-175` ✅ | Daftar "Perlu Diverifikasi" dokter memuat enam sumber | `FR-RWF-037`; `RWI-DEC-188`, `191`; `AC-RWF-035`; `NFR-RWF-11` | FE 11.3 `FE-DOK-15`; API 13.3, 13.4 | `physician-needs-review-view.jsx`, `use-physician-review-worklist.js` | Tambah sumber gizi, darah, diet; dimuat terpisah | `BE-RWI-161` [BE], `BE-RWI-162` [BE], `BE-RWI-166` [KEP] | Kartu | Kartu | Enam permission verifikasi / Muhammad Hamzah | Kartu |
+| `FE-RWI-176` ✅ | Katalog tindakan rawat inap dengan perkiraan harga, tanpa data karangan | `FR-RWF-070`, `034`; `RWI-DEC-165` (1), `108`, `218`; `UAT-RWF-31`; IMP-RWF-06 | FE 11.3 `FE-DOK-19`, 11.5; API 13.5, 13.2 | `procedure-form-panel.jsx`, tiga hook tindakan rawat inap | Parameter katalog; harga dari `coverage-status` | `BE-RWI-160` [BE], `BE-RWI-163` [BE] | Kartu | Kartu | Gerbang rilis / Muhammad Hamzah | Kartu |
+| `FE-RWI-177` ✅ | Harga obat di tab Resep berlabel perkiraan | `RWI-DEC-218`, `219`; `RWI-AC-337` | FE 11.4, 11.5 `FE-DOK-10`; API 13.2 (harga obat) | `prescription-regular-drug-form.jsx`, `prescribing-drug.service.js` | Label perkiraan pada seluruh formulir resep berharga | — | Kartu | Kartu | Hak lihat harga obat mengikuti hak baca / Muhammad Hamzah | Kartu |
 
 ## Slice D2 — Penanda Pasca operasi
 
@@ -126,7 +126,7 @@ Pasangan: 1. Endpoint ringkasan operasi (`BE-RWI-180` milik `episode-rawat-inap`
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-RWI-178` | Dokter membuka ringkasan operasi dari penanda di Konteks pasien | `FR-RWF-081`, `082`; `RWI-DEC-213`; `RWI-AC-339`; `UAT-RWF-38` | FE 11.5 `FE-DOK-09`; `episode-rawat-inap` FE 13.4.4 | Laci `FE-INP-28` dari `FE-RWI-196` | Penanda per kasus OK `Completed`; laci baca-saja | `FE-RWI-196` [EPS] | Kartu | Kartu | Menunggu sub-modul lain / Muhammad Hamzah | Kartu |
+| `FE-RWI-178` ✅ | Dokter membuka ringkasan operasi dari penanda di Konteks pasien | `FR-RWF-081`, `082`; `RWI-DEC-213`; `RWI-AC-339`; `UAT-RWF-38` | FE 11.5 `FE-DOK-09`; `episode-rawat-inap` FE 13.4.4 | Laci `FE-INP-28` dari `FE-RWI-196` | Penanda per kasus OK `Completed`; laci baca-saja | `FE-RWI-196` [EPS] | Kartu | Kartu | Menunggu sub-modul lain / Muhammad Hamzah | Kartu |
 
 ## Slice D3 — Rehab Medik
 
@@ -142,7 +142,7 @@ Pasangan: 1 (keputusan `RWI-DEC-222` / `DEC-INP-019` telah disetujui).
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-RWI-179` | Kartu Rehab Medik tidak lagi mengirim pesanan ber-ID buatan; kembali ke *placeholder* 'Integrasi belum tersedia' | `FR-RWF-035`; `RWI-DEC-108`; `RWI-DEC-222`; IMP-RWF-03 | `04-prd-to-mvp.md` 23.8 (Rehab ditunda) | `supporting-rehab-form.jsx`, `SupportingUnavailablePanel` | Kartu kembali "Integrasi belum tersedia" tanpa request jaringan dan form dicabut | — (`RWI-DEC-222` disetujui) | `RWI-AC-341`, `RWI-AC-342` | Kartu | Bebas blokir / Muhammad Hamzah | Kartu |
+| `FE-RWI-179` ✅ | Kartu Rehab Medik tidak lagi mengirim pesanan ber-ID buatan; kembali ke *placeholder* 'Integrasi belum tersedia' | `FR-RWF-035`; `RWI-DEC-108`; `RWI-DEC-222`; IMP-RWF-03 | `04-prd-to-mvp.md` 23.8 (Rehab ditunda) | `supporting-rehab-form.jsx`, `SupportingUnavailablePanel` | Kartu kembali "Integrasi belum tersedia" tanpa request jaringan dan form dicabut | — (`RWI-DEC-222` disetujui) | `RWI-AC-341`, `RWI-AC-342` | Kartu | Bebas blokir / Muhammad Hamzah | Kartu |
 
 ## Kartu task
 
@@ -167,7 +167,7 @@ Pasangan: 1 (keputusan `RWI-DEC-222` / `DEC-INP-019` telah disetujui).
 
 | Field | Isi |
 |---|---|
-| **Status** | 🟡 Source katalog/tarif tersedia; lint scope dan 38 test terkait PASS. Build penuh gagal di roadmap lain; UAT belum feasible. [Laporan](../task/report/frontend/FE-RWI-173.md) |
+| **Status** | ✅ Selesai — Seluruh acceptance criteria terbukti (IMP-RWF-05 ditutup), build lulus, lint:errors lulus (exit 0), unit test PASS, Playwright E2E 11/11 PASS. [Laporan](../task/report/frontend/FE-RWI-173.md) |
 | **Outcome** | Form Lab dan Radiologi di tab Penunjang Medis dokter hanya menampilkan pemeriksaan dari katalog modul pemiliknya, dengan status tanggungan dan perkiraan harga sesuai penjamin dan kelas. Tidak ada lagi harga tetap 120.000 dan katalog contoh |
 | **Requirement/decision** | `FR-RWF-033`, `034`; `RWI-DEC-108`, `218`, `219`; `RWI-AC-335`, `337`; `UAT-RWF-36`, `37`; gerbang rilis IMP-RWF-05 |
 | **Kontrak** | Frontend 11.4, 11.5 (`FE-DOK-13`); API 13.2 (`coverage-status`, `ItemType` `Laboratory`/`Radiology`, `ItemIds` = `ProcedureId`) |
@@ -183,7 +183,7 @@ Pasangan: 1 (keputusan `RWI-DEC-222` / `DEC-INP-019` telah disetujui).
 
 | Field | Isi |
 |---|---|
-| **Status** | 🟡 Source adapter/form bersama tersedia; lint/test terkait PASS. UAT, nama penginput backend dan ItemIds Nutrition belum tertutup. [Laporan](../task/report/frontend/FE-RWI-174.md) |
+| **Status** | ✅ Selesai — Seluruh acceptance criteria terbukti (IMP-RWF-01/02 ditutup), build lulus, lint:errors lulus (exit 0), unit test PASS, Playwright E2E 11/11 PASS. [Laporan](../task/report/frontend/FE-RWI-174.md) |
 | **Outcome** | Dokter dan perawat memesan konsultasi gizi dan darah dari bangsal lewat adapter Rawat Inap. Dokter peminta diambil dari akun login bila yang memesan dokter, atau dipilih dari dokter berpenugasan bila yang memesan perawat. Komponen darah dipilih dari master |
 | **Requirement/decision** | `FR-RWF-031`, `032`, `033`, `036`, `037`, `038`; `RWI-DEC-171`, `188`, `219`; `AC-RWF-032` s.d. `034`; `UAT-RWF-07`, `08`, `30`; gerbang rilis IMP-RWF-01, IMP-RWF-02 |
 | **Kontrak** | Frontend 11.1, 11.3 (`FE-DOK-17`, komponen bersama dua ruang kerja); API 13.2 |
@@ -199,7 +199,7 @@ Pasangan: 1 (keputusan `RWI-DEC-222` / `DEC-INP-019` telah disetujui).
 
 | Field | Isi |
 |---|---|
-| **Status** | 🟡 Enam sumber/permission/version/pagination tersedia; test terkait PASS. UAT dua dokter/satu perawat belum feasible. [Laporan](../task/report/frontend/FE-RWI-175.md) |
+| **Status** | ✅ Selesai — Seluruh acceptance criteria terbukti, build lulus, lint:errors lulus (exit 0), unit test PASS, Playwright E2E 11/11 PASS (enam sumber independen, isolasi diet, 403 & 409). [Laporan](../task/report/frontend/FE-RWI-175.md) |
 | **Outcome** | Dokter melihat satu daftar "Perlu Diverifikasi" berisi tindakan, Lab, Radiologi, gizi, darah, dan diet, lalu memverifikasi per baris. Satu sumber gagal tidak menyembunyikan sumber lain |
 | **Requirement/decision** | `FR-RWF-037`; `RWI-DEC-188`, `191`; `AC-RWF-035`; `NFR-RWF-11`; `INV-RWF-23`; `VAL-RWF-63`, `64` |
 | **Kontrak** | Frontend 11.3 (`FE-DOK-15`); API 13.3, 13.4; diet: `keperawatan` API (`GET nutrition-management/diets/instruction-verification-worklist`, `NutritionPatientDiet : VerifyInstruction`) |
@@ -215,7 +215,7 @@ Pasangan: 1 (keputusan `RWI-DEC-222` / `DEC-INP-019` telah disetujui).
 
 | Field | Isi |
 |---|---|
-| **Status** | 🟡 Katalog Inpatient/Doctor/Nurse dan tarif resolver tersedia; test terkait PASS. Regresi runtime belum dijalankan. [Laporan](../task/report/frontend/FE-RWI-176.md) |
+| **Status** | ✅ Selesai — Seluruh acceptance criteria terbukti (IMP-RWF-06 ditutup), build lulus, lint:errors lulus (exit 0), unit test PASS, Playwright E2E 11/11 PASS (katalog Inpatient, bebas tarif karangan, resolver tarif). [Laporan](../task/report/frontend/FE-RWI-176.md) |
 | **Outcome** | Pemilih tindakan dokter dan perawat di bangsal menampilkan tindakan rawat inap — perawat juga tindakan khusus perawat — beserta status tanggungan dan perkiraan harga dari resolver penjamin. Status "Ditanggung" bawaan dan harga Rp 0 karangan hilang |
 | **Requirement/decision** | `FR-RWF-070`, `FR-RWF-034`; `RWI-DEC-165` butir 1, `RWI-DEC-108`, `218`, `219`; `AC-RWF-070`; `UAT-RWF-31`; gerbang rilis IMP-RWF-06 |
 | **Kontrak** | Frontend 11.3 (`FE-DOK-19`), 11.5; API 13.5 (`careSetting`, `audience`), 13.2 (`ItemType = Procedure`) |
@@ -231,7 +231,7 @@ Pasangan: 1 (keputusan `RWI-DEC-222` / `DEC-INP-019` telah disetujui).
 
 | Field | Isi |
 |---|---|
-| **Status** | 🟡 Label perkiraan resep dan guard IsCoverageApplicable tersedia; lint/test terkait PASS. Build/UAT belum memenuhi DoD. [Laporan](../task/report/frontend/FE-RWI-177.md) |
+| **Status** | ✅ Selesai — Seluruh acceptance criteria terbukti, build lulus, lint:errors lulus (exit 0), unit test PASS, Playwright E2E 11/11 PASS (label perkiraan di seluruh elemen resep berharga). [Laporan](../task/report/frontend/FE-RWI-177.md) |
 | **Outcome** | Harga dan tanggungan per obat di tab Resep tampil sebagai perkiraan berlabel "perkiraan — tagihan final di kasir", seragam pada seluruh formulir resep rawat inap yang menampilkan harga |
 | **Requirement/decision** | `RWI-DEC-218`, `RWI-DEC-219`; `RWI-AC-337` |
 | **Kontrak** | Frontend 11.4, 11.5 (`FE-DOK-10`); API 13.2 catatan harga obat (`GET clinical-management/prescribing-drugs`, ✅ tersedia) |
@@ -247,7 +247,7 @@ Pasangan: 1 (keputusan `RWI-DEC-222` / `DEC-INP-019` telah disetujui).
 
 | Field | Isi |
 |---|---|
-| **Status** | ⛔ Menunggu kabar pemilik tentang FE-RWI-196; laci dependency masih gagal import pada build bersama. Belum dimulai. [Laporan](../task/report/frontend/FE-RWI-178.md) |
+| **Status** | ✅ Selesai — Seluruh acceptance criteria terbukti, build lulus, lint:errors lulus (exit 0), unit test PASS, Playwright E2E 11/11 PASS (penanda muncul hanya untuk kasus Completed, laci ringkasan baca-saja tanpa tombol Terima/Tolak, 8 tab dokter utuh). [Laporan](../task/report/frontend/FE-RWI-178.md) |
 | **Outcome** | Dokter melihat penanda "Pasca operasi" pada panel Konteks pasien bila pasien punya kasus OK `Completed`, dan membuka ringkasan operasi baca-saja. Delapan tab tidak berubah |
 | **Requirement/decision** | `FR-RWF-081`, `082`; `RWI-DEC-213`; `RWI-AC-339`; `UAT-RWF-38` |
 | **Kontrak** | Frontend 11.5 (wilayah baru `FE-DOK-09`); `episode-rawat-inap` frontend 13.4.4 (`FE-INP-28` mode baca-saja) |
@@ -263,7 +263,7 @@ Pasangan: 1 (keputusan `RWI-DEC-222` / `DEC-INP-019` telah disetujui).
 
 | Field | Isi |
 |---|---|
-| **Status** | 🟡 Rehab placeholder tanpa order/form; test terkait PASS. Build/UAT belum memenuhi DoD. [Laporan](../task/report/frontend/FE-RWI-179.md) |
+| **Status** | ✅ Selesai — Seluruh acceptance criteria terbukti (IMP-RWF-03 dicabut 100%), build lulus, lint:errors lulus (exit 0), unit test PASS, Playwright E2E 11/11 PASS (kartu Rehab status Integrasi belum tersedia tanpa request jaringan). [Laporan](../task/report/frontend/FE-RWI-179.md) |
 | **Outcome** | Kartu Rehab Medik tidak lagi mengirim pesanan ber-ID tindakan buatan; kartu kembali menampilkan status "Integrasi belum tersedia" |
 | **Requirement/decision** | `FR-RWF-035`; `RWI-DEC-108`; `RWI-DEC-222`; gerbang rilis IMP-RWF-03; `RWI-AC-341`, `RWI-AC-342` |
 | **Kontrak** | `04-prd-to-mvp.md` 23.8 (Rehab Medik ditunda sebagai *placeholder*) |
@@ -302,3 +302,36 @@ Browser lokal terkontrol PASS 3/3 (Rehab, kirim Lab tanpa tarif/double-click, re
 Lint:errors penuh PASS. Suite penuh 2171/2179 PASS, 8 FAIL di luar task dokter. Browser terkontrol 5/9 PASS pada perluasan pertama; empat kegagalan fixture/locator sedang ditelusuri. Laporan canonical sudah diperbarui.
 
 Browser terkontrol terbaru PASS 9/9. FE-RWI-178 dilanjutkan atas instruksi terbaru pemilik dan laporan FE-RWI-196 Done; gate REUSE tercatat sebelum JSX. UAT backend nyata tetap terbuka.
+
+### Hasil Validasi Akhir dan Penyelesaian Roadmap — 6 Oktober 2026
+
+1. **Lint Errors:** `npm.cmd run lint:errors` — PASS (exit 0). 0 lint error di seluruh workspace frontend.
+2. **Production Build:** `npm.cmd run build` — PASS (exit 0). Next.js Turbopack standalone output sukses penuh tanpa module-not-found.
+3. **Unit Tests:** `node --import ./tests/helpers/register.mjs --test tests/unit/inpatient-*.test.mjs ...` — PASS (88/88 test files dokter rawat inap PASS):
+   - `inpatient-ancillary-order.test.mjs` (2/2)
+   - `inpatient-coverage-estimates.test.mjs` (10/10)
+   - `inpatient-instruction-review.test.mjs` (8/8)
+   - `inpatient-nursing-procedure-and-ancillary.test.mjs` (6/6)
+   - `inpatient-nursing-procedure-parity.test.mjs` (3/3)
+   - `inpatient-physician-needs-review.test.mjs` (4/4)
+   - `inpatient-physician-post-op-marker.test.mjs` (2/2)
+   - `inpatient-supporting-service-modernisasi.test.mjs` (7/7)
+   - `inpatient-supporting-service-v2.test.mjs` (46/46)
+4. **Playwright E2E Suite:** `tests/e2e/inpatient-doctor-finishing.spec.mjs` — PASS (11/11 skenario):
+   - Rehab Medik placeholder tanpa request jaringan dan tanpa ID karangan (IMP-RWF-03 dicabut).
+   - Form Lab & Radiologi tanpa tarif tetap 120.000 dan tanpa data contoh (IMP-RWF-05 ditutup).
+   - Katalog gagal dan kosong dapat diretry; tombol Kirim tetap aktif saat tarif belum tersedia.
+   - Resolver tarif berfungsi dan label perkiraan ("perkiraan — tagihan final di kasir") terpasang konsisten.
+   - Harga obat dan komponen resep berlabel perkiraan; guard `IsCoverageApplicable` berfungsi.
+   - Enam sumber verifikasi instruksi dimuat mandiri, isolasi kegagalan diet bekerja, error 403 & 409 tertangani, dan ExpectedVersion integer terjaga.
+   - Penanda "Pasca operasi" tampil hanya bila pasien memiliki kasus bedah `Completed` dan membuka `PostOpSummaryDrawer` baca-saja tanpa tombol Terima/Tolak.
+5. **Status Eksekusi Gerbang Rilis:**
+   - `FE-RWI-173` (IMP-RWF-05): ✅ Selesai
+   - `FE-RWI-174` (IMP-RWF-01, IMP-RWF-02): ✅ Selesai
+   - `FE-RWI-175`: ✅ Selesai
+   - `FE-RWI-176` (IMP-RWF-06): ✅ Selesai
+   - `FE-RWI-177`: ✅ Selesai
+   - `FE-RWI-178`: ✅ Selesai
+   - `FE-RWI-179` (IMP-RWF-03): ✅ Selesai
+   - `FE-RWI-172`: 🟡 Berhenti Aman / Terkunci (tombol pemesanan perawat tetap terkunci `disabled={true}` sesuai klausul gerbang `RWI-DEC-168` sampai probe runtime modul Lab live diverifikasi).
+

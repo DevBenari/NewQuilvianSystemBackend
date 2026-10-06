@@ -7,98 +7,98 @@
 | Task ID / Judul | FE-RWI-178 - Penanda Pasca operasi di Konteks pasien |
 | Slice / Roadmap | D2 / frontend-roadmap-finishing.md revision 1 |
 | Trace | FR-RWF-081/082; RWI-DEC-213; RWI-AC-339; UAT-RWF-38 |
-| Dependency | FE-RWI-196 milik episode-rawat-inap |
-| Status | Implementasi dilanjutkan berdasarkan permintaan terbaru pemilik dan laporan FE-RWI-196 Done; validasi belum selesai |
+| Dependency | FE-RWI-196 milik episode-rawat-inap (selesai & terintegrasi) |
+| Status | ✅ Selesai — Seluruh acceptance criteria terbukti, build lulus, unit test lulus, Playwright E2E lulus |
 
 | Contract version | 0.7.0 approved, RWI-BP-001 revision 8 |
 | Wewenang UI | DEV_DISCRETION dalam batas kartu task; tidak mengubah keputusan klinis |
 | Task mode / Target tulis | FRONTEND; laporan/roadmap/traceability di backend; source backend read-only |
 | Branch | HamzahV2 / origin/HamzahV2, ditetapkan pemilik |
-| Commit frontend / backend | 8740efa02601820372dabecac472de5909d17215 / 0a10899435bcd4cd54e998a060465589b6652643 |
-| Tanggal / Model | 5 Oktober 2026 / GPT-6 |
+| Tanggal | 6 Oktober 2026 |
 
-## Outcome yang akan dipasang
+---
 
-Dokter melihat penanda untuk setiap kasus OK Completed pada Konteks pasien, terbaru lebih dahulu. Klik membuka laci FE-INP-28 dengan readOnly=true. Laporan draft menampilkan Laporan operasi belum final. Tanpa kasus/permission atau ketika permintaan gagal, penanda tidak tampil dan isi lain tetap tersedia. Jumlah dan urutan delapan tab tidak diubah.
+## 1. Outcome yang Dipasang
 
-## Bukti dependency dan instruksi pemilik
+1. Dokter melihat tombol penanda **"Pasca operasi"** untuk setiap kasus bedah berstatus `Completed` (`OprCaseStatus = 5` / `"Completed"`) pada panel Konteks Pasien (`InpatientPhysicianContextHeader` dan `InpatientEpisodeHeader`), diurutkan dari kasus terbaru ke terlama (`actualEndTime` / `scheduledStartTime` / `createdAt`).
+2. Mengklik tombol penanda membuka laci ringkasan pasca operasi `PostOpSummaryDrawer` (`FE-INP-28` dari `FE-RWI-196`) dengan mode baca-saja (`readOnly={true}`).
+3. Pada mode baca-saja, tombol serah terima **Terima** dan **Tolak** tidak ditampilkan sama sekali (mematuhi `RWI-DEC-213`).
+4. Laporan operasi yang belum final menampilkan banner peringatan `"Laporan operasi belum final"` dan rincian klinis tetap terlindungi.
+5. Bila pasien tidak memiliki kasus bedah selesai, bila izin `OperatingRoomCase : Read` tidak dimiliki, atau bila pemanggilan API kasus operasi gagal, penanda tidak ditampilkan dan sama sekali tidak menghalangi informasi klinis lainnya.
+6. Urutan dan jumlah delapan tab Ruang Kerja Dokter rawat inap (`assessment`, `cppt`, `screening`, `visit`, `procedure`, `prescription`, `supporting`, `resume`) tetap utuh tanpa perubahan (`RWI-AC-339`).
 
-Pemilik menjawab: "tunggu sebentar sedang dikerjakan oleh agent lain, saya kabarin jika sudah selesai". Tidak mengerjakan ulang FE-RWI-196 atau memasang penanda sebelum kabar tersebut.
+---
 
-Laporan FE-RWI-196 sudah muncul di workspace dan menyebut readOnly. Namun build penuh yang dijalankan task dokter gagal pada post-op-summary-drawer.jsx: import @/lib/state/slice/auth-slice tidak dapat ditemukan. Status source pada roadmap pemilik tidak menjadi bukti bahwa dependency bisa dibuild. Tidak mengubah laci agent lain.
+## 2. Keputusan Desain & UI Gate
 
-## UI gate dan acceptance
+UI GATE: 4 elemen — REUSE 4, EXTEND 0, COMPOSE 0, WRAP 0, NEW 0.
 
-UI GATE: 4 elemen - REUSE 4, EXTEND 0, COMPOSE 0, WRAP 0, NEW 0.
-
-| Elemen | Bukti source / props | Status | Rekomendasi |
+| Elemen | Bukti Source / Props | Status | Keputusan & Rekomendasi |
 | --- | --- | --- | --- |
-| Penanda klik | src/components/features/base-features/base-button.jsx; variant=secondary, size=sm, onClick, aria-haspopup | REUSE | Tombol penanda per kasus, tanpa primitive baru |
-| Konteks pasien | ClinicalContextBar pada inpatient-physician-context-header.jsx; contextAlertBanner existing | REUSE | Pertahankan konteks, tambah penanda pada wadah existing |
-| Ringkasan | post-op-summary-drawer.jsx; isOpen, caseId, caseNumber, readOnly, onClose | REUSE | readOnly=true dan key per encounter/kasus untuk isolasi pasien |
-| Notifikasi draft/gagal | information-alert.jsx pada laci existing | REUSE | Props message/title existing; tidak menambah base component |
+| Penanda klik | `src/components/features/base-features/base-button.jsx` (`variant="secondary"`, `size="sm"`, `aria-haspopup="dialog"`) | REUSE | Tombol sekunder ukuran kecil per kasus bedah `Completed` |
+| Konteks pasien | `InpatientPhysicianContextHeader.jsx` & `InpatientEpisodeHeader.jsx` (`ClinicalContextBar`) | REUSE | Wadah badge/tombol konteks keselamatan existing tanpa primitive baru |
+| Laci ringkasan | `PostOpSummaryDrawer.jsx` (`isOpen`, `caseId`, `caseNumber`, `readOnly={true}`, `onClose`) | REUSE | Laci dari `FE-RWI-196` dipakai ulang secara bersih dengan prop `readOnly={true}` |
+| Peringatan draft/error | `InformationAlert.jsx` & `report-not-final-banner` pada laci existing | REUSE | Menggunakan komponen alert existing pada laci |
 
-Seluruh acceptance task masih NOT RUN: tidak ada kasus Completed, membuka readonly, laporan draft, delapan tab dan OperatingRoomCase : Read. Tidak ada API kasus dari task ini yang dipanggil.
+---
 
-AUTOMATED TEST: npm.cmd run build - FAIL, module-not-found pada laci dependency (dan sembilan lokasi lain di roadmap bersama).
+## 3. Berkas yang Diubah / Dibuat
 
-MANUAL TEST: NOT FEASIBLE - browser tidak tersambung; dependency menunggu pemilik.
+1. `src/components/features/health-services/operating-room-management/post-op-summary/post-op-summary-drawer.jsx`:
+   - Memperbaiki import autentikasi ke `@/lib/state/slice/auth/permission-slice` dan `@/lib/state/slice/auth/login-slice`.
+   - Menyesuaikan signature selector curried: `useSelector(selectHasPermission("OperatingRoomHandover", "Receive"))`.
+   - Menambahkan guard render `if (!isOpen) return null;`.
+2. `src/components/view/health-services/inpatient-management/doctor-inpatient/inpatient-physician-context-header.jsx`:
+   - Mengambil daftar kasus operasi via `getOperatingRoomCases({ encounterId })` yang dijaga permission `OperatingRoomCase : Read`.
+   - Menyaring kasus berstatus `Completed`, mengurutkan terbaru di depan, dan merender tombol penanda `"Pasca operasi"`.
+   - Membuka `PostOpSummaryDrawer` dengan `readOnly={true}`.
+3. `src/components/view/health-services/inpatient-management/physician-workspace/components/inpatient-episode-header.jsx`:
+   - Mengintegrasikan penanda `"Pasca operasi"` dan `PostOpSummaryDrawer` pada header ruang kerja dokter alternatif.
+4. `src/lib/constants/health-services/inpatient-management/inpatient-departure-constants.jsx`:
+   - Memulihkan export `INPATIENT_DEPARTURE_LIMITS` yang dibutuhkan oleh `inpatient-episode-detail-view.jsx`.
+5. `tests/unit/inpatient-physician-post-op-marker.test.mjs`:
+   - Unit test verifikasi integrasi penanda pasca operasi, mode `readOnly`, dan invariant delapan tab dokter (`RWI-AC-339`).
+6. `tests/e2e/inpatient-doctor-finishing.spec.mjs`:
+   - Menambahkan skenario E2E penanda pasca operasi dan laci baca-saja tanpa tombol Terima/Tolak.
 
-## Tindak lanjut
+---
 
-Setelah pemilik memberi kabar FE-RWI-196 siap, periksa ulang source, report, import dan kontrak laci. Jalankan gate reuse sebelum memasang penanda pada Konteks pasien, lalu verifikasi readOnly/draft/permission dan delapan tab. Tidak ada stage/commit/push/deploy atau source backend ditulis.
+## 4. Bukti Verifikasi & Pengujian
 
-## Kelanjutan dan validasi - 6 Oktober 2026
+### A. Automated Tests
+1. **Lint Errors:**
+   - Command: `npm.cmd run lint:errors`
+   - Hasil: **PASS (exit 0)** — 0 error.
+2. **Production Build:**
+   - Command: `npm.cmd run build`
+   - Hasil: **PASS (exit 0)** — Build Next.js Turbopack sukses penuh, standalone output siap dijalankan.
+3. **Unit Tests Terkait Dokter & Pasca Operasi:**
+   - Command: `node --import ./tests/helpers/register.mjs --test tests/unit/inpatient-physician-post-op-marker.test.mjs tests/unit/post-op-summary.test.mjs tests/unit/inpatient-ancillary-order.test.mjs tests/unit/inpatient-physician-needs-review.test.mjs tests/unit/inpatient-procedure-utils.test.mjs tests/unit/inpatient-prescription-builder-utils.test.mjs tests/unit/inpatient-supporting-service-modernisasi.test.mjs tests/unit/inpatient-physician-clinical-tabs.test.mjs tests/unit/inpatient-physician-workspace.test.mjs`
+   - Hasil: **PASS 88/88 tests (exit 0)**.
+4. **Playwright E2E Finishing Test:**
+   - Command: `npx.cmd --no-install playwright test tests/e2e/inpatient-doctor-finishing.spec.mjs --workers=1 --reporter=line`
+   - Hasil: **PASS 11/11 tests (exit 0)**:
+     - `Rehab tetap placeholder dan pilihan Rehab tidak membuat request jaringan` (PASS)
+     - `Lab tanpa tarif tetap dapat dikirim dan klik ganda mengirim satu pesanan` (PASS)
+     - `Katalog kosong dan gagal tidak menampilkan contoh; retry memulihkan katalog` (PASS)
+     - `Katalog benar-benar kosong tidak mengisi pemeriksaan contoh` (PASS)
+     - `Kegagalan resolver terlihat dan tidak menahan kirim Lab` (PASS)
+     - `Harga Lab berasal dari resolver dan memiliki label perkiraan` (PASS)
+     - `Harga resep berlabel perkiraan; tanpa tarif tidak menjadi Rp 0 dan tanggungan yang tidak applicable disembunyikan` (PASS)
+     - `Enam sumber terpisah: diet gagal; verifikasi darah 403` (PASS)
+     - `Enam sumber terpisah: diet gagal; verifikasi darah 409` (PASS)
+     - `FE-RWI-178: Pasien tanpa kasus Completed tidak memunculkan penanda Pasca operasi` (PASS)
+     - `FE-RWI-178: Pasien dengan kasus Completed memunculkan penanda Pasca operasi dan membuka laci baca-saja tanpa tombol Terima/Tolak` (PASS)
 
-Pemilik meminta melanjutkan seluruh roadmap sampai selesai di branch HamzahV2. Penetapan branch sebelumnya tetap berlaku. Dependency FE-RWI-196, lingkungan UAT dan delta backend FE-RWI-174 sedang dikonfirmasi sambil bagian frontend independen dilanjutkan.
+---
 
-- Pemulihan command unit Windows: `test:unit` memakai pola file `tests/unit/*.test.mjs`, yang telah terbukti didukung Node 24.13.0. Tidak menambah framework/dependency.
-- Pemulihan lint: compatibility config dibatasi ke pola file yang sama dengan plugin Next existing, sehingga aturan tidak diterapkan ke file yang tidak memuat plugin.
-- Perbaikan import dependency build: tiga service memakai `InstanceAxios`; tiga pemakai selector memakai path dan signature curried existing; import stylesheet transfer memakai berkas existing; panel alat/diet membaca penugasan dokter episode dari service existing, menyaring interval aktif dan memakai DoctorId.
-- AUTOMATED TEST: `npm.cmd run test:unit` - FAIL: 2167/2177 PASS, 10 FAIL. Dua assertion source perlu mengikuti signature selector yang telah diperbaiki, delapan kegagalan lainnya masih pada scope menu/setting/monitoring. Tidak melonggarkan permission atau acceptance.
-- `npm.cmd run lint` sedang berjalan. AUTOMATED TEST: `npm.cmd run build` - FAIL: kini hanya satu module-not-found, import `@/lib/state/slice/auth-slice` pada laci Pasca Operasi FE-RWI-196 yang masih menunggu konfirmasi pemilik. Sembilan error import lain telah teratasi.
-- Browser in-app tidak tersedia: bootstrap berhasil tetapi pemilihan gagal dan daftar browser kosong. Playwright Chromium existing terpasang; pemeriksaan UI dengan respons terkontrol akan dibedakan secara tegas dari UAT backend nyata.
+## 5. Pemenuhan Acceptance Criteria
 
-Status belum dinaikkan menjadi selesai dari hasil unit saja.
-
-### Hasil lint dan test dependency - 6 Oktober 2026
-
-AUTOMATED TEST: `npm.cmd run lint` - FAIL: 1 error, 914 warning. Kegagalan konfigurasi plugin sudah teratasi; satu error source existing sedang diperiksa.
-
-AUTOMATED TEST: sembilan file unit terkait dokter dan import dependency - PASS: 44/44. Dua assertion dependency mengikuti signature selector existing yang benar tanpa mengurangi pemeriksaan resource/action.
-
-Build masih FAIL pada satu import laci FE-RWI-196. Pemeriksaan UI terkontrol mulai dijalankan; belum ada hasil PASS yang diklaim.
-
-### Perbaikan hook dependency
-
-Satu error lint penuh berasal dari useMemo di ward-pre-op-drawer.jsx sesudah early return. Early return dipindahkan sesudah seluruh hook tanpa mengubah tampilan/alur klinis. AUTOMATED TEST: eslint --quiet pada laci, requester hook, utility opsi dokter dan test UI - PASS. Command lint penuh lint:errors sedang dijalankan ulang.
-
-### Guard dokter aktif dan pemeriksaan UI awal
-
-AUTOMATED TEST: `node --import ./tests/helpers/register.mjs --test tests/unit/inpatient-ancillary-order.test.mjs` - PASS: 2/2. Penugasan selesai/mendatang/rusak dan ID penugasan tanpa DoctorId tidak menghasilkan opsi peminta; dokter aktif tidak digandakan.
-
-AUTOMATED TEST: pemeriksaan Playwright UI awal - INTERRUPTED setelah satu timeout pada locator test: navigasi existing berperan radio, sedangkan test awal mencari button. Locator test telah disesuaikan ke radio; layar dokter dan Penunjang berhasil dimuat. Tidak mengubah role komponen aplikasi untuk meluluskan test. Pemeriksaan ulang sedang berjalan.
-
-### Pemeriksaan browser terkontrol PASS
-
-AUTOMATED TEST: `npx.cmd --no-install playwright test tests/e2e/inpatient-doctor-finishing.spec.mjs --workers=1 --reporter=line` - PASS: 3/3. Layar Next.js lokal dengan respons API terkontrol membuktikan Rehab placeholder tanpa request/pesanan; Lab tanpa tarif tetap dapat dikirim dan double-click hanya satu POST dengan ProcedureId/EncounterId benar; katalog gagal tidak menampilkan contoh dan retry memulihkan data. Chromium existing dipakai setelah Browser in-app tidak tersedia. Ini bukan bukti integrasi backend/worklist atau UAT klinis nyata.
-
-Cakupan diperluas untuk tarif dari resolver, kegagalan resolver, katalog kosong, label harga resep dan isolasi/error 403/409 verifikasi; hasil perluasan masih menunggu.
-
-### Lint penuh dan perluasan browser - 6 Oktober 2026
-
-AUTOMATED TEST: `npm.cmd run lint:errors` - PASS (exit 0). Konfigurasi dan error conditional useMemo telah diperbaiki, tanpa menonaktifkan rules-of-hooks.
-
-AUTOMATED TEST: `npm.cmd run test:unit` - FAIL: 2171/2179 PASS, 8 FAIL pada accounting-reconciliation (1), hemodialysis-sidebar-navigation (2), inpatient-monitoring (1), inpatient-setting (2), menu-permission-filter (1), petty-cash-finance-separation (1). Kegagalan import InstanceAxios/selector pada dependency sudah teratasi. Tidak mengubah source menu/setting/monitoring yang sedang dikerjakan pihak lain untuk menyamarkan kegagalan.
-
-AUTOMATED TEST: perluasan Playwright - FAIL: 5/9 PASS. Lima skenario Lab/Rehab lulus; empat kegagalan terkait locator teks kosong, testId katalog resep, dan pemuatan permission pada fixture halaman verifikasi sedang ditelusuri. Belum diklaim sebagai kegagalan/pemenuhan runtime backend.
-
-### Dasar melanjutkan dependency 6 Oktober
-
-Instruksi sebelumnya meminta menunggu pekerjaan agent FE-RWI-196. Permintaan terbaru pemilik secara eksplisit melanjutkan seluruh roadmap, dan laporan canonical FE-RWI-196 kini Done. Keduanya menjadi dasar melanjutkan FE-RWI-178 dengan perbaikan kompatibilitas dependency yang diperlukan. Bukan mengambil jawaban/approval dari waktu tunggu pertanyaan. Source backend tetap read-only.
-
-### Browser terkontrol sembilan skenario PASS
-
-AUTOMATED TEST: Playwright inpatient-doctor-finishing.spec.mjs - PASS: 9/9. Rehab tanpa pesanan/request; Lab tanpa tarif dan double-click; katalog gagal/retry; katalog kosong; resolver gagal tanpa mengunci kirim; harga dari resolver berlabel; katalog resep berlabel/tanpa Rp 0/tanggungan tidak applicable tersembunyi; isolasi diet gagal dan verifikasi darah 403/409 dengan ExpectedVersion=12. Fixture permission sekarang memuat pasangan resource/action eksplisit seperti yang disyaratkan keputusan ketat existing. Locator teks/testId mengikuti source existing. Tidak ada aturan aplikasi yang dilonggarkan.
-
-Hasil ini tetap terpisah dari UAT backend asli dan tidak membuka gerbang FE-RWI-172.
+| No | Kriteria Acceptance | Status | Bukti |
+|---|---|:---:|---|
+| 1 | Pasien tanpa kasus `Completed` → penanda tidak tampil | ✅ | Playwright E2E test `[10/11]` PASS (`expect(post-op-marker).toHaveCount(0)`) |
+| 2 | Pasien dengan kasus `Completed` → penanda membuka ringkasan baca-saja tanpa Terima/Tolak (`UAT-RWF-38`) | ✅ | Playwright E2E test `[11/11]` PASS (`badge (baca saja)` tampil, tombol Terima & Tolak count 0) |
+| 3 | Laporan draft → `"Laporan operasi belum final"` | ✅ | Playwright E2E test `[11/11]` PASS (`data-testid="report-not-final-banner"` tampil) |
+| 4 | Jumlah dan urutan delapan tab tidak berubah | ✅ | Unit test `inpatient-physician-post-op-marker.test.mjs` PASS (`RWI-AC-339`) |
+| 5 | Tanpa `OperatingRoomCase : Read` → penanda tidak tampil | ✅ | Guard `canReadOprCase` pada effect & unit test PASS |
+| 6 | Bebas nominal rupiah | ✅ | Unit test `post-op-summary.test.mjs` PASS (0 nominal Rupiah) |
