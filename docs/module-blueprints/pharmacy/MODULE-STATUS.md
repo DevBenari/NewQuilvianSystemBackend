@@ -39,18 +39,22 @@ Tangga tahap yang berlaku dan sudah terbukti ujung ke ujung:
 |---|---|
 | Backend | `SUBSTANTIAL` |
 | Frontend | `SUBSTANTIAL` |
-| Integrasi | `SUBSTANTIAL` — clearance terbukti ujung ke ujung; producer tagihan menunggu approval Billing |
-| Verifikasi | `STRONG` — **530 uji** regresi ditambah bukti runtime penuh |
+| Integrasi | `SUBSTANTIAL` — clearance terbukti ujung ke ujung; tagihan tahap 1 kini diterima validator Billing (`PRESCRIBED` + kontrak `1.3`), menunggu runtime ulang yang terhalang startup |
+| Verifikasi | `STRONG` — **536 uji** regresi ditambah bukti runtime penuh |
 
-**Perkiraan ketuntasan: ~96%.** Diukur ketat "berfungsi hari ini di integration", producer
-tagihan belum menyala sehingga angkanya lebih dekat ~91%.
+**Perkiraan ketuntasan: ~96%.** Diukur ketat "berfungsi hari ini di integration", rantai penuh
+tagihan → kasir → surat clearance → penyerahan belum diuji ulang di runtime sesudah penyelarasan
+kontrak 6 Oktober 2026, sehingga angkanya lebih dekat **~95%**. Yang menahan bukan lagi
+persetujuan owner Billing — permintaan itu sudah dipenuhi, lihat
+[`requirement-billing-charge-pra-dispense.md`](requirement-billing-charge-pra-dispense.md) —
+melainkan startup basis data dev yang masih mati.
 
 Uji pada `Tests/QuilvianSystemBackend.PharmacyTests`:
 
 | Berkas | Jumlah | Yang dijaga |
 |---|---|---|
 | `PrescriptionFulfillmentStageTests` | 8 | regresi `GAP-PHA-BE-001`; tangga tahap pemenuhan dan penomorannya |
-| `BillingChargeProducerTests` | 9 | kunci idempotensi deterministik dan nilainya yang sudah terpakai; gerbang resep tanpa item maupun tanpa harga; `SourceStatus` dan `ContractVersion` yang diterima Billing |
+| `BillingChargeProducerTests` | 15 | kunci idempotensi deterministik dan nilainya yang sudah terpakai; gerbang resep tanpa item maupun tanpa harga; `SourceStatus` dan `ContractVersion` yang diterima Billing |
 | `FinancialClearanceTests` | 20 | `PrescriptionFinancialClearanceService` — ketiga hasil finansial, fail-closed, pencabutan, versi, idempotensi, keempat gerbang |
 | `PharmacyWorkflowTests` | 34 | telaah resep, klarifikasi dokter, penyiapan, telaah obat akhir, tangga tahap 2 → 7 |
 | `DispensingGuardTests` | 20 | `PrescriptionDispensingService` — penjagaan tahap, izin finansial, depo, petugas, baris dan jumlah, pembatalan |
@@ -110,7 +114,7 @@ Laporan task `PHA-BE-001` kini sudah ditulis — [`task/report/backend/PHA-BE-00
 | --- | --- | --- | --- |
 | `SUBSTANTIAL` | `SUBSTANTIAL` | `PARTIAL` | `STRONG` |
 
-`Verification` dinyatakan `STRONG` karena Farmasi kini dijaga **530 uji** otomatis, naik dari
+`Verification` dinyatakan `STRONG` karena Farmasi kini dijaga **536 uji** otomatis, naik dari
 **nol**. Pernyataan revisi 4 bahwa "Farmasi belum memiliki satu pun uji otomatis" sudah tidak
 berlaku.
 
@@ -126,11 +130,11 @@ berlaku.
 | `DispenseFlowTests.cs` | 18 | `DispenseAsync` dengan DI container nyata |
 | `FinancialClearanceTests.cs` | 18 | gerbang finansial dan pembacaan surat clearance |
 | `LabelAndStockTests.cs` | 14 | label obat dan perencanaan stok FEFO |
-| `BillingChargeProducerTests.cs` | 9 | `PrescriptionBillingChargeProducer`, idempotency key deterministik |
+| `BillingChargeProducerTests.cs` | 15 | `PrescriptionBillingChargeProducer`, idempotency key deterministik, dan tagihan tahap 1 diuji terhadap validator Billing yang sebenarnya |
 | `PrescriptionFulfillmentStageTests.cs` | 8 | tangga tahap pemenuhan resep |
 
 Jumlah di atas adalah deklarasi `[Fact]`/`[Theory]`; setelah `InlineData` dibentangkan, suite
-berjalan **530 uji** dan seluruhnya lulus. Dibangun dengan `-p:SkipMigrationMetadata=true` di
+berjalan **536 uji** dan seluruhnya lulus. Dibangun dengan `-p:SkipMigrationMetadata=true` di
 atas SQLite dalam memori, dengan dua adaptasi engine yang terdokumentasi di `TestDatabase.cs`.
 
 Keputusan 29 September 2026 yang menyerahkan pengujian Farmasi ke analis penguji **sudah
@@ -202,7 +206,7 @@ urutan yang dipilih: tanpa surat yang terbit, slice ini tidak punya masukan apa 
 `DepotRoutingTests.cs`. Keduanya tidak lagi menjadi sisa pekerjaan.
 
 Uji regresi Farmasi **sudah dibuat dari sisi pembangunan**:
-`Tests/QuilvianSystemBackend.PharmacyTests`, 530 uji, pola sama dengan
+`Tests/QuilvianSystemBackend.PharmacyTests`, 536 uji, pola sama dengan
 `Tests/QuilvianSystemBackend.OperatingRoomTests` — xunit, SQLite dalam memori, dibangun dengan
 `-p:SkipMigrationMetadata=true`. Yang masih diserahkan ke analis penguji hanyalah **verifikasi
 runtime** `PHA-BE-006`, bukan uji unitnya.

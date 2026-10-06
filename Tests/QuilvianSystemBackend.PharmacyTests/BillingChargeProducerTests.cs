@@ -1,3 +1,5 @@
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
@@ -141,7 +143,86 @@ public class BillingChargeProducerTests
     {
         // Keduanya diperiksa `ContractBillingChargeSourceAdapter` di sisi Billing. Menggesernya
         // membuat setiap pengiriman ditolak 422, dan resep kembali tertahan pada tahap 2.
-        Assert.Equal("SUBMITTED", PrescriptionBillingChargeProducer.SubmittedSourceStatus);
-        Assert.Equal("BIL-INTEGRATION-1.2", PrescriptionBillingChargeProducer.ContractVersion);
+        Assert.Equal("PRESCRIBED", PrescriptionBillingChargeProducer.PrescribedSourceStatus);
+        Assert.Equal("BIL-INTEGRATION-1.3", PrescriptionBillingChargeProducer.ContractVersion);
+    }
+
+    /// <summary>
+    /// Membangun satu permintaan tagihan berbentuk sama seperti yang dikirim producer, dengan
+    /// status dan versi kontrak dapat diganti supaya penolakannya dapat diperiksa dua arah.
+    /// </summary>
+    private static UpsertChargeRequest Tagihan(string? status = null, string? kontrak = null) => new()
+    {
+        EncounterId = Guid.NewGuid(),
+        SourceDomain = "PHARMACY",
+        SourceDetailId = Guid.NewGuid().ToString("D"),
+        SourceVersion = 1,
+        SourceStatus = status ?? PrescriptionBillingChargeProducer.PrescribedSourceStatus,
+        OccurredAt = DateTimeOffset.UtcNow,
+        CategoryId = Guid.NewGuid(),
+        DescriptionSnapshot = "Obat resep uji",
+        Quantity = 1,
+        UnitPrice = 50_000m,
+        DoctorShare = 0,
+        ContractVersion = kontrak ?? PrescriptionBillingChargeProducer.ContractVersion,
+        CorrelationId = Guid.NewGuid(),
+        CausationId = Guid.NewGuid()
+    };
+
+    /// <summary>
+    /// Uji yang paling berharga di berkas ini: tagihan tahap 1 dari Farmasi dilewatkan ke
+    /// <b>validator Billing yang sebenarnya</b>, bukan ke tiruan.
+    /// </summary>
+    /// <remarks>
+    /// Mengunci nilai konstanta saja tidak pernah cukup. Kedua konstanta itu pernah bernilai
+    /// <c>SUBMITTED</c> dan <c>BIL-INTEGRATION-1.2</c> — keduanya konsisten di dalam Farmasi,
+    /// lulus seluruh uji Farmasi, dan tetap ditolak Billing pada setiap pengiriman karena
+    /// Billing menanti <c>PRESCRIBED</c> pada kontrak <c>1.3</c>. Kegagalannya tidak terlihat
+    /// dari dalam modul; hanya pertemuan kedua sisi yang menampakkannya.
+    ///
+    /// Validator Billing dipakai <b>apa adanya</b> dan tidak diubah sedikit pun.
+    /// </remarks>
+    [Fact]
+    public void Tagihan_tahap_satu_diterima_validator_Billing_yang_sebenarnya()
+    {
+        var adapter = new ContractBillingChargeSourceAdapter();
+
+        var snapshot = adapter.ValidateAndNormalize(Tagihan());
+
+        Assert.Equal("PHARMACY", snapshot.SourceDomain);
+        Assert.Equal("PRESCRIBED", snapshot.SourceStatus);
+    }
+
+    /// <summary>
+    /// Pembuktian negatif: nilai lama memang ditolak. Tanpa ini, uji di atas bisa lulus karena
+    /// validatornya permisif, bukan karena nilainya benar.
+    /// </summary>
+    [Theory]
+    [InlineData("SUBMITTED", "BIL-INTEGRATION-1.3")]
+    [InlineData("PRESCRIBED", "BIL-INTEGRATION-1.2")]
+    [InlineData("SUBMITTED", "BIL-INTEGRATION-1.2")]
+    public void Status_atau_kontrak_lama_ditolak_validator_Billing(string status, string kontrak)
+    {
+        var adapter = new ContractBillingChargeSourceAdapter();
+
+        Assert.ThrowsAny<Exception>(() =>
+            adapter.ValidateAndNormalize(Tagihan(status, kontrak)));
+    }
+
+    /// <summary>
+    /// Tahap 2 tetap berlaku seperti sebelumnya: jumlah yang benar-benar diserahkan boleh
+    /// ditagih pada kontrak mana pun, termasuk yang lama. Penyelarasan tahap 1 tidak boleh
+    /// mempersempit jalur yang sudah ada.
+    /// </summary>
+    [Theory]
+    [InlineData("BIL-INTEGRATION-1.2")]
+    [InlineData("BIL-INTEGRATION-1.3")]
+    public void Tagihan_tahap_dua_tetap_diterima_pada_kontrak_lama_dan_baru(string kontrak)
+    {
+        var adapter = new ContractBillingChargeSourceAdapter();
+
+        var snapshot = adapter.ValidateAndNormalize(Tagihan("DISPENSED", kontrak));
+
+        Assert.Equal("DISPENSED", snapshot.SourceStatus);
     }
 }
