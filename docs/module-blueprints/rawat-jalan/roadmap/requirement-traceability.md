@@ -299,3 +299,15 @@ Keputusan `RJ-DOC-DEC-010`; definisi task pada [doctor-consultation-roadmap.md](
 | Dokter melihat konsultasi tertundanya dari hari sebelumnya, lintas tanggal, hanya Sedang Konsultasi dengan konsultasi aktif (`RJ-DOC-DEC-029`, `030`) | `RJ-DOC-REV-BE-012` + `RJ-DOC-REV-FE-012` | BE ✅ `2026-10-05`; FE ✅ `2026-10-05` | [RJ-DOC-REV-BE-012](../task/report/backend/RJ-DOC-REV-BE-012.md), [RJ-DOC-REV-FE-012](../task/report/frontend/RJ-DOC-REV-FE-012.md) |
 | Dokter menyimpan atau membatalkan konsultasi tertunda, dengan banner dan konfirmasi resep/tindakan (`RJ-DOC-DEC-031`, `RJ-DOC-FE-011`) | `RJ-DOC-REV-BE-012` + `RJ-DOC-REV-FE-012` | BE ✅ `2026-10-05`; FE ✅ `2026-10-05` | [RJ-DOC-REV-BE-012](../task/report/backend/RJ-DOC-REV-BE-012.md), [RJ-DOC-REV-FE-012](../task/report/frontend/RJ-DOC-REV-FE-012.md) |
 | Petunjuk Daftar Pasien Rawat Jalan menunjuk Klinis Dokter (`RJ-DOC-FE-012`) | `RJ-DOC-REV-BE-012` | BE ✅ `2026-10-05` | [RJ-DOC-REV-BE-012](../task/report/backend/RJ-DOC-REV-BE-012.md) |
+
+## 8. Revisi `2026-10-06` — Pendaftaran Pasien Rawat Jalan oleh petugas (Amendment PR)
+
+Keputusan `RJ-DOC-DEC-034`..`038`; definisi task pada [doctor-consultation-roadmap.md](doctor-consultation-roadmap.md) bagian `14`.
+
+| Requirement pemilik | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Pendaftaran pasien Rawat Jalan oleh petugas dengan tampilan sama seperti Pendaftaran IGD (`RJ-DOC-DEC-034`) | `RJ-DOC-REV-FE-013` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-013](../task/report/frontend/RJ-DOC-REV-FE-013.md) |
+| Jadwal dokter wajib mengikuti `IsDoctorRequired` poliklinik (`RJ-DOC-DEC-035`) | `RJ-DOC-REV-FE-013` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-013](../task/report/frontend/RJ-DOC-REV-FE-013.md) |
+| Jenis kunjungan sama dengan IGD (`RJ-DOC-DEC-036`) | `RJ-DOC-REV-FE-013` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-013](../task/report/frontend/RJ-DOC-REV-FE-013.md) |
+| Hari ini walk-in, tanggal mendatang appointment (`RJ-DOC-DEC-037`) | `RJ-DOC-REV-FE-013` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-013](../task/report/frontend/RJ-DOC-REV-FE-013.md) |
+| Poliklinik per tanggal tanpa kode; tombol RJ tanpa ikon; tombol kembali bergaris primary (`RJ-DOC-DEC-039`) | `RJ-DOC-REV-FE-013` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-013](../task/report/frontend/RJ-DOC-REV-FE-013.md) §7 |
