@@ -311,3 +311,11 @@ Keputusan `RJ-DOC-DEC-034`..`038`; definisi task pada [doctor-consultation-roadm
 | Jenis kunjungan sama dengan IGD (`RJ-DOC-DEC-036`) | `RJ-DOC-REV-FE-013` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-013](../task/report/frontend/RJ-DOC-REV-FE-013.md) |
 | Hari ini walk-in, tanggal mendatang appointment (`RJ-DOC-DEC-037`) | `RJ-DOC-REV-FE-013` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-013](../task/report/frontend/RJ-DOC-REV-FE-013.md) |
 | Poliklinik per tanggal tanpa kode; tombol RJ tanpa ikon; tombol kembali bergaris primary (`RJ-DOC-DEC-039`) | `RJ-DOC-REV-FE-013` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-013](../task/report/frontend/RJ-DOC-REV-FE-013.md) §7 |
+
+## 9. Revisi `2026-10-06` — Scan kartu penjamin pada Pendaftaran Rawat Jalan (Amendment SK)
+
+| Requirement pemilik | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Foto scan kartu asuransi disimpan permanen seperti foto scan kiosk (`RJ-DOC-DEC-041`, `042`) | `RJ-DOC-REV-BE-013` | BE ✅ `2026-10-06` | [RJ-DOC-REV-BE-013](../task/report/backend/RJ-DOC-REV-BE-013.md) |
+| Foto scan kartu penjamin perusahaan disimpan permanen; kolom baru `CardImagePath` (`RJ-DOC-DEC-041`, `042`, `044`) | `RJ-DOC-REV-BE-014` | BE ✅ `2026-10-06` | [RJ-DOC-REV-BE-014](../task/report/backend/RJ-DOC-REV-BE-014.md) |
+| Kolom *Kartu* sebelum Status (Scan Kartu / Lihat Kartu), preview di *Penjamin Dipilih*, field scan di modal *Daftarkan Penjamin Baru* (`RJ-DOC-DEC-040`) | `RJ-DOC-REV-FE-014` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-014](../task/report/frontend/RJ-DOC-REV-FE-014.md) |
