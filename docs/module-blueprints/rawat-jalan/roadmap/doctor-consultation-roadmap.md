@@ -1049,3 +1049,29 @@ Quilvian (`RJ-DOC-FE-006`, `RJ-DOC-FE-010`).
 
 Sama dengan `04-prd-to-mvp.md` *Amendment KT* KT-7: kedua task `✅`, `AT-KT-01`..`11` lulus atau
 dinyatakan `NOT FEASIBLE` beserta sebabnya, dan hitungan `RJ-DOC-OQ-012` dilaporkan.
+
+## 14. Revisi `2026-10-06` — Pendaftaran Pasien Rawat Jalan oleh petugas (Amendment PR)
+
+| Field | Isi |
+| --- | --- |
+| **Sumber requirement** | Sukma Giri, 6 Okt 2026: fitur pendaftaran pasien Rawat Jalan dengan tampilan sama seperti Pendaftaran Pasien IGD |
+| **Keputusan** | `RJ-DOC-DEC-034`..`039` ([00-interview-decisions.md](../00-interview-decisions.md), *Amendment PR*) |
+| **Kontrak** | Endpoint yang sudah ada, tanpa perubahan: `POST /patient-encounters/admin` (`PatientEncounterCreateRequest`), `GET /clinics/admin/options`, `GET /doctor-schedules/admin` (daftar admin; `admin/options` tidak membawa masa berlaku jadwal — lihat laporan task), serta endpoint pasien dan penjamin yang sudah dipakai Pendaftaran IGD |
+| **`IMPLEMENTATION_AUTHORITY`** | `GRANTED` untuk `RJ-DOC-REV-FE-013` (`RJ-DOC-DEC-038`). Tanpa backend, migration, commit, push, merge, deploy |
+| **Migration** | Tidak ada |
+
+### Grafik Urutan Dependency
+
+```text
+RJ-DOC-REV-FE-013 ✅
+```
+
+| Gelombang | Task | Boleh mulai bila |
+| ---: | --- | --- |
+| 1 | `RJ-DOC-REV-FE-013` | Wewenang diberikan (`RJ-DOC-DEC-038`) |
+
+### 14.1 Task frontend
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| ✅ `RJ-DOC-REV-FE-013` | **Layar Pendaftaran Pasien Rawat Jalan.** Route `/health-services/registration-management/outpatient-registration`; butir menu *Pendaftaran Pasien* paling atas pada menu Rawat Jalan dengan `requiredPermission` `PatientEncounter : Create`. Alur dan tampilan sama dengan Pendaftaran Pasien IGD; langkah 2 *Data Kunjungan*: tanggal kunjungan (hari ini atau mendatang), poliklinik, jadwal dokter pada tanggal itu, jenis kunjungan (`RJ-DOC-DEC-036`), keluhan utama. Submit ke `POST /patient-encounters/admin` dengan `encounterType` Outpatient | — | 1. Pasien lama dan pasien baru dapat didaftarkan; encounter Outpatient berklinik terbentuk dengan nomor antrean bila klinik memakai antrean. 2. Jadwal dokter wajib hanya bila klinik `IsDoctorRequired` (`RJ-DOC-DEC-035`). 3. Hari ini terkirim sebagai walk-in; tanggal mendatang sebagai appointment (`RJ-DOC-DEC-037`). 4. Tunai, asuransi, dan penjamin perusahaan berjalan seperti IGD. 5. Penolakan backend tampil sebagai pesan di langkah Verifikasi. 6. Layar Pendaftaran IGD tidak berubah | Lint tanpa error baru; `npm run build` `PASS`; uji layar terhadap backend lokal dan `QuilvianNewDevSukma` | ✅ `COMPLETE` `2026-10-06` — ESLint `0 error, 0 warning`, `npm run build` `PASS`, UI GATE REUSE 4 / EXTEND 3 / COMPOSE 2 / NEW 0; uji layar Playwright `28/28 PASS` (pasien lama/baru, walk-in/appointment, tunai/asuransi/perusahaan, penolakan backend, IGD tidak berubah). AC 2 cabang dokter opsional hanya terbukti lewat kode (seluruh poliklinik DB uji `IsDoctorRequired`). Delta: jadwal dari `GET /doctor-schedules/admin`. Data uji dibatalkan; pasien `00-00-00-17` tersisa. Revisi `RJ-DOC-DEC-039` (6 Okt 2026): poliklinik hanya yang buka pada tanggal kunjungan, tanpa kode; tombol RJ tanpa ikon; tombol kembali bergaris primary — ESLint `0 error, 0 warning`, `npm run build` `PASS`, uji layar `20/20 PASS`, IGD tidak berubah. Revisi Input Manual menggulir ke form pasien baru (RJ saja): build `PASS`, uji layar `3/3 PASS`. Branch `sukmagpV2`, belum di-commit. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-013.md) |
