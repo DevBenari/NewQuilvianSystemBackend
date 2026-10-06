@@ -712,3 +712,92 @@ berubah tanpa mengubah layar.
 | 10.4.8 | PRD bagian 23; `RWI-DEC-108`, `113` | `api-contract.md` 12.12, 12.15 |
 | 10.4.9 | `RWI-DEC-127`, `142` | `api-contract.md` 12.13 |
 | 10.4.11 | `RWI-DEC-146`, `147` | `api-contract.md` 12.10 |
+
+---
+
+## 11. Amandemen revision `0.5` / kontrak `0.7.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+### 11.1 Kebutuhan layar
+
+| ID | Layar | Jenis | Pelaku | Kemampuan | Status |
+|---|---|---|---|---|---|
+| `FE-DOK-17` | Penunjang Medis: Konsultasi Gizi dan Bank Darah | Komponen bersama untuk tab Penunjang Medis ruang kerja dokter (`supporting-service-tab.jsx`) dan menu Penunjang Medis ruang kerja perawat (`nursing-ancillary-section.jsx`) | Dokter, perawat | `CAP-RWF-06` | Baru — keluar dari *placeholder* |
+| `FE-DOK-18` | Pesanan Lab dan Radiologi oleh perawat | Menu Penunjang Medis ruang kerja perawat | Perawat | `CAP-RWF-06` | Diubah — kunci "menunggu BE-RWI-104" dilepas |
+| `FE-DOK-15` | Perlu Review / Perlu Diverifikasi | Daftar gabungan enam sumber | Dokter | `CAP-RWF-06` | Diubah |
+| `FE-DOK-19` | Katalog tindakan rawat inap | Pemilih tindakan pada order tindakan dokter dan perawat | Dokter, perawat | `CAP-RWF-14` | Diubah |
+
+### 11.2 Peta butir menu
+
+Tidak ada butir menu baru. Seluruhnya layar anak:
+
+| Layar | Jalan masuk |
+|---|---|
+| `FE-DOK-17` | Tab Penunjang Medis `FE-DOK-09` dan menu Penunjang Medis `FE-KEP-07` |
+| `FE-DOK-18` | Menu Penunjang Medis `FE-KEP-07` |
+| `FE-DOK-15` | Ruang kerja dokter `FE-DOK-09` (sudah ada) |
+| `FE-DOK-19` | Order Tindakan dokter dan perawat |
+
+### 11.3 Skema fitur per layar
+
+#### `FE-DOK-17` Konsultasi Gizi dan Bank Darah
+
+```text
++- Penunjang Medis — Bank Darah ------------------------------- FE-DOK-17 -+
+| Dokter pemberi instruksi [v hanya dokter berpenugasan]   (perawat saja)  |
+| Golongan darah [v]  Komponen dan jumlah [+ baris]  Catatan klinis [....] |
+| Status tanggungan: Ditanggung · perkiraan Rp … — tagihan final di kasir  |
+|                                                         [Kirim pesanan] |
+| Pesanan pasien: Nomor | Status pesanan | Status verifikasi | Peminta | Penginput |
+| kosong -> "Belum ada pesanan darah untuk episode ini."                   |
++--------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Pilihan dokter | Hanya dokter berpenugasan aktif; tidak tampil bila pengguna dokter | Endpoint penugasan dokter episode yang sudah ada | `InpatientEpisode : Read` | Kosong → "Belum ada dokter yang ditugaskan pada pasien ini." |
+| Status tanggungan dan perkiraan harga | "Ditanggung" atau "Tidak Di-cover", beserta perkiraan harga berlabel "perkiraan — tagihan final di kasir" bila `PriceStatus = AVAILABLE`; "tarif belum tersedia" bila `NOT_ESTIMABLE`; tanpa harga bila `NOT_PERMITTED` (`RWI-DEC-218`) | `GET inpatient-management/episodes/{episodeId}/ancillary-orders/coverage-status` | `InpatientEpisode : Read`; harga mengikuti hak membuat pesanan | Gagal → "Status tanggungan tidak dapat dibaca"; pesanan tetap boleh dikirim |
+| Kirim pesanan gizi | Prioritas, alasan rujukan | `POST …/ancillary-orders/nutrition-consultations` | `NutritionOrder : Create` | 403 → "Dokter yang dipilih tidak sedang menangani pasien ini." |
+| Kirim pesanan darah | Golongan, komponen, jumlah | `POST …/ancillary-orders/blood-orders`; konfirmasi mirip lewat `…/confirm-duplicate` | `BloodOrder : Create` | Mirip pesanan sebelumnya → dialog konfirmasi modul Bank Darah |
+| Daftar pesanan | Status dari modul pemilik | `GET nutrition-management/orders?encounterId=`, `GET blood-bank-management/blood-orders?encounterId=` | `NutritionOrder : Read`, `BloodOrder : Read` | Kosong → pesan pada skema |
+
+#### `FE-DOK-15` Perlu Diverifikasi — daftar gabungan
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Tindakan | Order tindakan yang diinput perawat | `GET clinical-management/patient-procedures/instruction-verification-worklist` | Sesuai controller | Gagal → bagian ini saja menampilkan "Daftar tindakan gagal dimuat" |
+| Lab, Radiologi | Pesanan perawat | `GET …/lab-orders/instruction-verification-worklist`, `GET …/rad-orders/instruction-verification-worklist` | Sesuai controller | Sama |
+| Gizi, darah, diet | Pesanan dan diet perawat | `GET nutrition-management/orders/instruction-verification-worklist`, `GET blood-bank-management/blood-orders/instruction-verification-worklist`, `GET nutrition-management/diets/instruction-verification-worklist` | `NutritionOrder : VerifyInstruction`, `BloodOrder : VerifyInstruction`, `NutritionPatientDiet : VerifyInstruction` | Sama |
+| Tombol Verifikasi | Per baris, memanggil endpoint verifikasi modul pemilik | Endpoint `verify-instruction` masing-masing | Permission verifikasi modul masing-masing | 403 → "Hanya dokter yang memberi instruksi yang dapat memverifikasi" |
+| Kosong | — | — | — | "Tidak ada yang perlu diverifikasi." |
+
+#### `FE-DOK-19` Katalog tindakan rawat inap
+
+| Wilayah | Isi | Sumber data | Butir hak akses |
+|---|---|---|---|
+| Pemilih tindakan dokter | Tindakan rawat inap | `GET clinical-management/patient-procedures/master-options?careSetting=Inpatient&audience=Doctor` | `PatientProcedure : Read` |
+| Pemilih tindakan perawat | Tindakan rawat inap termasuk tindakan khusus perawat | `…?careSetting=Inpatient&audience=Nurse` | `PatientProcedure : Read` |
+
+### 11.4 Penanganan keadaan dan kewenangan UI
+
+| Hal | Ketentuan |
+|---|---|
+| Harga pemeriksaan | **Ditampilkan sebagai perkiraan** kepada setiap pemesan di Penunjang (`FE-DOK-13`, `17`, `18`), katalog tindakan (`FE-DOK-19`), dan Resep (`FE-DOK-10`, memakai harga dari `prescribing-drugs`), selalu bersama status tanggungan (`RWI-DEC-218`, `RWI-DEC-219`). Harga tidak pernah menahan tombol Kirim |
+| Daftar gabungan | Enam bagian dimuat terpisah; satu bagian gagal tidak menyembunyikan bagian lain |
+| Pengiriman ganda | `IdempotencyKey` pada pesanan; tombol nonaktif selama permintaan |
+| Rupa tab, urutan bagian daftar, ikon | `DEV_DISCRETION` |
+
+### 11.5 Penyelarasan decision log revision `31` ★ 2 Oktober 2026
+
+| Keputusan | Layar | Akibat |
+|---|---|---|
+| `RWI-DEC-218`, `RWI-DEC-219` | `FE-DOK-13`, `FE-DOK-17`, `FE-DOK-18` | Setiap pemeriksaan Lab, Radiologi, konsultasi gizi, dan komponen darah menampilkan status tanggungan dan perkiraan harga dari `coverage-status`; gizi dan darah menampilkan "tarif belum tersedia" |
+| Sama | `FE-DOK-19` | Pemilih tindakan dokter dan perawat menampilkan perkiraan harga per tindakan dari `coverage-status` (`ItemType = Procedure`) |
+| Sama | `FE-DOK-10` Resep | Harga dan tanggungan per obat dari `GET clinical-management/prescribing-drugs` yang sudah ada, berlabel perkiraan |
+| `RWI-DEC-213` | `FE-DOK-09` | **Diubah:** panel Konteks pasien mendapat penanda "Pasca operasi" yang hanya tampil bila pasien punya kasus OK `Completed`, dan membuka laci `FE-INP-28` mode baca-saja. Jumlah dan urutan delapan tab tidak berubah |
+
+| Wilayah baru `FE-DOK-09` | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Penanda "Pasca operasi" | Satu penanda per kasus OK `Completed` episode ini, terbaru di depan | `GET operating-room-management/cases?encounterId=&status=Completed` | `OperatingRoomCase : Read` | Tidak ada kasus → penanda tidak tampil. Gagal → penanda tidak tampil dan tidak menghalangi isi lain |
+| Laci ringkasan | `FE-INP-28` mode baca-saja (tanpa tombol Terima/Tolak) | `GET …/cases/{id}/post-operative-summary` | `OperatingRoomCase : Read` | Laporan draft → "Laporan operasi belum final" |
+
+Bentuk penanda dan laci `DEV_DISCRETION` (`RWI-FE-006`).

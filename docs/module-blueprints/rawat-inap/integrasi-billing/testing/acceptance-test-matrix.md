@@ -66,3 +66,54 @@
 - [x] Seluruh Integration Test basis data (PostgreSQL live query, atomisitas transaksi, dan unique constraint `UQ_InpIntegrationOutbox_IdempotencyKey`) **LULUS 100%**.
 - [x] Pengujian otomatis terpadu dieksekusi melalui skrip `test-billing-integration.mjs` dengan hasil lolos tanpa deviasi (*zero defect*).
 - [x] Laporan hasil pengujian terpadu telah disusun lengkap dan terdokumentasi di [`testing/test-by-agy/laporan-testing-integrasi-billing.md`](file:///C:/Users/Admin/Documents/Quilvian/Source%20Code/QuilvianFinal/NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/integrasi-billing/testing/test-by-agy/laporan-testing-integrasi-billing.md).
+
+---
+
+## 4. Amandemen kontrak `1.1.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+Test yang menyebut akibat di modul lain baru boleh lulus bila akibat itu **terbukti di modul penerima**, lewat aplikasi berjalan atau test yang memanggil penerima sungguhan, bukan tiruan (`RWI-DEC-168` butir 3). Butir yang tidak dijalankan ditulis `NOT RUN`.
+
+Skenario `UAT-INT-*` bagian 1 s.d. 3 yang menguji webhook, supervisor override pulang fisik, atau gerbang kasir pada pulang fisik **dicabut**.
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FR-RWF-001` / `AC-RWF-001` | Panggil `POST episodes/{id}/discharge-clearance/webhook` | Integrasi API | 404; status episode tidak berubah |
+| `FR-RWF-001` / `AC-RWF-001` | Panggil `record-departure` dan `close-with-override` tanpa token | Integrasi API | 401 |
+| `FR-RWF-001` / `AC-RWF-002` | Panggil `close-with-override` dengan akun tanpa `CloseOverride` | Integrasi API | 403 |
+| `FR-RWF-002` / `AC-RWF-005` | Pencarian kode `ClearanceStatus` pada service Rawat Inap | Statis | Nol pembaca dan nol penulis `InpEpisode.ClearanceStatus`; `InpatientClearanceGateService` tidak ada |
+| `FR-RWF-003` / `AC-RWF-003` | Kasir menyetujui pukul T; kartu status kasir dibuka | E2E | Paling lambat T + 10 detik tampil "Disetujui kasir" |
+| `FR-RWF-006` / `AC-RWF-006` | Episode `DischargePending`, izin `PENDING`; catat keluar dengan pengakuan | Integrasi API + E2E | Pertama 409 `INP-DEP-001`; kedua 200; bed `Available`; `DepartureClearanceObserved = Pending` atas nama pencatat |
+| `FR-RWF-006` | Episode `Admitted`; catat keluar | Integrasi API | 422; bed tidak berubah |
+| `FR-RWF-007` / `AC-RWF-007` | Billing dimatikan; catat keluar, lalu tutup normal | Integrasi API | Keluar: 409 lalu 200 dengan `Unreadable`. Tutup: 422 `INP-CLS-011` |
+| `FR-RWF-007` | Episode keluar dengan status `PENDING` | Integrasi API | Muncul di `GET monitoring/departures-before-clearance` |
+| `FR-RWF-008` / `AC-RWF-004` | Izin `CLEARED`, lalu kasir mencabut; tutup normal | Integrasi API dengan Billing sungguhan | 422 `INP-CLS-010` |
+| `FR-RWF-005` / `AC-RWF-008` | Override dengan alasan "...", lalu dengan alasan jelas | Integrasi API | Pertama 400 `INP-CLS-012`; kedua `Closed`, `IsClosedWithoutFinancialClearance = true`, `ClosureClearanceObserved` terisi; kontrak tanpa field PIN |
+| `FR-RWF-005` | Akun bernama peran "SuperAdmin" tanpa `CloseOverride` | Integrasi API | 403 — nama peran tidak memberi hak |
+| `FR-RWF-010` / `AC-RWF-010` | Episode menjadi `Admitted` | Integrasi dengan Billing sungguhan | Invoice `RANAP` `OPEN` < 1 menit tanpa input kasir |
+| `FR-RWF-014` / `AC-RWF-016` | Billing tidak menjawab saat admisi, lalu hidup | Integrasi | Pesan `Failed`, bukan `Published`; setelah hidup tepat satu invoice dan pesan `Published` |
+| `FR-RWF-014` | Pesan `Processing` dengan `ProcessingStartedAtUtc` melewati masa sewa | Unit + integrasi | Diambil ulang dan terkirim |
+| `FR-RWF-014` / `AC-RWF-017` | Periksa `PayloadJson` keempat jenis event | Unit | Hanya field daftar putih; payload berisi field tambahan ditolak |
+| `INV-RWF-06` | Kirim `ADMISSION_CONFIRMED` yang sama dua kali | Integrasi | Tanda terima kedua `DUPLICATE`; satu invoice |
+| `FR-RWF-011` / `AC-RWF-011` | Tindakan "Pasang infus" `Completed` pada pasien rawat inap | Integrasi | Baris muncul di invoice `RANAP` dengan harga master tarif |
+| `FR-RWF-011` / `AC-RWF-090` | Farmasi menyerahkan 3 vial | Integrasi | Invoice memuat 3 vial saat penyerahan |
+| `FR-RWF-011` / `AC-RWF-012` | Retur 1 vial lolos pemeriksaan | Integrasi | Tagihan 2 vial; baris asli ada; pembatalan merujuk nomor retur. Persetujuan Farmasi sudah ada (`RWI-DEC-210`) |
+| `FR-RWF-011` / `AC-RWF-091` | Retur dinilai tidak layak; dosis MAR dicatat | Integrasi | Tagihan tidak berubah; MAR tidak membuat baris tagihan |
+| `FR-RWF-012`, `015` / `AC-RWF-013` | Hunian 2 hari 5 jam kelas 2, invoice hanya tarif kamar | Integrasi | Tarif kamar = hasil kebijakan aktif (contoh 7.1.6: 3 unit); biaya admin ikut terhitung |
+| `FR-RWF-013` / `AC-RWF-014` | Pencarian kode | Statis | `InpatientRoomChargeCalculationService` tidak ada; nol jam potong dan tarif cadangan tertanam |
+| `FR-RWF-016` / `AC-RWF-015` | Billing mati; simpan tindakan; Billing hidup | Integrasi | Tindakan tersimpan; baris tagihan muncul sekali |
+| `FR-RWF-018` / `AC-RWF-019` | Izin `CLEARED`, lalu obat pulang susulan diserahkan | Integrasi | Izin otomatis `REVOKED`; penutupan ditolak |
+| `FR-RWF-017` / `AC-RWF-018` | Dua episode aktif, satu dengan biaya kamar manual; putar ulang dua kali | Integrasi lingkungan uji | Masing-masing satu invoice, tarif sejak waktu masuk asli; hanya yang kedua `RequiresReview`; putar ulang kedua tanpa perubahan |
+| `INV-RWF-08` | Finalisasi invoice `RequiresReview` | Integrasi | 422 `BIL-FIN-020` |
+| `RWI-DEC-192` (d) | Finalisasi invoice dengan baris `TARIFF_NOT_FOUND` | Integrasi | 422 `BIL-FIN-021` |
+| `FR-RWF-019` — **uji wajib `IsSuperseded`** (1) | Pasien dipindah dari kelas 2 ke kelas 1 pukul 12.00 (transfer biasa) | Integrasi Billing sungguhan | Tarif kelas 2 sampai 12.00 dan kelas 1 sesudahnya; tidak ada periode dobel |
+| `FR-RWF-019` — **uji wajib `IsSuperseded`** (2) | Kelas salah catat kelas 1 padahal VIP sejak masuk; koreksi | Integrasi Billing sungguhan | Seluruh periode tertagih VIP; baris kelas 1 lama tidak ikut terhitung; baris lama tetap tersimpan |
+| `FR-RWF-019` | Koreksi setelah invoice `FINAL` | Integrasi API | 422 `INP-COR-001` |
+| `FR-RWF-019` | Dua pengguna mengoreksi baris yang sama | Integrasi API | Satu berhasil; satu 409 `INP-COR-003` |
+| `FR-RWF-022`, `024` / `AC-RWF-020`, `021` | Perawat tanpa `ViewAmount` membuka rincian; petugas dengan `ViewAmount` membuka hal yang sama | Integrasi API + E2E | Respons `/breakdown` tanpa field rupiah untuk keduanya; `/breakdown/amounts` 403 bagi perawat, berisi subtotal dan total bagi petugas; tidak ada harga per item |
+| `FR-RWF-023` / `AC-RWF-023` | Episode tanpa invoice | Integrasi API | `InvoiceState = NOT_FORMED`; layar "Tagihan belum terbentuk", bukan "Rp 0" |
+| `RWI-DEC-192` (f) / `AC-RWF-022` | Akun berperan "Cashier" tanpa `BillingInpatient : Read` memanggil `inpatient-summary` | Integrasi API | 403; tidak ada penentuan dari nama peran |
+| Regresi rawat jalan (`RWI-DEC-153` pola) | Tindakan, lab, obat pasien rawat jalan setelah perubahan jembatan | Integrasi | Hasil invoice rawat jalan identik dengan sebelum perubahan |
+| `RWI-AC-330` / `RWI-DEC-207` | Admisi dari permintaan kamar pulih untuk pasien Poli Bedah | Integrasi dengan Billing sungguhan | Satu `BilInvoiceEncounterLink`; tidak ada baris yang berpindah invoice; `breakdown` memuat baris operasi berlabel kunjungan asal |
+| `INT-RWF-29` | `ADMISSION_CONFIRMED` dikirim ulang dan putar ulang `I5` dijalankan | Integrasi | Tetap satu tautan |
+| `INV-RWF-05` | Isi pesan `ADMISSION_CONFIRMED` untuk admisi dari permintaan | Integrasi | Hanya field daftar putih; tidak ada `SourceEncounterId` di pesan |
+| `RWI-DEC-207` | Admisi biasa tanpa permintaan admisi | Regresi | Tidak ada tautan; `breakdown` identik dengan desain sebelum penyelarasan |

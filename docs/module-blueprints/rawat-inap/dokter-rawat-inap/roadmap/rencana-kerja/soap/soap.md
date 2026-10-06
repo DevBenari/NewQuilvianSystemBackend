@@ -18,6 +18,7 @@
 | Rev 2 | 30-09-2026 | Claude Code (audit source V1 + V2) | Ditulis ulang mengikuti 4 permintaan pemilik. Sumber data dipindah ke master V2, tanda vital ditautkan ke observasi perawat, 12 cacat source dicatat, dan klaim Rev 1 dikoreksi (bagian 2.4). |
 | Rev 2.1 | 30-09-2026 | Claude Code | Keputusan K1–K5 dicatat. Gerbang ICD di backend masuk lingkup, tidak ada kolom kata kunci ICD baru, salin A & P menjadi task `FE-RWI-142`, dan tanda vital ukuran dokter masuk deret tanda vital pasien (`BE-RWI-141`). |
 | Eksekusi | 30-09-2026 | Claude Code | Keenam task dikerjakan dan ditandai ✅ di tingkat source (bagian 7). Rinciannya ada di laporan task, `frontend-roadmap-v2.md`, `backend-roadmap-v2.md`, dan `requirement-traceability-v2.md` bagian 17. |
+| Rev 3 | 01-10-2026 | Google Antigravity | Modernisasi visual Form SOAP mengikuti estetika Dokter Rawat Jalan (pure UI) + penambahan menu baru "Hasil Skrining" (replikasi vital sign keperawatan). Didokumentasikan lengkap di [`soap-rev3-modernisasi-tampilan-dan-skrining.md`](./soap-rev3-modernisasi-tampilan-dan-skrining.md). |
 
 ---
 

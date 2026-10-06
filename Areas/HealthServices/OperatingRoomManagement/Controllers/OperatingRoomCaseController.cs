@@ -21,8 +21,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Con
     SortOrder = 1)]
 [Tags("Health Services / Operating Room Management / Cases")]
 public class OperatingRoomCaseController(OperatingRoomCaseService service,
-    OperatingRoomExecutionService executionService) : ControllerBase
+    OperatingRoomExecutionService executionService,
+    OperatingRoomPostOperativeSummaryQuery postOperativeSummaryQuery) : ControllerBase
 {
+    /// <summary>Ringkasan operasi baca-saja untuk bangsal dan dokter (BE-RWI-180, API 11.5.1).</summary>
+    /// <remarks>
+    /// Laporan operasi draft → <c>ReportFinal = false</c>, isi klinis kosong, pesan "Laporan operasi
+    /// belum final". Tidak memuat rupiah dan tidak menulis apa pun.
+    /// </remarks>
+    [HttpGet("{id:guid}/post-operative-summary")]
+    [ProducesResponseType(typeof(ApiResponse<PostOperativeSummaryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [AccessAction("Read", "Read Operating Room Case", Description = "Melihat ringkasan operasi baca-saja", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("OperatingRoomCase", "Read")]
+    public async Task<IActionResult> GetPostOperativeSummary(Guid id, CancellationToken cancellationToken = default)
+    {
+        var result = await postOperativeSummaryQuery.GetAsync(id, cancellationToken);
+        if (result == null)
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Kasus operasi tidak ditemukan."));
+
+        return Ok(ApiResponse<PostOperativeSummaryResponse>.Ok(result, result.ReportFinal
+            ? "Ringkasan operasi berhasil diambil."
+            : OperatingRoomPostOperativeSummaryQuery.ReportNotFinalMessage));
+    }
+
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<OprCaseSummaryResponse>>), StatusCodes.Status200OK)]
     [AccessAction("Read", "Read Operating Room Case", Description = "Melihat daftar kasus operasi", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -72,6 +94,7 @@ public class OperatingRoomCaseController(OperatingRoomCaseService service,
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
     [AccessAction("Update", "Update Operating Room Case", Description = "Memperbarui permintaan operasi", AccessType = AccessTypes.Update, SortOrder = 3)]
     [AccessPermission("OperatingRoomCase", "Update")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateOprCaseRequest request, CancellationToken cancellationToken = default)
@@ -84,6 +107,37 @@ public class OperatingRoomCaseController(OperatingRoomCaseService service,
         catch (KeyNotFoundException ex) { return NotFound(ApiResponse<object>.Fail(404, ex.Message)); }
         catch (OperatingRoomForbiddenException ex) { return this.OperatingRoomForbidden(ex); }
         catch (OperatingRoomConflictException ex) { return this.OperatingRoomConflict(ex); }
+        catch (OperatingRoomUnprocessableException ex) { return this.OperatingRoomUnprocessable(ex); }
+        catch (ArgumentException ex) { return BadRequest(ApiResponse<object>.Fail(400, ex.Message)); }
+    }
+
+    /// <summary>Menolak order operasi berstatus Diminta dengan alasan (BE-RWI-174, API 11.5.1).</summary>
+    /// <remarks>
+    /// Alasan 10–500 karakter, header <c>Idempotency-Key</c>, dan <c>ExpectedVersion</c>. Kasus selain
+    /// Diminta → 422 <c>OPR-CASE-REJ-001</c>; versi berubah → 409. Status Ditolak final.
+    /// </remarks>
+    [HttpPatch("{id:guid}/reject")]
+    [ProducesResponseType(typeof(ApiResponse<OprCaseDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    [AccessAction("Reject", "Reject Operating Room Case", Description = "Menolak order operasi berstatus Diminta dengan alasan", AccessType = AccessTypes.Update, SortOrder = 6)]
+    [AccessPermission("OperatingRoomCase", "Reject")]
+    public async Task<IActionResult> Reject(Guid id, [FromBody] RejectOprCaseRequest request,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await service.RejectAsync(id, request, idempotencyKey, cancellationToken);
+            return Ok(ApiResponse<OprCaseDetailResponse>.Ok(result, "Order operasi berhasil ditolak."));
+        }
+        catch (KeyNotFoundException ex) { return NotFound(ApiResponse<object>.Fail(404, ex.Message)); }
+        catch (OperatingRoomForbiddenException ex) { return this.OperatingRoomForbidden(ex); }
+        catch (OperatingRoomConflictException ex) { return this.OperatingRoomConflict(ex); }
+        catch (OperatingRoomUnprocessableException ex) { return this.OperatingRoomUnprocessable(ex); }
         catch (ArgumentException ex) { return BadRequest(ApiResponse<object>.Fail(400, ex.Message)); }
     }
 

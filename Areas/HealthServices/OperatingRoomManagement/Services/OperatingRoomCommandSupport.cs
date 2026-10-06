@@ -74,9 +74,13 @@ internal static class OperatingRoomCommandSupport
     };
 
     /// <summary>Tindakan lanjutan yang boleh ditawarkan frontend; satu-satunya definisi.</summary>
+    /// <remarks>
+    /// <c>Reject</c> pada <c>Requested</c> ditambahkan <c>BE-RWI-174</c>; <c>Rejected</c> final sehingga
+    /// tidak punya tindakan lanjutan.
+    /// </remarks>
     public static List<string> AvailableActions(OprCaseStatus status) => status switch
     {
-        OprCaseStatus.Requested => ["Update", "Schedule", "Postpone", "Cancel"],
+        OprCaseStatus.Requested => ["Update", "Schedule", "Postpone", "Cancel", "Reject"],
         OprCaseStatus.Scheduled => ["Reschedule", "SaveChecklist", "SignOff", "EmergencyBypass", "Postpone", "Cancel"],
         OprCaseStatus.Postponed => ["Reschedule"],
         OprCaseStatus.Ready => ["SaveChecklist", "Start", "Cancel"],

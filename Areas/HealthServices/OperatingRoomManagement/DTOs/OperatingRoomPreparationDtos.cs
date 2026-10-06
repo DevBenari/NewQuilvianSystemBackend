@@ -97,6 +97,13 @@ public class OprPreparationResponse
     /// <summary>Prasyarat yang belum terpenuhi; kosong berarti kasus sudah boleh `Ready`.</summary>
     public List<string> OutstandingRequirements { get; set; } = [];
 
+    /// <summary>
+    /// Kode mesin untuk setiap prasyarat yang belum terpenuhi, sejajar dengan
+    /// <see cref="OutstandingRequirements"/> (BE-RWI-176, API 11.3). Kode baru:
+    /// <c>WARD_PRE_OP_INCOMPLETE</c> dan <c>WARD_PRE_OP_NEEDS_UPDATE</c>.
+    /// </summary>
+    public List<string> Blockers { get; set; } = [];
+
     public bool IsEmergencyBypassActive { get; set; }
     public List<string> AvailableActions { get; set; } = [];
 }

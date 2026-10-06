@@ -171,6 +171,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
 
         private static IEnumerable<Baseline> Baselines()
         {
+            yield return new Baseline(Guid.Parse("c1a1f000-0169-4a01-9b01-000000000001"), Guid.Parse("c1a1f000-0169-4a01-9b02-000000000001"),
+                "SURGICAL_SITE_SURVEILLANCE", "Surveilans infeksi luka operasi", ClinicalInstrumentKind.SurgicalSiteSurveillanceForm, null, null,
+                "Draft RWI-DEC-202. Suhu dan indikator demam dibaca dari tanda vital. Isi wajib disahkan komite PPI sebelum digunakan.",
+                new ClinicalInstrumentDefinition
+                {
+                    Sections =
+                    {
+                        new() { Code = "DAILY", Label = "Indikator harian", Items =
+                        {
+                            new() { Code = "drainage", Label = "Drainase", Type = "boolean" }, new() { Code = "pus", Label = "Pus", Type = "boolean" },
+                            new() { Code = "perforation", Label = "Perforasi", Type = "boolean" }, new() { Code = "fistula", Label = "Fistula", Type = "boolean" },
+                            new() { Code = "site", Label = "Lokasi luka", Type = "text" }, new() { Code = "pain", Label = "Nyeri", Type = "boolean" },
+                            new() { Code = "redness", Label = "Merah", Type = "boolean" }, new() { Code = "swelling", Label = "Bengkak", Type = "boolean" },
+                            new() { Code = "chills", Label = "Menggigil", Type = "boolean" }, new() { Code = "note", Label = "Keterangan", Type = "text" }
+                        } },
+                        new() { Code = "SUMMARY", Label = "Kultur dan serologi", Items =
+                        {
+                            new() { Code = "cultureTaken", Label = "Kultur dilakukan", Type = "boolean" }, new() { Code = "cultureDate", Label = "Tanggal kultur", Type = "date" },
+                            new() { Code = "cultureResult", Label = "Hasil kultur", Type = "text" },
+                            new() { Code = "hbsAg", Label = "HBsAg", Type = "single", Options = new() { new() { Code = "positive", Label = "Positif" }, new() { Code = "negative", Label = "Negatif" } } },
+                            new() { Code = "antiHcv", Label = "Anti HCV", Type = "single", Options = new() { new() { Code = "positive", Label = "Positif" }, new() { Code = "negative", Label = "Negatif" } } }
+                        } }
+                    },
+                    ReviewFlags = { "Isi formulir surveilans wajib ditinjau dan disahkan pemilik klinis atau komite PPI (G-21)." }
+                });
             yield return new Baseline(
                 Guid.Parse("c1a1f000-0107-4a01-9b01-000000000001"), Guid.Parse("c1a1f000-0107-4a01-9b02-000000000001"),
                 "FALL_RISK_CHILD", "Risiko Jatuh Anak — Humpty Dumpty (draft)", ClinicalInstrumentKind.FallRiskScale, 0, 216,

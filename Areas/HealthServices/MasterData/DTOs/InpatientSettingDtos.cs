@@ -34,6 +34,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         /// </summary>
         public int DepositFollowUpIntervalDays { get; set; }
 
+        /// <summary>
+        /// Ambang menit serah terima pasca operasi yang belum diterima sebelum tampil di Daftar
+        /// Pantau. Bawaan 60 menit (<c>BE-RWI-172</c>).
+        /// </summary>
+        public int PendingSurgicalHandoverAlertMinutes { get; set; }
+
+        /// <summary>
+        /// Ambang menit permintaan admisi dari kamar pulih yang belum ditindaklanjuti sebelum tampil
+        /// di Daftar Pantau. Bawaan 30 menit (<c>BE-RWI-172</c>).
+        /// </summary>
+        public int PendingAdmissionReferralAlertMinutes { get; set; }
+
         /// <summary>Awalan nomor episode, misalnya <c>RI</c>.</summary>
         public string EpisodeNumberPrefix { get; set; } = string.Empty;
 
@@ -88,6 +100,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         /// </summary>
         [Range(1, 365)]
         public int DepositFollowUpIntervalDays { get; set; } = 3;
+
+        /// <summary>
+        /// Opsional, antara 1 dan 1440 menit (<c>BE-RWI-172</c>, <c>RWI-DEC-220</c> butir 6). Kosong
+        /// berarti nilai lama dipertahankan, supaya layar pengaturan lama yang belum mengenal isian
+        /// ini tetap dapat menyimpan.
+        /// </summary>
+        [Range(1, 1440)]
+        public int? PendingSurgicalHandoverAlertMinutes { get; set; }
+
+        /// <summary>Opsional, antara 1 dan 1440 menit. Kosong berarti nilai lama dipertahankan.</summary>
+        [Range(1, 1440)]
+        public int? PendingAdmissionReferralAlertMinutes { get; set; }
 
         [Required]
         [MaxLength(20)]

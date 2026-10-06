@@ -40,7 +40,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
     /// tunai tidak punya penjamin, sehingga nilainya <c>null</c>, bukan nol.
     /// </para>
     /// </remarks>
-    public class PatientBillingSummaryService
+    public partial class PatientBillingSummaryService
     {
         private static readonly BillingChargeCalculationStatus[] StatusBarisTidakBerlaku =
         {
@@ -51,13 +51,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
 
         private readonly ApplicationDbContext _dbContext;
         private readonly BillingDepositService _depositService;
+        private readonly IConfiguration _configuration;
 
         public PatientBillingSummaryService(
             ApplicationDbContext dbContext,
-            BillingDepositService depositService)
+            BillingDepositService depositService,
+            IConfiguration configuration)
         {
             _dbContext = dbContext;
             _depositService = depositService;
+            _configuration = configuration;
         }
 
         /// <summary>Ringkasan satu episode, atau <c>null</c> bila episodenya tidak ditemukan.</summary>
@@ -98,30 +101,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
                 .Select(x => (Guid?)x.Id)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            decimal? totalBerjalan = null;
-            var belumBerharga = 0;
-
-            if (folioId.HasValue)
-            {
-                var baris = await _dbContext.Set<BilChargeLine>()
-                    .AsNoTracking()
-                    .Where(x =>
-                        x.FolioId == folioId.Value &&
-                        x.IsActive &&
-                        !x.IsDelete &&
-                        !StatusBarisTidakBerlaku.Contains(x.CalculationStatus))
-                    .Select(x => new { x.CalculationStatus, x.GrossAmount })
-                    .ToListAsync(cancellationToken);
-
-                totalBerjalan = baris
-                    .Where(x => x.GrossAmount.HasValue &&
-                                x.CalculationStatus == BillingChargeCalculationStatus.Recognized)
-                    .Sum(x => x.GrossAmount!.Value);
-
-                belumBerharga = baris.Count(x =>
-                    !x.GrossAmount.HasValue ||
-                    x.CalculationStatus != BillingChargeCalculationStatus.Recognized);
-            }
+            var breakdown = await BuildBreakdownAsync(episodeId, cancellationToken);
+            var belumBerharga = breakdown!.View.Groups.SelectMany(x => x.Lines)
+                .Count(x => x.LineStatus == "TARIFF_NOT_FOUND");
 
             var deposit = await _depositService.GetEpisodeDepositSummaryAsync(episode.Id, cancellationToken);
 
@@ -160,7 +142,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
                 tidakDitanggung = tindakan + butirResep;
             }
 
-            var lengkap = folioId.HasValue && belumBerharga == 0;
+            var lengkap = breakdown.Total.HasValue && belumBerharga == 0;
 
             return new PatientBillingSummaryResponse
             {
@@ -180,15 +162,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
                     _ => "Belum dinilai"
                 },
                 HasBillingFolio = folioId.HasValue,
-                RunningTotalAmount = totalBerjalan,
                 UnpricedChargeCount = belumBerharga,
                 IsRunningTotalComplete = lengkap,
                 HasDepositAccount = deposit.HasDepositAccount,
-                DepositReceivedAmount = deposit.TotalReceived,
-                DepositRemainingAmount = deposit.AvailableBalance,
-                DepositShortfallAmount = deposit.PolicyShortfallAmount,
+                HasDepositShortfall = deposit.PolicyShortfallAmount > 0,
                 NotCoveredItemCount = tidakDitanggung,
-                Message = !folioId.HasValue
+                Message = breakdown.View.InvoiceState == "NOT_FORMED"
                     ? "Belum ada tagihan tercatat untuk perawatan ini."
                     : lengkap
                         ? "Ringkasan tagihan berjalan."

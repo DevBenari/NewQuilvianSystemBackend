@@ -1,6 +1,30 @@
 namespace QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
 
-public enum OprCaseStatus { Requested = 1, Scheduled = 2, Ready = 3, InProgress = 4, Completed = 5, Postponed = 6, Cancelled = 7 }
+/// <summary>
+/// Status kasus operasi. <c>Rejected = 8</c> ditambahkan <c>BE-RWI-174</c> (<c>RWI-DEC-204</c>,
+/// <c>RWI-DEC-208</c>): hanya dari <c>Requested</c>, beralasan, dan final (<c>INV-RWF-31</c>).
+/// </summary>
+public enum OprCaseStatus { Requested = 1, Scheduled = 2, Ready = 3, InProgress = 4, Completed = 5, Postponed = 6, Cancelled = 7, Rejected = 8 }
+
+/// <summary>
+/// Jenis layanan bedah kasus (<c>BE-RWI-174</c>, <c>RWI-DEC-175</c>). Berbeda dari
+/// <see cref="OprCaseType"/> (Elektif/Darurat). Kasus lama terbaca <c>General</c>.
+/// </summary>
+public enum OprSurgicalServiceType { General = 1, Obstetric = 2 }
+
+/// <summary>
+/// Rencana jenis anestesi saat kasus dipesan (<c>BE-RWI-174</c>, <c>FR-RWF-042</c>). Nilainya
+/// <b>usulan</b> desain 12.8 dan disahkan pemilik OK; teknik sesungguhnya tetap di catatan anestesi.
+/// </summary>
+public enum OprPlannedAnesthesiaType { General = 1, Regional = 2, Local = 3, Sedation = 4 }
+
+/// <summary>
+/// Status versi Catatan Pra-Operasi bangsal (<c>BE-RWI-176</c>, kamus data 19.3).
+/// </summary>
+public enum OprWardPreOpStatus { Draft = 1, Sent = 2, Confirmed = 3, NeedsUpdate = 4, Superseded = 5 }
+
+/// <summary>Sisi gambar tubuh tempat penandaan area operasi (<c>BE-RWI-176</c>, kamus data 19.3).</summary>
+public enum OprBodyView { Front = 1, Back = 2, Left = 3, Right = 4 }
 public enum OprCaseType { Elective = 1, Emergency = 2 }
 public enum OprPriority { Routine = 1, Urgent = 2, Emergency = 3 }
 public enum OprCaseOutcome { Completed = 1, StoppedEarly = 2 }
