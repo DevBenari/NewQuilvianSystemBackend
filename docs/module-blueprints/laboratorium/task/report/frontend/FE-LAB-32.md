@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `3339ecdf1` |
 | Commit backend yang dijadikan rujukan | `458f38aa` |
 | Tanggal | 2026-09-22 |
-| Status | **Per task, sesudah verifikasi di peramban 2026-10-02 dan 2026-10-06 (bagian 9):** `FE-LAB-31` ✅ **`SELESAI`** · `FE-LAB-32` ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — ketiga AC-nya terbukti, tetapi formulir koreksi tidak terisi nilai tersimpan dan respons specimen backend nol memuat id Spesifik Specimen (9.4) · `FE-LAB-33` ✅ **`SELESAI`**. *(Semula 2026-09-22: ⚠ ketiganya — permukaan terbangun, 22 uji baru lulus, nol AC terbukti di layar.)* |
+| Status | **Per task, sesudah verifikasi di peramban 2026-10-02 dan 2026-10-06 (bagian 9):** `FE-LAB-31` ✅ **`SELESAI`** · `FE-LAB-32` ✅ **`SELESAI`** — naik 2026-10-06 sesudah `BE-LAB-88`: formulir koreksi diisi nilai tersimpan (`FE-LAB-32.md` bagian 10) · `FE-LAB-33` ✅ **`SELESAI`**. *(Semula 2026-09-22: ⚠ ketiganya — permukaan terbangun, 22 uji baru lulus, nol AC terbukti di layar.)* |
 
 ---
 
@@ -152,8 +152,8 @@ dokter konfirmator — **belum satu pun diklik**.
 2. ~~Data ujinya sudah siap …~~ Dipakai: pesanan uji `LAB-RSMMC-000014`.
 3. **Data induk masih hampir kosong** — satu organisme, satu antibiotik, satu breakpoint. Bukan
    penahan status: pekerjaan data kepala instalasi (`B3`), bukan kode.
-4. **Sisa `FE-LAB-32`:** ruas id Spesifik Specimen pada respons specimen backend, lalu formulir
-   koreksi diisi nilai tersimpan (9.4).
+4. ~~**Sisa `FE-LAB-32`:** ruas id Spesifik Specimen pada respons specimen backend, lalu formulir
+   koreksi diisi nilai tersimpan~~ **Selesai 2026-10-06** (`BE-LAB-88`; `FE-LAB-32.md` bagian 10) (9.4).
 
 **Nol operasi git dijalankan.** Satu dev server sisa dari sesi ini ditemukan masih hidup
 (`PID 8880`) dan sudah dihentikan.
@@ -266,6 +266,10 @@ mengosongkan hitungan; timpaan dibiarkan; ruas lain nol menyentuh interpretasi).
 
 ### 9.4 Batas `FE-LAB-32` yang tersisa — kenapa ia TIDAK naik
 
+> **Ditutup 2026-10-06** — `LAB-DEC-167` disetujui, `BE-LAB-88` selesai, dan formulir koreksi kini diisi
+> nilai tersimpan. Rinciannya di [`FE-LAB-32.md`](FE-LAB-32.md) bagian 10. Uraian di bawah dipertahankan
+> sebagai riwayat.
+
 Ketiga AC-nya (`AC-160`, `AC-162`, `AC-170`) dan DoD-nya (nol tombol menambah Spesifik Specimen) kini
 terbukti di layar. Yang menahannya adalah **outcome** task — *"mengoreksi specimen … dan dapat melihat
 nilai lamanya"*:
@@ -277,7 +281,7 @@ nilai lamanya"*:
    `PhysicallyReceivedAt`, tetapi nol `DetailTypeIds`). Karena itu layar **tidak dapat** mencentang yang
    sudah tersimpan, dan mencentang satu kotak **mengganti seluruh set** tanpa peringatan.
 
-Butir 2 menuntut **task backend** (ruas `detailTypeIds` pada respons specimen, kontrak `r26` 21.4);
+Butir 2 menuntut **task backend** — diajukan 2026-10-06 sebagai [`LAB-REQ-015`](../../../approval-requests/2026-10-06-permintaan-spesifik-specimen-pada-respons-specimen.md) (usulan `LAB-DEC-167`, `r39`, `BE-LAB-88`);
 sesudah itu butir 1 dapat ditutup di frontend sekaligus. Risiko sementara dikurangi oleh payload yang
 hanya membawa ruas yang disentuh (`buildSpecimenCorrectionPayload`) — ruas yang tidak disentuh tidak
 pernah ditimpa — dan oleh riwayat perubahan yang mencatat nilai lama setiap koreksi.
@@ -295,5 +299,70 @@ arteri*), volume 2,5 L/jam. Seluruhnya data uji.
 | `node --import ./tests/helpers/register.mjs --test tests/unit/` | **2308 lulus, 6 gagal** dari 2314 — keenamnya kegagalan baseline (Hemodialisa ×4, Bank Darah M0, petty cash); nol Laboratorium |
 | `npm run lint:errors` | **0 error** |
 | `npm run build` | **Hijau** (server BE/FE dimatikan lebih dulu) |
+
+**Nol operasi Git dijalankan.**
+
+## 10. Penutupan sisa `FE-LAB-32` — 2026-10-06
+
+**Status: `FE-LAB-32` ✅ `SELESAI`.** Batas 9.4 ditutup oleh `LAB-DEC-167` (atas
+[`LAB-REQ-015`](../../../approval-requests/2026-10-06-permintaan-spesifik-specimen-pada-respons-specimen.md)),
+`LAB-API-v1` `r39` bagian 34, dan `BE-LAB-88` ✅
+([`BE-LAB-88.md`](../backend/BE-LAB-88.md)).
+
+### 10.1 Yang berubah di layar
+
+| Sebelum | Sesudah |
+| --- | --- |
+| Formulir koreksi mulai **kosong** | Diisi nilai **tersimpan**: jenis, keterangan *Lainnya*, Spesifik Specimen tercentang, volume berkoma desimal, satuan, keterangan |
+| Mencentang satu kotak **mengganti seluruh** pilihan tanpa peringatan | Pilihan tercatat sudah tercentang; melepas satu hanya melepas yang itu. Mengoreksi volume **tidak** mengirim Spesifik Specimen sama sekali (payload hanya ruas yang disentuh) |
+| Daftar Spesifik Specimen hanya 200 data induk aktif pertama | Rincian **tercatat** selalu ditawarkan lebih dulu, dengan nama sebagaimana tercatat — juga bila di luar 200 itu atau sudah nonaktif |
+| Rincian yang data induknya dinonaktifkan tidak terlihat | Tampil tercentang dengan keterangan *"sudah tidak dipakai"*; dapat dilepas. Sesudah dilepas dan disimpan ia tidak muncul lagi — tidak dapat dicentang ulang (`VAL-150`) |
+| — | Selama nilai tersimpan **belum terbaca**, koreksi **ditahan**: sebab tertulis, isian terkunci, tombol *Muat ulang Informasi Specimen* |
+| Pengguna tanpa `LabSpecimen : Update` melihat isian kosong yang terkunci | Melihat **nilai tersimpan** yang terkunci beserta sebabnya |
+
+### 10.2 Berkas frontend
+
+| Berkas | Perubahan |
+| --- | --- |
+| `lib/state/slice/.../lab-microbiology-result-slice.jsx` | Thunk `fetchSpecimenSnapshot` — memakai service `getLabSpecimensByOrder` yang sudah ada, memilih wadah `specimenId`; wadah tak ditemukan dibaca galat, bukan formulir kosong |
+| `lib/hooks/.../lab-microbiology-result-rules.js` | `readSpecimenFormFromSpecimen`, `buildSpecimenDetailOptions` |
+| `lib/hooks/.../use-lab-microbiology-result-editor.jsx` | Parameter `labOrderId`; memuat specimen tersimpan, mengisi formulir hanya saat isi tersimpannya berubah, memuat ulang sesudah koreksi berhasil; `specimenReady`, `specimenDetailOptions`, `reloadSpecimen` |
+| `components/view/.../lab-microbiology-result-panel.jsx` | Meneruskan `labOrderId`; bagian specimen terkunci sampai nilai tersimpan terbaca |
+| `components/view/.../lab-microbiology-specimen-section.jsx` | Pilihan dari `detailOptions`; keterangan *sudah tidak dipakai*; keadaan memuat dan gagal beserta tombol muat ulang |
+| `lib/constants/.../lab-microbiology-result-constants.jsx` | Tiga salinan teks |
+| `tests/unit/lab-microbiology-result-rules.test.mjs` | 6 uji baru |
+
+### 10.3 Verifikasi
+
+Backend lokal (sesudah migration `AddMstDiagnosisGroup` diterapkan atas instruksi user) dan `next dev`;
+superadmin; tulis hanya `PATCH` koreksi specimen uji `14e5794d…` (`LAB-RSMMC-000014`).
+
+| ID | Skenario | Hasil |
+| --- | --- | --- |
+| F1 | Formulir terisi nilai tersimpan: volume `2,5`; *Arterial cord blood specimen* dan *Darah arteri* tercentang di urutan atas dengan nama sebagaimana tercatat | `PASS` |
+| F2 | Satuan tersimpan (*Liter/Jam*) tampil terpilih | `PASS` |
+| F3 | Koreksi volume saja → `PATCH` `200` **tanpa** `detailTypeIds`; sesudah dimuat ulang `2,75`, kedua rincian tetap | `PASS` |
+| F4 | Melepas satu → `PATCH` membawa sisanya saja; backend mencatat *Darah arteri* saja | `PASS` |
+| F5 | Mencentang kembali → dua rincian lagi; riwayat memuat *Volume: 2.5 → 2.75* dan dua baris *Spesifik Specimen* | `PASS` |
+| F6 | Rincian tercatat yang data induknya nonaktif (jawaban backend diubah di peramban): tercentang, berketerangan *sudah tidak dipakai*, dapat dilepas | `PASS` |
+| F7 | `by-order` gagal `500` → sebab tertulis, isian terkunci, nol *Simpan Koreksi*; *Muat ulang* memulihkan | `PASS` |
+| F8 | Tanpa `LabSpecimen : Update` (daftar izin diubah di peramban): baca-saja dengan sebabnya, **nilai tersimpan terbaca** | `PASS` |
+| F9 | 390 px tanpa gulir horizontal halaman | `PASS` |
+| F10 | Nol tulis di luar specimen uji; nol galat runtime | `PASS` |
+
+| Perintah | Hasil |
+| --- | --- |
+| Uji aturan Mikrobiologi | **40/40** (6 baru) |
+| `node --import ./tests/helpers/register.mjs --test tests/unit/` | 2475 uji: **2467 lulus, 8 gagal** — kegagalan baseline yang sama (Hemodialisa ×4, Bank Darah M0, petty cash, 2 paritas Rawat Jalan dari merge `a1404291d`); nol Laboratorium |
+| `npm run lint:errors` | 0 error |
+| `npm run build` (server dimatikan lebih dulu) | Hijau |
+
+**Jejak di database dev.** Specimen `14e5794d…`: volume kini `2,75` L/jam; Spesifik Specimen kembali dua
+(*Arterial cord blood specimen*, *Darah arteri*), dengan tiga baris jejak baru. Data uji.
+
+**Catatan di luar cakupan.** Daftar Spesifik Specimen masih memuat 200 data induk aktif pertama tanpa
+disaring jenis specimen; kontrak 21.5 menyediakan `GET /options` bersaring `specimenTypeId`. Rincian yang
+tercatat kini selalu tampil, sehingga koreksi aman — penyaringan per jenis adalah perbaikan pemakaian,
+bukan penahan.
 
 **Nol operasi Git dijalankan.**

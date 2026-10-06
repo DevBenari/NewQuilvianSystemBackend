@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `7ff35b8c` (branch `yoga`), di atas perubahan `BE-LAB-84`..`86` yang belum ter-commit. Rancangan bagian 21 disusun pada `cfafad8d`; impact scan `BE-LAB-81`/`82`/`84` sudah memastikan nol perubahan source relevan di commit sesudahnya |
 | Tanggal | 2026-09-30 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — ketiga tindakan menerima Mikrobiologi **dengan kode Mikrobiologi**. Harness **29/29**, `AC-241` diuji **pertama**: pemegang kode Patologi Klinik → `403` berkata *Mikrobiologi*; pemegang `LAB-VAL-MB` → `200`. `VAL-144`, urutan pemeriksaan, `ARCH-GAP-LAB-10`, `INV-53`, `INT-08` Mikrobiologi, dan `VAL-126` bunyi baru terbukti. **HTTP terhadap PostgreSQL** pada jalur penolakan, **nol penulisan**. Build 0 error; nol migration; nol string hak akses baru; registri tetap 1577. **Batasnya sama dengan `BE-LAB-73`..`75`:** jalur berhasil lewat HTTP menunggu kode `LAB-COORD-016` di katalog Human Resource, penunjukan, dan kebijakan jabatan |
+| Status | ✅ **`SELESAI`** (naik 2026-10-06) — jalur berhasil lewat **HTTP asli**: dr. Nabila memvalidasi, mengembalikan, dan merilis BTA `LAB-RSMMC-000014`; dr. Bima (kode PK) ditolak `403` berkata *Mikrobiologi*; rilis tercatat satu dokumen rekam medis. Baris `S4` empat mata dan konkurensi diuji khusus Mikrobiologi — harness **37/37**. Lihat 8. *(Semula: ⚠ — ketiga tindakan menerima Mikrobiologi **dengan kode Mikrobiologi**. Harness **29/29**, `AC-241` diuji **pertama**: pemegang kode Patologi Klinik → `403` berkata *Mikrobiologi*; pemegang `LAB-VAL-MB` → `200`. `VAL-144`, urutan pemeriksaan, `ARCH-GAP-LAB-10`, `INV-53`, `INT-08` Mikrobiologi, dan `VAL-126` bunyi baru terbukti. **HTTP terhadap PostgreSQL** pada jalur penolakan, **nol penulisan**. Build 0 error; nol migration; nol string hak akses baru; registri tetap 1577. **Batasnya sama dengan `BE-LAB-73`..`75`:** jalur berhasil lewat HTTP menunggu kode `LAB-COORD-016` di katalog Human Resource, penunjukan, dan kebijakan jabatan)* |
 
 ### Backend Governance Preflight
 
@@ -195,14 +195,14 @@ menolaknya). Status, `Version`, riwayat tindakan, dan dokumen rekam medis **iden
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| `AC-241` | ✅ **Terpenuhi** pada harness, diuji pertama | Lewat HTTP menunggu `MVP-10c` |
+| `AC-241` | ✅ **Terpenuhi** pada harness, diuji pertama; **lewat HTTP asli 2026-10-06** — dr. Bima (kode PK) `403`, dr. Nabila (kode Mikrobiologi) `200` | Bagian 8.1 |
 | `AC-218` — pesan menyebut disiplin | ✅ **Terpenuhi** — *Mikrobiologi* / *Patologi Klinik* pada penolakan | — |
 | `VAL-126` bunyi baru | ✅ **Terpenuhi** — harness dan HTTP | — |
 | `VAL-144` beserta jalur Reopen | ✅ **Terpenuhi** pada harness | — |
 | `ARCH-GAP-LAB-10` | ✅ **Terpenuhi** — harness `200`; HTTP: kosong lolos sampai lapis orang | — |
 | Kedua baris `INV-53` | ✅ **Terpenuhi** pada harness | Tanpa kode baru, sesuai rancangan |
 | `INT-08` Mikrobiologi | ✅ **Terpenuhi** pada harness | — |
-| Baris amandemen `S4` bagi Mikrobiologi — empat mata, dua lapis, konkurensi | ⚠ **Sebagian** — dua lapis dan kode per disiplin terbukti; empat mata dan konkurensi berjalan di jalur yang sama tanpa cabang disiplin, tidak diuji ulang khusus Mikrobiologi | — |
+| Baris amandemen `S4` bagi Mikrobiologi — empat mata, dua lapis, konkurensi | ✅ **Terpenuhi** (2026-10-06) — empat mata (`VAL-129`, `VAL-131`, `VAL-132`, `AC-02`) dan konkurensi diuji khusus Mikrobiologi pada harness; jalur pengecualian rilis juga teramati lewat HTTP asli. *Semula ⚠ Sebagian — empat mata dan konkurensi tidak diuji ulang khusus Mikrobiologi* | Bagian 8.2 |
 | Verifikasi roadmap — `grep` literal kode | ✅ **Terpenuhi** | — |
 | DoD — tiga tindakan dengan kode Mikrobiologi; `VAL-126` baru dan `VAL-144`; nol migration; nol string hak akses baru; laporan | ✅ **Terpenuhi** | — |
 
@@ -219,3 +219,58 @@ menolaknya). Status, `Version`, riwayat tindakan, dan dokumen rekam medis **iden
 | Interupsi | `NONE` |
 | Status Git | ` M` `Constants/LabClinicalPrivilegeCodes.cs`, `Constants/LabReleasableDisciplines.cs`, `Services/LabResultValidationService.cs`, `Services/LabExaminationService.cs`, `Controllers/LabExaminationController.cs`, `roadmap/backend-roadmap.md`, `roadmap/traceability.md`; `??` laporan ini. Perubahan `BE-LAB-84`..`86` yang belum ter-commit ikut ada. **Nol operasi Git dijalankan** |
 | Langkah berikutnya | **1.** `BE-LAB-79` (pengesah pada respons hasil Mikrobiologi dan label order Mikrobiologi) dan `BE-LAB-80` (antrean dua disiplin) naik menjadi `SIAP DIKERJAKAN` — boleh sejajar. **2.** Langkah rilis `MVP-10c` tetap `BLOCKED` (6al.5) |
+
+## 8. Verifikasi lanjutan 2026-10-06 — HTTP asli dan baris `S4` Mikrobiologi
+
+**Status: `BE-LAB-78` ✅ `SELESAI`.** Kedua batas lama tertutup. Jalur berhasil lewat HTTP kini teramati dengan akun asli
+sesudah setup langkah rilis di devYoga. Baris amandemen `S4` (empat mata dan konkurensi) diuji khusus Mikrobiologi. Nol
+perubahan kode.
+
+### 8.1 HTTP asli — backend lokal terhadap devYoga
+
+Setup uji langkah rilis `MVP-10c` dijalankan atas persetujuan pemilik modul ([`backend-roadmap.md`](../../../roadmap/backend-roadmap.md)
+6al.5): kode `LAB-VAL-MB`/`LAB-REL-MB` di katalog Human Resource, kredensial dr. Nabila, dan izin jabatan. Panggilan dikirim
+Halaman Hasil Mikrobiologi (`FE-LAB-41`) ke backend lokal. Tulis hanya pada BTA `LAB-RSMMC-000014` (`025be4cf…`).
+
+| Panggilan | Pelaku | Hasil |
+| --- | --- | --- |
+| `POST …/result/validate` | dr. Bima — `LAB-VAL-PK` saja | `403` *"Anda belum ditunjuk sebagai pemegang kewenangan validasi Mikrobiologi."* — `AC-241` sisi tolak, `AC-218` |
+| `POST …/result/validate` | dr. Nabila — `LAB-VAL-MB`, bukan pengisi | `200` *"Hasil divalidasi. Hasil ini belum dirilis."*; pengesah dan jabatannya terbaca di Halaman Hasil — `AC-241` sisi terima |
+| `POST …/result/return` (alasan *Sampel tertukar*) | dr. Nabila | `200` *"Hasil dikembalikan kepada analis dan kembali menjadi Draft."* |
+| `PUT …/result/microbiology` lalu `POST …/result/finalize` | Vina (analis) | `200`/`200` — sesudah pengembalian, penjaga `VAL-120` mengizinkan simpan (`INV-53` pengembalian) |
+| `POST …/result/validate` | dr. Nabila | `200` |
+| `POST …/result/release` (alasan pengecualian *Shift tunggal…*) | dr. Nabila — pemvalidasi sendiri, `LAB-REL-MB` | `200` *"Hasil dirilis dan tercatat pada rekam medis pasien."*; penanda pengecualian rilis pada respons |
+| Rekam medis | — | **Tepat satu** `MrcClinicalDocumentIntegrity` (`DocumentKind` 15) bagi BTA, ditandatangani dan dikunci saat rilis — `INT-08` |
+| Sesudah rilis | — | BTA keluar dari kedua tahap antrean validasi (`BE-LAB-80`) |
+
+Rincian layar ada di [`FE-LAB-41.md`](../frontend/FE-LAB-41.md) bagian 10 (12/12) dan [`FE-LAB-39.md`](../frontend/FE-LAB-39.md)
+bagian 9 (M1). Jalur Patologi Klinik pada setup yang sama juga lulus: validasi, pengembalian, dan rilis Hemoglobin
+`LAB-RSMMC-000001` oleh dr. Bima.
+
+### 8.2 Harness — baris `S4` khusus Mikrobiologi
+
+Salinan harness 2026-09-30 dijalankan terhadap kode sekarang (sudah memuat `BE-LAB-79`..`88`) dengan delapan skenario baru.
+Hasilnya **37 `PASS`, 0 `FAIL`**; ke-29 skenario lama tetap utuh.
+
+| Skenario baru | Hasil sebenarnya |
+| --- | --- |
+| `VAL-129` — pengisi (pemegang `LAB-VAL-MB`) memvalidasi tanpa alasan | `422` *"Anda yang mengisi hasil ini. Validasi oleh orang yang sama memerlukan alasan pengecualian."*; `Version` tetap, nol riwayat |
+| `VAL-129` dengan alasan aktif | `200`; alasan tersimpan; penanda *"Divalidasi oleh pengisi sendiri — dr. Tunggal Mikro — Shift tunggal, tidak ada dokter lain bertugas"* |
+| `VAL-131` — pemvalidasi merilis tanpa alasan | `422` *"Anda yang memvalidasi hasil ini. Rilis oleh orang yang sama memerlukan alasan pengecualian."*; nol dokumen rekam medis |
+| `AC-02` — pemvalidasi merilis dengan alasan aktif | `200`; penanda *"Dirilis oleh pemvalidasi sendiri — …"* (20.10 butir 5); `ReleasedByPrivilegeId` = penunjukan rilis Mikrobiologi; satu dokumen |
+| `VAL-132` — alasan dikirim padahal tidak merangkap | `422` |
+| Konkurensi — Reopen lebih dulu, Validasi kalah | `200`/`409` *"Hasil ini baru saja diubah orang lain. Muat ulang lalu ulangi."*; nol `ValidatedAt` |
+| Konkurensi — dua validasi bersamaan | `200`/`409`; baris milik yang menang |
+| Konkurensi — dua rilis bersamaan | `200`/`409`; baris milik yang menang; tetap **satu** dokumen |
+
+### 8.3 Yang tetap di luar task ini
+
+- Analyzer tidak dijalankan (`-p:RunAnalyzers=False`).
+- `VAL-144` dan `INV-53` terbukti pada harness. Dev tidak punya hasil Mikrobiologi `Sementara` untuk mengulanginya lewat
+  HTTP. Keduanya tidak pernah menjadi batas status.
+- `LAB-COORD-016` tetap terbuka sebagai koordinasi rilis. Katalog Human Resource tidak menerima kode manual lewat API (kode
+  dibangkitkan `CPC-RSMMC-#####`), sehingga di dev keempat kode disisipkan lewat SQL. Keputusannya milik langkah rilis
+  `MVP-10c` (6al.5), bukan kode task ini.
+- `BE-LAB-73`..`75` tetap ⚠ pada laporannya sendiri. Bukti jalur Patologi Klinik di atas dapat dipakai untuk menaikkannya.
+
+**Jejak di devYoga:** BTA `025be4cf…` **Dirilis** (data uji). **Nol perubahan kode. Nol operasi Git dijalankan.**

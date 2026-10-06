@@ -270,10 +270,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         }
 
         /// <summary>
-        /// Mengganti <b>seluruh</b> Spesifik Specimen wadah ini. Perubahannya dicatat sebagai
-        /// satu baris jejak berisi daftar nama lama dan baru — bukan satu baris per rincian,
-        /// sebab yang berubah adalah <i>pilihannya sebagai satu kesatuan</i>.
+        /// Mengganti Spesifik Specimen wadah ini <b>berdasar selisih</b> (<c>LAB-API-v1</c>
+        /// <c>r39</c> 34.3, <c>LAB-DEC-167</c>). Perubahannya dicatat sebagai satu baris jejak
+        /// berisi daftar nama lama dan baru — bukan satu baris per rincian, sebab yang berubah
+        /// adalah <i>pilihannya sebagai satu kesatuan</i>.
+        ///
+        /// <b>Kenapa selisih, bukan hapus-lalu-tambah.</b> Menghapus seluruhnya lalu menambah ulang
+        /// menulis ulang nama snapshot rincian yang tidak diubah — nama yang kelak diperbaiki
+        /// kepala instalasi ikut mengubah arti bahan lama — dan menolak seluruh koreksi begitu satu
+        /// pilihan lama kini nonaktif, termasuk koreksi volume yang tidak menyentuhnya. Rincian yang
+        /// sudah tercatat dan dikirim ulang karena itu <b>dibiarkan</b>; hanya tambahan baru yang
+        /// wajib aktif (<c>VAL-150</c>).
         /// </summary>
+        /// <returns>Jumlah rincian yang benar-benar ditambah atau dilepas.</returns>
         private async Task<int> ApplyDetailsAsync(
             LabSpecimen specimen,
             LabSpecimenCorrectionRequest request,
@@ -285,14 +294,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             if (request.DetailTypeIds is null)
                 return 0;
 
-            var lama = await _dbContext.LabSpecimenDetails
-                .Where(x => x.LabSpecimenId == specimen.Id && !x.IsDelete)
-                .ToListAsync(cancellationToken);
-
-            var namaLama = string.Join(", ", lama.Select(x => x.DetailNameSnapshot).OrderBy(x => x));
-
-            _dbContext.LabSpecimenDetails.RemoveRange(lama);
-
             var ids = request.DetailTypeIds.Distinct().ToList();
 
             // VAL-105 ditegakkan lewat Distinct di atas beserta index unik parsial pada
@@ -303,19 +304,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     "Rincian specimen yang sama tidak boleh dipilih dua kali.");
             }
 
-            var namaBaruList = new List<string>();
+            var lama = await _dbContext.LabSpecimenDetails
+                .Where(x => x.LabSpecimenId == specimen.Id && !x.IsDelete)
+                .ToListAsync(cancellationToken);
 
-            if (ids.Count > 0)
+            var namaLama = string.Join(", ", lama.Select(x => x.DetailNameSnapshot).OrderBy(x => x));
+
+            var tercatat = lama.Select(x => x.LabSpecimenDetailTypeId).ToHashSet();
+            var dipertahankan = lama.Where(x => ids.Contains(x.LabSpecimenDetailTypeId)).ToList();
+            var dilepas = lama.Where(x => !ids.Contains(x.LabSpecimenDetailTypeId)).ToList();
+            var idBaru = ids.Where(id => !tercatat.Contains(id)).ToList();
+
+            var namaTambahan = new List<string>();
+
+            if (idBaru.Count > 0)
             {
                 var rincian = await _dbContext.LabSpecimenDetailTypes
                     .AsNoTracking()
-                    .Where(x => ids.Contains(x.Id) && !x.IsDelete && x.IsActive)
+                    .Where(x => idBaru.Contains(x.Id) && !x.IsDelete && x.IsActive)
                     .ToListAsync(cancellationToken);
 
-                if (rincian.Count != ids.Count)
+                // VAL-150. Hanya TAMBAHAN yang wajib aktif — pilihan lama yang kini nonaktif tetap
+                // sah ketika dikirim ulang, dan sudah tersaring ke `dipertahankan` di atas.
+                if (rincian.Count != idBaru.Count)
                 {
                     throw new LabSpecimenCorrectionValidationException(
-                        "Sebagian rincian specimen yang dipilih sudah tidak dipakai lagi.");
+                        "Rincian specimen ini sudah tidak dipakai lagi dan tidak dapat ditambahkan.");
                 }
 
                 foreach (var r in rincian)
@@ -324,7 +338,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                         ? r.DetailTypeNameEn
                         : r.DetailTypeNameId;
 
-                    namaBaruList.Add(nama);
+                    namaTambahan.Add(nama);
 
                     _dbContext.LabSpecimenDetails.Add(new LabSpecimenDetail
                     {
@@ -337,11 +351,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 }
             }
 
-            var namaBaru = string.Join(", ", namaBaruList.OrderBy(x => x));
+            _dbContext.LabSpecimenDetails.RemoveRange(dilepas);
 
+            var namaBaru = string.Join(
+                ", ",
+                dipertahankan.Select(x => x.DetailNameSnapshot).Concat(namaTambahan).OrderBy(x => x));
+
+            // Himpunan yang sama menghasilkan teks yang sama, dan pencatat melewatinya — nol jejak.
             perubahan.Add(("SpecimenDetails", namaLama, namaBaru));
 
-            return ids.Count;
+            return idBaru.Count + dilepas.Count;
         }
 
         private static string ResolveLabel(string fieldName) => fieldName switch

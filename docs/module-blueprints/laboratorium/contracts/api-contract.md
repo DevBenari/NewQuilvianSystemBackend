@@ -3,7 +3,8 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-API-v1` |
-| Revision | **`38` — `approved`** 2026-10-01, bagian 33 (identitas pasien pada rincian order, `LAB-DEC-166`) — aditif, disetujui Yoga Aji Pratama. Sebelumnya: **`37` — `approved`** 2026-09-28, bagian 32 (`S16a` tiga laporan operasional) — disetujui Yoga Aji Pratama beserta kedelapan butir `02-backend-architecture.md` 23.10. Sebelumnya: **`36` — `approved`** 2026-09-25, bagian 31 (penjaga penyelesaian order, `LAB-DEC-154`) — disetujui Yoga Aji Pratama beserta keempat butir `02-backend-architecture.md` 22.7. Sebelumnya: **`35` — `approved`** 2026-09-25, bagian 30 (`S4d-1` validasi dan rilis Mikrobiologi) — disetujui Yoga Aji Pratama beserta kelima butir `02-backend-architecture.md` 21.10, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
+| Revision | **`39` — `approved`** 2026-10-06, bagian 34 (Spesifik Specimen pada respons specimen, `LAB-DEC-167`) — aditif pada respons dan satu perubahan perilaku penggantian, disetujui Yoga Aji Pratama. Sebelumnya: **`38` — `approved`** 2026-10-01, bagian 33 (identitas pasien pada rincian order, `LAB-DEC-166`) — aditif, disetujui Yoga Aji Pratama. Sebelumnya: **`37` — `approved`** 2026-09-28, bagian 32 (`S16a` tiga laporan operasional) — disetujui Yoga Aji Pratama beserta kedelapan butir `02-backend-architecture.md` 23.10. Sebelumnya: **`36` — `approved`** 2026-09-25, bagian 31 (penjaga penyelesaian order, `LAB-DEC-154`) — disetujui Yoga Aji Pratama beserta keempat butir `02-backend-architecture.md` 22.7. Sebelumnya: **`35` — `approved`** 2026-09-25, bagian 30 (`S4d-1` validasi dan rilis Mikrobiologi) — disetujui Yoga Aji Pratama beserta kelima butir `02-backend-architecture.md` 21.10, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
+| `r39` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-06** — *"yaaa saya setujui"* atas `LAB-REQ-015`, pilihan A ketiga butir |
 | `r38` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-01** — *"Informasi pasien … tambahkan di backend"* |
 | `r36` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-25** — termasuk bunyi pesan `409` yang disesuaikan dan `400` → `409` bagi order bukan `InProcess` |
 | `r35` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-25** — termasuk perubahan bunyi `VAL-126` (`LAB-VAL-v1` `r13`) |
@@ -3696,3 +3697,66 @@ order — mengirim kedelapan ruas ini **kosong**; pemanggilnya sudah memegang id
 | Privasi | Identitas yang sama sudah dibuka daftar pantau kepada pemegang `LabMonitoring : Read`; rincian order kini membukanya kepada pemegang `LabOrder : Read` — keduanya petugas laboratorium. Nol nilai hasil ikut |
 | Konsumen lama | Nol dampak — ruas baru diabaikan pembaca lama. Laporan Patologi Anatomi yang **sudah** membaca `patientName`/`medicalRecordNumber` dari rincian order kini terisi (sebelumnya "-") |
 | Kinerja | Lima sub-query satu baris per pembacaan rincian — pola daftar pantau |
+
+## 34. Amandemen `r39` — Spesifik Specimen pada respons specimen, 2026-10-06
+
+| Field | Nilai |
+|---|---|
+| Status | **`approved`** 2026-10-06 — Yoga Aji Pratama, pemilik modul |
+| Keputusan | `LAB-DEC-167` |
+| Permintaan | [`LAB-REQ-015`](../approval-requests/2026-10-06-permintaan-spesifik-specimen-pada-respons-specimen.md) — pilihan A pada ketiga butir |
+| Alasan | Formulir koreksi Informasi Specimen (`FE-LAB-32`) tidak dapat menampilkan Spesifik Specimen yang tercatat, padahal `detailTypeIds` pada koreksi **menggantikan seluruh** pilihan (21.4). Mencentang satu kotak menghapus pilihan lain tanpa peringatan |
+| Sifat | **Aditif** pada respons; **satu perubahan perilaku** pada penggantian (34.3); nol endpoint baru, nol migration, nol izin baru |
+| Task | `BE-LAB-88` (backend), sisa `FE-LAB-32` (layar) |
+
+### 34.1 Endpoint
+
+`[Tags("Health Services / Laboratory Management / Lab Specimen")]` — base URL
+`api/v1/health-services/laboratory-management/lab-specimens`.
+
+| Method | Path | Perubahan | Hak akses | Status |
+|---|---|---|---|---|
+| `GET` | `/by-order/{labOrderId}` | Setiap wadah membawa `specimenDetails` (34.2) | `LabSpecimen : Read` — tidak berubah | **Tersedia** — `BE-LAB-88` ✅ 2026-10-06 |
+| `PATCH` | `/{id}/correction` | Penggantian `detailTypeIds` berdasar selisih (34.3) | `LabSpecimen : Update` — tidak berubah | **Tersedia** — `BE-LAB-88` ✅ 2026-10-06 |
+
+**Koreksi dokumen 21.4.** Respons `PATCH /{id}/correction` adalah `ApiResponse<object>` berisi pesan
+jumlah ruas tercatat — *"Informasi Specimen berhasil dikoreksi; 3 ruas tercatat."* — sebagaimana source
+sejak `BE-LAB-57`, **bukan** `ApiResponse<LabSpecimenResponse>` seperti tertulis di 21.4. Bentuk itu
+dipertahankan: layar memuat ulang `/by-order/{labOrderId}` sesudah koreksi berhasil.
+
+### 34.2 Ruas yang bertambah pada `LabSpecimenResponse`
+
+| Ruas | Tipe | Boleh kosong | Arti |
+|---|---|:---:|---|
+| `specimenDetails` | `LabSpecimenDetailItem[]` | Ya | Spesifik Specimen yang tercatat, urut nama. **`null` = tidak dimuat** — respons tindakan siklus hidup (`collect`, `receive`, `accept`, …) dan daftar berhalaman `GET /`. **`[]` = nol rincian** |
+
+**`LabSpecimenDetailItem`**
+
+| Ruas | Tipe | Arti |
+|---|---|---|
+| `labSpecimenDetailTypeId` | `Guid` | Data induk yang dipilih |
+| `detailName` | `string` | **Nama snapshot** saat dipilih (`LabSpecimenDetail.DetailNameSnapshot`) — bukan nama data induk hari ini |
+| `isActive` | `bool` | Keadaan data induknya **hari ini**; `false` berarti kepala instalasi sudah menonaktifkannya |
+
+### 34.3 Penggantian berdasar selisih
+
+Bila `detailTypeIds` dikirim:
+
+| Id yang dikirim | Perlakuan |
+|---|---|
+| **Sudah tercatat** pada wadah itu | **Dibiarkan** — baris, nama snapshot, dan keadaan nonaktifnya tidak disentuh |
+| Tercatat tetapi **tidak dikirim** | Dihapus |
+| **Baru** | Ditambahkan dengan snapshot nama saat ini; **wajib** menunjuk data induk aktif (`VAL-150`) |
+
+`VAL-105` (rincian ganda) tetap. Jejak ruas (`LAB-DEC-112`) tetap **satu baris** berisi daftar nama
+lama dan baru, dan **nol baris** bila himpunannya sama — `LabFieldChangeRecorder` melewati nilai yang
+sama. Bila `detailTypeIds` tidak dikirim, Spesifik Specimen tidak disentuh (21.4).
+
+### 34.4 Dampak
+
+| Hal | Isi |
+|---|---|
+| Konsumen lama | Nol dampak — ruas baru diabaikan pembaca lama; layar pesanan yang memakai `/by-order` tidak berubah |
+| Perilaku yang berubah | Koreksi yang mengirim ulang pilihan lama yang **kini nonaktif** sebelumnya ditolak seluruhnya; kini diterima. Nama snapshot rincian yang dikirim ulang tidak lagi ditulis ulang |
+| Privasi | Nol — Spesifik Specimen bukan identitas pasien, dan hak baca tidak berubah |
+| Kinerja | Satu sub-koleksi per wadah pada `/by-order`; satu pesanan biasanya satu–dua wadah |

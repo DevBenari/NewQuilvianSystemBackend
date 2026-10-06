@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `e613321c5` (branch `YogaV2`, upstream `origin/YogaV2`), di atas `FE-LAB-35`..`FE-LAB-40` yang belum ter-commit |
 | Commit backend yang dijadikan rujukan | `55b032b0` (branch `yoga`) + `BE-LAB-67`..`87` yang belum ter-commit; biner lokal tidak lebih tua dari satu pun berkas `.cs`; `https://localhost:7184` di atas `QuilvianNewDevYoga` |
 | Tanggal | 2026-10-02 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — ketiga tindakan berjalan dari Halaman Hasil Mikrobiologi; `Sementara` tidak menawarkan Validasi; pengesah dan penanda terbaca sebagai teks; *Pemeriksaan Selesai*. Uji unit 23 baru, lint nol peringatan baru, build hijau, layar **21/21**. **Batas:** kode kewenangan Mikrobiologi (`LAB-COORD-016`) belum ada di katalog Human Resource, sehingga tidak satu akun pun dapat memvalidasi atau merilis hasil Mikrobiologi di dev — jalur berhasil dibuktikan lewat pencegatan; ketiga akun samaran roadmap belum ada (lihat 6) |
+| Status | ✅ **`SELESAI`** (naik 2026-10-06) — validasi, pengembalian, dan rilis BTA dijalankan **sungguhan** di Halaman Hasil Mikrobiologi oleh dr. Nabila (akun asli, kredensial `LAB-VAL-MB`/`LAB-REL-MB`); rilis tercatat di rekam medis; analis asli mengisi ulang hasil yang dikembalikan dan nol tombol pengesahan. Lihat 10. *(Semula: ⚠ — ketiga tindakan berjalan dari Halaman Hasil Mikrobiologi; `Sementara` tidak menawarkan Validasi; pengesah dan penanda terbaca sebagai teks; *Pemeriksaan Selesai*. Uji unit 23 baru, lint nol peringatan baru, build hijau, layar **21/21**. **Batas (diperbarui 2026-10-06):** setup uji langkah rilis di dev sudah lengkap — kode `LAB-VAL-MB`/`LAB-REL-MB`, kredensial dr. Nabila, izin jabatan — dan penolakan lapis orang terbukti dengan akun asli (lihat 9); yang tersisa **validasi dan rilis sungguhan oleh dr. Nabila**, menunggu sandi akunnya. *Semula:* kode kewenangan Mikrobiologi (`LAB-COORD-016`) belum ada di katalog Human Resource, sehingga tidak satu akun pun dapat memvalidasi atau merilis hasil Mikrobiologi di dev — jalur berhasil dibuktikan lewat pencegatan; ketiga akun samaran roadmap belum ada (lihat 6))* |
 
 ---
 
@@ -259,3 +259,78 @@ putaran skrip, 03.41 dan 03.42 UTC); **nol tulis**.
 | Interupsi | `NONE` |
 | Status Git | Frontend (`e613321c5`): ` M` `lab-microbiology-completion-bar.jsx`, `lab-microbiology-result-panel.jsx`, `lab-microbiology-workspace-view.jsx`, `lab-microbiology-result-constants.jsx`, `lab-microbiology-result-rules.js`, `use-lab-microbiology-result-editor.jsx`, `use-lab-microbiology-workspace.jsx`, `lab-microbiology-result.service.js`, `lab-microbiology-workspace.module.css`; `??` `tests/unit/lab-microbiology-result-fe41-rules.test.mjs`. Perubahan `FE-LAB-35`..`40` yang belum ter-commit ikut ada. Backend: laporan ini, `frontend-roadmap.md`, `traceability.md`. **Nol operasi Git dijalankan** |
 | Langkah berikutnya | `FE-LAB-42` (penyaring disiplin antrean) kini dapat dikerjakan — baris Mikrobiologi antrean membuka halaman yang sudah dapat bertindak; `FE-LAB-43` tetap terbuka |
+
+## 9. Verifikasi nyata 2026-10-06 — sesudah setup langkah rilis di devYoga
+
+**Status saat bagian ini ditulis: `FE-LAB-41` tetap ⚠** — naik ✅ di bagian 10. Bukti baru: penolakan lapis orang dengan akun asli (M1). Jalur berhasil — validasi dan rilis BTA oleh dr. Nabila (kredensial `LAB-VAL-MB`/`LAB-REL-MB` sudah aktif) — menunggu sandi akunnya.
+
+**Konteks.** Atas persetujuan pemilik modul, langkah rilis `MVP-9d`/`MVP-10c` dijalankan sebagai **setup uji di devYoga**
+([`backend-roadmap.md`](../../../roadmap/backend-roadmap.md) 6ak.10, 6al.5): kode kewenangan `LAB-*` di katalog Human Resource,
+kredensial dr. Bima (`LAB-VAL-PK`/`LAB-REL-PK`) dan dr. Nabila (`LAB-VAL-MB`/`LAB-REL-MB`), serta `Validate`/`Release`/`Return`,
+`LabWorklist : Read`, dan hak baca kedua daftar alasan bagi jabatan *Kepala Instalasi Laboratorium* dan *Dokter Penanggung Jawab
+Laboratorium*. Hemoglobin dan Leukosit `LAB-RSMMC-000001` dinyatakan selesai sebagai hasil uji.
+
+**Temuan uji — langkah rilis 4 kurang dua izin baca.** Dokter berizin `Validate` tetap *Akses Ditolak* di Halaman Hasil: kedua
+jabatan tidak memegang `LabOrder : Read` (`GET /lab-orders/{id}`) dan `LabExamination : Read` (`GET /lab-examinations/by-order/{id}/results`,
+`/result/microbiology`). Keduanya ditambahkan atas persetujuan pemilik modul; langkah rilis 4 `MVP-9d`/`MVP-10c` wajib memuatnya.
+
+**Akun asli:** dr. Bima Prasetya, Sp.PK (Kepala Instalasi) dan Vina (analis). Tulis yang diteruskan hanya tindakan pengesahan pada
+Hemoglobin/Leukosit `LAB-RSMMC-000001` dan Validasi BTA `LAB-RSMMC-000014` (ditolak `403`).
+
+| ID | Task | Skenario | Hasil |
+| --- | --- | --- | --- |
+| Q1 | 40, 42 | dr. Bima: antrean *Semua Disiplin* memuat Hemoglobin dan Leukosit (PK) serta BTA (Mikrobiologi) dari backend asli, satu permintaan tanpa `discipline` | `PASS` |
+| Q2 | 42 | *Patologi Klinik* → hanya Hemoglobin dan Leukosit; `discipline=ClinicalPathology` | `PASS` |
+| P1 | 39 | Halaman Hasil PK, dr. Bima (`Validate` tanpa `Update`): Hemoglobin *Menunggu Validasi*; hanya tombol Validasi | `PASS` |
+| P2 | 39 | Validasi Hemoglobin → **`200`**; *Tervalidasi*, *"Validasi oleh: dr. Bima Prasetya, Sp.PK — Kepala Instalasi Laboratorium"*; Rilis dan Kembalikan ditawarkan | `PASS` |
+| P3 | 39 | Leukosit: Validasi `200`, lalu *Kembalikan ke analis* — tanpa alasan nol permintaan; dengan *"Salah ketik hasil"* **`200`**; kembali *Draft* | `PASS` |
+| Q3 | 40, 42 | Kembali ke antrean: Hemoglobin pindah ke *Menunggu Rilis* dengan *Divalidasi oleh dr. Bima*; Leukosit (dikembalikan) di kedua tahap tidak ada | `PASS` |
+| P4 | 39 | Rilis oleh pemvalidasi sendiri: panel menyebut rekam medis dan meminta alasan pengecualian (*"Shift tunggal…"*) → **`200`**; *Dirilis*, *Otorisasi oleh* dr. Bima, penanda pengecualian sebagai teks; nol tombol | `PASS` |
+| RM | 39 | Baris rekam medis: satu `MrcClinicalDocumentIntegrity` bagi Hemoglobin — ditandatangani dan dikunci atas nama dr. Bima saat rilis | `PASS` |
+| Q4 | 40 | Sesudah dirilis Hemoglobin hilang dari *Menunggu Rilis* | `PASS` |
+| M1 | 41 | dr. Bima (berizin `Validate`, **tanpa** kewenangan Mikrobiologi) memvalidasi BTA → **`403` lapis orang asli**: *"Anda belum ditunjuk sebagai pemegang kewenangan validasi Mikrobiologi."* tampil apa adanya | `PASS` |
+| V1 | 39 | Vina (analis): Hemoglobin *Dirilis* nol tombol; Leukosit yang dikembalikan dapat diisi lagi, nol tombol pengesahan | `PASS` |
+| Z1 | — | Nol tulis di luar tindakan yang diizinkan; nol galat runtime | `PASS` |
+
+**Jejak di devYoga:** Hemoglobin `LAB-RSMMC-000001` **Dirilis** (validasi dan rilis oleh dr. Bima, berpenanda pengecualian empat
+mata); Leukosit dikembalikan ke *Draft* dengan alasan *Salah ketik hasil*. Data uji.
+
+**Nol perubahan kode** pada task ini. **Nol operasi Git dijalankan.**
+
+## 10. Verifikasi nyata jalur berhasil — dr. Nabila, 2026-10-06
+
+**Status: `FE-LAB-41` ✅ `SELESAI`.** Batas terakhir — validasi dan rilis Mikrobiologi sungguhan — tertutup.
+
+**Akun asli:** dr. Nabila Rahmawati, Sp.MK (*Dokter Penanggung Jawab Laboratorium*, kredensial `LAB-VAL-MB`/`LAB-REL-MB` dari
+setup bagian 9) dan Vina (analis). Sandi diberikan pemilik modul; hanya dipakai skrip uji lokal, tidak dicetak dan tidak disimpan.
+Tulis yang diteruskan hanya pada BTA `LAB-RSMMC-000014` (`025be4cf…`), dibatasi per fase: dr. Nabila `validate`/`return`, Vina
+`PUT …/result/microbiology` + `finalize`, lalu dr. Nabila `validate`/`release`. Selainnya digagalkan.
+
+| ID | Task | Skenario | Hasil |
+| --- | --- | --- | --- |
+| N1 | 42 | dr. Nabila: penyaring *Mikrobiologi* memuat BTA `LAB-RSMMC-000014` dari backend asli; `discipline=Microbiology` | `PASS` |
+| N2 | 41 | Dibuka dari antrean: *Menunggu Validasi*; hanya Validasi yang ditawarkan | `PASS` |
+| N3 | 41 | Validasi → **`200`** langsung (bukan pengisi hasil, tanpa alasan pengecualian); *Tervalidasi*, *"Validasi oleh: dr. Nabila Rahmawati, Sp.MK — Dokter Penanggung Jawab Laboratorium"*; Rilis dan Kembalikan ditawarkan | `PASS` |
+| N4 | 40, 42 | Antrean Mikrobiologi: BTA keluar dari *Menunggu Validasi*, masuk *Menunggu Rilis* dengan dr. Nabila sebagai pemvalidasi | `PASS` |
+| N5 | 41 | *Kembalikan ke analis*: tanpa alasan nol permintaan (*Alasan wajib dipilih…*); dengan *Sampel tertukar* **`200`** → *Draft*, validasi dicabut, nol tombol pengesahan | `PASS` |
+| V2 | 41 | Vina: hasil yang dikembalikan dapat diisi lagi, nol tombol pengesahan; *Pemeriksaan Selesai* → simpan `200` lalu `finalize` `200`; kembali *Menunggu Validasi* | `PASS` |
+| N6 | 41, 42 | BTA kembali di antrean *Menunggu Validasi*; validasi ulang **`200`** | `PASS` |
+| N7 | 41 | Rilis oleh pemvalidasi sendiri: panel menyebut rekam medis dan meminta alasan pengecualian (*"Shift tunggal, tidak ada dokter lain bertugas"*) → **`200`** *"Hasil dirilis dan tercatat pada rekam medis pasien."*; *Dirilis*, *Petugas Otorisasi* dr. Nabila, penanda pengecualian sebagai teks; nol tombol | `PASS` |
+| RM | 41 | Satu baris `MrcClinicalDocumentIntegrity` (`DocumentKind` 15) bagi BTA — ditandatangani dan dikunci 16.17 WIB, saat rilis | `PASS` |
+| N8 | 40, 42 | Sesudah dirilis: BTA keluar dari kedua tahap antrean Mikrobiologi | `PASS` |
+| V3 | 41 | Vina: *Dirilis* dengan *Petugas Otorisasi*; *Simpan Draft* dan *Pemeriksaan Selesai* nonaktif, nol tombol pengesahan | `PASS` |
+| Z1 | — | Nol tulis di luar tindakan yang diizinkan; nol galat runtime | `PASS` |
+
+**Jalannya uji.** Putaran pertama V2 `FAIL` karena penjaga tulis skrip, bukan layar: di Mikrobiologi *Pemeriksaan Selesai*
+menyimpan isian dulu (`PUT …/result/microbiology`) baru `finalize`. `PUT` itu digagalkan skrip, layar menampilkan *Network Error*
+dan `finalize` tidak dikirim — perilaku yang benar (gagal simpan menghentikan penyelesaian). Isian tersimpan dibandingkan dengan
+layar (temuan *Normal*, tanpa kualifikasi, biakan, metode, maupun isolat — sama), `PUT` diizinkan pada fase Vina, lalu uji
+dilanjutkan dari fase itu. Kedua putaran: **12/12**.
+
+**Jejak di devYoga:** BTA `025be4cf…` `LAB-RSMMC-000014` **Dirilis** (pengisi terakhir Vina; validasi dan rilis dr. Nabila,
+berpenanda pengecualian empat mata); satu pengembalian tercatat (*Sampel tertukar*). BTA kedua (`1f3670d7…`) tidak disentuh. Data uji.
+
+**Tidak diperiksa:** pencocokan akun penandatangan baris rekam medis ke surel lewat tabel pengguna ditolak pengaman izin (data
+pribadi) dan tidak dikejar. Buktinya: waktu tanda tangan sama dengan rilis, dan layar menulis *Petugas Otorisasi* dr. Nabila.
+
+**Nol perubahan kode** pada task ini. **Nol operasi Git dijalankan.**

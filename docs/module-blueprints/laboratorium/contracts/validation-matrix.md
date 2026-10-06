@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-VAL-v1` |
-| Revision | **`15` — `approved`** 2026-09-28, bagian 17 (`VAL-147`..`VAL-149`, periode laporan) — disetujui Yoga Aji Pratama, termasuk batas 366 hari. Sebelumnya: **`14` — `approved`** 2026-09-25, bagian 16 (`VAL-146`, penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-09-25, bagian 15 (`S4d-1`: `VAL-126` diubah, `VAL-144`, `VAL-145`) — disetujui Yoga Aji Pratama, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
+| Revision | **`16` — `approved`** 2026-10-06, bagian 18 (`VAL-150`, Spesifik Specimen nonaktif pada koreksi specimen, `LAB-DEC-167`) — disetujui Yoga Aji Pratama. Sebelumnya: **`15` — `approved`** 2026-09-28, bagian 17 (`VAL-147`..`VAL-149`, periode laporan) — disetujui Yoga Aji Pratama, termasuk batas 366 hari. Sebelumnya: **`14` — `approved`** 2026-09-25, bagian 16 (`VAL-146`, penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-09-25, bagian 15 (`S4d-1`: `VAL-126` diubah, `VAL-144`, `VAL-145`) — disetujui Yoga Aji Pratama, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
 | `r8` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
 | Isi amandemen `r8` | **`approved` — 2026-09-18.** Sebelas aturan `VAL-92`..`VAL-102` untuk laporan Patologi Anatomi **per pesanan**, menurunkan `LAB-DEC-085`..`LAB-DEC-088`, `LAB-DEC-091`, dan `LAB-DA-001` rev 7. **Satu aturan DICABUT: `VAL-88`** — ia menuntut tiga nama kolom yang dihardcode (makroskopik, mikroskopik, kesimpulan), sedangkan kewajiban ruas kini **bergantung kategori** dan ditegakkan `VAL-95` terhadap data induk keberlakuan. `VAL-83`, `VAL-84`, dan `VAL-89` **tetap berlaku bagi Mikrobiologi**. **Nol aturan `VAL-01`..`VAL-87` dan `VAL-89`..`VAL-91` berubah.** Disetujui bersama `LAB-API-v1` `r25` dan `LAB-PERM-v1` rev 7 pada hari yang sama. Lihat bagian 10 |
 | `r7` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
@@ -832,3 +832,35 @@ sama dengan catatan `VAL-76`; tidak dijadikan aturan tersendiri.
 | `VAL-147` | `LAB-DEC-159` | Baris matriks uji |
 | `VAL-148` | `LAB-DEC-071` | Baris matriks uji |
 | `VAL-149` | 23.10 butir 3 | Baris matriks uji |
+
+## 18. Amandemen `r16` — Spesifik Specimen nonaktif pada koreksi specimen, 2026-10-06
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-VAL-v1` |
+| Revision | `r16` |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-10-06 — *"yaaa saya setujui"* atas `LAB-REQ-015`, lihat `LAB-API-v1` `r39` bagian 34 |
+| `input_revision` | decisions rev 84 (`LAB-DEC-167`); `LAB-API-v1` `r39` |
+| Sifat | **Satu aturan baru** yang **mempersempit** penolakan lama tanpa kode: sebelumnya setiap id nonaktif yang dikirim menolak seluruh koreksi; kini hanya id yang **baru ditambahkan** |
+
+### 18.1 Aturan yang ditambahkan
+
+Berlaku pada `PATCH api/v1/health-services/laboratory-management/lab-specimens/{id}/correction`.
+
+| ID | Aturan | Pesan bagi pengguna | Kode | Dasar |
+|---|---|---|---|---|
+| `VAL-150` | Spesifik Specimen yang **baru ditambahkan** wajib menunjuk data induk **aktif**. Yang **sudah tercatat** pada wadah itu boleh dikirim ulang walau kini nonaktif | "Rincian specimen ini sudah tidak dipakai lagi dan tidak dapat ditambahkan." | `422` | `LAB-DEC-167` butir 3 |
+
+**Contoh:**
+
+> Wadah mencatat *Darah arteri* dan *Arterial cord blood specimen*; kepala instalasi kemudian menonaktifkan
+> *Darah arteri*. Petugas mengoreksi volume dan mengirim ulang kedua id → **diterima**, *Darah arteri*
+> tetap tercatat dengan nama snapshot-nya. Petugas melepas *Darah arteri* → diterima, satu baris jejak.
+> Petugas mencoba mencentangnya lagi → **`422` `VAL-150`**.
+
+### 18.2 Traceability `r16`
+
+| Aturan | Keputusan | AC |
+|---|---|---|
+| `VAL-150` | `LAB-DEC-167` | `BE-LAB-88` AC (d)–(e) |

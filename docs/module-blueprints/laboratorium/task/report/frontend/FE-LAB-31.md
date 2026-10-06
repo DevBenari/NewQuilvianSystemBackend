@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `3339ecdf1` |
 | Commit backend yang dijadikan rujukan | `458f38aa` |
 | Tanggal | 2026-09-22 |
-| Status | **Per task, sesudah verifikasi di peramban 2026-10-02 dan 2026-10-06 (bagian 9):** `FE-LAB-31` ✅ **`SELESAI`** · `FE-LAB-32` ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — ketiga AC-nya terbukti, tetapi formulir koreksi tidak terisi nilai tersimpan dan respons specimen backend nol memuat id Spesifik Specimen (9.4) · `FE-LAB-33` ✅ **`SELESAI`**. *(Semula 2026-09-22: ⚠ ketiganya — permukaan terbangun, 22 uji baru lulus, nol AC terbukti di layar.)* |
+| Status | **Per task, sesudah verifikasi di peramban 2026-10-02 dan 2026-10-06 (bagian 9):** `FE-LAB-31` ✅ **`SELESAI`** · `FE-LAB-32` ✅ **`SELESAI`** — naik 2026-10-06 sesudah `BE-LAB-88`: formulir koreksi diisi nilai tersimpan (`FE-LAB-32.md` bagian 10) · `FE-LAB-33` ✅ **`SELESAI`**. *(Semula 2026-09-22: ⚠ ketiganya — permukaan terbangun, 22 uji baru lulus, nol AC terbukti di layar.)* |
 
 ---
 
@@ -152,8 +152,8 @@ dokter konfirmator — **belum satu pun diklik**.
 2. ~~Data ujinya sudah siap …~~ Dipakai: pesanan uji `LAB-RSMMC-000014`.
 3. **Data induk masih hampir kosong** — satu organisme, satu antibiotik, satu breakpoint. Bukan
    penahan status: pekerjaan data kepala instalasi (`B3`), bukan kode.
-4. **Sisa `FE-LAB-32`:** ruas id Spesifik Specimen pada respons specimen backend, lalu formulir
-   koreksi diisi nilai tersimpan (9.4).
+4. ~~**Sisa `FE-LAB-32`:** ruas id Spesifik Specimen pada respons specimen backend, lalu formulir
+   koreksi diisi nilai tersimpan~~ **Selesai 2026-10-06** (`BE-LAB-88`; `FE-LAB-32.md` bagian 10) (9.4).
 
 **Nol operasi git dijalankan.** Satu dev server sisa dari sesi ini ditemukan masih hidup
 (`PID 8880`) dan sudah dihentikan.
@@ -266,6 +266,10 @@ mengosongkan hitungan; timpaan dibiarkan; ruas lain nol menyentuh interpretasi).
 
 ### 9.4 Batas `FE-LAB-32` yang tersisa — kenapa ia TIDAK naik
 
+> **Ditutup 2026-10-06** — `LAB-DEC-167` disetujui, `BE-LAB-88` selesai, dan formulir koreksi kini diisi
+> nilai tersimpan. Rinciannya di [`FE-LAB-32.md`](FE-LAB-32.md) bagian 10. Uraian di bawah dipertahankan
+> sebagai riwayat.
+
 Ketiga AC-nya (`AC-160`, `AC-162`, `AC-170`) dan DoD-nya (nol tombol menambah Spesifik Specimen) kini
 terbukti di layar. Yang menahannya adalah **outcome** task — *"mengoreksi specimen … dan dapat melihat
 nilai lamanya"*:
@@ -277,7 +281,7 @@ nilai lamanya"*:
    `PhysicallyReceivedAt`, tetapi nol `DetailTypeIds`). Karena itu layar **tidak dapat** mencentang yang
    sudah tersimpan, dan mencentang satu kotak **mengganti seluruh set** tanpa peringatan.
 
-Butir 2 menuntut **task backend** (ruas `detailTypeIds` pada respons specimen, kontrak `r26` 21.4);
+Butir 2 menuntut **task backend** — diajukan 2026-10-06 sebagai [`LAB-REQ-015`](../../../approval-requests/2026-10-06-permintaan-spesifik-specimen-pada-respons-specimen.md) (usulan `LAB-DEC-167`, `r39`, `BE-LAB-88`);
 sesudah itu butir 1 dapat ditutup di frontend sekaligus. Risiko sementara dikurangi oleh payload yang
 hanya membawa ruas yang disentuh (`buildSpecimenCorrectionPayload`) — ruas yang tidak disentuh tidak
 pernah ditimpa — dan oleh riwayat perubahan yang mencatat nilai lama setiap koreksi.
