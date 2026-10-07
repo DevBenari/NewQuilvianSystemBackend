@@ -92,7 +92,19 @@ public sealed class BillingFinalizationsController : ControllerBase
         }
         catch (BillingFinalizationConflictException exception)
         {
-            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message));
+            object? errors = null;
+            if (!string.IsNullOrEmpty(exception.Code))
+            {
+                errors = new[]
+                {
+                    new
+                    {
+                        code = exception.Code,
+                        currentRowVersion = exception.CurrentRowVersion
+                    }
+                };
+            }
+            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message, errors));
         }
         catch (BillingFinalizationValidationException exception)
         {

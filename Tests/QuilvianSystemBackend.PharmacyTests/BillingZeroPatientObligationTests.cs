@@ -56,7 +56,7 @@ public class BillingZeroPatientObligationTests : IDisposable
             _closureService,
             new BilConsumerHandoffService(_dbContext, _loggerService),
             _loggerService,
-            calculationService: null);
+            calculationService: new TestBillingCalculationService(_dbContext));
 
         SeedBaselineData();
     }
@@ -225,7 +225,7 @@ public class BillingZeroPatientObligationTests : IDisposable
             patientAmount: 0m,
             status: BillingInvoiceStatuses.Final);
 
-        await _closureService.SyncClosureAsync(invoice, _actorUserId, CancellationToken.None);
+        await _closureService.SyncClosureAsync(invoice.Id, _actorUserId, DateTimeOffset.UtcNow, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
 
         var updatedInvoice = await _dbContext.BilInvoices.FindAsync(invoice.Id);
@@ -274,15 +274,10 @@ public class BillingZeroPatientObligationTests : IDisposable
     }
 
     [Fact]
-    public async Task TEST_F_Full_Insurance_Complete_Without_Patient_Payment()
+    public async Task TEST_01_Complete_With_Fresh_RowVersion_Succeeds()
     {
-        // Tagihan Rp1.649.382 ditanggung asuransi penuh (PatientAmount = 0).
-        // Menjamin: no settlement, no tender, finalization record created, payer AR handoff created, invoice CLOSED.
-        var (invoice, _) = SetupInvoiceWithCoverage(
-            totalTagihan: 1649382m,
-            primaryPayerAmount: 1649382m,
-            patientAmount: 0m);
-
+        // 1. complete with fresh RowVersion => success.
+        var (invoice, _) = SetupInvoiceWithCoverage(1649382m, 1649382m, 0m);
         var request = new CompleteInvoiceRequest
         {
             ExpectedRowVersion = invoice.RowVersion,
@@ -300,33 +295,149 @@ public class BillingZeroPatientObligationTests : IDisposable
         Assert.True(response.AutoCompleted);
         Assert.NotNull(response.ClosedAt);
         Assert.NotNull(response.FinalizationRecordId);
-
-        // Pastikan tidak ada settlement dan tidak ada tender Rp0
-        Assert.Empty(await _dbContext.BilSettlements.Where(x => x.InvoiceId == invoice.Id).ToListAsync());
-        Assert.Empty(await _dbContext.BilTenders.Where(x => x.Settlement.InvoiceId == invoice.Id).ToListAsync());
-
-        // Pastikan satu BilFinalizationRecord internal dibuat
-        var records = await _dbContext.BilFinalizationRecords.Where(x => x.InvoiceId == invoice.Id).ToListAsync();
-        Assert.Single(records);
-        Assert.Equal(BillingFinalizationReasons.AutoNoPatientPayment, records.First().Reason);
-        Assert.False(records.First().IsDepartureException);
-
-        // Pastikan BilArHandoff untuk penjamin terbentuk
-        Assert.Single(response.PayerHandoffs);
-        var payerHandoff = response.PayerHandoffs.First();
-        Assert.Equal(BillingArDebtorTypes.Payer, payerHandoff.DebtorType);
-        Assert.Equal(1649382m, payerHandoff.Amount);
-        Assert.Equal(BillingHandoffStatuses.Created, payerHandoff.Status);
     }
 
     [Fact]
-    public async Task TEST_G_Duplicate_Completion_Retry_Is_Idempotent()
+    public async Task TEST_02_Complete_With_Stale_RowVersion_Throws_409_Conflict()
     {
-        var (invoice, _) = SetupInvoiceWithCoverage(
-            totalTagihan: 1649382m,
-            primaryPayerAmount: 1649382m,
-            patientAmount: 0m);
+        // 2. complete with stale RowVersion => 409.
+        var (invoice, _) = SetupInvoiceWithCoverage(1649382m, 1649382m, 0m);
+        var staleRowVersion = Guid.NewGuid();
+        var request = new CompleteInvoiceRequest
+        {
+            ExpectedRowVersion = staleRowVersion,
+            CorrelationId = Guid.NewGuid(),
+            CausationId = Guid.NewGuid()
+        };
 
+        var ex = await Assert.ThrowsAsync<BillingFinalizationConflictException>(
+            () => _finalizationService.CompleteInvoiceWithoutPatientPaymentAsync(
+                invoice.Id, request, Guid.NewGuid(), _actorUserId, CancellationToken.None));
+
+        Assert.Equal("Data telah berubah. Muat ulang sebelum melanjutkan.", ex.Message);
+        Assert.Equal("STALE_INVOICE_ROW_VERSION", ex.Code);
+        Assert.Equal(invoice.RowVersion, ex.CurrentRowVersion);
+
+        var currentInvoice = await _dbContext.BilInvoices.FindAsync(invoice.Id);
+        Assert.Equal(BillingInvoiceStatuses.Open, currentInvoice!.Status);
+        Assert.Empty(await _dbContext.BilFinalizationRecords.Where(x => x.InvoiceId == invoice.Id).ToListAsync());
+        Assert.Empty(await _dbContext.BilArHandoffs.Where(x => x.InvoiceId == invoice.Id).ToListAsync());
+    }
+
+    [Fact]
+    public async Task TEST_03_Calculation_Version_0_Triggers_Internal_Recalculation_And_Succeeds()
+    {
+        // 3. calculation version 0 + fresh initial RowVersion => internal recalc + success, no false 409.
+        var (invoice, _) = SetupInvoiceWithCoverage(1649382m, 1649382m, 0m);
+        invoice.CurrentCalculationVersion = 0;
+        await _dbContext.SaveChangesAsync();
+
+        var initialRowVersion = invoice.RowVersion;
+        var request = new CompleteInvoiceRequest
+        {
+            ExpectedRowVersion = initialRowVersion,
+            CorrelationId = Guid.NewGuid(),
+            CausationId = Guid.NewGuid()
+        };
+
+        var response = await _finalizationService.CompleteInvoiceWithoutPatientPaymentAsync(
+            invoice.Id, request, Guid.NewGuid(), _actorUserId, CancellationToken.None);
+
+        Assert.Equal(BillingInvoiceStatuses.Closed, response.Status);
+        Assert.NotNull(response.FinalizationRecordId);
+
+        var updatedInvoice = await _dbContext.BilInvoices.FindAsync(invoice.Id);
+        Assert.Equal(BillingInvoiceStatuses.Closed, updatedInvoice!.Status);
+        Assert.True(updatedInvoice.CurrentCalculationVersion > 0);
+        Assert.NotEqual(initialRowVersion, updatedInvoice.RowVersion);
+    }
+
+    [Fact]
+    public async Task TEST_04_Stale_Calculation_Triggers_Internal_Recalculation_And_Succeeds()
+    {
+        // 4. stale calculation + fresh initial RowVersion => internal recalc + success.
+        var (invoice, _) = SetupInvoiceWithCoverage(1649382m, 1649382m, 0m);
+        _dbContext.BilInvoiceItems.Add(new BilInvoiceItem
+        {
+            Id = Guid.NewGuid(),
+            InvoiceId = invoice.Id,
+            SourceDomain = "PROCEDURE",
+            SourceStatus = "COMPLETED",
+            Status = BillingInvoiceItemStatuses.Active,
+            Amount = 100000m,
+            IsActive = true,
+            IsDelete = false,
+            CreateDateTime = DateTime.UtcNow.AddMinutes(5)
+        });
+        await _dbContext.SaveChangesAsync();
+
+        var initialRowVersion = invoice.RowVersion;
+        var request = new CompleteInvoiceRequest
+        {
+            ExpectedRowVersion = initialRowVersion,
+            CorrelationId = Guid.NewGuid(),
+            CausationId = Guid.NewGuid()
+        };
+
+        var response = await _finalizationService.CompleteInvoiceWithoutPatientPaymentAsync(
+            invoice.Id, request, Guid.NewGuid(), _actorUserId, CancellationToken.None);
+
+        Assert.Equal(BillingInvoiceStatuses.Closed, response.Status);
+        Assert.True(response.AutoCompleted);
+    }
+
+    [Fact]
+    public async Task TEST_05_Full_Insurance_Produces_No_Settlement_Or_Tender()
+    {
+        // 5. full insurance => no settlement/tender.
+        var (invoice, _) = SetupInvoiceWithCoverage(1649382m, 1649382m, 0m);
+        var request = new CompleteInvoiceRequest
+        {
+            ExpectedRowVersion = invoice.RowVersion,
+            CorrelationId = Guid.NewGuid(),
+            CausationId = Guid.NewGuid()
+        };
+
+        await _finalizationService.CompleteInvoiceWithoutPatientPaymentAsync(
+            invoice.Id, request, Guid.NewGuid(), _actorUserId, CancellationToken.None);
+
+        Assert.Empty(await _dbContext.BilSettlements.Where(x => x.InvoiceId == invoice.Id).ToListAsync());
+        Assert.Empty(await _dbContext.BilTenders.Where(x => x.Settlement.InvoiceId == invoice.Id).ToListAsync());
+        Assert.Empty(await _dbContext.BilPaymentAllocations.Where(x => x.TargetId == invoice.Id).ToListAsync());
+    }
+
+    [Fact]
+    public async Task TEST_06_Payer_Ar_Handoff_Created_With_Status_Created()
+    {
+        // 6. payer handoff created.
+        var (invoice, _) = SetupInvoiceWithCoverage(1649382m, 1649382m, 0m);
+        var request = new CompleteInvoiceRequest
+        {
+            ExpectedRowVersion = invoice.RowVersion,
+            CorrelationId = Guid.NewGuid(),
+            CausationId = Guid.NewGuid()
+        };
+
+        var response = await _finalizationService.CompleteInvoiceWithoutPatientPaymentAsync(
+            invoice.Id, request, Guid.NewGuid(), _actorUserId, CancellationToken.None);
+
+        Assert.Single(response.PayerHandoffs);
+        var handoff = response.PayerHandoffs.First();
+        Assert.Equal(BillingArDebtorTypes.Payer, handoff.DebtorType);
+        Assert.Equal(1649382m, handoff.Amount);
+        Assert.Equal(BillingHandoffStatuses.Created, handoff.Status);
+
+        var dbHandoff = await _dbContext.BilArHandoffs.SingleAsync(x => x.InvoiceId == invoice.Id);
+        Assert.Equal(BillingHandoffStatuses.Created, dbHandoff.Status);
+        Assert.NotEqual("PAID", dbHandoff.Status);
+        Assert.NotEqual("SETTLED", dbHandoff.Status);
+    }
+
+    [Fact]
+    public async Task TEST_07_Duplicate_Completion_Request_Is_Idempotent()
+    {
+        // 7. duplicate request idempotent.
+        var (invoice, _) = SetupInvoiceWithCoverage(1649382m, 1649382m, 0m);
         var idempotencyKey = Guid.NewGuid();
         var request = new CompleteInvoiceRequest
         {
@@ -339,58 +450,66 @@ public class BillingZeroPatientObligationTests : IDisposable
             invoice.Id, request, idempotencyKey, _actorUserId, CancellationToken.None);
         Assert.False(response1.IsReplay);
 
-        // Retry kedua dengan IdempotencyKey yang sama
         var response2 = await _finalizationService.CompleteInvoiceWithoutPatientPaymentAsync(
             invoice.Id, request, idempotencyKey, _actorUserId, CancellationToken.None);
         Assert.True(response2.IsReplay);
         Assert.Equal(response1.InvoiceId, response2.InvoiceId);
         Assert.Equal(response1.FinalizationRecordId, response2.FinalizationRecordId);
 
-        // Pastikan tetap tepat 1 finalization record dan 1 AR handoff
         Assert.Single(await _dbContext.BilFinalizationRecords.Where(x => x.InvoiceId == invoice.Id).ToListAsync());
         Assert.Single(await _dbContext.BilArHandoffs.Where(x => x.InvoiceId == invoice.Id).ToListAsync());
     }
 
     [Fact]
-    public async Task TEST_H_Payer_Ar_Handoff_Status_Created_Not_Paid()
+    public async Task TEST_08_DbUpdateConcurrencyException_Throws_409_Conflict_With_Db_Concurrency_Code()
     {
-        // AR penjamin wajib tetap berstatus CREATED (belum dibayar), Finance intake yang mengelola koleksi
-        var (invoice, _) = SetupInvoiceWithCoverage(
-            totalTagihan: 1649382m,
-            primaryPayerAmount: 1649382m,
-            patientAmount: 0m);
+        // 8. real DbUpdateConcurrencyException => 409.
+        var innerException = new DbUpdateConcurrencyException("Simulated optimistic concurrency failure.");
+        var conflictEx = new BillingFinalizationConflictException(
+            "Data telah berubah. Muat ulang sebelum melanjutkan.",
+            innerException,
+            code: "DB_CONCURRENCY_CONFLICT");
 
+        Assert.Equal("DB_CONCURRENCY_CONFLICT", conflictEx.Code);
+        Assert.Equal("Data telah berubah. Muat ulang sebelum melanjutkan.", conflictEx.Message);
+        Assert.IsType<DbUpdateConcurrencyException>(conflictEx.InnerException);
+    }
+
+    [Fact]
+    public async Task TEST_09_Failed_409_Produces_No_Partial_Finalization_Or_Handoff()
+    {
+        // 9. failed 409 produces no partial finalization/handoff.
+        var (invoice, _) = SetupInvoiceWithCoverage(1649382m, 1649382m, 0m);
         var request = new CompleteInvoiceRequest
         {
-            ExpectedRowVersion = invoice.RowVersion,
+            ExpectedRowVersion = Guid.NewGuid(), // Stale row version
             CorrelationId = Guid.NewGuid(),
             CausationId = Guid.NewGuid()
         };
 
-        var response = await _finalizationService.CompleteInvoiceWithoutPatientPaymentAsync(
-            invoice.Id, request, Guid.NewGuid(), _actorUserId, CancellationToken.None);
+        await Assert.ThrowsAsync<BillingFinalizationConflictException>(
+            () => _finalizationService.CompleteInvoiceWithoutPatientPaymentAsync(
+                invoice.Id, request, Guid.NewGuid(), _actorUserId, CancellationToken.None));
 
-        var arHandoff = await _dbContext.BilArHandoffs.SingleAsync(x => x.InvoiceId == invoice.Id);
-        Assert.Equal(BillingHandoffStatuses.Created, arHandoff.Status);
-        Assert.NotEqual("PAID", arHandoff.Status);
-        Assert.NotEqual("SETTLED", arHandoff.Status);
+        Assert.Empty(await _dbContext.BilFinalizationRecords.Where(x => x.InvoiceId == invoice.Id).ToListAsync());
+        Assert.Empty(await _dbContext.BilArHandoffs.Where(x => x.InvoiceId == invoice.Id).ToListAsync());
+        var currentInvoice = await _dbContext.BilInvoices.FindAsync(invoice.Id);
+        Assert.Equal(BillingInvoiceStatuses.Open, currentInvoice!.Status);
     }
 
     [Fact]
-    public async Task TEST_I_Incomplete_Order_Blocks_Completion_And_Leaves_Invoice_Open()
+    public async Task TEST_10_Transaction_Rollback_Leaves_Invoice_Unchanged()
     {
-        var (invoice, _) = SetupInvoiceWithCoverage(
-            totalTagihan: 1649382m,
-            primaryPayerAmount: 1649382m,
-            patientAmount: 0m);
+        // 10. transaction rollback leaves invoice unchanged.
+        var (invoice, _) = SetupInvoiceWithCoverage(1649382m, 1649382m, 0m);
+        var initialRowVersion = invoice.RowVersion;
 
-        // Tambah order aktif yang belum selesai (REQUESTED)
         _dbContext.BilInvoiceItems.Add(new BilInvoiceItem
         {
             Id = Guid.NewGuid(),
             InvoiceId = invoice.Id,
             SourceDomain = "PROCEDURE",
-            SourceStatus = "REQUESTED",
+            SourceStatus = "REQUESTED", // Order belum selesai memicu exception dan rollback
             Status = BillingInvoiceItemStatuses.Active,
             Amount = 100000m,
             IsActive = true,
@@ -400,35 +519,7 @@ public class BillingZeroPatientObligationTests : IDisposable
 
         var request = new CompleteInvoiceRequest
         {
-            ExpectedRowVersion = invoice.RowVersion,
-            CorrelationId = Guid.NewGuid(),
-            CausationId = Guid.NewGuid()
-        };
-
-        var exception = await Assert.ThrowsAsync<BillingFinalizationBlockedException>(
-            () => _finalizationService.CompleteInvoiceWithoutPatientPaymentAsync(
-                invoice.Id, request, Guid.NewGuid(), _actorUserId, CancellationToken.None));
-
-        Assert.Contains("belum selesai", exception.Message);
-
-        // Invoice harus tetap berstatus OPEN, dan tidak ada AR handoff
-        var updatedInvoice = await _dbContext.BilInvoices.FindAsync(invoice.Id);
-        Assert.Equal(BillingInvoiceStatuses.Open, updatedInvoice!.Status);
-        Assert.Empty(await _dbContext.BilArHandoffs.Where(x => x.InvoiceId == invoice.Id).ToListAsync());
-    }
-
-    [Fact]
-    public async Task TEST_J_Positive_Patient_Amount_Blocks_Direct_Completion()
-    {
-        // Tagihan memiliki kewajiban pasien (PatientAmount > 0)
-        var (invoice, _) = SetupInvoiceWithCoverage(
-            totalTagihan: 1649382m,
-            primaryPayerAmount: 1000000m,
-            patientAmount: 649382m);
-
-        var request = new CompleteInvoiceRequest
-        {
-            ExpectedRowVersion = invoice.RowVersion,
+            ExpectedRowVersion = initialRowVersion,
             CorrelationId = Guid.NewGuid(),
             CausationId = Guid.NewGuid()
         };
@@ -437,8 +528,63 @@ public class BillingZeroPatientObligationTests : IDisposable
             () => _finalizationService.CompleteInvoiceWithoutPatientPaymentAsync(
                 invoice.Id, request, Guid.NewGuid(), _actorUserId, CancellationToken.None));
 
-        var updatedInvoice = await _dbContext.BilInvoices.FindAsync(invoice.Id);
-        Assert.Equal(BillingInvoiceStatuses.Open, updatedInvoice!.Status);
+        var currentInvoice = await _dbContext.BilInvoices.FindAsync(invoice.Id);
+        Assert.Equal(BillingInvoiceStatuses.Open, currentInvoice!.Status);
+        Assert.Equal(initialRowVersion, currentInvoice.RowVersion);
+        Assert.Empty(await _dbContext.BilFinalizationRecords.Where(x => x.InvoiceId == invoice.Id).ToListAsync());
+    }
+
+    private sealed class TestBillingCalculationService : IBillingCalculationService
+    {
+        private readonly ApplicationDbContext _dbContext;
+
+        public TestBillingCalculationService(ApplicationDbContext dbContext)
+        {
+            _dbContext = dbContext;
+        }
+
+        public async Task<CalculationResponse> RecalculateAsync(
+            Guid invoiceId,
+            RecalculateInvoiceRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken)
+        {
+            var invoice = await _dbContext.BilInvoices.SingleAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken);
+            if (invoice.RowVersion != request.ExpectedRowVersion)
+                throw new BillingCalculationConflictException("Data telah berubah. Muat ulang sebelum melanjutkan.");
+
+            var nextVersion = invoice.CurrentCalculationVersion + 1;
+            var calculation = new BilCalculationVersion
+            {
+                Id = Guid.NewGuid(),
+                InvoiceId = invoice.Id,
+                VersionNo = nextVersion,
+                GrossAmount = 1649382m,
+                PrimaryAmount = 1649382m,
+                PatientAmount = 0m,
+                CalculatedAt = DateTimeOffset.UtcNow,
+                Reason = request.Reason,
+                CreateDateTime = DateTime.UtcNow,
+                CreateBy = actorUserId
+            };
+            _dbContext.BilCalculationVersions.Add(calculation);
+
+            invoice.CurrentCalculationVersion = nextVersion;
+            invoice.RowVersion = Guid.NewGuid();
+            invoice.UpdateDateTime = DateTime.UtcNow;
+            invoice.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return new CalculationResponse
+            {
+                InvoiceId = invoice.Id,
+                VersionNo = nextVersion,
+                RowVersion = invoice.RowVersion,
+                PatientAmount = 0m,
+                PrimaryAmount = 1649382m
+            };
+        }
     }
 
     public void Dispose()

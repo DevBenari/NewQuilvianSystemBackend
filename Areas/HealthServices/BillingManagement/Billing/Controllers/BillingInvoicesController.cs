@@ -855,8 +855,8 @@ public sealed class BillingInvoicesController : ControllerBase
     // dipindah - dikonfirmasi tidak dipanggil satu pun caller frontend (frontend memakai
     // "/financial-exceptions/adjustments" dan ".../write-offs" milik
     [HttpPost("{id:guid}/complete")]
-    [AccessAction("Create", "Complete Billing Invoice Without Patient Payment", AccessType = AccessTypes.Create, SortOrder = 20)]
-    [AccessPermission("BillingPayment", "Create")]
+    [AccessAction("Update", "Complete Billing Invoice Without Patient Payment", AccessType = AccessTypes.Update, SortOrder = 20)]
+    [AccessPermission("BillingInvoice", "Update")]
     [ProducesResponseType(typeof(ApiResponse<CompleteInvoiceResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<CompleteInvoiceResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<FinalizationPreviewResponse>), StatusCodes.Status422UnprocessableEntity)]
@@ -899,7 +899,19 @@ public sealed class BillingInvoicesController : ControllerBase
         }
         catch (BillingFinalizationConflictException exception)
         {
-            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message));
+            object? errors = null;
+            if (!string.IsNullOrEmpty(exception.Code))
+            {
+                errors = new[]
+                {
+                    new
+                    {
+                        code = exception.Code,
+                        currentRowVersion = exception.CurrentRowVersion
+                    }
+                };
+            }
+            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message, errors));
         }
         catch (BillingFinalizationValidationException exception)
         {

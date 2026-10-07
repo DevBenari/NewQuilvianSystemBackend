@@ -20,7 +20,7 @@ public sealed class BillingFinalizationService
     private readonly BillingInvoiceClosureService _closureService;
     private readonly BilConsumerHandoffService _consumerHandoffService;
     private readonly LoggerService _loggerService;
-    private readonly BillingCalculationService? _calculationService;
+    private readonly IBillingCalculationService? _calculationService;
 
     public BillingFinalizationService(
         ApplicationDbContext dbContext,
@@ -29,7 +29,7 @@ public sealed class BillingFinalizationService
         BillingInvoiceClosureService closureService,
         BilConsumerHandoffService consumerHandoffService,
         LoggerService loggerService,
-        BillingCalculationService? calculationService = null)
+        IBillingCalculationService? calculationService = null)
     {
         _dbContext = dbContext;
         _chargeSourceAdapter = chargeSourceAdapter;
@@ -96,7 +96,9 @@ public sealed class BillingFinalizationService
                     "Invoice tidak lagi berstatus OPEN untuk difinalisasi.");
             if (invoice.RowVersion != request.ExpectedRowVersion)
                 throw new BillingFinalizationConflictException(
-                    "Data telah berubah. Muat ulang sebelum melanjutkan.");
+                    "Data telah berubah. Muat ulang sebelum melanjutkan.",
+                    code: "STALE_INVOICE_ROW_VERSION",
+                    currentRowVersion: invoice.RowVersion);
 
             var readiness = await BuildReadinessAsync(invoice, cancellationToken);
             var isDepartureException = !string.IsNullOrWhiteSpace(request.DepartureReason);
@@ -151,7 +153,9 @@ public sealed class BillingFinalizationService
         {
             if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
             throw new BillingFinalizationConflictException(
-                "Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
+                "Data telah berubah. Muat ulang sebelum melanjutkan.",
+                exception,
+                code: "DB_CONCURRENCY_CONFLICT");
         }
         catch (DbUpdateException exception)
         {
@@ -217,8 +221,25 @@ public sealed class BillingFinalizationService
                 throw new BillingFinalizationConflictException(
                     "Invoice tidak lagi berstatus OPEN untuk diselesaikan.");
             if (invoice.RowVersion != request.ExpectedRowVersion)
+            {
+                await _loggerService.AuditAsync(
+                    LogCategory,
+                    "BillingFinalization.ConcurrencyMismatch",
+                    "Penyelesaian invoice ditolak karena ExpectedRowVersion tidak cocok dengan RowVersion terkini di server.",
+                    new
+                    {
+                        InvoiceId = invoice.Id,
+                        ExpectedRowVersion = request.ExpectedRowVersion,
+                        ActualRowVersion = invoice.RowVersion,
+                        CurrentCalculationVersion = invoice.CurrentCalculationVersion,
+                        CorrelationId = request.CorrelationId
+                    });
+
                 throw new BillingFinalizationConflictException(
-                    "Data telah berubah. Muat ulang sebelum melanjutkan.");
+                    "Data telah berubah. Muat ulang sebelum melanjutkan.",
+                    code: "STALE_INVOICE_ROW_VERSION",
+                    currentRowVersion: invoice.RowVersion);
+            }
 
             // Pastikan perhitungan authoritative tersedia (jika version == 0, lakukan rekalkulasi terlebih dahulu)
             if (invoice.CurrentCalculationVersion <= 0)
@@ -236,8 +257,7 @@ public sealed class BillingFinalizationService
                     actorUserId,
                     cancellationToken);
 
-                invoice = await _dbContext.BilInvoices
-                    .SingleAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken);
+                await _dbContext.Entry(invoice).ReloadAsync(cancellationToken);
             }
 
             var calculation = await _dbContext.BilCalculationVersions.AsNoTracking()
@@ -261,8 +281,7 @@ public sealed class BillingFinalizationService
                         actorUserId,
                         cancellationToken);
 
-                    invoice = await _dbContext.BilInvoices
-                        .SingleAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken);
+                    await _dbContext.Entry(invoice).ReloadAsync(cancellationToken);
                     calculation = await _dbContext.BilCalculationVersions.AsNoTracking()
                         .SingleAsync(x => x.InvoiceId == invoice.Id
                             && x.VersionNo == invoice.CurrentCalculationVersion && !x.IsDelete, cancellationToken);
@@ -312,8 +331,21 @@ public sealed class BillingFinalizationService
         catch (DbUpdateConcurrencyException exception)
         {
             if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            await _loggerService.AuditAsync(
+                LogCategory,
+                "BillingFinalization.DbConcurrencyConflict",
+                "Penyelesaian invoice gagal karena konflik konkurensi basis data (DbUpdateConcurrencyException).",
+                new
+                {
+                    InvoiceId = invoiceId,
+                    ExpectedRowVersion = request.ExpectedRowVersion,
+                    CorrelationId = request.CorrelationId
+                });
+
             throw new BillingFinalizationConflictException(
-                "Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
+                "Data telah berubah. Muat ulang sebelum melanjutkan.",
+                exception,
+                code: "DB_CONCURRENCY_CONFLICT");
         }
         catch (DbUpdateException exception)
         {
@@ -646,8 +678,10 @@ public sealed class BillingFinalizationService
     }
 
     private Task AcquireLockAsync(string key, CancellationToken cancellationToken) =>
-        _dbContext.Database.ExecuteSqlRawAsync(
-            "SELECT pg_advisory_xact_lock(hashtext({0}));", [key], cancellationToken);
+        _dbContext.Database.IsRelational() && _dbContext.Database.ProviderName != "Microsoft.EntityFrameworkCore.Sqlite"
+            ? _dbContext.Database.ExecuteSqlRawAsync(
+                "SELECT pg_advisory_xact_lock(hashtext({0}));", [key], cancellationToken)
+            : Task.CompletedTask;
 
     private Task AuditFinalizationAsync(BilFinalizationRecord record, Guid actorUserId, bool isReplay) =>
         _loggerService.AuditAsync(
@@ -789,9 +823,29 @@ public sealed class BillingFinalizationValidationException(string message)
 
 public sealed class BillingFinalizationConflictException : BillingFinalizationException
 {
-    public BillingFinalizationConflictException(string message) : base(message) { }
-    public BillingFinalizationConflictException(string message, Exception innerException)
-        : base(message, innerException) { }
+    public string? Code { get; }
+    public Guid? CurrentRowVersion { get; }
+
+    public BillingFinalizationConflictException(
+        string message,
+        string? code = null,
+        Guid? currentRowVersion = null)
+        : base(message)
+    {
+        Code = code;
+        CurrentRowVersion = currentRowVersion;
+    }
+
+    public BillingFinalizationConflictException(
+        string message,
+        Exception innerException,
+        string? code = null,
+        Guid? currentRowVersion = null)
+        : base(message, innerException)
+    {
+        Code = code;
+        CurrentRowVersion = currentRowVersion;
+    }
 }
 
 public sealed class BillingFinalizationBlockedException : BillingFinalizationException

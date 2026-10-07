@@ -36,6 +36,7 @@ public static class ReceivableDueDateSources
     public const string InsuranceProviderTerm = "INSURANCE_PROVIDER_TERM";
     public const string ReceivableDueDate = "RECEIVABLE_DUE_DATE";
     public const string NotConfigured = "NOT_CONFIGURED";
+    public const string SystemDefault30Days = "SYSTEM_DEFAULT_30_DAYS";
 }
 
 public sealed class ReceivableInvoiceBatchCreateContextQuery
@@ -74,6 +75,7 @@ public class ReceivableInvoiceBatchResponse
 {
     public Guid Id { get; set; }
     public string BatchNumber { get; set; } = string.Empty;
+    public string InvoiceNumber => BatchNumber;
     public string DebtorType { get; set; } = string.Empty;
     public Guid DebtorReferenceId { get; set; }
     public DateOnly PeriodStart { get; set; }
@@ -152,6 +154,8 @@ public sealed class ReceivableInvoiceBatchDocumentResponse
     public Guid DebtorReferenceId { get; set; }
     public DateOnly PeriodStart { get; set; }
     public DateOnly PeriodEnd { get; set; }
+    public DateOnly? InvoiceDate { get; set; }
+    public DateOnly? DueDate { get; set; }
     public decimal GrandTotalCoveredAmount { get; set; }
     public List<CompanyGuarantorInvoiceDocumentResponse> Invoices { get; set; } = new();
     public List<string> Warnings { get; set; } = new();
