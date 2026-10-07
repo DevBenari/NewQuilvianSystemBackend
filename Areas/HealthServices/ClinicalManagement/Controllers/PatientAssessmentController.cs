@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
@@ -65,6 +66,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         /// <summary>Kalimat penolakan <c>VAL-DOK-05</c>, apa adanya dari validation matrix.</summary>
         private const string PenolakanKajianMedisBukanDokter =
             "Catatan ini hanya dapat ditulis dokter.";
+
+        private const string PenolakanKajianMedisKunjunganIgdBerakhir =
+            "Kunjungan IGD ini sudah berakhir, sehingga kajian medis baru tidak dapat dibuat. " +
+            "Gunakan addendum pada kajian yang sudah ada.";
+
+        private const string PenolakanKajianMedisAwalIgdGanda =
+            "Kajian medis awal untuk kunjungan IGD ini sudah ada. Buka kajian itu, atau buat " +
+            "kajian ulang.";
 
         /// <summary>
         /// Kalimat penolakan <c>VAL-KEP-01</c>, apa adanya dari validation matrix keperawatan.
@@ -2449,6 +2458,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             if (!doctorId.HasValue)
                 return CreateGuard.Fail(PenolakanKajianMedisBukanDokter, StatusCodes.Status403Forbidden);
+
+            var statusKunjunganIgd = await _dbContext.Set<EmgVisit>()
+                .AsNoTracking()
+                .Where(x => x.EncounterId == request.EncounterId && !x.IsDelete)
+                .OrderByDescending(x => x.CreateDateTime)
+                .Select(x => (EmergencyVisitStatus?)x.VisitStatus)
+                .FirstOrDefaultAsync();
+
+            if (statusKunjunganIgd.HasValue)
+            {
+                if (statusKunjunganIgd.Value is EmergencyVisitStatus.Completed or EmergencyVisitStatus.Cancelled)
+                {
+                    return CreateGuard.Fail(
+                        PenolakanKajianMedisKunjunganIgdBerakhir,
+                        StatusCodes.Status409Conflict);
+                }
+
+                if (request.AssessmentType != PatientAssessmentType.MedicalInitial)
+                    return CreateGuard.Ok();
+
+                var kajianAwalIgdSudahAda = await _dbContext.Set<TrxPatientAssessment>()
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.EncounterId == request.EncounterId &&
+                        x.AssessmentType == PatientAssessmentType.MedicalInitial &&
+                        !x.IsDelete &&
+                        !x.IsCancel &&
+                        x.AssessmentStatus != PatientAssessmentStatus.Cancelled);
+
+                return kajianAwalIgdSudahAda
+                    ? CreateGuard.Fail(PenolakanKajianMedisAwalIgdGanda, StatusCodes.Status409Conflict)
+                    : CreateGuard.Ok();
+            }
 
             // BE-RWI-076 / GUARD-INP-05 dan GUARD-INP-06. Sebelum task ini konteks dibentuk
             // TANPA menyebut dokter pelaku, sehingga penjaga kewenangan di dalamnya tidak

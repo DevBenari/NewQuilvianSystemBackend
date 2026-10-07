@@ -192,7 +192,7 @@ flowchart LR
     classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
     classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
 
-    R316["R3.16 EPIC IGD-14 MVP-9<br/>Ruang Kerja Dokter IGD, 7 task<br/>0 selesai; BE-IGD-071 ⛔ IGD-OQ-117"]:::belum
+    R316["🟡 R3.16 EPIC IGD-14 MVP-9<br/>Ruang Kerja Dokter IGD, 7 task<br/>0 selesai; BE-IGD-071 ⛔ IGD-OQ-117"]:::sebagian
 ```
 
 Jumlah panah: **0**. 1 node.
@@ -254,8 +254,8 @@ Jumlah panah: **0**. 1 node.
 | `BE-IGD-062` | Pembatalan disposisi ditolak pada kunjungan yang sudah selesai (`IGD-DEC-166`) — **baru** | R3.14 | ✅ **2 Oktober 2026** — build pemilik dan uji API S1–S5 **5 dari 5** pada bukti mentah. Tanpa UAT. *Sebelumnya: 🟡 **1 Oktober 2026** — Implementation Complete (1 berkas, +17 baris; QBE checker `PASS`); belum: build pemilik, uji API S1–S5. *Sebelumnya: tanpa tanda — **siap**, `BE-IGD-060` ✅. **Diperiksa ulang 30 September 2026** (`IGD-DEC-176`): `Executed → Cancelled` sudah `400` teknis; kartu kini menambah `409` bermakna yang didahulukan, `Executed` tetap final** | [BE-IGD-062](../task/report/backend/BE-IGD-062.md) |
 | `BE-IGD-063` | Saringan "menunggu penutupan" pada daftar kunjungan (`IGD-DEC-168`) — **baru** | R3.14 | ✅ **2 Oktober 2026** — build pemilik; uji API 6 terbukti penuh, 2 sebagian (S2: kalimat penahan *pesanan* tidak teramati; S3: tanpa pembandingan sebelum–sesudah build). Tanpa UAT. *Sebelumnya: 🟡 **1 Oktober 2026** — Implementation Complete (3 berkas source, +74/−2; QBE checker `PASS`); belum: build pemilik, uji API S1–S8. `GET /{id}` ikut mengisi dua ruas baru (selisih terhadap kartu). *Sebelumnya: tanpa tanda — **siap**, `BE-IGD-060` ✅ 30 September 2026** | [BE-IGD-063](../task/report/backend/BE-IGD-063.md) |
 | `BE-IGD-064` | Detail kunjungan IGD memuat identitas pasien dan konteksnya (`IGD-DEC-207`) — **baru 5 Oktober 2026 (sore)** | R3.15 | ✅ **SELESAI — 6 Oktober 2026 (sore)** (`IGD-DEC-216`): uji ulang 03.59 UTC dengan akun `dimas.kurniawan@rsmmc.local` — acceptance 1–4 terbukti pada bukti mentah dan log (keenam ruas terisi dan sama antara detail dan daftar); 5 dan 6 sudah terbukti. Diterima dengan penyimpangan tercatat: Akses Role diubah penguji lewat SuperAdmin (konfigurasi sementara, melampaui `IGD-DEC-190`), percobaan tak dilaporkan, sandi literal di skrip, build layar tidak terbukti. Tanpa UAT. *Sebelumnya:* 🟡 **6 Oktober 2026 (siang) — acceptance 5 dan 6 terbukti**: build 0 error, 235 warning, backend berjalan dari DLL itu. Uji API dan layar Antigravity siang itu **ditolak sebagai bukti acceptance** (`IGD-DEC-213`: SuperAdmin, `next dev`, putaran tak dilaporkan, ruas cara datang/jenis kasus kosong); acceptance 1–4 diulang dengan akun peran nyata pada hasil build dalam putaran bersama `FE-IGD-044`. Perubahan CSS penguji dikembalikan (`IGD-DEC-214`). *Sebelumnya:* 🟡 **6 Oktober 2026 — implementasi selesai** (`build-module-backend`): `EmergencyVisitController.GetById` memuat `Patient`, `ServiceUnit`, `ArrivalMode`, `CaseType` seperti `GET /` (+8/−1, satu berkas); QBE checker Strict `PASS`. Acceptance 1–3 terpetakan, 5 terbukti (diff). **Belum:** build pemilik (6) dan uji API/layar 1–4 pada putaran bersama (`IGD-DEC-208`). Tanpa UAT. *Sebelumnya:* tanpa tanda — siap dikerjakan; dijadwalkan bersama `BE-IGD-041` (`IGD-DEC-208`) | [BE-IGD-064](../task/report/backend/BE-IGD-064.md) |
-| `BE-IGD-065` | Daftar dan detail kunjungan IGD membawa DPJP aktif; saringan `doctorId` dan `ongoing` (`IGD-DEC-222`) — **baru 6 Oktober 2026 (sore)** | R3.16 | tanpa tanda — siap dikerjakan; pasangan layar `FE-IGD-045` | — |
-| `BE-IGD-066` | Kajian medis dokter diterima untuk kunjungan IGD (`IGD-DEC-221`) — **baru** | R3.16 | tanpa tanda — siap dikerjakan; pasangan layar `FE-IGD-046` | — |
+| `BE-IGD-065` | Daftar dan detail kunjungan IGD membawa DPJP aktif; saringan `doctorId` dan `ongoing` (`IGD-DEC-222`) — **baru 6 Oktober 2026 (sore)** | R3.16 | 🟡 **7 Oktober 2026 — implementasi selesai; 2 dari 8 acceptance** (6 dengan delta, 7). QBE Strict `PASS` (3 berkas, +75/−12). Build pemilik (DLL 09.54 WIB; warning belum dilaporkan). **Belum:** uji API 1–5 bersama `FE-IGD-045`. Tanpa UAT | [BE-IGD-065](../task/report/backend/BE-IGD-065.md) |
+| `BE-IGD-066` | Kajian medis dokter diterima untuk kunjungan IGD (`IGD-DEC-221`) — **baru** | R3.16 | 🟡 **7 Oktober 2026 — implementasi selesai; 1 dari 7 acceptance** (6 dengan catatan). QBE Strict `PASS` (1 berkas, +42/−0). **Belum:** build pemilik (7), uji 1–5 bersama `FE-IGD-046`. Tanpa UAT | [BE-IGD-066](../task/report/backend/BE-IGD-066.md) |
 | `BE-IGD-067` | Riwayat catatan dokter per kunjungan IGD (`IGD-DEC-227`, `231`) — **baru** | R3.16 | tanpa tanda — siap dikerjakan; pasangan layar `FE-IGD-047` | — |
 | `BE-IGD-068` | Penyelesaian catatan dokter IGD tanpa fakta jasa konsultasi (`IGD-DEC-229`) — **baru** | R3.16 | tanpa tanda — siap dikerjakan; pasangan uji `FE-IGD-049` | — |
 | `BE-IGD-069` | Tindakan keperawatan IGD tercatat sebagai tindakan klinis umum (`IGD-DEC-225`) — **baru** | R3.16 | tanpa tanda — siap dikerjakan; pasangan layar `FE-IGD-051` | — |
@@ -3425,8 +3425,8 @@ flowchart LR
     classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
     classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
 
-    BEIGD065["BE-IGD-065<br/>Daftar kunjungan membawa DPJP aktif"]:::belum
-    BEIGD066["BE-IGD-066<br/>Kajian medis untuk kunjungan IGD"]:::belum
+    BEIGD065["🟡 BE-IGD-065<br/>Daftar kunjungan membawa DPJP aktif"]:::sebagian
+    BEIGD066["🟡 BE-IGD-066<br/>Kajian medis untuk kunjungan IGD"]:::sebagian
     BEIGD067["BE-IGD-067<br/>Riwayat catatan dokter per kunjungan"]:::belum
     BEIGD068["BE-IGD-068<br/>Jasa konsultasi IGD tidak dikirim"]:::belum
     BEIGD069["BE-IGD-069<br/>Tindakan keperawatan IGD tercatat"]:::belum
@@ -3500,11 +3500,11 @@ Rilis dan push milik pemilik.
 7. **UAT milik tim terpisah.** Status kartu dipisah *Implementation* / *Dev verification* / UAT; tidak pernah ditulis
    "UAT lulus".
 
-### `BE-IGD-065` — Daftar dan detail kunjungan IGD membawa DPJP aktif, dapat disaring per dokter dan kunjungan berjalan
+### 🟡 `BE-IGD-065` — Daftar dan detail kunjungan IGD membawa DPJP aktif, dapat disaring per dokter dan kunjungan berjalan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | tanpa tanda — siap dikerjakan (6 Oktober 2026 sore, `IGD-DEC-230`) |
+| **Status** | 🟡 **SEBAGIAN — 7 Oktober 2026: implementasi selesai; 2 dari 8 acceptance terbukti** (6 dengan delta, 7 — lewat diff). Tiga berkas (+75/−12): `KueriBerjalan` dan `AmbilBerjalanPerKunjunganAsync` di service, saringan `doctorId`/`ongoing` dan ruas DPJP di controller, dua ruas DTO; QBE checker Strict `PASS` pada ketiganya; nol komentar baru; akhiran baris dipertahankan. Build pemilik 7 Oktober 2026 (DLL 09.54.00 WIB, sesudah suntingan; warning belum dilaporkan — acceptance 8 sebagian). **Belum:** uji API 1–5 pada putaran 1 bersama `FE-IGD-045`. Delta dicatat: `ongoing=false` simetris; DPJP lewat satu kueri per halaman, bukan kueri daftar yang sama. Tanpa UAT. Bukti: [laporan](../task/report/backend/BE-IGD-065.md). *Sebelumnya:* tanpa tanda — siap dikerjakan (6 Oktober 2026 sore, `IGD-DEC-230`) |
 | **Outcome** | Layar dokter memuat daftar pasien IGD yang kunjungannya masih berjalan, dengan nama DPJP di setiap baris dan saringan *Pasien saya*, dalam satu permintaan — tanpa memanggil penugasan dokter per baris |
 | **Slice** | `EPIC IGD-14` / `MVP-9` — daftar pasien dokter |
 | **Requirement** | `FR-IGD-096`; `AT-IGD-200`; DoD §10.4 butir 1 |
@@ -3553,11 +3553,11 @@ ditemukan."* pada detail.
 **DoD.** Acceptance 1–8; laporan `task/report/backend/BE-IGD-065.md`; register, node grafik R3.16 dan ringkasan B, serta
 traceability ditandai.
 
-### `BE-IGD-066` — Kajian medis dokter diterima untuk kunjungan IGD
+### 🟡 `BE-IGD-066` — Kajian medis dokter diterima untuk kunjungan IGD
 
 | Field | Isi |
 | --- | --- |
-| **Status** | tanpa tanda — siap dikerjakan |
+| **Status** | 🟡 **SEBAGIAN — 7 Oktober 2026: implementasi selesai; 1 dari 7 acceptance terbukti** (6 dengan catatan: diff satu berkas memuat juga satu `using` dan dua konstanta pesan). `PatientAssessmentController.cs` +42/−0 — cabang kunjungan IGD sebelum resolusi rawat inap, aturan 5 dan 6 `409` dengan kalimat persis validation §12.2; QBE checker Strict `PASS`; nol komentar baru; CRLF dipertahankan. **Belum:** build pemilik (7) dan uji API/layar 1–5 pada putaran 1 bersama `FE-IGD-046`. Tanpa UAT. Bukti: [laporan](../task/report/backend/BE-IGD-066.md). *Sebelumnya:* tanpa tanda — siap dikerjakan |
 | **Outcome** | Dokter IGD menulis kajian medis awal dan kajian ulang untuk pasien IGD; hari ini ditolak *"Pasien ini tidak sedang dirawat inap."* |
 | **Slice** | `EPIC IGD-14` / `MVP-9` — tab Pengkajian Medis |
 | **Requirement** | `FR-IGD-097`; `AT-IGD-201`, `202`; DoD butir 2, 3 |

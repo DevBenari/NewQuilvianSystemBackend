@@ -135,19 +135,44 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             DateTime? at,
             CancellationToken cancellationToken = default)
         {
-            var query = _dbContext.Set<EmgDoctorAssignment>()
-                .AsNoTracking()
-                .Where(x => x.EmergencyVisitId == emergencyVisitId && !x.IsDelete);
-
-            query = at.HasValue
-                ? query.Where(x => x.EffectiveFrom <= at.Value
-                    && (x.EffectiveTo == null || at.Value < x.EffectiveTo))
-                : query.Where(x => x.EffectiveTo == null);
+            var query = at.HasValue
+                ? _dbContext.Set<EmgDoctorAssignment>()
+                    .AsNoTracking()
+                    .Where(x => !x.IsDelete
+                        && x.EffectiveFrom <= at.Value
+                        && (x.EffectiveTo == null || at.Value < x.EffectiveTo))
+                : KueriBerjalan();
 
             return await query
+                .Where(x => x.EmergencyVisitId == emergencyVisitId)
                 .OrderByDescending(x => x.EffectiveFrom)
                 .Select(ProyeksiResponse)
                 .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        public IQueryable<EmgDoctorAssignment> KueriBerjalan()
+        {
+            return _dbContext.Set<EmgDoctorAssignment>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.EffectiveTo == null);
+        }
+
+        public async Task<IReadOnlyDictionary<Guid, EmergencyDoctorAssignmentResponse>> AmbilBerjalanPerKunjunganAsync(
+            IReadOnlyCollection<Guid> emergencyVisitIds,
+            CancellationToken cancellationToken = default)
+        {
+            if (emergencyVisitIds.Count == 0)
+                return new Dictionary<Guid, EmergencyDoctorAssignmentResponse>();
+
+            var baris = await KueriBerjalan()
+                .Where(x => emergencyVisitIds.Contains(x.EmergencyVisitId))
+                .OrderByDescending(x => x.EffectiveFrom)
+                .Select(ProyeksiResponse)
+                .ToListAsync(cancellationToken);
+
+            return baris
+                .GroupBy(x => x.EmergencyVisitId)
+                .ToDictionary(g => g.Key, g => g.First());
         }
 
         /// <summary>

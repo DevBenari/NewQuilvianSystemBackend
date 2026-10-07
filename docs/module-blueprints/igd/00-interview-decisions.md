@@ -5951,3 +5951,16 @@ pemilik Registrasi menilai label itu menyesatkan petugas loket, itu keputusan te
 2. Draf catatan dokter IGD tampil di tab Catatan Dokter pasien itu dan tidak tampil di daftar draf *Catatan Saya*.
 
 Langkah berikutnya: `plan-module-delivery` `MVP-9` diteruskan pada sesi yang sama (manifest bagian 0n.1).
+
+### Letak menu Ruang Kerja Dokter IGD — 7 Oktober 2026
+
+Arahan langsung pemilik saat `FE-IGD-045` dibangun. Fakta source: menu sidebar didefinisikan di kode
+(`src/utils/menu-sidebar/menu-items.jsx` @`6c66327aa`), termasuk grup *Dokter* berisi *Rawat Jalan* dan *Rawat Inap* —
+sehingga `IGD-UNK-14` (cara menambah menu) terjawab: lewat kode, bukan pendaftaran admin.
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-232` | Decision | **Ruang Kerja Dokter IGD dicapai dari menu *Dokter → IGD*, sejajar dengan *Dokter → Rawat Jalan* dan *Dokter → Rawat Inap*; tidak ada butir menu dokter di grup *Instalasi Gawat Darurat*.** Menggantikan letak pada `03-frontend-architecture.md` §15.3 (*Instalasi Gawat Darurat → Ruang Kerja Dokter*), yang semula `DEV_DISCRETION`. Butir menu ditulis di `menu-items.jsx` oleh kartu `FE-IGD-045`. *Contoh:* dr. Ani membuka sidebar, memilih *Dokter*, lalu *IGD*, dan masuk ke daftar pasien IGD dengan saringan *Pasien saya* | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-07** | Pesan pemilik: *"halaman dokter ini ada nyaa di sidebar menu dokter seperti rawat jalan dan inap"* |
+
+`03-frontend-architecture.md` §15.3 tidak disunting dan dibaca bersama `IGD-DEC-232`. Butir anak *Catatan Saya* dan
+*Perlu Verifikasi* mengikuti pola layar dokter rawat inap (tombol di header layar), diputuskan pada `FE-IGD-048` dan `FE-IGD-058`.

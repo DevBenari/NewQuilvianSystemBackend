@@ -41,17 +41,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private readonly LoggerService _loggerService;
         private readonly EmergencyVisitService _emergencyVisitService;
         private readonly EmergencyDispositionService _emergencyDispositionService;
+        private readonly EmergencyDoctorAssignmentService _emergencyDoctorAssignmentService;
 
         public EmergencyVisitController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             EmergencyVisitService emergencyService,
-            EmergencyDispositionService emergencyDispositionService)
+            EmergencyDispositionService emergencyDispositionService,
+            EmergencyDoctorAssignmentService emergencyDoctorAssignmentService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _emergencyVisitService = emergencyService;
             _emergencyDispositionService = emergencyDispositionService;
+            _emergencyDoctorAssignmentService = emergencyDoctorAssignmentService;
         }
 
         [HttpGet]
@@ -70,6 +73,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             [FromQuery] bool? isActive,
             [FromQuery] bool? hasDuplicateEpisodeOverride,
             [FromQuery] bool? awaitingClosure,
+            [FromQuery] Guid? doctorId,
+            [FromQuery] bool? ongoing,
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? sortBy = null,
@@ -121,6 +126,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (awaitingClosure.HasValue)
                 query = _emergencyVisitService.SaringMenungguPenutupan(query, awaitingClosure.Value);
 
+            if (doctorId.HasValue && doctorId.Value != Guid.Empty)
+            {
+                var dokterId = doctorId.Value;
+                var penugasanDokter = _emergencyDoctorAssignmentService.KueriBerjalan()
+                    .Where(a => a.DoctorId == dokterId);
+                query = query.Where(x => penugasanDokter.Any(a => a.EmergencyVisitId == x.Id));
+            }
+
+            if (ongoing.HasValue)
+            {
+                query = ongoing.Value
+                    ? query.Where(x => x.VisitStatus != EmergencyVisitStatus.Completed
+                        && x.VisitStatus != EmergencyVisitStatus.Cancelled)
+                    : query.Where(x => x.VisitStatus == EmergencyVisitStatus.Completed
+                        || x.VisitStatus == EmergencyVisitStatus.Cancelled);
+            }
+
             if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
                 query = query.Where(x => x.ServiceUnitId == serviceUnitId.Value);
 
@@ -162,13 +184,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var alasanMenungguPenutupan = await _emergencyVisitService.AmbilAlasanMenungguPenutupanAsync(
                 entities, cancellationToken);
 
+            var dokterBerjalan = await _emergencyDoctorAssignmentService.AmbilBerjalanPerKunjunganAsync(
+                entities.Select(x => x.Id).ToList(), cancellationToken);
+
             var result = new PagedResult<EmergencyVisitResponse>
             {
                 PageNumber = pageNumber,
                 PageSize = pageSize,
                 TotalData = totalData,
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
-                Items = entities.Select(x => ToResponse(x, alasanMenungguPenutupan)).ToList()
+                Items = entities.Select(x => ToResponse(x, alasanMenungguPenutupan, dokterBerjalan)).ToList()
             };
 
             return Ok(ApiResponse<PagedResult<EmergencyVisitResponse>>.Ok(result, "Data kunjungan IGD berhasil diambil."));
@@ -224,8 +249,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var alasanMenungguPenutupan = await _emergencyVisitService.AmbilAlasanMenungguPenutupanAsync(
                 new[] { entity }, cancellationToken);
 
+            var dokterBerjalan = await _emergencyDoctorAssignmentService.AmbilBerjalanPerKunjunganAsync(
+                new[] { entity.Id }, cancellationToken);
+
             return Ok(ApiResponse<EmergencyVisitResponse>.Ok(
-                ToResponse(entity, alasanMenungguPenutupan),
+                ToResponse(entity, alasanMenungguPenutupan, dokterBerjalan),
                 "Detail kunjungan IGD berhasil diambil."));
         }
 
@@ -998,7 +1026,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         private static EmergencyVisitResponse ToResponse(
             EmgVisit x,
-            IReadOnlyDictionary<Guid, string?> alasanMenungguPenutupan)
+            IReadOnlyDictionary<Guid, string?> alasanMenungguPenutupan,
+            IReadOnlyDictionary<Guid, EmergencyDoctorAssignmentResponse> dokterBerjalan)
         {
             var response = ToResponse(x);
 
@@ -1006,6 +1035,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             {
                 response.IsAwaitingClosure = true;
                 response.AwaitingClosureReason = alasan;
+            }
+
+            if (dokterBerjalan.TryGetValue(x.Id, out var dokter))
+            {
+                response.ActiveDoctorId = dokter.DoctorId;
+                response.ActiveDoctorName = dokter.DoctorName;
             }
 
             return response;
