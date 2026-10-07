@@ -109,3 +109,144 @@ Untuk mengantisipasi perubahan status seketika (misal saat kasir menyetujui clea
 7. Supervisor mengetik alasan: *"Pasien darurat syok kardiogenik, rujukan ambulans prioritas 1 ke RS Harapan Kita. Administrasi kasir dilanjutkan pihak keluarga penjamin di loket kasir."*
 8. Supervisor klik `Setujui Pelepasan Darurat`.
 9. Sistem mengesahkan kepulangan fisik, mencatat stempel waktu dan ID Supervisor, serta menerbitkan event outbox pelepasan bed ke kasir.
+
+---
+
+## 6. Amandemen kontrak `1.1.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+Bagian ini menggantikan bagian 1 s.d. 5 untuk setiap layar yang disebut di bawah. Komponen yang memanggil webhook, supervisor override, atau `confirm-physical-discharge` **dicabut**.
+
+### 6.1 Kebutuhan layar
+
+| ID | Layar | Jenis | Pelaku | Kemampuan |
+|---|---|---|---|---|
+| `FE-INT-01` | Keluar ruangan dengan peringatan kasir | Dialog pada Detail Episode `FE-INP-04` / Pencatatan Kepergian `FE-INP-14` | Perawat pelaksana, kepala ruangan, petugas admisi, supervisor | `CAP-RWF-01` |
+| `FE-INT-02` | Gerbang kasir pada Penutupan Episode | Bagian dari `FE-INP-07` | Petugas admisi, supervisor | `CAP-RWF-01`, `CAP-RWF-03` |
+| `FE-INT-03` | Daftar "Pulang sebelum izin kasir" | Daftar di dalam Daftar Pantau `FE-INP-09` | Kasir, admisi, kepala ruangan | `CAP-RWF-01` |
+| `FE-INT-04` | Koreksi penempatan | Dialog pada riwayat penempatan di Detail Episode `FE-INP-04` | Kepala ruangan, petugas admisi | `CAP-RWF-04` |
+| `FE-INT-05` | Antrean "perlu diperiksa" kasir | Daftar dan tanda pada layar invoice kasir (`billing-management`) | Kasir | `CAP-RWF-04` |
+| `FE-INT-06` | Kartu status kasir (pengganti `discharge-clearance-gate-card.jsx`) | Kartu pada Detail Episode dan ruang kerja keperawatan | Seluruh pemegang `InpatientBillingOperational : Read` | `CAP-RWF-03` |
+
+Layar Tagihan Pasien di bangsal adalah milik `keperawatan` (`FE-KEP-23`); sub-modul ini hanya menyediakan endpoint-nya.
+
+### 6.2 Peta butir menu
+
+Sub-modul ini **tidak menambah butir menu**. Peta seluruh modul dipegang `02-module-map.md` bagian 7.3.
+
+| Layar | Jalan masuk | Butir hak akses yang menjaga |
+|---|---|---|
+| `FE-INT-01` | Tombol "Catat pasien meninggalkan ruangan" pada `FE-INP-04` dan `FE-INP-14` | `InpatientDischarge : RecordDeparture` |
+| `FE-INT-02` | `FE-INP-07` | `InpatientDischarge : Read`; tombol Tutup `InpatientDischarge : Close`; tombol override `InpatientDischarge : CloseOverride` |
+| `FE-INT-03` | Daftar baru pada `FE-INP-09`, diletakkan di antara daftar milik `episode-rawat-inap` | `InpatientMonitoring : Read` |
+| `FE-INT-04` | Riwayat penempatan pada `FE-INP-04` | `InpatientBedOccupancy : Correct` |
+| `FE-INT-05` | Butir menu kasir yang sudah ada (Billing → Invoice); daftar ditambahkan pada halaman itu | `BillingInvoice : Read` |
+| `FE-INT-06` | `FE-INP-04` dan ruang kerja keperawatan `FE-KEP-07` | `InpatientBillingOperational : Read` |
+
+### 6.3 Skema fitur per layar
+
+#### `FE-INT-01` Keluar ruangan dengan peringatan kasir
+
+```text
++- Catat pasien meninggalkan ruangan -------------------------- FE-INT-01 -+
+| Tn. Contoh A  •  Melati 2 Bed 3  •  Boleh pulang 4 Okt 08.30            |
+| Waktu keluar  [04/10/2026 09.05]                                        |
+| [ status kasir: badge ]                                                 |
+|   CLEARED   -> tanpa peringatan                                         |
+|   lainnya   -> ! Kasir belum memberi izin pulang                        |
+|                 Kendala: <daftar kendala tanpa rupiah>                  |
+|   gagal     -> ! Status kasir tidak dapat dibaca                        |
+|                                    [Batal]  [Catat keluar ruangan]      |
++-------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Kepala | Nama pasien, bed, waktu keputusan pulang | Data Detail Episode yang sudah dimuat | `InpatientEpisode : Read` | — |
+| Badge status kasir | Status dan kendala | `GET episodes/{episodeId}/billing-status` | `InpatientBillingOperational : Read` | Gagal → "Status kasir tidak dapat dibaca"; tombol tetap aktif dengan peringatan |
+| Tombol Catat | Kirim `ClearanceWarningAcknowledged = false` lebih dulu | `POST discharges/{episodeId}/record-departure` | `InpatientDischarge : RecordDeparture` | 409 `INP-DEP-001` → tampilkan peringatan, ganti tombol menjadi "Tetap catat keluar ruangan", kirim ulang dengan `true` |
+| Hasil | "Pasien tercatat keluar pukul 09.05. Bed sudah kosong." ditambah peringatan tindak lanjut bila ada | Respons `InpatientDepartureResponse` | — | — |
+
+#### `FE-INT-02` Gerbang kasir pada Penutupan Episode
+
+```text
++- Penutupan Episode — syarat ---------------------------------- FE-INP-07 -+
+| 1 Keputusan pulang DPJP        [ok]                                      |
+| 2 Resume ditandatangani        [ok]                                      |
+| 3 Butir administrasi           [ok]                                      |
+| 4 Izin kasir (dibaca langsung) [ badge ]  diperbarui tiap 10 detik       |
+| 5 Bed sudah dilepas            [ok]                                      |
+|                         [Tutup Episode]   [Tutup tanpa izin kasir...]   |
++--------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Daftar syarat | Lima syarat; syarat 4 dari Billing | `GET discharges/{episodeId}/closure-readiness`, disegarkan 10 detik | `InpatientDischarge : Read` | Gagal → "Syarat penutupan gagal dimuat." [Coba lagi] |
+| Tombol Tutup Episode | Aktif hanya bila seluruh syarat terpenuhi | `POST discharges/{episodeId}/close` | `InpatientDischarge : Close` | 422 `INP-CLS-010`/`011` → banner merah dengan pesan server |
+| Tombol tanpa izin kasir | Dialog alasan wajib | `POST discharges/{episodeId}/close-with-override` | `InpatientDischarge : CloseOverride` | Disembunyikan bagi yang tidak berhak. **Tidak ada isian PIN** |
+
+#### `FE-INT-03` Daftar "Pulang sebelum izin kasir"
+
+```text
++- Pulang sebelum izin kasir ----------------------------------- FE-INT-03 -+
+| [Unit v] [Periode v] [x] Termasuk episode sudah ditutup                   |
+| Episode | Pasien | Unit | Keluar | Dicatat oleh | Kasir saat keluar | Kasir sekarang |
+| memuat -> kerangka baris                                                  |
+| kosong -> "Tidak ada pasien yang pulang sebelum izin kasir pada saringan ini."
+| gagal  -> "Data gagal dimuat." [Coba lagi]                                |
++---------------------------------------------- [< Sebelumnya] [Berikutnya >]+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Tabel | Kolom sesuai `DepartureBeforeClearanceItem` | `GET monitoring/departures-before-clearance` | `InpatientMonitoring : Read` | Lihat skema |
+| Kolom kasir sekarang | `Unreadable` tampil "Tidak dapat dibaca" | Sama | — | — |
+| Baris | Tautan ke Detail Episode | — | `InpatientEpisode : Read` | — |
+
+#### `FE-INT-04` Koreksi penempatan
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Riwayat penempatan | Baris koreksi bertanda "koreksi" dan baris lama tercoret beserta alasan | `GET bed-occupancies/placements/by-episode/{episodeId}` (ditambah `CorrectsPlacementId`, `SupersededByCorrectionId`) | `InpatientBedOccupancy : Read` | Kosong → "Belum ada penempatan." |
+| Tombol Koreksi | Pada baris yang berlaku saja | — | `InpatientBedOccupancy : Correct` | Disembunyikan bila tidak berhak |
+| Dialog | Bed, kelas, waktu mulai/selesai, alasan | `POST bed-occupancies/placements/{placementId}/corrections` | Sama | 422 `INP-COR-001` → "Tagihan sudah difinalkan, hubungi kasir"; 409 → muat ulang |
+
+#### `FE-INT-05` Antrean "perlu diperiksa" kasir
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Daftar | Nomor invoice, pasien, alasan, sejak kapan | `GET billing/invoices/review-queue` | `BillingInvoice : Read` | Kosong → "Tidak ada invoice yang perlu diperiksa." |
+| Tanda pada invoice | "Perlu diperiksa: biaya kamar manual dan otomatis" | `GET billing/invoices/{id}` | `BillingInvoice : Read` | — |
+| Tombol Selesai diperiksa | Dialog catatan | `POST billing/invoices/{id}/review-resolution` | `BillingInvoice : Update` | 422 `BIL-REV-001` → pesan server |
+
+#### `FE-INT-06` Kartu status kasir
+
+Menggantikan `src/components/features/health-services/inpatient-management/billing-integration/discharge-clearance-gate-card.jsx`. Penyegaran 10 detik (`pollingIntervalMs = 10000`) dipertahankan; status `OVERRIDDEN` dibuang dari kosakata layar (`FIN-CON-04`).
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Badge | `PENDING` "Menunggu kasir", `BLOCKED` "Terkendala", `CLEARED` "Disetujui kasir", `REVOKED` "Izin dicabut" | `GET episodes/{episodeId}/billing-status` | `InpatientBillingOperational : Read` | Gagal → "Status kasir tidak dapat dibaca" |
+| Kendala | Daftar label tanpa rupiah | Sama | Sama | Kosong → tidak ditampilkan |
+| Tanda episode | "Ditutup tanpa izin kasir" bila `IsClosedWithoutFinancialClearance` | Sama | Sama | — |
+
+### 6.4 Aksi per peran
+
+Diturunkan dari `contracts/permission-audit-matrix.md` 5.3, tidak dikarang ulang. Tombol yang tidak berhak **disembunyikan**.
+
+### 6.5 Penanganan keadaan
+
+| Keadaan | Perilaku |
+|---|---|
+| Memuat | Kerangka baris atau kerangka kartu, bukan layar kosong |
+| Data basi | Kartu status kasir dan syarat penutupan menyegarkan diri tiap 10 detik. Server tetap memeriksa ulang saat tombol ditekan, sehingga layar basi tidak dapat meloloskan penutupan |
+| Pengiriman ganda | Tombol dinonaktifkan selama permintaan berjalan. Keluar ruangan kedua dijawab 409 oleh server |
+| Rupiah | Tidak ada satu pun layar sub-modul ini yang menampilkan rupiah kepada peran bangsal |
+
+### 6.6 Kewenangan UI
+
+| Hal | Kewenangan |
+|---|---|
+| Keberadaan peringatan kasir dan pengakuan sekali klik | Mengikat (`RWI-DEC-186` butir 2) |
+| Tidak ada isian PIN dan tidak ada isian alasan pada keluar ruangan | Mengikat (`RWI-DEC-186`, `187`) |
+| Letak daftar `FE-INT-03` di dalam `FE-INP-09` | Mengikat pada urutan kelompok `episode-rawat-inap` (`02-module-map.md` 3.5); posisi di dalam kelompok `DEV_DISCRETION` |
+| Bentuk dialog, warna badge, ikon | `DEV_DISCRETION` |

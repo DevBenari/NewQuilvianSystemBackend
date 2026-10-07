@@ -811,3 +811,251 @@ Peringatan memakai warna netral atau kuning (`DEV_DISCRETION`), **tidak** merah 
 | `FE-INP-22` | `RWI-DEC-112` | Acceptance 18.3 |
 | `FE-INP-23` | `RWI-DEC-138`, `143`; `INT-KEP-15` | Acceptance 18.4 |
 | `FE-INP-24` | `RWI-DEC-143` (c) | Acceptance 18.4 |
+
+---
+
+## 13. Amandemen revision `0.9` / kontrak `0.10.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+| --- | --- |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
+| Frontend SHA | `22ad67330` |
+| Masukan | `02-backend-architecture.md` `0.9` bagian 12; kontrak `0.10.0`; PRD Finishing v`0.4` `EPIC-RWF-05`, `08`, `09` |
+| Peta menu | [`../02-module-map.md`](../02-module-map.md) bagian 7.3 revision `4` — **dua butir menu baru**: Butir Persiapan Bedah di Master Data, dan Laporan Rawat Inap sebagai butir tingkat dua Rawat Inap ke-10 (`IA-INP-05` menjadi sepuluh, `RWI-DEC-214`) |
+
+### 13.1 Kebutuhan layar
+
+| ID | Layar | Jenis | Pemakai utama | Kemampuan | Keadaan |
+|---|---|---|---|---|---|
+| `FE-INP-25` | **Pemesanan Ruangan Bedah** — tab Bedah Operasi dan Bedah Obgyn | Isi menu ketujuh ruang kerja keperawatan `FE-KEP-07`, menggantikan *placeholder* bagian bedah `FE-KEP-17` | Perawat, dokter bangsal | `CAP-RWF-07` | **Baru** |
+| `FE-INP-26` | **Daftar Pesanan Ruang Bedah pasien** — status, alasan, aksi per kasus | Di bawah formulir `FE-INP-25`; kartu ringkas pada Detail Episode `FE-INP-04` | Perawat, dokter, kepala ruangan | `CAP-RWF-08`, `CAP-RWF-22` | **Baru** |
+| `FE-INP-27` | **Catatan Pra-Operasi** — mode pengirim (bangsal) dan mode penerima (OK) | Bangsal: sub-menu Catatan Pra-Operasi di `FE-KEP-24` dan aksi baris `FE-INP-26`. OK: bagian pada tab Persiapan detail kasus OK | Perawat bangsal, perawat OK | `CAP-RWF-08` | **Baru** |
+| `FE-INP-28` | **Pasca Operasi** — ringkasan operasi baca-saja dan serah terima masuk (terima/tolak) | Laci dari aksi baris `FE-INP-26`; di ruang kerja dokter lewat penanda "Pasca operasi" pada panel Konteks pasien (`RWI-DEC-213`) | Perawat unit tujuan, dokter | `CAP-RWF-08`, `CAP-RWF-19` | **Baru** |
+| `FE-INP-29` | **Permintaan Admisi dari Kamar Pulih** | Daftar pada layar Admisi Rawat Inap `FE-INP-03`; tombol "Admisi" membuka alur berlangkah yang terisi awal | Petugas admisi | `CAP-RWF-18` | **Baru** |
+| `FE-INP-30` | **Dua daftar pantau** — serah terima pasca operasi tertunda; permintaan admisi tertunda | Daftar Pantau `FE-INP-09`, kelompok `episode-rawat-inap` | Kepala ruangan, admisi, OK | `CAP-RWF-08`, `CAP-RWF-18` | **Baru** |
+| `FE-INP-31` | **Serah Terima Transfer** (`P2`) | Banner "Serah terima tertunda" pada `FE-INP-04` dan `FE-KEP-07`; laci dokumen | Perawat unit asal dan tujuan | `CAP-RWF-16` | **Baru** — mengganti "Integrasi belum tersedia" |
+| `FE-INP-32` | **Laporan Rawat Inap** — wadah laporan; isi pertama Laporan Transfer Ruangan (`P2`) | Butir menu tingkat dua ke-10 (`RWI-DEC-214`, `RWI-DEC-215`) | Kepala ruangan, manajemen | `CAP-RWF-23` | **Baru** |
+| `FE-INP-33` | **Tolak Order Operasi** — dialog, label "Ditolak" merah, kolom "Ditolak" di laporan OK | Detail kasus pada menu Operasi → Kasus Operasi; Operasi → Laporan Operasi | Petugas penjadwalan OK | `CAP-RWF-22` | **Rework** layar OK |
+| `FE-INP-34` | **Master Butir Persiapan Bedah** | Butir menu Master Data | Admin Master Data | `CAP-RWF-08` | **Baru** |
+
+Perubahan kecil tanpa ID baru: Pengaturan Rawat Inap `FE-INP-12` bertambah dua isian ambang (menit); alur admisi berlangkah `FE-INP-03` menerima pengisian awal dari `FE-INP-29`.
+
+### 13.2 Peta butir menu dan jalan masuk
+
+Butir menu milik sub-modul ini (peta seluruh modul di `02-module-map.md` 7.3):
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+|---|:---:|---|---|---|---|---|
+| Butir Persiapan Bedah | 2 | Pelayanan Kesehatan → Master Data | `/health-services/master-data/surgical-preparation-items` | `FE-INP-34` | `SurgicalPreparationItem : Read` | Baru |
+| Laporan Rawat Inap | 2 | Pelayanan Kesehatan → **Rawat Inap** | `/health-services/inpatient-management/reports` (usulan; `DEV_DISCRETION`) | `FE-INP-32` | Salah satu permission laporan rawat inap — hari ini `InpatientReport : ReadRoomTransfer` | Baru — butir ke-10, `IA-INP-05` diamendemen `RWI-DEC-214` |
+
+| Layar anak | Jalan masuk | Butir hak akses penjaga |
+|---|---|---|
+| `FE-INP-25` | `FE-KEP-07` menu 7 "Pemesanan Ruangan Bedah" (tab tetap dua seperti V1, `RWI-DEC-172`) | Tombol Pesan: `OperatingRoomCase : Create` |
+| `FE-INP-26` | Sama; kartu "Operasi" pada `FE-INP-04` | `OperatingRoomCase : Read` |
+| `FE-INP-27` | Bangsal: `FE-KEP-24` sub-menu Catatan Pra-Operasi; aksi baris "Pra-operasi" pada `FE-INP-26`. OK: tab Persiapan detail kasus | `OperatingRoomWardPreOp : Read`; tombol Kirim `: Send`; tombol Konfirmasi `: Confirm` |
+| `FE-INP-28` | Aksi baris "Pasca operasi" pada `FE-INP-26`; baris pada daftar `FE-INP-30` | `OperatingRoomCase : Read`; tombol Terima/Tolak `OperatingRoomHandover : Receive` |
+| `FE-INP-29` | `FE-INP-03`; kartu `FE-INP-30` | `InpatientAdmissionReferral : Read`; tombol Admisi `InpatientEpisode : Create` |
+| `FE-INP-30` | `FE-INP-09` | `InpatientMonitoring : Read` |
+| `FE-INP-31` | Banner pada `FE-INP-04`, `FE-KEP-07`; daftar per unit pada `FE-INP-09` | `TransferHandover : Read`; Kirim `: Send`; Terima `: Receive` |
+| `FE-INP-32` | Butir menu "Laporan Rawat Inap" (`RWI-DEC-214`, `215`) | Butir tampil bila memegang salah satu permission laporan rawat inap (hari ini `InpatientReport : ReadRoomTransfer`); tombol Ekspor `: ExportRoomTransfer` |
+| `FE-INP-33` | Operasi → Kasus Operasi → detail | Tombol Tolak `OperatingRoomCase : Reject`, tampil hanya pada kasus Diminta |
+
+**Keterjangkauan.** Perawat: Census → pasien → `FE-KEP-07` → menu 7 = 3 klik ke `FE-INP-25`/`26`. Petugas admisi: Admisi Rawat Inap → daftar "Dari Kamar Pulih" = 2 klik. Perawat ICU yang menunggu pasien dari OK: Daftar Pantau → "Serah terima pasca operasi tertunda" = 2 klik.
+
+### 13.3 Keputusan rupa yang belum dibuat
+
+Tidak menahan backend; menahan task frontend layar yang disebut.
+
+| ID | Pertanyaan | Opsi | Rekomendasi agent | Pemilik |
+|---|---|---|---|---|
+| `UI-RWF-03` | Di mana dokter membaca ringkasan operasi (`FE-INP-28`) di ruang kerja dokter `FE-DOK-09`? | ~~A. Kartu pada tab Ringkasan Pasien~~ — **tab itu tidak ada** (koreksi `RWI-DEC-213`) | — | **Diputuskan `RWI-DEC-213`: penanda "Pasca operasi" pada panel Konteks pasien** |
+| `UI-RWF-04` | Di mana Laporan Transfer Ruangan (`FE-INP-32`) dibuka? | A. Tautan di Dashboard; B. butir menu ke-10; C. tab Daftar Pantau | A (tidak dipilih) | **Diputuskan `RWI-DEC-214`, `215`: butir menu ke-10 "Laporan Rawat Inap" sebagai wadah laporan** |
+
+### 13.4 Skema fitur per layar
+
+#### 13.4.1 `FE-INP-25` Pemesanan Ruangan Bedah
+
+```text
+Pemesanan Ruangan Bedah — Budi S. · RM 00-12-34-56 · Melati 302/2
+[ Bedah Operasi ] [ Bedah Obgyn (SC/Caesar) ]
+─────────────────────────────────────────────────────────────
+Tindakan operasi*   [ Appendektomi — dr. Hadi, Sp.B (order 30/09) ▾ ]
+Dokter operator     dr. Hadi, Sp.B               (dari order, tidak dapat diubah)
+Perkiraan tindakan  Ditanggung · Rp … — perkiraan, tagihan final di kasir
+                    (jasa anestesi, sewa kamar operasi, dan bahan ditagihkan setelah operasi)
+Tanggal & jam*      [ 03/10/2026 08.00 ]
+Jenis anestesi*     [ Umum ▾ ]        Prioritas* [ Rutin ▾ ]   Jenis* (•) Elektif ( ) Darurat
+Sisi tubuh          ( ) Kiri ( ) Kanan ( ) Bilateral (•) Tidak berlaku
+Perkiraan durasi*   [ 60 ] menit
+Indikasi*           [ ............................................. ]
+Keterangan          [ ............................................. ]
+Penginput           Ns. Rina (akun login)
+                                                     [ Pesan Ruang Bedah ]
+```
+
+| Wilayah | Isi | Sumber data | Hak akses | Kosong / gagal |
+|---|---|---|---|---|
+| Pilihan tindakan | Order tindakan operasi aktif milik kunjungan episode | `GET patient-procedures?encounterId=&procedureStatus=` | `PatientProcedure : Read` | Kosong → "Tindakan operasi belum dipesan dokter. Minta dokter memesan tindakan lebih dulu." dan tombol Pesan nonaktif |
+| Perkiraan tindakan | `UnitPrice` dan `CoverageStatus` order yang dipilih, berlabel perkiraan; keterangan komponen OK yang menyusul (`RWI-DEC-218`, `219`) | Sama, `GET patient-procedures` (`PatientProcedureResponse`) | `PatientProcedure : Read` | Harga tidak ada → "tarif belum tersedia"; tombol Pesan tetap aktif (`RWI-DEC-220` butir 5) |
+| Tab Obgyn | Sama; jenis layanan "Obstetri" tampil sebagai label tetap | — | — | — |
+| Tombol Pesan | Kirim `SurgeryBookingRequest`; terkunci selama permintaan berjalan (cegah kirim ganda, `Idempotency-Key`) | `POST episodes/{id}/surgery-bookings` | `OperatingRoomCase : Create` | `422 INP-SRG-001` → pesan server; `INP-SRG-002` → "Pemesanan hanya untuk pasien yang sedang dirawat" |
+
+#### 13.4.2 `FE-INP-26` Daftar Pesanan Ruang Bedah pasien
+
+```text
+Pesanan Ruang Bedah pasien ini                                [ Muat ulang ]
+┌──────────────┬───────────────┬────────────────┬────────────────────────┬─────────────────────────┐
+│ No. kasus    │ Tindakan      │ Status         │ Keterangan             │ Aksi                    │
+├──────────────┼───────────────┼────────────────┼────────────────────────┼─────────────────────────┤
+│ OK-2026-0142 │ Appendektomi  │ Terjadwal      │ 03/10 08.00, OK 2      │ [Pra-operasi]           │
+│ OK-2026-0139 │ Debridemen    │ ■ Ditolak      │ "Hasil lab belum ada"  │ [Pesan ulang]           │
+│              │               │                │ oleh Ns. Dewi, 30/09   │                         │
+│ OK-2026-0120 │ ORIF femur    │ Selesai        │ Serah terima diterima  │ [Pasca operasi]         │
+└──────────────┴───────────────┴────────────────┴────────────────────────┴─────────────────────────┘
+Label "Diminta" tidak menjamin ruang.
+```
+
+| Wilayah | Isi | Sumber data | Hak akses | Kosong / gagal |
+|---|---|---|---|---|
+| Tabel | Delapan label status (`FR-RWF-044`); alasan untuk Ditunda/Dibatalkan/Ditolak; penolak dan waktu untuk Ditolak; status pra-operasi dan serah terima | `GET operating-room-management/cases?encounterId=` | `OperatingRoomCase : Read` | Kosong → "Belum ada pesanan ruang bedah." Gagal → "Daftar operasi tidak dapat dimuat. Coba lagi." |
+| Pesan ulang | Membuka `FE-INP-25` dengan order yang sama terpilih | — | `OperatingRoomCase : Create` | — |
+| Data basi | Tidak ada dorongan waktu nyata; tombol Muat ulang dan penyegaran saat menu dibuka (`AC-RWF-041`) | — | — | — |
+
+#### 13.4.3 `FE-INP-27` Catatan Pra-Operasi
+
+```text
+Catatan Pra-Operasi — OK-2026-0142 · Appendektomi · Sisi pesanan: Tidak berlaku   Versi 2 (perlu diperbarui → baru)
+Tanda vital (potret saat dikirim)   TD 130/85 · N 88 · RR 20 · S 36,8 · SpO₂ 98%   dicatat 02/10 21.00
+Nyeri                               3/10 (NRS)                                      dicatat 02/10 21.00
+┌───────────────────────────────┬───────────┬──────────┬─────────────────────┐
+│ Butir                          │ Pengirim  │ Penerima │ Catatan             │
+├─ Verifikasi pasien ───────────┼───────────┼──────────┼─────────────────────┤
+│ Gelang identitas terpasang *   │ [✓]       │ [ ]      │                     │
+├─ Persiapan fisik ─────────────┼───────────┼──────────┼─────────────────────┤
+│ Puasa *                        │ [✓]       │ [ ]      │ sejak 22.00         │
+└───────────────────────────────┴───────────┴──────────┴─────────────────────┘
+Penandaan area operasi  [gambar tubuh depan/belakang — klik untuk titik]  Sisi: (•) Tidak berlaku
+Riwayat versi: v1 (perlu diperbarui, 01/10)            [ Simpan draf ] [ Kirim ]   (OK: [ Konfirmasi ])
+```
+
+| Wilayah | Isi | Sumber data | Hak akses | Kosong / gagal |
+|---|---|---|---|---|
+| Potret | Tanda vital dan nyeri terakhir; sesudah dikirim dibekukan | `GET …/ward-pre-op` | `OperatingRoomWardPreOp : Read` | Belum ada tanda vital → "Catat tanda vital pasien lebih dulu" dan Kirim nonaktif |
+| Checklist | Kelompok dan butir dari master; kolom Pengirim aktif di bangsal, kolom Penerima aktif di OK | Sama; `PUT /draft`, `PATCH /confirm` | `: Send`, `: Confirm` | Master kosong → "Butir persiapan belum diatur di Master Data" |
+| Penandaan | Titik pada gambar tubuh, sisi, keterangan lokasi; tanpa unggah foto | Sama | `: Send` | Sisi berbeda → pesan `OPR-WPO-001` di bawah pilihan sisi |
+| Versi | Banner kuning "Perlu diperbarui setelah penundaan" bila versi terbaru `NeedsUpdate`; tombol "Buat versi baru" menyalin butir lama | `GET …/versions` | `: Read` | — |
+| Akun sama | Bila akun login = pengirim, tombol Konfirmasi tidak tampil dan tertulis "Konfirmasi harus oleh akun lain" | — | — | — |
+
+#### 13.4.4 `FE-INP-28` Pasca Operasi
+
+```text
+Pasca Operasi — OK-2026-0120 · ORIF femur kanan · dr. Hadi, Sp.B        (baca saja)
+Diagnosis pasca bedah   Fraktur femur kanan 1/3 tengah
+Temuan / komplikasi     … / Tidak ada
+Perdarahan              350 ml        Drain & implan  Drain 1 di paha kanan; plate 8 hole
+Rencana pasca bedah     Elevasi tungkai, cek Hb besok pagi
+Anestesi                Umum (rencana: Umum)   Kamar pulih  Aldrete 9 → Rawat Inap
+Instruksi serah terima  …
+── Serah terima ─────────────────────────────────────────────
+Dikirim Ns. Andi (OK) 01/10 13.10 ke Melati      Status: Menunggu diterima
+[ Terima ]  [ Tolak… ]
+```
+
+| Wilayah | Isi | Sumber data | Hak akses | Kosong / gagal |
+|---|---|---|---|---|
+| Ringkasan | Isian `PostOperativeSummaryResponse`; tanpa tombol ubah | `GET cases/{id}/post-operative-summary` | `OperatingRoomCase : Read` | `ReportFinal = false` → "Laporan operasi belum final". Gagal → "Ringkasan operasi tidak dapat dimuat" |
+| Serah terima | Status, pengirim, waktu; Terima dan Tolak (alasan wajib) | `PATCH …/handovers/{id}/accept` | `OperatingRoomHandover : Receive` | `OPR-HO-001` → tombol Terima terkunci dengan pesan dan tautan ke Perpindahan Pasien `FE-INP-05`; `OPR-HO-002` → "Pengirim tidak dapat menerima serah terima sendiri" |
+
+#### 13.4.5 `FE-INP-29` Permintaan Admisi dari Kamar Pulih
+
+```text
+Admisi Rawat Inap   [ Admisi baru ]   [ Dari Kamar Pulih (2) ]
+┌────────────┬──────────────┬───────────────┬──────────────┬──────────┬───────────┬─────────┐
+│ Pasien     │ Kunjungan    │ Operasi       │ Dokter       │ Tujuan   │ Menunggu  │ Aksi    │
+│ Sari W.    │ Poli Bedah   │ Kolesistektomi│ dr. Hadi     │ Rawat    │ ■ 45 mnt  │[Admisi] │
+└────────────┴──────────────┴───────────────┴──────────────┴──────────┴───────────┴─────────┘
+```
+
+| Wilayah | Isi | Sumber data | Hak akses | Kosong / gagal |
+|---|---|---|---|---|
+| Daftar | Permintaan `Pending`; lamanya menunggu merah bila melewati ambang | `GET admission-referrals` | `InpatientAdmissionReferral : Read` | Kosong → "Tidak ada pasien dari kamar pulih yang menunggu admisi." |
+| Admisi | Membuka alur berlangkah `FE-INP-03` dengan pasien, kunjungan asal, dan usulan DPJP terisi; penjamin, kelas, DPJP, deposit, bed tetap diisi petugas | `GET admission-referrals/{id}`; `POST episodes` + `AdmissionReferralId` | `InpatientEpisode : Create` | `INP-ADM-REF-002` → "Permintaan ini sudah selesai atau dibatalkan" dan daftar dimuat ulang |
+| Admisi biasa | Bila pasien yang dipilih di "Admisi baru" punya permintaan, server menolak `409 INP-ADM-REF-001`; layar menawarkan "Buka dari permintaan" | — | — | — |
+
+#### 13.4.6 `FE-INP-30` Dua daftar pantau
+
+| Daftar | Kolom | Sumber data | Kosong |
+|---|---|---|---|
+| Serah terima pasca operasi tertunda | Pasien, kasus, unit tujuan, unit pasien sekarang, dikirim, lamanya menunggu, tanda "pasien belum di unit tujuan" | `GET monitoring/pending-surgical-handovers` | "Tidak ada serah terima pasca operasi yang tertunda." |
+| Permintaan admisi tertunda | Pasien, kasus, dokter, lamanya menunggu | `GET monitoring/pending-admission-referrals` | "Tidak ada permintaan admisi yang tertunda." |
+
+Hak akses `InpatientMonitoring : Read`. Letak di dalam kelompok `episode-rawat-inap` ditetapkan `RWI-DEC-216`: sesudah `FE-INP-24`, berurutan `FE-INT-03`, serah terima pasca operasi tertunda, permintaan admisi tertunda (`02-module-map.md` 7.3).
+
+#### 13.4.7 `FE-INP-31` Serah Terima Transfer (`P2`)
+
+```text
+⚠ Serah terima tertunda — dari Melati ke ICU, dipindah 01/10 14.00           [ Buka ]
+Laci: Kondisi pasien (SOAP) · GCS · Tanda vital · Nyeri & risiko jatuh · Balance cairan ·
+      Barang diserahkan · Instruksi khusus · Pelaksana · Penerima         [ Kirim ] / [ Terima ] [ Tolak… ]
+```
+
+Nilai klinis tampil dari pencatatan terakhir dan dibekukan saat dikirim. Banner tidak pernah mengunci tombol lain. Sumber `clinical-management/transfer-handovers`; kosong → banner tidak tampil.
+
+#### 13.4.8 `FE-INP-32` Laporan Transfer Ruangan (`P2`)
+
+```text
+Periode* [01/10/2026]–[07/10/2026]  Unit asal [▾] Unit tujuan [▾] Kelas [▾]  [Tampilkan] [Ekspor Excel]
+Waktu        No. RM     Pasien   Asal (kelas/bed)   Tujuan (kelas/bed)   Alasan         Pencatat   Jenis
+01/10 14.00  00-12-34   Budi S.  II / Melati 302-2  ICU / ICU-3          Perburukan     Ns. Rina   Transfer
+02/10 09.10  00-55-01   Sari W.  I / Mawar 101-1    I / Mawar 101-2      Salah catat    Ka. Ruang  Koreksi
+```
+
+Sumber `GET reports/room-transfers`; Ekspor `GET …/export` hanya tampil bagi pemegang `ExportRoomTransfer`. Kosong → "Tidak ada transfer pada periode ini." Periode > 31 hari → pesan `VAL-RWF-90`.
+
+#### 13.4.9 `FE-INP-33` Tolak Order Operasi (layar OK)
+
+Tombol "Tolak" pada detail kasus berstatus Diminta membuka dialog alasan (10–500 karakter). Kasus Ditolak tampil dengan label merah, alasan, penolak, dan waktu; semua tombol ubah disembunyikan. Laporan Operasi menampilkan kolom "Ditolak" terpisah dari "Dibatalkan". Sumber `PATCH cases/{id}/reject`, `GET reports/operations`.
+
+#### 13.4.10 `FE-INP-34` Master Butir Persiapan Bedah
+
+Daftar dengan saringan kelompok dan aktif; formulir kode, kelompok, nama butir, wajib, urutan, keterangan; tombol aktif/nonaktif. Sumber `master-data/surgical-preparation-items`. Kosong → "Belum ada butir persiapan bedah."
+
+### 13.5 Ketergantungan test
+
+| Layar | Test yang menahan | Catatan |
+|---|---|---|
+| `FE-INP-25`, `26` | `UAT-RWF-05`, `24`; `AC-RWF-040`, `041`, `048`, `085`, `099` | Butuh kasus OK sungguhan |
+| `FE-INP-27` | `AC-RWF-042`, `045`, `046`, `093`, `094`; `UAT-RWF-21` | Dua akun berbeda |
+| `FE-INP-28` | `AC-RWF-043`, `047`, `081`, `082`; `UAT-RWF-13`, `17` | Pasien dipindah ke ICU lewat `FE-INP-05` |
+| `FE-INP-29`, `30` | `AC-RWF-080`, `087`, `088`, `089`; `UAT-RWF-16` | Persetujuan OK sudah ada (`RWI-DEC-208`) |
+| `FE-INP-31` | `AC-RWF-071`, `072`; `UAT-RWF-14` | `P2` |
+| `FE-INP-32` | `AC-RWF-086`, `100`, `RWI-AC-340`; `UAT-RWF-20` | `P2` |
+
+### 13.6 Traceability bagian 13
+
+| Layar | Requirement | Keputusan |
+|---|---|---|
+| `FE-INP-25`, `26` | `FR-RWF-040` s.d. `044`, `086` | `RWI-DEC-175`, `176`, `204` |
+| `FE-INP-27` | `FR-RWF-045`, `048`, `090` | `RWI-DEC-173`, `174`, `199` |
+| `FE-INP-28` | `FR-RWF-046`, `049`, `081`, `082` | `RWI-DEC-177`, `189`, `197` |
+| `FE-INP-29`, `30` | `FR-RWF-080`, `088`, `089` | `RWI-DEC-201` |
+| `FE-INP-31` | `FR-RWF-071` | `RWI-DEC-182`, `189` |
+| `FE-INP-32` | `FR-RWF-087` | `RWI-DEC-205` |
+| `FE-INP-33` | `FR-RWF-086` | `RWI-DEC-204` |
+| `FE-INP-34` | `FR-RWF-045` | `RWI-DEC-173` butir 3 |
+
+### 13.7 Penyelarasan decision log revision `31` ★ 2 Oktober 2026
+
+| Keputusan | Layar | Akibat |
+|---|---|---|
+| `RWI-DEC-213` (`UI-RWF-03`) | `FE-INP-28` | Jalan masuk dokter: penanda "Pasca operasi" pada panel Konteks pasien `FE-DOK-09` (dirancang `dokter-rawat-inap` 11.5). Laci terbuka mode baca-saja, tanpa Terima/Tolak. Rujukan lama "tab Ringkasan Pasien" pada 13.3 keliru |
+| `RWI-DEC-214`, `RWI-DEC-215` (`UI-RWF-04`) | `FE-INP-32` | Menjadi halaman wadah **Laporan Rawat Inap** di butir menu tingkat dua ke-10. Isi pertamanya Laporan Transfer Ruangan (skema 13.4.8). Laporan rawat inap berikutnya masuk halaman ini tanpa butir menu baru. Butir tidak tampil bagi pengguna tanpa permission laporan rawat inap |
+| `RWI-DEC-216` (`UI-RWF-05`) | `FE-INP-30` | Kedua daftar di akhir kelompok episode Daftar Pantau, sesudah `FE-INT-03` |
+| `RWI-DEC-218`, `RWI-DEC-219` | `FE-INP-25` | Perkiraan tarif tindakan dari order yang dirujuk, beserta keterangan komponen OK yang ditagihkan setelah operasi |
+| `RWI-DEC-207` | — | Tidak ada layar baru di sub-modul ini; baris operasi kunjungan asal tampil di Tagihan Pasien `FE-KEP-23` |
+| `RWI-DEC-208`, `RWI-DEC-217` | `FE-INP-29`, `FE-INP-33` | Tidak lagi tertahan persetujuan OK; prioritas `P1` |
+
+**`IA-INP-05` versi sepuluh butir.** Tabel aturan `IA-INP` di atas menulis "paling banyak sembilan"; sejak `RWI-DEC-214` angkanya **sepuluh**. Sisa kuota nol.
+
+Rupa di dalam letak yang sudah diputuskan `DEV_DISCRETION` (`RWI-FE-006`).

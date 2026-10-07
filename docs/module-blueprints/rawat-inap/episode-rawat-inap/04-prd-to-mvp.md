@@ -1637,3 +1637,180 @@ Nol epic `OPEN DECISION`.
 | 2 | Dosis lewat jadwal yang belum dicatat saat penutupan tetap `Due` hanya-baca — sama dengan `keperawatan` 22.20 nomor 9 | Muhammad Hamzah | Tidak |
 | 3 | Isi minimal resume, termasuk apakah tiga isian baru wajib sebelum tanda tangan | Pemilik klinis, belum ditunjuk | Tidak untuk desain; gerbang produksi |
 | 4 | ~~Persetujuan Yoga Aji Pratama atas pemanggil penguncian dari `InPatientManagement`~~ — **`closed` 2026-09-16** oleh `RWI-DEC-151` | Yoga Aji Pratama | Tidak — pemberitahuan sebelum rilis `RI-V2-1` **sudah terpenuhi**; DoD `BE-RWI-082` cukup merujuk keputusan itu |
+
+---
+
+## 23. Finishing Rawat Inap — revision `0.9` / kontrak `0.10.0` ★ 1 Oktober 2026
+
+Menurunkan dari `02-backend-architecture.md` 12, `03-frontend-architecture.md` 13, `contracts/` bagian `0.10.0`, `data/data-dictionary.md` 19, dan `flowcharts/`.
+
+### 23.1 Identitas dokumen
+
+| Field | Nilai |
+|---|---|
+| Produk | Quilvian — Rawat Inap, sub-modul `episode-rawat-inap` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
+| Baseline | Backend `c8e99ce5` (HEAD `425cfeae`); frontend `22ad67330` |
+| Masukan | `PRD-RWI-FINISHING-001` v`0.4`; decision log revision `30`; gate `1.9` (`INP-S27`, `S31`, `S33`, `S36`, `S37` `READY_FOR_DOMAIN_DESIGN`; `INP-S32` `PARTIALLY_READY`) |
+| Arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — batas domain diambil dari keputusan `RWI-DEC-173` s.d. `205` dan source yang dibaca |
+| Cakupan | Pasien operasi dari bangsal sampai kembali ke bed, admisi dari kamar pulih, penolakan order, ringkasan operasi, serah terima transfer (`P2`), laporan transfer (`P2`) |
+
+### 23.2 Ringkasan eksekutif
+
+Bangsal dapat memesan ruang bedah dari order tindakan, mengirim catatan pra-operasi yang dikonfirmasi OK, menerima pasien kembali dengan serah terima yang sah, dan melihat ringkasan operasinya. Biaya operasi masuk invoice satu kali saat kasus selesai. Pasien operasi elektif dari poliklinik yang perlu dirawat muncul di daftar admisi, tanpa admisi otomatis.
+
+### 23.3 Masalah produk
+
+`FIN-CAP-21` s.d. `26`, `33`: menu Pemesanan Ruangan Bedah masih *placeholder*; bangsal tidak melihat status operasi; serah terima OK dapat diterima siapa saja dengan permission yang sama dengan pengirimnya; kiriman biaya OK ke Billing ditahan; keputusan kamar pulih "rawat inap" tidak menghasilkan apa pun; laporan operasi tidak terbaca di bangsal.
+
+### 23.4 Visi produk
+
+1. Order tindakan dokter → pesanan ruang bedah dari bangsal → kasus OK.
+2. Pra-operasi dua sisi → kasus "Siap" → operasi → kamar pulih.
+3. Serah terima diterima di bed unit tujuan → kasus selesai → biaya operasi masuk invoice.
+
+### 23.5 Batas MVP
+
+**Titik mulai.** (1) Episode `Admitted` dengan order tindakan operasi aktif; atau (2) pasien non-rawat inap yang kasus OK-nya sampai di kamar pulih. **Titik akhir.** (1) Kasus OK `Completed` atau `Rejected` dan terbaca di bangsal. (2) Biaya operasi tercatat di invoice. (3) Permintaan admisi `Completed` atau `Cancelled`.
+
+### 23.6 Pelaku sasaran
+
+| Pelaku | Tanggung jawab |
+|---|---|
+| Perawat bangsal | Memesan ruang bedah; mengirim pra-operasi; menerima serah terima |
+| Dokter bangsal | Memesan order tindakan dan ruang bedah; membaca ringkasan operasi |
+| Petugas penjadwalan OK | Menjadwalkan atau menolak order |
+| Perawat OK | Mengonfirmasi pra-operasi; mengirim serah terima |
+| Petugas admisi | Menyelesaikan admisi dari permintaan |
+| Kepala ruangan, manajemen | Laporan transfer (`P2`) |
+
+### 23.7 Pemilihan kemampuan MVP
+
+| Kemampuan | ID kemampuan asal | Keputusan MVP |
+|---|---|---|
+| Pemesanan ruang bedah dan Obgyn | `CAP-RWF-07`, `FIN-CAP-21` | Wajib (`P1`) |
+| Pasien operasi terhubung ke bangsal | `CAP-RWF-08`, `FIN-CAP-22` s.d. `24` | Wajib (`P1`) |
+| Admisi dari kamar pulih | `CAP-RWF-18`, temuan 37 | Wajib (`P1`, `RWI-DEC-217`) |
+| Ringkasan operasi di bangsal | `CAP-RWF-19`, temuan 36 | Wajib (`P1`, `RWI-DEC-217`) |
+| Penolakan order operasi | `CAP-RWF-22`, temuan 40 | Wajib (`P1`, `RWI-DEC-217`) |
+
+### 23.8 Kemampuan yang ditunda
+
+| Kemampuan | Alasan | Pengganti selama MVP |
+|---|---|---|
+| Serah terima klinis transfer (`CAP-RWF-16`) | `P2` (`RWF-W5`) | Tetap "Integrasi belum tersedia"; transfer tetap berjalan |
+| Laporan transfer ruangan (`CAP-RWF-23`) | `P2`; butir menu Laporan Rawat Inap (`RWI-DEC-214`, `215`) | Riwayat penempatan per episode |
+| ~~Penggabungan biaya operasi kunjungan asal~~ | **Tidak lagi ditunda** — `RWI-DEC-207`: tautan non-destruktif oleh Billing (`integrasi-billing` 9.14), masuk `MVP-2` | — |
+| Jasa medis, asisten, diskon operasi | Milik modul jasa medis dan Billing (`RWI-DEC-197`) | — |
+
+### 23.9 Alur bisnis target
+
+`flowcharts/00-alur-utama.md`; rincian `01` s.d. `04`.
+
+### 23.10 Epic dan functional requirement
+
+| Epic | FR | Disposisi backend |
+|---|---|---|
+| `EPIC-RWF-05` Pemesanan ruang bedah dan pasien operasi | `FR-RWF-040` s.d. `049`, `090` | `EXTEND` (`OprCase`, serah terima, kesiapan, kiriman OK), `MISSING / NEW` (adapter pemesanan, pra-operasi, efek kasus selesai, master butir) |
+| `EPIC-RWF-09` Pasca operasi — bagian sub-modul ini | `FR-RWF-080` s.d. `082`, `086` s.d. `089` | `MISSING / NEW` (permintaan admisi, bacaan ringkasan, laporan), `EXTEND` (status `Rejected`); aturan Billing butir (b): `EXTEND` di `integrasi-billing` (`RWI-DEC-207`) |
+| `EPIC-RWF-08` bagian transfer | `FR-RWF-071` | `MISSING / NEW` (`CliTransferHandover`) |
+
+`FR-RWF-083` s.d. `085`, `091` s.d. `093` (surveilans, transfusi) dirancang `keperawatan` kontrak `0.6.0`.
+
+### 23.11 Model status yang diusulkan
+
+`contracts/state-transition-matrix.md` bagian 9. Invariant `INV-RWF-25` s.d. `34`.
+
+### 23.12 Sasaran arsitektur
+
+Dipakai ulang: `OprCase`, `OprCaseProcedure`, `OprHandover`, kesiapan OK, outbox `OprIntegrationDelivery`, jalur order tindakan, admisi berlangkah, linimasa penempatan. Diperluas: `OprCase`, `MstInpatientSetting`, `MstTariff`. Baru: `InpSurgeryBookingAdapter`, `OprWardPreOp*`, `MstSurgicalPreparationItem`, `OperatingRoomCompletionEffects`, `PatientProcedureExecutionService` (ekstraksi), `InpAdmissionReferral`, `CliTransferHandover`, `InpRoomTransferReportService`.
+
+### 23.13 Sasaran kemampuan API
+
+| Tag | Endpoint | Hak akses | Epic | Status |
+|---|---|---|---|---|
+| `Health Services / Inpatient Management / Inpatient Surgery Booking` | `POST …/episodes/{id}/surgery-bookings` | `OperatingRoomCase : Create` | `EPIC-RWF-05` | **Rencana (belum tersedia)** |
+| `Health Services / Operating Room Management / Preparation` | `…/preparation/ward-pre-op` (5 operasi) | `OperatingRoomWardPreOp : Read/Send/Confirm` | `EPIC-RWF-05` | **Rencana (belum tersedia)** |
+| `Health Services / Master Data / Surgical Preparation Item` | `…/surgical-preparation-items` | `SurgicalPreparationItem : Read/Create/Update` | `EPIC-RWF-05` | **Rencana (belum tersedia)** |
+| `Health Services / Operating Room Management / Cases` | `PATCH /{id}/reject`, `GET /{id}/post-operative-summary`; isian baru | `OperatingRoomCase : Reject`, `: Read` | `EPIC-RWF-05`, `09` | **Rencana**; isian pada endpoint ✅ yang ada |
+| `Health Services / Operating Room Management / Execution` | `POST handovers`, `PATCH handovers/{id}/accept`, `PUT recovery` | `OperatingRoomHandover : Send/Receive`; `OperatingRoomAnesthesia : Update` | `EPIC-RWF-05`, `09` | ✅ Tersedia; permission dan perilaku **Rencana** |
+| `Health Services / Operating Room Management / Handovers` | `GET /handovers` | `OperatingRoomHandover : Read` | `EPIC-RWF-09` | **Rencana (belum tersedia)** |
+| `Health Services / Inpatient Management / Inpatient Admission Referral` | `GET /admission-referrals`, `/{id}` | `InpatientAdmissionReferral : Read` | `EPIC-RWF-09` | **Rencana (belum tersedia)** |
+| `Health Services / Inpatient Management / Inpatient Report` | `GET /reports/room-transfers`, `/export` | `InpatientReport : ReadRoomTransfer/ExportRoomTransfer` | `EPIC-RWF-09` | **Rencana (belum tersedia)**, `P2` |
+| `Health Services / Clinical Management / Transfer Handover` | `…/transfer-handovers` | `TransferHandover : Read/Send/Receive` | `EPIC-RWF-08` | **Rencana (belum tersedia)**, `P2` |
+
+### 23.14 Matriks kewenangan
+
+`contracts/permission-audit-matrix.md` bagian 9.
+
+### 23.15 Batas integrasi dan billing
+
+Tindakan operasi ditagih sekali lewat order tindakan; OK menagih anestesi, sewa kamar operasi, dan bahan (`RWI-DEC-196`). Kasus yang dibatalkan atau ditolak tidak menimbulkan biaya. Biaya operasi tidak lewat ketukan pintu Rawat Inap. Biaya operasi pasien dari poliklinik atau ODC tetap pada invoice kunjungan asal, ditautkan Billing ke invoice `RANAP`, dan dibayar bersama saat pulang (`RWI-DEC-207`, pola `BKC-DEC-118`).
+
+### 23.16 Guardrail regulasi dan keselamatan
+
+Penandaan area operasi dan konfirmasi dua akun mengikuti praktik keselamatan pasien bedah (`RWI-DEC-173`, `174`). Isi butir persiapan disahkan pemilik klinis sebelum produksi.
+
+### 23.17 Kebutuhan non-fungsional
+
+| ID | Kebutuhan |
+|---|---|
+| `NFR-RWF-12` | Pemeriksaan lokasi bed untuk penerimaan serah terima gagal tertutup |
+| `NFR-RWF-13` | Efek kasus selesai idempoten: dijalankan berulang tidak menggandakan baris tagihan |
+| `NFR-RWF-14` | Laporan transfer 31 hari memuat ≤ 2 detik untuk 500 transfer; ekspor tidak disimpan di server |
+| `NFR-RWF-15` | Daftar Pesanan Ruang Bedah tidak memerlukan dorongan waktu nyata; status segar saat menu dibuka atau dimuat ulang |
+
+### 23.18 Skenario UAT
+
+| ID | Jalur | Langkah | Hasil |
+|---|---|---|---|
+| `UAT-RWF-05` | Berhasil | Pesan Bedah Obgyn → dijadwalkan → pra-operasi lengkap dua sisi → operasi → serah terima diterima | Status terlihat di setiap langkah; jenis Obstetri; biaya muncul setelah `Completed` |
+| `UAT-RWF-13` | Gagal | Serah terima ke ICU saat pasien di bangsal; perawat OK mencoba menerima sendiri | Ditolak; tombol Terima ICU terkunci sampai transfer |
+| `UAT-RWF-16` | Berhasil | Pasien poliklinik selesai operasi; kamar pulih memutuskan rawat inap | Muncul di daftar permintaan; setelah admisi dan bed, serah terima diterima dan kasus `Completed` |
+| `UAT-RWF-17` | Berhasil | Perawat membuka ringkasan operasi | Baca-saja |
+| `UAT-RWF-21` | Berhasil | Kasus ditunda lalu dijadwalkan ulang dengan TD baru | Versi lama "perlu diperbarui"; versi baru memuat TD terbaru; "Siap" setelah konfirmasi akun lain |
+| `UAT-RWF-24` | Gagal lalu berhasil | Tolak order tanpa alasan, dengan alasan; bangsal memesan ulang | Ditolak; Ditolak tampil di bangsal; kasus baru; tanpa biaya |
+| `UAT-RWF-32` | Gagal | Pesan ruang bedah tanpa order tindakan | Ditolak "Tindakan operasi belum dipesan dokter" |
+| `UAT-RWF-33` | Gagal | Admisi biasa untuk pasien yang punya permintaan dari kamar pulih | Ditolak dan diarahkan ke permintaan |
+| `UAT-RWF-14` | Berhasil (`P2`) | Pasien dipindahkan bangsal → ICU | Dokumen lahir; "Serah terima tertunda" sampai diterima |
+| `UAT-RWF-20` | Berhasil dan gagal (`P2`) | Laporan transfer satu minggu; pengguna tanpa permission | Baris lengkap, koreksi bertanda; 403 |
+
+### 23.19 Definition of Done
+
+| Butir | Bukti |
+|---|---|
+| Menu Pemesanan Ruangan Bedah tidak lagi *placeholder* dan setiap pesanan merujuk satu order | `UAT-RWF-05`, `32`; `AC-RWF-040`, `048` |
+| Kasus tidak dapat "Siap" tanpa pra-operasi versi terbaru terkonfirmasi dua akun | `AC-RWF-042`, `046`, `093`, `094`; `UAT-RWF-21` |
+| Serah terima hanya diterima penerima sah di bed unit tujuan | `AC-RWF-043`, `047`; `UAT-RWF-13` |
+| Biaya operasi tepat sekali per komponen, nol untuk kasus batal atau ditolak | `AC-RWF-044`, `092`, `099`; test idempotensi `INV-RWF-29` |
+| Permintaan admisi tanpa admisi otomatis | `AC-RWF-080`, `088`, `089`; `UAT-RWF-16`, `33` — persetujuan OK sudah ada (`RWI-DEC-208`) |
+| Status Ditolak di OK dan bangsal | `AC-RWF-085`, `099`; `UAT-RWF-24` — persetujuan OK sudah ada (`RWI-DEC-208`) |
+| Ringkasan operasi baca-saja | `AC-RWF-081`, `082`; `UAT-RWF-17` |
+| Alur OK lama tidak berubah | Regresi bagian 20 testing |
+
+### 23.20 Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi | Syarat mulai |
+|---|---|---|
+| `MVP-1` (`RWF-W3`) | `E4`, `E5`; adapter pemesanan; pra-operasi; permission serah terima; aturan penerimaan; efek kasus selesai dan tujuan Billing; `FE-INP-25` s.d. `28`, `33`, `34` | Kontrak `0.10.0` disetujui; `integrasi-billing` `RWF-W1` (komponen Billing `OPERATING_ROOM`) |
+| `MVP-2` (`RWF-W7`) | Ringkasan operasi (boleh lebih dulu); status `Rejected`; `E6` permintaan admisi; daftar pantau; `FE-INP-29`, `30` | `RWF-W3` (persetujuan OK `RWI-DEC-208` sudah ada) |
+| `POST-MVP` (`RWF-W5`, `RWF-W7` `P2`) | `E7` serah terima transfer `FE-INP-31`; laporan transfer `FE-INP-32` | `RWF-W1` (koreksi penempatan) |
+| `MVP-2` (`RWF-W7`) | Tautan kunjungan asal ke invoice `RANAP` dan baris operasinya di Tagihan Pasien (`integrasi-billing` `I6`, `RWI-DEC-207`) | `E6` |
+
+| Pertanyaan | Siapa | Dampak | Memblokir |
+|---|---|---|:---:|
+| ~~`DEC-INP-018` invoice tujuan biaya operasi dari poliklinik/ODC~~ | Yasmina | Aturan Billing penggabungan; sisi Rawat Inap dan OK tidak berubah | Tidak — **ditutup 2 Oktober 2026** |
+| ~~`RWI-OQ-114` (a) OK mengirim dan membatalkan permintaan admisi~~ | Ikbal Yulianto | Implementasi `INT-RWF-23`, `24` | Tidak — **ditutup 2 Oktober 2026** |
+| ~~`RWI-OQ-114` (c) status `Rejected` di OK~~ | Ikbal Yulianto | Implementasi `PATCH reject` | Tidak — **ditutup 2 Oktober 2026** |
+| ~~Prioritas `CAP-RWF-18`, `19`, `22` (PRD 11.2 butir 13)~~ | Muhammad Hamzah | Urutan gelombang | Tidak — **ditutup 2 Oktober 2026** |
+| ~~`UI-RWF-03` letak ringkasan di ruang kerja dokter; `UI-RWF-04` letak laporan transfer; `UI-RWF-05` urutan daftar pantau~~ | Muhammad Hamzah | Task frontend layar terkait | Tidak — **ditutup 2 Oktober 2026** |
+| Nilai `OprPlannedAnesthesiaType` dan isi awal butir persiapan | Pemilik OK; pemilik klinis | Data master | Tidak — gerbang produksi |
+
+**Penyelarasan decision log revision `31` ★ 2 Oktober 2026.** Seluruh pertanyaan 23.20 tertutup: `DEC-INP-018` (`RWI-DEC-207`), `RWI-OQ-114` (a) dan (c) (`RWI-DEC-208`), prioritas (`RWI-DEC-217`), `UI-RWF-03` s.d. `05` (`RWI-DEC-213` s.d. `216`). Tidak ada epic `OPEN DECISION`. Yang tersisa hanya gerbang produksi: isi awal butir persiapan bedah dan nilai jenis anestesi rencana.
+
+| ID | Jalur | Langkah | Hasil |
+|---|---|---|---|
+| `UAT-RWF-41` | Gagal | Petugas admisi membuka admisi biasa untuk pasien yang punya permintaan dari kamar pulih | Ditolak dan diarahkan ke permintaan; admisi dari permintaan berhasil (`RWI-AC-331`) |
+| `UAT-RWF-42` | Gagal | Perawat memesan ruang bedah untuk episode `DischargePending` | Ditolak (`RWI-AC-332`) |
+| `UAT-RWF-43` | Berhasil | Perawat memesan ruang bedah dari order tindakan berharga | Perkiraan tarif tindakan dan keterangan komponen OK tampil (`RWI-AC-338`) |
+| `UAT-RWF-44` | Berhasil dan gagal | Pengguna dengan dan tanpa permission laporan membuka sidebar Rawat Inap | Butir Laporan Rawat Inap hanya tampil bagi pemegang permission; paling banyak sepuluh butir (`RWI-AC-340`) |

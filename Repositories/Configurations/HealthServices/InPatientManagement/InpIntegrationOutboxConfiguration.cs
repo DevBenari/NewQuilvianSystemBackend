@@ -52,6 +52,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.InPat
             builder.HasIndex(x => x.EventType);
             builder.HasIndex(x => x.NextRetryAtUtc);
             builder.HasIndex(x => x.CreatedAtUtc);
+
+            // Kontrak integrasi-billing 1.1.0 kamus data 6.5 — sewa pemrosesan dan putar ulang.
+            builder.HasIndex(x => new { x.Status, x.ProcessingStartedAtUtc },
+                "IX_InpIntegrationOutbox_Status_ProcessingStartedAtUtc");
+            builder.HasIndex(x => x.ReplayBatchId, "IX_InpIntegrationOutbox_ReplayBatchId");
         }
     }
 }

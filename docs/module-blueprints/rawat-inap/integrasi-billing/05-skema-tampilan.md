@@ -8,6 +8,18 @@
 | Target Framework | Next.js 14+ App Router, React 18, Tailwind CSS, Quilvian Design Tokens |
 | Aturan Tampilan | Seluruh teks label dan informasi disajikan dalam **Bahasa Indonesia** yang mudah dipahami staf bangsal, dan **steril dari nominal rupiah** kecuali pemegang izin khusus. |
 
+> **Sebagian digantikan pada kontrak `1.1.0` (1 Oktober 2026).** Skema yang berlaku untuk layar Finishing ada di
+> [`03-frontend-architecture.md`](./03-frontend-architecture.md) bagian 6 (`FE-INT-01` s.d. `06`) dan
+> `keperawatan/03-frontend-architecture.md` bagian 11 (`FE-KEP-23`). Berkas ini dipertahankan sebagai riwayat kontrak `1.0.0`.
+>
+> | Skematik | Status pada `1.1.0` | Pengganti | Sebab |
+> |---|---|---|---|
+> | 1 — kolom status kasir di census | Masih berlaku sebagai rupa; label mengikuti empat badge `FE-INT-06` | `FE-INT-06` | `RWI-DEC-167` |
+> | 2 — kartu status kasir di Detail Episode | **Digantikan** | `FE-INT-06` | Satu sumber izin kasir (`RWI-DEC-167`) |
+> | 3 — gerbang kasir pada pemulangan | **Digantikan** — kasir tidak lagi menahan pulang fisik; gerbang pindah ke penutupan episode | `FE-INT-01`, `FE-INT-02` | `RWI-DEC-186` |
+> | 4 — *supervisor override* pulang fisik | **Dihapus** — endpointnya dihapus; override hanya pada penutupan, berbasis permission tanpa PIN | `FE-INT-02` | `RWI-DEC-187` |
+> | 5 — rincian finansial dengan harga per item | **Digantikan** — perawat melihat rincian tanpa rupiah; pemegang `PatientBillingSummary : ViewAmount` melihat subtotal per kelompok dan total, tanpa harga per item | `FE-KEP-23` | `RWI-DEC-160`, `170` |
+
 ---
 
 ## 1. Skematik 1: Kolom Status Kasir pada Dashboard Sensus Bangsal (`FE-INP-01`)

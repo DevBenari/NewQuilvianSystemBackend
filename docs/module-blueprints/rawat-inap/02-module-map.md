@@ -3,12 +3,12 @@
 | Field | Value |
 |---|---|
 | Dokumen | `02-module-map.md` — hanya lahir pada `blueprint_shape: COMPOSITE` |
-| Revision | **`3`** — pendaftaran sub-modul `integrasi-billing` (Slice `INP-S22`), 17 September 2026. Sebelumnya Revision `2` (15 September 2026) |
-| Status | **`draft`** — sub-modul `integrasi-billing` berstatus `draft` menunggu approval bersama Muhammad Hamzah & Yasmina. Ketiga sub-modul lama tetap mempertahankan status sebelumnya |
-| Tanggal | 2026-09-02; revision `2` ditulis 2026-09-15, disetujui 2026-09-16; **revision `3` ditulis 2026-09-17** |
+| Revision | **`4`** — Finishing Rawat Inap, 1 Oktober 2026: bagian 7. Sebelumnya revision `3` pendaftaran sub-modul `integrasi-billing` (17 September 2026) dan revision `2` (15 September 2026) |
+| Status | **`approved`** — revision `4` **disetujui Muhammad Hamzah 2026-10-02 lewat `RWI-DEC-221`**, bersama keempat kontrak baru (`integrasi-billing` `1.1.0`, `keperawatan` `0.6.0`, `dokter-rawat-inap` `0.7.0`, `episode-rawat-inap` `0.10.0`). Approval sebelumnya tetap berlaku untuk isi yang tidak disentuh |
+| Tanggal | 2026-09-02; revision `2` ditulis 2026-09-15, disetujui 2026-09-16; revision `3` ditulis 2026-09-17; **revision `4` ditulis 2026-10-01** |
 | Modul | `rawat-inap` / `InPatientManagement`, prefix entity `Inp` |
 | Bentuk blueprint | `COMPOSITE`, ditetapkan `RWI-DEC-082`, `shape_decided_by: USER_CONFIRMED` |
-| Masukan keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) revision `25` (17 September 2026) — `RWI-DEC-156` s.d. `161`, `RWI-AC-236` s.d. `241` |
+| Masukan keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) revision `31` (2 Oktober 2026) — untuk revision `4`: `RWI-DEC-163` s.d. `220` (penyelarasan bagian 7.8). Revision `3`: revision `25`, `RWI-DEC-156` s.d. `161` |
 | Masukan keadaan saat ini | [`01-existing-capability-map.md`](./01-existing-capability-map.md) revision `1.5` Bagian 18 |
 | Baseline requirement | `docs/Modul-RS/Rawat-Inap-To-Billing/PRD Integrasi-Rawat-Inap-dengan-Billing.md` (2.282 baris) dan `PRD_Final_Rawat_Inap_100_Persen.md` v1.0.0 |
 | Owner | Product/Domain: **Muhammad Hamzah**, ditunjuk `RWI-DEC-061`; Integrasi Billing: **Muhammad Hamzah & Yasmina** |
@@ -490,3 +490,157 @@ belum tersedia". Dicatat untuk `grill-me` berikutnya.
 
 Tidak satu pun menahan pekerjaan `episode-rawat-inap`, dan `RWI-OQ-048` tidak menahan ketiga
 kemampuan `MUST HAVE` milik `keperawatan`.
+
+---
+
+## 7. ★ Revision `4` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`); keempat sub-modul memperoleh kontrak baru yang disetujui bersama |
+| Masukan | `PRD-RWI-FINISHING-001` v`0.4`; decision log revision `30` (`RWI-DEC-163` s.d. `205`); gate `1.9` bagian 18; capability map `1.6` bagian 19 |
+| Ditulis oleh | `design-business-module`, `DOMAIN_ARCHITECTURE_NOT_RUN` |
+| Bentuk | Tetap `COMPOSITE` empat sub-modul (`RWI-DEC-164`). **Nol sub-modul baru** — data klaster Pasca Operasi dimiliki Kamar Operasi, Clinical, Bank Darah, atau episode (`RWI-DEC-197`, `198`) |
+
+### 7.1 Registry sub-modul revision `4`
+
+| Slug | Kontrak sebelumnya | Kontrak baru | Bagian amandemen | Kemampuan Finishing | Status |
+|---|---|---|---|---|---|
+| `integrasi-billing` | `1.0.0` | **`1.1.0`** | `02` 9, `03` 6, `04` 8, kontrak 3–5, data 6, testing 4, flowchart `04`–`06` | `CAP-RWF-01` s.d. `04`, `15` | `approved` (`RWI-DEC-221`) |
+| `keperawatan` | `0.5.0` | **`0.6.0`** | `02` 12, `03` 11, `04` 23, kontrak 6–9, data 12, testing 10, flowchart `05`–`09` | `CAP-RWF-05`, `09` s.d. `13`, `20`, `21` | `approved` (`RWI-DEC-221`) |
+| `dokter-rawat-inap` | `0.6.0` | **`0.7.0`** | `02` 12, `03` 11, `04` 23, kontrak 9–13, data 14, testing 15, flowchart `06` | `CAP-RWF-06`, `14` | `approved` (`RWI-DEC-221`) |
+| `episode-rawat-inap` | `0.9.0` | **`0.10.0`** | `02` 12, `03` 13, `04` 23, kontrak 9–14, data 19, testing 20, **folder `flowcharts/` baru** `00`–`04` | `CAP-RWF-07`, `08`, `16`, `18`, `19`, `22`, `23` | `approved` (`RWI-DEC-221`) |
+
+Status modul tetap diturunkan: seluruh sub-modul `approved` pada revision `8` → modul **`approved`** (`RWI-DEC-221`, 2026-10-02).
+
+### 7.2 Tabel kepemilikan data revision `4`
+
+Satu baris per kelompok data yang **baru atau berubah bentuk** pada Finishing. Tidak satu pun tabel dimiliki dua sub-modul; tabel milik modul lain dirancang di sub-modul yang memakainya dan diimplementasikan di modul pemiliknya setelah persetujuan pemilik.
+
+| Kelompok data | Tabel | Modul pemilik | Sub-modul perancang | Status | Gerbang pemilik |
+|---|---|---|---|---|---|
+| Pengamatan kasir dan koreksi penempatan | `InpEpisode` (+4 kolom), `InpBedPlacement` (+2), `InpIntegrationOutboxes` (+4) | `InPatientManagement` | `integrasi-billing` | Diperbarui | — |
+| Kuitansi ketukan pintu, invoice perlu diperiksa | `BilInpatientEventReceipt`, `BilInvoice` (+6) | `BillingManagement` | `integrasi-billing` | Baru / Diperbarui | `RWI-DEC-192` |
+| Pemakaian alat | `CliEquipmentUsage`, `CliEquipmentUsageRevision`, `MstMedicalEquipment` | `ClinicalManagement`, `MasterData` | `keperawatan` | Baru | `RWI-DEC-193` |
+| WSD per selang | `CliWsdDrain`, `CliWsdReading` | `ClinicalManagement` | `keperawatan` | Baru | — |
+| Surveilans infeksi luka operasi | `CliSurgicalSiteSurveillance`, `…Entry`, `…EntryRevision` | `ClinicalManagement` | `keperawatan` | Baru | — |
+| Monitoring transfusi | `CliTransfusionMonitoring`, `…Point`, `CliTransfusionReaction` | `ClinicalManagement` | `keperawatan` | Baru | — |
+| Pemberitahuan reaksi transfusi | `BbkTransfusionReactionNotice` | `BloodBankManagement` | `keperawatan` | Baru | Disetujui `RWI-DEC-209` |
+| Verifikasi instruksi diet | `GziPatientDiet` (+3) | `NutritionManagement` | `keperawatan` | Diperbarui | `RWI-DEC-191` |
+| Verifikasi instruksi pesanan gizi dan darah | `GziNutritionOrder` (+3), `BbkBloodOrder` (+3) | `NutritionManagement`, `BloodBankManagement` | `dokter-rawat-inap` | Diperbarui | `RWI-DEC-191`; Bank Darah `RWI-DEC-171` |
+| Kasus OK: jenis layanan, rencana anestesi, penolakan | `OprCase` (+5, status `Rejected`) | `OperatingRoomManagement` | `episode-rawat-inap` | Diperbarui | Disetujui `RWI-DEC-208` |
+| Catatan pra-operasi bangsal | `OprWardPreOpNote`, `…Item`, `…SiteMark` | `OperatingRoomManagement` | `episode-rawat-inap` | Baru | `RWI-DEC-173` |
+| Butir persiapan bedah | `MstSurgicalPreparationItem` | `MasterData` | `episode-rawat-inap` | Baru | `RWI-DEC-193` |
+| Permintaan admisi dari kamar pulih | `InpAdmissionReferral` | `InPatientManagement` | `episode-rawat-inap` | Baru | Disetujui `RWI-DEC-208` |
+| Tautan kunjungan asal ke invoice `RANAP` | `BilInvoiceEncounterLink` | `BillingManagement` | `integrasi-billing` | Baru | `RWI-DEC-207` (pola `BKC-DEC-118`) |
+| Serah terima transfer (`P2`) | `CliTransferHandover` | `ClinicalManagement` | `episode-rawat-inap` | Baru | — |
+| Ambang daftar pantau | `MstInpatientSetting` (+2) | `MasterData` | `episode-rawat-inap` | Diperbarui | — |
+| **Tarif bersama** | `MstTariff` (+`MedicalEquipmentId`, `SurgeryComponentType`, `ChargeBasis`, `ChargeRounding`) | `MasterData` | **`keperawatan` memegang satu-satunya daftar kolom (data 12.14)**; `episode-rawat-inap` merujuknya | Diperbarui | `RWI-DEC-193`, `196` |
+
+**Yang tidak dibuat.** Tidak ada `Trx*` baru; tidak ada salinan ringkasan operasi, laporan transfer, atau pesanan penunjang di Rawat Inap; tidak ada master keanggotaan perawat per unit.
+
+**Fakta yang dibetulkan.** `RWI-FACT-058` butir 1 menyatakan tidak ada catatan infeksi nosokomial; source memuat `TrxNosocomialInfection`. `keperawatan` 12.1 memakainya sebagai tujuan tim PPI, bukan membuat tabel kedua.
+
+### 7.3 Peta butir menu revision `4`
+
+~~Kuota `IA-INP-05` tetap sembilan dan tidak disentuh.~~ **Diamendemen `RWI-DEC-214` (2 Oktober 2026): `IA-INP-05` menjadi paling banyak sepuluh butir**, dan butir ke-10 adalah Laporan Rawat Inap (nomor 18). Sisa kuota nol.
+
+| # | Butir menu | Tingkat | Induk | `pathname` | Layar | Sub-modul | Hak akses penjaga | Status |
+|---:|---|:---:|---|---|---|---|---|---|
+| 15 | Alat Medis | 2 | Pelayanan Kesehatan → **Master Data** | `/health-services/master-data/medical-equipments` | `FE-KEP-32` | `keperawatan` | `MedicalEquipment : Read` | **Baru** |
+| 16 | Reaksi Transfusi | 2 | Pelayanan Kesehatan → **Bank Darah** | `/health-services/blood-bank-management/transfusion-reaction-notices` | `FE-KEP-33` | `keperawatan` | `TransfusionReactionNotice : Read` | **Baru** — disetujui `RWI-DEC-209` |
+| 17 | Butir Persiapan Bedah | 2 | Pelayanan Kesehatan → **Master Data** | `/health-services/master-data/surgical-preparation-items` | `FE-INP-34` | `episode-rawat-inap` | `SurgicalPreparationItem : Read` | **Baru** |
+| 18 | Laporan Rawat Inap | 2 | Pelayanan Kesehatan → **Rawat Inap** | `/health-services/inpatient-management/reports` (usulan) | `FE-INP-32` | `episode-rawat-inap` | Salah satu permission laporan rawat inap — hari ini `InpatientReport : ReadRoomTransfer` | **Baru** — butir tingkat dua Rawat Inap ke-10 (`RWI-DEC-214`, `215`) |
+
+**Layar anak revision `4`.**
+
+| Layar | Jalan masuk | Sub-modul |
+|---|---|---|
+| `FE-INT-01`, `02`, `04`, `06` | `FE-INP-04`, `FE-INP-07`, `FE-INP-14`, `FE-KEP-07` | `integrasi-billing` |
+| `FE-INT-03` | Daftar Pantau `FE-INP-09` | `integrasi-billing` |
+| `FE-INT-05` | Billing → Invoice (butir yang sudah ada) | `integrasi-billing` |
+| `FE-KEP-23` s.d. `28`, `34` | `FE-KEP-07`, delapan menu V1 | `keperawatan` |
+| `FE-KEP-29` | Sub-tab Asuhan Keperawatan `FE-KEP-07`, hanya bila ada kasus OK `Completed` (`RWI-DEC-211`) | `keperawatan` |
+| `FE-KEP-31` | Tab Bank Darah pada menu Penunjang Medis `FE-KEP-07` (`RWI-DEC-212`) | `keperawatan` |
+| `FE-KEP-30` | Daftar Pantau `FE-INP-09` | `keperawatan` |
+| `FE-DOK-15`, `17` s.d. `19` | `FE-DOK-09`; menu Penunjang Medis `FE-KEP-07`; order tindakan | `dokter-rawat-inap` |
+| `FE-INP-25`, `26` | `FE-KEP-07` menu 7 Pemesanan Ruangan Bedah — **menggantikan bagian bedah *placeholder* `FE-KEP-17`**; kartu pada `FE-INP-04` | `episode-rawat-inap` |
+| `FE-INP-27` | `FE-KEP-24` sub-menu Catatan Pra-Operasi; aksi baris `FE-INP-26`; tab Persiapan kasus OK | `episode-rawat-inap` |
+| `FE-INP-28` | Aksi baris `FE-INP-26`; daftar `FE-INP-30`; penanda "Pasca operasi" pada panel Konteks pasien `FE-DOK-09` (`RWI-DEC-213`) | `episode-rawat-inap` |
+| `FE-INP-29` | Admisi Rawat Inap `FE-INP-03` | `episode-rawat-inap` |
+| `FE-INP-30` | Daftar Pantau `FE-INP-09` | `episode-rawat-inap` |
+| `FE-INP-31` (`P2`) | Banner `FE-INP-04`, `FE-KEP-07`; Daftar Pantau | `episode-rawat-inap` |
+| `FE-INP-32` (`P2`) | Butir menu nomor 18 Laporan Rawat Inap — halaman wadah laporan (`RWI-DEC-214`, `215`) | `episode-rawat-inap` |
+| `FE-INP-33` | Operasi → Kasus Operasi (butir yang sudah ada) | `episode-rawat-inap` |
+
+**Urutan daftar di `FE-INP-09` — ditetapkan `RWI-DEC-216` (2 Oktober 2026).** Ketetapan 12 September 2026 (bagian 6) tetap: kelompok `episode-rawat-inap` → `dokter-rawat-inap` → `keperawatan`. Daftar baru: (1) `FE-INT-03` "Pulang sebelum izin kasir" dan kedua daftar `FE-INP-30` masuk kelompok episode **sesudah** `FE-INP-24`, berurutan `FE-INT-03`, serah terima pasca operasi tertunda, permintaan admisi tertunda; (2) `FE-KEP-30` daftar surveilans PPI di akhir kelompok keperawatan sesudah `FE-KEP-22`. Perubahan urutan berikutnya **tidak boleh** diputuskan satu sub-modul sendirian.
+
+### 7.4 Urutan migration lintas sub-modul revision `4`
+
+**Catatan penerapan aktual, bukti diterima 5 Oktober 2026.** Pengguna menjalankan `dotnet ef database update`: `Build succeeded.`, `Applying migration '20261005033044_AddRawatInapFinishing'.`, lalu `Done.`. Satu migration memuat `I1` + `I2`, `K8` + `E4`, `E5`, `E6`, dan `E7`; [pemetaan enam task dan log lengkap](episode-rawat-inap/task/report/backend/BE-RWI-172.md#51-pembaruan-bukti-5-oktober-2026). Tabel di bawah tetap rencana urutan/rilis; penerapan gabungan tidak berarti seluruh gelombang sudah dirilis. Rencana dua migration `I1`/`I2` berbeda dari pengemasan aktual, dicatat pada laporan `BE-RWI-149`. `I6` dan migration lain di luar cakupan ini belum dibuktikan output tersebut. Jangan membuat ulang perubahan yang sudah tercakup migration ini.
+
+Langkah per sub-modul: `integrasi-billing/02-backend-architecture.md` 9 (`I1`–`I5`), `keperawatan/02-backend-architecture.md` 12 (`K8`–`K12`), `dokter-rawat-inap/02-backend-architecture.md` 12 (`R10`, `R11`), `episode-rawat-inap/02-backend-architecture.md` 12.11 (`E4`–`E8`).
+
+| Gelombang | Langkah | Prasyarat | Dirilis bersama |
+|---|---|---|---|
+| **`RWF-W0`** | `I1` (Rawat Inap), `I2` (Billing) → `I3` rilis kode keamanan | Kontrak `integrasi-billing` `1.1.0` disetujui | Billing + Rawat Inap satu rilis |
+| **`RWF-W1`** | `I4` rilis kode tagihan inti dan penutupan → `I5` putar ulang (`DryRun` dulu) | `RWF-W0` | Billing + Rawat Inap |
+| **`RWF-W2`** | `K10` + `R10` (satu migration `NutritionManagement`), `R11`; bagian `K9` untuk WSD | `RWF-W0`; Bank Darah `R11` atas `RWI-DEC-171` | Gizi, Bank Darah, Clinical masing-masing |
+| **`RWF-W3`** | **`K8` + `E4` satu migration `MasterData`** (seluruh kolom `MstTariff` sekaligus, `MstMedicalEquipment`, `MstSurgicalPreparationItem`, kolom `MstInpatientSetting`) → `E5` (OK) → `E8` data awal | `RWF-W1` (jembatan `RANAP` dan sumber `OPERATING_ROOM` Billing) | MasterData sebelum OK |
+| **`RWF-W4`** | Bagian `K9` pemakaian alat | `K8` | Clinical |
+| **`RWF-W5`** (`P2`) | `E7` serah terima transfer | `RWF-W1` | Clinical |
+| **`RWF-W7`** | `E6` permintaan admisi → `I6` tautan kunjungan asal (Billing, FK ke `InpAdmissionReferral`); bagian `K9` surveilans dan transfusi; `K12`; `K11` (disetujui `RWI-DEC-209`) | `RWF-W3`; persetujuan OK sudah ada (`RWI-DEC-208`) | Masing-masing; `I6` sesudah `E6` |
+
+**Satu-satunya migration bersama yang wajib digabung:** `K8` + `E4` di `MasterData`, karena keduanya mengubah `MstTariff`. Dua migration terpisah pada tabel yang sama berisiko urutan snapshot model yang bertabrakan. Akibatnya `K8` maju dari `RWF-W4` (`keperawatan/04-prd-to-mvp.md` 23.20 `MVP-2`) ke `RWF-W3`; yang maju hanya bentuk datanya — kode dan layar pemakaian alat tetap di `RWF-W4`. Bila `RWF-W4` dikerjakan lebih dulu daripada `RWF-W3`, gabungan itu ikut pindah ke `RWF-W4`; aturannya tetap satu migration `MasterData` untuk seluruh kolom `MstTariff`. **Tidak ada migration `InPatientManagement` Finishing yang menahan modul lain**, kecuali `E6` yang merujuk `OprCase` sehingga berjalan sesudah `E5`.
+
+### 7.5 Pemetaan kemampuan Finishing ke sub-modul
+
+| Kemampuan | Prioritas | Sub-modul pemilik | Slice gate `1.9` | Kesiapan |
+|---|:---:|---|---|---|
+| `CAP-RWF-01`, `03` | `P0` | `integrasi-billing` | `INP-S23` | `READY_FOR_DOMAIN_DESIGN` |
+| `CAP-RWF-02`, `04` | `P0` | `integrasi-billing` | `INP-S24` | `READY_FOR_DOMAIN_DESIGN` (naik pada gate `1.9`) |
+| `CAP-RWF-15` | `P1` | `integrasi-billing` | `INP-S25` | `READY_FOR_DOMAIN_DESIGN` |
+| `CAP-RWF-05` | `P1` | `keperawatan` | `INP-S25` | `READY_FOR_DOMAIN_DESIGN` |
+| `CAP-RWF-09` s.d. `12` | `P1` | `keperawatan` | `INP-S28` | `READY_FOR_DOMAIN_DESIGN` (naik pada gate `1.9`) |
+| `CAP-RWF-13` | `P1` | `keperawatan` | `INP-S29` | `READY_FOR_DOMAIN_DESIGN` |
+| `CAP-RWF-20` | `P1` | `keperawatan` | `INP-S34` | `READY_FOR_DOMAIN_DESIGN`; gerbang produksi G-21 |
+| `CAP-RWF-21` | `P1` | `keperawatan` | `INP-S35` | `READY_FOR_DOMAIN_DESIGN`; persetujuan Bank Darah `RWI-DEC-209` |
+| `CAP-RWF-06` | `P1` | `dokter-rawat-inap` | `INP-S26` | `READY_FOR_DOMAIN_DESIGN` |
+| `CAP-RWF-14` | `P1` | `dokter-rawat-inap` | `INP-S30` | `READY_FOR_DOMAIN_DESIGN` |
+| `CAP-RWF-07`, `08` | `P1` | `episode-rawat-inap` | `INP-S27` | `READY_FOR_DOMAIN_DESIGN` (naik pada gate `1.9`) |
+| `CAP-RWF-18` | `P1` (`RWI-DEC-217`) | `episode-rawat-inap` | `INP-S32` | Gate `1.9` `PARTIALLY_READY`; satu-satunya penahan `DEC-INP-018` **ditutup `RWI-DEC-207`** — penilaian ulang gate opsional |
+| `CAP-RWF-19` | `P1` (`RWI-DEC-217`) | `episode-rawat-inap` | `INP-S33` (termasuk daftar pantau `FR-RWF-088`) | `READY_FOR_DOMAIN_DESIGN` |
+| `CAP-RWF-22` | `P1` (`RWI-DEC-217`) | `episode-rawat-inap` | `INP-S36` | `READY_FOR_DOMAIN_DESIGN`; persetujuan OK `RWI-DEC-208` |
+| `CAP-RWF-16` | `P2` | `episode-rawat-inap` | `INP-S31` | `READY_FOR_DOMAIN_DESIGN` |
+| `CAP-RWF-23` | `P2` | `episode-rawat-inap` | `INP-S37` | `READY_FOR_DOMAIN_DESIGN` |
+
+`CAP-RWF-17` dihapus (`RWI-DEC-183`). **Nol kemampuan yatim.** Nomor slice mengikuti gate `1.8` bagian 17 dan `1.9` bagian 18. `INP-S25` dipegang dua sub-modul karena layarnya milik `keperawatan` dan hak rupiahnya milik `integrasi-billing`.
+
+### 7.6 Penamaan permission yang diluruskan
+
+Resource permission `MasterData` di source **tidak** memakai awalan `Mst` (`Tariff`, `InpatientSetting`, `Procedure`, dan seterusnya; dibaca dari `AccessPermission` pada `Areas/HealthServices/MasterData/Controllers/`). Desain Finishing mengikuti itu: `MedicalEquipment : Read/Create/Update` (sebelumnya tertulis `MstMedicalEquipment` pada draf `keperawatan`, dibetulkan 1 Oktober 2026) dan `SurgicalPreparationItem : Read/Create/Update`. Baris 3.1 nomor 8 dan 9 (`MstInpatientSetting : Update`, `MstInpatientClearanceItem : Read`) adalah tulisan lama; string di source adalah `InpatientSetting` dan `InpatientClearanceItem`. Baris itu tidak diubah di sini agar riwayat revision `1` tetap utuh.
+
+### 7.7 Yang menahan revision `4` menjadi `approved`
+
+| Butir | Menahan | Pemilik jawaban |
+|---|---|---|
+| ~~Approval kontrak `integrasi-billing` `1.1.0`~~ | **Disetujui 2026-10-02, `RWI-DEC-221`** (Billing-side `RWI-DEC-192`, `207`) | — |
+| ~~Approval kontrak `keperawatan` `0.6.0`, `dokter-rawat-inap` `0.7.0`, `episode-rawat-inap` `0.10.0`~~ | **Disetujui 2026-10-02, `RWI-DEC-221`** | — |
+| ~~`DEC-INP-018`~~ | **Ditutup `RWI-DEC-207`, 2 Oktober 2026** | — |
+| ~~`RWI-OQ-108`, `RWI-OQ-114` (a)(c), `RWI-OQ-115`~~ | **Disetujui `RWI-DEC-208` s.d. `210`, 2 Oktober 2026** | — |
+| ~~`UI-RWF-01` s.d. `05`~~ | **Diputuskan `RWI-DEC-211` s.d. `216`, 2 Oktober 2026** | — |
+| ~~Prioritas `CAP-RWF-18`, `19`, `22`~~ | **`P1`, `RWI-DEC-217`** | — |
+| ~~Tafsiran status tanggungan tanpa harga (G-05)~~ | **Digantikan `RWI-DEC-218`, `219`**: perkiraan harga di semua layar pemesanan bagi setiap pemesan | — |
+
+### 7.8 Penyelarasan decision log revision `31` ★ 2 Oktober 2026
+
+Revision `4` tidak dinaikkan — **dan disetujui 2026-10-02 lewat `RWI-DEC-221`** — isinya diselaraskan di tempat dengan `RWI-DEC-206` s.d. `220`. **Tidak ada lagi keputusan bisnis pemblokir maupun gerbang persetujuan modul tetangga untuk Finishing.** Yang menahan `approved` tinggal approval kontrak keempat sub-modul dan revision `4` ini.
+
+| Perubahan | Bagian |
+|---|---|
+| Tabel baru Billing `BilInvoiceEncounterLink` untuk `RWI-DEC-207`, dirancang `integrasi-billing` 9.14 | 7.2, 7.4 (`I6` sesudah `E6`) |
+| `IA-INP-05` menjadi sepuluh butir; butir 18 Laporan Rawat Inap | 7.3 |
+| Letak `FE-KEP-29`, `FE-KEP-31`, `FE-INP-28` (dokter), `FE-INP-32`; urutan Daftar Pantau ditetapkan | 7.3 |
+| Persetujuan OK, Bank Darah, Farmasi | 7.2, 7.4, 7.5, 7.7 |
+| Prioritas `P1` dan G-05 | 7.5, 7.7 |
+| Koreksi agent: ketukan pintu `ADMISSION_CONFIRMED` tidak membawa `SourceEncounterId` (`INV-RWF-05`); Billing membaca `InpAdmissionReferral` | `episode-rawat-inap` 12.15, `integrasi-billing` `INT-RWF-29` |

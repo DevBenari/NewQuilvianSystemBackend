@@ -1,7 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
@@ -48,13 +52,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
     {
         private readonly InpCensusQueryService _censusQueryService;
         private readonly InpDischargeService _dischargeService;
+        private readonly OperatingRoomHandoverQueryService _handoverQueryService;
+        private readonly InpAdmissionReferralService _admissionReferralService;
 
+        // BE-RWI-182: dua daftar pantau baru membaca daftar serah terima OK (API 11.5.3) dan daftar
+        // permintaan admisi (API 11.6); keduanya baca saja.
         public InpatientMonitoringController(
             InpCensusQueryService censusQueryService,
-            InpDischargeService dischargeService)
+            InpDischargeService dischargeService,
+            OperatingRoomHandoverQueryService handoverQueryService,
+            InpAdmissionReferralService admissionReferralService)
         {
             _censusQueryService = censusQueryService;
             _dischargeService = dischargeService;
+            _handoverQueryService = handoverQueryService;
+            _admissionReferralService = admissionReferralService;
         }
 
         /// <summary>
@@ -108,6 +120,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                 result,
                 "Daftar pantau penutupan tertunda berhasil diambil."));
         }
+
+        [HttpGet("departures-before-clearance")]
+        [AccessAction("Read", "Read Inpatient Monitoring", AccessType = AccessTypes.Read)]
+        [AccessPermission("InpatientMonitoring", "Read")]
+        public async Task<IActionResult> GetDeparturesBeforeClearance([FromQuery] DepartureBeforeClearanceQuery query, CancellationToken cancellationToken)
+            => Ok(ApiResponse<PagedResult<DepartureBeforeClearanceItem>>.Ok(await _dischargeService.GetDeparturesBeforeClearanceAsync(query, cancellationToken)));
 
         /// <summary>Daftar episode yang ditutup menembus gerbang kelayakan keuangan.</summary>
         /// <remarks>
@@ -240,6 +258,64 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
             return Ok(ApiResponse<DepositShortfallPagedResult>.Ok(
                 result,
                 "Daftar pantau kekurangan deposit berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Serah terima pasca operasi yang masih menunggu penerimaan melewati ambang pengaturan
+        /// (<c>BE-RWI-182</c>, API 11.9, <c>RWI-DEC-220</c> butir 6).
+        /// </summary>
+        /// <remarks>
+        /// Membaca daftar serah terima API 11.5.3 dengan <c>OverdueOnly = true</c>. Contoh: serah
+        /// terima ke ICU dikirim 08.00 dan ambangnya 60 menit (bawaan); pukul 09.05 baris itu muncul
+        /// dengan <c>PatientInDestinationUnit = false</c> bila pasien belum dipindahkan ke ICU.
+        /// Mengubah ambang di pengaturan langsung mengubah isi daftar pada pembacaan berikutnya.
+        /// </remarks>
+        [HttpGet("pending-surgical-handovers")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<HandoverQueueItemResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Monitoring", Description = "Melihat daftar pantau serah terima pasca operasi yang tertunda", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientMonitoring", "Read")]
+        public async Task<IActionResult> GetPendingSurgicalHandovers(
+            [FromQuery] PendingSurgicalHandoverQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _handoverQueryService.GetPagedAsync(new HandoverQueueQuery
+            {
+                DestinationUnitId = query.DestinationUnitId,
+                Status = OprHandoverStatus.Sent,
+                OverdueOnly = true,
+                PageNumber = query.PageNumber,
+                PageSize = query.PageSize
+            }, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<HandoverQueueItemResponse>>.Ok(
+                result,
+                "Daftar pantau serah terima pasca operasi tertunda berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Permintaan admisi dari kamar pulih yang belum ditindaklanjuti melewati ambang pengaturan
+        /// (<c>BE-RWI-182</c>, API 11.9). Membaca API 11.6 dengan <c>OverdueOnly = true</c>.
+        /// </summary>
+        [HttpGet("pending-admission-referrals")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<AdmissionReferralResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Monitoring", Description = "Melihat daftar pantau permintaan admisi dari kamar pulih yang tertunda", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientMonitoring", "Read")]
+        public async Task<IActionResult> GetPendingAdmissionReferrals(
+            [FromQuery] PendingAdmissionReferralQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _admissionReferralService.GetPagedAsync(new AdmissionReferralQuery
+            {
+                Status = InpAdmissionReferralStatus.Pending,
+                OverdueOnly = true,
+                Search = query.Search,
+                PageNumber = query.PageNumber,
+                PageSize = query.PageSize
+            }, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<AdmissionReferralResponse>>.Ok(
+                result,
+                "Daftar pantau permintaan admisi tertunda berhasil diambil."));
         }
     }
 }

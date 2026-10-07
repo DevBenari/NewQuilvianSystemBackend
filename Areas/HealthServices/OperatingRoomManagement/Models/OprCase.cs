@@ -25,6 +25,24 @@ public class OprCase : IdentityModel
     public DateTime? PreferredAt { get; set; }
     public int Version { get; set; }
 
+    /// <summary>
+    /// Jenis layanan bedah (<c>BE-RWI-174</c>, kamus data 19.2). Bawaan <c>General</c>; tab Bedah
+    /// Obgyn di bangsal mengisinya <c>Obstetric</c>.
+    /// </summary>
+    public OprSurgicalServiceType SurgicalServiceType { get; set; } = OprSurgicalServiceType.General;
+
+    /// <summary>Rencana anestesi saat dipesan; kosong untuk kasus lama.</summary>
+    public OprPlannedAnesthesiaType? PlannedAnesthesiaType { get; set; }
+
+    /// <summary>Terisi bersama <c>Status = Rejected</c> (<c>CK_OprCase_Rejected</c>).</summary>
+    public DateTime? RejectedAt { get; set; }
+
+    /// <summary>Penolak, dari akun login.</summary>
+    public Guid? RejectedByUserId { get; set; }
+
+    /// <summary>Alasan penolakan 10–500 karakter. Contoh "Hasil lab pra-operasi belum ada".</summary>
+    public string? RejectionReason { get; set; }
+
     public MstPatient? Patient { get; set; }
     public RegPatientEncounter? Encounter { get; set; }
     public MstDoctor? RequesterDoctor { get; set; }

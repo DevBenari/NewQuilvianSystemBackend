@@ -41,7 +41,7 @@ public sealed class OperatingRoomSchedulingService
 
     private static readonly OprCaseStatus[] ClosedStatuses =
     [
-        OprCaseStatus.Completed, OprCaseStatus.Cancelled
+        OprCaseStatus.Completed, OprCaseStatus.Cancelled, OprCaseStatus.Rejected
     ];
 
     private readonly ApplicationDbContext _dbContext;
@@ -82,6 +82,7 @@ public sealed class OperatingRoomSchedulingService
 
         var entity = await LoadCaseAsync(caseId, cancellationToken)
             ?? throw new KeyNotFoundException("Kasus operasi tidak ditemukan.");
+        OperatingRoomCaseService.EnsureNotRejected(entity.Status);
         if (!SchedulableStatuses.Contains(entity.Status))
             throw new OperatingRoomConflictException("InvalidStateTransition",
                 "Jadwal hanya dapat ditetapkan pada kasus berstatus Requested, Scheduled, atau Postponed.");
@@ -196,6 +197,7 @@ public sealed class OperatingRoomSchedulingService
 
         var entity = await LoadCaseAsync(caseId, cancellationToken)
             ?? throw new KeyNotFoundException("Kasus operasi tidak ditemukan.");
+        OperatingRoomCaseService.EnsureNotRejected(entity.Status);
         if (entity.Status != OprCaseStatus.Requested && entity.Status != OprCaseStatus.Scheduled)
             throw new OperatingRoomConflictException("InvalidStateTransition",
                 "Penundaan hanya dapat dilakukan pada kasus berstatus Requested atau Scheduled.");
@@ -209,6 +211,9 @@ public sealed class OperatingRoomSchedulingService
 
         var now = DateTime.UtcNow;
         RetireCurrentPlan(entity, actorUserId, now, reason);
+        // BE-RWI-176 (RWI-DEC-199): versi pra-operasi Sent/Confirmed menjadi "perlu diperbarui"
+        // dalam transaksi penundaan yang sama.
+        await OprWardPreOpService.MarkNeedsUpdateAsync(_dbContext, entity.Id, actorUserId, now, cancellationToken);
 
         var fromStatus = entity.Status;
         entity.Status = OprCaseStatus.Postponed;

@@ -150,3 +150,33 @@ flowchart TD
 | 10 | Membaca hasil | Dokter | Hasil final | Hasil terbaca pada tab Penunjang | Hasil belum final ditandai berbeda |
 | 11 | Memverifikasi | DPJP dan dokter pemberi instruksi | Perlu Review | CPPT dan pesanan perawat `Verified` | Bukan DPJP → entri tetap menunggu DPJP |
 | 12 | Resume | DPJP | Delapan bagian resume | Resume bertanda tangan; episode **belum** tertutup | Bukan DPJP aktif → DPJP yang menandatangani |
+
+---
+
+## 5. Alur utama revision `0.5` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+Alur bagian 4 tetap berlaku. Finishing menambahkan pesanan Gizi dan Bank Darah dari bangsal serta daftar verifikasi gabungan:
+
+```mermaid
+flowchart TD
+    subgraph pemesan[Dokter atau perawat atas instruksi]
+        A([Pasien butuh pemeriksaan penunjang]) --> B[Pilih layanan: Lab, Radiologi, Gizi, Bank Darah]
+        B --> C[Lihat status tanggungan dan perkiraan harga]
+        C --> D[Kirim pesanan]
+    end
+    subgraph unit[Unit penunjang]
+        D --> E[Proses pesanan dan terbitkan hasil]
+    end
+    subgraph dokter[Dokter pemberi instruksi]
+        D --> F[Verifikasi pesanan yang diinput perawat dari satu daftar]
+    end
+    E --> G([Hasil terbaca di bangsal])
+    F --> G
+```
+
+| Langkah | Pelaku | Masukan | Keluaran | Bila gagal |
+|---|---|---|---|---|
+| Kirim pesanan | Dokter atau perawat | Pemeriksaan, dokter pemberi instruksi bila perawat | Pesanan di modul pemilik | Dokter tidak berpenugasan: pilih dokter lain |
+| Verifikasi | Dokter pemberi instruksi | Daftar gabungan | Pesanan terverifikasi | Bukan dokter peminta: ditolak |
+
+Rincian: `06-pesanan-gizi-dan-bank-darah.md`.

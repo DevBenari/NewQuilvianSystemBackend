@@ -346,6 +346,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [MaxLength(500)]
         public string? CardImagePath { get; set; }
 
+        /// <summary>
+        /// Gambar kartu hasil scan (base64, boleh berawalan data URL). Bila diisi, backend menyimpan
+        /// file kartu dan mengisi CardImagePath dengan path publiknya.
+        /// </summary>
+        public string? CardImageBase64 { get; set; }
+
         [MaxLength(250)]
         public string? Notes { get; set; }
     }
@@ -379,6 +385,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public string InsuranceProviderName { get; set; } = string.Empty;
 
         public string PolicyNumber { get; set; } = string.Empty;
+
+        public string? CardImagePath { get; set; }
 
         public bool IsPrimary { get; set; }
 

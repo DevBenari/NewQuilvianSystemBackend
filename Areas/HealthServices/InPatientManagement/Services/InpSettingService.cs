@@ -108,6 +108,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         bool IsFromMasterData)
     {
         /// <summary>
+        /// Ambang menit serah terima pasca operasi tertunda untuk Daftar Pantau. Bawaan 60
+        /// (<c>BE-RWI-172</c>, <c>RWI-DEC-220</c> butir 6).
+        /// </summary>
+        public int PendingSurgicalHandoverAlertMinutes { get; init; } = 60;
+
+        /// <summary>
+        /// Ambang menit permintaan admisi dari kamar pulih yang tertunda untuk Daftar Pantau.
+        /// Bawaan 30 (<c>BE-RWI-172</c>, <c>RWI-DEC-220</c> butir 6).
+        /// </summary>
+        public int PendingAdmissionReferralAlertMinutes { get; init; } = 30;
+
+        /// <summary>
         /// Nilai bawaan yang dipakai hanya ketika master pengaturan belum terisi. Angkanya
         /// sama persis dengan yang di-seed <c>InpatientMasterDataSeeder</c>, mengikuti
         /// 02-backend-architecture.md bagian 8.1.
@@ -135,6 +147,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 EpisodeNumberPrefix: string.IsNullOrWhiteSpace(entity.EpisodeNumberPrefix)
                     ? Defaults.EpisodeNumberPrefix
                     : entity.EpisodeNumberPrefix.Trim().ToUpperInvariant(),
-                IsFromMasterData: true);
+                IsFromMasterData: true)
+            {
+                // Nilai di luar 1–1440 (mis. baris lama sebelum kolom lahir) jatuh ke bawaan.
+                PendingSurgicalHandoverAlertMinutes = entity.PendingSurgicalHandoverAlertMinutes is >= 1 and <= 1440
+                    ? entity.PendingSurgicalHandoverAlertMinutes
+                    : Defaults.PendingSurgicalHandoverAlertMinutes,
+                PendingAdmissionReferralAlertMinutes = entity.PendingAdmissionReferralAlertMinutes is >= 1 and <= 1440
+                    ? entity.PendingAdmissionReferralAlertMinutes
+                    : Defaults.PendingAdmissionReferralAlertMinutes
+            };
     }
 }

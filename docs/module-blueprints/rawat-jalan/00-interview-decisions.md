@@ -999,3 +999,53 @@ Tidak ada invariant klinis atau bisnis kritis yang masih terbuka.
 | `RJ-DOC-DEC-032` | Approval | **Desain Amendment KT (revisi `29`) dan kontrak `RJ-DOC-PENDCONS-001@1.0.0` disetujui**: bagian *Amendment KT* pada `02`, `03`, `04`, `data/`, `contracts/`, `testing/`, serta `flowcharts/konsultasi-tertunda.md`. `RJ-DOC-OQ-013` tertutup. Approval ini **bukan** izin menulis code; `IMPLEMENTATION_AUTHORITY` tetap per task | Sukma Giri | `approved` | Sukma Giri, 5 Okt 2026 ("oke lanjutkan" atas "Setujui desain dan kontrak … Setuju?") | `blueprint-manifest.md` revisi `29` |
 | `RJ-DOC-DEC-033` | Approval | **`IMPLEMENTATION_AUTHORITY` `GRANTED` untuk `RJ-DOC-REV-BE-012` lalu `RJ-DOC-REV-FE-012`**, berurutan sesuai grafik dependency: penulisan source dan validasi runtime terhadap `QuilvianNewDevSukma`, termasuk data uji yang dibersihkan lewat endpoint aplikasi. Tanpa migration, commit, push, merge, maupun deployment | Sukma Giri | `approved` | Sukma Giri, 5 Okt 2026 ("ok lanjutkan") | `roadmap/doctor-consultation-roadmap.md` bagian 13 |
 
+
+## Amendment Pass 2026-10-06 — Pendaftaran Pasien Rawat Jalan oleh petugas (Amendment PR)
+
+Sumber requirement: Sukma Giri, 6 Okt 2026 — *"buatkan saya fitur pendaftaran pasien Rawat Jalan,
+tampilannya samakan seperti pendaftaran pasien IGD"*.
+
+Fakta source (baseline 6 Okt 2026):
+
+- `F-PR-1` — `POST /patient-encounters/admin` (`PatientEncounter : Create`) sudah menerima
+  encounter Rawat Jalan berklinik, termasuk jadwal dokter, tanggal kunjungan, dan tiga jenis
+  pembayaran. Backend tidak perlu diubah.
+- `F-PR-2` — `GET /clinics/admin/options` (`Clinic : Read`) dan `GET /doctor-schedules/admin/options`
+  (`DoctorSchedule : Read`) menyediakan pilihan klinik dan jadwal dokter untuk petugas.
+- `F-PR-3` — Frontend belum punya layar pendaftaran Rawat Jalan untuk petugas; yang ada hanya kiosk.
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at |
+|---|---|---|---|---|---|
+| `RJ-DOC-DEC-034` | UI | Layar Pendaftaran Pasien Rawat Jalan mengikuti tampilan dan alur Pendaftaran Pasien IGD: pilih jenis pasien, Cari/Input Pasien, Data Kunjungan, Metode Pembayaran, Verifikasi, Selesai. Komponen IGD dipakai ulang | Sukma Giri | `approved` | Sukma Giri, 6 Okt 2026 |
+| `RJ-DOC-DEC-035` | Bisnis | Pemilihan jadwal dokter wajib bila klinik bertanda `IsDoctorRequired`; selain itu boleh kosong | Sukma Giri | `approved` | Sukma Giri, 6 Okt 2026 |
+| `RJ-DOC-DEC-036` | Bisnis | Jenis kunjungan sama dengan IGD: Umum (`VisitType.NewVisit`) dan Rujukan/Tindak Lanjut (`VisitType.FollowUp`) | Sukma Giri | `approved` | Sukma Giri, 6 Okt 2026 |
+| `RJ-DOC-DEC-037` | Bisnis | Petugas boleh mendaftarkan untuk hari ini dan tanggal mendatang. Hari ini = walk-in; tanggal mendatang = appointment. Jadwal dokter yang tampil mengikuti tanggal terpilih | Sukma Giri | `approved` | Sukma Giri, 6 Okt 2026 |
+| `RJ-DOC-DEC-038` | Approval | `IMPLEMENTATION_AUTHORITY` `GRANTED` untuk `RJ-DOC-REV-FE-013` saja: source frontend, laporan task, dan tanda status. Tanpa perubahan backend, migration, commit, push, merge, maupun deployment | Sukma Giri | `approved` | Sukma Giri, 6 Okt 2026 |
+| `RJ-DOC-DEC-039` | UI | Revisi layar Pendaftaran Rawat Jalan: (a) langkah Data Kunjungan hanya menawarkan poliklinik yang punya jadwal dokter berlaku pada tanggal kunjungan; (b) label poliklinik tanpa kode; (c) tombol tanpa ikon; (d) tombol kembali bergaris warna primary. Butir (c) dan (d) **hanya** untuk Rawat Jalan; Pendaftaran IGD tidak berubah. Dikerjakan di bawah wewenang `RJ-DOC-DEC-038` | Sukma Giri | `approved` | Sukma Giri, 6 Okt 2026 |
+
+## Amendment Pass 2026-10-06 — Scan kartu penjamin pada Pendaftaran Rawat Jalan (Amendment SK)
+
+Sumber requirement: Sukma Giri, 6 Okt 2026 — tombol scan kartu polis/asuransi pada tabel
+*Daftar Asuransi / Penjamin Pasien* dengan konsep seperti scan KTP/KIA/SIM di kiosk; foto hasil
+scan disimpan seperti foto scan kiosk sehingga kartu yang sudah pernah dipindai cukup ditampilkan
+preview-nya; field scan kartu juga pada modal *Daftarkan Penjamin Baru*.
+
+Fakta source (baseline 6 Okt 2026):
+
+- `F-SK-1` — `MstPatientInsurance.CardImagePath` (`varchar(500)`) sudah ada dan sudah ikut di
+  response list/detail `patient-insurances`, tetapi hanya diisi sebagai teks path.
+- `F-SK-2` — `MstPatientCompanyGuarantor` tidak punya kolom gambar kartu; `GuaranteeDocumentPath`
+  adalah dokumen surat jaminan, bukan kartu.
+- `F-SK-3` — Foto scan identitas kiosk dikirim sebagai base64 (`PhotoBase64`), lalu
+  `PatientController` menyimpannya sebagai file di storage `FileStorage` (`/uploads/patient-photos/...`)
+  dan mencatat path publiknya di `MstPatient.PhotoPath`.
+- `F-SK-4` — Plustek Scanner Agent menyediakan `POST /scanner/scan` (gambar tanpa OCR). OCR agent
+  hanya mengenali dokumen identitas, sehingga nomor kartu penjamin tidak dibaca otomatis.
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at |
+|---|---|---|---|---|---|
+| `RJ-DOC-DEC-040` | UI | Tabel *Daftar Asuransi / Penjamin Pasien* mendapat kolom *Kartu* tepat sebelum kolom Status: tombol *Scan Kartu* bila penjamin belum punya gambar kartu, tombol *Lihat Kartu* bila sudah. Panel *Penjamin Dipilih* menampilkan preview kartu tersimpan. Modal *Daftarkan Penjamin Baru* mendapat field scan kartu yang ikut tersimpan saat penjamin dibuat. Berlaku untuk Pendaftaran Rawat Jalan; Pendaftaran IGD tidak berubah | Sukma Giri | `approved` | Sukma Giri, 6 Okt 2026 |
+| `RJ-DOC-DEC-041` | Bisnis | Foto hasil scan kartu disimpan permanen dengan pola foto scan kiosk (`F-SK-3`): base64 dikirim ke backend, backend menulis file di storage `FileStorage` dan mencatat path publiknya pada penjamin pasien. Kartu yang sudah tersimpan cukup ditampilkan, tanpa scan ulang | Sukma Giri | `approved` | Sukma Giri, 6 Okt 2026 |
+| `RJ-DOC-DEC-042` | Data | Cakupan: asuransi pasien (memakai `MstPatientInsurance.CardImagePath`, tanpa migration) dan penjamin perusahaan pasien (kolom baru `MstPatientCompanyGuarantor.CardImagePath varchar(500) null`, butuh migration) | Sukma Giri | `approved` | Sukma Giri, 6 Okt 2026 |
+| `RJ-DOC-DEC-043` | Approval | `IMPLEMENTATION_AUTHORITY` `GRANTED` dalam `CROSS-REPO MODE` (backend lalu frontend) untuk `RJ-DOC-REV-BE-013`, `RJ-DOC-REV-BE-014`, dan `RJ-DOC-REV-FE-014`: source, laporan task, dan tanda status. Pembuatan dan eksekusi migration `BE-014` tetap butuh izin terpisah. Tanpa commit, push, merge, maupun deployment | Sukma Giri | `approved` | Sukma Giri, 6 Okt 2026 |
+| `RJ-DOC-DEC-044` | Approval | Izin pembuatan migration `RJ-DOC-REV-BE-014` (hanya kolom `MstPatientCompanyGuarantor.CardImagePath varchar(500) null`) dan eksekusinya ke database uji `QuilvianNewDevSukma`. Tidak berlaku untuk database lain | Sukma Giri | `approved` | Sukma Giri, 6 Okt 2026 |

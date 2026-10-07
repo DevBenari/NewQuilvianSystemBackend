@@ -96,4 +96,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         public bool IsOpen { get; set; }
     }
+
+    /// <summary>
+    /// Permintaan koreksi salah catat satu penempatan bed — kontrak <c>integrasi-billing</c>
+    /// <c>1.1.0</c> API 3.4 (<c>BE-RWI-154</c>, <c>RWI-DEC-157</c>).
+    /// </summary>
+    /// <remarks>
+    /// Minimal satu dari empat isian koreksi wajib diisi (<c>VAL-RWF-11</c>). Koreksi bukan
+    /// pengganti transfer: pasien yang benar-benar pindah tetap dicatat lewat Transfer Pasien.
+    /// </remarks>
+    public class CorrectPlacementRequest
+    {
+        /// <summary>Bed yang benar. Wajib lolos kelayakan penempatan yang sama dengan transfer.</summary>
+        public Guid? CorrectedBedId { get; set; }
+
+        /// <summary>Kelas tagih yang benar.</summary>
+        public Guid? CorrectedPatientClassId { get; set; }
+
+        /// <summary>
+        /// Waktu mulai yang benar. Tidak boleh mendahului waktu admisi dan tidak boleh menimpa
+        /// penempatan lain pada episode yang sama (<c>VAL-RWF-12</c>).
+        /// </summary>
+        public DateTime? CorrectedStartDateTime { get; set; }
+
+        /// <summary>Waktu selesai yang benar; hanya untuk penempatan yang sudah berakhir.</summary>
+        public DateTime? CorrectedEndDateTime { get; set; }
+
+        /// <summary>Alasan koreksi; tidak boleh kosong atau hanya tanda baca.</summary>
+        [Required]
+        [MaxLength(500)]
+        public string Reason { get; set; } = string.Empty;
+
+        /// <summary>Versi penempatan yang dikoreksi, sebagaimana terbaca di layar.</summary>
+        [Range(1, int.MaxValue)]
+        public int ExpectedVersion { get; set; }
+    }
 }

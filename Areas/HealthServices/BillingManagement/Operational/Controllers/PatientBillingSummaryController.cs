@@ -47,6 +47,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
             _summaryService = summaryService;
         }
 
+        [HttpGet("episodes/{episodeId:guid}/amounts")]
+        [AccessAction("ViewAmount", "View Patient Billing Amount", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("PatientBillingSummary", "ViewAmount")]
+        public Task<IActionResult> GetAmounts(Guid episodeId, CancellationToken ct) =>
+            ReadAsync(() => _summaryService.GetAmountsAsync(episodeId, ct));
+
+        [HttpGet("episodes/{episodeId:guid}/breakdown")]
+        [AccessAction("Read", "Read Patient Billing Breakdown", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientBillingSummary", "Read")]
+        public Task<IActionResult> GetBreakdown(Guid episodeId, CancellationToken ct) =>
+            ReadAsync(() => _summaryService.GetBreakdownAsync(episodeId, ct));
+
+        [HttpGet("episodes/{episodeId:guid}/breakdown/amounts")]
+        [AccessAction("ViewAmount", "View Patient Billing Group Amounts", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("PatientBillingSummary", "ViewAmount")]
+        public Task<IActionResult> GetBreakdownAmounts(Guid episodeId, CancellationToken ct) =>
+            ReadAsync(() => _summaryService.GetBreakdownAmountsAsync(episodeId, ct));
+
+        private async Task<IActionResult> ReadAsync<T>(Func<Task<T?>> read) where T : class
+        {
+            try
+            {
+                var result = await read();
+                return result == null ? NotFound(ApiResponse<object>.Fail(404, "Perawatan rawat inap tidak ditemukan."))
+                    : Ok(ApiResponse<T>.Ok(result, "Tagihan pasien berhasil dibaca."));
+            }
+            catch (KeyNotFoundException ex) { return NotFound(ApiResponse<object>.Fail(404, ex.Message)); }
+            catch (BillingDepositValidationException ex) { return UnprocessableEntity(ApiResponse<object>.Fail(422, ex.Message)); }
+        }
+
         /// <summary>Ringkasan tagihan satu perawatan rawat inap.</summary>
         /// <remarks>
         /// <c>200</c> ringkasan; <c>403</c> tidak memegang <c>PatientBillingSummary : Read</c>;

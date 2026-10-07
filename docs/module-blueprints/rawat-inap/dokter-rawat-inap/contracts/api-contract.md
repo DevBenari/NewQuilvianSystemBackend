@@ -747,3 +747,73 @@ Resume ODC: **tidak ada endpoint** — tab menampilkan "Integrasi belum tersedia
 | Endpoint pelaksanaan sliding scale dan MAR | Dirancang `keperawatan` kontrak `0.5.0` |
 | Endpoint handover shift dan transfusi | `RWI-DEC-145` butir (4) |
 | Endpoint notifikasi "lapor dokter" | Gate `G-24`; penanda tampilan saja |
+
+---
+
+## 13. Perubahan pada `contract_version` `0.7.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.7.0` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
+| Owner | Muhammad Hamzah; Ikbal Yulianto (Gizi) dan Sukma Giri Pratama (Bank Darah), disetujui `RWI-DEC-191` |
+| Dampak kompatibilitas | Tambahan saja. `master-options` menerima dua parameter baru opsional dengan bawaan perilaku lama |
+| Traceability | `FR-RWF-030` s.d. `038`, `070`; `RWI-DEC-114`, `171`, `188` |
+
+### 13.1 Endpoint yang sudah ada dan dibuka untuk perawat
+
+| Tag | Base URL | Method dan path | Hak akses | Status |
+|---|---|---|---|---|
+| `Health Services / Laboratory Management / Lab Order` | `api/v1/health-services/laboratory-management/lab-orders` | `POST /`, `GET /instruction-verification-worklist` | Sesuai controller | Tetap; tombol perawat dibuka setelah `BE-RWI-104` terbukti |
+| `Health Services / Radiology Management / Rad Order` | `api/v1/health-services/radiology-management/rad-orders` | `POST /`, `GET /instruction-verification-worklist` | Sesuai controller | Tetap |
+
+### 13.2 Health Services / Inpatient Management / Inpatient Ancillary Order
+
+Base URL: `api/v1/health-services/inpatient-management/episodes/{episodeId}/ancillary-orders`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `POST` | `/nutrition-consultations` | Pesan konsultasi gizi dari bangsal | `NutritionOrder : Create` | `{ RequesterDoctorId?, Priority, ReasonForReferral, IdempotencyKey }` | `ApiResponse<GziOrderDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/blood-orders` | Pesan darah dari bangsal | `BloodOrder : Create` | `{ RequestingDoctorId?, RequestedBloodGroup?, Lines[], ClinicalNote?, IdempotencyKey }` | `ApiResponse<BloodOrderDetailDto>` | **Rencana (belum tersedia)** |
+| `POST` | `/blood-orders/confirm-duplicate` | Konfirmasi pesanan mirip | `BloodOrder : Create` | Mengikuti `confirm-duplicate` Bank Darah, ditambah dokter peminta | Sama | **Rencana (belum tersedia)** |
+| `GET` | `/coverage-status` | Status tanggungan penjamin **dan perkiraan harga** per layanan (`RWI-DEC-218`) | `InpatientEpisode : Read`; harga hanya bagi pemegang hak membuat pesanan jenis itu | `{ ItemType (Laboratory/Radiology/Procedure/Nutrition/Blood), ItemIds[] }` — untuk Laboratory, Radiology, Procedure `ItemIds` berisi `ProcedureId` | `ApiResponse<List<CoverageStatusItem>>` | **Rencana (belum tersedia)** |
+
+`RequesterDoctorId`/`RequestingDoctorId` wajib bila akun login bukan dokter; diabaikan dan diganti akun login bila yang memesan dokter sendiri. Kode khusus: `400` "Dokter pemberi instruksi wajib dipilih"; `403` dokter tidak berpenugasan aktif; selebihnya kode modul tujuan.
+
+**`CoverageStatusItem`** (`RWI-DEC-218`, `RWI-DEC-219`; desain di `02-backend-architecture.md` 12.13): `ItemId`, `IsCovered`, `Label` ("Ditanggung"/"Tidak Di-cover"), `PriceStatus` (`AVAILABLE`, `NOT_ESTIMABLE`, `NOT_PERMITTED`), `EstimatedUnitPrice` (`decimal`, **hanya ada** bila `AVAILABLE`), `PriceLabel` ("perkiraan — tagihan final di kasir", menyertai harga). Hak lihat harga per `ItemType`: `LabOrder : Create`, `RadOrder : Create`, `PatientProcedure : Create`, `NutritionOrder : Create`, `BloodOrder : Create`. `Nutrition` dan `Blood` selalu `NOT_ESTIMABLE`. Satu item gagal diresolusi tidak menggagalkan item lain.
+
+Contoh: `GET …/coverage-status?itemType=Laboratory&itemIds=<id Darah Lengkap>` oleh perawat pemegang `LabOrder : Create` → `[{ "label": "Ditanggung", "priceStatus": "AVAILABLE", "estimatedUnitPrice": 85000, "priceLabel": "perkiraan — tagihan final di kasir" }]`.
+
+**Harga obat** tidak lewat endpoint ini: `GET clinical-management/prescribing-drugs` (`PrescribingDrug : Read`) sudah mengembalikan `UnitPrice` dan `CoverageStatus` per penjamin — ✅ **Tersedia**, dipakai ulang tab Resep.
+
+### 13.3 Health Services / Nutrition Management / Nutrition Order — tambahan
+
+Base URL: `api/v1/health-services/nutrition-management/orders`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `POST` | `/` | Pesanan gizi; menerima status verifikasi | `NutritionOrder : Create` | Ditambah field opsional | Ditambah status verifikasi | **Diubah** — tambahan opsional |
+| `GET` | `/instruction-verification-worklist` | Pesanan "perlu diverifikasi" milik dokter yang login | `NutritionOrder : VerifyInstruction` | `PagedQuery` | `ApiResponse<PagedResult<OrderVerificationItem>>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/verify-instruction` | Verifikasi | `NutritionOrder : VerifyInstruction` | `{ ExpectedVersion }` | `ApiResponse<GziOrderDetailResponse>` | **Rencana (belum tersedia)** |
+
+### 13.4 Health Services / Blood Bank Management / Blood Order — tambahan
+
+Base URL: `api/v1/health-services/blood-bank-management/blood-orders`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `POST` | `/` | Pesanan darah; menerima status verifikasi | `BloodOrder : Create` | Ditambah field opsional | Ditambah status verifikasi | **Diubah** — tambahan opsional |
+| `GET` | `/instruction-verification-worklist` | Pesanan darah "perlu diverifikasi" | `BloodOrder : VerifyInstruction` | `PagedQuery` | `ApiResponse<PagedResult<OrderVerificationItem>>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/verify-instruction` | Verifikasi | `BloodOrder : VerifyInstruction` | `{ ExpectedVersion }` | `ApiResponse<BloodOrderDetailDto>` | **Rencana (belum tersedia)** |
+
+Kode khusus Gizi dan Bank Darah: `403` hanya dokter peminta yang dapat memverifikasi; `409` sudah diverifikasi.
+
+### 13.5 Health Services / Clinical Management / Patient Procedure — perubahan
+
+Base URL: `api/v1/health-services/clinical-management/patient-procedures`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/master-options` | Katalog tindakan | `PatientProcedure : Read` | Ditambah `careSetting` (`Outpatient` bawaan, `Inpatient`) dan `audience` (`Doctor` bawaan, `Nurse`) | Tetap | **Diubah** |
+
+`careSetting=Inpatient` menyaring `IsAvailableForInpatient`. `audience=Nurse` tidak menyaring `IsDoctorAction`. Pemanggil lama tanpa parameter mendapat hasil yang sama persis.

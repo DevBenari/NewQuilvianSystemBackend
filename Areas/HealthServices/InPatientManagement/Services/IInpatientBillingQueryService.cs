@@ -15,11 +15,5 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             Guid episodeId,
             CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Mengambil rincian finansial nominal tagihan kasir (khusus pengguna dengan wewenang keuangan).
-        /// </summary>
-        Task<InpatientBillingDetailsResponseDto?> GetFinancialDetailsAsync(
-            Guid episodeId,
-            CancellationToken cancellationToken = default);
     }
 }
