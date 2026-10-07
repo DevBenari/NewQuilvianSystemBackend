@@ -1,33 +1,17 @@
 {
-  "releaseName": "Quilvian 0.12.0 - Enterprise Platform Enhancement",
-  "backendVersion": "0.12.0",
   "releaseMetadata": {
-    "migrationCount": 5,
+    "migrations": [],
+    "generatedBy": "Quilvian Release Generator",
     "modules": [
-      "Billing Management",
-      "Blood Bank Management",
-      "Clinical Management",
-      "Finance Management",
-      "Inpatient Management",
-      "Nutrition Management",
-      "Operating Room Management",
-      "Patient Management",
-      "Pharmacy Management"
+      "Laboratory Management"
     ],
-    "generatedAt": "2026-10-07T01:54:58",
+    "migrationCount": 0,
+    "generatedAt": "2026-10-07T07:35:57",
     "features": [
-      "Billing Workflow",
-      "Pharmacy Workflow",
-      "Blood Bank Workflow"
-    ],
-    "migrations": [
-      "20261005033044_AddRawatInapFinishing.cs",
-      "20261005050735_AddNutritionAndBloodInstructionVerification.cs",
-      "20261005071042_AddRawatInapKeperawatanFinishing.cs",
-      "20261005084241_AddRawatInapBillingEncounterLink.cs",
-      "20261006092040_AddCardImagePathToPatientCompanyGuarantor.cs"
-    ],
-    "generatedBy": "Quilvian Release Generator"
+      "Specimen Management"
+    ]
   },
-  "description": "Release 0.12.0 enhances Billing Management, Blood Bank Management, Clinical Management, Finance Management, Inpatient Management, Nutrition Management, Operating Room Management, Patient Management, Pharmacy Management capabilities. Includes improvements across Billing Workflow, Pharmacy Workflow, Blood Bank Workflow. Includes 5 database migration update(s)."
+  "description": "Release 0.13.0 enhances Laboratory Management capabilities. Includes improvements across Specimen Management.",
+  "releaseName": "Quilvian 0.13.0 - Laboratory Management Enhancement",
+  "backendVersion": "0.13.0"
 }
