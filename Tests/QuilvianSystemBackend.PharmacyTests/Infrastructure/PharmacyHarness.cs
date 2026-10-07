@@ -205,10 +205,44 @@ public sealed class PharmacyHarness : IDisposable
             CreateDateTime = DateTime.UtcNow
         };
 
-    public DrugReturnService ReturService(ApplicationDbContext k) =>
-        new(k, Accessor(ApotekerId),
-            new LoggerService(NullLogger<LoggerService>.Instance, Accessor(ApotekerId)),
-            StokService(k));
+    /// <summary>
+    /// Service retur obat beserta seluruh dependensinya, disusun di atas <b>satu</b> konteks
+    /// yang sama.
+    /// </summary>
+    /// <remarks>
+    /// <c>DrugReturnBillingHandoffService</c> menyusul sebagai dependensi wajib dari integration;
+    /// ia memeriksa bahwa barang yang diterima kembali memang pernah diserahkan lewat dokumen
+    /// penyerahan yang dirujuk (<c>PHM074</c> dan seterusnya). Dependensinya dirangkai manual
+    /// alih-alih lewat container supaya seluruh rantai memakai konteks <paramref name="k"/> yang
+    /// sama — kalau tidak, uji memeriksa keadaan pada konteks yang berbeda dari yang dilihat
+    /// service.
+    /// </remarks>
+    public DrugReturnService ReturService(ApplicationDbContext k)
+    {
+        var pencatat = new LoggerService(NullLogger<LoggerService>.Instance, Accessor(ApotekerId));
+
+        // Jembatan tagihan klinis membuka scope-nya sendiri lewat `IServiceScopeFactory`, jadi
+        // pabrik scope-nya diambil dari container — itu singleton, aman diambil dari akar.
+        // Sisanya tetap memakai konteks `k` supaya uji melihat keadaan yang sama dengan service.
+        _container ??= BangunContainer();
+
+        var jembatan = new BillingClinicalChargeBridgeService(
+            _container.GetRequiredService<IServiceScopeFactory>(),
+            NullLogger<BillingClinicalChargeBridgeService>.Instance);
+
+        var produserFakta = new ClinicalMilestoneFactProducer(
+            k,
+            new BillingFolioService(k, jembatan),
+            pencatat);
+
+        var serahTerimaBilling = new DrugReturnBillingHandoffService(
+            k,
+            produserFakta,
+            NullLogger<DrugReturnBillingHandoffService>.Instance);
+
+        return new DrugReturnService(
+            k, Accessor(ApotekerId), pencatat, StokService(k), serahTerimaBilling);
+    }
 
     public Guid ResepId { get; } = Guid.NewGuid();
     public Guid ItemResepId { get; } = Guid.NewGuid();
@@ -315,6 +349,7 @@ public sealed class PharmacyHarness : IDisposable
         layanan.AddScoped<BillingClinicalChargeBridgeService>();
         layanan.AddScoped<BillingFolioService>();
         layanan.AddScoped<ClinicalMilestoneFactProducer>();
+        layanan.AddScoped<DrugReturnBillingHandoffService>();
         layanan.AddScoped<PrescriptionDispensingService>();
 
         return layanan.BuildServiceProvider();

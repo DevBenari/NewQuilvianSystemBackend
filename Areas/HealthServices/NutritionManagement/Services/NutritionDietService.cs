@@ -168,9 +168,16 @@ public sealed partial class NutritionDietService
         var actorUserId = GetCurrentUserId();
 
         await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-        await _dbContext.Set<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter>()
-            .FromSqlInterpolated($"SELECT * FROM public.\"RegPatientEncounter\" WHERE \"Id\" = {request.EncounterId} FOR UPDATE")
-            .FirstOrDefaultAsync(cancellationToken);
+
+        // `FOR UPDATE` hanya dikenal PostgreSQL, jadi penguncian barisnya dijaga provider.
+        // Pembacaannya sendiri tidak dipakai — barisnya diambil semata untuk mengunci kunjungan
+        // supaya dua penetapan diet pada kunjungan yang sama tidak berjalan bersamaan.
+        if (_dbContext.Database.IsNpgsql())
+        {
+            await _dbContext.Set<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter>()
+                .FromSqlInterpolated($"SELECT * FROM public.\"RegPatientEncounter\" WHERE \"Id\" = {request.EncounterId} FOR UPDATE")
+                .FirstOrDefaultAsync(cancellationToken);
+        }
 
         var deterministicId = DeterministicId(request.IdempotencyKey);
         var replay = await BuildDietQuery().FirstOrDefaultAsync(x => x.Id == deterministicId,
@@ -252,9 +259,15 @@ public sealed partial class NutritionDietService
 
         var actorUserId = GetCurrentUserId();
         await using var tx = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-        var diet = await _dbContext.GziPatientDiets
-            .FromSqlInterpolated($"SELECT * FROM public.\"GziPatientDiet\" WHERE \"Id\" = {dietId} FOR UPDATE")
-            .FirstOrDefaultAsync(x => x.Id == dietId && !x.IsDelete, cancellationToken)
+        // `FOR UPDATE` hanya dikenal PostgreSQL. Di luar itu barisnya dibaca biasa — hasilnya
+        // sama, yang hilang hanya penguncian barisnya, dan itu dicatat sebagai keterbatasan
+        // lingkungan uji pada `TestDatabase`.
+        var diet = (_dbContext.Database.IsNpgsql()
+            ? await _dbContext.GziPatientDiets
+                .FromSqlInterpolated($"SELECT * FROM public.\"GziPatientDiet\" WHERE \"Id\" = {dietId} FOR UPDATE")
+                .FirstOrDefaultAsync(x => x.Id == dietId && !x.IsDelete, cancellationToken)
+            : await _dbContext.GziPatientDiets
+                .FirstOrDefaultAsync(x => x.Id == dietId && !x.IsDelete, cancellationToken))
             ?? throw new KeyNotFoundException("Diet pasien tidak ditemukan.");
 
         if (diet.Status != GziPatientDietStatus.Active)

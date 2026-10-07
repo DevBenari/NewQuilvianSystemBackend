@@ -42,12 +42,20 @@ Tangga tahap yang berlaku dan sudah terbukti ujung ke ujung:
 | Integrasi | `SUBSTANTIAL` — clearance terbukti ujung ke ujung; tagihan tahap 1 kini diterima validator Billing (`PRESCRIBED` + kontrak `1.3`), menunggu runtime ulang yang terhalang startup |
 | Verifikasi | `STRONG` — **536 uji** regresi ditambah bukti runtime penuh |
 
-**Perkiraan ketuntasan: ~96%.** Diukur ketat "berfungsi hari ini di integration", rantai penuh
-tagihan → kasir → surat clearance → penyerahan belum diuji ulang di runtime sesudah penyelarasan
-kontrak 6 Oktober 2026, sehingga angkanya lebih dekat **~95%**. Yang menahan bukan lagi
-persetujuan owner Billing — permintaan itu sudah dipenuhi, lihat
-[`requirement-billing-charge-pra-dispense.md`](requirement-billing-charge-pra-dispense.md) —
-melainkan startup basis data dev yang masih mati.
+**Perkiraan ketuntasan, dipisah per sumbu supaya tidak menyesatkan:**
+
+| Sumbu | Angka | Dasarnya |
+|---|---|---|
+| Source selesai | **~97%** | seluruh permukaan berdiri; `PHA-BE-001`/`002` ditutup, kontrak tagihan tahap 1 selaras |
+| Uji selesai | **~97%** | 536 uji, termasuk tagihan tahap 1 diuji terhadap validator Billing yang sebenarnya |
+| Terbukti runtime | **~88%** | clearance terbukti ujung ke ujung 1 Oktober; rantai tagihan **belum** diuji ulang sesudah penyelarasan kontrak |
+| Terhalang luar | ~3% | dua keputusan `PHA-BE-004`, dan drift migration yang memutus rantai runtime |
+
+Angka runtime sengaja **diturunkan** dari laporan sebelumnya, bukan dinaikkan: penyelarasan
+kontrak `PRESCRIBED` + `1.3` menambah keyakinan pada uji, tetapi membuat bukti runtime 1 Oktober
+— yang memakai `SUBMITTED` + `1.2` di bawah patch Billing sementara — tidak lagi berlaku bagi
+kontrak yang sekarang. Pengujian ulangnya terhalang
+[`blocker-startup-seeder-tabel-hilang.md`](../../engineering/blocker-startup-seeder-tabel-hilang.md).
 
 Uji pada `Tests/QuilvianSystemBackend.PharmacyTests`:
 

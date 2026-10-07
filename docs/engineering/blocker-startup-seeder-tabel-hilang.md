@@ -280,3 +280,47 @@ sementara `200` tidak — pipeline penegakannya sehat, yang rusak jalur penulisa
 Ini memperkuat kesimpulan di atas, bukan menggantikannya: **Jalur A tetap dibutuhkan.** Membuat
 seeder tidak fatal membuka aplikasinya, tetapi tidak dapat mengembalikan kolom dan tabel yang
 belum pernah dibuat.
+
+## Lapis ketiga: tiga kolom hilang, dan apa saja yang terhalang — 7 Oktober 2026
+
+Setelah sinkronisasi dengan integration `6ee17145`, drift yang sama menampakkan dua kolom lagi.
+Keduanya menghalangi pekerjaan yang berbeda, dan keduanya bukan milik modul Farmasi/Gizi/Operasi.
+
+| Kolom hilang | Tabel | Migration penyedia | Tercatat? | Yang terhalang |
+|---|---|---|---|---|
+| `SourceAssignmentId` | `AspNetUserOrganization` | `20260901073655_A0AuthorizationIntegrityProjection` | **belum** | `200` pada acceptance `BE-OPR-011` — projection izin tidak dapat ditulis lewat jalur apa pun |
+| `AcknowledgedReceiptId` | `InpIntegrationOutbox` | `20261005033044_AddRawatInapFinishing` | **belum** | **seluruh rantai runtime Farmasi** — pembuatan item resep gagal `500` karena jalur fakta klinisnya membaca outbox Rawat Inap |
+
+Ditambah tabel yang sudah tercatat sebelumnya — `MstNursingDiagnosisGroup`, `MstNursingDiagnosis`,
+`MstDiagnosisGroup`, `MstDailyNursingAction`, `AccAccountingEvent`, `MstBillingSyncPolicy`.
+
+### Akibatnya bagi rantai runtime Farmasi
+
+Rantai `resep → finalisasi → tagihan → invoice → kasir → surat clearance → penyerahan`
+**tidak dapat dijalankan ulang** pada basis data ini. Upayanya terhenti pada langkah paling awal:
+
+```
+POST /api/v1/health-services/pharmacy-management/prescription-items
+  -> 500
+  -> 42703: column i.AcknowledgedReceiptId does not exist
+```
+
+Jadi penyelarasan kontrak `PRESCRIBED` + `BIL-INTEGRATION-1.3` **tidak dapat dibuktikan runtime
+hari ini**. Yang sudah terbukti dan tetap berlaku: tagihan tahap 1 diterima
+`ContractBillingChargeSourceAdapter` yang sebenarnya — dijaga tiga uji pada
+`BillingChargeProducerTests`, termasuk pembuktian negatif bahwa nilai lama ditolak.
+
+Dua item invoice `PHARMACY` yang ada di basis data bertanda `SUBMITTED` + `BIL-INTEGRATION-1.2`,
+dari runtime 1 Oktober 2026 ketika patch Billing sementara masih aktif. Keduanya **bukan** bukti
+bagi kontrak yang sekarang, dan dicatat di sini supaya tidak disalahbaca sebagai bukti.
+
+### Pola yang berulang, dan pelajarannya
+
+Tiga kali hari ini pekerjaan berhenti pada drift yang sama, dan setiap kali bentuknya berbeda:
+tabel hilang, lalu kolom hilang pada tabel otorisasi, lalu kolom hilang pada tabel outbox modul
+lain. Yang ketiga paling mahal karena ia memutus rantai yang melintasi empat modul.
+
+Membuat seeder tidak fatal membuka aplikasinya, dan itu nyata. Tetapi ia **tidak dapat**
+mengembalikan kolom yang belum pernah dibuat, dan setiap pekerjaan yang menulis data lintas modul
+akan terus berhenti sampai migration dijalankan. **Jalur A bukan lagi pilihan yang dapat
+ditunda.**

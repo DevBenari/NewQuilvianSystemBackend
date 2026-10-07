@@ -7,9 +7,21 @@ Diukur dari source 1 Oktober 2026, disegarkan 2 Oktober 2026.
 | Backend | `SUBSTANTIAL` | 9 controller · 10 service · 36 endpoint · 14 model · 7.229 baris |
 | Frontend | `SUBSTANTIAL` | 11 halaman · 4 folder view · 8 service |
 | Integrasi | `SUBSTANTIAL` | kontrak event outbox internal berdiri dan terbukti runtime |
-| Verifikasi | `STRONG` | **117 uji** |
+| Verifikasi | `STRONG` | **120 uji** |
 
-**Perkiraan ketuntasan: ~86%.**
+**Perkiraan ketuntasan, dipisah per sumbu:**
+
+| Sumbu | Angka | Dasarnya |
+|---|---|---|
+| Source selesai | **~92%** | `BE-OPR-001`–`011` berdiri; yang belum ada adapter consumer Billing dan Inventory |
+| Uji selesai | **~95%** | 120 uji, termasuk 41 uji izin dan audit 36 endpoint |
+| Terbukti runtime | **~85%** | `401` dan `403` terbukti runtime 6 Oktober; `200` tertahan satu kolom |
+| Terhalang luar | ~5% | satu migration (`20260901073655`), kontrak API Billing/Inventory, dan dua keputusan bisnis |
+
+Acceptance `200`/`403`/`401` sudah disusun lengkap sebagai runbook siap jalan —
+[`runbook-acceptance-be-opr-011.md`](runbook-acceptance-be-opr-011.md). Keputusan serial implant
+terkumpul di [`keputusan-menunggu-pemilik-proses.md`](../keputusan-menunggu-pemilik-proses.md)
+sebagai `K-2` dan `K-3`.
 
 ## Roadmap backend
 
@@ -29,7 +41,7 @@ Rincian beserta pencabutan tiga penghalang lama ada di
 
 ## Uji
 
-`Tests/QuilvianSystemBackend.OperatingRoomTests` — 117 uji:
+`Tests/QuilvianSystemBackend.OperatingRoomTests` — 120 uji:
 
 | Berkas | Jumlah | Yang dijaga |
 |---|---|---|

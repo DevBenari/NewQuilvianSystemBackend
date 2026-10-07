@@ -8,7 +8,7 @@ using QuilvianSystemBackend.Attributes;
 namespace QuilvianSystemBackend.Tests.Nutrition;
 
 /// <summary>
-/// Matriks izin modul Gizi pada tingkat HTTP — 5 controller, 41 endpoint.
+/// Matriks izin modul Gizi pada tingkat HTTP — 6 controller, 45 endpoint.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -73,8 +73,8 @@ public class PermissionMatrixTests
     {
         var controllers = Controllers().ToList();
 
-        Assert.Equal(5, controllers.Count);
-        Assert.Equal(41, controllers.Sum(x => Aksi(x).Count()));
+        Assert.Equal(6, controllers.Count);
+        Assert.Equal(45, controllers.Sum(x => Aksi(x).Count()));
     }
 
     // ── Login dan pendaftaran modul ───────────────────────────────────────────────────────
@@ -356,7 +356,7 @@ public class PermissionMatrixTests
     }
 
     /// <summary>
-    /// 41 endpoint memakai 12 pasangan <c>resource:action</c> unik; beberapa endpoint memang sah
+    /// 45 endpoint memakai 14 pasangan <c>resource:action</c> unik; beberapa endpoint memang sah
     /// berbagi pasangan yang sama, misalnya daftar dan detail yang keduanya <c>Read</c>. Yang
     /// dikunci di sini jumlahnya, supaya pasangan baru tidak masuk tanpa diperiksa.
     /// </summary>
@@ -372,7 +372,7 @@ public class PermissionMatrixTests
             pasangan.Add($"{(string)izin.Arguments![0]!}:{(string)izin.Arguments[1]!}");
         }
 
-        Assert.Equal(41, pasangan.Count);
-        Assert.Equal(12, pasangan.Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(45, pasangan.Count);
+        Assert.Equal(14, pasangan.Distinct(StringComparer.Ordinal).Count());
     }
 }
