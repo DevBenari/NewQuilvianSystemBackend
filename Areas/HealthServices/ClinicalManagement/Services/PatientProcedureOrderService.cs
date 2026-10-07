@@ -202,16 +202,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 now,
                 cancellationToken);
 
-            if (!pricing.IsValid)
-            {
-                return PatientProcedureOrderResult.BadRequest(
-                    pricing.ErrorMessage ?? "Tarif atau coverage tindakan tidak dapat ditentukan.");
-            }
-
+            var isPricingValid = pricing.IsValid && pricing.TariffId.HasValue;
             var isFoc = request.IsFreeOfCharge;
             var focReason = isFoc
                 ? NormalizeText(request.FreeOfChargeReason) ?? "Free of Charge (FOC) atas kebijakan DPJP rawat inap"
                 : null;
+
+            var unitPrice = isPricingValid ? pricing.UnitPrice : 0m;
+            var totalPrice = isFoc ? 0m : (isPricingValid ? pricing.TotalPrice : 0m);
+            var coverageStatus = isFoc
+                ? "FreeOfCharge"
+                : (isPricingValid ? pricing.CoverageStatus : (pricing.CoverageStatus ?? "ConfigurationMissing"));
+            var coverageNote = isPricingValid
+                ? pricing.CoverageNote
+                : (pricing.ErrorMessage ?? "Tarif belum tersedia — tagihan final ditetapkan kasir.");
+
+            // FIX-DOK-005-06: Persetujuan internal hanya dari master tindakan atau tarif RS, dan tidak pernah untuk Cito (K-03 = C)
+            var isEmergency = request.IsEmergencyProcedure;
+            var isNeedInternalApproval = !isEmergency && (pricing.IsNeedApproval || procedure.IsNeedApproval);
 
             var entity = new TrxPatientProcedure
             {
@@ -226,9 +234,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 PhysicianVisitId = null,
                 IdempotencyKey = idempotencyKey,
                 ProcedureId = procedure.Id,
-                TariffId = pricing.TariffId,
-                InsuranceTariffId = pricing.InsuranceTariffId,
-                InsuranceCoverageRuleId = pricing.InsuranceCoverageRuleId,
+                TariffId = isPricingValid ? pricing.TariffId : null,
+                InsuranceTariffId = isPricingValid ? pricing.InsuranceTariffId : null,
+                InsuranceCoverageRuleId = isPricingValid ? pricing.InsuranceCoverageRuleId : null,
                 ProcedureCodeSnapshot = procedure.ProcedureCode,
                 ProcedureNameSnapshot = procedure.ProcedureName,
                 ProcedureTypeSnapshot = procedure.ProcedureType,
@@ -243,22 +251,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 ProcedureStatus = PatientProcedureStatus.Ordered,
                 ProcedureDateTime = now,
                 PlannedAt = now,
-                Quantity = pricing.Quantity,
+                Quantity = request.Quantity > 0 ? request.Quantity : 1,
                 UnitNameSnapshot = "Tindakan",
-                UnitPrice = pricing.UnitPrice,
-                TotalPrice = isFoc ? 0 : pricing.TotalPrice,
-                HospitalPriceSnapshot = pricing.HospitalUnitPrice,
-                InsuranceContractPrice = pricing.ContractUnitPrice,
+                UnitPrice = unitPrice,
+                TotalPrice = totalPrice,
+                HospitalPriceSnapshot = isPricingValid ? pricing.HospitalUnitPrice : 0m,
+                InsuranceContractPrice = isPricingValid ? pricing.ContractUnitPrice : null,
                 IsFreeOfCharge = isFoc,
                 FreeOfChargeReason = focReason,
                 IsBillable = !isFoc,
-                IsCoveredByInsurance = pricing.IsCovered,
-                CoverageStatus = isFoc ? "FreeOfCharge" : pricing.CoverageStatus,
-                CoveragePercent = pricing.CoveragePercent,
-                CoveredAmount = isFoc ? 0 : pricing.CoveredAmount,
-                PatientPayAmount = isFoc ? 0 : pricing.PatientPayAmount,
-                CoverageNote = pricing.CoverageNote,
-                IsNeedApproval = pricing.IsNeedApproval || procedure.IsNeedApproval,
+                IsCoveredByInsurance = isPricingValid && pricing.IsCovered,
+                CoverageStatus = coverageStatus,
+                CoveragePercent = isPricingValid ? pricing.CoveragePercent : 0m,
+                CoveredAmount = isFoc ? 0m : (isPricingValid ? pricing.CoveredAmount : 0m),
+                PatientPayAmount = isFoc ? 0m : (isPricingValid ? pricing.PatientPayAmount : 0m),
+                CoverageNote = coverageNote,
+                IsNeedApproval = isNeedInternalApproval,
                 IsApproved = false,
                 IsExecuted = false,
                 ClinicalNote = NormalizeText(request.ClinicalReason),
@@ -291,9 +299,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     entity.OrderedByUserId
                 });
 
+            var responseMessage = !isPricingValid
+                ? "Pesanan tersimpan; tarif belum tersedia — tagihan final ditetapkan kasir."
+                : "Pesanan tindakan rawat inap berhasil dibuat.";
+
             return PatientProcedureOrderResult.Created(
                 MapToResponse(entity),
-                "Pesanan tindakan rawat inap berhasil dibuat.");
+                responseMessage);
         }
 
         /// <summary>

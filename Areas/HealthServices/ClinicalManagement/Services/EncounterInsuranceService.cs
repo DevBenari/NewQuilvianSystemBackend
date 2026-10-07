@@ -119,17 +119,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                         "Data penjamin perusahaan pasien tidak aktif atau tidak sesuai encounter.");
                 }
 
-                var policyStart = paymentSource.EffectiveStartDateSnapshot ?? patientCompanyGuarantor?.EffectiveStartDate;
-                var policyEnd = paymentSource.EffectiveEndDateSnapshot ?? patientCompanyGuarantor?.EffectiveEndDate;
+                var companyPolicyStart = paymentSource.EffectiveStartDateSnapshot ?? patientCompanyGuarantor?.EffectiveStartDate;
+                var companyPolicyEnd = paymentSource.EffectiveEndDateSnapshot ?? patientCompanyGuarantor?.EffectiveEndDate;
 
-                if (policyStart.HasValue && policyStart.Value.Date > effectiveDate)
+                if (companyPolicyStart.HasValue && companyPolicyStart.Value.Date > effectiveDate)
                 {
                     return EncounterInsuranceContext.Fail(
                         encounterId,
                         "Masa berlaku penjamin perusahaan belum mulai berlaku pada tanggal pelayanan.");
                 }
 
-                if (policyEnd.HasValue && policyEnd.Value.Date < effectiveDate)
+                if (companyPolicyEnd.HasValue && companyPolicyEnd.Value.Date < effectiveDate)
                 {
                     return EncounterInsuranceContext.Fail(
                         encounterId,
@@ -150,8 +150,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                         "Kontrak perusahaan penjamin sudah berakhir pada tanggal pelayanan.");
                 }
 
-                var eligible = paymentSource.IsEligible && (patientCompanyGuarantor == null || patientCompanyGuarantor.IsEligible);
-                if (!eligible)
+                var companyEligible = paymentSource.IsEligible && (patientCompanyGuarantor == null || patientCompanyGuarantor.IsEligible);
+                if (!companyEligible)
                 {
                     return EncounterInsuranceContext.Fail(
                         encounterId,
@@ -184,7 +184,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     PolicyNumber = patientCompanyGuarantor?.EmployeeNumber
                         ?? paymentSource.EmployeeNumberSnapshot,
                     EmployeeGrade = patientCompanyGuarantor?.GradeLevel,
-                    IsEligible = eligible,
+                    IsEligible = companyEligible,
                     IsPolicyActive = true,
                     IsInsuranceReady = true,
                     IsUsingInsuranceTariffBook = company.IsUsingCompanyTariffBook,

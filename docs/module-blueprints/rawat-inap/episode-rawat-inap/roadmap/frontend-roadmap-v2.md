@@ -38,10 +38,9 @@ contract_version: 0.9.0
 frontend_repo: QuilvianSystemFrontendDev
 frontend_branch: HamzahV2
 frontend_source_sha: 1ce219b40f8e411f3c4e66975626ab33ae81616a
-backend_source_sha: df3679c0d5b2f08106702153eb242d3a6cb2929b
-task_id_range: FE-RWI-063..FE-RWI-066, FE-RWI-096, FE-RWI-101, FE-RWI-203..FE-RWI-207
-task_id_next_free: FE-RWI-208   # 06-10-2026: FE-RWI-203..207 dipakai di sini (ISSUE-EPS-003); angka tertinggi global sebelumnya FE-RWI-202
-last_updated: "2026-10-06 — FE-RWI-203 s.d. FE-RWI-207 ditambahkan dan diselesaikan dari PLAN-REPAIR-EPS-003 (ISSUE-EPS-003, Langkah 2 Pendaftaran Pasien Baru). Sebelumnya 2026-09-28 — FE-RWI-101 ditambahkan dari hasil pengujian tambah asuransi admisi; keputusan pemilik opsi A sama persis dengan kiosk"
+task_id_range: FE-RWI-063..FE-RWI-066, FE-RWI-096, FE-RWI-101, FE-RWI-203..FE-RWI-208
+task_id_next_free: FE-RWI-209   # 07-10-2026: FE-RWI-208 dipakai di sini (ISSUE-EPS-004); angka tertinggi global sebelumnya FE-RWI-207
+last_updated: "2026-10-07 — FE-RWI-208 diselesaikan dari PLAN-REPAIR-EPS-004 (ISSUE-EPS-004, Pemesanan Ruangan Bedah FE-INP-25). Sebelumnya 2026-10-06 — FE-RWI-203 s.d. FE-RWI-207 ditambahkan dan diselesaikan dari PLAN-REPAIR-EPS-003"
 stack: "Next.js App Router, JavaScript/JSX, Redux, Axios, design token dan base component Quilvian"
 test_policy: "rules/frontend/test-policy.md — menulis test baru opsional; lint dan build wajib"
 write_authority: "TIDAK diberikan di sini. Wewenang tulis frontend dinyatakan terpisah per task"
@@ -498,6 +497,32 @@ Dokumen issue: [`../docs/issue/issue-003-pendaftaran-pasien-baru.md`](../docs/is
 
 **Definition of Done.** Lint dan build hijau; laporan tracked ada; roadmap dan traceability diperbarui. Seluruh kriteria terpetakan ke source.
 
+### ✅ `FE-RWI-208` — Perbaikan tampilan, kontrol input, dan sinkronisasi tab Pemesanan Ruangan Bedah FE-INP-25
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **Selesai 7 Oktober 2026** — [laporan](../task/report/frontend/FE-RWI-208.md); `npx eslint` exit `0`; `npm run build` **PASS** (exit `0`, 474 halaman, standalone siap); unit test `surgery-booking.test.mjs` 4/4 lulus; unit test keperawatan 10/10 lulus; **verifikasi peramban NOT RUN — dikecualikan atas kebijakan pengujian**; merujuk `PLAN-REPAIR-EPS-004` (`ISSUE-EPS-004`) |
+| **Gelombang** | Di luar gelombang — task perbaikan pasca-pengujian `PLAN-REPAIR-EPS-004` |
+| **Wewenang UI** | `PLAN-REPAIR-EPS-004` (keputusan pemilik K-01 dan K-02 disetujui 2026-10-07) |
+
+**Bisnis prosesnya.** Perawat membuka menu Pemesanan Ruangan Bedah (`FE-INP-25`). Sub-tab Bedah Operasi dan Bedah Obgyn dikendalikan oleh tab sekunder ruang kerja di atas tanpa duplikasi tab di dalam kartu. Jika order tindakan belum diterbitkan dokter DPJP, formulir kosong tidak ditampilkan buntu melainkan menyajikan panel edukasi alur klinis dengan tombol segarkan order. Kontrol input ditata menggunakan token UI Quilvian (radio pill berjarak aman, input waktu terstandar, textarea proporsional). Tombol submit selalu aktif dan memberikan validasi interaktif bila isian wajib belum lengkap. Safe padding bawah mencegah footer aplikasi menabrak formulir.
+
+**Acceptance criteria.**
+
+1. Tab sekunder atas menjadi kendali tunggal; tombol tab manual di dalam kartu dihilangkan dan diganti badge mode layanan aktif (`FIX-EPS-004-01`).
+2. Tab Bedah Obgyn otomatis mengunci jenis kasus ke Obstetri dan badge header menyesuaikan (`FIX-EPS-004-01`).
+3. Radio button Jenis Kasus dan Sisi Tubuh (Laterality) menggunakan radio pill lega berjarak aman tanpa berdesakan (`FIX-EPS-004-02`).
+4. Saat order tindakan dokter kosong (`procedures.length === 0`), formulir kosong disembunyikan dan panel edukasi klinis tampil dengan tombol "Segarkan Daftar Order" (`FIX-EPS-004-03`).
+5. Tombol "Pesan Ruang Bedah" selalu aktif; jika ditekan saat ada isian wajib yang kosong, muncul peringatan inline merah dan fokus ke isian tersebut (`FIX-EPS-004-04`).
+6. Kontainer formulir memiliki safe padding bawah sehingga footer aplikasi tidak pernah menutupi tombol simpan atau teks penginput (`FIX-EPS-004-05`).
+7. Label dokter operator memiliki spasi pemisah rapi dan tombol muat ulang tabel kasus menggunakan `BaseButton` (`FIX-EPS-004-06`).
+
+**Bukti verifikasi.** `npm run lint`; `npm run build`; verifikasi fungsional komponen dan validasi interaktif.
+
+**Risiko.** Rendah — perbaikan terisolasi di komponen internal menu pemesanan ruang bedah tanpa menyentuh kontrak backend.
+
+**Definition of Done.** Lint dan build hijau; laporan tracked ada; roadmap dan traceability diperbarui. Seluruh kriteria terpetakan ke source.
+
 ---
 
 ## Pilihan UI yang belum disetujui
@@ -533,6 +558,7 @@ Tabel penuh ada di [`requirement-traceability-v2.md`](./requirement-traceability
 | `FR-RI-198`, `200`, `201` | `RI-41` | `FE-INP-23` | `FE-RWI-065` | `BE-RWI-084` | Acceptance 18.4, `UAT-50`, `UAT-51` |
 | `FR-RI-199` | `RI-41` | `FE-INP-24` | `FE-RWI-066` | `BE-RWI-083` | Acceptance 18.4 |
 | `ISSUE-EPS-003` — Langkah 2 Pendaftaran Pasien Baru | — | `FE-INP-03` skema 3.3 | `FE-RWI-203` s.d. `FE-RWI-207` | — | `PLAN-REPAIR-EPS-003` register status |
+| `ISSUE-EPS-004` — Pemesanan Ruangan Bedah | — | `FE-INP-25` | `FE-RWI-208` | — | `PLAN-REPAIR-EPS-004` register status |
 
 **Gap keterkaitan requirement ke bukti verifikasi:** nol untuk permukaan frontend sub-modul ini.
 `FR-RI-191` dan `FR-RI-192` permukaannya ada di ruang kerja dokter `FE-DOK-09`, dan dicatat pada
