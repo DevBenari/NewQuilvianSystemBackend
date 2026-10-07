@@ -264,3 +264,14 @@ bagian 2, serta menata ulang tampilan `FE-RWI-068` tanpa mengubah lifecycle-nya.
 | Permintaan 3 — tampilan; C12 kepala bertumpuk, CSS 1.850 baris dengan hex lepas | `FE-RWI-141` | ✅ source; CSS token-only 599 baris (target 400 tidak tercapai) | [Laporan FE-141](../task/report/frontend/FE-RWI-141.md) |
 | Permintaan 4 — form lengkap sesuai V1 (matriks paritas `soap.md` 3.4) | `FE-RWI-139`, `FE-RWI-140`, `FE-RWI-141` | ✅ source; empat penyimpangan tercatat untuk keputusan pemilik | [Laporan FE-141](../task/report/frontend/FE-RWI-141.md) bagian 8 |
 | K4 — salin A & P dari SOAP sebelumnya | `FE-RWI-142` | ✅ source; runtime `NOT RUN` | [Laporan FE-142](../task/report/frontend/FE-RWI-142.md) |
+
+## 18. Traceability rencana kerja `penunjang-medis.md` — Penunjang Medis Dokter Rawat Inap Rev 2.0
+
+Sumber: [`rencana-kerja/penunjang-medis/penunjang-medis.md`](./rencana-kerja/penunjang-medis/penunjang-medis.md) Rev 2.0, persetujuan pemilik produk 1 Oktober 2026 atas KK-1 s.d. KK-5 dan INV-1 s.d. INV-5.
+
+| Permintaan / Keputusan | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| KK-2 & INV-2 — Navigasi sub-tab 2 level (`[Formulir]` & `[Riwayat]`), overview 6 kartu, dan sub-view shell container dengan tombol `[← Kembali ke Pilihan Layanan]` | `FE-RWI-143` | ✅ source; eslint PASS; test PASS | [Laporan FE-143](../task/report/frontend/FE-RWI-143.md) |
+| KK-1, KK-4, KK-5, INV-1, INV-3 — Form & Cart interaktif Lab & Rad: auto-sync SOAP & ICD-10 search (`MstDiagnosis`), split-view 2 kolom (katalog live search + cart bertarif), sakelar Cito ⚡ vs Rutin ⏳ | `FE-RWI-144` | ✅ source; eslint PASS; test PASS | [Laporan FE-144](../task/report/frontend/FE-RWI-144.md) |
+| KK-3 & INV-5 — Form Bank Darah lengkap (ABO, Rh, komponen, kantong, waktu kebutuhan) ke `createBloodOrder` & Form Konsultasi Gizi ke `createNutritionOrder` | `FE-RWI-145` | ✅ source; eslint PASS; test PASS | [Laporan FE-145](../task/report/frontend/FE-RWI-145.md) |
+| KK-3, KK-5, INV-5 — Form Hemodialisa terpadu ke `createHmdOrder` & Form Rehab Medik / Fisioterapi ke `createInpatientProcedureOrder`; aktivasi seluruh 6 layanan penunjang | `FE-RWI-146` | ✅ source; eslint PASS; test PASS | [Laporan FE-146](../task/report/frontend/FE-RWI-146.md) |

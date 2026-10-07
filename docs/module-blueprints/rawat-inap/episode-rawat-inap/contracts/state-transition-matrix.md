@@ -326,3 +326,83 @@ Perpindahan status episode **tidak berubah**. Yang bertambah adalah akibatnya di
 | `Closed` | Membuka kembali lewat sesi koreksi mengembalikan konsep terkunci menjadi `Draft` | `RWI-AC-201`, `RM-DEC-003` |
 | `Closed` | Membuka kembali mengembalikan pesanan atau dosis yang dibatalkan | Pembatalan tercatat sebagai akibat penutupan; pesanan baru dibuat bila perlu |
 | `DischargePending` | `Closed` dengan sebagian langkah akibat tersimpan | `INV-INP-11` |
+
+---
+
+## 9. Perubahan pada `contract_version` `0.10.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.10.0` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
+| Dampak kompatibilitas | Status `Episode` dan `BedPlacement` **tidak berubah**. Kasus OK bertambah satu status akhir; empat lifecycle baru |
+| Traceability | `RWI-DEC-173`, `176`, `177`, `182`, `199`, `201`, `204`; `INV-RWF-25` s.d. `33` |
+
+### 9.1 Kasus OK (`OprCase`) — tambahan `Rejected`
+
+Lifecycle OK lain tetap seperti modul OK. Baris di bawah hanya yang **baru atau berubah**.
+
+| Dari | Aksi | Ke | Pelaku | Syarat | Efek samping |
+|---|---|---|---|---|---|
+| — | Pesan dari bangsal | `Requested` | Perawat atau dokter bangsal | `INV-RWF-25` | — |
+| `Requested` | Tolak | **`Rejected`** | Petugas penjadwalan OK (`OperatingRoomCase : Reject`) | Alasan 10–500 karakter | Pra-operasi yang ada menjadi `Superseded`; tidak ada biaya |
+| `Requested` | Jadwalkan (= menyetujui) | `Scheduled` | Petugas OK | Tetap | Tetap |
+| `Scheduled`, `Requested` | Tunda | `Postponed` | Petugas OK | Tetap | **Baru:** pra-operasi `Sent`/`Confirmed` → `NeedsUpdate` dalam transaksi yang sama |
+| `Scheduled` | Siap | `Ready` | Petugas OK | **Baru:** ditambah `INV-RWF-26` dan `27` | Tetap |
+| `InProgress` → … | Serah terima diterima, laporan final, keluar kamar pulih | `Completed` | Sistem (`OPS-DEC-025`) | Tetap | **Baru:** `OperatingRoomCompletionEffects` sesudah commit |
+
+**Transisi terlarang tambahan**
+
+| Dari | Aksi | Hasil |
+|---|---|---|
+| `Rejected` | Apa pun (ubah, jadwalkan, tunda, batal, mulai, tolak lagi) | `422` `OPR-CASE-REJ-002` |
+| `Scheduled`, `Ready`, `Postponed`, `InProgress`, `Completed`, `Cancelled` | Tolak | `422` `OPR-CASE-REJ-001` |
+
+### 9.2 Catatan Pra-Operasi (`OprWardPreOpNote`) — per versi
+
+| Dari | Aksi | Ke | Pelaku | Syarat |
+|---|---|---|---|---|
+| — | Simpan draf pertama | `Draft` | Perawat bangsal (`Send`) | Kasus `Requested`, `Scheduled`, atau `Postponed` |
+| `Draft` | Simpan draf | `Draft` | Pengirim | Versi sama |
+| `Draft` | Kirim | `Sent` | Pengirim | Butir wajib pengirim lengkap; tanda vital tersedia; sisi penandaan cocok |
+| `Sent` | Konfirmasi semua butir wajib dan penandaan | `Confirmed` | Perawat OK (`Confirm`), akun ≠ pengirim | — |
+| `Sent` | Konfirmasi sebagian | `Sent` | Perawat OK | Butir yang dikonfirmasi tersimpan |
+| `Sent`, `Confirmed` | Kasus ditunda | `NeedsUpdate` | Sistem | — |
+| `NeedsUpdate` | Simpan draf versi baru | versi lama tetap `NeedsUpdate`; versi baru `Draft` | Pengirim | Kasus tidak `Rejected`/`Cancelled` |
+| Versi baru `Sent` | — | versi lama → `Superseded` | Sistem | — |
+| Apa pun selain `Superseded` | Kasus `Rejected` atau `Cancelled` | `Superseded` | Sistem | — |
+
+Terlarang: konfirmasi oleh akun pengirim (`OPR-WPO-002`); kirim atau ubah saat kasus `InProgress`/`Completed`/`Rejected`/`Cancelled` (`OPR-WPO-004`); mengubah versi `Confirmed` tanpa penundaan.
+
+### 9.3 Serah terima pasca operasi (`OprHandover`) — aturan baru pada transisi yang sudah ada
+
+| Dari | Aksi | Ke | Pelaku | Syarat baru |
+|---|---|---|---|---|
+| — | Kirim | `Sent` | Perawat OK (`Send`) | — |
+| `Sent` | Terima | `Accepted` | Perawat unit tujuan (`Receive`) | Akun ≠ pengirim; pasien menempati bed aktif di `DestinationUnitId` (`INV-RWF-28`) |
+| `Sent` | Tolak beralasan | `Rejected` | Perawat unit tujuan (`Receive`) | Akun ≠ pengirim |
+| `Rejected` | Kirim ulang | serah terima baru `Sent` | Perawat OK | Tetap |
+
+Menerima **tidak pernah** memindahkan bed (`RWI-DEC-177` butir 6).
+
+### 9.4 Permintaan admisi (`InpAdmissionReferral`)
+
+| Dari | Aksi | Ke | Pelaku | Syarat | Efek |
+|---|---|---|---|---|---|
+| — | Simpan keputusan kamar pulih `Inpatient`/`Icu` | `Pending` | Sistem (dipanggil OK) | Pasien tanpa episode hadir; belum ada `Pending` untuk kasus atau pasien itu | — |
+| — | Sama, pasien sudah punya episode hadir | (tidak dibuat) | Sistem | — | OK menerima `AdmissionReferralState = NotNeeded`; alur serah terima biasa |
+| `Pending` | Keputusan kamar pulih berubah dari `Inpatient`/`Icu`, atau OK membatalkan beralasan | `Cancelled` | Sistem (dipanggil OK) | Alasan wajib | Hilang dari daftar |
+| `Pending` | Admisi berlangkah selesai dengan `AdmissionReferralId` | `Completed` | Petugas admisi | Pasien sama | `CompletedEpisodeId` terisi dalam transaksi episode |
+
+Terlarang: `Completed` atau `Cancelled` → status apa pun (`INP-ADM-REF-002`).
+
+### 9.5 Serah terima transfer (`CliTransferHandover`, `P2`)
+
+| Dari | Aksi | Ke | Pelaku | Syarat |
+|---|---|---|---|---|
+| — | Transfer antarunit tersimpan | `NotSent` | Sistem | Unit asal ≠ unit tujuan |
+| `NotSent`, `Rejected` | Kirim | `Sent` | Perawat unit asal (`TransferHandover : Send`) | Potret klinis dibekukan |
+| `Sent` | Terima | `Accepted` | Perawat unit tujuan (`: Receive`) | Akun ≠ pengirim; pasien di unit tujuan |
+| `Sent` | Tolak beralasan | `Rejected` | Perawat unit tujuan | Alasan wajib |
+
+Status apa pun **tidak** menahan transfer, keluar ruangan, atau penutupan episode (`INV-RWF-33`). Selama bukan `Accepted`, kedua unit melihat "Serah terima tertunda".

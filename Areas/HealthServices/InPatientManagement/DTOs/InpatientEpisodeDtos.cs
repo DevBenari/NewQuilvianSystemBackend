@@ -64,6 +64,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// <summary>Catatan admisi. Kolom sensitif; tidak boleh masuk payload logger.</summary>
         [MaxLength(1000)]
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// Opsional (<c>BE-RWI-181</c>, API 11.6): permintaan admisi dari kamar pulih yang menjadi
+        /// dasar admisi ini. Bila diisi, permintaan wajib <c>Pending</c> dan milik pasien yang sama,
+        /// lalu menjadi <c>Completed</c> dalam transaksi admisi. Bila kosong padahal pasien punya
+        /// permintaan <c>Pending</c>, admisi ditolak <c>409</c> <c>INP-ADM-REF-001</c>.
+        /// </summary>
+        public Guid? AdmissionReferralId { get; set; }
     }
 
     /// <summary>
@@ -124,6 +132,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// </remarks>
     public class InpatientEpisodeDetailResponse
     {
+        public int Version { get; set; }
         public Guid Id { get; set; }
 
         public string EpisodeNumber { get; set; } = string.Empty;

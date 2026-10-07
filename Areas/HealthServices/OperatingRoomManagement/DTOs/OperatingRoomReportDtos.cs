@@ -65,6 +65,9 @@ public class OprUtilizationReport
     public int CompletedCases { get; set; }
     public int PostponedCases { get; set; }
     public int CancelledCases { get; set; }
+
+    /// <summary>Kasus yang ditolak pada rentang ini, terpisah dari yang dibatalkan (BE-RWI-174).</summary>
+    public int RejectedCases { get; set; }
 }
 
 public class OprMaterialReportQuery

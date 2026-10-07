@@ -157,3 +157,207 @@ Sub-modul Integrasi Rawat Inap ↔ Billing (`INP-S22`) dinyatakan selesai jika s
 5. **Gelombang MVP-4 (Verifikasi End-to-End & UAT Bersama Kasir):**
    - Eksekusi pengujian bersama tim Billing (`UAT-INT-001` s.d. `013`).
    - Penandatanganan berita acara kesiapan integrasi oleh kedua Product Owner.
+
+---
+
+## 8. Amandemen kontrak `1.1.0` — PRD → MVP Finishing ★ 1 Oktober 2026
+
+Bagian ini menurunkan isi dari `02-backend-architecture.md` 9, `contracts/` bagian `1.1.0`, `data/data-dictionary.md` 6, dan `flowcharts/04` s.d. `06`. Ia tidak menciptakan entity, status, permission, atau endpoint baru. Bagian 1 s.d. 7 di atas tetap sebagai jejak; butir yang dicabut `02-backend-architecture.md` 9.1 tidak berlaku.
+
+### 8.1 Identitas dokumen
+
+| Field | Nilai |
+|---|---|
+| Produk | Quilvian — Rawat Inap, sub-modul `integrasi-billing` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
+| Repository | `NewQuilvianSystemBackend` (`MHamzah`), `QuilvianSystemFrontendDev` (`HamzahV2`) |
+| Baseline | Backend `c8e99ce5` (HEAD `425cfeae` hanya dokumen); frontend `22ad67330` (HEAD `ee75e055b`) |
+| Masukan | `PRD-RWI-FINISHING-001` v`0.4`; decision log revision `30`; gate `1.9` |
+| Cakupan | Tagihan rawat inap masuk kasir secara otomatis dan jujur; izin kasir satu sumber yang menjaga penutupan episode; rincian Tagihan Pasien tanpa rupiah bagi perawat |
+
+### 8.2 Ringkasan eksekutif
+
+Setiap layanan pasien rawat inap muncul di invoice kasir tanpa diketik ulang, tarif kamar dihitung dari jam masuk dan keluar yang sebenarnya, dan episode baru dapat ditutup setelah kasir memberi izin. Pasien tetap boleh meninggalkan ruangan setelah dokter memutuskan pulang; bila kasir belum memberi izin, perawat diperingatkan dan jejaknya tersimpan.
+
+### 8.3 Masalah produk
+
+Lihat `FIN-CAP-01` s.d. `FIN-CAP-15`. Ringkasnya: pengirim event hanya menulis log tetapi menandai "Published"; invoice rawat inap tidak pernah terbentuk otomatis; jembatan klinis menolak kunjungan rawat inap; status kasir tersimpan di tiga tempat; webhook dapat dipanggil tanpa login; PIN supervisor tidak pernah diperiksa; ada hitungan tarif kamar kedua dengan angka tertanam; dan Rawat Inap membaca tabel Billing langsung.
+
+### 8.4 Visi produk
+
+1. Admisi disahkan → ketukan pintu → invoice `RANAP` terbuka.
+2. Bed ditempati, dipindah, dikoreksi, dilepas → ketukan pintu → tarif kamar dihitung ulang dari linimasa.
+3. Tindakan, lab, radiologi, obat, alat, operasi → jembatan folio → baris invoice.
+4. Perawat mencatat keluar ruangan → bed kosong → tarif kamar final.
+5. Kasir memfinalkan dan memberi izin → petugas admisi menutup episode.
+
+### 8.5 Batas MVP
+
+**Titik mulai.**
+
+1. Episode berstatus `Admitted`.
+2. Bed pertama ditempati.
+
+**Titik akhir.**
+
+1. Pasien sudah keluar ruangan dan bed kosong.
+2. Invoice `RANAP` memuat seluruh layanan, tarif kamar final, dan biaya administrasi.
+3. Izin kasir `CLEARED`, atau supervisor menutup dengan alasan.
+4. Episode `Closed`.
+
+### 8.6 Pelaku sasaran
+
+| Pelaku | Tanggung jawab di dalam MVP |
+|---|---|
+| Perawat pelaksana, kepala ruangan | Mencatat keluar ruangan; kepala ruangan mengoreksi salah catat penempatan |
+| Petugas admisi | Menutup episode; mengoreksi penempatan |
+| Supervisor rawat inap | Menutup tanpa izin kasir dengan alasan |
+| Kasir | Memfinalkan invoice, memberi atau mencabut izin, memeriksa invoice "perlu diperiksa" |
+| Tim TI | Memantau outbox dan menjalankan putar ulang dengan wewenang tertulis |
+
+### 8.7 Pemilihan kemampuan MVP
+
+| Kemampuan | ID kemampuan asal | Keputusan MVP |
+|---|---|---|
+| Satu tindakan keluar ruangan dengan peringatan dan jejak | `CAP-RWF-01`, `FIN-CAP-09`, `FIN-CAP-10` | Wajib; tanpa ini bed tidak dapat dilepas dengan aturan yang benar |
+| Penutupan episode yang membaca Billing langsung; override dengan permission | `CAP-RWF-01`, `CAP-RWF-03`, `FIN-CAP-07`, `FIN-CAP-11` | Wajib; gerbang keuangan episode |
+| Ketukan pintu jujur dan penerima di Billing | `CAP-RWF-04`, `FIN-CAP-01` | Wajib; tanpa ini invoice tidak terbentuk |
+| Invoice `RANAP` otomatis, biaya admin, jembatan klinis `RANAP`, label seragam | `CAP-RWF-02`, `FIN-CAP-02`, `04`, `05`, `08` | Wajib; tanpa ini kasir mengetik ulang |
+| Pensiun hitungan tarif kamar kedua | `CAP-RWF-04`, `FIN-CAP-06` | Wajib; mencegah tagihan karangan |
+| Koreksi salah catat penempatan | `CAP-RWF-04`, `FIN-CAP-15` | Wajib; tanpa ini periode salah kelas tetap tertagih |
+| Putar ulang saat rilis | `CAP-RWF-04`, `FIN-CAP-14` | Wajib; pasien yang sedang dirawat saat rilis harus punya invoice |
+| Rincian Tagihan Pasien tanpa rupiah dan hak lihat rupiah berbasis permission | `CAP-RWF-05` (sisi backend), `CAP-RWF-15`, `FIN-CAP-13` | Wajib; layar bangsal bergantung padanya |
+| Retur obat membatalkan tagihan | `CAP-RWF-02`, `RWI-DEC-195` | Wajib; disetujui Ikbal Yulianto (pemilik Farmasi) lewat `RWI-DEC-210` |
+
+### 8.8 Kemampuan yang ditunda
+
+| Kemampuan | ID | Alasan ditunda | Pengganti selama MVP |
+|---|---|---|---|
+| Notifikasi seketika status kasir | PRD 5.4 | Tidak menahan alur; butuh infrastruktur WebSocket yang belum dipakai modul ini | Penyegaran 10 detik |
+| Penghapusan kolom `InpEpisode` yang dipensiunkan | `02-backend-architecture.md` 9.10 | Menghapus kolom berisi data lama berisiko saat rollback | Kolom tetap ada, tidak dibaca |
+| Perlakuan gerbang pasien meninggal dan kabur | `RWI-RULE-037`, gate G-01 | Aturan klinisnya belum final | Penutupan oleh supervisor dengan alasan |
+
+### 8.9 Alur bisnis target
+
+`FLOW-RWF-MVP-01` mengikuti `flowcharts/00-alur-utama.md` bagian 3: admisi → invoice terbuka → layanan → keputusan pulang → keluar ruangan → kasir memberi izin → penutupan.
+
+### 8.10 Epic dan functional requirement
+
+| Epic | FR | Disposisi backend |
+|---|---|---|
+| `EPIC-RWF-01` Gerbang penutupan dan izin kasir | `FR-RWF-001` s.d. `008` | `EXTEND` (`record-departure`, `close`, `close-with-override`), `MISSING / NEW` (adapter, daftar pulang sebelum izin), penghapusan endpoint lama |
+| `EPIC-RWF-02` Tagihan rawat inap masuk kasir | `FR-RWF-010` s.d. `019` | `MISSING / NEW` (penerima, tanda terima, koreksi, putar ulang), `EXTEND` (jembatan, biaya admin, finalisasi, outbox), `REPAIR` (label `RANAP`) |
+| `EPIC-RWF-03` Tagihan Pasien (sisi backend) | `FR-RWF-020` s.d. `024` | `EXTEND` (`patient-billing-summaries`), `MISSING / NEW` (`/breakdown`, `/amounts`) |
+
+Rumusan dan contoh berangka setiap FR ada di `PRD-RWI-FINISHING-001` v`0.4` bagian 6; disposisi teknisnya pada `02-backend-architecture.md` 9.6.
+
+### 8.11 Model status yang diusulkan
+
+Mengikuti `contracts/state-transition-matrix.md` bagian 5: pesan outbox (`Pending` → `Processing` → `Published`/`Failed` → `DeadLetter`), jejak pengamatan status kasir, gerbang keluar ruangan dan penutupan, koreksi penempatan, dan tanda "perlu diperiksa". Invariant `INV-RWF-01` s.d. `09`.
+
+### 8.12 Sasaran arsitektur
+
+| Dipakai ulang | Diperluas | Baru |
+|---|---|---|
+| `BilInpatientClearanceHandoff`, `BillingCalculationService` tarif kamar, `MstRoomChargePolicy`, jembatan folio, `InpBillingDepositAdapter` sebagai pola | `InpEpisode`, `InpBedPlacement`, `InpIntegrationOutboxes`, `BilInvoice`, worker, layanan penutupan dan finalisasi | `InpBillingClearanceAdapter`, `InpPlacementCorrectionService`, `InpIntegrationReplayService`, `BillingInpatientEventReceiver`, `BilInpatientEventReceipt` |
+
+### 8.13 Sasaran kemampuan API
+
+Seluruhnya bagian dari `contracts/api-contract.md` bagian 3, tidak melebihinya.
+
+| Tag | Method dan path | Hak akses | Epic | Status |
+|---|---|---|---|---|
+| `Health Services / Inpatient Management / Inpatient Discharge` | `POST discharges/{episodeId}/record-departure` | `InpatientDischarge : RecordDeparture` | `EPIC-RWF-01` | Diubah |
+| Sama | `POST discharges/{episodeId}/close`, `/close-with-override`, `GET /closure-readiness` | `InpatientDischarge : Close`, `: CloseOverride`, `: Read` | `EPIC-RWF-01` | Diubah |
+| `Inpatient Billing Operational` | `GET episodes/{episodeId}/billing-status` | `InpatientBillingOperational : Read` | `EPIC-RWF-01` | Diubah |
+| `Health Services / Inpatient Management / Inpatient Monitoring` | `GET monitoring/departures-before-clearance` | `InpatientMonitoring : Read` | `EPIC-RWF-01` | **Rencana (belum tersedia)** |
+| `Health Services / Inpatient Management / Bed Occupancy` | `POST bed-occupancies/placements/{placementId}/corrections` | `InpatientBedOccupancy : Correct` | `EPIC-RWF-02` | **Rencana (belum tersedia)** |
+| `Health Services / Inpatient Management / Integration Outbox` | `GET integration-outbox`, `POST integration-outbox/replay` | `InpatientIntegrationOutbox : Read`, `: Replay` | `EPIC-RWF-02` | **Rencana (belum tersedia)** |
+| `Health Services / Billing Management / Patient Billing Summary` | `GET …/episodes/{episodeId}/breakdown`, `…/breakdown/amounts`, `…/amounts` | `PatientBillingSummary : Read`, `: ViewAmount` | `EPIC-RWF-03` | **Rencana (belum tersedia)** |
+| `Health Services / Billing Management / Billing / Invoices` | `GET billing/invoices/review-queue`, `POST …/{id}/review-resolution` | `BillingInvoice : Read`, `: Update` | `EPIC-RWF-02` | **Rencana (belum tersedia)** |
+
+### 8.14 Matriks kewenangan
+
+Mengikuti `contracts/permission-audit-matrix.md` 5.2 dan 5.3. String permission persis sama.
+
+### 8.15 Batas integrasi dan billing
+
+| Yang **MUST NOT** dibuat sendiri oleh Rawat Inap | Pemiliknya |
+|---|---|
+| Status izin kasir, salinannya, atau cache-nya | Billing |
+| Hitungan tarif kamar, biaya admin, atau rupiah apa pun | Billing |
+| Pembacaan tabel `Bil*` secara langsung | Billing; dibaca lewat service |
+| Endpoint publik penerima event | Tidak ada; penerima di dalam aplikasi |
+
+### 8.16 Guardrail regulasi
+
+| Kewajiban | Penerapan |
+|---|---|
+| Privasi data keuangan pasien di bangsal | Rupiah hanya untuk pemegang `PatientBillingSummary : ViewAmount` (`RWI-DEC-160`, `170`) |
+| Keterlusuran tindakan administratif | Keluar ruangan, penutupan, override, koreksi, dan putar ulang tercatat dengan pelaku dan waktu |
+| Rekam medis | Tidak ada data klinis baru pada sub-modul ini |
+
+### 8.17 Kebutuhan non-fungsional
+
+| ID | Kebutuhan |
+|---|---|
+| `NFR-RWF-01` | Kegagalan Billing tidak menggagalkan admisi, penempatan, koreksi, maupun keluar ruangan (`RWI-DEC-161`) |
+| `NFR-RWF-02` | Pengiriman event *at-least-once* dengan efek *exactly-once* di Billing (kunci idempotensi) |
+| `NFR-RWF-03` | Status kasir di layar paling basi 10 detik; keputusan server selalu memakai bacaan terbaru |
+| `NFR-RWF-04` | Koreksi penempatan memakai pemeriksaan versi; dua koreksi bersamaan tidak sama-sama berhasil |
+| `NFR-RWF-05` | Waktu disimpan UTC; ditampilkan `Asia/Jakarta` |
+
+### 8.18 Skenario UAT
+
+| ID | Jalur | Kondisi awal | Langkah | Hasil yang diharapkan |
+|---|---|---|---|---|
+| `UAT-RWF-01` | Berhasil | "Tn. Contoh A" kelas 2 masuk 1 Okt 10.00 | Layanan tiga hari, keluar 4 Okt 09.00, kasir memberi izin, admisi menutup | Satu invoice `RANAP` lengkap tanpa input manual; tarif kamar berhenti 09.00; `Closed` |
+| `UAT-RWF-02` | Gagal | — | Panggil webhook lama dan `close-with-override` tanpa token | 404 dan 401; status tidak berubah |
+| `UAT-RWF-03` | Gagal lalu berhasil | Izin `PENDING` | Catat keluar dengan peringatan; kasir menyetujui lalu mencabut karena resep susulan | Bed langsung kosong; tombol Tutup aktif lalu terkunci dengan banner merah |
+| `UAT-RWF-11` | Gagal lalu berhasil | Billing dimatikan | Sahkan admisi; hidupkan Billing | Admisi tersimpan; pesan gagal lalu terkirim; tepat satu invoice |
+| `UAT-RWF-12` | Gagal dan berhasil | — | Override tanpa permission, alasan "...", lalu alasan jelas | 403, ditolak, lalu `Closed` dan masuk laporan |
+| `UAT-RWF-15` | Berhasil | Dua episode aktif, satu dengan biaya kamar manual | Putar ulang dua kali | Satu invoice masing-masing; hanya yang berbiaya manual "perlu diperiksa"; putar ulang kedua tanpa perubahan |
+| `UAT-RWF-23` | Berhasil dan gagal | — | Serah 3 vial; retur 1 layak; retur 1 rusak | 3 → 2 vial dengan rujukan retur; retur rusak tidak mengubah. Disaksikan petugas Farmasi |
+| `UAT-RWF-25` | Gagal | Invoice `FINAL` | Kepala ruangan mengoreksi kelas | Ditolak "tagihan sudah difinalkan" |
+
+### 8.19 Definition of Done
+
+| Butir | Bukti |
+|---|---|
+| Tidak ada endpoint pengubah status kepulangan tanpa login | `UAT-RWF-02`; test `AC-RWF-001` |
+| Status kasir hanya satu sumber | Test statis `AC-RWF-005` |
+| Invoice `RANAP` terbentuk otomatis dan tepat satu | `UAT-RWF-01`, `UAT-RWF-11`; test `INV-RWF-06` |
+| Pesan outbox `Published` hanya dengan tanda terima | Test `AC-RWF-016` |
+| Tidak ada angka tarif atau jam potong tertanam | Test statis `AC-RWF-014` |
+| Koreksi penempatan tidak menggandakan tarif kamar | Kedua uji wajib `IsSuperseded` lulus |
+| Rupiah tidak sampai ke perawat, dan hak rupiah tidak bergantung pada nama peran | Test `AC-RWF-020`, `021`, `022` |
+| Episode aktif saat rilis punya invoice | `UAT-RWF-15` |
+| Regresi rawat jalan nol | Test regresi pada `testing/acceptance-test-matrix.md` bagian 4 |
+| Master kebijakan tarif kamar dan tarif kelas terisi di lingkungan uji | `02-backend-architecture.md` 9.11 |
+
+### 8.20 Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi | Syarat mulai |
+|---|---|---|
+| `MVP-0` (`RWF-W0`) | Hapus webhook, PIN, pemeriksaan nama peran, hitungan tarif kedua; seragamkan `RANAP`; migration `I1`, `I2` | Kontrak `1.1.0` disetujui |
+| `MVP-1` (`RWF-W1`) | Penerima event, worker jujur, adapter, keluar ruangan, penutupan, jembatan `RANAP`, biaya admin, finalisasi, koreksi, rincian Tagihan Pasien | `MVP-0` |
+| `MVP-2` | Putar ulang (`I5`) dengan wewenang tertulis | `MVP-1` terbukti di lingkungan uji |
+| `MVP-3` | Retur obat membatalkan tagihan | `MVP-1` (persetujuan Farmasi sudah ada, `RWI-DEC-210`) |
+| `POST-MVP` | Penghapusan kolom dipensiunkan; notifikasi seketika | — |
+
+| Pertanyaan | Siapa yang menjawab | Dampak bila belum dijawab | Memblokir |
+|---|---|---|:---:|
+| ~~Pemilik `PharmacyManagement` dan persetujuannya (`RWI-OQ-108`)~~ | Ikbal Yulianto | **Disetujui `RWI-DEC-210`, 2 Oktober 2026** | Tidak lagi |
+| Pengesahan pemetaan tujuh kelompok Tagihan Pasien (gate G-04) | Yasmina | Konfigurasi bawaan dipakai | Tidak |
+| Pemetaan role ke permission di lingkungan target (`FIN-UNK-05`) | Admin Akses Role | UAT gagal walau kode benar | Tidak untuk desain |
+
+**Penyelarasan decision log revision `31` ★ 2 Oktober 2026.** Tidak ada pertanyaan memblokir yang tersisa. `RWI-DEC-207` menambah satu kemampuan Billing pada gelombang `MVP-4` (`RWF-W7`): tautan kunjungan asal ke invoice `RANAP` dan baris operasinya di Tagihan Pasien (`02-backend-architecture.md` 9.14). Penyelesaian satu kwitansi mengikuti `BKC-DEC-118` milik `billing-kasir`.
+
+| Gelombang | Isi | Syarat mulai |
+|---|---|---|
+| `MVP-4` (`RWF-W7`) | `I6`; tautan pada `ADMISSION_CONFIRMED`; baris operasi kunjungan tertaut di `breakdown` dan `amounts` | `MVP-1`; `episode-rawat-inap` `E6` (`InpAdmissionReferral`) |
+
+| ID | Jalur | Langkah | Hasil |
+|---|---|---|---|
+| `UAT-RWF-39` | Berhasil | Pasien Poli Bedah dioperasi, kamar pulih memutuskan rawat inap, admisi dari permintaan | Invoice Poli Bedah tertaut ke invoice `RANAP` tanpa baris berpindah; Tagihan Pasien menampilkan baris operasi berlabel kunjungan asal (`RWI-AC-330`) |
+| `UAT-RWF-40` | Gagal | Pesan `ADMISSION_CONFIRMED` yang sama dikirim ulang dan putar ulang dijalankan | Tetap satu tautan; tidak ada baris ganda |

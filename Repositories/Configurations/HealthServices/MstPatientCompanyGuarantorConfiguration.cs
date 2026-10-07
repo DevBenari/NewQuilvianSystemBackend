@@ -95,6 +95,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.GuaranteeDocumentPath)
                 .HasMaxLength(500);
 
+            entity.Property(x => x.CardImagePath)
+                .HasMaxLength(500);
+
             entity.Property(x => x.Notes)
                 .HasMaxLength(250);
 

@@ -43,6 +43,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
             _loggerService = loggerService;
         }
 
+        [HttpGet("instruction-verification-worklist")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<BloodOrderVerificationItem>>), StatusCodes.Status200OK)]
+        [AccessAction("VerifyInstruction", "Verify Blood Instruction", AccessType = AccessTypes.Update)]
+        [AccessPermission("BloodOrder", "VerifyInstruction")]
+        public async Task<IActionResult> InstructionVerificationWorklist(
+            [FromQuery] BloodInstructionVerificationQuery query, CancellationToken cancellationToken)
+        {
+            try
+            {
+                return Ok(ApiResponse<PagedResult<BloodOrderVerificationItem>>.Ok(
+                    await _bloodOrderService.GetInstructionVerificationWorklistAsync(
+                        query, GetCurrentUserId(), cancellationToken),
+                    "Pesanan darah yang perlu diverifikasi berhasil diambil."));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(403, ApiResponse<object>.Fail(403, ex.Message));
+            }
+        }
+
+        [HttpPost("{id:guid}/verify-instruction")]
+        [ProducesResponseType(typeof(ApiResponse<BloodOrderDetailDto>), StatusCodes.Status200OK)]
+        [AccessAction("VerifyInstruction", "Verify Blood Instruction", AccessType = AccessTypes.Update)]
+        [AccessPermission("BloodOrder", "VerifyInstruction")]
+        public async Task<IActionResult> VerifyInstruction(Guid id,
+            [FromBody] VerifyBloodInstructionRequest request, CancellationToken cancellationToken)
+        {
+            var result = await _bloodOrderService.VerifyInstructionAsync(
+                id, request, GetCurrentUserId(), cancellationToken);
+            if (result.Outcome != BloodOrderOutcome.Success) return MapFailure(result);
+            return Ok(ApiResponse<BloodOrderDetailDto>.Ok(
+                await BuildDetailAsync(result.Entity!, cancellationToken), result.Message));
+        }
+
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<BloodOrderFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Blood Order", Description = "Melihat konfigurasi penyaring order darah", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -342,7 +376,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
             {
                 BloodOrderOutcome.NotFound => NotFound(
                     ApiResponse<object>.Fail(StatusCodes.Status404NotFound, result.Message, errors)),
-                BloodOrderOutcome.UnitNotAuthorized => StatusCode(
+                BloodOrderOutcome.UnitNotAuthorized or BloodOrderOutcome.Forbidden => StatusCode(
                     StatusCodes.Status403Forbidden,
                     ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, result.Message, errors)),
                 BloodOrderOutcome.VersionConflict => Conflict(

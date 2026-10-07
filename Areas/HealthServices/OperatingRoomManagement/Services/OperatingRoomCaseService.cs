@@ -60,7 +60,30 @@ public sealed class OperatingRoomCaseService
                 Status = x.Status, RequestedAt = x.RequestedAt, Version = x.Version,
                 PrimaryProcedureName = x.Procedures.Where(p => p.IsPrimary && !p.IsDelete)
                     .Select(p => p.PatientProcedure != null ? p.PatientProcedure.ProcedureNameSnapshot : string.Empty)
-                    .FirstOrDefault() ?? string.Empty
+                    .FirstOrDefault() ?? string.Empty,
+                // BE-RWI-174: isian tambahan API 11.5.1.
+                SurgicalServiceType = x.SurgicalServiceType,
+                PlannedAnesthesiaType = x.PlannedAnesthesiaType,
+                RejectedAt = x.RejectedAt,
+                RejectionReason = x.RejectionReason,
+                RejectedByName = x.RejectedByUserId == null
+                    ? null
+                    : _dbContext.Users.Where(u => u.Id == x.RejectedByUserId).Select(u => u.DisplayName).FirstOrDefault(),
+                LastStatusReason = x.StatusHistories
+                    .Where(h => !h.IsDelete && StatusReasonActions.Contains(h.Action))
+                    .OrderByDescending(h => h.OccurredAt)
+                    .Select(h => h.Reason)
+                    .FirstOrDefault(),
+                WardPreOpStatus = _dbContext.OprWardPreOpNotes
+                    .Where(n => n.OprCaseId == x.Id && !n.IsDelete)
+                    .OrderByDescending(n => n.VersionNumber)
+                    .Select(n => (OprWardPreOpStatus?)n.Status)
+                    .FirstOrDefault(),
+                HandoverStatus = _dbContext.OprHandovers
+                    .Where(h => h.OprCaseId == x.Id && !h.IsDelete)
+                    .OrderByDescending(h => h.Revision)
+                    .Select(h => (OprHandoverStatus?)h.Status)
+                    .FirstOrDefault()
             }).ToListAsync(cancellationToken);
 
         return new PagedResult<OprCaseSummaryResponse>
@@ -73,16 +96,154 @@ public sealed class OperatingRoomCaseService
     public async Task<OprCaseDetailResponse?> GetDetailAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var entity = await LoadCaseAsync(id, false, cancellationToken);
-        return entity == null ? null : MapDetail(entity);
+        if (entity == null) return null;
+
+        var detail = MapDetail(entity);
+
+        // BE-RWI-174: nama penolak, status pra-operasi bangsal, dan status serah terima terakhir.
+        if (entity.RejectedByUserId.HasValue)
+            detail.RejectedByName = await _dbContext.Users.AsNoTracking()
+                .Where(u => u.Id == entity.RejectedByUserId.Value)
+                .Select(u => u.DisplayName)
+                .FirstOrDefaultAsync(cancellationToken);
+        detail.WardPreOpStatus = await _dbContext.OprWardPreOpNotes.AsNoTracking()
+            .Where(n => n.OprCaseId == id && !n.IsDelete)
+            .OrderByDescending(n => n.VersionNumber)
+            .Select(n => (OprWardPreOpStatus?)n.Status)
+            .FirstOrDefaultAsync(cancellationToken);
+        detail.HandoverStatus = await _dbContext.OprHandovers.AsNoTracking()
+            .Where(h => h.OprCaseId == id && !h.IsDelete)
+            .OrderByDescending(h => h.Revision)
+            .Select(h => (OprHandoverStatus?)h.Status)
+            .FirstOrDefaultAsync(cancellationToken);
+        return detail;
     }
 
-    public async Task<OprCaseDetailResponse> CreateAsync(CreateOprCaseRequest request, CancellationToken cancellationToken = default)
+    public Task<OprCaseDetailResponse> CreateAsync(CreateOprCaseRequest request, CancellationToken cancellationToken = default) =>
+        CreateCoreAsync(request, enforceDoctorActor: !_relaxation.IsRelaxed, requestNote: null, cancellationToken);
+
+    /// <summary>
+    /// Jalur pembuatan kasus khusus pemesanan ruang bedah dari bangsal (<c>BE-RWI-175</c>,
+    /// <c>InpSurgeryBookingAdapter</c>). Bedanya dengan <see cref="CreateAsync"/> hanya satu: akun
+    /// login tidak wajib dokter pemohon, karena perawat bangsal boleh menginput atas order dokter
+    /// (<c>RWI-DEC-176</c>); dokter pemohon dan operator diambil adapter dari order tindakan yang
+    /// dirujuk. Seluruh validasi rujukan, idempotensi, dan transaksi tetap milik service ini.
+    /// </summary>
+    /// <param name="request">Permintaan kasus yang disusun adapter dari order tindakan.</param>
+    /// <param name="wardNote">
+    /// Catatan bangsal (maks. 1000). <c>OprCase</c> tidak punya kolom catatan, sehingga catatan
+    /// disimpan sebagai alasan baris histori <c>Request</c> — terbaca pada riwayat status kasus.
+    /// </param>
+    /// <param name="cancellationToken">Token pembatalan.</param>
+    public Task<OprCaseDetailResponse> CreateFromWardBookingAsync(CreateOprCaseRequest request, string? wardNote,
+        CancellationToken cancellationToken = default) =>
+        CreateCoreAsync(request, enforceDoctorActor: false, requestNote: wardNote, cancellationToken);
+
+    /// <summary>
+    /// Menolak order operasi berstatus Diminta dengan alasan (<c>BE-RWI-174</c>, <c>INV-RWF-31</c>).
+    /// Status <c>Rejected</c> final: kasus tidak dapat diubah, dijadwalkan, ditunda, dibatalkan,
+    /// atau dimulai (<c>OPR-CASE-REJ-002</c>); bangsal memesan ulang sebagai kasus baru.
+    /// </summary>
+    /// <remarks>
+    /// Contoh: kasus OK-2026-0142 milik Budi S. berstatus Diminta. Petugas penjadwalan menolak dengan
+    /// alasan "Hasil lab pra-operasi belum ada" → status Ditolak, penolak dan waktunya tersimpan, dan
+    /// order tindakan "Appendektomi" bebas dirujuk kasus baru.
+    /// </remarks>
+    public async Task<OprCaseDetailResponse> RejectAsync(Guid id, RejectOprCaseRequest request, string? idempotencyKey,
+        CancellationToken cancellationToken = default)
+    {
+        // VAL-RWF-82: alasan 10–500 karakter → 400 "Isi alasan penolakan".
+        var reason = request.Reason?.Trim() ?? string.Empty;
+        if (reason.Length < 10 || reason.Length > 500)
+            throw new ArgumentException("Isi alasan penolakan (10–500 karakter).");
+        var key = Normalize(idempotencyKey) ?? Normalize(request.IdempotencyKey)
+            ?? throw new ArgumentException("Header Idempotency-Key wajib diisi.");
+        if (key.Length > 100) throw new ArgumentException("Idempotency key maksimal 100 karakter.");
+
+        var actorUserId = GetCurrentUserId();
+        var fingerprint = Hash(reason);
+        var prior = await FindIdempotentCaseAsync(RejectAction, key, cancellationToken);
+        if (prior != null)
+        {
+            if (prior.OprCaseId != id)
+                throw new OperatingRoomConflictException("OPR013", "Idempotency key sudah digunakan untuk kasus lain.");
+            EnsureSameFingerprint(prior.Source, fingerprint);
+            return (await GetDetailAsync(id, cancellationToken))!;
+        }
+
+        var entity = await _dbContext.OprCases.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Kasus operasi tidak ditemukan.");
+        // State matrix 9.1: kasus Rejected yang ditolak lagi → OPR-CASE-REJ-002; status lain → REJ-001.
+        EnsureNotRejected(entity.Status);
+        if (entity.Status != OprCaseStatus.Requested)
+            throw new OperatingRoomUnprocessableException(RejectNotRequestedCode,
+                "Hanya pesanan berstatus Diminta yang dapat ditolak.");
+        if (entity.Version != request.ExpectedVersion)
+            throw new OperatingRoomConflictException("OPR012", "Data telah diperbarui pengguna lain. Muat ulang lalu coba kembali.");
+
+        var now = DateTime.UtcNow;
+        // State matrix 9.2: seluruh versi pra-operasi yang belum Superseded ikut gugur, dalam transaksi yang sama.
+        await OprWardPreOpService.SupersedeAllAsync(_dbContext, entity.Id, actorUserId, now, cancellationToken);
+        entity.Status = OprCaseStatus.Rejected;
+        entity.RejectedAt = now;
+        entity.RejectedByUserId = actorUserId;
+        entity.RejectionReason = reason;
+        entity.Version++;
+        entity.UpdateDateTime = now;
+        entity.UpdateBy = actorUserId;
+        _dbContext.OprStatusHistories.Add(new OprStatusHistory
+        {
+            OprCaseId = entity.Id, FromStatus = OprCaseStatus.Requested, ToStatus = OprCaseStatus.Rejected,
+            Action = RejectAction, Reason = reason, ActorUserId = actorUserId, OccurredAt = now,
+            Source = BuildSource(fingerprint), CorrelationId = key, CreateDateTime = now, CreateBy = actorUserId
+        });
+
+        try { await _dbContext.SaveChangesAsync(cancellationToken); }
+        catch (DbUpdateException)
+        {
+            _dbContext.ChangeTracker.Clear();
+            var concurrent = await FindIdempotentCaseAsync(RejectAction, key, cancellationToken);
+            if (concurrent != null && concurrent.OprCaseId == id)
+            {
+                EnsureSameFingerprint(concurrent.Source, fingerprint);
+                return (await GetDetailAsync(id, cancellationToken))!;
+            }
+            throw new OperatingRoomConflictException("OPR012", "Data telah diperbarui pengguna lain. Muat ulang lalu coba kembali.");
+        }
+
+        await _loggerService.AuditAsync(LogCategory, "OperatingRoomCase.Reject", "Menolak order operasi.",
+            new { entity.Id, entity.CaseNumber, ActorUserId = actorUserId, Status = entity.Status.ToString(), CorrelationId = key });
+        return (await GetDetailAsync(entity.Id, cancellationToken))!;
+    }
+
+    /// <summary>
+    /// Penjaga <c>OPR-CASE-REJ-002</c> untuk perintah yang berasal dari service lain (jadwal, tunda,
+    /// batal, mulai): kasus <c>Rejected</c> final dan tidak dapat diproses lagi.
+    /// </summary>
+    internal static void EnsureNotRejected(OprCaseStatus status)
+    {
+        if (status == OprCaseStatus.Rejected)
+            throw new OperatingRoomUnprocessableException(RejectedFinalCode,
+                "Kasus yang ditolak tidak dapat diubah; pesan ulang sebagai kasus baru.");
+    }
+
+    private async Task<OprCaseDetailResponse> CreateCoreAsync(CreateOprCaseRequest request, bool enforceDoctorActor,
+        string? requestNote, CancellationToken cancellationToken)
     {
         ValidateRequest(request.Procedures, request.Indication, request.IdempotencyKey);
+        if (request.SurgicalServiceType.HasValue && !Enum.IsDefined(request.SurgicalServiceType.Value))
+            throw new ArgumentException("Jenis layanan bedah tidak dikenal.");
+        if (request.PlannedAnesthesiaType.HasValue && !Enum.IsDefined(request.PlannedAnesthesiaType.Value))
+            throw new ArgumentException("Rencana jenis anestesi tidak dikenal.");
         var actorUserId = GetCurrentUserId();
-        if (!_relaxation.IsRelaxed)
+        if (enforceDoctorActor)
             EnsureDoctorActor(GetCurrentDoctorId(), request.RequesterDoctorId);
-        var fingerprint = BuildFingerprint(request);
+        // Catatan bangsal ikut sidik jari hanya bila ada, supaya kunci sama dengan catatan berbeda
+        // tetap ditolak 409 (BE-RWI-175 AC 5) tanpa mengubah sidik jari permintaan OK yang sudah ada.
+        var note = Normalize(requestNote);
+        var fingerprint = note == null
+            ? BuildFingerprint(request)
+            : Hash(string.Join('|', BuildFingerprint(request), note));
 
         var prior = await FindIdempotentCaseAsync("Request", request.IdempotencyKey, cancellationToken);
         if (prior != null)
@@ -104,12 +265,17 @@ public sealed class OperatingRoomCaseService
             Indication = request.Indication.Trim(), Laterality = Normalize(request.Laterality),
             EstimatedMinutes = request.EstimatedMinutes, RequestedAt = now,
             PreferredAt = request.PreferredAt?.ToUniversalTime(), Version = 0,
+            SurgicalServiceType = request.SurgicalServiceType ?? OprSurgicalServiceType.General,
+            PlannedAnesthesiaType = request.PlannedAnesthesiaType,
             CreateDateTime = now, CreateBy = actorUserId
         };
         entity.CaseNumber = $"OPR-{entity.Id:N}";
         AddProcedures(entity, request.Procedures, actorUserId, now);
-        entity.StatusHistories.Add(NewHistory(entity.Id, entity.Status, null, "Request", request.IdempotencyKey,
-            fingerprint, actorUserId, now));
+        var requestHistory = NewHistory(entity.Id, entity.Status, null, "Request", request.IdempotencyKey,
+            fingerprint, actorUserId, now);
+        // BE-RWI-175: catatan pemesanan dari bangsal (opsional) ikut sebagai alasan histori Request.
+        if (note != null) requestHistory.Reason = note.Length > 1000 ? note[..1000] : note;
+        entity.StatusHistories.Add(requestHistory);
 
         _dbContext.OprCases.Add(entity);
         try { await _dbContext.SaveChangesAsync(cancellationToken); }
@@ -144,6 +310,7 @@ public sealed class OperatingRoomCaseService
 
         var entity = await LoadCaseAsync(id, true, cancellationToken)
             ?? throw new KeyNotFoundException("Kasus operasi tidak ditemukan.");
+        EnsureNotRejected(entity.Status);
         if (entity.Status != OprCaseStatus.Requested)
             throw new OperatingRoomConflictException("InvalidStateTransition", "Permintaan hanya dapat diubah pada status Requested.");
         if (entity.Version != request.ExpectedVersion)
@@ -216,7 +383,9 @@ public sealed class OperatingRoomCaseService
         var duplicateExists = await _dbContext.OprCaseProcedures.AsNoTracking()
             .AnyAsync(x => procedureIds.Contains(x.PatientProcedureId) && !x.IsDelete &&
                 (!currentCaseId.HasValue || x.OprCaseId != currentCaseId.Value) && x.OprCase != null && !x.OprCase.IsDelete &&
-                x.OprCase.Status != OprCaseStatus.Completed && x.OprCase.Status != OprCaseStatus.Cancelled, cancellationToken);
+                x.OprCase.Status != OprCaseStatus.Completed && x.OprCase.Status != OprCaseStatus.Cancelled &&
+                // BE-RWI-174: order dari kasus Ditolak bebas dirujuk kasus baru ("pesan ulang").
+                x.OprCase.Status != OprCaseStatus.Rejected, cancellationToken);
         if (duplicateExists)
             throw new OperatingRoomConflictException("OPR002", "Tindakan sudah diproses pada kasus operasi lain.");
     }
@@ -285,9 +454,18 @@ public sealed class OperatingRoomCaseService
             throw new OperatingRoomConflictException("OPR013", "Idempotency key digunakan dengan isi permintaan yang berbeda.");
     }
 
-    private static string BuildFingerprint(CreateOprCaseRequest r) => Hash(string.Join('|', r.PatientId, r.EncounterId,
-        r.RequesterDoctorId, r.PrimarySurgeonId, r.CaseType, r.Priority, r.Indication.Trim(), Normalize(r.Laterality),
-        r.EstimatedMinutes, r.PreferredAt?.ToUniversalTime().Ticks, ProcedureFingerprint(r.Procedures)));
+    private static string BuildFingerprint(CreateOprCaseRequest r)
+    {
+        var baseline = string.Join('|', r.PatientId, r.EncounterId,
+            r.RequesterDoctorId, r.PrimarySurgeonId, r.CaseType, r.Priority, r.Indication.Trim(), Normalize(r.Laterality),
+            r.EstimatedMinutes, r.PreferredAt?.ToUniversalTime().Ticks, ProcedureFingerprint(r.Procedures));
+        // BE-RWI-174: dua isian baru hanya ikut sidik jari bila tidak bawaan, supaya permintaan ulang
+        // berkunci sama dari layar OK lama (sebelum isian ini ada) tetap dianggap permintaan yang sama.
+        var serviceType = r.SurgicalServiceType ?? OprSurgicalServiceType.General;
+        if (serviceType == OprSurgicalServiceType.General && !r.PlannedAnesthesiaType.HasValue)
+            return Hash(baseline);
+        return Hash(string.Join('|', baseline, serviceType, r.PlannedAnesthesiaType));
+    }
     private static string BuildFingerprint(UpdateOprCaseRequest r) => Hash(string.Join('|', r.RequesterDoctorId,
         r.PrimarySurgeonId, r.CaseType, r.Priority, r.Indication.Trim(), Normalize(r.Laterality), r.EstimatedMinutes,
         r.PreferredAt?.ToUniversalTime().Ticks, ProcedureFingerprint(r.Procedures)));
@@ -314,7 +492,27 @@ public sealed class OperatingRoomCaseService
                 PatientProcedureId = x.PatientProcedureId, ProcedureCode = x.PatientProcedure?.ProcedureCodeSnapshot ?? string.Empty,
                 ProcedureName = x.PatientProcedure?.ProcedureNameSnapshot ?? string.Empty, IsPrimary = x.IsPrimary, Sequence = x.Sequence
             }).ToList(),
-            AvailableActions = AvailableActions(entity.Status)
+            AvailableActions = AvailableActions(entity.Status),
+            SurgicalServiceType = entity.SurgicalServiceType,
+            PlannedAnesthesiaType = entity.PlannedAnesthesiaType,
+            RejectedAt = entity.RejectedAt,
+            RejectionReason = entity.RejectionReason,
+            LastStatusReason = entity.StatusHistories
+                .Where(h => !h.IsDelete && StatusReasonActions.Contains(h.Action))
+                .OrderByDescending(h => h.OccurredAt)
+                .Select(h => h.Reason)
+                .FirstOrDefault()
         };
     }
+
+    /// <summary>Aksi histori yang alasannya menjadi <c>LastStatusReason</c> (tunda, batal, tolak).</summary>
+    private static readonly string[] StatusReasonActions = ["Postpone", "Cancel", RejectAction];
+
+    private const string RejectAction = "Reject";
+
+    /// <summary>422 — hanya kasus Diminta yang dapat ditolak (API 11.5.1).</summary>
+    public const string RejectNotRequestedCode = "OPR-CASE-REJ-001";
+
+    /// <summary>422 — kasus Ditolak final dan tidak dapat diubah (API 11.5.1).</summary>
+    public const string RejectedFinalCode = "OPR-CASE-REJ-002";
 }

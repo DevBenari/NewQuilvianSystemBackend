@@ -66,6 +66,21 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.InPat
                 .WithMany()
                 .HasForeignKey(x => x.EndedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Kontrak integrasi-billing 1.1.0 kamus data 6.4 — rantai koreksi salah catat
+            // ke diri sendiri. Baris lama tidak pernah dihapus; Restrict menjaga jejaknya.
+            builder.HasIndex(x => x.CorrectsPlacementId, "IX_InpBedPlacement_CorrectsPlacementId");
+            builder.HasIndex(x => x.SupersededByCorrectionId, "IX_InpBedPlacement_SupersededByCorrectionId");
+
+            builder.HasOne(x => x.CorrectsPlacement)
+                .WithMany()
+                .HasForeignKey(x => x.CorrectsPlacementId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.SupersededByCorrection)
+                .WithMany()
+                .HasForeignKey(x => x.SupersededByCorrectionId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

@@ -267,3 +267,33 @@ dari Billing. **Aturan penutupannya tidak berubah** — hanya sumber datanya. In
 `InpatientClinicalContextService` membaca `AssignmentPurpose` untuk menegakkan `RWI-DEC-130` butir (5): dokter
 berpenugasan `LateDocumentation` tidak dapat memverifikasi CPPT. Keputusan pulang, tanda tangan resume, perpindahan, dan
 isolasi sudah tertutup bagi `OnCallDoctor` oleh `GUARD-INP-01` s.d. `04`.
+
+---
+
+## 9. Perubahan pada `contract_version` `0.10.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.10.0` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
+| Pemilik pihak lain | Kamar Operasi — Ikbal Yulianto (**disetujui Ikbal Yulianto, `RWI-DEC-208`**); Billing — `RWI-DEC-192`, `196`; Clinical — Muhammad Hamzah |
+| Keputusan yang belum ada | **Tidak ada.** ~~`DEC-INP-018`~~ ditutup `RWI-DEC-207`. `INT-RWF-22` tetap mengirim dengan `EncounterId` kasus OK; Billing menautkan kunjungan itu ke invoice `RANAP` (`INT-RWF-25`) |
+
+Seluruh integrasi di bawah adalah panggilan **dalam proses yang sama** (satu aplikasi, satu database), bukan HTTP antarmodul, mengikuti pola `InpBillingDepositAdapter`.
+
+| ID | Dari → ke | Pemicu | Isi | Sinkron | Idempotensi | Bila gagal | Rekonsiliasi |
+|---|---|---|---|---|---|---|---|
+| `INT-RWF-19` | Rawat Inap → OK | Pesan ruang bedah dari bangsal | `PatientId`, `EncounterId` episode, satu `PatientProcedureId`, jenis layanan, rencana anestesi, isian pesanan, akun penginput | Ya | `Idempotency-Key` diteruskan ke `CreateOprCaseRequest.IdempotencyKey` | Pesanan tidak tersimpan; pengguna mencoba lagi | Tidak perlu |
+| `INT-RWF-20` | OK → Rawat Inap (baca) | Penerimaan serah terima | "Apakah pasien X menempati bed aktif di unit Y" (`InpPatientLocationQuery`) | Ya | Baca | Gagal baca → penerimaan **ditolak** (gagal tertutup) | — |
+| `INT-RWF-21` | OK → Clinical | Kasus `Completed` | Selesaikan setiap order tindakan yang dirujuk kasus: pelaksana dokter operator, waktu = kasus selesai; fakta tagih tindakan lahir dari jalur order tindakan yang sudah ada | Sesudah commit kasus | Order sudah `Completed` dilewati | Dicatat; dicoba ulang lewat rekonsiliasi delivery OK | `GET …/integration/reconciliation` menampilkan order yang belum selesai |
+| `INT-RWF-22` | OK → Billing | Kasus `Completed` | Komponen `ANESTHESIA` (bila catatan anestesi final), `OR_RENT` (durasi menit kamar operasi), `MATERIAL-{usageId}` (pemakaian `Used`); `SourceContext = OPERATING_ROOM`, `EncounterId` kasus | Sesudah commit (outbox `OprIntegrationDelivery`) | `case:charge:component:revision` | Delivery `Failed`, dicoba ulang | Rekonsiliasi OK yang sudah ada; Billing menolak tarif tak ada → baris "tarif belum ada" |
+| `INT-RWF-23` | OK → Rawat Inap | Simpan kamar pulih `Inpatient`/`Icu`, pasien tanpa episode hadir | `PatientId`, `SourceEncounterId`, `OprCaseId`, dokter operator, tingkat perawatan, catatan keputusan | Ya, dalam transaksi OK | Satu `Pending` per kasus (unique parsial) | Transaksi kamar pulih gagal seluruhnya; petugas menyimpan ulang | Tidak perlu — disetujui `RWI-DEC-208` |
+| `INT-RWF-24` | OK → Rawat Inap | Keputusan kamar pulih berubah dari `Inpatient`/`Icu`, atau pasien boleh pulang | Batalkan permintaan `Pending` beralasan | Ya, dalam transaksi OK | Permintaan bukan `Pending` dilewati | Sama | — |
+| `INT-RWF-25` | Rawat Inap → Billing | Admisi dari permintaan selesai | Ketukan pintu `ADMISSION_CONFIRMED` seperti admisi biasa — **isi pesan tetap daftar putih** (`INV-RWF-05`); Billing membaca `InpAdmissionReferral.SourceEncounterId` dari sumbernya dan menautkan kunjungan asal ke invoice `RANAP` (`integrasi-billing` `INT-RWF-29`, `RWI-DEC-207`) | Outbox (`integrasi-billing` `1.1.0`) | Sama dengan `INT-RWF-01`; tautan unik per invoice dan kunjungan | Sama | Putar ulang `I5` |
+| `INT-RWF-26` | Rawat Inap → Clinical | Transfer antarunit tersimpan | `InpEpisodeId`, unit asal, unit tujuan, penempatan asal dan tujuan | Sesudah commit transfer | Satu dokumen per penempatan tujuan | Dicatat; transfer tetap sah | Daftar Pantau menampilkan transfer antarunit tanpa dokumen; dibuat ulang saat dibuka |
+| `INT-RWF-27` | Rawat Inap/Clinical/OK → OK (baca) | Bangsal membuka ringkasan operasi | `GET cases/{id}/post-operative-summary` | Ya | Baca | Gagal → "Ringkasan operasi tidak dapat dimuat"; tidak ada salinan | — |
+| `INT-RWF-28` | OK → Clinical (baca) | Kirim pra-operasi | Tanda vital terakhir episode; skor nyeri terakhir | Ya | Baca | Tanpa tanda vital → `OPR-WPO-005` | — |
+
+**Yang tidak diintegrasikan.** Biaya operasi tidak lewat ketukan pintu Rawat Inap — OK mengirim langsung ke Billing (`INT-RWF-22`) karena kasus OK juga melayani pasien non-rawat inap. Bahan OK yang tertagih lewat `INT-RWF-22` **tidak** ditagih lagi oleh Farmasi (`RWI-DEC-196`): delivery bahan memakai sumber `OPERATING_ROOM`, dan pengeluaran stok OK (`inventory/dispatch`) tetap tanpa tagihan.
+
+**Penyelarasan decision log revision `31` ★ 2 Oktober 2026.** `INT-RWF-23` dan `INT-RWF-24` disetujui OK (`RWI-DEC-208`). `INT-RWF-25` dikoreksi: versi sebelumnya menulis pesan "ditambah `SourceEncounterId`", yang melanggar `INV-RWF-05`.

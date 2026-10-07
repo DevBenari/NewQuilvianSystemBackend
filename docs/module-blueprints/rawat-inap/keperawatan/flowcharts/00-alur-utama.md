@@ -157,3 +157,44 @@ progres perawat; konfirmasi perawat kedua menahan **dosis high-alert itu saja**,
 **Yang tidak ada pada alur ini:** handover shift dan transfusi (`RWI-DEC-145`), serah terima klinis antarunit,
 pemakaian alat, pemesanan kamar operasi, dan layanan penunjang selain Laboratorium dan Radiologi — menunya tampil
 "Integrasi belum tersedia".
+
+---
+
+## 5. Alur utama revision `0.4` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+Alur utama bagian 4 tetap berlaku. Finishing menambahkan langkah harian berikut pada perawatan pasien rawat inap:
+
+```mermaid
+flowchart TD
+    subgraph perawat[Perawat bangsal]
+        A([Pasien dirawat di bangsal]) --> B[Catat pengawasan harian dan cairan]
+        B --> C{Pasien terpasang WSD?}
+        C -- Ya --> D[Catat pembacaan tiap selang per shift]
+        C -- Tidak --> E{Alat medis besar dipasang?}
+        D --> E
+        E -- Ya --> F[Catat mulai dan selesai pemakaian alat]
+        E -- Tidak --> G{Pasien pasca operasi?}
+        F --> G
+        G -- Ya --> H[Isi surveilans infeksi luka operasi tiap hari]
+        G -- Tidak --> I{Pasien menerima darah?}
+        H --> I
+        I -- Ya --> J[Pantau transfusi per kantong]
+        I -- Tidak --> K[Lihat Tagihan Pasien bila ditanya keluarga]
+        J --> K
+    end
+    subgraph dokter[Dokter berpenugasan aktif]
+        L[Beri instruksi diet atau verifikasi diet yang diinput perawat]
+    end
+    K --> L
+    L --> M([Perawatan harian tercatat])
+```
+
+| Langkah | Pelaku | Masukan | Keluaran | Bila gagal |
+|---|---|---|---|---|
+| Catat pembacaan WSD | Perawat | Selang terdaftar | Output cairan per selang | Hasil negatif: isi volume yang dibuang |
+| Catat pemakaian alat | Perawat | Jenis alat, dokter penanggung jawab | Pemakaian dan tagihannya | Dokter tidak berpenugasan: pilih dokter lain |
+| Isi surveilans | Perawat | Formulir terbentuk setelah operasi selesai | Isian hari ke-N | Pasien sudah pulang: formulir berhenti |
+| Pantau transfusi | Perawat | Kantong yang diserahkan Bank Darah | Empat titik ukur | Terlambat: tulis keterangan |
+| Diet | Perawat atas instruksi dokter | Dokter pemberi instruksi | Diet aktif, menunggu verifikasi | Dokter tidak berpenugasan: ditolak |
+
+Rincian setiap proses: `05-observasi-wsd-per-selang.md`, `06-pemakaian-alat.md`, `07-surveilans-infeksi-luka-operasi.md`, `08-monitoring-transfusi.md`, dan `09-diet-medis-atas-instruksi.md`.

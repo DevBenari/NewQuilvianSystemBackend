@@ -170,7 +170,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             CorrectFluidBalanceEntryRequest request,
             ClaimsPrincipal? user,
             Guid actorUserId,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            bool fromWsd = false)
         {
             // VAL-KEP-24h
             if (string.IsNullOrWhiteSpace(request.CorrectionReason))
@@ -179,7 +180,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             if (!request.ExpectedRevisionNumber.HasValue)
                 return BadRequest<FluidBalanceEntryResponse>("Muat ulang entri sebelum mengoreksi.", "DETAIL_NOT_LOADED");
 
-            await using var transaksi = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            await using var transaksi = _dbContext.Database.CurrentTransaction == null
+                ? await _dbContext.Database.BeginTransactionAsync(cancellationToken) : null;
 
             var entri = await _dbContext.Set<CliFluidBalanceEntry>()
                 .FromSqlInterpolated($@"SELECT * FROM public.""CliFluidBalanceEntry"" WHERE ""Id"" = {id} AND ""IsDelete"" = false FOR UPDATE")
@@ -187,6 +189,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 
             if (entri == null)
                 return NursingResult<FluidBalanceEntryResponse>.Fail(StatusCodes.Status404NotFound, "Entri cairan tidak ditemukan.");
+
+            if (!fromWsd && await _dbContext.Set<CliWsdReading>().AnyAsync(x => x.FluidBalanceEntryId == id, cancellationToken))
+                return Conflict<FluidBalanceEntryResponse>("Koreksi entri ini melalui Observasi WSD agar sisa selang tetap konsisten.", "WSD_MANAGED_ENTRY");
 
             var penjaga = await _writeGuard.EnsureCanWriteAsync(entri.InpEpisodeId, user, actorUserId, cancellationToken);
 
@@ -202,7 +207,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             var now = DateTime.UtcNow;
             var waktu = request.EntryDateTime.HasValue ? AsUtc(request.EntryDateTime.Value) : entri.EntryDateTime;
 
-            var galat = ValidateFluidValues<FluidBalanceEntryResponse>(entri.Direction, request.SourceCategory, request.VolumeMl, waktu, penjaga.Value!.AdmittedAt, now);
+            var galat = ValidateFluidValues<FluidBalanceEntryResponse>(entri.Direction, request.SourceCategory, request.VolumeMl, waktu, penjaga.Value!.AdmittedAt, now, fromWsd);
 
             if (galat != null)
                 return galat;
@@ -238,7 +243,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             entri.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
-            await transaksi.CommitAsync(cancellationToken);
+            if (transaksi != null) await transaksi.CommitAsync(cancellationToken);
 
             // CorrectionReason sensitif — tidak masuk payload logger.
             await _loggerService.InfoAsync(LogCategory, "FluidBalance.Correct", "Perawat mengoreksi entri cairan.",
@@ -253,12 +258,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             CancelClinicalMeasurementRequest request,
             ClaimsPrincipal? user,
             Guid actorUserId,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            bool fromWsd = false)
         {
             if (string.IsNullOrWhiteSpace(request.Reason))
                 return BadRequest<FluidBalanceEntryResponse>("Isi alasan pembatalan.", "CANCEL_REASON_REQUIRED");
 
-            await using var transaksi = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            await using var transaksi = _dbContext.Database.CurrentTransaction == null
+                ? await _dbContext.Database.BeginTransactionAsync(cancellationToken) : null;
 
             var entri = await _dbContext.Set<CliFluidBalanceEntry>()
                 .FromSqlInterpolated($@"SELECT * FROM public.""CliFluidBalanceEntry"" WHERE ""Id"" = {id} AND ""IsDelete"" = false FOR UPDATE")
@@ -266,6 +273,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 
             if (entri == null)
                 return NursingResult<FluidBalanceEntryResponse>.Fail(StatusCodes.Status404NotFound, "Entri cairan tidak ditemukan.");
+
+            if (!fromWsd && await _dbContext.Set<CliWsdReading>().AnyAsync(x => x.FluidBalanceEntryId == id, cancellationToken))
+                return Conflict<FluidBalanceEntryResponse>("Batalkan entri ini melalui Observasi WSD.", "WSD_MANAGED_ENTRY");
 
             var penjaga = await _writeGuard.EnsureCanWriteAsync(entri.InpEpisodeId, user, actorUserId, cancellationToken);
 
@@ -288,7 +298,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             entri.UpdateBy = actorUserId;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
-            await transaksi.CommitAsync(cancellationToken);
+            if (transaksi != null) await transaksi.CommitAsync(cancellationToken);
 
             await _loggerService.InfoAsync(LogCategory, "FluidBalance.Cancel", "Perawat membatalkan entri cairan.",
                 new { entri.Id, CancelledBy = actorUserId });
@@ -361,7 +371,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             decimal volumeMl,
             DateTime atUtc,
             DateTime? admittedAt,
-            DateTime now)
+            DateTime now,
+            bool fromWsd = false)
         {
             if (!Enum.IsDefined(direction) || !Enum.IsDefined(source))
                 return BadRequest<T>("Arah dan sumber cairan wajib dipilih.", "FLUID_SOURCE_REQUIRED");
@@ -371,7 +382,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             if (!sejalan)
                 return BadRequest<T>($"Sumber {SourceLabel(source)} bukan cairan {(direction == FluidDirection.Intake ? "masuk" : "keluar")}.", "SOURCE_DIRECTION_MISMATCH");
 
-            if (volumeMl <= 0 || volumeMl > 10000)
+            if (fromWsd ? volumeMl < 0 : volumeMl <= 0 || volumeMl > 10000)
                 return BadRequest<T>("Volume harus lebih dari 0 dan paling banyak 10.000 ml.", "VOLUME_OUT_OF_RANGE");
 
             if (IsClinicalTimeInvalid(atUtc, admittedAt, now))

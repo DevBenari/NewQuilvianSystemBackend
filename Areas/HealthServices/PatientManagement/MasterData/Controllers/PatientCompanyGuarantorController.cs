@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
@@ -38,13 +39,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly PatientPayerCardImageService _cardImageService;
 
         public PatientCompanyGuarantorController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            PatientPayerCardImageService cardImageService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _cardImageService = cardImageService;
         }
 
         [HttpGet("filters/metadata")]
@@ -451,6 +455,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
+            StoredPatientPayerCardImage? storedCardImage = null;
+
+            if (!string.IsNullOrWhiteSpace(request.CardImageBase64))
+            {
+                try
+                {
+                    storedCardImage = await _cardImageService.SaveAsync(
+                        request.PatientId,
+                        "company",
+                        request.CardImageBase64
+                    );
+                }
+                catch (PatientPayerCardImageValidationException ex)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        ex.Message
+                    ));
+                }
+            }
+
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
             try
@@ -493,6 +518,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     IsNeedEmployeeVerification = request.IsNeedEmployeeVerification,
                     IsAllowExcessPaymentByPatient = request.IsAllowExcessPaymentByPatient,
                     GuaranteeDocumentPath = NormalizeNullableString(request.GuaranteeDocumentPath),
+                    CardImagePath = storedCardImage?.PublicPath ?? NormalizeNullableString(request.CardImagePath),
                     Notes = NormalizeNullableString(request.Notes),
                     IsActive = true,
                     CreateDateTime = now,
@@ -522,6 +548,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
+                PatientPayerCardImageService.DeleteFile(storedCardImage?.PhysicalPath);
 
                 await _loggerService.ErrorAsync(
                     LogCategory,
@@ -735,6 +762,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
+            StoredPatientPayerCardImage? storedCardImage = null;
+
+            if (!string.IsNullOrWhiteSpace(request.CardImageBase64))
+            {
+                try
+                {
+                    storedCardImage = await _cardImageService.SaveAsync(
+                        request.PatientId,
+                        "company",
+                        request.CardImageBase64
+                    );
+                }
+                catch (PatientPayerCardImageValidationException ex)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        ex.Message
+                    ));
+                }
+            }
+
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
             try
@@ -774,6 +822,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 entity.IsNeedEmployeeVerification = request.IsNeedEmployeeVerification;
                 entity.IsAllowExcessPaymentByPatient = request.IsAllowExcessPaymentByPatient;
                 entity.GuaranteeDocumentPath = NormalizeNullableString(request.GuaranteeDocumentPath);
+                // Kolom baru (RJ-DOC-REV-BE-014): form master data lama belum mengirim
+                // CardImagePath, jadi nilai kosong tidak menghapus kartu yang sudah tersimpan.
+                entity.CardImagePath = storedCardImage?.PublicPath
+                    ?? NormalizeNullableString(request.CardImagePath)
+                    ?? entity.CardImagePath;
                 entity.Notes = NormalizeNullableString(request.Notes);
                 entity.IsActive = request.IsActive;
                 entity.UpdateDateTime = now;
@@ -804,6 +857,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
+                PatientPayerCardImageService.DeleteFile(storedCardImage?.PhysicalPath);
 
                 await _loggerService.ErrorAsync(
                     LogCategory,
@@ -820,6 +874,71 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     )
                 );
             }
+        }
+
+        [HttpPatch("{id:guid}/card-image")]
+        [HttpPatch("admin/{id:guid}/card-image")]
+        [ProducesResponseType(typeof(ApiResponse<PatientPayerCardImageResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+            "Update",
+            "Update Patient Company Guarantor Card Image",
+            Description = "Menyimpan gambar kartu hasil scan pada patient company guarantor",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
+        [AccessPermission("PatientCompanyGuarantor", "Update")]
+        public async Task<IActionResult> UpdatePatientCompanyGuarantorCardImage(
+            Guid id,
+            [FromBody] UpdatePatientPayerCardImageRequest request,
+            CancellationToken cancellationToken)
+        {
+            var actorUserId = GetCurrentUserId();
+            PatientPayerCardImageResponse? result;
+
+            try
+            {
+                result = await _cardImageService.UpdateCompanyGuarantorCardImageAsync(
+                    id,
+                    request.CardImageBase64,
+                    actorUserId,
+                    cancellationToken
+                );
+            }
+            catch (PatientPayerCardImageValidationException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    ex.Message
+                ));
+            }
+
+            if (result == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Patient company guarantor tidak ditemukan."
+                ));
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PatientCompanyGuarantor.UpdatePatientCompanyGuarantorCardImage",
+                "Menyimpan gambar kartu patient company guarantor.",
+                new
+                {
+                    result.Id,
+                    result.PatientId,
+                    result.CardImagePath,
+                    ActorUserId = actorUserId
+                }
+            );
+
+            return Ok(ApiResponse<PatientPayerCardImageResponse>.Ok(
+                result,
+                "Gambar kartu patient company guarantor berhasil disimpan."
+            ));
         }
 
         [HttpPatch("{id:guid}/status")]
@@ -1291,6 +1410,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 CompanyGuarantorId = entity.CompanyGuarantorId,
                 CompanyGuarantorName = entity.CompanyGuarantor?.CompanyGuarantorName ?? string.Empty,
                 EmployeeNumber = entity.EmployeeNumber,
+                CardImagePath = entity.CardImagePath,
                 IsPrimary = entity.IsPrimary,
                 IsEligible = entity.IsEligible,
                 IsActive = entity.IsActive
@@ -1364,6 +1484,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 IsNeedEmployeeVerification = entity.IsNeedEmployeeVerification,
                 IsAllowExcessPaymentByPatient = entity.IsAllowExcessPaymentByPatient,
                 GuaranteeDocumentPath = entity.GuaranteeDocumentPath,
+                CardImagePath = entity.CardImagePath,
                 IsActive = entity.IsActive,
                 CreateDateTime = entity.CreateDateTime,
                 CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
@@ -1414,6 +1535,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 IsNeedEmployeeVerification = entity.IsNeedEmployeeVerification,
                 IsAllowExcessPaymentByPatient = entity.IsAllowExcessPaymentByPatient,
                 GuaranteeDocumentPath = entity.GuaranteeDocumentPath,
+                CardImagePath = entity.CardImagePath,
                 Notes = entity.Notes,
                 IsActive = entity.IsActive,
                 CreateDateTime = entity.CreateDateTime,

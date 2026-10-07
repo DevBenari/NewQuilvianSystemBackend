@@ -38,10 +38,10 @@ frontend_repo: QuilvianSystemFrontendDev
 frontend_branch: HamzahV2
 frontend_source_sha: 1ce219b40f8e411f3c4e66975626ab33ae81616a
 backend_source_sha: df3679c0d5b2f08106702153eb242d3a6cb2929b
-task_id_range: FE-RWI-067..FE-RWI-080, FE-RWI-095, FE-RWI-137, FE-RWI-139..FE-RWI-142
-task_id_next_free: FE-RWI-143   # ruang ID RWI dipakai bersama; FE-RWI-096..136 terpakai sub-modul lain; FE-RWI-138 terpakai Tab Tindakan (laporan task/report/frontend/FE-RWI-138-tindakan-paritas-v1-split-view.md, belum terdaftar di tabel roadmap ini)
+task_id_range: FE-RWI-067..FE-RWI-080, FE-RWI-095, FE-RWI-137, FE-RWI-139..FE-RWI-146
+task_id_next_free: FE-RWI-147   # ruang ID RWI dipakai bersama; FE-RWI-096..136 terpakai sub-modul lain; FE-RWI-138 terpakai Tab Tindakan
 partial_tasks: [FE-RWI-095]
-last_updated: "2026-09-30 — FE-RWI-139..FE-RWI-142 ditambahkan dari rencana-kerja/soap/soap.md Rev 2.1 (keputusan pemilik K1–K5): ICD-10 dan rekomendasi dari master, tanda vital perawat tertaut, tata letak V1 + Riwayat/Catatan Dokter, salin A & P; selesai di tingkat source, build dan runtime NOT RUN. Sebelumnya 2026-09-29 FE-RWI-137 dari rencana-kerja/resep/resep.md"
+last_updated: "2026-10-01 — FE-RWI-143..FE-RWI-146 ditambahkan dari rencana-kerja/penunjang-medis/penunjang-medis.md Rev 2.0 (disetujui pengguna 1 Oktober 2026): Shell sub-view 2 level, Form & Cart Lab & Radiologi, Form Bank Darah & Gizi, Form Hemodialisa & Rehab Medik. Sebelumnya 2026-09-30 FE-RWI-139..FE-RWI-142"
 stack: "Next.js App Router, JavaScript/JSX, Redux, Axios, design token dan base component Quilvian"
 test_policy: "rules/frontend/test-policy.md — menulis test baru opsional; lint dan build wajib"
 write_authority: "TIDAK diberikan di sini. Wewenang tulis frontend dinyatakan terpisah per task"
@@ -217,6 +217,10 @@ pada gelombang 3. **Nol task tertahan gerbang** — sebelumnya sebelas.
 | `FE-RWI-140` ✅ | Dokter memakai tanda vital perawat tanpa mengetik ulang; ukuran dokter ikut masuk deret pasien | [`rencana-kerja/soap/soap.md`](./rencana-kerja/soap/soap.md) Rev 2.1 bagian 7.3; K5; cacat C9 | `0.6.1` + delta `BE-RWI-141` | `ClinicalSectionPanel`, `ClinicalStatusBadge`, `ClinicalScoreBadge`, `BaseTextField` | Kartu Tanda Vital: data perawat terbaru + sumber/jam, EWS, tren 24 jam, Pengawasan Harian, isian manual + SpO2, blok Objective terlindungi | `BE-RWI-141` [BE] — ✅ source | Rencana kerja 7.3 butir 1–6 | `eslint` PASS; test SOAP 12/12 PASS; `npm run build` **NOT RUN**; runtime **NOT RUN** | Disetujui Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-140.md) |
 | `FE-RWI-141` ✅ | Tab SOAP berstruktur V1 dengan penyelesaian V2: satu kepala, satu banner, satu bar aksi; Riwayat SOAP dan Catatan Dokter yang berguna | [`rencana-kerja/soap/soap.md`](./rencana-kerja/soap/soap.md) Rev 2.1 bagian 7.4; cacat C12 | `0.6.1` + delta `BE-RWI-142` | Tab SOAP `FE-RWI-068`, base klinis | Tiga sub-tab berikon; Form SOAP urutan V1; Riwayat per hari rawat + chip ICD/TTV; Catatan Dokter per dokter dan peran; CSS token-only | `FE-RWI-139`, `FE-RWI-140`, `BE-RWI-142` [BE] — ✅ source | Rencana kerja 7.4 butir 1–5 | `eslint` PASS; test tab 69/69 PASS; kompilasi dev PASS; `npm run build` **NOT RUN**; target CSS < 400 baris **tidak tercapai** (599) | Disetujui Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-141.md) |
 | `FE-RWI-142` ✅ | Dokter menyalin Assessment, Plan, dan diagnosa dari SOAP Final terakhir tanpa menyalin S dan O | [`rencana-kerja/soap/soap.md`](./rencana-kerja/soap/soap.md) Rev 2.1 bagian 7.5; K4 | `0.6.1` + delta `BE-RWI-142` | `ConfirmModal`, `BaseButton` | Tombol Salin A & P; konfirmasi timpa; penanda "Disalin dari SOAP"; diagnosa tersalin dengan Utama yang sama | `FE-RWI-139` — ✅ source | Rencana kerja 7.5 butir 1–4 | `eslint` PASS; test SOAP 12/12 PASS; `npm run build` **NOT RUN**; runtime **NOT RUN** | Disetujui Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-142.md) |
+| `FE-RWI-143` 🟡 | Refactor Tab Penunjang: Navigasi Sub-Tab 2 Level, Grid 6 Kartu Modern, & Sub-View Container dengan Tombol Kembali | [`rencana-kerja/penunjang-medis/penunjang-medis.md`](./rencana-kerja/penunjang-medis/penunjang-medis.md) Rev 2.0; KK-2, INV-2 | `0.6.0` API Lab/Rad | `SupportingLandingGrid`, `ClinicalSegmentedNav`, `DoctorSupportingHeader` | Saat kartu dipilih, layar membuka sub-view 2 sub-tab `[Form]` dan `[Riwayat]`. Tombol `[← Kembali ke Pilihan Layanan]` mengembalikan ke overview 6 kartu; status terhubung penuh | `FE-RWI-076` | Rencana kerja bag 11 task 1 | `eslint` PASS; verifikasi manual PASS | Disetujui Pengguna 1 Oktober 2026 | [Laporan](../task/report/frontend/FE-RWI-143.md) |
+| `FE-RWI-144` 🟡 | Form & Cart Interaktif Laboratorium dan Radiologi (Auto-Sync SOAP & ICD-10) | [`rencana-kerja/penunjang-medis/penunjang-medis.md`](./rencana-kerja/penunjang-medis/penunjang-medis.md) Rev 2.0; KK-1, KK-4, KK-5, INV-1, INV-3 | `0.6.0` API Lab/Rad | `ClinicalDataTable`, `BaseNativeSelectField`, `ClinicalSafetyAlert` | Diagnosa SOAP ditarik otomatis; pencarian ICD-10 berfungsi; katalog live search + keranjang belanja bertarif; prioritas Cito/Rutin tersimpan; kirim CPOE berhasil | `FE-RWI-143` | Rencana kerja bag 11 task 2 | `eslint` PASS; verifikasi manual PASS | Disetujui Pengguna 1 Oktober 2026 | [Laporan](../task/report/frontend/FE-RWI-144.md) |
+| `FE-RWI-145` 🟡 | Form Permintaan Darah Lengkap (Bank Darah) & Konsultasi Asuhan Gizi | [`rencana-kerja/penunjang-medis/penunjang-medis.md`](./rencana-kerja/penunjang-medis/penunjang-medis.md) Rev 2.0; KK-3, INV-5 | `0.6.0` API Gizi/BDRS | `blood-order.service.js`, `nutrition-order.service.js` | Form Bank Darah (Rhesus, Golongan, Komponen, Jumlah) tersimpan ke `createBloodOrder`; Form Gizi tersimpan ke `createNutritionOrder`; riwayat terbarui | `FE-RWI-143` | Rencana kerja bag 11 task 3 | `eslint` PASS; verifikasi manual PASS | Disetujui Pengguna 1 Oktober 2026 | [Laporan](../task/report/frontend/FE-RWI-145.md) |
+| `FE-RWI-146` 🟡 | Form Permintaan Hemodialisa Terpadu & Sesi Fisioterapi / Rehabilitasi Medik | [`rencana-kerja/penunjang-medis/penunjang-medis.md`](./rencana-kerja/penunjang-medis/penunjang-medis.md) Rev 2.0; KK-3, KK-5, INV-5 | `0.6.0` API Hmd/Prosedur | `hmdOrderService.js`, `patient-procedure.service.js` | Form Hemodialisa terintegrasi dalam sub-view; Form Rehab Medik dengan katalog fisioterapi tersimpan ke backend; seluruh 6 kartu terhubung penuh | `FE-RWI-143` | Rencana kerja bag 11 task 4 | `eslint` PASS; verifikasi manual PASS | Disetujui Pengguna 1 Oktober 2026 | [Laporan](../task/report/frontend/FE-RWI-146.md) |
 
 ---
 
@@ -805,6 +809,70 @@ menjalankan `npm run build` dan uji runtime sendiri.
 **Acceptance criteria.** Rencana kerja 7.5 butir 1–4; dipetakan di laporan bagian 7.
 
 **Definition of Done.** Laporan tracked ada; roadmap, traceability, dan status `soap.md` diperbarui. Pemilik menguji skenario 2 `soap.md`.
+
+---
+
+### `FE-RWI-143` — Refactor Tab Penunjang: Navigasi Sub-Tab 2 Level, Grid 6 Kartu Modern, & Sub-View Container
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **Selesai di tingkat source 1 Oktober 2026** — [laporan](../task/report/frontend/FE-RWI-143.md); `eslint` PASS; unit test 22/22 PASS; [rencana-kerja/penunjang-medis/penunjang-medis.md](./rencana-kerja/penunjang-medis/penunjang-medis.md) Rev 2.0 |
+| **Gelombang** | Rencana kerja Penunjang Medis gelombang 1 |
+| **Dependency** | `FE-RWI-076` |
+
+**Bisnis prosesnya.** Tab Penunjang Medis menyajikan Overview 6 Kartu interaktif bergradien lembut, counter order live, dan status terhubung penuh. Saat salah satu kartu dipilih (Laboratorium, Radiologi, Gizi, Hemodialisa, Bank Darah, Rehab Medik), sistem membuka sub-view khusus dengan 2 sub-tab `[Formulir Pemesanan]` dan `[Riwayat & Hasil]` serta tombol `[← Kembali ke Pilihan Layanan]`. Sumber: `penunjang-medis.md` bagian 6, 7.1, 7.2.
+
+**Acceptance criteria.** Rencana kerja bagian 11 draf task 1: 1) Navigasi 6 kartu dan sub-view mulus tanpa reload; 2) Tombol kembali berfungsi; 3) Seluruh 6 kartu memiliki container sub-view aktif; 4) Reset state aman saat pasien berganti.
+
+**Definition of Done.** Laporan tracked ada; roadmap, traceability, dan status `penunjang-medis.md` diperbarui.
+
+---
+
+### `FE-RWI-144` — Form & Cart Interaktif Laboratorium dan Radiologi (Auto-Sync SOAP & ICD-10)
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **Selesai di tingkat source 1 Oktober 2026** — [laporan](../task/report/frontend/FE-RWI-144.md); `eslint` PASS; unit test 22/22 PASS; [rencana-kerja/penunjang-medis/penunjang-medis.md](./rencana-kerja/penunjang-medis/penunjang-medis.md) Rev 2.0 |
+| **Gelombang** | Rencana kerja Penunjang Medis gelombang 2 |
+| **Dependency** | `FE-RWI-143` |
+
+**Bisnis prosesnya.** Sub-tab Formulir Laboratorium dan Radiologi mengadopsi split-view 2 kolom (55% katalog pencarian live search + 45% keranjang belanja terpilih). Diagnosa ditarik otomatis dari SOAP terakhir, pencarian kode ICD-10 resmi dari `MstDiagnosis`, pilihan disiplin lab, sakelar Cito ⚡ vs Rutin ⏳, perhitungan akumulasi tarif real-time, dan pencegahan duplikasi item. Sumber: `penunjang-medis.md` bagian 5, 6, 7.1.
+
+**Acceptance criteria.** Rencana kerja bagian 11 draf task 2: 1) Auto-sync diagnosa SOAP & ICD-10; 2) Split-view katalog & cart berfungsi; 3) Estimasi tarif terhitung; 4) Simpan order menerbitkan CPOE ke backend dan berpindah ke sub-tab Riwayat.
+
+**Definition of Done.** Laporan tracked ada; roadmap, traceability, dan status `penunjang-medis.md` diperbarui.
+
+---
+
+### `FE-RWI-145` — Form Permintaan Darah Lengkap (Bank Darah) & Konsultasi Asuhan Gizi
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **Selesai di tingkat source 1 Oktober 2026** — [laporan](../task/report/frontend/FE-RWI-145.md); `eslint` PASS; unit test 22/22 PASS; [rencana-kerja/penunjang-medis/penunjang-medis.md](./rencana-kerja/penunjang-medis/penunjang-medis.md) Rev 2.0 |
+| **Gelombang** | Rencana kerja Penunjang Medis gelombang 3 |
+| **Dependency** | `FE-RWI-143` |
+
+**Bisnis prosesnya.** Membuka formulir pemesanan Bank Darah lengkap (Rhesus, Golongan Darah, Komponen Darah PRC/WB/TC/FFP, Jumlah Kantong, Waktu Diperlukan) yang terhubung ke `createBloodOrder`. Serta formulir Konsultasi Gizi dan Diet Pasien (Tanggal Assessment, Jenis Asuhan, Alergi) yang terhubung ke `createNutritionOrder`. Menghilangkan panel buntu "Integrasi belum tersedia". Sumber: `penunjang-medis.md` bagian 5, 6, 7.1.
+
+**Acceptance criteria.** Rencana kerja bagian 11 draf task 3: 1) Form Bank Darah tersimpan ke backend; 2) Form Gizi tersimpan ke backend; 3) Riwayat pesanan tampil di sub-tab Riwayat.
+
+**Definition of Done.** Laporan tracked ada; roadmap, traceability, dan status `penunjang-medis.md` diperbarui.
+
+---
+
+### `FE-RWI-146` — Form Permintaan Hemodialisa Terpadu & Sesi Fisioterapi / Rehabilitasi Medik
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **Selesai di tingkat source 1 Oktober 2026** — [laporan](../task/report/frontend/FE-RWI-146.md); `eslint` PASS; unit test 22/22 PASS; [rencana-kerja/penunjang-medis/penunjang-medis.md](./rencana-kerja/penunjang-medis/penunjang-medis.md) Rev 2.0 |
+| **Gelombang** | Rencana kerja Penunjang Medis gelombang 3 |
+| **Dependency** | `FE-RWI-143` |
+
+**Bisnis prosesnya.** Menyatukan formulir permintaan Hemodialisa ke dalam sub-tab formulir terpadu (Dokter Konsulen, Akses Vaskular, Ultrafiltrasi, Urgensi Cito/Rutin) dan formulir Rehabilitasi Medik (Katalog Prosedur Fisioterapi, Sesi Terapi, Diagnosa ICD-10). Seluruh 6 layanan penunjang terhubung penuh dan tuntas. Sumber: `penunjang-medis.md` bagian 5, 6, 7.1.
+
+**Acceptance criteria.** Rencana kerja bagian 11 draf task 4: 1) Form Hemodialisa tersimpan; 2) Form Rehab Medik tersimpan; 3) 6 layanan berstatus terhubung penuh.
+
+**Definition of Done.** Laporan tracked ada; roadmap, traceability, dan status `penunjang-medis.md` diperbarui.
 
 ---
 

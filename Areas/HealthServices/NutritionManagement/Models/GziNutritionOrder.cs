@@ -60,6 +60,10 @@ public class GziNutritionOrder : IdentityModel
     /// <summary>Token konkurensi; naik setiap perubahan.</summary>
     public int Version { get; set; }
 
+    public GziInstructionVerificationStatus InstructionVerificationStatus { get; set; }
+    public DateTime? InstructionVerifiedAt { get; set; }
+    public Guid? InstructionVerifiedByUserId { get; set; }
+
     public MstPatient? Patient { get; set; }
     public RegPatientEncounter? Encounter { get; set; }
     public MstDoctor? RequesterDoctor { get; set; }

@@ -29,6 +29,40 @@ public class NutritionOrderController : ControllerBase
 
     public NutritionOrderController(NutritionOrderService service) => _service = service;
 
+    [HttpGet("instruction-verification-worklist")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<NutritionOrderVerificationItem>>), StatusCodes.Status200OK)]
+    [AccessAction("VerifyInstruction", "Verify Nutrition Instruction", AccessType = AccessTypes.Update)]
+    [AccessPermission("NutritionOrder", "VerifyInstruction")]
+    public async Task<IActionResult> InstructionVerificationWorklist(
+        [FromQuery] GziOrderPagedQuery query, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(ApiResponse<PagedResult<NutritionOrderVerificationItem>>.Ok(
+                await _service.GetInstructionVerificationWorklistAsync(query, cancellationToken),
+                "Pesanan gizi yang perlu diverifikasi berhasil diambil."));
+        }
+        catch (NutritionForbiddenException ex) { return this.NutritionForbidden(ex); }
+    }
+
+    [HttpPost("{id:guid}/verify-instruction")]
+    [ProducesResponseType(typeof(ApiResponse<GziOrderDetailResponse>), StatusCodes.Status200OK)]
+    [AccessAction("VerifyInstruction", "Verify Nutrition Instruction", AccessType = AccessTypes.Update)]
+    [AccessPermission("NutritionOrder", "VerifyInstruction")]
+    public async Task<IActionResult> VerifyInstruction(Guid id,
+        [FromBody] VerifyNutritionInstructionRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(ApiResponse<GziOrderDetailResponse>.Ok(
+                await _service.VerifyInstructionAsync(id, request, cancellationToken),
+                "Instruksi konsultasi gizi berhasil diverifikasi."));
+        }
+        catch (KeyNotFoundException ex) { return NotFound(ApiResponse<object>.Fail(404, ex.Message)); }
+        catch (NutritionForbiddenException ex) { return this.NutritionForbidden(ex); }
+        catch (NutritionConflictException ex) { return this.NutritionConflict(ex); }
+    }
+
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<GziOrderSummaryResponse>>), StatusCodes.Status200OK)]
     [AccessAction("Read", "Read Nutrition Order",

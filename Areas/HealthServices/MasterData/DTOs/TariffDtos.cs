@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 {
@@ -44,6 +45,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid? DrugId { get; set; }
         public string? DrugCode { get; set; }
         public string? DrugName { get; set; }
+
+        /// <summary>Jenis alat medis yang ditarifkan (<c>keperawatan</c> kontrak <c>0.6.0</c>).</summary>
+        public Guid? MedicalEquipmentId { get; set; }
+        public string? MedicalEquipmentCode { get; set; }
+        public string? MedicalEquipmentName { get; set; }
+
+        /// <summary>Komponen biaya operasi (<c>episode-rawat-inap</c> kontrak <c>0.10.0</c>).</summary>
+        public MstSurgeryComponentType SurgeryComponentType { get; set; }
+        public MstTariffChargeBasis ChargeBasis { get; set; }
+        public MstEquipmentRoundingRule ChargeRounding { get; set; }
+
         public string? ExternalServiceCode { get; set; }
         public string? ExternalClassCode { get; set; }
         public bool IsSurgeryRelated { get; set; }
@@ -208,6 +220,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid? ProcedureId { get; set; }
         public Guid? DrugId { get; set; }
 
+        /// <summary>
+        /// Opsional. Jenis alat medis yang ditarifkan — <c>keperawatan</c> kontrak <c>0.6.0</c> API 8.2.
+        /// </summary>
+        /// <remarks>
+        /// Empat isian baru <c>BE-RWI-172</c> bertipe nullable supaya klien lama yang tidak mengirimnya
+        /// tetap diterima (<c>RWI-DEC-193</c>). Pada pembuatan, isian kosong berarti nilai bawaan;
+        /// pada perubahan, isian kosong berarti nilai lama dipertahankan.
+        /// </remarks>
+        public Guid? MedicalEquipmentId { get; set; }
+
+        /// <summary>
+        /// Opsional. Komponen biaya operasi — <c>None</c>, <c>AnesthesiaService</c>, atau
+        /// <c>OperatingRoomRent</c> (<c>episode-rawat-inap</c> kontrak <c>0.10.0</c> API 11.9).
+        /// </summary>
+        public MstSurgeryComponentType? SurgeryComponentType { get; set; }
+
+        /// <summary>Opsional. <c>PerService</c> atau <c>PerHour</c>.</summary>
+        public MstTariffChargeBasis? ChargeBasis { get; set; }
+
+        /// <summary>Opsional. Pembulatan unit untuk tarif <c>PerHour</c>.</summary>
+        public MstEquipmentRoundingRule? ChargeRounding { get; set; }
+
         [MaxLength(50)]
         public string? ExternalServiceCode { get; set; }
 
@@ -259,6 +293,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid TariffCategoryId { get; set; }
         public Guid? ProcedureId { get; set; }
         public Guid? DrugId { get; set; }
+        public Guid? MedicalEquipmentId { get; set; }
+        public MstSurgeryComponentType SurgeryComponentType { get; set; }
+        public MstTariffChargeBasis ChargeBasis { get; set; }
+        public MstEquipmentRoundingRule ChargeRounding { get; set; }
         public Guid? ServiceUnitId { get; set; }
         public Guid? ClinicId { get; set; }
         public Guid? PatientClassId { get; set; }

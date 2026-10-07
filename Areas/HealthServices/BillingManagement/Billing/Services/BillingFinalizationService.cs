@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Enums;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 using System.Data;
@@ -99,6 +100,16 @@ public sealed class BillingFinalizationService
 
             var readiness = await BuildReadinessAsync(invoice, cancellationToken);
             var isDepartureException = !string.IsNullOrWhiteSpace(request.DepartureReason);
+            // BE-RWI-155 / INV-RWF-08 / VAL-RWF-16: invoice "perlu diperiksa" tidak pernah
+            // difinalkan, termasuk lewat departure exception.
+            if (readiness.BlockingCodes.Contains(BillingFinalizationBlockingCodes.RequiresReview))
+                throw new BillingFinalizationBlockedException(
+                    "Invoice ini perlu diperiksa sebelum difinalkan.", readiness);
+            // BE-RWI-155 / RWI-DEC-192 butir (d) / VAL-RWF-17: tidak ada baris "tarif belum ada".
+            if (readiness.BlockingCodes.Contains(BillingFinalizationBlockingCodes.TariffNotFound))
+                throw new BillingFinalizationBlockedException(
+                    "Masih ada layanan yang tarifnya belum diatur. Lengkapi master tarif sebelum memfinalkan.",
+                    readiness);
             if (!readiness.AllOrdersComplete || !readiness.CalculationCurrent)
                 throw new BillingFinalizationBlockedException(
                     "Invoice belum siap difinalisasi.", readiness);
@@ -501,8 +512,10 @@ public sealed class BillingFinalizationService
         var allOrdersComplete = await AreAllOrdersCompleteAsync(invoice.Id, cancellationToken);
         var calculationCurrent = await IsCalculationCurrentAsync(invoice.Id, calculation, cancellationToken);
         var outstanding = await _closureService.CalculateOutstandingAsync(invoice, calculation, cancellationToken);
+        var hasTariffNotFound = await HasTariffNotFoundAsync(invoice, calculation, cancellationToken);
 
         var blockingReasons = new List<string>();
+        var blockingCodes = new List<string>();
         if (!allOrdersComplete)
             blockingReasons.Add("Semua order harus selesai sebelum invoice difinalkan.");
         if (!calculationCurrent)
@@ -510,6 +523,16 @@ public sealed class BillingFinalizationService
         if (outstanding > 0)
             blockingReasons.Add(
                 "Tanggung jawab pasien belum lunas; ajukan write-off/adjustment atau catat departure exception untuk melanjutkan.");
+        if (invoice.RequiresReview)
+        {
+            blockingReasons.Add("Invoice ini perlu diperiksa sebelum difinalkan.");
+            blockingCodes.Add(BillingFinalizationBlockingCodes.RequiresReview);
+        }
+        if (hasTariffNotFound)
+        {
+            blockingReasons.Add("Masih ada layanan yang tarifnya belum diatur. Lengkapi master tarif sebelum memfinalkan.");
+            blockingCodes.Add(BillingFinalizationBlockingCodes.TariffNotFound);
+        }
 
         return new FinalizationPreviewResponse
         {
@@ -517,11 +540,43 @@ public sealed class BillingFinalizationService
             AllOrdersComplete = allOrdersComplete,
             CalculationCurrent = calculationCurrent,
             Outstanding = outstanding,
-            IsReadyForNormalFinalization = allOrdersComplete && calculationCurrent && outstanding == 0,
+            IsReadyForNormalFinalization = allOrdersComplete && calculationCurrent && outstanding == 0
+                && blockingCodes.Count == 0,
             BlockingReasons = blockingReasons,
+            BlockingCodes = blockingCodes,
             CalculationVersion = calculation.VersionNo,
             InvoiceRowVersion = invoice.RowVersion
         };
+    }
+
+    /// <summary>
+    /// "Tarif belum ada" pada kunjungan invoice ini — <c>BE-RWI-155</c>, <c>RWI-DEC-192</c> butir (d).
+    /// </summary>
+    /// <remarks>
+    /// Dua sumber: (1) efek folio yang jembatan tandai <c>TARIFF_NOT_FOUND</c> dan belum diselesaikan
+    /// (layanan klinis, termasuk komponen biaya operasi), dan (2) segmen tarif kamar pada hitungan
+    /// terkini yang tidak menemukan tarif atau kebijakan tarif kamar. Penyelesaian rekonsiliasi
+    /// (<c>Resolved</c>) atau pengiriman ulang yang berhasil menghapus penahannya.
+    /// </remarks>
+    private async Task<bool> HasTariffNotFoundAsync(
+        BilInvoice invoice,
+        BilCalculationVersion calculation,
+        CancellationToken cancellationToken)
+    {
+        var unresolvedTariff = await (
+                from effect in _dbContext.BilProcessingEffects.AsNoTracking()
+                join folio in _dbContext.BilFolios.AsNoTracking() on effect.FolioId equals folio.Id
+                where folio.EncounterId == invoice.EncounterId
+                    && !effect.IsDelete
+                    && effect.InvoiceSyncStatus == BillingInvoiceSyncStatus.ReconciliationRequired
+                    && effect.InvoiceSyncErrorCode == BillingBridgeCodes.TariffNotFound
+                select effect.Id)
+            .AnyAsync(cancellationToken);
+        if (unresolvedTariff)
+            return true;
+
+        var breakdown = BillingCalculationService.MapResponse(calculation, invoice.RowVersion).Breakdown;
+        return breakdown?.RoomCharge?.Segments?.Any(x => x.MissingTariff) == true;
     }
 
     private async Task<bool> AreAllOrdersCompleteAsync(Guid invoiceId, CancellationToken cancellationToken)
@@ -710,6 +765,16 @@ public static class BillingFinalizationReasons
 {
     public const string AutoNoPatientPayment = "Automatic completion - no patient payment required.";
     public const string AutoSettledByPayment = "Automatic completion - settled by patient payment.";
+}
+
+/// <summary>Kode penahan finalisasi — kontrak <c>integrasi-billing</c> <c>1.1.0</c> API 3.9.</summary>
+public static class BillingFinalizationBlockingCodes
+{
+    /// <summary>Invoice ditandai "perlu diperiksa" (<c>VAL-RWF-16</c>).</summary>
+    public const string RequiresReview = "BIL-FIN-020";
+
+    /// <summary>Masih ada layanan "tarif belum ada" (<c>VAL-RWF-17</c>).</summary>
+    public const string TariffNotFound = "BIL-FIN-021";
 }
 
 public abstract class BillingFinalizationException : Exception

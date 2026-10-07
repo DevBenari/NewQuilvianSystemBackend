@@ -30,6 +30,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
     /// </remarks>
     public class CreateBloodOrderRequest
     {
+        [EnumDataType(typeof(BbkInstructionVerificationStatus))]
+        public BbkInstructionVerificationStatus? InstructionVerificationStatus { get; set; }
+        [MaxLength(100)] public string? IdempotencyKey { get; set; }
+        [MaxLength(500)] public string? ClinicalNote { get; set; }
         [Required]
         public Guid PatientId { get; set; }
 
@@ -133,6 +137,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
     /// <summary>Satu baris pada daftar kerja order darah (<c>DEC-BD-023</c>).</summary>
     public class BloodOrderListDto
     {
+        public BbkInstructionVerificationStatus InstructionVerificationStatus { get; set; }
+        public DateTime? InstructionVerifiedAt { get; set; }
+        public Guid? InstructionVerifiedByUserId { get; set; }
         public Guid Id { get; set; }
         public string OrderNumber { get; set; } = string.Empty;
         public Guid PatientId { get; set; }
@@ -193,6 +200,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
     /// <summary>Detail satu order beserta baris, pemenuhan, dan riwayat perpindahan statusnya.</summary>
     public class BloodOrderDetailDto
     {
+        public BbkInstructionVerificationStatus InstructionVerificationStatus { get; set; }
+        public DateTime? InstructionVerifiedAt { get; set; }
+        public Guid? InstructionVerifiedByUserId { get; set; }
         public Guid Id { get; set; }
         public string OrderNumber { get; set; } = string.Empty;
 

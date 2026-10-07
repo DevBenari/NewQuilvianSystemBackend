@@ -2,7 +2,9 @@
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Enums;
@@ -22,7 +24,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Service
 /// memakai <c>ExpectedVersion</c> sebagai penjaga agar dua petugas tidak saling menimpa
 /// tanpa sadar.
 /// </remarks>
-public sealed class NutritionOrderService
+public sealed partial class NutritionOrderService
 {
     private const string LogCategory = "NutritionManagement";
 
@@ -38,13 +40,16 @@ public sealed class NutritionOrderService
     private readonly ApplicationDbContext _dbContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly LoggerService _loggerService;
+    private readonly InpatientClinicalContextService _clinicalContext;
 
     public NutritionOrderService(ApplicationDbContext dbContext,
-        IHttpContextAccessor httpContextAccessor, LoggerService loggerService)
+        IHttpContextAccessor httpContextAccessor, LoggerService loggerService,
+        InpatientClinicalContextService clinicalContext)
     {
         _dbContext = dbContext;
         _httpContextAccessor = httpContextAccessor;
         _loggerService = loggerService;
+        _clinicalContext = clinicalContext;
     }
 
     // ================================================================== pembacaan
@@ -137,21 +142,39 @@ public sealed class NutritionOrderService
     // ================================================================== perintah
 
     public async Task<GziOrderDetailResponse> CreateAsync(CreateGzOrderRequest request,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        GziInstructionVerificationStatus? instructionVerificationStatus = null)
     {
         EnsureIdempotencyKey(request.IdempotencyKey);
         if (string.IsNullOrWhiteSpace(request.ReasonForReferral))
             throw new NutritionUnprocessableException("GIZ003", "Alasan rujukan wajib diisi.");
 
         var actorUserId = GetCurrentUserId();
+        var verificationStatus = await ResolveInstructionStatusAsync(request.RequesterDoctorId,
+            actorUserId, instructionVerificationStatus ?? request.InstructionVerificationStatus,
+            cancellationToken);
         var fingerprint = Hash(string.Join('|', request.PatientId, request.EncounterId,
             request.RequesterDoctorId, request.AssignedWorkforceId, (int)request.Priority,
             request.ReasonForReferral.Trim()));
+        if (verificationStatus != GziInstructionVerificationStatus.NotRequired)
+            fingerprint = Hash(fingerprint + "|instruction:" + (int)verificationStatus);
+
+        // Pemanggil baru dari bangsal diserialkan per kunci; pemanggil lama tetap sama.
+        await using var createTransaction = instructionVerificationStatus.HasValue || request.InstructionVerificationStatus.HasValue
+            ? await _dbContext.Database.BeginTransactionAsync(cancellationToken) : null;
+        if (createTransaction != null)
+        {
+            var lockKey = BitConverter.ToInt64(DeterministicId(request.IdempotencyKey).ToByteArray(), 0);
+            await _dbContext.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock({lockKey})", cancellationToken);
+        }
 
         var prior = await FindIdempotentAsync(CreateAction, request.IdempotencyKey, cancellationToken);
         if (prior != null)
         {
             EnsureSameFingerprint(prior.Source, fingerprint);
+            if (prior.ActorUserId != actorUserId)
+                throw new NutritionForbiddenException("Kunci permintaan ini sudah digunakan pengguna lain.");
             return (await GetDetailAsync(prior.NutritionOrderId, cancellationToken))!;
         }
 
@@ -184,6 +207,7 @@ public sealed class NutritionOrderService
             ReasonForReferral = request.ReasonForReferral.Trim(),
             ScreeningRiskStatus = screening.RiskStatus,
             ScreeningScore = screening.Score,
+            InstructionVerificationStatus = verificationStatus,
             RequestedAt = now,
             Version = 0,
             CreateDateTime = now,
@@ -194,7 +218,18 @@ public sealed class NutritionOrderService
         _dbContext.GziNutritionOrderHistories.Add(NewHistory(entity.Id, GziOrderStatus.Requested,
             null, CreateAction, null, request.IdempotencyKey, fingerprint, actorUserId, now));
 
-        await SaveAsync(cancellationToken);
+        try
+        {
+            await SaveAsync(cancellationToken);
+            if (createTransaction != null) await createTransaction.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (createTransaction != null &&
+            ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            _dbContext.ChangeTracker.Clear();
+            throw new NutritionConflictException("GIZ002",
+                "Order konsultasi gizi sudah dibuat oleh permintaan lain. Muat ulang data sebelum melanjutkan.");
+        }
         await _loggerService.AuditAsync(LogCategory, "NutritionOrder.Create",
             "Membuat order konsultasi gizi.",
             new { entity.Id, entity.OrderNumber, ActorUserId = actorUserId });
@@ -634,6 +669,9 @@ public sealed class NutritionOrderService
 
     private static GziOrderSummaryResponse MapSummaryExpression(GziNutritionOrder x) => new()
     {
+        InstructionVerificationStatus = x.InstructionVerificationStatus,
+        InstructionVerifiedAt = x.InstructionVerifiedAt,
+        InstructionVerifiedByUserId = x.InstructionVerifiedByUserId,
         Id = x.Id,
         OrderNumber = x.OrderNumber,
         PatientId = x.PatientId,
@@ -654,6 +692,9 @@ public sealed class NutritionOrderService
 
     private static GziOrderDetailResponse MapDetail(GziNutritionOrder x) => new()
     {
+        InstructionVerificationStatus = x.InstructionVerificationStatus,
+        InstructionVerifiedAt = x.InstructionVerifiedAt,
+        InstructionVerifiedByUserId = x.InstructionVerifiedByUserId,
         Id = x.Id,
         OrderNumber = x.OrderNumber,
         PatientId = x.PatientId,

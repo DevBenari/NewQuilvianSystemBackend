@@ -679,3 +679,299 @@ ALTER TABLE public."InpDischargeSummaryRevision" ADD COLUMN "EducationSummary" v
 | `PhmMedicationAdministration` | `PharmacyManagement` | `DoseStatus` → `Cancelled`, `StatusReason` | `MedicationAdministrationService` — dirancang `keperawatan` data 11.12 |
 
 `InPatientManagement` **tidak** memetakan tabel-tabel itu pada configuration-nya dan tidak menulis kolomnya sendiri.
+
+---
+
+## 19. Amandemen revision `0.6` / kontrak `0.10.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+| --- | --- |
+| Sumber | [`../02-backend-architecture.md`](../02-backend-architecture.md) revision `0.9` bagian 12 |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
+| Backend SHA | `c8e99ce5` (HEAD `425cfeae`) |
+| Keputusan | `RWI-DEC-173` s.d. `177`, `182`, `189`, `196`, `199`, `201`, `204`, `205` |
+
+Aturan kepala dokumen tetap berlaku: kolom warisan `IdentityModel` tidak diulang; hapus berarti `IsDelete`. Enum disimpan sebagai `integer`, mengikuti konfigurasi OK dan Rawat Inap yang sudah ada.
+
+### 19.1 Ringkasan tabel
+
+| Tabel | Status | Pemilik | Bagian |
+|---|---|---|---|
+| `OprCase` | `Diperbarui` | `OperatingRoomManagement` | 19.2 |
+| `OprWardPreOpNote` | `Baru` | `OperatingRoomManagement` | 19.4 |
+| `OprWardPreOpItem` | `Baru` | `OperatingRoomManagement` | 19.5 |
+| `OprWardPreOpSiteMark` | `Baru` | `OperatingRoomManagement` | 19.6 |
+| `MstSurgicalPreparationItem` | `Baru` | `MasterData` | 19.7 |
+| `InpAdmissionReferral` | `Baru` | `InPatientManagement` | 19.8 |
+| `CliTransferHandover` | `Baru` (`P2`) | `ClinicalManagement` | 19.9 |
+| `MstInpatientSetting` | `Diperbarui` | `MasterData` | 19.10 |
+| `MstTariff` | `Diperbarui` | `MasterData` | `keperawatan/data/data-dictionary.md` 12.14 — **satu-satunya daftar lengkap** |
+| `OprHandover`, `OprCaseProcedure`, `OprExecutionRecord`, `OprRecovery`, `OprIntegrationDelivery`, `OprStatusHistory`, `InpBedPlacement`, `TrxPatientProcedure` | `Sudah ada` | Masing-masing | 19.11 |
+
+### 19.2 `OprCase` — `Diperbarui` — sumber lengkap `Areas/HealthServices/OperatingRoomManagement/Models/OprCase.cs`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `SurgicalServiceType` | `integer` | Ya | `1` `General` | — | — | — | Tidak | `2` `Obstetric` dari tab Bedah Obgyn. Kasus lama terisi `1` |
+| `PlannedAnesthesiaType` | `integer` | Tidak | `null` | — | — | — | Tidak | Rencana saat dipesan. Teknik sesungguhnya tetap di catatan anestesi |
+| `RejectedAt` | `timestamp with time zone` | Tidak | `null` | — | — | — | Tidak | Terisi bersama `Status = 8` |
+| `RejectedByUserId` | `uuid` | Tidak | `null` | — | Akun pengguna | — | Tidak | Penolak dari akun login |
+| `RejectionReason` | `varchar(500)` | Tidak | `null` | — | — | — | **Ya** | Contoh "Hasil lab pra-operasi belum ada" |
+
+**Constraint baru:** `CK_OprCase_Rejected` — `Status <> 8` atau ketiga kolom penolakan terisi. **Kolom lama yang dipakai aturan baru:** `Status` (bertambah nilai `8` `Rejected`), `Laterality` (`varchar(30)`, dibandingkan dengan sisi penandaan; pesanan bangsal mengisinya dengan `Left`, `Right`, `Bilateral`, atau `NotApplicable`. Kasus dari petugas OK yang berisi teks bebas di luar keempat kode itu tidak dibandingkan otomatis — perawat OK mencocokkan saat konfirmasi), `EncounterId`, `PreferredAt`, `Version`.
+
+### 19.3 Enum baru dan berubah
+
+| Enum | Nilai | Bawaan |
+|---|---|---|
+| `OprCaseStatus` | Tambah `Rejected = 8` | — |
+| `OprSurgicalServiceType` | `General = 1`, `Obstetric = 2` | `General` |
+| `OprPlannedAnesthesiaType` | `General = 1`, `Regional = 2`, `Local = 3`, `Sedation = 4` (usulan, disahkan pemilik OK) | — |
+| `OprWardPreOpStatus` | `Draft = 1`, `Sent = 2`, `Confirmed = 3`, `NeedsUpdate = 4`, `Superseded = 5` | `Draft` |
+| `OprBodyView` | `Front = 1`, `Back = 2`, `Left = 3`, `Right = 4` | — |
+| `InpAdmissionReferralStatus` | `Pending = 1`, `Completed = 2`, `Cancelled = 3` | `Pending` |
+| `InpRequestedCareLevel` | `Inpatient = 1`, `Icu = 2` | — |
+| `CliTransferHandoverStatus` | `NotSent = 1`, `Sent = 2`, `Accepted = 3`, `Rejected = 4` | `NotSent` |
+
+Sisi penandaan disimpan sebagai `varchar(30)` berisi `Left`, `Right`, `Bilateral`, `NotApplicable` agar sebanding langsung dengan `OprCase.Laterality`.
+
+### 19.4 `OprWardPreOpNote` — `Baru` — satu baris per versi
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | — |
+| `OprCaseId` | `uuid` | Ya | — | Unique (`OprCaseId`, `VersionNumber`) | FK `OprCase` | `Restrict` | Tidak | — |
+| `VersionNumber` | `integer` | Ya | `1` | Bagian unique | — | — | Tidak | Naik satu setiap versi baru setelah penundaan |
+| `PreviousVersionId` | `uuid` | Tidak | `null` | Index | FK `OprWardPreOpNote` (diri sendiri) | `Restrict` | Tidak | Versi yang diperbarui |
+| `Status` | `integer` | Ya | `1` `Draft` | Index (`OprCaseId`, `Status`) | — | — | Tidak | 19.3 |
+| `VitalSnapshotJson` | `jsonb` | Tidak | `null` | — | — | — | **Ya** | Diisi saat dikirim dari `TrxPatientVitalSign` terakhir: TD, nadi, napas, suhu, SpO₂, waktu catat, `VitalSignId` |
+| `PainSnapshotJson` | `jsonb` | Tidak | `null` | — | — | — | **Ya** | Skor, nama skala, waktu catat, rujukan respons instrumen; `null` bila belum pernah dinilai |
+| `MarkingLaterality` | `varchar(30)` | Tidak | `null` | — | — | — | Tidak | Wajib saat kirim |
+| `MarkingLocationNote` | `varchar(500)` | Tidak | `null` | — | — | — | **Ya** | Contoh "Kuadran kanan bawah abdomen" |
+| `SiteMarkingConfirmed` | `boolean` | Ya | `false` | — | — | — | Tidak | Konfirmasi penerima atas penandaan |
+| `SentByUserId` | `uuid` | Tidak | `null` | — | Akun pengguna | — | Tidak | — |
+| `SentAt` | `timestamp with time zone` | Tidak | `null` | — | — | — | Tidak | — |
+| `ConfirmedByUserId` | `uuid` | Tidak | `null` | — | Akun pengguna | — | Tidak | `CK`: ≠ `SentByUserId` |
+| `ConfirmedAt` | `timestamp with time zone` | Tidak | `null` | — | — | — | Tidak | — |
+| `NeedsUpdateAt` | `timestamp with time zone` | Tidak | `null` | — | — | — | Tidak | Waktu kasus ditunda |
+| `Version` | `integer` | Ya | `0` | — | — | — | Tidak | Konkurensi optimistis, pola OK |
+
+**Unique parsial:** `UX_OprWardPreOpNote_OneOpen` pada `OprCaseId` dengan `Status IN (1, 2, 3)` — paling banyak satu versi yang masih berjalan per kasus.
+
+### 19.5 `OprWardPreOpItem` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | — |
+| `NoteId` | `uuid` | Ya | — | Unique (`NoteId`, `PreparationItemId`) | FK `OprWardPreOpNote` | `Cascade` | Tidak | Butir ikut versinya |
+| `PreparationItemId` | `uuid` | Ya | — | Index | FK `MstSurgicalPreparationItem` | `Restrict` | Tidak | — |
+| `ItemNameSnapshot` | `varchar(200)` | Ya | — | — | — | — | Tidak | Nama saat versi dibuat, agar perubahan master tidak mengubah riwayat |
+| `IsMandatorySnapshot` | `boolean` | Ya | — | — | — | — | Tidak | Sama |
+| `SenderConfirmed` | `boolean` | Ya | `false` | — | — | — | Tidak | — |
+| `ReceiverConfirmed` | `boolean` | Ya | `false` | — | — | — | Tidak | — |
+| `ReceiverConfirmedByUserId` | `uuid` | Tidak | `null` | — | Akun pengguna | — | Tidak | ≠ pengirim |
+| `ReceiverConfirmedAt` | `timestamp with time zone` | Tidak | `null` | — | — | — | Tidak | — |
+| `Note` | `varchar(500)` | Tidak | `null` | — | — | — | **Ya** | Contoh "Puasa sejak 22.00" |
+
+### 19.6 `OprWardPreOpSiteMark` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | — |
+| `NoteId` | `uuid` | Ya | — | Index | FK `OprWardPreOpNote` | `Cascade` | Tidak | — |
+| `BodyView` | `integer` | Ya | — | — | — | — | Tidak | 19.3 |
+| `X` | `numeric(5,2)` | Ya | — | — | — | — | Tidak | 0–100, persen lebar gambar |
+| `Y` | `numeric(5,2)` | Ya | — | — | — | — | Tidak | 0–100, persen tinggi gambar |
+| `Label` | `varchar(100)` | Tidak | `null` | — | — | — | Tidak | — |
+
+Foto tubuh pasien **tidak** disimpan (`RWI-DEC-174`).
+
+### 19.7 `MstSurgicalPreparationItem` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | — |
+| `Code` | `varchar(30)` | Ya | — | Unique (bukan terhapus) | — | — | Tidak | Contoh `SPI-ID-01` |
+| `GroupName` | `varchar(100)` | Ya | — | Index | — | — | Tidak | Verifikasi pasien, Persiapan fisik, Hasil pemeriksaan, Persiapan lain |
+| `ItemName` | `varchar(200)` | Ya | — | — | — | — | Tidak | Contoh "Gelang identitas terpasang" |
+| `IsMandatory` | `boolean` | Ya | `true` | — | — | — | Tidak | — |
+| `SortOrder` | `integer` | Ya | `0` | — | — | — | Tidak | — |
+| `Description` | `varchar(500)` | Tidak | `null` | — | — | — | Tidak | — |
+| `IsActive` | `boolean` | Ya | `true` | — | — | — | Tidak | — |
+| `RowVersion` | `xmin` | Ya | sistem | — | — | — | Tidak | Konkurensi, pola master |
+
+### 19.8 `InpAdmissionReferral` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | — |
+| `PatientId` | `uuid` | Ya | — | Unique parsial `Status = 1` | FK `MstPatient` | `Restrict` | Tidak | Satu permintaan `Pending` per pasien |
+| `SourceEncounterId` | `uuid` | Ya | — | Index | FK `RegPatientEncounter` | `Restrict` | Tidak | Kunjungan asal (poliklinik, IGD, ODC) = `OprCase.EncounterId` |
+| `OprCaseId` | `uuid` | Ya | — | Unique parsial `Status = 1` | FK `OprCase` | `Restrict` | Tidak | — |
+| `PrimarySurgeonId` | `uuid` | Ya | — | — | FK `MstDoctor` | `Restrict` | Tidak | Usulan DPJP awal; petugas admisi tetap memilih |
+| `RequestedCareLevel` | `integer` | Ya | — | — | — | — | Tidak | 19.3 |
+| `RecoveryDecisionNote` | `varchar(2000)` | Tidak | `null` | — | — | — | **Ya** | Salinan `OprRecovery.DecisionNote` saat dibuat |
+| `Status` | `integer` | Ya | `1` `Pending` | Index (`Status`, `RequestedAt`) | — | — | Tidak | — |
+| `RequestedAt` | `timestamp with time zone` | Ya | — | Bagian index | — | — | Tidak | Dasar "lamanya menunggu" |
+| `CancelledAt` | `timestamp with time zone` | Tidak | `null` | — | — | — | Tidak | — |
+| `CancelledByUserId` | `uuid` | Tidak | `null` | — | Akun pengguna | — | Tidak | — |
+| `CancelledReason` | `varchar(500)` | Tidak | `null` | — | — | — | **Ya** | Contoh "Pasien boleh pulang dari kamar pulih" |
+| `CompletedEpisodeId` | `uuid` | Tidak | `null` | Unique (bila terisi) | FK `InpEpisode` | `Restrict` | Tidak | — |
+| `CompletedAt` | `timestamp with time zone` | Tidak | `null` | — | — | — | Tidak | — |
+| `RowVersion` | `xmin` | Ya | sistem | — | — | — | Tidak | — |
+
+**Constraint:** `CK_InpAdmissionReferral_State` — `Status = 2` ⇒ `CompletedEpisodeId` terisi; `Status = 3` ⇒ `CancelledReason` terisi.
+
+### 19.9 `CliTransferHandover` — `Baru` (`P2`)
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | — |
+| `InpEpisodeId` | `uuid` | Ya | — | Index (`InpEpisodeId`, `Status`) | FK `InpEpisode` | `Restrict` | Tidak | — |
+| `FromPlacementId` | `uuid` | Ya | — | — | FK `InpBedPlacement` | `Restrict` | Tidak | — |
+| `ToPlacementId` | `uuid` | Ya | — | **Unique** | FK `InpBedPlacement` | `Restrict` | Tidak | Satu dokumen per penempatan tujuan (idempotensi `INT-RWF-26`) |
+| `FromServiceUnitId` | `uuid` | Ya | — | — | FK `MstServiceUnit` | `Restrict` | Tidak | — |
+| `ToServiceUnitId` | `uuid` | Ya | — | Index (`ToServiceUnitId`, `Status`) | FK `MstServiceUnit` | `Restrict` | Tidak | — |
+| `Status` | `integer` | Ya | `1` `NotSent` | Bagian index | — | — | Tidak | — |
+| `SoapSummary` | `varchar(4000)` | Tidak | `null` | — | — | — | **Ya** | Kondisi pasien |
+| `HandedItems` | `varchar(2000)` | Tidak | `null` | — | — | — | **Ya** | Barang yang diserahkan |
+| `SpecialInstructions` | `varchar(2000)` | Tidak | `null` | — | — | — | **Ya** | — |
+| `SnapshotJson` | `jsonb` | Tidak | `null` | — | — | — | **Ya** | Dibekukan saat dikirim: GCS, tanda vital, nyeri, risiko jatuh, balance cairan, beserta rujukan catatan sumber |
+| `SentByUserId`, `SentAt` | `uuid`, `timestamp with time zone` | Tidak | `null` | — | — | — | Tidak | Pelaksana |
+| `ReceivedByUserId`, `ReceivedAt` | `uuid`, `timestamp with time zone` | Tidak | `null` | — | — | — | Tidak | Penerima; `CK` ≠ pengirim |
+| `RejectionReason` | `varchar(1000)` | Tidak | `null` | — | — | — | **Ya** | — |
+| `Version` | `integer` | Ya | `0` | — | — | — | Tidak | Konkurensi |
+
+### 19.10 `MstInpatientSetting` — `Diperbarui` — sumber lengkap `Areas/HealthServices/MasterData/Models/MstInpatientSetting.cs`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `PendingSurgicalHandoverAlertMinutes` | `integer` | Ya | `60` | — | — | — | Tidak | 1–1440. Serah terima pasca operasi yang belum diterima lebih dari ini tampil di daftar pantau |
+| `PendingAdmissionReferralAlertMinutes` | `integer` | Ya | `30` | — | — | — | Tidak | 1–1440. Sama untuk permintaan admisi |
+
+### 19.11 Tabel `Sudah ada` yang dipakai aturan baru — kolom kunci saja
+
+| Tabel | File model | Kolom yang dipakai |
+|---|---|---|
+| `OprHandover` | `OperatingRoomManagement/Models/OprHandover.cs` | `Id`, `OprCaseId`, `DestinationUnitId`, `Status`, `SentBy`, `SentAt`, `ReceivedBy`, `AcceptedAt`, `RejectionReason`, `InstructionSummary` |
+| `OprCaseProcedure` | `OperatingRoomManagement/Models/OprCaseProcedure.cs` | `OprCaseId`, `PatientProcedureId`, `IsPrimary` |
+| `OprExecutionRecord` | `OperatingRoomManagement/Models/OprExecutionRecord.cs` | `Status`, `PostDiagnosis`, `Findings`, `Complications`, `BloodLossMl`, `ImplantDrainNote`, `PostPlan`, `FinishedAt` |
+| `OprRecovery` | `OperatingRoomManagement/Models/OprRecovery.cs` | `ScoreSystem`, `ScoreValue`, `Decision`, `DecisionNote`, `ReleasedAt` |
+| `OprIntegrationDelivery` | `OperatingRoomManagement/Models/OprIntegrationDelivery.cs` | Kunci `case:charge:component:revision`, `Status` |
+| `OprStatusHistory` | `OperatingRoomManagement/Models/OprStatusHistory.cs` | `ToStatus`, `Action`, `Reason`, `OccurredAt` — sumber `LastStatusReason` |
+| `InpBedPlacement` | `InPatientManagement/Models/InpBedPlacement.cs` | `InpEpisodeId`, `BedId`, `RoomId`, `ServiceUnitId`, `StartDateTime`, `EndDateTime`, `TransferReason`, `IsSuperseded`, `CorrectsPlacementId` (`integrasi-billing` `1.1.0`) |
+| `TrxPatientProcedure` | `ClinicalManagement/Models/TrxPatientProcedure.cs` | `Id`, `EncounterId`, `ProcedureStatus`, pelaksana dan waktu pelaksanaan |
+
+### 19.12 Skema DDL revision `0.6`
+
+> **Peringatan.** Dokumentasi bentuk, bukan skrip yang dijalankan. Skema sungguhan lahir dari EF Core migration masing-masing modul pemilik. Kolom warisan `IdentityModel` tidak ditulis ulang.
+
+```sql
+-- E5 — OperatingRoomManagement (sesudah E4)
+ALTER TABLE public."OprCase" ADD COLUMN "SurgicalServiceType" integer NOT NULL DEFAULT 1;
+ALTER TABLE public."OprCase" ADD COLUMN "PlannedAnesthesiaType" integer NULL;
+ALTER TABLE public."OprCase" ADD COLUMN "RejectedAt" timestamp with time zone NULL;
+ALTER TABLE public."OprCase" ADD COLUMN "RejectedByUserId" uuid NULL;
+ALTER TABLE public."OprCase" ADD COLUMN "RejectionReason" varchar(500) NULL;
+ALTER TABLE public."OprCase" ADD CONSTRAINT "CK_OprCase_Rejected"
+    CHECK ("Status" <> 8 OR ("RejectedAt" IS NOT NULL AND "RejectedByUserId" IS NOT NULL AND "RejectionReason" IS NOT NULL));
+
+CREATE TABLE public."OprWardPreOpNote" (
+    "Id" uuid PRIMARY KEY,
+    "OprCaseId" uuid NOT NULL REFERENCES public."OprCase" ("Id") ON DELETE RESTRICT,
+    "VersionNumber" integer NOT NULL DEFAULT 1,
+    "PreviousVersionId" uuid NULL REFERENCES public."OprWardPreOpNote" ("Id") ON DELETE RESTRICT,
+    "Status" integer NOT NULL DEFAULT 1,
+    "VitalSnapshotJson" jsonb NULL,
+    "PainSnapshotJson" jsonb NULL,
+    "MarkingLaterality" varchar(30) NULL,
+    "MarkingLocationNote" varchar(500) NULL,
+    "SiteMarkingConfirmed" boolean NOT NULL DEFAULT false,
+    "SentByUserId" uuid NULL, "SentAt" timestamp with time zone NULL,
+    "ConfirmedByUserId" uuid NULL, "ConfirmedAt" timestamp with time zone NULL,
+    "NeedsUpdateAt" timestamp with time zone NULL,
+    "Version" integer NOT NULL DEFAULT 0,
+    CONSTRAINT "CK_OprWardPreOpNote_TwoAccounts" CHECK ("ConfirmedByUserId" IS NULL OR "ConfirmedByUserId" <> "SentByUserId"));
+CREATE UNIQUE INDEX "UX_OprWardPreOpNote_Case_Version" ON public."OprWardPreOpNote" ("OprCaseId", "VersionNumber");
+CREATE UNIQUE INDEX "UX_OprWardPreOpNote_OneOpen" ON public."OprWardPreOpNote" ("OprCaseId") WHERE "Status" IN (1, 2, 3) AND NOT "IsDelete";
+
+CREATE TABLE public."OprWardPreOpItem" (
+    "Id" uuid PRIMARY KEY,
+    "NoteId" uuid NOT NULL REFERENCES public."OprWardPreOpNote" ("Id") ON DELETE CASCADE,
+    "PreparationItemId" uuid NOT NULL REFERENCES public."MstSurgicalPreparationItem" ("Id") ON DELETE RESTRICT,
+    "ItemNameSnapshot" varchar(200) NOT NULL,
+    "IsMandatorySnapshot" boolean NOT NULL,
+    "SenderConfirmed" boolean NOT NULL DEFAULT false,
+    "ReceiverConfirmed" boolean NOT NULL DEFAULT false,
+    "ReceiverConfirmedByUserId" uuid NULL, "ReceiverConfirmedAt" timestamp with time zone NULL,
+    "Note" varchar(500) NULL);
+CREATE UNIQUE INDEX "UX_OprWardPreOpItem_Note_Item" ON public."OprWardPreOpItem" ("NoteId", "PreparationItemId");
+
+CREATE TABLE public."OprWardPreOpSiteMark" (
+    "Id" uuid PRIMARY KEY,
+    "NoteId" uuid NOT NULL REFERENCES public."OprWardPreOpNote" ("Id") ON DELETE CASCADE,
+    "BodyView" integer NOT NULL,
+    "X" numeric(5,2) NOT NULL CHECK ("X" BETWEEN 0 AND 100),
+    "Y" numeric(5,2) NOT NULL CHECK ("Y" BETWEEN 0 AND 100),
+    "Label" varchar(100) NULL);
+
+-- E4 — MasterData (dijalankan lebih dulu)
+CREATE TABLE public."MstSurgicalPreparationItem" (
+    "Id" uuid PRIMARY KEY,
+    "Code" varchar(30) NOT NULL,
+    "GroupName" varchar(100) NOT NULL,
+    "ItemName" varchar(200) NOT NULL,
+    "IsMandatory" boolean NOT NULL DEFAULT true,
+    "SortOrder" integer NOT NULL DEFAULT 0,
+    "Description" varchar(500) NULL,
+    "IsActive" boolean NOT NULL DEFAULT true);
+CREATE UNIQUE INDEX "UX_MstSurgicalPreparationItem_Code" ON public."MstSurgicalPreparationItem" ("Code") WHERE NOT "IsDelete";
+ALTER TABLE public."MstInpatientSetting" ADD COLUMN "PendingSurgicalHandoverAlertMinutes" integer NOT NULL DEFAULT 60;
+ALTER TABLE public."MstInpatientSetting" ADD COLUMN "PendingAdmissionReferralAlertMinutes" integer NOT NULL DEFAULT 30;
+
+-- E6 — InPatientManagement
+CREATE TABLE public."InpAdmissionReferral" (
+    "Id" uuid PRIMARY KEY,
+    "PatientId" uuid NOT NULL REFERENCES public."MstPatient" ("Id") ON DELETE RESTRICT,
+    "SourceEncounterId" uuid NOT NULL REFERENCES public."RegPatientEncounter" ("Id") ON DELETE RESTRICT,
+    "OprCaseId" uuid NOT NULL REFERENCES public."OprCase" ("Id") ON DELETE RESTRICT,
+    "PrimarySurgeonId" uuid NOT NULL REFERENCES public."MstDoctor" ("Id") ON DELETE RESTRICT,
+    "RequestedCareLevel" integer NOT NULL,
+    "RecoveryDecisionNote" varchar(2000) NULL,
+    "Status" integer NOT NULL DEFAULT 1,
+    "RequestedAt" timestamp with time zone NOT NULL,
+    "CancelledAt" timestamp with time zone NULL, "CancelledByUserId" uuid NULL, "CancelledReason" varchar(500) NULL,
+    "CompletedEpisodeId" uuid NULL REFERENCES public."InpEpisode" ("Id") ON DELETE RESTRICT,
+    "CompletedAt" timestamp with time zone NULL,
+    CONSTRAINT "CK_InpAdmissionReferral_State" CHECK (("Status" <> 2 OR "CompletedEpisodeId" IS NOT NULL) AND ("Status" <> 3 OR "CancelledReason" IS NOT NULL)));
+CREATE UNIQUE INDEX "UX_InpAdmissionReferral_Patient_Pending" ON public."InpAdmissionReferral" ("PatientId") WHERE "Status" = 1 AND NOT "IsDelete";
+CREATE UNIQUE INDEX "UX_InpAdmissionReferral_Case_Pending" ON public."InpAdmissionReferral" ("OprCaseId") WHERE "Status" = 1 AND NOT "IsDelete";
+CREATE UNIQUE INDEX "UX_InpAdmissionReferral_CompletedEpisode" ON public."InpAdmissionReferral" ("CompletedEpisodeId") WHERE "CompletedEpisodeId" IS NOT NULL;
+CREATE INDEX "IX_InpAdmissionReferral_Status_RequestedAt" ON public."InpAdmissionReferral" ("Status", "RequestedAt");
+
+-- E7 — ClinicalManagement (P2)
+CREATE TABLE public."CliTransferHandover" (
+    "Id" uuid PRIMARY KEY,
+    "InpEpisodeId" uuid NOT NULL REFERENCES public."InpEpisode" ("Id") ON DELETE RESTRICT,
+    "FromPlacementId" uuid NOT NULL REFERENCES public."InpBedPlacement" ("Id") ON DELETE RESTRICT,
+    "ToPlacementId" uuid NOT NULL REFERENCES public."InpBedPlacement" ("Id") ON DELETE RESTRICT,
+    "FromServiceUnitId" uuid NOT NULL REFERENCES public."MstServiceUnit" ("Id") ON DELETE RESTRICT,
+    "ToServiceUnitId" uuid NOT NULL REFERENCES public."MstServiceUnit" ("Id") ON DELETE RESTRICT,
+    "Status" integer NOT NULL DEFAULT 1,
+    "SoapSummary" varchar(4000) NULL, "HandedItems" varchar(2000) NULL, "SpecialInstructions" varchar(2000) NULL,
+    "SnapshotJson" jsonb NULL,
+    "SentByUserId" uuid NULL, "SentAt" timestamp with time zone NULL,
+    "ReceivedByUserId" uuid NULL, "ReceivedAt" timestamp with time zone NULL,
+    "RejectionReason" varchar(1000) NULL,
+    "Version" integer NOT NULL DEFAULT 0,
+    CONSTRAINT "CK_CliTransferHandover_TwoAccounts" CHECK ("ReceivedByUserId" IS NULL OR "ReceivedByUserId" <> "SentByUserId"));
+CREATE UNIQUE INDEX "UX_CliTransferHandover_ToPlacement" ON public."CliTransferHandover" ("ToPlacementId");
+CREATE INDEX "IX_CliTransferHandover_Episode_Status" ON public."CliTransferHandover" ("InpEpisodeId", "Status");
+CREATE INDEX "IX_CliTransferHandover_ToUnit_Status" ON public."CliTransferHandover" ("ToServiceUnitId", "Status");
+```
+
+**Urutan:** `E4` (master) → `E5` (OK) → `E6` → `E7`, karena `OprWardPreOpItem` merujuk `MstSurgicalPreparationItem` dan `InpAdmissionReferral` merujuk `OprCase`. Blok DDL di atas ditulis per pemilik, bukan per urutan jalan. Urutan lintas sub-modul ada di `../02-module-map.md` bagian 7.4.
+
+### 19.13 Penyelarasan decision log revision `31` ★ 2 Oktober 2026
+
+Tidak ada kolom atau tabel baru milik sub-modul ini. `InpAdmissionReferral` (19.8) kini dirujuk tabel Billing `BilInvoiceEncounterLink.SourceReferralId` (`Restrict`; `integrasi-billing` kamus data 6.9, `RWI-DEC-207`), sehingga baris permintaan admisi yang sudah tertaut tidak dapat dihapus fisik — sejalan dengan aturan hapus `IsDelete` di kepala dokumen.

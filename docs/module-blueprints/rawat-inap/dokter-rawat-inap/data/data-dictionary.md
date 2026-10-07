@@ -886,3 +886,83 @@ ALTER TABLE public."RadOrder" ADD COLUMN "InstructionVerifiedByUserId" uuid NULL
 | Kolom GDS pada order atau versi order sliding scale | Sumber GDS satu, milik `ClinicalManagement` — `RWI-DEC-148` |
 | Tabel verifikasi resep | `RWI-DEC-121` butir (6) |
 | Tabel penanda "catatan milik saya" | `RWI-DEC-142` |
+
+---
+
+## 14. Amandemen revision `0.6` / kontrak `0.7.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+Seluruh tabel mewarisi `IdentityModel`; kolom audit tidak diulang. Penghapusan bersifat penandaan.
+
+### 14.1 Status dan kepemilikan
+
+| Entity | Status | Pemilik | Catatan |
+|---|---|---|---|
+| `GziNutritionOrder` | **Diperbarui** | `NutritionManagement` | Tiga kolom verifikasi |
+| `BbkBloodOrder` | **Diperbarui** | `BloodBankManagement` | Tiga kolom verifikasi |
+| `LabOrder`, `RadOrder` | Sudah ada | Lab, Radiologi | Kunci: `InstructingDoctorId`, `InstructionVerificationStatus` (sudah ada) |
+| `MstProcedure` | Sudah ada | `MasterData` | Kunci: `IsAvailableForInpatient`, `IsAvailableForOutpatient`, `IsDoctorAction` |
+
+### 14.2 `GziNutritionOrder` — `Diperbarui`
+
+`[Table("GziNutritionOrder", Schema = "public")]`. Model `Areas/HealthServices/NutritionManagement/Models/GziNutritionOrder.cs`.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `OrderNumber` | `string(50)` | Ya | — | Sesuai configuration | — | — | Tidak | — |
+| `PatientId` | `Guid` | Ya | — | Sesuai configuration | FK `MstPatient` | `Restrict` | Tidak | — |
+| `EncounterId` | `Guid` | Ya | — | Sesuai configuration | FK `RegPatientEncounter` | `Restrict` | Tidak | — |
+| `RequesterDoctorId` | `Guid` | Ya | — | — | FK `MstDoctor` | `Restrict` | Tidak | Dokter pemberi instruksi |
+| `AssignedWorkforceId` | `Guid?` | Tidak | — | — | FK `MstWorkforceProfile` | `Restrict` | Tidak | Ahli gizi |
+| `Status` | `GziOrderStatus` (`int`) | Ya | `Requested` | — | — | — | Tidak | Tidak berubah |
+| `Priority` | `GziOrderPriority` (`int`) | Ya | `Routine` | — | — | — | Tidak | — |
+| `ReasonForReferral` | `string(1000)` | Ya | — | — | — | — | **Ya** | — |
+| `ScreeningRiskStatus` | `NutritionRiskStatus?` (`int`) | Tidak | — | — | — | — | Tidak | — |
+| `ScreeningScore` | `int?` | Tidak | — | — | — | — | Tidak | — |
+| `RequestedAt` | `DateTime` | Ya | — | — | — | — | Tidak | — |
+| `ClosedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `ClosingNote` | `string(2000)?` | Tidak | — | — | — | — | **Ya** | — |
+| **`InstructionVerificationStatus`** | `GziInstructionVerificationStatus` (`int`) | Ya | `NotRequired` | **Index** | — | — | Tidak | **Baru** |
+| **`InstructionVerifiedAt`** | `DateTime?` | Tidak | — | — | — | — | Tidak | **Baru** |
+| **`InstructionVerifiedByUserId`** | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | **Baru** |
+| `Version` | `int` | Ya | — | — | — | — | Tidak | — |
+
+### 14.3 `BbkBloodOrder` — `Diperbarui`
+
+`[Table("BbkBloodOrder", Schema = "public")]`. Model `Areas/HealthServices/BloodBankManagement/Models/BbkBloodOrder.cs`.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `OrderNumber` | `string(30)` | Ya | — | Sesuai configuration | — | — | Tidak | — |
+| `PatientId` | `Guid` | Ya | — | Sesuai configuration | FK `MstPatient` | `Restrict` | Tidak | — |
+| `EncounterId` | `Guid` | Ya | — | Sesuai configuration | FK `RegPatientEncounter` | `Restrict` | Tidak | — |
+| `ServiceUnitId` | `Guid` | Ya | — | — | FK `MstServiceUnit` | `Restrict` | Tidak | — |
+| `RequestingDoctorId` | `Guid` | Ya | — | — | FK `MstDoctor` | `Restrict` | Tidak | Dokter pemberi instruksi |
+| `RequestedBloodGroup` | `BloodType?` (`int`) | Tidak | — | — | — | — | **Ya** | — |
+| `OrderSource` | `BbkOrderSource` (`int`) | Ya | `Electronic` | — | — | — | Tidak | — |
+| `InputByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | Penginput |
+| `OrderStatus` | `BbkBloodOrderStatus` (`int`) | Ya | `Active` | — | — | — | Tidak | Tidak berubah |
+| **`InstructionVerificationStatus`** | `BbkInstructionVerificationStatus` (`int`) | Ya | `NotRequired` | **Index** | — | — | Tidak | **Baru** |
+| **`InstructionVerifiedAt`** | `DateTime?` | Tidak | — | — | — | — | Tidak | **Baru** |
+| **`InstructionVerifiedByUserId`** | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | **Baru** |
+| `Version` | `int` | Ya | — | — | — | — | Tidak | — |
+
+### 14.4 Skema DDL
+
+> **Peringatan.** Dokumentasi bentuk tabel, bukan skrip yang dijalankan. Hanya kolom baru.
+
+```sql
+-- Bentuk tabel sebagaimana dihasilkan EF Core. Bukan skrip untuk dijalankan.
+ALTER TABLE public."GziNutritionOrder"
+    ADD "InstructionVerificationStatus" integer NOT NULL DEFAULT 0,
+    ADD "InstructionVerifiedAt" timestamp,
+    ADD "InstructionVerifiedByUserId" uuid;
+CREATE INDEX "IX_GziNutritionOrder_InstructionVerificationStatus" ON public."GziNutritionOrder" ("InstructionVerificationStatus");
+
+ALTER TABLE public."BbkBloodOrder"
+    ADD "InstructionVerificationStatus" integer NOT NULL DEFAULT 0,
+    ADD "InstructionVerifiedAt" timestamp,
+    ADD "InstructionVerifiedByUserId" uuid;
+CREATE INDEX "IX_BbkBloodOrder_InstructionVerificationStatus" ON public."BbkBloodOrder" ("InstructionVerificationStatus");
+```
