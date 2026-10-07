@@ -102,6 +102,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             {
                 var keyword = search.Trim().ToLower();
                 query = query.Where(x =>
+                    (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
+                    (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)) ||
                     x.EmergencyVisitNumber.ToLower().Contains(keyword) ||
                     (x.ChiefComplaint != null && x.ChiefComplaint.ToLower().Contains(keyword)) ||
                     (x.ArrivalLocation != null && x.ArrivalLocation.ToLower().Contains(keyword)) ||

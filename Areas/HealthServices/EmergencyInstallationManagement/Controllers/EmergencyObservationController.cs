@@ -428,6 +428,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                         EncounterDitutup = penutupan.EncounterDitutup
                     }
                 );
+            }
+
             if (_emergencyRealtimeService != null)
             {
                 await _emergencyRealtimeService.NotifyEmergencyQueueChangedAsync(
