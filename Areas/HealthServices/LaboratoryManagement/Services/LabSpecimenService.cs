@@ -1308,7 +1308,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     RejectionNote = x.RejectionNote,
                     SupersededSpecimenId = x.SupersededSpecimenId,
                     RecollectionCause = x.RecollectionCause != null ? x.RecollectionCause.ToString() : null,
-                    Version = x.Version
+                    Version = x.Version,
+                    // r39 34.2 (BE-LAB-88): nama SNAPSHOT, bukan nama data induk hari ini; IsActive
+                    // keadaan data induk sekarang. Daftar kosong = nol rincian, bukan "tidak dimuat".
+                    SpecimenDetails = _dbContext.LabSpecimenDetails
+                        .Where(d => d.LabSpecimenId == x.Id && !d.IsDelete)
+                        .OrderBy(d => d.DetailNameSnapshot)
+                        .Select(d => new LabSpecimenDetailItem
+                        {
+                            LabSpecimenDetailTypeId = d.LabSpecimenDetailTypeId,
+                            DetailName = d.DetailNameSnapshot,
+                            IsActive = d.LabSpecimenDetailType != null &&
+                                       d.LabSpecimenDetailType.IsActive &&
+                                       !d.LabSpecimenDetailType.IsDelete
+                        })
+                        .ToList()
                 })
                 .ToListAsync(cancellationToken);
         }
