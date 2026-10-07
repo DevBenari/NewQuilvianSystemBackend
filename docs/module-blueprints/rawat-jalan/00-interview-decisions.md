@@ -1049,3 +1049,108 @@ Fakta source (baseline 6 Okt 2026):
 | `RJ-DOC-DEC-042` | Data | Cakupan: asuransi pasien (memakai `MstPatientInsurance.CardImagePath`, tanpa migration) dan penjamin perusahaan pasien (kolom baru `MstPatientCompanyGuarantor.CardImagePath varchar(500) null`, butuh migration) | Sukma Giri | `approved` | Sukma Giri, 6 Okt 2026 |
 | `RJ-DOC-DEC-043` | Approval | `IMPLEMENTATION_AUTHORITY` `GRANTED` dalam `CROSS-REPO MODE` (backend lalu frontend) untuk `RJ-DOC-REV-BE-013`, `RJ-DOC-REV-BE-014`, dan `RJ-DOC-REV-FE-014`: source, laporan task, dan tanda status. Pembuatan dan eksekusi migration `BE-014` tetap butuh izin terpisah. Tanpa commit, push, merge, maupun deployment | Sukma Giri | `approved` | Sukma Giri, 6 Okt 2026 |
 | `RJ-DOC-DEC-044` | Approval | Izin pembuatan migration `RJ-DOC-REV-BE-014` (hanya kolom `MstPatientCompanyGuarantor.CardImagePath varchar(500) null`) dan eksekusinya ke database uji `QuilvianNewDevSukma`. Tidak berlaku untuk database lain | Sukma Giri | `approved` | Sukma Giri, 6 Okt 2026 |
+
+## Amendment Pass 2026-10-07 — Menu Konsultasi Tertunda (Amendment MT)
+
+Sumber requirement: Sukma Giri, 7 Okt 2026. Kunjungan tertunda dipindahkan dari Klinis Dokter ke
+menu baru di bawah Dokter → Rawat Jalan. Aksi baris: *Batalkan Konsultasi* dan *Simpan
+Konsultasi*. *Simpan Konsultasi* mengarahkan ke Klinis Dokter untuk meninjau ulang hasil terakhir
+konsultasi yang tersimpan. Konsepnya sama dengan *Batalkan Kunjungan* di Daftar Pasien Rawat Jalan.
+
+Mode: **amendment pass** atas Amendment KT (revisi `29`). Keputusan bisnis `RJ-DOC-DEC-029`..`031`
+tetap berlaku tanpa perubahan. Yang berubah hanya **letak dan alur layar**: `RJ-DOC-FE-010` dan
+`RJ-DOC-FE-013` digantikan.
+
+Baseline: backend `85962dc4` (`sukmagp`), frontend `9acc42027` (`sukmagpV2`). Tidak ada capability
+map baru; fakta di bawah dibaca langsung dari source.
+
+### Fakta dari source
+
+- `F-MT-1` — `GET /v1/health-services/registration-management/doctor-queues/pending-consultations`
+  sudah menerima `doctorId`, `queueId`, `search`, `pageNumber`, `pageSize`. Responsnya memuat
+  `pendingDays`, `draftPrescriptionCount`, `procedureCount`, `consultationId`, dan
+  `canCancelConsultation` (`DoctorQueueController.cs:211`, kontrak `RJ-DOC-PENDCONS-001@1.0.0`).
+- `F-MT-2` — Pembatalan konsultasi memakai `cancelDoctorConsultation(consultationId, { cancelReason })`
+  dengan izin `DoctorConsultation : Cancel` (`useDoctorPendingConsultations.js`).
+- `F-MT-3` — Sidebar mendukung menu bertingkat (`left-sidebar-menu-handle.jsx`,
+  `getNestedMenuFromSubItem`). Saat ini Dokter → Rawat Jalan adalah satu tautan langsung ke
+  `/health-services/registration-management/doctor-queues`.
+- `F-MT-4` — Pola *Batalkan Kunjungan*: `DataTable` dengan kolom Aksi `RowActionMenu`, lalu
+  `ConfirmModal` dengan `requireReason` (maks. 250 karakter) (`outpatient-encounter-list-view.jsx`).
+- `F-MT-5` — Petunjuk backend di Daftar Pasien Rawat Jalan (`OutpatientEncounterListService.cs:384`)
+  menyebut "Konsultasi tertunda". Petunjuk itu tetap benar sesudah amendment ini.
+
+**Kesimpulan fakta:** backend tidak perlu berubah. Amendment ini **frontend-only**, tanpa migration.
+
+### Batas scope amendment
+
+**Satu kalimat:** konsultasi tertunda dikelola dari halaman daftar tersendiri di menu Dokter →
+Rawat Jalan, dan Klinis Dokter hanya dipakai untuk meninjau dan menyimpannya.
+
+| Di dalam scope | Di luar scope — pemiliknya |
+|---|---|
+| Halaman baru *Konsultasi Tertunda* (daftar, pencarian, aksi baris) | Aturan isi daftar dan cakupan dokter — tetap `RJ-DOC-DEC-029`/`030` |
+| Aksi *Batalkan Konsultasi* dengan alasan wajib | Aturan finalisasi dan pembatalan — tetap `RJ-DOC-DEC-031` |
+| Aksi *Simpan Konsultasi*: membuka Klinis Dokter pada konsultasi tersebut | Pembatalan **kunjungan** — tetap di Daftar Pasien Rawat Jalan (`RJ-DOC-DEC-021`) |
+| Menghapus tab *Hari ini/Tertunda* dari panel kiri Klinis Dokter | Perubahan endpoint atau backend |
+| Pengingat jumlah tertunda di Klinis Dokter | IGD dan Rawat Inap |
+
+### Keputusan
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `RJ-DOC-DEC-045` | Decision | **Bentuk blueprint `SINGLE`**, masuk roadmap doctor-consultation sebagai task revisi `RJ-DOC-REV-FE-*`. `shape_decided_by = USER_CONFIRMED` (mewarisi `RJ-DOC-DEC-028`). Hasil uji: 0 dari 5 syarat pemecahan. Tidak ada kemampuan tanpa rumpun | Sukma Giri | `approved` | Sukma Giri, 7 Okt 2026 | Jawaban sesi |
+| `RJ-DOC-DEC-046` | Decision | **Simpan Konsultasi = tinjau dulu, lalu simpan di Klinis Dokter.** Dari daftar, dokter diarahkan ke Klinis Dokter dengan konsultasi itu langsung terbuka di workspace. Workspace menampilkan seluruh tab klinis dan banner kunjungan lampau (`RJ-DOC-FE-011` a). Modal Simpan **tidak** terbuka otomatis. Dokter menekan Selesaikan sendiri, dan konfirmasi kunjungan lampau (`RJ-DOC-FE-011` b) tetap berlaku. **Contoh:** dr. Arif memilih *Simpan Konsultasi* pada IKBAL (30 Sep). Klinis Dokter terbuka dengan SOAP IKBAL. dr. Arif memeriksa resep, lalu menekan Selesaikan | Sukma Giri | `approved` | Sukma Giri, 7 Okt 2026 | Jawaban sesi |
+| `RJ-DOC-DEC-047` | Decision | **Batalkan Konsultasi tersedia di dua tempat:** baris daftar (utama) dan workspace Klinis Dokter saat konsultasi tertunda dibuka lewat *Simpan Konsultasi*. Keduanya memakai alasan wajib dan endpoint yang sama. Tanpa izin `DoctorConsultation : Cancel`, aksi tidak tampil | Sukma Giri | `approved` | Sukma Giri, 7 Okt 2026 | Jawaban sesi; `F-MT-2` |
+| `RJ-DOC-DEC-048` | Decision | **Sesudah finalisasi berhasil** pada konsultasi yang dibuka dari daftar tertunda, dokter dikembalikan ke halaman Konsultasi Tertunda dengan pesan sukses. Bila finalisasi gagal, dokter tetap di Klinis Dokter dengan pesan galatnya. Sesudah pembatalan dari workspace, dokter juga dikembalikan ke halaman Konsultasi Tertunda | Sukma Giri | `approved` | Sukma Giri, 7 Okt 2026 | Jawaban sesi |
+| `RJ-DOC-DEC-049` | Assumption | "Batalkan/nonaktifkan konsultasi" berarti pembatalan konsultasi yang sudah ada (`RJ-DOC-DEC-031`). Kunjungan tetap status 6 dan petugas membatalkannya di Daftar Pasien Rawat Jalan. Tidak ada status "nonaktif" baru | Sukma Giri | `approved` | Sukma Giri, 7 Okt 2026 | `F-MT-2` |
+
+### Frontend Decision Authority
+
+| Decision ID | Area | Owner | Status | Allowed range | Evidence |
+|---|---|---|---|---|---|
+| `RJ-DOC-FE-010` | Letak daftar | Sukma Giri | **`superseded`** oleh `RJ-DOC-FE-014` (7 Okt 2026) | — | — |
+| `RJ-DOC-FE-013` | Bentuk daftar tertunda | Sukma Giri | **`superseded`** oleh `RJ-DOC-FE-014` (7 Okt 2026) | — | — |
+| `RJ-DOC-FE-014` | Menu dan letak | Sukma Giri | `approved` | Sidebar: **Dokter → Rawat Jalan** menjadi grup berisi **Klinis Dokter** (rute lama) dan **Konsultasi Tertunda** (rute baru). Panel kiri Klinis Dokter kembali hanya berisi antrean hari ini, tanpa tab | Jawaban sesi |
+| `RJ-DOC-FE-015` | Pengingat di Klinis Dokter | Sukma Giri | `approved` | Bila jumlah tertunda > 0, tampil info singkat dengan tautan ke Konsultasi Tertunda, contoh: "Ada 8 konsultasi tertunda dari hari sebelumnya." Bila jumlahnya 0 atau gagal dimuat, info tidak tampil dan antrean hari ini tidak terganggu. Letak: `DEV_DISCRETION` | Jawaban sesi |
+| `RJ-DOC-FE-016` | Isi halaman daftar | Developer | `DEV_DISCRETION` | Mengikuti pola Daftar Pasien Rawat Jalan (`F-MT-4`). Kolom: Tanggal, Tertunda (hari), No. Kunjungan, Pasien/No. RM, Klinik, Dokter, Resep draf/Tindakan, dan Aksi. Filter: pencarian dan jumlah baris, plus filter dokter bila pengguna boleh melihat semua dokter. Tanpa summary card. Nama rute dan cara Klinis Dokter menerima konsultasi yang dibuka (mis. `?queueId=`) juga `DEV_DISCRETION` | Jawaban sesi |
+
+### Acceptance criteria yang sudah dapat diuji
+
+1. Sidebar menampilkan Dokter → Rawat Jalan → Klinis Dokter dan Konsultasi Tertunda. Klinis Dokter
+   membuka rute lama, dan perilaku antrean hari ini tidak berubah.
+2. Panel kiri Klinis Dokter tidak lagi punya tab Hari ini/Tertunda.
+3. Konsultasi Tertunda menampilkan data dari endpoint `pending-consultations` dengan cakupan dokter
+   yang sama. Pencarian dan pagination berjalan.
+4. *Batalkan Konsultasi* membuka modal dengan alasan wajib (1–250 karakter). Sesudah berhasil, baris
+   hilang dan muncul pesan agar petugas membatalkan kunjungannya di Daftar Pasien Rawat Jalan.
+5. Tanpa izin `DoctorConsultation : Cancel`, aksi *Batalkan Konsultasi* tidak tampil di daftar
+   maupun di workspace.
+6. *Simpan Konsultasi* membuka Klinis Dokter dengan konsultasi itu terpilih. Tab klinis dapat dibaca
+   dan disunting, banner kunjungan lampau tampil, dan modal Simpan **tidak** terbuka sendiri.
+7. Selesaikan memunculkan konfirmasi kunjungan lampau bila ada resep draf atau tindakan. Sesudah
+   berhasil, dokter kembali ke Konsultasi Tertunda dan baris itu sudah hilang.
+8. Bila konsultasi yang dibuka sudah tidak tertunda (mis. sudah disimpan di tab browser lain),
+   Klinis Dokter menampilkan pesan bahwa konsultasi tidak ditemukan, bukan workspace kosong.
+9. Pengingat jumlah tertunda tampil hanya bila jumlahnya > 0, dan tautannya membuka Konsultasi Tertunda.
+
+### Open question dan blocker
+
+Nihil. Tidak ada blocker desain maupun implementasi.
+
+### Hasil desain 2026-10-07 (revisi `30`, `draft`)
+
+| ID | Status | Jawaban / isi |
+|---|---|---|
+| `RJ-DOC-OQ-016` | `open`, `POST-MVP`, tidak memblokir | Filter Dokter yang diusulkan pada `RJ-DOC-FE-016` **tidak dibuat** di MVP. Frontend tidak punya sinyal "boleh melihat semua dokter" untuk `pending-consultations`; metadata Daftar Pasien Rawat Jalan dijaga `OutpatientEncounter : Read` yang belum tentu dimiliki dokter. Pengganti: kolom Dokter (`03` MT-FE.9). Bila dibutuhkan, backend perlu menambah sinyal cakupan |
+| Bentuk desain | — | Frontend-only: `02` *Amendment MT* menyatakan tanpa perubahan backend; kontrak `RJ-DOC-PENDCONS-001@1.0.0` tidak disunting. Satu task usulan `RJ-DOC-REV-FE-015` (`04` MT-8) |
+
+### Approval 2026-10-07 — desain Amendment MT
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `RJ-DOC-DEC-050` | Approval | **Desain Amendment MT (revisi `30`) disetujui**: bagian *Amendment MT* pada `02`, `03`, `04`, `flowcharts/konsultasi-tertunda.md`, dan `testing/acceptance-test-matrix.md`, termasuk penundaan filter Dokter (`RJ-DOC-OQ-016`). Kontrak `RJ-DOC-PENDCONS-001@1.0.0` tidak berubah. Approval ini **bukan** izin menulis code; `IMPLEMENTATION_AUTHORITY` tetap per task | Sukma Giri | `approved` | Sukma Giri, 7 Okt 2026 ("lanjutkan" atas "Setujui desain ini?") | `blueprint-manifest.md` revisi `30` |
+| `RJ-DOC-DEC-051` | Approval | **`IMPLEMENTATION_AUTHORITY` `GRANTED` untuk `RJ-DOC-REV-FE-015`**: penulisan source frontend, laporan task, tanda status roadmap, dan uji layar terhadap `QuilvianNewDevSukma` dengan data uji yang dibuat/dibersihkan lewat endpoint aplikasi. Tanpa perubahan backend, migration, commit, push, merge, maupun deployment | Sukma Giri | `approved` | Sukma Giri, 7 Okt 2026 ("lanjutkan" atas permintaan izin implementasi) | `roadmap/doctor-consultation-roadmap.md` bagian 16 |
+| `RJ-DOC-DEC-052` | Approval | **Uji layar penuh `RJ-DOC-REV-FE-015`**: backend uji 7185 dari build Release `HEAD` di scratchpad (tanpa perubahan DB), data uji pasien `KSKTEST-RM-07` lewat endpoint aplikasi, dan `QueueDate` antrean data uji dimundurkan lewat SQL langsung di `QuilvianNewDevSukma`. Data dibersihkan sesudahnya. Tidak berlaku untuk database lain | Sukma Giri | `approved` | Sukma Giri, 7 Okt 2026 (pilihan "Penuh, izinkan SQL") | [Laporan FE-015](task/report/frontend/RJ-DOC-REV-FE-015.md) §6 |
+| `RJ-DOC-DEC-053` | Decision | **Cakupan konsultasi tertunda mengikuti akun dokter, termasuk akun dokter yang juga SuperAdmin** (memperjelas `RJ-DOC-DEC-029` untuk Amendment MT). Bila akun yang login tertaut ke data dokter (`doctorId` sesi), pengingat di Klinis Dokter dan daftar Konsultasi Tertunda hanya memuat konsultasi dokter itu. Akun tanpa tautan dokter (mis. admin SuperAdmin) tetap melihat semua. Bila jumlahnya 0, pengingat tidak tampil (`RJ-DOC-FE-015`). Frontend-only: memakai parameter `doctorId` yang sudah ada pada `RJ-DOC-PENDCONS-001@1.0.0`. **Contoh:** dr. Maya Permata Sari (akun SuperAdmin) melihat 2 konsultasi tertunda miliknya, bukan 8 milik 5 dokter | Sukma Giri | `approved` | Sukma Giri, 7 Okt 2026 (temuan uji pemilik + pilihan "Pengingat + daftar per dokter") | Tangkapan layar pemilik 7 Okt 2026 |
+| `RJ-DOC-DEC-054` | Decision | **Antrean pasien dokter hari ini di Klinis Dokter memakai cakupan yang sama dengan `RJ-DOC-DEC-053`.** Akun yang tertaut ke data dokter hanya melihat antrean hari ini miliknya (daftar, ringkasan Total Antrean, kunci panggil, dan grup realtime), termasuk bila akunnya SuperAdmin. Akun tanpa tautan dokter tetap memakai cakupan lama. Frontend-only: filter `doctorId` sudah didukung `GET /doctor-queues`, `/summary`, dan `/call-lock`. Wewenang implementasi diberikan sebagai revisi 2 `RJ-DOC-REV-FE-015` (tanpa backend, commit, push, deploy). **Contoh:** dr. Rendy Pangalila tidak lagi melihat AGNES YULIANI RAJA GUK GUK (pasien dr. Maya); pasien itu hanya tampil saat dr. Maya login | Sukma Giri | `approved` | Sukma Giri, 7 Okt 2026 ("pola yang sama juga terapkan untuk … antrean pasien dokter hari ini") | Tangkapan layar pemilik 7 Okt 2026 |

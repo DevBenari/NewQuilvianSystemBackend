@@ -1113,3 +1113,73 @@ RJ-DOC-REV-BE-013 ✅ ─> RJ-DOC-REV-BE-014 ✅ ─> RJ-DOC-REV-FE-014 ✅
 | Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
 | --- | --- | --- | --- | --- | --- |
 | ✅ `RJ-DOC-REV-FE-014` | **Scan kartu penjamin di Pendaftaran Rawat Jalan.** Kolom *Kartu* sebelum Status pada tabel penjamin: *Scan Kartu* (belum ada gambar) atau *Lihat Kartu* (sudah ada). Hasil scan Plustek langsung disimpan lewat `PATCH card-image`. Preview kartu tersimpan pada panel *Penjamin Dipilih*. Field scan kartu pada modal *Daftarkan Penjamin Baru*, terkirim sebagai `cardImageBase64`. Menggantikan perubahan sementara tombol scan di header tabel | `BE-013`, `BE-014` | 1. Penjamin tanpa kartu menampilkan *Scan Kartu*; setelah scan berhasil, tombol berubah menjadi *Lihat Kartu* tanpa muat ulang. 2. Penjamin yang kartunya sudah tersimpan langsung menampilkan *Lihat Kartu* dan preview setelah halaman dibuka ulang. 3. Penjamin baru dengan kartu hasil scan tersimpan bersama gambar kartunya. 4. Kegagalan scanner atau backend tampil sebagai pesan. 5. Pendaftaran IGD tidak berubah | ESLint tanpa error baru; `npm run build` `PASS`; uji layar terhadap backend lokal | ✅ `COMPLETE` `2026-10-06` — ESLint `0 error` (4 warning lama di kode yang tidak diubah), `npm run build` `PASS`, unit test modul pendaftaran `46/46 PASS` (suite penuh 8 gagal di modul lain), UI GATE REUSE 4 / COMPOSE 2 / WRAP 1 / NEW 0, uji layar Playwright `15/15 PASS` terhadap backend `BE-013`/`BE-014` dengan agent Plustek **tiruan**. AC 5 (IGD tidak berubah) terbukti lewat kode. Belum diuji dengan scanner fisik. Perubahan sementara tombol header dibuang. Branch `sukmagpV2`, belum di-commit. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-014.md) |
+
+## 16. Revisi `2026-10-07` — Menu Konsultasi Tertunda (Amendment MT)
+
+### 16.0 Dasar dan wewenang
+
+| Field | Isi |
+| --- | --- |
+| **Sumber requirement** | Sukma Giri, 7 Okt 2026: kunjungan tertunda dipindahkan dari Klinis Dokter ke menu baru di bawah Dokter → Rawat Jalan. Aksi baris *Batalkan Konsultasi* dan *Simpan Konsultasi*. Simpan mengarahkan ke Klinis Dokter untuk meninjau ulang hasil terakhir konsultasi. Konsepnya sama dengan *Batalkan Kunjungan* di Daftar Pasien Rawat Jalan |
+| **Keputusan** | `RJ-DOC-DEC-045`..`050`, `RJ-DOC-FE-014`..`016` ([00-interview-decisions.md](../00-interview-decisions.md), *Amendment Pass 2026-10-07*). `RJ-DOC-FE-010` dan `RJ-DOC-FE-013` `superseded` |
+| **Desain** | Blueprint revisi `30` *Amendment MT*, `approved` (`RJ-DOC-DEC-050`). `03-frontend-architecture.md` SHA-256 `0E131F65A07D71350736E7D66DCF21E362EC1A3AEBEAE4BBFD7604A2DF737272` |
+| **Kontrak** | `RJ-DOC-PENDCONS-001@1.0.0` (`approved`), **tidak berubah** — `contracts/api-contract.md` SHA-256 `20E2FCE45B8869889181A0EF1B1AD5DCF1B6CCE49FCB25A66F7EAC02B8AB8E38` |
+| **Capability** | Fakta `F-MT-1`..`5` pada decision log; `02-backend-architecture.md` *Amendment MT* (tanpa perubahan backend) |
+| **Baseline source** | Backend `85962dc4` (`sukmagp`), frontend `9acc42027` (`sukmagpV2`) |
+| **`IMPLEMENTATION_AUTHORITY`** | `GRANTED` untuk `RJ-DOC-REV-FE-015` (`RJ-DOC-DEC-051`, 7 Okt 2026). Tanpa backend, migration, commit, push, merge, deploy |
+| **Backend / migration** | Tidak ada task backend dan tidak ada migration |
+| **Verifikasi** | Lint, `npm run build`, dan uji layar Playwright terhadap FE dev + backend dev dengan `QuilvianNewDevSukma` (pola uji layar `RJ-DOC-REV-FE-012`) |
+
+Legenda tanda status: `✅` selesai, `🟡` sebagian, `⛔` terblokir, tanpa tanda = belum dimulai.
+
+### Grafik Urutan Dependency
+
+**Frontend (`MVP-0`):**
+
+```text
+[BE] RJ-DOC-REV-BE-012 ✅ ─> RJ-DOC-REV-FE-015 ✅
+```
+
+Legenda: `[BE]` = cermin baca-saja task backend bagian 13 (endpoint `pending-consultations` yang
+dipakai ulang); bukan task bagian ini. Bagian ini tidak punya task backend.
+
+| Gelombang | Task | Boleh mulai bila |
+| ---: | --- | --- |
+| 1 | `RJ-DOC-REV-FE-015` | `[BE] BE-012` ✅ dan wewenang `RJ-DOC-DEC-051` ✅ |
+
+Pasangan prasyarat → task: frontend 1 — sama dengan kolom `Dependency` di bawah.
+
+### 16.1 Task frontend
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| ✅ `RJ-DOC-REV-FE-015` | **Menu dan halaman Konsultasi Tertunda.** (1) `menu-items.jsx`: Dokter → Rawat Jalan menjadi grup *Klinis Dokter* (rute lama) dan *Konsultasi Tertunda* (rute baru sejajar, `03` MT-FE.2). (2) Halaman baru `doctor-pending-consultations` berpola `outpatient-encounters/*`: `Hero`, `DataFilter` (pencarian, jumlah baris, reset), `DataTable` dengan kolom MT-FE.3, `Pagination`, `AccessDeniedGate`, keadaan kosong/gagal. (3) `RowActionMenu`: *Simpan Konsultasi* → Klinis Dokter `?queueId=`; *Batalkan Konsultasi* (bila `canCancelConsultation`) → `ConfirmModal` alasan wajib 1–250 lewat `cancelDoctorConsultation`. (4) `useDoctorPendingConsultations`: dukung `search`, pagination, dan mode hitung `pageSize=1`. (5) Klinis Dokter: hapus `ClinicalTabNav` dan daftar tertunda di panel kiri; pengingat "Ada {n} konsultasi tertunda" bila `n > 0`; muat satu item dari `?queueId=` lewat `pending-consultations?queueId=`, buka lewat jalur `handleStart` existing tanpa modal Simpan, bersihkan parameter URL; pesan "tidak ditemukan" dengan tautan kembali. (6) Tombol Batalkan Konsultasi di workspace untuk item dari parameter URL. (7) Sesudah Simpan/Batalkan berhasil pada item itu: arahkan ke daftar dengan pesan sukses; Simpan antrean hari ini tetap di Klinis Dokter. (8) Bersihkan cabang `pendingMode` `QueuePatientCard` bila tak terpakai | `[BE] BE-012` | `AT-MT-01`..`12` (`UAT-MT-01`..`12`); skema `03` MT-FE.3, MT-FE.4, keadaan MT-FE.6; antrean hari ini berperilaku sama; tidak ada perubahan backend | ESLint pada berkas tersentuh tanpa error baru; `npm run build` `PASS`; uji layar Playwright dengan akun dokter pemilik konsultasi tertunda; data uji pada `QuilvianNewDevSukma` dibuat/dibersihkan lewat endpoint aplikasi; laporan task dengan keputusan UI GATE (reuse/extend/new) | ✅ `COMPLETE` `2026-10-07` — ESLint `0 error, 0 warning` (14 berkas), `npm run build` `PASS`, UI GATE REUSE 9 / COMPOSE 2 / NEW 0; uji layar Playwright `32/32 PASS` (save 19, ws-cancel 7, list-cancel 6) terhadap backend uji 7185 dan `QuilvianNewDevSukma`. `npm run test:unit` 8 gagal yang sama dengan baseline `HEAD`. Dikecualikan: `UAT-MT-08` dan `UAT-MT-11` di layar `NOT FEASIBLE` (dibuktikan lewat kode dan `BE-012`); muat ulang realtime tidak diuji. Delta: parameter URL `pendingQueueId`. **Revisi 1 `2026-10-07`** (`RJ-DOC-DEC-053`): pengingat dan daftar mengirim `doctorId` sesi sehingga akun dokter yang juga SuperAdmin hanya melihat miliknya — ESLint `0/0`, build `PASS`, uji layar `8/8 PASS`. **Revisi 2 `2026-10-07`** (`RJ-DOC-DEC-054`): antrean hari ini, Total Antrean, kunci panggil, dan grup realtime memakai `doctorId` sesi — ESLint `0 error` (1 warning lama `HEAD`), build `PASS`, uji layar `12/12 PASS`. Branch `sukmagpV2`, belum di-commit. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-015.md) |
+
+Ikon, letak pengingat, nama route/key/parameter URL, dan bunyi pesan tetap `DEV_DISCRETION` dengan
+base component Quilvian (`RJ-DOC-FE-006`, `RJ-DOC-FE-016`).
+
+### 16.2 Traceability
+
+| Requirement / keputusan | Task | Uji |
+| --- | --- | --- |
+| `RJ-DOC-FE-014` menu grup dan Klinis Dokter tanpa tab | `FE-015` | `AT-MT-01`, `AT-MT-02`, `UAT-MT-01` |
+| `RJ-DOC-FE-015` pengingat jumlah tertunda | `FE-015` | `AT-MT-03`, `UAT-MT-02` |
+| `RJ-DOC-FE-016` isi halaman daftar | `FE-015` | `AT-MT-04`, `UAT-MT-03`, `UAT-MT-11` |
+| `RJ-DOC-DEC-046` Simpan = tinjau di Klinis Dokter | `FE-015` | `AT-MT-07`, `AT-MT-10`, `UAT-MT-05`, `UAT-MT-09`, `UAT-MT-12` |
+| `RJ-DOC-DEC-047` Batalkan di daftar dan workspace | `FE-015` | `AT-MT-05`, `AT-MT-06`, `AT-MT-09`, `UAT-MT-04`, `UAT-MT-06`..`08` |
+| `RJ-DOC-DEC-048` kembali ke daftar sesudah sukses | `FE-015` | `AT-MT-08`, `AT-MT-09`, `AT-MT-11`, `UAT-MT-05`, `UAT-MT-10` |
+| `RJ-DOC-DEC-049` batal = pembatalan konsultasi existing | `FE-015` | `AT-MT-05` |
+| Build dan lint | `FE-015` | `AT-MT-12` |
+
+**Coverage gap:**
+
+| Gap | Sebab | Penanganan |
+| --- | --- | --- |
+| `RJ-DOC-OQ-016` filter Dokter | `POST-MVP` | Tidak diuji |
+| `UAT-MT-11` dokter kedua | Tidak ada akun dokter kedua di DB uji (`RJ-DOC-REV-FE-012`) | Cakupan sudah terbukti di backend (`AT-KT-04`); laporan task boleh menyatakan `NOT FEASIBLE` di layar |
+| `UAT-MT-08` tanpa izin batal | Akun uji memegang `DoctorConsultation : Cancel` dan SuperAdmin | Bila role tidak dapat dicopot sementara dengan izin pemilik, nyatakan `NOT FEASIBLE` di layar dan buktikan lewat kode (`canCancelConsultation`) |
+
+### 16.3 Definition of Done bagian ini
+
+Sama dengan `04-prd-to-mvp.md` *Amendment MT* MT-7: `RJ-DOC-REV-FE-015` `✅`, `AT-MT-01`..`12` lulus
+atau dinyatakan `NOT FEASIBLE` beserta sebabnya, dan backend tidak berubah.

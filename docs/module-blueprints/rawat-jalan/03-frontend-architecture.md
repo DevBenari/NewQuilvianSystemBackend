@@ -506,3 +506,144 @@ Tidak ada butir menu baru. `FE-RJKT-01` tetap dijangkau lewat butir yang sudah a
 | Bunyi banner (A) dan syarat konfirmasi (D) | `RJ-DOC-FE-011` (`approved`) |
 | Tab atau bagian terpisah untuk (B), gaya kartu, ikon, warna | `DEV_DISCRETION` |
 | Letak tombol (C) di workspace | `DEV_DISCRETION`, tidak boleh berdempetan dengan tombol Simpan tanpa jarak yang jelas |
+
+# Amendment MT — Menu Konsultasi Tertunda (revisi `30`, `draft`)
+
+Keputusan `RJ-DOC-DEC-045`..`049`, `RJ-DOC-FE-014`..`016` (decision log *Amendment Pass
+2026-10-07*). Menggantikan `RJ-DOC-FE-010` dan `RJ-DOC-FE-013` pada *Amendment KT* di atas.
+Snapshot FE `9acc42027` (`sukmagpV2`). Kontrak `RJ-DOC-PENDCONS-001@1.0.0` dipakai **apa adanya**;
+tidak ada endpoint baru dan tidak ada perubahan backend (`02` *Amendment MT*).
+
+**Ringkasnya:** daftar konsultasi tertunda pindah dari panel kiri Klinis Dokter ke halaman
+tersendiri. Halaman itu berpola Daftar Pasien Rawat Jalan. Klinis Dokter hanya dipakai untuk
+meninjau dan menyimpan satu konsultasi tertunda yang dibuka dari halaman itu.
+
+## MT-FE.1 Kebutuhan layar
+
+| ID | Layar | Status | Perubahan |
+|---|---|---|---|
+| `FE-RJMT-01` | **Konsultasi Tertunda** (rute baru, lihat MT-FE.2) | **Baru** | Tabel konsultasi tertunda, pencarian, jumlah baris, aksi baris *Simpan Konsultasi* dan *Batalkan Konsultasi* |
+| `FE-RJKT-01` | Klinis Dokter — Rawat Jalan (`/health-services/registration-management/doctor-queues`) | Diperbarui | Tab *Hari ini/Tertunda* dihapus; pengingat jumlah tertunda (`RJ-DOC-FE-015`); menerima satu konsultasi tertunda lewat parameter URL dan membukanya langsung; kembali ke `FE-RJMT-01` sesudah Simpan/Batalkan berhasil |
+| `FE-RJDP-01` | Daftar Pasien Rawat Jalan | Tidak berubah | Petunjuk baris dari backend tetap benar (`F-MT-5`) |
+
+## MT-FE.2 Peta butir menu
+
+| Butir | Key | Tingkat | Induk | Route | Layar | Hak akses |
+|---|---|---|---|---|---|---|
+| Rawat Jalan | `healthServicesDoctorQueueOutpatient` | 2 | Dokter | — (**berubah menjadi grup**, tidak lagi bertautan) | — | — |
+| Klinis Dokter | `healthServicesDoctorQueueOutpatientClinical` | 3 | Dokter → Rawat Jalan | `/health-services/registration-management/doctor-queues` (rute lama) | `FE-RJKT-01` | `DoctorQueue : Read` |
+| Konsultasi Tertunda | `healthServicesDoctorQueueOutpatientPending` | 3 | Dokter → Rawat Jalan | `/health-services/registration-management/doctor-pending-consultations` | `FE-RJMT-01` | `DoctorQueue : Read` |
+
+Route `FE-RJMT-01` dibuat **sejajar**, bukan anak `doctor-queues/...`, supaya pencocokan butir
+aktif di sidebar tidak menyalakan Klinis Dokter dan Konsultasi Tertunda bersamaan. Nama route dan
+key: `DEV_DISCRETION` (`RJ-DOC-FE-016`). Butir `Rawat Inap` di bawah Dokter tidak berubah.
+
+## MT-FE.3 Skema fitur `FE-RJMT-01` — Konsultasi Tertunda
+
+```text
+┌─ Hero: Rawat Jalan · Konsultasi Tertunda ───────────────────────────────────────┐
+│ "Konsultasi dokter dari hari sebelumnya yang belum disimpan atau dibatalkan."   │
+├─ (A) DataFilter ────────────────────────────────────────────────────────────────┤
+│ [Cari no. kunjungan, no. RM, nama pasien...]          [Jumlah baris ▾] [Reset]│
+├─ (B) InformationAlert sukses / galat ───────────────────────────────────────────┤
+├─ (C) DataTable ─────────────────────────────────────────────────────────────────┤
+│ No │ Tanggal │ Tertunda │ No. Kunjungan │ Pasien/No. RM │ Klinik │ Dokter │      │
+│    │         │          │               │               │        │        │ Resep│
+│    │         │          │               │               │        │        │ draf/│
+│    │         │          │               │               │        │        │ Tind.│ Aksi ⋮
+│ 1  │30 Sep 26│ 7 hari   │ENC-RSMMC-00172│IKBAL Y. / 15  │ Anak   │dr. Arif│ 1 / 2│ (D)
+├─ Pagination ────────────────────────────────────────────────────────────────────┤
+(D) RowActionMenu: [Simpan Konsultasi] [Batalkan Konsultasi]**
+(E) ConfirmModal Batalkan Konsultasi: ringkasan + alasan wajib (maks 250)
+ ** hanya bila canCancelConsultation = true
+```
+
+| Wilayah | Isi | Sumber data | Hak akses | Keadaan kosong / gagal |
+|---|---|---|---|---|
+| (A) Filter | Pencarian (debounce, sama dengan Daftar Pasien Rawat Jalan; mencakup kode antrean, pasien, no. RM, no. kunjungan, poli, ruang) dan jumlah baris (10/25/50). Reset mengembalikan bawaan. **Tanpa filter Dokter** — lihat MT-FE.9 | `search`, `pageSize` pada `GET /doctor-queues/pending-consultations` | `DoctorQueue : Read` | — |
+| (B) Pesan | Sukses sesudah batal atau sesudah kembali dari Simpan; galat muat | Hasil aksi / query `?result=` dari Klinis Dokter | — | — |
+| (C) Tabel | Kolom: No, Tanggal (`queueDate`), Tertunda (`pendingDays` hari), No. Kunjungan, Pasien / No. RM, Klinik, Dokter, Resep draf / Tindakan (`draftPrescriptionCount` / `procedureCount`), Aksi. Urut paling lama di atas (urutan server) | `GET /doctor-queues/pending-consultations?pageNumber&pageSize&search&doctorId` | `DoctorQueue : Read` | Kosong: "Tidak ada konsultasi tertunda. Semua konsultasi hari sebelumnya sudah disimpan atau dibatalkan." Gagal: pesan server atau "Konsultasi tertunda gagal dimuat." dengan tombol Coba lagi |
+| (D) *Simpan Konsultasi* | Membuka Klinis Dokter dengan konsultasi itu (MT-FE.4) | — | `DoctorQueue : Read`. Server tetap menegakkan penjaga penulis saat finalisasi | — |
+| (D) *Batalkan Konsultasi* | Membuka (E) | — | Tampil bila `canCancelConsultation = true` (`DoctorConsultation : Cancel`). Server tetap menolak `403` | — |
+| (E) Modal batal | "Konsultasi {nama} tanggal {tanggal} akan dibatalkan. Sesudahnya, petugas membatalkan kunjungannya di Daftar Pasien Rawat Jalan." Alasan wajib, 1–250 karakter. Tombol nonaktif selama permintaan berjalan | `PATCH /doctor-consultations/{consultationId}/cancel` dengan `{ cancelReason }` | Sama dengan (D) | Gagal: pesan server di dalam modal; modal tetap terbuka. Sukses: baris hilang, tabel dimuat ulang, pesan "Konsultasi dibatalkan. Minta petugas membatalkan kunjungan {no. kunjungan} di Daftar Pasien Rawat Jalan." |
+
+## MT-FE.4 Perubahan `FE-RJKT-01` — Klinis Dokter
+
+```text
+┌─ Klinis Dokter ─────────────────────────────── [ringkasan antrean hari ini] ─┐
+├──────────────────────────┬────────────────────────────────────────────────────┤
+│ (F) ⓘ Ada 8 konsultasi   │ (G) ⚠ Kunjungan tanggal 30 Sep 2026 — tertunda     │
+│   tertunda. [Buka]       │     7 hari. Pasien mungkin sudah pulang.           │
+│ Pasien Dokter            │ [tab klinis seperti biasa]                         │
+│ 1 pasien hari ini        │                                                    │
+│ [kartu antrean hari ini] │ (H) [Batalkan Konsultasi]   [Selesaikan/Simpan]    │
+└──────────────────────────┴────────────────────────────────────────────────────┘
+```
+
+| Wilayah | Isi | Sumber data | Keadaan kosong / gagal |
+|---|---|---|---|
+| Panel kiri | Kembali seperti sebelum `RJ-DOC-REV-FE-012`: judul "Pasien Dokter" dan antrean hari ini, **tanpa** `ClinicalTabNav` | `GET /doctor-queues` (tidak berubah) | Tidak berubah |
+| (F) Pengingat | "Ada {n} konsultasi tertunda dari hari sebelumnya." dengan tautan ke `FE-RJMT-01`. Letak: `DEV_DISCRETION` (`RJ-DOC-FE-015`) | `totalData` dari `GET /doctor-queues/pending-consultations?pageSize=1`, dimuat ulang mengikuti muat ulang antrean hari ini (debounce yang sama dengan *Amendment KT*) | `n = 0` atau gagal: (F) **tidak tampil**, tanpa pesan galat |
+| Parameter URL | `?queueId={id}`, nama parameter `DEV_DISCRETION`. Klinis Dokter memuat satu baris lewat `GET /doctor-queues/pending-consultations?queueId={id}&pageSize=1`, menambahkannya ke daftar item workspace, lalu membukanya dengan jalur `handleStart` existing (antrean `InConsultation` langsung membuka panel tanpa memanggil start) | `RJ-DOC-PENDCONS-001` | Bila kosong (sudah disimpan/dibatalkan, bukan milik dokter, atau id tidak valid): pesan "Konsultasi tertunda tidak ditemukan atau sudah diselesaikan." dengan tautan kembali ke `FE-RJMT-01`; workspace tetap kosong. Gagal jaringan: pesan server dan tautan yang sama |
+| (G) Banner | Tidak berubah (`RJ-DOC-FE-011` a) | Item terpilih | — |
+| Modal Simpan | Tidak berubah (`RJ-DOC-FE-011` b); **tidak** terbuka otomatis (`RJ-DOC-DEC-046`) | — | — |
+| (H) Batalkan Konsultasi | Hanya untuk item yang dibuka lewat parameter URL dan `canCancelConsultation = true` (`RJ-DOC-DEC-047`). Modal yang sama dengan (E) | `PATCH /doctor-consultations/{id}/cancel` | Gagal: pesan di modal |
+| Sesudah sukses | Simpan atau Batalkan berhasil pada item dari parameter URL: arahkan ke `FE-RJMT-01` dengan penanda hasil (mis. `?result=saved` / `?result=cancelled&encounter={no}`) agar (B) menampilkan pesan (`RJ-DOC-DEC-048`). Simpan pada antrean hari ini tetap di Klinis Dokter seperti sekarang | — | Simpan gagal: tetap di Klinis Dokter dengan galat finalisasi existing |
+
+Parameter URL dibersihkan dari alamat sesudah item terbuka (`router.replace`), supaya muat ulang
+halaman tidak membuka ulang konsultasi yang sudah disimpan dan tombol Kembali browser tidak
+mengulang aksi.
+
+## MT-FE.5 Aksi per peran
+
+| Peran | Lihat `FE-RJMT-01` | Filter Dokter | Simpan Konsultasi | Batalkan Konsultasi |
+|---|:---:|:---:|:---:|:---:|
+| Dokter penulis konsultasi | Ya, miliknya | Tidak | Ya | Ya, bila punya `DoctorConsultation : Cancel` |
+| Dokter lain | Tidak melihat baris dokter lain | Tidak | — | — |
+| Pengguna jalur super admin existing | Ya, semua dokter; kolom Dokter membedakannya | Tidak (MT-FE.9) | Tombol tampil; ditolak backend bila bukan penulis | Tampil bila punya izin; ditolak backend bila bukan penulis |
+| Tanpa data dokter dan bukan super admin | `403` → `AccessDeniedGate` | — | — | — |
+
+## MT-FE.6 Penanganan keadaan
+
+| Keadaan | Perilaku |
+|---|---|
+| Memuat | `DataTable` menampilkan "Mengambil data konsultasi tertunda..." |
+| Respons lama datang belakangan | Dibuang; hanya permintaan terbaru yang mengisi state (pola `useDoctorPendingConsultations`) |
+| Klik ganda Batalkan | Tombol modal nonaktif selama permintaan berjalan |
+| Baris sudah diproses di tab lain | Batal: pesan server di modal, tabel dimuat ulang. Simpan: Klinis Dokter menampilkan pesan "tidak ditemukan" (MT-FE.4) |
+| `403` daftar | `AccessDeniedGate`, sama dengan Daftar Pasien Rawat Jalan |
+| Layar sempit | `DataTable` bergulir horizontal seperti Daftar Pasien Rawat Jalan |
+
+## MT-FE.7 Berkas frontend yang terlibat
+
+| Berkas | Status | Perubahan |
+|---|---|---|
+| `src/utils/menu-sidebar/menu-items.jsx` | Diperbarui | Butir Dokter → Rawat Jalan menjadi grup dua butir (MT-FE.2) |
+| `src/app/health-services/registration-management/doctor-pending-consultations/page.jsx` | Baru | Halaman `FE-RJMT-01`, `metadata.title = "Konsultasi Tertunda"` |
+| `src/components/view/health-services/registration-management/doctor-pending-consultations/*` | Baru | Client (`Suspense`), view, dan kolom tabel — pola `outpatient-encounters/*` |
+| `src/lib/hooks/health-services/registration-management/doctor-queue/useDoctorPendingConsultations.js` | Diperbarui | Mendukung filter (`search`, `doctorId`), pagination, dan mode hitung saja (`pageSize=1`) untuk pengingat (F); logika batal tetap di sini |
+| `src/components/view/health-services/registration-management/doctor-queues/doctor-queue-view.jsx` | Diperbarui | Hapus tab dan daftar tertunda di panel kiri; tambah (F); buka item dari parameter URL; tombol (H); arahkan ke `FE-RJMT-01` sesudah sukses |
+| `src/lib/services/health-services/registration-management/doctor-queue.service.js` | Sudah ada | `getDoctorPendingConsultations` dipakai ulang |
+| `src/lib/services/health-services/clinical-management/doctor-consultation.service.js` | Sudah ada | `cancelDoctorConsultation` dipakai ulang |
+| `src/utils/.../doctor-queue/doctor-pending-consultation-utils.js` | Sudah ada | Dipakai ulang; tambahan formatter kolom bila perlu |
+| `src/components/features/health-services/doctor-queue-features/QueuePatientCard.jsx` | Diperbarui bila perlu | Cabang `pendingMode` tidak lagi dipakai; dihapus bila tidak ada pemakai lain |
+| Base component | Sudah ada | `Hero`, `DataFilter`, `FilterSelect`, `DataTable`, `RowActionMenu`, `ConfirmModal`, `InformationAlert`, `AccessDeniedGate`, `Pagination` |
+
+## MT-FE.8 Kewenangan UI
+
+| Hal | Wewenang |
+|---|---|
+| Susunan menu Dokter → Rawat Jalan → Klinis Dokter / Konsultasi Tertunda | `RJ-DOC-FE-014` (`approved`) |
+| Pengingat jumlah tertunda di Klinis Dokter | `RJ-DOC-FE-015` (`approved`); letak `DEV_DISCRETION` |
+| Simpan = tinjau di Klinis Dokter, tanpa modal otomatis | `RJ-DOC-DEC-046` (`approved`) |
+| Batalkan di daftar dan di workspace | `RJ-DOC-DEC-047` (`approved`) |
+| Kembali ke daftar sesudah sukses | `RJ-DOC-DEC-048` (`approved`) |
+| Kolom, filter, route, key menu, nama parameter URL, ikon | `DEV_DISCRETION` (`RJ-DOC-FE-016`) dalam pola Daftar Pasien Rawat Jalan |
+
+## MT-FE.9 Yang sengaja tidak dibuat
+
+| Hal | Alasan | Pengganti |
+|---|---|---|
+| Filter Dokter untuk pengguna jalur super admin | Frontend tidak punya sinyal "boleh melihat semua dokter" untuk endpoint ini. Metadata Daftar Pasien Rawat Jalan (`scope.canReadAll`, `doctorOptions`) dijaga `OutpatientEncounter : Read` yang belum tentu dimiliki dokter. Menambah sinyal itu berarti mengubah backend, di luar amendment frontend-only ini | Kolom Dokter di tabel. Bila dibutuhkan, diputuskan terpisah sebagai `RJ-DOC-OQ-016` (`POST-MVP`) |
+| Summary card | `RJ-DOC-FE-016` | Jumlah baris di judul tabel/pagination |
+| Tombol Panggil/Lewati/Tidak Hadir | Konsultasi tertunda sudah `InConsultation` | — |

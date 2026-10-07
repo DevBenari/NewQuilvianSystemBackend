@@ -622,3 +622,98 @@ menyelesaikan atau membatalkan konsultasinya yang tertunda dari Klinis Dokter.
 | `RJ-DOC-OQ-015` | Resep draf saat konsultasi dibatalkan | Tidak — perilaku lama |
 
 Tidak ada pertanyaan yang memblokir.
+
+# Amendment MT — Menu Konsultasi Tertunda (revisi `30`, `draft`)
+
+Diturunkan dari `03-frontend-architecture.md` *Amendment MT*, `02-backend-architecture.md`
+*Amendment MT* (tanpa perubahan backend), dan `flowcharts/konsultasi-tertunda.md` bagian
+*Amendment MT*. Tidak ada entity, endpoint, atau butir hak akses baru.
+
+## MT-1. Masalah dan tujuan
+
+Sesudah *Amendment KT*, konsultasi tertunda tampil sebagai tab di panel kiri Klinis Dokter.
+Panel itu sempit, sehingga dokter sulit membandingkan banyak konsultasi tertunda sekaligus (contoh
+pada gambar pemilik: Tertunda (8)). Tujuan: dokter mengelola konsultasi tertunda dari halaman
+daftar tersendiri, seperti petugas mengelola kunjungan di Daftar Pasien Rawat Jalan. Klinis Dokter
+dipakai untuk meninjau isi konsultasi sebelum disimpan.
+
+## MT-2. Batas MVP
+
+| Titik | Isi |
+|---|---|
+| Mulai | Dokter membuka menu Dokter → Rawat Jalan → Konsultasi Tertunda |
+| Akhir | Setiap baris sudah disimpan (kunjungan status 7) atau dibatalkan, dan dokter kembali ke daftar |
+
+## MT-3. Kemampuan `MUST HAVE`
+
+| ID | Kemampuan | Asal |
+|---|---|---|
+| `MT-CAP-01` | Menu Dokter → Rawat Jalan menjadi grup Klinis Dokter dan Konsultasi Tertunda | `RJ-DOC-FE-014` |
+| `MT-CAP-02` | Halaman daftar Konsultasi Tertunda dengan pencarian dan pagination | `RJ-DOC-FE-014`, `RJ-DOC-FE-016`; `KT-CAP-01` |
+| `MT-CAP-03` | Aksi baris Batalkan Konsultasi dengan alasan wajib | `RJ-DOC-DEC-047`; `KT-CAP-04` |
+| `MT-CAP-04` | Aksi baris Simpan Konsultasi: membuka Klinis Dokter untuk ditinjau | `RJ-DOC-DEC-046`; `KT-CAP-02`, `KT-CAP-03` |
+| `MT-CAP-05` | Kembali ke daftar sesudah Simpan/Batalkan berhasil di Klinis Dokter | `RJ-DOC-DEC-048` |
+| `MT-CAP-06` | Tab Tertunda dihapus dari Klinis Dokter; pengingat jumlah tertunda | `RJ-DOC-FE-014`, `RJ-DOC-FE-015` |
+
+## MT-4. Yang ditunda
+
+| Hal | Alasan | Pengganti selama MVP |
+|---|---|---|
+| Filter Dokter untuk pengguna jalur super admin (`RJ-DOC-OQ-016`) | Butuh sinyal backend "boleh melihat semua dokter" untuk endpoint ini; amendment ini frontend-only | Kolom Dokter di tabel |
+| `RJ-DOC-OQ-014`, `RJ-DOC-OQ-015` | Tetap seperti *Amendment KT* | Tetap seperti *Amendment KT* |
+
+## MT-5. Epic dan functional requirement
+
+**Epic MT-E1 — Menu Konsultasi Tertunda** (`MUST HAVE`)
+
+| FR | Requirement | Disposisi |
+|---|---|---|
+| `MT-FR-01` | Sidebar Dokter → Rawat Jalan berisi Klinis Dokter (rute lama) dan Konsultasi Tertunda (rute baru) | `EXTEND` (`menu-items.jsx`) |
+| `MT-FR-02` | Halaman Konsultasi Tertunda menampilkan tabel dari `pending-consultations` dengan kolom MT-FE.3, pencarian, jumlah baris, pagination, keadaan kosong/gagal/`403` | `MISSING / NEW` |
+| `MT-FR-03` | Aksi Batalkan Konsultasi di baris: modal beralasan wajib 1–250, endpoint batal existing, baris hilang dan pesan petugas tampil sesudah sukses; tidak tampil tanpa `canCancelConsultation` | `EXTEND` (`useDoctorPendingConsultations`) |
+| `MT-FR-04` | Aksi Simpan Konsultasi membuka Klinis Dokter dengan parameter konsultasi; Klinis Dokter memuat dan membuka item itu tanpa membuka modal Simpan | `EXTEND` (`doctor-queue-view`, `useDoctorConsultationWorkspace`) |
+| `MT-FR-05` | Konsultasi yang tidak lagi tertunda menghasilkan pesan "tidak ditemukan" dengan tautan kembali | `MISSING / NEW` |
+| `MT-FR-06` | Sesudah Simpan atau Batalkan berhasil pada item dari daftar, dokter diarahkan ke daftar dengan pesan sukses; parameter URL dibersihkan sesudah item terbuka | `MISSING / NEW` |
+| `MT-FR-07` | Tombol Batalkan Konsultasi di workspace untuk item dari daftar | `EXISTING / REUSE` (dari `RJ-DOC-REV-FE-012`) |
+| `MT-FR-08` | Panel kiri Klinis Dokter tanpa tab; pengingat "Ada {n} konsultasi tertunda" bila `n > 0` | `EXTEND` |
+| `MT-FR-09` | Banner kunjungan lampau dan konfirmasi modal Simpan tetap berlaku | `EXISTING / REUSE` |
+
+## MT-6. Skenario UAT
+
+| ID | Skenario | Hasil yang diharapkan |
+|---|---|---|
+| `UAT-MT-01` | dr. Arif membuka sidebar Dokter → Rawat Jalan | Dua butir: Klinis Dokter dan Konsultasi Tertunda. Klinis Dokter berperilaku seperti sebelumnya untuk antrean hari ini, tanpa tab |
+| `UAT-MT-02` | dr. Arif punya 8 konsultasi tertunda dan membuka Klinis Dokter | Pengingat "Ada 8 konsultasi tertunda…" tampil; tautannya membuka Konsultasi Tertunda |
+| `UAT-MT-03` | dr. Arif membuka Konsultasi Tertunda dan mencari "IKBAL" | Satu baris IKBAL, 30 Sep 2026, tertunda 7 hari, resep draf 1 / tindakan 2 |
+| `UAT-MT-04` | dr. Arif memilih Batalkan Konsultasi pada AGNES dengan alasan "Pasien pulang sebelum diperiksa" | Baris AGNES hilang; pesan meminta petugas membatalkan kunjungannya; petugas berhasil membatalkannya di Daftar Pasien Rawat Jalan |
+| `UAT-MT-05` | dr. Arif memilih Simpan Konsultasi pada IKBAL | Klinis Dokter terbuka dengan IKBAL terpilih, banner tertunda tampil, modal Simpan tidak terbuka. Sesudah meninjau dan menekan Selesaikan serta centang konfirmasi, dokter kembali ke Konsultasi Tertunda dengan pesan sukses dan baris IKBAL hilang |
+| `UAT-MT-06` | Dari Klinis Dokter (dibuka lewat Simpan), dr. Arif menekan Batalkan Konsultasi | Konsultasi batal; kembali ke Konsultasi Tertunda dengan pesan petugas |
+| `UAT-MT-07` (gagal) | Batalkan tanpa alasan | Tombol konfirmasi tidak dapat ditekan |
+| `UAT-MT-08` (gagal) | Pengguna tanpa `DoctorConsultation : Cancel` | Aksi Batalkan tidak tampil di daftar maupun workspace |
+| `UAT-MT-09` (gagal) | Baris sudah disimpan di tab lain, lalu Simpan Konsultasi ditekan di tab ini | Klinis Dokter menampilkan "Konsultasi tertunda tidak ditemukan atau sudah diselesaikan." dengan tautan kembali |
+| `UAT-MT-10` (gagal) | Finalisasi ditolak validasi | Tetap di Klinis Dokter dengan pesan validasi existing; tidak diarahkan ke daftar |
+| `UAT-MT-11` (gagal) | dr. Budi membuka Konsultasi Tertunda | Konsultasi milik dr. Arif tidak tampil |
+| `UAT-MT-12` (gagal) | Muat ulang Klinis Dokter sesudah konsultasi dari daftar disimpan | Konsultasi itu tidak terbuka ulang; parameter URL sudah dibersihkan |
+
+## MT-7. Definition of Done
+
+| Butir | Bukti |
+|---|---|
+| `MT-FR-01`..`09` terpenuhi | Laporan task `RJ-DOC-REV-FE-015` |
+| `UAT-MT-01`..`12` lulus | Uji layar Playwright terhadap FE dev + backend dev (pola `runtime-ui-test-setup`), dicatat per skenario |
+| `npm run lint` pada berkas yang disentuh dan `next build` lulus | Keluaran perintah di laporan task |
+| Tidak ada perubahan backend | `git diff` backend kosong untuk task ini |
+| Antrean hari ini tidak berubah perilaku | `UAT-MT-01` dan regresi `UAT-KT-02` lewat jalur baru |
+
+## MT-8. Gelombang pengiriman
+
+| Gelombang | Isi |
+|---|---|
+| `MVP-0` | `RJ-DOC-REV-FE-015` — seluruh `MT-FR-01`..`09` dalam satu task frontend (satu vertical slice; tanpa dependency backend) |
+| `POST-MVP` | `RJ-DOC-OQ-016` filter Dokter |
+
+## MT-9. Pertanyaan terbuka
+
+| ID | Pertanyaan | Memblokir? |
+|---|---|---|
+| `RJ-DOC-OQ-016` | Perlukah filter Dokter untuk pengguna jalur super admin? Bila ya, backend perlu sinyal cakupan pada `pending-consultations` | Tidak — `POST-MVP` |

@@ -319,3 +319,16 @@ Keputusan `RJ-DOC-DEC-034`..`038`; definisi task pada [doctor-consultation-roadm
 | Foto scan kartu asuransi disimpan permanen seperti foto scan kiosk (`RJ-DOC-DEC-041`, `042`) | `RJ-DOC-REV-BE-013` | BE ✅ `2026-10-06` | [RJ-DOC-REV-BE-013](../task/report/backend/RJ-DOC-REV-BE-013.md) |
 | Foto scan kartu penjamin perusahaan disimpan permanen; kolom baru `CardImagePath` (`RJ-DOC-DEC-041`, `042`, `044`) | `RJ-DOC-REV-BE-014` | BE ✅ `2026-10-06` | [RJ-DOC-REV-BE-014](../task/report/backend/RJ-DOC-REV-BE-014.md) |
 | Kolom *Kartu* sebelum Status (Scan Kartu / Lihat Kartu), preview di *Penjamin Dipilih*, field scan di modal *Daftarkan Penjamin Baru* (`RJ-DOC-DEC-040`) | `RJ-DOC-REV-FE-014` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-014](../task/report/frontend/RJ-DOC-REV-FE-014.md) |
+
+## 10. Revisi `2026-10-07` — Menu Konsultasi Tertunda (Amendment MT)
+
+Keputusan `RJ-DOC-DEC-045`..`050`, `RJ-DOC-FE-014`..`016`; definisi task pada
+[doctor-consultation-roadmap.md](doctor-consultation-roadmap.md) bagian `16`.
+
+| Requirement pemilik | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Konsultasi tertunda pindah ke menu baru Dokter → Rawat Jalan → Konsultasi Tertunda; Klinis Dokter tanpa tab Tertunda (`RJ-DOC-FE-014`, `015`, `016`) | `RJ-DOC-REV-FE-015` | FE ✅ `2026-10-07` | [RJ-DOC-REV-FE-015](../task/report/frontend/RJ-DOC-REV-FE-015.md) |
+| Aksi *Batalkan Konsultasi* beralasan, seperti *Batalkan Kunjungan* (`RJ-DOC-DEC-047`, `049`) | `RJ-DOC-REV-FE-015` | FE ✅ `2026-10-07` | [RJ-DOC-REV-FE-015](../task/report/frontend/RJ-DOC-REV-FE-015.md) |
+| Aksi *Simpan Konsultasi* membuka Klinis Dokter untuk ditinjau, lalu kembali ke daftar (`RJ-DOC-DEC-046`, `048`) | `RJ-DOC-REV-FE-015` | FE ✅ `2026-10-07` | [RJ-DOC-REV-FE-015](../task/report/frontend/RJ-DOC-REV-FE-015.md) |
+| Jumlah dan daftar konsultasi tertunda mengikuti akun dokter yang login, termasuk akun dokter SuperAdmin; pengingat tidak tampil bila 0 (`RJ-DOC-DEC-053`) | `RJ-DOC-REV-FE-015` (revisi 1) | FE ✅ `2026-10-07` | [RJ-DOC-REV-FE-015](../task/report/frontend/RJ-DOC-REV-FE-015.md) §9 |
+| Antrean pasien dokter hari ini di Klinis Dokter hanya milik dokter yang login, termasuk akun dokter SuperAdmin (`RJ-DOC-DEC-054`) | `RJ-DOC-REV-FE-015` (revisi 2) | FE ✅ `2026-10-07` | [RJ-DOC-REV-FE-015](../task/report/frontend/RJ-DOC-REV-FE-015.md) §10 |

@@ -1330,3 +1330,28 @@ aplikasi.
    `doctor-consultation.service.js` belum dipanggil di mana pun. Amendment ini menambahkannya
    khusus untuk konsultasi tertunda (`03` *Amendment KT*). Perluasan ke antrean hari ini dicatat
    sebagai `RJ-DOC-OQ-014`.
+
+# Amendment MT — Menu Konsultasi Tertunda (revisi `30`, `draft`)
+
+Keputusan `RJ-DOC-DEC-045`..`049`, `RJ-DOC-FE-014`..`016`. Snapshot backend `85962dc4` (`sukmagp`).
+
+**Tidak ada perubahan backend.** Amendment ini hanya memindahkan letak layar di frontend
+(`03-frontend-architecture.md` *Amendment MT*). Seluruh kebutuhan data sudah dipenuhi kontrak
+`RJ-DOC-PENDCONS-001@1.0.0` dari *Amendment KT*:
+
+| Kebutuhan layar baru | Dipenuhi oleh | Bukti |
+|---|---|---|
+| Daftar, pencarian, pagination | `GET /doctor-queues/pending-consultations` (`search`, `pageNumber`, `pageSize`) | `DoctorQueueController.cs:211` |
+| Membuka satu konsultasi tertunda di Klinis Dokter | Parameter `queueId` pada endpoint yang sama | `DoctorQueueController.cs:237` |
+| Jumlah untuk pengingat | `totalData` dengan `pageSize=1` | KT.7 |
+| Batalkan Konsultasi | `PATCH /doctor-consultations/{id}/cancel`, `DoctorConsultation : Cancel` | *Amendment KT* KT.7 |
+| Tampil/tidaknya tombol batal | Field `canCancelConsultation` | KT.3.3 |
+| Simpan Konsultasi | `POST /doctor-queues/{id}/finish-consultation`, aturan tidak berubah | `RJ-DOC-DEC-031` |
+
+| Hal | Status |
+|---|---|
+| Tabel, kolom, migration, seed | Tidak ada |
+| Endpoint, DTO, service, controller | Tidak ada yang baru maupun berubah |
+| Butir hak akses | Tidak ada yang baru. Butir menu baru dijaga `DoctorQueue : Read` yang sudah ada |
+| Petunjuk Daftar Pasien Rawat Jalan (`OutpatientEncounterListService.cs:384`) | Tidak diubah. Bunyinya ("…atau Konsultasi tertunda untuk kunjungan hari sebelumnya") tetap menunjuk tempat yang benar karena menu barunya bernama Konsultasi Tertunda |
+| Task backend | Tidak ada |

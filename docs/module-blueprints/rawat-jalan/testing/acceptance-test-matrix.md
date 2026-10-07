@@ -162,3 +162,24 @@ lewat endpoint aplikasi.
 | `AT-KT-09` | `GET /doctor-queues`, `/summary`, `/call-lock` hari ini sebelum dan sesudah perubahan | Hasil sama | Kompatibilitas |
 | `AT-KT-10` | Batal kunjungan status 6 dengan konsultasi aktif | `400` dengan bunyi baru `RJDP-VAL-005` | KT.3.4 |
 | `AT-KT-11` | Frontend: `UAT-KT-01`..`07` | Sesuai `04-prd-to-mvp.md` *Amendment KT* | `RJ-DOC-FE-010`..`012` |
+
+# Amendment MT — Menu Konsultasi Tertunda (revisi `30`, `draft`)
+
+Frontend-only. Uji layar Playwright terhadap FE dev dan backend dev dengan DB
+`QuilvianNewDevSukma` (pola `runtime-ui-test-setup`). Data uji dibuat dan dibersihkan lewat
+endpoint aplikasi. `dotnet test` tidak berlaku (tidak ada perubahan backend).
+
+| ID | Skenario | Hasil yang diharapkan | Trace |
+|---|---|---|---|
+| `AT-MT-01` | Sidebar Dokter → Rawat Jalan | Butir Klinis Dokter dan Konsultasi Tertunda; masing-masing menyala sendiri saat aktif | `RJ-DOC-FE-014` |
+| `AT-MT-02` | Klinis Dokter, antrean hari ini | Tanpa tab; perilaku Panggil/Mulai/Selesaikan hari ini sama dengan sebelumnya | `RJ-DOC-FE-014` |
+| `AT-MT-03` | Pengingat dengan `n > 0` dan `n = 0` | Tampil dengan tautan / tidak tampil | `RJ-DOC-FE-015` |
+| `AT-MT-04` | Daftar, pencarian, jumlah baris, pagination | Isi sama dengan `GET pending-consultations` pada parameter yang sama | `MT-FR-02` |
+| `AT-MT-05` | Batalkan dari daftar | Alasan wajib; `PATCH …/cancel` terkirim sekali; baris hilang; pesan petugas | `RJ-DOC-DEC-047` |
+| `AT-MT-06` | Tanpa `canCancelConsultation` | Aksi batal tidak tampil di daftar dan workspace | `RJ-DOC-DEC-047` |
+| `AT-MT-07` | Simpan Konsultasi | Klinis Dokter membuka item, modal Simpan tertutup, banner tampil, parameter URL bersih | `RJ-DOC-DEC-046` |
+| `AT-MT-08` | Selesaikan sukses dari item daftar | Kembali ke daftar dengan pesan; kunjungan status 7 | `RJ-DOC-DEC-048` |
+| `AT-MT-09` | Batalkan dari workspace | Kembali ke daftar dengan pesan | `RJ-DOC-DEC-047`, `048` |
+| `AT-MT-10` | Item sudah tidak tertunda / id tidak valid | Pesan tidak ditemukan dan tautan kembali | `MT-FR-05` |
+| `AT-MT-11` | Finalisasi ditolak validasi | Tetap di Klinis Dokter dengan pesan validasi | `RJ-DOC-DEC-048` |
+| `AT-MT-12` | Lint berkas tersentuh dan `next build` | Lulus | DoD |
