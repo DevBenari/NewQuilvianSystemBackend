@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -358,6 +359,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 PatientClassId = NormalizeNullableGuid(request.PatientClassId),
                 ProcedureId = NormalizeNullableGuid(request.ProcedureId),
                 DrugId = NormalizeNullableGuid(request.DrugId),
+                // BE-RWI-172: empat isian baru opsional; kosong = nilai bawaan yang aman.
+                MedicalEquipmentId = NormalizeNullableGuid(request.MedicalEquipmentId),
+                SurgeryComponentType = request.SurgeryComponentType ?? MstSurgeryComponentType.None,
+                ChargeBasis = request.ChargeBasis ?? MstTariffChargeBasis.PerService,
+                ChargeRounding = request.ChargeRounding ?? MstEquipmentRoundingRule.CeilingWholeUnit,
                 ExternalServiceCode = NormalizeNullableText(request.ExternalServiceCode),
                 ExternalClassCode = NormalizeNullableText(request.ExternalClassCode),
                 IsSurgeryRelated = request.IsSurgeryRelated,
@@ -438,6 +444,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             entity.PatientClassId = NormalizeNullableGuid(request.PatientClassId);
             entity.ProcedureId = NormalizeNullableGuid(request.ProcedureId);
             entity.DrugId = NormalizeNullableGuid(request.DrugId);
+            // BE-RWI-172 / RWI-DEC-193: klien lama yang tidak mengirim empat isian baru tidak
+            // boleh mengubah nilainya; isian kosong berarti nilai lama dipertahankan.
+            if (request.MedicalEquipmentId.HasValue)
+                entity.MedicalEquipmentId = NormalizeNullableGuid(request.MedicalEquipmentId);
+            if (request.SurgeryComponentType.HasValue)
+                entity.SurgeryComponentType = request.SurgeryComponentType.Value;
+            if (request.ChargeBasis.HasValue)
+                entity.ChargeBasis = request.ChargeBasis.Value;
+            if (request.ChargeRounding.HasValue)
+                entity.ChargeRounding = request.ChargeRounding.Value;
             entity.ExternalServiceCode = NormalizeNullableText(request.ExternalServiceCode);
             entity.ExternalClassCode = NormalizeNullableText(request.ExternalClassCode);
             entity.IsSurgeryRelated = request.IsSurgeryRelated;
@@ -468,6 +484,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 TariffCategoryId = entity.TariffCategoryId,
                 ProcedureId = entity.ProcedureId,
                 DrugId = entity.DrugId,
+                MedicalEquipmentId = entity.MedicalEquipmentId,
+                SurgeryComponentType = entity.SurgeryComponentType,
+                ChargeBasis = entity.ChargeBasis,
+                ChargeRounding = entity.ChargeRounding,
                 ServiceUnitId = entity.ServiceUnitId,
                 ClinicId = entity.ClinicId,
                 PatientClassId = entity.PatientClassId,
@@ -513,6 +533,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 TariffCategoryId = entity.TariffCategoryId,
                 ProcedureId = entity.ProcedureId,
                 DrugId = entity.DrugId,
+                MedicalEquipmentId = entity.MedicalEquipmentId,
+                SurgeryComponentType = entity.SurgeryComponentType,
+                ChargeBasis = entity.ChargeBasis,
+                ChargeRounding = entity.ChargeRounding,
                 ServiceUnitId = entity.ServiceUnitId,
                 ClinicId = entity.ClinicId,
                 PatientClassId = entity.PatientClassId,
@@ -591,6 +615,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 .Include(x => x.PatientClass)
                 .Include(x => x.Procedure)
                 .Include(x => x.Drug)
+                .Include(x => x.MedicalEquipment)
                 .Where(x => !x.IsDelete);
         }
 
@@ -807,9 +832,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var normalizedProcedureId = NormalizeNullableGuid(request.ProcedureId);
             var normalizedDrugId = NormalizeNullableGuid(request.DrugId);
+            var normalizedMedicalEquipmentId = NormalizeNullableGuid(request.MedicalEquipmentId);
+            var surgeryComponentType = request.SurgeryComponentType ?? MstSurgeryComponentType.None;
 
             if (normalizedProcedureId.HasValue && normalizedDrugId.HasValue)
                 return (false, "Tariff tidak boleh terhubung ke procedure dan drug sekaligus.");
+
+            if (request.SurgeryComponentType.HasValue && !Enum.IsDefined(request.SurgeryComponentType.Value))
+                return (false, "Komponen operasi tidak dikenal.");
+
+            if (request.ChargeBasis.HasValue && !Enum.IsDefined(request.ChargeBasis.Value))
+                return (false, "Dasar perhitungan tarif tidak dikenal.");
+
+            if (request.ChargeRounding.HasValue && !Enum.IsDefined(request.ChargeRounding.Value))
+                return (false, "Aturan pembulatan tarif tidak dikenal.");
+
+            // keperawatan kamus data 12.14: satu baris tarif paling banyak punya satu rujukan objek —
+            // tindakan, obat, jenis alat, atau komponen operasi.
+            var objectReferenceCount =
+                (normalizedProcedureId.HasValue ? 1 : 0) +
+                (normalizedDrugId.HasValue ? 1 : 0) +
+                (normalizedMedicalEquipmentId.HasValue ? 1 : 0) +
+                (surgeryComponentType != MstSurgeryComponentType.None ? 1 : 0);
+
+            if (objectReferenceCount > 1)
+                return (false, "Satu tariff hanya boleh merujuk satu objek: tindakan, obat, jenis alat, atau komponen operasi.");
+
+            if (normalizedMedicalEquipmentId.HasValue)
+            {
+                var equipmentExists = await _dbContext.Set<MstMedicalEquipment>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == normalizedMedicalEquipmentId.Value && x.IsActive && !x.IsDelete);
+
+                if (!equipmentExists)
+                    return (false, "Jenis alat medis tidak valid atau tidak aktif.");
+            }
 
             if (normalizedProcedureId.HasValue)
             {
@@ -843,6 +900,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     x.PatientClassId == normalizedPatientClassId &&
                     x.ProcedureId == normalizedProcedureId &&
                     x.DrugId == normalizedDrugId &&
+                    x.MedicalEquipmentId == normalizedMedicalEquipmentId &&
+                    x.SurgeryComponentType == surgeryComponentType &&
                     x.TariffName.ToLower() == normalizedName);
 
             if (excludeId.HasValue)
@@ -1044,6 +1103,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 new() { Name = "patientClassId", Label = "Kelas pasien", Section = "Scope", InputType = "select", OptionsSource = "/api/v1/health-services/master-data/patient-classes/options", SortOrder = 6 },
                 new() { Name = "procedureId", Label = "Procedure", Section = "Mapping", InputType = "select", OptionsSource = "/api/v1/health-services/master-data/procedures/options", Description = "Opsional. Jangan diisi bersamaan dengan drugId.", SortOrder = 7 },
                 new() { Name = "drugId", Label = "Drug", Section = "Mapping", InputType = "select", OptionsSource = "/api/v1/health-services/master-data/drugs/options", Description = "Opsional. Jangan diisi bersamaan dengan procedureId.", SortOrder = 8 },
+                // BE-RWI-172: empat isian opsional; satu tariff hanya boleh merujuk satu objek.
+                new() { Name = "medicalEquipmentId", Label = "Jenis alat medis", Section = "Mapping", InputType = "select", OptionsSource = "/api/v1/health-services/master-data/medical-equipments", Description = "Opsional. Tarif pemakaian alat per kelas. Tidak boleh bersamaan dengan procedure, drug, atau komponen operasi.", SortOrder = 30 },
+                new() { Name = "surgeryComponentType", Label = "Komponen operasi", Section = "Mapping", InputType = "select", Description = "Opsional. None, AnesthesiaService, atau OperatingRoomRent. Bawaan None.", Example = "OperatingRoomRent", SortOrder = 31 },
+                new() { Name = "chargeBasis", Label = "Dasar perhitungan", Section = "Price", InputType = "select", Description = "Opsional. PerService (bawaan) atau PerHour.", Example = "PerHour", SortOrder = 32 },
+                new() { Name = "chargeRounding", Label = "Pembulatan per jam", Section = "Price", InputType = "select", Description = "Opsional. Berlaku bila dasar perhitungan PerHour: CeilingWholeUnit (bawaan) atau Proportional.", Example = "CeilingWholeUnit", SortOrder = 33 },
                 new() { Name = "externalServiceCode", Label = "Kode service eksternal", Section = "Integration", InputType = "text", MaxLength = 50, SortOrder = 9 },
                 new() { Name = "externalClassCode", Label = "Kode kelas eksternal", Section = "Integration", InputType = "text", MaxLength = 50, SortOrder = 10 },
                 new() { Name = "providerName", Label = "Provider", Section = "Integration", InputType = "text", MaxLength = 100, SortOrder = 11 },
@@ -1127,6 +1191,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 DrugId = entity.DrugId,
                 DrugCode = entity.Drug?.DrugCode,
                 DrugName = entity.Drug?.DrugName,
+                MedicalEquipmentId = entity.MedicalEquipmentId,
+                MedicalEquipmentCode = entity.MedicalEquipment?.EquipmentCode,
+                MedicalEquipmentName = entity.MedicalEquipment?.EquipmentName,
+                SurgeryComponentType = entity.SurgeryComponentType,
+                ChargeBasis = entity.ChargeBasis,
+                ChargeRounding = entity.ChargeRounding,
                 ExternalServiceCode = entity.ExternalServiceCode,
                 ExternalClassCode = entity.ExternalClassCode,
                 IsSurgeryRelated = entity.IsSurgeryRelated,
@@ -1186,6 +1256,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             response.DrugId = baseResponse.DrugId;
             response.DrugCode = baseResponse.DrugCode;
             response.DrugName = baseResponse.DrugName;
+            response.MedicalEquipmentId = baseResponse.MedicalEquipmentId;
+            response.MedicalEquipmentCode = baseResponse.MedicalEquipmentCode;
+            response.MedicalEquipmentName = baseResponse.MedicalEquipmentName;
+            response.SurgeryComponentType = baseResponse.SurgeryComponentType;
+            response.ChargeBasis = baseResponse.ChargeBasis;
+            response.ChargeRounding = baseResponse.ChargeRounding;
             response.ExternalServiceCode = baseResponse.ExternalServiceCode;
             response.ExternalClassCode = baseResponse.ExternalClassCode;
             response.IsSurgeryRelated = baseResponse.IsSurgeryRelated;
@@ -1247,6 +1323,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 TariffCategoryId = entity.TariffCategoryId,
                 ProcedureId = entity.ProcedureId,
                 DrugId = entity.DrugId,
+                MedicalEquipmentId = entity.MedicalEquipmentId,
+                SurgeryComponentType = entity.SurgeryComponentType,
+                ChargeBasis = entity.ChargeBasis,
+                ChargeRounding = entity.ChargeRounding,
                 ServiceUnitId = entity.ServiceUnitId,
                 ClinicId = entity.ClinicId,
                 PatientClassId = entity.PatientClassId,

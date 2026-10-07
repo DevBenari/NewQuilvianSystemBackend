@@ -197,6 +197,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// <summary>Bentuk permintaan menutup episode.</summary>
     public class CloseEpisodeRequest
     {
+        [Range(1, int.MaxValue)]
+        public int ExpectedVersion { get; set; }
         [MaxLength(500)]
         public string? Note { get; set; }
     }
@@ -210,6 +212,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// </remarks>
     public class CloseEpisodeOverrideRequest
     {
+        [Range(1, int.MaxValue)]
+        public int ExpectedVersion { get; set; }
         [Required]
         [MaxLength(500)]
         public string Reason { get; set; } = string.Empty;
@@ -226,6 +230,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// </remarks>
     public class RecordDepartureRequest
     {
+        public bool ClearanceWarningAcknowledged { get; set; }
         /// <summary>
         /// Waktu pasien meninggalkan ruangan. Dikosongkan berarti sekarang. Tidak boleh
         /// melewati waktu sekarang, dan tidak boleh mendahului keputusan pulang.

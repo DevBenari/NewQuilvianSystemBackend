@@ -137,6 +137,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ProgressNoteVerificationTargetHours = entity.ProgressNoteVerificationTargetHours,
                 PendingClosureThresholdHours = entity.PendingClosureThresholdHours,
                 DepositFollowUpIntervalDays = entity.DepositFollowUpIntervalDays,
+                PendingSurgicalHandoverAlertMinutes = entity.PendingSurgicalHandoverAlertMinutes,
+                PendingAdmissionReferralAlertMinutes = entity.PendingAdmissionReferralAlertMinutes,
                 EpisodeNumberPrefix = entity.EpisodeNumberPrefix,
                 IsDefault = entity.IsDefault,
                 IsActive = entity.IsActive,

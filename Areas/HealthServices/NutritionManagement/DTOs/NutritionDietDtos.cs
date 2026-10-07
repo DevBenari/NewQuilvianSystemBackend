@@ -56,6 +56,7 @@ public class GziNutritionPatientQuery
 
 public class PrescribeGzDietRequest
 {
+    public GziInstructionVerificationStatus? InstructionVerificationStatus { get; set; }
     [Required] public Guid PatientId { get; set; }
     [Required] public Guid EncounterId { get; set; }
     public Guid? NutritionOrderId { get; set; }
@@ -87,6 +88,9 @@ public class StopGzDietRequest
 
 public class GziPatientDietResponse
 {
+    public GziInstructionVerificationStatus InstructionVerificationStatus { get; set; }
+    public DateTime? InstructionVerifiedAt { get; set; }
+    public Guid? InstructionVerifiedByUserId { get; set; }
     public Guid Id { get; set; }
     public Guid? NutritionOrderId { get; set; }
     public Guid PatientId { get; set; }

@@ -41,15 +41,17 @@ public sealed class DrugReturnService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly LoggerService _loggerService;
     private readonly DrugStockService _drugStockService;
+    private readonly DrugReturnBillingHandoffService _billingHandoff;
 
     public DrugReturnService(ApplicationDbContext dbContext,
         IHttpContextAccessor httpContextAccessor, LoggerService loggerService,
-        DrugStockService drugStockService)
+        DrugStockService drugStockService, DrugReturnBillingHandoffService billingHandoff)
     {
         _dbContext = dbContext;
         _httpContextAccessor = httpContextAccessor;
         _loggerService = loggerService;
         _drugStockService = drugStockService;
+        _billingHandoff = billingHandoff;
     }
 
     // ==================================================================== daftar
@@ -305,8 +307,11 @@ public sealed class DrugReturnService
         if (prior != null)
         {
             EnsureSameFingerprint(prior.Source, fingerprint);
+            await _billingHandoff.EmitAsync(id, GetCurrentUserId(), cancellationToken);
             return (await GetDetailAsync(id, cancellationToken))!;
         }
+
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
         var entity = await LoadAsync(id, tracking: true, cancellationToken)
             ?? throw new KeyNotFoundException("Retur obat tidak ditemukan.");
@@ -320,6 +325,10 @@ public sealed class DrugReturnService
 
         var activeItems = entity.Items.Where(x => !x.IsDelete).ToList();
         EnsureVerificationCoversEveryLine(activeItems, request.Items);
+        if (_dbContext.Database.IsRelational())
+            await _dbContext.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(hashtext({0}));",
+                [$"PHM_RETURN_SOURCE_{entity.SourceDrugUsageId ?? entity.SourceOprMaterialUsageId ?? entity.Id:N}"], cancellationToken);
+        await _billingHandoff.ValidateAcceptedSourceAsync(entity, request, cancellationToken);
 
         // `BUG-PHA-BE-003`, syarat 6: stok hanya boleh bertambah setelah seluruh pembanding
         // penyerahan lolos. Diperiksa ulang di sini, bukan hanya saat retur dibuat — penyerahan
@@ -375,9 +384,13 @@ public sealed class DrugReturnService
             fingerprint, actorUserId, now));
 
         await SaveAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        await transaction.DisposeAsync();
         await _loggerService.AuditAsync(LogCategory, "DrugReturn.Verify",
             "Memeriksa retur obat dan mengembalikan barang yang layak ke stok.",
             new { entity.Id, entity.ReturnNumber, entity.ItemCount });
+
+        await _billingHandoff.EmitAsync(entity.Id, actorUserId, cancellationToken);
 
         return (await GetDetailAsync(id, cancellationToken))!;
     }

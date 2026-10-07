@@ -1084,3 +1084,449 @@ Urutan antar sub-modul dipegang `../02-module-map.md` bagian 3.4 revision `2`.
 | 11.5.10–11.5.11 MAR | `FR-MVP-KEP-009` s.d. `013`, `AC-MVP-025` s.d. `028` | `RWI-DEC-116`, `117`, `121` (4) | Acceptance bagian 9 |
 | 11.5.12 pelaksanaan sliding scale | `FR-MVP-KEP-018`, `AC-MVP-032` | `RWI-DEC-145` s.d. `148` | `RWI-AC-219`, `220`, `226` s.d. `228` |
 | Gap non-blocking dan konfigurasi | Gate `1.6` `G-01` s.d. `G-07`, `G-09` s.d. `G-16`, `G-22` s.d. `G-29`. `G-02`, `G-04`, `G-13` menjadi isi konfigurasi yang disahkan pemilik klinis; `G-24` dan `G-28` tidak dirancang pada revision ini; `G-29` masuk cakupan migrasi `OPEN-MVP-010` | — | Dikonfirmasi pemilik saat approval |
+
+---
+
+## 12. Amandemen revision `0.5` / kontrak `0.6.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+### 12.0 Masukan, batas, dan cara membaca bagian ini
+
+| Hal | Isi |
+|---|---|
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`). Baseline kontrak `0.5.0` (`RWI-DEC-150`) tetap berlaku untuk seluruh isi yang tidak disentuh bagian ini |
+| Kemampuan | `CAP-RWF-05` (layar), `CAP-RWF-09`, `CAP-RWF-10`, `CAP-RWF-11`, `CAP-RWF-12`, `CAP-RWF-13` (dulu `CAP-016`, `EPIC KEP-06`), `CAP-RWF-20`, `CAP-RWF-21` |
+| Slice gate | `INP-S25` (layar), `INP-S28`, `INP-S29`, `INP-S34`, `INP-S35` — seluruhnya `READY_FOR_DOMAIN_DESIGN` pada gate `1.9` |
+| Keputusan | `RWI-DEC-170`, `172`, `178`, `179`, `180`, `188`, `193`, `200`, `202`, `203`. `RWI-DEC-089` `superseded` oleh `RWI-DEC-179`, sehingga `CAP-016` keluar dari `DEFERRED` |
+| Bukti as-is | Capability map `1.6` bagian 19 `FIN-CAP-19`, `27` s.d. `31`; `RWI-FACT-055`, `058`; pembacaan source desain ini (12.1) |
+| Arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — kepemilikan ditetapkan `RWI-DEC-180`, `200`, `202`, `203` |
+| Gerbang implementasi | ~~`RWI-OQ-115`~~ — **disetujui Sukma Giri Pratama lewat `RWI-DEC-209` (2 Oktober 2026)**; tidak ada lagi gerbang persetujuan modul tetangga |
+| Gerbang produksi | Isi formulir surveilans, titik ukur transfusi, dan pemilik PPI (gate G-21) |
+
+**Satu kalimat terpenting.** Sub-modul ini tetap **tidak memiliki satu tabel pun** di `InPatientManagement`; seluruh data barunya tinggal di pemiliknya — `ClinicalManagement`, `MasterData`, `NutritionManagement`, dan `BloodBankManagement` — dan Rawat Inap hanya menyediakan layar, konteks episode, serta pemeriksaan penugasan dokter.
+
+### 12.1 Fakta source yang dibaca desain ini
+
+| Fakta | Bukti (`BE@c8e99ce5`, HEAD `425cfeae`) | Akibat pada desain |
+|---|---|---|
+| **Register kejadian infeksi nosokomial sudah ada** di Clinical, termasuk jenis `SurgicalSiteInfection`, status `Suspected`/`Confirmed`/`RuledOut`/`Resolved`/`Cancelled`, dan verifikasi IPCN | `ClinicalManagement/Models/TrxNosocomialInfection.cs`, `Enums/NosocomialInfectionEnums.cs`, `Controllers/NosocomialInfectionController.cs` (`NosocomialInfection : Read/Create/Update/Delete`); dibuat commit `dd9390fc` 2026-08-21, dipakai layar asesmen IGD | **Koreksi atas `RWI-FACT-058` butir 1**, yang menyatakan tidak ada model surveilans infeksi. Register ini mencatat **kejadian**, bukan pemantauan harian. Tanda "dicurigai infeksi luka operasi" oleh tim PPI (`RWI-DEC-202` butir 4) **memakai register ini**, bukan membuat fakta kedua |
+| Konfigurasi klinis berversi sudah ada | `CliClinicalInstrument`, `CliClinicalInstrumentVersion` (`Draft`/`Approved`/`Retired`, `DefinitionJson`, `ApprovedByUserId`); `ClinicalInstrumentKind` enam nilai | Formulir surveilans menjadi instrumen jenis baru; pengesahan klinis (G-21) = status `Approved` pada versinya |
+| Cairan per episode sudah ada dengan revisi | `CliFluidBalanceEntry` (`SourceCategory = DrainOrWsd = 14`, `RevisionNumber`, `EntryStatus`) | Setiap pembacaan WSD menghasilkan satu entri cairan; tanpa tabel cairan kedua |
+| Tanda vital menyimpan suhu per kunjungan | `TrxPatientVitalSign.Temperature`, `EncounterId`, `ObservationDateTime`, `VitalSignStatus` | Suhu surveilans dibaca dari sini |
+| Kantong darah diserahkan per pasien | `BbkBloodUnit.IssuedToPatientId`, `IssuedAt`, `IssuedByUserId`, `PmiBagNumber`, `BloodComponentId` | Kantong yang dapat dipilih dibaca dari sini; nomor kantong tidak diketik |
+| Diet mencatat penetap terpisah dari penginput | `GziPatientDiet.PrescribedByWorkforceId`, `CreateBy` | Penetap = dokter pemberi instruksi lewat `MstDoctor.WorkforceProfileId` |
+| Penugasan dokter dapat diperiksa | `ClinicalManagement/Services/InpatientClinicalContextService.cs:1060 #IsDoctorAssignedAsync(episodeId, doctorId, atUtc)` | Dipakai adapter Diet dan Pemakaian Alat |
+| Jalur tagih klinis resmi | `ClinicalMilestoneFactProducer.EmitChargeEligibilityAsync` / `EmitClinicalCancellationAsync` → `BillingFolioService` | Pemakaian alat menagih lewat jalur yang sama dengan tindakan (`RWI-DEC-179` butir 7) |
+| `MstTariff` belum punya rujukan alat | `MasterData/Models/MstTariff.cs:19-42` | Kolom `MedicalEquipmentId` baru |
+
+### 12.2 Yang berubah dari revision `0.4`
+
+| Hal | Revision `0.4` | Revision `0.5` |
+|---|---|---|
+| Pemakaian Alat | `DEFERRED` (`RWI-DEC-089`) | Dirancang penuh: master jenis alat, pemakaian per pasien, tagihan |
+| Observasi WSD | Belum dirancang | Per selang, tabung dan pembacaan per shift |
+| Catatan Keperawatan | Satu tab naratif | Enam sub-menu V1; narasi tetap entri CPPT (`NoteKind = NursingNarrative`) |
+| Diet Medis | Tidak ada di bangsal | Tulis lewat adapter Rawat Inap dengan pemeriksaan penugasan; verifikasi dokter di modul Gizi |
+| Surveilans infeksi luka operasi | Tidak ada | Formulir berversi per kasus operasi; tanda dicurigai ke register nosokomial yang sudah ada |
+| Monitoring transfusi | `DEFERRED` (`RWI-DEC-145`) | Dibuka hanya untuk monitoring (`RWI-DEC-203`); alur transfusi lain tetap `DEFERRED` |
+| Tagihan Pasien | Layar membaca folio dengan rupiah | Layar membaca rincian Billing (`integrasi-billing` kontrak `1.1.0`) tanpa rupiah |
+
+### 12.3 Invariant baru
+
+| ID | Invariant | Penjaga |
+|---|---|---|
+| `INV-RWF-10` | Satu data cairan: setiap pembacaan WSD yang aktif menunjuk tepat satu entri cairan `DrainOrWsd`, dan tidak ada tabel volume WSD kedua | `CliWsdObservationService` |
+| `INV-RWF-11` | Rumus WSD dihitung server per selang: bertambah = (dibuang + sisa sekarang) − sisa terakhir **selang yang sama**; hasil negatif ditolak | `CliWsdObservationService` |
+| `INV-RWF-12` | Hanya pembacaan **terakhir** sebuah selang yang boleh dikoreksi atau dibatalkan, supaya "sisa shift lalu" pembacaan sesudahnya tidak berubah diam-diam | `CliWsdObservationService` |
+| `INV-RWF-13` | Pemakaian alat bersatuan waktu menghitung unit di server dari waktu mulai, waktu selesai, satuan, dan pembulatan pada master; layar tidak pernah mengirim harga maupun unit | `CliEquipmentUsageService` |
+| `INV-RWF-14` | Koreksi dan pembatalan pemakaian alat hanya menyentuh charge milik pemakaian itu sendiri, hanya selama invoice `OPEN` | `CliEquipmentUsageService` lewat fakta klinis berkunci `EquipmentUsageId` |
+| `INV-RWF-15` | Satu formulir surveilans per kasus operasi; isian ditolak setelah pasien keluar ruangan atau setelah hari ke-15 | Unique `OprCaseId`; `CliSurgicalSiteSurveillanceService` |
+| `INV-RWF-16` | Tanda "dicurigai infeksi luka operasi" selalu berupa baris `TrxNosocomialInfection` (`SurgicalSiteInfection`, `Suspected`); formulir surveilans hanya merujuknya | `CliSurgicalSiteSurveillanceService.FlagSuspectedAsync` |
+| `INV-RWF-17` | Satu catatan monitoring transfusi aktif per kantong, dan kantong harus sudah diserahkan Bank Darah kepada pasien itu sejak episode aktif dimulai | Unique parsial `BloodUnitId`; `CliTransfusionMonitoringService` |
+| `INV-RWF-18` | Titik ukur yang dicatat setelah jatuh tempo ditambah toleransi wajib berketerangan | `CliTransfusionMonitoringService` |
+| `INV-RWF-19` | Diet yang ditulis perawat selalu menunggu verifikasi dokter penetap; dokter hanya memverifikasi instruksinya sendiri | Adapter Diet Rawat Inap; `NutritionDietService.VerifyInstructionAsync` |
+
+### 12.4 Kepemilikan data yang disentuh
+
+Tabel kepemilikan data seluruh modul dipegang `02-module-map.md` bagian 7.2.
+
+| Kelompok data | Pemilik | Diubah sub-modul ini | Dibuat ulang |
+|---|---|---|---|
+| Master jenis alat medis; rujukan alat pada tarif | `MasterData` (`MstMedicalEquipment` baru, `MstTariff` diperbarui) | Ya | Tidak — `RWI-DEC-180`, izin `RWI-DEC-193` |
+| Pemakaian alat per pasien | `ClinicalManagement` (`CliEquipmentUsage`, `CliEquipmentUsageRevision`) | Ya, baru | Tidak |
+| Selang dan pembacaan WSD | `ClinicalManagement` (`CliWsdDrain`, `CliWsdReading`) | Ya, baru | Tidak; volume tetap di `CliFluidBalanceEntry` |
+| Formulir dan isian surveilans | `ClinicalManagement` (`CliSurgicalSiteSurveillance`, `…Entry`, `…EntryRevision`) | Ya, baru | Tidak |
+| Kejadian infeksi nosokomial | `ClinicalManagement` (`TrxNosocomialInfection`) | Tidak diubah bentuknya; diisi lewat service yang sudah ada | Tidak |
+| Monitoring transfusi | `ClinicalManagement` (`CliTransfusionMonitoring`, `…Point`, `…Reaction`) | Ya, baru | Tidak; volume darah tetap di cairan (`RWI-DEC-149`) |
+| Pemberitahuan reaksi transfusi | `BloodBankManagement` (`BbkTransfusionReactionNotice`) | Ya, baru — **disetujui `RWI-DEC-209`** | Tidak; pesan berisi rujukan dan ringkasan |
+| Diet pasien dan verifikasinya | `NutritionManagement` (`GziPatientDiet` diperbarui) | Ya — tiga kolom | Tidak — `RWI-DEC-188`, disetujui `RWI-DEC-191` |
+| Rincian tagihan | `BillingManagement` | Tidak; dibaca lewat endpoint `integrasi-billing` | Tidak |
+
+### 12.5 Bounded context dan transaction boundary
+
+| Proses | Transaksi | Panggilan lintas modul |
+|---|---|---|
+| Pembacaan WSD | Satu transaksi Clinical: pembacaan + entri cairan | Tidak ada |
+| Pemakaian alat selesai atau dibatalkan | Transaksi Clinical commit dulu, **lalu** fakta klinis ke Billing (aturan `ClinicalMilestoneFactProducer`) | Billing gagal tidak membatalkan pemakaian; fakta dikirim ulang oleh mekanisme yang sudah ada |
+| Penutupan pemakaian saat keluar ruangan | Dipanggil Rawat Inap setelah transaksi keluar ruangan commit (`INT-RWF-06`) | Gagal → pemakaian tetap `Running` dan tampil di Daftar Pantau |
+| Pembentukan formulir surveilans | Worker Clinical membaca kasus OK `Completed` (baca saja, tanpa perubahan modul OK) | Tidak ada kode OK yang diubah |
+| Tanda dicurigai | Satu transaksi Clinical: register nosokomial + rujukan pada formulir | — |
+| Reaksi transfusi | Transaksi Clinical commit, lalu panggilan `BbkTransfusionReactionNoticeService.ReceiveAsync` | Gagal → `BloodBankNoticeStatus = Failed`, dicoba ulang worker; reaksi klinis tetap tersimpan |
+| Diet atas instruksi | Adapter Rawat Inap memeriksa penugasan, lalu memanggil `NutritionDietService` dalam transaksi Gizi | Penugasan tidak sah → 403, tidak ada yang tersimpan |
+
+### 12.6 Class diagram
+
+#### 12.6.1 Pemakaian alat dan master
+
+```mermaid
+classDiagram
+    class MstMedicalEquipment {
+        +Guid Id
+        +string EquipmentCode
+        +string EquipmentName
+        +string? CategoryName
+        +MstEquipmentChargeUnit ChargeUnit
+        +MstEquipmentRoundingRule RoundingRule
+        +bool IsActive
+    }
+    class MstTariff {
+        +Guid Id
+        +Guid TariffCategoryId
+        +Guid? PatientClassId
+        +Guid? MedicalEquipmentId
+        +decimal NormalPrice
+    }
+    class CliEquipmentUsage {
+        +Guid Id
+        +Guid InpEpisodeId
+        +Guid EncounterId
+        +Guid MedicalEquipmentId
+        +Guid ResponsibleDoctorId
+        +DateTime StartedAt
+        +DateTime? EndedAt
+        +decimal? Quantity
+        +decimal? BilledUnits
+        +CliEquipmentUsageStatus Status
+        +bool RequiresNurseReview
+        +int Version
+    }
+    class CliEquipmentUsageRevision {
+        +Guid Id
+        +Guid EquipmentUsageId
+        +int RevisionNumber
+        +DateTime? PreviousStartedAt
+        +DateTime? PreviousEndedAt
+        +string Reason
+    }
+    MstMedicalEquipment "1" --> "0..*" MstTariff : bertarif
+    MstMedicalEquipment "1" --> "0..*" CliEquipmentUsage : dipakai
+    CliEquipmentUsage "1" --> "0..*" CliEquipmentUsageRevision : riwayat koreksi
+```
+
+#### 12.6.2 Observasi WSD
+
+```mermaid
+classDiagram
+    class CliWsdDrain {
+        +Guid Id
+        +Guid InpEpisodeId
+        +string DrainLabel
+        +DateTime InsertedAt
+        +decimal InitialResidualMl
+        +DateTime? RemovedAt
+        +CliWsdDrainStatus Status
+    }
+    class CliWsdReading {
+        +Guid Id
+        +Guid WsdDrainId
+        +DateTime PeriodStartAt
+        +DateTime PeriodEndAt
+        +decimal PreviousResidualMl
+        +decimal CurrentResidualMl
+        +decimal DiscardedVolumeMl
+        +decimal IncreaseMl
+        +Guid FluidBalanceEntryId
+        +ClinicalMeasurementStatus Status
+    }
+    class CliFluidBalanceEntry {
+        +Guid Id
+        +FluidDirection Direction
+        +FluidSourceCategory SourceCategory
+        +decimal VolumeMl
+    }
+    CliWsdDrain "1" --> "0..*" CliWsdReading : dibaca per shift
+    CliWsdReading "1" --> "1" CliFluidBalanceEntry : output DrainOrWsd
+```
+
+#### 12.6.3 Surveilans infeksi luka operasi
+
+```mermaid
+classDiagram
+    class CliSurgicalSiteSurveillance {
+        +Guid Id
+        +Guid OprCaseId
+        +Guid InpEpisodeId
+        +Guid InstrumentVersionId
+        +DateTime SurgeryCompletedAt
+        +DateOnly DayOneDate
+        +CliSurveillanceStatus Status
+        +int? StoppedOnDayNumber
+        +Guid? NosocomialInfectionId
+    }
+    class CliSurgicalSiteSurveillanceEntry {
+        +Guid Id
+        +Guid SurveillanceId
+        +int DayNumber
+        +DateOnly EntryDate
+        +string ResponsesJson
+        +decimal? TemperatureMaxCelsiusSnapshot
+        +bool? FeverIndicatorFromVitals
+        +int RevisionNumber
+    }
+    class CliSurgicalSiteSurveillanceEntryRevision {
+        +Guid Id
+        +Guid EntryId
+        +string PreviousResponsesJson
+        +string Reason
+    }
+    class CliClinicalInstrumentVersion {
+        +Guid Id
+        +ClinicalInstrumentVersionStatus VersionStatus
+        +string DefinitionJson
+    }
+    class TrxNosocomialInfection {
+        +Guid Id
+        +NosocomialInfectionType InfectionType
+        +NosocomialInfectionStatus Status
+    }
+    CliSurgicalSiteSurveillance "1" --> "0..15" CliSurgicalSiteSurveillanceEntry : hari ke-1 s.d. 15
+    CliSurgicalSiteSurveillanceEntry "1" --> "0..*" CliSurgicalSiteSurveillanceEntryRevision : koreksi
+    CliClinicalInstrumentVersion "1" --> "0..*" CliSurgicalSiteSurveillance : template
+    CliSurgicalSiteSurveillance "0..1" --> "0..1" TrxNosocomialInfection : dicurigai
+```
+
+#### 12.6.4 Monitoring transfusi
+
+```mermaid
+classDiagram
+    class CliTransfusionMonitoring {
+        +Guid Id
+        +Guid InpEpisodeId
+        +Guid BloodUnitId
+        +DateTime ReceivedAtWardAt
+        +DateTime TransfusionStartedAt
+        +CliTransfusionMonitoringStatus Status
+        +DateTime? StoppedAt
+    }
+    class CliTransfusionMonitoringPoint {
+        +Guid Id
+        +Guid MonitoringId
+        +CliTransfusionPointType PointType
+        +DateTime DueAt
+        +DateTime? MeasuredAt
+        +bool IsLate
+        +string? LateNote
+    }
+    class CliTransfusionReaction {
+        +Guid Id
+        +Guid MonitoringId
+        +DateTime OccurredAt
+        +string ReactionSummary
+        +CliReactionNoticeDelivery NoticeDelivery
+    }
+    class BbkBloodUnit {
+        +Guid Id
+        +string PmiBagNumber
+        +Guid? IssuedToPatientId
+        +DateTime? IssuedAt
+    }
+    class BbkTransfusionReactionNotice {
+        +Guid Id
+        +Guid ClinicalReactionId
+        +Guid BloodUnitId
+        +BbkReactionNoticeStatus Status
+    }
+    BbkBloodUnit "1" --> "0..1" CliTransfusionMonitoring : dipantau
+    CliTransfusionMonitoring "1" --> "4" CliTransfusionMonitoringPoint : sebelum, 15 menit, 1 jam, 4 jam
+    CliTransfusionMonitoring "1" --> "0..*" CliTransfusionReaction : reaksi
+    CliTransfusionReaction "1" ..> "0..1" BbkTransfusionReactionNotice : diberitahukan
+```
+
+### 12.7 Penjelasan setiap class
+
+| Class | Status | Lokasi file | Kategori | Tanggung jawab | Field, method, atau endpoint penting | Dipanggil oleh / memakai | Transaksi | Catatan desain |
+|---|---|---|---|---|---|---|---|---|
+| `MstMedicalEquipment` | **Baru** | `Areas/HealthServices/MasterData/Models/MstMedicalEquipment.cs` | Master | Daftar **jenis** alat medis besar beserta satuan tagih dan pembulatan | `EquipmentCode`, `EquipmentName`, `CategoryName`, `ChargeUnit`, `RoundingRule`, `IsActive` | `MedicalEquipmentController`, `CliEquipmentUsageService`, resolver tarif Billing | — | Bukan unit aset bernomor seri (`RWI-DEC-179` butir 1) |
+| `MstTariff` | **Diperbarui** | `Areas/HealthServices/MasterData/Models/MstTariff.cs` | Master | Tarif alat per kelas lewat kolom rujukan baru; harga per penjamin tetap lewat `MstInsuranceTariff` | `MedicalEquipmentId` baru. Tiga kolom komponen operasi dirancang `episode-rawat-inap` kontrak `0.10.0` | Controller tarif yang sudah ada, resolver tarif Billing | — | Tidak ada tabel tarif kedua (`PR-RWF-04`, `05`) |
+| `MedicalEquipmentController`, `MedicalEquipmentService` | **Baru** | `Areas/HealthServices/MasterData/Controllers/`, `.../MasterData/Services/` | Controller + service | CRUD master jenis alat | Lihat `contracts/api-contract.md` bagian 8.2 | Admin Master Data | Ya untuk tulis | — |
+| `CliEquipmentUsage`, `CliEquipmentUsageRevision` | **Baru** | `Areas/HealthServices/ClinicalManagement/Models/` | Model | Pemakaian alat per pasien dan riwayat koreksi waktunya | Kamus data 12.3 dan 12.4 | `CliEquipmentUsageService` | — | Status `Running`, `Completed`, `Cancelled` |
+| `CliEquipmentUsageService` | **Baru** | `Areas/HealthServices/ClinicalManagement/Services/CliEquipmentUsageService.cs` | Service | Mulai, selesai, batal, koreksi waktu; hitung unit; terbitkan fakta tagih; tutup otomatis saat keluar ruangan | `StartAsync`, `FinishAsync`, `CancelAsync`, `CorrectTimeAsync`, `CloseRunningForDepartureAsync` | `EquipmentUsageController`; Rawat Inap (`INT-RWF-06`) | Ya; fakta tagih sesudah commit | Penugasan dokter penanggung jawab diperiksa `InpatientClinicalContextService.IsDoctorAssignedAsync`. Invoice `OPEN` dibaca lewat `InpatientClearanceService.GetLatestStatusAsync` |
+| `EquipmentUsageController` | **Baru** | `Areas/HealthServices/ClinicalManagement/Controllers/EquipmentUsageController.cs` | Controller | Endpoint pemakaian alat | `contracts/api-contract.md` 8.3 | `CliEquipmentUsageService` | — | — |
+| `CliWsdDrain`, `CliWsdReading` | **Baru** | `Areas/HealthServices/ClinicalManagement/Models/` | Model | Selang terdaftar dan pembacaan per shift | Kamus data 12.5, 12.6 | `CliWsdObservationService` | — | `CliWsdReading.FluidBalanceEntryId` unik |
+| `CliWsdObservationService` | **Baru** | `Areas/HealthServices/ClinicalManagement/Services/CliWsdObservationService.cs` | Service | Daftar/lepas selang; simpan pembacaan + entri cairan; koreksi pembacaan terakhir | `RegisterDrainAsync`, `RemoveDrainAsync`, `RecordReadingAsync`, `CorrectLatestReadingAsync`, `CancelLatestReadingAsync` | `WsdObservationController` | Ya | Koreksi entri cairan memakai mesin revisi `CliFluidBalanceEntryRevision` yang sudah ada |
+| `WsdObservationController` | **Baru** | `Areas/HealthServices/ClinicalManagement/Controllers/WsdObservationController.cs` | Controller | Endpoint WSD | `contracts/api-contract.md` 8.4 | `CliWsdObservationService` | — | Permission memakai Resource `FluidBalance` (gate G-15) |
+| `CliSurgicalSiteSurveillance`, `…Entry`, `…EntryRevision` | **Baru** | `Areas/HealthServices/ClinicalManagement/Models/` | Model | Formulir per kasus operasi, isian harian, dan riwayat koreksinya | Kamus data 12.7 s.d. 12.9 | `CliSurgicalSiteSurveillanceService` | — | `ResponsesJson` divalidasi terhadap `DefinitionJson` versi instrumen |
+| `CliSurgicalSiteSurveillanceService` | **Baru** | `Areas/HealthServices/ClinicalManagement/Services/CliSurgicalSiteSurveillanceService.cs` | Service | Bentuk formulir untuk kasus `Completed`; isi harian; baca suhu dari tanda vital; hentikan saat keluar ruangan; tandai dicurigai | `EnsureForCompletedCasesAsync`, `SaveEntryAsync`, `SaveSummaryAsync`, `StopOnDepartureAsync`, `FlagSuspectedAsync` | Controller; worker | Ya | `FlagSuspectedAsync` membuat `TrxNosocomialInfection` lewat aturan `NosocomialInfectionController` yang sudah ada (nomor dari layanan nomor yang sama) |
+| `CliSurgicalSiteSurveillanceWorker` | **Baru** | `Areas/HealthServices/ClinicalManagement/Workers/CliSurgicalSiteSurveillanceWorker.cs` | Hosted worker | Tiap 5 menit: bentuk formulir yang belum ada, hentikan formulir pasien yang sudah keluar ruangan, selesaikan formulir lewat hari ke-15 | — | `Program.cs` | Ya per batch | Membaca `OprCase` dan `OprStatusHistory` **baca saja**; tidak mengubah modul OK. Tanpa versi instrumen `Approved`, formulir tidak dibentuk dan peringatan tampil di Daftar Pantau |
+| `SurgicalSiteSurveillanceController` | **Baru** | `Areas/HealthServices/ClinicalManagement/Controllers/SurgicalSiteSurveillanceController.cs` | Controller | Endpoint surveilans | `contracts/api-contract.md` 8.5 | Service di atas | — | — |
+| `ClinicalInstrumentKind` | **Diperbarui** | `Areas/HealthServices/ClinicalManagement/Enums/ClinicalInstrumentKind.cs` | Enum | Jenis instrumen baru `SurgicalSiteSurveillanceForm = 7` | — | Layar Instrumen & Formulir Klinis yang sudah ada (`FE-KEP-19`) | — | Pengesahan klinis = versi `Approved` |
+| `CliTransfusionMonitoring`, `…Point`, `…Reaction` | **Baru** | `Areas/HealthServices/ClinicalManagement/Models/` | Model | Catatan per kantong, empat titik ukur, reaksi | Kamus data 12.10 s.d. 12.12 | `CliTransfusionMonitoringService` | — | — |
+| `CliTransfusionMonitoringService` | **Baru** | `Areas/HealthServices/ClinicalManagement/Services/CliTransfusionMonitoringService.cs` | Service | Daftar kantong yang dapat dipilih; mulai; catat titik; hentikan; selesai; catat reaksi lalu beri tahu Bank Darah | `ListSelectableUnitsAsync`, `StartAsync`, `RecordPointAsync`, `StopAsync`, `CompleteAsync`, `RecordReactionAsync` | Controller; worker pengiriman ulang | Ya; pemberitahuan sesudah commit | Pembacaan `BbkBloodUnit` **baca saja**; disetujui `RWI-DEC-209` |
+| `TransfusionMonitoringController` | **Baru** | `Areas/HealthServices/ClinicalManagement/Controllers/TransfusionMonitoringController.cs` | Controller | Endpoint monitoring | `contracts/api-contract.md` 8.6 | Service di atas | — | — |
+| `CliTransfusionReactionNoticeWorker` | **Baru** | `Areas/HealthServices/ClinicalManagement/Workers/CliTransfusionReactionNoticeWorker.cs` | Hosted worker | Mengirim ulang pemberitahuan reaksi yang gagal | — | `Program.cs` | Ya | Tiap 1 menit, karena menyangkut keselamatan |
+| `BbkTransfusionReactionNotice`, `BbkTransfusionReactionNoticeService`, `BbkTransfusionReactionNoticeController` | **Baru** | `Areas/HealthServices/BloodBankManagement/Models/`, `/Services/`, `/Controllers/` | Model + service + controller (Bank Darah) | Kotak masuk reaksi transfusi di Bank Darah; diterima dan ditindaklanjuti menurut modul Bank Darah | `ReceiveAsync`, `AcknowledgeAsync`; `contracts/api-contract.md` 8.7 | Clinical; petugas Bank Darah | Ya | Disetujui `RWI-DEC-209`. Idempoten pada `ClinicalReactionId` |
+| `GziPatientDiet` | **Diperbarui** | `Areas/HealthServices/NutritionManagement/Models/GziPatientDiet.cs` | Model (Gizi) | Status verifikasi instruksi diet | Tiga kolom baru | `NutritionDietService` | — | Disetujui `RWI-DEC-191` |
+| `GziInstructionVerificationStatus` | **Baru** | `Areas/HealthServices/NutritionManagement/Enums/GziInstructionVerificationStatus.cs` | Enum (Gizi) | `NotRequired`, `Pending`, `Verified` | — | Diet; juga pesanan gizi (`dokter-rawat-inap` kontrak `0.7.0`) | — | Enum milik modul Gizi, mengikuti pola `LabOrderInstructionVerificationStatus` |
+| `NutritionDietService`, `NutritionDietController` | **Diperbarui** | `Areas/HealthServices/NutritionManagement/Services/`, `/Controllers/` | Service + controller (Gizi) | Terima status verifikasi saat penetapan; daftar "perlu diverifikasi"; verifikasi | `PrescribeAsync` (parameter baru), `GetInstructionVerificationWorklistAsync`, `VerifyInstructionAsync` | Adapter Rawat Inap; dokter | Ya | Regresi alur diet yang sudah ada wajib (`RWI-AC-303`) |
+| `InpatientDietController`, `InpDietOrderAdapter` | **Baru** | `Areas/HealthServices/InPatientManagement/Controllers/InpatientDietController.cs`, `.../Services/InpDietOrderAdapter.cs` | Controller + service (Rawat Inap) | Memeriksa penugasan dokter pemberi instruksi, memetakan dokter ke profil tenaga kerja, lalu meneruskan ke `NutritionDietService` | `contracts/api-contract.md` 8.8 | Layar Diet Medis | Tidak (transaksi milik Gizi) | Rawat Inap tidak menyimpan diet (`RWI-DEC-178` butir 5) |
+
+### 12.8 Enum baru dan berubah
+
+| Enum | Lokasi | Nilai | Bawaan |
+|---|---|---|---|
+| `MstEquipmentChargeUnit` | `MasterData/Enums/` | `PerUse = 1`, `PerHour = 2`, `PerDay = 3` | — (wajib dipilih) |
+| `MstEquipmentRoundingRule` | `MasterData/Enums/` | `CeilingWholeUnit = 1`, `Proportional = 2` | `CeilingWholeUnit` |
+| `CliEquipmentUsageStatus` | `ClinicalManagement/Enums/` | `Running = 1`, `Completed = 2`, `Cancelled = 3` | `Running` |
+| `CliWsdDrainStatus` | `ClinicalManagement/Enums/` | `Active = 1`, `Removed = 2`, `Cancelled = 3` | `Active` |
+| `CliSurveillanceStatus` | `ClinicalManagement/Enums/` | `Active = 1`, `Completed = 2`, `StoppedOnDeparture = 3`, `Cancelled = 4` | `Active` |
+| `CliTransfusionMonitoringStatus` | `ClinicalManagement/Enums/` | `InProgress = 1`, `Completed = 2`, `Stopped = 3`, `Cancelled = 4` | `InProgress` |
+| `CliTransfusionPointType` | `ClinicalManagement/Enums/` | `BeforeTransfusion = 0`, `Minute15 = 1`, `Hour1 = 2`, `Hour4 = 3` | — |
+| `CliReactionNoticeDelivery` | `ClinicalManagement/Enums/` | `Pending = 1`, `Delivered = 2`, `Failed = 3` | `Pending` |
+| `BbkReactionNoticeStatus` | `BloodBankManagement/Enums/` | `New = 1`, `Acknowledged = 2` | `New` |
+| `GziInstructionVerificationStatus` | `NutritionManagement/Enums/` | `NotRequired = 0`, `Pending = 1`, `Verified = 2` | `NotRequired` |
+| `ClinicalInstrumentKind` | `ClinicalManagement/Enums/` | Tambah `SurgicalSiteSurveillanceForm = 7` | — |
+| `ClinicalMeasurementStatus` (sudah ada) | `ClinicalManagement/Enums/` | Dipakai ulang untuk `CliWsdReading.Status` | — |
+
+### 12.9 Arsitektur folder — delta revision `0.5`
+
+```text
+NewQuilvianSystemBackend/
+├── Areas/HealthServices/
+│   ├── MasterData/
+│   │   ├── Models/MstMedicalEquipment.cs                        [Baru]
+│   │   ├── Models/MstTariff.cs                                  [Diperbarui]
+│   │   ├── Enums/MstEquipmentChargeUnit.cs                      [Baru]
+│   │   ├── Enums/MstEquipmentRoundingRule.cs                    [Baru]
+│   │   ├── DTOs/MedicalEquipmentDtos.cs                         [Baru]
+│   │   ├── Services/MedicalEquipmentService.cs                  [Baru]
+│   │   └── Controllers/MedicalEquipmentController.cs            [Baru]
+│   ├── ClinicalManagement/
+│   │   ├── Models/CliEquipmentUsage.cs                          [Baru]
+│   │   ├── Models/CliEquipmentUsageRevision.cs                  [Baru]
+│   │   ├── Models/CliWsdDrain.cs                                [Baru]
+│   │   ├── Models/CliWsdReading.cs                              [Baru]
+│   │   ├── Models/CliSurgicalSiteSurveillance.cs                [Baru]
+│   │   ├── Models/CliSurgicalSiteSurveillanceEntry.cs           [Baru]
+│   │   ├── Models/CliSurgicalSiteSurveillanceEntryRevision.cs   [Baru]
+│   │   ├── Models/CliTransfusionMonitoring.cs                   [Baru]
+│   │   ├── Models/CliTransfusionMonitoringPoint.cs              [Baru]
+│   │   ├── Models/CliTransfusionReaction.cs                     [Baru]
+│   │   ├── Enums/  (tujuh enum baru, ClinicalInstrumentKind diperbarui)
+│   │   ├── DTOs/EquipmentUsageDtos.cs, WsdObservationDtos.cs,
+│   │   │        SurgicalSiteSurveillanceDtos.cs, TransfusionMonitoringDtos.cs   [Baru]
+│   │   ├── Services/CliEquipmentUsageService.cs                 [Baru]
+│   │   ├── Services/CliWsdObservationService.cs                 [Baru]
+│   │   ├── Services/CliSurgicalSiteSurveillanceService.cs       [Baru]
+│   │   ├── Services/CliTransfusionMonitoringService.cs          [Baru]
+│   │   ├── Workers/CliSurgicalSiteSurveillanceWorker.cs         [Baru]
+│   │   ├── Workers/CliTransfusionReactionNoticeWorker.cs        [Baru]
+│   │   └── Controllers/EquipmentUsageController.cs, WsdObservationController.cs,
+│   │                   SurgicalSiteSurveillanceController.cs,
+│   │                   TransfusionMonitoringController.cs       [Baru]
+│   ├── NutritionManagement/
+│   │   ├── Models/GziPatientDiet.cs                             [Diperbarui]
+│   │   ├── Enums/GziInstructionVerificationStatus.cs            [Baru]
+│   │   ├── Services/NutritionDietService.cs                     [Diperbarui]
+│   │   └── Controllers/NutritionDietController.cs               [Diperbarui]
+│   ├── BloodBankManagement/
+│   │   ├── Models/BbkTransfusionReactionNotice.cs               [Baru — disetujui RWI-DEC-209]
+│   │   ├── Enums/BbkReactionNoticeStatus.cs                     [Baru]
+│   │   ├── Services/BbkTransfusionReactionNoticeService.cs      [Baru]
+│   │   └── Controllers/BbkTransfusionReactionNoticeController.cs [Baru]
+│   └── InPatientManagement/
+│       ├── Controllers/InpatientDietController.cs               [Baru]
+│       └── Services/InpDietOrderAdapter.cs                      [Baru]
+├── Repositories/Configurations/HealthServices/
+│   ├── MasterData/MstMedicalEquipmentConfiguration.cs           [Baru]
+│   ├── MasterData/MstTariffConfiguration.cs                     [Diperbarui]
+│   ├── ClinicalManagement/  (sepuluh configuration baru)
+│   ├── NutritionManagement/GziPatientDietConfiguration.cs       [Diperbarui]
+│   └── BloodBankManagement/BbkTransfusionReactionNoticeConfiguration.cs [Baru]
+└── Program.cs                                                   [Diperbarui: service dan dua worker baru]
+```
+
+Lokasi configuration mengikuti folder configuration yang **sudah ada** untuk modul itu; bila modul memakai folder lain di source, folder yang ada yang diikuti (utang teknis tidak dirapikan di sini).
+
+### 12.10 Status model dan dampak migration
+
+| Tabel | Status | Kolom yang berubah | Dampak |
+|---|---|---|---|
+| `MstMedicalEquipment` | Baru | Seluruh kolom | — |
+| `MstTariff` | Diperbarui | Tambah `MedicalEquipmentId` (`uuid?`, FK `MstMedicalEquipment`, `Restrict`, index) | Tabel dibaca Billing; kolom nullable, tarif lama tidak berubah. Regresi tarif tindakan dan obat wajib (`RWI-DEC-193`) |
+| `CliEquipmentUsage`, `CliEquipmentUsageRevision` | Baru | Seluruh kolom | — |
+| `CliWsdDrain`, `CliWsdReading` | Baru | Seluruh kolom | — |
+| `CliSurgicalSiteSurveillance`, `…Entry`, `…EntryRevision` | Baru | Seluruh kolom | — |
+| `CliTransfusionMonitoring`, `…Point`, `…Reaction` | Baru | Seluruh kolom | — |
+| `BbkTransfusionReactionNotice` | Baru (Bank Darah) | Seluruh kolom | Disetujui `RWI-DEC-209` |
+| `GziPatientDiet` | Diperbarui (Gizi) | Tambah `InstructionVerificationStatus` (`int`, bawaan `0`), `InstructionVerifiedAt` (`timestamp?`), `InstructionVerifiedByUserId` (`uuid?`) | Diet lama bernilai `NotRequired`; alur Gizi lama tidak berubah |
+
+### 12.11 Rencana migration di dalam sub-modul ini
+
+Urutan antar sub-modul dipegang `02-module-map.md` bagian 7.4.
+
+| Langkah | Isi | Tanpa downtime | Data lama | Mundur |
+|---|---|---|---|---|
+| `K8` | `MasterData`: `MstMedicalEquipment` + `MstTariff.MedicalEquipmentId` | Ya | Tidak ada | `Down()` |
+| `K9` | `ClinicalManagement`: pemakaian alat, WSD, surveilans, monitoring transfusi (sepuluh tabel) | Ya | Tidak ada | `Down()` |
+| `K10` | `NutritionManagement`: tiga kolom `GziPatientDiet` | Ya | Bawaan `NotRequired` | `Down()` |
+| `K11` | `BloodBankManagement`: `BbkTransfusionReactionNotice` | Ya | Tidak ada | `Down()`; disetujui `RWI-DEC-209` |
+| `K12` | Data awal: jenis instrumen surveilans versi `Draft` (lihat 12.12) | Ya | — | Hapus versi `Draft` |
+
+`K8` wajib mendahului migration komponen operasi pada `MstTariff` (`episode-rawat-inap` `E5`) atau dijalankan dalam satu migration bersama, supaya dua migration tidak sama-sama mengubah tabel yang sama secara bersamaan.
+
+### 12.12 Rencana data master dan konfigurasi awal
+
+| Master / konfigurasi | Isi minimum | Sumber nilai |
+|---|---|---|
+| `MstMedicalEquipment` | Jenis alat besar yang dipakai bangsal, minimal: ventilator (per hari), *high flow nasal cannula* (per hari), *syringe pump* (per hari), *infusion pump* (per hari), monitor pasien (per hari). Satuan dan pembulatan **disahkan** pemilik tarif | Daftar alat V1 (`captures/keperawatan/`) dan kebijakan rumah sakit; contoh satuan di sini usulan |
+| `MstTariff` dengan `MedicalEquipmentId` | Tarif per kelas untuk setiap jenis alat aktif; harga per penjamin lewat `MstInsuranceTariff` | Admin Master Data / Billing. Tanpa tarif, pemakaian tercatat "tarif belum ada" dan invoice tidak dapat difinalkan |
+| `CliClinicalInstrument` jenis `SurgicalSiteSurveillanceForm` | Satu instrumen dengan versi `Draft` berisi indikator `RWI-DEC-202` butir 2 | Bukti HiSys (`Pasca-Operasi-ke-Rawat-Inap.md`). **Wajib `Approved` oleh pemilik klinis atau komite PPI sebelum dipakai** (gate G-21) |
+| `appsettings.json` → `ClinicalManagement:TransfusionMonitoring` | `LateToleranceMinutes = 10` | Gate G-22 `CONFIGURABLE_DEFAULT`; disahkan pemilik klinis |
+| `appsettings.json` → `ClinicalManagement:SurgicalSiteSurveillance` | `MaxDay = 15`, `WorkerIntervalMinutes = 5` | `RWI-DEC-202`; nilai hari dari keputusan |
+
+### 12.13 Yang sengaja tidak dibuat pada revision `0.5`
+
+| Yang ditolak | Alasan |
+|---|---|
+| Master keanggotaan perawat per unit | `RWI-DEC-189` butir 6 |
+| Tabel pemakaian alat di `InPatientManagement` | `RWI-DEC-180` |
+| Tabel volume WSD terpisah dari cairan | `RWI-DEC-172` butir 2, `INV-RWF-10` |
+| Kolom "dicurigai infeksi" pada formulir surveilans | Fakta itu sudah punya rumah di `TrxNosocomialInfection` (`INV-RWF-16`) |
+| Pemanggilan dari modul OK untuk membentuk formulir surveilans | Akan menjadi perubahan modul OK yang belum disetujui; worker Clinical membaca keadaan OK tanpa mengubahnya |
+| Katalog jenis reaksi transfusi berkode | Isinya keputusan klinis yang belum disahkan; MVP memakai ringkasan teks (gate G-21) |
+| Verifikasi dua petugas di samping tempat tidur, permintaan transfusi baru, pengembalian kantong | Tetap `DEFERRED` (`RWI-DEC-203` butir 7) |
+| Rekap angka infeksi luka operasi | Tidak diminta (gate `1.9` 18.5 `INP-S34`) |
+| Unit aset alat bernomor seri | `RWI-DEC-179` butir 1 |
+
+### 12.14 Traceability bagian 12
+
+| Bagian | Requirement | Keputusan | Acceptance |
+|---|---|---|---|
+| WSD per selang | `FR-RWF-054`, `058` | `RWI-DEC-200` | `AC-RWF-052`, `057`, `058` |
+| Catatan Keperawatan enam sub-menu, Obat & Alkes, narasi | `FR-RWF-050` s.d. `053`, `056`, `057` | `RWI-DEC-172` | `AC-RWF-050`, `051`, `053`, `054`, `056` |
+| Diet Medis | `FR-RWF-055` | `RWI-DEC-178`, `188` | `AC-RWF-055` |
+| Pemakaian Alat | `FR-RWF-060` s.d. `069` | `RWI-DEC-179`, `180`, `193` | `AC-RWF-060` s.d. `064` |
+| Surveilans | `FR-RWF-083`, `084`, `091`, `092` | `RWI-DEC-202` | `AC-RWF-083`, `095`, `096` |
+| Monitoring transfusi | `FR-RWF-085`, `093` | `RWI-DEC-203` | `AC-RWF-084`, `097`, `098` |
+| Tagihan Pasien (layar) | `FR-RWF-020` s.d. `025` | `RWI-DEC-170` | `AC-RWF-020` s.d. `023` |
+
+### 12.15 Penyelarasan decision log revision `31` ★ 2 Oktober 2026
+
+Kontrak tetap `0.6.0` `draft`; bagian ini menyerap keputusan Amendment Pass 2 Oktober 2026 tanpa menaikkan versi.
+
+| Keputusan | Akibat pada sub-modul ini |
+|---|---|
+| `RWI-DEC-209` — Sukma Giri Pratama menyetujui `RWI-OQ-115` | `K11`, `BbkTransfusionReactionNotice`, pemilihan kantong `INT-RWF-11`, dan pemberitahuan `INT-RWF-12` tidak lagi tertahan persetujuan. Gerbang produksi klinis transfusi (G-21) tetap |
+| `RWI-DEC-211`, `RWI-DEC-212` — letak `FE-KEP-29` dan `FE-KEP-31` | Hanya frontend — bagian Penyelarasan pada `03-frontend-architecture.md` 11.7. Backend tidak berubah |
+| `RWI-DEC-207` — biaya operasi kunjungan asal tertaut ke invoice `RANAP` | Tagihan Pasien `FE-KEP-23` membaca baris operasi kunjungan asal lewat `…/breakdown` yang dirancang `integrasi-billing` `1.1.0` (bagian Penyelarasan di sana). Tidak ada tabel atau service baru di sub-modul ini |
+| `RWI-DEC-219` — Pemakaian Alat bukan layar pemesanan | `CliEquipmentUsage` dan layarnya **tidak** menampilkan perkiraan harga; perilaku yang dirancang tetap |
+| `RWI-DEC-218` — perkiraan harga di layar pemesanan | Tidak ada layar pemesanan layanan bertarif milik sub-modul ini; Diet Medis adalah instruksi diet, bukan pesanan bertarif |

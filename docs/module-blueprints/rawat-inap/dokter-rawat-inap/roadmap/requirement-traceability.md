@@ -1,4 +1,4 @@
-﻿# Requirement Traceability — Sub-modul `dokter-rawat-inap` (Rawat Inap)
+# Requirement Traceability — Sub-modul `dokter-rawat-inap` (Rawat Inap)
 
 > ## ⚠ TRACEABILITY REVISION `7` ADA DI BERKAS TERPISAH — 16 September 2026
 >
@@ -415,3 +415,51 @@ pemilik pekerjaan.
 | --- | --- | --- |
 | `FR-DOK-068` kewenangan konsulen memutuskan pulang | Nol acceptance test untuk jalur "boleh" | Kebijakannya belum ada. Yang diuji hanya jalur **ditolak** lewat `RWI-AC-084f`. Dilacak `OPEN-MVP-004` |
 | Delapan jalur hapus lain pada `ClinicalManagement` | Nol acceptance test | `RWI-DEC-098` sengaja tidak menutupnya. Konsekuensinya diterima pemilik; ketegangannya dilacak `RWI-OQ-055` |
+
+
+## Bukti frontend Finishing ? 5 Oktober 2026
+
+| Task | Status | Bukti |
+| --- | --- | --- |
+| FE-RWI-173 | ?? Source dan pengujian tarif tersedia; manual/build belum terbukti | [Laporan](../task/report/frontend/FE-RWI-173.md) |
+| FE-RWI-179 | ?? Rehab kembali placeholder, source/test tersedia; manual/build menunggu | [Laporan](../task/report/frontend/FE-RWI-179.md) |
+| FE-RWI-174 | ?? Adapter/form bersama tersedia; delta backend dan manual belum tertutup | [Laporan](../task/report/frontend/FE-RWI-174.md) |
+| FE-RWI-175 | ?? Enam sumber dan verifikasi tersedia; manual/build menunggu | [Laporan](../task/report/frontend/FE-RWI-175.md) |
+| FE-RWI-176 | ?? Katalog dan perkiraan server tersedia; UAT/regresi menunggu | [Laporan](../task/report/frontend/FE-RWI-176.md) |
+| FE-RWI-177 | ?? Label perkiraan resep tersedia; manual/build menunggu | [Laporan](../task/report/frontend/FE-RWI-177.md) |
+
+
+
+
+## Bukti akhir implementasi frontend 5 Oktober 2026
+
+| Task | Status dan bukti |
+| --- | --- |
+| FE-RWI-172 | 🟡 Prasyarat runtime BE-RWI-104 belum terbukti; probe Lab HTTP 401 tanpa sesi. Tombol perawat tetap terkunci. [Laporan](../task/report/frontend/FE-RWI-172.md) |
+| FE-RWI-173 | 🟡 Source katalog/tarif tersedia; lint scope dan 38 test terkait PASS. Build penuh gagal di roadmap lain; UAT belum feasible. [Laporan](../task/report/frontend/FE-RWI-173.md) |
+| FE-RWI-174 | 🟡 Source adapter/form bersama tersedia; lint/test terkait PASS. UAT, nama penginput backend dan ItemIds Nutrition belum tertutup. [Laporan](../task/report/frontend/FE-RWI-174.md) |
+| FE-RWI-175 | 🟡 Enam sumber/permission/version/pagination tersedia; test terkait PASS. UAT dua dokter/satu perawat belum feasible. [Laporan](../task/report/frontend/FE-RWI-175.md) |
+| FE-RWI-176 | 🟡 Katalog Inpatient/Doctor/Nurse dan tarif resolver tersedia; test terkait PASS. Regresi runtime belum dijalankan. [Laporan](../task/report/frontend/FE-RWI-176.md) |
+| FE-RWI-177 | 🟡 Label perkiraan resep dan guard IsCoverageApplicable tersedia; lint/test terkait PASS. Build/UAT belum memenuhi DoD. [Laporan](../task/report/frontend/FE-RWI-177.md) |
+| FE-RWI-178 | ⛔ Menunggu kabar pemilik tentang FE-RWI-196; laci dependency masih gagal import pada build bersama. Belum dimulai. [Laporan](../task/report/frontend/FE-RWI-178.md) |
+| FE-RWI-179 | 🟡 Rehab placeholder tanpa order/form; test terkait PASS. Build/UAT belum memenuhi DoD. [Laporan](../task/report/frontend/FE-RWI-179.md) |
+
+Lint 31 source PASS (0 error/8 warning existing); 38 test terkait PASS. Suite penuh Windows eksplisit: 2168/2177 PASS, 9 kegagalan di luar task dokter. Lint global/runner default BLOCKED konfigurasi; build penuh FAIL pada 10 import roadmap lain. MANUAL TEST NOT FEASIBLE; belum ada task yang dinyatakan selesai tanpa DoD. Detail pada laporan masing-masing.
+
+### Validasi kelanjutan 6 Oktober 2026
+
+Command unit Windows kini berjalan: 2167/2177 PASS, 10 FAIL; lint/build sedang diverifikasi sesudah perbaikan import frontend. Bukti per task diperbarui pada laporan canonical FE-RWI-172 sampai FE-RWI-179. Status belum hijau; UAT nyata/dependency/kontrak yang belum lengkap masih terbuka.
+
+Build ulang 6 Oktober: FAIL, tersisa satu import laci Pasca Operasi; sembilan module-not-found lainnya sudah diperbaiki. Laporan canonical memuat hasilnya.
+
+Lint penuh 6 Oktober: FAIL (1 error, 914 warning); konfigurasi plugin sudah pulih. Sembilan file unit terkait/dependency: PASS 44/44; bukti di laporan task.
+
+Early return laci Pra Operasi dipindahkan setelah useMemo; lint scope dependency PASS. Lint:errors penuh sedang diverifikasi ulang.
+
+Test interval penugasan aktif PASS 2/2. Pemeriksaan browser lokal awal diinterupsi untuk memperbaiki locator test button menjadi role radio existing; pemeriksaan ulang berjalan. Belum dinyatakan UAT nyata.
+
+Browser lokal terkontrol PASS 3/3 (Rehab, kirim Lab tanpa tarif/double-click, retry katalog); tidak menggantikan UAT backend nyata. Rincian pada laporan task.
+
+Lint:errors penuh PASS. Suite penuh 2171/2179 PASS, 8 FAIL di luar task dokter. Browser terkontrol 5/9 PASS pada perluasan pertama; empat kegagalan fixture/locator sedang ditelusuri. Laporan canonical sudah diperbarui.
+
+Browser terkontrol terbaru PASS 9/9. FE-RWI-178 dilanjutkan atas instruksi terbaru pemilik dan laporan FE-RWI-196 Done; gate REUSE tercatat sebelum JSX. UAT backend nyata tetap terbuka.

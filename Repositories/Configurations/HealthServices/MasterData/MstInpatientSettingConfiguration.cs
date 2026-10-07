@@ -32,6 +32,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Maste
             // pengingat kekurangan deposit menyala setiap hari tanpa ada yang memintanya.
             builder.Property(x => x.DepositFollowUpIntervalDays).HasDefaultValue(3);
 
+            // BE-RWI-172 / E4 — dua ambang Daftar Pantau Finishing. Baris yang sudah ada
+            // mendapat nilai bawaan dari database, bukan 0 yang membuat daftar langsung penuh.
+            builder.Property(x => x.PendingSurgicalHandoverAlertMinutes).HasDefaultValue(60);
+            builder.Property(x => x.PendingAdmissionReferralAlertMinutes).HasDefaultValue(30);
+
             builder.HasIndex(x => x.Code).IsUnique();
             builder.HasIndex(x => new { x.IsActive, x.IsDefault });
         }

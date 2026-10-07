@@ -750,7 +750,8 @@ public sealed class BilConsumerHandoffService
             .FirstOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken);
         if (invoice == null) return null;
 
-        if (!string.Equals(invoice.ServiceType, "INPATIENT", StringComparison.OrdinalIgnoreCase))
+        // BE-RWI-147 / FIN-CON-01: invoice rawat inap berlabel "RANAP", bukan "INPATIENT".
+        if (!string.Equals(invoice.ServiceType, "RANAP", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }

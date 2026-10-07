@@ -299,3 +299,23 @@ Keputusan `RJ-DOC-DEC-010`; definisi task pada [doctor-consultation-roadmap.md](
 | Dokter melihat konsultasi tertundanya dari hari sebelumnya, lintas tanggal, hanya Sedang Konsultasi dengan konsultasi aktif (`RJ-DOC-DEC-029`, `030`) | `RJ-DOC-REV-BE-012` + `RJ-DOC-REV-FE-012` | BE ✅ `2026-10-05`; FE ✅ `2026-10-05` | [RJ-DOC-REV-BE-012](../task/report/backend/RJ-DOC-REV-BE-012.md), [RJ-DOC-REV-FE-012](../task/report/frontend/RJ-DOC-REV-FE-012.md) |
 | Dokter menyimpan atau membatalkan konsultasi tertunda, dengan banner dan konfirmasi resep/tindakan (`RJ-DOC-DEC-031`, `RJ-DOC-FE-011`) | `RJ-DOC-REV-BE-012` + `RJ-DOC-REV-FE-012` | BE ✅ `2026-10-05`; FE ✅ `2026-10-05` | [RJ-DOC-REV-BE-012](../task/report/backend/RJ-DOC-REV-BE-012.md), [RJ-DOC-REV-FE-012](../task/report/frontend/RJ-DOC-REV-FE-012.md) |
 | Petunjuk Daftar Pasien Rawat Jalan menunjuk Klinis Dokter (`RJ-DOC-FE-012`) | `RJ-DOC-REV-BE-012` | BE ✅ `2026-10-05` | [RJ-DOC-REV-BE-012](../task/report/backend/RJ-DOC-REV-BE-012.md) |
+
+## 8. Revisi `2026-10-06` — Pendaftaran Pasien Rawat Jalan oleh petugas (Amendment PR)
+
+Keputusan `RJ-DOC-DEC-034`..`038`; definisi task pada [doctor-consultation-roadmap.md](doctor-consultation-roadmap.md) bagian `14`.
+
+| Requirement pemilik | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Pendaftaran pasien Rawat Jalan oleh petugas dengan tampilan sama seperti Pendaftaran IGD (`RJ-DOC-DEC-034`) | `RJ-DOC-REV-FE-013` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-013](../task/report/frontend/RJ-DOC-REV-FE-013.md) |
+| Jadwal dokter wajib mengikuti `IsDoctorRequired` poliklinik (`RJ-DOC-DEC-035`) | `RJ-DOC-REV-FE-013` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-013](../task/report/frontend/RJ-DOC-REV-FE-013.md) |
+| Jenis kunjungan sama dengan IGD (`RJ-DOC-DEC-036`) | `RJ-DOC-REV-FE-013` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-013](../task/report/frontend/RJ-DOC-REV-FE-013.md) |
+| Hari ini walk-in, tanggal mendatang appointment (`RJ-DOC-DEC-037`) | `RJ-DOC-REV-FE-013` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-013](../task/report/frontend/RJ-DOC-REV-FE-013.md) |
+| Poliklinik per tanggal tanpa kode; tombol RJ tanpa ikon; tombol kembali bergaris primary (`RJ-DOC-DEC-039`) | `RJ-DOC-REV-FE-013` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-013](../task/report/frontend/RJ-DOC-REV-FE-013.md) §7 |
+
+## 9. Revisi `2026-10-06` — Scan kartu penjamin pada Pendaftaran Rawat Jalan (Amendment SK)
+
+| Requirement pemilik | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Foto scan kartu asuransi disimpan permanen seperti foto scan kiosk (`RJ-DOC-DEC-041`, `042`) | `RJ-DOC-REV-BE-013` | BE ✅ `2026-10-06` | [RJ-DOC-REV-BE-013](../task/report/backend/RJ-DOC-REV-BE-013.md) |
+| Foto scan kartu penjamin perusahaan disimpan permanen; kolom baru `CardImagePath` (`RJ-DOC-DEC-041`, `042`, `044`) | `RJ-DOC-REV-BE-014` | BE ✅ `2026-10-06` | [RJ-DOC-REV-BE-014](../task/report/backend/RJ-DOC-REV-BE-014.md) |
+| Kolom *Kartu* sebelum Status (Scan Kartu / Lihat Kartu), preview di *Penjamin Dipilih*, field scan di modal *Daftarkan Penjamin Baru* (`RJ-DOC-DEC-040`) | `RJ-DOC-REV-FE-014` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-014](../task/report/frontend/RJ-DOC-REV-FE-014.md) |

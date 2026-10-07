@@ -414,3 +414,59 @@ wajib ditinjau sebelum modul dipakai melayani pasien sungguhan.
 | --- | --- | --- |
 | `ImportantFindingsSummary`, `DischargeConditionNote`, `EducationSummary` | `InpDischargeSummary`, `InpDischargeSummaryRevision` | Ringkasan klinis pasien |
 | Isi `DischargeSummaryPrefillResponse` | — tidak dipersistensi | Sama; tidak masuk logger |
+
+---
+
+## 9. Perubahan pada `contract_version` `0.10.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.10.0` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
+| Prinsip | Hak akses ditentukan **permission**, bukan nama peran (`RWI-DEC-166`). Baris registry lahir dari atribut endpoint (`PermissionRegistryDescriptor`), sehingga setiap permission baru di bawah punya endpoint sendiri |
+
+### 9.1 Permission baru dan berubah
+
+| Permission | Status | Endpoint | Pemegang yang dimaksud |
+|---|---|---|---|
+| `OperatingRoomCase : Reject` | **Baru** | `PATCH cases/{id}/reject` | Petugas penjadwalan OK |
+| `OperatingRoomWardPreOp : Read` | **Baru** | `GET …/preparation/ward-pre-op`, `/versions` | Perawat bangsal, perawat OK |
+| `OperatingRoomWardPreOp : Send` | **Baru** | `PUT …/ward-pre-op/draft`, `PATCH …/send` | Perawat bangsal |
+| `OperatingRoomWardPreOp : Confirm` | **Baru** | `PATCH …/ward-pre-op/confirm` | Perawat OK |
+| `OperatingRoomHandover : Send` | **Baru** (menggantikan `Update` pada `POST handovers`) | `POST …/execution/handovers` | Perawat OK |
+| `OperatingRoomHandover : Receive` | **Baru** (menggantikan `Update` pada `accept`) | `PATCH …/handovers/{id}/accept` | Perawat unit rawat inap dan ICU |
+| `OperatingRoomHandover : Update` | **Pensiun** setelah rilis; pemberiannya disalin ke `Send` (bukan `Receive`) | — | — |
+| `OperatingRoomHandover : Read` | Sudah ada, dipakai endpoint baru | `GET operating-room-management/handovers` | Bangsal, OK |
+| `OperatingRoomCase : Read` | Sudah ada, dipakai endpoint baru | `GET cases/{id}/post-operative-summary` | Dokter dan perawat bangsal yang berhak atas episode (`FR-RWF-082`) |
+| `OperatingRoomCase : Create` | Sudah ada, dipakai endpoint baru | `POST inpatient-management/episodes/{id}/surgery-bookings` | Perawat dan dokter bangsal |
+| `SurgicalPreparationItem : Read`, `: Create`, `: Update` | **Baru** | `master-data/surgical-preparation-items` | Admin Master Data |
+| `InpatientAdmissionReferral : Read` | **Baru** | `GET admission-referrals`, `/{id}` | Petugas admisi |
+| `InpatientReport : ReadRoomTransfer` | **Baru** (`P2`) | `GET reports/room-transfers` | Kepala ruangan, manajemen |
+| `InpatientReport : ExportRoomTransfer` | **Baru** (`P2`) | `GET reports/room-transfers/export` | Manajemen |
+| `TransferHandover : Read`, `: Send`, `: Receive` | **Baru** (`P2`) | `clinical-management/transfer-handovers` | Perawat unit asal dan tujuan |
+| `InpatientMonitoring : Read` | Sudah ada, dipakai dua kartu baru | `GET monitoring/pending-surgical-handovers`, `/pending-admission-referrals` | Kepala ruangan, admisi, OK |
+
+Penjaga di luar permission: penerima ≠ pengirim (`VAL-RWF-75`, `84`, `91`) dan lokasi bed pasien (`VAL-RWF-85`, `91`). Tidak ada master keanggotaan perawat per unit (`RWI-DEC-189` butir 6).
+
+### 9.2 Audit dan histori
+
+| Kejadian | Disimpan di | Isi |
+|---|---|---|
+| Pesan ruang bedah | `OprCase` (`CreatedBy`) + `OprStatusHistory` | Penginput, order, tab |
+| Tolak order | `OprCase.RejectedAt/ByUserId/Reason` + `OprStatusHistory` | Alasan, penolak, waktu |
+| Kirim, konfirmasi pra-operasi | `OprWardPreOpNote` per versi; `OprWardPreOpItem` per butir | Pengirim, penerima, waktu, potret |
+| Pra-operasi "perlu diperbarui" | Status versi | Versi lama tidak pernah dihapus |
+| Terima, tolak serah terima | `OprHandover` (sudah ada) | Penerima, waktu, alasan |
+| Permintaan admisi dibuat, dibatalkan, selesai | `InpAdmissionReferral` | Kasus, pembatal, alasan, episode hasil |
+| Ekspor laporan transfer | Logger audit aplikasi | Akun, saringan, jumlah baris, waktu — **tanpa** nama pasien |
+| Serah terima transfer | `CliTransferHandover` | Pengirim, penerima, potret, alasan tolak |
+
+### 9.3 Privasi
+
+| Data | Penanda | Aturan |
+|---|---|---|
+| Potret tanda vital dan nyeri, isi serah terima, ringkasan operasi | Sensitif klinis | Tidak masuk logger; contoh dokumen memakai pasien samaran |
+| Alasan tolak order dan alasan batal permintaan | Sensitif | Sama |
+| Berkas ekspor laporan transfer | Sensitif (identitas pasien) | Tidak disimpan di server; dibuat saat diminta |
+
+**Penyelarasan decision log revision `31` ★ 2 Oktober 2026.** Tidak ada permission baru. Butir menu ke-10 "Laporan Rawat Inap" (`RWI-DEC-214`, `215`) tampil bila pengguna memegang salah satu permission laporan rawat inap — hari ini hanya `InpatientReport : ReadRoomTransfer`. Pemberian `OperatingRoomHandover : Receive` tidak disalin otomatis dari `Update` disahkan `RWI-DEC-220` butir 3.

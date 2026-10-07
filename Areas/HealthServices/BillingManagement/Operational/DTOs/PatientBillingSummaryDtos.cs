@@ -12,12 +12,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
     /// misalnya untuk mengarahkan keluarga ke kasir — bukan rincian harga.
     /// </para>
     /// <para>
-    /// <b>Angka yang belum dapat dihitung tidak pernah ditulis nol.</b> Setiap angka membawa
-    /// penanda apakah ia sudah final; bila tidak, pesannya menyebut sebabnya.
+    /// <b>Rupiah tersedia hanya di endpoint amounts.</b> Ringkasan Read tidak memuat nominal.
     /// </para>
     /// <para>
-    /// Contoh: "BPJS — layak — total berjalan Rp 4.250.000 — deposit Rp 1.000.000 — kekurangan
-    /// deposit Rp 350.000 — 1 item tidak ditanggung".
+    /// Contoh: "BPJS — layak — deposit kurang — 1 item tidak ditanggung".
     /// </para>
     /// </remarks>
     public class PatientBillingSummaryResponse
@@ -43,12 +41,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
         /// <summary><c>true</c> bila folio tagihan sudah terbentuk untuk kunjungan ini.</summary>
         public bool HasBillingFolio { get; set; }
 
-        /// <summary>
-        /// Total tagihan berjalan dari baris tagihan yang sudah berharga. <c>null</c> bila belum ada
-        /// folio — bukan nol.
-        /// </summary>
-        public decimal? RunningTotalAmount { get; set; }
-
         /// <summary>Jumlah baris tagihan yang harganya belum dapat dihitung.</summary>
         public int UnpricedChargeCount { get; set; }
 
@@ -60,14 +52,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
 
         public bool HasDepositAccount { get; set; }
 
-        /// <summary>Deposit yang sudah diterima.</summary>
-        public decimal DepositReceivedAmount { get; set; }
-
-        /// <summary>Sisa deposit yang belum dialokasikan.</summary>
-        public decimal DepositRemainingAmount { get; set; }
-
-        /// <summary>Kekurangan terhadap kebijakan deposit minimum; <c>0</c> bila tidak kurang.</summary>
-        public decimal DepositShortfallAmount { get; set; }
+        /// <summary>Deposit belum memenuhi kebijakan minimum, tanpa memuat nominal.</summary>
+        public bool HasDepositShortfall { get; set; }
 
         /// <summary>
         /// Jumlah item yang tidak ditanggung penjamin. <c>null</c> untuk pasien tunai — pertanyaannya
@@ -75,11 +61,75 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
         /// </summary>
         public int? NotCoveredItemCount { get; set; }
 
-        public string Currency { get; set; } = "IDR";
 
         /// <summary>Kalimat siap tampil yang menjelaskan keadaan angka di atas.</summary>
         public string Message { get; set; } = string.Empty;
 
         public DateTime ReadAt { get; set; }
+    }
+
+    public sealed class PatientBillingAmountResponse
+    {
+        public Guid EpisodeId { get; set; }
+        public Guid EncounterId { get; set; }
+        public string InvoiceState { get; set; } = "NOT_FORMED";
+        public DateTimeOffset? CalculatedAt { get; set; }
+        public decimal? RunningTotalAmount { get; set; }
+        public decimal DepositReceivedAmount { get; set; }
+        public decimal DepositRemainingAmount { get; set; }
+        public decimal DepositShortfallAmount { get; set; }
+        public string Currency { get; set; } = "IDR";
+    }
+
+    public sealed class PatientBillingBreakdownResponse
+    {
+        public Guid EpisodeId { get; set; }
+        public Guid EncounterId { get; set; }
+        public string InvoiceState { get; set; } = "NOT_FORMED";
+        public DateTimeOffset? CalculatedAt { get; set; }
+        public List<PatientBillingGroupResponse> Groups { get; set; } = [];
+        public List<LinkedBillingEncounterResponse> LinkedEncounters { get; set; } = [];
+    }
+
+    public sealed class PatientBillingGroupResponse
+    {
+        public string GroupCode { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public List<PatientBillingLineResponse> Lines { get; set; } = [];
+    }
+
+    public sealed class PatientBillingLineResponse
+    {
+        public string Label { get; set; } = string.Empty;
+        public string? PeriodLabel { get; set; }
+        public DateTimeOffset? ServiceDate { get; set; }
+        public decimal Quantity { get; set; }
+        public string UnitLabel { get; set; } = "unit";
+        public string LineStatus { get; set; } = "ACTIVE";
+        public LinkedBillingEncounterResponse? LinkedEncounter { get; set; }
+    }
+
+    public sealed class LinkedBillingEncounterResponse
+    {
+        public Guid EncounterId { get; set; }
+        public string EncounterTypeName { get; set; } = string.Empty;
+        public string ServiceUnitName { get; set; } = string.Empty;
+        public DateTime VisitDate { get; set; }
+    }
+
+    public sealed class PatientBillingBreakdownAmountResponse
+    {
+        public Guid EpisodeId { get; set; }
+        public string InvoiceState { get; set; } = "NOT_FORMED";
+        public DateTimeOffset? CalculatedAt { get; set; }
+        public List<PatientBillingGroupAmountResponse> Groups { get; set; } = [];
+        public decimal? RunningTotalAmount { get; set; }
+    }
+
+    public sealed class PatientBillingGroupAmountResponse
+    {
+        public string GroupCode { get; set; } = string.Empty;
+        public decimal? SubtotalAmount { get; set; }
+        public bool IncludesLinkedEncounter { get; set; }
     }
 }

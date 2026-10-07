@@ -8,6 +8,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.DTOs;
 
 public class CreateGzOrderRequest
 {
+    [EnumDataType(typeof(GziInstructionVerificationStatus))]
+    public GziInstructionVerificationStatus? InstructionVerificationStatus { get; set; }
     [Required] public Guid PatientId { get; set; }
     [Required] public Guid EncounterId { get; set; }
     [Required] public Guid RequesterDoctorId { get; set; }
@@ -85,6 +87,9 @@ public class GziOrderPagedQuery
 
 public class GziOrderSummaryResponse
 {
+    public GziInstructionVerificationStatus InstructionVerificationStatus { get; set; }
+    public DateTime? InstructionVerifiedAt { get; set; }
+    public Guid? InstructionVerifiedByUserId { get; set; }
     public Guid Id { get; set; }
     public string OrderNumber { get; set; } = string.Empty;
     public Guid PatientId { get; set; }

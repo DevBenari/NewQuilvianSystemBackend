@@ -81,6 +81,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         private readonly InpEpisodeNumberService _episodeNumberService;
         private readonly IInpIntegrationOutboxService _outboxService;
 
+        /// <summary>Permintaan admisi dari kamar pulih (<c>BE-RWI-181</c>).</summary>
+        private readonly InpAdmissionReferralService _admissionReferralService;
+
         /// <remarks>
         /// <b>Arah dependency dibalik pada `BE-RWI-011`.</b> Sampai `BE-RWI-008`, service ini
         /// menerima <c>InpBedOccupancyService</c> tanpa pernah memakainya. Sejak penempatan
@@ -95,12 +98,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             ApplicationDbContext dbContext,
             InpSettingService settingService,
             InpEpisodeNumberService episodeNumberService,
-            IInpIntegrationOutboxService outboxService)
+            IInpIntegrationOutboxService outboxService,
+            InpAdmissionReferralService admissionReferralService)
         {
             _dbContext = dbContext;
             _settingService = settingService;
             _episodeNumberService = episodeNumberService;
             _outboxService = outboxService;
+            _admissionReferralService = admissionReferralService;
         }
 
         // =====================================================================
@@ -154,6 +159,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             if (patient == null)
             {
                 return InpEpisodeOperationResult.Invalid("Pasien belum dipilih.");
+            }
+
+            // BE-RWI-181 / VAL-RWF-87, VAL-RWF-88: pasien yang punya permintaan admisi Pending dari
+            // kamar pulih wajib diadmisikan dari permintaan itu; permintaan yang dirujuk harus Pending
+            // dan milik pasien yang sama. Permintaannya diselesaikan pada transaksi admisi di bawah.
+            var referralCheck = await _admissionReferralService.CheckForAdmissionAsync(
+                request.PatientId,
+                request.AdmissionReferralId,
+                cancellationToken);
+
+            if (!referralCheck.IsSuccess)
+            {
+                return InpEpisodeOperationResult.FromStatus(
+                    referralCheck.Status,
+                    referralCheck.Message ?? "Permintaan admisi tidak dapat dipakai.",
+                    referralCheck.Code);
             }
 
             var doctorExists = await _dbContext.Set<MstDoctor>()
@@ -332,12 +353,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     touchEpisode: false,
                     cancellationToken: cancellationToken);
 
+                // BE-RWI-181: permintaan admisi dari kamar pulih selesai bersama admisi ini, dalam
+                // transaksi yang sama (state matrix 9.4). Kunjungan asalnya tetap terbaca dari baris
+                // permintaan; pesan ADMISSION_CONFIRMED tidak berubah (RWI-DEC-207).
+                if (referralCheck.Referral != null)
+                {
+                    InpAdmissionReferralService.MarkCompleted(referralCheck.Referral, episode.Id, actorUserId, now);
+                }
+
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
 
                 return InpEpisodeOperationResult.Success(
                     episode,
-                    "Admisi berhasil dibuka.",
+                    referralCheck.Referral != null
+                        ? "Admisi berhasil dibuka dari permintaan admisi kamar pulih."
+                        : "Admisi berhasil dibuka.",
                     warnings);
             }
             catch (DbUpdateException)
@@ -634,33 +665,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             _dbContext.Set<InpStatusHistory>().Add(history);
             episode.StatusHistories.Add(history);
 
-            // BE-RWI-130 / RWI-DEC-156 — Event ADMISSION_CONFIRMED saat status menjadi Admitted
+            // BE-RWI-130 / RWI-DEC-156 — Event ADMISSION_CONFIRMED saat status menjadi Admitted.
+            // BE-RWI-151 / INV-RWF-05: isi pesan hanya penanda kejadian (daftar putih); penjamin,
+            // pasien, dan waktu admisi tidak lagi ikut terbawa. Billing membacanya dari sumbernya.
             if (toStatus == InpEpisodeStatus.Admitted)
             {
-                var guarantor = await _dbContext.RegPatientEncounterGuarantors
-                    .AsNoTracking()
-                    .Where(x => x.EncounterId == episode.EncounterId && x.IsActive && !x.IsDelete)
-                    .OrderByDescending(x => x.IsPrimary)
-                    .ThenBy(x => x.Priority)
-                    .Select(x => (Guid?)x.Id)
-                    .FirstOrDefaultAsync(cancellationToken);
-
-                var admissionPayload = new
-                {
-                    encounterId = episode.EncounterId,
-                    episodeId = episode.Id,
-                    patientId = episode.PatientId,
-                    admissionDateTime = episode.AdmittedAt ?? now,
-                    guarantorId = guarantor
-                };
-
                 await _outboxService.EnqueueEventAsync(
                     eventType: "ADMISSION_CONFIRMED",
-                    idempotencyKey: $"INPATIENT:ADMISSION:{episode.Id}:1",
-                    sourceDomain: "INPATIENT",
+                    episodeId: episode.Id,
+                    encounterId: episode.EncounterId,
                     sourceType: "ADMISSION",
-                    sourceDetailId: episode.Id.ToString(),
-                    payload: admissionPayload,
+                    sourceId: episode.Id,
+                    version: 1,
+                    occurredAtUtc: episode.AdmittedAt ?? now,
                     cancellationToken: cancellationToken);
             }
         }
@@ -1004,6 +1021,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 .Where(x => x.Id == episodeId && !x.IsDelete)
                 .Select(x => new InpatientEpisodeDetailResponse
                 {
+                    Version = x.Version,
                     Id = x.Id,
                     EpisodeNumber = x.EpisodeNumber,
                     EncounterId = x.EncounterId,
@@ -1327,6 +1345,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// paling mungkin terlewat adalah cabang yang lebih jarang dipakai.
         /// </remarks>
         public ClosureSideEffectsResponse? SideEffects { get; set; }
+        public InpatientDepartureResponse? Departure { get; set; }
 
         public static InpEpisodeOperationResult Success(
             InpEpisode episode,
@@ -1350,5 +1369,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
         public static InpEpisodeOperationResult Forbidden(string message)
             => new(InpEpisodeOperationStatus.Forbidden, null, message);
+
+        /// <summary>
+        /// Kode kontrak penolakan, misalnya <c>INP-ADM-REF-001</c>; kosong pada penolakan lama yang
+        /// tidak berkode. Ditambahkan <c>BE-RWI-181</c>.
+        /// </summary>
+        public string? Code { get; private init; }
+
+        /// <summary>Penolakan berstatus apa pun beserta kode kontraknya (<c>BE-RWI-181</c>).</summary>
+        public static InpEpisodeOperationResult FromStatus(InpEpisodeOperationStatus status, string message, string? code)
+            => new(status, null, message) { Code = code };
     }
 }

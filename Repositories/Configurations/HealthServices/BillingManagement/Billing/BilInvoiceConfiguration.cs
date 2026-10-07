@@ -27,6 +27,20 @@ public sealed class BilInvoiceConfiguration : IEntityTypeConfiguration<BilInvoic
         entity.HasIndex(x => x.EncounterId).IsUnique();
         entity.HasIndex(x => x.InvoiceNumber).IsUnique();
 
+        // Kontrak integrasi-billing 1.1.0 kamus data 6.6 — tanda "perlu diperiksa".
+        entity.Property(x => x.RequiresReview).HasDefaultValue(false);
+        entity.Property(x => x.ReviewReasonCode).HasMaxLength(50);
+        entity.Property(x => x.ReviewFlaggedAt).HasColumnType("timestamp with time zone");
+        entity.Property(x => x.ReviewResolvedAt).HasColumnType("timestamp with time zone");
+        entity.Property(x => x.ReviewResolutionNote).HasMaxLength(500);
+        entity.HasIndex(x => x.RequiresReview)
+            .HasDatabaseName("IX_BilInvoice_RequiresReview")
+            .HasFilter("\"RequiresReview\"");
+        entity.HasOne<QuilvianSystemBackend.Models.ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(x => x.ReviewResolvedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // Indeks untuk daftar Running Invoice (GET /billing/invoices). Dibuat parsial pada IsDelete = false
         // karena setiap query daftar selalu menyaring data yang belum dihapus.
         // 1) Status + CreateDateTime menurun: saringan status dan urutan terbaru-dulu terlayani satu indeks.

@@ -11,12 +11,22 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.InPat
             builder.ToTable("InpEpisode", "public");
 
             builder.HasKey(x => x.Id);
+            // Versi untuk ExpectedVersion penutupan (integrasi-billing API 3.2). Bukan concurrency
+            // token: penutupan memeriksa versi di bawah kunci FOR UPDATE, sehingga alur lama yang
+            // menyunting episode tidak berubah perilaku saat terjadi tulis bersamaan.
+            builder.Property(x => x.Version).HasDefaultValue(1);
 
 
             builder.Property(x => x.EpisodeNumber).IsRequired().HasMaxLength(50);
             builder.Property(x => x.EpisodeStatus).HasConversion<int>();
             builder.Property(x => x.DischargeType).HasConversion<int>();
             builder.Property(x => x.IsolationSource).HasConversion<int>();
+
+            // Kontrak integrasi-billing 1.1.0 kamus data 6.3 — jejak status kasir yang diamati.
+            builder.Property(x => x.DepartureClearanceObserved).HasConversion<int>();
+            builder.Property(x => x.ClosureClearanceObserved).HasConversion<int>();
+            builder.Property(x => x.DepartureClearanceWarningAcknowledged).HasDefaultValue(false);
+            builder.HasIndex(x => x.DepartureClearanceObserved, "IX_InpEpisode_DepartureClearanceObserved");
             builder.Property(x => x.IsolationNote).HasMaxLength(500);
             builder.Property(x => x.ClosedWithoutClearanceReason).HasMaxLength(500);
             builder.Property(x => x.CancelReason).HasMaxLength(500);
