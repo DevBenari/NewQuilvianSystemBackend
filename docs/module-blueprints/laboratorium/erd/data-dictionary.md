@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `8` — bagian 19, 2026-09-25: `S16a` — nol tabel, nol kolom, satu index `LabSpecimen.DecidedAt`. Sebelumnya `7` — bagian 18, 2026-09-25: `S4d-1` — nol tabel, nol kolom. Sebelumnya `6` — bagian 17, 2026-09-25: `S4` — dua tabel baru, 14 kolom baru pada `LabExamination`. Sebelumnya `5` — bagian 16, 2026-09-24: nol tabel, nol kolom |
+| Revision | `10` — bagian 21, 2026-10-07: BR-139 — nol tabel, nol kolom; `MstDoctor` dibaca empat kolom. Sebelumnya `9` — bagian 20, 2026-10-07: BR-138 — nol tabel, nol kolom. Sebelumnya `8` — bagian 19, 2026-09-25: `S16a` — nol tabel, nol kolom, satu index `LabSpecimen.DecidedAt`. Sebelumnya `7` — bagian 18, 2026-09-25: `S4d-1` — nol tabel, nol kolom. Sebelumnya `6` — bagian 17, 2026-09-25: `S4` — dua tabel baru, 14 kolom baru pada `LabExamination`. Sebelumnya `5` — bagian 16, 2026-09-24: nol tabel, nol kolom |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 3 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 12 |
 | Backend SHA | Revision 1-2: `c87d9c0`. **Revision 3: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -1485,3 +1485,40 @@ periode **tidak disimpan** (`LAB-DA-001` A7.5).
 ```sql
 CREATE INDEX "IX_LabSpecimen_DecidedAt" ON public."LabSpecimen" ("DecidedAt");
 ```
+
+## 20. Amandemen 2026-10-07 — Urutan Konfirmasi v1 (BR-138): nol tabel, nol kolom
+
+BR-138 (`LAB-DEC-193`..`LAB-DEC-197`) **tidak** menambah atau mengubah tabel, kolom, index, maupun enum.
+Kolom yang dipakai aturan barunya sudah ada sejak `BE-LAB-31`:
+
+| Tabel | Kolom | Dipakai untuk | Sensitif |
+|---|---|---|:---:|
+| `LabOrder` | `ConfirmedAt` (`timestamp`, boleh kosong) | Penanda *sudah dikonfirmasi* — `VAL-70` dan `VAL-151` | Tidak |
+| `LabOrder` | `ConfirmedByUserId` (`uuid`, boleh kosong) | Konfirmator | Tidak |
+| `LabOrder` | `ExaminerDoctorId` (`uuid`, boleh kosong, FK `MstDoctor`) | Dokter pemeriksa | Tidak |
+| `LabOrder` | `OrderStatus` | **Tidak** berubah saat konfirmasi pada `Accepted` (`LAB-DEC-195`) | Tidak |
+
+Satu baris **data** platform bertambah otomatis saat aplikasi menyala: `SysActionAccess` untuk
+`LabOrder : Confirm` (`AccessMenuSeeder`). Itu data otorisasi milik platform, bukan skema Laboratorium.
+
+## 21. Amandemen 2026-10-07 (kedua) — Daftar dokter pemeriksa (BR-139): nol tabel, nol kolom
+
+BR-139 (`LAB-DEC-200`..`LAB-DEC-203`) **tidak** menambah atau mengubah tabel, kolom, index, maupun enum. Daftar
+dokter pemeriksa **membaca** tabel milik Master Data SDM; perbaikan jejak konfirmasi membaca kolom `LabOrder` yang
+sudah dicatat bagian 20.
+
+**`MstDoctor`** — `Sudah ada`, pemilik Master Data SDM, model
+`Areas/Corporate/HumanResource/MasterData/Workforce/Models/MstDoctor.cs`. Kolom yang dipakai:
+
+| Kolom | Tipe | Dipakai untuk | Keluar ke layar? | Sensitif |
+|---|---|---|:---:|:---:|
+| `Id` | `uuid`, PK | Nilai `examinerDoctorId` | Ya | Tidak |
+| `DoctorCode` | `text` | Tampil dan pencarian | Ya | Tidak |
+| `FullName` | `text` | Tampil, pencarian, urutan | Ya | Tidak |
+| `SpecialistName` | `text`, boleh kosong | Tampil dan pencarian | Ya | Tidak |
+| `IsActive` | `boolean` | Syarat dapat dipilih (`VAL-73`) | Tidak | Tidak |
+| `IsDelete` | `boolean` | Syarat dapat dipilih (`VAL-73`) | Tidak | Tidak |
+| `PhoneNumber`, `WhatsAppNumber`, `Email`, `Address`, `BirthPlace`, data pribadi lain | — | **Tidak dibaca** daftar ini | **Tidak** | **Ya** |
+
+Kolom `LabOrder` yang kini ikut keluar pada rincian pesanan (`ConfirmedAt`, `ConfirmedByUserId`,
+`ExaminerDoctorId`) sudah dicatat bagian 20 — nol perubahan.

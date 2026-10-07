@@ -3,7 +3,9 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-API-v1` |
-| Revision | **`39` — `approved`** 2026-10-06, bagian 34 (Spesifik Specimen pada respons specimen, `LAB-DEC-167`) — aditif pada respons dan satu perubahan perilaku penggantian, disetujui Yoga Aji Pratama. Sebelumnya: **`38` — `approved`** 2026-10-01, bagian 33 (identitas pasien pada rincian order, `LAB-DEC-166`) — aditif, disetujui Yoga Aji Pratama. Sebelumnya: **`37` — `approved`** 2026-09-28, bagian 32 (`S16a` tiga laporan operasional) — disetujui Yoga Aji Pratama beserta kedelapan butir `02-backend-architecture.md` 23.10. Sebelumnya: **`36` — `approved`** 2026-09-25, bagian 31 (penjaga penyelesaian order, `LAB-DEC-154`) — disetujui Yoga Aji Pratama beserta keempat butir `02-backend-architecture.md` 22.7. Sebelumnya: **`35` — `approved`** 2026-09-25, bagian 30 (`S4d-1` validasi dan rilis Mikrobiologi) — disetujui Yoga Aji Pratama beserta kelima butir `02-backend-architecture.md` 21.10, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
+| Revision | **`41` — `approved`** 2026-10-07, bagian 36 (daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian pesanan, BR-139) — satu endpoint baca baru dan satu perbaikan kesesuaian `r13`, disetujui Yoga Aji Pratama. Sebelumnya: **`40` — `approved`** 2026-10-07, bagian 35 (Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1, BR-138) — dua perubahan perilaku dan satu perubahan hak akses, disetujui Yoga Aji Pratama. Sebelumnya: **`39` — `approved`** 2026-10-06, bagian 34 (Spesifik Specimen pada respons specimen, `LAB-DEC-167`) — aditif pada respons dan satu perubahan perilaku penggantian, disetujui Yoga Aji Pratama. Sebelumnya: **`38` — `approved`** 2026-10-01, bagian 33 (identitas pasien pada rincian order, `LAB-DEC-166`) — aditif, disetujui Yoga Aji Pratama. Sebelumnya: **`37` — `approved`** 2026-09-28, bagian 32 (`S16a` tiga laporan operasional) — disetujui Yoga Aji Pratama beserta kedelapan butir `02-backend-architecture.md` 23.10. Sebelumnya: **`36` — `approved`** 2026-09-25, bagian 31 (penjaga penyelesaian order, `LAB-DEC-154`) — disetujui Yoga Aji Pratama beserta keempat butir `02-backend-architecture.md` 22.7. Sebelumnya: **`35` — `approved`** 2026-09-25, bagian 30 (`S4d-1` validasi dan rilis Mikrobiologi) — disetujui Yoga Aji Pratama beserta kelima butir `02-backend-architecture.md` 21.10, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
+| `r41` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-07** — *"Setuju kelima butir"* atas `LAB-REQ-017`, kelima butir |
+| `r40` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-07** — *"saya setujui kelima butir di atas, lanjutkan"* atas `LAB-REQ-016`, kelima butir |
 | `r39` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-06** — *"yaaa saya setujui"* atas `LAB-REQ-015`, pilihan A ketiga butir |
 | `r38` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-01** — *"Informasi pasien … tambahkan di backend"* |
 | `r36` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-25** — termasuk bunyi pesan `409` yang disesuaikan dan `400` → `409` bagi order bukan `InProcess` |
@@ -3760,3 +3762,200 @@ sama. Bila `detailTypeIds` tidak dikirim, Spesifik Specimen tidak disentuh (21.4
 | Perilaku yang berubah | Koreksi yang mengirim ulang pilihan lama yang **kini nonaktif** sebelumnya ditolak seluruhnya; kini diterima. Nama snapshot rincian yang dikirim ulang tidak lagi ditulis ulang |
 | Privasi | Nol — Spesifik Specimen bukan identitas pasien, dan hak baca tidak berubah |
 | Kinerja | Satu sub-koleksi per wadah pada `/by-order`; satu pesanan biasanya satu–dua wadah |
+
+## 35. Amandemen `r40` — Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1, 2026-10-07
+
+| Field | Nilai |
+|---|---|
+| Status | **`approved`** 2026-10-07 — Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul: *"saya setujui kelima butir di atas, lanjutkan"* atas `LAB-REQ-016` — kelima butir |
+| Keputusan | `LAB-DEC-193`..`LAB-DEC-197` (BR-138), `LAB-DEC-199` |
+| `input_revision` | decisions rev 88 (sha256 `e4f394bf…34da0d`); `02-backend-architecture.md` bagian 24 |
+| Sifat | **Dua perubahan perilaku** dan **satu perubahan hak akses**; nol endpoint baru, nol ruas baru, nol migration |
+| Dampak kompatibilitas | **Breaking bagi pemegang `LabOrder : Update`** yang memakai Konfirmasi — hari ini hanya jabatan *Dokter Umum*. Pemanggil frontend `confirm` hanya daftar pasien lab |
+
+### 35.1 Endpoint
+
+`[Tags("Health Services / Laboratory Management / Lab Order")]` — base URL
+`api/v1/health-services/laboratory-management/lab-orders`.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `POST` | `/{id}/confirm` | Mengonfirmasi pesanan beserta dokter pemeriksa — **kini juga pada pesanan yang wadahnya sudah layak** | **`LabOrder : Confirm`** (sebelumnya `LabOrder : Update`) | `ConfirmLabOrderRequest` — tidak berubah | `LabOrderDetailResponse` — tidak berubah | **Tersedia** — `BE-LAB-90` ✅ 2026-10-07 (harness, penolakan HTTP, dan jalur `200` HTTP dengan akun analis) |
+| `PUT` | `/{id}/start-process` | Memulai pemeriksaan — **kini hanya pada pesanan yang sudah dikonfirmasi** | `LabOrder : Process` — tidak berubah | — | `LabOrderDetailResponse` — tidak berubah | **Tersedia** — `BE-LAB-90` ✅ 2026-10-07 (harness, penolakan HTTP, dan jalur `200` HTTP dengan akun analis) |
+
+### 35.2 Kode status
+
+**`POST /{id}/confirm`**
+
+| Kode | Arti bagi petugas | Contoh |
+|---|---|---|
+| `200` | Konfirmasi tersimpan. Pesanan *Diminta* menjadi *Dikonfirmasi*; pesanan *Diterima* **tetap *Diterima*** | Wadah sudah layak, analis mengonfirmasi → kolom Konfirmasi terisi, status tetap |
+| `403` | Jabatan tidak memegang `LabOrder : Confirm` | Dokter Umum menekan Konfirmasi |
+| `404` | Pesanan tidak ada | — |
+| `409` | Sudah pernah dikonfirmasi (`VAL-70`), atau status bukan *Diminta*/*Diterima* (`VAL-71`) | Pesanan *Sedang Dikerjakan* |
+| `422` | Dokter pemeriksa belum dipilih, tidak ada, atau tidak aktif (`VAL-72`, `VAL-73`) | — |
+
+**`PUT /{id}/start-process`**
+
+| Kode | Arti bagi petugas | Contoh |
+|---|---|---|
+| `200` | Pesanan *Sedang Dikerjakan* | — |
+| `403` | Tanpa `LabOrder : Process` | — |
+| `404` | Pesanan tidak ada | — |
+| `409` | Status bukan *Diterima* — **sebelumnya `400`** (`LAB-STATE-v1` bagian 1) | *"Pesanan berstatus InProcess tidak dapat dipindahkan ke InProcess."* |
+| `409` | **Baru** — belum dikonfirmasi (`VAL-151`) | *"Pesanan ini belum dikonfirmasi. Konfirmasi dan pilih dokter pemeriksa sebelum memproses."* |
+
+### 35.3 Dampak
+
+| Hal | Isi |
+|---|---|
+| Konsumen lama | Daftar pasien lab: Konfirmasi kini harus membaca izin baru dan menawarkan Konfirmasi pada *Diterima*; Proses harus redup sebelum konfirmasi (`FE` `MVP-12b`) |
+| Pemegang izin | Lihat `LAB-PERM-v1` revision 13 bagian 15 |
+| Data | Nol perubahan |
+| Privasi | Nol |
+
+### 35.4 Traceability `r40`
+
+| Perubahan | Keputusan | AC |
+|---|---|---|
+| `confirm` pada `Accepted`, status tetap | `LAB-DEC-193`, `LAB-DEC-195` | `AC-283`, `AC-284` |
+| `confirm` → `LabOrder : Confirm` | `LAB-DEC-197` | `AC-288` |
+| `start-process` `VAL-151` | `LAB-DEC-194` | `AC-285` |
+| `start-process` status salah `409` | `LAB-DEC-199` | `AC-276` |
+
+## 36. Amandemen `r41` — Daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian pesanan, 2026-10-07
+
+| Field | Nilai |
+|---|---|
+| Status | **`approved`** 2026-10-07 — Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul: *"Setuju kelima butir"* atas `LAB-REQ-017` — kelima butir |
+| Keputusan | `LAB-DEC-200`..`LAB-DEC-203` (BR-139), `LAB-FE-034` — `approved` 2026-10-07 |
+| `input_revision` | decisions rev 89 (sha256 `27e83fac…77ea104`); `02-backend-architecture.md` bagian 25 |
+| Sifat | **Satu endpoint baca baru** dan **satu perbaikan kesesuaian** `r13`; nol ruas request berubah, nol aksi izin baru, nol migration |
+| Dampak kompatibilitas | **Aditif.** Ruas yang ditambahkan ke jawaban rincian pesanan sudah dijanjikan `r13`; konsumen yang mengabaikannya tidak terdampak |
+
+### 36.1 Kenapa amandemen ini ada
+
+Verifikasi `FE-LAB-50` dengan akun analis asli menemukan dua hal:
+
+1. **Analis tidak dapat memilih dokter pemeriksa.** Dialog Konfirmasi memuat dokter dari
+   `GET /v1/corporate/human-resource/master-data/doctors/options` milik SDM, yang dijaga kebijakan `KioskRead`
+   (hanya SuperAdmin, Administrator, dan akun kios). Analis yang memegang `LabOrder : Confirm` mendapat `403`.
+2. **Rincian pesanan tidak membawa jejak konfirmasi.** Jawaban `confirm` dan `GET /lab-orders/{id}` membalas
+   `confirmedAt`, `confirmedByName`, `examinerDoctorName`, `confirmedByUserId`, dan `examinerDoctorId` kosong
+   walaupun tersimpan — padahal `r13` bagian 8 menjanjikannya. Sejak Konfirmasi pada *Diterima* tidak mengubah
+   status (`r40`), layar tidak dapat lagi menebak bahwa pesanan sudah dikonfirmasi dari statusnya.
+
+### 36.2 Endpoint
+
+`[Tags("Health Services / Laboratory Management / Lab Order")]` — base URL
+`api/v1/health-services/laboratory-management/lab-orders`.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/examiner-doctor-options` | Daftar dokter aktif yang dapat dipilih sebagai dokter pemeriksa saat Konfirmasi; dapat dicari dan berhalaman | **`LabOrder : Confirm`** | Query `LabExaminerDoctorOptionQuery` | `ApiResponse<PagedResult<LabExaminerDoctorOptionResponse>>` | **Tersedia** — `BE-LAB-91` ⚠ 2026-10-07 (harness 47/47 + HTTP baca-saja 10/10; `403` runtime belum diamati) |
+| `GET` | `/{id}` | Rincian pesanan — **kini membawa lima ruas jejak konfirmasi** | `LabOrder : Read` — tidak berubah | — | `LabOrderDetailResponse` — ruas terisi (36.4) | **Tersedia** — `BE-LAB-91` ⚠ 2026-10-07 (harness 47/47 + HTTP baca-saja 10/10; `403` runtime belum diamati) |
+| `POST` | `/{id}/confirm` | Tidak berubah — jawabannya ikut membawa lima ruas | `LabOrder : Confirm` | `ConfirmLabOrderRequest` | `LabOrderDetailResponse` | **Tersedia** — `BE-LAB-91` ⚠ 2026-10-07 (harness 47/47 + HTTP baca-saja 10/10; `403` runtime belum diamati) |
+
+Endpoint aksi lain yang menjawab rincian lewat jalur yang sama — `PUT /{id}/verify-instruction`,
+`start-process`, `complete`, `hold`, `resume`, dan `cancel` (di dalam `LabOrderCancellationResult`) — ikut
+membawa kelima ruas. `POST /` dan `POST /by-examinations` menyusun jawabannya dari pesanan yang baru dibuat;
+pesanan baru belum pernah dikonfirmasi, sehingga kelima ruasnya kosong di sana dan **tidak** perlu diubah.
+
+### 36.3 `GET /examiner-doctor-options`
+
+**Request — `LabExaminerDoctorOptionQuery` (query string)**
+
+| Parameter | Tipe | Wajib | Bawaan | Batas | Validasi | Contoh |
+|---|---|:---:|---|---|---|---|
+| `search` | `string` | Tidak | kosong | 100 karakter | Dipangkas; dicocokkan tanpa membedakan huruf besar/kecil pada nama, kode, dan spesialisasi | `adit` |
+| `pageNumber` | `int` | Tidak | `1` | ≥ 1 | Nilai < 1 dibaca `1` | `1` |
+| `pageSize` | `int` | Tidak | `25` | 1–50 | Di luar batas dijepit ke 1 atau 50 | `25` |
+
+Parameter lain yang dikirim pemilih frontend umum (mis. `onlyActive`) **diabaikan**: daftar ini selalu hanya
+memuat dokter aktif.
+
+**Response — `LabExaminerDoctorOptionResponse` per butir**
+
+| Ruas | Tipe | Boleh kosong | Isi | Sensitif |
+|---|---|:---:|---|:---:|
+| `id` | `guid` | Tidak | `MstDoctor.Id` — nilai yang dikirim sebagai `examinerDoctorId` saat Konfirmasi | Tidak |
+| `doctorCode` | `string` | Tidak | `MstDoctor.DoctorCode` | Tidak |
+| `fullName` | `string` | Tidak | `MstDoctor.FullName`, siap tampil | Tidak |
+| `specialistName` | `string?` | Ya | `MstDoctor.SpecialistName` | Tidak |
+
+**Aturan isi (`LAB-DEC-200`, `LAB-DEC-201`):**
+
+1. Hanya dokter dengan `IsDelete = false` **dan** `IsActive = true` — syarat yang **sama persis** dengan `VAL-73`,
+   sehingga setiap dokter di daftar lolos validasi Konfirmasi saat dipilih.
+2. Tanpa penyaring dokter laboratorium, spesialisasi, disiplin, unit, maupun jadwal jaga.
+3. Urut nama lalu kode.
+4. **Tidak pernah** memuat nomor telepon, WhatsApp, surel, alamat, tanggal lahir, NIK, foto, maupun ruas
+   pribadi lain dari `MstDoctor`.
+
+**Contoh jawaban `200`:**
+
+```json
+{
+  "statusCode": 200,
+  "message": "Daftar dokter pemeriksa berhasil diambil.",
+  "data": {
+    "pageNumber": 1,
+    "pageSize": 25,
+    "totalData": 1,
+    "totalPage": 1,
+    "items": [
+      {
+        "id": "aaaa0000-0000-0000-0000-000000000101",
+        "doctorCode": "DOK-0001",
+        "fullName": "dr. Contoh Dokter, Sp.PK",
+        "specialistName": "Patologi Klinik"
+      }
+    ]
+  }
+}
+```
+
+**Kode status**
+
+| Kode | Arti bagi petugas | Contoh |
+|---|---|---|
+| `200` | Daftar terbaca; boleh kosong bila pencarian tidak cocok | Ketik "adit" → satu dokter |
+| `401` | Belum masuk | — |
+| `403` | Jabatan tidak memegang `LabOrder : Confirm` | Petugas pendaftaran membuka daftar |
+
+### 36.4 Lima ruas jejak konfirmasi pada `LabOrderDetailResponse`
+
+Bentuk ruas **tidak berubah** dari `r13` bagian 8 dan `r14` bagian 9; yang berubah hanya bahwa backend kini
+mengisinya.
+
+| Ruas | Tipe | Sumber | Kosong bila |
+|---|---|---|---|
+| `confirmedAt` | `datetime?` | `LabOrder.ConfirmedAt` | Belum pernah dikonfirmasi |
+| `confirmedByUserId` | `guid?` | `LabOrder.ConfirmedByUserId` | Belum pernah dikonfirmasi |
+| `confirmedByName` | `string?` | Nama tampil pengguna — jalur yang sama dengan `requestedByName` dan daftar pantau | Belum pernah dikonfirmasi |
+| `examinerDoctorId` | `guid?` | `LabOrder.ExaminerDoctorId` | Belum pernah dikonfirmasi |
+| `examinerDoctorName` | `string?` | `MstDoctor.FullName` | Belum pernah dikonfirmasi |
+
+**Contoh.** Sesudah analis mengonfirmasi pesanan *Diterima*, jawaban `confirm` membawa
+`"orderStatus": "Accepted"`, `"confirmedAt": "2026-10-07T05:44:58Z"`, `"confirmedByName": "Analis Contoh"`, dan
+`"examinerDoctorName": "dr. Contoh Dokter, Sp.PK"`. Layar langsung menulis kolom Konfirmasi dan membuka Proses.
+
+### 36.5 Dampak
+
+| Hal | Isi |
+|---|---|
+| Konsumen lama | Dialog Konfirmasi di ketiga daftar pasien lab berpindah dari daftar dokter SDM ke 36.3 (`FE`). Reducer konfirmasi sudah menyalin kelima ruas dari jawaban — nol perubahan di sana |
+| Pemegang izin | Tidak berubah — `LabOrder : Confirm` sudah ada (`LAB-PERM-v1` revision 13); lihat revision 14 bagian 16 untuk baris pemetaan endpoint |
+| `LAB-STATE-v1`, `LAB-VAL-v1` | **Tidak berubah.** `VAL-72`/`VAL-73` tetap penjaga terakhir; daftar hanya memudahkan memilih |
+| Data | Nol perubahan skema |
+| Privasi | Daftar dokter sengaja tanpa data kontak dan pribadi (36.3 butir 4) |
+| Urutan rilis | `LAB-DEC-202`: dideploy **serempak** dengan `r40` dalam gelombang `MVP-12` |
+
+### 36.6 Traceability `r41`
+
+| Perubahan | Keputusan | AC |
+|---|---|---|
+| `GET /examiner-doctor-options`, dokter aktif tanpa penyaring | `LAB-DEC-200`, `LAB-DEC-201` | `AC-289` |
+| Dijaga `LabOrder : Confirm`, isi terbatas | `LAB-DEC-201` | `AC-290` |
+| Lima ruas jejak konfirmasi pada rincian | `LAB-DEC-203` | `AC-292` |
+| Rilis serempak | `LAB-DEC-202` | `AC-293` |
