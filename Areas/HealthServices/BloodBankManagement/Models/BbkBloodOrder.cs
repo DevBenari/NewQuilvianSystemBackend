@@ -155,6 +155,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models
         /// </summary>
         public int Version { get; set; }
 
+        public BbkInstructionVerificationStatus InstructionVerificationStatus { get; set; }
+        public DateTime? InstructionVerifiedAt { get; set; }
+        public Guid? InstructionVerifiedByUserId { get; set; }
+
         public ICollection<BbkBloodOrderLine> Lines { get; set; } = new List<BbkBloodOrderLine>();
     }
 }

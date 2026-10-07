@@ -65,4 +65,13 @@ public interface IInpatientClearanceService
         Guid encounterId,
         bool includeFinancialDetails,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Bacaan status izin kasir terkini beserta status invoice, <b>tanpa rupiah</b> — kontrak
+    /// <c>integrasi-billing</c> <c>1.1.0</c> integrasi 4.3 (<c>INT-RWF-02</c>, <c>INT-RWF-03</c>).
+    /// Tidak ada cache: setiap pemanggilan membaca keadaan terbaru.
+    /// </summary>
+    Task<InpatientClearanceStatusView> GetLatestStatusAsync(
+        Guid encounterId,
+        CancellationToken cancellationToken);
 }

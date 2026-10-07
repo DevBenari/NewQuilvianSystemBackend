@@ -81,6 +81,41 @@ public sealed class MajorProcedureDepositValidationResult
 }
 
 /// <summary>
+/// Bacaan status izin kasir terkini untuk Rawat Inap — kontrak <c>integrasi-billing</c> <c>1.1.0</c>
+/// integrasi 4.3 (<c>INT-RWF-02</c>, <c>INT-RWF-03</c>).
+/// </summary>
+/// <remarks>
+/// Sengaja <b>tanpa rupiah</b>: <c>OutstandingBalance</c>, <c>TotalPatientResponsibility</c>,
+/// <c>TotalPaidOrAllocated</c>, dan field nominal lain tidak boleh ada di sini (<c>RWI-DEC-160</c>).
+/// </remarks>
+public sealed class InpatientClearanceStatusView
+{
+    /// <summary><c>PENDING</c>, <c>BLOCKED</c>, <c>CLEARED</c>, atau <c>REVOKED</c>.</summary>
+    public string Status { get; set; } = InpatientClearanceStatuses.Pending;
+
+    public List<InpatientClearanceReasonView> Reasons { get; set; } = new();
+
+    public DateTimeOffset? EvaluatedAt { get; set; }
+
+    /// <summary><c>OPEN</c>, <c>FINAL</c>, <c>CLOSED</c>, <c>SETTLED_BY_WRITE_OFF</c>, atau <c>NONE</c> bila invoice belum ada.</summary>
+    public string InvoiceStatus { get; set; } = InpatientInvoiceStatusViews.None;
+}
+
+/// <summary>Satu kendala izin kasir, tanpa nominal.</summary>
+public sealed class InpatientClearanceReasonView
+{
+    public string Code { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+}
+
+/// <summary>Kosakata status invoice pada bacaan status kasir.</summary>
+public static class InpatientInvoiceStatusViews
+{
+    /// <summary>Invoice kunjungan belum terbentuk.</summary>
+    public const string None = "NONE";
+}
+
+/// <summary>
 /// Ringkasan status finansial rawat inap untuk bangsal (GET /invoices/encounter/{encounterId}/inpatient-summary).
 /// Jika perawat tanpa izin finansial, nominal disembunyikan (null).
 /// </summary>

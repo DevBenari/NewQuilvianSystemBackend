@@ -121,6 +121,62 @@ public sealed class BillingInvoicesController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Antrean invoice "perlu diperiksa" — BE-RWI-155, kontrak integrasi-billing 1.1.0 API 3.9.
+    /// Invoice di sini tidak dapat difinalkan sebelum pemeriksaannya diselesaikan (BIL-FIN-020).
+    /// </summary>
+    [HttpGet("review-queue")]
+    [AccessAction("Read", "Read Billing Invoice Review Queue", AccessType = AccessTypes.Read, SortOrder = 19)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<InvoiceReviewItemResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetReviewQueue(
+        [FromQuery] InvoiceReviewQueueQuery request, CancellationToken cancellationToken)
+    {
+        var result = await _service.GetReviewQueueAsync(request, cancellationToken);
+        return Ok(ApiResponse<PagedResult<InvoiceReviewItemResponse>>.Ok(
+            result, "Antrean invoice perlu diperiksa berhasil diambil."));
+    }
+
+    /// <summary>
+    /// Kasir menyatakan pemeriksaan invoice selesai setelah membatalkan baris biaya kamar yang dobel.
+    /// </summary>
+    [HttpPost("{id:guid}/review-resolution")]
+    [AccessAction("Update", "Resolve Billing Invoice Review", AccessType = AccessTypes.Update, SortOrder = 20)]
+    [AccessPermission("BillingInvoice", "Update")]
+    [ProducesResponseType(typeof(ApiResponse<InvoiceDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ResolveReview(
+        Guid id,
+        [FromBody] ResolveInvoiceReviewRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.ResolveReviewAsync(id, request, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<InvoiceDetailResponse>.Ok(result, "Pemeriksaan invoice berhasil diselesaikan."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingInvoiceConflictException exception)
+        {
+            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message));
+        }
+        catch (BillingInvoiceReviewException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message, new { exception.Code }));
+        }
+        catch (BillingInvoiceValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Billing Invoice Detail", AccessType = AccessTypes.Read, SortOrder = 2)]
     [AccessPermission("BillingInvoice", "Read")]

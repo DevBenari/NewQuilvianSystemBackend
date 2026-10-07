@@ -259,8 +259,10 @@ public sealed class InpatientClearanceService : IInpatientClearanceService
 
         if (invoice == null) return null;
 
-        // Auto-Reblock hanya berlaku untuk episode rawat inap
-        if (!string.Equals(invoice.ServiceType, "INPATIENT", StringComparison.OrdinalIgnoreCase))
+        // Auto-Reblock hanya berlaku untuk episode rawat inap. Invoice rawat inap selalu berlabel
+        // "RANAP" (BillingInvoiceService.MapServiceType); label lama "INPATIENT" tidak pernah
+        // terbentuk sehingga pemeriksaan ini dulu selalu gagal — BE-RWI-147, FIN-CON-01.
+        if (!string.Equals(invoice.ServiceType, "RANAP", StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
@@ -337,6 +339,68 @@ public sealed class InpatientClearanceService : IInpatientClearanceService
             .Where(x => x.EncounterId == encounterId && !x.IsDelete)
             .OrderByDescending(x => x.FinancialVersion)
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<InpatientClearanceStatusView> GetLatestStatusAsync(
+        Guid encounterId,
+        CancellationToken cancellationToken)
+    {
+        var invoice = await _dbContext.BilInvoices.AsNoTracking()
+            .Where(x => x.EncounterId == encounterId && !x.IsDelete)
+            .Select(x => new { x.Status })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        // Invoice belum ada: status PENDING dan InvoiceStatus NONE (kontrak integrasi 4.3).
+        if (invoice == null)
+        {
+            return new InpatientClearanceStatusView
+            {
+                Status = InpatientClearanceStatuses.Pending,
+                InvoiceStatus = InpatientInvoiceStatusViews.None,
+                Reasons =
+                [
+                    new InpatientClearanceReasonView
+                    {
+                        Code = "INVOICE_NOT_FORMED",
+                        Label = "Tagihan rawat inap belum terbentuk."
+                    }
+                ]
+            };
+        }
+
+        var latest = await GetLatestClearanceForEncounterAsync(encounterId, cancellationToken);
+        var view = new InpatientClearanceStatusView
+        {
+            Status = latest?.ClearanceStatus ?? InpatientClearanceStatuses.Pending,
+            EvaluatedAt = latest?.EffectiveAt,
+            InvoiceStatus = invoice.Status
+        };
+
+        if (latest != null && latest.ClearanceStatus != InpatientClearanceStatuses.Cleared)
+        {
+            var code = latest.RevocationReason ?? latest.ReasonCode;
+            view.Reasons.Add(new InpatientClearanceReasonView
+            {
+                Code = code,
+                Label = latest.ClearanceStatus switch
+                {
+                    InpatientClearanceStatuses.Revoked => "Izin kasir dicabut karena ada perubahan tagihan.",
+                    InpatientClearanceStatuses.Blocked => "Kasir menahan izin pulang.",
+                    _ => "Menunggu penyelesaian di kasir."
+                }
+            });
+        }
+        else if (latest == null)
+        {
+            view.Reasons.Add(new InpatientClearanceReasonView
+            {
+                Code = "NOT_EVALUATED",
+                Label = "Kasir belum menilai izin pulang."
+            });
+        }
+
+        return view;
     }
 
     /// <inheritdoc />

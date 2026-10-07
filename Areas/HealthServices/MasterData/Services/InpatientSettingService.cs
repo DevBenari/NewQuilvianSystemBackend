@@ -89,6 +89,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
             entity.ProgressNoteVerificationTargetHours = request.ProgressNoteVerificationTargetHours;
             entity.PendingClosureThresholdHours = request.PendingClosureThresholdHours;
             entity.DepositFollowUpIntervalDays = request.DepositFollowUpIntervalDays;
+            // BE-RWI-172: isian kosong dari layar lama mempertahankan nilai yang tersimpan.
+            if (request.PendingSurgicalHandoverAlertMinutes.HasValue)
+                entity.PendingSurgicalHandoverAlertMinutes = request.PendingSurgicalHandoverAlertMinutes.Value;
+            if (request.PendingAdmissionReferralAlertMinutes.HasValue)
+                entity.PendingAdmissionReferralAlertMinutes = request.PendingAdmissionReferralAlertMinutes.Value;
             entity.EpisodeNumberPrefix = NormalizePrefix(request.EpisodeNumberPrefix);
             entity.IsActive = request.IsActive;
             entity.Notes = NormalizeText(request.Notes);
@@ -152,6 +157,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
 
             if (request.DepositFollowUpIntervalDays is < 1 or > 365)
                 return "Ambang tindak lanjut kekurangan deposit harus antara 1 dan 365 hari.";
+
+            // BE-RWI-172 / AC 4: ambang Daftar Pantau Finishing 1–1440 menit (paling lama satu hari).
+            if (request.PendingSurgicalHandoverAlertMinutes is < 1 or > 1440)
+                return "Ambang serah terima pasca operasi tertunda harus antara 1 dan 1440 menit.";
+
+            if (request.PendingAdmissionReferralAlertMinutes is < 1 or > 1440)
+                return "Ambang permintaan admisi tertunda harus antara 1 dan 1440 menit.";
 
             if (!request.IsActive && entity.IsActive)
             {

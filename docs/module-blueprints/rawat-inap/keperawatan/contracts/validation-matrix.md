@@ -191,3 +191,41 @@ di bawah dan tidak diulang per baris.
 | `VAL-KEP-36d` | `PainReassessmentDueAt` lewat | `ReassessmentOverdue` pada progres; tidak mengubah ✓/!/○ |
 | `VAL-KEP-36e` | Butir berfrekuensi tanpa jadwal terkonfigurasi | Pesan di MAR "Jadwal pemberian untuk frekuensi {kode} belum dikonfigurasi"; tidak ada dosis terbentuk |
 | `VAL-KEP-36f` | Dosis tertaut entri intake dikoreksi menjadi selain `Administered` | `DoseCorrectionFlaggedAt` diisi; entri tampil "perlu ditinjau" — usulan `G-26` |
+
+---
+
+## 7. Perubahan pada `contract_version` `0.6.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.6.0` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
+| Traceability | `FR-RWF-054`, `055`, `058`, `060` s.d. `069`, `083` s.d. `085`, `091` s.d. `093` |
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `VAL-RWF-30` | Mulai pemakaian alat | Dokter penanggung jawab tidak berpenugasan aktif | "Dokter yang dipilih tidak sedang menangani pasien ini." | `403` |
+| `VAL-RWF-31` | Mulai pemakaian alat | Satuan `PerUse` tanpa jumlah | "Jumlah pemakaian wajib diisi untuk alat ini." | `400` |
+| `VAL-RWF-32` | Selesai atau koreksi waktu | Waktu selesai mendahului waktu mulai | "Waktu selesai tidak boleh sebelum waktu mulai." | `422` `CLI-EQP-001` |
+| `VAL-RWF-33` | Batal atau koreksi pemakaian | Invoice rawat inap bukan `OPEN` | "Tagihan pasien sudah difinalkan. Hubungi kasir untuk penyesuaian." | `422` `CLI-EQP-002` |
+| `VAL-RWF-34` | Batal atau koreksi pemakaian | Alasan kosong | "Alasan wajib diisi." | `400` |
+| `VAL-RWF-35` | Master alat | Kode alat sudah dipakai | "Kode alat sudah dipakai jenis alat lain." | `409` `MST-EQP-001` |
+| `VAL-RWF-36` | Master alat | Satuan diubah saat ada pemakaian berjalan | "Satuan tagih tidak dapat diubah selama alat ini masih dipakai pasien." | `422` `MST-EQP-002` |
+| `VAL-RWF-37` | Pembacaan WSD | Bertambah negatif | "Sisa cairan lebih kecil dari pembacaan sebelumnya. Isi volume yang dibuang bila tabung dikosongkan atau diganti." | `422` `CLI-WSD-001` |
+| `VAL-RWF-38` | Pembacaan WSD | Selang sudah dilepas | "Selang ini sudah dilepas pada {waktu}. Pembacaan baru tidak dapat dicatat." | `422` `CLI-WSD-002` |
+| `VAL-RWF-39` | Koreksi pembacaan WSD | Bukan pembacaan terakhir | "Hanya pembacaan terakhir selang ini yang dapat dikoreksi." | `422` `CLI-WSD-003` |
+| `VAL-RWF-40` | Pembacaan WSD | Jam akhir mendahului jam awal | "Jam akhir pengamatan tidak boleh sebelum jam awal." | `400` |
+| `VAL-RWF-41` | Isian surveilans | Formulir berhenti karena pasien keluar | "Surveilans berhenti karena pasien pulang pada hari ke-{N}. Isian baru tidak dapat disimpan." | `422` `CLI-SSI-001` |
+| `VAL-RWF-42` | Isian surveilans | Hari di luar 1–15 atau belum tiba | "Hari ke-{N} belum dapat diisi." | `422` `CLI-SSI-002` |
+| `VAL-RWF-43` | Isian surveilans | Isian tidak sesuai definisi formulir | "Isian tidak sesuai formulir yang berlaku: {butir}." | `422` `CLI-SSI-003` |
+| `VAL-RWF-44` | Ubah isian surveilans | Alasan koreksi kosong | "Alasan perubahan isian wajib diisi." | `400` |
+| `VAL-RWF-45` | Tandai dicurigai | Pengguna tanpa permission tinjau | "Hanya tim PPI yang dapat menandai dugaan infeksi luka operasi." | `403` |
+| `VAL-RWF-46` | Mulai monitoring | Kantong belum diserahkan kepada pasien ini | "Kantong ini belum diserahkan Bank Darah kepada pasien ini." | `422` `CLI-TRF-001` |
+| `VAL-RWF-47` | Mulai monitoring | Kantong sudah dipantau | "Kantong ini sudah memiliki catatan monitoring." | `409` `CLI-TRF-002` |
+| `VAL-RWF-48` | Titik ukur | Terlambat tanpa keterangan | "Titik ukur ini tercatat terlambat. Tulis keterangan keterlambatannya." | `422` `CLI-TRF-003` |
+| `VAL-RWF-49` | Titik ukur | Transfusi sudah dihentikan atau selesai | "Transfusi sudah dihentikan. Titik ukur tidak dapat ditambahkan." | `422` `CLI-TRF-004` |
+| `VAL-RWF-50` | Reaksi | Ringkasan kosong | "Jenis atau ringkasan reaksi wajib diisi." | `400` |
+| `VAL-RWF-51` | Diet oleh perawat | Tanpa dokter pemberi instruksi | "Dokter pemberi instruksi wajib dipilih." | `400` |
+| `VAL-RWF-52` | Diet | Dokter tidak berpenugasan aktif | "Dokter yang dipilih tidak sedang menangani pasien ini." | `403` |
+| `VAL-RWF-53` | Verifikasi diet | Bukan dokter penetap | "Hanya dokter yang memberi instruksi yang dapat memverifikasi diet ini." | `403` `GIZ-VER-001` |
+| `VAL-RWF-54` | Hentikan diet | Alasan kosong | Pesan modul Gizi yang sudah ada | `400` |

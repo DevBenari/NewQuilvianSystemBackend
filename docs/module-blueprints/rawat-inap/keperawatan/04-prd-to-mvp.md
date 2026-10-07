@@ -810,3 +810,197 @@ Awalan `KEP-V2-` supaya tidak bertabrakan dengan `KEP-MVP-*` dan `Gelombang 1A`.
 | 15 | Kontrak ringkasan tagihan dari pemilik Billing (`INT-KEP-14`) | Pemilik `BillingManagement` | `KEP-V2-4` tertahan | Tidak untuk desain; ya untuk `KEP-V2-4` |
 | 16 | Integrasi Gizi, Bank Darah, Kamar Operasi dibuka sekarang karena modulnya ada di source — sama dengan `dokter-rawat-inap` nomor 12 | Muhammad Hamzah lewat `grill-me` | Tetap "Integrasi belum tersedia" | Tidak |
 | 17 | Daftar obat high-alert termasuk insulin disahkan (`G-13`) | Pemilik klinis / Farmasi | Cek ganda tidak diminta untuk obat yang belum ditandai | **Gerbang produksi** |
+
+---
+
+## 23. Finishing Rawat Inap — revision `0.5` / kontrak `0.6.0` ★ 1 Oktober 2026
+
+Bagian ini menurunkan isi dari `02-backend-architecture.md` 12, `contracts/` bagian `0.6.0`, `data/data-dictionary.md` 12, dan `flowcharts/05` s.d. `09`. Tidak ada entity, status, permission, atau endpoint yang lahir di sini.
+
+### 23.1 Identitas dokumen
+
+| Field | Nilai |
+|---|---|
+| Produk | Quilvian — Rawat Inap, sub-modul `keperawatan` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
+| Baseline | Backend `c8e99ce5` (HEAD `425cfeae`); frontend `22ad67330` (HEAD `ee75e055b`) |
+| Masukan | `PRD-RWI-FINISHING-001` v`0.4`; decision log revision `30`; gate `1.9` |
+| Cakupan | Delapan menu keperawatan V1 tanpa menu kosong (kecuali Rehab Medik), WSD per selang, Pemakaian Alat bertagihan, Diet Medis atas instruksi, surveilans infeksi luka operasi, monitoring transfusi, dan Tagihan Pasien tanpa rupiah bagi perawat |
+
+### 23.2 Ringkasan eksekutif
+
+Perawat bekerja dengan susunan menu V1 yang sudah disetujui client, tetapi setiap data tetap disimpan di satu tempat milik modul pemiliknya. Alat besar tertagih menurut lama pemakaian, pasien pasca operasi dipantau infeksinya sampai hari ke-15, dan setiap kantong darah dipantau pada empat titik dengan reaksi yang langsung sampai ke Bank Darah.
+
+### 23.3 Masalah produk
+
+`FIN-CAP-19`, `27` s.d. `31`: Catatan Keperawatan berbeda arti dari V1; WSD hanya kategori volume; layar Efek Samping tidak ada; Diet Medis tidak punya layar; Pemakaian Alat *placeholder* tanpa master alat. Surveilans dan monitoring transfusi tidak ada sama sekali (`RWI-FACT-058`), walaupun register kejadian infeksi nosokomial sudah ada di Clinical (`02-backend-architecture.md` 12.1).
+
+### 23.4 Visi produk
+
+1. Perawat mencatat sekali → data tampil di semua jendela yang membacanya.
+2. Pembacaan WSD per selang → output cairan per selang → satu angka balance harian.
+3. Alat dipasang dan dilepas → unit dihitung server → baris invoice.
+4. Operasi selesai → formulir surveilans terbentuk → isian harian → tanda dicurigai menjadi kejadian infeksi PPI.
+5. Kantong diserahkan Bank Darah → monitoring empat titik → reaksi menjadi pemberitahuan di Bank Darah.
+
+### 23.5 Batas MVP
+
+**Titik mulai.** (1) Episode `Admitted` di bangsal. (2) Perawat membuka ruang kerja keperawatan.
+
+**Titik akhir.** (1) Pasien keluar ruangan. (2) Seluruh pemakaian alat tertutup dan tertagih. (3) Formulir surveilans berhenti atau selesai. (4) Setiap kantong darah punya catatan monitoring yang selesai atau dihentikan.
+
+### 23.6 Pelaku sasaran
+
+| Pelaku | Tanggung jawab |
+|---|---|
+| Perawat pelaksana | Mencatat WSD, pemakaian alat, surveilans, monitoring transfusi; menginput diet atas instruksi |
+| Kepala ruangan | Membatalkan dan mengoreksi pemakaian alat |
+| Dokter berpenugasan aktif | Penanggung jawab alat; pemberi instruksi dan pemverifikasi diet |
+| Tim PPI | Meninjau surveilans dan menandai dicurigai |
+| Petugas Bank Darah | Menerima pemberitahuan reaksi |
+| Admin Master Data | Mengelola master jenis alat dan tarifnya |
+
+### 23.7 Pemilihan kemampuan MVP
+
+| Kemampuan | ID kemampuan asal | Keputusan MVP |
+|---|---|---|
+| Catatan Keperawatan enam sub-menu; Obat & Alkes empat sub-tab | `CAP-RWF-09`, `FIN-CAP-27`, `28` | Wajib (`P1`) |
+| Observasi WSD per selang | `CAP-RWF-10`, `FIN-CAP-29` | Wajib (`P1`) |
+| Layar Efek Samping Obat | `CAP-RWF-11`, `FIN-CAP-30` | Wajib (`P1`) |
+| Diet Medis | `CAP-RWF-12`, `FIN-CAP-19` | Wajib (`P1`) |
+| Pemakaian Alat bertagihan | `CAP-RWF-13` (`CAP-016`), `FIN-CAP-31` | Wajib (`P1`) |
+| Surveilans infeksi luka operasi | `CAP-RWF-20` | Wajib (`P1`, `RWI-DEC-202`); dipakai untuk pasien sungguhan setelah formulir disahkan |
+| Monitoring transfusi | `CAP-RWF-21` | Wajib (`P1`, `RWI-DEC-203`); sisi Bank Darah disetujui `RWI-DEC-209` |
+| Tagihan Pasien per kelompok | `CAP-RWF-05`, `FIN-CAP-13` | Wajib (`P1`) |
+
+### 23.8 Kemampuan yang ditunda
+
+| Kemampuan | ID | Alasan | Pengganti selama MVP |
+|---|---|---|---|
+| Rehab Medik | PRD 5.4 | Modul backend belum ada | *Placeholder* tanpa data (`RWI-DEC-108`) |
+| Verifikasi dua petugas, permintaan transfusi baru, pengembalian kantong | `RWI-DEC-203` butir 7 | Pemilik alur klinis belum ditetapkan (`DEC-INP-012`) | Prosedur kertas rumah sakit; monitoring tetap tercatat |
+| Handover shift keperawatan | `CAP-014-HND` | `RWI-DEC-145` | Catatan naratif CPPT |
+| Katalog jenis reaksi berkode | `02-backend-architecture.md` 12.13 | Isinya belum disahkan klinis | Ringkasan teks reaksi |
+
+### 23.9 Alur bisnis target
+
+`FLOW-RWF-MVP-02` mengikuti `flowcharts/00-alur-utama.md` bagian 5.
+
+### 23.10 Epic dan functional requirement
+
+| Epic | FR | Disposisi backend |
+|---|---|---|
+| `EPIC-RWF-03` Tagihan Pasien (layar) | `FR-RWF-020` s.d. `025` | `EXISTING / REUSE` endpoint `integrasi-billing` `1.1.0` |
+| `EPIC-RWF-06` Catatan Keperawatan susunan V1 | `FR-RWF-050` s.d. `058` | `EXTEND` (layar, Gizi), `MISSING / NEW` (WSD), `EXISTING / REUSE` (ADR, CPPT `NoteKind`) |
+| `EPIC-RWF-07` Pemakaian Alat | `FR-RWF-060` s.d. `069` | `MISSING / NEW` (master, pemakaian), `EXTEND` (`MstTariff`, jembatan Billing) |
+| `EPIC-RWF-09` bagian surveilans dan transfusi | `FR-RWF-083` s.d. `085`, `091` s.d. `093` | `MISSING / NEW` (formulir, monitoring, kotak masuk Bank Darah), `EXISTING / REUSE` (register nosokomial, instrumen berversi) |
+
+### 23.11 Model status yang diusulkan
+
+`contracts/state-transition-matrix.md` bagian 6: pemakaian alat, selang WSD, surveilans, monitoring transfusi, pemberitahuan reaksi, verifikasi diet. Invariant `INV-RWF-10` s.d. `19`.
+
+### 23.12 Sasaran arsitektur
+
+| Dipakai ulang | Diperluas | Baru |
+|---|---|---|
+| `CliFluidBalanceEntry`, `TrxNosocomialInfection`, `CliClinicalInstrument(Version)`, `TrxPatientVitalSign`, `ClinicalMilestoneFactProducer`, `InpatientClinicalContextService`, `MstInsuranceTariff` | `MstTariff`, `GziPatientDiet`, `ClinicalInstrumentKind`, layar keperawatan | `MstMedicalEquipment`, sepuluh tabel Clinical, `BbkTransfusionReactionNotice`, adapter diet, dua worker |
+
+### 23.13 Sasaran kemampuan API
+
+Bagian dari `contracts/api-contract.md` bagian 8; tidak melebihinya.
+
+| Tag | Endpoint utama | Hak akses | Epic | Status |
+|---|---|---|---|---|
+| `Health Services / Master Data / Medical Equipment` | `GET/POST/PUT/PATCH master-data/medical-equipments` | `MedicalEquipment : Read/Create/Update` | `EPIC-RWF-07` | **Rencana (belum tersedia)** |
+| `Health Services / Clinical Management / Equipment Usage` | `POST`, `PATCH /{id}/finish`, `/cancel`, `PUT /{id}/time-correction` | `EquipmentUsage : *` | `EPIC-RWF-07` | **Rencana (belum tersedia)** |
+| `Health Services / Clinical Management / WSD Observation` | `wsd-drains`, `/{drainId}/readings` | `FluidBalance : Read/Create/Update` | `EPIC-RWF-06` | **Rencana (belum tersedia)** |
+| `Health Services / Clinical Management / Surgical Site Surveillance` | `surgical-site-surveillances`, `/entries/{dayNumber}`, `/flag-suspected` | `SurgicalSiteSurveillance : Read/Update/Review` | `EPIC-RWF-09` | **Rencana (belum tersedia)** |
+| `Health Services / Clinical Management / Transfusion Monitoring` | `transfusion-monitorings`, `/points/{pointType}`, `/reactions` | `TransfusionMonitoring : Read/Create/Update` | `EPIC-RWF-09` | **Rencana (belum tersedia)** |
+| `Health Services / Blood Bank Management / Transfusion Reaction Notice` | `transfusion-reaction-notices`, `/{id}/acknowledge` | `TransfusionReactionNotice : Read/Acknowledge` | `EPIC-RWF-09` | **Rencana (belum tersedia)** |
+| `Health Services / Inpatient Management / Inpatient Diet` | `episodes/{episodeId}/diets` | `NutritionPatientDiet : Update` | `EPIC-RWF-06` | **Rencana (belum tersedia)** |
+| `Health Services / Nutrition Management / Patient Diet` | `diets/instruction-verification-worklist`, `/{dietId}/verify-instruction` | `NutritionPatientDiet : VerifyInstruction` | `EPIC-RWF-06` | **Rencana (belum tersedia)** |
+
+### 23.14 Matriks kewenangan
+
+`contracts/permission-audit-matrix.md` bagian 7.
+
+### 23.15 Batas integrasi dan billing
+
+| Yang **MUST NOT** dibuat sendiri | Pemiliknya |
+|---|---|
+| Harga atau unit tagih di layar | `MasterData` dan Billing |
+| Tabel cairan, diet, darah, pemakaian alat, atau surveilans di Rawat Inap | Clinical, Gizi, Bank Darah |
+| Fakta "dicurigai infeksi" di luar register nosokomial | Clinical (`TrxNosocomialInfection`) |
+| Perubahan modul OK untuk membentuk surveilans | Tidak dibutuhkan; worker membaca saja |
+
+### 23.16 Guardrail regulasi
+
+| Kewajiban | Penerapan |
+|---|---|
+| Surveilans HAIs oleh tim PPI | Formulir per kasus, tanda dicurigai ke register nosokomial, daftar PPI |
+| Keselamatan transfusi | Empat titik ukur, larangan isi mundur tanpa keterangan, reaksi diberitahukan ke Bank Darah |
+| Rekam medis dan koreksi | Seluruh koreksi berversi dengan alasan; tidak ada penghapusan |
+| Pengesahan klinis | Formulir surveilans dan titik ukur transfusi tidak dipakai untuk pasien sungguhan sebelum disahkan (gate G-21) |
+
+### 23.17 Kebutuhan non-fungsional
+
+| ID | Kebutuhan |
+|---|---|
+| `NFR-RWF-06` | Kegagalan Billing atau Bank Darah tidak menggagalkan penyimpanan klinis |
+| `NFR-RWF-07` | Pemberitahuan reaksi dicoba ulang tiap 1 menit sampai terkirim |
+| `NFR-RWF-08` | Pembacaan WSD dan entri cairannya tersimpan dalam satu transaksi |
+| `NFR-RWF-09` | Seluruh perhitungan (bertambah WSD, unit alat, hari surveilans, jatuh tempo titik) di server dengan zona `Asia/Jakarta` |
+
+### 23.18 Skenario UAT
+
+| ID | Jalur | Kondisi awal | Langkah | Hasil yang diharapkan |
+|---|---|---|---|---|
+| `UAT-RWF-06` | Berhasil | Tarif ventilator kelas 2 tersedia | Ventilator 1 Okt 08.00 s.d. 3 Okt 11.00 | Tertagih 3 hari |
+| `UAT-RWF-09` | Berhasil | Satu selang | Sisa lalu 200, dibuang 300, sisa 150 | Output 250 ml masuk balance |
+| `UAT-RWF-10` | Berhasil | Invoice terbuka | Perawat lalu petugas admisi membuka Tagihan Pasien | Perawat tanpa rupiah; admisi subtotal dan total tanpa harga per item |
+| `UAT-RWF-18` | Berhasil dan gagal | Formulir disahkan, operasi selesai | Isi hari 1–3, suhu 38,5 °C hari 2, PPI menandai, pasien pulang hari 5 | Suhu terbaca; kejadian dicurigai tercatat; formulir berhenti hari 5; isian baru ditolak |
+| `UAT-RWF-19` | Berhasil dan gagal | Kantong diserahkan | Monitoring dengan reaksi menggigil; titik 1 jam terlewat | Reaksi sampai Bank Darah; titik 1 jam terlambat; isian tanpa keterangan ditolak |
+| `UAT-RWF-22` | Berhasil dan gagal | Dua selang | Dua kali pembacaan, lalu WSD kiri dilepas | Output per selang benar; pembacaan WSD kiri setelah lepas ditolak |
+| `UAT-RWF-26` | Gagal lalu berhasil | Dokter jaga berpenugasan | Perawat menyimpan diet tanpa dokter, lalu dengan dokter; dokter lain mencoba memverifikasi | Ditolak; berhasil menunggu verifikasi; verifikasi oleh dokter lain ditolak |
+| `UAT-RWF-27` | Gagal | Invoice `FINAL` | Kepala ruangan membatalkan pemakaian alat | Ditolak "tagihan sudah difinalkan" |
+| `UAT-RWF-28` | Gagal | Formulir surveilans masih `Draft` | Operasi pasien selesai | Formulir tidak dibentuk; peringatan di daftar PPI |
+| `UAT-RWF-29` | Gagal | Kantong milik pasien lain | Perawat memilih kantong itu | Kantong tidak tampil; pemanggilan langsung ditolak |
+
+### 23.19 Definition of Done
+
+| Butir | Bukti |
+|---|---|
+| Delapan menu keperawatan tanpa *placeholder* kecuali Rehab Medik | E2E `AC-RWF-050`, `056` |
+| Satu data cairan untuk Spooling Cairan, Pengawasan Harian, dan WSD | Test `AC-RWF-051`, `INV-RWF-10` |
+| Pemakaian alat tertagih dari master tarif dan tidak menyentuh tagihan farmasi | `UAT-RWF-06`; test `AC-RWF-061` |
+| Master alat dan tarifnya terisi di lingkungan uji | `02-backend-architecture.md` 12.12 |
+| Surveilans terbentuk, berhenti, dan menandai dicurigai lewat register nosokomial | `UAT-RWF-18`, `UAT-RWF-28` |
+| Formulir surveilans disahkan sebelum dipakai pasien sungguhan | Versi instrumen `Approved` beserta nama pengesah |
+| Monitoring transfusi dan pemberitahuan reaksi terbukti di Bank Darah | `UAT-RWF-19` lulus dan disaksikan petugas Bank Darah |
+| Diet atas instruksi terverifikasi dokter | `UAT-RWF-26` |
+| Regresi alur Gizi dan Bank Darah yang sudah ada nol | Test regresi `RWI-AC-303` |
+
+### 23.20 Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi | Syarat mulai |
+|---|---|---|
+| `MVP-0` (`RWF-W2` awal) | Susunan menu Catatan Keperawatan, Obat & Alkes, layar Efek Samping, narasi CPPT | Kontrak `0.6.0` disetujui |
+| `MVP-1` (`RWF-W2`) | WSD (`K9` sebagian), Diet Medis (`K10`), Tagihan Pasien | `MVP-0`; Tagihan Pasien setelah `integrasi-billing` `MVP-1` |
+| `MVP-2` (`RWF-W4`) | Master alat, tarif, pemakaian alat (`K8`, `K9`) | `integrasi-billing` jembatan `RANAP` |
+| `MVP-3` (`RWF-W7`) | Surveilans (`K9`, `K12`), monitoring transfusi sisi Clinical | `episode-rawat-inap` kasus OK `Completed` berjalan (letak layar sudah diputuskan `RWI-DEC-211`, `212`) |
+| `MVP-4` | Kotak masuk Bank Darah dan pemilihan kantong (`K11`) | Kontrak `0.6.0` disetujui (persetujuan Bank Darah sudah ada, `RWI-DEC-209`) |
+| `POST-MVP` | Alur transfusi selain monitoring; katalog reaksi berkode | Keputusan klinis |
+
+| Pertanyaan | Siapa yang menjawab | Dampak bila belum dijawab | Memblokir |
+|---|---|---|:---:|
+| ~~`RWI-OQ-115`~~ — Bank Darah menyediakan data kantong dan menerima pemberitahuan reaksi | Sukma Giri Pratama | **Disetujui `RWI-DEC-209`, 2 Oktober 2026** | Tidak lagi |
+| ~~`UI-RWF-01`, `UI-RWF-02`~~ — letak surveilans dan monitoring transfusi | Muhammad Hamzah | **Diputuskan `RWI-DEC-211`, `RWI-DEC-212`** | Tidak lagi |
+| Pengesahan isi formulir surveilans, titik ukur transfusi, pemilik PPI (G-21) | Pemilik klinis / komite PPI | Tidak dapat dipakai pasien sungguhan | Tidak untuk desain; gerbang produksi |
+| Satuan dan pembulatan setiap jenis alat | Pemilik tarif | Master alat tidak dapat diisi | Tidak untuk desain |
+
+**Penyelarasan decision log revision `31` ★ 2 Oktober 2026.** Tidak ada pertanyaan memblokir yang tersisa pada bagian 23.20. Tambahan UAT:
+
+| ID | Jalur | Langkah | Hasil |
+|---|---|---|---|
+| `UAT-RWF-34` | Berhasil | Pasien dengan kasus OK `Completed` dan pasien tanpa operasi dibuka di ruang kerja keperawatan | Sub-tab surveilans hanya tampil pada pasien pertama; monitoring transfusi dibuka dari tab Bank Darah Penunjang Medis (`RWI-AC-339`) |
+| `UAT-RWF-35` | Berhasil | Pasien dari Poli Bedah dioperasi lalu dirawat; perawat membuka Tagihan Pasien | Kelompok Operasi memuat baris operasi berlabel "dari kunjungan Poli Bedah" tanpa rupiah (`RWI-AC-330`) |

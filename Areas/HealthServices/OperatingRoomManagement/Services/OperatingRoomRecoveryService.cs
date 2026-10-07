@@ -1,6 +1,8 @@
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
@@ -32,14 +34,39 @@ public sealed class OperatingRoomRecoveryService
 
     private readonly OperatingRoomRuleRelaxation _relaxation;
 
+    /// <summary>
+    /// Bacaan lokasi bed milik Rawat Inap (<c>BE-RWI-177</c>, <c>INV-RWF-28</c>); OK tidak membaca
+    /// tabel penempatan secara langsung.
+    /// </summary>
+    private readonly InpPatientLocationQuery _patientLocation;
+
+    /// <summary>422 — pasien belum menempati bed aktif di unit tujuan (API 11.5.2).</summary>
+    public const string PatientNotInDestinationCode = "OPR-HO-001";
+
+    /// <summary>422 — pengirim tidak dapat menerima atau menolak serah terimanya sendiri (API 11.5.2).</summary>
+    public const string SenderCannotReceiveCode = "OPR-HO-002";
+
+    /// <summary>Efek kasus selesai sesudah commit (<c>BE-RWI-179</c>).</summary>
+    private readonly OperatingRoomCompletionEffects _completionEffects;
+
+    /// <summary>
+    /// Permintaan admisi Rawat Inap dari keputusan kamar pulih (<c>BE-RWI-181</c>; panggilan dari OK
+    /// disetujui Ikbal Yulianto, <c>RWI-DEC-208</c>).
+    /// </summary>
+    private readonly InpAdmissionReferralService _admissionReferrals;
+
     public OperatingRoomRecoveryService(ApplicationDbContext dbContext,
         IHttpContextAccessor httpContextAccessor, LoggerService loggerService,
-        OperatingRoomRuleRelaxation relaxation)
+        OperatingRoomRuleRelaxation relaxation, InpPatientLocationQuery patientLocation,
+        OperatingRoomCompletionEffects completionEffects, InpAdmissionReferralService admissionReferrals)
     {
         _relaxation = relaxation;
         _dbContext = dbContext;
         _httpContextAccessor = httpContextAccessor;
         _loggerService = loggerService;
+        _patientLocation = patientLocation;
+        _completionEffects = completionEffects;
+        _admissionReferrals = admissionReferrals;
     }
 
     public async Task<OprAnesthesiaRecordResponse> SaveAnesthesiaRecordAsync(Guid caseId,
@@ -164,7 +191,9 @@ public sealed class OperatingRoomRecoveryService
         {
             EnsureSameCase(prior, caseId);
             EnsureSameFingerprint(prior.Source, fingerprint);
-            return (await GetRecoveryAsync(caseId, cancellationToken))!;
+            var replay = (await GetRecoveryAsync(caseId, cancellationToken))!;
+            replay.AdmissionReferralState = (await _admissionReferrals.GetStateForCaseAsync(caseId, cancellationToken)).ToString();
+            return replay;
         }
 
         var entity = await LoadCaseAsync(caseId, cancellationToken)
@@ -224,8 +253,46 @@ public sealed class OperatingRoomRecoveryService
                 entity.Id, entity.CaseNumber, ActorUserId = actorUserId, RecoveryStatus = recovery.Status.ToString(),
                 Decision = recovery.Decision.ToString(), CorrelationId = request.IdempotencyKey.Trim()
             });
-        return (await GetRecoveryAsync(caseId, cancellationToken))!;
+
+        // BE-RWI-181 / backend 12.5: sesudah commit, keputusan Inpatient/Icu untuk pasien tanpa episode
+        // hadir membuat permintaan admisi; keputusan yang berubah dari itu membatalkannya. Tidak pernah
+        // membuat episode. Gagal tidak membatalkan simpanan kamar pulih yang sudah sah.
+        var referralState = InpAdmissionReferralState.NotNeeded;
+        if (request.Decision.HasValue)
+        {
+            try
+            {
+                referralState = request.Decision is OprRecoveryDecision.Inpatient or OprRecoveryDecision.Icu
+                    ? await _admissionReferrals.CreateFromRecoveryAsync(entity.Id, actorUserId, cancellationToken)
+                    : await _admissionReferrals.CancelFromRecoveryAsync(entity.Id,
+                        $"Keputusan kamar pulih berubah menjadi {DecisionLabel(request.Decision.Value)}.",
+                        actorUserId, cancellationToken);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                referralState = await _admissionReferrals.GetStateForCaseAsync(entity.Id, cancellationToken);
+                await _loggerService.AuditAsync(LogCategory, "OperatingRoomRecovery.AdmissionReferral.Error",
+                    "Permintaan admisi dari keputusan kamar pulih gagal diproses dan perlu diulang.",
+                    new { entity.Id, entity.CaseNumber, ExceptionType = exception.GetType().Name });
+            }
+        }
+        else
+        {
+            referralState = await _admissionReferrals.GetStateForCaseAsync(entity.Id, cancellationToken);
+        }
+
+        var response = (await GetRecoveryAsync(caseId, cancellationToken))!;
+        response.AdmissionReferralState = referralState.ToString();
+        return response;
     }
+
+    private static string DecisionLabel(OprRecoveryDecision decision) => decision switch
+    {
+        OprRecoveryDecision.Inpatient => "rawat inap",
+        OprRecoveryDecision.Icu => "ICU",
+        OprRecoveryDecision.OtherUnit => "unit lain",
+        _ => "pulang dari kamar pulih"
+    };
 
     public async Task<OprRecoveryResponse?> GetRecoveryAsync(Guid caseId, CancellationToken cancellationToken = default)
     {
@@ -342,6 +409,19 @@ public sealed class OperatingRoomRecoveryService
             throw new OperatingRoomConflictException("InvalidStateTransition",
                 "Serah terima ini sudah diproses unit tujuan.");
 
+        // BE-RWI-177 / INV-RWF-28 / VAL-RWF-84: penerima (atau penolak) selalu akun lain dari pengirim.
+        if (handover.SentBy == actorUserId)
+            throw new OperatingRoomUnprocessableException(SenderCannotReceiveCode,
+                "Pengirim tidak dapat menerima serah terima sendiri");
+
+        // VAL-RWF-85: menerima menuntut pasien sudah menempati bed aktif di unit tujuan. Menerima
+        // TIDAK memindahkan bed (RWI-DEC-177 butir 6) — tarif kamar bed asal tetap berjalan selama di OK.
+        // Menolak tidak membutuhkan syarat ini.
+        if (request.Accept &&
+            !await _patientLocation.IsPatientInUnitAsync(entity.PatientId, handover.DestinationUnitId, cancellationToken))
+            throw new OperatingRoomUnprocessableException(PatientNotInDestinationCode,
+                "Pindahkan pasien ke tempat tidur di unit ini lewat Transfer Pasien sebelum menerima serah terima");
+
         var now = DateTime.UtcNow;
         if (request.Accept)
         {
@@ -364,6 +444,7 @@ public sealed class OperatingRoomRecoveryService
             await EvaluateCompletionAsync(entity, actorUserId, now, request.IdempotencyKey, cancellationToken);
         await SaveAsync(cancellationToken);
 
+        var caseCompleted = entity.Status == OprCaseStatus.Completed;
         await _loggerService.AuditAsync(LogCategory, "OperatingRoomRecovery.AcceptHandover",
             "Memproses penerimaan serah terima pasien.",
             new
@@ -372,6 +453,24 @@ public sealed class OperatingRoomRecoveryService
                 HandoverStatus = handover.Status.ToString(), Status = entity.Status.ToString(),
                 CorrelationId = request.IdempotencyKey.Trim()
             });
+
+        // BE-RWI-179 / backend 12.5: sesudah commit, kasus yang baru selesai menjalankan efeknya —
+        // order tindakan diselesaikan dan komponen biaya OK dikirim ke Billing. Gagal tidak
+        // membatalkan penerimaan: dicatat, dan delivery yang gagal diantrekan ulang lewat retry OK.
+        if (caseCompleted)
+        {
+            try
+            {
+                await _completionEffects.ApplyAsync(entity.Id, actorUserId, cancellationToken);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                await _loggerService.AuditAsync(LogCategory, "OperatingRoomCompletion.ApplyEffects.Error",
+                    "Efek kasus operasi selesai gagal dijalankan dan perlu diulang.",
+                    new { entity.Id, entity.CaseNumber, ExceptionType = exception.GetType().Name });
+            }
+        }
+
         return (await GetStatusResponseAsync(caseId, cancellationToken))!;
     }
 

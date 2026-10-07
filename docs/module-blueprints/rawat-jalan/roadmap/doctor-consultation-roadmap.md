@@ -1049,3 +1049,67 @@ Quilvian (`RJ-DOC-FE-006`, `RJ-DOC-FE-010`).
 
 Sama dengan `04-prd-to-mvp.md` *Amendment KT* KT-7: kedua task `✅`, `AT-KT-01`..`11` lulus atau
 dinyatakan `NOT FEASIBLE` beserta sebabnya, dan hitungan `RJ-DOC-OQ-012` dilaporkan.
+
+## 14. Revisi `2026-10-06` — Pendaftaran Pasien Rawat Jalan oleh petugas (Amendment PR)
+
+| Field | Isi |
+| --- | --- |
+| **Sumber requirement** | Sukma Giri, 6 Okt 2026: fitur pendaftaran pasien Rawat Jalan dengan tampilan sama seperti Pendaftaran Pasien IGD |
+| **Keputusan** | `RJ-DOC-DEC-034`..`039` ([00-interview-decisions.md](../00-interview-decisions.md), *Amendment PR*) |
+| **Kontrak** | Endpoint yang sudah ada, tanpa perubahan: `POST /patient-encounters/admin` (`PatientEncounterCreateRequest`), `GET /clinics/admin/options`, `GET /doctor-schedules/admin` (daftar admin; `admin/options` tidak membawa masa berlaku jadwal — lihat laporan task), serta endpoint pasien dan penjamin yang sudah dipakai Pendaftaran IGD |
+| **`IMPLEMENTATION_AUTHORITY`** | `GRANTED` untuk `RJ-DOC-REV-FE-013` (`RJ-DOC-DEC-038`). Tanpa backend, migration, commit, push, merge, deploy |
+| **Migration** | Tidak ada |
+
+### Grafik Urutan Dependency
+
+```text
+RJ-DOC-REV-FE-013 ✅
+```
+
+| Gelombang | Task | Boleh mulai bila |
+| ---: | --- | --- |
+| 1 | `RJ-DOC-REV-FE-013` | Wewenang diberikan (`RJ-DOC-DEC-038`) |
+
+### 14.1 Task frontend
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| ✅ `RJ-DOC-REV-FE-013` | **Layar Pendaftaran Pasien Rawat Jalan.** Route `/health-services/registration-management/outpatient-registration`; butir menu *Pendaftaran Pasien* paling atas pada menu Rawat Jalan dengan `requiredPermission` `PatientEncounter : Create`. Alur dan tampilan sama dengan Pendaftaran Pasien IGD; langkah 2 *Data Kunjungan*: tanggal kunjungan (hari ini atau mendatang), poliklinik, jadwal dokter pada tanggal itu, jenis kunjungan (`RJ-DOC-DEC-036`), keluhan utama. Submit ke `POST /patient-encounters/admin` dengan `encounterType` Outpatient | — | 1. Pasien lama dan pasien baru dapat didaftarkan; encounter Outpatient berklinik terbentuk dengan nomor antrean bila klinik memakai antrean. 2. Jadwal dokter wajib hanya bila klinik `IsDoctorRequired` (`RJ-DOC-DEC-035`). 3. Hari ini terkirim sebagai walk-in; tanggal mendatang sebagai appointment (`RJ-DOC-DEC-037`). 4. Tunai, asuransi, dan penjamin perusahaan berjalan seperti IGD. 5. Penolakan backend tampil sebagai pesan di langkah Verifikasi. 6. Layar Pendaftaran IGD tidak berubah | Lint tanpa error baru; `npm run build` `PASS`; uji layar terhadap backend lokal dan `QuilvianNewDevSukma` | ✅ `COMPLETE` `2026-10-06` — ESLint `0 error, 0 warning`, `npm run build` `PASS`, UI GATE REUSE 4 / EXTEND 3 / COMPOSE 2 / NEW 0; uji layar Playwright `28/28 PASS` (pasien lama/baru, walk-in/appointment, tunai/asuransi/perusahaan, penolakan backend, IGD tidak berubah). AC 2 cabang dokter opsional hanya terbukti lewat kode (seluruh poliklinik DB uji `IsDoctorRequired`). Delta: jadwal dari `GET /doctor-schedules/admin`. Data uji dibatalkan; pasien `00-00-00-17` tersisa. Revisi `RJ-DOC-DEC-039` (6 Okt 2026): poliklinik hanya yang buka pada tanggal kunjungan, tanpa kode; tombol RJ tanpa ikon; tombol kembali bergaris primary — ESLint `0 error, 0 warning`, `npm run build` `PASS`, uji layar `20/20 PASS`, IGD tidak berubah. Revisi Input Manual menggulir ke form pasien baru (RJ saja): build `PASS`, uji layar `3/3 PASS`. Branch `sukmagpV2`, belum di-commit. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-013.md) |
+
+## 15. Revisi `2026-10-06` — Scan kartu penjamin pada Pendaftaran Rawat Jalan (Amendment SK)
+
+| Field | Isi |
+| --- | --- |
+| **Sumber requirement** | Sukma Giri, 6 Okt 2026: tombol scan kartu polis/asuransi pada tabel penjamin, foto disimpan seperti scan kiosk, field scan pada modal *Daftarkan Penjamin Baru* |
+| **Keputusan** | `RJ-DOC-DEC-040`..`043` ([00-interview-decisions.md](../00-interview-decisions.md), *Amendment SK*) |
+| **Kontrak** | Delta pada endpoint penjamin pasien yang sudah ada: `cardImageBase64` opsional pada `POST` create, endpoint baru `PATCH /{id}/card-image`, dan `cardImagePath` pada response. Rincian per task di bawah |
+| **`IMPLEMENTATION_AUTHORITY`** | `GRANTED` dalam `CROSS-REPO MODE` (`RJ-DOC-DEC-043`). Tanpa commit, push, merge, deploy |
+| **Migration** | `BE-013` tidak ada. `BE-014` menambah satu kolom nullable; pembuatan dan eksekusinya butuh izin terpisah |
+| **Verifikasi** | Pola Bank Darah: tanpa project test; build, QBE, EF, dan runtime HTTP terhadap `QuilvianNewDevSukma` |
+
+Legenda tanda status: `✅` selesai, `🟡` sebagian, `⛔` terblokir, tanpa tanda = belum dimulai.
+
+### Grafik Urutan Dependency
+
+```text
+RJ-DOC-REV-BE-013 ✅ ─> RJ-DOC-REV-BE-014 ✅ ─> RJ-DOC-REV-FE-014 ✅
+```
+
+| Gelombang | Task | Boleh mulai bila |
+| ---: | --- | --- |
+| 1 | `RJ-DOC-REV-BE-013` | Wewenang diberikan (`RJ-DOC-DEC-043`) |
+| 2 | `RJ-DOC-REV-BE-014` | `BE-013` selesai (memakai service penyimpan kartu yang sama) dan izin migration |
+| 3 | `RJ-DOC-REV-FE-014` | `BE-013` dan `BE-014` selesai |
+
+### 15.1 Task backend
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| ✅ `RJ-DOC-REV-BE-013` | **Simpan foto kartu asuransi pasien.** (1) Service `PatientPayerCardImageService` menulis base64 gambar kartu ke storage `FileStorage` (`/uploads/patient-payer-cards/<patientId>/...`) dengan validasi ukuran dan format gambar. (2) `CreatePatientInsuranceRequest.CardImageBase64` opsional; bila diisi, `CardImagePath` diisi path file tersimpan. (3) `PATCH /patient-insurances/{id}/card-image` dan `admin/{id}/card-image` dengan `[AccessPermission("PatientInsurance", "Update")]` | — | 1. Create dengan `cardImageBase64` menghasilkan file dan `cardImagePath` publik. 2. `PATCH card-image` mengganti `cardImagePath` asuransi yang ada. 3. Base64 rusak, bukan gambar, atau melebihi batas ditolak `400`. 4. Id tidak ada → `404`. 5. Create tanpa gambar dan endpoint lain tidak berubah | Build tanpa error baru; EF tanpa perubahan model; runtime HTTP terhadap `QuilvianNewDevSukma` | ✅ `COMPLETE` `2026-10-06` — build Release `0 Error` (239 warning, nol pada berkas disentuh), EF tanpa perubahan model, QBE Strict `PASS` (9 berkas), runtime `14/14 PASS` (R0–R13). Uji memakai harness seeder sementara karena DB uji tertinggal 19 migration modul lain; `Program.cs` dipulihkan. Tanpa migration. [Laporan](../task/report/backend/RJ-DOC-REV-BE-013.md) |
+| ✅ `RJ-DOC-REV-BE-014` | **Simpan foto kartu penjamin perusahaan pasien.** Kolom `MstPatientCompanyGuarantor.CardImagePath varchar(500) null` beserta configuration dan migration; `CardImageBase64` opsional pada create; `PATCH /patient-company-guarantors/{id}/card-image` dan `admin/{id}/card-image` dengan `[AccessPermission("PatientCompanyGuarantor", "Update")]`; `cardImagePath` pada response list/detail | `BE-013` | Sama dengan `BE-013` AC 1–5 untuk penjamin perusahaan; migration hanya menambah kolom tersebut | Build; migration ter-generate hanya kolom itu; runtime HTTP | ✅ `COMPLETE` `2026-10-06` — build Release `0 Error`, migration `20261006092040_AddCardImagePathToPatientCompanyGuarantor` hanya kolom itu, diterapkan ke `QuilvianNewDevSukma` lewat script idempoten satu migration (`RJ-DOC-DEC-044`; 19 migration lain tetap pending), EF tanpa perubahan model, QBE Strict `PASS`, runtime `7/7 PASS` (C1–C7). Delta: `PUT` tanpa `cardImagePath` mempertahankan kartu. [Laporan](../task/report/backend/RJ-DOC-REV-BE-014.md) |
+
+### 15.2 Task frontend
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| ✅ `RJ-DOC-REV-FE-014` | **Scan kartu penjamin di Pendaftaran Rawat Jalan.** Kolom *Kartu* sebelum Status pada tabel penjamin: *Scan Kartu* (belum ada gambar) atau *Lihat Kartu* (sudah ada). Hasil scan Plustek langsung disimpan lewat `PATCH card-image`. Preview kartu tersimpan pada panel *Penjamin Dipilih*. Field scan kartu pada modal *Daftarkan Penjamin Baru*, terkirim sebagai `cardImageBase64`. Menggantikan perubahan sementara tombol scan di header tabel | `BE-013`, `BE-014` | 1. Penjamin tanpa kartu menampilkan *Scan Kartu*; setelah scan berhasil, tombol berubah menjadi *Lihat Kartu* tanpa muat ulang. 2. Penjamin yang kartunya sudah tersimpan langsung menampilkan *Lihat Kartu* dan preview setelah halaman dibuka ulang. 3. Penjamin baru dengan kartu hasil scan tersimpan bersama gambar kartunya. 4. Kegagalan scanner atau backend tampil sebagai pesan. 5. Pendaftaran IGD tidak berubah | ESLint tanpa error baru; `npm run build` `PASS`; uji layar terhadap backend lokal | ✅ `COMPLETE` `2026-10-06` — ESLint `0 error` (4 warning lama di kode yang tidak diubah), `npm run build` `PASS`, unit test modul pendaftaran `46/46 PASS` (suite penuh 8 gagal di modul lain), UI GATE REUSE 4 / COMPOSE 2 / WRAP 1 / NEW 0, uji layar Playwright `15/15 PASS` terhadap backend `BE-013`/`BE-014` dengan agent Plustek **tiruan**. AC 5 (IGD tidak berubah) terbukti lewat kode. Belum diuji dengan scanner fisik. Perubahan sementara tombol header dibuang. Branch `sukmagpV2`, belum di-commit. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-014.md) |

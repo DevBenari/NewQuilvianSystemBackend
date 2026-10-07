@@ -16,6 +16,11 @@ public class GziNutritionOrderConfiguration : IEntityTypeConfiguration<GziNutrit
         builder.Property(x => x.ReasonForReferral).HasMaxLength(1000).IsRequired();
         builder.Property(x => x.ClosingNote).HasMaxLength(2000);
         builder.Property(x => x.Version).IsConcurrencyToken();
+        builder.Property(x => x.InstructionVerificationStatus).HasConversion<int>()
+            .HasDefaultValue(GziInstructionVerificationStatus.NotRequired);
+        builder.HasIndex(x => x.InstructionVerificationStatus);
+        builder.HasOne<QuilvianSystemBackend.Models.ApplicationUser>().WithMany()
+            .HasForeignKey(x => x.InstructionVerifiedByUserId).OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(x => x.OrderNumber).IsUnique();
         builder.HasIndex(x => new { x.PatientId, x.RequestedAt });
@@ -138,6 +143,10 @@ public class GziPatientDietConfiguration : IEntityTypeConfiguration<GziPatientDi
     public void Configure(EntityTypeBuilder<GziPatientDiet> builder)
     {
         builder.ToTable("GziPatientDiet", "public");
+        builder.Property(x => x.InstructionVerificationStatus).HasConversion<int>().HasDefaultValue(GziInstructionVerificationStatus.NotRequired);
+        builder.HasIndex(x => x.InstructionVerificationStatus);
+        builder.HasOne<QuilvianSystemBackend.Models.ApplicationUser>().WithMany()
+            .HasForeignKey(x => x.InstructionVerifiedByUserId).OnDelete(DeleteBehavior.Restrict);
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Instruction).HasMaxLength(1000);

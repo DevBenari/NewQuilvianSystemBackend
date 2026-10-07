@@ -333,3 +333,47 @@ Tiga isian baru **tidak wajib**. Menambahkannya ke syarat tanda tangan menunggu 
 | `VAL-INP-15` | Ada pesanan tindakan tertunda yang sudah ditagih | Peringatan `BILLED_PENDING_PROCEDURE_ORDERS`; tidak dibatalkan; masuk daftar pantau |
 | `VAL-INP-16` | Ada dosis obat lewat jadwal belum dicatat | Peringatan `UNRECORDED_PAST_DOSES`; tidak dibatalkan |
 | `VAL-INP-17` | Salah satu langkah 4–6 gagal | Seluruh penutupan batal; `500` "Penutupan gagal disimpan, coba lagi" |
+
+---
+
+## 14. Perubahan pada `contract_version` `0.10.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.10.0` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
+| Traceability | `FR-RWF-040` s.d. `049`, `071`, `080` s.d. `082`, `086` s.d. `090` |
+
+Kalimat pesan di bawah adalah bunyi yang dilihat pengguna. Kode `400` untuk bentuk isian; `422` untuk aturan bisnis; `403` untuk hak akses.
+
+| ID | Aturan | Endpoint | Kode | Pesan |
+|---|---|---|---|---|
+| `VAL-RWF-70` | Order tindakan wajib ada, aktif, dan milik kunjungan episode | `POST episodes/{id}/surgery-bookings` | `422` `INP-SRG-001` | "Tindakan operasi belum dipesan dokter" |
+| `VAL-RWF-71` | Episode harus `Admitted` | Sama | `422` `INP-SRG-002` | "Pemesanan ruang bedah hanya untuk pasien yang sedang dirawat" |
+| `VAL-RWF-72` | Tab Obgyn selalu `Obstetric`; tab Bedah Operasi selalu `General` — isian dari klien diabaikan | Sama | — | — |
+| `VAL-RWF-73` | `PreferredAt` tidak lebih dari 15 menit di masa lalu | Sama | `400` | "Tanggal dan jam operasi yang diinginkan sudah lewat" |
+| `VAL-RWF-74` | Sisi penandaan = `OprCase.Laterality` bila sisi kasus bukan `NotApplicable` | `PUT ward-pre-op/draft`, `PATCH send`, `PATCH confirm` | `422` `OPR-WPO-001` | "Sisi penandaan berbeda dengan sisi pada pesanan operasi" |
+| `VAL-RWF-75` | Penerima pra-operasi ≠ pengirim | `PATCH ward-pre-op/confirm` | `422` `OPR-WPO-002` | "Pengirim dan penerima harus akun yang berbeda" |
+| `VAL-RWF-76` | Semua butir wajib dikonfirmasi pengirim sebelum dikirim | `PATCH ward-pre-op/send` | `422` `OPR-WPO-003` | "Butir wajib belum lengkap: {daftar butir}" |
+| `VAL-RWF-77` | Pra-operasi tidak dapat diubah pada kasus `InProgress`, `Completed`, `Rejected`, `Cancelled` | Semua tulis pra-operasi | `422` `OPR-WPO-004` | "Catatan pra-operasi tidak dapat diubah pada kasus ini" |
+| `VAL-RWF-78` | Kirim butuh tanda vital tercatat untuk episode | `PATCH ward-pre-op/send` | `422` `OPR-WPO-005` | "Catat tanda vital pasien lebih dulu" |
+| `VAL-RWF-79` | Titik penandaan: `X`, `Y` 0–100; minimal satu titik bila sisi bukan `NotApplicable` | `PUT ward-pre-op/draft` | `400` | "Tandai area operasi pada gambar tubuh" |
+| `VAL-RWF-80` | Gerbang "Siap": versi terbaru `Confirmed`, bukan `NeedsUpdate` | Kesiapan OK | `422` (kendala) | "Catatan pra-operasi belum dikonfirmasi" / "Catatan pra-operasi perlu diperbarui setelah penundaan" |
+| `VAL-RWF-81` | Tolak order hanya dari `Requested` | `PATCH cases/{id}/reject` | `422` `OPR-CASE-REJ-001` | "Hanya pesanan berstatus Diminta yang dapat ditolak" |
+| `VAL-RWF-82` | Alasan tolak 10–500 karakter | Sama | `400` | "Isi alasan penolakan" |
+| `VAL-RWF-83` | Kasus `Rejected` tidak dapat diubah | `PUT`, `schedule`, `postpone`, `cancel`, `start` | `422` `OPR-CASE-REJ-002` | "Kasus yang ditolak tidak dapat diubah; pesan ulang sebagai kasus baru" |
+| `VAL-RWF-84` | Penerima serah terima pasca operasi ≠ pengirim | `PATCH handovers/{id}/accept` | `422` `OPR-HO-002` | "Pengirim tidak dapat menerima serah terima sendiri" |
+| `VAL-RWF-85` | Pasien menempati bed aktif di unit tujuan sebelum diterima (tolak tidak butuh syarat ini) | Sama, `Accept = true` | `422` `OPR-HO-001` | "Pindahkan pasien ke tempat tidur di unit ini lewat Transfer Pasien sebelum menerima serah terima" |
+| `VAL-RWF-86` | Tolak serah terima wajib beralasan | Sama, `Accept = false` | `422` (sudah ada) | Tetap |
+| `VAL-RWF-87` | Admisi pasien yang punya permintaan `Pending` wajib merujuknya | `POST episodes` | `409` `INP-ADM-REF-001` | "Pasien punya permintaan admisi dari kamar pulih; buka admisi dari permintaan itu" |
+| `VAL-RWF-88` | Permintaan yang dirujuk harus `Pending` dan milik pasien yang sama | Sama | `422` `INP-ADM-REF-002` | "Permintaan admisi ini sudah selesai atau dibatalkan" |
+| `VAL-RWF-89` | Pembatalan permintaan oleh OK beralasan | Panggilan OK | — (kesalahan program bila kosong) | — |
+| `VAL-RWF-90` | Periode laporan wajib dan ≤ 31 hari | `GET reports/room-transfers`, `/export` | `400` | "Pilih periode paling lama 31 hari" |
+| `VAL-RWF-91` | Penerima serah terima transfer ≠ pengirim; pasien di unit tujuan | `PATCH transfer-handovers/{id}/accept` | `422` `CLI-TRH-001`, `CLI-TRH-002` | "Pengirim tidak dapat menerima serah terima sendiri" / "Penerima harus bertugas di unit tujuan pasien" |
+| `VAL-RWF-92` | Tolak serah terima transfer beralasan | Sama | `400` | "Isi alasan penolakan" |
+| `VAL-RWF-93` | Ambang daftar pantau 1–1440 menit | `PUT master-data/inpatient-settings` | `400` | "Batas waktu harus 1 sampai 1440 menit" |
+| `VAL-RWF-94` | Kode butir persiapan unik | `POST/PUT master-data/surgical-preparation-items` | `409` `MST-SPI-001` | "Kode butir sudah dipakai" |
+
+**Aturan waktu.** Seluruh waktu disimpan UTC dan ditampilkan Asia/Jakarta, sama dengan bagian 11. "Lamanya menunggu" pada daftar pantau dihitung server dari `SentAt` atau `RequestedAt` terhadap waktu server.
+
+**Penyelarasan decision log revision `31` ★ 2 Oktober 2026.** `VAL-RWF-71`, `VAL-RWF-87`, dan `VAL-RWF-90` beserta aturan ambang `VAL-RWF-93` disahkan pemilik lewat `RWI-DEC-220`; bunyi dan kodenya tidak berubah.

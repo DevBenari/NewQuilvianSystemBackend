@@ -148,9 +148,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
     }
 
     /// <summary>
-    /// Pilihan master tindakan khusus kebutuhan klinis dokter rawat jalan.
-    /// Endpoint klinis menggunakan DTO ini agar dokter tidak memerlukan akses
-    /// langsung ke halaman master data Procedure.
+    /// Pilihan master tindakan khusus kebutuhan klinis dokter & keperawatan rawat jalan maupun rawat inap.
+    /// Endpoint klinis menggunakan DTO ini agar klinisi tidak memerlukan akses
+    /// langsung ke halaman master data Procedure, lengkap dengan resolusi tarif acuan rumah sakit.
     /// </summary>
     public class PatientProcedureMasterOptionResponse
     {
@@ -163,6 +163,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public bool IsNeedApproval { get; set; }
         public bool IsSurgery { get; set; }
         public int EstimatedDurationMinutes { get; set; }
+
+        public decimal Tariff { get; set; }
+        public decimal TotalPrice { get; set; }
+        public Guid? TariffPatientClassId { get; set; }
+        public string CoverageStatus { get; set; } = "Tarif RS";
     }
 
     public class PatientProcedureOptionResponse

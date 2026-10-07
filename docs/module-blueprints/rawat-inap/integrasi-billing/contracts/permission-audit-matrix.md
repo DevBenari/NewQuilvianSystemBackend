@@ -56,3 +56,82 @@ Seluruh tindakan yang mempengaruhi status keuangan, durasi sewa kamar, atau pemu
 ## 4. Kebijakan Retensi Log Audit
 - Log audit mutasi kamar dan supervisor override disimpan secara permanen (**retensi minimum 10 tahun** sesuai regulasi rekam medis dan keuangan rumah sakit Indonesia).
 - Log outbox yang telah berstatus `Published` disimpan selama **30 hari** sebelum dipindahkan ke tabel arsip historis.
+
+---
+
+## 5. Perubahan pada `contract_version` `1.1.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `1.1.0` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
+| Traceability | `FR-RWF-001`, `005`, `017`, `019`, `022`, `024`; `RWI-DEC-170`, `187`, `192` (f); `PR-RWF-07` |
+
+**Bagian 1 s.d. 3 di atas tidak berlaku lagi.** Keenam string pada bagian 1 (`InpatientNurse:Read`, `InpatientNurse:Write`, `InpatientSupervisor:Override`, `InpatientBilling:View`, `BillingStaff:Write`) tidak pernah ada di source dan tidak dipakai. Pemetaan endpoint ke hak akses hanya hidup di kolom `Hak akses` pada `api-contract.md` bagian 3; berkas ini tidak mengulangnya.
+
+### 5.1 Cara kerja hak akses di repository ini
+
+| Unsur | Rujukan source | Arti bagi desain |
+|---|---|---|
+| `[AccessPermission("Resource", "Action")]` pada setiap endpoint | `Attributes/AccessPermissionAttribute.cs`, ditegakkan `Filters/AccessPermissionFilter.cs` lewat `AccessPermissionService.HasAccessAsync` | Satu-satunya penjaga; nama peran tidak pernah dibaca |
+| Registry permission | `Services/Security/PermissionRegistryDescriptor.cs` | Baris registry **hanya** lahir dari atribut endpoint. Karena itu hak lihat rupiah dibuat sebagai endpoint sendiri (`…/amounts`), bukan pemeriksaan di dalam service |
+| `[AccessAction]` | `Attributes/AccessActionAttribute.cs` | Metadata tampilan pada layar Akses Role |
+| Endpoint tanpa penjaga | `KnownUnenforcedBusinessEndpoints` kosong | Webhook `[AllowAnonymous]` yang dihapus adalah satu-satunya penyimpangan di area ini |
+
+### 5.2 Permission baru, diubah, dan dicabut
+
+| Resource : Action | Status | Dipakai untuk |
+|---|---|---|
+| `PatientBillingSummary : ViewAmount` | **Baru** | Endpoint `…/amounts` ringkasan dan rincian tagihan bangsal |
+| `PatientBillingSummary : Read` | Sudah ada | Ringkasan dan rincian tanpa rupiah |
+| `InpatientBedOccupancy : Correct` | **Baru** | Koreksi salah catat penempatan |
+| `InpatientIntegrationOutbox : Read` | **Baru** | Pemantauan outbox |
+| `InpatientIntegrationOutbox : Replay` | **Baru** | Putar ulang saat rilis |
+| `InpatientDischarge : RecordDeparture`, `: Close`, `: CloseOverride`, `: Read`, `: ReadFinancialClearance` | Sudah ada | Perilaku endpoint berubah, string tetap |
+| `InpatientBillingOperational : Read` | Sudah ada | `billing-status` |
+| `InpatientMonitoring : Read` | Sudah ada | Daftar "pulang sebelum izin kasir" |
+| `BillingInvoice : Read`, `: Update` | Sudah ada | Antrean "perlu diperiksa" dan penyelesaiannya |
+| `InpatientDischargeClearance : SupervisorOverride`, `: ConfirmPhysicalDischarge` | **Dicabut** | Endpoint-nya dihapus. Baris registry lama dinonaktifkan oleh seeder |
+| `InpatientBillingOperational : ViewBillingDetails` | **Dicabut** | Endpoint `billing-details` dihapus |
+| `InpatientDischarge : MarkFinancialClearance` | **Dicabut** | Endpoint tulis tanda manual dihapus |
+| `BillingInpatient : Create` | **Dicabut** untuk `occupancy-charges` | Endpoint dihapus. Bila Resource/Action ini tidak dipakai endpoint lain, barisnya ikut nonaktif |
+
+**Penyelarasan tiga nama hak lihat rupiah (`RWI-DEC-170` butir 6).** `PatientBillingSummary : Read` (`RWI-DEC-154`) tetap menjadi hak baca rincian. `InpatientBilling:View` (`RWI-DEC-160`) dan `InpatientBillingOperational : ViewBillingDetails` (PRD) **digantikan** `PatientBillingSummary : ViewAmount`.
+
+### 5.3 Peta peran ke butir hak akses
+
+Pemberian nyata dilakukan Admin Akses Role (`FIN-UNK-05`). Tabel ini adalah peta yang dianjurkan desain, bukan data seed.
+
+| Peran rumah sakit | `PatientBillingSummary : Read` | `PatientBillingSummary : ViewAmount` | `InpatientDischarge : RecordDeparture` | `InpatientDischarge : Close` | `InpatientDischarge : CloseOverride` | `InpatientBedOccupancy : Correct` | `InpatientMonitoring : Read` | `InpatientIntegrationOutbox : Read/Replay` | `BillingInpatient : Read` |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Perawat pelaksana | ✅ | — | ✅ | — | — | — | ✅ | — | — |
+| Kepala ruangan | ✅ | — | ✅ | — | — | ✅ | ✅ | — | — |
+| Petugas admisi | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | — | — |
+| Supervisor rawat inap | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | — | — |
+| Kasir | — | — | — | — | — | — | ✅ | — | ✅ |
+| Tim TI pelaksana rilis | — | — | — | — | — | — | — | ✅ (`Replay` hanya dengan wewenang tertulis) | — |
+
+### 5.4 Kewenangan yang tidak dapat dijaga mesin hak akses
+
+| Kewenangan | Penjaga | Yang **tidak** dijaganya | Risiko |
+|---|---|---|---|
+| Pencatat keluar ruangan sudah melihat peringatan kasir | Kode `409 INP-DEP-001` memaksa pengakuan eksplisit | Bahwa keluarga benar-benar sudah ke kasir | Piutang; dimitigasi daftar "pulang sebelum izin kasir" (`RSK-RWF-07`) |
+| Override penutupan oleh orang yang benar | Permission dan akun login | Komputer supervisor yang ditinggal login | Diterima pemilik (`RWI-DEC-187`); mitigasi kebijakan kunci layar dan laporan harian |
+| Koreksi penempatan hanya untuk salah catat, bukan pengganti transfer | Alasan wajib dan versi lama tersimpan | Niat pengguna | Laporan transfer menandai koreksi berbeda dari transfer |
+
+### 5.5 Audit
+
+| Kejadian | Lapisan | Jejak tahan lama |
+|---|---|---|
+| Keluar ruangan | `LoggerService` (bukan `GET`) | `InpEpisode.PhysicallyLeftAt`, `PhysicallyLeftByUserId`, tiga kolom pengamatan kasir |
+| Penutupan normal dan override | `LoggerService` | `InpStatusHistory` (sudah ada), `ClosedWithoutClearanceReason`, `ClosureClearanceObserved` |
+| Koreksi penempatan | `LoggerService` | Baris lama dan baru beserta `ChangeReason` |
+| Putar ulang, termasuk `DryRun` | `LoggerService` — **pengecualian bernama**: dicatat walaupun hanya simulasi | `ReplayBatchId` pada setiap baris outbox |
+| Penerimaan event Billing | Log aplikasi | `BilInpatientEventReceipt` |
+| Penyelesaian pemeriksaan invoice | `LoggerService` | Kolom `ReviewResolved*` pada `BilInvoice` |
+
+Payload log hanya `EntityId`, controller, action, dan status. Payload log **tidak** memuat alasan override, rupiah, atau data klinis.
+
+### 5.6 Kolom sensitif
+
+Kolom bertanda sensitif pada `data/data-dictionary.md` bagian 6: `InpEpisode.ClosedWithoutClearanceReason`, `InpEpisode.Notes`, `InpEpisode.IsolationNote`, `InpBedPlacement.ChangeReason`, `BilInvoice.ReviewResolutionNote`. Kolom itu tidak masuk custom logger dan tidak dipakai sebagai contoh data asli.

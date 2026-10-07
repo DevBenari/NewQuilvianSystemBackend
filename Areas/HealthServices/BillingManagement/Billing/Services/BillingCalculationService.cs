@@ -186,16 +186,18 @@ public sealed class BillingCalculationService
 
             var calculatedAt = DateTimeOffset.UtcNow;
             var effectiveAt = ToInstant(encounter.EncounterDate);
-            var administrationFee = activeItems.Count == 0
+            // BE-RWI-155 / AC-RWF-013: tarif kamar dihitung lebih dulu supaya invoice RANAP yang
+            // baru berisi tarif kamar (belum ada item layanan) tetap mendapat biaya administrasi.
+            var roomCharge = invoice.ServiceType == AdministrationFeeServiceTypes.Ranap
+                ? await CalculateRoomChargeAsync(invoice, calculatedAt, cancellationToken)
+                : new RoomChargeCalculationResponse();
+            var administrationFee = activeItems.Count == 0 && roomCharge.AppliedAmount <= 0
                 ? new AdministrationFeeCalculationResponse
                 {
                     BusinessDate = AdministrationFeePolicyService.GetBusinessDate(effectiveAt)
                 }
                 : await CalculateAdministrationFeeAsync(
-                    invoice, encounter, effectiveAt, activeItems, cancellationToken);
-            var roomCharge = invoice.ServiceType == AdministrationFeeServiceTypes.Ranap
-                ? await CalculateRoomChargeAsync(invoice, calculatedAt, cancellationToken)
-                : new RoomChargeCalculationResponse();
+                    invoice, encounter, effectiveAt, activeItems, roomCharge.AppliedAmount, cancellationToken);
             var approvedDiscounts = invoice.DiscountApplications
                 .Where(x => !x.IsDelete && x.ApprovalStatus == BillingDiscountApprovalStatuses.Approved)
                 .OrderBy(x => x.CreateDateTime)
@@ -371,6 +373,23 @@ public sealed class BillingCalculationService
             invoice.RowVersion = Guid.NewGuid();
             invoice.UpdateDateTime = DateTime.UtcNow;
             invoice.UpdateBy = actorUserId;
+
+            // BE-RWI-155 / INV-RWF-08 / kontrak state 5.5: invoice RANAP yang memuat biaya kamar
+            // manual kasir DAN tarif kamar otomatis sekaligus ditandai "perlu diperiksa", supaya
+            // biaya kamar tidak tertagih dua kali. Tanda ini menahan finalisasi (BIL-FIN-020)
+            // sampai kasir membatalkan salah satunya lalu menyelesaikan pemeriksaan.
+            if (!invoice.RequiresReview
+                && invoice.ServiceType == AdministrationFeeServiceTypes.Ranap
+                && roomCharge.AppliedAmount > 0
+                && activeItems.Any(IsManualRoomChargeItem))
+            {
+                invoice.RequiresReview = true;
+                invoice.ReviewReasonCode = BillingInvoiceReviewReasonCodes.ManualAndAutomaticRoomCharge;
+                invoice.ReviewFlaggedAt = calculatedAt;
+                invoice.ReviewResolvedAt = null;
+                invoice.ReviewResolvedByUserId = null;
+                invoice.ReviewResolutionNote = null;
+            }
             var refundableCredit = await _allocationService.ReconcileCalculationExcessAsync(
                 invoice, version, actorUserId, calculatedAt, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -411,6 +430,17 @@ public sealed class BillingCalculationService
             if (transaction is not null) await transaction.DisposeAsync();
         }
     }
+
+    /// <summary>
+    /// Biaya kamar yang dicatat manual kasir: item <c>ADHOC</c>/<c>ADHOC_CATALOG</c> yang tarif
+    /// atau kategorinya bertanda <c>IsRoomCharge</c> (kontrak <c>integrasi-billing</c> <c>1.1.0</c> 9.6).
+    /// </summary>
+    internal static bool IsManualRoomChargeItem(BilInvoiceItem item) =>
+        !item.IsDelete
+        && item.Status == BillingInvoiceItemStatuses.Active
+        && (string.Equals(item.SourceDomain, "ADHOC", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(item.SourceDomain, "ADHOC_CATALOG", StringComparison.OrdinalIgnoreCase))
+        && ((item.Tariff?.IsRoomCharge ?? false) || (item.Category?.IsRoomCharge ?? false));
 
     internal static CalculationResponse MapResponse(
         BilCalculationVersion version,
@@ -500,6 +530,7 @@ public sealed class BillingCalculationService
         RegPatientEncounter encounter,
         DateTimeOffset effectiveAt,
         IReadOnlyList<BilInvoiceItem> activeItems,
+        decimal roomChargeAmount,
         CancellationToken cancellationToken)
     {
         var businessDate = AdministrationFeePolicyService.GetBusinessDate(effectiveAt);
@@ -512,11 +543,17 @@ public sealed class BillingCalculationService
             .Select(x => new { x.PaymentSourceNameSnapshot, x.PaymentType })
             .FirstOrDefaultAsync(cancellationToken);
 
-        // Hitung subtotal dasar tagihan eligible non-farmasi (BKC-DEC-113)
+        // Hitung subtotal dasar tagihan eligible non-farmasi (BKC-DEC-113).
+        // BE-RWI-155 / AC-RWF-013: tarif kamar adalah jasa non-farmasi, sehingga untuk invoice
+        // RANAP ikut menjadi dasar. Tarif kamar bukan BilInvoiceItem (dihitung dari linimasa
+        // penempatan), jadi ditambahkan terpisah. Contoh: kamar kelas 2 tiga unit x Rp300.000
+        // = Rp900.000 tanpa item lain; kebijakan 7% ber-cap menghasilkan biaya admin Rp63.000,
+        // bukan Rp0 seperti sebelum perubahan ini.
         var eligibleBaseAmount = activeItems
             .Where(x => !string.Equals(x.SourceDomain, "PHARMACY", StringComparison.OrdinalIgnoreCase)
                         && !(x.Category != null && x.Category.IsPharmacy))
-            .Sum(x => x.Quantity * x.UnitPrice);
+            .Sum(x => x.Quantity * x.UnitPrice)
+            + (invoice.ServiceType == AdministrationFeeServiceTypes.Ranap ? Math.Max(0m, roomChargeAmount) : 0m);
 
         // BKC-DEC-122: Untuk rawat inap, tanggal evaluasi adalah tanggal pemulangan (discharge), bukan admisi awal
         DateTimeOffset? dischargeTime = null;
@@ -619,8 +656,12 @@ public sealed class BillingCalculationService
         if (episode is null)
             return new RoomChargeCalculationResponse();
 
+        // INV-RWF-07 / BE-RWI-154: penempatan yang sudah digantikan koreksi salah catat
+        // (SupersededByCorrectionId terisi) tidak pernah ikut dihitung; barisnya tetap tersimpan
+        // sebagai jejak. IsSuperseded TIDAK dipakai sebagai saringan karena artinya "diakhiri
+        // transfer" — periode sebelum transfer tetap tertagih.
         var placements = await _dbContext.Set<InpBedPlacement>().AsNoTracking()
-            .Where(x => x.EpisodeId == episode.Id && !x.IsDelete)
+            .Where(x => x.EpisodeId == episode.Id && !x.IsDelete && x.SupersededByCorrectionId == null)
             .OrderBy(x => x.SequenceNumber)
             .ToListAsync(cancellationToken);
         if (placements.Count == 0)

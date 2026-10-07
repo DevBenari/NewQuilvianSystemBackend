@@ -518,3 +518,145 @@ Mengubah jadwal **tidak** memindahkan dosis `Due` yang sudah terbentuk; berlaku 
 | `DELETE` untuk entri klinis apa pun | Koreksi dan pembatalan beralasan — `RWI-DEC-098` |
 | Jalur tulis GDS dari hasil laboratorium | `RWI-DEC-148` |
 | Endpoint menandai dosis `Missed` otomatis | `AC-MVP-027` |
+
+---
+
+## 8. Perubahan pada `contract_version` `0.6.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.6.0` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
+| Owner | Muhammad Hamzah (sisi Rawat Inap dan Clinical); Ikbal Yulianto (Gizi, disetujui `RWI-DEC-191`); Sukma Giri Pratama (Bank Darah — **disetujui `RWI-DEC-209`**); `MasterData` milik seluruh tim (`RWI-DEC-193`) |
+| `input_revision` | Decision log revision `30`; PRD Finishing v`0.4`; gate `1.9` |
+| Dampak kompatibilitas | Tambahan saja, kecuali `POST nutrition-management/diets` yang menerima field baru opsional. Alur poliklinik tidak berubah |
+| Traceability | `FR-RWF-050` s.d. `069`, `083` s.d. `085`, `091` s.d. `093`; `RWI-DEC-172`, `178`, `179`, `180`, `188`, `200`, `202`, `203` |
+
+Respons sukses selalu `ApiResponse<T>`. Seluruh endpoint baru berlabel **Rencana (belum tersedia)**.
+
+### 8.1 Endpoint yang sudah ada dan dipakai layar baru
+
+| Tag | Method dan path | Kegunaan | Hak akses | Status |
+|---|---|---|---|---|
+| `Health Services / Billing Management / Patient Billing Summary` | `GET …/patient-billing-summaries/episodes/{episodeId}/breakdown`, `…/breakdown/amounts` | Tagihan Pasien (`FE-KEP-23`) | `PatientBillingSummary : Read`, `: ViewAmount` | Dirancang `integrasi-billing` `1.1.0` |
+| `Health Services / Clinical Management / Fluid Balance` | `GET …/fluid-balance-entries/episodes/{episodeId}` | Spooling Cairan; output WSD tampil di sini juga | `FluidBalance : Read` | Tetap |
+| `Health Services / Clinical Management / Patient Allergy` | `POST …/patient-allergies/from-medication-administration` | Efek Samping Obat (`FE-KEP-26`) | `PatientAllergy : Create` | Tetap; layarnya baru |
+| `Health Services / Clinical Management / Patient Integrated Progress Note` | `GET api/v1/health-services/clinical-management/patient-integrated-progress-notes?noteKind=NursingNarrative` | Narasi perawat lewat Catatan Terintegrasi | Sesuai controller | Tetap — saringan `noteKind` sudah ada (`PatientIntegratedProgressNoteController.cs:295`) |
+| `Health Services / Clinical Management / Nosocomial Infection` | `GET …/nosocomial-infections/{id}` | Tim PPI membuka kejadian yang dibuat dari surveilans | `NosocomialInfection : Read` | Tetap |
+
+### 8.2 Health Services / Master Data / Medical Equipment
+
+Base URL: `api/v1/health-services/master-data/medical-equipments`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Daftar jenis alat; saringan aktif | `MedicalEquipment : Read` | `PagedQuery { Search?, IsActive? }` | `ApiResponse<PagedResult<MedicalEquipmentResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail | `MedicalEquipment : Read` | — | `ApiResponse<MedicalEquipmentResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Tambah jenis alat | `MedicalEquipment : Create` | `CreateMedicalEquipmentRequest { EquipmentCode, EquipmentName, CategoryName?, ChargeUnit, RoundingRule, Description? }` | `ApiResponse<MedicalEquipmentResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Ubah | `MedicalEquipment : Update` | Sama ditambah `RowVersion` | Sama | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/status` | Aktif/nonaktif | `MedicalEquipment : Update` | `{ IsActive }` | Sama | **Rencana (belum tersedia)** |
+
+Kode khusus: `409` `MST-EQP-001` kode alat sudah dipakai; `422` `MST-EQP-002` satuan tagih tidak boleh diubah selama ada pemakaian `Running`.
+
+**Tarif alat** memakai endpoint master tarif yang sudah ada dengan field baru `MedicalEquipmentId` (**Diubah**, tambahan field opsional).
+
+### 8.3 Health Services / Clinical Management / Equipment Usage
+
+Base URL: `api/v1/health-services/clinical-management/equipment-usages`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | History Alat Kesehatan per episode | `EquipmentUsage : Read` | `{ EpisodeId, Status? }` | `ApiResponse<List<EquipmentUsageResponse>>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Mulai pemakaian | `EquipmentUsage : Create` | `StartEquipmentUsageRequest` | `ApiResponse<EquipmentUsageResponse>` | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/finish` | Selesai; server menghitung unit dan menerbitkan tagihan | `EquipmentUsage : Update` | `{ EndedAt, Quantity?, ExpectedVersion }` | Sama | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/cancel` | Batal dengan alasan; hanya tagihan pemakaian ini yang batal | `EquipmentUsage : Cancel` | `{ Reason, ExpectedVersion }` | Sama | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/time-correction` | Koreksi waktu berversi | `EquipmentUsage : Correct` | `{ StartedAt, EndedAt?, Reason, ExpectedVersion }` | Sama | **Rencana (belum tersedia)** |
+
+**`StartEquipmentUsageRequest`**: `EpisodeId` (wajib), `MedicalEquipmentId` (wajib, aktif), `ResponsibleDoctorId` (wajib, berpenugasan aktif), `StartedAt` (wajib, tidak di masa depan), `Quantity` (wajib bila satuan `PerUse`), `Note` (opsional, 500). Perawat pelaksana dari akun login.
+
+**`EquipmentUsageResponse`**: `Id`, `EquipmentName`, `ChargeUnit`, `StartedAt`, `EndedAt`, `Quantity`, `BilledUnits`, `Status`, `ResponsibleDoctorName`, `PerformedByName`, `RequiresNurseReview`, `ChargeState` (`PENDING`, `RECOGNIZED`, `TARIFF_NOT_FOUND`, `VOIDED`), `Version`. **Tanpa rupiah.**
+
+Kode khusus: `403` dokter penanggung jawab tidak berpenugasan aktif; `422` `CLI-EQP-001` waktu selesai mendahului waktu mulai; `422` `CLI-EQP-002` invoice rawat inap bukan `OPEN`; `422` `CLI-EQP-003` episode bukan `Admitted`/`DischargePending`; `409` versi berubah.
+
+### 8.4 Health Services / Clinical Management / WSD Observation
+
+Base URL: `api/v1/health-services/clinical-management/wsd-drains`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Selang per episode beserta pembacaan terakhir | `FluidBalance : Read` | `{ EpisodeId, IncludeRemoved? }` | `ApiResponse<List<WsdDrainResponse>>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Daftarkan selang | `FluidBalance : Create` | `{ EpisodeId, DrainLabel, InsertionSite?, InsertedAt, InitialResidualMl? }` | `ApiResponse<WsdDrainResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{drainId}` | Koreksi label, lokasi, atau waktu pasang berversi | `FluidBalance : Update` | `{ DrainLabel, InsertionSite?, InsertedAt, Reason, ExpectedVersion }` | Sama | **Rencana (belum tersedia)** |
+| `PATCH` | `/{drainId}/remove` | Lepas selang | `FluidBalance : Update` | `{ RemovedAt }` | Sama | **Rencana (belum tersedia)** |
+| `GET` | `/{drainId}/readings` | Riwayat pembacaan | `FluidBalance : Read` | — | `ApiResponse<List<WsdReadingResponse>>` | **Rencana (belum tersedia)** |
+| `POST` | `/{drainId}/readings` | Catat pembacaan shift; server menghitung bertambah dan membuat entri cairan | `FluidBalance : Create` | `{ PeriodStartAt, PeriodEndAt, CurrentResidualMl, DiscardedVolumeMl?, ShiftId? }` | `ApiResponse<WsdReadingResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/readings/{readingId}/correction` | Koreksi pembacaan **terakhir** | `FluidBalance : Update` | `{ CurrentResidualMl, DiscardedVolumeMl?, Reason }` | Sama | **Rencana (belum tersedia)** |
+| `PATCH` | `/readings/{readingId}/cancel` | Batalkan pembacaan terakhir | `FluidBalance : Update` | `{ Reason }` | Sama | **Rencana (belum tersedia)** |
+
+`WsdReadingResponse`: `Id`, `PeriodStartAt`, `PeriodEndAt`, `PreviousResidualMl`, `CurrentResidualMl`, `DiscardedVolumeMl`, `IncreaseMl`, `FluidBalanceEntryId`, `Status`, `RecordedByName`. Kode khusus: `422` `CLI-WSD-001` hasil bertambah negatif; `422` `CLI-WSD-002` selang sudah dilepas; `422` `CLI-WSD-003` hanya pembacaan terakhir yang dapat dikoreksi.
+
+### 8.5 Health Services / Clinical Management / Surgical Site Surveillance
+
+Base URL: `api/v1/health-services/clinical-management/surgical-site-surveillances`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Daftar PPI dan daftar per episode | `SurgicalSiteSurveillance : Read` | `PagedQuery { EpisodeId?, Status?, ServiceUnitId?, OnlySuspected? }` | `ApiResponse<PagedResult<SurveillanceListItem>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Formulir lengkap, isian harian, dan bacaan suhu per hari dari tanda vital | `SurgicalSiteSurveillance : Read` | — | `ApiResponse<SurveillanceDetailResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/entries/{dayNumber}` | Isi hari ke-N; mengubah isian yang ada wajib beralasan dan berversi | `SurgicalSiteSurveillance : Update` | `{ ResponsesJson, CorrectionReason?, ExpectedRevision? }` | `ApiResponse<SurveillanceEntryResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/summary` | Kultur dan serologi | `SurgicalSiteSurveillance : Update` | `{ SummaryResponsesJson, Reason?, ExpectedVersion }` | `ApiResponse<SurveillanceDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/flag-suspected` | Tim PPI menandai dicurigai; membuat kejadian `SurgicalSiteInfection` berstatus `Suspected` | `SurgicalSiteSurveillance : Review` | `{ OnsetDate, Note }` | `ApiResponse<SurveillanceDetailResponse>` dengan `NosocomialInfectionId` | **Rencana (belum tersedia)** |
+
+Kode khusus: `422` `CLI-SSI-001` formulir sudah berhenti karena pasien keluar ruangan; `422` `CLI-SSI-002` hari di luar 1–15 atau belum tiba; `422` `CLI-SSI-003` isian tidak sesuai definisi versi formulir; `409` revisi berubah; `409` `CLI-SSI-004` sudah ditandai dicurigai.
+
+### 8.6 Health Services / Clinical Management / Transfusion Monitoring
+
+Base URL: `api/v1/health-services/clinical-management/transfusion-monitorings`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Monitoring per episode | `TransfusionMonitoring : Read` | `{ EpisodeId }` | `ApiResponse<List<TransfusionMonitoringResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/selectable-units` | Kantong yang sudah diserahkan Bank Darah kepada pasien dan belum dipantau | `TransfusionMonitoring : Read` | `{ EpisodeId }` | `ApiResponse<List<SelectableBloodUnit { BloodUnitId, PmiBagNumber, ComponentName, IssuedAt }>>` | **Rencana (belum tersedia)** — disetujui `RWI-DEC-209` |
+| `POST` | `/` | Mulai monitoring satu kantong | `TransfusionMonitoring : Create` | `{ EpisodeId, BloodUnitId, ReceivedAtWardAt, TransfusionStartedAt }` | `ApiResponse<TransfusionMonitoringResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/points/{pointType}` | Catat titik ukur; mengubah titik yang sudah ada wajib beralasan | `TransfusionMonitoring : Update` | `{ MeasuredAt, SystolicBp?, DiastolicBp?, TemperatureCelsius?, PulseRate?, LateNote?, CorrectionReason? }` | `ApiResponse<TransfusionPointResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/reactions` | Catat reaksi; Bank Darah diberi tahu | `TransfusionMonitoring : Update` | `{ OccurredAt, PointType?, ReactionSummary, ReactionDetail? }` | `ApiResponse<TransfusionReactionResponse>` | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/stop` | Hentikan transfusi; titik sesudahnya bertanda dihentikan | `TransfusionMonitoring : Update` | `{ StoppedAt, Reason }` | Sama | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/complete` | Selesai | `TransfusionMonitoring : Update` | `{ CompletedAt }` | Sama | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/cancel` | Batal karena salah pilih kantong, sebelum ada titik ukur | `TransfusionMonitoring : Update` | `{ Reason }` | Sama | **Rencana (belum tersedia)** |
+
+Kode khusus: `422` `CLI-TRF-001` kantong belum diserahkan kepada pasien ini; `409` `CLI-TRF-002` kantong sudah dipantau; `422` `CLI-TRF-003` titik terlambat tanpa keterangan; `422` `CLI-TRF-004` titik sesudah transfusi dihentikan; `422` `CLI-TRF-005` pembatalan setelah ada titik ukur.
+
+### 8.7 Health Services / Blood Bank Management / Transfusion Reaction Notice
+
+Base URL: `api/v1/health-services/blood-bank-management/transfusion-reaction-notices`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Kotak masuk reaksi transfusi | `TransfusionReactionNotice : Read` | `PagedQuery { Status?, From?, To? }` | `ApiResponse<PagedResult<ReactionNoticeItem>>` | **Rencana (belum tersedia)** — disetujui `RWI-DEC-209` |
+| `GET` | `/{id}` | Detail: pasien, kantong, reaksi, waktu, unit | `TransfusionReactionNotice : Read` | — | `ApiResponse<ReactionNoticeDetail>` | Sama |
+| `POST` | `/{id}/acknowledge` | Bank Darah menyatakan sudah menerima dan menindaklanjuti | `TransfusionReactionNotice : Acknowledge` | `{ Note? }` | Sama | Sama |
+
+Penerimaan pemberitahuan dari Clinical memakai service di dalam aplikasi `BbkTransfusionReactionNoticeService.ReceiveAsync`, bukan endpoint.
+
+### 8.8 Health Services / Inpatient Management / Inpatient Diet
+
+Base URL: `api/v1/health-services/inpatient-management/episodes/{episodeId}/diets`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `POST` | `/` | Tetapkan atau ganti diet; perawat wajib memilih dokter pemberi instruksi berpenugasan aktif | `NutritionPatientDiet : Update` | `{ InstructingDoctorId?, DietTypeId, FoodFormId, EnergyRequirementKcal?, Instruction?, EffectiveStartAt?, ChangeReason?, IdempotencyKey }` | `ApiResponse<PatientDietResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{dietId}/stop` | Hentikan diet; alasan wajib | `NutritionPatientDiet : Update` | `{ InstructingDoctorId?, Reason, ExpectedVersion, IdempotencyKey }` | Sama | **Rencana (belum tersedia)** |
+
+Riwayat dibaca langsung lewat `GET nutrition-management/diets/history/{encounterId}` (`NutritionPatientDiet : Read`, sudah ada). Kode khusus: `400` "Dokter pemberi instruksi wajib dipilih" bila perawat tanpa `InstructingDoctorId`; `403` dokter tidak berpenugasan aktif; selebihnya kode modul Gizi (misalnya `GIZ010` alasan ganti diet).
+
+### 8.9 Health Services / Nutrition Management / Patient Diet — tambahan
+
+Base URL: `api/v1/health-services/nutrition-management/diets`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `POST` | `/` | Penetapan diet; menerima `InstructionVerificationStatus` dari adapter | `NutritionPatientDiet : Update` | Ditambah field opsional | Tetap, ditambah status verifikasi | **Diubah** — tambahan opsional; pemanggil lama tetap `NotRequired` |
+| `GET` | `/instruction-verification-worklist` | Diet "perlu diverifikasi" milik dokter yang login | `NutritionPatientDiet : VerifyInstruction` | `PagedQuery` | `ApiResponse<PagedResult<DietVerificationItem>>` | **Rencana (belum tersedia)** |
+| `POST` | `/{dietId}/verify-instruction` | Dokter penetap memverifikasi | `NutritionPatientDiet : VerifyInstruction` | `{ ExpectedVersion }` | `ApiResponse<PatientDietResponse>` | **Rencana (belum tersedia)** |
+
+Kode khusus: `403` `GIZ-VER-001` hanya dokter penetap yang dapat memverifikasi; `409` `GIZ-VER-002` sudah diverifikasi.
