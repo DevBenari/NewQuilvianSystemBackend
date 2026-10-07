@@ -197,7 +197,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 context,
                 cancellationToken);
 
-            var coverageStatus = NormalizeCoverageStatus(rule?.CoverageStatus ?? "Covered");
+            // Bila tidak ada aturan coverage (MstInsuranceCoverageRule) yang mencakup item/kategori ini,
+            // provider tidak menanggung item tersebut (konsisten dengan RegistrationBillingCoverageAdapter dan CompanyGuarantorCoverageService).
+            if (rule == null)
+            {
+                return BuildNotCoveredResult(
+                    tariff,
+                    context,
+                    quantity,
+                    hospitalUnitPrice,
+                    hospitalTotalPrice,
+                    "Item tidak memiliki aturan coverage yang cocok pada asuransi ini.",
+                    insuranceTariff,
+                    rule: null,
+                    isFallbackTariff: isFallbackTariff,
+                    pricingWarning: pricingWarning);
+            }
+
+            var coverageStatus = NormalizeCoverageStatus(rule.CoverageStatus ?? "Covered");
 
             if (coverageStatus == "NotCovered")
             {
@@ -207,7 +224,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     quantity,
                     hospitalUnitPrice,
                     hospitalTotalPrice,
-                    rule?.Description ?? "Item dikecualikan oleh aturan coverage.",
+                    rule.Description ?? "Item dikecualikan oleh aturan coverage.",
                     insuranceTariff,
                     rule,
                     isFallbackTariff,

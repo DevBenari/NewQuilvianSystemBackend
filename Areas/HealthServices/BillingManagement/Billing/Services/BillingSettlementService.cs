@@ -542,6 +542,7 @@ public sealed class BillingSettlementService
             // DEPOSIT_TOP_UP tidak punya InvoiceId (BilSettlementConfiguration: constraint
             // InvoiceId XOR DepositAccountId), sehingga tidak ada invoice untuk diselaraskan.
             var closureChange = InvoiceClosureChange.None(Guid.Empty, string.Empty);
+            string? autoCompletionIncompleteReason = null;
             if (tender.Settlement.InvoiceId.HasValue)
             {
                 var tenderClosureReason = targetStatus switch
@@ -551,17 +552,36 @@ public sealed class BillingSettlementService
                     _ => null
                 };
 
-                try
+                var invoice = await _dbContext.BilInvoices
+                    .SingleOrDefaultAsync(x => x.Id == tender.Settlement.InvoiceId.Value && !x.IsDelete, cancellationToken);
+
+                if (invoice is not null && invoice.Status == BillingInvoiceStatuses.Open && targetStatus == BillingTenderStatuses.Succeeded)
                 {
-                    closureChange = await _closureService.SyncClosureAsync(
-                        tender.Settlement.InvoiceId.Value, actorUserId, result.OccurredAt, cancellationToken, tenderClosureReason);
+                    var outstanding = await _closureService.CalculateOutstandingAsync(invoice, cancellationToken);
+                    if (outstanding <= 0)
+                    {
+                        var (completed, incompleteReason) = await _finalizationService.TryCompleteSettledInvoiceAsync(
+                            invoice.Id, actorUserId, result.OccurredAt, tender.CorrelationId, tender.CausationId, cancellationToken);
+                        if (!completed && !string.IsNullOrWhiteSpace(incompleteReason))
+                        {
+                            autoCompletionIncompleteReason = incompleteReason;
+                        }
+                    }
                 }
-                catch (BillingInvoiceClosureValidationException exception)
+                else
                 {
-                    throw new BillingSettlementValidationException(exception.Message);
+                    try
+                    {
+                        closureChange = await _closureService.SyncClosureAsync(
+                            tender.Settlement.InvoiceId.Value, actorUserId, result.OccurredAt, cancellationToken, tenderClosureReason);
+                    }
+                    catch (BillingInvoiceClosureValidationException exception)
+                    {
+                        throw new BillingSettlementValidationException(exception.Message);
+                    }
+                    if (closureChange.Changed)
+                        await _dbContext.SaveChangesAsync(cancellationToken);
                 }
-                if (closureChange.Changed)
-                    await _dbContext.SaveChangesAsync(cancellationToken);
             }
 
             // BE-BKC-066 / BKC-DEC-106 / BKC-DES-038 / BIL-INT-013: Menerbitkan surat penerimaan uang
@@ -678,7 +698,7 @@ public sealed class BillingSettlementService
                 await AuditClosureChangeAsync(closureChange, actorUserId);
             foreach (var invChange in reversedInvoiceClosureChanges.Where(c => c.Changed))
                 await AuditClosureChangeAsync(invChange, actorUserId);
-            return MapTender(tender, false);
+            return MapTender(tender, false, autoCompletionIncompleteReason);
         }
         catch (DbUpdateConcurrencyException exception)
         {
@@ -1471,7 +1491,7 @@ public sealed class BillingSettlementService
         };
     }
 
-    private static TenderResponse MapTender(BilTender tender, bool isReplay) => new()
+    private static TenderResponse MapTender(BilTender tender, bool isReplay, string? invoiceClosureNote = null) => new()
     {
         Id = tender.Id,
         SettlementId = tender.SettlementId,
@@ -1487,7 +1507,8 @@ public sealed class BillingSettlementService
         SettledAt = tender.SettledAt,
         CashierShiftId = tender.CashierShiftId,
         RowVersion = tender.RowVersion,
-        IsReplay = isReplay
+        IsReplay = isReplay,
+        InvoiceClosureNote = invoiceClosureNote
     };
 
     private static string? MaskProviderReference(string? providerReference)

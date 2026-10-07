@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
@@ -525,7 +525,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     LastEligibilityReferenceNumber = NormalizeNullableString(request.LastEligibilityReferenceNumber),
                     EligibilityNote = NormalizeNullableString(request.EligibilityNote),
                     AnnualLimitAmount = request.AnnualLimitAmount,
-                    RemainingLimitAmount = request.RemainingLimitAmount,
+                    RemainingLimitAmount = request.AnnualLimitAmount.GetValueOrDefault() > 0 &&
+                        (!request.RemainingLimitAmount.HasValue || request.RemainingLimitAmount.Value <= 0)
+                        ? request.AnnualLimitAmount
+                        : request.RemainingLimitAmount,
                     CoPaymentPercent = request.CoPaymentPercent,
                     CoPaymentAmount = request.CoPaymentAmount,
                     IsNeedGuaranteeLetter = request.IsNeedGuaranteeLetter,
@@ -806,7 +809,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 entity.LastEligibilityReferenceNumber = NormalizeNullableString(request.LastEligibilityReferenceNumber);
                 entity.EligibilityNote = NormalizeNullableString(request.EligibilityNote);
                 entity.AnnualLimitAmount = request.AnnualLimitAmount;
-                entity.RemainingLimitAmount = request.RemainingLimitAmount;
+                entity.RemainingLimitAmount = request.AnnualLimitAmount.GetValueOrDefault() > 0 &&
+                    entity.AnnualLimitAmount.GetValueOrDefault() <= 0 &&
+                    (!request.RemainingLimitAmount.HasValue || request.RemainingLimitAmount.Value <= 0)
+                    ? request.AnnualLimitAmount
+                    : request.RemainingLimitAmount;
                 entity.CoPaymentPercent = request.CoPaymentPercent;
                 entity.CoPaymentAmount = request.CoPaymentAmount;
                 entity.IsNeedGuaranteeLetter = request.IsNeedGuaranteeLetter;
