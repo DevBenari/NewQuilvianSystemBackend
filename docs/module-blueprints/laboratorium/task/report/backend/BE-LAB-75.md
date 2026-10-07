@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `017d1819` (branch `yoga`), di atas `BE-LAB-67`..`74` yang belum ter-commit |
 | Tanggal | 2026-09-29 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — kode lengkap; build 0 error tanpa warning baru; startup lolos dengan registri **1575**; **20 dari 20 skenario** lolos pada harness EF InMemory, termasuk **riwayat validasi lama utuh sampai ke setiap ruasnya**; regresi `BE-LAB-73` **38/38** dan `BE-LAB-74` **28/28**; lima panggilan HTTP penolakan lolos tanpa menulis data. **Belum lewat HTTP:** pengembalian yang berhasil — dev nol punya hasil tervalidasi |
+| Status | ✅ **`SELESAI`** (naik 2026-10-06) — pengembalian yang berhasil kini teramati **lewat HTTP asli** terhadap PostgreSQL devYoga (Leukosit oleh dr. Bima, BTA oleh dr. Nabila); riwayat validasi lama utuh di `LabTransitionHistory`. Lihat 8. *(Semula: ⚠ — kode lengkap; build 0 error tanpa warning baru; startup lolos dengan registri **1575**; **20 dari 20 skenario** lolos pada harness EF InMemory, termasuk **riwayat validasi lama utuh sampai ke setiap ruasnya**; regresi `BE-LAB-73` **38/38** dan `BE-LAB-74` **28/28**; lima panggilan HTTP penolakan lolos tanpa menulis data. **Belum lewat HTTP:** pengembalian yang berhasil — dev nol punya hasil tervalidasi)* |
 
 ### Backend Governance Preflight
 
@@ -215,7 +215,7 @@ Uji manual: **`NOT FEASIBLE`** — layar `FE-LAB-39` belum dibangun.
 | `VAL-138` | ✅ **Terpenuhi** pada harness | Tolak tanpa keduanya; terima dengan kode rilis saja |
 | DoD — pengembalian berjalan; riwayat utuh | ✅ **Terpenuhi** pada harness | — |
 | DoD — laporan `BE-LAB-75.md` | ✅ **Terpenuhi** | Berkas ini |
-| Verifikasi lewat aplikasi yang berjalan — pengembalian berhasil | **Belum terpenuhi** | Bagian 5 |
+| Verifikasi lewat aplikasi yang berjalan — pengembalian berhasil | ✅ **Terpenuhi** 2026-10-06 | Bagian 8. *Semula belum terpenuhi* |
 
 ---
 
@@ -230,3 +230,29 @@ Uji manual: **`NOT FEASIBLE`** — layar `FE-LAB-39` belum dibangun.
 | Interupsi | `NONE` |
 | Status Git | Berkas `BE-LAB-75`: laporan ini (`??`); ` M` `Controllers/LabExaminationController.cs`, `DTOs/LabExaminationResultDtos.cs`; `Services/LabResultValidationService.cs` (`??`, lahir `BE-LAB-73`); `roadmap/backend-roadmap.md`, `roadmap/traceability.md`. Perubahan `BE-LAB-67`..`74` yang belum ter-commit ikut ada. **Nol operasi Git dijalankan** |
 | Langkah berikutnya | **1.** `BE-LAB-76` (ruas baca: pengesah, keadaan hasil, label order) kini `SIAP DIKERJAKAN` — `DeriveResultStatus` dan penyusun penanda sudah tersedia. **2.** Ketiga tindakan `S4` kini berdiri pada kode. Pembuktian HTTP ketiganya sekaligus butuh satu instruksi data: jabatan dengan `Validate`/`Release`/`Return`, penunjukan uji di Human Resource, dan satu hasil Patologi Klinik uji yang Final |
+
+## 8. Verifikasi lanjutan 2026-10-06 — HTTP asli
+
+**Status: `BE-LAB-75` ✅ `SELESAI`.** Pengembalian yang berhasil kini teramati.
+
+Atas persetujuan pemilik modul, langkah rilis `MVP-9d` dijalankan sebagai setup uji di devYoga
+([`backend-roadmap.md`](../../../roadmap/backend-roadmap.md) 6ak.10): kode `LAB-*` di katalog Human Resource, kredensial
+dr. Bima (`LAB-VAL-PK`/`LAB-REL-PK`), `Validate`/`Release`/`Return` beserta izin baca bagi jabatan dokter. Panggilan berjalan
+terhadap backend lokal dan PostgreSQL devYoga dengan akun asli: dr. Bima (Kepala Instalasi) dan Vina (analis). Tulis hanya pada
+Hemoglobin dan Leukosit `LAB-RSMMC-000001` (pesanan uji). Rincian layar ada di
+[`FE-LAB-39.md`](../frontend/FE-LAB-39.md) bagian 9.
+
+| Butir | Bukti HTTP asli | Hasil |
+| --- | --- | --- |
+| Pengembalian berhasil (`AC-205`) | dr. Bima mengembalikan Leukosit yang baru ia validasi, dengan alasan *Sampel tertukar* → `200` *"Hasil dikembalikan kepada analis dan kembali menjadi Draft."*; hasil *Draft* dan dapat diisi lagi oleh Vina. Tanpa alasan, layar menahan dan tidak mengirim permintaan | `PASS` |
+| Riwayat utuh (`AC-206`) | `LabTransitionHistory` (kueri baca-saja): `ValidateResult` Leukosit (15.58 WIB) **tetap ada**, disusul `ReturnResultToAnalyst` berkode `SAMPEL-TERTUKAR`; pola yang sama pada BTA | `PASS` |
+| `VAL-138` — pengembali pemegang kode | dr. Bima (`LAB-VAL-PK`) dan dr. Nabila (`LAB-VAL-MB`, [`BE-LAB-78.md`](BE-LAB-78.md) bagian 8) | `PASS` |
+| Siklus sesudahnya | Analis menyatakan selesai lagi `200`, validasi berikutnya `200` — Leukosit (dr. Bima) dan BTA (dr. Nabila, lalu dirilis) | `PASS` |
+
+**Tetap pada harness:** `AC-207` (hasil dirilis `409`) dan pengembali pemegang kode rilis saja (`VAL-138`). Dev tidak punya
+akun pemegang kode rilis saja. Analyzer tidak dijalankan.
+
+**Risiko tersisa: rendah.**
+
+**Jejak di devYoga:** Hemoglobin **Dirilis**; Leukosit **Tervalidasi** oleh dr. Bima (menunggu rilis) sesudah satu
+pengembalian `SAMPEL-TERTUKAR`. Data uji. **Nol perubahan kode. Nol operasi Git dijalankan.**

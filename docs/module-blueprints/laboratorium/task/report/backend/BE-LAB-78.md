@@ -10,7 +10,7 @@
 | Roadmap | [`roadmap/backend-roadmap.md`](../../../roadmap/backend-roadmap.md) bagian **6al.1** |
 | Trace | `FR-16.1`, `FR-16.2`, `FR-16.3`, `FR-16.5`; `LAB-DEC-085` (`INV-53`), `LAB-DEC-097`, `LAB-DEC-114` (`INV-52`), `LAB-DEC-143`, `LAB-DEC-148`, `LAB-DEC-152`, `LAB-DEC-153`; 21.10 butir 1, 2, 5 |
 | Contract version | `LAB-API-v1` **`r35`** 30.2; `LAB-VAL-v1` **`r13`** `VAL-126` bunyi baru dan `VAL-144`; `LAB-STATE-v1` **`r6`** 8.2-8.3; `LAB-INT-v1` **`r5`** 9.1-9.2 — keempatnya **`approved` 2026-09-25**; `LAB-PERM-v1` rev 11 apa adanya |
-| Dependency | `BE-LAB-72` ✅, `BE-LAB-73`..`75` ⚠ (batas verifikasi HTTP terwarisi), `BE-LAB-82` ✅ (`LabReleasableDisciplines`) |
+| Dependency | `BE-LAB-72` ✅, `BE-LAB-73`..`75` ⚠ (batas verifikasi HTTP terwarisi; ketiganya naik ✅ 2026-10-06), `BE-LAB-82` ✅ (`LabReleasableDisciplines`) |
 | Klasifikasi | `HIGH` — roadmap menandainya **penjaga keselamatan epic ini**: kewenangan klinis per disiplin. Skor: berkas diubah 2 (5), logika bisnis 2, kontrak API 2 (aturan approved `r12` berubah bunyi), keamanan/auth **3** (kode kewenangan per disiplin), UI/workflow 1 |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/HealthServices/LaboratoryManagement/`, dokumen blueprint Laboratorium |
@@ -271,6 +271,6 @@ Hasilnya **37 `PASS`, 0 `FAIL`**; ke-29 skenario lama tetap utuh.
 - `LAB-COORD-016` tetap terbuka sebagai koordinasi rilis. Katalog Human Resource tidak menerima kode manual lewat API (kode
   dibangkitkan `CPC-RSMMC-#####`), sehingga di dev keempat kode disisipkan lewat SQL. Keputusannya milik langkah rilis
   `MVP-10c` (6al.5), bukan kode task ini.
-- `BE-LAB-73`..`75` tetap ⚠ pada laporannya sendiri. Bukti jalur Patologi Klinik di atas dapat dipakai untuk menaikkannya.
+- `BE-LAB-73`..`75` naik ✅ pada 2026-10-06 dengan bukti jalur Patologi Klinik di atas (laporan masing-masing bagian 8).
 
 **Jejak di devYoga:** BTA `025be4cf…` **Dirilis** (data uji). **Nol perubahan kode. Nol operasi Git dijalankan.**

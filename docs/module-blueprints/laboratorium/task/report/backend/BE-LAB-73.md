@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `017d1819` (branch `yoga`), di atas `BE-LAB-67`..`72` yang belum ter-commit |
 | Tanggal | 2026-09-29 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — kode lengkap; build 0 error tanpa warning baru; startup lolos dengan registri **1573** kunci; **38 dari 38 skenario lolos** pada harness EF InMemory; tujuh panggilan HTTP lolos tanpa menulis data. **Belum lewat HTTP:** jalur berhasil, penolakan lapis orang, `VAL-136`, dan balapan sungguhan — keempatnya butuh aksi `Validate` diberikan, penunjukan di Human Resource, dan hasil Patologi Klinik yang Final, yang seluruhnya berarti menulis ke database bersama |
+| Status | ✅ **`SELESAI`** (naik 2026-10-06) — jalur berhasil, penolakan lapis orang, `AC-238`, `VAL-136`, dan balapan dua validasi kini teramati **lewat HTTP asli** terhadap PostgreSQL devYoga dengan akun dr. Bima dan Vina. Lihat 8. *(Semula: ⚠ — kode lengkap; build 0 error tanpa warning baru; startup lolos dengan registri **1573** kunci; **38 dari 38 skenario lolos** pada harness EF InMemory; tujuh panggilan HTTP lolos tanpa menulis data. **Belum lewat HTTP:** jalur berhasil, penolakan lapis orang, `VAL-136`, dan balapan sungguhan — keempatnya butuh aksi `Validate` diberikan, penunjukan di Human Resource, dan hasil Patologi Klinik yang Final, yang seluruhnya berarti menulis ke database bersama)* |
 
 ### Backend Governance Preflight
 
@@ -258,18 +258,18 @@ Uji manual: **`NOT FEASIBLE`** — layar `FE-LAB-39` belum dibangun.
 | `AC-196` — Reopen hasil PK Draft `422` | ✅ **Terpenuhi lewat HTTP** | Regresi `VAL-107` |
 | `AC-197` — Reopen hasil Final | ✅ **Terpenuhi** pada harness | `200`, `Version` +1, `Draft` |
 | `AC-01` — pengisi memvalidasi dengan alasan | ✅ **Terpenuhi** pada harness | Penanda persis 20.10 butir 5 |
-| `AC-215` — jabatan calon, nol penunjukan → `403` | ✅ **Terpenuhi** pada harness | HTTP `NOT RUN` |
+| `AC-215` — jabatan calon, nol penunjukan → `403` | ✅ **Terpenuhi** pada harness dan **lewat HTTP 2026-10-06** | Bagian 8 — dr. Bima tanpa penunjukan Mikrobiologi `403` |
 | `AC-216` — jabatan tanpa `Validate` → `403` dari filter | ✅ **Terpenuhi lewat HTTP** | dr. Bima `403`. Ia tidak punya baris penunjukan, tetapi filter berjalan **sebelum** service, jadi hasilnya sama |
-| `AC-229` — penunjukan aktif → `200`, `ValidatedByPrivilegeId` menunjuk barisnya | ✅ **Terpenuhi** pada harness | HTTP `NOT RUN` |
+| `AC-229` — penunjukan aktif → `200`, `ValidatedByPrivilegeId` menunjuk barisnya | ✅ **Terpenuhi** pada harness dan **lewat HTTP 2026-10-06** | Bagian 8 — menunjuk penunjukan `LAB-VAL-PK` |
 | `AC-230` — ditangguhkan → `403`, kolom tidak berubah | ✅ **Terpenuhi** pada harness | — |
 | `AC-233` — pesan menyebut sebabnya | ✅ **Terpenuhi** pada harness | Tiga sebab lewat service; delapan pada resolver (`BE-LAB-72`) |
-| `AC-238` — analis `403` | **Terpenuhi pada kode** | Aksi terpisah, nol pemegang; HTTP `NOT RUN` |
+| `AC-238` — analis `403` | ✅ **Terpenuhi lewat HTTP** 2026-10-06 | Bagian 8 — Vina `403` dari filter, nol perubahan |
 | `AC-239` — snapshot penempatan yang memberi izin | ✅ **Terpenuhi** pada harness | — |
 | `VAL-125` | ✅ **Terpenuhi** pada harness | `409` |
 | `VAL-126`, `VAL-127` | ✅ **Terpenuhi lewat HTTP** | `422` |
 | `VAL-130`, `VAL-132` | ✅ **Terpenuhi** pada harness | `422` |
-| Konkurensi Reopen lawan Validasi | ✅ **Terpenuhi** pada harness untuk baris pemeriksaan | Atomik riwayat bergantung pada transaksi PostgreSQL, belum teramati |
-| Verifikasi — akun analis, dokter A, akun tanpa `WorkforceProfileId` lewat HTTP; balapan sungguhan | **Belum terpenuhi** | Butuh izin, penunjukan, dan data yang belum diinstruksikan (bagian 5) |
+| Konkurensi Reopen lawan Validasi | ✅ **Terpenuhi** pada harness untuk baris pemeriksaan; balapan dua validasi **teramati di PostgreSQL** 2026-10-06 | Bagian 8 — `200`/`409`, tepat satu baris riwayat |
+| Verifikasi — akun analis, dokter A, akun tanpa `WorkforceProfileId` lewat HTTP; balapan sungguhan | ✅ **Terpenuhi** 2026-10-06 | Bagian 8. *Semula belum terpenuhi — butuh izin, penunjukan, dan data* |
 | DoD — validasi berjalan; aturannya ditegakkan; Reopen terjaga | ✅ **Terpenuhi pada kode dan harness** | — |
 | DoD — laporan `BE-LAB-73.md` | ✅ **Terpenuhi** | Berkas ini |
 
@@ -286,3 +286,27 @@ Uji manual: **`NOT FEASIBLE`** — layar `FE-LAB-39` belum dibangun.
 | Interupsi | `NONE` |
 | Status Git | Berkas `BE-LAB-73`: `??` `Services/LabResultValidationService.cs`, laporan ini; ` M` `Services/LabExaminationService.cs`, `Controllers/LabExaminationController.cs`, `DTOs/LabExaminationResultDtos.cs`, `Program.cs`, `Services/LabClinicalPrivilegeResolver.cs` (`??`, milik `BE-LAB-72`), `roadmap/backend-roadmap.md`, `roadmap/traceability.md`. Perubahan `BE-LAB-67`..`72` yang belum ter-commit ikut ada. **Nol operasi Git dijalankan** |
 | Langkah berikutnya | **1.** `BE-LAB-74` (rilis dan pendaftaran rekam medis) kini `SIAP DIKERJAKAN`: `ReleaseAsync` tinggal ditambahkan ke `LabResultValidationService`, memakai pola yang sama. **2.** Untuk menutup batas verifikasi: tetapkan jabatan dokter berkewenangan (`UNK-P14-03`), beri `Validate`, catat satu penunjukan uji di Human Resource, dan izinkan satu hasil PK uji dibuat Final — lalu jalankan panggilan HTTP dan balapan sungguhan |
+
+## 8. Verifikasi lanjutan 2026-10-06 — HTTP asli
+
+**Status: `BE-LAB-73` ✅ `SELESAI`.** Keempat butir yang belum lewat HTTP kini teramati. `AC-238` ikut teramati.
+
+Atas persetujuan pemilik modul, langkah rilis `MVP-9d` dijalankan sebagai setup uji di devYoga
+([`backend-roadmap.md`](../../../roadmap/backend-roadmap.md) 6ak.10): kode `LAB-*` di katalog Human Resource, kredensial
+dr. Bima (`LAB-VAL-PK`/`LAB-REL-PK`), `Validate`/`Release`/`Return` beserta izin baca bagi jabatan dokter. Panggilan berjalan
+terhadap backend lokal dan PostgreSQL devYoga dengan akun asli: dr. Bima (Kepala Instalasi) dan Vina (analis). Tulis hanya pada
+Hemoglobin dan Leukosit `LAB-RSMMC-000001` (pesanan uji). Rincian layar ada di
+[`FE-LAB-39.md`](../frontend/FE-LAB-39.md) bagian 9.
+
+| Butir batas lama | Bukti HTTP asli | Hasil |
+| --- | --- | --- |
+| Jalur berhasil (`AC-229`, `AC-239`) | dr. Bima memvalidasi Hemoglobin dan Leukosit → `200` *"Hasil divalidasi. Hasil ini belum dirilis."*; `ValidatedByPrivilegeId` menunjuk penunjukan `LAB-VAL-PK` (kueri baca-saja); Halaman Hasil menulis *"Validasi oleh: dr. Bima Prasetya, Sp.PK — Kepala Instalasi Laboratorium"* | `PASS` |
+| Penolakan lapis orang (`AC-215`, `AC-233`) | dr. Bima (jabatan ber-`Validate`, penunjukan Patologi Klinik saja) memvalidasi BTA `LAB-RSMMC-000014` → `403` *"Anda belum ditunjuk sebagai pemegang kewenangan validasi Mikrobiologi."*. Akun tanpa `WorkforceProfileId` (superadmin) → `403` *"Akun Anda belum terhubung dengan data tenaga kerja…"* (2026-09-30, [`BE-LAB-78.md`](BE-LAB-78.md) bagian 5). Keduanya lewat `ValidateAsync` yang sama; dev tidak punya hasil PK Final tanpa pemegang untuk mengulanginya khusus PK | `PASS` |
+| `AC-238` — analis | Vina (analis, tanpa `Validate`) memvalidasi Hemoglobin → `403` *"Anda tidak memiliki akses ke menu atau fitur ini."* dari filter; keadaan hasil sama sebelum dan sesudah | `PASS` |
+| `VAL-136` | Vina membuka kembali Leukosit (tervalidasi, belum dirilis), Hemoglobin, dan BTA (dirilis) → `409` *"Hasil ini sudah divalidasi. Minta pemvalidasi atau perilis mengembalikannya bila perlu diubah."*; `reopenCount` tetap | `PASS` |
+| Balapan sungguhan | Vina menyatakan Leukosit selesai lagi (`200`), lalu dua `POST …/result/validate` dr. Bima dikirim bersamaan → `200` dan `409` *"Hasil ini baru saja diubah orang lain. Muat ulang lalu ulangi."* — jalur token `Version`, bukan `VAL-125`. `LabTransitionHistory` memuat **tepat satu** `ValidateResult` untuk siklus itu: atomik riwayat teramati di PostgreSQL | `PASS` |
+
+**Risiko tersisa: rendah.** Analyzer tidak dijalankan (`-p:RunAnalyzers=False`).
+
+**Jejak di devYoga:** Hemoglobin **Dirilis**; Leukosit **Tervalidasi** oleh dr. Bima (menunggu rilis) sesudah satu
+pengembalian `SAMPEL-TERTUKAR`. Data uji. **Nol perubahan kode. Nol operasi Git dijalankan.**
