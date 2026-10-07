@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `68195b2be` (branch `YogaV2`, upstream `origin/YogaV2`). **Impact scan** dari `696a906a6` (SHA roadmap): 6 commit, seluruhnya Gizi; nol berkas Laboratorium. `menu-items.jsx` ikut berubah oleh butir Gizi — tidak bersinggungan dengan butir baru |
 | Commit backend yang dijadikan rujukan | `7ff35b8c` (branch `yoga`) beserta perubahan `BE-LAB-84`..`86` yang belum ter-commit — sumber bentuk ruas `LabOperationalReportDtos.cs` dan judul kolom `LabReportCsvWriter.cs` |
 | Tanggal | 2026-09-30 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — layar, butir menu, service, hook, dan berkas aturan terbangun. Uji unit **17/17**, e2e layar **8/8**, lint dan build hijau. Layar hasil build diberi **respons sungguhan** backend lokal terhadap PostgreSQL dev (September 2026, `422`, `400`) dan menampilkannya benar. **Batas:** layar belum dijalankan tersambung langsung ke backend dengan akun asli — build frontend mengarah ke API dev bersama yang belum menerima `MVP-11a`, dan belum ada jabatan pemegang `LabOperationalReport : Read` (langkah rilis `MVP-11c` 0-1) |
+| Status | ✅ **`SELESAI`** (naik 2026-10-06) — layar dijalankan **tersambung langsung** ke backend lokal dan PostgreSQL dev dengan akun asli — Kepala Instalasi (dr. Bima) dan analis tanpa izin (Vina), 12/12 sesudah pemilih menu pada skrip uji diperbaiki — pemegang `Read` saja (dr. Bima dengan `Export` dicabut di peramban), dan periode > 366 hari → `422` asli pada penyaring. Lihat 9. *(Semula 2026-09-30: ⚠ — layar, butir menu, service, hook, dan berkas aturan terbangun. Uji unit **17/17**, e2e layar **8/8**, lint dan build hijau. Layar hasil build diberi **respons sungguhan** backend lokal terhadap PostgreSQL dev (September 2026, `422`, `400`) dan menampilkannya benar. **Batas:** layar belum dijalankan tersambung langsung ke backend dengan akun asli — build frontend mengarah ke API dev bersama yang belum menerima `MVP-11a`, dan belum ada jabatan pemegang `LabOperationalReport : Read` (langkah rilis `MVP-11c` 0-1))* |
 
 ---
 
@@ -244,10 +244,10 @@ Uji manual: `PASS` — dengan batas di bawah.
 | Matriks layar — pemformatan `3.0` → *3,0%*, `48.6` → menit | Terpenuhi | Uji unit (*48,6 menit*) |
 | Matriks layar — menu tidak tampil bagi pengguna tanpa `Read`; route langsung → tidak berwenang | Terpenuhi | Tangkapan: 0 dan 1 tautan; e2e |
 | Matriks layar — memuat per laporan | Terpenuhi | e2e dengan penundaan 8 detik |
-| Matriks layar — galat periode 367 hari → pesan `422` backend pada penyaring | Terpenuhi pada respons sungguhan; lewat sambungan langsung **belum** | Tangkapan `422` |
-| `AC-250`..`AC-253` bagian antarmuka | Terpenuhi pada build dengan respons sungguhan; tiga akun asli **belum** | Bagian 6 |
+| Matriks layar — galat periode 367 hari → pesan `422` backend pada penyaring | ✅ Terpenuhi — juga **lewat sambungan langsung** 2026-10-06 | Tangkapan `422`; P1 di 9 |
+| `AC-250`..`AC-253` bagian antarmuka | ✅ Terpenuhi — tersambung langsung dengan akun asli (2026-10-02/06) | Bagian 6; 9 |
 | Verifikasi roadmap — uji unit berkas aturan: periode WIB, *3,0%*, `isCountable = false` bukan 0, kolom cito kosong pada rutin | Terpenuhi | 17/17 |
-| Verifikasi roadmap — tiga akun samaran terhadap backend | **Belum terpenuhi** | Menunggu `MVP-11c` langkah 0-1 |
+| Verifikasi roadmap — tiga akun samaran terhadap backend | ✅ Terpenuhi pada backend lokal — kepala instalasi **asli**, analis **asli**, pemegang `Read` saja = dr. Bima dengan `Export` dicabut dari daftar izin sesi di peramban (akun `Read`-saja belum ada). Pemakaian di server dev bersama tetap menunggu `MVP-11c` langkah 0-1 | 9 |
 | DoD — layar dan butir menu berjalan; berkas aturan teruji; nol daftar pasien; lint dan build hijau; laporan | Terpenuhi | Bagian 3 dan 6 |
 | Nol daftar pasien, nol tautan dari angka | Terpenuhi | Kolom tabel hanya disiplin, jenis, alasan, dan angka; nol `onRowClick` |
 
@@ -264,3 +264,32 @@ Uji manual: `PASS` — dengan batas di bawah.
 | Interupsi | `NONE` |
 | Status Git | Frontend: ` M src/lib/constants/health-services/laboratory-management/laboratory-constants.jsx`, ` M src/utils/menu-sidebar/menu-items.jsx`, `??` `src/app/health-services/laboratory-management/lab-operational-reports/`, `src/components/view/health-services/laboratory-management/lab-operational-reports/`, `lab-operational-report-constants.jsx`, `lab-operational-report-rules.js`, `use-lab-operational-report.jsx`, `lab-operational-report.service.js`, `tests/e2e/lab-operational-report-screen.spec.mjs`, `tests/unit/lab-operational-report-rules.test.mjs`. Backend: laporan ini, `frontend-roadmap.md`, `traceability.md`. **Nol operasi Git dijalankan** |
 | Langkah berikutnya | `FE-LAB-45` — tombol unduh ketiga laporan (`BE-LAB-86` ✅), kini `SIAP DIKERJAKAN` |
+
+---
+
+## 9. Verifikasi susulan — tersambung langsung dengan akun asli (2026-10-02 dan 2026-10-06)
+
+**Lingkungan.** Backend lokal (`dotnet run`, `Development`) terhadap PostgreSQL dev bersama; `next dev`
+port 3000 dari working tree `YogaV2`; Chromium lewat Playwright; login **lewat formulir**. **Nol
+tiruan** pada jawaban laporan — seluruh angka dari backend. Nol tulis (layar ini hanya membaca).
+
+| ID | Akun | Skenario | Hasil | Bukti |
+| --- | --- | --- | --- | --- |
+| L1' | dr. Bima | Butir menu *Laporan Operasional* tampil | `PASS` | L1 pertama `FAIL` karena pemilih skrip uji mencari butir di grup menu yang tertutup; diulang di halaman Laboratorium: 1 tautan |
+| L2 | dr. Bima | Ketiga laporan dimuat: periode bawaan **1 bulan berjalan s.d. hari ini (WIB)**, semua disiplin, ketiganya `200` | `PASS` | `startDate=2026-10-01`, `endDate=2026-10-02` |
+| L3 | dr. Bima | Ketiga bagian berisi angka atau sebab; nol galat mentah | `PASS` | Patologi Anatomi: *"Rilis hasil Patologi Anatomi belum tersedia."* — bukan 0 |
+| L4 | dr. Bima | Ubah Tanggal Mulai → ketiganya diminta ulang | `PASS` | `startDate=2026-09-01` |
+| L5 | dr. Bima | Disiplin Mikrobiologi → `discipline=Microbiology` pada ketiganya; baris disiplin lain hilang | `PASS` | — |
+| L6 | dr. Bima | *Atur ulang filter* → periode bawaan dan semua disiplin | `PASS` | — |
+| L7 | dr. Bima | 390 px tanpa gulir horizontal halaman | `PASS` | `375 ≤ 390` |
+| L8' | Vina | Butir menu **tidak** tampil, sementara butir saudaranya tampil | `PASS` | 0 tautan |
+| L9 | Vina | Alamat dibuka langsung → *"Anda tidak memiliki izin membuka Laporan Operasional Laboratorium."*; nol bagian laporan; nol tombol unduh | `PASS` | Empat permintaan terkirim sebelum daftar izin termuat dan dijawab `403` — Masalah yang diketahui butir 1, tetap |
+| P1 | dr. Bima | `VAL-149` periode > 366 hari (1 Sep 2025 – 6 Okt 2026) → **`422` asli**; pesannya tampil apa adanya pada penyaring; nol angka | `PASS` | *"Periode laporan paling panjang 366 hari. Persempit rentang tanggalnya."* |
+| P3 | dr. Bima, `Export` dicabut dari daftar izin sesi di peramban | Pemegang `Read` saja: ketiga laporan termuat, nol tombol *Unduh CSV* | `PASS` | Akun `Read`-saja belum ada di dev |
+
+**Angka nyata periode 1 September – 2 Oktober 2026:** Penolakan Wadah Patologi Klinik **5 diputuskan,
+1 ditolak, 20,0%** (alasan *INSUFFICIENT_QUANTITY*); Mikrobiologi dan Patologi Anatomi *"Nol wadah
+diputuskan"*; jumlah dirilis 0 pada ketiga disiplin — rilis hasil belum dipakai sungguhan (`MVP-9d`).
+
+Nol perubahan kode diperlukan. Validasi akhir sesi (2026-10-06): uji unit 2308/2314 (6 gagal =
+baseline, nol Laboratorium), `lint:errors` 0 error, `npm run build` hijau. **Nol operasi Git dijalankan.**

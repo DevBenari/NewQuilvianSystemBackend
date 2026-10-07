@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `10` — amandemen 2026-09-28, tiga laporan operasional (`S16a`) — kontraknya disetujui hari yang sama. Sebelumnya `9` — amandemen 2026-09-25 ketiga (penyelesaian order, hasil resmi, label keadaan). Sebelumnya `8` — amandemen 2026-09-25 kedua (`S4d-1`). Sebelumnya `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
+| Revision | `12` — amandemen 2026-10-07 (kedua): `AC-289`..`AC-293` (BR-139, kontrak usulan `LAB-REQ-017`). Sebelumnya `11` — amandemen 2026-10-07: `AC-276`..`AC-282` (susulan putaran 22) dan `AC-283`..`AC-288` (BR-138, kontrak usulan `LAB-REQ-016`). Sebelumnya `10` — amandemen 2026-09-28, tiga laporan operasional (`S16a`) — kontraknya disetujui hari yang sama. Sebelumnya `9` — amandemen 2026-09-25 ketiga (penyelesaian order, hasil resmi, label keadaan). Sebelumnya `8` — amandemen 2026-09-25 kedua (`S4d-1`). Sebelumnya `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -885,3 +885,94 @@ satu laporan PA Final; satu order lama tanpa disiplin.
 | Angka Patologi Anatomi | `S4e` — `DEC-LAB-021` |
 | Waktu jawab pada data satu tahun penuh | Belum ada ambang kinerja yang diputuskan; diukur dan dilaporkan pada task backend, bukan AC |
 | Delapan laporan lain | `S16b` — `DEC-LAB-025` |
+
+## Amandemen 2026-10-07 — Aksi alur kerja v1 (putaran 22) dan urutan Konfirmasi v1 (BR-138)
+
+**Status:** `draft`. Baris putaran 22 (`AC-276`..`AC-282`) dicatat susulan — kontraknya tidak berubah dan
+buktinya ada pada laporan `FE-LAB-46`..`FE-LAB-49`. Baris BR-138 (`AC-283`..`AC-288`) menunggu kontrak
+`r40`/`r8`/`r17`/revision 13 (`LAB-REQ-016`).
+
+### Matriks — putaran 22 (dicatat susulan)
+
+| AC | Skenario | Hasil yang diharapkan | Bukti saat ini |
+|---|---|---|---|
+| `AC-276` | Proses Pemeriksaan pada `Accepted`; status lain | Satu `PUT`; baris berubah hanya dari `200`; status lain redup | `FE-LAB-47` ✅ — termasuk satu tulis sungguhan |
+| `AC-277` | Penjamin Tunai/Asuransi/Perusahaan | Ketiganya sama | `FE-LAB-47` uji unit |
+| `AC-278` (bunyi amandemen `LAB-DEC-198`) | `InProcess` + `AllReleased`; + kosong; + `InProgress`; daftar PA | Aktif; aktif; redup; nol butir | `FE-LAB-48` ⚠ — jalur `200` sungguhan belum |
+| `AC-279` | Daftar basi, `complete` ditolak `VAL-146` | Penahan tampil; baris tetap | `FE-LAB-48` — penolakan asli backend |
+| `AC-280` | Terima Sampling | Layar Wadah pesanan itu; nol permintaan wadah dari daftar | `FE-LAB-46` ⚠, `FE-LAB-47` ✅ |
+| `AC-281` | Isi menu baris | Nol Tahan/Lanjutkan | `FE-LAB-47` ✅ |
+| `AC-282` | Sidebar, judul, Nota | Persis BR-137; key/pathname lama tetap | `FE-LAB-49` ✅ |
+
+### Matriks — backend BR-138
+
+| AC | Skenario | Hasil yang diharapkan |
+|---|---|---|
+| `AC-283` | `confirm` pada `Accepted` belum dikonfirmasi | `200`; status tetap `Accepted`; `ConfirmedAt`, konfirmator, dokter terisi; satu riwayat `Order.Confirm` `Accepted`→`Accepted` |
+| `AC-284` | `confirm` kedua; `confirm` pada `InProcess`/`Completed`/`Cancelled`/`OnHold`; `confirm` pada `Requested` | `409` `VAL-70`; `409` `VAL-71`; `200` → `Confirmed` |
+| `AC-285` | `start-process` pada `Accepted` belum dikonfirmasi; dikonfirmasi sebelum wadah layak; dikonfirmasi sesudah | `409` `VAL-151`; `200`; `200` |
+| `AC-285` (urutan) | `start-process` pada `InProcess` yang belum dikonfirmasi | `409` **status**, bukan `VAL-151` — status diperiksa lebih dulu |
+| `AC-286` | `complete` pada `InProcess` tanpa konfirmasi, seluruh hasil dirilis | `200` |
+| `AC-288` | Pemegang `Confirm` tanpa `Update`: `confirm`, `cancel`, `pathology-context`; pemegang `Update` tanpa `Confirm`: `confirm` | `200`, `403`, `403`; `403` |
+| Non-regresi | `hold`/`resume` status salah | Tetap `400` |
+| Registrasi | Aplikasi menyala | `PermissionRegistryValidator` lolos; `LabOrder : Confirm` ada di `SysActionAccess` |
+
+### Matriks — layar BR-138
+
+| AC | Skenario | Hasil yang diharapkan |
+|---|---|---|
+| `AC-287` | Baris `Requested`; `Accepted` belum dikonfirmasi; `Accepted` sudah; `InProcess` | Konfirmasi aktif/aktif/redup/redup; Proses redup/redup *konfirmasi lebih dulu*/aktif/redup |
+| `AC-287` | Konfirmasi pada baris `Accepted` | Sesudah `200` baris tetap *Diterima*, kolom Konfirmasi terisi, Proses menjadi aktif |
+| `AC-287` | Daftar basi: Proses ditolak `VAL-151` | Pesan backend di dialog; baris tetap |
+| `AC-288` | Pengguna tanpa `LabOrder : Confirm` | Konfirmasi redup berpetunjuk izin |
+
+### Data uji tambahan
+
+| Data | Kegunaan |
+|---|---|
+| Pesanan `Accepted` belum dikonfirmasi (dev: `LAB-RSMMC-000003`) | `AC-283`, `AC-285`, `AC-287` — **menulis**; izin pemilik per sesi |
+| Pesanan `InProcess` tanpa konfirmasi (dev: `LAB-RSMMC-000002`) | `AC-284` (`409`, nol tulis), `AC-286` |
+| Jabatan Analis dengan `LabOrder : Confirm` sesudah langkah rilis | `AC-288` |
+
+### Yang tidak diuji
+
+Opsi *langsung proses*; pembatalan oleh analis (`LAB-OPEN-052`).
+
+## Amandemen 2026-10-07 (kedua) — Daftar dokter pemeriksa dan jejak konfirmasi (BR-139)
+
+Kontrak `LAB-API-v1` `r41` dan `LAB-PERM-v1` revision 14 — `approved` 2026-10-07 (`LAB-REQ-017`). Decisions rev 89.
+
+### Matriks — backend BR-139
+
+| AC | Skenario | Hasil yang diharapkan |
+|---|---|---|
+| `AC-289` | Pemegang `LabOrder : Confirm` memanggil `examiner-doctor-options` tanpa pencarian; dengan `search` sebagian nama, kode, spesialisasi | `200`; hanya dokter `IsActive` dan tidak terhapus; urut nama; pencarian tidak membedakan huruf besar/kecil |
+| `AC-289` | Dokter nonaktif dan dokter terhapus di data uji | **Tidak** muncul |
+| `AC-289` | `pageSize=500`, `pageNumber=0` | Dijepit ke 50 dan 1 |
+| `AC-290` | Pengguna tanpa `LabOrder : Confirm` (mis. hanya `Read`, hanya `Update`) | `403` |
+| `AC-290` | Bentuk butir | Tepat empat ruas: `id`, `doctorCode`, `fullName`, `specialistName` — nol ruas kontak/pribadi |
+| `AC-292` | `confirm` pada `Accepted` → jawaban; lalu `GET /{id}` | Kelima ruas jejak konfirmasi terisi pada keduanya |
+| `AC-292` | `GET /{id}` pesanan belum dikonfirmasi | Kelima ruas `null` |
+| Kesetaraan predikat | Dokter yang ada di daftar dipakai `confirm` | Tidak pernah `422` `VAL-73` kecuali dinonaktifkan di antaranya |
+| Registrasi | Aplikasi menyala | `PermissionRegistryValidator` lolos; nol aksi baru di `SysActionAccess` |
+
+### Matriks — layar BR-139
+
+| AC | Skenario | Hasil yang diharapkan |
+|---|---|---|
+| `AC-289` | Analis membuka dialog Konfirmasi, membuka pemilih, mengetik nama | Daftar dari endpoint Lab; **nol** panggilan ke `…/human-resource/master-data/doctors/options` |
+| `AC-291` | Dialog dibuka | Pilihan kosong; Simpan redup sampai dipilih |
+| `AC-292` | Simpan Konfirmasi pada baris *Diterima* | Tanpa muat ulang: baris tetap *Diterima*, kolom Konfirmasi berisi konfirmator, waktu, dokter; Konfirmasi redup; Proses aktif |
+| `AC-293` | Langkah rilis | Akun analis di lingkungan sasaran memuat daftar dokter sebelum penjaga `VAL-151` aktif bagi pengguna |
+
+### Data uji tambahan
+
+| Data | Kegunaan |
+|---|---|
+| Pesanan `Accepted` belum dikonfirmasi — **dev tidak punya lagi** (F24-8) | `AC-292` layar — perlu disiapkan; menulis, izin pemilik per sesi |
+| Satu dokter nonaktif dan satu terhapus | `AC-289` penyaring — harness InMemory, bukan DB bersama |
+| Akun analis (pemegang `Confirm`) | `AC-289`..`AC-292` |
+
+### Yang tidak diuji
+
+Penyaring dokter lab (`LAB-DEC-200` tidak memintanya); perubahan `KioskRead` (milik SDM).
