@@ -2,14 +2,14 @@
 
 | Field | Nilai |
 |---|---|
-| Contract version | `FIN-PERM-1.4` |
-| `last_changed_in` | `FIN-PERM-1.4` — AMENDMENT REVISI 7, 29 September 2026 (koreksi D.2, D.6.1, D.6.2 mengikuti `FIN-DEC-082`/`FIN-DEC-083`) |
-| Status | Revisi 1-5 `locked`; Revisi 6 `approved` (Yasmin, 28 September 2026 lewat `FIN-DEC-078` & `FIN-DEC-079`); **Revisi 7 `draft`** — menurunkan `FIN-DES-066`..`069` yang sendiri masih `draft` |
+| Contract version | `FIN-PERM-1.10` |
+| `last_changed_in` (1.10) | `FIN-PERM-1.10` — AMENDMENT REVISI 18, 6 Oktober 2026 (bagian P: hak akses sinkronisasi payroll HR dan migrasi batch NIP). Status **`draft`** |
+| `last_changed_in` | `FIN-PERM-1.9` — AMENDMENT REVISI 17, 5 Oktober 2026 (bagian O: hak akses perjanjian angsuran dan pelunasan internal). Status `approved` (Yasmin, 5 Oktober 2026) |
+| Status | `approved` — Revisi 1.10 disetujui pemilik (Yasmin) 6 Oktober 2026 |
 | Owner | Security Owner bersama Yasmin (Product/Domain Owner Finance) |
-| `approved_by` / `approved_at` | Revisi 6: Yasmin / 28 September 2026. Revisi 7: **belum** — menunggu Security Owner (lihat `FIN-OQ-038`) |
-| Input revision | `00-interview-decisions.md` revisi 29 September 2026 (`FIN-DEC-082`, `FIN-DEC-083`), `02-backend-architecture.md` AMENDMENT REVISI 11 (`FIN-DES-066`..`069`) |
-| `input_hash` | `00-interview-decisions.md` = `c1cba136cb3c665bd1eeefe944b9d902d6fe5f55e123cf4bd83ae53456a7dee2` |
-| Dampak kompatibilitas | Revisi 6: penyelarasan 6 controller legacy (rename string resource, **sudah diimplementasikan** `BE-FIN-042`) + penambahan resource payung. Revisi 7: **nol dampak pada kode yang sudah berjalan** — mengoreksi nama payung (`Finance.AP.Umbrella`/`Finance.AR.Umbrella`) dan titik tulis ekspansi sebelum satu baris pun ditulis |
+| `approved_by` / `approved_at` | Yasmin / 2026-10-06 (untuk `1.10`) |
+| Input revision | `00-interview-decisions.md` — `FIN-DEC-183`..`202`, `02-backend-architecture.md` bagian P |
+| Dampak kompatibilitas | **Aditif.** Menambahkan dua konfigurasi AccessController baru (`CORPORATE_FINANCE_MANAGEMENT_RECEIVABLE_PAYROLL_SYNC` dan `CORPORATE_FINANCE_MANAGEMENT_RECEIVABLE_MIGRATION`) |
 
 String `[AccessPermission(...)]` ditulis apa adanya agar implementer menyalin, bukan
 menerjemahkan. Kolom "Dicatat logger" mengikuti konvensi project: `GET` tidak dicatat.
@@ -1086,3 +1086,146 @@ yang sudah ada.
 Perubahan ambang tetap dicatat `LoggerService.AuditAsync` beserta nominal, alasan, dan pelakunya.
 Nama pengubah yang kini dikirim pada respons **tidak** menambah apa pun ke logger — ia dibaca saat
 menyusun respons dan bukan data baru.
+
+---
+
+# AMENDMENT REVISI 17 — Piutang Manfaat Karyawan, sisi Finance (bagian O)
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-PERM-1.9` |
+| `last_changed_in` | `FIN-PERM-1.9` — AMENDMENT REVISI 17, 5 Oktober 2026 (bagian O) |
+| Status | **`approved`** — disetujui pemilik (Yasmin, 5 Oktober 2026) |
+| Owner | Security Owner bersama Yasmin (Product/Domain Owner Finance) |
+| `approved_by` / `approved_at` | Yasmin / 2026-10-05 |
+| Input revision | `00-interview-decisions.md` `FIN-DEC-162`..`179`; `02-backend-architecture.md` bagian O |
+| Dampak kompatibilitas | **Dua resource baru** beserta sembilan action. Nol resource yang sudah ada berubah nama, berubah makna, atau kehilangan action |
+
+String `[AccessPermission(...)]` ditulis apa adanya agar implementer menyalin, bukan menerjemahkan.
+
+## O.1 Dua resource baru
+
+| `ModuleCode` | `ControllerName` | `DisplayName` | Controller |
+|---|---|---|---|
+| `CORPORATE_FINANCE_MANAGEMENT_RECEIVABLE_INSTALLMENT_PLAN` | `FinanceReceivableInstallmentPlan` | Perjanjian Angsuran Piutang | `FinanceReceivableInstallmentPlansController` |
+| `CORPORATE_FINANCE_MANAGEMENT_BENEFIT_SETTLEMENT` | `FinanceBenefitSettlement` | Pelunasan Internal Manfaat Karyawan | `FinanceBenefitSettlementsController` |
+
+Bentuk atribut kelasnya mengikuti yang berjalan pada `FinanceReceivablesController`:
+
+```csharp
+[AccessController("CORPORATE_FINANCE_MANAGEMENT_RECEIVABLE_INSTALLMENT_PLAN",
+    "Corporate Finance Management Receivable Installment Plan", "Perjanjian Angsuran Piutang",
+    AreaName = "Corporate", ControllerName = "FinanceReceivableInstallmentPlan",
+    Description = "Perjanjian pembayaran bertahap piutang pegawai beserta jadwalnya", SortOrder = 31)]
+```
+
+```csharp
+[AccessController("CORPORATE_FINANCE_MANAGEMENT_BENEFIT_SETTLEMENT",
+    "Corporate Finance Management Benefit Settlement", "Pelunasan Internal Manfaat Karyawan",
+    AreaName = "Corporate", ControllerName = "FinanceBenefitSettlement",
+    Description = "Penutupan berkala piutang porsi manfaat yang ditanggung rumah sakit", SortOrder = 32)]
+```
+
+## O.2 Action per endpoint
+
+Argumen pertama `[AccessPermission]` **MUST** sama persis dengan `ControllerName`, dan argumen keduanya
+**MUST** sama persis dengan argumen pertama `[AccessAction]` pada method yang sama. Menyimpang berarti
+`403` permanen yang **tidak dapat** diperbaiki dari layar Akses Role.
+
+### O.2.1 `FinanceReceivableInstallmentPlan`
+
+| Endpoint | `[AccessAction]` | `[AccessPermission(...)]` | `AccessType` |
+|---|---|---|---|
+| `POST /receivables/{receivableId}/installment-plans` | `[AccessAction("Create", "Create Receivable Installment Plan", AccessType = AccessTypes.Create, SortOrder = 2)]` | `[AccessPermission("FinanceReceivableInstallmentPlan", "Create")]` | `Create` |
+| `GET /receivables/{receivableId}/installment-plans` | `[AccessAction("Read", "Read Receivable Installment Plan", AccessType = AccessTypes.Read, SortOrder = 1)]` | `[AccessPermission("FinanceReceivableInstallmentPlan", "Read")]` | `Read` |
+| `GET /receivable-installment-plans` | `Read` (sama) | `[AccessPermission("FinanceReceivableInstallmentPlan", "Read")]` | `Read` |
+| `GET /receivable-installment-plans/{id}` | `Read` (sama) | `[AccessPermission("FinanceReceivableInstallmentPlan", "Read")]` | `Read` |
+| `POST /receivable-installment-plans/{id}/approve` | `[AccessAction("Approve", "Approve Receivable Installment Plan", AccessType = AccessTypes.Update, SortOrder = 3)]` | `[AccessPermission("FinanceReceivableInstallmentPlan", "Approve")]` | `Update` |
+| `POST /receivable-installment-plans/{id}/reject` | `[AccessAction("Reject", "Reject Receivable Installment Plan", AccessType = AccessTypes.Update, SortOrder = 4)]` | `[AccessPermission("FinanceReceivableInstallmentPlan", "Reject")]` | `Update` |
+| `POST /receivable-installment-plans/{id}/cancel` | `[AccessAction("Cancel", "Cancel Receivable Installment Plan", AccessType = AccessTypes.Update, SortOrder = 5)]` | `[AccessPermission("FinanceReceivableInstallmentPlan", "Cancel")]` | `Update` |
+
+### O.2.2 `FinanceBenefitSettlement`
+
+| Endpoint | `[AccessAction]` | `[AccessPermission(...)]` | `AccessType` |
+|---|---|---|---|
+| `GET /benefit-settlements` dan `GET /benefit-settlements/{id}` | `[AccessAction("Read", "Read Benefit Settlement", AccessType = AccessTypes.Read, SortOrder = 1)]` | `[AccessPermission("FinanceBenefitSettlement", "Read")]` | `Read` |
+| `POST /benefit-settlements/preview` | `Read` (sama) — hanya menghitung, nol perubahan data | `[AccessPermission("FinanceBenefitSettlement", "Read")]` | `Read` |
+| `POST /benefit-settlements` | `[AccessAction("Create", "Create Benefit Settlement", AccessType = AccessTypes.Create, SortOrder = 2)]` | `[AccessPermission("FinanceBenefitSettlement", "Create")]` | `Create` |
+| `POST /benefit-settlements/{id}/post` | `[AccessAction("Post", "Post Benefit Settlement", AccessType = AccessTypes.Update, SortOrder = 3)]` | `[AccessPermission("FinanceBenefitSettlement", "Post")]` | `Update` |
+| `POST /benefit-settlements/{id}/cancel` | `[AccessAction("Cancel", "Cancel Benefit Settlement", AccessType = AccessTypes.Update, SortOrder = 4)]` | `[AccessPermission("FinanceBenefitSettlement", "Cancel")]` | `Update` |
+
+**`preview` memakai `Read`, bukan `Create`, dengan sengaja.** Ia hanya menghitung dan tidak mengubah
+apa pun, sehingga petugas yang hanya berhak membaca tetap dapat memeriksa angka sebelum ada yang
+menerbitkannya.
+
+### O.2.3 Status bebas tanggungan — nol resource baru
+
+| Endpoint | `[AccessPermission(...)]` | Keterangan |
+|---|---|---|
+| `GET /receivables/clearance/{benefitOwnerId}` | `[AccessPermission("FinanceReceivable", "Read")]` | Menempel pada controller piutang yang sudah ada |
+| `GET /receivables/clearance` | `[AccessPermission("FinanceReceivable", "Read")]` | Sama |
+
+Keduanya memakai resource dan action yang **sudah terdaftar**. Pilihan ini sengaja: controller baru
+dengan `ControllerName` yang sama akan mendaftarkan satu modul **dua kali** di layar Akses Role.
+
+## O.3 Jejak audit
+
+| Aksi | Dicatat | Payload log |
+|---|---|---|
+| Mengajukan perjanjian | **Ya** | `EntityId`, controller, action, status |
+| Menyetujui, menolak, membatalkan perjanjian | **Ya** | Sama, ditambah status sebelum dan sesudah |
+| Memposting hasil potongan gaji | **Ya** | Sama. **MUST NOT** memuat nama pegawai maupun nominal gaji |
+| Membuat, menerbitkan, membatalkan pelunasan internal | **Ya** | Sama, ditambah periode dan jumlah baris yang ditutup |
+| Membaca daftar, rincian, hasil hitung awal, dan status bebas tanggungan | **Tidak** | GET tidak dicatat, mengikuti konvensi modul |
+
+Kolom bertanda **Sensitif** pada kamus data — `BenefitOwnerId`, `BenefitRelationship`,
+`AgreementDocumentPath`, dan ruas alasan berisi teks bebas — **MUST NOT** masuk custom logger. Jejak
+audit database lewat `IdentityModel` tetap terpisah dari logging aplikasi (`QBE-AUD-001`).
+
+## O.4 Prasyarat pemberian hak akses
+
+| Prasyarat | Pemilik | Mengapa |
+|---|---|---|
+| Kedua resource baru **MUST** muncul di layar Pengaturan → Manajemen Role → Akses Role sebelum ada peran yang dapat memakainya | Admin dan Platform | Hak akses ditentukan admin lewat layar itu, bukan oleh kode |
+| Hak `Approve` **MUST** diberikan kepada peran yang **berbeda** dari pemegang `Create` | Admin, atas arahan pemilik Finance | Bila satu peran memegang keduanya, satu orang dapat mengajukan lalu menyetujui — menggugurkan maksud `FIN-DEC-166`. Check constraint tetap menolaknya di tingkat data, tetapi pemberian hak yang benar mencegahnya lebih awal |
+| Hak `Post` pada pelunasan internal **MUST** dibatasi peran penutupan periode | Admin, atas arahan pemilik Finance | Penerbitan menutup banyak kartu piutang sekaligus dan memicu beban benefit |
+
+---
+
+# AMENDMENT REVISI 18 — Piutang Manfaat Karyawan: Hak Akses Sinkronisasi Payroll & Migrasi NIP (`FIN-PERM-1.10`)
+
+```yaml
+contract_version: FIN-PERM-1.10
+last_changed_in: Revisi 18 (6 Oktober 2026)
+status: draft
+input_revision: 00-interview-decisions.md (FIN-DEC-189..FIN-DEC-202)
+```
+
+## P.1 Resource dan Action Tambahan
+
+| Resource | Action | String yang Dipakai | Kegunaan |
+|---|---|---|---|
+| `FinanceReceivable` | `Update` | `[AccessPermission("FinanceReceivable", "Update")]` | Menerima kiriman hasil potongan penggajian HR (`POST /receivables/installments/payroll-results`) dan notifikasi pemisahan pegawai |
+| `FinanceReceivableMigration` | `Create` | `[AccessPermission("FinanceReceivableMigration", "Create")]` | Mengunggah dan memvalidasi berkas impor/migrasi piutang karyawan berbasis NIP (`POST /receivables/migration-batches/employee`) |
+
+## P.2 Atribut Controller Baru
+
+```csharp
+[AccessController("CORPORATE_FINANCE_MANAGEMENT_RECEIVABLE_PAYROLL_SYNC",
+    "Corporate Finance Management Receivable Payroll Sync", "Sinkronisasi Payroll Piutang",
+    AreaName = "Corporate", ControllerName = "FinanceReceivablesPayroll",
+    Description = "Penerima laporan pemotongan penggajian HR dan notifikasi pemisahan pegawai", SortOrder = 33)]
+```
+
+```csharp
+[AccessController("CORPORATE_FINANCE_MANAGEMENT_RECEIVABLE_MIGRATION",
+    "Corporate Finance Management Receivable Migration", "Migrasi Piutang Karyawan",
+    AreaName = "Corporate", ControllerName = "FinanceReceivableMigration",
+    Description = "Unggah dan validasi batch migrasi saldo lama piutang karyawan berdasar NIP", SortOrder = 34)]
+```
+
+## P.3 Jejak Audit & Kolom Sensitif
+
+1. **Kiriman Payroll**: Tercatat logger sistem (`EntityId = InstallmentId`, status, nominal potong). **NOL** data nominal gaji pokok pegawai yang masuk ke log.
+2. **Unggahan Migrasi**: Tercatat nama batch, jumlah baris berhasil/gagal, dan total nominal kontrol.
+

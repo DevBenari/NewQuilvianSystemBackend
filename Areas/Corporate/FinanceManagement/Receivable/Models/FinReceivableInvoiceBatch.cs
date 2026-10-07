@@ -28,6 +28,18 @@ public sealed class FinReceivableInvoiceBatch : IdentityModel
     public DateOnly PeriodStart { get; set; }
     public DateOnly PeriodEnd { get; set; }
 
+    /// <summary>Tanggal pembuatan invoice yang ditentukan pengguna. Null berarti tanggal batch dibuat (hari ini WIB).</summary>
+    public DateOnly? InvoiceDate { get; set; }
+
+    /// <summary>Tanggal jatuh tempo batch tagihan (InvoiceDate + PaymentTermDays). Backend-owned.</summary>
+    public DateOnly? DueDate { get; set; }
+
+    /// <summary>Tenor jatuh tempo dalam hari yang disnapshot saat batch dibuat.</summary>
+    public int? PaymentTermDays { get; set; }
+
+    /// <summary>Catatan atau keterangan dokumen batch tagihan.</summary>
+    [MaxLength(500)] public string? Note { get; set; }
+
     /// <summary>Jumlah OriginalAmount seluruh FinReceivable anggota.</summary>
     public decimal TotalAmount { get; set; }
 

@@ -49,6 +49,25 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
             await _service.GetEligibleReceivablesAsync(request.DebtorReferenceId, cancellationToken),
             "Daftar piutang yang memenuhi syarat digabung berhasil diambil."));
 
+    [HttpGet("create-context")]
+    [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<ReceivableInvoiceBatchCreateContextResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetCreateContext([FromQuery] ReceivableInvoiceBatchCreateContextQuery request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(ApiResponse<ReceivableInvoiceBatchCreateContextResponse>.Ok(
+                await _service.GetCreateContextAsync(request.DebtorReferenceId, request.Category, cancellationToken),
+                "Konteks pembuatan Batch Tagihan AR berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(404, exception.Message));
+        }
+    }
+
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
@@ -78,7 +97,14 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
     {
         try
         {
-            var batch = await _service.CreateAsync(request.PeriodStart, request.PeriodEnd, request.ReceivableIds, CurrentUserId(), cancellationToken);
+            var batch = await _service.CreateAsync(
+                request.PeriodStart,
+                request.PeriodEnd,
+                request.ReceivableIds,
+                CurrentUserId(),
+                cancellationToken,
+                request.InvoiceDate,
+                request.Note);
             return StatusCode(201, ApiResponse<ReceivableInvoiceBatchResponse>.Ok(Map(batch), "Batch Tagihan AR berhasil dibuat."));
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
@@ -165,6 +191,10 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
         DebtorReferenceId = batch.DebtorReferenceId,
         PeriodStart = batch.PeriodStart,
         PeriodEnd = batch.PeriodEnd,
+        InvoiceDate = batch.InvoiceDate,
+        DueDate = batch.DueDate,
+        PaymentTermDays = batch.PaymentTermDays,
+        Note = batch.Note,
         TotalAmount = batch.TotalAmount,
         Status = batch.Status,
         IssuedAt = batch.IssuedAt,
