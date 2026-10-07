@@ -13,6 +13,7 @@ using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using System.Linq.Expressions;
 using System.Security.Claims;
 
 using InpatientClinicalContextService =
@@ -385,6 +386,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     InstructionVerifiedAt = x.InstructionVerifiedAt,
                     InstructionVerifiedByUserId = x.InstructionVerifiedByUserId,
 
+                    // r13 bagian 8 / r41 36.4 (BE-LAB-91, LAB-DEC-203). Jejak konfirmasi — sejak
+                    // Konfirmasi pada Accepted tidak lagi memindahkan status (r40), jawaban confirm
+                    // adalah satu-satunya cara layar mengetahui pesanan sudah dikonfirmasi tanpa
+                    // memuat ulang daftar. Nama diturunkan lewat jalur yang sama dengan
+                    // RequestedByName dan LabMonitoringService, supaya satu orang terbaca satu nama.
+                    ConfirmedAt = x.ConfirmedAt,
+                    ConfirmedByUserId = x.ConfirmedByUserId,
+                    ConfirmedByName = x.ConfirmedByUserId == null
+                        ? null
+                        : _dbContext.Users
+                            .Where(u => u.Id == x.ConfirmedByUserId)
+                            .Select(u => u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode)
+                            .FirstOrDefault(),
+                    ExaminerDoctorId = x.ExaminerDoctorId,
+                    ExaminerDoctorName = x.ExaminerDoctorId == null
+                        ? null
+                        : _dbContext.Set<MstDoctor>()
+                            .Where(d => d.Id == x.ExaminerDoctorId)
+                            .Select(d => d.FullName)
+                            .FirstOrDefault(),
+
                     // r38 33.2 (BE-LAB-87, LAB-DEC-166). Sub-query ke MstPatient lewat
                     // Encounter.PatientId — jalur yang sama dengan LabMonitoringService, bukan
                     // navigation property baru.
@@ -435,6 +457,91 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             }
 
             return detail;
+        }
+
+        // =====================================================================
+        // BE-LAB-91 — pilihan dokter pemeriksa bagi pengonfirmasi (r41 36.3, BR-139)
+        // =====================================================================
+
+        /// <summary>Ukuran halaman bawaan dan batas atas daftar dokter pemeriksa (<c>r41</c> 36.3).</summary>
+        public const int ExaminerDoctorDefaultPageSize = 25;
+        public const int ExaminerDoctorMaxPageSize = 50;
+        public const int ExaminerDoctorMaxSearchLength = 100;
+
+        /// <summary>
+        /// Dokter yang boleh dipilih sebagai dokter pemeriksa: belum dihapus <b>dan</b> masih aktif.
+        ///
+        /// <para>
+        /// <b>Satu-satunya tempat syarat ini ditulis.</b> Validasi Konfirmasi (<c>VAL-73</c>) dan
+        /// daftar pilihan (<see cref="GetExaminerDoctorOptionsAsync"/>) sama-sama memakainya. Bila
+        /// keduanya ditulis terpisah, suatu hari daftar menawarkan dokter yang lalu ditolak
+        /// <c>422</c> — atau menyembunyikan dokter yang sebenarnya sah (<c>02-backend-architecture.md</c>
+        /// 25.4).
+        /// </para>
+        /// </summary>
+        private static readonly Expression<Func<MstDoctor, bool>> SelectableExaminerDoctor =
+            x => !x.IsDelete && x.IsActive;
+
+        /// <summary>
+        /// Daftar dokter aktif yang dapat dipilih sebagai dokter pemeriksa saat Konfirmasi
+        /// (<c>LAB-DEC-200</c>, <c>LAB-DEC-201</c>).
+        ///
+        /// <para>
+        /// Tanpa penyaring dokter laboratorium, spesialisasi, disiplin, unit, maupun jadwal jaga.
+        /// Proyeksi langsung ke <b>empat</b> ruas di dalam kueri — data kontak dan data pribadi
+        /// <c>MstDoctor</c> tidak pernah dibaca ke memori. Baca murni: nol transaksi, nol log.
+        /// </para>
+        /// </summary>
+        public async Task<PagedResult<LabExaminerDoctorOptionResponse>> GetExaminerDoctorOptionsAsync(
+            LabExaminerDoctorOptionQuery? query,
+            CancellationToken cancellationToken = default)
+        {
+            // Menjepit, bukan menolak: salah ketik ukuran halaman tidak layak menjadi 400.
+            var pageNumber = Math.Max(query?.PageNumber ?? 1, 1);
+            var pageSize = Math.Clamp(query?.PageSize ?? ExaminerDoctorDefaultPageSize, 1, ExaminerDoctorMaxPageSize);
+
+            var search = query?.Search?.Trim();
+            if (search?.Length > ExaminerDoctorMaxSearchLength)
+                search = search[..ExaminerDoctorMaxSearchLength];
+
+            var source = _dbContext.Set<MstDoctor>()
+                .AsNoTracking()
+                .Where(SelectableExaminerDoctor);
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                var pattern = $"%{search}%";
+
+                source = source.Where(x =>
+                    EF.Functions.ILike(x.FullName, pattern) ||
+                    EF.Functions.ILike(x.DoctorCode, pattern) ||
+                    (x.SpecialistName != null && EF.Functions.ILike(x.SpecialistName, pattern)));
+            }
+
+            var totalData = await source.CountAsync(cancellationToken);
+
+            var items = await source
+                .OrderBy(x => x.FullName)
+                .ThenBy(x => x.DoctorCode)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new LabExaminerDoctorOptionResponse
+                {
+                    Id = x.Id,
+                    DoctorCode = x.DoctorCode,
+                    FullName = x.FullName,
+                    SpecialistName = x.SpecialistName
+                })
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<LabExaminerDoctorOptionResponse>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
         }
 
         // =====================================================================
@@ -1001,10 +1108,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         /// </para>
         ///
         /// <para>
-        /// <b>Jalur lama tidak disentuh.</b> Konfirmasi tidak diwajibkan: pesanan yang tidak
-        /// pernah dikonfirmasi tetap berpindah <c>Requested</c> ke <c>Accepted</c> ketika wadah
-        /// pertamanya dinyatakan layak. Mewajibkannya akan menghentikan seluruh pesanan yang
-        /// sedang berjalan, dan keputusan itu belum diambil (<c>LAB-OPEN-027</c>).
+        /// <b>Jalur lama tidak disentuh.</b> Konfirmasi tidak diwajibkan sebelum wadah layak:
+        /// pesanan yang tidak pernah dikonfirmasi tetap berpindah <c>Requested</c> ke
+        /// <c>Accepted</c> ketika wadah pertamanya dinyatakan layak. Yang mewajibkannya adalah
+        /// Proses Pemeriksaan (<c>VAL-151</c>, <c>LAB-DEC-194</c>).
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Urutan v1 (<c>LAB-DEC-193</c>, <c>LAB-DEC-195</c>, <c>LAB-STATE-v1</c> <c>r8</c>).</b>
+        /// Konfirmasi juga sah pada <c>Accepted</c> yang belum pernah dikonfirmasi — sampel diterima
+        /// dulu, baru dikonfirmasi. Di sana status <b>tidak berpindah</b>: status tidak pernah
+        /// mundur ke <c>Confirmed</c>; yang tercatat hanya konfirmator, waktu, dan dokter pemeriksa.
         /// </para>
         /// </summary>
         public async Task<LabOrderDetailResponse> ConfirmAsync(
@@ -1022,8 +1136,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             if (entity.OrderStatus == LabOrderStatus.Confirmed || entity.ConfirmedAt != null)
                 throw new LabOrderConflictException("Pesanan ini sudah dikonfirmasi.");
 
-            // VAL-71.
-            if (entity.OrderStatus != LabOrderStatus.Requested)
+            // VAL-71 (r17): Requested atau Accepted. Selain keduanya — termasuk InProcess yang belum
+            // pernah dikonfirmasi — pesanan sudah melewati tahap konfirmasi (LAB-DEC-196).
+            if (entity.OrderStatus is not (LabOrderStatus.Requested or LabOrderStatus.Accepted))
                 throw new LabOrderConflictException("Pesanan ini sudah melewati tahap konfirmasi.");
 
             // VAL-72.
@@ -1035,9 +1150,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             // pemeriksaan ini.
             var examinerIsSelectable = await _dbContext.Set<MstDoctor>()
                 .AsNoTracking()
-                .AnyAsync(
-                    x => x.Id == request.ExaminerDoctorId && !x.IsDelete && x.IsActive,
-                    cancellationToken);
+                .Where(SelectableExaminerDoctor)
+                .AnyAsync(x => x.Id == request.ExaminerDoctorId, cancellationToken);
 
             if (!examinerIsSelectable)
                 throw new LabOrderValidationException("Dokter pemeriksa tidak ditemukan atau tidak aktif.");
@@ -1046,7 +1160,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var actorUserId = GetCurrentUserId();
             var fromStatus = entity.OrderStatus;
 
-            entity.OrderStatus = LabOrderStatus.Confirmed;
+            // LAB-DEC-195: hanya Requested yang berpindah ke Confirmed. Accepted tetap Accepted;
+            // riwayatnya tercatat Accepted -> Accepted supaya konfirmasi terlambat tetap terbaca.
+            var toStatus = fromStatus == LabOrderStatus.Requested
+                ? LabOrderStatus.Confirmed
+                : fromStatus;
+
+            entity.OrderStatus = toStatus;
             entity.ConfirmedByUserId = actorUserId;
             entity.ConfirmedAt = now;
             entity.ExaminerDoctorId = request.ExaminerDoctorId;
@@ -1060,7 +1180,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 LabTransitionScope.LabOrder,
                 "Order.Confirm",
                 fromStatus.ToString(),
-                LabOrderStatus.Confirmed.ToString(),
+                toStatus.ToString(),
                 reasonCode: null,
                 reasonNote: null,
                 actorUserId,
@@ -1086,17 +1206,50 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         /// <summary>
         /// Menandai pesanan mulai dikerjakan. Tidak menerbitkan fakta apa pun; tagihan sudah
         /// terbentuk pada saat sampel dinyatakan layak, bukan di sini.
+        ///
+        /// <para>
+        /// Sejak <c>LAB-STATE-v1</c> <c>r8</c> / <c>LAB-VAL-v1</c> <c>r17</c> (<c>BE-LAB-90</c>):
+        /// status selain <c>Accepted</c> → <c>409</c> dengan bunyi pesan lama (sebelumnya
+        /// <c>400</c> dari <see cref="MoveOrderStatusAsync"/>); lalu pesanan wajib sudah
+        /// dikonfirmasi (<c>VAL-151</c>, <c>LAB-DEC-194</c>). Penjaga berjalan <b>sebelum</b>
+        /// <see cref="MoveOrderStatusAsync"/>, yang tidak diubah — <c>hold</c>/<c>resume</c> tetap
+        /// menjawab seperti sebelumnya.
+        /// </para>
+        ///
+        /// <para>
+        /// Jejak konfirmasi dibaca dari <c>ConfirmedAt</c>, bukan dari status: pesanan yang
+        /// dikonfirmasi lalu wadahnya layak berstatus <c>Accepted</c>, sama dengan pesanan yang
+        /// belum pernah dikonfirmasi.
+        /// </para>
         /// </summary>
-        public Task<LabOrderDetailResponse> StartProcessAsync(
+        /// <exception cref="LabOrderConflictException">Status bukan <c>Accepted</c>, atau <c>VAL-151</c>.</exception>
+        public async Task<LabOrderDetailResponse> StartProcessAsync(
             Guid id,
-            CancellationToken cancellationToken = default) =>
-            MoveOrderStatusAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await LoadTrackedAsync(id, cancellationToken);
+
+            if (entity.OrderStatus != LabOrderStatus.Accepted)
+            {
+                throw new LabOrderConflictException(
+                    $"Pesanan berstatus {entity.OrderStatus} tidak dapat dipindahkan ke {LabOrderStatus.InProcess}.");
+            }
+
+            // VAL-151.
+            if (entity.ConfirmedAt == null)
+            {
+                throw new LabOrderConflictException(
+                    "Pesanan ini belum dikonfirmasi. Konfirmasi dan pilih dokter pemeriksa sebelum memproses.");
+            }
+
+            return await MoveOrderStatusAsync(
                 id,
                 new[] { LabOrderStatus.Accepted },
                 LabOrderStatus.InProcess,
                 "Order.StartProcess",
                 note: null,
                 cancellationToken);
+        }
 
         /// <summary>
         /// Menandai pesanan selesai — <b>hanya</b> bila setiap pemeriksaan tidak batal sudah
