@@ -46,17 +46,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private readonly LoggerService _loggerService;
         private readonly EmergencyObservationService _emergencyObservationService;
         private readonly EmergencyVisitService _emergencyVisitService;
+        private readonly EmergencyRealtimeService? _emergencyRealtimeService;
 
         public EmergencyObservationController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             EmergencyObservationService emergencyService,
-            EmergencyVisitService emergencyVisitService)
+            EmergencyVisitService emergencyVisitService,
+            EmergencyRealtimeService? emergencyRealtimeService = null)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _emergencyObservationService = emergencyService;
             _emergencyVisitService = emergencyVisitService;
+            _emergencyRealtimeService = emergencyRealtimeService;
         }
 
         [HttpGet]
@@ -204,6 +207,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 "Membuat data Emergency Observation.",
                 new { EntityId = entity.Id, Controller = "EmergencyObservation", Action = "Create" }
             );
+
+            if (_emergencyRealtimeService != null)
+            {
+                await _emergencyRealtimeService.NotifyEmergencyQueueChangedAsync(
+                    "EmergencyObservationCreated",
+                    null,
+                    entity.EmergencyVisitId,
+                    null,
+                    null,
+                    null,
+                    null,
+                    actorUserId
+                );
+            }
 
             return Ok(ApiResponse<EmergencyObservationResponse>.Ok(ToResponse(entity), "Data observasi IGD berhasil dibuat."));
         }
@@ -410,6 +427,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                         ActorUserId = actorUserId,
                         EncounterDitutup = penutupan.EncounterDitutup
                     }
+                );
+            if (_emergencyRealtimeService != null)
+            {
+                await _emergencyRealtimeService.NotifyEmergencyQueueChangedAsync(
+                    "EmergencyObservationUpdated",
+                    null,
+                    entity.EmergencyVisitId,
+                    null,
+                    null,
+                    null,
+                    null,
+                    actorUserId
                 );
             }
 

@@ -584,6 +584,7 @@ try
     // dibuat oleh dependency injection, sehingga endpoint-nya membalas 500 sebelum kode
     // modul sempat dijalankan. Pola mengikuti service lain: kelas konkret, tanpa interface.
     builder.Services.AddScoped<EmergencyDocumentNumberService>();
+    builder.Services.AddScoped<EmergencyRealtimeService>();
     builder.Services.AddScoped<EmergencyVisitService>();
     builder.Services.AddScoped<EmergencyTriageService>();
     builder.Services.AddScoped<EmergencyResuscitationService>();

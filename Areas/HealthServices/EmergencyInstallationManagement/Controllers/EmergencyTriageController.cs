@@ -39,17 +39,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private readonly LoggerService _loggerService;
         private readonly EmergencyTriageService _emergencyTriageService;
         private readonly EmergencyVisitService _emergencyVisitService;
+        private readonly EmergencyRealtimeService? _emergencyRealtimeService;
 
         public EmergencyTriageController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             EmergencyTriageService emergencyService,
-            EmergencyVisitService emergencyVisitService)
+            EmergencyVisitService emergencyVisitService,
+            EmergencyRealtimeService? emergencyRealtimeService = null)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _emergencyTriageService = emergencyService;
             _emergencyVisitService = emergencyVisitService;
+            _emergencyRealtimeService = emergencyRealtimeService;
         }
 
         /// <summary>
@@ -425,6 +428,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 new { EntityId = entity.Id, Controller = "EmergencyTriage", Action = "Create" }
             );
 
+            if (_emergencyRealtimeService != null)
+            {
+                await _emergencyRealtimeService.NotifyEmergencyTriageChangedAsync(
+                    "EmergencyTriageCreated",
+                    entity,
+                    actorUserId
+                );
+
+                if (visit != null)
+                {
+                    await _emergencyRealtimeService.NotifyEmergencyVisitChangedAsync(
+                        "EmergencyVisitUpdated",
+                        visit,
+                        actorUserId
+                    );
+                }
+            }
+
             return Ok(ApiResponse<EmergencyTriageResponse>.Ok(ToResponse(entity), "Data triage IGD berhasil dibuat."));
         }
 
@@ -494,6 +515,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 "Mengubah data Emergency Triage.",
                 new { EntityId = id, Controller = "EmergencyTriage", Action = "Update" }
             );
+
+            if (_emergencyRealtimeService != null)
+            {
+                await _emergencyRealtimeService.NotifyEmergencyTriageChangedAsync(
+                    "EmergencyTriageUpdated",
+                    entity,
+                    actorUserId
+                );
+            }
 
             return Ok(ApiResponse<EmergencyTriageResponse>.Ok(ToResponse(entity), "Data triage IGD berhasil diubah."));
         }
@@ -581,6 +611,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 new { EntityId = id, Controller = "EmergencyTriage", Action = "UpdateTriageStatus" }
             );
 
+            if (_emergencyRealtimeService != null)
+            {
+                await _emergencyRealtimeService.NotifyEmergencyTriageChangedAsync(
+                    "EmergencyTriageUpdated",
+                    entity,
+                    actorUserId
+                );
+
+                if (visit != null)
+                {
+                    await _emergencyRealtimeService.NotifyEmergencyVisitChangedAsync(
+                        "EmergencyVisitUpdated",
+                        visit,
+                        actorUserId
+                    );
+                }
+            }
+
             return Ok(ApiResponse<EmergencyTriageResponse>.Ok(ToResponse(entity), "Status triage IGD berhasil diubah."));
         }
 
@@ -625,6 +673,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     Action = "Retriage"
                 }
             );
+
+            if (_emergencyRealtimeService != null)
+            {
+                await _emergencyRealtimeService.NotifyEmergencyTriageChangedAsync(
+                    "EmergencyTriageCreated",
+                    outcome.Retriage!,
+                    GetCurrentUserId()
+                );
+            }
 
             return Ok(ApiResponse<EmergencyTriageResponse>.Ok(ToResponse(outcome.Retriage), outcome.Message));
         }

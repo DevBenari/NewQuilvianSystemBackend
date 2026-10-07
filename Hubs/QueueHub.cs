@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Repositories;
@@ -199,6 +200,22 @@ namespace QuilvianSystemBackend.Hubs
             }
 
             return clinicIds;
+        }
+
+        public async Task JoinEmergencyQueue()
+        {
+            await Groups.AddToGroupAsync(
+                Context.ConnectionId,
+                EmergencyRealtimeService.EmergencyQueueGroupName
+            );
+        }
+
+        public async Task LeaveEmergencyQueue()
+        {
+            await Groups.RemoveFromGroupAsync(
+                Context.ConnectionId,
+                EmergencyRealtimeService.EmergencyQueueGroupName
+            );
         }
 
         private async Task<List<Guid>> ResolveAccessibleNurseStationClusterIdsAsync()
