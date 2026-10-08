@@ -361,7 +361,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             await ExpireDraftIfDueAsync(episode, cancellationToken);
 
-            return await GetDetailResponseAsync(episodeId, null, cancellationToken);
+            var detail = await GetDetailResponseAsync(episodeId, null, cancellationToken);
+
+            // BE-RWI-195 (INT-RWA-13): kelengkapan dokumen admisi hanya memperingatkan, tanpa rupiah,
+            // dan hanya untuk episode berjalan. Kegagalan hitung menjadi satu kalimat peringatan,
+            // tidak pernah menggagalkan detail episode.
+            if (detail != null &&
+                (InpEpisodeStatus)detail.EpisodeStatus is InpEpisodeStatus.Admitted or InpEpisodeStatus.DischargePending)
+            {
+                detail.Warnings.AddRange(await _admissionCompleteness.BuildEpisodeWarningsAsync(
+                    episodeId, detail.EncounterId, cancellationToken));
+            }
+
+            return detail;
         }
 
         // =====================================================================

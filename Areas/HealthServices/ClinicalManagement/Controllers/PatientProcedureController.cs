@@ -796,7 +796,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                         !x.IsDelete);
             }
 
-            var needApproval = pricing.IsNeedApproval || procedure.IsNeedApproval;
+            // FIX-DOK-005-06: Persetujuan penjamin dicatat di catatan tanggungan;
+            // penahan persetujuan hanya dari internal RS dan tidak pernah menahan Cito.
+            var needApproval = !request.IsEmergencyProcedure && (pricing.IsNeedApproval || procedure.IsNeedApproval);
 
             if (request.ExecuteImmediately && needApproval)
             {
@@ -1093,7 +1095,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                         !x.IsDelete);
             }
 
-            var needApproval = pricing.IsNeedApproval || procedure.IsNeedApproval;
+            // FIX-DOK-005-06: Persetujuan penjamin dicatat di catatan tanggungan;
+            // penahan persetujuan hanya dari internal RS dan tidak pernah menahan Cito.
+            var needApproval = !request.IsEmergencyProcedure && (pricing.IsNeedApproval || procedure.IsNeedApproval);
 
             var pricingOrCoverageChanged =
                 entity.TariffId != pricing.TariffId ||

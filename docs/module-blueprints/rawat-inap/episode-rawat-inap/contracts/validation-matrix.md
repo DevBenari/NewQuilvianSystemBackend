@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | **`0.9.0`** — bagian 13, `draft` |
-| `last_changed_in` | **`0.9.0`** — `VAL-INP-01` s.d. `17`. Sebelumnya `0.8.0` |
+| `contract_version` | **`0.11.0`** — bagian 15 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 14, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 13 |
+| `last_changed_in` | **`0.11.0`** — `VAL-RWA-01` s.d. `55`. Sebelumnya `0.10.0` — `VAL-RWF-70` s.d. `94`; `0.9.0` — `VAL-INP-01` s.d. `17`; `0.8.0` |
 | Status | **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
 | `input_revision` | `00-interview-decisions.md` revision `16`; `02-backend-architecture.md` revision `0.7`; `04-prd-to-mvp.md` revision `0.6.0` |
@@ -377,3 +377,129 @@ Kalimat pesan di bawah adalah bunyi yang dilihat pengguna. Kode `400` untuk bent
 **Aturan waktu.** Seluruh waktu disimpan UTC dan ditampilkan Asia/Jakarta, sama dengan bagian 11. "Lamanya menunggu" pada daftar pantau dihitung server dari `SentAt` atau `RequestedAt` terhadap waktu server.
 
 **Penyelarasan decision log revision `31` ★ 2 Oktober 2026.** `VAL-RWF-71`, `VAL-RWF-87`, dan `VAL-RWF-90` beserta aturan ambang `VAL-RWF-93` disahkan pemilik lewat `RWI-DEC-220`; bunyi dan kodenya tidak berubah.
+
+---
+
+## 15. Perubahan pada `contract_version` `0.11.0` — Workspace PPRI ★ 7 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.11.0` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`) |
+| Traceability | `FR-RWA-005` s.d. `008`, `030` s.d. `034`, `050` s.d. `053`, `060`, `061`, `072`, `080` s.d. `083`, `092`, `100` s.d. `102`, `110`, `121`, `122`, `125`, `128`; `RWI-DEC-231`, `234`, `239` s.d. `243`, `248`, `252`, `255`, `258`, `261`, `263` |
+
+Kalimat pesan di bawah adalah bunyi yang dilihat pengguna. Kode `400` untuk bentuk isian; `403` untuk hak akses; `404` bila data tidak ditemukan; `409` untuk tabrakan dengan keadaan data; `422` untuk aturan bisnis. Kalimat bertanda *{…}* diisi server.
+
+### 15.1 Episode, konkurensi, dan siklus
+
+| ID | Aturan | Endpoint | Kode | Pesan |
+|---|---|---|---|---|
+| `VAL-RWA-01` | Penulisan hanya pada episode `Admitted`/`DischargePending` | Seluruh tulis grup Workspace PPRI | `409` `INP-ADM-DOC-001` | "Episode sudah ditutup atau dibatalkan. Dokumen admisi hanya dapat dibaca dan dicetak ulang." |
+| `VAL-RWA-02` | Episode `Draft` belum membuka Workspace PPRI (G-30) | Seluruh endpoint kecuali `/summary` dan `/letterhead` | `409` `INP-ADM-DOC-002` | "Admisi belum dikonfirmasi. Selesaikan alur Admisi Rawat Inap lebih dulu." |
+| `VAL-RWA-03` | Satu dokumen aktif per jenis per episode (`INV-RWA-01`) | `POST documents` | `409` `INP-ADM-DOC-003` | "Sudah ada *{nama dokumen}* yang aktif untuk episode ini. Buka dokumen itu atau buat versi koreksi." |
+| `VAL-RWA-04` | `RowVersion` harus sama dengan yang tersimpan | Seluruh `PUT`/`PATCH` dan tanda tangan | `409` `INP-ADM-DOC-004` | "Dokumen sudah diubah petugas lain. Muat ulang lalu ulangi perubahan Anda." |
+| `VAL-RWA-05` | Aksi harus sah untuk status dokumen (`state-transition-matrix.md` 10.1) | Seluruh tulis dokumen | `409` `INP-ADM-DOC-005` | "Dokumen berstatus *{status}* tidak dapat *{tindakan}*." Contoh: "Dokumen berstatus Lengkap tidak dapat diubah. Buat versi koreksi." |
+| `VAL-RWA-06` | Buka kunci hanya bila belum ada tanda tangan | `PATCH unlock` | `409` `INP-ADM-DOC-006` | "Kunci tidak dapat dibuka karena sudah ada tanda tangan. Minta supervisor admisi membatalkan dokumen bila isinya salah." |
+| `VAL-RWA-07` | Panjang alasan: buang konsep 1–500; batal 10–500; koreksi 10–500 | `PATCH discard`, `PATCH cancel`, `POST revisions` | `400` | "Isi alasan membuang konsep." / "Alasan pembatalan minimal 10 karakter." / "Alasan koreksi minimal 10 karakter." |
+| `VAL-RWA-08` | Konsep hanya dibuang pembuatnya | `PATCH discard` | `422` `INP-ADM-DOC-008` | "Hanya pembuat konsep yang dapat membuangnya. Minta supervisor admisi membatalkan dokumen ini." |
+| `VAL-RWA-09` | `Idempotency-Key` maksimal 80 karakter | `POST` bertanda kunci | `400` | "Kunci permintaan tidak sah." |
+
+**Contoh `VAL-RWA-07`.** Hendra membatalkan Serah Terima `Completed` dengan alasan "salah" (5 karakter) → ditolak. Alasan "salah pasien, dokumen dibuat untuk RM 00-12-34-57" diterima.
+
+### 15.2 Syarat membuat dokumen
+
+| ID | Aturan | Endpoint | Kode | Pesan |
+|---|---|---|---|---|
+| `VAL-RWA-10` | Selisih Biaya hanya untuk penjamin utama asuransi atau perusahaan, termasuk yang tidak mengizinkan selisih dibebankan ke pasien (`RWI-DEC-256`) | `POST documents`, `PATCH lock` | `422` `INP-ADM-DOC-010` | "Selisih Biaya hanya untuk pasien dengan penjamin asuransi atau perusahaan." |
+| `VAL-RWA-11` | Pelunasan Deposit hanya bila Billing mencatat kekurangan > 0 (`RWI-DEC-231`) | `POST documents`, `PATCH lock` | `422` `INP-ADM-DOC-011` | "Deposit episode ini sudah memenuhi kebijakan. Surat pelunasan tidak diperlukan." |
+| `VAL-RWA-12` | Angka deposit harus terbaca dari Billing; tidak pernah diketik (G-45) | `POST documents`, `PATCH lock` jenis Pelunasan Deposit | `422` `INP-ADM-DOC-012` | "Data deposit tidak dapat dibaca dari kasir. Coba lagi beberapa saat." |
+
+### 15.3 Isian dokumen — saat simpan
+
+| ID | Aturan | Endpoint | Kode | Pesan |
+|---|---|---|---|---|
+| `VAL-RWA-14` | Telepon: tanda hubung, spasi, dan titik dibuang; sisanya angka saja, maksimal 13 digit (`FR-RWA-082`) | `POST`/`PUT documents` | `400` | "Nomor telepon maksimal 13 digit." |
+| `VAL-RWA-15` | Kerabat dan permintaan khusus masing-masing paling banyak 3 baris, 1–200 karakter per baris (G-40) | Sama, jenis Privasi | `400` | "Paling banyak 3 kerabat." / "Paling banyak 3 permintaan khusus." |
+| `VAL-RWA-16` | Hal yang bertentangan paling banyak 5 butir (`RWI-DEC-242`) | Sama, jenis Nilai Kepercayaan | `400` | "Maksimal 5 butir." |
+| `VAL-RWA-17` | Butir serah terima hanya butir yang dibekukan di dokumen itu | `PUT documents`, jenis Serah Terima | `400` | "Butir serah terima tidak dikenal pada dokumen ini." |
+| `VAL-RWA-18` | Pihak bersumber relasi atau kontak darurat harus milik pasien yang sama dan masih aktif | `POST`/`PUT documents` | `422` `INP-ADM-DOC-018` | "Data wali atau kontak darurat yang dipilih tidak ditemukan pada data pasien." |
+| `VAL-RWA-19` | Jatuh tempo tidak sebelum tanggal surat dan tidak melewati tanggal surat + interval kebijakan (`RWI-DEC-231`, `248`) | `POST`/`PUT documents`, `PATCH lock`, jenis Pelunasan Deposit | `422` `INP-ADM-DOC-019` | "Jatuh tempo paling lambat *{tanggal}* menurut kebijakan deposit." / "Jatuh tempo tidak boleh sebelum tanggal surat." |
+
+**Contoh `VAL-RWA-14`.** Petugas mengetik "0812-3456-7890"; tersimpan "081234567890" (12 digit). "08123456789012" (14 digit) ditolak.
+
+**Contoh `VAL-RWA-19`.** Surat Jumat 9 Oktober 2026, interval 3 hari: 13 Oktober ditolak "Jatuh tempo paling lambat 12 Oktober 2026 menurut kebijakan deposit."
+
+### 15.4 Isian dokumen — saat kunci
+
+Penolakan kunci memuat **seluruh** isian yang kurang dalam satu respons, supaya petugas tidak mengunci berulang kali.
+
+| ID | Aturan | Jenis | Kode | Pesan |
+|---|---|---|---|---|
+| `VAL-RWA-20` | Setiap butir dipilih Sudah atau Belum (`RWI-DEC-241`) | Serah Terima | `422` `INP-ADM-DOC-020` | "Butir *{nomor}* belum dipilih Sudah atau Belum." Sub-butir disebut namanya, misalnya "Sub-butir Radiologi pada butir 2 belum dipilih." |
+| `VAL-RWA-21` | Butir Belum wajib berketerangan | Serah Terima | `422` `INP-ADM-DOC-021` | "Butir *{nomor}* berstatus Belum wajib diberi keterangan." |
+| `VAL-RWA-22` | Nama penanda tangan, kota, dan tanggal wajib | Privasi | `422` `INP-ADM-DOC-022` | "Nama penanda tangan wajib diisi." / "Kota dan tanggal wajib diisi." |
+| `VAL-RWA-23` | Minimal satu hal yang bertentangan; nama, jenis kelamin, hubungan, alamat penanda tangan wajib | Nilai Kepercayaan | `422` `INP-ADM-DOC-023` | "Minimal satu hal yang bertentangan wajib diisi." / "*{isian}* penanda tangan wajib diisi." |
+| `VAL-RWA-24` | Subjek pernyataan wajib (keterangan wajib bila "saudara kandung lainnya"); nama, alamat, tipe ID, No. ID deklarer wajib (G-44); kota dan tanggal wajib | Selisih Biaya | `422` `INP-ADM-DOC-024` | "*{isian}* deklarer wajib diisi." |
+| `VAL-RWA-25` | Nama, alamat, telepon yang menyatakan wajib; tanggal surat dan jatuh tempo wajib; kota wajib | Pelunasan Deposit | `422` `INP-ADM-DOC-025` | "*{isian}* wajib diisi." |
+| `VAL-RWA-26` | Tidak ada baris "Tarif belum tersedia"; harga manual wajib beralasan; jenis tindakan wajib; lama rawat 1–365 hari (`FR-RWA-092`) | Estimasi Biaya (di luar gelombang) | `422` `INP-ADM-DOC-026` | "Baris *{uraian}*: tarif belum tersedia. Isi harga manual beserta alasannya atau hapus baris itu." |
+| `VAL-RWA-27` | Identitas pasien dan profil rumah sakit harus terbaca untuk salinan beku | Semua jenis | `422` `INP-ADM-DOC-027` | "Data pasien atau profil rumah sakit tidak dapat dimuat. Dokumen belum dapat dikunci; coba lagi." |
+
+**Contoh `VAL-RWA-20` dan `21` sekaligus.** Serah Terima dengan butir 5 belum dipilih dan butir 11 Belum tanpa keterangan ditolak satu kali dengan dua pesan: "Butir 5 belum dipilih Sudah atau Belum." dan "Butir 11 berstatus Belum wajib diberi keterangan."
+
+### 15.5 Tanda tangan
+
+| ID | Aturan | Endpoint | Kode | Pesan |
+|---|---|---|---|---|
+| `VAL-RWA-30` | Tanda tangan hanya pada dokumen `AwaitingSignature` | Seluruh `signatures/*` | `409` `INP-ADM-DOC-030` | "Dokumen belum dikunci oleh petugas admisi, sehingga belum dapat ditandatangani." |
+| `VAL-RWA-31` | Slot harus slot wajib jenis dokumen itu (`02-backend-architecture.md` 13.9) | Sama | `422` `INP-ADM-DOC-031` | "Kolom tanda tangan ini tidak ada pada *{nama dokumen}*." |
+| `VAL-RWA-32` | Satu slot satu tanda tangan | Sama | `409` `INP-ADM-DOC-032` | "Kolom ini sudah ditandatangani *{nama}* pada *{waktu}*." |
+| `VAL-RWA-33` | Satu akun satu slot petugas (`RWI-DEC-239`) | Slot petugas | `422` `INP-ADM-DOC-033` | "Satu petugas tidak boleh menandatangani dua kolom pada serah terima yang sama." Untuk jenis lain: "…pada dokumen yang sama." |
+| `VAL-RWA-34` | Slot Perawat penerima hanya bila pasien menempati bed aktif pada episode (`RWI-DEC-255`) | `signatures/receiving-nurse` | `422` `INP-ADM-DOC-034` | "Pasien belum menempati tempat tidur." |
+| `VAL-RWA-35` | Catatan kertas: nama 1–200 karakter, hubungan wajib, waktu tanda tangan tidak sebelum dokumen dikunci dan tidak lebih dari 5 menit di depan waktu server | `signatures/patient-or-family` | `400` | "Isi nama dan hubungan penanda tangan." / "Waktu tanda tangan tidak boleh sebelum dokumen dikunci atau di masa depan." |
+
+Slot Kepala Ruangan tanpa `SignAsHeadNurse` ditolak filter hak akses `403` (`RWI-AC-352`), bukan oleh aturan di atas.
+
+### 15.6 Cetak
+
+| ID | Aturan | Endpoint | Kode | Pesan |
+|---|---|---|---|---|
+| `VAL-RWA-40` | Cetak ulang wajib beralasan; pada episode `Closed`/`Cancelled` setiap cetak wajib beralasan (`RWI-DEC-240`, G-33) | `POST print-logs` | `422` `INP-ADM-PRT-001` | "Pilih alasan cetak ulang." |
+| `VAL-RWA-41` | Alasan "lainnya" wajib berketerangan 1–200 karakter | Sama | `400` | "Isi keterangan alasan cetak ulang." |
+| `VAL-RWA-42` | Dokumen berupiah hanya lewat `/amount-print`; dokumen tanpa rupiah hanya lewat `/print` | `GET print`, `GET amount-print` | `422` `INP-ADM-PRT-002` | "Dokumen ini dicetak lewat jalur cetak yang lain." (pesan teknis; layar tidak pernah memanggil jalur yang salah) |
+| `VAL-RWA-43` | Cetak berupiah juga butuh `Print` (`RWI-DEC-258` butir 3) | `GET amount-print` | `403` `INP-ADM-PRT-003` | "Anda tidak punya hak mencetak dokumen ini." |
+| `VAL-RWA-44` | Cetak IPD ditahan bila identitas pasien atau data episode gagal terbaca (`FR-RWA-072`) | `POST print-logs` jenis IPD; `GET base-data` (`CanPrint = false`) | `422` `INP-ADM-PRT-004` | "Cetak ditahan sampai data wajib terbaca lengkap." |
+| `VAL-RWA-45` | Jenis gelang yang dicatat harus sama dengan jenis yang dihitung dari data pasien (`RWI-DEC-243`) | `POST print-logs` | `422` `INP-ADM-PRT-005` | "Jenis gelang tidak sesuai data pasien. Muat ulang data gelang." |
+| `VAL-RWA-46` | Jumlah salinan 1–10; `DocumentId` wajib untuk cetak dokumen dan harus milik episode | `POST print-logs` | `400` / `404` | "Jumlah salinan 1 sampai 10." |
+
+**Contoh `VAL-RWA-40`.** Gelang Tn. Budi sudah dicetak 09.50. Andi mencetak lagi 15.10 tanpa memilih alasan → ditolak "Pilih alasan cetak ulang." Dengan alasan "rusak" → log "Cetakan ke-2, rusak".
+
+### 15.7 Master butir dan pengaturan
+
+| ID | Aturan | Endpoint | Kode | Pesan |
+|---|---|---|---|---|
+| `VAL-RWA-50` | Induk sub-butir harus ada, aktif, jenis sama, butir utama (bukan sub-butir), dan bukan dirinya sendiri | `POST`/`PUT inpatient-clearance-items` | `422` `MST-ICI-001` | "Induk butir harus butir utama dengan jenis yang sama." |
+| `VAL-RWA-51` | Butir penutupan tidak punya induk maupun sumber saran | Sama | `422` `MST-ICI-002` | "Butir penutupan tidak boleh punya induk atau sumber saran." |
+| `VAL-RWA-52` | Jenis butir tidak dapat diubah setelah dipakai | `PUT` | `422` `MST-ICI-003` | "Jenis butir tidak dapat diubah karena sudah dipakai dokumen atau penandaan." |
+| `VAL-RWA-53` | Satu sumber saran hanya untuk satu butir serah terima aktif | `POST`/`PUT`, `PATCH status` | `409` `MST-ICI-004` | "Sumber saran ini sudah dipakai butir *{kode}*." |
+| `VAL-RWA-54` | Batas umur gelang bayi 0–16 tahun | `PUT inpatient-settings` | `400` `MST-IST-001` | "Batas umur gelang bayi 0 sampai 16 tahun." |
+| `VAL-RWA-55` | Kode formulir maksimal 50 karakter; kota 100; kode label 30 | Sama | `400` `MST-IST-002` | "*{isian}* terlalu panjang." |
+
+### 15.8 Peringatan yang sengaja tanpa kode kesalahan
+
+| Peringatan | Tempat | Bunyi |
+|---|---|---|
+| Dokumen admisi belum lengkap (`RWI-DEC-234`) | Detail Episode, header Workspace PPRI | "Dokumen admisi belum lengkap: *n* (*nama dokumen*)" |
+| Jatuh tempo pelunasan terlewati (`RWI-DEC-260`) | Detail Episode (tanpa rupiah); header Workspace PPRI bagi pemegang `ViewAmount` (dengan rupiah) | "Pelunasan deposit jatuh tempo *12 Okt 2026 11.00* terlewati — lihat kasir" / "… — kurang Rp 3.000.000" |
+| Sumber aturan gagal | Detail Episode, header | "Kelengkapan dokumen admisi tidak dapat dihitung" |
+| Data pasien berubah sesudah dokumen dikunci (`FR-RWA-124`) | Layar dokumen | "Data pasien telah diperbarui sejak dokumen ini dikunci." |
+| Relasi tidak ditemukan untuk hubungan yang dipilih (`FR-RWA-021`) | Formulir GC V1, Data Wali | "Tidak ditemukan di data wali/kontak darurat. Isi manual." |
+
+### 15.9 Aturan penanganan waktu dan hari kerja
+
+| Aturan | Isi | Contoh |
+|---|---|---|
+| Penyimpanan | Seluruh waktu UTC; tampilan dan cetak menurut `MstHospitalSite.TimeZoneId`, bawaan `Asia/Jakarta` (`NFR-RWA-08`) | 11.00 WIB disimpan `04:00Z` |
+| Hari kerja | Senin–Jumat, tanpa kalender libur (`RWI-DEC-261`) | Surat Kamis 8 Oktober 2026, interval 3 → bawaan Jumat 9 Oktober 11.00 WIB |
+| Pemotongan | Bawaan tidak pernah melewati tanggal surat + interval; boleh jatuh Sabtu atau hari libur (`RWI-DEC-248`) | Surat Jumat 9 Oktober, interval 1 → Sabtu 10 Oktober 11.00 WIB; interval 0 → tanggal surat |
+| Terlewati | Saat waktu server > `DueAt` dan Billing masih mencatat kekurangan > 0 (`RWI-DEC-260`) | Sabtu 10 Oktober 11.01 dengan kekurangan Rp 1.000.000 → peringatan tampil |
+| Umur gelang | Dihitung pada tanggal cetak, zona waktu rumah sakit | Lahir 12 Maret 1981, dicetak 7 Oktober 2026 → "45 th" |

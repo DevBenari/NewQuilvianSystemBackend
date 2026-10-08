@@ -41,15 +41,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly AdverseDrugReactionService _adverseDrugReactionService;
+        private readonly PatientAllergyQueryService _patientAllergyQueryService;
 
         public PatientAllergyController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
-            AdverseDrugReactionService adverseDrugReactionService)
+            AdverseDrugReactionService adverseDrugReactionService,
+            PatientAllergyQueryService patientAllergyQueryService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _adverseDrugReactionService = adverseDrugReactionService;
+            _patientAllergyQueryService = patientAllergyQueryService;
         }
 
         [HttpGet("filters/metadata")]
@@ -109,37 +112,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ));
             }
 
-            var data = await _dbContext.Set<TrxPatientAllergy>()
-                .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.PatientId == patientId &&
-                    x.IsActive &&
-                    x.IsAlertEnabled &&
-                    x.AllergyStatus == PatientAllergyStatus.Active)
-                .OrderByDescending(x => x.IsLifeThreatening)
-                .ThenByDescending(x => x.IsHighRisk)
-                .ThenByDescending(x => x.Severity)
-                .ThenBy(x => x.AllergenName)
-                .Select(x => new PatientAllergyAlertResponse
-                {
-                    Id = x.Id,
-                    PatientId = x.PatientId,
-                    AllergyRecordNumber = x.AllergyRecordNumber,
-                    AllergyCategory = x.AllergyCategory,
-                    DrugId = x.DrugId,
-                    AllergenCode = x.AllergenCode,
-                    AllergenName = x.AllergenName,
-                    AllergenGroupName = x.AllergenGroupName,
-                    ReactionType = x.ReactionType,
-                    ReactionDescription = x.ReactionDescription,
-                    Severity = x.Severity,
-                    Certainty = x.Certainty,
-                    IsHighRisk = x.IsHighRisk,
-                    IsLifeThreatening = x.IsLifeThreatening,
-                    PatientSafetyNote = x.PatientSafetyNote
-                })
-                .ToListAsync();
+            // BE-RWI-189: aturan "alergi aktif" tinggal di PatientAllergyQueryService supaya Workspace
+            // PPRI membaca aturan yang sama persis; respons endpoint ini tidak berubah.
+            var data = await _patientAllergyQueryService.GetActiveAlertsAsync(
+                patientId,
+                HttpContext.RequestAborted);
 
             return Ok(ApiResponse<List<PatientAllergyAlertResponse>>.Ok(
                 data,
