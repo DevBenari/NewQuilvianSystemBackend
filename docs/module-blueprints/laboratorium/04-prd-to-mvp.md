@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `11` — bagian 24, `EPIC-LAB-17` tiga laporan operasional (`S16a`), 2026-09-28 — kontrak `r37`/`r15`/revision 12 disetujui hari yang sama. Sebelumnya `10` — bagian 23, penyelesaian order, hasil resmi, dan label keadaan (`LAB-DEC-154`..`LAB-DEC-156`), 2026-09-25 — kontrak `r36`/`r14`/`r7` disetujui hari yang sama. Sebelumnya `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
+| Revision | `13` — bagian 26, `EPIC-LAB-18` diperluas (dokter pemeriksa bagi pengonfirmasi, jejak konfirmasi), 2026-10-07 — kontrak `r41`/revision 14 masih usulan `LAB-REQ-017`. Sebelumnya `12` — bagian 25, `EPIC-LAB-18` urutan kerja v1 di daftar pasien lab, 2026-10-07 — kontrak `r40`/`r8`/`r17`/revision 13 masih usulan `LAB-REQ-016`. Sebelumnya `11` — bagian 24, `EPIC-LAB-17` tiga laporan operasional (`S16a`), 2026-09-28 — kontrak `r37`/`r15`/revision 12 disetujui hari yang sama. Sebelumnya `10` — bagian 23, penyelesaian order, hasil resmi, dan label keadaan (`LAB-DEC-154`..`LAB-DEC-156`), 2026-09-25 — kontrak `r36`/`r14`/`r7` disetujui hari yang sama. Sebelumnya `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
 | Status | `draft` |
 | Scope tambahan revision 4 | **`EPIC-LAB-11` Penerimaan Sampling/Specimen** dan gelombang `MVP-5` — lihat bagian 16 |
 | Scope tambahan revision 5 | **`EPIC-LAB-12` Konfirmasi Pesanan dan Pembatalan Beralasan** dan gelombang `MVP-5c` — lihat bagian 17. Ditambahkan 2026-09-15 dari rekonsiliasi bukti putaran 2 |
@@ -1542,3 +1542,151 @@ tercatat sejak `S2`.
 > **Prasyarat pengerjaan tetap berlaku:** `MVP-11a` baru boleh dikerjakan sesudah **`MVP-9b` selesai**
 > (`BE-LAB-70`, `BE-LAB-73`, `BE-LAB-77`). **Yang tetap tertahan — rilis, bukan pengembangan:**
 > `MVP-11c` menunggu admin menetapkan jabatan *manajemen*.
+
+## 25. Amandemen 2026-10-07 — `EPIC-LAB-18` Urutan kerja v1 di daftar pasien lab
+
+Menurunkan `02-backend-architecture.md` bagian 24, `03-frontend-architecture.md` amandemen 2026-10-07 dan
+pencatatan susulan putaran 22, `erd/data-dictionary.md` bagian 20, serta usulan kontrak `LAB-API-v1`
+`r40`, `LAB-STATE-v1` `r8`, `LAB-VAL-v1` `r17`, dan `LAB-PERM-v1` revision 13 — **keempatnya `approved`
+2026-10-07** lewat `LAB-REQ-016`. Decisions rev 88. **Nol tabel, nol kolom, nol migration; satu aksi izin.**
+
+Epic ini juga **mencatat susulan** putaran 22 (BR-136, BR-137), yang dibangun `FE-LAB-46`..`FE-LAB-49` tanpa
+amandemen PRD karena nol kontrak berubah.
+
+### 25.1 Batas epic
+
+| Batas | Isi |
+|---|---|
+| **Titik mulai** | Pesanan laboratorium muncul di salah satu dari tiga daftar pasien lab berstatus *Diminta* |
+| **Titik akhir** | Pesanan *Selesai* lewat urutan v1 — Terima Sampling → Konfirmasi → Proses Pemeriksaan → (hasil dirilis) → Selesaikan — atau lewat urutan V2 lama (Konfirmasi lebih dulu). **Berhenti di situ** — pengisian dan rilis hasil milik epic lain |
+
+**Yang dianggap selesai:** analis dapat menjalankan urutan v1 seluruhnya dari daftar pasien lab; tidak ada
+pesanan yang masuk *Sedang Dikerjakan* tanpa dokter pemeriksa tercatat; analis tidak memperoleh hak
+membatalkan maupun menulis konteks klinis hanya karena dapat mengonfirmasi.
+
+### 25.2 Kemampuan `MUST HAVE`
+
+| Kemampuan | Asal di capability map rev 7 | Disposisi |
+|---|---|---|
+| Konfirmasi pesanan beserta dokter pemeriksa | `CAP-P22-15` (izin); `BE-LAB-31` | `EXTEND` — juga pada `Accepted`, izin tersendiri |
+| Proses Pemeriksaan dari daftar | `CAP-P22-01`, `CAP-P22-04` | `EXTEND` — wajib terkonfirmasi |
+| Penolakan `start-process` status salah `409` | `CAP-P22-03` | `REPAIR` (`BE-LAB-89`, dilebur) |
+| Terima Sampling, Selesaikan, menu v1 | `CAP-P22-09`..`-11`, `-07`, `-16`..`-19` | `EXISTING / REUSE` — selesai putaran 22 |
+
+### 25.3 Functional requirement
+
+| ID | Requirement | Disposisi |
+|---|---|---|
+| `FR-18.1` | Konfirmasi diterima pada pesanan `Requested` atau `Accepted` yang belum pernah dikonfirmasi; pada `Accepted` status tidak berubah | `EXTEND` |
+| `FR-18.2` | Proses Pemeriksaan ditolak `409` `VAL-151` pada pesanan `Accepted` yang belum dikonfirmasi | `EXTEND` |
+| `FR-18.3` | `start-process` pada status selain `Accepted` menjawab `409` | `REPAIR` |
+| `FR-18.4` | Selesaikan tidak memeriksa konfirmasi | `EXISTING / REUSE` (dibuktikan ulang) |
+| `FR-18.5` | Konfirmasi dijaga `LabOrder : Confirm`, terpisah dari `LabOrder : Update` | `MISSING / NEW` (aksi izin) |
+| `FR-18.6` | Daftar pasien lab: keadaan Konfirmasi dan Proses mengikuti `FR-18.1`/`FR-18.2`; izin Konfirmasi dibaca layar | `EXTEND` |
+| `FR-18.7` | Jabatan Analis memegang `LabOrder : Confirm` sesudah rilis | `MISSING / NEW` (data izin) |
+
+### 25.4 Skenario UAT
+
+| No | Skenario | Langkah | Hasil yang diharapkan |
+|---:|---|---|---|
+| 1 | **Berhasil — urutan v1** | Pesanan *Diminta* → Terima Sampling, wadah layak → Konfirmasi (pilih dokter) → Proses | *Diterima* → tetap *Diterima* dengan kolom Konfirmasi terisi → *Sedang Dikerjakan* |
+| 2 | **Berhasil — urutan V2 lama** | Konfirmasi → wadah layak → Proses | *Dikonfirmasi* → *Diterima* → *Sedang Dikerjakan* |
+| 3 | **Gagal — Proses sebelum konfirmasi** | Wadah layak, langsung Proses (daftar basi) | `409` *belum dikonfirmasi*; baris tetap *Diterima* |
+| 4 | **Gagal — konfirmasi kedua** | Dua petugas mengonfirmasi pesanan yang sama | Yang kedua `409`; nama konfirmator pertama tetap |
+| 5 | **Gagal — tanpa izin** | Dokter Umum menekan Konfirmasi | Butir redup; bila dipaksa, `403` |
+| 6 | **Berhasil — pesanan lama** | Pesanan *Sedang Dikerjakan* tanpa konfirmasi, seluruh hasil dirilis → Selesaikan | *Selesai* |
+| 7 | **Gagal — analis membatalkan** | Analis menekan Batalkan | Redup/`403` — `LAB-OPEN-052` belum memberi hak |
+
+### 25.5 Definition of Done
+
+| Butir | Dijawab ya bila |
+|---|---|
+| Kontrak | `r40`, `r8`, `r17`, revision 13 berstatus `approved` |
+| Backend | `AC-283`..`AC-286`, `AC-288` terbukti lewat HTTP atau harness; `PermissionRegistryValidator` lolos |
+| Frontend | `AC-287` terbukti di peramban |
+| Rilis | Analis memegang `LabOrder : Confirm` di lingkungan sasaran; set kebijakan lain jabatan itu tidak berubah |
+| UAT | Skenario 1–7 dijalankan dengan akun analis asli |
+
+### 25.6 Urutan pengiriman
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| `MVP-12a` | Backend: `ConfirmAsync`, `StartProcessAsync`, atribut izin — satu task (melebur `BE-LAB-89`) | Kontrak `approved` |
+| `MVP-12b` | Frontend: aturan Konfirmasi dan Proses, izin `Confirm` | Kontrak `approved`; boleh sejajar `MVP-12a`, **verifikasi** menunggu `MVP-12a` |
+| `MVP-12c` | Langkah rilis: deploy `MVP-12a` → **segera** beri `LabOrder : Confirm` kepada Analis → deploy `MVP-12b` | `MVP-12a`, `MVP-12b` |
+
+### 25.7 Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir |
+|---|---|---|
+| `LAB-REQ-016` | Persetujuan lima butir kontrak (`02-backend-architecture.md` 24.7) | **Ditutup** — disetujui 2026-10-07 |
+| `LAB-OPEN-052` | Hak Batalkan bagi analis | Tidak |
+| `LAB-OPEN-051` | Prosedur manual pembayaran pasien Tunai | Tidak — go-live Proses bagi pasien Tunai |
+
+## 26. Amandemen 2026-10-07 (kedua) — `EPIC-LAB-18` diperluas: dokter pemeriksa bagi pengonfirmasi
+
+Menurunkan `02-backend-architecture.md` bagian 25, `03-frontend-architecture.md` amandemen 2026-10-07 (kedua),
+`erd/data-dictionary.md` bagian 21, serta kontrak `LAB-API-v1` `r41` dan `LAB-PERM-v1` revision 14 —
+**keduanya `approved` 2026-10-07** lewat `LAB-REQ-017`. Decisions rev 89 (BR-139). **Nol tabel, nol kolom, nol migration,
+nol aksi izin.**
+
+Bagian ini **tidak** membuat epic baru. Dua temuan verifikasi `FE-LAB-50` menunjukkan bahwa titik akhir bagian
+25.1 — *"analis dapat menjalankan urutan v1 seluruhnya dari daftar pasien lab"* — belum dapat dicapai: analis tidak
+dapat memilih dokter pemeriksa (T2), dan baris baru benar sesudah muat ulang (T1). Keduanya melengkapi
+`EPIC-LAB-18`.
+
+### 26.1 Batas epic
+
+Batas bagian 25.1 **tetap**. Tambahan pada *yang dianggap selesai*: analis memilih dokter pemeriksa sendiri tanpa
+izin master dokter SDM, dan baris yang dikonfirmasi langsung terbaca benar tanpa muat ulang.
+
+### 26.2 Kemampuan `MUST HAVE` tambahan
+
+| Kemampuan | Asal | Disposisi |
+|---|---|---|
+| Pilihan dokter pemeriksa bagi pemegang hak Konfirmasi | F24-3; `FE-LAB-15` | `MISSING / NEW` — endpoint baca Lab |
+| Jejak konfirmasi pada rincian pesanan | F24-1; `LAB-API-v1` `r13` | `REPAIR` — kesesuaian kontrak |
+
+### 26.3 Functional requirement tambahan
+
+| ID | Requirement | Disposisi |
+|---|---|---|
+| `FR-18.8` | `GET /lab-orders/examiner-doctor-options` mengembalikan dokter aktif (syarat `VAL-73`) berhalaman dan dapat dicari, dijaga `LabOrder : Confirm` | `MISSING / NEW` |
+| `FR-18.9` | Setiap butir daftar hanya memuat `id`, `doctorCode`, `fullName`, `specialistName` | `MISSING / NEW` |
+| `FR-18.10` | `LabOrderDetailResponse` dari `GetDetailAsync` membawa lima ruas jejak konfirmasi | `REPAIR` |
+| `FR-18.11` | Dialog Konfirmasi memuat pilihan dari `FR-18.8`, dibuka kosong | `EXTEND` |
+| `FR-18.12` | `MVP-12` dirilis serempak — tidak ada lingkungan dengan `VAL-151` aktif tanpa `FR-18.8` | Langkah rilis |
+
+### 26.4 Skenario UAT tambahan
+
+| No | Skenario | Langkah | Hasil yang diharapkan |
+|---:|---|---|---|
+| 8 | **Berhasil — analis memilih dokter** | Analis membuka Konfirmasi pada *Diterima*, mencari nama dokter, memilih, Simpan | Daftar muncul; `200`; baris tetap *Diterima* dengan kolom Konfirmasi terisi; Proses aktif **tanpa muat ulang** |
+| 9 | **Gagal — tanpa hak Konfirmasi** | Pengguna tanpa `LabOrder : Confirm` memanggil daftar dokter | `403` |
+| 10 | **Gagal — dokter dinonaktifkan di tengah jalan** | Dokter dinonaktifkan SDM sesudah daftar dimuat, lalu Simpan | `422` `VAL-73` di dialog; baris tidak berubah |
+| 11 | **Berhasil — pencarian** | Ketik sebagian nama/kode/spesialisasi | Hanya dokter aktif yang cocok |
+
+### 26.5 Definition of Done tambahan
+
+| Butir | Dijawab ya bila |
+|---|---|
+| Kontrak | `r41` dan revision 14 berstatus `approved` |
+| Backend | `AC-289`, `AC-290`, `AC-292` terbukti lewat HTTP atau harness |
+| Frontend | `AC-291` dan skenario 8 terbukti di peramban dengan akun analis asli **tanpa** mengganti jawaban mana pun |
+| Rilis | `AC-293` — seluruh `MVP-12` dideploy serempak |
+
+### 26.6 Urutan pengiriman — `MVP-12` diperbarui
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| `MVP-12a` | Backend: `BE-LAB-90` ✅ **ditambah** satu task baru — daftar dokter pemeriksa dan jejak konfirmasi rincian | `r41` `approved` |
+| `MVP-12b` | Frontend: `FE-LAB-50` ⚠ **ditambah** satu task baru — pemilih dokter memakai daftar Lab | `r41` `approved`; verifikasi menunggu task backend baru |
+| `MVP-12c` | Langkah rilis **serempak** (`LAB-DEC-202`): deploy seluruh `MVP-12a` → beri `LabOrder : Confirm` kepada Analis → deploy seluruh `MVP-12b`, dalam satu jendela rilis | `MVP-12a`, `MVP-12b` |
+
+### 26.7 Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir |
+|---|---|---|
+| `LAB-REQ-017` | Persetujuan lima butir kontrak (`02-backend-architecture.md` 25.10) | **Ditutup** — disetujui 2026-10-07 |
+| — | Pesanan uji `Accepted` belum dikonfirmasi di dev (F24-8) | Tidak — verifikasi akhir |
+| `LAB-OPEN-052` | Hak Batalkan bagi analis | Tidak |

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `13` — bagian 23, 2026-09-25: `S16a` tiga laporan operasional. Sebelumnya `12` — bagian 22, 2026-09-25: penjaga penyelesaian order (`LAB-DEC-154`). Sebelumnya `11` — bagian 21, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `10` — bagian 20, 2026-09-25: `S4` validasi dan rilis Patologi Klinik. Sebelumnya `9` — bagian 19, 2026-09-24 |
+| Revision | `15` — bagian 25, 2026-10-07: daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian (BR-139), kontrak usulan `LAB-REQ-017`. Sebelumnya `14` — bagian 24, 2026-10-07: Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1 (BR-138), kontrak usulan `LAB-REQ-016`. Sebelumnya `13` — bagian 23, 2026-09-25: `S16a` tiga laporan operasional. Sebelumnya `12` — bagian 22, 2026-09-25: penjaga penyelesaian order (`LAB-DEC-154`). Sebelumnya `11` — bagian 21, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `10` — bagian 20, 2026-09-25: `S4` validasi dan rilis Patologi Klinik. Sebelumnya `9` — bagian 19, 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -3771,10 +3771,344 @@ maupun nama petugas. Payload log unduhan tidak memuat isi berkas. Hak baca dafta
 | Hak akses tersendiri | `LAB-DEC-160` | A7.8 | `LAB-PERM-v1` revision 12 | `AC-253` |
 | Periode | `LAB-DEC-071` | `LAB-DC-059` | `LAB-VAL-v1` `r15` `VAL-147`..`VAL-149` | Baris matriks uji |
 
+## 24. Rancangan 2026-10-07 — Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1 (BR-138)
+
+> **Status: kontrak `approved` 2026-10-07** — `LAB-STATE-v1` `r8`, `LAB-VAL-v1` `r17`, `LAB-PERM-v1` revision 13,
+> dan `LAB-API-v1` `r40` disetujui pemilik modul lewat [`LAB-REQ-016`](approval-requests/2026-10-07-permintaan-urutan-konfirmasi-v1.md),
+> kelima butir 24.7 sesuai usulan. Dokumen desain ini tetap `draft` sebagai artefak kerja.
+
+### 24.0 Identitas dan gerbang masukan
+
+| Field | Nilai |
+|---|---|
+| Keputusan | `LAB-DEC-193`..`LAB-DEC-197` (BR-138), `approved` 2026-10-07; `LAB-FE-033`; `AC-283`..`AC-288` |
+| Decision log | revision **88**, sha256 (`tr -d '\r'`) `e4f394bf…34da0d` |
+| Capability map | revision 7 — `CAP-P22-01`, `-03`, `-12`, `-15`; F23-1..F23-6 pada decision log |
+| Arsitektur domain | `LAB-DA-001` — **tidak dirancang ulang.** Amandemen berada di dalam lifecycle `LabOrder` yang sudah dimiliki Laboratorium: nol aggregate, nol entity, nol pemilik baru. Gerbang `requirement-completeness-gate`/`hospital-domain-architect` tidak dibuka ulang, sama dengan amandemen bagian 22 |
+| Backend SHA | `f17cb984` (branch `yoga`) — source Laboratorium identik dengan `171dc314` yang dibaca capability map rev 7 |
+| Frontend SHA | `70dd4d4e0` (branch `YogaV2`) — memuat `FE-LAB-46`..`FE-LAB-49` |
+| Kontrak as-is | `LAB-API-v1` `r39`, `LAB-STATE-v1` `r7`, `LAB-VAL-v1` `r16`, `LAB-PERM-v1` revision 12 — `approved` |
+
+### 24.1 Tabel kepemilikan data
+
+| Kelompok data | Pemilik | Dipakai di sini | Dibuat ulang? |
+|---|---|:---:|:---:|
+| Pesanan, status, jejak konfirmasi (`LabOrder.ConfirmedByUserId`, `ConfirmedAt`, `ExaminerDoctorId`) | Laboratorium | Ya | **Tidak** — kolomnya ada sejak `BE-LAB-31` |
+| Riwayat perpindahan (`LabTransitionHistory`) | Laboratorium | Ya | Tidak |
+| Aksi izin (`SysActionAccess`) dan kebijakan jabatan (`SysAccessPolicy`) | Platform (otorisasi) | Ya — satu aksi baru terdaftar otomatis dari atribut | Tidak |
+| Dokter pemeriksa (`MstDoctor`) | Master Data Pelayanan Kesehatan | Ya, dibaca | Tidak |
+
+### 24.2 Aturan dan urutan pemeriksaan
+
+**`POST /lab-orders/{id}/confirm`** — urutan pemeriksaan sesudah amandemen:
+
+| Urutan | Pemeriksaan | Bila gagal |
+|---:|---|---|
+| 1 | Hak akses `LabOrder : Confirm` | `403` |
+| 2 | Pesanan ada | `404` |
+| 3 | Belum pernah dikonfirmasi — `ConfirmedAt` kosong **dan** status bukan `Confirmed` (`VAL-70`, tidak berubah) | `409` *"Pesanan ini sudah dikonfirmasi."* |
+| 4 | Status `Requested` **atau `Accepted`** (`VAL-71` dipersempit) | `409` *"Pesanan ini sudah melewati tahap konfirmasi."* |
+| 5 | Dokter pemeriksa dipilih, ada, dan aktif (`VAL-72`, `VAL-73`, tidak berubah) | `422` |
+| 6 | Tulis: `ConfirmedByUserId`, `ConfirmedAt`, `ExaminerDoctorId`, `Version++`; status `Requested` → `Confirmed`, **`Accepted` → tetap `Accepted`**; satu baris riwayat `Order.Confirm` | `409` bila bentrok `Version` |
+
+**`PUT /lab-orders/{id}/start-process`** — urutan sesudah amandemen:
+
+| Urutan | Pemeriksaan | Bila gagal |
+|---:|---|---|
+| 1 | Hak akses `LabOrder : Process` (tidak berubah) | `403` |
+| 2 | Pesanan ada | `404` |
+| 3 | Status `Accepted` — penolakan **dipindah** dari `MoveOrderStatusAsync` (`400`) ke penjaga sendiri **`409`** dengan bunyi yang sama (`BE-LAB-89`, `LAB-STATE-v1` bagian 1) | `409` *"Pesanan berstatus {status} tidak dapat dipindahkan ke InProcess."* |
+| 4 | **Sudah dikonfirmasi** — `ConfirmedAt` terisi (`VAL-151`, baru) | `409` *"Pesanan ini belum dikonfirmasi. Konfirmasi dan pilih dokter pemeriksa sebelum memproses."* |
+| 5 | Tulis lewat `MoveOrderStatusAsync` — tidak diubah | `409` bila bentrok `Version` |
+
+**Kenapa `ConfirmedAt`, bukan status.** Pesanan yang dikonfirmasi lalu wadahnya layak berstatus `Accepted`,
+sama dengan pesanan yang belum pernah dikonfirmasi. Hanya jejaknya yang membedakan keduanya — persis cara
+`VAL-70` sudah membedakannya hari ini.
+
+**`PUT /lab-orders/{id}/complete` tidak berubah** (`LAB-DEC-196`): nol pemeriksaan konfirmasi.
+
+**Contoh lengkap:**
+
+| Waktu | Kejadian | Status | `ConfirmedAt` | Jawaban |
+|---|---|---|---|---|
+| 08.00 | Pesanan Hemoglobin dibuat | `Requested` | kosong | — |
+| 08.10 | Wadah dinyatakan layak | `Accepted` | kosong | — |
+| 08.12 | Analis menekan Proses Pemeriksaan | `Accepted` | kosong | `409` `VAL-151` |
+| 08.13 | Analis mengonfirmasi, memilih dr. Arif | `Accepted` | 08.13 | `200` |
+| 08.14 | Analis menekan Proses Pemeriksaan | `InProcess` | 08.13 | `200` |
+| 08.15 | Petugas lain mencoba mengonfirmasi | `InProcess` | 08.13 | `409` `VAL-70` |
+
+### 24.3 Class yang berubah
+
+| Class | Lokasi | Status | Perubahan |
+|---|---|---|---|
+| `LabOrderController` | `Areas/HealthServices/LaboratoryManagement/Controllers/LabOrderController.cs` | Diperbarui | `Confirm`: `[AccessAction("Confirm", "Confirm Lab Order", Description = "Mengonfirmasi order laboratorium beserta dokter pemeriksanya", AccessType = AccessTypes.Update, SortOrder = 3)]` dan `[AccessPermission("LabOrder", "Confirm")]` menggantikan pasangan `Update` (yang `DisplayName`-nya keliru *"Cancel Lab Order"*). `StartProcess`: `ProducesResponseType` `400` dicabut bila tidak ada jalan `400` tersisa. Nol endpoint baru |
+| `LabOrderService` | `Areas/HealthServices/LaboratoryManagement/Services/LabOrderService.cs` | Diperbarui | `ConfirmAsync`: `VAL-71` menerima `Accepted`; status hanya berpindah bila asalnya `Requested`; riwayat `Order.Confirm` mencatat `from` = `to` = `Accepted` bila konfirmasi terlambat. `StartProcessAsync`: muat pesanan, penjaga status → `LabOrderConflictException` (`409`), penjaga `VAL-151` → `LabOrderConflictException`, lalu `MoveOrderStatusAsync` tanpa perubahan |
+| `MoveOrderStatusAsync`, `HoldAsync`, `ResumeAsync`, `CompleteAsync` | sama | Sudah ada | **Tidak disentuh** — `hold`/`resume` tetap `400` untuk status yang salah |
+| DTO, model, configuration, enum | — | Sudah ada | Nol perubahan. `LabOrderDetailResponse` sudah membawa `confirmedAt`, `confirmedByName`, `examinerDoctorName` |
+
+**Service yang dipakai dan transaksi:** keduanya tetap satu `SaveChanges` lewat
+`SaveWithConcurrencyGuardAsync`; nol transaksi eksplisit baru.
+
+### 24.4 Arsitektur folder
+
+```text
+Areas/HealthServices/LaboratoryManagement/
+├── Controllers/
+│   └── LabOrderController.cs        (Diperbarui — atribut Confirm; ProducesResponseType StartProcess)
+└── Services/
+    └── LabOrderService.cs           (Diperbarui — ConfirmAsync, StartProcessAsync)
+```
+
+Nol berkas baru. Nol penyimpangan pola baru.
+
+### 24.5 Status model, migration, dan urutan rilis
+
+| Hal | Isi |
+|---|---|
+| Tabel/kolom | **Nol** perubahan. Nol migration |
+| Aksi izin | `LabOrder : Confirm` terdaftar ke `SysActionAccess` oleh `AccessMenuSeeder` saat aplikasi menyala, dari `[AccessAction]`; `PermissionRegistryValidator` memeriksa pasangan atributnya |
+| Data lama | Pesanan `Accepted` yang belum dikonfirmasi (dev: `LAB-RSMMC-000003`) tetap sah: konfirmasi kini diterima pada `Accepted`, lalu Proses. Pesanan `InProcess` tanpa konfirmasi (dev: `000001`, `000002`) tetap dapat diselesaikan. **Nol pengisian data** |
+
+**Urutan rilis — `MVP-12c`, bukan task programmer:**
+
+1. Deploy backend `MVP-12a`. **Sejak saat ini Konfirmasi butuh `LabOrder : Confirm`**, dan Proses butuh konfirmasi.
+2. **Segera** beri `LabOrder : Confirm` kepada jabatan *Penunjang Medis / Analis Laboratorium* lewat
+   `POST …/role-access/policies/copy` (`overwriteTarget: false`) atau tambahan pada set jabatan — **bukan**
+   `POST …/policies` yang menimpa seluruh set. Selama jeda langkah 1–2, analis tidak dapat mengonfirmasi,
+   sehingga pesanan yang belum dikonfirmasi tidak dapat diproses.
+3. Deploy frontend `MVP-12b`.
+
+**Akibat yang disengaja (`AC-288`):** jabatan *Dokter Umum*, satu-satunya pemegang `LabOrder : Update` hari ini,
+**kehilangan** Konfirmasi — Konfirmasi adalah pekerjaan petugas laboratorium. Batalkan dan konteks klinis PA
+tetap miliknya (`LAB-OPEN-052`).
+
+**Mundur bila gagal:** kembalikan biner sebelumnya; aksi `Confirm` yang sudah tercatat di `SysActionAccess`
+dibiarkan (tidak dipakai biner lama). Nol data yang perlu dipulihkan.
+
+### 24.6 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Status baru *Diterima & Terkonfirmasi* | `LAB-DEC-195` — status tidak mundur dan tidak bertambah |
+| Kolom penanda konfirmasi baru | `ConfirmedAt` sudah membedakan |
+| Konfirmasi pada `InProcess` | `LAB-DEC-196` — pesanan berjalan diselesaikan tanpa konfirmasi |
+| Syarat konfirmasi pada `complete` | `LAB-DEC-196` |
+| Izin Batalkan tersendiri | `LAB-OPEN-052` — belum diputuskan |
+| Endpoint gabungan *konfirmasi + proses* | Opsi *langsung proses* v1 tetap ditunda `LAB-DEC-188` |
+
+### 24.7 Keputusan yang diminta pada persetujuan kontrak
+
+| No | Butir | Usulan |
+|---:|---|---|
+| 1 | Nama aksi izin | `LabOrder : Confirm` |
+| 2 | Kode penolakan Proses tanpa konfirmasi | `409` `VAL-151` — keadaan pesanan, bukan isian salah |
+| 3 | Penyelarasan `start-process` status salah ke `409` | Dikerjakan **bersama** `VAL-151` dalam satu task — keduanya menyunting `StartProcessAsync`; `BE-LAB-89` dilebur |
+| 4 | Pemegang `LabOrder : Confirm` saat rilis | Analis Laboratorium saja; Dokter Umum kehilangan Konfirmasi |
+| 5 | Riwayat konfirmasi terlambat | Satu baris `Order.Confirm` dengan `from` = `to` = `Accepted` |
+
+### 24.8 Keamanan, privasi, dan pencatatan
+
+Nol data pasien baru dibaca atau ditulis. Konfirmasi tetap dicatat sebagai riwayat transisi beserta pelaku
+dan waktu. Pemisahan izin **mempersempit** kewenangan: pemegang Konfirmasi tidak lagi otomatis dapat
+membatalkan pesanan atau menulis konteks klinis.
+
+### 24.9 Traceability bagian 24
+
+| Yang dirancang | Keputusan | AC |
+|---|---|---|
+| Konfirmasi pada `Accepted`, status tetap | `LAB-DEC-193`, `LAB-DEC-195` | `AC-283`, `AC-284` |
+| `VAL-151` Proses wajib terkonfirmasi | `LAB-DEC-194` | `AC-285` |
+| `complete` tanpa syarat konfirmasi | `LAB-DEC-196` | `AC-286` |
+| `LabOrder : Confirm` | `LAB-DEC-197` | `AC-288` |
+| `start-process` status salah → `409` | `LAB-DEC-199` | `BE-LAB-89` AC (dilebur) |
+
+
+## 25. Rancangan 2026-10-07 — Daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian (BR-139)
+
+> **Status: kontrak `approved` 2026-10-07** — `LAB-API-v1` `r41` dan `LAB-PERM-v1` revision 14 disetujui pemilik
+> modul lewat [`LAB-REQ-017`](approval-requests/2026-10-07-permintaan-daftar-dokter-pemeriksa.md), kelima butir 25.10
+> sesuai usulan. Dokumen desain ini tetap `draft` sebagai artefak kerja.
+> `LAB-STATE-v1` `r8` dan `LAB-VAL-v1` `r17` **tidak** berubah.
+
+### 25.0 Identitas dan gerbang masukan
+
+| Field | Nilai |
+|---|---|
+| Keputusan | `LAB-DEC-200`..`LAB-DEC-203` (BR-139), `LAB-FE-034` — `approved` 2026-10-07; `AC-289`..`AC-293` |
+| Decision log | revision **89**, sha256 (`tr -d '\r'`) `27e83fac…77ea104` |
+| Sumber temuan | [`FE-LAB-50.md`](task/report/frontend/FE-LAB-50.md) bagian 8 (T1, T2); F24-1..F24-8 decision log |
+| Arsitektur domain | `LAB-DA-001` — **tidak dirancang ulang.** Daftar baca di dalam bounded context Laboratorium; `MstDoctor` tetap milik Master Data SDM dan hanya dibaca, pola yang sama dengan BR-65 |
+| Backend SHA | `f17cb984` (branch `yoga`) + working tree `BE-LAB-90` (`LabOrderController.cs`, `LabOrderService.cs`) |
+| Frontend SHA | `70dd4d4e0` (branch `YogaV2`) + working tree `FE-LAB-50` |
+| Kontrak as-is | `LAB-API-v1` `r40`, `LAB-STATE-v1` `r8`, `LAB-VAL-v1` `r17`, `LAB-PERM-v1` revision 13 — `approved` |
+
+### 25.1 Tabel kepemilikan data
+
+| Kelompok data | Pemilik | Dipakai di sini | Dibuat ulang? |
+|---|---|:---:|:---:|
+| Dokter (`MstDoctor`: `Id`, `DoctorCode`, `FullName`, `SpecialistName`, `IsActive`, `IsDelete`) | Master Data SDM | Ya, **dibaca** | **Tidak** — nol salinan, nol tabel dokter Lab |
+| Jejak konfirmasi (`LabOrder.ConfirmedAt`, `ConfirmedByUserId`, `ExaminerDoctorId`) | Laboratorium | Ya | Tidak — kolom sejak `BE-LAB-31` |
+| Nama tampil pengguna (`AspNetUsers`) | Platform (identitas) | Ya, dibaca | Tidak |
+| Aksi izin `LabOrder : Confirm` | Platform (otorisasi) | Ya | Tidak — terdaftar sejak `BE-LAB-90` |
+
+### 25.2 Pemeriksaan daftar dokter yang sudah ada
+
+Sebelum merancang endpoint baru, seluruh daftar dokter di backend diperiksa (2026-10-07):
+
+| Kandidat | Penjaga | Kenapa tidak dipakai |
+|---|---|---|
+| `GET /corporate/human-resource/master-data/doctors/options` (dan `/kiosk/options`) | `KioskRead` | Tidak dapat dibuka lewat Akses Role — sumber masalah T2 |
+| `GET /corporate/human-resource/master-data/doctors/admin/options` | `Doctor : Read` | Analis harus diberi izin master dokter SDM, yang juga membuka daftar admin dan rincian dokter berikut data pribadinya. Ditolak `LAB-DEC-201` |
+| `GET /lab-examinations/{id}/confirming-doctor-options` (BR-65) | `LabExamination : Read` | Lingkupnya per **pemeriksaan**, bermakna dokter **jaga** untuk hasil kritis, dan membawa `WhatsAppNumber`. Berbeda tujuan dan isi; mengubahnya merusak BR-65 |
+| `GET /health-services/master-data/referral-doctors/options` | `ReferralDoctor : Read` | Membaca `MstReferralDoctor` — dokter **perujuk** dari luar, bukan `MstDoctor` yang dirujuk `ExaminerDoctorId` |
+
+Kesimpulan: **satu endpoint baca baru di `LabOrderController`**, meniru pola kueri `LabConfirmingDoctorResolver`
+(Laboratorium membaca `MstDoctor` langsung) dan bentuk berhalaman endpoint `options` Lab lain (`LabOrganism`).
+
+### 25.3 Aturan dan urutan pemeriksaan
+
+**`GET /lab-orders/examiner-doctor-options`**
+
+1. Atribut `[AccessPermission("LabOrder", "Confirm")]` — tanpa izin → `403` sebelum kueri.
+2. `pageNumber` < 1 → 1; `pageSize` dijepit 1–50; `search` dipangkas, dibatasi 100 karakter.
+3. Kueri `MstDoctor` dengan **predikat dokter-dapat-dipilih** (25.4) + pencarian `ILike` pada `FullName`,
+   `DoctorCode`, `SpecialistName`.
+4. Urut `FullName`, lalu `DoctorCode`; hitung `TotalData`; ambil satu halaman; proyeksikan **hanya** empat ruas.
+5. Nol transaksi, nol tulis, nol log audit.
+
+**`GetDetailAsync` (T1)** — proyeksi yang sudah ada ditambah lima ruas:
+
+| Ruas | Ekspresi |
+|---|---|
+| `ConfirmedAt` | `x.ConfirmedAt` |
+| `ConfirmedByUserId` | `x.ConfirmedByUserId` |
+| `ConfirmedByName` | sub-kueri `Users` → `DisplayName ?? UserName ?? Email ?? UserCode` — sama dengan `RequestedByName` dan `LabMonitoringService` |
+| `ExaminerDoctorId` | `x.ExaminerDoctorId` |
+| `ExaminerDoctorName` | sub-kueri `MstDoctor` → `FullName` — sama dengan `LabMonitoringService` |
+
+`MapDetailResponse` (jalur pembuatan pesanan) **tidak** diubah: pesanan baru belum pernah dikonfirmasi.
+
+### 25.4 Satu predikat untuk daftar dan `VAL-73`
+
+`ConfirmAsync` hari ini menulis syarat `VAL-73` sebaris (`!x.IsDelete && x.IsActive`). Daftar baru wajib memakai
+syarat yang **sama persis** — bila keduanya ditulis terpisah, suatu hari daftar menawarkan dokter yang lalu
+ditolak `422`, atau sebaliknya. Rancangan: satu ekspresi statis privat di `LabOrderService`, mis.
+`SelectableExaminerDoctor`, dipakai kedua tempat. Perilaku `VAL-73` **tidak** berubah.
+
+Dokter yang dinonaktifkan di antara memuat daftar dan menekan Simpan tetap ditolak `422` `VAL-73` — penjaga
+terakhir tetap di Konfirmasi.
+
+### 25.5 Class diagram
+
+```mermaid
+classDiagram
+    class LabOrderController {
+        +GetExaminerDoctorOptions(LabExaminerDoctorOptionQuery) Task~IActionResult~
+        +GetDetail(Guid) Task~IActionResult~
+        +Confirm(Guid, ConfirmLabOrderRequest) Task~IActionResult~
+    }
+    class LabOrderService {
+        -SelectableExaminerDoctor Expression
+        +GetExaminerDoctorOptionsAsync(query, ct) Task~PagedResult~
+        +GetDetailAsync(id, ct) Task~LabOrderDetailResponse~
+        +ConfirmAsync(id, request, ct) Task~LabOrderDetailResponse~
+    }
+    class LabExaminerDoctorOptionQuery {
+        +string? Search
+        +int PageNumber
+        +int PageSize
+    }
+    class LabExaminerDoctorOptionResponse {
+        +Guid Id
+        +string DoctorCode
+        +string FullName
+        +string? SpecialistName
+    }
+    class MstDoctor {
+        <<Master Data SDM — dibaca>>
+    }
+    LabOrderController --> LabOrderService
+    LabOrderService ..> LabExaminerDoctorOptionQuery
+    LabOrderService ..> LabExaminerDoctorOptionResponse
+    LabOrderService ..> MstDoctor : baca
+```
+
+### 25.6 Class yang berubah
+
+| Class | Status | Lokasi file | Perubahan |
+|---|---|---|---|
+| `LabOrderController` | Diperbarui | `Areas/HealthServices/LaboratoryManagement/Controllers/LabOrderController.cs` | Action baru `GetExaminerDoctorOptions` — `[HttpGet("examiner-doctor-options")]`, `[AccessAction("Confirm", "Confirm Lab Order", …, AccessType = AccessTypes.Update, SortOrder = 3)]`, `[AccessPermission("LabOrder", "Confirm")]`, `ProducesResponseType` `200`/`403`; memakai `LabOrderService`. Tanpa `<summary>` XML pada action (preferensi Swagger proyek) |
+| `LabOrderService` | Diperbarui | `Areas/HealthServices/LaboratoryManagement/Services/LabOrderService.cs` | `GetExaminerDoctorOptionsAsync` baru (baca, tanpa transaksi; dipanggil controller); `GetDetailAsync` + lima ruas; predikat `SelectableExaminerDoctor` dipakai `ConfirmAsync` (`VAL-73`) dan daftar |
+| `LabExaminerDoctorOptionQuery` | Baru | `Areas/HealthServices/LaboratoryManagement/DTOs/LabOrderDtos.cs` | DTO jenis *PagedQuery*: `Search` (`string?`, maks 100), `PageNumber` (`int`, bawaan 1), `PageSize` (`int`, bawaan 25, maks 50) |
+| `LabExaminerDoctorOptionResponse` | Baru | `Areas/HealthServices/LaboratoryManagement/DTOs/LabOrderDtos.cs` | DTO jenis *Option*: `Id`, `DoctorCode`, `FullName`, `SpecialistName` |
+| `LabOrderDetailResponse` | Sudah ada | `…/DTOs/LabOrderDtos.cs` | **Nol perubahan bentuk** — ruasnya sudah ada sejak `r13`/`r14` |
+
+### 25.7 Arsitektur folder
+
+```text
+Areas/HealthServices/LaboratoryManagement/
+├── Controllers/LabOrderController.cs   Diperbarui — satu action baca
+├── Services/LabOrderService.cs         Diperbarui — daftar, proyeksi detail, predikat bersama
+└── DTOs/LabOrderDtos.cs                Diperbarui — dua DTO baru
+```
+
+Penyimpangan pola: tidak ada. `LabOrderService` sudah besar; memecahnya **bukan** bagian task ini.
+
+### 25.8 Status model, migration, data master, dan urutan rilis
+
+| Hal | Isi |
+|---|---|
+| Tabel/kolom/index/enum | **Nol** — model tidak berubah |
+| Migration | **Tidak ada** |
+| Data master awal | Tidak ada yang baru. Daftar memakai dokter aktif `MstDoctor` yang sudah dikelola SDM; dev memiliki dokter aktif (terbukti `FE-LAB-50`) |
+| Aksi izin | Tidak ada yang baru; `SysActionAccess` `LabOrder : Confirm` sudah ada |
+| Urutan rilis (`LAB-DEC-202`) | **Serempak** dalam `MVP-12c`: backend `BE-LAB-90` + task bagian ini dalam satu deploy → beri `LabOrder : Confirm` kepada Analis → frontend `FE-LAB-50` + task layar bagian ini dalam satu deploy. Backend boleh dideploy lebih dulu **hanya** bila frontend pada saat itu sudah memakai daftar baru; selebihnya tahan |
+| Langkah mundur | Kembalikan biner backend dan frontend sebelumnya bersama-sama. Nol data yang perlu dipulihkan |
+
+### 25.9 Yang sengaja tidak dibuat
+
+| Yang tidak dibuat | Alasan |
+|---|---|
+| Tabel atau salinan dokter laboratorium | Duplikasi master SDM; `LAB-DEC-200` tidak menyaring dokter lab |
+| Penyaring disiplin/spesialisasi/jadwal jaga | `LAB-DEC-200` |
+| Aksi izin baru (mis. `LabOrder : ReadExaminerDoctor`) | `LAB-DEC-201` — hak Konfirmasi sudah cukup |
+| Perubahan `KioskRead` atau `DoctorController` | Milik SDM; di luar scope |
+| Memperluas `confirming-doctor-options` | Tujuan dan isi berbeda (25.2) |
+| Prefill dokter pemeriksa dari server | `LAB-FE-034` — pilihan dibuka kosong |
+
+### 25.10 Keputusan yang diminta pada persetujuan kontrak
+
+| No | Butir | Usulan |
+|---|---|---|
+| 1 | Letak dan path endpoint | `GET /lab-orders/examiner-doctor-options` di `LabOrderController` |
+| 2 | Isi butir daftar | `id`, `doctorCode`, `fullName`, `specialistName` — tanpa subspesialisasi dan tanpa data kontak |
+| 3 | Penjaga | Aksi `LabOrder : Confirm` (bertipe `Update`) diulang pada endpoint baca ini; nol aksi baru |
+| 4 | Halaman | Bawaan 25, maksimum 50; pencarian nama/kode/spesialisasi |
+| 5 | Jejak konfirmasi | Lima ruas `r13` diisi lewat `GetDetailAsync`; jalur pembuatan pesanan tidak diubah |
+
+### 25.11 Keamanan, privasi, dan pencatatan
+
+- Daftar tidak memuat data pasien; data dokter dibatasi empat ruas non-pribadi.
+- Pencarian memakai parameter EF (`ILike`), bukan rangkaian teks SQL.
+- Nol `LoggerService` pada daftar (baca murni). Perbaikan T1 tidak menambah log.
+
+### 25.12 Traceability bagian 25
+
+| Aturan BR-139 | Keputusan | Bagian | AC |
+|---|---|---|---|
+| Butir 1 — semua dokter aktif | `LAB-DEC-200` | 25.3, 25.4 | `AC-289` |
+| Butir 2–3 — daftar Lab, `Confirm`, isi terbatas | `LAB-DEC-201` | 25.2, 25.3, 25.6 | `AC-289`, `AC-290` |
+| Butir 4 — pilihan kosong | `LAB-FE-034` | 25.9 (frontend) | `AC-291` |
+| Butir 5 — jejak konfirmasi | `LAB-DEC-203` | 25.3 | `AC-292` |
+| Butir 6 — rilis serempak | `LAB-DEC-202` | 25.8 | `AC-293` |
+
 ## Riwayat Revisi
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 15 | 2026-10-07 | **Daftar dokter pemeriksa dan jejak konfirmasi dirancang** (bagian 25), menurunkan `LAB-DEC-200`..`LAB-DEC-203` (BR-139). Daftar dokter yang sudah ada diperiksa lebih dulu (25.2) — tidak ada yang dapat dipakai tanpa membuka izin master SDM. Satu endpoint baca di `LabOrderController` dijaga `LabOrder : Confirm`; lima ruas `r13` diisi `GetDetailAsync`; satu predikat bersama `VAL-73`. Nol tabel, kolom, migration, aksi izin. Usulan `LAB-API-v1` `r41`, `LAB-PERM-v1` revision 14 — **menunggu `LAB-REQ-017`** | `draft` |
+| 14 | 2026-10-07 | **Urutan Konfirmasi v1 dirancang** (bagian 24), menurunkan `LAB-DEC-193`..`LAB-DEC-197`. Konfirmasi juga sah pada `Accepted` tanpa mengubah status; `start-process` wajib terkonfirmasi (`VAL-151`) dan menolak status salah dengan `409` (melebur `BE-LAB-89`); hak Konfirmasi menjadi `LabOrder : Confirm`. Nol tabel, kolom, migration, endpoint baru. Usulan kontrak `LAB-API-v1` `r40`, `LAB-STATE-v1` `r8`, `LAB-VAL-v1` `r17`, `LAB-PERM-v1` revision 13 — **menunggu `LAB-REQ-016`** | `draft` |
 | 13 | 2026-09-25 | **`S16a` tiga laporan operasional dirancang** (bagian 23), menurunkan `LAB-DA-001` rev 10 bagian A7. **Nol tabel, nol kolom; satu index** `LabSpecimen.DecidedAt`. Satu controller, satu service, satu penulis CSV tanpa pustaka baru. **Dua pemindahan logika tanpa perubahan perilaku** supaya `INV-57` dan `VAL-126` tetap satu sumber: batas waktu cito ke `LabCitoTurnaroundPolicy`, disiplin yang dapat dirilis ke `LabReleasableDisciplines`. Satu resource izin baru `LabOperationalReport` dengan `Read` dan `Export`. Delapan butir diminta pada persetujuan (23.10), termasuk format CSV berpemisah titik koma, batas periode 366 hari, dan letak menu (butir 8, ditambahkan 2026-09-28 — rujukan frontend sudah menyebutnya) | `draft` |
 | 12 | 2026-09-25 | **Penjaga penyelesaian order dirancang** (bagian 22), menurunkan `LAB-DEC-154` yang menutup `LAB-CONFLICT-014`. `PUT /lab-orders/{id}/complete` ditolak `409` beserta rincian selama ada pemeriksaan tidak batal yang belum dirilis; pemeriksaan tanpa jalur validasi menahan order. **Nol tabel, nol kolom, nol migration, nol permission.** Empat butir diminta pada persetujuan (22.7), termasuk bunyi pesan yang disesuaikan dari tangkapan dan perbaikan `400` → `409` bagi order bukan `InProcess`. Satu risiko balapan dengan penambahan pemeriksaan dicatat, tidak ditutup (22.6). Baris `LAB-CONFLICT-014` pada 20.12 ditandai tertutup | `draft` |
 | 11 | 2026-09-25 | **`S4d-1` validasi dan rilis hasil Mikrobiologi dirancang** (bagian 21), menurunkan `LAB-DA-001` rev 9 bagian A6. **Memperluas bagian 20, tidak menyalinnya.** **Nol tabel, nol kolom, nol migration** — ke-14 kolom `BE-LAB-70` melayani setiap disiplin per pemeriksaan. Yang berubah: `VAL-126` menerima Mikrobiologi dan hanya menolak Patologi Anatomi; penjaga baru `VAL-144` menolak hasil `Sementara`; dua kode kewenangan Mikrobiologi dengan fungsi `For()` yang **tidak** memberi kode apa pun bagi Patologi Anatomi — fail-closed berlapis; ruas *Petugas Otorisasi* dan *Validasi oleh* pada respons Mikrobiologi — hari ini **sengaja kosong** — terisi; antrean menerima dua disiplin dan **mengeluarkan** hasil `Sementara`. **Impact scan dijalankan** karena kedua SHA bergeser (`31b12f07`, `0bcd15724`): **nol berkas** Laboratorium, Rekam Medis, kredensial HR, atau keamanan berubah; satu akibat teknis — snapshot migration bergeser oleh migration Gizi dan Farmasi, sehingga `BE-LAB-70` wajib dibangkitkan di atas snapshot baru. Lima keputusan diminta pada persetujuan (21.10) | `draft` |

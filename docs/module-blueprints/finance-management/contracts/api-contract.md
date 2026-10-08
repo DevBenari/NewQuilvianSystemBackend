@@ -2,14 +2,14 @@
 
 | Field | Nilai |
 |---|---|
-| Contract version | `FIN-API-1.0` |
-| Status | `draft` |
+| Contract version | `FIN-API-1.9` |
+| `last_changed_in` (1.9) | `FIN-API-1.9` — AMENDMENT REVISI 18, 6 Oktober 2026 (bagian P: endpoint sinkronisasi payroll HR dan migrasi batch NIP). Status **`draft`** |
+| `last_changed_in` | `FIN-API-1.8` — AMENDMENT REVISI 17, 5 Oktober 2026 (bagian O: 15 endpoint piutang karyawan sisi Finance). Status `approved` (Yasmin, 5 Oktober 2026) |
+| Status | `approved` — Revisi 1.9 disetujui pemilik (Yasmin) 6 Oktober 2026 |
 | Owner | Yasmin (Product/Domain Owner Finance) |
-| `approved_by` / `approved_at` | — / — |
-| Input revision | `00-interview-decisions.md` revisi 1, `02-backend-architecture.md` revisi 1 |
-| Input hash (decisions) | `74529813218c0354e9289b4f9eea5a2bc68205572e195333b0a784e11cfccc2a` |
-| Dampak kompatibilitas | **Nol.** Seluruh endpoint di bawah baru; tidak ada endpoint existing yang berubah bentuk atau dihapus |
-| Backend SHA | `09101d05` |
+| `approved_by` / `approved_at` | Yasmin / 2026-10-06 (untuk `1.9`) |
+| Input revision | `00-interview-decisions.md` — `FIN-DEC-183`..`202`, `02-backend-architecture.md` bagian P |
+| Dampak kompatibilitas | **Nol.** Seluruh endpoint baru bersifat aditif tanpa memutus kontrak endpoint yang sudah berjalan |
 
 Seluruh endpoint pada dokumen ini berlabel **Rencana (belum tersedia)** kecuali dinyatakan
 lain. Belum ada satu baris pun yang ditulis di source.
@@ -1143,3 +1143,173 @@ Perbedaannya: di sana ruas menjadi **wajib** sehingga permintaan layar lama dito
 | Transisi status | **Nol** yang baru. Unggah ulang adalah `DRAFT` → `DRAFT` yang sudah tercatat `FIN-STATE-1.6` F.2 |
 | Kontrak integrasi | Tidak bergerak. Nol payload ke Accounting berubah |
 | Endpoint menghidupkan hosted service | Tetap tidak dibuat; pengaktifan lewat konfigurasi lingkungan |
+
+---
+
+# AMENDMENT REVISI 17 — Piutang Manfaat Karyawan, sisi Finance
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-API-1.8` |
+| `last_changed_in` | `FIN-API-1.8` — AMENDMENT REVISI 17, 5 Oktober 2026 (bagian O di bawah) |
+| Status | **`approved`** — disetujui pemilik (Yasmin, 5 Oktober 2026) |
+| Owner | Yasmin (Product/Domain Owner Finance) |
+| `approved_by` / `approved_at` | Yasmin / 2026-10-05 |
+| Input revision | `00-interview-decisions.md` `FIN-DEC-162`..`179`; `02-backend-architecture.md` bagian O (`FIN-DES-099`..`104`) |
+| Masukan gerbang | `evidence/24`, kesiapan `PARTIALLY_READY` |
+| Dampak kompatibilitas | **Nol perubahan memutus.** Seluruh endpoint di bawah **baru**; nol endpoint yang sudah ada berubah bentuk, berubah makna, atau dihapus. Dua endpoint menempel pada controller piutang yang sudah ada sebagai tambahan |
+| Backend SHA | `46fa2a91` |
+
+Seluruh endpoint pada bagian ini berlabel **`Rencana (belum tersedia)`**. Nol di antaranya ada di
+source hari ini.
+
+## O.1 Yang sengaja TIDAK dikontrakkan di sini
+
+| Permukaan | Mengapa tidak ada di sini |
+|---|---|
+| Penerimaan hasil potongan gaji dari HR | Slice `S3`, tertahan `FIN-OQ-091`. Bentuk pesannya milik kesepakatan dengan HR, bukan keputusan Finance sendiri |
+| Pembacaan status bebas tanggungan **oleh HR** untuk gerbang berhenti kerja | Slice `S4b`, tertahan `FIN-OQ-095`. Endpoint bacanya **sudah** ada di bawah; yang belum adalah kesepakatan HR memakainya sebagai gerbang |
+| Kejadian dan jurnal pelunasan internal ke Accounting | Slice `S7b`, tertahan `FIN-OQ-103` |
+| Pembuatan piutang porsi pegawai | Slice `S1`. Piutang lahir dari serah terima Billing, bukan dari endpoint Finance |
+
+## O.2 `[Tags("Corporate / Finance Management / Receivable / Installment Plan")]`
+
+Base URL: `api/v1/corporate/finance-management`
+
+Hak akses: `ControllerName = "FinanceReceivableInstallmentPlan"`.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Kode status |
+|---|---|---|---|---|---|---|
+| `POST` | `/receivables/{receivableId:guid}/installment-plans` | Mengajukan perjanjian angsuran atas satu kartu piutang | `FinanceReceivableInstallmentPlan : Create` | `CreateInstallmentPlanRequest` | `ApiResponse<InstallmentPlanResponse>` | `201`, `400`, `403`, `404`, `409`, `422` |
+| `GET` | `/receivables/{receivableId:guid}/installment-plans` | Riwayat perjanjian satu kartu piutang, termasuk yang ditolak | `FinanceReceivableInstallmentPlan : Read` | — | `ApiResponse<List<InstallmentPlanResponse>>` | `200`, `403`, `404` |
+| `GET` | `/receivable-installment-plans` | Daftar kerja: perjanjian menunggu persetujuan dan yang sudah diputuskan | `FinanceReceivableInstallmentPlan : Read` | `InstallmentPlanQuery` | `ApiResponse<PagedResult<InstallmentPlanListResponse>>` | `200`, `400`, `403` |
+| `GET` | `/receivable-installment-plans/{id:guid}` | Rincian satu perjanjian beserta seluruh jadwal angsurannya | `FinanceReceivableInstallmentPlan : Read` | — | `ApiResponse<InstallmentPlanDetailResponse>` | `200`, `403`, `404` |
+| `POST` | `/receivable-installment-plans/{id:guid}/approve` | Menyetujui, lalu membangkitkan seluruh baris jadwal | `FinanceReceivableInstallmentPlan : Approve` | `ApproveInstallmentPlanRequest` | `ApiResponse<InstallmentPlanDetailResponse>` | `200`, `403`, `404`, `409`, `422` |
+| `POST` | `/receivable-installment-plans/{id:guid}/reject` | Menolak beserta alasannya | `FinanceReceivableInstallmentPlan : Reject` | `RejectInstallmentPlanRequest` | `ApiResponse<InstallmentPlanResponse>` | `200`, `400`, `403`, `404`, `409` |
+| `POST` | `/receivable-installment-plans/{id:guid}/cancel` | Membatalkan perjanjian yang sudah disetujui beserta alasannya | `FinanceReceivableInstallmentPlan : Cancel` | `CancelInstallmentPlanRequest` | `ApiResponse<InstallmentPlanResponse>` | `200`, `400`, `403`, `404`, `409` |
+
+### O.2.1 DTO
+
+| Nama class | Jenis | Field |
+|---|---|---|
+| `CreateInstallmentPlanRequest` | Create | `InstallmentCount` (int, wajib, 2–60), `InstallmentAmount` (decimal, wajib, > 0), `FirstDeductionPeriod` (string(7), wajib, `YYYY-MM`), `AgreementDocumentPath` (string(512), opsional), `Notes` (string(500), opsional) |
+| `ApproveInstallmentPlanRequest` | Status | `Notes` (string(500), opsional) |
+| `RejectInstallmentPlanRequest` | Status | `RejectionReason` (string(500), **wajib**) |
+| `CancelInstallmentPlanRequest` | Status | `CancelReason` (string(500), **wajib**) |
+| `InstallmentPlanQuery` | PagedQuery | `Status`, `BenefitOwnerId`, `DeductionPeriod`, `Search`, `SortBy`, `SortDirection`, `PageNumber`, `PageSize` (1–100) |
+| `InstallmentPlanResponse` | Response | `Id`, `PlanNumber`, `ReceivableId`, `ReceivableNumber`, `InstallmentCount`, `InstallmentAmount`, `TotalAgreedAmount`, `FirstDeductionPeriod`, `Status`, `RequestedByName`, `RequestedAt`, `ApprovedByName`, `ApprovedAt`, `RejectionReason`, `CancelReason`, `Notes`, `RowVersion` |
+| `InstallmentPlanListResponse` | Response | Ruas `InstallmentPlanResponse` ditambah `BenefitOwnerId`, `BenefitRelationship`, `OutstandingAmount` |
+| `InstallmentPlanDetailResponse` | Response | `InstallmentPlanResponse` ditambah `Installments` berisi `List<InstallmentResponse>` |
+| `InstallmentResponse` | Response | `Id`, `InstallmentNumber`, `DeductionPeriod`, `ScheduledAmount`, `CarriedOverAmount`, `PaidAmount`, `OutstandingAmount`, `Status`, `LastResultAt` |
+
+**Catatan privasi.** `BenefitOwnerId` dan `BenefitRelationship` bertanda **Sensitif** pada kamus data.
+Keduanya tetap dikembalikan kepada pengguna yang berhak (`FIN-DEC-172`), tetapi **MUST NOT** masuk
+custom logger.
+
+## O.3 `[Tags("Corporate / Finance Management / Receivable / Benefit Settlement")]`
+
+Hak akses: `ControllerName = "FinanceBenefitSettlement"`.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Kode status |
+|---|---|---|---|---|---|---|
+| `POST` | `/benefit-settlements/preview` | Menghitung lebih dulu piutang porsi benefit yang akan ditutup. **Tidak mengubah data apa pun** | `FinanceBenefitSettlement : Read` | `PreviewBenefitSettlementRequest` | `ApiResponse<BenefitSettlementPreviewResponse>` | `200`, `400`, `403` |
+| `GET` | `/benefit-settlements` | Daftar pelunasan internal per periode | `FinanceBenefitSettlement : Read` | `BenefitSettlementQuery` | `ApiResponse<PagedResult<BenefitSettlementListResponse>>` | `200`, `400`, `403` |
+| `GET` | `/benefit-settlements/{id:guid}` | Rincian satu pelunasan beserta daftar piutang yang ditutupnya | `FinanceBenefitSettlement : Read` | — | `ApiResponse<BenefitSettlementDetailResponse>` | `200`, `403`, `404` |
+| `POST` | `/benefit-settlements` | Membuat pelunasan berstatus draf dari periode dan penjamin yang dipilih | `FinanceBenefitSettlement : Create` | `CreateBenefitSettlementRequest` | `ApiResponse<BenefitSettlementDetailResponse>` | `201`, `400`, `403`, `409`, `422` |
+| `POST` | `/benefit-settlements/{id:guid}/post` | Menerbitkan: menutup seluruh piutang pada daftar dalam satu transaksi | `FinanceBenefitSettlement : Post` | `PostBenefitSettlementRequest` | `ApiResponse<BenefitSettlementDetailResponse>` | `200`, `403`, `404`, `409`, `422` |
+| `POST` | `/benefit-settlements/{id:guid}/cancel` | Membatalkan beserta alasannya; bila sudah diterbitkan, saldo piutangnya dibuka kembali | `FinanceBenefitSettlement : Cancel` | `CancelBenefitSettlementRequest` | `ApiResponse<BenefitSettlementResponse>` | `200`, `400`, `403`, `404`, `409` |
+
+### O.3.1 DTO
+
+| Nama class | Jenis | Field |
+|---|---|---|
+| `PreviewBenefitSettlementRequest` | Create | `AccountingPeriodCode` (string(7), wajib, `YYYY-MM`), `DebtorReferenceId` (Guid, wajib) |
+| `CreateBenefitSettlementRequest` | Create | `AccountingPeriodCode` (wajib), `DebtorReferenceId` (wajib), `Notes` (opsional) |
+| `PostBenefitSettlementRequest` | Status | `RowVersion` (Guid, wajib), `Notes` (opsional) |
+| `CancelBenefitSettlementRequest` | Status | `RowVersion` (Guid, wajib), `CancelReason` (string(500), **wajib**) |
+| `BenefitSettlementQuery` | PagedQuery | `AccountingPeriodCode`, `DebtorReferenceId`, `Status`, `SortBy`, `SortDirection`, `PageNumber`, `PageSize` |
+| `BenefitSettlementPreviewResponse` | Response | `AccountingPeriodCode`, `DebtorReferenceId`, `DebtorName`, `TotalAmount`, `ItemCount`, `Items` berisi `List<BenefitSettlementItemResponse>` |
+| `BenefitSettlementResponse` | Response | `Id`, `SettlementNumber`, `AccountingPeriodCode`, `DebtorReferenceId`, `DebtorName`, `TotalAmount`, `ItemCount`, `Status`, `PostedByName`, `PostedAt`, `CancelReason`, `AccountingEventId`, `Notes`, `RowVersion` |
+| `BenefitSettlementListResponse` | Response | Sama dengan `BenefitSettlementResponse` tanpa `Items` |
+| `BenefitSettlementDetailResponse` | Response | `BenefitSettlementResponse` ditambah `Items` |
+| `BenefitSettlementItemResponse` | Response | `ReceivableId`, `ReceivableNumber`, `InvoiceNumber`, `PatientName`, `Amount` |
+
+**Catatan `AccountingEventId`.** Ruas ini **selalu kosong** sampai `FIN-OQ-103` terjawab. Ia sudah ada
+pada respons agar bentuk kontraknya tidak berubah lagi nanti, dan pembaca **MUST NOT** menyimpulkan
+jurnalnya sudah terbit hanya karena ruasnya ada.
+
+## O.4 `[Tags("Corporate / Finance Management / Receivable")]` — tambahan pada controller yang sudah ada
+
+Hak akses memakai `ControllerName = "FinanceReceivable"` yang **sudah terdaftar**; nol resource baru.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Kode status |
+|---|---|---|---|---|---|---|
+| `GET` | `/receivables/clearance/{benefitOwnerId:guid}` | Status bebas tanggungan satu pegawai, dihitung dari saldo piutang aktifnya | `FinanceReceivable : Read` | — | `ApiResponse<EmployeeClearanceResponse>` | `200`, `400`, `403` |
+| `GET` | `/receivables/clearance` | Status bebas tanggungan beberapa pegawai sekaligus | `FinanceReceivable : Read` | `benefitOwnerIds` (daftar Guid, maksimum 100) | `ApiResponse<List<EmployeeClearanceResponse>>` | `200`, `400`, `403` |
+
+| Nama class | Jenis | Field |
+|---|---|---|
+| `EmployeeClearanceResponse` | Response | `BenefitOwnerId`, `IsCleared` (bool), `OutstandingAmount`, `OpenReceivableCount`, `OldestDueDate`, `CalculatedAt` |
+
+**Aturan yang mengikat respons ini:**
+
+1. `IsCleared` bernilai benar **hanya** ketika `OutstandingAmount` sama dengan nol. Ia **MUST** dihitung,
+   dan **MUST NOT** pernah dibaca dari kolom tersimpan (`FIN-DES-101`).
+2. Yang dihitung **hanya** piutang berjenis debitur manfaat karyawan milik pemilik manfaat itu. Porsi
+   benefit yang ditagihkan atas penjamin internal **MUST NOT** ikut dihitung — itu bukan tanggungan
+   pegawai (`FIN-DEC-177`).
+3. Tidak ada rincian layanan maupun diagnosis pada respons ini, sejalan dengan `FIN-DEC-172`.
+4. Endpoint ini **sudah** menjadi bahan gerbang berhenti kerja di HR, dan kesepakatan pemakaiannya di HR (`TrxExitClearance.IsFinanceCleared`) resmi disahkan pada `FIN-DEC-193`.
+
+---
+
+# AMENDMENT REVISI 18 — Piutang Manfaat Karyawan: Endpoint Sinkronisasi Payroll & Impor Saldo Lama (`FIN-API-1.9`)
+
+```yaml
+contract_version: FIN-API-1.9
+last_changed_in: Revisi 18 (6 Oktober 2026)
+status: draft
+input_revision: 00-interview-decisions.md (FIN-DEC-189..FIN-DEC-196)
+```
+
+## P.1 `[Tags("Corporate / Finance Management / Receivable / Payroll Sync")]`
+
+Hak akses: `ControllerName = "FinanceReceivablesPayroll"`.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Kode status |
+|---|---|---|---|---|---|---|
+| `POST` | `/receivables/installments/payroll-results` | Menerima laporan hasil pemotongan gaji otomatis dari HR Payroll per baris angsuran | `FinanceReceivable : Update` / Service Token | `SyncPayrollResultRequest` | `ApiResponse<SyncPayrollResultResponse>` | `200`, `400`, `403`, `404`, `422` |
+| `POST` | `/receivables/separation-notice` | Menerima notifikasi pemisahan pegawai (resign/PHK) dari HR untuk persiapan penyelesaian hak akhir | `FinanceReceivable : Update` / Service Token | `EmployeeSeparationNoticeRequest` | `ApiResponse<EmployeeSeparationNoticeResponse>` | `200`, `400`, `403` |
+
+### P.1.1 DTO Payroll Sync
+
+| Nama class | Jenis | Field |
+|---|---|---|
+| `SyncPayrollResultRequest` | Create | `InstallmentId` (Guid, wajib), `PayrollPeriodId` (Guid, wajib), `Status` (string, wajib: `"BERHASIL"`, `"SEBAGIAN"`, `"GAGAL"`), `DeductedAmount` (decimal, wajib, >= 0), `ExecutionTimestamp` (DateTime, wajib), `PayrollRunId` (Guid, wajib), `Notes` (string(500), opsional) |
+| `SyncPayrollResultResponse` | Response | `InstallmentId`, `Status`, `PaidAmount`, `OutstandingAmount`, `CarriedOverToNextPeriod`, `IsIdempotentReplay` (bool), `ProcessedAt` |
+| `EmployeeSeparationNoticeRequest` | Create | `EmployeeId` (Guid, wajib), `SeparationId` (Guid, wajib), `SeparationDate` (DateTime, wajib), `SeparationReason` (string(200), opsional) |
+| `EmployeeSeparationNoticeResponse` | Response | `EmployeeId`, `FlaggedReceivableCount`, `TotalOutstandingAmount`, `Status` |
+
+---
+
+## P.2 `[Tags("Corporate / Finance Management / Receivable / Migration")]`
+
+Hak akses: `ControllerName = "FinanceReceivableMigration"`.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Kode status |
+|---|---|---|---|---|---|---|
+| `POST` | `/receivables/migration-batches/employee` | Mengunggah dan memvalidasi berkas migrasi saldo lama piutang karyawan berbasis format NIP | `FinanceReceivableMigration : Create` | `UploadEmployeeMigrationBatchRequest` | `ApiResponse<EmployeeMigrationBatchResponse>` | `201`, `400`, `403`, `422` |
+
+### P.2.1 DTO Employee Migration
+
+| Nama class | Jenis | Field |
+|---|---|---|
+| `UploadEmployeeMigrationBatchRequest` | Create | `BatchName` (string(100), wajib), `AccountingPeriodCode` (string(7), wajib, `YYYY-MM`), `File` (IFormFile, wajib, format CSV/XLSX), `ControlTotalAmount` (decimal, wajib) |
+| `EmployeeMigrationBatchResponse` | Response | `BatchId`, `BatchNumber`, `TotalRows`, `ValidRows`, `InvalidRows`, `TotalAmount`, `Status`, `Errors` berisi `List<MigrationRowErrorResponse>` |
+| `MigrationRowErrorResponse` | Response | `RowNumber`, `ColumnName`, `ErrorMessage`, `RawValue` |
+
+**Aturan Validasi Keras (`FIN-VAL-246`):**
+1. Setiap baris **MUST** memiliki `EmployeeNumber` (NIP) yang aktif terdaftar di `MstEmployee` HR.
+2. NIP otomatis dipetakan ke `BenefitOwnerId` (Guid).
+3. Bila NIP tidak ditemukan di HR, baris ditolak dengan pesan: *"NIP {EmployeeNumber} tidak terdaftar atau nonaktif di data kepegawaian HR"*.
+

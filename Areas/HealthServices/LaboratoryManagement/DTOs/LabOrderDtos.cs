@@ -162,6 +162,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
     }
 
     /// <summary>
+    /// Query daftar pilihan dokter pemeriksa saat Konfirmasi (<c>LAB-API-v1</c> <c>r41</c> 36.3,
+    /// <c>LAB-DEC-201</c>).
+    ///
+    /// <para>
+    /// Sengaja <b>tanpa</b> ruas aktif/nonaktif: daftar ini selalu hanya memuat dokter yang lolos
+    /// <c>VAL-73</c>. Parameter lain yang dikirim pemilih umum frontend (mis. <c>onlyActive</c>)
+    /// tidak terikat dan diabaikan. Batas halaman dan panjang pencarian ditegakkan di service
+    /// dengan menjepit, bukan menolak — salah ketik ukuran halaman tidak layak menjadi <c>400</c>.
+    /// </para>
+    /// </summary>
+    public class LabExaminerDoctorOptionQuery
+    {
+        /// <summary>Sebagian nama, kode, atau spesialisasi dokter. Dipangkas; maksimum 100 karakter.</summary>
+        public string? Search { get; set; }
+
+        /// <summary>Nomor halaman, mulai 1.</summary>
+        public int PageNumber { get; set; } = 1;
+
+        /// <summary>Ukuran halaman, 1–50.</summary>
+        public int PageSize { get; set; } = 25;
+    }
+
+    /// <summary>
+    /// Satu pilihan dokter pemeriksa (<c>LAB-API-v1</c> <c>r41</c> 36.3).
+    ///
+    /// <para>
+    /// <b>Tepat empat ruas, dan itu disengaja</b> (<c>LAB-DEC-201</c>). Daftar ini dapat dibuka
+    /// setiap pemegang <c>LabOrder : Confirm</c> tanpa izin master dokter SDM, sehingga ia tidak
+    /// boleh membawa nomor telepon, WhatsApp, surel, alamat, maupun data pribadi lain dari
+    /// <c>MstDoctor</c>. Yang dibutuhkan untuk memilih hanyalah nama, kode, dan spesialisasi.
+    /// </para>
+    /// </summary>
+    public class LabExaminerDoctorOptionResponse
+    {
+        /// <summary>Penunjuk dokter — nilai yang dikirim sebagai <c>examinerDoctorId</c> saat Konfirmasi.</summary>
+        public Guid Id { get; set; }
+
+        public string DoctorCode { get; set; } = string.Empty;
+
+        public string FullName { get; set; } = string.Empty;
+
+        public string? SpecialistName { get; set; }
+    }
+
+    /// <summary>
     /// Permintaan pembatalan pesanan laboratorium (<c>LAB-API-v1</c> <c>r12</c> §7.2,
     /// <c>LAB-DEC-063</c>).
     ///

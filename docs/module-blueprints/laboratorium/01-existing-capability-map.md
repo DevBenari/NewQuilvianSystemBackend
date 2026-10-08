@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `laboratorium` |
-| Revision | `6` — impact scan terbatas 2026-09-25 atas dokumen klinis pasien dan kunjungan MCU. Sebelumnya `5` |
+| Revision | `7` — impact scan terbatas 2026-10-07 atas sembilan butir bahan audit amendment pass putaran 22 (aksi alur kerja dan menu daftar pasien lab). Sebelumnya `6` |
 | Status | `draft` — **peta revision 1-2 `STALE`; sebagian revision 3 dan 4 juga `STALE`**, lihat Impact Scan Revision 5 bagian A |
-| Jenis audit | Revision 1: audit penuh. Revision 2: *impact scan* terbatas. Revision 3: *impact scan* terbatas atas kemampuan yang terdampak `LAB-DEC-037`..`LAB-DEC-045`. Revision 4: *impact scan* terbatas atas permukaan yang disentuh `LAB-DEC-095`..`LAB-DEC-110`. **Revision 5: *impact scan* terbatas atas permukaan yang disentuh `LAB-DEC-133`..`LAB-DEC-145` serta `LAB-FE-015`/`LAB-FE-016`** |
+| Jenis audit | Revision 1: audit penuh. Revision 2: *impact scan* terbatas. Revision 3: *impact scan* terbatas atas kemampuan yang terdampak `LAB-DEC-037`..`LAB-DEC-045`. Revision 4: *impact scan* terbatas atas permukaan yang disentuh `LAB-DEC-095`..`LAB-DEC-110`. **Revision 5: *impact scan* terbatas atas permukaan yang disentuh `LAB-DEC-133`..`LAB-DEC-145` serta `LAB-FE-015`/`LAB-FE-016`**. Revision 6: dokumen klinis pasien dan kunjungan MCU. **Revision 7: *impact scan* terbatas atas `LAB-DEC-188`..`LAB-DEC-192`, `LAB-FE-030`/`LAB-FE-031`, ditambah sembilan kueri baca-saja ke basis data pengembangan** |
 | Sifat audit | **Read-only.** Tidak ada satu baris source aplikasi yang diubah |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
 | Backend SHA | Diaudit pada `466a7127` (branch `yoga`). Revision 1-2 diaudit pada `c87d9c0`; **298 commit** di antaranya. **`HEAD` bergeser ke `9067fa73` saat sesi 2026-09-14 berjalan** — `git diff 466a7127..9067fa73` atas `Areas/HealthServices/LaboratoryManagement`, `MstReferralInstitution.cs`, `ReferralInstitutionController.cs`, `EncounterPaymentType.cs`, dan `RegPatientEncounterGuarantor.cs` **kosong**, sehingga seluruh temuan di bawah tetap sahih |
@@ -23,12 +23,282 @@
 | Frontend SHA revision 6 | `0bcd15724` (branch `YogaV2`) |
 | Masukan revision 6 | `00-interview-decisions.md` **revision 80** (`LAB-DEC-157`..`LAB-DEC-164`); `LAB-RCG-001-r11` |
 | Tanggal audit revision 6 | 2026-09-25 |
+| Backend SHA revision 7 | `171dc314` (branch `yoga`). Working tree bersih di luar `docs/` |
+| Frontend SHA revision 7 | `5427ddbe4` (branch `YogaV2`). Working tree bersih |
+| Masukan revision 7 | `00-interview-decisions.md` **revision 87** (sha256 metode manifest `tr -d '\r'` = `a0e61a0c…2c029c074a`; berkas mentah CRLF = `275ea723…8fb9f1`), keputusan `LAB-DEC-188`..`LAB-DEC-192`, `LAB-FE-030`/`LAB-FE-031`, BR-136, BR-137, `AC-276`..`AC-282`. Kontrak yang dibaca: `LAB-API-v1` `r39`, `LAB-STATE-v1` `r7`, `LAB-PERM-v1` `r12`, `LAB-VAL-v1` `r16` — keempatnya `approved` |
+| Basis data revision 7 | `QuilvianNewDevYoga`, sesi `default_transaction_read_only=on` (diperiksa: `on`). Sembilan kueri `SELECT`, **nol penulisan**. Connection string tidak dicetak |
+| Tanggal audit revision 7 | 2026-10-07 |
 
 > **Cara membaca dokumen ini.**
 > Dokumen ini menjawab pertanyaan "apa yang sudah ada di sistem", bukan "aturan bisnisnya
 > bagaimana". Setiap baris membawa bukti berupa lokasi berkas dan nama simbol pada commit
 > tertentu, supaya siapa pun bisa memeriksa ulang. Dokumen ini **tidak** merancang arsitektur
 > dan **tidak** memberi izin menulis kode.
+
+---
+
+## Impact Scan Revision 7 — 2026-10-07
+
+**Pemicu.** Amendment pass putaran 22 (decision log revision 87) memutuskan lima hal tentang daftar
+pasien lab — `LAB-DEC-188`..`LAB-DEC-192` — dan sengaja **tidak** menanyakan sembilan hal yang dapat
+dijawab dari source (*Bahan audit untuk `/trace-existing-capabilities`*). Revision ini menjawab
+kesembilannya, lalu memeriksa apakah kemampuan yang dibutuhkan BR-136 dan BR-137 benar-benar ada.
+
+**Batas audit.** Empat klaster saja: *Workflow/Status* (aksi status pesanan dari daftar),
+*Order/Result* (`resultProgress` dan penjaga penyelesaian `VAL-146`), *Authorization/Audit* (izin
+`LabOrder`/`LabSpecimen` dan penyaring menu), serta *Frontend* (menu, judul halaman, jalan ke layar
+Wadah). Backend **`171dc314`** (branch `yoga`), frontend **`5427ddbe4`** (branch `YogaV2`); kedua
+working tree bersih di luar `docs/`. Basis data pengembangan dibaca lewat sesi **read-only**.
+
+**Tidak diaudit:** jalur baca status Lunas milik Billing (`LAB-COORD-010`); FE v1; **perilaku di
+peramban** — nol layar dijalankan pada revision ini, sehingga setiap klaim tentang layar adalah
+bacaan kode, bukan pengamatan.
+
+> ### Kesimpulan pendek
+>
+> **Backend siap untuk ketiga aksi tanpa satu baris pun berubah.** `start-process` dan `complete`
+> sudah ada, penjaga `VAL-146` mengirim rincian per pemeriksaan, jawaban `200`-nya cukup untuk
+> memperbarui baris di tempat, dan jabatan *Analis Laboratorium* memegang `LabOrder : Process`
+> beserta seluruh aksi wadah.
+>
+> **Satu cacat lama menghalangi *Terima Sampling*: layar Wadah tidak menerjemahkan token alamat.**
+> Daftar dan detail pesanan menyembunyikan ID pesanan di balik token seperti
+> `hemoglobin-k3f9x2a7q1zm`; layar Wadah meneruskan token itu apa adanya ke backend, yang hanya
+> menerima GUID. Jalan Detail Pesanan → Wadah yang ada hari ini pun terkena — dan memang belum pernah
+> diverifikasi manual sejak `FE-LAB-07`. Perbaikannya cukup di frontend (`CAP-P22-10`).
+>
+> **Tiga hal lain perlu diketahui sebelum task disusun:** (1) `start-process` menolak status yang
+> salah dengan `400`, padahal `LAB-STATE-v1` menulis `409`; (2) daftar **nol** membaca izin, sehingga
+> *Dokter Umum* — yang dapat membuka daftar (`LabMonitoring : Read`) tetapi tidak memegang
+> `LabOrder : Process` — akan melihat tombol yang berujung `403`; (3) baris `LabOrder : Update` milik jabatan Analis **terhapus
+> 2026-10-01**, sehingga analis hari ini tidak dapat Konfirmasi maupun Batalkan.
+>
+> **Satu pertentangan baru, `LAB-CONFLICT-017`:** `AC-278` mensyaratkan `AllReleased`, padahal pesanan
+> `InProcess` yang seluruh pemeriksaannya batal tidak punya `resultProgress` sama sekali — layar akan
+> menahannya selamanya, persis yang dihindari backend.
+>
+> **Penggantian label aman dari sisi uji:** nol uji mengunci label menu maupun judul lama. Tetapi
+> judul halaman tersebar di enam tempat, dan **subjudul Nota cetak diambil dari judul halaman**.
+
+### Bagian A — Jawaban sembilan butir bahan audit
+
+| No | Pertanyaan (decision log rev 87) | Jawaban dari source | Bukti (`repo/path#symbol@SHA`) | `CAP` |
+|---:|---|---|---|---|
+| 1 | Apakah baris membawa penunjuk pesanan untuk `buildLabSpecimenRoute`, dan bagaimana *Buka Hasil* membangun rutenya | **Ya.** Setiap baris membawa `labOrderId`. *Buka Hasil* mendaftarkan **token privat** (`scope` milik pesanan) lalu membuka `<rute disiplin>/<token>`; halaman tujuan menerjemahkan token kembali menjadi ID. `buildLabSpecimenRoute(orderToken)` sudah ada, **tetapi layar Wadah tidak menerjemahkan token** — lihat `CAP-P22-10` | BE `DTOs/LabMonitoringDtos.cs#LabMonitoringItemResponse.LabOrderId:105@171dc314`; FE `lab-monitoring-table-columns.jsx#getLabMonitoringRowId:68`, `use-lab-monitoring.jsx#openClinicalPathologyResult:363-381`, `lab-specimen-constants.jsx#buildLabSpecimenRoute:24@5427ddbe4` | `CAP-P22-09`, `CAP-P22-10` |
+| 2 | Pola aksi yang belum sah pada `RowActionMenu`; apakah layar membaca `LabOrder : Process` | Konfirmasi **dinonaktifkan** dengan alasan yang tampil sebagai teks kecil di bawah butirnya; Batalkan **disembunyikan**. `RowActionMenu` membuang butir bernilai kosong dan menampilkan `title` sebagai petunjuk bila `disabled`. **Daftar nol membaca izin apa pun** — Konfirmasi dan Batalkan tampil bagi semua orang dan ditahan `403` backend. `usePermission` tersedia dan sudah dipakai enam hook Laboratorium lain | FE `lab-monitoring-table-columns.jsx:308-334`; `row-action-menu.jsx:28,41-57`; `use-lab-monitoring.jsx` (nol `usePermission`); `use-permission.jsx#usePermission:28`; `use-lab-pathology-context.jsx:38` | `CAP-P22-08`, `CAP-P22-12` |
+| 3 | Uji yang mengunci label menu dan judul halaman lama | **Nol.** Pencarian *Ringkasan Laboratorium*, *Pemeriksaan Patologi …*, *Pemeriksaan Mikrobiologi*, *Monitoring …*, dan `buildTitle` pada `tests/unit` dan `tests/e2e` tidak menemukan satu pun penegasan. Uji e2e memilih aksi baris berdasarkan **nama persis** (`getByRole("button", { name, exact: true })`), sehingga menambah aksi tidak mematahkannya. Sebaliknya, **nol uji** yang kelak membuktikan `AC-282` | FE `tests/e2e/lab-label-print.spec.mjs:128-135`; `tests/unit/menu-permission-filter.test.mjs` (tidak menyentuh menu Laboratorium) | `CAP-P22-18` |
+| 4 | Rujukan `LAB-DEC-025` pada komentar kode | **Rujukannya kurang tepat, bukan salah total.** `LAB-DEC-025` menetapkan **cakupan tiga disiplin** — akar BR-21 → `AC-41`. Bentuk **tiga menu sejajar** lahir dari `FR-10.1`/`FE-LAB-09`, dan **labelnya** dari `LAB-DEC-048` (kini `LAB-DEC-192`). Empat berkas menyebutnya | FE `menu-items.jsx:1621`, `lab-monitoring-constants.jsx:9`, `lab-monitoring.service.js:7`, `lab-monitoring-view.jsx:46`; `04-prd-to-mvp.md` `FR-10.1`; `roadmap/frontend-roadmap.md` `FE-LAB-09` | `CAP-P22-20` |
+| 5 | Bentuk `errors.details` penolakan `409` `complete` (`VAL-146`) | `errors` = `{ code: "LAB_ORDER_COMPLETION_BLOCKED", details: [ { examinationId, procedureName, resultStatus, status } ] }`, berisi **setiap** pemeriksaan yang menahan, urut pemesanan. `status` sudah berupa label manusia (*Menunggu Hasil*, *Draft*, *Menunggu Validasi*, *Tervalidasi*). **Frontend belum dapat membacanya:** `readServerFailure` hanya mengambil `message` | BE `Controllers/LabOrderController.cs#ExecuteAsync:563-570`; `Services/LabOrderService.cs#ReadCompletionBlockersAsync`, `#CompletionBlockedLabel`; `DTOs/LabOrderDtos.cs#LabOrderCompletionBlockedItem:480-492`; FE `lab-monitoring-slice.jsx#readServerFailure:22-32` | `CAP-P22-02`, `CAP-P22-05` |
+| 6 | Cukupkah `LabOrderDetailResponse` untuk memperbarui baris | **Cukup.** Jawaban `200` kedua aksi adalah detail pesanan lengkap: `id`, `orderStatus`, `completedAt`, `version`, **dan `resultProgress`** (diisi bagi Patologi Klinik dan Mikrobiologi). Pola pembaruan baris di tempat sudah ada pada reducer konfirmasi — mencocokkan `order.id` dengan `labOrderId` baris. Daftar tidak perlu dimuat ulang | BE `LabOrderService.cs#GetDetailAsync:424-435`, `#GetDetailOrThrowAsync:1545`; FE `lab-monitoring-slice.jsx:200-227` | `CAP-P22-06` |
+| 7 | Apakah penyaring menu membaca `requiredPermission` pada `subItems` | **Ya, pada setiap kedalaman.** Penyaring mengenali anak dari **properti apa pun** yang berisi daftar butir ber-`key` — `subMenu`, `subItems`, dan lainnya — lalu membuang grup tanpa halaman yang seluruh anaknya tersaring. Dipasang di sidebar, dan diuji (`M7` memakai `subItems`) | FE `utils/menu-sidebar/permission/filter-menu-items-by-permission.jsx#filterNode`; `left-sidebar-items-virtualized.jsx:281-290`; `tests/unit/menu-permission-filter.test.mjs` `M7` | `CAP-P22-16` |
+| 8 | Apakah peran analis memegang `LabOrder : Process` | **Ya.** Jabatan *Penunjang Medis / Analis Laboratorium* (dua akun aktif) memegang `Hold`, `Process`, `Read`. Jabatan lain yang memegang aksi `LabOrder`: *Dokter Umum* (`Create`, `Read`, `Update`), *Kepala Instalasi Laboratorium* dan *Dokter Penanggung Jawab Laboratorium* (`Read` saja). **Temuan sampingan:** baris `LabOrder : Update` milik Analis berstatus terhapus sejak **2026-10-01 03:31:04 UTC** | Basis data, sesi read-only: `SysAccessPolicy` ⨝ `SysActionAccess` ⨝ `SysControllerAccess` (`ControllerName = 'LabOrder'`) | `CAP-P22-13`, `CAP-P22-15` |
+| 9 | Letak judul halaman | **Tersebar, enam tempat.** Judul Hero ketiga daftar dibentuk **satu** fungsi `LAB_MONITORING_COPY.buildTitle` (`Pemeriksaan ${label}`). Judul Hero Beranda ditulis langsung di view. Judul tab peramban ada di `metadata` empat `page.jsx` — tiga di antaranya masih *Monitoring …*, sisa sebelum `LAB-DEC-048`. **Subjudul Nota cetak memakai judul halaman** | FE `lab-monitoring-constants.jsx:153`; `use-lab-monitoring.jsx:494`; `laboratory-overview-view.jsx:62`; `app/.../lab-monitoring/{clinical-pathology,anatomic-pathology,microbiology}/page.jsx:4`; `app/.../overview/page.jsx:4`; `lab-monitoring-view.jsx:587` → `lab-order-print-document.jsx:89` | `CAP-P22-19` |
+
+### Bagian B — Tabel kemampuan
+
+| ID | Kebutuhan | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap/adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `CAP-P22-01` | Memindahkan pesanan `Accepted` → `InProcess` (BR-136 butir 1, `AC-276`) | Laboratorium (BE) | `LabOrderController.cs#StartProcess:379-390` `[AccessPermission("LabOrder", "Process")]`; `LabOrderService.cs#StartProcessAsync:1090` → `#MoveOrderStatusAsync:1489` (menaikkan `Version`, mencatat riwayat `Order.StartProcess`) @`171dc314` | `Ready to reuse` | Kode penolakan lihat `CAP-P22-03` | Rendah |
+| `CAP-P22-02` | Menyelesaikan pesanan hanya bila semua dirilis, dengan rincian penahan (BR-136 butir 3–4, `AC-279`) | Laboratorium (BE) | `LabOrderController.cs#Complete:392-407`; `LabOrderService.cs#CompleteAsync:1129`, `#ReadCompletionBlockersAsync`; `#ExecuteAsync:563-570`. Laporan `BE-LAB-81`: `409` + rincian terbukti lewat HTTP | `Ready to reuse` | **Jalur yang diterima (`200`) belum pernah dijalankan lewat HTTP** — dev saat itu nol order yang memenuhi (`BE-LAB-81` *Tidak dijalankan*) | Rendah |
+| `CAP-P22-03` | Penolakan `start-process` pada status selain `Accepted` = **`409`** (`LAB-STATE-v1` bagian 1) | Laboratorium (BE) | `MoveOrderStatusAsync:1499-1503` melempar `InvalidOperationException` → `ExecuteAsync:586-591` → **`400`**. Diketahui dan sengaja dibiarkan `BE-LAB-81` (laporan, tabel regresi) | `Repair` | Layar dapat menampung `400` maupun `409` sebagai *status sudah berubah, muat ulang*. Penyelarasan backend menunggu `Q-P22-02` | Rendah |
+| `CAP-P22-04` | Pemanggil frontend `start-process` dan `complete` | Laboratorium (FE) | `lab-order.service.js` — nol fungsi; pencarian `start-process`/`complete` pada `src` nol hasil @`5427ddbe4`. Pola tiruan siap: `confirmLabOrder` + `submitLabOrderConfirmation` + reducer pembaruan baris | `Missing` | Dua fungsi service, dua thunk, dua cabang reducer — mengikuti pola konfirmasi | Rendah |
+| `CAP-P22-05` | Menampilkan pemeriksaan yang menahan dari `409` (`AC-279`) | Laboratorium (FE) | `lab-monitoring-slice.jsx#readServerFailure:22-32` hanya mengambil `message`/`title`; `confirmErrorStatus`/`cancelErrorStatus` diisi `action.payload?.statusCode` yang **tidak pernah dikirim**, sehingga selalu `null` | `Extend` | Pembaca galat ikut mengambil status HTTP dan `errors.details[]` | Sedang — tanpa itu petugas hanya membaca kalimat umum, tanpa tahu pemeriksaan mana yang menahan |
+| `CAP-P22-06` | Status baris berubah **hanya** dari jawaban `200` (BR-136 butir 4) | Laboratorium (BE + FE) | Respons `LabOrderDetailResponse` membawa `orderStatus`, `completedAt`, `resultProgress` (`LabOrderService.cs:424-435`); reducer konfirmasi sudah memperbarui baris dari jawaban server, tidak menebak (`lab-monitoring-slice.jsx:200-227`) | `Ready to reuse` | — | Rendah |
+| `CAP-P22-07` | `resultProgress` per baris untuk menentukan Selesaikan dapat ditekan (`AC-278`) | Laboratorium (BE + FE) | `LabMonitoringService.cs:147-164` mengisinya bagi Patologi Klinik dan Mikrobiologi (`LabReleasableDisciplines`), kosong bagi Patologi Anatomi; nilai `InProgress`/`AllReleased`; FE `readOrderProgressBadge`. Kolom *Keadaan Order* **hanya dipasang** daftar Mikrobiologi (`lab-monitoring-view.jsx:170`) | `Ready to reuse` | Datanya sudah ada pada baris Patologi Klinik walau kolomnya tidak tampil. Menampilkan kolom itu di PK adalah `DEV_DISCRETION` `LAB-FE-030`, bukan prasyarat | Rendah |
+| `CAP-P22-08` | Aksi nonaktif beralasan dan aksi tersembunyi (`LAB-FE-030`, pola `FE-LAB-15`/`FE-LAB-16`) | Frontend (base) | `row-action-menu.jsx:28` (butir kosong dibuang), `:41-57` (`disabled` + `title` tampil sebagai petunjuk) | `Ready to reuse` | — | Rendah |
+| `CAP-P22-09` | Penunjuk pesanan pada baris dan token alamat privat | Laboratorium (FE) | `getLabMonitoringRowId:68`; `registerPrivateRouteToken` dengan `LAB_ORDER_ROUTE_TOKEN` pada `openDetail`, `openResultWorkspace`, `openClinicalPathologyResult`, `openPathologyReport` (`use-lab-monitoring.jsx:309-406`) | `Ready to reuse` | — | Rendah |
+| `CAP-P22-10` | Layar Wadah dibuka untuk pesanan baris itu (`AC-280`) | Laboratorium (FE) | `app/.../lab-orders/[slug]/specimens/page.jsx` → `resolveLabOrderRouteToken` **hanya memeriksa bentuk** token (`route-token.js`); `LabSpecimenWorkspaceView` → `useLabSpecimenWorkspace` → `getLabSpecimensByOrder(token)` **tanpa** `resolvePrivateRouteToken`. Backend: `LabSpecimenController.cs` `by-order/{labOrderId:guid}:131`. Bandingkan detail pesanan yang menerjemahkannya (`use-lab-order-detail.jsx:93-111`) | `Repair` | Layar Wadah menerjemahkan token seperti detail pesanan (`allowUuidFallback`). Tombol *Kembali* layar Wadah memakai nilai yang sama dan tetap benar | **Tinggi** — `AC-280` tidak dapat lulus, dan jalan Detail → Wadah hari ini rusak |
+| `CAP-P22-11` | Siklus wadah `Planned` → `Collected` → `Received` → `Accepted`/`Rejected` di layar Wadah (BR-136 butir 5) | Laboratorium (FE + BE) | FE `use-lab-specimen-workspace.jsx` (`plan`, `collect`, `receive`, `accept`, `reject`, `request-recollection`, `hold`, `resume`); BE `LabSpecimenController.cs:157-294`. Laporan `FE-LAB-07`: verifikasi manual **belum dijalankan** | `Unknown` | Kodenya lengkap dan teruji pada tingkat aturan; **nol bukti berjalan di layar**. Cacat `CAP-P22-10` menunjukkan jalannya memang belum pernah dilalui | Sedang |
+| `CAP-P22-12` | Layar membaca `LabOrder : Process` untuk menampilkan aksi | Laboratorium (FE) | `use-lab-monitoring.jsx` nol `usePermission`; `usePermission` memulangkan `allowed = true` **selama daftar izin belum termuat** (`use-permission.jsx:17-26`) | `Reuse with adapter` | `usePermission("LabOrder", "Process")` pada hook daftar | Sedang — tanpa itu *Dokter Umum*, satu-satunya jabatan lain yang memegang `LabMonitoring : Read`, melihat Proses/Selesaikan yang berujung `403` |
+| `CAP-P22-13` | Pemegang `LabOrder : Process` di dev — prasyarat uji nyata | Platform (izin) | Basis data: *Analis Laboratorium* — `Hold`, `Process`, `Read` berlaku; dua akun aktif. Aksi `Process` terdaftar aktif, bukan *system-only* | `Ready to reuse` | — | Rendah |
+| `CAP-P22-14` | Pemegang aksi wadah bagi analis | Platform (izin) | Basis data: *Analis Laboratorium* — `LabSpecimen` `Plan`, `Collect`, `Receive`, `Accept`, `Hold`, `Cancel`, `Read` (tanpa `Update`, yaitu koreksi wadah) | `Ready to reuse` | — | Rendah |
+| `CAP-P22-15` | Konfirmasi dan Batalkan oleh analis (`LabOrder : Update`) — temuan sampingan, di luar BR-136 | Platform (izin) | Basis data: baris `LabOrder : Update` Analis `IsAllowed = false`, `IsActive = false`, `IsDelete = true`, terhapus **2026-10-01 03:31:04 UTC** — detik yang sama dengan pembaruan tiga baris `LabOrder` lain jabatan itu. Pemegang `Update` yang tersisa hanya *Dokter Umum* | `Unknown` | Sengaja atau tidak — `Q-P22-03` | Sedang — analis hari ini menerima `403` saat Konfirmasi dan Batalkan |
+| `CAP-P22-16` | Penyaring menu membaca `requiredPermission` di dalam grup (BR-137 butir 2) | Frontend (platform) | `filter-menu-items-by-permission.jsx#filterNode`; dipasang `left-sidebar-items-virtualized.jsx:281-290`; uji `M7` | `Ready to reuse` | Grup *Laporan* tidak akan hilang bagi analis: *Laporan Penerimaan* tanpa izin tetap tinggal | Rendah |
+| `CAP-P22-17` | Grup menu baru tanpa mengubah route, key, dan izin lama (BR-137 butir 1–2) | Frontend | `menu-items.jsx:1699-1795`. Konsumen tunggal `menu-items.jsx` adalah sidebar; `filterMenuItemsByRole` tidak menyentuh grup Laboratorium; nol berkas lain membaca key `healthServicesLab*` | `Ready to reuse` | Grup *Laporan* butuh **satu key baru**; seluruh key lama tetap | Rendah |
+| `CAP-P22-18` | Uji yang membuktikan susunan menu BR-137 (`AC-282`) | Frontend (uji) | Nol uji atas menu Laboratorium di `tests/unit` maupun `tests/e2e` | `Missing` | Uji unit atas `menu-items.jsx`: urutan, label, `key`, `pathname`, `requiredPermission` | Rendah |
+| `CAP-P22-19` | Judul halaman mengikuti label menu (BR-137 butir 3) | Laboratorium (FE) | Enam tempat — lihat Bagian A butir 9. Nota cetak memakai `disciplineTitle={title}` | `Extend` | Ganti di enam tempat; **lepaskan subjudul Nota dari judul halaman** — lihat Bagian E, catatan rekomendasi | Sedang — tanpa itu kertas Nota ikut berbunyi *Daftar Pasien Lab …* tanpa keputusan |
+| `CAP-P22-20` | Rujukan keputusan pada komentar kode tiga menu | Laboratorium (FE) | Empat berkas, Bagian A butir 4 | `Repair` | Menyebut `FR-10.1` (tiga menu sejajar) dan `LAB-DEC-192` (label) | Rendah |
+| `CAP-P22-21` | Selesaikan bagi pesanan `InProcess` **tanpa** pemeriksaan terhitung | Laboratorium (BE + FE) | BE menerimanya (`CompleteAsync`, rancangan 22.7 butir 3: *menolaknya mengunci pesanan itu selamanya*); `resultProgress` kosong bila nol pemeriksaan terhitung (`LabOrderResultProgressRules.cs:12-13`); `AC-278` menuntut `AllReleased`; batal pesanan hanya sah pada `Requested`/`Confirmed` (`VAL-75`); batal **pemeriksaan** tanpa penjaga status pesanan (`LabExaminationService.cs#CancelAsync:269-284`) | `Conflict` | `LAB-CONFLICT-017`, `Q-P22-01` | Rendah hari ini — nol layar membatalkan satu pemeriksaan; naik bila layar itu kelak ada |
+| `CAP-P22-22` | Nol aksi Tahan/Lanjutkan pesanan (`AC-281`) | Laboratorium (FE) | Nol pemanggil `PUT /lab-orders/{id}/hold`/`resume`. `submitLabSpecimenHold`/`Resume` di `lab-specimen-slice` adalah tahan **wadah**, bukan pesanan | `Ready to reuse` | Keadaan hari ini sudah memenuhi; jangan menyamakan tahan wadah dengan tahan pesanan | Rendah |
+| `CAP-P22-23` | Proses Pemeriksaan tanpa kunci Lunas (`AC-277`) | Laboratorium (BE) | `StartProcessAsync` tidak membaca pembayaran; baris hanya membawa `paymentType` (`LabMonitoringDtos.cs:180`) | `Ready to reuse` | Kepastian bayar pasien Tunai dipegang manual — `LAB-OPEN-051` | Sedang — menahan go-live, bukan task |
+
+**Rangkuman status, 23 kemampuan:** 12 `Ready to reuse`, 1 `Reuse with adapter`, 2 `Extend`,
+3 `Repair`, 2 `Missing`, 1 `Conflict`, 2 `Unknown`.
+
+**Contoh `CAP-P22-10` — kenapa *Terima Sampling* akan membuka layar kosong:**
+
+> 1. Petugas membuka pesanan Hemoglobin dari daftar Patologi Klinik. Layar mendaftarkan token, dan
+>    alamatnya menjadi `/lab-orders/hemoglobin-k3f9x2a7q1zm`.
+> 2. Ia menekan tombol Wadah. Alamat berikutnya `/lab-orders/hemoglobin-k3f9x2a7q1zm/specimens`.
+> 3. Layar Wadah meminta `GET /lab-specimens/by-order/hemoglobin-k3f9x2a7q1zm`. Backend hanya menerima
+>    GUID di posisi itu, sehingga rutenya tidak cocok dan jawabannya `404`.
+> 4. Layar menulis *"Data wadah gagal dimuat."* Petugas tidak dapat merencanakan, menerima, maupun
+>    menolak wadah.
+>
+> Token hanya turun menjadi GUID bila penyimpanan sesi peramban tidak tersedia — keadaan yang jarang.
+> Aksi *Terima Sampling* yang memakai `buildLabSpecimenRoute` dengan token akan jatuh ke lubang yang sama.
+
+### Bagian C — Pertentangan
+
+| ID | Pertentangan | Keputusan yang bertentangan | Pemilik |
+|---|---|---|---|
+| `LAB-CONFLICT-017` | **Pesanan `InProcess` tanpa pemeriksaan terhitung tidak dapat diselesaikan dari layar.** `AC-278` membuat Selesaikan dapat ditekan hanya bila `resultProgress` = `AllReleased`. Pesanan yang seluruh pemeriksaannya batal atau gugur tidak punya `resultProgress` sama sekali. Backend sengaja **menerima** penyelesaian pesanan semacam itu, dan pembatalan pesanan tidak sah pada `InProcess` | `LAB-DEC-190` / `AC-278` lawan rancangan backend 22.7 butir 3 (`BE-LAB-81`) | Pemilik modul — `Q-P22-01` |
+
+**Contoh `LAB-CONFLICT-017`:**
+
+> Pesanan Patologi Klinik berisi satu pemeriksaan Glukosa Puasa dan sudah *Sedang Dikerjakan*. Dokter
+> pemesan membatalkan Glukosa lewat `POST /lab-examinations/{id}/cancel` — backend mengizinkannya
+> karena penjaganya hanya melihat status pemeriksaan. Kini `resultProgress` kosong. `complete` akan
+> menjawab `200`, tetapi Selesaikan di layar nonaktif karena bukan `AllReleased`, dan Batalkan pesanan
+> ditolak `409` karena statusnya `InProcess`. Pesanan itu tertinggal *Sedang Dikerjakan* di daftar
+> tanpa satu pun jalan keluar dari layar.
+
+### Bagian D — Unknown
+
+| ID | Hal | Yang dibutuhkan untuk menjawab |
+|---|---|---|
+| `UNK-P22-01` | **Ketiga aksi baru dan layar Wadah berjalan sungguhan.** Revision ini nol menjalankan layar | Sesudah task frontend: uji di peramban dengan akun analis. **Menekan Proses atau Selesaikan menulis ke basis data bersama** — butuh izin pemilik modul per sesi. Data dev hari ini: Patologi Klinik 2 pesanan `Accepted` (termasuk `LAB-RSMMC-000001`: 5 pemeriksaan, 1 dirilis; 2 wadah `Accepted`, 1 `RecollectionRequired`), 1 `InProcess`, 1 `Confirmed`; Patologi Anatomi dan Mikrobiologi seluruhnya `Requested` |
+| `UNK-P22-02` | Pencabutan `LabOrder : Update` dari jabatan Analis pada 2026-10-01 disengaja atau tidak (`CAP-P22-15`) | Jawaban pemilik modul — `Q-P22-03` |
+| `UNK-P22-03` | **Hasil dirilis pada pesanan yang belum diterima.** `LAB-RSMMC-000014` (Mikrobiologi) masih `Requested` dengan wadah `Planned` dan `Received` — nol yang `Accepted` — tetapi satu pemeriksaannya sudah dirilis. `LabMicrobiologyResultService` hanya menolak pemeriksaan yang batal atau gugur; nol penjaga status pesanan maupun wadah | **Di luar `LAB-DEC-188`; tidak ditanyakan sekarang.** Dicatat karena mengubah cara membaca BR-136: *Proses Pemeriksaan* **bukan** gerbang pengisian hasil. Pesanan yang hasilnya sudah dirilis seluruhnya tetap harus melewati Terima Sampling → Proses → Selesaikan |
+
+### Bagian E — Closure question untuk `/grill-me`
+
+| ID | Pertanyaan | Kenapa perlu | Rekomendasi |
+|---|---|---|---|
+| `Q-P22-01` | Untuk `LAB-CONFLICT-017`: bolehkah Selesaikan ditekan pada pesanan `InProcess` yang `resultProgress`-nya **kosong** (seluruh pemeriksaan batal atau gugur)? | Bila tidak, pesanan semacam itu tertahan selamanya di layar | **Boleh** — menyamai backend 22.7 butir 3. Mengamandemen bunyi `AC-278`; nol perubahan kontrak |
+| `Q-P22-02` | `start-process` menjawab `400` untuk status yang salah, kontrak menulis `409`. Diselaraskan lewat task backend kecil, atau kontraknya yang mengikuti kode? | `LAB-DEC-188` membatasi putaran ini ke frontend; task backend berarti melebarkan scope | **Layar menampung keduanya sekarang**; satu task backend menyusul untuk menyamakan ke `409`, **tidak memblokir** putaran 22 |
+| `Q-P22-03` | Apakah analis memang **tidak** boleh Konfirmasi dan Batalkan pesanan? Baris `LabOrder : Update` mereka terhapus 2026-10-01 | Konfirmasi dan Batalkan berada di daftar yang sama dengan aksi baru; hari ini tidak ada satu jabatan Laboratorium pun yang memegangnya | Tanyakan; **tidak memblokir** BR-136 karena Proses, Selesaikan, dan Terima Sampling tidak memakai `Update` |
+
+**Catatan rekomendasi, bukan pertanyaan — subjudul Nota cetak.** Layar meneruskan judul halaman ke
+dokumen Nota (`disciplineTitle={title}`). Bila judul berganti menjadi *Daftar Pasien Lab Patologi
+Klinik*, kertas Nota ikut berbunyi demikian. Dokumen cetak berada di luar `LAB-DEC-188`, sehingga
+rekomendasinya: **subjudul Nota tetap *Pemeriksaan Patologi Klinik***, dilepas dari judul halaman.
+Pemilik modul dapat membalikkannya.
+
+### Bagian F — Kontrak as-is yang disentuh
+
+#### `[Tags("Health Services / Laboratory Management / Lab Order")]`
+
+Base URL: `api/v1/health-services/laboratory-management/lab-orders`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/{id}` | Detail satu pesanan | `LabOrder : Read` | - | `LabOrderDetailResponse` |
+| `PUT` | `/{id}/start-process` | Petugas mulai mengerjakan pesanan yang wadahnya sudah layak | `LabOrder : Process` | - | `LabOrderDetailResponse` |
+| `PUT` | `/{id}/complete` | Petugas menandai pesanan selesai; ditolak bila masih ada pemeriksaan belum dirilis | `LabOrder : Process` | - | `LabOrderDetailResponse` |
+| `POST` | `/{id}/confirm` | Konfirmasi pesanan beserta dokter pemeriksa | `LabOrder : Update` | `ConfirmLabOrderRequest` | `LabOrderDetailResponse` |
+| `PUT` | `/{id}/cancel` | Membatalkan pesanan beralasan | `LabOrder : Update` | Alasan pembatalan | `LabOrderCancellationResult` |
+| `PUT` | `/{id}/hold`, `/{id}/resume` | Menahan dan melanjutkan pesanan — **sengaja tanpa pemanggil** (`LAB-DEC-190`) | `LabOrder : Hold` | `HoldLabRequest` / `ResumeLabRequest` | `LabOrderDetailResponse` |
+
+**Kode status yang terlihat pada `start-process` dan `complete`:**
+
+| Kode | Arti bagi petugas | Contoh |
+|---|---|---|
+| `200` | Berhasil; baris diperbarui dari jawaban ini | Pesanan `Accepted` menjadi *Sedang Dikerjakan* |
+| `400` | **`start-process` saja:** status pesanan sudah bukan *Diterima* — misalnya petugas lain baru saja memprosesnya (`CAP-P22-03`) | *"Pesanan berstatus InProcess tidak dapat dipindahkan ke InProcess."* |
+| `409` | **`complete`:** status bukan *Sedang Dikerjakan*, atau masih ada pemeriksaan belum dirilis (`VAL-146`, berikut rinciannya). **Keduanya:** pesanan diubah orang lain pada detik yang sama | Lihat contoh di bawah |
+| `403` | Jabatan pengguna tidak memegang `LabOrder : Process` | Dokter Umum membuka daftar lalu menekan Proses |
+| `404` | Pesanan tidak ditemukan | Pesanan dihapus sesudah daftar dimuat |
+
+Contoh jawaban `409` `VAL-146` (data samaran):
+
+```json
+{
+  "success": false,
+  "statusCode": 409,
+  "message": "Order belum dapat diselesaikan karena masih terdapat pemeriksaan yang belum dirilis.",
+  "data": null,
+  "errors": {
+    "code": "LAB_ORDER_COMPLETION_BLOCKED",
+    "details": [
+      { "examinationId": "3f2b…", "procedureName": "Glukosa Puasa", "resultStatus": "Final", "status": "Menunggu Validasi" },
+      { "examinationId": "8c41…", "procedureName": "Kolesterol Total", "resultStatus": "NotEntered", "status": "Menunggu Hasil" }
+    ]
+  }
+}
+```
+
+#### `[Tags("Health Services / Laboratory Management / Lab Specimen")]` — titik sentuh saja
+
+Base URL: `api/v1/health-services/laboratory-management/lab-specimens`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/by-order/{labOrderId:guid}` | Wadah satu pesanan — **hanya menerima GUID** (`CAP-P22-10`) | `LabSpecimen : Read` | - | Daftar wadah |
+| `POST` | `/by-order/{labOrderId:guid}` | Merencanakan wadah | `LabSpecimen : Plan` | Rencana wadah (`VAL-51`) | Wadah |
+| `POST` | `/{id}/collect`, `/{id}/receive` | Sampel diambil, sampel diterima | `LabSpecimen : Collect` / `Receive` | - | Wadah |
+| `POST` | `/{id}/accept`, `/{id}/reject`, `/{id}/request-recollection` | Keputusan kelayakan wadah | `LabSpecimen : Accept` | Alasan bila menolak | Wadah |
+
+#### `[Tags("Health Services / Laboratory Management / Lab Monitoring")]` — titik sentuh saja
+
+Base URL: `api/v1/health-services/laboratory-management/lab-monitoring`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/clinical-pathology`, `/anatomic-pathology`, `/microbiology` | Tiga daftar pasien lab | `LabMonitoring : Read` | `LabMonitoringQuery` | `PagedResult<LabMonitoringItemResponse>` — termasuk `labOrderId`, `orderStatus`, `paymentType`, `resultProgress` |
+
+### Bagian G — Alur kerja yang diaudit, seperti yang **dapat** berjalan hari ini
+
+**Tujuan.** Petugas lab memindahkan satu pesanan dari *diterima* sampai *selesai* langsung dari daftar
+pasien lab, tanpa membuka layar lain kecuali layar Wadah.
+
+**Pelaku menurut data izin dev.**
+
+| Jabatan | Membuka daftar (`LabMonitoring : Read`) | Proses / Selesaikan | Siklus wadah | Konfirmasi / Batalkan |
+|---|---|---|---|---|
+| Analis Laboratorium (2 akun) | Ya | Ya | Ya | **Tidak** — `CAP-P22-15` |
+| Dokter Umum (2 akun) | Ya | Tidak | Tidak | Ya |
+| Kepala Instalasi Laboratorium (1 akun) | **Tidak** | Tidak | Tidak | Tidak |
+| Dokter Penanggung Jawab Laboratorium (3 akun) | **Tidak** | Tidak | Tidak | Tidak |
+
+Contoh: Kepala Instalasi yang membuka *Daftar Pasien Lab Patologi Klinik* hari ini mendapat layar
+*Akses Ditolak*, bukan daftar tanpa tombol — ia hanya memegang `LabOrder : Read` dan
+`LabExamination : Read`.
+
+**Pemicu dan prasyarat.** Pesanan tampil di daftar disiplinnya; untuk Proses, minimal satu wadahnya
+sudah dinyatakan layak sehingga pesanan `Accepted`.
+
+**Langkah utama.**
+
+1. Petugas menekan *Terima Sampling* → layar Wadah pesanan itu terbuka (**butuh `CAP-P22-10`**).
+2. Di layar Wadah, petugas menjalankan rencana → ambil → terima → layak. Wadah layak pertama memindahkan
+   pesanan ke `Accepted` secara otomatis.
+3. Kembali ke daftar, petugas menekan *Proses Pemeriksaan* → `InProcess`.
+4. Analis mengisi hasil; dokter memvalidasi dan merilis (layar hasil, di luar audit ini).
+5. Ketika *Keadaan Order* menjadi *Selesai*, petugas menekan *Selesaikan* → `Completed`.
+
+**Perubahan status pesanan.**
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat |
+|---|---|---|---|---|
+| `Requested` / `Confirmed` | Wadah pertama dinyatakan layak (layar Wadah) | `Accepted` | Pemegang `LabSpecimen : Accept` | Wadah `Received` |
+| `Accepted` | Proses Pemeriksaan | `InProcess` | Pemegang `LabOrder : Process` | Tidak membaca pembayaran (`LAB-DEC-189`) |
+| `InProcess` | Selesaikan | `Completed` | Pemegang `LabOrder : Process` | Setiap pemeriksaan terhitung sudah dirilis (`VAL-146`) |
+
+**Jalur tidak normal.** Status sudah diubah orang lain → `400`/`409`, baris tidak berubah, petugas
+memuat ulang. Pemeriksaan masih menahan → `409` beserta daftarnya. Pesanan tanpa pemeriksaan
+terhitung → tertahan di layar (`LAB-CONFLICT-017`). Pasien Tunai belum membayar → tidak ada penjaga
+sistem; prosedur manual `LAB-OPEN-051`.
+
+**Hasil akhir.** Pesanan `Completed` dengan `CompletedAt` dan riwayat `Order.Complete`. **Nol fakta
+tagih baru** — kelayakan tagih sudah terbentuk saat wadah dinyatakan layak.
+
+### Bagian H — Komentar kode yang basi (untuk task yang menyentuh berkasnya)
+
+| Berkas | Bunyi | Keadaan sebenarnya |
+|---|---|---|
+| FE `menu-items.jsx:1632-1633` | *"Penyaringan menu per izin belum ditegakkan"* | Sudah ditegakkan sejak `FE-LAB-44` (`requiredPermission` pada Laporan Operasional dan tiga butir Master Data) |
+| FE `menu-items.jsx:1718-1720` | Pesanan dokter *"masuk lewat menu Pesanan Laboratorium"* | Butir itu dicabut `LAB-DEC-048` |
+| FE `menu-items.jsx:1613-1634` | Blok komentar Laboratorium | Berdiri di atas blok **Radiologi**, bukan di atas Laboratorium |
+| FE `lab-monitoring-view.jsx:238` | *"Dua pilihan, bukan tiga"* | Tiga pilihan sejak `r23` |
+| BE `DTOs/LabOrderDtos.cs:423-425` | `ResultProgress` *"hanya bagi order Patologi Klinik"* | Juga Mikrobiologi sejak `BE-LAB-79` |
+
+### Bagian I — Pemicu impact scan berikutnya
+
+`LabOrderController.cs`, `LabOrderService.CompleteAsync`/`MoveOrderStatusAsync`, `LabMonitoringDtos.cs`,
+atau `LabOrderResultProgressRules.cs` berubah; layar Wadah mulai menerjemahkan token; layar
+pembatalan **per pemeriksaan** lahir (menaikkan risiko `LAB-CONFLICT-017`); jalur baca status Lunas
+Billing tersedia (`LAB-COORD-010`); atau kebijakan izin jabatan Laboratorium diubah.
 
 ---
 
@@ -1142,6 +1412,7 @@ Bila dipertahankan, `BR-25` perlu diperiksa ulang — memilih metode pembayaran 
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 7 | 2026-10-07 | *Impact scan* terbatas atas sembilan butir bahan audit amendment pass putaran 22 (`LAB-DEC-188`..`LAB-DEC-192`), pada BE `171dc314` + FE `5427ddbe4`, ditambah sembilan kueri baca-saja ke `QuilvianNewDevYoga`. **23 kemampuan:** 12 `Ready to reuse`, 1 `Reuse with adapter`, 2 `Extend`, 3 `Repair`, 2 `Missing`, 1 `Conflict`, 2 `Unknown`. **Backend siap tanpa perubahan** — `start-process`, `complete` beserta rincian `VAL-146`, dan jawaban `200` yang cukup memperbarui baris; Analis memegang `LabOrder : Process` dan seluruh aksi wadah. **`Repair` terpenting: layar Wadah tidak menerjemahkan token alamat** (`CAP-P22-10`), sehingga *Terima Sampling* — dan jalan Detail → Wadah hari ini — berakhir `404`. `Repair` lain: `start-process` menjawab `400` alih-alih `409` (`CAP-P22-03`); rujukan `LAB-DEC-025` pada empat komentar (`CAP-P22-20`). **Satu conflict baru `LAB-CONFLICT-017`:** `AC-278` menahan selamanya pesanan `InProcess` tanpa pemeriksaan terhitung, yang justru diterima backend. **Temuan izin:** baris `LabOrder : Update` Analis terhapus 2026-10-01 (`CAP-P22-15`); Kepala Instalasi dan DPJP Lab tidak dapat membuka daftar sama sekali. Nol uji mengunci label lama; judul halaman di enam tempat dan subjudul Nota memakai judul halaman. Tiga closure question `Q-P22-01`..`Q-P22-03`; tiga unknown `UNK-P22-01`..`03` | `draft` |
 | 6 | 2026-09-25 | *Impact scan* terbatas atas dua fakta kode yang dipakai gerbang r10/r11 dan putaran 19 tanpa `CAP`. **Dokumen klinis pasien** (`CAP-P19-01`..`09`): wadah data `S18` siap dipakai dengan adapter, **tetapi** unggah berkas nol, konsumen frontend nol, dan tiga pertentangan dengan `LAB-DEC-158` — `LAB-CONFLICT-015` (tiga jalan keluar berkas salah) dan `LAB-CONFLICT-016` (satu kode izin `Update`; verifikasi-sendiri saat membuat). **Kunjungan MCU** (`CAP-P19-10`..`13`): jalur pesanan Lab siap; backend Registrasi menerima `MedicalCheckup`; **nol layar yang membuatnya**, sehingga `S19` belum dapat dibuktikan lewat layar (`UNK-P19-01`). **Satu koreksi:** asal kemampuan dokumen klinis pasien adalah `9d38d30a` (2026-06-02), bukan `58c61a5b` | `draft` |
 | 5 | 2026-09-24 | *Impact scan* terbatas atas permukaan yang disentuh amendment pass putaran 14 (`LAB-DEC-133`..`LAB-DEC-145`, `LAB-FE-015`/`LAB-FE-016`), pada BE `ddeb5ed8` (136 commit sejak `981e002c`) dan FE `72607a087` (39 commit sejak `ebef7ebe5`). **20 kemampuan diklasifikasikan:** 5 `Ready to reuse`, 3 `Reuse with adapter`, 1 `Extend`, 1 `Repair`, 7 `Missing`, 2 `Conflict`, 1 `Unknown`. **Dua conflict baru:** `LAB-CONFLICT-012` — satu kode aksi `LabExamination : Update` membuka isi hasil, Final, Reopen, konsultasi, batal, cito, dan duplo sekaligus, sehingga `LAB-DEC-134` tidak dapat ditegakkan; `LAB-CONFLICT-013` — isian hasil Patologi Klinik berada di dialog modal, bertentangan dengan `LAB-FE-016`. **Satu `Repair`:** hasil Mikrobiologi yang sudah Final masih dapat ditimpa tanpa Reopen. **Satu kandidat pakai ulang besar:** `WfpClinicalPrivilege` milik Human Resource beserta preseden Kamar Operasi. Enam fakta revision 4 dinyatakan basi karena sudah dikerjakan. Empat closure question `LAB-CLOSE-013`..`LAB-CLOSE-016` dan dua unknown dibuka. **Catatan pembukuan:** baris riwayat revision 4 (2026-09-21) tidak pernah ditulis pada tabel ini; isinya ada pada bagian *Impact Scan Revision 4* | `draft` |
 | 1 | 2026-09-01 | Audit penuh pertama pada backend `c87d9c0` dan frontend `688daff90`. 24 kemampuan diklasifikasikan, 1 conflict dan 2 unknown dicatat, 5 pertanyaan penutup diajukan | `draft` |

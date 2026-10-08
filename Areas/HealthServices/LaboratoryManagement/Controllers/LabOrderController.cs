@@ -193,6 +193,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                    Enum.IsDefined(typeof(LabDiscipline), discipline);
         }
 
+        // Pilihan dokter pemeriksa untuk dialog Konfirmasi (r41 36.3, BE-LAB-91, BR-139). Milik
+        // Laboratorium dan dijaga hak Konfirmasi itu sendiri (LAB-DEC-201): siapa yang boleh
+        // mengonfirmasi otomatis boleh melihat pilihannya, tanpa izin master dokter SDM. Daftar SDM
+        // (doctors/options) dijaga KioskRead dan menolak analis — sumber temuan T2 FE-LAB-50.
+        //
+        // Aksi Confirm diulang di sini mengikuti konvensi controller ini (setiap endpoint mengulang
+        // deklarasi aksinya); AccessType-nya wajib sama dengan endpoint confirm.
+        [HttpGet("examiner-doctor-options")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<LabExaminerDoctorOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction("Confirm", "Confirm Lab Order", Description = "Melihat pilihan dokter pemeriksa untuk konfirmasi pesanan", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("LabOrder", "Confirm")]
+        public async Task<IActionResult> GetExaminerDoctorOptions(
+            [FromQuery] LabExaminerDoctorOptionQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _labOrderService.GetExaminerDoctorOptionsAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<LabExaminerDoctorOptionResponse>>.Ok(
+                result,
+                "Daftar dokter pemeriksa berhasil diambil."));
+        }
+
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<LabOrderDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -377,9 +400,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         }
 
         // Menandai pesanan mulai dikerjakan laboratorium.
+        //
+        // Sejak r40 (BE-LAB-90): status selain Accepted kini 409, bukan 400; pesanan yang belum
+        // dikonfirmasi ditolak 409 VAL-151 (LAB-DEC-194).
         [HttpPut("{id:guid}/start-process")]
         [ProducesResponseType(typeof(ApiResponse<LabOrderDetailResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction("Process", "Process Lab Order", Description = "Menandai order mulai dikerjakan", AccessType = AccessTypes.Update, SortOrder = 4)]
@@ -412,17 +437,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         // diturunkan server dari pengguna yang sedang login dan dari jam server, karena nama
         // konfirmator adalah pertanyaan audit, bukan pertanyaan tampilan.
         //
-        // Konfirmasi tidak mewajibkan apa pun pada jalur lama: pesanan yang tidak pernah
-        // dikonfirmasi tetap berpindah Requested ke Accepted ketika wadah pertamanya dinyatakan
-        // layak.
+        // Konfirmasi tidak wajib sebelum wadah layak: pesanan yang tidak pernah dikonfirmasi tetap
+        // berpindah Requested ke Accepted ketika wadah pertamanya dinyatakan layak. Sejak r40
+        // (BE-LAB-90) Konfirmasi juga sah pada Accepted yang belum dikonfirmasi — statusnya tetap —
+        // dan Proses Pemeriksaan mewajibkannya (VAL-151).
+        //
+        // Hak aksesnya tersendiri (LAB-PERM-v1 revision 13, LAB-DEC-197): LabOrder : Confirm, bukan
+        // LabOrder : Update, supaya pemegang Konfirmasi tidak ikut memperoleh Batalkan maupun
+        // penulisan konteks klinis pesanan (LAB-DEC-091).
         [HttpPost("{id:guid}/confirm")]
         [ProducesResponseType(typeof(ApiResponse<LabOrderDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Cancel Lab Order", Description = "Mengonfirmasi order laboratorium beserta dokter pemeriksanya", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("LabOrder", "Update")]
+        [AccessAction("Confirm", "Confirm Lab Order", Description = "Mengonfirmasi order laboratorium beserta dokter pemeriksanya", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("LabOrder", "Confirm")]
         public Task<IActionResult> Confirm(
             Guid id,
             [FromBody] ConfirmLabOrderRequest request,

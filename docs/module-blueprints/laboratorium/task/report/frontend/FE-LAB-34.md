@@ -17,7 +17,7 @@
 | Target tulis | `QuilvianSystemFrontendDev` |
 | Model | Claude Opus 5 |
 | Tanggal | 2026-09-22 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — ketiga layar terbangun, lint dan build hijau, 20 uji baru lulus, dan **hak aksesnya terbukti pada akun sungguhan bukan superadmin**. Yang belum: klik satu per satu di peramban |
+| Status | ✅ **`SELESAI`** (naik 2026-10-06) — ketiga layar diklik di peramban terhadap backend lokal dan PostgreSQL dev dengan **Kepala Instalasi asli** (dr. Bima), **analis asli** (Vina), dan superadmin sebagai pengganti **wewenang klinis** Mikrobiologi yang belum punya akun: 14/14 sesudah satu perbaikan + 5/5. `403` breakpoint tampil sebagai pesan terbaca. Lihat 7. *(Semula 2026-09-22: ⚠ — hak akses terbukti lewat HTTP; belum diklik di peramban.)* |
 
 ---
 
@@ -178,9 +178,9 @@ punya alat kendali peramban.
 
 | AC | Status | Bukti |
 |---|---|---|
-| `AC-182` mengubah nama konsultan mengubah footer dan **tidak** memindahkan wewenang klinis | **Terbukti pada aturannya** | Payload `PUT` diuji memuat **tepat tujuh ruas** tampilan dan bentuk nomor — nol penunjuk dokter, nol jabatan, nol hak akses |
-| `AC-185` mengubah breakpoint **tidak** mengubah hasil lama | **Terbukti sebagian** | Pasangan kuman/antibiotik terkunci sesudah dibuat dan nol terkirim saat perbarui (diuji). **Bahwa hasil lama nol berubah adalah perilaku backend** dan nol dapat dibuktikan dari layar |
-| `AC-189` profil katalog menentukan bentuk layar hasil | **Terbangun, belum dilihat** | `usesSusceptibilitySet` tersimpan dan terbaca; akibatnya pada layar hasil belum diklik |
+| `AC-182` mengubah nama konsultan mengubah footer dan **tidak** memindahkan wewenang klinis | ✅ **Terbukti pada layar untuk sisi layar** (B8) — sisi *footer* milik cetakan (`LAB-OPEN-039`) | Payload `PUT` diuji memuat **tepat tujuh ruas** tampilan dan bentuk nomor — nol penunjuk dokter, nol jabatan, nol hak akses |
+| `AC-185` mengubah breakpoint **tidak** mengubah hasil lama | ✅ **Sisi layar terbukti** (W4; `FE-LAB-31` T5): pasangan terkunci, layar hasil menampilkan **snapshot baris** `13-17`, bukan data induk. Ketetapan hasil lama tetap milik backend (`BE-LAB-61`/`BE-LAB-63` ✅) | Pasangan kuman/antibiotik terkunci sesudah dibuat dan nol terkirim saat perbarui (diuji). **Bahwa hasil lama nol berubah adalah perilaku backend** dan nol dapat dibuktikan dari layar |
+| `AC-189` profil katalog menentukan bentuk layar hasil | ✅ **Terbukti di layar** (`FE-LAB-31` T14) | `usesSusceptibilitySet` tersimpan dan terbaca; akibatnya pada layar hasil belum diklik |
 | DoD: pengaturan disiplin **nol punya tombol tambah maupun hapus** | **Terbukti secara struktural** | Nol `POST`, nol `DELETE` di slice; nol tombolnya di view |
 
 > Perbedaan **"terbukti pada aturannya"** dan **"terbukti"** ditulis dengan sengaja. Aturan
@@ -191,16 +191,66 @@ punya alat kendali peramban.
 
 ## 6. Yang perlu dikerjakan sebelum task ini boleh ditandai `SELESAI` penuh
 
-1. **Verifikasi klik menyeluruh** pada peramban, memakai akun kepala instalasi dan akun
-   wewenang klinis — keduanya, sebab pemisahannya justru intinya.
-2. **Layar breakpoint wajib diperiksa dari akun yang NOL memegang wewenang klinis**: server
-   sudah menjawab `403`, dan yang belum dipastikan adalah layar menampilkannya sebagai pesan
-   yang dapat dibaca, bukan sebagai galat mentah.
-3. **Data induknya masih hampir kosong** — satu organisme, satu antibiotik, satu profil. Menguji
-   tabel dan penyaring yang sungguhan menuntut `B3` pada audit kesiapan ditutup lebih dulu.
+1. ~~**Verifikasi klik menyeluruh** pada peramban, memakai akun kepala instalasi dan akun
+   wewenang klinis — keduanya, sebab pemisahannya justru intinya.~~ **Selesai 2026-10-02 dan
+   2026-10-06** (bagian 7). Wewenang klinis diwakili superadmin — akunnya belum ada di dev.
+2. ~~**Layar breakpoint wajib diperiksa dari akun yang NOL memegang wewenang klinis**.~~
+   **Selesai 2026-10-02** (B3): `403` asli tampil sebagai pesan terbaca.
+3. **Data induknya masih hampir kosong** — satu organisme, satu antibiotik, satu profil. Bukan
+   penahan status: pekerjaan data kepala instalasi (`B3`), bukan kode.
 
 **Nol operasi git dijalankan.**
 
 Satu backend (`https://localhost:7184` dan `http://localhost:5107`) dan satu dev server
 frontend (`http://localhost:3000`) **dibiarkan hidup** supaya verifikasi klik dapat langsung
 dikerjakan.
+
+---
+
+## 7. Verifikasi susulan di peramban — 2026-10-02 dan 2026-10-06
+
+**Lingkungan.** Backend lokal (`dotnet run`, `Development`) terhadap PostgreSQL dev bersama; `next dev`
+port 3000 dari working tree `YogaV2`; Chromium lewat Playwright; login **lewat formulir**. **Seluruh
+tulis dicegat** dan dijawab tiruan, **kecuali satu**: `PUT` breakpoint oleh dr. Bima diteruskan dengan
+sengaja, sebab ditolak `403` oleh filter izin **sebelum** menulis — itulah yang diuji B3.
+
+### 7.1 Hasil
+
+| ID | Akun | Skenario | Hasil | Bukti |
+| --- | --- | --- | --- | --- |
+| B1 | dr. Bima (breakpoint `Read` saja) | Daftar breakpoint termuat; **Tambah tidak ditawarkan** | **`FAIL` → `PASS`** | Lihat 7.2 |
+| B2 | dr. Bima | Detail breakpoint: nol `Perbarui`/`Hapus` | **`FAIL` → `PASS`** | Semula `["Kembali","Perbarui","Hapus"]`, kini `["Kembali"]` |
+| B3 | dr. Bima | Halaman ubah dibuka langsung lalu disimpan → `403` asli tampil sebagai **pesan terbaca**, bukan galat mentah | `PASS` | "Anda tidak memiliki akses ke menu atau fitur ini." |
+| B4 | dr. Bima (profil CRUD) | Daftar profil Mikrobiologi termuat; Tambah ditawarkan | `PASS` | — |
+| B5 | dr. Bima | Tambah profil: kosong ditolak di layar tanpa permintaan; pemilih pemeriksaan dan kuman/antibiotik tersedia | `PASS` | 3 pemilih |
+| B6 | dr. Bima | Keputusan 3.1 — ubah profil: badan `PUT` **tanpa** `procedureId` | `PASS` | Dicegat |
+| B7 | dr. Bima | Pengaturan disiplin: nol Tambah/Hapus; ketiadaannya dinyatakan | `PASS` | 3 baris |
+| B8 | dr. Bima | Keputusan 3.4 — pemisah nomor cetak yang sengaja kosong terkirim `""`, bukan `null`; badan nol memuat ruas wewenang klinis (`AC-182`) | `PASS` | Dicegat |
+| B9 ×3 | dr. Bima | 390 px: ketiga layar tanpa gulir horizontal halaman | `PASS` | `375 ≤ 390` |
+| B10 ×3 | Vina (`Read` saja) | Ketiga daftar terbaca; nol Tambah | **`FAIL` → `PASS`** (breakpoint, profil) | Lihat 7.2 |
+| W1 | superadmin (pengganti wewenang klinis) | Daftar breakpoint; Tambah ditawarkan | `PASS` | 2026-10-06 |
+| W2 | superadmin | Tambah breakpoint: pemilih kuman dan antibiotik (nol ketikan bebas) | `PASS` | — |
+| W3 | superadmin | Detail: `Perbarui` dan `Hapus` ditawarkan | `PASS` | — |
+| W4 | superadmin | `AC-185` ubah: pasangan kuman/antibiotik **tidak dirender dan tidak terkirim** | `PASS` | Badan `{lowerMm, upperMm, guidelineVersion, isActive}` (dicegat) |
+| W5 | superadmin | Hapus berkonfirmasi lalu `DELETE` | `PASS` | Dicegat — nol data berubah |
+| W6 | — | Nol tulis diteruskan pada sesi 2026-10-06 | `PASS` | — |
+
+### 7.2 Satu cacat yang ditemukan uji, dan perbaikannya
+
+**Gejala.** Layar breakpoint dan profil menawarkan `Tambah`, `Perbarui`, dan `Hapus` kepada **setiap**
+pengguna, termasuk pemegang `Read` saja — padahal risiko utama task ini menurut roadmap adalah
+*"pemisahan itu harus terlihat pada menu, bukan hanya ditegakkan server"*. Server menolak (`403`), tetapi
+layar mengundang tindakan yang pasti gagal.
+
+| Berkas frontend | Perubahan |
+| --- | --- |
+| `use-master-data-lab-susceptibility-breakpoint.jsx`, `use-master-data-lab-procedure-microbiology-profile.jsx` | `canCreate` dari `usePermission(resource, "Create")` |
+| `…-breakpoint-detail.jsx`, `…-microbiology-profile-detail.jsx` (hook) | `canUpdate`, `canDelete` dari `usePermission` |
+| `master-data-lab-susceptibility-breakpoint-view.jsx`, `master-data-lab-procedure-microbiology-profile-view.jsx` | `+ Tambah` hanya bila `canCreate` |
+| `lab-susceptibility-breakpoint-detail-view.jsx`, `lab-procedure-microbiology-profile-detail-view.jsx` | `Perbarui` hanya bila `canUpdate`; `Hapus` hanya bila `canDelete` |
+
+Pola yang sama dengan layar data induk Laboratorium lain (Organisme). Penegakan tetap di backend.
+Perbaikan ini ter-commit pada `d05fb95e0`.
+
+**Validasi akhir (2026-10-06):** uji unit 2308/2314 (6 gagal = baseline, nol Laboratorium),
+`lint:errors` 0 error, `npm run build` hijau. **Nol operasi Git dijalankan.**

@@ -325,6 +325,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 IsNeedApprovalForProcedure = provider.IsNeedApprovalForProcedure,
                 IsAllowExcessPaymentByPatient = patientInsurance.IsAllowExcessPaymentByPatient &&
                     provider.IsAllowExcessPaymentByPatient,
+                AnnualLimitAmount = patientInsurance.AnnualLimitAmount,
                 RemainingLimitAmount = patientInsurance.RemainingLimitAmount,
                 PolicyCoPaymentPercent = patientInsurance.CoPaymentPercent,
                 PolicyCoPaymentAmount = patientInsurance.CoPaymentAmount,
@@ -462,6 +463,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 IsNeedApprovalForProcedure = provider.IsNeedApprovalForProcedure,
                 IsAllowExcessPaymentByPatient = patientInsurance.IsAllowExcessPaymentByPatient &&
                     provider.IsAllowExcessPaymentByPatient,
+                AnnualLimitAmount = patientInsurance.AnnualLimitAmount,
                 RemainingLimitAmount = patientInsurance.RemainingLimitAmount,
                 PolicyCoPaymentPercent = patientInsurance.CoPaymentPercent,
                 PolicyCoPaymentAmount = patientInsurance.CoPaymentAmount,
@@ -523,6 +525,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         public bool IsNeedApprovalForProcedure { get; set; }
         public bool IsAllowExcessPaymentByPatient { get; set; }
 
+        public decimal? AnnualLimitAmount { get; set; }
         public decimal? RemainingLimitAmount { get; set; }
         public decimal? PolicyCoPaymentPercent { get; set; }
         public decimal? PolicyCoPaymentAmount { get; set; }
