@@ -1256,6 +1256,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     VolumeUnitSymbol = x.VolumeUnit != null ? x.VolumeUnit.MeasurementSymbol : null,
                     SpecimenStatus = x.SpecimenStatus.ToString(),
                     CollectedAt = x.CollectedAt,
+                    CollectedByUserId = x.CollectedByUserId,
+                    CollectedByName = x.CollectedByUserId == null
+                        ? null
+                        : _dbContext.Users
+                            .Where(u => u.Id == x.CollectedByUserId)
+                            .Select(u => u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode)
+                            .FirstOrDefault(),
                     ReceivedAt = x.ReceivedAt,
                     PhysicallyReceivedAt = x.PhysicallyReceivedAt,
                     CreateDateTime = x.CreateDateTime,
@@ -1301,6 +1308,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     VolumeUnitSymbol = x.VolumeUnit != null ? x.VolumeUnit.MeasurementSymbol : null,
                     SpecimenStatus = x.SpecimenStatus.ToString(),
                     CollectedAt = x.CollectedAt,
+                    CollectedByUserId = x.CollectedByUserId,
+                    CollectedByName = x.CollectedByUserId == null
+                        ? null
+                        : _dbContext.Users
+                            .Where(u => u.Id == x.CollectedByUserId)
+                            .Select(u => u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode)
+                            .FirstOrDefault(),
                     ReceivedAt = x.ReceivedAt,
                     PhysicallyReceivedAt = x.PhysicallyReceivedAt,
                     DecidedAt = x.DecidedAt,

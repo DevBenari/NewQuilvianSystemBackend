@@ -24,6 +24,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
     [Tags("Health Services / Laboratory Management / Lab Order")]
     public class LabOrderController : ControllerBase
     {
+        private const string KioskReadPolicy = "KioskRead";
+
         private readonly LabOrderService _labOrderService;
 
         public LabOrderController(LabOrderService labOrderService)
@@ -214,6 +216,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             return Ok(ApiResponse<PagedResult<LabExaminerDoctorOptionResponse>>.Ok(
                 result,
                 "Daftar dokter pemeriksa berhasil diambil."));
+        }
+
+        // Pesanan Lab aktif satu pasien untuk kiosk jalur Laboratorium (LAB-EVD-013 butir 1):
+        // ada pesanan → kiosk menawarkan Konfirmasi Kehadiran; kosong → pendaftaran kunjungan.
+        // Dijaga KioskRead seperti route kiosk lain (POST patient-encounters/kiosk), bukan izin
+        // LabOrder : Read — akun kiosk tidak memegang izin modul Laboratorium. Isinya sengaja
+        // terbatas pada yang ditampilkan layar kiosk, tanpa hasil maupun status keuangan.
+        [HttpGet("kiosk/pending-by-patient/{patientId:guid}")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<List<LabKioskPendingOrderGroupResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Order", Description = "Melihat pesanan laboratorium aktif pasien dari kiosk", AccessType = AccessTypes.Read, SortOrder = 1)]
+        public async Task<IActionResult> GetKioskPendingByPatient(
+            Guid patientId,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _labOrderService.GetKioskPendingByPatientAsync(
+                patientId,
+                cancellationToken: cancellationToken);
+
+            return Ok(ApiResponse<List<LabKioskPendingOrderGroupResponse>>.Ok(
+                result,
+                "Pesanan laboratorium pasien berhasil diambil."));
         }
 
         [HttpGet("{id:guid}")]

@@ -264,6 +264,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
         public DateTime? CollectedAt { get; set; }
 
+        /// <summary>
+        /// Petugas yang mencatat pengambilan sampel. Layar membacanya untuk aturan empat mata
+        /// <c>VAL-09</c>: petugas ini tidak boleh menetapkan kelayakan wadahnya sendiri
+        /// (<c>LAB-EVD-013</c>, VAL-09 dipertahankan pemilik modul 2026-10-08).
+        /// </summary>
+        public Guid? CollectedByUserId { get; set; }
+
+        /// <summary>Nama petugas pengambil sampel, siap ditampilkan.</summary>
+        public string? CollectedByName { get; set; }
+
         /// <summary>Kapan datanya masuk ke sistem. Diisi server, tidak pernah dari permintaan.</summary>
         public DateTime? ReceivedAt { get; set; }
 
