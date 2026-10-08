@@ -48,6 +48,7 @@ public sealed class FinReceiptConfiguration : IEntityTypeConfiguration<FinReceip
         // Baris pembalik sengaja tidak diberi FK nav — self-reference lewat Id murni, konsisten
         // dengan pola pembalikan lain di modul ini (bukan hubungan agregat berlapis).
         entity.HasOne<FinReceipt>().WithMany().HasForeignKey(x => x.ReversalOfReceiptId).OnDelete(DeleteBehavior.Restrict);
+        entity.HasOne(x => x.BankAccount).WithMany().HasForeignKey(x => x.BankAccountId).OnDelete(DeleteBehavior.Restrict);
 
         // Satu tender berhasil = paling banyak satu penerimaan (FIN-DES-010).
         entity.HasIndex(x => x.SourceTenderId).IsUnique()

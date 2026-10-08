@@ -46,6 +46,11 @@ public sealed class FinReceiptDeductionConfiguration : IEntityTypeConfiguration<
             .HasForeignKey(x => x.ReceiptAllocationId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        entity.HasOne(x => x.ChartOfAccount)
+            .WithMany()
+            .HasForeignKey(x => x.ChartOfAccountId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // Baris pembalik sengaja tidak diberi nav — self-reference murni lewat Id, pola yang sama
         // dengan FinReceiptAllocation.ReversalOfAllocationId (FIN-DES-012).
         entity.HasOne<FinReceiptDeduction>().WithMany().HasForeignKey(x => x.ReversalOfDeductionId).OnDelete(DeleteBehavior.Restrict);
@@ -54,6 +59,7 @@ public sealed class FinReceiptDeductionConfiguration : IEntityTypeConfiguration<
         entity.HasIndex(x => x.ReceiptId).HasDatabaseName("IX_FinReceiptDeduction_ReceiptId");
         entity.HasIndex(x => x.DeductionType).HasDatabaseName("IX_FinReceiptDeduction_DeductionType");
         entity.HasIndex(x => x.ReceiptAllocationId).HasDatabaseName("IX_FinReceiptDeduction_Allocation");
+        entity.HasIndex(x => x.ChartOfAccountId).HasDatabaseName("IX_FinReceiptDeduction_ChartOfAccountId");
 
         // Satu baris hanya boleh dibalik sekali.
         entity.HasIndex(x => x.ReversalOfDeductionId)

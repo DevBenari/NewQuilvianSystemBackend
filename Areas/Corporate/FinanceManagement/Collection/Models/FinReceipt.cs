@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -40,6 +41,10 @@ public sealed class FinReceipt : IdentityModel
     public Guid? PaymentMethodId { get; set; }
 
     public Guid? PaymentMethodAccountId { get; set; }
+
+    /// <summary>Rujukan rekening bank rumah sakit (MstBankAccount) untuk penerimaan AR_COLLECTION.</summary>
+    public Guid? BankAccountId { get; set; }
+    public MstBankAccount? BankAccount { get; set; }
 
     /// <summary>Disalin apa adanya dari BilTender.Amount. MUST NOT dihitung ulang.</summary>
     public decimal Amount { get; set; }

@@ -43,6 +43,33 @@ public sealed class FinReceivableInvoiceBatch : IdentityModel
     /// <summary>Jumlah OriginalAmount seluruh FinReceivable anggota.</summary>
     public decimal TotalAmount { get; set; }
 
+    /// <summary>Snapshot kode kunjungan (IP / OP).</summary>
+    [MaxLength(10)] public string? VisitCode { get; set; }
+
+    /// <summary>Total diskon invoice yang disepakati/diterapkan.</summary>
+    public decimal TotalDiscount { get; set; } = 0m;
+
+    /// <summary>Rujukan akun COA diskon (AccChartOfAccount).</summary>
+    public Guid? DiscountChartOfAccountId { get; set; }
+
+    /// <summary>Jenis diskon: PERCENT atau NOMINAL.</summary>
+    [MaxLength(20)] public string? DiscountType { get; set; }
+
+    /// <summary>Persentase diskon bila jenis diskon adalah PERCENT.</summary>
+    public decimal? DiscountPercent { get; set; }
+
+    /// <summary>Keterangan atau alasan diskon invoice.</summary>
+    [MaxLength(500)] public string? DiscountNote { get; set; }
+
+    /// <summary>Nominal penerimaan tambahan lainnya di luar tagihan pokok.</summary>
+    public decimal OtherReceiptAmount { get; set; } = 0m;
+
+    /// <summary>Rujukan akun COA penerimaan lainnya (AccChartOfAccount).</summary>
+    public Guid? OtherReceiptChartOfAccountId { get; set; }
+
+    /// <summary>Keterangan penerimaan lainnya.</summary>
+    [MaxLength(500)] public string? OtherReceiptNote { get; set; }
+
     [Required, MaxLength(20)] public string Status { get; set; } = FinReceivableInvoiceBatchStatuses.Draft;
 
     /// <summary>Terisi saat ISSUED.</summary>
@@ -69,6 +96,18 @@ public sealed class FinReceivableInvoiceBatch : IdentityModel
     public DateTimeOffset? PayerVerifiedAt { get; set; }
     public DateTimeOffset? ClaimApprovedAt { get; set; }
     public DateTimeOffset? ClaimClosedAt { get; set; }
+
+    /// <summary>Alasan pembatalan batch tagihan.</summary>
+    [MaxLength(500)] public string? CancelReason { get; set; }
+
+    /// <summary>Snapshot jenis layanan (RANAP, RAJAL, IGD, OTC).</summary>
+    [MaxLength(20)] public string? ServiceType { get; set; }
+
+    /// <summary>Referensi batch lama yang dibatalkan bila batch ini adalah hasil reissue.</summary>
+    public Guid? ReissuedFromBatchId { get; set; }
+
+    /// <summary>Referensi batch baru pengganti bila batch ini telah dibatalkan dan dibuat ulang.</summary>
+    public Guid? ReissuedToBatchId { get; set; }
 
     public ICollection<FinReceivableInvoiceBatchItem> Items { get; set; } = new List<FinReceivableInvoiceBatchItem>();
 }

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,11 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261008130000_AddFinanceCrossEntry")]
+    partial class AddFinanceCrossEntry
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -169,10 +172,6 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<DateTime?>("DeleteDateTime")
                         .HasColumnType("timestamp with time zone");
-                    b.Property<bool>("IsActiveMembership")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
 
                     b.Property<string>("Description")
                         .HasMaxLength(250)
@@ -5224,7 +5223,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("BankAccountId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("CancelBy")
+                    b.Property<Guid?>("CancelBy")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("CancelDateTime")
@@ -5234,14 +5233,16 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("CrossEntryNumber")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<Guid>("DeleteBy")
+                    b.Property<Guid?>("DeleteBy")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeleteDateTime")
@@ -5255,10 +5256,14 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<decimal>("OriginalAmount")
                         .HasPrecision(18, 2)
@@ -5294,24 +5299,24 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CrossEntryNumber")
-                        .IsUnique()
-                        .HasDatabaseName("IX_FinCrossEntry_CrossEntryNumber_Active")
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("ReceiptId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_FinCrossEntry_ReceiptId_Active")
-                        .HasFilter("\"IsDelete\" = false");
-
                     b.HasIndex("ReferenceNumber")
                         .HasDatabaseName("IX_FinCrossEntry_ReferenceNumber");
 
                     b.HasIndex("BankAccountId", "TransactionDate")
                         .HasDatabaseName("IX_FinCrossEntry_BankAccount_Date");
 
+                    b.HasIndex("CrossEntryNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FinCrossEntry_CrossEntryNumber_Active")
+                        .HasFilter("\"IsDelete\" = false");
+
                     b.HasIndex("InsuranceProviderId", "TransactionDate")
                         .HasDatabaseName("IX_FinCrossEntry_InsuranceProvider_Date");
+
+                    b.HasIndex("ReceiptId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FinCrossEntry_ReceiptId_Active")
+                        .HasFilter("\"IsDelete\" = false");
 
                     b.HasIndex("Status", "TransactionDate")
                         .HasDatabaseName("IX_FinCrossEntry_Status_Date");
@@ -5330,7 +5335,7 @@ namespace QuilvianSystemBackend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("CancelBy")
+                    b.Property<Guid?>("CancelBy")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("CancelDateTime")
@@ -5345,12 +5350,14 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<Guid>("CrossEntryId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("DeleteBy")
+                    b.Property<Guid?>("DeleteBy")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeleteDateTime")
@@ -5369,10 +5376,14 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("OriginalFileName")
                         .IsRequired()
@@ -5424,7 +5435,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
-                    b.Property<Guid>("CancelBy")
+                    b.Property<Guid?>("CancelBy")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("CancelDateTime")
@@ -5434,12 +5445,14 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<Guid>("CrossEntryId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("DeleteBy")
+                    b.Property<Guid?>("DeleteBy")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("DeleteDateTime")
@@ -5455,10 +5468,14 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("character varying(10)");
 
                     b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<DateTimeOffset>("OccurredAt")
                         .HasColumnType("timestamp with time zone");
@@ -5634,14 +5651,14 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BankAccountId");
-
                     b.HasIndex("ReceiptNumber")
                         .IsUnique()
                         .HasDatabaseName("IX_FinReceipt_ReceiptNumber")
                         .HasFilter("\"IsDelete\" = false");
 
                     b.HasIndex("ReversalOfReceiptId");
+
+                    b.HasIndex("BankAccountId");
 
                     b.HasIndex("SourceTenderId")
                         .IsUnique()
@@ -7546,11 +7563,6 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<DateOnly>("PeriodStart")
                         .HasColumnType("date");
-                    b.Property<Guid?>("ReissuedFromBatchId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ReissuedToBatchId")
-                        .HasColumnType("uuid");
 
                     b.Property<string>("PoolCode")
                         .IsRequired()
@@ -9537,9 +9549,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasDatabaseName("IX_FinReceivableInvoiceBatch_BatchNumber")
                         .HasFilter("\"IsDelete\" = false");
 
-                    b.HasIndex("CancelDateTime")
-                        .HasDatabaseName("IX_FinReceivableInvoiceBatch_CancelDateTime");
-
                     b.HasIndex("ClaimStatus")
                         .HasDatabaseName("IX_FinReceivableInvoiceBatch_ClaimStatus");
 
@@ -9549,22 +9558,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("DebtorType")
                         .HasDatabaseName("IX_FinReceivableInvoiceBatch_DebtorType");
 
-                    b.HasIndex("InvoiceDate")
-                        .HasDatabaseName("IX_FinReceivableInvoiceBatch_InvoiceDate");
-
                     b.HasIndex("PeriodStart")
                         .HasDatabaseName("IX_FinReceivableInvoiceBatch_PeriodStart");
-
-                    b.HasIndex("ReissuedFromBatchId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_FinReceivableInvoiceBatch_ReissuedFromBatchId")
-                        .HasFilter("\"IsDelete\" = false AND \"ReissuedFromBatchId\" IS NOT NULL");
-
-                    b.HasIndex("ReissuedToBatchId")
-                        .HasDatabaseName("IX_FinReceivableInvoiceBatch_ReissuedToBatchId");
-
-                    b.HasIndex("ServiceType")
-                        .HasDatabaseName("IX_FinReceivableInvoiceBatch_ServiceType");
 
                     b.HasIndex("Status")
                         .HasDatabaseName("IX_FinReceivableInvoiceBatch_Status");
@@ -9635,7 +9630,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("ReceivableId")
                         .IsUnique()
                         .HasDatabaseName("IX_FinReceivableInvoiceBatchItem_ActiveReceivable")
-                        .HasFilter("\"IsDelete\" = false AND \"IsActiveMembership\" = true");
+                        .HasFilter("\"IsDelete\" = false");
 
                     b.ToTable("FinReceivableInvoiceBatchItem", "public");
                 });
@@ -62427,11 +62422,11 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("ReviewResolvedByUserId");
 
-                    b.HasIndex("VisitDate")
-                        .HasFilter("\"IsDelete\" = false");
-
                     b.HasIndex("Status", "CreateDateTime")
                         .IsDescending(false, true)
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("VisitDate")
                         .HasFilter("\"IsDelete\" = false");
 
                     b.ToTable("BilInvoice", "public", t =>

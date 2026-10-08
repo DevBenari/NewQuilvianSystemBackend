@@ -690,6 +690,10 @@ namespace QuilvianSystemBackend.Repositories
         // FinReceivableMovement/FinSupplierPayableMovement MASIH belum ber-FK ke tabel ini — lihat
         // laporan task BE-FIN-074 bagian 7.
         public DbSet<FinTransactionProof> FinTransactionProofs { get; set; }
+        // Ayat Silang (Unidentified Payer Receipt / Cross-Entry)
+        public DbSet<FinCrossEntry> FinCrossEntries { get; set; }
+        public DbSet<FinCrossEntryTransaction> FinCrossEntryTransactions { get; set; }
+        public DbSet<FinCrossEntryDocument> FinCrossEntryDocuments { get; set; }
         // BE-FIN-010, FIN-DES-017..019: kotak keluar kejadian Finance -> Accounting (transactional
         // outbox). Migration AddFinanceAccountingOutbox dibuat tangan, belum dijalankan. Worker
         // pengiriman (FIN-DES-020) dan endpoint penerima Accounting belum ada (FIN-CAP-018) — di

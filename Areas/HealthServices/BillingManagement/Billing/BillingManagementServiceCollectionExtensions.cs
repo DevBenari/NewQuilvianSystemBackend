@@ -126,6 +126,8 @@ public static class BillingManagementServiceCollectionExtensions
         // BE-FIN-017, 02-backend-architecture.md §4.22: pemilik logika penerimaan (pembuatan dari
         // tender + pembuktian FR-FIN-035). Dipakai FinanceBillingIntakeService lewat DI.
         services.AddScoped<FinanceReceiptService>();
+        // Ayat Silang: penerimaan penjamin tanpa invoice tujuan awal
+        services.AddScoped<FinanceCrossEntryService>();
         // BE-FIN-075, FIN-DES-092: unggah dan metadata bukti pembayaran langsung, delapan pemeriksaan
         // berurut. TIDAK memanggil kelas unggah milik HR.
         services.AddScoped<FinanceTransactionProofService>();

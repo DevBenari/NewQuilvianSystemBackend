@@ -18,6 +18,8 @@ public sealed class FinReceivableInvoiceBatchItemConfiguration : IEntityTypeConf
         entity.Property(x => x.IsDelete).HasDefaultValue(false);
         entity.Property(x => x.IsCancel).HasDefaultValue(false);
 
+        entity.Property(x => x.IsActiveMembership).HasDefaultValue(true);
+
         entity.HasOne(x => x.Batch)
             .WithMany(x => x.Items)
             .HasForeignKey(x => x.BatchId)
@@ -30,12 +32,12 @@ public sealed class FinReceivableInvoiceBatchItemConfiguration : IEntityTypeConf
 
         entity.HasIndex(x => x.BatchId).HasDatabaseName("IX_FinReceivableInvoiceBatchItem_BatchId");
 
-        // erd/data-dictionary.md §C.14/§C.16: satu FinReceivable hanya boleh aktif di satu batch.
-        // Filter murni IsDelete=false (bukan Status) — pembebasan piutang saat batch CANCELLED
-        // adalah keputusan service yang menyusul, bukan cakupan skema ini.
+        // erd/data-dictionary.md §C.14/§C.16: satu FinReceivable hanya boleh aktif di satu batch aktif.
+        // Item batch CANCELLED memiliki IsActiveMembership = false sehingga tidak menahan receivable
+        // untuk digabung ulang / di-reissue.
         entity.HasIndex(x => x.ReceivableId)
             .IsUnique()
-            .HasFilter("\"IsDelete\" = false")
+            .HasFilter("\"IsDelete\" = false AND \"IsActiveMembership\" = true")
             .HasDatabaseName("IX_FinReceivableInvoiceBatchItem_ActiveReceivable");
     }
 }

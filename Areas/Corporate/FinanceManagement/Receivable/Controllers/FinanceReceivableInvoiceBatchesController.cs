@@ -40,6 +40,30 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
         Ok(ApiResponse<PagedResult<ReceivableInvoiceBatchResponse>>.Ok(
             await _service.GetPagedAsync(request, cancellationToken), "Daftar Batch Tagihan AR berhasil diambil."));
 
+    [HttpGet("summary")]
+    [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<ReceivableInvoiceBatchSummaryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSummary([FromQuery] ReceivableInvoiceBatchQuery request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<ReceivableInvoiceBatchSummaryResponse>.Ok(
+            await _service.GetSummaryAsync(request, cancellationToken), "Ringkasan Batch Tagihan AR berhasil diambil."));
+
+    [HttpGet("canceled")]
+    [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<CanceledInvoicePagedResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCanceled([FromQuery] CanceledInvoiceBatchQuery request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<CanceledInvoicePagedResponse>.Ok(
+            await _service.GetCanceledPagedAsync(request, cancellationToken), "Daftar Canceled Invoice berhasil diambil."));
+
+    [HttpGet("canceled/summary")]
+    [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<CanceledInvoiceSummaryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCanceledSummary([FromQuery] CanceledInvoiceBatchQuery request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<CanceledInvoiceSummaryResponse>.Ok(
+            await _service.GetCanceledSummaryAsync(request, cancellationToken), "Ringkasan Canceled Invoice berhasil diambil."));
+
     [HttpGet("eligible-receivables")]
     [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
@@ -90,6 +114,21 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
         catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
     }
 
+    [HttpGet("{id:guid}/canceled-detail")]
+    [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<CanceledInvoiceDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetCanceledDetail(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(ApiResponse<CanceledInvoiceDetailResponse>.Ok(
+                await _service.GetCanceledDetailAsync(id, cancellationToken), "Rincian Canceled Invoice berhasil diambil."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
     [HttpPost]
     [AccessAction("Create", "Create Receivable Invoice Batch", AccessType = AccessTypes.Create, SortOrder = 2)]
     [AccessPermission("FinanceReceivableInvoiceBatch", "Create")]
@@ -126,12 +165,41 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
     [HttpPost("{id:guid}/cancel")]
     [AccessAction("Update", "Update Receivable Invoice Batch", AccessType = AccessTypes.Update, SortOrder = 4)]
     [AccessPermission("FinanceReceivableInvoiceBatch", "Update")]
-    public async Task<IActionResult> Cancel(Guid id, [FromBody] ReceivableInvoiceBatchRowVersionRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelReceivableInvoiceBatchRequest request, CancellationToken cancellationToken)
     {
         try
         {
-            var batch = await _service.CancelAsync(id, request.ExpectedRowVersion, CurrentUserId(), cancellationToken);
+            var batch = await _service.CancelAsync(id, request.ExpectedRowVersion, request.Reason, CurrentUserId(), cancellationToken);
             return Ok(ApiResponse<ReceivableInvoiceBatchResponse>.Ok(Map(batch), "Batch Tagihan AR berhasil dibatalkan."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    [HttpPost("{id:guid}/reissue")]
+    [AccessAction("Create", "Create Receivable Invoice Batch", AccessType = AccessTypes.Create, SortOrder = 2)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Create")]
+    [ProducesResponseType(typeof(ApiResponse<ReceivableInvoiceBatchResponse>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> Reissue(Guid id, [FromBody] ReissueReceivableInvoiceBatchRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var newBatch = await _service.ReissueAsync(id, request.ExpectedRowVersion, CurrentUserId(), cancellationToken);
+            return StatusCode(201, ApiResponse<ReceivableInvoiceBatchResponse>.Ok(Map(newBatch), "Batch Tagihan AR berhasil dibuat ulang."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    [HttpPost("{id:guid}/members/edit-amount")]
+    [AccessAction("Update", "Update Receivable Invoice Batch", AccessType = AccessTypes.Update, SortOrder = 4)]
+    [AccessPermission("FinanceReceivable", "RequestAdjustment")]
+    [ProducesResponseType(typeof(ApiResponse<EditCanceledInvoiceMemberAmountResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> EditCanceledMemberAmount(
+        Guid id, [FromBody] EditCanceledInvoiceMemberAmountRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.EditCanceledMemberAmountAsync(id, request, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<EditCanceledInvoiceMemberAmountResponse>.Ok(result, "Penyesuaian nilai tagihan berhasil diproses."));
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
@@ -183,31 +251,77 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
 
-    private static ReceivableInvoiceBatchResponse Map(FinReceivableInvoiceBatch batch) => new()
+    // ------------------------------------------------------------------------------------
+    // Pelunasan Batch Tagihan AR — POST /{id}/payments
+    // ------------------------------------------------------------------------------------
+
+    [HttpPost("{id:guid}/payments")]
+    [AccessAction("Update", "Update Receivable Invoice Batch", AccessType = AccessTypes.Update, SortOrder = 5)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Update")]
+    [ProducesResponseType(typeof(ApiResponse<PostReceivableInvoiceBatchPaymentResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> PostPayment(
+        Guid id,
+        [FromBody] PostReceivableInvoiceBatchPaymentRequest request,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+        CancellationToken cancellationToken)
     {
-        Id = batch.Id,
-        BatchNumber = batch.BatchNumber,
-        DebtorType = batch.DebtorType,
-        DebtorReferenceId = batch.DebtorReferenceId,
-        PeriodStart = batch.PeriodStart,
-        PeriodEnd = batch.PeriodEnd,
-        InvoiceDate = batch.InvoiceDate,
-        DueDate = batch.DueDate,
-        PaymentTermDays = batch.PaymentTermDays,
-        Note = batch.Note,
-        TotalAmount = batch.TotalAmount,
-        Status = batch.Status,
-        IssuedAt = batch.IssuedAt,
-        RowVersion = batch.RowVersion,
-        ClaimStatus = batch.ClaimStatus,
-        ApprovedAmount = batch.ApprovedAmount,
-        ClaimVarianceAmount = batch.ApprovedAmount.HasValue ? batch.TotalAmount - batch.ApprovedAmount.Value : null,
-        PayerClaimReference = batch.PayerClaimReference,
-        ClaimNote = batch.ClaimNote,
-        PayerVerifiedAt = batch.PayerVerifiedAt,
-        ClaimApprovedAt = batch.ClaimApprovedAt,
-        ClaimClosedAt = batch.ClaimClosedAt
-    };
+        try
+        {
+            var result = await _service.PostPaymentAsync(id, request, idempotencyKey, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<PostReceivableInvoiceBatchPaymentResponse>.Ok(result, "Pembayaran Batch Tagihan AR berhasil diproses."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    private static ReceivableInvoiceBatchResponse Map(FinReceivableInvoiceBatch batch)
+    {
+        var visitCode = !string.IsNullOrWhiteSpace(batch.VisitCode)
+            ? batch.VisitCode
+            : batch.BatchNumber.Contains("/IP/", StringComparison.OrdinalIgnoreCase)
+                ? "IP"
+                : batch.BatchNumber.Contains("/OP/", StringComparison.OrdinalIgnoreCase)
+                    ? "OP"
+                    : null;
+
+        var visitLabel = visitCode switch
+        {
+            "IP" => "Rawat Inap",
+            "OP" => "Rawat Jalan",
+            _ => null
+        };
+
+        return new()
+        {
+            Id = batch.Id,
+            BatchNumber = batch.BatchNumber,
+            DebtorType = batch.DebtorType,
+            DebtorReferenceId = batch.DebtorReferenceId,
+            CompanyId = batch.DebtorReferenceId,
+            VisitCode = visitCode,
+            VisitLabel = visitLabel,
+            PeriodStart = batch.PeriodStart,
+            PeriodEnd = batch.PeriodEnd,
+            InvoiceDate = batch.InvoiceDate,
+            DueDate = batch.DueDate,
+            PaymentTermDays = batch.PaymentTermDays,
+            Note = batch.Note,
+            TotalAmount = batch.TotalAmount,
+            TotalDiscount = batch.TotalDiscount,
+            NetAmount = batch.TotalAmount - batch.TotalDiscount,
+            Status = batch.Status,
+            IssuedAt = batch.IssuedAt,
+            SentDate = batch.IssuedAt,
+            RowVersion = batch.RowVersion,
+            ClaimStatus = batch.ClaimStatus,
+            ApprovedAmount = batch.ApprovedAmount,
+            ClaimVarianceAmount = batch.ApprovedAmount.HasValue ? batch.TotalAmount - batch.ApprovedAmount.Value : null,
+            PayerClaimReference = batch.PayerClaimReference,
+            ClaimNote = batch.ClaimNote,
+            PayerVerifiedAt = batch.PayerVerifiedAt,
+            ClaimApprovedAt = batch.ClaimApprovedAt,
+            ClaimClosedAt = batch.ClaimClosedAt
+        };
+    }
 
     private IActionResult Failure(Exception exception) => exception switch
     {

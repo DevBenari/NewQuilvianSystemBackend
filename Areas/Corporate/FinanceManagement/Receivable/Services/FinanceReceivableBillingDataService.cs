@@ -266,7 +266,7 @@ public sealed class FinanceReceivableBillingDataService
 
     private IQueryable<Guid> ActiveBatchedReceivableIds() =>
         _dbContext.FinReceivableInvoiceBatchItems
-            .Where(i => !i.IsDelete && i.Batch!.Status != FinReceivableInvoiceBatchStatuses.Cancelled)
+            .Where(i => !i.IsDelete && i.IsActiveMembership)
             .Select(i => i.ReceivableId);
 
     private static IQueryable<BillingDataRow> ApplyEntity(IQueryable<BillingDataRow> rows, BillingDataFilter filter)
@@ -410,18 +410,15 @@ public sealed class FinanceReceivableBillingDataService
                     .Select(g => g.PaymentSourceNameSnapshot)
                     .FirstOrDefault(),
                 ActiveBatchId = _dbContext.FinReceivableInvoiceBatchItems
-                    .Where(i => !i.IsDelete && i.ReceivableId == x.Receivable.Id
-                        && i.Batch!.Status != FinReceivableInvoiceBatchStatuses.Cancelled)
+                    .Where(i => !i.IsDelete && i.ReceivableId == x.Receivable.Id && i.IsActiveMembership)
                     .Select(i => (Guid?)i.BatchId)
                     .FirstOrDefault(),
                 ActiveBatchNumber = _dbContext.FinReceivableInvoiceBatchItems
-                    .Where(i => !i.IsDelete && i.ReceivableId == x.Receivable.Id
-                        && i.Batch!.Status != FinReceivableInvoiceBatchStatuses.Cancelled)
+                    .Where(i => !i.IsDelete && i.ReceivableId == x.Receivable.Id && i.IsActiveMembership)
                     .Select(i => i.Batch!.BatchNumber)
                     .FirstOrDefault(),
                 ActiveBatchStatus = _dbContext.FinReceivableInvoiceBatchItems
-                    .Where(i => !i.IsDelete && i.ReceivableId == x.Receivable.Id
-                        && i.Batch!.Status != FinReceivableInvoiceBatchStatuses.Cancelled)
+                    .Where(i => !i.IsDelete && i.ReceivableId == x.Receivable.Id && i.IsActiveMembership)
                     .Select(i => i.Batch!.Status)
                     .FirstOrDefault(),
                 AnyBatchMembership = _dbContext.FinReceivableInvoiceBatchItems

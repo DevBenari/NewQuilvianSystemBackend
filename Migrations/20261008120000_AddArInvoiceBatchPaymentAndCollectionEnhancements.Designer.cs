@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,11 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261008120000_AddArInvoiceBatchPaymentAndCollectionEnhancements")]
+    partial class AddArInvoiceBatchPaymentAndCollectionEnhancements
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -169,10 +172,6 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<DateTime?>("DeleteDateTime")
                         .HasColumnType("timestamp with time zone");
-                    b.Property<bool>("IsActiveMembership")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
 
                     b.Property<string>("Description")
                         .HasMaxLength(250)
@@ -5215,294 +5214,6 @@ namespace QuilvianSystemBackend.Migrations
                         });
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinCrossEntry", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BankAccountId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CrossEntryNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<Guid>("InsuranceProviderId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<decimal>("OriginalAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("ReceiptId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ReferenceNumber")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<Guid>("RowVersion")
-                        .IsConcurrencyToken()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("OPEN");
-
-                    b.Property<DateOnly>("TransactionDate")
-                        .HasColumnType("date");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CrossEntryNumber")
-                        .IsUnique()
-                        .HasDatabaseName("IX_FinCrossEntry_CrossEntryNumber_Active")
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("ReceiptId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_FinCrossEntry_ReceiptId_Active")
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("ReferenceNumber")
-                        .HasDatabaseName("IX_FinCrossEntry_ReferenceNumber");
-
-                    b.HasIndex("BankAccountId", "TransactionDate")
-                        .HasDatabaseName("IX_FinCrossEntry_BankAccount_Date");
-
-                    b.HasIndex("InsuranceProviderId", "TransactionDate")
-                        .HasDatabaseName("IX_FinCrossEntry_InsuranceProvider_Date");
-
-                    b.HasIndex("Status", "TransactionDate")
-                        .HasDatabaseName("IX_FinCrossEntry_Status_Date");
-
-                    b.ToTable("FinCrossEntry", "public", t =>
-                        {
-                            t.HasCheckConstraint("CK_FinCrossEntry_OriginalAmount", "\"OriginalAmount\" > 0");
-
-                            t.HasCheckConstraint("CK_FinCrossEntry_Status", "\"Status\" IN ('OPEN', 'PARTIALLY_USED', 'FULLY_USED', 'CANCELLED')");
-                        });
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinCrossEntryDocument", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CrossEntryId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<string>("DocumentName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<long>("FileSize")
-                        .HasColumnType("bigint");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("OriginalFileName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("RelativePath")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("StoredFileName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StoredFileName")
-                        .IsUnique()
-                        .HasDatabaseName("IX_FinCrossEntryDocument_StoredFileName");
-
-                    b.HasIndex("CrossEntryId", "CreateDateTime")
-                        .HasDatabaseName("IX_FinCrossEntryDocument_CrossEntry_CreateDate");
-
-                    b.ToTable("FinCrossEntryDocument", "public", t =>
-                        {
-                            t.HasCheckConstraint("CK_FinCrossEntryDocument_FileSize", "\"FileSize\" > 0");
-                        });
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinCrossEntryTransaction", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("BalanceAfterTransaction")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CrossEntryId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<string>("Direction")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset>("OccurredAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ReceiptAllocationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ReversalOfTransactionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("TransactionType")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ReceiptAllocationId")
-                        .HasDatabaseName("IX_FinCrossEntryTransaction_ReceiptAllocationId")
-                        .HasFilter("\"ReceiptAllocationId\" IS NOT NULL");
-
-                    b.HasIndex("ReversalOfTransactionId");
-
-                    b.HasIndex("CrossEntryId", "OccurredAt")
-                        .HasDatabaseName("IX_FinCrossEntryTransaction_CrossEntry_OccurredAt");
-
-                    b.ToTable("FinCrossEntryTransaction", "public", t =>
-                        {
-                            t.HasCheckConstraint("CK_FinCrossEntryTransaction_Amount", "\"Amount\" > 0");
-
-                            t.HasCheckConstraint("CK_FinCrossEntryTransaction_Balance", "\"BalanceAfterTransaction\" >= 0");
-
-                            t.HasCheckConstraint("CK_FinCrossEntryTransaction_Direction", "\"Direction\" IN ('CREDIT', 'DEBIT')");
-
-                            t.HasCheckConstraint("CK_FinCrossEntryTransaction_Type", "\"TransactionType\" IN ('INITIAL_RECEIPT', 'AR_ALLOCATION', 'AR_ALLOCATION_REVERSAL')");
-                        });
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceipt", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5634,14 +5345,14 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BankAccountId");
-
                     b.HasIndex("ReceiptNumber")
                         .IsUnique()
                         .HasDatabaseName("IX_FinReceipt_ReceiptNumber")
                         .HasFilter("\"IsDelete\" = false");
 
                     b.HasIndex("ReversalOfReceiptId");
+
+                    b.HasIndex("BankAccountId");
 
                     b.HasIndex("SourceTenderId")
                         .IsUnique()
@@ -7546,11 +7257,6 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<DateOnly>("PeriodStart")
                         .HasColumnType("date");
-                    b.Property<Guid?>("ReissuedFromBatchId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ReissuedToBatchId")
-                        .HasColumnType("uuid");
 
                     b.Property<string>("PoolCode")
                         .IsRequired()
@@ -9537,9 +9243,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasDatabaseName("IX_FinReceivableInvoiceBatch_BatchNumber")
                         .HasFilter("\"IsDelete\" = false");
 
-                    b.HasIndex("CancelDateTime")
-                        .HasDatabaseName("IX_FinReceivableInvoiceBatch_CancelDateTime");
-
                     b.HasIndex("ClaimStatus")
                         .HasDatabaseName("IX_FinReceivableInvoiceBatch_ClaimStatus");
 
@@ -9549,22 +9252,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("DebtorType")
                         .HasDatabaseName("IX_FinReceivableInvoiceBatch_DebtorType");
 
-                    b.HasIndex("InvoiceDate")
-                        .HasDatabaseName("IX_FinReceivableInvoiceBatch_InvoiceDate");
-
                     b.HasIndex("PeriodStart")
                         .HasDatabaseName("IX_FinReceivableInvoiceBatch_PeriodStart");
-
-                    b.HasIndex("ReissuedFromBatchId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_FinReceivableInvoiceBatch_ReissuedFromBatchId")
-                        .HasFilter("\"IsDelete\" = false AND \"ReissuedFromBatchId\" IS NOT NULL");
-
-                    b.HasIndex("ReissuedToBatchId")
-                        .HasDatabaseName("IX_FinReceivableInvoiceBatch_ReissuedToBatchId");
-
-                    b.HasIndex("ServiceType")
-                        .HasDatabaseName("IX_FinReceivableInvoiceBatch_ServiceType");
 
                     b.HasIndex("Status")
                         .HasDatabaseName("IX_FinReceivableInvoiceBatch_Status");
@@ -9635,7 +9324,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("ReceivableId")
                         .IsUnique()
                         .HasDatabaseName("IX_FinReceivableInvoiceBatchItem_ActiveReceivable")
-                        .HasFilter("\"IsDelete\" = false AND \"IsActiveMembership\" = true");
+                        .HasFilter("\"IsDelete\" = false");
 
                     b.ToTable("FinReceivableInvoiceBatchItem", "public");
                 });
@@ -62427,11 +62116,11 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("ReviewResolvedByUserId");
 
-                    b.HasIndex("VisitDate")
-                        .HasFilter("\"IsDelete\" = false");
-
                     b.HasIndex("Status", "CreateDateTime")
                         .IsDescending(false, true)
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("VisitDate")
                         .HasFilter("\"IsDelete\" = false");
 
                     b.ToTable("BilInvoice", "public", t =>
@@ -102991,69 +102680,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("BankAccount");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinCrossEntry", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models.MstBankAccount", "BankAccount")
-                        .WithMany()
-                        .HasForeignKey("BankAccountId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Administrator.MasterData.Models.MstInsuranceProvider", "InsuranceProvider")
-                        .WithMany()
-                        .HasForeignKey("InsuranceProviderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceipt", "Receipt")
-                        .WithOne()
-                        .HasForeignKey("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinCrossEntry", "ReceiptId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("BankAccount");
-
-                    b.Navigation("InsuranceProvider");
-
-                    b.Navigation("Receipt");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinCrossEntryDocument", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinCrossEntry", "CrossEntry")
-                        .WithMany("Documents")
-                        .HasForeignKey("CrossEntryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CrossEntry");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinCrossEntryTransaction", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinCrossEntry", "CrossEntry")
-                        .WithMany("Transactions")
-                        .HasForeignKey("CrossEntryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceiptAllocation", "ReceiptAllocation")
-                        .WithMany()
-                        .HasForeignKey("ReceiptAllocationId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinCrossEntryTransaction", "ReversalOfTransaction")
-                        .WithMany()
-                        .HasForeignKey("ReversalOfTransactionId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("CrossEntry");
-
-                    b.Navigation("ReceiptAllocation");
-
-                    b.Navigation("ReversalOfTransaction");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceipt", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models.MstBankAccount", "BankAccount")
@@ -127937,13 +127563,6 @@ namespace QuilvianSystemBackend.Migrations
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models.FinAccountingEventOutbox", b =>
                 {
                     b.Navigation("Attempts");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinCrossEntry", b =>
-                {
-                    b.Navigation("Documents");
-
-                    b.Navigation("Transactions");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceipt", b =>
