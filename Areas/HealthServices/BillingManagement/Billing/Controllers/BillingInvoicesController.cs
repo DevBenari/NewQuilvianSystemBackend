@@ -24,6 +24,7 @@ public sealed class BillingInvoicesController : ControllerBase
     private readonly BillingInsuranceInvoiceDocumentService _insuranceInvoiceDocumentService;
     private readonly BillingCompanyGuarantorInvoiceDocumentService _companyGuarantorInvoiceDocumentService;
     private readonly BillingReminderService _reminderService;
+    private readonly BillingFinalizationService _finalizationService;
 
     public BillingInvoicesController(
         BillingInvoiceService service,
@@ -32,7 +33,8 @@ public sealed class BillingInvoicesController : ControllerBase
         BillingDiscountService discountService,
         BillingInsuranceInvoiceDocumentService insuranceInvoiceDocumentService,
         BillingCompanyGuarantorInvoiceDocumentService companyGuarantorInvoiceDocumentService,
-        BillingReminderService reminderService)
+        BillingReminderService reminderService,
+        BillingFinalizationService finalizationService)
     {
         _service = service;
         _calculationService = calculationService;
@@ -41,6 +43,7 @@ public sealed class BillingInvoicesController : ControllerBase
         _insuranceInvoiceDocumentService = insuranceInvoiceDocumentService;
         _companyGuarantorInvoiceDocumentService = companyGuarantorInvoiceDocumentService;
         _reminderService = reminderService;
+        _finalizationService = finalizationService;
     }
 
     [HttpGet]
@@ -851,6 +854,69 @@ public sealed class BillingInvoicesController : ControllerBase
     // "{id:guid}/adjustments") dan CreateWriteOff (route "{id:guid}/write-offs") DIHAPUS, bukan
     // dipindah - dikonfirmasi tidak dipanggil satu pun caller frontend (frontend memakai
     // "/financial-exceptions/adjustments" dan ".../write-offs" milik
-    // BillingFinancialExceptionsController untuk kedua aksi itu); resource "BillingAdjustment" dan
-    // "BillingWriteOff" sudah bersih di satu module tanpa perlu dipindah apa pun.
+    [HttpPost("{id:guid}/complete")]
+    [AccessAction("Update", "Complete Billing Invoice Without Patient Payment", AccessType = AccessTypes.Update, SortOrder = 20)]
+    [AccessPermission("BillingInvoice", "Update")]
+    [ProducesResponseType(typeof(ApiResponse<CompleteInvoiceResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<CompleteInvoiceResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<FinalizationPreviewResponse>), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Complete(
+        Guid id,
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        [FromBody] CompleteInvoiceRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _finalizationService.CompleteInvoiceWithoutPatientPaymentAsync(
+                id, request, idempotencyKey, CurrentUserId(), cancellationToken);
+            var statusCode = result.IsReplay
+                ? StatusCodes.Status200OK
+                : StatusCodes.Status201Created;
+            return StatusCode(statusCode, new ApiResponse<CompleteInvoiceResponse>
+            {
+                Success = true,
+                StatusCode = statusCode,
+                Message = result.IsReplay
+                    ? "Penyelesaian invoice sudah diproses; hasil sebelumnya dikembalikan."
+                    : "Invoice berhasil diselesaikan tanpa pembayaran pasien (ditanggung penuh penjamin).",
+                Data = result
+            });
+        }
+        catch (BillingFinalizationBlockedException exception)
+        {
+            return UnprocessableEntity(new ApiResponse<FinalizationPreviewResponse>
+            {
+                Success = false,
+                StatusCode = StatusCodes.Status422UnprocessableEntity,
+                Message = exception.Message,
+                Data = exception.Checklist
+            });
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingFinalizationConflictException exception)
+        {
+            object? errors = null;
+            if (!string.IsNullOrEmpty(exception.Code))
+            {
+                errors = new[]
+                {
+                    new
+                    {
+                        code = exception.Code,
+                        currentRowVersion = exception.CurrentRowVersion
+                    }
+                };
+            }
+            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message, errors));
+        }
+        catch (BillingFinalizationValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
 }

@@ -78,4 +78,5 @@ public sealed class TenderResponse
     public Guid? CashierShiftId { get; set; }
     public Guid RowVersion { get; set; }
     public bool IsReplay { get; set; }
+    public string? InvoiceClosureNote { get; set; }
 }

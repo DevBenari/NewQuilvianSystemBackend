@@ -4,16 +4,23 @@
 
 ```yaml
 roadmap_id: FIN-ROADMAP-001
-roadmap_revision: 14
+roadmap_revision: 15
 roadmap_status: ACTIVE
 blueprint_id: FIN-BP-001
-blueprint_revision: 10
-blueprint_status: approved
+blueprint_revision: 18
+blueprint_status: approved (Yasmin, 6 Oktober 2026)
 created_at: 2026-09-20T00:00:00+07:00
 planned_by: /quilvian-engineering-skills:plan-module-delivery
 children:
-  backend: roadmap/01-backend-roadmap.md — FIN-ROADMAP-BE-001 revisi 10
-  frontend: roadmap/02-frontend-roadmap.md — FIN-ROADMAP-FE-001 revisi 8
+  backend: roadmap/01-backend-roadmap.md — FIN-ROADMAP-BE-001 revisi 18
+  frontend: roadmap/02-frontend-roadmap.md — FIN-ROADMAP-FE-001 revisi 18
+roadmap_revision_15_note: >
+  Revisi 15 (6 Oktober 2026) MENURUNKAN AMENDMENT BLUEPRINT REVISI 18 — EPIC FIN-04 (Piutang Manfaat Karyawan)
+  ke dalam gelombang pengiriman mandiri REV-18 (terdiri dari gelombang backend REV-18B1..REV-18B4 membawa 10 task
+  BE-FIN-091..BE-FIN-100, dan gelombang frontend REV-18F1..REV-18F3 membawa 4 task FE-FIN-038..FE-FIN-041).
+  Seluruh gerbang hulu evidence/23 (B1..B6 Billing, H1..H8 HR, R1..R6 Registrasi) dan keputusan bisnis FIN-DEC-161..202
+  telah disahkan pemilik produk Yasmin. Status EPIC FIN-04 dinaikkan dari OPEN DECISION menjadi READY_FOR_DELIVERY
+  (gelombang mandiri di luar MVP-1 s.d. MVP-4). Nol baris kode aplikasi ditulis pada pass ini.
 roadmap_revision_14_note: >
   Revisi 14 (30 September 2026) MENYELARASKAN tabel ringkasan frontend (Tabel 4.2) dan tabel epic
   (Tabel 4.3): status FE-FIN-006 dimutakhirkan ke ✅ Selesai (23 September 2026), tanda blocker ⛔
@@ -232,7 +239,8 @@ atau dihapus.
 | `POST-MVP` (`REV-4`) | `FIN-16` | `BE-FIN-038`, `039` · `FE-FIN-012` | ✅ Backend selesai 30 September 2026 (skema migrasi DBeaver aktif, `dotnet build` PASS); 🟡 `FE-FIN-012` sebagian 30 September 2026 — source lengkap, lint/build PASS, verifikasi manual/runtime `NOT FEASIBLE` (migrasi `BE-FIN-038` belum dieksekusi ke database) |
 | `POST-MVP` (`REV-4`) | `FIN-17` | `BE-FIN-040` · `FE-FIN-013` | ✅ Backend selesai 30 September 2026 (skema migrasi DBeaver aktif, `dotnet build` PASS); 🟡 `FE-FIN-013` sebagian 30 September 2026 — baris potongan ditambahkan ke modal alokasi, lint/build PASS ([laporan](../task/report/frontend/FE-FIN-013.md)) |
 | `POST-MVP` (`REV-6/8`) | Penyelarasan Hak Akses (FIN-CQ-08), PPN Retur, Katalog Akuntansi, Penanda Shift, Pembalikan Deposit | `BE-FIN-042`..`047` · `FE-FIN-014` | ✅ Backend `BE-FIN-043`..`047` selesai 30 September 2026 (`dotnet build` PASS, migrasi DBeaver aktif); `BE-FIN-042` 🟡 selesai rename 6 controller dan skrip SQL peran; 🟡 `FE-FIN-014` sebagian 30 September 2026 — source selesai, lint/build PASS, verifikasi manual `NOT FEASIBLE` ([laporan](../task/report/frontend/FE-FIN-014.md)) |
-| **Di luar gelombang** | `FIN-04`, `FIN-12` | — | `FIN-04` OPEN DECISION; `FIN-12` (worker pengiriman outbox otomatis ke Accounting) ditunda atas keputusan pemilik ("karena system saya belum perlu itu") |
+| `REV-18` (Gelombang Mandiri) | `FIN-04` | `BE-FIN-091`..`100` · `FE-FIN-038`..`041` | ✅ SIAP DIEKSEKUSI — Blueprint Rev 18 approved 6 Oktober 2026, 10 task backend (REV-18B1..B4) dan 4 task frontend (REV-18F1..F3) terencana penuh |
+| **Di luar gelombang** | `FIN-12` | — | `FIN-12` (worker pengiriman outbox otomatis ke Accounting) ditunda atas keputusan pemilik ("karena system saya belum perlu itu") |
 
 ### 3.1 Catatan urutan `MVP-4`
 
@@ -304,6 +312,7 @@ Rincian lengkap 11 kolom ada di berkas anak. Tabel ini hanya indeks.
 | `BE-FIN-049` | Layanan kalkulasi snapshot saldo subledger bulanan untuk 4 control account | `POST-MVP` (`REV-10`) | ✅ Selesai 30 September 2026 — service agregasi 4 akun kontrol dan endpoint snapshot terpasang, penerbitan 4 event SALDO-SUBLEDGER ke outbox, [laporan](../task/report/backend/BE-FIN-049.md) |
 | `BE-FIN-050` | Buku register penerimaan kasir dan rekonsiliasi shift Finance vs. `SystemCash` Billing — menutup gap yang dikecualikan `BE-FIN-018` | `POST-MVP` — task baru, diotorisasi eksplisit pemilik repository pada sesi FE-FIN-004 | ✅ Selesai 30 September 2026 — source lengkap (`GET /receipts/register`, `GET /receipts/shift-reconciliation`), `dotnet build` PASS 0 error dikonfirmasi pengguna; [laporan](../task/report/backend/BE-FIN-050.md) |
 | `BE-FIN-051` | Header `Idempotency-Key` pada 14 perintah uang rumpun Purchasing — menutup gap yang dicatat `FE-FIN-008` | `POST-MVP` — task baru, diotorisasi eksplisit pemilik repository pada sesi ini | ✅ Selesai 30 September 2026 — ledger idempotensi (`FinPurchasingIdempotencyRecord`) + `PurchasingIdempotencyService` + 14 aksi lintas 5 controller Purchasing; `dotnet build` PASS dan migration dieksekusi ke database, keduanya dikonfirmasi pengguna; [laporan](../task/report/backend/BE-FIN-051.md) |
+| `BE-FIN-091`..`100` | Rumpun 10 task backend Piutang Manfaat Karyawan (Intake Billing 2 baris, skema DB, perjanjian cicilan, sync & webhook payroll HR, clearance, reversal salah orang, migrasi NIP, pelunasan internal benefit, filter laporan AR) | `REV-18` (Gelombang Mandiri) | ⬜ Siap dieksekusi — disahkan pada Amendment Revisi 18 (`01-backend-roadmap.md`) |
 
 ### 4.2 Frontend — `02-frontend-roadmap.md`
 
@@ -324,6 +333,7 @@ Rincian lengkap 11 kolom ada di berkas anak. Tabel ini hanya indeks.
 | 🟡 `FE-FIN-013` | Potongan AR di layar alokasi | `BE-FIN-040`, `FE-FIN-004` 🟡 | 🟡 Sebagian 30 September 2026 — baris potongan ditambahkan ke modal alokasi `FE-FIN-004`, lint/build PASS; verifikasi manual/runtime `NOT FEASIBLE` ([laporan](../task/report/frontend/FE-FIN-013.md)) |
 | 🟡 `FE-FIN-014` | Penyelarasan menu sidebar navigasi Finance (submenu Pembelian, relabel Faktur Pembelian, butir flat Tagihan Gabungan Penjamin) | `BE-FIN-042` [BE] 🟡, `FE-FIN-008`..`012` | 🟡 Sebagian 30 September 2026 — submenu Pembelian (5 link), butir flat Tagihan Gabungan Penjamin, relabel Faktur & Tagihan Supplier, hapus 2 placeholder mati; `npm run lint:errors` PASS, `npm run build` PASS; seeder payung Finance.AP/AR (BE-FIN-042 §D.6.2) dikonfirmasi tidak menahan task ini; verifikasi manual/runtime `NOT FEASIBLE`. **Addendum 30 September 2026:** `FIN-CQ-09` diperbaiki — butir "Report AR"/"Report AP" dijaga action `Report` yang tidak pernah terdaftar backend, diganti `View` agar cocok penjaga endpoint sungguhan; `npm run lint:errors` PASS ([laporan](../task/report/frontend/FE-FIN-014.md)) |
 | ✅ `FE-FIN-015` | Layar/Tab Pemantauan & Pemicu Snapshot Saldo Subledger Bulanan (4 Akun Kontrol) | `BE-FIN-048` ✅, `BE-FIN-049` ✅ | ✅ Selesai 30 September 2026 — pemilih periode akuntansi, 4 kartu ringkasan status kelengkapan, tabel 4 akun kontrol dengan nominal saldo normal & status outbox, tombol pemicu generate snapshot dengan modal konfirmasi dan proteksi RBAC FinanceAccountingEvent:Create; npm run lint:errors PASS (0 error), npm run build PASS (0 error) ([laporan](../task/report/frontend/FE-FIN-015.md)) |
+| `FE-FIN-038`..`041` | Rumpun 4 task frontend Piutang Manfaat Karyawan (Daftar & navigasi submenu Piutang Karyawan, rincian & pengajuan cicilan halaman penuh, layar pelunasan benefit internal, dan layar status bebas tanggungan 2 mode) | `BE-FIN-093`, `BE-FIN-096`, `BE-FIN-099` | ⬜ Siap dieksekusi — disahkan pada Amendment Revisi 18 (`02-frontend-roadmap.md`) |
 
 `FE-FIN-006` ditambahkan saat roadmap dipecah: `03-frontend-architecture.md` bagian 3.5
 menuntut dua layar pemantauan, dan keduanya sebelumnya tidak punya task frontend sama sekali.
@@ -332,7 +342,7 @@ menuntut dua layar pemantauan, dan keduanya sebelumnya tidak punya task frontend
 
 | Epic | Alasan |
 |---|---|
-| `EPIC FIN-04` — piutang manfaat karyawan | `OPEN DECISION`; menunggu owner Billing **dan** HR (`FIN-DEC-006`, `FIN-DEC-016`, `FIN-CQ-03`) |
+| `EPIC FIN-04` — piutang manfaat karyawan | **DITUTUP 6 Oktober 2026 (Revisi 18).** Telah direncanakan penuh ke dalam gelombang mandiri `REV-18` (`BE-FIN-091`..`100` dan `FE-FIN-038`..`041`) menyusul penutupan gerbang `evidence/23` (B1..B6, H1..H8, R1..R6). |
 | `EPIC FIN-12` — pengiriman kejadian ke Accounting | `OPEN DECISION`; endpoint penerima belum dibangun (`FIN-CAP-018`) |
 | `EPIC FIN-14` — uang muka, deposit, kelebihan bayar, selisih kas | `OPEN DECISION`; sebabnya kini `FIN-OQ-027`, `030`..`032`, `034` (`FIN-OQ-017` sudah `CLOSED`). **Task-nya sudah direncanakan** (`BE-FIN-022`..`026`, `FE-FIN-007`) dan blocker ⛔ dicabut — bukti teknis, kontrak, dan prasyarat backend sudah lengkap, boleh dikerjakan di luar penomoran gelombang formal |
 | `FinDoctorPayable`, `FinDoctorPayableItem` | Dibatalkan pada revisi 2; digantikan `FinMedicalServicePayable` |
@@ -835,3 +845,154 @@ yang sudah terdaftar. Prefix `Fin` dan `Mst` sudah terdaftar, sehingga **nol** g
 | **Membuat** berkas migration | **DIIZINKAN** (`FIN-DEC-138`), dengan syarat **dihasilkan dari perubahan model**, bukan ditulis tangan |
 | **Menerapkan** ke basis data | **MILIK YASMIN.** Agent **MUST NOT** menjalankan migration maupun SQL langsung |
 | Migration pada REV-16 | **Satu** migration untuk `BE-FIN-086` (`FIN-DES-094`: `RowVersion` ditambah dan `EffectiveFrom` dibuang sekaligus — bukan dua rilis terpisah; `BE-FIN-087` DICABUT 4 Oktober 2026) |
+
+---
+
+# REV-18 — Traceability dan Ringkasan Gelombang Mandiri (EPIC FIN-04 Piutang Manfaat Karyawan)
+
+```yaml
+blueprint_id: FIN-BP-001
+roadmap_revision: REV-18
+blueprint_revision: 18
+status: SIAP DIEKSEKUSI — approval revisi 18 diberikan Yasmin 6 Oktober 2026
+decisions: [FIN-DEC-161..FIN-DEC-202]
+designs: [02-backend-architecture.md Bagian P, 03-frontend-architecture.md Bagian 22, FIN-DES-099..FIN-DES-104]
+contract_versions: [FIN-INTEGRATION-1.8, FIN-API-1.9, FIN-VAL-1.11, FIN-STATE-1.8, FIN-PERM-1.10, FIN-TEST-1.12, FIN-MVP-1.13]
+contract_status: approved 2026-10-06 (Yasmin)
+epic: EPIC FIN-04
+tasks_backend: BE-FIN-091..BE-FIN-100 (10 task)
+tasks_frontend: FE-FIN-038..FE-FIN-041 (4 task)
+backend_branch: Yasmina (46fa2a91)
+frontend_branch: yasmina (0ed37b5c4)
+tanggal: 6 Oktober 2026
+```
+
+## Sifat Gelombang Mandiri REV-18
+
+Gelombang **`REV-18`** adalah gelombang rilis mandiri (*dedicated release wave*) yang dirancang khusus untuk mewujudkan **`EPIC FIN-04` (Piutang Manfaat Karyawan)** secara ujung-ke-ujung (*end-to-end*) melintasi batas domain Keuangan, Billing, Registrasi, dan HRD.
+
+Prinsip tata kelola rilis gelombang ini:
+1. **Mandiri di Luar Jalur MVP Berjalan:** Rumpun task ini tidak mengganggu atau memperlambat siklus rilis `MVP-1` s.d. `MVP-4`.
+2. **Ketergantungan Hulu Terkunci Penuh:** Gerbang kesepakatan hulu (`evidence/23`: B1..B6 Billing, H1..H8 HR, R1..R6 Registrasi) telah ditutup tuntas dengan keputusan sah.
+3. **Pemisahan Tegas Tanggung Jawab (Separation of Concerns):**
+   - Penentuan plafon & eligibilitas benefit: domain HR & Registrasi / Billing.
+   - Serah terima piutang 2 baris (`PAYER` penjamin internal RS dan `EMPLOYEE_BENEFIT` selisih beban pegawai): domain Billing intake.
+   - Pengelolaan perjanjian angsuran & clearance: domain Keuangan (Finance).
+   - Pemotongan gaji berkala & penumpukan tunggakan: domain Payroll HR.
+   - Penutupan klaim porsi benefit internal RS: domain Keuangan (Finance) secara berkala.
+4. **Nol Penulisan Kode Aplikasi & Nol Eksekusi Migrasi Basis Data:** Fase perencanaan delivery ini murni menetapkan kontrak dan vertical slice task yang siap dieksekusi satu per satu.
+
+---
+
+## Ringkasan Gelombang Terpadu REV-18 (Backend & Frontend)
+
+| Gelombang | Task Backend | Task Frontend | Prasyarat Mulai | Hasil yang Dicapai |
+|---|---|---|---|---|
+| `REV-18-W1` | `BE-FIN-091`, `BE-FIN-092` | — | Approval Rilis REV-18 | Fondasi skema DB (4 tabel baru cicilan & benefit settlement) dan adapter serah terima intake Billing 2 baris |
+| `REV-18-W2` | `BE-FIN-093`, `BE-FIN-096`, `BE-FIN-098`, `BE-FIN-099`, `BE-FIN-100` | `FE-FIN-041` (REV-18F1) | `REV-18-W1` Selesai (Backend); `BE-FIN-096` Rilis (Frontend) | Layanan API cicilan, clearance, pelunasan internal benefit, migrasi NIP, filter laporan AR, serta layar bebas tanggungan perorangan & batch |
+| `REV-18-W3` | `BE-FIN-094` | `FE-FIN-038`, `FE-FIN-040` (REV-18F2) | `BE-FIN-093` & `BE-FIN-099` Rilis | Outbound sinkronisasi jadwal cicilan ke input variabel penggajian HR, submenu "Piutang Karyawan", tabel pemantauan cicilan, dan layar pelunasan benefit |
+| `REV-18-W4` | `BE-FIN-095`, `BE-FIN-097` | `FE-FIN-039` (REV-18F3) | `BE-FIN-094` Selesai (Backend); `FE-FIN-038` & `BE-FIN-093` Rilis (Frontend) | Inbound webhook hasil payroll HR, penumpukan tunggakan, reversal salah orang, dan halaman penuh pengajuan cicilan baru |
+
+---
+
+## Diagram Alur Keterkaitan Ujung-ke-Ujung REV-18
+
+```mermaid
+flowchart TD
+    subgraph INTAKE["1. Serah Terima Billing & Fondasi Skema"]
+        BE_091["BE-FIN-091<br/>Intake 2 Baris Billing"]
+        BE_092["BE-FIN-092<br/>Skema Tabel DB"]
+    end
+
+    subgraph DOMAIN_BE["2. Layanan Inti Finance Backend"]
+        BE_093["BE-FIN-093<br/>API Perjanjian Angsuran"]
+        BE_096["BE-FIN-096<br/>API Bebas Tanggungan"]
+        BE_098["BE-FIN-098<br/>Migrasi Batch NIP"]
+        BE_099["BE-FIN-099<br/>Pelunasan Internal Benefit"]
+        BE_100["BE-FIN-100<br/>Filter Debitur Laporan AR"]
+    end
+
+    subgraph PAYROLL_INT["3. Integrasi Penggajian HR & Koreksi"]
+        BE_094["BE-FIN-094<br/>Outbound ke Payroll HR"]
+        BE_095["BE-FIN-095<br/>Inbound Webhook Payroll"]
+        BE_097["BE-FIN-097<br/>Reversal Serah Terima"]
+    end
+
+    subgraph UI_FE["4. Antarmuka Pengguna Frontend"]
+        FE_041["FE-FIN-041<br/>Layar Bebas Tanggungan"]
+        FE_038["FE-FIN-038<br/>Submenu & Daftar Cicilan"]
+        FE_040["FE-FIN-040<br/>Layar Pelunasan Benefit"]
+        FE_039["FE-FIN-039<br/>Pengajuan & Rincian Cicilan"]
+    end
+
+    BE_091 --> BE_093
+    BE_092 --> BE_093
+    BE_091 --> BE_096
+    BE_091 --> BE_098
+    BE_091 --> BE_099
+    BE_092 --> BE_099
+    BE_091 --> BE_100
+
+    BE_093 --> BE_094
+    BE_094 --> BE_095
+    BE_091 --> BE_097
+    BE_095 --> BE_097
+
+    BE_096 --> FE_041
+    BE_093 --> FE_038
+    BE_099 --> FE_040
+    FE_038 --> FE_040
+    FE_038 --> FE_039
+    BE_093 --> FE_039
+```
+
+---
+
+## Tabel Traceability REV-18 Lintas Backend & Frontend
+
+| Fitur / Alur Bisnis | Requirement & Keputusan | Kontrak Terkait | Task Backend | Task Frontend | Kriteria Uji / Bukti | Status |
+|---|---|---|---|---|---|---|
+| Konsumsi serah terima 2 baris dari Billing | `FR-FIN-220`..`222`; `FIN-DEC-183`..`186`; `FIN-DES-100` | `FIN-INTEGRATION-1.8` §P.1; `FIN-VAL-1.11` `FIN-VAL-247` | `BE-FIN-091` | — | `M.1.1`..`M.1.5` | ⬜ Direncanakan |
+| Skema database cicilan & benefit settlement | `FR-FIN-193`, `212`; `FIN-DEC-165`, `177`; `FIN-DES-099`, `102` | `data/data-dictionary.md` Bagian O | `BE-FIN-092` | — | `L.7.1`, `L.7.2` | ⬜ Direncanakan |
+| Pengajuan & maker-checker perjanjian cicilan | `FR-FIN-192`..`199`; `FIN-DEC-165`, `166`, `181`; `FIN-DES-099` | `FIN-API-1.9` O.1; `FIN-VAL-1.10`; `FIN-STATE-1.8` O.1 | `BE-FIN-093` | `FE-FIN-038`, `FE-FIN-039` | `L.1.1`..`L.1.7`, `L.2.1`..`L.2.6` | ⬜ Direncanakan |
+| Sinkronisasi outbound ke Payroll HR | `FR-FIN-224`; `FIN-DEC-190`; `FIN-DES-100` | `FIN-INTEGRATION-1.8` §P.2 | `BE-FIN-094` | — | `M.2.1` | ⬜ Direncanakan |
+| Webhook hasil payroll & penumpukan tunggakan | `FR-FIN-200`..`205`, `225`..`227`; `FIN-DEC-191`, `192`; `FIN-DES-100` | `FIN-API-1.9` §P.1; `FIN-INTEGRATION-1.8` §P.3; `FIN-VAL-1.11` `FIN-VAL-240` | `BE-FIN-095` | `FE-FIN-038`, `FE-FIN-039` | `M.2.2`..`M.2.4`, `L.3.1`..`L.3.8` | ⬜ Direncanakan |
+| Pemeriksaan status bebas tanggungan perorangan & batch | `FR-FIN-206`..`210`, `228`..`230`; `FIN-DEC-170`, `182`, `193`; `FIN-DES-101` | `FIN-API-1.9` O.4; `FIN-INTEGRATION-1.8` §P.4; `FIN-VAL-1.10` `FIN-VAL-244`, `245` | `BE-FIN-096` | `FE-FIN-041` | `M.3.1`..`M.3.2`, `L.4.1`..`L.4.7` | ⬜ Direncanakan |
+| Alur koreksi salah orang & reversal handoff | `FR-FIN-231`..`234`; `FIN-DEC-187`, `195`, `200`; `02-backend-architecture.md` P.7 | `FIN-INTEGRATION-1.8` §P.6; `FIN-STATE-1.8` P.1 | `BE-FIN-097` | — | `M.4.1`..`M.4.3` | ⬜ Direncanakan |
+| Impor migrasi batch saldo awal ber-NIP | `FR-FIN-235`..`237`; `FIN-DEC-196`; `02-backend-architecture.md` P.8 | `FIN-API-1.9` §P.2; `FIN-VAL-1.11` `FIN-VAL-246`; `FIN-PERM-1.10` P.2 | `BE-FIN-098` | — | `M.5.1`..`M.5.3` | ⬜ Direncanakan |
+| Penutupan berkala porsi klaim benefit RS | `FR-FIN-211`..`217`; `FIN-DEC-177`, `178`; `FIN-DES-102`, `103` | `FIN-API-1.9` O.2; `FIN-VAL-1.10` `FIN-VAL-241`..`243`; `FIN-STATE-1.8` O.3 | `BE-FIN-099` | `FE-FIN-040` | `L.5.1`..`L.5.14` | ⬜ Direncanakan |
+| Filter jenis debitur pada laporan & umur piutang | `FR-FIN-219`; `FIN-DEC-176`; `02-backend-architecture.md` O.7 | `FIN-API-1.9` Receivable endpoints; `FIN-PERM-1.10` | `BE-FIN-100` | — | `L.6.4` | ⬜ Direncanakan |
+
+---
+
+## Wewenang Migration pada REV-18
+
+| Komponen | Kebijakan & Batasan |
+|---|---|
+| **Pembuatan Berkas Migration** | Diizinkan khusus untuk task `BE-FIN-092` (`AddFinanceReceivableInstallmentAndBenefitSettlement`), dibuat via EF Core CLI dari entity C# murni tanpa penyuntingan manual. |
+| **Penerapan Migration ke Basis Data** | **HAK EKSKLUSIF PEMILIK REPOSITORY (YASMIN).** Agen dilarang mengeksekusi `dotnet ef database update` atau eksekusi SQL langsung ke server database tanpa instruksi tertulis. |
+| **Sifat Perubahan Skema** | Murni aditif (4 tabel baru `FinReceivableInstallmentPlan`, `FinReceivableInstallment`, `FinBenefitSettlement`, `FinBenefitSettlementItem`, 2 nilai enum string baru pada mutasi). Nol kolom/tabel existing yang diubah secara destruktif. |
+
+---
+
+## Pernyataan Wajib pada Setiap Handoff Implementasi Backend & Frontend REV-18
+
+1. **Backend Preflight (`AGENTS.md`):** QBE preflight check dan verifikasi kepatuhan arsitektur modular (`Invoke-QbeConformanceCheck.ps1`) wajib dijalankan sebelum dan sesudah setiap task backend dieksekusi.
+2. **Frontend UI Tokens & Design System:** Seluruh elemen antarmuka pengguna REV-18 wajib memanfaatkan komponen dasar, styling Tailwind/CSS module, dan token design system Quilvian yang sudah ada; dilarang membuat token atau komponen duplikat.
+3. **Integritas Bisnis & Anti-Asumsi:**
+   - Dilarang keras menghitung pecahan atau jadwal cicilan di JavaScript klien.
+   - Dilarang memodifikasi nominal piutang secara langsung tanpa melalui mutasi ledger atau transaksi serah terima sah.
+   - Dilarang membuat tombol edit nama/NIP debitur secara bebas pada kartu piutang.
+
+---
+
+## Risiko REV-18 yang Perlu Diketahui Pemilik Sebelum Eksekusi
+
+| # | Risiko | Pihak yang Terdampak | Tindakan Mitigasi Terencana |
+|:--:|---|---|---|
+| 1 | **Ketergantungan Eksekusi Migrasi Billing:** Serah terima 2 baris menuntut kolom `BenefitOwnerId` & `BenefitRelationship` pada tabel `BilArHandoff`. | Pengujian integrasi `BE-FIN-091` | `BE-FIN-091` dibangun dengan validasi defensif; bila kolom belum ada di database dev, intake fallback atau mock testing digunakan hingga migrasi Billing dieksekusi. |
+| 2 | **Maker-Checker Dilanggar di UI:** Pengaju perjanjian cicilan menyetujui pengajuannya sendiri. | Integritas keuangan & kepatuhan audit RS | Penegakan ganda: di frontend tombol disembunyikan/dinonaktifkan jika `CreatedBy == CurrentUser`, dan di backend check constraint `CK_FinReceivableInstallmentPlan_ApprovedByNotCreatedBy` serta validasi service melempar galat `422`. |
+| 3 | **Penumpukan Tunggakan Payroll:** Potongan gaji gagal/kurang karena *take-home pay* karyawan di bawah ambang batas minimal. | Saldo piutang & jadwal angsuran | Penanganan otomatis `FIN-DEC-192`: sisa tagihan ditumpuk ke jadwal angsuran bulan berikutnya dan notifikasi email/sistem dikirim ke staf HR & Finance. |
+| 4 | **Pemisahan Karyawan Saat Masih Berpiutang:** Pegawai keluar sebelum piutang lunas. | Risiko gagal bayar piutang RS | Prosedur exit clearance `BE-FIN-096` dan `FE-FIN-041` mendeteksi saldo aktif; bila ada piutang, status `MEMILIKI_TANGGUNGAN` mencegah surat bebas tanggungan terbit hingga kompensasi pesangon diperhitungkan. |
+| 5 | **Koreksi Salah Orang:** Petugas Registrasi salah memilih pegawai pada kartu penjamin. | Data riwayat piutang pegawai yang salah | Dilarang edit debitur langsung (`FIN-DEC-187`). Koreksi wajib melalui pembatalan serah terima di Billing, penerbitan reversal `BE-FIN-097`, penyesuaian kartu piutang lama, dan penerbitan kartu baru untuk pegawai yang sah. |
+

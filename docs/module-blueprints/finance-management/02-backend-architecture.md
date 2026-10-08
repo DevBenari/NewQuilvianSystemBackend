@@ -5547,3 +5547,792 @@ lebih dulu.
 | Menolak penguncian saldo awal Kas Kasir bernilai nol | Sudah diputuskan sebaliknya (`FIN-DEC-143`); mutasi nol tetap meninggalkan jejak |
 | Endpoint menghidupkan ketiga hosted service dari layar | Menjadi jalan memutar gerbang G3 dan keputusan operasional. Pengaktifan lewat konfigurasi lingkungan |
 | Mengembalikan `Notes` pada setujui/kunci saldo awal | Dibuang `FIN-DEC-141` karena tidak pernah disimpan. Menambah kolomnya berarti memutuskan retensi catatan persetujuan, yang belum pernah diminta |
+
+---
+
+# AMENDMENT REVISI 17 — Piutang Manfaat Karyawan, sisi Finance (`EPIC FIN-04`, bagian O)
+
+| Field | Nilai |
+|---|---|
+| Revisi | 17 (amandemen kecil atas revisi 16) |
+| Status | `approved` — disetujui pemilik (Yasmin, 5 Oktober 2026) |
+| Tanggal | 5 Oktober 2026 |
+| Masukan keputusan | `00-interview-decisions.md` — `FIN-DEC-161`..`182`, pass 5 Oktober 2026 |
+| Masukan gerbang | `evidence/24-gerbang-kelengkapan-requirement-piutang-manfaat-karyawan.md`, kesiapan `PARTIALLY_READY` |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN` — meneruskan deviasi tercatat pemilik 20 September 2026. Kelima slice yang dirancang di sini seluruhnya berada di dalam batas Finance, sehingga batas konteks, ownership, dan lifecycle-nya dapat ditetapkan dari bukti yang disetujui tanpa arsitektur domain |
+| Backend SHA | `46fa2a91` |
+| Frontend SHA | `0ed37b5c4` |
+| Keputusan arsitektur baru | `FIN-DES-099`..`FIN-DES-104` |
+
+## O.1 Batas amandemen ini
+
+Yang **dirancang** di sini hanya lima slice yang dinyatakan siap oleh gerbang kelengkapan:
+
+| Slice | Kemampuan | Keputusan yang mendasarinya |
+|---|---|---|
+| `S2a` | Perjanjian angsuran beserta jadwalnya dan persetujuannya | `FIN-DEC-165`, `FIN-DEC-166` |
+| `S2b` | Penumpukan tunggakan dan penerimaan potongan sebagian | `FIN-DEC-168`, `FIN-DEC-179` |
+| `S4a` | Menghitung status "bebas tanggungan" per pegawai | `FIN-DEC-170` |
+| `S7a` | Mencatat porsi benefit dan menutupnya berkala di Finance | `FIN-DEC-177`, `FIN-DEC-178` |
+| `S8` | Penghapusan buku dan penyesuaian piutang karyawan | `FIN-DEC-176` |
+
+Yang **MUST NOT** dirancang di amandemen ini, beserta pemblokirnya:
+
+| Slice | Kemampuan | Pemblokir |
+|---|---|---|
+| `S1` | Pencatatan piutang porsi pegawai dari serah terima Billing | `FIN-OQ-096`, `FIN-OQ-087`, konfirmasi Billing atas `FIN-DEC-177` |
+| `S3` | Pelunasan lewat potongan gaji, dua arah dengan HR | `FIN-OQ-091` |
+| `S4b` | Gerbang berhenti kerja di HR | `FIN-OQ-095` |
+| `S5` | Koreksi pemilik manfaat | `FIN-OQ-097` |
+| `S6` | Batch migrasi piutang karyawan lama | `FIN-OQ-098` |
+| `S7b` | Kontrak kejadian dan jurnal ke Accounting | `FIN-OQ-103` |
+
+**Akibat yang MUST dibaca bersama:** kelima slice yang dirancang di sini **tidak dapat dipakai di
+produksi** sebelum `S1` terbuka, karena tanpa `S1` tidak ada piutang karyawan yang bisa dilekati
+perjanjian maupun dihitung status bebas tanggungannya. Yang diberikan amandemen ini adalah desain yang
+siap, bukan kemampuan yang siap dirilis. `EPIC FIN-04` tetap `OPEN DECISION`.
+
+## O.2 Tabel kepemilikan data
+
+Pertahanan langsung terhadap duplikasi entity. Kolom terakhir adalah yang paling penting dibaca.
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di sini |
+|---|---|---|---|
+| Kartu piutang pasien dan penjamin (`FinReceivable`, `FinReceivableItem`) | **Finance** | Ya, sebagai induk perjanjian dan sasaran pelunasan | **Tidak** — dipakai apa adanya |
+| Buku mutasi piutang (`FinReceivableMovement`) | **Finance** | Ya, setiap perubahan saldo menulis satu baris | **Tidak** — hanya menambah dua nilai jenis mutasi |
+| Penghapusan buku dan penyesuaian piutang (`FinReceivableWriteOff`, `FinReceivableAdjustment`) | **Finance** | Ya, dipakai ulang apa adanya untuk jenis debitur karyawan (`S8`) | **Tidak** |
+| Penerimaan uang dan alokasinya (`FinReceipt`, `FinReceiptAllocation`) | **Finance** | **Tidak** — pelunasan internal bukan penerimaan uang, lihat `FIN-DES-102` | **Tidak** |
+| Profil pegawai, enrollment benefit, dan tanggungannya | **HR** | Ya, **hanya Id pemilik manfaat** yang sudah tersimpan pada kartu piutang | **Tidak** — Finance tidak menyalin nama, plafon, maupun hubungan keluarga |
+| Potongan gaji, slip, dan periode penggajian | **HR** | **Tidak pada amandemen ini** — jalurnya milik `S3` yang tertahan | **Tidak** |
+| Master penjamin asuransi dan penjamin perusahaan | **Administrator** | Ya, **hanya Id** sebagai identitas debitur | **Tidak** |
+| Kejadian dan jurnal akuntansi | **Accounting** | Ya, lewat outbox kejadian yang sudah ada | **Tidak** — bentuk kejadiannya sendiri tertahan `FIN-OQ-103` |
+| **Perjanjian angsuran atas sebuah piutang beserta jadwalnya** | **Finance** | Ya | **Baru** — belum ada pemiliknya di modul mana pun |
+| **Pelunasan internal porsi manfaat yang ditanggung rumah sakit** | **Finance** | Ya | **Baru** — belum ada pemiliknya di modul mana pun |
+
+Dua kelompok data terakhir adalah satu-satunya yang benar-benar baru. Pemeriksaan sebelum memutuskan
+"baru": `FinReceipt` ditolak karena ia berarti uang diterima (`FIN-DES-102`); cicilan pinjaman pegawai HR
+(`TrxEmployeeLoanInstallment`) ditolak karena piutang layanan rumah sakit bukan pinjaman uang tunai dan
+pemiliknya Finance, bukan HR (`FIN-DEC-166` menyatakannya eksplisit).
+
+## O.3 Keputusan arsitektur baru
+
+| ID | Keputusan | Alasan dan jejaknya |
+|---|---|---|
+| `FIN-DES-099` | **Perjanjian angsuran menjadi aggregate tersendiri (`FinReceivableInstallmentPlan`) dengan anak `FinReceivableInstallment`, BUKAN kolom tambahan pada `FinReceivable`.** | Satu piutang boleh berganti perjanjian sepanjang hidupnya — diajukan, ditolak, diajukan ulang — dan setiap pengajuan punya pengaju, penyetuju, dokumen, serta jadwalnya sendiri. Menempelkannya sebagai kolom pada kartu piutang akan menghapus histori pengajuan yang ditolak. Mengikuti `FIN-DEC-165`, `FIN-DEC-166` |
+| `FIN-DES-100` | **Setiap baris cicilan menyimpan tunggakan terbawa (`CarriedOverAmount`) dan sisa (`OutstandingAmount`) sebagai nilai tersimpan, bukan dihitung ulang saat dibaca.** | `FIN-DEC-168` menyatakan cicilan gagal ikut periode berikutnya, dan `FIN-DEC-179` menambahkan potongan **sebagian**. Menghitungnya ulang setiap kali dibaca berarti hasil laporan berubah ketika aturan pembacaan berubah, dan tunggakan tidak dapat diaudit per periode |
+| `FIN-DES-101` | **Status "bebas tanggungan" dihitung saat diminta dari saldo piutang aktif pemilik manfaat; NOL tabel dan NOL kolom baru.** | `FIN-DEC-170` mewajibkan status itu dihitung dan **MUST NOT** diisi tangan. Menyimpannya sebagai kolom membuka celah ia diisi manual atau menjadi basi |
+| `FIN-DES-102` | **Pelunasan internal porsi benefit menjadi entity tersendiri (`FinBenefitSettlement` dengan anak `FinBenefitSettlementItem`), BUKAN `FinReceipt` dan BUKAN penghapusan buku.** | `FinReceipt` berarti uang benar-benar diterima, dan check constraint-nya mewajibkan jenis sumber dari daftar tertutup yang semuanya bermakna penerimaan. `FIN-DEC-178` melarang memakai penghapusan buku. Memaksa salah satunya berarti laporan penerimaan kas atau laporan penghapusan piutang menjadi salah |
+| `FIN-DES-103` | **Dua nilai jenis mutasi baru ditambahkan pada `FinReceivableMovementTypes`: `POTONGAN-GAJI` dan `PELUNASAN-INTERNAL`. Tidak ada migration untuk ini.** | Diverifikasi pada source `46fa2a91`: `FinReceivableMovementConfiguration` hanya memasang check constraint untuk `Balance` dan `FundingSource`, **tidak** untuk `MovementType`. Nilai baru karena itu cukup ditambahkan pada static class. Nama `POTONGAN-GAJI` dipilih karena `POTONGAN` sudah terpakai untuk potongan atas penerimaan (`FinReceiptDeduction`) dan artinya berbeda |
+| `FIN-DES-104` | **Penjamin internal yang ditutup pada satu pelunasan dipilih operator dari daftar penjamin yang sudah ada; TIDAK ada tabel konfigurasi "penjamin benefit".** | `FIN-OQ-102` belum menjawab apakah "RS Benefit" tersimpan sebagai penjamin asuransi atau penjamin perusahaan. Menebaknya sebagai konfigurasi berarti merancang di atas pertanyaan terbuka. Memilih eksplisit juga membuat jejaknya lebih jelas: tercatat penjamin mana yang ditutup pada periode mana |
+
+## O.4 Class diagram
+
+### O.4.1 Konteks perjanjian angsuran piutang
+
+```mermaid
+classDiagram
+    class FinReceivable {
+        +Guid Id
+        +string ReceivableNumber
+        +string DebtorType
+        +Guid? BenefitOwnerId
+        +string? BenefitRelationship
+        +decimal OutstandingAmount
+        +string Status
+    }
+    class FinReceivableInstallmentPlan {
+        +Guid Id
+        +string PlanNumber
+        +Guid ReceivableId
+        +int InstallmentCount
+        +decimal InstallmentAmount
+        +decimal TotalAgreedAmount
+        +string FirstDeductionPeriod
+        +string Status
+        +Guid RequestedBy
+        +Guid? ApprovedBy
+    }
+    class FinReceivableInstallment {
+        +Guid Id
+        +Guid PlanId
+        +int InstallmentNumber
+        +string DeductionPeriod
+        +decimal ScheduledAmount
+        +decimal CarriedOverAmount
+        +decimal PaidAmount
+        +decimal OutstandingAmount
+        +string Status
+    }
+    class FinReceivableMovement {
+        +Guid Id
+        +Guid ReceivableId
+        +string MovementType
+        +decimal Amount
+        +decimal BalanceAfter
+    }
+
+    FinReceivable "1" --> "0..*" FinReceivableInstallmentPlan : punya riwayat perjanjian
+    FinReceivableInstallmentPlan "1" --> "1..*" FinReceivableInstallment : menjadwalkan
+    FinReceivable "1" --> "0..*" FinReceivableMovement : mencatat perubahan saldo
+```
+
+### O.4.2 Konteks pelunasan internal porsi benefit
+
+```mermaid
+classDiagram
+    class FinBenefitSettlement {
+        +Guid Id
+        +string SettlementNumber
+        +string AccountingPeriodCode
+        +Guid DebtorReferenceId
+        +decimal TotalAmount
+        +int ItemCount
+        +string Status
+        +Guid? PostedBy
+    }
+    class FinBenefitSettlementItem {
+        +Guid Id
+        +Guid SettlementId
+        +Guid ReceivableId
+        +decimal Amount
+    }
+    class FinReceivable {
+        +Guid Id
+        +string DebtorType
+        +Guid? DebtorReferenceId
+        +decimal OutstandingAmount
+        +string Status
+    }
+    class FinAccountingEventOutbox {
+        +Guid Id
+        +string EventTypeCode
+        +string DeliveryStatus
+    }
+
+    FinBenefitSettlement "1" --> "1..*" FinBenefitSettlementItem : menutup
+    FinBenefitSettlementItem "1" --> "1" FinReceivable : atas
+    FinBenefitSettlement "1" --> "0..1" FinAccountingEventOutbox : menerbitkan kejadian (tertahan FIN-OQ-103)
+```
+
+## O.5 Penjelasan setiap class
+
+### O.5.1 `FinReceivableInstallmentPlan`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Receivable/Models/FinReceivableInstallmentPlan.cs` |
+| Kategori | Transaksi Piutang |
+| Tanggung jawab utama | Menyimpan satu perjanjian pembayaran bertahap atas satu kartu piutang: berapa besar tiap angsuran, berapa kali, mulai periode gaji kapan, dokumen perjanjian yang ditandatangani, siapa mengajukan, dan siapa menyetujui. Satu kartu piutang boleh memiliki beberapa perjanjian sepanjang hidupnya, tetapi hanya satu yang boleh aktif |
+| Field penting | `PlanNumber`, `ReceivableId`, `InstallmentCount`, `InstallmentAmount`, `TotalAgreedAmount`, `FirstDeductionPeriod`, `Status`, `AgreementDocumentPath`, `RequestedBy`, `RequestedAt`, `ApprovedBy`, `ApprovedAt`, `RejectedBy`, `RejectedAt`, `RejectionReason`, `CancelReason`, `RowVersion`, `Notes` |
+| Navigation property dan relasi | Milik satu `FinReceivable`; punya banyak `FinReceivableInstallment` |
+| Pemakaian dalam alur bisnis | Dibuat staf Finance saat pegawai menyepakati pembayaran bertahap. Berstatus menunggu persetujuan sampai pihak berwenang lain menyetujuinya; jadwal potongannya baru berlaku sesudah itu |
+| Catatan desain | Pengaju **MUST NOT** menjadi penyetuju — ditegakkan check constraint, bukan hanya di service. Hanya boleh dibuat untuk piutang berjenis debitur manfaat karyawan pada rilis ini. Total yang disepakati **MUST** sama dengan sisa piutang pada saat disetujui; bila sisanya sudah berubah, perjanjian ditolak agar tidak menjadwalkan angka yang tidak lagi benar |
+| Ekuivalen model lama | — |
+
+### O.5.2 `FinReceivableInstallment`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Receivable/Models/FinReceivableInstallment.cs` |
+| Kategori | Transaksi Piutang |
+| Tanggung jawab utama | Menyimpan satu baris jadwal: periode gaji mana, berapa yang dijadwalkan, berapa tunggakan yang ikut terbawa dari periode sebelumnya, berapa yang benar-benar terpotong, dan berapa sisanya |
+| Field penting | `PlanId`, `InstallmentNumber`, `DeductionPeriod`, `ScheduledAmount`, `CarriedOverAmount`, `PaidAmount`, `OutstandingAmount`, `Status`, `LastResultAt`, `RowVersion` |
+| Navigation property dan relasi | Milik satu `FinReceivableInstallmentPlan` |
+| Pemakaian dalam alur bisnis | Dibuat sekaligus sebanyak jumlah angsuran saat perjanjian disetujui. Diperbarui setiap kali hasil potongan gaji diterima — penuh, sebagian, atau gagal |
+| Catatan desain | Sisa **MUST** sama dengan dijadwalkan ditambah terbawa dikurangi terbayar, ditegakkan check constraint. Baris ini **MUST NOT** dihapus ketika potongan gagal; ia ditandai tertunggak dan sisanya ikut ke baris berikutnya (`FIN-DEC-168`). Jalur yang menerima hasil potongan dari HR adalah `S3` dan **tertahan** `FIN-OQ-091` — entity ini sudah siap menampungnya |
+| Ekuivalen model lama | — |
+
+### O.5.3 `FinBenefitSettlement`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Receivable/Models/FinBenefitSettlement.cs` |
+| Kategori | Transaksi Piutang |
+| Tanggung jawab utama | Menyimpan satu penutupan berkala atas piutang porsi manfaat yang ditanggung rumah sakit. Satu baris mewakili satu periode akuntansi untuk satu penjamin internal, beserta total dan jumlah piutang yang ditutupnya |
+| Field penting | `SettlementNumber`, `AccountingPeriodCode`, `DebtorReferenceId`, `TotalAmount`, `ItemCount`, `Status`, `PostedBy`, `PostedAt`, `CancelReason`, `AccountingEventId`, `RowVersion`, `Notes` |
+| Navigation property dan relasi | Punya banyak `FinBenefitSettlementItem`; menunjuk satu baris outbox kejadian akuntansi bila sudah diterbitkan |
+| Pemakaian dalam alur bisnis | Dibuat staf Finance pada penutupan periode. Petugas memilih periode dan penjamin internal, melihat lebih dulu piutang apa saja yang akan ditutup, lalu menerbitkannya |
+| Catatan desain | Satu periode untuk satu penjamin **MUST** hanya punya satu pelunasan yang tidak dibatalkan — ditegakkan unique index, bukan hanya pemeriksaan di service, agar dua petugas yang menekan tombol hampir bersamaan tidak menutup dua kali. Penerbitan kejadian ke Accounting **tertahan** `FIN-OQ-103`; sampai kontraknya ada, kolom `AccountingEventId` tetap kosong dan itu **bukan** cacat |
+| Ekuivalen model lama | — |
+
+### O.5.4 `FinBenefitSettlementItem`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Receivable/Models/FinBenefitSettlementItem.cs` |
+| Kategori | Transaksi Piutang |
+| Tanggung jawab utama | Menyimpan satu piutang yang ditutup oleh sebuah pelunasan internal, beserta nominal yang ditutup |
+| Field penting | `SettlementId`, `ReceivableId`, `Amount` |
+| Navigation property dan relasi | Milik satu `FinBenefitSettlement`; menunjuk satu `FinReceivable` |
+| Pemakaian dalam alur bisnis | Dibuat bersama induknya; tidak pernah disunting sendiri |
+| Catatan desain | Satu kartu piutang **MUST NOT** ditutup dua kali oleh dua pelunasan yang berbeda — ditegakkan unique index pada `ReceivableId` untuk baris yang induknya tidak dibatalkan |
+| Ekuivalen model lama | — |
+
+### O.5.5 `FinReceivableMovement`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Diperbarui` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Receivable/Models/FinReceivableMovement.cs` |
+| Kategori | Transaksi Piutang |
+| Kolom yang berubah | **Nol kolom.** Yang bertambah hanya dua nilai yang sah pada static class `FinReceivableMovementTypes`: `POTONGAN-GAJI` dan `PELUNASAN-INTERNAL` |
+| Catatan desain | Tidak ada migration untuk perubahan ini (`FIN-DES-103`). Bila kelak check constraint untuk `MovementType` ditambahkan, kedua nilai ini **MUST** ikut didaftarkan |
+| Ekuivalen model lama | — |
+
+### O.5.6 `FinanceReceivableInstallmentPlanService`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceReceivableInstallmentPlanService.cs` |
+| Kategori | Service |
+| Tanggung jawab utama | Mengajukan, menyetujui, menolak, dan membatalkan perjanjian angsuran; membangkitkan jadwal angsuran saat disetujui; serta memposting hasil potongan ke baris angsuran dan ke buku mutasi piutang |
+| Dipanggil oleh | `FinanceReceivableInstallmentPlansController` |
+| Membuka transaksi database | **Ya** — persetujuan membuat jadwal sekaligus; pemostingan hasil potongan memperbarui angsuran, saldo piutang, dan buku mutasi dalam satu transaksi |
+| Catatan desain | Nomor perjanjian dialokasikan di service, bukan di controller (`QBE-CODE-002`). Mengikuti pola yang berjalan di modul ini: tanggal ditambah Guid, bukan hitungan baris (`QBE-CODE-003`) |
+
+### O.5.7 `FinanceBenefitSettlementService`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceBenefitSettlementService.cs` |
+| Kategori | Service |
+| Tanggung jawab utama | Menghitung lebih dulu piutang porsi benefit yang layak ditutup untuk satu periode dan satu penjamin, membuat pelunasan, menerbitkannya, dan membatalkannya |
+| Dipanggil oleh | `FinanceBenefitSettlementsController` |
+| Membuka transaksi database | **Ya** — penerbitan menutup banyak kartu piutang, menulis banyak baris mutasi, dan memperbarui induknya sekaligus. Seluruhnya terbit, atau tidak sama sekali |
+| Catatan desain | Perhitungan awal (*preview*) **MUST NOT** mengubah data apa pun. Penerbitan **MUST** memakai penguncian agar dua petugas tidak menutup periode yang sama dua kali |
+
+### O.5.8 `FinanceReceivableClearanceService`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceReceivableClearanceService.cs` |
+| Kategori | Service |
+| Tanggung jawab utama | Menghitung status bebas tanggungan satu atau beberapa pegawai dari saldo piutang aktifnya |
+| Dipanggil oleh | `FinanceReceivablesController` (yang sudah ada, status `Diperbarui`) |
+| Membuka transaksi database | **Tidak** — hanya membaca |
+| Catatan desain | Hasilnya **MUST NOT** disimpan (`FIN-DES-101`). Yang dihitung hanya piutang berjenis debitur manfaat karyawan milik pemilik manfaat itu, dan **MUST NOT** ikut menghitung porsi benefit atas penjamin internal (`FIN-DEC-177`) |
+
+### O.5.9 Controller
+
+| Aspek | `FinanceReceivableInstallmentPlansController` | `FinanceBenefitSettlementsController` | `FinanceReceivablesController` |
+|---|---|---|---|
+| **Status** | `Baru` | `Baru` | **`Diperbarui`** — endpoint ditambahkan pada controller yang sudah ada |
+| **Lokasi file** | `Areas/Corporate/FinanceManagement/Receivable/Controllers/FinanceReceivableInstallmentPlansController.cs` | `.../Controllers/FinanceBenefitSettlementsController.cs` | `.../Controllers/FinanceReceivablesController.cs` (sudah ada) |
+| Service yang dipakai | `FinanceReceivableInstallmentPlanService` | `FinanceBenefitSettlementService` | `FinanceReceivableClearanceService` |
+| `ControllerName` pada `[AccessController]` | `FinanceReceivableInstallmentPlan` (baru) | `FinanceBenefitSettlement` (baru) | `FinanceReceivable` — **sudah terdaftar**, tidak ditambah |
+| Endpoint yang diurus | Pengajuan, daftar, detail, setujui, tolak, batalkan | Daftar, detail, hitung awal, buat, terbitkan, batalkan | Status bebas tanggungan per pegawai dan sekaligus beberapa pegawai |
+| Catatan desain | Controller **MUST NOT** menyentuh `ApplicationDbContext` langsung (`QBE-SVC-001`) | Sama | **Dua endpoint status bebas tanggungan menempel di sini, BUKAN pada controller baru.** Controller baru dengan `ControllerName` yang sama akan mendaftarkan satu modul dua kali di layar Pengaturan → Manajemen Role → Akses Role. Konsekuensinya nol resource hak akses baru untuk kemampuan ini |
+
+### O.5.10 Configuration
+
+Keempat configuration berstatus `Baru` dan tinggal **di luar** `Areas/`, mengikuti aturan struktur:
+
+| File | Lokasi | Relasi yang diatur | Index dan constraint | `DeleteBehavior` |
+|---|---|---|---|---|
+| `FinReceivableInstallmentPlanConfiguration.cs` | `Repositories/Configurations/Corporate/FinanceManagement/Receivable/` | Ke `FinReceivable` | Unique `PlanNumber`; unique terfilter satu perjanjian aktif per piutang; index `(Status, RequestedAt)`; `CK_..._Status`, `CK_..._MakerChecker`, `CK_..._Amount`, `CK_..._Total` | `Restrict` |
+| `FinReceivableInstallmentConfiguration.cs` | sama | Ke `FinReceivableInstallmentPlan` | Unique `(PlanId, InstallmentNumber)`; index `(DeductionPeriod, Status)`; `CK_..._Status`, `CK_..._Balance`, `CK_..._Amount` | `Restrict` |
+| `FinBenefitSettlementConfiguration.cs` | sama | Ke `FinAccountingEventOutbox` (opsional) | Unique `SettlementNumber`; unique terfilter `(AccountingPeriodCode, DebtorReferenceId)` untuk yang tidak dibatalkan; `CK_..._Status`, `CK_..._Total`, `CK_..._Posted` | `Restrict` |
+| `FinBenefitSettlementItemConfiguration.cs` | sama | Ke `FinBenefitSettlement` dan `FinReceivable` | Unique `(SettlementId, ReceivableId)`; unique terfilter `ReceivableId` untuk induk yang tidak dibatalkan; `CK_..._Amount` | `Restrict` |
+
+`Restrict` dipakai seluruhnya agar histori keuangan tidak terhapus berantai, sejalan dengan konvensi
+modul ini.
+
+## O.6 Arsitektur folder
+
+```text
+Areas/Corporate/FinanceManagement/Receivable/
+├── Models/
+│   ├── FinReceivable.cs                               # Sudah ada — tidak disentuh
+│   ├── FinReceivableMovement.cs                        # Diperbarui — dua nilai jenis mutasi baru
+│   ├── FinReceivableInstallmentPlan.cs                 # Baru
+│   ├── FinReceivableInstallment.cs                     # Baru
+│   ├── FinBenefitSettlement.cs                         # Baru
+│   └── FinBenefitSettlementItem.cs                     # Baru
+├── DTOs/
+│   ├── FinanceReceivableInstallmentPlanDtos.cs         # Baru
+│   ├── FinanceBenefitSettlementDtos.cs                 # Baru
+│   └── FinanceReceivableClearanceDtos.cs               # Baru
+├── Services/
+│   ├── FinanceReceivableInstallmentPlanService.cs      # Baru
+│   ├── FinanceBenefitSettlementService.cs              # Baru
+│   └── FinanceReceivableClearanceService.cs            # Baru
+└── Controllers/
+    ├── FinanceReceivablesController.cs                 # Diperbarui — dua endpoint status bebas tanggungan
+    ├── FinanceReceivableInstallmentPlansController.cs  # Baru
+    └── FinanceBenefitSettlementsController.cs          # Baru
+
+Repositories/Configurations/Corporate/FinanceManagement/Receivable/
+├── FinReceivableInstallmentPlanConfiguration.cs        # Baru
+├── FinReceivableInstallmentConfiguration.cs            # Baru
+├── FinBenefitSettlementConfiguration.cs                # Baru
+└── FinBenefitSettlementItemConfiguration.cs            # Baru
+```
+
+**Utang teknis yang MUST diketahui, jangan ditiru dan jangan dirapikan diam-diam:** seluruh layanan
+Finance didaftarkan di
+`Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs` —
+berkas milik modul Billing, bukan Finance. Tiga service baru di atas **MUST** didaftarkan di berkas yang
+sama agar konsisten dengan yang berjalan, dan perapiannya menjadi task tersendiri dengan approval
+pemilik arsitektur backend.
+
+## O.7 Status model dan dampak migration
+
+| Tabel | Schema | Status | Kolom yang berubah | Dampak migration |
+|---|---|:---:|---|---|
+| `FinReceivableInstallmentPlan` | `public` | `Baru` | Seluruh kolom — lihat kamus data | Tabel baru |
+| `FinReceivableInstallment` | `public` | `Baru` | Seluruh kolom — lihat kamus data | Tabel baru |
+| `FinBenefitSettlement` | `public` | `Baru` | Seluruh kolom — lihat kamus data | Tabel baru |
+| `FinBenefitSettlementItem` | `public` | `Baru` | Seluruh kolom — lihat kamus data | Tabel baru |
+| `FinReceivableMovement` | `public` | `Diperbarui` | **Nol kolom.** Hanya dua nilai baru pada static class `FinReceivableMovementTypes` | **Nol migration** — tidak ada check constraint pada `MovementType`, diverifikasi pada `46fa2a91` |
+| `FinReceivable` | `public` | `Sudah ada` | — | Nol |
+
+**Catatan controller:** `FinanceReceivablesController` berstatus `Diperbarui` karena menerima dua endpoint baru, tetapi itu perubahan source tanpa dampak tabel maupun migration.
+
+## O.8 Rencana migration
+
+Satu migration, satu urutan.
+
+| Hal | Isi |
+|---|---|
+| Nama yang diusulkan | `AddFinanceReceivableInstallmentAndBenefitSettlement` |
+| Urutan | Satu-satunya pada amandemen ini; tidak bergantung migration lain |
+| Dapat dijalankan tanpa mematikan layanan | **Ya.** Hanya menambah empat tabel baru; nol kolom pada tabel yang sudah ada, nol constraint pada tabel yang sudah ada, nol perubahan tipe |
+| Pengisian data lama | **Tidak ada.** Keempat tabel lahir kosong. Piutang karyawan yang sudah ada belum mungkin ada, karena jalur intake-nya (`S1`) belum terbuka |
+| Langkah mundur bila gagal | Menghapus keempat tabel. Aman karena nol data lama yang bergantung padanya dan nol tabel lain yang menunjuk mereka |
+| Wewenang | Pembuatan berkas migration dan penerapannya ke basis data adalah **dua wewenang terpisah** yang **tidak** diberikan amandemen ini. Keduanya milik pemilik |
+
+## O.9 Rencana data master awal
+
+| Tabel master | Isi minimum | Keterangan |
+|---|---|---|
+| — | — | **Amandemen ini tidak membuat tabel master sama sekali.** Keempat tabel baru seluruhnya transaksi |
+
+Satu data yang **MUST** ada sebelum slice `S7a` dapat dipakai, tetapi **bukan** milik Finance: baris
+master penjamin "RS Benefit" pada master Administrator. Keberadaan dan jenisnya dilacak `FIN-OQ-102`, dan
+pemiliknya pemilik Administrator. Finance tidak membuat baris itu dan tidak membuat salinannya.
+
+## O.10 Invariant dan batas transaksi
+
+| Invariant | Ditegakkan di mana |
+|---|---|
+| Pengaju perjanjian **MUST NOT** menjadi penyetujunya | Check constraint `CK_FinReceivableInstallmentPlan_MakerChecker`, ditambah pemeriksaan di service. Mengikuti pola `FinReceivableWriteOff` dan `FinPayment` yang sudah berjalan |
+| Satu kartu piutang **MUST** hanya punya satu perjanjian aktif | Unique index terfilter pada `ReceivableId` untuk status menunggu persetujuan dan disetujui |
+| Total yang disepakati **MUST** sama dengan jumlah seluruh angsuran | Check constraint pada induk, ditambah pemeriksaan saat jadwal dibangkitkan |
+| Sisa angsuran **MUST** sama dengan dijadwalkan + terbawa − terbayar | Check constraint `CK_FinReceivableInstallment_Balance` |
+| Satu periode untuk satu penjamin internal **MUST** hanya punya satu pelunasan yang tidak dibatalkan | Unique index terfilter |
+| Satu kartu piutang **MUST NOT** ditutup dua pelunasan sekaligus | Unique index terfilter pada `ReceivableId` |
+| Saldo piutang **MUST NOT** menjadi negatif | Check constraint `CK_FinReceivable_Outstanding` yang sudah ada |
+| Setiap perubahan saldo piutang **MUST** meninggalkan satu baris buku mutasi | Service, di dalam transaksi yang sama |
+
+| Batas transaksi | Yang terjadi di dalamnya |
+|---|---|
+| Menyetujui perjanjian | Mengubah status induk, membangkitkan seluruh baris angsuran, dan menulis satu baris buku mutasi bila diperlukan |
+| Memposting hasil potongan (jalurnya tertahan `S3`) | Memperbarui satu baris angsuran, memindahkan tunggakan ke baris berikutnya, mengurangi saldo piutang, dan menulis satu baris buku mutasi `POTONGAN-GAJI` |
+| Menerbitkan pelunasan internal | Menutup seluruh kartu piutang pada daftar, menulis satu baris buku mutasi `PELUNASAN-INTERNAL` per kartu, memperbarui total induk, dan — sesudah `FIN-OQ-103` terjawab — menitipkan satu kejadian ke outbox. Seluruhnya terbit atau tidak sama sekali |
+
+## O.11 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Mengapa ditolak |
+|---|---|
+| Kolom perjanjian angsuran langsung pada `FinReceivable` | Menghapus histori pengajuan yang ditolak, dan membuat satu kartu piutang tidak dapat berganti perjanjian (`FIN-DES-099`) |
+| Kolom "bebas tanggungan" pada profil pegawai atau pada kartu piutang | `FIN-DEC-170` mewajibkannya dihitung. Kolom tersimpan membuka celah diisi tangan dan menjadi basi (`FIN-DES-101`) |
+| Memakai `FinReceipt` dengan jenis sumber baru untuk pelunasan internal | `FinReceipt` berarti uang diterima, dan laporan penerimaan kas akan memuat uang yang tidak pernah masuk (`FIN-DES-102`) |
+| Memakai penghapusan buku untuk menutup porsi benefit | Dilarang eksplisit `FIN-DEC-178`; merusak laporan penghapusan piutang |
+| Tabel konfigurasi "penjamin benefit internal" | `FIN-OQ-102` belum menjawab master mana yang dipakai; memilih eksplisit juga meninggalkan jejak yang lebih jelas (`FIN-DES-104`) |
+| Memakai `TrxEmployeeLoanInstallment` milik HR | Piutang layanan rumah sakit bukan pinjaman uang tunai, dan `FIN-DEC-166` menyatakan perjanjian dicatat di Finance |
+| Entity "potongan gaji" di Finance | Potongan gaji dieksekusi HR. Finance hanya menyimpan hasilnya pada baris angsuran. Jalur penerimaannya `S3`, tertahan `FIN-OQ-091` |
+| Tabel riwayat perubahan status perjanjian | `IdentityModel` beserta buku mutasi piutang sudah menyimpan jejak yang dibutuhkan; tabel ketiga akan menjadi salinan |
+| Endpoint menutup porsi benefit satu per satu per kartu piutang | `FIN-DEC-178` menyatakan penutupan **berkala**. Menyediakan penutupan per kartu membuka jalan memutar yang membuat umur piutang tetap tidak terkendali |
+
+---
+
+## P. Amandemen 6 Oktober 2026 (Revisi 18) — Arsitektur Backend Integrasi Hulu-Hilir Piutang Manfaat Karyawan (`EPIC FIN-04` Slices `S1`, `S3`, `S4b`, `S5`, `S6`, dan Integrasi Registrasi/Billing/HR)
+
+```yaml
+blueprint_id: FIN-BP-001
+revision: 18
+blueprint_shape: SINGLE
+pass_mode: Amendment pass (Integrasi Hulu-Hilir Lintas Domain)
+status: draft
+input_revision: 00-interview-decisions.md (FIN-DEC-183..FIN-DEC-202)
+input_evidence: evidence/23-permintaan-konfirmasi-piutang-manfaat-karyawan.md (LENGKAP TERJAWAB)
+slices: S1, S3, S4b, S5, S6 (melengkapi S2a, S2b, S4a, S7a, S8 dari Revisi 17)
+domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN
+domain_architecture_readiness_reason: >
+  Handoff arsitektur domain tidak dijalankan karena seluruh batas domain, entitas perantara,
+  dan kontrak pertukaran data telah berhasil disepakati dan diputuskan secara presisi melalui
+  konfirmasi resmi dengan pemilik domain Billing (BIL-CASH-001), HR (Benefit/Payroll), dan Registrasi.
+```
+
+### P.1 Scope dan Rujukan Keputusan
+
+Amandemen ini melengkapi perancangan internal Finance (Revisi 17) dengan **arsitektur integrasi hulu-hilir** yang menghubungkan empat bounded context: **Registrasi (Patient Management)**, **Billing & Kasir**, **Finance Management (AR)**, dan **Human Resource (Benefit & Payroll)**.
+
+Keputusan bisnis dan teknis yang mendasari:
+1. **Domain Billing (`B1` s.d. `B6`)**: `FIN-DEC-183` (2 baris handoff), `FIN-DEC-184` (perluasan `BilArHandoff`), `FIN-DEC-185` (Billing hitung porsi tanggungan pegawai), `FIN-DEC-186` (ratifikasi `BE-FIN-FIX-002`), `FIN-DEC-187` (reversal handoff bila salah orang), `FIN-DEC-188` (pengakuan benefit via pelunasan internal).
+2. **Domain HR (`H1` s.d. `H8`)**: `FIN-DEC-189` (pembacaan plafon benefit dari `TrxEmployeeBenefitEnrollment`/`Dependent`), `FIN-DEC-190` (jadwal cicilan masuk `TrxPayrollVariableInput`), `FIN-DEC-191` (hasil payroll otomatis idempoten ke Finance), `FIN-DEC-192` (batas potongan take-home pay minimum), `FIN-DEC-193` (kunci `TrxExitClearance.IsFinanceCleared`), `FIN-DEC-194` (notifikasi pemisahan pegawai `TrxEmployeeSeparation`), `FIN-DEC-195` (restitusi salah potong via adjustment payroll), `FIN-DEC-196` (kunci impor saldo lama memakai NIP).
+3. **Domain Registrasi (`R1` s.d. `R6`)**: `FIN-DEC-197` (pakai `CompanyGuarantor` internal eksisting), `FIN-DEC-198` (snapshot hubungan keluarga di kunjungan), `FIN-DEC-199` (petugas wajib autocomplete ke data HR untuk ID stabil), `FIN-DEC-200` (koreksi via Billing / pembalik handoff), `FIN-DEC-201` (tanggungan anak via No RM dan aturan HR), `FIN-DEC-202` (`RemainingLimitAmount` bukan batas keras).
+
+### P.2 Tabel Kepemilikan Data Antarmodul
+
+Tabel ini menetapkan secara tegas pembagian tanggung jawab data antar-modul untuk mencegah duplikasi entitas pasien, pegawai, atau master bersama:
+
+| Kelompok Data | Modul Pemilik | Status di Modul Ini | Dipakai Modul Finance? | Dibuat Ulang? | Keterangan & Batas Tanggung Jawab |
+|---|---|:---:|:---:|:---:|---|
+| **Master Pegawai** (`MstEmployee`, `MstWorkforceProfile`) | Human Resource | `Sudah ada` | **Ya** (hanya dibaca via Guid / NIP) | **TIDAK** | Finance mereferensikan `EmployeeId`/`WorkforceProfileId` sebagai foreign key/penanda identitas debitur. Finance tidak membuat tabel pegawai sendiri. |
+| **Enrollment & Plafon Benefit** (`TrxEmployeeBenefitEnrollment`, `TrxEmployeeBenefitDependent`) | Human Resource | `Sudah ada` | **Tidak langsung** (dibaca Billing) | **TIDAK** | Otoritas perhitungan sisa plafon dan eligibilitas dipegang HR. Billing membacanya saat kalkulasi penjaminan; Finance hanya menyalin nominal hasil pembagian. |
+| **Input Variabel Penggajian** (`TrxPayrollVariableInput`) | Human Resource | `Sudah ada` | **Ya** (ditulis Finance) | **TIDAK** | Finance menyisipkan baris jadwal potongan (`SourceType = 'FinanceReceivableInstallment'`). Eksekusi pemotongan gaji dipegang penuh oleh mesin Payroll HR. |
+| **Pemisahan & Exit Clearance** (`TrxEmployeeSeparation`, `TrxExitClearance`) | Human Resource | `Sudah ada` | **Ya** (dibaca & divalidasi) | **TIDAK** | HR memvalidasi status `IsFinanceCleared` melalui endpoint clearance Finance. Finance tidak mengelola proses offboarding. |
+| **Penjamin Perusahaan RS** (`MstCompanyGuarantor`) | Patient Registration / Master | `Sudah ada` | **Ya** (dibaca sebagai Penjamin) | **TIDAK** | RS didaftarkan sebagai salah satu instansi penjamin internal (`FIN-DEC-197`). Enum tipe pembayaran tetap baku (`CompanyGuarantor`). |
+| **Kartu Pasien Penjamin** (`MstPatientCompanyGuarantor`) | Patient Registration | `Sudah ada` | **Ya** (dibaca sebagai Master Hubungan) | **TIDAK** | Menyimpan relasi keluarga (`SELF`, `SPOUSE`, `CHILD`, dll.) dan tautan ke pegawai HR (`FIN-DEC-198`). |
+| **Encounter Penjamin Pasien** (`RegPatientEncounterGuarantor`) | Patient Registration | `Sudah ada` | **Ya** (dibaca via Billing) | **TIDAK** | Menyimpan snapshot relasi keluarga dan nomor kartu per kunjungan. |
+| **Serah Terima AR Tagihan** (`BilArHandoff`) | Billing Management | `Diperbarui` | **Ya** (dikonsumsi Finance) | **TIDAK** | Billing menerbitkan 2 baris serah terima per tagihan: `EMPLOYEE_BENEFIT` (porsi pegawai) dan `PAYER` (porsi RS Benefit) (`FIN-DEC-183`). |
+| **Pembalik Serah Terima** (`BilHandoffAdjustment`) | Billing Management | `Sudah ada` | **Ya** (dikonsumsi Finance) | **TIDAK** | Digunakan saat pembatalan/koreksi serah terima salah orang (`FIN-DEC-187`, `FIN-DEC-200`). |
+| **Kartu Piutang & Mutasi** (`FinReceivable`, `FinReceivableMovement`) | Finance Management | `Sudah ada` | **Pemilik Utama** | **N/A** | Finance mencatat kartu piutang pegawai dan mutasi pengurangan saldo (`POTONGAN-GAJI`, `PELUNASAN-INTERNAL`). |
+| **Perjanjian & Angsuran** (`FinReceivableInstallmentPlan`, `FinReceivableInstallment`) | Finance Management | `Baru` (Rev 17) | **Pemilik Utama** | **N/A** | Mengelola jadwal angsuran potong gaji berjenjang (maker-checker). |
+| **Pelunasan Internal Benefit** (`FinBenefitSettlement`, `FinBenefitSettlementItem`) | Finance Management | `Baru` (Rev 17) | **Pemilik Utama** | **N/A** | Menutup piutang penjamin internal "RS Benefit" secara berkala. |
+
+---
+
+### P.3 Desain Arsitektur Slice S1: Intake Serah Terima Piutang Pegawai dari Billing
+
+#### Alur Integrasi:
+1. **Registrasi**: Petugas mendaftarkan pasien (pegawai atau tanggungan keluarga) dengan penjamin instansi RS internal (`MstCompanyGuarantor`). Hubungan keluarga (`BenefitRelationship`) tersimpan di kartu pasien dan disalin otomatis sebagai *snapshot* ke `RegPatientEncounterGuarantor`. Pemilihan pegawai dilakukan via autocomplete data HR untuk memperoleh `BenefitOwnerId` (Guid stabil).
+2. **Billing**: Saat invoice difinalisasi, adapter cakupan penjamin (`RegistrationBillingCoverageAdapter`) membaca sisa plafon dari HR (`FIN-DEC-189`). Billing menghitung porsi tagihan:
+   - Porsi dalam batas plafon diakui sebagai beban penjamin internal RS Benefit.
+   - Porsi kelebihan di atas plafon dibebankan kepada pegawai (`FIN-DEC-185`).
+3. **Penerbitan 2 Baris Serah Terima (`BilArHandoff`)**:
+   - **Baris 1 (`DebtorType = "PAYER"`)**: `Amount = PorsiBenefit`, `DebtorReferenceId = CompanyGuarantorId` ("RS Benefit").
+   - **Baris 2 (`DebtorType = "EMPLOYEE_BENEFIT"`)**: `Amount = PorsiPegawai`, `BenefitOwnerId = Guid Pegawai`, `BenefitRelationship = "SPOUSE"`/dst.
+4. **Konsumsi di Finance**:
+   - `FinanceReceivableIntakeService` mengonsumsi serah terima `BilArHandoff`.
+   - Untuk baris `EMPLOYEE_BENEFIT`: menerbitkan `FinReceivable` dengan `DebtorType = "EMPLOYEE_BENEFIT"`, menyalin `BenefitOwnerId` dan `BenefitRelationship`, serta mengisi `OutstandingAmount = Amount`.
+   - Constraint database `CK_FinReceivable_EmployeeBenefit_BenefitOwnerId` terpenuhi sempurna karena `BenefitOwnerId` wajib terisi dan valid.
+
+---
+
+### P.4 Desain Arsitektur Slice S3: Sinkronisasi Jadwal Cicilan & Hasil Payroll (Finance ↔ HR)
+
+#### Alur Outbound (Finance → HR):
+1. Staf Finance membuat pengajuan perjanjian angsuran (`FE-FIN-038` / `POST /receivables/{id}/installment-plans`).
+2. Pejabat berwenang menyetujui perjanjian (`POST /receivable-installment-plans/{planId}/approve`).
+3. `FinanceReceivableInstallmentPlanService` menerbitkan baris angsuran (`FinReceivableInstallment`) dan secara otomatis menyisipkan jadwal pemotongan ke HR Payroll:
+   - Membuat baris di `TrxPayrollVariableInput`:
+     - `WorkforceProfileId = Plan.WorkforceProfileId`
+     - `PayrollPeriodId = TargetPeriodId`
+     - `ComponentId = DeductionComponentId` (Komponen Potongan Piutang RS)
+     - `Amount = Installment.ScheduledAmount + Installment.CarriedOverAmount`
+     - `SourceType = "FinanceReceivableInstallment"`
+     - `SourceId = Installment.Id`
+     - `Notes = "Cicilan Piutang RS No: {ReceivableNumber}"`
+
+#### Alur Inbound (HR → Finance — Hasil Potongan Otomatis):
+1. Tim HR/Payroll menjalankan siklus penggajian (*Payroll Run*).
+2. Bila take-home pay pegawai tidak mencukupi angsuran tertunggak, HR menerapkan batas take-home pay minimum dan memotong sebagian (`FIN-DEC-192`).
+3. Begitu status *Payroll Run* disahkan (`Finalized`/`Paid`), modul HR mengirimkan hasil pemotongan ke Finance melalui endpoint:
+   `POST /api/v1/finance/receivables/installments/payroll-results`
+4. **Idempotensi & Transaksi di Finance (`FinanceReceivablePayrollSyncService`)**:
+   - Memeriksa apakah `PayrollExecutionId` dan `InstallmentId` sudah pernah diproses. Jika duplikat, kembalikan `200 OK` (idempoten, `FIN-VAL-240`).
+   - Jika status `BERHASIL`:
+     - `FinReceivableInstallment.PaidAmount = DeductedAmount`, `Status = "LUNAS"`.
+     - Mengurangi `FinReceivable.OutstandingAmount`.
+     - Menulis 1 baris mutasi `FinReceivableMovement` bertipe `POTONGAN-GAJI`.
+   - Jika status `SEBAGIAN`:
+     - `FinReceivableInstallment.PaidAmount = DeductedAmount`, `Status = "SEBAGIAN"`.
+     - Sisa yang belum terpotong otomatis dimasukkan ke `CarriedOverAmount` pada angsuran periode berikutnya (`FIN-DEC-168`, `FIN-DEC-179`).
+     - Mengurangi saldo piutang sebesar nominal yang riil terpotong.
+     - Menulis 1 baris mutasi `POTONGAN-GAJI`.
+   - Jika status `GAGAL`:
+     - `FinReceivableInstallment.Status = "TERTUNGGAK"`.
+     - Seluruh nominal dialihkan ke `CarriedOverAmount` pada angsuran periode berikutnya tanpa membatalkan perjanjian.
+
+---
+
+### P.5 Desain Arsitektur Slice S4b: Penegakan Gerbang Exit Clearance HR & Notifikasi Pemisahan
+
+1. **Notifikasi Pemisahan Pegawai (HR → Finance)**:
+   - Saat inisiasi pemisahan kerja (`TrxEmployeeSeparation`), HR mengirimkan notifikasi event ke Finance (`POST /api/v1/finance/receivables/separation-notice`).
+   - Finance menandai kartu piutang pegawai bersangkutan sebagai `SEPARATION_PENDING` agar staf AR dapat mempersiapkan perhitungan kewajiban terhadap hak akhir / uang pesangon (`FIN-DEC-169`, `FIN-DEC-194`).
+2. **Validasi Bebas Tanggungan (HR Exit Clearance)**:
+   - Pada tahapan *offboarding*, formulir `TrxExitClearance` memanggil API Finance:
+     `GET /api/v1/finance/receivables/clearance/{benefitOwnerId}`
+   - Service `FinanceReceivableClearanceService` menghitung total piutang aktif:
+     - Jika `OutstandingAmount == 0`: respons `IsCleared = true`. HR mencatat `TrxExitClearance.IsFinanceCleared = true`.
+     - Jika `OutstandingAmount > 0`: respons `IsCleared = false` beserta daftar kartu piutang dan sisa kewajiban. Form exit clearance di HR terkunci dan tidak dapat ditutup (`FIN-DEC-170`, `FIN-DEC-193`).
+   - Override darurat (misal pegawai meninggal) diizinkan di HR dengan otorisasi Direksi/HR, dan diselaraskan dengan prosedur penghapusan buku (`Write-Off`) di Finance (`FIN-DEC-176`).
+
+---
+
+### P.6 Desain Arsitektur Slice S5: Alur Koreksi Pemilik Manfaat Salah Orang
+
+Mengikuti keputusan `FIN-DEC-187`, `FIN-DEC-195`, dan `FIN-DEC-200`:
+1. **Koreksi Sebelum Tagihan Final**: Dilakukan langsung oleh kasir/registrasi di Billing via fitur eksisting "Ganti Penanggung" pada encounter.
+2. **Koreksi Setelah Tagihan Final**:
+   - Registrasi/Kasir menerbitkan Berita Acara Koreksi Pemilik Manfaat.
+   - Billing membatalkan serah terima lama via serah terima pembalik `BilHandoffAdjustment` bertipe `REVERSAL`, lalu menerbitkan `BilArHandoff` baru yang merujuk pegawai yang benar (`BenefitOwnerId` baru).
+   - Finance mengonsumsi serah terima pembalik: membatalkan kartu piutang atas pegawai yang salah (`Status = CANCELLED`, menulis mutasi pembatalan). Finance menerbitkan kartu piutang baru atas pegawai yang benar.
+   - **Penyelesaian Potongan Gaji yang Terlanjur Terjadi**: Jika gaji pegawai yang salah sempat terpotong, Finance mengirim notifikasi pembalikan ke HR. HR mengembalikan dana tersebut kepada pegawai melalui penambahan gaji net (*payroll adjustment reimbursement*) pada slip gaji periode berikutnya (`FIN-DEC-195`). Finance **tidak** mengeluarkan kas manual.
+
+---
+
+### P.7 Desain Arsitektur Slice S6: Mesin Batch Migrasi Saldo Lama Berbasis Kunci NIP
+
+1. **Format Spreadsheet & CSV Migrasi**:
+   - Kolom wajib: `NomorKartuLama`, `NIP` (`EmployeeNumber`), `TanggalTransaksi`, `NomorInvoiceLama`, `NomorKunjungan`, `OriginalAmount`, `OutstandingAmount`, `HubunganKeluarga` (`SELF`/`SPOUSE`/`CHILD`), `Catatan`.
+2. **Validasi Keras (`FIN-VAL-246`)**:
+   - Petugas mengunggah berkas ke endpoint `POST /api/v1/finance/receivables/migration-batches/employee`.
+   - Sistem mencocokkan `NIP` ke tabel `MstEmployee`. Jika NIP tidak ditemukan atau tidak aktif, baris migrasi ditolak dan dilaporkan spesifik per nomor baris.
+   - Sistem memetakan `NIP` ke `BenefitOwnerId` (Guid `EmployeeId`).
+   - Total nominal batch divalidasi terhadap total saldo awal akun kontrol AR Karyawan sebelum disahkan (`FIN-DEC-129`, `FIN-DEC-174`).
+
+---
+
+### P.8 Class Diagram Mermaid Antar Bounded Context
+
+```mermaid
+classDiagram
+    %% BOUNDED CONTEXT REGISTRASI
+    class MstCompanyGuarantor {
+        +Guid Id
+        +string CompanyCode
+        +string CompanyName
+        +bool IsInternalHospitalGuarantor
+    }
+    class MstPatientCompanyGuarantor {
+        +Guid Id
+        +Guid PatientId
+        +Guid CompanyGuarantorId
+        +Guid? EmployeeId
+        +string EmployeeNumber
+        +string BenefitRelationship
+        +bool IsActive
+    }
+    class RegPatientEncounterGuarantor {
+        +Guid Id
+        +Guid EncounterId
+        +Guid CompanyGuarantorId
+        +Guid? BenefitOwnerId
+        +string BenefitRelationshipSnapshot
+    }
+
+    %% BOUNDED CONTEXT BILLING
+    class BilInvoice {
+        +Guid Id
+        +string InvoiceNumber
+        +decimal TotalAmount
+        +decimal PayerCoverageAmount
+        +decimal PatientOutofPocketAmount
+    }
+    class BilArHandoff {
+        +Guid Id
+        +Guid InvoiceId
+        +string DebtorType
+        +Guid? DebtorReferenceId
+        +decimal Amount
+        +Guid? BenefitOwnerId
+        +string BenefitRelationship
+        +string HandoffStatus
+    }
+    class BilHandoffAdjustment {
+        +Guid Id
+        +Guid SourceHandoffId
+        +string AdjustmentType
+        +decimal AdjustedAmount
+        +string Reason
+    }
+
+    %% BOUNDED CONTEXT FINANCE MANAGEMENT
+    class FinReceivable {
+        +Guid Id
+        +string ReceivableNumber
+        +string DebtorType
+        +Guid? DebtorReferenceId
+        +Guid? BenefitOwnerId
+        +string BenefitRelationship
+        +decimal OriginalAmount
+        +decimal OutstandingAmount
+        +string Status
+    }
+    class FinReceivableInstallmentPlan {
+        +Guid Id
+        +string PlanNumber
+        +Guid ReceivableId
+        +Guid BenefitOwnerId
+        +decimal AgreedAmount
+        +int TotalInstallments
+        +string Status
+    }
+    class FinReceivableInstallment {
+        +Guid Id
+        +Guid InstallmentPlanId
+        +int InstallmentOrder
+        +Guid TargetPayrollPeriodId
+        +decimal ScheduledAmount
+        +decimal CarriedOverAmount
+        +decimal PaidAmount
+        +string Status
+    }
+    class FinReceivableMovement {
+        +Guid Id
+        +Guid ReceivableId
+        +string MovementType
+        +decimal Amount
+        +string SourceReference
+    }
+    class FinBenefitSettlement {
+        +Guid Id
+        +string SettlementNumber
+        +Guid TargetPayrollPeriodId
+        +Guid InternalPayerId
+        +decimal TotalSettledAmount
+        +string Status
+    }
+
+    %% BOUNDED CONTEXT HUMAN RESOURCE
+    class MstEmployee {
+        +Guid Id
+        +string EmployeeNumber
+        +string FullName
+        +bool IsActive
+    }
+    class TrxEmployeeBenefitEnrollment {
+        +Guid Id
+        +Guid EmployeeId
+        +Guid BenefitPlanId
+        +decimal CoverageLimitAmount
+        +decimal UsedAmount
+        +decimal RemainingAmount
+        +bool IsActive
+    }
+    class TrxPayrollVariableInput {
+        +Guid Id
+        +Guid WorkforceProfileId
+        +Guid PayrollPeriodId
+        +Guid ComponentId
+        +decimal Amount
+        +string SourceType
+        +Guid SourceId
+    }
+    class TrxExitClearance {
+        +Guid Id
+        +Guid EmployeeId
+        +bool IsFinanceCleared
+        +DateTime? FinanceClearedAt
+    }
+
+    %% RELASI LINTAS KONTEKS
+    MstPatientCompanyGuarantor --> MstCompanyGuarantor : Penjamin Perusahaan RS
+    MstPatientCompanyGuarantor --> MstEmployee : Lookup Pegawai HR (R3)
+    RegPatientEncounterGuarantor --> MstPatientCompanyGuarantor : Snapshot Hubungan (R2)
+    BilArHandoff --> RegPatientEncounterGuarantor : Membaca Snapshot Pasien
+    BilArHandoff --> BilInvoice : Handoff Finalisasi Invoice
+    FinReceivable --> BilArHandoff : Konsumsi 2 Baris Handoff (B1)
+    FinReceivableInstallmentPlan --> FinReceivable : Perjanjian Cicilan
+    FinReceivableInstallment --> FinReceivableInstallmentPlan : Jadwal Angsuran
+    TrxPayrollVariableInput --> FinReceivableInstallment : Jadwal Potong Gaji (H2)
+    FinReceivableMovement --> TrxPayrollVariableInput : Hasil Potongan Payroll (H3)
+    TrxExitClearance --> FinReceivable : Cek Saldo Piutang (H5)
+    BilHandoffAdjustment --> BilArHandoff : Reversal Salah Orang (B5)
+```
+
+---
+
+### P.9 Penjelasan Setiap Class
+
+| Nama Class | Status | Lokasi File | Fungsi Utama & Keterangan |
+|---|:---:|---|---|
+| `BilArHandoff` | `Diperbarui` | `Areas/HealthServices/BillingManagement/Billing/Models/BilArHandoff.cs` | Menampung 2 kolom baru: `Guid? BenefitOwnerId` dan `string? BenefitRelationship` (nullable), serta enum baru `BillingArDebtorTypes.EMPLOYEE_BENEFIT` (`FIN-DEC-184`). |
+| `BillingArDebtorTypes` | `Diperbarui` | `Areas/HealthServices/BillingManagement/Billing/Models/BilArHandoff.cs` | Menambahkan konstanta `public const string EMPLOYEE_BENEFIT = "EMPLOYEE_BENEFIT";`. |
+| `BillingArApHandoffService` | `Diperbarui` | `Areas/HealthServices/BillingManagement/Billing/Services/BillingArApHandoffService.cs` | Menerbitkan 2 baris serah terima untuk tagihan manfaat karyawan (`PAYER` dan `EMPLOYEE_BENEFIT`) saat finalisasi invoice (`FIN-DEC-183`). |
+| `FinanceReceivableIntakeService` | `Diperbarui` | `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceReceivableIntakeService.cs` | Mengonsumsi serah terima `BilArHandoff` tipe `EMPLOYEE_BENEFIT`, memvalidasi constraint, dan membuat kartu `FinReceivable`. |
+| `FinanceReceivablePayrollSyncService` | `Baru` | `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceReceivablePayrollSyncService.cs` | Menerbitkan input variabel ke HR saat cicilan disetujui, dan memproses webhook/kiriman balik hasil payroll HR secara idempoten. |
+| `FinanceReceivableClearanceService` | `Baru` (Rev 17) | `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceReceivableClearanceService.cs` | Menghitung status bebas tanggungan per pegawai untuk dikonsumsi form `TrxExitClearance` HR. |
+| `FinanceReceivableMigrationService` | `Diperbarui` | `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceReceivableMigrationService.cs` | Memproses unggahan migrasi batch saldo lama piutang karyawan dengan validasi kunci NIP ke `MstEmployee`. |
+| `FinanceReceivablesPayrollController` | `Baru` | `Areas/Corporate/FinanceManagement/Receivable/Controllers/FinanceReceivablesPayrollController.cs` | Endpoint penerima kiriman hasil payroll HR dan notifikasi pemisahan pegawai. |
+| `FinanceReceivableMigrationController` | `Diperbarui` | `Areas/Corporate/FinanceManagement/Receivable/Controllers/FinanceReceivableMigrationController.cs` | Endpoint unggah berkas batch impor piutang karyawan. |
+| `PayrollResultSyncDto` | `Baru` | `Areas/Corporate/FinanceManagement/Receivable/DTOs/FinanceReceivablePayrollDtos.cs` | DTO transfer hasil payroll: `InstallmentId`, `PayrollPeriodId`, `Status`, `DeductedAmount`, `ExecutionTimestamp`. |
+| `EmployeeSeparationNoticeDto` | `Baru` | `Areas/Corporate/FinanceManagement/Receivable/DTOs/FinanceReceivablePayrollDtos.cs` | DTO transfer notifikasi pemisahan kerja dari HR ke Finance. |
+
+---
+
+### P.10 Arsitektur Folder Pohon File
+
+```text
+Areas/Corporate/FinanceManagement/Receivable/
+├── Models/
+│   ├── FinReceivable.cs                                   # Sudah ada (memiliki BenefitOwnerId & Relationship)
+│   ├── FinReceivableMovement.cs                            # Diperbarui di Rev 17 (POTONGAN-GAJI, PELUNASAN-INTERNAL)
+│   ├── FinReceivableInstallmentPlan.cs                     # Baru (Rev 17)
+│   ├── FinReceivableInstallment.cs                         # Baru (Rev 17)
+│   ├── FinBenefitSettlement.cs                             # Baru (Rev 17)
+│   └── FinBenefitSettlementItem.cs                         # Baru (Rev 17)
+├── DTOs/
+│   ├── FinanceReceivableInstallmentPlanDtos.cs             # Baru (Rev 17)
+│   ├── FinanceBenefitSettlementDtos.cs                     # Baru (Rev 17)
+│   ├── FinanceReceivableClearanceDtos.cs                   # Baru (Rev 17)
+│   ├── FinanceReceivablePayrollDtos.cs                     # Baru (Rev 18 — Hasil Payroll & Notifikasi HR)
+│   └── FinanceReceivableMigrationDtos.cs                   # Diperbarui (Rev 18 — Templat Kunci NIP)
+├── Services/
+│   ├── FinanceReceivableInstallmentPlanService.cs          # Baru (Rev 17)
+│   ├── FinanceBenefitSettlementService.cs                  # Baru (Rev 17)
+│   ├── FinanceReceivableClearanceService.cs                # Baru (Rev 17)
+│   ├── FinanceReceivableIntakeService.cs                   # Diperbarui (Rev 18 — Konsumsi 2 baris handoff)
+│   ├── FinanceReceivablePayrollSyncService.cs              # Baru (Rev 18 — Sinkronisasi dua arah HR Payroll)
+│   └── FinanceReceivableMigrationService.cs                # Diperbarui (Rev 18 — Validasi NIP)
+└── Controllers/
+    ├── FinanceReceivablesController.cs                     # Diperbarui (Rev 17 — Endpoint bebas tanggungan)
+    ├── FinanceReceivableInstallmentPlansController.cs      # Baru (Rev 17)
+    ├── FinanceBenefitSettlementsController.cs              # Baru (Rev 17)
+    ├── FinanceReceivablesPayrollController.cs              # Baru (Rev 18 — Penerima Webhook HR Payroll)
+    └── FinanceReceivableMigrationController.cs             # Diperbarui (Rev 18 — Impor Batch NIP)
+
+Areas/HealthServices/BillingManagement/Billing/
+├── Models/
+│   └── BilArHandoff.cs                                     # Diperbarui (Rev 18 — BenefitOwnerId, Relationship, EMPLOYEE_BENEFIT)
+├── DTOs/
+│   └── BillingHandoffDtos.cs                               # Diperbarui (Rev 18 — Expose Benefit fields)
+└── Services/
+    └── BillingArApHandoffService.cs                        # Diperbarui (Rev 18 — Split handoff 2 baris)
+```
+
+---
+
+### P.11 Status Model dan Rencana Migration
+
+| Tabel | Modul | Schema | Status | Perubahan Kolom | Dampak Migration |
+|---|---|---|:---:|---|---|
+| `BilArHandoff` | Billing | `public` | `Diperbarui` | `BenefitOwnerId` (Guid, Nullable), `BenefitRelationship` (VARCHAR(50), Nullable), perluasan batasan `CK_BilArHandoff_DebtorType` | **Migration Billing**: `AddEmployeeBenefitColumnsToBilArHandoff`. Tanpa downtime, nol backfill data lama (`FIN-DEC-184`, `FIN-DEC-186`). |
+| `FinReceivable` | Finance | `public` | `Sudah ada` | **Nol perubahan kolom**. Kolom `BenefitOwnerId` dan `BenefitRelationship` serta constraint `CK_FinReceivable_EmployeeBenefit_BenefitOwnerId` sudah ada di database sejak awal. | **Nol migration** di Finance untuk tabel ini. |
+| `FinReceivableInstallmentPlan` | Finance | `public` | `Baru` | Seluruh kolom (Rev 17) | Termasuk dalam migration Finance `AddFinanceReceivableInstallmentAndBenefitSettlement`. |
+| `FinReceivableInstallment` | Finance | `public` | `Baru` | Seluruh kolom (Rev 17) | Termasuk dalam migration Finance `AddFinanceReceivableInstallmentAndBenefitSettlement`. |
+| `FinBenefitSettlement` | Finance | `public` | `Baru` | Seluruh kolom (Rev 17) | Termasuk dalam migration Finance `AddFinanceReceivableInstallmentAndBenefitSettlement`. |
+| `FinBenefitSettlementItem` | Finance | `public` | `Baru` | Seluruh kolom (Rev 17) | Termasuk dalam migration Finance `AddFinanceReceivableInstallmentAndBenefitSettlement`. |
+
+---
+
+### P.12 Invariant dan Batas Transaksi
+
+| Invariant / Batasan Sistem | Mekanisme Penegakan |
+|---|---|
+| Serah terima `EMPLOYEE_BENEFIT` **WAJIB** membawa `BenefitOwnerId` yang sah | Divalidasi oleh `BillingArApHandoffService` saat handoff, dan ditegakkan keras oleh basis data Finance lewat `CK_FinReceivable_EmployeeBenefit_BenefitOwnerId`. |
+| Kiriman hasil pemotongan payroll HR **MUST** aman dari duplikasi (*idempotent*) | `FinanceReceivablePayrollSyncService` mencatat dan memeriksa riwayat `(InstallmentId, PayrollPeriodId)`. Pengiriman ulang dengan identitas yang sama tidak akan mengurangi saldo piutang dua kali (`FIN-VAL-240`). |
+| Pemotongan gaji yang melebihi batas take-home pay dipotong sebagian tanpa membatalkan perjanjian | HR memotong sebagian sesuai aturan payroll dan mengirim status `SEBAGIAN`; Finance memindahkan sisa tunggakan ke angsuran periode berikutnya (`FIN-DEC-192`). |
+| Exit clearance pegawai berpiutang aktif **MUST NOT** dapat ditutup | Validasi API `GET /receivables/clearance/{benefitOwnerId}` mengembalikan `IsCleared = false`, mengunci tombol simpan clearance di HR (`FIN-DEC-193`). |
+| Pembatalan / koreksi salah orang **MUST** melalui pasangan pembalik dan serah terima baru | Billing menerbitkan `BilHandoffAdjustment` pembalik; Finance membatalkan piutang lama dan menerbitkan piutang baru; tidak ada edit manual debitur di Finance (`FIN-DEC-173`, `FIN-DEC-187`). |
+
+---
+
+### P.13 Yang Sengaja Tidak Dibuat
+
+1. **Enum Payment Type Baru "Pegawai RS" di Registrasi**: Ditolak (`FIN-DEC-197`). Sistem tetap memakai enum baku `CompanyGuarantor` dengan mendaftarkan RS sebagai instansi penjamin internal, menghindari perombakan masif pada alur registrasi IGD, rawat inap, rawat jalan, dan kiosk.
+2. **Kalkulasi Plafon Benefit di Modul Finance**: Ditolak (`FIN-DEC-164`, `FIN-DEC-185`). Finance tidak membaca aturan grade atau riwayat klaim kacamata; Finance menerima nominal hasil perhitungan bersih dari Billing.
+3. **Penyimpanan Gaji Bruto Pegawai di Finance**: Ditolak. Finance hanya menerima angka cicilan dan hasil potongan, tidak menyimpan struktur gaji atau potongan pajak PPh 21 pegawai.
+4. **Pengeluaran Kas Manual Finance untuk Restitusi Potongan Salah Orang**: Ditolak (`FIN-DEC-195`). Pengembalian dana dilakukan oleh HR via penyesuaian payroll slip gaji periode berikutnya agar rekonsiliasi beban gaji dan pajak pegawai tetap akurat.
+

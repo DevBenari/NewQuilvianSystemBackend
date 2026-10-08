@@ -8,7 +8,9 @@ public sealed class ArHandoffResponse
     public decimal Amount { get; set; }
     public DateTimeOffset? DueDate { get; set; }
     public string Status { get; set; } = string.Empty;
+    public Guid? HandoffKey { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? AcknowledgedAt { get; set; }
 }
 
 public sealed class ApHandoffResponse
@@ -18,8 +20,10 @@ public sealed class ApHandoffResponse
     public decimal Amount { get; set; }
     public string ReadinessStatus { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+    public Guid? HandoffKey { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? ReadyAt { get; set; }
+    public DateTimeOffset? AcknowledgedAt { get; set; }
 }
 
 public sealed class HandoffAdjustmentResponse
