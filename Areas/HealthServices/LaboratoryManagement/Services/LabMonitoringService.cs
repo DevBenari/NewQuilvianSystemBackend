@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 
@@ -161,6 +162,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                         ? label.ToString()
                         : null;
                 }
+            }
+
+            // LAB-EVD-013 butir 5 — status pembayaran per kunjungan, satu kali untuk seluruh halaman.
+            var pembayaran = await LabPaymentClearanceRules.ReadAsync(
+                _dbContext,
+                items
+                    .GroupBy(x => x.EncounterId)
+                    .Select(g => (
+                        g.Key,
+                        Enum.TryParse<EncounterPaymentType>(g.First().PaymentType, out var jenis)
+                            ? jenis
+                            : (EncounterPaymentType?)null,
+                        Enum.TryParse<EncounterType>(g.First().EncounterType, out var jenisKunjungan)
+                            ? jenisKunjungan
+                            : (EncounterType?)null))
+                    .ToList(),
+                cancellationToken);
+
+            foreach (var item in items)
+            {
+                if (!pembayaran.TryGetValue(item.EncounterId, out var status)) continue;
+
+                item.PaymentStatus = status.Status;
+                item.IsPaymentCleared = status.IsCleared;
+                item.OutstandingAmount = status.OutstandingAmount;
             }
 
             return new PagedResult<LabMonitoringItemResponse>

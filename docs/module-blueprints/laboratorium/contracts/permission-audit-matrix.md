@@ -3,7 +3,8 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-PERM-v1` |
-| Revision | **`14` — `approved`** 2026-10-07, bagian 16 (daftar dokter pemeriksa dijaga `LabOrder : Confirm`; nol aksi baru) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-10-07, bagian 15 (`LabOrder : Confirm`) — disetujui Yoga Aji Pratama. Sebelumnya: **`12` — `approved`** 2026-09-28, bagian 14 (`S16a`: resource `LabOperationalReport`) — disetujui Yoga Aji Pratama, termasuk `Export` terpisah dari `Read`. Sebelumnya: **`11` — `approved`** 2026-09-25, bagian 13 (`S4`: `Validate`, `Release`, `Return`, dua data induk alasan). Terakhir `approved`: `10` — **`approved`** 2026-09-24, bagian 12. *Baris ini sempat tertinggal di `7` sejak revision 8; dirapikan 2026-09-24* |
+| Revision | **`15` — `approved`** 2026-10-08, bagian 17 (dua endpoint alur v1 dipetakan; nol aksi baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`14` — `approved`** 2026-10-07, bagian 16 (daftar dokter pemeriksa dijaga `LabOrder : Confirm`; nol aksi baru) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-10-07, bagian 15 (`LabOrder : Confirm`) — disetujui Yoga Aji Pratama. Sebelumnya: **`12` — `approved`** 2026-09-28, bagian 14 (`S16a`: resource `LabOperationalReport`) — disetujui Yoga Aji Pratama, termasuk `Export` terpisah dari `Read`. Sebelumnya: **`11` — `approved`** 2026-09-25, bagian 13 (`S4`: `Validate`, `Release`, `Return`, dua data induk alasan). Terakhir `approved`: `10` — **`approved`** 2026-09-24, bagian 12. *Baris ini sempat tertinggal di `7` sejak revision 8; dirapikan 2026-09-24* |
+| Revision 15 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju ketujuh butir"* atas `LAB-REQ-019`, ketujuh butir |
 | Revision 7 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
 | Isi amandemen revision 7 | **`approved` — 2026-09-18.** Dua resource baru — `LabPathologyParameter` dan `LabPathologyCategory`, masing-masing `Read`/`Create`/`Update`, **nol `Delete`**; keberlakuan parameter dan pemetaan jenis pemeriksaan ikut `LabPathologyCategory : Update`, bukan resource sendiri. Mengisi, memfinalkan, dan membuka kembali laporan PA **tidak menambah hak akses** — memakai `LabExamination : Update` yang sudah ada. **Satu pemisahan yang disengaja: konteks klinis pesanan memakai `LabOrder : Update`**, sebab penulisnya **dokter pemesan, bukan patolog** (`LAB-DEC-091`, `INV-40`). Lima kejadian audit baru; **`PathologyReport.Reopen` dan `PathologyReport.AmendValue` wajib beralasan**. Membawa **pembatasan logger dan DTO paling ketat pada modul ini**: nol isi parameter, nol diagnosa, nol riwayat penyakit boleh masuk log atau layar non-klinis. Disetujui bersama `LAB-API-v1` `r25` dan `LAB-VAL-v1` `r8` pada hari yang sama. Lihat bagian 9 |
 | Revision 6 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
@@ -1015,3 +1016,39 @@ Konfirmasi itu sendiri: siapa yang boleh mengonfirmasi otomatis boleh melihat pi
 
 Daftar hanya membawa id, kode, nama, dan spesialisasi dokter (`r41` 36.3). Membaca daftar **tidak** dicatat ke
 log audit — ia tidak mengubah apa pun dan tidak menyentuh data pasien.
+
+## 17. Amandemen revision 15 — Alur Lab dari kiosk sampai hasil mengikuti FE v1, 2026-10-08
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-PERM-v1` |
+| Revision | **15** |
+| Status | **`approved`** 2026-10-08 — Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul: *"Setuju ketujuh butir"* atas `LAB-REQ-019` |
+| `input_revision` | decisions rev 91 (`LAB-DEC-213`, `LAB-DEC-215`, `LAB-DEC-219`); `LAB-API-v1` `r42` usulan; `02-backend-architecture.md` bagian 26 |
+
+### 17.1 Aksi yang ditambahkan
+
+**Tidak ada.** Kedua endpoint baru memakai penjaga yang sudah ada.
+
+### 17.2 Pemetaan endpoint
+
+| Endpoint | Penjaga | Catatan |
+|---|---|---|
+| `GET /lab-orders/kiosk/pending-by-patient/{patientId}` | `[Authorize(Policy = "KioskRead")]` + `[AccessAction("Read", "Read Lab Order", …)]` — **tanpa** `AccessPermission` | Pola route kiosk lain (`POST /patient-encounters/kiosk`). `AccessAction` hanya metadata katalog, bukan pemeriksaan izin |
+| `GET /lab-patient-registrations/kiosk-encounters` | `[AccessPermission("LabPatientRegistration", "Read")]` | Pemegang sama dengan pencarian pasien Lab |
+| `PUT /lab-orders/{id}/start-process` | `LabOrder : Process` — tidak berubah | Penolakan pembayaran adalah aturan, bukan izin (`VAL-152`/`VAL-153`) |
+| `POST /lab-specimens/{id}/accept` dan `/reject` | `LabSpecimen : Accept` — tidak berubah | **Aturan orang** `VAL-09` tetap: pengambil sampel ditolak `403` walaupun memegang izin |
+
+### 17.3 Matriks uji izin
+
+| Pengguna | `kiosk/pending-by-patient` | `kiosk-encounters` | `accept` atas wadah yang ia ambil sendiri |
+|---|:---:|:---:|:---:|
+| Akun kiosk | `200` | `403` | — |
+| Analis Laboratorium | `403` | `200` | **`403`** (`VAL-09`) |
+| Analis lain (bukan pengambil) | `403` | `200` | `200` |
+| SuperAdmin | `200` | `200` | **`403`** bila ia pengambilnya (diamati 2026-10-08) |
+
+### 17.4 Privasi dan pencatatan
+
+`kiosk/pending-by-patient` tidak membawa hasil, harga, maupun status keuangan. Daftar OTC membawa identitas pasien
+setara Daftar Pasien Lab. Keduanya baca, **tidak** dicatat ke log audit.

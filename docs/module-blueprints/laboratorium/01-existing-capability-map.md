@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `laboratorium` |
-| Revision | `7` — impact scan terbatas 2026-10-07 atas sembilan butir bahan audit amendment pass putaran 22 (aksi alur kerja dan menu daftar pasien lab). Sebelumnya `6` |
+| Revision | `8` — impact scan 2026-10-08 atas kedua rentang snapshot manifest (BE `4a94628a..f4e79c4e`, FE `696a906a6..f6f23352e`), berfokus pada alur Lab putaran 26 dan titik sentuh Billing/Rawat Inap; `LAB-CONFLICT-018` dibuka. Sebelumnya `7` — impact scan terbatas 2026-10-07 atas sembilan butir bahan audit amendment pass putaran 22 (aksi alur kerja dan menu daftar pasien lab). Sebelumnya `6` |
 | Status | `draft` — **peta revision 1-2 `STALE`; sebagian revision 3 dan 4 juga `STALE`**, lihat Impact Scan Revision 5 bagian A |
 | Jenis audit | Revision 1: audit penuh. Revision 2: *impact scan* terbatas. Revision 3: *impact scan* terbatas atas kemampuan yang terdampak `LAB-DEC-037`..`LAB-DEC-045`. Revision 4: *impact scan* terbatas atas permukaan yang disentuh `LAB-DEC-095`..`LAB-DEC-110`. **Revision 5: *impact scan* terbatas atas permukaan yang disentuh `LAB-DEC-133`..`LAB-DEC-145` serta `LAB-FE-015`/`LAB-FE-016`**. Revision 6: dokumen klinis pasien dan kunjungan MCU. **Revision 7: *impact scan* terbatas atas `LAB-DEC-188`..`LAB-DEC-192`, `LAB-FE-030`/`LAB-FE-031`, ditambah sembilan kueri baca-saja ke basis data pengembangan** |
 | Sifat audit | **Read-only.** Tidak ada satu baris source aplikasi yang diubah |
@@ -28,12 +28,179 @@
 | Masukan revision 7 | `00-interview-decisions.md` **revision 87** (sha256 metode manifest `tr -d '\r'` = `a0e61a0c…2c029c074a`; berkas mentah CRLF = `275ea723…8fb9f1`), keputusan `LAB-DEC-188`..`LAB-DEC-192`, `LAB-FE-030`/`LAB-FE-031`, BR-136, BR-137, `AC-276`..`AC-282`. Kontrak yang dibaca: `LAB-API-v1` `r39`, `LAB-STATE-v1` `r7`, `LAB-PERM-v1` `r12`, `LAB-VAL-v1` `r16` — keempatnya `approved` |
 | Basis data revision 7 | `QuilvianNewDevYoga`, sesi `default_transaction_read_only=on` (diperiksa: `on`). Sembilan kueri `SELECT`, **nol penulisan**. Connection string tidak dicetak |
 | Tanggal audit revision 7 | 2026-10-07 |
+| Backend SHA revision 8 | `f4e79c4e` (branch `yoga`) **ditambah working tree** `LabOrderService.cs` (`Confirmed` di status aktif kiosk, belum di-commit). 25 commit sejak `171dc314`; 216 sejak `4a94628a` |
+| Frontend SHA revision 8 | `f6f23352e` (branch `YogaV2`). Working tree bersih. 16 commit sejak `5427ddbe4`; 125 sejak `696a906a6` |
+| Masukan revision 8 | `00-interview-decisions.md` **revision 91** (`LAB-DEC-212`..`LAB-DEC-221`, BR-141); kontrak `LAB-API-v1` `r42`, `LAB-PERM-v1` rev 15, `LAB-STATE-v1` `r9`, `LAB-VAL-v1` `r18`, `LAB-INT-v1` `r6` — kelimanya `approved` 2026-10-08 (`LAB-REQ-019`) |
+| Basis data revision 8 | `QuilvianNewDevYoga` lewat endpoint `GET` backend lokal sebagai superadmin; **nol penulisan**. Kredensial dibaca dari konfigurasi lokal dan tidak dicetak |
+| Tanggal audit revision 8 | 2026-10-08 |
 
 > **Cara membaca dokumen ini.**
 > Dokumen ini menjawab pertanyaan "apa yang sudah ada di sistem", bukan "aturan bisnisnya
 > bagaimana". Setiap baris membawa bukti berupa lokasi berkas dan nama simbol pada commit
 > tertentu, supaya siapa pun bisa memeriksa ulang. Dokumen ini **tidak** merancang arsitektur
 > dan **tidak** memberi izin menulis kode.
+
+---
+
+## Impact Scan Revision 8 — 2026-10-08
+
+**Pemicu.** Manifest rev 103 menandai snapshot sumber `STALE`: `backend_commit_sha` `4a94628a` tertinggal 216
+commit dari `HEAD` `f4e79c4e`, `frontend_commit_sha` `696a906a6` tertinggal 125 commit dari `HEAD` `f6f23352e`.
+Snapshot itu tidak boleh dimajukan tanpa pemindaian dampak. Revision ini memindai kedua rentang, dengan fokus pada
+alur Lab dari kiosk sampai hasil yang dibangun putaran 26 (`LAB-DEC-212`..`LAB-DEC-221`, BR-141) dan kontrak yang
+baru disetujui lewat `LAB-REQ-019` (`LAB-API-v1` `r42`, `LAB-PERM-v1` rev 15, `LAB-STATE-v1` `r9`, `LAB-VAL-v1`
+`r18`, `LAB-INT-v1` `r6`).
+
+**Batas audit.**
+
+| Rentang | Yang dipindai | Cara |
+|---|---|---|
+| BE `171dc314..f4e79c4e` (25 commit) | Seluruh 11 berkas `LaboratoryManagement` yang berubah; setiap berkas di luar Lab yang diff-nya menyebut `LabOrder`/`LabSpecimen`/`Laboratory`; snapshot migration | Baca diff dan implementasi |
+| BE working tree | `LabOrderService.cs` — `Confirmed` masuk status aktif kiosk (butir 6 `LAB-REQ-019`), **belum di-commit** | Build lolos; uji HTTP baca |
+| BE `4a94628a..171dc314` (191 commit) | Lima commit Lab (36 berkas, dua migration Lab) — dicocokkan ke laporan task dan kontrak approved, **tidak** dibaca ulang baris demi baris | Pencocokan commit → laporan |
+| FE `5427ddbe4..f6f23352e` (16 commit) | Seluruh berkas Lab dan kiosk pasien lama; commit modul lain yang menyentuh `menu-items.jsx` atau komponen dasar | Baca diff; 555 uji unit Lab |
+| FE `696a906a6..5427ddbe4` (109 commit) | Lima commit Lab — dicocokkan ke laporan `FE-LAB-*` | Pencocokan commit → laporan |
+| Basis data | `QuilvianNewDevYoga`, **hanya lewat endpoint `GET`** backend lokal sebagai superadmin. Nol penulisan | HTTP |
+
+**Tidak diaudit:** perilaku internal Rawat Inap, Kamar Operasi, Bank Darah, Gizi, dan IGD (hanya titik sentuhnya);
+FE v1; layar di peramban (nol layar dijalankan pada revision ini — klaim layar adalah bacaan kode ditambah 555 uji unit).
+
+> ### Kesimpulan pendek
+>
+> **Alur Lab putaran 26 berdiri sesuai kontrak yang baru disetujui.** Dua bacaan baru (kiosk dan OTC), ruas
+> pembayaran, `procedureId`, pengambil sampel, dan kunci Lunas Proses ada di kode dengan izin yang tertulis di
+> kontrak. Cacat `Confirmed` di kiosk sudah diperbaiki di working tree dan terbukti lewat HTTP: pasien pemilik
+> `LAB-RSMMC-000013` kini mendapat `000013` dan `000006` (*Dikonfirmasi*) di daftar kiosk.
+>
+> **Satu pertentangan baru yang perlu keputusan pemilik modul: kunci Lunas menahan pasien rawat inap dan IGD
+> Tunai** (`LAB-CONFLICT-018`). `start-process` tidak membedakan jenis kunjungan. Sejak `BE-RWI-155` (masuk rentang
+> ini) tagihan Lab rawat inap terbit ke invoice RANAP yang lazimnya dilunasi saat pasien pulang, sehingga pesanan Lab
+> rawat inap Tunai tertahan *Belum Lunas* selama pasien dirawat. Untuk **IGD** lebih berat: jembatan Billing menolak
+> kunjungan IGD (*NotApplicable*), tagihan Lab IGD tidak pernah terbit, sehingga pesanan Lab IGD Tunai tertahan
+> *Belum Ditagih* **selamanya**. Di devYoga belum terjadi: dari 23 pesanan Lab nol berpenanda rawat inap, dan
+> 21 baris di tiga daftar pantau seluruhnya kunjungan rawat jalan Tunai.
+>
+> **Perubahan modul lain tidak menggeser aturan Lab:** rumus pelunasan Billing yang disalin (`INT-09`) tidak
+> berubah; tautan invoice RANAP ke kunjungan asal tidak memindahkan baris tagihan Lab; enum jenis bayar dan endpoint
+> kiosk Registrasi tidak berubah; skema tabel Lab tidak tersentuh migration modul lain.
+
+### Bagian A — Rentang commit dan hasil pencocokan
+
+**Backend, rentang baru `171dc314..f4e79c4e`:**
+
+| Commit | Isi untuk Lab | Tercakup oleh |
+|---|---|---|
+| `f17cb984`, `bc5608cf` | Putaran 23–24: Konfirmasi juga sah pada `Accepted` tanpa berpindah status (`LAB-DEC-195`), Proses wajib terkonfirmasi (`VAL-151`), `GET lab-orders/examiner-doctor-options` (`LabOrder : Confirm`), jejak konfirmasi pada rincian | `LAB-API-v1` `r40`/`r41`, `LAB-STATE-v1` `r8`, `LAB-VAL-v1` `r17`, `LAB-PERM-v1` rev 13/14 — approved 2026-10-07 |
+| `ebc748b1` | Beranda Lab — hanya dokumen di repo backend | — |
+| `6564e04d`, `f4e79c4e` | Putaran 26 (alur v1) dan format rupiah `id-ID` | `r42` dkk. — approved 2026-10-08 (`LAB-REQ-019`) |
+| Working tree | `Confirmed` di status aktif kiosk | Butir 6 `LAB-REQ-019` |
+
+**Backend, titik sentuh di luar Lab dalam rentang yang sama:**
+
+| Berkas | Perubahan | Dampak bagi Lab |
+|---|---|---|
+| `BillingManagement/Billing/Services/BillingInvoiceService.cs` | 224 baris tambahan, seluruhnya pada baris 1524 ke atas | **Nihil.** `GetPaymentHistoryAsync` (baris 331) — sumber rumus `LabPaymentClearanceRules` — tidak berubah |
+| `BillingManagement/Billing/Models/BilInvoiceEncounterLink.cs` (baru), `BillingInpatientEventReceiver.cs#EnsureEncounterLinksAsync` | Invoice RANAP ditautkan ke kunjungan asal rujukan rawat inap | **Nihil.** `PatientBillingSummaryService.Breakdown.cs:100-128` hanya menampilkan baris kelompok bedah dari kunjungan tertaut; invoice kunjungan asal tetap miliknya, sehingga status Lunas Lab kunjungan rawat jalan tetap dibaca dari invoice kunjungan itu |
+| `BillingManagement/Billing/Services/BillingClinicalChargeBridgeService.cs:135-140` | `BE-RWI-155`: kunjungan **rawat inap** kini dijembatani; tagihan Lab terbit saat spesimen diterima ke invoice kunjungan itu sendiri (RANAP). Kunjungan **IGD** tetap ditolak `NotApplicable` (*"bukan Rawat Jalan maupun Rawat Inap"*) — penolakan ini sudah ada sebelum rentang | **Ada** — lihat `LAB-CONFLICT-018` |
+| `InPatientManagement/Services/InpAncillaryOrderAdapter.cs:46, :213` (baru) | Cek izin `LabOrder : Create` untuk memutuskan perkiraan harga pemeriksaan Lab boleh ditampilkan | Konsumen baru izin Lab, **baca saja**; tidak menulis tabel Lab. `LAB-PERM-v1` belum mencatat konsumen ini |
+| `Migrations/*` (lima migration modul lain) | Tidak satu pun menyebut tabel Lab; snapshot berubah 0 baris Lab | **Nihil** |
+| `RegistrationManagement/**`, `EncounterPaymentType.cs` | Tidak berubah | **Nihil** (`INT-10` dan aturan *Asuransi / Penjamin* tetap) |
+
+**Backend, rentang lama `4a94628a..171dc314`:** lima commit Lab — `b23556b2` (`BE-LAB-68`), `e13e0b62`
+(`BE-LAB-84`, migration `AddLabResultValidationAndRelease` dan `AddLabSpecimenDecidedAtIndex`), `e7dd33f1`
+(validasi dan rilis Mikrobiologi `S4d-1` serta laporan operasional `S16a` — `BE-LAB-78`..`86`; SHA ini tidak dirujuk
+laporan mana pun, isinya cocok dengan kontrak `r35`/`r37`), `64d709c1` (`BE-LAB-87`), `171dc314` (dasar
+revision 7). Seluruhnya berada di bawah kontrak yang sudah approved dan laporan berstatus `SELESAI`.
+
+**Frontend:** rentang baru berisi `70dd4d4e0`, `c51a5a69e` (putaran 23–25) dan `f6f23352e` (putaran 26); commit
+modul lain hanya menyentuh `menu-items.jsx` (menu Pendaftaran Pasien rawat jalan) dan gaya komponen data dasar —
+grup menu Laboratorium tetap utuh. Rentang lama berisi lima commit Lab yang dilaporkan `FE-LAB-3x`..`45`. **Uji unit
+Lab: 555 lulus, 0 gagal** pada `f6f23352e`. Working tree frontend bersih.
+
+### Bagian B — Tabel kemampuan
+
+| ID | Kebutuhan | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap/adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `CAP-P26-01` | Kiosk membaca pesanan Lab aktif pasien (`AC-302`, `LAB-DEC-213`) | Laboratorium (BE) | `LabOrderController.cs#GetKioskPendingByPatient:226-227` `[Authorize(Policy = "KioskRead")]`; `LabOrderService.cs#GetKioskPendingByPatientAsync:255` — status aktif `Requested`, `Confirmed`, `Accepted`, `InProcess`, `OnHold`, 30 hari, 200 baris @`f4e79c4e`+working tree. HTTP 2026-10-08: `000013:Confirmed`, `000006:Confirmed` tampil | Ready to reuse | Perbaikan `Confirmed` belum di-commit | Rendah |
+| `CAP-P26-02` | Kiosk mengarahkan pasien ke Konfirmasi Kehadiran atau pendaftaran (`AC-302`..`AC-304`) | Laboratorium (FE) | `kiosk-old-patient-step-lab-attendance.jsx`; `use-kiosk-old-patient-registration.jsx` (`labMode`); `kiosk-old-patient-registration.service.js` @`f6f23352e`. Layar tidak membaca nilai `orderStatus` | Ready to reuse | `AC-304` (bacaan gagal → pendaftaran) belum diuji di peramban | Rendah |
+| `CAP-P26-03` | Daftar Pasien OTC dari kunjungan kiosk (`AC-305`) | Laboratorium | `LabPatientRegistrationController.cs#GetKioskEncounters:67-70` `[AccessPermission("LabPatientRegistration", "Read")]`; `LabPatientRegistrationService.cs#GetKioskEncountersAsync:131`, penyaring `isReferral:149`; FE `lab-otc-patient-view.jsx`, `use-lab-otc-patients.jsx` | Ready to reuse | Status pembayaran OTC belum ditampilkan (DoD 27) | Rendah |
+| `CAP-P26-04` | Kolom Pembayaran per baris daftar pantau (`AC-309`) | Laboratorium membaca Billing | `LabMonitoringService.cs:168-184` → `LabPaymentClearanceRules.cs#ReadAsync`; rumus = `BillingInvoiceService.cs#GetPaymentHistoryAsync:331` (tidak berubah dalam rentang) | Reuse with adapter | Adapter **sementara** `INT-09` sampai `LAB-REQ-008`; simpangan rumus = `LAB-OPEN-053` | Sedang |
+| `CAP-P26-05` | Kunci Lunas pada Proses Pemeriksaan (`AC-310`, `AC-311`, `VAL-152`, `VAL-153`) | Laboratorium | `LabOrderService.cs#StartProcessAsync:1356-1374` — membaca `RegPatientEncounter.PaymentType`, tanpa membedakan jenis kunjungan | Conflict | Lihat `LAB-CONFLICT-018` | **Tinggi** bagi rawat inap |
+| `CAP-P26-06` | `orderedProcedures[].procedureId` pada rincian pesanan | Laboratorium | `LabOrderService.cs:411, :446, :561` | Ready to reuse | — | Rendah |
+| `CAP-P26-07` | Pengambil sampel pada wadah dan penolakan empat mata (`VAL-09`, `AC-308`) | Laboratorium | `LabSpecimenService.cs:591-593` (pengambil = penilai → tolak), proyeksi `:1259` | Ready to reuse | Penilaian Layak butuh akun kedua (dicatat `LAB-EVD-013`) | Rendah |
+| `CAP-P26-08` | Konfirmasi pesanan dan pilihan dokter pemeriksa (putaran 23–24) | Laboratorium | `LabOrderController.cs:205` `[AccessPermission("LabOrder", "Confirm")]`; `bc5608cf` | Ready to reuse | — | Rendah |
+| `CAP-P26-09` | Tagihan Lab pasien rawat inap dan IGD | Billing | `BillingClinicalChargeBridgeService.cs:135-140` (`BE-RWI-155`): rawat inap dijembatani; IGD `NotApplicable` | Missing | Tagihan Lab IGD tidak terbit lewat jembatan; milik Billing. Lab hanya pembaca | **Tinggi** bagi IGD |
+| `CAP-P26-10` | Rawat Inap memakai izin `LabOrder : Create` untuk perkiraan harga | Rawat Inap (konsumen izin Lab) | `InpAncillaryOrderAdapter.cs#GetCoverageStatusAsync:46`, `#PermissionResource:213` | Ready to reuse | `LAB-PERM-v1` belum mencatat konsumen ini; mengganti nama aksi `Create` akan memutus Rawat Inap tanpa galat | Rendah |
+| `CAP-P26-11` | Menu dan layar Hasil dan Riwayat ×3, Penerimaan satu Simpan (`AC-306`, `AC-307`, `AC-313`) | Laboratorium (FE) | `lab-result-history/*/page.jsx` (`mode="results"`), `lab-specimen-reception-view.jsx`, `use-lab-specimen-reception.jsx`, `menu-items.jsx` @`f6f23352e`; `lab-menu-br137.test.mjs`, `lab-v1-parity-rules.test.mjs` lulus | Ready to reuse | — | Rendah |
+
+Ringkasan: **11 kemampuan** — 8 `Ready to reuse`, 1 `Reuse with adapter`, 1 `Conflict`, 1 `Missing` (titik sentuh
+milik Billing yang memicu pertentangan).
+
+### Bagian C — Pertentangan
+
+| ID | Pertentangan | Keputusan yang bertentangan | Pemilik |
+|---|---|---|---|
+| `LAB-CONFLICT-018` | **Kunci Lunas menahan Proses Pemeriksaan pasien rawat inap dan IGD Tunai.** `LAB-DEC-218` berbunyi "pasien Tunai wajib lunas" tanpa batas jenis kunjungan, dan `StartProcessAsync` menegakkannya apa adanya. **Rawat inap:** sebelum `BE-RWI-155` statusnya selalu *Belum Ditagih* (`VAL-153`); sesudahnya tagihan terbit ke invoice RANAP sehingga *Belum Lunas* (`VAL-152`) sampai pasien membayar — lazimnya saat pulang. **IGD:** jembatan Billing menolak kunjungan IGD, tagihan Lab tidak pernah terbit, sehingga *Belum Ditagih* selamanya — pesanan tidak pernah dapat diproses | `LAB-DEC-218` (lingkup kunci) ↔ kebiasaan rawat inap membayar di akhir perawatan (`RWI-DEC-192`/`RWI-DEC-195`, milik Rawat Inap/Billing) | Yoga Aji Pratama (lingkup kunci Lab); pemilik Billing/Rawat Inap untuk titik bayarnya |
+
+**Contoh `LAB-CONFLICT-018`:**
+
+> Pasien Umum (Tunai) dirawat di bangsal. Dokter bangsal memesan Darah Lengkap, sampel diambil dan dinilai Layak, lalu
+> Billing menerbitkan baris tagihan Rp 85.000 ke invoice RANAP-nya. Analis membuka Daftar Pasien Patologi Klinik:
+> kolom Pembayaran *Belum Lunas*, tombol Proses Pemeriksaan nonaktif, dan bila dipaksa lewat API `start-process`
+> menjawab `409` *"pembayaran belum lunas (sisa Rp 85.000)"*. Pasien baru melunasi saat pulang lima hari kemudian,
+> sehingga hasil Darah Lengkap tertahan selama perawatan.
+
+### Bagian D — Unknown
+
+| ID | Yang tidak diketahui | Kenapa tidak dapat dijawab dari source | Pemilik |
+|---|---|---|---|
+| `LAB-UNK-P26-01` | Bagaimana v1 memperlakukan pasien rawat inap dan IGD Tunai pada kunci Lunas | Penelusuran v1 putaran 26 hanya memakai pasien rawat jalan/kiosk; source v1 Lab sebagian besar placeholder | Yoga Aji Pratama |
+
+### Bagian E — Closure question untuk `/grill-me`
+
+**`Q-LAB-P26-01` — Kunci Lunas Proses Pemeriksaan berlaku untuk siapa?**
+
+- **A. Hanya rawat jalan dan kiosk; rawat inap dan IGD lolos seperti pasien berpenjamin (Direkomendasikan)** —
+  pasien rawat inap membayar di akhir perawatan dan rumah sakit sudah memegang jaminannya lewat episode; hasil tidak
+  tertahan. Konsekuensinya satu penjaga jenis kunjungan pada `LabPaymentClearanceRules` (label baru, misalnya
+  *Rawat Inap — ditagih saat pulang*) dan amandemen kecil `LAB-VAL-v1`/`LAB-API-v1`.
+- **B. Berlaku untuk semua, termasuk rawat inap** — konsisten secara aturan, tetapi pemeriksaan pasien bangsal
+  tertahan sampai keluarga membayar di kasir di tengah perawatan.
+- **C. Rawat inap lolos hanya bila ada deposit yang cukup** — paling ketat bagi keuangan, tetapi butuh jalur baca
+  deposit dari Billing yang belum ada (memperluas `LAB-REQ-008`).
+- **Other** — tuliskan aturan lain.
+
+Memblokir: **IMPLEMENTATION** alur rawat inap dan IGD ke Lab (bukan alur rawat jalan/kiosk yang sudah berjalan).
+Apa pun jawabannya, penagihan Lab IGD (`CAP-P26-09`) adalah urusan Billing dan diteruskan sebagai catatan koordinasi,
+bukan diputuskan di sini.
+
+### Bagian F — Kontrak as-is yang disentuh
+
+Seluruh endpoint putaran 26 sudah tertulis di `LAB-API-v1` `r42` bagian 37 dan kini `approved`; revision ini tidak
+menemukan selisih antara kode dan bagian itu selain `LAB-CONFLICT-018` (lingkup kunci, bukan bentuk endpoint).
+
+#### `[Tags("Health Services / Laboratory Management / Lab Order")]`
+
+| Method | Path | Hak akses | Catatan as-is @`f4e79c4e`+working tree |
+|---|---|---|---|
+| `GET` | `/api/v1/health-services/laboratory-management/lab-orders/kiosk/pending-by-patient/{patientId}` | `KioskRead` (superadmin lolos) | Memuat `Confirmed` sejak working tree 2026-10-08 |
+| `GET` | `/api/v1/health-services/laboratory-management/lab-orders/examiner-doctor-options` | `LabOrder : Confirm` | Putaran 24 |
+| `PUT` | `/api/v1/health-services/laboratory-management/lab-orders/{id}/start-process` | `LabOrder : Process` | `409` untuk status bukan `Accepted`, `VAL-151`, `VAL-152`, `VAL-153`; **tanpa pengecualian jenis kunjungan** |
+
+#### `[Tags("Health Services / Laboratory Management / Lab Patient Registration")]` — titik sentuh saja
+
+| Method | Path | Hak akses | Catatan |
+|---|---|---|---|
+| `GET` | `/api/v1/health-services/laboratory-management/lab-patient-registrations/kiosk-encounters` | `LabPatientRegistration : Read` | Penyaring `isReferral` |
+
+### Bagian G — Pemicu impact scan berikutnya
+
+- Jawaban `Q-LAB-P26-01` (mengubah `LabPaymentClearanceRules` atau `StartProcessAsync`).
+- Jawaban `LAB-REQ-008` — adapter `INT-09` diganti jalur resmi Billing.
+- Perubahan pada `BillingInvoiceService.GetPaymentHistoryAsync`, `BillingClinicalChargeBridgeService`, atau
+  `EncounterPaymentType`.
+- Modul lain yang menambah pemeriksaan izin `LabOrder : *` (seperti `CAP-P26-10`).
+- Commit perbaikan `Confirmed` — SHA-nya dicatat di manifest saat pemilik modul meng-commit.
 
 ---
 
@@ -1412,6 +1579,7 @@ Bila dipertahankan, `BR-25` perlu diperiksa ulang — memilih metode pembayaran 
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 8 | 2026-10-08 | *Impact scan* atas kedua rentang snapshot manifest yang `STALE` — BE `4a94628a..f4e79c4e` (+ working tree `Confirmed`), FE `696a906a6..f6f23352e`. Rentang baru dibaca diff-nya (Lab dan titik sentuh), rentang lama dicocokkan ke laporan task dan kontrak approved. **11 kemampuan** (`CAP-P26-01`..`11`): 8 `Ready to reuse`, 1 `Reuse with adapter`, 1 `Conflict`, 1 `Missing`. **`LAB-CONFLICT-018`**: kunci Lunas menahan pesanan Lab rawat inap dan IGD Tunai — closure question `Q-LAB-P26-01`. Rumus pelunasan Billing, Registrasi, enum jenis bayar, dan skema tabel Lab tidak berubah. 555 uji unit Lab lulus | `draft` |
 | 7 | 2026-10-07 | *Impact scan* terbatas atas sembilan butir bahan audit amendment pass putaran 22 (`LAB-DEC-188`..`LAB-DEC-192`), pada BE `171dc314` + FE `5427ddbe4`, ditambah sembilan kueri baca-saja ke `QuilvianNewDevYoga`. **23 kemampuan:** 12 `Ready to reuse`, 1 `Reuse with adapter`, 2 `Extend`, 3 `Repair`, 2 `Missing`, 1 `Conflict`, 2 `Unknown`. **Backend siap tanpa perubahan** — `start-process`, `complete` beserta rincian `VAL-146`, dan jawaban `200` yang cukup memperbarui baris; Analis memegang `LabOrder : Process` dan seluruh aksi wadah. **`Repair` terpenting: layar Wadah tidak menerjemahkan token alamat** (`CAP-P22-10`), sehingga *Terima Sampling* — dan jalan Detail → Wadah hari ini — berakhir `404`. `Repair` lain: `start-process` menjawab `400` alih-alih `409` (`CAP-P22-03`); rujukan `LAB-DEC-025` pada empat komentar (`CAP-P22-20`). **Satu conflict baru `LAB-CONFLICT-017`:** `AC-278` menahan selamanya pesanan `InProcess` tanpa pemeriksaan terhitung, yang justru diterima backend. **Temuan izin:** baris `LabOrder : Update` Analis terhapus 2026-10-01 (`CAP-P22-15`); Kepala Instalasi dan DPJP Lab tidak dapat membuka daftar sama sekali. Nol uji mengunci label lama; judul halaman di enam tempat dan subjudul Nota memakai judul halaman. Tiga closure question `Q-P22-01`..`Q-P22-03`; tiga unknown `UNK-P22-01`..`03` | `draft` |
 | 6 | 2026-09-25 | *Impact scan* terbatas atas dua fakta kode yang dipakai gerbang r10/r11 dan putaran 19 tanpa `CAP`. **Dokumen klinis pasien** (`CAP-P19-01`..`09`): wadah data `S18` siap dipakai dengan adapter, **tetapi** unggah berkas nol, konsumen frontend nol, dan tiga pertentangan dengan `LAB-DEC-158` — `LAB-CONFLICT-015` (tiga jalan keluar berkas salah) dan `LAB-CONFLICT-016` (satu kode izin `Update`; verifikasi-sendiri saat membuat). **Kunjungan MCU** (`CAP-P19-10`..`13`): jalur pesanan Lab siap; backend Registrasi menerima `MedicalCheckup`; **nol layar yang membuatnya**, sehingga `S19` belum dapat dibuktikan lewat layar (`UNK-P19-01`). **Satu koreksi:** asal kemampuan dokumen klinis pasien adalah `9d38d30a` (2026-06-02), bukan `58c61a5b` | `draft` |
 | 5 | 2026-09-24 | *Impact scan* terbatas atas permukaan yang disentuh amendment pass putaran 14 (`LAB-DEC-133`..`LAB-DEC-145`, `LAB-FE-015`/`LAB-FE-016`), pada BE `ddeb5ed8` (136 commit sejak `981e002c`) dan FE `72607a087` (39 commit sejak `ebef7ebe5`). **20 kemampuan diklasifikasikan:** 5 `Ready to reuse`, 3 `Reuse with adapter`, 1 `Extend`, 1 `Repair`, 7 `Missing`, 2 `Conflict`, 1 `Unknown`. **Dua conflict baru:** `LAB-CONFLICT-012` — satu kode aksi `LabExamination : Update` membuka isi hasil, Final, Reopen, konsultasi, batal, cito, dan duplo sekaligus, sehingga `LAB-DEC-134` tidak dapat ditegakkan; `LAB-CONFLICT-013` — isian hasil Patologi Klinik berada di dialog modal, bertentangan dengan `LAB-FE-016`. **Satu `Repair`:** hasil Mikrobiologi yang sudah Final masih dapat ditimpa tanpa Reopen. **Satu kandidat pakai ulang besar:** `WfpClinicalPrivilege` milik Human Resource beserta preseden Kamar Operasi. Enam fakta revision 4 dinyatakan basi karena sudah dikerjakan. Empat closure question `LAB-CLOSE-013`..`LAB-CLOSE-016` dan dua unknown dibuka. **Catatan pembukuan:** baris riwayat revision 4 (2026-09-21) tidak pernah ditulis pada tabel ini; isinya ada pada bagian *Impact Scan Revision 4* | `draft` |
