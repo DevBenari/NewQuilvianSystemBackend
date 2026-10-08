@@ -29,6 +29,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
     /// Hanya membaca. Tagihan Lab baru terbit saat specimen diterima, sehingga sebelum itu
     /// statusnya <c>NotBilled</c> — Proses Pemeriksaan memang belum sah pada tahap itu.
     /// </para>
+    ///
+    /// <para>
+    /// <b>Rawat inap dan IGD ditagih kemudian</b> (<c>LAB-DEC-223</c>, <c>LAB-DEC-224</c>,
+    /// <c>LAB-API-v1</c> <c>r43</c>). Pasien tunai kedua jenis kunjungan itu membayar di akhir
+    /// perawatan — dan tagihan Lab IGD bahkan belum diterbitkan Billing (<c>LAB-COORD-020</c>) —
+    /// sehingga yang belum lunas dinyatakan <c>Deferred</c> dan lolos, beserta sisanya bila
+    /// tagihannya sudah terbit. Yang sudah lunas tetap <c>Paid</c>. Jenis kunjungan lain, termasuk
+    /// yang tidak terbaca, tetap wajib lunas.
+    /// </para>
     /// </summary>
     internal static class LabPaymentClearanceRules
     {
@@ -36,18 +45,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         public const string Unpaid = "Unpaid";
         public const string Guaranteed = "Guaranteed";
         public const string NotBilled = "NotBilled";
+        public const string Deferred = "Deferred";
 
         internal sealed record Clearance(string Status, bool IsCleared, decimal OutstandingAmount);
 
         public static async Task<Dictionary<Guid, Clearance>> ReadAsync(
             ApplicationDbContext dbContext,
-            IReadOnlyCollection<(Guid EncounterId, EncounterPaymentType? PaymentType)> encounters,
+            IReadOnlyCollection<(Guid EncounterId, EncounterPaymentType? PaymentType, EncounterType? EncounterType)> encounters,
             CancellationToken cancellationToken)
         {
             var hasil = new Dictionary<Guid, Clearance>();
             if (encounters.Count == 0) return hasil;
 
-            foreach (var (encounterId, paymentType) in encounters)
+            var ditagihKemudian = encounters
+                .Where(x => x.EncounterType is EncounterType.Inpatient or EncounterType.Emergency)
+                .Select(x => x.EncounterId)
+                .ToHashSet();
+
+            foreach (var (encounterId, paymentType, _) in encounters)
             {
                 if (paymentType is EncounterPaymentType.Insurance or EncounterPaymentType.CompanyGuarantor)
                 {
@@ -141,11 +156,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     sisa += Math.Max(tanggungan - dibayar, 0m);
                 }
 
-                hasil[encounterId] = !adaTagihan
-                    ? new Clearance(NotBilled, false, 0m)
-                    : sisa > 0m
-                        ? new Clearance(Unpaid, false, sisa)
-                        : new Clearance(Paid, true, 0m);
+                var lunas = adaTagihan && sisa <= 0m;
+
+                hasil[encounterId] = lunas
+                    ? new Clearance(Paid, true, 0m)
+                    : ditagihKemudian.Contains(encounterId)
+                        ? new Clearance(Deferred, true, adaTagihan ? sisa : 0m)
+                        : !adaTagihan
+                            ? new Clearance(NotBilled, false, 0m)
+                            : new Clearance(Unpaid, false, sisa);
             }
 
             return hasil;

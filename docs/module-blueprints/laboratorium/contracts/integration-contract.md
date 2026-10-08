@@ -3,7 +3,8 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-INT-v1` |
-| Revision | **`5` — `approved`** 2026-09-25, bagian 9 (`INT-07` kode Mikrobiologi, `INT-08` Mikrobiologi) — disetujui Yoga Aji Pratama. Sebelumnya: **`4` — `approved`** 2026-09-25, bagian 8 (`INT-07`, `INT-08`, `S4`). Sebelumnya: `3` |
+| Revision | **`6` — `approved`** 2026-10-08, bagian 10 (`INT-09` Billing sementara, `INT-10` Registrasi) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`5` — `approved`** 2026-09-25, bagian 9 (`INT-07` kode Mikrobiologi, `INT-08` Mikrobiologi) — disetujui Yoga Aji Pratama. Sebelumnya: **`4` — `approved`** 2026-09-25, bagian 8 (`INT-07`, `INT-08`, `S4`). Sebelumnya: `3` |
+| `r6` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju ketujuh butir"* atas `LAB-REQ-019`, ketujuh butir |
 | Status | `approved` — dikunci 2026-09-02; **amandemen `r4` disetujui 2026-09-25** (bagian 8); **amandemen `r5` disetujui 2026-09-25** (bagian 9) |
 | Batas penguncian | **Terkunci penuh sejak 2026-09-02.** `LAB-OPEN-021` dijawab: penamaan memakai prefix `Lab`, sehingga tidak ada lagi bagian yang dikecualikan |
 | Owner | Yoga Aji Pratama |
@@ -451,3 +452,39 @@ bertahap menunggu `DEC-LAB-020`.
 |---|---|---|
 | `INT-07` kode Mikrobiologi | `LAB-DEC-143`, `LAB-DEC-148`, `LAB-DEC-152` | `AC-231`, `AC-241` |
 | `INT-08` Mikrobiologi | `LAB-DEC-017` | Baris `INT-08` matriks uji, disiplin Mikrobiologi |
+
+## 10. Amandemen `r6` — Bacaan lintas modul alur Lab mengikuti FE v1, 2026-10-08
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-INT-v1` |
+| Revision | `r6` |
+| Status | **`approved`** 2026-10-08 — Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul: *"Setuju ketujuh butir"* atas `LAB-REQ-019` |
+| `input_revision` | decisions rev 91 (`LAB-DEC-213`, `LAB-DEC-215`, `LAB-DEC-220`) |
+
+| ID | Arah | Bentuk | Status |
+|---|---|---|---|
+| `INT-09` | Laboratorium → Billing | **Bacaan sementara** status pembayaran per kunjungan, sejalur-proses, baca-saja | **Baru — adapter sementara** (`LAB-DEC-220`) |
+| `INT-10` | Laboratorium → Registrasi | Bacaan kunjungan kiosk Laboratorium tanpa pesanan (Daftar Pasien OTC) | **Baru** — baca-saja |
+| `INT-05` | Laboratorium → Registrasi | Pembentukan kunjungan | **Tidak berubah**; kiosk Lab memakai route kiosk Registrasi, bukan `INT-05` |
+
+### 10.1 `INT-09` — status pembayaran (sementara)
+
+| Hal | Isi |
+|---|---|
+| Pemilik data | Billing (`billing-kasir`) |
+| Dibaca | `BilInvoices`, `BilCalculationVersions`, `BilInvoiceItems`, `BilSettlements`, `BilTenders` — langsung lewat `ApplicationDbContext`, baca-saja |
+| Rumus | Salinan `BillingInvoiceService.GetPaymentHistoryAsync` (`IsFullyPaid`); rincian `02-backend-architecture.md` 26.4 |
+| Gagal | Kueri sejalur permintaan; galat database menggagalkan daftar seperti bacaan lain — tidak ada nilai tebakan |
+| Idempotensi / retry | Tidak relevan — baca |
+| Masa berlaku | **Sampai `LAB-REQ-008` dijawab**; sesudah itu diganti jalur resmi Billing tanpa keputusan baru, adapter dihapus |
+| Risiko | `LAB-OPEN-053` — simpangan rumus bila Billing mengubah aturan pelunasan |
+
+### 10.2 `INT-10` — kunjungan kiosk tanpa pesanan
+
+| Hal | Isi |
+|---|---|
+| Pemilik data | Registrasi |
+| Dibaca | `RegPatientEncounters` (`IsFromKiosk`, `IsReferral`, `ReferralNumber`, `EncounterStatus`, `PaymentType`) beserta `MstServiceUnit.ServiceUnitType` dan `MstPatient` |
+| Tulis | **Nol** — `AC-45` |
+| Penutupan kunjungan yang tidak dilanjutkan | Tetap Registrasi (`LAB-DEC-054`); kunjungan yang ditutup tidak tampil |

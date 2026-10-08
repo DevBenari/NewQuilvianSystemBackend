@@ -251,6 +251,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         /// pesanan selesai, dibatalkan, atau dalam pengajuan batal tidak membuat kiosk menawarkan
         /// konfirmasi kehadiran. Jendela <paramref name="lookbackDays"/> menjaga pesanan lama yang
         /// terlupa tidak menahan pasien di jalur konfirmasi selamanya.
+        ///
+        /// <see cref="LabOrderStatus.Confirmed"/> ikut dihitung (<c>LAB-REQ-019</c> butir 6):
+        /// pesanan yang sudah dikonfirmasi petugas tetapi sampelnya belum diterima masih
+        /// menunggu pasien datang, sehingga pasiennya tidak boleh diarahkan ke pendaftaran baru.
         /// </remarks>
         public async Task<List<LabKioskPendingOrderGroupResponse>> GetKioskPendingByPatientAsync(
             Guid patientId,
@@ -262,6 +266,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var statusAktif = new[]
             {
                 LabOrderStatus.Requested,
+                LabOrderStatus.Confirmed,
                 LabOrderStatus.Accepted,
                 LabOrderStatus.InProcess,
                 LabOrderStatus.OnHold
@@ -1349,16 +1354,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             }
 
             // LAB-EVD-013 butir 5: pasien tunai wajib lunas sebelum diproses; asuransi/penjamin
-            // lolos. Dinilai dengan aturan yang sama dengan kolom Pembayaran daftar pantau.
-            var jenisBayar = await _dbContext.RegPatientEncounters
+            // lolos. Dinilai dengan aturan yang sama dengan kolom Pembayaran daftar pantau —
+            // termasuk rawat inap dan IGD yang ditagih kemudian (LAB-DEC-223, VAL-152/153 r19).
+            var kunjungan = await _dbContext.RegPatientEncounters
                 .AsNoTracking()
                 .Where(x => x.Id == entity.EncounterId)
-                .Select(x => (EncounterPaymentType?)x.PaymentType)
+                .Select(x => new
+                {
+                    PaymentType = (EncounterPaymentType?)x.PaymentType,
+                    EncounterType = (EncounterType?)x.EncounterType
+                })
                 .FirstOrDefaultAsync(cancellationToken);
 
             var pembayaran = await LabPaymentClearanceRules.ReadAsync(
                 _dbContext,
-                new[] { (entity.EncounterId, jenisBayar) },
+                new[] { (entity.EncounterId, kunjungan?.PaymentType, kunjungan?.EncounterType) },
                 cancellationToken);
 
             if (pembayaran.TryGetValue(entity.EncounterId, out var statusBayar) && !statusBayar.IsCleared)

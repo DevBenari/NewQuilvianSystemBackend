@@ -173,7 +173,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                         g.Key,
                         Enum.TryParse<EncounterPaymentType>(g.First().PaymentType, out var jenis)
                             ? jenis
-                            : (EncounterPaymentType?)null))
+                            : (EncounterPaymentType?)null,
+                        Enum.TryParse<EncounterType>(g.First().EncounterType, out var jenisKunjungan)
+                            ? jenisKunjungan
+                            : (EncounterType?)null))
                     .ToList(),
                 cancellationToken);
 

@@ -6,7 +6,7 @@
 | Penulis keputusan | Yoga Aji Pratama, pemilik modul |
 | Diterima | Sesi 2026-10-07/08, lima pertanyaan pilihan sesudah penelusuran alur v1 tayang (`v1.quilvian-mmchospital.com`, akun `akagami@hospital.com`) |
 | Permintaan asal | "Tes alur modul lab dari kiosk sampai selesai di v1, lalu terapkan pada QuilvianV2; pastikan proses alur UI dan UX sama, tetapi tema tampilan V2 dipertahankan." |
-| Status di decision log | **Belum dicatat** — perlu Amendment Pass (`qv-grill`) untuk memberi nomor `LAB-DEC-*` dan menandai keputusan lama yang tergeser |
+| Status di decision log | **Dicatat** pada Amendment Pass putaran 26 (2026-10-08), revision `91`: butir 1–6 menjadi `LAB-DEC-213`..`LAB-DEC-219`; pertanyaan lanjutan `LAB-DEC-212`, `LAB-DEC-220`, `LAB-DEC-221` |
 
 ## A. Alur v1 yang ditelusuri (2026-10-07/08)
 
@@ -29,7 +29,7 @@
 
 | # | Pertanyaan | Jawaban pemilik modul | Keputusan lama yang tergeser |
 |---|---|---|---|
-| 1 | Kiosk jalur Laboratorium | **Ikuti v1 penuh**: cek pesanan → konfirmasi kehadiran, atau Jenis Kunjungan → Pembayaran → Konfirmasi → kunjungan dibentuk | `AC-45` (Lab tidak membentuk kunjungan dari kiosk); layar serah-terima `FE-LAB-13` |
+| 1 | Kiosk jalur Laboratorium | **Ikuti v1 penuh**: cek pesanan → konfirmasi kehadiran, atau Jenis Kunjungan → Pembayaran → Konfirmasi → kunjungan dibentuk | `LAB-DEC-052` (pertanyaan surat dokter di kiosk); layar serah-terima `FE-LAB-13`. **Koreksi 2026-10-08:** semula tertulis `AC-45` — keliru; `AC-45` tetap berlaku karena kunjungan dibentuk route kiosk milik Registrasi (`LAB-DEC-053`), lihat putaran 26 F26-1 |
 | 2 | Pendaftaran dan order | **Satu halaman seperti v1** ("Penerimaan Sampling/Specimen") + **Daftar Pasien OTC** (Umum/Rujukan) | Urutan bertahap Cari Pasien → Form → Order → Wadah sebagai satu-satunya jalur |
 | 3 | Aksi Daftar Pasien | **Ikuti v1**: Terima Sampling dari daftar, modal Konfirmasi dengan *sampling diterima* dan *langsung proses* | `LAB-DEC-191` (Terima Sampling hanya navigasi ke layar Wadah) |
 | 4 | Hasil | **Menu Hasil dan Riwayat ala v1, validasi/rilis empat mata V2 tetap berlaku** | — (penambahan) |
