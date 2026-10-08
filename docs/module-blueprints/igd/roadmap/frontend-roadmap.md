@@ -210,9 +210,9 @@ Jumlah panah: **1**; 2 node. Panah itu mewakili tujuh entri dependency backend p
 | `FE-IGD-044` | Sikap pesanan kepergian ditetapkan dari tab Transfer — `IGD-DEC-204`, `205`, `206` — **baru 5 Oktober 2026 (sore)** | ✅ **6 Oktober 2026 (sore) — 13 dari 13 acceptance** (`IGD-DEC-218`, `IGD-DEC-219`): uji layar putaran bersama pada hasil build dengan akun peran nyata — `044-U1`…`U9` dan `041-S11c`, bukti mentah dan log backend diperiksa agent; acceptance 9 untuk modal sikap pesanan lewat source (`044-U10` `NOT RUN`, diserahkan ke tim UAT). Rilis bersama `BE-IGD-041` milik pemilik. Tanpa UAT. *Sebelumnya:* 🟡 **6 Oktober 2026 — implementasi selesai** (`build-module-frontend`): empat berkas (+354/−5) — thunk `fetchDepartureOrderItems`/`setDepartureOrderAction`, konstanta sikap, bagian *Pesanan saat pasien pergi* dan modal sikap di tab Transfer, `refreshVisit` diteruskan; `eslint` 0/0, uji IGD lama 91/91. Acceptance 1–11 terpetakan, 12 dan 13 terbukti (`npm run build` lulus 11.13 WIB). **Belum:** uji layar 1–11 pada putaran bersama (`IGD-DEC-208`); rilis bersama `BE-IGD-041`. Tanpa UAT. *Sebelumnya:* tanpa tanda — gelombang 2 R3.13.2 (5 Oktober 2026 sore); ⛔ menunggu amandemen `IGD-DEC-205` lewat `BE-IGD-041` | [FE-IGD-044](../task/report/frontend/FE-IGD-044.md) |
 | `FE-IGD-045` | Ruang Kerja Dokter IGD: daftar pasien, saringan *Pasien saya*, kartu pasien, kerangka tab — `IGD-DEC-222` — **baru 6 Oktober 2026 (sore)** | 🟡 **7 Oktober 2026 — implementasi selesai; 3 dari 10 acceptance** (8, 9, 10). `eslint` 0/0; `npm run build` lulus 09.39 WIB (472/472). **Belum:** uji layar 1–7 putaran 1 sesudah build `BE-IGD-065`. Tanpa UAT | [FE-IGD-045](../task/report/frontend/FE-IGD-045.md) |
 | `FE-IGD-046` | Tab Pengkajian Medis di layar dokter IGD — `IGD-DEC-221` — **baru** | 🟡 **7 Oktober 2026 — implementasi selesai; 3 dari 6 acceptance** (4, 5, 6). `eslint` 0 error; `npm run build` lulus 10.15 WIB. **Belum:** uji layar 1–3 sesudah build `BE-IGD-066`. Tanpa UAT | [FE-IGD-046](../task/report/frontend/FE-IGD-046.md) |
-| `FE-IGD-047` | Tab Catatan Dokter (SOAP, ICD-10, riwayat) dan CPPT di layar dokter IGD — `IGD-DEC-227`, `231` — **baru** | tanpa tanda — gelombang 2, menunggu `FE-IGD-045`, `BE-IGD-067`; syarat rilis `BE-IGD-070` | [R3.14](#r314--epic-igd-14-ruang-kerja-dokter-igd-dan-pembagian-tugas-layar-perawat-mvp-9--6-oktober-2026-sore) |
-| `FE-IGD-048` | *Catatan Saya* dokter IGD: catatan terkunci dan addendum — `IGD-DEC-231` — **baru** | tanpa tanda — gelombang 2, menunggu `FE-IGD-045`; nol backend | [R3.14](#r314--epic-igd-14-ruang-kerja-dokter-igd-dan-pembagian-tugas-layar-perawat-mvp-9--6-oktober-2026-sore) |
-| `FE-IGD-049` | Tab Resep di layar dokter IGD — `IGD-DEC-229` — **baru** | tanpa tanda — gelombang 3, menunggu `FE-IGD-047`; pasangan uji `BE-IGD-068` | [R3.14](#r314--epic-igd-14-ruang-kerja-dokter-igd-dan-pembagian-tugas-layar-perawat-mvp-9--6-oktober-2026-sore) |
+| `FE-IGD-047` | Tab Catatan Dokter (SOAP, ICD-10, riwayat) dan CPPT di layar dokter IGD — `IGD-DEC-227`, `231` — **baru** | 🟡 **8 Oktober 2026 — implementasi selesai; 3 dari 9 acceptance terbukti** (7 lewat diff, 8, 9); hook & tab mandiri IGD (`IGD-DEC-234`), rawat inap 100% utuh; `eslint` 0/0; `npm run build` lulus (476/476). Belum: uji layar 1–6 putaran 1 sesudah build `BE-IGD-067` | [FE-IGD-047](../task/report/frontend/FE-IGD-047.md) |
+| `FE-IGD-048` | *Catatan Saya* dokter IGD: catatan terkunci dan addendum — `IGD-DEC-231` — **baru** | 🟡 **8 Oktober 2026 — implementasi selesai; 3 dari 6 acceptance terbukti** (4 lewat diff, 5, 6); route `my-notes`, view, hook & tab mandiri IGD (`IGD-DEC-234`), rawat inap 100% utuh; `eslint` 0 error; `npm run build` lulus (476/476). Belum: uji layar 1–3 putaran 1 | [FE-IGD-048](../task/report/frontend/FE-IGD-048.md) |
+| `FE-IGD-049` | Tab Resep di layar dokter IGD — `IGD-DEC-229` — **baru** | 🟡 **8 Oktober 2026 — implementasi selesai; 2 dari 7 acceptance terbukti** (6 lewat diff, 7); service `getPrescriptionsByEncounter`, hook & tab mandiri IGD (`IGD-DEC-234`), rawat inap 100% utuh; `eslint` 0/0; `npm run build` lulus (476/476). Belum: uji integrasi/layar 1–5 putaran 1 bersama `BE-IGD-068` | [FE-IGD-049](../task/report/frontend/FE-IGD-049.md) |
 | `FE-IGD-050` | Tab Tindakan di layar dokter IGD — `IGD-DEC-225` — **baru** | tanpa tanda — gelombang 3, menunggu `FE-IGD-047` | [R3.14](#r314--epic-igd-14-ruang-kerja-dokter-igd-dan-pembagian-tugas-layar-perawat-mvp-9--6-oktober-2026-sore) |
 | `FE-IGD-051` | Tab Tindakan layar perawat: tindakan klinis umum dan tindakan keperawatan — `IGD-DEC-225` — **baru** | tanpa tanda — gelombang 1, menunggu `BE-IGD-069` | [R3.14](#r314--epic-igd-14-ruang-kerja-dokter-igd-dan-pembagian-tugas-layar-perawat-mvp-9--6-oktober-2026-sore) |
 | `FE-IGD-052` | Tab Penunjang dokter: lab, radiologi, bank darah, hemodialisa — `IGD-DEC-220`, `228` — **baru** | tanpa tanda — gelombang 2, menunggu `FE-IGD-045` | [R3.14](#r314--epic-igd-14-ruang-kerja-dokter-igd-dan-pembagian-tugas-layar-perawat-mvp-9--6-oktober-2026-sore) |
@@ -2087,14 +2087,14 @@ flowchart LR
     subgraph backend1402["Prasyarat backend — backend-roadmap.md R3.16"]
         BEIGD065D["🟡 BE-IGD-065<br/>Daftar kunjungan membawa DPJP aktif"]:::luar
         BEIGD066D["🟡 BE-IGD-066<br/>Kajian medis untuk kunjungan IGD"]:::luar
-        BEIGD067D["BE-IGD-067<br/>Riwayat catatan dokter per kunjungan"]:::luar
+        BEIGD067D["🟡 BE-IGD-067<br/>Riwayat catatan dokter per kunjungan"]:::luar
     end
 
     FEIGD045["🟡 FE-IGD-045<br/>Layar dokter IGD dan daftar pasien"]:::sebagian
     FEIGD046["🟡 FE-IGD-046<br/>Tab Pengkajian Medis"]:::sebagian
-    FEIGD047["FE-IGD-047<br/>Tab Catatan Dokter dan CPPT"]:::belum
-    FEIGD048["FE-IGD-048<br/>Catatan Saya dokter IGD"]:::belum
-    FEIGD049["FE-IGD-049<br/>Tab Resep"]:::belum
+    FEIGD047["🟡 FE-IGD-047<br/>Tab Catatan Dokter dan CPPT"]:::sebagian
+    FEIGD048["🟡 FE-IGD-048<br/>Catatan Saya dokter IGD"]:::sebagian
+    FEIGD049["🟡 FE-IGD-049<br/>Tab Resep"]:::sebagian
     FEIGD050["FE-IGD-050<br/>Tab Tindakan dokter"]:::belum
 
     BEIGD065D --> FEIGD045
@@ -2277,11 +2277,11 @@ ulang."*; kajian ulang berhasil.
 
 **DoD.** Acceptance 1–6; laporan `task/report/frontend/FE-IGD-046.md`; register, grafik, traceability.
 
-### `FE-IGD-047` — Tab Catatan Dokter (SOAP, diagnosis ICD-10, riwayat) dan CPPT di layar dokter IGD
+### 🟡 `FE-IGD-047` — Tab Catatan Dokter (SOAP, diagnosis ICD-10, riwayat) dan CPPT di layar dokter IGD
 
 | Field | Isi |
 | --- | --- |
-| **Status** | tanpa tanda — gelombang 2. Termasuk syarat rilis `BE-IGD-070` (R3.16.5) |
+| **Status** | 🟡 **SEBAGIAN — 8 Oktober 2026: implementasi selesai; 3 dari 9 acceptance terbukti** (7 lewat diff, 8, 9). Hook dan tab mandiri dokter IGD (`IGD-DEC-234`); berkas rawat inap 100% utuh identik HEAD; `eslint` 0 error 0 warning; `npm run build` lulus (476/476 halaman, 0 warning); `TAB_COMPONENTS` terdaftar. **Belum:** uji layar 1–6 putaran 1 sesudah build `BE-IGD-067`. Termasuk syarat rilis `BE-IGD-070` (R3.16.5). Tanpa UAT. Bukti: [laporan](../task/report/frontend/FE-IGD-047.md). *Sebelumnya:* tanpa tanda — gelombang 2 |
 | **Outcome** | Dokter menulis catatan dokter SOAP beserta diagnosis ICD-10, menyimpannya sebagai draf, menyelesaikannya sehingga terkunci, dan membaca riwayat catatan dokter satu kunjungan; CPPT kunjungan itu dapat dibaca dan ditulis |
 | **Slice** | R3.14 slice D1 · `SCR-IGD-D01` tab Catatan Dokter |
 | **Requirement** | `FR-IGD-098`; `AT-IGD-203` (bagian tulis dan kunci); DoD butir 2, 4 |
@@ -2314,11 +2314,11 @@ CPPT kunjungan itu memuat catatan perawat Dimas pukul 09.40.
 
 **DoD.** Acceptance 1–9; laporan `task/report/frontend/FE-IGD-047.md`; register, grafik, traceability.
 
-### `FE-IGD-048` — *Catatan Saya* dokter IGD: catatan terkunci dan addendum
+### 🟡 `FE-IGD-048` — *Catatan Saya* dokter IGD: catatan terkunci dan addendum
 
 | Field | Isi |
 | --- | --- |
-| **Status** | tanpa tanda — gelombang 2 |
+| **Status** | 🟡 **SEBAGIAN — 8 Oktober 2026: implementasi selesai; 3 dari 6 acceptance terbukti** (4 lewat diff, 5, 6). Route baru `my-notes/page.jsx`, view, client gate, hook mandiri `use-emergency-authored-notes.js`, tab mandiri `emergency-locked-notes-tab.jsx` (`IGD-DEC-234`), tombol aksi header; berkas rawat inap 100% utuh identik HEAD; `eslint` 0 error (1 warning identik HEAD); `npm run build` lulus (476/476 halaman, 0 warning). **Belum:** uji layar 1–3 putaran 1. Tanpa UAT. Bukti: [laporan](../task/report/frontend/FE-IGD-048.md). *Sebelumnya:* tanpa tanda — gelombang 2 |
 | **Outcome** | Dokter IGD membuka *Catatan Saya*, menemukan catatan dokter IGD yang sudah diselesaikan, dan menambah addendum koreksi tanpa menimpa isi lama |
 | **Slice** | R3.14 slice D1 · `SCR-IGD-D02` |
 | **Requirement** | `FR-IGD-098` (koreksi lewat addendum); `AT-IGD-203` (bagian addendum); DoD butir 4 |
@@ -2348,11 +2348,11 @@ waktu 10.40, isi catatan 10.15 tidak berubah. Draf SOAP pukul 10.40 untuk pasien
 
 **DoD.** Acceptance 1–6; laporan `task/report/frontend/FE-IGD-048.md`; register, grafik, traceability.
 
-### `FE-IGD-049` — Tab Resep di layar dokter IGD
+### 🟡 `FE-IGD-049` — Tab Resep di layar dokter IGD
 
 | Field | Isi |
 | --- | --- |
-| **Status** | tanpa tanda — gelombang 3 |
+| **Status** | 🟡 **SEBAGIAN — 8 Oktober 2026: implementasi selesai; 2 dari 7 acceptance terbukti** (6 lewat diff, 7). Service `getPrescriptionsByEncounter`, hook mandiri `use-emergency-prescription-tab.jsx`, tab mandiri `emergency-doctor-prescription-tab.jsx` dan `emergency-prescription-builder-panel.jsx` (`IGD-DEC-234`), pendaftaran tab di view; berkas rawat inap 100% utuh identik HEAD; `eslint` 0 error 0 warning; `npm run build` lulus (476/476 halaman, 0 warning). **Belum:** uji layar/integrasi 1–5 putaran 1 bersama `BE-IGD-068` (`AT-IGD-204`). Tanpa UAT. Bukti: [laporan](../task/report/frontend/FE-IGD-049.md). *Sebelumnya:* tanpa tanda — gelombang 3 |
 | **Outcome** | Dokter menulis resep pada catatan dokter yang belum diselesaikan; resep tampil di tab Resep layar dokter dan layar perawat, dan saat catatan diselesaikan Billing menerima fakta resep tanpa fakta jasa konsultasi |
 | **Slice** | R3.14 slice D1 · `SCR-IGD-D01` tab Resep |
 | **Requirement** | `FR-IGD-099`; `AT-IGD-204` (bersama `BE-IGD-068`); DoD butir 2, 5 |

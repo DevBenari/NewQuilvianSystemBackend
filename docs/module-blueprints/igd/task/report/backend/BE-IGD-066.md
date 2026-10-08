@@ -19,7 +19,7 @@
 | Commit backend saat dikerjakan | `30ea0a3a` (`rizkiG`) + working tree `BE-IGD-065` (3 berkas IGD, sudah dibuild pemilik 09.54 WIB). Berkas task ini tidak berubah sejak `43dab6da` |
 | Commit frontend rujukan | `6c66327aa` (`RizkiV2`) + working tree `FE-IGD-045` |
 | Tanggal | 7 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — 7 Oktober 2026: implementasi selesai; 1 dari 7 acceptance terbukti** (6, lewat diff — dengan catatan). Satu berkas (+42/−0); QBE checker Strict `PASS`. **Belum:** build pemilik (7) dan uji API/layar 1–5 pada putaran 1 bersama `FE-IGD-046`. Tanpa UAT |
+| Status | 🟡 **SEBAGIAN — 7–8 Oktober 2026: implementasi selesai dan dibuild pemilik; 2 dari 7 acceptance terbukti** (6 lewat diff, 7). Satu berkas (+42/−0); QBE checker Strict `PASS`. Build pemilik: `dotnet build` 0 error, 235 warning (identik baseline; dilaporkan 8 Oktober 2026). **Belum:** uji API/layar 1–5 pada putaran 1 bersama `FE-IGD-046`. Tanpa UAT |
 
 ### Backend Governance Preflight
 
@@ -179,7 +179,7 @@ lewat layar, tidak lewat SQL.
 | 4 | Pengguna tanpa data dokter `403` (aturan 4) | **Terpetakan, belum diuji** | Penjaga lama, tetap paling awal |
 | 5 | Regresi rawat inap dan poliklinik tidak berubah | **Terpetakan lewat diff** | Cabang IGD hanya aktif bila `EmgVisit` ada; cabang rawat inap tidak disentuh |
 | 6 | Diff satu berkas, hanya `ValidateMedicalAssessmentRuleAsync`; nol komentar baru | **Terpenuhi dengan catatan** | Satu berkas; tambahan `using` dan dua konstanta pesan (bagian 3.3) |
-| 7 | Build 0 error; warning dilaporkan | **Belum** | Build milik Rizki |
+| 7 | Build 0 error; warning dilaporkan | **Terpenuhi** | Build pemilik 8 Oktober 2026: 0 error, 235 warning (identik baseline 235 warning) |
 
 **Definition of Done:** laporan tracked ✅; register, node grafik R3.16, dan traceability ditandai 🟡; QBE preflight dan
 checker ✅; tanpa UAT PASS ✅. **Belum:** build (7) dan uji 1–5 pada putaran 1.

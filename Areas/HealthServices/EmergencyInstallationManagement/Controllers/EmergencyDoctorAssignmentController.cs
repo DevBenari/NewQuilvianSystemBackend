@@ -53,6 +53,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         }
 
         /// <summary>
+        /// Daftar dokter jaga IGD yang aktif bertugas (shift dinas IGD) pada hari dan jam saat ini.
+        /// </summary>
+        /// <remarks>
+        /// Memisahkan jadwal praktek poli rawat jalan dari dokter jaga IGD.
+        /// Dokter praktek poli umum/spesialis otomatis difilter keluar.
+        /// </remarks>
+        [HttpGet("on-duty-doctors")]
+        [HttpGet("options")]
+        [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<EmergencyOnDutyDoctorResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Doctor Assignment", Description = "Melihat dokter jaga IGD aktif", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyDoctorAssignment", "Read")]
+        public async Task<IActionResult> GetOnDutyDoctors(
+            [FromQuery] string? search = null,
+            [FromQuery] DateTime? at = null,
+            [FromQuery] bool onlyOnDuty = false,
+            CancellationToken cancellationToken = default)
+        {
+            var data = await _service.AmbilDokterJagaAktifAsync(search, at, onlyOnDuty, cancellationToken);
+            return Ok(ApiResponse<IReadOnlyList<EmergencyOnDutyDoctorResponse>>.Ok(
+                data, "Daftar dokter jaga IGD berhasil diambil."));
+        }
+
+        /// <summary>
         /// Riwayat penugasan dokter pada satu kunjungan IGD, urut waktu.
         /// </summary>
         [HttpGet]

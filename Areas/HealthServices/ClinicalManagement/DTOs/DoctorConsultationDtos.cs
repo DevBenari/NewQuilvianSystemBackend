@@ -692,4 +692,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         public List<SoapTimelineItemResponse> Items { get; set; } = new();
     }
+
+    public class EncounterSoapTimelineResponse
+    {
+        public Guid EncounterId { get; set; }
+
+        public Guid EmergencyVisitId { get; set; }
+
+        public Guid PatientId { get; set; }
+
+        public int TotalCount { get; set; }
+
+        public List<SoapTimelineItemResponse> Items { get; set; } = new();
+    }
 }

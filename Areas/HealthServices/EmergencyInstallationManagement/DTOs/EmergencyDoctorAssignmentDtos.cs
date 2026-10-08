@@ -123,4 +123,56 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// </summary>
         public DateTime? EffectiveFrom { get; set; }
     }
+
+    /// <summary>
+    /// Dokter jaga IGD aktif berdasarkan jadwal dinas (shift roster IGD).
+    /// </summary>
+    /// <remarks>
+    /// Memisahkan jadwal praktek poli rawat jalan dari dokter jaga IGD.
+    /// Dropdown penugasan dokter IGD hanya menampilkan dokter yang sedang bertugas pada shift aktif.
+    /// </remarks>
+    public class EmergencyOnDutyDoctorResponse
+    {
+        public Guid Id => DoctorId;
+
+        public Guid DoctorId { get; set; }
+
+        public string DoctorCode { get; set; } = string.Empty;
+
+        public string DoctorName { get; set; } = string.Empty;
+
+        public string? SpecialistName { get; set; }
+
+        public Guid? ScheduleId { get; set; }
+
+        public string? ScheduleCode { get; set; }
+
+        public string? ScheduleName { get; set; }
+
+        public string? SessionName { get; set; }
+
+        public TimeSpan? StartTime { get; set; }
+
+        public TimeSpan? EndTime { get; set; }
+
+        public string? FormattedShiftTime { get; set; }
+
+        public bool IsOvernight { get; set; }
+
+        public Guid? ServiceUnitId { get; set; }
+
+        public string? ServiceUnitName { get; set; }
+
+        public Guid? ClinicId { get; set; }
+
+        public string? ClinicName { get; set; }
+
+        public Guid? RoomId { get; set; }
+
+        public string? RoomName { get; set; }
+
+        public bool IsOnDuty { get; set; } = true;
+
+        public string DisplayLabel { get; set; } = string.Empty;
+    }
 }

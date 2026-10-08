@@ -19,7 +19,7 @@
 | Commit backend saat dikerjakan | `30ea0a3a` (`rizkiG`, sejajar origin, bersih). Source identik dengan `43dab6da` — dua commit sesudahnya hanya dokumen |
 | Commit frontend rujukan | `6c66327aa` (`RizkiV2`) + perubahan pemilik pada `emergency-assessment-observation-tab.jsx` (bukan task ini) |
 | Tanggal | 7 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — 7 Oktober 2026: implementasi selesai dan dibuild pemilik; 2 dari 8 acceptance terbukti penuh (6 dengan delta, 7), 1 sebagian (8).** Tiga berkas (+75/−12); QBE checker Strict `PASS` pada ketiganya. Build pemilik: *"sudah saya build"* — DLL `bin/Debug/net9.0/QuilvianSystemBackend.dll` 09.54.00 WIB, sesudah suntingan source terakhir 08.49.31 WIB; **jumlah warning belum dilaporkan**. **Belum:** uji API acceptance 1–5 pada putaran uji 1 bersama `FE-IGD-045` (roadmap backend R3.16.4). Tanpa UAT |
+| Status | 🟡 **SEBAGIAN — 7–8 Oktober 2026: implementasi selesai dan dibuild pemilik; 3 dari 8 acceptance terbukti penuh (6 dengan delta, 7, 8).** Tiga berkas (+75/−12); QBE checker Strict `PASS` pada ketiganya. Build pemilik: `dotnet build` 0 error, 235 warning (identik baseline; dilaporkan 8 Oktober 2026). Delta 1 (`ongoing=false` simetris) disahkan sebagai `IGD-DEC-233`. **Belum:** uji API acceptance 1–5 pada putaran uji 1 bersama `FE-IGD-045` (roadmap backend R3.16.4). Tanpa UAT |
 
 ### Backend Governance Preflight
 
@@ -207,7 +207,7 @@ atas. Penetapan dan pengalihan DPJP lewat layar triage (`BE-IGD-045`). Dokter `r
 | 5 | Regresi ruas `BE-IGD-063` dan `BE-IGD-064` pada detail tidak berubah | **Terpetakan, belum diuji** | `Include` dan pengisian `alasanMenungguPenutupan` tidak disentuh; DPJP ditambahkan sesudahnya |
 | 6 | Ruas DPJP dibentuk di kueri daftar yang sama, bukan pemanggilan per baris | **Terpenuhi menurut maksudnya, dengan delta** | Satu kueri `AmbilBerjalanPerKunjunganAsync` per halaman (bukan per baris); bukan kueri yang sama — bagian 3.3 delta 2 |
 | 7 | Diff hanya tiga berkas Cakupan; nol `Program.cs`, migration; nol komentar baru; komentar lama tidak disunting | **Terpenuhi** | Bagian 3.2 dan 5 |
-| 8 | Build 0 error; jumlah warning dilaporkan | **Sebagian** — build berhasil (DLL 09.54.00 WIB); jumlah warning belum dilaporkan | Bagian 5 |
+| 8 | Build 0 error; jumlah warning dilaporkan | **Terpenuhi** | Build pemilik 8 Oktober 2026: 0 error, 235 warning (identik baseline 235 warning) |
 
 **Definition of Done:** laporan tracked ✅; register, node grafik R3.16, dan traceability ditandai 🟡; QBE preflight dan
 checker ✅; tanpa UAT PASS ✅. **Belum:** jumlah warning build (8) dan uji API 1–5 pada putaran 1.

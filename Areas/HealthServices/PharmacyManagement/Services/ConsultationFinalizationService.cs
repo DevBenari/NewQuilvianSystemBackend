@@ -219,29 +219,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             // RJ-E2E-DEC-001 (BE-RJE-007): jasa konsultasi ditagih saat konsultasi Completed lewat
             // finalisasi canonical ini — satu fakta per konsultasi. Tarifnya ditetapkan Billing
             // (RJ-E2E-DEC-012), sehingga fakta tidak membawa nominal apa pun.
-            var consultationEmission = await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
-                new ClinicalMilestoneFactRequest
-                {
-                    SourceContext = BillingSourceContract.ConsultationSourceContext,
-                    SourceAggregateId = consultation.Id,
-                    EffectType = BillingSourceContract.ConsultationChargeEffectType,
-                    EncounterId = consultation.EncounterId,
-                    OccurredAt = now,
-                    Quantity = 1m,
-                    Unit = "KALI",
-                    RuleSnapshot = JsonSerializer.Serialize(new
+            if (consultation.Encounter?.EncounterType != EncounterType.Emergency)
+            {
+                var consultationEmission = await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
+                    new ClinicalMilestoneFactRequest
                     {
-                        milestone = "ConsultationCompleted",
-                        doctorId = consultation.DoctorId,
-                        clinicId = consultation.ClinicId
-                    }),
-                    CorrelationId = consultationId
-                },
-                actorUserId,
-                cancellationToken);
+                        SourceContext = BillingSourceContract.ConsultationSourceContext,
+                        SourceAggregateId = consultation.Id,
+                        EffectType = BillingSourceContract.ConsultationChargeEffectType,
+                        EncounterId = consultation.EncounterId,
+                        OccurredAt = now,
+                        Quantity = 1m,
+                        Unit = "KALI",
+                        RuleSnapshot = JsonSerializer.Serialize(new
+                        {
+                            milestone = "ConsultationCompleted",
+                            doctorId = consultation.DoctorId,
+                            clinicId = consultation.ClinicId
+                        }),
+                        CorrelationId = consultationId
+                    },
+                    actorUserId,
+                    cancellationToken);
 
-            if (!consultationEmission.IsClinicallySafe)
-                billingHandoffIssues.Add($"Jasa konsultasi: {consultationEmission.Code}");
+                if (!consultationEmission.IsClinicallySafe)
+                    billingHandoffIssues.Add($"Jasa konsultasi: {consultationEmission.Code}");
+            }
 
             foreach (var prescription in finalizedPrescriptions)
             {

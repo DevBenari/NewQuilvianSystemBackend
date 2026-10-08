@@ -4,6 +4,8 @@ using Npgsql;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using System.Linq.Expressions;
@@ -413,6 +415,262 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 && string.Equals(postgres.ConstraintName, IndexPenugasanBerjalan, StringComparison.Ordinal))
             {
                 return "Kunjungan ini sudah memiliki dokter penanggung jawab. Gunakan aksi pengalihan dokter.";
+            }
+        }
+
+        /// <summary>
+        /// Mengambil daftar dokter jaga IGD yang memiliki jadwal shift dinas IGD aktif pada saat ini
+        /// (memisahkan dokter praktek poli rawat jalan dari dokter jaga IGD).
+        /// </summary>
+        public async Task<IReadOnlyList<EmergencyOnDutyDoctorResponse>> AmbilDokterJagaAktifAsync(
+            string? search,
+            DateTime? at,
+            bool onlyOnDuty = false,
+            CancellationToken cancellationToken = default)
+        {
+            var effectiveNow = at.HasValue
+                ? ConvertToOperationalTime(at.Value)
+                : GetOperationalNow();
+
+            var today = effectiveNow.Date;
+            var currentTime = effectiveNow.TimeOfDay;
+            var currentDay = today.DayOfWeek;
+            var yesterday = today.AddDays(-1);
+            var previousDay = yesterday.DayOfWeek;
+
+            var query = _dbContext.Set<MstDoctorSchedule>()
+                .AsNoTracking()
+                .Include(x => x.Doctor)
+                .Include(x => x.ServiceUnit)
+                .Include(x => x.Clinic)
+                .Include(x => x.Room)
+                .Where(x =>
+                    x.IsActive && !x.IsDelete &&
+                    x.ScheduleStatus == DoctorScheduleStatus.Active &&
+                    x.Doctor != null && x.Doctor.IsActive && !x.Doctor.IsDelete);
+
+            // Filter HANYA ke Instalasi Gawat Darurat (IGD)
+            query = query.Where(x =>
+                (x.ServiceUnit != null && (
+                    x.ServiceUnit.ServiceUnitType == ServiceUnitType.Emergency ||
+                    EF.Functions.ILike(x.ServiceUnit.ServiceUnitName, "%IGD%") ||
+                    EF.Functions.ILike(x.ServiceUnit.ServiceUnitName, "%Gawat Darurat%") ||
+                    EF.Functions.ILike(x.ServiceUnit.ServiceUnitCode, "%IGD%")))
+                ||
+                (x.Clinic != null && (
+                    (x.Clinic.ServiceUnit != null && x.Clinic.ServiceUnit.ServiceUnitType == ServiceUnitType.Emergency) ||
+                    EF.Functions.ILike(x.Clinic.ClinicName, "%IGD%") ||
+                    EF.Functions.ILike(x.Clinic.ClinicName, "%Gawat Darurat%") ||
+                    EF.Functions.ILike(x.Clinic.ClinicCode, "%IGD%")))
+            );
+
+            // Kecualikan secara tegas poli rawat jalan
+            query = query.Where(x =>
+                (x.ServiceUnit == null || x.ServiceUnit.ServiceUnitType != ServiceUnitType.Outpatient) &&
+                (x.Clinic == null || x.Clinic.ServiceUnit == null || x.Clinic.ServiceUnit.ServiceUnitType != ServiceUnitType.Outpatient)
+            );
+
+            // Filter hari dan jam shift dinas aktif (termasuk shift overnight / lintas tengah malam)
+            query = query.Where(x =>
+                (
+                    !x.IsOvernight &&
+                    (
+                        (x.ScheduleType == DoctorScheduleType.WeeklyRecurring && x.PracticeDay == currentDay) ||
+                        (x.ScheduleType != DoctorScheduleType.WeeklyRecurring && x.PracticeDate.HasValue && x.PracticeDate.Value.Date == today)
+                    ) &&
+                    (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= today) &&
+                    (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= today) &&
+                    x.StartTime <= currentTime &&
+                    currentTime < x.EndTime
+                )
+                ||
+                (
+                    x.IsOvernight &&
+                    (
+                        (
+                            (
+                                (x.ScheduleType == DoctorScheduleType.WeeklyRecurring && x.PracticeDay == currentDay) ||
+                                (x.ScheduleType != DoctorScheduleType.WeeklyRecurring && x.PracticeDate.HasValue && x.PracticeDate.Value.Date == today)
+                            ) &&
+                            (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= today) &&
+                            (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= today) &&
+                            currentTime >= x.StartTime
+                        )
+                        ||
+                        (
+                            (
+                                (x.ScheduleType == DoctorScheduleType.WeeklyRecurring && x.PracticeDay == previousDay) ||
+                                (x.ScheduleType != DoctorScheduleType.WeeklyRecurring && x.PracticeDate.HasValue && x.PracticeDate.Value.Date == yesterday)
+                            ) &&
+                            (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= yesterday) &&
+                            (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= yesterday) &&
+                            currentTime < x.EndTime
+                        )
+                    )
+                )
+            );
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var trimmed = search.Trim();
+                query = query.Where(x =>
+                    x.Doctor != null && (
+                        EF.Functions.ILike(x.Doctor.FullName, $"%{trimmed}%") ||
+                        EF.Functions.ILike(x.Doctor.DoctorCode, $"%{trimmed}%")
+                    )
+                );
+            }
+
+            var schedules = await query
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.Doctor!.FullName)
+                .ToListAsync(cancellationToken);
+
+            var items = new List<EmergencyOnDutyDoctorResponse>();
+            var seenDoctorIds = new HashSet<Guid>();
+
+            foreach (var s in schedules)
+            {
+                if (s.Doctor == null || !seenDoctorIds.Add(s.DoctorId))
+                    continue;
+
+                var startStr = s.StartTime.ToString(@"hh\:mm");
+                var endStr = s.EndTime.ToString(@"hh\:mm");
+                var timeStr = $"{startStr} - {endStr}";
+                var sessionName = !string.IsNullOrWhiteSpace(s.SessionName)
+                    ? s.SessionName.Trim()
+                    : "Shift IGD";
+
+                var sessionTag = sessionName.Contains("IGD", StringComparison.OrdinalIgnoreCase)
+                    ? sessionName
+                    : $"{sessionName} IGD";
+
+                var label = $"{s.Doctor.FullName} ({sessionTag} - {timeStr})";
+
+                items.Add(new EmergencyOnDutyDoctorResponse
+                {
+                    DoctorId = s.DoctorId,
+                    DoctorCode = s.Doctor.DoctorCode,
+                    DoctorName = s.Doctor.FullName,
+                    SpecialistName = s.Doctor.SpecialistName,
+                    ScheduleId = s.Id,
+                    ScheduleCode = s.ScheduleCode,
+                    ScheduleName = s.ScheduleName,
+                    SessionName = sessionName,
+                    StartTime = s.StartTime,
+                    EndTime = s.EndTime,
+                    FormattedShiftTime = timeStr,
+                    IsOvernight = s.IsOvernight,
+                    ServiceUnitId = s.ServiceUnitId,
+                    ServiceUnitName = s.ServiceUnit?.ServiceUnitName,
+                    ClinicId = s.ClinicId,
+                    ClinicName = s.Clinic?.ClinicName,
+                    RoomId = s.RoomId,
+                    RoomName = s.Room?.RoomName,
+                    IsOnDuty = true,
+                    DisplayLabel = label
+                });
+            }
+
+            // Jika belum ada jadwal shift terdata (misal di database uji/development belum ada roster hari ini),
+            // sediakan cadangan dokter aktif agar operasional perawat IGD tidak lumpuh.
+            // HANYA dokter umum atau dokter emergency (dokter spesialis poliklinik disaring keluar).
+            if (items.Count == 0 && !onlyOnDuty)
+            {
+                var fallbackQuery = _dbContext.Set<MstDoctor>()
+                    .AsNoTracking()
+                    .Where(x => x.IsActive && !x.IsDelete &&
+                        (x.SpecialistName == null ||
+                         x.SpecialistName == "" ||
+                         x.SpecialistName == "Umum" ||
+                         EF.Functions.ILike(x.SpecialistName, "%Umum%") ||
+                         EF.Functions.ILike(x.SpecialistName, "%Emergency%") ||
+                         EF.Functions.ILike(x.SpecialistName, "%Gawat Darurat%"))
+                    );
+
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    var trimmed = search.Trim();
+                    fallbackQuery = fallbackQuery.Where(x =>
+                        EF.Functions.ILike(x.FullName, $"%{trimmed}%") ||
+                        EF.Functions.ILike(x.DoctorCode, $"%{trimmed}%")
+                    );
+                }
+
+                var fallbackDoctors = await fallbackQuery
+                    .OrderBy(x => x.FullName)
+                    .Take(50)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var d in fallbackDoctors)
+                {
+                    var label = !string.IsNullOrWhiteSpace(d.SpecialistName)
+                        ? $"{d.FullName} — {d.SpecialistName} (Dokter Jaga IGD)"
+                        : $"{d.FullName} (Dokter Jaga IGD)";
+
+                    items.Add(new EmergencyOnDutyDoctorResponse
+                    {
+                        DoctorId = d.Id,
+                        DoctorCode = d.DoctorCode,
+                        DoctorName = d.FullName,
+                        SpecialistName = d.SpecialistName,
+                        SessionName = "Luar Roster Shift",
+                        IsOnDuty = false,
+                        DisplayLabel = label
+                    });
+                }
+            }
+
+            return items;
+        }
+
+        private static DateTime GetOperationalNow()
+        {
+            var utcNow = DateTime.UtcNow;
+            try
+            {
+                var jakartaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Jakarta");
+                return TimeZoneInfo.ConvertTimeFromUtc(utcNow, jakartaTimeZone);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                try
+                {
+                    var windowsTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                    return TimeZoneInfo.ConvertTimeFromUtc(utcNow, windowsTimeZone);
+                }
+                catch
+                {
+                    return utcNow.AddHours(7);
+                }
+            }
+            catch (InvalidTimeZoneException)
+            {
+                return utcNow.AddHours(7);
+            }
+        }
+
+        private static DateTime ConvertToOperationalTime(DateTime dateTime)
+        {
+            if (dateTime.Kind != DateTimeKind.Utc)
+                return dateTime;
+
+            try
+            {
+                var tz = TimeZoneInfo.FindSystemTimeZoneById("Asia/Jakarta");
+                return TimeZoneInfo.ConvertTimeFromUtc(dateTime, tz);
+            }
+            catch
+            {
+                try
+                {
+                    var tz = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                    return TimeZoneInfo.ConvertTimeFromUtc(dateTime, tz);
+                }
+                catch
+                {
+                    return dateTime.AddHours(7);
+                }
             }
         }
     }

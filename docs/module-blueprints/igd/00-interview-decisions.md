@@ -5964,3 +5964,21 @@ sehingga `IGD-UNK-14` (cara menambah menu) terjawab: lewat kode, bukan pendaftar
 
 `03-frontend-architecture.md` §15.3 tidak disunting dan dibaca bersama `IGD-DEC-232`. Butir anak *Catatan Saya* dan
 *Perlu Verifikasi* mengikuti pola layar dokter rawat inap (tombol di header layar), diputuskan pada `FE-IGD-048` dan `FE-IGD-058`.
+
+### Saringan `ongoing=false` pada daftar kunjungan IGD — 8 Oktober 2026
+
+Keputusan mengenai perilaku parameter kueri boolean `ongoing` pada endpoint `GET /emergency-visits` (`EmergencyVisitController`, `BE-IGD-065`).
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-233` | Decision | **Parameter kueri `ongoing` pada `GET /emergency-visits` berlaku simetris: `ongoing=true` menyaring kunjungan berjalan (`VisitStatus != Completed && VisitStatus != Cancelled`), sedangkan `ongoing=false` menyaring kunjungan yang sudah berakhir (`VisitStatus == Completed || VisitStatus == Cancelled`); bila tidak disertakan (`null`), seluruh kunjungan dikembalikan tanpa membedakan status selesai/berjalan.** Memastikan semantik boolean yang konsisten pada API dan mengonfirmasi implementasi yang sudah ada pada `BE-IGD-065`. Digunakan untuk keperluan audit, rekam medis historis, dan pelaporan penutupan kunjungan | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-08** | Jawaban pemilik 8 Oktober 2026: *"saya jawab dan memilih point 1"* (pilihan simetris yang direkomendasikan) |
+
+### Pemisahan Hook dan Komponen Dokter IGD dari Modul Rawat Inap — 8 Oktober 2026
+
+Arahan pemilik mengenai integritas dan isolasi kode modul Rawat Inap (`inpatient-management`) terhadap kode alur Ruang Kerja Dokter IGD (`FE-IGD-047`, `FE-IGD-048`, `FE-IGD-049`).
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-234` | Decision | **Alur kerja dokter IGD wajib memakai hook dan komponen tab mandiri khusus modul IGD (`emergency-physician/*` dan `doctor-emergency/tabs/*`), tanpa memodifikasi hook maupun komponen tampilan dokter rawat inap (`inpatient-management`). Seluruh berkas rawat inap yang sempat dimodifikasi dikembalikan bersih ke kondisi awal (`HEAD`).** Menghilangkan risiko regresi dan ketergantungan silang (*coupling*) pada alur rawat inap yang sudah stabil, mematuhi prinsip isolasi domain per modul, dan memastikan alur IGD memiliki lifecycle mandiri berbasis `encounterId` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-08** | Arahan pemilik 8 Oktober 2026: *"kenapa menyentuh dan mengubah hooks use-inpatient harus nyaa kita buat hook baru lagi untuk igd khusus igd bukan inpatient takut nyaa merombak kode dari rawat inap dan menjadi berantakan dari sisi rawat inap nyaa"* |
+
+
