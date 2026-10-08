@@ -119,6 +119,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// </summary>
         public int PendingAdmissionReferralAlertMinutes { get; init; } = 30;
 
+        // ------------------------------------------------------------------
+        // BE-RWI-185 — isian cetak Workspace PPRI (kamus data 20.16, RWI-DEC-247, 243).
+        // Isian kosong tetap kosong: cetakan tidak pernah mengganti kode formulir, kota, atau
+        // kode rumah sakit dengan nilai yang ditanam di program.
+        // ------------------------------------------------------------------
+
+        public string? GeneralConsentFormCode { get; init; }
+
+        public string? NewPatientHandoverFormCode { get; init; }
+
+        public string? PrivacyRequestFormCode { get; init; }
+
+        public string? BeliefValuesFormCode { get; init; }
+
+        public string? CostDifferenceFormCode { get; init; }
+
+        public string? DepositSettlementFormCode { get; init; }
+
+        public string? CostEstimateFormCode { get; init; }
+
+        public string? InpatientBaseDataFormCode { get; init; }
+
+        /// <summary>Kota penandatanganan bawaan dokumen admisi; kosong berarti tidak ada bawaan.</summary>
+        public string? DocumentSigningCity { get; init; }
+
+        /// <summary>Umur tertinggi (tahun) yang mendapat Gelang Bayi. Bawaan 5 (<c>RWI-DEC-243</c>).</summary>
+        public int InfantWristbandMaxAgeYears { get; init; } = 5;
+
+        /// <summary>Kode singkat rumah sakit pada label pasien; kosong berarti memakai kode situs.</summary>
+        public string? PatientLabelHospitalCode { get; init; }
+
         /// <summary>
         /// Nilai bawaan yang dipakai hanya ketika master pengaturan belum terisi. Angkanya
         /// sama persis dengan yang di-seed <c>InpatientMasterDataSeeder</c>, mengikuti
@@ -155,7 +186,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     : Defaults.PendingSurgicalHandoverAlertMinutes,
                 PendingAdmissionReferralAlertMinutes = entity.PendingAdmissionReferralAlertMinutes is >= 1 and <= 1440
                     ? entity.PendingAdmissionReferralAlertMinutes
-                    : Defaults.PendingAdmissionReferralAlertMinutes
+                    : Defaults.PendingAdmissionReferralAlertMinutes,
+                GeneralConsentFormCode = Clean(entity.GeneralConsentFormCode),
+                NewPatientHandoverFormCode = Clean(entity.NewPatientHandoverFormCode),
+                PrivacyRequestFormCode = Clean(entity.PrivacyRequestFormCode),
+                BeliefValuesFormCode = Clean(entity.BeliefValuesFormCode),
+                CostDifferenceFormCode = Clean(entity.CostDifferenceFormCode),
+                DepositSettlementFormCode = Clean(entity.DepositSettlementFormCode),
+                CostEstimateFormCode = Clean(entity.CostEstimateFormCode),
+                InpatientBaseDataFormCode = Clean(entity.InpatientBaseDataFormCode),
+                DocumentSigningCity = Clean(entity.DocumentSigningCity),
+                // Nilai di luar 0–16 (mis. baris yang tersunting langsung di database) jatuh ke 5.
+                InfantWristbandMaxAgeYears = entity.InfantWristbandMaxAgeYears is >= 0 and <= 16
+                    ? entity.InfantWristbandMaxAgeYears
+                    : Defaults.InfantWristbandMaxAgeYears,
+                PatientLabelHospitalCode = Clean(entity.PatientLabelHospitalCode)
             };
+
+        private static string? Clean(string? value)
+            => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 }

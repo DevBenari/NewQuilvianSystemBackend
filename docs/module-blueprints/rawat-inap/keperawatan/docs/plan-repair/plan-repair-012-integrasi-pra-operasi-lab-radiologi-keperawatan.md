@@ -261,9 +261,9 @@ Pemeriksaan radiologi tertentu membutuhkan persiapan khusus (puasa/alergi zat ko
 ```text
 FIX-KEP-012-01 (Konsol Kasus Bedah & Drawer Pra-Op di Catatan Keperawatan) [✅ SELESAI]
 │
-├── FIX-KEP-012-02 (Modal Pemesanan Laboratorium Khusus Perawat via DPJP) [BELUM DIKERJAKAN]
+├── FIX-KEP-012-02 (Modal Pemesanan Laboratorium Khusus Perawat via DPJP) [✅ SELESAI]
 │
-└── FIX-KEP-012-03 (Modal Pemesanan Radiologi Khusus Perawat via DPJP) [BELUM DIKERJAKAN]
+└── FIX-KEP-012-03 (Modal Pemesanan Radiologi Khusus Perawat via DPJP) [✅ SELESAI]
 ```
 
 *Catatan: Ketiga perbaikan bersifat independen secara teknis komponen, namun disarankan dikerjakan berurutan dimulai dari Pra-Operasi (karena drawer pendukungnya sudah siap), diikuti Laboratorium dan Radiologi.*

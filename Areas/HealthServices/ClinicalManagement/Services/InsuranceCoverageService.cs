@@ -167,14 +167,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 
                         if (compResult.IsValid)
                         {
-                            var isGuarantorNeedApproval = compResult.IsNeedApproval ||
+                            var isCompanyGuarantorNeedApproval = compResult.IsNeedApproval ||
                                 (tariff.ProcedureId.HasValue && context.IsNeedApprovalForProcedure) ||
                                 (tariff.DrugId.HasValue && context.IsNeedApprovalForDrug);
                             var guarantorName = !string.IsNullOrWhiteSpace(compResult.CompanyGuarantorName)
                                 ? compResult.CompanyGuarantorName
                                 : (!string.IsNullOrWhiteSpace(context.CompanyGuarantorName) ? context.CompanyGuarantorName : "Penjamin Perusahaan");
                             var note = compResult.CoverageNote ?? pricingWarning;
-                            if (isGuarantorNeedApproval)
+                            if (isCompanyGuarantorNeedApproval)
                             {
                                 var approvalNotice = $"Perlu persetujuan {guarantorName}";
                                 note = string.IsNullOrWhiteSpace(note)
@@ -203,7 +203,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                                 PatientPayAmount = compResult.PatientPayAmount,
                                 CoPaymentAmount = compResult.CoPaymentAmount,
                                 IsNeedApproval = tariff.IsNeedApproval,
-                                IsNeedGuarantorApproval = isGuarantorNeedApproval,
+                                IsNeedGuarantorApproval = isCompanyGuarantorNeedApproval,
                                 IsNeedGuaranteeLetter = compResult.IsNeedGuaranteeLetter,
                                 IsAllowExcessPaymentByPatient = compResult.IsAllowExcessPaymentByPatient,
                                 IsFallbackTariff = isFallbackTariff,

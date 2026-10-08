@@ -183,6 +183,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                         ?? "Paket Perusahaan",
                     PolicyNumber = patientCompanyGuarantor?.EmployeeNumber
                         ?? paymentSource.EmployeeNumberSnapshot,
+                    // BE-RWI-189: dari snapshot sumber pembayaran kunjungan, tanpa cadangan dari
+                    // nomor lain (RWI-DEC-253) — nomor karyawan tidak pernah menjadi nomor kartu.
+                    CardNumber = CleanSnapshot(paymentSource.CardNumberSnapshot),
+                    MemberNumber = CleanSnapshot(paymentSource.MemberNumberSnapshot),
                     EmployeeGrade = patientCompanyGuarantor?.GradeLevel,
                     IsEligible = companyEligible,
                     IsPolicyActive = true,
@@ -307,6 +311,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     ?? patientInsurance.PlanName,
                 PolicyNumber = paymentSource.PolicyNumberSnapshot
                     ?? patientInsurance.PolicyNumber,
+                // BE-RWI-189: nomor kartu dan peserta dari snapshot sumber pembayaran kunjungan.
+                CardNumber = CleanSnapshot(paymentSource.CardNumberSnapshot),
+                MemberNumber = CleanSnapshot(paymentSource.MemberNumberSnapshot),
                 IsEligible = eligible,
                 IsPolicyActive = true,
                 IsInsuranceReady = true,
@@ -461,6 +468,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 ServiceDate = effectiveDate
             };
         }
+
+        private static string? CleanSnapshot(string? value)
+            => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
     public class EncounterInsuranceContext
@@ -492,6 +502,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         public string? BenefitPlanCode { get; set; }
         public string? BenefitPlanName { get; set; }
         public string? PolicyNumber { get; set; }
+
+        /// <summary>
+        /// Nomor kartu penjamin kunjungan (<c>CardNumberSnapshot</c>); kosong untuk tunai atau bila
+        /// tidak tercatat (<c>BE-RWI-189</c>, <c>RWI-DEC-253</c>). Dipakai label pasien dan IPD.
+        /// </summary>
+        public string? CardNumber { get; set; }
+
+        /// <summary>Nomor peserta penjamin kunjungan (<c>MemberNumberSnapshot</c>) (<c>BE-RWI-189</c>).</summary>
+        public string? MemberNumber { get; set; }
 
         public bool IsEligible { get; set; }
         public bool IsPolicyActive { get; set; }

@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Enums;
@@ -1383,22 +1384,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 : null;
         }
 
+        // BE-RWI-187: isi QR dibentuk PatientQrPayloadBuilder supaya Workspace PPRI mencetak isi
+        // yang sama persis tanpa menyalin aturan ini. Perilaku endpoint pasien tidak berubah.
         private static string BuildPatientQrPayload(string medicalRecordNumber)
-        {
-            if (string.IsNullOrWhiteSpace(medicalRecordNumber))
-            {
-                throw new InvalidOperationException("Nomor rekam medis tidak tersedia untuk payload QR.");
-            }
-
-            var rawNumber = NormalizeMedicalRecordNumberToRawDigits(medicalRecordNumber);
-
-            if (!string.IsNullOrWhiteSpace(rawNumber))
-            {
-                return FormatMedicalRecordNumber(rawNumber);
-            }
-
-            return medicalRecordNumber.Trim();
-        }
+            => PatientQrPayloadBuilder.Build(medicalRecordNumber);
 
         private async Task<string> GenerateMedicalRecordNumberAsync()
         {
@@ -1604,40 +1593,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         private static string? NormalizeMedicalRecordNumberToRawDigits(string? medicalRecordNumber)
-        {
-            if (string.IsNullOrWhiteSpace(medicalRecordNumber))
-            {
-                return null;
-            }
-
-            var digits = new string(medicalRecordNumber.Where(char.IsDigit).ToArray());
-
-            return string.IsNullOrWhiteSpace(digits)
-                ? null
-                : digits;
-        }
+            => PatientQrPayloadBuilder.NormalizeToRawDigits(medicalRecordNumber);
 
         private static string FormatMedicalRecordNumber(string rawNumber)
-        {
-            if (string.IsNullOrWhiteSpace(rawNumber))
-            {
-                return rawNumber;
-            }
-
-            var digits = new string(rawNumber.Where(char.IsDigit).ToArray());
-
-            if (digits.Length == 8)
-            {
-                return $"{digits[..2]}-{digits.Substring(2, 2)}-{digits.Substring(4, 2)}-{digits.Substring(6, 2)}";
-            }
-
-            if (digits.Length == 6)
-            {
-                return $"{digits[..2]}-{digits.Substring(2, 2)}-{digits.Substring(4, 2)}";
-            }
-
-            return rawNumber;
-        }
+            => PatientQrPayloadBuilder.FormatMedicalRecordNumber(rawNumber);
 
         private string? ResolveQrLogoPath()
         {

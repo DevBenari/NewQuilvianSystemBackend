@@ -7,7 +7,7 @@ submodule: keperawatan
 layar: "Ruang Kerja Keperawatan Rawat Inap — Catatan Keperawatan (Sub-tab Pra-Operasi) & Penunjang Medis (Sub-tab Lab & Radiologi) (FE-KEP-24, FE-KEP-15 / FE-RWI-180, FE-RWI-089)"
 sumber_laporan: "Laporan pengguna 07-10-2026: '1. Catatan Pra Operasi 2. radiologi dan laboratorium pada yang saya sebutkan kenapa pada keperawatan belum terintegrasi ya ? coba anda lakukan analisis terlebih dahulu lalu jelaskan'"
 tanggal_issue: "2026-10-07"
-status: DALAM_PERBAIKAN
+status: SELESAI
 keparahan_tertinggi: High
 source_sha_backend: "671191eb (MHamzah)"
 source_sha_frontend: "1f889d67c (HamzahV2)"

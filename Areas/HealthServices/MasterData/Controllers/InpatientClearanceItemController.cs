@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -78,9 +79,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [ProducesResponseType(typeof(ApiResponse<InpatientClearanceItemSummaryResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Inpatient Clearance Item", Description = "Melihat ringkasan butir administrasi Rawat Inap", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("InpatientClearanceItem", "Read")]
-        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        public async Task<IActionResult> GetSummary(
+            [FromQuery] MstClearanceChecklistType? checklistType = null,
+            CancellationToken cancellationToken = default)
         {
-            var result = await _clearanceItemService.GetSummaryAsync(cancellationToken);
+            var result = await _clearanceItemService.GetSummaryAsync(checklistType, cancellationToken);
 
             return Ok(ApiResponse<InpatientClearanceItemSummaryResponse>.Ok(
                 result,
@@ -103,6 +106,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25,
+            [FromQuery] MstClearanceChecklistType? checklistType = null,
             CancellationToken cancellationToken = default)
         {
             InpatientClearanceItemPagedResult result;
@@ -120,7 +124,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     sortDirection,
                     pageNumber,
                     pageSize,
-                    cancellationToken);
+                    cancellationToken,
+                    checklistType);
             }
             catch (ArgumentException error)
             {
@@ -145,6 +150,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25,
+            [FromQuery] MstClearanceChecklistType? checklistType = null,
             CancellationToken cancellationToken = default)
         {
             var result = await _clearanceItemService.GetOptionsAsync(
@@ -153,7 +159,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 search,
                 pageNumber,
                 pageSize,
-                cancellationToken);
+                cancellationToken,
+                checklistType);
 
             return Ok(ApiResponse<InpatientClearanceItemOptionPagedResult>.Ok(
                 result,
@@ -320,15 +327,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         }
 
         private IActionResult MapFailure(InpatientClearanceItemResult result)
-            => result.Status switch
+        {
+            // BE-RWI-186: kode alasan validation 15.7 ikut pada Errors supaya layar dapat
+            // membedakan MST-ICI-001 s.d. 004 tanpa membaca kalimat pesannya.
+            var errors = result.Code != null ? new { result.Code } : null;
+
+            return result.Status switch
             {
                 InpatientClearanceItemStatus.NotFound => NotFound(
-                    ApiResponse<object>.Fail(StatusCodes.Status404NotFound, result.Message)),
+                    ApiResponse<object>.Fail(StatusCodes.Status404NotFound, result.Message, errors)),
                 InpatientClearanceItemStatus.DuplicateCode => Conflict(
-                    ApiResponse<object>.Fail(StatusCodes.Status409Conflict, result.Message)),
+                    ApiResponse<object>.Fail(StatusCodes.Status409Conflict, result.Message, errors)),
+                InpatientClearanceItemStatus.Conflict => Conflict(
+                    ApiResponse<object>.Fail(StatusCodes.Status409Conflict, result.Message, errors)),
+                InpatientClearanceItemStatus.BusinessRuleRejected => UnprocessableEntity(
+                    ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, result.Message, errors)),
                 _ => BadRequest(
-                    ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, result.Message))
+                    ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, result.Message, errors))
             };
+        }
 
         private Guid GetCurrentUserId()
         {
