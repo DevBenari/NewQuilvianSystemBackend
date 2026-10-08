@@ -1,7 +1,9 @@
-﻿using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Enums;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Enums;
+using QuilvianSystemBackend.Helpers;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs
 {
@@ -166,6 +168,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         public decimal? BirthLengthCm { get; set; }
 
+        [JsonConverter(typeof(FlexibleNullableTimeSpanConverter))]
         public TimeSpan? BirthTime { get; set; }
 
         public string? DeliveryMethod { get; set; }
@@ -396,6 +399,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         public decimal? BirthLengthCm { get; set; }
 
+        [JsonConverter(typeof(FlexibleNullableTimeSpanConverter))]
         public TimeSpan? BirthTime { get; set; }
 
         [MaxLength(100)]

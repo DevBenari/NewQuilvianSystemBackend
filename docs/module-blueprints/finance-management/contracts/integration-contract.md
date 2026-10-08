@@ -2,13 +2,13 @@
 
 | Field | Nilai |
 |---|---|
-| Contract version | `FIN-INTEGRATION-1.6` |
-| `last_changed_in` (1.6) | `FIN-INTEGRATION-1.6` — AMENDMENT REVISI 9, 29 September 2026. **Tiga pemicu dikoreksi berbasis bukti source `7811c048`** (`FIN-DES-064`, `FIN-DES-065`): mutasi `BilDepositMovement` `RELEASE` menerbitkan `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT`, bukan `PENGEMBALIAN-UANG-MUKA`; pemicu kode 37 yang semula "tidak pernah ada" kini ada lewat `BKC-DEC-131`; dan mutasi `RELEASE` tanpa pasangan `REVERSAL` ditolak *fail-closed*. Status **`approved`** — disahkan oleh Yasmin via `FIN-DEC-080` dan `FIN-DEC-081` (mengoreksi `FIN-DEC-041`) |
-| `last_changed_in` | `FIN-INTEGRATION-1.5` — AMENDMENT REVISI 7, 28 September 2026 (bagian 5.10.4 butir 1 dan 5.10.5 butir 1 **dikoreksi berbasis bukti** kontrak as-is kotak masuk Accounting; bagian 5.11 baru). Sebelumnya `1.4` — AMENDMENT REVISI 6 (bagian 5.10 baru) |
-| Status | `1.2` `approved` dan `locked` 25 September 2026; `1.3` disetujui dan dikunci owner 26 September 2026; `1.4` disetujui owner 28 September 2026. **`1.6` (koreksi REVISI 9) `approved` 29 September 2026 bersama `FIN-DEC-080`/`081`** |
+| Contract version | `FIN-INTEGRATION-1.8` |
+| `last_changed_in` (1.8) | `FIN-INTEGRATION-1.8` — AMENDMENT REVISI 18, 6 Oktober 2026. **Kontrak Integrasi Resmi Lintas Domain Piutang Manfaat Karyawan** (bagian P: `INT-FIN-BIL-001`, `INT-FIN-HR-001`, `INT-HR-FIN-001`, `INT-HR-FIN-002`, `INT-HR-FIN-003`, `INT-BIL-FIN-002`). Status **`draft`** |
+| `last_changed_in` | `FIN-INTEGRATION-1.7` — AMENDMENT REVISI 17, 5 Oktober 2026 (bagian O: catatan keadaan tanpa kenaikan nomor kontrak). Sebelumnya `1.6` (Revisi 9) |
+| Status | `approved` — Revisi 1.8 disetujui pemilik (Yasmin) 6 Oktober 2026 |
 | Owner | Yasmin (Product/Domain Owner Finance) |
-| `approved_by` / `approved_at` | Yasmin / 2026-09-29 (untuk `1.6`) |
-| Input revision | `00-interview-decisions.md` — `FIN-DEC-001`..`081` (`FIN-DEC-080`..`081` ditambahkan 29 September 2026, Amendment Pass mutasi `RELEASE`) |
+| `approved_by` / `approved_at` | Yasmin / 2026-10-06 (untuk `1.8`) |
+| Input revision | `00-interview-decisions.md` — `FIN-DEC-183`..`202` (Konfirmasi Billing, HR, dan Registrasi), `02-backend-architecture.md` bagian P |
 | Kontrak eksternal yang diikuti | **`ACC-XMOD-0.3`** milik Accounting — naik dari `0.2`, diratifikasi sisi Finance lewat `FIN-DEC-039` |
 | Backend SHA yang diverifikasi | **`cba60cb0`** (impact scan 28 September 2026, `02-backend-architecture.md` bagian `E.1`) — naik dari `d6cdfaf9`/`96bf9746` |
 | Dampak kompatibilitas | **Revisi 1.4 memuat tiga perubahan perilaku pada kode yang sudah berjalan** (nama empat `EventTypeCode`, nilai kredit retur termasuk PPN, properti `Components` dihilangkan dari pesan) — rinciannya bagian 5.10 dan `02-backend-architecture.md` `E.9`. **Lima kode dihapus dan diganti** (bukan aditif): `SELISIH-KAS-SHIFT`, `POTONGAN-PIUTANG-NON-TUNAI` beserta pembaliknya, `PEMAKAIAN-DEPOSIT-RETUR`, dan lima alias `AR_*`/`AP_*` |
@@ -852,3 +852,219 @@ Mekanismenya memakai `SourceVersion` yang **sudah ada**, tanpa penambahan kontra
 | Akun debit untuk refund `REFERRED_OUTPATIENT_ADMIN` | Sudah menjadi syarat G6 milik Accounting bersama Billing; tidak dibuka ulang |
 | Kode kejadian untuk pendapatan sewa | Tetap `FIN-OQ-044(b)`, di luar cakupan revisi 14 |
 | Kode kejadian untuk item migrasi | **Tidak ada dan tidak diminta.** `FIN-DEC-129` melarang migrasi menerbitkan kejadian; nilainya sudah tercakup saldo awal Accounting |
+
+---
+
+# AMENDMENT REVISI 17 — Piutang Manfaat Karyawan: dua permukaan yang sengaja BELUM dikontrakkan
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-INTEGRATION-1.7` — **tidak bergerak** |
+| `last_changed_in` | Tidak berubah. Bagian ini **tidak** menambah, mengubah, atau mencabut satu pun kontrak integrasi |
+| Status | Mengikuti status revisi sebelumnya |
+| Tanggal catatan | 5 Oktober 2026 |
+| Mengapa ditulis di sini | Pembaca kontrak integrasi **MUST** tahu bahwa dua permukaan di bawah sudah diputuskan arahnya tetapi **belum** punya kontrak, supaya tidak ada yang menyangka keduanya sudah tersedia atau mulai membangunnya sendiri |
+
+Angka versi **tidak** dinaikkan. Bagian ini catatan keadaan, bukan kontrak baru.
+
+## O.1 HR → Finance: hasil potongan gaji
+
+| Hal | Keadaan |
+|---|---|
+| Arah | HR mengirim hasil potongan gaji ke Finance, **otomatis** |
+| Keputusan yang mendasarinya | `FIN-DEC-167` (arah dan sifat otomatis) dan `FIN-DEC-179` (HR menegakkan batas, Finance menerima apa adanya) |
+| Yang **sudah** diputuskan Finance | Hasil potongan punya **tiga** keadaan: penuh, **sebagian**, dan gagal. Kiriman ganda **MUST** aman — tidak boleh mengurangi piutang dua kali (`FIN-VAL-240`). Perpindahan status angsuran yang akan dihasilkannya sudah ditetapkan pada `state-transition-matrix.md` bagian O.2 |
+| Yang **belum** ada | Bentuk pesannya, waktu kirimnya, cara menandai kiriman ulang, dan kesanggupan HR membangunnya |
+| Pemblokir | `FIN-OQ-091`, pemilik HR/Payroll |
+| Status | **`OPEN DECISION`.** Nol kontrak, nol endpoint, nol payload yang boleh diasumsikan |
+| Yang MUST NOT dilakukan sementara ini | Finance **MUST NOT** membaca tabel potongan gaji HR secara langsung. Itu melanggar batas modul, dan akan pecah setiap kali penggajian berubah — alasan yang sama dengan penolakan membaca `BilTender` pada `evidence/02` |
+
+## O.2 Finance → Accounting: jurnal beban manfaat karyawan
+
+| Hal | Keadaan |
+|---|---|
+| Arah | Finance menitipkan satu kejadian berkala ke outbox Accounting ketika pelunasan internal diterbitkan |
+| Keputusan yang mendasarinya | `FIN-DEC-178` — piutang "RS Benefit" ditutup berkala lewat pelunasan internal, lawan jurnalnya beban manfaat karyawan |
+| Yang **sudah** diputuskan Finance | Penutupan bersifat **berkala**, satu kejadian per periode per penjamin internal, **bukan** satu kejadian per tagihan. Penutupan **MUST NOT** memakai penghapusan buku |
+| Yang **belum** ada | Nama jenis kejadiannya, akun yang didebet dan dikredit, serta kapan ia dikirim |
+| Pemblokir | `FIN-OQ-103`, pemilik Accounting bersama pemilik Finance |
+| Status | **`OPEN DECISION`** |
+| Perilaku sementara yang sudah dirancang | Kolom `AccountingEventId` pada pelunasan internal **tetap kosong** sampai kontraknya ada, dan itu **bukan** cacat. Penutupan piutang di sisi Finance **tetap berjalan** tanpanya — yang belum berjalan hanyalah pembukuan jurnalnya di Accounting |
+
+## O.3 Yang TIDAK berubah pada kontrak integrasi yang berjalan
+
+| Permukaan | Dampak amandemen ini |
+|---|---|
+| Serah terima penerimaan dari kasir | Nol |
+| Outbox kejadian ke Accounting yang sudah berjalan | Nol. Jenis kejadian baru untuk pelunasan internal menunggu `FIN-OQ-103` |
+| Pembacaan master penjamin milik Administrator | Nol. Dirujuk lewat Id saja, tanpa salinan |
+
+---
+
+# AMENDMENT REVISI 18 — Piutang Manfaat Karyawan: Kontrak Integrasi Resmi Lintas Domain (Billing, HR, dan Registrasi)
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-INTEGRATION-1.8` |
+| `last_changed_in` | Revisi 18 (6 Oktober 2026) |
+| Status | `draft` (menunggu persetujuan pemilik) |
+| Dasar keputusan | `00-interview-decisions.md` (`FIN-DEC-183` s.d. `FIN-DEC-202`) |
+| Sifat | **Resmi & Mengikat.** Menutup catatan keadaan Bagian O sebelumnya dengan kontrak antarmodul konkret |
+
+---
+
+### P.1 INT-FIN-BIL-001 — Serah Terima Piutang Karyawan Dua Baris (`Billing → Finance`)
+
+**Tujuan:** Billing menyerahterimakan tagihan layanan RS atas pegawai/keluarga ke Finance dalam dua porsi terpisah saat invoice difinalisasi (`FIN-DEC-183`, `FIN-DEC-184`, `FIN-DEC-185`).
+
+| Properti | Spesifikasi |
+|---|---|
+| Pemicu | Finalisasi Invoice (`BilInvoice`) dengan sumber pembayaran Penjamin Internal RS (`MstCompanyGuarantor`, `FIN-DEC-197`) |
+| Entitas Media | `BilArHandoff` (tabel di schema `public` milik Billing) |
+| Jumlah Baris | Tepat **DUA baris** per invoice |
+| Unik Key | `(InvoiceId, DebtorType)` |
+
+#### Skema Baris 1: Porsi Penjamin RS Benefit (`PAYER`)
+- `InvoiceId`: Guid invoice.
+- `DebtorType`: `"PAYER"`.
+- `DebtorReferenceId`: Guid `CompanyGuarantorId` milik Rumah Sakit ("RS Benefit").
+- `Amount`: Nominal yang ditanggung plafon benefit RS (dihitung oleh Billing berdasarkan sisa limit HR, `FIN-DEC-185`, `FIN-DEC-189`).
+- `BenefitOwnerId`: `NULL`.
+- `BenefitRelationship`: `NULL`.
+- `HandoffStatus`: `"PENDING"`.
+
+#### Skema Baris 2: Porsi Tanggungan Pegawai (`EMPLOYEE_BENEFIT`)
+- `InvoiceId`: Guid invoice.
+- `DebtorType`: `"EMPLOYEE_BENEFIT"` (konstanta baru `BillingArDebtorTypes.EMPLOYEE_BENEFIT`).
+- `DebtorReferenceId`: `NULL`.
+- `Amount`: Kelebihan tagihan di atas plafon benefit yang wajib dibayar pegawai (`FIN-DEC-164`, `FIN-DEC-185`).
+- `BenefitOwnerId`: Guid `EmployeeId` / `WorkforceProfileId` pegawai yang sah dari HR (wajib terisi, `FIN-DEC-199`).
+- `BenefitRelationship`: Kode hubungan keluarga (`"SELF"`, `"SPOUSE"`, `"CHILD"`, `"PARENT"`, `"OTHER"`) dari snapshot kunjungan (`FIN-DEC-198`).
+- `HandoffStatus`: `"PENDING"`.
+
+---
+
+### P.2 INT-FIN-HR-001 — Penerbitan Jadwal Cicilan ke Input Variabel Penggajian (`Finance → HR`)
+
+**Tujuan:** Finance mengirim jadwal pemotongan angsuran piutang yang telah disetujui berjenjang ke modul Payroll HR (`FIN-DEC-190`).
+
+| Properti | Spesifikasi |
+|---|---|
+| Pemicu | Persetujuan Perjanjian Cicilan Angsuran (`POST /receivable-installment-plans/{id}/approve`) |
+| Entitas Media | `TrxPayrollVariableInput` (tabel di schema `public` milik HR Payroll) |
+| Waktu Tulis | Ditulis otomatis di dalam transaksi persetujuan perjanjian |
+
+#### Pemetaan Nilai Kolom:
+- `Id`: `Guid.NewGuid()`.
+- `WorkforceProfileId`: `FinReceivableInstallmentPlan.WorkforceProfileId`.
+- `PayrollPeriodId`: Target `MstPayrollPeriod.Id` pada baris angsuran (`FinReceivableInstallment.TargetPayrollPeriodId`).
+- `ComponentId`: Guid `MstPayrollComponent` bertipe potongan piutang RS (`FIN-DEC-190`).
+- `Amount`: Nominal yang wajib dipotong (`ScheduledAmount + CarriedOverAmount`).
+- `SourceType`: `"FinanceReceivableInstallment"`.
+- `SourceId`: Guid `FinReceivableInstallment.Id`.
+- `Notes`: `"Cicilan Piutang Layanan RS No. {ReceivableNumber} (Angsuran ke-{InstallmentOrder})"`
+- `IsActive`: `true`.
+
+---
+
+### P.3 INT-HR-FIN-001 — Pengiriman Hasil Pemotongan Penggajian Otomatis (`HR → Finance`)
+
+**Tujuan:** HR Payroll melaporkan realisasi hasil pemotongan gaji secara otomatis ke Finance segera setelah status *Payroll Run* disahkan (`FIN-DEC-191`, `FIN-DEC-192`).
+
+| Properti | Spesifikasi |
+|---|---|
+| Pemicu | Pengesahan/Penyelesaian Payroll Run periode penggajian di modul HR |
+| Protokol | HTTP POST internal / in-process event handler |
+| Endpoint Target | `POST /api/v1/finance/receivables/installments/payroll-results` |
+| Autentikasi | Service-to-Service Token / System Worker Identity |
+| Idempotensi | **Wajib idempoten** berbasis `(InstallmentId, PayrollPeriodId)` (`FIN-VAL-240`) |
+
+#### Spesifikasi Payload Request:
+```json
+{
+  "installmentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "payrollPeriodId": "7ca24a12-6821-4982-a1bb-3f821c99ada1",
+  "status": "BERHASIL", 
+  "deductedAmount": 1000000.00,
+  "executionTimestamp": "2026-10-25T17:00:00+07:00",
+  "payrollRunId": "9ea14b55-8812-4211-b021-1f928a44bcb2",
+  "notes": "Potongan reguler slip gaji periode Oktober 2026"
+}
+```
+*Daftar Nilai Status yang Diterima:*
+- `"BERHASIL"`: Dipotong penuh sesuai jadwal.
+- `"SEBAGIAN"`: Dipotong sebagian karena perlindungan batas take-home pay minimum (`FIN-DEC-192`). Sisa tunggakan dialihkan ke angsuran berikutnya.
+- `"GAGAL"`: Gagal dipotong (contoh: gaji tidak mencukupi / unpaid leave). Seluruh nominal dialihkan ke angsuran berikutnya.
+
+#### Spesifikasi Response:
+- `200 OK`: Sukses diproses atau duplikat kiriman yang diabaikan secara aman (idempoten).
+- `404 Not Found`: `InstallmentId` tidak ditemukan di Finance.
+- `422 Unprocessable Entity`: Status angsuran sudah dibatalkan atau bukan dalam status menunggu pembayaran.
+
+---
+
+### P.4 INT-HR-FIN-002 — Pemeriksaan Bebas Tanggungan Exit Clearance (`HR ↔ Finance`)
+
+**Tujuan:** Memvalidasi status bebas piutang pegawai sebelum administrasi berhenti kerja disahkan di HR (`FIN-DEC-170`, `FIN-DEC-193`).
+
+| Properti | Spesifikasi |
+|---|---|
+| Pemicu | Validasi pengajuan/penutupan formulir `TrxExitClearance` di HR |
+| Endpoint Target | `GET /api/v1/finance/receivables/clearance/{benefitOwnerId}` |
+| Izin Akses | `FinanceReceivable : Read` / Inter-module Internal Access |
+
+#### Spesifikasi Response:
+```json
+{
+  "benefitOwnerId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "isCleared": false,
+  "outstandingAmount": 1500000.00,
+  "activeReceivableCount": 1,
+  "overdueInstallmentCount": 1,
+  "blockingReceivables": [
+    {
+      "receivableId": "4ca12a88-2191-4aa2-8172-2a912bb81201",
+      "receivableNumber": "AR-EMP-202610-0012",
+      "outstandingAmount": 1500000.00,
+      "status": "PARTIALLY_PAID"
+    }
+  ]
+}
+```
+*Aturan Penegakan di HR:*
+- Jika `isCleared == true`: Kolom `TrxExitClearance.IsFinanceCleared` diset `true`, proses offboarding dapat diselesaikan.
+- Jika `isCleared == false`: Kolom diset `false`, tombol simpan/selesaikan di HR terkunci.
+
+---
+
+### P.5 INT-HR-FIN-003 — Notifikasi Pemisahan Pegawai (`HR → Finance`)
+
+**Tujuan:** Memberitahu Finance ketika pegawai mengajukan resign/PHK agar Finance dapat memetakan sisa kewajiban dan memotongnya dari hak akhir (`FIN-DEC-169`, `FIN-DEC-194`).
+
+| Properti | Spesifikasi |
+|---|---|
+| Pemicu | Pembuatan transaksi pemisahan pegawai `TrxEmployeeSeparation` di HR |
+| Endpoint Target | `POST /api/v1/finance/receivables/separation-notice` |
+| Payload | `{ "employeeId": "uuid", "separationDate": "2026-11-30", "reason": "Resign", "separationId": "uuid" }` |
+| Tindakan di Finance | Menandai kartu piutang pegawai bersangkutan sebagai `SEPARATION_PENDING`. |
+
+---
+
+### P.6 INT-BIL-FIN-002 — Koreksi Pemilik Manfaat Salah Orang (`Billing ↔ Finance ↔ HR`)
+
+**Tujuan:** Membatalkan piutang yang keliru dibebankan ke pegawai lain tanpa manipulasi langsung pada data historis (`FIN-DEC-173`, `FIN-DEC-187`, `FIN-DEC-195`, `FIN-DEC-200`).
+
+1. **Inisiasi di Billing**:
+   - Billing menerbitkan serah terima pembalik `BilHandoffAdjustment`:
+     - `AdjustmentType = "REVERSAL"`
+     - `SourceHandoffId = BilArHandoff_Lama.Id`
+     - `AdjustedAmount = -Amount`
+     - `Reason = "Koreksi pemilik manfaat salah orang"`
+   - Billing menerbitkan `BilArHandoff` baru membawa `BenefitOwnerId` pegawai yang benar.
+2. **Penanganan di Finance**:
+   - `FinanceReceivableIntakeService` membatalkan kartu piutang lama (`Status = CANCELLED`, menulis mutasi pembatalan).
+   - Menerbitkan kartu piutang baru atas pegawai yang benar.
+3. **Restitusi Salah Potong di HR (`FIN-DEC-195`)**:
+   - Bila cicilan atas pegawai yang salah sempat terpotong pada penggajian sebelumnya, Finance mengirim event pembalikan angsuran ke HR.
+   - HR menyisipkan penyesuaian gaji net (*reimbursement adjustment*) pada slip gaji pegawai yang salah di periode penggajian berikutnya. Finance tidak mengeluarkan uang kas manual.
+

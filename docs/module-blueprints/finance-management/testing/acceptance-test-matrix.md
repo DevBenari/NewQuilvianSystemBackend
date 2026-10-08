@@ -2,13 +2,13 @@
 
 | Field | Nilai |
 |---|---|
-| Contract version | `FIN-TEST-1.6` |
-| `last_changed_in` (1.6) | `FIN-TEST-1.6` — AMENDMENT REVISI 9, 29 September 2026 (bagian F baru: sepuluh baris uji untuk `FIN-DES-064`/`065` dan `FIN-VAL-144`..`146`). Status **`approved`** — disahkan oleh Yasmin via `FIN-DEC-080` dan `FIN-DEC-081` (mengoreksi `FIN-DEC-041`) |
-| `last_changed_in` | `FIN-TEST-1.5` — AMENDMENT REVISI 7, 28 September 2026 (bagian E baru). Sebelumnya `1.4` — AMENDMENT REVISI 6 (bagian D) |
-| Status | Revisi 1.1 `approved` dan `locked` 25 September 2026; 1.2/1.3 mengikuti AMENDMENT REVISI 4/5; 1.4 disetujui owner 28 September 2026. **`1.6` (bagian F) `approved` 29 September 2026 bersama `FIN-DEC-080`/`081`** |
+| Contract version | `FIN-TEST-1.12` |
+| `last_changed_in` (1.12) | `FIN-TEST-1.12` — AMENDMENT REVISI 18, 6 Oktober 2026 (bagian M baru: kriteria uji integrasi lintas domain untuk S1, S3, S4b, S5, S6 menyusul penutupan gerbang `evidence/23`). Status **`draft`** |
+| `last_changed_in` | `FIN-TEST-1.11` — AMENDMENT REVISI 17, 5 Oktober 2026 (bagian L: 63 kriteria uji untuk S2a, S2b, S4a, S7a, S8). Status `approved` (Yasmin, 5 Oktober 2026) |
+| Status | `approved` — Revisi 1.12 disetujui pemilik (Yasmin) 6 Oktober 2026 |
 | Owner | Yasmin (Product/Domain Owner Finance) |
-| `approved_by` / `approved_at` | Yasmin / 2026-09-29 (untuk `1.6`) |
-| Input revision | `contracts/validation-matrix.md` `FIN-VAL-1.5`, `contracts/integration-contract.md` `FIN-INTEGRATION-1.6`, `02-backend-architecture.md` bagian H (`FIN-DES-064`, `FIN-DES-065`), `00-interview-decisions.md` `FIN-DEC-080`..`081` |
+| `approved_by` / `approved_at` | Yasmin / 2026-10-06 (untuk `1.12`) |
+| Input revision | `00-interview-decisions.md` — `FIN-DEC-183`..`202`, `02-backend-architecture.md` bagian P, `contracts/integration-contract.md` bagian P |
 | Catatan project test | Project test terpisah belum terdeteksi di repository pada `09101d05`, dan **belum diperiksa ulang** pada `cba60cb0`. Kolom "Jenis test" menyatakan **jenis yang seharusnya**, bukan yang sudah tersedia |
 
 Matriks ini memuat jalur gagal, bukan hanya jalur berhasil. Uji yang hanya membuktikan jalur
@@ -831,3 +831,207 @@ naik_dari: FIN-TEST-1.9 (approved 2 Oktober 2026)
 | Migrasi utang jasa medis lama | `FIN-DEC-157` menundanya; saldo awalnya tetap nol dan batch tidak mengenal jenis itu |
 | Migrasi piutang sewa non-pasien lewat batch | `FIN-DEC-158` menetapkan jalurnya lewat layar yang sudah ada |
 | Penahanan snapshot karena saldo negatif | `FIN-DEC-159` menetapkan saldo negatif terbit apa adanya dan ditandai |
+
+---
+
+# AMENDMENT REVISI 17 — Piutang manfaat karyawan, sisi Finance
+
+```yaml
+contract_version: FIN-TEST-1.11
+status: approved
+owner: Yasmin (Product/Domain Finance)
+approved_by: Yasmin
+approved_at: 2026-10-05
+input_revision: 00-interview-decisions.md — Amendment pass 5 Oktober 2026 (FIN-DEC-161..FIN-DEC-179)
+input_design: 02-backend-architecture.md bagian O (FIN-DES-099..FIN-DES-104); contracts/api-contract.md bagian O; contracts/validation-matrix.md bagian O; contracts/state-transition-matrix.md bagian O
+input_gate: evidence/24-gerbang-kelengkapan-requirement-piutang-manfaat-karyawan.md
+slices: S2a, S2b, S4a, S7a, S8
+naik_dari: FIN-TEST-1.10 (approved 4 Oktober 2026)
+```
+
+**Batas bagian ini.** Hanya kelima slice yang lolos gerbang. Kriteria penerimaan untuk `S1`, `S3`,
+`S4b`, `S5`, dan `S6` **tidak** ditulis di sini, karena menulisnya berarti menguji perilaku yang
+kontraknya belum ada.
+
+## L.1 Perjanjian angsuran — jalur berhasil (`S2a`)
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `L.1.1` | Pengajuan atas piutang manfaat karyawan | Kartu piutang manfaat karyawan bersisa Rp 4.000.000. Ajukan 4 angsuran × Rp 1.000.000, periode gaji pertama bulan depan | `201`, status `MENUNGGU`. **Nol baris jadwal** terbentuk pada tahap ini |
+| `L.1.2` | Jadwal lahir dari persetujuan, bukan dari pengajuan | Setujui pengajuan `L.1.1` memakai pengguna **lain** | `200`, status `DISETUJUI`, **empat** baris jadwal terbentuk sekaligus, masing-masing `DIJADWALKAN` |
+| `L.1.3` | Periode gaji berurutan | `GET` rincian sesudah `L.1.2` | Periode baris ke-2, ke-3, ke-4 berurutan sesudah periode pertama. Tidak ada periode yang terlewat atau berulang |
+| `L.1.4` | Pembulatan sisa angsuran terakhir | Sisa Rp 1.000.000 dibagi 3 angsuran | Jumlah seluruh baris jadwal **sama persis** dengan total yang disepakati. Pembulatan jatuh pada baris terakhir, bukan dibagi rata dengan selisih menggantung |
+| `L.1.5` | Penolakan beserta alasannya | Tolak satu pengajuan `MENUNGGU` beserta alasan | `200`, status `DITOLAK`, alasan tersimpan, **nol** baris jadwal |
+| `L.1.6` | Menarik pengajuan sendiri | Pengaju membatalkan pengajuannya yang masih `MENUNGGU` | `200`, status `DIBATALKAN`. Pengaju **boleh** membatalkan pengajuannya sendiri — yang dilarang `FIN-DEC-166` adalah **menyetujui**, bukan membatalkan |
+| `L.1.7` | Perjanjian selesai otomatis | Catat hasil potongan penuh atas seluruh angsuran | Perjanjian berpindah ke `SELESAI` **oleh sistem**, dan kartu piutangnya `SETTLED` |
+
+## L.2 Perjanjian angsuran — jalur gagal (`S2a`)
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `L.2.1` | Pengaju menyetujui pengajuannya sendiri | Ajukan lalu setujui memakai **pengguna yang sama**, yang memegang hak `Create` **dan** `Approve` | `422` (`FIN-VAL-234`). **Ini test terpenting pada bagian ini**: ia menguji invariant, bukan hak akses, sehingga **MUST** tetap ditolak walaupun administrator memberi satu peran kedua hak itu |
+| `L.2.2` | Jenis debitur selain manfaat karyawan | Ajukan perjanjian atas piutang penjamin dan atas piutang sewa | Keduanya `422` (`FIN-VAL-230`) |
+| `L.2.3` | Dua perjanjian berjalan atas satu piutang | Ajukan perjanjian kedua sementara yang pertama masih `MENUNGGU`; ulangi sementara yang pertama `DISETUJUI` | Keduanya `409` (`FIN-VAL-231`). Ditolak **unique index**, bukan hanya pemeriksaan layanan — buktikan dengan dua permintaan hampir bersamaan |
+| `L.2.4` | Perjanjian baru sesudah yang lama ditolak atau dibatalkan | Ajukan ulang sesudah perjanjian terdahulu `DITOLAK`, lalu sesudah `DIBATALKAN` | Keduanya `201`. Status akhir **tidak** menahan pengajuan baru |
+| `L.2.5` | Total tidak cocok dengan jumlah dikali nominal | Ajukan total Rp 4.000.000 dengan 3 × Rp 1.000.000 | `422` (`FIN-VAL-232`) |
+| `L.2.6` | Sisa piutang berubah antara pengajuan dan persetujuan | Ajukan atas sisa Rp 4.000.000. Catat penerimaan tunai Rp 500.000. Lalu setujui | `422` (`FIN-VAL-233`). Jadwal **MUST NOT** terbentuk. Pesan menyebut sisa yang baru |
+| `L.2.7` | Periode gaji pertama yang sudah lewat | Ajukan dengan periode bulan lalu, lalu dengan periode yang sedang berjalan | Keduanya `422` (`FIN-VAL-235`) |
+| `L.2.8` | Piutang yang sudah lunas, dihapus buku, atau dibatalkan | Ajukan atas masing-masing ketiga keadaan itu | Ketiganya `422` (`FIN-VAL-236`) |
+| `L.2.9` | Jumlah angsuran di luar batas | Ajukan 1 angsuran, lalu 61 angsuran | Keduanya `400` (`FIN-VAL-237`) |
+| `L.2.10` | Alasan kosong saat menolak atau membatalkan | Kirim keduanya tanpa alasan | Keduanya `400` (`FIN-VAL-238`) |
+| `L.2.11` | Menyetujui yang sudah ditolak | Setujui perjanjian berstatus `DITOLAK` | `409`. Status akhir **MUST NOT** dapat dihidupkan kembali |
+| `L.2.12` | Mengubah status angsuran langsung | Coba ubah satu baris jadwal dari `DIJADWALKAN` menjadi `TERBAYAR` tanpa hasil potongan | **Tidak ada** permukaan yang mengizinkannya. Bila ada, itu cacat — status angsuran hanya berpindah karena hasil potongan atau pembatalan induknya |
+
+## L.3 Tunggakan menumpuk (`S2b`)
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `L.3.1` | Potongan sebagian | Angsuran Rp 1.000.000, hasil potongan Rp 600.000 | Angsuran `TERBAYAR_SEBAGIAN`, sisa Rp 400.000. Kartu piutang `PARTIAL`, satu baris mutasi `POTONGAN-GAJI` |
+| `L.3.2` | Sisa ikut periode berikutnya | Jalankan periode berikutnya sesudah `L.3.1` | Jadwal periode itu membawa Rp 400.000 **ditambah** angsuran periode itu sendiri. Sisa **tidak** hangus (`FIN-DEC-168`) |
+| `L.3.3` | Potongan gagal sama sekali | Lewatkan satu periode tanpa potongan | Angsuran `TERTUNGGAK`. Perjanjian **tetap** `DISETUJUI` — satu kegagalan **MUST NOT** membatalkannya |
+| `L.3.4` | Tunggakan terbayar sebagian pada periode berikutnya | Potong sebagian atas angsuran `TERTUNGGAK` | `TERTUNGGAK` → `TERBAYAR_SEBAGIAN`. Jalur ini sah dan **MUST** ada |
+| `L.3.5` | Tunggakan terbayar penuh | Potong seluruh tunggakan | `TERTUNGGAK` → `TERBAYAR` |
+| `L.3.6` | Finance tidak memeriksa batas potongan | Kirim hasil potongan yang jauh lebih kecil daripada jadwal, berkali-kali | Finance menerimanya apa adanya setiap kali (`FIN-DEC-179`). **Nol** penolakan karena "melebihi batas" — batas itu milik HR |
+| `L.3.7` | Hasil potongan melebihi sisa angsuran | Kirim Rp 1.500.000 atas angsuran bersisa Rp 1.000.000 | `422` (`FIN-VAL-239`). Piutang **MUST NOT** menjadi lebih kecil daripada nol |
+| `L.3.8` | Kiriman ganda aman | Kirim hasil potongan yang **sama persis** dua kali untuk satu angsuran pada satu periode | Kiriman kedua `200` beserta penanda sudah tercatat (`FIN-VAL-240`). Saldo piutang bergerak **satu kali**, dan hanya ada **satu** baris mutasi |
+| `L.3.9` | Pembatalan induk membatalkan angsuran yang belum terbayar | Batalkan perjanjian `DISETUJUI` yang separuh terbayar | Baris `DIJADWALKAN`, `TERBAYAR_SEBAGIAN`, dan `TERTUNGGAK` menjadi `DIBATALKAN`. Baris `TERBAYAR` **tetap** `TERBAYAR` — yang sudah dipotong dari gaji tidak dapat dianggap tidak pernah terjadi |
+
+## L.4 Status bebas tanggungan (`S4a`)
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `L.4.1` | Pegawai tanpa piutang aktif | Minta status pegawai yang tidak punya piutang sama sekali | `200`, **bebas tanggungan**. Ini hasil yang sah, **bukan** `404` dan bukan "data tidak ditemukan" |
+| `L.4.2` | Pegawai dengan piutang terbuka | Satu kartu `OUTSTANDING` Rp 2.000.000 | `200`, **tidak** bebas, total Rp 2.000.000, jumlah kartu 1 |
+| `L.4.3` | Piutang untuk keluarga pegawai ikut terhitung | Satu kartu atas hubungan `SPOUSE`, satu atas `SELF` | Keduanya terhitung pada pemilik manfaat yang sama. Piutang istri **tetap** tanggungan pegawainya |
+| `L.4.4` | Piutang lunas, dihapus buku, dan dibatalkan tidak menahan status | Satu kartu masing-masing ketiga keadaan itu, nol kartu terbuka | **Bebas tanggungan** |
+| `L.4.5` | Cicilan berjalan menahan status | Perjanjian `DISETUJUI` dengan sisa angsuran | **Tidak** bebas, dan jumlah angsuran tertunggak terbaca |
+| `L.4.6` | Pegawai berhenti kerja dengan sisa cicilan | Sisa Rp 700.000, pegawai berhenti | **Tidak** bebas. Sisa **MUST NOT** terhapus otomatis (`FIN-DEC-169`) |
+| `L.4.7` | Status tidak dapat diisi tangan | Cari permukaan apa pun yang menerima nilai status bebas tanggungan dari permintaan | **Tidak ada**. Nol kolom tersimpan (`FIN-DES-101`, `FIN-VAL-244`). Bila ada, itu cacat |
+| `L.4.8` | Pemeriksaan sekaligus | Minta 100 pegawai, lalu 101 pegawai | 100 → `200` berisi 100 baris. 101 → `400` (`FIN-VAL-245`) |
+| `L.4.9` | Hak akses | Minta memakai token tanpa `FinanceReceivable : Read` | `403`. **Nol** resource hak akses baru dipakai di sini |
+
+## L.5 Pelunasan internal porsi benefit (`S7a`)
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `L.5.1` | Hitung awal tidak mengubah apa pun | Jalankan hitung awal tiga kali atas periode yang sama | Ketiganya `200` beserta angka yang sama. **Nol** baris baru, **nol** perubahan saldo. Bandingkan saldo piutang sebelum dan sesudah |
+| `L.5.2` | Hitung awal periode kosong | Periode tanpa piutang porsi benefit | `200` beserta nol kartu dan total nol. **Bukan** `404` dan bukan galat |
+| `L.5.3` | Membuat draf | Buat draf dari hasil hitung awal berisi 3 kartu Rp 85.000.000 | `201`, status `DRAF`, tiga baris rincian. Saldo piutang **belum** bergerak |
+| `L.5.4` | Menerbitkan menutup seluruhnya | Terbitkan draf `L.5.3` | `200`, status `DITERBITKAN`. Ketiga kartu `SETTLED`, masing-masing satu baris mutasi `PELUNASAN-INTERNAL` |
+| `L.5.5` | Penerbitan bersifat satu kesatuan | Buat satu kartu pada daftar menjadi tidak sah sesaat sebelum diterbitkan | `409` (`FIN-VAL-243`). **Nol** kartu tertutup — bukan dua dari tiga |
+| `L.5.6` | Pelunasan kedua atas periode dan penjamin yang sama | Terbitkan dua pelunasan atas periode dan penjamin yang sama, hampir bersamaan | Yang kedua `409` (`FIN-VAL-241`), ditolak **unique index**. Pesan menyebut nomor pelunasan yang pertama |
+| `L.5.7` | Pelunasan kosong | Terbitkan draf tanpa satu pun baris | `422` (`FIN-VAL-242`) |
+| `L.5.8` | Membatalkan draf | Batalkan draf sebelum diterbitkan | `200`, `DIBATALKAN`. **Nol** akibat pada saldo piutang mana pun |
+| `L.5.9` | Membatalkan yang sudah diterbitkan | Batalkan pelunasan `DITERBITKAN` beserta alasan | `200`. Ketiga kartu kembali terbuka, dan setiap kartu menerima satu baris mutasi **pembalik**. Baris semula **tetap ada** |
+| `L.5.10` | Periode yang dibatalkan boleh ditutup ulang | Terbitkan pelunasan baru atas periode yang pelunasannya sudah dibatalkan | `201` lalu `200`. Unique index hanya mengikat pelunasan yang **tidak** dibatalkan |
+| `L.5.11` | Nol penghapusan buku | Cari permukaan apa pun yang menutup piutang porsi benefit lewat penghapusan buku | **Tidak ada** jalur yang menyarankannya. `FIN-DEC-178` melarangnya; bila muncul di layar atau API, itu cacat |
+| `L.5.12` | Penanda kejadian akuntansi tetap kosong | `GET` rincian pelunasan yang sudah diterbitkan | Penanda kejadian akuntansi **kosong**, dan itu **benar** — kontraknya belum ada (`FIN-OQ-103`). Penutupan piutang **tetap** berhasil tanpanya |
+| `L.5.13` | Hak akses `preview` | Jalankan hitung awal memakai token pemegang `Read` saja | `200`. Hitung awal **MUST NOT** menuntut `Create` — ia tidak mengubah apa pun |
+| `L.5.14` | Hak akses `post` | Terbitkan memakai token tanpa hak `Post` | `403` |
+
+## L.6 Penghapusan buku dan penyesuaian piutang karyawan (`S8`)
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `L.6.1` | Pengajuan penghapusan buku atas piutang karyawan | Ajukan lewat permukaan pengajuan yang **sudah ada** | `201`. **Nol** endpoint baru dan **nol** layar baru dibutuhkan (`FIN-DEC-176`) |
+| `L.6.2` | Pengaju tidak menyetujui sendiri | Setujui pengajuan `L.6.1` memakai pengguna yang sama | Ditolak, sama seperti piutang penjamin (`FIN-DEC-012`) |
+| `L.6.3` | Nol ambang nominal bertingkat | Ajukan Rp 700.000 lalu Rp 70.000.000 | Keduanya menempuh jalur persetujuan yang **sama**. Tidak ada nominal yang lolos tanpa penyetuju, dan tidak ada yang menuntut penyetuju tambahan |
+| `L.6.4` | Saringan jenis debitur menjangkau karyawan | Saring daftar piutang dan tiga laporan AR dengan jenis manfaat karyawan | Hasilnya berisi, bukan nol. Ini **MUST** diuji ulang sesudah `FE-FIN-FIX-002`, karena benturan nilai pernah membuat saringan sejenis selalu kosong (`FIN-CQ-11`) |
+
+## L.7 Migration dan kesiapan hak akses
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `L.7.1` | Migration tidak membutuhkan pengisian data lama | Terapkan migration pada basis data berisi piutang yang sudah ada | Berhasil. Nol baris lama disentuh — keempat tabelnya **baru** |
+| `L.7.2` | Dua nilai jenis mutasi baru tidak butuh migration | Tulis baris mutasi `POTONGAN-GAJI` dan `PELUNASAN-INTERNAL` | Keduanya diterima. Tidak ada check constraint pada jenis mutasi, sehingga **nol** migration diperlukan — pastikan keadaan itu masih benar |
+| `L.7.3` | Dua resource hak akses baru muncul di layar Akses Role | Buka Pengaturan → Manajemen Role → Akses Role sesudah penerapan | Keduanya muncul, masing-masing **satu kali**. Resource yang muncul dua kali berarti ada `ControllerName` yang kembar |
+| `L.7.4` | Endpoint bebas tanggungan tidak menambah resource | Hitung resource Finance sebelum dan sesudah | Resource `FinanceReceivable` tetap **satu**, dan action-nya tidak bertambah |
+| `L.7.5` | Peran tanpa hak sama sekali | Panggil kelima permukaan baru memakai peran kosong | Kelimanya `403`, **bukan** `500` dan bukan diam-diam lolos |
+
+## L.8 Satu test yang sengaja dibuat untuk menangkap kelalaian
+
+| ID | Yang diuji | Kenapa test ini ada |
+|---|---|---|
+| `L.8.1` | Check constraint pengaju–penyetuju menolak walaupun satu peran memegang `Create` **dan** `Approve` | Pemisahan wewenang yang hanya ditegakkan layar atau hanya ditegakkan hak akses dapat dibatalkan administrator dengan satu centang, tanpa ada yang menyadarinya. Test ini menambatkan penegakan itu di tingkat data, tempat administrator tidak dapat mencabutnya |
+| `L.8.2` | Nilai jenis debitur di frontend dan di backend **sama persis** | `FIN-CQ-11` adalah satu nilai yang berbeda satu kata, dan akibatnya empat permukaan selalu mengembalikan nol hasil tanpa satu pun galat. Test ini membandingkan kedua himpunan nilai, bukan satu nilai, supaya kelalaian yang sama tidak terulang pada nilai berikutnya |
+| `L.8.3` | Kiriman hasil potongan yang sama dua kali tidak mengurangi piutang dua kali | Jalur HR belum ada, sehingga tidak ada yang akan memergoki kesalahan ini sampai gaji seseorang terpotong dua kali. Kriteria ini ditulis **sekarang** supaya kontrak HR nanti menyesuaikan diri padanya |
+
+## L.9 Yang TIDAK diuji, beserta alasannya
+
+| Hal | Alasan |
+|---|---|
+| Pembuatan piutang porsi pegawai dari serah terima Billing | Slice `S1`, kini diuji pada Bagian M.1 di bawah menyusul penutupan gerbang `evidence/23` B1/B2 |
+| Bentuk pesan hasil potongan dari HR | Slice `S3`, kini diuji pada Bagian M.2 di bawah menyusul penutupan gerbang `evidence/23` H2/H3 |
+| Gerbang berhenti kerja di HR | Slice `S4b`, kini diuji pada Bagian M.3 di bawah menyusul penutupan gerbang `evidence/23` H5 |
+| Koreksi ketika pemilik manfaat salah orang | Slice `S5`, kini diuji pada Bagian M.4 di bawah menyusul penutupan gerbang `evidence/23` B5/H7/R4 |
+| Batch migrasi piutang karyawan lama | Slice `S6`, kini diuji pada Bagian M.5 di bawah menyusul penutupan gerbang `evidence/23` H8 |
+| Jurnal beban manfaat karyawan di Accounting | `FIN-OQ-103`. Yang diuji di sini hanya bahwa penanda kejadiannya tetap kosong dan penutupan tetap berhasil (`L.5.12`) |
+| Master penjamin "RS Benefit" | `FIN-OQ-102`. Master penjamin milik Administrator, bukan Finance |
+| Nilai batas potongan per periode | Milik HR (`FIN-DEC-179`). Yang diuji Finance adalah bahwa ia **tidak** memeriksanya (`L.3.6`) |
+
+---
+
+# AMENDMENT REVISI 18 — Piutang Manfaat Karyawan: Kriteria Uji Integrasi Lintas Domain (`FIN-TEST-1.12`)
+
+```yaml
+contract_version: FIN-TEST-1.12
+status: draft
+owner: Yasmin (Product/Domain Finance)
+last_changed_in: Revisi 18 (6 Oktober 2026)
+input_revision: 00-interview-decisions.md (FIN-DEC-183..FIN-DEC-202)
+input_design: 02-backend-architecture.md bagian P; contracts/integration-contract.md bagian P; contracts/api-contract.md bagian P
+input_contracts: FIN-INTEGRATION-1.8; FIN-API-1.9; FIN-VAL-1.11; FIN-STATE-1.8; FIN-PERM-1.10
+slices: S1, S3, S4b, S5, S6
+naik_dari: FIN-TEST-1.11 (approved 5 Oktober 2026)
+```
+
+## M.1 Serah Terima Billing Dua Baris (`S1`)
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `M.1.1` | Tagihan manfaat karyawan menghasilkan 2 baris serah terima | Finalisasi invoice pasien penjamin RS Benefit dengan tagihan melebihi plafon | Terbit tepat 2 baris `BilArHandoff`: 1 baris `PAYER` ("RS Benefit") dan 1 baris `EMPLOYEE_BENEFIT` (`FIN-DEC-183`) |
+| `M.1.2` | Baris `EMPLOYEE_BENEFIT` memuat identitas pegawai sah | Periksa kolom `BilArHandoff` baris `EMPLOYEE_BENEFIT` | `BenefitOwnerId` (Guid) terisi dan valid ke `MstEmployee`, `BenefitRelationship` terisi (`SELF`/`SPOUSE`/`CHILD`) (`FIN-DEC-184`, `FIN-DEC-198`) |
+| `M.1.3` | Nominal piutang pegawai adalah kelebihan di atas plafon | Periksa nominal baris `EMPLOYEE_BENEFIT` | Nilai `Amount` sama persis dengan selisih lebih plafon yang dihitung Billing (`FIN-DEC-185`) |
+| `M.1.4` | Serah terima `EMPLOYEE_BENEFIT` tanpa `BenefitOwnerId` ditolak | Kirim serah terima `EMPLOYEE_BENEFIT` dengan `BenefitOwnerId = null` | Ditolak `422` dan basis data menolak lewat check constraint keras `CK_FinReceivable_EmployeeBenefit_BenefitOwnerId` (`FIN-VAL-247`) |
+| `M.1.5` | Konsumsi serah terima menerbitkan kartu piutang pegawai | Proses serah terima via `FinanceReceivableIntakeService` | Terbit kartu `FinReceivable` dengan `DebtorType = EMPLOYEE_BENEFIT`, `OutstandingAmount = Amount`, status `OUTSTANDING` |
+
+## M.2 Sinkronisasi Jadwal & Hasil Payroll HR (`S3`)
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `M.2.1` | Jadwal cicilan disetujui otomatis masuk ke input variabel payroll HR | Setujui perjanjian cicilan `FinReceivableInstallmentPlan` | Baris jadwal tercatat di `TrxPayrollVariableInput` dengan `SourceType = 'FinanceReceivableInstallment'` dan `SourceId = InstallmentId` (`FIN-DEC-190`) |
+| `M.2.2` | Hasil potongan payroll HR sukses penuh | Panggil `POST /receivables/installments/payroll-results` dengan status `"BERHASIL"` dan `DeductedAmount = Angsuran` | Status baris angsuran menjadi `TERBAYAR`, saldo `OutstandingAmount` berkurang, mutasi `POTONGAN-GAJI` tercatat (`FIN-DEC-191`) |
+| `M.2.3` | Hasil pemotongan payroll sebagian | Panggil `POST /receivables/installments/payroll-results` dengan status `"SEBAGIAN"` | Status baris angsuran menjadi `TERBAYAR_SEBAGIAN`, sisa belum terpotong otomatis dibawa ke jadwal angsuran periode berikutnya (`FIN-DEC-192`, `FIN-VAL-248`) |
+| `M.2.4` | Idempotensi kiriman ganda hasil payroll | Kirim pesan hasil payroll yang sama dua kali dengan `(InstallmentId, PayrollPeriodId)` identik | Kiriman kedua dibalas `200 OK` dengan flag `isIdempotentReplay = true`, saldo piutang bergerak tepat satu kali (`FIN-VAL-240`) |
+
+## M.3 Validasi Exit Clearance HR (`S4b`)
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `M.3.1` | Pegawai dengan piutang aktif ditolak pada exit clearance | Panggil `GET /receivables/clearance/{benefitOwnerId}` untuk pegawai berpiutang aktif | `isCleared = false`, rincian kartu piutang dan angsuran yang menahan ditampilkan; kolom `TrxExitClearance.IsFinanceCleared` diset `false` (`FIN-DEC-193`) |
+| `M.3.2` | Pegawai lunas dinyatakan bebas tanggungan | Panggil `GET /receivables/clearance/{benefitOwnerId}` untuk pegawai tanpa saldo piutang aktif | `isCleared = true`, `outstandingAmount = 0`, tombol simpan offboarding HR dapat diselesaikan |
+
+## M.4 Koreksi Serah Terima Salah Orang (`S5`)
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `M.4.1` | Billing menerbitkan penyesuaian pembalik dan serah terima baru | Billing memproses koreksi pemilik manfaat setelah tagihan final | Terbit `BilHandoffAdjustment` (`REVERSAL`) dan `BilArHandoff` baru atas pegawai yang benar (`FIN-DEC-187`, `FIN-DEC-200`) |
+| `M.4.2` | Finance membatalkan piutang lama dan membuat piutang baru | Finance mengonsumsi fakta pembalik dan fakta baru | Kartu piutang lama berstatus `CANCELLED`, kartu piutang baru berstatus `OUTSTANDING` atas pegawai yang benar tanpa manipulasi manual identitas debitur |
+| `M.4.3` | Restitusi salah potong ditangani lewat adjustment payroll HR | Finance mengirim notifikasi pembalikan angsuran ke HR atas angsuran yang terlanjur terpotong | HR menyisipkan penyesuaian penambah gaji net pada slip gaji periode depan; Finance tidak melakukan pengeluaran kas manual (`FIN-DEC-195`) |
+
+## M.5 Migrasi Batch Piutang Karyawan Berbasis NIP (`S6`)
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `M.5.1` | Unggah berkas impor dengan NIP sah | Unggah berkas CSV/XLSX ke `POST /receivables/migration-batches/employee` dengan NIP terdaftar di `MstEmployee` | `201 Created`, seluruh baris tervalidasi dan dipetakan ke `BenefitOwnerId` (Guid) pegawai terkait (`FIN-DEC-196`) |
+| `M.5.2` | NIP tidak terdaftar di HR ditolak | Unggah berkas dengan satu baris memuat NIP fiktif / tidak aktif di HR | Ditolak `422`, baris dilaporkan pada daftar error dengan pesan `FIN-VAL-246` |
+| `M.5.3` | Selisih total kontrol nominal impor | Unggah berkas dengan `ControlTotalAmount` berbeda dari jumlah baris | Ditolak `422`, batch tidak diproses |
+
+## M.6 Batasan yang Sengaja Tetap di Luar Pengujian
+
+| Hal | Alasan |
+|---|---|
+| Jurnal beban manfaat karyawan di Accounting | `S7b`, menunggu kesepakatan jenis kejadian dan akun beban dengan Accounting (`FIN-OQ-103`) |
+| Format dan formula potongan PPh 21 internal HR | Perhitungan internal modul Payroll HR, di luar domain Finance |
+| Konfigurasi master penjamin "RS Benefit" | Master data Administrator (`FIN-OQ-102`), ditangani terpisah sebelum eksekusi seeder |
+

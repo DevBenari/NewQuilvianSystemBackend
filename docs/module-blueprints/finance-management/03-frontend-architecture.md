@@ -1203,3 +1203,249 @@ terkaan ke penanda resmi. Perilaku yang dilihat pengguna tidak berubah.
 | Layar riwayat perubahan ambang | Tidak ada datanya — tabel riwayat ditolak `FIN-DES-086`, dan `FIN-DEC-145` menghapus alasan teknis terakhir untuk membuatnya |
 | Tombol menghidupkan penjadwal dan worker dari layar | Menjadi jalan memutar gerbang G3 dan keputusan operasional |
 | Memberi layar pembayaran langsung kemampuan mengubah ambang | Memisahkan wewenang: staf mencatat pembayaran, pejabat mengubah ambang |
+
+## 22. Amendment 5 Oktober 2026 (revisi 17) — layar piutang manfaat karyawan, sisi Finance
+
+```yaml
+input_revision: 00-interview-decisions.md — Amendment pass 5 Oktober 2026 (FIN-DEC-161..FIN-DEC-182)
+input_design: 02-backend-architecture.md bagian O (FIN-DES-099..FIN-DES-104); contracts/api-contract.md bagian O; contracts/permission-audit-matrix.md bagian O
+input_gate: evidence/24-gerbang-kelengkapan-requirement-piutang-manfaat-karyawan.md
+slices: S2a, S2b, S4a, S7a, S8 — kelima slice yang lolos gerbang
+status: approved
+approved_by: Yasmin
+approved_at: 2026-10-05
+```
+
+### 22.1 Status gerbang UI dan batasan terhadap epic
+
+`FIN-DEC-175` sebelumnya menetapkan bahwa **bentuk** layar piutang karyawan diputuskan pemilik lewat UI brief
+tersendiri sebelum task frontend dibuat (`FIN-OQ-099`). Pada pass amandemen 5 Oktober 2026, gerbang UI brief
+`FIN-OQ-099` **resmi DITUTUP** oleh pemilik (Yasmin) melalui tiga keputusan:
+1. `FIN-DEC-180`: Penempatan menu pada submenu baru **"Piutang Karyawan"** di grup Keuangan, memuat tiga butir berurutan (Perjanjian Angsuran, Pelunasan Internal Manfaat, dan Status Bebas Tanggungan). Susunan menu **Transaksi A/R** dan **Transaksi A/P** **MUST NOT** disentuh.
+2. `FIN-DEC-181`: Pengajuan perjanjian angsuran berbentuk **HALAMAN PENUH tersendiri beserta rutenya sendiri** (bukan modal dan bukan drawer).
+3. `FIN-DEC-182`: Status bebas tanggungan berupa **HALAMAN TERSENDIRI yang murni baca dengan DUA cara pakai** (pencarian satu pegawai dan pemeriksaan beberapa pegawai sekaligus, batas 100 pegawai per permintaan `FIN-VAL-245` ditolak di sisi layar lebih dulu).
+
+**Batas penting yang MUST dipahami:**
+- Yang ditutup pass amandemen ini adalah **gerbang UI**, **BUKAN gerbang epic**.
+- `EPIC FIN-04` **tetap berstatus `OPEN DECISION`** dan **tetap berada di luar seluruh gelombang pengiriman (`MVP-n`)**.
+- Status arsitektur frontend ini tetap `draft` (approval desain tetap tindakan manusia). Task frontend karyawan **tetap belum boleh dibuat** sampai epic dibuka dan dependency hulu (konfirmasi Billing `FIN-DEC-006`/`FIN-DEC-177` dan HR `FIN-OQ-091`) diselesaikan.
+- Yang dikunci pada bagian ini kini mencakup keterjangkauan, bentuk navigasi terverifikasi, halaman pengajuan, skema tampilan bebas tanggungan, serta isi dan sumber data per layar.
+
+### 22.2 Peta butir menu — diputuskan `FIN-DEC-180`
+
+Ini **keputusan**, bukan lagi usulan. Rute final tetap mengikuti konvensi proyek.
+
+| Butir | Tingkat | Induk | Rute | Layar | Hak akses penjaga |
+|---|---|---|---|---|---|
+| Piutang Karyawan | 1 | Grup Keuangan | — (submenu) | — | Butir anaknya masing-masing |
+| Perjanjian Angsuran | 2 | Piutang Karyawan | `/finance/employee-receivables/installment-plans` | `FE-FIN-038` | `FinanceReceivableInstallmentPlan : Read` |
+| Pelunasan Internal Manfaat | 2 | Piutang Karyawan | `/finance/employee-receivables/benefit-settlements` | `FE-FIN-040` | `FinanceBenefitSettlement : Read` |
+| Status Bebas Tanggungan | 2 | Piutang Karyawan | `/finance/employee-receivables/clearance` | `FE-FIN-041` | `FinanceReceivable : Read` |
+
+**Urutan butir mengikuti urutan kerja petugas**, pola yang sama dengan `FIN-DEC-160`: menyepakati cicilan
+→ menutup porsi benefit pada akhir periode → menyatakan pegawai bebas tanggungan.
+
+**Dua layar sengaja TIDAK diberi butir menu:**
+
+| Layar | Jalan masuknya | Alasan |
+|---|---|---|
+| `FE-FIN-039` Rincian Perjanjian Angsuran | Dari baris pada `FE-FIN-038`, **dan** dari layar rincian kartu piutang yang sudah ada | Ia rincian satu dokumen, bukan daftar yang dicari dari menu — pola yang sama dengan Riwayat Mutasi Piutang pada 21.2 |
+| Halaman pengajuan perjanjian (`FIN-DEC-181`) | Dari tombol aksi pada layar rincian kartu piutang saja | Rute berdiri sendiri yang dibuka dalam konteks satu piutang spesifik (22.5) |
+
+**Nol butir menu untuk slice `S8`.** Penghapusan buku dan penyesuaian piutang karyawan memakai layar
+pengajuan yang **sudah ada** (`FIN-DEC-176` mengikat polanya pada `FIN-DEC-012`). Yang dibutuhkan hanya
+agar filter jenis debitur pada layar itu memuat **Manfaat Karyawan** — dan nilai itu sudah ada pada
+`DEBTOR_TYPE_OPTIONS`. Membuat layar write-off kedua khusus karyawan **MUST NOT** dilakukan.
+
+**Perlindungan menu eksisting dan preseden fakta `F48`.**
+`FIN-DEC-094` mengikat menu Transaksi A/R dan Transaksi A/P pada bentuk V1. Susunan menu **Transaksi A/R** dan
+**Transaksi A/P** **MUST NOT** disentuh sama sekali — nol butir disisipkan ke dalamnya, sehingga `FIN-DEC-094`
+tidak tersentuh dan tidak membutuhkan pengecualian baru (`F48`, `FIN-DEC-105`). Polanya sama persis dengan
+submenu **Cutover & Subledger** (`FIN-DEC-148`).
+
+**Konsekuensi yang diterima sadar (`FIN-DEC-180`):** Petugas mengurus satu pegawai di dua tempat — kartu
+piutangnya tetap di Transaksi A/R, sedangkan perjanjian angsurannya di submenu baru ini. Mitigasinya adalah
+tautan silang dua arah antara rincian kartu piutang dan rincian perjanjian angsuran, yang sudah dikunci.
+
+### 22.3 `FE-FIN-038` Daftar Perjanjian Angsuran Piutang (`S2a`)
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ [A] Judul + lencana bagian                                   │
+├──────────────────────────────────────────────────────────────┤
+│ [B] Kartu ringkasan: menunggu persetujuan · berjalan ·       │
+│     ada tunggakan · selesai                                  │
+├──────────────────────────────────────────────────────────────┤
+│ [C] Pencarian + saringan: status · periode gaji · pemilik    │
+│     manfaat · ada tunggakan                                  │
+├──────────────────────────────────────────────────────────────┤
+│ [D] Tabel: nomor · pemilik manfaat · nomor piutang · total · │
+│     jumlah angsuran · sudah terbayar · status · [Rincian]    │
+├──────────────────────────────────────────────────────────────┤
+│ [E] Paginasi                                                 │
+└──────────────────────────────────────────────────────────────┘
+```
+
+| Wilayah | Isi | Sumber data | Hak akses | Keadaan kosong dan gagal |
+|---|---|---|---|---|
+| A | Judul layar beserta lencana bagian | — | — | — |
+| B | Empat angka hitungan | `GET /receivable-installment-plans` ruas ringkasan | `FinanceReceivableInstallmentPlan : Read` | Kosong → `0`, **bukan** tanda hubung. Gagal → kartu menampilkan keterangan gagal, tabel tetap dimuat |
+| C | Saringan status, periode gaji, pemilik manfaat, penanda tunggakan | Nilai status dari kosakata pada `state-transition-matrix.md` bagian O.1 — **MUST NOT** dikarang layar | sama | — |
+| D | Baris perjanjian | sama | sama | Kosong → *"Belum ada perjanjian angsuran yang cocok dengan saringan ini."* Tanpa hak akses → `AccessDeniedGate`, **bukan** tabel kosong |
+| D | Nama pemilik manfaat | **Ikut pada respons**, dibawa serah terima | sama | Nama tidak tersedia → tulis keterangannya. **MUST NOT** menampilkan ID mentah (pola 21.4 nomor 2) |
+| E | Paginasi | sama | sama | — |
+
+**Nol tombol "Ajukan Perjanjian" pada layar ini.** Perjanjian diajukan dari kartu piutang yang hendak
+diangsur, karena `POST /receivables/{receivableId}/installment-plans` menuntut kartu piutangnya sebagai
+induk. Memasang tombol di sini memaksa layar meminta petugas mencari kartu piutang lebih dulu — yaitu
+memindahkan pekerjaan, bukan menghemat langkah.
+
+### 22.4 `FE-FIN-039` Rincian Perjanjian Angsuran (`S2a`, `S2b`)
+
+| Wilayah | Isi | Sumber data | Hak akses | Keadaan kosong dan gagal |
+|---|---|---|---|---|
+| Kepala | Nomor, status, pemilik manfaat, hubungannya, nomor dan sisa kartu piutang | `GET /receivable-installment-plans/{id}` | `FinanceReceivableInstallmentPlan : Read` | `404` → *"Perjanjian tidak ditemukan atau sudah dihapus."* |
+| Syarat | Total disepakati, jumlah angsuran, nominal tiap angsuran, periode gaji pertama | sama | sama | — |
+| Jadwal | Satu baris per angsuran: urutan, periode gaji, nominal, terbayar, sisa, status | sama | sama | Status `MENUNGGU` → **belum ada** baris jadwal, dan itu benar. Tulis *"Jadwal dibangkitkan setelah perjanjian disetujui."* — **MUST NOT** menampilkan tabel kosong tanpa keterangan |
+| Tunggakan | Penanda jumlah periode tertunggak beserta nominalnya | Diturunkan dari status baris jadwal | sama | Nol tunggakan → penanda **tidak** ditampilkan, bukan ditampilkan bernilai nol |
+| Persetujuan | Pengaju, penyetuju, waktu, alasan penolakan atau pembatalan | sama | sama | — |
+| Tombol **Setujui** | Menyetujui, lalu seluruh baris jadwal dibangkitkan | `POST /receivable-installment-plans/{id}/approve` | `… : Approve` | Tampil hanya bila status `MENUNGGU` **dan** pemegang hak `Approve`. **MUST** tidak tampil bagi pengajunya sendiri (`FIN-DEC-166`) |
+| Tombol **Tolak** | Menolak beserta alasannya; alasan **wajib** | `POST …/reject` | `… : Reject` | Tampil pada keadaan yang sama dengan Setujui |
+| Tombol **Batalkan** | Membatalkan beserta alasannya; alasan **wajib** | `POST …/cancel` | `… : Cancel` | Tampil hanya bila status `MENUNGGU` atau `DISETUJUI` |
+
+**Penyembunyian tombol bukan penegakan.** Backend tetap menolak lewat `FIN-VAL-234` dan check constraint
+`CK_FinReceivableInstallmentPlan_MakerChecker`. Layar menyembunyikan tombol agar petugas tidak menempuh
+langkah yang pasti gagal — bukan sebagai pengganti pemeriksaan.
+
+**Keadaan `422` dari `FIN-VAL-233` MUST ditangani apa adanya.** Bila sisa piutang berubah antara
+pengajuan dan persetujuan, layar menampilkan *"Sisa piutang sudah berubah menjadi <sisa> sejak perjanjian
+diajukan. Ajukan ulang dengan angka yang benar."*, lalu memuat ulang kepala layar. Layar **MUST NOT**
+menawarkan "setujui saja" atau membetulkan angkanya sendiri.
+
+### 22.5 Pengajuan perjanjian angsuran — halaman penuh tersendiri (`FIN-DEC-181`)
+
+Bentuk layar pengajuan perjanjian diputuskan oleh `FIN-DEC-181`: **HALAMAN PENUH tersendiri beserta rutenya sendiri**
+(misalnya `/finance/employee-receivables/installment-plans/new?receivableId=...`), dibuka dari tombol aksi pada layar
+rincian kartu piutang — **bukan** modal dan **bukan** drawer. Keputusan ini sejalan dengan arah `FIN-DEC-094` yang
+eksplisit memilih halaman/rute berdiri sendiri, bukan modal/tab di dalam layar lain.
+
+**Alur dan konteks layar:** Petugas membuka kartu piutang (misalnya kartu piutang karyawan di Transaksi A/R), menekan
+tombol **Ajukan Perjanjian**, lalu berpindah ke halaman pengajuan yang memuat syarat perjanjian, perkiraan jadwal, serta
+unggahan berkas perjanjian dalam satu halaman yang lega.
+**Konsekuensi yang diterima sadar (`FIN-DEC-181`):** Petugas berpindah halaman sehingga konteks kartu piutang hilang dari
+pandangan; oleh karena itu halaman pengajuan **MUST** menampilkan nomor kartu piutang, nama pemilik manfaat, dan sisa
+piutangnya di kepala layar.
+
+| Ruas | Aturan | Pesan yang dibaca petugas bila ditolak |
+|---|---|---|
+| Total disepakati | Terisi otomatis dari sisa piutang, **boleh** diubah pejabat | `FIN-VAL-232`, `FIN-VAL-233` |
+| Jumlah angsuran | 2 sampai 60 | `FIN-VAL-237` |
+| Nominal tiap angsuran | Dihitung layar sebagai bantuan, **tetapi** angka yang berlaku adalah yang dikembalikan backend | `FIN-VAL-232` |
+| Periode gaji pertama | **MUST NOT** periode yang sudah lewat | `FIN-VAL-235` |
+| Berkas perjanjian | Opsional; mengikuti aturan berkas bukti pada 20 | — |
+| Catatan | Teks bebas | — |
+
+**Layar MUST NOT menghitung sendiri angka yang menentukan.** Pembulatan sisa angsuran terakhir adalah
+milik backend. Yang ditampilkan layar sebelum menyimpan adalah perkiraan, dan sesudah menyimpan
+**MUST** diganti angka dari respons — aturan yang sama dengan bagian 6.
+
+### 22.6 `FE-FIN-040` Pelunasan Internal Manfaat Karyawan (`S7a`)
+
+Alurnya tiga langkah: **hitung lebih dulu → buat draf → terbitkan.**
+
+| Wilayah | Isi | Sumber data | Hak akses | Keadaan kosong dan gagal |
+|---|---|---|---|---|
+| Saringan | Periode dan penjamin internal | Master penjamin milik Administrator, dirujuk lewat Id | `FinanceBenefitSettlement : Read` | — |
+| Hasil hitung awal | Jumlah kartu piutang dan total nominal yang **akan** ditutup | `POST /benefit-settlements/preview` | `… : Read` | Nol piutang → *"Tidak ada piutang porsi benefit yang perlu ditutup untuk periode ini."* beserta tombol Terbitkan **nonaktif** |
+| Daftar piutang | Nomor piutang, pemilik manfaat, nominal | sama | `… : Read` | — |
+| Tombol **Buat Draf** | Membekukan daftar hasil hitung menjadi satu draf | `POST /benefit-settlements` | `… : Create` | `409` `FIN-VAL-241` → *"Periode ini sudah pernah ditutup pada <nomor pelunasan>."* beserta tautan ke pelunasan itu |
+| Tombol **Terbitkan** | Menutup seluruh piutang pada daftar dalam satu transaksi | `POST /benefit-settlements/{id}/post` | `… : Post` | Tampil hanya pada status `DRAF`. **MUST** melalui modal konfirmasi yang menyebut jumlah kartu dan total nominal — ia menutup banyak piutang sekaligus |
+| Tombol **Batalkan** | Membatalkan beserta alasannya; alasan **wajib** | `POST …/cancel` | `… : Cancel` | Pada status `DITERBITKAN`, modal konfirmasi **MUST** menyatakan bahwa saldo piutang akan **dibuka kembali** |
+| Daftar dan rincian | Riwayat pelunasan per periode | `GET /benefit-settlements`, `GET /benefit-settlements/{id}` | `… : Read` | — |
+
+**Yang MUST NOT ada di layar ini.** Tidak ada pilihan "hapus buku" dan tidak ada ruas nomor jurnal.
+`FIN-DEC-178` melarang penutupan porsi benefit lewat penghapusan buku, dan kontrak jurnalnya milik
+Accounting serta masih terbuka (`FIN-OQ-103`). Ruas penanda kejadian akuntansi pada rincian **MUST**
+berbunyi *"Belum dikirim ke Accounting"* — bukan kosong, dan bukan pula galat. Kosong di sini adalah
+keadaan yang benar, bukan kegagalan.
+
+### 22.7 `FE-FIN-041` Status Bebas Tanggungan Pegawai (`S4a`, diputuskan `FIN-DEC-182`)
+
+Bentuk layar status bebas tanggungan diputuskan oleh `FIN-DEC-182`: **HALAMAN TERSENDIRI yang murni baca, dengan DUA cara pakai:**
+1. Pencarian **satu** pegawai (untuk menjawab pertanyaan ad-hoc yang masuk dari HR/petugas).
+2. Pemeriksaan **beberapa** pegawai sekaligus (untuk memeriksa serombongan pegawai saat penutupan atau rekonsiliasi berkala).
+
+Dua cara pakai itu **MUST** keduanya ada pada layar ini, karena jenis pekerjaannya berbeda.
+
+| Wilayah | Isi | Sumber data | Hak akses | Keadaan kosong dan gagal |
+|---|---|---|---|---|
+| Pencarian satu pegawai | Status, total piutang aktif, jumlah kartu, jumlah angsuran tertunggak | `GET /receivables/clearance/{benefitOwnerId}` | `FinanceReceivable : Read` | Nol piutang → **bebas tanggungan**, dan itu hasil yang sah — **MUST NOT** ditampilkan sebagai "data tidak ditemukan" |
+| Pemeriksaan beberapa pegawai | Satu baris per pegawai | `GET /receivables/clearance` | sama | Lebih dari 100 → `400` `FIN-VAL-245`; layar **MUST** menolak di sisi layar lebih dulu beserta keterangan batasnya |
+| Rincian per pegawai | Daftar kartu piutang yang menahan statusnya | Dari respons yang sama | sama | — |
+
+**Nol kendali ubah pada layar ini.** Status dihitung dari saldo piutang aktif dan **MUST NOT** dapat
+diisi tangan (`FIN-DEC-170`, `FIN-VAL-244`). Layar ini murni baca. Memberinya tombol "tandai bebas"
+berarti membatalkan maksud gerbang berhenti kerja.
+
+**Gerbang berhenti kerja di HR bukan layar ini.** Slice `S4b` milik HR dan terblokir. Yang dibuat
+Finance hanya perhitungan beserta permukaan bacanya.
+
+### 22.8 Privasi di layar
+
+| Hal | Aturan |
+|---|---|
+| `BenefitOwnerId`, `BenefitRelationship`, jalur berkas perjanjian, dan ruas alasan teks bebas | Bertanda **Sensitif** pada kamus data. **MUST NOT** masuk log peramban, pelacakan analitik, maupun pesan galat yang ditampilkan |
+| Hubungan pemilik manfaat — pasangan, anak, diri sendiri | Ditampilkan hanya pada layar perjanjian dan rincian piutang, kepada pemegang hak bacanya. **MUST NOT** ikut pada daftar yang lebih luas seperti laporan umur piutang |
+| Diagnosis dan data medis | **MUST NOT** muncul di layar mana pun pada bagian ini. Finance tidak menerimanya dan tidak memintanya |
+| Nominal gaji | **MUST NOT** ditampilkan. Finance mengetahui nominal potongan, bukan gajinya |
+
+### 22.9 Matriks wewenang untuk amandemen ini
+
+| Keputusan | Lapisan wewenang | Keadaan / Pemilik |
+|---|---|---|
+| Status bebas tanggungan **MUST NOT** dapat diisi tangan; nol kendali ubah di layarnya | **security/privacy/invariant** | Tetap, Pemilik (`FIN-DEC-170`, `FIN-VAL-244`) |
+| Tombol Setujui tidak tampil bagi pengajunya sendiri | **invariant** | Tetap, Pemilik (`FIN-DEC-166`) |
+| Kolom bertanda Sensitif tidak keluar ke log dan analitik | **security/privacy** | Tetap, Security Owner |
+| Nol pilihan hapus buku pada layar pelunasan internal | **invariant** | Tetap, Pemilik (`FIN-DEC-178`) |
+| Penempatan dan nama butir menu (submenu baru "Piutang Karyawan") | **approved product/UI brief** | **DITUTUP** `FIN-DEC-180` (Yasmin) |
+| Bentuk layar pengajuan perjanjian (halaman penuh tersendiri) | **approved product/UI brief** | **DITUTUP** `FIN-DEC-181` (Yasmin) |
+| Bentuk tampilan status bebas tanggungan (halaman tersendiri murni baca, dua cara pakai) | **approved product/UI brief** | **DITUTUP** `FIN-DEC-182` (Yasmin) |
+| Warna lencana status, lebar kolom, ikon submenu, urutan kolom tabel | `DEV_DISCRETION` | Tetap didelegasikan |
+| Redaksi persis pesan kosong dan gagal | `DEV_DISCRETION` dalam batas: **MUST** menyebut sebabnya dan langkah berikutnya | Tetap didelegasikan |
+
+### 22.10 Ketergantungan pada backend
+
+| Layar | Menunggu |
+|---|---|
+| `FE-FIN-038`, `FE-FIN-039` | `FinanceReceivableInstallmentPlansController` beserta migration-nya |
+| Pengajuan perjanjian | sama |
+| `FE-FIN-040` | `FinanceBenefitSettlementsController` beserta migration-nya |
+| `FE-FIN-041` | Dua endpoint bebas tanggungan pada `FinanceReceivablesController` yang sudah ada — **nol** migration |
+| Semuanya | Kedua resource hak akses baru **MUST** sudah muncul di layar Akses Role, dan peran yang bersangkutan sudah diberi haknya. Tanpa itu layar menampilkan `403` yang benar tetapi tidak dapat dipakai siapa pun |
+
+**Satu layar yang mendahului yang lain.** `FE-FIN-041` tidak menyentuh tabel baru, sehingga ia dapat
+dibangun lebih dulu dan berguna lebih awal — asalkan sudah ada piutang karyawan untuk dihitung, dan itu
+slice `S1` yang terblokir. Berguna di produksi dan siap dibangun adalah dua hal berbeda.
+
+### 22.11 Pertanyaan terbuka frontend sesudah amandemen ini
+
+| ID | Keadaan |
+|---|---|
+| `FIN-OQ-099` | **CLOSED**, 5 Oktober 2026, oleh `FIN-DEC-180`, `FIN-DEC-181`, dan `FIN-DEC-182`. Gerbang UI brief (`FIN-DEC-175`) resmi **terpenuhi**. Nol pertanyaan terbuka milik pemilik Finance yang tersisa pada `EPIC FIN-04` |
+| `FIN-OQ-081` | Tetap **DITUNDA** — tidak terkait amandemen ini |
+
+**Penegasan status gerbang sesudah Revisi 18 (6 Oktober 2026):**
+Gerbang hulu dan hilir lintas domain (`evidence/23` B1..B6 Billing, H1..H8 HR, dan R1..R6 Registrasi) kini **RESMI DITUTUP** oleh `FIN-DEC-183` s.d. `FIN-DEC-202`. Kelengkapan requirement `EPIC FIN-04` berstatus `READY_FOR_DOMAIN_DESIGN` dan seluruh 10 slice telah selesai dirancang pada Revisi 18.
+**Status Tata Kelola Rilis:** `EPIC FIN-04` tetap berada di luar gelombang pengiriman MVP berjalan (`MVP-1` s.d. `MVP-4`), dan dialokasikan ke rilis pengiriman tersendiri. Task frontend piutang karyawan (`FE-FIN-038` s.d. `FE-FIN-041`) **MUST NOT** dieksekusi sebelum delivery plan disahkan dan wewenang tulis frontend diberikan secara eksplisit.
+
+### 22.12 Yang sengaja TIDAK dibuat pada amandemen ini
+
+| Yang dipertimbangkan | Alasan ditolak |
+|---|---|
+| Layar penghapusan buku khusus piutang karyawan | `FIN-DEC-176` mengikatnya pada pola yang sudah ada; layar kedua akan bercabang dan menyimpang (22.2) |
+| Layar unggah hasil potongan gaji | Slice `S3`, tertahan `FIN-OQ-091`. Membuat layarnya sekarang berarti mengarang bentuk pesan HR |
+| Layar gerbang berhenti kerja | Slice `S4b`, milik HR (22.7) |
+| Tombol menandai pegawai bebas tanggungan secara manual | Membatalkan maksud `FIN-DEC-170` (22.7) |
+| Ruas nomor jurnal pada pelunasan internal | Kontraknya milik Accounting dan masih terbuka (22.6) |
+| Layar master "RS Benefit" | `FIN-OQ-102`; master penjamin milik Administrator, bukan Finance |
+| Menampilkan sisa plafon benefit pegawai | Finance tidak memegang plafon dan tidak menghitungnya (`FIN-DEC-164`). Menampilkannya berarti menjanjikan angka yang bukan miliknya |

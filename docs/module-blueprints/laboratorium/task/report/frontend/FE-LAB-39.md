@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `e613321c5` (branch `YogaV2`), di atas `FE-LAB-35`..`FE-LAB-38` yang belum ter-commit |
 | Commit backend yang dijadikan rujukan | `55b032b0` + `BE-LAB-87` (belum ter-commit), `https://localhost:7184` di atas `QuilvianNewDevYoga` |
 | Tanggal | 2026-10-01 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — ketiga tindakan berjalan dari halaman; penanda terbaca sebagai teks; nol tombol pengesahan di luar halaman ini. Uji unit 39/39 (berkas terdampak), lint nol peringatan, build hijau, layar 34/34 + 4/4 akun analis asli, nol tulis. **Batas:** dev belum punya dokter pemvalidasi/perilis yang ditunjuk dan tidak ada baris Final — lihat 6 |
+| Status | ✅ **`SELESAI`** (naik 2026-10-06) — validasi, rilis, dan pengembalian dijalankan **sungguhan** di Halaman Hasil PK oleh dr. Bima (akun asli, kredensial `LAB-VAL-PK`/`LAB-REL-PK`); rilis tercatat di rekam medis; analis asli nol tombol pengesahan. Lihat 9. *(Semula: ⚠ — ketiga tindakan berjalan dari halaman; penanda terbaca sebagai teks; nol tombol pengesahan di luar halaman ini. Uji unit 39/39 (berkas terdampak), lint nol peringatan, build hijau, layar 34/34 + 4/4 akun analis asli, nol tulis. **Batas:** dev belum punya dokter pemvalidasi/perilis yang ditunjuk dan tidak ada baris Final — lihat 6)* |
 
 ---
 
@@ -215,3 +215,40 @@ Layar: **34/34** + **4/4** `PASS`.
 | Interupsi | `NONE` |
 | Status Git | Frontend (`e613321c5`): ` M` `lab-examination.service.js` (juga milik `FE-LAB-36`); `??` berkas Halaman Hasil PK (milik `FE-LAB-36`, diperluas di sini), `lab-result-status-constants.jsx`, `master-data/lab-result-reason.service.js`. Backend: laporan ini, `frontend-roadmap.md`, `traceability.md`. **Nol operasi Git dijalankan** |
 | Langkah berikutnya | `FE-LAB-40` (antrean validasi) kini dapat dikerjakan; `FE-LAB-41` (pola yang sama untuk Mikrobiologi) dan `FE-LAB-43` (memakai `LAB_RESULT_PROGRESS`) juga terbuka |
+
+## 9. Verifikasi nyata 2026-10-06 — sesudah setup langkah rilis di devYoga
+
+**Status: `FE-LAB-39` ✅ `SELESAI`.** Batas lama — *dokter pemvalidasi/perilis belum ditunjuk dan tidak ada baris Final* — tertutup oleh setup di bawah.
+
+**Konteks.** Atas persetujuan pemilik modul, langkah rilis `MVP-9d`/`MVP-10c` dijalankan sebagai **setup uji di devYoga**
+([`backend-roadmap.md`](../../../roadmap/backend-roadmap.md) 6ak.10, 6al.5): kode kewenangan `LAB-*` di katalog Human Resource,
+kredensial dr. Bima (`LAB-VAL-PK`/`LAB-REL-PK`) dan dr. Nabila (`LAB-VAL-MB`/`LAB-REL-MB`), serta `Validate`/`Release`/`Return`,
+`LabWorklist : Read`, dan hak baca kedua daftar alasan bagi jabatan *Kepala Instalasi Laboratorium* dan *Dokter Penanggung Jawab
+Laboratorium*. Hemoglobin dan Leukosit `LAB-RSMMC-000001` dinyatakan selesai sebagai hasil uji.
+
+**Temuan uji — langkah rilis 4 kurang dua izin baca.** Dokter berizin `Validate` tetap *Akses Ditolak* di Halaman Hasil: kedua
+jabatan tidak memegang `LabOrder : Read` (`GET /lab-orders/{id}`) dan `LabExamination : Read` (`GET /lab-examinations/by-order/{id}/results`,
+`/result/microbiology`). Keduanya ditambahkan atas persetujuan pemilik modul; langkah rilis 4 `MVP-9d`/`MVP-10c` wajib memuatnya.
+
+**Akun asli:** dr. Bima Prasetya, Sp.PK (Kepala Instalasi) dan Vina (analis). Tulis yang diteruskan hanya tindakan pengesahan pada
+Hemoglobin/Leukosit `LAB-RSMMC-000001` dan Validasi BTA `LAB-RSMMC-000014` (ditolak `403`).
+
+| ID | Task | Skenario | Hasil |
+| --- | --- | --- | --- |
+| Q1 | 40, 42 | dr. Bima: antrean *Semua Disiplin* memuat Hemoglobin dan Leukosit (PK) serta BTA (Mikrobiologi) dari backend asli, satu permintaan tanpa `discipline` | `PASS` |
+| Q2 | 42 | *Patologi Klinik* → hanya Hemoglobin dan Leukosit; `discipline=ClinicalPathology` | `PASS` |
+| P1 | 39 | Halaman Hasil PK, dr. Bima (`Validate` tanpa `Update`): Hemoglobin *Menunggu Validasi*; hanya tombol Validasi | `PASS` |
+| P2 | 39 | Validasi Hemoglobin → **`200`**; *Tervalidasi*, *"Validasi oleh: dr. Bima Prasetya, Sp.PK — Kepala Instalasi Laboratorium"*; Rilis dan Kembalikan ditawarkan | `PASS` |
+| P3 | 39 | Leukosit: Validasi `200`, lalu *Kembalikan ke analis* — tanpa alasan nol permintaan; dengan *"Sampel tertukar"* **`200`**; kembali *Draft* | `PASS` |
+| Q3 | 40, 42 | Kembali ke antrean: Hemoglobin pindah ke *Menunggu Rilis* dengan *Divalidasi oleh dr. Bima*; Leukosit (dikembalikan) di kedua tahap tidak ada | `PASS` |
+| P4 | 39 | Rilis oleh pemvalidasi sendiri: panel menyebut rekam medis dan meminta alasan pengecualian (*"Shift tunggal…"*) → **`200`**; *Dirilis*, *Otorisasi oleh* dr. Bima, penanda pengecualian sebagai teks; nol tombol | `PASS` |
+| RM | 39 | Baris rekam medis: satu `MrcClinicalDocumentIntegrity` bagi Hemoglobin — ditandatangani dan dikunci atas nama dr. Bima saat rilis | `PASS` |
+| Q4 | 40 | Sesudah dirilis Hemoglobin hilang dari *Menunggu Rilis* | `PASS` |
+| M1 | 41 | dr. Bima (berizin `Validate`, **tanpa** kewenangan Mikrobiologi) memvalidasi BTA → **`403` lapis orang asli**: *"Anda belum ditunjuk sebagai pemegang kewenangan validasi Mikrobiologi."* tampil apa adanya | `PASS` |
+| V1 | 39 | Vina (analis): Hemoglobin *Dirilis* nol tombol; Leukosit yang dikembalikan dapat diisi lagi, nol tombol pengesahan | `PASS` |
+| Z1 | — | Nol tulis di luar tindakan yang diizinkan; nol galat runtime | `PASS` |
+
+**Jejak di devYoga:** Hemoglobin `LAB-RSMMC-000001` **Dirilis** (validasi dan rilis oleh dr. Bima, berpenanda pengecualian empat
+mata); Leukosit dikembalikan ke *Draft* dengan alasan *Sampel tertukar* (`SAMPEL-TERTUKAR`; *dikoreksi 2026-10-06 dari riwayat transisi — semula tertulis Salah ketik hasil*). Data uji.
+
+**Nol perubahan kode** pada task ini. **Nol operasi Git dijalankan.**

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -269,6 +269,23 @@ public sealed class BillingArApHandoffService
         };
     }
 
+    public async Task<HandoffStatusResponse> GetHandoffStatusByInvoiceAsync(
+        Guid invoiceId,
+        CancellationToken cancellationToken)
+    {
+        var record = await _dbContext.BilFinalizationRecords.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId && !x.IsDelete)
+            .OrderByDescending(x => x.FinalizedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (record is null)
+        {
+            throw new KeyNotFoundException($"Catatan finalisasi untuk invoice '{invoiceId}' tidak ditemukan.");
+        }
+
+        return await GetHandoffStatusAsync(record.Id, cancellationToken);
+    }
+
     private Task AcquireLockAsync(string key, CancellationToken cancellationToken) =>
         _dbContext.Database.ExecuteSqlRawAsync(
             "SELECT pg_advisory_xact_lock(hashtext({0}));", [key], cancellationToken);
@@ -299,7 +316,9 @@ public sealed class BillingArApHandoffService
         Amount = handoff.Amount,
         DueDate = handoff.DueDate,
         Status = handoff.Status,
-        CreatedAt = handoff.CreatedAt
+        HandoffKey = handoff.HandoffKey,
+        CreatedAt = handoff.CreatedAt,
+        AcknowledgedAt = handoff.AcknowledgedAt
     };
 
     private static ApHandoffResponse MapAp(BilApHandoff handoff) => new()
@@ -309,8 +328,10 @@ public sealed class BillingArApHandoffService
         Amount = handoff.Amount,
         ReadinessStatus = handoff.ReadinessStatus,
         Status = handoff.Status,
+        HandoffKey = handoff.HandoffKey,
         CreatedAt = handoff.CreatedAt,
-        ReadyAt = handoff.ReadyAt
+        ReadyAt = handoff.ReadyAt,
+        AcknowledgedAt = handoff.AcknowledgedAt
     };
 
     private static HandoffAdjustmentResponse MapAdjustment(BilHandoffAdjustment adjustment) => new()

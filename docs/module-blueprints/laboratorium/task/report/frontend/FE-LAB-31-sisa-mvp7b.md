@@ -18,7 +18,7 @@
 | Model | Claude Opus 5 |
 | Commit frontend saat dikerjakan | `6ea61bcad` (branch `YogaV2`) |
 | Tanggal | 2026-09-23 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — keempat AC terbangun, aturannya terbukti lewat 7 uji unit baru, lint 0 error, build hijau. **Belum diklik di peramban** — sesi ini nol punya alat kendali peramban |
+| Status | ✅ **`SELESAI`** (naik 2026-10-06) — keempat AC terbukti **di peramban** dengan akun analis asli terhadap backend lokal dan PostgreSQL dev; selisih `result` wajib/opsional **diputuskan pemilik modul** (ikuti `r27`) dan diterapkan. Rincian di [`FE-LAB-31.md`](FE-LAB-31.md) bagian 9. *(Semula 2026-09-23: ⚠ — 7 uji unit baru, belum diklik di peramban.)* |
 
 ---
 
@@ -150,10 +150,10 @@ apa adanya.
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| `AC-178` menyimpan kadar tanpa satuan **ditolak beserta sebabnya**; pemilih satuannya tersedia | **Terbangun; aturannya terbukti** | Pemilih `Satuan` berdiri di sebelah `Kadar` pada bentuk dilusi; 1 uji dua arah |
-| `AC-187` penimpaan **ditolak bila alasannya kosong**; hasil timpaan tersimpan beserta nilai hitungan aslinya | **Terbangun; aturannya terbukti** | 4 uji — ditolak, diterima, nilai sama bukan penimpaan, server nol menghitung bukan penimpaan |
-| `AC-188` difusi menampilkan `UG`/rentang/zona; dilusi menampilkan MIC beserta satuannya | **Terbangun, belum dilihat** | `<thead>` dan sel dikondisikan `susceptibilityMethod` |
-| `AC-190` isolat tanpa baris kepekaan tersimpan tanpa penolakan, **dan penandanya dapat disetel** | **Terbangun; aturannya terbukti** | 2 uji — payload membawa `false`, validasi meloloskan isolat tanpa baris |
+| `AC-178` menyimpan kadar tanpa satuan **ditolak beserta sebabnya**; pemilih satuannya tersedia | ✅ **Terbukti di layar** (T12–T13) | Pemilih `Satuan` berdiri di sebelah `Kadar` pada bentuk dilusi; 1 uji dua arah; `1,25` tanpa satuan ditolak layar, bersatuan tersimpan dan terbaca `1,25` |
+| `AC-187` penimpaan **ditolak bila alasannya kosong**; hasil timpaan tersimpan beserta nilai hitungan aslinya | ✅ **Terbukti di layar** (T9–T10) | 4 uji — ditolak, diterima, nilai sama bukan penimpaan, server nol menghitung bukan penimpaan; di layar: tanpa alasan ditolak, dengan alasan tersimpan bersama *"sistem menghitung R"* |
+| `AC-188` difusi menampilkan `UG`/rentang/zona; dilusi menampilkan MIC beserta satuannya | ✅ **Terbukti di layar** (T2) | `<thead>` dan sel dikondisikan `susceptibilityMethod` |
+| `AC-190` isolat tanpa baris kepekaan tersimpan tanpa penolakan, **dan penandanya dapat disetel** | ✅ **Terbukti di layar** (T3) | 2 uji — payload membawa `false`, validasi meloloskan isolat tanpa baris; tersimpan `200` dan penandanya terbaca kembali |
 | DoD — nol pengetikan bebas pada organisme dan antibiotik | ✅ **Tetap terpenuhi** | Keduanya tetap `BaseSelectField` |
 | DoD — nol pilihan `NeedsAttention`/`Critical` | ✅ **Tetap terpenuhi** | Status temuan nol disentuh |
 | DoD — seluruh uji Laboratorium tetap lulus | ✅ **Terpenuhi** | Nol kegagalan baru, dibuktikan terhadap pohon bersih |
@@ -164,11 +164,11 @@ apa adanya.
 
 | Hal | Isi |
 | --- | --- |
-| **Satu selisih kontrak dilaporkan, NOL diubah** | `r27` bagian 22.2 menurunkan `result` **dari wajib menjadi opsional** — server mengisinya bila breakpoint tersedia. Aturan frontend masih **mewajibkannya** (`lab-microbiology-result-rules.js`, mengutip `AC-165`/`VAL-83` milik `r24`). Akibatnya analis yang mengisi zona tanpa memilih interpretasi tertahan di layar, padahal server sanggup menghitungnya. **Nol disentuh** sebab berada di luar keempat AC yang diberi wewenang task ini, dan mengubahnya menyentuh `AC-165` yang masih berlaku. Perlu keputusan pemilik modul: `AC-165` dipertahankan, atau diselaraskan dengan `r27` |
+| **Satu selisih kontrak dilaporkan, NOL diubah** — *diputuskan 2026-10-06: ikuti `r27`; diterapkan, lihat [`FE-LAB-31.md`](FE-LAB-31.md) 9.3 (d)* | `r27` bagian 22.2 menurunkan `result` **dari wajib menjadi opsional** — server mengisinya bila breakpoint tersedia. Aturan frontend masih **mewajibkannya** (`lab-microbiology-result-rules.js`, mengutip `AC-165`/`VAL-83` milik `r24`). Akibatnya analis yang mengisi zona tanpa memilih interpretasi tertahan di layar, padahal server sanggup menghitungnya. **Nol disentuh** sebab berada di luar keempat AC yang diberi wewenang task ini, dan mengubahnya menyentuh `AC-165` yang masih berlaku. Perlu keputusan pemilik modul: `AC-165` dipertahankan, atau diselaraskan dengan `r27` |
 | Peringatan | Nol peringatan lint baru |
-| Masalah yang diketahui | Keempat kontrol **belum diklik di peramban** |
+| Masalah yang diketahui | ~~Keempat kontrol belum diklik di peramban.~~ **Tertutup 2026-10-06** |
 | Risiko tersisa | **Rendah pada aturannya, sedang pada tata letaknya.** Bentuk dilusi memindahkan dua kolom dan menambah satu pemilih di dalam sel tabel; lebarnya pada layar sempit belum dilihat |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | 4 berkas `M`, seluruhnya dalam cakupan. **Nol operasi Git dijalankan** |
-| Langkah berikutnya | Klik keempat kontrol terhadap backend berisi data; putuskan selisih `result` wajib/opsional di atas |
+| Langkah berikutnya | ~~Klik keempat kontrol terhadap backend berisi data; putuskan selisih `result` wajib/opsional di atas.~~ Keduanya selesai 2026-10-06. Tata letak dilusi pada 390 px juga dilihat — tanpa gulir halaman (T18) |
