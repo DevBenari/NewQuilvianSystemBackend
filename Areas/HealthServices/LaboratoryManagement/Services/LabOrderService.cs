@@ -1365,7 +1365,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             {
                 throw new LabOrderConflictException(statusBayar.Status == LabPaymentClearanceRules.NotBilled
                     ? "Tagihan pemeriksaan belum terbit. Pastikan sampling sudah diterima, lalu selesaikan pembayaran di kasir sebelum memproses."
-                    : $"Pemeriksaan belum dapat diproses karena pembayaran belum lunas (sisa Rp {statusBayar.OutstandingAmount:N0}).");
+                    : $"Pemeriksaan belum dapat diproses karena pembayaran belum lunas (sisa Rp {statusBayar.OutstandingAmount.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("id-ID"))}).");
             }
 
             return await MoveOrderStatusAsync(

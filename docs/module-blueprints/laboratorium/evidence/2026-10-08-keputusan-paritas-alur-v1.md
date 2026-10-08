@@ -57,5 +57,9 @@ Akun superadmin; untuk kiosk, respons `/v1/auth/me` disamarkan sebagai akun kios
 | Terima Sampling oleh pengambil sampel | Dialog menahan dengan pesan empat mata; tidak ada permintaan terkirim |
 | Konfirmasi (dokter pemeriksa) | `200` pada kedua order |
 
-**Belum diuji sungguhan:** penetapan Layak oleh petugas kedua dan kunci Lunas pada Proses — butuh akun
-non-superadmin yang bukan pengambil sampel. Kedua order uji kini berstatus *Confirmed* dengan wadah *Received*.
+| Terima Sampling oleh analis kedua (bukan pengambil) — Layak, `LAB-RSMMC-000023` | accept `200`; tagihan terbit, kolom Pembayaran *Belum Lunas · Rp 35.000* |
+| Terima Sampling oleh analis kedua — Tidak Layak + alasan, `LAB-RSMMC-000022` | reject `200` (10 alasan tersedia) |
+| Proses Pemeriksaan pasien Tunai belum lunas | Butir menu nonaktif beralasan; `PUT start-process` langsung → `409` "pembayaran belum lunas (sisa Rp 35.000)" |
+
+**Belum diuji sungguhan:** Proses Pemeriksaan sesudah pelunasan di kasir (modul Billing). `LAB-RSMMC-000023`
+kini *Accepted* menunggu pembayaran Rp 35.000; `LAB-RSMMC-000022` wadahnya ditolak.
