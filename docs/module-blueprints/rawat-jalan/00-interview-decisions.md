@@ -1154,3 +1154,37 @@ Nihil. Tidak ada blocker desain maupun implementasi.
 | `RJ-DOC-DEC-052` | Approval | **Uji layar penuh `RJ-DOC-REV-FE-015`**: backend uji 7185 dari build Release `HEAD` di scratchpad (tanpa perubahan DB), data uji pasien `KSKTEST-RM-07` lewat endpoint aplikasi, dan `QueueDate` antrean data uji dimundurkan lewat SQL langsung di `QuilvianNewDevSukma`. Data dibersihkan sesudahnya. Tidak berlaku untuk database lain | Sukma Giri | `approved` | Sukma Giri, 7 Okt 2026 (pilihan "Penuh, izinkan SQL") | [Laporan FE-015](task/report/frontend/RJ-DOC-REV-FE-015.md) §6 |
 | `RJ-DOC-DEC-053` | Decision | **Cakupan konsultasi tertunda mengikuti akun dokter, termasuk akun dokter yang juga SuperAdmin** (memperjelas `RJ-DOC-DEC-029` untuk Amendment MT). Bila akun yang login tertaut ke data dokter (`doctorId` sesi), pengingat di Klinis Dokter dan daftar Konsultasi Tertunda hanya memuat konsultasi dokter itu. Akun tanpa tautan dokter (mis. admin SuperAdmin) tetap melihat semua. Bila jumlahnya 0, pengingat tidak tampil (`RJ-DOC-FE-015`). Frontend-only: memakai parameter `doctorId` yang sudah ada pada `RJ-DOC-PENDCONS-001@1.0.0`. **Contoh:** dr. Maya Permata Sari (akun SuperAdmin) melihat 2 konsultasi tertunda miliknya, bukan 8 milik 5 dokter | Sukma Giri | `approved` | Sukma Giri, 7 Okt 2026 (temuan uji pemilik + pilihan "Pengingat + daftar per dokter") | Tangkapan layar pemilik 7 Okt 2026 |
 | `RJ-DOC-DEC-054` | Decision | **Antrean pasien dokter hari ini di Klinis Dokter memakai cakupan yang sama dengan `RJ-DOC-DEC-053`.** Akun yang tertaut ke data dokter hanya melihat antrean hari ini miliknya (daftar, ringkasan Total Antrean, kunci panggil, dan grup realtime), termasuk bila akunnya SuperAdmin. Akun tanpa tautan dokter tetap memakai cakupan lama. Frontend-only: filter `doctorId` sudah didukung `GET /doctor-queues`, `/summary`, dan `/call-lock`. Wewenang implementasi diberikan sebagai revisi 2 `RJ-DOC-REV-FE-015` (tanpa backend, commit, push, deploy). **Contoh:** dr. Rendy Pangalila tidak lagi melihat AGNES YULIANI RAJA GUK GUK (pasien dr. Maya); pasien itu hanya tampil saat dr. Maya login | Sukma Giri | `approved` | Sukma Giri, 7 Okt 2026 ("pola yang sama juga terapkan untuk … antrean pasien dokter hari ini") | Tangkapan layar pemilik 7 Okt 2026 |
+
+## Amendment Pass 2026-10-08 — Antrean prioritas, member, dan privasi layar publik (Amendment AQ)
+
+Sumber requirement: Sukma Giri, 8 Okt 2026 — spesifikasi tertulis "Antrean Rawat Jalan MMC":
+(1) pasien tertentu tidak disebut nama/identitasnya di layar dan suara antrean publik perawat maupun
+dokter; (2) layar publik dapat dipisah Regular dan Member; (3) pasien prioritas memakai nomor
+cadangan `01`, `03`, `05`, `10`, `15`; (4) pasien reguler tidak boleh mengambil nomor cadangan;
+(5) kiosk dan pendaftaran petugas memakai alokator backend yang sama.
+
+Fakta source (baseline 8 Okt 2026, backend `sukmagp`):
+
+- `F-AQ-1` — `MstMembershipTier` sudah punya `PriorityQueue` dan `PriorityLevel`; `TrxQueue` sudah
+  punya `IsPriorityQueue`, tetapi tidak ada kode yang mengisinya (selalu `false`).
+- `F-AQ-2` — Kiosk (`POST /patient-encounters`, `/kiosk`) dan petugas (`POST /patient-encounters/admin`)
+  sudah memakai satu proses `CreateEncounterCoreAsync`.
+- `F-AQ-3` — `GenerateQueueNumberAsync` di controller memakai `MAX(QueueNumber)+1` per tanggal,
+  service unit, dan gabungan poliklinik se-Nurse Station Cluster. Unique index database hanya per
+  poliklinik, sehingga dua poliklinik dalam satu cluster tidak terlindungi dari nomor ganda.
+- `F-AQ-4` — `QueueDisplayRuntimeController` selalu mengirim `MaskedPatientName`,
+  `MedicalRecordNumber`, `EncounterNumber`, dan `PatientId` ke layar publik; suara panggilan
+  (`QueueVoiceService`) menyebut `{patientName}`.
+- `F-AQ-5` — Payload realtime antrean tidak memuat nama atau data membership.
+- `F-AQ-6` — Tidak ada bukti internal maupun sumber resmi RS MMC yang dapat diverifikasi tentang
+  nama program/tier membership MMC (pencarian dokumen repository dan web, 8 Okt 2026).
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at |
+|---|---|---|---|---|---|
+| `RJ-DOC-DEC-055` | Bisnis | Tiga konsep dipisah: **Member** (pasien punya `MstPatientMembership` aktif), **Prioritas** (`MstMembershipTier.PriorityQueue`), dan **Privasi layar publik** (`MstMembershipTier.PublicDisplayMode`). Member tidak otomatis prioritas; prioritas tidak otomatis rahasia. Keputusan klasifikasi hanya di backend dan disimpan sebagai snapshot di `TrxQueue` saat antrean terbit | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-056` | Bisnis | Nomor cadangan prioritas bawaan `1, 3, 5, 10, 15`, dapat diubah lewat konfigurasi `HealthServices:Registration:QueueNumber:ReservedPriorityNumbers`. Prioritas mengambil nomor cadangan terkecil yang belum terpakai; bila habis, mengambil nomor biasa berikutnya dan tetap `IsPriorityQueue = true`. Reguler mengambil nomor non-cadangan terkecil yang belum terpakai. Nomor yang pernah terbit (termasuk batal, tidak hadir, selesai, dihapus) tidak dipakai ulang. Cakupan nomor tetap sama dengan `GenerateQueueNumberAsync` (`F-AQ-3`) | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-057` | Keamanan | Layar dan suara publik menyaring di backend. `QueueNumberOnly`: tanpa nama, nama samaran, No. RM, nomor kunjungan, `PatientId`, data member/VIP. `MaskedName`: hanya nama samaran, tanpa No. RM; suara tanpa nama. `Default`/`FullName`: perilaku lama mengikuti saklar perangkat. Ruang kerja perawat/dokter yang login tidak berubah | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-058` | Bisnis | `MstQueueDisplayDevice.QueueAudienceMode` (`All` bawaan, `RegularOnly`, `MemberOnly`) menyaring antrean di backend menurut snapshot `QueueAudience` | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-059` | Data | Data induk program/tier membership MMC **tidak di-seed** karena belum terverifikasi (`F-AQ-6`): `MEMBERSHIP MASTER DATA MMC — NEEDS VERIFIED BUSINESS DATA`. Struktur tetap dapat dikonfigurasi lewat layar Membership Tier | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-061` | Data | **Tanpa prefix `Trx`**: entity antrean `TrxQueue` dinormalkan menjadi `RegQueue` (prefix registry `Reg`, QBE-NAM-001/003) sebagai LEGACY MIGRATION dalam `RJ-DOC-REV-BE-015`: class, berkas, configuration, DbSet `RegQueues`, seluruh rujukan, dan tabel fisik beserta PK/FK/index lewat rename katalog tanpa DROP+CREATE (QBE-DB-002). Entity `Trx*` modul lain tidak ikut di-rename | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 ("jangan gunakan prefix Trx", pilihan "Rename TrxQueue → RegQueue") |
+| `RJ-DOC-DEC-060` | Approval | `IMPLEMENTATION_AUTHORITY` `GRANTED` dalam `CROSS-REPO MODE` (backend lalu frontend) untuk `RJ-DOC-REV-BE-015`, `RJ-DOC-REV-BE-016`, `RJ-DOC-REV-FE-016`, termasuk pembuatan migration dan eksekusinya ke `QuilvianNewDevSukma` saja. Verifikasi pola Bank Darah tanpa project test. Tanpa commit, push, merge, maupun deployment | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 (pilihan "Revisi roadmap dulu", "Pola Bank Darah", "Buat + apply ke DB Sukma") |

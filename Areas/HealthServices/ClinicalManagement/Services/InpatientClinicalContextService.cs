@@ -220,7 +220,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
     /// </para>
     /// <para>
     /// <b>Nol baris antrean.</b> Service ini hanya membaca dan tidak pernah menyentuh
-    /// <c>TrxQueue</c>. Jalan pintas berupa "membuatkan antrean semu supaya jalur lama terpakai"
+    /// <c>RegQueue</c>. Jalan pintas berupa "membuatkan antrean semu supaya jalur lama terpakai"
     /// ditolak dengan sadar: antrean semu akan muncul pada layar antrean poliklinik dan ikut
     /// terhitung pada laporan kunjungan.
     /// </para>

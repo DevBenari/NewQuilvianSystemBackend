@@ -450,7 +450,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             // Pasien poli membawa baris antrean; pasien IGD tidak. BE-IGD-028, FR-IGD-062.
             var queue = request.QueueId.HasValue
-                ? await _dbContext.Set<TrxQueue>()
+                ? await _dbContext.Set<RegQueue>()
                     .Include(x => x.Encounter)
                     .FirstAsync(x =>
                         x.Id == request.QueueId.Value &&
@@ -1318,7 +1318,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             if (!request.QueueId.HasValue || request.QueueId.Value == Guid.Empty)
                 return await ValidateCreateWithoutQueueAsync(request);
 
-            var queue = await _dbContext.Set<TrxQueue>()
+            var queue = await _dbContext.Set<RegQueue>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x =>
                     x.Id == request.QueueId.Value &&

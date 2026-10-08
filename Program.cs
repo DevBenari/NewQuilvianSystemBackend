@@ -431,6 +431,11 @@ try
 
     builder.Services.AddScoped<EncounterIntakeService>();
     builder.Services.AddScoped<PatientEncounterNumberService>();
+    // RJ-DOC-REV-BE-015 — klasifikasi dan alokator nomor antrean Rawat Jalan (kiosk dan petugas).
+    builder.Services.AddScoped<OutpatientQueueClassificationService>();
+    builder.Services.AddScoped<OutpatientQueueNumberAllocator>();
+    builder.Services.Configure<OutpatientQueueNumberOptions>(
+        builder.Configuration.GetSection(OutpatientQueueNumberOptions.SectionName));
 
     // BE-KSK-001 — Cek Nomor Rekam Medis dari Kiosk (baca-saja).
     builder.Services.AddScoped<KioskPatientLookupService>();

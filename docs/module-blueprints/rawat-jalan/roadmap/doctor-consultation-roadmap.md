@@ -1183,3 +1183,53 @@ base component Quilvian (`RJ-DOC-FE-006`, `RJ-DOC-FE-016`).
 
 Sama dengan `04-prd-to-mvp.md` *Amendment MT* MT-7: `RJ-DOC-REV-FE-015` `✅`, `AT-MT-01`..`12` lulus
 atau dinyatakan `NOT FEASIBLE` beserta sebabnya, dan backend tidak berubah.
+
+## 17. Revisi `2026-10-08` — Antrean prioritas, member, dan privasi layar publik (Amendment AQ)
+
+### 17.0 Dasar dan wewenang
+
+| Field | Isi |
+| --- | --- |
+| **Sumber requirement** | Sukma Giri, 8 Okt 2026, spesifikasi "Antrean Rawat Jalan MMC" |
+| **Keputusan** | `RJ-DOC-DEC-055`..`061` ([00-interview-decisions.md](../00-interview-decisions.md), *Amendment AQ*); fakta `F-AQ-1`..`6` |
+| **Kontrak** | Delta aditif: field baru pada DTO Membership Tier, Queue Display Device, response antrean perawat/dokter, response pendaftaran, dan payload realtime. Field lama tidak dihapus atau diganti nama |
+| **`IMPLEMENTATION_AUTHORITY`** | `GRANTED` dalam `CROSS-REPO MODE` (`RJ-DOC-DEC-060`). Tanpa commit, push, merge, deploy |
+| **Migration** | Satu migration untuk `BE-015` dan `BE-016`; dibuat dan diterapkan hanya ke `QuilvianNewDevSukma` |
+| **Verifikasi** | Pola Bank Darah: tanpa project test; build, EF, QBE Strict, runtime HTTP terhadap `QuilvianNewDevSukma` |
+
+Legenda tanda status: `✅` selesai, `🟡` sebagian, `⛔` terblokir, tanpa tanda = belum dimulai.
+
+### Grafik Urutan Dependency
+
+```text
+RJ-DOC-REV-BE-015 ✅ ─> RJ-DOC-REV-BE-016 ✅ ─> RJ-DOC-REV-FE-016 ✅
+```
+
+| Gelombang | Task | Boleh mulai bila |
+| ---: | --- | --- |
+| 1 | `RJ-DOC-REV-BE-015` | Wewenang `RJ-DOC-DEC-060` |
+| 2 | `RJ-DOC-REV-BE-016` | `BE-015` selesai (memakai snapshot klasifikasi) |
+| 3 | `RJ-DOC-REV-FE-016` | `BE-015` dan `BE-016` selesai |
+
+### 17.1 Task backend
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| ✅ `RJ-DOC-REV-BE-015` | **Klasifikasi dan alokator nomor antrean.** (1) `MstMembershipTier.QueueAudience` dan `PublicDisplayMode` (enum) pada model, configuration, DTO, create/update/response. (2) `OutpatientQueueClassificationService`: membership aktif pada tanggal kunjungan → `IsMember`, `IsPriorityQueue`, `PriorityLevel`, `QueueAudience`, `PublicDisplayMode`, id/kode tier. (3) Snapshot di `TrxQueue`. (4) `OutpatientQueueNumberAllocator` menggantikan `GenerateQueueNumberAsync`: nomor cadangan dari konfigurasi, cakupan sama, advisory lock transaksi, kolom `QueueScopeKey` dan unique index `(QueueDate, ServiceUnitId, QueueScopeKey, QueueNumber)`. (5) Response pendaftaran memuat `queueClassification` | — | Skenario wajib 1–8, 12–14 spesifikasi (`RJ-DOC-DEC-055`, `056`) | Build; EF tanpa perubahan model tertunda; QBE Strict; runtime HTTP R1..Rn | ✅ `COMPLETE` `2026-10-08` — build Release `0 Error` (239 warning), EF tanpa perubahan model, QBE Strict `PASS` (54 berkas), migration `20261008043304_AddOutpatientQueueClassificationAndRenameRegQueue` diterapkan ke `QuilvianNewDevSukma` (213 baris utuh), runtime gabungan `26/26 PASS`. Delta: rename `TrxQueue` → `RegQueue` (`RJ-DOC-DEC-061`). [Laporan](../task/report/backend/RJ-DOC-REV-BE-015.md) |
+| ✅ `RJ-DOC-REV-BE-016` | **Layar publik dan realtime.** (1) `MstQueueDisplayDevice.QueueAudienceMode` beserta DTO. (2) `QueueDisplayRuntimeController` menyaring audience dan menerapkan `PublicDisplayModeSnapshot`. (3) `QueueVoiceService` tidak menyebut nama/No. RM bila snapshot melarang. (4) Penanda internal `isMember`/`queueAudience` pada antrean perawat/dokter dan payload realtime (tanpa data member) | `BE-015` | Skenario wajib 9–11, 15 spesifikasi (`RJ-DOC-DEC-057`, `058`) | Build; QBE Strict; runtime HTTP | ✅ `COMPLETE` `2026-10-08` — build/QBE sama dengan `BE-015`, runtime T9a–T9e, T10, T10b, T11, T15b, T15c `PASS`. Realtime WebSocket tidak diuji (dibuktikan lewat kode). [Laporan](../task/report/backend/RJ-DOC-REV-BE-016.md) |
+
+### 17.2 Task frontend
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| ✅ `RJ-DOC-REV-FE-016` | **Konfigurasi dan penanda.** Form Membership Tier: *Queue Audience* dan *Public Display Mode*. Form Queue Display Device: *Audience Display*. Antrean perawat/dokter: badge *Member* dan *Prioritas* dari backend. Kiosk dan pendaftaran petugas hanya menampilkan nomor dari backend. Tanpa logika nomor cadangan di React | `BE-015`, `BE-016` | Field tersimpan dan terbaca ulang; badge mengikuti flag backend; tidak ada aturan bisnis baru di frontend | ESLint; `npm run build` | ✅ `COMPLETE` `2026-10-08` — ESLint `0 error` (1 warning lama), `npm run build` `PASS`, `npm run test:unit` 8 gagal sama dengan baseline `HEAD`, UI GATE REUSE 3 / COMPOSE 1 / NEW 0, uji layar Playwright `11/11 PASS` terhadap backend uji 7185. Delta: sanitizer slice display ikut diperbarui; label di baris sendiri. Branch `sukmagpV2`, belum di-commit. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-016.md) |
+
+### 17.3 Traceability
+
+| Requirement / keputusan | Task |
+| --- | --- |
+| `RJ-DOC-DEC-055` klasifikasi dan snapshot | `BE-015`, `FE-016` |
+| `RJ-DOC-DEC-056` nomor cadangan dan alokator bersama | `BE-015` |
+| `RJ-DOC-DEC-057` privasi layar/suara publik | `BE-016` |
+| `RJ-DOC-DEC-058` layar Regular/Member | `BE-016`, `FE-016` |
+| `RJ-DOC-DEC-059` data induk MMC | Tidak ada task — menunggu data bisnis terverifikasi |

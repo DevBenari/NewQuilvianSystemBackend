@@ -339,7 +339,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
                     // Pasien penunjang tidak mengantre dokter dan tidak menunggu skrining
                     // perawat: ia menuju unit penunjang, dan daftar kerjanya ada di modul
-                    // penunjang itu sendiri. Karena itu tidak ada TrxQueue yang dibuat di sini.
+                    // penunjang itu sendiri. Karena itu tidak ada RegQueue yang dibuat di sini.
                     IsQueueRequired = false,
                     IsDoctorRequired = false,
                     IsScreeningRequired = false,

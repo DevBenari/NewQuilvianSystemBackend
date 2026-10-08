@@ -47,6 +47,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public decimal RadiologyDiscountPercent { get; set; }
         public decimal PharmacyDiscountPercent { get; set; }
         public bool PriorityQueue { get; set; }
+        public QueueAudience QueueAudience { get; set; }
+        public string QueueAudienceName { get; set; } = string.Empty;
+        public PublicDisplayMode PublicDisplayMode { get; set; }
+        public string PublicDisplayModeName { get; set; } = string.Empty;
         public bool FreeAnnualCheckup { get; set; }
         public bool FreeParking { get; set; }
         public int ValidityMonths { get; set; }
@@ -117,6 +121,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
         public List<MembershipTierEnumOptionResponse> TierTypeOptions { get; set; } = new();
+        public List<MembershipTierEnumOptionResponse> QueueAudienceOptions { get; set; } = new();
+        public List<MembershipTierEnumOptionResponse> PublicDisplayModeOptions { get; set; } = new();
         public List<MembershipTierQueryParameterInfoResponse> QueryParameters { get; set; } = new();
         public List<MembershipTierFormFieldMetadataResponse> CreateFields { get; set; } = new();
         public List<MembershipTierFormFieldMetadataResponse> UpdateFields { get; set; } = new();
@@ -227,6 +233,13 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public decimal PharmacyDiscountPercent { get; set; } = 0;
 
         public bool PriorityQueue { get; set; } = false;
+
+        /// <summary>Kosong saat create = Member; kosong saat update = nilai lama dipertahankan.</summary>
+        public QueueAudience? QueueAudience { get; set; }
+
+        /// <summary>Kosong saat create = Default; kosong saat update = nilai lama dipertahankan.</summary>
+        public PublicDisplayMode? PublicDisplayMode { get; set; }
+
         public bool FreeAnnualCheckup { get; set; } = false;
         public bool FreeParking { get; set; } = false;
 

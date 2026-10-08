@@ -332,3 +332,18 @@ Keputusan `RJ-DOC-DEC-045`..`050`, `RJ-DOC-FE-014`..`016`; definisi task pada
 | Aksi *Simpan Konsultasi* membuka Klinis Dokter untuk ditinjau, lalu kembali ke daftar (`RJ-DOC-DEC-046`, `048`) | `RJ-DOC-REV-FE-015` | FE ✅ `2026-10-07` | [RJ-DOC-REV-FE-015](../task/report/frontend/RJ-DOC-REV-FE-015.md) |
 | Jumlah dan daftar konsultasi tertunda mengikuti akun dokter yang login, termasuk akun dokter SuperAdmin; pengingat tidak tampil bila 0 (`RJ-DOC-DEC-053`) | `RJ-DOC-REV-FE-015` (revisi 1) | FE ✅ `2026-10-07` | [RJ-DOC-REV-FE-015](../task/report/frontend/RJ-DOC-REV-FE-015.md) §9 |
 | Antrean pasien dokter hari ini di Klinis Dokter hanya milik dokter yang login, termasuk akun dokter SuperAdmin (`RJ-DOC-DEC-054`) | `RJ-DOC-REV-FE-015` (revisi 2) | FE ✅ `2026-10-07` | [RJ-DOC-REV-FE-015](../task/report/frontend/RJ-DOC-REV-FE-015.md) §10 |
+
+## 11. Revisi `2026-10-08` — Antrean prioritas, member, dan privasi layar publik (Amendment AQ)
+
+Keputusan `RJ-DOC-DEC-055`..`061`; definisi task pada
+[doctor-consultation-roadmap.md](doctor-consultation-roadmap.md) bagian `17`.
+
+| Requirement pemilik | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Klasifikasi member/prioritas/privasi di backend, snapshot di antrean (`RJ-DOC-DEC-055`) | `RJ-DOC-REV-BE-015` | BE ✅ `2026-10-08` | [RJ-DOC-REV-BE-015](../task/report/backend/RJ-DOC-REV-BE-015.md) |
+| Nomor cadangan prioritas configurable, satu alokator kiosk dan petugas, aman bersamaan (`RJ-DOC-DEC-056`) | `RJ-DOC-REV-BE-015` | BE ✅ `2026-10-08` | [RJ-DOC-REV-BE-015](../task/report/backend/RJ-DOC-REV-BE-015.md) |
+| Layar dan suara publik tanpa identitas untuk pasien tertentu (`RJ-DOC-DEC-057`) | `RJ-DOC-REV-BE-016` | BE ✅ `2026-10-08` | [RJ-DOC-REV-BE-016](../task/report/backend/RJ-DOC-REV-BE-016.md) |
+| Layar Regular dan Member (`RJ-DOC-DEC-058`) | `RJ-DOC-REV-BE-016`, `RJ-DOC-REV-FE-016` | BE ✅ `2026-10-08`; FE ✅ `2026-10-08` | [RJ-DOC-REV-BE-016](../task/report/backend/RJ-DOC-REV-BE-016.md), [RJ-DOC-REV-FE-016](../task/report/frontend/RJ-DOC-REV-FE-016.md) |
+| Konfigurasi tier dan perangkat, penanda internal (`RJ-DOC-DEC-055`, `058`) | `RJ-DOC-REV-FE-016` | FE ✅ `2026-10-08` | [RJ-DOC-REV-FE-016](../task/report/frontend/RJ-DOC-REV-FE-016.md) |
+| Tanpa prefix `Trx`: `TrxQueue` → `RegQueue` (`RJ-DOC-DEC-061`) | `RJ-DOC-REV-BE-015` | BE ✅ `2026-10-08` | [RJ-DOC-REV-BE-015](../task/report/backend/RJ-DOC-REV-BE-015.md) |
+| Data induk membership MMC (`RJ-DOC-DEC-059`) | — | `NEEDS VERIFIED BUSINESS DATA` | `F-AQ-6` |

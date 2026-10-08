@@ -69,6 +69,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private readonly QueueRealtimeService _queueRealtimeService;
         private readonly ClinicalDocumentIntegrityService _integrityService;
         private readonly PatientEncounterNumberService _patientEncounterNumberService;
+        private readonly OutpatientQueueClassificationService _queueClassificationService;
+        private readonly OutpatientQueueNumberAllocator _queueNumberAllocator;
         private readonly IConfiguration? _configuration;
 
         public PatientEncounterController(
@@ -77,13 +79,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             QueueRealtimeService queueRealtimeService,
             ClinicalDocumentIntegrityService integrityService,
             PatientEncounterNumberService? patientEncounterNumberService = null,
-            IConfiguration? configuration = null)
+            IConfiguration? configuration = null,
+            OutpatientQueueClassificationService? queueClassificationService = null,
+            OutpatientQueueNumberAllocator? queueNumberAllocator = null)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _queueRealtimeService = queueRealtimeService;
             _integrityService = integrityService;
             _patientEncounterNumberService = patientEncounterNumberService ?? new PatientEncounterNumberService(dbContext);
+            _queueClassificationService = queueClassificationService ?? new OutpatientQueueClassificationService(dbContext);
+            _queueNumberAllocator = queueNumberAllocator ?? new OutpatientQueueNumberAllocator(dbContext);
             _configuration = configuration;
         }
 
@@ -705,16 +711,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 _dbContext.Set<RegPatientEncounter>().Add(encounter);
                 _dbContext.Set<RegPatientEncounterGuarantor>().Add(paymentSource);
 
-                TrxQueue? queue = null;
+                RegQueue? queue = null;
+                OutpatientQueueClassification? queueClassification = null;
+                OutpatientQueueNumberAllocation? queueAllocation = null;
 
                 if (isQueueRequired)
                 {
-                    var queueNumber = await GenerateQueueNumberAsync(
+                    // RJ-DOC-DEC-055/056: klasifikasi dan nomor ditentukan backend, sama untuk
+                    // kiosk dan petugas karena keduanya melewati proses ini.
+                    queueClassification = await _queueClassificationService.ClassifyAsync(
+                        request.PatientId,
+                        targetEncounterDate,
+                        HttpContext.RequestAborted);
+
+                    queueAllocation = await _queueNumberAllocator.AllocateAsync(
                         targetEncounterDate,
                         request.ServiceUnitId,
-                        request.ClinicId);
+                        request.ClinicId,
+                        queueClassification.IsPriorityQueue,
+                        HttpContext.RequestAborted);
 
-                    queue = new TrxQueue
+                    var queueNumber = queueAllocation.QueueNumber;
+
+                    queue = new RegQueue
                     {
                         Id = Guid.NewGuid(),
                         EncounterId = encounter.Id,
@@ -726,9 +745,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                         QueueDate = targetEncounterDate,
                         QueueNumber = queueNumber,
                         QueueCode = GenerateQueueCode(clinic, queueNumber),
+                        QueueScopeKey = queueAllocation.QueueScopeKey,
                         QueueStatus = isScreeningRequired
                             ? QueueStatus.WaitingForNurse
                             : QueueStatus.WaitingForDoctor,
+                        IsPriorityQueue = queueClassification.IsPriorityQueue,
+                        QueuePriorityLevelSnapshot = queueClassification.PriorityLevel,
+                        QueueAudienceSnapshot = queueClassification.QueueAudience,
+                        PublicDisplayModeSnapshot = queueClassification.PublicDisplayMode,
+                        PatientMembershipIdSnapshot = queueClassification.PatientMembershipId,
+                        MembershipTierIdSnapshot = queueClassification.MembershipTierId,
+                        MembershipTierCodeSnapshot = queueClassification.MembershipTierCode,
+                        PriorityReasonCode = queueClassification.PriorityReasonCode,
                         IsFromKiosk = encounter.IsFromKiosk,
                         IsWalkIn = request.IsWalkIn,
                         IsAppointment = request.IsAppointment,
@@ -741,7 +769,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                         IsCancel = false
                     };
 
-                    _dbContext.Set<TrxQueue>().Add(queue);
+                    _dbContext.Set<RegQueue>().Add(queue);
                     encounter.EncounterStatus = isScreeningRequired
                         ? EncounterStatus.WaitingForNurse
                         : EncounterStatus.WaitingForDoctor;
@@ -816,6 +844,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                         : null,
                     EncounterDate = encounter.EncounterDate,
                     QueueDate = queue?.QueueDate,
+                    QueueClassification = queue != null && queueClassification != null
+                        ? new PatientEncounterQueueClassificationResponse
+                        {
+                            IsMember = queueClassification.IsMember,
+                            IsPriorityQueue = queue.IsPriorityQueue,
+                            IsReservedPriorityNumber = queueAllocation?.IsReservedPriorityNumber ?? false,
+                            QueueAudience = queue.QueueAudienceSnapshot,
+                            QueueAudienceName = queue.QueueAudienceSnapshot.ToString(),
+                            PublicDisplayMode = queue.PublicDisplayModeSnapshot,
+                            PublicDisplayModeName = queue.PublicDisplayModeSnapshot.ToString()
+                        }
+                        : null,
                     IsFutureVisit = encounter.EncounterDate > operationalDate,
                     IsQueueCreated = queue != null,
                     IsScreeningRequired = isScreeningRequired,
@@ -2120,7 +2160,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         {
             var normalizedVisitDate = ToUtcDate(visitDate);
 
-            var queueQuery = _dbContext.Set<TrxQueue>()
+            var queueQuery = _dbContext.Set<RegQueue>()
                 .AsNoTracking()
                 .Where(x =>
                     x.QueueDate == normalizedVisitDate &&
@@ -2271,9 +2311,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             encounter.PaymentSource = paymentSource;
         }
 
-        private async Task<List<TrxQueue>> CancelQueuesByEncounterAsync(Guid encounterId, DateTime now, Guid actorUserId, string reason)
+        private async Task<List<RegQueue>> CancelQueuesByEncounterAsync(Guid encounterId, DateTime now, Guid actorUserId, string reason)
         {
-            var queues = await _dbContext.Set<TrxQueue>().Where(x => x.EncounterId == encounterId && !x.IsDelete && !x.CompletedAt.HasValue && !x.CancelledAt.HasValue).ToListAsync();
+            var queues = await _dbContext.Set<RegQueue>().Where(x => x.EncounterId == encounterId && !x.IsDelete && !x.CompletedAt.HasValue && !x.CancelledAt.HasValue).ToListAsync();
 
             foreach (var queue in queues)
             {
@@ -2292,70 +2332,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
 
-
-        private async Task<int> GenerateQueueNumberAsync(DateTime operationalDate, Guid serviceUnitId, Guid? clinicId)
-        {
-            var normalizedClinicId = NormalizeNullableGuid(clinicId);
-            var queueDate = ToUtcDate(operationalDate);
-
-            var baseQuery = _dbContext.Set<TrxQueue>()
-                .AsNoTracking()
-                .Where(x =>
-                    x.QueueDate == queueDate &&
-                    x.ServiceUnitId == serviceUnitId &&
-                    !x.IsDelete);
-
-            if (!normalizedClinicId.HasValue)
-            {
-                return await GetNextQueueNumberAsync(baseQuery);
-            }
-
-            var clusterIds = await _dbContext.Set<MstNurseStationClusterClinic>()
-                .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.IsActive &&
-                    x.ClinicId == normalizedClinicId.Value)
-                .Select(x => x.NurseStationClusterId)
-                .Distinct()
-                .ToListAsync();
-
-            if (!clusterIds.Any())
-            {
-                var clinicOnlyQuery = baseQuery.Where(x => x.ClinicId == normalizedClinicId.Value);
-                return await GetNextQueueNumberAsync(clinicOnlyQuery);
-            }
-
-            var clinicIdsInCluster = await _dbContext.Set<MstNurseStationClusterClinic>()
-                .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.IsActive &&
-                    clusterIds.Contains(x.NurseStationClusterId))
-                .Select(x => x.ClinicId)
-                .Distinct()
-                .ToListAsync();
-
-            if (!clinicIdsInCluster.Any())
-            {
-                clinicIdsInCluster.Add(normalizedClinicId.Value);
-            }
-
-            var clusterQueueQuery = baseQuery.Where(x =>
-                x.ClinicId.HasValue &&
-                clinicIdsInCluster.Contains(x.ClinicId.Value));
-
-            return await GetNextQueueNumberAsync(clusterQueueQuery);
-        }
-
-        private static async Task<int> GetNextQueueNumberAsync(IQueryable<TrxQueue> query)
-        {
-            var lastQueueNumber = await query
-                .Select(x => (int?)x.QueueNumber)
-                .MaxAsync();
-
-            return lastQueueNumber.GetValueOrDefault() + 1;
-        }
 
         private static string GenerateQueueCode(MstClinic? clinic, int queueNumber)
         {

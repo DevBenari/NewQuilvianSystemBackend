@@ -872,7 +872,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxKioskScanSession> TrxKioskScanSessions { get; set; }
         public DbSet<RegPatientEncounter> RegPatientEncounters { get; set; }
         public DbSet<RegPatientEncounterGuarantor> RegPatientEncounterGuarantors { get; set; }
-        public DbSet<TrxQueue> TrxQueues { get; set; }
+        public DbSet<RegQueue> RegQueues { get; set; }
         public DbSet<TrxPatientAssessment> TrxPatientAssessments { get; set; }
         public DbSet<TrxDoctorConsultation> TrxDoctorConsultations { get; set; }
         public DbSet<TrxPatientDiagnosis> TrxPatientDiagnoses { get; set; }

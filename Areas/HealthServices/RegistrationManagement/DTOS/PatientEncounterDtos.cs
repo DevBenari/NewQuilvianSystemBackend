@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using System.ComponentModel.DataAnnotations;
 
@@ -515,6 +516,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public Guid? DoctorId { get; set; }
     }
 
+    public class PatientEncounterQueueClassificationResponse
+    {
+        public bool IsMember { get; set; }
+
+        public bool IsPriorityQueue { get; set; }
+
+        public bool IsReservedPriorityNumber { get; set; }
+
+        public QueueAudience QueueAudience { get; set; }
+
+        public string QueueAudienceName { get; set; } = string.Empty;
+
+        public PublicDisplayMode PublicDisplayMode { get; set; }
+
+        public string PublicDisplayModeName { get; set; } = string.Empty;
+    }
+
     public class PatientEncounterCreateResponse
     {
         public Guid EncounterId { get; set; }
@@ -546,6 +564,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DateTime EncounterDate { get; set; }
 
         public DateTime? QueueDate { get; set; }
+
+        /// <summary>Klasifikasi antrean hasil keputusan backend (RJ-DOC-DEC-055). Null bila tanpa antrean.</summary>
+        public PatientEncounterQueueClassificationResponse? QueueClassification { get; set; }
 
         public bool IsFutureVisit { get; set; }
 

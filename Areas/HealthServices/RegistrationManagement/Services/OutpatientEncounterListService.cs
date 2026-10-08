@@ -280,7 +280,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
             var actorUserId = GetUserId(user);
             var now = DateTime.UtcNow;
-            List<TrxQueue> cancelledQueues;
+            List<RegQueue> cancelledQueues;
 
             await using (var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken))
             {
@@ -318,7 +318,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 encounter.UpdateDateTime = now;
                 encounter.UpdateBy = actorUserId;
 
-                cancelledQueues = await _dbContext.Set<TrxQueue>()
+                cancelledQueues = await _dbContext.Set<RegQueue>()
                     .Where(x => x.EncounterId == id && !x.IsDelete && !x.CompletedAt.HasValue && !x.CancelledAt.HasValue)
                     .ToListAsync(cancellationToken);
 

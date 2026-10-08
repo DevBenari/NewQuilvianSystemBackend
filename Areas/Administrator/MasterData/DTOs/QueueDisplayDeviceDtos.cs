@@ -39,6 +39,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool ShowPatientName { get; set; }
         public bool ShowDoctorName { get; set; }
         public bool ShowClinicName { get; set; }
+        public QueueDisplayAudienceMode QueueAudienceMode { get; set; }
+        public string QueueAudienceModeName { get; set; } = string.Empty;
         public int RefreshIntervalSeconds { get; set; }
         public int? SessionExpireMinutes { get; set; }
         public string SessionExpireDescription { get; set; } = string.Empty;
@@ -96,6 +98,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public List<QueueDisplayDeviceEnumMetadataResponse> EnumOptions { get; set; } = new();
         public List<QueueDisplayDeviceEnumOptionResponse> DisplayDeviceTypeOptions { get; set; } = new();
         public List<QueueDisplayDeviceEnumOptionResponse> LayoutTypeOptions { get; set; } = new();
+        public List<QueueDisplayDeviceEnumOptionResponse> QueueAudienceModeOptions { get; set; } = new();
         public List<QueueDisplayDeviceQueryParameterInfoResponse> QueryParameters { get; set; } = new();
         public List<QueueDisplayDeviceFormFieldMetadataResponse> CreateFields { get; set; } = new();
         public List<QueueDisplayDeviceFormFieldMetadataResponse> UpdateFields { get; set; } = new();
@@ -204,6 +207,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool ShowPatientName { get; set; } = false;
         public bool ShowDoctorName { get; set; } = true;
         public bool ShowClinicName { get; set; } = true;
+
+        /// <summary>Kosong saat create = All; kosong saat update = nilai lama dipertahankan (RJ-DOC-DEC-058).</summary>
+        public QueueDisplayAudienceMode? QueueAudienceMode { get; set; }
+
         public int RefreshIntervalSeconds { get; set; } = 5;
 
         /// <summary>
