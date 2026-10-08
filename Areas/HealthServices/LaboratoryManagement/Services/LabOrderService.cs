@@ -243,6 +243,97 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         }
 
         /// <summary>
+        /// Pesanan laboratorium pasien yang masih berjalan, dikelompokkan per kunjungan, untuk
+        /// kiosk jalur Laboratorium (<c>LAB-EVD-013</c> butir 1).
+        /// </summary>
+        /// <remarks>
+        /// Hanya pesanan yang masih menunggu pasien datang atau sedang dikerjakan yang dihitung:
+        /// pesanan selesai, dibatalkan, atau dalam pengajuan batal tidak membuat kiosk menawarkan
+        /// konfirmasi kehadiran. Jendela <paramref name="lookbackDays"/> menjaga pesanan lama yang
+        /// terlupa tidak menahan pasien di jalur konfirmasi selamanya.
+        ///
+        /// <see cref="LabOrderStatus.Confirmed"/> ikut dihitung (<c>LAB-REQ-019</c> butir 6):
+        /// pesanan yang sudah dikonfirmasi petugas tetapi sampelnya belum diterima masih
+        /// menunggu pasien datang, sehingga pasiennya tidak boleh diarahkan ke pendaftaran baru.
+        /// </remarks>
+        public async Task<List<LabKioskPendingOrderGroupResponse>> GetKioskPendingByPatientAsync(
+            Guid patientId,
+            int lookbackDays = 30,
+            CancellationToken cancellationToken = default)
+        {
+            var batasAwal = DateTime.UtcNow.AddDays(-Math.Clamp(lookbackDays, 1, 90));
+
+            var statusAktif = new[]
+            {
+                LabOrderStatus.Requested,
+                LabOrderStatus.Confirmed,
+                LabOrderStatus.Accepted,
+                LabOrderStatus.InProcess,
+                LabOrderStatus.OnHold
+            };
+
+            var baris = await _dbContext.LabOrders
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.Encounter != null &&
+                    x.Encounter.PatientId == patientId &&
+                    x.CreateDateTime >= batasAwal &&
+                    statusAktif.Contains(x.OrderStatus))
+                .OrderByDescending(x => x.CreateDateTime)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.OrderNumber,
+                    x.EncounterId,
+                    x.Discipline,
+                    x.OrderStatus,
+                    RequestedAt = x.RequestedAt ?? x.CreateDateTime,
+                    ProcedureName = x.Procedure != null ? x.Procedure.ProcedureName : string.Empty,
+                    EncounterNumber = x.Encounter!.EncounterNumber,
+                    ClinicName = x.Encounter.Clinic != null ? x.Encounter.Clinic.ClinicName : null,
+                    DoctorName = x.Encounter.Doctor != null ? x.Encounter.Doctor.FullName : null
+                })
+                .Take(200)
+                .ToListAsync(cancellationToken);
+
+            return baris
+                .GroupBy(x => x.EncounterId)
+                .Select(g =>
+                {
+                    var pertama = g.OrderBy(x => x.RequestedAt).First();
+
+                    return new LabKioskPendingOrderGroupResponse
+                    {
+                        EncounterId = g.Key,
+                        EncounterNumber = pertama.EncounterNumber,
+                        RequestedAt = pertama.RequestedAt,
+                        ClinicName = pertama.ClinicName,
+                        DoctorName = pertama.DoctorName,
+                        Items = g
+                            .OrderBy(x => x.RequestedAt)
+                            .Select(x => new LabKioskPendingOrderItemResponse
+                            {
+                                LabOrderId = x.Id,
+                                OrderNumber = x.OrderNumber,
+                                DisciplineLabel = x.Discipline switch
+                                {
+                                    LabDiscipline.ClinicalPathology => "Patologi Klinik",
+                                    LabDiscipline.AnatomicalPathology => "Patologi Anatomi",
+                                    LabDiscipline.Microbiology => "Mikrobiologi",
+                                    _ => null
+                                },
+                                ProcedureName = x.ProcedureName,
+                                OrderStatus = x.OrderStatus.ToString()
+                            })
+                            .ToList()
+                    };
+                })
+                .OrderByDescending(x => x.RequestedAt)
+                .ToList();
+        }
+
+        /// <summary>
         /// Memproyeksikan pesanan menjadi baris daftar beserta penanda ketersediaan hasilnya.
         /// </summary>
         /// <remarks>
@@ -454,6 +545,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     _dbContext, new[] { detail.Id }, cancellationToken);
 
                 detail.ResultProgress = progres.TryGetValue(detail.Id, out var label) ? label.ToString() : null;
+            }
+
+            // LAB-EVD-013 butir 3 — Terima Sampling dari Daftar Pasien merencanakan wadah untuk
+            // pemeriksaan yang dipesan dokter, sehingga daftar beserta penunjuk prosedurnya dibaca
+            // di sini. Ruas ini sebelumnya dideklarasikan tetapi tidak pernah diisi.
+            if (detail is not null)
+            {
+                detail.OrderedProcedures = await _dbContext.LabOrderedProcedures
+                    .AsNoTracking()
+                    .Where(x => x.LabOrderId == detail.Id && !x.IsDelete)
+                    .OrderBy(x => x.CreateDateTime)
+                    .Select(x => new LabOrderedProcedureResponse
+                    {
+                        ProcedureId = x.ProcedureId,
+                        ProcedureCode = x.ProcedureCodeSnapshot,
+                        ProcedureName = x.ProcedureNameSnapshot,
+                        Urgency = x.Urgency.ToString(),
+                        OrderedStatus = x.OrderedStatus.ToString()
+                    })
+                    .ToListAsync(cancellationToken);
             }
 
             return detail;
@@ -1240,6 +1351,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             {
                 throw new LabOrderConflictException(
                     "Pesanan ini belum dikonfirmasi. Konfirmasi dan pilih dokter pemeriksa sebelum memproses.");
+            }
+
+            // LAB-EVD-013 butir 5: pasien tunai wajib lunas sebelum diproses; asuransi/penjamin
+            // lolos. Dinilai dengan aturan yang sama dengan kolom Pembayaran daftar pantau —
+            // termasuk rawat inap dan IGD yang ditagih kemudian (LAB-DEC-223, VAL-152/153 r19).
+            var kunjungan = await _dbContext.RegPatientEncounters
+                .AsNoTracking()
+                .Where(x => x.Id == entity.EncounterId)
+                .Select(x => new
+                {
+                    PaymentType = (EncounterPaymentType?)x.PaymentType,
+                    EncounterType = (EncounterType?)x.EncounterType
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var pembayaran = await LabPaymentClearanceRules.ReadAsync(
+                _dbContext,
+                new[] { (entity.EncounterId, kunjungan?.PaymentType, kunjungan?.EncounterType) },
+                cancellationToken);
+
+            if (pembayaran.TryGetValue(entity.EncounterId, out var statusBayar) && !statusBayar.IsCleared)
+            {
+                throw new LabOrderConflictException(statusBayar.Status == LabPaymentClearanceRules.NotBilled
+                    ? "Tagihan pemeriksaan belum terbit. Pastikan sampling sudah diterima, lalu selesaikan pembayaran di kasir sebelum memproses."
+                    : $"Pemeriksaan belum dapat diproses karena pembayaran belum lunas (sisa Rp {statusBayar.OutstandingAmount.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("id-ID"))}).");
             }
 
             return await MoveOrderStatusAsync(

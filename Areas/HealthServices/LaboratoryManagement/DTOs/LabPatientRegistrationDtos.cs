@@ -154,4 +154,58 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// </summary>
         public bool IsReplay { get; set; }
     }
+
+    /// <summary>
+    /// Penyaring daftar <i>Pasien OTC</i> — kunjungan kiosk ke Laboratorium yang belum
+    /// memiliki pesanan (<c>LAB-EVD-013</c> butir 2, padanan menu v1 "Daftar Pasien OTC").
+    /// </summary>
+    public class LabKioskEncounterQuery
+    {
+        /// <summary><c>true</c> = tab Rujukan, <c>false</c> = tab Umum, kosong = keduanya.</summary>
+        public bool? IsReferral { get; set; }
+
+        public string? Search { get; set; }
+
+        public DateTime? StartDate { get; set; }
+
+        public DateTime? EndDate { get; set; }
+
+        public int PageNumber { get; set; } = 1;
+
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class LabKioskEncounterResponse
+    {
+        public Guid EncounterId { get; set; }
+
+        public string EncounterNumber { get; set; } = string.Empty;
+
+        public DateTime EncounterDate { get; set; }
+
+        public Guid PatientId { get; set; }
+
+        public string MedicalRecordNumber { get; set; } = string.Empty;
+
+        public string FullName { get; set; } = string.Empty;
+
+        public DateTime? BirthDate { get; set; }
+
+        public string? Gender { get; set; }
+
+        public string? Address { get; set; }
+
+        public string? PhoneNumber { get; set; }
+
+        public string? Email { get; set; }
+
+        public bool IsReferral { get; set; }
+
+        public string? ReferralNumber { get; set; }
+
+        /// <summary>Nama enum <c>EncounterPaymentType</c>: <c>Cash</c>, <c>Insurance</c>, <c>CompanyGuarantor</c>.</summary>
+        public string PaymentType { get; set; } = string.Empty;
+
+        public Guid ServiceUnitId { get; set; }
+    }
 }

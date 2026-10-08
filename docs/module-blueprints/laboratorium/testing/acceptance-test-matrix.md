@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `12` — amandemen 2026-10-07 (kedua): `AC-289`..`AC-293` (BR-139, kontrak usulan `LAB-REQ-017`). Sebelumnya `11` — amandemen 2026-10-07: `AC-276`..`AC-282` (susulan putaran 22) dan `AC-283`..`AC-288` (BR-138, kontrak usulan `LAB-REQ-016`). Sebelumnya `10` — amandemen 2026-09-28, tiga laporan operasional (`S16a`) — kontraknya disetujui hari yang sama. Sebelumnya `9` — amandemen 2026-09-25 ketiga (penyelesaian order, hasil resmi, label keadaan). Sebelumnya `8` — amandemen 2026-09-25 kedua (`S4d-1`). Sebelumnya `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
+| Revision | `14` — amandemen 2026-10-08 (kedua): `AC-314`..`AC-317` (putaran 27, kontrak usulan `LAB-REQ-020`). Sebelumnya `13` —amandemen 2026-10-08: `AC-302`..`AC-313` (BR-141, kontrak usulan `LAB-REQ-019`). Sebelumnya `12` — amandemen 2026-10-07 (kedua): `AC-289`..`AC-293` (BR-139, kontrak usulan `LAB-REQ-017`). Sebelumnya `11` — amandemen 2026-10-07: `AC-276`..`AC-282` (susulan putaran 22) dan `AC-283`..`AC-288` (BR-138, kontrak usulan `LAB-REQ-016`). Sebelumnya `10` — amandemen 2026-09-28, tiga laporan operasional (`S16a`) — kontraknya disetujui hari yang sama. Sebelumnya `9` — amandemen 2026-09-25 ketiga (penyelesaian order, hasil resmi, label keadaan). Sebelumnya `8` — amandemen 2026-09-25 kedua (`S4d-1`). Sebelumnya `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -976,3 +976,36 @@ Kontrak `LAB-API-v1` `r41` dan `LAB-PERM-v1` revision 14 — `approved` 2026-10-
 ### Yang tidak diuji
 
 Penyaring dokter lab (`LAB-DEC-200` tidak memintanya); perubahan `KioskRead` (milik SDM).
+
+## Amandemen 2026-10-08 — Alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141)
+
+Kontrak `LAB-API-v1` `r42`, `LAB-PERM-v1` revision 15, `LAB-STATE-v1` `r9`, `LAB-VAL-v1` `r18`, `LAB-INT-v1` `r6` —
+**`approved` 2026-10-08** lewat `LAB-REQ-019`. Decisions rev 91. Bukti runtime: `LAB-EVD-013` bagian D.
+
+| AC | Lapis uji | Cara | Keadaan 2026-10-08 |
+|---|---|---|---|
+| `AC-302` | Peramban (kiosk disamarkan) | Pasien berpesanan aktif → Konfirmasi Kehadiran; satu sesi kiosk, nol kunjungan | ✅ Tiruan tulis + bacaan sungguhan |
+| `AC-303` | Peramban, tulis sungguhan | Pasien tanpa pesanan → tiket; kunjungan unit Lab tanpa dokter | ✅ `ENC-RSMMC-00177`, `00178` |
+| `AC-304` | Peramban | Bacaan pesanan gagal → jalur pendaftaran | Belum |
+| `AC-305` | Peramban, tulis sungguhan | Kunjungan kiosk tampil di OTC; hilang sesudah dipesan | ✅ |
+| `AC-306` | Peramban, tulis sungguhan + unit FE | Satu Simpan → kunjungan/pesanan/wadah `Received`; CITO terkirim; Simpan ulang tidak menggandakan | ✅ sebagian (Simpan ulang: unit + tiruan) |
+| `AC-307` | Peramban | Pilihan pembayaran pada kunjungan baru; baca-saja pada OTC | ⚠ OTC menyembunyikan, belum baca-saja |
+| `AC-308` | Peramban, tiruan tulis | Pesanan dokter tanpa wadah → jenis specimen → plan/collect/receive | ✅ Tiruan |
+| `AC-309` | Peramban, tulis sungguhan | Pengambil ditahan; analis kedua Layak/Tidak Layak | ✅ |
+| `AC-310` | HTTP + peramban, tulis sungguhan | `409` belum lunas Rp 35.000; asuransi tidak dikunci | ✅ Tunai; asuransi belum |
+| `AC-311` | Peramban | Bunyi kolom Pembayaran | ✅ *Belum Ditagih*, *Belum Lunas · Rp 35.000* |
+| `AC-312` | Peramban | Centang Konfirmasi; Batal selalu dapat ditekan | ✅ |
+| `AC-313` | Peramban + unit menu | Tiga menu Hasil dan Riwayat; Kirim Hasil nonaktif | ✅ |
+
+## Amandemen 2026-10-08 (kedua) — Lingkup kunci Lunas (putaran 27)
+
+Kontrak `LAB-API-v1` `r43`, `LAB-STATE-v1` `r10`, `LAB-VAL-v1` `r19` — **`approved` 2026-10-08** lewat `LAB-REQ-020`. Decisions rev 92.
+
+| AC | Lapis uji | Cara | Keadaan 2026-10-08 |
+|---|---|---|---|
+| `AC-314` | Unit BE + unit FE | Rawat inap Tunai belum lunas → `Deferred`, sisa tampil, `start-process` `200` | ✅ Unit BE (harness InMemory 11/11 (BE working tree 2026-10-08)) + unit FE (557/557). HTTP rawat inap belum — nol pesanan rawat inap di devYoga |
+| `AC-315` | Unit BE + unit FE | IGD Tunai tanpa tagihan → `Deferred` tanpa nominal, `start-process` `200` | ✅ Unit BE + unit FE. HTTP IGD belum — nol pesanan IGD di devYoga |
+| `AC-316` | Unit BE + HTTP devYoga | MCU/Telemedicine/`Unknown`/jenis tak terbaca Tunai belum lunas → `409`; rawat jalan tetap `409` (regresi `AC-310`) | ✅ Unit BE (MCU, Telemedicine, `Unknown`, `null`). HTTP devYoga: 21 baris rawat jalan tetap terkunci; `start-process` `LAB-RSMMC-000023` → `409` *sisa Rp 35.000* |
+| `AC-317` | Unit BE | Rawat inap/IGD berpenjamin → `Guaranteed` | ✅ Unit BE |
+
+Rawat inap/IGD tidak dapat diuji sungguhan di devYoga selama nol pesanan Lab pada kunjungan jenis itu.
