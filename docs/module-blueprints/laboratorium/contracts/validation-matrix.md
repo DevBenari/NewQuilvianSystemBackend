@@ -3,7 +3,8 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-VAL-v1` |
-| Revision | **`19` — `approved`** 2026-10-08, bagian 21 (`VAL-152`/`VAL-153` dipersempit) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`18` — `approved`** 2026-10-08, bagian 20 (`VAL-152`, `VAL-153`) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`17` — `approved`** 2026-10-07, bagian 19 (`VAL-71` dipersempit, `VAL-151` baru) — disetujui Yoga Aji Pratama. Sebelumnya: **`16` — `approved`** 2026-10-06, bagian 18 (`VAL-150`, Spesifik Specimen nonaktif pada koreksi specimen, `LAB-DEC-167`) — disetujui Yoga Aji Pratama. Sebelumnya: **`15` — `approved`** 2026-09-28, bagian 17 (`VAL-147`..`VAL-149`, periode laporan) — disetujui Yoga Aji Pratama, termasuk batas 366 hari. Sebelumnya: **`14` — `approved`** 2026-09-25, bagian 16 (`VAL-146`, penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-09-25, bagian 15 (`S4d-1`: `VAL-126` diubah, `VAL-144`, `VAL-145`) — disetujui Yoga Aji Pratama, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
+| Revision | **`20` — `approved`** 2026-10-08, bagian 22 (`VAL-154`, tahun pada ringkasan Beranda Lab) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`19` — `approved`** 2026-10-08, bagian 21 (`VAL-152`/`VAL-153` dipersempit) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`18` — `approved`** 2026-10-08, bagian 20 (`VAL-152`, `VAL-153`) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`17` — `approved`** 2026-10-07, bagian 19 (`VAL-71` dipersempit, `VAL-151` baru) — disetujui Yoga Aji Pratama. Sebelumnya: **`16` — `approved`** 2026-10-06, bagian 18 (`VAL-150`, Spesifik Specimen nonaktif pada koreksi specimen, `LAB-DEC-167`) — disetujui Yoga Aji Pratama. Sebelumnya: **`15` — `approved`** 2026-09-28, bagian 17 (`VAL-147`..`VAL-149`, periode laporan) — disetujui Yoga Aji Pratama, termasuk batas 366 hari. Sebelumnya: **`14` — `approved`** 2026-09-25, bagian 16 (`VAL-146`, penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-09-25, bagian 15 (`S4d-1`: `VAL-126` diubah, `VAL-144`, `VAL-145`) — disetujui Yoga Aji Pratama, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
+| `r20` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju 11 butir"* atas `LAB-REQ-021`, kesebelas butir |
 | `r19` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"setuju keenam butir"* atas `LAB-REQ-020`, keenam butir |
 | `r18` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju ketujuh butir"* atas `LAB-REQ-019`, ketujuh butir |
 | `r8` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
@@ -967,3 +968,33 @@ terbalik `LAB-DEC-071` — bukan aturan baru.
 | Aturan | Keputusan | AC |
 |---|---|---|
 | `VAL-152`, `VAL-153` dipersempit | `LAB-DEC-223` | `AC-314`..`AC-316` |
+
+## 22. Amandemen `r20` — Tahun pada ringkasan Beranda Lab, 2026-10-08
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-VAL-v1` |
+| Revision | `r20` |
+| Status | **`approved`** 2026-10-08 — Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul: *"Setuju 11 butir"* atas [`LAB-REQ-021`](../approval-requests/2026-10-08-permintaan-kontrak-beranda.md) |
+| `approved_by` / `approved_at` | Yoga Aji Pratama / 2026-10-08 |
+| `input_revision` | decisions rev 92 (`LAB-DEC-206`, `LAB-DEC-207`); `LAB-API-v1` `r44` usulan; `02-backend-architecture.md` bagian 28 |
+| Sifat | **Satu aturan baru** pada endpoint baru. Nol aturan lama berubah |
+
+### 22.1 Aturan yang ditambahkan
+
+| ID | Endpoint | Aturan | Pesan bagi pengguna | Kode | Dasar |
+|---|---|---|---|---|---|
+| `VAL-154` | `GET /lab-orders/dashboard/yearly` | `year` bila diisi wajib di antara **2000** dan **tahun berjalan WIB**, keduanya inklusif. Kosong = tahun berjalan WIB | "Tahun tidak sah. Pilih tahun 2000 sampai tahun berjalan." | `422` | Tahun masa depan selalu nol dan menyesatkan; batas bawah melindungi basis data bersama dari pemindaian tanpa makna |
+
+**Contoh.** Pada 2026-10-08: `year=2026` → `200`; `year=2000` → `200` (semua 0, tren pembanding 1999 juga 0);
+`year=2027` → `422`; `year=1999` → `422`; tanpa `year` → tahun 2026. Pada 2027-01-01 00.30 WIB (2026-12-31 17.30 UTC),
+tahun berjalan adalah **2027** — batasnya dibaca dalam WIB, bukan UTC.
+
+`year` yang bukan angka (`year=duaribu`) ditolak pengikatan bawaan ASP.NET dengan `400` sebelum masuk controller —
+sama dengan catatan `VAL-76`; tidak dijadikan aturan tersendiri.
+
+### 22.2 Traceability `r20`
+
+| Aturan | Keputusan | AC |
+|---|---|---|
+| `VAL-154` | `LAB-DEC-206`, `LAB-DEC-207` (satu pemilih tahun) | `AC-297`, `AC-298` |

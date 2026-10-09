@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `14` — amandemen 2026-10-08 (kedua): `AC-314`..`AC-317` (putaran 27, kontrak usulan `LAB-REQ-020`). Sebelumnya `13` —amandemen 2026-10-08: `AC-302`..`AC-313` (BR-141, kontrak usulan `LAB-REQ-019`). Sebelumnya `12` — amandemen 2026-10-07 (kedua): `AC-289`..`AC-293` (BR-139, kontrak usulan `LAB-REQ-017`). Sebelumnya `11` — amandemen 2026-10-07: `AC-276`..`AC-282` (susulan putaran 22) dan `AC-283`..`AC-288` (BR-138, kontrak usulan `LAB-REQ-016`). Sebelumnya `10` — amandemen 2026-09-28, tiga laporan operasional (`S16a`) — kontraknya disetujui hari yang sama. Sebelumnya `9` — amandemen 2026-09-25 ketiga (penyelesaian order, hasil resmi, label keadaan). Sebelumnya `8` — amandemen 2026-09-25 kedua (`S4d-1`). Sebelumnya `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
+| Revision | `15` — amandemen 2026-10-08 (ketiga): lapis uji `AC-294`..`AC-301` dan `VAL-154` (BR-140 Beranda, kontrak usulan `LAB-REQ-021`). Sebelumnya `14` — amandemen 2026-10-08 (kedua): `AC-314`..`AC-317` (putaran 27, kontrak usulan `LAB-REQ-020`). Sebelumnya `13` —amandemen 2026-10-08: `AC-302`..`AC-313` (BR-141, kontrak usulan `LAB-REQ-019`). Sebelumnya `12` — amandemen 2026-10-07 (kedua): `AC-289`..`AC-293` (BR-139, kontrak usulan `LAB-REQ-017`). Sebelumnya `11` — amandemen 2026-10-07: `AC-276`..`AC-282` (susulan putaran 22) dan `AC-283`..`AC-288` (BR-138, kontrak usulan `LAB-REQ-016`). Sebelumnya `10` — amandemen 2026-09-28, tiga laporan operasional (`S16a`) — kontraknya disetujui hari yang sama. Sebelumnya `9` — amandemen 2026-09-25 ketiga (penyelesaian order, hasil resmi, label keadaan). Sebelumnya `8` — amandemen 2026-09-25 kedua (`S4d-1`). Sebelumnya `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -1009,3 +1009,21 @@ Kontrak `LAB-API-v1` `r43`, `LAB-STATE-v1` `r10`, `LAB-VAL-v1` `r19` — **`appr
 | `AC-317` | Unit BE | Rawat inap/IGD berpenjamin → `Guaranteed` | ✅ Unit BE |
 
 Rawat inap/IGD tidak dapat diuji sungguhan di devYoga selama nol pesanan Lab pada kunjungan jenis itu.
+
+## Amandemen 2026-10-08 (ketiga) — Beranda Lab mengikuti susunan v1 (BR-140)
+
+Kontrak `LAB-API-v1` `r44`, `LAB-VAL-v1` `r20`, `LAB-PERM-v1` revision 16 — **`approved` 2026-10-08** lewat `LAB-REQ-021`.
+Decisions rev 92 (putaran 25). Rancangan: `02-backend-architecture.md` bagian 28. Kode belum ada.
+
+| AC | Lapis uji | Cara | Keadaan 2026-10-08 |
+|---|---|---|---|
+| `AC-294` | Peramban | Beranda menampilkan bagian 1–9 berurutan (`03-frontend-architecture.md`, amandemen 2026-10-08) dengan komponen dan tema V2 | Belum — kode belum ada |
+| `AC-295` | Unit BE (harness InMemory) | 12 pesanan hari ini WIB (3 *Selesai*, 1 *Dibatalkan*, 2 CITO — satu CITO hanya pada permintaan tanpa wadah) → 12 / 8 / 3 (25%) / 2; pesanan 23.30 WIB kemarin dan 00.00 WIB besok tidak terhitung; pesanan 06.30 WIB hari ini terhitung | Belum |
+| `AC-296` | Unit BE + HTTP devYoga | `awaitingValidationCount` = `totalData` antrean validasi tahap *Menunggu Validasi* pada data yang sama; hasil Mikro *Sementara* dan PA tidak terhitung; nol kueri ke tabel pengguna/SDM | Belum |
+| `AC-297` | Unit BE + peramban | Pemeriksaan tidak batal + permintaan belum masuk wadah, pada pesanan tidak batal tahun terpilih; pesanan *Dibatalkan* tidak terhitung walau pemeriksaannya tidak dibatalkan; mengganti tahun mengubah ketiga grafik dan kartu *Jenis laboratorium* | Belum |
+| `AC-298` | Unit BE | Selalu 12 bulan dua seri; *Dibatalkan* dan *Draft* tidak terhitung; pesanan 2026-01-31 23.30 WIB masuk Januari | Belum |
+| `AC-299` | Unit BE + peramban | Maks. 10 baris urut waktu diminta terbaru, termasuk *Dibatalkan*; klik baris membuka `/lab-orders/{id}` | Belum |
+| `AC-300` | Unit FE + peramban | Waktu muat tampil; *Perbarui Data* memuat keempat sumber; `yearly` dipaksa `500` → hanya bagian tahunan bergalat | Belum |
+| `AC-301` | HTTP devYoga | Akun tanpa `LabOrder : Read` → ketiga endpoint `403`, layar *Akses Ditolak* | Belum |
+| `VAL-154` | Unit BE | `year` 1999 dan tahun depan → `422`; kosong → tahun berjalan WIB; batas pergantian tahun dibaca WIB | Belum |
+| Regresi antrean | Unit BE | Antrean validasi: isi, urutan, dan `totalData` sama sebelum dan sesudah kueri dasarnya diangkat | Belum |

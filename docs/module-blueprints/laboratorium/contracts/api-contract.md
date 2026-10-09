@@ -3,7 +3,8 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-API-v1` |
-| Revision | **`43` — `approved`** 2026-10-08, bagian 38 (lingkup kunci Lunas: nilai `paymentStatus` `Deferred`, `start-process` lolos bagi rawat inap/IGD) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`42` — `approved`** 2026-10-08, bagian 37 (alur Lab dari kiosk sampai hasil mengikuti FE v1, BR-141) — dua endpoint baca baru, enam ruas respons, dua `409` `start-process` — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`41` — `approved`** 2026-10-07, bagian 36 (daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian pesanan, BR-139) — satu endpoint baca baru dan satu perbaikan kesesuaian `r13`, disetujui Yoga Aji Pratama. Sebelumnya: **`40` — `approved`** 2026-10-07, bagian 35 (Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1, BR-138) — dua perubahan perilaku dan satu perubahan hak akses, disetujui Yoga Aji Pratama. Sebelumnya: **`39` — `approved`** 2026-10-06, bagian 34 (Spesifik Specimen pada respons specimen, `LAB-DEC-167`) — aditif pada respons dan satu perubahan perilaku penggantian, disetujui Yoga Aji Pratama. Sebelumnya: **`38` — `approved`** 2026-10-01, bagian 33 (identitas pasien pada rincian order, `LAB-DEC-166`) — aditif, disetujui Yoga Aji Pratama. Sebelumnya: **`37` — `approved`** 2026-09-28, bagian 32 (`S16a` tiga laporan operasional) — disetujui Yoga Aji Pratama beserta kedelapan butir `02-backend-architecture.md` 23.10. Sebelumnya: **`36` — `approved`** 2026-09-25, bagian 31 (penjaga penyelesaian order, `LAB-DEC-154`) — disetujui Yoga Aji Pratama beserta keempat butir `02-backend-architecture.md` 22.7. Sebelumnya: **`35` — `approved`** 2026-09-25, bagian 30 (`S4d-1` validasi dan rilis Mikrobiologi) — disetujui Yoga Aji Pratama beserta kelima butir `02-backend-architecture.md` 21.10, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
+| Revision | **`44` — `approved`** 2026-10-08, bagian 39 (data ringkasan Beranda Lab, BR-140: tiga endpoint baca baru `dashboard/today`, `dashboard/yearly`, `dashboard/recent-orders`) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`43` — `approved`** 2026-10-08, bagian 38 (lingkup kunci Lunas: nilai `paymentStatus` `Deferred`, `start-process` lolos bagi rawat inap/IGD) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`42` — `approved`** 2026-10-08, bagian 37 (alur Lab dari kiosk sampai hasil mengikuti FE v1, BR-141) — dua endpoint baca baru, enam ruas respons, dua `409` `start-process` — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`41` — `approved`** 2026-10-07, bagian 36 (daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian pesanan, BR-139) — satu endpoint baca baru dan satu perbaikan kesesuaian `r13`, disetujui Yoga Aji Pratama. Sebelumnya: **`40` — `approved`** 2026-10-07, bagian 35 (Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1, BR-138) — dua perubahan perilaku dan satu perubahan hak akses, disetujui Yoga Aji Pratama. Sebelumnya: **`39` — `approved`** 2026-10-06, bagian 34 (Spesifik Specimen pada respons specimen, `LAB-DEC-167`) — aditif pada respons dan satu perubahan perilaku penggantian, disetujui Yoga Aji Pratama. Sebelumnya: **`38` — `approved`** 2026-10-01, bagian 33 (identitas pasien pada rincian order, `LAB-DEC-166`) — aditif, disetujui Yoga Aji Pratama. Sebelumnya: **`37` — `approved`** 2026-09-28, bagian 32 (`S16a` tiga laporan operasional) — disetujui Yoga Aji Pratama beserta kedelapan butir `02-backend-architecture.md` 23.10. Sebelumnya: **`36` — `approved`** 2026-09-25, bagian 31 (penjaga penyelesaian order, `LAB-DEC-154`) — disetujui Yoga Aji Pratama beserta keempat butir `02-backend-architecture.md` 22.7. Sebelumnya: **`35` — `approved`** 2026-09-25, bagian 30 (`S4d-1` validasi dan rilis Mikrobiologi) — disetujui Yoga Aji Pratama beserta kelima butir `02-backend-architecture.md` 21.10, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
+| `r44` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju 11 butir"* atas `LAB-REQ-021`, kesebelas butir |
 | `r43` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"setuju keenam butir"* atas `LAB-REQ-020`, keenam butir |
 | `r42` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju ketujuh butir"* atas `LAB-REQ-019`, ketujuh butir |
 | `r41` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-07** — *"Setuju kelima butir"* atas `LAB-REQ-017`, kelima butir |
@@ -4233,3 +4234,252 @@ lolos dengan label sendiri.
 |---|---|---|
 | Nilai `Deferred` | `LAB-DEC-224` | `AC-314`, `AC-315`, `AC-317` |
 | `start-process` lolos bagi rawat inap/IGD | `LAB-DEC-223` | `AC-314`..`AC-316` |
+
+## 39. Amandemen `r44` — Data ringkasan Beranda Lab mengikuti susunan v1 (BR-140), 2026-10-08
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-API-v1` |
+| Revision | `r44` |
+| Status | **`approved`** 2026-10-08 — Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul: *"Setuju 11 butir"* atas [`LAB-REQ-021`](../approval-requests/2026-10-08-permintaan-kontrak-beranda.md). Belum ada di kode |
+| Owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
+| `approved_by` / `approved_at` | Yoga Aji Pratama / 2026-10-08 |
+| Keputusan | `LAB-DEC-204`..`LAB-DEC-211` (BR-140), `LAB-FE-035` — `approved` 2026-10-07 |
+| `input_revision` | decisions rev 92 (sha256 `66e759a8…f55399f`); capability map revision 8; `02-backend-architecture.md` bagian 28 |
+| Sifat | **Tiga endpoint baca baru.** Nol endpoint lama berubah, nol ruas lama berubah, nol aksi izin baru, nol migration |
+| Compatibility impact | **Aditif.** `GET /lab-orders/summary` dan konsumennya (Rekap Status Pesanan) tidak tersentuh |
+
+### 39.1 Kenapa amandemen ini ada
+
+Pemilik modul memutuskan Beranda Lab mengikuti susunan Beranda v1 (putaran 25). Endpoint yang ada hanya `summary` —
+rekap per status dan per disiplin untuk rentang bebas, menurut waktu baris dibuat. Ia tidak punya kesegeraan, hitungan
+pemeriksaan, tren bulanan, antrean validasi, maupun daftar pesanan terbaru. Alasan memilih endpoint baru, bukan
+memperluas `summary`, ada di `02-backend-architecture.md` 28.2 bahan 3.
+
+### 39.2 `[Tags("Health Services / Laboratory Management / Lab Order")]`
+
+Base URL `api/v1/health-services/laboratory-management/lab-orders`.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/dashboard/today` | Kartu *hari ini* dan kartu *fokus operasional* | `LabOrder : Read` | — | `ApiResponse<LabDashboardTodayResponse>` | **Tersedia** — `BE-LAB-92` ⚠ 2026-10-08 (harness 34/34 + HTTP baca-saja 18/18; `403` runtime belum diamati) |
+| `GET` | `/dashboard/yearly` | Grafik per disiplin, sebaran, *Jenis laboratorium*, tren bulanan | `LabOrder : Read` | Query `LabDashboardYearlyQuery` | `ApiResponse<LabDashboardYearlyResponse>` | **Tersedia** — `BE-LAB-93` ⚠ 2026-10-08 (harness 56/56 + HTTP baca-saja 16/16; `403` runtime belum diamati) |
+| `GET` | `/dashboard/recent-orders` | 10 pesanan terakhir diminta | `LabOrder : Read` | — | `ApiResponse<List<LabDashboardRecentOrderResponse>>` | **Tersedia** — `BE-LAB-92` ⚠ 2026-10-08 (harness 34/34 + HTTP baca-saja 18/18; `403` runtime belum diamati) |
+
+**Aturan bersama ketiganya:**
+
+1. *Waktu diminta* = `RequestedAt`, jatuh ke `CreateDateTime` bila kosong (pesanan lama).
+2. *Hari ini* dan *tahun* dibaca dalam **WIB** (Asia/Jakarta); batas atas eksklusif.
+3. Pesanan dan pemeriksaan yang dihapus (`isDelete`) tidak pernah dihitung.
+4. Nama status dan disiplin dikirim sebagai **nama enum** (`Completed`, `ClinicalPathology`), seperti endpoint
+   Laboratorium lain; labelnya disusun frontend.
+
+### 39.3 `GET /dashboard/today`
+
+**Request:** tanpa parameter.
+
+**Response — `LabDashboardTodayResponse`**
+
+| Ruas | Tipe | Boleh kosong | Isi | Sensitif |
+|---|---|:---:|---|:---:|
+| `operationalDate` | `string` (`YYYY-MM-DD`) | Tidak | Tanggal WIB yang dihitung sebagai *hari ini* | Tidak |
+| `generatedAt` | `datetime` (UTC) | Tidak | Waktu server menghitung | Tidak |
+| `todayOrderCount` | `int` | Tidak | Pesanan yang diminta hari ini, **termasuk** *Dibatalkan* | Tidak |
+| `waitingOrderCount` | `int` | Tidak | Dari pesanan hari ini: bukan `Completed` dan bukan `Cancelled` | Tidak |
+| `completedOrderCount` | `int` | Tidak | Dari pesanan hari ini: `Completed` | Tidak |
+| `completionPercent` | `int` (0–100) | Tidak | `round(completedOrderCount ÷ todayOrderCount × 100)`, pembulatan setengah ke atas; `0` bila `todayOrderCount` = 0. Dipakai kartu *Selesai* **dan** *Tingkat penyelesaian* | Tidak |
+| `citoOrderCount` | `int` | Tidak | Dari pesanan hari ini: memuat permintaan atau pemeriksaan CITO (39.6) | Tidak |
+| `totalRecordedOrderCount` | `int` | Tidak | Seluruh pesanan sepanjang waktu, termasuk *Dibatalkan* | Tidak |
+| `awaitingValidationCount` | `int` | Tidak | Pemeriksaan yang hasilnya *Final* dan belum divalidasi — sama dengan `totalData` `GET /lab-worklists/validation-queue?stage=AwaitingValidation` tanpa penyaring (39.7) | Tidak |
+
+**Contoh jawaban `200`** (data tiruan, 2026-10-08 09.15 WIB):
+
+```json
+{
+  "statusCode": 200,
+  "message": "Ringkasan hari ini berhasil diambil.",
+  "data": {
+    "operationalDate": "2026-10-08",
+    "generatedAt": "2026-10-08T02:15:04Z",
+    "todayOrderCount": 12,
+    "waitingOrderCount": 8,
+    "completedOrderCount": 3,
+    "completionPercent": 25,
+    "citoOrderCount": 2,
+    "totalRecordedOrderCount": 4812,
+    "awaitingValidationCount": 7
+  }
+}
+```
+
+**Kode status**
+
+| Kode | Arti bagi petugas | Contoh |
+|---|---|---|
+| `200` | Angka terbaca; semua boleh 0 | Pukul 00.05 WIB → `todayOrderCount` 0, `completionPercent` 0 |
+| `401` | Belum masuk | — |
+| `403` | Jabatan tidak memegang `LabOrder : Read` | Petugas gizi membuka Beranda Lab |
+
+### 39.4 `GET /dashboard/yearly`
+
+**Request — `LabDashboardYearlyQuery` (query string)**
+
+| Parameter | Tipe | Wajib | Bawaan | Batas | Validasi | Contoh |
+|---|---|:---:|---|---|---|---|
+| `year` | `int` | Tidak | Tahun berjalan WIB | 2000 sampai tahun berjalan WIB | `VAL-154`; bukan angka → `400` pengikatan bawaan ASP.NET | `2026` |
+
+**Response — `LabDashboardYearlyResponse`**
+
+| Ruas | Tipe | Boleh kosong | Isi | Sensitif |
+|---|---|:---:|---|:---:|
+| `year` | `int` | Tidak | Tahun terpilih (sesudah bawaan) | Tidak |
+| `previousYear` | `int` | Tidak | `year - 1` | Tidak |
+| `generatedAt` | `datetime` (UTC) | Tidak | Waktu server menghitung | Tidak |
+| `disciplines` | `LabDashboardDisciplineCountResponse[]` | Tidak | **Selalu tiga butir**, urutan tetap: `ClinicalPathology`, `AnatomicalPathology`, `Microbiology` | Tidak |
+| `disciplines[].discipline` | `string` | Tidak | Nama enum `LabDiscipline` | Tidak |
+| `disciplines[].examinationCount` | `int` | Tidak | Pemeriksaan tidak batal pada pesanan tidak batal yang diminta di `year` (39.8) | Tidak |
+| `unclassifiedExaminationCount` | `int` | Tidak | Pemeriksaan yang disiplin pesanan dan katalognya kosong | Tidak |
+| `activeDisciplineCount` | `int` (0–3) | Tidak | Banyaknya disiplin dengan `examinationCount` > 0 — kartu *Jenis laboratorium* | Tidak |
+| `monthlyOrders` | `LabDashboardMonthlyOrderResponse[]` | Tidak | **Selalu 12 butir**, `month` 1 sampai 12 | Tidak |
+| `monthlyOrders[].month` | `int` | Tidak | Bulan WIB | Tidak |
+| `monthlyOrders[].orderCount` | `int` | Tidak | Pesanan bukan `Cancelled`/`Draft` yang diminta pada bulan itu di `year` | Tidak |
+| `monthlyOrders[].previousYearOrderCount` | `int` | Tidak | Sama, di `previousYear` | Tidak |
+
+**Contoh permintaan:** `GET /api/v1/health-services/laboratory-management/lab-orders/dashboard/yearly?year=2026`
+
+**Contoh jawaban `200`** (dipotong pada `monthlyOrders`):
+
+```json
+{
+  "statusCode": 200,
+  "message": "Ringkasan tahunan berhasil diambil.",
+  "data": {
+    "year": 2026,
+    "previousYear": 2025,
+    "generatedAt": "2026-10-08T02:15:04Z",
+    "disciplines": [
+      { "discipline": "ClinicalPathology", "examinationCount": 1240 },
+      { "discipline": "AnatomicalPathology", "examinationCount": 95 },
+      { "discipline": "Microbiology", "examinationCount": 310 }
+    ],
+    "unclassifiedExaminationCount": 0,
+    "activeDisciplineCount": 3,
+    "monthlyOrders": [
+      { "month": 1, "orderCount": 351, "previousYearOrderCount": 298 },
+      { "month": 5, "orderCount": 402, "previousYearOrderCount": 361 },
+      { "month": 12, "orderCount": 0, "previousYearOrderCount": 377 }
+    ]
+  }
+}
+```
+
+**Kode status**
+
+| Kode | Arti bagi petugas | Contoh |
+|---|---|---|
+| `200` | Angka terbaca; tahun tanpa pesanan menghasilkan 0 di semua ruas | `year=2019` → semua 0 |
+| `400` | `year` bukan angka | `year=duaribu` |
+| `401` | Belum masuk | — |
+| `403` | Jabatan tidak memegang `LabOrder : Read` | — |
+| `422` | `VAL-154` — tahun di luar 2000 sampai tahun berjalan | `year=2027` pada 2026 → *"Tahun tidak sah. Pilih tahun 2000 sampai tahun berjalan."* |
+
+### 39.5 `GET /dashboard/recent-orders`
+
+**Request:** tanpa parameter. Jumlah baris tetap **10**; tidak berhalaman (`LAB-DEC-209`).
+
+**Response — `LabDashboardRecentOrderResponse` per butir**
+
+| Ruas | Tipe | Boleh kosong | Isi | Sensitif |
+|---|---|:---:|---|:---:|
+| `labOrderId` | `guid` | Tidak | Dipakai frontend membuka halaman pesanan | Tidak |
+| `orderNumber` | `string` | Tidak | `LAB-RSMMC-000001` | Tidak |
+| `medicalRecordNumber` | `string?` | Ya | No. RM pasien kunjungan | **Ya** |
+| `patientName` | `string?` | Ya | Nama pasien | **Ya** |
+| `procedureNames` | `string[]` | Tidak | Nama permintaan pemeriksaan yang tidak dibatalkan, urut waktu dibuat; bagi pesanan lama tanpa permintaan, nama pemeriksaan utama pesanan. Boleh kosong bila keduanya tidak ada | Tidak |
+| `discipline` | `string?` | Ya | Nama enum disiplin pesanan; kosong bila belum tergolong | Tidak |
+| `orderStatus` | `string` | Tidak | Nama enum `LabOrderStatus`, **termasuk** `Cancelled` | Tidak |
+| `requestedAt` | `datetime` (UTC) | Tidak | *Waktu diminta* (39.2 butir 1) | Tidak |
+
+Urutan: `requestedAt` terbaru, lalu `CreateDateTime` terbaru, lalu `labOrderId`.
+
+**Contoh jawaban `200`** (satu butir, data tiruan):
+
+```json
+{
+  "statusCode": 200,
+  "message": "Pesanan laboratorium terbaru berhasil diambil.",
+  "data": [
+    {
+      "labOrderId": "bbbb0000-0000-0000-0000-000000000123",
+      "orderNumber": "LAB-RSMMC-000123",
+      "medicalRecordNumber": "00-00-01",
+      "patientName": "Pasien Contoh",
+      "procedureNames": ["Kalium", "Natrium"],
+      "discipline": "ClinicalPathology",
+      "orderStatus": "Accepted",
+      "requestedAt": "2026-10-08T02:05:00Z"
+    }
+  ]
+}
+```
+
+**Kode status**
+
+| Kode | Arti bagi petugas | Contoh |
+|---|---|---|
+| `200` | Paling banyak 10 butir; boleh kosong pada sistem baru | — |
+| `401` | Belum masuk | — |
+| `403` | Jabatan tidak memegang `LabOrder : Read` | — |
+
+### 39.6 Arti CITO pada `citoOrderCount`
+
+Sebuah pesanan CITO bila memuat **salah satu**:
+
+- permintaan pemeriksaan (`LabOrderedProcedure`) yang tidak dibatalkan dan bertanda cito — tanda yang dipilih saat
+  memesan (`citoExaminations` pada `POST /lab-orders/by-examinations`); **atau**
+- pemeriksaan (`LabExamination`) yang tidak gugur/batal dan bertanda cito — termasuk lewat *Tandai Cito*.
+
+**Contoh.** Pukul 09.00 dokter memesan Kalium CITO; sampel belum datang. Beranda sudah menghitungnya CITO. Daftar
+Pasien Lab hari ini **belum** menampilkan lencana CITO untuk pesanan yang sama — cacat as-is yang dicatat terpisah
+(`02-backend-architecture.md` 28.8) dan **tidak** diubah amandemen ini.
+
+### 39.7 Arti *hasil menunggu validasi*
+
+Pemeriksaan **Patologi Klinik dan Mikrobiologi** yang hasilnya sudah *Final* tetapi belum divalidasi, tidak gugur/batal,
+pesanannya tidak dibatalkan, dan bukan hasil Mikrobiologi *Sementara*. **Tanpa batas tanggal.** Patologi Anatomi belum
+ikut karena tahap validasinya belum ada (`S4e`). Angkanya dihitung dengan kueri yang **sama** dengan Antrean Validasi.
+
+### 39.8 Arti *pemeriksaan* pada grafik tahunan
+
+Pada pesanan yang **tidak** dibatalkan dan diminta di tahun terpilih, dihitung:
+
+1. setiap `LabExamination` yang tidak `Voided`/`Cancelled`; **ditambah**
+2. setiap `LabOrderedProcedure` yang masih `Ordered` — sudah dipesan tetapi belum masuk wadah.
+
+Permintaan yang sudah `Fulfilled` tidak dihitung lagi karena sudah terwakili pemeriksaannya. **Angka ini berbeda dari
+laporan operasional** (`r37`), yang menghitung pemeriksaan **dirilis** menurut tanggal rilis — keduanya menjawab
+pertanyaan berbeda.
+
+### 39.9 Dampak
+
+| Hal | Isi |
+|---|---|
+| Konsumen lama | Nol. `summary` tidak berubah |
+| Pemegang izin | Tidak berubah — `LabOrder : Read`; lihat `LAB-PERM-v1` revision 16 bagian 18 |
+| `LAB-VAL-v1` | `r20` bagian 22 — `VAL-154` |
+| `LAB-STATE-v1`, `LAB-INT-v1` | **Tidak berubah.** Nol perpindahan status, nol integrasi baru |
+| Data | Nol perubahan skema |
+| Privasi | Hanya `recent-orders` membawa nama dan No. RM (setara Daftar Pasien Lab) |
+| Urutan rilis | Backend boleh lebih dulu; frontend Beranda baru membutuhkannya |
+
+### 39.10 Traceability `r44`
+
+| Perubahan | Keputusan | AC |
+|---|---|---|
+| `dashboard/today` — kartu hari ini, CITO | `LAB-DEC-205` | `AC-295` |
+| `dashboard/today` — fokus operasional, menunggu validasi | `LAB-DEC-208` | `AC-296` |
+| `dashboard/yearly` — per disiplin, sebaran | `LAB-DEC-206` | `AC-297` |
+| `dashboard/yearly` — tren bulanan | `LAB-DEC-207` | `AC-298` |
+| `dashboard/recent-orders` | `LAB-DEC-209` | `AC-299` |
+| `generatedAt`, tiga endpoint terpisah | `LAB-DEC-210`, `LAB-DEC-204` | `AC-300` |
+| `LabOrder : Read` | `LAB-DEC-211` | `AC-301` |
