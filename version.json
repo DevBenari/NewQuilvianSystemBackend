@@ -1,17 +1,35 @@
 {
+  "backendVersion": "0.14.0",
+  "releaseName": "Quilvian 0.14.0 - Enterprise Platform Enhancement",
+  "description": "Release 0.14.0 enhances Administrator Management, Billing Management, Clinical Management, Finance Management, Human Resource Management, Inpatient Management, Laboratory Management, Operating Room Management, Patient Management, Registration Management capabilities. Includes improvements across Specimen Management, Billing Workflow, Finance Workflow, Pharmacy Workflow. Includes 5 database migration update(s).",
   "releaseMetadata": {
-    "migrations": [],
-    "generatedBy": "Quilvian Release Generator",
-    "modules": [
-      "Laboratory Management"
+    "migrationCount": 5,
+    "generatedAt": "2026-10-09T09:13:58",
+    "migrations": [
+      "20261006150000_AddInvoiceDateAndTermsToFinReceivableInvoiceBatch.cs",
+      "20261008043304_AddOutpatientQueueClassificationAndRenameRegQueue.cs",
+      "20261008055604_AddWorkspacePpriAdmissionDocuments.cs",
+      "20261008093837_AddEncounterReferralAndReferralInstitutionPartner.cs",
+      "20261009100000_BackfillLabExaminationUrgencyFromOrderedProcedure.cs"
     ],
-    "migrationCount": 0,
-    "generatedAt": "2026-10-07T07:35:57",
+    "generatedBy": "Quilvian Release Generator",
     "features": [
-      "Specimen Management"
+      "Specimen Management",
+      "Billing Workflow",
+      "Finance Workflow",
+      "Pharmacy Workflow"
+    ],
+    "modules": [
+      "Administrator Management",
+      "Billing Management",
+      "Clinical Management",
+      "Finance Management",
+      "Human Resource Management",
+      "Inpatient Management",
+      "Laboratory Management",
+      "Operating Room Management",
+      "Patient Management",
+      "Registration Management"
     ]
-  },
-  "description": "Release 0.13.0 enhances Laboratory Management capabilities. Includes improvements across Specimen Management.",
-  "releaseName": "Quilvian 0.13.0 - Laboratory Management Enhancement",
-  "backendVersion": "0.13.0"
+  }
 }
