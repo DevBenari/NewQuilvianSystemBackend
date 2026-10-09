@@ -258,8 +258,8 @@ Jumlah panah: **0**. 1 node.
 | `BE-IGD-066` | Kajian medis dokter diterima untuk kunjungan IGD (`IGD-DEC-221`) — **baru** | R3.16 | 🟡 **7–8 Oktober 2026 — implementasi selesai dan dibuild pemilik; 2 dari 7 acceptance** (6 lewat diff, 7). QBE Strict `PASS` (1 berkas, +42/−0). Build pemilik: 0 error, 235 warning (identik baseline; dilaporkan 8 Oktober 2026). **Belum:** uji 1–5 bersama `FE-IGD-046`. Tanpa UAT | [BE-IGD-066](../task/report/backend/BE-IGD-066.md) |
 | `BE-IGD-067` | Riwayat catatan dokter per kunjungan IGD (`IGD-DEC-227`, `231`) — **baru** | R3.16 | 🟡 **8 Oktober 2026 — implementasi selesai dan dibuild pemilik; 3 dari 6 acceptance** (4 lewat diff, 5, 6). QBE Strict `PASS` (2 berkas, +102/−0); nol migration, nol komentar baru; CRLF tanpa BOM. Build pemilik: 0 error, 235 warning (identik baseline; dilaporkan 8 Oktober 2026). Menunggu putaran uji 1 bersama `FE-IGD-047`. Tanpa UAT | [BE-IGD-067](../task/report/backend/BE-IGD-067.md) |
 | `BE-IGD-068` | Penyelesaian catatan dokter IGD tanpa fakta jasa konsultasi (`IGD-DEC-229`) — **baru** | R3.16 | 🟡 **8 Oktober 2026 — implementasi selesai dan dibuild pemilik; 4 dari 5 acceptance** (2–4 lewat diff, 5). QBE Strict `PASS` (1 berkas, +23/−22); nol migration, nol komentar baru; CRLF tanpa BOM. Build pemilik: 0 error, 235 warning (identik baseline; dilaporkan 8 Oktober 2026). Menunggu putaran uji 1 bersama `FE-IGD-049` (`AT-IGD-204`). Tanpa UAT | [BE-IGD-068](../task/report/backend/BE-IGD-068.md) |
-| `BE-IGD-069` | Tindakan keperawatan IGD tercatat sebagai tindakan klinis umum (`IGD-DEC-225`) — **baru** | R3.16 | tanpa tanda — siap dikerjakan; pasangan layar `FE-IGD-051` | — |
-| `BE-IGD-070` | Tindak lanjut lahir Draft; konfirmasi dijaga diagnosis (`IGD-DEC-223`, `226`) — **baru** | R3.16 | tanpa tanda — siap dikerjakan; pasangan layar `FE-IGD-054`, `FE-IGD-055`; **rilis bersama** `FE-IGD-047`, `FE-IGD-054` | — |
+| `BE-IGD-069` | Tindakan keperawatan IGD tercatat sebagai tindakan klinis umum (`IGD-DEC-225`) — **baru** | R3.16 | 🟡 **9 Oktober 2026 — implementasi selesai (+232/−0); 3 berkas; nol komentar baru; siap build pemilik dan uji API/layar** | [BE-IGD-069](../task/report/backend/BE-IGD-069.md) |
+| `BE-IGD-070` | Tindak lanjut lahir Draft; konfirmasi dijaga diagnosis (`IGD-DEC-223`, `226`) — **baru** | R3.16 | 🟡 **9 Oktober 2026 — implementasi selesai; build pemilik terverifikasi (0 error, 235 warning); 2 dari 8 acceptance terbukti (7 lewat diff, 8); siap uji API & integrasi layar bersama FE-IGD-054/055** | [BE-IGD-070](../task/report/backend/BE-IGD-070.md) |
 | `BE-IGD-071` | Pesanan lab dan radiologi perawat IGD atas instruksi dokter (`IGD-DEC-224`) — **baru** | R3.16 | ⛔ menunggu `IGD-OQ-117` (pemilik Laboratorium; pemilik Radiologi, Yoga Aji Pratama); pasangan layar `FE-IGD-057`, `FE-IGD-058` | — |
 
 
@@ -3695,7 +3695,7 @@ Tanpa pesan baru ke pengguna; kode status tidak berubah.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | tanpa tanda — siap dikerjakan |
+| **Status** | 🟡 **SEBAGIAN — 9 Oktober 2026: implementasi selesai (+232/−0); 3 berkas; nol komentar baru; siap build pemilik dan uji API/layar.** Tanpa UAT. Bukti: [laporan](../task/report/backend/BE-IGD-069.md) |
 | **Outcome** | Perawat IGD mencatat tindakan keperawatan yang sudah dikerjakan (misalnya pemasangan infus) tanpa catatan dokter; barisnya tersimpan di tindakan klinis umum atas nama perawat sebagai pelaksana dan DPJP aktif sebagai dokter penanggung jawab, sehingga terbaca ringkasan tagihan |
 | **Slice** | `EPIC IGD-14` / `MVP-9` — tindakan perawat |
 | **Requirement** | `FR-IGD-100`; `AT-IGD-206`, `207`; DoD butir 3, 6, 7 |
@@ -3747,7 +3747,7 @@ aktif (kalimat contoh di atas).
 
 | Field | Isi |
 | --- | --- |
-| **Status** | tanpa tanda — siap dikerjakan. **Syarat rilis:** bersama `FE-IGD-047` dan `FE-IGD-054` (R3.16.5) |
+| **Status** | 🟡 **9 Oktober 2026 — implementasi selesai; build pemilik terverifikasi (0 error, 235 warning); 2 dari 8 acceptance terbukti (7 lewat diff, 8); siap uji API & integrasi layar bersama FE-IGD-054/055**. **Syarat rilis:** bersama `FE-IGD-047` dan `FE-IGD-054` (R3.16.5) |
 | **Outcome** | Tindak lanjut pasien IGD hanya dapat dikonfirmasi bila pasien sudah punya sekurang-kurangnya satu diagnosis kerja ICD-10, dan tindak lanjut baru tidak dapat lahir langsung *Dikonfirmasi* atau *Dilaksanakan* sehingga penjaga itu dan pemicu penutupan kunjungan tidak dapat dilewati |
 | **Slice** | `EPIC IGD-14` / `MVP-9` — tindak lanjut dari layar dokter |
 | **Requirement** | `FR-IGD-103`, `FR-IGD-104`; `AT-IGD-211`, `212`; DoD butir 3 |

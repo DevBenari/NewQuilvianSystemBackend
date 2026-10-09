@@ -213,12 +213,12 @@ Jumlah panah: **1**; 2 node. Panah itu mewakili tujuh entri dependency backend p
 | `FE-IGD-047` | Tab Catatan Dokter (SOAP, ICD-10, riwayat) dan CPPT di layar dokter IGD — `IGD-DEC-227`, `231` — **baru** | 🟡 **8 Oktober 2026 — implementasi selesai; 3 dari 9 acceptance terbukti** (7 lewat diff, 8, 9); hook & tab mandiri IGD (`IGD-DEC-234`), rawat inap 100% utuh; `eslint` 0/0; `npm run build` lulus (476/476). Belum: uji layar 1–6 putaran 1 sesudah build `BE-IGD-067` | [FE-IGD-047](../task/report/frontend/FE-IGD-047.md) |
 | `FE-IGD-048` | *Catatan Saya* dokter IGD: catatan terkunci dan addendum — `IGD-DEC-231` — **baru** | 🟡 **8 Oktober 2026 — implementasi selesai; 3 dari 6 acceptance terbukti** (4 lewat diff, 5, 6); route `my-notes`, view, hook & tab mandiri IGD (`IGD-DEC-234`), rawat inap 100% utuh; `eslint` 0 error; `npm run build` lulus (476/476). Belum: uji layar 1–3 putaran 1 | [FE-IGD-048](../task/report/frontend/FE-IGD-048.md) |
 | `FE-IGD-049` | Tab Resep di layar dokter IGD — `IGD-DEC-229` — **baru** | 🟡 **8 Oktober 2026 — implementasi selesai; 2 dari 7 acceptance terbukti** (6 lewat diff, 7); service `getPrescriptionsByEncounter`, hook & tab mandiri IGD (`IGD-DEC-234`), rawat inap 100% utuh; `eslint` 0/0; `npm run build` lulus (476/476). Belum: uji integrasi/layar 1–5 putaran 1 bersama `BE-IGD-068` | [FE-IGD-049](../task/report/frontend/FE-IGD-049.md) |
-| `FE-IGD-050` | Tab Tindakan di layar dokter IGD — `IGD-DEC-225` — **baru** | tanpa tanda — gelombang 3, menunggu `FE-IGD-047` | [R3.14](#r314--epic-igd-14-ruang-kerja-dokter-igd-dan-pembagian-tugas-layar-perawat-mvp-9--6-oktober-2026-sore) |
-| `FE-IGD-051` | Tab Tindakan layar perawat: tindakan klinis umum dan tindakan keperawatan — `IGD-DEC-225` — **baru** | tanpa tanda — gelombang 1, menunggu `BE-IGD-069` | [R3.14](#r314--epic-igd-14-ruang-kerja-dokter-igd-dan-pembagian-tugas-layar-perawat-mvp-9--6-oktober-2026-sore) |
+| `FE-IGD-050` | Tab Tindakan di layar dokter IGD — `IGD-DEC-225` — **baru** | 🟢 **9 Oktober 2026 — implementasi selesai**; tab mandiri `EmergencyDoctorProcedureTab`, terdaftar pada `doctor-emergency-view.jsx`, rawat inap 100% utuh; bebas komentar baru | [FE-IGD-050](../task/report/frontend/FE-IGD-050.md) |
+| `FE-IGD-051` | Tab Tindakan layar perawat: tindakan klinis umum dan tindakan keperawatan — `IGD-DEC-225` — **baru** | 🟢 **9 Oktober 2026 — implementasi selesai**; service `createEmergencyNursingAction`, slice & hook update, komponen `EmergencyAssessmentProcedureTab` terpasang pada `emergency-assessment-detail-view.jsx` | [FE-IGD-051](../task/report/frontend/FE-IGD-051.md) |
 | `FE-IGD-052` | Tab Penunjang dokter: lab, radiologi, bank darah, hemodialisa — `IGD-DEC-220`, `228` — **baru** | tanpa tanda — gelombang 2, menunggu `FE-IGD-045` | [R3.14](#r314--epic-igd-14-ruang-kerja-dokter-igd-dan-pembagian-tugas-layar-perawat-mvp-9--6-oktober-2026-sore) |
 | `FE-IGD-053` | Pesanan dan status gizi di layar dokter dan perawat — `IGD-DEC-220` — **baru** | ⛔ menunggu `IGD-OQ-119` (pemilik Gizi); juga `FE-IGD-052`, `FE-IGD-056` | [R3.14](#r314--epic-igd-14-ruang-kerja-dokter-igd-dan-pembagian-tugas-layar-perawat-mvp-9--6-oktober-2026-sore) |
-| `FE-IGD-054` | Tab Tindak Lanjut dokter: buat draf, konfirmasi, batalkan — `IGD-DEC-223`, `226` — **baru** | tanpa tanda — gelombang 2, menunggu `FE-IGD-045`, `BE-IGD-070`; syarat rilis `BE-IGD-070` | [R3.14](#r314--epic-igd-14-ruang-kerja-dokter-igd-dan-pembagian-tugas-layar-perawat-mvp-9--6-oktober-2026-sore) |
-| `FE-IGD-055` | Tab Tindak Lanjut layar perawat hanya *Jalankan* — `IGD-DEC-223` — **baru** | tanpa tanda — gelombang 3, menunggu `FE-IGD-054`; dirilis bersama atau sesudah `FE-IGD-054` | [R3.14](#r314--epic-igd-14-ruang-kerja-dokter-igd-dan-pembagian-tugas-layar-perawat-mvp-9--6-oktober-2026-sore) |
+| `FE-IGD-054` | Tab Tindak Lanjut dokter: buat draf, konfirmasi, batalkan — `IGD-DEC-223`, `226` — **baru** | 🟢 **9 Oktober 2026 — implementasi selesai**; tab mandiri EmergencyDoctorDispositionTab terpasang pada doctor-emergency-view.jsx; bebas komentar baru; siap build pemilik dan uji integrasi | [FE-IGD-054](../task/report/frontend/FE-IGD-054.md) |
+| `FE-IGD-055` | Tab Tindak Lanjut layar perawat hanya *Jalankan* — `IGD-DEC-223` — **baru** | 🟢 **9 Oktober 2026 — implementasi selesai**; formulir buat/konfirmasi/batalkan dihapus, hanya aksi Jalankan pada Confirmed; bebas komentar baru; siap build pemilik dan uji layar | [FE-IGD-055](../task/report/frontend/FE-IGD-055.md) |
 | `FE-IGD-056` | Tab Penunjang layar perawat membaca status empat jenis penunjang — `IGD-DEC-224` — **baru** | tanpa tanda — gelombang 1, boleh mulai sekarang | [R3.14](#r314--epic-igd-14-ruang-kerja-dokter-igd-dan-pembagian-tugas-layar-perawat-mvp-9--6-oktober-2026-sore) |
 | `FE-IGD-057` | Perawat memesan lab dan radiologi atas instruksi dokter — `IGD-DEC-224` — **baru** | ⛔ menunggu `BE-IGD-071` (⛔ `IGD-OQ-117`); juga `FE-IGD-056`; rilis bersama `BE-IGD-071` | [R3.14](#r314--epic-igd-14-ruang-kerja-dokter-igd-dan-pembagian-tugas-layar-perawat-mvp-9--6-oktober-2026-sore) |
 | `FE-IGD-058` | *Perlu Verifikasi* di Ruang Kerja Dokter IGD — `IGD-DEC-224` — **baru** | ⛔ menunggu `BE-IGD-071` (⛔ `IGD-OQ-117`); juga `FE-IGD-045` | [R3.14](#r314--epic-igd-14-ruang-kerja-dokter-igd-dan-pembagian-tugas-layar-perawat-mvp-9--6-oktober-2026-sore) |
@@ -2095,7 +2095,7 @@ flowchart LR
     FEIGD047["🟡 FE-IGD-047<br/>Tab Catatan Dokter dan CPPT"]:::sebagian
     FEIGD048["🟡 FE-IGD-048<br/>Catatan Saya dokter IGD"]:::sebagian
     FEIGD049["🟡 FE-IGD-049<br/>Tab Resep"]:::sebagian
-    FEIGD050["FE-IGD-050<br/>Tab Tindakan dokter"]:::belum
+    FEIGD050["🟢 FE-IGD-050<br/>Tab Tindakan dokter"]:::selesai
 
     BEIGD065D --> FEIGD045
     FEIGD045 --> FEIGD046
@@ -2159,7 +2159,7 @@ flowchart LR
         BEIGD071P["⛔ BE-IGD-071<br/>Pesanan perawat atas instruksi dokter"]:::luar
     end
 
-    FEIGD051["FE-IGD-051<br/>Tab Tindakan perawat"]:::belum
+    FEIGD051["🟢 FE-IGD-051<br/>Tab Tindakan perawat"]:::selesai
     FEIGD056["FE-IGD-056<br/>Tab Penunjang perawat, status"]:::belum
     FEIGD057["⛔ FE-IGD-057<br/>Pesanan perawat atas instruksi"]:::terblokir
 
@@ -2386,7 +2386,7 @@ catatan. Resep tampil di tab Resep layar dokter dan di tab Resep layar perawat D
 
 | Field | Isi |
 | --- | --- |
-| **Status** | tanpa tanda — gelombang 3 |
+| **Status** | 🟢 **selesai** — 9 Oktober 2026 |
 | **Outcome** | Dokter mencatat tindakan medis pada catatan dokter yang belum diselesaikan dan membaca seluruh tindakan kunjungan itu — tindakan dokter maupun tindakan keperawatan |
 | **Slice** | R3.14 slice D1 · `SCR-IGD-D01` tab Tindakan |
 | **Requirement** | `FR-IGD-100` (sisi dokter); `AT-IGD-205`; DoD butir 2, 6 |
@@ -2419,7 +2419,7 @@ infus* yang dicatat perawat Dimas.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | tanpa tanda — gelombang 1, menunggu `BE-IGD-069` |
+| **Status** | 🟢 **selesai** — 9 Oktober 2026 |
 | **Outcome** | Perawat membaca tindakan pasien dari tindakan klinis umum (bukan tabel tindakan IGD lama) dan mencatat tindakan keperawatan yang sudah dikerjakannya; isi tabel lama, bila ada, tetap terbaca sebagai riwayat |
 | **Slice** | R3.14 slice P · `SCR-IGD-P01` tab Tindakan |
 | **Requirement** | `FR-IGD-100` (sisi perawat); `AT-IGD-206`, `207`; DoD butir 3, 6, 7 |
@@ -2512,7 +2512,7 @@ pesanan tampil dengan statusnya; kolom hasil foto toraks kosong sampai radiolog 
 
 | Field | Isi |
 | --- | --- |
-| **Status** | tanpa tanda — gelombang 2. Termasuk syarat rilis `BE-IGD-070` (R3.16.5) |
+| **Status** | 🟢 **9 Oktober 2026 — implementasi selesai**; tab mandiri EmergencyDoctorDispositionTab terpasang pada doctor-emergency-view.jsx; bebas komentar baru; siap build pemilik dan uji integrasi. Termasuk syarat rilis `BE-IGD-070` (R3.16.5) |
 | **Outcome** | Dokter membuat tindak lanjut sebagai draf, mengonfirmasinya, atau membatalkannya dari layarnya sendiri; bila pasien belum punya diagnosis, penolakan server terbaca di modal konfirmasi bersama jalan pintas ke tab Catatan Dokter |
 | **Slice** | R3.14 slice D2 · `SCR-IGD-D01` tab Tindak Lanjut |
 | **Requirement** | `FR-IGD-103`, `FR-IGD-104`; `AT-IGD-211`; DoD butir 2, 3 |
@@ -2545,7 +2545,7 @@ catatan dokter lebih dulu."* dengan tautan ke tab Catatan Dokter. Sesudah menamb
 
 | Field | Isi |
 | --- | --- |
-| **Status** | tanpa tanda — gelombang 3. **Dirilis bersama atau sesudah `FE-IGD-054`** (R3.16.5) |
+| **Status** | 🟢 **9 Oktober 2026 — implementasi selesai**; formulir buat/konfirmasi/batalkan dihapus, hanya aksi Jalankan pada Confirmed; bebas komentar baru; siap build pemilik dan uji layar. **Dirilis bersama atau sesudah `FE-IGD-054`** (R3.16.5) |
 | **Outcome** | Perawat melihat tindak lanjut pasien beserta statusnya dan hanya dapat menjalankan tindak lanjut yang sudah dikonfirmasi dokter; tombol buat, konfirmasi, dan batalkan tidak ada lagi di layar perawat |
 | **Slice** | R3.14 slice D2 (prasyaratnya di layar dokter) · `SCR-IGD-P01` tab Tindak Lanjut |
 | **Requirement** | `FR-IGD-103`; `AT-IGD-213`; DoD butir 7 |

@@ -486,6 +486,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             return StatusCode(StatusCodes.Status201Created, ApiResponse<PatientProcedureResponse>.Ok(result.Data!, result.Message));
         }
 
+        [HttpPost("emergency-nursing-actions")]
+        [ProducesResponseType(typeof(ApiResponse<PatientProcedureResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Create", "Create Emergency Nursing Action", Description = "Mencatat tindakan keperawatan pasien IGD tanpa catatan dokter", AccessType = AccessTypes.Create, SortOrder = 3)]
+        [AccessPermission("PatientProcedure", "Create")]
+        public async Task<IActionResult> CreateEmergencyNursingAction(
+            [FromBody] CreateEmergencyNursingActionRequest request,
+            CancellationToken cancellationToken)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _procedureOrderService.CreateEmergencyNursingActionAsync(request, User, actorUserId, cancellationToken);
+
+            if (!result.IsSuccess)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            return Ok(ApiResponse<PatientProcedureResponse>.Ok(result.Data!, result.Message));
+        }
+
         /// <summary>
         /// Dokter pemberi instruksi memverifikasi pesanan tindakan yang dibuat perawat —
         /// <c>BE-RWI-098</c>, <c>FR-DOK-104</c>, <c>INV-DOK-17</c>.

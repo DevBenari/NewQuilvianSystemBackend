@@ -287,6 +287,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string? IdempotencyKey { get; set; }
     }
 
+    public class CreateEmergencyNursingActionRequest
+    {
+        [Required]
+        public Guid EncounterId { get; set; }
+
+        [Required]
+        public Guid ProcedureId { get; set; }
+
+        public decimal? Quantity { get; set; }
+
+        public DateTime? PerformedAt { get; set; }
+
+        [MaxLength(1000)]
+        public string? ClinicalNote { get; set; }
+
+        [MaxLength(100)]
+        public string? IdempotencyKey { get; set; }
+    }
+
     public class CreatePatientProcedureRequest
     {
         [Required]

@@ -2,9 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -294,6 +297,192 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             return PatientProcedureOrderResult.Created(
                 MapToResponse(entity),
                 "Pesanan tindakan rawat inap berhasil dibuat.");
+        }
+
+        public async Task<PatientProcedureOrderResult> CreateEmergencyNursingActionAsync(
+            CreateEmergencyNursingActionRequest request,
+            ClaimsPrincipal? user,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var idempotencyKey = string.IsNullOrWhiteSpace(request.IdempotencyKey)
+                ? null
+                : request.IdempotencyKey.Trim();
+
+            if (idempotencyKey != null)
+            {
+                var existing = await _dbContext.Set<TrxPatientProcedure>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey && !x.IsDelete, cancellationToken);
+
+                if (existing != null)
+                {
+                    return PatientProcedureOrderResult.Success(
+                        MapToResponse(existing),
+                        "Tindakan keperawatan sudah tercatat sebelumnya dengan kunci permintaan yang sama.");
+                }
+            }
+
+            var quantity = request.Quantity ?? 1m;
+            if (quantity <= 0)
+            {
+                return PatientProcedureOrderResult.BadRequest("Quantity tindakan harus lebih dari 0.");
+            }
+
+            var encounter = await _dbContext.Set<RegPatientEncounter>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == request.EncounterId && !x.IsDelete, cancellationToken);
+
+            if (encounter == null)
+            {
+                return PatientProcedureOrderResult.NotFound("Encounter tidak ditemukan.");
+            }
+
+            var visit = await _dbContext.Set<EmgVisit>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.EncounterId == request.EncounterId && !x.IsDelete, cancellationToken);
+
+            if (visit == null)
+            {
+                return PatientProcedureOrderResult.BadRequest("Pencatatan tindakan keperawatan ini hanya untuk pasien IGD.");
+            }
+
+            if (visit.VisitStatus == EmergencyVisitStatus.Completed
+                || visit.VisitStatus == EmergencyVisitStatus.Cancelled
+                || visit.VisitCompletedAt.HasValue)
+            {
+                return PatientProcedureOrderResult.Conflict("Kunjungan IGD ini sudah berakhir, sehingga tindakan baru tidak dapat dicatat.");
+            }
+
+            var activeAssignment = await _dbContext.Set<EmgDoctorAssignment>()
+                .AsNoTracking()
+                .Where(x => x.EmergencyVisitId == visit.Id && !x.IsDelete && x.EffectiveTo == null)
+                .OrderByDescending(x => x.EffectiveFrom)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (activeAssignment == null)
+            {
+                return PatientProcedureOrderResult.Conflict("Pasien belum punya dokter penanggung jawab. Tetapkan DPJP di layar triage lebih dulu, lalu catat tindakan ini.");
+            }
+
+            var procedure = await _dbContext.Set<MstProcedure>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == request.ProcedureId && x.IsActive && !x.IsDelete, cancellationToken);
+
+            if (procedure == null)
+            {
+                return PatientProcedureOrderResult.BadRequest("Master tindakan tidak ditemukan atau tidak aktif.");
+            }
+
+            var now = DateTime.UtcNow;
+            var performedAt = request.PerformedAt ?? now;
+
+            if (performedAt > now.AddMinutes(1))
+            {
+                return PatientProcedureOrderResult.BadRequest("Waktu pelaksanaan tindakan tidak boleh melewati waktu sekarang.");
+            }
+
+            var pricing = await _insuranceCoverageService.ResolveProcedureAsync(
+                encounter.Id,
+                procedure.Id,
+                quantity,
+                now,
+                cancellationToken);
+
+            if (!pricing.IsValid)
+            {
+                return PatientProcedureOrderResult.BadRequest(
+                    pricing.ErrorMessage ?? "Tarif atau coverage tindakan tidak dapat ditentukan.");
+            }
+
+            var entity = new TrxPatientProcedure
+            {
+                Id = Guid.NewGuid(),
+                EncounterId = encounter.Id,
+                ConsultationId = null,
+                PatientId = encounter.PatientId,
+                DoctorId = activeAssignment.DoctorId,
+                ServiceUnitId = visit.ServiceUnitId,
+                ClinicId = null,
+                InpEpisodeId = null,
+                PhysicianVisitId = null,
+                IdempotencyKey = idempotencyKey,
+                ProcedureId = procedure.Id,
+                TariffId = pricing.TariffId,
+                InsuranceTariffId = pricing.InsuranceTariffId,
+                InsuranceCoverageRuleId = pricing.InsuranceCoverageRuleId,
+                ProcedureCodeSnapshot = procedure.ProcedureCode,
+                ProcedureNameSnapshot = procedure.ProcedureName,
+                ProcedureTypeSnapshot = procedure.ProcedureType,
+                ProcedureCategoryNameSnapshot = procedure.ProcedureCategoryName,
+                ProcedureMasterType = "Master",
+                IsFromMasterProcedure = true,
+                IsPrimaryProcedure = false,
+                IsEmergencyProcedure = true,
+                IsSurgeryRelated = procedure.IsSurgery,
+                IsPackageProcedure = false,
+                ProcedureSource = PatientProcedureSource.NursingAction,
+                ProcedureStatus = PatientProcedureStatus.Completed,
+                ProcedureDateTime = performedAt,
+                PlannedAt = performedAt,
+                ScheduledAt = null,
+                StartedAt = performedAt,
+                CompletedAt = performedAt,
+                Quantity = pricing.Quantity,
+                UnitNameSnapshot = "Tindakan",
+                UnitPrice = pricing.UnitPrice,
+                TotalPrice = pricing.TotalPrice,
+                HospitalPriceSnapshot = pricing.HospitalUnitPrice,
+                InsuranceContractPrice = pricing.ContractUnitPrice,
+                IsFreeOfCharge = false,
+                FreeOfChargeReason = null,
+                IsBillable = true,
+                IsCoveredByInsurance = pricing.IsCovered,
+                CoverageStatus = pricing.CoverageStatus,
+                CoveragePercent = pricing.CoveragePercent,
+                CoveredAmount = pricing.CoveredAmount,
+                PatientPayAmount = pricing.PatientPayAmount,
+                CoverageNote = pricing.CoverageNote,
+                IsNeedApproval = pricing.IsNeedApproval || procedure.IsNeedApproval,
+                IsApproved = false,
+                IsExecuted = true,
+                ExecutedAt = performedAt,
+                ExecutedByUserId = actorUserId,
+                PerformedAt = performedAt,
+                PerformedByUserId = actorUserId,
+                ClinicalNote = NormalizeText(request.ClinicalNote),
+                InstructionNote = null,
+                DispositionNote = null,
+                IsBillingGenerated = false,
+                BillingGeneratedAt = null,
+                OrderedByUserId = actorUserId,
+                InstructingDoctorId = null,
+                InstructionVerificationStatus = PatientProcedureInstructionVerificationStatus.NotRequired,
+                CancelledByEpisodeClosure = false,
+                IsActive = true,
+                CreateBy = actorUserId,
+                CreateDateTime = now
+            };
+
+            _dbContext.Set<TrxPatientProcedure>().Add(entity);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PatientProcedureOrderService.CreateEmergencyNursingActionAsync",
+                "Berhasil mencatat tindakan keperawatan IGD.",
+                new
+                {
+                    entity.Id,
+                    entity.EncounterId,
+                    entity.DoctorId,
+                    entity.PerformedByUserId,
+                    entity.Quantity
+                });
+
+            return PatientProcedureOrderResult.Success(
+                MapToResponse(entity),
+                "Tindakan keperawatan IGD berhasil dicatat.");
         }
 
         /// <summary>
@@ -755,6 +944,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 ProcedureCodeSnapshot = entity.ProcedureCodeSnapshot,
                 ProcedureNameSnapshot = entity.ProcedureNameSnapshot,
                 ProcedureTypeSnapshot = entity.ProcedureTypeSnapshot,
+                IsEmergencyProcedure = entity.IsEmergencyProcedure,
                 ProcedureSource = entity.ProcedureSource,
                 ProcedureStatus = entity.ProcedureStatus,
                 ProcedureDateTime = entity.ProcedureDateTime,
