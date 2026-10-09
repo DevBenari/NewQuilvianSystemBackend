@@ -98,6 +98,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public EncounterReferralReferenceResponse? ReferralInstitution { get; set; }
         public EncounterReferralReferenceResponse? ReferralDoctor { get; set; }
         public bool InstitutionIsPartnerSnapshot { get; set; }
+
+        /// <summary>Kode/nama fasilitas dan nomor PKS saat rujukan dicatat (DEC-FRJ-001).</summary>
+        public string? InstitutionCodeSnapshot { get; set; }
+
+        public string? InstitutionNameSnapshot { get; set; }
+
+        public string? AgreementNumberSnapshot { get; set; }
         public ReferralTargetUnitType? TargetUnitType { get; set; }
         public string? TargetUnitTypeName { get; set; }
         public Guid? TargetServiceUnitId { get; set; }

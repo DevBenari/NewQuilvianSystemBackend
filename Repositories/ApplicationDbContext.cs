@@ -809,6 +809,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstReferralInstitution> MstReferralInstitutions { get; set; }
 
         public DbSet<MstReferralDoctor> MstReferralDoctors { get; set; }
+
+        // Histori perjanjian kerja sama fasilitas perujuk mitra (DEC-FRJ-001).
+        public DbSet<MstReferralInstitutionAgreement> MstReferralInstitutionAgreements { get; set; }
         public DbSet<MstDiagnosisChapter> MstDiagnosisChapters { get; set; }
         public DbSet<MstDiagnosis> MstDiagnoses { get; set; }
         public DbSet<MstDiagnosisGroup> MstDiagnosisGroups { get; set; }

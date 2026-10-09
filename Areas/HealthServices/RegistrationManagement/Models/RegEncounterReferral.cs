@@ -52,6 +52,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         /// <summary>Tanda mitra instansi perujuk saat rincian disimpan.</summary>
         public bool InstitutionIsPartnerSnapshot { get; set; }
 
+        /// <summary>
+        /// Kode dan nama fasilitas perujuk saat rincian disimpan (<c>DEC-FRJ-001</c>). Master dapat
+        /// berganti nama atau dinonaktifkan kemudian; histori rujukan tetap membaca nilai ini.
+        /// Hanya diambil ulang bila fasilitasnya diganti.
+        /// </summary>
+        [MaxLength(50)]
+        public string? InstitutionCodeSnapshot { get; set; }
+
+        [MaxLength(200)]
+        public string? InstitutionNameSnapshot { get; set; }
+
+        /// <summary>Nomor perjanjian kerja sama yang membuat fasilitas layak saat dipilih.</summary>
+        [MaxLength(100)]
+        public string? AgreementNumberSnapshot { get; set; }
+
         public ReferralCaptureSource CaptureSource { get; set; }
 
         /// <summary>

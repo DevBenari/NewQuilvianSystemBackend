@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -40,6 +41,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         public const string Pm09 = "RJ-VAL-PM-09: Rujukan tidak dapat diubah karena konsultasi dokter sudah dimulai atau kunjungan sudah ditutup.";
         public const string Pm10 = "RJ-VAL-PM-10: Unit tujuan tidak dapat diubah. Batalkan kunjungan bila salah unit.";
         public const string Pm11 = "RJ-VAL-PM-11: Data rujukan sudah diubah pengguna lain. Muat ulang.";
+        public const string Pm17 = "RJ-VAL-PM-17: Fasilitas perujuk bukan mitra aktif atau perjanjian kerja samanya tidak berlaku pada tanggal kunjungan. Pilih ulang fasilitas perujuk.";
 
         /// <summary>Toleransi jam perangkat terhadap jam server untuk tanggal rujukan.</summary>
         private static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(5);
@@ -75,9 +77,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         /// <summary>
         /// Validasi identitas dan rincian rujukan pada create kunjungan. <c>null</c> berarti sah.
         /// </summary>
+        /// <remarks>
+        /// <c>serviceDate</c> adalah tanggal kunjungan (kalender WIB). Fasilitas wajib mitra layak
+        /// pada tanggal ini (<c>DEC-FRJ-001</c>), bukan hanya saat daftar pilihan ditampilkan.
+        /// </remarks>
         public async Task<string?> ValidateForCreateAsync(
             PatientEncounterCreateRequest request,
             bool isKiosk,
+            DateOnly serviceDate,
             CancellationToken cancellationToken = default)
         {
             if (!request.IsReferral)
@@ -90,6 +97,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 request.ReferralDoctorId,
                 previousInstitutionId: null,
                 previousDoctorId: null,
+                serviceDate,
                 cancellationToken);
 
             if (identityError != null)
@@ -165,12 +173,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 DiagnosisId = NormalizeGuid(request.Referral.DiagnosisId),
                 DiagnosisNote = NormalizeText(request.Referral.DiagnosisNote),
                 ReferralReason = NormalizeText(request.Referral.ReferralReason),
-                InstitutionIsPartnerSnapshot = await InstitutionIsPartnerAsync(encounter.ReferralInstitutionId, cancellationToken),
                 CaptureSource = isKiosk ? ReferralCaptureSource.Kiosk : ReferralCaptureSource.Staff,
                 RowVersion = Guid.NewGuid(),
                 CreateDateTime = now,
                 CreateBy = actorUserId
             };
+
+            await CaptureInstitutionSnapshotAsync(
+                referral,
+                encounter.ReferralInstitutionId,
+                DateOnly.FromDateTime(encounter.EncounterDate),
+                cancellationToken);
 
             // Surat rujukan baru diunggah sesudah kunjungan terbentuk, sehingga rincian baru
             // selalu belum lengkap pada saat ini.
@@ -265,6 +278,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 ReferralInstitution = encounter.Institution,
                 ReferralDoctor = encounter.Doctor,
                 InstitutionIsPartnerSnapshot = r?.InstitutionIsPartnerSnapshot ?? false,
+                InstitutionCodeSnapshot = r?.InstitutionCodeSnapshot,
+                InstitutionNameSnapshot = r?.InstitutionNameSnapshot,
+                AgreementNumberSnapshot = r?.AgreementNumberSnapshot,
                 TargetUnitType = r?.TargetUnitType,
                 TargetUnitTypeName = r == null ? null : TargetUnitLabel(r.TargetUnitType),
                 TargetServiceUnitId = r?.TargetServiceUnitId,
@@ -325,6 +341,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 request.ReferralDoctorId,
                 encounter.ReferralInstitutionId,
                 encounter.ReferralDoctorId,
+                DateOnly.FromDateTime(encounter.EncounterDate),
                 cancellationToken);
 
             if (identityError != null)
@@ -375,6 +392,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             }
 
             var before = isNew ? null : Snapshot(encounter, referral!);
+            var previousInstitutionId = encounter.ReferralInstitutionId;
             var wasComplete = !isNew && referral!.IsComplete;
 
             encounter.IsReferral = true;
@@ -390,7 +408,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             referral.DiagnosisId = NormalizeGuid(request.DiagnosisId);
             referral.DiagnosisNote = NormalizeText(request.DiagnosisNote);
             referral.ReferralReason = NormalizeText(request.ReferralReason);
-            referral.InstitutionIsPartnerSnapshot = await InstitutionIsPartnerAsync(encounter.ReferralInstitutionId, cancellationToken);
+            // Snapshot fasilitas diambil ulang hanya bila fasilitasnya diganti (atau belum pernah
+            // ada), supaya koreksi ruas lain tidak menimpa histori kontrak saat rujukan dicatat.
+            if (isNew ||
+                previousInstitutionId != encounter.ReferralInstitutionId ||
+                referral.InstitutionNameSnapshot == null)
+            {
+                await CaptureInstitutionSnapshotAsync(
+                    referral,
+                    encounter.ReferralInstitutionId,
+                    DateOnly.FromDateTime(encounter.EncounterDate),
+                    cancellationToken);
+            }
+
             referral.RowVersion = Guid.NewGuid();
             referral.UpdateDateTime = now;
             referral.UpdateBy = actorUserId;
@@ -549,6 +579,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             Guid? doctorId,
             Guid? previousInstitutionId,
             Guid? previousDoctorId,
+            DateOnly serviceDate,
             CancellationToken cancellationToken)
         {
             var institution = NormalizeGuid(institutionId);
@@ -557,16 +588,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             if (institution == null)
                 return doctor == null ? null : Pm04;
 
-            var institutionRow = await _dbContext.Set<MstReferralInstitution>()
-                .AsNoTracking()
-                .Where(x => x.Id == institution.Value && !x.IsDelete)
-                .Select(x => new { x.IsActive })
-                .FirstOrDefaultAsync(cancellationToken);
+            if (institution == previousInstitutionId)
+            {
+                // Fasilitas yang sudah tercatat pada kunjungan tetap boleh dipertahankan saat
+                // koreksi walaupun sesudahnya dinonaktifkan atau kontraknya berakhir: histori
+                // tidak boleh dipaksa berubah (DEC-FRJ-001).
+                var stillExists = await _dbContext.Set<MstReferralInstitution>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == institution.Value && !x.IsDelete, cancellationToken);
 
-            // Instansi yang dinonaktifkan sesudah kunjungan dibuat tetap boleh dipertahankan saat
-            // koreksi; memilih instansi baru wajib aktif.
-            if (institutionRow == null || (!institutionRow.IsActive && institution != previousInstitutionId))
-                return Pm04;
+                if (!stillExists)
+                    return Pm04;
+            }
+            else if (await ReferralPartnerEligibility.FindEligibleAsync(
+                         _dbContext, institution.Value, serviceDate, cancellationToken) == null)
+            {
+                // DEC-FRJ-001: memilih fasilitas baru wajib mitra aktif dengan perjanjian yang
+                // berlaku pada tanggal kunjungan — divalidasi saat submit, bukan hanya di dropdown.
+                return Pm17;
+            }
 
             if (doctor == null)
                 return null;
@@ -601,16 +641,48 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return exists ? null : "Diagnosa rujukan tidak ditemukan.";
         }
 
-        private async Task<bool> InstitutionIsPartnerAsync(Guid? institutionId, CancellationToken cancellationToken)
+        /// <summary>
+        /// Menyalin identitas fasilitas dan nomor perjanjian yang berlaku ke rincian rujukan
+        /// (<c>DEC-FRJ-001</c>). Hanya dipanggil saat rincian baru dibuat atau fasilitasnya diganti,
+        /// sehingga perubahan master/kontrak sesudahnya tidak mengubah histori transaksi lama.
+        /// </summary>
+        private async Task CaptureInstitutionSnapshotAsync(
+            RegEncounterReferral referral,
+            Guid? institutionId,
+            DateOnly serviceDate,
+            CancellationToken cancellationToken)
         {
-            if (!institutionId.HasValue)
-                return false;
+            referral.InstitutionIsPartnerSnapshot = false;
+            referral.InstitutionCodeSnapshot = null;
+            referral.InstitutionNameSnapshot = null;
+            referral.AgreementNumberSnapshot = null;
 
-            return await _dbContext.Set<MstReferralInstitution>()
+            if (!institutionId.HasValue)
+                return;
+
+            var row = await _dbContext.Set<MstReferralInstitution>()
                 .AsNoTracking()
                 .Where(x => x.Id == institutionId.Value)
-                .Select(x => x.IsPartner)
+                .Select(x => new
+                {
+                    x.IsPartner,
+                    x.InstitutionCode,
+                    x.InstitutionName,
+                    AgreementNumber = x.Agreements
+                        .Where(a => !a.IsDelete && a.StartDate <= serviceDate && a.EndDate >= serviceDate)
+                        .OrderByDescending(a => a.StartDate)
+                        .Select(a => a.AgreementNumber)
+                        .FirstOrDefault()
+                })
                 .FirstOrDefaultAsync(cancellationToken);
+
+            if (row == null)
+                return;
+
+            referral.InstitutionIsPartnerSnapshot = row.IsPartner;
+            referral.InstitutionCodeSnapshot = row.InstitutionCode;
+            referral.InstitutionNameSnapshot = row.InstitutionName;
+            referral.AgreementNumberSnapshot = row.AgreementNumber;
         }
 
         private static Dictionary<string, object?> Snapshot(RegPatientEncounter encounter, RegEncounterReferral referral)

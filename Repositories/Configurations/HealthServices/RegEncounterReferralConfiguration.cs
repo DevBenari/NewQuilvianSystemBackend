@@ -17,6 +17,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.DiagnosisNote).HasMaxLength(500);
             entity.Property(x => x.ReferralReason).HasMaxLength(1000);
             entity.Property(x => x.InstitutionIsPartnerSnapshot).HasDefaultValue(false);
+            entity.Property(x => x.InstitutionCodeSnapshot).HasMaxLength(50);
+            entity.Property(x => x.InstitutionNameSnapshot).HasMaxLength(200);
+            entity.Property(x => x.AgreementNumberSnapshot).HasMaxLength(100);
             entity.Property(x => x.IsComplete).HasDefaultValue(false);
             entity.Property(x => x.RowVersion).IsConcurrencyToken();
 

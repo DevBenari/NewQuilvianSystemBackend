@@ -77,20 +77,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessAction("Read", "Read Referral Institution", Description = "Melihat daftar instansi perujuk", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("ReferralInstitution", "Read")]
         public async Task<IActionResult> GetAll(
-            [FromQuery] string? search,
-            [FromQuery] bool? isActive,
-            [FromQuery] bool? isPartner,
-            [FromQuery] string? sortBy,
-            [FromQuery] string? sortDirection,
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 25,
+            [FromQuery] ReferralInstitutionListQuery query,
             CancellationToken cancellationToken = default)
         {
-            var result = await _referralMasterDataService.GetInstitutionsPagedAsync(
-                search, isActive, isPartner, sortBy, sortDirection, pageNumber, pageSize, cancellationToken);
+            var result = await _referralMasterDataService.GetInstitutionsPagedAsync(query, cancellationToken);
 
-            return Ok(ApiResponse<PagedResult<ReferralInstitutionResponse>>.Ok(
-                result, "Daftar instansi perujuk berhasil diambil."));
+            if (result.Status != ReferralMasterStatus.Success)
+                return MapFailure(result.Status, result.Message);
+
+            return Ok(ApiResponse<PagedResult<ReferralInstitutionResponse>>.Ok(result.Data!, result.Message));
         }
 
         // Daftar pilihan instansi perujuk.
@@ -112,12 +107,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 hasil, "Data pilihan instansi perujuk berhasil diambil."));
         }
 
+        /// <summary>
+        /// Pilihan fasilitas mitra <b>layak</b> untuk Pendaftaran Rawat Jalan (<c>DEC-FRJ-001</c>):
+        /// aktif, mitra, dan perjanjiannya berlaku pada <c>serviceDate</c> (bawaan hari ini, WIB).
+        /// </summary>
+        /// <remarks>
+        /// Feed terpisah dari <c>options</c> supaya perilaku <c>options</c> yang dipakai Laboratorium
+        /// tidak berubah. Kelayakan tetap divalidasi ulang saat kunjungan disimpan.
+        /// </remarks>
+        [HttpGet("partner-options")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<ReferralInstitutionOptionResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Referral Institution", Description = "Melihat data pilihan fasilitas perujuk mitra", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("ReferralInstitution", "Read")]
+        public async Task<IActionResult> GetPartnerOptions(
+            [FromQuery] ReferralPartnerOptionQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var hasil = await _referralMasterDataService.GetPartnerOptionsAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<ReferralInstitutionOptionResponse>>.Ok(
+                hasil, "Data pilihan fasilitas perujuk mitra berhasil diambil."));
+        }
+
         /// <summary>Pilihan instansi perujuk untuk akun perangkat Kiosk (<c>RJ-DOC-DEC-076</c>).</summary>
         /// <remarks>
         /// <b>Sengaja tanpa <c>[AccessAction]</c> dan <c>[AccessPermission]</c></b>, mengikuti
         /// <c>KioskPatientLookupController</c>: akun Kiosk tidak punya baris di matriks Akses Role,
         /// dan policy <see cref="AuthorizationPolicies.KioskRead"/> adalah otorisasi alternatif
-        /// yang disetujui. Selalu hanya instansi aktif.
+        /// yang disetujui. Sejak <c>DEC-FRJ-001</c> hanya mitra layak hari ini (aktif, mitra, dan
+        /// perjanjian berlaku), sama dengan <c>partner-options</c>.
         /// </remarks>
         [HttpGet("kiosk/options")]
         [Authorize(Policy = AuthorizationPolicies.KioskRead)]
@@ -126,10 +144,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] ReferralInstitutionOptionQuery query,
             CancellationToken cancellationToken = default)
         {
-            query.OnlyActive = true;
-
-            var hasil = await _referralMasterDataService.GetInstitutionOptionsAsync(
-                query, cancellationToken);
+            // Kiosk selalu mendaftarkan untuk hari ini; tanggal layanan tidak diterima dari perangkat.
+            var hasil = await _referralMasterDataService.GetPartnerOptionsAsync(
+                new ReferralPartnerOptionQuery
+                {
+                    Search = query.Search,
+                    PageNumber = query.PageNumber,
+                    PageSize = query.PageSize
+                },
+                cancellationToken);
 
             return Ok(ApiResponse<PagedResult<ReferralInstitutionOptionResponse>>.Ok(
                 hasil, "Data pilihan instansi perujuk berhasil diambil."));
@@ -202,6 +225,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return Ok(ApiResponse<ReferralInstitutionResponse>.Ok(result.Data!, result.Message));
         }
 
+        /// <summary>
+        /// Menambah periode perjanjian kerja sama (perpanjangan). Ditolak <c>400</c> bila
+        /// bertumpang tindih dan <c>409</c> bila master sudah diubah pengguna lain.
+        /// </summary>
+        [HttpPost("{id:guid}/agreements")]
+        [ProducesResponseType(typeof(ApiResponse<ReferralInstitutionResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Update", "Update Referral Institution", Description = "Menambah perjanjian kerja sama fasilitas perujuk", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("ReferralInstitution", "Update")]
+        public async Task<IActionResult> AddAgreement(
+            Guid id,
+            [FromBody] CreateReferralInstitutionAgreementRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _referralMasterDataService.AddAgreementAsync(
+                id, request, GetCurrentUserId(), cancellationToken);
+
+            if (result.Status != ReferralMasterStatus.Success)
+                return MapFailure(result.Status, result.Message);
+
+            await LogAsync("ReferralInstitution.AddAgreement", "Menambah perjanjian kerja sama fasilitas perujuk.", id, result.Data!.IsPartner, result.Data.IsActive);
+
+            return Ok(ApiResponse<ReferralInstitutionResponse>.Ok(result.Data!, result.Message));
+        }
+
         /// <summary>Mengaktifkan atau menonaktifkan instansi perujuk.</summary>
         [HttpPatch("{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<ReferralInstitutionResponse>), StatusCodes.Status200OK)]
@@ -264,6 +314,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ReferralMasterStatus.NotFound => NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, message)),
                 ReferralMasterStatus.DuplicateIdentity => Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, message)),
                 ReferralMasterStatus.InUse => Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, message)),
+                ReferralMasterStatus.Conflict => Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, message)),
                 _ => BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, message))
             };
 

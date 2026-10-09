@@ -117,6 +117,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// <summary>Penunjuk dokter perujuk; wajib berpraktik pada instansi di atas.</summary>
         public Guid? ReferralDoctorId { get; set; }
 
+        /// <summary>
+        /// <c>DEC-FRJ-001</c>: bila benar, instansi wajib mitra aktif dengan perjanjian yang berlaku
+        /// hari ini. Dikirim Pendaftaran Rawat Jalan (unit tujuan Laboratorium). Bawaan <c>false</c>
+        /// sehingga layar pendaftaran Laboratorium tetap berperilaku seperti sebelumnya.
+        /// </summary>
+        public bool RequirePartnerEligibility { get; set; }
+
         public EncounterPaymentType PaymentType { get; set; } = EncounterPaymentType.Cash;
 
         public Guid? PaymentMethodId { get; set; }

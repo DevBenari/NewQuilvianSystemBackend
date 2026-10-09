@@ -704,6 +704,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var referralError = await _encounterReferralService.ValidateForCreateAsync(
                 request,
                 isKioskChannel,
+                DateOnly.FromDateTime(targetEncounterDate),
                 HttpContext.RequestAborted);
 
             if (referralError != null)
