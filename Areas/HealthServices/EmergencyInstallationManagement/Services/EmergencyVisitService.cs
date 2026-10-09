@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
@@ -1417,6 +1417,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 EncounterNumber = x.Encounter != null ? x.Encounter.EncounterNumber : null,
                 EmergencyVisitNumber = x.EmergencyVisitNumber,
                 VisitStatus = x.VisitStatus,
+                ChiefComplaint = x.ChiefComplaint ?? (x.Encounter != null ? x.Encounter.ChiefComplaint : null),
                 RegisteredAt = x.Encounter != null ? x.Encounter.RegisteredAt : x.ArrivalDateTime,
                 ArrivalDateTime = x.ArrivalDateTime,
                 Urutan = x.ArrivalDateTime,
@@ -1454,6 +1455,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     EncounterNumber = x.EncounterNumber,
                     EmergencyVisitNumber = (string?)null,
                     VisitStatus = (EmergencyVisitStatus?)null,
+                    ChiefComplaint = x.ChiefComplaint,
                     RegisteredAt = x.RegisteredAt,
                     ArrivalDateTime = (DateTime?)null,
                     Urutan = x.RegisteredAt,
@@ -1502,6 +1504,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 TemporaryPatientAlias = baris.TemporaryPatientAlias,
                 EncounterNumber = baris.EncounterNumber,
                 EmergencyVisitNumber = baris.EmergencyVisitNumber,
+                ChiefComplaint = baris.ChiefComplaint,
                 QueueStatus = dariKunjungan && baris.VisitStatus.HasValue
                     ? baris.VisitStatus.Value.ToString()
                     : nameof(EmergencyVisitStatus.WaitingForTriage),
@@ -1565,6 +1568,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             public string? TemporaryPatientAlias { get; set; }
             public string? EncounterNumber { get; set; }
             public string? EmergencyVisitNumber { get; set; }
+            public string? ChiefComplaint { get; set; }
             public EmergencyVisitStatus? VisitStatus { get; set; }
             public DateTime RegisteredAt { get; set; }
             public DateTime? ArrivalDateTime { get; set; }

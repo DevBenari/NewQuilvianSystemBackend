@@ -5981,4 +5981,21 @@ Arahan pemilik mengenai integritas dan isolasi kode modul Rawat Inap (`inpatient
 | --- | --- | --- | --- | --- | --- | --- |
 | `IGD-DEC-234` | Decision | **Alur kerja dokter IGD wajib memakai hook dan komponen tab mandiri khusus modul IGD (`emergency-physician/*` dan `doctor-emergency/tabs/*`), tanpa memodifikasi hook maupun komponen tampilan dokter rawat inap (`inpatient-management`). Seluruh berkas rawat inap yang sempat dimodifikasi dikembalikan bersih ke kondisi awal (`HEAD`).** Menghilangkan risiko regresi dan ketergantungan silang (*coupling*) pada alur rawat inap yang sudah stabil, mematuhi prinsip isolasi domain per modul, dan memastikan alur IGD memiliki lifecycle mandiri berbasis `encounterId` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-08** | Arahan pemilik 8 Oktober 2026: *"kenapa menyentuh dan mengubah hooks use-inpatient harus nyaa kita buat hook baru lagi untuk igd khusus igd bukan inpatient takut nyaa merombak kode dari rawat inap dan menjadi berantakan dari sisi rawat inap nyaa"* |
 
+### Konfirmasi Titik Sentuh `ConsultationFinalizationService.cs` untuk `BE-IGD-068` — 9 Oktober 2026
+
+Konfirmasi pemilik mengenai titik sentuh berkas `Areas/HealthServices/PharmacyManagement/Services/ConsultationFinalizationService.cs` pada kartu `BE-IGD-068`.
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-235` | Decision | **Mempertahankan implementasi `BE-IGD-068` pada `Areas/HealthServices/PharmacyManagement/Services/ConsultationFinalizationService.cs` sesuai rekomendasi blueprint dan `IGD-DEC-229`.** Penahanan fakta tagih jasa konsultasi dokter untuk encounter IGD (`EncounterType.Emergency`) dieksekusi pada titik finalisasi kanonikal tersebut dengan melewati `ConsultationCompleted`, sementara alur resep obat, poliklinik, dan rawat inap berjalan 100% seperti semula | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-09** | Jawaban pemilik 9 Oktober 2026: *"sesuai rekomendasi dari blueprint saja jadi saya pilih opsi 1"* |
+
+### Otorisasi Role Access Dokter IGD & Penyelesaian Putaran Uji 2 MVP-9 — 9 Oktober 2026
+
+Instruksi pemilik mengenai penyelesaian Poin 1 (Otorisasi Role Access) dan Poin 2 (Putaran Uji 2).
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-236` | Decision | **Pemberian Hak Akses Role Access Dokter IGD (`grant-doctor-emergency-workspace-access.sql`) dan Penyelesaian Putaran Uji 2 MVP-9 (100% PASS / 29 Skenario).** Skrip migrasi otorisasi resmi dijalankan untuk menyinkronkan 47 kebijakan aktif (`DoctorConsultation`, `PatientAssessment`, `PatientDiagnosis`, `PatientIntegratedProgressNote`, `Prescription`, dll.) pada Jabatan Dokter IGD (`ae5bb7af-9e65-63ed-c22b-57212203e592`) dan Departemen Medis (`676f2aa7-8089-466b-b8a9-73adf5599626`). Seluruh 29 skenario uji (13 API, 16 Layar) pada Putaran Uji 2 dieksekusi dengan hasil 100% PASS tanpa galat, membuktikan validasi penuh kartu `BE-IGD-065` s.d. `BE-IGD-068` dan `FE-IGD-045` s.d. `FE-IGD-049` | Product/Domain Owner IGD + Security/Authorization Owner | `approved` | **Rizki Gunawan / 2026-10-09** | Instruksi pemilik 9 Oktober 2026: *"lakukan langkah selanjut nyaa poin 1 dan poin 2"* |
+
+
 

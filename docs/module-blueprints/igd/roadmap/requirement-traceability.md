@@ -940,6 +940,7 @@ disposisi `Executed` (`BE-IGD-062`).
 | `IGD-DEC-232` | Menu Ruang Kerja Dokter IGD: *Dokter → IGD* | `approved` | `FE-IGD-045` |
 | `IGD-DEC-233` | Saringan `ongoing=false` pada `GET /emergency-visits` berlaku simetris | `approved` | `BE-IGD-065` |
 | `IGD-DEC-234` | Pemisahan hook & tab mandiri dokter IGD dari modul rawat inap | `approved` | `FE-IGD-047`, `FE-IGD-048`, `FE-IGD-049` |
+| `IGD-DEC-235` | Konfirmasi titik sentuh BE-IGD-068 pada ConsultationFinalizationService (Farmasi) | `approved` | `BE-IGD-068` |
 
 ### Pertanyaan terbuka
 

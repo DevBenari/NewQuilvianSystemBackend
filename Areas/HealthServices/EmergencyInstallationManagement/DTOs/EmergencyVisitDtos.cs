@@ -324,6 +324,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public EmergencyVisitStatus? VisitStatus { get; set; }
 
         /// <summary>
+        /// Keluhan utama dari data pendaftaran atau kunjungan IGD.
+        /// </summary>
+        public string? ChiefComplaint { get; set; }
+
+        /// <summary>
         /// Waktu terdaftar. Layar menampilkannya berlabel <b>Terdaftar</b> dan tidak pernah
         /// sebagai waktu tiba.
         /// </summary>
