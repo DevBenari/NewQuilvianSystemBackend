@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `17` — bagian 27, 2026-10-08: lingkup kunci Lunas — rawat inap dan IGD *Ditagih Kemudian* (putaran 27), kontrak usulan `LAB-REQ-020`. Sebelumnya `16` — bagian 26, 2026-10-08: alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), kontrak usulan `LAB-REQ-019`. Sebelumnya `15` — bagian 25, 2026-10-07: daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian (BR-139), kontrak usulan `LAB-REQ-017`. Sebelumnya `14` — bagian 24, 2026-10-07: Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1 (BR-138), kontrak usulan `LAB-REQ-016`. Sebelumnya `13` — bagian 23, 2026-09-25: `S16a` tiga laporan operasional. Sebelumnya `12` — bagian 22, 2026-09-25: penjaga penyelesaian order (`LAB-DEC-154`). Sebelumnya `11` — bagian 21, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `10` — bagian 20, 2026-09-25: `S4` validasi dan rilis Patologi Klinik. Sebelumnya `9` — bagian 19, 2026-09-24 |
+| Revision | `20` — bagian 30, 2026-10-09: rencana ulang sesudah wadah dibatalkan (putaran 29, temuan T1), kontrak usulan `LAB-REQ-023`. Sebelumnya `19` — bagian 29, 2026-10-09: CITO dari pemesanan sampai ke pemeriksaan (putaran 28, `LAB-CONFLICT-019`), kontrak usulan `LAB-REQ-022`. Sebelumnya `18` — bagian 28, 2026-10-08: data ringkasan Beranda Lab mengikuti susunan v1 (BR-140), kontrak usulan `LAB-REQ-021`. Sebelumnya `17` — bagian 27, 2026-10-08: lingkup kunci Lunas — rawat inap dan IGD *Ditagih Kemudian* (putaran 27), kontrak usulan `LAB-REQ-020`. Sebelumnya `16` — bagian 26, 2026-10-08: alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), kontrak usulan `LAB-REQ-019`. Sebelumnya `15` — bagian 25, 2026-10-07: daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian (BR-139), kontrak usulan `LAB-REQ-017`. Sebelumnya `14` — bagian 24, 2026-10-07: Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1 (BR-138), kontrak usulan `LAB-REQ-016`. Sebelumnya `13` — bagian 23, 2026-09-25: `S16a` tiga laporan operasional. Sebelumnya `12` — bagian 22, 2026-09-25: penjaga penyelesaian order (`LAB-DEC-154`). Sebelumnya `11` — bagian 21, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `10` — bagian 20, 2026-09-25: `S4` validasi dan rilis Patologi Klinik. Sebelumnya `9` — bagian 19, 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -4386,10 +4386,658 @@ ikut dirilis.
 
 Lihat [`LAB-REQ-020`](approval-requests/2026-10-08-permintaan-kontrak-lingkup-lunas.md) bagian 3 — enam butir.
 
+## 28. Rancangan 2026-10-08 — Data ringkasan Beranda Lab mengikuti susunan v1 (BR-140)
+
+> **Status: kontrak `approved` 2026-10-08** — `LAB-API-v1` `r44`, `LAB-VAL-v1` `r20`, dan `LAB-PERM-v1` revision 16 disetujui
+> Yoga Aji Pratama, pemilik modul (*"Setuju 11 butir"*), lewat [`LAB-REQ-021`](approval-requests/2026-10-08-permintaan-kontrak-beranda.md) — kesebelas butir sesuai usulan. **Kode belum diubah.**
+> Rancangan ini mendahului implementasi, sama dengan bagian 27.
+
+Beranda Lab adalah **layar baca**. Ia tidak mengubah status apa pun dan tidak menyimpan apa pun. Semua angkanya dihitung
+saat dibuka, dari tabel Laboratorium yang sudah ada.
+
+### 28.0 Identitas dan gerbang masukan
+
+| Field | Nilai |
+|---|---|
+| Keputusan | `LAB-DEC-204`..`LAB-DEC-211`, BR-140, `LAB-FE-035` — `approved` 2026-10-07 (putaran 25); `AC-294`..`AC-301` |
+| Decision log | revision **92** — sha256 `66e759a8…f55399f` (metode manifest: isi ber-LF), **sama** dengan manifest rev 108 |
+| Capability map | revision **8** — F25-3/F25-4 (Beranda V2 as-is). Keempat *bahan audit* putaran 25 dijawab di 28.2 dengan membaca kode langsung |
+| Arsitektur domain | `LAB-DA-001` revision 10 — **tidak dirancang ulang.** Nol konsep tersimpan; Beranda adalah tampilan baca (*read model*) atas `LabOrder`, `LabOrderedProcedure`, dan `LabExamination`, sejenis laporan operasional `S16a` (A7) |
+| Gerbang keputusan | Nol keputusan `BLOCKING` terbuka untuk BR-140. Sebelas butir rincian yang tidak diputuskan putaran 25 diajukan sebagai butir persetujuan (28.10) |
+| Backend SHA | `38c8a4f4` (branch `yoga`) — **satu commit sesudah** manifest `f4e79c4e`. Commit itu (*updates bug modul lab*) berisi implementasi putaran 27 yang sudah disetujui: `LabMonitoringService`, `LabOrderService` (`StartProcessAsync`), `LabPaymentClearanceRules`, dan dokumen. **Nol berkas yang dibaca rancangan ini berubah perilakunya** — impact scan baca-saja: nol dampak |
+| Frontend SHA | `9bd8b96fe` (branch `YogaV2`) — **satu commit sesudah** manifest `f6f23352e`: `lab-order-process-rules.js`, `use-lab-monitoring.jsx`, dan ujinya. Nol berkas Beranda tersentuh — nol dampak |
+| Kontrak as-is | `LAB-API-v1` `r43`, `LAB-VAL-v1` `r19`, `LAB-PERM-v1` revision 15, `LAB-STATE-v1` `r10`, `LAB-INT-v1` `r6` — `approved` |
+
+### 28.1 Tabel kepemilikan data
+
+| Kelompok data | Pemilik | Dipakai Beranda | Dibuat ulang? |
+|---|---|:---:|:---:|
+| Pesanan (`LabOrder`: status, disiplin, waktu diminta) | Laboratorium | Ya, dibaca | **Tidak** |
+| Permintaan pemeriksaan (`LabOrderedProcedure`: kesegeraan, status permintaan, nama) | Laboratorium | Ya, dibaca | **Tidak** |
+| Pemeriksaan (`LabExamination`: kesegeraan, status, waktu final/validasi/rilis) | Laboratorium | Ya, dibaca | **Tidak** |
+| Kunjungan (`RegPatientEncounter.PatientId`) | Registrasi | Ya, dibaca — hanya untuk tabel pesanan terbaru | Tidak |
+| Pasien (`MstPatient.FullName`, `MedicalRecordNumber`) | Master pasien | Ya, dua ruas — hanya untuk tabel pesanan terbaru | Tidak |
+| Katalog pemeriksaan (`MstProcedure.LabDiscipline`, `ProcedureName`) | Master data | Ya, sebagai jatuhan bagi pesanan lama | Tidak |
+| Pengguna dan data SDM | Platform / SDM | **Tidak dibaca sama sekali** (`LAB-DEC-208`) | — |
+| Tabel ringkasan Beranda, *snapshot* harian, atau *job* terjadwal | — | **Tidak ada** | **Tidak dibuat** (28.9) |
+
+### 28.2 Jawaban empat bahan audit putaran 25
+
+#### Bahan audit 1 — Sumber kesegeraan CITO
+
+**Fakta di kode:**
+
+| Tempat | Kapan terisi | Dibaca siapa hari ini |
+|---|---|---|
+| `LabOrder` | **Tidak punya kolom kesegeraan** — sengaja, `LAB-DEC-026` | — |
+| `LabOrderedProcedure.Urgency` | Saat dokter/kiosk memesan lewat `POST /lab-orders/by-examinations` (`citoExaminations`) | Rincian pesanan (`orderedProcedures[].urgency`) |
+| `LabExamination.Urgency` | Dibuat **selalu `Routine`** ketika wadah direncanakan (`LabSpecimenService.cs:249`); berubah hanya lewat *Tandai Cito* oleh dokter pemesan (`LabExaminationService.cs:394`) | Daftar pantau (`hasCito`, penyaring `onlyCito`), daftar kerja, pantau keterlambatan cito, antrean validasi, laporan TAT |
+
+Daftar pantau sudah menurunkan CITO tingkat pesanan (`hasCito` = ada pemeriksaan bertanda cito), **tetapi hanya dari
+`LabExamination`**. Akibatnya ada cacat as-is yang dicatat di 28.8.
+
+**Rumus CITO pesanan bagi Beranda.** Sebuah pesanan dihitung CITO bila **salah satu** benar:
+
+- (a) ada `LabOrderedProcedure` pada pesanan itu yang tidak dihapus, `OrderedStatus` bukan `Cancelled`, dan
+  `Urgency = Cito`; **atau**
+- (b) ada `LabExamination` pada pesanan itu yang tidak dihapus, `ExaminationStatus` bukan `Voided`/`Cancelled`, dan
+  `Urgency = Cito`.
+
+**Kenapa dua sumber.** Pukul 09.00 dokter memesan Kalium CITO dari poli. Sampai sampel diterima, pesanan itu hanya
+punya `LabOrderedProcedure` — `LabExamination` belum ada. Bila Beranda hanya membaca (b) seperti daftar pantau, kartu
+CITO pagi hari hampir selalu 0. Sumber (b) tetap perlu karena *Tandai Cito* sesudah wadah hanya mengubah
+`LabExamination`, dan pesanan lama sebelum `BE-LAB-26` tidak punya `LabOrderedProcedure`.
+
+**Batas rumus ini.** Bila dokter mencabut tanda cito sesudah wadah direncanakan, (a) masih bertanda cito sehingga
+pesanan tetap terhitung CITO. Keadaan itu jarang dan arahnya aman (lebih baik terhitung cito daripada terlewat).
+Rumus ini sengaja **tidak** dipakai daftar pantau sebelum 28.8 diputuskan.
+
+#### Bahan audit 2 — Arti *hasil menunggu validasi*
+
+**Sama persis dengan isi antrean validasi tahap *Menunggu Validasi*** (`GET /lab-worklists/validation-queue?stage=AwaitingValidation`,
+`LabWorklistService.GetValidationQueueAsync`) **tanpa penyaring apa pun**:
+
+| Syarat | Sumber di kode |
+|---|---|
+| Hasil berstatus *Final*: `FinalizedAt` terisi, `ValidatedAt` dan `ReleasedAt` kosong | `LabExaminationService.HasResultStatus(Final)` — rumus yang sama dengan `resultStatus` |
+| Disiplin dapat divalidasi: **Patologi Klinik dan Mikrobiologi** — disiplin pesanan, jatuh ke katalog bagi pesanan lama | `LabReleasableDisciplines`; `VAL-126` |
+| Hasil Mikrobiologi *Sementara* tidak ikut | 21.10 butir 4 |
+| Pemeriksaan tidak `Voided`/`Cancelled`, tidak dihapus; pesanan tidak `Cancelled`, tidak dihapus | `VAL-127` |
+| **Tanpa batas tanggal** — angka ini *backlog* saat ini, bukan kejadian hari ini | Antrean juga tanpa penyaring tanggal |
+
+**Patologi Anatomi belum ikut**, karena PA belum punya tahap validasi (`S4e`). Begitu PA ditambahkan ke
+`LabReleasableDisciplines`, angka Beranda ikut otomatis tanpa perubahan kontrak.
+
+**Contoh.** Antrean Validasi memuat 7 baris tahap *Menunggu Validasi* (5 Kalium/Natrium PK, 2 kultur Mikro final). Satu
+kultur lain masih *Sementara*. Kartu Beranda berbunyi **7**.
+
+**Satu sumber, bukan salinan.** Kueri dasar antrean diangkat menjadi satu method bersama di `LabWorklistService`;
+antrean dan Beranda sama-sama memakainya (28.4). Rumus yang disalin akan bercabang diam-diam.
+
+#### Bahan audit 3 — Perluas `summary` atau endpoint baru
+
+**Endpoint baru; `GET /lab-orders/summary` tidak berubah.**
+
+| Pertimbangan | `summary` hari ini | Kebutuhan BR-140 |
+|---|---|---|
+| Waktu acuan | `CreateDateTime` | Waktu pesanan diminta (`RequestedAt`) |
+| Rentang | Bebas, bawaan 30 hari | Hari ini WIB; tahun terpilih |
+| Satuan | Pesanan | Pesanan **dan** pemeriksaan |
+| Pemakai | Rekap Status di bagian bawah Beranda — **dipertahankan** (`LAB-DEC-204`) | Bagian atas Beranda |
+
+Mengubah `summary` berarti mengubah arti rekap yang justru diputuskan dipertahankan. Tiga endpoint, bukan satu:
+
+1. **`AC-300`** — galat satu bagian tidak boleh mengosongkan bagian lain;
+2. mengganti tahun hanya memuat ulang bagian tahunan, bukan kartu hari ini dan tabel terbaru;
+3. tabel terbaru membawa data pasien, sedangkan dua lainnya hanya angka — dipisah supaya batas privasinya jelas.
+
+#### Bahan audit 4 — WIB dan UTC
+
+| Hal | Aturan |
+|---|---|
+| Waktu acuan pesanan | `RequestedAt ?? CreateDateTime`. Kedua jalur pembuatan pesanan mengisi keduanya dengan nilai sama (`LabOrderService.cs:930`, `:1132`); jatuhan hanya untuk pesanan lama yang `RequestedAt`-nya kosong. Sama dengan urutan daftar pantau |
+| *Hari ini* | `d = AppDateTimeHelper.OperationalDate()` (tanggal kalender Asia/Jakarta). Rentang UTC `[OperationalDateToUtc(d), OperationalDateToUtc(d + 1 hari))` — batas atas **eksklusif** |
+| Tahun `Y` | `[OperationalDateToUtc(1 Jan Y), OperationalDateToUtc(1 Jan Y+1))` |
+| Bulan | Waktu acuan diubah ke WIB lalu dikelompokkan per bulan **di memori**, bukan di SQL. Yang ditarik hanya satu kolom waktu untuk dua tahun. Alasannya sama dengan pantau keterlambatan cito: aritmetika tanggal di SQL berbeda bentuk antar-provider, termasuk harness InMemory |
+
+**Contoh jebakan yang dicegah.** Pesanan diminta 2026-10-07 23.30 WIB tersimpan `2026-10-07T16:30:00Z`. Dengan rentang
+WIB di atas ia masuk 7 Oktober, bukan 8 Oktober (`AC-295`). Pesanan 2026-10-08 06.30 WIB (`2026-10-07T23:30:00Z`) masuk
+8 Oktober. Membandingkan tanggal UTC mentah akan membalik keduanya.
+
+### 28.3 Aturan hitung setiap angka
+
+| Angka (layar) | Ruas | Himpunan | Rumus |
+|---|---|---|---|
+| Pesanan hari ini | `todayOrderCount` | Pesanan tidak dihapus, waktu acuan hari ini WIB | Jumlah, **termasuk** *Dibatalkan* |
+| Menunggu | `waitingOrderCount` | Sama | Status bukan `Completed` **dan** bukan `Cancelled` (`LAB-DEC-205`) |
+| Selesai | `completedOrderCount` | Sama | Status `Completed` |
+| Persentase selesai / Tingkat penyelesaian | `completionPercent` | Sama | `round(Selesai ÷ Pesanan hari ini × 100)`, bilangan bulat, pembulatan setengah ke atas; **0** bila Pesanan hari ini 0. Satu angka untuk kedua kartu — tidak dihitung dua kali |
+| CITO | `citoOrderCount` | Sama | Pesanan yang lolos rumus 28.2 bahan 1; **termasuk** yang *Dibatalkan* (sejalan dengan *Pesanan hari ini*) |
+| Total pesanan tercatat | `totalRecordedOrderCount` | Seluruh pesanan tidak dihapus, **sepanjang waktu** | Jumlah, termasuk *Dibatalkan* |
+| Hasil menunggu validasi | `awaitingValidationCount` | 28.2 bahan 2 | Jumlah pemeriksaan |
+| Pemeriksaan per disiplin | `disciplines[].examinationCount` | Pesanan tidak dihapus dan **tidak** `Cancelled`, waktu acuan di tahun terpilih | (i) `LabExamination` tidak dihapus, bukan `Voided`/`Cancelled`, **ditambah** (ii) `LabOrderedProcedure` tidak dihapus berstatus `Ordered` (belum masuk wadah). Permintaan `Fulfilled` sudah terwakili barisnya di (i) |
+| Belum tergolong | `unclassifiedExaminationCount` | Sama | Pemeriksaan yang disiplin pesanan **dan** katalognya kosong |
+| Jenis laboratorium | `activeDisciplineCount` | Sama | Banyaknya dari tiga disiplin yang `examinationCount`-nya > 0 (0–3); *belum tergolong* tidak dihitung |
+| Tren bulanan | `monthlyOrders[]` | Pesanan tidak dihapus, status bukan `Cancelled` dan bukan `Draft` (`LAB-DEC-207`) | Jumlah per bulan WIB, tahun terpilih dan tahun sebelumnya; selalu 12 baris, bulan tanpa pesanan bernilai 0 |
+| Pesanan terbaru | `recent-orders` | Pesanan tidak dihapus, **semua status** | 10 teratas urut waktu acuan terbaru, lalu `CreateDateTime` terbaru, lalu `Id` |
+
+**Disiplin sebuah pemeriksaan** = disiplin pesanan, jatuh ke `MstProcedure.LabDiscipline` bila kosong — aturan yang sama
+dengan `VAL-126` dan antrean validasi.
+
+**Kenapa pesanan *Dibatalkan* keluar dari grafik.** Membatalkan pesanan **tidak** ikut membatalkan pemeriksaan maupun
+permintaannya (dibuktikan: nol penulisan `LabExaminationStatus.Cancelled` di jalur pembatalan `LabOrderService`).
+Tanpa syarat pesanan, pemeriksaan pesanan batal tetap terhitung.
+
+**Contoh lengkap** (data tiruan, Rabu 2026-10-08 pukul 09.15 WIB):
+
+| Fakta | Angka |
+|---|---|
+| 12 pesanan sejak 00.00 WIB: 3 *Selesai*, 1 *Dibatalkan*, 8 lainnya; 2 pesanan memuat permintaan CITO (satu belum ada wadah) | Pesanan hari ini **12**, Menunggu **8**, Selesai **3 (25%)**, CITO **2**, Tingkat penyelesaian **25%** |
+| 4.812 pesanan sejak sistem dipakai | Total pesanan tercatat **4.812** |
+| 7 baris di Antrean Validasi tahap *Menunggu Validasi* | Hasil menunggu validasi **7** |
+| Tahun 2026: PK 1.240, Mikro 310, PA 95 pemeriksaan, 0 belum tergolong | Grafik tiga batang; Jenis laboratorium **3** |
+| Mei 2026: 402 pesanan non-batal; Mei 2025: 361 | Titik Mei tahun terpilih di atas tahun sebelumnya |
+
+### 28.4 Class diagram
+
+```mermaid
+classDiagram
+    direction LR
+    class LabOrderController {
+        <<Diperbarui>>
+        +GetDashboardToday() IActionResult
+        +GetDashboardYearly(LabDashboardYearlyQuery) IActionResult
+        +GetDashboardRecentOrders() IActionResult
+    }
+    class LabDashboardService {
+        <<Baru>>
+        +GetTodayAsync(asOf?) LabDashboardTodayResponse
+        +GetYearlyAsync(year?, asOf?) LabDashboardYearlyResponse
+        +GetRecentOrdersAsync() List~LabDashboardRecentOrderResponse~
+        -WithCito(IQueryable~LabOrder~) IQueryable~LabOrder~
+    }
+    class LabWorklistService {
+        <<Diperbarui>>
+        +GetValidationQueueAsync(query) PagedResult
+        +CountAwaitingValidationAsync() int
+        -ValidationQueueSource(stage, disciplines) IQueryable~LabExamination~
+    }
+    class LabExaminationService {
+        <<Sudah ada>>
+        +HasResultStatus(status)$ Expression
+    }
+    class AppDateTimeHelper {
+        <<Sudah ada>>
+        +OperationalDate()$ DateTime
+        +OperationalDateToUtc(date)$ DateTime
+    }
+    LabOrderController --> LabDashboardService
+    LabDashboardService --> LabWorklistService : hitung menunggu validasi
+    LabWorklistService --> LabExaminationService : rumus status hasil
+    LabDashboardService --> AppDateTimeHelper : batas hari/tahun WIB
+```
+
+```mermaid
+classDiagram
+    direction LR
+    class LabDashboardTodayResponse {
+        <<Baru>>
+        +string operationalDate
+        +DateTime generatedAt
+        +int todayOrderCount
+        +int waitingOrderCount
+        +int completedOrderCount
+        +int completionPercent
+        +int citoOrderCount
+        +int totalRecordedOrderCount
+        +int awaitingValidationCount
+    }
+    class LabDashboardYearlyResponse {
+        <<Baru>>
+        +int year
+        +int previousYear
+        +DateTime generatedAt
+        +List~LabDashboardDisciplineCountResponse~ disciplines
+        +int unclassifiedExaminationCount
+        +int activeDisciplineCount
+        +List~LabDashboardMonthlyOrderResponse~ monthlyOrders
+    }
+    class LabDashboardDisciplineCountResponse {
+        <<Baru>>
+        +string discipline
+        +int examinationCount
+    }
+    class LabDashboardMonthlyOrderResponse {
+        <<Baru>>
+        +int month
+        +int orderCount
+        +int previousYearOrderCount
+    }
+    class LabDashboardRecentOrderResponse {
+        <<Baru>>
+        +Guid labOrderId
+        +string orderNumber
+        +string? medicalRecordNumber
+        +string? patientName
+        +List~string~ procedureNames
+        +string? discipline
+        +string orderStatus
+        +DateTime requestedAt
+    }
+    LabDashboardYearlyResponse *-- LabDashboardDisciplineCountResponse
+    LabDashboardYearlyResponse *-- LabDashboardMonthlyOrderResponse
+```
+
+### 28.5 Penjelasan setiap class
+
+| Class | Status | Lokasi file | Fungsi | Dipanggil oleh | Transaksi DB |
+|---|---|---|---|---|:---:|
+| `LabDashboardService` | **Baru** | `Areas/HealthServices/LaboratoryManagement/Services/LabDashboardService.cs` | Menghitung ketiga bagian Beranda (28.3). Seluruhnya `AsNoTracking`, proyeksi, tanpa menulis apa pun. Parameter `asOf` opsional hanya untuk uji (sama dengan `GetCitoOverdueAsync`) | `LabOrderController` | Tidak |
+| `LabWorklistService` | **Diperbarui** | `.../Services/LabWorklistService.cs` | (1) Kueri dasar `GetValidationQueueAsync` — syarat `Where` sebelum `onlyCito`/pencarian — **diangkat** ke method privat `ValidationQueueSource(stage, disciplines)`; **perilaku antrean tidak berubah**. (2) Method baru `CountAwaitingValidationAsync()` = `ValidationQueueSource(AwaitingValidation, seluruh disiplin yang dapat dirilis).CountAsync()` | `LabDashboardService`; antrean validasi | Tidak |
+| `LabOrderController` | **Diperbarui** | `.../Controllers/LabOrderController.cs` | Tiga action GET baru (28.6). Atribut sama dengan `GetSummary`: `[AccessAction("Read", "Read Lab Order", …)]`, `[AccessPermission("LabOrder", "Read")]`. Pemeriksaan `VAL-154` di action tahunan | HTTP | Tidak |
+| `LabDashboardDtos.cs` | **Baru** | `.../DTOs/LabDashboardDtos.cs` | `LabDashboardYearlyQuery` (PagedQuery-sejenis, satu ruas `Year`), lima *Response* (28.4) | Controller, service | — |
+| `LabExaminationService.HasResultStatus` | Sudah ada | `.../Services/LabExaminationService.cs:1744` | Dipakai ulang lewat antrean — **tidak** dipanggil langsung oleh Beranda | — | — |
+| `LabReleasableDisciplines` | Sudah ada | `.../Constants/LabReleasableDisciplines.cs` | Disiplin yang dapat divalidasi — sumber angka *menunggu validasi* | — | — |
+| `AppDateTimeHelper` | Sudah ada | `Helpers/AppDateTimeHelper.cs` | Batas hari dan tahun WIB | — | — |
+| `Program.cs` | **Diperbarui** | `Program.cs` (dekat baris 411) | `builder.Services.AddScoped<LabDashboardService>();` | — | — |
+
+**Jenis DTO:**
+
+| Class | Jenis | Ruas |
+|---|---|---|
+| `LabDashboardYearlyQuery` | Query | `Year` (`int?`) |
+| `LabDashboardTodayResponse` | Response | 28.4 |
+| `LabDashboardYearlyResponse` | Response | 28.4 |
+| `LabDashboardDisciplineCountResponse` | Response (butir) | `Discipline` (nama enum), `ExaminationCount` |
+| `LabDashboardMonthlyOrderResponse` | Response (butir) | `Month` (1–12), `OrderCount`, `PreviousYearOrderCount` |
+| `LabDashboardRecentOrderResponse` | Response (butir) | 28.4 |
+
+**Enum:** nol enum baru. `LabDiscipline`, `LabOrderStatus`, `LabExaminationStatus`, `LabOrderedProcedureStatus`,
+`LabExaminationUrgency`, dan `LabValidationQueueStage` dipakai apa adanya.
+
+### 28.6 Endpoint
+
+`[Tags("Health Services / Laboratory Management / Lab Order")]` — base URL
+`api/v1/health-services/laboratory-management/lab-orders`. Rincian request/response ada di `LAB-API-v1` `r44` bagian 39.
+
+| Method | Path | Kegunaan | Hak akses | Kode | Status |
+|---|---|---|---|---|---|
+| `GET` | `/dashboard/today` | Empat kartu hari ini dan empat kartu fokus operasional (kecuali *Jenis laboratorium*) | `LabOrder : Read` | `200`, `401`, `403` | `Rencana (belum tersedia)` |
+| `GET` | `/dashboard/yearly` | Grafik per disiplin, sebaran, *Jenis laboratorium*, tren bulanan | `LabOrder : Read` | `200`, `400`, `401`, `403`, `422` | `Rencana (belum tersedia)` |
+| `GET` | `/dashboard/recent-orders` | 10 pesanan terakhir diminta | `LabOrder : Read` | `200`, `401`, `403` | `Rencana (belum tersedia)` |
+
+Route detail memakai `{id:guid}`, sehingga segmen `dashboard/...` tidak bertabrakan dengan `GET /{id}`.
+
+### 28.7 Arsitektur folder, status model, dan migration
+
+```text
+NewQuilvianSystemBackend/
+├── Areas/HealthServices/LaboratoryManagement/
+│   ├── Controllers/LabOrderController.cs      Diperbarui — tiga action GET
+│   ├── DTOs/LabDashboardDtos.cs               Baru
+│   └── Services/
+│       ├── LabDashboardService.cs             Baru
+│       └── LabWorklistService.cs              Diperbarui — kueri dasar antrean diangkat; CountAwaitingValidationAsync
+└── Program.cs                                 Diperbarui — AddScoped<LabDashboardService>
+```
+
+| Hal | Isi |
+|---|---|
+| Model | **Nol** tabel baru, **nol** kolom baru, **nol** tabel diperbarui |
+| Index | **Nol** index baru (`LAB-REQ-021` butir 10). `LabOrder` belum punya index pada `RequestedAt`/`CreateDateTime`; rumus `RequestedAt ?? CreateDateTime` tidak dapat memakai index biasa. Volume hari ini kecil; index ditambahkan sebagai task tersendiri bila pengukuran menunjukkan kueri tahunan > 1 detik |
+| Migration | **Nol** |
+| Data master awal | **Nol** — Beranda tidak membutuhkan master baru; tanpa data, setiap angka bernilai 0 dan layar tetap terbuka |
+| Rollback | Kembalikan empat berkas di atas. Nol data perlu dipulihkan |
+| Urutan rilis | Backend boleh lebih dulu — ketiga endpoint aditif dan tidak dipanggil frontend lama. Frontend Beranda baru membutuhkan backend ini |
+
+### 28.8 Cacat as-is yang dicatat — CITO dari pemesanan hilang setelah wadah direncanakan (usulan `LAB-CONFLICT-019`)
+
+> **Diputuskan 2026-10-09** (Amendment Pass putaran 28, `LAB-DEC-225`..`LAB-DEC-228`). Rancangan to-be ada di
+> **bagian 29**; tabel di bawah dipertahankan sebagai catatan keadaan as-is.
+
+| Cacat | Akibat | To-be |
+|---|---|---|
+| `LabSpecimenService.CreateExaminationsAsync` membuat `LabExamination.Urgency = Routine` **tanpa membaca** `LabOrderedProcedure.Urgency` (`LabSpecimenService.cs:249`). Tanda CITO yang dipilih dokter/kiosk lewat `citoExaminations` tidak pernah sampai ke pemeriksaan | Pesanan CITO dari pemesanan: **tidak** berlencana CITO di Daftar Pasien Lab (`hasCito` = `false`), **tidak** tersaring *Hanya cito*, tercetak **Routine** pada label (`lab-print-rules.js:95`), **tidak** didahulukan di Daftar Kerja, **tidak** masuk Pantau Keterlambatan Cito dan laporan TAT cito. Hanya rincian pesanan yang menampilkannya | **Belum diputuskan.** Usulan: salin `Urgency` dari permintaan ke pemeriksaan saat wadah direncanakan, disertai pengisian data lama bagi permintaan `Fulfilled` yang pemeriksaannya masih `Routine` tanpa `UrgencyMarkedAt`. Ini mengubah perilaku lima layar dan menyentuh keselamatan klinis (prioritas cito), sehingga **wajib** diputuskan pemilik modul lewat `/grill-me` Amendment Pass — **tidak** dikerjakan diam-diam di task Beranda |
+
+**Beranda tidak tertahan cacat ini**: rumus 28.2 bahan 1 membaca kedua sumber, sehingga kartu CITO benar sebelum dan
+sesudah cacat diperbaiki. Sesudah diperbaiki, rumus tetap sahih tanpa perubahan kontrak.
+
+### 28.9 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+|---|---|
+| Memperluas `GET /lab-orders/summary` | Mengubah arti rekap yang dipertahankan (`LAB-DEC-204`); acuan waktunya berbeda (28.2 bahan 3) |
+| Satu endpoint Beranda gabungan | Melanggar `AC-300`; mengganti tahun memuat ulang semuanya |
+| Kolom `IsCito`/`HasCito` pada `LabOrder` | Kesegeraan melekat pada pemeriksaan (`LAB-DEC-026`); kolom turunan menjadi sumber kebenaran kedua yang dapat basi |
+| Tabel ringkasan harian atau *job* terjadwal | Angka dihitung saat dibaca — pola `S16a` (A7.5). Tabel ringkasan basi tanpa galat |
+| Membaca data pengguna/SDM untuk *Petugas Laboratorium* | `LAB-DEC-208` — diganti *Hasil menunggu validasi* |
+| Siaran SignalR perubahan pesanan | Ditunda `LAB-DEC-210` |
+| Endpoint data pasien tersendiri untuk tabel terbaru | Nama dan No. RM dibaca dalam proyeksi yang sama, cara daftar pantau |
+| Memakai rumus CITO baru di daftar pantau sekarang | Mengubah perilaku layar yang `approved` tanpa keputusan; menunggu 28.8 |
+| Hitungan *Jenis laboratorium* berdasar master disiplin aktif | Diputuskan: disiplin yang **punya pemeriksaan** di tahun terpilih (BR-140 butir 3) |
+
+### 28.10 Keamanan, privasi, pencatatan, dan uji
+
+| Hal | Isi |
+|---|---|
+| Akses | Ketiga endpoint `LabOrder : Read` — nol aksi baru (`LAB-DEC-211`). Angka *menunggu validasi* tampil bagi pemegang `LabOrder : Read` walaupun antrean validasinya dijaga `LabWorklist : Read`; yang tampil **hanya angka**, tanpa pasien maupun hasil |
+| Privasi | `today` dan `yearly` tanpa identitas pasien. `recent-orders` membawa nama dan No. RM — setara Daftar Pasien Lab dan rincian pesanan (`r38`) yang sudah terbuka bagi `LabOrder : Read`. **Tidak** membawa NIK, tanggal lahir, alamat, telepon, hasil, maupun harga |
+| Pencatatan | GET — tidak dicatat ke log audit (konvensi). Nol kolom sensitif masuk logger |
+| Observability | Galat tak terduga dibalas `500` lewat penanganan galat bawaan; tidak ada pesan galat yang memuat data pasien |
+| Uji unit (harness InMemory) | Contoh 28.3 lengkap; batas WIB 23.30/06.30 (`AC-295`); CITO dari permintaan tanpa wadah dan dari *Tandai Cito*; pesanan batal keluar dari grafik dan tren; 12 bulan selalu ada; `VAL-154` (1999, tahun depan, kosong → tahun berjalan); `CountAwaitingValidationAsync` = `totalData` antrean pada data yang sama |
+| Uji regresi | Antrean validasi: hasil, urutan, dan `totalData` sama sebelum dan sesudah pengangkatan kueri dasar |
+| Uji HTTP devYoga (baca-saja) | Ketiga endpoint `200` dengan akun analis; akun tanpa `LabOrder : Read` → `403` (`AC-301`); angka *menunggu validasi* = `totalData` antrean |
+
+**Butir yang diminta persetujuannya:** [`LAB-REQ-021`](approval-requests/2026-10-08-permintaan-kontrak-beranda.md) bagian 3.
+
+### 28.11 Traceability bagian 28
+
+| Rancangan | Keputusan | AC |
+|---|---|---|
+| Susunan Beranda; tiga endpoint terpisah | `LAB-DEC-204`, `LAB-FE-035` | `AC-294`, `AC-300` |
+| Hari ini WIB, Menunggu tanpa batal, CITO dua sumber | `LAB-DEC-205` | `AC-295` |
+| Hasil menunggu validasi = antrean | `LAB-DEC-208` | `AC-296` |
+| Pemeriksaan per disiplin tahun terpilih | `LAB-DEC-206` | `AC-297` |
+| Tren pesanan non-batal per bulan | `LAB-DEC-207` | `AC-298` |
+| 10 pesanan terbaru | `LAB-DEC-209` | `AC-299` |
+| Waktu muat, tanpa realtime | `LAB-DEC-210` | `AC-300` |
+| `LabOrder : Read` | `LAB-DEC-211` | `AC-301` |
+
+## 29. Rancangan 2026-10-09 — CITO dari pemesanan sampai ke pemeriksaan (putaran 28, `LAB-CONFLICT-019`)
+
+> **Diimplementasikan 2026-10-09 di working tree** (`BE-LAB-94` ⚠ — `LabSpecimenService.cs` dan migration
+> `20261009100000_BackfillLabExaminationUrgencyFromOrderedProcedure`), belum di-commit dan belum diterapkan ke DB.
+>
+> **Status: kontrak `approved` 2026-10-09** — `LAB-API-v1` `r45` disetujui Yoga Aji Pratama, pemilik modul
+> (*"setuju keenam butir"*), lewat [`LAB-REQ-022`](approval-requests/2026-10-09-permintaan-kontrak-cito-wadah.md), **termasuk
+> butir 4** (29.6). Rancangan ini **mendahului** implementasi; kode belum diubah.
+
+### 29.0 Identitas dan gerbang masukan
+
+| Field | Nilai |
+|---|---|
+| Keputusan | `LAB-DEC-225`..`LAB-DEC-228` — `approved` 2026-10-09; `AC-318`..`AC-322` |
+| Decision log | revision **93** (Amendment Pass putaran 28), F28-1..F28-8 |
+| Capability map | revision **8** — diaudit pada BE `f4e79c4e`/FE `f6f23352e`, **berpotensi basi**. Rancangan ini tidak bergantung padanya: seluruh fakta dibaca langsung dari source pada SHA di bawah |
+| Arsitektur domain | `LAB-DA-001` — **tidak dirancang ulang.** Nol konsep, relasi, maupun status baru. Kesegeraan tetap melekat pada pemeriksaan (`LAB-DEC-026`) |
+| Backend SHA | `e6c0e451` (branch `yoga`), working tree bersih kecuali dokumen putaran 28 |
+| Frontend SHA | `8f3d74d18` (branch `YogaV2`), bersih |
+| Kontrak as-is | `LAB-API-v1` `r44`, `LAB-STATE-v1` `r10`, `LAB-VAL-v1` `r20`, `LAB-PERM-v1` revision 16, `LAB-INT-v1` `r6` — `approved` |
+| Kontrak yang berubah | **Hanya** `LAB-API-v1` → `r45` (catatan perilaku, bagian 40). STATE, VAL, PERM, INT **tidak berubah** |
+
+### 29.1 Tabel kepemilikan data
+
+| Kelompok data | Pemilik | Dipakai di sini | Dibuat ulang? |
+|---|---|:---:|:---:|
+| Permintaan pemeriksaan (`LabOrderedProcedure.Urgency`, `FulfilledExaminationId`) | Laboratorium | Ya, **dibaca** saat wadah direncanakan; dibaca perbaikan data lama | Tidak |
+| Pemeriksaan (`LabExamination.Urgency`, `UrgencyMarkedAt`, `UrgencyMarkedByUserId`, `Version`) | Laboratorium | Ya, **ditulis** saat dibuat dan oleh perbaikan data lama | Tidak |
+| Wadah (`LabSpecimen.SupersededSpecimenId`) | Laboratorium | Ya, dibaca — menautkan wadah pengganti ke wadah yang digantikan | Tidak |
+| Riwayat transisi (`LabTransitionHistory`) | Laboratorium | Ya, **ditulis** perbaikan data lama — aksi yang sudah ada `Examination.SetUrgency` | Tidak |
+| Pemesanan dokter/kiosk (`citoExaminations`) | Laboratorium (kontrak pemesanan `r7`) | Tidak disentuh — sumber `LabOrderedProcedure.Urgency` | Tidak |
+
+### 29.2 Aturan kesegeraan saat pemeriksaan dibuat
+
+| Jalur | Endpoint pemicu | Kesegeraan pemeriksaan baru | Penanda | Keputusan |
+|---|---|---|---|---|
+| **Wadah pertama** direncanakan | `POST /lab-specimens/by-order/{labOrderId}` | `Urgency` permintaan yang dipenuhinya — dicocokkan per `ProcedureId` di antara permintaan pesanan itu yang tidak `Cancelled` dan tidak terhapus. Tidak ada permintaan yang cocok (pesanan lama) → `Routine` | **Kosong** | `LAB-DEC-226` |
+| **Wadah pengganti** (ambil ulang) | `POST /lab-specimens/{id}/request-recollection` | `Urgency` **terakhir** pemeriksaan yang digantikan (prosedur yang sama di wadah lama) | **Disalin** dari pemeriksaan yang digantikan (`UrgencyMarkedAt`, `UrgencyMarkedByUserId`) | `LAB-DEC-227` |
+| Pemeriksaan ditambah manual ke wadah | `POST /lab-examinations/by-order/{labOrderId}` | `Routine` — **tidak berubah** | Kosong | 29.8 |
+| *Tandai Cito* / pencabutan | `PUT /lab-examinations/{id}/urgency` | Pilihan dokter — **tidak berubah** (`VAL-03`, `VAL-04`) | Dokter dan waktunya | Di luar scope (`LAB-DEC-225`) |
+
+**Kenapa penanda dikosongkan pada wadah pertama.** `urgencyMarkedAt` hari ini hanya terisi oleh *Tandai Cito*.
+Mengisinya dengan dokter pemesan akan membuat pesanan kiosk tercatat seolah ditandai akun kiosk, dan tanda dari
+pemesanan tak lagi bisa dibedakan dari tanda susulan. Asal CITO tetap terlacak: permintaan menunjuk pemeriksaannya
+lewat `FulfilledExaminationId` (F28-7).
+
+**Kenapa wadah pengganti tidak membaca permintaan.** Sesudah wadah pertama dibuat, dokter boleh menandai atau
+mencabut cito. Keadaan terakhir pemeriksaan adalah keputusan klinis terbaru; membaca permintaan akan menghapus
+keputusan itu setiap kali pasien ditusuk ulang.
+
+**Contoh.**
+
+| Keadaan sebelum | Peristiwa | Hasil |
+|---|---|---|
+| Permintaan Hemoglobin `Cito`, Leukosit `Routine` | Analis merencanakan wadah | Hemoglobin `Cito` (penanda kosong), Leukosit `Routine` |
+| Hemoglobin `Cito` (penanda kosong); Leukosit ditandai `Cito` oleh dr. Arif pukul 13.20 | Sampel ditolak, diambil ulang | Pengganti: Hemoglobin `Cito` (kosong), Leukosit `Cito` (dr. Arif, 13.20) |
+| Hemoglobin dicabut menjadi `Routine` oleh dr. Arif pukul 14.00 | Sampel diambil ulang lagi | Pengganti: Hemoglobin `Routine` (dr. Arif, 14.00) |
+| Pesanan lama tanpa baris permintaan | Analis merencanakan wadah | Semua `Routine` — sama seperti hari ini (`AC-322`) |
+
+### 29.3 Class diagram
+
+```mermaid
+classDiagram
+    direction LR
+    class LabSpecimenService {
+        +PlanAsync(labOrderId, request) Diperbarui
+        +RequestRecollectionAsync(id, request) Diperbarui
+        -CreateExaminationsAsync(order, specimen, rencana, actor, now) Diperbarui
+        -MarkOrderedProceduresFulfilledAsync(order, dibuat, actor, now) Sudah ada
+    }
+    class LabExaminationPlan {
+        <<record, Baru, private>>
+        MstProcedure Procedure
+        LabExaminationUrgency Urgency
+        DateTime? UrgencyMarkedAt
+        Guid? UrgencyMarkedByUserId
+    }
+    class LabOrderedProcedure {
+        <<Sudah ada>>
+        Guid ProcedureId
+        LabExaminationUrgency Urgency
+        LabOrderedProcedureStatus OrderedStatus
+        Guid? FulfilledExaminationId
+    }
+    class LabExamination {
+        <<Sudah ada>>
+        LabExaminationUrgency Urgency
+        DateTime? UrgencyMarkedAt
+        Guid? UrgencyMarkedByUserId
+        int Version
+    }
+    LabSpecimenService ..> LabExaminationPlan : menyusun
+    LabSpecimenService ..> LabOrderedProcedure : membaca Urgency (wadah pertama)
+    LabSpecimenService ..> LabExamination : membaca keadaan terakhir (pengganti), menulis baru
+    LabOrderedProcedure --> LabExamination : FulfilledExaminationId
+```
+
+### 29.4 Penjelasan setiap class
+
+| Class | Status | Lokasi file | Perubahan |
+|---|---|---|---|
+| `LabSpecimenService.CreateExaminationsAsync` | **Diperbarui** | `Areas/HealthServices/LaboratoryManagement/Services/LabSpecimenService.cs` | Menerima daftar rencana (prosedur + kesegeraan + penanda), bukan daftar prosedur saja. Membuka transaksi: **tidak** — tetap di dalam transaksi pemanggil. Penandaan `Fulfilled` sesudahnya tidak berubah |
+| `LabSpecimenService.PlanAsync` | **Diperbarui** | Sama | Sebelum memanggil `CreateExaminationsAsync`, membaca permintaan pesanan (`LabOrderedProcedures`, bukan `Cancelled`, bukan terhapus) dan memetakan `ProcedureId → Urgency`. Satu kueri tambahan per rencana wadah; penjagaan `VAL-68`/`VAL-69` sudah membaca tabel yang sama — boleh dipakai bersama |
+| `LabSpecimenService.RequestRecollectionAsync` | **Diperbarui** | Sama | Kueri `pemeriksaanLama` yang sudah ada kini ikut membawa `Urgency`, `UrgencyMarkedAt`, `UrgencyMarkedByUserId` ke rencana. Nol kueri tambahan |
+| `LabExaminationPlan` | **Baru** (record privat) | Di dalam `LabSpecimenService.cs` | Pembawa rencana satu pemeriksaan. Tidak keluar dari service — **bukan** DTO dan tidak terlihat di API |
+| `LabExaminationService` | Sudah ada | `.../Services/LabExaminationService.cs` | **Tidak berubah** — `AddAsync` tetap `Routine`; `SetUrgencyAsync` tetap |
+| `LabSpecimenController` | Sudah ada | `.../Controllers/LabSpecimenController.cs` | Tidak berubah — atribut `[AccessPermission("LabSpecimen", "Plan")]` dan `[AccessPermission("LabSpecimen", "Accept")]` tetap |
+| `LabExaminationResponse` | Sudah ada | `.../DTOs/LabExaminationDtos.cs` | Tidak berubah — `urgency`, `urgencyMarkedAt`, `urgencyMarkedByUserName` sudah ada |
+| Migration `BackfillLabExaminationUrgencyFromOrderedProcedure` | **Baru** | `Migrations/<timestamp>_BackfillLabExaminationUrgencyFromOrderedProcedure.cs` | Data saja, tanpa perubahan skema (29.6) |
+
+### 29.5 Arsitektur folder
+
+```text
+NewQuilvianSystemBackend/
+├── Areas/HealthServices/LaboratoryManagement/
+│   ├── Services/LabSpecimenService.cs        Diperbarui — PlanAsync, RequestRecollectionAsync, CreateExaminationsAsync
+│   ├── Services/LabExaminationService.cs     Sudah ada — tidak berubah
+│   ├── Controllers/LabSpecimenController.cs  Sudah ada — tidak berubah
+│   └── DTOs/LabExaminationDtos.cs            Sudah ada — tidak berubah
+└── Migrations/
+    └── <timestamp>_BackfillLabExaminationUrgencyFromOrderedProcedure.cs   Baru — data saja
+
+QuilvianSystemFrontendDev/   — nol berkas berubah (29.7)
+```
+
+### 29.6 Status model, migration, dan perbaikan data lama
+
+**Model:** nol tabel, nol kolom, nol index, nol enum baru. `ApplicationDbContextModelSnapshot` **tidak berubah** —
+migration hanya berisi SQL.
+
+**Migration `BackfillLabExaminationUrgencyFromOrderedProcedure`** — mengikuti pola
+`20260921032943_BackfillEmergencyDoctorAssignment` (penanda yang dapat dikenali, `Down` hanya membalik baris
+berpenanda).
+
+| Butir | Isi |
+|---|---|
+| Urutan | Sesudah kode 29.4 dirilis atau bersamaan — urutannya tidak penting, karena kode baru tidak bergantung pada data lama dan data lama tidak bergantung pada kode baru |
+| Tanpa downtime | **Ya.** Dua pernyataan dalam satu transaksi migration; menyentuh hanya baris yang memenuhi predikat (dev: 0) |
+| Predikat (`LAB-DEC-228`) | Permintaan `Urgency = Cito` (2), `OrderedStatus = Fulfilled` (2), tidak terhapus; pemeriksaan tertaut (`FulfilledExaminationId`) `Urgency = Routine` (1), `UrgencyMarkedAt IS NULL`, `ExaminationStatus` bukan `Voided` (3)/`Cancelled` (4), tidak terhapus; pesanan `OrderStatus` bukan `Completed` (5)/`Cancelled` (8) |
+| Langkah 1 | `INSERT` satu baris `LabTransitionHistory` per pemeriksaan: `Scope = LabExamination` (3), `Action = 'Examination.SetUrgency'`, `FromStatus = 'Routine'`, `ToStatus = 'Cito'`, **`ReasonCode = 'LAB-CONFLICT-019'`**, `ReasonNote = 'Perbaikan data: CITO dari pemesanan'`, `ActorUserId = Guid.Empty`, `OccurredAt = NOW()`, `CorrelationId = LabOrderId`, `EncounterId` dari pesanan, `Id = gen_random_uuid()`; kolom `IdentityModel` diisi seperti preseden (`CreateBy` dkk. `Guid.Empty`) |
+| Langkah 2 | `UPDATE LabExamination SET Urgency = 2, Version = Version + 1, UpdateDateTime = NOW(), UpdateBy = Guid.Empty` dengan predikat yang sama. **Penanda tetap kosong** |
+| Idempoten | Ya — sesudah langkah 2 predikat `Urgency = Routine` tidak lagi terpenuhi; jalan kedua menyisipkan dan mengubah 0 baris (`AC-321`) |
+| `Version` dinaikkan | Ya — `Version` adalah token konkurensi. Layar yang sedang membuka pemeriksaan itu menerima `409` sekali saat menyimpan, lalu memuat ulang. Lebih aman daripada menimpa diam-diam (butir 5 `LAB-REQ-022`) |
+| `Down` | Pemeriksaan yang punya riwayat `ReasonCode = 'LAB-CONFLICT-019'` **dan** masih `Cito` dengan penanda kosong → kembali `Routine`, `Version + 1`; lalu hapus riwayat berpenanda itu. Pemeriksaan yang sesudahnya ditandai/dicabut dokter (penanda terisi) tidak disentuh |
+| Hitung kering | Kueri `SELECT count(*)` dengan predikat yang sama, dijalankan baca-saja **sebelum** `database update` di setiap lingkungan. Dev 2026-10-09: **0** |
+
+> **Langkah 3 — perluasan `LAB-REQ-022` butir 4, disetujui 2026-10-09.** Pemeriksaan di wadah pengganti yang
+> kehilangan CITO dari pemeriksaan yang digantikannya (cacat kedua, F28-3) ikut dipulihkan. Predikat: wadah
+> pengganti (`SupersededSpecimenId` terisi) → pemeriksaan pengganti `Routine` berpenanda kosong, bukan *Gugur*/
+> *Dibatalkan*, pesanan bukan *Selesai*/*Dibatalkan*; pemeriksaan **prosedur yang sama** di wadah yang digantikan
+> `Cito`. Pengganti mewarisi `Urgency` **dan penanda** pemeriksaan yang digantikan (sama dengan `LAB-DEC-227`), satu
+> baris riwayat berpenanda yang sama, `Version + 1`. Dijalankan **sesudah** langkah 1–2, sehingga pemeriksaan yang
+> sudah dipulihkan lewat permintaan tidak tersentuh dua kali. **Penggantian berantai** (A → B → C): pemeriksaan
+> perantara B sudah *Gugur* sehingga tidak pernah dipulihkan; karena itu sumber kesegeraan C dicari **mundur sepanjang
+> rantai** `SupersededSpecimenId` (CTE rekursif, prosedur yang sama) sampai pemeriksaan pertama yang `Cito` atau
+> berpenanda terisi. Pemeriksaan perantara tidak diubah. `Down` membalik baris berpenanda — termasuk mengosongkan
+> penanda yang disalin. Hitung kering dev 2026-10-09: 1 wadah pengganti, **0** pemeriksaan.
+
+**Data master:** tidak ada.
+
+**Rollback kode:** kembalikan `LabSpecimenService.cs`. Pemeriksaan yang sudah lahir `Cito` sesudah rilis **tetap
+Cito** — itu keadaan yang benar menurut permintaannya, dan dokter dapat mencabutnya lewat *Tandai Cito*.
+
+### 29.7 Frontend
+
+**Nol berkas berubah.** Kelima layar membaca `LabExamination.Urgency` dari jawaban yang sudah ada (F28-6):
+
+| Layar | Yang berubah bagi petugas | Kewenangan |
+|---|---|---|
+| Daftar Pasien Lab (PK, PA, Mikro) | Lencana CITO dan saringan *Hanya cito* kini memuat pesanan CITO dari pemesanan | `LAB-DEC-226` |
+| Label cetak | Tabung tercetak CITO | Sama |
+| Daftar Kerja | Pemeriksaan CITO dari pemesanan naik ke atas (`LAB-FE-006`) | Sama |
+| Pantau Keterlambatan Cito | Ikut terpantau sesudah wadah *Layak* | Sama |
+| Laporan operasional TAT | Terhitung sebagai cito | Sama |
+| Rincian pesanan | Kolom Kesegeraan menampilkan lencana *Cito* dengan waktu `-` di bawahnya (penanda kosong) | `lab-order-detail-view.jsx:165-181` sudah menangani nilai kosong lewat `formatDateTime` → `-`; nol galat. Mengganti `-` dengan teks seperti *"dari pemesanan"* **opsional**, `DEV_DISCRETION`, bukan syarat rilis |
+
+**Urutan rilis:** backend saja. Tidak ada ketergantungan frontend.
+
+### 29.8 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+|---|---|
+| Kolom baru *asal kesegeraan* (`UrgencySource`) pada pemeriksaan | Asal sudah dapat ditelusuri lewat `FulfilledExaminationId` dan riwayat; kolom baru menuntut migration skema tanpa kebutuhan baca |
+| Mengisi penanda dengan dokter pemesan | Ditolak pemilik modul (Q3 putaran 28) |
+| Mengubah layar agar membaca dua sumber seperti Beranda | Ditolak pemilik modul (Q1 putaran 28); lima layar dan label cetak harus diubah satu per satu |
+| Menautkan `POST /lab-examinations/by-order/{labOrderId}` (tambah manual) ke permintaan | Jalur ini tidak bertaut ke permintaan dan tidak menandai `Fulfilled` hari ini; mengubahnya di luar `LAB-DEC-225`. Pemeriksaan tambahan tetap `Routine` — dokter memakai *Tandai Cito* |
+| Memperbaiki pesanan yang sudah *Selesai*/*Dibatalkan* | Ditolak pemilik modul (Q4); sejalan `VAL-04` |
+| Satu aksi riwayat baru (`Examination.InheritUrgency`) | Perpindahannya sama dengan *Tandai Cito* (`Routine → Cito`), jadi aksi yang sudah ada `Examination.SetUrgency` dipakai ulang; pembeda cukup `ReasonCode` dan pelaku sistem. Tidak ada layar frontend yang menafsirkan nama aksi riwayat pemeriksaan hari ini |
+| Perbaikan data lewat endpoint admin | Tidak ada pemakaian berulang; migration memberi `Down` dan jejak `__EFMigrationsHistory` |
+
+### 29.9 Keamanan, privasi, pencatatan, dan uji
+
+| Hal | Aturan |
+|---|---|
+| Izin | Tidak berubah — kesegeraan diwarisi di dalam aksi yang sudah dijaga `LabSpecimen : Plan` dan `LabSpecimen : Accept` |
+| Privasi | Nol data pasien baru; log tidak menulis isi pemeriksaan |
+| Pencatatan | Wadah pertama dan pengganti **tidak** menambah baris riwayat kesegeraan — pemeriksaannya lahir, tidak berpindah. Perbaikan data lama menambah satu baris per pemeriksaan |
+| Observabilitas | Migration mencetak jumlah baris lewat `RAISE NOTICE` (opsional, `DEV_DISCRETION`) |
+
+| Lapis | Yang diuji | AC |
+|---|---|---|
+| Unit backend (harness InMemory) | Wadah pertama: permintaan `Cito`/`Routine` → pemeriksaan sesuai, penanda kosong; pesanan tanpa permintaan → `Routine` | `AC-318`, `AC-322` |
+| Unit backend | Ambil ulang: `Cito` dari pemesanan, `Cito` dari *Tandai Cito* (penanda tersalin), cito dicabut (→ `Routine` berpenanda) | `AC-320` |
+| SQL migration (PostgreSQL uji, bukan DB bersama) | Predikat, satu baris riwayat, `Version + 1`, jalan kedua 0 baris, `Down` membalik hanya baris berpenanda | `AC-321` |
+| HTTP devYoga | Rencana wadah pada pesanan uji ber-CITO → `GET /lab-examinations/by-order/{id}` `urgency = Cito`; daftar pantau `hasCito = true`; kartu CITO Beranda tetap sama | `AC-318`, `AC-322` |
+| Peramban | Lencana, saringan *Hanya cito*, label cetak, Daftar Kerja, Pantau Keterlambatan | `AC-318`, `AC-319` |
+
+Pesanan uji ber-CITO dari pemesanan belum ada di dev (F28-8) — butuh izin tulis pemilik modul.
+
+### 29.10 Traceability bagian 29
+
+| Perubahan | Keputusan | Kontrak | AC |
+|---|---|---|---|
+| Wadah pertama mewarisi kesegeraan permintaan, penanda kosong | `LAB-DEC-226` | `r45` 40.2 | `AC-318`, `AC-319`, `AC-322` |
+| Wadah pengganti mewarisi keadaan terakhir beserta penanda | `LAB-DEC-227` | `r45` 40.3 | `AC-320` |
+| Perbaikan data lama | `LAB-DEC-228` | `r45` 40.4 | `AC-321` |
+| Batas scope | `LAB-DEC-225` | — | — |
+
+## 30. Rancangan 2026-10-09 (kedua) — Rencana ulang sesudah wadah dibatalkan (putaran 29, temuan T1)
+
+> **Status: kontrak `approved` 2026-10-09** — `LAB-API-v1` `r46` disetujui Yoga Aji Pratama lewat
+> [`LAB-REQ-023`](approval-requests/2026-10-09-permintaan-kontrak-rencana-ulang.md) (*"setuju kelima butir"*). **Diimplementasikan 2026-10-09** — `BE-LAB-95` ✅ (working tree, belum di-commit).
+
+### 30.0 Identitas dan gerbang masukan
+
+| Field | Nilai |
+|---|---|
+| Keputusan | `LAB-DEC-229` — `approved` 2026-10-09; `AC-323`..`AC-325` |
+| Decision log | revision **94** (Amendment Pass putaran 29), F29-1, F29-2 |
+| Dasar | Bagian 29 (`BE-LAB-94` ⚠ di working tree) — rancangan ini **memperluas** 29.2, bukan menggantinya |
+| Backend SHA | `e6c0e451` + working tree `BE-LAB-94` |
+| Kontrak yang berubah | **Hanya** `LAB-API-v1` → `r46` (bagian 41, catatan perilaku). Nol tabel, kolom, endpoint, izin, migration |
+
+### 30.1 Aturan kesegeraan saat pemeriksaan dibuat — sesudah amandemen
+
+Satu aturan untuk **ketiga** jalur yang membuat pemeriksaan bersama wadah:
+
+| Langkah | Pemeriksaan | Hasil |
+|---:|---|---|
+| 1 | Cari **pemeriksaan pendahulu**: pemeriksaan terakhir (`CreateDateTime` terbaru) pada pesanan dan prosedur yang sama, tidak terhapus. Untuk ambil ulang, pendahulunya adalah pemeriksaan di wadah yang digantikan (sudah seperti `BE-LAB-94`) | — |
+| 2 | Pendahulu ada **dan berpenanda** (`UrgencyMarkedAt` terisi — dokter pernah memutuskan lewat *Tandai Cito*) | Salin `Urgency` **dan** penandanya |
+| 3 | Selain itu — tanpa pendahulu, **atau** pendahulu tanpa penanda | Kesegeraan permintaan (`LAB-DEC-226`); tanpa permintaan → `Routine`; penanda kosong |
+
+**Kenapa langkah 2 menuntut penanda** (butir 2 `LAB-REQ-023`). Pemeriksaan tanpa penanda tidak membawa keputusan dokter apa
+pun — kesegeraannya hanya turunan permintaan. Membaca permintaan langsung memberi hasil yang **sama** untuk pemeriksaan
+sesudah `BE-LAB-94`, dan hasil yang **benar** untuk pemeriksaan sebelum `BE-LAB-94` yang terlanjur `Routine` karena cacat
+(F29-2). Menyalinnya mentah akan menghidupkan kembali cacat itu setiap kali wadah dibatalkan atau sampel diambil ulang.
+
+| Jalur | Pendahulu | Sebelum amandemen (`r45`) | Sesudah (`r46`) |
+|---|---|---|---|
+| Wadah pertama | Tidak ada | Permintaan | Permintaan — **tidak berubah** |
+| Rencana ulang sesudah wadah dibatalkan | Pemeriksaan di wadah yang dibatalkan | Permintaan | **Langkah 2/3** |
+| Ambil ulang | Pemeriksaan di wadah yang digantikan | Salin mentah | **Langkah 2/3** — sama untuk data baru; benar untuk data lama (butir 3) |
+
+**Contoh.**
+
+| Pendahulu | Permintaan | Hasil |
+|---|---|---|
+| Leukosit `Cito`, penanda dr. Arif 13.20 (wadah dibatalkan) | `Routine` | `Cito`, penanda dr. Arif 13.20 (`AC-323`) |
+| Hemoglobin `Routine`, penanda pencabutan dr. Arif 14.00 | `Cito` | `Routine`, penanda pencabutan (`AC-324`) |
+| Hemoglobin `Routine`, penanda kosong (lahir sebelum `BE-LAB-94`) | `Cito` | `Cito`, penanda kosong (`AC-325`) |
+| Tidak ada | `Cito` | `Cito`, penanda kosong |
+
+### 30.2 Class yang terlibat
+
+| Class | Status | Lokasi file | Perubahan |
+|---|---|---|---|
+| `LabSpecimenService.PlanAsync` | **Diperbarui** | `Areas/HealthServices/LaboratoryManagement/Services/LabSpecimenService.cs` | Sesudah `ResolveOrderedUrgencyAsync`, membaca pendahulu berpenanda per prosedur: satu kueri proyeksi atas `LabExaminations` pesanan itu (`ProcedureId`, `CreateDateTime`, `Urgency`, `UrgencyMarkedAt`, `UrgencyMarkedByUserId`), pilih yang terbaru per prosedur, pakai hanya bila berpenanda |
+| `LabSpecimenService.RequestRecollectionAsync` | **Diperbarui** | Sama | Pemeriksaan lama **berpenanda** → salin (tidak berubah); **tanpa penanda** → kesegeraan permintaan (memakai `ResolveOrderedUrgencyAsync` yang sudah ada) |
+| `LabExaminationPlan`, `CreateExaminationsAsync` | Sudah ada (`BE-LAB-94`) | Sama | Tidak berubah |
+
+Nol migration: migration `BE-LAB-94` tidak diubah (butir 4).
+
+### 30.3 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+|---|---|
+| Pendahulu dibatasi pada wadah berstatus `Cancelled` saja | `VAL-69` sudah menjamin rencana ulang hanya terjadi bila pemeriksaan sebelumnya tidak lagi hidup; pemeriksaan terakhir pesanan + prosedur sudah tepat sasaran tanpa penyaring tambahan |
+| Memperluas migration ke wadah yang dibatalkan sebelum rilis | Pemeriksaan di wadah yang dibatalkan tidak dikerjakan; rencana ulang sesudah rilis sudah memakai aturan baru (butir 4) |
+| Riwayat baru saat pemeriksaan lahir | Sama dengan 29.9 — pemeriksaan lahir, tidak berpindah |
+
+### 30.4 Uji
+
+| Lapis | Yang diuji | AC |
+|---|---|---|
+| Harness InMemory | Rencana ulang: pendahulu `Cito` berpenanda → salin; pencabutan berpenanda → `Routine` berpenanda; pendahulu tanpa penanda + permintaan `Cito` → `Cito` kosong; tanpa pendahulu → permintaan | `AC-323`..`AC-325` |
+| Harness InMemory | Ambil ulang: regresi 18 uji `BE-LAB-94` + pemeriksaan lama tanpa penanda (Routine lama, permintaan Cito) → `Cito` | butir 3 |
+
 ## Riwayat Revisi
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 20 | 2026-10-09 | **Rencana ulang sesudah wadah dibatalkan dirancang** (bagian 30), menurunkan `LAB-DEC-229` (putaran 29, temuan T1 `BE-LAB-94`). Satu aturan untuk rencana pertama, rencana ulang, dan ambil ulang: pendahulu **berpenanda** → salin; selain itu → permintaan. Nol tabel/kolom/endpoint/izin/migration; kontrak usulan `r46` (`LAB-REQ-023`) | `draft` |
+| 19 | 2026-10-09 | **CITO dari pemesanan sampai ke pemeriksaan dirancang** (bagian 29); **kontrak `r45` `approved` 2026-10-09 lewat `LAB-REQ-022`**, butir 4 menambah langkah 3 perbaikan data (29.6), menurunkan `LAB-DEC-225`..`LAB-DEC-228` (putaran 28). Wadah pertama mewarisi `Urgency` permintaan dengan penanda kosong; wadah pengganti mewarisi keadaan terakhir pemeriksaan lama beserta penanda; tambah manual tetap `Routine`. Satu record privat `LabExaminationPlan`, nol tabel/kolom/endpoint/izin; satu migration data `BackfillLabExaminationUrgencyFromOrderedProcedure` (idempoten, `Down` berpenanda `ReasonCode = 'LAB-CONFLICT-019'`). Hitung kering dev 2026-10-09: 0 baris (permintaan CITO) dan 0 baris (pengganti yang kehilangan *Tandai Cito*). Nol berkas frontend. 28.8 ditandai *diputuskan* | `draft` |
+| 18 | 2026-10-08 | **Data ringkasan Beranda Lab dirancang** (bagian 28), menurunkan `LAB-DEC-204`..`LAB-DEC-211` (BR-140, putaran 25). Keempat bahan audit dijawab dari kode: CITO pesanan dari **dua sumber** (`LabOrderedProcedure` dan `LabExamination`); *hasil menunggu validasi* = antrean validasi tahap *Menunggu Validasi* tanpa penyaring (PK dan Mikro; PA menunggu `S4e`); **tiga endpoint baca baru**, `summary` tidak berubah; batas hari/tahun WIB lewat `AppDateTimeHelper`. Satu service baru, satu pengangkatan kueri antrean tanpa perubahan perilaku. **Nol tabel, nol kolom, nol index, nol migration.** Satu cacat as-is dicatat: CITO dari pemesanan hilang saat wadah direncanakan (28.8, usulan `LAB-CONFLICT-019`) — tidak diperbaiki di sini. Kontrak usulan `LAB-REQ-021` | `draft` |
 | 17 | 2026-10-08 | **Lingkup kunci Lunas dibukukan** (bagian 27), menurunkan `LAB-DEC-222`..`LAB-DEC-224` (putaran 27). Langkah 5 baru pada `LabPaymentClearanceRules`: rawat inap dan IGD yang belum lunas → `Deferred` *Ditagih Kemudian*, lolos; jenis lain dan jenis tak terbaca tetap dikunci. **Nol tabel, nol kolom, nol migration.** Kontrak usulan `LAB-REQ-020` | `draft` |
 | 16 | 2026-10-08 | **Alur Lab dari kiosk sampai hasil mengikuti FE v1 dibukukan** (bagian 26), menurunkan `LAB-DEC-212`..`LAB-DEC-221` (BR-141). Implementasi mendahului kontrak (BE `6564e04d`). Dua endpoint baca baru, enam ruas respons, `orderedProcedures` kini diisi, `VAL-152`/`VAL-153`; adapter sementara Billing `INT-09` dicatat sebagai utang teknis. **Nol tabel, nol kolom, nol migration.** Satu cacat as-is: status `Confirmed` tidak dihitung kiosk (26.6). Kontrak usulan `LAB-REQ-019` | `draft` |
 | 15 | 2026-10-07 | **Daftar dokter pemeriksa dan jejak konfirmasi dirancang** (bagian 25), menurunkan `LAB-DEC-200`..`LAB-DEC-203` (BR-139). Daftar dokter yang sudah ada diperiksa lebih dulu (25.2) — tidak ada yang dapat dipakai tanpa membuka izin master SDM. Satu endpoint baca di `LabOrderController` dijaga `LabOrder : Confirm`; lima ruas `r13` diisi `GetDetailAsync`; satu predikat bersama `VAL-73`. Nol tabel, kolom, migration, aksi izin. Usulan `LAB-API-v1` `r41`, `LAB-PERM-v1` revision 14 — **menunggu `LAB-REQ-017`** | `draft` |

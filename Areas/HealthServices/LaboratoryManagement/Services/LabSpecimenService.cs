@@ -53,6 +53,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             LabSpecimenStatus.RecollectionRequired
         };
 
+        /// <summary>
+        /// Rencana satu pemeriksaan yang akan dibuat bersama wadahnya. Penanda kosong berarti
+        /// kesegeraan tidak berasal dari <i>Tandai Cito</i> (<c>LAB-DEC-226</c>).
+        /// </summary>
+        private sealed record LabExaminationPlan(
+            MstProcedure Procedure,
+            LabExaminationUrgency Urgency,
+            DateTime? UrgencyMarkedAt,
+            Guid? UrgencyMarkedByUserId);
+
+        /// <summary>Keputusan kesegeraan yang pernah diambil dokter atas satu pemeriksaan.</summary>
+        private sealed record LabUrgencyDecision(
+            LabExaminationUrgency Urgency,
+            DateTime? UrgencyMarkedAt,
+            Guid? UrgencyMarkedByUserId);
+
         private readonly ApplicationDbContext _dbContext;
         private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
         private readonly IHttpContextAccessor _httpContextAccessor;
@@ -181,6 +197,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 .Select(id => procedures.First(p => p.Id == id))
                 .ToList();
 
+            // LAB-DEC-226. Pemeriksaan mewarisi kesegeraan permintaan yang akan dipenuhinya;
+            // penandanya dibiarkan kosong karena tidak ada yang menekan Tandai Cito.
+            //
+            // LAB-DEC-229. Kecuali bila wadah sebelumnya untuk prosedur yang sama dibatalkan dan
+            // pemeriksaannya sempat diputuskan dokter (berpenanda): keputusan itu ikut ke wadah baru,
+            // sama seperti pengambilan ulang. Dibaca sebelum pemeriksaan baru dibuat, sehingga
+            // pemeriksaan baru tidak pernah menjadi pendahulunya sendiri.
+            var kesegeraan = await ResolveOrderedUrgencyAsync(order, procedureIds, cancellationToken);
+            var keputusanDokter = await ResolveLatestMarkedUrgencyAsync(order, procedureIds, cancellationToken);
+
+            var rencana = berurutan
+                .Select(procedure => keputusanDokter.TryGetValue(procedure.Id, out var keputusan)
+                    ? new LabExaminationPlan(
+                        procedure,
+                        keputusan.Urgency,
+                        keputusan.UrgencyMarkedAt,
+                        keputusan.UrgencyMarkedByUserId)
+                    : new LabExaminationPlan(
+                        procedure,
+                        kesegeraan.TryGetValue(procedure.Id, out var urgency)
+                            ? urgency
+                            : LabExaminationUrgency.Routine,
+                        UrgencyMarkedAt: null,
+                        UrgencyMarkedByUserId: null))
+                .ToList();
+
             var specimen = await CreateSpecimenAsync(
                 order,
                 nextSequence + 1,
@@ -194,7 +236,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 now,
                 cancellationToken);
 
-            await CreateExaminationsAsync(order, specimen, berurutan, actorUserId, now, cancellationToken);
+            await CreateExaminationsAsync(order, specimen, rencana, actorUserId, now, cancellationToken);
 
             await _loggerService.InfoAsync(
                 LogCategory,
@@ -215,24 +257,99 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         }
 
         /// <summary>
+        /// Kesegeraan per prosedur dari permintaan pesanan yang masih berlaku (<c>LAB-DEC-226</c>).
+        ///
+        /// Bila satu prosedur diminta lebih dari sekali, hasilnya Cito bila salah satunya Cito:
+        /// keduanya dipenuhi pemeriksaan yang sama (<see cref="MarkOrderedProceduresFulfilledAsync"/>).
+        /// Pesanan lama tanpa baris permintaan menghasilkan peta kosong, sehingga pemeriksaannya
+        /// tetap Routine seperti sebelum keputusan ini.
+        /// </summary>
+        private async Task<Dictionary<Guid, LabExaminationUrgency>> ResolveOrderedUrgencyAsync(
+            LabOrder order,
+            IReadOnlyList<Guid> procedureIds,
+            CancellationToken cancellationToken)
+        {
+            var terpesan = await _dbContext.LabOrderedProcedures
+                .AsNoTracking()
+                .Where(x =>
+                    x.LabOrderId == order.Id &&
+                    !x.IsDelete &&
+                    x.OrderedStatus != LabOrderedProcedureStatus.Cancelled &&
+                    procedureIds.Contains(x.ProcedureId))
+                .Select(x => new { x.ProcedureId, x.Urgency })
+                .ToListAsync(cancellationToken);
+
+            return terpesan
+                .GroupBy(x => x.ProcedureId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Any(x => x.Urgency == LabExaminationUrgency.Cito)
+                        ? LabExaminationUrgency.Cito
+                        : LabExaminationUrgency.Routine);
+        }
+
+        /// <summary>
+        /// Keputusan kesegeraan dokter yang terakhir per prosedur pada pesanan ini (<c>LAB-DEC-229</c>).
+        ///
+        /// Hanya pemeriksaan terakhir yang <b>berpenanda</b> yang dipakai. Pemeriksaan tanpa penanda
+        /// tidak membawa keputusan siapa pun — kesegeraannya turunan permintaan — dan pemeriksaan
+        /// yang lahir sebelum <c>BE-LAB-94</c> bisa Routine palsu karena cacat
+        /// <c>LAB-CONFLICT-019</c>; untuk keduanya permintaan yang dibaca (<c>LAB-REQ-023</c> butir 2).
+        /// </summary>
+        private async Task<Dictionary<Guid, LabUrgencyDecision>> ResolveLatestMarkedUrgencyAsync(
+            LabOrder order,
+            IReadOnlyList<Guid> procedureIds,
+            CancellationToken cancellationToken)
+        {
+            var sebelumnya = await _dbContext.LabExaminations
+                .AsNoTracking()
+                .Where(x =>
+                    x.LabOrderId == order.Id &&
+                    !x.IsDelete &&
+                    procedureIds.Contains(x.ProcedureId))
+                .Select(x => new
+                {
+                    x.ProcedureId,
+                    x.CreateDateTime,
+                    x.Urgency,
+                    x.UrgencyMarkedAt,
+                    x.UrgencyMarkedByUserId
+                })
+                .ToListAsync(cancellationToken);
+
+            return sebelumnya
+                .GroupBy(x => x.ProcedureId)
+                .Select(g => g.OrderByDescending(x => x.CreateDateTime).First())
+                .Where(x => x.UrgencyMarkedAt != null)
+                .ToDictionary(
+                    x => x.ProcedureId,
+                    x => new LabUrgencyDecision(x.Urgency, x.UrgencyMarkedAt, x.UrgencyMarkedByUserId));
+        }
+
+        /// <summary>
         /// Membentuk baris pemeriksaan yang ditopang sebuah wadah, masing-masing dengan salinan
         /// tarifnya sendiri.
         ///
         /// Salinan tarif diambil per pemeriksaan, bukan sekali untuk seluruh wadah: hemoglobin
         /// dan leukosit berbeda harganya walaupun berasal dari tabung yang sama.
+        ///
+        /// Kesegeraan dan penandanya datang dari rencana, bukan ditetapkan di sini
+        /// (<c>LAB-DEC-226</c>, <c>LAB-DEC-227</c>): wadah pertama membawa kesegeraan
+        /// permintaan, wadah pengganti membawa keadaan terakhir pemeriksaan yang digantikan.
         /// </summary>
         private async Task CreateExaminationsAsync(
             LabOrder order,
             LabSpecimen specimen,
-            IReadOnlyList<MstProcedure> procedures,
+            IReadOnlyList<LabExaminationPlan> rencana,
             Guid actorUserId,
             DateTime now,
             CancellationToken cancellationToken)
         {
-            var dibuat = new List<LabExamination>(procedures.Count);
+            var dibuat = new List<LabExamination>(rencana.Count);
 
-            foreach (var procedure in procedures)
+            foreach (var plan in rencana)
             {
+                var procedure = plan.Procedure;
                 var tariff = await ResolveTariffAsync(procedure.Id, now, cancellationToken);
 
                 var examination = new LabExamination
@@ -246,7 +363,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     TariffCodeSnapshot = tariff?.TariffCode,
                     UnitPriceSnapshot = tariff?.NormalPrice,
                     ExaminationStatus = LabExaminationStatus.Ordered,
-                    Urgency = LabExaminationUrgency.Routine,
+                    Urgency = plan.Urgency,
+                    UrgencyMarkedAt = plan.UrgencyMarkedAt,
+                    UrgencyMarkedByUserId = plan.UrgencyMarkedByUserId,
                     CreateDateTime = now,
                     CreateBy = actorUserId
                 };
@@ -916,21 +1035,48 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
                 // Urutan wadah lama dipertahankan supaya daftar kerja petugas tidak berubah
                 // susunannya hanya karena bahannya diambil ulang.
-                var berurutan = pemeriksaanLama
-                    .Select(x => proceduresLama.FirstOrDefault(p => p.Id == x.ProcedureId))
-                    .Where(x => x != null)
-                    .Select(x => x!)
+                //
+                // LAB-DEC-227. Kesegeraan beserta penandanya disalin dari keadaan TERAKHIR
+                // pemeriksaan lama, bukan dibaca ulang dari permintaan: Tandai Cito atau
+                // pencabutannya oleh dokter adalah keputusan klinis terbaru dan tidak boleh hilang
+                // hanya karena pasien ditusuk ulang.
+                //
+                // LAB-REQ-023 butir 3. Pemeriksaan lama TANPA penanda tidak membawa keputusan
+                // dokter; kesegeraannya dibaca dari permintaan, supaya Routine palsu dari sebelum
+                // BE-LAB-94 tidak menurun ke wadah pengganti.
+                var kesegeraanLama = await ResolveOrderedUrgencyAsync(order, procedureIdsLama, cancellationToken);
+
+                var rencana = pemeriksaanLama
+                    .Select(lama => new
+                    {
+                        Lama = lama,
+                        Procedure = proceduresLama.FirstOrDefault(p => p.Id == lama.ProcedureId)
+                    })
+                    .Where(x => x.Procedure != null)
+                    .Select(x => x.Lama.UrgencyMarkedAt != null
+                        ? new LabExaminationPlan(
+                            x.Procedure!,
+                            x.Lama.Urgency,
+                            x.Lama.UrgencyMarkedAt,
+                            x.Lama.UrgencyMarkedByUserId)
+                        : new LabExaminationPlan(
+                            x.Procedure!,
+                            kesegeraanLama.TryGetValue(x.Lama.ProcedureId, out var urgency)
+                                ? urgency
+                                : LabExaminationUrgency.Routine,
+                            UrgencyMarkedAt: null,
+                            UrgencyMarkedByUserId: null))
                     .ToList();
 
-                if (berurutan.Count > 0)
+                if (rencana.Count > 0)
                 {
                     // Tarifnya diambil ulang pada waktu kejadian ini, bukan disalin dari baris
                     // lama: bila tarif berubah di antara keduanya, yang berlaku adalah tarif
                     // saat bahan penggantinya direncanakan.
                     await CreateExaminationsAsync(
-                        order, replacement, berurutan, actorUserId, now, cancellationToken);
+                        order, replacement, rencana, actorUserId, now, cancellationToken);
 
-                    disalin = berurutan.Count;
+                    disalin = rencana.Count;
                 }
             }
 
