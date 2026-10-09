@@ -280,7 +280,8 @@ public sealed class OperatingRoomPreparationService
 
         var signOffs = await ReadSignOffsAsync(entity.Id, cancellationToken);
         var consents = await ReadConsentsAsync(entity, cancellationToken);
-        var outstanding = BuildOutstanding(entity, signOffs, consents);
+        var wardPreOp = await OprWardPreOpService.ReadGateAsync(_dbContext, entity.Id, entity.Laterality, cancellationToken);
+        var outstanding = BuildOutstanding(entity, signOffs, consents, wardPreOp);
         if (outstanding.Count > 0) return;
 
         entity.Status = OprCaseStatus.Ready;
@@ -288,12 +289,37 @@ public sealed class OperatingRoomPreparationService
             ReadyAction, null, idempotencyKey, Hash(ReadyAction + entity.Id), actorUserId, now));
     }
 
-    private List<string> BuildOutstanding(OprCase entity, IReadOnlyCollection<OprReadinessSignOffResponse> signOffs,
-        IReadOnlyCollection<OprConsentStatusResponse> consents)
+    /// <summary>
+    /// Menilai ulang gerbang "Siap" dari perintah modul lain dalam konteks yang sama — dipakai
+    /// <see cref="OprWardPreOpService.ConfirmAsync"/> supaya konfirmasi pra-operasi terakhir langsung
+    /// menaikkan kasus ke <c>Ready</c> (<c>BE-RWI-176</c>). Pemanggil yang menyimpan.
+    /// </summary>
+    /// <returns><c>true</c> bila kasus baru saja naik ke <c>Ready</c>.</returns>
+    public async Task<bool> TryCompleteReadinessAsync(Guid caseId, Guid actorUserId, DateTime now,
+        string idempotencyKey, CancellationToken cancellationToken = default)
     {
-        var outstanding = new List<string>();
+        var entity = await LoadCaseAsync(caseId, cancellationToken);
+        if (entity == null || entity.Status != OprCaseStatus.Scheduled) return false;
+
+        await EvaluateReadinessAsync(entity, actorUserId, now, idempotencyKey, cancellationToken);
+        if (entity.Status != OprCaseStatus.Ready) return false;
+
+        entity.Version++;
+        entity.UpdateDateTime = now;
+        entity.UpdateBy = actorUserId;
+        return true;
+    }
+
+    /// <summary>Satu prasyarat yang belum terpenuhi: kode mesin untuk <c>Blockers[]</c> dan kalimatnya.</summary>
+    private sealed record OutstandingRequirement(string Code, string Message);
+
+    private List<OutstandingRequirement> BuildOutstanding(OprCase entity,
+        IReadOnlyCollection<OprReadinessSignOffResponse> signOffs,
+        IReadOnlyCollection<OprConsentStatusResponse> consents, WardPreOpGate wardPreOp)
+    {
+        var outstanding = new List<OutstandingRequirement>();
         if (!entity.Schedules.Any(x => x.IsCurrent && !x.IsDelete))
-            outstanding.Add("Jadwal aktif belum tersedia.");
+            outstanding.Add(new("SCHEDULE_MISSING", "Jadwal aktif belum tersedia."));
 
         // Saat aturan klinis dilonggarkan, jadwal aktif tetap menjadi satu-satunya syarat.
         // Consent, checklist, dan ketiga sign-off tidak lagi menahan kasus di Terjadwal,
@@ -305,16 +331,21 @@ public sealed class OperatingRoomPreparationService
         {
             foreach (var consent in consents.Where(x => !x.IsValid))
                 outstanding.Add(consent.ConsentType == PatientConsentType.Surgery
-                    ? "Consent tindakan operasi belum sah."
-                    : "Consent tindakan anestesi belum sah.");
+                    ? new("SURGERY_CONSENT_INVALID", "Consent tindakan operasi belum sah.")
+                    : new("ANESTHESIA_CONSENT_INVALID", "Consent tindakan anestesi belum sah."));
 
             var signIn = CurrentChecklist(entity, OprChecklistPhase.SignIn);
             if (signIn == null || signIn.Status != OprChecklistStatus.Completed)
-                outstanding.Add("Checklist verifikasi sebelum anestesi belum selesai.");
+                outstanding.Add(new("SIGN_IN_CHECKLIST_INCOMPLETE", "Checklist verifikasi sebelum anestesi belum selesai."));
+
+            // BE-RWI-176: syarat keempat (INV-RWF-26, INV-RWF-27). Jalur darurat yang sudah ada tetap
+            // melewatinya dengan alasan, sama seperti consent dan checklist di atas.
+            if (wardPreOp.Blocker != null)
+                outstanding.Add(new(wardPreOp.Blocker, wardPreOp.Message ?? "Catatan pra-operasi belum dikonfirmasi"));
         }
 
         foreach (var role in RequiredSignOffRoles.Where(role => signOffs.All(x => x.Role != role)))
-            outstanding.Add($"Sign-off {RoleLabel(role)} belum ada.");
+            outstanding.Add(new($"SIGN_OFF_MISSING_{RoleCode(role)}", $"Sign-off {RoleLabel(role)} belum ada."));
         return outstanding;
     }
 
@@ -322,6 +353,10 @@ public sealed class OperatingRoomPreparationService
     {
         var signOffs = await ReadSignOffsAsync(entity.Id, cancellationToken);
         var consents = await ReadConsentsAsync(entity, cancellationToken);
+        var outstanding = entity.Status == OprCaseStatus.Scheduled
+            ? BuildOutstanding(entity, signOffs, consents,
+                await OprWardPreOpService.ReadGateAsync(_dbContext, entity.Id, entity.Laterality, cancellationToken))
+            : [];
         return new OprPreparationResponse
         {
             OprCaseId = entity.Id,
@@ -334,13 +369,19 @@ public sealed class OperatingRoomPreparationService
                 .Where(x => x != null)
                 .Select(x => MapChecklist(x!))],
             SignOffs = [.. signOffs],
-            OutstandingRequirements = entity.Status == OprCaseStatus.Scheduled
-                ? BuildOutstanding(entity, signOffs, consents)
-                : [],
+            OutstandingRequirements = [.. outstanding.Select(x => x.Message)],
+            Blockers = [.. outstanding.Select(x => x.Code)],
             IsEmergencyBypassActive = IsBypassActive(entity),
             AvailableActions = AvailableActions(entity.Status)
         };
     }
+
+    private static string RoleCode(OprReadinessRole role) => role switch
+    {
+        OprReadinessRole.PrimarySurgeon => "PRIMARY_SURGEON",
+        OprReadinessRole.Anesthesiologist => "ANESTHESIOLOGIST",
+        _ => "NURSE"
+    };
 
     /// <summary>
     /// Sign-off disimpan sebagai histori append-only, bukan tabel tersendiri. Baris yang baru

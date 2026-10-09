@@ -1,4 +1,5 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
+﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using System.ComponentModel.DataAnnotations;
 
@@ -92,6 +93,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DateTime? NoShowAt { get; set; }
         public string? NoShowReason { get; set; }
         public bool IsPriorityQueue { get; set; }
+
+        /// <summary>Penanda internal staf (RJ-DOC-DEC-055); bukan untuk layar publik.</summary>
+        public bool IsMemberQueue { get; set; }
+
+        public QueueAudience QueueAudience { get; set; }
         public bool IsDoctorRequired { get; set; }
         public bool CanCall { get; set; }
         public bool CanSkip { get; set; }
@@ -110,6 +116,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public bool IsInsuranceEligible { get; set; }
         public bool IsInsurancePolicyActive { get; set; }
 
+        // RJ-DOC-REV-BE-001 — penjamin utama dari sumber pembayaran aktif kunjungan.
+        public string PrimaryGuarantorNameSnapshot { get; set; } = string.Empty;
+        public string PrimaryGuarantorTypeSnapshot { get; set; } = string.Empty;
+        public bool IsInsurancePatient { get; set; }
+        public bool IsCompanyPatient { get; set; }
+
+        // RJ-DOC-REV-BE-001 — identitas klinis ringkas untuk header workspace dokter.
+        public string? GenderName { get; set; }
+        public DateTime? BirthDate { get; set; }
+        public string? AllergySummary { get; set; }
+        public bool HasAllergy { get; set; }
+        public string? PatientPhotoPath { get; set; }
+        /// <summary>Path dokumen identitas utama (KTP). Bisa berupa path lokal kiosk yang tidak dapat disajikan.</summary>
+        public string? IdentityDocumentPath { get; set; }
+        /// <summary>Path gambar kartu asuransi yang dipakai kunjungan ini.</summary>
+        public string? InsuranceCardImagePath { get; set; }
+
         public int PatientTotalVisitCount { get; set; }
         public int PatientVisitNumber { get; set; }
 
@@ -119,6 +142,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string? AgeCategoryNameSnapshot { get; set; }
         public string? Notes { get; set; }
         public DateTime CreateDateTime { get; set; }
+    }
+
+    /// <summary>
+    /// Satu konsultasi tertunda: antrean hari sebelumnya yang masih Sedang Konsultasi dengan
+    /// konsultasi aktif (RJ-DOC-DEC-029, RJ-DOC-DEC-030). Bentuknya sama dengan antrean hari ini
+    /// supaya workspace dokter dapat membukanya tanpa pemetaan kedua (RJ-DOC-REV-BE-012).
+    /// </summary>
+    public class DoctorPendingConsultationResponse : DoctorQueueResponse
+    {
+        /// <summary>Resep draf aktif yang akan diteruskan ke farmasi saat konsultasi disimpan.</summary>
+        public int DraftPrescriptionCount { get; set; }
+
+        /// <summary>Tindakan aktif milik konsultasi.</summary>
+        public int ProcedureCount { get; set; }
+
+        /// <summary>Jumlah hari sejak tanggal antrean sampai tanggal operasional hari ini.</summary>
+        public int PendingDays { get; set; }
+
+        /// <summary>Penanda tampilan: pengguna memegang <c>DoctorConsultation : Cancel</c>.</summary>
+        public bool CanCancelConsultation { get; set; }
     }
 
     public class DoctorQueueActionRequest

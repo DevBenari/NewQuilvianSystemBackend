@@ -49,19 +49,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
 
         public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
-        public void MarkPublished()
+        /// <summary>
+        /// Awal masa sewa pemrosesan. Pesan <c>Processing</c> yang sewanya lebih tua dari
+        /// <c>InpatientIntegrationOutbox:ProcessingLeaseSeconds</c> diambil ulang worker berikutnya
+        /// (kontrak <c>integrasi-billing</c> <c>1.1.0</c> state 5.1).
+        /// </summary>
+        public DateTime? ProcessingStartedAtUtc { get; set; }
+
+        /// <summary>
+        /// Rujukan logis ke tanda terima Billing (<c>BilInpatientEventReceipt.Id</c>), tanpa FK
+        /// lintas modul. Terisi hanya ketika Billing menyatakan pesan diterima (<c>INV-RWF-04</c>).
+        /// </summary>
+        public Guid? AcknowledgedReceiptId { get; set; }
+
+        /// <summary>Kelompok putar ulang yang terakhir mengantrekan ulang pesan ini.</summary>
+        public Guid? ReplayBatchId { get; set; }
+
+        /// <summary>Waktu pesan diantrekan ulang oleh putar ulang.</summary>
+        public DateTime? ReplayedAtUtc { get; set; }
+
+        /// <summary>
+        /// Menandai pesan terkirim. <b>Hanya</b> dipanggil setelah Billing mengembalikan tanda terima
+        /// yang menyatakan diterima — pesan tanpa tanda terima tidak pernah <c>Published</c>
+        /// (<c>INV-RWF-04</c>, <c>BE-RWI-151</c>).
+        /// </summary>
+        public void MarkPublished(Guid acknowledgedReceiptId)
         {
             Status = OutboxStatus.Published;
             PublishedAtUtc = DateTime.UtcNow;
+            AcknowledgedReceiptId = acknowledgedReceiptId;
+            ProcessingStartedAtUtc = null;
             LastError = null;
         }
 
-        public void RecordFailure(string error, DateTime nextRetry)
+        /// <summary>
+        /// Mencatat satu kegagalan pengiriman. Pesan menjadi <c>DeadLetter</c> setelah
+        /// <paramref name="maxRetry"/> kali gagal (bawaan 10, konfigurasi
+        /// <c>InpatientIntegrationOutbox:MaxRetry</c>).
+        /// </summary>
+        public void RecordFailure(string error, DateTime nextRetry, int maxRetry = 10)
         {
             RetryCount++;
             LastError = error;
             NextRetryAtUtc = nextRetry;
-            if (RetryCount >= 10)
+            ProcessingStartedAtUtc = null;
+            if (RetryCount >= maxRetry)
             {
                 Status = OutboxStatus.DeadLetter;
             }

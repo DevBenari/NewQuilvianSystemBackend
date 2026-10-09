@@ -808,3 +808,135 @@ tanpa manfaat apa pun, sebab `FE-FIN-034` sendiri ringan.
 | 5 | `BE-FIN-090` rilis | ❌ Menahan `FE-FIN-036` |
 | 6 | Hak `MstDirectPaymentThreshold : Read` pada peran staf AR/AP | ❌ **Milik administrator.** Tidak menahan `FE-FIN-034` dikerjakan, tetapi menahan hasilnya terlihat staf |
 | 7 | Nol prasyarat untuk `FE-FIN-037` | ✅ **Boleh mulai sekarang** |
+
+---
+
+# AMENDMENT ROADMAP REVISI 18 — `EPIC FIN-04` (Piutang Manfaat Karyawan)
+
+```yaml
+blueprint_id: FIN-BP-001
+roadmap_revision: REV-18
+blueprint_revision: 18
+blueprint_status: approved (Yasmin, 6 Oktober 2026)
+decisions: [FIN-DEC-161..FIN-DEC-202]
+designs: [03-frontend-architecture.md Bagian 22, FIN-DES-099..FIN-DES-104]
+contract_versions: [FIN-API-1.9, FIN-PERM-1.10, FIN-VAL-1.11, FIN-STATE-1.8, FIN-MVP-1.13]
+contract_status: approved 2026-10-06 (Yasmin)
+frontend_source_sha: 0ed37b5c4
+task_range_frontend: FE-FIN-038..FE-FIN-041
+tanggal: 6 Oktober 2026
+```
+
+## Sifat Gelombang Ini
+
+Gelombang **`REV-18` (Frontend)** adalah rencana pengiriman antarmuka pengguna mandiri (*dedicated frontend release wave*) untuk mendukung implementasi **`EPIC FIN-04` (Piutang Manfaat Karyawan)**. Antarmuka ini mengimplementasikan tata kelola cicilan piutang pegawai rumah sakit akibat kelebihan plafon tanggungan, penutupan berkala porsi klaim tanggungan internal rumah sakit, serta pengecekan status bebas tanggungan perorangan maupun kolektif untuk proses *exit clearance* HR.
+
+Sesuai arahan arsitektur antarmuka pengguna (`03-frontend-architecture.md` Bagian 22) dan keputusan pemilik produk:
+1. **Penempatan Menu Berdiri Sendiri (`FIN-DEC-181`):** Dibentuk submenu baru **"Piutang Karyawan"** di sidebar Keuangan. Submenu "Transaksi A/R" dan "Transaksi A/P" yang mencerminkan sistem produksi V1 tetap terjaga utuh tanpa modifikasi.
+2. **Halaman Penuh Pengajuan Cicilan (`FIN-DEC-181`):** Pengajuan cicilan baru dibuat sebagai halaman navigasi penuh (`/finance/employee-receivable/installment-plans/create`), bukan modal popup sempit, demi kenyamanan simulasi jadwal angsuran dan keterbacaan data keluarga/pasien.
+3. **Pemeriksaan Bebas Tanggungan 2 Mode (`FIN-DEC-182`):** Layar *clearance* menyediakan tab mode pencarian perorangan dan mode unggah/pilih batch multi-pegawai (maksimal 100 orang) dengan status murni baca (*read-only* dinamis).
+4. **Nol Perhitungan Finansial di Klien:** Seluruh jadwal cicilan, porsi bunga/admin (jika ada), penumpukan sisa potongan payroll, dan akumulasi penutupan benefit dihitung mutlak oleh backend (`FIN-API-1.9`).
+
+---
+
+## Grafik Urutan Dependency — REV-18 Frontend
+
+```mermaid
+flowchart TD
+    subgraph BE_MIRROR["Cermin Backend [BE] (Prasyarat Baca-Saja)"]
+        BE_FIN_093["BE-FIN-093 [BE]<br/>Layanan & API Perjanjian Angsuran"]
+        BE_FIN_096["BE-FIN-096 [BE]<br/>Layanan & API Bebas Tanggungan"]
+        BE_FIN_099["BE-FIN-099 [BE]<br/>Layanan & API Pelunasan Internal"]
+    end
+
+    subgraph REV_18F1["Gelombang REV-18F1: Clearance Murni Baca"]
+        FE_FIN_041["FE-FIN-041<br/>Layar Bebas Tanggungan Perorangan & Kolektif"]
+    end
+
+    subgraph REV_18F2["Gelombang REV-18F2: Navigasi Submenu, Daftar Angsuran & Pelunasan Benefit"]
+        FE_FIN_038["FE-FIN-038<br/>Daftar & Pemantauan Perjanjian Angsuran Karyawan"]
+        FE_FIN_040["FE-FIN-040<br/>Layar Pelunasan Internal Porsi Benefit RS"]
+    end
+
+    subgraph REV_18F3["Gelombang REV-18F3: Rincian Angsuran & Pengajuan Halaman Penuh"]
+        FE_FIN_039["FE-FIN-039<br/>Rincian Perjanjian Angsuran & Pengajuan Cicilan"]
+    end
+
+    BE_FIN_096 --> FE_FIN_041
+    BE_FIN_093 --> FE_FIN_038
+    BE_FIN_099 --> FE_FIN_040
+    FE_FIN_038 --> FE_FIN_040
+    FE_FIN_038 --> FE_FIN_039
+    BE_FIN_093 --> FE_FIN_039
+```
+
+---
+
+## Tabel Gelombang Eksekusi — REV-18 Frontend
+
+| Gelombang | Boleh Mulai Setelah | Task Frontend | Keterangan |
+|---|---|---|---|
+| `REV-18F1` | `BE-FIN-096 [BE]` Rilis | `FE-FIN-041` | Layar pemeriksaan bebas tanggungan perorangan dan kolektif batch (murni baca, tanpa dependensi form cicilan) |
+| `REV-18F2` | `BE-FIN-093 [BE]` & `BE-FIN-099 [BE]` Rilis | `FE-FIN-038`, `FE-FIN-040` | Fondasi submenu "Piutang Karyawan", tabel pemantauan perjanjian cicilan, serta layar penutupan berkala klaim internal |
+| `REV-18F3` | `FE-FIN-038` Selesai & `BE-FIN-093 [BE]` Rilis | `FE-FIN-039` | Halaman penuh pengajuan cicilan baru, rincian jadwal angsuran bulanan, dan dialog maker-checker persetujuan/pembatalan |
+
+---
+
+## Tabel Task REV-18 Frontend
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `FE-FIN-038` | Petugas Finance dapat memantau, menyaring, dan mengevaluasi status seluruh perjanjian cicilan piutang karyawan dari submenu tersendiri | `FR-FIN-192`..`199`, `FR-FIN-203`..`205`; `FIN-DEC-165`, `FIN-DEC-166`, `FIN-DEC-181`; `03-frontend-architecture.md` 22.2 | `FIN-API-1.9` O.1 (`GET /receivables/installment-plans`); `FIN-PERM-1.10` O.1 (`FinanceReceivableInstallmentPlan : Read`) | `menu-items.jsx`, pola tabel berpaging Finance, filter bar, status badge chips | Pendaftaran submenu "Piutang Karyawan" di `menu-items.jsx` (`FIN-DEC-181`); layar daftar perjanjian angsuran (`/finance/employee-receivable/installment-plans`), hook RTK/Axios, saringan NIP/Nama/Status (`DRAFT`, `ACTIVE`, `COMPLETED`, `CANCELLED`), indikator penumpukan sisa potongan payroll | `BE-FIN-093 [BE]` | `L.1.1`..`L.1.7`, `L.3.7`, `L.3.8`; saringan dikirim ke query backend; status dinamis; paginasi benar; tautan ke detail berfungsi | `npm run lint:errors`, `npm run build`; verifikasi manual filter dan paginasi | Frontend Owner. **Risiko:** menyentuh grup menu V1 A/R & A/P — dilarang keras, submenu "Piutang Karyawan" wajib berdiri sendiri | Build PASS, lint PASS, submenu terpasang rapi, laporan task tracked |
+| `FE-FIN-039` | Petugas Finance dapat mengajukan perjanjian angsuran pada halaman penuh terpisah, melihat jadwal angsuran detail, dan menjalankan maker-checker persetujuan/pembatalan | `FR-FIN-192`..`199`; `FIN-DEC-165`, `FIN-DEC-166`, `FIN-DEC-181`; `03-frontend-architecture.md` 22.3 | `FIN-API-1.9` O.1 (`POST /installment-plans`, `GET /{id}`, `POST /{id}/approve`, `POST /{id}/cancel`); `FIN-VAL-1.10` `FIN-VAL-230`..`238`; `FIN-PERM-1.10` O.1 | Modal konfirmasi aksi, form input kontrol, format mata uang, penanganan concurrency `RowVersion` | Halaman penuh pengajuan cicilan (`/finance/employee-receivable/installment-plans/create`); layar detail angsuran (`/finance/employee-receivable/installment-plans/[id]`); tabel breakdown jadwal angsuran per periode; tombol maker-checker (setujui/batalkan); proteksi tombol setujui nonaktif bagi pengaju | `FE-FIN-038`, `BE-FIN-093 [BE]` | `L.1.1`..`L.1.7`, `L.2.1`..`L.2.6`; validasi tenor 1-36 bulan di formulir; jadwal cicilan dihitung backend; maker-checker ditegakkan di antarmuka; pembatalan menuntut alasan wajib | `npm run lint:errors`, `npm run build`; verifikasi manual alur pengajuan dan persetujuan | Frontend Owner. **Risiko:** menghitung sendiri pecahan cicilan di browser — wajib murni menampilkan jadwal dari respons backend | Build PASS, lint PASS, validasi maker-checker teruji, laporan task tracked |
+| `FE-FIN-040` | Petugas Finance dapat memproses pelunasan internal porsi benefit rumah sakit (preview non-mutasi, pembentukan draf, eksekusi terbit atomic, pembatalan) | `FR-FIN-211`..`217`; `FIN-DEC-177`, `FIN-DEC-178`; `FIN-DES-102`, `FIN-DES-103`; `03-frontend-architecture.md` 22.4 | `FIN-API-1.9` O.2 (`POST /preview`, `POST /benefit-settlements`, `GET /`, `GET /{id}`, `POST /{id}/publish`, `POST /{id}/cancel`); `FIN-VAL-1.10` `FIN-VAL-241`..`243`; `FIN-PERM-1.10` O.2 | Pola date-range picker, tabel ringkasan transaksi tertutup, modal konfirmasi peringatan | Layar Pelunasan Benefit Internal (`/finance/employee-receivable/benefit-settlements`); tab Draf vs Terbit; formulir hitung awal (preview); tabel rincian kartu piutang penjamin internal yang dilunasi; tombol terbitkan dengan modal konfirmasi keras; tombol batalkan draf | `FE-FIN-038`, `BE-FIN-099 [BE]` | `L.5.1`..`L.5.14`; hitung awal tidak membuat catatan permanen di database; total nominal sesuai backend; konfirmasi penerbitan menegaskan sifat final transaksi; pembatalan hanya aktif pada status `DRAFT` | `npm run lint:errors`, `npm run build`; verifikasi siklus preview -> draf -> publish | Frontend Owner. **Risiko:** salah mengartikan tombol terbitkan sebagai aksi yang dapat dibatalkan parsial — modal wajib memberi peringatan jelas | Build PASS, lint PASS, alur pelunasan teruji, laporan task tracked |
+| `FE-FIN-041` | Petugas Finance dan HR dapat memeriksa status bebas tanggungan piutang karyawan (murni baca) secara perorangan maupun pemeriksaan kolektif batch hingga 100 pegawai | `FR-FIN-206`..`210`, `FR-FIN-228`..`230`; `FIN-DEC-170`, `FIN-DEC-182`, `FIN-DEC-193`; `FIN-DES-101`; `03-frontend-architecture.md` 22.5 | `FIN-API-1.9` O.4 (`GET /clearance/{benefitOwnerId}`, `POST /clearance/batch`); `FIN-VAL-1.10` `FIN-VAL-244`, `245`; `FIN-PERM-1.10` O.4 | Komponen pemilih/pencarian pegawai, tabel ringkasan batch, lencana status clearance (Hijau/Merah) | Layar Status Bebas Tanggungan Karyawan (`/finance/employee-receivable/clearance`); Mode Perorangan (pencarian NIP/Nama, kartu status bebas tanggungan, rincian piutang aktif jika ada); Mode Batch (input/pilih daftar NIP maks 100 pegawai, tabel hasil clearance kolektif); tombol cetak/ekspor hasil | `BE-FIN-096 [BE]` | `M.3.1`..`M.3.2`, `L.4.1`..`L.4.7`; status dinamis murni baca dari backend; batas maksimal 100 pegawai ditegakkan di form batch; pegawai tanpa tanggungan berstatus `BEBAS_TANGGUNGAN` (hijau); pegawai berpiutang aktif berstatus `MEMILIKI_TANGGUNGAN` (merah) | `npm run lint:errors`, `npm run build`; verifikasi pengujian clearance lunas vs belum lunas | Frontend Owner. Layar murni baca (*read-only*), nol tombol perubahan data finansial atau mutasi saldo piutang | Build PASS, lint PASS, kedua mode terverifikasi, laporan task tracked |
+
+---
+
+## Traceability Frontend REV-18
+
+| Functional Requirement / Keputusan | Task Frontend Pembawa | Kontrak Terkait | Bukti Verifikasi |
+|---|---|---|---|
+| `FR-FIN-192`, `193`, `FIN-DEC-181` | `FE-FIN-038` | `FIN-API-1.9` O.1, `FIN-PERM-1.10` O.1 | Pengujian layar daftar dan navigasi submenu |
+| `FR-FIN-194`..`199`, `FIN-DEC-165`, `166` | `FE-FIN-039` | `FIN-API-1.9` O.1, `FIN-VAL-1.10` `FIN-VAL-230`..`238` | Pengujian pembuatan cicilan & maker-checker |
+| `FR-FIN-203`..`205`, `FIN-DEC-191`, `192` | `FE-FIN-038`, `FE-FIN-039` | `FIN-API-1.9` O.1, `FIN-VAL-1.11` `FIN-VAL-240` | Pengujian tampilan penumpukan tunggakan payroll |
+| `FR-FIN-206`..`210`, `FR-FIN-228`..`230`, `FIN-DEC-170`, `182` | `FE-FIN-041` | `FIN-API-1.9` O.4, `FIN-VAL-1.10` `FIN-VAL-244`, `245` | Pengujian layar bebas tanggungan 2 mode |
+| `FR-FIN-211`..`217`, `FIN-DEC-177`, `178` | `FE-FIN-040` | `FIN-API-1.9` O.2, `FIN-VAL-1.10` `FIN-VAL-241`..`243` | Pengujian siklus pelunasan benefit internal |
+
+---
+
+## Task yang Sengaja TIDAK Dibuat pada REV-18 Frontend
+
+| Yang Dipertimbangkan | Alasan Ditolak |
+|---|---|
+| Layar / Form pengaturan plafon benefit per grade | Ditolak (`FIN-DEC-164`, `FIN-DEC-185`). Pengaturan dan kalkulasi plafon adalah ranah HR dan Billing. |
+| Modal pengajuan cicilan di dalam popup kecil | Ditolak (`FIN-DEC-181`). Ditetapkan wajib sebagai halaman navigasi penuh tersendiri. |
+| Tombol edit data debitur / nama pegawai pada kartu piutang | Ditolak (`FIN-DEC-187`, `FIN-DEC-195`). Koreksi salah orang dilakukan melalui alur reversal serah terima Billing. |
+| Tombol koreksi potongan payroll langsung di Finance | Ditolak (`FIN-DEC-195`). Selisih potongan diselesaikan melalui penggajian HR periode berikutnya. |
+| Tombol kirim jurnal beban benefit ke modul Akuntansi | Ditolak; integrasi akuntansi menunggu perumusan akun beban pada `FIN-OQ-103`. |
+
+---
+
+## Wewenang UI dan Ruang DEV_DISCRETION — REV-18
+
+| Elemen Antarmuka | Status Wewenang | Batasan / Panduan |
+|---|---|---|
+| Penempatan submenu "Piutang Karyawan" | **Keputusan Terkunci (`FIN-DEC-181`)** | Wajib sebagai submenu terpisah di bawah kelompok Keuangan; tidak boleh mengubah menu Transaksi A/R atau A/P V1. |
+| Bentuk form pengajuan cicilan | **Keputusan Terkunci (`FIN-DEC-181`)** | Wajib halaman penuh tersendiri (`/finance/employee-receivable/installment-plans/create`). |
+| Mode pemeriksaan bebas tanggungan | **Keputusan Terkunci (`FIN-DEC-182`)** | Wajib menyediakan tab Mode Perorangan dan Mode Batch (maks 100). |
+| Kalkulasi jadwal angsuran | **Invariant Sistem** | Dihitung mutlak oleh backend; dilarang menghitung pembagian atau pembulatan di JavaScript klien. |
+| Warna status clearance | **Keputusan Desain (`FIN-DES-101`)** | Hijau untuk bebas tanggungan; Merah untuk memiliki tanggungan. |
+| Komposisi layout, lebar kolom, pagination styling | `DEV_DISCRETION` | Mengikuti design system dan token CSS Quilvian yang berlaku. |
+
+---
+
+## Prasyarat Eksekusi REV-18 Frontend
+
+| # | Prasyarat | Status |
+|:--:|---|:---:|
+| 1 | Approval Blueprint Revisi 18 | ✅ **DIBERIKAN** (Yasmin, 6 Oktober 2026) |
+| 2 | Backend `BE-FIN-096` Rilis di Lingkungan Dev | 🟡 Menahan eksekusi `FE-FIN-041` |
+| 3 | Backend `BE-FIN-093` Rilis di Lingkungan Dev | 🟡 Menahan eksekusi `FE-FIN-038` & `FE-FIN-039` |
+| 4 | Backend `BE-FIN-099` Rilis di Lingkungan Dev | 🟡 Menahan eksekusi `FE-FIN-040` |
+| 5 | Evaluasi hak akses RBAC peran Finance Staff / Officer | Terintegrasi via `FIN-PERM-1.10` |
+

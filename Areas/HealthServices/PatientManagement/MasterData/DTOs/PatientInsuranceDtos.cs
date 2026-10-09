@@ -346,8 +346,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [MaxLength(500)]
         public string? CardImagePath { get; set; }
 
+        /// <summary>
+        /// Gambar kartu hasil scan (base64, boleh berawalan data URL). Bila diisi, backend menyimpan
+        /// file kartu dan mengisi CardImagePath dengan path publiknya.
+        /// </summary>
+        public string? CardImageBase64 { get; set; }
+
         [MaxLength(250)]
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// Opsional (RJ-DOC-REV-BE-020): nama asuransi dan No. polis hasil OCR kartu. Bila diisi,
+        /// create penjamin ditolak bila tidak cocok (RJ-VAL-PM-01/02). Hanya dipakai saat create;
+        /// tidak disimpan.
+        /// </summary>
+        public PatientInsuranceCardScanRequest? CardScan { get; set; }
+    }
+
+    /// <summary>Hasil baca kartu asuransi oleh agent scanner (RJ-DOC-DEC-068).</summary>
+    public class PatientInsuranceCardScanRequest
+    {
+        [MaxLength(200)]
+        public string? ScannedProviderName { get; set; }
+
+        [MaxLength(100)]
+        public string? ScannedPolicyNumber { get; set; }
     }
 
     public class UpdatePatientInsuranceRequest : CreatePatientInsuranceRequest
@@ -379,6 +402,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public string InsuranceProviderName { get; set; } = string.Empty;
 
         public string PolicyNumber { get; set; } = string.Empty;
+
+        public string? CardImagePath { get; set; }
 
         public bool IsPrimary { get; set; }
 

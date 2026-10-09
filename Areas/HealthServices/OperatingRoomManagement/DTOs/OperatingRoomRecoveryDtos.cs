@@ -80,6 +80,12 @@ public class OprRecoveryResponse
     public Guid? ReleasedBy { get; set; }
     public DateTime? ReleasedAt { get; set; }
     public int Version { get; set; }
+
+    /// <summary>
+    /// Akibat simpan keputusan kamar pulih pada permintaan admisi Rawat Inap (BE-RWI-181, API 11.5.2):
+    /// <c>NotNeeded</c>, <c>Created</c>, atau <c>Cancelled</c>.
+    /// </summary>
+    public string? AdmissionReferralState { get; set; }
 }
 
 public class CreateOprHandoverRequest

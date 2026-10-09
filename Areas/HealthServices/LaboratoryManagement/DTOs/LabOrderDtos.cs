@@ -162,6 +162,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
     }
 
     /// <summary>
+    /// Query daftar pilihan dokter pemeriksa saat Konfirmasi (<c>LAB-API-v1</c> <c>r41</c> 36.3,
+    /// <c>LAB-DEC-201</c>).
+    ///
+    /// <para>
+    /// Sengaja <b>tanpa</b> ruas aktif/nonaktif: daftar ini selalu hanya memuat dokter yang lolos
+    /// <c>VAL-73</c>. Parameter lain yang dikirim pemilih umum frontend (mis. <c>onlyActive</c>)
+    /// tidak terikat dan diabaikan. Batas halaman dan panjang pencarian ditegakkan di service
+    /// dengan menjepit, bukan menolak — salah ketik ukuran halaman tidak layak menjadi <c>400</c>.
+    /// </para>
+    /// </summary>
+    public class LabExaminerDoctorOptionQuery
+    {
+        /// <summary>Sebagian nama, kode, atau spesialisasi dokter. Dipangkas; maksimum 100 karakter.</summary>
+        public string? Search { get; set; }
+
+        /// <summary>Nomor halaman, mulai 1.</summary>
+        public int PageNumber { get; set; } = 1;
+
+        /// <summary>Ukuran halaman, 1–50.</summary>
+        public int PageSize { get; set; } = 25;
+    }
+
+    /// <summary>
+    /// Satu pilihan dokter pemeriksa (<c>LAB-API-v1</c> <c>r41</c> 36.3).
+    ///
+    /// <para>
+    /// <b>Tepat empat ruas, dan itu disengaja</b> (<c>LAB-DEC-201</c>). Daftar ini dapat dibuka
+    /// setiap pemegang <c>LabOrder : Confirm</c> tanpa izin master dokter SDM, sehingga ia tidak
+    /// boleh membawa nomor telepon, WhatsApp, surel, alamat, maupun data pribadi lain dari
+    /// <c>MstDoctor</c>. Yang dibutuhkan untuk memilih hanyalah nama, kode, dan spesialisasi.
+    /// </para>
+    /// </summary>
+    public class LabExaminerDoctorOptionResponse
+    {
+        /// <summary>Penunjuk dokter — nilai yang dikirim sebagai <c>examinerDoctorId</c> saat Konfirmasi.</summary>
+        public Guid Id { get; set; }
+
+        public string DoctorCode { get; set; } = string.Empty;
+
+        public string FullName { get; set; } = string.Empty;
+
+        public string? SpecialistName { get; set; }
+    }
+
+    /// <summary>
     /// Permintaan pembatalan pesanan laboratorium (<c>LAB-API-v1</c> <c>r12</c> §7.2,
     /// <c>LAB-DEC-063</c>).
     ///
@@ -311,6 +356,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
     /// </summary>
     public class LabOrderedProcedureResponse
     {
+        /// <summary>
+        /// Penunjuk prosedur yang dipesan — dipakai layar untuk merencanakan wadah
+        /// (<c>POST /lab-specimens/by-order/{id}</c>, ruas <c>examinations</c>).
+        /// </summary>
+        public Guid ProcedureId { get; set; }
+
         /// <summary>Kode jenis pemeriksaan <b>pada saat dipesan</b>.</summary>
         public string? ProcedureCode { get; set; }
 
@@ -489,5 +540,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
         /// <summary>Label <c>LAB-DEC-156</c>: <i>Menunggu Hasil</i>, <i>Draft</i>, <i>Menunggu Validasi</i>, <i>Tervalidasi</i>.</summary>
         public string Status { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Pesanan laboratorium aktif milik satu pasien, dikelompokkan per kunjungan, untuk layar
+    /// kiosk jalur Laboratorium (<c>LAB-EVD-013</c> butir 1).
+    ///
+    /// <para>
+    /// Kiosk v1 mencocokkan No. RM pasien ke booking Lab lalu menawarkan <i>Konfirmasi
+    /// Kehadiran</i>; bila tidak ada, pasien diarahkan mendaftar kunjungan baru. Ruas di sini
+    /// hanya yang ditampilkan layar itu — nama, tanggal, asal poli, dokter, dan daftar
+    /// pemeriksaan — tanpa hasil maupun status keuangan.
+    /// </para>
+    /// </summary>
+    public class LabKioskPendingOrderGroupResponse
+    {
+        public Guid EncounterId { get; set; }
+
+        public string? EncounterNumber { get; set; }
+
+        /// <summary>Waktu pesanan pertama dalam kelompok ini diminta.</summary>
+        public DateTime? RequestedAt { get; set; }
+
+        public string? ClinicName { get; set; }
+
+        public string? DoctorName { get; set; }
+
+        public List<LabKioskPendingOrderItemResponse> Items { get; set; } = new();
+    }
+
+    public class LabKioskPendingOrderItemResponse
+    {
+        public Guid LabOrderId { get; set; }
+
+        public string OrderNumber { get; set; } = string.Empty;
+
+        /// <summary>Label disiplin siap tampil: Patologi Klinik, Patologi Anatomi, Mikrobiologi.</summary>
+        public string? DisciplineLabel { get; set; }
+
+        public string ProcedureName { get; set; } = string.Empty;
+
+        public string OrderStatus { get; set; } = string.Empty;
     }
 }

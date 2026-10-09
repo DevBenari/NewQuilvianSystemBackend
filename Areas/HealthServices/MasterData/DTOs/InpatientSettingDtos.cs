@@ -34,6 +34,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         /// </summary>
         public int DepositFollowUpIntervalDays { get; set; }
 
+        /// <summary>
+        /// Ambang menit serah terima pasca operasi yang belum diterima sebelum tampil di Daftar
+        /// Pantau. Bawaan 60 menit (<c>BE-RWI-172</c>).
+        /// </summary>
+        public int PendingSurgicalHandoverAlertMinutes { get; set; }
+
+        /// <summary>
+        /// Ambang menit permintaan admisi dari kamar pulih yang belum ditindaklanjuti sebelum tampil
+        /// di Daftar Pantau. Bawaan 30 menit (<c>BE-RWI-172</c>).
+        /// </summary>
+        public int PendingAdmissionReferralAlertMinutes { get; set; }
+
         /// <summary>Awalan nomor episode, misalnya <c>RI</c>.</summary>
         public string EpisodeNumberPrefix { get; set; } = string.Empty;
 
@@ -42,6 +54,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsActive { get; set; }
 
         public string? Notes { get; set; }
+
+        // BE-RWI-186 — isian cetak Workspace PPRI (API 12.4, kamus data 20.16).
+
+        public string? GeneralConsentFormCode { get; set; }
+
+        public string? NewPatientHandoverFormCode { get; set; }
+
+        public string? PrivacyRequestFormCode { get; set; }
+
+        public string? BeliefValuesFormCode { get; set; }
+
+        public string? CostDifferenceFormCode { get; set; }
+
+        public string? DepositSettlementFormCode { get; set; }
+
+        public string? CostEstimateFormCode { get; set; }
+
+        public string? InpatientBaseDataFormCode { get; set; }
+
+        /// <summary>Kota penandatanganan bawaan dokumen admisi.</summary>
+        public string? DocumentSigningCity { get; set; }
+
+        /// <summary>Umur tertinggi (tahun) yang mendapat Gelang Bayi.</summary>
+        public int InfantWristbandMaxAgeYears { get; set; }
+
+        /// <summary>Kode singkat rumah sakit pada label; kosong berarti memakai kode situs.</summary>
+        public string? PatientLabelHospitalCode { get; set; }
 
         public DateTime CreateDateTime { get; set; }
 
@@ -89,6 +128,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         [Range(1, 365)]
         public int DepositFollowUpIntervalDays { get; set; } = 3;
 
+        /// <summary>
+        /// Opsional, antara 1 dan 1440 menit (<c>BE-RWI-172</c>, <c>RWI-DEC-220</c> butir 6). Kosong
+        /// berarti nilai lama dipertahankan, supaya layar pengaturan lama yang belum mengenal isian
+        /// ini tetap dapat menyimpan.
+        /// </summary>
+        [Range(1, 1440)]
+        public int? PendingSurgicalHandoverAlertMinutes { get; set; }
+
+        /// <summary>Opsional, antara 1 dan 1440 menit. Kosong berarti nilai lama dipertahankan.</summary>
+        [Range(1, 1440)]
+        public int? PendingAdmissionReferralAlertMinutes { get; set; }
+
         [Required]
         [MaxLength(20)]
         public string EpisodeNumberPrefix { get; set; } = string.Empty;
@@ -97,5 +148,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
         [MaxLength(1000)]
         public string? Notes { get; set; }
+
+        // ------------------------------------------------------------------
+        // BE-RWI-186 — isian cetak Workspace PPRI (API 12.4, validation 15.7).
+        //
+        // Semua opsional. Isian yang TIDAK dikirim (null) mempertahankan nilai tersimpan,
+        // supaya layar pengaturan lama tetap dapat menyimpan; teks kosong mengosongkan kodenya.
+        // Panjang dan rentang diperiksa service supaya penolakannya membawa kode MST-IST-001/002,
+        // bukan pesan bawaan validasi model.
+        // ------------------------------------------------------------------
+
+        public string? GeneralConsentFormCode { get; set; }
+
+        public string? NewPatientHandoverFormCode { get; set; }
+
+        public string? PrivacyRequestFormCode { get; set; }
+
+        public string? BeliefValuesFormCode { get; set; }
+
+        public string? CostDifferenceFormCode { get; set; }
+
+        public string? DepositSettlementFormCode { get; set; }
+
+        public string? CostEstimateFormCode { get; set; }
+
+        public string? InpatientBaseDataFormCode { get; set; }
+
+        /// <summary>Maksimal 100 karakter.</summary>
+        public string? DocumentSigningCity { get; set; }
+
+        /// <summary>0–16 tahun (<c>MST-IST-001</c>).</summary>
+        public int? InfantWristbandMaxAgeYears { get; set; }
+
+        /// <summary>Maksimal 30 karakter.</summary>
+        public string? PatientLabelHospitalCode { get; set; }
     }
 }

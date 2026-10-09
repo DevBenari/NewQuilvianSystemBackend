@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -65,8 +65,14 @@ public sealed class BillingArApHandoffService
         var payerAmount = calculation.PrimaryAmount + calculation.ExcessAmount;
         if (payerAmount > 0)
         {
+            // FIN-CAP-069: penjamin kunjungan dipilih memakai urutan yang sama dengan
+            // BillingDepositService — penjamin yang sudah dibatalkan dibuang, lalu penjamin utama
+            // diutamakan dan sisanya mengikuti Priority. Tanpa urutan ini, kunjungan dengan lebih
+            // dari satu penjamin memulangkan baris yang berbeda-beda setiap kali dijalankan.
             var guarantor = await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
-                .Where(x => x.EncounterId == invoice.EncounterId && x.IsActive && !x.IsDelete)
+                .Where(x => x.EncounterId == invoice.EncounterId && x.IsActive && !x.IsDelete && !x.IsCancel)
+                .OrderByDescending(x => x.IsPrimary)
+                .ThenBy(x => x.Priority)
                 .FirstOrDefaultAsync(cancellationToken);
             _dbContext.BilArHandoffs.Add(new BilArHandoff
             {
@@ -75,7 +81,12 @@ public sealed class BillingArApHandoffService
                 FinalizationRecordId = finalizationRecord.Id,
                 FinalizationRecord = finalizationRecord,
                 DebtorType = BillingArDebtorTypes.Payer,
-                DebtorReferenceId = guarantor?.InsuranceProviderId,
+                // FIN-CAP-069: kunjungan yang dijamin PERUSAHAAN tidak punya InsuranceProviderId,
+                // sehingga sebelumnya piutangnya lahir tanpa identitas debitur dan tidak dapat
+                // dikelompokkan maupun digabung ke Batch Tagihan. Urutan InsuranceProviderId lalu
+                // CompanyGuarantorId mengikuti BillingDepositService, dan Finance sudah memetakan
+                // nilai ini ke kedua master saat menampilkan nama penjamin.
+                DebtorReferenceId = guarantor?.InsuranceProviderId ?? guarantor?.CompanyGuarantorId,
                 Amount = payerAmount,
                 Status = BillingHandoffStatuses.Created,
                 HandoffKey = Guid.NewGuid(),
@@ -258,6 +269,23 @@ public sealed class BillingArApHandoffService
         };
     }
 
+    public async Task<HandoffStatusResponse> GetHandoffStatusByInvoiceAsync(
+        Guid invoiceId,
+        CancellationToken cancellationToken)
+    {
+        var record = await _dbContext.BilFinalizationRecords.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId && !x.IsDelete)
+            .OrderByDescending(x => x.FinalizedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (record is null)
+        {
+            throw new KeyNotFoundException($"Catatan finalisasi untuk invoice '{invoiceId}' tidak ditemukan.");
+        }
+
+        return await GetHandoffStatusAsync(record.Id, cancellationToken);
+    }
+
     private Task AcquireLockAsync(string key, CancellationToken cancellationToken) =>
         _dbContext.Database.ExecuteSqlRawAsync(
             "SELECT pg_advisory_xact_lock(hashtext({0}));", [key], cancellationToken);
@@ -288,7 +316,9 @@ public sealed class BillingArApHandoffService
         Amount = handoff.Amount,
         DueDate = handoff.DueDate,
         Status = handoff.Status,
-        CreatedAt = handoff.CreatedAt
+        HandoffKey = handoff.HandoffKey,
+        CreatedAt = handoff.CreatedAt,
+        AcknowledgedAt = handoff.AcknowledgedAt
     };
 
     private static ApHandoffResponse MapAp(BilApHandoff handoff) => new()
@@ -298,8 +328,10 @@ public sealed class BillingArApHandoffService
         Amount = handoff.Amount,
         ReadinessStatus = handoff.ReadinessStatus,
         Status = handoff.Status,
+        HandoffKey = handoff.HandoffKey,
         CreatedAt = handoff.CreatedAt,
-        ReadyAt = handoff.ReadyAt
+        ReadyAt = handoff.ReadyAt,
+        AcknowledgedAt = handoff.AcknowledgedAt
     };
 
     private static HandoffAdjustmentResponse MapAdjustment(BilHandoffAdjustment adjustment) => new()

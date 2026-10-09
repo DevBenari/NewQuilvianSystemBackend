@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
@@ -66,7 +67,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
     /// pada data</b> — dokter peminta order ini, atau bukan.
     /// </para>
     /// </remarks>
-    public class BbkBloodOrderService
+    public partial class BbkBloodOrderService
     {
         private const int DefaultPageSize = 25;
         private const int MaxPageSize = 100;
@@ -113,15 +114,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         private readonly ApplicationDbContext _dbContext;
         private readonly NumberSeriesAllocator _numberSeriesAllocator;
         private readonly BbkEncounterStatusReader _encounterStatusReader;
+        private readonly InpatientClinicalContextService _clinicalContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public BbkBloodOrderService(
             ApplicationDbContext dbContext,
             NumberSeriesAllocator numberSeriesAllocator,
-            BbkEncounterStatusReader encounterStatusReader)
+            BbkEncounterStatusReader encounterStatusReader,
+            InpatientClinicalContextService clinicalContext,
+            IHttpContextAccessor httpContextAccessor)
         {
             _dbContext = dbContext;
             _numberSeriesAllocator = numberSeriesAllocator;
             _encounterStatusReader = encounterStatusReader;
+            _clinicalContext = clinicalContext;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         // =================================================================
@@ -279,6 +286,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 .Take(pageSize)
                 .Select(x => new BloodOrderListDto
                 {
+                    InstructionVerificationStatus = x.InstructionVerificationStatus,
+                    InstructionVerifiedAt = x.InstructionVerifiedAt,
+                    InstructionVerifiedByUserId = x.InstructionVerifiedByUserId,
                     Id = x.Id,
                     OrderNumber = x.OrderNumber,
                     PatientId = x.PatientId,
@@ -473,13 +483,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         public Task<BloodOrderResult> CreateAsync(
             CreateBloodOrderRequest request,
             Guid actorUserId,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            BbkInstructionVerificationStatus? instructionVerificationStatus = null)
             => CreateInternalAsync(
                 request,
                 BbkOrderSource.Electronic,
                 actorUserId,
                 duplicateOverrideReason: null,
-                cancellationToken);
+                cancellationToken, instructionVerificationStatus);
 
         /// <summary>Membuat order darah manual yang diinput petugas Bank Darah.</summary>
         /// <remarks>
@@ -506,7 +517,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         public Task<BloodOrderResult> ConfirmDuplicateAsync(
             ConfirmDuplicateOrderRequest request,
             Guid actorUserId,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            BbkInstructionVerificationStatus? instructionVerificationStatus = null)
         {
             var reason = request.DuplicateOverrideReason?.Trim();
 
@@ -522,7 +534,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 request.IsManual ? BbkOrderSource.Manual : BbkOrderSource.Electronic,
                 actorUserId,
                 reason,
-                cancellationToken);
+                cancellationToken, instructionVerificationStatus);
         }
 
         /// <summary>
@@ -725,12 +737,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             BbkOrderSource orderSource,
             Guid actorUserId,
             string? duplicateOverrideReason,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            BbkInstructionVerificationStatus? instructionVerificationStatus = null)
         {
             // VAL-BD-011: setiap order wajib menyimpan siapa yang membuatnya. Ditegakkan
             // dengan tidak pernah menerima pelaku dari isian permintaan.
             if (actorUserId == Guid.Empty)
                 return Failed(BloodOrderOutcome.Invalid, ActorUnknownMessage);
+
+            var requestedVerification = instructionVerificationStatus ?? request.InstructionVerificationStatus;
+            var verificationStatus = BbkInstructionVerificationStatus.NotRequired;
+            if (requestedVerification.HasValue)
+            {
+                if (!Enum.IsDefined(requestedVerification.Value) || requestedVerification == BbkInstructionVerificationStatus.Verified)
+                    return Failed(BloodOrderOutcome.Invalid, "Status terverifikasi hanya dapat diberikan melalui aksi verifikasi.");
+                var doctor = await _clinicalContext.ResolveActorDoctorIdAsync(
+                    _httpContextAccessor.HttpContext?.User, actorUserId, cancellationToken);
+                verificationStatus = doctor == request.RequestingDoctorId
+                    ? BbkInstructionVerificationStatus.NotRequired : BbkInstructionVerificationStatus.Pending;
+            }
 
             // VAL-BD-010: kelengkapan rujukan. Berlaku bagi kedua sumber. [Required] pada Guid
             // tidak pernah menolak Guid.Empty, sehingga penjaga sesungguhnya ada di sini. Pesan
@@ -858,6 +883,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             // BD-XINV-01 bocor tanpa alasan tertulis siapa pun.
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
+            // Kunci durabel: serialisasi di PostgreSQL, bukan lock di satu proses.
+            var orderId = Guid.NewGuid();
+            if (!string.IsNullOrWhiteSpace(request.IdempotencyKey))
+            {
+                orderId = IdempotentOrderId(actorUserId, request.EncounterId, request.IdempotencyKey);
+                await LockIdempotentOrderAsync(orderId, cancellationToken);
+                var existing = await _dbContext.Set<BbkBloodOrder>().AsNoTracking()
+                    .Include(x => x.Lines).FirstOrDefaultAsync(x => x.Id == orderId, cancellationToken);
+                if (existing != null)
+                {
+                    if (!SameOrderRequest(existing, request, actorUserId, orderSource) ||
+                        !await SameClinicalNoteAsync(existing.Id, request.ClinicalNote, cancellationToken) ||
+                        !await SameDuplicateReasonAsync(existing.Id, duplicateOverrideReason, cancellationToken))
+                        return Failed(BloodOrderOutcome.VersionConflict,
+                            "Kunci permintaan sudah digunakan untuk isian pesanan yang berbeda.");
+                    await transaction.CommitAsync(cancellationToken);
+                    return Succeeded(existing, "Pesanan yang sama sudah diterima sebelumnya.");
+                }
+            }
+
             await AcquireOrderCreationLockAsync(request.PatientId, request.EncounterId, cancellationToken);
 
             // BD-XINV-01 — deteksi order ganda. Dilewati hanya ketika pemanggil menyertakan
@@ -910,7 +955,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
 
             var order = new BbkBloodOrder
             {
-                Id = Guid.NewGuid(),
+                Id = orderId,
                 OrderNumber = orderNumber,
                 PatientId = request.PatientId,
                 EncounterId = request.EncounterId,
@@ -923,6 +968,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
 
                 OrderSource = orderSource,
                 InputByUserId = actorUserId,
+                InstructionVerificationStatus = verificationStatus,
                 OrderStatus = BbkBloodOrderStatus.Active,
                 Version = 0,
                 CreateDateTime = now,
@@ -956,6 +1002,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 reasonNote: duplicateOverrideReason,
                 actorUserId: actorUserId,
                 occurredAt: now);
+
+            if (!string.IsNullOrWhiteSpace(request.ClinicalNote))
+                AppendTransition(order.Id, ClinicalNoteAction, BbkBloodOrderStatus.Active,
+                    BbkBloodOrderStatus.Active, null, request.ClinicalNote.Trim(), actorUserId, now);
 
             await _dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
@@ -1098,6 +1148,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
 
         public static BloodOrderDetailDto ToDetail(BbkBloodOrder entity) => new()
         {
+            InstructionVerificationStatus = entity.InstructionVerificationStatus,
+            InstructionVerifiedAt = entity.InstructionVerifiedAt,
+            InstructionVerifiedByUserId = entity.InstructionVerifiedByUserId,
             Id = entity.Id,
             OrderNumber = entity.OrderNumber,
             PatientId = entity.PatientId,
@@ -1590,6 +1643,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         NotAllowedByState = 5,
 
         /// <summary>Order sudah berubah di tangan orang lain.</summary>
-        VersionConflict = 6
+        VersionConflict = 6,
+        Forbidden = 7
     }
 }

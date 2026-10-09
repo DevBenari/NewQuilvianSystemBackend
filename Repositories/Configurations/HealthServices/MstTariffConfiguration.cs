@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
@@ -47,6 +48,23 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.HasIndex(x => new { x.ProcedureId, x.PatientClassId, x.IsActive, x.IsDelete });
             entity.HasIndex(x => new { x.TariffCategoryId, x.PatientClassId, x.IsActive, x.IsDelete });
             entity.HasIndex(x => new { x.EffectiveStartDate, x.EffectiveEndDate, x.IsActive, x.IsDelete });
+
+            // BE-RWI-172 — satu migration MasterData K8 + E4 (02-module-map.md 7.4).
+            // K8 (keperawatan 0.6.0): tarif alat per kelas.
+            entity.HasOne(x => x.MedicalEquipment).WithMany().HasForeignKey(x => x.MedicalEquipmentId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => x.MedicalEquipmentId);
+            // E4 (episode-rawat-inap 0.10.0): komponen operasi. Bawaan aman untuk tarif lama —
+            // None / PerService / CeilingWholeUnit — sehingga nilai tarif lama tidak berubah.
+            entity.Property(x => x.SurgeryComponentType)
+                .HasConversion<int>()
+                .HasDefaultValue(MstSurgeryComponentType.None);
+            entity.Property(x => x.ChargeBasis)
+                .HasConversion<int>()
+                .HasDefaultValue(MstTariffChargeBasis.PerService);
+            entity.Property(x => x.ChargeRounding)
+                .HasConversion<int>()
+                .HasDefaultValue(MstEquipmentRoundingRule.CeilingWholeUnit);
+            entity.HasIndex(x => x.SurgeryComponentType);
         }
     }
 }

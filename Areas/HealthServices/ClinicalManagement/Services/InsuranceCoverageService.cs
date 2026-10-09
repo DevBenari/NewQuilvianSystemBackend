@@ -15,13 +15,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly EncounterInsuranceService _encounterInsuranceService;
+        private readonly CompanyGuarantorCoverageService? _companyGuarantorCoverageService;
 
         public InsuranceCoverageService(
             ApplicationDbContext dbContext,
-            EncounterInsuranceService encounterInsuranceService)
+            EncounterInsuranceService encounterInsuranceService,
+            CompanyGuarantorCoverageService? companyGuarantorCoverageService = null)
         {
             _dbContext = dbContext;
             _encounterInsuranceService = encounterInsuranceService;
+            _companyGuarantorCoverageService = companyGuarantorCoverageService;
         }
 
         public async Task<InsuranceCoverageResult> ResolveDrugAsync(
@@ -149,6 +152,99 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             var hospitalUnitPrice = Math.Max(0, tariff.NormalPrice);
             var hospitalTotalPrice = RoundMoney(hospitalUnitPrice * quantity);
 
+            if (context.PaymentType == EncounterPaymentType.CompanyGuarantor)
+            {
+                if (_companyGuarantorCoverageService != null && context.CompanyGuarantorId.HasValue)
+                {
+                    try
+                    {
+                        var compResult = await _companyGuarantorCoverageService.ResolveTariffAsync(
+                            context.EncounterId,
+                            tariff.Id,
+                            quantity,
+                            context.ServiceDate,
+                            cancellationToken);
+
+                        if (compResult.IsValid)
+                        {
+                            var isCompanyGuarantorNeedApproval = compResult.IsNeedApproval ||
+                                (tariff.ProcedureId.HasValue && context.IsNeedApprovalForProcedure) ||
+                                (tariff.DrugId.HasValue && context.IsNeedApprovalForDrug);
+                            var guarantorName = !string.IsNullOrWhiteSpace(compResult.CompanyGuarantorName)
+                                ? compResult.CompanyGuarantorName
+                                : (!string.IsNullOrWhiteSpace(context.CompanyGuarantorName) ? context.CompanyGuarantorName : "Penjamin Perusahaan");
+                            var note = compResult.CoverageNote ?? pricingWarning;
+                            if (isCompanyGuarantorNeedApproval)
+                            {
+                                var approvalNotice = $"Perlu persetujuan {guarantorName}";
+                                note = string.IsNullOrWhiteSpace(note)
+                                    ? approvalNotice
+                                    : (note.Contains("Perlu persetujuan") ? note : $"{note} · {approvalNotice}");
+                            }
+
+                            return new InsuranceCoverageResult
+                            {
+                                IsValid = true,
+                                TariffId = tariff.Id,
+                                TariffCode = tariff.TariffCode,
+                                TariffName = tariff.TariffName,
+                                PaymentType = EncounterPaymentType.CompanyGuarantor,
+                                PaymentTypeName = "Penjamin Perusahaan",
+                                PricingSource = compResult.PricingSource,
+                                IsCoverageApplicable = compResult.IsCoverageApplicable,
+                                IsCovered = compResult.IsCovered,
+                                CoverageStatus = compResult.CoverageStatus,
+                                CoveragePercent = compResult.CoveragePercent,
+                                Quantity = quantity,
+                                HospitalUnitPrice = compResult.HospitalUnitPrice,
+                                UnitPrice = compResult.UnitPrice,
+                                TotalPrice = compResult.TotalPrice,
+                                CoveredAmount = compResult.CoveredAmount,
+                                PatientPayAmount = compResult.PatientPayAmount,
+                                CoPaymentAmount = compResult.CoPaymentAmount,
+                                IsNeedApproval = tariff.IsNeedApproval,
+                                IsNeedGuarantorApproval = isCompanyGuarantorNeedApproval,
+                                IsNeedGuaranteeLetter = compResult.IsNeedGuaranteeLetter,
+                                IsAllowExcessPaymentByPatient = compResult.IsAllowExcessPaymentByPatient,
+                                IsFallbackTariff = isFallbackTariff,
+                                PricingWarning = pricingWarning,
+                                CoverageNote = note,
+                                Warnings = compResult.Warnings != null && compResult.Warnings.Count > 0
+                                    ? compResult.Warnings
+                                    : (string.IsNullOrWhiteSpace(pricingWarning) ? new List<string>() : new List<string> { pricingWarning })
+                            };
+                        }
+                    }
+                    catch
+                    {
+                        // Fallback ke tarif rumah sakit jika service aturan mengalami kendala
+                    }
+                }
+
+                var fallbackCompanyResult = BuildCashResult(
+                    tariff,
+                    context,
+                    quantity,
+                    hospitalUnitPrice,
+                    hospitalTotalPrice,
+                    isFallbackTariff,
+                    pricingWarning);
+
+                fallbackCompanyResult.IsCoverageApplicable = true;
+                fallbackCompanyResult.IsCovered = false;
+                fallbackCompanyResult.CoverageStatus = "NotCovered";
+                var compName = !string.IsNullOrWhiteSpace(context.CompanyGuarantorName) ? context.CompanyGuarantorName : "Penjamin Perusahaan";
+                var isGuarAppr = (tariff.ProcedureId.HasValue && context.IsNeedApprovalForProcedure) || (tariff.DrugId.HasValue && context.IsNeedApprovalForDrug);
+                fallbackCompanyResult.IsNeedGuarantorApproval = isGuarAppr;
+                var baseNote = "Belum ada aturan tanggungan perusahaan untuk item ini.";
+                if (isGuarAppr)
+                {
+                    baseNote += $" · Perlu persetujuan {compName}";
+                }
+                fallbackCompanyResult.CoverageNote = string.IsNullOrWhiteSpace(pricingWarning) ? baseNote : $"{baseNote} {pricingWarning}";
+                return fallbackCompanyResult;
+            }
+
             if (context.PaymentType == EncounterPaymentType.Cash || !context.HasInsurance)
             {
                 return BuildCashResult(
@@ -197,7 +293,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 context,
                 cancellationToken);
 
-            var coverageStatus = NormalizeCoverageStatus(rule?.CoverageStatus ?? "Covered");
+            // Bila tidak ada aturan coverage (MstInsuranceCoverageRule) yang mencakup item/kategori ini,
+            // provider tidak menanggung item tersebut (konsisten dengan RegistrationBillingCoverageAdapter dan CompanyGuarantorCoverageService).
+            if (rule == null)
+            {
+                return BuildNotCoveredResult(
+                    tariff,
+                    context,
+                    quantity,
+                    hospitalUnitPrice,
+                    hospitalTotalPrice,
+                    "Item tidak memiliki aturan coverage yang cocok pada asuransi ini.",
+                    insuranceTariff,
+                    rule: null,
+                    isFallbackTariff: isFallbackTariff,
+                    pricingWarning: pricingWarning);
+            }
+
+            var coverageStatus = NormalizeCoverageStatus(rule.CoverageStatus ?? "Covered");
 
             if (coverageStatus == "NotCovered")
             {
@@ -207,7 +320,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     quantity,
                     hospitalUnitPrice,
                     hospitalTotalPrice,
-                    rule?.Description ?? "Item dikecualikan oleh aturan coverage.",
+                    rule.Description ?? "Item dikecualikan oleh aturan coverage.",
                     insuranceTariff,
                     rule,
                     isFallbackTariff,
@@ -242,7 +355,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             if (rule?.MaxAmountPerVisit.GetValueOrDefault() > 0)
                 coveredAmount = Math.Min(coveredAmount, rule.MaxAmountPerVisit!.Value);
 
-            if (context.RemainingLimitAmount.HasValue)
+            // Batas sisa limit polis pasien (MstPatientInsurance):
+            // 1. Bila pasien memiliki plafon limit tahunan (AnnualLimitAmount > 0) dan sisa limit <= 0,
+            //    berarti limit polis telah habis terpakai.
+            // 2. Bila sisa limit positif (RemainingLimitAmount > 0), batasi porsi tanggungan hingga sisa limit tersebut.
+            // 3. Bila AnnualLimitAmount dan RemainingLimitAmount bernilai 0 (atau null), artinya polis
+            //    tidak dibatasi plafon limit (unlimited) — 0 sama dengan tidak dibatasi (konsisten dengan janji form master).
+            var hasAnnualLimit = context.AnnualLimitAmount.GetValueOrDefault() > 0;
+            if (hasAnnualLimit && context.RemainingLimitAmount.GetValueOrDefault() <= 0)
+            {
+                coveredAmount = 0m;
+                warnings.Add("Sisa limit polis pasien telah habis.");
+            }
+            else if (context.RemainingLimitAmount.GetValueOrDefault() > 0)
             {
                 coveredAmount = Math.Min(coveredAmount, context.RemainingLimitAmount.Value);
                 if (context.RemainingLimitAmount.Value < totalPrice)
@@ -277,13 +402,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 warnings.Add("Rule mempunyai batas bulanan dan memerlukan pemeriksaan pemakaian kumulatif.");
             }
 
-            var isNeedApproval =
-                tariff.IsNeedApproval ||
+            var isGuarantorNeedApproval =
                 insuranceTariff.IsNeedApproval ||
                 (tariff.Drug != null && context.IsNeedApprovalForDrug) ||
                 (tariff.Procedure != null && context.IsNeedApprovalForProcedure) ||
                 (rule?.IsNeedApproval ?? false) ||
                 coverageStatus == "NeedApproval";
+
+            var providerName = !string.IsNullOrWhiteSpace(context.InsuranceProviderName)
+                ? context.InsuranceProviderName
+                : "Asuransi";
 
             var isNeedGuaranteeLetter =
                 context.IsNeedGuaranteeLetter ||
@@ -297,6 +425,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 coverageStatus = "PartiallyCovered";
             else
                 coverageStatus = "Covered";
+
+            var coverageNote = BuildCoverageNote(rule, warnings);
+            if (isGuarantorNeedApproval)
+            {
+                var approvalNotice = $"Perlu persetujuan {providerName}";
+                coverageNote = string.IsNullOrWhiteSpace(coverageNote)
+                    ? approvalNotice
+                    : (coverageNote.Contains("Perlu persetujuan") ? coverageNote : $"{coverageNote} · {approvalNotice}");
+            }
 
             return new InsuranceCoverageResult
             {
@@ -321,7 +458,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 CoveredAmount = coveredAmount,
                 PatientPayAmount = patientPayAmount,
                 CoPaymentAmount = totalCoPayment,
-                IsNeedApproval = isNeedApproval,
+                IsNeedApproval = tariff.IsNeedApproval,
+                IsNeedGuarantorApproval = isGuarantorNeedApproval,
                 IsNeedGuaranteeLetter = isNeedGuaranteeLetter,
                 IsAllowExcessPaymentByPatient = allowExcessPayment,
                 InsuranceProviderId = context.InsuranceProviderId,
@@ -331,7 +469,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 ApprovalInstruction = rule?.ApprovalInstruction,
                 BillingInstruction = rule?.BillingInstruction
                     ?? insuranceTariff.BillingInstruction,
-                CoverageNote = BuildCoverageNote(rule, warnings),
+                CoverageNote = coverageNote,
                 IsFallbackTariff = isFallbackTariff,
                 PricingWarning = pricingWarning,
                 Warnings = warnings
@@ -585,6 +723,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             bool isFallbackTariff = false,
             string? pricingWarning = null)
         {
+            var isGuarantorNeedApproval = (rule?.IsNeedApproval ?? false) ||
+                (tariff.Drug != null && context.IsNeedApprovalForDrug) ||
+                (tariff.Procedure != null && context.IsNeedApprovalForProcedure);
+
+            var noteWithGuarantor = note;
+            if (isGuarantorNeedApproval)
+            {
+                var pName = !string.IsNullOrWhiteSpace(context.InsuranceProviderName) ? context.InsuranceProviderName : "Penjamin";
+                var aNote = $"Perlu persetujuan {pName}";
+                if (!noteWithGuarantor.Contains("Perlu persetujuan"))
+                {
+                    noteWithGuarantor = string.IsNullOrWhiteSpace(noteWithGuarantor) ? aNote : $"{noteWithGuarantor} · {aNote}";
+                }
+            }
+
             return new InsuranceCoverageResult
             {
                 IsValid = true,
@@ -607,7 +760,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 TotalPrice = hospitalTotalPrice,
                 CoveredAmount = 0,
                 PatientPayAmount = hospitalTotalPrice,
-                IsNeedApproval = rule?.IsNeedApproval ?? false,
+                IsNeedApproval = tariff.IsNeedApproval,
+                IsNeedGuarantorApproval = isGuarantorNeedApproval,
                 IsNeedGuaranteeLetter = rule?.IsNeedGuaranteeLetter
                     ?? context.IsNeedGuaranteeLetter,
                 IsAllowExcessPaymentByPatient = rule?.IsAllowExcessPaymentByPatient
@@ -617,8 +771,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 BenefitPlanCode = context.BenefitPlanCode,
                 BenefitPlanName = context.BenefitPlanName,
                 CoverageNote = string.IsNullOrWhiteSpace(pricingWarning)
-                    ? note
-                    : $"{note} {pricingWarning}",
+                    ? noteWithGuarantor
+                    : $"{noteWithGuarantor} {pricingWarning}",
                 ApprovalInstruction = rule?.ApprovalInstruction,
                 BillingInstruction = rule?.BillingInstruction,
                 IsFallbackTariff = isFallbackTariff,
@@ -774,6 +928,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         public decimal CoPaymentAmount { get; set; }
 
         public bool IsNeedApproval { get; set; }
+        public bool IsNeedGuarantorApproval { get; set; }
         public bool IsNeedGuaranteeLetter { get; set; }
         public bool IsAllowExcessPaymentByPatient { get; set; }
 

@@ -401,3 +401,24 @@ Pelaksanaan dari order `Stopped` ditolak pada kontrak `keperawatan` `0.5.0` — 
 | `MedicationDoseStatus` (`Due`, `Administered`, `Held`, `Refused`, `Missed`, `Cancelled`) | `keperawatan` / `PharmacyManagement` | Mengubahnya selain lewat penghentian butir resep |
 | Penugasan dokter `AssignmentRole`, `AssignmentPurpose` | `episode-rawat-inap` | Membuat atau mengakhiri penugasan |
 | Resume `SignedAt` | `episode-rawat-inap` | Menandatangani selain lewat endpoint episode |
+
+---
+
+## 9. Perubahan pada `contract_version` `0.7.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.7.0` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
+| Traceability | `BP-RWF-05`; `RWI-DEC-171`, `188` |
+
+Status pesanan (`GziOrderStatus`, `BbkBloodOrderStatus`) tetap milik modul Gizi dan Bank Darah dan **tidak berubah**. Yang bertambah hanya status verifikasi instruksi, yang bergerak terpisah.
+
+| Dari | Tindakan | Ke | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| — | Dokter berpenugasan memesan sendiri | `NotRequired` | `NutritionOrder : Create` / `BloodOrder : Create` | Dokter peminta = akun login | — |
+| — | Perawat menginput atas instruksi | `Pending` | Sama | Dokter peminta berpenugasan aktif | 400 tanpa dokter; 403 dokter tidak berpenugasan |
+| `Pending` | Dokter peminta memverifikasi | `Verified` | `NutritionOrder : VerifyInstruction` / `BloodOrder : VerifyInstruction` | Akun = dokter peminta | 403 |
+| `Verified` | Verifikasi lagi | — | — | — | 409 |
+| `Pending` | Pesanan dibatalkan sebelum diverifikasi | Status pesanan `Cancelled`; status verifikasi tetap `Pending` dan tidak lagi tampil di daftar | Pemegang `: Cancel` menurut modul pemilik | — | — |
+| `Pending` | Penugasan dokter berakhir sebelum verifikasi | Tetap `Pending`; jejak pesanan utuh (`RWI-DEC-114`) | — | — | — |

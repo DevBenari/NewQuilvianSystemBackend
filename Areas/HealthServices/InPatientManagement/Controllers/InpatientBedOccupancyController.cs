@@ -45,13 +45,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         private const string LogCategory = "HealthServices.InPatientManagement.BedOccupancy";
 
         private readonly InpBedOccupancyService _bedOccupancyService;
+        private readonly InpPlacementCorrectionService _placementCorrectionService;
         private readonly LoggerService _loggerService;
 
         public InpatientBedOccupancyController(
             InpBedOccupancyService bedOccupancyService,
+            InpPlacementCorrectionService placementCorrectionService,
             LoggerService loggerService)
         {
             _bedOccupancyService = bedOccupancyService;
+            _placementCorrectionService = placementCorrectionService;
             _loggerService = loggerService;
         }
 
@@ -280,6 +283,75 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                     EntityId = result.PlacementId,
                     Controller = "InpatientBedOccupancy",
                     Action = "TransferPatient",
+                    StatusCode = StatusCodes.Status200OK
+                });
+
+            var placement = await _bedOccupancyService.GetPlacementAsync(
+                result.PlacementId!.Value,
+                cancellationToken);
+
+            return Ok(ApiResponse<BedPlacementResponse>.Ok(placement, result.Message));
+        }
+
+        // =====================================================================
+        // BE-RWI-154 — Koreksi salah catat penempatan
+        // =====================================================================
+
+        /// <summary>Mengoreksi salah catat kamar, bed, kelas, atau waktu satu penempatan.</summary>
+        /// <remarks>
+        /// Hanya selama tagihan rawat inap masih terbuka. Baris lama tidak dihapus; ia ditandai
+        /// sudah dikoreksi dan baris baru menggantikannya, sehingga riwayat tetap utuh dan tarif
+        /// kamar tidak terhitung dua kali. Koreksi bukan pengganti Transfer Pasien.
+        /// </remarks>
+        [HttpPost("placements/{placementId:guid}/corrections")]
+        [ProducesResponseType(typeof(ApiResponse<BedPlacementResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Correct", "Correct Inpatient Bed Placement", Description = "Mengoreksi salah catat penempatan tempat tidur selama tagihan masih terbuka", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("InpatientBedOccupancy", "Correct")]
+        public async Task<IActionResult> CorrectPlacement(
+            Guid placementId,
+            [FromBody] CorrectPlacementRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _placementCorrectionService.CorrectAsync(
+                placementId,
+                request,
+                User.GetUserId(),
+                cancellationToken);
+
+            if (result.Status != InpEpisodeOperationStatus.Success)
+            {
+                object? errors = result.Failures.Count > 0
+                    ? new { result.Code, Failures = result.Failures }
+                    : result.Code != null ? new { result.Code } : null;
+
+                var statusCode = result.Status switch
+                {
+                    InpEpisodeOperationStatus.Invalid => StatusCodes.Status400BadRequest,
+                    InpEpisodeOperationStatus.Forbidden => StatusCodes.Status403Forbidden,
+                    InpEpisodeOperationStatus.NotFound => StatusCodes.Status404NotFound,
+                    InpEpisodeOperationStatus.Conflict => StatusCodes.Status409Conflict,
+                    _ => StatusCodes.Status422UnprocessableEntity
+                };
+
+                return StatusCode(statusCode, ApiResponse<object>.Fail(statusCode, result.Message, errors));
+            }
+
+            // Alasan koreksi adalah kolom sensitif; tidak ikut ke log.
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "InpatientBedOccupancy.CorrectPlacement",
+                "Mengoreksi salah catat penempatan tempat tidur.",
+                new
+                {
+                    EntityId = result.PlacementId,
+                    CorrectedPlacementId = placementId,
+                    Controller = "InpatientBedOccupancy",
+                    Action = "CorrectPlacement",
                     StatusCode = StatusCodes.Status200OK
                 });
 

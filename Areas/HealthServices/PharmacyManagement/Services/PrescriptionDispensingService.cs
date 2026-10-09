@@ -87,6 +87,7 @@ public sealed class PrescriptionDispensingService
     private readonly DrugStockService _drugStockService;
     private readonly PrescriptionFinancialClearanceService _financialClearanceService;
     private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
+    private readonly DrugReturnBillingHandoffService _returnBillingHandoff;
     private readonly ILogger<PrescriptionDispensingService> _logger;
 
     public PrescriptionDispensingService(ApplicationDbContext dbContext,
@@ -94,9 +95,11 @@ public sealed class PrescriptionDispensingService
         DrugStockService drugStockService,
         PrescriptionFinancialClearanceService financialClearanceService,
         ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
+        DrugReturnBillingHandoffService returnBillingHandoff,
         ILogger<PrescriptionDispensingService> logger)
     {
         _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
+        _returnBillingHandoff = returnBillingHandoff;
         _logger = logger;
         _financialClearanceService = financialClearanceService;
         _dbContext = dbContext;
@@ -375,13 +378,8 @@ public sealed class PrescriptionDispensingService
                 .FirstOrDefaultAsync(cancellationToken);
             if (stageOne is null) return;
 
-            var usages = await LoadUsagesAsync(prescription.Id, cancellationToken);
-            var dispensedItems = usages
-                .Where(x => DispensedStatuses.Contains(x.Status))
-                .SelectMany(x => x.Items)
-                .Where(x => x.PrescriptionItemId != null)
-                .GroupBy(x => x.PrescriptionItemId!.Value)
-                .Select(x => new { prescriptionItemId = x.Key.ToString("D"), quantity = x.Sum(i => i.Quantity) })
+            var net = await _returnBillingHandoff.GetNetDispensedItemsAsync(prescription.Id, cancellationToken);
+            var dispensedItems = net
                 .Where(x => x.quantity > 0)
                 .OrderBy(x => x.prescriptionItemId, StringComparer.Ordinal)
                 .ToList();

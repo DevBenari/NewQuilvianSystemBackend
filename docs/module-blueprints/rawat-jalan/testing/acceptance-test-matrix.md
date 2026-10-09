@@ -106,3 +106,80 @@
 | `RJ-E2E-FE-004` | Selesai Konsultasi saat Billing gagal | E2E | Konsultasi selesai; dokter melihat pemberitahuan masalah penyerahan |
 | `RJ-E2E-DEC-013` | Skrining selesai, kunjungan tidak butuh dokter | Integ | Kunjungan `Billing`; `CompletedAt` kosong |
 | `SEC-RJ-004` | Deskripsi pelayanan berisi `<script>` | E2E | Tampil sebagai teks biasa |
+
+
+---
+
+# Amendment DP — Daftar Pasien Rawat Jalan (`RJ-DOC-ENCLIST-001@1.0.0`, `draft`)
+
+Verifikasi pola Bank Darah: uji runtime HTTP terhadap `QuilvianNewDevSukma`, data uji dibuat dan
+dibersihkan lewat endpoint aplikasi. Asal AC: `00-interview-decisions.md` (AC 1-13 amendment).
+
+| ID | Skenario | Langkah | Hasil yang diharapkan | AC |
+|---|---|---|---|---|
+| `AT-DP-01` | Cakupan dokter | dr. A `GET /?mode=active` | Hanya kunjungan `DoctorId` = A | 1 |
+| `AT-DP-02` | Dokter memaksa dokter lain | dr. A `GET /?doctorId=<C>` | Daftar kosong | 1 |
+| `AT-DP-03` | Cakupan perawat | Perawat B (cluster: Poli Dalam, Jantung) `GET /` | Semua kunjungan dua poli itu, tidak ada poli lain | 2 |
+| `AT-DP-04` | Tanpa cakupan | Akun tanpa dokter/cluster/`ReadAll` | `403` `RJDP-VAL-001` | 3 |
+| `AT-DP-05` | Lihat semua tanpa role Super Admin | Akun pendaftaran ber-`ReadAll` | Semua klinik | 4 |
+| `AT-DP-06` | Bukan RJ | Ada kunjungan IGD, Rawat Inap, lab walk-in | Tidak muncul | 5 |
+| `AT-DP-07` | Batal status 0-5 | `PATCH cancel` status 3 + alasan | `200`; `IsCancel`; antrean batal; `POST /patient-encounters/admin` pasien sama `200` | 6 |
+| `AT-DP-08` | Batal status 6 tanpa konsultasi aktif | Konsultasi dibatalkan dokter, lalu `PATCH cancel` | `200` | 6 (`RJ-DOC-DEC-021`) |
+| `AT-DP-09` | Batal status 6 dengan konsultasi aktif | `PATCH cancel` | `400` `RJDP-VAL-005` | 7 |
+| `AT-DP-10` | Batal status 7 | `PATCH cancel` | `400` `RJDP-VAL-006` | 7 |
+| `AT-DP-11` | Alasan kosong / 251 karakter | `PATCH cancel` | `400` `RJDP-VAL-002` | 8 |
+| `AT-DP-12` | Tanpa `Cancel` | `PATCH cancel` | `403` | 9 |
+| `AT-DP-13` | Di luar cakupan | dr. A batalkan pasien dr. C | `404` `RJDP-VAL-003` | 9 |
+| `AT-DP-14` | Batal ganda bersamaan | Dua `PATCH cancel` paralel | Satu `200`, satu `400` `RJDP-VAL-004` | — |
+| `AT-DP-15` | Status 7 tidak memblokir | Pasien punya kunjungan RJ status 7 → `POST /patient-encounters/admin` poli lain | `200` | 10 |
+| `AT-DP-16` | Status 0-6 tetap memblokir | Pasien punya kunjungan RJ status 5 → daftar | `400` pesan `RJ-DOC-REV-BE-007` | 10 |
+| `AT-DP-17` | Penunjang/IGD tidak memblokir | Pasien punya kunjungan lab walk-in aktif → daftar poli | `200` | 10 |
+| `AT-DP-18` | Akses rekam medis tidak berubah | Bandingkan hasil endpoint akses rekam medis sebelum/sesudah untuk kunjungan status 7 | Sama | 11 |
+| `AT-DP-19` | Endpoint lama | `PATCH /patient-encounters/{id}/cancel` status 7 | Tetap `200` seperti sebelumnya | 12 |
+| `AT-DP-20` | Kunjungan pemblokir terlihat | Ambil nomor dari pesan penolakan `AT-DP-16`, cari di `GET /?mode=active&search=` dengan akun `ReadAll` | Ditemukan | 13 |
+| `AT-DP-21` | Summary menggantung | `GET /summary?mode=today` | `hanging` tetap menghitung kunjungan lintas tanggal | `RJ-DOC-FE-007` |
+| `AT-DP-22` | FE: tombol bersyarat | Login dokter tanpa `Cancel`; baris status 6 berkonsultasi | Tidak ada tombol Batalkan; keterangan `cancelBlockedReason` tampil | `RJ-DOC-FE-008` |
+| `AT-DP-23` | FE: menu | Login pemegang `Read` | Butir "Daftar Pasien Rawat Jalan" tepat di bawah "Skrining Pasien"; tanpa `Read` tidak tampil | `RJ-DOC-FE-005` |
+| `AT-DP-24` | FE: kasus pemicu | Kartu Menggantung → cari ENC-RSMMC-00146 → Batalkan → daftar ulang pasien | Pendaftaran berhasil | Pemicu |
+
+---
+
+# Amendment KT — Konsultasi Tertunda (`RJ-DOC-PENDCONS-001@1.0.0`, `draft`)
+
+Pola Bank Darah: uji runtime HTTP terhadap `QuilvianNewDevSukma`; data uji dibuat dan dibersihkan
+lewat endpoint aplikasi.
+
+| ID | Skenario | Hasil yang diharapkan | Trace |
+|---|---|---|---|
+| `AT-KT-01` | Dokter A, antrean kemarin `InConsultation`, kunjungan 6, konsultasi `InProgress` | Muncul di `pending-consultations` | `RJ-DOC-DEC-029`, `030` |
+| `AT-KT-02` | Antrean yang sama tetapi bertanggal hari ini | Tidak muncul | KT.3.1 |
+| `AT-KT-03` | Antrean kemarin, status `WaitingForDoctor`; kunjungan status 7; konsultasi `Cancelled` | Tidak muncul (tiga kasus) | `RJ-DOC-DEC-030` |
+| `AT-KT-04` | Dokter B memanggil, juga dengan `doctorId` = A | Antrean dokter A tidak muncul | KT.3.2 |
+| `AT-KT-05` | Pengguna tanpa data dokter dan bukan super admin | `403` | `RJKT-VAL-001` |
+| `AT-KT-06` | Konsultasi punya 1 resep draf dan 2 tindakan | `draftPrescriptionCount = 1`, `procedureCount = 2`; `queueId` mempersempit ke satu baris | KT.3.3 |
+| `AT-KT-07` | `finish-consultation` pada antrean `AT-KT-01` | `200`; kunjungan 7; baris hilang; dengan `BlockActiveEncounter = true` pasien dapat didaftarkan | `RJ-DOC-DEC-031` |
+| `AT-KT-08` | Batal konsultasi antrean tertunda lain, lalu batal kunjungan lewat Daftar Pasien Rawat Jalan | Baris hilang; batal kunjungan `200` | `RJ-DOC-DEC-031`, `RJ-DOC-DEC-021` |
+| `AT-KT-09` | `GET /doctor-queues`, `/summary`, `/call-lock` hari ini sebelum dan sesudah perubahan | Hasil sama | Kompatibilitas |
+| `AT-KT-10` | Batal kunjungan status 6 dengan konsultasi aktif | `400` dengan bunyi baru `RJDP-VAL-005` | KT.3.4 |
+| `AT-KT-11` | Frontend: `UAT-KT-01`..`07` | Sesuai `04-prd-to-mvp.md` *Amendment KT* | `RJ-DOC-FE-010`..`012` |
+
+# Amendment MT — Menu Konsultasi Tertunda (revisi `30`, `draft`)
+
+Frontend-only. Uji layar Playwright terhadap FE dev dan backend dev dengan DB
+`QuilvianNewDevSukma` (pola `runtime-ui-test-setup`). Data uji dibuat dan dibersihkan lewat
+endpoint aplikasi. `dotnet test` tidak berlaku (tidak ada perubahan backend).
+
+| ID | Skenario | Hasil yang diharapkan | Trace |
+|---|---|---|---|
+| `AT-MT-01` | Sidebar Dokter → Rawat Jalan | Butir Klinis Dokter dan Konsultasi Tertunda; masing-masing menyala sendiri saat aktif | `RJ-DOC-FE-014` |
+| `AT-MT-02` | Klinis Dokter, antrean hari ini | Tanpa tab; perilaku Panggil/Mulai/Selesaikan hari ini sama dengan sebelumnya | `RJ-DOC-FE-014` |
+| `AT-MT-03` | Pengingat dengan `n > 0` dan `n = 0` | Tampil dengan tautan / tidak tampil | `RJ-DOC-FE-015` |
+| `AT-MT-04` | Daftar, pencarian, jumlah baris, pagination | Isi sama dengan `GET pending-consultations` pada parameter yang sama | `MT-FR-02` |
+| `AT-MT-05` | Batalkan dari daftar | Alasan wajib; `PATCH …/cancel` terkirim sekali; baris hilang; pesan petugas | `RJ-DOC-DEC-047` |
+| `AT-MT-06` | Tanpa `canCancelConsultation` | Aksi batal tidak tampil di daftar dan workspace | `RJ-DOC-DEC-047` |
+| `AT-MT-07` | Simpan Konsultasi | Klinis Dokter membuka item, modal Simpan tertutup, banner tampil, parameter URL bersih | `RJ-DOC-DEC-046` |
+| `AT-MT-08` | Selesaikan sukses dari item daftar | Kembali ke daftar dengan pesan; kunjungan status 7 | `RJ-DOC-DEC-048` |
+| `AT-MT-09` | Batalkan dari workspace | Kembali ke daftar dengan pesan | `RJ-DOC-DEC-047`, `048` |
+| `AT-MT-10` | Item sudah tidak tertunda / id tidak valid | Pesan tidak ditemukan dan tautan kembali | `MT-FR-05` |
+| `AT-MT-11` | Finalisasi ditolak validasi | Tetap di Klinis Dokter dengan pesan validasi | `RJ-DOC-DEC-048` |
+| `AT-MT-12` | Lint berkas tersentuh dan `next build` | Lulus | DoD |

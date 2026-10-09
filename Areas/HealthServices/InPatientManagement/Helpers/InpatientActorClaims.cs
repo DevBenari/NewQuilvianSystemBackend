@@ -99,6 +99,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers
             return null;
         }
 
+        /// <summary>
+        /// Identitas karyawan/perawat milik pengguna yang sedang masuk, atau <c>null</c> bila
+        /// penggunanya tidak memiliki profil karyawan.
+        /// </summary>
+        public static Guid? GetEmployeeId(this ClaimsPrincipal user)
+        {
+            var value = user.FindFirstValue("employee_id");
+
+            if (Guid.TryParse(value, out var id) && id != Guid.Empty)
+            {
+                return id;
+            }
+
+            return null;
+        }
+
         /// <summary>Benar bila pengguna berperan supervisor atau kepala ruangan.</summary>
         public static bool IsSupervisorOrWardHead(this ClaimsPrincipal user)
         {

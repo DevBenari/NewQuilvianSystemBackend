@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | **`0.9.0`** — bagian 10, `draft` |
-| `last_changed_in` | **`0.9.0`** — census dokter, penugasan pendukung, tiga isian resume, akibat penutupan. Sebelumnya `0.8.0` — pencabutan aturan jenis kelamin tingkat kamar |
+| `contract_version` | **`0.11.0`** — bagian 12 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 11 Finishing, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 10 |
+| `last_changed_in` | **`0.11.0`** — grup baru `Inpatient Admission Workspace`, isian baru dua master, peringatan detail episode. Sebelumnya `0.10.0` — Finishing; `0.9.0` — census dokter, penugasan pendukung, tiga isian resume, akibat penutupan |
 | Status | **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006`; nama belum diisi |
 | `approved_by` / `approved_at` | **Muhammad Hamzah — Product/Domain owner (`RWI-DEC-061`), 10 September 2026**, lewat instruksi eksplisit untuk mengerjakan `BE-RWI-069`. Mengikuti pola approval per-task yang sudah dipakai `BE-RWI-036` pada 1 September 2026 |
@@ -563,3 +563,409 @@ Judul grup: `[Tags("Health Services / Inpatient Management / Inpatient Monitorin
 | Endpoint Resume ODC | `RWI-DEC-123` |
 | Endpoint "Catatan Saya" | `RWI-DEC-142` |
 | Membatalkan pesanan tertagih dari Rawat Inap | `RWI-DEC-143` (c) |
+
+---
+
+## 11. Perubahan pada `contract_version` `0.10.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.10.0` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
+| Owner | Muhammad Hamzah (Rawat Inap dan Clinical); Ikbal Yulianto (Kamar Operasi — **disetujui Ikbal Yulianto, `RWI-DEC-208`**); `MasterData` milik seluruh tim (`RWI-DEC-193`); Billing untuk `SourceContext = OPERATING_ROOM` (`RWI-DEC-192`, `196`) |
+| `input_revision` | `02-backend-architecture.md` `0.9` bagian 12; `data/data-dictionary.md` bagian 19; decision log revision `30`; PRD Finishing v`0.4`; gate `1.9` |
+| Dampak kompatibilitas | **Aditif** untuk endpoint dan isian baru. **Perubahan permission** pada dua endpoint serah terima OK (`Update` → `Send`/`Receive`). **Perubahan perilaku**: penundaan kasus menandai pra-operasi "perlu diperbarui"; gerbang "Siap" bertambah syarat; penerimaan serah terima memeriksa penerima dan bed; `POST episodes` menolak admisi pasien yang punya permintaan admisi `Pending` tanpa merujuknya |
+| Traceability | `FR-RWF-040` s.d. `049`, `071`, `080` s.d. `082`, `086` s.d. `090`; `RWI-DEC-173` s.d. `177`, `182`, `189`, `196`, `199`, `201`, `204`, `205` |
+
+Respons sukses selalu `ApiResponse<T>`. Seluruh endpoint dan isian baru berlabel **Rencana (belum tersedia)**. Respons yang dibaca perawat **tidak pernah** memuat rupiah.
+
+### 11.1 Endpoint yang sudah ada dan dipakai layar baru
+
+| Tag | Method dan path | Kegunaan | Hak akses | Status |
+|---|---|---|---|---|
+| `Health Services / Operating Room Management / Cases` | `GET api/v1/health-services/operating-room-management/cases?encounterId=` | Daftar Pesanan Ruang Bedah di bangsal (`FE-INP-26`) | `OperatingRoomCase : Read` | ✅ Tersedia; respons **ditambah** (11.5.1) |
+| `Health Services / Operating Room Management / Cases` | `GET …/cases/{id}/schedule/history` | Riwayat jadwal dan penundaan | `OperatingRoomCase : Read` | ✅ Tersedia, tetap |
+| `Health Services / Clinical Management / Patient Procedure` | `GET …/patient-procedures?encounterId=&procedureStatus=` | Pilihan order tindakan operasi aktif saat memesan | `PatientProcedure : Read` | ✅ Tersedia, tetap |
+| `Health Services / Inpatient Management / Bed Occupancy` | `POST …/bed-occupancies/placements/transfer` | Pindah pasien sebelum menerima serah terima ke unit lain; transfer antarunit kini juga membuat dokumen serah terima transfer (11.8) | `InpatientBedOccupancy : Transfer` | ✅ Tersedia; efek sesudah commit **Rencana** |
+
+### 11.2 Health Services / Inpatient Management / Inpatient Surgery Booking — grup baru
+
+Base URL: `api/v1/health-services/inpatient-management/episodes`
+Judul grup: `[Tags("Health Services / Inpatient Management / Inpatient Surgery Booking")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `POST` | `/{episodeId}/surgery-bookings` | Pesan ruang bedah dari bangsal, tab Bedah Operasi atau Bedah Obgyn. Membuat kasus OK `Requested` | `OperatingRoomCase : Create` | `SurgeryBookingRequest` + header `Idempotency-Key` | `ApiResponse<OprCaseResponse>` | **Rencana (belum tersedia)** |
+
+**`SurgeryBookingRequest`**
+
+| Field | Tipe | Wajib | Aturan |
+|---|---|:---:|---|
+| `BookingTab` | `string` | Ya | `Surgery` atau `Obstetric`. `Obstetric` memaksa `SurgicalServiceType = Obstetric` |
+| `PatientProcedureId` | `Guid` | Ya | Tepat satu order tindakan operasi berstatus aktif milik kunjungan episode |
+| `PreferredAt` | `DateTime` | Ya | Tanggal dan jam yang diinginkan; tidak di masa lalu lebih dari 15 menit |
+| `PlannedAnesthesiaType` | `string` | Ya | `General`, `Regional`, `Local`, `Sedation` |
+| `Priority` | `string` | Ya | `Routine`, `Urgent`, `Emergency` |
+| `CaseType` | `string` | Ya | `Elective`, `Emergency` |
+| `Indication` | `string` | Ya | Maks. 4000 |
+| `Laterality` | `string` | Tidak | `Left`, `Right`, `Bilateral`, `NotApplicable` |
+| `EstimatedMinutes` | `int` | Ya | 1–1440 |
+| `Note` | `string` | Tidak | Maks. 1000 |
+
+Dokter operator diambil dari order tindakan; `RequesterDoctorId` dari dokter pemesan order; penginput dari akun login.
+
+Contoh: Budi S., Melati 302/2, order "Appendektomi" aktif → `BookingTab = Surgery`, `PreferredAt = 2026-10-03T08:00`, `PlannedAnesthesiaType = General`, `Laterality = NotApplicable` → `201`, kasus `OK-2026-0142` `Requested`.
+
+| Kode | Artinya bagi pengguna |
+|---|---|
+| `400` | Isian wajib kosong; nilai pilihan tidak dikenal |
+| `403` | Tidak berhak memesan ruang bedah |
+| `404` | Episode atau order tindakan tidak ditemukan |
+| `409` | Kunci idempotensi dipakai dengan isi berbeda |
+| `422` `INP-SRG-001` | "Tindakan operasi belum dipesan dokter" — order tidak ada, tidak aktif, atau bukan milik kunjungan episode ini |
+| `422` `INP-SRG-002` | Episode bukan `Admitted` |
+
+### 11.3 Health Services / Operating Room Management / Preparation — Catatan Pra-Operasi bangsal
+
+Base URL: `api/v1/health-services/operating-room-management/cases/{caseId}/preparation`
+Judul grup: `[Tags("Health Services / Operating Room Management / Preparation")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/ward-pre-op` | Versi pra-operasi terbaru beserta butir dan penandaan | `OperatingRoomWardPreOp : Read` | — | `ApiResponse<WardPreOpResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/ward-pre-op/versions` | Seluruh versi, termasuk yang "perlu diperbarui" dan yang digantikan | `OperatingRoomWardPreOp : Read` | — | `ApiResponse<List<WardPreOpVersionSummary>>` | **Rencana (belum tersedia)** |
+| `PUT` | `/ward-pre-op/draft` | Simpan draf pengirim. Membuat versi baru bila versi terbaru `NeedsUpdate`, menyalin butir lama sebagai usulan | `OperatingRoomWardPreOp : Send` | `SaveWardPreOpDraftRequest` | `ApiResponse<WardPreOpResponse>` | **Rencana (belum tersedia)** |
+| `PATCH` | `/ward-pre-op/send` | Kirim. Server membekukan tanda vital dan nyeri terakhir sebagai potret | `OperatingRoomWardPreOp : Send` | `{ ExpectedVersion }` + `Idempotency-Key` | Sama | **Rencana (belum tersedia)** |
+| `PATCH` | `/ward-pre-op/confirm` | Konfirmasi penerima per butir dan penandaan | `OperatingRoomWardPreOp : Confirm` | `ConfirmWardPreOpRequest` | Sama | **Rencana (belum tersedia)** |
+| `GET` | `/` | Kesiapan kasus. **Perubahan:** `Blockers[]` bertambah kode `WARD_PRE_OP_INCOMPLETE`, `WARD_PRE_OP_NEEDS_UPDATE` | `OperatingRoomPreparation : Read` | — | Tetap + kode baru | ✅ Tersedia, isian **Rencana** |
+
+**`SaveWardPreOpDraftRequest`**: `Items[]` (`PreparationItemId`, `SenderConfirmed` `bool`, `Note` maks. 500), `SiteMarks[]` (`BodyView` `Front`/`Back`/`Left`/`Right`, `X` dan `Y` 0–100, `Label` maks. 100), `MarkingLaterality` (`Left`/`Right`/`Bilateral`/`NotApplicable`), `MarkingLocationNote` (maks. 500), `ExpectedVersion`.
+
+**`ConfirmWardPreOpRequest`**: `Items[]` (`ItemId`, `ReceiverConfirmed`, `Note`), `SiteMarkingConfirmed` (`bool`), `ExpectedVersion`, `Idempotency-Key`.
+
+**`WardPreOpResponse`**: `Id`, `VersionNumber`, `Status`, `VitalSnapshot` (`SystolicBp`, `DiastolicBp`, `PulseRate`, `RespiratoryRate`, `Temperature`, `SpO2`, `RecordedAt`), `PainSnapshot` (`Score`, `ScaleName`, `RecordedAt`), `Items[]` (`ItemId`, `GroupName`, `ItemName`, `IsMandatory`, `SenderConfirmed`, `ReceiverConfirmed`, `Note`), `SiteMarks[]`, `MarkingLaterality`, `CaseLaterality`, `SentByName`, `SentAt`, `ConfirmedByName`, `ConfirmedAt`, `PreviousVersionId`, `Version`.
+
+Contoh: versi 1 `Confirmed`; kasus ditunda → versi 1 `NeedsUpdate`; perawat bangsal `PUT /ward-pre-op/draft` → versi 2 `Draft` dengan butir versi 1 sebagai usulan; `PATCH /send` → potret TD 130/85 dari pencatatan terbaru.
+
+| Kode | Artinya bagi pengguna |
+|---|---|
+| `403` | Tidak berhak mengirim atau mengonfirmasi |
+| `409` | Versi berubah |
+| `422` `OPR-WPO-001` | "Sisi penandaan berbeda dengan sisi pada pesanan operasi" |
+| `422` `OPR-WPO-002` | Pengirim dan penerima harus akun berbeda |
+| `422` `OPR-WPO-003` | Butir wajib pengirim belum dikonfirmasi saat mengirim |
+| `422` `OPR-WPO-004` | Kasus `Rejected`, `Cancelled`, `InProgress`, atau `Completed` — pra-operasi tidak dapat diubah |
+| `422` `OPR-WPO-005` | Belum ada tanda vital tercatat untuk episode ini |
+
+### 11.4 Health Services / Master Data / Surgical Preparation Item — grup baru
+
+Base URL: `api/v1/health-services/master-data/surgical-preparation-items`
+Judul grup: `[Tags("Health Services / Master Data / Surgical Preparation Item")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Daftar butir; saringan kelompok dan aktif | `SurgicalPreparationItem : Read` | `PagedQuery { Search?, GroupName?, IsActive? }` | `ApiResponse<PagedResult<SurgicalPreparationItemResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail | `SurgicalPreparationItem : Read` | — | `ApiResponse<SurgicalPreparationItemResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Tambah butir | `SurgicalPreparationItem : Create` | `{ Code, GroupName, ItemName, IsMandatory, SortOrder, Description? }` | Sama | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Ubah | `SurgicalPreparationItem : Update` | Sama + `RowVersion` | Sama | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/status` | Aktif/nonaktif. Butir nonaktif tidak muncul di versi baru; versi lama tetap utuh | `SurgicalPreparationItem : Update` | `{ IsActive }` | Sama | **Rencana (belum tersedia)** |
+
+Kode khusus: `409` `MST-SPI-001` kode sudah dipakai.
+
+### 11.5 Kamar Operasi — kasus, serah terima, dan daftar serah terima
+
+#### 11.5.1 Health Services / Operating Room Management / Cases — perubahan
+
+Base URL: `api/v1/health-services/operating-room-management/cases`
+Judul grup: `[Tags("Health Services / Operating Room Management / Cases")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `POST` | `/` | **Perubahan:** menerima `SurgicalServiceType` (bawaan `General`) dan `PlannedAnesthesiaType` (opsional) | `OperatingRoomCase : Create` | `CreateOprCaseRequest` + dua isian | `OprCaseResponse` | ✅ Tersedia, isian **Rencana** |
+| `GET` | `/`, `/{id}` | **Perubahan:** respons bertambah `SurgicalServiceType`, `PlannedAnesthesiaType`, `RejectedAt`, `RejectedByName`, `RejectionReason`, `LastStatusReason` (alasan tunda atau batal terakhir), `WardPreOpStatus`, `HandoverStatus` | `OperatingRoomCase : Read` | Query tetap; `Status` menerima `Rejected` | Tetap + isian | ✅ Tersedia, isian **Rencana** |
+| `PATCH` | `/{id}/reject` | Tolak order dari `Requested` dengan alasan; status akhir `Rejected` | `OperatingRoomCase : Reject` | `{ Reason (wajib, 10–500), ExpectedVersion }` + `Idempotency-Key` | `ApiResponse<OprCaseResponse>` | **Rencana (belum tersedia)** — disetujui `RWI-DEC-208` |
+| `GET` | `/{id}/post-operative-summary` | Ringkasan operasi baca-saja untuk bangsal | `OperatingRoomCase : Read` | — | `ApiResponse<PostOperativeSummaryResponse>` | **Rencana (belum tersedia)** |
+
+**`PostOperativeSummaryResponse`**: `CaseId`, `CaseNumber`, `ProcedureNames[]`, `PrimarySurgeonName`, `ReportFinal` (`bool`), dan bila `ReportFinal = true`: `PostDiagnosis`, `Findings`, `Complications`, `BloodLossMl`, `ImplantDrainNote`, `PostPlan`, `FinishedAt`; `AnesthesiaTechnique`, `PlannedAnesthesiaType`; `RecoveryScoreSystem`, `RecoveryScoreValue`, `RecoveryDecision`; `HandoverInstructionSummary`, `HandoverStatus`. Bila `ReportFinal = false`, isian klinis `null` dan `Message` "Laporan operasi belum final".
+
+| Kode `PATCH /reject` | Artinya bagi pengguna |
+|---|---|
+| `400` | Alasan kosong atau kurang dari 10 karakter |
+| `403` | Tidak berhak menolak order operasi |
+| `409` | Versi berubah |
+| `422` `OPR-CASE-REJ-001` | Hanya kasus berstatus Diminta yang dapat ditolak |
+
+Tindakan pada kasus `Rejected` (`PUT /{id}`, `PATCH /{id}/schedule`, `/postpone`, `/cancel`, `/start`) → `422` `OPR-CASE-REJ-002` "Kasus yang ditolak tidak dapat diubah; pesan ulang sebagai kasus baru".
+
+#### 11.5.2 Health Services / Operating Room Management / Execution — serah terima
+
+Base URL: `api/v1/health-services/operating-room-management/cases/{caseId}/execution`
+Judul grup: `[Tags("Health Services / Operating Room Management / Execution")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `POST` | `/handovers` | Kirim serah terima. **Perubahan permission** | ~~`OperatingRoomHandover : Update`~~ → `OperatingRoomHandover : Send` | Tetap | Tetap | ✅ Tersedia, permission **Rencana** |
+| `PATCH` | `/handovers/{handoverId}/accept` | Terima atau tolak. **Perubahan permission dan aturan:** penerima ≠ pengirim; pasien menempati bed aktif di unit tujuan | ~~`OperatingRoomHandover : Update`~~ → `OperatingRoomHandover : Receive` | Tetap (`Accept`, `RejectionReason`, `IdempotencyKey`) | Tetap | ✅ Tersedia, aturan **Rencana** |
+| `PUT` | `/recovery` | Simpan kamar pulih. **Perubahan perilaku:** keputusan `Inpatient`/`Icu` untuk pasien tanpa episode hadir membuat permintaan admisi; keputusan berubah dari itu membatalkannya | `OperatingRoomAnesthesia : Update` | Tetap | Tetap + `AdmissionReferralState` (`NotNeeded`, `Created`, `Cancelled`) | ✅ Tersedia, perilaku **Rencana** — disetujui `RWI-DEC-208` |
+
+| Kode tambahan `accept` | Artinya bagi pengguna |
+|---|---|
+| `403` | Tidak berhak menerima serah terima |
+| `422` `OPR-HO-001` | "Pindahkan pasien ke tempat tidur di unit ini lewat Transfer Pasien sebelum menerima serah terima" |
+| `422` `OPR-HO-002` | Pengirim tidak dapat menerima serah terima sendiri |
+
+#### 11.5.3 Health Services / Operating Room Management / Handovers — grup baru, baca saja
+
+Base URL: `api/v1/health-services/operating-room-management/handovers`
+Judul grup: `[Tags("Health Services / Operating Room Management / Handovers")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Serah terima per unit tujuan dan status; `overdueOnly` memakai `MstInpatientSetting.PendingSurgicalHandoverAlertMinutes` | `OperatingRoomHandover : Read` | `{ DestinationUnitId?, Status?, OverdueOnly?, PageNumber, PageSize }` | `ApiResponse<PagedResult<HandoverQueueItemResponse>>` | **Rencana (belum tersedia)** |
+
+`HandoverQueueItemResponse`: `HandoverId`, `CaseId`, `CaseNumber`, `PatientName`, `MedicalRecordNumber`, `DestinationUnitName`, `CurrentUnitName`, `PatientInDestinationUnit` (`bool`), `Status`, `SentByName`, `SentAt`, `WaitingMinutes`, `IsOverdue`.
+
+### 11.6 Health Services / Inpatient Management / Inpatient Admission Referral — grup baru
+
+Base URL: `api/v1/health-services/inpatient-management/admission-referrals`
+Judul grup: `[Tags("Health Services / Inpatient Management / Inpatient Admission Referral")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Daftar permintaan admisi dari kamar pulih | `InpatientAdmissionReferral : Read` | `{ Status? (bawaan Pending), OverdueOnly?, Search?, PageNumber, PageSize }` | `ApiResponse<PagedResult<AdmissionReferralResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail untuk mengisi awal admisi berlangkah | `InpatientAdmissionReferral : Read` | — | `ApiResponse<AdmissionReferralResponse>` | **Rencana (belum tersedia)** |
+
+Membuat dan membatalkan permintaan **tidak** punya endpoint; keduanya dipanggil service Kamar Operasi dalam proses yang sama saat `PUT …/execution/recovery` (11.5.2).
+
+`AdmissionReferralResponse`: `Id`, `PatientId`, `PatientName`, `MedicalRecordNumber`, `SourceEncounterId`, `SourceEncounterType` (`Outpatient`, `Emergency`, `OneDayCare`), `OprCaseId`, `CaseNumber`, `ProcedureNames[]`, `PrimarySurgeonId`, `PrimarySurgeonName`, `RequestedCareLevel` (`Inpatient`, `Icu`), `RecoveryDecisionNote`, `Status`, `RequestedAt`, `WaitingMinutes`, `IsOverdue`, `CancelledReason`, `CompletedEpisodeId`.
+
+#### Perubahan pada `Inpatient Episode`
+
+| Method | Path | Perubahan | Hak akses | Status |
+|---|---|---|---|---|
+| `POST` | `api/v1/health-services/inpatient-management/episodes` | `OpenAdmissionRequest` bertambah `AdmissionReferralId` (opsional). Bila diisi: permintaan wajib `Pending` dan milik pasien yang sama; kunjungan asal dirujuk seperti alih IGD; permintaan menjadi `Completed` dalam transaksi yang sama. Bila kosong padahal pasien punya permintaan `Pending` → ditolak | `InpatientEpisode : Create` | ✅ Tersedia, isian **Rencana** |
+
+| Kode | Artinya bagi pengguna |
+|---|---|
+| `409` `INP-ADM-REF-001` | "Pasien punya permintaan admisi dari kamar pulih; buka admisi dari permintaan itu" |
+| `422` `INP-ADM-REF-002` | Permintaan sudah selesai atau dibatalkan |
+
+### 11.7 Health Services / Inpatient Management / Inpatient Report — grup baru (`P2`)
+
+Base URL: `api/v1/health-services/inpatient-management/reports`
+Judul grup: `[Tags("Health Services / Inpatient Management / Inpatient Report")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/room-transfers` | Laporan transfer ruangan per periode | `InpatientReport : ReadRoomTransfer` | `RoomTransferReportQuery { PeriodFrom (wajib), PeriodTo (wajib, ≤ 31 hari), FromServiceUnitId?, ToServiceUnitId?, ClassId?, IncludeCorrections (bawaan true), PageNumber, PageSize }` | `ApiResponse<PagedResult<RoomTransferReportRow>>` | **Rencana (belum tersedia)** |
+| `GET` | `/room-transfers/export` | Ekspor Excel dengan saringan yang sama; dicatat audit | `InpatientReport : ExportRoomTransfer` | Sama tanpa paging | Berkas `.xlsx` | **Rencana (belum tersedia)** |
+
+`RoomTransferReportRow`: `TransferredAt`, `MedicalRecordNumber`, `PatientName`, `FromClassName`, `FromRoomName`, `FromBedNumber`, `ToClassName`, `ToRoomName`, `ToBedNumber`, `Reason`, `RecordedByName`, `EntryKind` (`Transfer`, `Correction`).
+
+Kode: `400` periode kosong atau lebih dari 31 hari; `403` tanpa permission laporan, apa pun nama perannya.
+
+### 11.8 Health Services / Clinical Management / Transfer Handover — grup baru (`P2`)
+
+Base URL: `api/v1/health-services/clinical-management/transfer-handovers`
+Judul grup: `[Tags("Health Services / Clinical Management / Transfer Handover")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Dokumen per episode atau per unit, saringan status | `TransferHandover : Read` | `{ EpisodeId?, ServiceUnitId?, Status? }` | `ApiResponse<List<TransferHandoverResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail sembilan bagian | `TransferHandover : Read` | — | `ApiResponse<TransferHandoverResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/draft` | Lengkapi bagian yang diisi pengirim | `TransferHandover : Send` | `SaveTransferHandoverDraftRequest` | Sama | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/send` | Kirim; server membekukan potret klinis | `TransferHandover : Send` | `{ ExpectedVersion }` | Sama | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/accept` | Terima atau tolak beralasan | `TransferHandover : Receive` | `{ Accept, RejectionReason?, ExpectedVersion }` | Sama | **Rencana (belum tersedia)** |
+
+Pembuatan dokumen tidak punya endpoint: dibuat oleh transfer antarunit (11.1).
+
+`SaveTransferHandoverDraftRequest`: `SoapSummary` (maks. 4000), `HandedItems` (maks. 2000), `SpecialInstructions` (maks. 2000), `ExpectedVersion`. GCS, tanda vital, nyeri, risiko jatuh, dan balance cairan dirujuk dari pencatatan terakhir lalu dibekukan saat dikirim; tidak diketik.
+
+Kode: `422` `CLI-TRH-001` penerima sama dengan pengirim; `422` `CLI-TRH-002` penerima harus bertugas di unit tujuan (bed pasien aktif di unit itu); `400` alasan tolak kosong; `409` versi berubah.
+
+### 11.9 Perubahan kecil lain
+
+| Tag | Perubahan | Hak akses | Status |
+|---|---|---|---|
+| `Health Services / Master Data / Inpatient Setting` | Respons dan `PUT` bertambah `PendingSurgicalHandoverAlertMinutes` (1–1440, bawaan 60) dan `PendingAdmissionReferralAlertMinutes` (1–1440, bawaan 30) | `InpatientSetting : Read`, `: Update` | ✅ Tersedia, isian **Rencana** |
+| `Health Services / Inpatient Management / Inpatient Monitoring` | `GET /monitoring/pending-surgical-handovers` dan `GET /monitoring/pending-admission-referrals` — kartu Daftar Pantau; membaca 11.5.3 dan 11.6 dengan `OverdueOnly = true` | `InpatientMonitoring : Read` | **Rencana (belum tersedia)** |
+| `Health Services / Master Data / Tariff` | Tiga isian komponen operasi; kontraknya di `keperawatan/contracts/api-contract.md` bagian 8 dan kamus data 12.14 | `Tariff : Update` | Dirancang `keperawatan` `0.6.0` |
+| `Health Services / Operating Room Management / Reports` | `GET reports/operations` memisahkan `RejectedCount` dari `CancelledCount` | `OperatingRoomCase : Read` | ✅ Tersedia, isian **Rencana** |
+
+### 11.10 Yang sengaja tidak ada di kontrak `0.10.0`
+
+| Yang tidak ada | Alasan |
+|---|---|
+| Endpoint menyetujui order | Menyetujui = menjadwalkan (`PATCH cases/{id}/schedule`) |
+| Endpoint membuat atau membatalkan permintaan admisi | Dipanggil OK dalam proses (`RWI-DEC-201`) |
+| Endpoint penggabungan biaya operasi kunjungan asal | Tidak perlu: Billing menautkan saat memproses `ADMISSION_CONFIRMED` (`RWI-DEC-207`, `integrasi-billing` `INT-RWF-29`) |
+| Endpoint menyalin ringkasan operasi ke Rawat Inap | `PR-RWF-05` |
+| Field rupiah pada respons OK yang dibaca bangsal | `RWI-DEC-160` |
+
+### 11.11 Penyelarasan decision log revision `31` ★ 2 Oktober 2026
+
+| Keputusan | Akibat pada kontrak |
+|---|---|
+| `RWI-DEC-207` | `POST episodes` dengan `AdmissionReferralId` tidak berubah bentuk. Kunjungan asal tidak dibawa ke Billing lewat pesan; Billing membacanya dari `InpAdmissionReferral` (`integrasi-billing` `INT-RWF-29`) |
+| `RWI-DEC-208` | Endpoint `PATCH cases/{id}/reject` dan perilaku baru `PUT …/execution/recovery` tidak lagi bergerbang |
+| `RWI-DEC-218`, `RWI-DEC-219` | `FE-INP-25` memakai `UnitPrice` dan `CoverageStatus` dari `GET clinical-management/patient-procedures` (11.1, ✅ tersedia). Tidak ada endpoint harga baru |
+| `RWI-DEC-214`, `RWI-DEC-215` | Butir menu Laporan Rawat Inap memakai endpoint 11.7; tidak ada endpoint baru |
+| `RWI-DEC-220` | Pesan `VAL-RWF-71`, `VAL-RWF-87`, dan `VAL-RWF-90` kini keputusan pemilik, bukan tafsiran agent |
+
+---
+
+## 12. Perubahan pada `contract_version` `0.11.0` — Workspace PPRI ★ 7 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.11.0` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). Bagian 11 (`0.10.0`) tetap `approved` (`RWI-DEC-221`) |
+| Owner | Muhammad Hamzah (Rawat Inap, Clinical); `MasterData` seluruh tim (`RWI-DEC-193`). Perubahan service di modul lain: `PatientManagement` dan HR Master Data **disetujui** (`RWI-DEC-266`); Registration (`RWI-OQ-128`) dan Billing (`RWI-OQ-129`) masih menunggu pemiliknya — **tidak satu pun endpoint modul lain berubah** |
+| `input_revision` | `02-backend-architecture.md` `0.10` bagian 13; `data/data-dictionary.md` bagian 20; decision log revision `38`; gate `1.11` bagian 20; capability map `1.7` bagian 20; `PRD-RWI-ADMISI-001` v`0.2` (SHA-256 `f1fd336f…dc1192`) |
+| Dampak kompatibilitas | **Aditif**: satu grup endpoint baru dan isian baru pada dua master. **Perubahan perilaku**: (1) `GET episodes/{id}` menambah teks peringatan; (2) daftar dan penandaan butir penutupan episode hanya membaca butir jenis penutupan (perilaku sama selama belum ada butir jenis lain) |
+| Traceability | `FR-RWA-001` s.d. `008`, `020` s.d. `022` (bagian cetak), `030` s.d. `035`, `050` s.d. `053`, `060` s.d. `062`, `070` s.d. `072`, `080` s.d. `085`, `090` s.d. `093` (di luar gelombang), `100` s.d. `103`, `110` s.d. `113`, `120` s.d. `128`; `RWI-DEC-225` s.d. `264` |
+
+Respons sukses selalu `ApiResponse<T>`. Seluruh endpoint dan isian baru berlabel **Rencana (belum tersedia)**. Respons yang dijaga `InpatientAdmissionDocument : Read` **tidak pernah** memuat rupiah; rupiah hanya ada pada endpoint `ViewAmount` (`RWI-DEC-258`).
+
+### 12.1 Endpoint yang sudah ada dan disentuh
+
+| Tag | Method dan path | Perubahan | Hak akses | Status |
+|---|---|---|---|---|
+| `Health Services / Inpatient Management / Inpatient Episode` | `GET api/v1/health-services/inpatient-management/episodes/{id}` | `Warnings` bertambah, hanya untuk episode `Admitted`/`DischargePending`: "Dokumen admisi belum lengkap: *n* (*nama dokumen*)", "Pelunasan deposit jatuh tempo *tanggal jam* terlewati — lihat kasir", atau "Kelengkapan dokumen admisi tidak dapat dihitung". **Tanpa rupiah** | `InpatientEpisode : Read` | ✅ Tersedia; isi **Rencana** |
+| `Health Services / Inpatient Management / Inpatient Discharge` | `GET api/v1/health-services/inpatient-management/discharges/{episodeId}/clearance` dan `POST …/discharges/{episodeId}/clearance/{itemId}/mark` (daftar periksa penutupan yang sudah ada, `InpatientDischargeController.cs:321`, `:347`) | Hanya butir `ChecklistType = EpisodeClosure`. Menandai butir jenis lain → `404` "Butir administrasi tidak ditemukan" | Tetap (`InpatientDischarge : Read`, `InpatientDischarge : Update`) | ✅ Tersedia; perilaku **Rencana** |
+| `Health Services / Billing Management / Billing / Patient Funds` | `GET …/patient-funds/deposits/episodes/{episodeId}` | **Tidak berubah** dan **tidak dipanggil layar Workspace PPRI**; server membaca service yang sama | `BillingDeposit : Read` | ✅ Tetap |
+| `Health Services / Clinical Management / Patient Allergy` | `GET …/patient-allergies/active-alerts` | Tidak berubah perilakunya; controller memanggil `PatientAllergyQueryService` | `PatientAllergy : Read` | ✅ Tetap |
+
+### 12.2 Health Services / Inpatient Management / Inpatient Admission Workspace — grup baru
+
+Base URL: `api/v1/health-services/inpatient-management/episodes/{episodeId}/admission-workspace`
+Judul grup: `[Tags("Health Services / Inpatient Management / Inpatient Admission Workspace")]`
+Controller: `InpatientAdmissionDocumentController`, `ControllerName = "InpatientAdmissionDocument"`
+
+**Bacaan**
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/summary` | Header pasien, sembilan menu beserta lencananya, kelengkapan *x* dari *y*, peringatan tanpa rupiah | `InpatientAdmissionDocument : Read` | — | `ApiResponse<AdmissionWorkspaceSummaryResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/summary/amounts` | Status deposit berupiah dan peringatan jatuh tempo berupiah | `InpatientAdmissionDocument : ViewAmount` | — | `ApiResponse<AdmissionWorkspaceAmountsResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/letterhead` | Kop surat dari profil rumah sakit; dipakai juga langkah 8 alur admisi untuk Surat Persetujuan 12 butir. Boleh untuk episode status apa pun | `InpatientAdmissionDocument : Read` | — | `ApiResponse<LetterheadResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/general-consent/print-data` | Data cetak Surat Persetujuan 12 butir dan Formulir General Consent V1: pasien, kamar, tipe kamar, calon penanda tangan. **Tanpa tulis apa pun** (`RWI-DEC-233`) | `InpatientAdmissionDocument : Read` | — | `ApiResponse<GeneralConsentPrintDataResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/prefill/{documentType}` | Isian bawaan sebelum dokumen dibuat | `InpatientAdmissionDocument : Read` | `documentType` | `ApiResponse<AdmissionDocumentPrefillResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/documents` | Daftar dokumen episode, termasuk versi lama bila diminta | `InpatientAdmissionDocument : Read` | query `type?`, `includeHistory` (bawaan `false`) | `ApiResponse<List<AdmissionDocumentSummaryResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/documents/{documentId}` | Satu dokumen lengkap, tanpa rupiah | `InpatientAdmissionDocument : Read` | — | `ApiResponse<AdmissionDocumentResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/documents/{documentId}/amounts` | Angka Pelunasan Deposit (hidup selama `Draft`, beku sesudah dikunci) atau harga Estimasi Biaya | `InpatientAdmissionDocument : ViewAmount` | — | `ApiResponse<AdmissionDocumentAmountsResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/documents/{documentId}/print` | Data cetak dokumen **tanpa rupiah** (Serah Terima, Privasi, Nilai Kepercayaan, Selisih Biaya) | `InpatientAdmissionDocument : Print` | — | `ApiResponse<AdmissionDocumentPrintResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/documents/{documentId}/amount-print` | Data cetak dokumen **berupiah** (Pelunasan Deposit, Estimasi Biaya). Service juga memeriksa `Print` | `InpatientAdmissionDocument : ViewAmount` | — | `ApiResponse<AdmissionDocumentPrintResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/identity-labels` | Data Gelang Dewasa atau Bayi dan Label Pasien | `InpatientAdmissionDocument : Print` | — | `ApiResponse<IdentityLabelResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/base-data` | Data Dasar Rawat Inap (IPD) terangkai, tanpa rupiah | `InpatientAdmissionDocument : Read` | — | `ApiResponse<InpatientBaseDataResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/base-data/amounts` | "Rencana @ Kamar (Rp)" | `InpatientAdmissionDocument : ViewAmount` | — | `ApiResponse<InpatientBaseDataAmountsResponse>` | **Rencana (belum tersedia)**; angka menunggu `RWI-OQ-129` |
+| `GET` | `/print-logs` | Riwayat cetak episode | `InpatientAdmissionDocument : Read` | query `kind?`, `documentId?` | `ApiResponse<List<PrintLogResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/patient-rights` | Ringkasan Nilai Kepercayaan dan Permintaan Privasi `Completed` untuk modul lain (`FR-RWA-112`, G-41) | `InpatientEpisode : Read` | — | `ApiResponse<PatientRightsSummaryResponse>` | **Rencana (belum tersedia)** |
+
+**Penulisan**
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `POST` | `/documents` | Simpan konsep baru | `InpatientAdmissionDocument : Create` | Header `Idempotency-Key`; `CreateAdmissionDocumentRequest` | `ApiResponse<AdmissionDocumentResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/documents/{documentId}` | Ubah konsep | `InpatientAdmissionDocument : Update` | `UpdateAdmissionDocumentRequest` | `ApiResponse<AdmissionDocumentResponse>` | **Rencana (belum tersedia)** |
+| `PATCH` | `/documents/{documentId}/lock` | Kunci dan minta tanda tangan; membentuk salinan beku | `InpatientAdmissionDocument : Update` | `RowVersionRequest` | `ApiResponse<AdmissionDocumentResponse>` | **Rencana (belum tersedia)** |
+| `PATCH` | `/documents/{documentId}/unlock` | Buka kunci bila belum ada tanda tangan | `InpatientAdmissionDocument : Update` | `RowVersionRequest` | `ApiResponse<AdmissionDocumentResponse>` | **Rencana (belum tersedia)** |
+| `PATCH` | `/documents/{documentId}/discard` | Buang konsep sendiri | `InpatientAdmissionDocument : Update` | `ReasonRequest` (alasan 1–500) | `ApiResponse<AdmissionDocumentResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/documents/{documentId}/revisions` | Buat versi koreksi dari dokumen `Completed` | `InpatientAdmissionDocument : Update` | Header `Idempotency-Key`; `ReviseAdmissionDocumentRequest` | `ApiResponse<AdmissionDocumentResponse>` (versi baru) | **Rencana (belum tersedia)** |
+| `PATCH` | `/documents/{documentId}/cancel` | Batalkan dokumen beralasan | `InpatientAdmissionDocument : Cancel` | `ReasonRequest` (alasan 10–500) | `ApiResponse<AdmissionDocumentResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/documents/{documentId}/signatures/patient-or-family` | Catat lembar kertas yang sudah ditandatangani pasien/keluarga | `InpatientAdmissionDocument : Sign` | Header `Idempotency-Key`; `RecordPaperSignatureRequest` | `ApiResponse<AdmissionDocumentResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/documents/{documentId}/signatures/admission-officer` | Atestasi slot Admission / Petugas PPRI | `InpatientAdmissionDocument : Sign` | Header `Idempotency-Key`; `RowVersionRequest` | `ApiResponse<AdmissionDocumentResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/documents/{documentId}/signatures/cro` | Atestasi slot CRO | `InpatientAdmissionDocument : SignAsCro` | Sama | Sama | **Rencana (belum tersedia)** |
+| `POST` | `/documents/{documentId}/signatures/receiving-nurse` | Atestasi slot Perawat penerima | `InpatientAdmissionDocument : SignAsNurse` | Sama | Sama | **Rencana (belum tersedia)** |
+| `POST` | `/documents/{documentId}/signatures/head-nurse` | Atestasi slot Kepala Ruangan | `InpatientAdmissionDocument : SignAsHeadNurse` | Sama | Sama | **Rencana (belum tersedia)** |
+| `POST` | `/print-logs` | Catat cetak atau cetak ulang | `InpatientAdmissionDocument : Print` | Header `Idempotency-Key`; `RecordPrintRequest` | `ApiResponse<PrintLogResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/procedure-plan-mark` | Pasang atau cabut penanda "ada rencana tindakan/operasi" | `InpatientAdmissionDocument : Update` | `SetProcedurePlanMarkRequest` | `ApiResponse<ProcedurePlanMarkResponse>` | **Rencana (belum tersedia)** — **di luar gelombang** (`EPIC-RWA-09`) |
+
+Tidak ada `DELETE` pada grup ini (`INV-RWA-03`). Jenis dokumen `CostEstimate` pada `POST /documents`, `/prefill/CostEstimate`, dan `/amounts` milik Estimasi Biaya ikut **di luar gelombang** sampai `DEC-INP-020` turun.
+
+### 12.3 Bentuk request dan response
+
+Nama enum mengikuti `02-backend-architecture.md` 13.9. Field identitas pasien tidak pernah ada di request (`INV-RWA-05`); angka deposit dan harga bertarif tidak pernah ada di request (`INV-RWA-06`).
+
+**Request**
+
+| DTO | Jenis | Field |
+|---|---|---|
+| `CreateAdmissionDocumentRequest` | Create | `DocumentType`; `SigningCity?`; `StatementDate?`; `Note?`; `Party?` (`AdmissionPartyInput`); `HandoverItems?` [`ClearanceItemId`, `Choice?`, `Note?`]; `Privacy?` {`IsTransportPrivacyRequested`, `AllowedVisitors[]` maks. 3, `SpecialRequests[]` maks. 3}; `BeliefItems?` [teks] maks. 5; `CostDifference?` {`Subject`, `SubjectOtherText?`}; `Deposit?` {`DueDate?`}; `CostEstimate?` {`OprCaseId?`, `PlannedProcedureText?`, `PlannedScheduleAt?`, `DoctorId?`, `PatientClassId?`, `EstimatedLengthOfStayDays`, `Lines[]` {`LineType`, `Description`, `ProcedureId?`, `TariffId?`, `DoctorId?`, `Quantity`, `ManualUnitPrice?`, `ManualReason?`}} |
+| `UpdateAdmissionDocumentRequest` | Update | Isian yang sama tanpa `DocumentType`, ditambah `RowVersion` |
+| `AdmissionPartyInput` | Bagian request | `SourceType`; `SourceRecordId?`; `FullName`; `Relationship?`; `RelationshipText?`; `Address?`; `BirthDate?`; `Gender?`; `Occupation?`; `IdentityType?`; `IdentityNumber?`; `MobilePhone?`; `OfficePhone?`. Bila `SourceType` bukan `Manual`, server **membaca ulang** nama, alamat, dan telepon dari service pemilik dan mengabaikan isian klien; untuk mengubahnya petugas memilih `Manual` |
+| `RowVersionRequest` | Status | `RowVersion` |
+| `ReasonRequest` | Status | `RowVersion`; `Reason` |
+| `ReviseAdmissionDocumentRequest` | Status | `RowVersion`; `CorrectionReason` (10–500) |
+| `RecordPaperSignatureRequest` | Status | `RowVersion`; `SignerName`; `SignerRelationship`; `SignerRelationshipText?`; `SignedAt` |
+| `RecordPrintRequest` | Create | `PrintKind`; `DocumentId?`; `Copies` (1–10, bawaan 1); `ReprintReason?`; `ReprintNote?` |
+| `SetProcedurePlanMarkRequest` | Update | `IsPlanned`; `Note?` |
+
+**Response**
+
+| DTO | Field utama |
+|---|---|
+| `AdmissionWorkspaceSummaryResponse` | `EpisodeId`; `Availability` (`Available`, `NotYetAdmitted`, `ReadOnly`); `ReadOnlyReason` (`EpisodeClosed`, `EpisodeCancelled`); `Header` {`PatientName`, `Salutation`, `MedicalRecordNumber`, `GenderName`, `BirthDate`, `AgeText`, `EpisodeNumber`, `AdmittedAt`, `PatientClassName`, `ServiceUnitName`, `RoomName`, `BedName`, `IsOccupyingBed`, `AttendingDoctorName`, `PaymentTypeName`, `GuarantorName`, `CardNumber`, `PrimaryEmergencyContact` {`Name`, `RelationshipText`}, `ActiveAllergyNames[]`, `RequiresIsolation`, `PatientRightsSummaryText`}; `Sources` {`Patient`, `Guarantor`, `Allergy`, `Deposit`, `OperatingRoom`, `HospitalProfile`: `Available`/`Failed`/`NotYetAvailable`}; `Menus[]` {`Key`, `Label`, `Badge` (`Completed`, `AwaitingSignature`, `Draft`, `NotCreated`, `NotRequired`, `PrintOnly`, `Printed`, `NotPrinted`, `Uncountable`), `ActiveDocumentId?`, `IsRequired`}; `Completeness` {`CompletedCount`, `RequiredCount`, `UncountableCount`, `MissingNames[]`}; `Warnings[]` |
+| `AdmissionWorkspaceAmountsResponse` | `DepositStatus` (`NotRequired`, `Sufficient`, `Shortfall`, `Unavailable`); `MinimumPolicyAmount`; `ReceivedAmount`; `ShortfallAmount`; `ReadAt`; `OverdueStatement?` {`DocumentId`, `DueAt`, `CurrentShortfallAmount`} |
+| `LetterheadResponse` | `IsAvailable`; `SiteName`; `AddressLines[]`; `PhoneNumber`; `Email`; `SiteCode` |
+| `GeneralConsentPrintDataResponse` | `Letterhead`; `FormCode`; `SigningCity`; `PrintDate`; `Patient` {`FullName`, `Salutation`, `MedicalRecordNumber`, `BirthDate`, `PhoneNumber`, `Address`}; `Episode` {`EpisodeNumber`, `AdmittedAt`, `PatientClassName`, `RoomName`, `BedName`, `AttendingDoctorName`}; `RoomType` (`General`, `Special`) dan `RoomTypeReason`; `Guarantor` {`PaymentTypeName`, `GuarantorName`}; `SignerCandidates[]` {`Source`, `SourceRecordId`, `Name`, `RelationshipType?`, `RelationshipText`, `Address`}; isian Surat Persetujuan 12 butir yang hari ini dibaca `use-inpatient-consent-print.js:58-82` |
+| `AdmissionDocumentPrefillResponse` | `DocumentType`; `CanCreate`; `CannotCreateReasonCode?` (`NotRequiredForPayer`, `NoDepositShortfall`, `DepositUnavailable`, `ActiveDocumentExists`); `SigningCity`; `StatementDate`; `PartyCandidates[]`; `HandoverItems[]` {`ClearanceItemId`, `LineNo`, `ItemNumber?`, `ParentItemNumber?`, `Code`, `Name`, `Suggestion?` {`Text`}}; `PreviousBeliefItems[]` dan `PreviousBeliefDocumentId?`; `PatientAsDeclarer?` (Selisih Biaya "diri saya sendiri"); `DefaultDueDate?` dan `MaxDueDate?` (Pelunasan Deposit, tanpa rupiah); `CostEstimateHeader?` |
+| `AdmissionDocumentSummaryResponse` | `Id`; `DocumentType`; `Status`; `VersionNo`; `PreviousVersionId`; `CreatedAt`; `CreatedByName`; `LockedAt`; `CompletedAt`; `CancelledAt` |
+| `AdmissionDocumentResponse` | Field ringkasan di atas; `RowVersion`; `IsReadOnly`; `AvailableActions[]` (`Update`, `Lock`, `Unlock`, `Revise`, `Discard`, `Cancel`, `SignPatientOrFamily`, `SignAdmissionOfficer`, `SignCro`, `SignReceivingNurse`, `SignHeadNurse`, `Print`, `AmountPrint`) — dihitung dari status dan hak pengguna; `SigningCity`; `StatementDate`; `Note`; `CorrectionReason`; `CancelledReason`; `Slots[]` {`Slot`, `Label`, `Signature?` {`Method`, `SignerName`, `SignerPositionName`, `SignerRelationshipText`, `SignedAt`, `VerifiedByName`}}; `Party?`; `HandoverItems[]` (dengan `Suggestion` hanya bila `Draft`); `Privacy?`; `BeliefItems[]`; `CostDifference?`; `Deposit?` {`DueAt`, `AmountsHidden = true`}; `CostEstimate?` (baris tanpa harga); `SourceChangedSinceLock` — "Data pasien telah diperbarui sejak dokumen ini dikunci" (`FR-RWA-124`) |
+| `AdmissionDocumentAmountsResponse` | `Deposit?` {`MinimumPolicyAmount`, `ReceivedAmount`, `ShortfallAmount`, `CalculationText`, `ReadAt`, `IsFrozen`}; `CostEstimate?` {`Lines[]` {`LineNo`, `UnitPrice`, `LineAmount`, `PriceSource`}, `TotalAmount`, `PricesReadAt`, `IsFrozen`, `NotesText`} |
+| `AdmissionDocumentPrintResponse` | `DocumentId`; `DocumentType`; `Status`; `VersionNo`; `PrintMarker` (`Draft` "KONSEP — BELUM DITANDATANGANI", `SignatureSheet` "Lembar untuk ditandatangani — versi *n*", `Final`, `Superseded` "DIGANTIKAN VERSI *n+1*", `Cancelled` "DIBATALKAN"); `EpisodeCancelledMarker` ("ADMISI DIBATALKAN"); `NextPrintSequence`; `Letterhead`; `FormCode`; `SigningCity`; `StatementDate`; `Patient`, `Episode`, `Guarantor` (dari salinan beku; data hidup hanya untuk `Draft`); isi khas jenis; `SignatureLines[]` — atestasi "Ditandatangani secara elektronik oleh *nama*, *jabatan*, *tanggal jam*", kertas "Ditandatangani di kertas oleh *nama* (*hubungan*), *waktu*, diverifikasi *petugas*" |
+| `IdentityLabelResponse` | `Wristband` {`Kind` (`Adult`, `Infant`), `DisplayName` (contoh "BUDI SANTOSO, Tn."), `BirthDateText`, `AgeText`, `MedicalRecordNumber`, `QrPayload`, `SmallLabelCount` (2 untuk bayi)}; `PatientLabel` {`HospitalCode`, `NameLine`, `BirthDateShort`, `GenderAgeText`, `MedicalRecordNumber`, `CardNumber?`, `QrPayload`}; `PrintCounts` {`AdultWristband`, `InfantWristband`, `PatientLabel`} |
+| `InpatientBaseDataResponse` | Bagian kiri dan kanan IPD sesuai PRD Lampiran A.6 dengan sumber `RWI-DEC-244`, `253`, `254`; `BlankFields[]` (kunci isian yang dicetak garis kosong); `RoomRateDisplay = "lihat kasir"` sampai rupiah dibaca dari `/base-data/amounts`; `CanPrint` dan `CannotPrintReason` (`FR-RWA-072`) |
+| `InpatientBaseDataAmountsResponse` | `DailyRoomRate?`; `RoomRateState` (`Available`, `NotYetAvailable` — `RWI-OQ-129`, `TariffMissing`) |
+| `PatientRightsSummaryResponse` | `BeliefValues?` {`DocumentId`, `CompletedAt`, `Items[]`}; `Privacy?` {`DocumentId`, `AllowedVisitorNames[]`, `SpecialRequests[]`, `IsTransportPrivacyRequested`}; `SummaryText` (contoh "Privasi khusus: hanya 2 kerabat; privasi transportasi: Ya") |
+| `PrintLogResponse` | `Id`; `PrintKind`; `DocumentId?`; `DocumentStatusAtPrint?`; `Copies`; `IsReprint`; `PrintSequence`; `ReprintReason?`; `ReprintNote?`; `PrintedByName`; `PrintedAt` |
+| `ProcedurePlanMarkResponse` | `IsPlanned`; `MarkedAt?`; `MarkedByName?`; `Note?` |
+
+### 12.4 Perubahan pada grup Master Data
+
+#### Health Services / Master Data / Inpatient Clearance Item
+
+Base URL: `api/v1/health-services/master-data/inpatient-clearance-items`
+
+| Method | Path | Perubahan | Hak akses | Status |
+|---|---|---|---|---|
+| `GET` | `/`, `/options`, `/summary` | Query `checklistType?` (`EpisodeClosure`, `NewPatientHandover`; kosong = semua). Respons + `ChecklistType`, `ChecklistTypeName`, `ParentItemId`, `ParentItemName`, `HandoverSuggestionSource` | `InpatientClearanceItem : Read` | ✅ Tersedia; isian **Rencana** |
+| `GET` | `/{id}` | Respons + tiga isian | `InpatientClearanceItem : Read` | ✅ Tersedia; isian **Rencana** |
+| `POST` | `/` | Request + `ChecklistType` (wajib, bawaan `EpisodeClosure`), `ParentItemId?`, `HandoverSuggestionSource` (bawaan `None`) | `InpatientClearanceItem : Create` | ✅ Tersedia; isian **Rencana** |
+| `PUT` | `/{id}` | Sama; `ChecklistType` tidak dapat diubah setelah butir dipakai dokumen atau penandaan | `InpatientClearanceItem : Update` | ✅ Tersedia; isian **Rencana** |
+| `PATCH`, `DELETE` | `/{id}/status`, `/{id}` | Tidak berubah; menonaktifkan induk tidak menonaktifkan sub-butir otomatis | Tetap | ✅ Tetap |
+
+#### Health Services / Master Data / Inpatient Setting
+
+Base URL: `api/v1/health-services/master-data/inpatient-settings`
+
+| Method | Path | Perubahan | Hak akses | Status |
+|---|---|---|---|---|
+| `GET` | `/` | Respons + `GeneralConsentFormCode`, `NewPatientHandoverFormCode`, `PrivacyRequestFormCode`, `BeliefValuesFormCode`, `CostDifferenceFormCode`, `DepositSettlementFormCode`, `CostEstimateFormCode`, `InpatientBaseDataFormCode`, `DocumentSigningCity`, `InfantWristbandMaxAgeYears`, `PatientLabelHospitalCode` | `InpatientSetting : Read` | ✅ Tersedia; isian **Rencana** |
+| `PUT` | `/{id}` | Request + sebelas isian di atas | `InpatientSetting : Update` | ✅ Tersedia; isian **Rencana** |
+
+### 12.5 Kode status
+
+| Kode | Arti bagi pengguna | Contoh |
+|---|---|---|
+| `200` | Berhasil, termasuk pengulangan dengan `Idempotency-Key` yang sama | Sari menekan Simpan dua kali; satu dokumen, kedua klik mendapat dokumen yang sama |
+| `400` | Isian tidak lengkap atau formatnya salah | Telepon 14 digit; alasan batal 5 karakter |
+| `403` | Tidak punya hak untuk tindakan ini | Perawat memanggil `/cancel`; pengguna tanpa `ViewAmount` membuka `/summary/amounts` |
+| `404` | Episode atau dokumen tidak ditemukan, atau dokumen bukan milik episode itu | — |
+| `409` | Bertabrakan dengan keadaan data | Episode sudah ditutup; admisi belum dikonfirmasi; sudah ada dokumen aktif sejenis; dokumen sudah diubah petugas lain; dokumen `Completed` tidak dapat diubah; slot sudah ditandatangani |
+| `422` | Melanggar aturan bisnis | Satu petugas dua slot; butir Belum tanpa keterangan; jatuh tempo melewati batas; tidak ada kekurangan deposit; pasien tunai pada Selisih Biaya; pasien belum menempati bed |
+
+Kode alasan (`INP-ADM-DOC-*`, `INP-ADM-PRT-*`, `MST-ICI-*`, `MST-IST-*`) beserta kalimat pesannya hanya ada di `contracts/validation-matrix.md` bagian 15.
+
+### 12.6 Yang sengaja tidak ada di kontrak `0.11.0`
+
+| Yang tidak ada | Alasan |
+|---|---|
+| Endpoint menyimpan atau menandatangani General Consent | *Fail-closed* (`RWI-DEC-230`, `233`); `patient-consents` tidak dipanggil |
+| Endpoint unggah gambar tanda tangan pasien/keluarga | `EPIC-RWA-13` `OPEN DECISION` |
+| `DELETE` dokumen admisi | `INV-RWA-03` |
+| Satu endpoint tanda tangan dengan parameter slot | Satu method hanya satu `[AccessPermission]`; slot berbeda dijaga aksi berbeda |
+| Isian rupiah pada respons yang dijaga `Read` | `RWI-DEC-258` |
+| Endpoint MP Benefit dan Estimasi Rinci | Ditunda (`RWI-OQ-119`, `RWI-OQ-120`) |
+| Endpoint tarif visit dokter | `DEC-INP-020` |
+| Endpoint baru di `PatientManagement`, Registration, Billing, HR | `RWI-DEC-264` butir 1: service baca baru tidak membuka endpoint modul pemilik |

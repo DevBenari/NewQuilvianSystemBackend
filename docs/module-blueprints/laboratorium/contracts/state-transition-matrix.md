@@ -3,7 +3,9 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-STATE-v1` |
-| Revision | **`7` — `approved`** 2026-09-25, bagian 9 (penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`6` — `approved`** 2026-09-25, bagian 8 (`S4d-1` Mikrobiologi) — disetujui Yoga Aji Pratama. Sebelumnya: **`5` — `approved`** 2026-09-25, bagian 7 (`S4`: Tervalidasi dan Dirilis sebagai keadaan turunan). Terakhir `approved`: `4` — **`approved`** 2026-09-24, bagian 6 |
+| Revision | **`10` — `approved`** 2026-10-08, bagian 12 (syarat Proses dilonggarkan bagi rawat inap/IGD) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`9` — `approved`** 2026-10-08, bagian 11 (Proses wajib lolos pembayaran) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`8` — `approved`** 2026-10-07, bagian 10 (Konfirmasi juga sah pada `Accepted`; Proses wajib terkonfirmasi) — disetujui Yoga Aji Pratama. Sebelumnya: **`7` — `approved`** 2026-09-25, bagian 9 (penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`6` — `approved`** 2026-09-25, bagian 8 (`S4d-1` Mikrobiologi) — disetujui Yoga Aji Pratama. Sebelumnya: **`5` — `approved`** 2026-09-25, bagian 7 (`S4`: Tervalidasi dan Dirilis sebagai keadaan turunan). Terakhir `approved`: `4` — **`approved`** 2026-09-24, bagian 6 |
+| `r10` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"setuju keenam butir"* atas `LAB-REQ-020`, keenam butir |
+| `r9` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju ketujuh butir"* atas `LAB-REQ-019`, ketujuh butir |
 | Status | `approved` — `r2` dikunci 2026-09-02; **amandemen `r3` disetujui pemilik modul 2026-09-15** lewat `LAB-DEC-061` dan `LAB-DEC-063` |
 | Isi amandemen `r3` | **Status `Confirmed` masuk sebagai status pesanan antara `Requested` dan `Accepted`**, beserta konfirmator, waktu konfirmasi, dan dokter pemeriksa. Konfirmasi hanya sah sekali. **Pembatalan dipersempit** menjadi hanya sah pada `Requested` dan `Confirmed`, dan wajib beralasan. Jalur `Requested` → `Accepted` **tidak dicabut** — lihat bagian 1a |
 | Batas penguncian | **Terkunci penuh sejak 2026-09-02.** `LAB-OPEN-021` dijawab: penamaan memakai prefix `Lab`, sehingga tidak ada lagi bagian yang dikecualikan |
@@ -460,3 +462,130 @@ tidak dapat melangkah lebih jauh.
 > 4. 09.50 — Hemoglobin dirilis. Label hasil order: *Selesai*; status order masih `InProcess`.
 > 5. 10.00 — petugas menekan Selesai → **`Completed`**. Sejak saat ini order menolak pemeriksaan dan
 >    wadah baru, seperti sebelumnya.
+
+## 10. Amandemen `r8` — Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1, 2026-10-07
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-STATE-v1` |
+| Revision | `r8` |
+| Status | **`approved`** 2026-10-07 — Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul: *"saya setujui kelima butir di atas, lanjutkan"* atas `LAB-REQ-016` |
+| `input_revision` | decisions rev 88 (`LAB-DEC-193`..`LAB-DEC-197`); `02-backend-architecture.md` bagian 24 |
+| Sifat | Satu transisi **dilonggarkan** (Konfirmasi pada `Accepted`), satu transisi **diperketat** (Proses wajib terkonfirmasi). Nol status baru |
+
+### 10.1 Transisi yang sah — mengubah bagian 1 dan 1a
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| `Requested` | Mengonfirmasi pesanan | `Confirmed` | `LabOrder : Confirm` | Belum pernah dikonfirmasi; dokter pemeriksa dipilih | `409` / `422` |
+| **`Accepted`** | **Mengonfirmasi pesanan** | **`Accepted` (tetap)** | `LabOrder : Confirm` | Belum pernah dikonfirmasi (`ConfirmedAt` kosong); dokter pemeriksa dipilih | `409` / `422` |
+| `Accepted` | Mulai dikerjakan | `InProcess` | `LabOrder : Process` | **Sudah dikonfirmasi** (`ConfirmedAt` terisi) — `VAL-151` | `409` |
+| `InProcess` | Menyelesaikan | `Completed` | `LabOrder : Process` | `VAL-146` — **konfirmasi tidak diperiksa** | `409` |
+
+### 10.2 Transisi yang tidak sah — mengubah bagian 1a
+
+| Dari status | Tindakan | Alasan penolakan | Kode |
+|---|---|---|---|
+| Pesanan yang sudah pernah dikonfirmasi, status apa pun | Mengonfirmasi lagi | Konfirmasi hanya sah sekali (`VAL-70`) | `409` |
+| `InProcess`, `Completed`, `Cancelled`, `OnHold`, `Draft` | Mengonfirmasi | Pesanan sudah melewati tahap konfirmasi (`VAL-71`) | `409` |
+| `Accepted` yang belum dikonfirmasi | Mulai dikerjakan | Konfirmasi wajib lebih dulu (`VAL-151`) | `409` |
+
+**Dicabut dari bagian 1a:** baris *"`Accepted` … → Mengonfirmasi → `409`"* — `Accepted` kini sah bila belum
+pernah dikonfirmasi.
+
+### 10.3 Yang tetap
+
+- `Requested` → `Accepted` tanpa konfirmasi **tetap sah** (`LAB-DEC-061`): menerima sampel tidak menuntut
+  konfirmasi; yang menuntutnya adalah Proses.
+- Pembatalan tetap hanya `Requested` dan `Confirmed` (`LAB-DEC-063`).
+- `hold`/`resume` tidak berubah.
+
+**`LAB-OPEN-027` ditutup** (`LAB-DEC-194`): konfirmasi tidak wajib sebelum `Accepted`, wajib sebelum `InProcess`.
+
+### 10.4 Contoh dua urutan yang sama-sama sah
+
+> **Urutan v1:** `Requested` → (wadah layak) `Accepted` → Konfirmasi (`Accepted`, `ConfirmedAt` terisi) →
+> Proses → `InProcess` → Selesaikan → `Completed`.
+>
+> **Urutan V2 lama:** `Requested` → Konfirmasi → `Confirmed` → (wadah layak) `Accepted` → Proses → `InProcess`.
+>
+> **Ditolak:** `Requested` → (wadah layak) `Accepted` → Proses → `409` `VAL-151`.
+
+### 10.5 Traceability `r8`
+
+| Transisi | Keputusan | AC |
+|---|---|---|
+| `Accepted` → Konfirmasi (tetap `Accepted`) | `LAB-DEC-193`, `LAB-DEC-195` | `AC-283` |
+| Konfirmasi kedua / pada `InProcess` | `LAB-DEC-193` | `AC-284` |
+| `Accepted` tanpa konfirmasi → Proses ditolak | `LAB-DEC-194` | `AC-285` |
+| `complete` tanpa syarat konfirmasi | `LAB-DEC-196` | `AC-286` |
+
+## 11. Amandemen `r9` — Alur Lab dari kiosk sampai hasil mengikuti FE v1, 2026-10-08
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-STATE-v1` |
+| Revision | `r9` |
+| Status | **`approved`** 2026-10-08 — Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul: *"Setuju ketujuh butir"* atas `LAB-REQ-019` |
+| `input_revision` | decisions rev 91 (`LAB-DEC-216`, `LAB-DEC-218`, `LAB-DEC-219`) |
+| Sifat | Satu transisi **diperketat** (Proses wajib lolos pembayaran). Nol status baru, nol transisi baru |
+
+### 11.1 Transisi yang diubah
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| `Accepted` | Mulai dikerjakan | `InProcess` | `LabOrder : Process` | Sudah dikonfirmasi (`VAL-151`) **dan pembayaran lolos**: penjamin Asuransi/Perusahaan, atau Tunai yang lunas (`VAL-152`, `VAL-153`) | `409` |
+
+### 11.2 Transisi wadah yang kini dijalankan dari daftar — tidak berubah, dicatat ulang
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat |
+|---|---|---|---|---|
+| — | Rencanakan | `Planned` | `LabSpecimen : Plan` | Jenis specimen dipilih (`VAL-51`) |
+| `Planned` | Ambil | `Collected` | `LabSpecimen : Collect` | — |
+| `Collected` | Terima | `Received` | `LabSpecimen : Receive` | — |
+| `Received` | Layak / Tidak Layak | `Accepted` / `Rejected` | `LabSpecimen : Accept` | **Bukan pengambil sampel** (`VAL-09`); Tidak Layak dengan alasan terkendali |
+
+Penerimaan Sampling dan dialog Terima Sampling menjalankan baris 1–3 berurutan dalam satu tekanan tombol; baris 4
+oleh petugas lain. Gagal di tengah meninggalkan wadah pada status terakhir yang berhasil, dan tekanan berikutnya
+melanjutkan dari sana.
+
+### 11.3 Contoh
+
+> Pesanan Hemoglobin pasien Tunai: wadah `Received` oleh petugas A → petugas B menyatakan Layak → wadah `Accepted`,
+> pesanan `Accepted`, tagihan Rp 35.000 terbit → Konfirmasi → Proses → `409` *belum lunas (sisa Rp 35.000)* →
+> kasir menerima Rp 35.000 → Proses → `InProcess`.
+
+### 11.4 Traceability `r9`
+
+| Transisi | Keputusan | AC |
+|---|---|---|
+| Proses wajib lolos pembayaran | `LAB-DEC-218` | `AC-310` |
+| Wadah dari daftar, `VAL-09` tetap | `LAB-DEC-216`, `LAB-DEC-219` | `AC-306`, `AC-308`, `AC-309` |
+
+## 12. Amandemen `r10` — Lingkup kunci Lunas, 2026-10-08
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-STATE-v1` |
+| Revision | `r10` |
+| Status | **`approved`** 2026-10-08 — Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul: *"setuju keenam butir"* atas `LAB-REQ-020` |
+| `input_revision` | decisions rev 92 (`LAB-DEC-223`) |
+| Sifat | Satu syarat transisi **dilonggarkan** untuk dua jenis kunjungan. Nol status baru, nol transisi baru |
+
+### 12.1 Transisi yang diubah
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| `Accepted` | Mulai dikerjakan | `InProcess` | `LabOrder : Process` | Sudah dikonfirmasi (`VAL-151`) **dan pembayaran lolos**: penjamin Asuransi/Perusahaan; **kunjungan Rawat Inap atau IGD** (*Ditagih Kemudian*); atau Tunai yang lunas (`VAL-152`, `VAL-153`) | `409` |
+
+### 12.2 Contoh
+
+> Pasien Umum rawat inap, Darah Lengkap: wadah Layak → tagihan Rp 85.000 ke invoice RANAP → Konfirmasi → Proses →
+> **`InProcess`** tanpa menunggu kasir. Pasien rawat jalan dengan tagihan yang sama tetap `409` sampai lunas (`r9`).
+
+### 12.3 Traceability `r10`
+
+| Transisi | Keputusan | AC |
+|---|---|---|
+| Proses lolos bagi rawat inap/IGD | `LAB-DEC-223` | `AC-314`, `AC-315` |
+| Proses tetap dikunci bagi jenis lain | `LAB-DEC-223` | `AC-316` |

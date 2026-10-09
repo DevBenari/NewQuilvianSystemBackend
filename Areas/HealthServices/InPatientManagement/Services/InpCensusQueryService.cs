@@ -105,15 +105,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 "patientname" => descending
                     ? filtered.OrderByDescending(x => x.Episode!.Patient!.FullName)
                     : filtered.OrderBy(x => x.Episode!.Patient!.FullName),
-                "admittedat" => descending
-                    ? filtered.OrderByDescending(x => x.Episode!.AdmittedAt)
-                    : filtered.OrderBy(x => x.Episode!.AdmittedAt),
                 "roomname" => descending
                     ? filtered.OrderByDescending(x => x.Room!.RoomName)
                     : filtered.OrderBy(x => x.Room!.RoomName),
-                _ => descending
+                "bedname" => descending
                     ? filtered.OrderByDescending(x => x.Bed!.BedName)
-                    : filtered.OrderBy(x => x.Bed!.BedName)
+                    : filtered.OrderBy(x => x.Bed!.BedName),
+                "admittedat" => descending
+                    ? filtered.OrderByDescending(x => x.Episode!.AdmittedAt ?? x.Episode.CreateDateTime).ThenByDescending(x => x.StartDateTime)
+                    : filtered.OrderBy(x => x.Episode!.AdmittedAt ?? x.Episode.CreateDateTime).ThenBy(x => x.StartDateTime),
+                _ => descending
+                    ? filtered.OrderByDescending(x => x.Episode!.AdmittedAt ?? x.Episode.CreateDateTime).ThenByDescending(x => x.StartDateTime)
+                    : filtered.OrderBy(x => x.Episode!.AdmittedAt ?? x.Episode.CreateDateTime).ThenBy(x => x.StartDateTime)
             };
 
             var totalData = await filtered.CountAsync(cancellationToken);
@@ -346,18 +349,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             return new CensusFilterMetadataResponse
             {
-                DefaultFilter = new CensusDefaultFilterResponse(),
+                DefaultFilter = new CensusDefaultFilterResponse
+                {
+                    SortBy = "admittedAt",
+                    SortDirection = "desc"
+                },
                 SortOptions = new List<InpatientSortOptionResponse>
                 {
+                    new() { Value = "admittedAt", Label = "Waktu masuk" },
                     new() { Value = "bedName", Label = "Nama tempat tidur" },
                     new() { Value = "roomName", Label = "Nama kamar" },
-                    new() { Value = "patientName", Label = "Nama pasien" },
-                    new() { Value = "admittedAt", Label = "Waktu masuk" }
+                    new() { Value = "patientName", Label = "Nama pasien" }
                 },
-                SortDirections = new List<string> { "asc", "desc" },
+                SortDirections = new List<string> { "desc", "asc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
                 ServiceUnitOptions = serviceUnits,
                 PatientClassOptions = patientClasses,
+                EpisodeStatusOptions = new List<InpatientOptionResponse>
+                {
+                    new() { Value = ((int)InpEpisodeStatus.Admitted).ToString(), Label = "Sedang dirawat" },
+                    new() { Value = ((int)InpEpisodeStatus.DischargePending).ToString(), Label = "Boleh pulang" }
+                },
                 ResetButtonLabel = "Reset"
             };
         }
@@ -444,6 +456,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 filtered = filtered.Where(x => x.RoomId == query.RoomId.Value);
             }
 
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var keyword = query.Search.Trim().ToLower();
+                filtered = filtered.Where(x =>
+                    x.Episode!.EpisodeNumber.ToLower().Contains(keyword) ||
+                    (x.Episode.Patient != null && x.Episode.Patient.FullName.ToLower().Contains(keyword)) ||
+                    (x.Episode.Patient != null && x.Episode.Patient.MedicalRecordNumber.ToLower().Contains(keyword)) ||
+                    (x.Bed != null && x.Bed.BedName.ToLower().Contains(keyword)));
+            }
+
             var totalData = await filtered.CountAsync(cancellationToken);
 
             var items = await filtered
@@ -524,6 +546,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// </remarks>
         public async Task<List<CensusItemResponse>> GetUnassignedNurseEpisodesAsync(
             Guid? serviceUnitId = null,
+            string? search = null,
             CancellationToken cancellationToken = default)
         {
             IQueryable<InpEpisode> filtered = _dbContext.Set<InpEpisode>()
@@ -537,6 +560,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
             {
                 filtered = filtered.Where(x => x.ServiceUnitId == serviceUnitId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+                filtered = filtered.Where(x =>
+                    x.EpisodeNumber.ToLower().Contains(keyword) ||
+                    (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
+                    (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)));
             }
 
             var items = await filtered
@@ -634,6 +666,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 filtered = filtered.Where(x => x.ServiceUnitId == query.ServiceUnitId.Value);
             }
 
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var keyword = query.Search.Trim().ToLower();
+                filtered = filtered.Where(x =>
+                    x.EpisodeNumber.ToLower().Contains(keyword) ||
+                    (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
+                    (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)));
+            }
+
+            if (query.MinDelayHours.HasValue && query.MinDelayHours.Value > 0)
+            {
+                var minCutoff = now.AddHours(-query.MinDelayHours.Value);
+                filtered = filtered.Where(x => x.DischargeDecidedAt <= minCutoff);
+            }
+
             var totalData = await filtered.CountAsync(cancellationToken);
 
             var items = await filtered
@@ -710,6 +757,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 filtered = filtered.Where(x => x.ServiceUnitId == query.ServiceUnitId.Value);
             }
 
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var keyword = query.Search.Trim().ToLower();
+                filtered = filtered.Where(x =>
+                    x.EpisodeNumber.ToLower().Contains(keyword) ||
+                    (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
+                    (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)));
+            }
+
             var totalData = await filtered.CountAsync(cancellationToken);
 
             var items = await filtered
@@ -727,6 +783,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
                     ClosedAt = x.ClosedAt,
                     ClosedByUserId = x.UpdateBy,
+                    ClosureClearanceObserved = x.ClosureClearanceObserved,
                     ClosedWithoutClearanceReason = x.ClosedWithoutClearanceReason
                 })
                 .ToListAsync(cancellationToken);
@@ -756,6 +813,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             var all = await GetUnassignedNurseEpisodesAsync(
                 query.ServiceUnitId,
+                query.Search,
                 cancellationToken);
 
             return new UnassignedNursePagedResult
@@ -1012,6 +1070,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         d.EndDateTime == null &&
                         !d.IsDelete &&
                         d.DoctorId == query.DoctorId.Value));
+            }
+
+            if (query.NurseEmployeeId.HasValue && query.NurseEmployeeId.Value != Guid.Empty)
+            {
+                filtered = filtered.Where(x =>
+                    x.Episode!.NurseAssignments.Any(n =>
+                        n.EmployeeId == query.NurseEmployeeId.Value &&
+                        n.EndDateTime == null &&
+                        !n.IsDelete));
+            }
+
+            if (query.EpisodeStatus.HasValue &&
+                Enum.IsDefined(typeof(InpEpisodeStatus), query.EpisodeStatus.Value))
+            {
+                var status = (InpEpisodeStatus)query.EpisodeStatus.Value;
+                filtered = filtered.Where(x => x.Episode!.EpisodeStatus == status);
+            }
+
+            if (query.StartDate.HasValue)
+            {
+                filtered = filtered.Where(x =>
+                    (x.Episode!.AdmittedAt ?? x.Episode.CreateDateTime) >= query.StartDate.Value);
+            }
+
+            if (query.EndDate.HasValue)
+            {
+                var exclusiveEnd = query.EndDate.Value.Date.AddDays(1);
+                filtered = filtered.Where(x =>
+                    (x.Episode!.AdmittedAt ?? x.Episode.CreateDateTime) < exclusiveEnd);
             }
 
             if (query.RequiresIsolation.HasValue)

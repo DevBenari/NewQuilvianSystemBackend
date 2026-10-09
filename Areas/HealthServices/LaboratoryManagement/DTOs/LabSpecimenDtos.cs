@@ -264,6 +264,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
         public DateTime? CollectedAt { get; set; }
 
+        /// <summary>
+        /// Petugas yang mencatat pengambilan sampel. Layar membacanya untuk aturan empat mata
+        /// <c>VAL-09</c>: petugas ini tidak boleh menetapkan kelayakan wadahnya sendiri
+        /// (<c>LAB-EVD-013</c>, VAL-09 dipertahankan pemilik modul 2026-10-08).
+        /// </summary>
+        public Guid? CollectedByUserId { get; set; }
+
+        /// <summary>Nama petugas pengambil sampel, siap ditampilkan.</summary>
+        public string? CollectedByName { get; set; }
+
         /// <summary>Kapan datanya masuk ke sistem. Diisi server, tidak pernah dari permintaan.</summary>
         public DateTime? ReceivedAt { get; set; }
 
@@ -292,6 +302,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// menerbitkan fakta, dan tidak pernah memuat keputusan finansial.
         /// </summary>
         public LabBillingHandoffResponse? BillingHandoff { get; set; }
+
+        /// <summary>
+        /// Spesifik Specimen yang tercatat pada wadah ini, urut nama (<c>LAB-API-v1</c> <c>r39</c>
+        /// 34.2, <c>LAB-DEC-167</c>).
+        ///
+        /// <b><c>null</c> berarti tidak dimuat, <c>[]</c> berarti nol rincian</b> — keduanya sengaja
+        /// berbeda. Hanya <c>GET /by-order/{labOrderId}</c> yang mengisinya; respons tindakan siklus
+        /// hidup dan daftar berhalaman membiarkannya <c>null</c>. Layar koreksi membutuhkan daftar
+        /// ini karena <c>detailTypeIds</c> pada koreksi <b>menggantikan</b> seluruh pilihan.
+        /// </summary>
+        public List<LabSpecimenDetailItem>? SpecimenDetails { get; set; }
+    }
+
+    /// <summary>Satu Spesifik Specimen yang tercatat pada wadah (<c>r39</c> 34.2).</summary>
+    public class LabSpecimenDetailItem
+    {
+        public Guid LabSpecimenDetailTypeId { get; set; }
+
+        /// <summary>
+        /// Nama <b>snapshot</b> saat dipilih (<c>LabSpecimenDetail.DetailNameSnapshot</c>) — bukan
+        /// nama data induk hari ini. Nama yang kelak diperbaiki kepala instalasi tidak boleh
+        /// mengubah arti bahan yang sudah tercatat.
+        /// </summary>
+        public string DetailName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Keadaan data induknya <b>hari ini</b>. <c>false</c> berarti sudah dinonaktifkan; pilihan
+        /// yang sudah tercatat tetap sah dan boleh dikirim ulang pada koreksi (<c>VAL-150</c>).
+        /// </summary>
+        public bool IsActive { get; set; }
     }
 
     /// <summary>

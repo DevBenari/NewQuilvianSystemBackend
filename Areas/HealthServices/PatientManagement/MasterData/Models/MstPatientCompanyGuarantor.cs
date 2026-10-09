@@ -74,6 +74,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [MaxLength(500)]
         public string? GuaranteeDocumentPath { get; set; }
 
+        [MaxLength(500)]
+        public string? CardImagePath { get; set; }
+
         [MaxLength(250)]
         public string? Notes { get; set; }
 

@@ -26,6 +26,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models;
 [Table("GziPatientDiet", Schema = "public")]
 public class GziPatientDiet : IdentityModel
 {
+    public GziInstructionVerificationStatus InstructionVerificationStatus { get; set; }
+    public DateTime? InstructionVerifiedAt { get; set; }
+    public Guid? InstructionVerifiedByUserId { get; set; }
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>

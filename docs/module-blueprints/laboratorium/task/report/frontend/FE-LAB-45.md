@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `68195b2be` (branch `YogaV2`, upstream `origin/YogaV2`), di atas perubahan `FE-LAB-44` yang belum ter-commit |
 | Commit backend yang dijadikan rujukan | `7ff35b8c` (branch `yoga`) beserta `BE-LAB-86` yang belum ter-commit — `LabOperationalReportController.UnduhAsync`, `Program.cs` (kebijakan CORS) |
 | Tanggal | 2026-09-30 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — tombol *Unduh CSV* per laporan, hanya bagi pemegang `Export`; berkas backend disimpan apa adanya. Uji unit **22/22**, e2e layar **13/13** (8 `FE-LAB-44` + 5 unduhan), lint dan build hijau. **Tiga berkas CSV sungguhan backend** (hasil verifikasi `BE-LAB-86`) diunduh lewat layar hasil build dan tersimpan **identik byte demi byte**, dengan nama sesuai pola backend. **Batas:** unduhan tersambung langsung dengan akun asli menunggu langkah rilis `MVP-11c` 0-1; berkas belum dibuka di Excel sungguhan. **`MVP-11b` selesai pada kode** |
+| Status | ✅ **`SELESAI`** (naik 2026-10-06) — ketiga unduhan dijalankan **tersambung langsung** dengan akun Kepala Instalasi asli: berkas backend tersimpan apa adanya, **dibuka di Excel 16** dengan kolom terpisah dan angka desimal-koma terbaca sebagai angka, klik ganda = **satu** permintaan dan **satu** baris audit backend; pemegang `Read` saja nol tombol. Lihat 9. *(Semula 2026-09-30: ⚠ — tombol *Unduh CSV* per laporan, hanya bagi pemegang `Export`; berkas backend disimpan apa adanya. Uji unit **22/22**, e2e layar **13/13** (8 `FE-LAB-44` + 5 unduhan), lint dan build hijau. **Tiga berkas CSV sungguhan backend** (hasil verifikasi `BE-LAB-86`) diunduh lewat layar hasil build dan tersimpan **identik byte demi byte**, dengan nama sesuai pola backend. **Batas:** unduhan tersambung langsung dengan akun asli menunggu langkah rilis `MVP-11c` 0-1; berkas belum dibuka di Excel sungguhan. **`MVP-11b` selesai pada kode**)* |
 
 ---
 
@@ -211,11 +211,11 @@ Uji manual: `PASS` — dengan batas di bawah.
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
 | Matriks layar — *Tombol unduh*: pengguna tanpa `Export`, tombol tidak tampil | Terpenuhi | e2e |
-| `AC-253` bagian antarmuka — `Read` tanpa `Export` | Terpenuhi pada build; akun asli **belum** | e2e |
+| `AC-253` bagian antarmuka — `Read` tanpa `Export` | ✅ Terpenuhi — tersambung langsung 2026-10-06 (dr. Bima dengan `Export` dicabut di peramban) | e2e; P3 di 9 |
 | Baris *Unduhan gagal* `03-frontend-architecture.md` — pesan pada tombol; ulangan tidak menggandakan unduhan yang berhasil | Terpenuhi | e2e: pesan per bagian; dua klik = satu permintaan |
 | Verifikasi roadmap — uji unit nama berkas cadangan dan pembaca pesan galat dari `Blob` | Terpenuhi | 22/22 |
-| Verifikasi roadmap — berkas terbuka di Excel, kolom terpisah, *3,0* | Isi berkas terbukti identik dengan berkas backend; pembukaan di Excel **belum** | Bagian 6 |
-| Verifikasi roadmap — tepat satu log walau diklik dua kali cepat | Satu permintaan terbukti di layar; log live **belum** (menunggu `MVP-11c`) | e2e; `BE-LAB-86` |
+| Verifikasi roadmap — berkas terbuka di Excel, kolom terpisah, *3,0* | ✅ Terpenuhi 2026-10-02 — ketiga berkas dibuka **Excel 16** (COM): kolom terpisah per `;`, BOM terbaca, angka penolakan `20,0` terbaca sebagai **angka** 20 (koma desimal), bukan teks atau 200 | Bagian 6; 9 |
+| Verifikasi roadmap — tepat satu log walau diklik dua kali cepat | ✅ Terpenuhi 2026-10-06 — klik ganda: **satu** permintaan, **satu** baris audit `LabOperationalReport.Export` di log backend lokal | e2e; `BE-LAB-86`; P2 di 9 |
 | DoD — tiga unduhan berjalan; tombol mengikuti izin `Export`; nol pembentukan berkas di layar; laporan | Terpenuhi | Bagian 3 dan 6 |
 
 ---
@@ -231,3 +231,23 @@ Uji manual: `PASS` — dengan batas di bawah.
 | Interupsi | `NONE` |
 | Status Git | Frontend: ` M` `laboratory-constants.jsx`, `menu-items.jsx`; `??` `lab-operational-reports/` (route dan view), `lab-operational-report-constants.jsx`, `lab-operational-report-rules.js`, `use-lab-operational-report.jsx`, **`use-lab-operational-report-export.jsx`**, `lab-operational-report.service.js`, **`src/style/health-services/laboratory-management/lab-operational-reports/`**, spec e2e, uji unit — seluruhnya `FE-LAB-44` dan `FE-LAB-45`, belum ter-commit. Backend: laporan ini, `frontend-roadmap.md`, `traceability.md`. **Nol operasi Git dijalankan** |
 | Langkah berikutnya | `MVP-11b` selesai pada kode. Langkah rilis `MVP-11c`: deploy `MVP-11a` + `MVP-11b`, lalu admin memberi `LabOperationalReport : Read` dan `Export` kepada jabatan kepala instalasi (langkah 1) dan menjalankan pemeriksaan langkah 3 dengan akun asli |
+
+---
+
+## 9. Verifikasi susulan — tersambung langsung dengan akun asli (2026-10-02 dan 2026-10-06)
+
+**Lingkungan.** Sama dengan [`FE-LAB-44.md`](FE-LAB-44.md) bagian 9 — backend lokal terhadap PostgreSQL
+dev, `next dev`, login lewat formulir, **nol tiruan** pada jawaban laporan maupun berkas.
+
+| ID | Akun | Skenario | Hasil | Bukti |
+| --- | --- | --- | --- | --- |
+| U1 | dr. Bima (`Read` + `Export`) | Tiga tombol *Unduh CSV* | `PASS` | — |
+| U2 | dr. Bima | Ketiga berkas datang dari backend (`200`) bernama `laporan-<jenis>_<awal>_<akhir>.csv` | `PASS` | `laporan-penolakan-wadah_2026-09-01_2026-10-02.csv` dan dua lainnya |
+| U3 | dr. Bima | Isi berkas: BOM UTF-8, pemisah `;`, baris *Periode* | `PASS` | `"﻿Periode;1 September 2026 - 2 Oktober 2026\r\n…"` |
+| X1 | — | **Excel 16** (lewat COM) membuka ketiganya: kolom terpisah, judul berbahasa Indonesia utuh, `20,0` terbaca sebagai **angka** 20 | `PASS` | Jumlah Pemeriksaan 8×3, Penolakan Wadah 8×4, Waktu Penyelesaian 8×7 sel terpakai; angka sama dengan layar |
+| P2 | dr. Bima | Klik ganda *Unduh CSV Penolakan Wadah*: tombol nonaktif bertuliskan *Mengunduh...*; **satu** permintaan ekspor; **satu** berkas | `PASS` | 2026-10-06 |
+| P2-log | — | Log backend lokal memuat **tepat satu** baris audit `LabOperationalReport.Export` untuk klik ganda itu | `PASS` | *"specimen-rejection — 2026-10-01..2026-10-06 — seluruh disiplin — 3 baris"* |
+| P3 | dr. Bima, `Export` dicabut di peramban | Pemegang `Read` saja: nol tombol *Unduh CSV* | `PASS` | — |
+
+Nol perubahan kode diperlukan. Validasi akhir sesi (2026-10-06): uji unit 2308/2314 (6 gagal =
+baseline, nol Laboratorium), `lint:errors` 0 error, `npm run build` hijau. **Nol operasi Git dijalankan.**

@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | **`0.9.0`** — bagian 8, `draft` |
-| `last_changed_in` | **`0.9.0`** — bagian 8: tujuan penugasan, akibat penutupan. Sebelumnya `0.8.0` — bagian 6A |
+| `contract_version` | **`0.11.0`** — bagian 10 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 9, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 8 |
+| `last_changed_in` | **`0.11.0`** — bagian 10: siklus dokumen admisi. Sebelumnya `0.10.0` — bagian 9; `0.9.0` — bagian 8: tujuan penugasan, akibat penutupan; `0.8.0` — bagian 6A |
 | Status | **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
 | `input_revision` | `00-interview-decisions.md` revision `6`; `evidence/03-hospital-domain-architecture.md` revision `0.1` |
@@ -326,3 +326,168 @@ Perpindahan status episode **tidak berubah**. Yang bertambah adalah akibatnya di
 | `Closed` | Membuka kembali lewat sesi koreksi mengembalikan konsep terkunci menjadi `Draft` | `RWI-AC-201`, `RM-DEC-003` |
 | `Closed` | Membuka kembali mengembalikan pesanan atau dosis yang dibatalkan | Pembatalan tercatat sebagai akibat penutupan; pesanan baru dibuat bila perlu |
 | `DischargePending` | `Closed` dengan sebagian langkah akibat tersimpan | `INV-INP-11` |
+
+---
+
+## 9. Perubahan pada `contract_version` `0.10.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.10.0` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
+| Dampak kompatibilitas | Status `Episode` dan `BedPlacement` **tidak berubah**. Kasus OK bertambah satu status akhir; empat lifecycle baru |
+| Traceability | `RWI-DEC-173`, `176`, `177`, `182`, `199`, `201`, `204`; `INV-RWF-25` s.d. `33` |
+
+### 9.1 Kasus OK (`OprCase`) — tambahan `Rejected`
+
+Lifecycle OK lain tetap seperti modul OK. Baris di bawah hanya yang **baru atau berubah**.
+
+| Dari | Aksi | Ke | Pelaku | Syarat | Efek samping |
+|---|---|---|---|---|---|
+| — | Pesan dari bangsal | `Requested` | Perawat atau dokter bangsal | `INV-RWF-25` | — |
+| `Requested` | Tolak | **`Rejected`** | Petugas penjadwalan OK (`OperatingRoomCase : Reject`) | Alasan 10–500 karakter | Pra-operasi yang ada menjadi `Superseded`; tidak ada biaya |
+| `Requested` | Jadwalkan (= menyetujui) | `Scheduled` | Petugas OK | Tetap | Tetap |
+| `Scheduled`, `Requested` | Tunda | `Postponed` | Petugas OK | Tetap | **Baru:** pra-operasi `Sent`/`Confirmed` → `NeedsUpdate` dalam transaksi yang sama |
+| `Scheduled` | Siap | `Ready` | Petugas OK | **Baru:** ditambah `INV-RWF-26` dan `27` | Tetap |
+| `InProgress` → … | Serah terima diterima, laporan final, keluar kamar pulih | `Completed` | Sistem (`OPS-DEC-025`) | Tetap | **Baru:** `OperatingRoomCompletionEffects` sesudah commit |
+
+**Transisi terlarang tambahan**
+
+| Dari | Aksi | Hasil |
+|---|---|---|
+| `Rejected` | Apa pun (ubah, jadwalkan, tunda, batal, mulai, tolak lagi) | `422` `OPR-CASE-REJ-002` |
+| `Scheduled`, `Ready`, `Postponed`, `InProgress`, `Completed`, `Cancelled` | Tolak | `422` `OPR-CASE-REJ-001` |
+
+### 9.2 Catatan Pra-Operasi (`OprWardPreOpNote`) — per versi
+
+| Dari | Aksi | Ke | Pelaku | Syarat |
+|---|---|---|---|---|
+| — | Simpan draf pertama | `Draft` | Perawat bangsal (`Send`) | Kasus `Requested`, `Scheduled`, atau `Postponed` |
+| `Draft` | Simpan draf | `Draft` | Pengirim | Versi sama |
+| `Draft` | Kirim | `Sent` | Pengirim | Butir wajib pengirim lengkap; tanda vital tersedia; sisi penandaan cocok |
+| `Sent` | Konfirmasi semua butir wajib dan penandaan | `Confirmed` | Perawat OK (`Confirm`), akun ≠ pengirim | — |
+| `Sent` | Konfirmasi sebagian | `Sent` | Perawat OK | Butir yang dikonfirmasi tersimpan |
+| `Sent`, `Confirmed` | Kasus ditunda | `NeedsUpdate` | Sistem | — |
+| `NeedsUpdate` | Simpan draf versi baru | versi lama tetap `NeedsUpdate`; versi baru `Draft` | Pengirim | Kasus tidak `Rejected`/`Cancelled` |
+| Versi baru `Sent` | — | versi lama → `Superseded` | Sistem | — |
+| Apa pun selain `Superseded` | Kasus `Rejected` atau `Cancelled` | `Superseded` | Sistem | — |
+
+Terlarang: konfirmasi oleh akun pengirim (`OPR-WPO-002`); kirim atau ubah saat kasus `InProgress`/`Completed`/`Rejected`/`Cancelled` (`OPR-WPO-004`); mengubah versi `Confirmed` tanpa penundaan.
+
+### 9.3 Serah terima pasca operasi (`OprHandover`) — aturan baru pada transisi yang sudah ada
+
+| Dari | Aksi | Ke | Pelaku | Syarat baru |
+|---|---|---|---|---|
+| — | Kirim | `Sent` | Perawat OK (`Send`) | — |
+| `Sent` | Terima | `Accepted` | Perawat unit tujuan (`Receive`) | Akun ≠ pengirim; pasien menempati bed aktif di `DestinationUnitId` (`INV-RWF-28`) |
+| `Sent` | Tolak beralasan | `Rejected` | Perawat unit tujuan (`Receive`) | Akun ≠ pengirim |
+| `Rejected` | Kirim ulang | serah terima baru `Sent` | Perawat OK | Tetap |
+
+Menerima **tidak pernah** memindahkan bed (`RWI-DEC-177` butir 6).
+
+### 9.4 Permintaan admisi (`InpAdmissionReferral`)
+
+| Dari | Aksi | Ke | Pelaku | Syarat | Efek |
+|---|---|---|---|---|---|
+| — | Simpan keputusan kamar pulih `Inpatient`/`Icu` | `Pending` | Sistem (dipanggil OK) | Pasien tanpa episode hadir; belum ada `Pending` untuk kasus atau pasien itu | — |
+| — | Sama, pasien sudah punya episode hadir | (tidak dibuat) | Sistem | — | OK menerima `AdmissionReferralState = NotNeeded`; alur serah terima biasa |
+| `Pending` | Keputusan kamar pulih berubah dari `Inpatient`/`Icu`, atau OK membatalkan beralasan | `Cancelled` | Sistem (dipanggil OK) | Alasan wajib | Hilang dari daftar |
+| `Pending` | Admisi berlangkah selesai dengan `AdmissionReferralId` | `Completed` | Petugas admisi | Pasien sama | `CompletedEpisodeId` terisi dalam transaksi episode |
+
+Terlarang: `Completed` atau `Cancelled` → status apa pun (`INP-ADM-REF-002`).
+
+### 9.5 Serah terima transfer (`CliTransferHandover`, `P2`)
+
+| Dari | Aksi | Ke | Pelaku | Syarat |
+|---|---|---|---|---|
+| — | Transfer antarunit tersimpan | `NotSent` | Sistem | Unit asal ≠ unit tujuan |
+| `NotSent`, `Rejected` | Kirim | `Sent` | Perawat unit asal (`TransferHandover : Send`) | Potret klinis dibekukan |
+| `Sent` | Terima | `Accepted` | Perawat unit tujuan (`: Receive`) | Akun ≠ pengirim; pasien di unit tujuan |
+| `Sent` | Tolak beralasan | `Rejected` | Perawat unit tujuan | Alasan wajib |
+
+Status apa pun **tidak** menahan transfer, keluar ruangan, atau penutupan episode (`INV-RWF-33`). Selama bukan `Accepted`, kedua unit melihat "Serah terima tertunda".
+
+---
+
+## 10. Perubahan pada `contract_version` `0.11.0` — Workspace PPRI ★ 7 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.11.0` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`) |
+| Dampak kompatibilitas | Status `Episode` dan `BedPlacement` **tidak berubah**. Satu lifecycle baru (dokumen admisi), satu penanda (rencana tindakan, di luar gelombang). Log cetak tidak punya status |
+| Traceability | `RWI-DEC-240` (siklus), `RWI-DEC-239`, `255`, `263`; `FR-RWA-120` s.d. `125`; `INV-RWA-01` s.d. `11` |
+
+Nama status di bawah sama persis dengan `flowcharts/05-workspace-ppri-siklus-dokumen.md`.
+
+### 10.1 Dokumen admisi (`InpAdmissionDocument`) — per versi
+
+Berlaku untuk Serah Terima Pasien Baru, Permintaan Privasi, Nilai Kepercayaan, Selisih Biaya, Pelunasan Deposit, dan Estimasi Biaya. General Consent, Gelang, Label, dan IPD **tidak** punya status dokumen (`RWI-DEC-233`, `240`).
+
+| Dari | Aksi | Ke | Pelaku | Syarat | Efek |
+|---|---|---|---|---|---|
+| — | Simpan konsep | `Draft` | Petugas admisi (`Create`) | Episode `Admitted`/`DischargePending`; tidak ada dokumen aktif sejenis; syarat jenis (Selisih Biaya: penjamin asuransi/perusahaan; Pelunasan Deposit: kekurangan > 0 dan Billing terbaca) | Butir serah terima dibekukan namanya; kota dari pengaturan |
+| `Draft` | Ubah | `Draft` | `Update` | `RowVersion` cocok | — |
+| `Draft` | Kunci | `AwaitingSignature` | `Update` | Isian wajib jenis itu lengkap (`VAL-RWA-20` s.d. `27`); sumber salinan beku terbaca | Salinan beku dan angka beku dibentuk (`RWI-DEC-263`) |
+| `AwaitingSignature` tanpa tanda tangan | Buka kunci | `Draft` | `Update` | Nol tanda tangan (`RWI-DEC-240` butir 2) | Salinan beku dan angka beku dikosongkan |
+| `AwaitingSignature` | Tanda tangan satu slot, bukan yang terakhir | `AwaitingSignature` | Sesuai slot: `Sign`, `SignAsCro`, `SignAsNurse`, `SignAsHeadNurse` | Slot wajib untuk jenis itu dan masih kosong; akun belum mengisi slot petugas lain (`INV-RWA-04`); slot Perawat: pasien menempati bed (`INV-RWA-11`) | Baris tanda tangan |
+| `AwaitingSignature` | Tanda tangan slot wajib terakhir | **`Completed`** | Sama | Sama | `CompletedAt`; kelengkapan naik; saran serah terima yang bergantung padanya muncul |
+| `Completed` | Buat versi koreksi | versi lama **`Superseded`**, versi baru **`Draft`** | `Update` | Alasan 10–500 karakter | Isi disalin tanpa tanda tangan dan tanpa salinan beku; `VersionNo` + 1 |
+| `Draft` | Buang konsep | **`Cancelled`** | Pembuat konsep (`Update`) | Alasan 1–500 karakter | — |
+| `Draft`, `AwaitingSignature`, `Completed` | Batalkan | **`Cancelled`** | Supervisor admisi (`Cancel`) | Alasan 10–500 karakter | Dokumen tidak lagi dihitung; dokumen baru sejenis boleh dibuat (rantai versi baru mulai dari 1) |
+| Apa pun | Episode `Closed` atau `Cancelled` | Tidak berubah | Sistem | — | Seluruh dokumen hanya-baca; setiap cetak beralasan; cetakan episode `Cancelled` bertanda "ADMISI DIBATALKAN" |
+
+**Contoh.** Serah Terima Tn. Budi dibuat Sari 09.58 (`Draft`), dikunci 10.05 (`AwaitingSignature`), slot Admission ditandatangani Sari 10.05, slot CRO oleh Dewi 10.20, dan slot Perawat oleh Andi 10.40 setelah Budi menempati bed pukul 10.35. Pukul 10.40 status menjadi `Completed`.
+
+**Transisi terlarang**
+
+| Dari | Aksi | Hasil |
+|---|---|---|
+| `Completed` | Ubah langsung atau kembali ke `Draft` | `409` `INP-ADM-DOC-005` — harus lewat versi koreksi |
+| `AwaitingSignature` | Ubah isi | `409` `INP-ADM-DOC-005` — buka kunci dulu bila belum ada tanda tangan |
+| `AwaitingSignature` dengan tanda tangan | Buka kunci | `409` `INP-ADM-DOC-006` |
+| `Draft` | Tanda tangan slot apa pun | `409` `INP-ADM-DOC-030` |
+| `Superseded`, `Cancelled` | Aksi apa pun selain baca dan cetak | `409` `INP-ADM-DOC-005` |
+| `Draft`, `AwaitingSignature`, `Superseded`, `Cancelled` | Buat versi koreksi | `409` `INP-ADM-DOC-005` |
+| `AwaitingSignature`, `Completed` | Buang konsep | `409` `INP-ADM-DOC-005` — gunakan Batalkan |
+| Slot yang sudah terisi | Tanda tangan lagi | `409` `INP-ADM-DOC-032` |
+| Episode selain `Admitted`/`DischargePending` | Penulisan apa pun | `409` `INP-ADM-DOC-001` atau `002` |
+
+### 10.2 Lencana menu dan kelengkapan — diturunkan, tidak disimpan
+
+| Keadaan | Lencana | Dihitung lengkap |
+|---|---|---|
+| Ada dokumen `Completed` aktif | Lengkap | Ya |
+| Dokumen aktif `AwaitingSignature` | Menunggu tanda tangan | Tidak |
+| Dokumen aktif `Draft` | Konsep | Tidak |
+| Tidak ada dokumen aktif, dokumen wajib | Belum dibuat | Tidak |
+| Dokumen tidak wajib untuk pasien ini | Tidak diperlukan | Tidak dihitung |
+| Gelang atau IPD sudah dicetak sekali | Sudah dicetak | Ya |
+| General Consent | Cetak saja | Tidak dihitung (`RWI-DEC-233`) |
+| Sumber aturan gagal dibaca | Tidak dapat dihitung ("?") | Tidak dihitung pada pembilang maupun penyebut |
+
+Versi `Superseded` dan dokumen `Cancelled` tidak pernah membuat lencana Lengkap.
+
+### 10.3 Log cetak (`InpAdmissionPrintLog`)
+
+Tidak punya status. Setiap baris adalah satu kejadian dan **tidak pernah diubah**. "Cetakan ke-*n*" dan penanda cetak ulang diturunkan dari urutan baris (`data-dictionary.md` 20.13.1).
+
+### 10.4 Penanda rencana tindakan (`InpAdmissionProcedurePlanMark`) — di luar gelombang
+
+| Dari | Aksi | Ke | Pelaku | Syarat |
+|---|---|---|---|---|
+| Tidak ada penanda aktif | Pasang | Penanda aktif | `InpatientAdmissionDocument : Update` | Episode `Admitted`/`DischargePending` |
+| Penanda aktif | Cabut | Penanda tidak aktif (`UnmarkedAt` terisi) | Sama | Sama |
+| Penanda aktif | Pasang lagi | Tetap satu penanda aktif | — | `200`, tidak membuat baris kedua |
+
+### 10.5 Butir master serah terima (`MstInpatientClearanceItem`)
+
+Status aktif/nonaktif yang sudah ada tetap. Aturan baru: `ChecklistType` **tidak dapat diubah** setelah butir dipakai dokumen serah terima atau penandaan penutupan (`422` `MST-ICI-004`). Menonaktifkan butir tidak mengubah dokumen lama, karena nama dan kodenya sudah beku di `InpAdmissionHandoverItem`.
+
+### 10.6 Pengaruh status episode pada Workspace PPRI
+
+| Status episode | Workspace PPRI |
+|---|---|
+| `Draft` | Tidak terbuka: "Admisi belum dikonfirmasi" (G-30). Kop surat tetap terbaca untuk langkah 8 alur admisi |
+| `Admitted`, `DischargePending` | Terbuka penuh menurut hak |
+| `Closed`, `Cancelled` | Hanya-baca; cetak dan cetak ulang beralasan (`RWI-DEC-240` butir 7) |

@@ -174,6 +174,70 @@ Jumlah pasangan prasyarat → task: 9 (`BE-KSK-001→003`, `003→004`, `004→0
 
 **Verifikasi:** lint, build, browser, cek DB baca-saja. **DoD:** AC 1–7 di `FE-KSK-008.md`.
 
+## Amandemen 1 Oktober 2026 — revisi minor Kiosk
+
+| Field | Isi |
+| --- | --- |
+| Sumber | Catatan pemilik (pesan 1 Okt 2026, 16.07–16.09): "perubahan minor di Kiosk" butir 1–3 dan "Prioritas di Kiosk" butir 1 |
+| Keputusan | `KSK-DEC-020` — ceklis pada kartu Jenis Kunjungan dan Pembayaran dihapus; kartu poli memakai nama lengkap saja, baris "Rawat Jalan \| Spesialis" dan estimasi menit dihapus, lokasi pindah ke kiri chip singkatan. `KSK-DEC-021` — masa berlaku kartu penjamin menjadi tanggal "Berlaku s/d" yang disimpan ke `effectiveEndDate`; penjamin tersimpan tidak dipilih ulang. Keduanya `approved`, Sukma Giri Pratama, 2026-10-01 (opsi rekomendasi dipilih lewat sesi agent) |
+| Wewenang | `TASK MODE: FRONTEND` untuk `FE-KSK-009..011`. Backend tidak diubah: endpoint kiosk asuransi/perusahaan sudah menerima `EffectiveEndDate` |
+| Baseline | FE `fa9d5dd2` (`sukmagpV2`), BE `27fd8fb4` (`sukmagp`), keduanya bersih |
+
+| Task ID | Outcome | Acceptance criteria | Status |
+| --- | --- | --- | --- |
+| 🟡 `FE-KSK-009` | Kartu Jenis Kunjungan, Pembayaran, dan Poliklinik lebih ringkas (Pasien Lama dan Baru) | 1. Tidak ada baris `✓ …` di kartu Jenis Kunjungan dan Pembayaran. 2. Kartu poli menampilkan nama lengkap; tanpa "Rawat Jalan \| Spesialis" dan tanpa estimasi menit. 3. Lokasi (gedung \| lantai \| ruang) tampil di kiri chip singkatan. 4. Lint tanpa warning baru, build `PASS` | 🟡 SEBAGIAN — 2026-10-01. AC 1–3 terpenuhi di source, AC 4 `PASS` (ESLint 0 error, jumlah warning sama dengan `HEAD`; `next build` `PASS`). Belum: uji browser karena akun perangkat Kiosk tidak tersedia di sesi. [Laporan](../task/report/frontend/FE-KSK-009.md) |
+| 🟡 `FE-KSK-010` | Masa berlaku kartu penjamin tersimpan dan tidak dipilih ulang | 1. Penjamin baru wajib mengisi "Kartu Berlaku Sampai" (tanggal ≥ hari ini), dikirim sebagai `effectiveEndDate`. 2. Penjamin tersimpan menampilkan tanggalnya read-only tanpa pilihan ulang. 3. Kartu kedaluwarsa ditolak dengan pesan. 4. Pasien Baru ikut menyimpan tanggal. 5. Konfirmasi menampilkan "Berlaku s/d …" | 🟡 SEBAGIAN — 2026-10-01. AC 1–5 di source; runtime HTTP: `POST …/patient-insurances/kiosk` dengan `effectiveEndDate` → `200`, terbaca kembali `2027-09-12` (R6); helper 7/7 `PASS`; lint/build `PASS`. Belum: uji browser alur Pembayaran (akun Kiosk). [Laporan](../task/report/frontend/FE-KSK-010.md) |
+| ⛔ `FE-KSK-011` | Cek Nomor Rekam Medis menampilkan hasil | Gejala "belum bisa tampil apa-apa" direproduksi, penyebab dibuktikan, lalu diperbaiki | ⛔ TERBLOKIR — 2026-10-01. Gejala belum dapat direproduksi: source tile → route → `POST …/kiosk-patient-lookups` utuh, endpoint dev hidup (`200`, `result 2` untuk KTP samaran, R7). Blocker: butuh lingkungan/URL tempat gejala terlihat dan akun perangkat Kiosk. [Laporan](../task/report/frontend/FE-KSK-011.md) |
+
+## Amandemen 8 Oktober 2026 — Revisi Pendaftaran Pasien manual
+
+| Field | Isi |
+| --- | --- |
+| Sumber | PDF "Pendaftaran pasien manual" (Sukma Giri, 8 Okt 2026); cakupan "Petugas RJ + Kiosk", "Kiosk ikut semua poin" |
+| Keputusan | `KSK-DEC-022`, `KSK-DEC-023`, `KSK-DEC-024` (`approved`, Sukma Giri, 2026-10-08). Sisi petugas RJ: `RJ-DOC-REV-FE-017` (blueprint Rawat Jalan) |
+| Wewenang | `TASK MODE: FRONTEND` untuk `FE-KSK-012`, `FE-KSK-013`. Backend tidak diubah |
+| Baseline | FE `de323430` (`sukmagpV2`), BE `77caf434` (`sukmagp`) |
+
+| Task ID | Outcome | Acceptance criteria | Status |
+| --- | --- | --- | --- |
+| ✅ `FE-KSK-012` | Pilih Layanan Tujuan lebih jelas; No. HP Pasien Baru dibatasi | 1. Sebelum poliklinik dipilih, pesan tampil merah (Pasien Lama dan Baru). 2. Dokter dapat dicari; tiap pilihan menampilkan nama dan info praktik. 3. Input No. HP Pasien Baru berhenti di 13 angka. 4. Base component dan util normalizer yang sudah ada dipakai. 5. Lint tanpa error baru, build `PASS` | ✅ SELESAI — 2026-10-08. AC 1–5 terpenuhi: uji browser akun perangkat Kiosk `11/11 PASS` (catatan footer poliklinik merah `--color-danger` di Pasien Lama/Baru; cari dokter + jam praktik; No. HP 13 angka lokal; 0 request tulis lolos), ESLint 0 error (warning = `HEAD`), `next build` `PASS`, uji fungsi 5/5. Delta: footer config `noteTone`; perbaikan bug lama ketik `+62` → `+626`. AC 2 dipenuhi source existing. [Laporan](../task/report/frontend/FE-KSK-012.md) |
+| `FE-KSK-013` | Jenis Kunjungan dipilih di step Pilih Layanan Tujuan | 1. Step Pilih Jenis Pasien tidak ada lagi di Pasien Lama dan Pasien Baru; bar step berkurang satu. 2. Umum/Rujukan tampil ringkas di samping jadwal dokter, Umum di atas Rujukan. 3. Jenis kunjungan terkirim pada kunjungan seperti sebelumnya. 4. Alur Laboratorium tidak berubah. 5. Lint tanpa error baru, build `PASS` | DIBATALKAN — 2026-10-08. `KSK-DEC-025` menggantikan `KSK-DEC-023`: Jenis Kunjungan tetap step sendiri. Tidak ada perubahan source. [Laporan](../task/report/frontend/FE-KSK-013.md) |
+
+## Amandemen 8 Oktober 2026 (B) — Rujukan Kiosk
+
+| Field | Isi |
+| --- | --- |
+| Sumber | PDF "Pendaftaran pasien manual", jalur B; blueprint Rawat Jalan *Amendment PM-B* (manifest revisi `31`, **approved** 2026-10-08) |
+| Keputusan | `KSK-DEC-025`; `RJ-DOC-DEC-068`..`082` (blueprint Rawat Jalan) |
+| Kontrak | `RJ-DOC-REFERRAL-001@1.0.0` (**approved**) |
+| Wewenang | `TASK MODE: FRONTEND` untuk `FE-KSK-014`..`016` (`RJ-DOC-DEC-083`, Sukma Giri, 2026-10-08). Tanpa commit, push, merge, deploy |
+| Baseline | FE `de323430` (`sukmagpV2`), BE `77caf434` (`sukmagp`) |
+
+Legenda tanda status: `✅` selesai, `🟡` sebagian, `⛔` terblokir, tanpa tanda = belum dimulai.
+`[RJ]` = task backend milik [roadmap Rawat Jalan bagian 19](../../rawat-jalan/roadmap/doctor-consultation-roadmap.md), cermin baca-saja.
+
+### Grafik Urutan Dependency
+
+```text
+RJ-DOC-REV-BE-019 [RJ] ✅ ─> FE-KSK-014 ✅
+
+RJ-DOC-REV-BE-020 [RJ] ✅ ─> FE-KSK-016 ✅
+
+FE-KSK-015 ✅
+```
+
+| Gelombang | Task | Boleh mulai bila |
+| ---: | --- | --- |
+| 1 | `FE-KSK-015` | Wewenang `RJ-DOC-DEC-083` |
+| 2 | `FE-KSK-016` | `RJ-DOC-REV-BE-020` selesai |
+| 2 | `FE-KSK-014` | `RJ-DOC-REV-BE-019` selesai |
+
+| Task ID | Outcome | Dependency | Acceptance criteria | Status |
+| --- | --- | --- | --- | --- |
+| ✅ `FE-KSK-014` | **Step Data Rujukan Kiosk** (Pasien Lama dan Baru): No. rujukan, tanggal (default sekarang), fasilitas perujuk dapat dicari (`kiosk/options`) + alert mitra, dokter perujuk opsional, *Scan Surat Rujukan* lewat `/scanner/scan`; disisipkan sesudah Pembayaran bila Pasien Rujukan; kunjungan dikirim dengan blok `referral` (tanpa diagnosa/alasan); halaman scan diunggah lewat jalur Kiosk sesudah kunjungan terbentuk; gagal unggah tidak menahan tiket (`03` *PM-FE.4*) | `RJ-DOC-REV-BE-019` [RJ] | 1. Pasien Umum tidak melihat step baru. 2. Pasien Rujukan: bar step bertambah satu, isian tersimpan, alert mitra tampil. 3. Kunjungan terbentuk dan surat 2 halaman tersimpan; `RJ-AC-PM-09`. 4. Scanner gagal → bisa dilewati; tiket menampilkan "Tunjukkan surat rujukan ke petugas". 5. Jalur Laboratorium Kiosk tidak berubah. 6. Lint tanpa error baru, build `PASS`, uji browser akun Kiosk | ✅ `COMPLETE` `2026-10-09` — ESLint 0 error (tanpa warning baru), `npm run build` `PASS`, UI GATE REUSE 1 / COMPOSE 5 / NEW 0, uji browser akun Kiosk `14/14 PASS` (R1–R14: 2 surat tersimpan lewat jalur Kiosk, `RJ-AC-PM-09`, scanner gagal → catatan tiket). Pasien Baru tidak diuji sampai submit (membuat pasien baru). Blok rujukan teks bebas lama di Layanan Pasien Baru diganti step ini. Kunjungan uji dibatalkan. [Laporan](../task/report/frontend/FE-KSK-014.md) |
+| ✅ `FE-KSK-015` | **Popup jadwal praktik** di Layanan & Dokter: poli tanpa dokter praktik menampilkan tombol *Lihat Jadwal Praktik*; popup memuat dokter, hari, jam, ruang poli itu (`GET /doctor-schedules/kiosk/options`) | — | 1. Poli tanpa dokter praktik → tombol tampil dan popup memuat jadwal minggu itu. 2. Poli tanpa jadwal sama sekali → "Poli ini belum punya jadwal dokter aktif". 3. Popup dapat ditutup dan tidak memilih jadwal otomatis. 4. Lint, build, uji browser akun Kiosk | ✅ `COMPLETE` `2026-10-09` — ESLint 0 error (warning = `HEAD`), `npm run build` `PASS`, UI GATE COMPOSE 3 / NEW 0, uji browser akun Kiosk `5/5 PASS` (S1–S5). Temuan: daftar poli Kiosk hanya memuat poli yang sedang buka, sehingga keadaan kosong diuji dengan respons tiruan. [Laporan](../task/report/frontend/FE-KSK-015.md) |
+| ✅ `FE-KSK-016` | **Pencocokan scan kartu asuransi di Kiosk** saat penjamin baru: aturan sama `RJ-DOC-DEC-069`; "Data tidak match" + scan ulang; kirim `cardScan`; tanpa nilai agent → perilaku lama | `RJ-DOC-REV-BE-020` [RJ] | 1. `RJ-AC-PM-01`/`02` dengan agent tiruan. 2. Penjamin tersimpan tidak diminta scan. 3. Agent tanpa nilai → perilaku `FE-KSK-010` identik. 4. Lint, build, uji browser akun Kiosk | ✅ `COMPLETE` `2026-10-09` — ESLint 0 error (tanpa warning baru), `npm run build` `PASS`, UI GATE REUSE 1 / COMPOSE 1 / NEW 0, uji browser akun Kiosk `7/7 PASS` dengan agent tiruan (C1–C7). Penjamin uji dihapus. [Laporan](../task/report/frontend/FE-KSK-016.md) |
+
 ## Coverage gap
 
 | Requirement | Status |

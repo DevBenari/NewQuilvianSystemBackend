@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
@@ -24,11 +24,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
     [Tags("Health Services / Laboratory Management / Lab Order")]
     public class LabOrderController : ControllerBase
     {
-        private readonly LabOrderService _labOrderService;
+        private const string KioskReadPolicy = "KioskRead";
 
-        public LabOrderController(LabOrderService labOrderService)
+        private readonly LabOrderService _labOrderService;
+        private readonly LabDashboardService _labDashboardService;
+
+        public LabOrderController(
+            LabOrderService labOrderService,
+            LabDashboardService labDashboardService)
         {
             _labOrderService = labOrderService;
+            _labDashboardService = labDashboardService;
         }
 
         // Keterangan bentuk layar daftar pesanan: pilihan status, disiplin, urutan, dan ukuran
@@ -75,6 +81,66 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             return Ok(ApiResponse<LabOrderSummaryResponse>.Ok(
                 result,
                 "Rekap pesanan laboratorium berhasil diambil."));
+        }
+
+        // Kartu hari ini dan fokus operasional Beranda (LAB-API-v1 r44 39.3). Hari dibaca WIB menurut
+        // waktu pesanan diminta; hanya angka, tanpa identitas pasien.
+        [HttpGet("dashboard/today")]
+        [ProducesResponseType(typeof(ApiResponse<LabDashboardTodayResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction("Read", "Read Lab Order", Description = "Melihat ringkasan hari ini di Beranda Laboratorium", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabOrder", "Read")]
+        public async Task<IActionResult> GetDashboardToday(CancellationToken cancellationToken = default)
+        {
+            var result = await _labDashboardService.GetTodayAsync(cancellationToken: cancellationToken);
+
+            return Ok(ApiResponse<LabDashboardTodayResponse>.Ok(
+                result,
+                "Ringkasan hari ini berhasil diambil."));
+        }
+
+        // Grafik per disiplin, sebaran, jenis laboratorium, dan tren bulanan Beranda (r44 39.4) untuk
+        // satu tahun; kosong = tahun berjalan WIB. Tahun di luar 2000..tahun berjalan → 422 (VAL-154).
+        [HttpGet("dashboard/yearly")]
+        [ProducesResponseType(typeof(ApiResponse<LabDashboardYearlyResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Read", "Read Lab Order", Description = "Melihat ringkasan tahunan di Beranda Laboratorium", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabOrder", "Read")]
+        public async Task<IActionResult> GetDashboardYearly(
+            [FromQuery] LabDashboardYearlyQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _labDashboardService.GetYearlyAsync(query.Year, cancellationToken: cancellationToken);
+
+                return Ok(ApiResponse<LabDashboardYearlyResponse>.Ok(
+                    result,
+                    "Ringkasan tahunan berhasil diambil."));
+            }
+            catch (LabDashboardValidationException exception)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity, exception.Message));
+            }
+        }
+
+        // Sepuluh pesanan terakhir diminta untuk tabel Beranda (r44 39.5) — seluruh status,
+        // tanpa halaman.
+        [HttpGet("dashboard/recent-orders")]
+        [ProducesResponseType(typeof(ApiResponse<List<LabDashboardRecentOrderResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction("Read", "Read Lab Order", Description = "Melihat pesanan laboratorium terbaru di Beranda", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabOrder", "Read")]
+        public async Task<IActionResult> GetDashboardRecentOrders(CancellationToken cancellationToken = default)
+        {
+            var result = await _labDashboardService.GetRecentOrdersAsync(cancellationToken);
+
+            return Ok(ApiResponse<List<LabDashboardRecentOrderResponse>>.Ok(
+                result,
+                "Pesanan laboratorium terbaru berhasil diambil."));
         }
 
         // Daftar pesanan dengan penyaring, pengurutan, dan pagination di sisi server.
@@ -191,6 +257,50 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
 
             return Enum.TryParse(bersih, ignoreCase: true, out discipline) &&
                    Enum.IsDefined(typeof(LabDiscipline), discipline);
+        }
+
+        // Pilihan dokter pemeriksa untuk dialog Konfirmasi (r41 36.3, BE-LAB-91, BR-139). Milik
+        // Laboratorium dan dijaga hak Konfirmasi itu sendiri (LAB-DEC-201): siapa yang boleh
+        // mengonfirmasi otomatis boleh melihat pilihannya, tanpa izin master dokter SDM. Daftar SDM
+        // (doctors/options) dijaga KioskRead dan menolak analis — sumber temuan T2 FE-LAB-50.
+        //
+        // Aksi Confirm diulang di sini mengikuti konvensi controller ini (setiap endpoint mengulang
+        // deklarasi aksinya); AccessType-nya wajib sama dengan endpoint confirm.
+        [HttpGet("examiner-doctor-options")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<LabExaminerDoctorOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction("Confirm", "Confirm Lab Order", Description = "Melihat pilihan dokter pemeriksa untuk konfirmasi pesanan", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("LabOrder", "Confirm")]
+        public async Task<IActionResult> GetExaminerDoctorOptions(
+            [FromQuery] LabExaminerDoctorOptionQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _labOrderService.GetExaminerDoctorOptionsAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<LabExaminerDoctorOptionResponse>>.Ok(
+                result,
+                "Daftar dokter pemeriksa berhasil diambil."));
+        }
+
+        // Pesanan Lab aktif satu pasien untuk kiosk jalur Laboratorium (LAB-EVD-013 butir 1):
+        // ada pesanan → kiosk menawarkan Konfirmasi Kehadiran; kosong → pendaftaran kunjungan.
+        // Dijaga KioskRead seperti route kiosk lain (POST patient-encounters/kiosk), bukan izin
+        // LabOrder : Read — akun kiosk tidak memegang izin modul Laboratorium. Isinya sengaja
+        // terbatas pada yang ditampilkan layar kiosk, tanpa hasil maupun status keuangan.
+        [HttpGet("kiosk/pending-by-patient/{patientId:guid}")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [ProducesResponseType(typeof(ApiResponse<List<LabKioskPendingOrderGroupResponse>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetKioskPendingByPatient(
+            Guid patientId,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _labOrderService.GetKioskPendingByPatientAsync(
+                patientId,
+                cancellationToken: cancellationToken);
+
+            return Ok(ApiResponse<List<LabKioskPendingOrderGroupResponse>>.Ok(
+                result,
+                "Pesanan laboratorium pasien berhasil diambil."));
         }
 
         [HttpGet("{id:guid}")]
@@ -377,9 +487,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         }
 
         // Menandai pesanan mulai dikerjakan laboratorium.
+        //
+        // Sejak r40 (BE-LAB-90): status selain Accepted kini 409, bukan 400; pesanan yang belum
+        // dikonfirmasi ditolak 409 VAL-151 (LAB-DEC-194).
         [HttpPut("{id:guid}/start-process")]
         [ProducesResponseType(typeof(ApiResponse<LabOrderDetailResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction("Process", "Process Lab Order", Description = "Menandai order mulai dikerjakan", AccessType = AccessTypes.Update, SortOrder = 4)]
@@ -412,17 +524,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         // diturunkan server dari pengguna yang sedang login dan dari jam server, karena nama
         // konfirmator adalah pertanyaan audit, bukan pertanyaan tampilan.
         //
-        // Konfirmasi tidak mewajibkan apa pun pada jalur lama: pesanan yang tidak pernah
-        // dikonfirmasi tetap berpindah Requested ke Accepted ketika wadah pertamanya dinyatakan
-        // layak.
+        // Konfirmasi tidak wajib sebelum wadah layak: pesanan yang tidak pernah dikonfirmasi tetap
+        // berpindah Requested ke Accepted ketika wadah pertamanya dinyatakan layak. Sejak r40
+        // (BE-LAB-90) Konfirmasi juga sah pada Accepted yang belum dikonfirmasi — statusnya tetap —
+        // dan Proses Pemeriksaan mewajibkannya (VAL-151).
+        //
+        // Hak aksesnya tersendiri (LAB-PERM-v1 revision 13, LAB-DEC-197): LabOrder : Confirm, bukan
+        // LabOrder : Update, supaya pemegang Konfirmasi tidak ikut memperoleh Batalkan maupun
+        // penulisan konteks klinis pesanan (LAB-DEC-091).
         [HttpPost("{id:guid}/confirm")]
         [ProducesResponseType(typeof(ApiResponse<LabOrderDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Cancel Lab Order", Description = "Mengonfirmasi order laboratorium beserta dokter pemeriksanya", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("LabOrder", "Update")]
+        [AccessAction("Confirm", "Confirm Lab Order", Description = "Mengonfirmasi order laboratorium beserta dokter pemeriksanya", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("LabOrder", "Confirm")]
         public Task<IActionResult> Confirm(
             Guid id,
             [FromBody] ConfirmLabOrderRequest request,

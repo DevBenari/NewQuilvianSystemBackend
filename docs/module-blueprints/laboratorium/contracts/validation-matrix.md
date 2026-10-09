@@ -3,7 +3,10 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-VAL-v1` |
-| Revision | **`15` — `approved`** 2026-09-28, bagian 17 (`VAL-147`..`VAL-149`, periode laporan) — disetujui Yoga Aji Pratama, termasuk batas 366 hari. Sebelumnya: **`14` — `approved`** 2026-09-25, bagian 16 (`VAL-146`, penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-09-25, bagian 15 (`S4d-1`: `VAL-126` diubah, `VAL-144`, `VAL-145`) — disetujui Yoga Aji Pratama, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
+| Revision | **`20` — `approved`** 2026-10-08, bagian 22 (`VAL-154`, tahun pada ringkasan Beranda Lab) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`19` — `approved`** 2026-10-08, bagian 21 (`VAL-152`/`VAL-153` dipersempit) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`18` — `approved`** 2026-10-08, bagian 20 (`VAL-152`, `VAL-153`) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`17` — `approved`** 2026-10-07, bagian 19 (`VAL-71` dipersempit, `VAL-151` baru) — disetujui Yoga Aji Pratama. Sebelumnya: **`16` — `approved`** 2026-10-06, bagian 18 (`VAL-150`, Spesifik Specimen nonaktif pada koreksi specimen, `LAB-DEC-167`) — disetujui Yoga Aji Pratama. Sebelumnya: **`15` — `approved`** 2026-09-28, bagian 17 (`VAL-147`..`VAL-149`, periode laporan) — disetujui Yoga Aji Pratama, termasuk batas 366 hari. Sebelumnya: **`14` — `approved`** 2026-09-25, bagian 16 (`VAL-146`, penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-09-25, bagian 15 (`S4d-1`: `VAL-126` diubah, `VAL-144`, `VAL-145`) — disetujui Yoga Aji Pratama, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
+| `r20` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju 11 butir"* atas `LAB-REQ-021`, kesebelas butir |
+| `r19` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"setuju keenam butir"* atas `LAB-REQ-020`, keenam butir |
+| `r18` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju ketujuh butir"* atas `LAB-REQ-019`, ketujuh butir |
 | `r8` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
 | Isi amandemen `r8` | **`approved` — 2026-09-18.** Sebelas aturan `VAL-92`..`VAL-102` untuk laporan Patologi Anatomi **per pesanan**, menurunkan `LAB-DEC-085`..`LAB-DEC-088`, `LAB-DEC-091`, dan `LAB-DA-001` rev 7. **Satu aturan DICABUT: `VAL-88`** — ia menuntut tiga nama kolom yang dihardcode (makroskopik, mikroskopik, kesimpulan), sedangkan kewajiban ruas kini **bergantung kategori** dan ditegakkan `VAL-95` terhadap data induk keberlakuan. `VAL-83`, `VAL-84`, dan `VAL-89` **tetap berlaku bagi Mikrobiologi**. **Nol aturan `VAL-01`..`VAL-87` dan `VAL-89`..`VAL-91` berubah.** Disetujui bersama `LAB-API-v1` `r25` dan `LAB-PERM-v1` rev 7 pada hari yang sama. Lihat bagian 10 |
 | `r7` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
@@ -832,3 +835,166 @@ sama dengan catatan `VAL-76`; tidak dijadikan aturan tersendiri.
 | `VAL-147` | `LAB-DEC-159` | Baris matriks uji |
 | `VAL-148` | `LAB-DEC-071` | Baris matriks uji |
 | `VAL-149` | 23.10 butir 3 | Baris matriks uji |
+
+## 18. Amandemen `r16` — Spesifik Specimen nonaktif pada koreksi specimen, 2026-10-06
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-VAL-v1` |
+| Revision | `r16` |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-10-06 — *"yaaa saya setujui"* atas `LAB-REQ-015`, lihat `LAB-API-v1` `r39` bagian 34 |
+| `input_revision` | decisions rev 84 (`LAB-DEC-167`); `LAB-API-v1` `r39` |
+| Sifat | **Satu aturan baru** yang **mempersempit** penolakan lama tanpa kode: sebelumnya setiap id nonaktif yang dikirim menolak seluruh koreksi; kini hanya id yang **baru ditambahkan** |
+
+### 18.1 Aturan yang ditambahkan
+
+Berlaku pada `PATCH api/v1/health-services/laboratory-management/lab-specimens/{id}/correction`.
+
+| ID | Aturan | Pesan bagi pengguna | Kode | Dasar |
+|---|---|---|---|---|
+| `VAL-150` | Spesifik Specimen yang **baru ditambahkan** wajib menunjuk data induk **aktif**. Yang **sudah tercatat** pada wadah itu boleh dikirim ulang walau kini nonaktif | "Rincian specimen ini sudah tidak dipakai lagi dan tidak dapat ditambahkan." | `422` | `LAB-DEC-167` butir 3 |
+
+**Contoh:**
+
+> Wadah mencatat *Darah arteri* dan *Arterial cord blood specimen*; kepala instalasi kemudian menonaktifkan
+> *Darah arteri*. Petugas mengoreksi volume dan mengirim ulang kedua id → **diterima**, *Darah arteri*
+> tetap tercatat dengan nama snapshot-nya. Petugas melepas *Darah arteri* → diterima, satu baris jejak.
+> Petugas mencoba mencentangnya lagi → **`422` `VAL-150`**.
+
+### 18.2 Traceability `r16`
+
+| Aturan | Keputusan | AC |
+|---|---|---|
+| `VAL-150` | `LAB-DEC-167` | `BE-LAB-88` AC (d)–(e) |
+
+## 19. Amandemen `r17` — Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1, 2026-10-07
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-VAL-v1` |
+| Revision | `r17` |
+| Status | **`approved`** 2026-10-07 — Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul: *"saya setujui kelima butir di atas, lanjutkan"* atas `LAB-REQ-016` |
+| `input_revision` | decisions rev 88 (`LAB-DEC-193`, `LAB-DEC-194`); `LAB-API-v1` `r40` usulan |
+| Sifat | Satu aturan **dipersempit** (`VAL-71`), satu aturan **baru** (`VAL-151`) |
+
+### 19.1 Aturan yang diubah dan ditambahkan
+
+| ID | Endpoint | Aturan | Pesan bagi pengguna | Kode | Dasar |
+|---|---|---|---|---|---|
+| `VAL-71` (diubah) | `POST /lab-orders/{id}/confirm` | Konfirmasi hanya sah pada `Requested` **atau `Accepted`** — sebelumnya hanya `Requested` | "Pesanan ini sudah melewati tahap konfirmasi." — tidak berubah | `409` | `LAB-DEC-193` |
+| `VAL-151` (baru) | `PUT /lab-orders/{id}/start-process` | Pesanan wajib sudah dikonfirmasi (`ConfirmedAt` terisi). Diperiksa **sesudah** status `Accepted` | "Pesanan ini belum dikonfirmasi. Konfirmasi dan pilih dokter pemeriksa sebelum memproses." | `409` | `LAB-DEC-194` |
+
+`VAL-70`, `VAL-72`, `VAL-73`, `VAL-146` tidak berubah.
+
+**Contoh `VAL-71`:**
+
+> Pesanan Glukosa sudah *Diterima* dan belum pernah dikonfirmasi → Konfirmasi **diterima** (sebelumnya `409`).
+> Pesanan yang sama sesudah *Sedang Dikerjakan* → `409` *"Pesanan ini sudah melewati tahap konfirmasi."*
+
+**Contoh `VAL-151`:**
+
+> Pesanan Glukosa *Diterima*, kolom Konfirmasi *Belum Terkonfirmasi*. Analis menekan Proses Pemeriksaan →
+> `409` *"Pesanan ini belum dikonfirmasi…"*. Analis mengonfirmasi lalu menekan Proses lagi → `200`.
+
+### 19.2 Traceability `r17`
+
+| Aturan | Keputusan | AC |
+|---|---|---|
+| `VAL-71` | `LAB-DEC-193` | `AC-283`, `AC-284` |
+| `VAL-151` | `LAB-DEC-194` | `AC-285` |
+
+## 20. Amandemen `r18` — Alur Lab dari kiosk sampai hasil mengikuti FE v1, 2026-10-08
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-VAL-v1` |
+| Revision | `r18` |
+| Status | **`approved`** 2026-10-08 — Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul: *"Setuju ketujuh butir"* atas `LAB-REQ-019` |
+| `input_revision` | decisions rev 91 (`LAB-DEC-218`); `LAB-API-v1` `r42` usulan |
+| Sifat | Dua aturan **baru** pada `start-process` |
+
+### 20.1 Aturan yang ditambahkan
+
+| ID | Endpoint | Aturan | Pesan bagi pengguna | Kode | Dasar |
+|---|---|---|---|---|---|
+| `VAL-152` | `PUT /lab-orders/{id}/start-process` | Pasien Tunai wajib lunas. Diperiksa **sesudah** `VAL-151` | "Pemeriksaan belum dapat diproses karena pembayaran belum lunas (sisa Rp {sisa})." — sisa berformat Indonesia | `409` | `LAB-DEC-218` |
+| `VAL-153` | `PUT /lab-orders/{id}/start-process` | Pasien Tunai yang tagihannya belum terbit ditolak | "Tagihan pemeriksaan belum terbit. Pastikan sampling sudah diterima, lalu selesaikan pembayaran di kasir sebelum memproses." | `409` | `LAB-DEC-218` |
+
+`VAL-09` dan `VAL-151` tidak berubah. `GET /lab-patient-registrations/kiosk-encounters` memakai pesan baku rentang
+terbalik `LAB-DEC-071` — bukan aturan baru.
+
+**Contoh `VAL-152`:**
+
+> Tagihan Hemoglobin Rp 35.000, belum dibayar. Analis menekan Proses → `409` *"… belum lunas (sisa Rp 35.000)."*
+> Pasien membayar Rp 20.000 → sisa Rp 15.000 → tetap `409` dengan *sisa Rp 15.000*. Lunas → `200`.
+
+**Contoh `VAL-153`:**
+
+> Pesanan dikonfirmasi tetapi wadahnya belum dinilai layak — belum ada baris tagihan. Proses → `409` *"Tagihan
+> pemeriksaan belum terbit…"*. (Pada urutan normal `start-process` sudah tertahan status bukan `Accepted`.)
+
+### 20.2 Traceability `r18`
+
+| Aturan | Keputusan | AC |
+|---|---|---|
+| `VAL-152`, `VAL-153` | `LAB-DEC-218`, `LAB-DEC-220` | `AC-310` |
+
+## 21. Amandemen `r19` — Lingkup kunci Lunas, 2026-10-08
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-VAL-v1` |
+| Revision | `r19` |
+| Status | **`approved`** 2026-10-08 — Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul: *"setuju keenam butir"* atas `LAB-REQ-020` |
+| `input_revision` | decisions rev 92 (`LAB-DEC-223`) |
+| Sifat | Dua aturan **dipersempit**. Bunyi pesan tidak berubah |
+
+### 21.1 Aturan yang diubah
+
+| ID | Endpoint | Aturan `r18` | Aturan `r19` | Kode |
+|---|---|---|---|---|
+| `VAL-152` | `PUT /lab-orders/{id}/start-process` | Pasien Tunai wajib lunas | Pasien Tunai wajib lunas **kecuali kunjungan `Inpatient`/`Emergency`**. Jenis kunjungan yang tidak terbaca tetap diperiksa | `409` |
+| `VAL-153` | `PUT /lab-orders/{id}/start-process` | Pasien Tunai yang tagihannya belum terbit ditolak | Sama, **kecuali kunjungan `Inpatient`/`Emergency`** | `409` |
+
+**Contoh `VAL-153` sesudah `r19`:**
+
+> Pasien Umum di IGD, pesanan Glukosa Sewaktu, wadah Layak. Billing tidak menerbitkan tagihan Lab IGD
+> (`LAB-COORD-020`). `r18`: Proses → `409` *"Tagihan pemeriksaan belum terbit…"* selamanya. `r19`: Proses → `200`.
+> Pasien MCU dengan keadaan sama tetap `409`.
+
+### 21.2 Traceability `r19`
+
+| Aturan | Keputusan | AC |
+|---|---|---|
+| `VAL-152`, `VAL-153` dipersempit | `LAB-DEC-223` | `AC-314`..`AC-316` |
+
+## 22. Amandemen `r20` — Tahun pada ringkasan Beranda Lab, 2026-10-08
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-VAL-v1` |
+| Revision | `r20` |
+| Status | **`approved`** 2026-10-08 — Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul: *"Setuju 11 butir"* atas [`LAB-REQ-021`](../approval-requests/2026-10-08-permintaan-kontrak-beranda.md) |
+| `approved_by` / `approved_at` | Yoga Aji Pratama / 2026-10-08 |
+| `input_revision` | decisions rev 92 (`LAB-DEC-206`, `LAB-DEC-207`); `LAB-API-v1` `r44` usulan; `02-backend-architecture.md` bagian 28 |
+| Sifat | **Satu aturan baru** pada endpoint baru. Nol aturan lama berubah |
+
+### 22.1 Aturan yang ditambahkan
+
+| ID | Endpoint | Aturan | Pesan bagi pengguna | Kode | Dasar |
+|---|---|---|---|---|---|
+| `VAL-154` | `GET /lab-orders/dashboard/yearly` | `year` bila diisi wajib di antara **2000** dan **tahun berjalan WIB**, keduanya inklusif. Kosong = tahun berjalan WIB | "Tahun tidak sah. Pilih tahun 2000 sampai tahun berjalan." | `422` | Tahun masa depan selalu nol dan menyesatkan; batas bawah melindungi basis data bersama dari pemindaian tanpa makna |
+
+**Contoh.** Pada 2026-10-08: `year=2026` → `200`; `year=2000` → `200` (semua 0, tren pembanding 1999 juga 0);
+`year=2027` → `422`; `year=1999` → `422`; tanpa `year` → tahun 2026. Pada 2027-01-01 00.30 WIB (2026-12-31 17.30 UTC),
+tahun berjalan adalah **2027** — batasnya dibaca dalam WIB, bukan UTC.
+
+`year` yang bukan angka (`year=duaribu`) ditolak pengikatan bawaan ASP.NET dengan `400` sebelum masuk controller —
+sama dengan catatan `VAL-76`; tidak dijadikan aturan tersendiri.
+
+### 22.2 Traceability `r20`
+
+| Aturan | Keputusan | AC |
+|---|---|---|
+| `VAL-154` | `LAB-DEC-206`, `LAB-DEC-207` (satu pemilih tahun) | `AC-297`, `AC-298` |

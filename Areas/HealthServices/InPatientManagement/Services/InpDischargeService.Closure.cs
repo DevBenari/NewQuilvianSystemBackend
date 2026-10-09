@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
@@ -85,9 +86,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             var markedItemIds = marks.Select(x => x.ClearanceItemId).ToList();
 
+            // BE-RWI-185 / INV-RWA-12: hanya butir jenis penutupan. Butir Serah Terima Pasien Baru
+            // (STPB-*) yang wajib tidak boleh ikut menahan penutupan setiap episode.
             var items = await _dbContext.Set<MstInpatientClearanceItem>()
                 .AsNoTracking()
-                .Where(x => !x.IsDelete && (x.IsActive || markedItemIds.Contains(x.Id)))
+                .Where(x => !x.IsDelete && x.ChecklistType == MstClearanceChecklistType.EpisodeClosure &&
+                    (x.IsActive || markedItemIds.Contains(x.Id)))
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.ItemName)
                 .Select(x => new ClearanceChecklistItemResponse
@@ -159,10 +163,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 return closedGuard;
             }
 
+            // BE-RWI-185 / INV-RWA-12: butir jenis lain (serah terima) diperlakukan tidak ada,
+            // sehingga penandaannya dijawab 404 "Butir administrasi tidak ditemukan."
             var item = await _dbContext.Set<MstInpatientClearanceItem>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
-                    x => x.Id == clearanceItemId && !x.IsDelete,
+                    x => x.Id == clearanceItemId && !x.IsDelete &&
+                        x.ChecklistType == MstClearanceChecklistType.EpisodeClosure,
                     cancellationToken);
 
             if (item == null)
@@ -275,145 +282,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             };
         }
 
-        /// <summary>
-        /// Kasir atau petugas billing menandai kelayakan keuangan episode.
-        /// </summary>
-        /// <param name="actorIsCashierOrBilling">
-        /// Benar bila pelakunya kasir atau billing. Petugas admisi, perawat, dan dokter
-        /// sama-sama ditolak 403 — <c>RWI-RULE-028</c>.
-        /// </param>
-        /// <remarks>
-        /// <b><c>RWI-RISK-003</c> diterima secara sadar.</b> Penandaan ini <b>manual</b>.
-        /// Nilainya bergantung pada disiplin petugas kasir, bukan pada angka tagihan yang
-        /// sebenarnya, karena `BillingManagement` belum punya kemampuan transaksi. Setiap baris
-        /// karena itu ditandai <c>IsManualMarking</c> dan wajib ditampilkan apa adanya pada
-        /// layar dan laporan.
-        ///
-        /// <para>
-        /// Ketika `BillingManagement` operasional, topik ini kembali sebagai Amendment Pass.
-        /// Sampai saat itu, kelayakan keuangan yang bernilai <c>Cleared</c> berarti "seorang
-        /// kasir menyatakan lunas", bukan "sistem menghitung tidak ada sisa tagihan".
-        /// </para>
-        ///
-        /// <para>
-        /// Riwayatnya bersifat menambah, tidak menimpa: nilai dapat berpindah bolak-balik
-        /// antara ketiganya selama episode belum ditutup, dan setiap perpindahan tersimpan.
-        /// </para>
-        /// </remarks>
-        public async Task<InpDischargeSummaryOperationResult> MarkFinancialClearanceAsync(
-            Guid episodeId,
-            MarkFinancialClearanceRequest request,
-            Guid actorUserId,
-            bool actorIsCashierOrBilling,
-            CancellationToken cancellationToken = default)
-        {
-            if (request == null)
-            {
-                return InpDischargeSummaryOperationResult.Invalid(
-                    "Isian kelayakan keuangan belum dikirim.");
-            }
-
-            if (!actorIsCashierOrBilling)
-            {
-                return InpDischargeSummaryOperationResult.Forbidden(
-                    "Hanya petugas kasir atau billing yang dapat menandai kelayakan keuangan.");
-            }
-
-            if (!Enum.IsDefined(typeof(InpFinancialClearanceStatus), request.ClearanceStatus))
-            {
-                return InpDischargeSummaryOperationResult.BusinessRuleRejected(
-                    "Nilai kelayakan keuangan tidak dikenali.");
-            }
-
-            if (string.IsNullOrWhiteSpace(request.Note))
-            {
-                return InpDischargeSummaryOperationResult.Invalid(
-                    "Catatan wajib diisi saat menandai kelayakan keuangan.");
-            }
-
-            var episode = await _dbContext.Set<InpEpisode>()
-                .FirstOrDefaultAsync(x => x.Id == episodeId && !x.IsDelete, cancellationToken);
-
-            if (episode == null)
-            {
-                return InpDischargeSummaryOperationResult.NotFound(
-                    "Episode rawat inap tidak ditemukan.");
-            }
-
-            var closedGuard = await GuardEpisodeNotClosedAsync(episode, cancellationToken);
-
-            if (closedGuard != null)
-            {
-                return closedGuard;
-            }
-
-            var targetStatus = (InpFinancialClearanceStatus)request.ClearanceStatus;
-
-            // BE-RWI-072: Validasi kelayakan keuangan yang tidak lagi buta (FR-RI-170 s.d. FR-RI-172)
-            if (targetStatus == InpFinancialClearanceStatus.Cleared)
-            {
-                if (_billingDepositAdapter == null)
-                {
-                    // Kriteria 4: Bila ringkasan Billing tidak dapat dibaca, status TIDAK boleh diasumsikan Cleared
-                    return InpDischargeSummaryOperationResult.BusinessRuleRejected(
-                        "Layanan integrasi Billing tidak terpasang di sistem. Status kelayakan keuangan tidak dapat ditandai Cleared tanpa verifikasi authoritative posisi tagihan.");
-                }
-
-                var depositSummary = await _billingDepositAdapter.GetDepositSummaryAsync(episodeId, cancellationToken);
-
-                if (!depositSummary.IsDataAvailable)
-                {
-                    // Kriteria 4: Bila ringkasan Billing tidak dapat dibaca, status TIDAK boleh diasumsikan Cleared
-                    return InpDischargeSummaryOperationResult.BusinessRuleRejected(
-                        $"Posisi keuangan episode tidak dapat diverifikasi dari sistem Billing: {depositSummary.UnavailableReason ?? "Data tidak dapat diakses"}. Status tidak dapat ditandai Cleared.");
-                }
-
-                // Kriteria 1: Tagihan final lebih besar dari deposit menghasilkan kekurangan yang terbaca, dan Cleared ditolak 422 sebelum dibayar
-                if (depositSummary.FinalBillShortfallAmount > 0)
-                {
-                    return InpDischargeSummaryOperationResult.BusinessRuleRejected(
-                        $"Tagihan final pasien (Rp {depositSummary.FinalBillAmount:N0}) melebihi deposit yang dialokasikan. Masih terdapat sisa tagihan sebesar Rp {depositSummary.FinalBillShortfallAmount:N0} yang harus dilunasi terlebih dahulu.");
-                }
-
-                // Kriteria 2: Deposit lebih besar dari tagihan final menghasilkan kelebihan, dan Cleared ditolak sebelum refund tercatat
-                if (depositSummary.AvailableBalance > 0)
-                {
-                    return InpDischargeSummaryOperationResult.BusinessRuleRejected(
-                        $"Terdapat sisa saldo deposit sebesar Rp {depositSummary.AvailableBalance:N0} yang belum direfund kepada pasien. Refund harus diselesaikan terlebih dahulu di kasir sebelum status kelayakan keuangan ditandai Cleared.");
-                }
-            }
-
-            var now = DateTime.UtcNow;
-
-            var lastSequence = await _dbContext.Set<InpFinancialClearance>()
-                .Where(x => x.EpisodeId == episodeId)
-                .Select(x => (int?)x.SequenceNumber)
-                .MaxAsync(cancellationToken) ?? 0;
-
-            var entry = new InpFinancialClearance
-            {
-                Id = Guid.NewGuid(),
-                EpisodeId = episodeId,
-                SequenceNumber = lastSequence + 1,
-                ClearanceStatus = (InpFinancialClearanceStatus)request.ClearanceStatus,
-                MarkedAt = now,
-                MarkedByUserId = actorUserId,
-                Note = request.Note.Trim(),
-                IsManualMarking = true,
-                IsActive = true,
-                CreateDateTime = now,
-                CreateBy = actorUserId
-            };
-
-            _dbContext.Set<InpFinancialClearance>().Add(entry);
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return InpDischargeSummaryOperationResult.Success(
-                entry.Id,
-                "Kelayakan keuangan berhasil ditandai.");
-        }
-
         // =====================================================================
         // BE-RWI-025 — Kelima syarat penutupan dan penutupan episode
         // =====================================================================
@@ -491,7 +359,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 NormalizeText(request?.Note),
                 actorUserId,
                 isOverride: false,
-                actorIsSupervisor: false,
+                expectedVersion: request?.ExpectedVersion ?? 0,
                 cancellationToken);
         }
 
@@ -518,20 +386,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             Guid episodeId,
             CloseEpisodeOverrideRequest request,
             Guid actorUserId,
-            bool actorIsSupervisor,
             CancellationToken cancellationToken = default)
         {
             if (request == null || string.IsNullOrWhiteSpace(request.Reason) ||
                 !request.Reason.Any(char.IsLetterOrDigit))
             {
-                return InpEpisodeOperationResult.Invalid(
-                    "Alasan penutupan tanpa kelayakan keuangan wajib diisi.");
-            }
-
-            if (!actorIsSupervisor)
-            {
-                return InpEpisodeOperationResult.Forbidden(
-                    "Hanya supervisor yang dapat menutup episode tanpa kelayakan keuangan.");
+                return InpEpisodeOperationResult.FromStatus(InpEpisodeOperationStatus.Invalid, "Alasan penutupan tanpa izin kasir wajib diisi dengan kalimat yang jelas.", "INP-CLS-012");
             }
 
             return await CloseEpisodeInternalAsync(
@@ -539,116 +399,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 request.Reason.Trim(),
                 actorUserId,
                 isOverride: true,
-                actorIsSupervisor: true,
+                expectedVersion: request.ExpectedVersion,
                 cancellationToken);
         }
 
-        // =====================================================================
-        // BE-RWI-027 — Kepergian fisik pasien
-        // =====================================================================
-
-        /// <summary>
-        /// Mencatat pasien sudah meninggalkan ruangan. Melepas tempat tidur seketika
-        /// <b>tanpa</b> menutup episode.
-        /// </summary>
-        /// <remarks>
-        /// <b>Kepergian fisik bukan perubahan status, sehingga ia tidak menulis
-        /// <c>InpStatusHistory</c>.</b> Episode tetap <c>DischargePending</c> dan tetap wajib
-        /// ditutup. <c>RWI-DEC-009</c> mengunci lima nilai status, dan kepergian fisik sengaja
-        /// tidak dijadikan status keenam — ia fakta yang dicatat, bukan tahapan yang dilalui.
-        /// Jejaknya tersimpan pada baris penempatan yang ditutup dengan alasan
-        /// <c>PatientDeparted</c>, ditambah dua kolom pada episode.
-        ///
-        /// <para>
-        /// <b>Yang sengaja tidak divalidasi.</b> Sistem tidak memeriksa apakah butir
-        /// administrasi atau kelayakan keuangan sudah selesai. Kepergian fisik adalah fakta,
-        /// bukan izin — pasien yang sudah pulang tetap harus dicatat pulang walaupun
-        /// administrasinya belum beres.
-        /// </para>
-        ///
-        /// <para>
-        /// <b>Tidak dapat dibatalkan.</b> <c>RWI-RULE-036</c> menetapkan tidak ada pembatalan.
-        /// Pasien yang ternyata belum jadi pulang menjalani admisi baru.
-        /// </para>
-        /// </remarks>
-        public async Task<InpEpisodeOperationResult> RecordPatientDepartureAsync(
-            Guid episodeId,
-            RecordDepartureRequest? request,
-            Guid actorUserId,
-            CancellationToken cancellationToken = default)
-        {
-            var episode = await _dbContext.Set<InpEpisode>()
-                .FirstOrDefaultAsync(x => x.Id == episodeId && !x.IsDelete, cancellationToken);
-
-            if (episode == null)
-            {
-                return InpEpisodeOperationResult.NotFound("Episode rawat inap tidak ditemukan.");
-            }
-
-            if (episode.EpisodeStatus != InpEpisodeStatus.DischargePending)
-            {
-                return InpEpisodeOperationResult.BusinessRuleRejected(
-                    "Kepergian hanya dapat dicatat setelah DPJP menyatakan pasien boleh pulang.",
-                    episode);
-            }
-
-            if (episode.PhysicallyLeftAt.HasValue)
-            {
-                return InpEpisodeOperationResult.Conflict(
-                    $"Kepergian pasien sudah dicatat pada pukul " +
-                    $"{episode.PhysicallyLeftAt.Value:HH:mm}.",
-                    episode);
-            }
-
-            var now = DateTime.UtcNow;
-            var departedAt = request?.DepartedAt ?? now;
-
-            if (departedAt > now)
-            {
-                return InpEpisodeOperationResult.Invalid(
-                    "Waktu kepergian tidak boleh melewati waktu sekarang.");
-            }
-
-            if (episode.DischargeDecidedAt.HasValue && departedAt < episode.DischargeDecidedAt.Value)
-            {
-                return InpEpisodeOperationResult.Invalid(
-                    "Waktu kepergian tidak boleh mendahului keputusan pulang.");
-            }
-
-            await using var transaction = await _dbContext.Database
-                .BeginTransactionAsync(cancellationToken);
-
-            try
-            {
-                await _bedOccupancyService.ReleaseActivePlacementAsync(
-                    episode.Id,
-                    InpBedPlacementEndReason.PatientDeparted,
-                    actorUserId,
-                    departedAt,
-                    cancellationToken);
-
-                episode.PhysicallyLeftAt = departedAt;
-                episode.PhysicallyLeftByUserId = actorUserId;
-                episode.UpdateDateTime = now;
-                episode.UpdateBy = actorUserId;
-
-                // Sengaja TIDAK memanggil ApplyStatusChangeAsync. Status episode tidak berubah,
-                // dan RWI-RULE-031 aturan 3 mewajibkan riwayat untuk perubahan status — bukan
-                // untuk setiap tindakan.
-                await _dbContext.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
-
-                return InpEpisodeOperationResult.Success(
-                    episode,
-                    "Kepergian pasien berhasil dicatat. Tempat tidur sudah dilepas; episode " +
-                    "tetap perlu ditutup.");
-            }
-            catch
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                throw;
-            }
-        }
+        // Kepergian fisik pasien (BE-RWI-027, diubah BE-RWI-153) ada di InpDischargeService.Departure.cs.
 
         // =====================================================================
         // BE-RWI-082, BE-RWI-083, BE-RWI-084 — Peringatan, akibat, dan daftar pantau
@@ -918,7 +673,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             var blockingItems = checklist?.Items.Where(x => x.IsBlocking).ToList()
                 ?? new List<ClearanceChecklistItemResponse>();
 
-            var financial = await GetFinancialClearanceAsync(episode.Id, cancellationToken);
+            var financial = await _billingClearanceAdapter.GetStatusAsync(episode.EncounterId, cancellationToken);
 
             var hasActivePlacement = await _dbContext.Set<InpBedPlacement>()
                 .AsNoTracking()
@@ -966,11 +721,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 {
                     Number = 4,
                     Code = "FINANCIAL_CLEARED",
-                    Label = "Kelayakan keuangan dinyatakan lunas kasir",
-                    IsSatisfied = financial?.IsCleared == true,
-                    UnmetMessage = financial?.IsCleared == true
+                    Label = "Kasir memberi izin",
+                    IsSatisfied = financial.IsReadable && financial.Status == "CLEARED",
+                    UnmetMessage = financial.IsReadable && financial.Status == "CLEARED"
                         ? null
-                        : "Kelayakan keuangan belum dinyatakan lunas oleh kasir.",
+                        : financial.IsReadable ? "Episode belum dapat ditutup: kasir belum memberi izin" : "Status kasir tidak dapat dibaca",
                     // Satu-satunya syarat yang dapat ditembus supervisor.
                     CanBeOverridden = true
                 },
@@ -1003,10 +758,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             string? reason,
             Guid actorUserId,
             bool isOverride,
-            bool actorIsSupervisor,
+            int expectedVersion,
             CancellationToken cancellationToken)
         {
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
             var episode = await _dbContext.Set<InpEpisode>()
+                .FromSqlInterpolated($"SELECT * FROM public.\"InpEpisode\" WHERE \"Id\" = {episodeId} FOR UPDATE")
                 .Include(x => x.StatusHistories)
                 .FirstOrDefaultAsync(x => x.Id == episodeId && !x.IsDelete, cancellationToken);
 
@@ -1027,6 +784,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     episode);
             }
 
+            if (expectedVersion < 1) return InpEpisodeOperationResult.Invalid("ExpectedVersion wajib diisi.");
+            if (episode.Version != expectedVersion) return InpEpisodeOperationResult.Conflict("Versi episode berubah. Muat ulang.", episode);
+            var observed = await _billingClearanceAdapter.GetStatusAsync(episode.EncounterId, cancellationToken);
+            if (!isOverride && (!observed.IsReadable || observed.Status != "CLEARED"))
+                return InpEpisodeOperationResult.FromStatus(InpEpisodeOperationStatus.BusinessRuleRejected,
+                    observed.IsReadable
+                        ? "Episode belum dapat ditutup: kasir belum memberi izin."
+                        : "Status kasir tidak dapat dibaca. Coba lagi beberapa saat, atau minta supervisor menutup dengan alasan.",
+                    observed.IsReadable ? "INP-CLS-010" : "INP-CLS-011");
             var conditions = await BuildClosureConditionsAsync(episode, cancellationToken);
 
             var unmet = conditions
@@ -1043,8 +809,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             var now = DateTime.UtcNow;
 
-            await using var transaction = await _dbContext.Database
-                .BeginTransactionAsync(cancellationToken);
 
             try
             {
@@ -1122,6 +886,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         cancellationToken);
 
                 episode.ClosedAt = now;
+                episode.ClosureClearanceObserved = observed.ToObservation();
 
                 if (isOverride)
                 {
@@ -1144,7 +909,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
 
-                _ = actorIsSupervisor;
+
 
                 var result = InpEpisodeOperationResult.Success(
                     episode,

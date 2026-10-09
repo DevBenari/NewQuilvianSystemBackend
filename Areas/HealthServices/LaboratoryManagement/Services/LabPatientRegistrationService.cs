@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -117,6 +118,93 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             };
         }
 
+        /// <summary>
+        /// Kunjungan kiosk ke Laboratorium yang belum memiliki satu pun pesanan Lab — padanan
+        /// menu v1 <i>Daftar Pasien OTC</i> (<c>LAB-EVD-013</c> butir 2).
+        /// </summary>
+        /// <remarks>
+        /// Kunjungannya dibentuk kiosk lewat <c>POST patient-encounters/kiosk</c>. Begitu petugas
+        /// menerbitkan pesanan untuknya, kunjungan itu keluar dari daftar ini dan berpindah ke
+        /// Daftar Pasien Lab. Kunjungan batal atau tidak hadir tidak ditampilkan. Bawaan
+        /// rentangnya hari ini (tanggal operasional UTC) bila tidak dikirim.
+        /// </remarks>
+        public async Task<PagedResult<LabKioskEncounterResponse>> GetKioskEncountersAsync(
+            LabKioskEncounterQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var pageNumber = Math.Max(1, query.PageNumber);
+            var pageSize = Math.Clamp(query.PageSize, 1, 100);
+
+            var source = _dbContext.RegPatientEncounters
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsFromKiosk &&
+                    x.ServiceUnit != null &&
+                    x.ServiceUnit.ServiceUnitType == ServiceUnitType.Laboratory &&
+                    x.EncounterStatus != EncounterStatus.Cancelled &&
+                    x.EncounterStatus != EncounterStatus.NoShow &&
+                    !_dbContext.LabOrders.Any(o => o.EncounterId == x.Id && !o.IsDelete));
+
+            if (query.IsReferral.HasValue)
+                source = source.Where(x => x.IsReferral == query.IsReferral.Value);
+
+            if (query.StartDate.HasValue)
+                source = source.Where(x => x.EncounterDate >= query.StartDate.Value);
+
+            if (query.EndDate.HasValue)
+                source = source.Where(x => x.EncounterDate <= query.EndDate.Value);
+
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var search = query.Search.Trim();
+
+                source = source.Where(x =>
+                    x.EncounterNumber.Contains(search) ||
+                    (x.Patient != null &&
+                     (x.Patient.MedicalRecordNumber.Contains(search) ||
+                      x.Patient.FullName.Contains(search) ||
+                      (x.Patient.PhoneNumber != null && x.Patient.PhoneNumber.Contains(search)))));
+            }
+
+            var totalData = await source.CountAsync(cancellationToken);
+
+            var items = await source
+                .OrderByDescending(x => x.EncounterDate)
+                .ThenByDescending(x => x.CreateDateTime)
+                .ThenBy(x => x.Id)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new LabKioskEncounterResponse
+                {
+                    EncounterId = x.Id,
+                    EncounterNumber = x.EncounterNumber,
+                    EncounterDate = x.EncounterDate,
+                    PatientId = x.PatientId,
+                    MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
+                    FullName = x.Patient != null ? x.Patient.FullName : string.Empty,
+                    BirthDate = x.Patient != null ? x.Patient.BirthDate : null,
+                    Gender = x.Patient != null && x.Patient.Gender != null ? x.Patient.Gender.ToString() : null,
+                    Address = x.Patient != null ? x.Patient.Address : null,
+                    PhoneNumber = x.Patient != null ? x.Patient.PhoneNumber : null,
+                    Email = x.Patient != null ? x.Patient.Email : null,
+                    IsReferral = x.IsReferral,
+                    ReferralNumber = x.ReferralNumber,
+                    PaymentType = x.PaymentType.ToString(),
+                    ServiceUnitId = x.ServiceUnitId
+                })
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<LabKioskEncounterResponse>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+        }
+
         // =================================================================
         // Pendaftaran — diteruskan ke Registrasi
         // =================================================================
@@ -193,6 +281,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 ReferralNumber = request.ReferralNumber,
                 ReferralInstitutionId = request.ReferralInstitutionId,
                 ReferralDoctorId = request.ReferralDoctorId,
+                RequirePartnerEligibility = request.RequirePartnerEligibility,
                 Notes = request.Notes
             };
 

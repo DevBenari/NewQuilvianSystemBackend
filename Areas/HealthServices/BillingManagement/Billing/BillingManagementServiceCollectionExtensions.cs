@@ -26,6 +26,7 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<BillingModuleService>();
         services.AddScoped<BillingInvoiceService>();
         services.AddScoped<BillingCalculationService>();
+        services.AddScoped<IBillingCalculationService, BillingCalculationService>();
         services.AddScoped<BillingPayerEditService>();
         services.AddScoped<BillingInsuranceInvoiceDocumentService>();
         services.AddScoped<BillingCompanyGuarantorInvoiceDocumentService>();
@@ -50,12 +51,15 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<BillingChargeReconciliationService>();
         services.AddScoped<BillingSyncPolicyService>();
         services.AddScoped<IBillingCoverageAdapter, RegistrationBillingCoverageAdapter>();
-        services.AddScoped<IInpatientRoomChargeCalculationService, InpatientRoomChargeCalculationService>();
-        services.AddScoped<InpatientRoomChargeCalculationService>();
+        // BE-RWI-147 / RWI-DEC-192 butir (e): InpatientRoomChargeCalculationService tidak lagi
+        // didaftarkan. Tarif kamar hanya dihitung BillingCalculationService (satu jalur).
         services.AddScoped<IAdministrationFeeCalculationService, AdministrationFeeCalculationService>();
         services.AddScoped<AdministrationFeeCalculationService>();
         services.AddScoped<IInpatientClearanceService, InpatientClearanceService>();
         services.AddScoped<InpatientClearanceService>();
+        // BE-RWI-150 / INT-RWF-01: penerima ketukan pintu Rawat Inap di dalam aplikasi.
+        services.AddScoped<BillingInpatientEventReceiver>();
+        services.AddScoped<BillingDrugReturnService>();
         services.AddOptions<BillingPaymentProviderOptions>()
             .BindConfiguration(BillingPaymentProviderOptions.SectionName);
 
@@ -113,6 +117,9 @@ public static class BillingManagementServiceCollectionExtensions
         // BE-FIN-039, FIN-DEC-048/054: Batch Tagihan AR — hanya membaca FinReceivable, memanggil
         // BillingCompanyGuarantorInvoiceDocumentService untuk dokumen gabungan, tidak menyalinnya.
         services.AddScoped<FinanceReceivableInvoiceBatchService>();
+        // Data Tagihan (Tagihan/Billing): query baca saja atas FinReceivable + Billing + Registrasi + Pasien,
+        // satu query untuk daftar dan ringkasan. Tidak menulis apa pun.
+        services.AddScoped<FinanceReceivableBillingDataService>();
         // BE-FIN-057, FIN-DEC-099..104: satu-satunya penulis FinNonPatientReceivable — aggregate
         // BERDIRI SENDIRI (FIN-DEC-101), MUST NOT memanggil FinanceReceivableService/FinanceReceiptService.
         services.AddScoped<FinanceNonPatientReceivableService>();

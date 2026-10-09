@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `3339ecdf1` |
 | Commit backend yang dijadikan rujukan | `458f38aa` |
 | Tanggal | 2026-09-22 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — seluruh permukaan terbangun, lint dan build hijau, 22 uji baru lulus. **Nol AC terbukti di layar**, sebab sesi ini nol punya alat kendali peramban |
+| Status | **Per task, sesudah verifikasi di peramban 2026-10-02 dan 2026-10-06 (bagian 8):** `FE-LAB-31` ✅ **`SELESAI`** · `FE-LAB-32` ✅ **`SELESAI`** — naik 2026-10-06 sesudah `BE-LAB-88`: formulir koreksi diisi nilai tersimpan (`FE-LAB-32.md` bagian 10) · `FE-LAB-33` ✅ **`SELESAI`**. *(Semula 2026-09-22: ⚠ ketiganya — permukaan terbangun, 22 uji baru lulus, nol AC terbukti di layar.)* |
 
 ---
 
@@ -122,17 +122,19 @@ dokter konfirmator — **belum satu pun diklik**.
 
 | AC | Status | Bukti |
 |---|---|---|
-| `AC-163` baris tanpa MIC dan tanpa zona tersimpan | **Terbukti pada aturannya** | Uji unit |
-| `AC-164` kultur tanpa isolat tersimpan tanpa peringatan | **Terbukti pada aturannya** | Uji unit |
-| `AC-165` baris tanpa interpretasi ditolak beserta sebabnya | **Terbukti pada aturannya** | Uji unit |
-| `AC-160` lebih dari satu Spesifik Specimen | **Terbukti pada aturannya** | Uji unit |
-| `AC-162` volume sebagai angka + satuan | **Terbukti pada aturannya** | Uji unit |
-| `AC-157` kedua waktu baca-saja | **Terbukti secara struktural** | Payload nol memuatnya; diuji |
-| `AC-168` Analis baca-saja | **Terbukti secara struktural** | Sama |
-| `AC-158` sesudah Final layar menyatakan belum dirilis | **Terbangun, belum dilihat** | Komponen merender `InformationAlert`; belum diklik |
-| `AC-166` ketiadaan aturan kritis dinyatakan | **Terbangun, belum dilihat** | Sama |
-| `AC-169` konsultasi nol membuat Definitif | **Terbangun, belum dilihat** | Payload konsultasi nol menyentuh `resultQualifier` |
-| `AC-170` sesudah Final specimen baca-saja | **Terbukti pada aturannya**, tampilannya belum dilihat | `isResultLocked` diuji; `disabled` dipasang dari nilainya |
+| `AC-163` baris tanpa MIC dan tanpa zona tersimpan | ✅ **Terbukti di layar** 2026-10-02 | Uji unit; M6 di 8.1 |
+| `AC-164` kultur tanpa isolat tersimpan tanpa peringatan | ✅ **Terbukti di layar** | Uji unit; M4 |
+| `AC-165` baris tanpa interpretasi ditolak beserta sebabnya | ✅ **Terbukti di layar** | Uji unit; M5. Sejak 2026-10-06 berlaku bagi baris **tanpa zona**; baris berzona ditolak server beserta sebab bila breakpoint belum disetel (8.3 (d)) |
+| `AC-160` lebih dari satu Spesifik Specimen | ✅ **Terbukti di layar** | Uji unit; K2 |
+| `AC-162` volume sebagai angka + satuan | ✅ **Terbukti di layar** | Uji unit; K2 (`2,5` L/jam) |
+| `AC-157` kedua waktu baca-saja | ✅ **Terbukti di layar** | Payload nol memuatnya; M2 |
+| `AC-168` Analis baca-saja | ✅ **Terbukti di layar** | M1, M2 |
+| `AC-158` sesudah Final layar menyatakan belum dirilis | ✅ **Terbukti di layar** | M12 |
+| `AC-166` ketiadaan aturan kritis dinyatakan | ✅ **Terbukti di layar** | M3, K8 |
+| `AC-169` konsultasi nol membuat Definitif | ✅ **Terbukti di layar** | M9 |
+| `AC-170` sesudah Final specimen baca-saja | ✅ **Terbukti di layar** | M13; riwayat koreksi K3 |
+| `AC-173`, `AC-174` (`FE-LAB-33`) | ✅ **Terbukti di layar** | T15–T17', D1–D2 |
+| `AC-176`, `AC-178`, `AC-186`..`AC-191` (`FE-LAB-31`, cakupan `MVP-7b`) | ✅ **Terbukti di layar** 2026-10-06 | T1–T14 di 8.2 |
 
 > **Perbedaan "terbukti pada aturannya" dan "terbukti" ditulis di sini dengan sengaja.**
 > Aturan murninya diuji dan lulus; yang **belum** diverifikasi adalah bahwa komponennya
@@ -144,11 +146,136 @@ dokter konfirmator — **belum satu pun diklik**.
 
 ## 7. Yang perlu dikerjakan sebelum ketiganya boleh ditandai selesai
 
-1. **Verifikasi klik menyeluruh** pada peramban, memakai akun bukan superadmin.
-2. Data ujinya sudah siap: pesanan `LAB-RSMMC-000014` memuat dua pemeriksaan, dan
-   `LAB-RSMMC-000011` memuat hasil berisi satu isolat *Branhamella catarrhalis*.
-3. **Data induk masih hampir kosong** — satu organisme, satu antibiotik. Menguji antibiogram
-   yang sungguhan menuntut `B3` pada laporan audit kesiapan ditutup lebih dulu.
+1. ~~**Verifikasi klik menyeluruh** pada peramban, memakai akun bukan superadmin.~~ **Selesai
+   2026-10-02 dan 2026-10-06** (bagian 8) dengan akun analis asli; superadmin hanya menggantikan
+   petugas koreksi specimen yang belum punya akun.
+2. ~~Data ujinya sudah siap …~~ Dipakai: pesanan uji `LAB-RSMMC-000014`.
+3. **Data induk masih hampir kosong** — satu organisme, satu antibiotik, satu breakpoint. Bukan
+   penahan status: pekerjaan data kepala instalasi (`B3`), bukan kode.
+4. ~~**Sisa `FE-LAB-32`:** ruas id Spesifik Specimen pada respons specimen backend, lalu formulir
+   koreksi diisi nilai tersimpan~~ **Selesai 2026-10-06** (`BE-LAB-88`; `FE-LAB-32.md` bagian 10) (8.4).
 
 **Nol operasi git dijalankan.** Satu dev server sisa dari sesi ini ditemukan masih hidup
 (`PID 8880`) dan sudah dihentikan.
+
+---
+
+## 8. Verifikasi susulan di peramban — 2026-10-02 dan 2026-10-06
+
+**Status sesudah verifikasi ini:** `FE-LAB-31` ✅ `SELESAI` · `FE-LAB-32` ⚠ **tetap** `SELESAI DENGAN BATAS VERIFIKASI` (batas baru, 8.4) · `FE-LAB-33` ✅ `SELESAI`.
+
+**Lingkungan.** Backend lokal (`dotnet run`, `Development`) terhadap PostgreSQL dev bersama; `next dev`
+port 3000 dari working tree `YogaV2`; Chromium lewat Playwright; login **lewat formulir**.
+**Akun:** **Vina (analis asli**, pemegang `LabExamination : Update`, tanpa `LabSpecimen : Update`);
+**superadmin** sebagai pengganti pemegang `LabSpecimen : Update`, sebab akun petugas koreksi specimen
+belum ada di dev. **Wewenang tulis (izin pemilik modul):** penjaga tulis hanya meneruskan `PUT` hasil,
+`finalize`, `reopen`, `consultation` milik pemeriksaan BTA kedua pesanan uji **`LAB-RSMMC-000014`**
+(`1f3670d7…`) dan `PATCH …/correction` specimennya (`14e5794d…`); selebihnya digagalkan.
+
+### 8.1 Sesi 2026-10-02 — `AC-157`..`AC-170`
+
+| ID | Skenario | Hasil | Bukti |
+| --- | --- | --- | --- |
+| M1 | BTA kedua: keadaan *Menunggu Hasil*; tombol *Pemeriksaan Selesai*; Analis baca-saja | `PASS` | — |
+| M2 | `AC-157`/`AC-168` Waktu Efektif, Waktu Issued, Analis tampil sebagai teks — nol isian | `PASS` | 0 isian |
+| M3, K8 | `AC-166` aturan kritis kosong → layar **menyatakannya** | `PASS` | Dev punya aturan kritis; jawaban backend diubah di peramban menjadi `criticalRuleAvailable: false` → *"Hasil tanpa penanda BUKAN berarti hasilnya aman"* |
+| M4 | `AC-164` kultur tanpa isolat (Negatif) tersimpan tanpa penolakan dan tanpa peringatan | `PASS` | `PUT` 200, `peringatan: []` |
+| M5 | `AC-165` baris kepekaan tanpa interpretasi ditolak beserta sebabnya; nol permintaan | `PASS` | Baris tanpa zona |
+| M6 | `AC-163` baris tanpa kadar dan tanpa zona tersimpan | `PASS` | `PUT` 200, `concentration`/`zoneDiameterMm` `null` |
+| M7 | Muat ulang: isolat dan antibiogram terbaca dari backend | `PASS` | *Branhamella catarrhalis* × Ampicillin |
+| M8 → K6 | Kadar desimal: metode Dilusi, `0,5` bersatuan → terkirim `0.5`, tersimpan, terbaca `0,5` | **`FAIL` → `PASS`** | Cacat (b) dan (c) di 8.3 |
+| M9 | `AC-169` Definitif tersimpan; konsultasi tercatat; nol tombol Kirim/Rilis/Validasi bagi analis | `PASS` | Keduanya `200`; konsultan *"dr. Konsultan Uji FE-LAB-33"* |
+| M10 → K2 | `AC-160`/`AC-162` koreksi specimen: dua Spesifik Specimen (centang) + volume `2,5` bersatuan → `PATCH` **200** | **`FAIL` → `PASS`** | Vina mendapat `403` karena layar menawarkan koreksi tanpa hak — cacat (a); lalu `422` karena satuan non-laboratorium — cacat (b). Sesudah keduanya: superadmin, `PATCH` 200 "Informasi Specimen berhasil dikoreksi; 3 ruas tercatat." |
+| M11 → K3 | `AC-170` koreksi berjejak — riwayat memuat ruas, nilai lama, dan nilai baru | **`PASS`** sesudah K2 | "Satuan Volume: - → L/jam; Volume: - → 2.5; Spesifik Specimen: - → Arterial cord blood specimen, Darah arteri" |
+| M12 | `AC-158` *Pemeriksaan Selesai* → `finalize` 200; layar menyatakan **belum dirilis**; nol tombol Validasi bagi analis | `PASS` | "Penulisan hasil dinyatakan selesai. Hasil ini belum dirilis." |
+| M13 | `AC-170` sesudah Final: Informasi Specimen baca-saja beserta keterangannya | `PASS` | — |
+| M14 | `AC-159` Buka Kembali beralasan → 200; kembali Draft; hitungan dibuka kembali bertambah | `PASS` | "Dibuka kembali 1 kali" |
+| M15 | 390 px tanpa gulir horizontal halaman | `PASS` | `375 ≤ 390` |
+| K1 | `AC-161` jenis *Lainnya* wajib berketerangan | `PASS` (aturan) | Opsi *Lainnya* tidak ada pada data induk dev — dibuktikan uji unit |
+| K4 | Muat ulang: volume terbaca `2,5` pada **formulir koreksi** | **`FAIL`** | Formulir koreksi tidak diisi nilai tersimpan — **batas `FE-LAB-32`**, 8.4 |
+| K5 | Vina (tanpa `LabSpecimen : Update`): Informasi Specimen baca-saja **dengan sebabnya**; nol *Simpan Koreksi* | `PASS` | Sesudah cacat (a) |
+| D1, D2 | `AC-174` jadwal jaga kosong: pilihan dokter dimuat backend, jalur jatuhnya dinyatakan; memilih mengisi nama konsultan | `PASS` | `onDutyScheduleAvailable: false` |
+| M16, K7 | Nol tulis di luar pemeriksaan uji | `PASS` | — |
+
+### 8.2 Sesi 2026-10-06 — cakupan `MVP-7b` dan `AC-173`
+
+Data induk dev: satu breakpoint *Branhamella catarrhalis* × Ampicillin, rentang **13–17 mm**.
+
+| ID | Skenario | Hasil | Bukti |
+| --- | --- | --- | --- |
+| T1 | `AC-176` status temuan menawarkan **tepat** Normal, Positif, Negatif | `PASS` | Nol *Perlu Perhatian*/*Kritis* |
+| T2 | `AC-188` Difusi Cakram: `UG`, `R-S`, `Zona (mm)`, nol `Kadar`; Dilusi: `Kadar` + `Satuan`, nol `UG`/zona | `PASS` | Kepala tabel |
+| T3 | `AC-190` isolat bertanda *Kepekaan tidak diuji* tanpa satu pun baris → `PUT` 200; muat ulang: penanda tetap | `PASS` | `isSusceptibilityTested: false` |
+| T4 | `AC-186` zona 15, S/I/R **tidak dipilih**: layar memberi keterangan; `result: null` terkirim; server menghitung **I** | `PASS` | Sesudah perubahan (d) |
+| T5 | `AC-185` kolom `R-S` = snapshot baris `13-17`, nol isian | `PASS` | — |
+| T6, T7 | `AC-186` zona 10 → **R**; zona 30 → **S**; interpretasi lama dikosongkan sendiri, nol penolakan penimpaan | `PASS` | Sesudah perubahan (e) |
+| T8 | `AC-191` zona **0** → **R** | `PASS` | `zoneDiameterMm: 0` tersimpan sebagai angka |
+| T9 | `AC-187` menimpa R menjadi S: kotak *Alasan menimpa* muncul; tanpa alasan ditolak layar, nol permintaan | `PASS` | — |
+| T10 | `AC-187` dengan alasan → 200; muat ulang: S tersimpan **beserta hitungan aslinya**, keterangan *"sistem menghitung R"* | `PASS` | `isResultOverridden: true`, `computedResult: R` |
+| T11 | `AC-191` zona dikosongkan → `null`; tersimpan belum diukur, nol interpretasi hitungan | `PASS` | `computedResult: null` |
+| T12 | `AC-178` kadar `1,25` tanpa satuan ditolak layar beserta sebabnya; nol permintaan | `PASS` | "Pilih satuan untuk nilai kadar." |
+| T13 | `AC-178` dengan satuan → 200; terbaca `1,25` | `PASS` | Satuan MILIGRAM. Bagian *"mg/L dan ug/mL berdampingan"* tidak dapat diulang di layar: dev hanya punya satu antibiotik dan satuan laboratorium tanpa `mg/L`/`ug/mL` — sisi penyimpanannya milik `BE-LAB-61` ✅ |
+| T14 | `AC-189` profil tanpa set bakteri: bagian isolat dan antibiogram **tidak tampil**, sebabnya dinyatakan | `PASS` | Nol pemeriksaan dev berprofil demikian; jawaban backend diubah di peramban (`usesSusceptibilitySet: false`) |
+| T15 | `AC-173` jadwal jaga terisi: hanya dokter jaga (dan DPJP) ditawarkan, **beserta nomor WhatsApp**; nomor kosong dinyatakan; nol keterangan jalur jatuh | `PASS` | Jawaban backend diubah di peramban (`TrxOnCallAssignment` belum punya pengisi, `LAB-COORD-014`). Sesudah perubahan (f) |
+| T16 | Memilih dokter jaga mengisi nama konsultan **tanpa** peran maupun nomor | `PASS` | — |
+| T17' | `AC-174` ulang dengan jawaban asli: jalur jatuh dinyatakan; nama terisi bersih | `PASS` | Percobaan pertama T17 tidak sah — `page.unroute` skrip uji tidak melepas tiruan T15; diulang dalam skrip terpisah tanpa tiruan |
+| T18 | 390 px tanpa gulir horizontal halaman | `PASS` | — |
+| T19 | Nol tulis di luar pemeriksaan uji | `PASS` | — |
+
+**AC yang tidak diklaim di sini, dan sebabnya.** `AC-177`, `AC-179`, dan `AC-183` berbunyi tentang
+**cetakan** — tata letak cetak dikecualikan dari gelombang ini (`LAB-OPEN-039`). Sisi layarnya berdiri:
+pemilih kualifikasi `Definitif`/`Sementara` tersimpan sebagai nilai (M9; `FE-LAB-41` M4), penanda jenis
+biakan tersimpan, dan *Petugas Otorisasi* baru tampil sesudah rilis (`FE-LAB-41` M12).
+
+### 8.3 Cacat yang ditemukan uji, dan perbaikannya
+
+| # | Temuan | Perbaikan | Berkas | Commit |
+| --- | --- | --- | --- | --- |
+| (a) | Bagian Informasi Specimen **dapat disunting** oleh akun tanpa `LabSpecimen : Update`, lalu berakhir `403` | Dikunci beserta sebabnya bila izin tidak ada | `use-lab-microbiology-result-editor.jsx` (`canCorrectSpecimen`), `lab-microbiology-result-panel.jsx`, `lab-microbiology-specimen-section.jsx` (`readOnlyMessage`), `lab-microbiology-result-constants.jsx` (`specimenCorrectionForbidden`) | `d05fb95e0` |
+| (b) | Pemilih satuan volume dan kadar menawarkan **seluruh** satuan (GALON, ROL BESAR, …); backend menolaknya `422` (`VAL-110`/`VAL-112`) | Pilihan disaring `isForLaboratory: true` | `lab-microbiology-result-panel.jsx`, `health-service-select-resources.js` (`filterKeys`) | `d05fb95e0` |
+| (c) | Kadar tersimpan `0.5` terbaca kembali sebagai `0.5` — titik, bukan koma | Dibaca kembali dengan koma desimal | `use-lab-microbiology-result-editor.jsx` (`readFormFromResult`) | `d05fb95e0` |
+| (d) | **Selisih kontrak `r27` 22.2** yang terbuka sejak 2026-09-23: layar mewajibkan S/I/R pada setiap baris, sehingga `AC-186` ("tanpa satu pun ketikan analis") mustahil | **Keputusan pemilik modul 2026-10-06: ikuti `r27`.** Baris **berzona** boleh dikirim tanpa S/I/R — server menghitungnya, atau menolak `422` beserta sebab bila breakpoint belum disetel (`VAL-114`). Baris tanpa zona tetap wajib S/I/R (`AC-165` utuh). Isian *Hasil* tidak lagi bertanda wajib pada baris berzona, dan layar menulis *"dihitung sistem dari breakpoint saat disimpan"* | `lab-microbiology-result-rules.js` (`validateSusceptibilityRow`), `lab-microbiology-result-form.jsx` | belum ter-commit |
+| (e) | Sesudah disimpan, S/I/R hasil hitungan menetap di isian; mengubah zona mengirim nilai lama dan server menolaknya sebagai **penimpaan tanpa alasan** (`VAL-113`) | `applySusceptibilityChange`: mengubah zona mengosongkan S/I/R yang **sama dengan hitungan server**; timpaan analis dibiarkan | `lab-microbiology-result-rules.js`, `use-lab-microbiology-result-editor.jsx` | belum ter-commit |
+| (f) | `AC-173` menuntut nomor WhatsApp dokter jaga; layar **tidak pernah** menampilkan `whatsAppNumber` walau backend mengirimnya | Label pilihan memuat `WA <nomor>`; dokter jaga tanpa nomor bertanda *"WA belum tercatat"*; nama konsultan diisi dari `fullName`, bukan dari potongan label | `lab-microbiology-completion-bar.jsx` | belum ter-commit |
+
+Uji unit baru untuk (d) dan (e): **5** di `tests/unit/lab-microbiology-result-rules.test.mjs`
+(`AC-186` baris berzona lolos dan terkirim `result: null`; zona 0 diserahkan ke server; zona diubah
+mengosongkan hitungan; timpaan dibiarkan; ruas lain nol menyentuh interpretasi).
+
+### 8.4 Batas `FE-LAB-32` yang tersisa — kenapa ia TIDAK naik
+
+> **Ditutup 2026-10-06** — `LAB-DEC-167` disetujui, `BE-LAB-88` selesai, dan formulir koreksi kini diisi
+> nilai tersimpan. Rinciannya di [`FE-LAB-32.md`](FE-LAB-32.md) bagian 10. Uraian di bawah dipertahankan
+> sebagai riwayat.
+
+Ketiga AC-nya (`AC-160`, `AC-162`, `AC-170`) dan DoD-nya (nol tombol menambah Spesifik Specimen) kini
+terbukti di layar. Yang menahannya adalah **outcome** task — *"mengoreksi specimen … dan dapat melihat
+nilai lamanya"*:
+
+1. **Formulir koreksi mulai kosong** (`EMPTY_SPECIMEN_FORM`), tidak diisi nilai yang tersimpan (K4).
+   Petugas tidak melihat nilai sekarang di formulir — hanya di riwayat.
+2. **`LabSpecimenResponse` tidak memuat id Spesifik Specimen** (diperiksa pada source backend
+   2026-10-06: ada `SpecimenTypeId`, `VolumeAmount`, `VolumeUnitId`, `SpecimenDescription`,
+   `PhysicallyReceivedAt`, tetapi nol `DetailTypeIds`). Karena itu layar **tidak dapat** mencentang yang
+   sudah tersimpan, dan mencentang satu kotak **mengganti seluruh set** tanpa peringatan.
+
+Butir 2 menuntut **task backend** — diajukan 2026-10-06 sebagai [`LAB-REQ-015`](../../../approval-requests/2026-10-06-permintaan-spesifik-specimen-pada-respons-specimen.md) (usulan `LAB-DEC-167`, `r39`, `BE-LAB-88`);
+sesudah itu butir 1 dapat ditutup di frontend sekaligus. Risiko sementara dikurangi oleh payload yang
+hanya membawa ruas yang disentuh (`buildSpecimenCorrectionPayload`) — ruas yang tidak disentuh tidak
+pernah ditimpa — dan oleh riwayat perubahan yang mencatat nilai lama setiap koreksi.
+
+### 8.5 Jejak di database dev dan validasi akhir
+
+**Pemeriksaan BTA `1f3670d7…` (`LAB-RSMMC-000014`)**, keadaan akhir *Draft*: temuan Positif, Definitif,
+metode Dilusi; satu isolat *Branhamella catarrhalis* (diuji) dengan baris Ampicillin: zona kosong, S,
+kadar `1,25` MILIGRAM. Dibuka kembali satu kali (2026-10-02); konsultasi kepada *"dr. Konsultan Uji
+FE-LAB-33"*. **Specimen `14e5794d…`:** dua Spesifik Specimen (*Arterial cord blood specimen*, *Darah
+arteri*), volume 2,5 L/jam. Seluruhnya data uji.
+
+| Perintah (2026-10-06, sesudah perubahan (d)–(f)) | Hasil |
+| --- | --- |
+| `node --import ./tests/helpers/register.mjs --test tests/unit/` | **2308 lulus, 6 gagal** dari 2314 — keenamnya kegagalan baseline (Hemodialisa ×4, Bank Darah M0, petty cash); nol Laboratorium |
+| `npm run lint:errors` | **0 error** |
+| `npm run build` | **Hijau** (server BE/FE dimatikan lebih dulu) |
+
+**Nol operasi Git dijalankan.**

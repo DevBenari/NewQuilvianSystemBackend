@@ -149,7 +149,7 @@ public sealed class BillingInvoiceClosureService
                 "Invoice belum memiliki hasil perhitungan terkini.");
 
     private Task AcquireInvoiceLedgerLockAsync(Guid invoiceId, CancellationToken cancellationToken) =>
-        _dbContext.Database.IsRelational()
+        _dbContext.Database.IsRelational() && _dbContext.Database.ProviderName != "Microsoft.EntityFrameworkCore.Sqlite"
             ? _dbContext.Database.ExecuteSqlRawAsync(
                 "SELECT pg_advisory_xact_lock(hashtext({0}));",
                 [$"BIL_INVOICE_LEDGER_{invoiceId:N}"],

@@ -203,6 +203,8 @@ Catatan: database dev kecil dan tidak mewakili variasi data produksi. Desain nor
 | `KSK-DEC-017` | Decision | **Menutup `KSK-UNK-001`.** Lookup menganggap "ditemukan" hanya pasien `PatientStatus = Active`, `IsActive = true`, dan belum dihapus. Pasien `Merged` diikuti ke `MergedToPatientId`; bila pasien tujuan Aktif, kartu pasien tujuan yang ditampilkan. Status lain (Tidak Aktif, Meninggal, Diblokir, atau Merged dengan tujuan tidak aktif) menghasilkan pesan netral "Silakan hubungi petugas pendaftaran" **tanpa alasan** dan tanpa CTA Pasien Baru. Backend tidak mengirim data pasien untuk hasil ini. | Sukma | `approved` | Sukma, 30 Sep 2026 | `KSK-FACT-008`; PRIV-4 |
 | `KSK-DEC-018` | Decision | **Menutup `KSK-UNK-002`.** Jalur HP menerima seluruh nomor Indonesia, baik seluler maupun telepon rumah/kantor, dalam bentuk `0…`, `62…`, atau `+62…`. Normalisasi: buang semua karakter selain digit, ganti awalan `0` menjadi `62`, lalu wajib diawali `62` dengan panjang 9–15 digit. Pencocokan memakai bentuk ternormalisasi di **kedua sisi** (input dan data tersimpan), karena data tersimpan tidak seragam (`KSK-FACT-006`). Teknik penyimpanan/index ditentukan saat desain. | Sukma | `approved` | Sukma, 30 Sep 2026 | KSK-RM-004 |
 | `KSK-DEC-019` | Decision | Validasi KTP tetap tepat 16 digit (KSK-RM-003). Pasien dengan nomor identitas non-KTP (paspor/KITAS) memakai jalur No. HP atau menemui petugas. Metode pencarian ketiga **tidak** ditambahkan. | Sukma | `approved` | Sukma, 30 Sep 2026 | `KSK-FACT-008`; KSK-RM-002 |
+| `KSK-DEC-020` | Decision | Kartu Jenis Kunjungan dan Pembayaran tanpa baris ceklis. Kartu poli menampilkan nama lengkap saja; baris unit layanan/jenis klinik ("Rawat Jalan \| Spesialis") dan estimasi menit dihapus; lokasi pindah ke kiri chip singkatan poli. Berlaku untuk Pasien Lama dan Pasien Baru. | Sukma | `approved` | Sukma, 1 Okt 2026 (catatan pemilik 16.07) | `FE-KSK-009` |
+| `KSK-DEC-021` | Decision | Masa berlaku kartu penjamin berupa tanggal "Berlaku s/d" yang disimpan ke `effectiveEndDate` asuransi/penjamin perusahaan pasien saat disimpan. Penjamin tersimpan membaca tanggal itu (read-only) dan tidak dipilih ulang; kartu kedaluwarsa ditolak. Pilihan "kurang/lebih dari 1 tahun" dihapus dari Kiosk. | Sukma | `approved` | Sukma, 1 Okt 2026 (opsi rekomendasi dipilih di sesi agent) | `FE-KSK-010` |
 | `KSK-ASM-001` | Assumption | — | — | `superseded` oleh `KSK-FACT-004` | — | — |
 | `KSK-ASM-002` | Assumption | — | — | `superseded` oleh `KSK-FACT-005` | — | — |
 | `KSK-ASM-003` | Assumption | — | — | `rejected` oleh `KSK-FACT-006` | — | — |
@@ -227,3 +229,17 @@ Catatan: database dev kecil dan tidak mewakili variasi data produksi. Desain nor
 | `KSK-AC-015` | **Given** pasien A digabung ke pasien B yang Aktif **When** lookup KTP milik A **Then** kartu pasien B yang tampil. |
 | `KSK-AC-016` | **Given** HP tersimpan `+6281234567890` **When** input `0812-3456-7890` **Then** ditemukan. **Given** HP tersimpan `+62215551234` **When** input `021 555 1234` **Then** ditemukan. |
 | `KSK-AC-017` | **Given** input KTP `A1234567890123456` atau 15 digit **Then** pesan "Nomor KTP harus terdiri dari 16 digit." dan tidak ada request ke backend. |
+
+## 12. Amandemen 8 Oktober 2026 — Revisi Pendaftaran Pasien manual
+
+Sumber: Sukma Giri, 8 Okt 2026, PDF "Pendaftaran pasien manual". Pemilik memilih cakupan "Petugas RJ +
+Kiosk" dan "Kiosk ikut semua poin" untuk jalur A (frontend saja). Keputusan sisi petugas RJ dan
+jalur B tercatat di blueprint Rawat Jalan (`RJ-DOC-DEC-062`..`067`). Cari pasien Kiosk sudah menjadi
+acuan (`KSK-DEC-016`/`018`) dan tidak berubah.
+
+| Decision ID | Jenis | Keputusan | Owner | Status | Disetujui oleh/pada | Bukti |
+| --- | --- | --- | --- | --- | --- | --- |
+| `KSK-DEC-022` | Decision | Pada step Pilih Layanan Tujuan (Pasien Lama dan Baru): pesan "Silakan pilih poliklinik terlebih dahulu" berwarna merah; daftar dokter dapat dicari dan menampilkan nama serta info praktik. No. HP/WhatsApp pada form Pasien Baru maksimal 13 angka lokal (`08…`), yaitu 14 digit dalam bentuk `+62…` yang disimpan Kiosk; normalizer lokal Kiosk diganti normalizer bersama `normalizeIndonesianPhoneNumber`. Kontak darurat tetap 15 digit | Sukma | `approved` | Sukma, 8 Okt 2026 | `FE-KSK-012` |
+| `KSK-DEC-023` | Decision | *(superseded oleh `KSK-DEC-025`)* Jenis Kunjungan (Pasien Umum / Pasien Rujukan) pindah ke step Pilih Layanan Tujuan, ringkas di samping jadwal dokter, Umum di atas Rujukan. Step Pilih Jenis Pasien dihapus dari Pasien Lama dan Pasien Baru, sehingga jumlah step berkurang satu. Alur Laboratorium tidak berubah | Sukma | `superseded` | Sukma, 8 Okt 2026 (pilihan "Kiosk ikut semua poin") | `FE-KSK-013` |
+| `KSK-DEC-024` | Approval | `IMPLEMENTATION_AUTHORITY` `GRANTED`, `TASK MODE: FRONTEND`, untuk `FE-KSK-012` dan `FE-KSK-013`. Wajib memakai base component dan util normalizer yang sudah ada. Tanpa backend, migration, commit, push, merge, deploy | Sukma | `approved` | Sukma, 8 Okt 2026 | — |
+| `KSK-DEC-025` | Decision | **Menggantikan `KSK-DEC-023`.** Jenis Kunjungan Kiosk tetap step tersendiri sebelum memilih layanan, karena pilihan Umum/Rujukan menentukan apakah step Rujukan muncul (`RJ-DOC-DEC-072`). `FE-KSK-013` dibatalkan. Step Rujukan Kiosk mengikuti `RJ-DOC-DEC-076` | Sukma | `approved` | Sukma, 8 Okt 2026 (pilihan "Tetap step sendiri sebelum layanan") | — |

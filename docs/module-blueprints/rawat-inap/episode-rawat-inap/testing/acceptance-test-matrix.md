@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | **`0.9.0`** — bagian 18, `draft` |
-| `last_changed_in` | **`0.9.0`** — bagian 18. Sebelumnya `0.8.0` — bagian 2A.1 dan 4.1 |
+| `contract_version` | **`0.11.0`** — bagian 21 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 20, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 18 |
+| `last_changed_in` | **`0.11.0`** — bagian 21. Sebelumnya `0.10.0` — bagian 20; `0.9.0` — bagian 18; `0.8.0` — bagian 2A.1 dan 4.1 |
 | Status | **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Masukan | `00-interview-decisions.md` revision `6` (149 acceptance criteria); `contracts/api-contract.md`, `contracts/validation-matrix.md`, dan `contracts/permission-audit-matrix.md` revision `0.3.0`; kontrak lain revision `0.2.0` |
 | Backend SHA | `5afb54b` |
@@ -480,4 +480,187 @@ Untuk mematuhi aturan keterlacakan (*traceability*) dan membuktikan penegakan at
 | 6 | **Fase 6 s.d. 8** | [`laporan-testing-fase-6-clearance-penutupan-episode.md`](test-by-agy/laporan-testing-fase-6-clearance-penutupan-episode.md) | Kliring finansial kasir (`POST /financial-clearance`), pencatatan kepergian fisik (`POST /record-departure`), butir administrasi, evaluasi 5 syarat kesiapan, dan penutupan resmi episode (`POST /close`). | 🟢 **100% LULUS** |
 | 7 | **Siklus Lengkap (End-to-End)** | [`laporan-testing-siklus-lengkap-episode-rawat-inap.md`](test-by-agy/laporan-testing-siklus-lengkap-episode-rawat-inap.md) | Verifikasi live siklus utuh dari pendaftaran pasien lama, admisi, draf episode, reservasi bed, penempatan, tim medis PPJA, isolasi, alih rawat tempat tidur, keputusan pulang DPJP, resume medis digital, kliring kasir, kepergian fisik, hingga penutupan resmi dan verifikasi sensus bersih. | 🟢 **100% LULUS** |
 
+---
 
+## 20. Amandemen kontrak `0.10.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+Akibat di modul lain (Kamar Operasi, Billing, Clinical) lulus hanya bila terbukti di modul penerima (`RWI-DEC-168`). Skenario bertanda **OK** disaksikan pemilik modul OK; persetujuan OK atas `RWI-OQ-114` sudah tercatat (`RWI-DEC-208`).
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FR-RWF-041` / `AC-RWF-040` | Perawat memesan bedah untuk pasien samaran yang punya order "Appendektomi" | Integrasi dengan OK sungguhan + E2E | Kasus `Requested` di daftar Kasus Operasi; dokter operator dari order; penginput akun perawat; tepat satu `OprCaseProcedure` |
+| `FR-RWF-041` / `AC-RWF-048` | Pesan tanpa order, dengan order milik kunjungan lain, dan dengan order yang dibatalkan | Integrasi | Ketiganya `422 INP-SRG-001`; tidak ada kasus OK |
+| `FR-RWF-043` | Pesan dari tab Bedah Obgyn dengan isian `SurgicalServiceType = General` dari klien | Integrasi | Kasus tersimpan `Obstetric` |
+| `FR-RWF-044` / `AC-RWF-041` | OK menjadwalkan kasus, bangsal memuat ulang | E2E | Label "Terjadwal" beserta tanggal dan jam |
+| `FR-RWF-045` / `AC-RWF-042` | Pra-operasi dengan butir wajib belum dikonfirmasi penerima | Integrasi | Kesiapan OK memuat `WARD_PRE_OP_INCOMPLETE`; "Siap" ditolak |
+| `FR-RWF-048` / `AC-RWF-045` | Kasus sisi Kanan, penandaan Kiri | Integrasi | `422 OPR-WPO-001` saat kirim dan saat konfirmasi |
+| `AC-RWF-046` | Akun pengirim mencoba konfirmasi pra-operasi; akun pengirim serah terima mencoba menerima | Integrasi | `OPR-WPO-002`; `OPR-HO-002` |
+| `FR-RWF-090` / `AC-RWF-093` | Pra-operasi `Confirmed`, kasus ditunda | Integrasi | Versi 1 `NeedsUpdate` dalam transaksi tunda; versi 1 tetap terbaca; "Siap" ditolak `WARD_PRE_OP_NEEDS_UPDATE` |
+| `FR-RWF-090` / `AC-RWF-094` | Dijadwalkan ulang; TD baru dicatat; versi 2 dikirim lalu dikonfirmasi akun OK lain | Integrasi + E2E | Potret versi 2 = TD terbaru; versi 1 `Superseded`; "Siap" diterima |
+| `FR-RWF-046` / `AC-RWF-043` | Perawat bangsal pemegang `Receive` menerima serah terima | Integrasi | `Accepted`, penerima dan waktu dari akun login |
+| `FR-RWF-046` / `AC-RWF-047` | Serah terima ke ICU saat pasien masih di Melati; lalu transfer; lalu terima | E2E **OK** | `422 OPR-HO-001`, kemudian berhasil; bed tidak berpindah oleh penerimaan |
+| `INV-RWF-28` | Pemeriksaan lokasi bed gagal (layanan baca dimatikan di lingkungan uji) | Integrasi | Penerimaan ditolak, bukan diloloskan |
+| `FR-RWF-049` / `AC-RWF-049` | Kasus `InProgress` 08.00–11.00 | Integrasi dengan Billing | Bed asal tetap terisi; tarif kamar berjalan |
+| `FR-RWF-047` / `AC-RWF-044` | Kasus `Completed` dengan catatan anestesi final dan 2 bahan `Used`; kasus lain dibatalkan sebelum selesai | Integrasi dengan Clinical dan Billing **OK** | Kasus selesai: tepat satu baris tindakan (dari order), satu anestesi, satu sewa kamar, dua bahan; kasus batal: nol baris |
+| `INV-RWF-29` | Jalankan `OperatingRoomCompletionEffects` dua kali untuk kasus yang sama | Integrasi | Tidak ada baris ganda; order tindakan yang sudah `Completed` dilewati |
+| `AC-RWF-092` | Bahan tertagih lewat OK lalu diretur dan lolos pemeriksaan | Integrasi dengan Billing | Tidak ada tagihan Farmasi untuk bahan itu; retur membatalkan tagihan OK |
+| `FR-RWF-047` | Tarif sewa kamar operasi tidak ada di master | Integrasi dengan Billing | Baris "tarif belum ada"; invoice tidak dapat difinalkan (`VAL-RWF-17`) |
+| `FR-RWF-086` / `AC-RWF-085` | Tolak kasus Diminta tanpa alasan, lalu dengan alasan | Integrasi + E2E **OK** | `400`, lalu `Rejected` dengan penolak dan waktu; bangsal melihat label merah dan alasannya |
+| `AC-RWF-099` | Kasus `Rejected`: jadwalkan, ubah, batal, tolak lagi; bangsal pesan ulang order yang sama | Integrasi | Semua `422 OPR-CASE-REJ-002`/`001`; kasus baru `Requested`; invoice tanpa biaya kasus ditolak |
+| `FR-RWF-086` | Laporan Operasi periode berisi satu kasus ditolak dan satu dibatalkan | Integrasi | `RejectedCount = 1`, `CancelledCount = 1` |
+| `FR-RWF-080` / `AC-RWF-080` | Pasien samaran dari poliklinik; kamar pulih menyimpan keputusan `Inpatient` | Integrasi **OK** | Permintaan `Pending`; tidak ada episode |
+| `AC-RWF-088` | Admisi dari permintaan; bed ditempati; serah terima diterima | E2E | Permintaan `Completed` dengan episode; kasus OK `Completed`; tarif kamar sejak bed ditempati |
+| `FR-RWF-089` / `AC-RWF-089` | Keputusan `Inpatient` untuk pasien yang sudah punya episode; OK membatalkan permintaan beralasan; admisi biasa untuk pasien yang punya permintaan `Pending` | Integrasi | `AdmissionReferralState = NotNeeded` tanpa baris baru; permintaan `Cancelled` hilang dari daftar; `409 INP-ADM-REF-001` |
+| `INV-RWF-32` | Dua penyimpanan kamar pulih bersamaan untuk kasus yang sama | Integrasi konkurensi | Satu permintaan `Pending` (unique parsial) |
+| `FR-RWF-081`, `082` / `AC-RWF-081`, `082` | Bangsal membuka ringkasan laporan final, lalu laporan draft | Integrasi + E2E | Isian klinis tampil tanpa tombol ubah; draft → "Laporan operasi belum final" |
+| `FR-RWF-088` / `AC-RWF-087` | Serah terima belum diterima 61 menit dengan ambang 60 | Integrasi | Tampil di daftar pantau bangsal dan di daftar serah terima OK `overdueOnly` |
+| `FR-RWF-087` / `AC-RWF-086` | Laporan 1–7 Okt berisi satu transfer dan satu koreksi; ekspor | Integrasi + E2E | Baris transfer dan baris bertanda "Koreksi"; audit ekspor tercatat tanpa nama pasien |
+| `AC-RWF-100` | Pengguna berperan "Kepala Ruangan" tanpa permission laporan | Integrasi | `403` |
+| `FR-RWF-087` | Periode 45 hari | Integrasi | `400` `VAL-RWF-90` |
+| `FR-RWF-071` / `AC-RWF-071` | Transfer Melati → ICU; transfer di dalam Melati | Integrasi + E2E | Satu dokumen `NotSent` hanya untuk transfer antarunit; banner tampil di kedua unit |
+| `FR-RWF-071` / `AC-RWF-072` | Perawat ICU menolak tanpa alasan, lalu dengan alasan; pengirim mengirim ulang | Integrasi | `400`; `Rejected`; `Sent` kembali |
+| `INV-RWF-33` | Pembuatan dokumen serah terima gagal sesudah transfer | Integrasi | Transfer tetap tersimpan; Daftar Pantau menampilkan transfer tanpa dokumen |
+| Regresi OK | Kasus dibuat petugas OK dengan tiga tindakan; alur OK lama tanpa pra-operasi bangsal | Regresi | `POST cases` tetap menerima banyak tindakan; kasus darurat tetap dapat memakai bypass darurat yang sudah ada |
+| Regresi permission | Peran yang dulu memegang `OperatingRoomHandover : Update` | Regresi | Sesudah `E8`, peran itu memegang `Send`, **tidak** `Receive` |
+| `RWI-AC-330` / `RWI-DEC-207` | Admisi dari permintaan untuk pasien Poli Bedah | Integrasi dengan Billing | Pesan `ADMISSION_CONFIRMED` hanya berisi field daftar putih; Billing membuat satu tautan kunjungan asal |
+| `RWI-AC-331` / `RWI-DEC-220` butir 1 | Admisi biasa untuk pasien dengan permintaan `Pending` | Integrasi | `409 INP-ADM-REF-001` |
+| `RWI-AC-332` / butir 2 | Pesan ruang bedah untuk episode `DischargePending` | Integrasi | `422 INP-SRG-002` |
+| `RWI-AC-333` / butir 3 | Peran pemegang `OperatingRoomHandover : Update` lama sesudah `E8` | Regresi | Kirim boleh; terima `403` |
+| `RWI-AC-334` / butir 4 | Laporan transfer 32 hari | Integrasi | `400` `VAL-RWF-90` |
+| `RWI-AC-336` / butir 6 | Ambang daftar pantau diubah dari 60 ke 120 menit | Integrasi | Serah terima 61 menit tidak lagi tampil sampai lewat 120 menit |
+| `RWI-AC-338` / `RWI-DEC-219` | Pemesanan Ruangan Bedah | E2E | Perkiraan tarif tindakan dari order dan keterangan komponen OK |
+| `RWI-AC-340` / `RWI-DEC-214`, `215` | Sidebar Rawat Inap dengan dan tanpa permission laporan | E2E | Butir Laporan Rawat Inap hanya bagi pemegang permission; paling banyak sepuluh butir |
+
+---
+
+## 21. Amandemen kontrak `0.11.0` — Workspace PPRI ★ 7 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.11.0` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`) |
+| Data uji samaran | PRD bagian 18: Tn. Budi Santoso (RM `00-12-34-56`, asuransi PT Asuransi Sehat Sentosa, kartu `7788-0012-3456`, kelas 2, Melati 03 bed B), istri Ny. Rina Santoso; Ny. Wati (tunai); By. Ny. Rina (3 hari). Petugas: Sari (admisi), Dewi (CRO), Andi (perawat), Maya (kepala ruangan), Yudi (kasir), Hendra (supervisor) |
+| Prasyarat lingkungan | Peran dan hak `RWI-OQ-124`; situs rumah sakit `IsMainSite`; kebijakan deposit asuransi kelas 2 minimum Rp 5.000.000, interval 3 hari; butir serah terima `STPB-*` |
+
+Akibat di modul lain lulus hanya bila terbukti di modul penerima (`RWI-DEC-168`). Baris bertanda **gerbang** baru dapat dijalankan setelah persetujuan pemilik modul yang disebut.
+
+### 21.1 Ruang kerja, header, dan kelengkapan
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FR-RWA-001` / `RWI-AC-343` | Sari dan Andi membuka Detail Episode Budi; pengguna Gizi tanpa hak membuka Detail Episode lalu mengetik alamat ruang kerja | E2E | Tombol "Workspace PPRI" tepat sesudah Workspace Dokter bagi Sari dan Andi; tidak ada bagi pengguna Gizi; alamat langsung → "Akses Tidak Tersedia"; panggilan server `403` |
+| `RWI-AC-344` | Membuka Workspace PPRI | E2E + pemantauan jaringan | Navigasi tanpa Assessment Edukasi dan tanpa MP Benefit; tidak ada panggilan `patient-assessments` |
+| `FR-RWA-005` / `RWI-AC-345` | Budi (asuransi, kurang deposit, tanpa operasi) dan Wati (tunai, deposit cukup) | Integrasi + E2E | "0 dari 6" dan "0 dari 4"; General Consent, Privasi, Label tidak dihitung |
+| `RWI-DEC-250` / `RWI-AC-371` | Budi punya kasus OK `Completed` tanpa Estimasi; Wati kasus OK `Rejected` tanpa penanda manual — dijalankan **saat `EPIC-RWA-09` dikirim** | Integrasi | Budi: "Estimasi Biaya belum dibuat"; Wati: Estimasi tidak wajib |
+| `FR-RWA-006` / `RWI-AC-346` | Dokter memutuskan Budi pulang saat Selisih Biaya belum ditandatangani | Integrasi + E2E | Keputusan pulang tersimpan; Detail Episode "Dokumen admisi belum lengkap: 1 (Selisih Biaya)" |
+| `FR-RWA-007` / `RWI-AC-358` | Episode Wati `Closed`; Sari mengubah Nilai Kepercayaan lewat panggilan langsung; mencetak ulang | Integrasi | `409 INP-ADM-DOC-001`; cetak ulang tanpa alasan `422 INP-ADM-PRT-001`, dengan alasan berhasil |
+| G-30 | Episode `Draft` (admisi belum dikonfirmasi) | Integrasi | `summary.Availability = NotYetAdmitted`; tulis `409 INP-ADM-DOC-002`; `/letterhead` tetap `200` |
+| `FR-RWA-008` | Layanan baca pasien dimatikan di lingkungan uji | E2E | "DATA PASIEN TIDAK DAPAT DIMUAT" + Coba Muat Ulang; tidak ada form |
+| `RWI-AC-378` | Akun yang hanya memegang `InpatientAdmissionDocument : Read`, tanpa `Patient`, `PatientEncounter`, `BillingDeposit`, `HospitalSite : Read` | E2E + pemantauan jaringan | Nol penolakan `403`; header dan cetakan lengkap; respons calon penanda tangan hanya nama, hubungan, alamat |
+| `RWI-AC-379` | Andi (tanpa `ViewAmount`) dan Sari | E2E | Andi: "Deposit: lihat kasir", tombol cetak Pelunasan Deposit tidak tampil, `/summary/amounts` `403`; Sari: "Deposit kurang Rp 3.000.000" |
+| `RWI-DEC-260` / `RWI-AC-381` | Surat jatuh tempo Sabtu 10 Oktober 2026 11.00; waktu uji 11.01 dengan kekurangan masih ada | Integrasi (jam dipalsukan) | Peringatan di header (berupiah bagi `ViewAmount`) dan Detail Episode (tanpa rupiah); daftar pantau deposit tetap memakai ambang `DepositFollowUpIntervalDays` |
+| `INV-RWA-14` | Telaah source | Statis | Tidak ada query Workspace PPRI ke `MstPatient*`, `RegPatientEncounter*`, `BilDeposit*`, `MstHospitalSite`, `CliDoctorCertificate`; seluruh bacaan lewat `InpAdmissionSourceReader` |
+
+### 21.2 Fondasi dokumen: siklus, versi, tanda tangan, konkurensi
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `RWI-AC-384` | Cetak Privasi saat `Draft`, saat `AwaitingSignature`, dan saat `Completed` | Integrasi + E2E | Penanda "KONSEP — BELUM DITANDATANGANI"; "Lembar untuk ditandatangani — versi 1" tanpa tanda konsep, isi dari salinan beku; final dengan catatan tanda tangan kertas |
+| `RWI-DEC-263` / `RWI-AC-385` | Pelunasan Deposit dikunci saat kurang Rp 3.000.000; kasir menerima Rp 1.000.000; tanda tangan dicatat; cetak ulang | Integrasi dengan Billing | Dokumen dan cetakan tetap Rp 3.000.000, `AmountsReadAt` waktu kunci; header Rp 2.000.000 |
+| `RWI-AC-351` | Maya menandatangani Kepala Ruangan; Sari mencetak | E2E | Cetakan "Ditandatangani secara elektronik oleh Maya …, Kepala Ruangan …, *tanggal jam*", bukan nama Sari |
+| `RWI-AC-352` | Andi (tanpa `SignAsHeadNurse`) memanggil `signatures/head-nurse` | Integrasi | `403` |
+| `RWI-AC-353` / `INV-RWA-04` | Sari menandatangani Admission lalu CRO; dua permintaan bersamaan dari akun yang sama ke dua slot | Integrasi + konkurensi | `422 INP-ADM-DOC-033`; slot CRO kosong; unique index menolak salah satu permintaan bersamaan |
+| `RWI-DEC-239` penegasan | Sari memverifikasi tanda tangan kertas Rina lalu menandatangani slot Petugas PPRI Selisih Biaya | Integrasi | Keduanya berhasil |
+| `RWI-AC-355` | Ubah dokumen `Completed`; versi koreksi tanpa alasan; dengan alasan | Integrasi + E2E | `409 INP-ADM-DOC-005`; `400`; versi 1 `Superseded` dan versi 2 `Draft`, Riwayat menampilkan keduanya, kelengkapan tetap satu |
+| `RWI-AC-356` | Andi membatalkan; Hendra membatalkan dengan "salah"; mencari `DELETE` | Integrasi + statis | `403`; `400` "Alasan pembatalan minimal 10 karakter"; tidak ada `DELETE` pada controller |
+| `RWI-AC-357` / `INV-RWA-01` | Membuat Privasi kedua saat yang pertama `Draft`, `AwaitingSignature`, `Completed`; dua simpan konsep pertama bersamaan | Integrasi + konkurensi | `409 INP-ADM-DOC-003`; satu dokumen tersimpan (unique index bersaring) |
+| `FR-RWA-128` / UAT-RWA-26 | Sari dan Hendra mengubah konsep yang sama; Hendra menyimpan dari layar lama | Integrasi + E2E | `409 INP-ADM-DOC-004`; perubahan Sari utuh |
+| `FR-RWA-128` | Klik Simpan dua kali dengan `Idempotency-Key` sama; klik cetak dua kali | Integrasi | Satu dokumen dan satu log; kedua respons sama |
+| `RWI-DEC-240` butir 2 | Buka kunci tanpa tanda tangan; buka kunci sesudah satu tanda tangan | Integrasi | Kembali `Draft` dengan salinan beku kosong; `409 INP-ADM-DOC-006` |
+| `VAL-RWA-08` | Andi (pemegang `Update` tetapi bukan pembuat) membuang konsep Sari | Integrasi | `422 INP-ADM-DOC-008` |
+| `RWI-AC-369` / `RWI-DEC-229` | Serah Terima sampai `Completed` | Integrasi + statis | Nol baris baru `MrcClinicalDocumentIntegrity`; enum `ClinicalDocumentKind` tidak berubah |
+| `VAL-RWA-35` | Waktu tanda tangan kertas sebelum dokumen dikunci; 10 menit di masa depan | Integrasi | `400` |
+| `RWI-AC-368` / `RWI-DEC-247` | Ganti kode formulir Selisih Biaya di `FE-INP-12`; cetak; cari source Workspace PPRI | Integrasi + statis | Cetakan berikutnya memakai kode baru; pencarian nama rumah sakit client, nama kota bawaan V1, dan pola kode formulir pada berkas service, controller, DTO, dan komponen cetak Workspace PPRI = nol hasil (seeder dikecualikan) |
+
+### 21.3 Serah Terima Pasien Baru
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FR-RWA-030` / UAT-RWA-05 | Gelang dicetak 09.50, IPD 09.55; Sari mengonfirmasi 18 butir, kunci, tanda tangan 10.05; Dewi 10.20; Andi 10.40 sesudah Budi menempati bed 10.35 | E2E tiga akun | Saran tampil pada butir 9 dan 13; setiap tanda tangan tampil di layar lain ≤ 30 detik; `Completed` 10.40; kelengkapan naik satu |
+| `RWI-AC-354` | Dewi membuka sebelum dikunci | E2E | Tanpa tombol tanda tangan; "Data serah terima belum dikirim oleh petugas admisi" |
+| `RWI-AC-359` | Butir 5 belum dipilih dan butir 11 Belum tanpa keterangan; kunci | Integrasi + E2E | Satu penolakan `422` berisi dua pesan bernomor; status tetap `Draft` |
+| `RWI-AC-360` | Admin mengganti nama butir 14 menjadi "Input Kartu Parkir"; buka dan cetak serah terima lama | Integrasi | Dokumen lama tetap "INPUT PARKIR" |
+| `RWI-AC-361` / `INV-RWA-12` | Daftar periksa penutupan episode sesudah 18 butir serah terima aktif; tandai butir serah terima pada penutupan | Integrasi + regresi | Penutupan hanya memuat butir `EpisodeClosure`; penandaan butir `STPB-*` → `404`; episode dapat ditutup |
+| `RWI-AC-376` / `RWI-DEC-255` | Andi menandatangani saat bed masih dipesan; sesudah penempatan | Integrasi + E2E | `422 INP-ADM-DOC-034` "Pasien belum menempati tempat tidur", lalu berhasil; tanda tangan CRO tidak terpengaruh |
+| `RWI-AC-383` / `RWI-DEC-262` | Budi punya surat pengantar `Issued` dr. Andika; Wati tanpa surat; pasien lain hanya punya surat `Cancelled` | Integrasi | Butir 1 bersaran "Sudah — saran sistem (surat pengantar dr. Andika, 07-10-2026)" hanya untuk Budi; tetap wajib dipilih |
+| `RWI-DEC-241` butir 2 | General Consent dicetak | Integrasi | Butir 12 **tanpa** saran selama *fail-closed* |
+
+### 21.4 Gelang, label, IPD
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FR-RWA-050` / `RWI-AC-363` | Budi (pria 45 th); By. Ny. Rina (`IsNewborn`); anak 4 th; wanita 30 th status nikah `Unknown` | Integrasi | "BUDI SANTOSO, Tn." Gelang Dewasa; "BY. NY. RINA" Gelang Bayi + dua label kecil; Gelang Bayi bersapaan "An."; Gelang Dewasa tanpa sapaan |
+| `RWI-AC-364`, `380` / `RWI-DEC-259` | Cetak gelang dan label; pasien lama tanpa berkas `QrCodePath` | Integrasi + pemindaian | QR = "00-12-34-56" sama dengan payload QR pasien; tanpa nama, tanggal lahir, ID acak; pasien lama tetap tercetak |
+| `RWI-AC-374` / `RWI-DEC-253` | Label pasien asuransi dengan kartu kosong dan nomor peserta terisi; label Wati tunai | Integrasi | Baris "No. Kartu" kosong pada keduanya; tidak ada nomor acak |
+| `FR-RWA-053` / UAT-RWA-12 | Cetak ulang gelang tanpa alasan, lalu "rusak" | Integrasi + E2E | `422 INP-ADM-PRT-001`; log "Cetakan ke-2, rusak, oleh Andi" |
+| `VAL-RWA-45` | Catat cetak Gelang Dewasa untuk bayi baru lahir | Integrasi | `422 INP-ADM-PRT-005` |
+| `RWI-AC-365` | Cetak IPD Budi | E2E | Garis kosong untuk pekerjaan, kewarganegaraan, RT/RW, kelurahan, alamat domisili, alamat kantor, no. mutasi, persetujuan direktur, perhatian khusus, kasir; tidak ada isian ketik |
+| `RWI-AC-375` / `RWI-DEC-254` | IPD dengan surat `Issued`; dengan surat `Cancelled` saja; tanpa surat dan tanpa perujuk luar | Integrasi | Diagnosis, rencana, dokter dari surat; surat batal diabaikan; garis kosong |
+| `RWI-AC-386` / **gerbang** `RWI-OQ-128` | IPD Wati yang punya dokter perujuk luar, sebelum dan sesudah service Registration tersedia | Integrasi | Sebelum: garis kosong, cetak tidak gagal. Sesudah: dokter perujuk dan institusinya |
+| `RWI-AC-387` / **gerbang** `RWI-OQ-129` | IPD dibuka pemegang `ViewAmount` sebelum dan sesudah method tarif Billing tersedia | Integrasi | Sebelum: "lihat kasir" bagi semua. Sesudah: tarif kamar per hari menurut penjamin; tanpa `ViewAmount` tetap "lihat kasir" |
+| `FR-RWA-071` / UAT-RWA-15 | Nilai Kepercayaan dan Privasi Budi `Completed`; cetak IPD | E2E | Isian terisi dari dokumen; log cetak bertambah; butir 9 serah terima bersaran |
+| `FR-RWA-072` / UAT-RWA-16 | Layanan episode dimatikan sementara | E2E | Cetak nonaktif "Cetak ditahan sampai data wajib terbaca lengkap" + Coba Lagi |
+
+### 21.5 Privasi, Nilai Kepercayaan, Selisih Biaya
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FR-RWA-061` / UAT-RWA-13 | Kerabat "Ny. Rina Santoso" dan "Sdr. Dimas, Jr."; permintaan khusus; transportasi Ya; tanda tangan kertas Budi; Maya; tutup dan buka lagi | E2E | Dokumen `Completed` tampil lagi; "Sdr. Dimas, Jr." satu baris; header ringkasan privasi |
+| `VAL-RWA-15` | Kerabat keempat | Integrasi | `400` "Paling banyak 3 kerabat." |
+| `FR-RWA-112` | Pengguna `InpatientEpisode : Read` membaca `/patient-rights` | Integrasi | Ringkasan Nilai Kepercayaan dan Privasi `Completed` saja; versi `Superseded` tidak ikut |
+| `RWI-AC-362` / `RWI-DEC-242` | Episode baru Januari 2027; butir ke-6; kunci tanpa butir | Integrasi + E2E | Dua butir dari dokumen lalu sebagai `Draft`; `400` "Maksimal 5 butir"; `422` "Minimal satu hal yang bertentangan wajib diisi" |
+| `FR-RWA-101` / UAT-RWA-21 | Subjek "istri saya", deklarer Rina, KTP, HP `081234567890`; Sari menandatangani Petugas PPRI | E2E | Data pasien hanya-baca; subjek tersimpan `Wife`; cetakan dwibahasa dengan kop dari profil |
+| `RWI-AC-377` / `RWI-DEC-256` | Penjamin bertanda `IsAllowExcessPaymentByPatient = false` | Integrasi | Selisih Biaya tetap wajib; cetakan memuat ketiga butir |
+| UAT-RWA-22 / `VAL-RWA-10`, `14` | Selisih Biaya untuk Wati; HP 14 digit | Integrasi + E2E | Lencana "Tidak diperlukan", `422 INP-ADM-DOC-010`; `400` "Nomor telepon maksimal 13 digit" |
+| G-43 | Penjamin Budi berubah menjadi tunai sesudah Selisih Biaya `Completed` | Integrasi | Dokumen tetap tersimpan; kelengkapan tidak lagi mewajibkannya |
+
+### 21.6 Pelunasan Deposit
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `RWI-AC-366` / UAT-RWA-17 | Minimum Rp 5.000.000, masuk Rp 2.000.000; surat Jumat 9 Oktober 2026 | Integrasi dengan Billing + E2E | "Rp 3.000.000 (Rp 5.000.000 − Rp 2.000.000)"; jatuh tempo bawaan Senin 12 Oktober 11.00 WIB |
+| `RWI-AC-366` / UAT-RWA-18 | Wati deposit cukup | E2E | "Deposit episode ini sudah memenuhi kebijakan…", Simpan nonaktif; panggilan langsung `422 INP-ADM-DOC-011` |
+| `RWI-AC-367`, `382` | Jatuh tempo 13 Oktober dengan interval 3; interval 1; surat Kamis 8 Oktober interval 3; interval 0 | Unit (`InpDepositDueDateCalculator`) + integrasi | `422 INP-ADM-DOC-019`; Sabtu 10 Oktober 11.00; Jumat 9 Oktober 11.00; tanggal surat |
+| G-45 / `VAL-RWA-12` | Layanan deposit Billing dimatikan | Integrasi + E2E | Angka tidak tampil; simpan dan kunci `422 INP-ADM-DOC-012`; tidak ada isian angka |
+| `RWI-DEC-252` / `RWI-AC-373` | Data Wali: pilih relasi `Spouse`; kontak darurat bertuliskan "isteri"; dua relasi `Child` | Integrasi + E2E | Relasi terisi otomatis; kontak darurat hanya di daftar pilihan; dua anak → petugas memilih |
+| `AdmissionPartyInput` | Klien mengirim nama berbeda untuk sumber `PatientRelationship` | Integrasi | Server menyimpan nama dari service pemilik, bukan isian klien |
+
+### 21.7 General Consent cetak saja dan tombol Cetak Persetujuan
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `RWI-AC-347` | Membuka kedua tab dan mencetak | E2E + pemantauan jaringan | Lencana "Cetak saja"; tidak ada tombol Simpan; nol permintaan tulis |
+| `RWI-AC-348`, `372` / `RWI-DEC-251` | Hubungan "Istri"; relasi tidak ditemukan; kamar "Melati Khusus" tanpa penanda; bed `IsIntensiveCareBed`; episode `RequiresIsolation`; kelas `IsForIntensiveCare` di bed biasa | Integrasi + E2E | Nama dan alamat dari relasi; isian terbuka berketerangan; "Umum"; "Khusus"; "Khusus"; "Umum" |
+| `RWI-AC-349` / `RWI-DEC-246` | Sesudah `RWA-MVP-1`: Sari menekan Cetak Persetujuan; pengguna yang hanya `InpatientEpisode : Read`; tautan lama `consent-print` | E2E | Tiba di `FE-INP-36` tab Surat Persetujuan; tombol tidak tampil; tautan lama dialihkan |
+| `PPRI-CAP-09` | Langkah 8 alur admisi untuk episode `Draft` | E2E | Kop dari profil rumah sakit, bukan nilai yang ditanam |
+
+### 21.8 Master dan migration
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `E9` | Migration pada salinan basis data uji berisi butir penutupan lama | Migration | Butir lama `ChecklistType = 1`, tanpa induk, tanpa saran; pengaturan lama `InfantWristbandMaxAgeYears = 5`; penutupan episode lama tetap sama |
+| `E9` mundur | Nonaktifkan butir `STPB-*`, mundur kode | Regresi | Penutupan episode tidak tertahan butir serah terima |
+| `VAL-RWA-50` s.d. `53` | Induk berjenis lain; butir penutupan dengan sumber saran; ubah jenis butir terpakai; dua butir dengan sumber saran sama | Integrasi | `MST-ICI-001` s.d. `004` |
+| `VAL-RWA-54` | Batas umur gelang bayi 17 | Integrasi | `400 MST-IST-001` |
+| Registry hak akses | Aplikasi dinyalakan sesudah kode dirilis | Integrasi | `InpatientAdmissionDocument` beserta sepuluh aksinya terdaftar, aksi kustom terkelompok sesuai 13.9 |
+| `RWI-DEC-048` | Seeder dijalankan dengan lingkungan `Production` | Unit | Seeder menolak; tidak ada butir `STPB-*` tertulis |
+
+### 21.9 Yang belum diuji pada amandemen ini
+
+| Butir | Sebab |
+|---|---|
+| Estimasi Biaya, penanda rencana tindakan, baris visit dokter | `EPIC-RWA-09` di luar gelombang (`DEC-INP-020`) |
+| Penyimpanan General Consent, tanda tangan digital | `DEC-INP-003` |
+| Peringatan nilai kepercayaan di Workspace Keperawatan dan Dokter | Amandemen terpisah (PRD bagian 8); gerbang produksi G-42 |
+| Ukuran kertas gelang dan label pada printer rumah sakit | Diuji saat UAT di lokasi (G-37) |
+| Masa simpan | Gerbang produksi G-35 |

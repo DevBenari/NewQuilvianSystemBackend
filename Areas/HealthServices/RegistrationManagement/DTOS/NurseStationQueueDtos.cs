@@ -1,4 +1,5 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
+﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
@@ -57,6 +58,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DateTime? NoShowAt { get; set; }
         public string? NoShowReason { get; set; }
         public bool IsPriorityQueue { get; set; }
+
+        /// <summary>Penanda internal staf (RJ-DOC-DEC-055); bukan untuk layar publik.</summary>
+        public bool IsMemberQueue { get; set; }
+
+        public QueueAudience QueueAudience { get; set; }
         public bool IsScreeningRequired { get; set; }
         public bool IsDoctorRequired { get; set; }
         public bool CanCall { get; set; }
@@ -88,6 +94,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string? InsuranceProviderName { get; set; }
         public bool IsInsuranceEligible { get; set; }
         public bool IsInsurancePolicyActive { get; set; }
+
+        // RJ-DOC-REV-BE-001 — penjamin utama dari sumber pembayaran aktif kunjungan.
+        public string PrimaryGuarantorNameSnapshot { get; set; } = string.Empty;
+        public string PrimaryGuarantorTypeSnapshot { get; set; } = string.Empty;
+        public bool IsInsurancePatient { get; set; }
+        public bool IsCompanyPatient { get; set; }
+
         public bool IsReferral { get; set; }
         public string? ReferralNumber { get; set; }
 

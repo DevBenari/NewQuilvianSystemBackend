@@ -249,3 +249,131 @@ kesulitan teknis.** Setelah `RJ-BIL-DEC-013`, tinggal dua hal yang hanya dapat d
 | Working tree Billing Operational belum committed | Evidence provisional; builder wajib preflight ulang | Backend owner |
 | External adapter contract/UAT belum tersedia | Adapter tetap inactive; manual flow saja | Payer/Integration |
 | UI visual authority belum dikunci | Detail visual tetap `DEV_DISCRETION` | Frontend authority |
+
+## 5. Revisi UAT `2026-09-28` — `RJ-DOC-REV-*`
+
+Requirement dari dokumen UAT *Skrining Pasien* dan *Dokter Rawat Jalan*, diterima lewat `RJ-DOC-DEC-007`.
+Definisi task ada pada [doctor-consultation-roadmap.md](doctor-consultation-roadmap.md) bagian `9`.
+
+| Requirement UAT | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Skrining 1a–1d — penjamin utama, jenis penjamin, pasien asuransi/perusahaan | `RJ-DOC-REV-BE-001` + `RJ-DOC-REV-FE-001` | BE ✅ `2026-10-01`; FE ✅ `2026-10-01` | [RJ-DOC-REV-BE-001](../task/report/backend/RJ-DOC-REV-BE-001.md), [RJ-DOC-REV-FE-001](../task/report/frontend/RJ-DOC-REV-FE-001.md) |
+| Skrining 2a–2d — sembunyikan Pembayaran Campuran dan Eligibility | `RJ-DOC-REV-FE-001` | FE ✅ `2026-10-01` | [RJ-DOC-REV-FE-001](../task/report/frontend/RJ-DOC-REV-FE-001.md) |
+| Skrining 3a — alert Tanda Vital per field | `RJ-DOC-REV-FE-001` | FE ✅ `2026-10-01` | [RJ-DOC-REV-FE-001](../task/report/frontend/RJ-DOC-REV-FE-001.md) |
+| Dokter 1a — risiko jatuh tidak dipilih bernilai `0`/`null` | `RJ-DOC-REV-BE-002` + `RJ-DOC-REV-FE-002` | BE ✅ `2026-10-01` (sudah sesuai, tanpa perubahan kode); FE ✅ `2026-10-01` | [RJ-DOC-REV-BE-002](../task/report/backend/RJ-DOC-REV-BE-002.md), [RJ-DOC-REV-FE-002](../task/report/frontend/RJ-DOC-REV-FE-002.md) |
+| Dokter 1b, 1d — tanggal skrining berspasi; label `Asuransi/ Penjamin` | `RJ-DOC-REV-FE-002` | FE ✅ `2026-10-01` | [RJ-DOC-REV-FE-002](../task/report/frontend/RJ-DOC-REV-FE-002.md) |
+| Dokter 1c — jenis kelamin, umur, alergi, foto KTP/kartu penjamin | `RJ-DOC-REV-BE-001` + `RJ-DOC-REV-FE-002` | BE ✅ `2026-10-01`; FE ✅ `2026-10-01` | [RJ-DOC-REV-BE-001](../task/report/backend/RJ-DOC-REV-BE-001.md), [RJ-DOC-REV-FE-002](../task/report/frontend/RJ-DOC-REV-FE-002.md) |
+| Dokter 2a–2c, 2e — header SOAP, Subjective, Objective, Assessment | `RJ-DOC-REV-FE-003` | FE ✅ `2026-10-01` | [RJ-DOC-REV-FE-003](../task/report/frontend/RJ-DOC-REV-FE-003.md) |
+| Dokter 2d — grouping ICD-10 berdasarkan ICD Diagnosa | `RJ-DOC-REV-BE-006` + `RJ-DOC-REV-FE-003` | BE ✅ `2026-10-01`; FE ✅ `2026-10-01` | [RJ-DOC-REV-BE-006](../task/report/backend/RJ-DOC-REV-BE-006.md), [RJ-DOC-REV-FE-003](../task/report/frontend/RJ-DOC-REV-FE-003.md) |
+| Dokter 2f — simpan SOAP | `RJ-DOC-REV-BE-003` + `RJ-DOC-REV-FE-003` | BE 🟡 `2026-10-01` — berhasil end-to-end di `HEAD`, penyebab UAT belum terbukti; FE ✅ `2026-10-01` | [RJ-DOC-REV-BE-003](../task/report/backend/RJ-DOC-REV-BE-003.md), [RJ-DOC-REV-FE-003](../task/report/frontend/RJ-DOC-REV-FE-003.md) |
+| Dokter 3 — CPPT | — | Tetap disembunyikan (`RJ-DOC-DEC-007`) | — |
+| Dokter 4 — master obat di Resep | `RJ-DOC-REV-FE-004` | FE ✅ `2026-10-01` | [RJ-DOC-REV-FE-004](../task/report/frontend/RJ-DOC-REV-FE-004.md) |
+| Dokter 5 — master tindakan di Tindakan | `RJ-DOC-REV-FE-005` + data `RJ-DOC-REV-BE-005` | Data ✅ `2026-10-01`; FE ✅ `2026-10-01` | [RJ-DOC-REV-BE-005](../task/report/backend/RJ-DOC-REV-BE-005.md), [RJ-DOC-REV-FE-005](../task/report/frontend/RJ-DOC-REV-FE-005.md) |
+| Dokter 6a–6d — Surat Dokter | `RJ-DOC-REV-BE-004` + `RJ-DOC-REV-FE-006` | BE ✅ `2026-10-01`; FE ✅ `2026-10-01` | [RJ-DOC-REV-BE-004](../task/report/backend/RJ-DOC-REV-BE-004.md), [RJ-DOC-REV-FE-006](../task/report/frontend/RJ-DOC-REV-FE-006.md) |
+| Dokter 7 — order Penunjang Medis | `RJ-DOC-REV-FE-007` | FE ✅ `2026-10-01` | [RJ-DOC-REV-FE-007](../task/report/frontend/RJ-DOC-REV-FE-007.md) |
+| Dokter 8 — Hasil Penunjang Medis per kategori | `RJ-DOC-REV-FE-008` | FE ✅ `2026-10-01` | [RJ-DOC-REV-FE-008](../task/report/frontend/RJ-DOC-REV-FE-008.md) |
+
+## 6. Revisi `2026-10-01` — prioritas Skrining
+
+Keputusan `RJ-DOC-DEC-010`; definisi task pada [doctor-consultation-roadmap.md](doctor-consultation-roadmap.md) bagian `10`.
+
+| Requirement pemilik | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Skrining 1 — diastolik masuk perhitungan EWS | `RJ-DOC-REV-FE-009` | FE 🟡 `2026-10-01` — tampil sebagai baris informasi, tidak diskor (NEWS2/MEWS); uji klik layar belum | [RJ-DOC-REV-FE-009](../task/report/frontend/RJ-DOC-REV-FE-009.md) |
+| Skrining 2 — kategori berat badan kurang/normal/lebih/obesitas | `RJ-DOC-REV-FE-009` | FE 🟡 `2026-10-01` — logika terbukti; uji klik layar belum | [RJ-DOC-REV-FE-009](../task/report/frontend/RJ-DOC-REV-FE-009.md) |
+| Skrining 3 — satu No. RM tidak boleh punya dua kunjungan aktif | `RJ-DOC-REV-BE-007` | BE ✅ `2026-10-01` | [RJ-DOC-REV-BE-007](../task/report/backend/RJ-DOC-REV-BE-007.md) |
+
+## 6. Revisi `2026-10-02` — Daftar Pasien Rawat Jalan (Amendment DP)
+
+| Requirement pemilik | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Pasien yang hanya punya kunjungan status 7–8, penunjang, atau IGD dapat didaftarkan; RJ berklinik status 0–6 tetap memblokir (`RJ-DOC-DEC-019`/`022`) | `RJ-DOC-REV-BE-008` | BE ✅ `2026-10-02` | [RJ-DOC-REV-BE-008](../task/report/backend/RJ-DOC-REV-BE-008.md) |
+| Daftar kunjungan RJ bercakupan, summary, hak `ReadAll` (`RJ-DOC-DEC-012`..`014`) | `RJ-DOC-REV-BE-009` + `RJ-DOC-REV-FE-010` | BE ✅ `2026-10-02`; FE ✅ `2026-10-02` | [RJ-DOC-REV-BE-009](../task/report/backend/RJ-DOC-REV-BE-009.md), [RJ-DOC-REV-FE-010](../task/report/frontend/RJ-DOC-REV-FE-010.md) |
+| Pembatalan kunjungan menggantung dari frontend (`RJ-DOC-DEC-015`..`018`, `021`) | `RJ-DOC-REV-BE-010` + `RJ-DOC-REV-FE-011` | BE ✅ `2026-10-02`; FE ✅ `2026-10-02` | [RJ-DOC-REV-BE-010](../task/report/backend/RJ-DOC-REV-BE-010.md), [RJ-DOC-REV-FE-011](../task/report/frontend/RJ-DOC-REV-FE-011.md) |
+| Penangguhan sementara pemblokir pendaftaran; dapat dihidupkan lewat konfigurasi (`RJ-DOC-DEC-026`) | `RJ-DOC-REV-BE-011` | BE ✅ `2026-10-02` | [RJ-DOC-REV-BE-011](../task/report/backend/RJ-DOC-REV-BE-011.md) |
+
+## 7. Revisi `2026-10-05` — Konsultasi Tertunda di Klinis Dokter (Amendment KT)
+
+| Requirement pemilik | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Dokter melihat konsultasi tertundanya dari hari sebelumnya, lintas tanggal, hanya Sedang Konsultasi dengan konsultasi aktif (`RJ-DOC-DEC-029`, `030`) | `RJ-DOC-REV-BE-012` + `RJ-DOC-REV-FE-012` | BE ✅ `2026-10-05`; FE ✅ `2026-10-05` | [RJ-DOC-REV-BE-012](../task/report/backend/RJ-DOC-REV-BE-012.md), [RJ-DOC-REV-FE-012](../task/report/frontend/RJ-DOC-REV-FE-012.md) |
+| Dokter menyimpan atau membatalkan konsultasi tertunda, dengan banner dan konfirmasi resep/tindakan (`RJ-DOC-DEC-031`, `RJ-DOC-FE-011`) | `RJ-DOC-REV-BE-012` + `RJ-DOC-REV-FE-012` | BE ✅ `2026-10-05`; FE ✅ `2026-10-05` | [RJ-DOC-REV-BE-012](../task/report/backend/RJ-DOC-REV-BE-012.md), [RJ-DOC-REV-FE-012](../task/report/frontend/RJ-DOC-REV-FE-012.md) |
+| Petunjuk Daftar Pasien Rawat Jalan menunjuk Klinis Dokter (`RJ-DOC-FE-012`) | `RJ-DOC-REV-BE-012` | BE ✅ `2026-10-05` | [RJ-DOC-REV-BE-012](../task/report/backend/RJ-DOC-REV-BE-012.md) |
+
+## 8. Revisi `2026-10-06` — Pendaftaran Pasien Rawat Jalan oleh petugas (Amendment PR)
+
+Keputusan `RJ-DOC-DEC-034`..`038`; definisi task pada [doctor-consultation-roadmap.md](doctor-consultation-roadmap.md) bagian `14`.
+
+| Requirement pemilik | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Pendaftaran pasien Rawat Jalan oleh petugas dengan tampilan sama seperti Pendaftaran IGD (`RJ-DOC-DEC-034`) | `RJ-DOC-REV-FE-013` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-013](../task/report/frontend/RJ-DOC-REV-FE-013.md) |
+| Jadwal dokter wajib mengikuti `IsDoctorRequired` poliklinik (`RJ-DOC-DEC-035`) | `RJ-DOC-REV-FE-013` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-013](../task/report/frontend/RJ-DOC-REV-FE-013.md) |
+| Jenis kunjungan sama dengan IGD (`RJ-DOC-DEC-036`) | `RJ-DOC-REV-FE-013` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-013](../task/report/frontend/RJ-DOC-REV-FE-013.md) |
+| Hari ini walk-in, tanggal mendatang appointment (`RJ-DOC-DEC-037`) | `RJ-DOC-REV-FE-013` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-013](../task/report/frontend/RJ-DOC-REV-FE-013.md) |
+| Poliklinik per tanggal tanpa kode; tombol RJ tanpa ikon; tombol kembali bergaris primary (`RJ-DOC-DEC-039`) | `RJ-DOC-REV-FE-013` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-013](../task/report/frontend/RJ-DOC-REV-FE-013.md) §7 |
+
+## 9. Revisi `2026-10-06` — Scan kartu penjamin pada Pendaftaran Rawat Jalan (Amendment SK)
+
+| Requirement pemilik | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Foto scan kartu asuransi disimpan permanen seperti foto scan kiosk (`RJ-DOC-DEC-041`, `042`) | `RJ-DOC-REV-BE-013` | BE ✅ `2026-10-06` | [RJ-DOC-REV-BE-013](../task/report/backend/RJ-DOC-REV-BE-013.md) |
+| Foto scan kartu penjamin perusahaan disimpan permanen; kolom baru `CardImagePath` (`RJ-DOC-DEC-041`, `042`, `044`) | `RJ-DOC-REV-BE-014` | BE ✅ `2026-10-06` | [RJ-DOC-REV-BE-014](../task/report/backend/RJ-DOC-REV-BE-014.md) |
+| Kolom *Kartu* sebelum Status (Scan Kartu / Lihat Kartu), preview di *Penjamin Dipilih*, field scan di modal *Daftarkan Penjamin Baru* (`RJ-DOC-DEC-040`) | `RJ-DOC-REV-FE-014` | FE ✅ `2026-10-06` | [RJ-DOC-REV-FE-014](../task/report/frontend/RJ-DOC-REV-FE-014.md) |
+
+## 10. Revisi `2026-10-07` — Menu Konsultasi Tertunda (Amendment MT)
+
+Keputusan `RJ-DOC-DEC-045`..`050`, `RJ-DOC-FE-014`..`016`; definisi task pada
+[doctor-consultation-roadmap.md](doctor-consultation-roadmap.md) bagian `16`.
+
+| Requirement pemilik | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Konsultasi tertunda pindah ke menu baru Dokter → Rawat Jalan → Konsultasi Tertunda; Klinis Dokter tanpa tab Tertunda (`RJ-DOC-FE-014`, `015`, `016`) | `RJ-DOC-REV-FE-015` | FE ✅ `2026-10-07` | [RJ-DOC-REV-FE-015](../task/report/frontend/RJ-DOC-REV-FE-015.md) |
+| Aksi *Batalkan Konsultasi* beralasan, seperti *Batalkan Kunjungan* (`RJ-DOC-DEC-047`, `049`) | `RJ-DOC-REV-FE-015` | FE ✅ `2026-10-07` | [RJ-DOC-REV-FE-015](../task/report/frontend/RJ-DOC-REV-FE-015.md) |
+| Aksi *Simpan Konsultasi* membuka Klinis Dokter untuk ditinjau, lalu kembali ke daftar (`RJ-DOC-DEC-046`, `048`) | `RJ-DOC-REV-FE-015` | FE ✅ `2026-10-07` | [RJ-DOC-REV-FE-015](../task/report/frontend/RJ-DOC-REV-FE-015.md) |
+| Jumlah dan daftar konsultasi tertunda mengikuti akun dokter yang login, termasuk akun dokter SuperAdmin; pengingat tidak tampil bila 0 (`RJ-DOC-DEC-053`) | `RJ-DOC-REV-FE-015` (revisi 1) | FE ✅ `2026-10-07` | [RJ-DOC-REV-FE-015](../task/report/frontend/RJ-DOC-REV-FE-015.md) §9 |
+| Antrean pasien dokter hari ini di Klinis Dokter hanya milik dokter yang login, termasuk akun dokter SuperAdmin (`RJ-DOC-DEC-054`) | `RJ-DOC-REV-FE-015` (revisi 2) | FE ✅ `2026-10-07` | [RJ-DOC-REV-FE-015](../task/report/frontend/RJ-DOC-REV-FE-015.md) §10 |
+
+## 11. Revisi `2026-10-08` — Antrean prioritas, member, dan privasi layar publik (Amendment AQ)
+
+Keputusan `RJ-DOC-DEC-055`..`061`; definisi task pada
+[doctor-consultation-roadmap.md](doctor-consultation-roadmap.md) bagian `17`.
+
+| Requirement pemilik | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Klasifikasi member/prioritas/privasi di backend, snapshot di antrean (`RJ-DOC-DEC-055`) | `RJ-DOC-REV-BE-015` | BE ✅ `2026-10-08` | [RJ-DOC-REV-BE-015](../task/report/backend/RJ-DOC-REV-BE-015.md) |
+| Nomor cadangan prioritas configurable, satu alokator kiosk dan petugas, aman bersamaan (`RJ-DOC-DEC-056`) | `RJ-DOC-REV-BE-015` | BE ✅ `2026-10-08` | [RJ-DOC-REV-BE-015](../task/report/backend/RJ-DOC-REV-BE-015.md) |
+| Layar dan suara publik tanpa identitas untuk pasien tertentu (`RJ-DOC-DEC-057`) | `RJ-DOC-REV-BE-016` | BE ✅ `2026-10-08` | [RJ-DOC-REV-BE-016](../task/report/backend/RJ-DOC-REV-BE-016.md) |
+| Layar Regular dan Member (`RJ-DOC-DEC-058`) | `RJ-DOC-REV-BE-016`, `RJ-DOC-REV-FE-016` | BE ✅ `2026-10-08`; FE ✅ `2026-10-08` | [RJ-DOC-REV-BE-016](../task/report/backend/RJ-DOC-REV-BE-016.md), [RJ-DOC-REV-FE-016](../task/report/frontend/RJ-DOC-REV-FE-016.md) |
+| Konfigurasi tier dan perangkat, penanda internal (`RJ-DOC-DEC-055`, `058`) | `RJ-DOC-REV-FE-016` | FE ✅ `2026-10-08` | [RJ-DOC-REV-FE-016](../task/report/frontend/RJ-DOC-REV-FE-016.md) |
+| Tanpa prefix `Trx`: `TrxQueue` → `RegQueue` (`RJ-DOC-DEC-061`) | `RJ-DOC-REV-BE-015` | BE ✅ `2026-10-08` | [RJ-DOC-REV-BE-015](../task/report/backend/RJ-DOC-REV-BE-015.md) |
+| Data induk membership MMC (`RJ-DOC-DEC-059`) | — | `NEEDS VERIFIED BUSINESS DATA` | `F-AQ-6` |
+
+## 12. Revisi `2026-10-08` — Revisi Pendaftaran Pasien manual (Amendment PM)
+
+Keputusan `RJ-DOC-DEC-062`..`067`; definisi task pada
+[doctor-consultation-roadmap.md](doctor-consultation-roadmap.md) bagian `18`.
+
+| Requirement pemilik (PDF) | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Pasien lama 1 — cari pasien seperti Kiosk (`RJ-DOC-DEC-062`) | `RJ-DOC-REV-FE-017` | FE ✅ `2026-10-08` | [RJ-DOC-REV-FE-017](../task/report/frontend/RJ-DOC-REV-FE-017.md) |
+| Pasien lama 3 — pesan Jadwal Dokter merah bila poliklinik belum dipilih (`063`) | `RJ-DOC-REV-FE-017` | FE ✅ `2026-10-08` | [RJ-DOC-REV-FE-017](../task/report/frontend/RJ-DOC-REV-FE-017.md) |
+| Tambahan 1 dan 3 — dokter dapat dicari; Jenis Kunjungan ringkas di samping Jadwal Dokter (`064`) | `RJ-DOC-REV-FE-017` | FE ✅ `2026-10-08` | [RJ-DOC-REV-FE-017](../task/report/frontend/RJ-DOC-REV-FE-017.md) |
+| Pasien baru 1 — No. HP maksimal 13 angka (`065`) | `RJ-DOC-REV-FE-017` | FE ✅ `2026-10-08` | [RJ-DOC-REV-FE-017](../task/report/frontend/RJ-DOC-REV-FE-017.md) |
+| Pasien lama 2, 4; Tambahan 2, 4; Pasien baru 2 — scan asuransi cocok, step Rujukan, fasilitas mitra, unit tujuan + popup jadwal, data 3+ dokter (`067`) | `RJ-DOC-REV-BE-017`..`021`, `RJ-DOC-REV-FE-018`..`021`, `FE-KSK-014`..`016` | ✅ seluruh task bagian 19 + `FE-KSK-014`..`016` (`2026-10-08`..`09`) | Laporan per task di `task/report/` RJ dan Kiosk |
+
+## 13. Revisi `2026-10-08` — Pendaftaran Rujukan dan Pencocokan Kartu Asuransi (Amendment PM-B)
+
+Keputusan `RJ-DOC-DEC-068`..`082`; definisi task pada
+[doctor-consultation-roadmap.md](doctor-consultation-roadmap.md) bagian `19`.
+
+| Requirement pemilik / AC | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| `RJ-AC-PM-01`..`03` scan kartu asuransi | `RJ-DOC-REV-BE-020`, `RJ-DOC-REV-FE-021`, `FE-KSK-016` | BE ✅; FE petugas ✅ `FE-021` `2026-10-08`; Kiosk ✅ `FE-KSK-016` `2026-10-09` (C1–C7) | [RJ-DOC-REV-BE-020](../task/report/backend/RJ-DOC-REV-BE-020.md), [FE-KSK-016](../../kiosk/task/report/frontend/FE-KSK-016.md) |
+| `RJ-AC-PM-04`, `06`, `07`, `08` step Rujukan petugas | `RJ-DOC-REV-BE-018`, `RJ-DOC-REV-FE-019` | BE ✅ `2026-10-08`; FE ✅ `2026-10-09` (uji layar R3, R4, R6, R7) | [RJ-DOC-REV-BE-018](../task/report/backend/RJ-DOC-REV-BE-018.md), [RJ-DOC-REV-FE-019](../task/report/frontend/RJ-DOC-REV-FE-019.md) |
+| `RJ-AC-PM-05` alert mitra | `RJ-DOC-REV-BE-017`, `RJ-DOC-REV-FE-018`, `RJ-DOC-REV-FE-019` | BE ✅; FE ✅ `FE-018` `2026-10-08`; `FE-019` ✅ `2026-10-09` (R5) | [RJ-DOC-REV-BE-017](../task/report/backend/RJ-DOC-REV-BE-017.md), [RJ-DOC-REV-FE-019](../task/report/frontend/RJ-DOC-REV-FE-019.md) |
+| `RJ-AC-PM-09` rujukan belum lengkap | `RJ-DOC-REV-BE-018`, `RJ-DOC-REV-FE-020`, `FE-KSK-014` | BE ✅ `BE-018` `2026-10-08`; FE petugas ✅ `FE-020` `2026-10-09` (L1, L2); Kiosk ✅ `FE-KSK-014` `2026-10-09` (R12) | [RJ-DOC-REV-BE-018](../task/report/backend/RJ-DOC-REV-BE-018.md), [RJ-DOC-REV-FE-020](../task/report/frontend/RJ-DOC-REV-FE-020.md) |
+| `RJ-AC-PM-10` koreksi terkunci + audit | `RJ-DOC-REV-BE-018`, `RJ-DOC-REV-BE-019`, `RJ-DOC-REV-FE-020` | BE ✅ `BE-018`, `BE-019` `2026-10-08`; FE ✅ `FE-020` `2026-10-09` (L4, L7, L8) | [RJ-DOC-REV-BE-018](../task/report/backend/RJ-DOC-REV-BE-018.md), [RJ-DOC-REV-FE-020](../task/report/frontend/RJ-DOC-REV-FE-020.md) |
+| Surat privat (`RJ-DOC-DEC-081`) | `RJ-DOC-REV-BE-019` | BE ✅ `2026-10-08` | [RJ-DOC-REV-BE-019](../task/report/backend/RJ-DOC-REV-BE-019.md) |
+| Data uji ≥ 4 dokter (`RJ-DOC-DEC-079`) | `RJ-DOC-REV-BE-021` | ✅ `2026-10-08` | [RJ-DOC-REV-BE-021](../task/report/backend/RJ-DOC-REV-BE-021.md) |
+| Popup jadwal Kiosk | `FE-KSK-015` | ✅ `2026-10-09` (uji browser 5/5) | [FE-KSK-015](../../kiosk/task/report/frontend/FE-KSK-015.md) |
+| OCR agent (`RJ-DOC-OQ-PM-01`), Radiologi (`RJ-DOC-OQ-PM-02`) | — | Coverage gap — di luar repository / `POST-MVP` | — |

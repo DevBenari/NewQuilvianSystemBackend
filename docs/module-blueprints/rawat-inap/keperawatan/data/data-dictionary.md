@@ -869,3 +869,452 @@ CREATE UNIQUE INDEX "UX_PhmSlidingScaleExecution_Reading_Recorded"
 | `CliNursingHandover`, tabel transfusi | `DEFERRED` — `RWI-DEC-145` |
 | `CliNursingNote` terpisah dari CPPT | `RWI-DEC-115`, `RWI-DEC-140` |
 | Salinan `EmgObservationDetail` | `RWI-DEC-081` |
+
+---
+
+## 12. Amandemen revision `0.5` / kontrak `0.6.0` — Finishing Rawat Inap ★ 1 Oktober 2026
+
+### 12.1 Kepala
+
+Seluruh tabel mewarisi `IdentityModel` (`CreateDateTime`, `CreateBy`, `UpdateDateTime`, `UpdateBy`, `DeleteDateTime`, `DeleteBy`, `CancelDateTime`, `CancelBy`, `IsCancel`, `IsDelete`); kolom itu tidak diulang. Penghapusan bersifat penandaan. Seluruh tabel ber-schema `public`, nama tabel tunggal PascalCase, dan relasi klinis `Restrict`.
+
+### 12.2 Status dan kepemilikan tabel
+
+| Entity | Status | Pemilik | Catatan |
+|---|---|---|---|
+| `MstMedicalEquipment` | **Baru** | `MasterData` | Prefix `Mst` |
+| `MstTariff` | **Diperbarui** | `MasterData` | Satu kolom dari sub-modul ini; tiga kolom dari `episode-rawat-inap` `0.10.0`. Seluruh kolom ditulis di 12.14 sebagai satu-satunya daftar lengkap |
+| `CliEquipmentUsage`, `CliEquipmentUsageRevision` | **Baru** | `ClinicalManagement` | — |
+| `CliWsdDrain`, `CliWsdReading` | **Baru** | `ClinicalManagement` | — |
+| `CliSurgicalSiteSurveillance`, `…Entry`, `…EntryRevision` | **Baru** | `ClinicalManagement` | — |
+| `CliTransfusionMonitoring`, `…Point`, `…Reaction` | **Baru** | `ClinicalManagement` | — |
+| `GziPatientDiet` | **Diperbarui** | `NutritionManagement` | Tiga kolom verifikasi |
+| `BbkTransfusionReactionNotice` | **Baru** | `BloodBankManagement` | Disetujui `RWI-DEC-209` |
+| `CliFluidBalanceEntry` | Sudah ada | `ClinicalManagement` | Kunci: `Id`, `InpEpisodeId`, `SourceCategory` (`DrainOrWsd = 14`), `VolumeMl`, `EntryStatus`, `RevisionNumber`. Model `ClinicalManagement/Models/CliFluidBalanceEntry.cs` |
+| `TrxNosocomialInfection` | Sudah ada (legacy `Trx*`) | `ClinicalManagement` | Kunci: `Id`, `PatientId`, `EncounterId`, `InfectionType`, `Status`, `OnsetDateTime`. Model `ClinicalManagement/Models/TrxNosocomialInfection.cs`. Tidak diubah bentuknya |
+| `TrxPatientVitalSign` | Sudah ada (legacy `Trx*`) | `ClinicalManagement` | Kunci: `EncounterId`, `ObservationDateTime`, `Temperature`, `VitalSignStatus` |
+| `CliClinicalInstrument`, `CliClinicalInstrumentVersion` | Sudah ada | `ClinicalManagement` | Kunci: `InstrumentKind`, `VersionStatus`, `DefinitionJson` |
+| `BbkBloodUnit` | Sudah ada | `BloodBankManagement` | Kunci: `Id`, `PmiBagNumber`, `BloodComponentId`, `IssuedToPatientId`, `IssuedAt` |
+| `InpEpisode`, `MstDoctor` | Sudah ada | Rawat Inap; Human Resource | Dirujuk |
+
+### 12.3 `CliEquipmentUsage` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `InpEpisodeId` | `Guid` | Ya | — | Index | FK `InpEpisode` | `Restrict` | Tidak | — |
+| `EncounterId` | `Guid` | Ya | — | Index | FK `RegPatientEncounter` | `Restrict` | Tidak | Kunci tagihan |
+| `PatientId` | `Guid` | Ya | — | Index | FK `MstPatient` | `Restrict` | Tidak | — |
+| `MedicalEquipmentId` | `Guid` | Ya | — | Index | FK `MstMedicalEquipment` | `Restrict` | Tidak | — |
+| `ResponsibleDoctorId` | `Guid` | Ya | — | Index | FK `MstDoctor` | `Restrict` | Tidak | Berpenugasan aktif saat mulai |
+| `PerformedByUserId` | `Guid` | Ya | — | — | FK `ApplicationUser` | `Restrict` | Tidak | Dari akun login |
+| `StartedAt` | `DateTime` | Ya | — | Index | — | — | Tidak | — |
+| `EndedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `Quantity` | `decimal(10,2)?` | Tidak | — | — | — | — | Tidak | Wajib bila satuan `PerUse` |
+| `ChargeUnitSnapshot` | `MstEquipmentChargeUnit` (`int`) | Ya | — | — | — | — | Tidak | Dibekukan saat mulai |
+| `RoundingRuleSnapshot` | `MstEquipmentRoundingRule` (`int`) | Ya | — | — | — | — | Tidak | Dibekukan saat mulai |
+| `BilledUnits` | `decimal(10,2)?` | Tidak | — | — | — | — | Tidak | Dihitung server saat selesai |
+| `Status` | `CliEquipmentUsageStatus` (`int`) | Ya | `Running` | Index | — | — | Tidak | — |
+| `RequiresNurseReview` | `bool` | Ya | `false` | Index | — | — | Tidak | `true` bila ditutup otomatis saat keluar ruangan |
+| `AutoClosedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `CancelReason` | `string(500)?` | Tidak | — | — | — | — | **Ya** | — |
+| `Note` | `string(500)?` | Tidak | — | — | — | — | **Ya** | — |
+| `RevisionNumber` | `int` | Ya | `1` | — | — | — | Tidak | Naik pada koreksi waktu |
+| `Version` | `int` | Ya | `1` | — | — | — | Tidak | Konkurensi optimistis |
+
+Index parsial: `IX_CliEquipmentUsage_Episode_Running` pada (`InpEpisodeId`) `WHERE "Status" = 1`, untuk penutupan saat keluar ruangan.
+
+### 12.4 `CliEquipmentUsageRevision` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `EquipmentUsageId` | `Guid` | Ya | — | Unique bersama `RevisionNumber` | FK `CliEquipmentUsage` | `Restrict` | Tidak | — |
+| `RevisionNumber` | `int` | Ya | — | Bagian unique | — | — | Tidak | Nomor revisi yang digantikan |
+| `PreviousStartedAt` | `DateTime` | Ya | — | — | — | — | Tidak | — |
+| `PreviousEndedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `PreviousQuantity` | `decimal(10,2)?` | Tidak | — | — | — | — | Tidak | — |
+| `PreviousBilledUnits` | `decimal(10,2)?` | Tidak | — | — | — | — | Tidak | — |
+| `Reason` | `string(500)` | Ya | — | — | — | — | **Ya** | — |
+| `RevisedByUserId` | `Guid` | Ya | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `RevisedAt` | `DateTime` | Ya | — | — | — | — | Tidak | — |
+
+### 12.5 `CliWsdDrain` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `InpEpisodeId` | `Guid` | Ya | — | Index | FK `InpEpisode` | `Restrict` | Tidak | — |
+| `EncounterId` | `Guid` | Ya | — | — | FK `RegPatientEncounter` | `Restrict` | Tidak | — |
+| `PatientId` | `Guid` | Ya | — | — | FK `MstPatient` | `Restrict` | Tidak | — |
+| `DrainLabel` | `string(50)` | Ya | — | — | — | — | Tidak | Misalnya "WSD kanan" |
+| `InsertionSite` | `string(100)?` | Tidak | — | — | — | — | **Ya** | Lokasi anatomi |
+| `InsertedAt` | `DateTime` | Ya | — | — | — | — | Tidak | — |
+| `InitialResidualMl` | `decimal(8,1)` | Ya | `0` | — | — | — | Tidak | Sisa awal; dipakai pembacaan pertama |
+| `RemovedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `RemovedByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `Status` | `CliWsdDrainStatus` (`int`) | Ya | `Active` | Index | — | — | Tidak | — |
+| `RegisteredByUserId` | `Guid` | Ya | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `CorrectionReason` | `string(500)?` | Tidak | — | — | — | — | **Ya** | Alasan koreksi terakhir |
+| `Version` | `int` | Ya | `1` | — | — | — | Tidak | — |
+
+Unique parsial `IX_CliWsdDrain_Episode_Label_Active` pada (`InpEpisodeId`, `DrainLabel`) `WHERE "Status" = 1`.
+
+### 12.6 `CliWsdReading` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `WsdDrainId` | `Guid` | Ya | — | Index bersama `PeriodEndAt` | FK `CliWsdDrain` | `Restrict` | Tidak | — |
+| `InpEpisodeId` | `Guid` | Ya | — | Index | FK `InpEpisode` | `Restrict` | Tidak | — |
+| `ShiftId` | `Guid?` | Tidak | — | — | FK `CliNursingShift` | `Restrict` | Tidak | — |
+| `PeriodStartAt` | `DateTime` | Ya | — | — | — | — | Tidak | Jam awal |
+| `PeriodEndAt` | `DateTime` | Ya | — | Bagian index | — | — | Tidak | Jam akhir |
+| `PreviousResidualMl` | `decimal(8,1)` | Ya | — | — | — | — | Tidak | Diisi server: sisa pembacaan aktif sebelumnya atau `InitialResidualMl` |
+| `CurrentResidualMl` | `decimal(8,1)` | Ya | — | — | — | — | Tidak | — |
+| `DiscardedVolumeMl` | `decimal(8,1)` | Ya | `0` | — | — | — | Tidak | — |
+| `IncreaseMl` | `decimal(8,1)` | Ya | — | — | — | — | Tidak | Dihitung server, ≥ 0 |
+| `FluidBalanceEntryId` | `Guid` | Ya | — | **Unique** | FK `CliFluidBalanceEntry` | `Restrict` | Tidak | Output `DrainOrWsd` |
+| `Status` | `ClinicalMeasurementStatus` (`int`) | Ya | `Active` | — | — | — | Tidak | — |
+| `RevisionNumber` | `int` | Ya | `1` | — | — | — | Tidak | — |
+| `RecordedByUserId` | `Guid` | Ya | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `CancelReason` | `string(500)?` | Tidak | — | — | — | — | **Ya** | — |
+
+### 12.7 `CliSurgicalSiteSurveillance` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `OprCaseId` | `Guid` | Ya | — | **Unique** | FK `OprCase` | `Restrict` | Tidak | Satu formulir per kasus |
+| `InpEpisodeId` | `Guid` | Ya | — | Index | FK `InpEpisode` | `Restrict` | Tidak | — |
+| `EncounterId` | `Guid` | Ya | — | Index | FK `RegPatientEncounter` | `Restrict` | Tidak | — |
+| `PatientId` | `Guid` | Ya | — | Index | FK `MstPatient` | `Restrict` | Tidak | — |
+| `InstrumentVersionId` | `Guid` | Ya | — | — | FK `CliClinicalInstrumentVersion` | `Restrict` | Tidak | Versi `Approved` saat dibentuk |
+| `SurgeryCompletedAt` | `DateTime` | Ya | — | — | — | — | Tidak | Dari riwayat status kasus OK |
+| `DayOneDate` | `DateOnly` | Ya | — | — | — | — | Tidak | — |
+| `Status` | `CliSurveillanceStatus` (`int`) | Ya | `Active` | Index | — | — | Tidak | — |
+| `StoppedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `StoppedOnDayNumber` | `int?` | Tidak | — | — | — | — | Tidak | — |
+| `SummaryResponsesJson` | `text` | Ya | `"{}"` | — | — | — | **Ya** | Kultur, serologi |
+| `NosocomialInfectionId` | `Guid?` | Tidak | — | Index | FK `TrxNosocomialInfection` | `Restrict` | Tidak | Diisi saat ditandai dicurigai |
+| `SuspectedFlaggedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `SuspectedFlaggedByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `ReviewNote` | `string(1000)?` | Tidak | — | — | — | — | **Ya** | — |
+| `CancelReason` | `string(500)?` | Tidak | — | — | — | — | Tidak | — |
+| `Version` | `int` | Ya | `1` | — | — | — | Tidak | — |
+
+### 12.8 `CliSurgicalSiteSurveillanceEntry` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `SurveillanceId` | `Guid` | Ya | — | Unique bersama `DayNumber` | FK `CliSurgicalSiteSurveillance` | `Restrict` | Tidak | — |
+| `DayNumber` | `int` | Ya | — | Bagian unique | — | — | Tidak | 1–15 |
+| `EntryDate` | `DateOnly` | Ya | — | — | — | — | Tidak | — |
+| `ResponsesJson` | `text` | Ya | — | — | — | — | **Ya** | Indikator harian dan tanda per lokasi, divalidasi definisi versi |
+| `TemperatureMaxCelsiusSnapshot` | `decimal(4,1)?` | Tidak | — | — | — | — | **Ya** | Dari tanda vital saat disimpan |
+| `FeverIndicatorFromVitals` | `bool?` | Tidak | — | — | — | — | Tidak | `null` bila tidak ada pencatatan suhu |
+| `RecordedByUserId` | `Guid` | Ya | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `RevisionNumber` | `int` | Ya | `1` | — | — | — | Tidak | — |
+
+### 12.9 `CliSurgicalSiteSurveillanceEntryRevision` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `EntryId` | `Guid` | Ya | — | Unique bersama `RevisionNumber` | FK `CliSurgicalSiteSurveillanceEntry` | `Restrict` | Tidak | — |
+| `RevisionNumber` | `int` | Ya | — | Bagian unique | — | — | Tidak | — |
+| `PreviousResponsesJson` | `text` | Ya | — | — | — | — | **Ya** | — |
+| `Reason` | `string(500)` | Ya | — | — | — | — | **Ya** | — |
+| `RevisedByUserId` | `Guid` | Ya | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `RevisedAt` | `DateTime` | Ya | — | — | — | — | Tidak | — |
+
+### 12.10 `CliTransfusionMonitoring` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `InpEpisodeId` | `Guid` | Ya | — | Index | FK `InpEpisode` | `Restrict` | Tidak | — |
+| `EncounterId` | `Guid` | Ya | — | — | FK `RegPatientEncounter` | `Restrict` | Tidak | — |
+| `PatientId` | `Guid` | Ya | — | Index | FK `MstPatient` | `Restrict` | Tidak | — |
+| `BloodUnitId` | `Guid` | Ya | — | Unique parsial `WHERE "Status" <> 4` | FK `BbkBloodUnit` | `Restrict` | Tidak | Kantong dari Bank Darah |
+| `ReceivedAtWardAt` | `DateTime` | Ya | — | — | — | — | Tidak | Jam darah diterima di bangsal |
+| `TransfusionStartedAt` | `DateTime` | Ya | — | — | — | — | Tidak | Acuan jatuh tempo titik ukur (gate G-22) |
+| `Status` | `CliTransfusionMonitoringStatus` (`int`) | Ya | `InProgress` | Index | — | — | Tidak | — |
+| `StoppedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `StopReason` | `string(500)?` | Tidak | — | — | — | — | **Ya** | — |
+| `CompletedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `PerformedByUserId` | `Guid` | Ya | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `CancelReason` | `string(500)?` | Tidak | — | — | — | — | Tidak | — |
+| `Version` | `int` | Ya | `1` | — | — | — | Tidak | — |
+
+### 12.11 `CliTransfusionMonitoringPoint` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `MonitoringId` | `Guid` | Ya | — | Unique bersama `PointType` | FK `CliTransfusionMonitoring` | `Restrict` | Tidak | — |
+| `PointType` | `CliTransfusionPointType` (`int`) | Ya | — | Bagian unique | — | — | Tidak | — |
+| `DueAt` | `DateTime` | Ya | — | — | — | — | Tidak | Mulai + 0, 15, 60, 240 menit |
+| `MeasuredAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `SystolicBp` | `int?` | Tidak | — | — | — | — | **Ya** | — |
+| `DiastolicBp` | `int?` | Tidak | — | — | — | — | **Ya** | — |
+| `TemperatureCelsius` | `decimal(4,1)?` | Tidak | — | — | — | — | **Ya** | — |
+| `PulseRate` | `int?` | Tidak | — | — | — | — | **Ya** | — |
+| `IsLate` | `bool` | Ya | `false` | — | — | — | Tidak | — |
+| `IsStopped` | `bool` | Ya | `false` | — | — | — | Tidak | Titik setelah transfusi dihentikan |
+| `LateNote` | `string(500)?` | Tidak | — | — | — | — | **Ya** | Wajib bila `IsLate` |
+| `RecordedByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `RevisionNumber` | `int` | Ya | `0` | — | — | — | Tidak | `1` saat pertama dicatat; naik pada koreksi |
+| `CorrectionReason` | `string(500)?` | Tidak | — | — | — | — | **Ya** | — |
+
+### 12.12 `CliTransfusionReaction` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `MonitoringId` | `Guid` | Ya | — | Index | FK `CliTransfusionMonitoring` | `Restrict` | Tidak | — |
+| `PointType` | `CliTransfusionPointType?` (`int`) | Tidak | — | — | — | — | Tidak | Titik saat reaksi terlihat |
+| `OccurredAt` | `DateTime` | Ya | — | — | — | — | Tidak | — |
+| `ReactionSummary` | `string(250)` | Ya | — | — | — | — | **Ya** | Misalnya "menggigil, demam" |
+| `ReactionDetail` | `string(1000)?` | Tidak | — | — | — | — | **Ya** | — |
+| `RecordedByUserId` | `Guid` | Ya | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `NoticeDelivery` | `CliReactionNoticeDelivery` (`int`) | Ya | `Pending` | Index | — | — | Tidak | — |
+| `NoticeAttemptCount` | `int` | Ya | `0` | — | — | — | Tidak | — |
+| `BloodBankNoticeId` | `Guid?` | Tidak | — | — | Rujukan logis ke `BbkTransfusionReactionNotice.Id` | — | Tidak | — |
+
+### 12.13 `MstMedicalEquipment` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `EquipmentCode` | `string(30)` | Ya | — | **Unique** | — | — | Tidak | — |
+| `EquipmentName` | `string(150)` | Ya | — | Index | — | — | Tidak | — |
+| `CategoryName` | `string(100)?` | Tidak | — | — | — | — | Tidak | Teks bebas; taksonomi tidak ditetapkan |
+| `ChargeUnit` | `MstEquipmentChargeUnit` (`int`) | Ya | — | — | — | — | Tidak | — |
+| `RoundingRule` | `MstEquipmentRoundingRule` (`int`) | Ya | `CeilingWholeUnit` | — | — | — | Tidak | — |
+| `Description` | `string(250)?` | Tidak | — | — | — | — | Tidak | — |
+| `IsActive` | `bool` | Ya | `true` | Index | — | — | Tidak | — |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | — |
+
+### 12.14 `MstTariff` — `Diperbarui` (daftar lengkap satu-satunya)
+
+`[Table("MstTariff", Schema = "public")]`. Model `Areas/HealthServices/MasterData/Models/MstTariff.cs`.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `TariffCode` | `string(50)` | Ya | — | Sesuai configuration yang ada | — | — | Tidak | — |
+| `TariffName` | `string(250)` | Ya | — | — | — | — | Tidak | — |
+| `TariffCategoryId` | `Guid` | Ya | — | Index | FK `MstTariffCategory` | `Restrict` | Tidak | — |
+| `ServiceUnitId` | `Guid?` | Tidak | — | — | FK `MstServiceUnit` | `Restrict` | Tidak | — |
+| `ClinicId` | `Guid?` | Tidak | — | — | FK `MstClinic` | `Restrict` | Tidak | — |
+| `PatientClassId` | `Guid?` | Tidak | — | — | FK `MstPatientClass` | `Restrict` | Tidak | Kelas perawatan |
+| `ProcedureId` | `Guid?` | Tidak | — | — | FK `MstProcedure` | `Restrict` | Tidak | — |
+| `DrugId` | `Guid?` | Tidak | — | — | FK `MstDrug` | `Restrict` | Tidak | Juga dipakai bahan OK |
+| **`MedicalEquipmentId`** | `Guid?` | Tidak | — | **Index** | FK `MstMedicalEquipment` | `Restrict` | Tidak | **Baru** (`keperawatan` `0.6.0`) |
+| **`SurgeryComponentType`** | `MstSurgeryComponentType` (`int`) | Ya | `None` | **Index** | — | — | Tidak | **Baru** (`episode-rawat-inap` `0.10.0`): `None`, `AnesthesiaService`, `OperatingRoomRent` |
+| **`ChargeBasis`** | `MstTariffChargeBasis` (`int`) | Ya | `PerService` | — | — | — | Tidak | **Baru** (`episode-rawat-inap` `0.10.0`): `PerService`, `PerHour` |
+| **`ChargeRounding`** | `MstEquipmentRoundingRule` (`int`) | Ya | `CeilingWholeUnit` | — | — | — | Tidak | **Baru** (`episode-rawat-inap` `0.10.0`); berlaku bila `ChargeBasis = PerHour` |
+| `ExternalServiceCode` | `string(50)?` | Tidak | — | — | — | — | Tidak | — |
+| `ExternalClassCode` | `string(50)?` | Tidak | — | — | — | — | Tidak | — |
+| `IsSurgeryRelated` | `bool` | Ya | `false` | — | — | — | Tidak | — |
+| `IsRoomCharge` | `bool` | Ya | `false` | — | — | — | Tidak | Tarif kamar |
+| `IsAdministrationFee` | `bool` | Ya | `false` | — | — | — | Tidak | — |
+| `IsRegistrationFee` | `bool` | Ya | `false` | — | — | — | Tidak | — |
+| `IsConsultationFee` | `bool` | Ya | `false` | — | — | — | Tidak | — |
+| `IsPackageTariff` | `bool` | Ya | `false` | — | — | — | Tidak | — |
+| `IsNeedDoctor` | `bool` | Ya | `false` | — | — | — | Tidak | — |
+| `IsNeedApproval` | `bool` | Ya | `false` | — | — | — | Tidak | — |
+| `NormalPrice` | `decimal` | Ya | — | — | — | — | Tidak | Satu-satunya angka tarif; tidak pernah dikirim layar |
+| `EffectiveStartDate` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `EffectiveEndDate` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `IsTaxable` | `bool` | Ya | `false` | — | — | — | Tidak | — |
+| `SortOrder` | `int` | Ya | `0` | — | — | — | Tidak | — |
+| `Description` | `string(250)?` | Tidak | — | — | — | — | Tidak | — |
+| `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | — |
+
+Aturan isian: satu baris tarif paling banyak punya satu rujukan objek (`ProcedureId`, `DrugId`, `MedicalEquipmentId`, atau `SurgeryComponentType ≠ None`). Divalidasi service master tarif.
+
+### 12.15 `GziPatientDiet` — `Diperbarui` (milik Gizi)
+
+`[Table("GziPatientDiet", Schema = "public")]`. Model `Areas/HealthServices/NutritionManagement/Models/GziPatientDiet.cs`.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `NutritionOrderId` | `Guid?` | Tidak | — | Sesuai configuration | FK `GziNutritionOrder` | `Restrict` | Tidak | — |
+| `PatientId` | `Guid` | Ya | — | Sesuai configuration | FK `MstPatient` | `Restrict` | Tidak | — |
+| `EncounterId` | `Guid` | Ya | — | Sesuai configuration | FK `RegPatientEncounter` | `Restrict` | Tidak | — |
+| `DietTypeId` | `Guid` | Ya | — | — | FK `GziDietType` | `Restrict` | Tidak | — |
+| `FoodFormId` | `Guid` | Ya | — | — | FK `GziFoodForm` | `Restrict` | Tidak | — |
+| `NutritionRequirementId` | `Guid?` | Tidak | — | — | FK `GziNutritionRequirement` | `Restrict` | Tidak | — |
+| `EnergyRequirementKcal` | `int?` | Tidak | — | — | — | — | Tidak | 1–10.000 |
+| `Instruction` | `string(1000)?` | Tidak | — | — | — | — | **Ya** | — |
+| `Status` | `GziPatientDietStatus` (`int`) | Ya | `Active` | — | — | — | Tidak | — |
+| `StartAt` | `DateTime` | Ya | — | — | — | — | Tidak | — |
+| `EndAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `ChangeReason` | `string(1000)?` | Tidak | — | — | — | — | **Ya** | — |
+| `PrescribedByWorkforceId` | `Guid` | Ya | — | — | FK `MstWorkforceProfile` | `Restrict` | Tidak | Penetap = dokter pemberi instruksi |
+| **`InstructionVerificationStatus`** | `GziInstructionVerificationStatus` (`int`) | Ya | `NotRequired` | **Index** | — | — | Tidak | **Baru** |
+| **`InstructionVerifiedAt`** | `DateTime?` | Tidak | — | — | — | — | Tidak | **Baru** |
+| **`InstructionVerifiedByUserId`** | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | **Baru** |
+| `Version` | `int` | Ya | — | — | — | — | Tidak | Konkurensi |
+
+### 12.16 `BbkTransfusionReactionNotice` — `Baru` (milik Bank Darah, disetujui `RWI-DEC-209`)
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `ClinicalReactionId` | `Guid` | Ya | — | **Unique** | Rujukan logis ke `CliTransfusionReaction` | — | Tidak | Kunci idempotensi |
+| `BloodUnitId` | `Guid` | Ya | — | Index | FK `BbkBloodUnit` | `Restrict` | Tidak | — |
+| `PatientId` | `Guid` | Ya | — | Index | FK `MstPatient` | `Restrict` | Tidak | — |
+| `EncounterId` | `Guid` | Ya | — | — | FK `RegPatientEncounter` | `Restrict` | Tidak | — |
+| `ServiceUnitId` | `Guid?` | Tidak | — | — | FK `MstServiceUnit` | `Restrict` | Tidak | Unit pelapor |
+| `ReactionSummarySnapshot` | `string(250)` | Ya | — | — | — | — | **Ya** | Isi pesan saat dikirim |
+| `OccurredAt` | `DateTime` | Ya | — | — | — | — | Tidak | — |
+| `ReceivedAt` | `DateTime` | Ya | `DateTime.UtcNow` | Index | — | — | Tidak | — |
+| `Status` | `BbkReactionNoticeStatus` (`int`) | Ya | `New` | Index | — | — | Tidak | — |
+| `AcknowledgedByUserId` | `Guid?` | Tidak | — | — | FK `ApplicationUser` | `Restrict` | Tidak | — |
+| `AcknowledgedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `AcknowledgeNote` | `string(500)?` | Tidak | — | — | — | — | **Ya** | — |
+
+### 12.17 Skema DDL
+
+> **Peringatan.** Basis data dibentuk EF Core Migrations. DDL ini **dokumentasi bentuk**, bukan skrip yang dijalankan. Kolom audit `IdentityModel` tidak ditulis ulang. Untuk tabel `Diperbarui`, hanya kolom baru yang ditulis.
+
+```sql
+-- Bentuk tabel sebagaimana dihasilkan EF Core. Bukan skrip untuk dijalankan.
+CREATE TABLE public."MstMedicalEquipment" (
+    "Id" uuid NOT NULL, "EquipmentCode" varchar(30) NOT NULL, "EquipmentName" varchar(150) NOT NULL,
+    "CategoryName" varchar(100), "ChargeUnit" integer NOT NULL, "RoundingRule" integer NOT NULL,
+    "Description" varchar(250), "IsActive" boolean NOT NULL, "RowVersion" uuid NOT NULL,
+    CONSTRAINT "PK_MstMedicalEquipment" PRIMARY KEY ("Id"));
+CREATE UNIQUE INDEX "IX_MstMedicalEquipment_EquipmentCode" ON public."MstMedicalEquipment" ("EquipmentCode");
+
+ALTER TABLE public."MstTariff"
+    ADD "MedicalEquipmentId" uuid,
+    ADD "SurgeryComponentType" integer NOT NULL DEFAULT 0,   -- episode-rawat-inap 0.10.0
+    ADD "ChargeBasis" integer NOT NULL DEFAULT 0,            -- episode-rawat-inap 0.10.0
+    ADD "ChargeRounding" integer NOT NULL DEFAULT 1,         -- episode-rawat-inap 0.10.0
+    ADD CONSTRAINT "FK_MstTariff_MstMedicalEquipment_MedicalEquipmentId"
+        FOREIGN KEY ("MedicalEquipmentId") REFERENCES public."MstMedicalEquipment" ("Id") ON DELETE RESTRICT;
+CREATE INDEX "IX_MstTariff_MedicalEquipmentId" ON public."MstTariff" ("MedicalEquipmentId");
+CREATE INDEX "IX_MstTariff_SurgeryComponentType" ON public."MstTariff" ("SurgeryComponentType");
+
+CREATE TABLE public."CliEquipmentUsage" (
+    "Id" uuid NOT NULL, "InpEpisodeId" uuid NOT NULL, "EncounterId" uuid NOT NULL, "PatientId" uuid NOT NULL,
+    "MedicalEquipmentId" uuid NOT NULL, "ResponsibleDoctorId" uuid NOT NULL, "PerformedByUserId" uuid NOT NULL,
+    "StartedAt" timestamp NOT NULL, "EndedAt" timestamp, "Quantity" numeric(10,2),
+    "ChargeUnitSnapshot" integer NOT NULL, "RoundingRuleSnapshot" integer NOT NULL, "BilledUnits" numeric(10,2),
+    "Status" integer NOT NULL, "RequiresNurseReview" boolean NOT NULL, "AutoClosedAt" timestamp,
+    "CancelReason" varchar(500),   -- SENSITIF
+    "Note" varchar(500),           -- SENSITIF
+    "RevisionNumber" integer NOT NULL, "Version" integer NOT NULL,
+    CONSTRAINT "PK_CliEquipmentUsage" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_CliEquipmentUsage_MstMedicalEquipment_MedicalEquipmentId"
+        FOREIGN KEY ("MedicalEquipmentId") REFERENCES public."MstMedicalEquipment" ("Id") ON DELETE RESTRICT);
+CREATE INDEX "IX_CliEquipmentUsage_Episode_Running" ON public."CliEquipmentUsage" ("InpEpisodeId") WHERE "Status" = 1;
+
+CREATE TABLE public."CliEquipmentUsageRevision" (
+    "Id" uuid NOT NULL, "EquipmentUsageId" uuid NOT NULL, "RevisionNumber" integer NOT NULL,
+    "PreviousStartedAt" timestamp NOT NULL, "PreviousEndedAt" timestamp, "PreviousQuantity" numeric(10,2),
+    "PreviousBilledUnits" numeric(10,2), "Reason" varchar(500) NOT NULL,  -- SENSITIF
+    "RevisedByUserId" uuid NOT NULL, "RevisedAt" timestamp NOT NULL,
+    CONSTRAINT "PK_CliEquipmentUsageRevision" PRIMARY KEY ("Id"));
+CREATE UNIQUE INDEX "IX_CliEquipmentUsageRevision_Usage_Revision" ON public."CliEquipmentUsageRevision" ("EquipmentUsageId", "RevisionNumber");
+
+CREATE TABLE public."CliWsdDrain" (
+    "Id" uuid NOT NULL, "InpEpisodeId" uuid NOT NULL, "EncounterId" uuid NOT NULL, "PatientId" uuid NOT NULL,
+    "DrainLabel" varchar(50) NOT NULL, "InsertionSite" varchar(100),  -- SENSITIF
+    "InsertedAt" timestamp NOT NULL, "InitialResidualMl" numeric(8,1) NOT NULL DEFAULT 0,
+    "RemovedAt" timestamp, "RemovedByUserId" uuid, "Status" integer NOT NULL, "RegisteredByUserId" uuid NOT NULL,
+    "CorrectionReason" varchar(500),  -- SENSITIF
+    "Version" integer NOT NULL,
+    CONSTRAINT "PK_CliWsdDrain" PRIMARY KEY ("Id"));
+CREATE UNIQUE INDEX "IX_CliWsdDrain_Episode_Label_Active" ON public."CliWsdDrain" ("InpEpisodeId", "DrainLabel") WHERE "Status" = 1;
+
+CREATE TABLE public."CliWsdReading" (
+    "Id" uuid NOT NULL, "WsdDrainId" uuid NOT NULL, "InpEpisodeId" uuid NOT NULL, "ShiftId" uuid,
+    "PeriodStartAt" timestamp NOT NULL, "PeriodEndAt" timestamp NOT NULL,
+    "PreviousResidualMl" numeric(8,1) NOT NULL, "CurrentResidualMl" numeric(8,1) NOT NULL,
+    "DiscardedVolumeMl" numeric(8,1) NOT NULL DEFAULT 0, "IncreaseMl" numeric(8,1) NOT NULL,
+    "FluidBalanceEntryId" uuid NOT NULL, "Status" integer NOT NULL, "RevisionNumber" integer NOT NULL,
+    "RecordedByUserId" uuid NOT NULL, "CancelReason" varchar(500),  -- SENSITIF
+    CONSTRAINT "PK_CliWsdReading" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_CliWsdReading_CliWsdDrain_WsdDrainId" FOREIGN KEY ("WsdDrainId") REFERENCES public."CliWsdDrain" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_CliWsdReading_CliFluidBalanceEntry_FluidBalanceEntryId" FOREIGN KEY ("FluidBalanceEntryId") REFERENCES public."CliFluidBalanceEntry" ("Id") ON DELETE RESTRICT);
+CREATE UNIQUE INDEX "IX_CliWsdReading_FluidBalanceEntryId" ON public."CliWsdReading" ("FluidBalanceEntryId");
+CREATE INDEX "IX_CliWsdReading_Drain_PeriodEnd" ON public."CliWsdReading" ("WsdDrainId", "PeriodEndAt");
+
+CREATE TABLE public."CliSurgicalSiteSurveillance" (
+    "Id" uuid NOT NULL, "OprCaseId" uuid NOT NULL, "InpEpisodeId" uuid NOT NULL, "EncounterId" uuid NOT NULL,
+    "PatientId" uuid NOT NULL, "InstrumentVersionId" uuid NOT NULL, "SurgeryCompletedAt" timestamp NOT NULL,
+    "DayOneDate" date NOT NULL, "Status" integer NOT NULL, "StoppedAt" timestamp, "StoppedOnDayNumber" integer,
+    "SummaryResponsesJson" text NOT NULL,  -- SENSITIF
+    "NosocomialInfectionId" uuid, "SuspectedFlaggedAt" timestamp, "SuspectedFlaggedByUserId" uuid,
+    "ReviewNote" varchar(1000),  -- SENSITIF
+    "CancelReason" varchar(500), "Version" integer NOT NULL,
+    CONSTRAINT "PK_CliSurgicalSiteSurveillance" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_CliSurgicalSiteSurveillance_TrxNosocomialInfection" FOREIGN KEY ("NosocomialInfectionId") REFERENCES public."TrxNosocomialInfection" ("Id") ON DELETE RESTRICT);
+CREATE UNIQUE INDEX "IX_CliSurgicalSiteSurveillance_OprCaseId" ON public."CliSurgicalSiteSurveillance" ("OprCaseId");
+
+CREATE TABLE public."CliSurgicalSiteSurveillanceEntry" (
+    "Id" uuid NOT NULL, "SurveillanceId" uuid NOT NULL, "DayNumber" integer NOT NULL, "EntryDate" date NOT NULL,
+    "ResponsesJson" text NOT NULL,                    -- SENSITIF
+    "TemperatureMaxCelsiusSnapshot" numeric(4,1),     -- SENSITIF
+    "FeverIndicatorFromVitals" boolean, "RecordedByUserId" uuid NOT NULL, "RevisionNumber" integer NOT NULL,
+    CONSTRAINT "PK_CliSurgicalSiteSurveillanceEntry" PRIMARY KEY ("Id"));
+CREATE UNIQUE INDEX "IX_CliSurgicalSiteSurveillanceEntry_Surveillance_Day" ON public."CliSurgicalSiteSurveillanceEntry" ("SurveillanceId", "DayNumber");
+
+CREATE TABLE public."CliSurgicalSiteSurveillanceEntryRevision" (
+    "Id" uuid NOT NULL, "EntryId" uuid NOT NULL, "RevisionNumber" integer NOT NULL,
+    "PreviousResponsesJson" text NOT NULL,  -- SENSITIF
+    "Reason" varchar(500) NOT NULL,         -- SENSITIF
+    "RevisedByUserId" uuid NOT NULL, "RevisedAt" timestamp NOT NULL,
+    CONSTRAINT "PK_CliSurgicalSiteSurveillanceEntryRevision" PRIMARY KEY ("Id"));
+
+CREATE TABLE public."CliTransfusionMonitoring" (
+    "Id" uuid NOT NULL, "InpEpisodeId" uuid NOT NULL, "EncounterId" uuid NOT NULL, "PatientId" uuid NOT NULL,
+    "BloodUnitId" uuid NOT NULL, "ReceivedAtWardAt" timestamp NOT NULL, "TransfusionStartedAt" timestamp NOT NULL,
+    "Status" integer NOT NULL, "StoppedAt" timestamp, "StopReason" varchar(500),  -- SENSITIF
+    "CompletedAt" timestamp, "PerformedByUserId" uuid NOT NULL, "CancelReason" varchar(500), "Version" integer NOT NULL,
+    CONSTRAINT "PK_CliTransfusionMonitoring" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_CliTransfusionMonitoring_BbkBloodUnit_BloodUnitId" FOREIGN KEY ("BloodUnitId") REFERENCES public."BbkBloodUnit" ("Id") ON DELETE RESTRICT);
+CREATE UNIQUE INDEX "IX_CliTransfusionMonitoring_BloodUnit_NotCancelled" ON public."CliTransfusionMonitoring" ("BloodUnitId") WHERE "Status" <> 4;
+
+CREATE TABLE public."CliTransfusionMonitoringPoint" (
+    "Id" uuid NOT NULL, "MonitoringId" uuid NOT NULL, "PointType" integer NOT NULL, "DueAt" timestamp NOT NULL,
+    "MeasuredAt" timestamp, "SystolicBp" integer, "DiastolicBp" integer, "TemperatureCelsius" numeric(4,1),
+    "PulseRate" integer,  -- nilai tanda vital: SENSITIF
+    "IsLate" boolean NOT NULL, "IsStopped" boolean NOT NULL, "LateNote" varchar(500),  -- SENSITIF
+    "RecordedByUserId" uuid, "RevisionNumber" integer NOT NULL, "CorrectionReason" varchar(500),  -- SENSITIF
+    CONSTRAINT "PK_CliTransfusionMonitoringPoint" PRIMARY KEY ("Id"));
+CREATE UNIQUE INDEX "IX_CliTransfusionMonitoringPoint_Monitoring_Point" ON public."CliTransfusionMonitoringPoint" ("MonitoringId", "PointType");
+
+CREATE TABLE public."CliTransfusionReaction" (
+    "Id" uuid NOT NULL, "MonitoringId" uuid NOT NULL, "PointType" integer, "OccurredAt" timestamp NOT NULL,
+    "ReactionSummary" varchar(250) NOT NULL,  -- SENSITIF
+    "ReactionDetail" varchar(1000),           -- SENSITIF
+    "RecordedByUserId" uuid NOT NULL, "NoticeDelivery" integer NOT NULL, "NoticeAttemptCount" integer NOT NULL,
+    "BloodBankNoticeId" uuid,
+    CONSTRAINT "PK_CliTransfusionReaction" PRIMARY KEY ("Id"));
+CREATE INDEX "IX_CliTransfusionReaction_NoticeDelivery" ON public."CliTransfusionReaction" ("NoticeDelivery");
+
+ALTER TABLE public."GziPatientDiet"
+    ADD "InstructionVerificationStatus" integer NOT NULL DEFAULT 0,
+    ADD "InstructionVerifiedAt" timestamp,
+    ADD "InstructionVerifiedByUserId" uuid;
+CREATE INDEX "IX_GziPatientDiet_InstructionVerificationStatus" ON public."GziPatientDiet" ("InstructionVerificationStatus");
+
+CREATE TABLE public."BbkTransfusionReactionNotice" (   -- disetujui RWI-DEC-209
+    "Id" uuid NOT NULL, "ClinicalReactionId" uuid NOT NULL, "BloodUnitId" uuid NOT NULL, "PatientId" uuid NOT NULL,
+    "EncounterId" uuid NOT NULL, "ServiceUnitId" uuid,
+    "ReactionSummarySnapshot" varchar(250) NOT NULL,  -- SENSITIF
+    "OccurredAt" timestamp NOT NULL, "ReceivedAt" timestamp NOT NULL, "Status" integer NOT NULL,
+    "AcknowledgedByUserId" uuid, "AcknowledgedAt" timestamp, "AcknowledgeNote" varchar(500),  -- SENSITIF
+    CONSTRAINT "PK_BbkTransfusionReactionNotice" PRIMARY KEY ("Id"));
+CREATE UNIQUE INDEX "IX_BbkTransfusionReactionNotice_ClinicalReactionId" ON public."BbkTransfusionReactionNotice" ("ClinicalReactionId");
+```
+
+Foreign key ke `InpEpisode`, `RegPatientEncounter`, `MstPatient`, `MstDoctor`, dan `ApplicationUser` pada tabel di atas mengikuti pola `Restrict` dan tidak ditulis satu per satu agar DDL tetap terbaca; daftar lengkapnya pada kolom "Relasi" setiap tabel.

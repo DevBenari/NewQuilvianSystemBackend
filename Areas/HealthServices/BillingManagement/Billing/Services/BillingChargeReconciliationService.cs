@@ -499,6 +499,7 @@ public sealed class BillingChargeReconciliationService
         BillingSourceContract.RadiologySourceContext => BillingBridgeSourceDomains.Radiology,
         BillingSourceContract.PrescriptionSourceContext => BillingBridgeSourceDomains.Pharmacy,
         BillingSourceContract.ConsultationSourceContext => BillingBridgeSourceDomains.Consultation,
+        BillingSourceContract.OperatingRoomSourceContext => BillingBridgeSourceDomains.OperatingRoom,
         _ => sourceContext.ToUpperInvariant()
     };
 

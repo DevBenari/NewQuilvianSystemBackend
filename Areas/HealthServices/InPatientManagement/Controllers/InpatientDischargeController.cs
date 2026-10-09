@@ -392,55 +392,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         // BE-RWI-024 — Kelayakan keuangan
         // =====================================================================
 
-        /// <summary>Petugas kasir atau billing menandai kelayakan keuangan.</summary>
-        /// <remarks>
-        /// Penandaan ini <b>manual</b>. Nilainya bergantung pada disiplin petugas kasir, bukan
-        /// pada angka tagihan yang sebenarnya, karena `BillingManagement` belum punya kemampuan
-        /// transaksi — `RWI-RISK-003`, diterima secara sadar dan bersifat sementara.
-        /// </remarks>
-        [HttpPost("{episodeId:guid}/financial-clearance")]
-        [ProducesResponseType(typeof(ApiResponse<FinancialClearanceResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("MarkFinancialClearance", "Mark Inpatient Financial Clearance", Description = "Menandai kelayakan keuangan rawat inap", AccessType = AccessTypes.Update, SortOrder = 6)]
-        [AccessPermission("InpatientDischarge", "MarkFinancialClearance")]
-        public async Task<IActionResult> MarkFinancialClearance(
-            Guid episodeId,
-            [FromBody] MarkFinancialClearanceRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            var result = await _dischargeService.MarkFinancialClearanceAsync(
-                episodeId,
-                request,
-                User.GetUserId(),
-                User.IsCashierOrBilling(),
-                cancellationToken);
 
-            if (result.Status != InpEpisodeOperationStatus.Success)
-            {
-                return FromSummaryFailure(result);
-            }
-
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "InpatientDischarge.MarkFinancialClearance",
-                "Menandai kelayakan keuangan rawat inap.",
-                new
-                {
-                    EntityId = episodeId,
-                    Controller = "InpatientDischarge",
-                    Action = "MarkFinancialClearance",
-                    StatusCode = StatusCodes.Status200OK
-                });
-
-            var clearance = await _dischargeService.GetFinancialClearanceAsync(
-                episodeId,
-                cancellationToken);
-
-            return Ok(ApiResponse<FinancialClearanceResponse>.Ok(clearance, result.Message));
-        }
 
         /// <summary>Membaca penandaan kelayakan keuangan beserta seluruh riwayatnya.</summary>
         /// <remarks>
@@ -588,7 +540,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                 episodeId,
                 request,
                 User.GetUserId(),
-                User.IsSupervisor(),
                 cancellationToken);
 
             if (result.Status != InpEpisodeOperationStatus.Success)
@@ -637,7 +588,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         /// menjalani admisi baru — <c>RWI-RULE-036</c>.
         /// </remarks>
         [HttpPost("{episodeId:guid}/record-departure")]
-        [ProducesResponseType(typeof(ApiResponse<InpatientEpisodeDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<InpatientDepartureResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
@@ -672,12 +623,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                     StatusCode = StatusCodes.Status200OK
                 });
 
-            var detail = await _episodeService.GetDetailResponseAsync(
-                episodeId,
-                null,
-                cancellationToken);
-
-            return Ok(ApiResponse<InpatientEpisodeDetailResponse>.Ok(detail, result.Message));
+            return Ok(ApiResponse<InpatientDepartureResponse>.Ok(result.Departure, result.Message));
         }
 
         // =====================================================================
@@ -686,7 +632,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
 
         private IActionResult FromEpisodeFailure(InpEpisodeOperationResult result)
         {
-            return BuildFailure(result.Status, result.Message);
+            return BuildFailure(result.Status, result.Message, result.Code);
         }
 
         private IActionResult FromSummaryFailure(InpDischargeSummaryOperationResult result)
@@ -694,26 +640,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
             return BuildFailure(result.Status, result.Message);
         }
 
-        private IActionResult BuildFailure(InpEpisodeOperationStatus status, string message)
+        private IActionResult BuildFailure(InpEpisodeOperationStatus status, string message, string? code = null)
         {
             return status switch
             {
                 InpEpisodeOperationStatus.Invalid => BadRequest(
-                    ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, message)),
+                    ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, message, code == null ? null : new { code })),
 
                 InpEpisodeOperationStatus.Forbidden => StatusCode(
                     StatusCodes.Status403Forbidden,
-                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, message)),
+                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, message, code == null ? null : new { code })),
 
                 InpEpisodeOperationStatus.NotFound => NotFound(
-                    ApiResponse<object>.Fail(StatusCodes.Status404NotFound, message)),
+                    ApiResponse<object>.Fail(StatusCodes.Status404NotFound, message, code == null ? null : new { code })),
 
                 InpEpisodeOperationStatus.Conflict => Conflict(
-                    ApiResponse<object>.Fail(StatusCodes.Status409Conflict, message)),
+                    ApiResponse<object>.Fail(StatusCodes.Status409Conflict, message, code == null ? null : new { code })),
 
                 _ => StatusCode(
                     StatusCodes.Status422UnprocessableEntity,
-                    ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, message))
+                    ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, message, code == null ? null : new { code }))
             };
         }
     }

@@ -65,6 +65,34 @@ Aturan baca: requirement tanpa task berarti tidak akan terwujud; task tanpa requ
 | `KSK-DSN-001..006`, `008` | `BE-KSK-001/002` |
 | `KSK-DSN-007`, `009` | `FE-KSK-003`, `FE-KSK-007` |
 
+## 2a. Amandemen 1 Oktober 2026
+
+| Requirement pemilik | Decision | Task | Status | Bukti |
+| --- | --- | --- | --- | --- |
+| Minor 1 — ceklis Jenis Kunjungan dan Pembayaran tidak dipakai | `KSK-DEC-020` | `FE-KSK-009` | 🟡 2026-10-01 — source + lint/build; uji browser belum | [FE-KSK-009](../task/report/frontend/FE-KSK-009.md) |
+| Minor 2 — nama poli lengkap; tanpa unit layanan dan menit; lokasi di kiri chip | `KSK-DEC-020` | `FE-KSK-009` | 🟡 2026-10-01 — idem | [FE-KSK-009](../task/report/frontend/FE-KSK-009.md) |
+| Minor 3 — masa aktif asuransi tidak dipilih ulang | `KSK-DEC-021` | `FE-KSK-010` | 🟡 2026-10-01 — kontrak `effectiveEndDate` terbukti runtime; uji browser belum | [FE-KSK-010](../task/report/frontend/FE-KSK-010.md) |
+| Prioritas 1 — Cek No. RM tidak tampil apa-apa | — | `FE-KSK-011` | ⛔ 2026-10-01 — belum dapat direproduksi | [FE-KSK-011](../task/report/frontend/FE-KSK-011.md) |
+| Prioritas Skrining 3 — tidak ada dua kunjungan aktif untuk satu pasien (juga berlaku di Kiosk) | `RJ-DOC-DEC-010` | `RJ-DOC-REV-BE-007` (blueprint Rawat Jalan) | ✅ 2026-10-01 | [RJ-DOC-REV-BE-007](../../rawat-jalan/task/report/backend/RJ-DOC-REV-BE-007.md) |
+
+## 2b. Amandemen 8 Oktober 2026
+
+| Requirement pemilik (PDF "Pendaftaran pasien manual") | Decision | Task | Status | Bukti |
+| --- | --- | --- | --- | --- |
+| Pasien lama 3 — pesan pilih poliklinik merah | `KSK-DEC-022` | `FE-KSK-012` | ✅ 2026-10-08 — uji browser Kiosk 11/11 | [FE-KSK-012](../task/report/frontend/FE-KSK-012.md) |
+| Tambahan 1 — dokter dapat dicari, nama + info praktik | `KSK-DEC-022` | `FE-KSK-012` | ✅ 2026-10-08 — uji browser Kiosk 11/11 | [FE-KSK-012](../task/report/frontend/FE-KSK-012.md) |
+| Pasien baru 1 — No. HP maksimal 13 angka | `KSK-DEC-022` | `FE-KSK-012` | ✅ 2026-10-08 — uji browser Kiosk 11/11 | [FE-KSK-012](../task/report/frontend/FE-KSK-012.md) |
+| Tambahan 3 — Jenis Kunjungan ringkas di samping jadwal dokter | `KSK-DEC-023` | `FE-KSK-013` | Dibatalkan 2026-10-08 (`KSK-DEC-025`) | [FE-KSK-013](../task/report/frontend/FE-KSK-013.md) |
+| Scan asuransi cocok, step Rujukan, unit tujuan + popup jadwal | `RJ-DOC-DEC-067` | Jalur B — menunggu `grill-me` | — | — |
+
+## 2c. Amandemen 8 Oktober 2026 (B) — Rujukan Kiosk
+
+| Requirement pemilik (PDF jalur B) | Decision | Task | Status | Bukti |
+| --- | --- | --- | --- | --- |
+| Pasien lama/baru 4 — step Rujukan di Kiosk, upload surat | `RJ-DOC-DEC-072`, `076`, `KSK-DEC-025` | `FE-KSK-014` | ✅ `2026-10-09` (uji browser 14/14) | [FE-KSK-014](../task/report/frontend/FE-KSK-014.md) |
+| Tambahan 4 — popup jadwal bila poli tanpa dokter praktik | `RJ-DOC-DEC-072` | `FE-KSK-015` | ✅ `2026-10-09` (uji browser 5/5) | [FE-KSK-015](../task/report/frontend/FE-KSK-015.md) |
+| Pasien lama 2 — scan asuransi cocok | `RJ-DOC-DEC-068`..`070` | `FE-KSK-016` | ✅ `2026-10-09` (uji browser 7/7) | [FE-KSK-016](../task/report/frontend/FE-KSK-016.md) |
+
 ## 3. Coverage gap
 
 | Hal | Sebab | Penanganan |

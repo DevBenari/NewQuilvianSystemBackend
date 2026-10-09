@@ -103,6 +103,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         public string? GuaranteeDocumentPath { get; set; }
 
+        public string? CardImagePath { get; set; }
+
         public bool IsActive { get; set; }
 
         public DateTime CreateDateTime { get; set; }
@@ -322,6 +324,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [MaxLength(500)]
         public string? GuaranteeDocumentPath { get; set; }
 
+        [MaxLength(500)]
+        public string? CardImagePath { get; set; }
+
+        /// <summary>
+        /// Gambar kartu hasil scan (base64, boleh berawalan data URL). Bila diisi, backend menyimpan
+        /// file kartu dan mengisi CardImagePath dengan path publiknya.
+        /// </summary>
+        public string? CardImageBase64 { get; set; }
+
         [MaxLength(250)]
         public string? Notes { get; set; }
     }
@@ -355,6 +366,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public string CompanyGuarantorName { get; set; } = string.Empty;
 
         public string EmployeeNumber { get; set; } = string.Empty;
+
+        public string? CardImagePath { get; set; }
 
         public bool IsPrimary { get; set; }
 

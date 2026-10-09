@@ -29,7 +29,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Con
 public sealed class FinanceReceivablesController : ControllerBase
 {
     private readonly FinanceReceivableService _service;
-    public FinanceReceivablesController(FinanceReceivableService service) => _service = service;
+    private readonly FinanceReceivableBillingDataService _billingDataService;
+
+    public FinanceReceivablesController(
+        FinanceReceivableService service,
+        FinanceReceivableBillingDataService billingDataService)
+    {
+        _service = service;
+        _billingDataService = billingDataService;
+    }
 
     [HttpGet("filters/metadata")]
     [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -62,6 +70,42 @@ public sealed class FinanceReceivablesController : ControllerBase
     public async Task<IActionResult> Get([FromQuery] ReceivableQuery request, CancellationToken cancellationToken) =>
         Ok(ApiResponse<PagedResult<ReceivableResponse>>.Ok(
             await _service.GetPagedAsync(request, cancellationToken), "Piutang berhasil diambil."));
+
+    // Data Tagihan (Finance > Transaksi A/R > Tagihan/Billing). Sub-resource baca seperti summary dan aging;
+    // memakai hak akses FinanceReceivable : Read yang sudah terdaftar, tanpa action baru. Daftar dan ringkasan
+    // keluar dari satu query yang sama (FinanceReceivableBillingDataService).
+    [HttpGet("billing-data")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<BillingDataPagedResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetBillingData([FromQuery] BillingDataQuery request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _billingDataService.GetAsync(request, cancellationToken, CurrentUserId());
+            return Ok(ApiResponse<BillingDataPagedResponse>.Ok(result, result.Notice ?? "Data tagihan berhasil diambil."));
+        }
+        catch (BillingDataBadRequestException exception)
+        {
+            return BadRequest(ApiResponse<object>.Fail(400, exception.Message));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(404, exception.Message));
+        }
+    }
+
+    // Isi field pilihan asuransi/perusahaan pada Data Tagihan kategori company. Ringan: dibatasi Limit, dicari lewat Search.
+    [HttpGet("billing-data/payer-options")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<List<BillingDataPayerOptionResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetBillingDataPayerOptions(
+        [FromQuery] BillingDataPayerOptionQuery request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<List<BillingDataPayerOptionResponse>>.Ok(
+            await _billingDataService.GetPayerOptionsAsync(request, cancellationToken), "Pilihan asuransi/perusahaan berhasil diambil."));
 
     [HttpGet("write-offs")]
     [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]

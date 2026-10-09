@@ -8,10 +8,10 @@
 | Modul | Rawat Inap — `InPatientManagement`, prefix entity `Inp`, lifecycle registry `ACTIVE` sejak `RWI-DEC-068` |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
-| Revision artefak | **`0.8.0`** — bagian 22 amandemen terbatas penyelarasan `PRD-RWI-V2-001`, 15 September 2026. Sebelumnya: `0.7.0` — naik 2026-09-11 karena bagian 21 lahir, menyerap `Gelombang 1A Rawat Inap Safety Corrections`. Sebelumnya `0.6.1` — naik 2026-09-08 sore setelah trace ulang terhadap source hasil merge `QuilvianIntegrationBackend`: kolom `EpisodeId` **dibatalkan** karena penelusuran sudah tercapai lewat join, rute refund dibetulkan ke kontrak Billing yang sudah ada, dan klaim charge kamar yang basi dicabut. Sebelumnya `0.6.0` — naik 2026-09-08 karena **deposit ditetapkan sebagai langkah tersendiri di dalam multi-step admisi**, mengikuti layar operasional yang sudah berjalan. Revisi ini menambah `FR-RI-174` s.d. `FR-RI-178`, mengubah alur admisi, kontrak API deposit, matriks kewenangan, UAT, Definition of Done, dan gelombang delivery. **Garis keturunan:** `0.4.1` (2026-09-02, koreksi keterangan basi `DEC-INP-001`) → `0.5.0` (2026-09-03, deposit masuk MVP lewat `EPIC RI-35`) → `0.6.0`. Kedua revisi sebelumnya dipertahankan isinya, bukan dihapus |
-| `contract_version` | **`0.9.0`** untuk bagian 22. Sebelumnya: `0.6.1` — **naik**; koreksi mekanisme dan rute setelah trace source. Sebelumnya `0.6.0`: langkah deposit pada admisi, kebijakan minimum deposit, aturan peringatan, penagihan berkala, pengikatan `EpisodeId`, dan pemakaian ulang rute `patient-funds` yang menggantikan usulan controller deposit terpisah |
+| Revision artefak | **`0.10.0`** — bagian 24 Workspace PPRI, 7 Oktober 2026 (`draft`). Sebelumnya `0.9.0` — bagian 23 Finishing (`approved`, `RWI-DEC-221`); **`0.8.0`** — bagian 22 amandemen terbatas penyelarasan `PRD-RWI-V2-001`, 15 September 2026. Sebelumnya: `0.7.0` — naik 2026-09-11 karena bagian 21 lahir, menyerap `Gelombang 1A Rawat Inap Safety Corrections`. Sebelumnya `0.6.1` — naik 2026-09-08 sore setelah trace ulang terhadap source hasil merge `QuilvianIntegrationBackend`: kolom `EpisodeId` **dibatalkan** karena penelusuran sudah tercapai lewat join, rute refund dibetulkan ke kontrak Billing yang sudah ada, dan klaim charge kamar yang basi dicabut. Sebelumnya `0.6.0` — naik 2026-09-08 karena **deposit ditetapkan sebagai langkah tersendiri di dalam multi-step admisi**, mengikuti layar operasional yang sudah berjalan. Revisi ini menambah `FR-RI-174` s.d. `FR-RI-178`, mengubah alur admisi, kontrak API deposit, matriks kewenangan, UAT, Definition of Done, dan gelombang delivery. **Garis keturunan:** `0.4.1` (2026-09-02, koreksi keterangan basi `DEC-INP-001`) → `0.5.0` (2026-09-03, deposit masuk MVP lewat `EPIC RI-35`) → `0.6.0`. Kedua revisi sebelumnya dipertahankan isinya, bukan dihapus |
+| `contract_version` | **`0.11.0`** untuk bagian 24 (`approved` 2026-10-08, `RWI-DEC-265`); `0.10.0` untuk bagian 23 (`approved`); **`0.9.0`** untuk bagian 22. Sebelumnya: `0.6.1` — **naik**; koreksi mekanisme dan rute setelah trace source. Sebelumnya `0.6.0`: langkah deposit pada admisi, kebijakan minimum deposit, aturan peringatan, penagihan berkala, pengikatan `EpisodeId`, dan pemakaian ulang rute `patient-funds` yang menggantikan usulan controller deposit terpisah |
 | Batas dokumen ini | MVP sub-modul `episode-rawat-inap` saja. Kemampuan milik dua sub-modul lain **bukan** bagian dari MVP di sini, dan itu bukan penundaan keputusan |
-| Status | **`draft`** untuk `0.8.0` — **belum disetujui manusia** |
+| Status | **`approved`** untuk bagian 24 (`0.11.0`) — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). Bagian sebelumnya mengikuti `blueprint-manifest.md` sub-modul |
 | Repository target | `NewQuilvianSystemBackend` dan `QuilvianSystemFrontendDev` |
 | Backend SHA baseline | `44099e4ddd921d51140d802cabf1cebbc5291d30` — branch `MHamzah`, memuat merge `6993212` dari `QuilvianIntegrationBackend`. Sebelumnya `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
 | Frontend SHA baseline | `30db3734a5d1e1ed0de35197ffabc30ae9c8d4e3` — branch `HamzahV2`. Sebelumnya `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
@@ -1637,3 +1637,414 @@ Nol epic `OPEN DECISION`.
 | 2 | Dosis lewat jadwal yang belum dicatat saat penutupan tetap `Due` hanya-baca — sama dengan `keperawatan` 22.20 nomor 9 | Muhammad Hamzah | Tidak |
 | 3 | Isi minimal resume, termasuk apakah tiga isian baru wajib sebelum tanda tangan | Pemilik klinis, belum ditunjuk | Tidak untuk desain; gerbang produksi |
 | 4 | ~~Persetujuan Yoga Aji Pratama atas pemanggil penguncian dari `InPatientManagement`~~ — **`closed` 2026-09-16** oleh `RWI-DEC-151` | Yoga Aji Pratama | Tidak — pemberitahuan sebelum rilis `RI-V2-1` **sudah terpenuhi**; DoD `BE-RWI-082` cukup merujuk keputusan itu |
+
+---
+
+## 23. Finishing Rawat Inap — revision `0.9` / kontrak `0.10.0` ★ 1 Oktober 2026
+
+Menurunkan dari `02-backend-architecture.md` 12, `03-frontend-architecture.md` 13, `contracts/` bagian `0.10.0`, `data/data-dictionary.md` 19, dan `flowcharts/`.
+
+### 23.1 Identitas dokumen
+
+| Field | Nilai |
+|---|---|
+| Produk | Quilvian — Rawat Inap, sub-modul `episode-rawat-inap` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-02 (`RWI-DEC-221`) |
+| Baseline | Backend `c8e99ce5` (HEAD `425cfeae`); frontend `22ad67330` |
+| Masukan | `PRD-RWI-FINISHING-001` v`0.4`; decision log revision `30`; gate `1.9` (`INP-S27`, `S31`, `S33`, `S36`, `S37` `READY_FOR_DOMAIN_DESIGN`; `INP-S32` `PARTIALLY_READY`) |
+| Arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — batas domain diambil dari keputusan `RWI-DEC-173` s.d. `205` dan source yang dibaca |
+| Cakupan | Pasien operasi dari bangsal sampai kembali ke bed, admisi dari kamar pulih, penolakan order, ringkasan operasi, serah terima transfer (`P2`), laporan transfer (`P2`) |
+
+### 23.2 Ringkasan eksekutif
+
+Bangsal dapat memesan ruang bedah dari order tindakan, mengirim catatan pra-operasi yang dikonfirmasi OK, menerima pasien kembali dengan serah terima yang sah, dan melihat ringkasan operasinya. Biaya operasi masuk invoice satu kali saat kasus selesai. Pasien operasi elektif dari poliklinik yang perlu dirawat muncul di daftar admisi, tanpa admisi otomatis.
+
+### 23.3 Masalah produk
+
+`FIN-CAP-21` s.d. `26`, `33`: menu Pemesanan Ruangan Bedah masih *placeholder*; bangsal tidak melihat status operasi; serah terima OK dapat diterima siapa saja dengan permission yang sama dengan pengirimnya; kiriman biaya OK ke Billing ditahan; keputusan kamar pulih "rawat inap" tidak menghasilkan apa pun; laporan operasi tidak terbaca di bangsal.
+
+### 23.4 Visi produk
+
+1. Order tindakan dokter → pesanan ruang bedah dari bangsal → kasus OK.
+2. Pra-operasi dua sisi → kasus "Siap" → operasi → kamar pulih.
+3. Serah terima diterima di bed unit tujuan → kasus selesai → biaya operasi masuk invoice.
+
+### 23.5 Batas MVP
+
+**Titik mulai.** (1) Episode `Admitted` dengan order tindakan operasi aktif; atau (2) pasien non-rawat inap yang kasus OK-nya sampai di kamar pulih. **Titik akhir.** (1) Kasus OK `Completed` atau `Rejected` dan terbaca di bangsal. (2) Biaya operasi tercatat di invoice. (3) Permintaan admisi `Completed` atau `Cancelled`.
+
+### 23.6 Pelaku sasaran
+
+| Pelaku | Tanggung jawab |
+|---|---|
+| Perawat bangsal | Memesan ruang bedah; mengirim pra-operasi; menerima serah terima |
+| Dokter bangsal | Memesan order tindakan dan ruang bedah; membaca ringkasan operasi |
+| Petugas penjadwalan OK | Menjadwalkan atau menolak order |
+| Perawat OK | Mengonfirmasi pra-operasi; mengirim serah terima |
+| Petugas admisi | Menyelesaikan admisi dari permintaan |
+| Kepala ruangan, manajemen | Laporan transfer (`P2`) |
+
+### 23.7 Pemilihan kemampuan MVP
+
+| Kemampuan | ID kemampuan asal | Keputusan MVP |
+|---|---|---|
+| Pemesanan ruang bedah dan Obgyn | `CAP-RWF-07`, `FIN-CAP-21` | Wajib (`P1`) |
+| Pasien operasi terhubung ke bangsal | `CAP-RWF-08`, `FIN-CAP-22` s.d. `24` | Wajib (`P1`) |
+| Admisi dari kamar pulih | `CAP-RWF-18`, temuan 37 | Wajib (`P1`, `RWI-DEC-217`) |
+| Ringkasan operasi di bangsal | `CAP-RWF-19`, temuan 36 | Wajib (`P1`, `RWI-DEC-217`) |
+| Penolakan order operasi | `CAP-RWF-22`, temuan 40 | Wajib (`P1`, `RWI-DEC-217`) |
+
+### 23.8 Kemampuan yang ditunda
+
+| Kemampuan | Alasan | Pengganti selama MVP |
+|---|---|---|
+| Serah terima klinis transfer (`CAP-RWF-16`) | `P2` (`RWF-W5`) | Tetap "Integrasi belum tersedia"; transfer tetap berjalan |
+| Laporan transfer ruangan (`CAP-RWF-23`) | `P2`; butir menu Laporan Rawat Inap (`RWI-DEC-214`, `215`) | Riwayat penempatan per episode |
+| ~~Penggabungan biaya operasi kunjungan asal~~ | **Tidak lagi ditunda** — `RWI-DEC-207`: tautan non-destruktif oleh Billing (`integrasi-billing` 9.14), masuk `MVP-2` | — |
+| Jasa medis, asisten, diskon operasi | Milik modul jasa medis dan Billing (`RWI-DEC-197`) | — |
+
+### 23.9 Alur bisnis target
+
+`flowcharts/00-alur-utama.md`; rincian `01` s.d. `04`.
+
+### 23.10 Epic dan functional requirement
+
+| Epic | FR | Disposisi backend |
+|---|---|---|
+| `EPIC-RWF-05` Pemesanan ruang bedah dan pasien operasi | `FR-RWF-040` s.d. `049`, `090` | `EXTEND` (`OprCase`, serah terima, kesiapan, kiriman OK), `MISSING / NEW` (adapter pemesanan, pra-operasi, efek kasus selesai, master butir) |
+| `EPIC-RWF-09` Pasca operasi — bagian sub-modul ini | `FR-RWF-080` s.d. `082`, `086` s.d. `089` | `MISSING / NEW` (permintaan admisi, bacaan ringkasan, laporan), `EXTEND` (status `Rejected`); aturan Billing butir (b): `EXTEND` di `integrasi-billing` (`RWI-DEC-207`) |
+| `EPIC-RWF-08` bagian transfer | `FR-RWF-071` | `MISSING / NEW` (`CliTransferHandover`) |
+
+`FR-RWF-083` s.d. `085`, `091` s.d. `093` (surveilans, transfusi) dirancang `keperawatan` kontrak `0.6.0`.
+
+### 23.11 Model status yang diusulkan
+
+`contracts/state-transition-matrix.md` bagian 9. Invariant `INV-RWF-25` s.d. `34`.
+
+### 23.12 Sasaran arsitektur
+
+Dipakai ulang: `OprCase`, `OprCaseProcedure`, `OprHandover`, kesiapan OK, outbox `OprIntegrationDelivery`, jalur order tindakan, admisi berlangkah, linimasa penempatan. Diperluas: `OprCase`, `MstInpatientSetting`, `MstTariff`. Baru: `InpSurgeryBookingAdapter`, `OprWardPreOp*`, `MstSurgicalPreparationItem`, `OperatingRoomCompletionEffects`, `PatientProcedureExecutionService` (ekstraksi), `InpAdmissionReferral`, `CliTransferHandover`, `InpRoomTransferReportService`.
+
+### 23.13 Sasaran kemampuan API
+
+| Tag | Endpoint | Hak akses | Epic | Status |
+|---|---|---|---|---|
+| `Health Services / Inpatient Management / Inpatient Surgery Booking` | `POST …/episodes/{id}/surgery-bookings` | `OperatingRoomCase : Create` | `EPIC-RWF-05` | **Rencana (belum tersedia)** |
+| `Health Services / Operating Room Management / Preparation` | `…/preparation/ward-pre-op` (5 operasi) | `OperatingRoomWardPreOp : Read/Send/Confirm` | `EPIC-RWF-05` | **Rencana (belum tersedia)** |
+| `Health Services / Master Data / Surgical Preparation Item` | `…/surgical-preparation-items` | `SurgicalPreparationItem : Read/Create/Update` | `EPIC-RWF-05` | **Rencana (belum tersedia)** |
+| `Health Services / Operating Room Management / Cases` | `PATCH /{id}/reject`, `GET /{id}/post-operative-summary`; isian baru | `OperatingRoomCase : Reject`, `: Read` | `EPIC-RWF-05`, `09` | **Rencana**; isian pada endpoint ✅ yang ada |
+| `Health Services / Operating Room Management / Execution` | `POST handovers`, `PATCH handovers/{id}/accept`, `PUT recovery` | `OperatingRoomHandover : Send/Receive`; `OperatingRoomAnesthesia : Update` | `EPIC-RWF-05`, `09` | ✅ Tersedia; permission dan perilaku **Rencana** |
+| `Health Services / Operating Room Management / Handovers` | `GET /handovers` | `OperatingRoomHandover : Read` | `EPIC-RWF-09` | **Rencana (belum tersedia)** |
+| `Health Services / Inpatient Management / Inpatient Admission Referral` | `GET /admission-referrals`, `/{id}` | `InpatientAdmissionReferral : Read` | `EPIC-RWF-09` | **Rencana (belum tersedia)** |
+| `Health Services / Inpatient Management / Inpatient Report` | `GET /reports/room-transfers`, `/export` | `InpatientReport : ReadRoomTransfer/ExportRoomTransfer` | `EPIC-RWF-09` | **Rencana (belum tersedia)**, `P2` |
+| `Health Services / Clinical Management / Transfer Handover` | `…/transfer-handovers` | `TransferHandover : Read/Send/Receive` | `EPIC-RWF-08` | **Rencana (belum tersedia)**, `P2` |
+
+### 23.14 Matriks kewenangan
+
+`contracts/permission-audit-matrix.md` bagian 9.
+
+### 23.15 Batas integrasi dan billing
+
+Tindakan operasi ditagih sekali lewat order tindakan; OK menagih anestesi, sewa kamar operasi, dan bahan (`RWI-DEC-196`). Kasus yang dibatalkan atau ditolak tidak menimbulkan biaya. Biaya operasi tidak lewat ketukan pintu Rawat Inap. Biaya operasi pasien dari poliklinik atau ODC tetap pada invoice kunjungan asal, ditautkan Billing ke invoice `RANAP`, dan dibayar bersama saat pulang (`RWI-DEC-207`, pola `BKC-DEC-118`).
+
+### 23.16 Guardrail regulasi dan keselamatan
+
+Penandaan area operasi dan konfirmasi dua akun mengikuti praktik keselamatan pasien bedah (`RWI-DEC-173`, `174`). Isi butir persiapan disahkan pemilik klinis sebelum produksi.
+
+### 23.17 Kebutuhan non-fungsional
+
+| ID | Kebutuhan |
+|---|---|
+| `NFR-RWF-12` | Pemeriksaan lokasi bed untuk penerimaan serah terima gagal tertutup |
+| `NFR-RWF-13` | Efek kasus selesai idempoten: dijalankan berulang tidak menggandakan baris tagihan |
+| `NFR-RWF-14` | Laporan transfer 31 hari memuat ≤ 2 detik untuk 500 transfer; ekspor tidak disimpan di server |
+| `NFR-RWF-15` | Daftar Pesanan Ruang Bedah tidak memerlukan dorongan waktu nyata; status segar saat menu dibuka atau dimuat ulang |
+
+### 23.18 Skenario UAT
+
+| ID | Jalur | Langkah | Hasil |
+|---|---|---|---|
+| `UAT-RWF-05` | Berhasil | Pesan Bedah Obgyn → dijadwalkan → pra-operasi lengkap dua sisi → operasi → serah terima diterima | Status terlihat di setiap langkah; jenis Obstetri; biaya muncul setelah `Completed` |
+| `UAT-RWF-13` | Gagal | Serah terima ke ICU saat pasien di bangsal; perawat OK mencoba menerima sendiri | Ditolak; tombol Terima ICU terkunci sampai transfer |
+| `UAT-RWF-16` | Berhasil | Pasien poliklinik selesai operasi; kamar pulih memutuskan rawat inap | Muncul di daftar permintaan; setelah admisi dan bed, serah terima diterima dan kasus `Completed` |
+| `UAT-RWF-17` | Berhasil | Perawat membuka ringkasan operasi | Baca-saja |
+| `UAT-RWF-21` | Berhasil | Kasus ditunda lalu dijadwalkan ulang dengan TD baru | Versi lama "perlu diperbarui"; versi baru memuat TD terbaru; "Siap" setelah konfirmasi akun lain |
+| `UAT-RWF-24` | Gagal lalu berhasil | Tolak order tanpa alasan, dengan alasan; bangsal memesan ulang | Ditolak; Ditolak tampil di bangsal; kasus baru; tanpa biaya |
+| `UAT-RWF-32` | Gagal | Pesan ruang bedah tanpa order tindakan | Ditolak "Tindakan operasi belum dipesan dokter" |
+| `UAT-RWF-33` | Gagal | Admisi biasa untuk pasien yang punya permintaan dari kamar pulih | Ditolak dan diarahkan ke permintaan |
+| `UAT-RWF-14` | Berhasil (`P2`) | Pasien dipindahkan bangsal → ICU | Dokumen lahir; "Serah terima tertunda" sampai diterima |
+| `UAT-RWF-20` | Berhasil dan gagal (`P2`) | Laporan transfer satu minggu; pengguna tanpa permission | Baris lengkap, koreksi bertanda; 403 |
+
+### 23.19 Definition of Done
+
+| Butir | Bukti |
+|---|---|
+| Menu Pemesanan Ruangan Bedah tidak lagi *placeholder* dan setiap pesanan merujuk satu order | `UAT-RWF-05`, `32`; `AC-RWF-040`, `048` |
+| Kasus tidak dapat "Siap" tanpa pra-operasi versi terbaru terkonfirmasi dua akun | `AC-RWF-042`, `046`, `093`, `094`; `UAT-RWF-21` |
+| Serah terima hanya diterima penerima sah di bed unit tujuan | `AC-RWF-043`, `047`; `UAT-RWF-13` |
+| Biaya operasi tepat sekali per komponen, nol untuk kasus batal atau ditolak | `AC-RWF-044`, `092`, `099`; test idempotensi `INV-RWF-29` |
+| Permintaan admisi tanpa admisi otomatis | `AC-RWF-080`, `088`, `089`; `UAT-RWF-16`, `33` — persetujuan OK sudah ada (`RWI-DEC-208`) |
+| Status Ditolak di OK dan bangsal | `AC-RWF-085`, `099`; `UAT-RWF-24` — persetujuan OK sudah ada (`RWI-DEC-208`) |
+| Ringkasan operasi baca-saja | `AC-RWF-081`, `082`; `UAT-RWF-17` |
+| Alur OK lama tidak berubah | Regresi bagian 20 testing |
+
+### 23.20 Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi | Syarat mulai |
+|---|---|---|
+| `MVP-1` (`RWF-W3`) | `E4`, `E5`; adapter pemesanan; pra-operasi; permission serah terima; aturan penerimaan; efek kasus selesai dan tujuan Billing; `FE-INP-25` s.d. `28`, `33`, `34` | Kontrak `0.10.0` disetujui; `integrasi-billing` `RWF-W1` (komponen Billing `OPERATING_ROOM`) |
+| `MVP-2` (`RWF-W7`) | Ringkasan operasi (boleh lebih dulu); status `Rejected`; `E6` permintaan admisi; daftar pantau; `FE-INP-29`, `30` | `RWF-W3` (persetujuan OK `RWI-DEC-208` sudah ada) |
+| `POST-MVP` (`RWF-W5`, `RWF-W7` `P2`) | `E7` serah terima transfer `FE-INP-31`; laporan transfer `FE-INP-32` | `RWF-W1` (koreksi penempatan) |
+| `MVP-2` (`RWF-W7`) | Tautan kunjungan asal ke invoice `RANAP` dan baris operasinya di Tagihan Pasien (`integrasi-billing` `I6`, `RWI-DEC-207`) | `E6` |
+
+| Pertanyaan | Siapa | Dampak | Memblokir |
+|---|---|---|:---:|
+| ~~`DEC-INP-018` invoice tujuan biaya operasi dari poliklinik/ODC~~ | Yasmina | Aturan Billing penggabungan; sisi Rawat Inap dan OK tidak berubah | Tidak — **ditutup 2 Oktober 2026** |
+| ~~`RWI-OQ-114` (a) OK mengirim dan membatalkan permintaan admisi~~ | Ikbal Yulianto | Implementasi `INT-RWF-23`, `24` | Tidak — **ditutup 2 Oktober 2026** |
+| ~~`RWI-OQ-114` (c) status `Rejected` di OK~~ | Ikbal Yulianto | Implementasi `PATCH reject` | Tidak — **ditutup 2 Oktober 2026** |
+| ~~Prioritas `CAP-RWF-18`, `19`, `22` (PRD 11.2 butir 13)~~ | Muhammad Hamzah | Urutan gelombang | Tidak — **ditutup 2 Oktober 2026** |
+| ~~`UI-RWF-03` letak ringkasan di ruang kerja dokter; `UI-RWF-04` letak laporan transfer; `UI-RWF-05` urutan daftar pantau~~ | Muhammad Hamzah | Task frontend layar terkait | Tidak — **ditutup 2 Oktober 2026** |
+| Nilai `OprPlannedAnesthesiaType` dan isi awal butir persiapan | Pemilik OK; pemilik klinis | Data master | Tidak — gerbang produksi |
+
+**Penyelarasan decision log revision `31` ★ 2 Oktober 2026.** Seluruh pertanyaan 23.20 tertutup: `DEC-INP-018` (`RWI-DEC-207`), `RWI-OQ-114` (a) dan (c) (`RWI-DEC-208`), prioritas (`RWI-DEC-217`), `UI-RWF-03` s.d. `05` (`RWI-DEC-213` s.d. `216`). Tidak ada epic `OPEN DECISION`. Yang tersisa hanya gerbang produksi: isi awal butir persiapan bedah dan nilai jenis anestesi rencana.
+
+| ID | Jalur | Langkah | Hasil |
+|---|---|---|---|
+| `UAT-RWF-41` | Gagal | Petugas admisi membuka admisi biasa untuk pasien yang punya permintaan dari kamar pulih | Ditolak dan diarahkan ke permintaan; admisi dari permintaan berhasil (`RWI-AC-331`) |
+| `UAT-RWF-42` | Gagal | Perawat memesan ruang bedah untuk episode `DischargePending` | Ditolak (`RWI-AC-332`) |
+| `UAT-RWF-43` | Berhasil | Perawat memesan ruang bedah dari order tindakan berharga | Perkiraan tarif tindakan dan keterangan komponen OK tampil (`RWI-AC-338`) |
+| `UAT-RWF-44` | Berhasil dan gagal | Pengguna dengan dan tanpa permission laporan membuka sidebar Rawat Inap | Butir Laporan Rawat Inap hanya tampil bagi pemegang permission; paling banyak sepuluh butir (`RWI-AC-340`) |
+
+---
+
+## 24. Workspace PPRI — revision `0.10` / kontrak `0.11.0` ★ 7 Oktober 2026
+
+Menurunkan dari `02-backend-architecture.md` 13, `03-frontend-architecture.md` 14, `contracts/` bagian `0.11.0`, `data/data-dictionary.md` 20, dan `flowcharts/` `05` s.d. `08`. Nomor epic, FR, NFR, dan UAT memakai nomor `PRD-RWI-ADMISI-001` v`0.2` dan **tidak didaur ulang**; nomor baru mulai `EPIC-RWA-14`, `FR-RWA-140`, `NFR-RWA-15`, `UAT-RWA-28`. Bila PRD hulu dan bagian ini berbeda, bagian ini dan decision log yang berlaku (G-50).
+
+### 24.1 Identitas dokumen
+
+| Field | Nilai |
+|---|---|
+| Produk | QuilvianFinal — Rawat Inap, sub-modul `episode-rawat-inap`, **Workspace PPRI** (Ruang Kerja Penerimaan Pasien Rawat Inap) |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`) |
+| Repository dan baseline | Backend `NewQuilvianSystemBackend` `MHamzah` @ `fdf85a07`; frontend `QuilvianSystemFrontendDev` `HamzahV2` @ `27889662a` |
+| Masukan | `PRD-RWI-ADMISI-001` v`0.2` (SHA-256 `f1fd336f…dc1192`); decision log revision `38` (`RWI-DEC-225` s.d. `264`); gate `1.11` bagian 20; capability map `1.7` bagian 20 |
+| Arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — gate `1.11` 20.11 |
+| Ringkasan cakupan | Satu ruang kerja per episode untuk menyelesaikan dokumen penerimaan pasien dengan isian V1: serah terima, gelang dan label, privasi, IPD, pelunasan deposit, selisih biaya, nilai kepercayaan, dan General Consent cetak saja — tersimpan, berversi, bertanda tangan kertas dan atestasi petugas, tercetak dari profil rumah sakit |
+
+### 24.2 Ringkasan eksekutif
+
+Petugas admisi Final belum punya tempat untuk dokumen penerimaan pasien: gelang tidak bisa dicetak, persetujuan umum hanya dicetak kosong, dan delapan dokumen V1 lain tidak ada. MVP ini memberi **Workspace PPRI** di Detail Episode, tepat sesudah Workspace Dokter, dengan tata letak Workspace Keperawatan. Hasil yang dikejar: (1) seluruh dokumen wajib selesai di satu tempat tanpa mengetik ulang data pasien; (2) setiap dokumen tersimpan, berversi, dan tercetak sama dengan yang ditandatangani; (3) tidak ada data karangan; (4) petugas, perawat, dan dokter melihat dokumen mana yang belum lengkap tanpa menahan perawatan.
+
+### 24.3 Masalah produk
+
+Bukti `PPRI-CAP-01` s.d. `54`: tidak ada tombol, halaman, tabel, maupun endpoint dokumen admisi (`PPRI-CAP-06`, `14`, `19`, `21`, `31`, `35`); master butir hanya untuk penutupan dan dibaca seluruhnya oleh penutupan episode (`PPRI-CAP-13`); cetak persetujuan menanam identitas rumah sakit client (`PPRI-CAP-09`); pengaturan tidak punya kode formulir dan kota (`PPRI-CAP-50`); data header tersebar di delapan hak baca modul lain (`PPRI-CAP-53`). Yang sudah ada dan dipakai: template ruang kerja (`PPRI-CAP-03`), isi QR No. RM (`PPRI-CAP-17`), ringkasan deposit Billing (`PPRI-CAP-29`), pola entity, konkurensi, dan idempotensi (`PPRI-CAP-43` s.d. `45`).
+
+### 24.4 Visi produk
+
+1. Admisi dikonfirmasi → episode `Admitted`.
+2. Detail Episode menampilkan "Workspace PPRI" bagi pemegang hak baca dokumen admisi.
+3. Server merangkai identitas, penjamin, kamar, DPJP, kontak darurat, alergi, dan deposit dari service modul pemiliknya.
+4. Server menghitung dokumen wajib dan kelengkapannya.
+5. Petugas mengisi formulir V1 yang sudah terisi otomatis, mengunci, mencetak lembar untuk ditandatangani.
+6. Pasien atau keluarga menandatangani kertas; petugas mencatatnya; petugas lain menandatangani kolomnya lewat akun sendiri.
+7. Dokumen lengkap; isi beku sejak dikunci; koreksi lewat versi baru.
+8. Serah Terima ditutup tiga petugas; kelengkapan penuh; peringatan di Detail Episode hilang.
+
+### 24.5 Batas MVP
+
+**Titik mulai.** (1) Episode `Admitted` atau `DischargePending`. (2) Pengguna memegang `InpatientAdmissionDocument : Read`. (3) Pengguna menekan "Workspace PPRI".
+
+**Titik akhir.** (1) Dokumen wajib menurut `RWI-DEC-234` berstatus `Completed` atau sudah dicetak, misalnya "6 dari 6". (2) Gelang dicetak minimal sekali dan tercatat. (3) Serah Terima ditandatangani petugas admisi, CRO, dan perawat penerima. (4) Setiap dokumen dapat dicetak ulang beralasan dengan isi yang sama. (5) Saat episode `Closed` atau `Cancelled`, semua dokumen hanya-baca.
+
+### 24.6 Pelaku sasaran
+
+| Pelaku | Tanggung jawab di MVP | Hak (`contracts/permission-audit-matrix.md` 10.1) |
+|---|---|---|
+| Petugas admisi / PPRI | Membuka ruang kerja, mengisi, mengunci, mencatat tanda tangan kertas, menandatangani kolom Admission/Petugas PPRI, mencetak | `Read`, `ViewAmount`, `Create`, `Update`, `Sign`, `Print` |
+| CRO | Menandatangani Serah Terima | `Read`, `SignAsCro`, `Print` |
+| Perawat ruangan | Menandatangani Serah Terima sebagai penerima; mencetak gelang | `Read`, `SignAsNurse`, `Print` |
+| Kepala ruangan atau wakil yang ditunjuk | Menandatangani kolom Kepala Ruangan pada Privasi | `Read`, `SignAsNurse`, `SignAsHeadNurse`, `Print` |
+| Kasir | Membaca dan mencetak Pelunasan Deposit | `Read`, `ViewAmount`, `Print` |
+| Supervisor admisi | Membatalkan dokumen beralasan | + `Cancel` |
+| Pasien / keluarga | Menandatangani kertas | Tanpa akun |
+| Admin | Mengisi butir serah terima dan pengaturan cetak | `InpatientClearanceItem : Create/Update`, `InpatientSetting : Update` |
+
+### 24.7 Pemilihan kemampuan MVP
+
+| Kemampuan | ID kemampuan asal | Keputusan MVP |
+|---|---|---|
+| Ruang kerja, header, kelengkapan, tombol, peringatan Detail Episode | `CAP-RWA-01` (`PPRI-CAP-01` s.d. `08`) | Wajib; tanpa ini dokumen lain tidak punya tempat |
+| Fondasi: siklus, versi, tanda tangan kertas, atestasi, log cetak, kop dan kode formulir | `CAP-RWA-14` (kertas), `15`, `16`, `17` (`PPRI-CAP-42` s.d. `51`) | Wajib; tanpa ini kelemahan V1 nomor 4, 5, 6, 10, 11 terulang |
+| General Consent cetak saja dan pengalihan Cetak Persetujuan | `CAP-RWA-02` bagian cetak (`PPRI-CAP-09` s.d. `11`) | Wajib; jalan aman selama *fail-closed* (`RWI-DEC-230`, `233`, `246`) |
+| Serah Terima Pasien Baru | `CAP-RWA-03` (`PPRI-CAP-13` s.d. `15`) | Wajib; satu-satunya bukti pasien diserahkan ke ruangan |
+| Gelang dan label | `CAP-RWA-05` (`PPRI-CAP-16` s.d. `20`) | Wajib; sarana identifikasi pasien |
+| Permintaan Privasi | `CAP-RWA-06` (`PPRI-CAP-21`, `23`) | Wajib; hak pasien yang disepakati client |
+| IPD | `CAP-RWA-07` (`PPRI-CAP-24` s.d. `28`) | Wajib; butir 9 Serah Terima |
+| Pelunasan Deposit | `CAP-RWA-08` (`PPRI-CAP-29` s.d. `33`) | Wajib; diputuskan `RWI-DEC-231` |
+| Selisih Biaya | `CAP-RWA-11` (`PPRI-CAP-34`, `35`) | Wajib untuk penjamin asuransi/perusahaan |
+| Nilai Kepercayaan | `CAP-RWA-13` (`PPRI-CAP-22`, `23`) | Wajib; hak pasien dan keselamatan |
+
+### 24.8 Kemampuan yang ditunda atau menunggu keputusan
+
+| Kemampuan | ID | Alasan bersebab | Pengganti selama MVP |
+|---|---|---|---|
+| Estimasi Biaya Rekap | `CAP-RWA-09` | Tarif visit dokter dan catatan cito, lebih dari 4 jam, *standby*, anestesi belum punya sumber (`DEC-INP-020`). Estimasi tanpa baris itu akan menjelaskan biaya lebih rendah kepada pasien | Penjelasan lisan petugas dengan lembar kertas; menu tidak ditampilkan; tidak dihitung kelengkapan (`RWI-DEC-234`) |
+| Penyimpanan General Consent | `CAP-RWA-02`, slice `INP-S10` | Keabsahan dan penyimpanan menunggu pemilik privasi (`DEC-INP-003`) | Dua lembar cetak tanpa simpan, ditandatangani basah (`RWI-DEC-233`) |
+| Tanda tangan digital di tablet | `CAP-RWA-14` bagian digital | Sama (`DEC-INP-003`, `RWI-DEC-235` `draft`) | Catatan tanda tangan kertas (`RWI-DEC-230`) |
+| Estimasi Biaya Rinci | `CAP-RWA-10` | Isinya tagihan berjalan Billing; hak lihat rupiah per butir belum diputuskan (`RWI-OQ-119`) | Kasir mencetak dari Billing |
+| MP Benefit | `CAP-RWA-12` | Tidak ada sumber nilai benefit (`RWI-OQ-120`) | Menu tidak ditampilkan; dicatat di butir 15 Serah Terima |
+| Peringatan nilai kepercayaan dan privasi di Workspace Keperawatan dan Dokter | — | Mengubah dua sub-modul `approved`; amandemen terpisah | Terbaca di Workspace PPRI, IPD, dan `GET …/patient-rights`; gerbang produksi G-42 |
+| Daftar tindak lanjut jatuh tempo di Billing | — | Perubahan modul Billing (G-46) | Peringatan di Workspace PPRI dan Detail Episode |
+| Perluasan master pasien | — | Milik `PatientManagement` | Garis kosong pada IPD (`RWI-DEC-244`) |
+
+`CAP-RWA-04` **dibatalkan** (`RWI-DEC-226`), bukan ditunda.
+
+### 24.9 Alur bisnis target
+
+`FLOW-RWA-MVP-001` — `flowcharts/00-alur-utama.md` bagian 3; jalur gagal `05` s.d. `08`.
+
+### 24.10 Epic dan functional requirement
+
+| Epic | FR | Disposisi backend | Status MVP |
+|---|---|---|---|
+| `EPIC-RWA-01` Ruang kerja dan kelengkapan | `FR-RWA-001` s.d. `008` | `MISSING / NEW` (summary, evaluator, peringatan); `EXISTING / REUSE` (template frontend, episode) | `MUST HAVE` |
+| `EPIC-RWA-03` Serah Terima Pasien Baru | `FR-RWA-030` s.d. `035` | `MISSING / NEW` (dokumen, butir, slot); `EXTEND` (`MstInpatientClearanceItem`, penutupan) | `MUST HAVE` |
+| `EPIC-RWA-05` Gelang dan label | `FR-RWA-050` s.d. `053` | `MISSING / NEW` (data cetak, log); `EXTEND` (`MstInpatientSetting`); `EXISTING / REUSE` (QR No. RM) | `MUST HAVE` |
+| `EPIC-RWA-06` Permintaan Privasi | `FR-RWA-060` s.d. `062` | `MISSING / NEW` | `MUST HAVE` |
+| `EPIC-RWA-07` IPD | `FR-RWA-070` s.d. `072` | `MISSING / NEW` (bacaan terangkai); `EXTEND` (konteks penjamin Clinical, surat pengantar) | `MUST HAVE` |
+| `EPIC-RWA-08` Pelunasan Deposit | `FR-RWA-080` s.d. `085` | `MISSING / NEW` (surat); `EXISTING / REUSE` (ringkasan deposit Billing) | `MUST HAVE` — keputusan sudah turun (`RWI-DEC-231`) |
+| `EPIC-RWA-10` Selisih Biaya | `FR-RWA-100` s.d. `103` | `MISSING / NEW` | `MUST HAVE` |
+| `EPIC-RWA-11` Nilai Kepercayaan | `FR-RWA-110` s.d. `113` | `MISSING / NEW` | `MUST HAVE` |
+| `EPIC-RWA-12` Fondasi dokumen | `FR-RWA-120` s.d. `128` | `MISSING / NEW` (siklus, slot, log, salinan beku); `EXTEND` (pengaturan); `MISSING / NEW` di modul pemilik (service baca, `RWI-DEC-264`) | `MUST HAVE` |
+| **`EPIC-RWA-14`** General Consent cetak saja dan Cetak Persetujuan | `FR-RWA-020` s.d. `022` bagian cetak; `FR-RWA-140` s.d. `142` | `MISSING / NEW` (data cetak terangkai); frontend *Repair* kop | `MUST HAVE` |
+| `EPIC-RWA-02` Penyimpanan General Consent | `FR-RWA-023` s.d. `025` | `OPEN DECISION` (`DEC-INP-003`) | Di luar gelombang |
+| `EPIC-RWA-09` Estimasi Biaya Rekap | `FR-RWA-090` s.d. `093` | `OPEN DECISION` (`DEC-INP-020`); data model sudah dirancang (`E11`) | Di luar gelombang |
+| `EPIC-RWA-13` Tanda tangan digital | `FR-RWA-130`, `131` | `OPEN DECISION` (`DEC-INP-003`) | Di luar gelombang |
+| `EPIC-RWA-04` | `FR-RWA-040`, `041` | Dibatalkan (`RWI-DEC-226`) | — |
+
+**FR baru `EPIC-RWA-14`:**
+
+> **FR-RWA-140 — Dua cetakan tanpa simpan.** Menu General Consent punya tab Surat Persetujuan 12 butir dan tab Formulir General Consent V1, keduanya terisi dari server dan hanya dicetak. **Contoh:** Sari memilih hubungan "Istri"; nama Rina Santoso dan alamatnya terisi dari relasi pasien; tipe kamar "Umum"; Sari mencetak kedua lembar, dan tidak satu pun permintaan tulis terkirim (`RWI-AC-347`, `348`).
+
+> **FR-RWA-141 — Cetak Persetujuan mengarah ke Workspace PPRI.** Sejak `RWA-MVP-1`, tombol Cetak Persetujuan di Detail Episode dan tautan lama `consent-print` membuka tab Surat Persetujuan, dijaga `InpatientAdmissionDocument : Read`. **Contoh:** pengguna Gizi yang hanya memegang `InpatientEpisode : Read` tidak melihat tombol itu (`RWI-AC-349`).
+
+> **FR-RWA-142 — Kop dari profil rumah sakit.** Surat 12 butir di Workspace PPRI dan pada langkah 8 alur admisi memakai kop dari profil rumah sakit, bukan nilai yang ditanam. **Contoh:** admin mengganti nomor telepon rumah sakit di profil situs; cetakan berikutnya memakai nomor baru tanpa perubahan program.
+
+**Penyesuaian FR PRD oleh keputusan:** `FR-RWA-003` hak rupiah memakai `ViewAmount`, bukan `ReadAmount` (`RWI-DEC-258`); `FR-RWA-004` label menu dan tombol "Workspace PPRI" (`RWI-DEC-245`), delapan menu tampil sampai Estimasi dikirim; `FR-RWA-005` tanpa General Consent (`RWI-DEC-234`); `FR-RWA-052` QR = No. RM saja (`RWI-DEC-259`); `FR-RWA-084`, `124` dibekukan saat **dikunci** (`RWI-DEC-263`); `FR-RWA-122` cetakan `AwaitingSignature` tanpa tanda konsep (`RWI-AC-384`); `FR-RWA-126` kop dari service HR (`RWI-DEC-264`); keutuhan Rekam Medis tidak dipakai (`RWI-DEC-229`).
+
+### 24.11 Model status yang diusulkan
+
+`contracts/state-transition-matrix.md` bagian 10: `Draft` → `AwaitingSignature` → `Completed`, ditambah `Superseded` dan `Cancelled`. Invariant `INV-RWA-01` s.d. `15` (`02-backend-architecture.md` 13.3).
+
+### 24.12 Sasaran arsitektur
+
+**Dipakai ulang:** template ruang kerja klinis, `InpPatientLocationQuery`, `BillingDepositService`, `InsuranceCoverageService`, `OperatingRoomCaseService`, komponen surat dan cetak, pola `RowVersion`, `Idempotency-Key`, `SnapshotJson`. **Diperluas:** `MstInpatientClearanceItem`, `MstInpatientSetting`, `EncounterInsuranceService`, `DoctorCertificateService`, `InpEpisodeService` (peringatan), `InpDischargeService.Closure` (saringan jenis). **Baru:** sepuluh tabel `InpAdmission*` gelombang MVP (+ tiga tabel Estimasi di luar gelombang), `InpatientAdmissionDocumentController`, sebelas service Rawat Inap, dan service baca di modul pemilik (`PatientProfileQueryService`, `PatientAllergyQueryService`, `HospitalSiteProfileQueryService`, `EncounterReferralQueryService`, method tarif kamar Billing).
+
+### 24.13 Sasaran kemampuan API
+
+Bagian dari `contracts/api-contract.md` 12.2 dan 12.4; tidak ada endpoint yang hanya muncul di sini.
+
+| Tag | Endpoint | Hak akses | Epic | Status |
+|---|---|---|---|---|
+| `Health Services / Inpatient Management / Inpatient Admission Workspace` | `GET /summary`, `/print-logs` | `InpatientAdmissionDocument : Read` | `EPIC-RWA-01` | **Rencana (belum tersedia)** |
+| Sama | `GET /summary/amounts` | `: ViewAmount` | `EPIC-RWA-01`, `08` | **Rencana (belum tersedia)** |
+| Sama | `GET /letterhead`, `/general-consent/print-data` | `: Read` | `EPIC-RWA-14` | **Rencana (belum tersedia)** |
+| Sama | `GET /prefill/{documentType}`, `/documents`, `/documents/{id}` | `: Read` | `EPIC-RWA-03`, `06`, `08`, `10`, `11`, `12` | **Rencana (belum tersedia)** |
+| Sama | `POST /documents`; `PUT /documents/{id}`; `PATCH …/lock`, `/unlock`, `/discard`; `POST …/revisions` | `: Create`, `: Update` | `EPIC-RWA-12` | **Rencana (belum tersedia)** |
+| Sama | `PATCH …/cancel` | `: Cancel` | `EPIC-RWA-12` | **Rencana (belum tersedia)** |
+| Sama | `POST …/signatures/patient-or-family`, `/admission-officer`, `/cro`, `/receiving-nurse`, `/head-nurse` | `: Sign`, `: SignAsCro`, `: SignAsNurse`, `: SignAsHeadNurse` | `EPIC-RWA-03`, `06`, `12` | **Rencana (belum tersedia)** |
+| Sama | `GET …/documents/{id}/amounts`, `/amount-print` | `: ViewAmount` | `EPIC-RWA-08` | **Rencana (belum tersedia)** |
+| Sama | `GET …/documents/{id}/print`; `POST /print-logs`; `GET /identity-labels` | `: Print` | `EPIC-RWA-05`, `12` | **Rencana (belum tersedia)** |
+| Sama | `GET /base-data`, `/base-data/amounts` | `: Read`, `: ViewAmount` | `EPIC-RWA-07` | **Rencana (belum tersedia)** |
+| Sama | `GET /patient-rights` | `InpatientEpisode : Read` | `EPIC-RWA-06`, `11` | **Rencana (belum tersedia)** |
+| Sama | `PUT /procedure-plan-mark` | `: Update` | `EPIC-RWA-09` | **Rencana (belum tersedia)** — di luar gelombang |
+| `Health Services / Master Data / Inpatient Clearance Item` | Isian jenis, induk, sumber saran | `InpatientClearanceItem : Read/Create/Update` | `EPIC-RWA-03` | ✅ Tersedia; isian **Rencana** |
+| `Health Services / Master Data / Inpatient Setting` | Sebelas isian | `InpatientSetting : Read/Update` | `EPIC-RWA-05`, `12` | ✅ Tersedia; isian **Rencana** |
+| `Health Services / Inpatient Management / Inpatient Episode` | `GET /{id}` peringatan | `InpatientEpisode : Read` | `EPIC-RWA-01` | ✅ Tersedia; isi **Rencana** |
+
+### 24.14 Matriks kewenangan
+
+`contracts/permission-audit-matrix.md` bagian 10 — sepuluh aksi `InpatientAdmissionDocument`, penjaga `GUARD-RWA-01` s.d. `07`.
+
+### 24.15 Batas integrasi dan billing
+
+Workspace PPRI **tidak** menghitung kekurangan deposit atau tarif, **tidak** menulis ke Billing, Clinical, Patient Management, Registration, maupun Rekam Medis, **tidak** membuat tabel persetujuan kedua, **tidak** menahan admisi, penempatan, perawatan, transfer, keputusan pulang, atau penutupan, dan **tidak** menurunkan kelas otomatis. Semua bacaan lewat service modul pemilik (`INT-RWA-01` s.d. `14`). Dokumen admisi tidak menimbulkan biaya, sehingga kontrak `integrasi-billing` tidak bergerak.
+
+### 24.16 Guardrail regulasi
+
+Rujukan PRD bagian 16 tetap sebagai acuan verifikasi pemilik hukum: persetujuan pasien (General Consent tetap cetak sampai `DEC-INP-003`), rekam medis elektronik (tanpa hapus permanen, versi, jejak audit), pelindungan data pribadi (kolom sensitif tidak masuk log, nomor identitas disamarkan, QR tanpa data pribadi), keabsahan tanda tangan elektronik (mode kertas), standar akreditasi hak pasien dan identifikasi gelang. Gerbang produksi: G-35 masa simpan dan privasi data keluarga, G-38 verifikasi keselamatan pasien atas aturan gelang, G-42 penerimaan risiko nilai kepercayaan belum tampil di ruang kerja klinis.
+
+### 24.17 Kebutuhan non-fungsional
+
+`NFR-RWA-01` s.d. `14` PRD tetap berlaku, dengan penyesuaian: `NFR-RWA-05` hanya "dokumen `Completed` tidak berubah" (hash berkas tanda tangan milik `EPIC-RWA-13`); `NFR-RWA-13` dipenuhi penyegaran berkala.
+
+| ID | Kebutuhan | Ukuran |
+|---|---|---|
+| `NFR-RWA-15` | Penyegaran dokumen yang menunggu tanda tangan setiap 30 detik, berhenti saat lengkap atau layar ditinggalkan | Tanda tangan pihak lain tampil ≤ 30 detik |
+| `NFR-RWA-16` | Kegagalan sumber modul lain tidak menggagalkan Detail Episode | Detail episode tampil dengan peringatan "tidak dapat dihitung" |
+| `NFR-RWA-17` | Tanpa kode identitas rumah sakit, kota, dan kode formulir di berkas service, controller, DTO, dan komponen cetak Workspace PPRI | Pencarian source nol hasil (`RWI-AC-368`) |
+
+### 24.18 Skenario UAT
+
+Skenario lengkap dan buktinya di `testing/acceptance-test-matrix.md` bagian 21. UAT PRD yang tetap: `UAT-RWA-01` (dengan delapan menu sampai Estimasi dikirim), `02`, `05` s.d. `07`, `10` s.d. `18`, `21` s.d. `27`. `UAT-RWA-03`, `04` menunggu `EPIC-RWA-02`; `UAT-RWA-19`, `20` menunggu `EPIC-RWA-09`.
+
+| ID | Epic | Jalur | Kondisi awal → langkah | Hasil yang diharapkan |
+|---|---|---|---|---|
+| `UAT-RWA-28` | `EPIC-RWA-03` | Gagal lalu berhasil | Bed Budi masih dipesan → Andi menandatangani Perawat; Budi menempati bed → ulangi | Ditolak "Pasien belum menempati tempat tidur"; lalu `Completed` |
+| `UAT-RWA-29` | `EPIC-RWA-01`, `08` | Gagal | Andi tanpa `ViewAmount` membuka header, IPD, dan Pelunasan Deposit | "lihat kasir"; tombol cetak Pelunasan Deposit tidak ada; panggilan langsung `403` |
+| `UAT-RWA-30` | `EPIC-RWA-14` | Berhasil | Sari menekan Cetak Persetujuan; mencetak kedua tab | Tiba di tab Surat Persetujuan; nol permintaan tulis; kop dari profil |
+| `UAT-RWA-31` | `EPIC-RWA-12` | Berhasil | Pelunasan Deposit dikunci Rp 3.000.000; deposit bertambah Rp 1.000.000; tanda tangan dicatat | Dokumen tetap Rp 3.000.000; header Rp 2.000.000 (`RWI-AC-385`) |
+| `UAT-RWA-32` | `EPIC-RWA-03` | Gagal (regresi) | 18 butir serah terima aktif; petugas menutup episode lain | Penutupan hanya membaca butir penutupan; episode dapat ditutup |
+| `UAT-RWA-33` | `EPIC-RWA-05` | Gagal | Label pasien asuransi dengan kartu kosong; gelang dewasa dicatat untuk bayi | Baris No. Kartu kosong; catatan cetak ditolak |
+
+### 24.19 Definition of Done
+
+| Butir | Bukti |
+|---|---|
+| Tombol "Workspace PPRI" tampil tepat sesudah Workspace Dokter hanya bagi pemegang hak baca | `UAT-RWA-01`, `02`; `RWI-AC-343` |
+| Pengguna Workspace PPRI tidak butuh hak baca modul lain | `RWI-AC-378` |
+| Kelengkapan dihitung menurut `RWI-DEC-234` dan hanya memperingatkan | `UAT-RWA-01`; `RWI-AC-345`, `346` |
+| Serah Terima: tiga orang berbeda, perawat sesudah pasien di bed, butir dari master dan beku | `UAT-RWA-05` s.d. `07`, `28`; `RWI-AC-353`, `359`, `360`, `376` |
+| Penutupan episode tidak terganggu butir serah terima | `UAT-RWA-32`; `RWI-AC-361` |
+| Gelang dan label benar, QR No. RM saja, tanpa nomor karangan, cetak ulang beralasan | `UAT-RWA-10` s.d. `12`, `33`; `RWI-AC-363`, `364`, `374`, `380` |
+| IPD merangkum dokumen, garis kosong untuk isian tanpa sumber, cetak ditahan bila data wajib gagal | `UAT-RWA-15`, `16`; `RWI-AC-365`, `375` |
+| Privasi, Selisih Biaya, Nilai Kepercayaan tersimpan per baris, aturan wajib dan batas butir ditegakkan | `UAT-RWA-13`, `14`, `21` s.d. `24`; `RWI-AC-357`, `362`, `377` |
+| Pelunasan Deposit dari angka Billing, jatuh tempo dalam batas, angka beku saat dikunci | `UAT-RWA-17`, `18`, `31`; `RWI-AC-366`, `367`, `382`, `385` |
+| Rupiah hanya bagi `ViewAmount` | `UAT-RWA-29`; `RWI-AC-379` |
+| General Consent cetak saja; Cetak Persetujuan dialihkan | `UAT-RWA-30`; `RWI-AC-347` s.d. `349` |
+| Koreksi lewat versi; tidak ada hapus; batal beralasan; simpan bersamaan ditolak | `UAT-RWA-25` s.d. `27`; `RWI-AC-355`, `356` |
+| Tidak ada identitas rumah sakit, kota, kode formulir, maupun data karangan di kode Workspace PPRI | `RWI-AC-368`; `NFR-RWA-17` |
+| Sepuluh aksi `InpatientAdmissionDocument` terdaftar di registry | Acceptance 21.8 |
+| Butir serah terima dan pengaturan cetak terisi di lingkungan target | `02-backend-architecture.md` 13.13; seeder non-produksi; isian admin produksi |
+| Tidak ada epic `OPEN DECISION` di gelombang mana pun | 24.20 |
+
+### 24.20 Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi | Epic | Syarat mulai |
+|---|---|---|---|
+| `RWA-MVP-0` | `E9` beserta saringan jenis penutupan; `E10`; `E12` hak dan data; service baca di modul pemilik; service inti dokumen; `FE-INP-12`, `FE-INP-13` | `EPIC-RWA-12` | Amandemen `0.11.0` disetujui; `RWI-OQ-126`, `RWI-OQ-127` disetujui; gerbang `MasterData` `RWI-DEC-193` |
+| `RWA-MVP-1` | `FE-INP-35`, `36`, `38`, `40`; perubahan `FE-INP-04`, `18`, `03` | `EPIC-RWA-01`, `05`, `07`, `14` | `RWA-MVP-0` selesai |
+| `RWA-MVP-2` | `FE-INP-37`, `39`, `41`, `43`, `44` | `EPIC-RWA-03`, `06`, `08`, `10`, `11` | `RWA-MVP-1` selesai |
+| Di luar gelombang | `EPIC-RWA-09` (`E11`, `FE-INP-42`) sesudah `DEC-INP-020`; `EPIC-RWA-02` dan `EPIC-RWA-13` sesudah `DEC-INP-003` | `OPEN DECISION` | Keputusan tercatat di decision log, lalu amandemen kecil |
+| `POST-MVP` | Kemampuan bagian 24.8 selain tiga epic di atas | — | Di luar rilis pertama |
+
+Gelombang memakai awalan `RWA-` agar tidak bertabrakan dengan gelombang Rawat Inap lain. Task Finishing (`BE-RWI-172` s.d. `184`, `FE-RWI-192` s.d. `201`) tidak bergantung pada gelombang ini; ID task bebas berikutnya per 7 Oktober 2026: `BE-RWI-185` dan `FE-RWI-210` (`FE-RWI-202` s.d. `209` sudah dipakai roadmap dan laporan lain); diperiksa ulang saat perencanaan.
+
+**Pertanyaan terbuka sebelum development lock**
+
+| Pertanyaan | Siapa yang menjawab | Dampak bila belum dijawab | Memblokir |
+|---|---|---|:---:|
+| ~~`RWI-OQ-126` service baca `PatientManagement`~~ | Pemilik `PatientManagement`, lewat Muhammad Hamzah | **Disetujui `RWI-DEC-266`, 2026-10-08** | Tidak — tertutup |
+| ~~`RWI-OQ-127` service baca profil rumah sakit~~ | Pemilik HR Master Data, lewat Muhammad Hamzah | **Disetujui `RWI-DEC-266`, 2026-10-08** | Tidak — tertutup |
+| `RWI-OQ-124` peran CRO, supervisor admisi, `SignAsHeadNurse` di lingkungan target | Admin Akses Role | Uji penerimaan tiga tanda tangan tidak dapat dijalankan | Tidak untuk pembangunan; **ya** untuk UAT |
+| `RWI-OQ-128` dokter perujuk luar | Pemilik Registration | Satu isian IPD garis kosong | Tidak |
+| `RWI-OQ-129` method tarif kamar harian Billing | Yasmina | "Rencana @ Kamar (Rp)" tertulis "lihat kasir" | Tidak |
+| `DEC-INP-020` (`RWI-OQ-122`) tarif visit dan catatan biaya bedah | Yasmina | `EPIC-RWA-09` tetap di luar gelombang | Ya — hanya `EPIC-RWA-09` |
+| `DEC-INP-003` (`RWI-OQ-116`) pemilik privasi/hukum | Muhammad Hamzah menunjuk | `EPIC-RWA-02`, `13` tetap di luar gelombang; gerbang produksi G-35 | Ya — hanya epic di luar gelombang |
+| `RWI-OQ-121` judul halaman | Muhammad Hamzah | Usulan "Ruang Kerja PPRI" dipakai | Tidak |
+| `RWI-OQ-123` isian `SD_BELIEFS` keperawatan | Muhammad Hamzah | Dua tempat mencatat nilai kepercayaan sampai amandemen keperawatan | Tidak |
+
+**Konsekuensi yang perlu disadari pemilik.** Karena Estimasi Biaya berada di luar gelombang, navigasi MVP menampilkan **delapan** menu, bukan sembilan seperti `RWI-DEC-226`; menu kesembilan muncul saat `EPIC-RWA-09` dikirim, mengikuti aturan "menu yang kemampuannya belum dikirim tidak ditampilkan" (`FR-RWA-004`).
+
+**Diperbarui 8 Oktober 2026.** Dokumen ini disetujui (`RWI-DEC-265`) dan `RWI-OQ-126` serta `RWI-OQ-127` disetujui (`RWI-DEC-266`), sehingga tidak ada lagi pertanyaan memblokir untuk `RWA-MVP-0` s.d. `RWA-MVP-2`. Dokumen ini diteruskan ke `plan-module-delivery`: `roadmap/backend-roadmap-workspace-ppri.md` dan `roadmap/frontend-roadmap-workspace-ppri.md`.

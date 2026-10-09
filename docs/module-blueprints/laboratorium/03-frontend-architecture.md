@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `13` — amandemen 2026-09-25 (keempat), laporan operasional `S16a`. Sebelumnya `12` — amandemen 2026-09-25 (ketiga), label keadaan hasil (`LAB-DEC-156`). Sebelumnya `11` — amandemen 2026-09-25 (kedua), validasi dan rilis Mikrobiologi (`S4d-1`). Sebelumnya `10` — amandemen 2026-09-25, validasi dan rilis Patologi Klinik (`S4`). Sebelumnya `9` — amandemen 2026-09-24, halaman Hasil Patologi Klinik per order |
+| Revision | `16` — amandemen 2026-10-08: Beranda Lab mengikuti susunan v1 (BR-140), kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — amandemen 2026-10-07 (kedua): pemilih dokter pemeriksa memakai daftar Lab (BR-139). Sebelumnya `14` — amandemen 2026-10-07: urutan Konfirmasi v1 (BR-138) dan pencatatan susulan putaran 22 (menu, aksi baris). Sebelumnya `13` — amandemen 2026-09-25 (keempat), laporan operasional `S16a`. Sebelumnya `12` — amandemen 2026-09-25 (ketiga), label keadaan hasil (`LAB-DEC-156`). Sebelumnya `11` — amandemen 2026-09-25 (kedua), validasi dan rilis Mikrobiologi (`S4d-1`). Sebelumnya `10` — amandemen 2026-09-25, validasi dan rilis Patologi Klinik (`S4`). Sebelumnya `9` — amandemen 2026-09-24, halaman Hasil Patologi Klinik per order |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S14`, `S15`. **Revision 4 menambah menu Penerimaan Sampling/Specimen** (bagian 10). **Revision 5 menyerap `LAB-DEC-048`**: butir menu Pesanan Laboratorium dicabut, Monitoring dinamai ulang menjadi Pemeriksaan, dan disiplin diturunkan dari pemeriksaan yang dipilih |
 | Frontend SHA | Revision 1-3: `688daff90`. **Revision 4: `9cd4cd03f`** — fakta `F5` dicabut capability map revision 3 |
@@ -1380,3 +1380,305 @@ daftar hal yang tidak berubah ada pada `00-interview-decisions.md` Amendment Pas
 
 Layar milik Laboratorium tidak berubah; yang berpindah hanya langkah di alur kiosk milik `registration-management`.
 
+
+## Pencatatan susulan 2026-10-07 — Menu dan aksi alur kerja v1 (amendment pass putaran 22)
+
+Putaran 22 (`LAB-DEC-188`..`LAB-DEC-192`) dikerjakan `FE-LAB-46`..`FE-LAB-49` tanpa amandemen dokumen ini,
+karena nol kontrak berubah. Bagian ini menutup coverage gap tersebut. **Tabel 10.2 di atas dibiarkan sebagai
+jejak keadaan lama**; yang berlaku adalah tabel di bawah.
+
+### Peta butir menu Laboratorium yang berlaku (BR-137, `LAB-FE-031`)
+
+| Urutan | Butir menu | Route | Disaring sidebar menurut izin |
+|---:|---|---|---|
+| 1 | Beranda | `.../overview` | Tidak |
+| 2 | Penerimaan Sampling/Specimen | `.../lab-specimen-receptions` | Tidak |
+| 3 | Pendaftaran Pasien Laboratorium | `.../lab-patient-registrations` | Tidak |
+| 4 | Daftar Pasien Lab Patologi Klinik | `.../lab-monitoring/clinical-pathology` | Tidak |
+| 5 | Daftar Pasien Lab Patologi Anatomi | `.../lab-monitoring/anatomic-pathology` | Tidak |
+| 6 | Daftar Pasien Lab Mikrobiologi | `.../lab-monitoring/microbiology` | Tidak |
+| 7 | Daftar Kerja Laboratorium | `.../lab-worklists` | Tidak |
+| 8 | Pantau Keterlambatan Cito | `.../lab-worklists/cito-overdue` | Tidak |
+| 9 | Antrean Validasi | `.../lab-worklists/validation-queue` | Tidak |
+| 10 | **Laporan** (grup) → Laporan Penerimaan; Laporan Operasional | `.../lab-reception-reports`; `.../lab-operational-reports` | Laporan Operasional saja — `requiredPermission` `LabOperationalReport : Read` |
+| 11 | Tarif Laboratorium | `.../lab-tariffs` | Tidak |
+| 12 | Master Data (grup) | tidak berubah | Sebagian butir di dalamnya |
+
+### Aksi baris pada ketiga daftar (BR-136, `LAB-FE-030`)
+
+| Aksi | Daftar | Dapat ditekan bila | Task |
+|---|---|---|---|
+| Terima Sampling | Ketiganya | Pesanan belum selesai/batal — **hanya** membuka layar Wadah | `FE-LAB-47` |
+| Proses Pemeriksaan | Ketiganya | `Accepted` (dan, sesudah BR-138, sudah dikonfirmasi) + `LabOrder : Process` | `FE-LAB-47` |
+| Selesaikan | PK dan Mikrobiologi | `InProcess` + `resultProgress` `AllReleased` atau kosong + `LabOrder : Process` | `FE-LAB-48` |
+| Tahan/Lanjutkan | — | Tidak ada (`LAB-DEC-190`) | — |
+
+## Amandemen 2026-10-07 — Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1 (BR-138)
+
+| Field | Nilai |
+|---|---|
+| Status | **`draft`** — kontraknya (`r40`/`r8`/`r17`/revision 13) masih usulan `LAB-REQ-016` |
+| Keputusan | `LAB-DEC-193`..`LAB-DEC-197`, `LAB-FE-033`; `AC-283`..`AC-288` |
+| Frontend SHA | `70dd4d4e0` (branch `YogaV2`) — memuat `FE-LAB-46`..`FE-LAB-49` |
+
+### Keadaan frontend saat dirancang
+
+| Hal | Hari ini | Bukti |
+|---|---|---|
+| Konfirmasi dapat ditekan | Hanya `Requested` yang belum dikonfirmasi | `lab-confirmation-rules.js#canConfirmOrder` |
+| Proses Pemeriksaan dapat ditekan | `Accepted` saja, tanpa melihat konfirmasi | `lab-order-process-rules.js#resolveStartProcessAction` (`FE-LAB-47`) |
+| Izin yang dibaca | `LabOrder : Process` untuk Proses dan Selesaikan; **nol** untuk Konfirmasi | `use-lab-monitoring.jsx` |
+| Jejak konfirmasi pada baris | `confirmedAt`, `confirmedByName`, `examinerDoctorName` sudah ada | `LabMonitoringItemResponse` |
+
+### Kebutuhan layar
+
+1. Ketiga daftar pasien lab: **Konfirmasi** dapat ditekan pada `Requested` **dan** `Accepted` yang belum
+   pernah dikonfirmasi; redup beralasan selainnya.
+2. **Proses Pemeriksaan** dapat ditekan hanya pada `Accepted` yang **sudah dikonfirmasi**; pada `Accepted`
+   yang belum dikonfirmasi redup dengan alasan yang menunjuk Konfirmasi.
+3. Sesudah Konfirmasi berhasil pada pesanan `Accepted`, baris **tetap** *Diterima*; kolom Konfirmasi terisi
+   dan Proses Pemeriksaan menjadi dapat ditekan — seluruhnya dari jawaban `200`, bukan tebakan.
+4. Penolakan `409` `VAL-151` (daftar basi) ditampilkan di dialog Proses dengan pesan backend; baris tidak berubah.
+5. Konfirmasi membaca izin `LabOrder : Confirm`; Proses dan Selesaikan tetap `LabOrder : Process`.
+
+### Aksi per peran
+
+| Jabatan | Konfirmasi | Proses | Selesaikan | Batalkan |
+|---|:---:|:---:|:---:|:---:|
+| Analis Laboratorium | Ya | Ya | Ya | Redup/tersembunyi — `LAB-OPEN-052` |
+| Dokter Umum (pembuka daftar) | Redup — tanpa `Confirm` | Redup | Redup | Ya |
+
+### Penanganan keadaan
+
+| Keadaan | Yang dilihat petugas |
+|---|---|
+| `Accepted` belum dikonfirmasi | Konfirmasi aktif; Proses redup: *"Konfirmasi pesanan ini lebih dulu."* (bunyi `DEV_DISCRETION`) |
+| `Accepted` sudah dikonfirmasi | Konfirmasi redup *sudah dikonfirmasi*; Proses aktif |
+| `InProcess` tanpa konfirmasi | Konfirmasi redup; Selesaikan mengikuti `AC-278` — tidak menunggu konfirmasi |
+| Dua petugas mengonfirmasi bersamaan | Yang kalah menerima `409` `VAL-70` di dialog Konfirmasi; baris tidak berubah |
+
+### Berkas yang terdampak
+
+| Berkas | Perubahan |
+|---|---|
+| `src/lib/hooks/.../lab-confirmation-rules.js` | `canConfirmOrder` menerima `Accepted` yang belum dikonfirmasi; bunyi alasan nonaktif |
+| `src/lib/hooks/.../lab-order-process-rules.js` | `resolveStartProcessAction` mensyaratkan `isOrderConfirmed`; petunjuk baru |
+| `src/lib/hooks/.../use-lab-monitoring.jsx` | `usePermission("LabOrder", "Confirm")` |
+| `src/components/view/.../lab-monitoring-table-columns.jsx` | Butir Konfirmasi membaca keadaan dan izin baru |
+| Uji unit `lab-confirmation-rules.test.mjs`, `lab-order-process-rules.test.mjs` | Diperbarui sesuai aturan baru |
+
+Nol route, nol menu, nol komponen baru.
+
+### Wewenang keputusan tampilan
+
+`LAB-FE-033`: pola nonaktif beralasan `FE-LAB-15`/`FE-LAB-47`; bunyi petunjuk, urutan butir, dan ikon
+`DEV_DISCRETION`. Yang **tidak** boleh: Konfirmasi dapat ditekan pada pesanan yang sudah dikonfirmasi atau
+`InProcess`; Proses dapat ditekan sebelum dikonfirmasi; baris berpindah ke *Dikonfirmasi* saat mengonfirmasi
+pesanan *Diterima*.
+
+### Yang TIDAK dibangun
+
+| Yang tidak dibangun | Alasan |
+|---|---|
+| Opsi *langsung proses* di pop-up Konfirmasi | Ditunda `LAB-DEC-188` |
+| Centang *sampling diterima* di pop-up Konfirmasi (v1) | Penerimaan sampel tetap lewat layar Wadah (`LAB-DEC-191`) |
+| Status atau lencana baru | `LAB-DEC-195` |
+
+## Amandemen 2026-10-07 (kedua) — Daftar dokter pemeriksa bagi pengonfirmasi (BR-139)
+
+| Field | Nilai |
+|---|---|
+| Status | **`draft`** (artefak kerja) — kontraknya (`r41`, revision 14) **`approved`** 2026-10-07 lewat `LAB-REQ-017` |
+| Keputusan | `LAB-DEC-200`..`LAB-DEC-203`, `LAB-FE-034`; `AC-289`..`AC-293` |
+| Frontend SHA | `70dd4d4e0` (branch `YogaV2`) + working tree `FE-LAB-50` |
+| Sumber | [`FE-LAB-50.md`](task/report/frontend/FE-LAB-50.md) bagian 8 — T1 dan T2 |
+
+### Keadaan frontend saat dirancang
+
+| Hal | Hari ini | Bukti |
+|---|---|---|
+| Sumber pilihan dokter pemeriksa | `useSelectResource("doctors")` → `GET /v1/corporate/human-resource/master-data/doctors/options` (SDM, `KioskRead`) → `403` bagi analis | `use-lab-monitoring.jsx` (`examinerSelect`); `hr-select-resources.js` (`doctors`) |
+| Komponen pemilih | `ResourceFilterSelect` server-side, `refetchOnOpen` | `lab-monitoring-view.jsx` dialog Konfirmasi |
+| Nilai awal | Kosong (`examinerDoctorId = ""`) | `use-lab-monitoring.jsx` |
+| Pembaruan baris sesudah `200` | Reducer menyalin `orderStatus`, `confirmedAt`, `confirmedByName`, `examinerDoctorName` dari jawaban — jawaban hari ini membawa ketiganya kosong (T1) | `lab-monitoring-slice.jsx` |
+
+### Kebutuhan layar
+
+1. Pemilih *Dokter Pemeriksa* di dialog Konfirmasi ketiga daftar pasien lab memuat dari
+   `GET /v1/health-services/laboratory-management/lab-orders/examiner-doctor-options` (`r41` 36.3), **bukan** dari
+   daftar dokter SDM.
+2. Alamat itu didaftarkan **satu kali** pada registry pilihan Pelayanan Kesehatan
+   (`health-service-select-resources.js`, berdampingan dengan `labOrganisms`), lalu dipakai lewat
+   `useSelectResource` — pola yang sudah ada; nol pengambilan tersendiri di slice.
+3. Label butir: `fullName`; kode: `doctorCode`; keterangan: `specialistName`. Pencarian dikirim ke server.
+4. Dialog dibuka dengan pilihan **kosong** (`LAB-FE-034`); Simpan tetap redup sampai dokter dipilih (`AC-95`).
+5. Sesudah Konfirmasi `200`, baris diperbarui dari jawaban yang kini membawa jejak konfirmasi (`r41` 36.4) — nol
+   perubahan reducer. Hasil: baris *Diterima* langsung menampilkan kolom Konfirmasi dan Proses dapat ditekan.
+
+### Aksi per peran
+
+| Jabatan | Memuat daftar dokter | Konfirmasi |
+|---|:---:|:---:|
+| Analis Laboratorium (`LabOrder : Confirm`) | Ya | Ya |
+| Pengguna tanpa `LabOrder : Confirm` | Tidak — butir Konfirmasi sudah redup (`FE-LAB-50`), dialog tidak dibuka | Tidak |
+
+### Penanganan keadaan
+
+| Keadaan | Yang dilihat petugas |
+|---|---|
+| Daftar sedang dimuat | *"Memuat dokter..."* di pemilih (perilaku `ResourceFilterSelect`) |
+| Pencarian tanpa hasil | *"Dokter tidak ditemukan"* |
+| `403` saat memuat (izin dicabut sesudah layar dibuka) | Pesan kosong/galat pemilih; Simpan tetap redup. Backend tetap penjaga terakhir |
+| Dokter dinonaktifkan sesudah dipilih | Simpan → `422` `VAL-73` tampil di dialog (perilaku `FE-LAB-15`) |
+| Jawaban `200` tanpa jejak konfirmasi (backend lama) | Baris tetap benar sesudah muat ulang — itulah alasan rilis serempak (`LAB-DEC-202`) |
+
+### Berkas yang terdampak
+
+| Berkas | Perubahan |
+|---|---|
+| `src/lib/hooks/select/health-service/health-service-select-resources.js` | Entri baru, mis. `labExaminerDoctors` — `endpoint`, `valueKey: "id"`, `labelKeys: ["fullName", "doctorCode"]`, `codeKeys: ["doctorCode"]`, `descriptionKeys: ["specialistName"]` |
+| `src/lib/hooks/health-services/laboratory-management/use-lab-monitoring.jsx` | `examinerSelect` memakai entri baru |
+| Uji unit | Registry menunjuk endpoint Lab, bukan alamat SDM |
+
+Nol komponen, route, menu, atau slice baru.
+
+### Wewenang keputusan tampilan
+
+| Hal | Wewenang |
+|---|---|
+| Nilai awal kosong | `LAB-FE-034` — keputusan produk |
+| Isi daftar (dokter aktif, tanpa penyaring) | `LAB-DEC-200` |
+| Bentuk kotak pilih, teks muat/kosong, susunan label | `DEV_DISCRETION` mengikuti `ResourceFilterSelect` yang sudah ada |
+
+### Yang TIDAK dibangun
+
+| Hal | Alasan |
+|---|---|
+| Mendahulukan dokter lab seperti v1 | `LAB-DEC-200` |
+| Mengisi otomatis dokter pemberi instruksi atau pilihan terakhir | `LAB-FE-034` |
+| Memuat ulang daftar pantau sesudah Konfirmasi sebagai tambalan T1 | Diperbaiki di sumbernya (`LAB-DEC-203`) |
+
+## Amandemen 2026-10-08 — Beranda Lab mengikuti susunan v1 (BR-140)
+
+| Field | Nilai |
+|---|---|
+| Status | **`draft`** (artefak kerja) — kontraknya (`LAB-API-v1` `r44`, `LAB-VAL-v1` `r20`, `LAB-PERM-v1` revision 16) **`approved`** 2026-10-08 lewat `LAB-REQ-021`, termasuk butir 11 (letak kartu rentang lama) |
+| Keputusan | `LAB-DEC-204`..`LAB-DEC-211`, `LAB-FE-035`; `AC-294`..`AC-301` |
+| Frontend SHA | `9bd8b96fe` (branch `YogaV2`) — nol berkas Beranda berubah sejak `f6f23352e` |
+| Rujukan alur | Beranda v1 `C:\Users\Admin\QuilvianSystemFrontendDev\src\components\view\laboratorium\dashboard-laboratorium.jsx` (baca-saja, F25-1) — rujukan susunan, **bukan** gaya |
+| Backend | `02-backend-architecture.md` bagian 28 |
+
+### Keadaan frontend saat dirancang
+
+| Hal | Hari ini | Bukti |
+|---|---|---|
+| Route dan menu | `/health-services/laboratory-management/overview`, label *Beranda* (BR-137) | `menu-items.jsx:1722`; `app/.../overview/page.jsx` |
+| Isi | `Hero` *Beranda* + tombol muat ulang; `SummaryCards` lima kartu dari `summary` (Total, tiga disiplin, Tanpa Disiplin); catatan waktu muat; `DataFilter` dua tanggal; tabel *Rekap Status Pesanan* | `laboratory-overview-view.jsx` |
+| State | `lab-order-slice` (`summary`, `summaryLoading`, `summaryError`, `summaryLoadedAt`); muat ulang saat jendela kembali difokus bila data > 60 detik | `use-laboratory-overview.jsx` |
+| Akses | `AccessDeniedGate` membaca galat `summary` | F25-4 |
+| Pustaka grafik terpasang | `react-apexcharts` (dipakai Dasbor Rawat Inap V2 lewat `next/dynamic`), juga `recharts`, `chart.js`, `echarts` | `inpatient-dashboard-widgets.jsx`; `package.json` |
+| Label status dan disiplin | `lab-order-constants.jsx` (status), `LAB_DISCIPLINE_LABEL` (disiplin) | — |
+| Halaman pesanan tujuan klik | `/health-services/laboratory-management/lab-orders/{id}` — `LabOrderDetailView`, dijaga `LabOrder : Read` | `app/.../lab-orders/[slug]/page.jsx` |
+
+### Susunan layar (urutan wajib BR-140 butir 1, `LAB-FE-035`)
+
+| No | Bagian | Isi | Sumber data |
+|---:|---|---|---|
+| 1 | **Hero** | Judul *Beranda* (BR-137), eyebrow modul, deskripsi singkat; tombol **Perbarui Data**; teks *Data dimuat pukul HH.mm WIB* | — |
+| 2 | **Hari ini** — empat kartu | *Pesanan hari ini* · *Menunggu* · *Selesai* (angka + `completionPercent`%) · *CITO* | `dashboard/today` |
+| 3 | **Fokus operasional** — empat kartu | *Total pesanan tercatat* · *Hasil menunggu validasi* · *Jenis laboratorium* (`n` dari 3) · *Tingkat penyelesaian* (`completionPercent`%, hari ini) | `dashboard/today` + `activeDisciplineCount` dari `dashboard/yearly` |
+| 4 | **Pemilih tahun** + grafik *Jumlah pemeriksaan per disiplin* | Tiga batang PK, PA, Mikro; *Belum tergolong* hanya tampil bila > 0 | `dashboard/yearly` |
+| 5 | Grafik **Sebaran** | Lingkaran/donat proporsi ketiga disiplin pada tahun yang sama | `dashboard/yearly` |
+| 6 | Grafik **Tren pesanan bulanan** | Dua seri — tahun terpilih dan tahun sebelumnya — Januari sampai Desember | `dashboard/yearly` |
+| 7 | Tabel **Pesanan terbaru** | No. RM · Nama Pasien · Pemeriksaan · Disiplin · Status · Waktu Diminta; maks. 10 baris; **tanpa** halaman, penyaring, maupun pengurutan oleh pengguna | `dashboard/recent-orders` |
+| 8 | Panel **Kesiapan operasional** | Waktu data terakhir dimuat; ringkasan progres hari ini (mis. *"3 dari 12 pesanan selesai · 8 menunggu · 2 CITO"*); tombol **Perbarui Data** | `dashboard/today` |
+| 9 | **Rekap Status Pesanan** (sudah ada) | Kelima kartu rentang yang ada **dipindah ke dalam bagian ini**, bersama `DataFilter` dua tanggal dan tabel status — perilakunya tidak berubah | `summary` |
+
+**Kenapa kartu rentang lama dipindah, bukan dibuang.** Kelima kartu itu bagian dari rekap per rentang tanggal yang
+diputuskan dipertahankan (`LAB-DEC-204`). Bila tetap di atas, Beranda menampilkan dua deret kartu disiplin dengan dua
+arti berbeda (30 hari menurut waktu dibuat vs. tahun menurut waktu diminta) berdampingan.
+
+**Pemilih tahun:** satu pemilih untuk bagian 4–6 (`LAB-DEC-206`); bawaan tahun berjalan; pilihan tahun berjalan dan
+empat tahun sebelumnya (`DEV_DISCRETION`, di dalam batas `VAL-154`). Mengganti tahun **hanya** memuat ulang
+`dashboard/yearly`.
+
+**Klik baris pesanan terbaru** membuka `/health-services/laboratory-management/lab-orders/{labOrderId}` (`LAB-DEC-209`).
+
+### Aksi per peran
+
+| Jabatan | Membuka Beranda | Perbarui Data | Klik pesanan terbaru |
+|---|:---:|:---:|:---:|
+| Pemegang `LabOrder : Read` (analis, kepala instalasi, dokter penanggung jawab) | Ya | Ya | Ya — halaman tujuan dijaga izin yang sama |
+| Tanpa `LabOrder : Read` | **Akses Ditolak** (`AC-301`) | — | — |
+
+Kartu *Hasil menunggu validasi* **hanya angka** — tanpa tautan ke Antrean Validasi (`LAB-DEC-208`); pemegang
+`LabOrder : Read` belum tentu memegang `LabWorklist : Read`.
+
+### Data, state, dan cache
+
+| Hal | Aturan |
+|---|---|
+| Layanan API | Tiga fungsi baru di `lab-order.service.js` (base URL sama dengan `summary`): `getLabDashboardToday`, `getLabDashboardYearly({ year })`, `getLabDashboardRecentOrders` |
+| State | Slice baru `lab-dashboard-slice.jsx` dengan **tiga keadaan terpisah** (`today`, `yearly`, `recentOrders`), masing-masing `data`, `loading`, `error`, `errorStatus`, `loadedAt`; ditambah `selectedYear`. `summary` tetap di `lab-order-slice` |
+| Hook | `use-laboratory-overview.jsx` diperluas, atau hook baru `use-laboratory-dashboard.jsx` dipakai berdampingan — `DEV_DISCRETION` |
+| Perbarui Data | Memuat ulang **keempat** sumber (`today`, `yearly` tahun terpilih, `recentOrders`, `summary`) sekaligus; tombol redup selama salah satu masih dimuat (cegah tekan ganda) |
+| Data basi | Aturan 60 detik yang sudah ada berlaku untuk keempat sumber saat jendela kembali difokus |
+| Realtime | **Tidak ada** (`LAB-DEC-210`); tidak memakai klien SignalR |
+| Waktu muat | Diambil dari waktu terlama di antara sumber yang berhasil; ditulis dalam WIB |
+
+### Penanganan keadaan
+
+| Keadaan | Yang dilihat petugas |
+|---|---|
+| Memuat pertama kali | Kerangka kartu/grafik/tabel per bagian (`SummaryCards loading`, `DataTable loading`) |
+| Satu sumber gagal (`500`, jaringan) | **Hanya bagian itu** menampilkan panel galat + *Coba lagi*; bagian lain tetap berisi (`AC-300`). Contoh: `yearly` gagal → bagian 4–6 dan kartu *Jenis laboratorium* bergalat, kartu hari ini dan tabel terbaru tetap tampil |
+| `403` dari sumber mana pun | Seluruh halaman → `AccessDeniedGate` (keempat sumber dijaga izin yang sama) |
+| `422` `VAL-154` | Tidak terjadi lewat pemilih; bila terjadi, pesan backend tampil di bagian tahunan |
+| Semua angka 0 | Kartu menampilkan 0; grafik menampilkan keadaan kosong *"Belum ada pemeriksaan pada tahun 2024"*; tabel terbaru kosong *"Belum ada pesanan laboratorium"* |
+| `completionPercent` saat 0 pesanan | *Selesai 0 (0%)* — bukan `NaN` |
+| `discipline` kosong | *Belum tergolong* |
+| `patientName`/`medicalRecordNumber` kosong | Tanda `-` |
+
+### Privasi, aksesibilitas, responsif
+
+| Hal | Aturan |
+|---|---|
+| Privasi | Tabel terbaru memuat nama dan No. RM — setara Daftar Pasien Lab. Nol data pasien di kartu, grafik, judul tab, maupun log konsol |
+| Aksesibilitas | Setiap grafik punya judul teks dan angka yang dapat dibaca tanpa warna (label data atau legenda berangka); kartu memakai teks, bukan warna saja; baris tabel dapat dibuka dengan papan ketik |
+| Responsif | Kartu membungkus ke baris berikut; grafik selebar layar pada ponsel; tabel memakai gulir horizontal `DataTable` |
+
+### Berkas yang terdampak
+
+| Berkas | Status | Perubahan |
+|---|---|---|
+| `src/components/view/health-services/laboratory-management/laboratory-overview/laboratory-overview-view.jsx` | Diperbarui | Susunan 1–9 |
+| `src/components/view/health-services/laboratory-management/laboratory-overview/laboratory-overview-recent-columns.jsx` | Baru | Kolom tabel pesanan terbaru |
+| `src/components/view/health-services/laboratory-management/laboratory-overview/laboratory-overview-charts.jsx` | Baru | Tiga grafik, `react-apexcharts` lewat `next/dynamic` (`ssr: false`) — pola Dasbor Rawat Inap V2 |
+| `src/lib/hooks/health-services/laboratory-management/use-laboratory-overview.jsx` | Diperbarui | Memuat keempat sumber; Perbarui Data; data basi |
+| `src/lib/hooks/health-services/laboratory-management/laboratory-dashboard-rules.js` | Baru | Fungsi murni: kartu, persentase, ringkasan progres, deret grafik, baris tabel |
+| `src/lib/state/slice/health-services/laboratory-management/lab-dashboard-slice.jsx` | Baru | Tiga keadaan terpisah; didaftarkan di store |
+| `src/lib/services/health-services/laboratory-management/lab-order.service.js` | Diperbarui | Tiga fungsi GET |
+| `src/lib/constants/health-services/laboratory-management/laboratory-constants.jsx` | Diperbarui | Label kartu dan teks keadaan |
+| `src/style/health-services/laboratory-management/laboratory-overview/laboratory-overview.module.css` | Diperbarui | Tata letak bagian, memakai token tema V2 |
+| `tests/unit/laboratory-dashboard-rules.test.mjs` | Baru | Persentase 0/25%, ringkasan progres, 12 bulan, disiplin kosong, `procedureNames` digabung |
+
+Nol route, nol menu, nol izin baru. Nama berkas baru `DEV_DISCRETION`.
+
+### Wewenang keputusan tampilan
+
+| Hal | Wewenang |
+|---|---|
+| Urutan dan isi bagian 1–9 | `LAB-DEC-204`, `LAB-FE-035` — keputusan produk |
+| Arti setiap angka | `LAB-DEC-205`..`LAB-DEC-209`; rinciannya `LAB-REQ-021` |
+| Letak kelima kartu rentang lama di dalam bagian Rekap | **Disetujui** 2026-10-08 — `LAB-REQ-021` butir 11 |
+| Jenis grafik (batang, donat, garis/area), warna, ikon, animasi, jumlah pilihan tahun | `DEV_DISCRETION` di dalam tema V2 (`LAB-FE-035`) |
+| Gaya CSS v1, indikator koneksi realtime v1 | **Tidak** dipakai (`LAB-FE-035`, `LAB-DEC-210`) |
+
+### Yang TIDAK dibangun
+
+| Hal | Alasan |
+|---|---|
+| Kartu *Petugas Laboratorium* | Diganti *Hasil menunggu validasi* (`LAB-DEC-208`) |
+| Tabel *Data booking* berhalaman v1 | 10 terbaru tanpa halaman (`LAB-DEC-209`); daftar lengkap ada di Daftar Pasien Lab |
+| Status koneksi dan pembaruan otomatis | `LAB-DEC-210` |
+| Lencana CITO di tabel terbaru | Tidak diminta `LAB-DEC-209`; lencana daftar pasien juga sedang bercacat (`02-backend-architecture.md` 28.8) |
