@@ -410,3 +410,9 @@ DataProtectionKeys/key-*.xml
 !/Tests/QuilvianSystemBackend.NutritionTests/
 /Tests/QuilvianSystemBackend.NutritionTests/bin/
 /Tests/QuilvianSystemBackend.NutritionTests/obj/
+
+# Rekonsiliasi MRN Pilot RSMMC `BE-PAT-MIG-001`: uji terfokus `AC-27` diminta pemilik secara
+# eksplisit (`PAT-OQ-001`) dan menjadi bukti acceptance criteria-nya.
+!/Tests/QuilvianSystemBackend.PatientManagementTests/
+/Tests/QuilvianSystemBackend.PatientManagementTests/bin/
+/Tests/QuilvianSystemBackend.PatientManagementTests/obj/

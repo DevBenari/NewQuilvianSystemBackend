@@ -570,6 +570,11 @@ try
     builder.Services.AddScoped<MedicalRecordAccessReviewService>();
     builder.Services.AddScoped<MedicalRecordTimelineService>();
 
+    // Patient Management — rekonsiliasi MRN Pilot RSMMC (BE-PAT-MIG-001), sementara, khusus Staging
+    builder.Services.AddSingleton(RsmmcPilotApprovedBatchProfile.Canonical);
+    builder.Services.AddScoped<IRsmmcPilotMigrationSource, RsmmcPilotMigrationSource>();
+    builder.Services.AddScoped<RsmmcPilotMrnReconciliationService>();
+
     builder.Services.AddScoped<PrescriptionAggregateService>();
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
