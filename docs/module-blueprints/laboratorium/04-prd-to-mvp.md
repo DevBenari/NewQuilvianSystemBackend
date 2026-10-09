@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `16` — bagian 29, `EPIC-LAB-19` Beranda Lab mengikuti susunan v1 (BR-140), 2026-10-08 — kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — bagian 28, lingkup kunci Lunas (putaran 27), 2026-10-08 — kontrak usulan `LAB-REQ-020`. Sebelumnya `14` — bagian 27, alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), 2026-10-08 — kontrak usulan `LAB-REQ-019`. Sebelumnya `13` — bagian 26, `EPIC-LAB-18` diperluas (dokter pemeriksa bagi pengonfirmasi, jejak konfirmasi), 2026-10-07 — kontrak `r41`/revision 14 masih usulan `LAB-REQ-017`. Sebelumnya `12` — bagian 25, `EPIC-LAB-18` urutan kerja v1 di daftar pasien lab, 2026-10-07 — kontrak `r40`/`r8`/`r17`/revision 13 masih usulan `LAB-REQ-016`. Sebelumnya `11` — bagian 24, `EPIC-LAB-17` tiga laporan operasional (`S16a`), 2026-09-28 — kontrak `r37`/`r15`/revision 12 disetujui hari yang sama. Sebelumnya `10` — bagian 23, penyelesaian order, hasil resmi, dan label keadaan (`LAB-DEC-154`..`LAB-DEC-156`), 2026-09-25 — kontrak `r36`/`r14`/`r7` disetujui hari yang sama. Sebelumnya `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
+| Revision | `18` — bagian 30.1, rencana ulang sesudah wadah dibatalkan (putaran 29), 2026-10-09 — kontrak usulan `LAB-REQ-023`. Sebelumnya `17` — bagian 30, CITO dari pemesanan sampai ke pemeriksaan (putaran 28), 2026-10-09 — kontrak usulan `LAB-REQ-022`. Sebelumnya `16` — bagian 29, `EPIC-LAB-19` Beranda Lab mengikuti susunan v1 (BR-140), 2026-10-08 — kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — bagian 28, lingkup kunci Lunas (putaran 27), 2026-10-08 — kontrak usulan `LAB-REQ-020`. Sebelumnya `14` — bagian 27, alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), 2026-10-08 — kontrak usulan `LAB-REQ-019`. Sebelumnya `13` — bagian 26, `EPIC-LAB-18` diperluas (dokter pemeriksa bagi pengonfirmasi, jejak konfirmasi), 2026-10-07 — kontrak `r41`/revision 14 masih usulan `LAB-REQ-017`. Sebelumnya `12` — bagian 25, `EPIC-LAB-18` urutan kerja v1 di daftar pasien lab, 2026-10-07 — kontrak `r40`/`r8`/`r17`/revision 13 masih usulan `LAB-REQ-016`. Sebelumnya `11` — bagian 24, `EPIC-LAB-17` tiga laporan operasional (`S16a`), 2026-09-28 — kontrak `r37`/`r15`/revision 12 disetujui hari yang sama. Sebelumnya `10` — bagian 23, penyelesaian order, hasil resmi, dan label keadaan (`LAB-DEC-154`..`LAB-DEC-156`), 2026-09-25 — kontrak `r36`/`r14`/`r7` disetujui hari yang sama. Sebelumnya `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
 | Status | `draft` |
 | Scope tambahan revision 4 | **`EPIC-LAB-11` Penerimaan Sampling/Specimen** dan gelombang `MVP-5` — lihat bagian 16 |
 | Scope tambahan revision 5 | **`EPIC-LAB-12` Konfirmasi Pesanan dan Pembatalan Beralasan** dan gelombang `MVP-5c` — lihat bagian 17. Ditambahkan 2026-09-15 dari rekonsiliasi bukti putaran 2 |
@@ -1800,4 +1800,47 @@ tombol *Coba lagi*; kartu hari ini, tabel terbaru, dan rekap status tetap berisi
 | ID | Pertanyaan | Pemilik | Memblokir |
 |---|---|---|---|
 | `LAB-REQ-021` | Sebelas butir rincian kontrak | Yoga Aji Pratama | ✅ Ditutup 2026-10-08 — disetujui kesebelas butir |
-| Usulan `LAB-CONFLICT-019` | CITO dari pemesanan hilang saat wadah direncanakan (`02-backend-architecture.md` 28.8) | Yoga Aji Pratama, lewat `/grill-me` | **Tidak** bagi epic ini — rumus Beranda membaca dua sumber |
+| ~~Usulan `LAB-CONFLICT-019`~~ | CITO dari pemesanan hilang saat wadah direncanakan (`02-backend-architecture.md` 28.8) | Yoga Aji Pratama, lewat `/grill-me` | ✅ **Diputuskan 2026-10-09** (putaran 28) — lihat bagian 30. Tidak pernah memblokir epic ini |
+
+## 30. Amandemen 2026-10-09 — CITO dari pemesanan sampai ke pemeriksaan (putaran 28)
+
+**Kontrak** `LAB-API-v1` `r45` **`approved` 2026-10-09** lewat `LAB-REQ-022` (*"setuju keenam butir"*). Decisions rev 93 (`LAB-DEC-225`..`LAB-DEC-228`);
+`02-backend-architecture.md` bagian 29. **Nol tabel, nol kolom, nol endpoint, nol izin, nol berkas frontend.** Satu
+migration data saja.
+
+| Epic | Perubahan | Disposisi | AC |
+|---|---|---|---|
+| `EPIC-LAB-01` Penandaan Cito | CITO yang dipilih saat memesan sampai ke pemeriksaan; wadah pengganti mempertahankan *Tandai Cito* | `EXTEND` | `AC-318`, `AC-320`, `AC-322` |
+| `EPIC-LAB-02` Wadah fisik dan pemeriksaan terpesan | Rencana wadah dan ambil ulang mengisi kesegeraan pemeriksaan | `EXTEND` | `AC-318`, `AC-320` |
+| `EPIC-LAB-04` Daftar kerja dan keterlambatan cito | Tidak berubah — kini menerima pemeriksaan CITO dari pemesanan | `EXISTING / REUSE` | `AC-319` |
+| Perbaikan data lama | Pekerjaan berjalan yang terlanjur `Routine` → `Cito` — dari permintaan CITO **dan** wadah pengganti yang kehilangan *Tandai Cito* (`LAB-REQ-022` butir 4) — satu baris riwayat | `MISSING / NEW` (migration data) | `AC-321` |
+
+**UAT jalur berhasil:** dr. Arif memesan Hemoglobin CITO lewat kiosk → analis merencanakan wadah → Daftar Pasien
+Patologi Klinik berlencana CITO, label tercetak CITO, Hemoglobin di urutan teratas Daftar Kerja; wadah *Layak* pukul
+10.00, batas 60 menit → pukul 11.05 muncul di Pantau Keterlambatan Cito.
+**UAT jalur gagal:** sampel Hemoglobin hemolisis, diambil ulang → pemeriksaan pengganti **tetap** CITO (bukan
+kembali biasa); dr. Budi yang bukan pemesan mencoba mencabut cito → tetap ditolak `403` (`VAL-03`, tidak berubah).
+
+**Definition of Done tambahan:** `LAB-REQ-022` disetujui — **ya** (2026-10-09); `CreateExaminationsAsync` mewarisi kesegeraan
+(wadah pertama dan pengganti) — **ya** (`BE-LAB-94`, working tree 2026-10-09); migration data idempoten dengan `Down` — **ya** (SQL 13/13, `ROLLBACK`); harness `AC-318`,
+`AC-320`..`AC-322` hijau — **ya** (18/18); hitung kering produksi dicatat sebelum `database update` — **belum**; verifikasi
+peramban `AC-318`/`AC-319` dengan pesanan uji ber-CITO (butuh izin tulis) — **belum**.
+
+**Gelombang:** `MVP-14` — satu task backend, nol task frontend; langkah rilis `MVP-14c` (hitung kering, lalu
+`database update`). `LAB-REQ-022` disetujui 2026-10-09 — siap direncanakan `/plan-module-delivery`.
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| `LAB-REQ-022` | Enam butir bentuk kontrak dan cara perbaikan data, termasuk butir 4 (perluasan ke wadah pengganti yang kehilangan *Tandai Cito*) | Yoga Aji Pratama | ✅ Ditutup 2026-10-09 — disetujui keenam butir |
+
+### 30.1 Tambahan 2026-10-09 — Rencana ulang sesudah wadah dibatalkan (putaran 29)
+
+`LAB-DEC-229`; kontrak `LAB-API-v1` `r46` **`approved` 2026-10-09** lewat `LAB-REQ-023` (*"setuju kelima butir"*); `02-backend-architecture.md` bagian 30.
+`EPIC-LAB-01`/`EPIC-LAB-02` `EXTEND`; `AC-323`..`AC-325`. Satu task `BE-LAB-95` di gelombang `MVP-14`, nol task frontend.
+
+**UAT jalur berhasil:** dr. Arif menandai Leukosit CITO; wadahnya dibatalkan karena salah tabung; analis merencanakan wadah
+baru → Leukosit tetap CITO dengan nama dr. Arif. **UAT jalur gagal:** dr. Arif mencabut CITO Hemoglobin; wadah dibatalkan;
+rencana ulang → Hemoglobin **tetap biasa** (permintaan CITO tidak menghidupkannya kembali).
+
+**Definition of Done tambahan:** `LAB-REQ-023` disetujui — **ya** (2026-10-09); `BE-LAB-95` harness `AC-323`..`AC-325` + regresi
+`BE-LAB-94` hijau — **ya** (24/24, 2026-10-09).

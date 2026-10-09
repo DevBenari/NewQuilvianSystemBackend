@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `11` — bagian 22, 2026-10-08: BR-140 Beranda — nol tabel, nol kolom; kolom `LabOrder`, `LabOrderedProcedure`, `LabExamination` yang dibaca dicatat. Sebelumnya `10` — bagian 21, 2026-10-07: BR-139 — nol tabel, nol kolom; `MstDoctor` dibaca empat kolom. Sebelumnya `9` — bagian 20, 2026-10-07: BR-138 — nol tabel, nol kolom. Sebelumnya `8` — bagian 19, 2026-09-25: `S16a` — nol tabel, nol kolom, satu index `LabSpecimen.DecidedAt`. Sebelumnya `7` — bagian 18, 2026-09-25: `S4d-1` — nol tabel, nol kolom. Sebelumnya `6` — bagian 17, 2026-09-25: `S4` — dua tabel baru, 14 kolom baru pada `LabExamination`. Sebelumnya `5` — bagian 16, 2026-09-24: nol tabel, nol kolom |
+| Revision | `12` — 2026-10-09: putaran 28 (`LAB-CONFLICT-019`) — nol tabel, nol kolom; penjelasan `LabExamination.Urgency`, `UrgencyMarkedAt`, dan `LabOrderedProcedure.Urgency` diperjelas (`02-backend-architecture.md` 29.2). Sebelumnya `11` — bagian 22, 2026-10-08: BR-140 Beranda — nol tabel, nol kolom; kolom `LabOrder`, `LabOrderedProcedure`, `LabExamination` yang dibaca dicatat. Sebelumnya `10` — bagian 21, 2026-10-07: BR-139 — nol tabel, nol kolom; `MstDoctor` dibaca empat kolom. Sebelumnya `9` — bagian 20, 2026-10-07: BR-138 — nol tabel, nol kolom. Sebelumnya `8` — bagian 19, 2026-09-25: `S16a` — nol tabel, nol kolom, satu index `LabSpecimen.DecidedAt`. Sebelumnya `7` — bagian 18, 2026-09-25: `S4d-1` — nol tabel, nol kolom. Sebelumnya `6` — bagian 17, 2026-09-25: `S4` — dua tabel baru, 14 kolom baru pada `LabExamination`. Sebelumnya `5` — bagian 16, 2026-09-24: nol tabel, nol kolom |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 3 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 12 |
 | Backend SHA | Revision 1-2: `c87d9c0`. **Revision 3: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -96,8 +96,8 @@ Berkas model: `Areas/HealthServices/LaboratoryManagement/Models/LabExamination.c
 | `UnitPriceSnapshot` | `decimal(18,2)?` | Tidak | — | — | — | — | Tidak | Salinan harga. **Bukan** tagihan; Billing yang memutuskan |
 | `ExaminationStatus` | `LabExaminationStatus` | Ya | `Ordered` | Index | — | — | Tidak | Enum disimpan `int` |
 | `ChargeEligibleAt` | `DateTime?` | Tidak | — | Index | — | — | Tidak | Waktu pemeriksaan menjadi sah ditagihkan |
-| **`Urgency`** | `LabExaminationUrgency` | Ya | `Routine` | Index | — | — | Tidak | **Dipindahkan dari `LabOrder`** oleh `LAB-DEC-026`. Biasa atau cito, **per pemeriksaan** |
-| **`UrgencyMarkedAt`** | `DateTime?` | Tidak | — | — | — | — | Tidak | Kapan ditandai cito |
+| **`Urgency`** | `LabExaminationUrgency` | Ya | `Routine` | Index | — | — | Tidak | **Dipindahkan dari `LabOrder`** oleh `LAB-DEC-026`. Biasa atau cito, **per pemeriksaan**. Saat lahir mewarisi `LabOrderedProcedure.Urgency` (wadah pertama, `LAB-DEC-226`) atau pemeriksaan yang digantikan (wadah pengganti, `LAB-DEC-227`) |
+| **`UrgencyMarkedAt`** | `DateTime?` | Tidak | — | — | — | — | Tidak | Kapan ditandai lewat *Tandai Cito*. **Kosong** bila cito lahir dari permintaan (`LAB-DEC-226`); disalin ke wadah pengganti (`LAB-DEC-227`) |
 | **`UrgencyMarkedByUserId`** | `Guid?` | Tidak | — | — | — | — | Tidak | Dokter yang menandai |
 | **`IsDuplo`** | `bool` | Ya | `false` | — | — | — | Tidak | **Baru** (`LAB-DEC-026`). Pemeriksaan dikerjakan ganda |
 | `Version` | `int` | Ya | `0` | — | — | — | Tidak | Token konkurensi |
@@ -707,7 +707,7 @@ diulang di sini.
 | `ProcedureCodeSnapshot` | `varchar(50)` | tidak | — | — | tidak | Salinan saat dipesan |
 | `ProcedureNameSnapshot` | `varchar(200)` | tidak | — | — | tidak | Salinan saat dipesan |
 | `DisciplineSnapshot` | `integer` | ya | `null` | — | tidak | Disiplin **saat dipesan**; penggolongan katalog yang berubah kemudian tidak mengubah riwayat |
-| `Urgency` | `integer` | tidak | `1` (`Routine`) | — | tidak | Penanda cito melekat pada pemeriksaan (`LAB-DEC-026`) |
+| `Urgency` | `integer` | tidak | `1` (`Routine`) | — | tidak | Penanda cito melekat pada pemeriksaan (`LAB-DEC-026`); diwariskan ke `LabExamination.Urgency` saat wadah direncanakan (`LAB-DEC-226`) |
 | `OrderedStatus` | `integer` | tidak | `1` (`Ordered`) | Index | tidak | `Ordered` \| `Fulfilled` \| `Cancelled` |
 | `FulfilledExaminationId` | `uuid` | ya | `null` | FK ke `LabExamination` | tidak | Baris pemeriksaan yang akhirnya mengerjakan permintaan ini |
 
