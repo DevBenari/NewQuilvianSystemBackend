@@ -197,7 +197,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 context,
                 cancellationToken);
 
-            var coverageStatus = NormalizeCoverageStatus(rule?.CoverageStatus ?? "Covered");
+            // Bila tidak ada aturan coverage (MstInsuranceCoverageRule) yang mencakup item/kategori ini,
+            // provider tidak menanggung item tersebut (konsisten dengan RegistrationBillingCoverageAdapter dan CompanyGuarantorCoverageService).
+            if (rule == null)
+            {
+                return BuildNotCoveredResult(
+                    tariff,
+                    context,
+                    quantity,
+                    hospitalUnitPrice,
+                    hospitalTotalPrice,
+                    "Item tidak memiliki aturan coverage yang cocok pada asuransi ini.",
+                    insuranceTariff,
+                    rule: null,
+                    isFallbackTariff: isFallbackTariff,
+                    pricingWarning: pricingWarning);
+            }
+
+            var coverageStatus = NormalizeCoverageStatus(rule.CoverageStatus ?? "Covered");
 
             if (coverageStatus == "NotCovered")
             {
@@ -207,7 +224,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     quantity,
                     hospitalUnitPrice,
                     hospitalTotalPrice,
-                    rule?.Description ?? "Item dikecualikan oleh aturan coverage.",
+                    rule.Description ?? "Item dikecualikan oleh aturan coverage.",
                     insuranceTariff,
                     rule,
                     isFallbackTariff,
@@ -242,7 +259,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             if (rule?.MaxAmountPerVisit.GetValueOrDefault() > 0)
                 coveredAmount = Math.Min(coveredAmount, rule.MaxAmountPerVisit!.Value);
 
-            if (context.RemainingLimitAmount.HasValue)
+            // Batas sisa limit polis pasien (MstPatientInsurance):
+            // 1. Bila pasien memiliki plafon limit tahunan (AnnualLimitAmount > 0) dan sisa limit <= 0,
+            //    berarti limit polis telah habis terpakai.
+            // 2. Bila sisa limit positif (RemainingLimitAmount > 0), batasi porsi tanggungan hingga sisa limit tersebut.
+            // 3. Bila AnnualLimitAmount dan RemainingLimitAmount bernilai 0 (atau null), artinya polis
+            //    tidak dibatasi plafon limit (unlimited) — 0 sama dengan tidak dibatasi (konsisten dengan janji form master).
+            var hasAnnualLimit = context.AnnualLimitAmount.GetValueOrDefault() > 0;
+            if (hasAnnualLimit && context.RemainingLimitAmount.GetValueOrDefault() <= 0)
+            {
+                coveredAmount = 0m;
+                warnings.Add("Sisa limit polis pasien telah habis.");
+            }
+            else if (context.RemainingLimitAmount.GetValueOrDefault() > 0)
             {
                 coveredAmount = Math.Min(coveredAmount, context.RemainingLimitAmount.Value);
                 if (context.RemainingLimitAmount.Value < totalPrice)

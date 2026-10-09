@@ -6,7 +6,56 @@ module_name: Finance Management
 module_slug: finance-management
 module_prefix: Fin
 module_area: Areas/Corporate/FinanceManagement
-revision: 16
+revision: 18
+blueprint_shape: SINGLE
+blueprint_shape_decided_by: USER_CONFIRMED
+blueprint_shape_decision: FIN-DEC-161
+revision_18_note: >
+  Revisi 18 (6 Oktober 2026) adalah /design-business-module yang menuntaskan SELURUH GERBANG HULU DAN HILIR
+  lintas domain untuk EPIC FIN-04 — piutang manfaat karyawan — mencakup slices S1, S3, S4b, S5, dan S6,
+  menyusul penutupan lengkap evidence/23 oleh pemilik domain Billing (B1..B6 via FIN-DEC-183..188),
+  HR (H1..H8 via FIN-DEC-189..196), dan Registrasi (R1..R6 via FIN-DEC-197..202).
+  Seluruh 10 slice EPIC FIN-04 kini berstatus READY_FOR_DOMAIN_DESIGN dan telah tuntas dirancang.
+  HAL TERPENTING TATA KELOLA RILIS: EPIC FIN-04 TETAP DI LUAR GELOMBANG PENGIRIMAN MVP BERJALAN (MVP-1 s.d. MVP-4),
+  dan dialokasikan ke paket rilis tersendiri setelah delivery plan disetujui. Nol baris kode aplikasi ditulis
+  dan nol migrasi dieksekusi sebelum otorisasi task vertical slice disahkan.
+  INTEGRASI 4 BOUNDED CONTEXT DIRANCANG RESMI:
+  (1) Billing (S1): Menerbitkan 2 baris BilArHandoff (PAYER & EMPLOYEE_BENEFIT membawa BenefitOwnerId & BenefitRelationship);
+  (2) HR Payroll (S3): Sinkronisasi jadwal cicilan otomatis ke TrxPayrollVariableInput, dan webhook hasil payroll idempoten;
+  (3) HR Offboarding (S4b): Validasi gerbang TrxExitClearance.IsFinanceCleared via API clearance Finance;
+  (4) Billing-HR-Finance (S5): Koreksi pemilik salah orang via reversal handoff dan restitusi potongan via payroll adjustment;
+  (5) Migrasi Saldo Lama (S6): Impor batch berbasis Nomor Induk Pegawai (NIP) divalidasi ke MstEmployee;
+  (6) Registrasi: Penjamin internal menggunakan MstCompanyGuarantor eksisting tanpa enum baru, snapshot relasi di encounter.
+  FLOWCHART INTEGRASI KANONIK: flowcharts/01-alur-piutang-manfaat-karyawan-end-to-end.md ditambahkan dan didaftarkan ke 00-alur-utama.md.
+  KONTRAK YANG BERGERAK KE REVISI 18: FIN-INTEGRATION-1.8, FIN-API-1.9, FIN-VAL-1.11, FIN-STATE-1.8,
+  FIN-PERM-1.10, FIN-TEST-1.12, FIN-MVP-1.13 — ketujuhnya disetujui (approved) 6 Oktober 2026.
+  NOL source aplikasi disentuh, nol migration dieksekusi.
+domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN
+domain_architecture_readiness_reason: >
+  hospital-domain-architect TIDAK dijalankan untuk revisi 18 karena seluruh batas domain, entitas perantara,
+  dan kontrak pertukaran data telah berhasil disepakati dan diputuskan secara presisi melalui konfirmasi resmi
+  dengan pemilik domain Billing (BIL-CASH-001), HR (Benefit/Payroll), dan Registrasi Rawat Jalan / Penjamin.
+approval_revision_18: >
+  APPROVED 6 Oktober 2026 oleh pemilik (Yasmin / pengguna):
+  Perancangan arsitektur integrasi lintas domain Revisi 18 beserta ketujuh kontrak turunannya —
+  FIN-INTEGRATION-1.8, FIN-API-1.9, FIN-VAL-1.11, FIN-STATE-1.8, FIN-PERM-1.10, FIN-TEST-1.12, dan FIN-MVP-1.13.
+  Status ketujuhnya naik dari `draft` menjadi `approved`.
+  Seluruh gerbang evidence/23 B1..B6, H1..H8, R1..R6 resmi disahkan.
+  EPIC FIN-04 resmi disetujui untuk diturunkan ke /plan-module-delivery.
+revision_17_note: >
+approval_revision_17: >
+  APPROVED 5 Oktober 2026 oleh pemilik (Yasmin), dinyatakan langsung pada sesi review:
+  FIN-DES-099..FIN-DES-104 beserta keenam kontrak turunannya — FIN-API-1.8, FIN-STATE-1.7, FIN-VAL-1.10,
+  FIN-PERM-1.9, FIN-TEST-1.11, dan FIN-MVP-1.12. Status keenamnya naik dari `draft` menjadi `approved`.
+  UI brief FIN-OQ-099 sudah dipenuhi lewat FIN-DEC-180..FIN-DEC-182 dan 03-frontend-architecture.md
+  bagian 22 telah diselaraskan penuh.
+  YANG TIDAK IKUT DISETUJUI, karena memang tidak bergerak pada revisi 17: FIN-INTEGRATION-1.7 tetap pada status
+  revisi sebelumnya (bagian O hanya catatan keadaan, bukan kontrak).
+  YANG TETAP TERBUKA SESUDAH APPROVAL INI: EPIC FIN-04 TETAP `OPEN DECISION` dan TETAP DI LUAR SELURUH
+  GELOMBANG PENGIRIMAN (MVP-n). Approval desain ini adalah persetujuan atas rancangan target Finance untuk
+  5 slice yang siap, BUKAN pembukaan gerbang rilis/delivery epic. Prasyarat eksternal (konfirmasi Billing
+  evidence/23 butir B1/B2 atas FIN-DEC-006 & FIN-DEC-177, HR FIN-OQ-091, Accounting FIN-OQ-103) tetap menahan
+  epic. NOL task backend maupun frontend boleh dibuat ke roadmap sampai gerbang epic dibuka oleh konfirmasi Billing & HR.
 revision_16_note: >
   Revisi 16 (4 Oktober 2026) adalah /design-business-module yang menggambar DUA PULUH keputusan dari dua
   Amendment pass hari yang sama: FIN-DEC-141..FIN-DEC-160. Keputusan arsitekturnya FIN-DES-094..FIN-DES-098
@@ -1779,3 +1828,107 @@ Blueprint ini menjadi **stale** dan MUST diperiksa ulang bila salah satu terjadi
 | `accounting` menaikkan `ACC-XMOD` di atas `0.2` | `contracts/integration-contract.md` bagian Finance → Accounting, dan `FIN-DEC-001` |
 | Endpoint penerima Accounting Event mulai dibangun | `FIN-CAP-018` pada capability map berubah dari `Missing`; gelombang `MVP-5` bisa dimulai |
 | Salah satu `input_hashes` berubah | Seluruh artefak desain — dokumen hulu bergerak tanpa revisi manifest |
+
+---
+
+## Revisi 17 — himpunan versi kontrak dan berkas yang bergerak
+
+**Mengapa bagian ini ada di bawah, bukan di tabel inventaris di atas.** Tabel inventaris berkas pada
+bagian sebelumnya menggambarkan keadaan **revisi 4** dan sudah lama basi. Membetulkannya menuntut pass
+penyegaran manifest tersendiri; menyuntingnya sebagian justru membuat pembaca menyangka seluruhnya sudah
+mutakhir. Jadi delta revisi 17 ditulis utuh di sini, dan tabel lama dibiarkan apa adanya sebagai jejak
+sejarah.
+
+### Himpunan versi kontrak sesudah revisi 17
+
+| Kontrak | Versi | Status | Bergerak di revisi 17? |
+|---|---|---|---|
+| `contracts/api-contract.md` | `FIN-API-1.8` | `approved` | **Ya** — bagian O: 15 endpoint pada dua grup baru beserta tambahan pada grup Receivable yang sudah ada |
+| `contracts/state-transition-matrix.md` | `FIN-STATE-1.7` | `approved` | **Ya** — bagian O: tiga kosakata status baru untuk entity baru; **nol** transisi entity lama berubah |
+| `contracts/validation-matrix.md` | `FIN-VAL-1.10` | `approved` | **Ya** — bagian O: `FIN-VAL-230`..`245`, 16 aturan |
+| `contracts/permission-audit-matrix.md` | `FIN-PERM-1.9` | `approved` | **Ya** — bagian O: dua resource baru beserta sembilan action |
+| `testing/acceptance-test-matrix.md` | `FIN-TEST-1.11` | `approved` | **Ya** — bagian L: **63** kriteria penerimaan pada delapan kelompok (`L.1`..`L.8`), ditambah `L.9` yang menyebut apa yang **tidak** diuji beserta alasannya |
+| `04-prd-to-mvp.md` | `FIN-MVP-1.12` | `approved` | **Ya** — bagian 57-64, `FR-FIN-192`..`FR-FIN-219` |
+| `contracts/integration-contract.md` | `FIN-INTEGRATION-1.7` | tidak berubah | **Tidak.** Bagian O di sana adalah catatan keadaan, bukan kontrak. Angkanya **MUST NOT** dinaikkan |
+
+### Berkas yang dibuat pada revisi 17
+
+| Berkas | Keterangan |
+|---|---|
+| `data/data-dictionary.md` | **Kanonik.** Empat tabel baru berkolom lengkap, `FinReceivableMovement` diperbarui, kolom kunci `FinReceivable`. Berkas canonical yang sebelumnya **hilang**; `erd/` berstatus RETIRED dan dirujuk sebagai jejak sejarah |
+| `flowcharts/00-alur-utama.md` | **Berstatus `BELUM LENGKAP` dengan sengaja.** Ia memuat penunjuk ke alur per proses yang sudah ada dan daftar rumpun yang belum punya flowchart. Alur pokok modul ujung ke ujung **MUST** ditutup pass tingkat modul |
+| `flowcharts/perjanjian-cicilan-piutang-karyawan.md` | Dua diagram beserta jalur gagalnya: pengajuan sampai disetujui, lalu potongan dan penumpukan tunggakan |
+| `flowcharts/pelunasan-internal-porsi-benefit.md` | Hitung awal → draf → terbitkan, beserta pembatalan dan jalur gagalnya |
+| `evidence/23-permintaan-konfirmasi-piutang-manfaat-karyawan.md` | Dibuat pada pass sebelumnya, **masih `DRAFT` dan BELUM dikirim** ke pemilik Billing, Registrasi, dan HR. Sampai ia dikirim dan dijawab, `S1` tetap tertahan |
+| `evidence/24-gerbang-kelengkapan-requirement-piutang-manfaat-karyawan.md` | Gerbang kelengkapan yang menjadi masukan sah revisi ini |
+
+### Berkas yang diperbarui pada revisi 17
+
+| Berkas | Yang ditambahkan |
+|---|---|
+| `00-interview-decisions.md` | Amendment pass 5 Oktober 2026 — `FIN-DEC-161`..`179`, `FIN-OQ-084`..`103`, fakta `F40`..`F47`. `FIN-ASM-EMP-01` `superseded` oleh `FIN-DEC-176`. Dilanjutkan penutupan `FIN-OQ-099` lewat `FIN-DEC-180`..`182` dan fakta `F48` |
+| `01-existing-capability-map.md` | Bagian 21 — impact scan `FIN-CAP-067`..`085`, `FIN-UQ-01`..`04`. `FIN-CQ-11` kini **CLOSED** |
+| `02-backend-architecture.md` | Bagian O — tabel kepemilikan data, dua class diagram, `FIN-DES-099`..`104`, empat model, tiga service, dua controller baru beserta satu controller yang **diperbarui**, rencana migration, rencana data master, dan yang sengaja tidak dibuat |
+| `03-frontend-architecture.md` | Bagian 22 — peta butir menu (submenu baru "Piutang Karyawan" sesuai `FIN-DEC-180`), empat skema layar, bentuk pengajuan halaman penuh (`FIN-DEC-181`), tampilan status bebas tanggungan dua cara pakai (`FIN-DEC-182`), privasi layar, dan matriks wewenang. Gerbang UI `FIN-OQ-099` **CLOSED**; `EPIC FIN-04` tetap `OPEN DECISION` |
+| Kelima berkas `contracts/` | Bagian O masing-masing, sesuai tabel versi di atas |
+| `testing/acceptance-test-matrix.md` | Bagian L |
+| `04-prd-to-mvp.md` | Bagian 57-64, beserta penunjuk pada `EPIC FIN-04` yang menegaskan statusnya **tidak** berubah; pembaruan penutupan gerbang UI `FIN-OQ-099` |
+
+### Pemicu impact scan tambahan untuk revisi 17
+
+| Pemicu | Yang harus diperiksa ulang |
+|---|---|
+| Pemilik Billing menjawab `evidence/23` butir `B1`/`B2` | `FIN-DEC-177`, slice `S1`, dan status `EPIC FIN-04`. Jawaban "satu baris serah terima, bukan dua" **MUST** membatalkan pembagian porsi pada `FIN-DEC-177` dan merancang ulang `S7a` |
+| Pemilik HR menjawab `FIN-OQ-091` | `contracts/integration-contract.md` bagian O.1, `FIN-STATE-1.7` O.2, dan `FIN-VAL-240` |
+| Pemilik Accounting menjawab `FIN-OQ-103` | `contracts/integration-contract.md` bagian O.2 dan ruas penanda kejadian pada pelunasan internal |
+| Yasmin menurunkan UI brief `FIN-OQ-099` | **SUDAH TERPENUHI** lewat `FIN-DEC-180`..`182`; `03-frontend-architecture.md` bagian 22 dan `04-prd-to-mvp.md` telah diselaraskan. Gerbang UI ditutup, `EPIC FIN-04` tetap `OPEN DECISION` |
+| `FinReceivableMovement` memperoleh check constraint pada kolom jenis mutasi | Klaim "nol migration" untuk dua nilai jenis baru, dan kriteria `L.7.2` |
+| Platform memperoleh pembatasan hak akses per pemilik data | Batas yang diterima sadar pada berkas perjanjian cicilan (bagian 64 butir 7) |
+
+---
+
+## Revisi 18 (6 Oktober 2026) — Penuntasan Gerbang Hulu-Hilir & Desain Integrasi Lintas Domain (`EPIC FIN-04`)
+
+### Himpunan versi kontrak sesudah revisi 18
+
+| Kontrak | Versi | Status | Bergerak di revisi 18? |
+|---|---|---|---|
+| `contracts/integration-contract.md` | `FIN-INTEGRATION-1.8` | `approved` | **Ya** — bagian P: enam kontrak integrasi lintas domain (`INT-FIN-BIL-001`, `INT-FIN-HR-001`, `INT-HR-FIN-001`, `INT-HR-FIN-002`, `INT-HR-FIN-003`, `INT-BIL-FIN-002`) |
+| `contracts/api-contract.md` | `FIN-API-1.9` | `approved` | **Ya** — bagian P: endpoint webhook hasil payroll HR dan migrasi batch NIP |
+| `contracts/validation-matrix.md` | `FIN-VAL-1.11` | `approved` | **Ya** — bagian P: `FIN-VAL-246`..`248`, validasi NIP, check constraint handoff, dan hasil potongan sebagian |
+| `contracts/state-transition-matrix.md` | `FIN-STATE-1.8` | `approved` | **Ya** — bagian P: transisi angsuran via event payroll HR dan pembatalan kartu piutang via reversal handoff Billing |
+| `contracts/permission-audit-matrix.md` | `FIN-PERM-1.10` | `approved` | **Ya** — bagian P: dua AccessController baru untuk payroll sync dan migrasi piutang |
+| `testing/acceptance-test-matrix.md` | `FIN-TEST-1.12` | `approved` | **Ya** — bagian M: kriteria uji integrasi lintas domain S1, S3, S4b, S5, S6 |
+| `04-prd-to-mvp.md` | `FIN-MVP-1.13` | `approved` | **Ya** — bagian 65-70, `FR-FIN-220`..`FR-FIN-237` |
+
+### Berkas yang dibuat pada revisi 18
+
+| Berkas | Keterangan |
+|---|---|
+| `flowcharts/01-alur-piutang-manfaat-karyawan-end-to-end.md` | **Kanonik.** Diagram Mermaid dan tabel alur integrasi 4 domain (Registrasi, Billing, Finance, HR) meliputi alur pokok, exit clearance, dan koreksi salah orang |
+
+### Berkas yang diperbarui pada revisi 18
+
+| Berkas | Yang ditambahkan / diperbarui |
+|---|---|
+| `00-interview-decisions.md` | Sesi Konfirmasi Lintas Domain 6 Oktober 2026 — `FIN-DEC-183`..`202` (Billing `B1`..`B6`, HR `H1`..`H8`, Registrasi `R1`..`R6`). Seluruh pertanyaan pemblokir `evidence/23` CLOSED |
+| `evidence/23-permintaan-konfirmasi-piutang-manfaat-karyawan.md` | Berstatus `LENGKAP TERJAWAB`. Menutup pertanyaan B1..B6, H1..H8, dan R1..R6 |
+| `02-backend-architecture.md` | Bagian P — arsitektur backend integrasi hulu-hilir S1, S3, S4b, S5, S6; tabel kepemilikan data 4 domain; class diagram; pohon folder; status model; invariant |
+| `03-frontend-architecture.md` | Bagian 22.11 — pembaruan status gerbang lintas domain EPIC FIN-04 dari OPEN DECISION menjadi tertutup/dirancang, rilis mandiri di luar MVP-1..4 |
+| `data/data-dictionary.md` | Pemutakhiran kolom `BilArHandoff` (`BenefitOwnerId`, `BenefitRelationship`) dan templat berkas migrasi NIP |
+| `flowcharts/00-alur-utama.md` | Pendaftaran berkas `01-alur-piutang-manfaat-karyawan-end-to-end.md` ke daftar alur yang sudah tergambar |
+| Kelima berkas `contracts/` | Pembaruan Bagian P dan metadata header kontrak (`FIN-INTEGRATION-1.8`, `FIN-API-1.9`, `FIN-VAL-1.11`, `FIN-STATE-1.8`, `FIN-PERM-1.10`) |
+| `testing/acceptance-test-matrix.md` | Penambahan Bagian M dan metadata header kontrak `FIN-TEST-1.12` |
+| `04-prd-to-mvp.md` | Penambahan Bagian 65-70 (`FR-FIN-220`..`237`) dan metadata header kontrak `FIN-MVP-1.13` |
+
+### Status pemicu impact scan revisi 17 sesudah revisi 18
+
+| Pemicu | Status Sesudah Revisi 18 |
+|---|---|
+| Pemilik Billing menjawab `evidence/23` butir `B1`/`B2` | **TERPENUHI LENGKAP** via `FIN-DEC-183` & `FIN-DEC-184` (Billing menyanggupi 2 baris handoff dan perluasan skema `BilArHandoff`) |
+| Pemilik HR menjawab `FIN-OQ-091` | **TERPENUHI LENGKAP** via `FIN-DEC-190` & `FIN-DEC-191` (Jadwal cicilan masuk `TrxPayrollVariableInput` dan hasil payroll otomatis idempoten) |
+| Pemilik Registrasi menjawab `FIN-OQ-093`..`097` | **TERPENUHI LENGKAP** via `FIN-DEC-197`..`202` (CompanyGuarantor internal eksisting, snapshot relasi, autocomplete HR) |
+| Pemilik HR menjawab `FIN-OQ-098` (Kunci NIP) | **TERPENUHI LENGKAP** via `FIN-DEC-196` (Template impor memakai NIP dan divalidasi ke `MstEmployee`) |
+| Pemilik Accounting menjawab `FIN-OQ-103` | Tetap `TERBUKA` (`FIN-OQ-103`), tidak memblokir desain Finance; pelunasan internal Finance tetap beroperasi mandiri |
+| Pemilik Administrator menjawab `FIN-OQ-102` | Tetap `TERBUKA` (`FIN-OQ-102`), menahan pengisian master seeder penjamin RS; tidak memblokir desain Finance |
+

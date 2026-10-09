@@ -84,7 +84,7 @@ public sealed class FinanceReceivablesController : ControllerBase
     {
         try
         {
-            var result = await _billingDataService.GetAsync(request, cancellationToken);
+            var result = await _billingDataService.GetAsync(request, cancellationToken, CurrentUserId());
             return Ok(ApiResponse<BillingDataPagedResponse>.Ok(result, result.Notice ?? "Data tagihan berhasil diambil."));
         }
         catch (BillingDataBadRequestException exception)

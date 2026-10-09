@@ -2,14 +2,14 @@
 
 | Field | Nilai |
 |---|---|
-| Contract version | `FIN-VAL-1.5` |
-| `last_changed_in` (1.5) | `FIN-VAL-1.5` — AMENDMENT REVISI 9, 29 September 2026 (bagian E: `FIN-VAL-144`..`146`). Status **`approved`** — disahkan oleh Yasmin via `FIN-DEC-080` dan `FIN-DEC-081` (mengoreksi `FIN-DEC-041`) |
-| `last_changed_in` | `FIN-VAL-1.4` — AMENDMENT REVISI 6, 28 September 2026 (bagian D: `FIN-VAL-133`..`143`; `FIN-VAL-130`..`132` diperbarui mengikuti katalog final) |
-| Status | Revisi 1.1 `approved` dan `locked` 25 September 2026; 1.2/1.3 mengikuti AMENDMENT REVISI 4/5. **Revisi 1.5 (bagian E) `approved` 29 September 2026 bersama `FIN-DEC-080`/`081`** |
+| Contract version | `FIN-VAL-1.11` |
+| `last_changed_in` (1.11) | `FIN-VAL-1.11` — AMENDMENT REVISI 18, 6 Oktober 2026 (bagian P: `FIN-VAL-246`..`248`, validasi integrasi lintas domain NIP, handoff, dan payroll). Status **`draft`** |
+| `last_changed_in` | `FIN-VAL-1.10` — AMENDMENT REVISI 17, 5 Oktober 2026 (bagian O: `FIN-VAL-230`..`245`, 16 aturan piutang karyawan Finance). Status `approved` (Yasmin, 5 Oktober 2026) |
+| Status | `approved` — Revisi 1.11 disetujui pemilik (Yasmin) 6 Oktober 2026 |
 | Owner | Yasmin (Product/Domain Owner Finance) |
-| `approved_by` / `approved_at` | Yasmin / 2026-09-29 (untuk `1.5`) |
-| Input revision | `00-interview-decisions.md` — `FIN-DEC-001`..`081`; `02-backend-architecture.md` bagian H (`FIN-DES-064`, `FIN-DES-065`) |
-| Dampak kompatibilitas | Revisi 1.4: **sebelas aturan ditambahkan** (`FIN-VAL-133`..`143`) dan **tiga aturan diperbarui** (`FIN-VAL-130`, `131`, `132`) karena nama kode yang dirujuknya sudah tidak ada lagi. Sebelumnya: satu aturan dicabut (`FIN-VAL-076`), sembilan ditambahkan (`FIN-VAL-078`..`086`) |
+| `approved_by` / `approved_at` | Yasmin / 2026-10-06 (untuk `1.11`) |
+| Input revision | `00-interview-decisions.md` — `FIN-DEC-183`..`202`, `02-backend-architecture.md` bagian P |
+| Dampak kompatibilitas | **Aditif.** Seluruh aturan baru menjaga integritas data lintas batas tanpa mengubah perilaku validasi piutang reguler |
 
 Pesan ditulis dalam bahasa yang dipahami pengguna, bukan istilah teknis. Kolom "Kode" adalah
 kode HTTP yang dikembalikan.
@@ -701,3 +701,105 @@ menampilkan kedua angka dari data batch. Pesan ini untuk dibaca manusia, bukan u
 | Batas jumlah batch aktif per jenis item | Belum ada bukti ia menjadi masalah. Batch yang menumpuk dapat ditolak, dan `FIN-DEC-155` sudah menjawab kebutuhan memecah berkas besar |
 | Memeriksa batas baris dari ukuran berkas sebelum diurai | Terkaan; berkas CSV dan XLSX dengan jumlah baris sama dapat berbeda ukuran jauh |
 | Menolak penguncian saldo awal Kas Kasir bernilai nol | Diputuskan sebaliknya (`FIN-DEC-143`) |
+
+---
+
+# AMENDMENT REVISI 17 — Piutang Manfaat Karyawan, sisi Finance (bagian O)
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-VAL-1.10` |
+| `last_changed_in` | `FIN-VAL-1.10` — AMENDMENT REVISI 17, 5 Oktober 2026 (bagian O: `FIN-VAL-230`..`245`) |
+| Status | **`approved`** — disetujui pemilik (Yasmin, 5 Oktober 2026) |
+| Owner | Yasmin (Product/Domain Owner Finance) |
+| `approved_by` / `approved_at` | Yasmin / 2026-10-05 |
+| Input revision | `00-interview-decisions.md` `FIN-DEC-162`..`179`; `02-backend-architecture.md` bagian O |
+| Dampak kompatibilitas | **Enam belas aturan ditambahkan** (`FIN-VAL-230`..`245`). Nol aturan yang sudah ada diubah atau dicabut |
+
+Pesan ditulis sebagaimana dibaca petugas, bukan istilah teknis.
+
+## O.1 Perjanjian angsuran
+
+| Kode | Aturan | Pesan yang dibaca petugas | Kode HTTP | Ditegakkan di |
+|---|---|---|---|---|
+| `FIN-VAL-230` | Perjanjian angsuran hanya boleh dibuat untuk piutang berjenis debitur **manfaat karyawan** | "Perjanjian angsuran hanya untuk piutang manfaat karyawan. Piutang ini berjenis <jenis debitur>." | `422` | Service |
+| `FIN-VAL-231` | Satu kartu piutang hanya boleh punya **satu** perjanjian yang menunggu persetujuan atau sudah disetujui | "Piutang ini sudah punya perjanjian angsuran yang berjalan. Batalkan dulu perjanjian itu sebelum membuat yang baru." | `409` | Unique index terfilter **dan** service |
+| `FIN-VAL-232` | Total yang disepakati **MUST** sama dengan jumlah angsuran dikali nominal tiap angsuran | "Total perjanjian tidak cocok: <jumlah> × <nominal> seharusnya <hasil>." | `422` | Check constraint **dan** service |
+| `FIN-VAL-233` | Pada saat **disetujui**, total yang disepakati **MUST** sama dengan sisa piutang | "Sisa piutang sudah berubah menjadi <sisa> sejak perjanjian diajukan. Ajukan ulang dengan angka yang benar." | `422` | Service, di dalam transaksi persetujuan |
+| `FIN-VAL-234` | Penyetuju **MUST NOT** sama dengan pengaju | "Anda tidak dapat menyetujui perjanjian yang Anda ajukan sendiri. Mintakan persetujuan kepada petugas berwenang lain." | `422` | Check constraint `CK_FinReceivableInstallmentPlan_MakerChecker` **dan** service |
+| `FIN-VAL-235` | Periode gaji pertama **MUST NOT** periode yang sudah lewat | "Periode gaji pertama tidak boleh periode yang sudah berjalan atau sudah lewat. Pilih <periode terdekat> atau sesudahnya." | `422` | Service |
+| `FIN-VAL-236` | Piutang berstatus lunas, dihapus buku, atau dibatalkan **MUST NOT** diangsur | "Piutang ini berstatus <status> sehingga tidak dapat diangsur." | `422` | Service |
+| `FIN-VAL-237` | Jumlah angsuran **MUST** antara 2 dan 60 | "Jumlah angsuran harus antara 2 dan 60 kali. Untuk pelunasan sekali bayar, tidak perlu perjanjian angsuran." | `400` | Anotasi DTO |
+| `FIN-VAL-238` | Alasan **MUST** terisi saat menolak atau membatalkan | "Alasan wajib diisi." | `400` | Anotasi DTO |
+
+> **Contoh `FIN-VAL-233`.** Staf mengajukan perjanjian 4 × Rp 1.000.000 atas piutang Rp 4.000.000. Sebelum
+> disetujui, pegawai membayar tunai Rp 500.000 sehingga sisanya menjadi Rp 3.500.000. Persetujuan
+> **ditolak**, karena menjadwalkan Rp 4.000.000 berarti memotong gaji lebih besar daripada utangnya.
+
+## O.2 Hasil potongan gaji
+
+Aturan ini **sudah ditetapkan** walaupun jalur penerimaannya tertahan slice `S3` (`FIN-OQ-091`), agar
+kontrak dengan HR nanti menyesuaikan diri pada aturan yang sudah disepakati.
+
+| Kode | Aturan | Pesan yang dibaca petugas | Kode HTTP | Ditegakkan di |
+|---|---|---|---|---|
+| `FIN-VAL-239` | Nominal yang dilaporkan terpotong **MUST NOT** melebihi sisa angsuran periode itu | "Nominal potongan <nominal> melebihi sisa angsuran <sisa> pada periode <periode>." | `422` | Service |
+| `FIN-VAL-240` | Satu hasil potongan untuk satu angsuran pada satu periode **MUST** aman dikirim ulang — kiriman kedua tidak boleh mengurangi piutang dua kali (`FIN-DEC-167`) | "Hasil potongan untuk periode ini sudah tercatat. Kiriman ini diabaikan." | `200` dengan penanda sudah tercatat | Service, memakai kunci idempotensi |
+
+## O.3 Pelunasan internal porsi benefit
+
+| Kode | Aturan | Pesan yang dibaca petugas | Kode HTTP | Ditegakkan di |
+|---|---|---|---|---|
+| `FIN-VAL-241` | Satu periode untuk satu penjamin internal hanya boleh punya **satu** pelunasan yang tidak dibatalkan | "Periode <periode> untuk penjamin <nama> sudah pernah ditutup pada <nomor pelunasan>." | `409` | Unique index terfilter **dan** service |
+| `FIN-VAL-242` | Pelunasan **MUST NOT** diterbitkan tanpa satu pun piutang di dalamnya | "Tidak ada piutang porsi benefit yang perlu ditutup untuk periode <periode>." | `422` | Service |
+| `FIN-VAL-243` | Satu kartu piutang **MUST NOT** ditutup dua pelunasan yang berbeda, dan piutang yang sudah lunas atau dihapus buku **MUST NOT** masuk daftar | "Piutang <nomor> sudah ditutup atau sudah lunas, sehingga dikeluarkan dari daftar." | `409` | Unique index terfilter **dan** service |
+
+> **Contoh `FIN-VAL-241`.** Dua petugas membuka layar pelunasan untuk periode `2026-10` atas penjamin
+> "RS Benefit" dan menekan Terbitkan hampir bersamaan. Yang pertama berhasil; yang kedua ditolak oleh
+> unique index, bukan hanya oleh pemeriksaan di layanan — sehingga porsi benefit tidak tertutup dua kali
+> dan beban benefit tidak terbukukan ganda.
+
+## O.4 Status bebas tanggungan
+
+| Kode | Aturan | Pesan yang dibaca petugas | Kode HTTP | Ditegakkan di |
+|---|---|---|---|---|
+| `FIN-VAL-244` | Status bebas tanggungan **MUST** dihitung dari saldo piutang aktif, dan **MUST NOT** dapat dikirim atau ditimpa dari permintaan | — tidak ada pesan; endpoint-nya hanya baca | — | Desain endpoint; nol kolom tersimpan (`FIN-DES-101`) |
+| `FIN-VAL-245` | Permintaan sekaligus **MUST NOT** melebihi 100 pegawai | "Maksimum 100 pegawai per permintaan. Pecah menjadi beberapa permintaan." | `400` | Anotasi DTO |
+
+## O.5 Ringkasan penomoran
+
+| Bagian | Kode | Jumlah |
+|---|---|---:|
+| O.1 Perjanjian angsuran | `FIN-VAL-230`..`238` | 9 |
+| O.2 Hasil potongan gaji | `FIN-VAL-239`..`240` | 2 |
+| O.3 Pelunasan internal porsi benefit | `FIN-VAL-241`..`243` | 3 |
+| O.4 Status bebas tanggungan | `FIN-VAL-244`..`245` | 2 |
+| **Jumlah** | `FIN-VAL-230`..`245` | **16** |
+
+---
+
+# AMENDMENT REVISI 18 — Piutang Manfaat Karyawan: Validasi Integrasi Lintas Domain (`FIN-VAL-1.11`)
+
+```yaml
+contract_version: FIN-VAL-1.11
+last_changed_in: Revisi 18 (6 Oktober 2026)
+status: draft
+input_revision: 00-interview-decisions.md (FIN-DEC-183..FIN-DEC-202)
+```
+
+## P.1 Validasi Serah Terima & Migrasi Karyawan
+
+| Kode | Aturan | Pesan yang dibaca petugas | Kode HTTP | Ditegakkan di |
+|---|---|---|---|---|
+| `FIN-VAL-246` | NIP pada berkas migrasi/impor **MUST** terdaftar dan berstatus aktif di `MstEmployee` HR (`FIN-DEC-196`) | "Baris {RowNumber}: NIP {EmployeeNumber} tidak terdaftar atau tidak aktif di master kepegawaian HR." | `422` | Service validasi impor |
+| `FIN-VAL-247` | Serah terima `BilArHandoff` dengan `DebtorType = "EMPLOYEE_BENEFIT"` **MUST** memiliki `BenefitOwnerId` yang valid dan tidak boleh kosong (`FIN-DEC-184`, `FIN-DEC-199`) | "Serah terima piutang manfaat karyawan wajib membawa ID pemilik manfaat yang valid." | `422` | Service Handoff & DB Check Constraint |
+| `FIN-VAL-248` | Laporan hasil pemotongan payroll berstatus `SEBAGIAN` **MUST** menyertakan nominal potongan > 0 dan sisa otomatis dialihkan ke angsuran berikutnya (`FIN-DEC-192`) | "Hasil pemotongan sebagian wajib memiliki nominal terpotong lebih besar dari nol." | `422` | Service Sync Payroll |
+
+## P.2 Ringkasan penomoran akumulatif
+
+| Bagian | Kode | Jumlah |
+|---|---|---:|
+| Revisi 17 | `FIN-VAL-230`..`245` | 16 |
+| Revisi 18 | `FIN-VAL-246`..`248` | 3 |
+| **Total Akumulatif** | `FIN-VAL-230`..`248` | **19** |
+

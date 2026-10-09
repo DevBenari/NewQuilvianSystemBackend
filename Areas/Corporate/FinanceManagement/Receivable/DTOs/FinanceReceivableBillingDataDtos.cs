@@ -102,7 +102,7 @@ public sealed class BillingDataQuery
     public string SortDirection { get; set; } = "desc";
 
     [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
-    [Range(1, 100)] public int PageSize { get; set; } = 25;
+    [Range(1, 1000)] public int PageSize { get; set; } = 25;
 }
 
 /// <summary>
@@ -125,6 +125,9 @@ public sealed class BillingDataItemResponse
     public string? MedicalRecordNumber { get; set; }
     public string? PatientName { get; set; }
 
+    /// <summary>Nomor identitas/NIP karyawan pasien bila tersedia (kategori employee).</summary>
+    public string? EmployeeId { get; set; }
+
     /// <summary>outpatient | inpatient | emergency | other; null bila kunjungan tidak terbaca.</summary>
     public string? PatientType { get; set; }
 
@@ -145,6 +148,21 @@ public sealed class BillingDataItemResponse
     /// <summary>insurance | company; null bila penjamin tidak dapat ditentukan atau bukan kategori company.</summary>
     public string? PayerKind { get; set; }
 
+    /// <summary>Tanggal masuk / registrasi kunjungan (RegPatientEncounter.EncounterDate / RegisteredAt).</summary>
+    public DateTimeOffset? EncounterStartAt { get; set; }
+
+    /// <summary>Tanggal keluar / selesai pelayanan kunjungan (RegPatientEncounter.CompletedAt). Null bila belum selesai.</summary>
+    public DateTimeOffset? EncounterEndAt { get; set; }
+
+    /// <summary>Nominal awal piutang (FinReceivable.OriginalAmount).</summary>
+    public decimal OriginalAmount { get; set; }
+
+    /// <summary>Sisa saldo piutang (FinReceivable.OutstandingAmount).</summary>
+    public decimal OutstandingAmount { get; set; }
+
+    /// <summary>Tanggal jatuh tempo piutang (FinReceivable.DueDate).</summary>
+    public DateOnly? DueDate { get; set; }
+
     /// <summary>Jumlah tagihan = nominal rincian piutang, yaitu nominal yang masuk ke Finance/AR (sudah dihitung Billing).</summary>
     public decimal BillingAmount { get; set; }
     public string ReceivableStatus { get; set; } = string.Empty;
@@ -159,6 +177,86 @@ public sealed class BillingDataItemResponse
 
     /// <summary>Lihat <see cref="BillingDataCreateBlockedReasons"/>; null bila CanCreateInvoice true.</summary>
     public string? CreateBlockedReason { get; set; }
+
+    // --- Alias Kompatibilitas UI / V1 ---
+    /// <summary>Alias kompatibilitas UI untuk Id piutang/tagihan.</summary>
+    public Guid BillingId => Id;
+
+    /// <summary>Alias kompatibilitas UI untuk BillingDate.</summary>
+    public DateTimeOffset Tanggal => BillingDate;
+
+    /// <summary>Alias kompatibilitas UI untuk tanggal masuk.</summary>
+    public DateTimeOffset? TanggalMasuk => EncounterStartAt ?? BillingDate;
+
+    /// <summary>Alias kompatibilitas UI untuk tanggal keluar.</summary>
+    public DateTimeOffset? TanggalKeluar => EncounterEndAt;
+
+    /// <summary>Alias kompatibilitas UI untuk InvoiceNumber.</summary>
+    public string? NoBill => InvoiceNumber;
+
+    /// <summary>Alias kompatibilitas UI untuk EncounterNumber.</summary>
+    public string? NoRegistrasi => EncounterNumber;
+
+    /// <summary>Alias kompatibilitas UI untuk MedicalRecordNumber.</summary>
+    public string? NoRM => MedicalRecordNumber;
+
+    /// <summary>Alias kompatibilitas UI untuk PatientName.</summary>
+    public string? NamaPasien => PatientName;
+
+    /// <summary>Alias kompatibilitas UI untuk EmployeeId.</summary>
+    public string? IdKaryawan => EmployeeId;
+
+    /// <summary>Alias kompatibilitas UI untuk BillingAmount.</summary>
+    public decimal JumlahTagihan => BillingAmount;
+
+    /// <summary>Alias kompatibilitas UI untuk OriginalAmount.</summary>
+    public decimal TotalPiutang => OriginalAmount != 0 ? OriginalAmount : BillingAmount;
+
+    /// <summary>Alias kompatibilitas UI untuk OutstandingAmount.</summary>
+    public decimal SisaPiutang => OutstandingAmount;
+}
+
+/// <summary>Metadata kelompok tagihan (misal No. RM dan ID Karyawan untuk employee/pasien).</summary>
+public sealed class BillingDataGroupMeta
+{
+    public string? NoRM { get; set; }
+    public string? EmployeeId { get; set; }
+}
+
+/// <summary>Subtotal billing amount per tanggal kalender di dalam kelompok yang sama.</summary>
+public sealed class BillingDataDateTotalResponse
+{
+    /// <summary>Format tanggal: yyyy-MM-dd.</summary>
+    public string Date { get; set; } = string.Empty;
+    public decimal Total { get; set; }
+}
+
+/// <summary>Satu kelompok baris tagihan pada Data Tagihan (perusahaan, karyawan, atau pasien umum).</summary>
+public sealed class BillingDataGroupResponse
+{
+    /// <summary>Identifier stabil grup (PayerId GUID string / EmployeeId / PatientId GUID string).</summary>
+    public string GroupId { get; set; } = string.Empty;
+
+    /// <summary>Nama kelompok untuk tampilan UI (nama perusahaan/asuransi, nama karyawan, atau nama pasien).</summary>
+    public string GroupName { get; set; } = string.Empty;
+
+    /// <summary>Metadata tambahan untuk header grup.</summary>
+    public BillingDataGroupMeta GroupMeta { get; set; } = new();
+
+    /// <summary>Daftar tagihan yang termasuk ke dalam grup ini pada halaman aktif.</summary>
+    public List<BillingDataItemResponse> Items { get; set; } = new();
+
+    /// <summary>Subtotal per tanggal di dalam grup ini.</summary>
+    public List<BillingDataDateTotalResponse> DateTotals { get; set; } = new();
+
+    /// <summary>Total nominal tagihan grup dari SELURUH DATA FILTERED (bukan hanya halaman aktif).</summary>
+    public decimal GroupTotal { get; set; }
+
+    /// <summary>Jumlah transaksi tagihan grup dari seluruh data filtered.</summary>
+    public int ItemCount { get; set; }
+
+    /// <summary>Jumlah pasien unik pada grup ini dari seluruh data filtered.</summary>
+    public int PatientCount { get; set; }
 }
 
 /// <summary>Ringkasan atas SELURUH hasil saringan (bukan hanya halaman aktif).</summary>
@@ -196,6 +294,9 @@ public sealed class BillingDataPayerOptionResponse
 
 public sealed class BillingDataPagedResponse : PagedResult<BillingDataItemResponse>
 {
+    /// <summary>Daftar grup tagihan dengan subtotal tanggal dan subtotal final grup.</summary>
+    public List<BillingDataGroupResponse> Groups { get; set; } = new();
+
     public BillingDataSummaryResponse Summary { get; set; } = new();
 
     /// <summary>Penjelasan bila hasil kosong karena sumber datanya memang belum ada (kategori employee). Null pada kasus lain.</summary>
