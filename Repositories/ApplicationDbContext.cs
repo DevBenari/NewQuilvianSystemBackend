@@ -869,6 +869,19 @@ namespace QuilvianSystemBackend.Repositories
 
         /// <summary>Permintaan admisi dari kamar pulih (<c>BE-RWI-181</c>, kamus data 19.8, migration <c>E6</c>).</summary>
         public DbSet<InpAdmissionReferral> InpAdmissionReferrals { get; set; }
+
+        // Workspace PPRI — dokumen admisi dan log cetak (BE-RWI-192, kamus data 20.2–20.13,
+        // migration E10). Seluruhnya milik InPatientManagement (RWI-DEC-228).
+        public DbSet<InpAdmissionDocument> InpAdmissionDocuments { get; set; }
+        public DbSet<InpAdmissionDocumentSignature> InpAdmissionDocumentSignatures { get; set; }
+        public DbSet<InpAdmissionDocumentParty> InpAdmissionDocumentParties { get; set; }
+        public DbSet<InpAdmissionHandoverItem> InpAdmissionHandoverItems { get; set; }
+        public DbSet<InpAdmissionPrivacyRequest> InpAdmissionPrivacyRequests { get; set; }
+        public DbSet<InpAdmissionPrivacyEntry> InpAdmissionPrivacyEntries { get; set; }
+        public DbSet<InpAdmissionBeliefItem> InpAdmissionBeliefItems { get; set; }
+        public DbSet<InpAdmissionCostDifferenceStatement> InpAdmissionCostDifferenceStatements { get; set; }
+        public DbSet<InpAdmissionDepositStatement> InpAdmissionDepositStatements { get; set; }
+        public DbSet<InpAdmissionPrintLog> InpAdmissionPrintLogs { get; set; }
         public DbSet<TrxKioskScanSession> TrxKioskScanSessions { get; set; }
         public DbSet<RegPatientEncounter> RegPatientEncounters { get; set; }
         public DbSet<RegPatientEncounterGuarantor> RegPatientEncounterGuarantors { get; set; }

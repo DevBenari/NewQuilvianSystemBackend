@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `12` — amandemen 2026-10-07 (kedua): `AC-289`..`AC-293` (BR-139, kontrak usulan `LAB-REQ-017`). Sebelumnya `11` — amandemen 2026-10-07: `AC-276`..`AC-282` (susulan putaran 22) dan `AC-283`..`AC-288` (BR-138, kontrak usulan `LAB-REQ-016`). Sebelumnya `10` — amandemen 2026-09-28, tiga laporan operasional (`S16a`) — kontraknya disetujui hari yang sama. Sebelumnya `9` — amandemen 2026-09-25 ketiga (penyelesaian order, hasil resmi, label keadaan). Sebelumnya `8` — amandemen 2026-09-25 kedua (`S4d-1`). Sebelumnya `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
+| Revision | `17` — 2026-10-09: `AC-323`..`AC-325` (rencana ulang sesudah wadah dibatalkan, putaran 29, `r46` `approved` lewat `LAB-REQ-023`). Sebelumnya `16` — amandemen 2026-10-09: lapis uji `AC-318`..`AC-322` (CITO dari pemesanan sampai ke pemeriksaan, putaran 28, `LAB-API-v1` `r45` `approved` lewat `LAB-REQ-022`). Sebelumnya `15` — amandemen 2026-10-08 (ketiga): lapis uji `AC-294`..`AC-301` dan `VAL-154` (BR-140 Beranda, kontrak usulan `LAB-REQ-021`). Sebelumnya `14` — amandemen 2026-10-08 (kedua): `AC-314`..`AC-317` (putaran 27, kontrak usulan `LAB-REQ-020`). Sebelumnya `13` —amandemen 2026-10-08: `AC-302`..`AC-313` (BR-141, kontrak usulan `LAB-REQ-019`). Sebelumnya `12` — amandemen 2026-10-07 (kedua): `AC-289`..`AC-293` (BR-139, kontrak usulan `LAB-REQ-017`). Sebelumnya `11` — amandemen 2026-10-07: `AC-276`..`AC-282` (susulan putaran 22) dan `AC-283`..`AC-288` (BR-138, kontrak usulan `LAB-REQ-016`). Sebelumnya `10` — amandemen 2026-09-28, tiga laporan operasional (`S16a`) — kontraknya disetujui hari yang sama. Sebelumnya `9` — amandemen 2026-09-25 ketiga (penyelesaian order, hasil resmi, label keadaan). Sebelumnya `8` — amandemen 2026-09-25 kedua (`S4d-1`). Sebelumnya `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -976,3 +976,75 @@ Kontrak `LAB-API-v1` `r41` dan `LAB-PERM-v1` revision 14 — `approved` 2026-10-
 ### Yang tidak diuji
 
 Penyaring dokter lab (`LAB-DEC-200` tidak memintanya); perubahan `KioskRead` (milik SDM).
+
+## Amandemen 2026-10-08 — Alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141)
+
+Kontrak `LAB-API-v1` `r42`, `LAB-PERM-v1` revision 15, `LAB-STATE-v1` `r9`, `LAB-VAL-v1` `r18`, `LAB-INT-v1` `r6` —
+**`approved` 2026-10-08** lewat `LAB-REQ-019`. Decisions rev 91. Bukti runtime: `LAB-EVD-013` bagian D.
+
+| AC | Lapis uji | Cara | Keadaan 2026-10-08 |
+|---|---|---|---|
+| `AC-302` | Peramban (kiosk disamarkan) | Pasien berpesanan aktif → Konfirmasi Kehadiran; satu sesi kiosk, nol kunjungan | ✅ Tiruan tulis + bacaan sungguhan |
+| `AC-303` | Peramban, tulis sungguhan | Pasien tanpa pesanan → tiket; kunjungan unit Lab tanpa dokter | ✅ `ENC-RSMMC-00177`, `00178` |
+| `AC-304` | Peramban | Bacaan pesanan gagal → jalur pendaftaran | Belum |
+| `AC-305` | Peramban, tulis sungguhan | Kunjungan kiosk tampil di OTC; hilang sesudah dipesan | ✅ |
+| `AC-306` | Peramban, tulis sungguhan + unit FE | Satu Simpan → kunjungan/pesanan/wadah `Received`; CITO terkirim; Simpan ulang tidak menggandakan | ✅ sebagian (Simpan ulang: unit + tiruan) |
+| `AC-307` | Peramban | Pilihan pembayaran pada kunjungan baru; baca-saja pada OTC | ⚠ OTC menyembunyikan, belum baca-saja |
+| `AC-308` | Peramban, tiruan tulis | Pesanan dokter tanpa wadah → jenis specimen → plan/collect/receive | ✅ Tiruan |
+| `AC-309` | Peramban, tulis sungguhan | Pengambil ditahan; analis kedua Layak/Tidak Layak | ✅ |
+| `AC-310` | HTTP + peramban, tulis sungguhan | `409` belum lunas Rp 35.000; asuransi tidak dikunci | ✅ Tunai; asuransi belum |
+| `AC-311` | Peramban | Bunyi kolom Pembayaran | ✅ *Belum Ditagih*, *Belum Lunas · Rp 35.000* |
+| `AC-312` | Peramban | Centang Konfirmasi; Batal selalu dapat ditekan | ✅ |
+| `AC-313` | Peramban + unit menu | Tiga menu Hasil dan Riwayat; Kirim Hasil nonaktif | ✅ |
+
+## Amandemen 2026-10-08 (kedua) — Lingkup kunci Lunas (putaran 27)
+
+Kontrak `LAB-API-v1` `r43`, `LAB-STATE-v1` `r10`, `LAB-VAL-v1` `r19` — **`approved` 2026-10-08** lewat `LAB-REQ-020`. Decisions rev 92.
+
+| AC | Lapis uji | Cara | Keadaan 2026-10-08 |
+|---|---|---|---|
+| `AC-314` | Unit BE + unit FE | Rawat inap Tunai belum lunas → `Deferred`, sisa tampil, `start-process` `200` | ✅ Unit BE (harness InMemory 11/11 (BE working tree 2026-10-08)) + unit FE (557/557). HTTP rawat inap belum — nol pesanan rawat inap di devYoga |
+| `AC-315` | Unit BE + unit FE | IGD Tunai tanpa tagihan → `Deferred` tanpa nominal, `start-process` `200` | ✅ Unit BE + unit FE. HTTP IGD belum — nol pesanan IGD di devYoga |
+| `AC-316` | Unit BE + HTTP devYoga | MCU/Telemedicine/`Unknown`/jenis tak terbaca Tunai belum lunas → `409`; rawat jalan tetap `409` (regresi `AC-310`) | ✅ Unit BE (MCU, Telemedicine, `Unknown`, `null`). HTTP devYoga: 21 baris rawat jalan tetap terkunci; `start-process` `LAB-RSMMC-000023` → `409` *sisa Rp 35.000* |
+| `AC-317` | Unit BE | Rawat inap/IGD berpenjamin → `Guaranteed` | ✅ Unit BE |
+
+Rawat inap/IGD tidak dapat diuji sungguhan di devYoga selama nol pesanan Lab pada kunjungan jenis itu.
+
+## Amandemen 2026-10-08 (ketiga) — Beranda Lab mengikuti susunan v1 (BR-140)
+
+Kontrak `LAB-API-v1` `r44`, `LAB-VAL-v1` `r20`, `LAB-PERM-v1` revision 16 — **`approved` 2026-10-08** lewat `LAB-REQ-021`.
+Decisions rev 92 (putaran 25). Rancangan: `02-backend-architecture.md` bagian 28. Kode belum ada.
+
+| AC | Lapis uji | Cara | Keadaan 2026-10-08 |
+|---|---|---|---|
+| `AC-294` | Peramban | Beranda menampilkan bagian 1–9 berurutan (`03-frontend-architecture.md`, amandemen 2026-10-08) dengan komponen dan tema V2 | Belum — kode belum ada |
+| `AC-295` | Unit BE (harness InMemory) | 12 pesanan hari ini WIB (3 *Selesai*, 1 *Dibatalkan*, 2 CITO — satu CITO hanya pada permintaan tanpa wadah) → 12 / 8 / 3 (25%) / 2; pesanan 23.30 WIB kemarin dan 00.00 WIB besok tidak terhitung; pesanan 06.30 WIB hari ini terhitung | Belum |
+| `AC-296` | Unit BE + HTTP devYoga | `awaitingValidationCount` = `totalData` antrean validasi tahap *Menunggu Validasi* pada data yang sama; hasil Mikro *Sementara* dan PA tidak terhitung; nol kueri ke tabel pengguna/SDM | Belum |
+| `AC-297` | Unit BE + peramban | Pemeriksaan tidak batal + permintaan belum masuk wadah, pada pesanan tidak batal tahun terpilih; pesanan *Dibatalkan* tidak terhitung walau pemeriksaannya tidak dibatalkan; mengganti tahun mengubah ketiga grafik dan kartu *Jenis laboratorium* | Belum |
+| `AC-298` | Unit BE | Selalu 12 bulan dua seri; *Dibatalkan* dan *Draft* tidak terhitung; pesanan 2026-01-31 23.30 WIB masuk Januari | Belum |
+| `AC-299` | Unit BE + peramban | Maks. 10 baris urut waktu diminta terbaru, termasuk *Dibatalkan*; klik baris membuka `/lab-orders/{id}` | Belum |
+| `AC-300` | Unit FE + peramban | Waktu muat tampil; *Perbarui Data* memuat keempat sumber; `yearly` dipaksa `500` → hanya bagian tahunan bergalat | Belum |
+| `AC-301` | HTTP devYoga | Akun tanpa `LabOrder : Read` → ketiga endpoint `403`, layar *Akses Ditolak* | Belum |
+| `VAL-154` | Unit BE | `year` 1999 dan tahun depan → `422`; kosong → tahun berjalan WIB; batas pergantian tahun dibaca WIB | Belum |
+| Regresi antrean | Unit BE | Antrean validasi: isi, urutan, dan `totalData` sama sebelum dan sesudah kueri dasarnya diangkat | Belum |
+
+## Amandemen 2026-10-09 — CITO dari pemesanan sampai ke pemeriksaan (putaran 28)
+
+Kontrak `LAB-API-v1` `r45` — **`approved` 2026-10-09** lewat `LAB-REQ-022`. Decisions rev 93. Task `BE-LAB-94`.
+
+| AC | Lapis uji | Cara | Keadaan 2026-10-09 |
+|---|---|---|---|
+| `AC-318` | Unit BE (harness) + HTTP/peramban (tulis, atas izin) | Permintaan Hemoglobin `Cito` + Leukosit `Routine` → rencana wadah → `urgency` `Cito`/`Routine`, penanda `null`; daftar pantau `hasCito`; daftar kerja `onlyCito`; label CITO di peramban | ✅ Harness + peramban 2026-10-09 (analis Gilang, `LAB-RSMMC-000024`: *Memuat CITO*, saringan *Cito*, Nota *Hemoglobin CITO*, Daftar Kerja dan *Hanya Cito*) |
+| `AC-319` | Unit BE (`asOf` tetap) + peramban | Sesudah `ChargeEligibleAt` + batas waktu prosedur → muncul di `cito-overdue`; laporan TAT cito | ⚠ Harness ✅ (`cito-overdue` terlambat 30 menit; belum muncul sebelum batas). Peramban tidak dijalankan — butuh Layak (tagihan uji), tidak diizinkan pemilik |
+| `AC-320` | Unit BE | Ambil ulang: `Cito` lahir → `Cito` penanda kosong; `Cito` lewat *Tandai Cito* → penanda tersalin; cito dicabut → `Routine` berpenanda | ✅ Harness `BE-LAB-94` |
+| `AC-321` | SQL migration (PostgreSQL non-bersama, atau DB dev dalam transaksi `ROLLBACK` atas izin) | Langkah 1–2 dan 3 (termasuk rantai A → B → C); satu riwayat per pemeriksaan; `Version + 1`; jalan kedua 0 baris; `Down` membalik hanya baris berpenanda. Hitung kering baca-saja | ✅ SQL 13/13 di PostgreSQL 15 devYoga dalam transaksi `ROLLBACK` (`BE-LAB-94`); hitung kering dev 0 dan 0. Penerapan sungguhan: langkah rilis `MVP-14c` |
+| `AC-322` | Unit BE + HTTP baca-saja | Pesanan tanpa permintaan → `Routine`; kartu CITO Beranda sama sebelum dan sesudah | ✅ Harness + HTTP baca-saja (`dashboard/today` `200`) |
+| Tambahan | Unit BE | Dua permintaan aktif prosedur sama (satu `Cito`) → `Cito`; tambah manual tetap `Routine` | ✅ Harness; `AddAsync` tidak disentuh |
+
+### Tambahan 2026-10-09 — Rencana ulang sesudah wadah dibatalkan (putaran 29)
+
+| AC | Lapis uji | Cara | Keadaan 2026-10-09 |
+|---|---|---|---|
+| `AC-323` | Unit BE | Leukosit Cito berpenanda; wadah dibatalkan; rencana ulang → Cito, penanda sama | ✅ Harness `BE-LAB-95` |
+| `AC-324` | Unit BE | Hemoglobin dicabut (berpenanda), permintaan Cito; wadah dibatalkan; rencana ulang → Routine berpenanda | ✅ Harness `BE-LAB-95` |
+| `AC-325` | Unit BE | Pendahulu tanpa penanda + permintaan Cito → Cito kosong; tanpa pendahulu → permintaan; ambil ulang dengan pemeriksaan lama tanpa penanda → permintaan | ✅ Harness `BE-LAB-95` |

@@ -21,6 +21,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public Guid? DoctorId { get; set; }
 
         /// <summary>
+        /// Menyaring daftar menurut perawat penanggung jawab (EmployeeId pada penugasan perawat aktif).
+        /// </summary>
+        public Guid? NurseEmployeeId { get; set; }
+
+        /// <summary>
         /// Benar bila pemanggil hanya ingin melihat pasien yang ia sendiri punya penugasan
         /// aktif atasnya. Ditambahkan <c>BE-RWI-081</c>.
         /// </summary>
@@ -41,9 +46,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         public bool? RequiresIsolation { get; set; }
 
-        public string? SortBy { get; set; }
+        /// <summary>Batas bawah rentang tanggal, dibandingkan terhadap waktu pendaftaran/masuk.</summary>
+        public DateTime? StartDate { get; set; }
 
-        public string? SortDirection { get; set; } = "asc";
+        /// <summary>Batas atas rentang tanggal, inklusif sampai akhir hari.</summary>
+        public DateTime? EndDate { get; set; }
+
+        /// <summary>Status episode (misal Admitted atau DischargePending).</summary>
+        public int? EpisodeStatus { get; set; }
+
+        public string? SortBy { get; set; } = "admittedAt";
+
+        public string? SortDirection { get; set; } = "desc";
 
         public int PageNumber { get; set; } = 1;
 
@@ -219,9 +233,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         public bool? RequiresIsolation { get; set; }
 
-        public string SortBy { get; set; } = "bedName";
+        public DateTime? StartDate { get; set; }
 
-        public string SortDirection { get; set; } = "asc";
+        public DateTime? EndDate { get; set; }
+
+        public int? EpisodeStatus { get; set; }
+
+        public string SortBy { get; set; } = "admittedAt";
+
+        public string SortDirection { get; set; } = "desc";
 
         public int PageNumber { get; set; } = 1;
 
@@ -242,6 +262,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public List<InpatientOptionResponse> ServiceUnitOptions { get; set; } = new();
 
         public List<InpatientOptionResponse> PatientClassOptions { get; set; } = new();
+
+        public List<InpatientOptionResponse> EpisodeStatusOptions { get; set; } = new();
 
         public string ResetButtonLabel { get; set; } = "Reset";
     }

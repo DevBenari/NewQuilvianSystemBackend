@@ -370,3 +370,14 @@ Berkas milik `FE-LAB-13`:
 
 Berkas lain pada working tree berasal dari `FE-LAB-14`, `FE-LAB-15`, dan `FE-LAB-16` yang belum
 di-commit, dan tidak disentuh task ini.
+
+---
+
+## Catatan sesudah task — 2026-10-08
+
+Layar serah-terima jalur Laboratorium (`kiosk-old-patient-step-lab-handoff.jsx`) dan pertanyaan *membawa surat
+dokter* **dicabut** oleh `LAB-DEC-213` (Amendment Pass putaran 26, decision log revision `91`): kiosk kini mengikuti
+FE v1 — Konfirmasi Kehadiran bila pasien punya pesanan Lab aktif, atau pendaftaran kunjungan bila tidak. Alasan
+penahan yang ditulis pada kepala berkas yang dicabut itu (`AC-45`, `LAB-OPEN-025`/`026`) sudah terbantah
+`BE-EXT-05`. Isi laporan di atas dibiarkan apa adanya sebagai riwayat.
+
