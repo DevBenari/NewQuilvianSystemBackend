@@ -1,8 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Constants;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -28,15 +34,18 @@ public sealed class FinanceReceivableInvoiceBatchService
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
     private readonly BillingCompanyGuarantorInvoiceDocumentService _documentService;
+    private readonly NumberSeriesAllocator _numberSeriesAllocator;
 
     public FinanceReceivableInvoiceBatchService(
         ApplicationDbContext dbContext,
         LoggerService loggerService,
-        BillingCompanyGuarantorInvoiceDocumentService documentService)
+        BillingCompanyGuarantorInvoiceDocumentService documentService,
+        NumberSeriesAllocator numberSeriesAllocator)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
         _documentService = documentService;
+        _numberSeriesAllocator = numberSeriesAllocator;
     }
 
     // ------------------------------------------------------------------------------------
@@ -102,6 +111,10 @@ public sealed class FinanceReceivableInvoiceBatchService
             DebtorReferenceId = mapped.DebtorReferenceId,
             PeriodStart = mapped.PeriodStart,
             PeriodEnd = mapped.PeriodEnd,
+            InvoiceDate = mapped.InvoiceDate,
+            DueDate = mapped.DueDate,
+            PaymentTermDays = mapped.PaymentTermDays,
+            Note = mapped.Note,
             TotalAmount = mapped.TotalAmount,
             Status = mapped.Status,
             IssuedAt = mapped.IssuedAt,
@@ -127,6 +140,66 @@ public sealed class FinanceReceivableInvoiceBatchService
                     ReceivableStatus = x.Receivable.Status
                 })
                 .ToList()
+        };
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Konteks pembuatan batch — GET /create-context. Menyediakan metadata penjamin,
+    // default tanggal dokumen, Terms of Payment authoritative, dan estimasi jatuh tempo
+    // tanpa menduplikasi pembacaan daftar piutang (/billing-data).
+    // ------------------------------------------------------------------------------------
+
+    public async Task<ReceivableInvoiceBatchCreateContextResponse> GetCreateContextAsync(
+        Guid debtorReferenceId, string? category, CancellationToken cancellationToken)
+    {
+        // 1. Cek apakah ini Company Guarantor
+        var company = await _dbContext.MstCompanyGuarantors.AsNoTracking()
+            .Where(x => x.Id == debtorReferenceId && !x.IsDelete)
+            .Select(x => new { x.Id, x.CompanyGuarantorName })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        string payerName;
+        string payerKind;
+
+        if (company != null)
+        {
+            payerName = company.CompanyGuarantorName;
+            payerKind = BillingDataPayerKinds.Company;
+        }
+        else
+        {
+            // 2. Cek apakah ini Insurance Provider
+            var insurance = await _dbContext.MstInsuranceProviders.AsNoTracking()
+                .Where(x => x.Id == debtorReferenceId && !x.IsDelete)
+                .Select(x => new { x.Id, x.InsuranceProviderName })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (insurance != null)
+            {
+                payerName = insurance.InsuranceProviderName;
+                payerKind = BillingDataPayerKinds.Insurance;
+            }
+            else
+            {
+                throw new KeyNotFoundException($"Penjamin dengan Id '{debtorReferenceId}' tidak ditemukan.");
+            }
+        }
+
+        // Business rule baru AR Invoice: Due Date selalu 30 hari kalender dari Tanggal Invoice
+        var defaultInvoiceDate = FinanceBusinessDate.Today();
+        const int paymentTermDays = 30;
+        var dueDatePreview = defaultInvoiceDate.AddDays(paymentTermDays);
+
+        return new ReceivableInvoiceBatchCreateContextResponse
+        {
+            DebtorReferenceId = debtorReferenceId,
+            PayerName = payerName,
+            PayerKind = payerKind,
+            DefaultInvoiceDate = defaultInvoiceDate,
+            PaymentTermDays = paymentTermDays,
+            DueDatePreview = dueDatePreview,
+            DueDateSource = ReceivableDueDateSources.SystemDefault30Days,
+            IsTermConfigured = true
         };
     }
 
@@ -171,7 +244,8 @@ public sealed class FinanceReceivableInvoiceBatchService
 
     public async Task<FinReceivableInvoiceBatch> CreateAsync(
         DateOnly periodStart, DateOnly periodEnd, IReadOnlyList<Guid> receivableIds,
-        Guid actorUserId, CancellationToken cancellationToken)
+        Guid actorUserId, CancellationToken cancellationToken,
+        DateOnly? invoiceDate = null, string? note = null)
     {
         var distinctIds = receivableIds.Distinct().ToList();
         var receivables = await _dbContext.FinReceivables
@@ -188,15 +262,19 @@ public sealed class FinanceReceivableInvoiceBatchService
             throw new ReceivableInvoiceBatchBadRequestException(
                 $"Batch Tagihan AR hanya menerima piutang berjenis PAYER. Piutang {nonPayer[0].ReceivableNumber} berjenis {nonPayer[0].DebtorType}.");
 
-        // Sama dengan GET eligible-receivables: hanya piutang yang masih OUTSTANDING/PARTIAL dan bernilai positif
-        // yang boleh ditagihkan. Piutang CANCELLED, SETTLED, atau WRITTEN_OFF ditolak di server, tidak hanya
-        // disembunyikan dari daftar.
+        // Hanya piutang yang masih bisa ditagihkan (OUTSTANDING/PARTIAL) ATAU sudah lunas dibayar (SETTLED, mis.
+        // gabungan asuransi + excess tunai) dan bernilai positif yang boleh ditagihkan. Status pembayaran (SETTLED)
+        // dan status pembuatan AR/Invoice (keanggotaan batch) adalah dua hal terpisah: piutang lunas yang belum
+        // pernah digabung tetap perlu dibuatkan AR/Invoice-nya untuk keperluan dokumentasi/klaim. Piutang
+        // CANCELLED atau WRITTEN_OFF tetap ditolak di server, tidak hanya disembunyikan dari daftar.
         var notBillable = receivables.Where(x =>
-            (x.Status != FinReceivableStatuses.Outstanding && x.Status != FinReceivableStatuses.Partial)
+            (x.Status != FinReceivableStatuses.Outstanding
+                && x.Status != FinReceivableStatuses.Partial
+                && x.Status != FinReceivableStatuses.Settled)
             || x.OriginalAmount <= 0).ToList();
         if (notBillable.Count > 0)
             throw new ReceivableInvoiceBatchValidationException(
-                $"Piutang {notBillable[0].ReceivableNumber} berstatus {notBillable[0].Status} dan tidak dapat ditagihkan. Hanya piutang OUTSTANDING atau PARTIAL dengan nilai lebih dari nol yang dapat digabung.");
+                $"Piutang {notBillable[0].ReceivableNumber} berstatus {notBillable[0].Status} dan tidak dapat ditagihkan. Hanya piutang OUTSTANDING, PARTIAL, atau SETTLED dengan nilai lebih dari nol yang dapat digabung.");
 
         // FIN-VAL-115: seluruh piutang dalam satu batch harus milik penjamin yang sama.
         var debtorReferenceIds = receivables.Select(x => x.DebtorReferenceId).Distinct().ToList();
@@ -228,14 +306,71 @@ public sealed class FinanceReceivableInvoiceBatchService
             throw new ReceivableInvoiceBatchConflictException(
                 $"Piutang {string.Join(", ", stuckInCancelled)} masih tercatat pada batch tagihan yang sudah dibatalkan, sehingga belum dapat digabung ulang. Pembebasan piutang dari batch yang dibatalkan belum tersedia.");
 
+        // 1. Load seluruh item piutang, invoice terkait, dan encounter terkait untuk klasifikasi VisitCode
+        var receivableItems = await _dbContext.FinReceivableItems.AsNoTracking()
+            .Where(x => !x.IsDelete && distinctIds.Contains(x.ReceivableId))
+            .ToListAsync(cancellationToken);
+
+        var invoiceIds = receivables.Where(x => x.InvoiceId.HasValue).Select(x => x.InvoiceId!.Value)
+            .Concat(receivableItems.Where(x => x.InvoiceId.HasValue).Select(x => x.InvoiceId!.Value))
+            .Distinct()
+            .ToList();
+
+        var invoices = await _dbContext.BilInvoices.AsNoTracking()
+            .Where(x => invoiceIds.Contains(x.Id) && !x.IsDelete)
+            .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+        var encounterIds = invoices.Values.Select(x => x.EncounterId)
+            .Concat(receivableItems.Where(x => x.EncounterId.HasValue).Select(x => x.EncounterId!.Value))
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var encounters = await _dbContext.RegPatientEncounters.AsNoTracking()
+            .Where(x => encounterIds.Contains(x.Id) && !x.IsDelete)
+            .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+        // 2. Resolve seluruh VisitCode dan pastikan hanya ada satu distinct VisitCode dalam batch
+        var visitCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var receivable in receivables)
+        {
+            var itemsForRec = receivableItems.Where(x => x.ReceivableId == receivable.Id).ToList();
+            var code = ResolveReceivableVisitCode(receivable, itemsForRec, invoices, encounters);
+            visitCodes.Add(code);
+        }
+
+        if (visitCodes.Count > 1)
+        {
+            throw new ReceivableInvoiceBatchValidationException(
+                "Tagihan Rawat Inap dan Rawat Jalan/IGD/OTC tidak dapat digabung dalam satu Invoice AR.");
+        }
+
+        var visitCode = visitCodes.First();
+
+        // 3. Due Date selalu otomatis 30 hari kalender dari Tanggal Pembuatan Invoice
+        var effectiveInvoiceDate = invoiceDate ?? FinanceBusinessDate.Today();
+        const int paymentTermDays = 30;
+        var batchDueDate = effectiveInvoiceDate.AddDays(paymentTermDays);
+
+        // 4. Nomor Invoice AR resmi menggunakan format {SEQUENCE}/{VISIT_CODE}/RSMMC/{ROMAN_MONTH}/{YEAR}
+        var invoiceNumber = await GenerateArInvoiceNumberAsync(
+            visitCode,
+            effectiveInvoiceDate,
+            actorUserId,
+            cancellationToken);
+
         var batch = new FinReceivableInvoiceBatch
         {
             Id = Guid.NewGuid(),
-            BatchNumber = GenerateBatchNumber(),
+            BatchNumber = invoiceNumber,
             DebtorType = FinReceivableDebtorTypes.Payer,
             DebtorReferenceId = debtorReferenceId,
             PeriodStart = periodStart,
             PeriodEnd = periodEnd,
+            InvoiceDate = effectiveInvoiceDate,
+            DueDate = batchDueDate,
+            PaymentTermDays = paymentTermDays,
+            Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
             TotalAmount = receivables.Sum(x => x.OriginalAmount),
             Status = FinReceivableInvoiceBatchStatuses.Draft,
             RowVersion = Guid.NewGuid(),
@@ -502,7 +637,9 @@ public sealed class FinanceReceivableInvoiceBatchService
             BatchNumber = batch.BatchNumber,
             DebtorReferenceId = batch.DebtorReferenceId,
             PeriodStart = batch.PeriodStart,
-            PeriodEnd = batch.PeriodEnd
+            PeriodEnd = batch.PeriodEnd,
+            InvoiceDate = batch.InvoiceDate,
+            DueDate = batch.DueDate
         };
 
         foreach (var item in batch.Items.Where(x => !x.IsDelete && x.Receivable is not null))
@@ -569,6 +706,10 @@ public sealed class FinanceReceivableInvoiceBatchService
         DebtorReferenceId = batch.DebtorReferenceId,
         PeriodStart = batch.PeriodStart,
         PeriodEnd = batch.PeriodEnd,
+        InvoiceDate = batch.InvoiceDate,
+        DueDate = batch.DueDate,
+        PaymentTermDays = batch.PaymentTermDays,
+        Note = batch.Note,
         TotalAmount = batch.TotalAmount,
         Status = batch.Status,
         IssuedAt = batch.IssuedAt,
@@ -584,12 +725,95 @@ public sealed class FinanceReceivableInvoiceBatchService
         ClaimClosedAt = batch.ClaimClosedAt
     };
 
-    private static string GenerateBatchNumber()
+    public async Task<string> GenerateArInvoiceNumberAsync(
+        string visitCode,
+        DateOnly invoiceDate,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
     {
-        // KNOWN ISSUE (bersama seluruh generator nomor rumpun ini): belum memakai provider
-        // number-series atomik (QBE-CODE-001..006).
-        var candidate = $"BAR-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}";
-        return candidate.Length <= 50 ? candidate : candidate[..50];
+        var allocationRequest = new NumberAllocationRequest(
+            SequenceKey: "FIN_AR_INVOICE",
+            Prefix: "AR",
+            ResetPolicy: NumberSeriesResetPolicies.Never,
+            SequenceDigits: 4,
+            ActorUserId: actorUserId,
+            Instant: DateTimeOffset.UtcNow);
+
+        var allocated = await _numberSeriesAllocator.AllocateAsync(allocationRequest, cancellationToken);
+        var sequencePart = allocated.Split('-').Last();
+        if (!long.TryParse(sequencePart, out var sequenceNumber))
+        {
+            sequenceNumber = 1;
+        }
+
+        var monthRoman = ToRomanMonth(invoiceDate.Month);
+        return $"{sequenceNumber:D4}/{visitCode}/RSMMC/{monthRoman}/{invoiceDate.Year}";
+    }
+
+    public static string ToRomanMonth(int month) => month switch
+    {
+        1 => "I",
+        2 => "II",
+        3 => "III",
+        4 => "IV",
+        5 => "V",
+        6 => "VI",
+        7 => "VII",
+        8 => "VIII",
+        9 => "IX",
+        10 => "X",
+        11 => "XI",
+        12 => "XII",
+        _ => throw new ArgumentOutOfRangeException(nameof(month), "Bulan harus antara 1 dan 12.")
+    };
+
+    public static string ResolveReceivableVisitCode(
+        FinReceivable receivable,
+        List<FinReceivableItem> items,
+        Dictionary<Guid, BilInvoice> invoices,
+        Dictionary<Guid, RegPatientEncounter> encounters)
+    {
+        // 1. Cek dari BilInvoice jika ada
+        Guid? invoiceId = receivable.InvoiceId ?? items.FirstOrDefault(x => x.InvoiceId.HasValue)?.InvoiceId;
+        BilInvoice? invoice = null;
+        if (invoiceId.HasValue && invoices.TryGetValue(invoiceId.Value, out invoice))
+        {
+            if (string.Equals(invoice.ServiceType, "OTC", StringComparison.OrdinalIgnoreCase))
+            {
+                return "OP";
+            }
+            if (string.Equals(invoice.ServiceType, "RANAP", StringComparison.OrdinalIgnoreCase))
+            {
+                return "IP";
+            }
+            if (string.Equals(invoice.ServiceType, "RAJAL", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(invoice.ServiceType, "IGD", StringComparison.OrdinalIgnoreCase))
+            {
+                return "OP";
+            }
+        }
+
+        // 2. Cek dari RegPatientEncounter jika ada
+        Guid? encounterId = invoice?.EncounterId;
+        if (!encounterId.HasValue || encounterId == Guid.Empty)
+        {
+            encounterId = items.FirstOrDefault(x => x.EncounterId.HasValue)?.EncounterId;
+        }
+
+        if (encounterId.HasValue && encounters.TryGetValue(encounterId.Value, out var encounter))
+        {
+            return encounter.EncounterType switch
+            {
+                EncounterType.Inpatient => "IP",
+                EncounterType.Outpatient => "OP",
+                EncounterType.Emergency => "OP",
+                _ => throw new ReceivableInvoiceBatchValidationException(
+                    $"Piutang {receivable.ReceivableNumber} dengan jenis kunjungan '{encounter.EncounterType}' tidak dapat diklasifikasikan secara aman ke IP atau OP.")
+            };
+        }
+
+        throw new ReceivableInvoiceBatchValidationException(
+            $"Piutang {receivable.ReceivableNumber} tidak memiliki data invoice atau encounter yang valid untuk klasifikasi IP/OP.");
     }
 
     private static void EnsureCurrent(Guid actualRowVersion, Guid expectedRowVersion)

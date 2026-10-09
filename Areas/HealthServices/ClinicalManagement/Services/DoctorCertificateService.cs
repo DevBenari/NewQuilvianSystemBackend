@@ -109,6 +109,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             return ToResponse(entity, numbers, includeSignature: true);
         }
 
+        /// <summary>
+        /// Surat Pengantar Rawat Inap terbaru berstatus terbit pada satu kunjungan — <c>BE-RWI-189</c>,
+        /// <c>INT-RWA-05</c> (<c>RWI-DEC-254</c>, <c>262</c>, <c>RWI-FACT-066</c>).
+        /// </summary>
+        /// <remarks>
+        /// Bacaan ramping untuk Workspace PPRI: hanya nomor, dokter penerbit, tanggal terbit,
+        /// diagnosis, dan alasan rujukan. Data pasien dan gambar tanda tangan dokter <b>tidak</b>
+        /// ikut. Surat yang dibatalkan dokter diabaikan; tanpa surat terbit hasilnya kosong.
+        ///
+        /// <para>
+        /// Contoh: dr. Andika menerbitkan surat "Apendisitis akut — Rencana apendektomi" untuk
+        /// kunjungan poli Tn. Budi pada 7 Oktober 2026. IPD mencetak diagnosis itu dan dokter
+        /// perujuknya; butir 1 serah terima mendapat saran "surat pengantar dr. Andika, 07-10-2026".
+        /// </para>
+        /// </remarks>
+        public async Task<InpatientReferralLetterSummary?> GetLatestIssuedInpatientReferralAsync(
+            Guid encounterId,
+            CancellationToken ct = default)
+        {
+            if (encounterId == Guid.Empty)
+            {
+                return null;
+            }
+
+            return await _dbContext.CliDoctorCertificates.AsNoTracking()
+                .Where(x =>
+                    x.EncounterId == encounterId &&
+                    !x.IsDelete &&
+                    x.CertificateType == DoctorCertificateType.InpatientReferral &&
+                    x.CertificateStatus == DoctorCertificateStatus.Issued)
+                .OrderByDescending(x => x.IssuedDate)
+                .ThenByDescending(x => x.CreateDateTime)
+                .Select(x => new InpatientReferralLetterSummary
+                {
+                    CertificateId = x.Id,
+                    CertificateNumber = x.CertificateNumber,
+                    DoctorId = x.DoctorId,
+                    DoctorName = x.DoctorNameSnapshot,
+                    IssuedDate = x.IssuedDate,
+                    ReferralDiagnosis = x.ReferralDiagnosis,
+                    ReferralReason = x.ReferralReason
+                })
+                .FirstOrDefaultAsync(ct);
+        }
+
         public async Task<DoctorCertificateResponse?> GetActiveByQueueAsync(Guid queueId, CancellationToken ct)
         {
             var entity = await _dbContext.CliDoctorCertificates.AsNoTracking()
@@ -551,5 +596,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             value.HasValue ? DateTime.SpecifyKind(value.Value.Date, DateTimeKind.Utc) : null;
 
         private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    /// <summary>
+    /// Ringkasan Surat Pengantar Rawat Inap untuk modul lain (<c>BE-RWI-189</c>). Bukan kontrak API;
+    /// sengaja tanpa data pasien dan tanpa gambar tanda tangan dokter.
+    /// </summary>
+    public sealed class InpatientReferralLetterSummary
+    {
+        public Guid CertificateId { get; init; }
+
+        public string CertificateNumber { get; init; } = string.Empty;
+
+        public Guid? DoctorId { get; init; }
+
+        /// <summary>Nama dokter penerbit saat surat dibuat.</summary>
+        public string? DoctorName { get; init; }
+
+        /// <summary>Tanggal terbit; tanggal kalender disimpan sebagai tengah malam UTC.</summary>
+        public DateTime IssuedDate { get; init; }
+
+        public string? ReferralDiagnosis { get; init; }
+
+        public string? ReferralReason { get; init; }
     }
 }

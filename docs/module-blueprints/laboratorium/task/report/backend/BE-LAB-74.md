@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `017d1819` (branch `yoga`), di atas `BE-LAB-67`..`73` yang belum ter-commit |
 | Tanggal | 2026-09-29 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — kode lengkap; build 0 error tanpa warning baru; startup lolos dengan registri **1574**; **28 dari 28 skenario rilis** dan **38 dari 38 regresi validasi** lolos pada harness EF InMemory, termasuk **rilis atomik pada jalur gagal** (`DbContext` bersih, nol tersimpan); lima panggilan HTTP penolakan lolos tanpa menulis data. **Belum lewat HTTP:** rilis yang berhasil beserta dokumen rekam medisnya — butuh hasil tervalidasi, aksi `Release`, dan penunjukan rilis di database bersama |
+| Status | ✅ **`SELESAI`** (naik 2026-10-06) — rilis yang berhasil beserta dokumen rekam medisnya kini teramati **lewat HTTP asli** terhadap PostgreSQL devYoga: Hemoglobin dirilis dr. Bima, tepat satu `MrcClinicalDocumentIntegrity` tertanda tangan dan terkunci. Lihat 8. *(Semula: ⚠ — kode lengkap; build 0 error tanpa warning baru; startup lolos dengan registri **1574**; **28 dari 28 skenario rilis** dan **38 dari 38 regresi validasi** lolos pada harness EF InMemory, termasuk **rilis atomik pada jalur gagal** (`DbContext` bersih, nol tersimpan); lima panggilan HTTP penolakan lolos tanpa menulis data. **Belum lewat HTTP:** rilis yang berhasil beserta dokumen rekam medisnya — butuh hasil tervalidasi, aksi `Release`, dan penunjukan rilis di database bersama)* |
 
 ### Backend Governance Preflight
 
@@ -245,7 +245,7 @@ Uji manual: **`NOT FEASIBLE`** — layar `FE-LAB-39` belum dibangun.
 | `VAL-131` | ✅ **Terpenuhi** pada harness | `422` |
 | `VAL-133` | ✅ **Terpenuhi** — `422` lewat HTTP, `409` pada harness | — |
 | `VAL-143` | ✅ **Terpenuhi** pada harness | `422`; pembatalan sebelum rilis tetap boleh |
-| `INT-08` berhasil — tepat satu dokumen `Signed`, `LockedAt` = waktu rilis, penulis = perilis | ✅ **Terpenuhi** pada harness | HTTP `NOT RUN` |
+| `INT-08` berhasil — tepat satu dokumen `Signed`, `LockedAt` = waktu rilis, penulis = perilis | ✅ **Terpenuhi** pada harness dan **lewat HTTP 2026-10-06** | Bagian 8 — satu baris di PostgreSQL |
 | `INT-08` gagal — basis data **tidak berubah sama sekali** | ✅ **Terpenuhi** pada harness | Bahkan `DbContext` bersih |
 | `INT-08` kunjungan tertutup | ✅ **Terpenuhi** pada harness | `200`, terkunci |
 | Konkurensi dua rilis | ✅ **Terpenuhi** pada harness | Satu `200`, satu `409`, satu dokumen |
@@ -253,7 +253,7 @@ Uji manual: **`NOT FEASIBLE`** — layar `FE-LAB-39` belum dibangun.
 | DoD — rilis atomik terbukti pada jalur gagal | ✅ **Terpenuhi** pada harness | — |
 | DoD — penjaga batal berjalan | ✅ **Terpenuhi** | — |
 | DoD — laporan `BE-LAB-74.md` | ✅ **Terpenuhi** | Berkas ini |
-| Verifikasi — rilis sungguhan lewat HTTP dan baris rekam medis di PostgreSQL | **Belum terpenuhi** | Bagian 5 |
+| Verifikasi — rilis sungguhan lewat HTTP dan baris rekam medis di PostgreSQL | ✅ **Terpenuhi** 2026-10-06 | Bagian 8. *Semula belum terpenuhi* |
 
 ---
 
@@ -268,3 +268,31 @@ Uji manual: **`NOT FEASIBLE`** — layar `FE-LAB-39` belum dibangun.
 | Interupsi | `NONE` |
 | Status Git | Berkas `BE-LAB-74`: laporan ini (`??`); ` M` `Services/LabExaminationService.cs`, `Controllers/LabExaminationController.cs`, `DTOs/LabExaminationResultDtos.cs`; `Services/LabResultValidationService.cs` (`??`, lahir `BE-LAB-73`); `roadmap/backend-roadmap.md`, `roadmap/traceability.md`. Perubahan `BE-LAB-67`..`73` yang belum ter-commit ikut ada. **Nol operasi Git dijalankan** |
 | Langkah berikutnya | **1.** `BE-LAB-75` (*Kembalikan ke analis*) kini `SIAP DIKERJAKAN`: `ReturnToAnalystAsync` di service yang sama, memakai `LabResultCorrectionReason` yang sudah terisi. **2.** Untuk menutup batas verifikasi `BE-LAB-73`/`74` sekaligus: satu hasil PK uji, jabatan dokter dan perilis dengan `Validate`/`Release`, dan penunjukan uji di Human Resource — lalu validasi, rilis, dan periksa baris rekam medisnya |
+
+## 8. Verifikasi lanjutan 2026-10-06 — HTTP asli
+
+**Status: `BE-LAB-74` ✅ `SELESAI`.** Rilis yang berhasil beserta dokumen rekam medisnya kini teramati.
+
+Atas persetujuan pemilik modul, langkah rilis `MVP-9d` dijalankan sebagai setup uji di devYoga
+([`backend-roadmap.md`](../../../roadmap/backend-roadmap.md) 6ak.10): kode `LAB-*` di katalog Human Resource, kredensial
+dr. Bima (`LAB-VAL-PK`/`LAB-REL-PK`), `Validate`/`Release`/`Return` beserta izin baca bagi jabatan dokter. Panggilan berjalan
+terhadap backend lokal dan PostgreSQL devYoga dengan akun asli: dr. Bima (Kepala Instalasi) dan Vina (analis). Tulis hanya pada
+Hemoglobin dan Leukosit `LAB-RSMMC-000001` (pesanan uji). Rincian layar ada di
+[`FE-LAB-39.md`](../frontend/FE-LAB-39.md) bagian 9.
+
+| Butir | Bukti HTTP asli | Hasil |
+| --- | --- | --- |
+| Rilis berhasil, empat mata (`VAL-131`, `AC-02`) | dr. Bima, pemvalidasi Hemoglobin, merilis dengan alasan *Shift tunggal, tidak ada dokter lain bertugas* → `200` *"Hasil dirilis dan tercatat pada rekam medis pasien."*; `ReleasedByPrivilegeId` menunjuk penunjukan `LAB-REL-PK` (kueri baca-saja); Halaman Hasil menulis *Dirilis*, *Otorisasi oleh*, dan penanda pengecualian | `PASS` |
+| Dokumen rekam medis (`INT-08`) | **Tepat satu** `MrcClinicalDocumentIntegrity` (`DocumentKind` 15) bagi Hemoglobin, ditandatangani dan dikunci saat rilis; Leukosit yang tervalidasi tetapi belum dirilis **nol** dokumen | `PASS` |
+| Sesudah rilis | Hemoglobin keluar dari antrean *Menunggu Rilis*; *Buka Kembali* oleh analis `409` (`VAL-136`); analis `403` pada validasi | `PASS` |
+| Mikrobiologi | Rilis BTA `LAB-RSMMC-000014` oleh dr. Nabila juga `200` dengan tepat satu dokumen ([`BE-LAB-78.md`](BE-LAB-78.md) bagian 8) | `PASS` |
+
+**Tetap tidak dijalankan:** jalur gagal `VAL-137` sungguhan. Uji itu butuh merusak kunjungan uji di database bersama. Rilis
+atomik pada jalur gagal terbukti pada harness (`DbContext` bersih, nol tersimpan). Balapan dua rilis terbukti pada harness
+(juga khusus Mikrobiologi, `BE-LAB-78`), dan token `Version` yang sama teramati menolak balapan validasi di PostgreSQL
+([`BE-LAB-73.md`](BE-LAB-73.md) bagian 8). Analyzer tidak dijalankan.
+
+**Risiko tersisa: rendah.**
+
+**Jejak di devYoga:** Hemoglobin **Dirilis**; Leukosit **Tervalidasi** oleh dr. Bima (menunggu rilis) sesudah satu
+pengembalian `SAMPEL-TERTUKAR`. Data uji. **Nol perubahan kode. Nol operasi Git dijalankan.**

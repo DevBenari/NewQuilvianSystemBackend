@@ -6,11 +6,11 @@
 |---|---|
 | Produk | Quilvian V2 — Sistem Informasi Rumah Sakit |
 | Modul | Finance Management (`finance-management`), kode modul `FIN` |
-| Blueprint ID | `FIN-BP-001` revisi `1` |
-| Contract version | `FIN-MVP-1.4` — `locked` 26 September 2026 (revisi 5 disetujui Yasmin bersama `FIN-DES-045`..`050`) |
-| `last_changed_in` | `FIN-MVP-1.4` — 25 September 2026, AMENDMENT REVISI 5: `FR-FIN-085`, `088`, `095` diperbarui; `FR-FIN-096`..`099` baru (`FIN-DEC-057`..`062`). Sebelumnya `FIN-MVP-1.3` — 25 September 2026: (1.2) AMENDMENT REVISI 4 (`EPIC FIN-15`, `FIN-16`, `FIN-17` baru — Purchasing/AP, AR Invoice Agregat, Potongan AR; `FR-FIN-081`..`095`; `EPIC FIN-07` digantikan `EPIC FIN-15`); (1.3) `FIN-DEC-056` mempersempit gerbang `FIN-OQ-020` — `EPIC FIN-15` kini boleh masuk `/plan-module-delivery` tanpa menunggu ratifikasi Accounting, hanya worker pengiriman kode PPN Masukan yang tertahan |
-| Status | `approved` dan `locked` untuk `MVP-0`..`MVP-5` (cakupan disetujui Yasmin 20 September 2026; revisi 1.1 dikunci 25 September 2026). **Bagian AMENDMENT REVISI 4 (`EPIC FIN-15`-`17`, `FIN-MVP-1.3`) disetujui dan dikunci Yasmin 25 September 2026** bersama `FIN-DES-037`..`044`, sebelum `/plan-module-delivery` dijalankan |
-| Penguncian kontrak | Enam kontrak turunan dan dokumen ini dikunci ke `1.0` oleh owner 20 September 2026. Tiga permukaan tetap TIDAK terkunci karena bergantung pihak luar: `BilCollectionHandoff`, perluasan `BilArHandoff` untuk manfaat karyawan, dan pengiriman kejadian ke Accounting |
+| Blueprint ID | `FIN-BP-001` revisi `18` |
+| Contract version | `FIN-MVP-1.13` — `approved` 6 Oktober 2026 (Revisi 18: disetujui pemilik / Yasmin) |
+| `last_changed_in` | `FIN-MVP-1.13` — 6 Oktober 2026, AMENDMENT REVISI 18: FR-FIN-220..237 baru untuk slices S1, S3, S4b, S5, S6; penuntasan gerbang Billing, HR, dan Registrasi (`FIN-DEC-183`..`202`). Sebelumnya `FIN-MVP-1.12` — 5 Oktober 2026 (Revisi 17: FR-FIN-192..219 untuk slices S2a, S2b, S4a, S7a, S8) |
+| Status | `approved` untuk `FIN-MVP-1.13` (disetujui Yasmin 6 Oktober 2026) |
+| Penguncian kontrak | Seluruh kontrak turunan telah dimutakhirkan dan disetujui pada Revisi 18; EPIC FIN-04 lengkap dirancang namun mandiri di luar MVP-1..4 |
 | Repository target | `NewQuilvianSystemBackend` (branch `Yasmina`), `QuilvianSystemFrontendDev` |
 | Commit SHA baseline | Backend `09101d05`, Frontend `abed49b03` |
 | Ringkasan cakupan | Rilis pertama membangun rantai utuh dari uang yang diterima kasir sampai piutang lunas, beserta kotak keluar kejadian ke Accounting yang terisi tetapi belum dikirim |
@@ -291,6 +291,11 @@ yang terlihat.
 > pasien, dan kunjungan penyusunnya.
 
 ### EPIC FIN-04 — Piutang manfaat karyawan
+
+> **Dirancang 5 Oktober 2026 (revisi 17), status epic TIDAK berubah.** Lima slice — `S2a`, `S2b`,
+> `S4a`, `S7a`, `S8` — kini punya arsitektur, kontrak, dan kriteria penerimaan; lihat bagian **59**
+> beserta `FR-FIN-192`..`FR-FIN-219`. Epic ini **tetap `OPEN DECISION` dan tetap di luar seluruh
+> gelombang**. Keterangan di bawah masih berlaku apa adanya.
 
 **Disposisi backend:** `OPEN DECISION` — menunggu konfirmasi Billing dan HR atas `FIN-DEC-006`
 dan `FIN-DEC-016`.
@@ -1914,3 +1919,333 @@ menyetujuinya — tidak ada pertanyaan memblokir yang menahannya.
 | 5 | **Utang jasa medis lama tidak dimigrasikan** (`FIN-DEC-157`); saldo awalnya nol dan kewajiban sebelum cutover tidak terlacak di Finance sampai keputusan lanjutan |
 | 6 | **Piutang sewa non-pasien lama dicatat satu per satu** lewat layar yang sudah ada (`FIN-DEC-158`) |
 | 7 | **Saldo negatif terbit apa adanya** dan ditandai; penelusurannya manual (`FIN-DEC-159`) |
+
+---
+
+# Revisi 17 — `EPIC FIN-04` dirancang, tetap `OPEN DECISION`
+
+```yaml
+contract_version: FIN-MVP-1.12
+status: approved
+owner: Yasmin (Product/Domain Finance)
+approved_by: Yasmin
+approved_at: 2026-10-05
+input_revision: 00-interview-decisions.md — Amendment pass 5 Oktober 2026 (FIN-DEC-161..FIN-DEC-179)
+input_design: 02-backend-architecture.md bagian O (FIN-DES-099..FIN-DES-104); data/data-dictionary.md
+input_contracts: FIN-API-1.8; FIN-STATE-1.7; FIN-VAL-1.10; FIN-PERM-1.9; FIN-TEST-1.11
+input_gate: evidence/24-gerbang-kelengkapan-requirement-piutang-manfaat-karyawan.md
+naik_dari: FIN-MVP-1.11 (approved 4 Oktober 2026)
+```
+
+## 57. Satu hal yang MUST dibaca lebih dulu
+
+Revisi 17 **merancang** lima slice `EPIC FIN-04`, dan **tidak memasukkan satu pun** ke gelombang
+pengiriman. Keduanya benar sekaligus, dan itu bukan kelalaian:
+
+| Pernyataan | Keadaan |
+|---|---|
+| Lima slice sudah punya arsitektur, kamus data, lima kontrak, flowchart, dan kriteria penerimaan | **Benar.** Desainnya telah disetujui (**`approved`**) oleh pemilik (Yasmin, 5 Oktober 2026) |
+| `EPIC FIN-04` keluar dari batas MVP | **Benar, dan tidak berubah** sejak revisi 1. Epic ini **MUST NOT** masuk `MVP-0` sampai `MVP-16` maupun gelombang berikutnya sampai gerbangnya dibuka |
+| Desain yang selesai berarti task boleh dibuat | **Tidak.** Approval desain atas slice Finance **BUKAN** pembukaan gerbang rilis/delivery epic; epic `OPEN DECISION` tetap **MUST NOT** diteruskan ke `plan-module-delivery` sampai prasyarat eksternal (Billing & HR) dibuka |
+
+**Mengapa dirancang sekarang kalau belum boleh dikerjakan.** Lima slice itu tidak bergantung pada
+keputusan pihak lain — bentuk perjanjian cicilan, rumus bebas tanggungan, cara menutup porsi benefit, dan
+pola penghapusan buku semuanya sudah diputuskan pemilik Finance. Merancangnya sekarang menghindarkan
+keadaan yang lebih buruk: ketika Billing dan HR akhirnya menjawab, yang tersisa hanyalah slice yang
+memang menunggu mereka, bukan seluruh kemampuan dari nol.
+
+## 58. Batas revisi 17: titik mulai dan titik akhir
+
+| Hal | Isi |
+|---|---|
+| **Titik mulai** | Sebuah kartu piutang manfaat karyawan **sudah ada** di Finance, apa pun cara ia lahir |
+| **Titik akhir** | Piutang itu lunas lewat potongan gaji, atau ditutup lewat pelunasan internal untuk porsi benefit, atau dihapus buku lewat persetujuan — dan status bebas tanggungan pegawainya dapat dibaca |
+| **Di luar batas** | Cara kartu piutang itu **lahir** (slice `S1`), bentuk pesan dari HR (`S3`), gerbang berhenti kerja di HR (`S4b`), koreksi pemilik manfaat yang salah (`S5`), piutang karyawan lama (`S6`), dan jurnal beban benefit di Accounting (`S7b`) |
+
+**Akibat yang MUST dipahami pemilik.** Dengan titik mulai itu, kelima slice yang dirancang **belum
+berguna di produksi** sampai `S1` dibuka — tidak akan ada piutang karyawan untuk diangsur, dihitung, atau
+ditutup. Siap dibangun dan berguna dipakai adalah dua hal berbeda, dan revisi ini hanya mencapai yang
+pertama.
+
+## 59. `EPIC FIN-04` — functional requirement lima slice yang dirancang
+
+**Disposisi menyeluruh epic:** **`OPEN DECISION`** — tidak berubah. Yang berubah: butir-butir di bawah
+kini punya desain, kontrak, dan kriteria penerimaan, sehingga ia bukan lagi epic yang hanya berisi niat.
+
+| Field | Nilai |
+|---|---|
+| Kemampuan asal | `FIN-CAP-067`..`085` pada `01-existing-capability-map.md` bagian 21 |
+| Gelombang | **Nol.** Di luar seluruh gelombang, sama seperti revisi 1 sampai 16 |
+| Yang menahannya | Konfirmasi pemilik Billing atas `FIN-DEC-006` dan `FIN-DEC-177` (`evidence/23` butir `B1`/`B2`), dan kesanggupan HR pada `FIN-OQ-091` |
+| Yang **tidak** lagi menahan | Bentuk perjanjian cicilan, pola penghapusan buku, cara menutup porsi benefit, dan batas potongan — keempatnya ditutup `FIN-DEC-165`..`179` |
+
+### 59.1 Perjanjian dan jadwal cicilan (`S2a`)
+
+| # | Functional requirement | Disposisi |
+|---:|---|---|
+| `FR-FIN-192` | Piutang manfaat karyawan boleh dilunasi sekali bayar **tanpa** perjanjian apa pun | `MISSING / NEW` |
+| `FR-FIN-193` | Pencicilan **MUST** melalui perjanjian yang memuat total, jumlah angsuran, nominal tiap angsuran, dan periode gaji pertama | `MISSING / NEW` |
+| `FR-FIN-194` | Perjanjian hanya sah sesudah disetujui pengguna **lain**; pengaju **MUST NOT** menyetujui pengajuannya sendiri, berapa pun nominalnya | `MISSING / NEW` |
+| `FR-FIN-195` | Seluruh baris jadwal dibangkitkan pada saat **persetujuan**, bukan pada saat pengajuan | `MISSING / NEW` |
+| `FR-FIN-196` | Satu kartu piutang **MUST NOT** punya lebih dari satu perjanjian yang menunggu persetujuan atau sudah disetujui | `MISSING / NEW` |
+| `FR-FIN-197` | Pada saat disetujui, total yang disepakati **MUST** masih sama dengan sisa piutang; bila sudah berubah, persetujuan ditolak beserta angka barunya | `MISSING / NEW` |
+| `FR-FIN-198` | Jumlah seluruh baris jadwal **MUST** sama persis dengan total yang disepakati; pembulatan jatuh pada baris terakhir | `MISSING / NEW` |
+| `FR-FIN-199` | Pembatalan perjanjian membatalkan angsuran yang belum terbayar, dan **MUST NOT** menyentuh angsuran yang sudah terbayar | `MISSING / NEW` |
+
+### 59.2 Tunggakan dan batas potongan (`S2b`)
+
+| # | Functional requirement | Disposisi |
+|---:|---|---|
+| `FR-FIN-200` | Potongan yang lebih kecil daripada jadwal dicatat sebagai terbayar sebagian, dan sisanya **tetap terhutang** | `MISSING / NEW` |
+| `FR-FIN-201` | Sisa dan tunggakan **MUST** ikut jadwal periode berikutnya sampai lunas; tidak ada tunggakan yang hangus | `MISSING / NEW` |
+| `FR-FIN-202` | Satu kali potongan gagal **MUST NOT** membatalkan perjanjian | `MISSING / NEW` |
+| `FR-FIN-203` | Batas potongan per periode ditegakkan **HR**; Finance mengirim jadwal dan menerima hasilnya apa adanya | `MISSING / NEW` |
+| `FR-FIN-204` | Hasil potongan yang dikirim ulang **MUST NOT** mengurangi piutang dua kali | `MISSING / NEW` |
+| `FR-FIN-205` | Hasil potongan **MUST NOT** melebihi sisa angsuran periode itu | `MISSING / NEW` |
+
+### 59.3 Status bebas tanggungan (`S4a`)
+
+| # | Functional requirement | Disposisi |
+|---:|---|---|
+| `FR-FIN-206` | Status bebas tanggungan dihitung dari saldo piutang aktif per pemilik manfaat, dan **MUST NOT** dapat diisi tangan maupun disimpan sebagai kolom | `MISSING / NEW` |
+| `FR-FIN-207` | Piutang atas keluarga pegawai ikut terhitung pada pemilik manfaatnya | `MISSING / NEW` |
+| `FR-FIN-208` | Pegawai tanpa piutang aktif berstatus **bebas tanggungan**; itu hasil yang sah, bukan data tidak ditemukan | `MISSING / NEW` |
+| `FR-FIN-209` | Sisa piutang pegawai yang berhenti kerja **MUST NOT** terhapus otomatis, sehingga statusnya tetap tidak bebas | `MISSING / NEW` |
+| `FR-FIN-210` | Status beberapa pegawai dapat diminta sekaligus, maksimum 100 per permintaan | `MISSING / NEW` |
+
+### 59.4 Porsi benefit dan penutupannya (`S7a`)
+
+| # | Functional requirement | Disposisi |
+|---:|---|---|
+| `FR-FIN-211` | Porsi tagihan yang ditanggung rumah sakit dicatat sebagai piutang atas penjamin internal, bukan dibiarkan tak tertagih ke siapa pun | `OPEN DECISION` — bentuknya di Billing menunggu konfirmasi |
+| `FR-FIN-212` | Piutang itu ditutup **berkala** lewat pelunasan internal non-kas, satu pelunasan per periode per penjamin internal | `MISSING / NEW` |
+| `FR-FIN-213` | Piutang porsi benefit **MUST NOT** ditutup lewat penghapusan buku | `MISSING / NEW` |
+| `FR-FIN-214` | Hasil hitung awal dapat diminta berulang tanpa mengubah data apa pun | `MISSING / NEW` |
+| `FR-FIN-215` | Penerbitan menutup seluruh piutang pada daftar dalam **satu** transaksi; penutupan sebagian **MUST NOT** terjadi | `MISSING / NEW` |
+| `FR-FIN-216` | Pembatalan pelunasan yang sudah terbit membuka kembali saldo piutangnya dan menulis baris pembalik; jejak semula tetap ada | `MISSING / NEW` |
+| `FR-FIN-217` | Penutupan piutang di Finance **MUST** berhasil walaupun jurnal beban benefit belum dikirim ke Accounting | `MISSING / NEW` |
+
+### 59.5 Penghapusan buku dan penyesuaian (`S8`)
+
+| # | Functional requirement | Disposisi |
+|---:|---|---|
+| `FR-FIN-218` | Penghapusan buku dan penyesuaian piutang karyawan memakai pola pengaju–penyetuju yang **sudah ada**, tanpa ambang nominal bertingkat | `EXISTING / REUSE` |
+| `FR-FIN-219` | Saringan jenis debitur pada daftar piutang dan laporan AR **MUST** menjangkau jenis manfaat karyawan | `EXTEND` |
+
+## 60. Skenario UAT revisi 17
+
+Nomor kriteria penerimaannya ada di `testing/acceptance-test-matrix.md` bagian `L`.
+
+### 60.1 Jalur berhasil
+
+| # | Skenario | Yang dilihat pemilik | Kriteria |
+|---:|---|---|---|
+| 1 | Budi berutang Rp 4.000.000 dan minta dicicil 4 kali | Staf mengajukan, pejabat lain menyetujui, dan **empat** baris jadwal muncul sekaligus | `L.1.1`, `L.1.2`, `L.1.3` |
+| 2 | Empat periode gaji berjalan lancar | Setiap periode satu angsuran lunas; sesudah yang keempat, perjanjian **selesai** dan piutang **lunas** | `L.1.7` |
+| 3 | Bagian HR menanyakan status Budi sesudah lunas | Budi **bebas tanggungan** | `L.4.1`, `L.4.4` |
+| 4 | Penutupan bulan Oktober atas porsi benefit | Staf melihat 3 kartu senilai Rp 85.000.000, pejabat menerbitkan, dan ketiganya menjadi nol dalam satu langkah | `L.5.1`, `L.5.3`, `L.5.4` |
+| 5 | Piutang karyawan Rp 700.000 yang tidak tertagih | Diajukan hapus buku lewat layar yang **sudah ada**, dan disetujui pejabat lain | `L.6.1`, `L.6.2`, `L.6.3` |
+
+### 60.2 Jalur gagal
+
+| # | Skenario | Yang dilihat pemilik | Kriteria |
+|---:|---|---|---|
+| 1 | Staf yang mengajukan mencoba menyetujui sendiri, dan peranannya memegang kedua hak | **Ditolak**, walaupun administrator sudah memberi kedua hak itu | `L.2.1`, `L.8.1` |
+| 2 | Budi menyetor tunai Rp 500.000 sesudah pengajuan dibuat | Persetujuan **ditolak** beserta sisa yang baru, dan jadwal **tidak** terbentuk | `L.2.6` |
+| 3 | Gaji Budi bulan ini hanya cukup untuk Rp 600.000 dari Rp 1.000.000 | Angsuran terbayar sebagian, dan Rp 400.000 terlihat ikut periode berikutnya | `L.3.1`, `L.3.2` |
+| 4 | Potongan Budi gagal sama sekali satu periode | Angsuran tertunggak, dan perjanjiannya **tetap berjalan** | `L.3.3` |
+| 5 | Hasil potongan HR terkirim dua kali karena gangguan jaringan | Saldo piutang bergerak **satu kali** | `L.3.8`, `L.8.3` |
+| 6 | Dua petugas menerbitkan penutupan Oktober hampir bersamaan | Yang kedua ditolak beserta nomor pelunasan yang pertama | `L.5.6` |
+| 7 | Satu kartu pada daftar terlanjur lunas sebelum diterbitkan | **Nol** kartu tertutup, dan daftarnya diminta dihitung ulang | `L.5.5` |
+| 8 | Budi berhenti kerja dengan sisa cicilan Rp 700.000 | Budi **tidak** bebas tanggungan, dan sisanya **tidak** terhapus sendiri | `L.4.6`, `L.6.1` |
+| 9 | Accounting belum menyepakati jurnal beban benefit | Penutupan piutang **tetap berhasil**, dan penanda kejadiannya berbunyi belum dikirim | `L.5.12` |
+
+## 61. Definition of Done revisi 17
+
+Setiap butir dapat dijawab "ya" atau "belum" beserta buktinya.
+
+| # | Butir | Bukti yang menjawabnya |
+|---:|---|---|
+| 1 | Keempat tabel baru terbentuk lewat satu migration, tanpa pengisian data lama | `L.7.1`; laporan task backend |
+| 2 | Dua nilai jenis mutasi baru diterima tanpa migration | `L.7.2` |
+| 3 | Dua resource hak akses baru muncul di layar Akses Role, masing-masing **satu kali** | `L.7.3` |
+| 4 | Endpoint bebas tanggungan **tidak** menambah resource hak akses | `L.7.4` |
+| 5 | Pemisahan pengaju–penyetuju ditegakkan **check constraint**, bukan hanya layar dan hak akses | `L.2.1`, `L.8.1` |
+| 6 | Kiriman hasil potongan ganda tidak mengurangi piutang dua kali | `L.3.8` |
+| 7 | Penerbitan pelunasan internal bersifat satu kesatuan | `L.5.5`, `L.5.7` |
+| 8 | Nol permukaan yang menutup porsi benefit lewat penghapusan buku | `L.5.11` |
+| 9 | Nol permukaan yang menerima status bebas tanggungan dari permintaan | `L.4.7` |
+| 10 | Nilai jenis debitur di frontend dan backend sama persis | `L.8.2`; laporan `FE-FIN-FIX-002` |
+| 11 | Peran tanpa hak dijawab `403`, bukan `500` dan bukan lolos | `L.7.5` |
+| 12 | Kolom bertanda **Sensitif** tidak muncul di custom logger | Telaah diff; `data/data-dictionary.md` |
+| 13 | UI brief `FIN-OQ-099` **sudah** disetujui sebelum satu pun task frontend dibuat | **DIPENUHI** via `FIN-DEC-180`..`182` (5 Oktober 2026); `FIN-DEC-175` |
+| 14 | Desain ini **MUST NOT** ditandai `approved` oleh agent | **DIPENUHI** — status disetujui langsung oleh manusia/pemilik (Yasmin, 5 Oktober 2026) |
+
+**Butir 13 adalah gerbang, bukan ceklis.** UI brief sudah turun via `FIN-DEC-180`..`182` (gerbang UI terpenuhi), namun task frontend piutang karyawan **tetap MUST NOT** dibuat sebelum gerbang epic dibuka (`EPIC FIN-04` tetap `OPEN DECISION`). Butir 14 juga gerbang: approval telah resmi diberikan oleh pemilik (Yasmin, 5 Oktober 2026).
+
+## 62. Urutan pengiriman — BUKAN gelombang
+
+Tabel di bawah **bukan** gelombang pengiriman. `EPIC FIN-04` berstatus `OPEN DECISION`, sehingga ia
+**MUST NOT** masuk `MVP-n` mana pun. Yang ditulis di sini adalah urutan yang **akan** berlaku **hanya
+setelah** gerbangnya dibuka, supaya `plan-module-delivery` kelak tidak menyusunnya dari nol.
+
+| Urutan bersyarat | Slice | Prasyarat yang MUST turun lebih dulu |
+|---|---|---|
+| 1 | `S1` — piutang porsi pegawai lahir dari serah terima Billing | Konfirmasi Billing atas `FIN-DEC-006` dan `FIN-DEC-177` |
+| 2 | `S2a` dan `S4a` | `S1`, supaya ada piutang untuk diangsur dan dihitung |
+| 3 | `S7a` | `S1` bagian porsi benefit |
+| 4 | `S2b` dan `S3` | `S2a`, **dan** `FIN-OQ-091` dengan HR |
+| 5 | `S8` | `S1`. Nol pekerjaan baru selain saringan jenis debitur |
+| Tidak diurutkan | `S4b`, `S5`, `S6`, `S7b` | Masing-masing masih terblokir; lihat 63 |
+
+**Satu pengecualian yang MUST dicatat.** `S4a` tidak menyentuh tabel baru sama sekali, sehingga ia dapat
+dibangun kapan saja secara teknis. Ia tetap diletakkan pada urutan 2 karena tanpa `S1` tidak ada piutang
+karyawan untuk dihitung, dan permukaan yang selalu menjawab "bebas tanggungan" lebih berbahaya daripada
+permukaan yang belum ada.
+
+## 63. Pertanyaan terbuka sebelum development lock — revisi 17
+
+| Pertanyaan | Pemilik | Memblokir | Masih menahan epic? |
+|---|---|---|---|
+| Apakah Billing menerbitkan **dua** baris serah terima untuk satu tagihan manfaat karyawan (`FIN-DEC-177`)? | Billing Owner | `S1`, dan karenanya seluruh kegunaan produksi | **Ya** |
+| Apakah Billing menyanggupi perluasan `BilArHandoff` bertipe manfaat karyawan (`FIN-DEC-006`)? | Billing Owner | `S1` | **Ya** |
+| Bentuk pesan hasil potongan dari HR (`FIN-OQ-091`) | HR / Payroll Owner | `S3`, dan penerimaan nyata hasil potongan | **Ya**, untuk `S3` |
+| Siapa menandai pasien sebagai pegawai saat pendaftaran, dan dari mana data HR dibaca (`FIN-OQ-093`..`097`) | Registrasi + HR Owner | `S1` | **Ya** |
+| Kunci pegawai pada templat impor saldo lama (`FIN-OQ-098`) | HR Owner | `S6` — implementasi saja | Tidak, untuk kelima slice ini |
+| ~~UI brief layar piutang karyawan (`FIN-OQ-099`)~~ **CLOSED 5 Oktober 2026** (`FIN-DEC-180`..`182`) | Yasmin | ~~Seluruh task **frontend** karyawan~~ — gerbang UI terpenuhi; pembuatan task tetap tertahan gerbang epic | Tidak, untuk desain dan backend |
+| Master penjamin "RS Benefit" yang dipakai (`FIN-OQ-102`) | Administrator + Yasmin | Implementasi `S7a` | Tidak, untuk desainnya |
+| Jenis kejadian dan jurnal beban benefit (`FIN-OQ-103`) | Accounting Owner + Yasmin | `S7b` saja | Tidak — `S7a` berjalan tanpanya |
+
+## 64. Yang MUST disampaikan kepada pemilik saat menyerahkan modul (tambahan revisi 17)
+
+| # | Hal |
+|---:|---|
+| 1 | **`EPIC FIN-04` tetap di luar rilis pertama.** Yang selesai adalah desainnya, bukan kemampuannya |
+| 2 | **Lima slice yang dirancang belum berguna sampai `S1` dibuka** — tidak akan ada piutang karyawan untuk diangsur, dihitung, atau ditutup (58) |
+| 3 | **Jurnal beban manfaat karyawan belum terbukukan di Accounting.** Piutang porsi benefit tetap ditutup di Finance, tetapi bebannya belum masuk pembukuan sampai `FIN-OQ-103` selesai |
+| 4 | **Batas potongan gaji tidak diperiksa Finance** (`FIN-DEC-179`). Bila HR tidak menegakkannya, tidak ada lapisan kedua yang menahannya |
+| 5 | **Hak `Approve` MUST diberikan kepada peran yang berbeda dari pemegang `Create`.** Check constraint menolaknya di tingkat data, tetapi pemberian hak yang benar mencegah petugas menempuh langkah yang pasti gagal |
+| 6 | **Hubungan pemilik manfaat — pasangan, anak, diri sendiri — terlihat** oleh pemegang hak baca layar perjanjian dan rincian piutang |
+| 7 | **Berkas perjanjian cicilan mewarisi batas yang sama** dengan berkas bukti pembayaran, termasuk keterbatasan akses per pemilik yang belum dimiliki platform |
+| 8 | **Task frontend belum boleh dibuat** karena `EPIC FIN-04` tetap `OPEN DECISION` dan di luar seluruh gelombang pengiriman (`MVP-n`). UI brief `FIN-OQ-099` sudah turun via `FIN-DEC-180`..`182`, namun pembukaan gerbang UI bukan pembukaan gerbang epic (`evidence/23` B1/B2 Billing dan `FIN-OQ-091` HR masih menahan epic) |
+
+---
+
+# Revisi 18 — `EPIC FIN-04` Integrasi Lintas Domain Lengkap Dirancang (`READY_FOR_DOMAIN_DESIGN` / Desain Tuntas, Rilis Tersendiri)
+
+```yaml
+contract_version: FIN-MVP-1.13
+status: draft
+owner: Yasmin (Product/Domain Finance)
+last_changed_in: Revisi 18 (6 Oktober 2026)
+input_revision: 00-interview-decisions.md (FIN-DEC-183..FIN-DEC-202)
+input_design: 02-backend-architecture.md bagian P; contracts/integration-contract.md bagian P; contracts/api-contract.md bagian P; contracts/validation-matrix.md bagian P; contracts/state-transition-matrix.md bagian P; contracts/permission-audit-matrix.md bagian P; flowcharts/01-alur-piutang-manfaat-karyawan-end-to-end.md
+input_evidence: evidence/23-permintaan-konfirmasi-piutang-manfaat-karyawan.md (LENGKAP TERJAWAB)
+naik_dari: FIN-MVP-1.12 (approved 5 Oktober 2026)
+```
+
+## 65. Penuntasan Gerbang Hulu-Hilir dan Desain Integrasi 4 Domain
+
+Pada Revisi 18 (6 Oktober 2026), seluruh pertanyaan konfirmasi integrasi lintas domain pada `evidence/23-permintaan-konfirmasi-piutang-manfaat-karyawan.md` telah **LENGKAP TERJAWAB DAN DISETUJUI**:
+1. **Domain Billing (`B1` s.d. `B6`)**: `FIN-DEC-183` s.d. `FIN-DEC-188` (2 baris handoff, skema `EMPLOYEE_BENEFIT` diperluas, Billing hitung porsi tanggungan pegawai, ratifikasi `BE-FIN-FIX-002`, reversal handoff bila salah orang, pengakuan benefit via pelunasan internal).
+2. **Domain HR (`H1` s.d. `H8`)**: `FIN-DEC-189` s.d. `FIN-DEC-196` (baca sisa plafon dari HR, jadwal cicilan ke `TrxPayrollVariableInput`, hasil payroll otomatis idempoten, batas potongan take-home pay, exit clearance `IsFinanceCleared`, notifikasi pemisahan pegawai, restitusi salah potong via payroll adjustment, kunci NIP impor).
+3. **Domain Registrasi (`R1` s.d. `R6`)**: `FIN-DEC-197` s.d. `FIN-DEC-202` (pakai `CompanyGuarantor` internal eksisting, snapshot relasi keluarga di encounter, petugas wajib lookup HR untuk ID stabil, koreksi sebelum/sesudah invoice, tanggungan anak via No RM, `RemainingLimitAmount` bukan batas keras).
+
+Dengan penutupan gerbang ini, seluruh 10 slice `EPIC FIN-04` kini telah memiliki arsitektur, kamus data, matriks validasi, transisi status, hak akses, kontrak integrasi, flowchart, dan kriteria penerimaan yang utuh.
+
+**Status Tata Kelola Rilis:** `EPIC FIN-04` berstatus `READY_FOR_DOMAIN_DESIGN` (desain domain selesai), namun **TETAP BERADA DI LUAR** gelombang pengiriman aktif `MVP-1` s.d. `MVP-4`. Pengiriman kemampuan ini dialokasikan ke rilis gelombang tersendiri setelah delivery plan disetujui pemilik produk.
+
+## 66. Functional Requirements Slice Integrasi Baru (S1, S3, S4b, S5, S6)
+
+### 66.1 Serah Terima Tagihan dari Billing (`S1`)
+
+| # | Functional requirement | Disposisi |
+|---:|---|---|
+| `FR-FIN-220` | Billing menerbitkan tepat dua baris serah terima `BilArHandoff` untuk tagihan manfaat karyawan yang melebihi plafon: satu baris `PAYER` dan satu baris `EMPLOYEE_BENEFIT` | `EXTEND` |
+| `FR-FIN-221` | Serah terima `EMPLOYEE_BENEFIT` wajib membawa `BenefitOwnerId` (Guid stabil pegawai dari HR) dan snapshot relasi `BenefitRelationship` | `EXTEND` |
+| `FR-FIN-222` | Nominal piutang pegawai pada serah terima adalah nilai kelebihan di atas plafon yang dihitung Billing; Finance menyalin nominal tersebut apa adanya | `EXISTING / REUSE` |
+| `FR-FIN-223` | Registrasi mendaftarkan pegawai dan keluarganya via penjamin instansi internal RS eksisting (`MstCompanyGuarantor`), tanpa membuat enum payment type baru | `EXISTING / REUSE` |
+
+### 66.2 Sinkronisasi Dua Arah Jadwal & Hasil Potongan Payroll HR (`S3`)
+
+| # | Functional requirement | Disposisi |
+|---:|---|---|
+| `FR-FIN-224` | Persetujuan perjanjian cicilan otomatis menerbitkan baris input variabel ke HR (`TrxPayrollVariableInput`) dengan `SourceType = 'FinanceReceivableInstallment'` | `MISSING / NEW` |
+| `FR-FIN-225` | Finance menerima laporan hasil potongan penggajian dari HR secara otomatis via webhook `POST /receivables/installments/payroll-results` | `MISSING / NEW` |
+| `FR-FIN-226` | Pesan hasil pemotongan payroll diproses secara idempoten berbasis pasangan kunci `(InstallmentId, PayrollPeriodId)` | `MISSING / NEW` |
+| `FR-FIN-227` | Bila potongan gaji hanya sebagian akibat batas take-home pay minimum di HR, sisa angsuran otomatis dibawa sebagai tunggakan ke periode berikutnya | `MISSING / NEW` |
+
+### 66.3 Penegakan Gerbang Berhenti Kerja HR Offboarding (`S4b`)
+
+| # | Functional requirement | Disposisi |
+|---:|---|---|
+| `FR-FIN-228` | HR Offboarding memvalidasi status `TrxExitClearance.IsFinanceCleared` via API clearance Finance `GET /receivables/clearance/{benefitOwnerId}` | `MISSING / NEW` |
+| `FR-FIN-229` | Pegawai dengan saldo piutang aktif atau angsuran tertunggak ditolak menyelesaikan exit clearance di HR | `MISSING / NEW` |
+| `FR-FIN-230` | HR mengirim notifikasi pemisahan pegawai `TrxEmployeeSeparation` ke Finance saat inisiasi resign/PHK | `MISSING / NEW` |
+
+### 66.4 Koreksi Serah Terima Salah Orang (`S5`)
+
+| # | Functional requirement | Disposisi |
+|---:|---|---|
+| `FR-FIN-231` | Koreksi sebelum tagihan final dilakukan langsung di Billing via ganti penanggung pada encounter | `EXISTING / REUSE` |
+| `FR-FIN-232` | Koreksi setelah tagihan final dilakukan melalui penerbitan penyesuaian pembalik `BilHandoffAdjustment` (`REVERSAL`) dan serah terima baru oleh Billing | `EXTEND` |
+| `FR-FIN-233` | Finance membatalkan kartu piutang lama dan menerbitkan kartu piutang baru atas pegawai yang benar tanpa manipulasi manual identitas debitur | `EXTEND` |
+| `FR-FIN-234` | Restitusi potongan gaji yang keliru diselesaikan HR melalui penyesuaian penambah gaji net slip gaji periode depan; Finance tidak mengeluarkan kas manual | `MISSING / NEW` |
+
+### 66.5 Migrasi Saldo Lama Piutang Karyawan Berbasis NIP (`S6`)
+
+| # | Functional requirement | Disposisi |
+|---:|---|---|
+| `FR-FIN-235` | Unggah berkas impor saldo lama piutang karyawan menggunakan Nomor Induk Pegawai (NIP / `EmployeeNumber`) sebagai kunci identitas bisnis | `EXTEND` |
+| `FR-FIN-236` | Sistem memvalidasi keaktifan NIP ke master kepegawaian HR (`MstEmployee`) dan memetakannya otomatis ke `BenefitOwnerId` (Guid) | `MISSING / NEW` |
+| `FR-FIN-237` | Baris impor dengan NIP tidak terdaftar atau non-aktif ditolak dengan galat validasi terperinci | `MISSING / NEW` |
+
+## 67. Skenario UAT Integrasi Revisi 18
+
+Nomor kriteria penerimaan terinci merujuk ke `testing/acceptance-test-matrix.md` Bagian `M`.
+
+### 67.1 Jalur Berhasil Integrasi
+
+| # | Skenario | Yang Dilihat Pemilik / Pengguna | Kriteria |
+|---:|---|---|---|
+| 1 | Tagihan berobat melebihi plafon difinalisasi | Terbit 2 baris serah terima di Billing; Finance otomatis mencatat piutang pegawai dan piutang subsidi RS | `M.1.1`, `M.1.5` |
+| 2 | Perjanjian cicilan disetujui pejabat | Baris potongan otomatis tercatat di data variabel gaji HR tanpa input manual ulang | `M.2.1` |
+| 3 | Penggajian bulanan HR disahkan | Hasil potongan terkirim otomatis ke Finance; angsuran pegawai tercatat lunas tepat waktu | `M.2.2` |
+| 4 | Pegawai resign tanpa piutang | Formulir exit clearance di HR menampilkan status bebas tanggungan dan proses offboarding dapat diselesaikan | `M.3.2` |
+| 5 | Migrasi saldo lama dengan data NIP valid | Seluruh baris saldo lama berhasil terimpor dan tertaut ke profil pegawai yang benar di sistem | `M.5.1` |
+
+### 67.2 Jalur Gagal Integrasi
+
+| # | Skenario | Yang Dilihat Pemilik / Pengguna | Kriteria |
+|---:|---|---|---|
+| 1 | Serah terima pegawai tanpa identitas pegawai sah | Ditolak dengan pesan validasi dan basis data menolak lewat check constraint | `M.1.4` |
+| 2 | Gaji tidak cukup menanggung angsuran bulan ini | HR memotong sebagian sesuai batas upah minimum; Finance mencatat sisa sebagai tunggakan periode berikutnya | `M.2.3` |
+| 3 | Gangguan jaringan memicu kiriman ulang hasil payroll | Finance menerima pesan duplikat secara aman tanpa memotong saldo piutang dua kali | `M.2.4` |
+| 4 | Pegawai berpiutang aktif mencoba exit clearance di HR | Sistem HR menolak dan mengunci penyelesaian offboarding dengan rincian kartu piutang yang menahan | `M.3.1` |
+| 5 | Berkas impor saldo lama memuat NIP tidak terdaftar | Baris bermasalah ditolak dengan pesan jelas; batch ditolak atau baris dilaporkan pada daftar galat | `M.5.2` |
+
+## 68. Definition of Done Tambahan Revisi 18
+
+| # | Butir Definition of Done | Bukti yang Menjawabnya |
+|---:|---|---|
+| 1 | Skema `BilArHandoff` menerima kolom `BenefitOwnerId` dan `BenefitRelationship` tanpa downtime | Migration Billing `AddEmployeeBenefitColumnsToBilArHandoff` |
+| 2 | Serah terima porsi pegawai ditegakkan constraint keras database | `CK_FinReceivable_EmployeeBenefit_BenefitOwnerId` |
+| 3 | Sinkronisasi dua arah dengan Payroll HR beroperasi secara idempoten | Uji replay payload `(InstallmentId, PayrollPeriodId)` |
+| 4 | Exit clearance HR terintegrasi langsung dengan API clearance Finance | Validasi respons `TrxExitClearance.IsFinanceCleared` |
+| 5 | Alur koreksi salah orang terbukti tidak mengedit manual identitas debitur | Jejak pembatalan via `BilHandoffAdjustment` |
+| 6 | Berkas migrasi saldo lama menolak NIP yang tidak terdaftar di HR | Uji validasi berkas impor NIP |
+| 7 | Alur proses integrasi 4 bounded context tergambar jelas dan runtut | `flowcharts/01-alur-piutang-manfaat-karyawan-end-to-end.md` |
+
+## 69. Pertanyaan Terbuka Tersisa Sesudah Revisi 18
+
+| Pertanyaan | Pemilik | Dampak | Status |
+|---|---|---|---|
+| Master penjamin "RS Benefit" di Administrator (`FIN-OQ-102`) | Administrator + Finance | Pengisian data seeder penjamin internal | Menahan eksekusi seeder; tidak menahan desain |
+| Akun beban manfaat karyawan di Accounting (`FIN-OQ-103`) | Accounting + Finance | Format kejadian outbox pelunasan internal (`S7b`) | Menahan pengiriman jurnal ke Accounting; pelunasan internal Finance tetap berjalan |
+
+## 70. Catatan Penyerahan Desain Revisi 18 kepada Pemilik
+
+1. **Kelengkapan Desain Domain Selesai**: Seluruh rantai 10 slice pada `EPIC FIN-04` kini telah memiliki blueprint desain dan spesifikasi kontrak yang lengkap dan terpadu.
+2. **Kemandirian Rilis**: Kemampuan ini dirancang untuk dapat diimplementasikan dan dirilis secara independen tanpa mengganggu stabilitas modul-modul yang berada di dalam paket `MVP-1` s.d. `MVP-4`.
+3. **Nol Kode & Nol Migrasi Dijalankan**: Seluruh artefak Revisi 18 murni berada di lapisan tata kelola perancangan dan dokumentasi kontrak.
+

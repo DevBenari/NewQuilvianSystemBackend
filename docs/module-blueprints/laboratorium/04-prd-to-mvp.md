@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `11` — bagian 24, `EPIC-LAB-17` tiga laporan operasional (`S16a`), 2026-09-28 — kontrak `r37`/`r15`/revision 12 disetujui hari yang sama. Sebelumnya `10` — bagian 23, penyelesaian order, hasil resmi, dan label keadaan (`LAB-DEC-154`..`LAB-DEC-156`), 2026-09-25 — kontrak `r36`/`r14`/`r7` disetujui hari yang sama. Sebelumnya `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
+| Revision | `18` — bagian 30.1, rencana ulang sesudah wadah dibatalkan (putaran 29), 2026-10-09 — kontrak usulan `LAB-REQ-023`. Sebelumnya `17` — bagian 30, CITO dari pemesanan sampai ke pemeriksaan (putaran 28), 2026-10-09 — kontrak usulan `LAB-REQ-022`. Sebelumnya `16` — bagian 29, `EPIC-LAB-19` Beranda Lab mengikuti susunan v1 (BR-140), 2026-10-08 — kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — bagian 28, lingkup kunci Lunas (putaran 27), 2026-10-08 — kontrak usulan `LAB-REQ-020`. Sebelumnya `14` — bagian 27, alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), 2026-10-08 — kontrak usulan `LAB-REQ-019`. Sebelumnya `13` — bagian 26, `EPIC-LAB-18` diperluas (dokter pemeriksa bagi pengonfirmasi, jejak konfirmasi), 2026-10-07 — kontrak `r41`/revision 14 masih usulan `LAB-REQ-017`. Sebelumnya `12` — bagian 25, `EPIC-LAB-18` urutan kerja v1 di daftar pasien lab, 2026-10-07 — kontrak `r40`/`r8`/`r17`/revision 13 masih usulan `LAB-REQ-016`. Sebelumnya `11` — bagian 24, `EPIC-LAB-17` tiga laporan operasional (`S16a`), 2026-09-28 — kontrak `r37`/`r15`/revision 12 disetujui hari yang sama. Sebelumnya `10` — bagian 23, penyelesaian order, hasil resmi, dan label keadaan (`LAB-DEC-154`..`LAB-DEC-156`), 2026-09-25 — kontrak `r36`/`r14`/`r7` disetujui hari yang sama. Sebelumnya `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
 | Status | `draft` |
 | Scope tambahan revision 4 | **`EPIC-LAB-11` Penerimaan Sampling/Specimen** dan gelombang `MVP-5` — lihat bagian 16 |
 | Scope tambahan revision 5 | **`EPIC-LAB-12` Konfirmasi Pesanan dan Pembatalan Beralasan** dan gelombang `MVP-5c` — lihat bagian 17. Ditambahkan 2026-09-15 dari rekonsiliasi bukti putaran 2 |
@@ -1542,3 +1542,305 @@ tercatat sejak `S2`.
 > **Prasyarat pengerjaan tetap berlaku:** `MVP-11a` baru boleh dikerjakan sesudah **`MVP-9b` selesai**
 > (`BE-LAB-70`, `BE-LAB-73`, `BE-LAB-77`). **Yang tetap tertahan — rilis, bukan pengembangan:**
 > `MVP-11c` menunggu admin menetapkan jabatan *manajemen*.
+
+## 25. Amandemen 2026-10-07 — `EPIC-LAB-18` Urutan kerja v1 di daftar pasien lab
+
+Menurunkan `02-backend-architecture.md` bagian 24, `03-frontend-architecture.md` amandemen 2026-10-07 dan
+pencatatan susulan putaran 22, `erd/data-dictionary.md` bagian 20, serta usulan kontrak `LAB-API-v1`
+`r40`, `LAB-STATE-v1` `r8`, `LAB-VAL-v1` `r17`, dan `LAB-PERM-v1` revision 13 — **keempatnya `approved`
+2026-10-07** lewat `LAB-REQ-016`. Decisions rev 88. **Nol tabel, nol kolom, nol migration; satu aksi izin.**
+
+Epic ini juga **mencatat susulan** putaran 22 (BR-136, BR-137), yang dibangun `FE-LAB-46`..`FE-LAB-49` tanpa
+amandemen PRD karena nol kontrak berubah.
+
+### 25.1 Batas epic
+
+| Batas | Isi |
+|---|---|
+| **Titik mulai** | Pesanan laboratorium muncul di salah satu dari tiga daftar pasien lab berstatus *Diminta* |
+| **Titik akhir** | Pesanan *Selesai* lewat urutan v1 — Terima Sampling → Konfirmasi → Proses Pemeriksaan → (hasil dirilis) → Selesaikan — atau lewat urutan V2 lama (Konfirmasi lebih dulu). **Berhenti di situ** — pengisian dan rilis hasil milik epic lain |
+
+**Yang dianggap selesai:** analis dapat menjalankan urutan v1 seluruhnya dari daftar pasien lab; tidak ada
+pesanan yang masuk *Sedang Dikerjakan* tanpa dokter pemeriksa tercatat; analis tidak memperoleh hak
+membatalkan maupun menulis konteks klinis hanya karena dapat mengonfirmasi.
+
+### 25.2 Kemampuan `MUST HAVE`
+
+| Kemampuan | Asal di capability map rev 7 | Disposisi |
+|---|---|---|
+| Konfirmasi pesanan beserta dokter pemeriksa | `CAP-P22-15` (izin); `BE-LAB-31` | `EXTEND` — juga pada `Accepted`, izin tersendiri |
+| Proses Pemeriksaan dari daftar | `CAP-P22-01`, `CAP-P22-04` | `EXTEND` — wajib terkonfirmasi |
+| Penolakan `start-process` status salah `409` | `CAP-P22-03` | `REPAIR` (`BE-LAB-89`, dilebur) |
+| Terima Sampling, Selesaikan, menu v1 | `CAP-P22-09`..`-11`, `-07`, `-16`..`-19` | `EXISTING / REUSE` — selesai putaran 22 |
+
+### 25.3 Functional requirement
+
+| ID | Requirement | Disposisi |
+|---|---|---|
+| `FR-18.1` | Konfirmasi diterima pada pesanan `Requested` atau `Accepted` yang belum pernah dikonfirmasi; pada `Accepted` status tidak berubah | `EXTEND` |
+| `FR-18.2` | Proses Pemeriksaan ditolak `409` `VAL-151` pada pesanan `Accepted` yang belum dikonfirmasi | `EXTEND` |
+| `FR-18.3` | `start-process` pada status selain `Accepted` menjawab `409` | `REPAIR` |
+| `FR-18.4` | Selesaikan tidak memeriksa konfirmasi | `EXISTING / REUSE` (dibuktikan ulang) |
+| `FR-18.5` | Konfirmasi dijaga `LabOrder : Confirm`, terpisah dari `LabOrder : Update` | `MISSING / NEW` (aksi izin) |
+| `FR-18.6` | Daftar pasien lab: keadaan Konfirmasi dan Proses mengikuti `FR-18.1`/`FR-18.2`; izin Konfirmasi dibaca layar | `EXTEND` |
+| `FR-18.7` | Jabatan Analis memegang `LabOrder : Confirm` sesudah rilis | `MISSING / NEW` (data izin) |
+
+### 25.4 Skenario UAT
+
+| No | Skenario | Langkah | Hasil yang diharapkan |
+|---:|---|---|---|
+| 1 | **Berhasil — urutan v1** | Pesanan *Diminta* → Terima Sampling, wadah layak → Konfirmasi (pilih dokter) → Proses | *Diterima* → tetap *Diterima* dengan kolom Konfirmasi terisi → *Sedang Dikerjakan* |
+| 2 | **Berhasil — urutan V2 lama** | Konfirmasi → wadah layak → Proses | *Dikonfirmasi* → *Diterima* → *Sedang Dikerjakan* |
+| 3 | **Gagal — Proses sebelum konfirmasi** | Wadah layak, langsung Proses (daftar basi) | `409` *belum dikonfirmasi*; baris tetap *Diterima* |
+| 4 | **Gagal — konfirmasi kedua** | Dua petugas mengonfirmasi pesanan yang sama | Yang kedua `409`; nama konfirmator pertama tetap |
+| 5 | **Gagal — tanpa izin** | Dokter Umum menekan Konfirmasi | Butir redup; bila dipaksa, `403` |
+| 6 | **Berhasil — pesanan lama** | Pesanan *Sedang Dikerjakan* tanpa konfirmasi, seluruh hasil dirilis → Selesaikan | *Selesai* |
+| 7 | **Gagal — analis membatalkan** | Analis menekan Batalkan | Redup/`403` — `LAB-OPEN-052` belum memberi hak |
+
+### 25.5 Definition of Done
+
+| Butir | Dijawab ya bila |
+|---|---|
+| Kontrak | `r40`, `r8`, `r17`, revision 13 berstatus `approved` |
+| Backend | `AC-283`..`AC-286`, `AC-288` terbukti lewat HTTP atau harness; `PermissionRegistryValidator` lolos |
+| Frontend | `AC-287` terbukti di peramban |
+| Rilis | Analis memegang `LabOrder : Confirm` di lingkungan sasaran; set kebijakan lain jabatan itu tidak berubah |
+| UAT | Skenario 1–7 dijalankan dengan akun analis asli |
+
+### 25.6 Urutan pengiriman
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| `MVP-12a` | Backend: `ConfirmAsync`, `StartProcessAsync`, atribut izin — satu task (melebur `BE-LAB-89`) | Kontrak `approved` |
+| `MVP-12b` | Frontend: aturan Konfirmasi dan Proses, izin `Confirm` | Kontrak `approved`; boleh sejajar `MVP-12a`, **verifikasi** menunggu `MVP-12a` |
+| `MVP-12c` | Langkah rilis: deploy `MVP-12a` → **segera** beri `LabOrder : Confirm` kepada Analis → deploy `MVP-12b` | `MVP-12a`, `MVP-12b` |
+
+### 25.7 Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir |
+|---|---|---|
+| `LAB-REQ-016` | Persetujuan lima butir kontrak (`02-backend-architecture.md` 24.7) | **Ditutup** — disetujui 2026-10-07 |
+| `LAB-OPEN-052` | Hak Batalkan bagi analis | Tidak |
+| `LAB-OPEN-051` | Prosedur manual pembayaran pasien Tunai | Tidak — go-live Proses bagi pasien Tunai |
+
+## 26. Amandemen 2026-10-07 (kedua) — `EPIC-LAB-18` diperluas: dokter pemeriksa bagi pengonfirmasi
+
+Menurunkan `02-backend-architecture.md` bagian 25, `03-frontend-architecture.md` amandemen 2026-10-07 (kedua),
+`erd/data-dictionary.md` bagian 21, serta kontrak `LAB-API-v1` `r41` dan `LAB-PERM-v1` revision 14 —
+**keduanya `approved` 2026-10-07** lewat `LAB-REQ-017`. Decisions rev 89 (BR-139). **Nol tabel, nol kolom, nol migration,
+nol aksi izin.**
+
+Bagian ini **tidak** membuat epic baru. Dua temuan verifikasi `FE-LAB-50` menunjukkan bahwa titik akhir bagian
+25.1 — *"analis dapat menjalankan urutan v1 seluruhnya dari daftar pasien lab"* — belum dapat dicapai: analis tidak
+dapat memilih dokter pemeriksa (T2), dan baris baru benar sesudah muat ulang (T1). Keduanya melengkapi
+`EPIC-LAB-18`.
+
+### 26.1 Batas epic
+
+Batas bagian 25.1 **tetap**. Tambahan pada *yang dianggap selesai*: analis memilih dokter pemeriksa sendiri tanpa
+izin master dokter SDM, dan baris yang dikonfirmasi langsung terbaca benar tanpa muat ulang.
+
+### 26.2 Kemampuan `MUST HAVE` tambahan
+
+| Kemampuan | Asal | Disposisi |
+|---|---|---|
+| Pilihan dokter pemeriksa bagi pemegang hak Konfirmasi | F24-3; `FE-LAB-15` | `MISSING / NEW` — endpoint baca Lab |
+| Jejak konfirmasi pada rincian pesanan | F24-1; `LAB-API-v1` `r13` | `REPAIR` — kesesuaian kontrak |
+
+### 26.3 Functional requirement tambahan
+
+| ID | Requirement | Disposisi |
+|---|---|---|
+| `FR-18.8` | `GET /lab-orders/examiner-doctor-options` mengembalikan dokter aktif (syarat `VAL-73`) berhalaman dan dapat dicari, dijaga `LabOrder : Confirm` | `MISSING / NEW` |
+| `FR-18.9` | Setiap butir daftar hanya memuat `id`, `doctorCode`, `fullName`, `specialistName` | `MISSING / NEW` |
+| `FR-18.10` | `LabOrderDetailResponse` dari `GetDetailAsync` membawa lima ruas jejak konfirmasi | `REPAIR` |
+| `FR-18.11` | Dialog Konfirmasi memuat pilihan dari `FR-18.8`, dibuka kosong | `EXTEND` |
+| `FR-18.12` | `MVP-12` dirilis serempak — tidak ada lingkungan dengan `VAL-151` aktif tanpa `FR-18.8` | Langkah rilis |
+
+### 26.4 Skenario UAT tambahan
+
+| No | Skenario | Langkah | Hasil yang diharapkan |
+|---:|---|---|---|
+| 8 | **Berhasil — analis memilih dokter** | Analis membuka Konfirmasi pada *Diterima*, mencari nama dokter, memilih, Simpan | Daftar muncul; `200`; baris tetap *Diterima* dengan kolom Konfirmasi terisi; Proses aktif **tanpa muat ulang** |
+| 9 | **Gagal — tanpa hak Konfirmasi** | Pengguna tanpa `LabOrder : Confirm` memanggil daftar dokter | `403` |
+| 10 | **Gagal — dokter dinonaktifkan di tengah jalan** | Dokter dinonaktifkan SDM sesudah daftar dimuat, lalu Simpan | `422` `VAL-73` di dialog; baris tidak berubah |
+| 11 | **Berhasil — pencarian** | Ketik sebagian nama/kode/spesialisasi | Hanya dokter aktif yang cocok |
+
+### 26.5 Definition of Done tambahan
+
+| Butir | Dijawab ya bila |
+|---|---|
+| Kontrak | `r41` dan revision 14 berstatus `approved` |
+| Backend | `AC-289`, `AC-290`, `AC-292` terbukti lewat HTTP atau harness |
+| Frontend | `AC-291` dan skenario 8 terbukti di peramban dengan akun analis asli **tanpa** mengganti jawaban mana pun |
+| Rilis | `AC-293` — seluruh `MVP-12` dideploy serempak |
+
+### 26.6 Urutan pengiriman — `MVP-12` diperbarui
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| `MVP-12a` | Backend: `BE-LAB-90` ✅ **ditambah** satu task baru — daftar dokter pemeriksa dan jejak konfirmasi rincian | `r41` `approved` |
+| `MVP-12b` | Frontend: `FE-LAB-50` ⚠ **ditambah** satu task baru — pemilih dokter memakai daftar Lab | `r41` `approved`; verifikasi menunggu task backend baru |
+| `MVP-12c` | Langkah rilis **serempak** (`LAB-DEC-202`): deploy seluruh `MVP-12a` → beri `LabOrder : Confirm` kepada Analis → deploy seluruh `MVP-12b`, dalam satu jendela rilis | `MVP-12a`, `MVP-12b` |
+
+### 26.7 Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir |
+|---|---|---|
+| `LAB-REQ-017` | Persetujuan lima butir kontrak (`02-backend-architecture.md` 25.10) | **Ditutup** — disetujui 2026-10-07 |
+| — | Pesanan uji `Accepted` belum dikonfirmasi di dev (F24-8) | Tidak — verifikasi akhir |
+| `LAB-OPEN-052` | Hak Batalkan bagi analis | Tidak |
+
+## 27. Amandemen 2026-10-08 — Alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141)
+
+**Kontrak** `LAB-API-v1` `r42` dkk. **`approved` 2026-10-08** lewat `LAB-REQ-019`. Decisions rev 91. **Nol tabel, nol kolom, nol
+migration.** Implementasi mendahului kontrak atas arahan pemilik modul (BE `6564e04d`, FE `f6f23352e`).
+
+| Epic | Perubahan | Disposisi | AC |
+|---|---|---|---|
+| `EPIC-LAB-11` kiosk (`MVP-5b`) | Kiosk mendeteksi pesanan Lab; Konfirmasi Kehadiran atau pendaftaran kunjungan | `EXTEND` | `AC-302`..`AC-304` |
+| `EPIC-LAB-11` kiosk (`MVP-5b`) | Daftar Pasien OTC | `MISSING / NEW` — dibangun | `AC-305` |
+| `EPIC-LAB-11` Penerimaan Sampling/Specimen | Satu halaman, satu Simpan, Umum dan Rujukan; berhenti di `Received` | `EXTEND` | `AC-306`, `AC-307` |
+| `EPIC-LAB-18` Alur kerja daftar pasien | Terima Sampling dari daftar (`VAL-09`), centang Konfirmasi, kunci Lunas Proses | `EXTEND` | `AC-308`..`AC-312` |
+| Hasil (bagian `S17` tanpa cetak dan WhatsApp) | Menu Hasil dan Riwayat ×3 | `MISSING / NEW` — dibangun | `AC-313` |
+
+**Masih ditunda:** Kirim hasil WhatsApp, cetak dan unduh hasil (`S17`, `POST-MVP`); Tahan/Lanjutkan.
+
+**Definition of Done tambahan:** `LAB-REQ-019` disetujui — **ya** (2026-10-08); cacat status `Confirmed` kiosk diperbaiki —
+**ya** (kode BE 2026-10-08, belum di-commit; uji baca sungguhan devYoga: `LAB-RSMMC-000013` dan `000006` *Dikonfirmasi* kini tampil di `kiosk/pending-by-patient`); Proses sesudah pelunasan kasir diuji sungguhan — **belum**; pembayaran OTC tampil baca-saja — **belum**.
+
+## 28. Amandemen 2026-10-08 (kedua) — Lingkup kunci Lunas (putaran 27)
+
+**Kontrak** `LAB-API-v1` `r43`, `LAB-STATE-v1` `r10`, `LAB-VAL-v1` `r19` **`approved` 2026-10-08** lewat `LAB-REQ-020`. Decisions rev 92.
+**Nol tabel, nol kolom, nol migration.**
+
+| Epic | Perubahan | Disposisi | AC |
+|---|---|---|---|
+| `EPIC-LAB-18` Alur kerja daftar pasien | Kunci Lunas Proses dikecualikan bagi rawat inap dan IGD; label *Ditagih Kemudian* | `EXTEND` | `AC-314`..`AC-317` |
+
+**UAT jalur berhasil:** pasien rawat inap Tunai dengan tagihan Lab Rp 85.000 belum dibayar → kolom Pembayaran
+*Ditagih Kemudian — Rp 85.000* → Proses Pemeriksaan → *Sedang Dikerjakan*.
+**UAT jalur gagal:** pasien rawat jalan Tunai dengan tagihan sama → Proses nonaktif, API `409` *belum lunas*.
+
+**Definition of Done tambahan:** `LAB-REQ-020` disetujui — **ya** (2026-10-08); penjaga jenis kunjungan di backend — **ya** (working tree 2026-10-08, belum di-commit);
+label *Ditagih Kemudian* dan *Langsung proses* di frontend — **ya** (working tree, belum di-commit); `AC-314`..`AC-317` lulus uji unit — **ya** (harness BE 11/11, FE 557/557); uji HTTP rawat inap/IGD sungguhan — **belum** (nol data uji).
+
+**Di luar MVP Laboratorium:** tagihan Lab IGD (`LAB-COORD-020`, milik Billing).
+
+## 29. Amandemen 2026-10-08 (ketiga) — `EPIC-LAB-19` Beranda Lab mengikuti susunan v1 (BR-140)
+
+**Kontrak** `LAB-API-v1` `r44`, `LAB-VAL-v1` `r20`, `LAB-PERM-v1` revision 16 — **`approved` 2026-10-08** lewat
+[`LAB-REQ-021`](approval-requests/2026-10-08-permintaan-kontrak-beranda.md). Decisions rev 92 (putaran 25,
+`LAB-DEC-204`..`LAB-DEC-211`). **Nol tabel, nol kolom, nol migration.**
+
+### 29.1 Batas MVP epic ini
+
+| | Isi |
+|---|---|
+| **Titik mulai** | Petugas pemegang `LabOrder : Read` membuka menu *Beranda* Laboratorium |
+| **Titik akhir** | Petugas melihat keadaan hari ini, antrean validasi, sebaran pemeriksaan setahun, tren bulanan, dan 10 pesanan terbaru dalam satu layar, lalu dapat membuka salah satu pesanan |
+| Bukan bagian epic ini | Pembaruan otomatis realtime (`LAB-DEC-210`); dasbor beranda utama aplikasi (`/`); perbaikan cacat CITO di daftar pasien (`02-backend-architecture.md` 28.8) |
+
+**Asal kemampuan:** Beranda V2 as-is (capability map revision 2 bagian `F5`, route `overview`; decision log F25-3) —
+disposisi `EXTEND`. Tidak ada ID kemampuan tersendiri di peta.
+
+### 29.2 Functional requirement
+
+| FR | Kebutuhan | Disposisi | Keputusan | AC |
+|---|---|---|---|---|
+| FR-19.1 | Beranda menampilkan sembilan bagian berurutan, rekap status lama tetap di paling bawah | `EXTEND` | `LAB-DEC-204`, `LAB-FE-035` | `AC-294` |
+| FR-19.2 | Kartu hari ini: Pesanan, Menunggu (tanpa batal), Selesai + persentase, CITO — hari WIB menurut waktu diminta | `MISSING / NEW` | `LAB-DEC-205` | `AC-295` |
+| FR-19.3 | Kartu fokus: Total pesanan tercatat, Hasil menunggu validasi, Jenis laboratorium, Tingkat penyelesaian | `MISSING / NEW` | `LAB-DEC-208` | `AC-296` |
+| FR-19.4 | Grafik pemeriksaan per disiplin dan sebaran untuk tahun terpilih | `MISSING / NEW` | `LAB-DEC-206` | `AC-297` |
+| FR-19.5 | Tren pesanan bulanan tahun terpilih vs. tahun sebelumnya | `MISSING / NEW` | `LAB-DEC-207` | `AC-298` |
+| FR-19.6 | Tabel 10 pesanan terbaru; klik membuka halaman pesanan | `MISSING / NEW` (halaman tujuan `EXISTING / REUSE`) | `LAB-DEC-209` | `AC-299` |
+| FR-19.7 | Waktu muat dan *Perbarui Data*; galat satu bagian terisolasi | `EXTEND` | `LAB-DEC-210` | `AC-300` |
+| FR-19.8 | Akses `LabOrder : Read`, nol izin baru | `EXISTING / REUSE` | `LAB-DEC-211` | `AC-301` |
+| FR-19.9 | Angka *menunggu validasi* memakai kueri antrean validasi yang sama | `EXISTING / REUSE` (kueri antrean) | `LAB-DEC-208` | `AC-296` |
+
+Entity, endpoint, dan izin di atas seluruhnya tercatat di `02-backend-architecture.md` bagian 28, `LAB-API-v1` `r44`,
+dan `LAB-PERM-v1` revision 16. Nol entity lahir dari epic ini.
+
+### 29.3 UAT
+
+**Jalur berhasil.** Analis masuk pukul 09.15 WIB, membuka *Beranda*. Kartu: *Pesanan hari ini 12*, *Menunggu 8*,
+*Selesai 3 (25%)*, *CITO 2*; *Hasil menunggu validasi 7* — sama dengan jumlah di menu Antrean Validasi. Ia memilih
+tahun 2025; ketiga grafik berubah, kartu hari ini tetap. Ia menekan baris teratas pesanan terbaru dan halaman pesanan
+`LAB-RSMMC-000123` terbuka.
+
+**Jalur gagal 1 — tanpa izin.** Petugas gizi membuka alamat Beranda Lab → *Akses Ditolak*; API `403`.
+
+**Jalur gagal 2 — satu bagian gagal.** Server menolak `dashboard/yearly` (`500`). Bagian grafik menampilkan galat dan
+tombol *Coba lagi*; kartu hari ini, tabel terbaru, dan rekap status tetap berisi.
+
+**Jalur gagal 3 — batas hari.** Pesanan yang diminta 23.30 WIB kemarin **tidak** ikut kartu hari ini.
+
+### 29.4 Definition of Done
+
+| Butir | Keadaan 2026-10-08 |
+|---|---|
+| `LAB-REQ-021` disetujui pemilik modul | **Ya** — 2026-10-08, kesebelas butir |
+| Tiga endpoint backend tersedia, `VAL-154` ditegakkan | **Belum** |
+| Kueri dasar antrean diangkat tanpa perubahan perilaku antrean (uji regresi lulus) | **Belum** |
+| Layar Beranda sembilan bagian di frontend | **Belum** |
+| `AC-294`..`AC-301` lulus pada lapis uji `testing/acceptance-test-matrix.md` (amandemen 2026-10-08 ketiga) | **Belum** |
+| Uji HTTP baca-saja devYoga: `200` analis, `403` tanpa izin, angka *menunggu validasi* = `totalData` antrean | **Belum** |
+
+### 29.5 Urutan pengiriman
+
+| Gelombang | Isi | Syarat |
+|---|---|---|
+| `MVP-13a` | Backend: `BE-LAB-92` (hari ini, pesanan terbaru, kueri antrean diangkat) lalu `BE-LAB-93` (tahunan, `VAL-154`) | `LAB-REQ-021` disetujui |
+| `MVP-13b` | Frontend: `FE-LAB-52` (susunan, kartu, pesanan terbaru, kesiapan, rekap) lalu `FE-LAB-53` (pemilih tahun, grafik) | `MVP-13a` tersedia di lingkungan uji |
+| `MVP-13c` | Rilis — backend boleh lebih dulu (aditif); frontend menyusul | `MVP-13a`, `MVP-13b` |
+| `POST-MVP` | Pembaruan realtime (`LAB-DEC-210`) | Backend Lab menyiarkan perubahan pesanan |
+
+### 29.6 Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| `LAB-REQ-021` | Sebelas butir rincian kontrak | Yoga Aji Pratama | ✅ Ditutup 2026-10-08 — disetujui kesebelas butir |
+| ~~Usulan `LAB-CONFLICT-019`~~ | CITO dari pemesanan hilang saat wadah direncanakan (`02-backend-architecture.md` 28.8) | Yoga Aji Pratama, lewat `/grill-me` | ✅ **Diputuskan 2026-10-09** (putaran 28) — lihat bagian 30. Tidak pernah memblokir epic ini |
+
+## 30. Amandemen 2026-10-09 — CITO dari pemesanan sampai ke pemeriksaan (putaran 28)
+
+**Kontrak** `LAB-API-v1` `r45` **`approved` 2026-10-09** lewat `LAB-REQ-022` (*"setuju keenam butir"*). Decisions rev 93 (`LAB-DEC-225`..`LAB-DEC-228`);
+`02-backend-architecture.md` bagian 29. **Nol tabel, nol kolom, nol endpoint, nol izin, nol berkas frontend.** Satu
+migration data saja.
+
+| Epic | Perubahan | Disposisi | AC |
+|---|---|---|---|
+| `EPIC-LAB-01` Penandaan Cito | CITO yang dipilih saat memesan sampai ke pemeriksaan; wadah pengganti mempertahankan *Tandai Cito* | `EXTEND` | `AC-318`, `AC-320`, `AC-322` |
+| `EPIC-LAB-02` Wadah fisik dan pemeriksaan terpesan | Rencana wadah dan ambil ulang mengisi kesegeraan pemeriksaan | `EXTEND` | `AC-318`, `AC-320` |
+| `EPIC-LAB-04` Daftar kerja dan keterlambatan cito | Tidak berubah — kini menerima pemeriksaan CITO dari pemesanan | `EXISTING / REUSE` | `AC-319` |
+| Perbaikan data lama | Pekerjaan berjalan yang terlanjur `Routine` → `Cito` — dari permintaan CITO **dan** wadah pengganti yang kehilangan *Tandai Cito* (`LAB-REQ-022` butir 4) — satu baris riwayat | `MISSING / NEW` (migration data) | `AC-321` |
+
+**UAT jalur berhasil:** dr. Arif memesan Hemoglobin CITO lewat kiosk → analis merencanakan wadah → Daftar Pasien
+Patologi Klinik berlencana CITO, label tercetak CITO, Hemoglobin di urutan teratas Daftar Kerja; wadah *Layak* pukul
+10.00, batas 60 menit → pukul 11.05 muncul di Pantau Keterlambatan Cito.
+**UAT jalur gagal:** sampel Hemoglobin hemolisis, diambil ulang → pemeriksaan pengganti **tetap** CITO (bukan
+kembali biasa); dr. Budi yang bukan pemesan mencoba mencabut cito → tetap ditolak `403` (`VAL-03`, tidak berubah).
+
+**Definition of Done tambahan:** `LAB-REQ-022` disetujui — **ya** (2026-10-09); `CreateExaminationsAsync` mewarisi kesegeraan
+(wadah pertama dan pengganti) — **ya** (`BE-LAB-94`, working tree 2026-10-09); migration data idempoten dengan `Down` — **ya** (SQL 13/13, `ROLLBACK`); harness `AC-318`,
+`AC-320`..`AC-322` hijau — **ya** (18/18); hitung kering produksi dicatat sebelum `database update` — **belum**; verifikasi
+peramban `AC-318`/`AC-319` dengan pesanan uji ber-CITO (butuh izin tulis) — **belum**.
+
+**Gelombang:** `MVP-14` — satu task backend, nol task frontend; langkah rilis `MVP-14c` (hitung kering, lalu
+`database update`). `LAB-REQ-022` disetujui 2026-10-09 — siap direncanakan `/plan-module-delivery`.
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| `LAB-REQ-022` | Enam butir bentuk kontrak dan cara perbaikan data, termasuk butir 4 (perluasan ke wadah pengganti yang kehilangan *Tandai Cito*) | Yoga Aji Pratama | ✅ Ditutup 2026-10-09 — disetujui keenam butir |
+
+### 30.1 Tambahan 2026-10-09 — Rencana ulang sesudah wadah dibatalkan (putaran 29)
+
+`LAB-DEC-229`; kontrak `LAB-API-v1` `r46` **`approved` 2026-10-09** lewat `LAB-REQ-023` (*"setuju kelima butir"*); `02-backend-architecture.md` bagian 30.
+`EPIC-LAB-01`/`EPIC-LAB-02` `EXTEND`; `AC-323`..`AC-325`. Satu task `BE-LAB-95` di gelombang `MVP-14`, nol task frontend.
+
+**UAT jalur berhasil:** dr. Arif menandai Leukosit CITO; wadahnya dibatalkan karena salah tabung; analis merencanakan wadah
+baru → Leukosit tetap CITO dengan nama dr. Arif. **UAT jalur gagal:** dr. Arif mencabut CITO Hemoglobin; wadah dibatalkan;
+rencana ulang → Hemoglobin **tetap biasa** (permintaan CITO tidak menghidupkannya kembali).
+
+**Definition of Done tambahan:** `LAB-REQ-023` disetujui — **ya** (2026-10-09); `BE-LAB-95` harness `AC-323`..`AC-325` + regresi
+`BE-LAB-94` hijau — **ya** (24/24, 2026-10-09).

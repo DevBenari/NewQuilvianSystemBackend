@@ -16,8 +16,9 @@
 | Target tulis | `NewQuilvianSystemBackend` saja |
 | Model | Claude Sonnet 5.5 |
 | Commit backend saat dikerjakan | `46fa2a91f8c812d1d1c5e83a94aed3dddfccac93` (branch `Yasmina`, working tree bersih sebelum task) |
-| Tanggal | 2026-10-05 |
+| Tanggal | 2026-10-05; dikoreksi 2026-10-06 |
 | Status | 🟡 **KODE SELESAI DITULIS, VALIDASI BELUM DIJALANKAN.** `dotnet build` `NOT RUN`; tidak ada pengujian dengan data. Belum boleh ditandai selesai (`✅`) |
+| Koreksi 2026-10-06 | Pemilik modul Finance mengoreksi cakupan "Belum Dibuat": piutang berstatus `SETTLED` (lunas dibayar, termasuk gabungan asuransi + excess tunai) yang belum pernah digabung Batch Tagihan semula sengaja disembunyikan — keputusan 5 Oktober yang ternyata salah. Status pembayaran dan status pembuatan AR/Invoice adalah dua hal terpisah; piutang lunas tetap perlu bisa dibuatkan AR/Invoice-nya. Lihat bagian 2 dan 3.2 untuk detail perubahan |
 
 ---
 
@@ -51,7 +52,7 @@ Di V1 hampir semua ini dikerjakan di frontend: halaman meminta hingga 1.000 bari
 | Sudah Dibuat | Piutang menjadi anggota Batch Tagihan yang statusnya **bukan** `CANCELLED` | Piutang `AR-001` ada di batch `DRAFT` atau `ISSUED` → Sudah Dibuat |
 | Belum Dibuat | Piutang tidak menjadi anggota batch aktif | Piutang `AR-002` belum pernah digabung → Belum Dibuat |
 
-Cakupan daftar: piutang yang bukan `CANCELLED`, dan masih `OUTSTANDING`/`PARTIAL` atau sudah tergabung dalam batch aktif. Piutang lunas atau dihapus-buku yang tidak pernah digabung tidak ditampilkan, sehingga setiap baris tepat salah satu dari dua status itu.
+Cakupan daftar (dikoreksi 2026-10-06): piutang yang bukan `CANCELLED`, dan masih `OUTSTANDING`/`PARTIAL`/`SETTLED` atau sudah tergabung dalam batch aktif. Piutang `SETTLED` (lunas dibayar, mis. gabungan asuransi + excess tunai) yang belum pernah digabung tetap ditampilkan sebagai "Belum Dibuat" dan tetap bisa dibuatkan AR/Invoice — status pembayaran dan status pembuatan AR/Invoice adalah dua hal terpisah. Hanya piutang `WRITTEN_OFF` (dihapus-buku) yang tidak pernah digabung yang tidak ditampilkan, sehingga setiap baris tepat salah satu dari "Belum Dibuat" atau "Sudah Dibuat".
 
 **Jumlah tagihan dan contoh.** Jumlah tagihan = nominal rincian piutang, yaitu nominal yang masuk ke Finance/AR.
 
@@ -90,7 +91,8 @@ Cakupan daftar: piutang yang bukan `CANCELLED`, dan masih `OUTSTANDING`/`PARTIAL
 | `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceReceivableBillingDataService.cs` | **Baru.** Query baca saja: `GetAsync` (daftar + ringkasan) dan `GetPayerOptionsAsync` |
 | `Areas/Corporate/FinanceManagement/Receivable/Controllers/FinanceReceivablesController.cs` | Dua endpoint `GET` baru; konstruktor menerima service baru |
 | `Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs` | Mendaftarkan service baru (di tempat service Finance lainnya didaftarkan) |
-| `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceReceivableInvoiceBatchService.cs` | `CreateAsync`: tolak piutang yang tidak layak tagih, jelaskan penyebab bila terhalang batch yang dibatalkan, ubah pelanggaran indeks unik menjadi `409` |
+| `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceReceivableInvoiceBatchService.cs` | `CreateAsync`: tolak piutang yang tidak layak tagih, jelaskan penyebab bila terhalang batch yang dibatalkan, ubah pelanggaran indeks unik menjadi `409`. **Dikoreksi 2026-10-06**: `notBillable` kini menerima `SETTLED`, bukan hanya `OUTSTANDING`/`PARTIAL` |
+| `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceReceivableBillingDataService.cs` | **Dikoreksi 2026-10-06**: cakupan `BuildQuery` dan `ResolveCreateBlockedReason` kini menyertakan piutang `SETTLED` sebagai "Belum Dibuat" dan layak dibuatkan AR/Invoice |
 
 ### 3.3 Dampak kontrak API, database, dan keamanan
 

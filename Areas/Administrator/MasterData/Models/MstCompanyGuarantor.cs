@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Models;
+using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
 
@@ -41,9 +41,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
 
         public DateTime? ContractEndDate { get; set; }
 
-        public bool IsUsingCompanyTariffBook { get; set; } = true;
+        // FIX-DOK-005-07 & K-04: Fitur buku tarif perusahaan belum dirancang;
+        // default memakai tarif rumah sakit.
+        public bool IsUsingCompanyTariffBook { get; set; } = false;
 
-        public bool IsUsingHospitalTariff { get; set; } = false;
+        public bool IsUsingHospitalTariff { get; set; } = true;
 
         public bool IsNeedGuaranteeLetter { get; set; } = true;
 

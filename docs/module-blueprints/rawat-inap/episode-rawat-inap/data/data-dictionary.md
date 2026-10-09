@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | **`0.5`** — bagian 18 penyelarasan `PRD-RWI-V2-001`, blueprint revision `7` |
-| Status | **`draft`** untuk `0.5` |
+| Revision | **`0.7`** — bagian 20 Workspace PPRI, kontrak `0.11.0` (7 Oktober 2026, `draft`). Sebelumnya `0.6` — bagian 19 Finishing (`approved`, `RWI-DEC-221`); `0.5` — bagian 18 penyelarasan `PRD-RWI-V2-001`, blueprint revision `7` |
+| Status | **`approved`** untuk `0.7` (bagian 20) — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). Status bagian sebelumnya mengikuti `blueprint-manifest.md` sub-modul |
 | Backend SHA | `5afb54b` |
 
 Seluruh tabel mewarisi `IdentityModel`, sehingga memiliki kolom audit `CreateDateTime`,
@@ -975,3 +975,584 @@ CREATE INDEX "IX_CliTransferHandover_ToUnit_Status" ON public."CliTransferHandov
 ### 19.13 Penyelarasan decision log revision `31` ★ 2 Oktober 2026
 
 Tidak ada kolom atau tabel baru milik sub-modul ini. `InpAdmissionReferral` (19.8) kini dirujuk tabel Billing `BilInvoiceEncounterLink.SourceReferralId` (`Restrict`; `integrasi-billing` kamus data 6.9, `RWI-DEC-207`), sehingga baris permintaan admisi yang sudah tertaut tidak dapat dihapus fisik — sejalan dengan aturan hapus `IsDelete` di kepala dokumen.
+
+---
+
+## 20. Amandemen revision `0.7` / kontrak `0.11.0` — Workspace PPRI ★ 7 Oktober 2026
+
+| Field | Nilai |
+| --- | --- |
+| Sumber | [`../02-backend-architecture.md`](../02-backend-architecture.md) revision `0.10` bagian 13 |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). Bagian 19 (`0.6`) tetap `approved` (`RWI-DEC-221`) |
+| Backend SHA | `fdf85a07` (capability map bagian 20 diaudit pada `671191eb`, `RWI-FACT-065`) |
+| Keputusan | `RWI-DEC-228` s.d. `264`; `RWI-FACT-067` |
+
+Aturan kepala dokumen tetap berlaku: kolom warisan `IdentityModel` tidak diulang; hapus berarti `IsDelete`, dan alur bisnis Workspace PPRI **tidak pernah** memakai hapus. Enum disimpan sebagai `integer`. Waktu disimpan `timestamp with time zone` dalam UTC dan ditampilkan menurut zona waktu profil rumah sakit (bawaan `Asia/Jakarta`).
+
+**Arti kolom Sensitif pada bagian ini.** Bertanda **Ya** berarti data pribadi pasien atau keluarga, isi pernyataan yang menyangkut keyakinan dan keuangan pribadi, atau salinan beku yang memuat keduanya. Kolom itu tidak masuk custom logger, tidak dipakai sebagai contoh berisi data asli, dan disamarkan di layar daftar bila berupa nomor identitas (`NFR-RWA-06`).
+
+### 20.1 Ringkasan tabel
+
+| Tabel | Status | Pemilik | Gelombang | Bagian |
+|---|---|---|---|---|
+| `InpAdmissionDocument` | `Baru` | `InPatientManagement` | `RWA-MVP-0` | 20.2 |
+| `InpAdmissionDocumentSignature` | `Baru` | `InPatientManagement` | `RWA-MVP-0` | 20.3 |
+| `InpAdmissionDocumentParty` | `Baru` | `InPatientManagement` | `RWA-MVP-0` | 20.4 |
+| `InpAdmissionHandoverItem` | `Baru` | `InPatientManagement` | `RWA-MVP-0` | 20.5 |
+| `InpAdmissionPrivacyRequest` | `Baru` | `InPatientManagement` | `RWA-MVP-0` | 20.6 |
+| `InpAdmissionPrivacyEntry` | `Baru` | `InPatientManagement` | `RWA-MVP-0` | 20.7 |
+| `InpAdmissionBeliefItem` | `Baru` | `InPatientManagement` | `RWA-MVP-0` | 20.8 |
+| `InpAdmissionCostDifferenceStatement` | `Baru` | `InPatientManagement` | `RWA-MVP-0` | 20.9 |
+| `InpAdmissionDepositStatement` | `Baru` | `InPatientManagement` | `RWA-MVP-0` | 20.10 |
+| `InpAdmissionCostEstimate` | `Baru` | `InPatientManagement` | Di luar gelombang (`EPIC-RWA-09`) | 20.11 |
+| `InpAdmissionCostEstimateLine` | `Baru` | `InPatientManagement` | Di luar gelombang | 20.12 |
+| `InpAdmissionPrintLog` | `Baru` | `InPatientManagement` | `RWA-MVP-0` | 20.13 |
+| `InpAdmissionProcedurePlanMark` | `Baru` | `InPatientManagement` | Di luar gelombang | 20.14 |
+| `MstInpatientClearanceItem` | `Diperbarui` | `MasterData` | `RWA-MVP-0` | 20.15 |
+| `MstInpatientSetting` | `Diperbarui` | `MasterData` | `RWA-MVP-0` | 20.16 |
+| `InpEpisode`, `InpBedPlacement`, `InpStatusHistory`, `InpDoctorAssignment`, `InpNurseAssignment`, `MstPatient`, `MstPatientRelationship`, `MstPatientEmergencyContact`, `RegPatientEncounter`, `RegPatientEncounterGuarantor`, `CliDoctorCertificate`, `OprCase`, `MstHospitalSite`, `MstTariff`, `MstReferralDoctor` | `Sudah ada` — **dibaca lewat service pemilik, tidak diubah** | Masing-masing | — | 20.17 |
+
+### 20.2 `InpAdmissionDocument` — `Baru` — satu baris per versi dokumen
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | — |
+| `EpisodeId` | `uuid` | Ya | — | Unique parsial dokumen aktif; index (`EpisodeId`, `DocumentType`, `CreateDateTime`) | FK `InpEpisode` | `Restrict` | Tidak | Episode pemilik dokumen |
+| `PatientId` | `uuid` | Ya | — | Index (`PatientId`, `DocumentType`, `Status`) | FK `MstPatient` | `Restrict` | Tidak | Diisi server dari episode. Dipakai mencari Nilai Kepercayaan `Completed` terakhir pasien lintas episode (`RWI-DEC-242`) |
+| `DocumentType` | `integer` | Ya | — | Bagian index | — | — | Tidak | `InpAdmissionDocumentType` |
+| `Status` | `integer` | Ya | `1` `Draft` | Bagian filter unique parsial | — | — | Tidak | `InpAdmissionDocumentStatus` |
+| `VersionNo` | `integer` | Ya | `1` | — | — | — | Tidak | Versi di dalam satu rantai koreksi: versi baru = versi sebelumnya + 1, dijaga `RowVersion` versi sebelumnya dan unique `PreviousVersionId`. Bukan nomor bisnis; rantai baru sesudah pembatalan mulai dari 1 |
+| `PreviousVersionId` | `uuid` | Tidak | `null` | **Unique** bila terisi | FK `InpAdmissionDocument` (diri sendiri) | `Restrict` | Tidak | Versi yang dikoreksi; satu versi hanya punya satu pengganti |
+| `CorrectionReason` | `varchar(500)` | Tidak | `null` | — | — | — | **Ya** | Wajib bila `VersionNo > 1`; 10–500 karakter |
+| `SigningCity` | `varchar(100)` | Tidak | `null` | — | — | — | Tidak | Bawaan dari `MstInpatientSetting.DocumentSigningCity` saat dibuat; boleh diubah selama `Draft` |
+| `StatementDate` | `date` | Tidak | `null` | — | — | — | Tidak | "Tanggal" pada formulir; tanggal surat Pelunasan Deposit. Wajib saat kunci untuk Privasi, Nilai Kepercayaan, Selisih Biaya, Pelunasan Deposit |
+| `Note` | `varchar(1000)` | Tidak | `null` | — | — | — | **Ya** | "Keterangan" atau "Catatan" formulir |
+| `SnapshotFormatVersion` | `integer` | Tidak | `null` | — | — | — | Tidak | Bentuk `SnapshotJson`; `1` pada revision ini |
+| `SnapshotJson` | `jsonb` | Tidak | `null` | — | — | — | **Ya** | Salinan beku saat dikunci (20.2.1); dikosongkan saat buka kunci |
+| `LockedAt` | `timestamp with time zone` | Tidak | `null` | — | — | — | Tidak | Waktu kunci terakhir |
+| `LockedByUserId` | `uuid` | Tidak | `null` | — | Akun pengguna | — | Tidak | — |
+| `CompletedAt` | `timestamp with time zone` | Tidak | `null` | — | — | — | Tidak | Waktu slot wajib terakhir terisi |
+| `SupersededAt` | `timestamp with time zone` | Tidak | `null` | — | — | — | Tidak | Waktu versi koreksi dibuat |
+| `CancelledAt` | `timestamp with time zone` | Tidak | `null` | — | — | — | Tidak | — |
+| `CancelledByUserId` | `uuid` | Tidak | `null` | — | Akun pengguna | — | Tidak | — |
+| `CancelledReason` | `varchar(500)` | Tidak | `null` | — | — | — | **Ya** | Buang konsep: 1–500 karakter; batal dokumen terkunci: 10–500 karakter |
+| `IdempotencyKey` | `varchar(80)` | Tidak | `null` | Unique bila terisi dan belum dihapus | — | — | Tidak | Dari header `Idempotency-Key` simpan konsep atau versi koreksi |
+| `RowVersion` | `uuid` | Ya | baru | — | — | — | Tidak | Token konkurensi; berganti setiap kali dokumen atau anaknya diubah |
+
+**Constraint:**
+
+- `UX_InpAdmissionDocument_Episode_Type_Active` — unique (`EpisodeId`, `DocumentType`) dengan filter `"Status" IN (1, 2, 3) AND NOT "IsDelete"` (`INV-RWA-01`).
+- `CK_InpAdmissionDocument_State` — `Status = 2` ⇒ `LockedAt` dan `SnapshotJson` terisi; `Status = 3` ⇒ `CompletedAt` dan `SnapshotJson` terisi; `Status = 4` ⇒ `SupersededAt` terisi; `Status = 5` ⇒ `CancelledAt` dan `CancelledReason` terisi; `VersionNo > 1` ⇒ `PreviousVersionId` dan `CorrectionReason` terisi.
+
+**Contoh.** Selisih Biaya Tn. Budi versi 1 `Completed` pukul 10.30. Pukul 13.00 Sari membuat versi koreksi beralasan "koreksi alamat deklarer". Satu transaksi mengubah versi 1 menjadi `Superseded` (`SupersededAt` 13.00), lalu membuat versi 2 `Draft` dengan `PreviousVersionId` = versi 1. Unique index dokumen aktif tetap berisi satu baris.
+
+#### 20.2.1 Bentuk `SnapshotJson` — `SnapshotFormatVersion = 1`
+
+Dibentuk `InpAdmissionSnapshotBuilder` saat dokumen dikunci. Isinya **hanya** yang dicetak jenis dokumen itu (`RWI-DEC-257` butir 2). Nomor identitas pasien **tidak** dibekukan, karena tidak dicetak dokumen admisi mana pun.
+
+```json
+{
+  "formatVersion": 1,
+  "frozenAt": "2026-10-09T03:00:00Z",
+  "documentVersionNo": 1,
+  "letterhead": { "siteName": "<nama rumah sakit>", "addressLines": ["<alamat>", "<kota, provinsi>"], "phoneNumber": "<telepon>", "email": "<email>" },
+  "formCode": "005/NM/E/Rev01/XI/2016",
+  "signingCity": "<kota>",
+  "patient": { "fullName": "Budi Santoso", "salutation": "Tn.", "medicalRecordNumber": "00-12-34-56", "birthDate": "1981-03-12", "gender": "Male", "religion": "Islam", "address": "<alamat pasien>" },
+  "episode": { "episodeNumber": "RI-261007-0001", "admittedAt": "2026-10-07T01:15:00Z", "patientClassName": "Kelas 2", "roomName": "Melati 03", "bedName": "B", "serviceUnitName": "Melati", "attendingDoctorName": "dr. Andika" },
+  "guarantor": { "paymentType": "Insurance", "guarantorName": "PT Asuransi Sehat Sentosa", "policyNumber": "<polis>", "memberNumber": "<peserta>", "cardNumber": "7788-0012-3456" },
+  "deposit": { "minimumPolicyAmount": 5000000, "receivedAmount": 2000000, "shortfallAmount": 3000000, "amountsReadAt": "2026-10-09T03:00:00Z" }
+}
+```
+
+Bagian `guarantor` hanya untuk Selisih Biaya, Pelunasan Deposit, dan Estimasi Biaya; bagian `deposit` hanya untuk Pelunasan Deposit (angkanya juga disimpan bertipe di 20.10). Data samaran di atas mengikuti PRD bagian 18.
+
+### 20.3 `InpAdmissionDocumentSignature` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | — |
+| `DocumentId` | `uuid` | Ya | — | Unique (`DocumentId`, `Slot`) belum dihapus | FK `InpAdmissionDocument` | `Restrict` | Tidak | — |
+| `Slot` | `integer` | Ya | — | Bagian unique | — | — | Tidak | `InpAdmissionSignatureSlot` |
+| `Method` | `integer` | Ya | — | — | — | — | Tidak | `PaperRecorded` untuk slot pasien/keluarga; `ElectronicAttestation` untuk slot petugas |
+| `SignerName` | `varchar(200)` | Ya | — | — | — | — | **Ya** | Kertas: nama yang menandatangani lembar. Atestasi: `DisplayName` akun saat menandatangani (dibekukan) |
+| `SignerPositionName` | `varchar(150)` | Tidak | `null` | — | — | — | Tidak | Atestasi: jabatan utama akun (`PrimaryPosition.PositionName`) saat menandatangani |
+| `SignerRelationship` | `integer` | Tidak | `null` | — | — | — | Tidak | Kertas: `InpAdmissionPartyRelationship` |
+| `SignerRelationshipText` | `varchar(100)` | Tidak | `null` | — | — | — | Tidak | Kertas: teks hubungan bila `Other`, misalnya "adik ipar" |
+| `SignedAt` | `timestamp with time zone` | Ya | — | — | — | — | Tidak | Kertas: waktu tanda tangan di lembar, diisi petugas, tidak sebelum `LockedAt` dan tidak di masa depan. Atestasi: waktu server |
+| `SignedByUserId` | `uuid` | Tidak | `null` | **Unique** (`DocumentId`, `SignedByUserId`) bila terisi dan belum dihapus | Akun pengguna | — | Tidak | Atestasi: akun penanda tangan (`INV-RWA-04`) |
+| `VerifiedByUserId` | `uuid` | Tidak | `null` | — | Akun pengguna | — | Tidak | Kertas: petugas yang memeriksa lembar dan mencatatnya |
+| `RecordedAt` | `timestamp with time zone` | Ya | — | — | — | — | Tidak | Waktu server saat baris dicatat |
+| `IdempotencyKey` | `varchar(80)` | Tidak | `null` | Unique bila terisi dan belum dihapus | — | — | Tidak | — |
+
+**Constraint:** `CK_InpAdmissionDocumentSignature_Method` — `Method = 1` ⇒ `Slot = 1`, `VerifiedByUserId` terisi, `SignedByUserId` kosong; `Method = 2` ⇒ `Slot <> 1`, `SignedByUserId` terisi.
+
+**Contoh.** Pada Selisih Biaya Tn. Budi tercatat dua baris: (1) slot 1, kertas, "Rina Santoso", `Spouse`, ditandatangani 10.15, diverifikasi Sari; (2) slot 2, atestasi, "Sari Wulandari", "Petugas Admisi", 10.20, akun Sari. Dua baris itu sah walaupun keduanya melibatkan Sari, karena verifikasi kertas bukan slot petugas (`RWI-DEC-239`).
+
+### 20.4 `InpAdmissionDocumentParty` — `Baru` — penanda tangan atau deklarer yang dinyatakan dokumen
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | — |
+| `DocumentId` | `uuid` | Ya | — | **Unique** | FK `InpAdmissionDocument` | `Restrict` | Tidak | Satu pihak per dokumen |
+| `SourceType` | `integer` | Ya | `4` `Manual` | — | — | — | Tidak | `InpAdmissionPartySource` |
+| `SourceRecordId` | `uuid` | Tidak | `null` | — | **Tanpa FK** | — | Tidak | Id relasi atau kontak darurat asal. Jejak saja; tidak dipakai membaca ulang, karena isi pernyataan beku sejak disimpan |
+| `FullName` | `varchar(150)` | Ya | — | — | — | — | **Ya** | Nama penanda tangan atau deklarer |
+| `Relationship` | `integer` | Tidak | `null` | — | — | — | Tidak | `InpAdmissionPartyRelationship`. Wajib untuk Nilai Kepercayaan |
+| `RelationshipText` | `varchar(100)` | Tidak | `null` | — | — | — | Tidak | Teks hubungan bila `Other` atau berasal dari kontak darurat |
+| `Address` | `varchar(500)` | Tidak | `null` | — | — | — | **Ya** | Wajib untuk Nilai Kepercayaan, Selisih Biaya, Pelunasan Deposit |
+| `BirthDate` | `date` | Tidak | `null` | — | — | — | **Ya** | Nilai Kepercayaan; umur dihitung, tidak disimpan |
+| `Gender` | `integer` | Tidak | `null` | — | — | — | Tidak | Enum `Gender` yang sudah ada. Wajib untuk Nilai Kepercayaan |
+| `Occupation` | `varchar(100)` | Tidak | `null` | — | — | — | **Ya** | Selisih Biaya |
+| `IdentityType` | `integer` | Tidak | `null` | — | — | — | Tidak | `InpAdmissionPartyIdentityType`. Wajib untuk Selisih Biaya |
+| `IdentityNumber` | `varchar(50)` | Tidak | `null` | — | — | — | **Ya** | Wajib untuk Selisih Biaya. Disamarkan di daftar, misalnya `3275•••••••••001` |
+| `MobilePhone` | `varchar(13)` | Tidak | `null` | — | — | — | **Ya** | Angka saja, maksimal 13 digit; tanda hubung dan spasi dibuang server (`FR-RWA-082`). Wajib untuk Pelunasan Deposit |
+| `OfficePhone` | `varchar(20)` | Tidak | `null` | — | — | — | **Ya** | Selisih Biaya |
+
+**Pemakaian per jenis:** Privasi = `FullName` (Nama Penanda Tangan); Nilai Kepercayaan = nama, tanggal lahir, jenis kelamin, hubungan, alamat; Selisih Biaya = nama, alamat, pekerjaan, jenis dan nomor identitas, telepon; Pelunasan Deposit = nama, alamat, telepon, sumber data. Serah Terima dan Estimasi Biaya tidak punya pihak.
+
+### 20.5 `InpAdmissionHandoverItem` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | — |
+| `DocumentId` | `uuid` | Ya | — | Unique (`DocumentId`, `ClearanceItemId`); unique (`DocumentId`, `LineNo`) | FK `InpAdmissionDocument` | `Restrict` | Tidak | — |
+| `ClearanceItemId` | `uuid` | Ya | — | Bagian unique | FK `MstInpatientClearanceItem` | `Restrict` | Tidak | Butir master asal, jenis `NewPatientHandover` |
+| `LineNo` | `integer` | Ya | — | Bagian unique | — | — | Tidak | Urutan baris pada lembar (1..*n*), dibekukan saat dibuat — urutan bisnis cetakan, bukan `SortOrder` presentasi |
+| `ItemNumberSnapshot` | `integer` | Tidak | `null` | — | — | — | Tidak | Nomor butir induk tercetak 1..15; kosong untuk sub-butir (dicetak berpoin) |
+| `ParentItemNumberSnapshot` | `integer` | Tidak | `null` | — | — | — | Tidak | Nomor induk sub-butir, misalnya `2` |
+| `ItemCodeSnapshot` | `varchar(50)` | Ya | — | — | — | — | Tidak | Kode butir saat dibuat, misalnya `STPB-13` |
+| `ItemNameSnapshot` | `varchar(200)` | Ya | — | — | — | — | Tidak | Nama butir saat dibuat, misalnya "PASANG GELANG" |
+| `Choice` | `integer` | Tidak | `null` | — | — | — | Tidak | `InpHandoverItemChoice`; kosong = belum dipilih. Wajib terisi saat kunci |
+| `Note` | `varchar(500)` | Tidak | `null` | — | — | — | Tidak | Keterangan; wajib bila `NotDone` saat kunci |
+
+Saran sistem **tidak disimpan**; ia dihitung saat dibaca dari sumber saran master dan hanya membantu petugas memilih (`RWI-DEC-241` butir 2).
+
+### 20.6 `InpAdmissionPrivacyRequest` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | — |
+| `DocumentId` | `uuid` | Ya | — | **Unique** | FK `InpAdmissionDocument` | `Restrict` | Tidak | Dokumen Permintaan Privasi |
+| `IsTransportPrivacyRequested` | `boolean` | Ya | `false` | — | — | — | Tidak | "Privasi selama Transportasi" Ya/Tidak; bawaan Tidak (PRD Lampiran A.5) |
+
+### 20.7 `InpAdmissionPrivacyEntry` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | — |
+| `DocumentId` | `uuid` | Ya | — | Unique (`DocumentId`, `EntryType`, `LineNo`) | FK `InpAdmissionDocument` | `Restrict` | Tidak | — |
+| `EntryType` | `integer` | Ya | — | Bagian unique | — | — | Tidak | `AllowedVisitor` atau `SpecialServiceRequest` |
+| `LineNo` | `integer` | Ya | — | Bagian unique | — | — | Tidak | 1–3, mengikuti tiga baris V1 (G-40); `CHECK` 1–3 |
+| `Text` | `varchar(200)` | Ya | — | — | — | — | **Ya** | Satu nama kerabat atau satu permintaan, utuh — "Sdr. Dimas, Jr." tetap satu baris |
+
+### 20.8 `InpAdmissionBeliefItem` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | — |
+| `DocumentId` | `uuid` | Ya | — | Unique (`DocumentId`, `ItemNo`) | FK `InpAdmissionDocument` | `Restrict` | Tidak | — |
+| `ItemNo` | `integer` | Ya | — | Bagian unique | — | — | Tidak | Nomor butir tercetak 1–5; `CHECK` 1–5 |
+| `Text` | `varchar(500)` | Ya | — | — | — | — | **Ya** | Contoh "Tidak menerima transfusi darah" |
+
+### 20.9 `InpAdmissionCostDifferenceStatement` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | — |
+| `DocumentId` | `uuid` | Ya | — | **Unique** | FK `InpAdmissionDocument` | `Restrict` | Tidak | Dokumen Selisih Biaya |
+| `Subject` | `integer` | Ya | — | — | — | — | Tidak | `InpCostDifferenceSubject`: diri saya sendiri, istri saya, suami saya, anak saya, saudara kandung lainnya |
+| `SubjectOtherText` | `varchar(100)` | Tidak | `null` | — | — | — | Tidak | Wajib bila `OtherSibling`, misalnya "kakak kandung" |
+
+### 20.10 `InpAdmissionDepositStatement` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | — |
+| `DocumentId` | `uuid` | Ya | — | **Unique** | FK `InpAdmissionDocument` | `Restrict` | Tidak | Dokumen Pelunasan Deposit |
+| `DueAt` | `timestamp with time zone` | Tidak | `null` | — | — | — | Tidak | Jatuh tempo = tanggal pilihan petugas pukul 11.00 waktu rumah sakit, disimpan UTC. Wajib saat kunci |
+| `PolicyFollowUpIntervalDays` | `integer` | Tidak | `null` | — | — | — | Tidak | Interval kebijakan deposit yang dipakai membatasi jatuh tempo; dibekukan saat kunci |
+| `MinimumPolicyAmount` | `numeric(18,2)` | Tidak | `null` | — | — | — | **Ya** | Dari Billing, dibekukan saat kunci |
+| `ReceivedAmount` | `numeric(18,2)` | Tidak | `null` | — | — | — | **Ya** | Sama |
+| `ShortfallAmount` | `numeric(18,2)` | Tidak | `null` | — | — | — | **Ya** | Sama; harus > 0 saat kunci |
+| `AmountsReadAt` | `timestamp with time zone` | Tidak | `null` | — | — | — | Tidak | Waktu angka dibaca dari Billing |
+
+**Contoh perhitungan jatuh tempo.** Surat bertanggal Jumat 9 Oktober 2026, interval kebijakan 3 hari: batas = 12 Oktober; hari kerja berikutnya = Senin 12 Oktober; bawaan `DueAt` = 12 Oktober 11.00 WIB = `2026-10-12T04:00:00Z`. Dengan interval 1 hari, batas Sabtu 10 Oktober, sehingga bawaan dipotong menjadi Sabtu 10 Oktober 11.00 WIB (`RWI-DEC-248`).
+
+### 20.11 `InpAdmissionCostEstimate` — `Baru` — di luar gelombang (`EPIC-RWA-09`)
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | — |
+| `DocumentId` | `uuid` | Ya | — | **Unique** | FK `InpAdmissionDocument` | `Restrict` | Tidak | Dokumen Estimasi Biaya |
+| `OprCaseId` | `uuid` | Tidak | `null` | Index | FK `OprCase` | `Restrict` | Tidak | Kasus OK asal isian kepala, bila ada (G-48) |
+| `PlannedProcedureText` | `varchar(300)` | Tidak | `null` | — | — | — | **Ya** | "Jenis tindakan"; wajib saat kunci |
+| `PlannedScheduleAt` | `timestamp with time zone` | Tidak | `null` | — | — | — | Tidak | "Jadwal tindakan" |
+| `DoctorId` | `uuid` | Tidak | `null` | — | FK `MstDoctor` | `Restrict` | Tidak | "Dokter" |
+| `PatientClassId` | `uuid` | Ya | — | — | FK `MstPatientClass` | `Restrict` | Tidak | Kelas acuan tarif; bawaan kelas episode |
+| `EstimatedLengthOfStayDays` | `integer` | Ya | `1` | — | — | — | Tidak | 1–365 |
+| `PricesReadAt` | `timestamp with time zone` | Tidak | `null` | — | — | — | Tidak | Waktu harga terakhir dibaca; dibekukan saat kunci |
+| `NotesSnapshot` | `text` | Tidak | `null` | — | — | — | Tidak | Catatan aturan biaya yang dibentuk dari kebijakan Billing saat kunci (biaya admin). Catatan cito dan sejenisnya menunggu `DEC-INP-020` |
+
+### 20.12 `InpAdmissionCostEstimateLine` — `Baru` — di luar gelombang
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | — |
+| `DocumentId` | `uuid` | Ya | — | Unique (`DocumentId`, `LineNo`) | FK `InpAdmissionDocument` | `Restrict` | Tidak | — |
+| `LineNo` | `integer` | Ya | — | Bagian unique | — | — | Tidak | Urutan baris tercetak |
+| `LineType` | `integer` | Ya | — | — | — | — | Tidak | `InpCostEstimateLineType` |
+| `Description` | `varchar(300)` | Ya | — | — | — | — | Tidak | Uraian baris |
+| `ProcedureId` | `uuid` | Tidak | `null` | — | FK `MstProcedure` | `Restrict` | Tidak | Baris tindakan |
+| `TariffId` | `uuid` | Tidak | `null` | — | FK `MstTariff` | `Restrict` | Tidak | Baris kamar per hari |
+| `DoctorId` | `uuid` | Tidak | `null` | — | FK `MstDoctor` | `Restrict` | Tidak | Baris visit dokter |
+| `Quantity` | `numeric(10,2)` | Ya | `1` | — | — | — | Tidak | Hari atau jumlah; > 0 |
+| `UnitPrice` | `numeric(18,2)` | Tidak | `null` | — | — | — | **Ya** | Kosong bila tarif tidak ditemukan |
+| `PriceSource` | `integer` | Ya | — | — | — | — | Tidak | `Tariff`, `Manual`, `Unavailable`. Kunci ditolak selama ada `Unavailable` (`FR-RWA-092`) |
+| `ManualReason` | `varchar(300)` | Tidak | `null` | — | — | — | Tidak | Wajib bila `Manual` |
+
+**Constraint:** `CK_InpAdmissionCostEstimateLine_Price` — `PriceSource IN (1, 2)` ⇒ `UnitPrice` terisi; `PriceSource = 2` ⇒ `ManualReason` terisi.
+
+### 20.13 `InpAdmissionPrintLog` — `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | — |
+| `EpisodeId` | `uuid` | Ya | — | Index (`EpisodeId`, `PrintKind`, `PrintedAt`) | FK `InpEpisode` | `Restrict` | Tidak | — |
+| `DocumentId` | `uuid` | Tidak | `null` | Index (`DocumentId`, `PrintedAt`) | FK `InpAdmissionDocument` | `Restrict` | Tidak | Wajib bila `PrintKind = AdmissionDocument` |
+| `PrintKind` | `integer` | Ya | — | Bagian index | — | — | Tidak | `InpAdmissionPrintKind` |
+| `DocumentStatusAtPrint` | `integer` | Tidak | `null` | — | — | — | Tidak | Status dokumen saat dicetak; menentukan penanda cetakan |
+| `Copies` | `integer` | Ya | `1` | — | — | — | Tidak | 1–10 |
+| `IsReprint` | `boolean` | Ya | `false` | — | — | — | Tidak | Ditetapkan server: sudah ada cetakan sebelumnya untuk kunci yang sama (20.13.1), atau episode `Closed`/`Cancelled` |
+| `ReprintReason` | `integer` | Tidak | `null` | — | — | — | Tidak | `InpReprintReason`; wajib bila `IsReprint` |
+| `ReprintNote` | `varchar(200)` | Tidak | `null` | — | — | — | Tidak | Wajib bila alasan `Other` |
+| `PrintedByUserId` | `uuid` | Ya | — | — | Akun pengguna | — | Tidak | — |
+| `PrintedAt` | `timestamp with time zone` | Ya | — | Bagian index | — | — | Tidak | Waktu server |
+| `IdempotencyKey` | `varchar(80)` | Tidak | `null` | Unique bila terisi dan belum dihapus | — | — | Tidak | Klik ganda tidak menambah baris |
+
+**Constraint:** `CK_InpAdmissionPrintLog_Reprint` — `IsReprint` ⇒ `ReprintReason` terisi; `ReprintReason = 4` ⇒ `ReprintNote` terisi; `PrintKind = 5` ⇒ `DocumentId` terisi.
+
+#### 20.13.1 Kunci "cetakan yang sama"
+
+| `PrintKind` | Dianggap cetakan yang sama bila | "Cetakan ke-*n*" |
+|---|---|---|
+| `AdultWristband`, `InfantWristband` | `EpisodeId` sama dan jenis gelang sama | Urutan `PrintedAt` baris jenis itu pada episode |
+| `PatientLabel`, `InpatientBaseData` | `EpisodeId` dan `PrintKind` sama | Sama |
+| `AdmissionDocument` | `DocumentId` sama dan `DocumentStatusAtPrint` sama, untuk status `AwaitingSignature`, `Completed`, `Superseded`, `Cancelled`. Cetakan `Draft` tidak pernah dihitung cetak ulang | Sama |
+
+**Contoh.** Gelang Budi dicetak Sari 09.50 (`IsReprint = false`). Pukul 15.10 Andi mencetak lagi dengan alasan "rusak": baris kedua `IsReprint = true`, `ReprintReason = Damaged`, dan layar menulis "Cetakan ke-2, rusak, oleh Andi, 15.10".
+
+### 20.14 `InpAdmissionProcedurePlanMark` — `Baru` — di luar gelombang
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | — |
+| `EpisodeId` | `uuid` | Ya | — | Unique bila `UnmarkedAt` kosong dan belum dihapus | FK `InpEpisode` | `Restrict` | Tidak | Satu penanda aktif per episode |
+| `MarkedAt`, `MarkedByUserId` | `timestamp with time zone`, `uuid` | Ya | — | — | — | — | Tidak | — |
+| `Note` | `varchar(300)` | Tidak | `null` | — | — | — | **Ya** | Contoh "rencana kemoterapi minggu depan" |
+| `UnmarkedAt`, `UnmarkedByUserId` | `timestamp with time zone`, `uuid` | Tidak | `null` | — | — | — | Tidak | Diisi saat penanda dicabut; baris tidak dihapus |
+
+### 20.15 `MstInpatientClearanceItem` — `Diperbarui` — seluruh kolom
+
+Sumber lengkap `Areas/HealthServices/MasterData/Models/MstInpatientClearanceItem.cs`; configuration `Repositories/Configurations/HealthServices/MasterData/MstInpatientClearanceItemConfiguration.cs`.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | Sudah ada |
+| `ItemCode` | `varchar(50)` | Ya | — | **Unique** `IX_MstInpatientClearanceItem_ItemCode` | — | — | Tidak | Sudah ada; unik lintas jenis, sehingga kode serah terima memakai awalan `STPB-` |
+| `ItemName` | `varchar(200)` | Ya | — | — | — | — | Tidak | Sudah ada |
+| `Description` | `varchar(500)` | Tidak | `null` | — | — | — | Tidak | Sudah ada |
+| `IsMandatory` | `boolean` | Ya | `true` | Index | — | — | Tidak | Sudah ada. Menahan penutupan hanya untuk jenis `EpisodeClosure`; untuk serah terima seluruh butir wajib dipilih (`RWI-DEC-241`) |
+| `SortOrder` | `integer` | Ya | `0` | — | — | — | Tidak | Sudah ada — **legacy** (`TOUCHED LEGACY`); tetap dipakai sebagai urutan butir per jenis |
+| `IsActive` | `boolean` | Ya | `true` | Index | — | — | Tidak | Sudah ada |
+| `ChecklistType` | `integer` | Ya | **`1`** `EpisodeClosure` | **Baru** index (`ChecklistType`, `IsActive`) | — | — | Tidak | **Baru.** `MstClearanceChecklistType`; baris lama menjadi penutupan |
+| `ParentItemId` | `uuid` | Tidak | `null` | **Baru** index | FK `MstInpatientClearanceItem` (diri sendiri) | `Restrict` | Tidak | **Baru.** Induk sub-butir; induk wajib satu jenis dan bukan sub-butir (kedalaman satu) |
+| `HandoverSuggestionSource` | `integer` | Ya | **`0`** `None` | — | — | — | Tidak | **Baru.** `MstHandoverSuggestionSource`; hanya untuk jenis serah terima |
+
+**Constraint:** `CK_MstInpatientClearanceItem_Type` — `ChecklistType = 1` ⇒ `ParentItemId` kosong dan `HandoverSuggestionSource = 0`.
+
+### 20.16 `MstInpatientSetting` — `Diperbarui` — seluruh kolom
+
+Sumber lengkap `Areas/HealthServices/MasterData/Models/MstInpatientSetting.cs`; configuration `Repositories/Configurations/HealthServices/MasterData/MstInpatientSettingConfiguration.cs`.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | baru | PK | — | — | Tidak | Sudah ada |
+| `Code` | `varchar(50)` | Ya | `DEFAULT` | **Unique** | — | — | Tidak | Sudah ada |
+| `Name` | `varchar(150)` | Ya | — | — | — | — | Tidak | Sudah ada |
+| `BedReservationMinutes` | `integer` | Ya | `120` | — | — | — | Tidak | Sudah ada |
+| `DraftEpisodeExpiryHours` | `integer` | Ya | `24` | — | — | — | Tidak | Sudah ada |
+| `InitialAssessmentTargetHours` | `integer` | Ya | `24` | — | — | — | Tidak | Sudah ada |
+| `ProgressNoteVerificationTargetHours` | `integer` | Ya | `24` | — | — | — | Tidak | Sudah ada |
+| `PendingClosureThresholdHours` | `integer` | Ya | `4` | — | — | — | Tidak | Sudah ada |
+| `DepositFollowUpIntervalDays` | `integer` | Ya | `3` | — | — | — | Tidak | Sudah ada; ambang daftar pantau, **bukan** batas jatuh tempo surat (`RWI-DEC-260`) |
+| `PendingSurgicalHandoverAlertMinutes` | `integer` | Ya | `60` | — | — | — | Tidak | Sudah ada (Finishing) |
+| `PendingAdmissionReferralAlertMinutes` | `integer` | Ya | `30` | — | — | — | Tidak | Sudah ada (Finishing) |
+| `EpisodeNumberPrefix` | `varchar(20)` | Ya | `RI` | — | — | — | Tidak | Sudah ada |
+| `IsDefault` | `boolean` | Ya | `true` | Index (`IsActive`, `IsDefault`) | — | — | Tidak | Sudah ada |
+| `IsActive` | `boolean` | Ya | `true` | Bagian index | — | — | Tidak | Sudah ada |
+| `Notes` | `varchar(1000)` | Tidak | `null` | — | — | — | Tidak | Sudah ada |
+| `GeneralConsentFormCode` | `varchar(50)` | Tidak | `null` | — | — | — | Tidak | **Baru.** Kode Formulir General Consent V1 |
+| `NewPatientHandoverFormCode` | `varchar(50)` | Tidak | `null` | — | — | — | Tidak | **Baru** |
+| `PrivacyRequestFormCode` | `varchar(50)` | Tidak | `null` | — | — | — | Tidak | **Baru** |
+| `BeliefValuesFormCode` | `varchar(50)` | Tidak | `null` | — | — | — | Tidak | **Baru** |
+| `CostDifferenceFormCode` | `varchar(50)` | Tidak | `null` | — | — | — | Tidak | **Baru** |
+| `DepositSettlementFormCode` | `varchar(50)` | Tidak | `null` | — | — | — | Tidak | **Baru** |
+| `CostEstimateFormCode` | `varchar(50)` | Tidak | `null` | — | — | — | Tidak | **Baru**; V1 tidak punya kode |
+| `InpatientBaseDataFormCode` | `varchar(50)` | Tidak | `null` | — | — | — | Tidak | **Baru**; V1 tidak punya kode |
+| `DocumentSigningCity` | `varchar(100)` | Tidak | `null` | — | — | — | Tidak | **Baru.** Kota penandatanganan bawaan dokumen |
+| `InfantWristbandMaxAgeYears` | `integer` | Ya | **`5`** | — | — | — | Tidak | **Baru.** 0–16; umur tertinggi yang mendapat Gelang Bayi (`RWI-DEC-243`) |
+| `PatientLabelHospitalCode` | `varchar(30)` | Tidak | `null` | — | — | — | Tidak | **Baru.** Kode singkat rumah sakit pada label; kosong = `MstHospitalSite.SiteCode` (G-36) |
+
+Kode formulir yang kosong dicetak tanpa kode, tidak diganti nilai bawaan dari program (`RWI-DEC-247`).
+
+### 20.17 Tabel `Sudah ada` yang dibaca — kolom kunci saja
+
+Dibaca **lewat service pemilik** (`02-backend-architecture.md` 13.6), bukan query Rawat Inap ke tabelnya, kecuali tabel milik `InPatientManagement` sendiri.
+
+| Tabel | File model | Kolom yang dipakai | Lewat |
+|---|---|---|---|
+| `InpEpisode` | `InPatientManagement/Models/InpEpisode.cs` | `Id`, `EpisodeNumber`, `EncounterId`, `PatientId`, `PatientClassId`, `EpisodeStatus`, `AdmittedAt`, `RequiresIsolation` | Langsung (modul sendiri) |
+| `InpBedPlacement` | `InPatientManagement/Models/InpBedPlacement.cs` | `EpisodeId`, `ServiceUnitId`, `RoomId`, `BedId`, `PatientClassId`, `StartDateTime`, `EndDateTime`, `IsActive`, `IsSuperseded`, `SupersededByCorrectionId` | `InpPatientLocationQuery` |
+| `InpStatusHistory` | `InPatientManagement/Models/InpStatusHistory.cs` | `ToStatus`, `ChangedByUserId`, `ChangedAt` — petugas yang mengonfirmasi admisi untuk IPD | Langsung |
+| `InpDoctorAssignment`, `InpNurseAssignment` | `InPatientManagement/Models/` | DPJP dan perawat penanggung jawab aktif | Langsung |
+| `MstRoom`, `MstBed` | `MasterData/Models/` | `IsIsolationRoom`, `IsIntensiveCare`, `IsIsolationBed`, `IsIntensiveCareBed` (`RWI-DEC-251`) | Navigasi penempatan, mengikuti pola census |
+| `MstPatient` | `PatientManagement/MasterData/Models/MstPatient.cs` | `MedicalRecordNumber`, `FullName`, `NickName`, `BirthDate`, `Gender`, `Religion`, `MaritalStatus`, `IdentityType`, `IdentityNumber`, `PhoneNumber`, `Email`, `Address`, wilayah, `IsNewborn`, `MotherPatientId` | `PatientProfileQueryService` (`RWI-OQ-126`) |
+| `MstPatientRelationship`, `MstPatientEmergencyContact` | `PatientManagement/MasterData/Models/` | Jenis atau teks hubungan, nama, alamat, telepon, `IsPrimary`, `IsResponsiblePerson`, `IsLegalGuardian`, `IsActive` | Sama |
+| `RegPatientEncounterGuarantor` | `RegistrationManagement/Models/RegPatientEncounterGuarantor.cs` | `PaymentType`, `CardNumberSnapshot`, `MemberNumberSnapshot`, `PolicyNumberSnapshot`, `PaymentSourceNameSnapshot` | `EncounterInsuranceService` |
+| `RegPatientEncounter` | `RegistrationManagement/Models/RegPatientEncounter.cs` | `ReferralDoctorId` | `EncounterReferralQueryService` (`RWI-OQ-128`) |
+| `CliDoctorCertificate` | `ClinicalManagement/Models/CliDoctorCertificate.cs` | `CertificateType = InpatientReferral`, `CertificateStatus = Issued`, `EncounterId`, `DoctorId`, `IssuedDate`, `ReferralDiagnosis`, `ReferralReason` | `DoctorCertificateService` |
+| `OprCase` | `OperatingRoomManagement/Models/OprCase.cs` | `EncounterId`, `Status` | `OperatingRoomCaseService` |
+| `MstHospitalSite` | `Corporate/HumanResource/MasterData/Organization/Models/MstHospitalSite.cs` | `IsMainSite`, `IsActive`, `SiteCode`, `SiteName`, `Address`, wilayah, `PhoneNumber`, `Email`, `TimeZoneId` | `HospitalSiteProfileQueryService` (`RWI-OQ-127`) |
+| `MstTariff` | `MasterData/Models/MstTariff.cs` | Tarif kamar per unit dan kelas | `BillingCalculationService` (`RWI-OQ-129`) |
+
+### 20.18 Skema DDL revision `0.7`
+
+> **Peringatan.** Dokumentasi bentuk tabel, **bukan** skrip yang dijalankan. Skema sungguhan lahir dari EF Core migration `E9`, `E10`, dan `E11` (`02-backend-architecture.md` 13.12). Kolom warisan `IdentityModel` tidak ditulis ulang.
+
+```sql
+-- E9 — MasterData
+ALTER TABLE public."MstInpatientClearanceItem" ADD COLUMN "ChecklistType" integer NOT NULL DEFAULT 1;
+ALTER TABLE public."MstInpatientClearanceItem" ADD COLUMN "ParentItemId" uuid NULL;
+ALTER TABLE public."MstInpatientClearanceItem" ADD COLUMN "HandoverSuggestionSource" integer NOT NULL DEFAULT 0;
+ALTER TABLE public."MstInpatientClearanceItem" ADD CONSTRAINT "FK_MstInpatientClearanceItem_MstInpatientClearanceItem_ParentItemId"
+    FOREIGN KEY ("ParentItemId") REFERENCES public."MstInpatientClearanceItem" ("Id") ON DELETE RESTRICT;
+ALTER TABLE public."MstInpatientClearanceItem" ADD CONSTRAINT "CK_MstInpatientClearanceItem_Type"
+    CHECK ("ChecklistType" <> 1 OR ("ParentItemId" IS NULL AND "HandoverSuggestionSource" = 0));
+CREATE INDEX "IX_MstInpatientClearanceItem_ChecklistType_IsActive" ON public."MstInpatientClearanceItem" ("ChecklistType", "IsActive");
+CREATE INDEX "IX_MstInpatientClearanceItem_ParentItemId" ON public."MstInpatientClearanceItem" ("ParentItemId");
+
+ALTER TABLE public."MstInpatientSetting" ADD COLUMN "GeneralConsentFormCode" varchar(50) NULL;
+ALTER TABLE public."MstInpatientSetting" ADD COLUMN "NewPatientHandoverFormCode" varchar(50) NULL;
+ALTER TABLE public."MstInpatientSetting" ADD COLUMN "PrivacyRequestFormCode" varchar(50) NULL;
+ALTER TABLE public."MstInpatientSetting" ADD COLUMN "BeliefValuesFormCode" varchar(50) NULL;
+ALTER TABLE public."MstInpatientSetting" ADD COLUMN "CostDifferenceFormCode" varchar(50) NULL;
+ALTER TABLE public."MstInpatientSetting" ADD COLUMN "DepositSettlementFormCode" varchar(50) NULL;
+ALTER TABLE public."MstInpatientSetting" ADD COLUMN "CostEstimateFormCode" varchar(50) NULL;
+ALTER TABLE public."MstInpatientSetting" ADD COLUMN "InpatientBaseDataFormCode" varchar(50) NULL;
+ALTER TABLE public."MstInpatientSetting" ADD COLUMN "DocumentSigningCity" varchar(100) NULL;
+ALTER TABLE public."MstInpatientSetting" ADD COLUMN "InfantWristbandMaxAgeYears" integer NOT NULL DEFAULT 5;
+ALTER TABLE public."MstInpatientSetting" ADD COLUMN "PatientLabelHospitalCode" varchar(30) NULL;
+
+-- E10 — InPatientManagement (sesudah E9)
+CREATE TABLE public."InpAdmissionDocument" (
+    "Id"                    uuid         NOT NULL,
+    "EpisodeId"             uuid         NOT NULL,
+    "PatientId"             uuid         NOT NULL,
+    "DocumentType"          integer      NOT NULL,
+    "Status"                integer      NOT NULL DEFAULT 1,
+    "VersionNo"             integer      NOT NULL DEFAULT 1,
+    "PreviousVersionId"     uuid         NULL,
+    "CorrectionReason"      varchar(500) NULL,   -- SENSITIF
+    "SigningCity"           varchar(100) NULL,
+    "StatementDate"         date         NULL,
+    "Note"                  varchar(1000) NULL,  -- SENSITIF
+    "SnapshotFormatVersion" integer      NULL,
+    "SnapshotJson"          jsonb        NULL,   -- SENSITIF
+    "LockedAt"              timestamp with time zone NULL,
+    "LockedByUserId"        uuid         NULL,
+    "CompletedAt"           timestamp with time zone NULL,
+    "SupersededAt"          timestamp with time zone NULL,
+    "CancelledAt"           timestamp with time zone NULL,
+    "CancelledByUserId"     uuid         NULL,
+    "CancelledReason"       varchar(500) NULL,   -- SENSITIF
+    "IdempotencyKey"        varchar(80)  NULL,
+    "RowVersion"            uuid         NOT NULL,
+    -- kolom audit IdentityModel tidak ditulis ulang
+    CONSTRAINT "PK_InpAdmissionDocument" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_InpAdmissionDocument_InpEpisode_EpisodeId" FOREIGN KEY ("EpisodeId") REFERENCES public."InpEpisode" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_InpAdmissionDocument_MstPatient_PatientId" FOREIGN KEY ("PatientId") REFERENCES public."MstPatient" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_InpAdmissionDocument_InpAdmissionDocument_PreviousVersionId" FOREIGN KEY ("PreviousVersionId") REFERENCES public."InpAdmissionDocument" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "CK_InpAdmissionDocument_State" CHECK (
+        ("Status" <> 2 OR ("LockedAt" IS NOT NULL AND "SnapshotJson" IS NOT NULL)) AND
+        ("Status" <> 3 OR ("CompletedAt" IS NOT NULL AND "SnapshotJson" IS NOT NULL)) AND
+        ("Status" <> 4 OR "SupersededAt" IS NOT NULL) AND
+        ("Status" <> 5 OR ("CancelledAt" IS NOT NULL AND "CancelledReason" IS NOT NULL)) AND
+        ("VersionNo" = 1 OR ("PreviousVersionId" IS NOT NULL AND "CorrectionReason" IS NOT NULL)))
+);
+CREATE UNIQUE INDEX "UX_InpAdmissionDocument_Episode_Type_Active" ON public."InpAdmissionDocument" ("EpisodeId", "DocumentType")
+    WHERE "Status" IN (1, 2, 3) AND NOT "IsDelete";
+CREATE UNIQUE INDEX "UX_InpAdmissionDocument_PreviousVersionId" ON public."InpAdmissionDocument" ("PreviousVersionId")
+    WHERE "PreviousVersionId" IS NOT NULL;
+CREATE UNIQUE INDEX "UX_InpAdmissionDocument_IdempotencyKey" ON public."InpAdmissionDocument" ("IdempotencyKey")
+    WHERE "IdempotencyKey" IS NOT NULL AND NOT "IsDelete";
+CREATE INDEX "IX_InpAdmissionDocument_EpisodeId_DocumentType_CreateDateTime" ON public."InpAdmissionDocument" ("EpisodeId", "DocumentType", "CreateDateTime");
+CREATE INDEX "IX_InpAdmissionDocument_PatientId_DocumentType_Status" ON public."InpAdmissionDocument" ("PatientId", "DocumentType", "Status");
+
+CREATE TABLE public."InpAdmissionDocumentSignature" (
+    "Id" uuid NOT NULL, "DocumentId" uuid NOT NULL, "Slot" integer NOT NULL, "Method" integer NOT NULL,
+    "SignerName"             varchar(200) NOT NULL,  -- SENSITIF
+    "SignerPositionName"     varchar(150) NULL,
+    "SignerRelationship"     integer NULL,
+    "SignerRelationshipText" varchar(100) NULL,
+    "SignedAt" timestamp with time zone NOT NULL, "SignedByUserId" uuid NULL, "VerifiedByUserId" uuid NULL,
+    "RecordedAt" timestamp with time zone NOT NULL, "IdempotencyKey" varchar(80) NULL,
+    CONSTRAINT "PK_InpAdmissionDocumentSignature" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_InpAdmissionDocumentSignature_InpAdmissionDocument_DocumentId" FOREIGN KEY ("DocumentId") REFERENCES public."InpAdmissionDocument" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "CK_InpAdmissionDocumentSignature_Method" CHECK (
+        ("Method" <> 1 OR ("Slot" = 1 AND "VerifiedByUserId" IS NOT NULL AND "SignedByUserId" IS NULL)) AND
+        ("Method" <> 2 OR ("Slot" <> 1 AND "SignedByUserId" IS NOT NULL)))
+);
+CREATE UNIQUE INDEX "UX_InpAdmissionDocumentSignature_Document_Slot" ON public."InpAdmissionDocumentSignature" ("DocumentId", "Slot") WHERE NOT "IsDelete";
+CREATE UNIQUE INDEX "UX_InpAdmissionDocumentSignature_Document_Signer" ON public."InpAdmissionDocumentSignature" ("DocumentId", "SignedByUserId")
+    WHERE "SignedByUserId" IS NOT NULL AND NOT "IsDelete";
+CREATE UNIQUE INDEX "UX_InpAdmissionDocumentSignature_IdempotencyKey" ON public."InpAdmissionDocumentSignature" ("IdempotencyKey")
+    WHERE "IdempotencyKey" IS NOT NULL AND NOT "IsDelete";
+
+CREATE TABLE public."InpAdmissionDocumentParty" (
+    "Id" uuid NOT NULL, "DocumentId" uuid NOT NULL, "SourceType" integer NOT NULL DEFAULT 4, "SourceRecordId" uuid NULL,
+    "FullName" varchar(150) NOT NULL,       -- SENSITIF
+    "Relationship" integer NULL, "RelationshipText" varchar(100) NULL,
+    "Address" varchar(500) NULL,            -- SENSITIF
+    "BirthDate" date NULL,                  -- SENSITIF
+    "Gender" integer NULL,
+    "Occupation" varchar(100) NULL,         -- SENSITIF
+    "IdentityType" integer NULL,
+    "IdentityNumber" varchar(50) NULL,      -- SENSITIF
+    "MobilePhone" varchar(13) NULL,         -- SENSITIF
+    "OfficePhone" varchar(20) NULL,         -- SENSITIF
+    CONSTRAINT "PK_InpAdmissionDocumentParty" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_InpAdmissionDocumentParty_InpAdmissionDocument_DocumentId" FOREIGN KEY ("DocumentId") REFERENCES public."InpAdmissionDocument" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_InpAdmissionDocumentParty_DocumentId" ON public."InpAdmissionDocumentParty" ("DocumentId");
+
+CREATE TABLE public."InpAdmissionHandoverItem" (
+    "Id" uuid NOT NULL, "DocumentId" uuid NOT NULL, "ClearanceItemId" uuid NOT NULL, "LineNo" integer NOT NULL,
+    "ItemNumberSnapshot" integer NULL, "ParentItemNumberSnapshot" integer NULL,
+    "ItemCodeSnapshot" varchar(50) NOT NULL, "ItemNameSnapshot" varchar(200) NOT NULL,
+    "Choice" integer NULL, "Note" varchar(500) NULL,
+    CONSTRAINT "PK_InpAdmissionHandoverItem" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_InpAdmissionHandoverItem_InpAdmissionDocument_DocumentId" FOREIGN KEY ("DocumentId") REFERENCES public."InpAdmissionDocument" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_InpAdmissionHandoverItem_MstInpatientClearanceItem_ClearanceItemId" FOREIGN KEY ("ClearanceItemId") REFERENCES public."MstInpatientClearanceItem" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_InpAdmissionHandoverItem_DocumentId_ClearanceItemId" ON public."InpAdmissionHandoverItem" ("DocumentId", "ClearanceItemId");
+CREATE UNIQUE INDEX "IX_InpAdmissionHandoverItem_DocumentId_LineNo" ON public."InpAdmissionHandoverItem" ("DocumentId", "LineNo");
+
+CREATE TABLE public."InpAdmissionPrivacyRequest" (
+    "Id" uuid NOT NULL, "DocumentId" uuid NOT NULL, "IsTransportPrivacyRequested" boolean NOT NULL DEFAULT false,
+    CONSTRAINT "PK_InpAdmissionPrivacyRequest" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_InpAdmissionPrivacyRequest_InpAdmissionDocument_DocumentId" FOREIGN KEY ("DocumentId") REFERENCES public."InpAdmissionDocument" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_InpAdmissionPrivacyRequest_DocumentId" ON public."InpAdmissionPrivacyRequest" ("DocumentId");
+
+CREATE TABLE public."InpAdmissionPrivacyEntry" (
+    "Id" uuid NOT NULL, "DocumentId" uuid NOT NULL, "EntryType" integer NOT NULL, "LineNo" integer NOT NULL,
+    "Text" varchar(200) NOT NULL,           -- SENSITIF
+    CONSTRAINT "PK_InpAdmissionPrivacyEntry" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_InpAdmissionPrivacyEntry_InpAdmissionDocument_DocumentId" FOREIGN KEY ("DocumentId") REFERENCES public."InpAdmissionDocument" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "CK_InpAdmissionPrivacyEntry_LineNo" CHECK ("LineNo" BETWEEN 1 AND 3)
+);
+CREATE UNIQUE INDEX "IX_InpAdmissionPrivacyEntry_DocumentId_EntryType_LineNo" ON public."InpAdmissionPrivacyEntry" ("DocumentId", "EntryType", "LineNo");
+
+CREATE TABLE public."InpAdmissionBeliefItem" (
+    "Id" uuid NOT NULL, "DocumentId" uuid NOT NULL, "ItemNo" integer NOT NULL,
+    "Text" varchar(500) NOT NULL,           -- SENSITIF
+    CONSTRAINT "PK_InpAdmissionBeliefItem" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_InpAdmissionBeliefItem_InpAdmissionDocument_DocumentId" FOREIGN KEY ("DocumentId") REFERENCES public."InpAdmissionDocument" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "CK_InpAdmissionBeliefItem_ItemNo" CHECK ("ItemNo" BETWEEN 1 AND 5)
+);
+CREATE UNIQUE INDEX "IX_InpAdmissionBeliefItem_DocumentId_ItemNo" ON public."InpAdmissionBeliefItem" ("DocumentId", "ItemNo");
+
+CREATE TABLE public."InpAdmissionCostDifferenceStatement" (
+    "Id" uuid NOT NULL, "DocumentId" uuid NOT NULL, "Subject" integer NOT NULL, "SubjectOtherText" varchar(100) NULL,
+    CONSTRAINT "PK_InpAdmissionCostDifferenceStatement" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_InpAdmissionCostDifferenceStatement_InpAdmissionDocument_DocumentId" FOREIGN KEY ("DocumentId") REFERENCES public."InpAdmissionDocument" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "CK_InpAdmissionCostDifferenceStatement_Other" CHECK ("Subject" <> 5 OR "SubjectOtherText" IS NOT NULL)
+);
+CREATE UNIQUE INDEX "IX_InpAdmissionCostDifferenceStatement_DocumentId" ON public."InpAdmissionCostDifferenceStatement" ("DocumentId");
+
+CREATE TABLE public."InpAdmissionDepositStatement" (
+    "Id" uuid NOT NULL, "DocumentId" uuid NOT NULL,
+    "DueAt" timestamp with time zone NULL, "PolicyFollowUpIntervalDays" integer NULL,
+    "MinimumPolicyAmount" numeric(18,2) NULL,  -- SENSITIF
+    "ReceivedAmount" numeric(18,2) NULL,       -- SENSITIF
+    "ShortfallAmount" numeric(18,2) NULL,      -- SENSITIF
+    "AmountsReadAt" timestamp with time zone NULL,
+    CONSTRAINT "PK_InpAdmissionDepositStatement" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_InpAdmissionDepositStatement_InpAdmissionDocument_DocumentId" FOREIGN KEY ("DocumentId") REFERENCES public."InpAdmissionDocument" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_InpAdmissionDepositStatement_DocumentId" ON public."InpAdmissionDepositStatement" ("DocumentId");
+
+CREATE TABLE public."InpAdmissionPrintLog" (
+    "Id" uuid NOT NULL, "EpisodeId" uuid NOT NULL, "DocumentId" uuid NULL, "PrintKind" integer NOT NULL,
+    "DocumentStatusAtPrint" integer NULL, "Copies" integer NOT NULL DEFAULT 1, "IsReprint" boolean NOT NULL DEFAULT false,
+    "ReprintReason" integer NULL, "ReprintNote" varchar(200) NULL,
+    "PrintedByUserId" uuid NOT NULL, "PrintedAt" timestamp with time zone NOT NULL, "IdempotencyKey" varchar(80) NULL,
+    CONSTRAINT "PK_InpAdmissionPrintLog" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_InpAdmissionPrintLog_InpEpisode_EpisodeId" FOREIGN KEY ("EpisodeId") REFERENCES public."InpEpisode" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_InpAdmissionPrintLog_InpAdmissionDocument_DocumentId" FOREIGN KEY ("DocumentId") REFERENCES public."InpAdmissionDocument" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "CK_InpAdmissionPrintLog_Reprint" CHECK (
+        ("IsReprint" = false OR "ReprintReason" IS NOT NULL) AND
+        ("ReprintReason" IS DISTINCT FROM 4 OR "ReprintNote" IS NOT NULL) AND
+        ("PrintKind" <> 5 OR "DocumentId" IS NOT NULL) AND
+        ("Copies" BETWEEN 1 AND 10))
+);
+CREATE INDEX "IX_InpAdmissionPrintLog_EpisodeId_PrintKind_PrintedAt" ON public."InpAdmissionPrintLog" ("EpisodeId", "PrintKind", "PrintedAt");
+CREATE INDEX "IX_InpAdmissionPrintLog_DocumentId_PrintedAt" ON public."InpAdmissionPrintLog" ("DocumentId", "PrintedAt");
+CREATE UNIQUE INDEX "UX_InpAdmissionPrintLog_IdempotencyKey" ON public."InpAdmissionPrintLog" ("IdempotencyKey")
+    WHERE "IdempotencyKey" IS NOT NULL AND NOT "IsDelete";
+
+-- E11 — InPatientManagement, di luar gelombang (EPIC-RWA-09)
+CREATE TABLE public."InpAdmissionCostEstimate" (
+    "Id" uuid NOT NULL, "DocumentId" uuid NOT NULL, "OprCaseId" uuid NULL,
+    "PlannedProcedureText" varchar(300) NULL,  -- SENSITIF
+    "PlannedScheduleAt" timestamp with time zone NULL, "DoctorId" uuid NULL, "PatientClassId" uuid NOT NULL,
+    "EstimatedLengthOfStayDays" integer NOT NULL DEFAULT 1, "PricesReadAt" timestamp with time zone NULL, "NotesSnapshot" text NULL,
+    CONSTRAINT "PK_InpAdmissionCostEstimate" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_InpAdmissionCostEstimate_InpAdmissionDocument_DocumentId" FOREIGN KEY ("DocumentId") REFERENCES public."InpAdmissionDocument" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_InpAdmissionCostEstimate_OprCase_OprCaseId" FOREIGN KEY ("OprCaseId") REFERENCES public."OprCase" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_InpAdmissionCostEstimate_MstDoctor_DoctorId" FOREIGN KEY ("DoctorId") REFERENCES public."MstDoctor" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_InpAdmissionCostEstimate_MstPatientClass_PatientClassId" FOREIGN KEY ("PatientClassId") REFERENCES public."MstPatientClass" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "CK_InpAdmissionCostEstimate_Los" CHECK ("EstimatedLengthOfStayDays" BETWEEN 1 AND 365)
+);
+CREATE UNIQUE INDEX "IX_InpAdmissionCostEstimate_DocumentId" ON public."InpAdmissionCostEstimate" ("DocumentId");
+CREATE INDEX "IX_InpAdmissionCostEstimate_OprCaseId" ON public."InpAdmissionCostEstimate" ("OprCaseId");
+
+CREATE TABLE public."InpAdmissionCostEstimateLine" (
+    "Id" uuid NOT NULL, "DocumentId" uuid NOT NULL, "LineNo" integer NOT NULL, "LineType" integer NOT NULL,
+    "Description" varchar(300) NOT NULL, "ProcedureId" uuid NULL, "TariffId" uuid NULL, "DoctorId" uuid NULL,
+    "Quantity" numeric(10,2) NOT NULL DEFAULT 1,
+    "UnitPrice" numeric(18,2) NULL,            -- SENSITIF
+    "PriceSource" integer NOT NULL, "ManualReason" varchar(300) NULL,
+    CONSTRAINT "PK_InpAdmissionCostEstimateLine" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_InpAdmissionCostEstimateLine_InpAdmissionDocument_DocumentId" FOREIGN KEY ("DocumentId") REFERENCES public."InpAdmissionDocument" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_InpAdmissionCostEstimateLine_MstProcedure_ProcedureId" FOREIGN KEY ("ProcedureId") REFERENCES public."MstProcedure" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_InpAdmissionCostEstimateLine_MstTariff_TariffId" FOREIGN KEY ("TariffId") REFERENCES public."MstTariff" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_InpAdmissionCostEstimateLine_MstDoctor_DoctorId" FOREIGN KEY ("DoctorId") REFERENCES public."MstDoctor" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "CK_InpAdmissionCostEstimateLine_Price" CHECK (
+        ("PriceSource" NOT IN (1, 2) OR "UnitPrice" IS NOT NULL) AND ("PriceSource" <> 2 OR "ManualReason" IS NOT NULL) AND "Quantity" > 0)
+);
+CREATE UNIQUE INDEX "IX_InpAdmissionCostEstimateLine_DocumentId_LineNo" ON public."InpAdmissionCostEstimateLine" ("DocumentId", "LineNo");
+
+CREATE TABLE public."InpAdmissionProcedurePlanMark" (
+    "Id" uuid NOT NULL, "EpisodeId" uuid NOT NULL, "MarkedAt" timestamp with time zone NOT NULL, "MarkedByUserId" uuid NOT NULL,
+    "Note" varchar(300) NULL,                  -- SENSITIF
+    "UnmarkedAt" timestamp with time zone NULL, "UnmarkedByUserId" uuid NULL,
+    CONSTRAINT "PK_InpAdmissionProcedurePlanMark" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_InpAdmissionProcedurePlanMark_InpEpisode_EpisodeId" FOREIGN KEY ("EpisodeId") REFERENCES public."InpEpisode" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "UX_InpAdmissionProcedurePlanMark_Episode_Active" ON public."InpAdmissionProcedurePlanMark" ("EpisodeId")
+    WHERE "UnmarkedAt" IS NULL AND NOT "IsDelete";
+```
+
+Nama tabel FK modul lain (`MstPatient`, `MstDoctor`, `MstPatientClass`, `MstProcedure`, `MstTariff`, `OprCase`) mengikuti nama `[Table]` di source saat migration dibuat; DDL di atas hanya menunjukkan arah relasi dan perilaku hapusnya.

@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
@@ -26,6 +27,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsMandatory { get; set; }
 
         public int SortOrder { get; set; }
+
+        /// <summary>Jenis daftar periksa (<c>BE-RWI-186</c>, API 12.4): 1 penutupan, 2 serah terima.</summary>
+        public int ChecklistType { get; set; }
+
+        public string ChecklistTypeName { get; set; } = string.Empty;
+
+        public Guid? ParentItemId { get; set; }
+
+        public string? ParentItemName { get; set; }
+
+        public int HandoverSuggestionSource { get; set; }
+
+        public string HandoverSuggestionSourceName { get; set; } = string.Empty;
+    }
+
+    /// <summary>Satu pilihan enum untuk metadata filter dan form (<c>BE-RWI-186</c>).</summary>
+    public class InpatientClearanceItemEnumOptionResponse
+    {
+        public int Value { get; set; }
+
+        public string Name { get; set; } = string.Empty;
+
+        public string Label { get; set; } = string.Empty;
     }
 
     public class InpatientClearanceItemFilterMetadataResponse
@@ -51,6 +75,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
         public List<InpatientClearanceItemBooleanOptionResponse> StatusOptions { get; set; } = new();
 
+        /// <summary>Pilihan jenis daftar periksa (<c>BE-RWI-186</c>).</summary>
+        public List<InpatientClearanceItemEnumOptionResponse> ChecklistTypeOptions { get; set; } = new();
+
+        /// <summary>Pilihan sumber saran serah terima (<c>BE-RWI-186</c>).</summary>
+        public List<InpatientClearanceItemEnumOptionResponse> HandoverSuggestionSourceOptions { get; set; } = new();
+
         public List<InpatientClearanceItemQueryParameterInfoResponse> QueryParameters { get; set; } = new();
 
         public List<InpatientClearanceItemFormFieldMetadataResponse> CreateFields { get; set; } = new();
@@ -71,6 +101,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool? IsMandatory { get; set; }
 
         public bool? IsActive { get; set; }
+
+        /// <summary>Kosong berarti semua jenis daftar periksa (<c>BE-RWI-186</c>).</summary>
+        public int? ChecklistType { get; set; }
 
         public string SortBy { get; set; } = "sortOrder";
 
@@ -173,6 +206,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
         public bool IsActive { get; set; }
 
+        /// <summary>
+        /// Jenis daftar periksa (<c>BE-RWI-186</c>): 1 penutupan episode, 2 serah terima pasien baru.
+        /// </summary>
+        public int ChecklistType { get; set; }
+
+        public string ChecklistTypeName { get; set; } = string.Empty;
+
+        /// <summary>Induk sub-butir; kosong untuk butir utama.</summary>
+        public Guid? ParentItemId { get; set; }
+
+        public string? ParentItemName { get; set; }
+
+        /// <summary>Sumber saran sistem serah terima; 0 berarti tanpa saran.</summary>
+        public int HandoverSuggestionSource { get; set; }
+
+        public string HandoverSuggestionSourceName { get; set; } = string.Empty;
+
         public DateTime CreateDateTime { get; set; }
 
         public DateTime? UpdateDateTime { get; set; }
@@ -197,6 +247,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int SortOrder { get; set; }
 
         public bool IsActive { get; set; } = true;
+
+        /// <summary>
+        /// Jenis daftar periksa (<c>BE-RWI-186</c>, API 12.4). Kosong berarti
+        /// <see cref="MstClearanceChecklistType.EpisodeClosure"/>, sehingga permintaan lama tanpa
+        /// isian ini tetap membuat butir penutupan seperti sebelumnya.
+        /// </summary>
+        public MstClearanceChecklistType? ChecklistType { get; set; }
+
+        /// <summary>Induk sub-butir: butir utama aktif dengan jenis yang sama (<c>MST-ICI-001</c>).</summary>
+        public Guid? ParentItemId { get; set; }
+
+        /// <summary>Sumber saran serah terima; kosong berarti tanpa saran.</summary>
+        public MstHandoverSuggestionSource? HandoverSuggestionSource { get; set; }
     }
 
     /// <summary>
