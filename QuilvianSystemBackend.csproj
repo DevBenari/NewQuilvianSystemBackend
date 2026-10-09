@@ -7,7 +7,7 @@
 		<UserSecretsId>c5cea89b-03e0-4326-8dc2-62ee00ae859d</UserSecretsId>
 		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
 		<DockerfileContext>.</DockerfileContext>
-		<PlatformTarget>x64</PlatformTarget>
+		<PlatformTarget Condition="'$(OS)' == 'Windows_NT'">x64</PlatformTarget>
 
 		<!--
 		XML documentation diperlukan oleh Swagger dan acceptance test.
