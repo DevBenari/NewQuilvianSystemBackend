@@ -64,7 +64,12 @@ public sealed class InpAncillaryOrderAdapter
                 if (result.IsValid && result.TariffId.HasValue)
                 {
                     item.IsCovered = result.IsCovered;
-                    item.Label = result.IsCovered ? "Ditanggung" : "Tidak Di-cover";
+                    var baseLabel = result.IsCovered ? "Ditanggung" : "Tidak Di-cover";
+                    if (result.IsNeedGuarantorApproval || (!string.IsNullOrWhiteSpace(result.CoverageNote) && result.CoverageNote.Contains("Perlu persetujuan")))
+                    {
+                        baseLabel += " · Perlu persetujuan penjamin";
+                    }
+                    item.Label = baseLabel;
                     if (canCreate)
                     {
                         item.PriceStatus = "AVAILABLE";

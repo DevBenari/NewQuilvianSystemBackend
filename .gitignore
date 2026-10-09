@@ -410,3 +410,6 @@ DataProtectionKeys/key-*.xml
 !/Tests/QuilvianSystemBackend.NutritionTests/
 /Tests/QuilvianSystemBackend.NutritionTests/bin/
 /Tests/QuilvianSystemBackend.NutritionTests/obj/
+
+# RJ-DOC-REV-BE-019: surat rujukan pasien (data kesehatan) di penyimpanan privat - jangan pernah di-commit.
+/Storage/private/

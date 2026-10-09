@@ -3,7 +3,7 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | **`0.9.0`** — bagian 8, `draft`; isi sebelumnya `last_changed_in` `0.4.0` |
+| `contract_version` | **`0.11.0`** — bagian 10 Workspace PPRI (`INT-RWA-01` s.d. `14`), `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 9, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 8; isi sebelumnya `last_changed_in` `0.4.0` |
 | Status | **`draft`** |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
 | `input_revision` | `evidence/03-hospital-domain-architecture.md` revision `0.1` bagian J; `00-interview-decisions.md` revision `6` |
@@ -297,3 +297,45 @@ Seluruh integrasi di bawah adalah panggilan **dalam proses yang sama** (satu apl
 **Yang tidak diintegrasikan.** Biaya operasi tidak lewat ketukan pintu Rawat Inap — OK mengirim langsung ke Billing (`INT-RWF-22`) karena kasus OK juga melayani pasien non-rawat inap. Bahan OK yang tertagih lewat `INT-RWF-22` **tidak** ditagih lagi oleh Farmasi (`RWI-DEC-196`): delivery bahan memakai sumber `OPERATING_ROOM`, dan pengeluaran stok OK (`inventory/dispatch`) tetap tanpa tagihan.
 
 **Penyelarasan decision log revision `31` ★ 2 Oktober 2026.** `INT-RWF-23` dan `INT-RWF-24` disetujui OK (`RWI-DEC-208`). `INT-RWF-25` dikoreksi: versi sebelumnya menulis pesan "ditambah `SourceEncounterId`", yang melanggar `INV-RWF-05`.
+
+---
+
+## 10. Perubahan pada `contract_version` `0.11.0` — Workspace PPRI ★ 7 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.11.0` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`) |
+| Pemilik pihak lain | `ClinicalManagement` — Muhammad Hamzah (disetujui lewat `RWI-DEC-264`); `PatientManagement` — **disetujui `RWI-DEC-266`**; HR Master Data — **disetujui `RWI-DEC-266`**; `RegistrationManagement` — **menunggu `RWI-OQ-128`**; Billing — Yasmina, service deposit yang ada dipakai apa adanya, method tarif kamar **menunggu `RWI-OQ-129`**; Kamar Operasi — service yang ada dipakai apa adanya |
+| Prinsip | Seluruh integrasi adalah **bacaan** dalam proses yang sama (satu aplikasi, satu database), bukan HTTP antarmodul. Workspace PPRI **tidak menulis** ke modul lain mana pun dan **tidak** menerbitkan kejadian ke Billing, karena dokumen admisi tidak menimbulkan biaya (`RWI-DEC-257`, `264`) |
+
+Satu-satunya pemanggil sisi Rawat Inap adalah `InpAdmissionSourceReader` (`INV-RWA-14`). "Bila gagal" ditulis dari sudut pandang petugas.
+
+| ID | Dari → ke | Pemicu | Isi yang dibaca | Sinkron | Idempotensi | Bila gagal atau belum tersedia | Rekonsiliasi |
+|---|---|---|---|---|---|---|---|
+| `INT-RWA-01` | Rawat Inap → `PatientManagement` | Membuka ruang kerja; kunci dokumen; cetak gelang, label, IPD | Identitas pasien dan isi QR No. RM (`PatientProfileQueryService.GetIdentityAsync`, `PatientQrPayloadBuilder`) | Ya | Baca | "DATA PASIEN TIDAK DAPAT DIMUAT"; tidak ada form; kunci dan cetak ditolak (`FR-RWA-008`, `VAL-RWA-27`) | — |
+| `INT-RWA-02` | Rawat Inap → `PatientManagement` | Isian bawaan GC V1, Data Wali, penanggung jawab IPD | Relasi terstruktur dan kontak darurat: nama, hubungan, alamat, telepon, penanda penanggung jawab (`GetPartyCandidatesAsync`) | Ya | Baca | Daftar pilihan kosong dengan pesan; petugas mengisi manual | — |
+| `INT-RWA-03` | Rawat Inap → Clinical | Header | Nama alergi aktif (`PatientAllergyQueryService`) | Ya | Baca | "Alergi tidak dapat dimuat"; form lain tetap jalan | — |
+| `INT-RWA-04` | Rawat Inap → Clinical | Header, label, IPD, kelengkapan Selisih Biaya, salinan beku | Jenis penjamin, nama, kelas, polis, **nomor kartu, nomor peserta** (`EncounterInsuranceService.GetContextAsync` yang diperluas) | Ya | Baca | Kelengkapan Selisih Biaya "tidak dapat dihitung"; kunci Selisih Biaya ditolak; label tanpa baris No. Kartu | — |
+| `INT-RWA-05` | Rawat Inap → Clinical | IPD; saran butir 1 Serah Terima | Surat Pengantar Rawat Inap `Issued` terbaru pada kunjungan episode: nomor, dokter, tanggal, diagnosis, alasan (`DoctorCertificateService.GetLatestIssuedInpatientReferralAsync`) | Ya | Baca | Garis kosong; tanpa saran | — |
+| `INT-RWA-06` | Rawat Inap → Registration | IPD pasien tanpa surat pengantar | Nama dokter perujuk luar dan institusinya (`EncounterReferralQueryService`) | Ya | Baca | Garis kosong (`RWI-AC-386`) | — |
+| `INT-RWA-07` | Rawat Inap → Billing | Header (`ViewAmount`), simpan dan kunci Pelunasan Deposit, kelengkapan, peringatan jatuh tempo | `IsPolicyRequired`, minimum, diterima, kekurangan, interval tindak lanjut (`BillingDepositService.GetEpisodeDepositSummaryAsync`) | Ya | Baca | Angka tidak tampil; simpan dan kunci Pelunasan Deposit ditolak `VAL-RWA-12`; kelengkapan deposit "?" | Tidak perlu — angka beku menyimpan `AmountsReadAt` |
+| `INT-RWA-08` | Rawat Inap → Billing, lalu Clinical | IPD "Rencana @ Kamar (Rp)"; baris kamar Estimasi | Tarif kamar per hari menurut unit dan kelas (`BillingCalculationService.GetDailyRoomRateAsync`), lalu harga menurut penjamin (`InsuranceCoverageService.ResolveTariffAsync`) | Ya | Baca | "lihat kasir" (`RWI-AC-387`) | — |
+| `INT-RWA-09` | Rawat Inap → Clinical | Simpan dan kunci Estimasi Biaya (di luar gelombang) | Harga tindakan menurut penjamin dan kelas (`InsuranceCoverageService.ResolveProcedureAsync`) — tidak bergantung hak memesan (`RWI-DEC-258` butir 1) | Ya | Baca | Baris "Tarif belum tersedia" | — |
+| `INT-RWA-10` | Rawat Inap → Billing | Kunci Estimasi Biaya (di luar gelombang) | Kebijakan biaya administrasi aktif rawat inap (`AdministrationFeePolicyService`) | Ya | Baca | Catatan biaya admin tidak dicetak | — |
+| `INT-RWA-11` | Rawat Inap → Kamar Operasi | Kelengkapan (aturan wajib Estimasi); isian kepala Estimasi | Kasus pada kunjungan episode berstatus selain `Cancelled`/`Rejected` (`OperatingRoomCaseService.GetPagedAsync` dengan `EncounterId`) | Ya | Baca | Kewajiban Estimasi "?" | — |
+| `INT-RWA-12` | Rawat Inap → HR Master Data | Seluruh cetakan; kode label; zona waktu | Profil situs `IsMainSite` aktif (`HospitalSiteProfileQueryService.GetMainSiteProfileAsync`) | Ya | Baca | Kop berbaris kosong, **tidak pernah** nilai bawaan yang ditanam; kunci dokumen ditolak `VAL-RWA-27` | — |
+| `INT-RWA-13` | Rawat Inap (dalam modul) | Membuka Detail Episode | Kelengkapan tanpa rupiah dan jatuh tempo terlewati (`InpAdmissionCompletenessEvaluator` dari `InpEpisodeService`) | Ya | Baca | Detail episode tetap tampil; peringatan "Kelengkapan dokumen admisi tidak dapat dihitung" | — |
+| `INT-RWA-14` | Modul lain → Rawat Inap | Kelak: Workspace Keperawatan, Workspace Dokter (amandemen terpisah, PRD bagian 8) | Ringkasan Nilai Kepercayaan dan Privasi `Completed` (`GET …/admission-workspace/patient-rights`) | Ya | Baca | Konsumen menampilkan "Ringkasan hak pasien tidak dapat dimuat" | — |
+
+**Yang sengaja tidak diintegrasikan.**
+
+| Tidak dibuat | Alasan |
+|---|---|
+| Tulis ke `TrxPatientConsent` | *Fail-closed* (`RWI-DEC-230`) |
+| Tulis ke `MrcClinicalDocumentIntegrity` | `RWI-DEC-229` |
+| Kejadian outbox ke Billing | Dokumen admisi tidak menimbulkan biaya; batas `integrasi-billing` tidak bergerak |
+| Pemberitahuan jatuh tempo ke modul Billing | Ditunda (PRD bagian 8, G-46); peringatan hanya di Workspace PPRI dan Detail Episode |
+| Penurunan kelas otomatis saat jatuh tempo terlewati | PRD bagian 15 butir 9; tetap transfer manual |
+| Hub SignalR | Penyegaran berkala 30 detik di layar (G-34) |
+| Integrasi eksternal | Tidak ada; tanda tangan elektronik tersertifikasi di luar MVP |

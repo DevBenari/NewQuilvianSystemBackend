@@ -61,6 +61,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 hasil, "Pencarian pasien berhasil dilakukan."));
         }
 
+        // Daftar Pasien OTC (LAB-EVD-013 butir 2): kunjungan kiosk ke Laboratorium yang belum
+        // memiliki pesanan, dipisah tab Umum/Rujukan lewat isReferral. Baca saja; tombol Proses
+        // di layar membuka Penerimaan Sampling dengan kunjungan ini terisi.
+        [HttpGet("kiosk-encounters")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<LabKioskEncounterResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Patient Registration", Description = "Melihat kunjungan kiosk laboratorium yang belum memiliki pesanan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabPatientRegistration", "Read")]
+        public async Task<IActionResult> GetKioskEncounters(
+            [FromQuery] LabKioskEncounterQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            (query.StartDate, query.EndDate) =
+                LabQueryDateRange.Normalize(query.StartDate, query.EndDate);
+
+            if (query.StartDate.HasValue && query.EndDate.HasValue &&
+                query.StartDate.Value > query.EndDate.Value)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Tanggal awal tidak boleh melewati tanggal akhir."));
+            }
+
+            var hasil = await _labPatientRegistrationService.GetKioskEncountersAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<LabKioskEncounterResponse>>.Ok(
+                hasil, "Daftar pasien OTC laboratorium berhasil diambil."));
+        }
+
         // Mendaftarkan pasien yang datang langsung ke laboratorium.
         //
         // Kunjungannya dibuat Registrasi, bukan di sini. Kirim kunci idempotensi yang sama bila

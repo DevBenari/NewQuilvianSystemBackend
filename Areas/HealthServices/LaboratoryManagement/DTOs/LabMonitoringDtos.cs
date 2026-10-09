@@ -223,5 +223,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// Mikrobiologi dan Patologi Anatomi belum dibangun. Bukan <c>orderStatus</c>.
         /// </summary>
         public string? ResultProgress { get; set; }
+
+        /// <summary>
+        /// Status pembayaran kunjungan (<c>LAB-EVD-013</c> butir 5): <c>Paid</c> — <i>Lunas</i>,
+        /// <c>Unpaid</c> — <i>Belum Lunas</i>, <c>Guaranteed</c> — <i>Asuransi / Penjamin</i>,
+        /// <c>NotBilled</c> — tagihan belum terbit (specimen belum diterima).
+        /// </summary>
+        public string? PaymentStatus { get; set; }
+
+        /// <summary>Benar bila Proses Pemeriksaan boleh dijalankan dari sisi pembayaran.</summary>
+        public bool IsPaymentCleared { get; set; }
+
+        /// <summary>Sisa tanggungan pasien tunai; nol untuk status selain <c>Unpaid</c>.</summary>
+        public decimal OutstandingAmount { get; set; }
     }
 }

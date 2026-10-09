@@ -189,3 +189,31 @@ juga cukup — yang dibutuhkan Laboratorium adalah **keputusan**, bukan endpoint
 
 Jawaban akan dicatat sebagai penutupan `LAB-COORD-010` pada `blueprint-manifest.md` dan
 `roadmap/traceability.md`, dan diturunkan menjadi task hanya setelah kontraknya disepakati.
+
+---
+
+## 8. Pembaruan 2026-10-08 — Laboratorium memakai jalur baca sementara
+
+Permintaan ini **tetap berlaku dan tetap menunggu jawaban**. Yang berubah: pemilik modul Laboratorium
+memutuskan kunci Lunas pada Proses Pemeriksaan **tidak lagi menunggu** jawaban ini (`LAB-DEC-218`), dan
+memakai jalur baca sementara milik Laboratorium (`LAB-DEC-220`, putaran 26 decision log revision `91`).
+
+**Yang dikerjakan jalur sementara itu** (`LaboratoryManagement/Services/LabPaymentClearanceRules.cs`):
+
+| Langkah | Isi |
+|---|---|
+| 1 | Penjamin kunjungan Asuransi atau Penjamin Perusahaan → dianggap lolos (*Asuransi / Penjamin*) |
+| 2 | Pasien Tunai: membaca invoice kunjungan dari `BilInvoices` — **baca-saja** |
+| 3 | Tanggungan pasien = `PatientAmount` versi kalkulasi terakhir (`BilCalculationVersions`); bila belum dikalkulasi, jumlah baris tagihan aktif (`BilInvoiceItems`) |
+| 4 | Sudah dibayar = jumlah tender `SUCCEEDED` pada settlement `INVOICE_PAYMENT` (`BilSettlements`, `BilTenders`) |
+| 5 | Invoice `CLOSED`/`SETTLED_BY_WRITE_OFF` dianggap lunas; tanpa tagihan → *Belum Ditagih* |
+
+Rumus langkah 3–4 **disalin** dari `BillingInvoiceService.GetPaymentHistoryAsync` (`IsFullyPaid`), sehingga
+untuk hari ini angkanya sama dengan layar riwayat pembayaran kasir. **Contoh:** tagihan Hemoglobin Rp 35.000
+belum dibayar → *Belum Lunas · Rp 35.000*; sesudah tender Rp 35.000 berhasil → *Lunas*.
+
+**Risikonya** — inilah alasan permintaan ini tetap perlu dijawab (`LAB-OPEN-053`): bila Billing mengubah
+aturan pelunasan (misalnya deposit, cicilan, atau pembulatan), Laboratorium tidak ikut berubah dan kolom
+Pembayaran dapat berbeda dari kasir. Begitu Billing menyediakan jalur resminya, Laboratorium beralih ke sana
+tanpa keputusan baru, dan jalur sementara dihapus.
+

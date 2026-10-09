@@ -243,23 +243,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var pageSize = Math.Clamp(query.PageSize, 1, 100);
             var menungguValidasi = stage == LabValidationQueueStage.AwaitingValidation;
 
-            // Disiplin dibaca sama dengan tindakan validasi (VAL-126): disiplin order, lalu jatuh ke
-            // katalog pemeriksaan bagi order lama yang disiplinnya kosong.
-            var source = _dbContext.LabExaminations
-                .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.ExaminationStatus != LabExaminationStatus.Voided &&
-                    x.ExaminationStatus != LabExaminationStatus.Cancelled &&
-                    x.LabOrder != null &&
-                    !x.LabOrder.IsDelete &&
-                    x.LabOrder.OrderStatus != LabOrderStatus.Cancelled &&
-                    disiplinDipilih.Contains(x.LabOrder.Discipline ?? (x.Procedure != null ? x.Procedure.LabDiscipline : null)) &&
-                    // 21.10 butir 4 — hasil Sementara tidak masuk tahap mana pun. Kualifikasi kosong
-                    // tetap masuk (ARCH-GAP-LAB-10), sama dengan VAL-144.
-                    x.ResultQualifier != LabResultQualifier.Preliminary)
-                .Where(LabExaminationService.HasResultStatus(
-                    menungguValidasi ? LabResultStatus.Final : LabResultStatus.Validated));
+            var source = ValidationQueueSource(stage, disiplinDipilih);
 
             if (query.OnlyCito == true)
                 source = source.Where(x => x.Urgency == LabExaminationUrgency.Cito);
@@ -352,9 +336,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             return Halaman(pageNumber, pageSize, totalData, items);
         }
 
+        /// <summary>
+        /// Banyaknya hasil di tahap <i>Menunggu Validasi</i> tanpa penyaring apa pun — angka kartu
+        /// Beranda <i>Hasil menunggu validasi</i> (<c>LAB-API-v1</c> <c>r44</c> 39.7, <c>LAB-DEC-208</c>).
+        ///
+        /// <b>Sama persis dengan <c>totalData</c> antrean</b> pada tahap itu tanpa disiplin, cito, dan
+        /// pencarian, karena keduanya memakai <see cref="ValidationQueueSource"/> yang sama. Patologi
+        /// Anatomi ikut dengan sendirinya begitu ditambahkan ke <see cref="LabReleasableDisciplines"/>.
+        /// </summary>
+        public Task<int> CountAwaitingValidationAsync(CancellationToken cancellationToken = default) =>
+            ValidationQueueSource(LabValidationQueueStage.AwaitingValidation, ResolveQueueDisciplines(null))
+                .CountAsync(cancellationToken);
+
         // =================================================================
         // Pembantu
         // =================================================================
+
+        /// <summary>
+        /// Isi dasar antrean validasi pada satu tahap — sebelum penyaring cito dan pencarian.
+        /// Diangkat dari <see cref="GetValidationQueueAsync"/> tanpa perubahan bunyi supaya kartu
+        /// Beranda tidak pernah menghitung dengan rumus lain (<c>02-backend-architecture.md</c> 28.2).
+        /// </summary>
+        private IQueryable<LabExamination> ValidationQueueSource(
+            LabValidationQueueStage stage,
+            List<LabDiscipline?> disiplinDipilih)
+        {
+            var menungguValidasi = stage == LabValidationQueueStage.AwaitingValidation;
+
+            // Disiplin dibaca sama dengan tindakan validasi (VAL-126): disiplin order, lalu jatuh ke
+            // katalog pemeriksaan bagi order lama yang disiplinnya kosong.
+            return _dbContext.LabExaminations
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.ExaminationStatus != LabExaminationStatus.Voided &&
+                    x.ExaminationStatus != LabExaminationStatus.Cancelled &&
+                    x.LabOrder != null &&
+                    !x.LabOrder.IsDelete &&
+                    x.LabOrder.OrderStatus != LabOrderStatus.Cancelled &&
+                    disiplinDipilih.Contains(x.LabOrder.Discipline ?? (x.Procedure != null ? x.Procedure.LabDiscipline : null)) &&
+                    // 21.10 butir 4 — hasil Sementara tidak masuk tahap mana pun. Kualifikasi kosong
+                    // tetap masuk (ARCH-GAP-LAB-10), sama dengan VAL-144.
+                    x.ResultQualifier != LabResultQualifier.Preliminary)
+                .Where(LabExaminationService.HasResultStatus(
+                    menungguValidasi ? LabResultStatus.Final : LabResultStatus.Validated));
+        }
 
         /// <summary>
         /// Pemeriksaan yang pekerjaannya belum selesai.

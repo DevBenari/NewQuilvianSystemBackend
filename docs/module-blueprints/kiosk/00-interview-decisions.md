@@ -229,3 +229,17 @@ Catatan: database dev kecil dan tidak mewakili variasi data produksi. Desain nor
 | `KSK-AC-015` | **Given** pasien A digabung ke pasien B yang Aktif **When** lookup KTP milik A **Then** kartu pasien B yang tampil. |
 | `KSK-AC-016` | **Given** HP tersimpan `+6281234567890` **When** input `0812-3456-7890` **Then** ditemukan. **Given** HP tersimpan `+62215551234` **When** input `021 555 1234` **Then** ditemukan. |
 | `KSK-AC-017` | **Given** input KTP `A1234567890123456` atau 15 digit **Then** pesan "Nomor KTP harus terdiri dari 16 digit." dan tidak ada request ke backend. |
+
+## 12. Amandemen 8 Oktober 2026 — Revisi Pendaftaran Pasien manual
+
+Sumber: Sukma Giri, 8 Okt 2026, PDF "Pendaftaran pasien manual". Pemilik memilih cakupan "Petugas RJ +
+Kiosk" dan "Kiosk ikut semua poin" untuk jalur A (frontend saja). Keputusan sisi petugas RJ dan
+jalur B tercatat di blueprint Rawat Jalan (`RJ-DOC-DEC-062`..`067`). Cari pasien Kiosk sudah menjadi
+acuan (`KSK-DEC-016`/`018`) dan tidak berubah.
+
+| Decision ID | Jenis | Keputusan | Owner | Status | Disetujui oleh/pada | Bukti |
+| --- | --- | --- | --- | --- | --- | --- |
+| `KSK-DEC-022` | Decision | Pada step Pilih Layanan Tujuan (Pasien Lama dan Baru): pesan "Silakan pilih poliklinik terlebih dahulu" berwarna merah; daftar dokter dapat dicari dan menampilkan nama serta info praktik. No. HP/WhatsApp pada form Pasien Baru maksimal 13 angka lokal (`08…`), yaitu 14 digit dalam bentuk `+62…` yang disimpan Kiosk; normalizer lokal Kiosk diganti normalizer bersama `normalizeIndonesianPhoneNumber`. Kontak darurat tetap 15 digit | Sukma | `approved` | Sukma, 8 Okt 2026 | `FE-KSK-012` |
+| `KSK-DEC-023` | Decision | *(superseded oleh `KSK-DEC-025`)* Jenis Kunjungan (Pasien Umum / Pasien Rujukan) pindah ke step Pilih Layanan Tujuan, ringkas di samping jadwal dokter, Umum di atas Rujukan. Step Pilih Jenis Pasien dihapus dari Pasien Lama dan Pasien Baru, sehingga jumlah step berkurang satu. Alur Laboratorium tidak berubah | Sukma | `superseded` | Sukma, 8 Okt 2026 (pilihan "Kiosk ikut semua poin") | `FE-KSK-013` |
+| `KSK-DEC-024` | Approval | `IMPLEMENTATION_AUTHORITY` `GRANTED`, `TASK MODE: FRONTEND`, untuk `FE-KSK-012` dan `FE-KSK-013`. Wajib memakai base component dan util normalizer yang sudah ada. Tanpa backend, migration, commit, push, merge, deploy | Sukma | `approved` | Sukma, 8 Okt 2026 | — |
+| `KSK-DEC-025` | Decision | **Menggantikan `KSK-DEC-023`.** Jenis Kunjungan Kiosk tetap step tersendiri sebelum memilih layanan, karena pilihan Umum/Rujukan menentukan apakah step Rujukan muncul (`RJ-DOC-DEC-072`). `FE-KSK-013` dibatalkan. Step Rujukan Kiosk mengikuti `RJ-DOC-DEC-076` | Sukma | `approved` | Sukma, 8 Okt 2026 (pilihan "Tetap step sendiri sebelum layanan") | — |

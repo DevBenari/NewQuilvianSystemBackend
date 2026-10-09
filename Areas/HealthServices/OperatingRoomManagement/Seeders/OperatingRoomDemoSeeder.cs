@@ -33,7 +33,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.See
 /// <code>
 /// MstWorkforceType, MstEmployeeCategory, MstEmploymentType, MstEmploymentStatus, MstProfession
 ///   -&gt; MstWorkforceProfile -&gt; MstDoctor -&gt; AspNetUsers."DoctorId" (klaim doctor_id)
-/// MstServiceUnit -&gt; MstPatient -&gt; RegPatientEncounter -&gt; TrxQueue
+/// MstServiceUnit -&gt; MstPatient -&gt; RegPatientEncounter -&gt; RegQueue
 ///   -&gt; TrxDoctorConsultation -&gt; TrxPatientProcedure (IsSurgeryRelated = true)
 ///   -&gt; barulah OprCase boleh dibuat
 /// </code>
@@ -464,7 +464,7 @@ public static class OperatingRoomDemoSeeder
 
         var queueId = await EnsureAsync(db,
             x => x.QueueCode == CodePrefix + "-Q-001",
-            () => new TrxQueue
+            () => new RegQueue
             {
                 Id = Deterministic("Queue"),
                 QueueCode = CodePrefix + "-Q-001",
@@ -474,7 +474,7 @@ public static class OperatingRoomDemoSeeder
                 PatientId = patientId,
                 ServiceUnitId = serviceUnitId
             },
-            x => x.Id, result, "TrxQueue", actor, now, ct);
+            x => x.Id, result, "RegQueue", actor, now, ct);
 
         var consultationId = await EnsureAsync(db,
             x => x.ConsultationNumber == CodePrefix + "-CONS-001",

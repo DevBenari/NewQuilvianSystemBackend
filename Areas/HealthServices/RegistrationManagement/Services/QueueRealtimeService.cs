@@ -77,7 +77,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return $"{DoctorQueueClinicGroupPrefix}:{clinicId:D}";
         }
 
-        public Task NotifyQueueCreatedAsync(TrxQueue queue, Guid actorUserId, string? message = null)
+        public Task NotifyQueueCreatedAsync(RegQueue queue, Guid actorUserId, string? message = null)
         {
             // Display antrian bekerja berdasarkan nurse station cluster.
             // Karena itu event pembuatan antrean tetap dikirim ke group cluster,
@@ -94,7 +94,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             );
         }
 
-        public Task NotifyQueueCalledByNurseAsync(TrxQueue queue, Guid actorUserId, string? message = null)
+        public Task NotifyQueueCalledByNurseAsync(RegQueue queue, Guid actorUserId, string? message = null)
         {
             return NotifyQueueChangedAsync(
                 eventType: "QueueCalledByNurse",
@@ -106,7 +106,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             );
         }
 
-        public Task NotifyQueueScreeningStartedAsync(TrxQueue queue, Guid actorUserId, string? message = null)
+        public Task NotifyQueueScreeningStartedAsync(RegQueue queue, Guid actorUserId, string? message = null)
         {
             return NotifyQueueChangedAsync(
                 eventType: "QueueScreeningStarted",
@@ -118,7 +118,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             );
         }
 
-        public Task NotifyQueueScreeningFinishedAsync(TrxQueue queue, Guid actorUserId, string? message = null)
+        public Task NotifyQueueScreeningFinishedAsync(RegQueue queue, Guid actorUserId, string? message = null)
         {
             return NotifyQueueChangedAsync(
                 eventType: "QueueScreeningFinished",
@@ -130,7 +130,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             );
         }
 
-        public Task NotifyQueueSkippedByNurseAsync(TrxQueue queue, Guid actorUserId, string? message = null)
+        public Task NotifyQueueSkippedByNurseAsync(RegQueue queue, Guid actorUserId, string? message = null)
         {
             return NotifyQueueChangedAsync(
                 eventType: "QueueSkippedByNurse",
@@ -142,7 +142,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             );
         }
 
-        public Task NotifyQueueNoShowByNurseAsync(TrxQueue queue, Guid actorUserId, string? message = null)
+        public Task NotifyQueueNoShowByNurseAsync(RegQueue queue, Guid actorUserId, string? message = null)
         {
             return NotifyQueueChangedAsync(
                 eventType: "QueueNoShowByNurse",
@@ -154,7 +154,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             );
         }
 
-        public Task NotifyQueueCalledByDoctorAsync(TrxQueue queue, Guid actorUserId, string? message = null)
+        public Task NotifyQueueCalledByDoctorAsync(RegQueue queue, Guid actorUserId, string? message = null)
         {
             return NotifyQueueChangedAsync(
                 eventType: "QueueCalledByDoctor",
@@ -166,7 +166,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             );
         }
 
-        public Task NotifyQueueConsultationStartedAsync(TrxQueue queue, Guid actorUserId, string? message = null)
+        public Task NotifyQueueConsultationStartedAsync(RegQueue queue, Guid actorUserId, string? message = null)
         {
             return NotifyQueueChangedAsync(
                 eventType: "QueueConsultationStarted",
@@ -178,7 +178,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             );
         }
 
-        public Task NotifyQueueConsultationFinishedAsync(TrxQueue queue, Guid actorUserId, string? message = null)
+        public Task NotifyQueueConsultationFinishedAsync(RegQueue queue, Guid actorUserId, string? message = null)
         {
             return NotifyQueueChangedAsync(
                 eventType: "QueueConsultationFinished",
@@ -190,7 +190,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             );
         }
 
-        public Task NotifyQueueSkippedByDoctorAsync(TrxQueue queue, Guid actorUserId, string? message = null)
+        public Task NotifyQueueSkippedByDoctorAsync(RegQueue queue, Guid actorUserId, string? message = null)
         {
             return NotifyQueueChangedAsync(
                 eventType: "QueueSkippedByDoctor",
@@ -202,7 +202,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             );
         }
 
-        public Task NotifyQueueRequeuedToDoctorAsync(TrxQueue queue, Guid actorUserId, string? message = null)
+        public Task NotifyQueueRequeuedToDoctorAsync(RegQueue queue, Guid actorUserId, string? message = null)
         {
             return NotifyQueueChangedAsync(
                 eventType: "QueueRequeuedToDoctor",
@@ -214,7 +214,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             );
         }
 
-        public Task NotifyQueueCancelledAsync(TrxQueue queue, Guid actorUserId, string? message = null)
+        public Task NotifyQueueCancelledAsync(RegQueue queue, Guid actorUserId, string? message = null)
         {
             return NotifyQueueChangedAsync(
                 eventType: "QueueCancelled",
@@ -228,7 +228,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         public async Task NotifyQueueChangedAsync(
             string eventType,
-            TrxQueue queue,
+            RegQueue queue,
             Guid actorUserId,
             string? message = null,
             bool notifyNurseStation = true,
@@ -303,7 +303,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         /// kunci. Klinik antrean itu sendiri sudah menerima event lengkap.
         /// </summary>
         private async Task<List<Task>> BuildClusterCallLockNotificationsAsync(
-            TrxQueue queue,
+            RegQueue queue,
             List<Guid> nurseStationClusterIds)
         {
             if (nurseStationClusterIds.Count == 0)
@@ -339,7 +339,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 .ToList();
         }
 
-        private async Task<List<Guid>> ResolveNurseStationClusterIdsAsync(TrxQueue queue)
+        private async Task<List<Guid>> ResolveNurseStationClusterIdsAsync(RegQueue queue)
         {
             if (!queue.ClinicId.HasValue || queue.ClinicId.Value == Guid.Empty)
             {
@@ -359,7 +359,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         private static QueueRealtimeEventResponse BuildPayload(
             string eventType,
-            TrxQueue queue,
+            RegQueue queue,
             List<Guid> nurseStationClusterIds,
             Guid actorUserId,
             string? message)
@@ -382,6 +382,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 IsScreeningRequired = queue.IsScreeningRequired,
                 IsDoctorRequired = queue.IsDoctorRequired,
                 IsPriorityQueue = queue.IsPriorityQueue,
+                QueueAudience = queue.QueueAudienceSnapshot,
                 NurseCallExpiresAt = queue.NurseCallExpiresAt,
                 DoctorCallExpiresAt = queue.DoctorCallExpiresAt,
                 ActorUserId = actorUserId == Guid.Empty ? null : actorUserId,

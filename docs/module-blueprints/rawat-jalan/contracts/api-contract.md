@@ -377,3 +377,155 @@ Urutan: `QueueDate` menaik (paling lama dulu), lalu nomor antrean.
 | `POST` | `/doctor-queues/{id}/finish-consultation` | Simpan konsultasi tertunda |
 | `PATCH` | `api/v1/health-services/clinical-management/doctor-consultations/{id}/cancel` | Batalkan konsultasi tertunda; body `{ "cancelReason": "…" }` |
 | `PATCH` | `api/v1/health-services/registration-management/outpatient-encounters/{id}/cancel` | Petugas membatalkan kunjungan sesudah konsultasi dibatalkan |
+
+# Amendment PM-B — `RJ-DOC-REFERRAL-001@1.0.0`
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `RJ-DOC-REFERRAL-001@1.0.0` — `approved` |
+| Owner | Sukma Giri |
+| `approved_by` / `approved_at` | Sukma Giri / 2026-10-08 |
+| `input_revision` | Decision log *Amendment PM-B* (`RJ-DOC-DEC-068`..`082`) |
+| Compatibility | Aditif. Ruas baru opsional; endpoint lama tanpa ruas baru berperilaku sama |
+
+Base URL: `/api/v1/health-services`. Semua endpoint di bawah berlabel **Rencana (belum tersedia)**
+kecuali disebut lain.
+
+## Health Services / Registration Management / Patient Encounter
+
+| Method | Path | Kegunaan | Hak akses | Status |
+|---|---|---|---|---|
+| `POST` | `/registration-management/patient-encounters/admin` | Buat kunjungan; **ditambah** `referralInstitutionId`, `referralDoctorId`, `referral` | `PatientEncounter : Create` | Sudah ada — diperbarui (Rencana) |
+| `POST` | `/registration-management/patient-encounters/kiosk` | Sama, dari Kiosk (`referral` tanpa diagnosa/alasan) | Policy `KioskRead` | Sudah ada — diperbarui (Rencana) |
+
+Blok request baru (berlaku bila `isReferral = true` dan `referral` diisi):
+
+```json
+{
+  "isReferral": true,
+  "referralNumber": "RJK/2026/0991",
+  "referralInstitutionId": "6b1e…",
+  "referralDoctorId": "0c55…",
+  "referral": {
+    "referralDateTime": "2026-10-08T09:10:00+07:00",
+    "targetUnitType": 1,
+    "diagnosisId": "a1f0…",
+    "diagnosisNote": "Gula darah puasa 210 mg/dL",
+    "referralReason": "Kontrol gula darah tidak stabil"
+  }
+}
+```
+
+`targetUnitType` pada endpoint ini hanya `1` (Clinic). Unit tujuan poli = `clinicId` +
+`serviceUnitId` kunjungan itu sendiri, jadi tidak dikirim dua kali. Respons tetap sama, ditambah
+`referral: { id, isComplete, rowVersion }`.
+
+| Kode | Kapan |
+|---|---|
+| `400` `RJ-VAL-PM-03` | `isReferral = true` tetapi `referralNumber` atau `referralInstitutionId` kosong |
+| `400` `RJ-VAL-PM-04` | Dokter perujuk bukan milik institusi terpilih, atau institusi/dokter tidak aktif |
+| `400` `RJ-VAL-PM-05` | `targetUnitType` bukan `1` di endpoint ini, atau `3` (Radiologi) di mana pun |
+| `400` `RJ-VAL-PM-06` | Jalur admin: `diagnosisId` atau `referralReason` kosong |
+| `400` `RJ-VAL-PM-07` | `referralDateTime` di masa depan |
+
+## Health Services / Registration Management / Encounter Referral
+
+| Method | Path | Kegunaan | Hak akses | Status |
+|---|---|---|---|---|
+| `GET` | `/registration-management/patient-encounters/{encounterId}/referral` | Rincian rujukan + berkas aktif + `isComplete` + `isLocked` | `PatientEncounter : Read` | Rencana (belum tersedia) |
+| `PUT` | `/registration-management/patient-encounters/{encounterId}/referral` | Buat rincian (jalur Lab), lengkapi, atau koreksi | `PatientEncounter : Update` | Rencana (belum tersedia) |
+| `POST` | `/registration-management/patient-encounters/{encounterId}/referral/documents` | Unggah 1–10 berkas (`multipart/form-data`, field `files`) | `PatientEncounter : Update` | Rencana (belum tersedia) |
+| `POST` | `/registration-management/patient-encounters/kiosk/{encounterId}/referral/documents` | Unggah hasil scan Kiosk | Policy `KioskRead` | Rencana (belum tersedia) |
+| `GET` | `/registration-management/patient-encounters/{encounterId}/referral/documents/{documentId}/content` | Isi berkas (`inline`, `no-store`) | `PatientEncounter : Read` | Rencana (belum tersedia) |
+| `DELETE` | `/registration-management/patient-encounters/{encounterId}/referral/documents/{documentId}` | Soft delete berkas | `PatientEncounter : Update` | Rencana (belum tersedia) |
+
+`PUT` request:
+
+```json
+{
+  "expectedRowVersion": "9d2c…",
+  "referralNumber": "RJK/2026/0991",
+  "referralDateTime": "2026-10-08T09:10:00+07:00",
+  "referralInstitutionId": "6b1e…",
+  "referralDoctorId": null,
+  "targetUnitType": 2,
+  "targetServiceUnitId": "lab-unit…",
+  "diagnosisId": "a1f0…",
+  "diagnosisNote": null,
+  "referralReason": "Pemeriksaan HbA1c"
+}
+```
+
+`expectedRowVersion` kosong hanya sah saat rincian **belum ada** (jalur Lab). `targetUnitType`,
+`targetServiceUnitId`, dan `targetClinicId` hanya dipakai saat membuat; pada rincian yang sudah ada
+nilainya harus sama.
+
+`GET` respons:
+
+```json
+{
+  "id": "…", "encounterId": "…", "referralNumber": "RJK/2026/0991",
+  "referralDateTime": "2026-10-08T09:10:00+07:00",
+  "referralInstitution": { "id": "…", "name": "Klinik Sehat Sentosa", "isPartner": true },
+  "referralDoctor": { "id": "…", "name": "dr. Rina" },
+  "institutionIsPartnerSnapshot": true,
+  "targetUnitType": 1, "targetUnitTypeName": "Poliklinik",
+  "targetServiceUnitId": "…", "targetClinicId": "…", "targetUnitName": "Poli Penyakit Dalam",
+  "diagnosis": { "id": "…", "code": "E11.9", "name": "Diabetes melitus tipe 2" },
+  "diagnosisNote": null, "referralReason": "Kontrol gula darah tidak stabil",
+  "captureSource": 1, "isComplete": true, "missingFields": [], "isLocked": false,
+  "rowVersion": "9d2c…",
+  "documents": [ { "id": "…", "originalFileName": "surat.jpg", "contentType": "image/jpeg", "sizeBytes": 412331, "pageOrder": 1 } ]
+}
+```
+
+`missingFields` memakai nilai tetap: `referralNumber`, `referralDateTime`, `referralInstitution`,
+`targetUnit`, `diagnosis`, `referralReason`, `documents`.
+
+| Kode | Kapan |
+|---|---|
+| `404` | Kunjungan atau berkas tidak ada |
+| `409` `RJ-VAL-PM-09` | Kunjungan `InConsultation` ke atas, `Cancelled`, atau `NoShow` |
+| `400` `RJ-VAL-PM-10` | Mengubah unit tujuan rujukan yang sudah ada |
+| `409` `RJ-VAL-PM-11` | `expectedRowVersion` basi |
+| `400` `RJ-VAL-PM-12` | Format berkas bukan PDF/JPG/PNG (dicek dari isi) |
+| `400` `RJ-VAL-PM-13` | Berkas > 5 MB, atau total berkas aktif > 10 |
+| `403` `RJ-VAL-PM-14` | Kiosk: kunjungan bukan dari Kiosk, lebih dari 30 menit, atau status > `Queued` |
+
+## Health Services / Registration Management / Outpatient Encounter
+
+| Method | Path | Perubahan | Status |
+|---|---|---|---|
+| `GET` | `/registration-management/outpatient-encounters` | Respons per baris: `referralStatus` = `NotReferral` / `Complete` / `Incomplete`. Query baru `referralStatus` | Sudah ada — diperbarui (Rencana) |
+
+## Health Services / Patient Management / Patient Insurance
+
+| Method | Path | Perubahan | Status |
+|---|---|---|---|
+| `POST` | `/patient-management/master-data/patient-insurances`, `/kiosk`, `/admin` | Ruas opsional `cardScan: { scannedProviderName, scannedPolicyNumber }`; bila diisi, divalidasi PM.3.4 | Sudah ada — diperbarui (Rencana) |
+
+| Kode | Kapan |
+|---|---|
+| `400` `RJ-VAL-PM-01` | Nama asuransi atau No. polis hasil scan tidak cocok — "Data tidak match" |
+| `400` `RJ-VAL-PM-02` | `cardScan` diisi tetapi salah satu nilainya kosong |
+
+## Health Services / Master Data / Referral Institution
+
+| Method | Path | Kegunaan | Hak akses | Status |
+|---|---|---|---|---|
+| `GET` | `/master-data/referral-institutions/filters/metadata` | Metadata filter | `ReferralInstitution : Read` | Rencana |
+| `GET` | `/master-data/referral-institutions/summary` | Ringkasan (total, aktif, mitra) | `ReferralInstitution : Read` | Rencana |
+| `GET` | `/master-data/referral-institutions` | List + filter `isActive`, `isPartner`, `search` | `ReferralInstitution : Read` | Rencana |
+| `GET` | `/master-data/referral-institutions/options` | Pilihan; **ditambah** `isPartner` | `ReferralInstitution : Read` | Sudah ada — diperbarui |
+| `GET` | `/master-data/referral-institutions/kiosk/options` | Pilihan untuk Kiosk | Policy `KioskRead` | Rencana |
+| `GET` | `/master-data/referral-institutions/{id}` | Detail | `ReferralInstitution : Read` | Rencana |
+| `POST` | `/master-data/referral-institutions` | Create (`institutionCode`, `institutionName`, `address`, `phoneNumber`, `isPartner`) | `ReferralInstitution : Create` | Rencana |
+| `PUT` | `/master-data/referral-institutions/{id}` | Update | `ReferralInstitution : Update` | Rencana |
+| `PATCH` | `/master-data/referral-institutions/{id}/status` | Aktif/nonaktif | `ReferralInstitution : Update` | Rencana |
+| `DELETE` | `/master-data/referral-institutions/{id}` | Soft delete; `409` bila dipakai kunjungan | `ReferralInstitution : Delete` | Rencana |
+
+## Health Services / Master Data / Referral Doctor
+
+Sama dengan Referral Institution (sembilan endpoint + `kiosk/options`), resource `ReferralDoctor`.
+Ruas: `referralInstitutionId` (wajib, institusi aktif), `doctorName`, `isActive`. List menerima
+filter `referralInstitutionId`.

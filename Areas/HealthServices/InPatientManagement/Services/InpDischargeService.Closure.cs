@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
@@ -85,9 +86,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             var markedItemIds = marks.Select(x => x.ClearanceItemId).ToList();
 
+            // BE-RWI-185 / INV-RWA-12: hanya butir jenis penutupan. Butir Serah Terima Pasien Baru
+            // (STPB-*) yang wajib tidak boleh ikut menahan penutupan setiap episode.
             var items = await _dbContext.Set<MstInpatientClearanceItem>()
                 .AsNoTracking()
-                .Where(x => !x.IsDelete && (x.IsActive || markedItemIds.Contains(x.Id)))
+                .Where(x => !x.IsDelete && x.ChecklistType == MstClearanceChecklistType.EpisodeClosure &&
+                    (x.IsActive || markedItemIds.Contains(x.Id)))
                 .OrderBy(x => x.SortOrder)
                 .ThenBy(x => x.ItemName)
                 .Select(x => new ClearanceChecklistItemResponse
@@ -159,10 +163,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 return closedGuard;
             }
 
+            // BE-RWI-185 / INV-RWA-12: butir jenis lain (serah terima) diperlakukan tidak ada,
+            // sehingga penandaannya dijawab 404 "Butir administrasi tidak ditemukan."
             var item = await _dbContext.Set<MstInpatientClearanceItem>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
-                    x => x.Id == clearanceItemId && !x.IsDelete,
+                    x => x.Id == clearanceItemId && !x.IsDelete &&
+                        x.ChecklistType == MstClearanceChecklistType.EpisodeClosure,
                     cancellationToken);
 
             if (item == null)

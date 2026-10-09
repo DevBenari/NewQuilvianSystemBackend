@@ -1,4 +1,5 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Models;
@@ -8,8 +9,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.M
 
 namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models
 {
-    [Table("TrxQueue", Schema = "public")]
-    public class TrxQueue : IdentityModel
+    [Table("RegQueue", Schema = "public")]
+    public class RegQueue : IdentityModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -101,6 +102,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         public Guid? CompletedByUserId { get; set; }
 
         public bool IsPriorityQueue { get; set; } = false;
+
+        // Snapshot klasifikasi saat antrean terbit (RJ-DOC-DEC-055). Perubahan membership
+        // pasien sesudahnya tidak mengubah antrean yang sudah diterbitkan.
+        public int QueuePriorityLevelSnapshot { get; set; } = 0;
+
+        public QueueAudience QueueAudienceSnapshot { get; set; } = QueueAudience.Regular;
+
+        public PublicDisplayMode PublicDisplayModeSnapshot { get; set; } = PublicDisplayMode.Default;
+
+        public Guid? PatientMembershipIdSnapshot { get; set; }
+
+        public Guid? MembershipTierIdSnapshot { get; set; }
+
+        [MaxLength(50)]
+        public string? MembershipTierCodeSnapshot { get; set; }
+
+        [MaxLength(50)]
+        public string? PriorityReasonCode { get; set; }
+
+        /// <summary>
+        /// Kunci cakupan penomoran (cluster, poliklinik, atau service unit) untuk unique index
+        /// nomor antrean (RJ-DOC-DEC-056). Diisi oleh OutpatientQueueNumberAllocator.
+        /// </summary>
+        public Guid QueueScopeKey { get; set; }
 
         public bool IsFromKiosk { get; set; } = false;
 

@@ -77,6 +77,16 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
             entity.Property(x => x.PriorityQueue)
                 .HasDefaultValue(false);
 
+            entity.Property(x => x.QueueAudience)
+                .HasConversion<int>()
+                .HasDefaultValue(QueueAudience.Member)
+                .IsRequired();
+
+            entity.Property(x => x.PublicDisplayMode)
+                .HasConversion<int>()
+                .HasDefaultValue(PublicDisplayMode.Default)
+                .IsRequired();
+
             entity.Property(x => x.FreeAnnualCheckup)
                 .HasDefaultValue(false);
 

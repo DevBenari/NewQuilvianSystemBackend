@@ -75,6 +75,24 @@ Aturan baca: requirement tanpa task berarti tidak akan terwujud; task tanpa requ
 | Prioritas 1 — Cek No. RM tidak tampil apa-apa | — | `FE-KSK-011` | ⛔ 2026-10-01 — belum dapat direproduksi | [FE-KSK-011](../task/report/frontend/FE-KSK-011.md) |
 | Prioritas Skrining 3 — tidak ada dua kunjungan aktif untuk satu pasien (juga berlaku di Kiosk) | `RJ-DOC-DEC-010` | `RJ-DOC-REV-BE-007` (blueprint Rawat Jalan) | ✅ 2026-10-01 | [RJ-DOC-REV-BE-007](../../rawat-jalan/task/report/backend/RJ-DOC-REV-BE-007.md) |
 
+## 2b. Amandemen 8 Oktober 2026
+
+| Requirement pemilik (PDF "Pendaftaran pasien manual") | Decision | Task | Status | Bukti |
+| --- | --- | --- | --- | --- |
+| Pasien lama 3 — pesan pilih poliklinik merah | `KSK-DEC-022` | `FE-KSK-012` | ✅ 2026-10-08 — uji browser Kiosk 11/11 | [FE-KSK-012](../task/report/frontend/FE-KSK-012.md) |
+| Tambahan 1 — dokter dapat dicari, nama + info praktik | `KSK-DEC-022` | `FE-KSK-012` | ✅ 2026-10-08 — uji browser Kiosk 11/11 | [FE-KSK-012](../task/report/frontend/FE-KSK-012.md) |
+| Pasien baru 1 — No. HP maksimal 13 angka | `KSK-DEC-022` | `FE-KSK-012` | ✅ 2026-10-08 — uji browser Kiosk 11/11 | [FE-KSK-012](../task/report/frontend/FE-KSK-012.md) |
+| Tambahan 3 — Jenis Kunjungan ringkas di samping jadwal dokter | `KSK-DEC-023` | `FE-KSK-013` | Dibatalkan 2026-10-08 (`KSK-DEC-025`) | [FE-KSK-013](../task/report/frontend/FE-KSK-013.md) |
+| Scan asuransi cocok, step Rujukan, unit tujuan + popup jadwal | `RJ-DOC-DEC-067` | Jalur B — menunggu `grill-me` | — | — |
+
+## 2c. Amandemen 8 Oktober 2026 (B) — Rujukan Kiosk
+
+| Requirement pemilik (PDF jalur B) | Decision | Task | Status | Bukti |
+| --- | --- | --- | --- | --- |
+| Pasien lama/baru 4 — step Rujukan di Kiosk, upload surat | `RJ-DOC-DEC-072`, `076`, `KSK-DEC-025` | `FE-KSK-014` | ✅ `2026-10-09` (uji browser 14/14) | [FE-KSK-014](../task/report/frontend/FE-KSK-014.md) |
+| Tambahan 4 — popup jadwal bila poli tanpa dokter praktik | `RJ-DOC-DEC-072` | `FE-KSK-015` | ✅ `2026-10-09` (uji browser 5/5) | [FE-KSK-015](../task/report/frontend/FE-KSK-015.md) |
+| Pasien lama 2 — scan asuransi cocok | `RJ-DOC-DEC-068`..`070` | `FE-KSK-016` | ✅ `2026-10-09` (uji browser 7/7) | [FE-KSK-016](../task/report/frontend/FE-KSK-016.md) |
+
 ## 3. Coverage gap
 
 | Hal | Sebab | Penanganan |

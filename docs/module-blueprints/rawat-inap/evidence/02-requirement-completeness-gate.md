@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Assessment revision | **`1.10`** — evaluasi ulang Finishing sesudah Amendment Pass dan approval desain 2 Oktober 2026, bagian 19. Sebelumnya: **`1.9`** — evaluasi ulang gerbang Finishing Rawat Inap `PRD-RWI-FINISHING-001` v`0.4`, bagian 18. Sebelumnya `1.8` (Finishing v`0.2`, bagian 17) dan `1.7` |
-| Assessment date | 21 Agustus 2026 (`Asia/Jakarta`); focused reassessment Dokter Rawat Inap dan Keperawatan, 2 September 2026; focused reassessment penyelarasan `PRD-RWI-V2-001`, 15 September 2026; penutupan keputusan `RLN-PH-04`, 15 September 2026; **evaluasi gerbang kelengkapan requirement Integrasi Rawat Inap ↔ Billing (`INP-S22`), 17 September 2026**; evaluasi gerbang Finishing Rawat Inap, 1 Oktober 2026 (revision `1.8`); **evaluasi ulang Finishing v`0.4`, 1 Oktober 2026 malam (revision `1.9`)**; **evaluasi ulang Finishing pasca-desain, 2 Oktober 2026 (bagian 19)** |
+| Assessment revision | **`1.11`** — gerbang kelengkapan Workspace PPRI `PRD-RWI-ADMISI-001`, bagian 20. Sebelumnya: **`1.10`** — evaluasi ulang Finishing sesudah Amendment Pass dan approval desain 2 Oktober 2026, bagian 19. Sebelumnya: **`1.9`** — evaluasi ulang gerbang Finishing Rawat Inap `PRD-RWI-FINISHING-001` v`0.4`, bagian 18. Sebelumnya `1.8` (Finishing v`0.2`, bagian 17) dan `1.7` |
+| Assessment date | **Workspace PPRI 7 Oktober 2026 (bagian 20);** 21 Agustus 2026 (`Asia/Jakarta`); focused reassessment Dokter Rawat Inap dan Keperawatan, 2 September 2026; focused reassessment penyelarasan `PRD-RWI-V2-001`, 15 September 2026; penutupan keputusan `RLN-PH-04`, 15 September 2026; **evaluasi gerbang kelengkapan requirement Integrasi Rawat Inap ↔ Billing (`INP-S22`), 17 September 2026**; evaluasi gerbang Finishing Rawat Inap, 1 Oktober 2026 (revision `1.8`); **evaluasi ulang Finishing v`0.4`, 1 Oktober 2026 malam (revision `1.9`)**; **evaluasi ulang Finishing pasca-desain, 2 Oktober 2026 (bagian 19)** |
 | Assessment status | `CURRENT` |
 | Koreksi `1.1` | Tiga keterangan yang menyatakan `DEC-INP-001` masih terbuka diperbaiki; kesiapan belum dinilai ulang pada revision itu |
 | Focused reassessment `1.2` | Menilai ulang `INP-S05` bagian dokter, `INP-S06`, serta `CAP-015` berdasarkan decision log revision `7`, PRD final, dan capability map revision `1.3`. Hasil kanonisnya ada pada bagian 11 |
@@ -16,14 +16,15 @@
 | **Focused reassessment `1.8`** | **Evaluasi gerbang Finishing Rawat Inap, 1 Oktober 2026.** Menilai `CAP-RWF-01` s.d. `CAP-RWF-16` dari `PRD-RWI-FINISHING-001` v`0.2` dalam sembilan slice baru `INP-S23` s.d. `INP-S31`, berdasarkan decision log revision `29` (`RWI-DEC-163` s.d. `RWI-DEC-193`) dan capability map revision `1.6` bagian 19. Enam slice `READY_FOR_DOMAIN_DESIGN`; `INP-S24`, `INP-S27`, dan `INP-S28` `PARTIALLY_READY`. Decision ID baru `DEC-INP-014` s.d. `DEC-INP-017`, seluruhnya `OPEN`. Bagian 16.8 butir 4 dan batas auto-reblock 16.9 digantikan `RWI-DEC-186`. Hasilnya pada bagian 17 |
 | **Focused reassessment `1.9`** | **Evaluasi ulang gerbang Finishing Rawat Inap, 1 Oktober 2026 malam.** Menyerap Amendment Pass penutupan gate `1.8` (`RWI-DEC-194` s.d. `RWI-DEC-205`, decision log revision `30`) dan `PRD-RWI-FINISHING-001` v`0.4`. `DEC-INP-014` s.d. `DEC-INP-017` **`CLOSED`**, sehingga `INP-S24`, `INP-S27`, dan `INP-S28` naik ke `READY_FOR_DOMAIN_DESIGN`. Klaster Pasca Operasi `CAP-RWF-18` s.d. `23` dinilai sebagai slice baru `INP-S32` s.d. `INP-S37`: lima `READY_FOR_DOMAIN_DESIGN`, `INP-S32` `PARTIALLY_READY` karena satu aturan Billing (`DEC-INP-018`, alias `RWI-OQ-114` butir b). Gerbang implementasi: `RWI-OQ-108`, `RWI-OQ-114` butir (a) dan (c), `RWI-OQ-115`. Hasilnya pada bagian 18 |
 | **Focused reassessment `1.10`** | **Evaluasi ulang Finishing pasca-desain, 2 Oktober 2026.** Menyerap Amendment Pass penutupan butir terbuka desain Finishing (`RWI-DEC-206` s.d. `RWI-DEC-220`) dan approval desain revision `8` (`RWI-DEC-221`), decision log revision `32`. `DEC-INP-018` **`CLOSED`** (`RWI-DEC-207`), sehingga `INP-S32` naik ke `READY_FOR_DOMAIN_DESIGN` dan **seluruh 15 slice Finishing siap**. Gerbang persetujuan `RWI-OQ-108`, `114`, `115` tertutup. G-05, G-17, G-18, G-26 tertutup; dua belas usulan dikonfirmasi lewat approval kontrak. Gap baru G-27 (penyelesaian multi-invoice Billing) dan G-28 (PRD tertinggal), keduanya non-blocking. Empat temuan implementasi frontend `f74758af5` (IMP-RWF-01 s.d. 04) menjadi gerbang rilis, bukan gap requirement. Hasilnya pada bagian 19; koreksi perencanaan 19.12 menambah `DEC-INP-019` (Rehab Medik, di luar slice Finishing) dan IMP-RWF-05 |
+| **Focused reassessment `1.11`** | **Gerbang kelengkapan Workspace PPRI (Ruang Kerja Admisi), 7 Oktober 2026.** Menilai `PRD-RWI-ADMISI-001` v`0.2` dalam sebelas slice baru `INP-S38` s.d. `INP-S48`, berdasarkan decision log revision `36` (`RWI-DEC-225` s.d. `RWI-DEC-262`) dan capability map revision `1.7` bagian 20. Sembilan slice `READY_FOR_DOMAIN_DESIGN`; `INP-S46` Estimasi Biaya `PARTIALLY_READY` karena `DEC-INP-020` (baru); `INP-S48` tanda tangan digital `BUSINESS_DECISION_REQUIRED` karena `DEC-INP-003`, yang cakupannya diperluas. Penyimpanan persetujuan umum tetap slice lama `INP-S10`. Gap `G-30` s.d. `G-51`. Hasilnya pada bagian 20 |
 | **Overall readiness** | **`PARTIALLY_READY`** |
-| Ready destination | **Bagian 19:** seluruh 15 slice Finishing `READY_FOR_DOMAIN_DESIGN`, dan desain revision `8` sudah disetujui (`RWI-DEC-221`) → `plan-module-delivery`. `hospital-domain-architect` atau langsung `design-business-module`. Ketujuh capability Dokter Rawat Inap siap sesuai bagian 12; empat kemampuan Keperawatan aktif siap sesuai bagian 13; slice penyelarasan V2 `INP-S17`, `S18`, `S19` (sliding scale), `S20`, dan `S21` siap sesuai bagian 14 dan 15; **slice integrasi Rawat Inap ↔ Billing `INP-S22` siap untuk domain design sesuai bagian 16**; **slice Finishing `INP-S23` s.d. `INP-S37` siap sesuai bagian 18, kecuali aturan Billing penggabungan biaya operasi kunjungan asal pada `INP-S32` (`DEC-INP-018`)**; handover shift dan transfusi selain monitoring `DEFERRED` |
-| Business evidence | **Bagian 19:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `32`, SHA-256 `2102ed1da2a4748157bb3e6960212905e20a704b2a265c6abda4a97ffed43b25` (`RWI-DEC-206` s.d. `RWI-DEC-221`, `RWI-AC-330` s.d. `RWI-AC-340`); `billing-kasir` `BKC-DEC-118`. **Bagian 18:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `30`, SHA-256 `aa92c5ddd217b0bd95abf628ae484a1c0caddcdf386e7834f0715ed216e2a439` (`RWI-DEC-194` s.d. `RWI-DEC-205`, `RWI-AC-307` s.d. `RWI-AC-329`). **Bagian 17:** revision `29`, SHA-256 `f6fed60809321687d850306dfd2830d9394e1b2e7e7ab0a66b01cbc5068ce471`. **Bagian 16:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `25` (Pass A — Muhammad Hamzah, 17 September 2026), memuat keputusan `RWI-DEC-156` s.d. `RWI-DEC-161` dan kriteria penerimaan `RWI-AC-236` s.d. `RWI-AC-241`. **Bagian 15:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `21`, SHA-256 `1c55c80a50aee11ef005ccde6315c2935cbe21504e8596798b89bf7f2d45102a`. **Bagian 14:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `20`, SHA-256 `b278013547dfa3c8f1bfa21fdd442cdaa416a8015939f1628794ab7e03db0fb7`. Sebelumnya revision `11` dan revision `8` |
-| Capability evidence | **Bagian 19:** capability map revision `1.6` bagian 19 ditambah pembacaan source frontend `f74758af5` dan backend Billing pada 19.1; daftar pemicu 19.9 tidak lengkap (IMP-RWF-04). **Bagian 17 dan 18:** [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.6` bagian 19; bagian 18 ditambah `RWI-FACT-057`, `RWI-FACT-058`, dan pembacaan source pada 18.1. **Bagian 16:** [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.5` Bagian 18 (Audit Kemampuan Integrasi Rawat Inap ↔ Billing, 17 September 2026). **Bagian 14 dan 15:** [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.4`. Sebelumnya revision `1.3` |
-| Primary business source | **Bagian 19:** `PRD-RWI-FINISHING-001` v`0.4`, SHA-256 `0f658455b98658974865fda4fb917b2ccdb9a9bce5db5723f9b919327cfabe1a`, sebagian tertinggal dari decision log (G-28). **Bagian 17 dan 18:** `docs/Modul-RS/Rawat-Inap/05-prd-to-mvp-finishing-rawat-inap.md` (`PRD-RWI-FINISHING-001` v`0.2` untuk bagian 17; v`0.4`, SHA-256 `aee2afdb03e62c2bcdbd2e8fc832bb634df40686079c1b5e4f7f6f4d1ae46d29`, untuk bagian 18). Klaster Pasca Operasi juga merujuk bukti HiSys `Pasca-Operasi-ke-Rawat-Inap.md` sebagai praktik sistem lain. **Bagian 16:** `docs/Modul-RS/Rawat-Inap-To-Billing/PRD Integrasi-Rawat-Inap-dengan-Billing.md` (2.282 baris). **Bagian 14 dan 15:** `PRD-RWI-V2-001` v`2.0` dan `PRD-to-MVP-Rawat-Inap-V2` v`1.0.0`. Baseline: `docs/Modul-RS/Rawat-Inap/PRD_Final_Rawat_Inap_100_Persen.md` |
+| Ready destination | **Bagian 20:** sembilan slice Workspace PPRI `READY_FOR_DOMAIN_DESIGN` dan bagian siap `INP-S46` → langsung `design-business-module` (amandemen `episode-rawat-inap` `0.11.0`); `hospital-domain-architect` tidak disarankan. **Bagian 19:** seluruh 15 slice Finishing `READY_FOR_DOMAIN_DESIGN`, dan desain revision `8` sudah disetujui (`RWI-DEC-221`) → `plan-module-delivery`. `hospital-domain-architect` atau langsung `design-business-module`. Ketujuh capability Dokter Rawat Inap siap sesuai bagian 12; empat kemampuan Keperawatan aktif siap sesuai bagian 13; slice penyelarasan V2 `INP-S17`, `S18`, `S19` (sliding scale), `S20`, dan `S21` siap sesuai bagian 14 dan 15; **slice integrasi Rawat Inap ↔ Billing `INP-S22` siap untuk domain design sesuai bagian 16**; **slice Finishing `INP-S23` s.d. `INP-S37` siap sesuai bagian 18, kecuali aturan Billing penggabungan biaya operasi kunjungan asal pada `INP-S32` (`DEC-INP-018`)**; handover shift dan transfusi selain monitoring `DEFERRED` |
+| Business evidence | **Bagian 20:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `36`, SHA-256 `618f684b707fdb60f88d194623a265844faaf61fb02061e11eb61a4104f746df` (`RWI-DEC-225` s.d. `RWI-DEC-262`, `RWI-AC-343` s.d. `RWI-AC-383`). **Bagian 19:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `32`, SHA-256 `2102ed1da2a4748157bb3e6960212905e20a704b2a265c6abda4a97ffed43b25` (`RWI-DEC-206` s.d. `RWI-DEC-221`, `RWI-AC-330` s.d. `RWI-AC-340`); `billing-kasir` `BKC-DEC-118`. **Bagian 18:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `30`, SHA-256 `aa92c5ddd217b0bd95abf628ae484a1c0caddcdf386e7834f0715ed216e2a439` (`RWI-DEC-194` s.d. `RWI-DEC-205`, `RWI-AC-307` s.d. `RWI-AC-329`). **Bagian 17:** revision `29`, SHA-256 `f6fed60809321687d850306dfd2830d9394e1b2e7e7ab0a66b01cbc5068ce471`. **Bagian 16:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `25` (Pass A — Muhammad Hamzah, 17 September 2026), memuat keputusan `RWI-DEC-156` s.d. `RWI-DEC-161` dan kriteria penerimaan `RWI-AC-236` s.d. `RWI-AC-241`. **Bagian 15:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `21`, SHA-256 `1c55c80a50aee11ef005ccde6315c2935cbe21504e8596798b89bf7f2d45102a`. **Bagian 14:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `20`, SHA-256 `b278013547dfa3c8f1bfa21fdd442cdaa416a8015939f1628794ab7e03db0fb7`. Sebelumnya revision `11` dan revision `8` |
+| Capability evidence | **Bagian 20:** capability map revision `1.7` bagian 20, SHA-256 `e8e454cbaed3f0bfd39793bbb4b82860ed9eb921b9154c24554b2bf06fb6e3da`, ditambah `RWI-FACT-065` dan `RWI-FACT-066`. **Bagian 19:** capability map revision `1.6` bagian 19 ditambah pembacaan source frontend `f74758af5` dan backend Billing pada 19.1; daftar pemicu 19.9 tidak lengkap (IMP-RWF-04). **Bagian 17 dan 18:** [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.6` bagian 19; bagian 18 ditambah `RWI-FACT-057`, `RWI-FACT-058`, dan pembacaan source pada 18.1. **Bagian 16:** [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.5` Bagian 18 (Audit Kemampuan Integrasi Rawat Inap ↔ Billing, 17 September 2026). **Bagian 14 dan 15:** [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.4`. Sebelumnya revision `1.3` |
+| Primary business source | **Bagian 20:** `PRD-RWI-ADMISI-001` v`0.2` `DRAFT`, SHA-256 `f1fd336f562d6936629d50f8f849fa7767e2dbea2b24678da9596de60dcc1192`, sebagian tertinggal dari decision log (G-50). **Bagian 19:** `PRD-RWI-FINISHING-001` v`0.4`, SHA-256 `0f658455b98658974865fda4fb917b2ccdb9a9bce5db5723f9b919327cfabe1a`, sebagian tertinggal dari decision log (G-28). **Bagian 17 dan 18:** `docs/Modul-RS/Rawat-Inap/05-prd-to-mvp-finishing-rawat-inap.md` (`PRD-RWI-FINISHING-001` v`0.2` untuk bagian 17; v`0.4`, SHA-256 `aee2afdb03e62c2bcdbd2e8fc832bb634df40686079c1b5e4f7f6f4d1ae46d29`, untuk bagian 18). Klaster Pasca Operasi juga merujuk bukti HiSys `Pasca-Operasi-ke-Rawat-Inap.md` sebagai praktik sistem lain. **Bagian 16:** `docs/Modul-RS/Rawat-Inap-To-Billing/PRD Integrasi-Rawat-Inap-dengan-Billing.md` (2.282 baris). **Bagian 14 dan 15:** `PRD-RWI-V2-001` v`2.0` dan `PRD-to-MVP-Rawat-Inap-V2` v`1.0.0`. Baseline: `docs/Modul-RS/Rawat-Inap/PRD_Final_Rawat_Inap_100_Persen.md` |
 | Baseline rujukan | `indonesia-hospital-domain-reference`, berkas `references/inpatient.md`, `Reference coverage: PARTIAL`, seluruh observasi berstatus `REFERENCE_ONLY` |
-| Backend snapshot | **Bagian 19:** HEAD `bf5c6bde` — sejak `8d96a978` hanya dokumen; sejak audit `c8e99ce5` perubahan kode hanya saringan pencarian census. **Bagian 17 dan 18:** audit `c8e99ce5`, HEAD `425cfeae` (hanya dokumen). **Bagian 16: `fe7e60d4b2ef1eecffa72cef4f4fd33f9dbe0344`** (branch `MHamzah`); Bagian 14: `df3679c0d5b2f08106702153eb242d3a6cb2929b`; sebelumnya `93b3227c431401d8f586dec4e1fb25fbf41766e3` |
-| Frontend snapshot | **Bagian 19:** HEAD `f74758af5` — form Penunjang Medis ruang kerja dokter (19.5). **Bagian 17 dan 18:** audit `22ad67330`, HEAD `ee75e055b`; bagian 18 mencatat perubahan lokal belum di-commit yang tidak menyentuh berkas pemicu 19.9. **Bagian 16: `2c00758832f834cff0288bef4f0d2fcf1161fb52`** (branch `HamzahV2`); Bagian 14: `147355f505e875148b8416866ada6cf8b2f1ad99`; sebelumnya `863f24b0d1617069310c04e5770b47fd1b518b5b` |
+| Backend snapshot | **Bagian 20:** audit `671191eb`, HEAD `fdf85a07` (enam berkas harga penjamin, dinilai `RWI-FACT-065`). **Bagian 19:** HEAD `bf5c6bde` — sejak `8d96a978` hanya dokumen; sejak audit `c8e99ce5` perubahan kode hanya saringan pencarian census. **Bagian 17 dan 18:** audit `c8e99ce5`, HEAD `425cfeae` (hanya dokumen). **Bagian 16: `fe7e60d4b2ef1eecffa72cef4f4fd33f9dbe0344`** (branch `MHamzah`); Bagian 14: `df3679c0d5b2f08106702153eb242d3a6cb2929b`; sebelumnya `93b3227c431401d8f586dec4e1fb25fbf41766e3` |
+| Frontend snapshot | **Bagian 20:** audit dan HEAD `27889662a`; perubahan lokal belum di-commit hanya menyentuh menu penunjang dan pemesanan bedah Workspace Keperawatan. **Bagian 19:** HEAD `f74758af5` — form Penunjang Medis ruang kerja dokter (19.5). **Bagian 17 dan 18:** audit `22ad67330`, HEAD `ee75e055b`; bagian 18 mencatat perubahan lokal belum di-commit yang tidak menyentuh berkas pemicu 19.9. **Bagian 16: `2c00758832f834cff0288bef4f0d2fcf1161fb52`** (branch `HamzahV2`); Bagian 14: `147355f505e875148b8416866ada6cf8b2f1ad99`; sebelumnya `863f24b0d1617069310c04e5770b47fd1b518b5b` |
 | Write boundary | Dokumen evidence ini dan sinkronisasi metadata/hash blueprint. Tidak ada source aplikasi, migration, entity, endpoint, UI, task, database, atau ClickUp yang diubah |
 
 > **Apa gunanya dokumen ini.** Dokumen ini tidak merancang apa pun. Tugasnya satu: memeriksa
@@ -2689,3 +2690,256 @@ Karena itu pernyataan 19.5 IMP-RWF-03 ("tidak memerlukan keputusan") dan 19.7 ("
 **3. Integritas ID task.** `BE-RWI-128` dipakai dua task berbeda: di `dokter-rawat-inap/roadmap/backend-roadmap-v2.md` dan di `integrasi-billing/roadmap/backend-roadmap.md`. Deret ID juga sudah terpakai sampai `BE-RWI-145` dan `FE-RWI-165` oleh rencana kerja paralel, jauh melewati catatan manifest (`BE-RWI-135`, `FE-RWI-101`). Ini bukan gap requirement; dicatat untuk pemilik peta modul (`02-module-map.md` 1.3).
 
 **Handoff yang dibetulkan:** `open_decisions: []` (seluruh keputusan terbuka termasuk `DEC-INP-019` telah tertutup oleh `RWI-DEC-222`); `release_gate: [IMP-RWF-01, IMP-RWF-02, IMP-RWF-03, IMP-RWF-05]`; seluruh task Finishing siap dieksekusi per gelombang setelah approval roadmap.
+
+---
+
+## 20. Evaluasi Gerbang Kelengkapan Requirement — Workspace PPRI (`PRD-RWI-ADMISI-001`) — revision `1.11`
+
+### 20.1 Scope, identitas slice, dan bukti acuan
+
+**Yang dinilai:** kemampuan Workspace PPRI (Ruang Kerja Admisi) pada `PRD-RWI-ADMISI-001` v`0.2`, sesudah Amendment Pass (`RWI-DEC-225` s.d. `RWI-DEC-248`) dan Closure Pass (`RWI-DEC-249` s.d. `RWI-DEC-262`). Tiga kemampuan **tidak** dinilai: `CAP-RWA-04` Asesmen Edukasi (dibatalkan `RWI-DEC-226`), serta `CAP-RWA-10` Estimasi Biaya Rinci dan `CAP-RWA-12` MP Benefit (tetap ditunda, `RWI-OQ-119`, `RWI-OQ-120`).
+
+Kemampuan dikelompokkan menjadi sebelas slice baru `INP-S38` s.d. `INP-S48`. Pengelompokan mengikuti kepemilikan data dan siklus hidup dokumen, bukan menu. Seluruh slice dirancang di sub-modul `episode-rawat-inap` (`RWI-DEC-227`), dan seluruh tabel dokumen admisi milik `InPatientManagement` (`RWI-DEC-228`).
+
+| Slice | Nama | Kemampuan PRD | Keputusan utama |
+|---|---|---|---|
+| `INP-S38` | Ruang kerja PPRI, header, dan kelengkapan | `CAP-RWA-01` | `RWI-DEC-234`, `245`, `246`, `250`, `256`, `257` |
+| `INP-S39` | Fondasi dokumen admisi: siklus, tanda tangan kertas, atestasi, cetak, hak akses | `CAP-RWA-14` (kertas), `15`, `16`, `17` | `RWI-DEC-228`, `229`, `230`, `237`, `238`, `239`, `240`, `247`, `257`, `258` |
+| `INP-S40` | Serah Terima Pasien Baru | `CAP-RWA-03` | `RWI-DEC-239`, `241`, `255`, `262` |
+| `INP-S41` | Gelang dan label identitas | `CAP-RWA-05` | `RWI-DEC-243`, `253`, `259` |
+| `INP-S42` | Data Dasar Rawat Inap (IPD) | `CAP-RWA-07` | `RWI-DEC-244`, `254`, `258` |
+| `INP-S43` | Hak pasien: Permintaan Privasi dan Nilai Kepercayaan | `CAP-RWA-06`, `CAP-RWA-13` | `RWI-DEC-228`, `238`, `242` |
+| `INP-S44` | Selisih Biaya | `CAP-RWA-11` | `RWI-DEC-234`, `256` |
+| `INP-S45` | Pelunasan Deposit | `CAP-RWA-08` | `RWI-DEC-231`, `248`, `252`, `258`, `260`, `261` |
+| `INP-S46` | Estimasi Biaya Rekap | `CAP-RWA-09` | `RWI-DEC-232`, `250`, `258` |
+| `INP-S47` | General Consent cetak saja selama *fail-closed* | `CAP-RWA-02` (bagian cetak) | `RWI-DEC-230`, `233`, `246`, `251`, `252` |
+| `INP-S48` | Tanda tangan digital pasien/keluarga | `CAP-RWA-14` (bagian digital) | `RWI-DEC-230`, `235` (`draft`) |
+
+**Hubungan dengan slice lama.** Penyimpanan General Consent (`RWI-DEC-236`, `draft`) **tidak** dijadikan slice baru. Kemampuannya sama dengan slice lama `INP-S10` "Persetujuan umum rawat inap", yang sejak revision `1.0` berstatus `BUSINESS_DECISION_REQUIRED` karena `DEC-INP-003`. Gate ini hanya memperluas cakupan `DEC-INP-003` (20.6).
+
+**Bukti yang dipakai:**
+
+| Jenis bukti | Sumber | Revision / hash |
+|---|---|---|
+| Requirement eksplisit pemilik | `00-interview-decisions.md`, `RWI-DEC-225` s.d. `RWI-DEC-262`, `RWI-AC-343` s.d. `RWI-AC-383` | Revision `36`, SHA-256 `618f684b707fdb60f88d194623a265844faaf61fb02061e11eb61a4104f746df` |
+| Brief pemilik 7 Oktober 2026 | PRD bagian 1 baris "Brief UI dari pemilik", dicatat ulang pada sub-bagian scope `RWI-DEC-225`: tombol sesudah Workspace Dokter, template Workspace Keperawatan, isian form tetap mengikuti V1, V1 hanya acuan bisnis | Sama dengan baris di atas |
+| Jawaban Billing lewat pemilik | `RWI-DEC-231`, `232`, `248`, `256`, `260`, `261` (Yasmina, disampaikan Muhammad Hamzah) | Decision log revision `36` |
+| Dokumen produk | `docs/Modul-RS/Rawat-Inap/06-prd-to-mvp-workspace-admisi-rawat-inap.md` (`PRD-RWI-ADMISI-001` v`0.2`, `DRAFT`) | SHA-256 `f1fd336f562d6936629d50f8f849fa7767e2dbea2b24678da9596de60dcc1192` |
+| Implementasi V2 terverifikasi | `01-existing-capability-map.md` revision `1.7` bagian 20 (`PPRI-CAP-01` s.d. `PPRI-CAP-54`), ditambah `RWI-FACT-065` dan `RWI-FACT-066` | Backend `671191eb` dan frontend `27889662a`; SHA-256 `e8e454cbaed3f0bfd39793bbb4b82860ed9eb921b9154c24554b2bf06fb6e3da` |
+| HEAD saat gate dijalankan | Backend `fdf85a07` (enam berkas harga penjamin yang sudah dinilai `RWI-FACT-065`); frontend `27889662a`, dengan perubahan lokal belum di-commit yang hanya menyentuh menu penunjang dan pemesanan bedah Workspace Keperawatan | Bagian 20 capability map tetap `CURRENT` |
+| Legacy V1 | PRD Lampiran A (isian form V1) dan bagian 3.4 (kelemahan V1) | Backend V1 `4be1499cc`, frontend V1 `86408f245` |
+| Baseline rujukan | `indonesia-hospital-domain-reference` `references/inpatient.md`: `ID-INP-CAP-001` (konteks dan diagnosis admisi), `ID-INP-CAP-002` (verifikasi pra-admisi: persetujuan, penjamin), `ID-INP-CAP-016` (serah terima), `ID-INP-REG-001` (rekam medis elektronik), bagian 10 (koreksi), 12 (selisih biaya), 13 (identitas pasien), 14 (audit) | `REFERENCE_ONLY`, `Reference coverage: PARTIAL` |
+
+**Wewenang bukti yang diterapkan.** Untuk apa yang **seharusnya dibangun**, decision log menang atas PRD v`0.2` yang masih `DRAFT`. PRD sendiri menyatakan hal itu (bagian 1), dan beberapa isinya sudah tertinggal (G-50). Isian form V1 berstatus `CONFIRMED` karena pemilik memerintahkan isian tetap mengikuti V1, sedangkan perbaikan atas V1 yang hanya tertulis di PRD berstatus `PROPOSED` sampai ada keputusan. Untuk apa yang **sudah ada**, capability map bagian 20 yang dipakai. Baseline rujukan hanya dipakai untuk mendeteksi gap.
+
+### 20.2 Ringkasan untuk pembaca umum
+
+Hampir seluruh aturan Workspace PPRI sudah diputuskan pemilik dalam dua pass wawancara hari ini. Gate ini hanya menemukan **dua hal yang masih menahan**, dan keduanya hanya menahan bagian kecil:
+
+1. **Tarif visit dokter dan catatan aturan biaya bedah pada Estimasi Biaya.** Billing belum punya konsep tarif visit dokter rawat inap, dan belum punya pengaturan catatan cito, lembur, *standby*, maupun anestesi. Keputusannya milik Yasmina (`DEC-INP-020`). Bagian Estimasi lain, seperti tarif tindakan, kamar, baris manual, dan catatan biaya admin, boleh dirancang.
+2. **Pemilik privasi dan hukum belum ditunjuk.** Karena itu General Consent belum boleh disimpan dan tanda tangan digital di tablet belum boleh dibangun (`DEC-INP-003`, sudah ada sejak gate pertama). Cetakan General Consent tanpa simpan tetap boleh dirancang.
+
+Sembilan dari sebelas slice baru siap dirancang penuh. Beberapa usulan kecil tetap tercatat sebagai gap tidak memblokir, misalnya alasan cetak ulang gelang dan batas tiga baris kerabat pada Permintaan Privasi. Ada pula tiga gerbang produksi, misalnya verifikasi aturan gelang oleh tim keselamatan pasien, yang tidak menahan desain.
+
+### 20.3 Matriks 18 dimensi kelengkapan
+
+Kode isi sel: **C** = `CONFIRMED`; **P** = `PROPOSED`; **M** = `MISSING`; **X** = `CONFLICT`; **–** = tidak material untuk slice itu, dengan alasan di 20.4. Angka dalam kurung merujuk gap pada 20.5.
+
+| No | Dimensi | `S38` | `S39` | `S40` | `S41` | `S42` | `S43` | `S44` | `S45` | `S46` | `S47` | `S48` |
+|---:|---|---|---|---|---|---|---|---|---|---|---|---|
+| 01 | Tujuan | C | C | C | C | C | C | C | C | C | C | C |
+| 02 | Aktor | C | C | C | C | C | C | C | C | C | C | C |
+| 03 | Pemicu / prasyarat | C, P (G-30) | C | C | C | C | C | C | C | C | C | P (G-49) |
+| 04 | Alur utama | C | C | C | C | C | C | C | C | C | C | P (G-49) |
+| 05 | Alur alternatif / exception | C | C | C | C | C | C | C, P (G-43) | C, P (G-45) | C | C | M (G-49) |
+| 06 | Data minimum | C | C | C | C, P (G-36) | C, P (G-39) | C, P (G-40) | C, P (G-44) | C | C, M (G-47), P (G-48) | C | P (G-49) |
+| 07 | Aturan bisnis / validation | C | C | C | C | C | C | C | C | C, M (G-47) | C | P (G-49) |
+| 08 | Status / perubahan status | C | C | C | – | – | C | C | C | C | – | P (G-49) |
+| 09 | Peran / authorization | C, P (G-32) | C, P (G-32) | C | C | C | C, P (G-41) | C | C | C | C | M (G-49) |
+| 10 | Dependency antarmodul | C | C | C | C | C | C | C | C | C | C | C |
+| 11 | Integrasi internal / eksternal | C | C | – | C, M (G-37) | – | – | – | C | C, M (G-47) | – | P (G-49) |
+| 12 | Hasil akhir | C | C | C | C | C | C | C | C | C | C | P (G-49) |
+| 13 | Pembatalan / koreksi | – | C | C | C, P (G-33) | – | C | C | C | C | – | P (G-49) |
+| 14 | Audit / histori | – | C, M (G-35) | C | C | C | C | C | C | C | C | M (G-49) |
+| 15 | Notifikasi | C | P (G-34) | P (G-34) | – | – | M (G-42) | – | C, P (G-46) | – | – | – |
+| 16 | Dampak billing / charge | – | – | – | – | – | – | C | C | C, M (G-47) | – | – |
+| 17 | Dampak keselamatan klinis | – | – | – | C, P (G-38) | – | C, M (G-42) | – | – | – | – | – |
+| 18 | Pelaporan / traceability | C | C, M (G-35) | C | C | C | C | C | C | C | – | M (G-35) |
+
+Gap lintas slice G-50 (PRD tertinggal) dan G-51 (capability map belum memuat dua fakta baru) tidak dimasukkan ke sel, karena keduanya menyangkut dokumen bukti, bukan dimensi requirement.
+
+### 20.4 Temuan per slice
+
+#### `INP-S38` — Ruang kerja PPRI, header, dan kelengkapan
+
+Tombol "Workspace PPRI" tepat sesudah Workspace Dokter (`RWI-DEC-245`, brief pemilik), template empat wilayah Workspace Keperawatan (brief pemilik; `PPRI-CAP-03` siap pakai), header yang disusun server tanpa hak modul lain (`RWI-DEC-257`), status deposit hanya bagi pemegang `ViewAmount` (`RWI-DEC-258`), aturan dokumen wajib (`RWI-DEC-234`, `250`, `256`), peringatan di Detail Episode (`RWI-DEC-234`), dan hanya-baca pada episode `Closed`/`Cancelled` (`RWI-DEC-240` butir 7): `CONFIRMED`. Dimensi 13 dan 14 tidak material, karena ruang kerja hanya merangkum; pembatalan dan jejak audit melekat pada dokumen di `INP-S39`. Dimensi 16 tidak material karena ruang kerja tidak membuat tagihan. Dimensi 17 tidak material karena alergi pada header hanya dibaca dari sumber yang sudah ada. **Gap:** G-30, G-31, G-32, semuanya tidak memblokir.
+
+#### `INP-S39` — Fondasi dokumen admisi
+
+Siklus `Draft` → `AwaitingSignature` → `Completed`, dengan `Superseded` dan `Cancelled`, transisi terlarang, koreksi lewat versi, pembatalan supervisor dengan alasan minimal 10 karakter, tanpa hapus permanen, dan satu dokumen aktif per jenis per episode (`RWI-DEC-240`): `CONFIRMED`. Penanda tangan kertas (`RWI-DEC-230`), atestasi petugas (`RWI-DEC-237`), Kepala Ruangan khusus `SignAsHeadNurse` (`RWI-DEC-238`), satu akun satu slot (`RWI-DEC-239`), kop dan kode formulir dari pengaturan (`RWI-DEC-247`), kepemilikan `InPatientManagement` tanpa mesin keutuhan Rekam Medis (`RWI-DEC-228`, `229`), dan jejak setiap buat, ubah, kunci, tanda tangan, batal, serta cetak (`RWI-DEC-229`) juga `CONFIRMED`. Dimensi 16 dan 17 tidak material: fondasi tidak membuat tagihan, sedangkan salinan beku identitas pasien sudah diputuskan (`RWI-DEC-228`). **Gap:** G-32, G-33, G-34, G-35, tidak memblokir.
+
+**Catatan untuk desain (bukan gap bisnis).** Pola teknis yang sudah ada dan cocok ditiru dicatat di capability map `PPRI-CAP-42` s.d. `45`: registry `Inp` `ACTIVE`, konkurensi `RowVersion` dengan indeks unik bersaring, `Idempotency-Key`, dan salinan beku seperti `CliTransferHandover.SnapshotJson`.
+
+#### `INP-S40` — Serah Terima Pasien Baru
+
+Lima belas butir dan tiga sub-butir V1 dari master (brief pemilik), setiap butir wajib dipilih, butir Belum wajib berketerangan, nama butir dibekukan, saran sistem untuk butir 1, 4, 7, 9, dan 13 (`RWI-DEC-241`, `262`), tiga penanda tangan berbeda (`RWI-DEC-239`), dan Perawat penerima hanya setelah pasien menempati bed (`RWI-DEC-255`): `CONFIRMED`. Perluasan master butir administrasi beserta saringan jenis pada penutupan episode juga `CONFIRMED` (`RWI-DEC-241` butir 3), dengan gerbang MasterData `RWI-DEC-193`. Dimensi 11 tidak material, karena master butir adalah dependency internal dan tidak ada sistem luar. Dimensi 16 tidak material. Dimensi 17 tidak material, karena checklist ini administratif. Serah terima klinis tetap milik serah terima IGD (`INP-S09`) dan transfer (`INP-S31`); baseline `ID-INP-CAP-016` dipakai hanya untuk memastikan pihak penyerah, pihak penerima, dan konfirmasi penerimaan tercakup, dan ketiganya tercakup. **Gap:** G-34, tidak memblokir.
+
+**Catatan untuk desain (bukan gap bisnis).** `MstInpatientClearanceItem` memakai `SortOrder` presentasi generik, pola legacy yang dilarang untuk kode baru (`docs/engineering/BACKEND_ENGINEERING_CONTRACT.md:48`). Perluasan tabel ini berstatus `TOUCHED LEGACY`, sehingga desain perlu menetapkan apakah urutan butir serah terima memakai kolom yang ada atau field semantik baru.
+
+#### `INP-S41` — Gelang dan label identitas
+
+Jenis gelang dewasa atau bayi dengan batas umur yang dapat diatur, aturan sapaan dari umur, jenis kelamin, dan status nikah (`RWI-DEC-243`), "No. Kartu" hanya dari `CardNumberSnapshot` (`RWI-DEC-253`), QR berisi No. RM yang dirender ulang setiap cetak (`RWI-DEC-259`), dan log cetak (`RWI-DEC-240` butir 7, `RWI-DEC-228`): `CONFIRMED`. Baseline bagian 13 "kepastian identitas pasien" tercakup oleh aturan ini. Dimensi 08 tidak material karena gelang hanya punya log cetak, bukan status dokumen. Dimensi 15 dan 16 tidak material. **Gap:** G-33, G-36, G-37, G-38, tidak memblokir. G-38 menjadi gerbang produksi.
+
+#### `INP-S42` — Data Dasar Rawat Inap (IPD)
+
+Tata letak dan isian V1 (brief pemilik), sumber tiap isian (capability map `PPRI-CAP-24` s.d. `28`), isian tanpa sumber berupa garis kosong (`RWI-DEC-244`), diagnosis masuk dan dokter perujuk dari Surat Pengantar Rawat Inap atau dokter perujuk luar (`RWI-DEC-254`, didukung baseline `ID-INP-CAP-001`), dan tarif kamar hanya bagi pemegang `ViewAmount` (`RWI-DEC-258`): `CONFIRMED`. Dimensi 08 dan 13 tidak material, karena IPD hanya dicetak dan dicatat log cetaknya. Dimensi 11, 15, 16, dan 17 tidak material: tidak ada sistem luar, tidak ada pemberitahuan, tarif kamar hanya ditampilkan tanpa ditagih, dan nilai kepercayaan yang dicetak berasal dari `INP-S43`. **Gap:** G-39, tidak memblokir.
+
+#### `INP-S43` — Hak pasien: Permintaan Privasi dan Nilai Kepercayaan
+
+Isian V1 kedua formulir (brief pemilik), penyimpanan per baris (`RWI-DEC-228` dan `RWI-DEC-242`), Nilai Kepercayaan per episode dengan isian dari episode lalu dan 1–5 butir (`RWI-DEC-242`), Kepala Ruangan pada Permintaan Privasi (`RWI-DEC-238`), siklus dokumen (`RWI-DEC-240`), dan endpoint ringkasan hak pasien untuk modul lain (`RWI-DEC-228`): `CONFIRMED`. Dimensi 11 dan 16 tidak material. **Gap:** G-40 dan G-41 tidak memblokir. G-42 **tidak memblokir desain slice ini**, tetapi menjadi gerbang produksi keselamatan klinis.
+
+#### `INP-S44` — Selisih Biaya
+
+Berlaku hanya untuk penjamin utama asuransi atau perusahaan (`RWI-DEC-234`, didukung capability map `PPRI-CAP-34`), tetap wajib walaupun penjamin melarang selisih dibebankan ke pasien (`RWI-DEC-256`), isian deklarer V1 (brief pemilik), dan data pasien yang hanya dibaca dari pemiliknya lalu dibekukan (`RWI-DEC-228`): `CONFIRMED`. Baseline bagian 12 "selisih biaya/urun bayar" tercakup sebagai pernyataan kesediaan; penagihannya tetap milik Billing (`RWI-DEC-256`). Dimensi 11, 15, dan 17 tidak material. **Gap:** G-43, G-44, tidak memblokir. Penyimpanan nomor identitas deklarer termasuk gerbang produksi privasi (G-35).
+
+#### `INP-S45` — Pelunasan Deposit
+
+Angka dari `PolicyShortfallAmount` Billing, batas jatuh tempo dari interval kebijakan, pemotongan ke batas, dan hari kerja Senin–Jumat (`RWI-DEC-231`, `248`, `261`); angka dibekukan saat `Completed`; data wali dari relasi atau kontak darurat yang dipilih (`RWI-DEC-252`); cetak hanya bagi pemegang `ViewAmount` (`RWI-DEC-258`); peringatan jatuh tempo terlewati dari tanggal surat (`RWI-DEC-260`): `CONFIRMED`. Dimensi 17 tidak material. **Gap:** G-45, G-46, tidak memblokir.
+
+#### `INP-S46` — Estimasi Biaya Rekap
+
+Isian dan cetakan V1 (brief pemilik), tarif tindakan dan kamar dari layanan harga Billing yang dihitung server untuk pemegang `ViewAmount` (`RWI-DEC-232`, `258`), baris "Tarif belum tersedia" yang menahan penguncian, catatan biaya admin dari kebijakan Billing, dan kewajiban bila ada kasus OK yang tidak batal atau ditolak (`RWI-DEC-250`): `CONFIRMED`. Dimensi 17 tidak material. **Gap:** G-47 **memblokir** baris visit dokter dan catatan aturan biaya bedah saja. G-48 tidak memblokir.
+
+#### `INP-S47` — General Consent cetak saja selama *fail-closed*
+
+Dua cetakan tanpa simpan, yaitu Surat Persetujuan 12 butir dan Formulir GC V1 (`RWI-DEC-233`), tipe kamar dari isolasi episode atau penanda kamar dan bed (`RWI-DEC-251`), isi otomatis hanya dari relasi terstruktur (`RWI-DEC-252`), dan tombol Cetak Persetujuan yang diarahkan ke Workspace PPRI (`RWI-DEC-246`): `CONFIRMED`. Kop cetakan 12 butir yang menanam identitas rumah sakit harus diperbaiki agar sesuai `RWI-DEC-247` (capability map `PPRI-CAP-09`, status `Repair`); ini konsekuensi keputusan, bukan gap. Dimensi 08, 13, dan 18 tidak material, karena cetakan ini sengaja tidak meninggalkan rekaman apa pun. Dimensi 14 `CONFIRMED` dalam arti tidak ada jejak cetak, sesuai keputusan `RWI-DEC-233`. **Gap:** tidak ada.
+
+#### `INP-S48` — Tanda tangan digital pasien/keluarga
+
+Sisi produk sudah dipilih (`RWI-DEC-235`: digital sebagai mode utama dan kertas sebagai cadangan, mode diatur rumah sakit, berkas goresan ber-hash SHA-256), tetapi berstatus `draft`. Keabsahan hukumnya menunggu pemilik privasi/hukum (`RWI-DEC-230`, `RWI-OQ-116`). Seluruh dimensi material bergantung pada keputusan itu. **Gap:** G-49 **memblokir** seluruh slice, dan G-35 berlaku saat slice ini dibuka.
+
+### 20.5 Daftar gap dan dampaknya
+
+| Gap | Slice | Pernyataan | Status bukti | Dampak | Penjelasan dan usulan |
+|---|---|---|---|---|---|
+| G-30 | `S38` | Apakah Workspace PPRI terbuka untuk episode `Draft`, yaitu admisi yang belum dikonfirmasi | `PROPOSED` | `NON_BLOCKING_STANDARD` | PRD 5.1 menetapkan titik mulai `Admitted`/`DischargePending`, sedangkan `RWI-DEC-240` hanya mengatur `Closed`/`Cancelled`. Usulan: ruang kerja hanya terbuka sesudah admisi dikonfirmasi, dan episode `Draft` menampilkan "Admisi belum dikonfirmasi". Cetak persetujuan pada langkah 8 alur admisi tetap seperti hari ini |
+| G-31 | `S38` | Judul dan subjudul halaman (`RWI-OQ-121`) | `PROPOSED` | `NON_BLOCKING_STANDARD` | Usulan agent "Ruang Kerja PPRI" dan "Penerimaan Pasien Rawat Inap" dipakai sebagai `draft` sampai dijawab |
+| G-32 | `S38`, `S39` | Pemberian aksi `InpatientAdmissionDocument` (`Read`, `Create`, `Update`, `Sign`, `SignAsCro`, `SignAsNurse`, `SignAsHeadNurse`, `Print`, `Cancel`, `ViewAmount`) per peran | `PROPOSED` | `CONFIGURABLE_DEFAULT` | Aturannya `CONFIRMED` (hak menentukan tindakan, bukan nama peran). Pembagian per peran pada PRD bagian 14 hanyalah bawaan usulan, dan rumah sakit mengaturnya lewat Akses Role. Ketersediaan peran CRO dan supervisor di lingkungan target adalah gerbang implementasi (`RWI-OQ-124`) |
+| G-33 | `S39`, `S41` | Alasan cetak ulang pada episode aktif (rusak, hilang, data berubah, lainnya) dan penanda "Cetak ulang ke-*n*" | `PROPOSED` | `NON_BLOCKING_STANDARD` | `RWI-DEC-240` butir 7 hanya mewajibkan alasan pada episode tertutup. PRD `FR-RWA-053` dan `FR-RWA-127` mengusulkan alasan untuk setiap cetak ulang. Usulan: ikuti PRD, karena hanya menambah isian log cetak |
+| G-34 | `S39`, `S40` | Tanda tangan pihak lain tampil paling lambat 30 detik tanpa memuat ulang | `PROPOSED` | `NON_BLOCKING_STANDARD` | PRD `FR-RWA-035`. Usulan: penyegaran berkala memakai pola `use-inpatient-billing-status.js` (capability map `PPRI-CAP-52`). Hub SignalR khusus tidak dibutuhkan untuk MVP |
+| G-35 | `S39`, `S44`, `S48` | Masa simpan dokumen admisi, serta tinjauan privasi atas data pribadi keluarga (nomor identitas, alamat, telepon) | `MISSING` | `NON_BLOCKING_STANDARD` untuk desain; **gerbang produksi** | Tanpa hapus permanen sudah `CONFIRMED`, sehingga masa simpan tidak mengubah model data. Tinjauan privasi diwajibkan `RWI-DEC-230` butir 5 dan menunggu `RWI-OQ-116`. Baseline `ID-INP-REG-001` dan PRD bagian 16 mendukung topik ini sebagai `REFERENCE_ONLY` |
+| G-36 | `S41` | Kode singkat rumah sakit pada label diambil dari `MstHospitalSite.SiteCode` | `PROPOSED` | `CONFIGURABLE_DEFAULT` | Inferensi capability map `PPRI-CAP-20`. Usulan: `SiteCode`, atau isian pengaturan kecil bila isinya tidak cocok dicetak |
+| G-37 | `S41` | Ukuran kertas gelang dan label serta jenis printernya | `MISSING` | `CONFIGURABLE_DEFAULT` | V1 mencetak lewat peramban. Usulan: ukuran diatur lewat pengaturan cetak dan diuji dengan printer rumah sakit saat UAT. Tidak mengubah model data |
+| G-38 | `S41` | Verifikasi tim keselamatan pasien atas batas umur gelang bayi, aturan sapaan, dan isi QR | `PROPOSED` | `NON_BLOCKING_STANDARD` untuk desain; **gerbang produksi** | Keputusan produknya `approved` (`RWI-DEC-243`, `259`). Konfirmasi keselamatan pasien sudah dicatat pada Gate Sebelum Produksi decision log |
+| G-39 | `S42` | Tarif kamar yang dicetak bila ada lebih dari satu tarif kamar aktif untuk satu kelas | `PROPOSED` | `NON_BLOCKING_STANDARD` | Risiko dari capability map `PPRI-CAP-28`. Usulan: bila lebih dari satu, isian ditulis "lihat kasir" dan tidak memilih sendiri |
+| G-40 | `S43` | Batas jumlah baris kerabat dan permintaan khusus | `PROPOSED` | `NON_BLOCKING_STANDARD` | V1 menyediakan tiga baris. Usulan: maksimal tiga baris masing-masing, mengikuti V1. Penyimpanan per baris membuat batas ini mudah diubah |
+| G-41 | `S43` | Hak baca endpoint ringkasan hak pasien bagi modul lain | `PROPOSED` | `NON_BLOCKING_STANDARD` | PRD 13.1 mengusulkan `InpatientEpisode : Read`, karena isinya dibutuhkan klinisi untuk keselamatan. Konsumen di luar Workspace PPRI baru datang pada amandemen keperawatan dan dokter, sehingga pilihan ini dapat ditinjau saat itu. Masuk tinjauan privasi G-35 |
+| G-42 | `S43` | Nilai kepercayaan yang menolak tindakan tertentu, misalnya transfusi darah, belum tampil di Workspace Keperawatan dan Workspace Dokter pada MVP | `MISSING` | `NON_BLOCKING_STANDARD` untuk desain `S43`; **gerbang produksi keselamatan klinis** | Peringatan di header klinis ditunda (PRD bagian 8), dan isian `SD_BELIEFS` perawat terpisah (`RWI-OQ-123`). Pada MVP, informasi itu hanya tampil di Workspace PPRI dan IPD. Pemilik clinical governance harus menerima risiko ini, atau meminta amandemen keperawatan dan dokter sebelum produksi. Baseline bagian 13 mendukung topik ini sebagai `REFERENCE_ONLY` |
+| G-43 | `S44` | Penjamin utama berubah setelah Selisih Biaya `Completed`, misalnya dari asuransi menjadi tunai | `PROPOSED` | `NON_BLOCKING_STANDARD` | Usulan: dokumen tetap tersimpan apa adanya, dan kelengkapan dihitung ulang dari penjamin terkini. Bila berubah dari tunai menjadi asuransi, Selisih Biaya menjadi wajib sejak saat itu |
+| G-44 | `S44` | Isian deklarer yang wajib diisi | `PROPOSED` | `NON_BLOCKING_STANDARD` | PRD Lampiran A.9 mengusulkan Nama, Alamat, Tipe ID, No. ID, dan Tanggal. Usulan: ikuti PRD |
+| G-45 | `S45` | Billing tidak dapat dihubungi saat Pelunasan Deposit dibuka | `PROPOSED` | `NON_BLOCKING_STANDARD` | Usulan PRD bagian 9: angka tidak ditampilkan, simpan dinonaktifkan, dan ada tombol Coba Lagi. Sejalan dengan prinsip "data tidak tersedia, bukan nol" yang sudah dipakai daftar pantau deposit |
+| G-46 | `S45` | Pemberitahuan jatuh tempo kepada kasir di modul Billing | `PROPOSED` | `NON_BLOCKING_STANDARD` | Ditunda menurut PRD bagian 8. Pada MVP peringatan hanya tampil di Workspace PPRI dan Detail Episode (`RWI-DEC-260`) |
+| G-47 | `S46` | Tarif visit dokter rawat inap, serta sumber catatan cito +25%, lebih dari 4 jam +25% per jam, *standby* 20%, dan anestesi 50% | `MISSING` | **`BLOCKING`** — hanya baris visit dokter dan catatan aturan biaya bedah | `RWI-DEC-232` menetapkan sumbernya Billing, tetapi capability map 20.5 membuktikan konsep tarif visit dan keempat aturan itu tidak ada. Pilihan Billing mengubah kontrak integrasi dan angka yang dijelaskan kepada pasien. **`DEC-INP-020`** (`RWI-OQ-122`) |
+| G-48 | `S46` | Isian kepala estimasi (jenis tindakan, jadwal, dokter) diambil dari pemesanan bedah atau diisi petugas | `PROPOSED` | `NON_BLOCKING_STANDARD` | Usulan: terisi dari kasus OK aktif bila ada, dan boleh diubah atau diisi manual bila tidak ada |
+| G-49 | `S48`, `INP-S10` | Siapa pemilik privasi/hukum, dan apakah persetujuan umum boleh disimpan serta tanda tangan goresan di tablet boleh menjadi bukti | `PROPOSED` (`RWI-DEC-235`, `RWI-DEC-236` berstatus `draft`) | **`BLOCKING`** — `S48` seluruhnya dan bagian simpan `INP-S10` | Keputusan hukum dan privasi yang dikecualikan `RWI-DEC-006`. **`DEC-INP-003`** (dipertahankan, cakupan diperluas), alias `RWI-OQ-116` |
+| G-50 | Seluruh slice | PRD v`0.2` tertinggal dari decision log: label "Workspace PPRI", letak di `episode-rawat-inap`, tanpa mesin keutuhan Rekam Medis, General Consent *fail-closed*, sumber diagnosis IPD, nama aksi rupiah `ViewAmount`, dan data dirangkai server | `PROPOSED` | `NON_BLOCKING_STANDARD` | Bukan pertentangan, karena PRD menyatakan decision log yang berlaku. Desain wajib membaca decision log revision `36`; revisi PRD ke v`0.3` bersifat opsional |
+| G-51 | Seluruh slice | Capability map bagian 20 belum memuat Surat Pengantar Rawat Inap (`RWI-FACT-066`), dan nomor baris `InpAncillaryOrderAdapter.cs` bergeser (`RWI-FACT-065`) | `PROPOSED` | `NON_BLOCKING_STANDARD` | Kedua fakta sudah tercatat di decision log dan dibaca desain dari sana. Impact scan capability map bersifat opsional |
+
+**Pertentangan (`CONFLICT`).** Tidak ada pertentangan bisnis yang terbuka. Tiga pertentangan dari audit sudah diputuskan pada closure pass: tipe unit intensif (`RWI-DEC-251`), dua interval deposit (`RWI-DEC-260`), dan hak lihat harga (`RWI-DEC-258`). Perbedaan isi QR dengan kartu kiosk berada di modul lain dan dicatat sebagai `RWI-OQ-125`.
+
+### 20.6 Decision Log
+
+| Decision ID | Pertanyaan | Kemampuan terdampak | Bukti saat ini | Usulan baseline | Dampak | Pemilik | Status | Dampak implementasi / domain |
+|---|---|---|---|---|---|---|---|---|
+| **`DEC-INP-020`** | Bagaimana tarif visit dokter rawat inap ditetapkan, dan dari mana Estimasi Biaya membaca catatan cito +25%, tindakan lebih dari 4 jam +25% per jam, *standby* 20%, dan anestesi 50%? | `INP-S46` — baris visit dokter dan catatan aturan biaya bedah | `RWI-DEC-232` menetapkan sumbernya Billing. Capability map 20.5: tarif tindakan dan kamar dapat diperkirakan, biaya admin terbaca dari `MstAdministrationFeePolicy`, tetapi konsep tarif visit dan keempat aturan biaya bedah tidak ada. Alias `RWI-OQ-122` | Baseline bagian 12 melarang mengarang tarif dan aturan payer. Pilihan yang dapat diambil Billing: (a) Billing menambah konsep tarif visit dan aturan biaya bedah; (b) catatan disimpan sebagai teks pengaturan, bukan rumus, dan baris visit diisi manual; (c) tarif visit memakai tarif konsultasi per kelas | Kontrak integrasi Rawat Inap ↔ Billing dan angka yang dijelaskan kepada pasien | Yasmina, disampaikan lewat Muhammad Hamzah | `OPEN` | Baris visit dokter dan catatan aturan biaya bedah **berhenti**. Dokumen Estimasi, tarif tindakan dan kamar, baris manual, catatan biaya admin, dan aturan wajib **boleh jalan** |
+| **`DEC-INP-003`** (dipertahankan, cakupan diperluas 2026-10-07) | Pertanyaan asal: apakah pemilik privasi dan hukum menerima persetujuan umum yang tidak menahan admisi. **Ditambah:** siapa pemilik privasi/hukum untuk dokumen admisi; apakah persetujuan umum boleh disimpan sebagai satu rekaman `TrxPatientConsent` jenis `Admission` (`RWI-DEC-236`); dan apakah tanda tangan goresan di tablet sah sebagai bukti (`RWI-DEC-235`) | `INP-S10` (penyimpanan persetujuan umum), `INP-S48` (tanda tangan digital) | `RWI-DEC-035` dan `RWI-RULE-025` tetap `draft`; `RWI-DEC-230` memilih *fail-closed*; sisi produk `RWI-DEC-235` dan `236` sudah dipilih tetapi `draft`. Alias `RWI-OQ-116` | Baseline `ID-INP-CAP-002` menempatkan persetujuan sebagai prasyarat yang diverifikasi menurut kebijakan setempat; `ID-INP-REG-001` menempatkan dokumen rawat inap dalam konteks rekam medis elektronik. Keduanya `REFERENCE_ONLY` | Kewajiban hukum, perlindungan data pribadi, keabsahan bukti tanda tangan | Pemilik privasi/hukum yang ditunjuk Muhammad Hamzah | `OPEN` | Penyimpanan persetujuan umum dan tanda tangan digital **berhenti**. Cetakan General Consent tanpa simpan (`INP-S47`) dan seluruh dokumen admisi lain dengan tanda tangan kertas **boleh jalan** |
+
+Keduanya bergantung pada pemilik, sehingga **tidak dijawab di sini**. Penutupannya lewat `grill-me`: `DEC-INP-020` setelah jawaban Yasmina tersedia, dan `DEC-INP-003` setelah pemilik privasi ditunjuk.
+
+### 20.7 Contoh konkret untuk setiap blocker
+
+**`DEC-INP-020` — Estimasi apendektomi Tn. Budi.** Petugas admisi menyusun Estimasi Biaya: tarif apendektomi Rp 8.500.000 dan kamar kelas 2 tiga hari × Rp 750.000 terisi dari layanan harga. Baris "visit DPJP 3 hari" tidak punya sumber, sehingga tampil "Tarif belum tersedia" dan dokumen tidak bisa dikunci sampai petugas mengisi angka manual beserta alasannya. Bila Billing kelak memilih pilihan (a), baris itu terisi otomatis dari tarif visit. Bila memilih (b), baris itu tetap manual dan catatan cito dibaca dari teks pengaturan. Kedua pilihan menghasilkan kontrak integrasi yang berbeda, sehingga perancang tidak boleh menebaknya.
+
+**`DEC-INP-003` — persetujuan umum Ny. Rina.** Ny. Rina menandatangani persetujuan umum suaminya di kertas pukul 09.40. Hari ini sistem hanya mencetak, tanpa menyimpan apa pun (`RWI-DEC-233`). Bila pemilik privasi kelak mengizinkan penyimpanan, persetujuan itu menjadi satu rekaman `Admission` yang otomatis menandai butir daftar periksa penutupan (`RWI-DEC-236`). Bila tidak diizinkan, butir itu tetap ditandai manual. Pilihan ini mengubah apakah ada rekaman persetujuan di rekam medis dan apakah penutupan episode bisa tertahan karenanya, sehingga keputusan hukum dan privasinya tidak boleh diambil perancang.
+
+### 20.8 Gerbang implementasi dan gerbang produksi
+
+| Gerbang | Jenis | Isi | Pemilik |
+|---|---|---|---|
+| `RWI-OQ-124` | Implementasi | Peran CRO, supervisor admisi, dan pemegang `SignAsHeadNurse` tersedia di lingkungan target, dan aksi `InpatientAdmissionDocument` diberikan per peran (G-32) | Admin Akses Role |
+| `RWI-DEC-193` | Implementasi | Perluasan `MstInpatientClearanceItem` (jenis dan induk) dan `MstInpatientSetting` (kode formulir, kota, batas umur gelang bayi) disetujui tim MasterData | Seluruh tim MasterData |
+| QBE `TOUCHED LEGACY` | Implementasi | Perluasan tabel ber-`SortOrder` legacy mengikuti kontrak backend (`INP-S40`) | Pelaksana backend |
+| G-35 | Produksi | Masa simpan dokumen admisi dan tinjauan privasi data pribadi keluarga (`RWI-DEC-230` butir 5) | Pemilik privasi/hukum (`RWI-OQ-116`) |
+| G-38 | Produksi | Verifikasi aturan gelang, sapaan, dan isi QR | Tim keselamatan pasien |
+| G-42 | Produksi | Penerimaan risiko bahwa nilai kepercayaan belum tampil di ruang kerja klinis pada MVP, atau permintaan amandemen keperawatan dan dokter | Pemilik clinical governance |
+
+### 20.9 Kesiapan per slice
+
+| Slice | Kesiapan | Gelombang (PRD 20.1) | Yang boleh jalan | Yang berhenti | Decision ID |
+|---|---|---|---|---|---|
+| `INP-S38` Ruang kerja, header, kelengkapan | **`READY_FOR_DOMAIN_DESIGN`** | `RWA-MVP-1` | Seluruh slice | — | — |
+| `INP-S39` Fondasi dokumen admisi | **`READY_FOR_DOMAIN_DESIGN`** | `RWA-MVP-0` | Seluruh slice, termasuk mode kertas dan atestasi | — | — |
+| `INP-S40` Serah Terima Pasien Baru | **`READY_FOR_DOMAIN_DESIGN`** | `RWA-MVP-2` | Seluruh slice, bersama saringan jenis pada penutupan | — | — |
+| `INP-S41` Gelang dan label | **`READY_FOR_DOMAIN_DESIGN`** | `RWA-MVP-1` | Seluruh slice; produksi menunggu G-38 | — | — |
+| `INP-S42` IPD | **`READY_FOR_DOMAIN_DESIGN`** | `RWA-MVP-1` | Seluruh slice. Isian penerima informasi tetap kosong selama `DEC-INP-003` terbuka (`RWI-DEC-244`) | — | — |
+| `INP-S43` Privasi dan Nilai Kepercayaan | **`READY_FOR_DOMAIN_DESIGN`** | `RWA-MVP-2` | Seluruh slice; produksi menunggu G-42 | — | — |
+| `INP-S44` Selisih Biaya | **`READY_FOR_DOMAIN_DESIGN`** | `RWA-MVP-2` | Seluruh slice; produksi menunggu G-35 | — | — |
+| `INP-S45` Pelunasan Deposit | **`READY_FOR_DOMAIN_DESIGN`** | `RWA-MVP-2` (`RWI-DEC-231`) | Seluruh slice | — | — |
+| `INP-S46` Estimasi Biaya Rekap | **`PARTIALLY_READY`** | Sesudah `RWA-MVP-2`, setelah `DEC-INP-020` | Dokumen, tarif tindakan dan kamar, baris manual, catatan biaya admin, aturan wajib | Baris visit dokter, catatan aturan biaya bedah | `DEC-INP-020` |
+| `INP-S47` General Consent cetak saja | **`READY_FOR_DOMAIN_DESIGN`** | `RWA-MVP-1` (`RWI-DEC-246`) | Seluruh slice, termasuk perbaikan kop cetakan 12 butir | — | — |
+| `INP-S48` Tanda tangan digital | **`BUSINESS_DECISION_REQUIRED`** | Di luar gelombang | — | Seluruh slice | `DEC-INP-003` |
+| `INP-S10` Persetujuan umum tersimpan (slice lama) | **`BUSINESS_DECISION_REQUIRED`**, tidak berubah | Di luar gelombang | — | Penyimpanan persetujuan dan penandaan otomatis butir penutupan | `DEC-INP-003` |
+| **Workspace PPRI secara keseluruhan** | **`PARTIALLY_READY`** | — | Sembilan slice penuh dan satu slice sebagian | Satu slice dan dua bagian kecil | `DEC-INP-020`, `DEC-INP-003` |
+
+**Dependency antar-slice.** Seluruh slice dokumen (`S40` s.d. `S46`) memakai fondasi `S39`, sehingga desainnya harus menetapkan `S39` lebih dulu. Kelengkapan `S38` membaca status dokumen dari `S39` dan aturan wajib dari `S44` s.d. `S46`. Saran sistem pada `S40` membaca log cetak `S41` dan `S42`, status `S45` dan `S46`, serta Surat Pengantar Rawat Inap (`RWI-DEC-262`). IPD `S42` membaca dokumen `Completed` dari `S43`. `S48` bila kelak dibuka mengubah slot tanda tangan `S39` pada semua dokumen, bukan hanya satu slice.
+
+**Status modul Rawat Inap** tetap **`PARTIALLY_READY`**: selain dua Decision ID di atas, `INP-S09` (serah terima IGD) masih menunggu pemilik IGD, dan transfusi serta handover shift tetap `DEFERRED`.
+
+### 20.10 Apa yang boleh berjalan dan apa yang harus berhenti
+
+**Boleh berjalan:**
+
+1. `design-business-module` untuk amandemen `episode-rawat-inap` (usulan kontrak `0.11.0`, `RWI-DEC-227`) pada sembilan slice yang siap dan bagian siap `INP-S46`. Amandemen ditulis sebagai bagian tersendiri tanpa mengubah isi Finishing yang sudah `approved` (`RWI-DEC-227`). Desain membaca decision log revision `36` sebagai sumber utama, dan PRD v`0.2` hanya sebagai pelengkap (G-50).
+2. `02-module-map.md` diperbarui oleh desain untuk tabel kepemilikan data, layar anak `FE-INP-04`, dan pemetaan `CAP-RWA-*` ke `episode-rawat-inap`.
+3. Pertanyaan `DEC-INP-020` kepada Yasmina, paralel dengan desain.
+
+**Harus berhenti:**
+
+1. Desain dan task untuk baris visit dokter dan catatan aturan biaya bedah, sampai `DEC-INP-020` tertutup.
+2. Desain dan task untuk penyimpanan persetujuan umum (`INP-S10`) dan tanda tangan digital (`INP-S48`), sampai `DEC-INP-003` tertutup.
+3. Memakai PRD v`0.2` sebagai sumber utama pada butir yang sudah diputuskan lain oleh decision log (G-50).
+4. Implementasi apa pun sebelum amandemen blueprint disetujui dan task diturunkan. Wewenang tulis, migration, dan eksekusi database tetap terpisah per task.
+
+### 20.11 Handoff
+
+```yaml
+gate_revision: 1.11
+blueprint_id: RWI-BP-001
+assessed_scope: PRD-RWI-ADMISI-001 v0.2 — CAP-RWA-01..17 (CAP-RWA-04 dibatalkan RWI-DEC-226; CAP-RWA-10 dan CAP-RWA-12 tetap ditunda)
+sub_module: episode-rawat-inap (RWI-DEC-227); tabel milik InPatientManagement (RWI-DEC-228)
+slices: INP-S38..INP-S48; penyimpanan persetujuan umum tetap slice lama INP-S10
+evidence:
+  decision_log: 00-interview-decisions.md revision 36, sha256 618f684b707fdb60f88d194623a265844faaf61fb02061e11eb61a4104f746df
+  prd: 06-prd-to-mvp-workspace-admisi-rawat-inap.md v0.2 DRAFT, sha256 f1fd336f562d6936629d50f8f849fa7767e2dbea2b24678da9596de60dcc1192
+  capability_map: 01-existing-capability-map.md revision 1.7 bagian 20, sha256 e8e454cbaed3f0bfd39793bbb4b82860ed9eb921b9154c24554b2bf06fb6e3da
+  backend_sha: 671191eb (audit); HEAD fdf85a07 (RWI-FACT-065)
+  frontend_sha: 27889662a (audit dan HEAD)
+  baseline_reference: indonesia-hospital-domain-reference inpatient.md — ID-INP-CAP-001, ID-INP-CAP-002, ID-INP-CAP-016, ID-INP-REG-001, bagian 10, 12, 13, 14 (REFERENCE_ONLY)
+readiness:
+  READY_FOR_DOMAIN_DESIGN: [INP-S38, INP-S39, INP-S40, INP-S41, INP-S42, INP-S43, INP-S44, INP-S45, INP-S47]
+  PARTIALLY_READY:
+    INP-S46: {stop: ["baris visit dokter", "catatan aturan biaya bedah"], decision: DEC-INP-020}
+  BUSINESS_DECISION_REQUIRED:
+    INP-S48: {decision: DEC-INP-003}
+    INP-S10: {decision: DEC-INP-003, note: "tidak berubah sejak revision 1.0; cakupan DEC-INP-003 diperluas"}
+open_decisions:
+  - DEC-INP-020: tarif visit dokter dan catatan aturan biaya bedah — owner Yasmina (alias RWI-OQ-122)
+  - DEC-INP-003: pemilik privasi/hukum, penyimpanan persetujuan umum, tanda tangan digital — owner ditunjuk Muhammad Hamzah (alias RWI-OQ-116)
+non_blocking: [G-30, G-31, G-32, G-33, G-34, G-36, G-37, G-39, G-40, G-41, G-43, G-44, G-45, G-46, G-48, G-50, G-51]
+implementation_gate: [RWI-OQ-124 role-permission, RWI-DEC-193 MasterData, QBE TOUCHED LEGACY SortOrder]
+production_gate: [G-35 masa simpan dan privasi, G-38 keselamatan pasien gelang, G-42 clinical governance nilai kepercayaan]
+domain_architecture: opsional; tidak disarankan — seluruh tabel baru milik InPatientManagement (RWI-DEC-228), data modul lain dibaca lewat service pemilik (RWI-DEC-257), dan tidak ada ownership lintas modul baru selain perluasan MasterData
+next_skill:
+  - design-business-module untuk amandemen episode-rawat-inap 0.11.0 pada slice yang siap
+  - grill-me singkat untuk DEC-INP-020 setelah jawaban Yasmina, dan untuk DEC-INP-003 setelah pemilik privasi ditunjuk
+```
