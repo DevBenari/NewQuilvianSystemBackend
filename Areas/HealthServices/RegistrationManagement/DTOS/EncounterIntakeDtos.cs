@@ -61,6 +61,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         /// <summary>Penunjuk dokter perujuk; wajib berpraktik pada instansi di atas.</summary>
         public Guid? ReferralDoctorId { get; set; }
 
+        /// <summary>
+        /// <c>DEC-FRJ-001</c>: wajibkan instansi mitra layak (aktif, mitra, perjanjian berlaku hari
+        /// ini). Diisi pemanggil dari alur Rawat Jalan; bawaan <c>false</c> menjaga perilaku lama.
+        /// </summary>
+        public bool RequirePartnerEligibility { get; set; }
+
         [MaxLength(500)]
         public string? Notes { get; set; }
     }

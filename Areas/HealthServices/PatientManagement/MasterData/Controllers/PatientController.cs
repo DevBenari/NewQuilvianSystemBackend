@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Enums;
@@ -57,6 +58,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         private const string CodePrefix = "PAT-RSMMC-";
         private const int CodeNumberLength = 5;
         private const string PatientQrCodeFolderName = "patient-qrcodes";
+        private const string PatientQrCodeFileName = "qrcode.png";
         private const string DefaultPublicRequestPath = "/uploads";
         private const string PatientPhotoFolderName = "patient-photos";
 
@@ -1043,6 +1045,91 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
+        /// <summary>
+        /// Endpoint admin sementara, khusus environment Staging, untuk memindahkan MRN 715 pasien
+        /// Pilot V1 RSMMC ke rencana MRN kanonik beserta QR barunya (`BE-PAT-MIG-001`).
+        /// </summary>
+        /// <remarks>
+        /// <c>dryRun</c> yang tidak dikirim berarti simulasi. Seluruh aturan berada di
+        /// <see cref="RsmmcPilotMrnReconciliationService"/>; controller hanya menyediakan aktor dan
+        /// fungsi format QR yang sama dengan pembuatan pasien.
+        /// </remarks>
+        [HttpPost("admin/migration/rsmmc-pilot-mrn/reconcile")]
+        [ProducesResponseType(typeof(ApiResponse<RsmmcPilotMrnReconcileResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction(
+            "Update",
+            "Reconcile RSMMC Pilot MRN",
+            Description = "Memindahkan MRN pasien Pilot RSMMC ke rencana MRN kanonik (khusus Staging)",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
+        [AccessPermission("Patient", "Update")]
+        public async Task<IActionResult> ReconcileRsmmcPilotMrn(
+            [FromBody] RsmmcPilotMrnReconcileRequest request,
+            [FromServices] RsmmcPilotMrnReconciliationService reconciliationService,
+            CancellationToken cancellationToken)
+        {
+            var result = await reconciliationService.ReconcileAsync(
+                request,
+                GetCurrentUserId(),
+                CreateRsmmcPilotQrArtifactStore(),
+                HttpContext.TraceIdentifier,
+                cancellationToken
+            );
+
+            return result.Outcome switch
+            {
+                RsmmcPilotMrnReconcileOutcome.Completed => Ok(ApiResponse<RsmmcPilotMrnReconcileResponse>.Ok(
+                    result.Data,
+                    result.Message
+                )),
+                RsmmcPilotMrnReconcileOutcome.EnvironmentRejected => StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status403Forbidden,
+                        result.Message,
+                        new { code = result.ErrorCode }
+                    )
+                ),
+                RsmmcPilotMrnReconcileOutcome.GateRejected => StatusCode(
+                    StatusCodes.Status409Conflict,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        result.Message,
+                        new { code = result.ErrorCode, gates = result.Data?.Gates }
+                    )
+                ),
+                _ => BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    result.Message,
+                    new { code = result.ErrorCode }
+                ))
+            };
+        }
+
+        // Memakai ulang fungsi format QR pembuatan pasien. Folder penyimpanan baru diminta saat QR
+        // benar-benar akan ditulis, karena GetFileStoragePaths membuat folder.
+        private RsmmcPilotQrArtifactStore CreateRsmmcPilotQrArtifactStore()
+        {
+            return new RsmmcPilotQrArtifactStore(
+                new RsmmcPilotQrArtifactLayout(
+                    GetPublicRequestPath(),
+                    PatientQrCodeFolderName,
+                    PatientQrCodeFileName
+                ),
+                () => (GetFileStoragePaths().RootPath, ResolveQrLogoPath()),
+                new RsmmcPilotQrArtifactFormat(
+                    SanitizePathSegment,
+                    BuildPatientQrPayload,
+                    RenderQrCodePngBytes,
+                    CombineUrlPath
+                )
+            );
+        }
+
         private (string FilePath, string PhysicalPath) SavePatientQrCodeFile(
      string medicalRecordNumber,
      string? traceId = null)
@@ -1100,7 +1187,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 step = "EnsureQrDirectoryWritable";
                 EnsureDirectoryWritable(absoluteFolder);
 
-                var fileName = "qrcode.png";
+                var fileName = PatientQrCodeFileName;
                 physicalPath = Path.Combine(absoluteFolder, fileName);
 
                 step = "ResolveQrLogoPath";
@@ -1132,7 +1219,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 );
 
                 step = "GenerateQrCodePngBytes";
-                var qrPngBytes = GenerateQrCodePngBytes(
+                var qrPngBytes = RenderQrCodePngBytes(
                     qrPayload,
                     logoPath,
                     traceId
@@ -1383,22 +1470,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 : null;
         }
 
+        // BE-RWI-187: isi QR dibentuk PatientQrPayloadBuilder supaya Workspace PPRI mencetak isi
+        // yang sama persis tanpa menyalin aturan ini. Perilaku endpoint pasien tidak berubah.
         private static string BuildPatientQrPayload(string medicalRecordNumber)
-        {
-            if (string.IsNullOrWhiteSpace(medicalRecordNumber))
-            {
-                throw new InvalidOperationException("Nomor rekam medis tidak tersedia untuk payload QR.");
-            }
-
-            var rawNumber = NormalizeMedicalRecordNumberToRawDigits(medicalRecordNumber);
-
-            if (!string.IsNullOrWhiteSpace(rawNumber))
-            {
-                return FormatMedicalRecordNumber(rawNumber);
-            }
-
-            return medicalRecordNumber.Trim();
-        }
+            => PatientQrPayloadBuilder.Build(medicalRecordNumber);
 
         private async Task<string> GenerateMedicalRecordNumberAsync()
         {
@@ -1433,7 +1508,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             return FormatMedicalRecordNumber(rawNumber);
         }
 
-        private static byte[] GenerateQrCodePngBytes(
+        private static byte[] RenderQrCodePngBytes(
     string payload,
     string? logoPath,
     string? traceId = null)
@@ -1604,40 +1679,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         private static string? NormalizeMedicalRecordNumberToRawDigits(string? medicalRecordNumber)
-        {
-            if (string.IsNullOrWhiteSpace(medicalRecordNumber))
-            {
-                return null;
-            }
-
-            var digits = new string(medicalRecordNumber.Where(char.IsDigit).ToArray());
-
-            return string.IsNullOrWhiteSpace(digits)
-                ? null
-                : digits;
-        }
+            => PatientQrPayloadBuilder.NormalizeToRawDigits(medicalRecordNumber);
 
         private static string FormatMedicalRecordNumber(string rawNumber)
-        {
-            if (string.IsNullOrWhiteSpace(rawNumber))
-            {
-                return rawNumber;
-            }
-
-            var digits = new string(rawNumber.Where(char.IsDigit).ToArray());
-
-            if (digits.Length == 8)
-            {
-                return $"{digits[..2]}-{digits.Substring(2, 2)}-{digits.Substring(4, 2)}-{digits.Substring(6, 2)}";
-            }
-
-            if (digits.Length == 6)
-            {
-                return $"{digits[..2]}-{digits.Substring(2, 2)}-{digits.Substring(4, 2)}";
-            }
-
-            return rawNumber;
-        }
+            => PatientQrPayloadBuilder.FormatMedicalRecordNumber(rawNumber);
 
         private string? ResolveQrLogoPath()
         {
@@ -1763,14 +1808,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         private (string RootPath, string PublicRequestPath) GetFileStoragePaths()
         {
-            var publicRequestPath = _configuration["FileStorage:PublicRequestPath"] ?? DefaultPublicRequestPath;
-
-            if (!publicRequestPath.StartsWith('/'))
-            {
-                publicRequestPath = "/" + publicRequestPath;
-            }
-
-            publicRequestPath = publicRequestPath.TrimEnd('/');
+            var publicRequestPath = GetPublicRequestPath();
 
             var configuredRoot = _configuration["FileStorage:UploadRootPath"];
 
@@ -1791,6 +1829,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             Directory.CreateDirectory(rootPath);
 
             return (rootPath, publicRequestPath);
+        }
+
+        // Dipisahkan dari GetFileStoragePaths supaya path publik dapat dihitung tanpa membuat
+        // folder penyimpanan, misalnya oleh simulasi rekonsiliasi MRN Pilot RSMMC.
+        private string GetPublicRequestPath()
+        {
+            var publicRequestPath = _configuration["FileStorage:PublicRequestPath"] ?? DefaultPublicRequestPath;
+
+            if (!publicRequestPath.StartsWith('/'))
+            {
+                publicRequestPath = "/" + publicRequestPath;
+            }
+
+            return publicRequestPath.TrimEnd('/');
         }
 
         private static string CombineUrlPath(params string[] segments)

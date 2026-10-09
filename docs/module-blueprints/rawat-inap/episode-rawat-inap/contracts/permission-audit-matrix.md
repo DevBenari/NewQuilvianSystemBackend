@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | **`0.9.0`** — bagian 8, `draft` |
-| `last_changed_in` | **`0.9.0`** — `GUARD-INP-09`, `10`; nol butir baru. Sebelumnya `0.8.0` |
+| `contract_version` | **`0.11.0`** — bagian 10 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 9, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 8 |
+| `last_changed_in` | **`0.11.0`** — resource `InpatientAdmissionDocument` sepuluh aksi, `GUARD-RWA-01` s.d. `07`. Sebelumnya `0.10.0` — bagian 9; `0.9.0` — `GUARD-INP-09`, `10`; `0.8.0` |
 | Status | **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006`; pemilik keamanan/privasi **belum ditunjuk** |
 | `input_revision` | `00-interview-decisions.md` revision `15`; `contracts/api-contract.md` revision `0.6.0` |
@@ -470,3 +470,84 @@ Penjaga di luar permission: penerima ≠ pengirim (`VAL-RWF-75`, `84`, `91`) dan
 | Berkas ekspor laporan transfer | Sensitif (identitas pasien) | Tidak disimpan di server; dibuat saat diminta |
 
 **Penyelarasan decision log revision `31` ★ 2 Oktober 2026.** Tidak ada permission baru. Butir menu ke-10 "Laporan Rawat Inap" (`RWI-DEC-214`, `215`) tampil bila pengguna memegang salah satu permission laporan rawat inap — hari ini hanya `InpatientReport : ReadRoomTransfer`. Pemberian `OperatingRoomHandover : Receive` tidak disalin otomatis dari `Update` disahkan `RWI-DEC-220` butir 3.
+
+---
+
+## 10. Perubahan pada `contract_version` `0.11.0` — Workspace PPRI ★ 7 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `0.11.0` |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`) |
+| Prinsip | Hak akses ditentukan **permission**, bukan teks nama peran (kelemahan V1 nomor 13, `RWI-DEC-238`). Butir registry lahir dari atribut endpoint dan didaftarkan `AccessMenuSeeder` saat aplikasi dinyalakan; aksi kustom dikelompokkan lewat `[AccessAction(..., AccessType = ...)]` seperti `InpatientEpisode : SetIsolation` (`InpatientEpisodeController.cs:341-342`) |
+| Pemilik keamanan/privasi | **Belum ditunjuk** (`RWI-OQ-116`); masa simpan dan tinjauan data pribadi keluarga menjadi gerbang produksi G-35 |
+
+Pemetaan endpoint ke hak akses hanya ada di `contracts/api-contract.md` 12.2. String atribut dihitung dari kolom itu: `[AccessPermission("InpatientAdmissionDocument", "<Aksi>")]`. Logger mengikuti konvensi project: `GET` tidak dicatat, selain `GET` dicatat.
+
+### 10.1 Butir hak akses baru
+
+| Butir | `AccessType` | Arti | Pemegang yang dimaksud (bawaan usulan) |
+|---|---|---|---|
+| `InpatientAdmissionDocument : Read` | `Read` | Melihat tombol "Workspace PPRI", membuka ruang kerja, membaca dokumen tanpa rupiah, membaca kop | Petugas admisi, CRO, perawat ruangan, kepala ruangan, kasir, supervisor admisi |
+| `InpatientAdmissionDocument : ViewAmount` | `Read` | Rupiah di header, Pelunasan Deposit, IPD, Estimasi; mencetak dokumen berupiah (`RWI-DEC-258`) | Petugas admisi, kasir, supervisor admisi |
+| `InpatientAdmissionDocument : Create` | `Create` | Membuat konsep | Petugas admisi, supervisor admisi |
+| `InpatientAdmissionDocument : Update` | `Update` | Mengubah, mengunci, membuka kunci, versi koreksi, membuang konsep sendiri, penanda rencana tindakan | Petugas admisi, supervisor admisi |
+| `InpatientAdmissionDocument : Sign` | `Update` | Mencatat tanda tangan kertas pasien/keluarga; atestasi slot Admission / Petugas PPRI | Petugas admisi, supervisor admisi |
+| `InpatientAdmissionDocument : SignAsCro` | `Update` | Atestasi slot CRO | CRO |
+| `InpatientAdmissionDocument : SignAsNurse` | `Update` | Atestasi slot Perawat penerima | Perawat ruangan, kepala ruangan |
+| `InpatientAdmissionDocument : SignAsHeadNurse` | `Update` | Atestasi slot Kepala Ruangan; boleh diberikan kepada wakil yang ditunjuk rumah sakit (`RWI-DEC-238`) | Kepala ruangan, penanggung jawab shift yang ditunjuk |
+| `InpatientAdmissionDocument : Print` | `Read` | Mencetak dan mencatat cetak | Seluruh pemegang `Read` di atas |
+| `InpatientAdmissionDocument : Cancel` | `Update` | Membatalkan dokumen beralasan | Supervisor admisi |
+
+Butir yang sudah ada dan **berubah pemakaiannya**: tombol "Cetak Persetujuan" di Detail Episode sejak `RWA-MVP-1` dijaga `InpatientAdmissionDocument : Read`, bukan lagi `InpatientEpisode : Read` + `PatientEncounter : Read` (`RWI-DEC-246`, `RWI-FACT-064`). Pengguna Workspace PPRI **tidak** perlu diberi `Patient : Read`, `PatientEncounter : Read`, `PatientEmergencyContact : Read`, `PatientRelationship : Read`, `PatientAllergy : Read`, `BillingDeposit : Read`, `HospitalSite : Read`, maupun `DoctorCertificate : Read` (`RWI-DEC-257`, `RWI-AC-378`).
+
+Pemberian per peran tetap wewenang rumah sakit lewat Akses Role. Keberadaan peran CRO, supervisor admisi, dan pemegang `SignAsHeadNurse` di lingkungan target adalah gerbang implementasi `RWI-OQ-124`.
+
+### 10.2 Pengecualian dari turunan bawaan
+
+| Endpoint | Pengecualian | Sebab |
+|---|---|---|
+| `GET …/admission-workspace/patient-rights` | Dijaga `InpatientEpisode : Read`, bukan resource `InpatientAdmissionDocument`, walaupun tinggal di controller yang sama | Ringkasan dibutuhkan klinisi untuk keselamatan (G-41); ditinjau ulang saat amandemen keperawatan dan dokter |
+| `GET …/documents/{documentId}/amount-print` | Attribute `ViewAmount`, **ditambah** pemeriksaan `Print` di service lewat `AccessPermissionService.HasAccessAsync` | Satu method hanya boleh satu `[AccessPermission]`; preseden `InpAncillaryOrderAdapter.cs:46` |
+| `POST …/print-logs` | Dicatat logger walaupun hanya mencatat cetak | Konvensi: selain `GET` dicatat |
+
+### 10.3 Kewenangan yang tidak dapat dijaga mesin hak akses
+
+| ID | Penjaga di tingkat aturan bisnis | Yang **tidak** dijaganya | Risiko yang diterima |
+|---|---|---|---|
+| `GUARD-RWA-01` | Satu akun satu slot petugas pada dokumen yang sama (`INV-RWA-04`, unique index) | Dua orang yang meminjam akun satu sama lain | Diatur kebijakan akun rumah sakit |
+| `GUARD-RWA-02` | Slot Perawat penerima hanya bila pasien menempati bed aktif (`INV-RWA-11`) | Apakah perawat itu bertugas di unit pasien — tidak ada data keanggotaan perawat per unit (`RWI-DEC-255` butir 2, `RWI-FACT-048`) | Perawat unit lain yang memegang `SignAsNurse` dapat menandatangani |
+| `GUARD-RWA-03` | Konsep hanya dibuang pembuatnya | — | — |
+| `GUARD-RWA-04` | Penulisan hanya pada episode `Admitted`/`DischargePending` (`InpAdmissionWriteGuard`) | — | — |
+| `GUARD-RWA-05` | Slot yang ditandatangani harus slot wajib jenis dokumen | — | — |
+| `GUARD-RWA-06` | Tanda tangan kertas dicatat petugas pemegang `Sign` dengan nama, hubungan, dan waktu | Kebenaran goresan di kertas; sistem tidak melihat lembarnya | Lembar disimpan di berkas rekam medis (`RWI-DEC-230`) |
+| `GUARD-RWA-07` | Server menolak walaupun tombol tersembunyi (`NFR-RWA-07`) | `usePermission` di layar sengaja "boleh" selama daftar hak belum termuat (`use-permission.jsx:17-27`), sehingga tombol bisa tampil sekejap | Server tetap `403` |
+
+### 10.4 Audit — kejadian yang wajib meninggalkan jejak tahan lama
+
+| Kejadian | Disimpan di | Isi |
+|---|---|---|
+| Buat konsep | `InpAdmissionDocument` (`CreateBy`, `CreateDateTime`) | Pembuat, waktu |
+| Ubah konsep | `UpdateBy`, `UpdateDateTime` + logger aplikasi | Pengubah terakhir; setiap perubahan tercatat logger |
+| Kunci | `LockedAt`, `LockedByUserId`, `SnapshotJson` | Pengunci, waktu, salinan beku |
+| Buka kunci | Logger aplikasi; kolom kunci dikosongkan | Pelaku, waktu |
+| Tanda tangan | `InpAdmissionDocumentSignature` | Slot, cara, nama, jabatan atau hubungan, waktu, akun penanda tangan atau pemverifikasi |
+| Selesai | `CompletedAt` | Waktu |
+| Versi koreksi | Versi lama `SupersededAt`; versi baru `PreviousVersionId`, `CorrectionReason`, `CreateBy` | Alasan, pelaku, waktu; isi versi lama utuh |
+| Buang konsep, batalkan | `CancelledAt`, `CancelledByUserId`, `CancelledReason` | Alasan, pelaku, waktu |
+| Cetak dan cetak ulang | `InpAdmissionPrintLog` | Jenis, status dokumen saat dicetak, jumlah salinan, alasan, pencetak, waktu |
+| Penanda rencana tindakan | `InpAdmissionProcedurePlanMark` | Pemasang dan pencabut beserta waktu |
+
+Tidak ada hapus permanen (`INV-RWA-03`). Riwayat di tab "Riwayat" layar membaca baris-baris ini, bukan logger.
+
+### 10.5 Kolom sensitif dan masa simpan
+
+| Data | Kolom | Aturan |
+|---|---|---|
+| Identitas dan kontak keluarga | `InpAdmissionDocumentParty.FullName`, `Address`, `BirthDate`, `Occupation`, `IdentityNumber`, `MobilePhone`, `OfficePhone`; `InpAdmissionDocumentSignature.SignerName` | Tidak masuk logger; nomor identitas disamarkan di daftar (`3275•••••••••001`); contoh dokumen memakai data samaran |
+| Keyakinan dan permintaan pribadi | `InpAdmissionBeliefItem.Text`, `InpAdmissionPrivacyEntry.Text`, `InpAdmissionDocument.Note` | Tidak masuk logger; ringkasan hak pasien hanya untuk pemegang `InpatientEpisode : Read` |
+| Angka keuangan pribadi | `InpAdmissionDepositStatement.*Amount`, `InpAdmissionCostEstimateLine.UnitPrice` | Hanya lewat endpoint `ViewAmount` |
+| Salinan beku | `InpAdmissionDocument.SnapshotJson` | Tidak pernah dikirim utuh ke layar; layar menerima isian yang sudah dipetakan |
+| Alasan | `CorrectionReason`, `CancelledReason`, `ReprintNote` | Tidak masuk logger |
+
+Payload logger hanya `EntityId`, controller, aksi, dan status. **Masa simpan** dokumen admisi belum ditetapkan; ia menjadi gerbang produksi G-35 bersama tinjauan privasi data keluarga (`RWI-DEC-230` butir 5), menunggu pemilik privasi/hukum (`RWI-OQ-116`). Karena tidak ada hapus permanen, keputusan masa simpan tidak mengubah model data.

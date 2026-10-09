@@ -186,7 +186,7 @@ public sealed class CliEquipmentUsageService(ApplicationDbContext db, NursingEpi
     private static NursingResult<EquipmentUsageResponse> Fail(int status, string message, string? code = null) => NursingResult<EquipmentUsageResponse>.Fail(status, message, code);
     private async Task<EquipmentUsageResponse> MapAsync(CliEquipmentUsage row, CancellationToken ct)
     {
-        return new() { Id = row.Id, EquipmentName = await db.MstMedicalEquipments.Where(x => x.Id == row.MedicalEquipmentId).Select(x => x.EquipmentName).FirstOrDefaultAsync(ct) ?? "",
+        return new() { Id = row.Id, MedicalEquipmentId = row.MedicalEquipmentId, EquipmentName = await db.MstMedicalEquipments.Where(x => x.Id == row.MedicalEquipmentId).Select(x => x.EquipmentName).FirstOrDefaultAsync(ct) ?? "",
             ResponsibleDoctorName = await db.Set<MstDoctor>().Where(x => x.Id == row.ResponsibleDoctorId).Select(x => x.FullName).FirstOrDefaultAsync(ct),
             PerformedByName = await db.Users.Where(x => x.Id == row.PerformedByUserId).Select(x => x.DisplayName).FirstOrDefaultAsync(ct),
             ChargeUnit = row.ChargeUnitSnapshot, StartedAt = row.StartedAt, EndedAt = row.EndedAt, Quantity = row.Quantity, BilledUnits = row.BilledUnits,

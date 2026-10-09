@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -77,6 +78,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ShowPatientName = device.ShowPatientName,
                 ShowDoctorName = device.ShowDoctorName,
                 ShowClinicName = device.ShowClinicName,
+                QueueAudienceMode = device.QueueAudienceMode,
                 RefreshIntervalSeconds = device.RefreshIntervalSeconds,
                 ServerDateTime = DateTime.UtcNow
             };
@@ -94,7 +96,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             if (device == null) return DisplayDeviceNotFound();
 
             var clinicIds = await GetClinicIdsByClusterIdAsync(device.NurseStationClusterId);
-            var query = BuildDisplayQueueQuery(queueDate, clinicIds, device.ServiceUnitId);
+            var query = BuildDisplayQueueQuery(queueDate, clinicIds, device);
 
             var result = new QueueDisplayRuntimeSummaryResponse
             {
@@ -126,7 +128,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             take = take < 1 ? 20 : Math.Min(take, 100);
 
             var clinicIds = await GetClinicIdsByClusterIdAsync(device.NurseStationClusterId);
-            var query = BuildDisplayQueueQuery(queueDate, clinicIds, device.ServiceUnitId);
+            var query = BuildDisplayQueueQuery(queueDate, clinicIds, device);
 
             if (queueStatus.HasValue)
             {
@@ -177,7 +179,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             if (device == null) return DisplayDeviceNotFound();
 
             var clinicIds = await GetClinicIdsByClusterIdAsync(device.NurseStationClusterId);
-            var query = BuildDisplayQueueQuery(queueDate, clinicIds, device.ServiceUnitId)
+            var query = BuildDisplayQueueQuery(queueDate, clinicIds, device)
                 .Where(x => x.QueueStatus == QueueStatus.CalledByNurse || x.QueueStatus == QueueStatus.CalledByDoctor);
 
             var entity = await query
@@ -227,10 +229,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return Ok(ApiResponse<QueueDisplayRuntimeCalledResponse>.Ok(result, "Data panggilan antrean terakhir berhasil diambil."));
         }
 
-        private IQueryable<TrxQueue> BuildDisplayQueueQuery(DateTime? queueDate, List<Guid> clinicIds, Guid? serviceUnitId)
+        private IQueryable<RegQueue> BuildDisplayQueueQuery(DateTime? queueDate, List<Guid> clinicIds, MstQueueDisplayDevice device)
         {
+            var serviceUnitId = device.ServiceUnitId;
             var selectedDate = AppDateTimeHelper.ResolveOperationalDate(queueDate);
-            var query = _dbContext.Set<TrxQueue>()
+            var query = _dbContext.Set<RegQueue>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive && x.QueueDate.Date == selectedDate && x.ClinicId.HasValue && clinicIds.Contains(x.ClinicId.Value));
 
@@ -238,6 +241,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             {
                 query = query.Where(x => x.ServiceUnitId == serviceUnitId.Value);
             }
+
+            // RJ-DOC-DEC-058: layar Regular/Member disaring di backend menurut snapshot antrean.
+            query = device.QueueAudienceMode switch
+            {
+                QueueDisplayAudienceMode.RegularOnly => query.Where(x => x.QueueAudienceSnapshot == QueueAudience.Regular),
+                QueueDisplayAudienceMode.MemberOnly => query.Where(x => x.QueueAudienceSnapshot == QueueAudience.Member),
+                _ => query
+            };
 
             return query;
         }
@@ -303,7 +314,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 .ToListAsync();
         }
 
-        private async Task<QueueVoiceGenerateResponse?> BuildDisplayVoiceResultAsync(TrxQueue queue, MstQueueDisplayDevice device)
+        private async Task<QueueVoiceGenerateResponse?> BuildDisplayVoiceResultAsync(RegQueue queue, MstQueueDisplayDevice device)
         {
             if (!device.EnableVoiceCalling)
             {
@@ -327,20 +338,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         private static QueueDisplayRuntimeItemResponse MapItemResponse(
-            TrxQueue x,
+            RegQueue x,
             MstQueueDisplayDevice device,
             QueueVoiceGenerateResponse? voiceResult = null)
         {
-            var patientName = x.Patient != null ? x.Patient.FullName : string.Empty;
+            // RJ-DOC-DEC-057: identitas disaring di sini, bukan disembunyikan di layar.
+            var displayMode = x.PublicDisplayModeSnapshot;
+            var hideIdentity = displayMode == PublicDisplayMode.QueueNumberOnly;
+            var maskedOnly = displayMode == PublicDisplayMode.MaskedName;
+            var patientName = !hideIdentity && x.Patient != null ? x.Patient.FullName : string.Empty;
             return new QueueDisplayRuntimeItemResponse
             {
                 QueueId = x.Id,
                 EncounterId = x.EncounterId,
-                EncounterNumber = x.Encounter != null ? x.Encounter.EncounterNumber : string.Empty,
-                PatientId = x.PatientId,
-                PatientName = device.ShowPatientName ? patientName : string.Empty,
+                EncounterNumber = !hideIdentity && x.Encounter != null ? x.Encounter.EncounterNumber : string.Empty,
+                PatientId = hideIdentity ? Guid.Empty : x.PatientId,
+                PatientName = device.ShowPatientName && !maskedOnly ? patientName : string.Empty,
                 MaskedPatientName = MaskPatientName(patientName),
-                MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
+                MedicalRecordNumber = !hideIdentity && !maskedOnly && x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
                 ServiceUnitId = x.ServiceUnitId,
                 ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : string.Empty,
                 ClinicId = x.ClinicId,
@@ -373,7 +388,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             };
         }
 
-        private static string BuildDisplayText(TrxQueue queue, MstQueueDisplayDevice device)
+        private static string BuildDisplayText(RegQueue queue, MstQueueDisplayDevice device)
         {
             var roomDisplayName = BuildRoomDisplayName(queue);
 
@@ -398,7 +413,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return $"{queue.QueueCode}{clinic} {destination}".Trim();
         }
 
-        private static string BuildVoiceText(TrxQueue queue, MstQueueDisplayDevice device)
+        private static string BuildVoiceText(RegQueue queue, MstQueueDisplayDevice device)
         {
             var roomVoiceName = BuildRoomVoiceName(queue);
 
@@ -417,7 +432,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         private static string BuildDoctorDisplayDestination(
-            TrxQueue queue,
+            RegQueue queue,
             MstQueueDisplayDevice device,
             string? roomDisplayName)
         {
@@ -445,7 +460,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         private static string BuildDoctorVoiceDestination(
-            TrxQueue queue,
+            RegQueue queue,
             MstQueueDisplayDevice device,
             string? roomVoiceName)
         {
@@ -472,7 +487,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return "silakan menuju ruang dokter";
         }
 
-        private static string? BuildRoomDisplayName(TrxQueue queue)
+        private static string? BuildRoomDisplayName(RegQueue queue)
         {
             var room = queue.Encounter?.Room;
             if (room == null) return null;
@@ -488,7 +503,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 : $"{roomName} ({roomNumber})";
         }
 
-        private static string? BuildRoomVoiceName(TrxQueue queue)
+        private static string? BuildRoomVoiceName(RegQueue queue)
         {
             var room = queue.Encounter?.Room;
             if (room == null) return null;

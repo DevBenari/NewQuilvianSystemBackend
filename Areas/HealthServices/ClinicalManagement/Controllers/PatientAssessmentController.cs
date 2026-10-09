@@ -648,7 +648,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             // pernah punya satu pun, sehingga identitas klinisnya diambil dari encounter.
             // BE-IGD-027, FR-IGD-061.
             var queue = request.QueueId.HasValue
-                ? await _dbContext.Set<TrxQueue>()
+                ? await _dbContext.Set<RegQueue>()
                     .Include(x => x.Encounter)
                     .FirstAsync(x =>
                         x.Id == request.QueueId.Value &&
@@ -2025,7 +2025,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             if (!request.QueueId.HasValue || request.QueueId.Value == Guid.Empty)
                 return await ValidateCreateWithoutQueueAsync(request);
 
-            var queue = await _dbContext.Set<TrxQueue>()
+            var queue = await _dbContext.Set<RegQueue>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x =>
                     x.Id == request.QueueId.Value &&

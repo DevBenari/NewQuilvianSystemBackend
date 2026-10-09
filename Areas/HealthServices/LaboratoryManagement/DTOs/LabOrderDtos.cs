@@ -356,6 +356,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
     /// </summary>
     public class LabOrderedProcedureResponse
     {
+        /// <summary>
+        /// Penunjuk prosedur yang dipesan — dipakai layar untuk merencanakan wadah
+        /// (<c>POST /lab-specimens/by-order/{id}</c>, ruas <c>examinations</c>).
+        /// </summary>
+        public Guid ProcedureId { get; set; }
+
         /// <summary>Kode jenis pemeriksaan <b>pada saat dipesan</b>.</summary>
         public string? ProcedureCode { get; set; }
 
@@ -534,5 +540,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
         /// <summary>Label <c>LAB-DEC-156</c>: <i>Menunggu Hasil</i>, <i>Draft</i>, <i>Menunggu Validasi</i>, <i>Tervalidasi</i>.</summary>
         public string Status { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Pesanan laboratorium aktif milik satu pasien, dikelompokkan per kunjungan, untuk layar
+    /// kiosk jalur Laboratorium (<c>LAB-EVD-013</c> butir 1).
+    ///
+    /// <para>
+    /// Kiosk v1 mencocokkan No. RM pasien ke booking Lab lalu menawarkan <i>Konfirmasi
+    /// Kehadiran</i>; bila tidak ada, pasien diarahkan mendaftar kunjungan baru. Ruas di sini
+    /// hanya yang ditampilkan layar itu — nama, tanggal, asal poli, dokter, dan daftar
+    /// pemeriksaan — tanpa hasil maupun status keuangan.
+    /// </para>
+    /// </summary>
+    public class LabKioskPendingOrderGroupResponse
+    {
+        public Guid EncounterId { get; set; }
+
+        public string? EncounterNumber { get; set; }
+
+        /// <summary>Waktu pesanan pertama dalam kelompok ini diminta.</summary>
+        public DateTime? RequestedAt { get; set; }
+
+        public string? ClinicName { get; set; }
+
+        public string? DoctorName { get; set; }
+
+        public List<LabKioskPendingOrderItemResponse> Items { get; set; } = new();
+    }
+
+    public class LabKioskPendingOrderItemResponse
+    {
+        public Guid LabOrderId { get; set; }
+
+        public string OrderNumber { get; set; } = string.Empty;
+
+        /// <summary>Label disiplin siap tampil: Patologi Klinik, Patologi Anatomi, Mikrobiologi.</summary>
+        public string? DisciplineLabel { get; set; }
+
+        public string ProcedureName { get; set; } = string.Empty;
+
+        public string OrderStatus { get; set; } = string.Empty;
     }
 }

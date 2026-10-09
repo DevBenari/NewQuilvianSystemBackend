@@ -23,6 +23,11 @@ public sealed class FinReceivableInvoiceBatchConfiguration : IEntityTypeConfigur
         entity.Property(x => x.IssuedAt).HasColumnType("timestamp with time zone");
         entity.Property(x => x.RowVersion).IsConcurrencyToken();
 
+        // Dokumen & Tenor tagihan
+        entity.Property(x => x.InvoiceDate).HasColumnType("date");
+        entity.Property(x => x.DueDate).HasColumnType("date");
+        entity.Property(x => x.Note).HasMaxLength(500);
+
         // Sumbu klaim penjamin (BE-FIN-052, FIN-DEC-097) — seluruhnya nullable, lihat FIN-DES-070.
         entity.Property(x => x.ClaimStatus).HasMaxLength(30);
         entity.Property(x => x.ApprovedAmount).HasPrecision(18, 2);

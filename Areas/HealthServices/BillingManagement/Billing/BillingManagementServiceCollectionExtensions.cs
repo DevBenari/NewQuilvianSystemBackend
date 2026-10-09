@@ -26,6 +26,7 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<BillingModuleService>();
         services.AddScoped<BillingInvoiceService>();
         services.AddScoped<BillingCalculationService>();
+        services.AddScoped<IBillingCalculationService, BillingCalculationService>();
         services.AddScoped<BillingPayerEditService>();
         services.AddScoped<BillingInsuranceInvoiceDocumentService>();
         services.AddScoped<BillingCompanyGuarantorInvoiceDocumentService>();

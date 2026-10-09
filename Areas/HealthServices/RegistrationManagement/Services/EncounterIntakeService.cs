@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -237,6 +238,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                     "Pilih instansi perujuk dari daftar. Bila belum ada, hubungi bagian data induk untuk menambahkannya.");
             }
 
+            // DEC-FRJ-001: alur Rawat Jalan mewajibkan mitra layak pada tanggal kunjungan (hari
+            // ini; rujukan Laboratorium hanya untuk hari ini, RJ-VAL-PM-15). Pemanggil lain yang
+            // tidak menyetel penanda ini tetap memakai aturan lama.
+            if (request.RequirePartnerEligibility &&
+                await ReferralPartnerEligibility.FindEligibleAsync(
+                    _dbContext,
+                    request.ReferralInstitutionId.Value,
+                    ReferralPartnerEligibility.Today(),
+                    cancellationToken) == null)
+            {
+                throw new EncounterIntakeValidationException(EncounterReferralService.Pm17);
+            }
+
             if (!request.ReferralDoctorId.HasValue)
             {
                 return;
@@ -339,7 +353,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
                     // Pasien penunjang tidak mengantre dokter dan tidak menunggu skrining
                     // perawat: ia menuju unit penunjang, dan daftar kerjanya ada di modul
-                    // penunjang itu sendiri. Karena itu tidak ada TrxQueue yang dibuat di sini.
+                    // penunjang itu sendiri. Karena itu tidak ada RegQueue yang dibuat di sini.
                     IsQueueRequired = false,
                     IsDoctorRequired = false,
                     IsScreeningRequired = false,

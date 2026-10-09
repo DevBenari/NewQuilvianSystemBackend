@@ -16,7 +16,16 @@ using System.Text.Json;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 
-public sealed class BillingCalculationService
+public interface IBillingCalculationService
+{
+    Task<CalculationResponse> RecalculateAsync(
+        Guid invoiceId,
+        RecalculateInvoiceRequest request,
+        Guid actorUserId,
+        CancellationToken cancellationToken);
+}
+
+public class BillingCalculationService : IBillingCalculationService
 {
     private const string LogCategory = "HealthServices.BillingManagement.Billing";
     private static readonly JsonSerializerOptions SnapshotJsonOptions = new(JsonSerializerDefaults.Web);
@@ -41,7 +50,7 @@ public sealed class BillingCalculationService
         _adminFeeCalculationService = adminFeeCalculationService ?? new AdministrationFeeCalculationService(dbContext);
     }
 
-    public Task<CalculationResponse> RecalculateAsync(
+    public virtual Task<CalculationResponse> RecalculateAsync(
         Guid invoiceId,
         RecalculateInvoiceRequest request,
         Guid actorUserId,
@@ -1318,9 +1327,14 @@ public sealed class BillingCalculationService
 
     private static decimal Money(decimal value) => decimal.Round(value, 2, MidpointRounding.AwayFromZero);
 
-    private async Task AcquireLockAsync(string key, CancellationToken cancellationToken) =>
-        await _dbContext.Database.ExecuteSqlRawAsync(
-            "SELECT pg_advisory_xact_lock(hashtext({0}));", [key], cancellationToken);
+    private async Task AcquireLockAsync(string key, CancellationToken cancellationToken)
+    {
+        if (_dbContext.Database.IsRelational() && _dbContext.Database.ProviderName != "Microsoft.EntityFrameworkCore.Sqlite")
+        {
+            await _dbContext.Database.ExecuteSqlRawAsync(
+                "SELECT pg_advisory_xact_lock(hashtext({0}));", [key], cancellationToken);
+        }
+    }
 
     // PATIENT: pajak selalu ditanggung pasien. GUARANTOR: selalu penjamin. PROPORTIONAL dan
     // lainnya: mengikuti komponen yang dipajaki.

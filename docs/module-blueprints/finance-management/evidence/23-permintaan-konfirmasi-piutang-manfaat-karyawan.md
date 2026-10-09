@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 |---|---|
-| Status | **DRAF — belum dikirim.** Menunggu tinjauan Yasmin (lihat kotak "Catatan untuk pengirim") |
+| Status | **LENGKAP TERJAWAB (Billing, HR, dan Registrasi Terkonfirmasi, 6 Oktober 2026)** |
 | Dari | Yasmin, owner / penggarap modul Finance (AR/AP) |
 | Untuk | Owner **Billing dan Kasir** (`BIL-CASH-001`); owner **Registrasi** (Patient Management); owner **HR** (Benefit, Penggajian, Siklus Kepegawaian) |
 | Tembusan | Owner Accounting — hanya untuk butir B6 |
@@ -212,33 +212,33 @@ Diisi saat jawaban diterima. **Belum ada jawaban.**
 
 | Butir | Jawaban | Tanggal | Dicatat sebagai |
 |---|---|---|---|
-| B1 | — | — | — |
-| B2 | — | — | — |
-| B3 | — | — | — |
-| B4 | — | — | — |
-| B5 | — | — | — |
-| B6 | — | — | — |
+| B1 | Billing menyanggupi menerbitkan DUA baris serah terima per tagihan: satu `EMPLOYEE_BENEFIT` untuk porsi tanggungan pegawai dan satu `PAYER` ("RS Benefit") untuk porsi rumah sakit | 6 Oktober 2026 | `FIN-DEC-183` |
+| B2 | Billing menerima perluasan BilArHandoff: penambahan DebtorType 'EMPLOYEE_BENEFIT', serta kolom nullable BenefitOwnerId dan BenefitRelationship. Migration skema milik Billing | 6 Oktober 2026 | `FIN-DEC-184` |
+| B3 | Billing bertanggung jawab menghitung porsi tanggungan pegawai saat kalkulasi/finalisasi invoice. Finance menyalin nominal apa adanya dari BilArHandoff dan tidak menghitung ulang | 6 Oktober 2026 | `FIN-DEC-185` |
+| B4 | Billing menerima penuh perbaikan pada BillingArApHandoffService.cs (BE-FIN-FIX-002) untuk transaksi ke depan. Tidak ada backfill basis data atas baris serah terima lama | 6 Oktober 2026 | `FIN-DEC-186` |
+| B5 | Billing menyanggupi alur koreksi salah orang: membatalkan serah terima lama lewat penyesuaian pembalik, dan menerbitkan BilArHandoff baru atas orang yang benar | 6 Oktober 2026 | `FIN-DEC-187` |
+| B6 | Mengikuti alur FIN-DEC-177 & 178: serah terima PAYER ke penjamin "RS Benefit", lalu ditutup berkala via Pelunasan Internal Finance ke Accounting. Billing tidak mengirim jurnal terpisah | 6 Oktober 2026 | `FIN-DEC-188` |
 
 ### 10.2 Registrasi
 
 | Butir | Jawaban | Tanggal | Dicatat sebagai |
 |---|---|---|---|
-| R1 | — | — | — |
-| R2 | — | — | — |
-| R3 | — | — | — |
-| R4 | — | — | — |
-| R5 | — | — | — |
-| R6 | — | — | — |
+| R1 | Memakai mekanisme eksisting `CompanyGuarantor` / kartu hubungan pasien–perusahaan (RS didaftarkan sebagai instansi penjamin internal di `MstCompanyGuarantor`). Tidak menambah enum tipe pembayaran baru, mempertahankan `Cash`, `Insurance`, `CompanyGuarantor` | 6 Oktober 2026 | `FIN-DEC-197` |
+| R2 | Hubungan keluarga (`SELF`, `SPOUSE`, `CHILD`, dll.) disimpan pada Kartu Pasien (Master `MstPatientCompanyGuarantor`), lalu disalin otomatis (*snapshot*) ke Kunjungan (`RegPatientEncounterGuarantor`) per encounter sehingga Finance menerima data hubungan per tagihan | 6 Oktober 2026 | `FIN-DEC-198` |
+| R3 | Wajib memilih pegawai dari data HR via fitur pencarian ringan / autocomplete (menampilkan NIP, NIK, dan Nama Pegawai) untuk menghasilkan ID referensi stabil (Guid) demi memenuhi validasi `CHECK constraint` database Finance | 6 Oktober 2026 | `FIN-DEC-199` |
+| R4 | Sebelum tagihan final: koreksi via fitur eksisting "Ganti Penanggung" di Billing. Setelah tagihan final / serah terima ke Finance: Registrasi/Kasir ajukan Berita Acara Koreksi, Billing terbitkan serah terima pembalik (*reversal handoff*) dan serah terima baru atas pegawai yang benar, Finance memproses penyesuaian tanpa edit manual debitur | 6 Oktober 2026 | `FIN-DEC-200` |
+| R5 | Anak/bayi tanpa NIK dicatat normal menggunakan No RM anak yang ditautkan ke kartu penjamin orang tua. Pasien non-keluarga inti tunduk sepenuhnya pada master eligibilitas HR Benefit; bila tidak ditanggung HR, wajib didaftarkan sebagai Pasien Umum (pribadi/tunai) | 6 Oktober 2026 | `FIN-DEC-201` |
+| R6 | Kolom `RemainingLimitAmount` pada kartu pasien BUKAN batas keras (*bukan hard limit*, murni catatan informasional). Pengecekan sisa plafon riil tidak mengandalkan kolom ini, melainkan diverifikasi ke saldo berjalan di modul HR Benefit | 6 Oktober 2026 | `FIN-DEC-202` |
 
 ### 10.3 HR
 
 | Butir | Jawaban | Tanggal | Dicatat sebagai |
 |---|---|---|---|
-| H1 | — | — | — |
-| H2 | — | — | — |
-| H3 | — | — | — |
-| H4 | — | — | — |
-| H5 | — | — | — |
-| H6 | — | — | — |
-| H7 | — | — | — |
-| H8 | — | — | — |
+| H1 | HR menyediakan pembacaan plafon & eligibilitas secara sistematis (TrxEmployeeBenefitDependent per tanggungan atau TrxEmployeeBenefitEnrollment gabungan) untuk dipanggil oleh Billing | 6 Oktober 2026 | `FIN-DEC-189` |
+| H2 | HR menerima jadwal cicilan yang disetujui Finance ke dalam TrxPayrollVariableInput (SourceType = 'FinanceReceivableInstallment', SourceId = FinReceivableInstallment.Id) | 6 Oktober 2026 | `FIN-DEC-190` |
+| H3 | HR menyanggupi mengirim hasil potongan secara otomatis ke Finance per periode setelah payroll run disahkan (InstallmentId, periode, status, nominal), dengan jaminan idempotensi | 6 Oktober 2026 | `FIN-DEC-191` |
+| H4 | HR menegakkan batas potongan (take-home pay minimum); bila melebihi batas, HR memotong sebagian dan melaporkan status SEBAGIAN ke Finance, sisa dibawa ke periode berikutnya | 6 Oktober 2026 | `FIN-DEC-192` |
+| H5 | HR mengunci penyelesaian exit clearance (TrxExitClearance.IsFinanceCleared) pada status bebas tanggungan Finance. Override darurat dengan izin Direksi/HR | 6 Oktober 2026 | `FIN-DEC-193` |
+| H6 | HR menyanggupi mengirim notifikasi/event pemisahan pegawai (TrxEmployeeSeparation) ke Finance untuk persiapan percepatan pelunasan pada hak akhir | 6 Oktober 2026 | `FIN-DEC-194` |
+| H7 | HR mengembalikan potongan salah orang via payroll adjustment pada slip gaji periode berikutnya, dipicu pesan pembalikan angsuran Finance. Finance tidak mengeluarkan kas langsung | 6 Oktober 2026 | `FIN-DEC-195` |
+| H8 | Kunci identitas pegawai pada template impor/migrasi memakai NIP (Nomor Induk Pegawai / EmployeeNumber). Sistem memvalidasi keaktifan di HR dan memetakan ke Guid | 6 Oktober 2026 | `FIN-DEC-196` |

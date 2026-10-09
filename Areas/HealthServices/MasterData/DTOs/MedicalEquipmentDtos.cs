@@ -26,8 +26,18 @@ public class MedicalEquipmentResponse : CreateMedicalEquipmentRequest
     public Guid Id { get; set; }
     public bool IsActive { get; set; }
     public Guid RowVersion { get; set; }
+    public decimal? NormalPrice { get; set; }
+    public string? TariffCode { get; set; }
 }
-public class MedicalEquipmentOption { public Guid Id { get; set; } public string EquipmentCode { get; set; } = string.Empty; public string EquipmentName { get; set; } = string.Empty; public MstEquipmentChargeUnit ChargeUnit { get; set; } }
+public class MedicalEquipmentOption
+{
+    public Guid Id { get; set; }
+    public string EquipmentCode { get; set; } = string.Empty;
+    public string EquipmentName { get; set; } = string.Empty;
+    public MstEquipmentChargeUnit ChargeUnit { get; set; }
+    public decimal? NormalPrice { get; set; }
+    public string? TariffCode { get; set; }
+}
 public class MedicalEquipmentSummary { public int Total { get; set; } public int Active { get; set; } public int Inactive { get; set; } }
 public class MedicalEquipmentFilterMetadata
 {

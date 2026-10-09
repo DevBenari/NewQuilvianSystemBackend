@@ -109,3 +109,32 @@ bukan `403`, supaya keberadaan kunjungan di luar cakupan tidak terbaca.
 | "Konsultasi masih aktif. Selesaikan atau batalkan konsultasi lewat workspace dokter." | "Konsultasi masih aktif. Dokter penanggung jawab menyelesaikan atau membatalkannya di Klinis Dokter (antrean hari ini, atau Konsultasi tertunda untuk kunjungan hari sebelumnya)." |
 
 Bunyi ini juga dipakai sebagai petunjuk baris (`cancelBlockedReason`) di Daftar Pasien Rawat Jalan.
+
+
+# Amendment PM-B — `RJ-DOC-REFERRAL-001@1.0.0`
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `RJ-DOC-REFERRAL-001@1.0.0` — `approved` |
+| Owner | Sukma Giri |
+| `approved_by` / `approved_at` | Sukma Giri / 2026-10-08 |
+| `input_revision` | Decision log *Amendment PM-B* (`RJ-DOC-DEC-068`..`082`) |
+
+| Kode | Isian / kondisi | Aturan | Pesan ke pengguna | Lapisan |
+|---|---|---|---|---|
+| `RJ-VAL-PM-01` | Scan kartu asuransi | No. polis ternormalisasi sama persis **dan** nama hasil scan memuat nama/kode/grup asuransi terpilih | "Data tidak match. Asuransi tidak dapat dijadikan penjamin." | FE + BE |
+| `RJ-VAL-PM-02` | Scan kartu asuransi | Nama dan No. polis hasil scan wajib terisi | "Kartu tidak terbaca lengkap. Silakan scan ulang." | FE + BE |
+| `RJ-VAL-PM-03` | No. rujukan, fasilitas perujuk | Wajib bila Jenis Kunjungan Rujukan; No. rujukan maks 250 | "Nomor rujukan dan fasilitas perujuk wajib diisi." | FE + BE |
+| `RJ-VAL-PM-04` | Dokter perujuk | Opsional; bila diisi wajib aktif dan milik institusi terpilih | "Dokter perujuk tidak terdaftar pada fasilitas perujuk ini." | FE + BE |
+| `RJ-VAL-PM-05` | Unit tujuan | Wajib; poliklinik atau Laboratorium (petugas); Kiosk hanya poliklinik; Radiologi ditolak | "Unit tujuan belum tersedia." | FE + BE |
+| `RJ-VAL-PM-06` | Diagnosa, alasan | Wajib di layar petugas; alasan maks 1000; catatan diagnosa maks 500 | "Diagnosa dan alasan rujukan wajib diisi." | FE + BE |
+| `RJ-VAL-PM-07` | Tanggal/jam rujukan | Wajib; tidak di masa depan; default saat layar dibuka | "Tanggal rujukan tidak boleh melewati waktu sekarang." | FE + BE |
+| `RJ-VAL-PM-08` | Surat rujukan (petugas) | ≥ 1 berkas sebelum lanjut | "Unggah surat rujukan terlebih dahulu." | FE |
+| `RJ-VAL-PM-09` | Koreksi | Hanya sebelum konsultasi dokter dimulai | "Rujukan tidak dapat diubah karena konsultasi dokter sudah dimulai." | BE |
+| `RJ-VAL-PM-10` | Koreksi unit tujuan | Tidak boleh berubah | "Unit tujuan tidak dapat diubah. Batalkan kunjungan bila salah unit." | BE |
+| `RJ-VAL-PM-11` | Konkurensi | `expectedRowVersion` harus terbaru | "Data rujukan sudah diubah pengguna lain. Muat ulang." | BE |
+| `RJ-VAL-PM-12` | Format berkas | PDF/JPG/PNG dari isi berkas | "Format berkas harus PDF, JPG, atau PNG." | FE + BE |
+| `RJ-VAL-PM-13` | Ukuran/jumlah berkas | ≤ 5 MB per berkas; ≤ 10 berkas aktif | "Ukuran berkas maksimal 5 MB, paling banyak 10 berkas." | FE + BE |
+| `RJ-VAL-PM-14` | Unggah Kiosk | Kunjungan dari Kiosk, ≤ 30 menit, status ≤ Masuk Antrean | (Kiosk) "Surat rujukan tidak dapat diunggah. Silakan hubungi petugas." | BE |
+| `RJ-VAL-PM-15` | Jalur Laboratorium | Tanggal kunjungan hari ini; tanpa penjamin perusahaan | "Rujukan Laboratorium hanya untuk hari ini dengan pembayaran tunai atau asuransi." | FE |
+| `RJ-VAL-PM-16` | Master Institusi Perujuk | Kode unik maks 50, nama wajib maks 200; hapus ditolak bila dipakai kunjungan | "Kode sudah dipakai." / "Institusi sudah dipakai kunjungan; nonaktifkan saja." | BE |

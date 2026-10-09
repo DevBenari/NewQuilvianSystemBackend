@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -27,11 +29,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Ser
 public sealed class FinanceReceivableBillingDataService
 {
     private readonly ApplicationDbContext _dbContext;
+    private readonly FinanceBillingIntakeService _intakeService;
 
-    public FinanceReceivableBillingDataService(ApplicationDbContext dbContext) => _dbContext = dbContext;
-
-    public async Task<BillingDataPagedResponse> GetAsync(BillingDataQuery request, CancellationToken cancellationToken)
+    public FinanceReceivableBillingDataService(
+        ApplicationDbContext dbContext,
+        FinanceBillingIntakeService intakeService)
     {
+        _dbContext = dbContext;
+        _intakeService = intakeService;
+    }
+
+    public async Task<BillingDataPagedResponse> GetAsync(
+        BillingDataQuery request,
+        CancellationToken cancellationToken,
+        Guid? actorUserId = null)
+    {
+        await EnsurePendingArHandoffsProcessedAsync(actorUserId ?? Guid.Empty, cancellationToken);
+
         var filter = ResolveFilter(request);
         var entityName = await ResolveEntityNameAsync(filter, cancellationToken);
 
@@ -50,6 +64,8 @@ public sealed class FinanceReceivableBillingDataService
             ? new List<BillingDataItemResponse>()
             : await LoadPageAsync(rows, filter, cancellationToken);
 
+        var groups = await BuildGroupsAsync(rows, pageRows, filter, total, totalAmount, cancellationToken);
+
         return new BillingDataPagedResponse
         {
             PageNumber = filter.PageNumber,
@@ -57,6 +73,7 @@ public sealed class FinanceReceivableBillingDataService
             TotalData = total,
             TotalPage = (int)Math.Ceiling(total / (double)filter.PageSize),
             Items = pageRows,
+            Groups = groups,
             Summary = new BillingDataSummaryResponse
             {
                 TotalAmount = totalAmount,
@@ -119,6 +136,57 @@ public sealed class FinanceReceivableBillingDataService
             .ToList();
     }
 
+    /// <summary>
+    /// Memastikan seluruh fakta serah terima AR (BilArHandoff) yang masih berstatus CREATED
+    /// atau fakta intake AR yang masih NEW segera disinkronkan dan diolah menjadi piutang
+    /// (FinReceivable), sehingga tagihan asuransi dari pasien yang sudah lunas kasir
+    /// otomatis tampil pada Data Tagihan A/R.
+    /// </summary>
+    private async Task EnsurePendingArHandoffsProcessedAsync(Guid actorUserId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var hasPendingHandoffs = await _dbContext.BilArHandoffs
+                .AnyAsync(x => !x.IsDelete && x.Status == BillingHandoffStatuses.Created, cancellationToken);
+
+            var hasPendingIntakes = await _dbContext.FinBillingHandoffIntakes
+                .AnyAsync(x => !x.IsDelete
+                    && x.HandoffType == FinBillingHandoffTypes.Ar
+                    && x.Status == FinBillingHandoffIntakeStatuses.New, cancellationToken);
+
+            if (hasPendingHandoffs || hasPendingIntakes)
+            {
+                if (hasPendingHandoffs)
+                {
+                    await _intakeService.SyncNewFactsAsync(actorUserId, cancellationToken);
+                }
+
+                var pendingArIntakeIds = await _dbContext.FinBillingHandoffIntakes
+                    .Where(x => !x.IsDelete
+                        && x.HandoffType == FinBillingHandoffTypes.Ar
+                        && x.Status == FinBillingHandoffIntakeStatuses.New)
+                    .Select(x => x.Id)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var intakeId in pendingArIntakeIds)
+                {
+                    try
+                    {
+                        await _intakeService.ProcessAsync(intakeId, actorUserId, cancellationToken);
+                    }
+                    catch
+                    {
+                        // Lanjutkan jika ada intake tertentu yang gagal agar tidak menghambat fakta lainnya
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Kegagalan sinkronisasi otomatis tidak boleh menggagalkan pembacaan data jika database sedang sibuk
+        }
+    }
+
     // ------------------------------------------------------------------------------------
     // Query dasar + penerapan saringan. Urutan sama dengan rancangan: kategori → pencarian → penjamin/pasien
     // → status → jenis pasien → tanggal. Semua diterjemahkan menjadi SQL; tidak ada saringan di memori.
@@ -166,17 +234,27 @@ public sealed class FinanceReceivableBillingDataService
                     .OrderByDescending(g => g.IsPrimary)
                     .ThenBy(g => g.Priority)
                     .Select(g => g.CompanyGuarantorId)
+                    .FirstOrDefault(),
+                EmployeeNumber = _dbContext.RegPatientEncounterGuarantors
+                    .Where(g => g.EncounterId == item.EncounterId && g.IsActive && !g.IsDelete && g.EmployeeNumberSnapshot != null)
+                    .OrderByDescending(g => g.IsPrimary)
+                    .ThenBy(g => g.Priority)
+                    .Select(g => g.EmployeeNumberSnapshot)
                     .FirstOrDefault()
             };
 
-        // Cakupan Data Tagihan: piutang yang tidak CANCELLED, dan yang masih bisa ditagihkan (OUTSTANDING/PARTIAL)
-        // atau sudah tergabung dalam batch aktif. Piutang lunas atau dihapus-buku yang tidak pernah digabung
-        // bukan tagihan yang perlu dibuatkan lagi, dan dengan cakupan ini setiap baris pasti tepat salah satu
-        // dari "Belum Dibuat" atau "Sudah Dibuat".
+        // Cakupan Data Tagihan: piutang yang tidak CANCELLED, dan yang masih bisa ditagihkan (OUTSTANDING/PARTIAL/
+        // SETTLED) atau sudah tergabung dalam batch aktif. Status pembayaran (SETTLED/Lunas) dan status pembuatan
+        // AR/Invoice (keanggotaan batch) adalah dua hal terpisah: piutang yang sudah lunas dibayar (mis. gabungan
+        // asuransi + excess tunai) tapi belum pernah digabung ke Batch Tagihan tetap perlu dibuatkan AR/Invoice-nya
+        // untuk keperluan dokumentasi/klaim, sehingga tetap tampil sebagai "Belum Dibuat". Hanya WRITTEN_OFF
+        // (dihapus-buku, keputusan akuntansi terpisah) yang tidak pernah digabung yang tetap tidak ditampilkan.
+        // Dengan cakupan ini setiap baris pasti tepat salah satu dari "Belum Dibuat" atau "Sudah Dibuat".
         rows = rows.Where(x => x.Receivable.Status != FinReceivableStatuses.Cancelled
             && (activeBatchedIds.Contains(x.Receivable.Id)
                 || x.Receivable.Status == FinReceivableStatuses.Outstanding
-                || x.Receivable.Status == FinReceivableStatuses.Partial));
+                || x.Receivable.Status == FinReceivableStatuses.Partial
+                || x.Receivable.Status == FinReceivableStatuses.Settled));
 
         rows = ApplyEntity(rows, filter);
         rows = ApplyBillingStatus(rows, filter, activeBatchedIds);
@@ -306,6 +384,9 @@ public sealed class FinanceReceivableBillingDataService
                 ReceivableStatus = x.Receivable.Status,
                 x.Receivable.DebtorType,
                 x.Receivable.DebtorReferenceId,
+                x.Receivable.OriginalAmount,
+                x.Receivable.OutstandingAmount,
+                DueDate = (DateOnly?)x.Receivable.DueDate,
                 BillingAmount = x.Item.Amount,
                 x.Item.InvoiceId,
                 x.Item.EncounterId,
@@ -313,11 +394,13 @@ public sealed class FinanceReceivableBillingDataService
                 InvoiceNumber = x.Invoice != null ? x.Invoice.InvoiceNumber : null,
                 EncounterNumber = x.Encounter != null ? x.Encounter.EncounterNumber : null,
                 EncounterDate = x.Encounter != null ? (DateTime?)x.Encounter.EncounterDate : null,
+                EncounterCompletedAt = x.Encounter != null ? (DateTime?)x.Encounter.CompletedAt : null,
                 EncounterKind = x.Encounter != null ? (EncounterType?)x.Encounter.EncounterType : null,
                 MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : null,
                 PatientName = x.Patient != null ? x.Patient.FullName : null,
                 ProviderName = x.Provider != null ? x.Provider.InsuranceProviderName : null,
                 x.CompanyGuarantorId,
+                x.EmployeeNumber,
                 CompanyName = _dbContext.MstCompanyGuarantors
                     .Where(c => !c.IsDelete && (c.Id == x.CompanyGuarantorId || c.Id == x.Receivable.DebtorReferenceId))
                     .Select(c => c.CompanyGuarantorName)
@@ -353,6 +436,14 @@ public sealed class FinanceReceivableBillingDataService
                 ? new DateTimeOffset(DateTime.SpecifyKind(x.EncounterDate.Value, DateTimeKind.Utc))
                 : x.RecognizedAt;
 
+            var encounterStartAt = x.EncounterDate.HasValue
+                ? new DateTimeOffset(DateTime.SpecifyKind(x.EncounterDate.Value, DateTimeKind.Utc))
+                : (DateTimeOffset?)x.RecognizedAt;
+
+            var encounterEndAt = x.EncounterCompletedAt.HasValue
+                ? new DateTimeOffset(DateTime.SpecifyKind(x.EncounterCompletedAt.Value, DateTimeKind.Utc))
+                : (DateTimeOffset?)null;
+
             var blockedReason = ResolveCreateBlockedReason(
                 x.DebtorType, x.DebtorReferenceId, x.ActiveBatchId.HasValue, x.AnyBatchMembership, x.ReceivableStatus);
 
@@ -362,10 +453,16 @@ public sealed class FinanceReceivableBillingDataService
                 ReceivableItemId = x.ReceivableItemId,
                 ReceivableNumber = x.ReceivableNumber,
                 BillingDate = billingDate,
+                EncounterStartAt = encounterStartAt,
+                EncounterEndAt = encounterEndAt,
+                OriginalAmount = x.OriginalAmount,
+                OutstandingAmount = x.OutstandingAmount,
+                DueDate = x.DueDate,
                 InvoiceNumber = x.InvoiceNumber,
                 EncounterNumber = x.EncounterNumber,
                 MedicalRecordNumber = x.MedicalRecordNumber,
                 PatientName = x.PatientName,
+                EmployeeId = x.EmployeeNumber,
                 PatientType = MapPatientType(x.EncounterKind),
                 InvoiceId = x.InvoiceId,
                 EncounterId = x.EncounterId,
@@ -397,38 +494,258 @@ public sealed class FinanceReceivableBillingDataService
         return filter.SortBy switch
         {
             "invoicenumber" => descending
-                ? rows.OrderByDescending(x => x.Invoice!.InvoiceNumber).ThenBy(x => x.Item.Id)
-                : rows.OrderBy(x => x.Invoice!.InvoiceNumber).ThenBy(x => x.Item.Id),
+                ? rows.OrderByDescending(x => x.Invoice != null ? x.Invoice.InvoiceNumber : "").ThenBy(x => x.Item.Id)
+                : rows.OrderBy(x => x.Invoice != null ? x.Invoice.InvoiceNumber : "").ThenBy(x => x.Item.Id),
             "encounternumber" => descending
-                ? rows.OrderByDescending(x => x.Encounter!.EncounterNumber).ThenBy(x => x.Item.Id)
-                : rows.OrderBy(x => x.Encounter!.EncounterNumber).ThenBy(x => x.Item.Id),
+                ? rows.OrderByDescending(x => x.Encounter != null ? x.Encounter.EncounterNumber : "").ThenBy(x => x.Item.Id)
+                : rows.OrderBy(x => x.Encounter != null ? x.Encounter.EncounterNumber : "").ThenBy(x => x.Item.Id),
             "medicalrecordnumber" => descending
-                ? rows.OrderByDescending(x => x.Patient!.MedicalRecordNumber).ThenBy(x => x.Item.Id)
-                : rows.OrderBy(x => x.Patient!.MedicalRecordNumber).ThenBy(x => x.Item.Id),
+                ? rows.OrderByDescending(x => x.Patient != null ? x.Patient.MedicalRecordNumber : "").ThenBy(x => x.Item.Id)
+                : rows.OrderBy(x => x.Patient != null ? x.Patient.MedicalRecordNumber : "").ThenBy(x => x.Item.Id),
             "patientname" => descending
-                ? rows.OrderByDescending(x => x.Patient!.FullName).ThenBy(x => x.Item.Id)
-                : rows.OrderBy(x => x.Patient!.FullName).ThenBy(x => x.Item.Id),
+                ? rows.OrderByDescending(x => x.Patient != null ? x.Patient.FullName : "").ThenBy(x => x.Item.Id)
+                : rows.OrderBy(x => x.Patient != null ? x.Patient.FullName : "").ThenBy(x => x.Item.Id),
             "amount" => descending
                 ? rows.OrderByDescending(x => x.Item.Amount).ThenBy(x => x.Item.Id)
                 : rows.OrderBy(x => x.Item.Amount).ThenBy(x => x.Item.Id),
-            // Bawaan: tanggal. Baris tanpa kunjungan (item migrasi lama) selalu di akhir; ThenBy(Id) menjaga
-            // halaman tetap stabil saat banyak baris memiliki tanggal sama.
-            _ => descending
-                ? rows.OrderBy(x => x.Encounter == null)
-                    .ThenByDescending(x => x.Encounter!.EncounterDate)
+            // Bawaan ("grouped" / "date"): Urutan stabil seperti V1.
+            // 1. Group alphabetical (Payer untuk Company, Patient untuk Employee dan GeneralPatient)
+            // 2. Dalam group: Tanggal DESC (kunjungan / diakui)
+            // 3. NoBill ASC
+            // 4. Item.Id ASC
+            _ => filter.Category == BillingDataCategories.Company
+                ? rows.OrderBy(x => x.Provider != null ? x.Provider.InsuranceProviderName : "")
+                    .ThenBy(x => x.Encounter == null)
+                    .ThenByDescending(x => x.Encounter != null ? (DateTime?)x.Encounter.EncounterDate : null)
                     .ThenByDescending(x => x.Receivable.RecognizedAt)
+                    .ThenBy(x => x.Invoice != null ? x.Invoice.InvoiceNumber : "")
                     .ThenBy(x => x.Item.Id)
-                : rows.OrderBy(x => x.Encounter == null)
-                    .ThenBy(x => x.Encounter!.EncounterDate)
-                    .ThenBy(x => x.Receivable.RecognizedAt)
+                : rows.OrderBy(x => x.Patient != null ? x.Patient.FullName : "")
+                    .ThenBy(x => x.Encounter == null)
+                    .ThenByDescending(x => x.Encounter != null ? (DateTime?)x.Encounter.EncounterDate : null)
+                    .ThenByDescending(x => x.Receivable.RecognizedAt)
+                    .ThenBy(x => x.Invoice != null ? x.Invoice.InvoiceNumber : "")
                     .ThenBy(x => x.Item.Id)
         };
     }
 
-    // Petunjuk tampilan untuk tombol "Buat Tagihan". Aturannya sejajar dengan GET eligible-receivables dan
-    // POST receivable-invoice-batches, ditambah keadaan nyata di database: anggota dari batch yang sudah
-    // CANCELLED masih menempati indeks unik IX_FinReceivableInvoiceBatchItem_ActiveReceivable (batch yang
-    // dibatalkan tidak menghapus baris anggotanya), sehingga belum bisa digabung ulang.
+    /// <summary>
+    /// Membangun kelompok tagihan (BillingDataGroupResponse) untuk halaman aktif, menghitung subtotal per tanggal,
+    /// dan menghitung groupTotal final dari SELURUH DATA FILTERED di database.
+    /// </summary>
+    private async Task<List<BillingDataGroupResponse>> BuildGroupsAsync(
+        IQueryable<BillingDataRow> rows,
+        List<BillingDataItemResponse> pageRows,
+        BillingDataFilter filter,
+        int totalFilteredCount,
+        decimal totalFilteredAmount,
+        CancellationToken cancellationToken)
+    {
+        if (pageRows.Count == 0) return new List<BillingDataGroupResponse>();
+
+        // Tentukan kunci group untuk setiap baris di halaman aktif
+        var groupedItems = new List<(string GroupId, string GroupName, BillingDataGroupMeta Meta, BillingDataItemResponse Item)>();
+
+        foreach (var item in pageRows)
+        {
+            string groupId;
+            string groupName;
+            BillingDataGroupMeta meta;
+
+            switch (filter.Category)
+            {
+                case BillingDataCategories.Employee:
+                    groupId = !string.IsNullOrWhiteSpace(item.EmployeeId)
+                        ? item.EmployeeId.Trim()
+                        : (item.PatientId.HasValue
+                            ? item.PatientId.Value.ToString()
+                            : (!string.IsNullOrWhiteSpace(item.MedicalRecordNumber)
+                                ? item.MedicalRecordNumber.Trim()
+                                : (!string.IsNullOrWhiteSpace(item.PatientName) ? item.PatientName.Trim() : "-")));
+                    groupName = !string.IsNullOrWhiteSpace(item.PatientName) ? item.PatientName.Trim() : "Karyawan";
+                    meta = new BillingDataGroupMeta
+                    {
+                        NoRM = item.MedicalRecordNumber,
+                        EmployeeId = item.EmployeeId
+                    };
+                    break;
+
+                case BillingDataCategories.GeneralPatient:
+                    groupId = item.PatientId.HasValue
+                        ? item.PatientId.Value.ToString()
+                        : (!string.IsNullOrWhiteSpace(item.MedicalRecordNumber)
+                            ? item.MedicalRecordNumber.Trim()
+                            : (!string.IsNullOrWhiteSpace(item.PatientName) ? item.PatientName.Trim() : "-"));
+                    groupName = !string.IsNullOrWhiteSpace(item.PatientName) ? item.PatientName.Trim() : "Pasien";
+                    meta = new BillingDataGroupMeta
+                    {
+                        NoRM = item.MedicalRecordNumber,
+                        EmployeeId = null
+                    };
+                    break;
+
+                default: // Company
+                    groupId = item.PayerId.HasValue
+                        ? item.PayerId.Value.ToString()
+                        : (!string.IsNullOrWhiteSpace(item.PayerName) ? item.PayerName.Trim() : "-");
+                    groupName = !string.IsNullOrWhiteSpace(item.PayerName) ? item.PayerName.Trim() : "-";
+                    meta = new BillingDataGroupMeta
+                    {
+                        NoRM = null,
+                        EmployeeId = null
+                    };
+                    break;
+            }
+
+            groupedItems.Add((groupId, groupName, meta, item));
+        }
+
+        // Urutkan grup secara alfabetis sesuai aturan V1 (locale id / OrdinalIgnoreCase)
+        var groupBuckets = groupedItems
+            .GroupBy(x => x.GroupId)
+            .OrderBy(g => g.First().GroupName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        // Hitung groupTotal, itemCount, dan patientCount dari SELURUH DATA FILTERED (bukan hanya halaman aktif)
+        var isSinglePageAllData = totalFilteredCount <= pageRows.Count;
+        var isSingleEntitySelected = filter.EntityId.HasValue;
+
+        var fullGroupTotals = new Dictionary<string, (decimal TotalAmount, int ItemCount, int PatientCount)>(StringComparer.OrdinalIgnoreCase);
+
+        if (isSinglePageAllData)
+        {
+            // Seluruh data filtered sudah ada di pageRows, hitung langsung tanpa query tambahan
+            foreach (var g in groupBuckets)
+            {
+                var totalAmount = g.Sum(x => x.Item.BillingAmount);
+                var itemCount = g.Count();
+                var patientCount = g.Select(x => x.Item.PatientId).Where(p => p != null).Distinct().Count();
+                fullGroupTotals[g.Key] = (totalAmount, itemCount, patientCount);
+            }
+        }
+        else if (isSingleEntitySelected && groupBuckets.Count == 1)
+        {
+            // Satu entitas terpilih dan hanya 1 grup: total group sama dengan summary grand total
+            fullGroupTotals[groupBuckets[0].Key] = (totalFilteredAmount, totalFilteredCount,
+                groupBuckets[0].Select(x => x.Item.PatientId).Where(p => p != null).Distinct().Count());
+        }
+        else
+        {
+            // Multiple groups across pages: hitung agregasi dari database tanpa N+1 query
+            if (filter.Category == BillingDataCategories.Company)
+            {
+                var payerGuids = pageRows
+                    .Where(x => x.PayerId.HasValue)
+                    .Select(x => x.PayerId!.Value)
+                    .Distinct()
+                    .ToList();
+
+                if (payerGuids.Count > 0)
+                {
+                    var payerAggs = await rows
+                        .Where(x => (x.Receivable.DebtorReferenceId != null && payerGuids.Contains(x.Receivable.DebtorReferenceId.Value))
+                            || (x.Receivable.DebtorReferenceId == null && x.CompanyGuarantorId != null && payerGuids.Contains(x.CompanyGuarantorId.Value)))
+                        .GroupBy(x => (Guid?)(x.Receivable.DebtorReferenceId ?? x.CompanyGuarantorId))
+                        .Select(g => new
+                        {
+                            PayerId = g.Key,
+                            TotalAmount = g.Sum(x => x.Item.Amount),
+                            ItemCount = g.Count(),
+                            PatientCount = g.Where(x => x.Item.PatientId != null).Select(x => x.Item.PatientId).Distinct().Count()
+                        })
+                        .ToListAsync(cancellationToken);
+
+                    foreach (var agg in payerAggs)
+                    {
+                        if (agg.PayerId.HasValue)
+                        {
+                            fullGroupTotals[agg.PayerId.Value.ToString()] = (agg.TotalAmount, agg.ItemCount, agg.PatientCount);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Employee atau GeneralPatient: agregasi berbasis PatientId
+                var patientGuids = pageRows
+                    .Where(x => x.PatientId.HasValue)
+                    .Select(x => x.PatientId!.Value)
+                    .Distinct()
+                    .ToList();
+
+                if (patientGuids.Count > 0)
+                {
+                    var patientAggs = await rows
+                        .Where(x => x.Item.PatientId != null && patientGuids.Contains(x.Item.PatientId.Value))
+                        .GroupBy(x => x.Item.PatientId)
+                        .Select(g => new
+                        {
+                            PatientId = g.Key,
+                            TotalAmount = g.Sum(x => x.Item.Amount),
+                            ItemCount = g.Count(),
+                            PatientCount = 1
+                        })
+                        .ToListAsync(cancellationToken);
+
+                    foreach (var agg in patientAggs)
+                    {
+                        if (agg.PatientId.HasValue)
+                        {
+                            fullGroupTotals[agg.PatientId.Value.ToString()] = (agg.TotalAmount, agg.ItemCount, agg.PatientCount);
+                        }
+                    }
+                }
+            }
+        }
+
+        var resultGroups = new List<BillingDataGroupResponse>();
+
+        foreach (var g in groupBuckets)
+        {
+            var first = g.First();
+            var itemsInGroup = g.Select(x => x.Item)
+                .OrderByDescending(x => x.BillingDate)
+                .ThenBy(x => x.InvoiceNumber ?? "")
+                .ThenBy(x => x.Id)
+                .ToList();
+
+            // DateTotals: subtotal billing amount per tanggal kalender (yyyy-MM-dd) di dalam group yang sama
+            var dateTotals = itemsInGroup
+                .GroupBy(x => x.BillingDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))
+                .OrderByDescending(dg => dg.Key)
+                .Select(dg => new BillingDataDateTotalResponse
+                {
+                    Date = dg.Key,
+                    Total = dg.Sum(x => x.BillingAmount)
+                })
+                .ToList();
+
+            // Ambil groupTotal penuh; jika fallback belum ada di fullGroupTotals, gunakan sum item
+            var (fullTotal, fullItemCount, fullPatientCount) = fullGroupTotals.TryGetValue(g.Key, out var aggVal)
+                ? aggVal
+                : (itemsInGroup.Sum(x => x.BillingAmount), itemsInGroup.Count, itemsInGroup.Select(x => x.PatientId).Where(p => p != null).Distinct().Count());
+
+            resultGroups.Add(new BillingDataGroupResponse
+            {
+                GroupId = g.Key,
+                GroupName = first.GroupName,
+                GroupMeta = first.Meta,
+                Items = itemsInGroup,
+                DateTotals = dateTotals,
+                GroupTotal = fullTotal,
+                ItemCount = fullItemCount,
+                PatientCount = fullPatientCount
+            });
+        }
+
+        return resultGroups;
+    }
+
+    // Petunjuk tampilan untuk tombol "Buat Tagihan". Aturannya sejajar dengan POST receivable-invoice-batches
+    // (FinanceReceivableInvoiceBatchService.CreateAsync: OUTSTANDING/PARTIAL/SETTLED boleh ditagihkan), ditambah
+    // keadaan nyata di database: anggota dari batch yang sudah CANCELLED masih menempati indeks unik
+    // IX_FinReceivableInvoiceBatchItem_ActiveReceivable (batch yang dibatalkan tidak menghapus baris anggotanya),
+    // sehingga belum bisa digabung ulang.
     private static string? ResolveCreateBlockedReason(
         string debtorType, Guid? debtorReferenceId, bool inActiveBatch, bool anyMembership, string receivableStatus)
     {
@@ -436,7 +753,9 @@ public sealed class FinanceReceivableBillingDataService
         if (debtorReferenceId is null) return BillingDataCreateBlockedReasons.NoDebtorReference;
         if (inActiveBatch) return BillingDataCreateBlockedReasons.AlreadyInBatch;
         if (anyMembership) return BillingDataCreateBlockedReasons.InCancelledBatch;
-        if (receivableStatus != FinReceivableStatuses.Outstanding && receivableStatus != FinReceivableStatuses.Partial)
+        if (receivableStatus != FinReceivableStatuses.Outstanding
+            && receivableStatus != FinReceivableStatuses.Partial
+            && receivableStatus != FinReceivableStatuses.Settled)
             return BillingDataCreateBlockedReasons.StatusNotEligible;
         return null;
     }
@@ -531,7 +850,7 @@ public sealed class FinanceReceivableBillingDataService
             SortBy = (request.SortBy ?? "date").Trim().ToLowerInvariant(),
             Descending = !string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase),
             PageNumber = Math.Max(1, request.PageNumber),
-            PageSize = Math.Clamp(request.PageSize, 1, 100)
+            PageSize = Math.Clamp(request.PageSize, 1, 1000)
         };
     }
 
@@ -633,6 +952,9 @@ internal sealed class BillingDataRow
 
     /// <summary>Perusahaan penjamin dari penjamin aktif pada kunjungan; null bila tidak ada.</summary>
     public Guid? CompanyGuarantorId { get; set; }
+
+    /// <summary>Nomor identitas/NIP karyawan pasien bila tersedia pada penjamin kunjungan.</summary>
+    public string? EmployeeNumber { get; set; }
 }
 
 /// <summary>Parameter tidak valid (kategori, status, jenis pasien, periode, atau rentang tanggal) → 400.</summary>

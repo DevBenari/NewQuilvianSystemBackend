@@ -1308,10 +1308,12 @@ public sealed class BillingInvoiceService
     // menyentuhnya, dan pembatalan dari rawat inap (InpEpisodeService) melewatkannya sama sekali.
     // IsActive tetap ikut disyaratkan pada query sebagai penjaga tambahan.
     //
-    // Completed SENGAJA disertakan: penagihan justru umum terjadi setelah pelayanan selesai, dan
-    // kalau status itu dibuang, kunjungan yang paling sering perlu dibuatkan invoice malah tidak
-    // muncul di daftar.
-    private static readonly EncounterStatus[] BillableEncounterStatuses =
+    // Status kunjungan yang eligible menerima penambahan tagihan manual (manual billing / ad-hoc charge).
+    // Halaman manual billing hanya menerima kunjungan yang belum selesai.
+    // Status Billing adalah status terakhir yang masih dapat menerima manual charge.
+    // EncounterStatus.Completed merupakan terminal state untuk flow manual billing ini.
+    // Koreksi setelah Completed harus melalui flow correction/adjustment yang sesuai, bukan menambah charge manual baru.
+    private static readonly EncounterStatus[] ManualChargeEligibleEncounterStatuses =
     [
         EncounterStatus.Registered,
         EncounterStatus.Queued,
@@ -1320,9 +1322,12 @@ public sealed class BillingInvoiceService
         EncounterStatus.WaitingForDoctor,
         EncounterStatus.InConsultation,
         EncounterStatus.ConsultationCompleted,
-        EncounterStatus.Billing,
-        EncounterStatus.Completed
+        EncounterStatus.Billing
     ];
+
+    private static bool IsManualEntrySource(string sourceDomain) =>
+        string.Equals(sourceDomain, "ADHOC_CATALOG", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(sourceDomain, "ADHOC", StringComparison.OrdinalIgnoreCase);
 
     public async Task<List<ActiveEncounterOptionResponse>> GetActiveEncounterOptionsAsync(
         string? search,
@@ -1338,7 +1343,8 @@ public sealed class BillingInvoiceService
             where !encounter.IsDelete
                 && !encounter.IsCancel
                 && encounter.IsActive
-                && BillableEncounterStatuses.Contains(encounter.EncounterStatus)
+                && ManualChargeEligibleEncounterStatuses.Contains(encounter.EncounterStatus)
+                && !encounter.CompletedAt.HasValue
             select new { encounter, patient };
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -1783,6 +1789,22 @@ public sealed class BillingInvoiceService
             var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == request.EncounterId && !x.IsDelete && !x.IsCancel, cancellationToken)
                 ?? throw new KeyNotFoundException("Encounter tidak ditemukan.");
+
+            if (IsManualEntrySource(source.SourceDomain))
+            {
+                if (encounter.EncounterStatus == EncounterStatus.Completed || encounter.CompletedAt.HasValue)
+                {
+                    throw new BillingInvoiceValidationException(
+                        "Kunjungan sudah selesai dan tidak dapat ditambahkan tagihan manual.");
+                }
+
+                if (!ManualChargeEligibleEncounterStatuses.Contains(encounter.EncounterStatus))
+                {
+                    throw new BillingInvoiceValidationException(
+                        $"Kunjungan dengan status {encounter.EncounterStatus} tidak dapat menerima tagihan manual.");
+                }
+            }
+
             var categoryExists = await _dbContext.MstTariffCategories.AsNoTracking()
                 .AnyAsync(x => x.Id == request.CategoryId && !x.IsDelete && !x.IsCancel && x.IsActive, cancellationToken);
             if (!categoryExists) throw new BillingInvoiceValidationException("Kategori tarif tidak ditemukan atau tidak aktif.");

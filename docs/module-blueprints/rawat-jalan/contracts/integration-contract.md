@@ -237,3 +237,20 @@ ulang bila pembatalan kunjungan kelak harus mengabari Billing atau BPJS.
 Tidak berlaku: tidak ada integrasi baru, event baru, atau handoff baru. Finalisasi konsultasi
 tertunda memakai jalur handoff Billing yang sama dengan konsultasi hari ini
 (`RJ-E2E-CONTRACT-001`); tidak ada perubahan.
+
+
+# Amendment PM-B — `RJ-DOC-REFERRAL-001@1.0.0`
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `RJ-DOC-REFERRAL-001@1.0.0` — `approved` |
+| Owner | Sukma Giri |
+| `approved_by` / `approved_at` | Sukma Giri / 2026-10-08 |
+| `input_revision` | Decision log *Amendment PM-B* (`RJ-DOC-DEC-068`..`082`) |
+
+| Integrasi | Arah | Kontrak | Perilaku gagal |
+|---|---|---|---|
+| Agent Plustek — OCR kartu asuransi | Browser → agent lokal `127.0.0.1:9100` | **Belum ada** (`RJ-DOC-OQ-PM-01`). Yang dibutuhkan: jenis dokumen kartu asuransi; field hasil nama asuransi dan No. polis | Agent belum mendukung / field kosong → gambar saja tersimpan, pemeriksaan match tidak berjalan (masa transisi) |
+| Agent Plustek — scan surat rujukan (Kiosk) | Browser → agent `POST /scanner/scan` (tanpa OCR, sudah ada) | Gambar per halaman | Gagal scan → pesan, boleh ulang; kunjungan belum dibuat sampai pasien lanjut |
+| Registrasi Laboratorium | Frontend RJ → `POST /lab-patient-registrations/external-referral` (sudah ada) | `RegisterLabExternalReferralRequest` + `IdempotencyKey` | Gagal → tidak ada kunjungan; ulang dengan kunci yang sama |
+| Rincian rujukan Lab | Frontend RJ → `PUT /patient-encounters/{id}/referral` | `RJ-DOC-REFERRAL-001` | Gagal sesudah kunjungan lab ada → "Rincian rujukan belum tersimpan" + Coba lagi; kunjungan tampil "Rujukan belum lengkap" |
