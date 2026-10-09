@@ -32,6 +32,7 @@ public sealed class CorrectEquipmentUsageRequest
 public sealed class EquipmentUsageResponse
 {
     public Guid Id { get; set; }
+    public Guid MedicalEquipmentId { get; set; }
     public string EquipmentName { get; set; } = "";
     public MstEquipmentChargeUnit ChargeUnit { get; set; }
     public DateTime StartedAt { get; set; }

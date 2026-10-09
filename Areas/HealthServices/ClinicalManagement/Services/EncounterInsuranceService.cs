@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -36,6 +37,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     .ThenInclude(x => x!.InsuranceProvider)
                 .Include(x => x.PaymentSource)
                     .ThenInclude(x => x!.PatientInsurance)
+                .Include(x => x.PaymentSource)
+                    .ThenInclude(x => x!.CompanyGuarantor)
+                .Include(x => x.PaymentSource)
+                    .ThenInclude(x => x!.PatientCompanyGuarantor)
                 .FirstOrDefaultAsync(
                     x => x.Id == encounterId &&
                          !x.IsDelete &&
@@ -73,6 +78,127 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     PaymentSourceName = paymentSource.PaymentSourceNameSnapshot,
                     ServiceDate = effectiveDate,
                     IsInsuranceReady = false
+                };
+            }
+
+            if (encounter.PaymentType == EncounterPaymentType.CompanyGuarantor)
+            {
+                if (paymentSource.PaymentType != EncounterPaymentType.CompanyGuarantor)
+                {
+                    return EncounterInsuranceContext.Fail(
+                        encounterId,
+                        "Tipe pembayaran pada encounter dan payment source tidak konsisten.");
+                }
+
+                if (!paymentSource.CompanyGuarantorId.HasValue ||
+                    paymentSource.CompanyGuarantorId.Value == Guid.Empty)
+                {
+                    return EncounterInsuranceContext.Fail(
+                        encounterId,
+                        "Referensi company guarantor belum lengkap.");
+                }
+
+                var company = paymentSource.CompanyGuarantor;
+                var patientCompanyGuarantor = paymentSource.PatientCompanyGuarantor;
+
+                if (company == null || company.IsDelete || !company.IsActive)
+                {
+                    return EncounterInsuranceContext.Fail(
+                        encounterId,
+                        "Perusahaan penjamin tidak ditemukan atau tidak aktif.");
+                }
+
+                if (patientCompanyGuarantor != null &&
+                    (patientCompanyGuarantor.IsDelete ||
+                     !patientCompanyGuarantor.IsActive ||
+                     patientCompanyGuarantor.PatientId != encounter.PatientId ||
+                     patientCompanyGuarantor.CompanyGuarantorId != company.Id))
+                {
+                    return EncounterInsuranceContext.Fail(
+                        encounterId,
+                        "Data penjamin perusahaan pasien tidak aktif atau tidak sesuai encounter.");
+                }
+
+                var companyPolicyStart = paymentSource.EffectiveStartDateSnapshot ?? patientCompanyGuarantor?.EffectiveStartDate;
+                var companyPolicyEnd = paymentSource.EffectiveEndDateSnapshot ?? patientCompanyGuarantor?.EffectiveEndDate;
+
+                if (companyPolicyStart.HasValue && companyPolicyStart.Value.Date > effectiveDate)
+                {
+                    return EncounterInsuranceContext.Fail(
+                        encounterId,
+                        "Masa berlaku penjamin perusahaan belum mulai berlaku pada tanggal pelayanan.");
+                }
+
+                if (companyPolicyEnd.HasValue && companyPolicyEnd.Value.Date < effectiveDate)
+                {
+                    return EncounterInsuranceContext.Fail(
+                        encounterId,
+                        "Masa berlaku penjamin perusahaan sudah berakhir pada tanggal pelayanan.");
+                }
+
+                if (company.ContractStartDate.HasValue && company.ContractStartDate.Value.Date > effectiveDate)
+                {
+                    return EncounterInsuranceContext.Fail(
+                        encounterId,
+                        "Kontrak perusahaan penjamin belum mulai berlaku pada tanggal pelayanan.");
+                }
+
+                if (company.ContractEndDate.HasValue && company.ContractEndDate.Value.Date < effectiveDate)
+                {
+                    return EncounterInsuranceContext.Fail(
+                        encounterId,
+                        "Kontrak perusahaan penjamin sudah berakhir pada tanggal pelayanan.");
+                }
+
+                var companyEligible = paymentSource.IsEligible && (patientCompanyGuarantor == null || patientCompanyGuarantor.IsEligible);
+                if (!companyEligible)
+                {
+                    return EncounterInsuranceContext.Fail(
+                        encounterId,
+                        "Penjamin perusahaan pasien belum eligible untuk digunakan.");
+                }
+
+                return new EncounterInsuranceContext
+                {
+                    IsValid = true,
+                    EncounterId = encounter.Id,
+                    PatientId = encounter.PatientId,
+                    ServiceUnitId = encounter.ServiceUnitId,
+                    ClinicId = encounter.ClinicId,
+                    PatientClassId = encounter.PatientClassId,
+                    PatientClassName = encounter.PatientClass?.PatientClassName
+                        ?? paymentSource.ClassNameSnapshot,
+                    PaymentType = EncounterPaymentType.CompanyGuarantor,
+                    PaymentTypeName = "Penjamin Perusahaan",
+                    HasInsurance = false,
+                    PaymentSourceId = paymentSource.Id,
+                    PaymentSourceName = paymentSource.PaymentSourceNameSnapshot
+                        ?? company.CompanyGuarantorName,
+                    CompanyGuarantorId = company.Id,
+                    CompanyGuarantorName = company.CompanyGuarantorName,
+                    PatientCompanyGuarantorId = patientCompanyGuarantor?.Id,
+                    BenefitPlanCode = paymentSource.BenefitPlanCodeSnapshot
+                        ?? patientCompanyGuarantor?.BenefitPlanCode,
+                    BenefitPlanName = patientCompanyGuarantor?.BenefitPlanName
+                        ?? "Paket Perusahaan",
+                    PolicyNumber = patientCompanyGuarantor?.EmployeeNumber
+                        ?? paymentSource.EmployeeNumberSnapshot,
+                    // BE-RWI-189: dari snapshot sumber pembayaran kunjungan, tanpa cadangan dari
+                    // nomor lain (RWI-DEC-253) — nomor karyawan tidak pernah menjadi nomor kartu.
+                    CardNumber = CleanSnapshot(paymentSource.CardNumberSnapshot),
+                    MemberNumber = CleanSnapshot(paymentSource.MemberNumberSnapshot),
+                    EmployeeGrade = patientCompanyGuarantor?.GradeLevel,
+                    IsEligible = companyEligible,
+                    IsPolicyActive = true,
+                    IsInsuranceReady = true,
+                    IsUsingInsuranceTariffBook = company.IsUsingCompanyTariffBook,
+                    IsUsingHospitalTariff = company.IsUsingHospitalTariff,
+                    IsNeedGuaranteeLetter = company.IsNeedGuaranteeLetter,
+                    IsNeedApprovalForDrug = company.IsNeedApprovalForDrug,
+                    IsNeedApprovalForProcedure = company.IsNeedApprovalForProcedure,
+                    IsAllowExcessPaymentByPatient = company.IsAllowExcessPaymentByPatient,
+                    RemainingLimitAmount = patientCompanyGuarantor?.RemainingLimitAmount,
+                    ServiceDate = effectiveDate
                 };
             }
 
@@ -185,6 +311,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     ?? patientInsurance.PlanName,
                 PolicyNumber = paymentSource.PolicyNumberSnapshot
                     ?? patientInsurance.PolicyNumber,
+                // BE-RWI-189: nomor kartu dan peserta dari snapshot sumber pembayaran kunjungan.
+                CardNumber = CleanSnapshot(paymentSource.CardNumberSnapshot),
+                MemberNumber = CleanSnapshot(paymentSource.MemberNumberSnapshot),
                 IsEligible = eligible,
                 IsPolicyActive = true,
                 IsInsuranceReady = true,
@@ -341,6 +470,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 ServiceDate = effectiveDate
             };
         }
+
+        private static string? CleanSnapshot(string? value)
+            => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
     public class EncounterInsuranceContext
@@ -365,9 +497,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         public Guid? PatientInsuranceId { get; set; }
         public Guid? InsuranceProviderId { get; set; }
         public string? InsuranceProviderName { get; set; }
+        public Guid? CompanyGuarantorId { get; set; }
+        public string? CompanyGuarantorName { get; set; }
+        public Guid? PatientCompanyGuarantorId { get; set; }
+        public string? EmployeeGrade { get; set; }
         public string? BenefitPlanCode { get; set; }
         public string? BenefitPlanName { get; set; }
         public string? PolicyNumber { get; set; }
+
+        /// <summary>
+        /// Nomor kartu penjamin kunjungan (<c>CardNumberSnapshot</c>); kosong untuk tunai atau bila
+        /// tidak tercatat (<c>BE-RWI-189</c>, <c>RWI-DEC-253</c>). Dipakai label pasien dan IPD.
+        /// </summary>
+        public string? CardNumber { get; set; }
+
+        /// <summary>Nomor peserta penjamin kunjungan (<c>MemberNumberSnapshot</c>) (<c>BE-RWI-189</c>).</summary>
+        public string? MemberNumber { get; set; }
 
         public bool IsEligible { get; set; }
         public bool IsPolicyActive { get; set; }

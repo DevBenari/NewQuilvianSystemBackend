@@ -108,9 +108,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                         result.Message));
 
                 case InpatientSettingUpdateStatus.Invalid:
+                    // BE-RWI-186: kode MST-IST-001/002 ikut pada Errors bila ada.
                     return BadRequest(ApiResponse<object>.Fail(
                         StatusCodes.Status400BadRequest,
-                        result.Message));
+                        result.Message,
+                        result.Code != null ? new { result.Code } : null));
             }
 
             await _loggerService.InfoAsync(
@@ -143,6 +145,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsDefault = entity.IsDefault,
                 IsActive = entity.IsActive,
                 Notes = entity.Notes,
+                GeneralConsentFormCode = entity.GeneralConsentFormCode,
+                NewPatientHandoverFormCode = entity.NewPatientHandoverFormCode,
+                PrivacyRequestFormCode = entity.PrivacyRequestFormCode,
+                BeliefValuesFormCode = entity.BeliefValuesFormCode,
+                CostDifferenceFormCode = entity.CostDifferenceFormCode,
+                DepositSettlementFormCode = entity.DepositSettlementFormCode,
+                CostEstimateFormCode = entity.CostEstimateFormCode,
+                InpatientBaseDataFormCode = entity.InpatientBaseDataFormCode,
+                DocumentSigningCity = entity.DocumentSigningCity,
+                InfantWristbandMaxAgeYears = entity.InfantWristbandMaxAgeYears,
+                PatientLabelHospitalCode = entity.PatientLabelHospitalCode,
                 CreateDateTime = entity.CreateDateTime,
                 UpdateDateTime = entity.UpdateDateTime
             };

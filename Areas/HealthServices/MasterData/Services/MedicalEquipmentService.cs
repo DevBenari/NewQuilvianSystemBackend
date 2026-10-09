@@ -13,20 +13,96 @@ public class MedicalEquipmentService(ApplicationDbContext db, LoggerService logg
     public async Task<MedicalEquipmentSummary> SummaryAsync(CancellationToken ct) => new() { Total = await Query().CountAsync(ct), Active = await Query().CountAsync(x => x.IsActive, ct), Inactive = await Query().CountAsync(x => !x.IsActive, ct) };
     public async Task<List<MedicalEquipmentOption>> OptionsAsync(string? search, CancellationToken ct)
     {
-        var q = Query().Where(x => x.IsActive); if (!string.IsNullOrWhiteSpace(search)) { var s = search.Trim().ToLower(); q = q.Where(x => x.EquipmentName.ToLower().Contains(s) || x.EquipmentCode.ToLower().Contains(s)); }
-        return await q.OrderBy(x => x.EquipmentName).Select(x => new MedicalEquipmentOption { Id = x.Id, EquipmentCode = x.EquipmentCode, EquipmentName = x.EquipmentName, ChargeUnit = x.ChargeUnit }).ToListAsync(ct);
+        var q = Query().Where(x => x.IsActive);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            q = q.Where(x => x.EquipmentName.ToLower().Contains(s) || x.EquipmentCode.ToLower().Contains(s));
+        }
+        var list = await q.OrderBy(x => x.EquipmentName).ToListAsync(ct);
+        var eqIds = list.Select(x => x.Id).ToList();
+        var tariffs = await db.Set<MstTariff>().AsNoTracking()
+            .Where(t => t.MedicalEquipmentId.HasValue && eqIds.Contains(t.MedicalEquipmentId.Value) && t.IsActive && !t.IsDelete && !t.IsCancel)
+            .Select(t => new { t.MedicalEquipmentId, t.NormalPrice, t.TariffCode })
+            .ToListAsync(ct);
+        var tariffMap = tariffs.GroupBy(t => t.MedicalEquipmentId!.Value).ToDictionary(g => g.Key, g => g.First());
+
+        return list.Select(x =>
+        {
+            var hasTariff = tariffMap.TryGetValue(x.Id, out var trf);
+            return new MedicalEquipmentOption
+            {
+                Id = x.Id,
+                EquipmentCode = x.EquipmentCode,
+                EquipmentName = x.EquipmentName,
+                ChargeUnit = x.ChargeUnit,
+                NormalPrice = hasTariff ? trf?.NormalPrice : null,
+                TariffCode = hasTariff ? trf?.TariffCode : null
+            };
+        }).ToList();
     }
     public async Task<PagedResult<MedicalEquipmentResponse>> ListAsync(MedicalEquipmentQuery request, CancellationToken ct)
     {
-        var q = Query(); if (request.IsActive.HasValue) q = q.Where(x => x.IsActive == request.IsActive);
-        if (!string.IsNullOrWhiteSpace(request.Search)) { var s = request.Search.Trim().ToLower(); q = q.Where(x => x.EquipmentName.ToLower().Contains(s) || x.EquipmentCode.ToLower().Contains(s)); }
-        var total = await q.CountAsync(ct); var desc = request.SortDirection?.ToLower() == "desc";
-        q = request.SortBy?.ToLower() switch { "equipmentcode" => desc ? q.OrderByDescending(x => x.EquipmentCode) : q.OrderBy(x => x.EquipmentCode), "createdatetime" => desc ? q.OrderByDescending(x => x.CreateDateTime) : q.OrderBy(x => x.CreateDateTime), _ => desc ? q.OrderByDescending(x => x.EquipmentName) : q.OrderBy(x => x.EquipmentName) };
-        var page = Math.Max(1, request.PageNumber); var size = Math.Clamp(request.PageSize, 1, 100);
-        return new() { PageNumber = page, PageSize = size, TotalData = total, TotalPage = (int)Math.Ceiling(total / (double)size), Items = (await q.Skip((page - 1) * size).Take(size).ToListAsync(ct)).Select(Map).ToList() };
+        var q = Query();
+        if (request.IsActive.HasValue) q = q.Where(x => x.IsActive == request.IsActive);
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var s = request.Search.Trim().ToLower();
+            q = q.Where(x => x.EquipmentName.ToLower().Contains(s) || x.EquipmentCode.ToLower().Contains(s));
+        }
+        var total = await q.CountAsync(ct);
+        var desc = request.SortDirection?.ToLower() == "desc";
+        q = request.SortBy?.ToLower() switch
+        {
+            "equipmentcode" => desc ? q.OrderByDescending(x => x.EquipmentCode) : q.OrderBy(x => x.EquipmentCode),
+            "createdatetime" => desc ? q.OrderByDescending(x => x.CreateDateTime) : q.OrderBy(x => x.CreateDateTime),
+            _ => desc ? q.OrderByDescending(x => x.EquipmentName) : q.OrderBy(x => x.EquipmentName)
+        };
+        var page = Math.Max(1, request.PageNumber);
+        var size = Math.Clamp(request.PageSize, 1, 100);
+        var items = await q.Skip((page - 1) * size).Take(size).ToListAsync(ct);
+
+        var eqIds = items.Select(x => x.Id).ToList();
+        var tariffs = await db.Set<MstTariff>().AsNoTracking()
+            .Where(t => t.MedicalEquipmentId.HasValue && eqIds.Contains(t.MedicalEquipmentId.Value) && t.IsActive && !t.IsDelete && !t.IsCancel)
+            .Select(t => new { t.MedicalEquipmentId, t.NormalPrice, t.TariffCode })
+            .ToListAsync(ct);
+        var tariffMap = tariffs.GroupBy(t => t.MedicalEquipmentId!.Value).ToDictionary(g => g.Key, g => g.First());
+
+        return new()
+        {
+            PageNumber = page,
+            PageSize = size,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)size),
+            Items = items.Select(x =>
+            {
+                var resp = Map(x);
+                if (tariffMap.TryGetValue(x.Id, out var trf))
+                {
+                    resp.NormalPrice = trf.NormalPrice;
+                    resp.TariffCode = trf.TariffCode;
+                }
+                return resp;
+            }).ToList()
+        };
     }
     public async Task<NursingResult<MedicalEquipmentResponse>> DetailAsync(Guid id, CancellationToken ct)
-    { var row = await Query().FirstOrDefaultAsync(x => x.Id == id, ct); return row == null ? NursingResult<MedicalEquipmentResponse>.Fail(404, "Jenis alat tidak ditemukan.") : NursingResult<MedicalEquipmentResponse>.Ok(Map(row), "Jenis alat berhasil diambil."); }
+    {
+        var row = await Query().FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (row == null) return NursingResult<MedicalEquipmentResponse>.Fail(404, "Jenis alat tidak ditemukan.");
+        var resp = Map(row);
+        var trf = await db.Set<MstTariff>().AsNoTracking()
+            .Where(t => t.MedicalEquipmentId == id && t.IsActive && !t.IsDelete && !t.IsCancel)
+            .Select(t => new { t.NormalPrice, t.TariffCode })
+            .FirstOrDefaultAsync(ct);
+        if (trf != null)
+        {
+            resp.NormalPrice = trf.NormalPrice;
+            resp.TariffCode = trf.TariffCode;
+        }
+        return NursingResult<MedicalEquipmentResponse>.Ok(resp, "Jenis alat berhasil diambil.");
+    }
     public async Task<NursingResult<MedicalEquipmentResponse>> SaveAsync(Guid? id, CreateMedicalEquipmentRequest request, Guid actor, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.EquipmentCode) || string.IsNullOrWhiteSpace(request.EquipmentName) || !Enum.IsDefined(request.ChargeUnit) || !Enum.IsDefined(request.RoundingRule)) return NursingResult<MedicalEquipmentResponse>.Fail(400, "Kode, nama, satuan, dan pembulatan wajib sah.");

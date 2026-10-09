@@ -88,6 +88,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.StartDateTime).First().Location);
         }
 
+        /// <summary>
+        /// Apakah pasien sedang menempati bed aktif pada episode ini — <c>BE-RWI-193</c>,
+        /// <c>INV-RWA-11</c>, <c>RWI-DEC-255</c>.
+        /// </summary>
+        /// <remarks>
+        /// Aturan "menempati bed" sama dengan method lain di kelas ini: episode masih hadir dan
+        /// penempatan berjalannya belum berakhir maupun digantikan koreksi. Pemesanan bed saja
+        /// <b>tidak</b> dihitung. Contoh: bed Melati 03 B masih dipesan untuk Tn. Budi pukul 10.20 →
+        /// <c>false</c>; Budi ditempatkan pukul 10.35 → <c>true</c>.
+        /// </remarks>
+        public Task<bool> HasActivePlacementAsync(Guid episodeId, CancellationToken cancellationToken = default)
+        {
+            if (episodeId == Guid.Empty)
+                return Task.FromResult(false);
+
+            return _dbContext.Set<InpBedPlacement>()
+                .AsNoTracking()
+                .AnyAsync(x => x.EpisodeId == episodeId && x.Episode != null && !x.Episode.IsDelete &&
+                    (x.Episode.EpisodeStatus == InpEpisodeStatus.Admitted ||
+                     (x.Episode.EpisodeStatus == InpEpisodeStatus.DischargePending && x.Episode.PhysicallyLeftAt == null)) &&
+                    x.EndDateTime == null && !x.IsDelete && x.IsActive && !x.IsSuperseded &&
+                    x.SupersededByCorrectionId == null, cancellationToken);
+        }
+
         private IQueryable<InpBedPlacement> ActivePlacements(Guid patientId) =>
             _dbContext.Set<InpBedPlacement>()
                 .AsNoTracking()

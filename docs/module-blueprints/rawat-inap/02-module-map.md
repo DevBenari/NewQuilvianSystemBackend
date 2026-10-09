@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | Dokumen | `02-module-map.md` — hanya lahir pada `blueprint_shape: COMPOSITE` |
-| Revision | **`4`** — Finishing Rawat Inap, 1 Oktober 2026: bagian 7. Sebelumnya revision `3` pendaftaran sub-modul `integrasi-billing` (17 September 2026) dan revision `2` (15 September 2026) |
-| Status | **`approved`** — revision `4` **disetujui Muhammad Hamzah 2026-10-02 lewat `RWI-DEC-221`**, bersama keempat kontrak baru (`integrasi-billing` `1.1.0`, `keperawatan` `0.6.0`, `dokter-rawat-inap` `0.7.0`, `episode-rawat-inap` `0.10.0`). Approval sebelumnya tetap berlaku untuk isi yang tidak disentuh |
+| Revision | **`5`** — Workspace PPRI, 7 Oktober 2026: bagian 8 (`draft`). Sebelumnya **`4`** — Finishing Rawat Inap, 1 Oktober 2026: bagian 7. Sebelumnya revision `3` pendaftaran sub-modul `integrasi-billing` (17 September 2026) dan revision `2` (15 September 2026) |
+| Status | **`approved`** untuk revision `5` (bagian 8) — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). **`approved`** — revision `4` **disetujui Muhammad Hamzah 2026-10-02 lewat `RWI-DEC-221`**, bersama keempat kontrak baru (`integrasi-billing` `1.1.0`, `keperawatan` `0.6.0`, `dokter-rawat-inap` `0.7.0`, `episode-rawat-inap` `0.10.0`). Approval sebelumnya tetap berlaku untuk isi yang tidak disentuh |
 | Tanggal | 2026-09-02; revision `2` ditulis 2026-09-15, disetujui 2026-09-16; revision `3` ditulis 2026-09-17; **revision `4` ditulis 2026-10-01** |
 | Modul | `rawat-inap` / `InPatientManagement`, prefix entity `Inp` |
 | Bentuk blueprint | `COMPOSITE`, ditetapkan `RWI-DEC-082`, `shape_decided_by: USER_CONFIRMED` |
@@ -644,3 +644,101 @@ Revision `4` tidak dinaikkan — **dan disetujui 2026-10-02 lewat `RWI-DEC-221`*
 | Persetujuan OK, Bank Darah, Farmasi | 7.2, 7.4, 7.5, 7.7 |
 | Prioritas `P1` dan G-05 | 7.5, 7.7 |
 | Koreksi agent: ketukan pintu `ADMISSION_CONFIRMED` tidak membawa `SourceEncounterId` (`INV-RWF-05`); Billing membaca `InpAdmissionReferral` | `episode-rawat-inap` 12.15, `integrasi-billing` `INT-RWF-29` |
+
+---
+
+## 8. ★ Revision `5` — Workspace PPRI ★ 7 Oktober 2026
+
+| Field | Nilai |
+|---|---|
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). Revision `4` (bagian 7) tetap `approved` (`RWI-DEC-221`) |
+| Masukan | `PRD-RWI-ADMISI-001` v`0.2`; decision log revision `38` (`RWI-DEC-225` s.d. `264`); gate `1.11` bagian 20; capability map `1.7` bagian 20 |
+| Ditulis oleh | `design-business-module`, `DOMAIN_ARCHITECTURE_NOT_RUN` |
+| Bentuk | Tetap `COMPOSITE` empat sub-modul (`RWI-DEC-227`). **Nol sub-modul baru** — Workspace PPRI menjadi bagian `episode-rawat-inap`. Uji pemecahan memberi 4 dari 5 syarat untuk rumpun dokumen admisi; pemilik memilih tetap di `episode-rawat-inap` dan hasil uji dicatat sebagai catatan, bukan bantahan |
+
+### 8.1 Registry sub-modul revision `5`
+
+| Slug | Kontrak sebelumnya | Kontrak baru | Bagian amandemen | Kemampuan | Status |
+|---|---|---|---|---|---|
+| `episode-rawat-inap` | `0.10.0` (`approved`) | **`0.11.0`** | `02` 13, `03` 14, `04` 24, kontrak api 12, state 10, validation 15, integration 10, permission 10, data 20, testing 21, flowchart `05` s.d. `08` dan `00` bagian 3 | `CAP-RWA-01` s.d. `17` (tanpa `04`) | **`approved`** (`RWI-DEC-265`) |
+| `keperawatan` | `0.6.0` | Tidak berubah | — | — | `approved` |
+| `dokter-rawat-inap` | `0.7.0` | Tidak berubah | — | — | `approved` |
+| `integrasi-billing` | `1.1.0` | Tidak berubah — dokumen admisi tidak menimbulkan biaya | — | — | `approved` |
+
+Status modul diturunkan: keempat sub-modul `approved` sejak 2026-10-08 (`RWI-DEC-265`) → modul **`approved`**. Sebelumnya `partial` selama amandemen `0.11.0` berstatus `draft` (7 Oktober 2026). Kontrak `0.10.0` `episode-rawat-inap` tetap `approved` untuk isi yang tidak disentuh; task Finishing tetap berjalan di atasnya.
+
+### 8.2 Tabel kepemilikan data revision `5`
+
+Satu baris per kelompok data yang **baru atau berubah bentuk**. Tidak ada tabel yang dimiliki dua sub-modul.
+
+| Kelompok data | Tabel | Modul pemilik | Sub-modul perancang | Status | Gerbang pemilik |
+|---|---|---|---|---|---|
+| Dokumen admisi: kepala per versi, tanda tangan, pihak | `InpAdmissionDocument`, `InpAdmissionDocumentSignature`, `InpAdmissionDocumentParty` | `InPatientManagement` (`RWI-DEC-228`) | `episode-rawat-inap` | Baru | — |
+| Isi khas dokumen | `InpAdmissionHandoverItem`, `InpAdmissionPrivacyRequest`, `InpAdmissionPrivacyEntry`, `InpAdmissionBeliefItem`, `InpAdmissionCostDifferenceStatement`, `InpAdmissionDepositStatement` | `InPatientManagement` | `episode-rawat-inap` | Baru | — |
+| Log cetak gelang, label, IPD, dokumen | `InpAdmissionPrintLog` | `InPatientManagement` | `episode-rawat-inap` | Baru | — |
+| Estimasi Biaya dan penanda rencana tindakan | `InpAdmissionCostEstimate`, `InpAdmissionCostEstimateLine`, `InpAdmissionProcedurePlanMark` | `InPatientManagement` | `episode-rawat-inap` | Baru — **di luar gelombang** | `DEC-INP-020` |
+| Butir administrasi: jenis, induk, sumber saran | `MstInpatientClearanceItem` (+3) | `MasterData` | `episode-rawat-inap` | Diperbarui | `RWI-DEC-193` |
+| Pengaturan cetak dan gelang | `MstInpatientSetting` (+11) | `MasterData` | `episode-rawat-inap` | Diperbarui | `RWI-DEC-193` |
+| Pasien, relasi, kontak darurat | Tidak berubah; service baca baru | `PatientManagement` | `episode-rawat-inap` merancang service | Sudah ada | Disetujui `RWI-DEC-266` |
+| Profil rumah sakit | Tidak berubah; service baca baru | HR Master Data | Sama | Sudah ada | Disetujui `RWI-DEC-266` |
+| Dokter perujuk luar kunjungan | Tidak berubah; service baca baru | `RegistrationManagement` | Sama | Sudah ada | **`RWI-OQ-128`** (cadangan garis kosong) |
+| Tarif kamar per hari | Tidak berubah; method baca baru | `BillingManagement` | Sama | Sudah ada | **`RWI-OQ-129`** (cadangan "lihat kasir") |
+| Penjamin kunjungan, alergi, surat pengantar | Tidak berubah; service Clinical diperluas atau baru | `ClinicalManagement` (membaca tabel Registration dan Clinical seperti hari ini) | Sama | Sudah ada | Disetujui lewat `RWI-DEC-264` |
+
+**Yang tidak dibuat.** Tidak ada tabel persetujuan kedua (`TrxPatientConsent` tidak disentuh selama *fail-closed*), tidak ada baris `MrcClinicalDocumentIntegrity` (`RWI-DEC-229`), tidak ada salinan master pasien atau penjamin, tidak ada `Trx*` baru.
+
+### 8.3 Peta butir menu revision `5`
+
+**Nol butir menu baru.** `IA-INP-05` tetap sepuluh. Workspace PPRI dan seluruh menunya adalah **layar anak** Detail Episode `FE-INP-04`, sama seperti Workspace Keperawatan dan Workspace Dokter.
+
+| Layar | Jalan masuk | Butir hak akses | Sub-modul |
+|---|---|---|---|
+| `FE-INP-35` Workspace PPRI | Tombol "Workspace PPRI" di `FE-INP-04`, tepat sesudah Workspace Dokter (`RWI-DEC-245`) | `InpatientAdmissionDocument : Read` | `episode-rawat-inap` |
+| `FE-INP-36` General Consent cetak saja | Menu `FE-INP-35`; tombol "Cetak Persetujuan" `FE-INP-04` (`RWI-DEC-246`); rute lama `FE-INP-18` dialihkan | `InpatientAdmissionDocument : Read` | `episode-rawat-inap` |
+| `FE-INP-37` s.d. `41`, `43`, `44` | Menu navigasi kiri `FE-INP-35` | `InpatientAdmissionDocument : Read` | `episode-rawat-inap` |
+| `FE-INP-42` Estimasi Biaya | Menu `FE-INP-35`, **tidak tampil** sebelum `EPIC-RWA-09` dikirim | Sama | `episode-rawat-inap` |
+
+Butir menu yang **berubah isi layarnya**: Pengaturan Rawat Inap (`FE-INP-12`, sebelas isian) dan Butir Administrasi Rawat Inap (`FE-INP-13`, saringan dan isian jenis). Hak akses penjaganya tetap `InpatientSetting : Read` dan `InpatientClearanceItem : Read` (string source, lihat 7.6).
+
+### 8.4 Urutan migration lintas sub-modul revision `5`
+
+Langkah di `episode-rawat-inap/02-backend-architecture.md` 13.12.
+
+| Gelombang | Langkah | Prasyarat | Dirilis bersama |
+|---|---|---|---|
+| `RWA-MVP-0` | **`E9`** `MasterData` (`MstInpatientClearanceItem` +3, `MstInpatientSetting` +11) **bersama kode saringan jenis penutupan** → **`E10`** `InPatientManagement` (sepuluh tabel) → **`E12`** hak dan data awal | Kontrak `0.11.0` disetujui; migration Finishing `20261005033044_AddRawatInapFinishing` sudah diterapkan (memuat kolom `MstInpatientSetting` sebelumnya) | `MasterData` sebelum `InPatientManagement` |
+| Di luar gelombang | **`E11`** tabel Estimasi Biaya | `DEC-INP-020` | `InPatientManagement` |
+
+Tidak ada migration di `PatientManagement`, `ClinicalManagement`, `RegistrationManagement`, `BillingManagement`, maupun HR — perubahan di sana hanya service baca. **Tidak ada migration Workspace PPRI yang menahan sub-modul lain**, dan migration sub-modul lain yang belum diterapkan tidak menahan `E9` s.d. `E12`. Butir serah terima produksi diisi admin **sesudah** `E9` beserta kode saringannya dirilis.
+
+### 8.5 Pemetaan kemampuan Workspace PPRI ke sub-modul
+
+| Kemampuan | Isi | Sub-modul pemilik | Slice gate `1.11` | Kesiapan | Gelombang |
+|---|---|---|---|---|---|
+| `CAP-RWA-01` | Ruang kerja, header, kelengkapan | `episode-rawat-inap` | `INP-S38` | `READY_FOR_DOMAIN_DESIGN` | `RWA-MVP-1` |
+| `CAP-RWA-02` | General Consent — bagian cetak | `episode-rawat-inap` | `INP-S47` | `READY_FOR_DOMAIN_DESIGN` | `RWA-MVP-1` (`EPIC-RWA-14`) |
+| `CAP-RWA-02` | General Consent — penyimpanan | `episode-rawat-inap` (data di `ClinicalManagement`) | `INP-S10` | `BUSINESS_DECISION_REQUIRED` (`DEC-INP-003`) | Di luar gelombang |
+| `CAP-RWA-03` | Serah Terima Pasien Baru | `episode-rawat-inap` | `INP-S40` | `READY_FOR_DOMAIN_DESIGN` | `RWA-MVP-2` |
+| `CAP-RWA-04` | Asesmen Edukasi | — | — | **Dibatalkan** (`RWI-DEC-226`); tetap di `keperawatan` | — |
+| `CAP-RWA-05` | Gelang dan label | `episode-rawat-inap` | `INP-S41` | `READY_FOR_DOMAIN_DESIGN` | `RWA-MVP-1` |
+| `CAP-RWA-06`, `13` | Privasi, Nilai Kepercayaan | `episode-rawat-inap` | `INP-S43` | `READY_FOR_DOMAIN_DESIGN` | `RWA-MVP-2` |
+| `CAP-RWA-07` | IPD | `episode-rawat-inap` | `INP-S42` | `READY_FOR_DOMAIN_DESIGN` | `RWA-MVP-1` |
+| `CAP-RWA-08` | Pelunasan Deposit | `episode-rawat-inap` | `INP-S45` | `READY_FOR_DOMAIN_DESIGN` | `RWA-MVP-2` |
+| `CAP-RWA-09` | Estimasi Biaya Rekap | `episode-rawat-inap` | `INP-S46` | `PARTIALLY_READY` (`DEC-INP-020`) | Di luar gelombang |
+| `CAP-RWA-10` | Estimasi Biaya Rinci | `episode-rawat-inap` | — | `DEFERRED` (`RWI-OQ-119`) | `POST-MVP` |
+| `CAP-RWA-11` | Selisih Biaya | `episode-rawat-inap` | `INP-S44` | `READY_FOR_DOMAIN_DESIGN` | `RWA-MVP-2` |
+| `CAP-RWA-12` | MP Benefit | `episode-rawat-inap` | — | `DEFERRED` (`RWI-OQ-120`) | `POST-MVP` |
+| `CAP-RWA-14` | Tanda tangan pasien/keluarga — kertas | `episode-rawat-inap` | `INP-S39` | `READY_FOR_DOMAIN_DESIGN` | `RWA-MVP-0` |
+| `CAP-RWA-14` | Tanda tangan pasien/keluarga — digital | `episode-rawat-inap` | `INP-S48` | `BUSINESS_DECISION_REQUIRED` (`DEC-INP-003`) | Di luar gelombang |
+| `CAP-RWA-15`, `16`, `17` | Atestasi, kop dan kode formulir, siklus dan log cetak | `episode-rawat-inap` | `INP-S39` | `READY_FOR_DOMAIN_DESIGN` | `RWA-MVP-0` |
+
+**Nol kemampuan yatim.** Seluruh `CAP-RWA-*` punya sub-modul pemilik; yang tidak masuk gelombang ditandai `OPEN DECISION` atau `DEFERRED` beserta penahannya.
+
+### 8.6 Yang menahan revision `5` menjadi `approved`
+
+| Butir | Menahan | Pemilik jawaban |
+|---|---|---|
+| ~~Approval kontrak `episode-rawat-inap` `0.11.0` dan revision `5` ini~~ | **Disetujui `RWI-DEC-265`, 2026-10-08** | — |
+| ~~`RWI-OQ-126`, `RWI-OQ-127`~~ | **Disetujui `RWI-DEC-266`, 2026-10-08** | — |
+| `RWI-OQ-128`, `RWI-OQ-129` | Tidak menahan; cadangan aman tersedia | Pemilik Registration; Yasmina |
+| `DEC-INP-020`, `DEC-INP-003` | Hanya epic di luar gelombang | Yasmina; pemilik privasi/hukum yang ditunjuk |

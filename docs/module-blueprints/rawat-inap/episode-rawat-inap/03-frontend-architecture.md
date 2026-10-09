@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | **`0.8`** — amandemen terbatas penyelarasan `PRD-RWI-V2-001`, bagian 12, 15 September 2026. Sebelumnya: `0.7` — naik 2026-09-11 karena pencabutan aturan jenis kelamin tingkat kamar, `RWI-DEC-101`. Revision `0.6` naik 2026-09-08 karena langkah `Deposit` disisipkan sesuai `RWI-DEC-093` s.d. `RWI-DEC-096` |
-| Status | **`draft`** untuk `0.8` |
+| Revision | **`0.10`** — amandemen Workspace PPRI, kontrak `0.11.0`, bagian 14 (7 Oktober 2026, `draft`). Sebelumnya `0.9` — Finishing, bagian 13 (`approved`, `RWI-DEC-221`); **`0.8`** — amandemen terbatas penyelarasan `PRD-RWI-V2-001`, bagian 12, 15 September 2026. Sebelumnya: `0.7` — naik 2026-09-11 karena pencabutan aturan jenis kelamin tingkat kamar, `RWI-DEC-101`. Revision `0.6` naik 2026-09-08 karena langkah `Deposit` disisipkan sesuai `RWI-DEC-093` s.d. `RWI-DEC-096` |
+| Status | **`approved`** untuk `0.10` (bagian 14) — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). Status revision sebelumnya mengikuti `blueprint-manifest.md` sub-modul |
 | Apa yang berubah pada `0.7` | **Satu kode penolakan hilang dari layar.** `ROOM_GENDER_MIXED` tidak pernah terbit lagi dari server, sehingga pemetaan pesannya di frontend menjadi kode mati. Lihat bagian 4.3A. **Pekerjaan ini lintas repository** dan wajib satu gelombang dengan backend |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
 | Apa yang berubah pada `0.5` | **Hanya batas dokumen, bukan isi desain.** Peta butir menu seluruh modul naik ke [`../02-module-map.md`](../02-module-map.md) bagian 3, karena sidebar hanya satu untuk tiga sub-modul. Nol layar, endpoint, dan aturan keterjangkauan yang bergerak |
@@ -1059,3 +1059,245 @@ Daftar dengan saringan kelompok dan aktif; formulir kode, kelompok, nama butir, 
 **`IA-INP-05` versi sepuluh butir.** Tabel aturan `IA-INP` di atas menulis "paling banyak sembilan"; sejak `RWI-DEC-214` angkanya **sepuluh**. Sisa kuota nol.
 
 Rupa di dalam letak yang sudah diputuskan `DEV_DISCRETION` (`RWI-FE-006`).
+
+---
+
+## 14. Amandemen revision `0.10` / kontrak `0.11.0` — Workspace PPRI ★ 7 Oktober 2026
+
+| Field | Nilai |
+| --- | --- |
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). Bagian 13 (Finishing) tetap `approved` (`RWI-DEC-221`) |
+| Frontend SHA | `27889662a` (branch `HamzahV2`) saat desain; **diperiksa ulang pada HEAD `dd2cbf7c`** (7 Oktober 2026). Commit itu hanya memasukkan perubahan pemesanan bedah, penunjang, modal keperawatan, dan satu prop di `inpatient-episode-detail-view.jsx:1130`; baris yang dikutip (`:610`, `:613`, `:624`, `:672`, `:714`) tidak bergeser. Working tree sesudahnya menyentuh laci pra-operasi/pasca operasi dan modal keperawatan, bukan berkas yang dikutip |
+| Masukan | `02-backend-architecture.md` `0.10` bagian 13; kontrak `0.11.0`; `PRD-RWI-ADMISI-001` v`0.2` bagian 12.1 dan Lampiran A; brief pemilik 7 Oktober 2026 (tombol sesudah Workspace Dokter, template Workspace Keperawatan, isian form mengikuti V1) |
+| Peta menu | [`../02-module-map.md`](../02-module-map.md) bagian 8.3 — **nol butir menu baru**; `IA-INP-05` tetap sepuluh. Seluruh layar adalah layar anak Detail Episode `FE-INP-04` |
+| Label | Tombol "Workspace PPRI" (`RWI-DEC-245`). Judul "Ruang Kerja PPRI" dan subjudul "Penerimaan Pasien Rawat Inap" dipakai sebagai `draft` sampai `RWI-OQ-121` dijawab |
+
+### 14.1 Kebutuhan layar
+
+| ID | Layar | Jenis | Pemakai utama | Kemampuan | Gelombang | Keadaan |
+|---|---|---|---|---|---|---|
+| `FE-INP-35` | **Workspace PPRI** — kerangka: header pasien, navigasi kiri "DOKUMEN ADMISI" sembilan menu berlencana, ringkasan kelengkapan, batas keadaan | Layar anak `FE-INP-04` | Petugas admisi, CRO, perawat, kepala ruangan, kasir, supervisor | `CAP-RWA-01` | `RWA-MVP-1` | **Baru** |
+| `FE-INP-36` | **General Consent** — tab Surat Persetujuan 12 butir dan tab Formulir General Consent V1; **cetak saja** | Bagian `FE-INP-35` | Petugas admisi | `CAP-RWA-02` (bagian cetak) | `RWA-MVP-1` | **Baru** |
+| `FE-INP-37` | **Serah Terima Pasien Baru** — checklist, saran sistem, tiga kolom tanda tangan | Bagian `FE-INP-35` | Petugas admisi, CRO, perawat | `CAP-RWA-03` | `RWA-MVP-2` | **Baru** |
+| `FE-INP-38` | **Gelang & Label Pasien** — pratinjau, cetak, cetak ulang beralasan | Bagian `FE-INP-35` | Petugas admisi, perawat | `CAP-RWA-05` | `RWA-MVP-1` | **Baru** |
+| `FE-INP-39` | **Permintaan Privasi** — tombol bahasa Indonesia/English | Bagian `FE-INP-35` | Petugas admisi, kepala ruangan | `CAP-RWA-06` | `RWA-MVP-2` | **Baru** |
+| `FE-INP-40` | **IPD** — Data Dasar Rawat Inap, baca dan cetak | Bagian `FE-INP-35` | Petugas admisi | `CAP-RWA-07` | `RWA-MVP-1` | **Baru** |
+| `FE-INP-41` | **Pelunasan Deposit** | Bagian `FE-INP-35` | Petugas admisi, kasir | `CAP-RWA-08` | `RWA-MVP-2` | **Baru** |
+| `FE-INP-42` | **Estimasi Biaya** — tab Rekap; tab Rinci berisi pemberitahuan (ditunda) | Bagian `FE-INP-35` | Petugas admisi | `CAP-RWA-09` | **Di luar gelombang** (`DEC-INP-020`) | **Baru** — menu tidak ditampilkan sebelum dikirim |
+| `FE-INP-43` | **Selisih Biaya** | Bagian `FE-INP-35` | Petugas admisi | `CAP-RWA-11` | `RWA-MVP-2` | **Baru** |
+| `FE-INP-44` | **Nilai Kepercayaan** | Bagian `FE-INP-35` | Petugas admisi | `CAP-RWA-13` | `RWA-MVP-2` | **Baru** |
+
+Setiap layar dokumen (`FE-INP-37`, `39`, `41` s.d. `44`) punya dua tab yang sama: **Formulir** dan **Riwayat** (versi beserta alasannya, tanda tangan, dan log cetak).
+
+**Layar lama yang berubah**
+
+| ID | Layar | Perubahan | Gelombang |
+|---|---|---|---|
+| `FE-INP-04` | Detail Episode | (1) Tombol "Workspace PPRI" tepat sesudah Workspace Dokter, hanya bagi pemegang `InpatientAdmissionDocument : Read` (`RWI-DEC-245`); (2) tombol "Cetak Persetujuan" membuka `FE-INP-36` tab Surat Persetujuan dan dijaga `InpatientAdmissionDocument : Read` (`RWI-DEC-246`); (3) tumpukan "Perlu diketahui" menampilkan peringatan dokumen admisi dari `Warnings` | `RWA-MVP-1` |
+| `FE-INP-18` | Cetak Persetujuan | Halaman lama `episodes/[id]/consent-print` **dialihkan** ke `FE-INP-36` tab Surat Persetujuan, supaya tautan lama tetap bekerja. Komponen surat 12 butir dipakai ulang di tab itu | `RWA-MVP-1` |
+| `FE-INP-03` | Admisi Rawat Inap, langkah 8 cetak persetujuan | Tetap seperti hari ini (G-30), kecuali kop surat: dibaca dari `GET …/admission-workspace/letterhead`, bukan dari nilai yang ditanam (`PPRI-CAP-09` *Repair*) | `RWA-MVP-1` |
+| `FE-INP-12` | Pengaturan Rawat Inap | Sebelas isian baru: delapan kode formulir, kota penandatanganan, batas umur gelang bayi, kode singkat rumah sakit pada label | `RWA-MVP-0` |
+| `FE-INP-13` | Butir Administrasi Rawat Inap | Saringan dan kolom jenis (Penutupan / Serah Terima Pasien Baru); isian induk sub-butir dan sumber saran pada formulir | `RWA-MVP-0` |
+
+### 14.2 Peta butir menu dan jalan masuk
+
+Butir menu baru: **tidak ada.** Seluruh layar adalah layar anak.
+
+| Layar anak | Jalan masuk | Butir hak akses penjaga |
+|---|---|---|
+| `FE-INP-35` | Tombol "Workspace PPRI" di `FE-INP-04`; tautan langsung `…/episodes/{id}/admission?section=<menu>&tab=<tab>` (rute `DEV_DISCRETION`, pola `buildInpatientNursingWorkspaceRoute`) | `InpatientAdmissionDocument : Read`; tanpa hak → "Akses Tidak Tersedia" (`RWI-AC-343`) |
+| `FE-INP-36` | Menu "General Consent" `FE-INP-35`; tombol "Cetak Persetujuan" `FE-INP-04`; rute lama `consent-print` | `InpatientAdmissionDocument : Read`; tombol Cetak `: Print` |
+| `FE-INP-37`, `39`, `41`, `43`, `44` | Menu masing-masing di `FE-INP-35` | `: Read`; tombol per aksi di 14.4 |
+| `FE-INP-38` | Menu "Gelang & Label Pasien" | `: Read`; tombol Cetak `: Print` |
+| `FE-INP-40` | Menu "IPD" | `: Read`; tombol Cetak `: Print`; tarif kamar `: ViewAmount` |
+| `FE-INP-42` | Menu "Estimasi Biaya" — **tidak tampil** sebelum `EPIC-RWA-09` dikirim | `: Read` |
+
+**Urutan navigasi kiri** mengikuti V1 tanpa Assessment Edukasi (`RWI-DEC-226`) dan tanpa MP Benefit (ditunda): General Consent, Serah Terima Pasien, Gelang & Label Pasien, Permintaan Privasi, IPD, Pelunasan Deposit, Estimasi Biaya (setelah dikirim), Selisih Biaya, Nilai Kepercayaan. Pada MVP tampil delapan menu sampai Estimasi Biaya dikirim.
+
+**Keterjangkauan.** Petugas admisi: Daftar Episode atau Census → pasien → "Workspace PPRI" = 2 klik. Perawat yang menerima pasien: Census → pasien → "Workspace PPRI" → Serah Terima = 3 klik.
+
+### 14.3 Keputusan rupa dan wewenang UI
+
+| Hal | Mengikat | `DEV_DISCRETION` |
+|---|---|---|
+| Kerangka | Empat wilayah template Workspace Keperawatan (`ClinicalPageHeader`, `ClinicalStateBoundary`, `ClinicalWorkspaceShell`, `ClinicalSectionNav`) — brief pemilik | Warna, jarak, ikon |
+| Menu dan tab di alamat halaman | `?section=` dan `?tab=` (`FR-RWA-002`) | Nama kunci section |
+| General Consent | Dua tab cetak; tidak ada tombol Simpan; lencana "Cetak saja" (`RWI-DEC-233`) | Susunan tab |
+| Lencana | Teks atau ikon, tidak hanya warna (`NFR-RWA-14`) | Bentuk lencana |
+| Ukuran gelang dan label | Isi cetakan (14.4.4) | Ukuran kertas dan CSS cetak, diuji dengan printer rumah sakit saat UAT (G-37) |
+| Bahasa formulir Privasi | Tombol Indonesia/English mengganti label layar; cetakan dwibahasa (`FR-RWA-060`, `127`) | Letak tombol |
+| Judul halaman | "Ruang Kerja PPRI" / "Penerimaan Pasien Rawat Inap" sebagai `draft` (`RWI-OQ-121`) | — |
+| Tablet | Dapat dipakai di tablet ≥ 10 inci; navigasi kiri dapat dilipat (`NFR-RWA-10`) | Titik patah tata letak |
+
+### 14.4 Skema fitur per layar
+
+Skema mengunci isi dan sumber data. Kolom "Bila kosong atau gagal" ditulis sebagaimana dibaca petugas. Tombol yang tidak berhak **disembunyikan**, dan server tetap menolak bila dipanggil langsung.
+
+#### 14.4.1 `FE-INP-35` Workspace PPRI — kerangka
+
+```text
++- Ruang Kerja PPRI ----------------------------- [Ringkasan Kelengkapan] [Kembali ke Detail Episode] [Segarkan] -+
+|  Penerimaan Pasien Rawat Inap                                                                                 |
++--------------------------------------------------------------------------------------------------------------+
+| Tn. Budi Santoso · RM 00-12-34-56 · L · 45 th · 12 Mar 1981 | RI-261007-0001 · Masuk 07 Okt 08.15            |
+| Kelas 2 · Melati 03 / Bed B · DPJP dr. Andika               | Asuransi PT Asuransi Sehat Sentosa · Kartu 7788…|
+| Kontak darurat Ny. Rina Santoso (istri) · Alergi: -         | Deposit: kurang Rp 3.000.000 | lihat kasir        |
+| Dokumen admisi 2 dari 6 lengkap  [###---]                   | Peringatan (bila ada)                            |
++-----------------------------+--------------------------------------------------------------------------------+
+| DOKUMEN ADMISI              |  [Formulir] [Riwayat]                                                          |
+| [Cetak saja] General Consent|                                                                                |
+| [Menunggu]   Serah Terima   |   isi menu terpilih (14.4.2 s.d. 14.4.8)                                       |
+| [Dicetak]    Gelang & Label |                                                                                |
+| [-]          Permintaan Priv|                                                                                |
+| [Dicetak]    IPD            |                                                                                |
+| [Konsep]     Pelunasan Dep. |                                                                                |
+| [Belum]      Selisih Biaya  |                                                                                |
+| [Lengkap]    Nilai Kepercaya|                                                                                |
++-----------------------------+--------------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Kepala halaman | Judul, subjudul, tiga tombol | — | `: Read` | — |
+| Header pasien | Identitas, episode, kamar, DPJP, penjamin dan kartu, kontak darurat utama, alergi | `GET …/admission-workspace/summary` → `Header` | `: Read` | Episode atau pasien gagal → seluruh isi diganti "DATA PASIEN TIDAK DAPAT DIMUAT" + [Coba Muat Ulang], **tanpa form** (`FR-RWA-008`); alergi gagal → "Alergi tidak dapat dimuat" |
+| Status deposit | "Kurang Rp …", "Cukup", atau "Tidak wajib" | `GET …/summary/amounts` | `: ViewAmount`; tanpa hak → teks "Deposit: lihat kasir" tanpa memanggil endpoint | "Status deposit tidak dapat dimuat"; form lain tetap jalan |
+| Kelengkapan | "Dokumen admisi *x* dari *y* lengkap", daftar yang belum | `summary.Completeness` | `: Read` | Sumber gagal → butir "?" dan "Kelengkapan tidak dapat dihitung untuk: …" |
+| Navigasi kiri | Delapan menu MVP berlencana | `summary.Menus` | `: Read` | Lencana "?" |
+| Episode tidak tersedia | — | `summary.Availability` | — | `NotYetAdmitted` → "Admisi belum dikonfirmasi"; `ReadOnly` → banner "Episode sudah ditutup — hanya-baca", tombol tulis disembunyikan |
+
+**Penyegaran.** Layar dokumen yang berstatus Menunggu tanda tangan menyegarkan dokumen dan ringkasan setiap **30 detik** dengan pola `use-inpatient-billing-status.js` (`intervalMs`), supaya tanda tangan petugas lain tampil paling lambat 30 detik (`FR-RWA-035`, G-34). Penyegaran berhenti saat dokumen `Completed` atau layar ditinggalkan.
+
+#### 14.4.2 `FE-INP-37` Serah Terima Pasien Baru
+
+```text
+Ceklist Serah Terima Pasien Baru — versi 1                         [Menunggu tanda tangan]
+No | Uraian                                   | Sudah | Belum | Keterangan
+ 1 | SURAT PENGANTAR RAWAT  (saran: dr. Andika, 07-10-2026) |  ●  |       |
+ 2 | MENGHUBUNGI DOKTER (KHUSUS TINDAKAN)     |  ●    |       |
+   |  • HASIL PEMERIKSAAN PENUNJANG — Laboratorium | ● |     |
+ …
+13 | PASANG GELANG  (saran: gelang dicetak 09.50 oleh Sari) | ● |   |
+Catatan: …
+Admission: Sari ✓ 10.05 | CRO: [Tandatangani sebagai CRO] | Perawat: tunggu pasien menempati bed
+[Simpan Konsep] [Kunci & Minta Tanda Tangan] [Buka Kunci] [Cetak] [Buat Versi Koreksi] [Batalkan]
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Daftar butir | Butir beku dokumen, atau butir master beserta saran sebelum dokumen dibuat | `GET …/documents/{id}`; sebelum dibuat `GET …/prefill/NewPatientHandover` | `: Read` | Master kosong → "Butir serah terima belum diatur. Hubungi admin." |
+| Pilihan Sudah/Belum dan Keterangan | Saling meniadakan; Belum wajib berketerangan | — | `: Create` / `: Update` | Penolakan kunci menyebut nomor butir |
+| Kolom tanda tangan | Admission, CRO, Perawat | `Slots` | `: Sign`, `: SignAsCro`, `: SignAsNurse` | Sebelum dikunci → "Data serah terima belum dikirim oleh petugas admisi" (`RWI-AC-354`); Perawat sebelum pasien di bed → tombol nonaktif "Pasien belum menempati tempat tidur" |
+| Tombol | Simpan Konsep, Kunci, Buka Kunci, Cetak, Versi Koreksi, Buang Konsep, Batalkan | `AvailableActions` | `: Create`, `: Update`, `: Print`, `: Cancel` | Tombol yang tidak ada di `AvailableActions` tidak ditampilkan |
+
+Pengguna yang hanya memegang `SignAsCro` atau `SignAsNurse` melihat dokumen **hanya-baca** dengan satu tombol tanda tangan (`FR-RWA-034`).
+
+#### 14.4.3 `FE-INP-36` General Consent — cetak saja
+
+```text
+[Surat Persetujuan Pasien Rawat Inap] [Formulir General Consent]                       [Cetak saja]
+Hubungan dengan pasien: (•) Istri  ( ) Diri Sendiri ( ) Suami ( ) Anak ( ) Orang Tua ( ) Lainnya
+Nama: Rina Santoso         Alamat: Jl. Kenanga No. 5, Bekasi   (dari data relasi pasien)
+Tipe kamar: (•) Umum ( ) Khusus (ICU/Isolasi)   Kelas/Kamar: Kelas 2 — Melati 03 (Bed B)
+Sudah menerima panduan rawat inap: (•) Ya ( ) Tidak    Keterangan: …
+[Cetak]
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Tab Surat Persetujuan | Komponen surat 12 butir yang sudah ada (`inpatient-consent-form.jsx`), kop dari profil rumah sakit | `GET …/general-consent/print-data` | `: Read`; Cetak `: Print` | Gagal → "Data cetak tidak dapat dimuat" + Coba Lagi; Cetak nonaktif |
+| Tab Formulir V1 | Hubungan, nama dan alamat penanda tangan, tipe kamar, kelas/kamar, panduan, keterangan | Sama; `SignerCandidates`, `RoomType` | `: Read`; Cetak `: Print` | Relasi tidak cocok → isian terbuka dengan keterangan "tidak ditemukan di data wali/kontak darurat" |
+| Pilihan penanda tangan | "Istri/Suami" → relasi `Spouse`; "Anak" → `Child`; "Orang Tua" → `Mother`/`Father`; lebih dari satu → petugas memilih; "Lainnya" → daftar relasi dan kontak darurat atau manual (`RWI-DEC-252`) | Sama | — | — |
+
+Layar ini **tidak mengirim satu pun permintaan tulis** (`RWI-AC-347`); pilihan petugas hilang saat halaman ditutup (`RWI-DEC-233`).
+
+#### 14.4.4 `FE-INP-38` Gelang & Label Pasien
+
+```text
+Gelang Dewasa                          Label Pasien
+[QR] BUDI SANTOSO, Tn.                 [QR] BUDI SANTOSO / <kode RS>
+     12 Mar 1981 (45 th)                    12/03/81  L / 45 th
+     00-12-34-56                            00-12-34-56   No. Kartu 7788-0012-3456
+Dicetak: 1 kali (09.50, Sari)          Dicetak: belum pernah
+[Cetak Gelang]                         [Cetak Label]      -> cetak ulang: pilih alasan
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Pratinjau gelang | Jenis dewasa/bayi, nama bersapaan, tanggal lahir dan umur, No. RM, QR; bayi + dua label kecil | `GET …/identity-labels` | `: Print` | Gagal → "Data gelang tidak dapat dimuat", Cetak nonaktif |
+| Pratinjau label | Nama / kode RS, tanggal lahir, jenis kelamin / umur, No. RM, No. Kartu bila ada, QR | Sama | `: Print` | Tanpa nomor kartu → baris tidak dicetak |
+| Cetak | Mencatat log, lalu membuka dialog cetak peramban (`react-to-print`) | `POST …/print-logs` | `: Print` | Cetak ulang → dialog alasan wajib; log gagal dicatat → cetak dibatalkan dengan pesan |
+
+QR dirender dari `QrPayload` (`qrcode.react`), tidak dari berkas `QrCodePath` (`RWI-DEC-259`).
+
+#### 14.4.5 `FE-INP-40` IPD
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Lembar dua kolom | Tata letak V1 "DATA DASAR RAWAT INAP/ODC" | `GET …/base-data` | `: Read` | `CanPrint = false` → Cetak nonaktif "Cetak ditahan sampai data wajib terbaca lengkap" + Coba Lagi (`FR-RWA-072`) |
+| Isian tanpa sumber | Garis kosong; tidak ada isian ketik (`RWI-AC-365`) | `BlankFields` | — | — |
+| "Rencana @ Kamar (Rp)" | Angka atau "lihat kasir" | `GET …/base-data/amounts` | `: ViewAmount` | Tanpa hak atau `NotYetAvailable` → "lihat kasir" |
+| Cetak | Log, lalu dialog cetak | `POST …/print-logs` | `: Print` | Cetak ulang → alasan |
+
+#### 14.4.6 `FE-INP-41` Pelunasan Deposit
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Data Wali | Sumber data (relasi, kontak darurat, manual), [Ambil Data Wali], [Reset], nama, alamat, telepon | `prefill/DepositSettlementStatement` → `PartyCandidates` | `: Create` / `: Update` | Tidak ada relasi atau kontak → hanya Manual |
+| Form pernyataan | Pasien, No. RM, kelas–kamar; kekurangan dan perhitungan; tanggal surat; jatuh tempo (bawaan, batas) | Dokumen; angka dari `GET …/documents/{id}/amounts` atau `summary/amounts` sebelum dibuat | Angka `: ViewAmount` | Kekurangan 0 → "Deposit episode ini sudah memenuhi kebijakan. Surat pelunasan tidak diperlukan.", Simpan nonaktif; Billing gagal → angka tidak tampil, Simpan nonaktif, Coba Lagi |
+| Tanda tangan | Yang menyatakan (catatan kertas), Petugas | `Slots` | `: Sign` | — |
+| Cetak | Lewat cetak berupiah | `GET …/documents/{id}/amount-print` | `: ViewAmount` + `: Print` | Tanpa `ViewAmount` → tombol Cetak tidak tampil (`RWI-AC-379`) |
+
+#### 14.4.7 `FE-INP-39` Privasi, `FE-INP-43` Selisih Biaya, `FE-INP-44` Nilai Kepercayaan — pola yang sama
+
+Ketiganya memakai pola `FE-INP-37` (Formulir + Riwayat, tombol menurut `AvailableActions`, kolom tanda tangan menurut `Slots`). Isiannya mengikuti PRD Lampiran A.5, A.9, A.11 dengan perubahan Final:
+
+| Layar | Isian khas | Sumber bawaan | Aturan layar |
+|---|---|---|---|
+| `FE-INP-39` | Tiga baris kerabat, tiga baris permintaan khusus, privasi transportasi, kota, tanggal, nama penanda tangan, keterangan; kolom Pasien/Keluarga dan Kepala Ruangan | `prefill/PrivacyRequest` | Satu nama per baris; tombol bahasa; kolom Kepala Ruangan `: SignAsHeadNurse` |
+| `FE-INP-43` | Data pasien **hanya-baca**; subjek pernyataan; data deklarer (nama, alamat, pekerjaan, tipe dan No. ID, HP maks. 13 digit, telepon kantor); kota, tanggal; kolom Deklarer dan Petugas PPRI | `prefill/CostDifferenceStatement` (subjek "diri saya sendiri" mengisi dari data pasien) | Pasien tunai → lencana "Tidak diperlukan", form tidak dapat dibuat; No. ID disamarkan pada daftar |
+| `FE-INP-44` | Penanda tangan (nama, tanggal lahir, umur dihitung, jenis kelamin, hubungan, alamat); data pasien dan agama hanya-baca; 1–5 butir hal yang bertentangan | `prefill/BeliefValues` (butir dari dokumen `Completed` episode lalu sebagai konsep) | Blok identitas pasien dirender dari data, bukan gambar (`FR-RWA-113`) |
+
+#### 14.4.8 `FE-INP-42` Estimasi Biaya — di luar gelombang
+
+Tab Rekap: kepala (jenis tindakan, jadwal, dokter, ruang rawat — terisi dari kasus OK aktif bila ada), baris biaya dengan harga dari tarif bagi `ViewAmount`, baris "Tarif belum tersedia" yang wajib diisi manual beralasan atau dihapus, catatan aturan dari kebijakan Billing. Tab Rinci: pemberitahuan bahwa rincian tagihan berjalan dicetak kasir dari modul Billing (PRD bagian 8). Penanda "ada rencana tindakan/operasi" (`: Update`). Layar ini **tidak dibangun** sebelum `DEC-INP-020` turun dan epic masuk gelombang.
+
+### 14.5 Aksi per peran, data, dan penanganan keadaan
+
+**Aksi per peran** diturunkan dari `contracts/permission-audit-matrix.md` 10.1; tombol dijaga `usePermission(resource, action)` **dan** `AvailableActions` dari server.
+
+| Keadaan | Penanganan |
+|---|---|
+| Memuat | Kerangka header dan navigasi dengan tanda memuat; form tidak tampil sebelum episode dan pasien termuat |
+| Kosong | "Belum ada *nama dokumen* untuk episode ini" + tombol Buat (bila `: Create`) |
+| Gagal | Pesan server + Coba Lagi; kegagalan data pasien mengganti seluruh isi (`FR-RWA-008`) |
+| Data basi | `409 INP-ADM-DOC-004` → "Dokumen sudah diubah petugas lain. Muat ulang lalu ulangi perubahan Anda." + tombol Muat Ulang; isian petugas tidak dibuang diam-diam |
+| Pengiriman ganda | Satu `Idempotency-Key` dibuat per niat simpan, tanda tangan, dan catat cetak, dipakai ulang saat dikirim ulang; tombol nonaktif selama permintaan berjalan |
+| Hanya-baca | Episode `Closed`/`Cancelled` → `isReadOnlyEpisodeStatus`, tombol tulis disembunyikan; cetak ulang meminta alasan |
+| Rupiah | Tidak pernah diminta tanpa `ViewAmount`; teks pengganti "lihat kasir" |
+| Hak dimuat | `usePermission` sengaja "boleh" sebelum daftar hak termuat (`use-permission.jsx:17-27`); server tetap menolak `403` |
+
+**Komponen cetak.** `KopSurat`, `A4Document`, `signature-section`, `informasi-pasien-surat` (`src/components/features/surat-component`) dipakai ulang. Workspace PPRI **selalu** mengisi props `KopSurat` dari `Letterhead` server dan kota dari dokumen, dan **tidak pernah** mengandalkan nilai bawaan komponen yang menanam identitas rumah sakit client (`kop-surat.jsx:4-12`, `signature-section.jsx:20-31`). Perbaikan nilai bawaan untuk cetakan Final lain adalah issue terpisah G-RWA-02 (`RWI-DEC-247`).
+
+### 14.6 Ketergantungan test
+
+| Test | Bergantung pada |
+|---|---|
+| Tombol dan "Akses Tidak Tersedia" | Peran tanpa `InpatientAdmissionDocument : Read` di lingkungan uji (`RWI-OQ-124`) |
+| Tiga tanda tangan serah terima | Tiga akun berbeda: admisi, CRO, perawat; pasien samaran dengan bed dipesan lalu ditempati |
+| Rupiah | Akun dengan dan tanpa `ViewAmount`; kebijakan deposit Billing untuk penjamin dan kelas uji |
+| Kop dan kode formulir | Situs rumah sakit `IsMainSite` dan pengaturan terisi (`RWI-OQ-127`) |
+| Gelang bayi | Pasien samaran bayi baru lahir dengan ibu |
+| IPD | Kunjungan dengan surat pengantar `Issued`, satu yang dibatalkan, dan satu tanpa surat |
+
+### 14.7 Traceability bagian 14
+
+| Layar | Requirement | Keputusan | Acceptance |
+|---|---|---|---|
+| `FE-INP-35`, `04` | `FR-RWA-001` s.d. `008` | `RWI-DEC-226`, `234`, `245`, `257`, `258` | `RWI-AC-343` s.d. `346`, `378`, `379` |
+| `FE-INP-36`, `18`, `03` | `FR-RWA-020` s.d. `022` (cetak) | `RWI-DEC-233`, `246`, `247`, `251`, `252` | `RWI-AC-347` s.d. `349`, `368`, `372`, `373` |
+| `FE-INP-37` | `FR-RWA-030` s.d. `035` | `RWI-DEC-239`, `241`, `255`, `262` | `RWI-AC-353`, `354`, `359` s.d. `361`, `376`, `383` |
+| `FE-INP-38` | `FR-RWA-050` s.d. `053` | `RWI-DEC-243`, `253`, `259` | `RWI-AC-363`, `364`, `374`, `380` |
+| `FE-INP-40` | `FR-RWA-070` s.d. `072` | `RWI-DEC-244`, `254`, `258` | `RWI-AC-365`, `375`, `386`, `387` |
+| `FE-INP-39`, `43`, `44` | `FR-RWA-060` s.d. `062`, `100` s.d. `103`, `110` s.d. `113` | `RWI-DEC-238`, `242`, `256` | `RWI-AC-351`, `352`, `357`, `362`, `377` |
+| `FE-INP-41` | `FR-RWA-080` s.d. `085` | `RWI-DEC-231`, `248`, `252`, `258`, `260`, `261`, `263` | `RWI-AC-366`, `367`, `379`, `381`, `382`, `385` |
+| `FE-INP-12`, `13` | `FR-RWA-030`, `050`, `126` | `RWI-DEC-241`, `243`, `247` | `RWI-AC-360`, `361`, `368` |

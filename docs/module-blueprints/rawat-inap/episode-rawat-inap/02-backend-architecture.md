@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | **`0.8`** — amandemen terbatas penyelarasan `PRD-RWI-V2-001`, blueprint revision `7`; isi baru pada **bagian 11**. `0.7` Gelombang 1A |
-| Status | **`draft`** untuk `0.8`. Status revision sebelumnya mengikuti `blueprint-manifest.md` sub-modul |
+| Revision | **`0.10`** — amandemen Workspace PPRI, kontrak `0.11.0`, isi baru pada **bagian 13** (7 Oktober 2026, `draft`). Sebelumnya `0.9` — Finishing, bagian 12 (`approved`, `RWI-DEC-221`); `0.8` — amandemen terbatas penyelarasan `PRD-RWI-V2-001`, blueprint revision `7`, bagian 11; `0.7` Gelombang 1A |
+| Status | **`approved`** untuk `0.10` (bagian 13) — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). Status revision sebelumnya mengikuti `blueprint-manifest.md` sub-modul |
 | Apa yang berubah pada `0.7` | **Gelombang 1A — Rawat Inap Safety Corrections.** Dua koreksi `P0` yang dimiliki sub-modul ini: aturan jenis kelamin tingkat kamar dicabut (`RWI-DEC-101`), dan `InpDoctorAssignment` mendapat kolom peran beserta perubahan filter index unik (`RWI-DEC-099`). Rinciannya bagian 0. Kontrak naik ke `0.8.0`, seluruhnya `draft` |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
 | Tanggal | 2 September 2026 (`Asia/Jakarta`) untuk revision `0.5`; 24 Agustus 2026 untuk `0.4`; 21 Agustus 2026 untuk `0.3` |
@@ -1826,3 +1826,643 @@ Kontrak tetap `0.10.0` `draft`. Bagian ini menyerap `RWI-DEC-207` s.d. `220`.
 | `RWI-DEC-217` | `CAP-RWF-18`, `19`, `22` `P1` — urutan gelombang di `04-prd-to-mvp.md` 23.20 tetap |
 | `RWI-DEC-218`, `RWI-DEC-219` | `FE-INP-25` menampilkan perkiraan tarif tindakan dari order yang dirujuk, memakai `UnitPrice` dan `CoverageStatus` yang **sudah** dikembalikan `GET clinical-management/patient-procedures` (`PatientProcedureResponse`), berlabel "perkiraan — tagihan final di kasir", disertai keterangan bahwa anestesi, sewa kamar operasi, dan bahan ditagihkan setelah operasi. Tidak ada endpoint baru |
 | `RWI-DEC-220` | Enam aturan bawaan desain disahkan: `VAL-RWF-87` (butir 1), `VAL-RWF-71` (butir 2), pemberian hak `Receive` pada 12.12 (butir 3), `VAL-RWF-90` (butir 4), ambang `MstInpatientSetting` 12.12 (butir 6). Butir 5 milik `dokter-rawat-inap` 12.13 |
+
+---
+
+## 13. Amandemen revision `0.10` / kontrak `0.11.0` — Workspace PPRI (Ruang Kerja Penerimaan Pasien Rawat Inap) ★ 7 Oktober 2026
+
+### 13.0 Masukan, batas, dan cara membaca bagian ini
+
+| Hal | Isi |
+|---|---|
+| Status | **`approved`** — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`); ditulis `design-business-module` 2026-10-07. Kontrak `0.10.0` Finishing tetap `approved` (`RWI-DEC-221`) dan **tidak disunting**; task Finishing `BE-RWI-172` s.d. `184` tetap berpegang padanya (`RWI-DEC-227`) |
+| Nama | Label yang dilihat pengguna **"Workspace PPRI"** (`RWI-DEC-245`). Nama teknis tetap memakai kata *Admission*: resource `InpatientAdmissionDocument`, tabel `InpAdmission*`, kode `RWA` |
+| Kemampuan | `CAP-RWA-01` s.d. `CAP-RWA-17`, **tanpa** `CAP-RWA-04` (dibatalkan `RWI-DEC-226`), `CAP-RWA-10`, dan `CAP-RWA-12` (tetap ditunda, `RWI-OQ-119`, `RWI-OQ-120`) |
+| Slice gate `1.11` | `INP-S38` s.d. `INP-S45` dan `INP-S47` `READY_FOR_DOMAIN_DESIGN`; `INP-S46` Estimasi Biaya `PARTIALLY_READY` (`DEC-INP-020`); `INP-S48` tanda tangan digital `BUSINESS_DECISION_REQUIRED` (`DEC-INP-003`) — **tidak dirancang** |
+| Keputusan | `RWI-DEC-225` s.d. `RWI-DEC-264`; fakta `RWI-FACT-060` s.d. `RWI-FACT-067`; butir terbuka `RWI-OQ-116` s.d. `RWI-OQ-129` |
+| Bukti as-is | Capability map `1.7` bagian 20 (`PPRI-CAP-01` s.d. `54`) pada `BE@671191e` / `FE@2788966`; diperiksa ulang pada HEAD `BE@fdf85a07` (`RWI-FACT-065`) dan `FE@27889662a`. Pembacaan source desain ini di 13.1 |
+| Arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — gate `1.11` bagian 20.11 menilai tidak perlu: seluruh tabel baru milik `InPatientManagement` (`RWI-DEC-228`), data modul lain dibaca lewat service pemiliknya (`RWI-DEC-257`, `264`) |
+| Gerbang implementasi | `RWI-OQ-124` (data peran), `RWI-OQ-126` (`PatientManagement`), `RWI-OQ-127` (HR Master Data), `RWI-OQ-128` (Registration, cadangan garis kosong), `RWI-OQ-129` (Billing, cadangan "lihat kasir"), `RWI-DEC-193` (perluasan `MasterData`), QBE `TOUCHED LEGACY` pada `SortOrder` master butir |
+| Bagian yang sengaja **tidak** dirancang | Penyimpanan General Consent dan tanda tangan digital (`DEC-INP-003`, `RWI-DEC-230`); baris visit dokter dan catatan aturan biaya bedah pada Estimasi Biaya (`DEC-INP-020`); MP Benefit dan Estimasi Rinci |
+
+**Satu kalimat terpenting.** Workspace PPRI menambah **satu agregat dokumen admisi milik Rawat Inap**: sepuluh tabel untuk gelombang `RWA-MVP-0` s.d. `RWA-MVP-2`, tiga tabel Estimasi Biaya yang dirancang tetapi berada di luar gelombang, dan dua master yang diperluas. Seluruh data pasien, penjamin, deposit, dan profil rumah sakit **dibaca dari service modul pemiliknya** dan hanya disalin sebagai salinan beku saat dokumen dikunci (`RWI-DEC-263`).
+
+### 13.1 Fakta source yang dibaca desain ini
+
+| Fakta | Bukti (`BE@fdf85a07`, `FE@27889662a`) | Akibat pada desain |
+|---|---|---|
+| Master butir administrasi tidak punya jenis maupun induk. Konsumennya tiga: daftar periksa penutupan (membaca **semua** butir aktif), penandaan butir penutupan, dan seeder | `MasterData/Models/MstInpatientClearanceItem.cs:8-27`; `InPatientManagement/Services/InpDischargeService.Closure.cs:88-101`, `:162-177`; `MasterData/Seeders/InpatientMasterDataSeeder.cs:140-200` | Tiga kolom baru; **kedua** titik penutupan menyaring jenis pada task yang sama dengan migration (`INV-RWA-12`) |
+| Pengaturan Rawat Inap satu baris berisi angka waktu dan awalan nomor; tanpa kode formulir, kota, batas umur gelang bayi | `MasterData/Models/MstInpatientSetting.cs:8-62`; layar `FE-INP-12` | Sebelas kolom baru (`RWI-DEC-247`, `243`) |
+| Pola entity `Inp*` terbaru: `Guid RowVersion` sebagai token konkurensi, unique index bersaring, `CHECK` keadaan | `InPatientManagement/Models/InpAdmissionReferral.cs:23-59`; `Repositories/Configurations/HealthServices/InPatientManagement/InpAdmissionReferralConfiguration.cs:16-58` | Ditiru seluruh tabel baru |
+| Pola kunci idempoten: kolom `IdempotencyKey` maksimal 80 karakter, unique index bersaring | `ClinicalManagement/Models/CliNursingIntervention.cs`; `CliNursingInterventionConfiguration.cs:56, 136-138`; header `Idempotency-Key` di `InpatientSurgeryBookingController.cs:75` | Dipakai simpan konsep, versi koreksi, tanda tangan, dan log cetak |
+| Pola salinan beku `jsonb` | `ClinicalManagement/Models/CliTransferHandover.cs:46 #SnapshotJson` | `InpAdmissionDocument.SnapshotJson` |
+| Pemesanan bed dan penempatan bed adalah dua tabel; "menempati bed" = penempatan berjalan yang belum berakhir dan belum digantikan koreksi | `InPatientManagement/Models/InpBedReservation.cs`, `InpBedPlacement.cs`; `Services/InpPatientLocationQuery.cs:8-21, 69-75` | Syarat slot Perawat penerima dibaca dari penempatan, bukan pemesanan (`RWI-DEC-255`) |
+| Satu method hanya boleh punya satu `[AccessPermission]`; aksi kustom dikelompokkan lewat `[AccessAction(..., AccessType = ...)]` | `Attributes/AccessPermissionAttribute.cs:30`; `InpatientEpisodeController.cs:341-342` (`SetIsolation`) | Satu endpoint per slot tanda tangan petugas |
+| Rupiah dipisah ke endpoint `/amounts` yang dijaga `ViewAmount` | `BillingManagement/Operational/Controllers/PatientBillingSummaryController.cs:50-65` | Pola yang sama untuk header, dokumen, dan IPD (`RWI-DEC-258`) |
+| Pemeriksaan hak kedua di dalam service sudah dipakai Rawat Inap | `InPatientManagement/Services/InpAncillaryOrderAdapter.cs:46` (`AccessPermissionService.HasAccessAsync`) | Cetak dokumen berupiah memeriksa `Print` di service setelah attribute `ViewAmount` |
+| Penjamin kunjungan dibaca lewat konteks asuransi Clinical; konteks itu **tanpa** nomor kartu dan nomor peserta. `EncounterPaymentSourceService` hanya menulis | `ClinicalManagement/Services/EncounterInsuranceService.cs:25`, `:466-500`; `RegistrationManagement/Services/EncounterPaymentSourceService.cs:16` (`RWI-FACT-067`) | `EncounterInsuranceContext` diperluas dua isian (milik Muhammad Hamzah, `RWI-DEC-264`) |
+| Surat Pengantar Rawat Inap terbaca lewat `DoctorCertificateService`, urut tanggal terbit; responsnya ikut membawa data pasien dan gambar tanda tangan dokter | `ClinicalManagement/Services/DoctorCertificateService.cs:63-100`; `DTOs/DoctorCertificateDtos.cs:85-115` | Satu method baca ramping baru di service yang sama (`RWI-DEC-254`, `262`) |
+| Kasus OK terbaca per kunjungan | `OperatingRoomManagement/Services/OperatingRoomCaseService.cs:37 #GetPagedAsync` (`OprCasePagedQuery.EncounterId`, `Status`) | Dipakai apa adanya untuk aturan wajib Estimasi (`RWI-DEC-250`) |
+| Ringkasan deposit episode, perkiraan harga tindakan dan tarif per penjamin | `BillingManagement/Billing/Services/BillingDepositService.cs:116`; `ClinicalManagement/Services/InsuranceCoverageService.cs:67, 102` | Dipakai apa adanya |
+| Tarif kamar per hari hanya ditentukan method `private` Billing | `BillingManagement/Billing/Services/BillingCalculationService.cs:797 #ResolveRoomTariff` | Method baca publik baru menunggu `RWI-OQ-129`; cadangan "lihat kasir" |
+| Dokter perujuk luar kunjungan tidak punya service baca | `RegistrationManagement/Models/RegPatientEncounter.cs:139`; `MasterData/Models/MstReferralDoctor.cs:24-36` | Service baca baru menunggu `RWI-OQ-128`; cadangan garis kosong |
+| Isi QR pasien dibentuk method `private static` di controller; `PatientManagement/MasterData/` belum punya folder `Services/` | `PatientManagement/MasterData/Controllers/PatientController.cs:1386-1400` | Pembentuk QR diekstrak tanpa mengubah perilaku; service baca pasien baru (`RWI-OQ-126`) |
+| Profil rumah sakit: `IsMainSite`, nama, kode, alamat, telepon, email, zona waktu; **tanpa logo**; controller memakai context langsung | `Corporate/HumanResource/MasterData/Organization/Models/MstHospitalSite.cs:11-60`; `Controllers/HospitalSiteController.cs` | Service baca profil baru (`RWI-OQ-127`); logo tetap berkas statis frontend |
+| Alergi aktif dibaca controller langsung dari context | `ClinicalManagement/Controllers/PatientAllergyController.cs:98-99` | Service baca alergi baru di Clinical; controller memanggilnya tanpa perubahan perilaku |
+| Nama tampilan akun dibaca dari `_dbContext.Users` oleh service Rawat Inap | `InPatientManagement/Services/InpDischargeService.Departure.cs:46`; `InpRoomTransferReportService.cs:181`; `Models/ApplicationUser.cs:12, 26, 58` | Atestasi membaca `DisplayName` dan `PrimaryPosition.PositionName` dengan pola yang sama |
+| Seeder master Rawat Inap menolak berjalan di produksi | `InpatientMasterDataSeeder.cs:15-47` (`RWI-DEC-048`) | Data awal produksi diisi admin lewat `FE-INP-12` dan `FE-INP-13` (13.13) |
+| Detail episode sudah membawa daftar peringatan teks | `InPatientManagement/DTOs/InpatientEpisodeDtos.cs:238 #Warnings`; `FE inpatient-episode-detail-view.jsx:714-719` | Peringatan kelengkapan dan jatuh tempo masuk ke daftar ini |
+| Penjaga tulis episode untuk dokumen klinis | `ClinicalManagement/Services/NursingEpisodeWriteGuard.cs:100-140` | Ditiru sebagai `InpAdmissionWriteGuard`, tanpa pemeriksaan unit perawat |
+
+### 13.2 Yang berubah dari revision `0.9`
+
+| Hal | Revision `0.9` | Revision `0.10` |
+|---|---|---|
+| Dokumen penerimaan pasien | Tidak ada; hanya cetak Surat Persetujuan 12 butir tanpa simpan (`RWI-DEC-077`) | Enam jenis dokumen tersimpan dan berversi: Serah Terima Pasien Baru, Permintaan Privasi, Nilai Kepercayaan, Selisih Biaya, Pelunasan Deposit, Estimasi Biaya (Estimasi di luar gelombang) |
+| Tanda tangan | Tidak ada | Slot pasien/keluarga mode kertas dan atestasi petugas lima slot |
+| Cetak gelang, label, IPD | Tidak ada | Data cetak dirangkai server; setiap cetak tercatat; cetak ulang beralasan |
+| Master butir administrasi | Satu daftar untuk penutupan | Dua jenis daftar (penutupan, serah terima) dengan sub-butir dan sumber saran |
+| Pengaturan Rawat Inap | Angka waktu dan awalan nomor | + delapan kode formulir, kota penandatanganan, batas umur gelang bayi, kode singkat rumah sakit pada label |
+| Detail episode | Peringatan yang sudah ada | + "Dokumen admisi belum lengkap" dan "Pelunasan deposit jatuh tempo terlewati" (tanpa rupiah) |
+| Penutupan episode | Membaca semua butir aktif | Hanya butir jenis penutupan |
+| Modul lain | — | Lima service baca baru atau diperluas di modul pemilik (13.6) |
+
+### 13.3 Bounded context, aggregate, dan invariant
+
+**Bounded context:** *Dokumen penerimaan pasien rawat inap* di dalam `InPatientManagement`, sub-modul `episode-rawat-inap`. Konteks ini **membaca** episode, penempatan, pasien, penjamin, deposit, dan profil rumah sakit, dan **tidak pernah menulis** ke tabel modul lain.
+
+| Aggregate | Root | Anak | Batas konsistensi |
+|---|---|---|---|
+| Dokumen admisi (satu versi) | `InpAdmissionDocument` | `InpAdmissionDocumentSignature`, `InpAdmissionDocumentParty`, `InpAdmissionHandoverItem`, `InpAdmissionPrivacyRequest`, `InpAdmissionPrivacyEntry`, `InpAdmissionBeliefItem`, `InpAdmissionCostDifferenceStatement`, `InpAdmissionDepositStatement`, `InpAdmissionCostEstimate`, `InpAdmissionCostEstimateLine` | Satu transaksi per perintah; `RowVersion` kepala dokumen menjaga seluruh anak |
+| Log cetak | `InpAdmissionPrintLog` | — | Tambah saja; tidak pernah diubah |
+| Penanda rencana tindakan (Estimasi, di luar gelombang) | `InpAdmissionProcedurePlanMark` | — | Satu penanda aktif per episode |
+
+Setiap **versi** dokumen adalah satu baris `InpAdmissionDocument` sendiri. Versi koreksi menunjuk versi sebelumnya lewat `PreviousVersionId`. Dengan begitu tanda tangan, salinan beku, dan isi versi lama tidak pernah ditimpa.
+
+| ID | Invariant | Penjaga |
+|---|---|---|
+| `INV-RWA-01` | Paling banyak satu dokumen aktif (`Draft`, `AwaitingSignature`, `Completed`) per jenis per episode | Unique index bersaring `UX_InpAdmissionDocument_Episode_Type_Active`; `InpAdmissionDocumentService` |
+| `INV-RWA-02` | Dokumen `AwaitingSignature` yang sudah punya tanda tangan, dan dokumen `Completed`, tidak berubah isinya | `InpAdmissionDocumentService` (409) |
+| `INV-RWA-03` | Tidak ada hapus permanen maupun endpoint `DELETE` | Kontrak API; `IsDelete` tidak dipakai alur bisnis |
+| `INV-RWA-04` | Satu akun tidak mengisi dua slot petugas pada dokumen yang sama | Unique index bersaring (`DocumentId`, `SignedByUserId`); `InpAdmissionSignatureService` (422) |
+| `INV-RWA-05` | Identitas pasien di dokumen berasal dari service pemilik, bukan dari request | Request tidak punya isian identitas pasien; `InpAdmissionSnapshotBuilder` |
+| `INV-RWA-06` | Angka rupiah berasal dari Billing atau tarif, tidak pernah dari request | Request tidak punya isian angka deposit maupun harga bertarif |
+| `INV-RWA-07` | Tidak ada data karangan: nomor kartu kosong tetap kosong, isian tanpa sumber dicetak garis kosong | `InpAdmissionWorkspaceQueryService` |
+| `INV-RWA-08` | Penulisan hanya pada episode `Admitted` atau `DischargePending` | `InpAdmissionWriteGuard` (409) |
+| `INV-RWA-09` | Cetak ulang selalu beralasan dan tercatat | `InpAdmissionPrintService`; `CK_InpAdmissionPrintLog_Reprint` |
+| `INV-RWA-10` | Isi dan angka dibekukan saat dikunci; cetakan `AwaitingSignature` dan sesudahnya selalu dibentuk dari salinan beku (`RWI-DEC-263`) | `CK_InpAdmissionDocument_State`; `InpAdmissionPrintService` |
+| `INV-RWA-11` | Slot Perawat penerima hanya bila pasien menempati bed aktif pada episode itu (`RWI-DEC-255`) | `InpAdmissionSignatureService` lewat `InpPatientLocationQuery` |
+| `INV-RWA-12` | Penutupan episode hanya membaca butir jenis penutupan; serah terima hanya butir jenis serah terima (`RWI-DEC-241`) | `InpDischargeService.Closure`; `InpAdmissionPrefillService` |
+| `INV-RWA-13` | Rupiah hanya bagi pemegang `ViewAmount`; dokumen berupiah hanya dicetak pemegang `ViewAmount` (`RWI-DEC-258`) | Endpoint `/amounts` dan `/amount-print` |
+| `INV-RWA-14` | Rawat Inap tidak menulis satu pun query ke tabel master modul lain untuk Workspace PPRI (`RWI-DEC-264`) | `InpAdmissionSourceReader` sebagai satu-satunya pintu baca |
+| `INV-RWA-15` | General Consent tidak meninggalkan rekaman apa pun selama *fail-closed* (`RWI-DEC-230`, `233`) | Tidak ada jenis dokumen General Consent; tab cetak hanya membaca |
+
+**Contoh `INV-RWA-10`.** Sari mengunci Pelunasan Deposit Tn. Budi pukul 10.00 saat Billing mencatat kekurangan Rp 3.000.000. Kasir menerima tambahan Rp 1.000.000 pukul 10.10. Lembar yang ditandatangani Ny. Rina pukul 10.15 dan cetak ulang sesudah `Completed` tetap Rp 3.000.000, karena dibentuk dari salinan beku; header ruang kerja menulis kekurangan terkini Rp 2.000.000.
+
+### 13.4 Kepemilikan data yang disentuh
+
+Tabel kepemilikan seluruh modul ada di [`../02-module-map.md`](../02-module-map.md) bagian 8.2. Baris di bawah hanya kelompok data yang disentuh amandemen ini.
+
+| Kelompok data | Pemilik | Diubah amandemen ini | Dibuat ulang |
+|---|---|---|---|
+| Dokumen admisi, tanda tangan, pihak, isi per jenis | **`InPatientManagement`** (`RWI-DEC-228`) | Ya, baru | Tidak ada pendahulu |
+| Log cetak gelang, label, IPD, dokumen | **`InPatientManagement`** | Ya, baru | — |
+| Penanda rencana tindakan untuk Estimasi | **`InPatientManagement`** | Ya, baru (di luar gelombang) | — |
+| Master butir administrasi | `MasterData` (`MstInpatientClearanceItem`) | Ya — tiga kolom | Tidak — diperluas (`RWI-DEC-241`) |
+| Pengaturan Rawat Inap | `MasterData` (`MstInpatientSetting`) | Ya — sebelas kolom | Tidak |
+| Episode, penempatan, DPJP, perawat, riwayat status | `InPatientManagement` | Tidak — dibaca | Tidak |
+| Pasien, relasi, kontak darurat | `PatientManagement` | Tidak — dibaca lewat service baru | **Tidak boleh** |
+| Penjamin kunjungan, dokter perujuk luar | `RegistrationManagement` (dibaca lewat konteks Clinical dan service baru) | Tidak | **Tidak boleh** |
+| Alergi, surat pengantar, harga per penjamin | `ClinicalManagement` | Tidak — service baca baru/diperluas | Tidak |
+| Deposit, kebijakan deposit, tarif kamar | `BillingManagement` | Tidak — satu method baca baru (`RWI-OQ-129`) | **Tidak boleh** menghitung sendiri |
+| Kasus OK | `OperatingRoomManagement` | Tidak | Tidak |
+| Profil rumah sakit | HR Master Data (`MstHospitalSite`) | Tidak — service baca baru | Tidak |
+| Persetujuan pasien | `ClinicalManagement` (`TrxPatientConsent`) | **Tidak disentuh** selama *fail-closed* | **Tidak boleh** membuat tabel persetujuan kedua |
+| Keutuhan dokumen rekam medis | `MedicalRecordManagement` | **Tidak dipakai** (`RWI-DEC-229`) | — |
+
+### 13.5 Transaction boundary dan arah panggilan
+
+Aturan umumnya: **bacaan modul lain dilakukan sebelum transaksi dibuka**, lalu hasilnya ditulis dalam satu transaksi dengan pemeriksaan `RowVersion`. Bila bacaan gagal, perintah ditolak dan tidak ada yang tersimpan (gagal tertutup).
+
+| Proses | Bacaan sebelum transaksi | Transaksi | Sesudah commit |
+|---|---|---|---|
+| Simpan konsep pertama | Episode, penjamin (untuk Selisih Biaya), butir master serah terima, pengaturan | Kepala dokumen + anak; status `Draft`; nama dan kode butir serah terima dibekukan | Logger aplikasi |
+| Ubah konsep | — | Ganti isi anak; `RowVersion` cocok | Logger |
+| Kunci | Seluruh sumber salinan beku (13.6) dan aturan per jenis (validation `VAL-RWA-20` s.d. `27`) | Status `AwaitingSignature`, `LockedAt`, `SnapshotJson`, angka deposit atau harga Estimasi dibekukan | Logger |
+| Buka kunci | — | Hanya bila nol tanda tangan: kembali `Draft`, salinan beku dan angka beku dikosongkan | Logger |
+| Tanda tangan satu slot | Lokasi bed (slot Perawat), identitas akun | Baris tanda tangan; bila seluruh slot wajib terisi, status `Completed` dan `CompletedAt` | Logger |
+| Versi koreksi | — | **Berurutan dalam satu transaksi:** (1) versi lama `Completed` → `Superseded`, (2) versi baru `Draft` dibuat dari isi versi lama tanpa tanda tangan dan tanpa salinan beku. Urutan ini wajib karena unique index dokumen aktif | Logger |
+| Buang konsep / batalkan | — | Status `Cancelled`, alasan, pembatal, waktu | Logger |
+| Catat cetak | Log cetak sebelumnya untuk menentukan cetak ulang | Satu baris log | Logger |
+| Ringkasan, isian bawaan, data cetak, IPD, label | Seluruh sumber 13.6 | Tidak ada (baca saja) | — |
+| Detail episode | Ringkasan kelengkapan tanpa rupiah | Tidak ada | Kegagalan sumber **tidak** menggagalkan detail episode; peringatan menjadi "Kelengkapan dokumen admisi tidak dapat dihitung" |
+
+Seluruh panggilan ke modul lain adalah panggilan **dalam proses yang sama** (satu aplikasi, satu database), bukan HTTP, mengikuti pola `InpBillingDepositAdapter`.
+
+### 13.6 Jalur baca data modul lain
+
+Satu-satunya pintu baca adalah `InpAdmissionSourceReader` (`INV-RWA-14`). Server hanya mengirim isian yang dibutuhkan dokumen (`RWI-DEC-257` butir 2), misalnya nama, hubungan, dan alamat calon penanda tangan.
+
+| Data | Dipakai di | Service pemilik | Status service | Gerbang | Bila gagal atau belum tersedia |
+|---|---|---|---|---|---|
+| Identitas pasien, isi QR No. RM, agama, status nikah, bayi baru lahir, nama ibu | Header, gelang, label, IPD, salinan beku | `PatientManagement`: `PatientProfileQueryService.GetIdentityAsync` + `PatientQrPayloadBuilder` | **Baru** | `RWI-OQ-126` | Ruang kerja menampilkan "DATA PASIEN TIDAK DAPAT DIMUAT"; kunci dan cetak ditolak |
+| Relasi dan kontak darurat | Isian bawaan GC V1, Data Wali, penanggung jawab IPD, header | `PatientProfileQueryService.GetPartyCandidatesAsync` | **Baru** | `RWI-OQ-126` | Daftar pilihan kosong dengan pesan; petugas boleh mengisi manual |
+| Alergi aktif | Header | `ClinicalManagement`: `PatientAllergyQueryService.GetActiveAlertsAsync` | **Baru** (controller lama memanggilnya) | Disetujui lewat `RWI-DEC-264` | Header menulis "Alergi tidak dapat dimuat" |
+| Jenis penjamin, nama penjamin, kelas, nomor polis, **nomor kartu, nomor peserta** | Header, label, IPD, kelengkapan Selisih Biaya, salinan beku | `ClinicalManagement`: `EncounterInsuranceService.GetContextAsync` | **Diperluas** dua isian | Disetujui lewat `RWI-DEC-264` | Kelengkapan Selisih Biaya "tidak dapat dihitung"; kunci Selisih Biaya ditolak |
+| Surat Pengantar Rawat Inap terbaru berstatus `Issued` | IPD, saran butir 1 Serah Terima | `DoctorCertificateService.GetLatestIssuedInpatientReferralAsync` | **Baru** (method di service yang ada) | Disetujui lewat `RWI-DEC-264` | Isian menjadi garis kosong; tanpa saran |
+| Dokter perujuk luar kunjungan | IPD (bila tanpa surat pengantar) | `RegistrationManagement`: `EncounterReferralQueryService.GetExternalReferralAsync` | **Baru** | **`RWI-OQ-128`** | Garis kosong (`RWI-AC-386`) |
+| Ringkasan deposit episode | Header, Pelunasan Deposit, kelengkapan, peringatan jatuh tempo | `BillingDepositService.GetEpisodeDepositSummaryAsync` | Sudah ada | — | Angka tidak ditampilkan; Pelunasan Deposit tidak dapat disimpan atau dikunci; kelengkapan deposit "tidak dapat dihitung" (G-45) |
+| Tarif kamar per hari menurut unit dan kelas | IPD "Rencana @ Kamar (Rp)"; baris kamar Estimasi | `BillingCalculationService.GetDailyRoomRateAsync` → `InsuranceCoverageService.ResolveTariffAsync` | **Baru** (Billing) + sudah ada | **`RWI-OQ-129`** | "lihat kasir" (`RWI-AC-387`) |
+| Harga tindakan per penjamin | Estimasi Biaya | `InsuranceCoverageService.ResolveProcedureAsync` | Sudah ada | — | Baris "Tarif belum tersedia" (`FR-RWA-092`) |
+| Kebijakan biaya administrasi | Catatan Estimasi Biaya | `AdministrationFeePolicyService` | Sudah ada | — | Catatan biaya admin tidak dicetak |
+| Kasus OK pada kunjungan episode | Aturan wajib Estimasi; isian kepala Estimasi | `OperatingRoomCaseService.GetPagedAsync` (`EncounterId`) | Sudah ada | — | Kewajiban Estimasi "tidak dapat dihitung" |
+| Profil rumah sakit utama (`IsMainSite`) | Kop surat semua cetakan, kode singkat label, zona waktu | HR: `HospitalSiteProfileQueryService.GetMainSiteProfileAsync` | **Baru** | `RWI-OQ-127` | Kop dicetak tanpa identitas (baris kosong), **tidak pernah** memakai nilai bawaan yang ditanam |
+| Nama dan jabatan akun penanda tangan | Atestasi petugas | `_dbContext.Users` (`DisplayName`, `PrimaryPosition.PositionName`) — identitas platform, pola `InpDischargeService.Departure.cs:46` | Sudah ada | — | Akun tanpa jabatan dicetak tanpa jabatan (`PPRI-CAP-46`) |
+| Episode, penempatan, DPJP, perawat penanggung jawab, petugas yang mengonfirmasi admisi, riwayat pindah | Seluruh layar dan cetakan | `InPatientManagement` sendiri (`InpEpisode`, `InpBedPlacement`, `InpDoctorAssignment`, `InpNurseAssignment`, `InpStatusHistory`) | Sudah ada | — | Ruang kerja menampilkan "DATA PASIEN TIDAK DAPAT DIMUAT" |
+| Pengaturan Rawat Inap | Kode formulir, kota, batas umur gelang bayi, kode label | `InpSettingService.GetEffectiveSettingAsync` | **Diperluas** | `RWI-DEC-193` | Isian kosong dicetak kosong |
+
+### 13.7 Class diagram
+
+#### 13.7.1 Kepala dokumen, tanda tangan, dan pihak
+
+```mermaid
+classDiagram
+    class InpEpisode {
+        +Guid Id
+        +Guid EncounterId
+        +Guid PatientId
+        +InpEpisodeStatus EpisodeStatus
+    }
+    class InpAdmissionDocument {
+        +Guid Id
+        +Guid EpisodeId
+        +Guid PatientId
+        +InpAdmissionDocumentType DocumentType
+        +InpAdmissionDocumentStatus Status
+        +int VersionNo
+        +Guid? PreviousVersionId
+        +string? SnapshotJson
+        +DateTime? LockedAt
+        +Guid RowVersion
+    }
+    class InpAdmissionDocumentSignature {
+        +Guid Id
+        +Guid DocumentId
+        +InpAdmissionSignatureSlot Slot
+        +InpAdmissionSignatureMethod Method
+        +string SignerName
+        +Guid? SignedByUserId
+        +Guid? VerifiedByUserId
+        +DateTime SignedAt
+    }
+    class InpAdmissionDocumentParty {
+        +Guid Id
+        +Guid DocumentId
+        +InpAdmissionPartySource SourceType
+        +string FullName
+        +InpAdmissionPartyRelationship? Relationship
+    }
+    InpEpisode "1" --> "0..*" InpAdmissionDocument : memiliki
+    InpAdmissionDocument "0..1" --> "0..1" InpAdmissionDocument : versi sebelumnya
+    InpAdmissionDocument "1" --> "0..5" InpAdmissionDocumentSignature : slot
+    InpAdmissionDocument "1" --> "0..1" InpAdmissionDocumentParty : penanda tangan atau deklarer
+```
+
+#### 13.7.2 Isi khas per jenis dokumen
+
+```mermaid
+classDiagram
+    class InpAdmissionDocument {
+        +Guid Id
+        +InpAdmissionDocumentType DocumentType
+    }
+    class MstInpatientClearanceItem {
+        +Guid Id
+        +MstClearanceChecklistType ChecklistType
+        +Guid? ParentItemId
+        +MstHandoverSuggestionSource HandoverSuggestionSource
+    }
+    class InpAdmissionHandoverItem {
+        +Guid ClearanceItemId
+        +int LineNo
+        +string ItemNameSnapshot
+        +InpHandoverItemChoice? Choice
+        +string? Note
+    }
+    class InpAdmissionPrivacyRequest {
+        +bool IsTransportPrivacyRequested
+    }
+    class InpAdmissionPrivacyEntry {
+        +InpAdmissionPrivacyEntryType EntryType
+        +int LineNo
+        +string Text
+    }
+    class InpAdmissionBeliefItem {
+        +int ItemNo
+        +string Text
+    }
+    class InpAdmissionCostDifferenceStatement {
+        +InpCostDifferenceSubject Subject
+    }
+    class InpAdmissionDepositStatement {
+        +DateTime? DueAt
+        +decimal? ShortfallAmount
+        +DateTime? AmountsReadAt
+    }
+    InpAdmissionDocument "1" --> "0..*" InpAdmissionHandoverItem : Serah Terima
+    MstInpatientClearanceItem "1" --> "0..*" InpAdmissionHandoverItem : butir asal
+    InpAdmissionDocument "1" --> "0..1" InpAdmissionPrivacyRequest : Privasi
+    InpAdmissionDocument "1" --> "0..6" InpAdmissionPrivacyEntry : Privasi
+    InpAdmissionDocument "1" --> "0..5" InpAdmissionBeliefItem : Nilai Kepercayaan
+    InpAdmissionDocument "1" --> "0..1" InpAdmissionCostDifferenceStatement : Selisih Biaya
+    InpAdmissionDocument "1" --> "0..1" InpAdmissionDepositStatement : Pelunasan Deposit
+```
+
+#### 13.7.3 Estimasi Biaya dan log cetak
+
+```mermaid
+classDiagram
+    class InpAdmissionCostEstimate {
+        +Guid DocumentId
+        +Guid? OprCaseId
+        +string PlannedProcedureText
+        +Guid PatientClassId
+        +int EstimatedLengthOfStayDays
+    }
+    class InpAdmissionCostEstimateLine {
+        +int LineNo
+        +InpCostEstimateLineType LineType
+        +decimal Quantity
+        +decimal? UnitPrice
+        +InpCostEstimatePriceSource PriceSource
+    }
+    class InpAdmissionProcedurePlanMark {
+        +Guid EpisodeId
+        +DateTime MarkedAt
+        +DateTime? UnmarkedAt
+    }
+    class InpAdmissionPrintLog {
+        +Guid EpisodeId
+        +Guid? DocumentId
+        +InpAdmissionPrintKind PrintKind
+        +bool IsReprint
+        +InpReprintReason? ReprintReason
+        +DateTime PrintedAt
+    }
+    class InpAdmissionDocument {
+        +Guid Id
+        +InpAdmissionDocumentType DocumentType
+    }
+    class InpEpisode {
+        +Guid Id
+    }
+    InpAdmissionDocument "1" --> "0..1" InpAdmissionCostEstimate : Estimasi Biaya
+    InpAdmissionCostEstimate "1" --> "1..*" InpAdmissionCostEstimateLine : baris
+    InpEpisode "1" --> "0..*" InpAdmissionProcedurePlanMark : penanda, satu yang aktif
+    InpEpisode "1" --> "0..*" InpAdmissionPrintLog : gelang, label, IPD
+    InpAdmissionDocument "1" --> "0..*" InpAdmissionPrintLog : cetak dokumen
+```
+
+#### 13.7.4 Service, controller, dan pembaca modul pemilik
+
+```mermaid
+classDiagram
+    class InpatientAdmissionDocumentController
+    class InpAdmissionWorkspaceQueryService
+    class InpAdmissionCompletenessEvaluator
+    class InpAdmissionDocumentService
+    class InpAdmissionSignatureService
+    class InpAdmissionPrefillService
+    class InpAdmissionSnapshotBuilder
+    class InpAdmissionPrintService
+    class InpAdmissionWriteGuard
+    class InpAdmissionSourceReader
+    class PatientProfileQueryService
+    class PatientAllergyQueryService
+    class EncounterInsuranceService
+    class DoctorCertificateService
+    class EncounterReferralQueryService
+    class BillingDepositService
+    class BillingCalculationService
+    class HospitalSiteProfileQueryService
+    InpatientAdmissionDocumentController ..> InpAdmissionWorkspaceQueryService
+    InpatientAdmissionDocumentController ..> InpAdmissionDocumentService
+    InpatientAdmissionDocumentController ..> InpAdmissionSignatureService
+    InpatientAdmissionDocumentController ..> InpAdmissionPrintService
+    InpAdmissionWorkspaceQueryService ..> InpAdmissionCompletenessEvaluator
+    InpAdmissionDocumentService ..> InpAdmissionWriteGuard
+    InpAdmissionDocumentService ..> InpAdmissionSnapshotBuilder
+    InpAdmissionDocumentService ..> InpAdmissionPrefillService
+    InpAdmissionSnapshotBuilder ..> InpAdmissionSourceReader
+    InpAdmissionCompletenessEvaluator ..> InpAdmissionSourceReader
+    InpAdmissionSourceReader ..> PatientProfileQueryService : PatientManagement
+    InpAdmissionSourceReader ..> PatientAllergyQueryService : Clinical
+    InpAdmissionSourceReader ..> EncounterInsuranceService : Clinical
+    InpAdmissionSourceReader ..> DoctorCertificateService : Clinical
+    InpAdmissionSourceReader ..> EncounterReferralQueryService : Registration
+    InpAdmissionSourceReader ..> BillingDepositService : Billing
+    InpAdmissionSourceReader ..> BillingCalculationService : Billing
+    InpAdmissionSourceReader ..> HospitalSiteProfileQueryService : HR
+```
+
+### 13.8 Penjelasan setiap class
+
+Kolom lengkap setiap tabel ada di [`data/data-dictionary.md`](./data/data-dictionary.md) bagian 20. Path model dan service relatif terhadap `Areas/HealthServices/` kecuali disebut lain; configuration di `Repositories/Configurations/HealthServices/<Modul>/<Nama>Configuration.cs`.
+
+#### 13.8.1 Model
+
+| Class | Status | Lokasi file | Tanggung jawab | Field penting | Catatan desain |
+|---|---|---|---|---|---|
+| `InpAdmissionDocument` | **Baru** | `InPatientManagement/Models/InpAdmissionDocument.cs` | Kepala satu versi dokumen admisi: jenis, status, nomor versi, rantai versi, salinan beku, kunci, selesai, batal | Kamus data 20.2 | Tidak punya isian identitas pasien selain `PatientId`; identitas cetak dibekukan di `SnapshotJson` saat dikunci. `PatientId` disimpan agar "dokumen Nilai Kepercayaan `Completed` terakhir pasien" dapat dicari lintas episode (`RWI-DEC-242`) |
+| `InpAdmissionDocumentSignature` | **Baru** | `.../Models/InpAdmissionDocumentSignature.cs` | Satu slot tanda tangan: catatan kertas pasien/keluarga atau atestasi petugas | 20.3 | Tidak pernah diubah. Tanpa kolom gambar atau hash — itu milik `EPIC-RWA-13` (`OPEN DECISION`) |
+| `InpAdmissionDocumentParty` | **Baru** | `.../Models/InpAdmissionDocumentParty.cs` | Penanda tangan atau deklarer yang dinyatakan dokumen (Privasi, Nilai Kepercayaan, Selisih Biaya, Pelunasan Deposit) beserta asal datanya | 20.4 | Bukan salinan master relasi; ia isi pernyataan. `SourceRecordId` hanya jejak asal, tanpa FK |
+| `InpAdmissionHandoverItem` | **Baru** | `.../Models/InpAdmissionHandoverItem.cs` | Satu baris checklist Serah Terima Pasien Baru dengan nama dan kode butir beku | 20.5 | Butir dibentuk saat simpan pertama dari master jenis serah terima; perubahan master sesudahnya tidak mengubah dokumen (`RWI-DEC-241` butir 4) |
+| `InpAdmissionPrivacyRequest` | **Baru** | `.../Models/InpAdmissionPrivacyRequest.cs` | Pilihan privasi selama transportasi | 20.6 | 1:1 dengan dokumen Permintaan Privasi |
+| `InpAdmissionPrivacyEntry` | **Baru** | `.../Models/InpAdmissionPrivacyEntry.cs` | Satu kerabat yang boleh menjenguk atau satu permintaan khusus | 20.7 | Satu nama satu baris; tidak digabung koma (kelemahan V1 nomor 9) |
+| `InpAdmissionBeliefItem` | **Baru** | `.../Models/InpAdmissionBeliefItem.cs` | Satu hal yang bertentangan dengan nilai dan kepercayaan pasien | 20.8 | 1–5 butir per dokumen |
+| `InpAdmissionCostDifferenceStatement` | **Baru** | `.../Models/InpAdmissionCostDifferenceStatement.cs` | Subjek pernyataan Selisih Biaya sebagai kode | 20.9 | Kode, bukan teks tampilan V1 (`FR-RWA-103`) |
+| `InpAdmissionDepositStatement` | **Baru** | `.../Models/InpAdmissionDepositStatement.cs` | Jatuh tempo dan angka deposit beku | 20.10 | Angka kosong selama `Draft`; terisi saat dikunci dari Billing |
+| `InpAdmissionCostEstimate`, `InpAdmissionCostEstimateLine` | **Baru** — di luar gelombang (`EPIC-RWA-09`) | `.../Models/InpAdmissionCostEstimate.cs`, `InpAdmissionCostEstimateLine.cs` | Kepala rencana tindakan dan baris biaya Estimasi Biaya Rekap | 20.11, 20.12 | Baris visit dokter selalu `Unavailable` atau `Manual` sampai `DEC-INP-020` |
+| `InpAdmissionPrintLog` | **Baru** | `.../Models/InpAdmissionPrintLog.cs` | Satu kejadian cetak: jenis, jumlah salinan, cetak ulang dan alasannya, pencetak, waktu | 20.13 | "Cetakan ke-*n*" dihitung dari urutan baris, tidak disimpan |
+| `InpAdmissionProcedurePlanMark` | **Baru** — di luar gelombang | `.../Models/InpAdmissionProcedurePlanMark.cs` | Penanda manual "ada rencana tindakan/operasi" pada episode (`RWI-DEC-250` butir 3) | 20.14 | Dicabut dengan mengisi `UnmarkedAt`, sehingga riwayat penanda utuh. Sengaja tidak menjadi kolom `InpEpisode` |
+| `MstInpatientClearanceItem` | **Diperbarui** | `MasterData/Models/MstInpatientClearanceItem.cs` | + jenis checklist, induk sub-butir, sumber saran serah terima | 20.15 | `TOUCHED LEGACY`: `SortOrder` lama tetap dipakai sebagai urutan; tidak ada `SortOrder` baru |
+| `MstInpatientSetting` | **Diperbarui** | `MasterData/Models/MstInpatientSetting.cs` | + delapan kode formulir, kota penandatanganan, batas umur gelang bayi, kode singkat label | 20.16 | Nilai awal lewat seeder non-produksi atau isian admin produksi |
+
+#### 13.8.2 Service Rawat Inap
+
+| Class | Status | Lokasi file | Fungsi utama | Dipanggil oleh | Membuka transaksi | Catatan desain |
+|---|---|---|---|---|---|---|
+| `InpAdmissionWriteGuard` | **Baru** | `InPatientManagement/Services/InpAdmissionWriteGuard.cs` | Menolak penulisan pada episode selain `Admitted`/`DischargePending` dan episode yang belum dikonfirmasi | Document, signature, procedure-plan service | Tidak | Kode alasan `INP-ADM-DOC-001`, `002` |
+| `InpAdmissionSourceReader` | **Baru** | `.../Services/InpAdmissionSourceReader.cs` | Satu pintu baca seluruh data modul lain (13.6); mengembalikan rekaman ramping beserta keadaan "tersedia / gagal / belum tersedia" | Query, prefill, snapshot, completeness | Tidak | Satu-satunya class Workspace PPRI yang boleh memanggil service modul lain. Service yang gerbangnya belum turun (`RWI-OQ-126` s.d. `129`) dibungkus agar keadaan "belum tersedia" menghasilkan cadangan aman, bukan kesalahan |
+| `InpAdmissionCompletenessEvaluator` | **Baru** | `.../Services/InpAdmissionCompletenessEvaluator.cs` | Menghitung dokumen wajib, status per menu, dan angka *x* dari *y* (`RWI-DEC-234`, `250`, `256`) | Workspace query, `InpEpisodeService` | Tidak | Sumber gagal → butir "tidak dapat dihitung" dan tidak ikut pembilang maupun penyebut |
+| `InpAdmissionWorkspaceQueryService` | **Baru** | `.../Services/InpAdmissionWorkspaceQueryService.cs` | Ringkasan ruang kerja, ringkasan rupiah, kop, data cetak GC, IPD, label, ringkasan hak pasien, log cetak | Controller | Tidak | `AsNoTracking`; tidak pernah memuat isian sensitif ke logger |
+| `InpAdmissionPrefillService` | **Baru** | `.../Services/InpAdmissionPrefillService.cs` | Isian bawaan per jenis: butir serah terima beserta saran, calon penanda tangan, butir Nilai Kepercayaan episode lalu, data deklarer "diri sendiri", kepala Estimasi dari kasus OK | Controller, document service | Tidak | Saran serah terima dibaca dari `HandoverSuggestionSource` master, bukan nomor butir |
+| `InpAdmissionSnapshotBuilder` | **Baru** | `.../Services/InpAdmissionSnapshotBuilder.cs` | Membentuk salinan beku saat kunci: identitas pasien, penjamin, kelas, kamar/bed, DPJP, kop, kode formulir, kota; angka deposit dan harga Estimasi | Document service | Tidak | `SnapshotFormatVersion = 1`; bentuk JSON di kamus data 20.2 |
+| `InpAdmissionDocumentService` | **Baru** | `.../Services/InpAdmissionDocumentService.cs` | Simpan konsep, ubah, kunci, buka kunci, versi koreksi, buang konsep, batalkan; validator per jenis | Controller | **Ya** | Pemeriksaan per jenis di validation matrix 15.2 s.d. 15.4; urutan versi koreksi 13.5 |
+| `InpAdmissionSignatureService` | **Baru** | `.../Services/InpAdmissionSignatureService.cs` | Catat tanda tangan kertas; atestasi lima slot; menyelesaikan dokumen saat slot wajib terakhir terisi | Controller | **Ya** | Slot wajib per jenis di 13.9; syarat bed slot Perawat lewat `InpPatientLocationQuery` |
+| `InpAdmissionPrintService` | **Baru** | `.../Services/InpAdmissionPrintService.cs` | Data cetak dokumen dari salinan beku atau data hidup (`Draft`); penanda cetakan; catat log cetak; aturan cetak ulang | Controller | Ya (catat log) | Cetak berupiah memeriksa `Print` lewat `AccessPermissionService` sesudah attribute `ViewAmount` |
+| `InpDepositDueDateCalculator` | **Baru** | `.../Services/InpDepositDueDateCalculator.cs` | Bawaan dan batas jatuh tempo: hari kerja Senin–Jumat berikutnya pukul 11.00 waktu rumah sakit, dipotong ke batas tanggal surat + interval kebijakan (`RWI-DEC-231`, `248`, `261`) | Prefill, document service | Tidak | Fungsi murni; zona waktu dari profil rumah sakit, bawaan `Asia/Jakarta` |
+| `InpWristbandRules` | **Baru** | `.../Services/InpWristbandRules.cs` | Jenis gelang dan sapaan (`RWI-DEC-243`); teks umur | Workspace query | Tidak | Batas umur bayi dari pengaturan; ambang dewasa 17 tahun dari keputusan |
+| `InpAdmissionProcedurePlanService` | **Baru** — di luar gelombang | `.../Services/InpAdmissionProcedurePlanService.cs` | Pasang dan cabut penanda rencana tindakan | Controller | Ya | Dikirim bersama `EPIC-RWA-09` |
+| `InpPatientLocationQuery` | **Diperbarui** | `.../Services/InpPatientLocationQuery.cs` | + `HasActivePlacementAsync(episodeId)` | Signature service | Tidak | Aturan "menempati bed" sama dengan method yang sudah ada |
+| `InpEpisodeService` | **Diperbarui** | `.../Services/InpEpisodeService.cs` | Detail episode menambah peringatan kelengkapan dan jatuh tempo tanpa rupiah | `InpatientEpisodeController` | Tidak | Hanya untuk `Admitted`/`DischargePending`; kegagalan sumber tidak menggagalkan detail |
+| `InpDischargeService` (`.Closure`) | **Diperbarui** | `.../Services/InpDischargeService.Closure.cs` | Daftar dan penandaan butir penutupan hanya jenis `EpisodeClosure` | Penutupan episode | Tetap | `:88-101` dan `:162-177` disunting pada task yang sama dengan migration `E9` |
+| `InpSettingService` | **Diperbarui** | `.../Services/InpSettingService.cs` | `InpatientSettingValues` + nilai baru | Rawat Inap | Tidak | — |
+
+#### 13.8.3 Controller
+
+| Class | Status | Lokasi file | Service yang dipakai | Atribut akses | Endpoint |
+|---|---|---|---|---|---|
+| `InpatientAdmissionDocumentController` | **Baru** | `InPatientManagement/Controllers/InpatientAdmissionDocumentController.cs` | Workspace query, prefill, document, signature, print, procedure-plan | `[AccessController(moduleCode: "HEALTH_SERVICE_INPATIENT", moduleName: "Health Service Inpatient", displayName: "Inpatient Admission Document", AreaName = "HealthServices", ControllerName = "InpatientAdmissionDocument", Description = "Dokumen penerimaan pasien rawat inap (Workspace PPRI)", SortOrder = <DEV_DISCRETION>)]`; aksi kustom `[AccessAction("<Aksi>", ..., AccessType = ...)]` (13.9) | `contracts/api-contract.md` 12.2 |
+| `InpatientEpisodeController` | **Diperbarui** (perilaku) | `.../Controllers/InpatientEpisodeController.cs` | `InpEpisodeService` | Tetap | `GET episodes/{id}`: isi `Warnings` bertambah |
+| `InpatientClearanceItemController` | **Diperbarui** | `MasterData/Controllers/InpatientClearanceItemController.cs` | `InpatientClearanceItemService` | Tetap `InpatientClearanceItem : Read/Create/Update/Delete` | Saringan dan isian jenis, induk, sumber saran (`api-contract.md` 12.4) |
+| `InpatientSettingController` | **Diperbarui** | `MasterData/Controllers/InpatientSettingController.cs` | `InpatientSettingService` | Tetap `InpatientSetting : Read/Update` | Isian baru (12.4) |
+
+`SortOrder` pada `[AccessController]` dan `[AccessAction]` adalah urutan tampilan permission dan **sah** menurut kontrak backend; nilainya `DEV_DISCRETION`.
+
+#### 13.8.4 Service dan DTO di modul lain
+
+| Class | Modul | Status | Lokasi file | Fungsi | Gerbang |
+|---|---|---|---|---|---|
+| `PatientProfileQueryService` | `PatientManagement` | **Baru** (folder `Services/` baru) | `PatientManagement/MasterData/Services/PatientProfileQueryService.cs` | `GetIdentityAsync(patientId)`; `GetPartyCandidatesAsync(patientId)` — relasi terstruktur dan kontak darurat dengan nama, hubungan, alamat, telepon, penanda penanggung jawab | `RWI-OQ-126` |
+| `PatientQrPayloadBuilder` | `PatientManagement` | **Baru** (ekstraksi) | `PatientManagement/MasterData/Services/PatientQrPayloadBuilder.cs` | Isi QR = No. RM terformat, dipindah dari `PatientController.BuildPatientQrPayload` | `RWI-OQ-126` |
+| `PatientController` | `PatientManagement` | **Diperbarui** (struktur) | `.../Controllers/PatientController.cs` | Memanggil `PatientQrPayloadBuilder`; perilaku endpoint tetap | `RWI-OQ-126` |
+| `PatientAllergyQueryService` | `ClinicalManagement` | **Baru** | `ClinicalManagement/Services/PatientAllergyQueryService.cs` | `GetActiveAlertsAsync(patientId)` | Disetujui `RWI-DEC-264` |
+| `PatientAllergyController` | `ClinicalManagement` | **Diperbarui** (struktur) | `.../Controllers/PatientAllergyController.cs` | `active-alerts` memanggil service; perilaku tetap | Sama |
+| `EncounterInsuranceService`, `EncounterInsuranceContext` | `ClinicalManagement` | **Diperbarui** | `ClinicalManagement/Services/EncounterInsuranceService.cs` | Konteks + `CardNumber`, `MemberNumber` dari `CardNumberSnapshot`, `MemberNumberSnapshot` sumber pembayaran | Sama |
+| `DoctorCertificateService` | `ClinicalManagement` | **Diperbarui** | `ClinicalManagement/Services/DoctorCertificateService.cs` | + `GetLatestIssuedInpatientReferralAsync(encounterId)` → nomor, dokter penerbit, tanggal terbit, `ReferralDiagnosis`, `ReferralReason` | Sama |
+| `EncounterReferralQueryService` | `RegistrationManagement` | **Baru** | `RegistrationManagement/Services/EncounterReferralQueryService.cs` | `GetExternalReferralAsync(encounterId)` → nama dokter perujuk dan institusi | **`RWI-OQ-128`** |
+| `BillingCalculationService` | `BillingManagement` | **Diperbarui** | `BillingManagement/Billing/Services/BillingCalculationService.cs` | + `GetDailyRoomRateAsync(serviceUnitId, patientClassId, momentUtc)` memakai `ResolveRoomTariff` yang ada | **`RWI-OQ-129`** |
+| `HospitalSiteProfileQueryService` | HR Master Data | **Baru** (folder `Services/` baru) | `Corporate/HumanResource/MasterData/Organization/Services/HospitalSiteProfileQueryService.cs` | `GetMainSiteProfileAsync()` → nama, kode, alamat beserta wilayah, telepon, email, zona waktu situs `IsMainSite` aktif | `RWI-OQ-127` |
+| `InpatientClearanceItemService` + DTO | `MasterData` | **Diperbarui** | `MasterData/Services/InpatientClearanceItemService.cs` | Validasi jenis, induk, sumber saran; saringan `checklistType` pada daftar dan opsi | `RWI-DEC-193` |
+| `InpatientSettingService` + DTO | `MasterData` | **Diperbarui** | `MasterData/Services/InpatientSettingService.cs` | Validasi isian baru | `RWI-DEC-193` |
+| `InpatientMasterDataSeeder` | `MasterData` | **Diperbarui** | `MasterData/Seeders/InpatientMasterDataSeeder.cs` | Butir serah terima dan nilai pengaturan V1 **untuk lingkungan non-produksi saja** | `RWI-DEC-048` |
+
+DTO Rawat Inap baru: `InPatientManagement/DTOs/InpatientAdmissionWorkspaceDtos.cs` (ringkasan, rupiah, kop, IPD, label, hak pasien, log cetak) dan `InpatientAdmissionDocumentDtos.cs` (request dan response dokumen, tanda tangan, cetak). Daftar field di `contracts/api-contract.md` 12.3.
+
+### 13.9 Enum baru dan berubah
+
+| Enum | Lokasi | Nilai | Bawaan |
+|---|---|---|---|
+| `InpAdmissionDocumentType` | `InPatientManagement/Enums/` | `NewPatientHandover = 1`, `PrivacyRequest = 2`, `BeliefValues = 3`, `CostDifferenceStatement = 4`, `DepositSettlementStatement = 5`, `CostEstimate = 6` | — (wajib) |
+| `InpAdmissionDocumentStatus` | Sama | `Draft = 1`, `AwaitingSignature = 2`, `Completed = 3`, `Superseded = 4`, `Cancelled = 5` | `Draft` |
+| `InpAdmissionSignatureSlot` | Sama | `PatientOrFamily = 1`, `AdmissionOfficer = 2`, `CustomerRelationOfficer = 3`, `ReceivingNurse = 4`, `HeadNurse = 5` | — |
+| `InpAdmissionSignatureMethod` | Sama | `PaperRecorded = 1`, `ElectronicAttestation = 2` | — |
+| `InpAdmissionPartySource` | Sama | `Patient = 1`, `PatientRelationship = 2`, `EmergencyContact = 3`, `Manual = 4` | `Manual` |
+| `InpAdmissionPartyRelationship` | Sama | `Self = 1`, `Spouse = 2`, `Child = 3`, `Parent = 4`, `Sibling = 5`, `Guardian = 6`, `Other = 7` | — |
+| `InpAdmissionPartyIdentityType` | Sama | `Ktp = 1`, `Sim = 2`, `Passport = 3`, `IdCard = 4` (pilihan V1) | — |
+| `InpHandoverItemChoice` | Sama | `Done = 1` (Sudah), `NotDone = 2` (Belum); kosong = belum dipilih | kosong |
+| `InpAdmissionPrivacyEntryType` | Sama | `AllowedVisitor = 1`, `SpecialServiceRequest = 2` | — |
+| `InpCostDifferenceSubject` | Sama | `Self = 1`, `Wife = 2`, `Husband = 3`, `Child = 4`, `OtherSibling = 5` | — |
+| `InpAdmissionPrintKind` | Sama | `AdultWristband = 1`, `InfantWristband = 2`, `PatientLabel = 3`, `InpatientBaseData = 4`, `AdmissionDocument = 5` | — |
+| `InpReprintReason` | Sama | `Damaged = 1`, `Lost = 2`, `DataChanged = 3`, `Other = 4` | — |
+| `InpCostEstimateLineType` | Sama | `SurgicalProcedure = 1`, `InpatientProcedure = 2`, `SpecialDevice = 3`, `RoomPerDay = 4`, `DoctorVisitPerDay = 5`, `Other = 6` | — |
+| `InpCostEstimatePriceSource` | Sama | `Tariff = 1`, `Manual = 2`, `Unavailable = 3` | — |
+| `MstClearanceChecklistType` | `MasterData/Enums/` | `EpisodeClosure = 1`, `NewPatientHandover = 2` | `EpisodeClosure` |
+| `MstHandoverSuggestionSource` | `MasterData/Enums/` | `None = 0`, `ReferralLetter = 1`, `CostEstimateCompleted = 2`, `DepositStatementCompleted = 3`, `BaseDataPrinted = 4`, `LabelAndGeneralConsent = 5`, `WristbandPrinted = 6` | `None` |
+
+**Slot wajib per jenis dokumen** (slot lain ditolak `422`):
+
+| Jenis | Slot wajib | Label cetak V1 |
+|---|---|---|
+| `NewPatientHandover` | `AdmissionOfficer`, `CustomerRelationOfficer`, `ReceivingNurse` | Admission, CRO, Perawat |
+| `PrivacyRequest` | `PatientOrFamily`, `HeadNurse` | Pasien / Keluarga Pasien, Kepala Ruangan |
+| `BeliefValues` | `PatientOrFamily` | Tanda Tangan |
+| `CostDifferenceStatement` | `PatientOrFamily`, `AdmissionOfficer` | Yang Membuat Pernyataan, Mengetahui Petugas PPRI |
+| `DepositSettlementStatement` | `PatientOrFamily`, `AdmissionOfficer` | Yang menyatakan, Yang menyetujui |
+| `CostEstimate` | `PatientOrFamily`, `AdmissionOfficer` | Pasien / keluarga pasien, Petugas PPRI / Admission |
+
+**Aksi permission resource `InpatientAdmissionDocument`:**
+
+| Aksi | `AccessType` pengelompokan | Arti |
+|---|---|---|
+| `Read` | `Read` | Membuka Workspace PPRI dan membaca dokumen tanpa rupiah |
+| `ViewAmount` | `Read` | Membaca rupiah dan mencetak dokumen berupiah (`RWI-DEC-258`) |
+| `Create` | `Create` | Membuat konsep dokumen |
+| `Update` | `Update` | Mengubah, mengunci, membuka kunci, membuat versi koreksi, membuang konsep sendiri |
+| `Sign` | `Update` | Mencatat tanda tangan kertas pasien/keluarga; atestasi slot Admission / Petugas PPRI |
+| `SignAsCro` | `Update` | Atestasi slot CRO |
+| `SignAsNurse` | `Update` | Atestasi slot Perawat penerima |
+| `SignAsHeadNurse` | `Update` | Atestasi slot Kepala Ruangan (`RWI-DEC-238`) |
+| `Print` | `Read` | Mencetak dan mencatat cetak |
+| `Cancel` | `Update` | Membatalkan dokumen beralasan |
+
+### 13.10 Arsitektur folder — delta revision `0.10`
+
+```text
+Areas/HealthServices/
+├── InPatientManagement/
+│   ├── Models/InpAdmissionDocument.cs, InpAdmissionDocumentSignature.cs,
+│   │          InpAdmissionDocumentParty.cs, InpAdmissionHandoverItem.cs,
+│   │          InpAdmissionPrivacyRequest.cs, InpAdmissionPrivacyEntry.cs,
+│   │          InpAdmissionBeliefItem.cs, InpAdmissionCostDifferenceStatement.cs,
+│   │          InpAdmissionDepositStatement.cs, InpAdmissionPrintLog.cs        [Baru]
+│   ├── Models/InpAdmissionCostEstimate.cs, InpAdmissionCostEstimateLine.cs,
+│   │          InpAdmissionProcedurePlanMark.cs                               [Baru — di luar gelombang]
+│   ├── Enums/InpAdmissionDocumentType.cs … InpCostEstimatePriceSource.cs     [Baru, 14 berkas]
+│   ├── DTOs/InpatientAdmissionWorkspaceDtos.cs, InpatientAdmissionDocumentDtos.cs [Baru]
+│   ├── Services/InpAdmissionWriteGuard.cs, InpAdmissionSourceReader.cs,
+│   │            InpAdmissionCompletenessEvaluator.cs, InpAdmissionWorkspaceQueryService.cs,
+│   │            InpAdmissionPrefillService.cs, InpAdmissionSnapshotBuilder.cs,
+│   │            InpAdmissionDocumentService.cs, InpAdmissionSignatureService.cs,
+│   │            InpAdmissionPrintService.cs, InpDepositDueDateCalculator.cs,
+│   │            InpWristbandRules.cs                                         [Baru]
+│   ├── Services/InpAdmissionProcedurePlanService.cs                          [Baru — di luar gelombang]
+│   ├── Services/InpPatientLocationQuery.cs, InpEpisodeService.cs,
+│   │            InpDischargeService.Closure.cs, InpSettingService.cs        [Diperbarui]
+│   └── Controllers/InpatientAdmissionDocumentController.cs                   [Baru]
+│       Controllers/InpatientEpisodeController.cs                             [Diperbarui: perilaku Warnings]
+├── MasterData/
+│   ├── Models/MstInpatientClearanceItem.cs, MstInpatientSetting.cs           [Diperbarui]
+│   ├── Enums/MstClearanceChecklistType.cs, MstHandoverSuggestionSource.cs    [Baru]
+│   ├── Services/InpatientClearanceItemService.cs, InpatientSettingService.cs [Diperbarui]
+│   ├── Controllers/InpatientClearanceItemController.cs, InpatientSettingController.cs [Diperbarui]
+│   └── Seeders/InpatientMasterDataSeeder.cs                                  [Diperbarui: non-produksi]
+├── PatientManagement/MasterData/
+│   ├── Services/PatientProfileQueryService.cs, PatientQrPayloadBuilder.cs    [Baru — RWI-OQ-126]
+│   └── Controllers/PatientController.cs                                      [Diperbarui: struktur]
+├── ClinicalManagement/
+│   ├── Services/PatientAllergyQueryService.cs                                [Baru]
+│   ├── Services/EncounterInsuranceService.cs, DoctorCertificateService.cs    [Diperbarui]
+│   └── Controllers/PatientAllergyController.cs                               [Diperbarui: struktur]
+├── RegistrationManagement/
+│   └── Services/EncounterReferralQueryService.cs                             [Baru — RWI-OQ-128]
+└── BillingManagement/Billing/
+    └── Services/BillingCalculationService.cs                                 [Diperbarui — RWI-OQ-129]
+Areas/Corporate/HumanResource/MasterData/Organization/
+    └── Services/HospitalSiteProfileQueryService.cs                           [Baru — RWI-OQ-127]
+Repositories/Configurations/HealthServices/InPatientManagement/
+    └── <13 configuration tabel baru>Configuration.cs                        [Baru]
+Repositories/Configurations/HealthServices/MasterData/
+    └── MstInpatientClearanceItemConfiguration.cs, MstInpatientSettingConfiguration.cs [Diperbarui]
+Repositories/ApplicationDbContext.cs                                          [Diperbarui: 13 DbSet]
+Program.cs (registrasi service)                                               [Diperbarui: AddScoped]
+```
+
+**Utang teknis yang disentuh, tidak dirapikan diam-diam:** `MstInpatientClearanceItem.SortOrder` (pola legacy; kontrak backend melarang `SortOrder` presentasi untuk kode baru) tetap dipakai sebagai urutan butir. `HospitalSiteController` dan `PatientAllergyController` yang memakai context langsung **tidak** dirapikan; service baru hanya ditambahkan, dan `PatientAllergyController.active-alerts` memanggilnya agar aturan "alergi aktif" tidak punya dua salinan.
+
+### 13.11 Status model dan dampak migration
+
+| Tabel | Status | Kolom yang berubah | Dampak data lama |
+|---|---|---|---|
+| `MstInpatientClearanceItem` | Diperbarui | + `ChecklistType` (`integer`, wajib, bawaan `1`), + `ParentItemId` (`uuid`, opsional, FK diri sendiri `Restrict`), + `HandoverSuggestionSource` (`integer`, wajib, bawaan `0`) | Seluruh butir lama menjadi `EpisodeClosure` tanpa induk dan tanpa saran — perilaku penutupan tidak berubah |
+| `MstInpatientSetting` | Diperbarui | + `GeneralConsentFormCode`, `NewPatientHandoverFormCode`, `PrivacyRequestFormCode`, `BeliefValuesFormCode`, `CostDifferenceFormCode`, `DepositSettlementFormCode`, `CostEstimateFormCode`, `InpatientBaseDataFormCode` (masing-masing `varchar(50)`, opsional); + `DocumentSigningCity` (`varchar(100)`, opsional); + `InfantWristbandMaxAgeYears` (`integer`, wajib, bawaan `5`); + `PatientLabelHospitalCode` (`varchar(30)`, opsional) | Baris lama: kode dan kota kosong sampai diisi admin; batas umur 5 |
+| `InpAdmissionDocument` dan sembilan tabel anak/log gelombang MVP | Baru | Seluruh kolom | — |
+| `InpAdmissionCostEstimate`, `InpAdmissionCostEstimateLine`, `InpAdmissionProcedurePlanMark` | Baru — di luar gelombang | Seluruh kolom | Dibuat bersama `EPIC-RWA-09` |
+| `InpEpisode`, `InpBedPlacement`, `RegPatientEncounterGuarantor`, `MstPatient`, `MstHospitalSite`, dan tabel modul lain | Sudah ada | **Tidak berubah** | — |
+
+### 13.12 Rencana migration di dalam sub-modul ini
+
+Langkah melanjutkan penomoran Finishing (`E4` s.d. `E8`). Urutan lintas sub-modul di [`../02-module-map.md`](../02-module-map.md) bagian 8.4.
+
+| Langkah | Isi | Tanpa downtime | Data lama | Mundur |
+|---|---|---|---|---|
+| `E9` | `MasterData`: tiga kolom `MstInpatientClearanceItem`, sebelas kolom `MstInpatientSetting`. **Dirilis bersama kode saringan jenis pada penutupan episode (`InpDischargeService.Closure.cs:88`, `:162`) dalam task yang sama** | Ya — kolom aditif berbawaan konstan | Bawaan aman; tidak ada pengisian ulang | `Down()`. **Sebelum** mundur kode atau `Down()`: nonaktifkan (`IsActive = false`) seluruh butir jenis serah terima, karena kode lama membaca semua butir aktif dan butir wajib serah terima akan menahan penutupan episode |
+| `E10` | `InPatientManagement`: `InpAdmissionDocument`, `InpAdmissionDocumentSignature`, `InpAdmissionDocumentParty`, `InpAdmissionHandoverItem` (FK ke `MstInpatientClearanceItem`, maka sesudah `E9`), `InpAdmissionPrivacyRequest`, `InpAdmissionPrivacyEntry`, `InpAdmissionBeliefItem`, `InpAdmissionCostDifferenceStatement`, `InpAdmissionDepositStatement`, `InpAdmissionPrintLog` | Ya — tabel baru | — | `Down()` selama belum ada dokumen produksi; sesudahnya mundur hanya kode, tabel dibiarkan |
+| `E11` | Di luar gelombang: `InpAdmissionCostEstimate`, `InpAdmissionCostEstimateLine`, `InpAdmissionProcedurePlanMark` | Ya | — | `Down()` |
+| `E12` | Data dan hak: butir serah terima dan nilai pengaturan (13.13); pemberian aksi `InpatientAdmissionDocument` per peran; butir hak akses lahir otomatis dari atribut endpoint lewat `AccessMenuSeeder` | Ya | Butir serah terima **produksi diisi admin sesudah `E9` dan kodenya dirilis**, tidak sebelumnya | Nonaktifkan butir; cabut pemberian hak |
+
+Satu `DbSet` per tabel, jamak (`InpAdmissionDocuments`, …). Seluruh enum disimpan `integer` (`HasConversion<int>()`), mengikuti konfigurasi Rawat Inap yang ada.
+
+### 13.13 Rencana data master dan konfigurasi awal
+
+Seeder `InpatientMasterDataSeeder` **menolak produksi** (`RWI-DEC-048`). Karena itu setiap baris di bawah punya dua jalan: seeder untuk lingkungan pengembangan dan UAT, dan **isian admin** untuk produksi lewat layar yang sudah ada. Nilai V1 hanya ditulis di seeder dan di dokumen ini; service, controller, DTO, dan komponen cetak Workspace PPRI **tidak** memuatnya (`RWI-AC-368`).
+
+**Butir Serah Terima Pasien Baru** (`MstInpatientClearanceItem`, `ChecklistType = NewPatientHandover`, `IsMandatory = true`, `IsActive = true`; urutan lewat `SortOrder` lama; nama mengikuti PRD Lampiran A.2):
+
+| Kode | Nama butir | Induk | `HandoverSuggestionSource` | `SortOrder` |
+|---|---|---|---|---:|
+| `STPB-01` | SURAT PENGANTAR RAWAT | — | `ReferralLetter` (`RWI-DEC-262`) | 10 |
+| `STPB-02` | MENGHUBUNGI DOKTER (KHUSUS TINDAKAN) | — | `None` | 20 |
+| `STPB-02A` | HASIL PEMERIKSAAN PENUNJANG — Laboratorium | `STPB-02` | `None` | 21 |
+| `STPB-02B` | HASIL PEMERIKSAAN PENUNJANG — Radiologi | `STPB-02` | `None` | 22 |
+| `STPB-02C` | HASIL PEMERIKSAAN PENUNJANG — Lain-lain | `STPB-02` | `None` | 23 |
+| `STPB-03` | PENJELASAN DILARANG MEMBAWA OBAT DARI LUAR | — | `None` | 30 |
+| `STPB-04` | PENJELASAN PRAKIRAAN BIAYA TINDAKAN & DEPOSIT | — | `CostEstimateCompleted` (aktif saat `EPIC-RWA-09` dikirim) | 40 |
+| `STPB-05` | PENJELASAN HARGA KAMAR | — | `None` | 50 |
+| `STPB-06` | PENJELASAN TATA TERTIB | — | `None` | 60 |
+| `STPB-07` | PERNYATAAN PELUNASAN DEPOSIT | — | `DepositStatementCompleted` | 70 |
+| `STPB-08` | DOKUMEN MEDIK RI / RJ | — | `None` | 80 |
+| `STPB-09` | FORMULIR IPD | — | `BaseDataPrinted` | 90 |
+| `STPB-10` | FORMULIR ASURANSI / JAMINAN | — | `None` | 100 |
+| `STPB-11` | INFORMASI VIP (KHUSUS VIP) | — | `None` | 110 |
+| `STPB-12` | CETAK LABEL / STIKER / GENERAL CONSENT | — | `LabelAndGeneralConsent` — **tidak memberi saran** selama General Consent *fail-closed* (`RWI-DEC-241` butir 2) | 120 |
+| `STPB-13` | PASANG GELANG | — | `WristbandPrinted` | 130 |
+| `STPB-14` | INPUT PARKIR | — | `None` | 140 |
+| `STPB-15` | LAIN-LAIN | — | `None` | 150 |
+
+V1 menulis butir 12 "GENERAL CONCERN"; nama di atas dibetulkan menjadi "GENERAL CONSENT" mengikuti PRD Lampiran A.2. Admin boleh mengubahnya.
+
+**Pengaturan Rawat Inap** (`MstInpatientSetting` baris `DEFAULT`):
+
+| Isian | Nilai awal | Sumber |
+|---|---|---|
+| `GeneralConsentFormCode` | `GC/ADM/001/Rev01/2024` | PRD Lampiran A.12 |
+| `NewPatientHandoverFormCode` | `HP/ADM/001/Rev01/2024` | Sama |
+| `DepositSettlementFormCode` | `005/NM/E/Rev01/XI/2016` | Sama |
+| `CostDifferenceFormCode` | `006/NM/E/Rev03/VI/2022` | Sama |
+| `PrivacyRequestFormCode` | `008/NM/E/Rev02/VI/2022` | Sama |
+| `BeliefValuesFormCode` | `009/NM/E/Rev01/VI/2022` | Sama |
+| `CostEstimateFormCode`, `InpatientBaseDataFormCode` | Kosong — V1 tidak punya kode | Sama |
+| `DocumentSigningCity` | Kota bawaan V1 yang tertulis di PRD Lampiran A.12 | Sama; diganti admin bila rumah sakit menghendaki |
+| `InfantWristbandMaxAgeYears` | `5` | `RWI-DEC-243` |
+| `PatientLabelHospitalCode` | Kosong → cetakan memakai `MstHospitalSite.SiteCode` | G-36 |
+
+**Prasyarat data modul lain:** satu `MstHospitalSite` aktif bertanda `IsMainSite` dengan nama, alamat, telepon, dan email terisi (HR); kebijakan deposit Billing per penjamin dan kelas (sudah ada); peran CRO, supervisor admisi, dan pemegang `SignAsHeadNurse` (`RWI-OQ-124`).
+
+**Pemberian aksi bawaan usulan** (diatur rumah sakit lewat Akses Role; aturannya hak menentukan tindakan, bukan nama peran):
+
+| Peran | Aksi `InpatientAdmissionDocument` |
+|---|---|
+| Petugas admisi / PPRI | `Read`, `ViewAmount`, `Create`, `Update`, `Sign`, `Print` |
+| CRO | `Read`, `SignAsCro`, `Print` |
+| Perawat ruangan | `Read`, `SignAsNurse`, `Print` |
+| Kepala ruangan (dan wakil yang ditunjuk) | `Read`, `SignAsNurse`, `SignAsHeadNurse`, `Print` |
+| Kasir | `Read`, `ViewAmount`, `Print` |
+| Supervisor admisi | `Read`, `ViewAmount`, `Create`, `Update`, `Sign`, `Print`, `Cancel` |
+
+### 13.14 Yang sengaja tidak dibuat pada revision `0.10`
+
+| Yang ditolak | Alasan |
+|---|---|
+| Jenis dokumen atau tabel pendamping General Consent | *Fail-closed* (`RWI-DEC-230`, `233`); penyimpanannya dirancang bersama `DEC-INP-003`, memakai `TrxPatientConsent` tanpa tabel persetujuan kedua (`RWI-DEC-236`) |
+| Kolom gambar, hash, perangkat, dan IP tanda tangan digital | `EPIC-RWA-13` `OPEN DECISION` (`RWI-DEC-235` `draft`) |
+| Baris `MrcClinicalDocumentIntegrity` atau jenis dokumen baru di Rekam Medis | `RWI-DEC-229` |
+| Salinan tabel pasien, relasi, kontak darurat, penjamin, deposit | `RWI-DEC-228`, `257`; hanya salinan beku saat dikunci |
+| Kolom atau isian manual untuk data IPD tanpa sumber | `RWI-DEC-244`: dicetak garis kosong |
+| Tabel dokumen IPD, gelang, label | Hanya log cetak (`RWI-DEC-240`) |
+| Penghitung "cetakan ke-*n*" yang disimpan | Dihitung dari urutan log; penghitung tersimpan rawan ganda |
+| Tabel riwayat kejadian dokumen | Jejak dipegang rantai versi, baris tanda tangan, log cetak, kolom kunci/selesai/batal, dan logger aplikasi untuk setiap tulis |
+| Nomor surat bisnis per dokumen admisi | Formulir V1 tidak bernomor; IPD memakai nomor episode. Menghindari alokator nomor baru (`QBE-CODE-001` s.d. `006`) |
+| Master kecil kode formulir | Butir menu baru tidak mungkin (`IA-INP-05` penuh); kolom pada `MstInpatientSetting` (`RWI-DEC-247`) |
+| Master baru butir serah terima | Diperluas dari master yang ada (`RWI-DEC-241`) |
+| Kolom penanda rencana tindakan pada `InpEpisode` | `InpEpisode` adalah aggregate episode; penanda milik Workspace PPRI disimpan terpisah beserta riwayatnya |
+| Aturan tarif kamar kedua di Rawat Inap | Angka dapat berbeda dari tagihan; menunggu `RWI-OQ-129` |
+| Pemakaian langsung `EncounterPrimaryPayerSummary` | Membutuhkan entity kunjungan Registration dimuat oleh Rawat Inap (`RWI-DEC-257` butir 3); konteks asuransi Clinical membaca baris sumber pembayaran yang sama |
+| Hub SignalR khusus dokumen admisi | Penyegaran berkala 30 detik cukup (`FR-RWA-035`, G-34) |
+| Kalender libur (`MstHoliday`) | `RWI-DEC-261` |
+| Pengaturan jam jatuh tempo | Pukul 11.00 adalah teks formulir V1 yang disepakati (`RWI-DEC-231`); mengubahnya berarti merevisi formulir |
+| MP Benefit, Estimasi Rinci | Tetap ditunda (`RWI-OQ-119`, `RWI-OQ-120`) |
+| Tarif visit dokter dan catatan cito, lebih dari 4 jam, *standby*, anestesi | `DEC-INP-020` (`RWI-OQ-122`) |
+| Entity `Trx*` | `QBE-NAM-001` |
+
+### 13.15 Traceability bagian 13
+
+| Bagian | Requirement | Keputusan | Acceptance |
+|---|---|---|---|
+| Ruang kerja, header, kelengkapan | `FR-RWA-001` s.d. `008` | `RWI-DEC-234`, `245`, `250`, `256`, `257` | `RWI-AC-343` s.d. `346`, `371`, `377`, `378` |
+| Fondasi dokumen | `FR-RWA-120` s.d. `128` | `RWI-DEC-228` s.d. `230`, `237` s.d. `240`, `247`, `263`, `264` | `RWI-AC-351` s.d. `358`, `368`, `369`, `384`, `385` |
+| Serah Terima | `FR-RWA-030` s.d. `035` | `RWI-DEC-239`, `241`, `255`, `262` | `RWI-AC-353`, `354`, `359` s.d. `361`, `376`, `383` |
+| Gelang dan label | `FR-RWA-050` s.d. `053` | `RWI-DEC-243`, `253`, `259` | `RWI-AC-363`, `364`, `374`, `380` |
+| IPD | `FR-RWA-070` s.d. `072` | `RWI-DEC-244`, `254`, `258` | `RWI-AC-365`, `375`, `386`, `387` |
+| Privasi, Nilai Kepercayaan | `FR-RWA-060` s.d. `062`, `110` s.d. `113` | `RWI-DEC-238`, `242` | `RWI-AC-351`, `352`, `357`, `362` |
+| Selisih Biaya | `FR-RWA-100` s.d. `103` | `RWI-DEC-234`, `256` | `RWI-AC-377` |
+| Pelunasan Deposit | `FR-RWA-080` s.d. `085` | `RWI-DEC-231`, `248`, `252`, `258`, `260`, `261`, `263` | `RWI-AC-366`, `367`, `379`, `381`, `382`, `385` |
+| Estimasi Biaya (di luar gelombang) | `FR-RWA-090` s.d. `093` | `RWI-DEC-232`, `250`, `258`; `DEC-INP-020` terbuka | `RWI-AC-370`, `371`, `379` |
+| General Consent cetak saja | `FR-RWA-020` s.d. `022` (bagian cetak) | `RWI-DEC-230`, `233`, `246`, `251`, `252` | `RWI-AC-347` s.d. `349`, `372`, `373` |
+
+---
+
+### 13.16 Approval dan penyelarasan decision log revision `39` ★ 8 Oktober 2026
+
+Kontrak `0.11.0` disetujui Muhammad Hamzah lewat `RWI-DEC-265`. `RWI-OQ-126` dan `RWI-OQ-127` ditutup `RWI-DEC-266`: gerbang pada 13.0, 13.6, dan 13.8.4 untuk `PatientProfileQueryService`, `PatientQrPayloadBuilder`, dan `HospitalSiteProfileQueryService` kini **disetujui**. `RWI-OQ-128` dan `RWI-OQ-129` tetap terbuka dengan cadangan aman. Isi desain tidak berubah. Roadmap: `roadmap/backend-roadmap-workspace-ppri.md`.

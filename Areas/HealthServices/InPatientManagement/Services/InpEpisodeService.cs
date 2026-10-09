@@ -84,6 +84,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// <summary>Permintaan admisi dari kamar pulih (<c>BE-RWI-181</c>).</summary>
         private readonly InpAdmissionReferralService _admissionReferralService;
 
+        /// <summary>Peringatan kelengkapan dokumen admisi pada Detail Episode (<c>BE-RWI-195</c>, <c>INT-RWA-13</c>).</summary>
+        private readonly InpAdmissionCompletenessEvaluator _admissionCompleteness;
+
         /// <remarks>
         /// <b>Arah dependency dibalik pada `BE-RWI-011`.</b> Sampai `BE-RWI-008`, service ini
         /// menerima <c>InpBedOccupancyService</c> tanpa pernah memakainya. Sejak penempatan
@@ -99,13 +102,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             InpSettingService settingService,
             InpEpisodeNumberService episodeNumberService,
             IInpIntegrationOutboxService outboxService,
-            InpAdmissionReferralService admissionReferralService)
+            InpAdmissionReferralService admissionReferralService,
+            InpAdmissionCompletenessEvaluator admissionCompleteness)
         {
             _dbContext = dbContext;
             _settingService = settingService;
             _episodeNumberService = episodeNumberService;
             _outboxService = outboxService;
             _admissionReferralService = admissionReferralService;
+            _admissionCompleteness = admissionCompleteness;
         }
 
         // =====================================================================

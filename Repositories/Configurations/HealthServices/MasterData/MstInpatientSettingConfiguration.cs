@@ -37,6 +37,21 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Maste
             builder.Property(x => x.PendingSurgicalHandoverAlertMinutes).HasDefaultValue(60);
             builder.Property(x => x.PendingAdmissionReferralAlertMinutes).HasDefaultValue(30);
 
+            // BE-RWI-185 / E9 — isian cetak Workspace PPRI (kamus data 20.16). Kode formulir,
+            // kota, dan kode label kosong pada baris lama sampai diisi admin; batas umur gelang
+            // bayi mendapat 5 dari database, bukan 0 yang membuat setiap bayi bergelang dewasa.
+            builder.Property(x => x.GeneralConsentFormCode).HasMaxLength(50);
+            builder.Property(x => x.NewPatientHandoverFormCode).HasMaxLength(50);
+            builder.Property(x => x.PrivacyRequestFormCode).HasMaxLength(50);
+            builder.Property(x => x.BeliefValuesFormCode).HasMaxLength(50);
+            builder.Property(x => x.CostDifferenceFormCode).HasMaxLength(50);
+            builder.Property(x => x.DepositSettlementFormCode).HasMaxLength(50);
+            builder.Property(x => x.CostEstimateFormCode).HasMaxLength(50);
+            builder.Property(x => x.InpatientBaseDataFormCode).HasMaxLength(50);
+            builder.Property(x => x.DocumentSigningCity).HasMaxLength(100);
+            builder.Property(x => x.InfantWristbandMaxAgeYears).HasDefaultValue(5);
+            builder.Property(x => x.PatientLabelHospitalCode).HasMaxLength(30);
+
             builder.HasIndex(x => x.Code).IsUnique();
             builder.HasIndex(x => new { x.IsActive, x.IsDefault });
         }
