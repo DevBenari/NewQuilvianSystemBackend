@@ -102,7 +102,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [AccessPermission("QueueVoice", "Update")]
         public async Task<IActionResult> RegenerateQueueVoice(Guid queueId, [FromBody] QueueVoiceRegenerateRequest? request = null)
         {
-            var queue = await _dbContext.Set<TrxQueue>()
+            var queue = await _dbContext.Set<RegQueue>()
                 .Include(x => x.Patient)
                 .Include(x => x.ServiceUnit)
                 .Include(x => x.Clinic)

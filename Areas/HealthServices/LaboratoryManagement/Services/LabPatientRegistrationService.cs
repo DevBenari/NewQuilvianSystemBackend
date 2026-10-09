@@ -281,6 +281,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 ReferralNumber = request.ReferralNumber,
                 ReferralInstitutionId = request.ReferralInstitutionId,
                 ReferralDoctorId = request.ReferralDoctorId,
+                RequirePartnerEligibility = request.RequirePartnerEligibility,
                 Notes = request.Notes
             };
 

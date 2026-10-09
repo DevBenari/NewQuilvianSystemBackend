@@ -367,7 +367,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             Guid? queueId = null;
             if (request.QueueId.HasValue && request.QueueId != Guid.Empty)
             {
-                var queueMatches = await _dbContext.TrxQueues.AsNoTracking()
+                var queueMatches = await _dbContext.RegQueues.AsNoTracking()
                     .AnyAsync(x => x.Id == request.QueueId.Value && x.EncounterId == encounter.Id && !x.IsDelete, ct);
                 if (!queueMatches) return Fail("Antrean tidak sesuai dengan kunjungan.");
                 queueId = request.QueueId;

@@ -622,3 +622,178 @@ menyelesaikan atau membatalkan konsultasinya yang tertunda dari Klinis Dokter.
 | `RJ-DOC-OQ-015` | Resep draf saat konsultasi dibatalkan | Tidak — perilaku lama |
 
 Tidak ada pertanyaan yang memblokir.
+
+# Amendment MT — Menu Konsultasi Tertunda (revisi `30`, `draft`)
+
+Diturunkan dari `03-frontend-architecture.md` *Amendment MT*, `02-backend-architecture.md`
+*Amendment MT* (tanpa perubahan backend), dan `flowcharts/konsultasi-tertunda.md` bagian
+*Amendment MT*. Tidak ada entity, endpoint, atau butir hak akses baru.
+
+## MT-1. Masalah dan tujuan
+
+Sesudah *Amendment KT*, konsultasi tertunda tampil sebagai tab di panel kiri Klinis Dokter.
+Panel itu sempit, sehingga dokter sulit membandingkan banyak konsultasi tertunda sekaligus (contoh
+pada gambar pemilik: Tertunda (8)). Tujuan: dokter mengelola konsultasi tertunda dari halaman
+daftar tersendiri, seperti petugas mengelola kunjungan di Daftar Pasien Rawat Jalan. Klinis Dokter
+dipakai untuk meninjau isi konsultasi sebelum disimpan.
+
+## MT-2. Batas MVP
+
+| Titik | Isi |
+|---|---|
+| Mulai | Dokter membuka menu Dokter → Rawat Jalan → Konsultasi Tertunda |
+| Akhir | Setiap baris sudah disimpan (kunjungan status 7) atau dibatalkan, dan dokter kembali ke daftar |
+
+## MT-3. Kemampuan `MUST HAVE`
+
+| ID | Kemampuan | Asal |
+|---|---|---|
+| `MT-CAP-01` | Menu Dokter → Rawat Jalan menjadi grup Klinis Dokter dan Konsultasi Tertunda | `RJ-DOC-FE-014` |
+| `MT-CAP-02` | Halaman daftar Konsultasi Tertunda dengan pencarian dan pagination | `RJ-DOC-FE-014`, `RJ-DOC-FE-016`; `KT-CAP-01` |
+| `MT-CAP-03` | Aksi baris Batalkan Konsultasi dengan alasan wajib | `RJ-DOC-DEC-047`; `KT-CAP-04` |
+| `MT-CAP-04` | Aksi baris Simpan Konsultasi: membuka Klinis Dokter untuk ditinjau | `RJ-DOC-DEC-046`; `KT-CAP-02`, `KT-CAP-03` |
+| `MT-CAP-05` | Kembali ke daftar sesudah Simpan/Batalkan berhasil di Klinis Dokter | `RJ-DOC-DEC-048` |
+| `MT-CAP-06` | Tab Tertunda dihapus dari Klinis Dokter; pengingat jumlah tertunda | `RJ-DOC-FE-014`, `RJ-DOC-FE-015` |
+
+## MT-4. Yang ditunda
+
+| Hal | Alasan | Pengganti selama MVP |
+|---|---|---|
+| Filter Dokter untuk pengguna jalur super admin (`RJ-DOC-OQ-016`) | Butuh sinyal backend "boleh melihat semua dokter" untuk endpoint ini; amendment ini frontend-only | Kolom Dokter di tabel |
+| `RJ-DOC-OQ-014`, `RJ-DOC-OQ-015` | Tetap seperti *Amendment KT* | Tetap seperti *Amendment KT* |
+
+## MT-5. Epic dan functional requirement
+
+**Epic MT-E1 — Menu Konsultasi Tertunda** (`MUST HAVE`)
+
+| FR | Requirement | Disposisi |
+|---|---|---|
+| `MT-FR-01` | Sidebar Dokter → Rawat Jalan berisi Klinis Dokter (rute lama) dan Konsultasi Tertunda (rute baru) | `EXTEND` (`menu-items.jsx`) |
+| `MT-FR-02` | Halaman Konsultasi Tertunda menampilkan tabel dari `pending-consultations` dengan kolom MT-FE.3, pencarian, jumlah baris, pagination, keadaan kosong/gagal/`403` | `MISSING / NEW` |
+| `MT-FR-03` | Aksi Batalkan Konsultasi di baris: modal beralasan wajib 1–250, endpoint batal existing, baris hilang dan pesan petugas tampil sesudah sukses; tidak tampil tanpa `canCancelConsultation` | `EXTEND` (`useDoctorPendingConsultations`) |
+| `MT-FR-04` | Aksi Simpan Konsultasi membuka Klinis Dokter dengan parameter konsultasi; Klinis Dokter memuat dan membuka item itu tanpa membuka modal Simpan | `EXTEND` (`doctor-queue-view`, `useDoctorConsultationWorkspace`) |
+| `MT-FR-05` | Konsultasi yang tidak lagi tertunda menghasilkan pesan "tidak ditemukan" dengan tautan kembali | `MISSING / NEW` |
+| `MT-FR-06` | Sesudah Simpan atau Batalkan berhasil pada item dari daftar, dokter diarahkan ke daftar dengan pesan sukses; parameter URL dibersihkan sesudah item terbuka | `MISSING / NEW` |
+| `MT-FR-07` | Tombol Batalkan Konsultasi di workspace untuk item dari daftar | `EXISTING / REUSE` (dari `RJ-DOC-REV-FE-012`) |
+| `MT-FR-08` | Panel kiri Klinis Dokter tanpa tab; pengingat "Ada {n} konsultasi tertunda" bila `n > 0` | `EXTEND` |
+| `MT-FR-09` | Banner kunjungan lampau dan konfirmasi modal Simpan tetap berlaku | `EXISTING / REUSE` |
+
+## MT-6. Skenario UAT
+
+| ID | Skenario | Hasil yang diharapkan |
+|---|---|---|
+| `UAT-MT-01` | dr. Arif membuka sidebar Dokter → Rawat Jalan | Dua butir: Klinis Dokter dan Konsultasi Tertunda. Klinis Dokter berperilaku seperti sebelumnya untuk antrean hari ini, tanpa tab |
+| `UAT-MT-02` | dr. Arif punya 8 konsultasi tertunda dan membuka Klinis Dokter | Pengingat "Ada 8 konsultasi tertunda…" tampil; tautannya membuka Konsultasi Tertunda |
+| `UAT-MT-03` | dr. Arif membuka Konsultasi Tertunda dan mencari "IKBAL" | Satu baris IKBAL, 30 Sep 2026, tertunda 7 hari, resep draf 1 / tindakan 2 |
+| `UAT-MT-04` | dr. Arif memilih Batalkan Konsultasi pada AGNES dengan alasan "Pasien pulang sebelum diperiksa" | Baris AGNES hilang; pesan meminta petugas membatalkan kunjungannya; petugas berhasil membatalkannya di Daftar Pasien Rawat Jalan |
+| `UAT-MT-05` | dr. Arif memilih Simpan Konsultasi pada IKBAL | Klinis Dokter terbuka dengan IKBAL terpilih, banner tertunda tampil, modal Simpan tidak terbuka. Sesudah meninjau dan menekan Selesaikan serta centang konfirmasi, dokter kembali ke Konsultasi Tertunda dengan pesan sukses dan baris IKBAL hilang |
+| `UAT-MT-06` | Dari Klinis Dokter (dibuka lewat Simpan), dr. Arif menekan Batalkan Konsultasi | Konsultasi batal; kembali ke Konsultasi Tertunda dengan pesan petugas |
+| `UAT-MT-07` (gagal) | Batalkan tanpa alasan | Tombol konfirmasi tidak dapat ditekan |
+| `UAT-MT-08` (gagal) | Pengguna tanpa `DoctorConsultation : Cancel` | Aksi Batalkan tidak tampil di daftar maupun workspace |
+| `UAT-MT-09` (gagal) | Baris sudah disimpan di tab lain, lalu Simpan Konsultasi ditekan di tab ini | Klinis Dokter menampilkan "Konsultasi tertunda tidak ditemukan atau sudah diselesaikan." dengan tautan kembali |
+| `UAT-MT-10` (gagal) | Finalisasi ditolak validasi | Tetap di Klinis Dokter dengan pesan validasi existing; tidak diarahkan ke daftar |
+| `UAT-MT-11` (gagal) | dr. Budi membuka Konsultasi Tertunda | Konsultasi milik dr. Arif tidak tampil |
+| `UAT-MT-12` (gagal) | Muat ulang Klinis Dokter sesudah konsultasi dari daftar disimpan | Konsultasi itu tidak terbuka ulang; parameter URL sudah dibersihkan |
+
+## MT-7. Definition of Done
+
+| Butir | Bukti |
+|---|---|
+| `MT-FR-01`..`09` terpenuhi | Laporan task `RJ-DOC-REV-FE-015` |
+| `UAT-MT-01`..`12` lulus | Uji layar Playwright terhadap FE dev + backend dev (pola `runtime-ui-test-setup`), dicatat per skenario |
+| `npm run lint` pada berkas yang disentuh dan `next build` lulus | Keluaran perintah di laporan task |
+| Tidak ada perubahan backend | `git diff` backend kosong untuk task ini |
+| Antrean hari ini tidak berubah perilaku | `UAT-MT-01` dan regresi `UAT-KT-02` lewat jalur baru |
+
+## MT-8. Gelombang pengiriman
+
+| Gelombang | Isi |
+|---|---|
+| `MVP-0` | `RJ-DOC-REV-FE-015` — seluruh `MT-FR-01`..`09` dalam satu task frontend (satu vertical slice; tanpa dependency backend) |
+| `POST-MVP` | `RJ-DOC-OQ-016` filter Dokter |
+
+## MT-9. Pertanyaan terbuka
+
+| ID | Pertanyaan | Memblokir? |
+|---|---|---|
+| `RJ-DOC-OQ-016` | Perlukah filter Dokter untuk pengguna jalur super admin? Bila ya, backend perlu sinyal cakupan pada `pending-consultations` | Tidak — `POST-MVP` |
+
+# Amendment PM-B — PRD → MVP Pendaftaran Rujukan (revisi `31`, `approved` 2026-10-08)
+
+## PM-1. Batas MVP
+
+Mulai: petugas atau pasien Kiosk memilih Jenis Kunjungan *Rujukan*, atau petugas menambah penjamin
+asuransi baru dengan scan. Selesai: kunjungan rujukan ke poli atau Laboratorium terbentuk dengan
+rincian dan surat tersimpan privat, rujukan yang belum lengkap terlihat dan dapat dilengkapi, dan
+penjamin baru yang tidak cocok dengan kartunya ditolak.
+
+## PM-2. Kemampuan
+
+| Kemampuan | Prioritas | Asal | Disposisi |
+|---|---|---|---|
+| Master Institusi & Dokter Perujuk + tanda mitra | MUST | `F-PM-5`, `F-PM-11` | `EXTEND` |
+| Rincian rujukan + surat privat + koreksi | MUST | `F-PM-5`, `F-PM-13` | `MISSING / NEW` |
+| Step Data Rujukan (petugas), unit tujuan poli/Lab, popup jadwal | MUST | `RJ-DOC-REV-FE-013/017` | `EXTEND` |
+| Rujukan belum lengkap di Daftar Kunjungan RJ | MUST | `RJ-DOC-REV-FE-0xx` Daftar Pasien RJ | `EXTEND` |
+| Step Data Rujukan Kiosk + scan surat + popup jadwal | MUST | `F-PM-10` | `EXTEND` |
+| Pencocokan scan kartu asuransi | MUST (backend + FE siap; aktif saat agent siap) | `RJ-DOC-REV-FE-014` | `EXTEND` |
+| OCR kartu asuransi di agent | — | `RJ-DOC-OQ-PM-01` | `OPEN DECISION` (di luar repository) |
+| Rujukan Radiologi | Ditunda | `RJ-DOC-OQ-PM-02` | `OPEN DECISION` — pengganti: opsi nonaktif "belum tersedia" |
+| Data uji 3+ dokter per poli | MUST (uji) | `RJ-DOC-DEC-079` | Data, bukan kode |
+
+## PM-3. Epic dan functional requirement
+
+| Epic | FR | Uraian | Disposisi |
+|---|---|---|---|
+| E-PM-1 Master perujuk | FR-PM-01 | CRUD standar Institusi Perujuk dengan `IsPartner`; badge Mitra | `EXTEND` |
+| | FR-PM-02 | CRUD standar Dokter Perujuk per institusi | `EXTEND` |
+| | FR-PM-03 | `options` + `kiosk/options` membawa `isPartner` | `EXTEND` |
+| E-PM-2 Rincian rujukan | FR-PM-04 | Create kunjungan admin/Kiosk menerima rujukan, satu transaksi | `EXTEND` |
+| | FR-PM-05 | `GET/PUT …/referral` dengan hitung `IsComplete`, penguncian status, unit tujuan tetap, `RowVersion`, revisi | `NEW` |
+| | FR-PM-06 | Berkas privat: unggah (admin/Kiosk), unduh berizin, hapus lunak | `NEW` |
+| | FR-PM-07 | `referralStatus` di list kunjungan RJ + filter | `EXTEND` |
+| E-PM-3 Layar petugas | FR-PM-08 | Step Data Rujukan, bar step dinamis, Data Kunjungan tanpa poli untuk rujukan | `EXTEND` |
+| | FR-PM-09 | Unit tujuan poli/Lab (Lab lewat registrasi lab + `PUT`), Radiologi nonaktif | `EXTEND` |
+| | FR-PM-10 | Popup jadwal praktik poli | `NEW` (komponen view) |
+| | FR-PM-11 | Badge + filter + form Lengkapi/Koreksi di Daftar Kunjungan RJ | `EXTEND` |
+| E-PM-4 Kiosk | FR-PM-12 | Step Data Rujukan Kiosk + scan surat + unggah sesudah kunjungan | `EXTEND` |
+| | FR-PM-13 | Popup jadwal di Layanan & Dokter | `EXTEND` |
+| E-PM-5 Scan asuransi | FR-PM-14 | Validasi `cardScan` di backend (admin + Kiosk) | `EXTEND` |
+| | FR-PM-15 | Pencocokan di layar + alert "Data tidak match", aktif bila agent mengembalikan nilai | `EXTEND` |
+
+## PM-4. Skenario UAT
+
+| Epic | Berhasil | Gagal |
+|---|---|---|
+| E-PM-1 | Tambah *Klinik Sehat Sentosa* bermitra; muncul badge Mitra dan di pilihan pendaftaran | Kode ganda ditolak; hapus institusi yang sudah dipakai ditolak |
+| E-PM-2 | Kunjungan rujukan lengkap tersimpan; `GET` menampilkan surat; koreksi alasan tercatat di riwayat | Koreksi sesudah konsultasi dimulai ditolak; ubah unit tujuan ditolak; `/uploads/...referral...` tidak dapat dibuka |
+| E-PM-3 | `RJ-AC-PM-04`..`06`, `08`; rujukan Lab hari ini terbentuk | Radiologi nonaktif (`RJ-AC-PM-07`); unggah gagal → rujukan belum lengkap dan coba lagi berhasil |
+| E-PM-4 | `RJ-AC-PM-09`; scan surat 2 halaman tersimpan | Scanner gagal → tiket tetap tercetak dengan pesan |
+| E-PM-5 | `RJ-AC-PM-01`, `03` (dengan respons agent tiruan) | `RJ-AC-PM-02` |
+
+## PM-5. Definition of Done
+
+| Butir | Bukti |
+|---|---|
+| Migration PM-B diterapkan ke `QuilvianNewDevSukma` tanpa perubahan model tertunda | Log EF |
+| `RJ-AC-PM-01`..`10` lulus (runtime HTTP + uji layar) | Laporan task |
+| Berkas surat tidak dapat diakses lewat URL publik | Runtime HTTP |
+| Pendaftaran Umum, IGD, dan Kiosk Umum tidak berubah | Uji layar regresi |
+| Data uji `PMTEST` tersedia (1 poli ≥ 4 dokter) | Query baca-saja |
+| Roadmap dan traceability diperbarui | Berkas roadmap |
+
+## PM-6. Gelombang pengiriman
+
+| Gelombang | Isi |
+|---|---|
+| `MVP-0` | Backend: migration + master perujuk (E-PM-1), rincian rujukan + berkas + list (E-PM-2), validasi `cardScan` (FR-PM-14); data uji |
+| `MVP-1` | Frontend: master perujuk, step Data Rujukan petugas + popup jadwal, Daftar Kunjungan RJ, pencocokan scan di layar |
+| `MVP-2` | Kiosk: step Data Rujukan + scan surat + popup jadwal |
+| `POST-MVP` | Rujukan Radiologi (`RJ-DOC-OQ-PM-02`); aktivasi pencocokan nyata saat agent siap (`RJ-DOC-OQ-PM-01`) |
+
+## PM-7. Pertanyaan terbuka
+
+| ID | Pertanyaan | Memblokir |
+|---|---|---|
+| `RJ-DOC-OQ-PM-01` | Kontrak OCR kartu asuransi di agent | Tidak memblokir MVP; pencocokan nyata menunggu |
+| `RJ-DOC-OQ-PM-02` | Registrasi Radiologi | `POST-MVP` |

@@ -354,6 +354,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [MaxLength(250)]
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// Opsional (RJ-DOC-REV-BE-020): nama asuransi dan No. polis hasil OCR kartu. Bila diisi,
+        /// create penjamin ditolak bila tidak cocok (RJ-VAL-PM-01/02). Hanya dipakai saat create;
+        /// tidak disimpan.
+        /// </summary>
+        public PatientInsuranceCardScanRequest? CardScan { get; set; }
+    }
+
+    /// <summary>Hasil baca kartu asuransi oleh agent scanner (RJ-DOC-DEC-068).</summary>
+    public class PatientInsuranceCardScanRequest
+    {
+        [MaxLength(200)]
+        public string? ScannedProviderName { get; set; }
+
+        [MaxLength(100)]
+        public string? ScannedPolicyNumber { get; set; }
     }
 
     public class UpdatePatientInsuranceRequest : CreatePatientInsuranceRequest

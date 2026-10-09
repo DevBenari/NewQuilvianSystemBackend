@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -40,7 +41,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         }
 
         public async Task<QueueVoiceGenerateResponse> GetOrCreateQueueCallAudioAsync(
-            TrxQueue queue,
+            RegQueue queue,
             string callType,
             bool forceRegenerate = false,
             string? overrideText = null,
@@ -151,7 +152,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         public async Task<QueueVoiceGenerateResponse> GeneratePreviewAudioAsync(QueueVoicePreviewRequest request)
         {
-            var previewQueue = new TrxQueue
+            var previewQueue = new RegQueue
             {
                 Id = Guid.Empty,
                 QueueCode = "A001",
@@ -424,7 +425,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return profiles;
         }
 
-        private string BuildQueueCallText(TrxQueue queue, string callType)
+        private string BuildQueueCallText(RegQueue queue, string callType)
         {
             /*
              * Announcement Builder
@@ -463,6 +464,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
             var template = GetSetting(templateKey, GetSetting("CallTemplate", defaultTemplate));
 
+            // RJ-DOC-DEC-057: suara publik tidak menyebut nama/No. RM bila snapshot antrean
+            // melarangnya. Kalimat template yang memuat placeholder identitas dibuang utuh.
+            if (queue.PublicDisplayModeSnapshot is PublicDisplayMode.MaskedName or PublicDisplayMode.QueueNumberOnly)
+            {
+                template = RemoveIdentitySentences(template);
+            }
+
             var patientName = NormalizeNameForSpeech(queue.Patient?.FullName) ?? "pasien";
             var clinicName = NormalizeMedicalTerm(queue.Clinic?.ClinicName) ?? "poli tujuan";
             var queueCode = BuildVoiceQueueCode(queue.QueueCode, clinicName) ?? BuildVoiceQueueNumber(queue.QueueNumber);
@@ -481,6 +489,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 .Replace("{serviceUnitName}", serviceUnitName, StringComparison.OrdinalIgnoreCase);
 
             return NormalizeVoiceText(announcementText) ?? defaultTemplate;
+        }
+
+        private static string RemoveIdentitySentences(string template)
+        {
+            var sentences = template
+                .Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(x =>
+                    !x.Contains("{patientName}", StringComparison.OrdinalIgnoreCase) &&
+                    !x.Contains("{medicalRecordNumber}", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            return sentences.Count == 0
+                ? "Nomor antrian {queueCode}."
+                : string.Join(". ", sentences) + ".";
         }
 
         private async Task GenerateWavWithPiperAsync(
