@@ -426,6 +426,7 @@ try
     builder.Services.AddScoped<LabExaminationService>();
     builder.Services.AddScoped<LabCitoTurnaroundPolicy>();
     builder.Services.AddScoped<LabWorklistService>();
+    builder.Services.AddScoped<LabDashboardService>();
     builder.Services.AddScoped<LabOperationalReportService>();
     builder.Services.AddScoped<LabReportCsvWriter>();
     builder.Services.AddScoped<LabMonitoringService>();

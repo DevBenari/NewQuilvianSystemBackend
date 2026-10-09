@@ -27,10 +27,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         private const string KioskReadPolicy = "KioskRead";
 
         private readonly LabOrderService _labOrderService;
+        private readonly LabDashboardService _labDashboardService;
 
-        public LabOrderController(LabOrderService labOrderService)
+        public LabOrderController(
+            LabOrderService labOrderService,
+            LabDashboardService labDashboardService)
         {
             _labOrderService = labOrderService;
+            _labDashboardService = labDashboardService;
         }
 
         // Keterangan bentuk layar daftar pesanan: pilihan status, disiplin, urutan, dan ukuran
@@ -77,6 +81,66 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             return Ok(ApiResponse<LabOrderSummaryResponse>.Ok(
                 result,
                 "Rekap pesanan laboratorium berhasil diambil."));
+        }
+
+        // Kartu hari ini dan fokus operasional Beranda (LAB-API-v1 r44 39.3). Hari dibaca WIB menurut
+        // waktu pesanan diminta; hanya angka, tanpa identitas pasien.
+        [HttpGet("dashboard/today")]
+        [ProducesResponseType(typeof(ApiResponse<LabDashboardTodayResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction("Read", "Read Lab Order", Description = "Melihat ringkasan hari ini di Beranda Laboratorium", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabOrder", "Read")]
+        public async Task<IActionResult> GetDashboardToday(CancellationToken cancellationToken = default)
+        {
+            var result = await _labDashboardService.GetTodayAsync(cancellationToken: cancellationToken);
+
+            return Ok(ApiResponse<LabDashboardTodayResponse>.Ok(
+                result,
+                "Ringkasan hari ini berhasil diambil."));
+        }
+
+        // Grafik per disiplin, sebaran, jenis laboratorium, dan tren bulanan Beranda (r44 39.4) untuk
+        // satu tahun; kosong = tahun berjalan WIB. Tahun di luar 2000..tahun berjalan → 422 (VAL-154).
+        [HttpGet("dashboard/yearly")]
+        [ProducesResponseType(typeof(ApiResponse<LabDashboardYearlyResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Read", "Read Lab Order", Description = "Melihat ringkasan tahunan di Beranda Laboratorium", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabOrder", "Read")]
+        public async Task<IActionResult> GetDashboardYearly(
+            [FromQuery] LabDashboardYearlyQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _labDashboardService.GetYearlyAsync(query.Year, cancellationToken: cancellationToken);
+
+                return Ok(ApiResponse<LabDashboardYearlyResponse>.Ok(
+                    result,
+                    "Ringkasan tahunan berhasil diambil."));
+            }
+            catch (LabDashboardValidationException exception)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity, exception.Message));
+            }
+        }
+
+        // Sepuluh pesanan terakhir diminta untuk tabel Beranda (r44 39.5) — seluruh status,
+        // tanpa halaman.
+        [HttpGet("dashboard/recent-orders")]
+        [ProducesResponseType(typeof(ApiResponse<List<LabDashboardRecentOrderResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction("Read", "Read Lab Order", Description = "Melihat pesanan laboratorium terbaru di Beranda", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabOrder", "Read")]
+        public async Task<IActionResult> GetDashboardRecentOrders(CancellationToken cancellationToken = default)
+        {
+            var result = await _labDashboardService.GetRecentOrdersAsync(cancellationToken);
+
+            return Ok(ApiResponse<List<LabDashboardRecentOrderResponse>>.Ok(
+                result,
+                "Pesanan laboratorium terbaru berhasil diambil."));
         }
 
         // Daftar pesanan dengan penyaring, pengurutan, dan pagination di sisi server.

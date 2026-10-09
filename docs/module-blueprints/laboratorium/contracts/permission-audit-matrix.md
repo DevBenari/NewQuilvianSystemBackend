@@ -3,7 +3,8 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-PERM-v1` |
-| Revision | **`15` — `approved`** 2026-10-08, bagian 17 (dua endpoint alur v1 dipetakan; nol aksi baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`14` — `approved`** 2026-10-07, bagian 16 (daftar dokter pemeriksa dijaga `LabOrder : Confirm`; nol aksi baru) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-10-07, bagian 15 (`LabOrder : Confirm`) — disetujui Yoga Aji Pratama. Sebelumnya: **`12` — `approved`** 2026-09-28, bagian 14 (`S16a`: resource `LabOperationalReport`) — disetujui Yoga Aji Pratama, termasuk `Export` terpisah dari `Read`. Sebelumnya: **`11` — `approved`** 2026-09-25, bagian 13 (`S4`: `Validate`, `Release`, `Return`, dua data induk alasan). Terakhir `approved`: `10` — **`approved`** 2026-09-24, bagian 12. *Baris ini sempat tertinggal di `7` sejak revision 8; dirapikan 2026-09-24* |
+| Revision | **`16` — `approved`** 2026-10-08, bagian 18 (tiga endpoint ringkasan Beranda dijaga `LabOrder : Read`; nol aksi baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`15` — `approved`** 2026-10-08, bagian 17 (dua endpoint alur v1 dipetakan; nol aksi baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`14` — `approved`** 2026-10-07, bagian 16 (daftar dokter pemeriksa dijaga `LabOrder : Confirm`; nol aksi baru) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-10-07, bagian 15 (`LabOrder : Confirm`) — disetujui Yoga Aji Pratama. Sebelumnya: **`12` — `approved`** 2026-09-28, bagian 14 (`S16a`: resource `LabOperationalReport`) — disetujui Yoga Aji Pratama, termasuk `Export` terpisah dari `Read`. Sebelumnya: **`11` — `approved`** 2026-09-25, bagian 13 (`S4`: `Validate`, `Release`, `Return`, dua data induk alasan). Terakhir `approved`: `10` — **`approved`** 2026-09-24, bagian 12. *Baris ini sempat tertinggal di `7` sejak revision 8; dirapikan 2026-09-24* |
+| Revision 16 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju 11 butir"* atas `LAB-REQ-021`, kesebelas butir |
 | Revision 15 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju ketujuh butir"* atas `LAB-REQ-019`, ketujuh butir |
 | Revision 7 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
 | Isi amandemen revision 7 | **`approved` — 2026-09-18.** Dua resource baru — `LabPathologyParameter` dan `LabPathologyCategory`, masing-masing `Read`/`Create`/`Update`, **nol `Delete`**; keberlakuan parameter dan pemetaan jenis pemeriksaan ikut `LabPathologyCategory : Update`, bukan resource sendiri. Mengisi, memfinalkan, dan membuka kembali laporan PA **tidak menambah hak akses** — memakai `LabExamination : Update` yang sudah ada. **Satu pemisahan yang disengaja: konteks klinis pesanan memakai `LabOrder : Update`**, sebab penulisnya **dokter pemesan, bukan patolog** (`LAB-DEC-091`, `INV-40`). Lima kejadian audit baru; **`PathologyReport.Reopen` dan `PathologyReport.AmendValue` wajib beralasan**. Membawa **pembatasan logger dan DTO paling ketat pada modul ini**: nol isi parameter, nol diagnosa, nol riwayat penyakit boleh masuk log atau layar non-klinis. Disetujui bersama `LAB-API-v1` `r25` dan `LAB-VAL-v1` `r8` pada hari yang sama. Lihat bagian 9 |
@@ -1052,3 +1053,49 @@ log audit — ia tidak mengubah apa pun dan tidak menyentuh data pasien.
 
 `kiosk/pending-by-patient` tidak membawa hasil, harga, maupun status keuangan. Daftar OTC membawa identitas pasien
 setara Daftar Pasien Lab. Keduanya baca, **tidak** dicatat ke log audit.
+
+## 18. Amandemen revision 16 — Ringkasan Beranda Lab dijaga `LabOrder : Read`, 2026-10-08
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-PERM-v1` |
+| Revision | **16** |
+| Status | **`approved`** 2026-10-08 — Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul: *"Setuju 11 butir"* atas [`LAB-REQ-021`](../approval-requests/2026-10-08-permintaan-kontrak-beranda.md) |
+| `approved_by` / `approved_at` | Yoga Aji Pratama / 2026-10-08 |
+| `input_revision` | decisions rev 92 (`LAB-DEC-211`); `LAB-API-v1` `r44` usulan; `02-backend-architecture.md` bagian 28 |
+
+### 18.1 Aksi yang ditambahkan
+
+**Tidak ada** (`LAB-DEC-211`). Nol pemberian izin saat rilis: siapa pun yang hari ini dapat membuka Beranda — karena
+memegang `LabOrder : Read` untuk `summary` — dapat membuka bagian barunya.
+
+### 18.2 Pemetaan endpoint
+
+| Endpoint | Resource | Aksi | Atribut | Dicatat ke log audit |
+|---|---|---|---|---|
+| `GET /lab-orders/dashboard/today` | `LabOrder` | `Read` | `[AccessAction("Read", "Read Lab Order", Description = "Melihat ringkasan hari ini di Beranda Laboratorium", AccessType = AccessTypes.Read, SortOrder = 1)]` + `[AccessPermission("LabOrder", "Read")]` | Tidak |
+| `GET /lab-orders/dashboard/yearly` | `LabOrder` | `Read` | Sama, `Description = "Melihat ringkasan tahunan di Beranda Laboratorium"` | Tidak |
+| `GET /lab-orders/dashboard/recent-orders` | `LabOrder` | `Read` | Sama, `Description = "Melihat pesanan laboratorium terbaru di Beranda"` | Tidak |
+
+`AccessAction` memakai kunci `Read` / `Read Lab Order` yang sama dengan `GetSummary`, sehingga katalog aksi tidak
+bertambah baris.
+
+### 18.3 Satu catatan batas
+
+`awaitingValidationCount` menghitung isi Antrean Validasi, yang layarnya dijaga `LabWorklist : Read`. Pemegang
+`LabOrder : Read` tanpa `LabWorklist : Read` melihat **angkanya saja** — tanpa pasien, pemeriksaan, maupun hasil. Ini
+disengaja (`LAB-DEC-208`: "hanya angka") dan diminta persetujuannya pada `LAB-REQ-021` butir 4.
+
+### 18.4 Matriks uji izin
+
+| Pengguna | `dashboard/today` | `dashboard/yearly` | `dashboard/recent-orders` |
+|---|:---:|:---:|:---:|
+| Analis Laboratorium (`LabOrder : Read`) | `200` | `200` | `200` |
+| Kepala Instalasi Laboratorium | `200` | `200` | `200` |
+| Pengguna tanpa `LabOrder : Read` | `403` | `403` | `403` |
+| Belum masuk | `401` | `401` | `401` |
+
+### 18.5 Privasi dan pencatatan
+
+`today` dan `yearly` hanya angka. `recent-orders` membawa nama pasien dan No. RM, setara Daftar Pasien Lab dan
+rincian pesanan (`r38`). Ketiganya baca dan **tidak** dicatat ke log audit.
