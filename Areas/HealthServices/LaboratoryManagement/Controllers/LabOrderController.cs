@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
@@ -290,7 +290,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [HttpGet("kiosk/pending-by-patient/{patientId:guid}")]
         [Authorize(Policy = KioskReadPolicy)]
         [ProducesResponseType(typeof(ApiResponse<List<LabKioskPendingOrderGroupResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Order", Description = "Melihat pesanan laboratorium aktif pasien dari kiosk", AccessType = AccessTypes.Read, SortOrder = 1)]
         public async Task<IActionResult> GetKioskPendingByPatient(
             Guid patientId,
             CancellationToken cancellationToken = default)
