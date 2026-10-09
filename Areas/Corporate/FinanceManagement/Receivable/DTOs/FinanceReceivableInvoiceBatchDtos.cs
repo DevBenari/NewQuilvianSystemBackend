@@ -243,6 +243,14 @@ public sealed class ReceivableInvoiceBatchPaymentHistoryAllocationResponse
     public string? ReceivableNumber { get; set; }
     public decimal Amount { get; set; }
     public bool IsReversal { get; set; }
+
+    /// <summary>Terisi hanya pada baris IsReversal=true — menunjuk AllocationId yang dibalik baris
+    /// ini. FE butuh ini untuk menentukan allocation mana yang masih AKTIF (belum pernah dibalik)
+    /// sebelum memanggil POST /receipts/{receiptId}/allocations/{allocationId}/reverse — tanpa
+    /// field ini FE tidak bisa membedakan "sudah dibalik" dari "belum", dan berisiko membalik baris
+    /// yang salah atau membalik baris yang sudah dibalik sebelumnya.</summary>
+    public Guid? ReversalOfAllocationId { get; set; }
+
     public DateTimeOffset AllocatedAt { get; set; }
 }
 
@@ -479,6 +487,13 @@ public sealed class CanceledInvoiceRowResponse
     public DateOnly? DueDate { get; set; }
 
     public decimal TotalAmount { get; set; }
+    public decimal TotalDiscount { get; set; }
+    public decimal NetAmount { get; set; }
+
+    /// <summary>Selalu CANCELLED — baris ini hanya pernah diisi dari hasil query yang sudah
+    /// difilter Status == CANCELLED (lihat GetCanceledPagedAsync). Field eksplisit disediakan
+    /// agar FE tidak perlu mengasumsikan status dari konteks endpoint.</summary>
+    public string Status { get; set; } = "CANCELLED";
 
     public Guid CancelledBy { get; set; }
     public string? CancelledByName { get; set; }
@@ -495,10 +510,28 @@ public sealed class CanceledInvoiceRowResponse
 
 public sealed class CanceledInvoiceSummaryResponse
 {
+    /// <summary>Total Filter — agregat berdasarkan seluruh filter aktif (search, rentang tanggal,
+    /// jenis layanan, DebtorReferenceId, dll). Ini adalah angka yang merepresentasikan hasil
+    /// tabel yang sedang ditampilkan FE.</summary>
     public decimal TotalAmount { get; set; }
+    public decimal TotalDiscount { get; set; }
+    public decimal NetAmount { get; set; }
     public int InvoiceCount { get; set; }
+
+    /// <summary>Total Target — agregat sepanjang masa untuk target yang dipilih (DebtorReferenceId),
+    /// TANPA rentang tanggal/search/jenis layanan. Bila tidak ada DebtorReferenceId yang dipilih,
+    /// bernilai sama dengan total seluruh invoice CANCELLED sepanjang masa (target = "Semua
+    /// Perusahaan"). Berbeda definisi dari TotalAmount (Total Filter) secara sengaja — lihat
+    /// GetCanceledSummaryAsync.</summary>
     public decimal TargetAmount { get; set; }
     public string TargetName { get; set; } = "Semua Perusahaan";
+
+    /// <summary>False bila Category pada request adalah PATIENT/EMPLOYEE — V2 FinReceivableInvoiceBatch
+    /// hanya pernah menampung piutang DebtorType PAYER (FIN-DEC-048), dan FinReceivable non-PAYER
+    /// tidak pernah memiliki jalur pembatalan (tidak ada service yang menulis Status=CANCELLED untuk
+    /// DebtorType PATIENT_GUARANTOR/EMPLOYEE_BENEFIT). Lihat CategoryLimitationReason.</summary>
+    public bool CategorySupported { get; set; } = true;
+    public string? CategoryLimitationReason { get; set; }
 }
 
 public sealed class CanceledInvoicePagedResponse
@@ -523,6 +556,7 @@ public sealed class CanceledInvoiceMemberDetailResponse
     public string MedicalRecordNumber { get; set; } = string.Empty;
     public string BillingNumber { get; set; } = string.Empty;
     public string RegistrationNumber { get; set; } = string.Empty;
+    public DateOnly? VisitDate { get; set; }
 
     public decimal OriginalAmount { get; set; }
     public decimal OutstandingAmount { get; set; }
@@ -565,7 +599,11 @@ public sealed class CanceledInvoiceDetailResponse
     public Guid CancelledBy { get; set; }
     public string? CancelledByName { get; set; }
 
+    public string Status { get; set; } = "CANCELLED";
+
     public decimal TotalAmount { get; set; }
+    public decimal TotalDiscount { get; set; }
+    public decimal NetAmount { get; set; }
     public Guid RowVersion { get; set; }
 
     public Guid? ReissuedToBatchId { get; set; }
@@ -575,8 +613,21 @@ public sealed class CanceledInvoiceDetailResponse
     public string? ReissueBlockedReason { get; set; }
 
     public CanceledInvoiceDocumentCapabilities DocumentCapabilities { get; set; } = new();
+    public CanceledInvoiceDetailSummary Summary { get; set; } = new();
     public List<CanceledInvoiceMemberDetailResponse> Items { get; set; } = new();
     public List<CanceledInvoiceMemberDetailResponse> Members => Items;
+}
+
+/// <summary>Ringkasan header Canceled Invoice Detail — dihitung dari kolom batch (TotalAmount/
+/// TotalDiscount), BUKAN dari penjumlahan Items, karena DiscountAmount per-anggota belum pernah
+/// diisi oleh service manapun (selalu 0, lihat GetCanceledDetailAsync) sehingga menjumlahkannya
+/// akan menghasilkan diskon palsu.</summary>
+public sealed class CanceledInvoiceDetailSummary
+{
+    public int ItemCount { get; set; }
+    public decimal TotalAmount { get; set; }
+    public decimal TotalDiscount { get; set; }
+    public decimal NetAmount { get; set; }
 }
 
 public sealed class CancelReceivableInvoiceBatchRequest
@@ -586,6 +637,15 @@ public sealed class CancelReceivableInvoiceBatchRequest
     [Required(ErrorMessage = "Alasan pembatalan wajib diisi.")]
     [MaxLength(500, ErrorMessage = "Alasan pembatalan tidak boleh melebihi 500 karakter.")]
     public string Reason { get; set; } = string.Empty;
+}
+
+/// <summary>Request Revive (un-cancel) — mengembalikan batch CANCELLED ke status sebelum
+/// dibatalkan. Tidak ada Reason: ini bukan koreksi finansial, murni pemulihan status sebelum
+/// pembayaran apa pun pernah ada (CancelAsync tidak pernah mengizinkan cancel batch yang sudah
+/// memiliki alokasi pembayaran — lihat FinanceReceivableInvoiceBatchService.CancelAsync).</summary>
+public sealed class ReviveReceivableInvoiceBatchRequest
+{
+    [Required] public Guid ExpectedRowVersion { get; set; }
 }
 
 public sealed class EditCanceledInvoiceMemberAmountRequest

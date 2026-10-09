@@ -169,10 +169,6 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<DateTime?>("DeleteDateTime")
                         .HasColumnType("timestamp with time zone");
-                    b.Property<bool>("IsActiveMembership")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
 
                     b.Property<string>("Description")
                         .HasMaxLength(250)
@@ -7546,11 +7542,6 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<DateOnly>("PeriodStart")
                         .HasColumnType("date");
-                    b.Property<Guid?>("ReissuedFromBatchId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ReissuedToBatchId")
-                        .HasColumnType("uuid");
 
                     b.Property<string>("PoolCode")
                         .IsRequired()
@@ -9394,6 +9385,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("CancelDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<DateTimeOffset?>("ClaimApprovedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -9499,9 +9494,19 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateOnly>("PeriodStart")
                         .HasColumnType("date");
 
+                    b.Property<Guid?>("ReissuedFromBatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ReissuedToBatchId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("RowVersion")
                         .IsConcurrencyToken()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("ServiceType")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -9607,6 +9612,11 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<DateTime?>("DeleteDateTime")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActiveMembership")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("IsCancel")
                         .ValueGeneratedOnAdd()

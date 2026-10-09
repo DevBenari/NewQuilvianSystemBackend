@@ -180,6 +180,7 @@ public sealed class CrossEntryOptionQuery
 public sealed class CrossEntryOptionResponse
 {
     public Guid Id { get; set; }
+    public Guid ReceiptId { get; set; }
     public string CrossEntryNumber { get; set; } = string.Empty;
     public string ReferenceNumber { get; set; } = string.Empty;
     public string BankName { get; set; } = string.Empty;

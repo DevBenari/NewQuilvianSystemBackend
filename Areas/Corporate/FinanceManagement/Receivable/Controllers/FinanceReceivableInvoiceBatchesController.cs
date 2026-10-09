@@ -64,6 +64,58 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
         Ok(ApiResponse<CanceledInvoiceSummaryResponse>.Ok(
             await _service.GetCanceledSummaryAsync(request, cancellationToken), "Ringkasan Canceled Invoice berhasil diambil."));
 
+    // ------------------------------------------------------------------------------------
+    // Export Report Canceled Invoice (read-only) — bagian G task revamp. Selalu memakai filter
+    // yang sama dengan list/summary, mencakup SELURUH hasil filter (bukan hanya satu halaman),
+    // dan tidak pernah mengubah status invoice apa pun.
+    // ------------------------------------------------------------------------------------
+
+    [HttpGet("canceled/export/excel")]
+    [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
+    public async Task<IActionResult> ExportCanceledListExcel([FromQuery] CanceledInvoiceBatchQuery request, CancellationToken cancellationToken)
+    {
+        var bytes = await _service.ExportCanceledListExcelAsync(request, cancellationToken);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            $"canceled-invoice-{DateTime.UtcNow:yyyyMMddHHmmss}.xlsx");
+    }
+
+    [HttpGet("canceled/export/pdf")]
+    [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
+    public async Task<IActionResult> ExportCanceledListPdf([FromQuery] CanceledInvoiceBatchQuery request, CancellationToken cancellationToken)
+    {
+        var bytes = await _service.ExportCanceledListPdfAsync(request, cancellationToken);
+        return File(bytes, "application/pdf", $"canceled-invoice-{DateTime.UtcNow:yyyyMMddHHmmss}.pdf");
+    }
+
+    [HttpGet("{id:guid}/canceled-detail/export/excel")]
+    [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
+    public async Task<IActionResult> ExportCanceledDetailExcel(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var bytes = await _service.ExportCanceledDetailExcelAsync(id, cancellationToken);
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"canceled-invoice-detail-{id:N}.xlsx");
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    [HttpGet("{id:guid}/canceled-detail/export/pdf")]
+    [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
+    public async Task<IActionResult> ExportCanceledDetailPdf(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var bytes = await _service.ExportCanceledDetailPdfAsync(id, cancellationToken);
+            return File(bytes, "application/pdf", $"canceled-invoice-detail-{id:N}.pdf");
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
     [HttpGet("eligible-receivables")]
     [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
@@ -175,6 +227,24 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
 
+    // Revive (un-cancel) — mengembalikan batch CANCELLED ke status sebelum dibatalkan. Tidak
+    // menyentuh FinReceipt/alokasi pembayaran sama sekali (lihat dokumentasi ReviveAsync):
+    // CancelAsync tidak pernah mengizinkan cancel batch yang sudah punya pembayaran, jadi batch
+    // CANCELLED manapun dijamin belum pernah dibayar. Setelah revive, bayar lewat endpoint
+    // {id}/payments yang sudah ada.
+    [HttpPost("{id:guid}/revive")]
+    [AccessAction("Update", "Update Receivable Invoice Batch", AccessType = AccessTypes.Update, SortOrder = 4)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Update")]
+    public async Task<IActionResult> Revive(Guid id, [FromBody] ReviveReceivableInvoiceBatchRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var batch = await _service.ReviveAsync(id, request.ExpectedRowVersion, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<ReceivableInvoiceBatchResponse>.Ok(Map(batch), "Batch Tagihan AR berhasil dihidupkan kembali."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
     [HttpPost("{id:guid}/reissue")]
     [AccessAction("Create", "Create Receivable Invoice Batch", AccessType = AccessTypes.Create, SortOrder = 2)]
     [AccessPermission("FinanceReceivableInvoiceBatch", "Create")]
@@ -191,7 +261,7 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
 
     [HttpPost("{id:guid}/members/edit-amount")]
     [AccessAction("Update", "Update Receivable Invoice Batch", AccessType = AccessTypes.Update, SortOrder = 4)]
-    [AccessPermission("FinanceReceivable", "RequestAdjustment")]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Update")]
     [ProducesResponseType(typeof(ApiResponse<EditCanceledInvoiceMemberAmountResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> EditCanceledMemberAmount(
         Guid id, [FromBody] EditCanceledInvoiceMemberAmountRequest request, CancellationToken cancellationToken)

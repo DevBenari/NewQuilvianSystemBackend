@@ -109,6 +109,11 @@ try
     CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
     CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
+    // Report Canceled Invoice V2 (export PDF) — organisasi wajib memenuhi syarat QuestPDF
+    // Community License (pendapatan kotor tahunan di bawah USD 1 juta, bukan sektor publik/
+    // perusahaan publik) sebelum deployment produksi. Dikonfirmasi oleh pemilik produk.
+    QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
     var builder = WebApplication.CreateBuilder(args);
 
     var runtimeRole = (

@@ -337,6 +337,7 @@ public sealed class FinanceReceivableInvoiceBatchService
                         ReceivableNumber = a.Receivable?.ReceivableNumber ?? "-",
                         Amount = a.Amount,
                         IsReversal = a.IsReversal,
+                        ReversalOfAllocationId = a.ReversalOfAllocationId,
                         AllocatedAt = a.AllocatedAt
                     }).ToList()
                 };
@@ -790,6 +791,93 @@ public sealed class FinanceReceivableInvoiceBatchService
         return batch;
     }
 
+    /// <summary>
+    /// Revive (un-cancel) — mengembalikan batch CANCELLED ke status sebelum dibatalkan, TANPA
+    /// menyentuh FinReceipt/FinReceiptAllocation/subledger sama sekali. Ini aman karena
+    /// CancelAsync di atas TIDAK PERNAH mengizinkan pembatalan batch yang sudah memiliki alokasi
+    /// pembayaran ("Batch tagihan tidak dapat dibatalkan karena sudah memiliki alokasi
+    /// pembayaran") — artinya secara struktural, batch CANCELLED manapun DIJAMIN belum pernah
+    /// punya pembayaran, sehingga revive murni soal status/keanggotaan batch, bukan koreksi
+    /// ledger. Setelah revive, pembayaran diposting lewat jalur normal PostPaymentAsync.
+    ///
+    /// Status sebelum cancel tidak disimpan eksplisit (tidak ada kolom StatusBeforeCancel) —
+    /// disimpulkan dari IssuedAt: batch yang sudah pernah diterbitkan (IssuedAt terisi) kembali
+    /// ke ISSUED, yang belum (masih DRAFT saat dibatalkan) kembali ke DRAFT. Ini aman karena
+    /// CancelAsync hanya pernah mengizinkan cancel dari DRAFT atau ISSUED — tidak ada status lain.
+    ///
+    /// CancelDateTime/CancelBy/CancelReason SENGAJA tidak dihapus — itu riwayat valid bahwa batch
+    /// ini pernah dibatalkan sekali, bukan sesuatu yang perlu disembunyikan. Laporan Canceled
+    /// Invoice (GetCanceledPagedAsync) memfilter Status == CANCELLED, sehingga batch yang sudah
+    /// di-revive otomatis tidak lagi muncul di laporan itu tanpa perlu logika tambahan.
+    /// </summary>
+    public async Task<FinReceivableInvoiceBatch> ReviveAsync(
+        Guid batchId, Guid expectedRowVersion, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var batch = await _dbContext.FinReceivableInvoiceBatches
+            .Include(x => x.Items)
+            .SingleOrDefaultAsync(x => x.Id == batchId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Batch Tagihan AR tidak ditemukan.");
+
+        EnsureCurrent(batch.RowVersion, expectedRowVersion);
+
+        if (batch.Status != FinReceivableInvoiceBatchStatuses.Cancelled)
+            throw new ReceivableInvoiceBatchValidationException("Hanya batch tagihan berstatus CANCELLED yang dapat dihidupkan kembali (revive).");
+
+        if (batch.ReissuedToBatchId.HasValue)
+            throw new ReceivableInvoiceBatchConflictException(
+                "Batch tagihan ini sudah pernah dibuat ulang (reissue) ke batch baru dan tidak dapat dihidupkan kembali. Gunakan batch hasil reissue-nya.");
+
+        // Jaminan struktural (lihat ringkasan di atas): batch CANCELLED tidak mungkin punya
+        // alokasi pembayaran. Diperiksa ulang di sini sebagai pengaman, bukan karena diharapkan
+        // pernah true.
+        var memberReceivableIds = batch.Items.Where(x => !x.IsDelete).Select(x => x.ReceivableId).ToList();
+        if (memberReceivableIds.Count > 0)
+        {
+            var hasPayments = await _dbContext.FinReceiptAllocations.AsNoTracking()
+                .AnyAsync(a => !a.IsDelete && !a.IsReversal && memberReceivableIds.Contains(a.ReceivableId!.Value) && a.Amount > 0, cancellationToken);
+            if (hasPayments)
+                throw new ReceivableInvoiceBatchConflictException(
+                    "Batch tagihan ini memiliki alokasi pembayaran yang tidak konsisten dengan status CANCELLED-nya. Hubungi administrator sistem.");
+        }
+
+        // Piutang anggota mungkin sudah digabung ke batch aktif lain sejak pembatalan (CancelAsync
+        // melepas IsActiveMembership, sehingga piutangnya bebas dipakai ulang). Revive ditolak bila
+        // ada konflik, alih-alih diam-diam merebut kembali keanggotaan dari batch lain.
+        var conflictingNumbers = await _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+            .Where(x => !x.IsDelete && x.IsActiveMembership && x.BatchId != batch.Id && memberReceivableIds.Contains(x.ReceivableId))
+            .Select(x => x.Receivable!.ReceivableNumber)
+            .ToListAsync(cancellationToken);
+        if (conflictingNumbers.Count > 0)
+            throw new ReceivableInvoiceBatchConflictException(
+                $"Piutang {string.Join(", ", conflictingNumbers)} sudah tergabung dalam batch tagihan aktif lain dan tidak dapat dikembalikan ke batch ini.");
+
+        batch.Status = batch.IssuedAt.HasValue
+            ? FinReceivableInvoiceBatchStatuses.Issued
+            : FinReceivableInvoiceBatchStatuses.Draft;
+        batch.UpdateDateTime = DateTime.UtcNow;
+        batch.UpdateBy = actorUserId;
+        batch.RowVersion = Guid.NewGuid();
+
+        foreach (var item in batch.Items.Where(x => !x.IsDelete))
+        {
+            item.IsActiveMembership = true;
+            item.UpdateDateTime = DateTime.UtcNow;
+            item.UpdateBy = actorUserId;
+        }
+
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw Stale(ex);
+        }
+
+        await AuditAsync("Revive", batch.Id, actorUserId);
+        return batch;
+    }
+
     // ------------------------------------------------------------------------------------
     // Sumbu klaim penjamin (BE-FIN-052, FIN-DEC-097, FIN-DES-070/071) — state-transition-matrix.md
     // §D.1. Sumbu INI tidak pernah menulis Status/IssuedAt/OutstandingAmount; RefreshStatusAsync dan
@@ -1222,11 +1310,8 @@ public sealed class FinanceReceivableInvoiceBatchService
                 throw new ReceivableInvoiceBatchBadRequestException("Akun COA PPh 23 tidak valid, tidak aktif, atau bukan akun postable.");
         }
 
-        if (request.BankAdminFeeAmount > 0)
+        if (request.BankAdminFeeAmount > 0 && request.BankAdminFeeChartOfAccountId.HasValue)
         {
-            if (!request.BankAdminFeeChartOfAccountId.HasValue)
-                throw new ReceivableInvoiceBatchBadRequestException("Akun COA Biaya Administrasi Bank wajib dipilih bila nominal biaya admin lebih besar dari nol.");
-
             var coaValid = await _dbContext.AccChartOfAccounts.AsNoTracking()
                 .AnyAsync(c => c.Id == request.BankAdminFeeChartOfAccountId.Value && !c.IsDelete && c.IsActive && c.IsPostable, cancellationToken);
             if (!coaValid)
@@ -1621,18 +1706,7 @@ public sealed class FinanceReceivableInvoiceBatchService
             .Where(x => !x.IsDelete && x.Status == FinReceivableInvoiceBatchStatuses.Cancelled);
 
         query = ApplyCanceledFilter(query, request);
-
-        var descending = !string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
-        query = request.SortBy.Trim().ToLowerInvariant() switch
-        {
-            "batchnumber" or "invoicenumber" => descending ? query.OrderByDescending(x => x.BatchNumber) : query.OrderBy(x => x.BatchNumber),
-            "totalamount" => descending ? query.OrderByDescending(x => x.TotalAmount) : query.OrderBy(x => x.TotalAmount),
-            "invoicedate" => descending ? query.OrderByDescending(x => x.InvoiceDate) : query.OrderBy(x => x.InvoiceDate),
-            "duedate" => descending ? query.OrderByDescending(x => x.DueDate) : query.OrderBy(x => x.DueDate),
-            "canceldatetime" or "cancelledat" => descending ? query.OrderByDescending(x => x.CancelDateTime) : query.OrderBy(x => x.CancelDateTime),
-            "servicetype" => descending ? query.OrderByDescending(x => x.ServiceType) : query.OrderBy(x => x.ServiceType),
-            _ => descending ? query.OrderByDescending(x => x.CancelDateTime ?? x.CreateDateTime) : query.OrderBy(x => x.CancelDateTime ?? x.CreateDateTime)
-        };
+        query = ApplyCanceledSort(query, request);
 
         var total = await query.CountAsync(cancellationToken);
         var pageSize = request.PageSize > 0 ? request.PageSize : 10;
@@ -1643,8 +1717,46 @@ public sealed class FinanceReceivableInvoiceBatchService
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        // Resolve Debtor Names & User Names
-        var debtorIds = pagedRows.Select(r => r.DebtorReferenceId).Distinct().ToList();
+        var items = await BuildCanceledRowsAsync(pagedRows, cancellationToken);
+
+        // Summary calculated over all filtered records
+        var summary = await GetCanceledSummaryAsync(request, cancellationToken);
+
+        return new CanceledInvoicePagedResponse
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
+            Items = items,
+            Summary = summary
+        };
+    }
+
+    private static IQueryable<FinReceivableInvoiceBatch> ApplyCanceledSort(
+        IQueryable<FinReceivableInvoiceBatch> query, CanceledInvoiceBatchQuery request)
+    {
+        var descending = !string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+        return request.SortBy.Trim().ToLowerInvariant() switch
+        {
+            "batchnumber" or "invoicenumber" => descending ? query.OrderByDescending(x => x.BatchNumber) : query.OrderBy(x => x.BatchNumber),
+            "totalamount" => descending ? query.OrderByDescending(x => x.TotalAmount) : query.OrderBy(x => x.TotalAmount),
+            "invoicedate" => descending ? query.OrderByDescending(x => x.InvoiceDate) : query.OrderBy(x => x.InvoiceDate),
+            "duedate" => descending ? query.OrderByDescending(x => x.DueDate) : query.OrderBy(x => x.DueDate),
+            "canceldatetime" or "cancelledat" => descending ? query.OrderByDescending(x => x.CancelDateTime) : query.OrderBy(x => x.CancelDateTime),
+            "servicetype" => descending ? query.OrderByDescending(x => x.ServiceType) : query.OrderBy(x => x.ServiceType),
+            _ => descending ? query.OrderByDescending(x => x.CancelDateTime ?? x.CreateDateTime) : query.OrderBy(x => x.CancelDateTime ?? x.CreateDateTime)
+        };
+    }
+
+    /// <summary>Mengubah baris FinReceivableInvoiceBatch mentah menjadi CanceledInvoiceRowResponse,
+    /// termasuk resolusi nama debitur/operator dan status kapabilitas dokumen. Dipakai bersama oleh
+    /// GetCanceledPagedAsync (halaman saat ini) dan ExportCanceledListAsync (seluruh hasil filter),
+    /// supaya kedua jalur selalu menghasilkan proyeksi baris yang identik.</summary>
+    private async Task<List<CanceledInvoiceRowResponse>> BuildCanceledRowsAsync(
+        List<FinReceivableInvoiceBatch> rows, CancellationToken cancellationToken)
+    {
+        var debtorIds = rows.Select(r => r.DebtorReferenceId).Distinct().ToList();
         var companyNames = debtorIds.Count > 0
             ? await _dbContext.MstCompanyGuarantors.AsNoTracking()
                 .Where(c => debtorIds.Contains(c.Id) && !c.IsDelete)
@@ -1656,15 +1768,14 @@ public sealed class FinanceReceivableInvoiceBatchService
                 .ToDictionaryAsync(p => p.Id, p => p.InsuranceProviderName, cancellationToken)
             : new Dictionary<Guid, string>();
 
-        var userIds = pagedRows.Select(r => r.CancelBy).Concat(pagedRows.Select(r => r.CreateBy)).Where(u => u != Guid.Empty).Distinct().ToList();
+        var userIds = rows.Select(r => r.CancelBy).Concat(rows.Select(r => r.CreateBy)).Where(u => u != Guid.Empty).Distinct().ToList();
         var userNames = userIds.Count > 0
             ? await _dbContext.Users.AsNoTracking()
                 .Where(u => userIds.Contains(u.Id))
-                .ToDictionaryAsync(u => u.Id, u => u.FullName ?? u.UserName ?? "-", cancellationToken)
+                .ToDictionaryAsync(u => u.Id, u => u.DisplayName ?? u.UserName ?? "-", cancellationToken)
             : new Dictionary<Guid, string>();
 
-        // Check active receipts/tender for the paged batch rows
-        var batchIds = pagedRows.Select(b => b.Id).ToList();
+        var batchIds = rows.Select(b => b.Id).ToList();
         var batchMemberReceivableIds = await _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
             .Where(i => batchIds.Contains(i.BatchId) && !i.IsDelete)
             .Select(i => new { i.BatchId, i.ReceivableId })
@@ -1679,7 +1790,7 @@ public sealed class FinanceReceivableInvoiceBatchService
                 .ToHashSetAsync(cancellationToken)
             : new HashSet<Guid>();
 
-        var items = pagedRows.Select(b =>
+        return rows.Select(b =>
         {
             string? debtorName = null;
             string? debtorKind = null;
@@ -1715,6 +1826,9 @@ public sealed class FinanceReceivableInvoiceBatchService
                 CancelledAt = b.CancelDateTime,
                 DueDate = b.DueDate,
                 TotalAmount = b.TotalAmount,
+                TotalDiscount = b.TotalDiscount,
+                NetAmount = b.TotalAmount - b.TotalDiscount,
+                Status = b.Status,
                 CancelledBy = b.CancelBy,
                 CancelledByName = cancelledByName,
                 CancelReason = b.CancelReason,
@@ -1734,27 +1848,171 @@ public sealed class FinanceReceivableInvoiceBatchService
                 }
             };
         }).ToList();
-
-        // Summary calculated over all filtered records
-        var summary = await GetCanceledSummaryAsync(request, cancellationToken);
-
-        return new CanceledInvoicePagedResponse
-        {
-            PageNumber = pageNumber,
-            PageSize = pageSize,
-            TotalData = total,
-            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
-            Items = items,
-            Summary = summary
-        };
     }
 
-    public async Task<CanceledInvoiceSummaryResponse> GetCanceledSummaryAsync(
+    /// <summary>Mengambil SELURUH baris Canceled Invoice yang cocok dengan filter (tanpa pagination) —
+    /// dipakai khusus oleh export Excel/PDF, karena ekspor wajib merepresentasikan seluruh hasil
+    /// filter, bukan hanya halaman yang sedang ditampilkan FE (lihat bagian G prompt task).</summary>
+    private async Task<List<CanceledInvoiceRowResponse>> GetAllCanceledRowsForExportAsync(
         CanceledInvoiceBatchQuery request, CancellationToken cancellationToken)
     {
         var query = _dbContext.FinReceivableInvoiceBatches.AsNoTracking()
             .Where(x => !x.IsDelete && x.Status == FinReceivableInvoiceBatchStatuses.Cancelled);
 
+        query = ApplyCanceledFilter(query, request);
+        query = ApplyCanceledSort(query, request);
+
+        var rows = await query.ToListAsync(cancellationToken);
+        return await BuildCanceledRowsAsync(rows, cancellationToken);
+    }
+
+    public async Task<byte[]> ExportCanceledListExcelAsync(
+        CanceledInvoiceBatchQuery request, CancellationToken cancellationToken)
+    {
+        var rows = await GetAllCanceledRowsForExportAsync(request, cancellationToken);
+
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var ws = workbook.Worksheets.Add("Canceled Invoice");
+
+        string[] headers =
+        [
+            "No", "No. Invoice", "Perusahaan/Penjamin", "Jenis Layanan", "Tanggal Invoice",
+            "Tanggal Cancel", "Oleh", "Jatuh Tempo", "Total Tagihan", "Diskon", "Total Akhir",
+            "Alasan Cancel", "Status"
+        ];
+        for (var i = 0; i < headers.Length; i++)
+            ws.Cell(1, i + 1).Value = headers[i];
+        var headerRange = ws.Range(1, 1, 1, headers.Length);
+        headerRange.Style.Font.Bold = true;
+        headerRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
+
+        var r = 2;
+        foreach (var row in rows)
+        {
+            ws.Cell(r, 1).Value = r - 1;
+            ws.Cell(r, 2).Value = row.InvoiceNumber;
+            ws.Cell(r, 3).Value = row.DebtorName ?? "-";
+            ws.Cell(r, 4).Value = row.ServiceTypeName ?? "-";
+            ws.Cell(r, 5).Value = row.InvoiceDate.HasValue ? row.InvoiceDate.Value.ToString("dd/MM/yyyy") : "-";
+            ws.Cell(r, 6).Value = row.CancelledAt.HasValue
+                ? FinanceBusinessDate.ToBusinessTime(row.CancelledAt.Value).ToString("dd/MM/yyyy HH:mm")
+                : "-";
+            ws.Cell(r, 7).Value = row.CancelledByName ?? "-";
+            ws.Cell(r, 8).Value = row.DueDate.HasValue ? row.DueDate.Value.ToString("dd/MM/yyyy") : "-";
+            ws.Cell(r, 9).Value = row.TotalAmount;
+            ws.Cell(r, 10).Value = row.TotalDiscount;
+            ws.Cell(r, 11).Value = row.NetAmount;
+            ws.Cell(r, 12).Value = row.CancelReason ?? "-";
+            ws.Cell(r, 13).Value = row.Status;
+            r++;
+        }
+
+        if (r > 2)
+            ws.Range(2, 9, r - 1, 11).Style.NumberFormat.Format = "#,##0";
+
+        ws.Columns().AdjustToContents();
+        ws.SheetView.FreezeRows(1);
+
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        return ms.ToArray();
+    }
+
+    public async Task<byte[]> ExportCanceledListPdfAsync(
+        CanceledInvoiceBatchQuery request, CancellationToken cancellationToken)
+    {
+        var rows = await GetAllCanceledRowsForExportAsync(request, cancellationToken);
+        var summary = await GetCanceledSummaryAsync(request, cancellationToken);
+
+        return CanceledInvoiceReportDocuments.BuildListPdf(rows, summary);
+    }
+
+    public async Task<byte[]> ExportCanceledDetailExcelAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var detail = await GetCanceledDetailAsync(id, cancellationToken);
+
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var ws = workbook.Worksheets.Add("Canceled Invoice Detail");
+
+        ws.Cell(1, 1).Value = "No. Invoice";
+        ws.Cell(1, 2).Value = detail.InvoiceNumber;
+        ws.Cell(2, 1).Value = "Perusahaan/Penjamin";
+        ws.Cell(2, 2).Value = detail.DebtorName ?? "-";
+        ws.Cell(3, 1).Value = "Tanggal Cancel";
+        ws.Cell(3, 2).Value = detail.CancelledAt.HasValue
+            ? FinanceBusinessDate.ToBusinessTime(detail.CancelledAt.Value).ToString("dd/MM/yyyy HH:mm")
+            : "-";
+        ws.Cell(4, 1).Value = "Oleh";
+        ws.Cell(4, 2).Value = detail.CancelledByName ?? "-";
+        ws.Cell(5, 1).Value = "Alasan Cancel";
+        ws.Cell(5, 2).Value = detail.CancelReason ?? "-";
+        ws.Cell(6, 1).Value = "Tanggal Invoice";
+        ws.Cell(6, 2).Value = detail.InvoiceDate.HasValue ? detail.InvoiceDate.Value.ToString("dd/MM/yyyy") : "-";
+        ws.Cell(7, 1).Value = "Tanggal Jatuh Tempo";
+        ws.Cell(7, 2).Value = detail.DueDate.HasValue ? detail.DueDate.Value.ToString("dd/MM/yyyy") : "-";
+        ws.Cell(8, 1).Value = "Jenis Invoice";
+        ws.Cell(8, 2).Value = detail.ServiceTypeName ?? "-";
+        ws.Range(1, 1, 8, 1).Style.Font.Bold = true;
+
+        var headerRow = 10;
+        string[] headers = ["No", "Nama Pasien", "No. RM", "No. Bill", "No. Reg", "Tanggal Kunjungan", "Total Tagihan", "Diskon", "Total Akhir"];
+        for (var i = 0; i < headers.Length; i++)
+            ws.Cell(headerRow, i + 1).Value = headers[i];
+        var headerRange = ws.Range(headerRow, 1, headerRow, headers.Length);
+        headerRange.Style.Font.Bold = true;
+        headerRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
+
+        var r = headerRow + 1;
+        foreach (var m in detail.Items)
+        {
+            ws.Cell(r, 1).Value = r - headerRow;
+            ws.Cell(r, 2).Value = m.PatientName;
+            ws.Cell(r, 3).Value = m.MedicalRecordNumber;
+            ws.Cell(r, 4).Value = m.BillingNumber;
+            ws.Cell(r, 5).Value = m.RegistrationNumber;
+            ws.Cell(r, 6).Value = m.VisitDate.HasValue ? m.VisitDate.Value.ToString("dd/MM/yyyy") : "-";
+            ws.Cell(r, 7).Value = m.EditableTotalAmount;
+            ws.Cell(r, 8).Value = m.DiscountAmount;
+            ws.Cell(r, 9).Value = m.FinalAmount;
+            r++;
+        }
+        if (r > headerRow + 1)
+            ws.Range(headerRow + 1, 7, r - 1, 9).Style.NumberFormat.Format = "#,##0";
+
+        var summaryRow = r + 1;
+        ws.Cell(summaryRow, 1).Value = "Jumlah Detail";
+        ws.Cell(summaryRow, 2).Value = detail.Summary.ItemCount;
+        ws.Cell(summaryRow + 1, 1).Value = "Total Piutang";
+        ws.Cell(summaryRow + 1, 2).Value = detail.Summary.TotalAmount;
+        ws.Cell(summaryRow + 2, 1).Value = "Total Diskon";
+        ws.Cell(summaryRow + 2, 2).Value = detail.Summary.TotalDiscount;
+        ws.Cell(summaryRow + 3, 1).Value = "Total Akhir";
+        ws.Cell(summaryRow + 3, 2).Value = detail.Summary.NetAmount;
+        ws.Range(summaryRow, 1, summaryRow + 3, 1).Style.Font.Bold = true;
+        ws.Range(summaryRow, 2, summaryRow + 3, 2).Style.NumberFormat.Format = "#,##0";
+
+        ws.Columns().AdjustToContents();
+
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        return ms.ToArray();
+    }
+
+    public async Task<byte[]> ExportCanceledDetailPdfAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var detail = await GetCanceledDetailAsync(id, cancellationToken);
+        return CanceledInvoiceReportDocuments.BuildDetailPdf(detail);
+    }
+
+    public async Task<CanceledInvoiceSummaryResponse> GetCanceledSummaryAsync(
+        CanceledInvoiceBatchQuery request, CancellationToken cancellationToken)
+    {
+        var categorySupported = IsCanceledCategorySupported(request.Category, out var categoryLimitationReason);
+
+        // Total Filter: agregat atas seluruh filter aktif (search, rentang tanggal, jenis layanan,
+        // DebtorReferenceId, kategori). Merepresentasikan persis isi tabel yang sedang ditampilkan FE.
+        var query = _dbContext.FinReceivableInvoiceBatches.AsNoTracking()
+            .Where(x => !x.IsDelete && x.Status == FinReceivableInvoiceBatchStatuses.Cancelled);
         query = ApplyCanceledFilter(query, request);
 
         var agg = await query
@@ -1762,11 +2020,13 @@ public sealed class FinanceReceivableInvoiceBatchService
             .Select(g => new
             {
                 TotalAmount = g.Sum(x => x.TotalAmount),
+                TotalDiscount = g.Sum(x => x.TotalDiscount),
                 Count = g.Count()
             })
             .FirstOrDefaultAsync(cancellationToken);
 
         string targetName = "Semua Perusahaan";
+        decimal targetAmount;
         if (request.DebtorReferenceId.HasValue && request.DebtorReferenceId.Value != Guid.Empty)
         {
             var cName = await _dbContext.MstCompanyGuarantors.AsNoTracking()
@@ -1778,15 +2038,37 @@ public sealed class FinanceReceivableInvoiceBatchService
                 .Where(p => p.Id == request.DebtorReferenceId.Value && !p.IsDelete)
                 .Select(p => p.InsuranceProviderName)
                 .FirstOrDefaultAsync(cancellationToken) ?? "Semua Perusahaan";
+
+            // Total Target: akumulasi sepanjang masa untuk target yang dipilih, TANPA rentang
+            // tanggal/search/jenis layanan — definisi bisnisnya "berapa total yang pernah dibatalkan
+            // untuk perusahaan ini", bukan "berapa yang cocok dengan filter saat ini" (itu Total Filter).
+            targetAmount = await _dbContext.FinReceivableInvoiceBatches.AsNoTracking()
+                .Where(x => !x.IsDelete
+                    && x.Status == FinReceivableInvoiceBatchStatuses.Cancelled
+                    && x.DebtorReferenceId == request.DebtorReferenceId.Value)
+                .SumAsync(x => x.TotalAmount, cancellationToken);
+        }
+        else
+        {
+            // Tidak ada target spesifik dipilih: Total Target = total seluruh invoice CANCELLED
+            // sepanjang masa (tanpa filter apa pun), konsisten dengan TargetName "Semua Perusahaan".
+            targetAmount = await _dbContext.FinReceivableInvoiceBatches.AsNoTracking()
+                .Where(x => !x.IsDelete && x.Status == FinReceivableInvoiceBatchStatuses.Cancelled)
+                .SumAsync(x => x.TotalAmount, cancellationToken);
         }
 
         var totalAmount = agg?.TotalAmount ?? 0m;
+        var totalDiscount = agg?.TotalDiscount ?? 0m;
         return new CanceledInvoiceSummaryResponse
         {
             TotalAmount = totalAmount,
+            TotalDiscount = totalDiscount,
+            NetAmount = totalAmount - totalDiscount,
             InvoiceCount = agg?.Count ?? 0,
-            TargetAmount = totalAmount,
-            TargetName = targetName
+            TargetAmount = targetAmount,
+            TargetName = targetName,
+            CategorySupported = categorySupported,
+            CategoryLimitationReason = categoryLimitationReason
         };
     }
 
@@ -1832,7 +2114,7 @@ public sealed class FinanceReceivableInvoiceBatchService
         {
             cancelledByName = await _dbContext.Users.AsNoTracking()
                 .Where(u => u.Id == batch.CancelBy)
-                .Select(u => u.FullName ?? u.UserName)
+                .Select(u => u.DisplayName ?? u.UserName)
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
@@ -1950,6 +2232,7 @@ public sealed class FinanceReceivableInvoiceBatchService
                     MedicalRecordNumber = pat?.MedicalRecordNumber ?? "-",
                     BillingNumber = inv?.InvoiceNumber ?? "-",
                     RegistrationNumber = enc?.EncounterNumber ?? "-",
+                    VisitDate = enc != null ? DateOnly.FromDateTime(enc.EncounterDate) : null,
                     OriginalAmount = r.OriginalAmount,
                     OutstandingAmount = r.OutstandingAmount,
                     AllocatedAmount = r.AllocatedAmount,
@@ -2005,7 +2288,10 @@ public sealed class FinanceReceivableInvoiceBatchService
             CancelReason = batch.CancelReason,
             CancelledBy = batch.CancelBy,
             CancelledByName = cancelledByName,
+            Status = batch.Status,
             TotalAmount = batch.TotalAmount,
+            TotalDiscount = batch.TotalDiscount,
+            NetAmount = batch.TotalAmount - batch.TotalDiscount,
             RowVersion = batch.RowVersion,
             ReissuedToBatchId = batch.ReissuedToBatchId,
             ReissuedFromBatchId = batch.ReissuedFromBatchId,
@@ -2021,6 +2307,13 @@ public sealed class FinanceReceivableInvoiceBatchService
                     Reason = hasPaymentAllocations ? null : "Belum ada pembayaran/tender yang dapat dibuat Kwitansi."
                 },
                 BillingRecap = new CanceledInvoiceCapabilityItem { Available = true }
+            },
+            Summary = new CanceledInvoiceDetailSummary
+            {
+                ItemCount = memberResponses.Count,
+                TotalAmount = batch.TotalAmount,
+                TotalDiscount = batch.TotalDiscount,
+                NetAmount = batch.TotalAmount - batch.TotalDiscount
             },
             Items = memberResponses
         };
@@ -2222,6 +2515,42 @@ public sealed class FinanceReceivableInvoiceBatchService
         return newBatch;
     }
 
+    /// <summary>
+    /// Report Canceled Invoice hanya bersumber dari FinReceivableInvoiceBatch, yang menurut FIN-DEC-048
+    /// (lihat CreateAsync) HANYA PERNAH menampung piutang DebtorType PAYER ("Perusahaan"). Kategori
+    /// "Pasien Umum" (FinReceivableDebtorTypes.PatientGuarantor) dan "Karyawan"
+    /// (FinReceivableDebtorTypes.EmployeeBenefit) memang terdaftar sebagai DebtorType yang sah pada
+    /// FinReceivable, dan FinReceivableStatuses.Cancelled juga terdaftar sebagai status yang sah — tetapi
+    /// tidak ada satu pun service di backend ini yang pernah menulis Status=CANCELLED untuk piutang
+    /// non-PAYER (diverifikasi: seluruh referensi FinReceivableStatuses.Cancelled di codebase adalah
+    /// pembacaan guard-clause, tidak ada assignment). FinReceivable juga tidak memiliki kolom audit
+    /// pembatalan (CancelDateTime/CancelBy/CancelReason) seperti FinReceivableInvoiceBatch. Jalur
+    /// pembatalan untuk dua kategori ini belum pernah dibangun di V2 — bukan sekadar belum di-query.
+    /// Mengembalikan false (bukan melempar exception) agar caller bisa memilih perilaku aman: hasil
+    /// kosong plus alasan eksplisit, bukan data fiktif.
+    /// </summary>
+    private static bool IsCanceledCategorySupported(string? category, out string? limitationReason)
+    {
+        if (string.IsNullOrWhiteSpace(category))
+        {
+            limitationReason = null;
+            return true;
+        }
+
+        var cat = category.Trim().ToUpperInvariant();
+        if (cat is "PATIENT" or "EMPLOYEE" or "PASIEN" or "KARYAWAN" or "PATIENT_GUARANTOR" or "EMPLOYEE_BENEFIT")
+        {
+            limitationReason =
+                "Kategori ini belum didukung Report Canceled Invoice V2. Batch Tagihan AR (FinReceivableInvoiceBatch) " +
+                "hanya pernah dibuat untuk piutang berjenis Perusahaan (PAYER, FIN-DEC-048). Piutang Pasien Umum/Karyawan " +
+                "tidak pernah memiliki jalur pembatalan di backend saat ini, sehingga tidak ada data yang bisa ditampilkan.";
+            return false;
+        }
+
+        limitationReason = null;
+        return true;
+    }
+
     private IQueryable<FinReceivableInvoiceBatch> ApplyCanceledFilter(
         IQueryable<FinReceivableInvoiceBatch> query, CanceledInvoiceBatchQuery request)
     {
@@ -2246,14 +2575,17 @@ public sealed class FinanceReceivableInvoiceBatchService
             var isCancelDate = string.Equals(request.DateType, "CANCEL_DATE", StringComparison.OrdinalIgnoreCase);
             if (isCancelDate)
             {
+                // FinanceBusinessDate adalah satu-satunya tempat konversi zona waktu di Finance
+                // (FIN-DES-082, FIN-DEC-116) — batas hari dihitung menurut kalender WIB, bukan UTC
+                // mentah, agar tanggal awal/akhir filter tetap inklusif sesuai hari bisnis pengguna.
                 if (request.StartDate.HasValue)
                 {
-                    var startDt = request.StartDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+                    var startDt = FinanceBusinessDate.GetStartOfDayUtc(request.StartDate.Value);
                     query = query.Where(x => x.CancelDateTime >= startDt);
                 }
                 if (request.EndDate.HasValue)
                 {
-                    var endDt = request.EndDate.Value.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
+                    var endDt = FinanceBusinessDate.GetEndOfPeriodUtc(request.EndDate.Value);
                     query = query.Where(x => x.CancelDateTime <= endDt);
                 }
             }
@@ -2266,14 +2598,14 @@ public sealed class FinanceReceivableInvoiceBatchService
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Category))
+        if (!IsCanceledCategorySupported(request.Category, out _))
         {
-            var cat = request.Category.Trim().ToUpperInvariant();
-            if (cat is "PATIENT" or "EMPLOYEE" or "PASIEN" or "KARYAWAN")
-            {
-                // Current V2 FinReceivableInvoiceBatch invariant is DebtorType = PAYER.
-                query = query.Where(x => false);
-            }
+            // FinReceivableInvoiceBatch hanya pernah menampung piutang DebtorType PAYER (FIN-DEC-048);
+            // tidak ada data CANCELLED untuk kategori ini di skema V2 saat ini. Lihat
+            // IsCanceledCategorySupported untuk penjelasan lengkap. Mengembalikan kosong secara sengaja
+            // alih-alih error 400, agar FE tetap bisa merender halaman kosong + pesan keterbatasan dari
+            // CategorySupported/CategoryLimitationReason pada summary.
+            query = query.Where(x => false);
         }
 
         if (!string.IsNullOrWhiteSpace(request.Search))

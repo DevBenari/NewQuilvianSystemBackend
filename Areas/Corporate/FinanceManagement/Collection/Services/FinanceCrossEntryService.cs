@@ -484,6 +484,7 @@ public sealed class FinanceCrossEntryService
             .Select(x => new CrossEntryOptionResponse
             {
                 Id = x.Id,
+                ReceiptId = x.ReceiptId,
                 CrossEntryNumber = x.CrossEntryNumber,
                 ReferenceNumber = x.ReferenceNumber,
                 BankName = x.BankAccount != null && x.BankAccount.Bank != null ? x.BankAccount.Bank.BankName : (x.BankAccount != null ? x.BankAccount.AccountName : "-"),
