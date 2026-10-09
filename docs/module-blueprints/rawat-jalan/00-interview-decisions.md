@@ -1188,3 +1188,136 @@ Fakta source (baseline 8 Okt 2026, backend `sukmagp`):
 | `RJ-DOC-DEC-059` | Data | Data induk program/tier membership MMC **tidak di-seed** karena belum terverifikasi (`F-AQ-6`): `MEMBERSHIP MASTER DATA MMC — NEEDS VERIFIED BUSINESS DATA`. Struktur tetap dapat dikonfigurasi lewat layar Membership Tier | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
 | `RJ-DOC-DEC-061` | Data | **Tanpa prefix `Trx`**: entity antrean `TrxQueue` dinormalkan menjadi `RegQueue` (prefix registry `Reg`, QBE-NAM-001/003) sebagai LEGACY MIGRATION dalam `RJ-DOC-REV-BE-015`: class, berkas, configuration, DbSet `RegQueues`, seluruh rujukan, dan tabel fisik beserta PK/FK/index lewat rename katalog tanpa DROP+CREATE (QBE-DB-002). Entity `Trx*` modul lain tidak ikut di-rename | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 ("jangan gunakan prefix Trx", pilihan "Rename TrxQueue → RegQueue") |
 | `RJ-DOC-DEC-060` | Approval | `IMPLEMENTATION_AUTHORITY` `GRANTED` dalam `CROSS-REPO MODE` (backend lalu frontend) untuk `RJ-DOC-REV-BE-015`, `RJ-DOC-REV-BE-016`, `RJ-DOC-REV-FE-016`, termasuk pembuatan migration dan eksekusinya ke `QuilvianNewDevSukma` saja. Verifikasi pola Bank Darah tanpa project test. Tanpa commit, push, merge, maupun deployment | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 (pilihan "Revisi roadmap dulu", "Pola Bank Darah", "Buat + apply ke DB Sukma") |
+
+## Amendment Pass 2026-10-08 — Revisi Pendaftaran Pasien manual (Amendment PM)
+
+Sumber requirement: Sukma Giri, 8 Okt 2026 — dokumen "Pendaftaran pasien manual" (PDF, 3 halaman):
+*Prioritas pasien lama* butir 1–4, *Prioritas pasien baru* butir 1–2, *Tambahan di pasien lama*
+butir 1–4. Cakupan dipilih pemilik: layar Pendaftaran Rawat Jalan oleh petugas **dan** Kiosk. Revisi
+dipecah dua jalur. Jalur A hanya frontend dan dicatat di sini. Jalur B butuh backend dan menunggu
+`grill-me`.
+
+Fakta source (baseline 8 Okt 2026, frontend `sukmagpV2` `de323430`, backend `sukmagp` `77caf434`):
+
+- `F-PM-1` — `GET /patients/admin?search=` sudah mencari ke No. RM, nama, No. KTP, No. HP, dan
+  WhatsApp (`PatientController.ApplyStandardFilter`). Lookup Kiosk (`POST …/kiosk-patient-lookups`)
+  memakai policy `KioskRead` untuk akun perangkat Kiosk.
+- `F-PM-2` — Langkah pasien dan form pasien baru RJ memakai komponen IGD bersama
+  (`PatientSelectionStep`, `NewPatientForm`).
+- `F-PM-3` — Util bersama `normalizeKtpNumber` dan `normalizeIndonesianPhoneNumber(value, { maxDigits })`
+  sudah ada di `src/utils/shared/input-normalizer-utils.jsx`.
+- `F-PM-4` — Scan kartu penjamin (`RJ-DOC-REV-FE-014`) hanya menyimpan gambar; nama asuransi dan
+  No. polis tidak dibaca dari kartu. *(Diralat 8 Okt 2026 pada jalur B: kalimat awal "backend tidak punya entity rujukan maupun master fasilitas perujuk" keliru — lihat `F-PM-5`.)*
+
+| Decision ID | Jenis | Keputusan | Owner | Status | Disetujui oleh/pada |
+| --- | --- | --- | --- | --- | --- |
+| `RJ-DOC-DEC-062` | Bisnis | Cari pasien lama di layar petugas RJ memakai satu kolom seperti Kiosk: 16 digit → No. KTP (`normalizeKtpNumber`), `08…`/`628…`/`+628…` → No. HP (`normalizeIndonesianPhoneNumber`), selain itu → nama atau No. RM. Semua dikirim ke pencarian pasien yang sudah dipakai RJ, `GET /patients?search=` (handler yang sama dengan `GET /patients/admin`, `F-PM-1`); hasil dicocokkan tepat di client. Berlaku hanya untuk RJ; Pendaftaran IGD tidak berubah | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-063` | UI | Pesan "pilih poliklinik dulu" pada Jadwal Dokter memakai warna merah (tone `error`) | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-064` | UI | Jadwal Dokter menjadi pilihan yang dapat dicari, menampilkan nama dokter dan info praktik (jam, sesi, ruang). Jenis Kunjungan dibuat ringkas di samping Jadwal Dokter, opsi Umum dan Rujukan disusun atas-bawah | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-065` | Validasi | No. HP pasien baru di layar petugas RJ maksimal 13 angka (input angka `BaseTextField` dengan `maxLength` 13; nilai tersimpan apa adanya seperti sebelumnya). Pendaftaran IGD tidak berubah | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-066` | Approval | `IMPLEMENTATION_AUTHORITY` `GRANTED`, `TASK MODE: FRONTEND`, untuk `RJ-DOC-REV-FE-017`. Wajib memakai base component dan util normalizer yang sudah ada. Tanpa backend, migration, commit, push, merge, deploy | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 (pilihan "Pecah 2 jalur", "RJ saja, IGD tetap", "Setuju, catat & build") |
+| `RJ-DOC-DEC-067` | Scope | Jalur B ditunda ke `grill-me` sesudah jalur A selesai: scan asuransi yang membaca nama asuransi dan No. polis lalu menolak bila tidak cocok, step Rujukan (identitas, tujuan & alasan, dokumen), fasilitas perujuk bermitra, unit tujuan dengan popup jadwal, serta data uji 3+ dokter per poliklinik | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 (pilihan "Setelah jalur A selesai") |
+
+## Amendment Pass 2026-10-08 — Jalur B Revisi Pendaftaran Pasien manual (Amendment PM-B)
+
+Mode: **Amendment pass**. Blueprint Rawat Jalan sudah disetujui dan bentuknya tetap `SINGLE`; bentuk tidak ditanyakan ulang karena ini revisi satu blueprint. Sumber: PDF "Pendaftaran pasien manual" (Sukma Giri, 8 Okt 2026), butir pasien lama 2 dan 4, tambahan 2 dan 4, pasien baru 2; `RJ-DOC-DEC-067`. Capability map tidak diperbarui untuk pass ini. Fakta di bawah berasal dari pemeriksaan source langsung pada baseline backend `77caf434` dan frontend `de323430`.
+
+### Batas scope (dikonfirmasi Sukma Giri, 8 Okt 2026)
+
+**Di dalam scope:**
+
+1. Pencocokan hasil scan kartu asuransi (nama asuransi + No. polis) dengan penjamin yang dipilih, saat penjamin baru ditambahkan.
+2. Step Rujukan — A identitas rujukan, B tujuan & alasan, C dokumen — di Pendaftaran RJ petugas dan di Kiosk.
+3. Tanda mitra pada Institusi Perujuk beserta alert-nya.
+4. Popup jadwal dokter untuk unit tujuan poli yang tidak punya dokter praktik.
+5. Letak Jenis Kunjungan di Kiosk.
+6. Data uji satu poliklinik dengan lebih dari tiga dokter.
+
+**Di luar scope — untuk modul lain:**
+
+| Butir | Modul pemilik | Alasan |
+| --- | --- | --- |
+| Integrasi BPJS / SEP / VClaim | Insurance management | Tidak diminta PDF |
+| Alur klaim dan eligibility asuransi | Billing / Insurance | Titik sentuhnya hanya penjamin yang lolos scan |
+| Registrasi pasien Radiologi | Radiologi | Belum ada jalur registrasi (`F-PM-7`); ditunda (`RJ-DOC-DEC-071`) |
+| Aturan internal registrasi Laboratorium | Laboratorium | Dipakai lewat kontrak yang ada (`F-PM-6`) |
+| Kemampuan OCR kartu asuransi di agent Plustek | Tim agent Plustek (di luar repository) | Lihat `RJ-DOC-OQ-PM-01` |
+
+### Fakta source
+
+- `F-PM-5` — Master `MstReferralInstitution` (kode, nama, alamat, telepon, aktif) dan `MstReferralDoctor` (per institusi) **sudah ada**, beserta `ReferralInstitutionController`. `RegPatientEncounter` sudah menyimpan `IsReferral`, `ReferralNumber`, `IsReferralRequired`, `IsReferralVerified`, `ReferralInstitutionId`, dan `ReferralDoctorId`. Yang belum ada: tanda mitra, tanggal/jam rujukan, unit tujuan, diagnosa, alasan, dan dokumen surat rujukan.
+- `F-PM-6` — Laboratorium punya `POST /lab-patient-registrations/external-referral`.
+- `F-PM-7` — Radiologi hanya punya order, worklist, studi, dan laporan; tidak ada registrasi pasien.
+- `F-PM-8` — OCR agent Plustek (`POST 127.0.0.1:9100/scanner/scan-ocr`) hanya mengenal dokumen KTP, KIA, dan SIM. `MstPatientInsurance` menyimpan `InsuranceProviderId`, `PolicyNumber`, `CardNumber`, dan `MemberNumber`. `MstInsuranceProvider` menyimpan nama, kode, dan grup.
+- `F-PM-9` — Master Diagnosis (`MstDiagnosis`) sudah ada.
+- `F-PM-10` — Kiosk menyimpan rujukan sebagai `referralForm { referralNumber, referralSource }`, dikirim sebagai `isReferral`/`referralNumber`. Jenis Kunjungan Kiosk dipilih di step tersendiri sebelum Pembayaran.
+
+### Keputusan
+
+| Decision ID | Jenis | Keputusan | Owner | Status | Disetujui oleh/pada |
+| --- | --- | --- | --- | --- | --- |
+| `RJ-DOC-DEC-068` | Integrasi | Nama asuransi dan No. polis dibaca oleh **agent Plustek yang diperluas** dengan jenis dokumen kartu asuransi. Agent mengembalikan kedua nilai seperti OCR KTP | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-069` | Validasi | Dinyatakan cocok bila dua syarat terpenuhi. (1) No. polis hasil scan **sama persis** dengan No. polis yang diisi, setelah spasi dan tanda baca dibuang. (2) Nama asuransi hasil scan **memuat** nama, kode, atau grup asuransi terpilih di master, tanpa membedakan huruf besar-kecil. Contoh: `PT ASURANSI ALLIANZ LIFE` cocok dengan `Allianz`. Pemeriksaan hanya sekali, saat penjamin **baru** ditambahkan; penjamin tersimpan tidak di-scan ulang | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-070` | Validasi | Bila tidak cocok, tampil alert **"Data tidak match"**. Penjamin baru **tidak tersimpan** dan tidak dapat menjadi penjamin; petugas boleh scan ulang atau memperbaiki pilihan asuransi / No. polis. Selama agent belum mengembalikan nama + No. polis, perilaku sekarang dipertahankan (hanya gambar yang tersimpan, pemeriksaan nonaktif). Pemeriksaan aktif otomatis saat kedua nilai tersedia | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-071` | Bisnis | Unit tujuan **menentukan kunjungan**. Rilis pertama mencakup poliklinik dan Laboratorium (lewat `POST /lab-patient-registrations/external-referral`). Radiologi tampil nonaktif dengan keterangan "belum tersedia" sampai modul Radiologi menyediakan registrasi | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-072` | Alur | Untuk pasien rujukan, step Rujukan **menggantikan** pilihan poli. Data Kunjungan berisi tanggal + Jenis Kunjungan. Bila Rujukan, step Rujukan memuat Unit tujuan; bila unit berupa poli, jadwal dokter dipilih di step itu. Poli tanpa dokter praktik menampilkan tombol yang membuka popup jadwal praktik dokter poli tersebut. Pasien Umum tidak berubah. Keputusan ini menyimpang dari urutan PDF ("setelah data kunjungan") supaya tidak ada dua pilihan poli yang bisa bertentangan | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-073` | Master data | "Bermitra" berupa kolom Ya/Tidak pada master Institusi Perujuk, diatur di layar master. Bila institusi terpilih bermitra, tampil alert **"Fasilitas Perujuk Bermitra dengan Rumah Sakit"**. Fasilitas perujuk berupa pilihan yang dapat dicari | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-074` | Validasi | Diagnosa rujukan dipilih dari master Diagnosis (ICD-10, dapat dicari), ditambah catatan teks bebas yang opsional | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-075` | Validasi | Di layar petugas, isian wajib: No. rujukan, tanggal/jam rujukan (default saat ini), fasilitas perujuk, unit tujuan, diagnosa, alasan, dan unggahan surat rujukan. Dokter perujuk opsional | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-076` | Alur | Di Kiosk, pasien mengisi unit tujuan (+ popup jadwal), fasilitas perujuk (dapat dicari), dokter perujuk, No. rujukan, tanggal, dan scan surat rujukan lewat scanner Kiosk. Diagnosa dan alasan opsional di Kiosk. Kunjungan tetap terbentuk dan masuk antrean | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-077` | Alur | Rujukan yang belum memenuhi isian wajib `RJ-DOC-DEC-075` diberi tanda **"Rujukan belum lengkap"** di Daftar Kunjungan RJ. Petugas melengkapinya lewat form Rujukan yang sama. Tanda ini tidak memblokir pelayanan | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-078` | Audit | Data rujukan boleh dikoreksi petugas **sebelum konsultasi dokter dimulai**. Setiap koreksi tercatat: siapa, kapan, dan nilai lamanya. Sesudah konsultasi dimulai, data terkunci. Unit tujuan tidak dapat diubah lewat koreksi; untuk itu kunjungan harus dibatalkan | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-079` | Data | Data uji "satu poli > 3 dokter" ditambahkan lewat endpoint master yang ada ke `QuilvianNewDevSukma` saja, dengan awalan `PMTEST`. Tidak ada seeder di kode | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-067` | Scope | *(diperbarui)* Penundaan jalur B ditutup oleh pass ini; isinya kini diatur `RJ-DOC-DEC-068`..`079` | Sukma Giri | `superseded` | Sukma Giri, 8 Okt 2026 |
+
+Keputusan Kiosk yang ikut berubah: `KSK-DEC-025` di blueprint Kiosk menggantikan `KSK-DEC-023`. Jenis Kunjungan Kiosk tetap step sendiri, dan `FE-KSK-013` dibatalkan.
+
+### Asumsi dan open question
+
+| ID | Jenis | Isi | Owner | Memblokir |
+| --- | --- | --- | --- | --- |
+| `RJ-DOC-OQ-PM-01` | Open Question | Kontrak OCR kartu asuransi di agent Plustek: nama jenis dokumen, nama field hasil (nama asuransi, No. polis), dan perilaku bila salah satu tidak terbaca. Sampai kontrak ini ada, pemeriksaan match tetap nonaktif (`RJ-DOC-DEC-070`) | Tim agent Plustek / Sukma Giri | `IMPLEMENTATION` pemeriksaan match saja |
+| `RJ-DOC-OQ-PM-02` | Open Question | Registrasi rujukan Radiologi | Pemilik modul Radiologi | `LATER SLICE` |
+| `RJ-DOC-ASM-PM-01` | Assumption | Surat rujukan berupa PDF/JPG/PNG, maksimal 5 MB per berkas, boleh lebih dari satu halaman. Disimpan seperti foto kartu penjamin (`FileStorage`) | Sukma Giri (konfirmasi saat desain) | `DESIGN`, bila ditolak |
+| `RJ-DOC-ASM-PM-02` | Assumption | Unit tujuan Laboratorium dari Kiosk memakai alur Kiosk Laboratorium yang sudah ada (handoff ke petugas, `FE-LAB-13`), bukan registrasi lab langsung oleh pasien | Sukma Giri (konfirmasi saat desain) | `DESIGN`, bila ditolak |
+| `RJ-DOC-ASM-PM-03` | Assumption | Hak akses memakai resource yang sudah ada: `PatientEncounter : Create/Update` untuk rujukan, dan `ReferralInstitution : Update` untuk tanda mitra | Sukma Giri (konfirmasi saat desain) | `DESIGN`, bila ditolak |
+
+### Acceptance criteria yang sudah dapat diuji
+
+| ID | Given / When / Then |
+| --- | --- |
+| `RJ-AC-PM-01` | **Given** petugas menambah penjamin baru Allianz dengan No. polis `AZ-123 456` **When** hasil scan `PT ASURANSI ALLIANZ LIFE` / `AZ123456` **Then** penjamin tersimpan |
+| `RJ-AC-PM-02` | **Given** penjamin baru Allianz `AZ123456` **When** hasil scan No. polis `AZ123457` atau nama `PRUDENTIAL` **Then** alert "Data tidak match" tampil, penjamin tidak tersimpan, dan scan ulang tersedia |
+| `RJ-AC-PM-03` | **Given** penjamin tersimpan **When** dipilih untuk kunjungan **Then** tidak diminta scan ulang |
+| `RJ-AC-PM-04` | **Given** Jenis Kunjungan Rujukan **When** lanjut dari Data Kunjungan **Then** step Rujukan tampil dengan tanggal/jam terisi waktu saat ini, dan pilihan poli ada di step itu, bukan di Data Kunjungan |
+| `RJ-AC-PM-05` | **Given** institusi perujuk bertanda mitra **When** dipilih **Then** alert "Fasilitas Perujuk Bermitra dengan Rumah Sakit" tampil |
+| `RJ-AC-PM-06` | **Given** unit tujuan berupa poli tanpa dokter praktik pada tanggal kunjungan **Then** tombol jadwal tampil dan membuka popup jadwal praktik dokter poli itu |
+| `RJ-AC-PM-07` | **Given** unit tujuan Radiologi **Then** opsi nonaktif dengan keterangan "belum tersedia" |
+| `RJ-AC-PM-08` | **Given** layar petugas **When** salah satu isian wajib `RJ-DOC-DEC-075` kosong **Then** petugas tidak dapat lanjut |
+| `RJ-AC-PM-09` | **Given** rujukan dari Kiosk tanpa diagnosa **Then** kunjungan masuk antrean dan Daftar Kunjungan RJ menandai "Rujukan belum lengkap" |
+| `RJ-AC-PM-10` | **Given** konsultasi dokter sudah dimulai **When** petugas mengoreksi rujukan **Then** koreksi ditolak. Sebelum konsultasi dimulai, koreksi tersimpan beserta jejak audit |
+
+
+### Keputusan tambahan saat desain (8 Okt 2026)
+
+| Decision ID | Jenis | Keputusan | Owner | Status | Disetujui oleh/pada |
+| --- | --- | --- | --- | --- | --- |
+| `RJ-DOC-DEC-080` | Scope | **Memperluas scope** (`RJ-DOC-DEC-073` dirinci): master Institusi Perujuk hanya punya endpoint pilihan baca-saja (`F-PM-11`). Dibuat layar dan endpoint master data standar untuk Institusi Perujuk (termasuk kolom Bermitra) dan Dokter Perujuk, mengikuti standar master data. Pemilik data tetap Health Service Master Data | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 (pilihan "Buat layar master Institusi & Dokter Perujuk") |
+| `RJ-DOC-DEC-081` | Privasi | Surat rujukan disimpan di folder **privat** (bukan `/uploads` publik) dan hanya dapat diunduh lewat endpoint berizin. Berbeda dari foto kartu penjamin yang publik | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-082` | Konfirmasi | `RJ-DOC-ASM-PM-01`..`03` disetujui sebagai keputusan: surat PDF/JPG/PNG maksimal 5 MB per berkas, boleh lebih dari satu; rujukan Laboratorium dari Kiosk lewat alur Kiosk Laboratorium yang ada; hak akses memakai resource yang ada (`PatientEncounter`, `ReferralInstitution`, `ReferralDoctor`) | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-083` | Approval | `IMPLEMENTATION_AUTHORITY` `GRANTED` dalam `CROSS-REPO MODE` (backend lalu frontend) untuk `RJ-DOC-REV-BE-017`..`021`, `RJ-DOC-REV-FE-018`..`021`, dan `FE-KSK-014`..`016` (blueprint Kiosk), per gelombang roadmap bagian 19. Termasuk pembuatan migration dan penerapannya ke `QuilvianNewDevSukma` saja, serta data uji `PMTEST` lewat API. Verifikasi pola Bank Darah tanpa project test. Tanpa commit, push, merge, maupun deployment | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 (pilihan "Semua task, CROSS-REPO"); desain revisi 31 disetujui ("setuju dan lanjutkan") |
+
+- `F-PM-11` — `ReferralInstitutionController` dan `ReferralDoctorController` hanya punya
+  `GET options` dan sengaja baca-saja; komentarnya menyebut penyuntingan sebagai pekerjaan modul
+  Data Induk. Tidak ada route frontend master Institusi/Dokter Perujuk. Endpoint pilihan memakai
+  `[AccessPermission]` biasa tanpa jalur Kiosk.
+- `F-PM-12` — Status kunjungan `InConsultation` (6) menandai konsultasi dokter dimulai.
+  `PatientEncounterCreateRequest` belum membawa `ReferralInstitutionId`/`ReferralDoctorId`
+  (yang membawanya hanya `EncounterIntakeRequest` untuk Laboratorium).
+- `F-PM-13` — Penyimpanan berkas yang ada (`PatientPayerCardImageService`) menulis ke folder publik
+  `FileStorage:UploadRootPath` dan menerima base64. Tidak ada tabel audit generik; pola
+  `RowVersion` (`Guid`, `IsConcurrencyToken`) dipakai di Finance.
+
+### Langkah berikutnya
+
+Tidak ada blocker `DESIGN` yang terbuka. `RJ-DOC-OQ-PM-01` hanya menahan implementasi pemeriksaan match. Langkah berikutnya: `design-business-module` (amendment) untuk kontrak entity rujukan, endpoint, dan layar.

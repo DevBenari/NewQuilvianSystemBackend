@@ -647,3 +647,133 @@ mengulang aksi.
 | Filter Dokter untuk pengguna jalur super admin | Frontend tidak punya sinyal "boleh melihat semua dokter" untuk endpoint ini. Metadata Daftar Pasien Rawat Jalan (`scope.canReadAll`, `doctorOptions`) dijaga `OutpatientEncounter : Read` yang belum tentu dimiliki dokter. Menambah sinyal itu berarti mengubah backend, di luar amendment frontend-only ini | Kolom Dokter di tabel. Bila dibutuhkan, diputuskan terpisah sebagai `RJ-DOC-OQ-016` (`POST-MVP`) |
 | Summary card | `RJ-DOC-FE-016` | Jumlah baris di judul tabel/pagination |
 | Tombol Panggil/Lewati/Tidak Hadir | Konsultasi tertunda sudah `InConsultation` | — |
+
+# Amendment PM-B — Frontend Pendaftaran Rujukan (revisi `31`, `approved` 2026-10-08)
+
+Keputusan `RJ-DOC-DEC-068`..`082`, `KSK-DEC-025`. Kontrak `RJ-DOC-REFERRAL-001@1.0.0` (`draft`).
+Hierarki wewenang UI: keamanan/privasi → keputusan pemilik di atas → konvensi proyek (base
+component, token, pola master data `hr/master-data/job-level`) → `DEV_DISCRETION`.
+
+## PM-FE.1 Peta butir menu
+
+| Butir menu | Tingkat | Induk | Route | Layar | Hak akses |
+|---|---|---|---|---|---|
+| Institusi Perujuk | 3 | Pelayanan Kesehatan → Master Data | `/health-services/master-data/referral-institutions` (+ `create`, `[slug]`, `[slug]/update`) | Master Institusi Perujuk | `ReferralInstitution : Read` |
+| Dokter Perujuk | 3 | Pelayanan Kesehatan → Master Data | `/health-services/master-data/referral-doctors` (+ `create`, `[slug]`, `[slug]/update`) | Master Dokter Perujuk | `ReferralDoctor : Read` |
+| — (layar anak) | — | Pendaftaran Pasien Rawat Jalan | sama | Step *Data Rujukan* | `PatientEncounter : Create` |
+| — (layar anak) | — | Daftar Kunjungan RJ (`/health-services/registration-management/outpatient-encounters`) | sama | Form *Lengkapi / Koreksi Rujukan* (aksi baris) | `PatientEncounter : Update` |
+| — (layar anak) | — | Kiosk Pasien Lama / Baru | sama | Step *Data Rujukan* Kiosk | Akun perangkat Kiosk |
+
+Letak butir di dalam grup Master Data mengikuti urutan alfabet grup yang ada (`DEV_DISCRETION`).
+
+## PM-FE.2 Pendaftaran Rawat Jalan (petugas) — alur step
+
+| Jenis Kunjungan | Step |
+|---|---|
+| Umum | Cari/Input Pasien → Data Kunjungan (tanggal, poli, jadwal dokter, jenis, keluhan) → Pembayaran → General Consent → Verifikasi → Selesai (**tidak berubah**) |
+| Rujukan | Cari/Input Pasien → Data Kunjungan (tanggal, jenis, keluhan; **tanpa** poli/dokter) → **Data Rujukan** → Pembayaran → General Consent → Verifikasi → Selesai |
+
+Bar step berganti saat Jenis Kunjungan diubah. Mengubah Rujukan → Umum mengosongkan isian rujukan
+sesudah konfirmasi (`ConfirmModal`).
+
+### Skema step *Data Rujukan*
+
+```text
+┌ LANGKAH 3 · Data Rujukan ───────────────────────────────────── [Kembali] ┐
+│ A. Identitas Rujukan                                                      │
+│  [No. Rujukan *]                 [Tanggal & Jam Rujukan *  08 Okt 09:10]  │
+│  [Fasilitas Perujuk * (cari)  ▾] [Dokter Perujuk (cari) ▾]                │
+│  ⓘ Fasilitas Perujuk Bermitra dengan Rumah Sakit   (bila mitra)           │
+│ B. Tujuan & Alasan Rujukan                                                │
+│  [Unit Tujuan * (cari) ▾  Poli… / Laboratorium / Radiologi (nonaktif)]    │
+│  (poli) [Jadwal Dokter * (cari) ▾]   [Lihat Jadwal Praktik] (bila kosong) │
+│  (lab)  [Unit Laboratorium * ▾]                                           │
+│  [Diagnosa ICD-10 * (cari) ▾]  [Catatan diagnosa]                         │
+│  [Alasan Rujukan * (teks)]                                                │
+│ C. Dokumen                                                                │
+│  [Unggah Surat Rujukan *]  surat.jpg 412 KB [Hapus]                       │
+│                                              [Lanjut ke Pembayaran]       │
+└───────────────────────────────────────────────────────────────────────────┘
+```
+
+| Wilayah | Isi | Sumber data | Kosong / gagal |
+|---|---|---|---|
+| Fasilitas perujuk | Pilihan dapat dicari; alert mitra `EmergencyInlineAlert tone="info"` | `GET /referral-institutions/options` (`isPartner`) | "Fasilitas tidak ditemukan" / "Gagal memuat fasilitas perujuk. Coba lagi" |
+| Dokter perujuk | Disaring institusi | `GET /referral-doctors/options?referralInstitutionId=` | "Belum ada dokter perujuk untuk fasilitas ini" |
+| Unit tujuan | Seluruh poli (bukan hanya yang buka) + Laboratorium + Radiologi nonaktif | `GET /clinics/admin/options`, `GET /service-units/options` (lab) | — |
+| Jadwal dokter | Sama dengan `RJ-DOC-REV-FE-017` | `GET /doctor-schedules/admin` (sudah dimuat) | Poli tanpa jadwal pada tanggal itu: alert + tombol *Lihat Jadwal Praktik* |
+| Popup jadwal | Jadwal praktik seluruh hari poli itu: dokter, hari, jam, sesi, ruang | Data jadwal yang sama, tanpa saring tanggal | "Poli ini belum punya jadwal dokter aktif" |
+| Diagnosa | Pilihan ICD-10 dapat dicari (server-side) | `GET /diagnoses/options` | "Diagnosa tidak ditemukan" |
+| Dokumen | Unggah 1–10 berkas, pratinjau nama/ukuran | Disimpan lokal di form sampai submit | Pesan `RJ-VAL-PM-12`/`13` |
+
+Submit (Verifikasi): poli → `POST /patient-encounters/admin` dengan blok `referral`, lalu
+`POST …/referral/documents`. Lab → `POST /lab-patient-registrations/external-referral` →
+`PUT …/referral` → unggah. Kegagalan sesudah kunjungan terbentuk tidak membatalkan kunjungan:
+layar Selesai menampilkan "Rincian/surat rujukan belum tersimpan" + *Coba lagi*, dan kunjungan
+tampil "Rujukan belum lengkap".
+
+### Scan kartu asuransi (Pembayaran → *Daftarkan Penjamin Baru*)
+
+Perluasan `RJ-DOC-REV-FE-014`. Bila agent mengembalikan nama asuransi dan No. polis, layar
+mencocokkannya (aturan sama dengan backend). Tidak cocok → `EmergencyInlineAlert tone="error"`
+"Data tidak match", tombol Simpan nonaktif, *Scan Ulang* tersedia. Cocok → `cardScan` ikut
+dikirim. Agent belum mendukung → perilaku lama (`RJ-DOC-DEC-070`). Penjamin tersimpan tidak
+menampilkan scan wajib.
+
+## PM-FE.3 Daftar Kunjungan RJ — Rujukan belum lengkap
+
+| Wilayah | Isi | Sumber | Hak akses |
+|---|---|---|---|
+| Kolom/badge | `StatusBadge` "Rujukan belum lengkap" (warning) bila `referralStatus = Incomplete` | `GET /outpatient-encounters` | `PatientEncounter : Read` |
+| Filter | Status rujukan: Semua / Lengkap / Belum lengkap | Query `referralStatus` | — |
+| Aksi baris | *Lengkapi Rujukan* / *Koreksi Rujukan* (bila rujukan, tidak terkunci) | `GET/PUT …/referral`, berkas | `PatientEncounter : Update` |
+| Form | Wilayah A, B (unit tujuan **baca saja**), C; unduh surat lewat endpoint berizin | idem | Terkunci → baca saja + "Konsultasi dokter sudah dimulai" |
+
+Bentuk form (modal, drawer, atau halaman anak) mengikuti pola aksi baris yang sudah dipakai layar
+itu (`DEV_DISCRETION`).
+
+## PM-FE.4 Kiosk (Pasien Lama dan Baru)
+
+Jenis Kunjungan tetap step sendiri (`KSK-DEC-025`). Untuk **Pasien Rujukan**, step baru
+*Data Rujukan* disisipkan sesudah Pembayaran dan sebelum *Layanan & Dokter*. Di *Layanan & Dokter*
+poli yang dipilih menjadi unit tujuan.
+
+| Isian Kiosk | Bentuk |
+|---|---|
+| No. rujukan | Input sentuh |
+| Tanggal rujukan | Default hari ini/jam sekarang, dapat diubah |
+| Fasilitas perujuk | Pilihan dapat dicari (`kiosk/options`), alert mitra |
+| Dokter perujuk | Opsional |
+| Surat rujukan | Tombol *Scan Surat Rujukan* lewat scanner Kiosk (`/scanner/scan`), pratinjau halaman, scan ulang |
+| Diagnosa, alasan | **Tidak ditampilkan** (`RJ-DOC-DEC-076`) |
+
+Di *Layanan & Dokter*, poli tanpa dokter praktik menampilkan tombol *Lihat Jadwal Praktik* yang
+membuka popup jadwal poli itu (`GET /doctor-schedules/kiosk/options`). Sesudah kunjungan dibuat,
+halaman hasil scan diunggah lewat jalur Kiosk. Gagal unggah tidak menahan tiket antrean; tiket
+menampilkan "Tunjukkan surat rujukan ke petugas". Bar step Kiosk Rujukan bertambah satu step.
+Pasien yang memilih Laboratorium di Tujuan Layanan tetap lewat alur Laboratorium yang ada.
+
+## PM-FE.5 Master Institusi dan Dokter Perujuk
+
+Mengikuti standar master data generasi `hr/master-data/job-level` (satu `<FEATURE>_CONFIG`,
+sembilan thunk Redux). Institusi: Kode, Nama, Alamat, Telepon, **Bermitra** (switch), Status.
+Kolom list menampilkan badge "Mitra". Dokter: Institusi (pilihan), Nama Dokter, Status.
+
+## PM-FE.6 Penanganan keadaan
+
+| Keadaan | Perilaku |
+|---|---|
+| Submit ganda | Tombol submit terkunci selama request; jalur Lab memakai `IdempotencyKey` |
+| Data basi saat koreksi | `409 RJ-VAL-PM-11` → "Data rujukan sudah diubah. Muat ulang." + tombol muat ulang |
+| Tanpa hak | Aksi baris tidak tampil; route master → `AccessDeniedGate` |
+| Privasi | Diagnosa, alasan, dan berkas tidak di-cache di `localStorage`; URL berkas tidak disimpan |
+| Aksesibilitas | Alert mitra dan "Data tidak match" memakai `role="alert"`; unggah dapat dioperasikan dengan keyboard |
+
+## PM-FE.7 Yang sengaja tidak dibuat
+
+| Dipertimbangkan | Alasan |
+|---|---|
+| Registrasi Radiologi | `RJ-DOC-OQ-PM-02` |
+| Diagnosa/alasan di Kiosk | `RJ-DOC-DEC-076` |
+| Unit tujuan Laboratorium di Kiosk | `RJ-DOC-DEC-082` — alur Kiosk Laboratorium yang ada |
+| Pindah Jenis Kunjungan Kiosk ke Layanan & Dokter | `KSK-DEC-025` |

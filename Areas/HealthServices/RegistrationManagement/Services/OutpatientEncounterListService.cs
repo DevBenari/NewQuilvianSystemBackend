@@ -57,14 +57,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         private readonly AccessPermissionService _accessPermissionService;
         private readonly QueueRealtimeService _queueRealtimeService;
         private readonly LoggerService _loggerService;
+        private readonly EncounterReferralService _encounterReferralService;
 
         public OutpatientEncounterListService(
             ApplicationDbContext dbContext,
             ClinicalActorScopeService scopeService,
             AccessPermissionService accessPermissionService,
             QueueRealtimeService queueRealtimeService,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            EncounterReferralService encounterReferralService)
         {
+            _encounterReferralService = encounterReferralService;
             _dbContext = dbContext;
             _scopeService = scopeService;
             _accessPermissionService = accessPermissionService;
@@ -81,6 +84,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             var today = Today();
 
             var query = ApplyFilters(BuildScopedQuery(scope), request, today, includeStatus: true);
+            var referralRequiredFrom = _encounterReferralService.ReferralDetailRequiredFrom;
+
+            query = ApplyReferralStatusFilter(query, request.ReferralStatus, referralRequiredFrom);
 
             var pageNumber = Math.Max(1, request.PageNumber);
             var pageSize = Math.Clamp(request.PageSize, 1, 100);
@@ -109,7 +115,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                     x.IsCancel,
                     IsCompleted = x.CompletedAt != null,
                     HasActiveConsultation = _dbContext.Set<TrxDoctorConsultation>()
-                        .Any(c => c.EncounterId == x.Id && !c.IsDelete && !c.IsCancel)
+                        .Any(c => c.EncounterId == x.Id && !c.IsDelete && !c.IsCancel),
+                    x.IsReferral,
+                    ReferralIsComplete = _dbContext.Set<RegEncounterReferral>()
+                        .Where(r => r.PatientEncounterId == x.Id && !r.IsDelete)
+                        .Select(r => (bool?)r.IsComplete)
+                        .FirstOrDefault()
                 })
                 .ToListAsync(cancellationToken);
 
@@ -142,7 +153,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                     IsHanging = isBlocking && x.EncounterDate < today,
                     HasActiveConsultation = x.HasActiveConsultation,
                     CanCancel = canCancelPermission && blockedReason == null,
-                    CancelBlockedReason = blockedReason
+                    CancelBlockedReason = blockedReason,
+                    ReferralStatus = ResolveReferralStatus(x.IsReferral, x.ReferralIsComplete, x.EncounterDate, referralRequiredFrom)
                 };
             }).ToList();
 
@@ -412,6 +424,54 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return query.Where(x =>
                 (hasDoctor && x.DoctorId == doctorId) ||
                 clinicIds.Contains(x.ClinicId!.Value));
+        }
+
+        /// <summary>
+        /// Status rujukan baris (RJ-DOC-DEC-077). Rujukan tanpa rincian dianggap belum lengkap
+        /// hanya bila tanggal kunjungannya sejak <c>ReferralDetailRequiredFrom</c>; kunjungan lama
+        /// tidak pernah punya rincian dan tidak ditandai.
+        /// </summary>
+        private static string ResolveReferralStatus(
+            bool isReferral,
+            bool? referralIsComplete,
+            DateTime encounterDate,
+            DateTime requiredFrom)
+        {
+            if (!isReferral)
+                return OutpatientReferralStatuses.NotReferral;
+
+            if (referralIsComplete.HasValue)
+                return referralIsComplete.Value ? OutpatientReferralStatuses.Complete : OutpatientReferralStatuses.Incomplete;
+
+            return encounterDate >= requiredFrom
+                ? OutpatientReferralStatuses.Incomplete
+                : OutpatientReferralStatuses.Complete;
+        }
+
+        private IQueryable<RegPatientEncounter> ApplyReferralStatusFilter(
+            IQueryable<RegPatientEncounter> query,
+            string? referralStatus,
+            DateTime requiredFrom)
+        {
+            if (string.IsNullOrWhiteSpace(referralStatus))
+                return query;
+
+            var referrals = _dbContext.Set<RegEncounterReferral>().Where(r => !r.IsDelete);
+
+            return referralStatus.Trim() switch
+            {
+                OutpatientReferralStatuses.NotReferral => query.Where(x => !x.IsReferral),
+                OutpatientReferralStatuses.Incomplete => query.Where(x =>
+                    x.IsReferral &&
+                    (referrals.Any(r => r.PatientEncounterId == x.Id && !r.IsComplete) ||
+                     (!referrals.Any(r => r.PatientEncounterId == x.Id) && x.EncounterDate >= requiredFrom))),
+                OutpatientReferralStatuses.Complete => query.Where(x =>
+                    x.IsReferral &&
+                    (referrals.Any(r => r.PatientEncounterId == x.Id && r.IsComplete) ||
+                     (!referrals.Any(r => r.PatientEncounterId == x.Id) && x.EncounterDate < requiredFrom))),
+                _ => throw new OutpatientEncounterValidationException(
+                    "Saringan status rujukan tidak valid. Gunakan NotReferral, Complete, atau Incomplete.")
+            };
         }
 
         private static IQueryable<RegPatientEncounter> ApplyFilters(

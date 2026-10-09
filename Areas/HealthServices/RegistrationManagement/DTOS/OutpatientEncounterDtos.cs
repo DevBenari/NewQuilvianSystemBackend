@@ -26,6 +26,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         [MaxLength(100)]
         public string? Search { get; set; }
 
+        /// <summary>
+        /// Saringan status rujukan (RJ-DOC-REV-BE-018): <c>NotReferral</c>, <c>Complete</c>, atau
+        /// <c>Incomplete</c>. Kosong = semua.
+        /// </summary>
+        [MaxLength(20)]
+        public string? ReferralStatus { get; set; }
+
         [Range(1, int.MaxValue)]
         public int PageNumber { get; set; } = 1;
 
@@ -53,6 +60,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public bool HasActiveConsultation { get; set; }
         public bool CanCancel { get; set; }
         public string? CancelBlockedReason { get; set; }
+
+        /// <summary><c>NotReferral</c>, <c>Complete</c>, atau <c>Incomplete</c> (RJ-DOC-DEC-077).</summary>
+        public string ReferralStatus { get; set; } = OutpatientReferralStatuses.NotReferral;
+    }
+
+    /// <summary>Nilai tetap status rujukan pada Daftar Kunjungan RJ (RJ-DOC-REFERRAL-001).</summary>
+    public static class OutpatientReferralStatuses
+    {
+        public const string NotReferral = "NotReferral";
+        public const string Complete = "Complete";
+        public const string Incomplete = "Incomplete";
     }
 
     public class OutpatientEncounterSummaryResponse

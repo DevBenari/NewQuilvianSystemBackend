@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 
@@ -16,6 +16,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Maste
             builder.Property(x => x.Address).HasMaxLength(500);
             builder.Property(x => x.PhoneNumber).HasMaxLength(50);
             builder.Property(x => x.IsActive).HasDefaultValue(true);
+            builder.Property(x => x.IsPartner).HasDefaultValue(false);
 
             // Keunikan kode ditegakkan database, bukan hanya pemeriksaan di service. Baris yang
             // sudah dihapus tidak ikut menghalangi, mengikuti pola MstProcedure.

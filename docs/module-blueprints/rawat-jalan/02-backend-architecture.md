@@ -1355,3 +1355,363 @@ Keputusan `RJ-DOC-DEC-045`..`049`, `RJ-DOC-FE-014`..`016`. Snapshot backend `859
 | Butir hak akses | Tidak ada yang baru. Butir menu baru dijaga `DoctorQueue : Read` yang sudah ada |
 | Petunjuk Daftar Pasien Rawat Jalan (`OutpatientEncounterListService.cs:384`) | Tidak diubah. Bunyinya ("…atau Konsultasi tertunda untuk kunjungan hari sebelumnya") tetap menunjuk tempat yang benar karena menu barunya bernama Konsultasi Tertunda |
 | Task backend | Tidak ada |
+
+# Amendment PM-B — Pendaftaran Rujukan dan Pencocokan Kartu Asuransi (revisi `31`, `approved` 2026-10-08)
+
+| Field | Nilai |
+|---|---|
+| Status | `approved` — Sukma Giri, 2026-10-08 |
+| Keputusan | `RJ-DOC-DEC-068`..`082`, `KSK-DEC-025` ([00-interview-decisions.md](00-interview-decisions.md), *Amendment PM-B*) |
+| Capability | Fakta `F-PM-5`..`13` pada decision log (BE `77caf434`, FE `de323430`). Tidak ada capability map baru |
+| Kontrak | `RJ-DOC-REFERRAL-001@1.0.0` (`draft`) — bagian *Amendment PM-B* pada setiap berkas `contracts/` |
+| `requirement_readiness` | `GATE_NOT_RUN` — keputusan tertutup berbukti; tidak ada keputusan klinis atau billing baru |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN` — rujukan tetap milik Registration; master perujuk sudah global milik Health Service Master Data (`F-PM-5`); tidak ada dampak billing |
+
+## PM.1 Tujuan dan batas
+
+Petugas dan Kiosk dapat mencatat **rujukan** pasien secara lengkap: nomor dan tanggal rujukan,
+fasilitas perujuk (dengan tanda mitra), dokter perujuk, unit tujuan, diagnosa, alasan, dan surat
+rujukan. Unit tujuan menentukan kunjungan: poliklinik atau Laboratorium. Saat penjamin asuransi
+baru ditambahkan, hasil scan kartu dicocokkan dengan asuransi dan No. polis yang dipilih.
+
+Yang **tidak** berubah: aturan antrean, klasifikasi member, penjaminan dan billing, alur
+konsultasi dokter, registrasi Laboratorium (dipakai lewat kontrak yang ada), dan Radiologi.
+
+**Contoh:** 8 Okt 2026 pukul 09.10, IKBAL YULIYANTO datang membawa surat rujukan No.
+`RJK/2026/0991` dari *Klinik Sehat Sentosa* (bermitra) oleh dr. Rina. Petugas memilih Jenis
+Kunjungan *Rujukan*. Di step Rujukan ia memilih unit tujuan *Poli Penyakit Dalam*, jadwal
+dr. Bagus Purnama Sanjaya, diagnosa `E11.9 Diabetes melitus tipe 2`, alasan "Kontrol gula darah
+tidak stabil", lalu mengunggah foto surat. Muncul alert "Fasilitas Perujuk Bermitra dengan Rumah
+Sakit". Kunjungan terbentuk dengan rujukan **lengkap**.
+
+## PM.2 Tabel kepemilikan data
+
+| Kelompok data | Pemilik | Dipakai fitur ini | Dibuat ulang |
+|---|---|---|---|
+| Kunjungan (`RegPatientEncounter`) | Registration | Ya — `IsReferral`, `ReferralNumber`, `ReferralInstitutionId`, `ReferralDoctorId` tetap sumber kebenaran untuk keempat ruas itu | Tidak |
+| Rincian rujukan (`RegEncounterReferral`) | Registration | Ya — **baru**, 1:1 dengan kunjungan | — |
+| Surat rujukan (`RegEncounterReferralDocument`) | Registration | Ya — **baru**, 1:N | — |
+| Riwayat koreksi rujukan (`RegEncounterReferralRevision`) | Registration | Ya — **baru**, jejak audit `RJ-DOC-DEC-078` | — |
+| Institusi Perujuk (`MstReferralInstitution`) | Health Service Master Data | Ya — **diperbarui** (`IsPartner`), CRUD baru | Tidak |
+| Dokter Perujuk (`MstReferralDoctor`) | Health Service Master Data | Ya — CRUD baru | Tidak |
+| Diagnosis (`MstDiagnosis`) | Health Service Master Data | Ya — dibaca (pilihan) | Tidak |
+| Poliklinik, Jadwal Dokter, Service Unit | Master Data | Ya — dibaca | Tidak |
+| Penjamin asuransi pasien (`MstPatientInsurance`) | Patient Management | Ya — validasi baru saat create; tanpa kolom baru | Tidak |
+| Asuransi (`MstInsuranceProvider`) | Administrator Master Data | Ya — dibaca (nama, kode, grup) | Tidak |
+| Registrasi Laboratorium | Laboratorium | Ya — dipanggil lewat `POST /lab-patient-registrations/external-referral` yang ada | Tidak |
+
+**Kenapa tabel rincian terpisah, bukan kolom baru di `RegPatientEncounter`:** sebagian besar kunjungan
+bukan rujukan. Lima kolom baru yang hampir selalu kosong akan menebalkan tabel terpanas modul.
+Status kelengkapan, berkas, dan riwayat koreksi juga punya siklus hidup sendiri.
+
+## PM.3 Aturan inti
+
+### PM.3.1 Isian rujukan dan kelengkapan (`RJ-DOC-DEC-075`, `076`, `077`)
+
+| Isian | Disimpan di | Petugas | Kiosk |
+|---|---|---|---|
+| No. rujukan (maks 250) | `RegPatientEncounter.ReferralNumber` | Wajib | Wajib |
+| Tanggal/jam rujukan | `RegEncounterReferral.ReferralDateTime` | Wajib, default saat ini, tidak boleh di masa depan | Wajib, default saat ini |
+| Fasilitas perujuk | `RegPatientEncounter.ReferralInstitutionId` | Wajib | Wajib |
+| Dokter perujuk | `RegPatientEncounter.ReferralDoctorId` | Opsional; wajib milik institusi terpilih | Opsional |
+| Unit tujuan | `RegEncounterReferral.TargetUnitType` + `TargetServiceUnitId` (+ `TargetClinicId`) | Wajib | Wajib — hanya poliklinik (`RJ-DOC-DEC-082`) |
+| Diagnosa | `DiagnosisId` (+ `DiagnosisNote` opsional) | Wajib | Tidak ditampilkan |
+| Alasan rujukan (maks 1000) | `ReferralReason` | Wajib | Tidak ditampilkan |
+| Surat rujukan | `RegEncounterReferralDocument` | Wajib ≥ 1 berkas | Scan surat lewat scanner Kiosk; wajib ≥ 1 halaman |
+
+`IsComplete = true` bila **seluruh** isian wajib kolom Petugas terisi **dan** ada ≥ 1 berkas aktif.
+Nilai ini dihitung ulang di service setiap kali rujukan atau berkasnya berubah, lalu disimpan
+supaya Daftar Kunjungan RJ dapat menyaring tanpa join berat.
+
+| Keadaan | `IsComplete` | Tanda di Daftar Kunjungan RJ |
+|---|:---:|---|
+| Petugas mengisi semua + 1 surat | `true` | — |
+| Kiosk: No. rujukan, institusi, poli, scan 2 halaman; tanpa diagnosa/alasan | `false` | "Rujukan belum lengkap" |
+| Petugas: kunjungan tersimpan, unggah surat gagal karena jaringan | `false` | "Rujukan belum lengkap" |
+| Petugas melengkapi diagnosa + alasan untuk rujukan Kiosk di atas | `true` | — |
+
+Layar petugas menolak lanjut bila isian wajib kosong (`RJ-AC-PM-08`). `IsComplete = false` dari
+layar petugas hanya mungkin bila unggahan berkas gagal sesudah kunjungan terbentuk.
+
+### PM.3.2 Unit tujuan menentukan kunjungan (`RJ-DOC-DEC-071`, `072`)
+
+| Unit tujuan | Kunjungan yang dibuat | Endpoint |
+|---|---|---|
+| Poliklinik | Kunjungan Rawat Jalan berklinik ke poli itu, jadwal dokter dipilih di step Rujukan | `POST /patient-encounters/admin` (atau `/kiosk`) dengan blok `referral` — **satu transaksi** |
+| Laboratorium (petugas saja) | Kunjungan Laboratorium lewat registrasi lab yang ada | `POST /lab-patient-registrations/external-referral` lalu `PUT /patient-encounters/{id}/referral` |
+| Radiologi | Tidak dapat dipilih — "belum tersedia" (`RJ-DOC-OQ-PM-02`) | — |
+
+Jalur Laboratorium tidak atomik karena registrasi lab adalah kontrak modul lain. Bila langkah kedua
+gagal, kunjungan lab tetap ada tanpa rincian. Layar menampilkan "Rincian rujukan belum tersimpan"
+beserta tombol *Coba lagi*. Kunjungan itu tampil "Rujukan belum lengkap" karena
+`RegEncounterReferral` belum ada dan `IsReferral = true`. Jalur Laboratorium hanya untuk tanggal
+kunjungan **hari ini** dan **tidak** menerima penjamin perusahaan, mengikuti batas kontrak lab
+(`RegisterLabExternalReferralRequest` hanya Tunai/Asuransi).
+
+### PM.3.3 Koreksi dan penguncian (`RJ-DOC-DEC-078`)
+
+| Status kunjungan | Boleh ubah rincian & berkas? |
+|---|---|
+| `Draft` (0) s.d. `WaitingForDoctor` (5) | Ya, oleh pemegang `PatientEncounter : Update` |
+| `InConsultation` (6) ke atas, `Cancelled`, `NoShow` | Tidak — `409` `RJ-VAL-PM-09` |
+
+Unit tujuan (`TargetUnitType`, `TargetServiceUnitId`, `TargetClinicId`) **tidak pernah** dapat
+diubah sesudah kunjungan terbentuk (`RJ-VAL-PM-10`). Setiap perubahan menulis satu baris
+`RegEncounterReferralRevision` berisi nilai lama dan baru dalam JSON, pengubah, waktu, dan jenis
+perubahan (`Completed` atau `Corrected`). Penghapusan berkas adalah soft delete, juga tercatat.
+Perubahan memakai `ExpectedRowVersion`; nilai yang basi ditolak `409` `RJ-VAL-PM-11`.
+
+### PM.3.4 Pencocokan scan kartu asuransi (`RJ-DOC-DEC-068`..`070`)
+
+Berlaku pada **create** penjamin asuransi pasien (admin dan Kiosk), **hanya** bila request membawa
+`cardScan` (hasil OCR agent). Tanpa `cardScan`, perilaku lama tetap berlaku (`RJ-DOC-DEC-070`,
+masa transisi).
+
+| Langkah | Aturan |
+|---|---|
+| Normalisasi No. polis | Huruf besar; buang semua selain huruf dan angka. `AZ-123 456` → `AZ123456` |
+| Cocok No. polis | `normalize(cardScan.policyNumber) == normalize(request.PolicyNumber)` |
+| Normalisasi nama | Huruf besar; spasi beruntun jadi satu |
+| Cocok nama | Nama hasil scan **memuat** salah satu dari `InsuranceProviderName`, `InsuranceProviderCode`, `InsuranceGroupName` asuransi terpilih (yang tidak kosong) |
+| Salah satu tidak cocok | `400` `RJ-VAL-PM-01` "Data tidak match", penjamin **tidak** dibuat |
+| `cardScan` ada tetapi salah satu nilainya kosong | `400` `RJ-VAL-PM-02` "Kartu tidak terbaca lengkap, scan ulang" |
+
+| Contoh | Hasil |
+|---|---|
+| Pilih Allianz (`InsuranceProviderName = Allianz`), No. polis `AZ-123 456`; scan `PT ASURANSI ALLIANZ LIFE` / `AZ123456` | Cocok, tersimpan |
+| Pilih Allianz `AZ123456`; scan No. polis `AZ123457` | `RJ-VAL-PM-01` |
+| Pilih Allianz `AZ123456`; scan `PRUDENTIAL LIFE` | `RJ-VAL-PM-01` |
+| Pilih Allianz; scan tanpa No. polis | `RJ-VAL-PM-02` |
+
+Pemeriksaan di backend menjamin aturan yang sama untuk layar petugas dan Kiosk. Layar tetap
+memeriksa lebih dulu agar alert muncul tanpa round-trip. Penjamin yang sudah tersimpan tidak
+pernah melewati pemeriksaan ini lagi (`RJ-AC-PM-03`). Nilai `cardScan` tidak disimpan.
+
+### PM.3.5 Surat rujukan privat (`RJ-DOC-DEC-081`, `082`)
+
+| Aturan | Nilai |
+|---|---|
+| Format | `application/pdf`, `image/jpeg`, `image/png`; dicek dari isi berkas (magic bytes), bukan nama |
+| Ukuran | Maks 5 MB per berkas (`FileStorage:MaxReferralDocumentSizeMb`, bawaan 5) |
+| Jumlah | Maks 10 berkas aktif per rujukan |
+| Lokasi | `FileStorage:PrivateRootPath/referral-documents/{encounterId}/{documentId}.{ext}` — **di luar** folder yang dilayani static files |
+| Unduh | Hanya `GET …/referral/documents/{documentId}/content` dengan `PatientEncounter : Read`; `Content-Disposition: inline`, `Cache-Control: no-store` |
+| Kiosk | Unggah lewat jalur Kiosk hanya untuk kunjungan `IsFromKiosk`, dibuat ≤ 30 menit, dan status ≤ `Queued` (2). Kiosk tidak dapat mengunduh |
+| Log | Nama berkas, isi, dan diagnosa tidak masuk custom logger |
+
+### PM.3.6 Master Institusi dan Dokter Perujuk (`RJ-DOC-DEC-073`, `080`)
+
+Mengikuti standar master data (sembilan endpoint: `filters/metadata`, `summary`, list, `options`,
+detail, create, update, `status`, delete). `IsPartner` (bawaan `false`) ada di list, detail, create,
+update, dan respons `options`. Kode institusi tetap unik. Dokter perujuk wajib menunjuk institusi
+aktif. Hapus = soft delete, ditolak `409` bila sudah dirujuk kunjungan. Endpoint `options` yang ada
+**tidak berubah perilakunya**, hanya menambah ruas `isPartner`. Ditambah jalur
+`kiosk/options` untuk Institusi dan Dokter Perujuk dengan policy `KioskRead`, mengikuti pola
+`InsuranceProviderController`.
+
+## PM.4 Class diagram
+
+```mermaid
+classDiagram
+  direction LR
+  class RegPatientEncounter {
+    +Guid Id
+    +bool IsReferral
+    +string ReferralNumber
+    +Guid? ReferralInstitutionId
+    +Guid? ReferralDoctorId
+    +EncounterStatus EncounterStatus
+  }
+  class RegEncounterReferral {
+    +Guid Id
+    +Guid PatientEncounterId
+    +DateTime ReferralDateTime
+    +ReferralTargetUnitType TargetUnitType
+    +Guid TargetServiceUnitId
+    +Guid? TargetClinicId
+    +Guid? DiagnosisId
+    +string DiagnosisNote
+    +string ReferralReason
+    +bool InstitutionIsPartnerSnapshot
+    +ReferralCaptureSource CaptureSource
+    +bool IsComplete
+    +DateTime? CompletedAt
+    +Guid RowVersion
+  }
+  class RegEncounterReferralDocument {
+    +Guid Id
+    +Guid EncounterReferralId
+    +string OriginalFileName
+    +string ContentType
+    +long SizeBytes
+    +string StoragePath
+    +int PageOrder
+  }
+  class RegEncounterReferralRevision {
+    +Guid Id
+    +Guid EncounterReferralId
+    +ReferralRevisionType RevisionType
+    +string OldValuesJson
+    +string NewValuesJson
+    +DateTime ChangedAt
+    +Guid? ChangedBy
+  }
+  class MstReferralInstitution {
+    +Guid Id
+    +string InstitutionCode
+    +string InstitutionName
+    +bool IsPartner
+    +bool IsActive
+  }
+  class MstReferralDoctor {
+    +Guid Id
+    +Guid ReferralInstitutionId
+    +string DoctorName
+  }
+  RegPatientEncounter "1" -- "0..1" RegEncounterReferral
+  RegEncounterReferral "1" -- "0..*" RegEncounterReferralDocument
+  RegEncounterReferral "1" -- "0..*" RegEncounterReferralRevision
+  RegPatientEncounter "*" --> "0..1" MstReferralInstitution
+  RegPatientEncounter "*" --> "0..1" MstReferralDoctor
+  MstReferralInstitution "1" -- "0..*" MstReferralDoctor
+  RegEncounterReferral "*" --> "0..1" MstDiagnosis
+  RegEncounterReferral "*" --> "1" MstServiceUnit
+  RegEncounterReferral "*" --> "0..1" MstClinic
+```
+
+## PM.5 Penjelasan class
+
+| Class | Status | Lokasi file | Peran |
+|---|---|---|---|
+| `RegEncounterReferral` | Baru | `Areas/HealthServices/RegistrationManagement/Models/RegEncounterReferral.cs` | Rincian rujukan 1:1 kunjungan |
+| `RegEncounterReferralDocument` | Baru | `…/RegistrationManagement/Models/RegEncounterReferralDocument.cs` | Metadata berkas surat rujukan privat |
+| `RegEncounterReferralRevision` | Baru | `…/RegistrationManagement/Models/RegEncounterReferralRevision.cs` | Jejak koreksi |
+| `ReferralTargetUnitType` | Baru (enum) | `…/RegistrationManagement/Enums/ReferralTargetUnitType.cs` | `Clinic = 1`, `Laboratory = 2`, `Radiology = 3` (disiapkan, ditolak `RJ-VAL-PM-05` selama `RJ-DOC-OQ-PM-02` terbuka) |
+| `ReferralCaptureSource` | Baru (enum) | `…/Enums/ReferralCaptureSource.cs` | `Staff = 1`, `Kiosk = 2` |
+| `ReferralRevisionType` | Baru (enum) | `…/Enums/ReferralRevisionType.cs` | `Completed = 1`, `Corrected = 2`, `DocumentAdded = 3`, `DocumentRemoved = 4` |
+| `EncounterReferralService` | Baru | `…/RegistrationManagement/Services/EncounterReferralService.cs` | Validasi isian, hitung `IsComplete`, upsert, revisi, penguncian status. Dipanggil `CreateEncounterCoreAsync` (dalam transaksinya) dan `EncounterReferralController`. Membuka transaksi sendiri hanya pada upsert lepas |
+| `ReferralDocumentStorageService` | Baru | `…/RegistrationManagement/Services/ReferralDocumentStorageService.cs` | Tulis/baca/hapus berkas privat, validasi magic bytes dan ukuran. Tanpa transaksi DB; berkas yatim dibersihkan bila insert metadata gagal |
+| `EncounterReferralController` | Baru | `…/RegistrationManagement/Controllers/EncounterReferralController.cs` | `GET/PUT …/{id}/referral`, berkas (admin + Kiosk unggah) |
+| `PatientEncounterController` | Diperbarui | `…/RegistrationManagement/Controllers/PatientEncounterController.cs` | `CreateEncounterCoreAsync` menerima `ReferralInstitutionId`, `ReferralDoctorId`, `Referral`; validasi dokter-milik-institusi sama dengan `EncounterIntakeService` |
+| `PatientEncounterDtos` | Diperbarui | `…/RegistrationManagement/DTOS/PatientEncounterDtos.cs` | Lihat PM.7 |
+| `OutpatientEncounterController` | Diperbarui | `…/RegistrationManagement/Controllers/OutpatientEncounterController.cs` | Respons list menambah `referralStatus`; query `referralStatus` |
+| `PatientInsuranceController` | Diperbarui | `Areas/HealthServices/PatientManagement/MasterData/Controllers/PatientInsuranceController.cs` (`[HttpPost]`, `kiosk`, `admin`; logika create ada di controller) | Memanggil `InsuranceCardScanMatcher` sebelum insert bila `cardScan` diisi (PM.3.4) |
+| `InsuranceCardScanMatcher` | Baru | `Areas/HealthServices/PatientManagement/MasterData/Services/InsuranceCardScanMatcher.cs` | Fungsi murni normalisasi + pencocokan; tanpa DB |
+| `CreatePatientInsuranceRequest` | Diperbarui | DTO penjamin asuransi pasien | Ruas opsional `CardScan { ScannedProviderName, ScannedPolicyNumber }` |
+| `MstReferralInstitution` | Diperbarui | `Areas/HealthServices/MasterData/Models/MstReferralInstitution.cs` | Kolom `IsPartner` |
+| `ReferralInstitutionController`, `ReferralDoctorController` | Diperbarui | `Areas/HealthServices/MasterData/Controllers/` | Ditambah 8 endpoint standar + `kiosk/options` |
+| `ReferralMasterDataService` | Diperbarui | `Areas/HealthServices/MasterData/Services/ReferralMasterDataService.cs` | CRUD institusi dan dokter |
+| `ReferralMasterDataDtos` | Diperbarui | `Areas/HealthServices/MasterData/DTOs/ReferralMasterDataDtos.cs` | DTO standar master |
+| Konfigurasi EF | Baru/Diperbarui | `Repositories/Configurations/HealthServices/RegEncounterReferralConfiguration.cs` (Baru, tiga entity), `…/MasterData/MstReferralInstitutionConfiguration.cs` (Diperbarui) | Lihat PM.8 |
+
+## PM.6 Arsitektur folder
+
+```text
+Areas/HealthServices/RegistrationManagement/
+  Controllers/
+    EncounterReferralController.cs            Baru
+    PatientEncounterController.cs             Diperbarui
+    OutpatientEncounterController.cs          Diperbarui
+  DTOS/
+    EncounterReferralDtos.cs                  Baru
+    PatientEncounterDtos.cs                   Diperbarui
+  Enums/
+    ReferralTargetUnitType.cs                 Baru
+    ReferralCaptureSource.cs                  Baru
+    ReferralRevisionType.cs                   Baru
+  Models/
+    RegEncounterReferral.cs                   Baru
+    RegEncounterReferralDocument.cs           Baru
+    RegEncounterReferralRevision.cs           Baru
+  Services/
+    EncounterReferralService.cs               Baru
+    ReferralDocumentStorageService.cs         Baru
+Areas/HealthServices/MasterData/
+  Controllers/ReferralInstitutionController.cs  Diperbarui
+  Controllers/ReferralDoctorController.cs       Diperbarui
+  DTOs/ReferralMasterDataDtos.cs                Diperbarui
+  Models/MstReferralInstitution.cs              Diperbarui
+  Services/ReferralMasterDataService.cs         Diperbarui
+Areas/HealthServices/PatientManagement/MasterData/Services/
+  InsuranceCardScanMatcher.cs                   Baru
+Repositories/Configurations/HealthServices/
+  RegEncounterReferralConfiguration.cs          Baru
+  MasterData/MstReferralInstitutionConfiguration.cs  Diperbarui
+```
+
+Utang teknis yang terlihat dan **tidak** dirapikan: folder `DTOS` (huruf besar) di
+RegistrationManagement, dan konfigurasi `RegPatientEncounterConfiguration.cs` yang berada di akar
+`Configurations/HealthServices/`. Berkas baru mengikuti letak tetangganya.
+
+## PM.7 Endpoint (ringkas — rincian di `contracts/api-contract.md` *Amendment PM-B*)
+
+| Method | Path | Kegunaan | Hak akses |
+|---|---|---|---|
+| `POST` | `/patient-encounters/admin`, `/patient-encounters/kiosk` | Diperbarui: blok `referral`, `referralInstitutionId`, `referralDoctorId` | Existing |
+| `GET` | `/patient-encounters/{id}/referral` | Rincian rujukan + daftar berkas | `PatientEncounter : Read` |
+| `PUT` | `/patient-encounters/{id}/referral` | Buat/lengkapi/koreksi rincian | `PatientEncounter : Update` |
+| `POST` | `/patient-encounters/{id}/referral/documents` | Unggah berkas (multipart) | `PatientEncounter : Update` |
+| `POST` | `/patient-encounters/kiosk/{id}/referral/documents` | Unggah hasil scan dari Kiosk | Policy `KioskRead` + batas PM.3.5 |
+| `GET` | `/patient-encounters/{id}/referral/documents/{documentId}/content` | Unduh berkas privat | `PatientEncounter : Read` |
+| `DELETE` | `/patient-encounters/{id}/referral/documents/{documentId}` | Soft delete berkas | `PatientEncounter : Update` |
+| `GET` | `/outpatient-encounters` | Diperbarui: `referralStatus` di respons dan query | Existing |
+| `POST` | `/patient-insurances`, `/admin`, `/kiosk` | Diperbarui: `cardScan` opsional | Existing |
+| CRUD standar | `/master-data/referral-institutions`, `/master-data/referral-doctors` | Master + `isPartner` | `ReferralInstitution`/`ReferralDoctor` : Read/Create/Update/Delete |
+| `GET` | `/master-data/referral-institutions/kiosk/options`, `/referral-doctors/kiosk/options` | Pilihan untuk Kiosk | Policy `KioskRead` |
+
+## PM.8 Status model dan dampak migration
+
+| Tabel | Status | Perubahan |
+|---|---|---|
+| `RegEncounterReferral` | Baru | Seluruh kolom (lihat `data/data-dictionary.md` *PM-B*). Unique `PatientEncounterId` (difilter `IsDeleted = false`), index `IsComplete`, FK Restrict ke kunjungan, clinic, service unit, diagnosis |
+| `RegEncounterReferralDocument` | Baru | FK Cascade ke `RegEncounterReferral`; index `(EncounterReferralId, IsDeleted)` |
+| `RegEncounterReferralRevision` | Baru | FK Cascade ke `RegEncounterReferral`; index `(EncounterReferralId, ChangedAt)` |
+| `MstReferralInstitution` | Diperbarui | Tambah `IsPartner boolean not null default false` |
+| `RegPatientEncounter` | Sudah ada | Tanpa kolom baru |
+
+## PM.9 Rencana migration
+
+| Urutan | Migration | Isi | Tanpa downtime? | Mundur |
+|---:|---|---|---|---|
+| 1 | `AddEncounterReferralAndReferralInstitutionPartner` | Tiga tabel baru + kolom `IsPartner` | Ya — hanya tambah tabel dan kolom ber-default | `Down()` hapus tiga tabel dan kolom; tidak ada data lama yang diubah |
+
+Data lama: kunjungan `IsReferral = true` tanpa `RegEncounterReferral` dianggap "Rujukan belum
+lengkap" **hanya** bila `EncounterDate` ≥ tanggal rilis (konfigurasi
+`Registration:ReferralDetailRequiredFrom`). Kunjungan lama tidak ditandai. Migration dibuat dan
+diterapkan ke `QuilvianNewDevSukma` saja, dengan izin terpisah.
+
+## PM.10 Rencana data master awal
+
+| Tabel | Isi minimum |
+|---|---|
+| `MstReferralInstitution` | Data yang ada tetap; `IsPartner = false`. Pemilik menandai mitra lewat layar master |
+| Konfigurasi | `FileStorage:PrivateRootPath` (wajib di setiap lingkungan; aplikasi menolak unggah bila kosong), `FileStorage:MaxReferralDocumentSizeMb = 5`, `Registration:ReferralDetailRequiredFrom` |
+| Data uji (`RJ-DOC-DEC-079`) | Lewat endpoint master ke `QuilvianNewDevSukma`: 4 dokter `PMTEST` beserta jadwal aktif di Poli Penyakit Dalam, 1 institusi `PMTEST` bermitra, 1 tidak bermitra, 2 dokter perujuk |
+
+## PM.11 Otorisasi, privasi, audit
+
+| Aspek | Aturan |
+|---|---|
+| Resource | Tidak ada resource baru. `PatientEncounter`, `ReferralInstitution`, `ReferralDoctor` mendapat action Create/Update/Delete lewat atribut `[AccessAction]` pada endpoint baru |
+| Kiosk | Hanya: create kunjungan dengan rujukan (endpoint lama), `kiosk/options` perujuk, unggah berkas dengan batas PM.3.5. Kiosk tidak dapat membaca, mengubah, atau mengunduh rujukan |
+| Sensitif | `DiagnosisId`, `DiagnosisNote`, `ReferralReason`, berkas surat. Tidak masuk log, tidak ada di URL |
+| Audit | `RegEncounterReferralRevision` + kolom audit `IdentityModel` |
+
+## PM.12 Strategi verifikasi
+
+Pola Bank Darah (tanpa project test): build Release, EF tanpa perubahan model tertunda sesudah
+migration, QBE Strict, runtime HTTP ke `QuilvianNewDevSukma`. Skenario wajib: `RJ-AC-PM-01`..`10`,
+berkas privat tidak dapat diakses lewat `/uploads/...` (`404`), Kiosk tidak dapat unggah ke
+kunjungan lama (`403`), unit tujuan tidak berubah lewat `PUT` (`400`), `ExpectedRowVersion` basi
+(`409`).
+
+## PM.13 Yang sengaja tidak dibuat
+
+| Dipertimbangkan | Alasan ditolak |
+|---|---|
+| Kolom rujukan baru di `RegPatientEncounter` | Lihat PM.2 |
+| Tabel audit generik | Belum ada polanya; riwayat khusus rujukan cukup dan dapat diuji |
+| Menyimpan `cardScan` | Tidak dibutuhkan sesudah validasi; mengurangi data sensitif |
+| Endpoint OCR di backend | `RJ-DOC-DEC-068` memilih agent Plustek |
+| Registrasi Radiologi | `RJ-DOC-OQ-PM-02` |
+| Base64 untuk surat rujukan | Multipart lebih hemat untuk berkas sampai 5 MB × 10 |

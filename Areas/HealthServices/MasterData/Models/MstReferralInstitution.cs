@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Models;
+﻿using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -41,6 +41,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         /// dihapus — kunjungan lama yang menunjuk ke sini harus tetap dapat dibaca.
         /// </summary>
         public bool IsActive { get; set; } = true;
+
+        /// <summary>
+        /// Bermitra dengan rumah sakit (<c>RJ-DOC-DEC-073</c>). Bila benar, layar pendaftaran
+        /// rujukan menampilkan alert "Fasilitas Perujuk Bermitra dengan Rumah Sakit".
+        /// </summary>
+        public bool IsPartner { get; set; } = false;
 
         /// <summary>Dokter yang berpraktik pada instansi ini.</summary>
         public ICollection<MstReferralDoctor> Doctors { get; set; } = new List<MstReferralDoctor>();

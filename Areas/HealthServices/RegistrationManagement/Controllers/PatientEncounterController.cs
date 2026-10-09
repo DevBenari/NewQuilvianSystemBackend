@@ -71,6 +71,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private readonly PatientEncounterNumberService _patientEncounterNumberService;
         private readonly OutpatientQueueClassificationService _queueClassificationService;
         private readonly OutpatientQueueNumberAllocator _queueNumberAllocator;
+        private readonly EncounterReferralService _encounterReferralService;
+
+        /// <summary>Batas body unggah surat rujukan: 10 berkas x 5 MB + cadangan multipart.</summary>
+        private const long ReferralUploadRequestLimitBytes = 55L * 1024 * 1024;
+
+        // Diambil dari container per request supaya konstruktor lama (dipakai harness uji) tetap sah.
+        private ReferralDocumentStorageService ReferralDocumentStorage =>
+            HttpContext.RequestServices.GetRequiredService<ReferralDocumentStorageService>();
         private readonly IConfiguration? _configuration;
 
         public PatientEncounterController(
@@ -81,7 +89,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             PatientEncounterNumberService? patientEncounterNumberService = null,
             IConfiguration? configuration = null,
             OutpatientQueueClassificationService? queueClassificationService = null,
-            OutpatientQueueNumberAllocator? queueNumberAllocator = null)
+            OutpatientQueueNumberAllocator? queueNumberAllocator = null,
+            EncounterReferralService? encounterReferralService = null)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
@@ -91,6 +100,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             _queueClassificationService = queueClassificationService ?? new OutpatientQueueClassificationService(dbContext);
             _queueNumberAllocator = queueNumberAllocator ?? new OutpatientQueueNumberAllocator(dbContext);
             _configuration = configuration;
+            _encounterReferralService = encounterReferralService
+                ?? new EncounterReferralService(dbContext, configuration ?? new ConfigurationBuilder().Build());
         }
 
         private bool IsActiveEncounterBlockEnabled =>
@@ -415,6 +426,186 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 "Detail kunjungan pasien berhasil diambil."));
         }
 
+        /// <summary>
+        /// Rincian rujukan satu kunjungan beserta surat aktif, kelengkapan, dan status terkunci
+        /// (<c>RJ-DOC-REV-BE-018</c>, <c>RJ-DOC-REFERRAL-001</c>).
+        /// </summary>
+        [HttpGet("{encounterId:guid}/referral")]
+        [ProducesResponseType(typeof(ApiResponse<EncounterReferralResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Patient Encounter", Description = "Melihat rincian rujukan kunjungan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientEncounter", "Read")]
+        public async Task<IActionResult> GetReferral(Guid encounterId)
+        {
+            var response = await _encounterReferralService.GetAsync(encounterId, HttpContext.RequestAborted);
+
+            if (response == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Kunjungan tidak ditemukan."));
+            }
+
+            return Ok(ApiResponse<EncounterReferralResponse>.Ok(
+                response,
+                "Rincian rujukan berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Membuat rincian rujukan (jalur Laboratorium), melengkapi, atau mengoreksinya. Ditolak
+        /// sesudah konsultasi dokter dimulai; unit tujuan tidak dapat diubah (<c>RJ-DOC-DEC-078</c>).
+        /// </summary>
+        [HttpPut("{encounterId:guid}/referral")]
+        [ProducesResponseType(typeof(ApiResponse<EncounterReferralResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Update", "Update Patient Encounter Referral", Description = "Melengkapi atau mengoreksi rincian rujukan kunjungan", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("PatientEncounter", "Update")]
+        public async Task<IActionResult> UpsertReferral(
+            Guid encounterId,
+            [FromBody] UpsertEncounterReferralRequest request)
+        {
+            var result = await _encounterReferralService.UpsertAsync(
+                encounterId,
+                request,
+                GetCurrentUserId(),
+                HttpContext.RequestAborted);
+
+            if (result.Status != EncounterReferralResultStatus.Success)
+                return MapReferralFailure(result);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PatientEncounter.UpsertReferral",
+                "Menyimpan rincian rujukan kunjungan.",
+                new { EncounterId = encounterId, Controller = "PatientEncounter", Action = "UpsertReferral" });
+
+            var response = await _encounterReferralService.GetAsync(encounterId, HttpContext.RequestAborted);
+
+            return Ok(ApiResponse<EncounterReferralResponse>.Ok(response!, result.Message));
+        }
+
+        /// <summary>
+        /// Mengunggah 1-10 berkas surat rujukan (PDF/JPG/PNG, maks 5 MB per berkas) ke penyimpanan
+        /// privat (<c>RJ-DOC-REV-BE-019</c>, <c>RJ-DOC-DEC-081</c>).
+        /// </summary>
+        [HttpPost("{encounterId:guid}/referral/documents")]
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(ReferralUploadRequestLimitBytes)]
+        [RequestFormLimits(MultipartBodyLengthLimit = ReferralUploadRequestLimitBytes)]
+        [ProducesResponseType(typeof(ApiResponse<EncounterReferralResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Update", "Upload Patient Encounter Referral Document", Description = "Mengunggah surat rujukan kunjungan", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("PatientEncounter", "Update")]
+        public Task<IActionResult> UploadReferralDocuments(Guid encounterId, [FromForm] List<IFormFile> files)
+            => UploadReferralDocumentsCoreAsync(encounterId, files, fromKiosk: false);
+
+        /// <summary>
+        /// Unggah hasil scan surat rujukan dari Kiosk. Hanya untuk kunjungan dari Kiosk yang
+        /// dibuat paling lama 30 menit lalu dan belum masuk konsultasi (<c>RJ-VAL-PM-14</c>).
+        /// Kiosk tidak dapat membaca atau menghapus surat.
+        /// </summary>
+        [HttpPost("kiosk/{encounterId:guid}/referral/documents")]
+        [Authorize(Policy = KioskReadPolicy)]
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(ReferralUploadRequestLimitBytes)]
+        [RequestFormLimits(MultipartBodyLengthLimit = ReferralUploadRequestLimitBytes)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        public Task<IActionResult> UploadReferralDocumentsFromKiosk(Guid encounterId, [FromForm] List<IFormFile> files)
+            => UploadReferralDocumentsCoreAsync(encounterId, files, fromKiosk: true);
+
+        /// <summary>Isi satu surat rujukan privat (<c>inline</c>, <c>no-store</c>).</summary>
+        [HttpGet("{encounterId:guid}/referral/documents/{documentId:guid}/content")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Patient Encounter", Description = "Membuka surat rujukan kunjungan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientEncounter", "Read")]
+        public async Task<IActionResult> GetReferralDocumentContent(Guid encounterId, Guid documentId)
+        {
+            var (result, content) = await ReferralDocumentStorage.OpenAsync(
+                encounterId, documentId, HttpContext.RequestAborted);
+
+            if (result.Status != EncounterReferralResultStatus.Success || content == null)
+                return MapReferralFailure(result);
+
+            Response.Headers["Cache-Control"] = "no-store";
+            Response.Headers["X-Content-Type-Options"] = "nosniff";
+            Response.Headers["Content-Disposition"] =
+                new System.Net.Mime.ContentDisposition { Inline = true, FileName = content.FileName }.ToString();
+
+            return File(content.Stream, content.ContentType);
+        }
+
+        /// <summary>Menghapus (lunak) satu surat rujukan. Ditolak sesudah konsultasi dimulai.</summary>
+        [HttpDelete("{encounterId:guid}/referral/documents/{documentId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<EncounterReferralResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Update", "Delete Patient Encounter Referral Document", Description = "Menghapus surat rujukan kunjungan", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("PatientEncounter", "Update")]
+        public async Task<IActionResult> DeleteReferralDocument(Guid encounterId, Guid documentId)
+        {
+            var result = await ReferralDocumentStorage.DeleteAsync(
+                encounterId, documentId, GetCurrentUserId(), HttpContext.RequestAborted);
+
+            if (result.Status != EncounterReferralResultStatus.Success)
+                return MapReferralFailure(result);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PatientEncounter.DeleteReferralDocument",
+                "Menghapus surat rujukan kunjungan.",
+                new { EncounterId = encounterId, DocumentId = documentId, Controller = "PatientEncounter", Action = "DeleteReferralDocument" });
+
+            var response = await _encounterReferralService.GetAsync(encounterId, HttpContext.RequestAborted);
+
+            return Ok(ApiResponse<EncounterReferralResponse>.Ok(response!, result.Message));
+        }
+
+        private async Task<IActionResult> UploadReferralDocumentsCoreAsync(
+            Guid encounterId,
+            List<IFormFile>? files,
+            bool fromKiosk)
+        {
+            var uploads = (files ?? new List<IFormFile>())
+                .Select(f => new ReferralDocumentStorageService.UploadFile(f.FileName, f.Length, f.OpenReadStream))
+                .ToList();
+
+            var result = await ReferralDocumentStorage.UploadAsync(
+                encounterId, uploads, fromKiosk, GetCurrentUserId(), HttpContext.RequestAborted);
+
+            if (result.Status != EncounterReferralResultStatus.Success)
+                return MapReferralFailure(result);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                fromKiosk ? "PatientEncounter.UploadReferralDocumentsFromKiosk" : "PatientEncounter.UploadReferralDocuments",
+                "Mengunggah surat rujukan kunjungan.",
+                new { EncounterId = encounterId, FileCount = uploads.Count, Controller = "PatientEncounter", Action = "UploadReferralDocuments" });
+
+            // Kiosk tidak menerima rincian rujukan kembali (privasi; Kiosk hanya menulis).
+            if (fromKiosk)
+                return Ok(ApiResponse<object>.Ok(new { encounterId, fileCount = uploads.Count }, result.Message));
+
+            var response = await _encounterReferralService.GetAsync(encounterId, HttpContext.RequestAborted);
+
+            return Ok(ApiResponse<EncounterReferralResponse>.Ok(response!, result.Message));
+        }
+
+        private IActionResult MapReferralFailure(EncounterReferralResult result)
+            => result.Status switch
+            {
+                EncounterReferralResultStatus.NotFound => NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, result.Message)),
+                EncounterReferralResultStatus.Conflict => Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, result.Message)),
+                EncounterReferralResultStatus.Forbidden => StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, result.Message)),
+                _ => BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, result.Message))
+            };
+
         [HttpPost("admin")]
         [ProducesResponseType(typeof(ApiResponse<PatientEncounterCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -506,6 +697,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     validation.ErrorMessage ?? "Data kunjungan pasien tidak valid."));
+            }
+
+            // RJ-DOC-REV-BE-018: identitas dan rincian rujukan divalidasi sebelum transaksi.
+            var isKioskChannel = logScope.EndsWith("ForKiosk", StringComparison.Ordinal);
+            var referralError = await _encounterReferralService.ValidateForCreateAsync(
+                request,
+                isKioskChannel,
+                HttpContext.RequestAborted);
+
+            if (referralError != null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    referralError));
             }
 
             var roomResolution = await ResolveEncounterRoomAsync(request);
@@ -709,6 +914,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ApplyEncounterPaymentSummary(encounter, paymentSource);
 
                 _dbContext.Set<RegPatientEncounter>().Add(encounter);
+
+                // Rincian rujukan ikut transaksi kunjungan: gagal salah satu, tidak ada keduanya.
+                var encounterReferral = await _encounterReferralService.AttachToNewEncounterAsync(
+                    encounter,
+                    request,
+                    isKioskChannel,
+                    actorUserId,
+                    now,
+                    HttpContext.RequestAborted);
                 _dbContext.Set<RegPatientEncounterGuarantor>().Add(paymentSource);
 
                 RegQueue? queue = null;
@@ -844,6 +1058,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                         : null,
                     EncounterDate = encounter.EncounterDate,
                     QueueDate = queue?.QueueDate,
+                    Referral = encounterReferral == null
+                        ? null
+                        : new EncounterReferralCreatedResponse
+                        {
+                            Id = encounterReferral.Id,
+                            IsComplete = encounterReferral.IsComplete,
+                            RowVersion = encounterReferral.RowVersion
+                        },
                     QueueClassification = queue != null && queueClassification != null
                         ? new PatientEncounterQueueClassificationResponse
                         {

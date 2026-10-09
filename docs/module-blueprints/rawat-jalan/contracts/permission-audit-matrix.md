@@ -178,3 +178,27 @@ cakupan; tidak boleh muncul di log maupun penyimpanan peramban.
 
 Catatan risiko: jalur `IsCurrentUserSuperAdminAsync` (nama role) adalah utang teknis existing di
 `DoctorQueueController`; fitur ini tidak menambah pemeriksaan role baru (`02` KT.3.2).
+
+
+# Amendment PM-B — `RJ-DOC-REFERRAL-001@1.0.0`
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `RJ-DOC-REFERRAL-001@1.0.0` — `approved` |
+| Owner | Sukma Giri |
+| `approved_by` / `approved_at` | Sukma Giri / 2026-10-08 |
+| `input_revision` | Decision log *Amendment PM-B* (`RJ-DOC-DEC-068`..`082`) |
+
+| Aksi | Petugas pendaftaran | Kiosk | Petugas master data | Audit |
+|---|---|---|---|---|
+| Buat kunjungan rujukan (poli) | `PatientEncounter : Create` | Policy `KioskRead` | — | Kolom audit kunjungan |
+| Buat kunjungan rujukan (Lab) | `LabPatientRegistration : Create` + `PatientEncounter : Update` | — | — | Kolom audit + revisi |
+| Lihat rincian & unduh surat | `PatientEncounter : Read` | Tidak | — | — |
+| Lengkapi / koreksi rincian, kelola berkas | `PatientEncounter : Update` | Unggah saja (batas `RJ-VAL-PM-14`) | — | `RegEncounterReferralRevision` |
+| Pilihan Institusi/Dokter Perujuk | `ReferralInstitution : Read`, `ReferralDoctor : Read` | `kiosk/options` (`KioskRead`) | — | — |
+| Kelola master Institusi/Dokter Perujuk, tanda mitra | — | — | `ReferralInstitution` / `ReferralDoctor` : Create/Update/Delete | Kolom audit master |
+| Tambah penjamin asuransi dengan scan | `PatientInsurance : Create` | Policy `KioskRead` | — | Kolom audit penjamin |
+
+Privasi: `DiagnosisId`, `DiagnosisNote`, `ReferralReason`, dan berkas surat termasuk data
+kesehatan. Data ini tidak masuk log, tidak masuk URL, dan berkasnya tidak dapat dibuka lewat
+`/uploads`.
