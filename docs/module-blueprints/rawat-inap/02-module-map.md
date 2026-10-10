@@ -3,13 +3,13 @@
 | Field | Value |
 |---|---|
 | Dokumen | `02-module-map.md` — hanya lahir pada `blueprint_shape: COMPOSITE` |
-| Revision | **`5`** — Workspace PPRI, 7 Oktober 2026: bagian 8 (`draft`). Sebelumnya **`4`** — Finishing Rawat Inap, 1 Oktober 2026: bagian 7. Sebelumnya revision `3` pendaftaran sub-modul `integrasi-billing` (17 September 2026) dan revision `2` (15 September 2026) |
-| Status | **`approved`** untuk revision `5` (bagian 8) — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). **`approved`** — revision `4` **disetujui Muhammad Hamzah 2026-10-02 lewat `RWI-DEC-221`**, bersama keempat kontrak baru (`integrasi-billing` `1.1.0`, `keperawatan` `0.6.0`, `dokter-rawat-inap` `0.7.0`, `episode-rawat-inap` `0.10.0`). Approval sebelumnya tetap berlaku untuk isi yang tidak disentuh |
+| Revision | **`6`** — draft Bed Management, bagian9, 10 Oktober2026. Riwayat metadata: **`5`** — Workspace PPRI, 7 Oktober 2026: bagian 8 (`draft`). Sebelumnya **`4`** — Finishing Rawat Inap, 1 Oktober 2026: bagian 7. Sebelumnya revision `3` pendaftaran sub-modul `integrasi-billing` (17 September 2026) dan revision `2` (15 September 2026) |
+| Status | **`draft`** — amandemen Bed Management belum disetujui. Riwayat metadata: **`approved`** untuk revision `5` (bagian 8) — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). **`approved`** — revision `4` **disetujui Muhammad Hamzah 2026-10-02 lewat `RWI-DEC-221`**, bersama keempat kontrak baru (`integrasi-billing` `1.1.0`, `keperawatan` `0.6.0`, `dokter-rawat-inap` `0.7.0`, `episode-rawat-inap` `0.10.0`). Approval sebelumnya tetap berlaku untuk isi yang tidak disentuh |
 | Tanggal | 2026-09-02; revision `2` ditulis 2026-09-15, disetujui 2026-09-16; revision `3` ditulis 2026-09-17; **revision `4` ditulis 2026-10-01** |
 | Modul | `rawat-inap` / `InPatientManagement`, prefix entity `Inp` |
 | Bentuk blueprint | `COMPOSITE`, ditetapkan `RWI-DEC-082`, `shape_decided_by: USER_CONFIRMED` |
-| Masukan keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) revision `31` (2 Oktober 2026) — untuk revision `4`: `RWI-DEC-163` s.d. `220` (penyelarasan bagian 7.8). Revision `3`: revision `25`, `RWI-DEC-156` s.d. `161` |
-| Masukan keadaan saat ini | [`01-existing-capability-map.md`](./01-existing-capability-map.md) revision `1.5` Bagian 18 |
+| Masukan keputusan | Decision revision46, DEC-274–294, AC-396–426 untuk Bed Management. Riwayat metadata: [`00-interview-decisions.md`](./00-interview-decisions.md) revision `31` (2 Oktober 2026) — untuk revision `4`: `RWI-DEC-163` s.d. `220` (penyelarasan bagian 7.8). Revision `3`: revision `25`, `RWI-DEC-156` s.d. `161` |
+| Masukan keadaan saat ini | BM-AUD-20261010-01 rev1; gate1.12 BM-RCG-20261010-01. Riwayat metadata: [`01-existing-capability-map.md`](./01-existing-capability-map.md) revision `1.5` Bagian 18 |
 | Baseline requirement | `docs/Modul-RS/Rawat-Inap-To-Billing/PRD Integrasi-Rawat-Inap-dengan-Billing.md` (2.282 baris) dan `PRD_Final_Rawat_Inap_100_Persen.md` v1.0.0 |
 | Owner | Product/Domain: **Muhammad Hamzah**, ditunjuk `RWI-DEC-061`; Integrasi Billing: **Muhammad Hamzah & Yasmina** |
 | Ditulis oleh | `design-business-module` untuk slice `INP-S22` |
@@ -742,3 +742,53 @@ Tidak ada migration di `PatientManagement`, `ClinicalManagement`, `RegistrationM
 | ~~`RWI-OQ-126`, `RWI-OQ-127`~~ | **Disetujui `RWI-DEC-266`, 2026-10-08** | — |
 | `RWI-OQ-128`, `RWI-OQ-129` | Tidak menahan; cadangan aman tersedia | Pemilik Registration; Yasmina |
 | `DEC-INP-020`, `DEC-INP-003` | Hanya epic di luar gelombang | Yasmina; pemilik privasi/hukum yang ditunjuk |
+
+## 9. Amandemen Bed Management — 10 Oktober 2026
+
+**Revision 6, draft.** Mengikuti [manifest anak](./episode-rawat-inap/blueprint-manifest.md) revision11; tidak menyetujui desain. Scope amandemen hanya Bed Management, keputusan274–294/AC396–426, gate1.12/BM-RCG-20261010-01, source audit BM-AUD-20261010-01. Ownership MasterData seluruh tim sesuai DEC-193/FACT-070. Approval versi terdahulu bagi scope lain tetap tercatat.
+
+### 9.1 Ownership dan batas module
+
+Bed Management berada pada sub-modul episode-rawat-inap, bukan submodul/registry baru. Readiness/HK audit/receipt dimiliki InPatientManagement; master bed/room/class/unit tetap MasterData; identity PatientManagement; billing/folio/tarif tetap BillingManagement; ClinicalManagement tetap pemilik dokumentasi klinis/serah terima existing. Tabel ownership rinci dan class diagrams canonical pada backend14.
+
+### 9.2 Registry menu current untuk bed
+
+| Induk | Leaf current | Route dipertahankan | Screen/child | Permission |
+| --- | --- | --- | --- | --- |
+| Health Services → Inpatient Management | Bed Management (menggantikan Papan Tempat Tidur) | /health-services/inpatient-management/bed-board | FE-BM-01 default; tabs02/03; children04–06 via layar induk | InpatientBedManagement : Read; tab/action rights pada FE15/permission11 |
+
+Bagian9 menggantikan label/akses menu bed lama pada bagian3 untuk target draft; tidak membuat leaf tambahan. Pemetaan runtime Read baru masih BM-G03. Sidebar subMenu→subItems→pathname mengikuti resolver actual. UI cosmetics DEV_DISCRETION; schema/menu reachability canonical pada FE15.
+
+### 9.3 Capability disposition
+
+ID berikut berasal dari [audit Bed Management](../../../../artifacts/bed-management/01-existing-capability-map.md) section5, bukan ID baru ciptaan PRD. Label audit adalah as-is; kolom berikut adalah target setelah decision46. Capability map root historis tidak diedit.
+
+| ID asal | Disposition target | Cakupan/hasil | Trace |
+| --- | --- | --- | --- |
+| BM-CAP-01 | Reuse / adapter | Master ownership existing; no duplicate | DEC-277/291 |
+| BM-CAP-02 | Extend | Satu leaf rename, tiga tab | DEC-274/292 |
+| BM-CAP-03 | Repair | Shared predicate/counts/target availability | DEC-285/289/292 |
+| BM-CAP-04 | Repair | Coordinator cross-holder/locks | DEC-289 |
+| BM-CAP-05 | Conflict resolved by product | Tetap server expiry120 menit existing | DEC-283 |
+| BM-CAP-06 | Deferred | Tidak menambah reminder30/perpanjangan | DEC-283 |
+| BM-CAP-07 | Missing / new | Readiness internal split, enam status BA | DEC-282 |
+| BM-CAP-08 | Conflict resolved by product | Used release menunggu bersih, bukan Ready | DEC-281 |
+| BM-CAP-09 | Missing / new | HK start/finish, verifier perawat | DEC-278/280 |
+| BM-CAP-10 | Repair | Close/reopen/master semua paths | DEC-285 |
+| BM-CAP-11 | Conflict resolved by product | Transfer tetap satu langkah; tidak tambah reservasi/penerimaan dua fase | DEC-284 |
+| BM-CAP-12 | Reuse / adapter | Transfer/detail/report existing + category extension | DEC-275/276/284 |
+| BM-CAP-13 | Extend | Patient bed/room use history; lifecycle operational audit terpisah | DEC-286 |
+| BM-CAP-14 | Repair | Cancel reason durable; correction versioned | DEC-288 |
+| BM-CAP-15 | Repair | Permission+scope+UI action deny/masking | DEC-287 |
+| BM-CAP-16 | Unknown proof → activation gates | Tidak klaim environment siap | DEC-293; BM-G01..04 |
+| BM-CAP-17 | Reuse / adapter | Billing canonical existing, snapshot immutable | DEC-284/286/288 |
+
+### 9.4 Dependencies dan delivery boundaries
+
+BM-CG01..06 siap desain bounded menurut [gate1.12](./evidence/02-requirement-completeness-gate.md). BM-G01 official class order, BM-G02 SOP/shift assignment, BM-G03 permission/privacy actual dan BM-G04 runtime/migration/tests tetap evidence aktivasi. Dependency belum terbukti tidak memblokir desain slice lain yang tidak bergantung; bila data/authority/state berubah, reassess scope terkait.
+
+Urutan schema/cutover pada backend14.9, urutan gelombang MVP pada PRD26.20. Tidak menulis roadmap/task BE/FE atau mengubah roadmap terdahulu. Setiap mixed writer, termasuk master hierarchy affected, harus masuk guard cutover sebelum activation; tidak ada izin eksekusi database/deploy di sini.
+
+### 9.5 Status parent
+
+Manifest anak Bed Management draft membuat aggregate parent **partial**. Tiga anak lain tidak diubah atau disetujui ulang. `DOMAIN_ARCHITECTURE_NOT_RUN` khusus slice Bed Management diperbolehkan gate; bukan pembatalan arsitektur domain sebelumnya. Metadata summary lama yang drift tidak diperbaiki pada upstream decision/audit; bukti fresh dan hash dicatat pada manifest.

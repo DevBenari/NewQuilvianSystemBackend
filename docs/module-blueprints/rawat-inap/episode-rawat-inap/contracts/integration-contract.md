@@ -3,12 +3,12 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | **`0.11.0`** — bagian 10 Workspace PPRI (`INT-RWA-01` s.d. `14`), `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 9, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 8; isi sebelumnya `last_changed_in` `0.4.0` |
-| Status | **`draft`** |
-| Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
-| `input_revision` | `evidence/03-hospital-domain-architecture.md` revision `0.1` bagian J; `00-interview-decisions.md` revision `6` |
-| Backend SHA | `5afb54b` |
-| Dampak kompatibilitas | Satu arah tulis lintas modul yang baru. Tidak ada kontrak eksternal yang berubah |
+| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Bed Management draft. Riwayat metadata sebelumnya: **`0.11.0`** — bagian 10 Workspace PPRI (`INT-RWA-01` s.d. `14`), `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 9, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 8; isi sebelumnya `last_changed_in` `0.4.0` |
+| Status | **`draft`** — amandemen Bed Management belum disetujui. Riwayat metadata sebelumnya: **`draft`** |
+| Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292. Riwayat metadata sebelumnya: Product/Domain Owner sementara sesuai `RWI-DEC-006` |
+| `input_revision` | Decision 46; gate 1.12 / BM-RCG-20261010-01; audit BM-AUD-20261010-01 rev1. Riwayat metadata sebelumnya: `evidence/03-hospital-domain-architecture.md` revision `0.1` bagian J; `00-interview-decisions.md` revision `6` |
+| Backend SHA | Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `5afb54b` |
+| Dampak kompatibilitas | Bed Management: GET aditif, mutation diperketat (expected version/key/category/reason); cutover seluruh konsumen wajib. Riwayat metadata sebelumnya: Satu arah tulis lintas modul yang baru. Tidak ada kontrak eksternal yang berubah |
 
 > **`0.3.0` sengaja tidak menambah satu integrasi pun.** `RWI-DEC-066` menolak menambah kolom
 > "boleh campur" pada `MstRoom`, sehingga aturan pencampuran kamar dijalankan dengan **membaca**
@@ -339,3 +339,36 @@ Satu-satunya pemanggil sisi Rawat Inap adalah `InpAdmissionSourceReader` (`INV-R
 | Penurunan kelas otomatis saat jatuh tempo terlewati | PRD bagian 15 butir 9; tetap transfer manual |
 | Hub SignalR | Penyegaran berkala 30 detik di layar (G-34) |
 | Integrasi eksternal | Tidak ada; tanda tangan elektronik tersertifikasi di luar MVP |
+
+## 11. Amandemen Bed Management — 10 Oktober 2026
+
+**Status: draft — Amandemen Bed Management, 10 Oktober 2026.** Set kontrak mengikuti `blueprint-manifest.md`; `last_changed_in: 0.12.0`. Owner produk/domain/API: Muhammad Hamzah (RWI-DEC-061); frontend: pengembang dalam batas RWI-DEC-292; keamanan/privasi: OPEN. `approved_by: null`, `approved_at: null` untuk amandemen ini.
+
+Masukan: decision log revision **46**, RWI-DEC-274–294 dan RWI-AC-396–426; gate revision **1.12**, **BM-RCG-20261010-01**, enam BM-CG siap untuk desain produk terbatas. `DOMAIN_ARCHITECTURE_NOT_RUN` untuk slice ini: ownership existing sudah diketahui dan gate mengizinkan desain langsung. Arsitektur domain lama bagi scope lain tetap berlaku. As-is bersumber audit **BM-AUD-20261010-01** revision 1 (section 7 untuk Swagger), bukan bukti runtime.
+
+Snapshot BE `d4e1eca06fb28c05934c68c1e51a4dca01935a10`, FE `969acfcc04cdf31074a1911e9827c31d25ddadd0`. Semua nama class/field/API baru di bawah adalah **target Rencana (belum tersedia)**. Bila bagian lama bertentangan mengenai bed kembali Available, amandemen ini mengikuti RWI-DEC-281/282. Persetujuan produk bukan persetujuan desain atau SOP. Hash masukan terpusat pada manifest.
+
+### 11.1 Dependency dan batas integrasi
+
+| ID | Arah | Kontrak | Failure/ownership | Trace |
+| --- | --- | --- | --- | --- |
+| INT-BM-01 | MasterData → Bed operations | Baca master bed/room/unit/class live + verified class profile | MasterData tetap single source; tidak menghitung dari harga; invalid digest→Unknown | BM-G01, AC-405/423 |
+| INT-BM-02 | Bed operations → MasterData bed copy | Update raw status di transaksi yang sama, melalui guard coordinator | Cleaning raw4 untuk internal waiting/inprogress; closed5..7 tidak ditimpa cleaning | AC-407/412/424 |
+| INT-BM-03 | Departure/transfer → Readiness | Release placement aktual lalu root WaitingCleaning cycle baru | Closure episode lama tidak release bed baru; admission unused cancel tidak dirty | AC-407/408/426 |
+| INT-BM-04 | Transfer → Clinical handover existing | Pertahankan alur sesudah commit; gagal callback dicatat/retry existing | Tidak gate penerimaan tujuan; tidak reverse transfer committed | DEC-284/290, AC-414/422 |
+| INT-BM-05 | Placement/correction → Billing | Pertahankan OCCUPANCY_CHANGED/OCCUPANCY_CORRECTED notification existing yang sudah didefinisikan, receiver requery timeline | Gunakan integrasi-billing contract approved 1.1.0 + outbox/ack existing; tidak mengubah event name/payload dari kontrak canonical | DEC-157/161/166, AC-415/418 |
+| INT-BM-06 | Authorization platform → BedAccess | Permission existing + trusted scope assignment; deny bila proof hilang | Tidak role grants atau scope inferred; masking server | AC-416/417/425 |
+| INT-BM-07 | Frontend → API committed outcome | Key stabil, expected versions, query own outcome; invalidate affected reads | Tidak optimistic success/offline overwrite; await refresh baru confirmation | AC-420–422 |
+| INT-BM-08 | Master hierarchy writers → Bed guards | Perubahan availability unit/room/class serialized terhadap affected beds | Inventory source/path & implement adapter sebelum mixed-writer cutover | AC-419/424, BM-G04 |
+
+### 11.2 Billing dan failure
+
+Bed Management tidak membuat tarif, ledger, invoice, folio atau algoritma charge baru. ManualTransferCategory adalah catatan klasifikasi perpindahan, bukan price override. Kelas/waktu placement sah menjadi input yang dibaca Billing; correction tidak menghapus versi lama. Filter efektif mengikuti SupersededByCorrectionId, bukan IsSuperseded (yang juga true untuk transfer biasa).
+
+Kontrak canonical Billing berada pada `../../integrasi-billing/contracts/integration-contract.md`; event schema/ack/idempotency receiver tetap di sana. Jangan menyalin schema event kedua atau menganggap event delivered sebelum receiver ack. Tambahan receipt API di bed berbeda dari dedup outbox receiver. Outbox ditulis bersama mutation bila event existing mensyaratkan; callback hanya sesudah commit; retry delivery tidak mengulang transfer.
+
+Jika Billing guard atau scope dependency tidak dapat dipastikan saat commit, fail closed tanpa setengah data. Kepergian fisik existing tetap berbeda dari penutupan episode; tidak menambah gate kasir pada release bed. Gangguan network sesudah commit: own outcome lookup, refresh, retry same key jika perlu, tidak automatic reverse atau offline queue.
+
+### 11.3 Batas scope
+
+Tidak ada integrasi eksternal baru, worker expiry, reminder, offline workflow atau SLA baru. SOP rekonsiliasi dipenuhi dari BM-G02, bukan dibuat oleh AI. BM-DEP-01..05 pada gate tetap berlaku; dependencies non-blocking untuk desain bounded dapat menjadi blocker aktivasi operasi terkait.

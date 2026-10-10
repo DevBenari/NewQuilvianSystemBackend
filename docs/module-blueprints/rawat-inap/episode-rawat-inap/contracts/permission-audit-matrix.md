@@ -3,13 +3,13 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | **`0.11.0`** — bagian 10 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 9, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 8 |
-| `last_changed_in` | **`0.11.0`** — resource `InpatientAdmissionDocument` sepuluh aksi, `GUARD-RWA-01` s.d. `07`. Sebelumnya `0.10.0` — bagian 9; `0.9.0` — `GUARD-INP-09`, `10`; `0.8.0` |
-| Status | **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
-| Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006`; pemilik keamanan/privasi **belum ditunjuk** |
-| `input_revision` | `00-interview-decisions.md` revision `15`; `contracts/api-contract.md` revision `0.6.0` |
-| Backend SHA | `5afb54b` |
-| Dampak kompatibilitas | Butir hak akses baru bersifat aditif. Terdaftar otomatis oleh `AccessMenuSeeder` saat aplikasi dinyalakan |
+| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Bed Management draft. Riwayat metadata sebelumnya: **`0.11.0`** — bagian 10 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 9, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 8 |
+| `last_changed_in` | **`0.12.0`** — Bed Management. Riwayat metadata sebelumnya: **`0.11.0`** — resource `InpatientAdmissionDocument` sepuluh aksi, `GUARD-RWA-01` s.d. `07`. Sebelumnya `0.10.0` — bagian 9; `0.9.0` — `GUARD-INP-09`, `10`; `0.8.0` |
+| Status | **`draft`** — amandemen Bed Management belum disetujui. Riwayat metadata sebelumnya: **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
+| Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292. Riwayat metadata sebelumnya: Product/Domain Owner sementara sesuai `RWI-DEC-006`; pemilik keamanan/privasi **belum ditunjuk** |
+| `input_revision` | Decision 46; gate 1.12 / BM-RCG-20261010-01; audit BM-AUD-20261010-01 rev1. Riwayat metadata sebelumnya: `00-interview-decisions.md` revision `15`; `contracts/api-contract.md` revision `0.6.0` |
+| Backend SHA | Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `5afb54b` |
+| Dampak kompatibilitas | Bed Management: GET aditif, mutation diperketat (expected version/key/category/reason); cutover seluruh konsumen wajib. Riwayat metadata sebelumnya: Butir hak akses baru bersifat aditif. Terdaftar otomatis oleh `AccessMenuSeeder` saat aplikasi dinyalakan |
 
 > **Koreksi `0.6.1`.** Dari dua aksi yang diusulkan `0.6.0`, hanya **`Settle`** yang benar-benar
 > baru. **`Refund`** dicabut: `BillingRefund` sudah ada sebagai resource tersendiri lengkap dengan
@@ -551,3 +551,61 @@ Tidak ada hapus permanen (`INV-RWA-03`). Riwayat di tab "Riwayat" layar membaca 
 | Alasan | `CorrectionReason`, `CancelledReason`, `ReprintNote` | Tidak masuk logger |
 
 Payload logger hanya `EntityId`, controller, aksi, dan status. **Masa simpan** dokumen admisi belum ditetapkan; ia menjadi gerbang produksi G-35 bersama tinjauan privasi data keluarga (`RWI-DEC-230` butir 5), menunggu pemilik privasi/hukum (`RWI-OQ-116`). Karena tidak ada hapus permanen, keputusan masa simpan tidak mengubah model data.
+
+## 11. Amandemen Bed Management — 10 Oktober 2026
+
+**Status: draft — Amandemen Bed Management, 10 Oktober 2026.** Set kontrak mengikuti `blueprint-manifest.md`; `last_changed_in: 0.12.0`. Owner produk/domain/API: Muhammad Hamzah (RWI-DEC-061); frontend: pengembang dalam batas RWI-DEC-292; keamanan/privasi: OPEN. `approved_by: null`, `approved_at: null` untuk amandemen ini.
+
+Masukan: decision log revision **46**, RWI-DEC-274–294 dan RWI-AC-396–426; gate revision **1.12**, **BM-RCG-20261010-01**, enam BM-CG siap untuk desain produk terbatas. `DOMAIN_ARCHITECTURE_NOT_RUN` untuk slice ini: ownership existing sudah diketahui dan gate mengizinkan desain langsung. Arsitektur domain lama bagi scope lain tetap berlaku. As-is bersumber audit **BM-AUD-20261010-01** revision 1 (section 7 untuk Swagger), bukan bukti runtime.
+
+Snapshot BE `d4e1eca06fb28c05934c68c1e51a4dca01935a10`, FE `969acfcc04cdf31074a1911e9827c31d25ddadd0`. Semua nama class/field/API baru di bawah adalah **target Rencana (belum tersedia)**. Bila bagian lama bertentangan mengenai bed kembali Available, amandemen ini mengikuti RWI-DEC-281/282. Persetujuan produk bukan persetujuan desain atau SOP. Hash masukan terpusat pada manifest.
+
+### 11.1 Kewenangan produk; bukan pemberian hak runtime
+
+Nama pelaku di bawah adalah fungsi, bukan role/account actual yang telah diverifikasi. BM-G03 tetap diperlukan untuk pemetaan resource/action, unit assignment, profesi verifier dan privacy review. Permission existing tidak diganti namanya; resource baru InpatientBedManagement beserta lima aksi Read, ReadUsageHistory, StartCleaning, CompleteCleaning, VerifyReadiness terdaftar lewat pola attribute/seeder, bukan diberikan otomatis.
+
+| Pelaku | Resource/action exact (slash memadatkan action) | Scope/guard tambahan | Identitas pasien |
+| --- | --- | --- | --- |
+| Admisi berwenang | InpatientBedManagement : Read; InpatientBedOccupancy : Read/Create/Update; InpatientBedOccupancy : Transfer hanya jika diberikan existing | Scope semua unit/bed terlibat dan episode; bukan hak otomatis | Hanya jika existing patient/episode access sah |
+| Perawat ruangan berwenang | InpatientBedManagement : Read; InpatientBedOccupancy : Read/Create/Transfer sesuai permission existing; InpatientDischarge : RecordDeparture sesuai existing | Penugasan unit nyata; tidak otomatis menjadi verifier | Sesuai episode rights, tanpa clinical fields baru |
+| Perawat verifikator yang ditunjuk | InpatientBedManagement : Read/VerifyReadiness | IsReadinessVerifier + referensi penunjukan/SOP sah dan unit bed; akun HK OperationalOnly dilarang verify | Aksi readiness tidak membutuhkan identitas pasien |
+| Housekeeping individu | InpatientBedManagement : Read/StartCleaning/CompleteCleaning | OperationalOnly wajib; unit assignment actual; start/complete state guards | Tidak menerima patient/episode/reservation ID, diagnosis, riwayat lintas pasien |
+| Pembaca usage history berwenang | InpatientBedManagement : Read/ReadUsageHistory | Bukan OperationalOnly; scope bed/unit; identity per-row episode permission | Identity masked jika existing episode/patient right tidak terbukti |
+| Supervisor/Admisi correction authorized | InpatientBedOccupancy : Correct existing; ReadUsageHistory bila diberikan | Billing OPEN, reason+version existing, scope semua affected bed/episode | Sesuai existing correction rights |
+| Admin MasterData berwenang | Bed : Create/Read/Update/Delete existing | Ownership seluruh tim tidak otomatis grant semua akun; state guards berlaku semua writer | Master bed tidak memberi patient access |
+| Pemilik laporan transfer existing | InpatientReport : ReadRoomTransfer/ExportRoomTransfer existing | Guard report dan patient access existing tetap | Tidak memperluas rights dari route report ke history baru |
+
+Slash pada tabel berarti daftar action literal terpisah (mis. Read/StartCleaning = `Read` dan `StartCleaning` pada resource yang sama), bukan action berisi slash. Mapping endpoint→permission hanya pada API contract 13.2; tabel ini tidak menggandakannya.
+
+### 11.2 Business guards
+
+| ID | Guard | Perilaku |
+| --- | --- | --- |
+| GUARD-BM-01 | Unknown deny | Tidak ada assignment/permission/proof → deny; tidak infer profesi dari username; filter/scope pada server |
+| GUARD-BM-02 | Unit/bed ownership | Read dibatasi unit bed; transfer kedua unit; correction semua affected bed; counter setelah scope |
+| GUARD-BM-03 | Privacy projection | OperationalOnly menghapus HoldingContext dan seluruh PHI sebelum JSON; tidak cukup hide kolom |
+| GUARD-BM-04 | Verifier assignment | Permission VerifyReadiness + assignment perawat ditunjuk + SOP valid; HK completion tidak membuka bed |
+| GUARD-BM-05 | State/holder guard | Superadmin/dev auth bypass tidak melewati holder, cleaning, closure, expected version dan clinical guards |
+| GUARD-BM-06 | History identity | ReadUsageHistory tidak menggantikan existing patient/episode Read; masked identity bila hak itu tidak terbukti |
+| GUARD-BM-07 | Audit mutability | Event/receipt append-only; correction versioned, no delete/cancel committed transfer; raw reason tidak log teknis |
+| GUARD-BM-08 | Outcome ownership | GET receipt/replay actor current saja, scope diperiksa ulang; key bukan bearer token |
+| GUARD-BM-09 | Grant governance | Seeder register resource/actions saja; no role grant/actual user assignment otomatis |
+| GUARD-BM-10 | Master bypass | Bed create/PUT/status/availability/delete dan hierarchy writers memakai guard serialized |
+
+### 11.3 Audit event dan data sensitif
+
+| Aksi | Bukti durable dalam transaksi | Sensitivitas |
+| --- | --- | --- |
+| Reserve/cancel/expiry/place | Actor, bed/root cycle, waktu event+recorded, before/after, reservation/placement ref, receipt bila klien; reason cancel | Episode refs/reasons sensitif; tidak logger |
+| Transfer/release | Placement asal/tujuan + snapshot, kategori manual tervalidasi, reason existing, event kedua bed, actor/time | TransferReason dapat klinis; tidak untuk HK |
+| HK start/complete | Attempt ID/cycle, actor start/complete, waktu server, SOP reference, event | Tidak menyimpan diagnosis/identitas pasien |
+| Verify/reject | Verifier account, assignment proof ref, evidence ref, accepted/rejected time, reason bila reject | Akses operational scope; event lama tetap |
+| Close/reopen/master availability | Alasan wajib, actor/time, before/after, cycle invalidation/attempt interruption | Deskripsi alasan jangan menjadi data pasien |
+| Correction | Versi lama+baru, correction reference, reason, actor/time, Billing guard, outbox existing | No history delete atau log payload pasien |
+| Uncertain outcome/retry | Receipt key hash+outcome ref; replay no second mutation/event | Key/RequestHash bukan log mentah atau pasien response |
+
+Logger teknis mengikuti pola EntityId/controller/action/status existing; jangan menambahkan Reason, snapshot request/response PHI atau key mentah. Response authorization berlaku juga direct API, export existing, deep link dan retry. Audit akun memiliki akses terbatas, bukan alasan memberikan patient history ke HK.
+
+### 11.4 Retensi, SOP dan batas approval
+
+Kebijakan retensi baru, perubahan rekam medis, legal signoff dan SOP kebersihan tidak didefinisikan oleh desain ini. Tidak menjadwalkan purge/hard delete. Pemilik keamanan/privasi masih OPEN; nilai assignment/config hanya dapat diterapkan setelah bukti BM-G02/03. Config direction/penugasan bukan jalan menyatakan aturan yang belum terbukti sudah disahkan. Jika mapping actual berbeda dari batas produk ini, reassess slice yang berubah.

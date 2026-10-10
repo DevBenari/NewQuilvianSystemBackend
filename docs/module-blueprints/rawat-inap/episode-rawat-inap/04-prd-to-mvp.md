@@ -8,14 +8,14 @@
 | Modul | Rawat Inap — `InPatientManagement`, prefix entity `Inp`, lifecycle registry `ACTIVE` sejak `RWI-DEC-068` |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
-| Revision artefak | **`0.10.0`** — bagian 24 Workspace PPRI, 7 Oktober 2026 (`draft`). Sebelumnya `0.9.0` — bagian 23 Finishing (`approved`, `RWI-DEC-221`); **`0.8.0`** — bagian 22 amandemen terbatas penyelarasan `PRD-RWI-V2-001`, 15 September 2026. Sebelumnya: `0.7.0` — naik 2026-09-11 karena bagian 21 lahir, menyerap `Gelombang 1A Rawat Inap Safety Corrections`. Sebelumnya `0.6.1` — naik 2026-09-08 sore setelah trace ulang terhadap source hasil merge `QuilvianIntegrationBackend`: kolom `EpisodeId` **dibatalkan** karena penelusuran sudah tercapai lewat join, rute refund dibetulkan ke kontrak Billing yang sudah ada, dan klaim charge kamar yang basi dicabut. Sebelumnya `0.6.0` — naik 2026-09-08 karena **deposit ditetapkan sebagai langkah tersendiri di dalam multi-step admisi**, mengikuti layar operasional yang sudah berjalan. Revisi ini menambah `FR-RI-174` s.d. `FR-RI-178`, mengubah alur admisi, kontrak API deposit, matriks kewenangan, UAT, Definition of Done, dan gelombang delivery. **Garis keturunan:** `0.4.1` (2026-09-02, koreksi keterangan basi `DEC-INP-001`) → `0.5.0` (2026-09-03, deposit masuk MVP lewat `EPIC RI-35`) → `0.6.0`. Kedua revisi sebelumnya dipertahankan isinya, bukan dihapus |
-| `contract_version` | **`0.11.0`** untuk bagian 24 (`approved` 2026-10-08, `RWI-DEC-265`); `0.10.0` untuk bagian 23 (`approved`); **`0.9.0`** untuk bagian 22. Sebelumnya: `0.6.1` — **naik**; koreksi mekanisme dan rute setelah trace source. Sebelumnya `0.6.0`: langkah deposit pada admisi, kebijakan minimum deposit, aturan peringatan, penagihan berkala, pengikatan `EpisodeId`, dan pemakaian ulang rute `patient-funds` yang menggantikan usulan controller deposit terpisah |
+| Revision artefak | **`0.12.0`** — draft Bed Management, bagian26, 10 Oktober2026. Riwayat metadata: **`0.11.0`** — bagian 25 Amandemen Alur Admisi Pendaftaran (10 Oktober 2026, `approved`), menyerap `RWI-DEC-267` s.d. `RWI-DEC-273` dan `RWI-AC-388` s.d. `RWI-AC-395`. Sebelumnya **`0.10.0`** — bagian 24 Workspace PPRI, 7 Oktober 2026 (`approved` 2026-10-08, `RWI-DEC-265`); `0.9.0` — bagian 23 Finishing (`approved`, `RWI-DEC-221`); **`0.8.0`** — bagian 22 amandemen terbatas penyelarasan `PRD-RWI-V2-001`, 15 September 2026. Garis keturunan: `0.7.0` → `0.6.1` → `0.6.0` → `0.5.0` → `0.4.1` |
+| `contract_version` | Mengikuti set pada manifest anak, Bed Management draft; last_changed_in0.12.0. Riwayat metadata: **`0.11.0`** untuk bagian 24 & 25 (`approved` 10 Oktober 2026; bagian 24 `approved` 2026-10-08 lewat `RWI-DEC-265`); `0.10.0` untuk bagian 23 (`approved`); **`0.9.0`** untuk bagian 22 |
 | Batas dokumen ini | MVP sub-modul `episode-rawat-inap` saja. Kemampuan milik dua sub-modul lain **bukan** bagian dari MVP di sini, dan itu bukan penundaan keputusan |
-| Status | **`approved`** untuk bagian 24 (`0.11.0`) — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). Bagian sebelumnya mengikuti `blueprint-manifest.md` sub-modul |
+| Status | **`draft`** — Bed Management belum disetujui. Riwayat metadata: **`approved`** — amandemen bagian 25 (`0.11.0`) disetujui pengguna pada 10 Oktober 2026 atas instruksi eksplisit "setujui dan lakukan /plan-module-delivery". Bagian 24 `approved` Muhammad Hamzah 2026-10-08 (`RWI-DEC-265`) |
 | Repository target | `NewQuilvianSystemBackend` dan `QuilvianSystemFrontendDev` |
-| Backend SHA baseline | `44099e4ddd921d51140d802cabf1cebbc5291d30` — branch `MHamzah`, memuat merge `6993212` dari `QuilvianIntegrationBackend`. Sebelumnya `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
-| Frontend SHA baseline | `30db3734a5d1e1ed0de35197ffabc30ae9c8d4e3` — branch `HamzahV2`. Sebelumnya `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
-| Masukan | `02-backend-architecture.md` rev `0.3`; `contracts/api-contract.md`, `contracts/validation-matrix.md`, `contracts/permission-audit-matrix.md` rev `0.3.0`; `erd/01-inpatient-episode.md` dan `data/data-dictionary.md` rev `0.3`; `00-interview-decisions.md` rev `5`; `evidence/03-hospital-domain-architecture.md` rev `0.1` (`DOMAIN_ARCHITECTURE_PARTIAL`); arahan scope produk 2026-09-03 untuk memasukkan deposit rawat inap; evidence legacy V1 `ApplicationDbContext.cs` dan `Program.cs`; arahan operasional 2026-09-08 atas layar `Input Deposit Rawat Inap` pada multi-step admisi; evidence frontend `inpatient-admission-flow-constants.jsx`, `inpatient-admission-payment-step.jsx`, `use-inpatient-admission-doctor.jsx`; evidence backend `BilDepositAccount.cs`, `BillingPatientFundsController.cs` |
+| Backend SHA baseline | Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `44099e4ddd921d51140d802cabf1cebbc5291d30` — branch `MHamzah`, memuat merge `6993212` dari `QuilvianIntegrationBackend`. Sebelumnya `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
+| Frontend SHA baseline | Bed Management: 969acfcc04cdf31074a1911e9827c31d25ddadd0. Riwayat metadata: `30db3734a5d1e1ed0de35197ffabc30ae9c8d4e3` — branch `HamzahV2`. Sebelumnya `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
+| Masukan | Bed Management: backend14, FE15, data21, contracts target, gate1.12, decision46. Riwayat metadata: `02-backend-architecture.md` rev `0.3`; `contracts/api-contract.md`, `contracts/validation-matrix.md`, `contracts/permission-audit-matrix.md` rev `0.3.0`; `erd/01-inpatient-episode.md` dan `data/data-dictionary.md` rev `0.3`; `00-interview-decisions.md` rev `5`; `evidence/03-hospital-domain-architecture.md` rev `0.1` (`DOMAIN_ARCHITECTURE_PARTIAL`); arahan scope produk 2026-09-03 untuk memasukkan deposit rawat inap; evidence legacy V1 `ApplicationDbContext.cs` dan `Program.cs`; arahan operasional 2026-09-08 atas layar `Input Deposit Rawat Inap` pada multi-step admisi; evidence frontend `inpatient-admission-flow-constants.jsx`, `inpatient-admission-payment-step.jsx`, `use-inpatient-admission-doctor.jsx`; evidence backend `BilDepositAccount.cs`, `BillingPatientFundsController.cs` |
 | Ringkasan cakupan | Satu pasien dapat dirawat inap dari admisi sampai episode ditutup dan tempat tidur kembali kosong, **termasuk penetapan deposit di dalam multi-step admisi, top-up, dan settlement deposit melalui Billing/Kasir**, tanpa dokumentasi klinis, tanpa resep, dan tanpa jalur masuk IGD |
 
 > **Catatan port 2026-09-08.** Revisi `0.5.0` dan `0.6.0` sempat disusun di luar pohon blueprint,
@@ -2048,3 +2048,429 @@ Gelombang memakai awalan `RWA-` agar tidak bertabrakan dengan gelombang Rawat In
 **Konsekuensi yang perlu disadari pemilik.** Karena Estimasi Biaya berada di luar gelombang, navigasi MVP menampilkan **delapan** menu, bukan sembilan seperti `RWI-DEC-226`; menu kesembilan muncul saat `EPIC-RWA-09` dikirim, mengikuti aturan "menu yang kemampuannya belum dikirim tidak ditampilkan" (`FR-RWA-004`).
 
 **Diperbarui 8 Oktober 2026.** Dokumen ini disetujui (`RWI-DEC-265`) dan `RWI-OQ-126` serta `RWI-OQ-127` disetujui (`RWI-DEC-266`), sehingga tidak ada lagi pertanyaan memblokir untuk `RWA-MVP-0` s.d. `RWA-MVP-2`. Dokumen ini diteruskan ke `plan-module-delivery`: `roadmap/backend-roadmap-workspace-ppri.md` dan `roadmap/frontend-roadmap-workspace-ppri.md`.
+
+---
+
+## 25. Amandemen Alur Admisi Pendaftaran Pasien Rawat Inap ★ Revisi Tim Analisis Bisnis (`RWI-DEC-267` s.d. `RWI-DEC-273`)
+
+Ditulis 10 Oktober 2026 sebagai respon atas mandat revisi operasional dari Tim Analisis Bisnis (Mba Ilma). Status: **`approved`** — disetujui pengguna 10 Oktober 2026 atas instruksi eksplisit "setujui dan lakukan /plan-module-delivery". Bagian ini mengamandemen struktur pendaftaran admisi rawat inap (Pasien Baru dan Pasien Lama) serta mekanisme penandatanganan formulir persetujuan umum rawat inap.
+
+### 25.1 Latar Belakang & Mandat Bisnis
+
+Hasil evaluasi alur admisi rawat inap di meja pendaftaran rumah sakit menemukan beberapa titik gesekan operasional:
+1. Validasi nomor telepon kontak darurat belum membatasi panjang digit secara ketat, menyebabkan inkonsistensi data integrasi SMS/WhatsApp gateway.
+2. Pemilihan Unit Layanan Rawat Inap pada formulir dokter membingungkan petugas karena unit perawatan rawat inap sudah terikat secara implisit pada instalasi rawat inap.
+3. Alur persetujuan umum (*General Consent*) sebelumnya hanya mencetak lembar kosong untuk ditandatangani basah, lalu diinput ulang di ruang kerja PPRI. Dibutuhkan digitalisasi formulir dan tanda tangan langsung di loket admisi (*digital signature canvas*) agar proses di loket PPRI murni mencetak (*read-only / print-ready*).
+4. Pembedaan jenis kunjungan (Umum vs Rujukan luar) belum terekam sejak awal kedatangan pasien baru, padahal data rujukan faskes perujuk dibutuhkan untuk kelengkapan administrasi klaim dan rujukan balik.
+5. Pilihan kategori pasien terlalu banyak dan tumpang tindih; perlu disederhanakan menjadi tepat 3 opsi fungsional.
+6. Pencarian dan verifikasi data pasien lama terpecah menjadi dua langkah terpisah yang memperlambat pelayanan loket.
+
+### 25.2 Batas Scope Amandemen
+
+| Aspek | Di Dalam Scope Amandemen | Di Luar Scope Amandemen |
+|---|---|---|
+| **Kontak Darurat** | Validasi `emergencyContactPhoneNumber` numerik, `maxLength={13}` pada frontend dan backend (`RWI-DEC-267`, `RWI-AC-388`) | Perubahan struktur tabel `TrxPatientEmergencyContact` |
+| **Unit Tujuan Dokter** | Penyembunyian elemen dropdown unit layanan dari antarmuka langkah Dokter; pengikatan otomatis default Service Unit Rawat Inap pada backend payload (`RWI-DEC-268`, `RWI-AC-389`) | Perubahan relasi `ServiceUnitId` pada `TrxPatientEncounter` |
+| **Jenis Kunjungan (PB)** | Langkah 1 Pasien Baru: Pilihan `Umum` vs `Rujukan`. Perekaman 5 atribut rujukan tekstual ringkas (Nomor, Tgl/Jam, Faskes, Dokter, Diagnosa) tanpa upload file fisik (`RWI-DEC-269`, `RWI-AC-390`) | Integrasi bridging rujukan online BPJS P-Care/VClaim otomatis |
+| **Kategori Pasien (PB)** | Langkah 2 Pasien Baru: Tepat 3 opsi (`Umum`, `Bayi Baru Lahir`, `Pegawai`). Penautan episode ibu untuk bayi (`RWI-DEC-270`, `RWI-AC-391`) | Pembuatan master kategori pasien baru |
+| **Pasien Lama** | Langkah 1 Pasien Lama: Split layout 1 langkah terpadu (Kanan: Form Cari No RM/NIK, Kiri: Kartu Identitas Terverifikasi). Langkah 2: Jenis Kunjungan & Kategori Pasien Lama (`RWI-DEC-271`, `RWI-AC-392`) | Penggabungan data duplikat pasien lama |
+| **Persetujuan & TTD Digital** | Langkah 10 PB / Langkah 9 PL: *Dedicated Step* form persetujuan rawat inap & kanvas TTD digital interaktif (`react-signature-canvas`). Penyimpanan formulir dan citra PNG TTD ke episode (`RWI-DEC-272`, `RWI-AC-393`) | Penerbitan sertifikat digital PSrE berbayar pihak ketiga (BSrE/Peruri) |
+| **Invariant Hukum Bayi** | Penguncian otomatis subjek penanda tangan pada kategori Bayi Baru Lahir ke Orang Tua / Wali sah; penolakan opsi Pasien Sendiri (`RWI-DEC-273`, `RWI-AC-394`) | Dispensasi hukum medis di luar perwalian |
+| **Integrasi PPRI** | Menu General Consent di Workspace PPRI berstatus *read-only / print-ready* mengambil formulir ber-TTD yang sudah tersimpan di admisi (`RWI-AC-395`) | Modifikasi siklus dokumen Workspace PPRI yang lain |
+
+### 25.3 Functional Requirements Baru
+
+| ID | Kebutuhan Fungsional | Prioritas | Dasar |
+|---|---|:---:|---|
+| `FR-RI-179` | Sistem wajib memvalidasi nomor telepon kontak darurat pasien maksimal 13 karakter numerik pada langkah pendaftaran admisi | **MUST** | `RWI-DEC-267`, `RWI-AC-388` |
+| `FR-RI-180` | Sistem wajib menyediakan langkah pemilihan jenis kunjungan (Umum / Rujukan) pada awal alur pendaftaran pasien baru dan merekam data rujukan tekstual ringkas bila opsi rujukan dipilih | **MUST** | `RWI-DEC-269`, `RWI-AC-390` |
+| `FR-RI-181` | Sistem wajib membatasi pilihan kategori pasien pada langkah admisi rawat inap menjadi tepat 3 opsi: Pasien Umum, Bayi Baru Lahir, dan Pegawai/Karyawan RS | **MUST** | `RWI-DEC-270`, `RWI-AC-391` |
+| `FR-RI-182` | Sistem wajib menyatukan form pencarian dan panel verifikasi data identitas pasien lama ke dalam 1 tampilan layar terpadu (split layout kanan-kiri) pada Langkah 1 jalur Pasien Lama | **MUST** | `RWI-DEC-271`, `RWI-AC-392` |
+| `FR-RI-183` | Sistem wajib menyembunyikan dropdown pemilihan unit layanan rawat inap dari antarmuka langkah Dokter dan otomatis mengikat default unit layanan rawat inap pada pembuatan kunjungan/episode | **MUST** | `RWI-DEC-268`, `RWI-AC-389` |
+| `FR-RI-184` | Sistem wajib menyediakan langkah mandiri (*Dedicated Step*) Form Persetujuan Rawat Inap & Tanda Tangan Digital sebelum cetak, menyimpan isian formulir dan citra tanda tangan digital ke episode rawat inap | **MUST** | `RWI-DEC-272`, `RWI-AC-393` |
+| `FR-RI-185` | Sistem wajib menegakkan invariant hukum medis yang mengunci subjek penanda tangan persetujuan rawat inap untuk pasien kategori Bayi Baru Lahir kepada Orang Tua atau Wali sah dan melarang penandatanganan mandiri | **MUST** | `RWI-DEC-273`, `RWI-AC-394` |
+| `FR-RI-186` | Sistem wajib menampilkan dokumen General Consent di Workspace PPRI dalam keadaan terisi lengkap dan bertanda tangan (*read-only / print-ready*) tanpa memerlukan penginputan atau penandatanganan ulang di loket PPRI | **MUST** | `RWI-DEC-272`, `RWI-AC-395` |
+
+### 25.4 Acceptance Criteria & Verification Traceability
+
+| ID Kriteria | Deskripsi Kriteria Penerimaan | Verifikasi |
+|---|---|---|
+| `RWI-AC-388` | Input No. HP Kontak Darurat membatasi panjang maksimal 13 karakter numerik dan menolak karakter alfabet/simbol pada form pendaftaran pasien baru | Automated UI test & Backend validation test |
+| `RWI-AC-389` | Elemen dropdown Unit Tujuan tidak dirender pada langkah Dokter, dan payload `POST /patient-encounters` otomatis mengirimkan `ServiceUnitId` default rawat inap yang valid | End-to-end integration test |
+| `RWI-AC-390` | Langkah 1 Pasien Baru menampilkan opsi Umum dan Rujukan; memilih Rujukan memunculkan form tekstual nomor, tanggal/jam, faskes, dokter, dan diagnosa rujukan tanpa meminta upload file | Form interaction test |
+| `RWI-AC-391` | Langkah 2 Pasien Baru hanya menampilkan 3 kartu kategori (Umum, Bayi Baru Lahir, Pegawai); opsi Ibu, Anak, dan Korporat tidak muncul di antarmuka | Visual regression test |
+| `RWI-AC-392` | Langkah 1 Pasien Lama menampilkan layout split terpadu (kolom kanan: input pencarian No. RM/NIK + tombol Cari; kolom kiri: kartu hasil identitas pasien terdaftar + tombol Ganti Pasien) | Responsive layout test |
+| `RWI-AC-393` | Langkah 10 PB / Langkah 9 PL menyediakan formulir persetujuan rawat inap dan kanvas digital signature interaktif dengan tombol bersihkan dan kunci tanda tangan, serta menyimpan berkas ke episode | Signature canvas component test |
+| `RWI-AC-394` | Pasien berkategori Bayi Baru Lahir secara otomatis mengunci opsi penanda tangan menjadi "Orang Tua / Wali" dan menonaktifkan opsi "Pasien Sendiri" | Authorization & validation gate test |
+| `RWI-AC-395` | Menu General Consent pada Workspace PPRI untuk episode yang telah disetujui menampilkan dokumen lengkap ber-TTD digital dalam format siap cetak tanpa form isian aktif | Integration test PPRI |
+
+---
+
+## 26. Amandemen Bed Management — PRD ke MVP, 10 Oktober 2026
+
+Bagian26 adalah batas rilis pertama **slice Bed Management** dan menggantikan hanya aturan bed yang bertentangan pada versi lama. Bagian modul lain tidak berubah. Disusun terakhir setelah arsitektur, data, kontrak dan flow berdiri; tidak membuat keputusan/endpoint baru. **draft; belum mendapat approval desain manusia.**
+
+### 26.1 Identitas dokumen
+
+| Field | Nilai |
+| --- | --- |
+| Produk / blueprint | Quilvian / RWI-BP-001, sub-modul episode-rawat-inap, slice Bed Management |
+| Revision artefak / status | 0.12.0 / draft; set kontrak mengikuti manifest anak; last_changed_in0.12.0 |
+| Owner / approval | Produk/domain/API Muhammad Hamzah; UI DEC-292; security/privacy OPEN; approved_by=null; approved_at=null |
+| Repository / baseline | NewQuilvianSystemBackend@d4e1eca06fb28c05934c68c1e51a4dca01935a10; QuilvianSystemFrontendDev@969acfcc04cdf31074a1911e9827c31d25ddadd0 |
+| Input revision/readiness | Decision46 DEC-274–294/AC396–426; BM-AUD-20261010-01 rev1; BM-RCG-20261010-01 gate1.12 enam scope READY_FOR_DOMAIN_DESIGN; DOMAIN_ARCHITECTURE_NOT_RUN untuk bounded slice ini |
+| Ringkasan cakupan | Bed siap dipesan → hunian/transfer → used release → cleaning+verifikasi → siap kembali, dengan history dan guard semua writer |
+
+Input hashes upstream mengikuti manifest14.1. Input hash artefak teknis saat PRD diturunkan:
+
+| Input relatif | SHA256 |
+| --- | --- |
+| 02-backend-architecture.md | 8eb9ae69d05cfe2013400a6cb73c721d7a235a9b0f3d7115ffe0296693e815f6 |
+| data/data-dictionary.md | f411d5b87f54ddb53b241b78c51f5ab4ebd22100c6a3e07aae8b192263e87098 |
+| contracts/api-contract.md | ddd31d88a469239e6f731eea2fe3023499fd0137ae3e35c3de284b03a1c7c531 |
+| contracts/state-transition-matrix.md | 78a286e0f8441dd626c5e9fb6687ecdc549d7410d8e7867a1cdc45a12bd274e5 |
+| contracts/validation-matrix.md | a8a225a84f51b9a1e455285edfc0458c830ef1775d59f767d6e49e1664bf1dce |
+| contracts/permission-audit-matrix.md | 893c0c2d24e8ed3de0f25b42aec853d5b05e22bc89c0acf06371e6949f680960 |
+| contracts/integration-contract.md | 6ea617368b475f2493c59994181e7b8238574f1913f8857cb0095e4c84ac3714 |
+| 03-frontend-architecture.md | 5f18ddfbf44e7af2b8192f407a1cf6c625e6b38e7a1699ffe0bbabec308165d4 |
+| testing/acceptance-test-matrix.md | c8c67cb6504021e68832b2b42b9d272f3209f6435b025bdab88c88380d0f26af |
+| flowcharts/00-alur-utama.md | a2a5d5897366620db03972cdad6fa32ec807af6539b3f8522588ea3ae71ed13b |
+| flowcharts/09-bed-reservation-release.md | d7015fe25aa0b71af88b97b0756bc59e88f3034d66c6dbedc601ffb67f475837 |
+| flowcharts/10-bed-transfer.md | adff6804dbc83f16f1ff99c6ace63bcb80cf409bdf54aa0452d61019cbc19609 |
+| flowcharts/11-bed-cleaning-readiness.md | a2bd18ac9d8b49125e69e6fd929e1d19423149c3dc8118f4a7dd42cab35f838c |
+| flowcharts/12-bed-closure-reopen.md | a9340f628728ef16c556b3f2bf1e718e0826c8b095a89b3b1f47dd0f54f3abb4 |
+| flowcharts/13-bed-usage-history-correction.md | 92d3e1eaf472c44ec7e94592bd4039b651cebf0a98f69ab9545dde8ff6161651 |
+| flowcharts/14-bed-uncertain-outcome.md | 114cd5d9bd6b8cd3a8b6d28019810c8362f5935fe25ac2d267b9ed2f90edd788 |
+
+### 26.2 Ringkasan eksekutif
+
+MVP membantu admisi memilih bed yang benar-benar siap, petugas memindahkan pasien tanpa kehilangan lokasi, HK mencatat pekerjaan dan perawat yang ditunjuk menyatakan kesiapan. Pengelola dapat melihat siapa memakai bed/kamar pada suatu periode termasuk pasien yang tidak berpindah. Setelah used release, bed ditahan sampai siap; selesai dibersihkan saja belum cukup.
+
+### 26.3 Masalah produk
+
+Audit source BM-AUD-20261010-01 menemukan alur reservasi, transfer dan history episode yang dapat dipakai ulang, tetapi raw Cleaning hanya satu, used release langsung Available, guard master/predicate tidak seragam, cancel reason hilang dan konfirmasi dapat membaca data lama (F01–07). History transfer bukan semua penggunaan per bed. Itu bukti source, bukan reproduksi bug PostgreSQL atau signoff lingkungan rumah sakit.
+
+### 26.4 Visi produk
+
+Master bed/kamar/unit/kelas resmi → readiness terverifikasi → reservasi/hunian → lokasi pasien current → transfer atau keluar fisik → cleaning dan pengesahan → bed siap kembali; semua segmen hunian tersambung ke episode dan audit, sementara Billing tetap membaca timeline sah.
+
+### 26.5 Batas MVP
+
+Titik mulai:
+
+1. Master bed/kamar/unit/kelas existing valid dan actor memiliki scope sah.
+2. Bed mempunyai root kesiapan; default legacy Unverified ditahan sampai ada bukti sah.
+3. Episode/DPJP/eligibility/folio existing tetap sumber guard klinis dan keuangan.
+
+Titik akhir:
+
+1. Used bed belum bookable sampai verifikator sah mengesahkan current cycle.
+2. Transfer sah atomik dengan asal otomatis, tujuan available dan kategori manual tervalidasi.
+3. History initial/no-transfer/transfer/ongoing/correction dapat dibaca sesuai hak.
+4. Runtime baru dapat dinyatakan siap setelah proof gates dan verifikasi target terpenuhi.
+
+### 26.6 Pelaku sasaran
+
+| Pelaku | Tanggung jawab |
+| --- | --- |
+| Admisi | Pesan/place/cancel sesuai existing rights, alasan wajib dan readiness current |
+| Perawat ruangan | Transfer/record departure sesuai existing rights dan episode scope |
+| Housekeeping individu | Mulai/selesai sesuai unit dan SOP sah; tidak membaca pasien/history |
+| Perawat verifikator ditunjuk | Inspeksi dan sahkan/tolak current cycle dengan referensi bukti |
+| Admin MasterData seluruh tim | Kelola master melalui guard; bukti urutan kelas resmi |
+| Viewer/supervisor authorized | History masked sesuai hak, correction existing Billing OPEN |
+| Pemilik akses/privacy/operasional | Menyediakan proof actual sebelum aktivasi, bukan grant dari AI |
+
+### 26.7 Pemilihan kemampuan MVP
+
+Seluruh epic berikut MUST HAVE karena tanpa salah satunya rangkaian bed siap→dipakai→dilepas→siap kembali atau bukti history/akses tidak utuh. Tidak ada jalan sementara aman yang meloloskan dirty bed atau identitas ke HK.
+
+| Kemampuan | ID kemampuan asal audit section5 | Keputusan MVP |
+| --- | --- | --- |
+| EPIC BM-01 — Monitoring dan akses konsisten | BM-CAP-01/02/03/15 | MUST HAVE; EXTEND |
+| EPIC BM-02 — Pemesanan, pelepasan dan keselamatan transaksi | BM-CAP-04/05/08/14/16 | MUST HAVE; EXTEND |
+| EPIC BM-03 — Pembersihan dan pengesahan | BM-CAP-07/09 | MUST HAVE; MISSING / NEW |
+| EPIC BM-04 — Tidak Tersedia beralasan | BM-CAP-10 | MUST HAVE; EXTEND |
+| EPIC BM-05 — Transfer manual tervalidasi | BM-CAP-11/12 | MUST HAVE; EXTEND |
+| EPIC BM-06 — Usage history dan koreksi | BM-CAP-13/17 | MUST HAVE; EXTEND |
+
+BM-CAP-16 adalah proof readiness pada epic02/DoD, bukan klaim kemampuan runtime sudah ada. Link audit: [Capability evidence map](../../../../../artifacts/bed-management/01-existing-capability-map.md).
+
+### 26.8 Kemampuan yang ditunda
+
+| Kemampuan | ID/asal | Alasan | Pengganti selama MVP |
+| --- | --- | --- | --- |
+| Reminder30 menit / extend reservation | BM-CAP-06 | DEC-283 mempertahankan TTL existing tanpa perluasan pass | Countdown informatif + lazy server expiry120m |
+| Reservasi tujuan dan penerimaan transfer dua fase | BM-CAP-11 alternatif audit | DEC-284 mempertahankan atomic one-step, tidak menambah gate handover | Transfer commit + handover existing sesudahnya |
+| History export baru / timeline pasien mencampur HK dan closure | Perluasan BM-CAP-13 | DEC-286 memisahkan patient stay segments dan operational audit | History per-bed paged; transfer report/export existing tetap |
+| Offline queue / checklist klinis cleaning / akun dan role otomatis | DEC-287/290/293 | Bukan scope produk dan SOP/authority belum dibuktikan | Tahan aksi saat gangguan, SOP sah+reconcile authorized; gate activation |
+| Tarif/ledger/room charge kedua | BM-CAP-17 | Pemilik Billing existing | Gunakan timeline + notification canonical integrasi-billing |
+
+### 26.9 Alur bisnis target
+
+1. Petugas membuka Bed Management dan mendapat data scoped dengan enam status.
+2. Admisi memilih bed available/eligible; server memeriksa ulang dan mencatat reservation atau placement.
+3. Transfer mengambil asal current otomatis; petugas memilih tujuan tersedia, kategori manual dan alasan, lalu confirmation menunggu refresh selesai.
+4. Server mengakhiri asal dan menempatkan tujuan dalam satu commit; asal atau bed bekas departure masuk WaitingCleaning.
+5. HK mencatat mulai dan selesai fisik dengan akun masing-masing; selesai tetap menunggu verifikasi.
+6. Perawat ditunjuk memeriksa dan mengesahkan current cycle, atau menolak beralasan sehingga perlu cleaning lagi.
+7. Setelah semua syarat sah, bed Available dapat dipesan; history semua penggunaan dan versi koreksi tetap tersedia bagi pihak berwenang.
+8. Timeout diperiksa melalui own committed outcome; tidak ada sukses fiktif, retry ganda atau pelepasan bed pasien berikutnya.
+
+Flow references: FLOW-BM-MVP-001..006 pada flowcharts09..14; flowchart tidak disalin ke PRD.
+
+### 26.10 Epic dan functional requirement
+
+#### EPIC BM-01 — Monitoring dan akses konsisten
+
+**MUST HAVE. Disposisi backend: EXTEND.** Tujuan: Monitoring dan akses konsisten. Trace: DEC-274/285/287/289/292; RWI-AC-396–398/416–417/420/424. Istilah EXTEND mencakup repair yang ditandai audit; tidak ada OPEN DECISION pada epic ini.
+
+| FR | Perilaku yang diuji | Contoh expected |
+| --- | --- | --- |
+| FR-BM-001 | Menu route lama bernama Bed Management mempunyai tiga tab; enam status/counter mengikuti shared predicate dan permission scoped. | Fixture 6 status + bed inactive: jumlah Available mengecualikan inactive; HK tidak menerima PatientName/EpisodeId dalam JSON. |
+| FR-BM-002 | Server dan UI memeriksa scope/unit/episode; unknown deny; confirmation menunggu pembacaan fresh selesai. | Actor unitA membuka unitB →403; refetch pending →confirm disabled; response lama tidak menimpa hasil baru. |
+
+#### EPIC BM-02 — Pemesanan, pelepasan dan keselamatan transaksi
+
+**MUST HAVE. Disposisi backend: EXTEND.** Tujuan: Pemesanan, pelepasan dan keselamatan transaksi. Trace: DEC-281/283/288–290; RWI-AC-407–408/413/419/421–422/426. Istilah EXTEND mencakup repair yang ditandai audit; tidak ada OPEN DECISION pada epic ini.
+
+| FR | Perilaku yang diuji | Contoh expected |
+| --- | --- | --- |
+| FR-BM-003 | Reserve tetap parameter120 menit, unused cancel/expiry tidak dirty; cancel menyimpan alasan. Used departure/release membuat WaitingCleaning. | A keluar10.00, B pesan10.01 sebelum verifikasi →422; expiry unused tidak membuat cleaning attempt. |
+| FR-BM-004 | Seluruh mutation atomik, recheck holder setelah lock, expected versions dan key stabil; old episode closure tidak melepas new occupant. | Reserve A versus place B →satu pemenang; samekey retry →satu commit; closure A13.00 bed B tetap occupied. |
+
+#### EPIC BM-03 — Pembersihan dan pengesahan
+
+**MUST HAVE. Disposisi backend: MISSING / NEW.** Tujuan: Pembersihan dan pengesahan. Trace: DEC-278/280/282/287/293; RWI-AC-406/409–411/425. Istilah EXTEND mencakup repair yang ditandai audit; tidak ada OPEN DECISION pada epic ini.
+
+| FR | Perilaku yang diuji | Contoh expected |
+| --- | --- | --- |
+| FR-BM-005 | HK individu mencatat mulai/selesai current cycle; selesai menunggu verifikasi, status tetap Dalam Pembersihan. | HK selesai10.20 →AwaitingVerification; permintaan pesan10.22 ditolak. |
+| FR-BM-006 | Perawat verifikator sah mengesahkan atau menolak beralasan; upaya/actor/time tersimpan dan request lama tidak membuka siklus baru. | Verifier10.25 ready diterima; reject blank ditolak; current reject valid kembali Waiting, attempt lama retained. |
+
+#### EPIC BM-04 — Tidak Tersedia beralasan
+
+**MUST HAVE. Disposisi backend: EXTEND.** Tujuan: Tidak Tersedia beralasan. Trace: DEC-285/289; RWI-AC-412/419/424. Istilah EXTEND mencakup repair yang ditandai audit; tidak ada OPEN DECISION pada epic ini.
+
+| FR | Perilaku yang diuji | Contoh expected |
+| --- | --- | --- |
+| FR-BM-007 | Seluruh master writer termasuk hierarchy terdampak menolak penutupan/disable/move bed held, dan menyimpan alasan sah. | Bed reserved: PUT/status/availability/delete/nonactive →409, reservation tetap. |
+| FR-BM-008 | Reopen menginvalidasi bukti lama dan belum Ready; konflik legacy menampilkan holder authoritative dan block pemesanan. | Bed kosong closed dibuka→Unverified/Waiting sesuai fakta; rawUnknown tanpa holder tidak Available. |
+
+#### EPIC BM-05 — Transfer manual tervalidasi
+
+**MUST HAVE. Disposisi backend: EXTEND.** Tujuan: Transfer manual tervalidasi. Trace: DEC-275–277/284/291; RWI-AC-399–405/414/423. Istilah EXTEND mencakup repair yang ditandai audit; tidak ada OPEN DECISION pada epic ini.
+
+| FR | Perilaku yang diuji | Contoh expected |
+| --- | --- | --- |
+| FR-BM-009 | Server menyediakan asal current otomatis dan tujuan eligible tersedia; petugas wajib memilih Down/Up/Same secara manual sesuai order resmi global. | Same actual class ID beda bed: manual Same diterima; Up resmi pilih Down→422 no mutation. |
+| FR-BM-010 | Transfer tetap satu commit, snapshot lokasi/kelas/kategori direkam; source waiting; handover sesudah commit tidak membalik success. | Inject fail antara end source dan new destination →rollback penuh; callback gagal sesudah commit →transfer tetap sah. |
+
+#### EPIC BM-06 — Usage history dan koreksi
+
+**MUST HAVE. Disposisi backend: EXTEND.** Tujuan: Usage history dan koreksi. Trace: DEC-286–288; RWI-AC-402/415/416/418. Istilah EXTEND mencakup repair yang ditandai audit; tidak ada OPEN DECISION pada epic ini.
+
+| FR | Perilaku yang diuji | Contoh expected |
+| --- | --- | --- |
+| FR-BM-011 | Bed/periode history mencakup initial/no-transfer, transfer, ongoing dan versions; identity mengikuti existing authorization, HK deny. | Episode tanpa transfer tampil satu segmen; current End=NULL; master rename tidak mengganti snapshot lama. |
+| FR-BM-012 | Correction versioned memakai existing Correct/Billing OPEN/reason/version; tidak delete atau cancel committed transfer. | Billing CLOSED →correction reject; normal transfer IsSuperseded=true tetap efektif jika SupersededByCorrectionId NULL. |
+
+### 26.11 Model status yang diusulkan
+
+Publik tepat enam: Tersedia, Terisi, Dipesan, Menunggu Pembersihan, Dalam Pembersihan, Tidak Tersedia. Selesai fisik adalah subphase Menunggu verifikasi pada Dalam Pembersihan. Holder authoritative tetap terlihat ketika raw/admin konflik; tidak bookable. Ready harus pada siklus terbaru, empty, master valid/aktif/reservable dan tidak ditutup. State authoritative pada contract state11, tidak menciptakan status dari PRD.
+
+### 26.12 Sasaran arsitektur
+
+Reuse master/episode/placement/reservation/permission/outbox/Billing, extend placement dengan kategori/snapshot dan reservation dengan cancel reason, tambah readiness/attempt/lifecycle event/receipt dalam InPatientManagement. Enums raw BedStatus dan route FE existing dipertahankan. Tabel ownership/backend14 dan data21 authoritative. M1–M3 backfill/cutover/rollback menjaga dirty bed fail-closed; old clients diperbarui bersama new guards. Frontend15 menyatakan reuse base components dan child screens.
+
+### 26.13 Sasaran kemampuan API
+
+Subset turunan API contract13, bukan mapping permission kedua yang boleh diedit terpisah. Semua Data JSON memakai ApiResponse existing; old routes berlabel diperbarui belum memiliki target behavior. GET detail master tambahan memasok versions. Header key/expected versions serta error canonical ada di contract.
+
+#### Health Services / Inpatient Management / Bed Management
+
+Base URL: `api/v1/health-services/inpatient-management/bed-management`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GET | /metadata | Metadata tab/status/kategori dan hak aksi | InpatientBedManagement : Read | serviceUnitId? | BedManagementMetadataResponse | EPIC BM-01 | Rencana (belum tersedia) |
+| GET | /monitoring | Monitoring sanitized dan counts | InpatientBedManagement : Read | BedMonitoringQuery | BedMonitoringResponse | EPIC BM-01 | Rencana (belum tersedia) |
+| GET | /beds/{bedId}/cleaning-attempts | Jejak operasional bed tanpa pasien | InpatientBedManagement : Read | pageNumber/pageSize | PagedResult<BedCleaningAttemptResponse> | EPIC BM-03 | Rencana (belum tersedia) |
+| GET | /usage-history | Semua segmen penggunaan per bed/periode | InpatientBedManagement : ReadUsageHistory | BedUsageHistoryQuery | PagedResult<BedUsageHistoryResponse> | EPIC BM-06 | Rencana (belum tersedia) |
+| GET | /operations/{key} | Baca own committed outcome | InpatientBedManagement : Read | key; actor dari token | OperationOutcomeResponse | EPIC BM-02 | Rencana (belum tersedia) |
+| POST | /beds/{bedId}/cleaning-attempts | Mulai pekerjaan | InpatientBedManagement : StartCleaning | StartBedCleaningRequest | BedOperationResponse | EPIC BM-03 | Rencana (belum tersedia) |
+| PATCH | /cleaning-attempts/{attemptId}/complete | Selesai fisik, menunggu verifikasi | InpatientBedManagement : CompleteCleaning | CompleteBedCleaningRequest | BedOperationResponse | EPIC BM-03 | Rencana (belum tersedia) |
+| POST | /beds/{bedId}/readiness-verifications | Sahkan/tolak kesiapan | InpatientBedManagement : VerifyReadiness | VerifyBedReadinessRequest | BedOperationResponse | EPIC BM-03 | Rencana (belum tersedia) |
+
+#### Health Services / Inpatient Management / Bed Occupancy
+
+Base URL: `api/v1/health-services/inpatient-management/bed-occupancies`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GET | /available-beds | Shared predicate + eligibility existing | InpatientBedOccupancy : Read | AvailableBedQuery existing | AvailableBedPagedResult + operational version | EPIC BM-02 | Existing; diperbarui |
+| GET | /bed-board | Adapter konsisten untuk konsumen existing | InpatientBedOccupancy : Read | serviceUnitId? | BedBoardResponse + operational fields | EPIC BM-01 | Existing; diperbarui |
+| GET | /transfer-context | Asal otomatis dari placement current | InpatientBedOccupancy : Read | episodeId required | BedTransferContextResponse | EPIC BM-05 | Rencana (belum tersedia) |
+| POST | /reservations | Reserve TTL existing | InpatientBedOccupancy : Create | ReserveBedRequest + ExpectedBedVersion | BedReservationResponse + OperationMeta | EPIC BM-02 | Existing; diperbarui |
+| PATCH | /reservations/{id}/cancel | Cancel beralasan persisten | InpatientBedOccupancy : Update | CancelReservationRequest + Reason wajib + ExpectedBedVersion | BedReservationResponse + OperationMeta | EPIC BM-02 | Existing; diperbarui |
+| POST | /placements | Tempatkan dan snapshot awal | InpatientBedOccupancy : Create | PlacePatientRequest + ExpectedBedVersion | BedPlacementResponse + OperationMeta | EPIC BM-02 | Existing; diperbarui |
+| POST | /placements/transfer | Transfer atomik satu langkah | InpatientBedOccupancy : Transfer | TransferPatientRequest diperluas | BedPlacementResponse + OperationMeta | EPIC BM-05 | Existing; diperbarui |
+| POST | /placements/{placementId}/corrections | Koreksi versioned existing | InpatientBedOccupancy : Correct | CorrectPlacementRequest existing + AffectedBedVersions | BedPlacementResponse + OperationMeta | EPIC BM-06 | Existing; diperbarui |
+| GET | /placements/by-episode/{episodeId} | Histori episode existing | InpatientBedOccupancy : Read | episodeId | List<BedPlacementResponse> + snapshot/category | EPIC BM-06 | Existing; diperbarui |
+
+#### Health Services / Master Data / Bed
+
+Base URL: `api/v1/health-services/master-data/beds`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GET | /{id} | Master detail + versi operasional (tanpa pasien) | Bed : Read | id | Bed detail existing + OperationalVersion/CycleId | EPIC BM-04 | Existing; diperbarui |
+| POST | / | Master bed baru; kesiapan Unverified | Bed : Create | CreateBedRequest existing; OperationReason | BedCreateResponse existing + OperationalVersion/OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+| PUT | /{id} | Ubah master melalui guard penuh | Bed : Update | UpdateBedRequest + ExpectedBedVersion/OperationReason | BedUpdateResponse + OperationMeta | EPIC BM-04 | Existing; diperbarui |
+| PATCH | /{id}/status | Status administratif; bukan override kesiapan | Bed : Update | UpdateBedStatusRequest + ExpectedBedVersion/OperationReason | BedUpdateResponse + OperationMeta | EPIC BM-04 | Existing; diperbarui |
+| PATCH | /{id}/availability | Close/reopen beralasan | Bed : Update | UpdateBedAvailabilityRequest + ExpectedBedVersion/OperationReason | BedUpdateResponse + OperationMeta | EPIC BM-04 | Existing; diperbarui |
+| DELETE | /{id} | Soft-delete master tidak melepas holder | Bed : Delete | ExpectedBedVersion/OperationReason (body target) | Envelope existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+
+#### Health Services / Inpatient Management / Inpatient Discharge
+
+Base URL: `api/v1/health-services/inpatient-management/discharges`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| POST | /{episodeId}/record-departure | Kepergian fisik; used bed menunggu bersih | InpatientDischarge : RecordDeparture | RecordDepartureRequest existing + ExpectedPlacementId/ExpectedBedVersion | InpatientDepartureResponse + OperationMeta | EPIC BM-02 | Existing; diperbarui |
+
+#### Health Services / Inpatient Management / Inpatient Report
+
+Base URL: `api/v1/health-services/inpatient-management/reports`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GET | /room-transfers | Laporan transfer existing | InpatientReport : ReadRoomTransfer | RoomTransferReportQuery existing | PagedResult<RoomTransferReportRow> | EPIC BM-06 | Existing / Reuse |
+| GET | /room-transfers/export | Export transfer existing, batas existing 31 hari | InpatientReport : ExportRoomTransfer | Query existing | File xlsx existing | EPIC BM-06 | Existing / Reuse |
+
+#### Health Services / Master Data / Room
+
+Base URL: `api/v1/health-services/master-data/rooms`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GET | /{id} | Detail + versi bed terdampak untuk mutation | Room : Read | id | Detail existing + AffectedBedVersions:[{BedId,ExpectedVersion}] | EPIC BM-04 | Existing; diperbarui |
+| PUT | /{id} | Guard hierarchy yang mengubah availability/class bed | Room : Update | UpdateRoomRequest existing + hierarchy mutation extension | Response existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+| PATCH | /{id}/status | Aktivasi/nonaktif hierarchy terkoordinasi | Room : Update | UpdateRoomStatusRequest existing + hierarchy mutation extension | Response existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+| DELETE | /{id} | Soft-delete hierarchy tanpa melepas holder | Room : Delete | DeleteRoomRequest existing + hierarchy mutation extension | Envelope existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+
+#### Health Services / Master Data / Service Unit
+
+Base URL: `api/v1/health-services/master-data/service-units`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GET | /{id} | Detail + versi bed terdampak untuk mutation | ServiceUnit : Read | id | Detail existing + AffectedBedVersions:[{BedId,ExpectedVersion}] | EPIC BM-04 | Existing; diperbarui |
+| PUT | /{id} | Guard hierarchy yang mengubah availability/class bed | ServiceUnit : Update | UpdateServiceUnitRequest existing + hierarchy mutation extension | Response existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+| PATCH | /{id}/status | Aktivasi/nonaktif hierarchy terkoordinasi | ServiceUnit : Update | UpdateServiceUnitStatusRequest existing + hierarchy mutation extension | Response existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+| DELETE | /{id} | Soft-delete hierarchy tanpa melepas holder | ServiceUnit : Delete | DeleteServiceUnitRequest existing + hierarchy mutation extension | Envelope existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+
+#### Health Services / Master Data / Patient Class
+
+Base URL: `api/v1/health-services/master-data/patient-classes`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GET | /{id} | Detail + versi bed terdampak untuk mutation | PatientClass : Read | id | Detail existing + AffectedBedVersions:[{BedId,ExpectedVersion}] | EPIC BM-04 | Existing; diperbarui |
+| PUT | /{id} | Guard hierarchy yang mengubah availability/class bed | PatientClass : Update | UpdatePatientClassRequest existing + hierarchy mutation extension | Response existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+| PATCH | /{id}/status | Aktivasi/nonaktif hierarchy terkoordinasi | PatientClass : Update | UpdatePatientClassStatusRequest existing + hierarchy mutation extension | Response existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+| DELETE | /{id} | Soft-delete hierarchy tanpa melepas holder | PatientClass : Delete | DeletePatientClassRequest existing + hierarchy mutation extension | Envelope existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+
+### 26.14 Matriks kewenangan
+
+| Pelaku | Resource/action exact | Guard | Identity |
+| --- | --- | --- | --- |
+| Admisi berwenang | InpatientBedManagement : Read; InpatientBedOccupancy : Read/Create/Update; InpatientBedOccupancy : Transfer hanya jika diberikan existing | Scope semua unit/bed terlibat dan episode; bukan hak otomatis | Hanya jika existing patient/episode access sah |
+| Perawat ruangan berwenang | InpatientBedManagement : Read; InpatientBedOccupancy : Read/Create/Transfer sesuai permission existing; InpatientDischarge : RecordDeparture sesuai existing | Penugasan unit nyata; tidak otomatis menjadi verifier | Sesuai episode rights, tanpa clinical fields baru |
+| Perawat verifikator yang ditunjuk | InpatientBedManagement : Read/VerifyReadiness | IsReadinessVerifier + referensi penunjukan/SOP sah dan unit bed; akun HK OperationalOnly dilarang verify | Aksi readiness tidak membutuhkan identitas pasien |
+| Housekeeping individu | InpatientBedManagement : Read/StartCleaning/CompleteCleaning | OperationalOnly wajib; unit assignment actual; start/complete state guards | Tidak menerima patient/episode/reservation ID, diagnosis, riwayat lintas pasien |
+| Pembaca usage history berwenang | InpatientBedManagement : Read/ReadUsageHistory | Bukan OperationalOnly; scope bed/unit; identity per-row episode permission | Identity masked jika existing episode/patient right tidak terbukti |
+| Supervisor/Admisi correction authorized | InpatientBedOccupancy : Correct existing; ReadUsageHistory bila diberikan | Billing OPEN, reason+version existing, scope semua affected bed/episode | Sesuai existing correction rights |
+| Admin MasterData berwenang | Bed : Create/Read/Update/Delete existing | Ownership seluruh tim tidak otomatis grant semua akun; state guards berlaku semua writer | Master bed tidak memberi patient access |
+| Pemilik laporan transfer existing | InpatientReport : ReadRoomTransfer/ExportRoomTransfer existing | Guard report dan patient access existing tetap | Tidak memperluas rights dari route report ke history baru |
+
+Tabel turunan permission11; slash daftar literal actions, bukan permission baru. OperationalOnly/HK dilarang patient identity/history/verify meski punya broad permission; scope unknown deny, tidak menyimpulkan akun actual sudah diberi hak. New resource actions register saja, grant menunggu BM-G03.
+
+### 26.15 Batas integrasi dan billing
+
+Bed Management MUST NOT membuat pasien/master kelas kedua, tarif/ledger/folio/invoice atau engine room charge. Grade manual tidak menentukan harga. Transfer/correction memakai existing notification/outbox dan Billing requery timeline canonical1.1.0; SupersededByCorrectionId membedakan correction dari ordinary transfer. Callback/handover sesudah commit tidak membalik transfer. Physical departure tidak ditambah gate kasir baru.
+
+### 26.16 Guardrail regulasi
+
+MVP menerapkan batas privasi/audit yang sudah dipilih produk: least privilege, masking server, HK tanpa identitas/diagnosis/history, actor/waktu/reason dan versi koreksi. Desain ini tidak menetapkan regulasi atau retensi hukum baru; kebijakan rekam medis/retensi existing dan review pemilik privacy/hukum tetap harus dibuktikan BM-G03. SOP pembersihan/PPI/readiness/downtime tetap BM-G02, bukan checklist medis dari AI.
+
+### 26.17 Kebutuhan non-fungsional
+
+| ID | Kebutuhan | Hasil teruji | Bukti target |
+| --- | --- | --- | --- |
+| NFR-701 | Atomicity/concurrency | Bed locks semua writer, dua sumber holder direcheck, full rollback audit/receipt/outbox | BM-AT-419/414 PostgreSQL |
+| NFR-702 | Authorization/privacy | Scope server, operational HK JSON tanpa PHI, unknown deny, tidak grant otomatis | BM-AT-416/417/425 |
+| NFR-703 | Audit/correction | Actor individu, occurred/recorded UTC, before/after/reason, immutable snapshot+versions | BM-AT-406/411/415/418 |
+| NFR-704 | Freshness/idempotency | Expected versions/cycle dan receipt key stable; timeout diperiksa, no optimistic/offline overwrite | BM-AT-420/421/422 |
+| NFR-705 | Waktu/query | Server expiry parameter120m; UTC; history overlap interval stable paging max100, no timer ready | BM-AT-413/415 |
+| NFR-706 | Migration/compatibility | Fail-closed backfill; coordinated writers/clients cutover; rollback menjaga guards/history | Acceptance22.4 + migration dry run BM-G04 |
+
+Belum menetapkan SLA numerik response/cleaning atau jadwal retensi baru. Paging/bounded query dan no N+1 dalam projection diverifikasi saat delivery sesuai engineering contract.
+
+### 26.18 Skenario UAT
+
+Setiap epic MUST mempunyai satu berhasil dan satu gagal. Data contoh/akun/proof fixture samaran; pelaksanaan rumah sakit menunggu actual gates. Semua hasil **NOT_RUN**.
+
+| ID | Epic | Jalur | Kondisi awal | Langkah | Hasil yang diharapkan |
+| --- | --- | --- | --- | --- | --- |
+| UAT-701 | EPIC BM-01 | Berhasil | Fixture dua unit dengan enam status; actor berhak satu unit | Buka menu dan Monitoring, filter unit/kamar | Satu leaf, tiga tab, enam counts sesuai bed dalam scope; HK tidak menerima identitas |
+| UAT-702 | EPIC BM-01 | Gagal | Actor hanya baca unit A; respons lama ditunda | Deep-link unit B/Transfer tanpa hak; buka confirm selama refetch | 403/akses ditolak tanpa data bocor; confirm pending disabled, no stale result |
+| UAT-703 | EPIC BM-02 | Berhasil | Bed A Ready, episode sah; unused reservation lalu patient ditempatkan | Reserve120m/cancel beralasan; place; record departure | Cancel reason tersimpan tanpa dirty baru; sesudah used release Waiting, no immediate reserve |
+| UAT-704 | EPIC BM-02 | Gagal | Dua petugas/sessions bersaing pada bed Ready | Reserve episode A versus place episode B; simulasi timeout lalu retry same key | Satu holder sah; unknown diperiksa, retry tidak menggandakan; old closure tidak lepas new patient |
+| UAT-705 | EPIC BM-03 | Berhasil | Bed Waiting; HK dan perawat fixture punya proof assignment/SOP | HK mulai/selesai; perawat inspeksi dan sahkan | Selesai menunggu verifikasi; baru Ready setelah pengesahan, actor/time traced |
+| UAT-706 | EPIC BM-03 | Gagal | Bed AwaitingVerification atau siklus sudah baru | HK coba sahkan; verifier reject tanpa alasan; attempt lama coba verify | HK403; blankreason reject; stalecycle409; rejection valid menjaga jejak dan kembali Waiting |
+| UAT-707 | EPIC BM-04 | Berhasil | Bed kosong tanpa reservation | Admin close alasan, lalu reopen | Close Unavailable; reopen belum Available sampai readiness sah |
+| UAT-708 | EPIC BM-04 | Gagal | Bed terisi atau reserved; master data raw konflik | Coba nonactive/status/PUT/delete/hierarchy availability writer | 409 no closure; pasien aktif tetap terlihat+flag; invalid tidak bookable |
+| UAT-709 | EPIC BM-05 | Berhasil | Source current, destination Ready, official class proof fixture | Asal otomatis; manual Same/Up/Down sesuai fixture; confirm refreshed | Satu transfer commit, kategori+snapshot, asal Waiting, tujuan Occupied; handover aftercommit |
+| UAT-710 | EPIC BM-05 | Gagal | Source current, tujuan diambil actor lain atau order proof tidak ada | Pilih wrongcategory/stale target/default0 bedaID; inject DB failure | 409/422, source/dest/history utuh; tidak infer harga/nama, rollback lengkap |
+| UAT-711 | EPIC BM-06 | Berhasil | Satu episode tanpa transfer, satu transfer dengan correction valid | History bed/periode, buka versions; master rename kemudian refresh | Semua overlap segments termasuk initial/ongoing/correction; snapshot lama tetap; Billing flag tepat |
+| UAT-712 | EPIC BM-06 | Gagal | HK OperationalOnly / actor noepisode rights; Billing CLOSED | Coba history/directAPI identity; coba koreksi/delete committed transfer | HK403; identity masked bagi viewer tanpa right; closed correction rejected; no history delete |
+
+Seluruh31AC memiliki BM-AT-396..426 pada testing22, termasuk PostgreSQL interleaving, stale cycle, privacy JSON, old episode closure dan migration dry run.
+
+### 26.19 Definition of Done
+
+| Butir | Jawaban | Bukti |
+| --- | --- | --- |
+| Keputusan produk ditutup dan bounded gate siap desain | ya | Decision46, gate1.12/BM-RCG-20261010-01 |
+| Blueprint draft lengkap dan traced ke31AC | ya | Arsitektur14/FE15/data21/5contracts/testing22/flows09..14; pemeriksaan dokumen |
+| Desain target disetujui manusia | belum | approved_by/at amandemen null pada manifest11 |
+| Master actual/order global valid | belum | BM-G01 proof + UAT-709/710 |
+| SOP/shift HK/verifier/downtime sah | belum | BM-G02 proof + UAT-705/706 |
+| Permission/scopes/response privacy actual sah | belum | BM-G03 proof + UAT-701/702/712 |
+| Migrations, backfill dan coordinated cutover teruji | belum | BM-G04 PostgreSQL/migration/cutover runbook |
+| Satu siklus reservasi→hunian→release→cleaning→ready berjalan | belum | UAT-703/705 dan API/PG results |
+| No double holder/dirty reserve/duplicate retry/old closure release | belum | BM-AT-407/419/421/426 PostgreSQL |
+| Semua epic positive/negative UAT diterima | belum | UAT-701..712 signed results |
+| Billing/handover/corrections regression lulus | belum | BM-AT-414/415/418/422 dan receiver tests canonical |
+
+### 26.20 Urutan pengiriman dan bukti yang masih terbuka
+
+| Gelombang | Epic | Isi | Syarat mulai/akhir |
+| --- | --- | --- | --- |
+| MVP-0 | BM-01..06 fondasi bersama | Approve desain, additive schema/config/guard proof adapters, data dry run dan writer inventory | Blueprint approval; fixture aman. Belum production activation |
+| MVP-1 | BM-01/02/04 | Shared projection/availability + all write guards/idempotency, reserve/place/release/closure + FE coordinated consumers | MVP-0; tidak mixed old writers; semua bed tetap fail-closed sampai ready |
+| MVP-2 | BM-03 | HK/verifier cycle, attempt audit dan child UI | MVP-1; aktivasi memerlukan BM-G02/03; no autoReady bypass |
+| MVP-3 | BM-05/06 | Transfer grade+snapshot dan per-bed history/correction adapter | MVP-1; comparison class proof BM-G01 dan history rights BM-G03; integrasi Billing regression |
+| MVP-4 | BM-01..06 | End-to-end PG/API/privacy/migration/UAT proof dan readiness review | Semua epic lengkap, BM-G01..04 terkait lulus sebelum operasi bergantung dinyalakan |
+| POST-MVP | Di luar enam epic | Kemampuan pada26.8 hanya jika scope baru disetujui | Tidak masuk rilis pertama; tidak memberi otorisasi task baru |
+
+| Bukti terbuka, bukan pertanyaan produk ulang | Pemilik bukti | Memblokir development lock? | Memblokir aktivasi |
+| --- | --- | --- | --- |
+| BM-G01 makna/arah/isi order kelas | MasterData seluruh tim + BA | Tidak untuk adapter fail-closed; data actual bukan pilihan AI | Ya, comparison lintas kelas terkait |
+| BM-G02 SOP/pemeriksaan/downtime/shift assignment | HK/keperawatan/PPI; nama actual belum terbukti | Tidak untuk workflow software bounded; SOP tidak dikarang | Ya, cleaning/readiness/downtime terkait |
+| BM-G03 grant/scope/accounts/privacy approval | Admin akses + pemilik unit; privacy owner OPEN | Tidak untuk implementasi deny-by-default; tidak grant otomatis | Ya, seluruh hak/identity terkait |
+| BM-G04 repair F01–07 dan runtime proof | Tim implementasi + penguji + pemilik lingkungan | Merupakan acceptance delivery; bukan product OPEN DECISION | Ya, klaim siap runtime |
+| Persetujuan desain draft | Pemilik desain manusia | Ya, sebelum plan-module-delivery mengunci task target | Ya, bukan approval yang dapat diberikan AI |
+
+Tidak ada pertanyaan pilihan produk tersisa atau epic OPEN DECISION. Jika proof kemudian bertentangan dengan state/authority/data yang telah dipilih, reassess slice terdampak. Gelombang bukan task/tanggal; roadmap dibuat oleh plan-module-delivery setelah approval desain. Source aplikasi, database, deploy dan Git mutations belum menjadi wewenang fase ini.

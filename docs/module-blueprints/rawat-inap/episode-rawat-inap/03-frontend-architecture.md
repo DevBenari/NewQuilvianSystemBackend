@@ -3,15 +3,15 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | **`0.10`** — amandemen Workspace PPRI, kontrak `0.11.0`, bagian 14 (7 Oktober 2026, `draft`). Sebelumnya `0.9` — Finishing, bagian 13 (`approved`, `RWI-DEC-221`); **`0.8`** — amandemen terbatas penyelarasan `PRD-RWI-V2-001`, bagian 12, 15 September 2026. Sebelumnya: `0.7` — naik 2026-09-11 karena pencabutan aturan jenis kelamin tingkat kamar, `RWI-DEC-101`. Revision `0.6` naik 2026-09-08 karena langkah `Deposit` disisipkan sesuai `RWI-DEC-093` s.d. `RWI-DEC-096` |
-| Status | **`approved`** untuk `0.10` (bagian 14) — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). Status revision sebelumnya mengikuti `blueprint-manifest.md` sub-modul |
-| Apa yang berubah pada `0.7` | **Satu kode penolakan hilang dari layar.** `ROOM_GENDER_MIXED` tidak pernah terbit lagi dari server, sehingga pemetaan pesannya di frontend menjadi kode mati. Lihat bagian 4.3A. **Pekerjaan ini lintas repository** dan wajib satu gelombang dengan backend |
+| Revision | **`0.12`** — draft Bed Management, 10 Oktober 2026. Riwayat metadata: **`0.11`** — amandemen alur admisi pendaftaran rawat inap menyerap revisi tim analisis bisnis (Mba Ilma) via `RWI-DEC-267` s.d. `RWI-DEC-273` dan `RWI-AC-388` s.d. `RWI-AC-395` (10 Oktober 2026, `approved`): alur Pasien Baru 12 langkah dan Pasien Lama 10 langkah, Step 1 Jenis Kunjungan (Umum & Rujukan ringkas), Step 2 Kategori Pasien (3 opsi), batasan kontak darurat maks 13 digit numerik, penyatuan cari & verifikasi Pasien Lama split layout, penyembunyian Unit Tujuan di Step Dokter (otomatis ranap), penambahan langkah mandiri (*Dedicated Step*) Form Persetujuan & TTD Digital Pasien/Wali sebelum cetak, invariant penanda tangan Bayi Baru Lahir, serta fungsi General Consent Workspace PPRI sebagai print-only tanpa re-input. Sebelumnya `0.10` (Workspace PPRI, 7 Oktober 2026); `0.9` (Finishing); `0.8` |
+| Status | **`draft`** — Bed Management belum disetujui. Riwayat metadata: **`approved`** — amandemen alur admisi `0.11` disetujui pengguna pada 10 Oktober 2026 atas instruksi eksplisit "setujui dan lakukan /plan-module-delivery". Status revision sebelumnya `0.10` `approved` oleh Muhammad Hamzah (`RWI-DEC-265`) |
+| Apa yang berubah pada `0.11` | **Penyelarasan penuh alur admisi pendaftaran:** Pasien Baru diperluas menjadi 12 langkah dan Pasien Lama menjadi 10 langkah. Formulir Persetujuan Rawat Inap & TTD Digital diangkat menjadi Langkah Mandiri (*Dedicated Step*) yang menyimpan data persetujuan & citra TTD digital ke episode sebelum langkah cetak; General Consent PPRI berstatus *read-only / print-ready* (`RWI-AC-395`). Unit Tujuan disembunyikan dari UI dokter (`RWI-DEC-268`), kontak darurat dibatasi 13 digit (`RWI-DEC-267`), dan penanda tangan bayi dikunci ke orang tua/wali (`RWI-DEC-273`) |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
 | Apa yang berubah pada `0.5` | **Hanya batas dokumen, bukan isi desain.** Peta butir menu seluruh modul naik ke [`../02-module-map.md`](../02-module-map.md) bagian 3, karena sidebar hanya satu untuk tiga sub-modul. Nol layar, endpoint, dan aturan keterjangkauan yang bergerak |
-| Frontend SHA | `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
-| Backend SHA | `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
-| Masukan | `02-backend-architecture.md` revision `0.3`; `04-prd-to-mvp.md` revision `0.6.0` bagian 9; `contracts/api-contract.md`, `contracts/permission-audit-matrix.md`, dan `contracts/validation-matrix.md` revision `0.6.0` |
-| Dasar revision ini | `RWI-DEC-075` s.d. `RWI-DEC-079`, dijawab pemilik 2026-08-27; `RWI-DEC-093` s.d. `RWI-DEC-096`, dijawab pemilik 2026-09-08 |
+| Frontend SHA | Bed Management: 969acfcc04cdf31074a1911e9827c31d25ddadd0. Riwayat metadata: `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
+| Backend SHA | Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
+| Masukan | Decision46, gate1.12/BM-RCG-20261010-01, audit BM-AUD-20261010-01 rev1. Riwayat metadata: `02-backend-architecture.md` revision `0.3`; `04-prd-to-mvp.md` revision `0.6.0` bagian 9; `contracts/api-contract.md`, `contracts/permission-audit-matrix.md`, dan `contracts/validation-matrix.md` revision `0.6.0`; `00-interview-decisions.md` revision `40` |
+| Dasar revision ini | `RWI-DEC-075` s.d. `RWI-DEC-079`, `RWI-DEC-093` s.d. `RWI-DEC-096`, serta `RWI-DEC-267` s.d. `RWI-DEC-273` (10 Oktober 2026) |
 | Batas tulis | Hanya dokumen blueprint |
 
 > **Batas kewenangan dokumen ini.** Dokumen ini menetapkan **kontrak fungsional**: layar apa yang
@@ -121,24 +121,25 @@ menunjuk tepat satu layar yang memilikinya. Langkah tanpa pemilik adalah **cacat
 
 | Langkah `FLOW-RI-MVP-001` | Layar pemilik | Endpoint |
 | --- | --- | --- |
-| 1. Memilih pasien terdaftar, atau mendaftarkannya | `FE-INP-03` langkah 1–2 | `GET /patients/options`, `POST /patients`, `POST /patient-identity-documents`, `POST /patient-emergency-contacts` |
-| 2. Sistem membuat kunjungan bertipe rawat inap | `FE-INP-03` **titik tulis 1** | `POST /patient-encounters` dengan `EncounterType=Inpatient`, `RegistrationSource=InpatientAdmission` |
-| 3. Memilih penjamin, kelas, unit layanan, dan DPJP | `FE-INP-03` langkah 3–4 | `POST /patient-insurances` atau `/patient-company-guarantors` bila perlu, lalu `POST /patient-encounters`, lalu `POST /episodes` |
-| 4. Catatan awal kebutuhan isolasi selagi `Draft` | `FE-INP-03` langkah 4 | `PATCH /episodes/{id}/isolation-requirement` |
-| 5. Mencari lalu **memesan** tempat tidur, `Reserved` selama `BedReservationMinutes` | `FE-INP-03` langkah 5–6 | `GET /bed-occupancies/available-beds`, `POST /bed-occupancies/reservations` |
-| 6. Pasien sampai di kamar; **konfirmasi masuk**; kelayakan diperiksa ulang | **`FE-INP-02`** | `POST /bed-occupancies/placements` |
-| 7. Menugaskan perawat penanggung jawab | `FE-INP-04` | `POST /episodes/{id}/nurse-assignments` |
-| 8. DPJP mengubah kebutuhan isolasi di tengah perawatan | `FE-INP-15` di dalam `FE-INP-04` | `PATCH /episodes/{id}/isolation-requirement` |
-| 9. Memindahkan pasien | `FE-INP-05` | `POST /bed-occupancies/placements/transfer` |
-| 10. Mengalihkan DPJP | `FE-INP-04` | `POST /episodes/{id}/doctor-assignments` |
-| 11. Menyatakan pasien boleh pulang | `FE-INP-06` | `POST /discharges/{episodeId}/decide` |
-| 12. Menyusun dan menandatangani resume | `FE-INP-06` | `PUT /discharges/{episodeId}/summary`, `PATCH …/summary/sign` |
-| 13. Menandai butir administrasi | `FE-INP-07` | `POST /discharges/{episodeId}/clearance/{itemId}/mark` |
-| 14. Menandai kelayakan keuangan | `FE-INP-08` | `POST /discharges/{episodeId}/financial-clearance` |
-| 15. Mencatat kepergian pasien | `FE-INP-14` | `POST /discharges/{episodeId}/record-departure` |
-| 16. Menutup episode | `FE-INP-07` | `POST /discharges/{episodeId}/close` |
-| 17. Menutup menembus gerbang keuangan | `FE-INP-07` | `POST /discharges/{episodeId}/close-with-override` |
-| 18. Sesi koreksi | `FE-INP-11` | `POST /episodes/{id}/correction-sessions`, `PATCH …/close` |
+| 1. Memilih jenis kunjungan (Umum/Rujukan ringkas), kategori pasien, memilih pasien terdaftar (split layout kanan-kiri), atau mendaftarkannya (kontak darurat maks 13 digit) | `FE-INP-03` langkah 1–3 PB / langkah 1–2 PL | `GET /patients/options`, `POST /patients`, `POST /patient-identity-documents`, `POST /patient-emergency-contacts` |
+| 2. Menentukan penjamin, kelas perawatan, dan deposit uang muka | `FE-INP-03` langkah 4–5 PB / langkah 3–4 PL | `POST /patient-insurances` atau `/patient-company-guarantors`, `GET …/deposit-policies` |
+| 3. Menentukan DPJP & isolasi, sistem membuat kunjungan ranap (unit tujuan default tersembunyi) dan episode `Draft` | `FE-INP-03` **titik tulis 1** (langkah 6 PB / 5 PL) | `POST /patient-encounters` (`EncounterType=Inpatient`), `POST /episodes`, `PATCH …/isolation-requirement`, `POST …/top-ups` |
+| 4. Mencari lalu **memesan** tempat tidur, `Reserved` selama 2 jam | `FE-INP-03` **titik tulis 2** (langkah 7–8 PB / 6–7 PL) | `GET /bed-occupancies/available-beds`, `POST /bed-occupancies/reservations` |
+| 5. Konfirmasi admisi, lalu pengisian form persetujuan umum & tanda tangan digital pasien/wali (invariant bayi) | `FE-INP-03` **titik tulis 3 & 4** (langkah 9–10 PB / 8–9 PL) | `PUT /episodes/{id}`, `POST /episodes/{id}/admission-consents` |
+| 6. Mencetak lembar persetujuan rawat inap ber-TTD digital dan kartu pasien | `FE-INP-18` (langkah 11 PB / 10 PL) & `FE-INP-03` langkah 12 PB | Dialog cetak peramban / printer kartu |
+| 7. Pasien sampai di kamar; **konfirmasi masuk**; kelayakan diperiksa ulang | **`FE-INP-02`** | `POST /bed-occupancies/placements` |
+| 8. Menugaskan perawat penanggung jawab | `FE-INP-04` | `POST /episodes/{id}/nurse-assignments` |
+| 9. DPJP mengubah kebutuhan isolasi di tengah perawatan | `FE-INP-15` di dalam `FE-INP-04` | `PATCH /episodes/{id}/isolation-requirement` |
+| 10. Memindahkan pasien | `FE-INP-05` | `POST /bed-occupancies/placements/transfer` |
+| 11. Mengalihkan DPJP | `FE-INP-04` | `POST /episodes/{id}/doctor-assignments` |
+| 12. Menyatakan pasien boleh pulang | `FE-INP-06` | `POST /discharges/{episodeId}/decide` |
+| 13. Menyusun dan menandatangani resume | `FE-INP-06` | `PUT /discharges/{episodeId}/summary`, `PATCH …/summary/sign` |
+| 14. Menandai butir administrasi | `FE-INP-07` | `POST /discharges/{episodeId}/clearance/{itemId}/mark` |
+| 15. Menandai kelayakan keuangan | `FE-INP-08` | `POST /discharges/{episodeId}/financial-clearance` |
+| 16. Mencatat kepergian pasien | `FE-INP-14` | `POST /discharges/{episodeId}/record-departure` |
+| 17. Menutup episode | `FE-INP-07` | `POST /discharges/{episodeId}/close` |
+| 18. Menutup menembus gerbang keuangan | `FE-INP-07` | `POST /discharges/{episodeId}/close-with-override` |
+| 19. Sesi koreksi | `FE-INP-11` | `POST /episodes/{id}/correction-sessions`, `PATCH …/close` |
 
 ### Aksi di luar alur utama, yang tetap wajib punya pemilik
 
@@ -147,10 +148,10 @@ menunjuk tepat satu layar yang memilikinya. Langkah tanpa pemilik adalah **cacat
 | Menemukan episode apa pun menurut status | `FE-INP-16` | `GET /episodes`, `GET /episodes/filters/metadata` |
 | Melanjutkan admisi `Draft` yang tertinggal | `FE-INP-16` → `FE-INP-03` | `GET /episodes/{id}`, `PUT /episodes/{id}` |
 | Membatalkan admisi | `FE-INP-17` | `PATCH /episodes/{id}/cancel` |
-| Membatalkan pemesanan sebelum dipakai | `FE-INP-03` langkah 6 dan `FE-INP-02` | `PATCH /bed-occupancies/reservations/{id}/cancel` |
+| Membatalkan pemesanan sebelum dipakai | `FE-INP-03` langkah 8 PB / 7 PL dan `FE-INP-02` | `PATCH /bed-occupancies/reservations/{id}/cancel` |
 | Ringkasan operasional | `FE-INP-19` | `GET /episodes/summary`, `GET /census/summary` |
-| Mencetak persetujuan rawat inap | `FE-INP-18` | tidak ada — cetak dari data yang sudah dibaca |
-| Mencetak kartu pasien | `FE-INP-03` langkah 9 | dipakai ulang dari cetak kartu kiosk |
+| Mencetak persetujuan rawat inap ber-TTD digital | `FE-INP-18` dan Workspace PPRI | cetak dari data persetujuan & TTD digital yang sudah disimpan |
+| Mencetak kartu pasien baru | `FE-INP-03` langkah 12 PB | dipakai ulang dari cetak kartu kiosk |
 
 ---
 
@@ -292,116 +293,108 @@ Owner: Product/Domain bersama Backend/API.
 
 ## 3A. Kontrak alur admisi berlangkah — `FE-INP-03`
 
-Dasar: `RWI-DEC-075` sampai `RWI-DEC-079`.
+Dasar: `RWI-DEC-075` sampai `RWI-DEC-079`, `RWI-DEC-093` sampai `RWI-DEC-096`, serta amandemen revisi Mba Ilma `RWI-DEC-267` sampai `RWI-DEC-273`.
 
 ### 3A.1 Dua jalur masuk
 
-Layar dibuka dengan pilihan tipe pendaftaran, persis pola yang sudah berjalan pada
-`patient-entry-choice-step.jsx` milik pendaftaran IGD:
+Layar dibuka dengan pilihan tipe pendaftaran (`patient-entry-choice-step.jsx`):
 
-| Jalur | Kapan dipakai |
-| --- | --- |
-| **Pendaftaran pasien baru** | Pasien belum pernah terdaftar di rumah sakit |
-| **Pendaftaran pasien lama** | Pasien sudah punya nomor rekam medis |
+| Jalur | Kapan dipakai | Jumlah langkah |
+| --- | --- | :---: |
+| **Pendaftaran pasien baru** | Pasien belum pernah terdaftar di rumah sakit | **12 langkah** |
+| **Pendaftaran pasien lama** | Pasien sudah memiliki nomor rekam medis | **10 langkah** |
+| **Admisi Kamar Pulih** | Pasien rujukan dari instalasi bedah/kamar pulih | 10 langkah (lihat `FE-INP-29`) |
 
-Keduanya bermuara pada langkah yang sama sejak langkah Pembayaran.
+Keduanya bermuara pada langkah yang selaras sejak langkah Pembayaran.
 
-### 3A.2 Langkah jalur pasien baru
+### 3A.2 Langkah jalur pasien baru (12 Langkah)
+
+Menyerap revisi tim analisis bisnis (`RWI-DEC-267` s.d. `RWI-DEC-273`):
 
 | # | Langkah | Isi yang wajib ada | Titik tulis | Endpoint |
-| --- | --- | --- | :---: | --- |
-| 1 | Tipe Pasien | Pilihan jalur; jenis pasien (umum, ibu, bayi baru lahir, anak, pegawai, korporat). Bila **bayi baru lahir**, episode ibu dipilih di sini dan mengisi `MotherEpisodeId` | – | – |
-| 2 | Pendaftaran | Scan KTP bila tersedia, lalu formulir pasien baru, dokumen identitas, dan kontak darurat | tulis pasien | `POST /patients`, `POST /patient-identity-documents`, `POST /patient-emergency-contacts` |
-| 3 | Pembayaran | Cara bayar: tunai, asuransi, atau penjamin perusahaan. Bila asuransi atau perusahaan, kartunya dipilih atau didaftarkan. **Kelas perawatan dipilih di sini**, karena hak kelas mengikuti penjaminnya | tulis penjamin bila baru | `POST /patient-insurances` atau `POST /patient-company-guarantors` |
-| 4 | **Deposit** | Nominal deposit yang diterima, minimum menurut kebijakan penjamin/kelas, dan selisihnya bila kurang. Nominal di bawah minimum **hanya memberi peringatan**; tombol lanjut tidak terkunci. Langkah dilewati bila kebijakan tidak mensyaratkan deposit | – (isian ditahan) | `GET /billing-management/billing/patient-funds/deposit-policies` |
-| 5 | Dokter | **Unit layanan rawat inap tujuan**, **DPJP**, catatan admisi, dan **kebutuhan isolasi beserta keterangannya**. Setelah episode terbentuk, nominal langkah Deposit dikirim sebagai penerimaan ber-`idempotencyKey` | **titik tulis 1** | `POST /patient-encounters` → `POST /episodes` → `PATCH /episodes/{id}/isolation-requirement` bila isolasi menyala → `POST /patient-funds/deposits/{encounterId}/top-ups` bila ada nominal |
-| 6 | Pilih Bed | Hasil `available-beds` yang **sudah tersaring server**. Tempat tidur yang tersaring keluar boleh tampil sebagai baris nonaktif beserta alasannya | – | `GET /bed-occupancies/available-beds` |
-| 7 | Booking Bed | Memesan tempat tidur terpilih. Sisa waktu pemesanan wajib terbaca. Membatalkan pemesanan dan memilih ulang wajib mungkin | **titik tulis 2** | `POST /bed-occupancies/reservations`, `PATCH …/reservations/{id}/cancel` |
-| 8 | Konfirmasi | Ringkasan seluruh isian, **termasuk posisi deposit dan kekurangannya**. Menyimpan perubahan isian admisi bila ada | **titik tulis 3** | `PUT /episodes/{id}` bila ada yang berubah |
-| 9 | Cetak Persetujuan Pasien Ranap | Formulir persetujuan umum berisi data pasien, penjamin, unit, kelas, DPJP, dan nomor episode | – | – |
-| 10 | Kartu Pasien | Cetak kartu pasien | – | dipakai ulang dari cetak kartu kiosk |
+| :---: | --- | --- | :---: | --- |
+| 1 | **Jenis Kunjungan** | Pilihan `Umum` vs `Rujukan`. Bila `Umum`, langsung lanjut. Bila `Rujukan`, wajib mengisi data rujukan tekstual ringkas: nomor rujukan, tanggal/jam, faskes perujuk, dokter perujuk, dan diagnosa awal rujukan (`RWI-DEC-269`, `RWI-AC-390`). Tanpa kewajiban upload dokumen fisik | – | – (state alur) |
+| 2 | **Kategori Pasien** | Tepat 3 opsi: `Pasien Umum`, `Bayi Baru Lahir`, dan `Pegawai` (`RWI-DEC-270`, `RWI-AC-391`). Opsi Ibu, Anak, dan Korporat dinonaktifkan. Bila `Bayi Baru Lahir`, pemilih episode ibu aktif dan mengisi `MotherEpisodeId` | – | `GET /episodes?status=Admitted` |
+| 3 | **Pendaftaran** | Scan KTP (opsional), form identitas pasien baru, dokumen identitas, dan kontak darurat. **Nomor HP Kontak Darurat dibatasi maksimal 13 digit angka** (`RWI-DEC-267`, `RWI-AC-388`) | **tulis pasien** | `POST /patients`, `POST /patient-identity-documents`, `POST /patient-emergency-contacts` |
+| 4 | **Pembayaran** | Cara bayar: Tunai, Asuransi, atau Penjamin Perusahaan. Pendaftaran/pemilihan kartu penjamin. **Kelas perawatan dipilih di sini** | tulis kartu baru bila ada | `POST /patient-insurances` atau `POST /patient-company-guarantors` |
+| 5 | **Deposit** | Nominal uang muka/deposit, perbandingan terhadap minimum kebijakan. Nominal kurang hanya memperingatkan, tidak menolak (`RWI-DEC-095`) | – (ditahan di klien) | `GET …/patient-funds/deposit-policies` |
+| 6 | **Dokter** | **DPJP aktif**, catatan admisi, sakelar dan keterangan isolasi. **Dropdown Unit Tujuan disembunyikan dari UI** (`RWI-DEC-268`, `RWI-AC-389`) dan otomatis mengikat default Service Unit Rawat Inap pada backend payload | **titik tulis 1** | `POST /patient-encounters` → `POST /episodes` → `PATCH …/isolation-requirement` → `POST …/top-ups` (deposit bila ada) |
+| 7 | **Pilih Bed** | Hasil `available-beds` yang tersaring server menurut kelas dan isolasi | – | `GET /bed-occupancies/available-beds` |
+| 8 | **Booking Bed** | Memesan tempat tidur terpilih (`Reserved` 2 jam). Sisa waktu wajib terbaca | **titik tulis 2** | `POST /bed-occupancies/reservations`, `PATCH …/reservations/{id}/cancel` |
+| 9 | **Konfirmasi** | Ringkasan admisi. Menyimpan perubahan catatan/kelas bila ada | **titik tulis 3** | `PUT /episodes/{id}` |
+| 10 | **Form Persetujuan & TTD Digital** | **Langkah Mandiri (*Dedicated Step*)**: Form isian persetujuan umum rawat inap, pilihan penanda tangan (Pasien / Wali), data wali. **Invariant: Bayi Baru Lahir mengunci penanda tangan ke Orang Tua/Wali** (`RWI-DEC-273`). Kanvas tanda tangan digital interaktif (`react-signature-canvas`). Data persetujuan & citra TTD tersimpan permanen ke episode (`RWI-DEC-272`, `RWI-AC-393`) | **titik tulis 4** | `POST /episodes/{id}/admission-consents` |
+| 11 | **Cetak Persetujuan Ranap** | Formulir persetujuan terisi lengkap dengan citra TTD digital siap cetak (`FE-INP-18`). Staf PPRI hanya melakukan print tanpa perlu input ulang (`RWI-AC-395`) | – | Dialog cetak peramban |
+| 12 | **Kartu Pasien** | Cetak kartu berobat pasien baru | – | dipakai ulang dari cetak kartu kiosk |
 
-**Sepuluh langkah sejak `RWI-DEC-093`, sebelumnya sembilan.** Langkah `Deposit` **tidak** menjadi
-titik tulis keempat. Nominalnya ditahan di klien lalu dikirim menyusul titik tulis 1, sesuai
-`RWI-DEC-076` yang tidak berubah. Konsekuensi yang diterima sadar: uang sudah diterima petugas
-sebelum kwitansi terbit — `RWI-RISK-006`, dan kepemilikan risikonya menunggu `RWI-OQ-052`.
+### 3A.3 Langkah jalur pasien lama (10 Langkah)
 
-### 3A.3 Langkah jalur pasien lama
+Menyerap penyatuan pencarian-verifikasi dan penataan rujukan (`RWI-DEC-271` dan `RWI-AC-392`):
 
-Sama persis sejak langkah Pembayaran. Yang berbeda hanya di depan dan di belakang:
+| # | Langkah | Isi | Titik tulis | Endpoint |
+| :---: | --- | --- | :---: | --- |
+| 1 | **Cari & Verifikasi Pasien Terpadu** | **Layar Split 1 Langkah**: Kanan memuat form pencarian Nomor RM/NIK + tombol Cari; Kiri memuat kartu identitas hasil verifikasi data pasien lengkap (`RWI-DEC-271`). Tombol Lanjut aktif setelah 1 pasien diverifikasi | – | `GET /patients/options?search=...` |
+| 2 | **Jenis Kunjungan & Kategori Pasien** | Pilihan `Umum` vs `Rujukan` (form rujukan ringkas teks) DAN Kategori Pasien (`Umum` atau `Pegawai`; opsi Bayi Baru Lahir dinonaktifkan pada pasien lama) | – | – (state alur) |
+| 3 | **Pembayaran** | Cara bayar, kartu penjamin, dan kelas perawatan | tulis kartu bila baru | sama dengan Langkah 4 PB |
+| 4 | **Deposit** | Uang muka / deposit rawat inap | – | sama dengan Langkah 5 PB |
+| 5 | **Dokter** | DPJP & isolasi; Unit Tujuan disembunyikan dari UI dan diisi default ranap | **titik tulis 1** | sama dengan Langkah 6 PB |
+| 6 | **Pilih Bed** | Pemilihan tempat tidur yang tersedia | – | sama dengan Langkah 7 PB |
+| 7 | **Booking Bed** | Reservasi tempat tidur aktif | **titik tulis 2** | sama dengan Langkah 8 PB |
+| 8 | **Konfirmasi** | Kunci admisi dan ringkasan | **titik tulis 3** | sama dengan Langkah 9 PB |
+| 9 | **Form Persetujuan & TTD Digital** | Form persetujuan umum rawat inap & kanvas digital signature | **titik tulis 4** | sama dengan Langkah 10 PB |
+| 10 | **Cetak Persetujuan Ranap** | Pratinjau dokumen ber-TTD siap cetak. Tombol utama berbunyi **Selesai Admisi** dan menutup alur | – | sama dengan Langkah 11 PB |
 
-| # | Langkah | Isi |
-| --- | --- | --- |
-| 1 | Pasien Lama | Pencarian dengan nomor rekam medis atau NIK, atau scan kartu pasien |
-| 2 | Informasi Pasien Lama | Peninjauan data pasien yang ditemukan sebelum dilanjutkan |
-| 3 | Tipe Pasien | Sama seperti langkah 1 jalur pasien baru |
-| 4–9 | Pembayaran, **Deposit**, Dokter, Pilih Bed, Booking Bed, Konfirmasi, Cetak Persetujuan | Sama persis. Sembilan langkah sejak `RWI-DEC-093`, sebelumnya delapan |
+Langkah **Kartu Pasien tidak ada** pada jalur pasien lama; pasien lama sudah memilikinya.
 
-Langkah **Kartu Pasien tidak ada** pada jalur ini; pasien lama sudah memilikinya. Bila kartunya
-hilang, cetak ulang dilakukan lewat layar cetak kartu yang sudah ada, bukan dari alur admisi.
+### 3A.4 Empat titik tulis alur admisi
 
-### 3A.4 Tiga titik tulis, dan kenapa tidak ditahan sampai akhir
-
-`RWI-DEC-076` menetapkan tulisan terjadi **bertahap**, bukan ditahan sampai Konfirmasi.
+`RWI-DEC-076` dan `RWI-DEC-272` menetapkan tulisan terjadi bertahap untuk menjamin integritas data:
 
 | Titik tulis | Terjadi di | Yang tersimpan |
 | :---: | --- | --- |
-| pasien | akhir langkah Pendaftaran | `MstPatient` beserta dokumen identitas dan kontak darurat |
-| **1** | akhir langkah Dokter | Kunjungan rawat inap **beserta baris penjaminnya**, lalu episode berstatus `Draft` |
-| **2** | langkah Booking Bed | `InpBedReservation` aktif; tempat tidur terbaca `Reserved` |
-| **3** | langkah Konfirmasi | Perubahan isian admisi, bila ada |
-
-**Kenapa bertahap.** Menahan semuanya sampai Konfirmasi membuat `Reserved` kehilangan gunanya.
-`RWI-CAP-006` ditandai wajib justru dengan alasan "tanpa ini dua petugas merebut tempat tidur yang
-sama". Pemesanan yang baru terjadi di detik terakhir tidak menahan apa pun.
-
-**Akibat yang wajib ditangani.** Karena tulisan terjadi bertahap, alur yang ditinggal di tengah
-meninggalkan jejak di server. Penanganannya ada pada 3A.6, dan `FE-INP-16` karena itu **wajib**,
-bukan tambahan.
+| pasien | akhir langkah Pendaftaran (PB) | `MstPatient` beserta dokumen identitas dan kontak darurat (No HP maks 13 digit) |
+| **1** | akhir langkah Dokter | Kunjungan rawat inap (`TrxPatientEncounter`), episode `Draft` (`InpEpisode`), catatan isolasi, dan top-up deposit awal |
+| **2** | langkah Booking Bed | `InpBedReservation` aktif; tempat tidur berstatus `Reserved` selama 2 jam |
+| **3** | langkah Konfirmasi | Pembaruan catatan episode dan kelas perawatan bila ada koreksi |
+| **4** | langkah Form Persetujuan & TTD Digital | Formulir persetujuan umum rawat inap, data subjek/wali penanda tangan, waktu tanda tangan, dan citra tanda tangan digital (`base64 PNG`) |
 
 ### 3A.5 Aturan mundur
 
 | Mundur dari | Ke | Yang boleh berubah |
 | --- | --- | --- |
-| Booking Bed | Pilih Bed | Bebas, selama pemesanan yang sudah terbentuk **dibatalkan lebih dulu**. Tidak boleh ada dua pemesanan aktif untuk satu episode |
-| Pilih Bed | Dokter | Unit layanan, kelas, dan catatan boleh berubah lewat `PUT /episodes/{id}`. **DPJP tidak** — pengalihan DPJP adalah `POST /episodes/{id}/doctor-assignments` dan bukan wewenang alur admisi. Bila DPJP salah, admisi dibatalkan lalu dibuka ulang |
-| Dokter | Deposit | **Tidak boleh** setelah titik tulis 1. Kunjungan, episode, dan penerimaan deposit sudah terbentuk. Bila nominal deposit salah, pembetulannya lewat transaksi Billing — top-up atau refund — bukan lewat mundur ke langkah sebelumnya |
-| Deposit | Pembayaran | Bebas selama titik tulis 1 belum lewat. Nominal yang sudah diketik ikut terbawa |
-| Dokter | Pembayaran | **Tidak boleh** setelah titik tulis 1. Kunjungan sudah terbentuk beserta penjaminnya. Bila penjamin salah, admisi dibatalkan lewat `FE-INP-17` lalu dibuka ulang. Layar wajib mengatakan ini **sebelum** langkah Dokter disimpan, bukan sesudah |
-| Pembayaran | Pendaftaran | Bebas selama titik tulis 1 belum lewat |
+| Booking Bed | Pilih Bed | Bebas, selama pemesanan yang sudah terbentuk dibatalkan terlebih dahulu |
+| Pilih Bed | Dokter | Catatan dapat diubah lewat `PUT /episodes/{id}`. **DPJP tidak dapat diubah** dari alur admisi; admisi dibatalkan bila DPJP salah |
+| Dokter | Deposit / Pembayaran | **Tidak boleh** setelah Titik Tulis 1 terlewati. Kunjungan, episode, dan deposit awal sudah terbentuk. Pembatalan admisi diperlukan jika salah penjamin |
+| Form Persetujuan | Konfirmasi | Bebas. Catatan yang ditinjau masih dapat disesuaikan |
+| Cetak Persetujuan | Form Persetujuan | Bebas. Kanvas tanda tangan dapat dibersihkan dan ditandatangani ulang selama belum dicetak/difinalisasi |
 
 ### 3A.6 Alur yang ditinggal
 
 | Ditinggal setelah | Yang tertinggal di server | Cara menemukannya kembali |
 | --- | --- | --- |
 | Langkah Pendaftaran | Pasien terdaftar tanpa kunjungan | Jalur pasien lama |
-| Titik tulis 1 | Episode `Draft` tanpa tempat tidur | `FE-INP-16` tersaring `Draft` → melanjutkan ke `FE-INP-03` langkah Pilih Bed |
+| Titik tulis 1 | Episode `Draft` tanpa tempat tidur | `FE-INP-16` tersaring `Draft` → melanjutkan alur ke langkah Pilih Bed |
 | Titik tulis 2 | Episode `Draft` dengan tempat tidur `Reserved` | Sama; sisa waktu pemesanan wajib terbaca |
-| Pemesanan kedaluwarsa | Episode `Draft` tanpa tempat tidur | Sama. `FE-INP-16` wajib membedakan `Draft` yang masih memegang pemesanan dari yang pemesanannya sudah gugur, karena keduanya menuntut tindakan berbeda |
-
-Server menggugurkan pemesanan yang lewat waktu secara lazim pada setiap pemanggilan tempat tidur
-berikutnya. Layar **tidak boleh** menghitung sendiri kapan sebuah pemesanan gugur; ia menampilkan
-apa yang dijawab server.
+| Titik tulis 4 | Episode `Draft` lengkap dengan persetujuan dan TTD | `FE-INP-16` → langsung ke langkah Cetak Persetujuan atau konfirmasi kedatangan di Bed Board |
 
 ### 3A.7 Batas alur ini
 
 | Yang **tidak** dilakukan alur admisi | Alasannya |
 | --- | --- |
-| Menempatkan pasien menjadi `Admitted` | `RWI-DEC-076`. Kelayakan Penempatan diperiksa **ulang** saat pasien benar-benar tiba; memeriksanya di meja admisi meloloskan tempat tidur yang keburu tidak layak |
-| Mengalihkan DPJP | Ada pada `FE-INP-04` |
-| Menyimpan persetujuan umum | `RWI-DEC-077`. Formulir dicetak, tanda tangan tetap di atas kertas |
-| Membuat antrean | Rawat inap tidak berantrean. Unit layanan rawat inap wajib disetel `IsQueueRequired = false` pada master data — **prasyarat data, bukan pekerjaan frontend** |
+| Menempatkan pasien menjadi `Admitted` | `RWI-DEC-076`. Pasien baru menjadi `Admitted` saat kedatangannya dikonfirmasi di Papan Tempat Tidur |
+| Mengalihkan DPJP di tengah jalan | Menjadi wewenang detail episode `FE-INP-04` melalui `doctor-assignments` |
+| Memaksa upload dokumen rujukan fisik | `RWI-DEC-269`. Pendaftaran mencatat ringkasan teks rujukan tanpa membebani pemindaian berkas |
+| Menagih input ulang di Workspace PPRI | `RWI-DEC-272` dan `RWI-AC-395`. Dokumen persetujuan yang sudah ditandatangani di admisi langsung tersedia *read-only / print-ready* di PPRI |
 
-### 3A.8 Persetujuan rawat inap — `FE-INP-18`
+### 3A.8 Persetujuan rawat inap & TTD Digital — Hubungan dengan Workspace PPRI
 
-`RWI-DEC-077` memilih **cetak tanpa menyimpan**.
+Menyerap `RWI-DEC-272`, `RWI-DEC-273`, dan `RWI-AC-393` s.d. `RWI-AC-395`:
 
 | Aspek | Ketetapannya |
 | --- | --- |
-| Yang **wajib** | Formulir memuat identitas pasien, penjamin, unit layanan, kelas, DPJP, nomor episode, dan tanggal. Ketiga isi minimal `RWI-DEC-035` tercetak: persetujuan tindakan kedokteran umum, persetujuan pemberian informasi kepada penjamin, dan penunjukan penerima informasi |
-| Yang **tidak boleh** | Menyatakan di layar bahwa persetujuan "sudah tersimpan" atau "sudah ditandatangani". Sistem tidak menyimpan apa pun |
-| Hubungannya dengan penutupan | Butir daftar periksa administrasi tetap ditandai manual pada `FE-INP-07`, seperti sekarang |
-| Yang tetap terbuka | `RWI-CAP-031` dan `DEC-INP-003` **tidak** tertutup oleh keputusan ini |
+| Formulir terstruktur | Formulir persetujuan memuat identitas pasien/wali, penjamin, nomor episode, pernyataan persetujuan tindakan, pelepasan informasi, tata tertib, dan penunjukan penerima informasi medis |
+| Tanda tangan digital | Pasien atau wali menandatangani langsung di layar menggunakan stylus / touch / mouse via `react-signature-canvas`. Citra disimpan dan dilekatkan pada berkas |
+| Invariant Bayi Baru Lahir | Untuk pasien kategori Bayi Baru Lahir, sistem mengunci penanda tangan secara mutlak ke Orang Tua / Wali sah (`RWI-DEC-273`) |
+| Hubungan dengan Workspace PPRI | Berkas yang tersimpan di langkah admisi ini langsung mengisi menu General Consent di Workspace PPRI. Menu PPRI berstatus **read-only / print-ready**; staf PPRI dapat mencetak berkas kapan saja tanpa perlu meminta pasien menandatangani ulang (`RWI-AC-395`) |
 
 ---
 
@@ -1301,3 +1294,114 @@ Tab Rekap: kepala (jenis tindakan, jadwal, dokter, ruang rawat — terisi dari k
 | `FE-INP-39`, `43`, `44` | `FR-RWA-060` s.d. `062`, `100` s.d. `103`, `110` s.d. `113` | `RWI-DEC-238`, `242`, `256` | `RWI-AC-351`, `352`, `357`, `362`, `377` |
 | `FE-INP-41` | `FR-RWA-080` s.d. `085` | `RWI-DEC-231`, `248`, `252`, `258`, `260`, `261`, `263` | `RWI-AC-366`, `367`, `379`, `381`, `382`, `385` |
 | `FE-INP-12`, `13` | `FR-RWA-030`, `050`, `126` | `RWI-DEC-241`, `243`, `247` | `RWI-AC-360`, `361`, `368` |
+
+## 15. Amandemen Bed Management — 10 Oktober 2026
+
+**Status: draft — Amandemen Bed Management, 10 Oktober 2026.** Set kontrak mengikuti `blueprint-manifest.md`; `last_changed_in: 0.12.0`. Owner produk/domain/API: Muhammad Hamzah (RWI-DEC-061); frontend: pengembang dalam batas RWI-DEC-292; keamanan/privasi: OPEN. `approved_by: null`, `approved_at: null` untuk amandemen ini.
+
+Masukan: decision log revision **46**, RWI-DEC-274–294 dan RWI-AC-396–426; gate revision **1.12**, **BM-RCG-20261010-01**, enam BM-CG siap untuk desain produk terbatas. `DOMAIN_ARCHITECTURE_NOT_RUN` untuk slice ini: ownership existing sudah diketahui dan gate mengizinkan desain langsung. Arsitektur domain lama bagi scope lain tetap berlaku. As-is bersumber audit **BM-AUD-20261010-01** revision 1 (section 7 untuk Swagger), bukan bukti runtime.
+
+Snapshot BE `d4e1eca06fb28c05934c68c1e51a4dca01935a10`, FE `969acfcc04cdf31074a1911e9827c31d25ddadd0`. Semua nama class/field/API baru di bawah adalah **target Rencana (belum tersedia)**. Bila bagian lama bertentangan mengenai bed kembali Available, amandemen ini mengikuti RWI-DEC-281/282. Persetujuan produk bukan persetujuan desain atau SOP. Hash masukan terpusat pada manifest.
+
+### 15.1 Authority dan menu reachability
+
+Nama menu, tiga tab, enam label, asal otomatis, tujuan tersedia, kategori manual dan history lengkap adalah USER_CONFIRMED/product-approved melalui DEC-274–294. Bentuk tab/urutan wilayah, warna, ikon, jarak, responsive arrangement adalah **DEV_DISCRETION** memakai design token/base component existing; pilihan visual di sini **PROPOSED** dan bukan persetujuan UI final. Tidak membuka wawancara ulang.
+
+| Tingkat | Induk | Butir/route | Layar | Hak akses |
+| --- | --- | --- | --- | --- |
+| 0 / subMenu | Sidebar existing | Health Services existing | Grup existing | Permission turun ke leaf |
+| 1 / subItems | Health Services | Inpatient Management / Rawat Inap existing | Grup existing | Permission turun ke leaf |
+| 2 / pathname | Inpatient Management | Rename Papan Tempat Tidur → Bed Management; `/health-services/inpatient-management/bed-board` | FE-BM-01 (default), tab FE-BM-02/03 | InpatientBedManagement : Read; masing-masing tab tetap hak sendiri |
+
+Route existing dipertahankan, menu kedua tidak dibuat. Registry lintas submodul canonical pada `../02-module-map.md` bagian 9. Deep link detail episode ke tab transfer mengikuti codec/query utility project existing untuk episode identifier, setelah authorization server. Role lama yang hanya Occupancy Read membutuhkan mapping Read baru yang disahkan BM-G03; seeder tidak otomatis grant.
+
+| ID | Layar | Jalan masuk | Permission/action | Sumber |
+| --- | --- | --- | --- | --- |
+| FE-BM-01 | Monitoring Bed | Menu Bed Management, tab Monitoring Bed | InpatientBedManagement : Read | metadata + monitoring; available-beds untuk pemesanan dengan hak existing |
+| FE-BM-02 | Bed Transfer | Tab Bed Transfer; deep link dari detail episode existing | InpatientBedOccupancy : Read/Transfer dan episode Read + scope | transfer-context, available-beds, placements/transfer |
+| FE-BM-03 | Bed Usage History | Tab Bed Usage History; pintasan Pilih bed pada Monitoring | InpatientBedManagement : ReadUsageHistory; scope | usage-history; by-episode hanya jika authorized |
+| FE-BM-04 | Detail operasional/pembersihan bed (anak) | Klik bed pada FE-BM-01; bukan menu/tab keempat | Read/StartCleaning/CompleteCleaning/VerifyReadiness sesuai aksi | cleaning-attempts, start/complete/verify + monitoring |
+| FE-BM-05 | Konfirmasi transfer (anak) | Konfirmasi pada FE-BM-02 setelah awaited refresh | Transfer dan scope kedua bed | current context + versions; mutation key stabil |
+| FE-BM-06 | Cancel reservation/master close-reopen (anak existing) | Aksi sah FE-BM-01 atau halaman master bed existing | InpatientBedOccupancy : Update / Bed : Update sesuai aksi | API existing diperketat, alasan + expected version |
+
+Metadata menyatakan tiga tab BA, tab tanpa hak disabled dengan penjelasan 'Tidak memiliki akses' dan tidak memanggil endpoint/data tab itu. HK hanya dapat Monitoring operasional dan anak cleaning, bukan transfer/history pasien. Direct route/query tab tetap AccessDeniedGate, tidak hanya disabled tab.
+
+### 15.2 Skema fitur (susunan PROPOSED)
+
+```text
+Bed Management
+[Monitoring Bed] [Bed Transfer] [Bed Usage History]
+Monitoring: [Unit] [Kamar] [Status] [Cari bed] [Muat ulang]
+            [6 ringkasan status] [Daftar bed + badge + aksi sah]
+            -> Detail bed: [timeline cleaning] [mulai/selesai/sahkan/tolak]
+Transfer:   [Pasien terotorisasi] [Kamar/bed asal otomatis, readonly]
+            [Kamar/bed tujuan tersedia] [Kategori manual] [Alasan]
+            -> Konfirmasi setelah data baru selesai dibaca
+History:    [Bed wajib] [Kamar opsional] [Periode]
+            [Segmen hunian initial/transfer/current + versi koreksi] [Pagination]
+```
+
+| Layar | Wilayah | Endpoint/data | Hak tombol/guard | Loading/empty/error/filled |
+| --- | --- | --- | --- | --- |
+| FE-BM-01 | Header/tiga tab/filter/counts | metadata + monitoring | Read; tab allowed server | Memuat: skeleton; kosong: 'Tidak ada bed sesuai filter'; gagal: 'Data bed gagal dimuat. Muat ulang.' |
+| FE-BM-01 | Daftar bed / konflik | monitoring BedOperationalResponse | Aksi hanya AvailableActions ∩ permission current; HK tanpa patient UI | Terisi: enam label, subphase menunggu verifikasi, conflict alert; tidak tampilkan identitas jika HoldingContext omitted |
+| FE-BM-01/06 | Pesan/tempatkan/cancel | available-beds + reserve/place/cancel existing | Create/Update, episode+unit scope | Reason wajib cancel; error mempertahankan input; expectedVersion dari fresh result |
+| FE-BM-02 | Pilih pasien/asal otomatis | Picker episode existing terotorisasi + transfer-context | Read dan Transfer, episode rights | Kosong: 'Pilih pasien dengan hunian aktif'; gagal/stale: 'Hunian asal berubah. Muat ulang.' |
+| FE-BM-02 | Tujuan dan kategori manual | available-beds(episodeId), comparison/allowed categories | Transfer; kedua unit scope | Tidak ada tujuan: 'Tidak ada bed tersedia yang sesuai'; Unknown: 'Acuan kelas belum terverifikasi'; tidak default kategori |
+| FE-BM-02/05 | Alasan dan konfirmasi | source/dest IDs, versions, category, reason; placements/transfer | Transfer + guard existing DPJP/folio | Loading refresh menonaktifkan confirm; 409 reload; sukses baru toast sesudah commit, asal waiting |
+| FE-BM-03 | Filter bed/kamar/periode dan timeline | usage-history | ReadUsageHistory; identity per-row response | Kosong: 'Belum ada penggunaan pada periode ini'; gagal: 'Riwayat gagal dimuat'; akhir NULL='Masih digunakan'; versi koreksi tidak tampak transfer baru |
+| FE-BM-04 | Attempt timeline dan aksi HK | cleaning-attempts/start/complete | StartCleaning/CompleteCleaning + assignment | Start menunggu→cleaning; selesai='Menunggu verifikasi'; tidak menawarkan Available |
+| FE-BM-04 | Sahkan/tolak kesiapan | readiness-verifications | VerifyReadiness + assignment verifier | Evidence/reference wajib; reject reason wajib; konflik cycle reload; HK tidak melihat tombol verify |
+| FE-BM-06 | Close/reopen master dialog | Master existing API melalui service updated | Bed Update/Delete sesuai aksi | Alasan wajib; occupied/reserved conflict; reopen tampil belum diverifikasi, tidak sukses Available |
+
+### 15.3 Reuse setiap elemen dan struktur target
+
+| Elemen | Keputusan | Alasan/penerapan |
+| --- | --- | --- |
+| Hero, SummaryGrid, StatusBadge | Reuse | Judul, enam counts dan label/subphase; warna/token existing DEV_DISCRETION |
+| DataFilter, FilterSelect, ResourceFilterSelect, FilterDatePicker | Reuse | Unit/room/bed/periode; opsi server scoped, bukan semua unit |
+| DataTable + Pagination | Reuse | History/attempts; server pagination; versi koreksi dan ongoing jelas |
+| BaseButton, ConfirmModal, BaseDetailView/Card/SidePanel | Reuse | Aksi/tab/modal/bed detail sesuai accessibility; tidak buat base component baru |
+| FormControl, TextField dan BaseEditorField existing | Reuse | Reason/reference/category; props mengikuti katalog actual saat build |
+| InformationAlert, ToastStack, AccessDeniedGate/Alert | Reuse | Conflict, belum ada hak, timeout dan hasil belum pasti; jangan success sebelum server |
+| inpatient-bed-board feature/hook/actions/service/utils existing | Extend / repair | Tab container, DTO six-status, scope actions, await refetch dan stable key |
+| bed transfer form existing episode detail | Adapter | Satu shared feature component FE-BM-02; detail mengarahkan ke tab atau memakai komponen yang sama; satu handler validasi |
+| Fitur tab/history/cleaning khusus Bed Management | Baru, pada feature layer | Komposisi base yang sudah ada; tidak component library/domain store kedua |
+| Redux auth/permission existing + InstanceAxios | Reuse | Pola Next App Router JS/JSX, hooks/service; state filter lokal/URL, Redux hanya shared project state |
+
+```text
+QuilvianSystemFrontendDev/src/
+├─ app/health-services/inpatient-management/bed-board/page.jsx [Diperbarui; thin route]
+├─ components/view/health-services/inpatient-management/inpatient-bed-board-view.jsx [Diperbarui]
+├─ components/features/health-services/inpatient-management/
+│  ├─ inpatient-bed-board.jsx [Diperbarui]
+│  ├─ inpatient-bed-transfer.jsx [Baru; adapter shared form existing]
+│  ├─ inpatient-bed-usage-history.jsx [Baru]
+│  └─ inpatient-bed-cleaning-detail.jsx [Baru]
+├─ lib/hooks/health-services/inpatient-management/
+│  ├─ use-inpatient-bed-board.jsx [Diperbarui]
+│  ├─ use-inpatient-bed-board-actions.jsx [Diperbarui]
+│  ├─ use-inpatient-bed-transfer.jsx [Baru]
+│  ├─ use-inpatient-bed-usage-history.jsx [Baru]
+│  ├─ use-inpatient-bed-cleaning.jsx [Baru]
+│  └─ use-inpatient-episode-detail.jsx [Diperbarui; shared transfer adapter]
+├─ lib/services/health-services/inpatient-management/
+│  ├─ bed-occupancy.service.js [Diperbarui]
+│  └─ bed-management.service.js [Baru; inpatient-api.service.js/InstanceAxios existing]
+├─ utils/health-services/inpatient-management/inpatient-bed-utils.jsx [Diperbarui]
+└─ utils/menu-sidebar/menu-items.jsx [Diperbarui; rename satu leaf]
+```
+
+Dashboard constants, master bed services/views dan admisi/record-departure/correction consumers existing ikut inventaris compatibility; update hanya yang memanggil mutation terdampak saat delivery. Tidak menambah Redux slice bed tanpa kebutuhan shared state yang terbukti; local hook state/URL tab/filter sudah cukup, Redux auth/permission project tetap digunakan. Seluruh file target JS/JSX, tidak TypeScript. Service FE memakai `/v1/...` mengikuti helper/baseURL existing; jangan menambah `/api` dua kali.
+
+### 15.4 Data freshness, double submit dan gangguan
+
+Confirm membuka sesudah **await** refetch context + destination selesai, menggunakan returned result yang sama untuk state dan payload; jangan menaikkan refresh token lalu membaca closure lama (F07). Batalkan/abaikan response lama memakai request sequence/AbortController pattern existing. Simpan tetap server recheck expected versions; belum memilih tujuan/kategori atau refetch pending → confirm disabled.
+
+Hook membuat satu idempotency key untuk satu intent/payload; double-click disabled dan retry key sama. Setelah timeout tampil 'Hasil penyimpanan belum diketahui. Sedang memeriksa hasil', lakukan own outcome lookup; 404 bukan kepastian belum commit. Tidak optimistic success atau mutation replay memakai key baru. Setelah error eksplisit yang memastikan rollback dan payload diperbaiki, intent baru boleh key baru. Setelah success/replay refresh monitoring, available-beds, transfer-context, usage-history dan episode detail yang terdampak.
+
+Clear state/cache sensitif saat actor/unit berubah. Mask dari server tidak diisi kembali dari cache episode lain. Counts mengikuti scope/filter response; countdown hanya petunjuk, bukan local expiry. Error menjaga alasan/kategori agar petugas bisa memperbaiki, menampilkan kode semantik dengan pesan Indonesia; no cached overwrite/offline queue.
+
+### 15.5 Accessibility dan verification
+
+Gunakan role tablist/tab/tabpanel, aria-selected, keyboard navigation/focus return modal dan label form. Badge berisi teks, tidak mengandalkan warna. Small screen mempertahankan pilihan tab/filter dan akses aksi. Uji permission direct API/UI, kontrak PHI-free HK, refresh race, keyboard dan current ongoing history sesuai acceptance matrix. Tidak mengunci library baru atau final visual pada blueprint.

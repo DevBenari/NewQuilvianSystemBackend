@@ -3,12 +3,12 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | **`0.11.0`** — bagian 15 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 14, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 13 |
-| `last_changed_in` | **`0.11.0`** — `VAL-RWA-01` s.d. `55`. Sebelumnya `0.10.0` — `VAL-RWF-70` s.d. `94`; `0.9.0` — `VAL-INP-01` s.d. `17`; `0.8.0` |
-| Status | **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
-| Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
-| `input_revision` | `00-interview-decisions.md` revision `16`; `02-backend-architecture.md` revision `0.7`; `04-prd-to-mvp.md` revision `0.6.0` |
-| Dampak kompatibilitas | Seluruhnya baru, kecuali satu baris pada bagian 8 yang mengubah perilaku endpoint existing. **Sejak `0.8.0` satu aturan dicabut**, dan pencabutan itu **melonggarkan** penolakan, bukan menambahnya |
+| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Bed Management draft. Riwayat metadata sebelumnya: **`0.11.0`** — bagian 15 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 14, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 13 |
+| `last_changed_in` | **`0.12.0`** — Bed Management. Riwayat metadata sebelumnya: **`0.11.0`** — amandemen alur admisi pendaftaran `VAL-ADM-01` s.d. `05` (`RWI-DEC-267` s.d. `273`), `VAL-RWA-01` s.d. `55`. Sebelumnya `0.10.0` — `VAL-RWF-70` s.d. `94`; `0.9.0` — `VAL-INP-01` s.d. `17`; `0.8.0` |
+| Status | **`draft`** — amandemen Bed Management belum disetujui. Riwayat metadata sebelumnya: **`approved`** — amandemen alur admisi disetujui pengguna 10 Oktober 2026 atas instruksi eksplisit "setujui dan lakukan /plan-module-delivery". `0.11.0` Workspace PPRI `approved` 2026-10-08 (`RWI-DEC-265`) |
+| Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292. Riwayat metadata sebelumnya: Product/Domain Owner sementara sesuai `RWI-DEC-006` |
+| `input_revision` | Decision 46; gate 1.12 / BM-RCG-20261010-01; audit BM-AUD-20261010-01 rev1. Riwayat metadata sebelumnya: `00-interview-decisions.md` revision `40`; `02-backend-architecture.md` revision `0.7`; `04-prd-to-mvp.md` revision `0.6.0` |
+| Dampak kompatibilitas | Bed Management: GET aditif, mutation diperketat (expected version/key/category/reason); cutover seluruh konsumen wajib. Riwayat metadata sebelumnya: Seluruhnya kompatibel. Menambah validasi format nomor darurat 13 digit, kewajiban data rujukan ringkas, default otomatis unit layanan ranap, dan kewajiban penanda tangan wali untuk bayi baru lahir |
 
 ### Perubahan pada `contract_version` `0.8.0` — 11 September 2026
 
@@ -29,7 +29,19 @@ istilah teknis, bukan nama kolom.
 
 ---
 
-## 1. Membuka admisi
+## 1. Membuka admisi dan Pendaftaran
+
+### 1.1 Validasi Alur Admisi Pendaftaran ★ Revisi Bisnis (`RWI-DEC-267` s.d. `RWI-DEC-273`)
+
+| ID | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|---:|
+| `VAL-ADM-01` | **No. HP Kontak Darurat maksimal 13 digit angka** (`RWI-DEC-267`, `RWI-AC-388`) | `POST /patient-emergency-contacts` | Nomor kontak darurat melebihi 13 digit atau berisi karakter non-numerik | "Nomor HP kontak darurat harus berupa angka dan maksimal 13 digit." | 400 |
+| `VAL-ADM-02` | **Data rujukan tekstual ringkas wajib lengkap** (`RWI-DEC-269`, `RWI-AC-390`) | Alur admisi / `TrxPatientEncounter` | Jenis kunjungan = Rujukan, tetapi salah satu kolom rujukan (nomor, tgl/jam, faskes, dokter, diagnosa) kosong | "Data rujukan fasilitas kesehatan luar wajib diisi lengkap." | 400 |
+| `VAL-ADM-03` | **Otomasi Default Unit Layanan Rawat Inap** (`RWI-DEC-268`, `RWI-AC-389`) | `POST /patient-encounters`, `POST /episodes` | Dropdown unit disembunyikan dari UI; backend payload otomatis mengisi default Service Unit Rawat Inap aktif | "Unit layanan rawat inap default tidak ditemukan." | 422 |
+| `VAL-ADM-04` | **Form Persetujuan & TTD Digital Wajib Diisi & Dikunci** (`RWI-DEC-272`, `RWI-AC-393`) | `POST /episodes/{id}/admission-consents` | Persetujuan umum belum dicentang lengkap atau citra tanda tangan digital kosong/belum dikunci | "Pernyataan persetujuan umum dan tanda tangan digital wajib dilengkapi sebelum cetak." | 400 |
+| `VAL-ADM-05` | **Penanda Tangan Bayi Baru Lahir Wajib Orang Tua / Wali** (`RWI-DEC-273`, `RWI-AC-394`) | `POST /episodes/{id}/admission-consents` | Pasien berkategori Bayi Baru Lahir (`MotherEpisodeId` terisi) memilih subjek penanda tangan "Pasien Sendiri" | "Pasien bayi baru lahir tidak dapat menandatangani sendiri; penanda tangan wajib orang tua atau wali yang sah." | 422 |
+
+### 1.2 Validasi Pembentukan Episode
 
 | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
 | --- | --- | --- | --- | ---: |
@@ -503,3 +515,48 @@ Slot Kepala Ruangan tanpa `SignAsHeadNurse` ditolak filter hak akses `403` (`RWI
 | Pemotongan | Bawaan tidak pernah melewati tanggal surat + interval; boleh jatuh Sabtu atau hari libur (`RWI-DEC-248`) | Surat Jumat 9 Oktober, interval 1 → Sabtu 10 Oktober 11.00 WIB; interval 0 → tanggal surat |
 | Terlewati | Saat waktu server > `DueAt` dan Billing masih mencatat kekurangan > 0 (`RWI-DEC-260`) | Sabtu 10 Oktober 11.01 dengan kekurangan Rp 1.000.000 → peringatan tampil |
 | Umur gelang | Dihitung pada tanggal cetak, zona waktu rumah sakit | Lahir 12 Maret 1981, dicetak 7 Oktober 2026 → "45 th" |
+
+## 16. Amandemen Bed Management — 10 Oktober 2026
+
+**Status: draft — Amandemen Bed Management, 10 Oktober 2026.** Set kontrak mengikuti `blueprint-manifest.md`; `last_changed_in: 0.12.0`. Owner produk/domain/API: Muhammad Hamzah (RWI-DEC-061); frontend: pengembang dalam batas RWI-DEC-292; keamanan/privasi: OPEN. `approved_by: null`, `approved_at: null` untuk amandemen ini.
+
+Masukan: decision log revision **46**, RWI-DEC-274–294 dan RWI-AC-396–426; gate revision **1.12**, **BM-RCG-20261010-01**, enam BM-CG siap untuk desain produk terbatas. `DOMAIN_ARCHITECTURE_NOT_RUN` untuk slice ini: ownership existing sudah diketahui dan gate mengizinkan desain langsung. Arsitektur domain lama bagi scope lain tetap berlaku. As-is bersumber audit **BM-AUD-20261010-01** revision 1 (section 7 untuk Swagger), bukan bukti runtime.
+
+Snapshot BE `d4e1eca06fb28c05934c68c1e51a4dca01935a10`, FE `969acfcc04cdf31074a1911e9827c31d25ddadd0`. Semua nama class/field/API baru di bawah adalah **target Rencana (belum tersedia)**. Bila bagian lama bertentangan mengenai bed kembali Available, amandemen ini mengikuti RWI-DEC-281/282. Persetujuan produk bukan persetujuan desain atau SOP. Hash masukan terpusat pada manifest.
+
+### 16.1 Validasi target beridentitas stabil
+
+| ID | Aturan | Titik penerapan | Uji/guard | HTTP/code | Trace |
+| --- | --- | --- | --- | --- | --- |
+| VAL-BM-01 | Shared availability | Semua query + write | Master valid/aktif/reservable; root Ready; no holder; no closure; eligibility pasien existing | 422 BED_NOT_READY/BED_UNAVAILABLE | AC-398/400/420/424 |
+| VAL-BM-02 | Cross-table holder | Semua mutation bed | Recheck placement dan reservation setelah lock; reserve/place/transfer tidak race | 409 BED_HOLD_CONFLICT | AC-419 |
+| VAL-BM-03 | Expected versions | Semua mutation target | Root version current; transfer placement identity+version current; correction versi existing | 409 STALE_BED_VERSION/STALE_PLACEMENT | AC-419/420/426 |
+| VAL-BM-04 | Current cycle | Start/complete/verify | CycleId/attempt root current, active attempt tunggal; invalidated cycle ditolak | 409 CLEANING_CYCLE_STALE | AC-409/411/421 |
+| VAL-BM-05 | Manual transfer category | Transfer | Required 1/2/3, tidak default; harus sama comparison official | 400 INVALID_INPUT / 422 TRANSFER_CATEGORY_MISMATCH | AC-401/403/404 |
+| VAL-BM-06 | Global class order | Transfer lintas kelas | Profil direction+digest match live master; default0/equal value bedaID bukan equivalence | 422 CLASS_ORDER_UNVERIFIED | AC-405/423 |
+| VAL-BM-07 | Origin/destination | Transfer | Current placement source otomatis; target beda bed dan shared available/eligibility; all or nothing | 409/422 | AC-399/400/414 |
+| VAL-BM-08 | HK workflow | Start/complete | Actor individu berwenang unit + SOP reference; completion bukan Ready | 403 / 422 WORKFLOW_NOT_ACTIVATED | AC-406/409/410 |
+| VAL-BM-09 | Verifier | Verify | Perawat penunjukan nyata, scope+permission, evidence max200; empty/current/no closure | 403 / 422 BED_NOT_READY | AC-409/425 |
+| VAL-BM-10 | Mandatory reasons | Cancel/reject/close/reopen/delete/correction | Trim bukan kosong, max500; transfer min10 existing; reason persisten | 400/422 REASON_REQUIRED | AC-411/412/418 |
+| VAL-BM-11 | Master paths | Create/PUT/status/availability/delete/activation | Tidak override workflow; close atau perubahan lokasi/availability occupied/reserved reject | 409 BED_HOLD_CONFLICT / 422 BED_UNAVAILABLE | AC-412/424 |
+| VAL-BM-12 | Release used | Transfer/physical departure | End only actual active placement; cycle baru; raw cleaning kecuali closed | 409 STALE_PLACEMENT | AC-407/414/426 |
+| VAL-BM-13 | Unused release | Cancel/expiry | Tidak create dirty/attempt; expires evaluated server existing TTL parameter | 409 bila holder conflict; expired idempotent | AC-408/413 |
+| VAL-BM-14 | History interval | Usage history | Bed required; From<To UTC; overlap [from,to); room via stored segment; page1/25 max100 | 400 INVALID_INPUT | AC-402/415 |
+| VAL-BM-15 | Corrections/Billing | Correction | Correct access existing, reason, expected version, Billing OPEN; retain chain and notify | 403/409/422 existing guard | AC-415/418 |
+| VAL-BM-16 | Identity privacy | All reads | OperationalOnly never identity/diagnosis/history; identity only existing patient/episode rights+unit scope | 403 or server mask; no PHI in JSON | AC-416/417 |
+| VAL-BM-17 | Scope | Every read/write | Verified assignments; all affected units/beds+episode; unknown deny; query filtering before counts | 403 ACCESS_DENIED | AC-417 |
+| VAL-BM-18 | Idempotency | Every mutation | Key actor unique; hash same replay; different request reject; audit/receipt same commit | 409 IDEMPOTENCY_KEY_REUSED | AC-421 |
+| VAL-BM-19 | Failure/offline | All mutations | No optimistic success; uncertain outcome lookup; same key retry only; no callback reverse | 503/unknown UX | AC-422 |
+| VAL-BM-20 | Permission UI/refetch | All screens | AvailableActions plus permission; await actual fresh result before confirmation, commit rechecks | Disable + reload, server errors retained | AC-420/417 |
+| VAL-BM-21 | Activation proof | Workflow/class/privacy rollout | BM-G01..04 scope evidence; no bypass from unverified config | 422 WORKFLOW_NOT_ACTIVATED / 403 / 503 | AC-425 |
+| VAL-BM-22 | Six states/menu | Monitoring | Exactly six public codes, subphase not seventh; three approved tabs; shared counts | Contract/UI verification | AC-396/397/398/410 |
+
+### 16.2 Urutan validasi dan integrasi existing
+
+Auth/scope sebelum detail sensitif; field validation; lock+expiry+receipt; expected version/state; clinical/folio guards existing; atomic write+audit/outbox. Error code adalah kode semantik pada API 13.4, status dipilih sesuai kondisi spesifik, bukan semua 500. Unique-constraint violation concurrency dipetakan 409 setelah rollback. Frontend dapat membantu format, tetapi tidak menggantikan validasi commit.
+
+Master hierarchy yang membuat bed tidak layak harus masuk shared predicate dan serialized guard. Perubahan **MstRoom/MstServiceUnit/MstPatientClass** yang berdampak pada availability/kelas tidak boleh melewati koordinasi: operasi bulk perlu mengunci seluruh bed terdampak secara deterministik dan memeriksa holder/version, atau ditahan dengan conflict hingga cutover adapter selesai. Ini dependency repair writer master shared, bukan izin mengubah master di fase desain. Perubahan label saja tidak mengubah snapshot sejarah. Perubahan class rank menginvalidasi approved digest untuk comparison berikutnya.
+
+### 16.3 Evidence
+
+BM-F01–07 menjadi regression obligations; detail positif/negatif ada pada acceptance-test-matrix 22. Belum ada hasil target aplikasi/PG. Bukti SOP/assignment/class actual tidak digantikan parameter atau contoh fixture.

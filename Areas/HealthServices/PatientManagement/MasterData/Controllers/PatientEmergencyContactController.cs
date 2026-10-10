@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs;
@@ -947,6 +947,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 !request.Email.Contains('@'))
             {
                 return (false, "Format email kontak tidak valid.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
+            {
+                var cleanPhone = request.PhoneNumber.Trim();
+                if (!cleanPhone.All(char.IsDigit))
+                {
+                    return (false, "Nomor telepon kontak darurat hanya boleh berisi angka.");
+                }
+
+                if (cleanPhone.Length > 13)
+                {
+                    return (false, "Nomor telepon kontak darurat maksimal 13 karakter numerik.");
+                }
             }
 
             var normalizedContactName = request.ContactName.Trim().ToLower();

@@ -675,6 +675,8 @@ try
     builder.Services.AddScoped<InpPatientLocationQuery>();
     // BE-RWI-181: permintaan admisi dari kamar pulih (dipanggil OK dan admisi).
     builder.Services.AddScoped<InpAdmissionReferralService>();
+    // BE-RWI-206 & BE-RWI-207: antrean dan eksekusi admisi transfer pasien IGD dan Poliklinik.
+    builder.Services.AddScoped<InpAdmissionTransferService>();
     // BE-RWI-184 (P2): laporan transfer ruangan dari linimasa penempatan bed.
     builder.Services.AddScoped<InpRoomTransferReportService>();
 
@@ -697,6 +699,7 @@ try
     builder.Services.AddScoped<InpAdmissionSignatureService>();
     builder.Services.AddScoped<InpAdmissionPrintService>();
     builder.Services.AddScoped<InpAdmissionWorkspaceQueryService>();
+    builder.Services.AddScoped<InpatientAdmissionConsentService>();
 
     // BE-RWI-086 — penyusun usulan isian resume pulang. Hanya membaca, tidak pernah
     // menyimpan, dan tidak dipakai service Rawat Inap lain; ia dipanggil langsung controller.

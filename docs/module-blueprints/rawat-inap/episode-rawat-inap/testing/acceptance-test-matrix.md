@@ -3,12 +3,12 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | **`0.11.0`** — bagian 21 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 20, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 18 |
-| `last_changed_in` | **`0.11.0`** — bagian 21. Sebelumnya `0.10.0` — bagian 20; `0.9.0` — bagian 18; `0.8.0` — bagian 2A.1 dan 4.1 |
-| Status | **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
-| Masukan | `00-interview-decisions.md` revision `6` (149 acceptance criteria); `contracts/api-contract.md`, `contracts/validation-matrix.md`, dan `contracts/permission-audit-matrix.md` revision `0.3.0`; kontrak lain revision `0.2.0` |
-| Backend SHA | `5afb54b` |
-| Frontend SHA | `dec4fdeff` |
+| `contract_version` | Mengikuti set pada manifest sub-modul; Bed Management draft, last_changed_in 0.12.0. Riwayat metadata: **`0.11.0`** — bagian 21 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 20, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 18 |
+| `last_changed_in` | **`0.12.0`** — Bed Management. Riwayat metadata: **`0.11.0`** — bagian 21. Sebelumnya `0.10.0` — bagian 20; `0.9.0` — bagian 18; `0.8.0` — bagian 2A.1 dan 4.1 |
+| Status | **`draft`** — Bed Management belum disetujui. Riwayat metadata: **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
+| Masukan | Decision46, gate1.12/BM-RCG-20261010-01, audit BM-AUD-20261010-01 rev1. Riwayat metadata: `00-interview-decisions.md` revision `6` (149 acceptance criteria); `contracts/api-contract.md`, `contracts/validation-matrix.md`, dan `contracts/permission-audit-matrix.md` revision `0.3.0`; kontrak lain revision `0.2.0` |
+| Backend SHA | Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `5afb54b` |
+| Frontend SHA | Bed Management: 969acfcc04cdf31074a1911e9827c31d25ddadd0. Riwayat metadata: `dec4fdeff` |
 
 Matriks ini memuat **jalur berhasil dan jalur gagal**. Jalur gagal justru yang paling membuktikan
 aturan bisnis benar-benar ditegakkan.
@@ -664,3 +664,86 @@ Akibat di modul lain lulus hanya bila terbukti di modul penerima (`RWI-DEC-168`)
 | Peringatan nilai kepercayaan di Workspace Keperawatan dan Dokter | Amandemen terpisah (PRD bagian 8); gerbang produksi G-42 |
 | Ukuran kertas gelang dan label pada printer rumah sakit | Diuji saat UAT di lokasi (G-37) |
 | Masa simpan | Gerbang produksi G-35 |
+
+## 22. Amandemen Bed Management — 10 Oktober 2026
+
+**Status: draft — Amandemen Bed Management, 10 Oktober 2026.** Set kontrak mengikuti `blueprint-manifest.md`; `last_changed_in: 0.12.0`. Owner produk/domain/API: Muhammad Hamzah (RWI-DEC-061); frontend: pengembang dalam batas RWI-DEC-292; keamanan/privasi: OPEN. `approved_by: null`, `approved_at: null` untuk amandemen ini.
+
+Masukan: decision log revision **46**, RWI-DEC-274–294 dan RWI-AC-396–426; gate revision **1.12**, **BM-RCG-20261010-01**, enam BM-CG siap untuk desain produk terbatas. `DOMAIN_ARCHITECTURE_NOT_RUN` untuk slice ini: ownership existing sudah diketahui dan gate mengizinkan desain langsung. Arsitektur domain lama bagi scope lain tetap berlaku. As-is bersumber audit **BM-AUD-20261010-01** revision 1 (section 7 untuk Swagger), bukan bukti runtime.
+
+Snapshot BE `d4e1eca06fb28c05934c68c1e51a4dca01935a10`, FE `969acfcc04cdf31074a1911e9827c31d25ddadd0`. Semua nama class/field/API baru di bawah adalah **target Rencana (belum tersedia)**. Bila bagian lama bertentangan mengenai bed kembali Available, amandemen ini mengikuti RWI-DEC-281/282. Persetujuan produk bukan persetujuan desain atau SOP. Hash masukan terpusat pada manifest.
+
+### 22.1 Coverage seluruh acceptance criteria
+
+Semua test di bawah **rancangan NOT_RUN**, bukan bukti hasil. Fixture actor/class/SOP adalah data uji terkontrol, bukan bukti role/order/SOP rumah sakit actual. AC source berada di decision log revision46; original audit 65 frontend tests passed hanya baseline as-is.
+
+| Test ID | AC | Epic | Kasus | Jalur berhasil / expected | Jalur gagal / expected | Lapisan | Hasil target |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| BM-AT-396 | RWI-AC-396 | EPIC BM-01 | Menu rename | Sidebar menampilkan Bed Management di route lama | Nama lama/dua leaf → gagal | FE | NOT_RUN |
+| BM-AT-397 | RWI-AC-397 | EPIC BM-01 | Tiga tab | Monitoring/Transfer/History reachable sesuai hak; child cleaning dari monitoring | Direct forbidden tab tidak fetch data | FE/API | NOT_RUN |
+| BM-AT-398 | RWI-AC-398 | EPIC BM-01 | Enam status | Fixture enam keadaan menghasilkan tepat enam label/counts | Unverified/dirty tidak Available | Unit/API | NOT_RUN |
+| BM-AT-399 | RWI-AC-399 | EPIC BM-05 | Origin auto | Episode A aktif di bed A, asal otomatis bed A | Client mengirim asal lama setelah transfer lain →409 | API/FE | NOT_RUN |
+| BM-AT-400 | RWI-AC-400 | EPIC BM-05 | Target available | Bed B ready terpilih dan commit recheck | Target direbut reserved pasien lain sebelum commit →409 no transfer | PostgreSQL | NOT_RUN |
+| BM-AT-401 | RWI-AC-401 | EPIC BM-05 | Category manual | Manual UpGrade disimpan pada destination snapshot | Field missing/default otomatis →400/UI gagal | API/FE | NOT_RUN |
+| BM-AT-402 | RWI-AC-402 | EPIC BM-06 | No-transfer history | Episode tanpa transfer tetap satu segmen initial | History hanya transfer report → gagal | Query/API | NOT_RUN |
+| BM-AT-403 | RWI-AC-403 | EPIC BM-05 | Same Grade | Pindah bed beda dengan valid class ID sama dan manual3 berhasil | Target same physical bed ditolak | API | NOT_RUN |
+| BM-AT-404 | RWI-AC-404 | EPIC BM-05 | Mismatch | Pilihan sesuai official comparison diterima | Up secara resmi tapi pilih Down →422 source utuh | API/PostgreSQL | NOT_RUN |
+| BM-AT-405 | RWI-AC-405 | EPIC BM-05 | Global official order | Fixture proof sah X di atas Y sama di dua unit | Harga/nama/unit mengubah classification →gagal | Unit/API | NOT_RUN |
+| BM-AT-406 | RWI-AC-406 | EPIC BM-03 | HK start/finish | HK-TEST individu start/complete; actor/time per aksi | Akun tanpa scope/hak →403, no event | API | NOT_RUN |
+| BM-AT-407 | RWI-AC-407 | EPIC BM-02 | Used release | A keluar10.00→Waiting, B pesan10.01 ditolak | Used release →Available langsung →gagal | Integration | NOT_RUN |
+| BM-AT-408 | RWI-AC-408 | EPIC BM-02 | Unused cancel/expiry | Unused reservation lepas tanpa cleaning baru | Cancellation membuka closed/invalid bed →gagal | API | NOT_RUN |
+| BM-AT-409 | RWI-AC-409 | EPIC BM-03 | Verifier | Selesai10.20 belum ready; perawat sah10.25 ready | HK complete langsung ready / unauthorized verify →gagal | API | NOT_RUN |
+| BM-AT-410 | RWI-AC-410 | EPIC BM-03 | Subphase | AwaitingVerification label Dalam Pembersihan + Menunggu verifikasi | Status publik ketujuh atau available →gagal | Unit/FE | NOT_RUN |
+| BM-AT-411 | RWI-AC-411 | EPIC BM-03 | Reject readiness | Reason ada→Waiting; attempt rejected retained | Reason blank→400/422 no state change | API | NOT_RUN |
+| BM-AT-412 | RWI-AC-412 | EPIC BM-04 | All master paths | Empty close reason→Unavailable; reopen→not Ready | Occupied/reserved close via POST/PUT/status/availability/delete/activation adapter →409 | API/PostgreSQL | NOT_RUN |
+| BM-AT-413 | RWI-AC-413 | EPIC BM-02 | TTL server | Default reserve120m, server evaluate at expiry | Browser timer release sendiri / worker/reminder baru →gagal | Clock/API/FE | NOT_RUN |
+| BM-AT-414 | RWI-AC-414 | EPIC BM-05 | Atomic transfer | Origin released Waiting, dest occupied satu commit | Inject failure setelah satu write→full rollback; handover failure after commit no reverse | PostgreSQL | NOT_RUN |
+| BM-AT-415 | RWI-AC-415 | EPIC BM-06 | History+snapshot+versions | Initial, transfer, ongoing nullend dan corrections tampil; master rename tidak relabel snapshot | Filter !IsSuperseded menghilangkan transfer biasa →gagal | Query/Billing integration | NOT_RUN |
+| BM-AT-416 | RWI-AC-416 | EPIC BM-01 | HK privacy | Monitoring JSON HK hanya data operasional | Patient/episode/reservation identifier/diagnosis/history API terlihat→gagal | API security | NOT_RUN |
+| BM-AT-417 | RWI-AC-417 | EPIC BM-01 | Permission+scope | Authorized scope actions visible and work | Unknown unit/grant/direct request →403; no counts leak | API/FE | NOT_RUN |
+| BM-AT-418 | RWI-AC-418 | EPIC BM-06 | Reasons+correction | Cancel reason persisted; correction versioned Billing OPEN | Blank cancel or Billing closed correction →reject; no delete | API/Billing | NOT_RUN |
+| BM-AT-419 | RWI-AC-419 | EPIC BM-02 | Concurrency | Dua request bersamaan hanya satu holder sah | Reserve vs placement/transfer/close/cleaning cross-table double holder→gagal | PostgreSQL concurrent | NOT_RUN |
+| BM-AT-420 | RWI-AC-420 | EPIC BM-01 | Fresh confirmation/counts | Await refetch selesai; nonactive/nonreservable/invalid not count Available | Deferred stale response closure dipakai confirm atau stale commit lolos→gagal | FE/API | NOT_RUN |
+| BM-AT-421 | RWI-AC-421 | EPIC BM-02 | Idempotency+cycle | Same key/payload single commit, receipt reused | Changed input samekey→409; old attempt verify siklus baru→409 | PostgreSQL/API | NOT_RUN |
+| BM-AT-422 | RWI-AC-422 | EPIC BM-02 | Downtime/uncertain | Timeout aftercommit→lookup own receipt; no fake success; reconcile authorized audit | Offline cache overwrite/keybaru/auto reverse callback→gagal | Fault injection/FE | NOT_RUN |
+| BM-AT-423 | RWI-AC-423 | EPIC BM-05 | Unverified class | Proof matching allows comparison; same valid class ID Same | Distinct IDs default0/equal numeric no proof →422 | Unit/API | NOT_RUN |
+| BM-AT-424 | RWI-AC-424 | EPIC BM-04 | Data conflict | Active patient remains Occupied+conflict, invalid empty Unavailable | Mismatched raw/master treated empty Available →gagal | Query/API | NOT_RUN |
+| BM-AT-425 | RWI-AC-425 | EPIC BM-03 | Activation scoped | Proof gates recorded; only dependent operations held | Unverified SOP/assignment/class treated production ready→gagal | Config/security/UAT | NOT_RUN |
+| BM-AT-426 | RWI-AC-426 | EPIC BM-02 | Old closure | A leaves, clean+verify, B occupies, close A13.00 bed B untouched | Closure A releases B or version root changes incorrectly→gagal | Integration/PostgreSQL | NOT_RUN |
+
+### 22.2 PostgreSQL transaction dan interleaving wajib
+
+Gunakan PostgreSQL disposable yang sama provider/schema dengan target; EF InMemory/SQLite tidak membuktikan row lock/partial index. Jalankan minimal reserve-vs-reserve, reserve-vs-place, reserve-vs-transfer, place-vs-place, transfer-vs-transfer, transfer-vs-close, release-vs-reserve, cleaning-verify-vs-reserve/closure dan correction-vs-transfer. Barrier test sengaja menahan writer sesudah lock untuk memaksa interleaving. Assert di dua tabel: tidak ada holder beda episode bersamaan; master/root proyeksi konsisten; tidak ada event/receipt separuh; versi bertambah tepat untuk commit.
+
+Inject failure setelah end source sebelum destination/create audit/outbox/receipt, lalu assert rollback seluruhnya. Timeout setelah commit lalu lookup/retry same key → receipt/result sama tanpa transfer/event kedua. Key sama hash beda→409; stale verification setelah release baru→409. Assertion pada audit actor/time, cycle dan immutable snapshot, bukan hanya HTTP200.
+
+### 22.3 API/security/contract/frontend
+
+Semua 38 route inventory diuji menurut status existing/new; metode unchanged tetap regression. Tambahan header/DTO pada old consumers yang belum diperbarui harus fail400 terkendali, bukan silent old behavior. Uji HK profile dengan broad permission fixture untuk memastikan OperationalOnly tetap menolak patient/episode/reservation fields dan history; jangan hanya memakai field-hide FE. Uji unknown assignment deny, unit counters scoped, denied direct query dan noPHI in logger.
+
+FE deferred response test memaksa refetch pertama terlambat, memastikan konfirmasi memakai returned fresh context dan stale response diabaikan. Double click/timeout stable key; online recovery no cache overwrite; modal focus/keyboard/tab roles, ongoing end=NULL, wrong category preserves input. Consumer admission/detail/master/departure/correction ikut contract regression.
+
+### 22.4 Migration, data dan integrasi
+
+Review generated EF Configuration/migration sesuai data dictionary; PostgreSQL dry run fresh+legacy snapshots, orphan/duplicate/cross-holder report, no fake Ready from Available, no fake category/reasons/actors. Exercise cutover semua writer dan safe rollback retaining guards/schema/history. Outbox/receiver tests memakai Billing canonical1.1.0, ordinary transfer IsSuperseded=true tetap efektif bila SupersededByCorrectionId NULL. Handover callback fail tidak reverse; old episode closure setelah bed ditempati pasien baru tetap aman.
+
+### 22.5 UAT
+
+| ID | Epic | Jalur | Kondisi awal | Langkah | Hasil |
+| --- | --- | --- | --- | --- | --- |
+| UAT-701 | EPIC BM-01 | Berhasil | Fixture dua unit dengan enam status; actor berhak satu unit | Buka menu dan Monitoring, filter unit/kamar | Satu leaf, tiga tab, enam counts sesuai bed dalam scope; HK tidak menerima identitas |
+| UAT-702 | EPIC BM-01 | Gagal | Actor hanya baca unit A; respons lama ditunda | Deep-link unit B/Transfer tanpa hak; buka confirm selama refetch | 403/akses ditolak tanpa data bocor; confirm pending disabled, no stale result |
+| UAT-703 | EPIC BM-02 | Berhasil | Bed A Ready, episode sah; unused reservation lalu patient ditempatkan | Reserve120m/cancel beralasan; place; record departure | Cancel reason tersimpan tanpa dirty baru; sesudah used release Waiting, no immediate reserve |
+| UAT-704 | EPIC BM-02 | Gagal | Dua petugas/sessions bersaing pada bed Ready | Reserve episode A versus place episode B; simulasi timeout lalu retry same key | Satu holder sah; unknown diperiksa, retry tidak menggandakan; old closure tidak lepas new patient |
+| UAT-705 | EPIC BM-03 | Berhasil | Bed Waiting; HK dan perawat fixture punya proof assignment/SOP | HK mulai/selesai; perawat inspeksi dan sahkan | Selesai menunggu verifikasi; baru Ready setelah pengesahan, actor/time traced |
+| UAT-706 | EPIC BM-03 | Gagal | Bed AwaitingVerification atau siklus sudah baru | HK coba sahkan; verifier reject tanpa alasan; attempt lama coba verify | HK403; blankreason reject; stalecycle409; rejection valid menjaga jejak dan kembali Waiting |
+| UAT-707 | EPIC BM-04 | Berhasil | Bed kosong tanpa reservation | Admin close alasan, lalu reopen | Close Unavailable; reopen belum Available sampai readiness sah |
+| UAT-708 | EPIC BM-04 | Gagal | Bed terisi atau reserved; master data raw konflik | Coba nonactive/status/PUT/delete/hierarchy availability writer | 409 no closure; pasien aktif tetap terlihat+flag; invalid tidak bookable |
+| UAT-709 | EPIC BM-05 | Berhasil | Source current, destination Ready, official class proof fixture | Asal otomatis; manual Same/Up/Down sesuai fixture; confirm refreshed | Satu transfer commit, kategori+snapshot, asal Waiting, tujuan Occupied; handover aftercommit |
+| UAT-710 | EPIC BM-05 | Gagal | Source current, tujuan diambil actor lain atau order proof tidak ada | Pilih wrongcategory/stale target/default0 bedaID; inject DB failure | 409/422, source/dest/history utuh; tidak infer harga/nama, rollback lengkap |
+| UAT-711 | EPIC BM-06 | Berhasil | Satu episode tanpa transfer, satu transfer dengan correction valid | History bed/periode, buka versions; master rename kemudian refresh | Semua overlap segments termasuk initial/ongoing/correction; snapshot lama tetap; Billing flag tepat |
+| UAT-712 | EPIC BM-06 | Gagal | HK OperationalOnly / actor noepisode rights; Billing CLOSED | Coba history/directAPI identity; coba koreksi/delete committed transfer | HK403; identity masked bagi viewer tanpa right; closed correction rejected; no history delete |
+
+### 22.6 Bukti sign-off
+
+Unit/API/PG/UI/UAT hasil target, schema migration applied evidence, master actual proof BM-G01, SOP/assignment BM-G02, security/privacy scope BM-G03 serta repairs BM-G04 semuanya belum tersedia. Laporan dokumentasi sendiri tidak menggantikan itu. Tidak menjalankan aplikasi/test target atau database pada desain ini.

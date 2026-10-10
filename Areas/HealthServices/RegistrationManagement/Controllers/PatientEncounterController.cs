@@ -1484,6 +1484,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 }
             }
 
+            if (request.ServiceUnitId == Guid.Empty && request.EncounterType == EncounterType.Inpatient)
+            {
+                var defaultInpatientUnit = await _dbContext.Set<MstServiceUnit>()
+                    .AsNoTracking()
+                    .Where(x => x.IsActive && !x.IsDelete && x.ServiceUnitType == ServiceUnitType.Inpatient && x.IsAvailableForRegistration)
+                    .Select(x => (Guid?)x.Id)
+                    .FirstOrDefaultAsync();
+
+                if (defaultInpatientUnit.HasValue)
+                {
+                    request.ServiceUnitId = defaultInpatientUnit.Value;
+                }
+            }
+
             var serviceUnitExists = await _dbContext.Set<MstServiceUnit>()
                 .AsNoTracking()
                 .AnyAsync(x =>
@@ -1495,6 +1509,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             if (!serviceUnitExists)
             {
                 return (false, "Service unit tidak valid, tidak aktif, atau tidak tersedia untuk registrasi.");
+            }
+
+            if (request.EncounterType == EncounterType.Inpatient)
+            {
+                var isInpatientUnit = await _dbContext.Set<MstServiceUnit>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == request.ServiceUnitId && x.ServiceUnitType == ServiceUnitType.Inpatient);
+
+                if (!isInpatientUnit)
+                {
+                    return (false, "Unit tujuan untuk kunjungan rawat inap wajib merupakan unit layanan bertipe rawat inap.");
+                }
             }
 
             if (request.ClinicId.HasValue && request.ClinicId.Value != Guid.Empty)

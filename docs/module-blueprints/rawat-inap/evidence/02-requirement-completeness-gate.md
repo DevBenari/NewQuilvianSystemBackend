@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Assessment revision | **`1.11`** — gerbang kelengkapan Workspace PPRI `PRD-RWI-ADMISI-001`, bagian 20. Sebelumnya: **`1.10`** — evaluasi ulang Finishing sesudah Amendment Pass dan approval desain 2 Oktober 2026, bagian 19. Sebelumnya: **`1.9`** — evaluasi ulang gerbang Finishing Rawat Inap `PRD-RWI-FINISHING-001` v`0.4`, bagian 18. Sebelumnya `1.8` (Finishing v`0.2`, bagian 17) dan `1.7` |
-| Assessment date | **Workspace PPRI 7 Oktober 2026 (bagian 20);** 21 Agustus 2026 (`Asia/Jakarta`); focused reassessment Dokter Rawat Inap dan Keperawatan, 2 September 2026; focused reassessment penyelarasan `PRD-RWI-V2-001`, 15 September 2026; penutupan keputusan `RLN-PH-04`, 15 September 2026; **evaluasi gerbang kelengkapan requirement Integrasi Rawat Inap ↔ Billing (`INP-S22`), 17 September 2026**; evaluasi gerbang Finishing Rawat Inap, 1 Oktober 2026 (revision `1.8`); **evaluasi ulang Finishing v`0.4`, 1 Oktober 2026 malam (revision `1.9`)**; **evaluasi ulang Finishing pasca-desain, 2 Oktober 2026 (bagian 19)** |
+| Assessment revision | **`1.12`** — evaluasi Bed Management 10 Oktober 2026, bagian 21. Sebelumnya: **`1.11`** — gerbang kelengkapan Workspace PPRI `PRD-RWI-ADMISI-001`, bagian 20. Sebelumnya: **`1.10`** — evaluasi ulang Finishing sesudah Amendment Pass dan approval desain 2 Oktober 2026, bagian 19. Sebelumnya: **`1.9`** — evaluasi ulang gerbang Finishing Rawat Inap `PRD-RWI-FINISHING-001` v`0.4`, bagian 18. Sebelumnya `1.8` (Finishing v`0.2`, bagian 17) dan `1.7` |
+| Assessment date | **Bed Management 10 Oktober 2026 (`Asia/Jakarta`, bagian 21);** **Workspace PPRI 7 Oktober 2026 (bagian 20);** 21 Agustus 2026 (`Asia/Jakarta`); focused reassessment Dokter Rawat Inap dan Keperawatan, 2 September 2026; focused reassessment penyelarasan `PRD-RWI-V2-001`, 15 September 2026; penutupan keputusan `RLN-PH-04`, 15 September 2026; **evaluasi gerbang kelengkapan requirement Integrasi Rawat Inap ↔ Billing (`INP-S22`), 17 September 2026**; evaluasi gerbang Finishing Rawat Inap, 1 Oktober 2026 (revision `1.8`); **evaluasi ulang Finishing v`0.4`, 1 Oktober 2026 malam (revision `1.9`)**; **evaluasi ulang Finishing pasca-desain, 2 Oktober 2026 (bagian 19)** |
 | Assessment status | `CURRENT` |
 | Koreksi `1.1` | Tiga keterangan yang menyatakan `DEC-INP-001` masih terbuka diperbaiki; kesiapan belum dinilai ulang pada revision itu |
 | Focused reassessment `1.2` | Menilai ulang `INP-S05` bagian dokter, `INP-S06`, serta `CAP-015` berdasarkan decision log revision `7`, PRD final, dan capability map revision `1.3`. Hasil kanonisnya ada pada bagian 11 |
@@ -17,14 +17,16 @@
 | **Focused reassessment `1.9`** | **Evaluasi ulang gerbang Finishing Rawat Inap, 1 Oktober 2026 malam.** Menyerap Amendment Pass penutupan gate `1.8` (`RWI-DEC-194` s.d. `RWI-DEC-205`, decision log revision `30`) dan `PRD-RWI-FINISHING-001` v`0.4`. `DEC-INP-014` s.d. `DEC-INP-017` **`CLOSED`**, sehingga `INP-S24`, `INP-S27`, dan `INP-S28` naik ke `READY_FOR_DOMAIN_DESIGN`. Klaster Pasca Operasi `CAP-RWF-18` s.d. `23` dinilai sebagai slice baru `INP-S32` s.d. `INP-S37`: lima `READY_FOR_DOMAIN_DESIGN`, `INP-S32` `PARTIALLY_READY` karena satu aturan Billing (`DEC-INP-018`, alias `RWI-OQ-114` butir b). Gerbang implementasi: `RWI-OQ-108`, `RWI-OQ-114` butir (a) dan (c), `RWI-OQ-115`. Hasilnya pada bagian 18 |
 | **Focused reassessment `1.10`** | **Evaluasi ulang Finishing pasca-desain, 2 Oktober 2026.** Menyerap Amendment Pass penutupan butir terbuka desain Finishing (`RWI-DEC-206` s.d. `RWI-DEC-220`) dan approval desain revision `8` (`RWI-DEC-221`), decision log revision `32`. `DEC-INP-018` **`CLOSED`** (`RWI-DEC-207`), sehingga `INP-S32` naik ke `READY_FOR_DOMAIN_DESIGN` dan **seluruh 15 slice Finishing siap**. Gerbang persetujuan `RWI-OQ-108`, `114`, `115` tertutup. G-05, G-17, G-18, G-26 tertutup; dua belas usulan dikonfirmasi lewat approval kontrak. Gap baru G-27 (penyelesaian multi-invoice Billing) dan G-28 (PRD tertinggal), keduanya non-blocking. Empat temuan implementasi frontend `f74758af5` (IMP-RWF-01 s.d. 04) menjadi gerbang rilis, bukan gap requirement. Hasilnya pada bagian 19; koreksi perencanaan 19.12 menambah `DEC-INP-019` (Rehab Medik, di luar slice Finishing) dan IMP-RWF-05 |
 | **Focused reassessment `1.11`** | **Gerbang kelengkapan Workspace PPRI (Ruang Kerja Admisi), 7 Oktober 2026.** Menilai `PRD-RWI-ADMISI-001` v`0.2` dalam sebelas slice baru `INP-S38` s.d. `INP-S48`, berdasarkan decision log revision `36` (`RWI-DEC-225` s.d. `RWI-DEC-262`) dan capability map revision `1.7` bagian 20. Sembilan slice `READY_FOR_DOMAIN_DESIGN`; `INP-S46` Estimasi Biaya `PARTIALLY_READY` karena `DEC-INP-020` (baru); `INP-S48` tanda tangan digital `BUSINESS_DECISION_REQUIRED` karena `DEC-INP-003`, yang cakupannya diperluas. Penyimpanan persetujuan umum tetap slice lama `INP-S10`. Gap `G-30` s.d. `G-51`. Hasilnya pada bagian 20 |
+| **Focused reassessment `1.12`** | **Bed Management, 10 Oktober 2026.** Enam kemampuan `BM-CG-01` s.d. `BM-CG-06` cukup untuk desain produk berdasarkan decision log revision `46` dan audit `BM-AUD-20261010-01`. Tidak ada keputusan bisnis pemblokir yang terbuka dalam batas ini. `BM-G01` s.d. `BM-G04` tetap syarat penerapan; bukan bukti SOP, akses, data atau runtime sudah tersedia. Hasil kanonisnya pada bagian 21 |
 | **Overall readiness** | **`PARTIALLY_READY`** |
-| Ready destination | **Bagian 20:** sembilan slice Workspace PPRI `READY_FOR_DOMAIN_DESIGN` dan bagian siap `INP-S46` → langsung `design-business-module` (amandemen `episode-rawat-inap` `0.11.0`); `hospital-domain-architect` tidak disarankan. **Bagian 19:** seluruh 15 slice Finishing `READY_FOR_DOMAIN_DESIGN`, dan desain revision `8` sudah disetujui (`RWI-DEC-221`) → `plan-module-delivery`. `hospital-domain-architect` atau langsung `design-business-module`. Ketujuh capability Dokter Rawat Inap siap sesuai bagian 12; empat kemampuan Keperawatan aktif siap sesuai bagian 13; slice penyelarasan V2 `INP-S17`, `S18`, `S19` (sliding scale), `S20`, dan `S21` siap sesuai bagian 14 dan 15; **slice integrasi Rawat Inap ↔ Billing `INP-S22` siap untuk domain design sesuai bagian 16**; **slice Finishing `INP-S23` s.d. `INP-S37` siap sesuai bagian 18, kecuali aturan Billing penggabungan biaya operasi kunjungan asal pada `INP-S32` (`DEC-INP-018`)**; handover shift dan transfusi selain monitoring `DEFERRED` |
-| Business evidence | **Bagian 20:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `36`, SHA-256 `618f684b707fdb60f88d194623a265844faaf61fb02061e11eb61a4104f746df` (`RWI-DEC-225` s.d. `RWI-DEC-262`, `RWI-AC-343` s.d. `RWI-AC-383`). **Bagian 19:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `32`, SHA-256 `2102ed1da2a4748157bb3e6960212905e20a704b2a265c6abda4a97ffed43b25` (`RWI-DEC-206` s.d. `RWI-DEC-221`, `RWI-AC-330` s.d. `RWI-AC-340`); `billing-kasir` `BKC-DEC-118`. **Bagian 18:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `30`, SHA-256 `aa92c5ddd217b0bd95abf628ae484a1c0caddcdf386e7834f0715ed216e2a439` (`RWI-DEC-194` s.d. `RWI-DEC-205`, `RWI-AC-307` s.d. `RWI-AC-329`). **Bagian 17:** revision `29`, SHA-256 `f6fed60809321687d850306dfd2830d9394e1b2e7e7ab0a66b01cbc5068ce471`. **Bagian 16:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `25` (Pass A — Muhammad Hamzah, 17 September 2026), memuat keputusan `RWI-DEC-156` s.d. `RWI-DEC-161` dan kriteria penerimaan `RWI-AC-236` s.d. `RWI-AC-241`. **Bagian 15:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `21`, SHA-256 `1c55c80a50aee11ef005ccde6315c2935cbe21504e8596798b89bf7f2d45102a`. **Bagian 14:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `20`, SHA-256 `b278013547dfa3c8f1bfa21fdd442cdaa416a8015939f1628794ab7e03db0fb7`. Sebelumnya revision `11` dan revision `8` |
-| Capability evidence | **Bagian 20:** capability map revision `1.7` bagian 20, SHA-256 `e8e454cbaed3f0bfd39793bbb4b82860ed9eb921b9154c24554b2bf06fb6e3da`, ditambah `RWI-FACT-065` dan `RWI-FACT-066`. **Bagian 19:** capability map revision `1.6` bagian 19 ditambah pembacaan source frontend `f74758af5` dan backend Billing pada 19.1; daftar pemicu 19.9 tidak lengkap (IMP-RWF-04). **Bagian 17 dan 18:** [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.6` bagian 19; bagian 18 ditambah `RWI-FACT-057`, `RWI-FACT-058`, dan pembacaan source pada 18.1. **Bagian 16:** [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.5` Bagian 18 (Audit Kemampuan Integrasi Rawat Inap ↔ Billing, 17 September 2026). **Bagian 14 dan 15:** [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.4`. Sebelumnya revision `1.3` |
-| Primary business source | **Bagian 20:** `PRD-RWI-ADMISI-001` v`0.2` `DRAFT`, SHA-256 `f1fd336f562d6936629d50f8f849fa7767e2dbea2b24678da9596de60dcc1192`, sebagian tertinggal dari decision log (G-50). **Bagian 19:** `PRD-RWI-FINISHING-001` v`0.4`, SHA-256 `0f658455b98658974865fda4fb917b2ccdb9a9bce5db5723f9b919327cfabe1a`, sebagian tertinggal dari decision log (G-28). **Bagian 17 dan 18:** `docs/Modul-RS/Rawat-Inap/05-prd-to-mvp-finishing-rawat-inap.md` (`PRD-RWI-FINISHING-001` v`0.2` untuk bagian 17; v`0.4`, SHA-256 `aee2afdb03e62c2bcdbd2e8fc832bb634df40686079c1b5e4f7f6f4d1ae46d29`, untuk bagian 18). Klaster Pasca Operasi juga merujuk bukti HiSys `Pasca-Operasi-ke-Rawat-Inap.md` sebagai praktik sistem lain. **Bagian 16:** `docs/Modul-RS/Rawat-Inap-To-Billing/PRD Integrasi-Rawat-Inap-dengan-Billing.md` (2.282 baris). **Bagian 14 dan 15:** `PRD-RWI-V2-001` v`2.0` dan `PRD-to-MVP-Rawat-Inap-V2` v`1.0.0`. Baseline: `docs/Modul-RS/Rawat-Inap/PRD_Final_Rawat_Inap_100_Persen.md` |
-| Baseline rujukan | `indonesia-hospital-domain-reference`, berkas `references/inpatient.md`, `Reference coverage: PARTIAL`, seluruh observasi berstatus `REFERENCE_ONLY` |
-| Backend snapshot | **Bagian 20:** audit `671191eb`, HEAD `fdf85a07` (enam berkas harga penjamin, dinilai `RWI-FACT-065`). **Bagian 19:** HEAD `bf5c6bde` — sejak `8d96a978` hanya dokumen; sejak audit `c8e99ce5` perubahan kode hanya saringan pencarian census. **Bagian 17 dan 18:** audit `c8e99ce5`, HEAD `425cfeae` (hanya dokumen). **Bagian 16: `fe7e60d4b2ef1eecffa72cef4f4fd33f9dbe0344`** (branch `MHamzah`); Bagian 14: `df3679c0d5b2f08106702153eb242d3a6cb2929b`; sebelumnya `93b3227c431401d8f586dec4e1fb25fbf41766e3` |
-| Frontend snapshot | **Bagian 20:** audit dan HEAD `27889662a`; perubahan lokal belum di-commit hanya menyentuh menu penunjang dan pemesanan bedah Workspace Keperawatan. **Bagian 19:** HEAD `f74758af5` — form Penunjang Medis ruang kerja dokter (19.5). **Bagian 17 dan 18:** audit `22ad67330`, HEAD `ee75e055b`; bagian 18 mencatat perubahan lokal belum di-commit yang tidak menyentuh berkas pemicu 19.9. **Bagian 16: `2c00758832f834cff0288bef4f0d2fcf1161fb52`** (branch `HamzahV2`); Bagian 14: `147355f505e875148b8416866ada6cf8b2f1ad99`; sebelumnya `863f24b0d1617069310c04e5770b47fd1b518b5b` |
+| **Bed Management readiness** | **`READY_FOR_DOMAIN_DESIGN` untuk batas produk bagian 21.** Kesiapan penerapan belum terbukti; status keseluruhan Rawat Inap tetap seperti baris di atas |
+| Ready destination | **Bagian 21:** enam kemampuan Bed Management `READY_FOR_DOMAIN_DESIGN` dalam batas produk → `design-business-module`; empat gate penerapan tetap terbuka. **Bagian 20:** sembilan slice Workspace PPRI `READY_FOR_DOMAIN_DESIGN` dan bagian siap `INP-S46` → langsung `design-business-module` (amandemen `episode-rawat-inap` `0.11.0`); `hospital-domain-architect` tidak disarankan. **Bagian 19:** seluruh 15 slice Finishing `READY_FOR_DOMAIN_DESIGN`, dan desain revision `8` sudah disetujui (`RWI-DEC-221`) → `plan-module-delivery`. `hospital-domain-architect` atau langsung `design-business-module`. Ketujuh capability Dokter Rawat Inap siap sesuai bagian 12; empat kemampuan Keperawatan aktif siap sesuai bagian 13; slice penyelarasan V2 `INP-S17`, `S18`, `S19` (sliding scale), `S20`, dan `S21` siap sesuai bagian 14 dan 15; **slice integrasi Rawat Inap ↔ Billing `INP-S22` siap untuk domain design sesuai bagian 16**; **slice Finishing `INP-S23` s.d. `INP-S37` siap sesuai bagian 18, kecuali aturan Billing penggabungan biaya operasi kunjungan asal pada `INP-S32` (`DEC-INP-018`)**; handover shift dan transfusi selain monitoring `DEFERRED` |
+| Business evidence | **Bagian 21:** decision log revision `46`, SHA-256 `41dd035d62e7804dff7e796712e25410152fae8e67b9444257ba73e0a6a30b3d`; `RWI-DEC-274` s.d. `294`, `RWI-FACT-068` s.d. `070`, `RWI-AC-396` s.d. `426`. **Bagian 20:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `36`, SHA-256 `618f684b707fdb60f88d194623a265844faaf61fb02061e11eb61a4104f746df` (`RWI-DEC-225` s.d. `RWI-DEC-262`, `RWI-AC-343` s.d. `RWI-AC-383`). **Bagian 19:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `32`, SHA-256 `2102ed1da2a4748157bb3e6960212905e20a704b2a265c6abda4a97ffed43b25` (`RWI-DEC-206` s.d. `RWI-DEC-221`, `RWI-AC-330` s.d. `RWI-AC-340`); `billing-kasir` `BKC-DEC-118`. **Bagian 18:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `30`, SHA-256 `aa92c5ddd217b0bd95abf628ae484a1c0caddcdf386e7834f0715ed216e2a439` (`RWI-DEC-194` s.d. `RWI-DEC-205`, `RWI-AC-307` s.d. `RWI-AC-329`). **Bagian 17:** revision `29`, SHA-256 `f6fed60809321687d850306dfd2830d9394e1b2e7e7ab0a66b01cbc5068ce471`. **Bagian 16:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `25` (Pass A — Muhammad Hamzah, 17 September 2026), memuat keputusan `RWI-DEC-156` s.d. `RWI-DEC-161` dan kriteria penerimaan `RWI-AC-236` s.d. `RWI-AC-241`. **Bagian 15:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `21`, SHA-256 `1c55c80a50aee11ef005ccde6315c2935cbe21504e8596798b89bf7f2d45102a`. **Bagian 14:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `20`, SHA-256 `b278013547dfa3c8f1bfa21fdd442cdaa416a8015939f1628794ab7e03db0fb7`. Sebelumnya revision `11` dan revision `8` |
+| Capability evidence | **Bagian 21:** audit `BM-AUD-20261010-01` revision `1`, SHA-256 `50e0e1525804260331d3a830fb379532f802a3ff31e43cd3b4df4416fa42f38b`; fingerprint working tree diperiksa ulang. **Bagian 20:** capability map revision `1.7` bagian 20, SHA-256 `e8e454cbaed3f0bfd39793bbb4b82860ed9eb921b9154c24554b2bf06fb6e3da`, ditambah `RWI-FACT-065` dan `RWI-FACT-066`. **Bagian 19:** capability map revision `1.6` bagian 19 ditambah pembacaan source frontend `f74758af5` dan backend Billing pada 19.1; daftar pemicu 19.9 tidak lengkap (IMP-RWF-04). **Bagian 17 dan 18:** [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.6` bagian 19; bagian 18 ditambah `RWI-FACT-057`, `RWI-FACT-058`, dan pembacaan source pada 18.1. **Bagian 16:** [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.5` Bagian 18 (Audit Kemampuan Integrasi Rawat Inap ↔ Billing, 17 September 2026). **Bagian 14 dan 15:** [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.4`. Sebelumnya revision `1.3` |
+| Primary business source | **Bagian 21:** instruksi BA Bed Management butir 1–5 yang diteruskan pengguna, dilengkapi keputusan produk revision `46`; rekomendasi draft dalam audit tidak menjadi approval sendiri. **Bagian 20:** `PRD-RWI-ADMISI-001` v`0.2` `DRAFT`, SHA-256 `f1fd336f562d6936629d50f8f849fa7767e2dbea2b24678da9596de60dcc1192`, sebagian tertinggal dari decision log (G-50). **Bagian 19:** `PRD-RWI-FINISHING-001` v`0.4`, SHA-256 `0f658455b98658974865fda4fb917b2ccdb9a9bce5db5723f9b919327cfabe1a`, sebagian tertinggal dari decision log (G-28). **Bagian 17 dan 18:** `docs/Modul-RS/Rawat-Inap/05-prd-to-mvp-finishing-rawat-inap.md` (`PRD-RWI-FINISHING-001` v`0.2` untuk bagian 17; v`0.4`, SHA-256 `aee2afdb03e62c2bcdbd2e8fc832bb634df40686079c1b5e4f7f6f4d1ae46d29`, untuk bagian 18). Klaster Pasca Operasi juga merujuk bukti HiSys `Pasca-Operasi-ke-Rawat-Inap.md` sebagai praktik sistem lain. **Bagian 16:** `docs/Modul-RS/Rawat-Inap-To-Billing/PRD Integrasi-Rawat-Inap-dengan-Billing.md` (2.282 baris). **Bagian 14 dan 15:** `PRD-RWI-V2-001` v`2.0` dan `PRD-to-MVP-Rawat-Inap-V2` v`1.0.0`. Baseline: `docs/Modul-RS/Rawat-Inap/PRD_Final_Rawat_Inap_100_Persen.md` |
+| Baseline rujukan | **Bagian 21:** tidak memakai baseline rumah sakit atau regulasi baru. **Bagian terdahulu:** `indonesia-hospital-domain-reference`, berkas `references/inpatient.md`, `Reference coverage: PARTIAL`, seluruh observasi berstatus `REFERENCE_ONLY` |
+| Backend snapshot | **Bagian 21:** `d4e1eca06fb28c05934c68c1e51a4dca01935a10`, branch `MHamzah`, ditambah fingerprint working tree. **Bagian 20:** audit `671191eb`, HEAD `fdf85a07` (enam berkas harga penjamin, dinilai `RWI-FACT-065`). **Bagian 19:** HEAD `bf5c6bde` — sejak `8d96a978` hanya dokumen; sejak audit `c8e99ce5` perubahan kode hanya saringan pencarian census. **Bagian 17 dan 18:** audit `c8e99ce5`, HEAD `425cfeae` (hanya dokumen). **Bagian 16: `fe7e60d4b2ef1eecffa72cef4f4fd33f9dbe0344`** (branch `MHamzah`); Bagian 14: `df3679c0d5b2f08106702153eb242d3a6cb2929b`; sebelumnya `93b3227c431401d8f586dec4e1fb25fbf41766e3` |
+| Frontend snapshot | **Bagian 21:** `969acfcc04cdf31074a1911e9827c31d25ddadd0`, branch `HamzahV2`, ditambah fingerprint working tree. **Bagian 20:** audit dan HEAD `27889662a`; perubahan lokal belum di-commit hanya menyentuh menu penunjang dan pemesanan bedah Workspace Keperawatan. **Bagian 19:** HEAD `f74758af5` — form Penunjang Medis ruang kerja dokter (19.5). **Bagian 17 dan 18:** audit `22ad67330`, HEAD `ee75e055b`; bagian 18 mencatat perubahan lokal belum di-commit yang tidak menyentuh berkas pemicu 19.9. **Bagian 16: `2c00758832f834cff0288bef4f0d2fcf1161fb52`** (branch `HamzahV2`); Bagian 14: `147355f505e875148b8416866ada6cf8b2f1ad99`; sebelumnya `863f24b0d1617069310c04e5770b47fd1b518b5b` |
 | Write boundary | Dokumen evidence ini dan sinkronisasi metadata/hash blueprint. Tidak ada source aplikasi, migration, entity, endpoint, UI, task, database, atau ClickUp yang diubah |
 
 > **Apa gunanya dokumen ini.** Dokumen ini tidak merancang apa pun. Tugasnya satu: memeriksa
@@ -2943,3 +2945,242 @@ next_skill:
   - design-business-module untuk amandemen episode-rawat-inap 0.11.0 pada slice yang siap
   - grill-me singkat untuk DEC-INP-020 setelah jawaban Yasmina, dan untuk DEC-INP-003 setelah pemilik privasi ditunjuk
 ```
+
+---
+
+## 21. Gerbang kelengkapan Bed Management — 10 Oktober 2026
+
+### 21.1 Hasil dan batas penilaian
+
+**Hasil: `READY_FOR_DOMAIN_DESIGN` untuk enam kemampuan produk Bed Management yang dibatasi pada bagian 21.3.** Tujuan, pelaku, alur, status, pengecualian, akses minimum, dan hasil bisnisnya sudah cukup untuk dirancang. Tidak ada keputusan produk pemblokir yang masih menunggu jawaban pengguna.
+
+Hasil ini mengikuti penutupan `RWI-DEC-274` s.d. `294`, termasuk delegasi eksplisit `RWI-DEC-279`. Gate mempertahankan pilihan yang sudah disahkan pengguna. Persetujuan produk tidak membuktikan SOP klinis, hak akses produksi, isi data master, atau hasil pengujian. Bukti tersebut masih diperlukan pada `BM-G01` s.d. `BM-G04`.
+
+| Field | Nilai |
+|---|---|
+| ID assessment / revision dokumen | `BM-RCG-20261010-01` / `1.12` |
+| Modul / menu | `rawat-inap`, `RWI-BP-001` / Bed Management |
+| Sub-modul acuan | `episode-rawat-inap`; batas ownership existing tetap menjadi masukan, bukan rancangan baru |
+| Batas tulis | `MODULE BLUEPRINT MODE`; hanya dokumen gate ini |
+| Baseline blueprint | Manifest induk revision `9`; manifest episode revision `10`, `approved`; kontrak `0.11.0` |
+| Status blueprint target Bed Management | Belum dirancang/disetujui; hasil gate tidak menaikkan kontrak atau memberi wewenang implementasi |
+| Satuan penilaian | `BM-CG-01` s.d. `BM-CG-06` adalah ID kemampuan lokal assessment, bukan task roadmap atau bounded context baru |
+| Scope keseluruhan Rawat Inap | Tidak dinilai ulang. Status historis `PARTIALLY_READY` serta keputusan di luar Bed Management tetap dipertahankan |
+
+**Di dalam batas siap:** monitoring enam status; pemesanan/pelepasan; transfer satu langkah dengan kategori manual; pencatatan pembersihan dan pengesahan kesiapan sebagai alur produk; penutupan/pemulihan operasional bed; riwayat penggunaan dengan akses minimum dan koreksi berversi.
+
+**Di luar batas siap:** merancang atau mengesahkan prosedur disinfeksi/pemeriksaan klinis; memilih orang yang sah menjadi verifikator; memberi hak baru atau akses lintas pasien; kebijakan privasi/retensi hukum baru; mengubah tarif/claim/payment; merombak proses klinis pindah/pulang, MasterData, admisi, atau IGD; menambah kerja offline, pengingat/perpanjangan pesanan, atau transfer dengan penerimaan tujuan sebagai gerbang.
+
+Batas ini menentukan arti `READY_FOR_DOMAIN_DESIGN`. Desain boleh menerjemahkan keputusan produk dengan tindakan yang ditolak saat prasyarat/hak belum sah. Desain tidak boleh mengisi kebijakan klinis atau keamanan yang belum ada dengan konfigurasi atau rekomendasi AI. Jika bukti SOP/privasi kelak menuntut perubahan pelaku, data wajib, atau lifecycle, nilai ulang kemampuan terkait sebelum mengunci perubahan tersebut.
+
+### 21.2 Bukti, wewenang, dan kesegaran
+
+| Ref | Bukti yang dipakai | Revision / snapshot | Wewenang dan batas |
+|---|---|---|---|
+| BM-EV-01 | Instruksi BA butir 1–5, diteruskan pengguna; dicatat `RWI-FACT-068` | Sesi 10 Oktober 2026 | Target bisnis: nama menu, tiga tab, enam status, transfer asal otomatis/tujuan tersedia/kategori manual, riwayat termasuk tanpa transfer |
+| BM-EV-02 | [Decision log](../00-interview-decisions.md), bagian Amendment Pass Bed Management | Revision `46`; SHA-256 `41dd035d62e7804dff7e796712e25410152fae8e67b9444257ba73e0a6a30b3d` | Target produk `CONFIRMED` melalui pilihan langsung dan delegasi. `RWI-DEC-006` tetap membatasi approval klinis/keamanan/privasi |
+| BM-EV-03 | [Audit existing](../../../../../artifacts/bed-management/01-existing-capability-map.md), bagian 3–8 dan 11 | `BM-AUD-20261010-01` revision `1`; SHA-256 `50e0e1525804260331d3a830fb379532f802a3ff31e43cd3b4df4416fa42f38b` | Bukti source as-is. Rekomendasi bisnis audit masih draft kecuali secara eksplisit dipilih BM-EV-02 |
+| BM-EV-04 | [Fingerprint audit](../../../../../artifacts/bed-management/evidence-fingerprints.json) | 62 berkas; BE `d4e1eca06fb28c05934c68c1e51a4dca01935a10`; FE `969acfcc04cdf31074a1911e9827c31d25ddadd0` | HEAD cocok. Sebanyak 61 fingerprint masih sama; decision log berubah dari revision 40 menjadi 46, dibaca sebagai bukti target terbaru |
+| BM-EV-05 | [Manifest induk](../blueprint-manifest.md) dan [manifest episode](../episode-rawat-inap/blueprint-manifest.md) | Revision `9` / `10`; kontrak `0.11.0` | Baseline desain terdahulu. SHA-256 induk `ecd50237393ed7255eccfcaaed7172429feffc12ce95d6db47149e748a30de2f`; episode `b661259ee1812418ab0e78bc03b7c0f6dc19dda05f5bfe18b6c847843d568a8c` |
+
+Branch BE `MHamzah` dan FE `HamzahV2`. Baseline Git berisi 38 entri backend dan 28 frontend yang telah ada sebelum penulisan gate. SHA commit saja tidak mewakili seluruh isi working tree; fingerprint melengkapi bukti tersebut.
+
+Audit menyediakan bukti source per repository, path, baris/simbol, dan SHA pada bagian 11. Rujukan `E01` s.d. `E24` di bawah mengikuti indeks itu. Contoh: `E09` = backend `Areas/HealthServices/InPatientManagement/Services/InpBedOccupancyService.cs`, `ReserveBedAsync`, `TransferAsync`, `ReleaseBedStatusCopyAsync`, pada snapshot BE di atas. Perubahan rule pada decision log tidak mengubah source service itu.
+
+Tidak ada SOP rumah sakit, daftar akun/role target, data master aktual, approval PPI/privasi baru, atau bukti runtime baru yang tersedia dalam masukan assessment. Tidak memakai rujukan domain/regulasi tambahan. Baseline `REFERENCE_ONLY` pada bagian terdahulu dokumen ini tidak dinaikkan menjadi kebijakan Bed Management.
+
+### 21.3 Kemampuan, proses, dan traceability
+
+| Kemampuan | Tujuan, pelaku, pemicu / prasyarat | Alur dan hasil yang telah diputuskan | Data minimum | Bukti produk / audit |
+|---|---|---|---|---|
+| `BM-CG-01` Monitoring | Petugas berhak melihat ketersediaan pada scope unit/bed sah ketika membuka Monitoring Bed | Baca kondisi aktual → tampilkan enam status dan ringkasan konsisten → pilih bed yang layak; identitas hanya sesuai hak existing | Bed/kamar/unit/kelas, status/tahap, alasan tertahan atau konflik, ketersediaan aktual; konteks pasien hanya bila sah | `RWI-DEC-285/287/292`; `RWI-AC-396..398/420/424`; `BM-CAP-01..03/15`, `E09/E19..E22` |
+| `BM-CG-02` Pemesanan dan pelepasan | Admisi/petugas existing berhak; episode dan kelayakan bed sah | Pesan → tempatkan, atau batal/expiry server; pelepasan hunian yang benar-benar dipakai memicu kebutuhan pembersihan | Episode, bed, pemegang pesanan/hunian, waktu pesan/batas berlaku/penempatan/keluar, actor, alasan pembatalan | `RWI-DEC-281/283/288/289`; `RWI-AC-407/408/413/418/419/426`; `BM-CAP-04/05/08/14`, `E04/E09/E10/E18` |
+| `BM-CG-03` Transfer | Petugas transfer existing; hunian asal aktif, tujuan tersedia, guard DPJP/folio existing sah | Asal otomatis → tujuan → kategori manual → periksa ulang → simpan utuh atau batal seluruhnya; asal masuk pembersihan, tujuan Terisi, riwayat bertambah | Episode, asal/tujuan, kelas/urutan resmi saat kejadian, kategori, waktu, actor, alasan existing | `RWI-DEC-275..277/284/289/291`; `RWI-AC-399..405/414/419/421/423`; `BM-CAP-11/12/17`, `E09/E11/E16/E23` |
+| `BM-CG-04` Pembersihan dan pengesahan | Housekeeping mencatat; perawat ruangan yang ditunjuk mengesahkan. Bed bekas pasien sudah dilepas; hak/scope dan SOP sah diperlukan untuk penerapan | Menunggu → mulai → selesai fisik/menunggu verifikasi → siap, atau kembali menunggu beralasan; tidak ada kesiapan otomatis karena timer | Bed/siklus pekerjaan terkini, pelaksana/pencatat/verifikator, waktu mulai/selesai/pemeriksaan, hasil, alasan, jejak upaya | `RWI-DEC-278/280..282/287..290/293`; `RWI-AC-406/407/409..411/416/417/419/421/425`; `BM-CAP-07..09`, `E01/E05/E09/E10` |
+| `BM-CG-05` Penutupan/pemulihan | Admin MasterData sesuai scope; alasan operasional. Penutupan langsung tidak boleh menimpa hunian/pesanan aktif | Periksa seluruh guard → tutup beralasan → buka setelah sebab ditangani → tetap tertahan bila kesiapan belum sah; verifikator mengesahkan kesiapan | Bed, sebab, actor/waktu, kondisi hunian/pesanan/kebersihan, jejak penutupan/pembukaan | `RWI-DEC-285/287..289`; `RWI-AC-412/417/419/424`; `BM-CAP-10`, `E02/E05/E09` |
+| `BM-CG-06` Bed Usage History | Pembaca berhak; memilih bed/periode dalam scope baca sah | Baca semua segmen, termasuk tanpa transfer → konteks kamar/kelas saat kejadian → versi koreksi; hunian aktif belum punya akhir | Bed/kamar/unit/kelas historis, episode/identitas sesuai hak, awal/akhir, jenis kejadian, kategori bila transfer, actor/alasan, versi | `RWI-DEC-286..288`; `RWI-AC-402/415..418`; `BM-CAP-13/17`, `E04/E09/E12/E17/E23` |
+
+Urutan proses produk yang diperiksa:
+
+1. Petugas membaca Monitoring Bed; sistem menilai ketersediaan dari kondisi aktual, bukan hanya salinan enum master.
+2. Admisi berwenang memesan bed yang layak. Penempatan mengubah pesanan menjadi hunian; batal atau kedaluwarsa sebelum dipakai tidak membuat pekerjaan pembersihan baru.
+3. Transfer sah mengakhiri hunian asal dan membuka hunian tujuan bersama-sama. Kategori manual harus cocok dengan urutan kelas resmi. Serah terima klinis existing berjalan sesudah transfer tersimpan.
+4. Kepergian fisik sah atau transfer melepaskan bed bekas pasien. Bed tertahan untuk pembersihan, sementara penutupan episode lama tidak boleh melepaskan hunian pasien berikutnya.
+5. Housekeeping mulai dan selesai; perawat verifikator mengesahkan atau menolak kesiapan. Penutupan administratif tetap menghalangi pemesanan.
+6. Riwayat mempertahankan segmen hunian dan koreksi. Pemesanan, pembersihan, dan penutupan mempunyai audit operasional, tanpa dihitung sebagai durasi pasien menggunakan bed.
+
+| Dari | Kejadian | Ke / hasil | Pelaku dan syarat |
+|---|---|---|---|
+| Tersedia | Pesan / penempatan sah | Dipesan → Terisi | Hak existing; kelayakan dan pemegang aktual diperiksa server |
+| Dipesan | Batal / expiry sebelum dipakai | Tersedia hanya jika masih layak | Actor berhak atau evaluasi server; bukan pemicu pembersihan baru |
+| Terisi | Transfer / kepergian sah | Menunggu Pembersihan, atau Tidak Tersedia bila ditutup | Pelepasan sah existing; kebutuhan bersih tetap tercatat |
+| Menunggu Pembersihan | Mulai | Dalam Pembersihan | Housekeeping berhak pada scope bed |
+| Dalam Pembersihan | Selesai fisik | Dalam Pembersihan, tahap Menunggu verifikasi | Housekeeping; belum boleh dipesan |
+| Dalam Pembersihan | Verifikasi siap / belum siap | Tersedia / Menunggu Pembersihan | Perawat verifikator; seluruh guard terkini lolos / alasan penolakan tersimpan |
+| Bed tanpa hunian/pesanan | Tutup beralasan | Tidak Tersedia | Admin berhak; pekerjaan dan audit terdahulu dipertahankan |
+| Terisi / Dipesan | Tutup langsung melalui master | Ditolak; fakta pasien/pesanan tetap | Seluruh pintu tulis master menjaga invariant yang sama |
+| Tidak Tersedia | Buka | Menunggu Pembersihan bila belum terbukti siap; Tersedia hanya sesudah pengesahan sah | Admin membuka; verifikator mengesahkan. Bukti basi tidak membuka siklus/penutupan baru |
+
+Tabel ini merangkum keputusan, bukan menetapkan enum, API, atau rancangan penyimpanan. Transisi lengkap tetap pada decision log revision 46.
+
+### 21.4 Penilaian 18 dimensi per kemampuan
+
+`C` pada tabel berarti `CONFIRMED` untuk kebutuhan produk dari BM-EV-01/02, **bukan** bukti bahwa kemampuan sudah terimplementasi atau approval klinis/privasi telah diberikan. Angka `DEC` merujuk `RWI-DEC`. Keterangan penerapan yang masih `MISSING` dirinci pada 21.5 dan 21.7.
+
+| Dimensi | BM-CG-01 Monitoring | BM-CG-02 Pemesanan | BM-CG-03 Transfer | BM-CG-04 Pembersihan | BM-CG-05 Penutupan | BM-CG-06 Riwayat | Bukti utama |
+|---|---|---|---|---|---|---|---|
+| 01 Tujuan | C: ketersediaan terpercaya | C: bed dikuasai satu pihak sah | C: perpindahan tercatat utuh | C: bekas pasien belum siap tidak dipesan | C: bed tak layak ditahan | C: semua penggunaan dapat ditelusuri | BA; DEC-281/285/286/289/292 |
+| 02 Aktor | C: pembaca sesuai hak | C: admisi/petugas existing | C: petugas transfer existing | C: HK dan perawat verifikator | C: admin dan verifikator | C: pembaca/auditor sesuai hak | DEC-278/280/284/285/287; matriks kewenangan revision 46 |
+| 03 Pemicu/prasyarat | C: buka tab, scope sah | C: episode dan bed layak | C: hunian asal aktif, tujuan sah | C: hunian dilepas, hak dan SOP sah saat penerapan | C: alasan, tanpa hold aktif | C: bed/periode dan scope sah | DEC-281/283..287/293 |
+| 04 Alur utama | C: baca → status/ringkasan | C: pesan → tempatkan/batal/expiry | C: asal → tujuan → kategori → simpan | C: mulai → selesai → verifikasi | C: tutup → buka → periksa siap | C: filter → segmen → versi | Alur revision 46; bagian 21.3 |
+| 05 Alternatif/exception | C: data invalid, stale, akses ditolak | C: konflik pemegang, expiry, kegagalan | C: kelas tak sah, asal berubah, gagal seluruhnya | C: belum siap, verifikator belum ada, siklus lama | C: hold aktif, tutup saat pekerjaan | C: data gagal, identitas disamarkan, koreksi | DEC-282/285/287/289..291 |
+| 06 Data minimum | C: lokasi/status/tahap/alasan | C: episode/bed/waktu/actor/alasan | C: asal/tujuan/kelas/kategori/waktu | C: pekerjaan/actor/waktu/hasil/alasan | C: bed/sebab/actor/waktu/kesiapan | C: segmen/waktu/konteks/versi | DEC-278/284..288; bagian 21.3 |
+| 07 Validation | C: arti Tersedia konsisten | C: satu pemegang, server otoritatif | C: kategori cocok, guard existing | C: tidak siap otomatis, bukti siklus terkini | C: semua jalur master, tidak menimpa hold | C: hak baca dan versi efektif | DEC-276/281..285/287/289/291/292 |
+| 08 Status/transisi | C: enam status BA | C: Tersedia/Dipesan/Terisi + release | C: asal menunggu, tujuan terisi | C: menunggu/dalam/siap; verifikasi subfase | C: Tidak Tersedia dan pemulihan terkendali | C: aktif/berakhir serta versi, tanpa hunian fiktif | DEC-281/282/285/286; tabel 21.3 |
+| 09 Authorization | C: hak baca dan scope | C: hak existing, alasan batal | C: transfer/koreksi sesuai hak existing | C: HK tidak mengesahkan; perawat berhak | C: admin tidak melewati verifikator | C: identitas hanya dengan hak pasien/episode | DEC-280/285/287/288; BM-G03 bukti grant belum ada |
+| 10 Dependency | C: master/lokasi, reservasi/hunian, akses | C: episode, bed, setting, akses | C: episode/master/clinical/Billing | C: pelepasan, bed, operasional/akses | C: MasterData dan hunian/pembersihan | C: linimasa hunian/koreksi/akses | Audit E02/E04/E09/E13/E16/E17; DEC-193/284 |
+| 11 Integrasi | C: baca sumber existing | C: operasi admisi/placement existing | C: guard folio, handover sesudah commit | C: kejadian release dan hak internal | C: seluruh pintu master | C: histori existing dan titik koreksi Billing | Audit E05/E09/E11..E17/E23; DEC-284/290 |
+| 12 Hasil akhir | C: status/total/pilihan selaras | C: satu pesanan/hunian sah atau lepas | C: lokasi baru dan histori utuh | C: siap disahkan atau tetap tertahan | C: sebab tertangani, kesiapan tidak diasumsikan | C: riwayat lengkap sesuai hak | DEC-281..289/292 |
+| 13 Batal/koreksi | C: baca tidak mengubah data | C: batal beralasan/expiry | C: tidak hapus transfer sah; koreksi existing | C: penolakan beralasan, ulang tanpa hapus upaya | C: buka bukan pembatalan audit | C: koreksi berversi, tidak hapus histori | DEC-157/283/285/288..290 |
+| 14 Audit/history | C: perubahan sumber ditelusuri | C: actor/waktu/alasan | C: kelas saat kejadian, alasan, versi | C: mulai/selesai/verifikasi/upaya | C: tutup/buka/sebab/actor | C: semua hunian termasuk tanpa transfer | DEC-278/284/286/288 |
+| 15 Notifikasi | C: keadaan/error pada layar; kanal baru tidak diminta | C: countdown existing; reminder/extension dikecualikan | C: hasil aksi; handover existing bukan gerbang | C: tahap Menunggu verifikasi terlihat; eskalasi melalui operasional | C: alasan tertahan terlihat | C: hasil baca/error; push baru tidak diperlukan | DEC-282/283/284/290/292; tidak mengarang SLA/notifikasi baru |
+| 16 Billing/charge | C: pembacaan tidak membuat charge | C: linimasa pemakaian existing tetap sumber | C: kelas aktual/waktu hunian tetap; label bukan tarif | C: waktu membersihkan bukan hunian pasien | C: penutupan administratif bukan charge pasien | C: koreksi tunduk guard dan integrasi existing | DEC-013/157/166/186/284/286/288; audit E17 |
+| 17 Keselamatan klinis | C: tak layak tidak ditawarkan; fakta pasien tidak hilang | C: tidak ada dua pemegang; guard existing tetap | C: tidak memilih bed tak siap atau mengubah keputusan klinis | C: bekas pasien ditahan sampai pemeriksaan sah | C: tidak memalsukan pasien keluar | C: identitas dibatasi, konteks lama terjaga | DEC-006/280..282/285/287/289/293; SOP BM-G02 belum terbukti |
+| 18 Pelaporan/traceability | C: ringkasan dengan arti status sama | C: pesanan dan hunian berbeda makna | C: perpindahan/kategori/konteks tersimpan | C: tindakan, waktu, hasil dapat ditelusuri | C: alasan dan jejak pemulihan | C: bed/periode/kamar/semua segmen/versi | DEC-284..288/292; AC-402/415/418/420 |
+
+Dimensi kondisional 15–18 sudah dipertimbangkan. Tidak ada kebutuhan notifikasi WhatsApp/email/push, laporan statistik baru, atau tenggat pekerjaan pembersihan yang dikonfirmasi. Membaca board/history tidak membuat charge. Waktu pembersihan/bed ditutup tidak ditambahkan menjadi durasi hunian pasien. Perubahan penempatan/koreksi tetap berdampak ke Billing existing; gate ini tidak memvalidasi kalkulasi atau pengiriman runtime-nya.
+
+### 21.5 Klasifikasi requirement dan gap
+
+**`CONFIRMED`:** mandat BA dan keputusan produk `RWI-DEC-274..294`; pemisahan kewenangan `RWI-DEC-006`; guard koreksi/Billing existing. Persetujuan langsung/delegasi sudah tertulis, sehingga pilihan produk tidak kembali menjadi `PROPOSED` hanya karena awalnya rekomendasi AI.
+
+**`CONFLICT`:** tidak ada pertentangan bisnis terbuka dalam batas produk ini. `RWI-CON-016` diselesaikan keputusan terbaru. Contoh lama pada `RWI-DEC-186` yang mengatakan bed langsung Available dibaca dengan amandemen `RWI-DEC-281`: pelepasan hunian tetap segera, tetapi bed bekas pasien tertahan untuk pembersihan. Guard kasir di penutupan episode tidak berubah. Ini perbedaan target dengan source/dokumen lama yang harus ditindaklanjuti, bukan keputusan produk yang belum dipilih.
+
+| ID / rujukan | Pernyataan yang masih belum terbukti atau belum dipilih | Status bukti | Dampak pada desain dalam batas 21.1 | Batas penerapan / tindak lanjut |
+|---|---|---|---|---|
+| `BM-G01` | Arti/arah angka ClassLevel, kesetaraan sah dan isi master target belum diverifikasi | `MISSING` untuk fakta data; kebijakan urutan global dan menahan perbandingan tak sah `CONFIRMED` | `NON_BLOCKING_STANDARD`: perilaku produk sudah tegas, desain tidak menebak arah angka | Validasi/perbandingan terkait tidak diaktifkan sebelum bukti MasterData ada; seluruh tim MasterData + BA/Product |
+| `BM-G02` | SOP pembersihan/pemeriksaan/downtime serta penugasan nyata belum tersedia | `MISSING` untuk bukti operasional; alur dan tanggung jawab produk `CONFIRMED` | `NON_BLOCKING_STANDARD` hanya untuk pencatatan/alur produk yang sudah dibatasi; desain prosedur klinis tidak termasuk hasil siap | Aktivasi workflow pada bed pasien nyata tertahan sampai SOP/penugasan sah. Jika SOP mengubah lifecycle/data/authority, assessment terkait harus diulang |
+| `BM-G03` | Pemetaan permission/scope/akun dan approval privasi/keamanan target belum terbukti; owner privacy masih OPEN | `MISSING` untuk bukti penerapan; batas minimum/penolakan hak tak sah `CONFIRMED` | `NON_BLOCKING_STANDARD` untuk desain yang mempertahankan hak existing dan menolak grant tidak diketahui | Dilarang memberi role/hak baru atau membuka identitas lintas pasien sebelum otorisasi sah. Pilihan kebijakan akses baru tidak diloloskan lewat konfigurasi |
+| `BM-G04` | Implementasi target, perbaikan `BM-F01..F07`, API/PG/integrasi/migration target belum dibuktikan | `MISSING` untuk bukti pemenuhan; perilaku wajibnya `CONFIRMED` | `NON_BLOCKING_STANDARD`: kekurangan implementasi tidak mengubah requirement menjadi belum diputuskan | Readiness/rilis tetap tertahan sesuai kemampuan terdampak sampai implementasi dan uji terbukti |
+| `BM-RQG-01` | Penempatan kontrol/tab, warna nonkritis dan detail tata letak akan dipilih saat desain | `PROPOSED` untuk pilihan konkret; delegasi `DEV_DISCRETION` `CONFIRMED` | `NON_BLOCKING_STANDARD`; ikuti convention/token/component/accessibility existing | Tidak mengubah enam status, permission, scope data, atau alur |
+| `BM-RQG-02` | Metadata ringkasan lama masih menyebut 273 keputusan/395 AC; contoh lama dan blueprint belum menyerap Bed Management | `CONFIRMED` sebagai selisih dokumen yang dibaca | `NON_BLOCKING_STANDARD`; bagian Bed Management revision 46 dan assessment ini menjadi acuan slice | Sinkronisasi oleh amandemen desain berikutnya; tidak menyatakan blueprint/kontrak target sudah approved |
+
+Label `NON_BLOCKING_STANDARD` pada `BM-G01..04` berlaku **hanya terhadap desain kebutuhan produk yang telah dibatasi**, bukan terhadap izin mengaktifkan layanan, kebijakan klinis, keamanan, atau keselamatan pasien. Gate penerapan tersebut tetap wajib. Bukti yang belum ada tidak dianggap persetujuan tersirat.
+
+Tidak ada gap `BLOCKING` yang bergantung keputusan produk tersisa pada enam kemampuan ini. Tidak ada gap kritis yang dialihkan ke `CONFIGURABLE_DEFAULT`. Default reservasi 120 menit beserta parameter resmi existing sudah `CONFIRMED` (`RWI-DEC-283`), bukan usulan default baru.
+
+**Contoh batas yang tetap dihentikan:** bila SOP mensyaratkan pemeriksaan isolasi tertentu yang belum tercakup, perancang tidak boleh menciptakan checklist/hasil klinisnya. Bila rumah sakit meminta Housekeeping melihat diagnosis, permintaan itu mengubah batas akses `RWI-DEC-287` dan memerlukan keputusan keamanan/klinis yang sah sebelum desain bagian tersebut. Keduanya bukan alasan membuka ulang seluruh pertanyaan produk yang sudah ditutup.
+
+### 21.6 Decision Log yang dipertahankan
+
+| Decision ID | Pokok keputusan / ambiguitas asal | Kemampuan | Bukti / pemilik | Status dan akibat |
+|---|---|---|---|---|
+| `RWI-DEC-274/292/294` | Batas BA, menu/tiga tab/detail UI, penutupan pass | Semua | Pengguna sesi; Product/Domain owner | `CLOSED` pada produk; desain boleh memakai kebutuhan ini, belum ada approval desain |
+| `RWI-DEC-275..277/291`; `RWI-OQ-130/135` | Same Grade, kategori manual cocok, satu urutan resmi, data belum sah ditahan | BM-CG-03 | Jawaban langsung pengguna; seluruh tim MasterData untuk BM-G01 | `CLOSED` pada pilihan produk; fakta master belum diverifikasi |
+| `RWI-DEC-278/280..282`; `RWI-OQ-131` | HK mencatat, perawat mengesahkan, bed bekas pasien dibersihkan, enam status | BM-CG-02/04 | Pengguna/delegasi; operasional ruangan/HK/PPI untuk bukti nyata | `CLOSED` pada produk; SOP/penugasan tidak dikarang |
+| `RWI-DEC-283/284/289/290` | Expiry, transfer satu langkah, benturan/retry/downtime | BM-CG-02/03 dan tindakan bed lain | Pengguna/delegasi; pemilik aplikasi/environment | `CLOSED` pada produk; guard existing dan bukti implementasi tetap diperlukan |
+| `RWI-DEC-285/287`; `RWI-OQ-132/134` | Tidak Tersedia beralasan, guard semua pintu, hak/scope minimum | BM-CG-01/04/05/06 | Pengguna/delegasi; admin akses/MasterData dan owner privacy yang sah | `CLOSED` sebagai batas produk; bukan pemberian akses atau approval privacy |
+| `RWI-DEC-286/288`; `RWI-OQ-133` | Semua penggunaan, versi koreksi, audit/alasan, identitas sesuai hak | BM-CG-06 | Pengguna/delegasi; petugas koreksi existing; Billing untuk guard existing | `CLOSED` pada produk; tidak menambah retensi hukum atau hapus histori |
+| `RWI-DEC-279/293` bersama `RWI-DEC-006` | Batas delegasi dan bukti penerapan | Semua | Instruksi eksplisit pengguna dan keputusan governance existing | `CONFIRMED`; tidak mengubah keputusan produk menjadi approval klinis/keamanan |
+| `DEC-INP-003` dan keputusan gate lain di luar Bed Management | Privasi/consent/tanda tangan dan gap modul lain | Scope terdahulu | Tetap mengikuti bagian terdahulu beserta amendment yang relevan | Tidak ditutup atau dinilai ulang di sini; bukan alasan memblokir desain Bed Management yang tidak bergantung penyimpanan consent baru |
+
+Tidak membuat Decision ID `OPEN` baru untuk menanyakan ulang pilihan yang telah ditutup. `BM-G01..04` tetap identifier bukti yang stabil. Keputusan pemilik tambahan **tidak diperlukan untuk memulai desain dalam batas ini**. Persetujuan SOP/akses nyata tetap diminta dari pihak yang sah saat akan diterapkan; `grill-me` hanya diperlukan jika jawaban mereka mengubah kebutuhan atau membuka scope baru.
+
+### 21.7 Gerbang penerapan dan bukti penutup
+
+| Gate / dependency | Bagian terdampak | Bukti minimum untuk menutup gate | Pemilik berwenang |
+|---|---|---|---|
+| `BM-G01 / BM-DEP-01` MasterData | Ketersediaan/pemesanan dan kategori transfer yang bergantung master | Sumber/arti urutan kelas resmi dan arah ClassLevel, kesetaraan sah, validitas kelas/bed aktif-reservable pada data target; hasil pemeriksaan tercatat | Seluruh tim MasterData (`RWI-DEC-193`) + BA/Product |
+| `BM-G02 / BM-DEP-02` Operasional | Pembersihan, pengesahan dan rekonsiliasi downtime | SOP sah yang berlaku, penugasan HK/verifikator per shift dan serah terima; bukti bahwa hasil kerja diperiksa sesuai kewenangan | Penanggung jawab HK/ruangan/PPI sesuai struktur rumah sakit; nama/approval belum tersedia |
+| `BM-G03 / BM-DEP-03` Akses | Semua action serta baca identitas/history | Matriks hak/scope nyata, akun sah, pembatasan response; verifikasi penolakan akses tanpa hak; approval keamanan/privasi yang diperlukan | Admin akses/Platform dan owner keamanan/privasi yang sah; identitas owner belum dinyatakan |
+| `BM-G04 / BM-DEP-04` Implementasi dan runtime | Semua kemampuan target | Perbaikan tujuh temuan source; uji transisi/penolakan/konkurensi/retry; uji API/PostgreSQL/integrasi; bukti kesesuaian migration/DB target bila desain membutuhkan perubahan | Pemilik aplikasi BE/FE dan environment, melalui task yang disetujui |
+
+Ketergantungan operasional yang terkonfirmasi: MasterData menyediakan lokasi/kelas/kelayakan; Rawat Inap memegang pesanan dan hunian existing; ClinicalManagement memegang keputusan/serah terima klinis existing; Billing memakai linimasa dan guard existing; Platform mengendalikan akses; HK/ruangan/PPI membuktikan pekerjaan dan pemeriksaan. Assessment ini tidak menetapkan aggregate, tabel, field transport, atau kontrak integrasi target.
+
+`BM-DEP-05` = integrasi klinis/Billing existing, khusus transfer, koreksi, dan pelepasan. Pertahankan `RWI-DEC-013/157/161/166/186` beserta amendment terbaru. Audit source bukan bukti pengiriman event atau kalkulasi Billing berhasil di environment target.
+
+Contoh yang harus dipertahankan oleh desain dan kelak diuji:
+
+1. **Pembersihan:** pasien A keluar 10.00; HK mulai 10.05, selesai 10.20. Pemesanan 10.22 ditolak. Perawat mengesahkan 10.25 setelah syarat sah; admin yang telah menutup bed 10.24 membuat pengesahan tersebut ditolak.
+2. **Transfer/kelas:** kelas X sah berada di atas Y. Y → X dipilih Down Grade ditolak tanpa mengubah lokasi. Dua kelas berbeda sama-sama bernilai default ClassLevel 0 tidak otomatis dianggap Same Grade.
+3. **Expiry/benturan:** pesanan belum dipakai pada 09.00 dengan default 120 menit dapat lepas ketika server mengevaluasi setelah 11.00. Bed yang ternyata ditutup/dikuasai pihak lain tidak menjadi Tersedia dari countdown browser. Dua permintaan bersamaan tidak boleh menghasilkan dua pemegang.
+4. **Koreksi/histori:** pasien masuk bed A lalu pindah B tetap mempunyai dua segmen; pasien yang hanya memakai A tetap muncul. Koreksi salah waktu mempertahankan versi lama dan guard Billing. Waktu pembersihan tidak dihitung sebagai waktu hunian.
+5. **Akses/siklus:** akun HK melihat bed 101-A dan tahap kerja, tanpa identitas/diagnosis pasien. Penutupan episode A pukul 13.00 tidak melepas bed yang sudah dibersihkan dan ditempati pasien B.
+6. **Gangguan:** hasil simpan yang tidak pasti harus dibaca kembali sebelum ulang; tidak tampil sukses rekaan. Gagal callback setelah transfer tersimpan tidak otomatis membalik hunian. Rekonsiliasi mengikuti SOP yang sah.
+
+### 21.8 Kesiapan per kemampuan dan dependency
+
+| Kemampuan | Readiness | Yang boleh dirancang | Dependency / batas yang tetap berlaku |
+|---|---|---|---|
+| `BM-CG-01` Monitoring | `READY_FOR_DOMAIN_DESIGN` | Nama/tab/status, ringkasan/pilihan konsisten, alasan tertahan dan akses minimum | BM-DEP-01/03/04; tidak perlu menunggu SOP disinfeksi untuk mendesain pembacaan status |
+| `BM-CG-02` Pemesanan/pelepasan | `READY_FOR_DOMAIN_DESIGN` | Expiry existing, guard, alasan batal, pelepasan bed bekas pasien dengan kebutuhan pembersihan | BM-DEP-01/03/04/05; penerapan release baru terhubung BM-CG-04 dan BM-G02 |
+| `BM-CG-03` Transfer | `READY_FOR_DOMAIN_DESIGN` | Asal otomatis, tujuan layak, kategori manual tervalidasi, operasi utuh, konteks histori | BM-DEP-01/03/04/05; BM-CG-04 menahan bed asal; perbandingan tidak sah tetap ditolak |
+| `BM-CG-04` Pembersihan/pengesahan | `READY_FOR_DOMAIN_DESIGN` dalam batas alur produk | Pelaku/tindakan/status/upaya/alasan, larangan kesiapan otomatis, penolakan tanpa hak/SOP sah | BM-DEP-02/03/04; tidak merancang prosedur klinis atau menyatakan akun nyata sudah ditunjuk |
+| `BM-CG-05` Penutupan/pemulihan | `READY_FOR_DOMAIN_DESIGN` | Sebab, guard seluruh pintu master, pemulihan tanpa melewati pengesahan | BM-DEP-01/03/04; berhubungan BM-CG-02/04 untuk hold/kesiapan |
+| `BM-CG-06` Riwayat penggunaan | `READY_FOR_DOMAIN_DESIGN` | Segmen per bed/periode, konteks historis, semua penggunaan, versi, identitas sesuai hak | BM-DEP-03/04/05; data hunian dari BM-CG-02/03, tanpa menunggu reminder/transfer bertahap |
+| **Bed Management, batas produk 21.1** | **`READY_FOR_DOMAIN_DESIGN`** | Enam kemampuan di atas | Tidak sama dengan siap implementasi/aktivasi/produksi |
+| **Rawat Inap keseluruhan** | **`PARTIALLY_READY` dipertahankan dari assessment terdahulu** | Hanya slice yang memang siap pada assessment masing-masing | Gate ini tidak menutup blocker consent/IGD/fitur lain di luar scope |
+
+### 21.9 Yang boleh berjalan dan yang harus berhenti
+
+**Boleh berjalan berikutnya:** `design-business-module` untuk amandemen Bed Management dengan masukan decision log revision 46, audit existing, dan assessment 1.12. Keluaran yang diharapkan: blueprint bounded yang memperinci alur/state/permission/audit, arsitektur dan data dictionary, kontrak serta acceptance evidence. Semua itu merupakan pekerjaan tahap berikut, belum dibuat/dikunci oleh gate ini.
+
+`hospital-domain-architect` bersifat opsional. Gunakan bila tim memerlukan pendalaman batas tanggung jawab lintas MasterData, Rawat Inap, operasional pembersihan, Platform dan Billing sebelum blueprint. Skill tersebut tidak menjadi gerbang wajib tambahan.
+
+**Tetap dihentikan:** menetapkan SOP/pemeriksaan klinis atau grant akses baru tanpa wewenang; mengaktifkan aksi/penyingkapan yang belum memenuhi BM-G01..04; menyatakan runtime atau produksi siap; memakai salinan status/master untuk melewati hold/cleaning; merancang perubahan billing, retention, offline, consent atau alur lain di luar scope. Implementasi aplikasi dan task delivery menunggu desain/kontrak yang disetujui serta wewenang task tersendiri.
+
+Inventaris endpoint existing bergaya Swagger tetap pada [audit bagian 7](../../../../../artifacts/bed-management/01-existing-capability-map.md#7-kontrak-api-as-is). Gate ini tidak menambah endpoint atau menetapkan request/response target. Tujuh temuan `BM-F01..F07` tetap pekerjaan tindak lanjut, bukan perubahan yang sudah selesai.
+
+### 21.10 Handoff
+
+```yaml
+gate_id: BM-RCG-20261010-01
+gate_revision: "1.12"
+blueprint_id: RWI-BP-001
+sub_module: episode-rawat-inap
+assessed_scope: Bed Management — batas produk bagian 21.1
+evidence:
+  decision_log: "revision 46; sha256 41dd035d62e7804dff7e796712e25410152fae8e67b9444257ba73e0a6a30b3d"
+  audit: "BM-AUD-20261010-01 revision 1; source-audited"
+  audit_sha256: 50e0e1525804260331d3a830fb379532f802a3ff31e43cd3b4df4416fa42f38b
+  backend_sha: d4e1eca06fb28c05934c68c1e51a4dca01935a10
+  frontend_sha: 969acfcc04cdf31074a1911e9827c31d25ddadd0
+  working_tree: "61 fingerprint audit sama; decision log diperbarui ke revision 46"
+  baseline_reference: "tidak dipakai pada assessment ini"
+classification:
+  confirmed: ["BA butir 1–5", "RWI-DEC-274..294", "RWI-FACT-068..070", "RWI-AC-396..426"]
+  proposed: ["detail UI nonkritis dalam DEV_DISCRETION; bukan perubahan aturan"]
+  missing: ["bukti aktual BM-G01", "bukti aktual BM-G02", "bukti aktual BM-G03", "bukti aktual BM-G04"]
+  conflict: []
+readiness:
+  READY_FOR_DOMAIN_DESIGN: [BM-CG-01, BM-CG-02, BM-CG-03, BM-CG-04, BM-CG-05, BM-CG-06]
+  open_blocking_product_decisions: []
+  overall_rawat_inap: PARTIALLY_READY
+dependencies: [BM-DEP-01, BM-DEP-02, BM-DEP-03, BM-DEP-04, BM-DEP-05]
+application_gates_open: [BM-G01, BM-G02, BM-G03, BM-G04]
+source_findings_open: [BM-F01, BM-F02, BM-F03, BM-F04, BM-F05, BM-F06, BM-F07]
+decision_log_state: "RWI-OQ-130..135 ditutup pada produk atau dipindahkan eksplisit ke bukti; tidak dibuka ulang"
+approval_boundary: "produk; tidak mencakup SOP klinis, privacy/security, grant akses atau kesiapan runtime"
+design_baseline: "induk revision 9; episode revision 10 approved; kontrak 0.11.0 belum diamendemen untuk Bed Management"
+next_skill: design-business-module
+optional_skill: hospital-domain-architect
+expected_output: "amandemen blueprint Bed Management dengan traceability ke keputusan, audit, AC dan gate penerapan"
+```
+
+### 21.11 Bukti validasi assessment
+
+Pemeriksaan dokumentasi dilakukan terpisah dari pengujian aplikasi, pada 10 Oktober 2026:
+
+| Pemeriksaan | Hasil | Bukti / batas |
+|---|---|---|
+| Scope perubahan | PASS | Hanya dokumen gate ini ditambah bagian 21 dan metadata terkait. Decision log, manifest, kontrak, roadmap dan source aplikasi tidak diubah |
+| Histori assessment | PASS | Isi mulai penjelasan awal sampai akhir bagian 20 identik setelah normalisasi newline; SHA-256 histori `fe78d39695fac87fdf6a9d6c9a638ccff824fd34b416eb1b6a4874bd4cc6d739` tetap sama |
+| Dimensi dan tabel | PASS | 18 dimensi menilai enam kemampuan; lebar kolom tabel konsisten; bagian 21 tercatat satu kali |
+| Referensi keputusan | PASS | 25 ID eksplisit unik yang dirujuk ditemukan dalam decision log revision 46; rentang keputusan/AC mengikuti section Bed Management |
+| Tautan bukti lokal | PASS | Enam tautan lokal bagian 21 mencapai berkas yang tersedia; inventaris Swagger merujuk bagian 7 audit |
+| Pemeriksaan diff | PASS | `git diff --check -- docs/module-blueprints/rawat-inap/evidence/02-requirement-completeness-gate.md` selesai tanpa error |
+| Kesegaran bukti source | PASS | Seluruh 62 fingerprint sama dengan baseline awal gate. Terhadap audit revision 1, hanya decision log telah diperbarui sebelumnya; 61 berkas lain sama. Kedua HEAD tidak berubah |
+| Git status akhir | PASS | Backend 39 entri: 38 baseline dan satu tambahan dokumen gate ini. Frontend tetap 28 entri, tanpa perubahan status dari baseline |
+| Approval dan klaim kesiapan | PASS | Produk tertutup, empat gate penerapan tetap terbuka; tidak ada SOP/grant/approval klinis-privasi atau runtime yang dibuat seolah tersedia |
+| QBE/source/migration | NOT RUN | Tidak ada implementasi aplikasi atau perubahan schema pada task dokumentasi ini |
+| Tes aplikasi/API/PostgreSQL/integrasi | NOT RUN | Hasil unit test pada audit terdahulu bukan bukti skenario target; pembuktian tetap BM-G04 |

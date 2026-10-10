@@ -3,9 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | **`0.7`** — bagian 20 Workspace PPRI, kontrak `0.11.0` (7 Oktober 2026, `draft`). Sebelumnya `0.6` — bagian 19 Finishing (`approved`, `RWI-DEC-221`); `0.5` — bagian 18 penyelarasan `PRD-RWI-V2-001`, blueprint revision `7` |
-| Status | **`approved`** untuk `0.7` (bagian 20) — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). Status bagian sebelumnya mengikuti `blueprint-manifest.md` sub-modul |
-| Backend SHA | `5afb54b` |
+| Revision | **`0.8` — draft Bed Management, 10 Oktober 2026. Riwayat metadata sebelumnya: **`0.7`** — bagian 20 Workspace PPRI, kontrak `0.11.0` (7 Oktober 2026, `draft`). Sebelumnya `0.6` — bagian 19 Finishing (`approved`, `RWI-DEC-221`); `0.5` — bagian 18 penyelarasan `PRD-RWI-V2-001`, blueprint revision `7` |
+| Status | **`draft`** — amandemen Bed Management belum disetujui. Riwayat metadata sebelumnya: **`approved`** untuk `0.7` (bagian 20) — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). Status bagian sebelumnya mengikuti `blueprint-manifest.md` sub-modul |
+| Backend SHA | Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `5afb54b` |
 
 Seluruh tabel mewarisi `IdentityModel`, sehingga memiliki kolom audit `CreateDateTime`,
 `CreateBy`, `UpdateDateTime`, `UpdateBy`, `DeleteDateTime`, `DeleteBy`, `CancelDateTime`,
@@ -1556,3 +1556,287 @@ CREATE UNIQUE INDEX "UX_InpAdmissionProcedurePlanMark_Episode_Active" ON public.
 ```
 
 Nama tabel FK modul lain (`MstPatient`, `MstDoctor`, `MstPatientClass`, `MstProcedure`, `MstTariff`, `OprCase`) mengikuti nama `[Table]` di source saat migration dibuat; DDL di atas hanya menunjukkan arah relasi dan perilaku hapusnya.
+
+## 21. Amandemen Bed Management — 10 Oktober 2026
+
+**Status: draft — Amandemen Bed Management, 10 Oktober 2026.** Set kontrak mengikuti `blueprint-manifest.md`; `last_changed_in: 0.12.0`. Owner produk/domain/API: Muhammad Hamzah (RWI-DEC-061); frontend: pengembang dalam batas RWI-DEC-292; keamanan/privasi: OPEN. `approved_by: null`, `approved_at: null` untuk amandemen ini.
+
+Masukan: decision log revision **46**, RWI-DEC-274–294 dan RWI-AC-396–426; gate revision **1.12**, **BM-RCG-20261010-01**, enam BM-CG siap untuk desain produk terbatas. `DOMAIN_ARCHITECTURE_NOT_RUN` untuk slice ini: ownership existing sudah diketahui dan gate mengizinkan desain langsung. Arsitektur domain lama bagi scope lain tetap berlaku. As-is bersumber audit **BM-AUD-20261010-01** revision 1 (section 7 untuk Swagger), bukan bukti runtime.
+
+Snapshot BE `d4e1eca06fb28c05934c68c1e51a4dca01935a10`, FE `969acfcc04cdf31074a1911e9827c31d25ddadd0`. Semua nama class/field/API baru di bawah adalah **target Rencana (belum tersedia)**. Bila bagian lama bertentangan mengenai bed kembali Available, amandemen ini mengikuti RWI-DEC-281/282. Persetujuan produk bukan persetujuan desain atau SOP. Hash masukan terpusat pada manifest.
+
+### 21.1 Konvensi, audit dan data existing
+
+Semua enam entity mewarisi IdentityModel; seluruh kolom bisnis ditulis pada 21.2. Kolom inherited tidak diulang pada setiap entity/DDL. Definisi source actual: CreateDateTime datetime UTC default server, CreateBy Guid (CLR Guid.Empty existing; mutation target wajib actor valid), UpdateDateTime nullable datetime, UpdateBy Guid, DeleteDateTime nullable datetime, DeleteBy Guid, CancelDateTime nullable datetime, CancelBy Guid, IsCancel bool=false, IsDelete bool=false. Kolom actor adalah sensitif. Target event/receipt immutable: generic delete/cancel/update dilarang meski kolom inherited tersedia. Root/attempt tidak boleh dihapus untuk membuka ketersediaan.
+
+DateTime bisnis disimpan timestamptz, kirim API ISO8601 UTC Z; display zona waktu rumah sakit. Default pada tabel adalah aplikasi, bukan klaim default database. FK ke master/episode/user Restrict, tidak cascade delete history. Panjang alasan maksimum 500, referensi maksimum 200; bukan SLA/retensi hukum baru. Tidak ada nilai contoh pasien nyata.
+
+| Model existing tanpa delta schema | Key field yang dipakai | Lokasi model/config actual | Kewenangan |
+| --- | --- | --- | --- |
+| MstBed | Id, RoomId, BedStatus, IsActive, IsReservable, eligibility flags | Areas/HealthServices/MasterData/Models/MstBed.cs; Repositories/Configurations/HealthServices/MstBedConfiguration.cs | Pemilik MasterData; semua writer diguard |
+| MstRoom | Id, ServiceUnitId, PatientClassId, IsActive | Areas/HealthServices/MasterData/Models/MstRoom.cs; config HealthServices/MstRoomConfiguration.cs | Tidak snapshot pasien |
+| MstPatientClass | Id, ClassLevel, IsActive, code/name | Areas/HealthServices/MasterData/Models/MstPatientClass.cs; config HealthServices/MstPatientClassConfiguration.cs | Arti direction/default0 belum diverifikasi BM-G01 |
+| InpEpisode | Id, episode state, patient relation | Areas/HealthServices/InPatientManagement/Models/InpEpisode.cs; config InPatientManagement/InpEpisodeConfiguration.cs | Reuse guard existing; jangan duplikasi patient |
+| ApplicationUser | Id dan akun individu | Models/ApplicationUser.cs; Identity EF mapping existing | FK user mengikuti mapping Identity actual pada generated migration |
+
+### 21.2 Seluruh kolom entity baru dan diperbarui
+
+#### 21.2.1 InpBedReadiness — Baru
+
+Aggregate kesiapan operasional satu bed; BedId unik, CycleId mencegah pengesahan siklus lama, Version adalah concurrency token untuk seluruh operasi bed.
+
+| Kolom | SQL type | Wajib | Default aplikasi | Index/relasi | Hapus | Sensitif | Makna/perubahan |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Id | uuid | Ya | UUID aplikasi | PK | Tidak hard delete | Tidak | Identitas root |
+| BedId | uuid | Ya | — | MstBed.Id; UNIQUE | Restrict | Tidak | Pemilik satu root per bed |
+| CycleId | uuid | Ya | UUID aplikasi | — | Tidak hard delete | Tidak | Berubah saat release terpakai atau invalidasi kesiapan |
+| State | integer | Ya | 0 | InpBedReadinessState | Tidak hard delete | Tidak | Unverified=0, WaitingCleaning=1, Cleaning=2, AwaitingVerification=3, Ready=4 |
+| Version | bigint | Ya | 1 | ConcurrencyToken | Tidak hard delete | Tidak | Naik pada setiap perubahan ketersediaan, termasuk reserve/expiry/master |
+| LastReleasedPlacementId | uuid | Tidak | NULL | InpBedPlacement.Id | Restrict | Ya | Bukti pelepasan aktual; bukan dasar melepaskan pasien berikutnya |
+| VerifiedAtUtc | timestamptz | Tidak | NULL | — | Tidak hard delete | Tidak | Waktu pengesahan server |
+| VerifiedByUserId | uuid | Tidak | NULL | ApplicationUser.Id | Restrict | Ya | Akun verifikator nyata |
+| VerificationReference | varchar(200) | Tidak | NULL | — | Tidak hard delete | Ya | Referensi bukti/SOP; tanpa isi rekam medis |
+
+Lokasi model: `Areas/HealthServices/InPatientManagement/Models/InpBedReadiness.cs`. Konfigurasi: `Repositories/Configurations/HealthServices/InPatientManagement/InpBedReadinessConfiguration.cs` (Baru). Konfigurasi target belum ada; DDL berikut adalah spesifikasi target, bukan introspeksi database.
+
+#### 21.2.2 InpBedCleaningAttempt — Baru
+
+Upaya pembersihan per siklus. Upaya sebelumnya tetap tersimpan saat ditolak/diinterupsi.
+
+| Kolom | SQL type | Wajib | Default aplikasi | Index/relasi | Hapus | Sensitif | Makna/perubahan |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Id | uuid | Ya | UUID aplikasi | PK | Tidak hard delete | Tidak | Identitas upaya |
+| ReadinessId | uuid | Ya | — | InpBedReadiness.Id | Restrict | Tidak | Root |
+| CycleId | uuid | Ya | — | — | Tidak hard delete | Tidak | Harus sama dengan siklus root saat aksi |
+| State | integer | Ya | 1 | InpBedCleaningAttemptState | Tidak hard delete | Tidak | Started=1, AwaitingVerification=2, Accepted=3, Rejected=4, Interrupted=5 |
+| StartedAtUtc | timestamptz | Ya | Waktu server | — | Tidak hard delete | Tidak | Mulai aktual tercatat |
+| StartedByUserId | uuid | Ya | Actor server | ApplicationUser.Id | Restrict | Ya | Akun individu |
+| CompletedAtUtc | timestamptz | Tidak | NULL | — | Tidak hard delete | Tidak | Selesai fisik; belum siap |
+| CompletedByUserId | uuid | Tidak | NULL | ApplicationUser.Id | Restrict | Ya | Akun HK berwenang saat selesai |
+| VerifiedAtUtc | timestamptz | Tidak | NULL | — | Tidak hard delete | Tidak | Waktu diterima/ditolak |
+| VerifiedByUserId | uuid | Tidak | NULL | ApplicationUser.Id | Restrict | Ya | Perawat verifikator |
+| RejectionReason | varchar(500) | Tidak | NULL | — | Tidak hard delete | Ya | Wajib saat ditolak; jangan isi diagnosis |
+| SopReference | varchar(200) | Ya | — | — | Tidak hard delete | Tidak | Referensi SOP sah dari penugasan/config, bukan checklist buatan AI |
+
+Lokasi model: `Areas/HealthServices/InPatientManagement/Models/InpBedCleaningAttempt.cs`. Konfigurasi: `Repositories/Configurations/HealthServices/InPatientManagement/InpBedCleaningAttemptConfiguration.cs` (Baru). Konfigurasi target belum ada; DDL berikut adalah spesifikasi target, bukan introspeksi database.
+
+#### 21.2.3 InpBedOperationReceipt — Baru
+
+Bukti commit idempotent, satu actor dan key. Tidak menyimpan salinan response pasien.
+
+| Kolom | SQL type | Wajib | Default aplikasi | Index/relasi | Hapus | Sensitif | Makna/perubahan |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Id | uuid | Ya | UUID aplikasi | PK | Tidak hard delete | Tidak | Identitas receipt |
+| ActorUserId | uuid | Ya | Actor server | ApplicationUser.Id | Restrict | Ya | Pemilik permintaan |
+| IdempotencyKey | varchar(100) | Ya | Header klien | UNIQUE(ActorUserId,IdempotencyKey) | Tidak hard delete | Ya | Key stabil saat retry |
+| OperationName | varchar(64) | Ya | Nama operasi server | — | Tidak hard delete | Tidak | Nama aksi bounded bed |
+| RequestHash | char(64) | Ya | SHA256 server | — | Tidak hard delete | Ya | Method + route canonical + isi ternormalisasi + versi |
+| ResultKind | varchar(64) | Ya | Jenis hasil server | — | Tidak hard delete | Tidak | Placement/Reservation/Readiness/Bed/Departure |
+| ResultEntityId | uuid | Ya | Hasil commit | Referensi polimorfik tervalidasi service | Tidak hard delete | Ya | Tidak memakai FK ke beberapa tabel |
+| ResultVersion | bigint | Tidak | NULL | — | Tidak hard delete | Tidak | Versi outcome saat commit |
+| CommittedAtUtc | timestamptz | Ya | Waktu server | — | Tidak hard delete | Tidak | Bukan waktu callback |
+
+Lokasi model: `Areas/HealthServices/InPatientManagement/Models/InpBedOperationReceipt.cs`. Konfigurasi: `Repositories/Configurations/HealthServices/InPatientManagement/InpBedOperationReceiptConfiguration.cs` (Baru). Konfigurasi target belum ada; DDL berikut adalah spesifikasi target, bukan introspeksi database.
+
+#### 21.2.4 InpBedLifecycleEvent — Baru
+
+Audit append-only untuk release, pembersihan, verifikasi, penutupan, pembukaan dan reserve. Bukan segmen hunian pasien.
+
+| Kolom | SQL type | Wajib | Default aplikasi | Index/relasi | Hapus | Sensitif | Makna/perubahan |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Id | uuid | Ya | UUID aplikasi | PK | Tidak hard delete | Tidak | Identitas event |
+| ReadinessId | uuid | Ya | — | InpBedReadiness.Id | Restrict | Tidak | Bed diperoleh dari root |
+| CycleId | uuid | Ya | — | — | Tidak hard delete | Tidak | Siklus pada event |
+| OperationReceiptId | uuid | Tidak | NULL | InpBedOperationReceipt.Id | Restrict | Ya | NULL hanya untuk expiry server/backfill tervalidasi |
+| PlacementId | uuid | Tidak | NULL | InpBedPlacement.Id | Restrict | Ya | Bila terkait hunian |
+| ReservationId | uuid | Tidak | NULL | InpBedReservation.Id | Restrict | Ya | Bila terkait pesanan |
+| CleaningAttemptId | uuid | Tidak | NULL | InpBedCleaningAttempt.Id | Restrict | Tidak | Bila terkait pembersihan |
+| Action | varchar(64) | Ya | Aksi server | — | Tidak hard delete | Tidak | Reserve/Expire/Cancel/Place/TransferIn/TransferOut/Release/StartCleaning/CompleteCleaning/VerifyReady/RejectReadiness/Close/Reopen/Correct/Bootstrap |
+| BeforeState | varchar(32) | Ya | Proyeksi sebelum | — | Tidak hard delete | Tidak | Status semantik BA, bukan warna UI |
+| AfterState | varchar(32) | Ya | Proyeksi sesudah | — | Tidak hard delete | Tidak | Status semantik BA |
+| ActorUserId | uuid | Ya | Actor atau service account nyata | ApplicationUser.Id | Restrict | Ya | Tidak membuat akun fiktif |
+| OccurredAtUtc | timestamptz | Ya | Waktu kejadian sah | — | Tidak hard delete | Tidak | Untuk release: waktu fisik sah; aksi HK: server |
+| RecordedAtUtc | timestamptz | Ya | Waktu server | — | Tidak hard delete | Tidak | Waktu pencatatan terpisah |
+| Reason | varchar(500) | Tidak | NULL | — | Tidak hard delete | Ya | Wajib cancel/close/reopen/reject/correction sesuai aksi; tidak masuk log teknis |
+
+Lokasi model: `Areas/HealthServices/InPatientManagement/Models/InpBedLifecycleEvent.cs`. Konfigurasi: `Repositories/Configurations/HealthServices/InPatientManagement/InpBedLifecycleEventConfiguration.cs` (Baru). Konfigurasi target belum ada; DDL berikut adalah spesifikasi target, bukan introspeksi database.
+
+#### 21.2.5 InpBedPlacement — Diperbarui
+
+Sumber hunian existing; tambah kategori manual dan snapshot lokasi untuk perjalanan awal maupun transfer.
+
+| Kolom | SQL type | Wajib | Default aplikasi | Index/relasi | Hapus | Sensitif | Makna/perubahan |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Id | uuid | Ya | UUID aplikasi | PK | Tidak hard delete | Ya | Existing |
+| EpisodeId | uuid | Ya | — | InpEpisode.Id | Restrict | Ya | Existing |
+| BedId | uuid | Ya | — | MstBed.Id | Restrict | Tidak | Existing |
+| RoomId | uuid | Ya | — | MstRoom.Id | Restrict | Tidak | Existing |
+| ServiceUnitId | uuid | Ya | — | MstServiceUnit.Id | Restrict | Tidak | Existing |
+| PatientClassId | uuid | Ya | — | MstPatientClass.Id | Restrict | Tidak | Existing |
+| SequenceNumber | integer | Ya | 0 CLR | UNIQUE(EpisodeId,SequenceNumber) | Tidak hard delete | Tidak | Existing |
+| StartDateTime | timestamptz | Ya | Waktu sah existing | — | Tidak hard delete | Ya | Existing; preserve guard IGD |
+| EndDateTime | timestamptz | Tidak | NULL | Unique BedId bila NULL | Tidak hard delete | Ya | Existing; NULL berarti berjalan |
+| EndReason | integer | Tidak | NULL | InpBedPlacementEndReason | Tidak hard delete | Tidak | Existing |
+| TransferReason | varchar(500) | Tidak | NULL | — | Tidak hard delete | Ya | Existing |
+| PhysicallyLeftAt | timestamptz | Tidak | NULL | — | Tidak hard delete | Ya | Existing |
+| Version | integer | Ya | 1 | — | Tidak hard delete | Tidak | Existing versi koreksi, terpisah versi bed |
+| ChangeReason | varchar(500) | Tidak | NULL | — | Tidak hard delete | Ya | Existing |
+| IsSuperseded | boolean | Ya | false | — | Tidak hard delete | Tidak | Existing; bukan filter tunggal Billing |
+| SupersededAtUtc | timestamptz | Tidak | NULL | — | Tidak hard delete | Tidak | Existing |
+| CorrectsPlacementId | uuid | Tidak | NULL | InpBedPlacement.Id | Restrict | Ya | Existing |
+| SupersededByCorrectionId | uuid | Tidak | NULL | InpBedPlacement.Id | Restrict | Ya | Existing; inilah referensi pengganti koreksi |
+| PlacedByUserId | uuid | Ya | — | ApplicationUser.Id | Restrict | Ya | Existing |
+| EndedByUserId | uuid | Tidak | NULL | ApplicationUser.Id | Restrict | Ya | Existing |
+| IsActive | boolean | Ya | true | — | Tidak hard delete | Tidak | Existing |
+| TransferCategory | integer | Tidak | NULL | InpBedTransferCategory | Tidak hard delete | Tidak | BARU: DownGrade=1, UpGrade=2, SameGrade=3; NULL initial/legacy |
+| TransferFromPlacementId | uuid | Tidak | NULL | InpBedPlacement.Id; INDEX | Restrict | Ya | BARU: asal fisik, berbeda dari CorrectsPlacementId |
+| LocationSnapshotJson | jsonb | Tidak | NULL | — | Tidak hard delete | Tidak | BARU: immutable, no PHI; skema pada 21.3 |
+
+Lokasi model: `Areas/HealthServices/InPatientManagement/Models/InpBedPlacement.cs`. Konfigurasi: `Repositories/Configurations/HealthServices/InPatientManagement/InpBedPlacementConfiguration.cs` (Diperbarui). Kolom existing diambil dari model dan index/FK dari Configuration actual; DDL hanya delta baru, bukan CREATE ulang tabel existing.
+
+#### 21.2.6 InpBedReservation — Diperbarui
+
+Pemesanan existing, tetap 120 menit; simpan alasan pembatalan yang sebelumnya diabaikan.
+
+| Kolom | SQL type | Wajib | Default aplikasi | Index/relasi | Hapus | Sensitif | Makna/perubahan |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Id | uuid | Ya | UUID aplikasi | PK | Tidak hard delete | Ya | Existing |
+| EpisodeId | uuid | Ya | — | InpEpisode.Id | Restrict | Ya | Existing |
+| BedId | uuid | Ya | — | MstBed.Id | Restrict | Tidak | Existing |
+| ReservedAt | timestamptz | Ya | Waktu server | — | Tidak hard delete | Ya | Existing |
+| ExpiresAt | timestamptz | Ya | Parameter resmi | — | Tidak hard delete | Ya | Existing; bukan default DB baru |
+| ReservationStatus | integer | Ya | 1 | InpBedReservationStatus | Tidak hard delete | Tidak | Active=1, Consumed=2, Expired=3, Cancelled=4 existing |
+| ReservedByUserId | uuid | Ya | — | ApplicationUser.Id | Restrict | Ya | Existing |
+| ReleasedAt | timestamptz | Tidak | NULL | — | Tidak hard delete | Ya | Existing waktu lepas termasuk pembatalan |
+| IsActive | boolean | Ya | true | — | Tidak hard delete | Tidak | Existing |
+| CancellationReason | varchar(500) | Tidak | NULL | — | Tidak hard delete | Ya | BARU: wajib manual cancel baru; legacy NULL tidak dipalsukan |
+| CancelledByUserId | uuid | Tidak | NULL | ApplicationUser.Id | Restrict | Ya | BARU: actor manual cancel |
+
+Lokasi model: `Areas/HealthServices/InPatientManagement/Models/InpBedReservation.cs`. Konfigurasi: `Repositories/Configurations/HealthServices/InPatientManagement/InpBedReservationConfiguration.cs` (Diperbarui). Kolom existing diambil dari model dan index/FK dari Configuration actual; DDL hanya delta baru, bukan CREATE ulang tabel existing.
+
+### 21.3 Snapshot lokasi dan konteks koreksi
+
+| Properti LocationSnapshotJson | Tipe | Aturan |
+| --- | --- | --- |
+| schemaVersion | int=1 | Validator service dan serializer; bukan UI |
+| capturedAtUtc | datetime UTC | Waktu pembekuan konteks |
+| origin | enum string | RecordedAtPlacement atau RecordedAtCorrection; legacy NULL tidak dikarang |
+| bed / room / serviceUnit / patientClass | object {id:uuid, code:string?, name:string?} | Actual context pada saat recording; tidak mengubah nama lama saat master diedit |
+| classLevel | int? | Nilai master saat kejadian, bukan penentu direction sendiri |
+| classOrderEvidenceReference / classOrderDigest | string? | Diisi untuk transfer yang memerlukan proof lintas kelas; same ID dapat tanpa proof order |
+| comparisonResult | string? | DownGrade/UpGrade/SameGrade pada transfer tervalidasi; tidak diisi initial atau inferred legacy |
+
+Initial placement baru menyimpan snapshot dan TransferCategory=NULL; destination transfer mempunyai manual category dan TransferFromPlacementId yang menunjuk asal. Correction menggunakan referensi CorrectsPlacementId/SupersededByCorrectionId existing, bukan transfer fisik baru. Jika correction mengubah lokasi, buat snapshot baru yang diberi origin RecordedAtCorrection; jangan mengubah snapshot versi lama. Legacy tanpa snapshot diberi label ContextSource=LegacyCurrentMaster/Unavailable pada query, tanpa mengklaim nama lama telah terbukti; kelas ID dan waktu yang ada tetap dipertahankan. Koreksi kategori tidak boleh dipakai untuk mengubah tarif; hanya timeline sah masuk Billing.
+
+### 21.4 DDL dokumentasi target, tidak dieksekusi
+
+CREATE di bawah adalah rancangan untuk EF Configuration baru yang **belum tersedia**; sengaja hanya kolom bisnis dan constraint inti, audit inherited mengikuti 21.1. Urutan create: Readiness → Attempt → Receipt → Event. Nama/index target dikunci di tabel 21.5. FK eksternal ke master/placement/reservation/user harus dinyatakan lengkap oleh Configuration dan generated migration; mapping tabel user diambil dari Identity actual, jangan menebak nama dari blueprint. Bagian ini bukan script operasional dan tidak boleh dijalankan langsung.
+
+```sql
+CREATE TABLE public."InpBedReadiness" (
+    "Id" uuid NOT NULL PRIMARY KEY,
+    "BedId" uuid NOT NULL,
+    "CycleId" uuid NOT NULL,
+    "State" integer NOT NULL,
+    "Version" bigint NOT NULL,
+    "LastReleasedPlacementId" uuid,
+    "VerifiedAtUtc" timestamptz,
+    "VerifiedByUserId" uuid,
+    "VerificationReference" varchar(200),
+    UNIQUE ("BedId"),
+    CHECK ("State" BETWEEN 0 AND 4),
+    CHECK ("Version" >= 1)
+    -- IdentityModel audit columns are inherited; see 21.1.
+);
+
+CREATE TABLE public."InpBedCleaningAttempt" (
+    "Id" uuid NOT NULL PRIMARY KEY,
+    "ReadinessId" uuid NOT NULL,
+    "CycleId" uuid NOT NULL,
+    "State" integer NOT NULL,
+    "StartedAtUtc" timestamptz NOT NULL,
+    "StartedByUserId" uuid NOT NULL,
+    "CompletedAtUtc" timestamptz,
+    "CompletedByUserId" uuid,
+    "VerifiedAtUtc" timestamptz,
+    "VerifiedByUserId" uuid,
+    "RejectionReason" varchar(500),
+    "SopReference" varchar(200) NOT NULL,
+    CHECK ("State" BETWEEN 1 AND 5),
+    FOREIGN KEY ("ReadinessId") REFERENCES public."InpBedReadiness"("Id") ON DELETE RESTRICT
+    -- IdentityModel audit columns are inherited; see 21.1.
+);
+
+CREATE TABLE public."InpBedOperationReceipt" (
+    "Id" uuid NOT NULL PRIMARY KEY,
+    "ActorUserId" uuid NOT NULL,
+    "IdempotencyKey" varchar(100) NOT NULL,
+    "OperationName" varchar(64) NOT NULL,
+    "RequestHash" char(64) NOT NULL,
+    "ResultKind" varchar(64) NOT NULL,
+    "ResultEntityId" uuid NOT NULL,
+    "ResultVersion" bigint,
+    "CommittedAtUtc" timestamptz NOT NULL,
+    UNIQUE ("ActorUserId", "IdempotencyKey")
+    -- IdentityModel audit columns are inherited; see 21.1.
+);
+
+CREATE TABLE public."InpBedLifecycleEvent" (
+    "Id" uuid NOT NULL PRIMARY KEY,
+    "ReadinessId" uuid NOT NULL,
+    "CycleId" uuid NOT NULL,
+    "OperationReceiptId" uuid,
+    "PlacementId" uuid,
+    "ReservationId" uuid,
+    "CleaningAttemptId" uuid,
+    "Action" varchar(64) NOT NULL,
+    "BeforeState" varchar(32) NOT NULL,
+    "AfterState" varchar(32) NOT NULL,
+    "ActorUserId" uuid NOT NULL,
+    "OccurredAtUtc" timestamptz NOT NULL,
+    "RecordedAtUtc" timestamptz NOT NULL,
+    "Reason" varchar(500),
+    FOREIGN KEY ("ReadinessId") REFERENCES public."InpBedReadiness"("Id") ON DELETE RESTRICT,
+    FOREIGN KEY ("OperationReceiptId") REFERENCES public."InpBedOperationReceipt"("Id") ON DELETE RESTRICT,
+    FOREIGN KEY ("CleaningAttemptId") REFERENCES public."InpBedCleaningAttempt"("Id") ON DELETE RESTRICT
+    -- IdentityModel audit columns are inherited; see 21.1.
+);
+```
+
+```sql
+ALTER TABLE public."InpBedPlacement"
+  ADD COLUMN "TransferCategory" integer NULL,
+  ADD COLUMN "TransferFromPlacementId" uuid NULL,
+  ADD COLUMN "LocationSnapshotJson" jsonb NULL;
+ALTER TABLE public."InpBedPlacement"
+  ADD CONSTRAINT "FK_InpBedPlacement_TransferFrom" FOREIGN KEY ("TransferFromPlacementId")
+  REFERENCES public."InpBedPlacement"("Id") ON DELETE RESTRICT;
+CREATE INDEX "IX_InpBedPlacement_TransferFromPlacementId" ON public."InpBedPlacement"("TransferFromPlacementId");
+ALTER TABLE public."InpBedPlacement" ADD CONSTRAINT "CK_InpBedPlacement_TransferCategory"
+  CHECK ("TransferCategory" IS NULL OR "TransferCategory" BETWEEN 1 AND 3);
+ALTER TABLE public."InpBedReservation"
+  ADD COLUMN "CancellationReason" varchar(500) NULL,
+  ADD COLUMN "CancelledByUserId" uuid NULL;
+-- CancelledByUserId: FK Restrict to existing Identity user mapping.
+-- Preserve existing Configuration-based unique indexes, do not recreate blindly:
+-- IX_InpBedPlacement_BedId_Active: UNIQUE(BedId) WHERE "EndDateTime" IS NULL
+-- IX_InpBedReservation_BedId_Active: UNIQUE(BedId) WHERE "ReservationStatus" = 1
+-- InpBedPlacement also retains UNIQUE(EpisodeId, SequenceNumber).
+```
+
+### 21.5 Index, relasi dan constraint service
+
+| Entity | Index/constraint target | Makna |
+| --- | --- | --- |
+| Readiness | UNIQUE BedId, Version concurrency token; BedId FK MstBed; LastReleasedPlacementId FK Placement; VerifiedBy FK user | Satu root untuk semua siklus, unique tanpa filter IsDelete |
+| Attempt | IX(ReadinessId,CycleId,StartedAtUtc); UNIQUE(ReadinessId,CycleId) WHERE State IN (1,2); semua actor FK user | Maksimal satu upaya aktif per siklus; service memeriksa CycleId sama |
+| Receipt | UNIQUE(ActorUserId,IdempotencyKey), actor FK user; IX(CommittedAtUtc) | Tidak menghapus otomatis; request hash bukan response |
+| Event | IX(ReadinessId,OccurredAtUtc,Id), FK optional Placement/Reservation/Attempt/Receipt dan ActorUserId | Jejak append-only dan stable sort; FK semua Restrict |
+| Placement | Semua index/config existing dipertahankan; tambah TransferFromPlacementId index dan self FK Restrict | Unique placement tidak sendirian mencegah cross-table race |
+| Reservation | Index existing dipertahankan; CancelledByUserId FK user Restrict | Service wajib CancellationReason untuk cancel baru, legacy null tetap |
+
+Pasangan VerifiedAt/VerifiedBy terisi bersamaan; CompletedAt/CompletedBy terisi bersamaan. Ready mengharuskan bukti valid pada siklus berjalan. Attempt Accepted/Rejected wajib VerifiedAt/by; Rejected wajib alasan. Service mengunci root untuk menjamin relasi siklus, sebab FK sederhana tidak membuktikan equality CycleId. Immutable receipt/hash tidak di-update saat retry.
+
+### 21.6 Migration dan perlindungan data
+
+Rencana M1–M3/backfill/rollback ada pada backend architecture 14.9. Tidak mengisi TransferCategory=SameGrade untuk legacy atau menyulap raw Available menjadi Ready. Null legacy cancellation reason ditampilkan sebagai Belum tercatat (data lama), bukan dihapus. Dilarang cascade/soft-delete event sebagai koreksi. Kebijakan retensi/hapus permanen belum ditetapkan, tetap di luar amandemen; hak akses history identity memerlukan episode authorization dan scope, HK tidak dapat membaca tabel ini lewat generic API.

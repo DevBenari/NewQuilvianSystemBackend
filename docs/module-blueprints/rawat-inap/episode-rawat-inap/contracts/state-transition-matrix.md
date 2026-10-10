@@ -3,12 +3,12 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | **`0.11.0`** — bagian 10 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 9, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 8 |
-| `last_changed_in` | **`0.11.0`** — bagian 10: siklus dokumen admisi. Sebelumnya `0.10.0` — bagian 9; `0.9.0` — bagian 8: tujuan penugasan, akibat penutupan; `0.8.0` — bagian 6A |
-| Status | **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
-| Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
-| `input_revision` | `00-interview-decisions.md` revision `6`; `evidence/03-hospital-domain-architecture.md` revision `0.1` |
-| Dampak kompatibilitas | Seluruhnya baru. Tidak ada state machine existing yang berubah |
+| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Bed Management draft. Riwayat metadata sebelumnya: **`0.11.0`** — bagian 10 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 9, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 8 |
+| `last_changed_in` | **`0.12.0`** — Bed Management. Riwayat metadata sebelumnya: **`0.11.0`** — bagian 10: siklus dokumen admisi. Sebelumnya `0.10.0` — bagian 9; `0.9.0` — bagian 8: tujuan penugasan, akibat penutupan; `0.8.0` — bagian 6A |
+| Status | **`draft`** — amandemen Bed Management belum disetujui. Riwayat metadata sebelumnya: **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
+| Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292. Riwayat metadata sebelumnya: Product/Domain Owner sementara sesuai `RWI-DEC-006` |
+| `input_revision` | Decision 46; gate 1.12 / BM-RCG-20261010-01; audit BM-AUD-20261010-01 rev1. Riwayat metadata sebelumnya: `00-interview-decisions.md` revision `6`; `evidence/03-hospital-domain-architecture.md` revision `0.1` |
+| Dampak kompatibilitas | Bed Management: GET aditif, mutation diperketat (expected version/key/category/reason); cutover seluruh konsumen wajib. Riwayat metadata sebelumnya: Seluruhnya baru. Tidak ada state machine existing yang berubah |
 
 Dokumen ini memuat perpindahan yang **sah** dan perpindahan yang **tidak sah**. Keduanya sama
 pentingnya: yang tidak sah adalah yang paling sering dicoba petugas ketika sedang terburu-buru.
@@ -491,3 +491,64 @@ Status aktif/nonaktif yang sudah ada tetap. Aturan baru: `ChecklistType` **tidak
 | `Draft` | Tidak terbuka: "Admisi belum dikonfirmasi" (G-30). Kop surat tetap terbaca untuk langkah 8 alur admisi |
 | `Admitted`, `DischargePending` | Terbuka penuh menurut hak |
 | `Closed`, `Cancelled` | Hanya-baca; cetak dan cetak ulang beralasan (`RWI-DEC-240` butir 7) |
+
+## 11. Amandemen Bed Management — 10 Oktober 2026
+
+**Status: draft — Amandemen Bed Management, 10 Oktober 2026.** Set kontrak mengikuti `blueprint-manifest.md`; `last_changed_in: 0.12.0`. Owner produk/domain/API: Muhammad Hamzah (RWI-DEC-061); frontend: pengembang dalam batas RWI-DEC-292; keamanan/privasi: OPEN. `approved_by: null`, `approved_at: null` untuk amandemen ini.
+
+Masukan: decision log revision **46**, RWI-DEC-274–294 dan RWI-AC-396–426; gate revision **1.12**, **BM-RCG-20261010-01**, enam BM-CG siap untuk desain produk terbatas. `DOMAIN_ARCHITECTURE_NOT_RUN` untuk slice ini: ownership existing sudah diketahui dan gate mengizinkan desain langsung. Arsitektur domain lama bagi scope lain tetap berlaku. As-is bersumber audit **BM-AUD-20261010-01** revision 1 (section 7 untuk Swagger), bukan bukti runtime.
+
+Snapshot BE `d4e1eca06fb28c05934c68c1e51a4dca01935a10`, FE `969acfcc04cdf31074a1911e9827c31d25ddadd0`. Semua nama class/field/API baru di bawah adalah **target Rencana (belum tersedia)**. Bila bagian lama bertentangan mengenai bed kembali Available, amandemen ini mengikuti RWI-DEC-281/282. Persetujuan produk bukan persetujuan desain atau SOP. Hash masukan terpusat pada manifest.
+
+### 11.1 Enam status publik dan priority truth
+
+| Urutan | Code / label BA | Kondisi server | Pesan/admission |
+| --- | --- | --- | --- |
+| 1 | Occupied / Terisi | Ada placement aktif authoritative, meski raw/admin berbeda | Tidak bookable; tampilkan conflict flag bila mismatch |
+| 2 | Reserved / Dipesan | Tidak ada placement, ada reservation Active belum expired | Tidak bookable untuk pihak lain; expiry hanya server |
+| 3 | Unavailable / Tidak Tersedia | Tanpa holder dan master closed/inactive/nonreservable/invalid/Unknown, root missing/Unverified | Tidak bookable; alasan operasional yang aman |
+| 4 | WaitingCleaning / Menunggu Pembersihan | Kosong, tidak closed, root WaitingCleaning | Tidak bookable |
+| 5 | Cleaning / Dalam Pembersihan | Root Cleaning atau AwaitingVerification; tanpa closure/holder | CleaningPhase=InProgress atau AwaitingVerification; bukan status ketujuh |
+| 6 | Available / Tersedia | Root Ready + master valid/aktif/reservable + tanpa holder/closure | Bookable; eligibility tiap pasien tetap diuji |
+
+Priority holder mencegah pasien disembunyikan menjadi bed kosong. Dual-holder berbeda episode atau raw/admin mismatch → ConflictCode dan aksi pemesanan/transfer tujuan ditutup. Raw Occupied/Reserved tanpa holder juga invalid, tidak berubah Available sendiri. Counts menggunakan hasil proyeksi yang sama dan saling eksklusif; total = penjumlahan enam status. Dalam Pembersihan/Menunggu verifikasi bukan available.
+
+Root.Unverified saat bed ditempati adalah invalidasi bukti kesiapan lama; status publik tetap Occupied. Reservation tidak mengotori bed dan root Ready tetap dipertahankan sampai used/closure. Closure administratif tidak boleh sengaja dibuat saat occupied/reserved; jika konflik data legacy muncul, holder tetap terlihat dan perlu rekonsiliasi sah.
+
+### 11.2 State transition sah dan atomic effects
+
+| Sumber | Pemicu | Root/holder sesudah | Guard/actor | Status publik | Audit | Trace |
+| --- | --- | --- | --- | --- | --- | --- |
+| Ready; kosong, valid, tanpa closure | Reserve | Ready + reservation Active | Admisi/Create; predicate current; key/version | Reserved | Reserve | AC-408/413/419 |
+| Ready + reservation Active | Cancel/expiry unused | Ready, reservation Cancelled/Expired | Reason wajib manual; expiry server; recheck closure/holder | Available hanya jika semua syarat tetap sah | Cancel/Expire | AC-408/413/418 |
+| Ready; kosong/reservasi episode sendiri | Place | Unverified + placement active; verified fields dibersihkan | Eligibility/episode guard existing; consume reservation; snapshot | Occupied | Place | AC-398/419 |
+| Occupied, source placement current | Transfer | Asal WaitingCleaning cycle baru; tujuan Unverified+occupied | Lock kedua bed; category match; DPJP/folio/reason existing; snapshot | Asal WaitingCleaning atau Unavailable; tujuan Occupied | TransferOut/TransferIn | AC-399–405/407/414 |
+| Occupied | Departure fisik sah | WaitingCleaning cycle baru; end placement | Placement milik episode masih current; kasir bukan gate departure | WaitingCleaning atau Unavailable bila closure aktual | Release | AC-407/426 |
+| WaitingCleaning | Start cleaning | Cleaning + attempt Started | HK individu, unit scope, SOP, CycleId/version | Cleaning / InProgress | StartCleaning | AC-406 |
+| Cleaning / Started | Complete physical work | AwaitingVerification; attempt state2 | HK individu berwenang pada unit; cycle/version current | Cleaning / AwaitingVerification | CompleteCleaning | AC-409/410 |
+| AwaitingVerification | Verify IsReady=true | Ready; attempt Accepted; verified actor/time/reference | Perawat verifier sah; empty, valid, no closure; current attempt | Available | VerifyReady | AC-409 |
+| Unverified; tidak terbukti used-dirty | Initial/reopen verification true | Ready; tanpa fake cleaning attempt | Perawat verifier + SOP evidence; seluruh syarat Ready | Available | VerifyReady | AC-412/425 |
+| AwaitingVerification atau Unverified | Verify IsReady=false | WaitingCleaning; attempt Rejected bila ada | Reason wajib; bukti/actor/time; riwayat tetap | WaitingCleaning | RejectReadiness | AC-411 |
+| Kosong tanpa reservation aktif | Administrative close/inactive/nonreservable | Invalidasi verified fields/cycle; dirty tetap Waiting; attempt aktif Interrupted | Bed Update; alasan; guard seluruh write path | Unavailable | Close | AC-412/424 |
+| Closed/Inactive; kosong | Reopen / activate / reservable | Unverified jika tidak dirty, WaitingCleaning jika dirty; tidak Ready | Bed Update; alasan; no holder; master valid | Unavailable atau WaitingCleaning sampai readiness sah | Reopen | AC-412 |
+| Ended old episode placement | Close old episode | Tidak memutasi bed/root/holder baru | Periksa ownership/placement identity, bukan hanya BedId | Status pasien/siklus baru tetap | Episode closure existing, tanpa release palsu | AC-426 |
+| Historical placement | Authorized correction | Versi baru/chain existing; state fisik tak berubah kecuali koreksi aktif sah | Correct + Billing OPEN + expected version + all impacted bed locks | History revised; tidak membuat transfer/cleaning palsu | Correct | AC-415/418 |
+
+### 11.3 Transisi terlarang dan exception
+
+| Percobaan | Hasil wajib |
+| --- | --- |
+| HK finish → Available tanpa verifier | 422 BED_NOT_READY; finish sah hanya AwaitingVerification |
+| Verify dengan cycle/attempt/versi lama; setelah closure/new release | 409 CLEANING_CYCLE_STALE/STALE_BED_VERSION; tidak membuka siklus baru |
+| Start/complete/verify pada occupied/reserved atau closed | 409/422; holder dan closure tetap |
+| Close/disable/nonreservable/move location bed yang occupied/reserved lewat create/PUT/status/availability/delete | 409 BED_HOLD_CONFLICT, seluruh writer satu guard |
+| Set raw Available untuk mengabaikan readiness; set raw Occupied/Reserved/Cleaning manual | 422; reopen tidak Ready; holder/status workflow hanya melalui domain operasi |
+| Transfer destination stale/ineligible/reserved orang lain/class Unknown/manual mismatch | 409 atau 422 sesuai API; source/destination/history tetap utuh |
+| Callback/handover gagal setelah transfer commit | Status commit tetap; event retry/outbox existing, tidak automatic reverse |
+| Cancel/expire unused reservation lalu create cleaning baru | Dilarang; hanya used release membuat kebutuhan cleaning |
+| Cancel committed transfer atau hard delete history | Tidak ada operasi; gunakan correction sah existing |
+| Browser countdown habis lalu local marking Available | Dilarang; fetch server, no stale overwrite |
+
+### 11.4 Proof gates dan waktu
+
+BM-G01/02/03 tetap bukti aktivasi, bukan state/status produk baru. Eventtime dan recordedtime dipisah, koreksi versioned. Existing 120 menit lazy server expiry dipertahankan, tanpa worker/reminder/perpanjangan baru. Waktu cleanup/verification ditetapkan server saat aksi, tidak timer auto-ready. SOP waktu kejadian rekonsiliasi tidak dikarang.

@@ -3,10 +3,10 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `0.6` — naik 6 Oktober 2026: bagian **3.3** (Langkah 2 Pendaftaran) dan baris **Fokus** pada 4.2 direvisi lewat `ISSUE-EPS-003` / `PLAN-REPAIR-EPS-003` (`RWI-DEC-223`, `RWI-DEC-224`); bagian lain tidak berubah. Sebelumnya `0.5` — naik 12 September 2026 karena skema langkah **Deposit** `FE-INP-20` ditulis, menutup `RWI-UI-GAP-008`. Revision `0.4` tetap berlaku bagi kesembilan belas layar lainnya |
-| Status | `draft` — menunggu persetujuan pemilik. Bagian 3.5A **belum disetujui**; ia disusun 12 September 2026 atas permintaan pemilik untuk membuka `FE-RWI-058` dan `FE-RWI-060` |
-| Cakupan revision ini | **`FE-INP-20` saja** — langkah Deposit pada alur admisi, bagian 3.5A. Kesembilan belas layar `FE-INP-01` s.d. `FE-INP-19` **tidak diubah satu baris pun** |
-| Masukan otoritatif | `00-interview-decisions.md` revision `7`; `03-frontend-architecture.md` revision `0.4`; kontrak `0.4.0` |
+| Revision | `0.7` — amandemen alur admisi pendaftaran rawat inap menyerap revisi tim analisis bisnis (Mba Ilma) via `RWI-DEC-267` s.d. `RWI-DEC-273` dan `RWI-AC-388` s.d. `RWI-AC-395`: Step 1 Jenis Kunjungan (Umum & Rujukan ringkas), Step 2 Kategori Pasien (3 opsi), batas 13 digit No HP Kontak Darurat, penyatuan cari & verifikasi Pasien Lama (kanan-kiri), penyembunyian Unit Tujuan di Step Dokter, penambahan langkah mandiri (*Dedicated Step*) Form Persetujuan & TTD Digital Pasien/Wali sebelum cetak, invariant penanda tangan Bayi Baru Lahir, dan peran General Consent Workspace PPRI sebagai print-only. Sebelumnya `0.6` (6 Oktober 2026); `0.5` (12 September 2026); `0.4` |
+| Status | `approved` — disetujui pengguna 10 Oktober 2026 atas instruksi eksplisit "setujui dan lakukan /plan-module-delivery". Bagian 3 alur admisi disesuaikan penuh menjadi 12 langkah (Pasien Baru) dan 10 langkah (Pasien Lama) |
+| Cakupan revision ini | Bagian **3.0 s.d. 3.16** — penyelarasan penuh alur admisi pendaftaran rawat inap Pasien Baru dan Pasien Lama sesuai 5 poin revisi tim analisis bisnis (Mba Ilma). Layar `FE-INP-01`, `FE-INP-02`, dan `FE-INP-04` s.d. `FE-INP-19` tetap berlaku |
+| Masukan otoritatif | `00-interview-decisions.md` revision `40` (`RWI-DEC-267` s.d. `RWI-DEC-273`); `03-frontend-architecture.md` revision `0.11`; kontrak `0.11.0` |
 | Keluaran hilir | `roadmap/frontend-roadmap.md` revision `5` draft disinkronkan setelah skema ini |
 | Baseline desain | Frontend `dec4fdeff07c3c96ad9f07f41f184c54cf771371`; backend `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
 | Impact scan kontrak | Frontend `12562f17e12ee43b7d8cdaeaff3f1a1fca5a8360`; backend `f102020611fc3d605fdef1949a3af23da93e4215`; 28 Agustus 2026, baca-saja |
@@ -103,166 +103,210 @@ Episode atau Detail Episode sesuai `IA-INP-05`.
 
 Route: `/health-services/inpatient-management/admissions`
 
-Urutan bernama dan isi langkah sudah dikunci `03-frontend-architecture.md` bagian 3A. Jalur pasien
-baru memuat sembilan langkah; jumlah resmi jalur pasien lama masih tertahan `RWI-UI-GAP-001`.
-Dokumen ini menambahkan **susunan wilayah di layar** dan **kata yang dipakai**.
+Urutan bernama dan isi langkah telah diselaraskan penuh dengan amandemen keputusan bisnis
+`RWI-DEC-267` s.d. `RWI-DEC-273` (`00-interview-decisions.md` revision `40`). Jalur Pasien Baru
+memuat **dua belas (12) langkah**, sedangkan jalur Pasien Lama memuat **sepuluh (10) langkah**.
+Dokumen ini menetapkan susunan wilayah di layar, kata yang dipakai, interaksi digital signature,
+dan perilaku tombol navigasi.
 
 ### 3.0 Kerangka halaman
 
-Berlaku untuk seluruh langkah kecuali layar pembuka.
+Berlaku untuk seluruh langkah alur admisi kecuali layar pembuka tipe pendaftaran.
 
 ```text
-┌─ sidebar ─┬─────────────────────────────────────────────────────────────┐
-│           │  Health Services / Rawat Inap                               │
-│  Rawat    │  Admisi Rawat Inap                                          │
-│  Inap  ▸  │  Daftarkan pasien, tentukan penjamin dan DPJP, lalu pesan   │
-│           │  tempat tidurnya.                                           │
-│           ├─────────────────────────────────────────────────────────────┤
-│           │  ①─②─③─④─⑤─⑥─⑦─⑧─⑨            PENANDA LANGKAH        │
-│           ├─────────────────────────────────────────────────────────────┤
-│           │                                                             │
-│           │   ISI LANGKAH                                               │
-│           │                                                             │
-│           ├─────────────────────────────────────────────────────────────┤
-│           │  RINGKASAN BERJALAN                                         │
-│           │  Sari Dewi · RM 00123456 · BPJS Kelas 1 · Melati · ML-101-A │
-│           ├─────────────────────────────────────────────────────────────┤
-│           │                        [ Kembali ]   [ Lanjut ke Dokter ]  │
-└───────────┴─────────────────────────────────────────────────────────────┘
+┌─ sidebar ─┬─────────────────────────────────────────────────────────────────────────┐
+│           │  Health Services / Rawat Inap                                           │
+│  Rawat    │  Admisi Rawat Inap                                                      │
+│  Inap  ▸  │  Daftarkan pasien, tentukan jenis kunjungan, penjamin, DPJP, pesan      │
+│           │  tempat tidur, serta lakukan persetujuan rawat inap ber-TTD digital.    │
+│           ├─────────────────────────────────────────────────────────────────────────┤
+│           │  ①─②─③─④─⑤─⑥─⑦─⑧─⑨─⑩─⑪─⑫        PENANDA LANGKAH (PASIEN BARU)          │
+│           │  (atau ①─②─③─④─⑤─⑥─⑦─⑧─⑨─⑩ untuk Pasien Lama)                           │
+│           ├─────────────────────────────────────────────────────────────────────────┤
+│           │                                                                         │
+│           │   ISI LANGKAH                                                           │
+│           │                                                                         │
+│           ├─────────────────────────────────────────────────────────────────────────┤
+│           │  RINGKASAN BERJALAN                                                     │
+│           │  Sari Dewi · RM 00123456 · BPJS Kelas 1 · Ruang Melati · ML-101-A       │
+│           ├─────────────────────────────────────────────────────────────────────────┤
+│           │                        [ Kembali ]   [ Lanjut ke Pembayaran ]           │
+└───────────┴─────────────────────────────────────────────────────────────────────────┘
 ```
 
 | Wilayah | Isi | Dari mana | Komponen yang sudah ada |
 | --- | --- | --- | --- |
 | Kepala halaman | Remah jejak, judul menu, satu kalimat penjelas | tetap | `Hero` |
-| Penanda langkah | Urutan langkah sesuai jalur, termasuk yang sedang berjalan dan sudah lewat | keadaan alur | `emergency-registration-stepper` |
-| Isi langkah | Berganti per langkah, bagian 3.2 s.d. 3.13 | — | — |
+| Penanda langkah | Urutan 12 langkah (Pasien Baru) atau 10 langkah (Pasien Lama), termasuk yang sedang aktif dan sudah dilewati | keadaan alur | `inpatient-stepper` (diperluas) |
+| Isi langkah | Berganti per langkah, bagian 3.2 s.d. 3.14 | — | — |
 | Ringkasan berjalan | Pasien, nomor RM, penjamin, kelas, unit, tempat tidur — **hanya yang sudah terisi** | keadaan alur | pola `patientCompactSummary` |
-| Aksi langkah | Kembali dan lanjut | — | pola `stepActions` |
+| Aksi langkah | Tombol Kembali dan tombol Lanjut / Simpan | — | pola `stepActions` |
 
 **Tiga aturan yang mengikat pada kerangka ini:**
 
-1. **Penanda langkah tidak dapat diklik untuk melompat.** Ia penunjuk posisi, bukan navigasi.
-   Melompat merusak urutan titik tulis pada `03-frontend-architecture.md` 3A.4.
-2. **Ringkasan berjalan tidak pernah memuat kolom sensitif.** Tanpa diagnosis, tanpa catatan
-   episode, tanpa keterangan kebutuhan isolasi, dan tanpa nomor kartu penjamin — bagian 6.
-   Penanda isolasi boleh tampil sebagai ikon tanpa alasannya.
-3. **Langkah yang sedang berjalan tercermin di URL.** Memuat ulang halaman mengembalikan pengguna
-   ke langkah yang sama, bukan ke langkah 1 — `03-frontend-architecture.md` 5.5.
+1. **Penanda langkah tidak dapat diklik untuk melompat bebas.** Ia penunjuk posisi progresif, bukan navigasi bebas. Melompat merusak urutan titik simpan pada arsitektur data admisi.
+2. **Ringkasan berjalan tidak pernah memuat kolom sensitif.** Tanpa diagnosis klinis rinci, tanpa catatan episode, tanpa keterangan kebutuhan isolasi, dan tanpa nomor kartu penjamin lengkap. Penanda isolasi hanya boleh tampil sebagai ikon netral.
+3. **Langkah yang sedang berjalan tercermin di URL.** Memuat ulang halaman (`F5`) memulihkan pengguna ke langkah yang sama persis berdasarkan parameter query, bukan mengulang ke langkah 1.
 
 ---
 
 ### 3.1 Layar pembuka — Pilih Tipe Pendaftaran
 
-Tampil **sebelum** penanda langkah muncul, sama seperti pendaftaran IGD.
+Tampil **sebelum** penanda langkah muncul. Membagi admisi ke dalam jalur yang tepat.
 
 ```text
-                        Pilih Tipe Pendaftaran
-        Tentukan apakah pasien perlu didaftarkan lebih dulu atau
-        sudah punya nomor rekam medis.
+                        Pilih Tipe Pendaftaran Admisi
+        Tentukan apakah pasien baru mendaftar, pasien lama terdaftar,
+        atau pasien rujukan dari kamar pulih / instalasi bedah.
 
-  ┌──────────────────────────────┐  ┌──────────────────────────────┐
-  │            [+ orang]         │  │          [orang orang]       │
-  │                              │  │                              │
-  │   Pendaftaran Pasien Baru    │  │   Pendaftaran Pasien Lama    │
-  │   Belum pernah terdaftar     │  │   Sudah punya No. RM         │
-  │                              │  │                              │
-  │   ✓ Scan KTP mengisi form    │  │   ✓ Cari No. RM atau NIK     │
-  │   ✓ Sembilan langkah         │  │   ✓ Jumlah menunggu putusan  │
-  │                              │  │                              │
-  │        Klik untuk memilih    │  │        Klik untuk memilih    │
-  └──────────────────────────────┘  └──────────────────────────────┘
+  ┌──────────────────────────────┐  ┌──────────────────────────────┐  ┌──────────────────────────────┐
+  │            [+ orang]         │  │          [orang orang]       │  │           [bedah/pulih]      │
+  │                              │  │                              │  │                              │
+  │   Pendaftaran Pasien Baru    │  │   Pendaftaran Pasien Lama    │  │   Admisi Kamar Pulih (OK)    │
+  │   Belum pernah terdaftar     │  │   Sudah punya No. RM         │  │   Pasca tindakan bedah       │
+  │                              │  │                              │  │                              │
+  │   ✓ Kunjungan Umum/Rujukan   │  │   ✓ Cari & Review 1 Layar    │  │   ✓ Rujukan bedah terhubung  │
+  │   ✓ 12 Langkah Terpadu       │  │   ✓ 10 Langkah Terpadu       │  │   ✓ 10 Langkah Kamar Pulih   │
+  │                              │  │                              │  │                              │
+  │        Klik untuk memilih    │  │        Klik untuk memilih    │  │        Klik untuk memilih    │
+  └──────────────────────────────┘  └──────────────────────────────┘  └──────────────────────────────┘
 ```
 
 | Wilayah | Isi | Komponen |
 | --- | --- | --- |
-| Judul | "Pilih Tipe Pendaftaran" beserta satu kalimat penjelas | teks |
-| Dua kartu | Judul, keterangan singkat, dua butir pembeda | `patient-entry-choice-step` |
+| Judul | "Pilih Tipe Pendaftaran Admisi" beserta kalimat penjelas | teks |
+| Tiga kartu | Judul, keterangan singkat, dua butir pembeda | `patient-entry-choice-step` |
 
 | Tombol | Jenis | Kapan aktif | Yang terjadi |
 | --- | --- | --- | --- |
-| Kartu Pasien Baru | kartu | selalu | Masuk jalur pasien baru, langkah 1 |
-| Kartu Pasien Lama | kartu | selalu | Masuk jalur pasien lama, langkah 1 |
-| Kartu Admisi Kamar Pulih | kartu | `InpatientAdmissionReferral : Read` | Masuk jalur rujukan kamar pulih (`FE-INP-29`), langkah 1 (lihat [05-skema-tampilan-admisi-kamar-pulih.md](./05-skema-tampilan-admisi-kamar-pulih.md)) |
-
-> [!NOTE]
-> **Pembaruan Desain Pintu Masuk (3-Card Admission Grid):**
-> Sesuai rancangan pada [`05-skema-tampilan-admisi-kamar-pulih.md`](./05-skema-tampilan-admisi-kamar-pulih.md), pintu masuk admisi diperbarui menjadi 3 kartu sejajar berdampingan (Pasien Baru, Pasien Lama, dan Admisi dari Kamar Pulih). Jalur Kamar Pulih membawa stepper 10 langkah dengan tahap pencarian/seleksi rujukan bedah terintegrasi.
-
-**Keadaan tidak berhak:** peran tanpa `InpatientEpisode : Create` **tidak membuka layar ini sama
-sekali** — bukan membukanya lalu menemukan kartu yang mati.
+| Kartu Pasien Baru | kartu | selalu | Masuk jalur pasien baru, Langkah 1 (Jenis Kunjungan) |
+| Kartu Pasien Lama | kartu | selalu | Masuk jalur pasien lama, Langkah 1 (Cari & Verifikasi) |
+| Kartu Admisi Kamar Pulih | kartu | `InpatientAdmissionReferral : Read` | Masuk jalur rujukan kamar pulih (`FE-INP-29`), langkah 1 |
 
 ---
 
-### 3.2 Langkah 1 — Tipe Pasien
+### 3.2 Langkah 1 (Jalur Pasien Baru) — Jenis Kunjungan (Umum & Rujukan)
 
-Berlaku pada kedua jalur. Pada jalur pasien lama, ini langkah ketiga pada penanda.
+Dasar keputusan: `RWI-DEC-269` dan `RWI-AC-390`.
+Langkah pertama pasien baru menentukan apakah kedatangan pasien merupakan kunjungan mandiri/umum atau rujukan dari fasilitas kesehatan lain.
 
 ```text
-  LANGKAH 1
-  Jenis Pasien
+  LANGKAH 1 DARI 12 (PASIEN BARU)
+  Jenis Kunjungan Pasien
 
-  ┌──────────┐ ┌──────────┐ ┌──────────────┐ ┌──────────┐
-  │ (•) Umum │ │ ( ) Ibu  │ │ ( ) Bayi     │ │ ( ) Anak │
-  │          │ │          │ │  Baru Lahir  │ │          │
-  └──────────┘ └──────────┘ └──────────────┘ └──────────┘
-  ┌──────────────┐ ┌──────────────┐
-  │ ( ) Pegawai  │ │ ( ) Korporat │
-  └──────────────┘ └──────────────┘
-
-  ── tampil HANYA bila Bayi Baru Lahir dipilih ──────────────────────
-  ┌── Episode Ibu ───────────────────────────────────────────────────┐
-  │ Episode Ibu *  [ Cari nama ibu atau nomor episode…           ▾ ] │
-  │ Bayi mendapat episode, kunjungan, dan hitungan hari rawat        │
-  │ sendiri. Kolom ini hanya merekam hubungannya dengan ibu.         │
+  ┌── Pilih Jenis Kunjungan ─────────────────────────────────────────┐
+  │  ┌───────────────────────────┐   ┌───────────────────────────┐   │
+  │  │ (•) Kunjungan Umum        │   │ ( ) Rujukan               │   │
+  │  │     Datang mandiri / non  │   │     Membawa surat rujukan │   │
+  │  │     rujukan faskes luar   │   │     faskes / dokter luar  │   │
+  │  └───────────────────────────┘   └───────────────────────────┘   │
   └──────────────────────────────────────────────────────────────────┘
 
-                         [ Lanjut ke Pendaftaran / Pembayaran ]
+  ── tampil HANYA bila jenis "Rujukan" dipilih ──────────────────────
+  ┌── Data Rujukan Fasilitas Kesehatan Luar ─────────────────────────┐
+  │  Nomor Rujukan *     [ 1204R0010926P000452                     ] │
+  │  Tanggal Rujukan *   [ 10-10-2026 ]  Jam * [ 09:30             ] │
+  │  Faskes Perujuk *    [ RSUD Cibinong                           ] │
+  │  Dokter Perujuk *    [ dr. Herman Susanto, Sp.PD               ] │
+  │  Diagnosa Rujukan *  [ Suspek Appendicitis Akut dd Colic Abdomen]│
+  │  (Data rujukan bersifat tekstual ringkas tanpa unggah berkas fisik)│
+  └──────────────────────────────────────────────────────────────────┘
+
+                                    [ Batal ]   [ Lanjut ke Kategori Pasien ]
 ```
 
 | Wilayah | Isi | Dari mana | Komponen |
 | --- | --- | --- | --- |
-| Kartu jenis pasien | Enam pilihan tunggal | tetap | `base-checkbox-card` |
-| Episode ibu | Isian pilihan episode aktif | daftar episode tersaring `Admitted` | `ResourceFilterSelect` |
+| Pilihan Jenis Kunjungan | Dua kartu radio: `Umum` dan `Rujukan` | isian pengguna | `base-radio-card-group` |
+| Form Data Rujukan | Nomor surat rujukan, tanggal/jam rujukan, nama fasilitas kesehatan perujuk, nama dokter perujuk, diagnosa rujukan | isian pengguna | `BaseTextInput`, `BaseDateTimePicker`, `BaseTextAreaField` |
 
 | Tombol | Jenis | Kapan aktif | Yang terjadi |
 | --- | --- | --- | --- |
-| Lanjut ke Pendaftaran | utama | Jalur pasien baru; jenis terpilih; bila Bayi Baru Lahir, episode ibu wajib terisi | Maju ke Pendaftaran |
-| Lanjut ke Pembayaran | utama | Jalur pasien lama; syarat jenis pasien sama | Maju langsung ke Pembayaran; **tidak** membuka form pasien baru |
+| Batal | kedua | selalu | Mengembalikan pengguna ke layar pembuka tipe pendaftaran |
+| Lanjut ke Kategori Pasien | utama | Bila `Umum`: selalu aktif. Bila `Rujukan`: aktif jika seluruh kolom wajib rujukan terisi | Menyimpan pilihan ke state alur, maju ke Langkah 2 |
 
-**Catatan yang mengikat.** Wilayah Episode Ibu **hanya** muncul untuk Bayi Baru Lahir. Menampilkannya
-selalu membuat petugas mengira setiap admisi menuntut episode ibu.
+**Aturan yang mengikat pada langkah ini:**
+1. **Bila Umum dipilih**: Petugas langsung dapat melanjutkan ke langkah 2 tanpa hambatan form tambahan.
+2. **Bila Rujukan dipilih**: Kelima kolom data rujukan (Nomor, Tanggal/Jam, Faskes, Dokter, Diagnosa) **wajib diisi lengkap** sebelum tombol Lanjut aktif.
+3. **Tanpa kewajiban upload dokumen fisik**: Sesuai `RWI-DEC-269`, proses loket admisi rawat inap hanya mencatat data tekstual ringkas surat rujukan; tidak memblokir petugas dengan keharusan memindai/mengunggah file PDF/gambar.
 
 ---
 
-### 3.3 Langkah 2 — Pendaftaran (jalur pasien baru)
+### 3.3 Langkah 2 (Jalur Pasien Baru) — Kategori Pasien
+
+Dasar keputusan: `RWI-DEC-270` dan `RWI-AC-391`.
+Pilihan kategori pasien pada admisi rawat inap disederhanakan menjadi **tepat 3 opsi fungsional**.
 
 ```text
-  LANGKAH 2
+  LANGKAH 2 DARI 12 (PASIEN BARU)
+  Kategori Pasien
+
+  ┌── Pilih Kategori ────────────────────────────────────────────────┐
+  │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐│
+  │  │ (•) Pasien Umum  │  │ ( ) Bayi Baru    │  │ ( ) Pegawai /    ││
+  │  │                  │  │     Lahir        │  │     Karyawan RS  ││
+  │  └──────────────────┘  └──────────────────┘  └──────────────────┘│
+  │  (Opsi Ibu, Anak, dan Korporat dinonaktifkan sesuai kebijakan RS) │
+  └──────────────────────────────────────────────────────────────────┘
+
+  ── tampil HANYA bila "Bayi Baru Lahir" dipilih ────────────────────
+  ┌── Hubungan dengan Episode Ibu ───────────────────────────────────┐
+  │  Episode Ibu *  [ Cari nama ibu atau nomor episode ibu…       ▾ ] │
+  │  Bayi mendapat nomor RM, episode, dan penjaminan sendiri. Kolom  │
+  │  ini mencatat hubungan ibu-bayi untuk penempatan boks/ruangan.   │
+  └──────────────────────────────────────────────────────────────────┘
+
+                                    [ Kembali ]   [ Lanjut ke Pendaftaran ]
+```
+
+| Wilayah | Isi | Dari mana | Komponen |
+| --- | --- | --- | --- |
+| Kartu Kategori | Tiga pilihan tunggal: `Pasien Umum`, `Bayi Baru Lahir`, `Pegawai` | konfigurasi admisi | `base-checkbox-card` |
+| Pemilih Episode Ibu | Dropdown seleksi episode ibu rawat inap yang aktif (`Admitted`) | API `GET /episodes?status=Admitted` | `ResourceFilterSelect` |
+
+| Tombol | Jenis | Kapan aktif | Yang terjadi |
+| --- | --- | --- | --- |
+| Kembali | kedua | selalu | Kembali ke Langkah 1 (Jenis Kunjungan) |
+| Lanjut ke Pendaftaran | utama | Kategori terpilih; bila Bayi Baru Lahir, episode ibu wajib terpilih | Maju ke Langkah 3 (Pendaftaran Pasien Baru) |
+
+**Aturan yang mengikat pada langkah ini:**
+1. **Tepat 3 opsi**: Opsi kategori historis lain (Ibu Hamil, Anak-Anak, Korporat) dinonaktifkan/disembunyikan dari UI untuk mencegah redundansi pengkategorian.
+2. **Keterikatan Bayi Baru Lahir**: Pemilihan `Bayi Baru Lahir` mewajibkan penautan `MotherEpisodeId` dan secara hukum medis akan mengunci penanda tangan pada Langkah 10 (Persetujuan & TTD Digital).
+
+---
+
+### 3.4 Langkah 3 (Jalur Pasien Baru) — Pendaftaran Pasien Baru
+
+Dasar keputusan: `RWI-DEC-267`, `RWI-DEC-223`, `RWI-DEC-224`, dan `RWI-AC-388`.
+Mendaftarkan master data pasien baru ke sistem. Nomor HP Kontak Darurat dibatasi **maksimal 13 digit angka**.
+
+```text
+  LANGKAH 3 DARI 12 (PASIEN BARU)
   Pendaftaran Pasien Baru
 
-  ┌── Scan KTP ──────────────────────────────────────────────────────┐
-  │  [ Mulai Scan KTP ]        Menghubungkan ke pemindai…            │
-  │  Pemindai tidak tersedia? Isi formulir di bawah secara manual.   │
+  ┌── Scan KTP (Opsional) ───────────────────────────────────────────┐
+  │  [ Mulai Scan KTP ]        Status pemindai: Siap                 │
+  │  Pemindai tidak tersedia? Formulir di bawah dapat diisi manual.  │
   └──────────────────────────────────────────────────────────────────┘
 
   ┌── Identitas Pasien ──────────────────────────────────────────────┐
-  │ NIK *          [ 3273xxxxxxxxxxxx        ]                       │
-  │ Nama Lengkap * [ Sari Dewi               ]                       │
-  │ Tgl Lahir *    [ 12-04-1988 ]   Jenis Kelamin * ( ) L  (•) P     │
-  │ Alamat         [                                            ]    │
-  │ No. HP         [ 0812xxxxxxx ]  Email  [                    ]    │
+  │ NIK *          [ 3273012345670001        ]                       │
+  │ Nama Lengkap * [ Siti Rahmawati          ]                       │
+  │ Tgl Lahir *    [ 15-08-1992 ]   Jenis Kelamin * ( ) L  (•) P     │
+  │ Alamat Lengkap [ Jl. Kenanga No. 12, RT 02/RW 04, Bandung      ] │
+  │ No. HP Pasien  [ 081223344556 ]  Email  [ siti.rahma@email.com ] │
   └──────────────────────────────────────────────────────────────────┘
 
-  ▸ Data tambahan pasien (opsional) ── tertutup secara bawaan ──────────
-    [ ] Pasien Member
-        ── tampil HANYA bila dicentang ──
-        Tier Membership * [ Cari nama tier…                    ▾ ]
-    Catatan Pasien      [                                          ]
-    Bayi baru lahir dipilih pada Langkah 1 — Tipe Pasien.
+  ▸ Data tambahan pasien (opsional) ── tertutup secara bawaan ─────────
+    [ ] Pasien Member Rumah Sakit
+        Tier Membership * [ Tier Silver — Diskon Pelayanan        ▾ ]
+    Catatan Pasien      [ Pasien memiliki riwayat alergi penisilin  ]
 
-  ┌── Kontak Darurat ────────────────────────────────────────────────┐
-  │ Nama *  [ Budi Santoso ]  Hubungan * [ Suami  ▾ ]                │
-  │ No. HP *[ 0813xxxxxxx  ]                                         │
+  ┌── Kontak Darurat Pasien ─────────────────────────────────────────┐
+  │ Nama Kontak *     [ Ahmad Fauzi                  ]               │
+  │ Hubungan Kontak * [ Suami                      ▾ ]               │
+  │ No. HP Kontak *   [ 081399887766                 ]               │
+  │                   * Format numerik, maksimal 13 digit angka      │
   └──────────────────────────────────────────────────────────────────┘
 
                             [ Kembali ]   [ Simpan & Lanjut ke Pembayaran ]
@@ -270,88 +314,106 @@ selalu membuat petugas mengira setiap admisi menuntut episode ibu.
 
 | Wilayah | Isi | Dari mana | Komponen |
 | --- | --- | --- | --- |
-| Scan KTP | Tombol pindai dan keadaan sambungannya | jembatan pemindai | `plustek-scan-panel` |
-| Identitas Pasien | Isian pasien baru | isian pengguna | `new-patient-form`, `base-form-control` |
-| Data tambahan pasien (opsional) | Satu kartu Pasien Member; Tier Membership wajib bila dicentang, berlabel nama dan kode tier; Catatan Pasien. **Tidak ada** kartu Bayi Baru Lahir maupun Pasien Meninggal, dan tidak ada isian yang meminta atau menampilkan UUID (`RWI-DEC-224`) | `GET /api/v1/administrator/master-data/membership-tiers/options` dengan `isSelectableInAdmission=true` | `new-patient-form` dengan `specialRegistrationFlags=["member"]` |
-| Kontak Darurat | Nama, hubungan, nomor | isian pengguna | idem |
+| Scan KTP | Integrasi OCR pemindai KTP | jembatan scanner | `plustek-scan-panel` |
+| Identitas Pasien | NIK, Nama, Tanggal Lahir, Jenis Kelamin, Alamat, No. HP, Email | isian form | `new-patient-form` |
+| Data Tambahan | Flag Member & Tier Membership, Catatan Pasien | master tier | `membership-field-group` |
+| Kontak Darurat | Nama, Hubungan, dan **No. HP Kontak Darurat (maks 13 digit numerik)** | isian form | `emergency-contact-group` |
 
 | Tombol | Jenis | Kapan aktif | Yang terjadi |
 | --- | --- | --- | --- |
-| Mulai Scan KTP | kedua | Pemindai tersedia | Mengisi otomatis wilayah Identitas |
-| Kembali | kedua | selalu | Kembali ke langkah 1 |
-| Simpan & Lanjut ke Pembayaran | utama | **Selalu dapat ditekan**; mati hanya selama permintaan berjalan (`RWI-DEC-223`, menggantikan "Seluruh isian wajib terisi") | Isian wajib belum lengkap: **tidak ada request**, ringkasan isian yang kurang tampil, bagian tertutup dibuka bila perlu, lalu fokus pindah ke isian pertama yang kosong. Lengkap: berurutan `POST /patients` → `POST /patient-identity-documents` → `POST /patient-emergency-contacts`; baru lalu maju. Kegagalan berhenti pada operasi terkait |
+| Mulai Scan KTP | kedua | Pemindai terdeteksi | Melakukan OCR KTP dan mengisi kolom identitas |
+| Kembali | kedua | selalu | Kembali ke Langkah 2 (Kategori Pasien) |
+| Simpan & Lanjut ke Pembayaran | utama | selalu dapat ditekan (`RWI-DEC-223`) | Validasi form: jika No HP Kontak Darurat > 13 digit atau non-angka, tolak dengan pesan jelas. Jika valid, eksekusi `POST /patients` → `POST /patient-identity-documents` → `POST /patient-emergency-contacts`, lalu lanjut ke Langkah 4 |
 
-**Keadaan:**
-
-| Keadaan | Yang tampil |
-| --- | --- |
-| Pemindai tidak tersedia | Wilayah Scan KTP tetap tampil disertai kalimat bahwa formulir dapat diisi manual. **Bukan** wilayah yang hilang tanpa penjelasan |
-| Server menolak | `InformationAlert` merah berisi pesan server apa adanya, **di atas** formulir. Isian **tidak hilang** |
-| Isian wajib belum lengkap saat Simpan ditekan | `InformationAlert` peringatan **di atas** formulir: jumlah isian dan nama setiap isian beserta bagiannya, masing-masing dapat diklik. Fokus pindah ke isian pertama yang kosong; ringkasan hilang sendiri setelah semua dilengkapi (`RWI-DEC-223`) |
-| Wilayah hasil scan KTP tidak dapat dicocokkan | `InformationAlert` peringatan di bawah wilayah Scan KTP yang menyebut wilayah yang perlu dipilih manual. Nama kota kembar — misalnya Kota dan Kabupaten Bekasi — tidak pernah ditebak bila jenisnya tidak terbaca dari KTP |
+**Aturan yang mengikat pada langkah ini:**
+1. **Validasi Kontak Darurat 13 Digit (`RWI-DEC-267`, `RWI-AC-388`)**: Input `emergencyContactPhoneNumber` menerapkan `maxLength={13}`, tipe input numeric/tel, dan memotong karakter non-angka. Validasi form memblokir pengiriman jika panjang nomor kontak darurat melebihi 13 karakter angka.
+2. **Titik Simpan Pasien**: Menyimpan entitas pasien di server sehingga pasien resmi mendapatkan Nomor Rekam Medis (Nomor RM) sebelum berlanjut ke pemilihan pembayaran.
 
 ---
 
-### 3.4 Langkah 1–2 jalur pasien lama — Pasien Lama dan Informasi Pasien Lama
+### 3.5 Langkah Jalur Pasien Lama (Langkah 1 & 2 Terpadu)
+
+Dasar keputusan: `RWI-DEC-271` dan `RWI-AC-392`.
+Pada jalur Pasien Lama, proses pencarian dan peninjauan informasi pasien disatukan ke dalam **1 layar terpadu (Split Layout Kanan-Kiri)**, lalu dilanjutkan dengan pemilihan jenis kunjungan dan kategori pasien.
+
+#### 3.5.1 Langkah 1 (Jalur Pasien Lama) — Cari & Verifikasi Pasien Terpadu
 
 ```text
-  PASIEN LAMA
-  Cari Data Pasien
+  LANGKAH 1 DARI 10 (PASIEN LAMA)
+  Cari & Verifikasi Identitas Pasien
 
-  ┌── Cara Mencari ──────────────────────────────────────────────────┐
-  │  ┌──────────────┐  ┌──────────────┐                              │
-  │  │ (•) [RM]     │  │ ( ) [ID]     │                              │
-  │  │  Nomor RM    │  │  NIK         │                              │
-  │  └──────────────┘  └──────────────┘                              │
-  │                                                                  │
-  │  [ 00123456                                    ]  [ Cari ]       │
-  │  Ketik nomor rekam medis, atau tempelkan kartu pasien.           │
-  └──────────────────────────────────────────────────────────────────┘
+  ┌── HASIL VERIFIKASI (KIRI) ──┐ ┌── PENCARIAN PASIEN (KANAN) ───────────┐
+  │                             │ │ Metode Pencarian:                     │
+  │  [Foto]  Sari Dewi          │ │ (•) Nomor Rekam Medis   ( ) NIK       │
+  │          Perempuan · 34 th  │ │                                       │
+  │                             │ │ Masukkan Kata Kunci:                  │
+  │  No. RM   : 00123456        │ │ [ 00123456                     ]      │
+  │  NIK      : 3273012345670001│ │ [ Cari Pasien ]                       │
+  │  Tgl Lahir: 12-04-1992      │ │                                       │
+  │  No. HP   : 081299887766    │ │ Keterangan: Ketik nomor RM (contoh    │
+  │  Alamat   : Jl. Melati 4,   │ │ 00123456) atau 16 digit NIK, lalu     │
+  │             Bandung         │ │ tekan tombol Cari.                    │
+  │  Terakhir : 14-08-2026      │ │                                       │
+  │             Poli Penyakit   │ │ Pasien belum punya No RM?             │
+  │             Dalam (dr. Budi)│ │ [ Daftarkan sebagai Pasien Baru ]     │
+  │                             │ │                                       │
+  │  [ Ganti / Cari Ulang ]     │ │                                       │
+  └─────────────────────────────┘ └───────────────────────────────────────┘
 
-  ── sesudah ditemukan, layar berganti ke Informasi Pasien Lama ─────
-
-  INFORMASI PASIEN LAMA
-  Periksa Data Pasien
-
-  ┌── Identitas ──────────┐ ┌── Validasi Data ────────────────────────┐
-  │      [foto/inisial]   │ │ NIK          3273xxxxxxxxxxxx           │
-  │      Sari Dewi        │ │ Tgl Lahir    12-04-1988 (38 th)         │
-  │      RM 00123456      │ │ Jenis Kelamin Perempuan                 │
-  │      Perempuan        │ │ No. HP       0812xxxxxxx                │
-  │                       │ │ Alamat       …                          │
-  │  [ Ganti Pasien ]     │ │ Kunjungan terakhir  02-08-2026 Poli PD  │
-  └───────────────────────┘ └─────────────────────────────────────────┘
-
-                              [ Kembali ]   [ Lanjut ke Tipe Pasien ]
+                    [ Batal ]   [ Lanjut ke Jenis Kunjungan & Kategori ]
 ```
 
 | Wilayah | Isi | Dari mana | Komponen |
 | --- | --- | --- | --- |
-| Cara Mencari | Dua kartu cara cari, satu isian, satu tombol | isian pengguna | `patient-selection-step` |
-| Identitas | Foto atau inisial, nama, nomor RM, jenis kelamin | `patients/options` | idem |
-| Validasi Data | Data pasien untuk ditinjau | idem | idem |
+| Kolom Kanan (Pencarian) | Radio pilihan metode (Nomor RM / NIK), kolom isian teks pencarian, tombol Cari Pasien, tautan beralih ke Pasien Baru | isian pengguna | `patient-search-panel` |
+| Kolom Kiri (Hasil Verifikasi) | Kartu data pasien terpilih: Nama, No RM, NIK, Jenis Kelamin, Usia/Tgl Lahir, No HP, Alamat, Kunjungan Terakhir. Menampilkan placeholder panduan bila belum dicari | `GET /patients/options?search=...` | `patient-verified-card` |
 
 | Tombol | Jenis | Kapan aktif | Yang terjadi |
 | --- | --- | --- | --- |
-| Cari | utama | Isian terisi | Mencari pasien |
-| Ganti Pasien | kedua | selalu | Kembali ke pencarian |
-| Lanjut ke Tipe Pasien | utama | Satu pasien terpilih | Maju ke langkah Tipe Pasien |
+| Cari Pasien | kedua | Input pencarian terisi | Memanggil API pencarian pasien, menampilkan hasil pada panel kiri |
+| Ganti / Cari Ulang | kedua | Pasien sudah terpilih | Mengosongkan pasien terpilih, fokus kembali ke input pencarian kanan |
+| Daftarkan Pasien Baru | tautan | selalu | Beralih ke alur Pasien Baru Langkah 1 |
+| Lanjut ke Jenis Kunjungan | utama | Tepat 1 pasien berhasil diverifikasi | Maju ke Langkah 2 Pasien Lama |
 
-**Keadaan:**
+#### 3.5.2 Langkah 2 (Jalur Pasien Lama) — Jenis Kunjungan & Kategori Pasien
 
-| Keadaan | Yang tampil |
-| --- | --- |
-| Tidak ditemukan | "Pasien dengan nomor itu tidak ditemukan." disertai tautan **Daftarkan sebagai pasien baru** yang memindahkan ke jalur pasien baru |
-| Lebih dari satu hasil | Daftar hasil untuk dipilih, memuat nama, nomor RM, dan tanggal lahir. **Tanpa** NIK penuh |
+```text
+  LANGKAH 2 DARI 10 (PASIEN LAMA)
+  Jenis Kunjungan & Kategori Pasien Lama
+
+  Pasien Terpilih: Sari Dewi (RM: 00123456)
+
+  ┌── Bagian A: Jenis Kunjungan ─────────────────────────────────────┐
+  │  (•) Kunjungan Umum (Non-Rujukan)      ( ) Kunjungan Rujukan     │
+  │  ── Tampil form rujukan ringkas tekstual jika Rujukan dipilih:  ──│
+  │  No. Rujukan *   [ 1204R0010926P000452                     ]     │
+  │  Tgl/Jam *       [ 10-10-2026 09:30                        ]     │
+  │  Faskes *        [ RSUD Cibinong                           ]     │
+  │  Dokter Perujuk *[ dr. Herman Susanto, Sp.PD               ]     │
+  │  Diagnosa *      [ Suspek Appendicitis Akut dd Colic Abdomen]    │
+  └──────────────────────────────────────────────────────────────────┘
+
+  ┌── Bagian B: Kategori Pasien ─────────────────────────────────────┐
+  │  (•) Pasien Umum                       ( ) Pegawai / Karyawan RS │
+  │  (Opsi Bayi Baru Lahir dinonaktifkan pada jalur Pasien Lama)      │
+  └──────────────────────────────────────────────────────────────────┘
+
+                                    [ Kembali ]   [ Lanjut ke Pembayaran ]
+```
+
+| Tombol | Jenis | Kapan aktif | Yang terjadi |
+| --- | --- | --- | --- |
+| Kembali | kedua | selalu | Kembali ke Langkah 1 Pasien Lama (Cari & Verifikasi) |
+| Lanjut ke Pembayaran | utama | Data jenis kunjungan & kategori lengkap | Maju ke Langkah 3 Pasien Lama (Pembayaran) |
 
 ---
 
-### 3.5 Langkah 3 — Pembayaran
+### 3.6 Langkah 4 PB / Langkah 3 PL — Pembayaran & Kelas Perawatan
 
-**Inilah langkah yang tidak pernah ada pada revision `0.3`.** Kelas perawatan ikut dipilih di sini.
+Menentukan metode pembayaran (penjamin) dan kelas perawatan awal yang diajukan.
 
 ```text
-  LANGKAH 3
+  LANGKAH 4 (PB) / LANGKAH 3 (PL)
   Cara Bayar dan Kelas Perawatan
 
   ┌── Cara Bayar ────────────────────────────────────────────────────┐
@@ -365,266 +427,163 @@ selalu membuat petugas mengira setiap admisi menuntut episode ibu.
   ┌── Kartu Penjamin Pasien ──────────┐ ┌── Penjamin Dipilih ───────┐
   │                  [ + Tambah Kartu ]│ │  BPJS Kesehatan          │
   │ ┌───────────────────────────────┐ │ │  No. 000123456789        │
-  │ │ (•) BPJS Kesehatan            │ │ │  Kelas hak    Kelas 1    │
+  │ │ (•) BPJS Kesehatan            │ │ │  Kelas hak: Kelas 1      │
   │ │     000123456789 · Aktif      │ │ │  Berlaku s.d. 31-12-2026 │
-  │ ├───────────────────────────────┤ │ │  [ Aktif ]               │
-  │ │ ( ) Prudential                │ │ │                          │
-  │ │     A-99887766 · Aktif        │ │ │                          │
+  │ ├───────────────────────────────┤ │ │  [ Kartu Valid ]         │
+  │ │ ( ) Mandiri Inhealth          │ │ │                          │
+  │ │     MI-998811 · Aktif         │ │ │                          │
   │ └───────────────────────────────┘ │ │                          │
   └───────────────────────────────────┘ └──────────────────────────┘
 
   ┌── Kelas Perawatan ───────────────────────────────────────────────┐
   │ Kelas *  [ Kelas 1                                          ▾ ]  │
   │ Kelas yang ditagihkan nanti mengikuti kamar yang benar-benar     │
-  │ ditempati.                                                       │
+  │ ditempati oleh pasien di bangsal.                                │
   └──────────────────────────────────────────────────────────────────┘
 
-                                  [ Kembali ]   [ Lanjut ke Dokter ]
+                                   [ Kembali ]   [ Lanjut ke Deposit ]
 ```
-
-| Wilayah | Isi | Dari mana | Komponen |
-| --- | --- | --- | --- |
-| Cara Bayar | Tiga kartu pilihan tunggal | tetap | `payment-method-step` |
-| Kartu Penjamin Pasien | Daftar kartu milik pasien beserta keadaannya | `patient-insurances`, `patient-company-guarantors` | `patient-payer-table` |
-| Penjamin Dipilih | Rincian kartu yang dipilih | idem | `selectedPayerPanel` |
-| Kelas Perawatan | Isian pilihan kelas | isian pilihan sumber daya | `ResourceFilterSelect` |
 
 | Tombol | Jenis | Kapan aktif | Yang terjadi |
 | --- | --- | --- | --- |
-| + Tambah Kartu | kedua | Cara bayar bukan tunai | Membuka laci pendaftaran kartu — `patient-payer-drawer` |
+| + Tambah Kartu | kedua | Cara bayar bukan tunai | Membuka drawer pendaftaran kartu penjamin baru |
 | Kembali | kedua | selalu | Kembali ke langkah sebelumnya |
-| Lanjut ke Dokter | utama | Cara bayar dipilih; bila bukan tunai, satu kartu terpilih; kelas terisi | Maju |
-
-**Empat aturan yang mengikat pada langkah ini:**
-
-1. **Tidak ada cara bayar yang terpilih otomatis.** Ketiga kartu berangkat kosong. Menyalakan
-   "Tunai" sebagai bawaan mengulang cacat yang justru ditutup revision `0.4`.
-2. **Nomor kartu penuh hanya tampil di langkah ini dan pada formulir cetak** — bagian 6.
-3. Kalimat "Kelas hak" pada wilayah Penjamin Dipilih adalah **keterangan, bukan aturan**. Tidak ada
-   aturan backend yang menolak kelas di luar hak peserta; jangan menuliskannya seolah menolak.
-4. Wilayah kartu penjamin **tidak muncul** ketika Tunai dipilih. Yang muncul satu kartu ringkas
-   bertuliskan "Pembayaran Tunai / Umum" beserta penanda "Dipilih".
+| Lanjut ke Deposit | utama | Cara bayar dipilih, kartu penjamin valid, kelas terisi | Maju ke Langkah Deposit |
 
 ---
 
-### 3.5A Langkah 4 — Deposit — `FE-INP-20`
+### 3.7 Langkah 5 PB / Langkah 4 PL — Deposit / Uang Muka (`FE-INP-20`)
 
-**Layar baru, ditulis 12 September 2026 untuk menutup `RWI-UI-GAP-008`.** Dasarnya
-`RWI-DEC-093` s.d. `RWI-DEC-096` dan `03-frontend-architecture.md` revision `0.6` bagian 3A.2
-langkah 4.
-
-**Penyisipan langkah ini menggeser penomoran seluruh langkah sesudahnya.** Itu akibat yang
-paling mudah terlewat, jadi ditulis di depan:
-
-| Jalur | Sebelum `RWI-DEC-093` | Sesudah |
-| --- | :---: | :---: |
-| Pasien baru | 9 langkah; Dokter di urutan 4 | **10 langkah**; Deposit di urutan **4**, Dokter bergeser ke 5 |
-| Pasien lama | 8 langkah; Dokter di urutan 5 | **9 langkah**; Deposit di urutan **4**, Dokter bergeser ke 6 |
-
-Pelanjutan admisi `FE-RWI-032` memilih langkah tujuan berdasarkan keadaan episode. Ia **wajib
-diuji ulang** setelah penomoran bergeser, dan itu bagian dari Definition of Done `FE-RWI-058`.
+Dasar keputusan: `RWI-DEC-093` s.d. `RWI-DEC-096` dan `RWI-UI-GAP-008`.
 
 ```text
-  LANGKAH 4
-  Deposit / Uang Muka
+  LANGKAH 5 (PB) / LANGKAH 4 (PL)
+  Deposit / Uang Muka Rawat Inap
 
   ┌── Kebijakan Deposit ─────────────────────────────────────────────┐
-  │  Penjamin    BPJS Kesehatan                                      │
-  │  Kelas       Kelas 1                                             │
-  │  Minimum     Rp 1.000.000                                        │
-  │  Kebijakan ini berlaku untuk penjamin dan kelas yang dipilih     │
-  │  pada langkah sebelumnya.                                        │
+  │  Penjamin    : BPJS Kesehatan                                    │
+  │  Kelas       : Kelas 1                                           │
+  │  Minimum     : Rp 1.000.000                                      │
+  │  Kebijakan deposit ditentukan oleh kombinasi penjamin dan kelas  │
+  │  yang dipilih pada langkah pembayaran sebelumnya.                │
   └──────────────────────────────────────────────────────────────────┘
 
-  ┌── Nominal Diterima ──────────────────────────────────────────────┐
-  │  Nominal    [ Rp 750.000                                      ]  │
+  ┌── Nominal Deposit Diterima ──────────────────────────────────────┐
+  │  Nominal Diterima [ Rp 1.000.000                              ]  │
   │                                                                  │
-  │  ⓘ Kurang Rp 250.000 dari minimum kebijakan.                     │
-  │    Admisi tetap dapat dilanjutkan.                               │
+  │  ⓘ Nominal deposit di bawah minimum tidak menghentikan admisi;   │
+  │    kekurangan akan dicatat sebagai kewajiban pelunasan berkala.  │
   └──────────────────────────────────────────────────────────────────┘
 
-                                  [ Kembali ]   [ Lanjut ke Dokter ]
+                                   [ Kembali ]   [ Lanjut ke Dokter ]
 ```
-
-| Wilayah | Isi | Dari mana | Komponen |
-| --- | --- | --- | --- |
-| Kebijakan Deposit | Penjamin, kelas, dan nominal minimum | `GET …/patient-funds/deposit-policies?guarantorId=&patientClassId=` | `InformationAlert` atau panel ringkas; **tidak** membuat komponen baru |
-| Nominal Diterima | Satu isian nominal berformat rupiah | isian langkah, **ditahan di klien** | pola format rupiah milik `billing-deposit-panel.jsx` |
-| Peringatan kekurangan | Selisih terhadap minimum | dihitung dari response, bukan dari angka di kode layar | `InformationAlert` varian **peringatan**, bukan varian galat |
 
 | Tombol | Jenis | Kapan aktif | Yang terjadi |
 | --- | --- | --- | --- |
-| Kembali | kedua | selalu, selama titik tulis 1 belum lewat | Kembali ke Pembayaran; nominal yang sudah diketik **ikut terbawa** |
-| Lanjut ke Dokter | utama | **selalu** | Maju. Nominal disimpan sebagai isian langkah; nol permintaan jaringan dikirim dari langkah ini |
-
-**Enam aturan yang mengikat pada langkah ini:**
-
-1. **Tombol lanjut tidak pernah terkunci oleh nilai apa pun.** Nominal di bawah minimum, nominal
-   kosong, bahkan kebijakan yang gagal dibaca — semuanya hanya memberi keterangan. `RWI-DEC-095`
-   memutuskan deposit **tidak menahan admisi**, dan mengunci tombolnya membalik keputusan itu.
-2. **Peringatan kekurangan tidak boleh memakai bentuk visual yang sama dengan kesalahan yang
-   menahan.** Petugas yang melihat spanduk merah akan mengira admisi berhenti, padahal tidak.
-3. **Nol angka minimum ditulis di kode layar.** Seluruh angka berasal dari response. Kebijakan
-   berubah di master data, bukan di frontend.
-4. **Langkah ini tidak mengirim satu permintaan tulis pun.** Nominalnya ditahan lalu dikirim
-   menyusul titik tulis 1 pada langkah Dokter — `RWI-DEC-076` tidak berubah.
-5. **Kebijakan `isRequired = false` melewati langkah ini**, dan pelewatannya tidak boleh terbaca
-   sebagai layar kosong yang gagal memuat.
-6. **Gagal membaca kebijakan tidak menahan admisi.** Layar menyatakan minimumnya tidak diketahui,
-   lalu membiarkan petugas melanjutkan.
-
-**Keadaan layar:**
-
-| Keadaan | Yang tampil |
-| --- | --- |
-| `LOADING` | Wilayah Kebijakan berplaceholder; isian nominal sudah dapat diketik |
-| Kebijakan terbaca, deposit disyaratkan | Minimum tampil; peringatan muncul bila nominal di bawahnya |
-| Kebijakan terbaca, `isRequired = false` | Langkah dilewati; penanda langkah tetap menghitungnya sebagai langkah yang sudah lewat |
-| `ERROR` baca kebijakan | "Minimum kebijakan tidak dapat dibaca." Isian nominal tetap hidup, tombol lanjut tetap hidup |
-| Mundur lalu maju lagi | Nominal yang sudah diketik utuh |
-
-**Batas layar ini.** Ia **tidak** menampilkan posisi deposit episode, sebab episodenya belum ada.
-Posisi deposit dibaca pada langkah Konfirmasi dan pada detail episode — `FE-RWI-061`, dan itu
-menunggu `BE-BKC-040` yang **nol barisnya ada** per 12 September 2026.
+| Kembali | kedua | selalu | Kembali ke langkah Pembayaran (nominal deposit tetap disimpan di memori form) |
+| Lanjut ke Dokter | utama | selalu aktif | Maju ke langkah Dokter. Nominal deposit ditahan di state alur untuk dikirim saat episode terbentuk |
 
 ---
 
-### 3.6 Langkah 4 — Dokter
+### 3.8 Langkah 6 PB / Langkah 5 PL — Dokter (DPJP & Isolasi)
 
-Langkah paling berat akibatnya: di sinilah **titik tulis 1** terjadi.
+Dasar keputusan: `RWI-DEC-268` dan `RWI-AC-389`.
+Langkah ini merupakan **Titik Tulis 1 (First Write Point)** di mana kunjungan rawat inap (`TrxPatientEncounter`) dan episode rawat inap (`InpEpisode`) resmi dibentuk.
 
 ```text
-  LANGKAH 4
-  Unit Tujuan, DPJP, dan Kebutuhan Isolasi
+  LANGKAH 6 (PB) / LANGKAH 5 (PL)
+  Dokter Penanggung Jawab & Kebutuhan Isolasi
 
-  ┌── Tujuan Perawatan ──────────────────────────────────────────────┐
-  │ Unit Layanan *  [ Ruang Melati — Rawat Inap                  ▾ ] │
-  │ DPJP *          [ dr. Andi Wijaya, Sp.PD                     ▾ ] │
-  │ Catatan Admisi  [                                             ] │
-  │                 Opsional. Paling panjang 1000 karakter.         │
+  ┌── Dokter Penanggung Jawab Pelayanan (DPJP) ──────────────────────┐
+  │                                                                  │
+  │  DPJP Utama *   [ dr. Andi Wijaya, Sp.PD                     ▾ ] │
+  │                 Pilih dokter spesialis penanggung jawab pasien.  │
+  │                                                                  │
+  │  Catatan Admisi [ Pasien rencana tirah baring 3 hari pasca obs ] │
+  │                 Catatan administratif / instruksi awal admisi.   │
+  │                                                                  │
+  │  <!-- CATATAN TEKNIS: Dropdown Unit Tujuan disembunyikan dari UI -->
+  │  <!-- Sesuai RWI-DEC-268, sistem otomatis mengikat default       -->
+  │  <!-- Service Unit Rawat Inap saat pengiriman payload backend.   -->
   └──────────────────────────────────────────────────────────────────┘
 
   ┌── Kebutuhan Isolasi ─────────────────────────────────────────────┐
-  │ [ o]  Pasien membutuhkan isolasi                                 │
+  │  [ o] Pasien Membutuhkan Kamar / Bed Isolasi                     │
   │                                                                  │
-  │ Keterangan *  [ Rujukan menyebut suspek TB paru aktif        ]   │
-  │ Wajib diisi ketika kebutuhan isolasi dinyalakan. Keterangan ini  │
-  │ tidak ditampilkan pada census maupun papan tempat tidur.         │
+  │  Keterangan Isolasi * [ Suspek infeksi airborne / droplet     ]  │
+  │  (Wajib diisi bila sakelar isolasi diaktifkan)                   │
   └──────────────────────────────────────────────────────────────────┘
 
-  ⚠  Setelah langkah ini disimpan, kunjungan dan episode terbentuk.
-     Penjamin dan cara bayar TIDAK dapat diubah lagi. Bila keliru,
-     admisi harus dibatalkan lalu dibuka ulang.
+  ⚠  PERHATIAN: Setelah langkah ini disimpan, nomor kunjungan dan
+     episode resmi terbentuk. Penjamin dan cara bayar terkunci.
 
                      [ Kembali ]   [ Simpan & Cari Tempat Tidur ]
 ```
 
 | Wilayah | Isi | Dari mana | Komponen |
 | --- | --- | --- | --- |
-| Tujuan Perawatan | Unit layanan **bertipe rawat inap saja**, DPJP, catatan | isian pilihan sumber daya | `ResourceFilterSelect`, `BaseTextAreaField` |
-| Kebutuhan Isolasi | Sakelar dan keterangan | isian pengguna | `BaseCheckboxField`, `BaseTextAreaField` |
-| Peringatan | Kalimat tetap tentang akibat menyimpan | tetap | `InformationAlert` variasi peringatan |
+| Dokter & Catatan | Dropdown seleksi DPJP aktif, textarea catatan admisi | master dokter | `ResourceFilterSelect`, `BaseTextAreaField` |
+| Unit Tujuan (Tersembunyi) | Nilai `serviceUnitId` otomatis mengambil default rawat inap, **tidak dirender / disembunyikan dari antarmuka** (`RWI-DEC-268`) | konfigurasi unit | internal flow state |
+| Kebutuhan Isolasi | Sakelar bool dan keterangan wajib jika isolasi aktif | isian form | `BaseSwitch`, `BaseTextInput` |
 
 | Tombol | Jenis | Kapan aktif | Yang terjadi |
 | --- | --- | --- | --- |
-| Kembali | kedua | selalu | Kembali ke Pembayaran |
-| Simpan & Cari Tempat Tidur | utama | Unit dan DPJP terisi; bila isolasi menyala, keterangan terisi; **mati selama permintaan berjalan** | `POST /patient-encounters` → `POST /episodes` → `PATCH …/isolation-requirement`, lalu maju |
-
-**Empat aturan yang mengikat:**
-
-1. **Peringatan tampil sebelum disimpan, bukan sesudah.** Ini tuntutan `03-frontend-architecture.md`
-   3A.5 dan alasan wilayah peringatan ada di rangka.
-2. **Bila `POST /patient-encounters` gagal, alur berhenti di sini.** Jangan meneruskan ke
-   `POST /episodes`. Pesan server ditampilkan apa adanya, isian utuh.
-3. Sesudah berhasil, nomor episode tampil pada ringkasan berjalan. DPJP dan penjamin terkunci.
-   Unit, kelas, dan catatan masih dapat dikoreksi pada Konfirmasi melalui `PUT /episodes/{id}`;
-   mengubah DPJP adalah pengalihan dan bukan edit form.
-4. Setelah titik tulis 1, tombol Kembali **tidak lagi** membawa ke Pembayaran. Ia dinonaktifkan
-   disertai keterangan "Penjamin sudah terkunci pada kunjungan. Batalkan admisi bila keliru."
+| Kembali | kedua | Belum disimpan | Kembali ke langkah Deposit |
+| Simpan & Cari Tempat Tidur | utama | DPJP terisi; jika isolasi aktif keterangan terisi; mati saat loading | **Titik Tulis 1**: Mengeksekusi `POST /patient-encounters` → `POST /episodes` → `PATCH .../isolation-requirement` → `POST .../top-ups` (deposit bila ada). Jika sukses, nomor episode terbit dan lanjut ke Langkah Pilih Bed |
 
 ---
 
-### 3.7 Langkah 5 — Pilih Bed
+### 3.9 Langkah 7 PB / Langkah 6 PL — Pilih Tempat Tidur (Bed)
+
+Menampilkan peta ketersediaan tempat tidur yang memenuhi syarat penempatan pasien.
 
 ```text
-  LANGKAH 5
+  LANGKAH 7 (PB) / LANGKAH 6 (PL)
   Pilih Tempat Tidur
 
-  ┌ Tersedia 12 ┐ ┌ Dipesan 3 ┐ ┌ Terisi 40 ┐ ┌ Ditutup 2 ┐
-  └─────────────┘ └───────────┘ └───────────┘ └───────────┘
-  12 tempat tidur dapat dipilih untuk pasien ini.
+  ┌ Tersedia: 14 ┐ ┌ Dipesan: 2 ┐ ┌ Terisi: 38 ┐ ┌ Pembersihan: 1 ┐
+  └──────────────┘ └────────────┘ └────────────┘ └────────────────┘
+  14 tempat tidur memenuhi kriteria kelas dan jenis kelamin pasien.
 
-  Penyaring:  [ Unit: Melati ▾ ]  [ Kelas: Kelas 1 ▾ ]
-              [ o] tampilkan juga yang tidak dapat dipakai
+  Penyaring: [ Ruang Melati — Lt 2 ▾ ]  [ Kelas 1 ▾ ]
+             [•] Tampilkan juga tempat tidur yang tidak dapat dipilih
 
-  ┌ Ruang Melati 101 · Kelas 1 · dihuni pasien perempuan ────────────┐
-  │  ( )  ML-101-A    Tersedia                                       │
-  │  ( )  ML-101-B    Tersedia                                       │
+  ┌ Ruang Melati 101 · Kelas 1 · Dihuni Pasien Perempuan ────────────┐
+  │  (•) ML-101-A    Tersedia — Siap Ditempati                       │
+  │  ( ) ML-101-B    Tersedia — Siap Ditempati                       │
   └──────────────────────────────────────────────────────────────────┘
   ┌ Ruang Melati 102 · Kelas 1 ──────────────────────────────────────┐
-  │  ( )  ML-102-A    Dipesan · sisa 01:24 · EP-2026-000188          │
-  │  (×)  ML-102-B    Tidak dapat dipakai — kamar sedang ditempati   │
-  │                   pasien laki-laki                               │
+  │  (×) ML-102-A    Dipesan · EP-2026-000188 (sisa waktu 01:15:20)  │
+  │  (×) ML-102-B    Tidak Layak — Sedang proses sterilisasi kamar   │
   └──────────────────────────────────────────────────────────────────┘
 
-                      [ Kembali ]   [ Lanjut ke Pemesanan ]
+                       [ Kembali ]   [ Lanjut ke Pemesanan ]
 ```
-
-| Wilayah | Isi | Dari mana | Komponen |
-| --- | --- | --- | --- |
-| Ringkasan keadaan | Empat angka keadaan tempat tidur | `bed-board` | `inpatient-bed-board` |
-| Baris jumlah terpilih | Berapa yang benar-benar dapat dipilih | `available-beds` | idem |
-| Penyaring | Unit, kelas, sakelar tampilkan yang tidak layak | isian pengguna | `FilterSelect` |
-| Daftar per kamar | Kamar sebagai kartu, tempat tidur sebagai baris | `available-beds` | idem |
 
 | Tombol | Jenis | Kapan aktif | Yang terjadi |
 | --- | --- | --- | --- |
-| Kembali | kedua | selalu | Kembali ke langkah Dokter dalam mode koreksi pascatitik tulis 1: unit, kelas, dan catatan dapat diubah melalui `PUT`; DPJP dan penjamin tetap terkunci |
-| Lanjut ke Pemesanan | utama | Satu tempat tidur yang **dapat dipilih** terpilih | Maju ke Booking Bed |
-
-**Lima aturan yang mengikat:**
-
-1. **Daftar berasal hanya dari `available-beds`.** Layar tidak menyaring ulang dengan aturannya
-   sendiri — `03-frontend-architecture.md` 4.3A.
-2. Tempat tidur yang tidak layak ditampilkan sebagai baris **redup dan tidak dapat dipilih**,
-   disertai alasan dari server **apa adanya**, termasuk nama kamarnya.
-3. Baris `Dipesan` menampilkan sisa waktu dan nomor episode pemegangnya bagi peran yang berhak;
-   **nama pasien tidak** ditampilkan pada layar admisi.
-4. Sakelar "tampilkan juga yang tidak dapat dipakai" **menyala** secara bawaan. Petugas perlu tahu
-   tempat tidurnya ada tetapi tidak boleh dipakai, bukan mengira kamarnya penuh.
-5. Daftar dimuat ulang **sebelum** dialog konfirmasi pemesanan tampil — bagian 5.2.
+| Kembali | kedua | selalu | Kembali ke langkah Dokter (dalam mode koreksi catatan/unit) |
+| Lanjut ke Pemesanan | utama | Satu tempat tidur berstatus `Tersedia` dipilih | Maju ke langkah Booking Bed |
 
 ---
 
-### 3.8 Langkah 6 — Booking Bed
+### 3.10 Langkah 8 PB / Langkah 7 PL — Booking Bed (Pemesanan Tempat Tidur)
 
-Dua keadaan: sebelum dipesan, dan sesudah dipesan.
+Menjalankan pemesanan tempat tidur aktif (**Titik Tulis 2**).
 
 ```text
-  LANGKAH 6 — sebelum dipesan
-  Pesan Tempat Tidur
-
-  ┌── Tempat Tidur Dipilih ──────────────────────────────────────────┐
-  │  ML-101-A                                                        │
-  │  Ruang Melati 101 · Kelas 1 · Ruang Melati                       │
-  │                                                                  │
-  │  Masa pemesanan mengikuti pengaturan server. Selama aktif, bed   │
-  │  tidak dapat dipesan pasien lain.                                │
-  └──────────────────────────────────────────────────────────────────┘
-
-                     [ Kembali ]   [ Pesan Tempat Tidur ]
-
-
-  LANGKAH 6 — sesudah dipesan
-  Tempat Tidur Sudah Dipesan
+  LANGKAH 8 (PB) / LANGKAH 7 (PL) — SESUDAH DIPESAN
+  Pemesanan Tempat Tidur Terkonfirmasi
 
   ┌── ML-101-A · Ruang Melati 101 · Kelas 1 ─────────────────────────┐
-  │                                          Sisa waktu   01:58:12   │
+  │                                          Sisa Waktu : 01:59:45   │
   │                                                                  │
+  │  Status Tempat Tidur : RESERVED (Dipesan untuk Sari Dewi)        │
+  │  Tempat tidur ini terkunci untuk pasien ini selama 2 jam.        │
   │  Pasien menjadi "Sedang Dirawat" setelah kedatangannya           │
-  │  dikonfirmasi petugas admisi di Papan Tempat Tidur.              │
+  │  dikonfirmasi petugas di Papan Tempat Tidur / Ruangan.           │
   │                                                                  │
-  │  [ Batalkan Pemesanan ]                                          │
+  │  [ Batalkan Pemesanan Tempat Tidur Ini ]                         │
   └──────────────────────────────────────────────────────────────────┘
 
                     [ Kembali ]   [ Lanjut ke Konfirmasi ]
@@ -632,199 +591,240 @@ Dua keadaan: sebelum dipesan, dan sesudah dipesan.
 
 | Tombol | Jenis | Kapan aktif | Yang terjadi |
 | --- | --- | --- | --- |
-| Pesan Tempat Tidur | utama | Belum ada pemesanan aktif; **mati selama permintaan berjalan** | Dialog konfirmasi menyebut nama tempat tidur, lalu `POST /reservations` |
-| Batalkan Pemesanan | kedua, nada bahaya | Ada pemesanan aktif | Dialog konfirmasi, lalu `PATCH …/reservations/{id}/cancel` |
-| Kembali | kedua | selalu | **Bila ada pemesanan aktif**, pengguna diminta membatalkannya lebih dulu — 3A.5 |
-| Lanjut ke Konfirmasi | utama | Ada pemesanan aktif | Maju |
-
-**Tiga aturan yang mengikat:**
-
-1. **Sisa waktu boleh dihitung mundur di layar, tetapi keputusan gugur bukan milik layar.** Angka
-   mundur diturunkan dari waktu kedaluwarsa yang dijawab server. Ketika angkanya habis, layar
-   **memuat ulang** dan menampilkan apa yang dijawab server — bukan menyatakan sendiri bahwa
-   pemesanan sudah gugur. Dasarnya `03-frontend-architecture.md` 3A.6.
-2. Pemesanan gugur saat layar terbuka mengembalikan pengguna ke langkah Pilih Bed disertai kalimat
-   yang menyebutkan pemesanan sebelumnya gugur — bagian 5.5.
-3. Layar ini **tidak pernah** memanggil `POST /placements`. Kalimat "pasien menjadi Sedang Dirawat
-   setelah kedatangannya dikonfirmasi" wajib ada supaya petugas tidak menunggu sesuatu yang tidak
-   akan terjadi di sini.
+| Pesan Tempat Tidur | utama | Belum ada reservasi aktif | Dialog konfirmasi → `POST /bed-occupancies/reservations` |
+| Batalkan Pemesanan | bahaya | Ada reservasi aktif | Dialog pembatalan → `PATCH .../reservations/{id}/cancel` |
+| Lanjut ke Konfirmasi | utama | Reservasi aktif terpasang | Maju ke Langkah Konfirmasi Admisi |
 
 ---
 
-### 3.9 Langkah 7 — Konfirmasi
+### 3.11 Langkah 9 PB / Langkah 8 PL — Konfirmasi Admisi
+
+Meninjau ringkasan akhir data admisi sebelum melangkah ke proses persetujuan dan tanda tangan digital.
 
 ```text
-  LANGKAH 7
-  Periksa Kembali Sebelum Dikunci
+  LANGKAH 9 (PB) / LANGKAH 8 (PL)
+  Konfirmasi Admisi Rawat Inap
 
-  ┌── Pasien ───────────────────┐ ┌── Penjamin ─────────────────────┐
-  │ Sari Dewi                   │ │ Asuransi — BPJS Kesehatan       │
-  │ RM 00123456 · Perempuan     │ │ No. ****6789                    │
-  │ 12-04-1988 (38 th)          │ │ Kelas Perawatan  Kelas 1        │
+  ┌── Pasien ───────────────────┐ ┌── Penjamin & Pembayaran ────────┐
+  │ Sari Dewi                   │ │ BPJS Kesehatan                  │
+  │ RM 00123456 · Perempuan     │ │ No. Kartu: 000123456789         │
+  │ NIK: 3273012345670001       │ │ Kelas: Kelas 1                  │
+  │ Kategori: Pasien Umum       │ │ Deposit: Rp 1.000.000 (Lunas)   │
   └─────────────────────────────┘ └─────────────────────────────────┘
-  ┌── Perawatan ────────────────┐ ┌── Tempat Tidur ─────────────────┐
-  │ Episode  EP-2026-000204     │ │ ML-101-A                        │
-  │ Unit     Ruang Melati       │ │ Ruang Melati 101 · Kelas 1      │
-  │ DPJP     dr. Andi W, Sp.PD  │ │ Dipesan · sisa 01:52            │
-  │ Isolasi  Ya  [ikon]         │ │                                 │
-  │ Status   Admisi disiapkan   │ │                                 │
+  ┌── Episode & Dokter ─────────┐ ┌── Alokasi Tempat Tidur ─────────┐
+  │ Episode : EP-2026-000204    │ │ ML-101-A                        │
+  │ Status  : Draft Admisi      │ │ Ruang Melati 101 · Kelas 1      │
+  │ DPJP    : dr. Andi W, Sp.PD │ │ Status Bed: RESERVED            │
+  │ Isolasi : Tidak Memerlukan  │ │ Sisa Masa Pesan: 01:58:30       │
   └─────────────────────────────┘ └─────────────────────────────────┘
 
-  ┌── Yang Masih Dapat Diubah ───────────────────────────────────────┐
-  │ Unit Layanan  [ Ruang Melati — Rawat Inap                    ▾ ] │
-  │ Kelas         [ Kelas 1                                      ▾ ] │
-  │ Catatan       [                                               ] │
-  │ DPJP dan penjamin tidak dapat diubah dari sini.                 │
+  ┌── Catatan Admisi yang Masih Dapat Diubah ────────────────────────┐
+  │ Catatan Perawatan [ Pasien rencana tirah baring 3 hari...     ]  │
   └──────────────────────────────────────────────────────────────────┘
 
-  Langkah berikutnya: cetak persetujuan, lalu konfirmasi kedatangan
-  pasien di Papan Tempat Tidur.
+             [ Kembali ]   [ Kunci Admisi & Lanjut ke Persetujuan ]
+```
 
-              [ Kembali ]   [ Kunci Admisi & Cetak Persetujuan ]
+| Tombol | Jenis | Kapan aktif | Yang terjadi |
+| --- | --- | --- | --- |
+| Kembali | kedua | selalu | Kembali ke langkah Booking Bed |
+| Kunci Admisi & Lanjut | utama | selalu aktif | **Titik Tulis 3**: Memanggil `PUT /episodes/{id}` jika ada perubahan catatan, lalu maju ke Langkah 10 (Form Persetujuan & TTD Digital) |
+
+---
+
+### 3.12 Langkah 10 PB / Langkah 9 PL — Form Persetujuan & TTD Digital (*Dedicated Step*)
+
+Dasar keputusan: `RWI-DEC-272`, `RWI-DEC-273`, `RWI-AC-393`, `RWI-AC-394`, dan `RWI-AC-395`.
+Langkah mandiri yang menyediakan formulir persetujuan umum rawat inap serta kanvas tanda tangan digital interaktif pasien atau penanggung jawab sebelum berkas dicetak.
+
+```text
+  LANGKAH 10 (PB) / LANGKAH 9 (PL)
+  Form Persetujuan Rawat Inap & Tanda Tangan Digital
+
+  ┌── Subjek Penanda Tangan ─────────────────────────────────────────┐
+  │  Persetujuan ditandatangani oleh:                                │
+  │  (•) Pasien Sendiri          ( ) Penanggung Jawab / Keluarga     │
+  │                                                                  │
+  │  * PERHATIAN HUKUM MEDIS: Untuk kategori "Bayi Baru Lahir",      │
+  │    opsi "Pasien Sendiri" otomatis dikunci nonaktif. Penanda      │
+  │    tangan WAJIB Orang Tua atau Wali yang sah.                    │
+  └──────────────────────────────────────────────────────────────────┘
+
+  ── tampil bila "Penanggung Jawab / Keluarga" dipilih (atau Bayi) ───
+  ┌── Identitas Penanggung Jawab / Wali ─────────────────────────────┐
+  │ Nama Lengkap * [ Ahmad Fauzi                   ]                 │
+  │ NIK *          [ 3273019988770002              ]                 │
+  │ No. HP *       [ 081399887766                  ] (max 13 digit)  │
+  │ Hubungan *     [ Suami                       ▾ ]                 │
+  │ (Data default otomatis ditarik dari kontak darurat pasien)       │
+  └──────────────────────────────────────────────────────────────────┘
+
+  ┌── Pernyataan Persetujuan Umum Rawat Inap ────────────────────────┐
+  │ [✓] 1. Menyetujui tindakan pemeriksaan fisik, penunjang, dan     │
+  │        pengobatan umum rawat inap sesuai instruksi DPJP.         │
+  │ [✓] 2. Menyetujui pelepasan informasi medis kepada pihak ketiga   │
+  │        penjamin biaya (BPJS Kesehatan / Asuransi).               │
+  │ [✓] 3. Telah memahami hak dan kewajiban pasien serta tata tertib │
+  │        ruang rawat inap rumah sakit.                             │
+  │ [✓] 4. Menunjuk penerima informasi perkembangan medis:           │
+  │        Nama Penerima: [ Ahmad Fauzi            ] (Suami)         │
+  └──────────────────────────────────────────────────────────────────┘
+
+  ┌── Area Tanda Tangan Digital Pasien / Penanggung Jawab ───────────┐
+  │  Silakan bubuhkan tanda tangan langsung pada kanvas di bawah:    │
+  │ ┌──────────────────────────────────────────────────────────────┐ │
+  │ │                                                              │ │
+  │ │               ~ ~ ~ [ Tanda Tangan Digital ] ~ ~ ~           │ │
+  │ │                                                              │ │
+  │ └──────────────────────────────────────────────────────────────┘ │
+  │   [ Bersihkan Tanda Tangan ]          [ Kunci Tanda Tangan ]     │
+  │   Status: [✓ Tanda Tangan Sudah Dikunci]                         │
+  └──────────────────────────────────────────────────────────────────┘
+
+                 [ Kembali ]   [ Simpan Persetujuan & Lanjut ke Cetak ]
 ```
 
 | Wilayah | Isi | Dari mana | Komponen |
 | --- | --- | --- | --- |
-| Empat kartu ringkasan | Pasien, penjamin, perawatan, tempat tidur | keadaan alur dan `GET /episodes/{id}` | `base-detail-card`, `SummaryGrid` |
-| Yang Masih Dapat Diubah | Unit, kelas, catatan | isian pengguna | `BaseEditorForm` |
-| Kalimat langkah berikutnya | Tetap | tetap | teks |
+| Subjek Penanda Tangan | Radio pilihan: Pasien Sendiri atau Penanggung Jawab/Wali | isian form | `base-radio-card-group` |
+| Identitas Wali | Nama, NIK, No. HP, Hubungan dengan pasien (default dari kontak darurat) | kontak darurat / isian | `guardian-form-group` |
+| Butir Persetujuan | 4 butir pernyataan persetujuan umum rawat inap | master persetujuan | `consent-terms-checklist` |
+| Kanvas TTD Digital | Kanvas interaktif sentuh/stylus/mouse, tombol Clear, tombol Lock | interaksi pengguna | `react-signature-canvas`, `digital-signature-pad` |
 
 | Tombol | Jenis | Kapan aktif | Yang terjadi |
 | --- | --- | --- | --- |
-| Kembali | kedua | selalu | Kembali ke Booking Bed |
-| Kunci Admisi & Cetak Persetujuan | utama | selalu; **mati selama permintaan berjalan** | `PUT /episodes/{id}` bila ada perubahan, lalu maju ke Cetak Persetujuan |
+| Bersihkan Tanda Tangan | kedua | Selama belum dikunci | Mengosongkan kanvas tanda tangan untuk digambar ulang |
+| Kunci Tanda Tangan | kedua | Kanvas tergores garis TTD | Mengunci citra tanda tangan (`base64 PNG`) dan mengaktifkan tombol simpan |
+| Kembali | kedua | selalu | Kembali ke Langkah Konfirmasi |
+| Simpan Persetujuan & Lanjut | utama | Persetujuan dicentang lengkap DAN tanda tangan digital sudah dikunci | Menyimpan data formulir persetujuan dan citra digital signature ke episode rawat inap, lalu membuka Langkah Cetak Persetujuan |
 
-**Tiga aturan yang mengikat:**
-
-1. Kartu Perawatan menampilkan penanda isolasi sebagai **ikon atau kata "Ya"**, tanpa
-   keterangannya — bagian 6.
-2. Status yang tampil adalah status yang **dijawab server**, bukan kalimat tetap. Setelah langkah
-   ini pun episodenya tetap "Admisi sedang disiapkan".
-3. Wilayah Yang Masih Dapat Diubah **menyebutkan sendiri** apa yang tidak dapat diubah. Menyembunyikan
-   DPJP dan penjamin tanpa penjelasan membuat petugas mencarinya berputar-putar.
+**Empat aturan yang mengikat pada langkah ini:**
+1. **Invariant Hukum Medis Kategori Bayi Baru Lahir (`RWI-DEC-273`, `RWI-AC-394`)**: Jika pasien terdaftar dengan Kategori Pasien = `Bayi Baru Lahir`, opsi "Pasien Sendiri" **wajib dinonaktifkan permanen**. Sistem secara otomatis mengaktifkan opsi "Penanggung Jawab / Keluarga" dan mengisi nama ibu / wali dari data admisi.
+2. **Kewajiban Tanda Tangan Digital (`RWI-DEC-272`, `RWI-AC-393`)**: Tombol `Simpan Persetujuan & Lanjut ke Cetak` tidak dapat ditekan jika kanvas tanda tangan masih kosong atau belum dikunci.
+3. **Penyimpanan Permanen Dokumen**: Berkas persetujuan yang disimpan di langkah ini mengikat nomor episode (`InpEpisode`), data penanda tangan, waktu tanda tangan, dan citra tanda tangan berformat PNG.
+4. **Prinsip Satu Pintu dengan Workspace PPRI (`RWI-AC-395`)**: Dokumen yang disimpan di langkah ini otomatis menjadi sumber General Consent di menu Workspace PPRI. Menu PPRI berstatus **read-only / print-ready** sehingga staf PPRI hanya perlu mencetak tanpa perlu meminta pasien mengisi atau menandatangani ulang formulir.
 
 ---
 
-### 3.10 Langkah 8 — Cetak Persetujuan Pasien Ranap
+### 3.13 Langkah 11 PB / Langkah 10 PL — Cetak Persetujuan Rawat Inap (`FE-INP-18`)
+
+Menampilkan formulir persetujuan umum rawat inap yang telah terisi lengkap dengan citra tanda tangan digital pasien/wali untuk keperluan cetak fisik arsip rekam medis.
 
 ```text
-  LANGKAH 8
-  Cetak Persetujuan Rawat Inap
+  LANGKAH 11 (PB) / LANGKAH 10 (PL)
+  Cetak Lembar Persetujuan Rawat Inap
 
   ┌──────────────────────────────────────────────────────────────────┐
-  │  [ pratinjau formulir, satu halaman ]                            │
+  │  [ Pratinjau Dokumen Cetak — 1 Lembar Standar Akreditasi ]       │
   │                                                                  │
-  │   PERSETUJUAN UMUM RAWAT INAP                                    │
-  │   Pasien   Sari Dewi · RM 00123456 · 12-04-1988                  │
-  │   Penjamin BPJS Kesehatan · 000123456789                         │
-  │   Unit     Ruang Melati · Kelas 1 · DPJP dr. Andi W, Sp.PD       │
-  │   Episode  EP-2026-000204        Tanggal  27-08-2026             │
-  │   ────────────────────────────────────────────────────           │
-  │   1. Persetujuan tindakan kedokteran umum                        │
-  │   2. Persetujuan pemberian informasi kepada penjamin             │
-  │   3. Penunjukan orang yang boleh menerima informasi              │
-  │   ────────────────────────────────────────────────────           │
-  │   Tanda tangan pasien / keluarga     Petugas admisi              │
+  │   SURAT PERSETUJUAN UMUM RAWAT INAP (GENERAL CONSENT)            │
+  │   Pasien   : Sari Dewi · RM: 00123456 · NIK: 3273012345670001    │
+  │   Penjamin : BPJS Kesehatan · No. Kartu: 000123456789            │
+  │   DPJP     : dr. Andi Wijaya, Sp.PD · Ruang Melati / Kelas 1     │
+  │   Episode  : EP-2026-000204         Tanggal Admisi: 10-10-2026   │
+  │   ─────────────────────────────────────────────────────────────  │
+  │   Pernyataan:                                                    │
+  │   1. Menyetujui perawatan umum dan tindakan medis rawat inap.    │
+  │   2. Menyetujui pembukaan informasi kepada penjamin biaya.       │
+  │   3. Telah memahami hak dan kewajiban pasien rumah sakit.        │
+  │   4. Penunjukan penerima informasi medis: Ahmad Fauzi (Suami).   │
+  │   ─────────────────────────────────────────────────────────────  │
+  │   Penanda Tangan Pasien/Wali:           Petugas Admisi:          │
+  │   [ CITRA DIGITAL SIGNATURE ]           [ TTD / Nama Petugas ]   │
+  │   ( Ahmad Fauzi )                       ( Budi Staf Admisi )     │
   └──────────────────────────────────────────────────────────────────┘
 
-  ⓘ Formulir ini dicetak, tidak disimpan sistem. Lembar bertanda
-    tangan disimpan sesuai tata kelola berkas rekam medis.
+  ⓘ Dokumen ini telah ditandatangani secara digital dan tersimpan di
+    sistem. Cetak fisik dapat dilakukan sekarang atau kapan saja
+    melalui menu Workspace PPRI / Detail Episode.
 
-                        [ Cetak ]   [ Lanjut ke Kartu Pasien ]
+                        [ Cetak Formulir ]   [ Lanjut / Selesai ]
 ```
 
 | Tombol | Jenis | Kapan aktif | Yang terjadi |
 | --- | --- | --- | --- |
-| Cetak | utama | selalu | Membuka dialog cetak peramban |
-| Lanjut ke Kartu Pasien | utama | selalu | Maju. **Pada jalur pasien lama**, tombol ini berbunyi **Selesai** dan menutup alur |
-
-**Dua aturan yang mengikat:**
-
-1. Layar **tidak boleh** menyatakan persetujuan sudah tersimpan atau sudah ditandatangani.
-   Kalimat berikon ⓘ di atas adalah bagian dari skema, bukan hiasan — dasarnya `RWI-DEC-077`.
-2. Melewati langkah ini tanpa mencetak **tidak** membatalkan apa pun. Admisi sudah terkunci pada
-   langkah 7.
+| Cetak Formulir | kedua | selalu | Membuka antarmuka dialog cetak peramban / printer rawat inap |
+| Lanjut ke Kartu Pasien (PB) | utama | Pada alur Pasien Baru | Maju ke Langkah 12 (Cetak Kartu Pasien) |
+| Selesai Admisi (PL) | utama | Pada alur Pasien Lama | Menutup alur admisi, menampilkan pesan sukses, navigasi ke Papan Tempat Tidur |
 
 ---
 
-### 3.11 Langkah 9 — Kartu Pasien
+### 3.14 Langkah 12 (Hanya Jalur Pasien Baru) — Cetak Kartu Pasien
 
-Hanya pada jalur pasien baru.
+Mencetak kartu fisik identitas berobat pasien baru yang memuat barcode / QR Code nomor rekam medis.
 
 ```text
-  LANGKAH 9
-  Cetak Kartu Pasien
+  LANGKAH 12 DARI 12 (PASIEN BARU)
+  Cetak Kartu Berobat Pasien Baru
 
-  ┌── Kartu Pasien ──────────────────────────────────────────────────┐
-  │   [ pratinjau kartu ]                                            │
-  │   Sari Dewi                                                      │
-  │   RM 00123456                                                    │
+  ┌── Pratinjau Kartu Pasien ────────────────────────────────────────┐
+  │  ┌────────────────────────────────────────────────────────────┐  │
+  │  │  RUMAH SAKIT QUILVIAN MEDIKA                               │  │
+  │  │  KARTU IDENTITAS BEROBAT PASIEN                            │  │
+  │  │                                                            │  │
+  │  │  Nama   : Sari Dewi                                        │  │
+  │  │  No. RM : 00123456                 [ BARCODE / QR NO RM ]  │  │
+  │  │  TTL    : Bandung, 12-04-1992                              │  │
+  │  └────────────────────────────────────────────────────────────┘  │
   └──────────────────────────────────────────────────────────────────┘
 
-  ✓ Admisi selesai. Episode EP-2026-000204 menunggu konfirmasi
-    kedatangan di Papan Tempat Tidur.
+  ✓ Admisi Pasien Baru Berhasil Diselesaikan!
+    Episode EP-2026-000204 sedang menunggu konfirmasi kedatangan di
+    Papan Tempat Tidur (Ruang Melati, Bed ML-101-A).
 
-  [ Cetak Kartu ]   [ Buka Papan Tempat Tidur ]   [ Admisi Baru ]
+   [ Cetak Kartu Pasien ]   [ Buka Papan Bed ]   [ Admisi Pasien Lain ]
 ```
 
 | Tombol | Jenis | Kapan aktif | Yang terjadi |
 | --- | --- | --- | --- |
-| Cetak Kartu | utama | selalu | Dialog cetak |
-| Buka Papan Tempat Tidur | kedua | selalu | Menuju `FE-INP-02` — memenuhi `IA-INP-01` |
-| Admisi Baru | kedua | selalu | Mengosongkan alur dan kembali ke layar pembuka |
+| Cetak Kartu Pasien | kedua | selalu | Membuka cetak format kartu fisik pada printer kartu |
+| Buka Papan Bed | utama | selalu | Menavigasikan petugas ke menu Papan Tempat Tidur (`FE-INP-02`) |
+| Admisi Pasien Lain | kedua | selalu | Mengosongkan memori alur, kembali ke Layar Pembuka Tipe Pendaftaran |
 
 ---
 
-### 3.12 Ringkasan tombol utama seluruh langkah
+### 3.15 Ringkasan tombol utama seluruh langkah
 
-Satu tabel supaya kata yang dipakai tidak berselisih antar langkah.
+Tabel perbandingan tombol aksi utama per langkah untuk menjaga konsistensi label tombol, wewenang penyimpanan, dan perilaku alur:
 
-| Langkah | Tombol utama | Menulis ke server? |
-| --- | --- | :---: |
-| Pembuka | kartu tipe pendaftaran | – |
-| 1 Tipe Pasien | Lanjut ke Pendaftaran **atau** Lanjut ke Pembayaran, mengikuti jalur | – |
-| 2 Pendaftaran | Simpan & Lanjut ke Pembayaran | **ya** |
-| Pasien Lama | Lanjut ke Tipe Pasien | – |
-| 3 Pembayaran | Lanjut ke Dokter | ya, bila kartu baru didaftarkan |
-| 4 Dokter | Simpan & Cari Tempat Tidur | **ya — titik tulis 1** |
-| 5 Pilih Bed | Lanjut ke Pemesanan | – |
-| 6 Booking Bed | Pesan Tempat Tidur | **ya — titik tulis 2** |
-| 7 Konfirmasi | Kunci Admisi & Cetak Persetujuan | **ya — titik tulis 3** |
-| 8 Cetak Persetujuan | Cetak | – |
-| 9 Kartu Pasien | Cetak Kartu | – |
-
-**Pola kata yang mengikat:** tombol yang menulis ke server diawali kata kerja yang menyebut
-tulisannya — "Simpan", "Pesan", "Kunci". Tombol yang hanya berpindah langkah diawali "Lanjut ke".
-Petugas harus dapat menebak dari labelnya apakah menekan tombol itu mengubah data.
+| # PB | # PL | Nama Langkah | Label Tombol Utama | Menulis ke Server? | Keterangan Tindakan |
+| :---: | :---: | --- | --- | :---: | --- |
+| – | – | Pintu Masuk | *Kartu Pilihan Pendaftaran* | – | Memilih alur Pasien Baru, Pasien Lama, atau Kamar Pulih |
+| 1 | – | Jenis Kunjungan (PB) | `Lanjut ke Kategori Pasien` | – | Menyimpan pilihan Umum atau data Rujukan ringkas di state |
+| 2 | – | Kategori Pasien (PB) | `Lanjut ke Pendaftaran` | – | Menyimpan kategori (3 opsi) dan link episode ibu bila ada |
+| 3 | – | Pendaftaran Pasien Baru | `Simpan & Lanjut ke Pembayaran` | **Ya** | `POST /patients`, `POST documents`, `POST emergency-contacts` (max 13 digit) |
+| – | 1 | Cari & Verifikasi Pasien (PL) | `Lanjut ke Jenis Kunjungan & Kategori` | – | Menampilkan hasil pencarian di kiri dan form di kanan |
+| – | 2 | Jenis Kunjungan & Kategori (PL) | `Lanjut ke Pembayaran` | – | Menyimpan pilihan Umum/Rujukan dan Kategori Pasien Lama |
+| 4 | 3 | Pembayaran & Kelas | `Lanjut ke Deposit` | Ya (bila tambah kartu) | Menyimpan penjamin terpilih dan kelas perawatan |
+| 5 | 4 | Deposit / Uang Muka | `Lanjut ke Dokter` | – | Menahan nominal deposit di klien tanpa request jaringan |
+| 6 | 5 | Dokter (DPJP & Isolasi) | `Simpan & Cari Tempat Tidur` | **Ya (Titik Tulis 1)** | `POST encounter` (default ranap), `POST episode`, `PATCH isolation`, topup |
+| 7 | 6 | Pilih Bed | `Lanjut ke Pemesanan` | – | Memilih 1 tempat tidur yang tersedia |
+| 8 | 7 | Booking Bed | `Pesan Tempat Tidur` | **Ya (Titik Tulis 2)** | `POST /reservations` mengunci bed selama 2 jam |
+| 9 | 8 | Konfirmasi Admisi | `Kunci Admisi & Lanjut ke Persetujuan` | **Ya (Titik Tulis 3)** | `PUT /episodes/{id}` mengunci data admisi |
+| 10 | 9 | Form Persetujuan & TTD Digital | `Simpan Persetujuan & Lanjut ke Cetak` | **Ya (Titik Tulis 4)** | Menyimpan data persetujuan & citra TTD digital ke episode |
+| 11 | 10 | Cetak Persetujuan Ranap | `Lanjut ke Kartu Pasien` (PB) / `Selesai Admisi` (PL) | – | Menampilkan pratinjau ber-TTD; menutup alur pada pasien lama |
+| 12 | – | Cetak Kartu Pasien (PB) | `Buka Papan Bed` / `Admisi Baru` | – | Mencetak kartu fisik pasien baru dan mengakhiri alur |
 
 ---
 
-### 3.13 Keluar dari alur di tengah jalan
+### 3.16 Keluar dari alur di tengah jalan
 
 ```text
-  ┌── Tinggalkan Admisi? ────────────────────────────────────────────┐
+  ┌── Tinggalkan Proses Admisi? ─────────────────────────────────────┐
   │                                                                  │
-  │  Episode EP-2026-000204 sudah terbentuk dan berstatus            │
-  │  "Admisi sedang disiapkan".                                      │
+  │  Episode EP-2026-000204 sudah terbentuk di server dengan status  │
+  │  "Admisi Sedang Disiapkan".                                      │
   │                                                                  │
-  │  Tempat tidur ML-101-A masih dipesan, sisa 01:41.                │
+  │  Tempat tidur ML-101-A saat ini dipesan, sisa waktu 01:41:10.    │
   │                                                                  │
-  │  Anda dapat melanjutkannya nanti dari Daftar Kerja Episode.      │
+  │  Anda dapat melanjutkan proses admisi ini kapan saja melalui     │
+  │  menu Daftar Kerja Episode.                                      │
   │                                                                  │
   │            [ Tetap di Sini ]   [ Tinggalkan Admisi ]             │
   └──────────────────────────────────────────────────────────────────┘
 ```
 
-Muncul ketika pengguna meninggalkan alur **setelah titik tulis 1**. Sebelum titik tulis 1, tidak ada
-apa pun di server dan dialog ini tidak perlu muncul.
-
-Isi dialog menyesuaikan keadaan:
-
-| Keadaan | Kalimat yang berubah |
-| --- | --- |
-| Belum ada pemesanan | Baris tempat tidur tidak ada |
-| Pemesanan aktif | Baris tempat tidur menyebut nama dan sisa waktunya |
-| Alur belum melewati titik tulis 1 | Dialog **tidak muncul** |
+Dialog pencegah kehilangan progres muncul ketika pengguna mencoba meninggalkan halaman admisi **setelah Titik Tulis 1** terjadi. Sebelum Titik Tulis 1 (Langkah 6 PB / Langkah 5 PL), belum ada episode yang terbentuk di server sehingga perpindahan halaman diizinkan tanpa dialog peringatan.
 
 ---
 

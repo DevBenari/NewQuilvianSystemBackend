@@ -3,19 +3,19 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | **`0.10`** — amandemen Workspace PPRI, kontrak `0.11.0`, isi baru pada **bagian 13** (7 Oktober 2026, `draft`). Sebelumnya `0.9` — Finishing, bagian 12 (`approved`, `RWI-DEC-221`); `0.8` — amandemen terbatas penyelarasan `PRD-RWI-V2-001`, blueprint revision `7`, bagian 11; `0.7` Gelombang 1A |
-| Status | **`approved`** untuk `0.10` (bagian 13) — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). Status revision sebelumnya mengikuti `blueprint-manifest.md` sub-modul |
+| Revision | **`0.11` — draft Bed Management, 10 Oktober 2026. Riwayat metadata sebelumnya: **`0.10`** — amandemen Workspace PPRI, kontrak `0.11.0`, isi baru pada **bagian 13** (7 Oktober 2026, `draft`). Sebelumnya `0.9` — Finishing, bagian 12 (`approved`, `RWI-DEC-221`); `0.8` — amandemen terbatas penyelarasan `PRD-RWI-V2-001`, blueprint revision `7`, bagian 11; `0.7` Gelombang 1A |
+| Status | **`draft`** — amandemen Bed Management belum disetujui. Riwayat metadata sebelumnya: **`approved`** untuk `0.10` (bagian 13) — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). Status revision sebelumnya mengikuti `blueprint-manifest.md` sub-modul |
 | Apa yang berubah pada `0.7` | **Gelombang 1A — Rawat Inap Safety Corrections.** Dua koreksi `P0` yang dimiliki sub-modul ini: aturan jenis kelamin tingkat kamar dicabut (`RWI-DEC-101`), dan `InpDoctorAssignment` mendapat kolom peran beserta perubahan filter index unik (`RWI-DEC-099`). Rinciannya bagian 0. Kontrak naik ke `0.8.0`, seluruhnya `draft` |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
 | Tanggal | 2 September 2026 (`Asia/Jakarta`) untuk revision `0.5`; 24 Agustus 2026 untuk `0.4`; 21 Agustus 2026 untuk `0.3` |
 | Apa yang berubah pada `0.5` | **Hanya batas dokumen, bukan isi desain.** Tabel kepemilikan data seluruh modul (bagian 2) dan urutan migration antar sub-modul (bagian 7) naik ke [`../02-module-map.md`](../02-module-map.md). Nol tabel, kolom, endpoint, aturan, dan kontrak yang bergerak |
 | Modul | `InPatientManagement`, prefix entity `Inp`, lifecycle registry `ACTIVE` sejak `RWI-DEC-068` |
-| Masukan arsitektur domain | [`evidence/03-hospital-domain-architecture.md`](../evidence/03-hospital-domain-architecture.md) revision `0.1`, kesiapan `DOMAIN_ARCHITECTURE_PARTIAL` |
-| Masukan requirement | [`evidence/02-requirement-completeness-gate.md`](../evidence/02-requirement-completeness-gate.md) revision `1.0`, kesiapan `PARTIALLY_READY` |
-| Masukan keputusan | [`00-interview-decisions.md`](../00-interview-decisions.md) revision `6` |
-| Masukan keadaan saat ini | [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.2` |
-| Backend SHA | `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
-| Frontend SHA | `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
+| Masukan arsitektur domain | Bed Management: DOMAIN_ARCHITECTURE_NOT_RUN; bounded ownership cukup menurut gate1.12. Riwayat metadata: [`evidence/03-hospital-domain-architecture.md`](../evidence/03-hospital-domain-architecture.md) revision `0.1`, kesiapan `DOMAIN_ARCHITECTURE_PARTIAL` |
+| Masukan requirement | Bed Management: gate1.12/BM-RCG-20261010-01, BM-CG01..06 READY_FOR_DOMAIN_DESIGN. Riwayat metadata: [`evidence/02-requirement-completeness-gate.md`](../evidence/02-requirement-completeness-gate.md) revision `1.0`, kesiapan `PARTIALLY_READY` |
+| Masukan keputusan | Bed Management: decision revision46, DEC-274–294, AC-396–426. Riwayat metadata: [`00-interview-decisions.md`](../00-interview-decisions.md) revision `6` |
+| Masukan keadaan saat ini | Bed Management: BM-AUD-20261010-01 rev1; source-audited bukan runtime. Riwayat metadata: [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.2` |
+| Backend SHA | Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
+| Frontend SHA | Bed Management: 969acfcc04cdf31074a1911e9827c31d25ddadd0. Riwayat metadata: `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
 | Scope | Sembilan slice pada arsitektur domain bagian N.2, **ditambah `INP-S11`** penempatan menurut jenis kelamin dan isolasi yang terbuka sejak `RWI-DEC-064` |
 | Batas tulis | Hanya dokumen blueprint. Tidak ada source, migration, atau database yang disentuh |
 
@@ -2466,3 +2466,474 @@ V1 menulis butir 12 "GENERAL CONCERN"; nama di atas dibetulkan menjadi "GENERAL 
 ### 13.16 Approval dan penyelarasan decision log revision `39` ★ 8 Oktober 2026
 
 Kontrak `0.11.0` disetujui Muhammad Hamzah lewat `RWI-DEC-265`. `RWI-OQ-126` dan `RWI-OQ-127` ditutup `RWI-DEC-266`: gerbang pada 13.0, 13.6, dan 13.8.4 untuk `PatientProfileQueryService`, `PatientQrPayloadBuilder`, dan `HospitalSiteProfileQueryService` kini **disetujui**. `RWI-OQ-128` dan `RWI-OQ-129` tetap terbuka dengan cadangan aman. Isi desain tidak berubah. Roadmap: `roadmap/backend-roadmap-workspace-ppri.md`.
+
+## 14. Amandemen Bed Management — 10 Oktober 2026
+
+**Status: draft — Amandemen Bed Management, 10 Oktober 2026.** Set kontrak mengikuti `blueprint-manifest.md`; `last_changed_in: 0.12.0`. Owner produk/domain/API: Muhammad Hamzah (RWI-DEC-061); frontend: pengembang dalam batas RWI-DEC-292; keamanan/privasi: OPEN. `approved_by: null`, `approved_at: null` untuk amandemen ini.
+
+Masukan: decision log revision **46**, RWI-DEC-274–294 dan RWI-AC-396–426; gate revision **1.12**, **BM-RCG-20261010-01**, enam BM-CG siap untuk desain produk terbatas. `DOMAIN_ARCHITECTURE_NOT_RUN` untuk slice ini: ownership existing sudah diketahui dan gate mengizinkan desain langsung. Arsitektur domain lama bagi scope lain tetap berlaku. As-is bersumber audit **BM-AUD-20261010-01** revision 1 (section 7 untuk Swagger), bukan bukti runtime.
+
+Snapshot BE `d4e1eca06fb28c05934c68c1e51a4dca01935a10`, FE `969acfcc04cdf31074a1911e9827c31d25ddadd0`. Semua nama class/field/API baru di bawah adalah **target Rencana (belum tersedia)**. Bila bagian lama bertentangan mengenai bed kembali Available, amandemen ini mengikuti RWI-DEC-281/282. Persetujuan produk bukan persetujuan desain atau SOP. Hash masukan terpusat pada manifest.
+
+### 14.1 Ownership, aggregate dan batas transaksi
+
+| Kelompok data | Pemilik | Pemakaian target | Duplikasi |
+| --- | --- | --- | --- |
+| Identitas pasien | PatientManagement | Referensi melalui episode; tidak disalin | Tidak |
+| Episode, hunian, reservasi, koreksi | InPatientManagement | Reuse; extend placement/reservation | Tidak menduplikasi |
+| Kesiapan, upaya pembersihan, lifecycle event, operation receipt | InPatientManagement | Empat entity baru; satu root kesiapan per bed | Baru sesuai ownership operasional |
+| Bed, kamar, unit, kelas dan urutan kelas global | MasterData (seluruh tim, DEC-193/FACT-070) | Baca master resmi; tulis bed lewat guard bersama | Tidak membuat kelas/kamar/bed kedua |
+| DPJP, eligibility, pemulangan fisik | Pemilik existing InPatientManagement/ClinicalManagement | Guard existing dipertahankan | Tidak membuat discharge klinis kedua |
+| Harga, tarif kamar, folio/invoice, rekalkulasi | BillingManagement | Baca guard, notifikasi existing sesudah commit | Tidak menghitung harga atau tarif dari kategori transfer |
+| Akun, permission, penugasan unit yang sah | Administrator/UserManagement + pemilik operasional | Adapter fail-closed; bukti assignment BM-G03 | Tidak membuat role engine atau akun otomatis |
+| SOP pembersihan, inspeksi, downtime | Pemilik operasional HK/keperawatan/PPI; nama belum terbukti | Hanya referensi SOP; gate BM-G02 | Tidak membuat checklist klinis |
+
+Root kesiapan adalah InpBedReadiness; aggregate hunian/episode existing tidak dipindahkan. MstBed tetap anchor lock bersama agar unique index di dua tabel berbeda tidak meninggalkan celah reserve-versus-placement. MasterData tidak mengambil alih keputusan kesiapan, dan root tidak menduplikasi atribut kamar/kelas. Konteks release dan actor masuk audit dalam transaksi yang sama.
+
+### 14.2 As-is → target dan invariant
+
+| Bukti | As-is | Target draft | Trace |
+| --- | --- | --- | --- |
+| F01 / BM-CAP-08 | Release used bed → Available | Release → WaitingCleaning; closure tetap Unavailable | DEC-281; AC-407/426 |
+| F02/F03 / BM-CAP-03/10 | Guard/predicate berbeda antar jalur | Satu predicate dan coordinator seluruh writer | DEC-285/289; AC-412/420/424 |
+| F04 / BM-CAP-04 | Lock belum recheck dua sumber holder | Lock konsisten + expire + recheck placement/reservation/root | DEC-289; AC-419 |
+| BM-CAP-07/09 | Cleaning tunggal | Root state + attempts + perawat verify, enam status BA | DEC-278/280/282; AC-406/409–411 |
+| BM-CAP-11/12 | Transfer existing satu langkah | Tetap satu langkah; kategori manual tervalidasi, snapshot | DEC-275–277/284/291; AC-399–405/414/423 |
+| BM-CAP-13/17 | History per episode + transfer report | History per bed/periode; segmen initial/transfer dan versi koreksi | DEC-286/288; AC-402/415 |
+| F05/F06/F07 | Reason dibuang; tombol dan refresh bermasalah | Persist reason, scope/permission pada server+UI, awaited refresh | DEC-287–290; AC-416–422 |
+
+### 14.3 Class diagram per konteks
+
+```mermaid
+classDiagram
+class InpBedReadiness {
++Guid BedId
++Guid CycleId
++long Version
++InpBedReadinessState State
+}
+class InpBedCleaningAttempt {
++Guid CycleId
++InpBedCleaningAttemptState State
+}
+class InpBedLifecycleEvent {
++string Action
++DateTime OccurredAtUtc
++DateTime RecordedAtUtc
+}
+class InpBedOperationReceipt {
++Guid ActorUserId
++string IdempotencyKey
++string RequestHash
+}
+InpBedReadiness "1" --> "0..*" InpBedCleaningAttempt
+InpBedReadiness "1" --> "0..*" InpBedLifecycleEvent
+InpBedOperationReceipt "0..1" <-- "0..*" InpBedLifecycleEvent
+InpatientBedManagementController --> InpBedReadinessService
+InpatientBedManagementController --> InpBedManagementQueryService
+InpBedReadinessService --> InpBedMutationCoordinator
+InpBedReadinessService --> InpBedAccessService
+InpBedMutationCoordinator --> InpBedReadiness
+```
+
+```mermaid
+classDiagram
+class MstBed
+class MstRoom
+class MstPatientClass
+class InpEpisode
+class InpBedPlacement {
++int Version
++InpBedTransferCategory TransferCategory
++Guid TransferFromPlacementId
++jsonb LocationSnapshotJson
+}
+class InpBedReservation {
++string CancellationReason
++Guid CancelledByUserId
+}
+InpBedPlacement --> InpEpisode
+InpBedPlacement --> MstBed
+InpBedReservation --> MstBed
+MstBed --> MstRoom
+MstRoom --> MstPatientClass
+InpBedOccupancyService --> InpBedMutationCoordinator
+InpBedOccupancyService --> InpBedClassComparisonService
+BedMutationService --> InpBedMutationCoordinator
+BedController --> BedMutationService
+InpDischargeService --> InpBedMutationCoordinator
+InpPlacementCorrectionService --> InpBedMutationCoordinator
+```
+
+Diagram hanya relasi target yang relevan; FK/kardinalitas definitive pada kamus data. MstBed, MstRoom, MstPatientClass dan InpEpisode **Sudah ada**, lokasi `Areas/HealthServices/{MasterData,InPatientManagement}/Models/` sesuai nama; tidak didesain ulang.
+
+### 14.4 Penjelasan setiap model dan application class
+
+##### InpBedReadiness
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Models/InpBedReadiness.cs` |
+| Tujuan | Aggregate kesiapan operasional satu bed; BedId unik, CycleId mencegah pengesahan siklus lama, Version adalah concurrency token untuk seluruh operasi bed. |
+| Field | Id, BedId, CycleId, State, Version, LastReleasedPlacementId, VerifiedAtUtc, VerifiedByUserId, VerificationReference |
+| Relasi | Id → PK; BedId → MstBed.Id; UNIQUE; State → InpBedReadinessState; Version → ConcurrencyToken; LastReleasedPlacementId → InpBedPlacement.Id; VerifiedByUserId → ApplicationUser.Id |
+| Padanan existing | Tidak ditemukan pada audit fokus; tidak mengganti master/hunian existing |
+
+##### InpBedCleaningAttempt
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Models/InpBedCleaningAttempt.cs` |
+| Tujuan | Upaya pembersihan per siklus. Upaya sebelumnya tetap tersimpan saat ditolak/diinterupsi. |
+| Field | Id, ReadinessId, CycleId, State, StartedAtUtc, StartedByUserId, CompletedAtUtc, CompletedByUserId, VerifiedAtUtc, VerifiedByUserId, RejectionReason, SopReference |
+| Relasi | Id → PK; ReadinessId → InpBedReadiness.Id; State → InpBedCleaningAttemptState; StartedByUserId → ApplicationUser.Id; CompletedByUserId → ApplicationUser.Id; VerifiedByUserId → ApplicationUser.Id |
+| Padanan existing | Tidak ditemukan pada audit fokus; tidak mengganti master/hunian existing |
+
+##### InpBedOperationReceipt
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Models/InpBedOperationReceipt.cs` |
+| Tujuan | Bukti commit idempotent, satu actor dan key. Tidak menyimpan salinan response pasien. |
+| Field | Id, ActorUserId, IdempotencyKey, OperationName, RequestHash, ResultKind, ResultEntityId, ResultVersion, CommittedAtUtc |
+| Relasi | Id → PK; ActorUserId → ApplicationUser.Id; IdempotencyKey → UNIQUE(ActorUserId,IdempotencyKey); ResultEntityId → Referensi polimorfik tervalidasi service |
+| Padanan existing | Tidak ditemukan pada audit fokus; tidak mengganti master/hunian existing |
+
+##### InpBedLifecycleEvent
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Models/InpBedLifecycleEvent.cs` |
+| Tujuan | Audit append-only untuk release, pembersihan, verifikasi, penutupan, pembukaan dan reserve. Bukan segmen hunian pasien. |
+| Field | Id, ReadinessId, CycleId, OperationReceiptId, PlacementId, ReservationId, CleaningAttemptId, Action, BeforeState, AfterState, ActorUserId, OccurredAtUtc, RecordedAtUtc, Reason |
+| Relasi | Id → PK; ReadinessId → InpBedReadiness.Id; OperationReceiptId → InpBedOperationReceipt.Id; PlacementId → InpBedPlacement.Id; ReservationId → InpBedReservation.Id; CleaningAttemptId → InpBedCleaningAttempt.Id; ActorUserId → ApplicationUser.Id |
+| Padanan existing | Tidak ditemukan pada audit fokus; tidak mengganti master/hunian existing |
+
+##### InpBedPlacement
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Diperbarui |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Models/InpBedPlacement.cs` |
+| Tujuan | Sumber hunian existing; tambah kategori manual dan snapshot lokasi untuk perjalanan awal maupun transfer. |
+| Field | Id, EpisodeId, BedId, RoomId, ServiceUnitId, PatientClassId, SequenceNumber, StartDateTime, EndDateTime, EndReason, TransferReason, PhysicallyLeftAt, Version, ChangeReason, IsSuperseded, SupersededAtUtc, CorrectsPlacementId, SupersededByCorrectionId, PlacedByUserId, EndedByUserId, IsActive, TransferCategory, TransferFromPlacementId, LocationSnapshotJson |
+| Relasi | Id → PK; EpisodeId → InpEpisode.Id; BedId → MstBed.Id; RoomId → MstRoom.Id; ServiceUnitId → MstServiceUnit.Id; PatientClassId → MstPatientClass.Id; SequenceNumber → UNIQUE(EpisodeId,SequenceNumber); EndDateTime → Unique BedId bila NULL; EndReason → InpBedPlacementEndReason; CorrectsPlacementId → InpBedPlacement.Id; SupersededByCorrectionId → InpBedPlacement.Id; PlacedByUserId → ApplicationUser.Id; EndedByUserId → ApplicationUser.Id; TransferCategory → InpBedTransferCategory; TransferFromPlacementId → InpBedPlacement.Id; INDEX |
+| Padanan existing | Class yang sama, dipertahankan; kolom tambahan tercatat pada kamus data |
+
+##### InpBedReservation
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Diperbarui |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Models/InpBedReservation.cs` |
+| Tujuan | Pemesanan existing, tetap 120 menit; simpan alasan pembatalan yang sebelumnya diabaikan. |
+| Field | Id, EpisodeId, BedId, ReservedAt, ExpiresAt, ReservationStatus, ReservedByUserId, ReleasedAt, IsActive, CancellationReason, CancelledByUserId |
+| Relasi | Id → PK; EpisodeId → InpEpisode.Id; BedId → MstBed.Id; ReservationStatus → InpBedReservationStatus; ReservedByUserId → ApplicationUser.Id; CancelledByUserId → ApplicationUser.Id |
+| Padanan existing | Class yang sama, dipertahankan; kolom tambahan tercatat pada kamus data |
+
+##### InpBedMutationCoordinator
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Services/InpBedMutationCoordinator.cs` |
+| Tujuan | Satu batas transaksi dan lock bed untuk seluruh penulis |
+| Field/dependency/relasi | Readiness.Version, operation receipt, audit; tanpa callback lintas service yang memulai transaksi kedua |
+| Padanan existing dan alasan | Tidak ada coordinator lintas reserve/placement/master; tutup F02/F04 |
+
+##### InpBedReadinessService
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Services/InpBedReadinessService.cs` |
+| Tujuan | Start/complete/verify serta invalidasi siklus |
+| Field/dependency/relasi | Root, attempt dan lifecycle event; coordinator sebagai satu outer transaction |
+| Padanan existing dan alasan | Bukan endpoint status manual |
+
+##### InpBedManagementQueryService
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Services/InpBedManagementQueryService.cs` |
+| Tujuan | Proyeksi enam status, monitoring, transfer context, history, outcome |
+| Field/dependency/relasi | Shared availability predicate; DTO mask identity di server |
+| Padanan existing dan alasan | Board existing diadaptasi; history per-bed belum ada |
+
+##### InpBedClassComparisonService
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Services/InpBedClassComparisonService.cs` |
+| Tujuan | Validasi kategori manual terhadap urutan resmi global |
+| Field/dependency/relasi | MstPatientClass + profil bukti terverifikasi; tidak pakai harga |
+| Padanan existing dan alasan | ClassLevel ada, makna/direction belum terbukti BM-G01 |
+
+##### InpBedAccessService
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Services/InpBedAccessService.cs` |
+| Tujuan | Gabungkan permission, scope unit/bed/episode dan profil operasional |
+| Field/dependency/relasi | AccessPermissionService existing; assignment server tepercaya |
+| Padanan existing dan alasan | Filter permission existing belum membuktikan scope; BM-G03 |
+
+##### BedManagementOptions
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Options/BedManagementOptions.cs` |
+| Tujuan | Kontrak konfigurasi typed untuk bukti order dan assignment |
+| Field/dependency/relasi | Default kosong/deny, validasi startup dan validasi live saat write |
+| Padanan existing dan alasan | Tidak mengisi nilai SOP, akun atau arah order melalui AI |
+
+##### InpatientBedManagementController
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Controllers/InpatientBedManagementController.cs` |
+| Tujuan | HTTP adapter API monitoring/HK/history/outcome |
+| Field/dependency/relasi | Query/readiness services; AccessController/AccessAction; ApiResponse |
+| Padanan existing dan alasan | Tag baru hanya rencana; tidak akses DbContext langsung |
+
+##### BedMutationService
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/MasterData/Services/BedMutationService.cs` |
+| Tujuan | Menjaga create/PUT/status/availability bed |
+| Field/dependency/relasi | Guard coordinator; MasterData tetap pemilik master |
+| Padanan existing dan alasan | Ekstrak hanya write logic BedController yang disentuh |
+
+##### InpBedOccupancyService
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Diperbarui |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Services/InpBedOccupancyService.cs` |
+| Tujuan | Reserve/place/transfer/cancel memakai recheck yang sama |
+| Field/dependency/relasi | Coordinator, class comparison, snapshot, reason persisten |
+| Padanan existing dan alasan | Pertahankan TTL, guard DPJP/folio/eligibility dan atomic transfer |
+
+##### InpDischargeService
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Diperbarui |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Services/InpDischargeService.Departure.cs` |
+| Tujuan | Release bed bekas pasien ke siklus pembersihan |
+| Field/dependency/relasi | Periksa placement yang benar; penutupan episode lama tidak melepas bed lagi |
+| Padanan existing dan alasan | Departure fisik bukan closure episode, bukan cashier gate baru |
+
+##### InpPlacementCorrectionService
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Diperbarui |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Services/InpPlacementCorrectionService.cs` |
+| Tujuan | Koreksi versioned tanpa transfer fiktif |
+| Field/dependency/relasi | Guard Billing OPEN dan existing Correct; lock semua bed terdampak |
+| Padanan existing dan alasan | Tidak menghapus versi lama; referensi koreksi bukan kategori transfer |
+
+##### InpatientBedOccupancyController
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Diperbarui |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Controllers/InpatientBedOccupancyController.cs` |
+| Tujuan | DTO mutation diperketat dan transfer-context ditambah |
+| Field/dependency/relasi | Service existing, Idempotency-Key, versi server |
+| Padanan existing dan alasan | Path existing dipertahankan; endpoint mapping di API contract |
+
+##### BedController
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Diperbarui |
+| Lokasi file | `Areas/HealthServices/MasterData/Controllers/BedController.cs` |
+| Tujuan | Seluruh write path masuk BedMutationService |
+| Field/dependency/relasi | Termasuk aktivasi/nonreservable/perubahan lokasi; tidak hanya availability |
+| Padanan existing dan alasan | CRUD baca existing tidak dirombak |
+
+##### InpatientBedOccupancyDtos
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Diperbarui |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/DTOs/InpatientBedOccupancyDtos.cs` |
+| Tujuan | Tambahkan versi, kategori, alasan, source placement |
+| Field/dependency/relasi | DTO existing dipakai ulang; kontrak exact di API |
+| Padanan existing dan alasan | Bukan entity baru dari layar |
+
+##### InpatientBedManagementDtos
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/DTOs/InpatientBedManagementDtos.cs` |
+| Tujuan | DTO operasional dan history yang disanitasi |
+| Field/dependency/relasi | Jenis tertulis dalam API contract; tidak serialisasi entity |
+| Padanan existing dan alasan | HK tidak menerima holding episode/patient pada payload |
+
+##### InpBedReadinessState / InpBedCleaningAttemptState / InpBedTransferCategory
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Enums/{InpBedReadinessState,InpBedCleaningAttemptState,InpBedTransferCategory}.cs` |
+| Tujuan | Enum internal dan kategori transfer |
+| Field/dependency/relasi | Nilai exact pada kamus data; BedStatus existing tidak diubah |
+| Padanan existing dan alasan | Tidak membuat status BA ketujuh |
+
+### 14.5 Folder dan engineering contract
+
+```text
+NewQuilvianSystemBackend/
+├─ Areas/HealthServices/InPatientManagement/
+│  ├─ Models/
+│  │  └─ InpBedReadiness.cs [Baru]
+│  │  └─ InpBedCleaningAttempt.cs [Baru]
+│  │  └─ InpBedOperationReceipt.cs [Baru]
+│  │  └─ InpBedLifecycleEvent.cs [Baru]
+│  │  └─ InpBedPlacement.cs [Diperbarui]
+│  │  └─ InpBedReservation.cs [Diperbarui]
+│  ├─ Controllers/InpatientBedManagementController.cs [Baru]
+│  ├─ Controllers/InpatientBedOccupancyController.cs [Diperbarui]
+│  ├─ DTOs/InpatientBedManagementDtos.cs [Baru]
+│  ├─ DTOs/InpatientBedOccupancyDtos.cs [Diperbarui]
+│  ├─ Enums/InpBedReadinessState.cs [Baru]
+│  ├─ Enums/InpBedCleaningAttemptState.cs [Baru]
+│  ├─ Enums/InpBedTransferCategory.cs [Baru]
+│  ├─ Options/BedManagementOptions.cs [Baru]
+│  └─ Services/ [rincian tiap file pada tabel class]
+│     └─ InpBedMutationCoordinator.cs [Baru]
+│     └─ InpBedReadinessService.cs [Baru]
+│     └─ InpBedManagementQueryService.cs [Baru]
+│     └─ InpBedClassComparisonService.cs [Baru]
+│     └─ InpBedAccessService.cs [Baru]
+│     └─ InpBedOccupancyService.cs [Diperbarui]
+│     └─ InpDischargeService.Departure.cs [Diperbarui]
+│     └─ InpPlacementCorrectionService.cs [Diperbarui]
+├─ Areas/HealthServices/MasterData/
+│  ├─ Models/MstBed.cs [Sudah ada; tanpa kolom baru]
+│  ├─ Models/MstPatientClass.cs [Sudah ada; tanpa kolom baru]
+│  ├─ Controllers/BedController.cs [Diperbarui]
+│  └─ Services/BedMutationService.cs [Baru]
+├─ Repositories/Configurations/HealthServices/InPatientManagement/
+│  └─ InpBedReadinessConfiguration.cs [Baru]
+│  └─ InpBedCleaningAttemptConfiguration.cs [Baru]
+│  └─ InpBedOperationReceiptConfiguration.cs [Baru]
+│  └─ InpBedLifecycleEventConfiguration.cs [Baru]
+│  └─ InpBedPlacementConfiguration.cs [Diperbarui]
+│  └─ InpBedReservationConfiguration.cs [Diperbarui]
+├─ Repositories/ApplicationDbContext.cs [Diperbarui; DbSet/config discovery; lokasi actual terverifikasi]
+└─ Program.cs [Diperbarui; DI dan typed options sesuai pola existing]
+```
+
+Semua model mewarisi IdentityModel; konfigurasi EF per entity di `Repositories/Configurations/HealthServices/InPatientManagement/`. Prefix `Inp` dan `Mst` ACTIVE; tidak menambah modul/registry/namespace Housekeeping. Dilarang menambah Trx, nomor bisnis buatan, SortOrder baru, generic repository, atau database change di fase ini. QBE-ENT/NAM/CFG/MOD/SVC/API/PERM/VAL/DTO/TXN/PAGE/DEL/AUD tetap berlaku. Nama/lokasi ApplicationDbContext harus mengikuti source actual saat build, tidak memindahkan context.
+
+### 14.6 Proyeksi dan shared predicate
+
+Raw BedStatus tetap Unknown=0, Available=1, Occupied=2, Reserved=3, Cleaning=4, Maintenance=5, Blocked=6, Inactive=7. WaitingCleaning, Cleaning dan AwaitingVerification memakai raw Cleaning=4 bila tidak ditutup. Enam status BA diturunkan server (state contract), tidak memaksa enum raw baru.
+
+IsBookable = master valid/aktif/reservable dan hierarchy aktif, tanpa placement aktif, tanpa reservasi aktif yang belum expired, tanpa closure, root Ready pada siklus terbaru. Shared predicate dipakai monitoring/count, available-beds, reserve, place dan transfer. Eligibility pasien tetap pemeriksaan terpisah: Tersedia tidak menjamin cocok untuk setiap pasien. Root hilang/Unverified, enum Unknown, data invalid dan konflik tidak pernah bookable. Ada pasien aktif selalu ditampilkan Terisi dengan flag konflik bila salinan raw/master berbeda.
+
+### 14.7 Concurrency, idempotency dan failure boundary
+
+Urutan wajib semua writer: (1) authorize sebelum data sensitif; (2) lock episode yang terlibat menurut Guid, bila operasi punya episode; (3) lock seluruh MstBed menurut Guid dalam urutan tetap; (4) load/create root di bawah lock dan expire reservasi yang memang lewat waktu server; (5) cek receipt actor/key yang committed terlebih dahulu; replay tidak menjalankan aksi ulang dan izin tetap diperiksa; (6) cek expected versions/source placement, semua holder dan kesiapan/closure serta guards existing; (7) ubah entity, increment root.Version, append event dan receipt serta outbox existing dalam satu transaksi; (8) commit, baru callback/refresh. Tidak ada nested transaction atau HTTP eksternal di dalam lock.
+
+Reserve-versus-place/transfer harus memeriksa kedua tabel setelah lock. Active reservation milik episode yang sama dapat dikonsumsi sesuai alur existing; reservation pihak lain selalu menghalangi. Transfer mengakhiri asal dan membuat tujuan sekaligus; failure menggulung semua. Reservation expiry boleh dicatat sistem tanpa receipt klien, memakai service account existing yang sah; jika belum ada actor sistem valid, gate assignment menahan aktivasi, jangan Guid.Empty sebagai actor audit palsu.
+
+Idempotency-Key maksimum 100 karakter; unik actor+key, hash request canonical termasuk expected versions. Key sama/input berbeda → 409 IDEMPOTENCY_KEY_REUSED. Satu operasi multi-bed satu receipt dan beberapa event. Receipt hanya committed; pemanggil yang timeout memeriksa own outcome atau retry payload/key yang sama. Replay mutation memuat ulang entity hasil yang masih terotorisasi dengan DTO route yang sama dan OperationMeta.IsReplay=true; metadata menunjuk outcome commit asli, field state adalah pembacaan saat ini. UI wajib refresh. OperationOutcomeResponse khusus GET outcome. NotFound bukan bukti request belum pernah berjalan bila proses lain masih in-flight. Tidak ada penghapusan receipt otomatis sebelum kebijakan retensi disahkan.
+
+Correction yang menyentuh bed aktif memakai coordinator, mempertahankan ExpectedVersion/Billing OPEN serta versi lama. Correction closed history tidak membuat cleaning baru. Departure memakai placement milik episode yang benar; closure episode yang sudah keluar tidak memutasi bed pasien berikutnya. Existing folio/DPJP/eligibility/IGD guards tetap berlaku.
+
+### 14.8 Konfigurasi dan acuan kelas/akses
+
+| Properti typed target | Tipe/default | Validasi/fungsi |
+| --- | --- | --- |
+| BedManagement:EnableWorkflow | bool=false | Aksi HK/verify disabled sampai gate; readiness guard tidak dapat dinonaktifkan untuk meloloskan dirty bed |
+| BedManagement:ClassOrder:Direction | enum?=null | HigherValueIsHigherGrade atau LowerValueIsHigherGrade hanya diisi dari bukti BM-G01 |
+| ClassOrder:EvidenceReference / ApprovedSourceDigest | string? / string?=null | Referensi persetujuan dan SHA256 daftar kelas aktif+ClassLevel+equivalences; mismatch live → comparison Unknown |
+| ClassOrder:EquivalencePairs | array {ClassIdA:Guid,ClassIdB:Guid}=[] | Hanya kesetaraan kelas berbeda yang disahkan; pasangan unik/simetris; tidak memakai default angka 0 |
+| BedManagement:UnitAssignments | array=[] | Setiap {UserId:Guid,ServiceUnitId:Guid,Operations:string[],AssignmentReference:string,SopReference:string?,OperationalOnly:bool,IsReadinessVerifier:bool}; exact operation resource/action pada permission contract; kosong deny |
+| Operations / assignment | string[] | Hanya operasi allowlist; ReadUsageHistory/Transfer/VerifyReadiness tidak untuk profil OperationalOnly; verifier harus ada bukti penunjukan perawat |
+| Waktu reservasi | Parameter existing; default 120 menit | Tidak menambah reminder, extension atau konfigurasi timer klinis baru |
+
+Konfigurasi adalah adapter teknis atas bukti resmi, bukan kewenangan baru atau SOP buatan. Tidak mengisi actual user/class IDs pada blueprint. Scope assignment diperiksa terhadap unit current master dan source+destination untuk transfer, seluruh bed untuk correction. Rujukan SOP wajib untuk start/complete/verify. IsReadinessVerifier tidak menjadi bukti profesi tanpa dokumen assignment yang disahkan (BM-G02/03). AccessPermissionService tetap dipakai; superadmin/dev permission bypass tidak melewati guard state, scope dan privacy pada fitur ini.
+
+Perbandingan: valid class ID sama → SameGrade. ID berbeda → order hanya jika profil bukti matching; default0/kelas inactive atau data invalid → Unknown. Level berbeda memakai direction yang telah dibuktikan; level sama memerlukan equivalence pair sah, selain itu Unknown. Pilihan manual tidak pernah diisi otomatis; service mengembalikan kategori yang diperbolehkan untuk membantu UI. Snapshot menyimpan keputusan dan referensi order saat transfer; perubahan master tidak menulis ulang riwayat.
+
+### 14.9 Migration, backfill dan rollback
+
+| Tahap target, belum dieksekusi | Isi | Bukti wajib |
+| --- | --- | --- |
+| M1 additive schema | Empat tabel baru + tiga kolom placement + dua kolom reservation + FK/index; existing enums/index unik dipertahankan | Generated migration/model snapshot review + PostgreSQL disposable DB |
+| M2 backfill terkontrol | Buat root untuk setiap bed, Unverified sebagai default konservatif; bukti used-dirty → WaitingCleaning. Jangan menganggap raw Available legacy sudah disahkan. Occupied/reserved tetap dibaca dari holder; actor/waktu legacy tidak dipalsukan | Dry run, count before/after, konflik/duplikasi/orphan report, bukti actor backfill resmi |
+| M3 cutover semua writer | Jeda tulis terkoordinasi; deploy guards/DTO dan semua konsumen frontend; baca boleh tetap tersedia. Tidak mengizinkan campuran writer lama yang masih Available langsung | Inventaris consumers, SOP downtime BM-G02, receipt/outbox+concurrency tests BM-G04 |
+| Aktivasi per dependency | Read sanitized boleh diuji tanpa mengarang assignment; workflow/class transfers hanya sesuai gate BM-G01/02/03. Dirty bed tetap tertahan meski workflow belum aktif | Gate scoped per operasi, bukan tombol bypass |
+| Rollback setelah data target ada | Hentikan mutation target, pertahankan schema/audit dan versi guard compatible, roll forward perbaikan. Code lama tidak aman jika menghapus readiness guards | Runbook dan latihan rollback; tidak menjanjikan rollback destruktif |
+| Down schema | Hanya sebelum data target dipakai dan dengan snapshot/otorisasi database terpisah; jangan drop audit/riwayat yang sudah digunakan | Bukti tabel belum dipakai + otorisasi saat eksekusi |
+
+### 14.10 Master minimum, bukti aktivasi dan yang tidak dibuat
+
+| Master/dependency | Minimum | Sumber/pemilik |
+| --- | --- | --- |
+| MstServiceUnit/MstRoom/MstBed | Relasi valid, status aktif, reservable dan eligibility bed akurat | MasterData seluruh tim; sumber existing |
+| MstPatientClass | Kelas valid + arti arah ClassLevel + equivalence resmi untuk lintas kelas | BM-G01; MasterData + BA; harga bukan urutan |
+| ApplicationUser/permission/unit assignment | Akun individu, operasi per unit, verifier perawat dan HK dibuktikan; tidak grant otomatis | BM-G03; admin akses + pemilik unit; privacy owner OPEN |
+| SOP cleaning/readiness/downtime | Referensi sah dan penugasan shift nyata | BM-G02; HK/keperawatan/PPI, nama pemilik faktual belum tersedia |
+| Existing episode/DPJP/Billing | Guard existing dan integrasi diuji pada data uji | BM-G04; pemilik service existing |
+
+| Yang sengaja tidak dibuat | Alasan |
+| --- | --- |
+| Master kelas/kamar/bed kedua, tarif/order berdasar harga | Pemilik master sudah ada; order global harus dibuktikan |
+| Status BA ketujuh, timer otomatis menyatakan bersih | DEC-282 menetapkan enam status dan verifikasi manusia |
+| Modul/folder Housekeeping baru, checklist PPI, akun/role otomatis | Scope workflow bed, bukan kebijakan klinis/struktur organisasi |
+| Reservasi tujuan atau penerimaan dua fase untuk transfer | DEC-284 mempertahankan transfer satu langkah |
+| Reminder 30 menit, extend TTL, offline queue, history export baru | DEC-283/290 dan batas MVP; existing transfer report tetap |
+| Perhitungan Billing kedua, hard delete history, cancel committed transfer | Pemilik Billing existing dan audit versioned dipertahankan |
+
+### 14.11 Traceability dan risiko
+
+BM-G01 kelas menghalangi comparison lintas kelas yang belum terbukti; BM-G02 menghalangi aktivasi HK/verifikasi/downtime; BM-G03 menghalangi grant dan response identity; BM-G04 menghalangi klaim siap runtime. Tidak membuka kembali pilihan produk yang sudah ditutup. Jika bukti baru mengubah aturan lifecycle/authority/data, lakukan focused reassessment hanya slice terdampak. AC dan pengujian lengkap pada acceptance matrix; tidak ada migration/API/PostgreSQL test target dijalankan pada fase dokumentasi ini.
+
+### 14.12 Koordinasi writer master hierarchy
+
+Tindak lanjut bukti source: DbContext actual berada di `Repositories/ApplicationDbContext.cs`. Master configuration actual berada di `Repositories/Configurations/HealthServices/` (tanpa folder MasterData). Guard induk ikut mencegah race perubahan room/unit/class ketika reserve/transfer membaca eligibility.
+
+Urutan lock 14.7 dipertegas: episode terurut → MstServiceUnit terurut → MstRoom terurut → MstPatientClass terurut → MstBed terurut → root. Semua writer terdampak memakai urutan yang sama; lookup awal hanya mengumpulkan ID, relasi dibaca ulang setelah lock. Jika room/unit/class bed berubah sejak lookup, abort stale dan reload. Perubahan lokasi bed mengunci parent lama dan baru. Hierarchy writer mengunci parent lalu seluruh affected bed secara deterministik; tidak perlu episode lock jika tidak memutasi episode, tetapi tetap memeriksa holder setelah lock.
+
+| Class existing diperbarui | Lokasi file | Tujuan/relasi target | Padanan |
+| --- | --- | --- | --- |
+| RoomController | Areas/HealthServices/MasterData/Controllers/RoomController.cs | Delegasi write terdampak ke BedMutationService; parent+bed locks, reason/versions/receipt; read unchanged | Class/controller sama; bukan API master kedua |
+| ServiceUnitController | Areas/HealthServices/MasterData/Controllers/ServiceUnitController.cs | Delegasi write terdampak ke BedMutationService; parent+bed locks, reason/versions/receipt; read unchanged | Class/controller sama; bukan API master kedua |
+| PatientClassController | Areas/HealthServices/MasterData/Controllers/PatientClassController.cs | Delegasi write terdampak ke BedMutationService; parent+bed locks, reason/versions/receipt; read unchanged | Class/controller sama; bukan API master kedua |
+
+BedMutationService mencakup operasi hierarchy terdampak; logic baru tetap di service, bukan DbContext tambahan di controller. Config schema class/room/unit tidak berubah. Mutation label-only memakai lock parent, snapshot lama immutable; rank edit menginvalidasi approved class digest untuk comparison berikutnya. PUT/status/delete activation dependency masuk M3 dan tests BM-AT-412/419/424.
+
+### 14.13 Ringkasan model dan migration delta
+
+| Model | Status | Schema delta | Migration |
+| --- | --- | --- | --- |
+| InpBedReadiness | Baru | 9 kolom bisnis + IdentityModel + FK/index/concurrency | M1 CREATE; M2 backfill fail-closed |
+| InpBedCleaningAttempt | Baru | 12 kolom bisnis + IdentityModel + partial unique active attempt | M1 CREATE; tanpa fake attempts legacy |
+| InpBedOperationReceipt | Baru | 9 kolom bisnis + IdentityModel + actor/key unique | M1 CREATE; tidak menyalin response PHI |
+| InpBedLifecycleEvent | Baru | 14 kolom bisnis + IdentityModel + append-only audit | M1 CREATE; tidak membuat event lampau fiktif |
+| InpBedPlacement | Diperbarui | TransferCategory, TransferFromPlacementId, LocationSnapshotJson nullable | M1 ALTER; legacy null dipertahankan |
+| InpBedReservation | Diperbarui | CancellationReason, CancelledByUserId nullable | M1 ALTER; reason lama tidak dipalsukan |
+| MstBed/MstRoom/MstServiceUnit/MstPatientClass/InpEpisode/ApplicationUser | Sudah ada | Tidak ada kolom baru | Tidak CREATE ulang; writer guards/adapter saja |
+
+Setiap Configuration baru adalah class Baru dengan lokasi `Repositories/Configurations/HealthServices/InPatientManagement/<Entity>Configuration.cs`, tujuan binding tipe/required/index/FK Restrict/concurrency sesuai kamus data21; field/dependency berupa EntityTypeBuilder<Entity>, padanan hanya Configuration entity existing untuk dua model yang Diperbarui. Model baru tidak dibentuk dari tiga tab, tetapi dari ownership kesiapan, upaya, audit dan dedup operasi.
+
+Konfigurasi new API resource memakai moduleCode yang dipakai InpatientBedOccupancyController existing dan nama resource/action yang tertulis pada API contract; tidak membuat identifier menu/role global kedua. Pemilik keamanan menetapkan grant actual pada BM-G03.

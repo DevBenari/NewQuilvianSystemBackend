@@ -3,14 +3,14 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | **`0.11.0`** — bagian 12 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 11 Finishing, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 10 |
-| `last_changed_in` | **`0.11.0`** — grup baru `Inpatient Admission Workspace`, isian baru dua master, peringatan detail episode. Sebelumnya `0.10.0` — Finishing; `0.9.0` — census dokter, penugasan pendukung, tiga isian resume, akibat penutupan |
-| Status | **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
-| Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006`; nama belum diisi |
-| `approved_by` / `approved_at` | **Muhammad Hamzah — Product/Domain owner (`RWI-DEC-061`), 10 September 2026**, lewat instruksi eksplisit untuk mengerjakan `BE-RWI-069`. Mengikuti pola approval per-task yang sudah dipakai `BE-RWI-036` pada 1 September 2026 |
-| `input_revision` | `02-backend-architecture.md` revision `0.4`; `00-interview-decisions.md` revision `15`; `04-prd-to-mvp.md` revision `0.6.0` |
-| Backend SHA | `44099e4` — hasil merge `QuilvianIntegrationBackend`. Sebelumnya `5afb54b` |
-| Dampak kompatibilitas | **Seluruhnya aditif.** Tidak ada endpoint existing yang berubah bentuknya. Satu endpoint existing berubah **perilakunya**, lihat bagian 7 |
+| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Bed Management draft. Riwayat metadata sebelumnya: **`0.11.0`** — bagian 12 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 11 Finishing, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 10 |
+| `last_changed_in` | **`0.12.0`** — Bed Management. Riwayat metadata sebelumnya: **`0.11.0`** — grup baru `Inpatient Admission Workspace`, isian baru dua master, peringatan detail episode. Sebelumnya `0.10.0` — Finishing; `0.9.0` — census dokter, penugasan pendukung, tiga isian resume, akibat penutupan |
+| Status | **`draft`** — amandemen Bed Management belum disetujui. Riwayat metadata sebelumnya: **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
+| Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292. Riwayat metadata sebelumnya: Product/Domain Owner sementara sesuai `RWI-DEC-006`; nama belum diisi |
+| `approved_by` / `approved_at` | Belum ada untuk amandemen Bed Management. Riwayat metadata sebelumnya: **Muhammad Hamzah — Product/Domain owner (`RWI-DEC-061`), 10 September 2026**, lewat instruksi eksplisit untuk mengerjakan `BE-RWI-069`. Mengikuti pola approval per-task yang sudah dipakai `BE-RWI-036` pada 1 September 2026 |
+| `input_revision` | Decision 46; gate 1.12 / BM-RCG-20261010-01; audit BM-AUD-20261010-01 rev1. Riwayat metadata sebelumnya: `02-backend-architecture.md` revision `0.4`; `00-interview-decisions.md` revision `15`; `04-prd-to-mvp.md` revision `0.6.0` |
+| Backend SHA | Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `44099e4` — hasil merge `QuilvianIntegrationBackend`. Sebelumnya `5afb54b` |
+| Dampak kompatibilitas | Bed Management: GET aditif, mutation diperketat (expected version/key/category/reason); cutover seluruh konsumen wajib. Riwayat metadata sebelumnya: **Seluruhnya aditif.** Tidak ada endpoint existing yang berubah bentuknya. Satu endpoint existing berubah **perilakunya**, lihat bagian 7 |
 
 
 ### Perubahan pada `contract_version` `0.8.0`
@@ -969,3 +969,178 @@ Kode alasan (`INP-ADM-DOC-*`, `INP-ADM-PRT-*`, `MST-ICI-*`, `MST-IST-*`) beserta
 | Endpoint MP Benefit dan Estimasi Rinci | Ditunda (`RWI-OQ-119`, `RWI-OQ-120`) |
 | Endpoint tarif visit dokter | `DEC-INP-020` |
 | Endpoint baru di `PatientManagement`, Registration, Billing, HR | `RWI-DEC-264` butir 1: service baca baru tidak membuka endpoint modul pemilik |
+
+## 13. Amandemen Bed Management — 10 Oktober 2026
+
+**Status: draft — Amandemen Bed Management, 10 Oktober 2026.** Set kontrak mengikuti `blueprint-manifest.md`; `last_changed_in: 0.12.0`. Owner produk/domain/API: Muhammad Hamzah (RWI-DEC-061); frontend: pengembang dalam batas RWI-DEC-292; keamanan/privasi: OPEN. `approved_by: null`, `approved_at: null` untuk amandemen ini.
+
+Masukan: decision log revision **46**, RWI-DEC-274–294 dan RWI-AC-396–426; gate revision **1.12**, **BM-RCG-20261010-01**, enam BM-CG siap untuk desain produk terbatas. `DOMAIN_ARCHITECTURE_NOT_RUN` untuk slice ini: ownership existing sudah diketahui dan gate mengizinkan desain langsung. Arsitektur domain lama bagi scope lain tetap berlaku. As-is bersumber audit **BM-AUD-20261010-01** revision 1 (section 7 untuk Swagger), bukan bukti runtime.
+
+Snapshot BE `d4e1eca06fb28c05934c68c1e51a4dca01935a10`, FE `969acfcc04cdf31074a1911e9827c31d25ddadd0`. Semua nama class/field/API baru di bawah adalah **target Rencana (belum tersedia)**. Bila bagian lama bertentangan mengenai bed kembali Available, amandemen ini mengikuti RWI-DEC-281/282. Persetujuan produk bukan persetujuan desain atau SOP. Hash masukan terpusat pada manifest.
+
+### 13.1 Envelope, waktu, versi dan compatibility
+
+ApiResponse<T> existing tetap Success, StatusCode, Message, Data, Errors, Timestamp; gunakan Errors={code,fields?} dalam slot existing, bukan envelope kedua. GET/aksi sukses 200 sesuai convention existing; daftar paged memakai PagedResult<T> existing (PageNumber,PageSize,TotalData,TotalPage,Items). Semua timestamp bisnis UTC, Timestamp envelope existing tidak diubah pada slice ini. Semua response target memakai projection DTO, tidak serialize entity.
+
+Path dan raw enum existing dipertahankan; GET tambahan bersifat aditif. Kewajiban expected versions, key dan kategori/reason pada mutation adalah **perubahan kontrak perilaku/request yang memerlukan cutover konsumen**, bukan seluruhnya backward-compatible. Old client yang tidak mengirim field ditolak 400 saat target diaktifkan. Adapter endpoint existing wajib menerapkan guard yang sama; tidak menyediakan jalur legacy yang meloloskan dirty bed. Endpoint new Tag di bawah belum ada; endpoint existing berlabel diperbarui belum mempunyai perilaku target.
+
+### 13.2 Inventaris Swagger target dan permission canonical
+
+#### Health Services / Inpatient Management / Bed Management
+
+Base URL: `api/v1/health-services/inpatient-management/bed-management`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GET | /metadata | Metadata tab/status/kategori dan hak aksi | InpatientBedManagement : Read | serviceUnitId? | BedManagementMetadataResponse | EPIC BM-01 | Rencana (belum tersedia) |
+| GET | /monitoring | Monitoring sanitized dan counts | InpatientBedManagement : Read | BedMonitoringQuery | BedMonitoringResponse | EPIC BM-01 | Rencana (belum tersedia) |
+| GET | /beds/{bedId}/cleaning-attempts | Jejak operasional bed tanpa pasien | InpatientBedManagement : Read | pageNumber/pageSize | PagedResult<BedCleaningAttemptResponse> | EPIC BM-03 | Rencana (belum tersedia) |
+| GET | /usage-history | Semua segmen penggunaan per bed/periode | InpatientBedManagement : ReadUsageHistory | BedUsageHistoryQuery | PagedResult<BedUsageHistoryResponse> | EPIC BM-06 | Rencana (belum tersedia) |
+| GET | /operations/{key} | Baca own committed outcome | InpatientBedManagement : Read | key; actor dari token | OperationOutcomeResponse | EPIC BM-02 | Rencana (belum tersedia) |
+| POST | /beds/{bedId}/cleaning-attempts | Mulai pekerjaan | InpatientBedManagement : StartCleaning | StartBedCleaningRequest | BedOperationResponse | EPIC BM-03 | Rencana (belum tersedia) |
+| PATCH | /cleaning-attempts/{attemptId}/complete | Selesai fisik, menunggu verifikasi | InpatientBedManagement : CompleteCleaning | CompleteBedCleaningRequest | BedOperationResponse | EPIC BM-03 | Rencana (belum tersedia) |
+| POST | /beds/{bedId}/readiness-verifications | Sahkan/tolak kesiapan | InpatientBedManagement : VerifyReadiness | VerifyBedReadinessRequest | BedOperationResponse | EPIC BM-03 | Rencana (belum tersedia) |
+
+#### Health Services / Inpatient Management / Bed Occupancy
+
+Base URL: `api/v1/health-services/inpatient-management/bed-occupancies`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GET | /available-beds | Shared predicate + eligibility existing | InpatientBedOccupancy : Read | AvailableBedQuery existing | AvailableBedPagedResult + operational version | EPIC BM-02 | Existing; diperbarui |
+| GET | /bed-board | Adapter konsisten untuk konsumen existing | InpatientBedOccupancy : Read | serviceUnitId? | BedBoardResponse + operational fields | EPIC BM-01 | Existing; diperbarui |
+| GET | /transfer-context | Asal otomatis dari placement current | InpatientBedOccupancy : Read | episodeId required | BedTransferContextResponse | EPIC BM-05 | Rencana (belum tersedia) |
+| POST | /reservations | Reserve TTL existing | InpatientBedOccupancy : Create | ReserveBedRequest + ExpectedBedVersion | BedReservationResponse + OperationMeta | EPIC BM-02 | Existing; diperbarui |
+| PATCH | /reservations/{id}/cancel | Cancel beralasan persisten | InpatientBedOccupancy : Update | CancelReservationRequest + Reason wajib + ExpectedBedVersion | BedReservationResponse + OperationMeta | EPIC BM-02 | Existing; diperbarui |
+| POST | /placements | Tempatkan dan snapshot awal | InpatientBedOccupancy : Create | PlacePatientRequest + ExpectedBedVersion | BedPlacementResponse + OperationMeta | EPIC BM-02 | Existing; diperbarui |
+| POST | /placements/transfer | Transfer atomik satu langkah | InpatientBedOccupancy : Transfer | TransferPatientRequest diperluas | BedPlacementResponse + OperationMeta | EPIC BM-05 | Existing; diperbarui |
+| POST | /placements/{placementId}/corrections | Koreksi versioned existing | InpatientBedOccupancy : Correct | CorrectPlacementRequest existing + AffectedBedVersions | BedPlacementResponse + OperationMeta | EPIC BM-06 | Existing; diperbarui |
+| GET | /placements/by-episode/{episodeId} | Histori episode existing | InpatientBedOccupancy : Read | episodeId | List<BedPlacementResponse> + snapshot/category | EPIC BM-06 | Existing; diperbarui |
+
+#### Health Services / Master Data / Bed
+
+Base URL: `api/v1/health-services/master-data/beds`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| POST | / | Master bed baru; kesiapan Unverified | Bed : Create | CreateBedRequest existing; OperationReason | BedCreateResponse existing + OperationalVersion/OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+| PUT | /{id} | Ubah master melalui guard penuh | Bed : Update | UpdateBedRequest + ExpectedBedVersion/OperationReason | BedUpdateResponse + OperationMeta | EPIC BM-04 | Existing; diperbarui |
+| PATCH | /{id}/status | Status administratif; bukan override kesiapan | Bed : Update | UpdateBedStatusRequest + ExpectedBedVersion/OperationReason | BedUpdateResponse + OperationMeta | EPIC BM-04 | Existing; diperbarui |
+| PATCH | /{id}/availability | Close/reopen beralasan | Bed : Update | UpdateBedAvailabilityRequest + ExpectedBedVersion/OperationReason | BedUpdateResponse + OperationMeta | EPIC BM-04 | Existing; diperbarui |
+| DELETE | /{id} | Soft-delete master tidak melepas holder | Bed : Delete | ExpectedBedVersion/OperationReason (body target) | Envelope existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+
+#### Health Services / Inpatient Management / Inpatient Discharge
+
+Base URL: `api/v1/health-services/inpatient-management/discharges`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| POST | /{episodeId}/record-departure | Kepergian fisik; used bed menunggu bersih | InpatientDischarge : RecordDeparture | RecordDepartureRequest existing + ExpectedPlacementId/ExpectedBedVersion | InpatientDepartureResponse + OperationMeta | EPIC BM-02 | Existing; diperbarui |
+
+#### Health Services / Inpatient Management / Inpatient Report
+
+Base URL: `api/v1/health-services/inpatient-management/reports`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GET | /room-transfers | Laporan transfer existing | InpatientReport : ReadRoomTransfer | RoomTransferReportQuery existing | PagedResult<RoomTransferReportRow> | EPIC BM-06 | Existing / Reuse |
+| GET | /room-transfers/export | Export transfer existing, batas existing 31 hari | InpatientReport : ExportRoomTransfer | Query existing | File xlsx existing | EPIC BM-06 | Existing / Reuse |
+
+Tag MasterData/Discharge/Report dan CRUD existing mengacu source controller; tidak mengganti Tag existing. Mapping endpoint→permission **hanya canonical di bagian ini**. Semua route juga tunduk business guards, unit/bed/episode scope dan masking pada permission contract. Tidak menambahkan permissions ke role secara otomatis.
+
+### 13.3 Bentuk DTO target dan validasi
+
+| DTO/kontrak | Properti target | Aturan |
+| --- | --- | --- |
+| Mutation headers | Idempotency-Key:string required max100 pada seluruh mutation bed terdampak; Content-Type JSON; auth existing | Receipt atomik, header key tidak boleh di-log mentah |
+| OperationMeta | ReceiptId:Guid, ResultEntityId:Guid, ResultKind:string, CommittedVersion:long?, CommittedAtUtc:UTC, IsReplay:bool | Tambahan pada response mutation; state DTO hasil reload saat ini, bukan janji state commit lama |
+| OperationOutcomeResponse | OperationMeta + OperationName:string; hanya actor pemilik dan scope hasil | 200 bila committed; 404 unknown; tidak ada PHI/body permintaan |
+| BedManagementMetadataResponse | Tabs:[{key,label,allowed}], BedStatuses:[{code,label}], TransferCategories:[{code,label}], AllowedActions:string[] | Konstan produk + hak server; tidak grant role di FE |
+| BedMonitoringQuery | ServiceUnitId?:Guid, RoomId?:Guid, Status?:enam code, Search?:string max100 | Semua hasil dibatasi scope actor; search bed/kamar saja |
+| BedMonitoringResponse | AsOfUtc:UTC, Counts:{Total,Available,Occupied,Reserved,WaitingCleaning,Cleaning,Unavailable}, ServiceUnits:[{id,name,rooms:[{id,name,beds:BedOperationalResponse[]}]}] | Counts dihitung setelah scope/filter; tidak leak unit luar |
+| BedOperationalResponse | BedId, BedCode, BedName, RoomId, RoomName, ServiceUnitId, PatientClassId, PatientClassName; StatusCode, StatusLabel; CleaningPhase?:InProgress/AwaitingVerification; IsBookable:bool; OperationalVersion:long; CycleId:Guid; ConflictCode?:string; BlockReasonCodes:string[]; AvailableActions:string[]; HoldingContext?:sanitized | OperationalOnly/HK tidak diberi HoldingContext, patient/episode/reservation ID, diagnosis atau transfer reason |
+| HoldingContext | EpisodeId?, EpisodeNumber?, PatientName?, ReservationId?, ReservationExpiresAt? | Hanya jika hak existing patient/episode Read+scope terpenuhi dan actor bukan OperationalOnly; selain itu NULL/omitted, tanpa pseudonym yang dapat ditelusuri |
+| StartBedCleaningRequest | CycleId:Guid, ExpectedBedVersion:long | Wajib WaitingCleaning dan SOP assignment; SopReference dari trusted server config |
+| CompleteBedCleaningRequest | CycleId:Guid, ExpectedBedVersion:long | attemptId route; wajib Started current cycle; akun HK berwenang scope, boleh petugas lanjutan hanya jika assignment sah |
+| VerifyBedReadinessRequest | CycleId:Guid, AttemptId?:Guid, ExpectedBedVersion:long, IsReady:bool, EvidenceReference:string required max200, Reason?:string max500 | AwaitingVerification wajib attemptId current; Unverified tanpa bukti used-dirty boleh verifikasi awal tanpa attempt sesuai SOP; penolakan wajib Reason dan kembali WaitingCleaning |
+| BedOperationResponse | Bed:BedOperationalResponse, AttemptId?:Guid, OperationMeta | PHI-free |
+| BedCleaningAttemptResponse | Id, CycleId, State, StartedAtUtc, StartedByUserId, CompletedAtUtc?, CompletedByUserId?, VerifiedAtUtc?, VerifiedByUserId?, RejectionReason?, SopReference | Hanya scope operasional bed; alasan bukan diagnosis, viewer actor hanya yang berwenang |
+| BedTransferContextResponse | EpisodeId, SourcePlacementId, SourcePlacementVersion:int, SourceBed:BedOperationalResponse, CurrentRoom/Class snapshot, AsOfUtc | Episode read + scope; asal wajib current; daftar tujuan tetap available-beds episode query |
+| AvailableBedResponse extensions | OperationalVersion:long, CycleId:Guid, StatusCode:string, IsBookable:bool, ComparisonResult?:DownGrade/UpGrade/SameGrade/Unknown, AllowedManualCategories:string[] | Comparison jika episode sumber ada; Unknown tidak otomatis SameGrade |
+| TransferPatientRequest extensions | ManualTransferCategory:enum int required (1 DownGrade/2 UpGrade/3 SameGrade), ExpectedSourcePlacementId:Guid, ExpectedSourcePlacementVersion:int, ExpectedSourceBedVersion:long, ExpectedTargetBedVersion:long | Existing EpisodeId/TargetBedId/TransferReason required; min reason existing 10 dan max500 dipertahankan |
+| Reserve/Place/Cancel DTO extensions | ExpectedBedVersion:long required; Cancel Reason trim required max500 | Existing fields tetap; expected version bukan readiness assurance jika state gagal |
+| CorrectPlacementRequest extension | AffectedBedVersions:[{BedId:Guid,ExpectedVersion:long}] untuk semua bed berdampak | Pertahankan field versi koreksi existing, reason dan Billing guard; server menentukan set bed dan menolak missing/extra |
+| RecordDepartureRequest extension | ExpectedPlacementId:Guid, ExpectedBedVersion:long | Server episode+placement guard; jika sudah lepas outcome checked, jangan release ulang |
+| Master mutation extensions | ExpectedBedVersion:long required kecuali create, OperationReason:string max500 wajib close/reopen/delete/perubahan availability; create raw status default tidak menghasilkan Ready | Manual Occupied/Reserved/Cleaning/Unknown ditolak; raw Available pada reopen hanya maksud buka admin, root tetap belum Ready |
+| BedUsageHistoryQuery | BedId:Guid required, FromUtc:UTC required, ToUtc:UTC required (From<To), RoomId?:Guid, PageNumber:int=1, PageSize:int=25 | Batas teknis maxPageSize100; tidak mengimpor 31 hari report sebagai kebijakan history |
+| BedUsageHistoryResponse | PlacementId, EpisodeId? authorized, PatientIdentity? authorized, BedId, RoomId, ServiceUnitId, PatientClassId, LocationSnapshot?, ContextSource:string, SequenceNumber, StartDateTime, EndDateTime?, EndReason?, TransferCategory?, TransferFromPlacementId?, Version, CorrectsPlacementId?, SupersededByCorrectionId?, IsCurrent, IsCorrection, IsEffectiveForBilling | IsEffectiveForBilling = SupersededByCorrectionId NULL sesuai contract Billing, bukan !IsSuperseded; Reason sensitif hanya jika existing Right Correct/episode access |
+
+Monitoring adapter existing bed-board dan available-beds mengambil proyeksi/predicate yang sama. BedBoard raw BedStatus tetap kompatibel, tambah StatusCode/StatusLabel/CleaningPhase/OperationalVersion. Hanya enam status semantik: Available, Occupied, Reserved, WaitingCleaning, Cleaning, Unavailable, label BA pada state matrix. Raw status tidak dipakai UI sebagai bukti bookable. Field flat existing HoldingEpisodeId, HoldingEpisodeNumber, PatientName dan ReservationId pada BedBoardBedResponse juga wajib null/omitted untuk OperationalOnly/HK atau caller tanpa patient/episode authorization; tidak hanya HoldingContext baru yang dimask. TransferReason/history diagnosis tidak dikirim ke HK.
+
+History memilih overlap setengah-terbuka [FromUtc,ToUtc): StartDateTime<ToUtc dan (EndDateTime=NULL atau EndDateTime>FromUtc). Durasi dihitung dari fakta hunian, bukan reservasi; ongoing end=NULL. Stable sort StartDateTime DESC, PlacementId DESC; response menyertakan semua versi dan flag efektif agar correction tidak tersembunyi. Filter RoomId memeriksa RoomId segmen tersimpan, bukan kamar bed current. Scope identity diperiksa per episode row; row di luar bed/unit scope tidak dikembalikan.
+
+Contoh payload transfer samaran: EpisodeId=episode-uji-A, TargetBedId=bed-uji-B, ManualTransferCategory=3, ExpectedSourcePlacementId=placement-uji-A, ExpectedSourcePlacementVersion=1, ExpectedSourceBedVersion=7, ExpectedTargetBedVersion=4, TransferReason='Pindah kamar sesuai kebutuhan'. ID samaran ini adalah penjelasan, bukan literal UUID API; test memakai UUID fixture. Petugas harus memilih kategori, bukan server/FE mengisi default.
+
+### 13.4 Error, retry dan hasil tidak pasti
+
+| HTTP | Errors.code | Pemicu | Hasil/aksi klien |
+| --- | --- | --- | --- |
+| 400 | INVALID_INPUT | Field/format wajib, key/expected version hilang, rentang waktu tidak valid | Tidak menulis perubahan |
+| 401 / 403 | UNAUTHENTICATED / ACCESS_DENIED | Token/permission/scope/operational profile tidak sah | Tidak leak keberadaan episode di luar scope |
+| 404 | NOT_FOUND / OPERATION_UNKNOWN | Entity dalam scope tidak ada atau own receipt belum ditemukan | Outcome unknown tetap perlu cek sebelum retry |
+| 409 | STALE_BED_VERSION / STALE_PLACEMENT / BED_HOLD_CONFLICT / IDEMPOTENCY_KEY_REUSED / CLEANING_CYCLE_STALE | State berubah, pemegang lain, key input berbeda atau attempt siklus lama | Reload; tidak otomatis mengirim key baru |
+| 422 | BED_NOT_READY / BED_UNAVAILABLE / TRANSFER_CATEGORY_MISMATCH / CLASS_ORDER_UNVERIFIED / WORKFLOW_NOT_ACTIVATED / REASON_REQUIRED | Aturan bisnis/gate proof tidak terpenuhi | Tidak mengubah data, tampilkan pesan Indonesia yang dapat ditindaklanjuti |
+| 503 | DEPENDENCY_UNAVAILABLE | Guard/SOP reference/config proof tidak dapat diverifikasi | Fail closed; tidak mengklaim simpan sukses |
+
+Mutation pertama mengembalikan DTO route + OperationMeta(IsReplay=false). Retry actor/key/hash yang sama memuat ulang result entity yang masih terotorisasi, OperationMeta menunjuk commit semula dengan IsReplay=true. Semua field current pada DTO dibaca saat replay; CommittedVersion bukan current Version. GET own outcome tidak mengembalikan detail pasien. Timeout setelah commit tidak menyebabkan reversal transfer. Tidak retry otomatis mutation non-idempotent memakai key berbeda.
+
+### 13.5 Coverage
+
+DEC-274–294; AC-396–426. API/PG/contract tests target belum dijalankan (BM-G04). Contracttest harus membuktikan seluruh mutation existing termasuk master generic write tidak bypass serta identity HK tidak berada dalam JSON, bukan hanya kolom tersembunyi.
+
+### 13.6 Writer master hierarchy yang ikut invariant
+
+Route/Tag berikut ditelusuri langsung dari RoomController.cs, ServiceUnitController.cs, PatientClassController.cs pada snapshot desain. Ini pengamanan invariant bed, bukan master baru. GET/POST master hierarchy tidak berubah; PUT/status/delete yang memengaruhi existing beds masuk coordinator, sehingga old writer tidak menjadi jalur bypass.
+
+#### Health Services / Master Data / Room
+
+Base URL: `api/v1/health-services/master-data/rooms`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUT | /{id} | Guard hierarchy yang mengubah availability/class bed | Room : Update | UpdateRoomRequest existing + hierarchy mutation extension | Response existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+| PATCH | /{id}/status | Aktivasi/nonaktif hierarchy terkoordinasi | Room : Update | UpdateRoomStatusRequest existing + hierarchy mutation extension | Response existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+| DELETE | /{id} | Soft-delete hierarchy tanpa melepas holder | Room : Delete | DeleteRoomRequest existing + hierarchy mutation extension | Envelope existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+
+#### Health Services / Master Data / Service Unit
+
+Base URL: `api/v1/health-services/master-data/service-units`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUT | /{id} | Guard hierarchy yang mengubah availability/class bed | ServiceUnit : Update | UpdateServiceUnitRequest existing + hierarchy mutation extension | Response existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+| PATCH | /{id}/status | Aktivasi/nonaktif hierarchy terkoordinasi | ServiceUnit : Update | UpdateServiceUnitStatusRequest existing + hierarchy mutation extension | Response existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+| DELETE | /{id} | Soft-delete hierarchy tanpa melepas holder | ServiceUnit : Delete | DeleteServiceUnitRequest existing + hierarchy mutation extension | Envelope existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+
+#### Health Services / Master Data / Patient Class
+
+Base URL: `api/v1/health-services/master-data/patient-classes`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUT | /{id} | Guard hierarchy yang mengubah availability/class bed | PatientClass : Update | UpdatePatientClassRequest existing + hierarchy mutation extension | Response existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+| PATCH | /{id}/status | Aktivasi/nonaktif hierarchy terkoordinasi | PatientClass : Update | UpdatePatientClassStatusRequest existing + hierarchy mutation extension | Response existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+| DELETE | /{id} | Soft-delete hierarchy tanpa melepas holder | PatientClass : Delete | DeletePatientClassRequest existing + hierarchy mutation extension | Envelope existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+
+Hierarchy mutation extension: OperationReason:string max500 required bila mengubah availability/location class atau delete; AffectedBedVersions:[{BedId:Guid,ExpectedVersion:long}] sesuai set yang ditentukan server, plus Idempotency-Key. Receipt ResultKind dapat Room/ServiceUnit/PatientClass; outcome scoped pada semua bed hasil. Perubahan label/rank non-availability tetap mengunci parent dan menginvalidasi digest comparison jika berubah, tanpa mengganti snapshot sejarah; tidak menutup bed atau menghapus holder otomatis.
+
+### 13.7 Read versions untuk master consumer
+
+| Tag | Base URL | Method | Path | Hak akses | Response tambahan |
+| --- | --- | --- | --- | --- | --- |
+| Health Services / Master Data / Bed | `api/v1/health-services/master-data/beds` | GET | /{id} | Bed : Read | Bed detail existing + OperationalVersion/CycleId |
+| Health Services / Master Data / Room | `api/v1/health-services/master-data/rooms` | GET | /{id} | Room : Read | Detail existing + AffectedBedVersions:[{BedId,ExpectedVersion}] |
+| Health Services / Master Data / Service Unit | `api/v1/health-services/master-data/service-units` | GET | /{id} | ServiceUnit : Read | Detail existing + AffectedBedVersions:[{BedId,ExpectedVersion}] |
+| Health Services / Master Data / Patient Class | `api/v1/health-services/master-data/patient-classes` | GET | /{id} | PatientClass : Read | Detail existing + AffectedBedVersions:[{BedId,ExpectedVersion}] |
+
+GET detail master tambahan tidak memuat holder/pasien. AffectedBedVersions adalah read-only snapshot IDs+versions; server tetap menghitung ulang seluruh set dan recheck setelah lock. Perubahan set/versi menolak commit stale; client reload, tidak menebak expected version.
