@@ -64,4 +64,10 @@ public static class FinReceivableMovementTypes
     public const string Penyesuaian = "PENYESUAIAN";
     public const string Penghapusan = "PENGHAPUSAN";
     public const string PembayaranLangsung = "PEMBAYARAN-LANGSUNG";
+
+    /// <summary>BE-FIN-092, FIN-DES-103: saldo piutang berkurang karena potongan gaji pegawai (penuh/sebagian).</summary>
+    public const string PotonganGaji = "POTONGAN-GAJI";
+
+    /// <summary>BE-FIN-092, FIN-DES-103: saldo piutang berkurang karena pelunasan internal porsi manfaat RS.</summary>
+    public const string PelunasanInternal = "PELUNASAN-INTERNAL";
 }

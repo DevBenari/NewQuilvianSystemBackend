@@ -30,12 +30,15 @@ public sealed class FinanceReceivablesController : ControllerBase
 {
     private readonly FinanceReceivableService _service;
     private readonly FinanceReceivableBillingDataService _billingDataService;
+    private readonly FinanceReceivableClearanceService _clearanceService;
 
     public FinanceReceivablesController(
         FinanceReceivableService service,
-        FinanceReceivableBillingDataService billingDataService)
+        FinanceReceivableBillingDataService billingDataService,
+        FinanceReceivableClearanceService clearanceService)
     {
         _service = service;
+        _clearanceService = clearanceService;
         _billingDataService = billingDataService;
     }
 
@@ -47,13 +50,15 @@ public sealed class FinanceReceivablesController : ControllerBase
         Ok(ApiResponse<ReceivableFilterMetadataResponse>.Ok(
             await _service.GetFilterMetadataAsync(cancellationToken), "Metadata filter piutang berhasil diambil."));
 
+    // BE-FIN-100 (FR-FIN-219, FIN-DEC-176): parameter debtorType opsional, pola yang sama dengan
+    // GET /aging di bawah (BE-FIN-055) — null/kosong berarti seluruh FinReceivable tanpa saringan.
     [HttpGet("summary")]
     [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("FinanceReceivable", "Read")]
     [ProducesResponseType(typeof(ApiResponse<ReceivableSummaryResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetSummary(CancellationToken cancellationToken) =>
+    public async Task<IActionResult> GetSummary([FromQuery] string? debtorType, CancellationToken cancellationToken) =>
         Ok(ApiResponse<ReceivableSummaryResponse>.Ok(
-            await _service.GetSummaryAsync(cancellationToken), "Ringkasan piutang berhasil diambil."));
+            await _service.GetSummaryAsync(cancellationToken, debtorType), "Ringkasan piutang berhasil diambil."));
 
     [HttpGet("aging")]
     [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -218,6 +223,31 @@ public sealed class FinanceReceivablesController : ControllerBase
             return Ok(ApiResponse<ReceivableWriteOffResponse>.Ok(FinanceReceivableService.MapWriteOff(result), "Penghapusan piutang berhasil ditolak."));
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    // BE-FIN-096, FIN-API-1.9 O.4: dua endpoint status bebas tanggungan menempel di sini, BUKAN
+    // controller baru — ControllerName FinanceReceivable sudah terdaftar, nol resource baru
+    // (02-backend-architecture.md O.5.9). Hak akses sama persis dengan endpoint baca lain di atas.
+    [HttpGet("clearance/{benefitOwnerId:guid}")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<EmployeeClearanceResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetClearance(Guid benefitOwnerId, CancellationToken cancellationToken)
+    {
+        var result = await _clearanceService.GetAsync(benefitOwnerId, cancellationToken);
+        return Ok(ApiResponse<EmployeeClearanceResponse>.Ok(
+            result, result.IsCleared ? "Pegawai bebas tanggungan." : "Pegawai masih memiliki tanggungan."));
+    }
+
+    [HttpGet("clearance")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<List<EmployeeClearanceResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetClearanceBatch([FromQuery] ClearanceBatchQuery request, CancellationToken cancellationToken)
+    {
+        var result = await _clearanceService.GetBatchAsync(request.BenefitOwnerIds, cancellationToken);
+        return Ok(ApiResponse<List<EmployeeClearanceResponse>>.Ok(result, "Status bebas tanggungan berhasil diambil."));
     }
 
     private IActionResult Failure(Exception exception) => exception switch

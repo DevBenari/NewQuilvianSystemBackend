@@ -90,6 +90,8 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegrat
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Services;
 // BE-FIN-074: Konfigurasi bukti pembayaran langsung Finance (FIN-DES-092).
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Services;
+// BE-FIN-093: Perjanjian cicilan piutang manfaat karyawan (FIN-DES-099).
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
 
 
@@ -389,6 +391,25 @@ try
     builder.Services.AddSingleton(backendVersionManifest);
     builder.Services.AddScoped<LanguageService>();
     builder.Services.AddScoped<LoggerService>();
+    // BE-FIN-093: belum terdaftar sebelum task ini. Temuan: FinanceBillingIntakeService dan
+    // tampaknya sebagian besar service Corporate/FinanceManagement lain juga TIDAK terdaftar di
+    // sini (diverifikasi grep "AddScoped<Finance" pada berkas ini: nol hasil) walau controller dan
+    // using-nya sudah ada — nol dotnet build pernah membuktikannya, karena build sukses tidak
+    // membuktikan DI terselesaikan saat runtime. Dicatat di laporan task, TIDAK diperbaiki di sini
+    // untuk service lain — di luar cakupan BE-FIN-093.
+    builder.Services.AddScoped<FinanceReceivableInstallmentPlanService>();
+    // BE-FIN-094: pola Configure<T> sama persis dengan LeavePayrollIntegrationOptions (HR).
+    builder.Services.Configure<FinanceReceivablePayrollSyncOptions>(
+        builder.Configuration.GetSection("Finance:ReceivablePayrollSync"));
+    // BE-FIN-095: FinanceSubledgerMovementService dibutuhkan FinanceReceivablePayrollSyncService
+    // (mutasi POTONGAN-GAJI) — juga belum terdaftar sebelum task ini, temuan yang sama dengan BE-FIN-093 §3.A.
+    builder.Services.AddScoped<FinanceSubledgerMovementService>();
+    builder.Services.AddScoped<FinanceReceivablePayrollSyncService>();
+    // BE-FIN-096: murni baca, nol dependency tambahan selain ApplicationDbContext.
+    builder.Services.AddScoped<FinanceReceivableClearanceService>();
+    // BE-FIN-098: berdiri sendiri dari FinanceOpeningItemBatchService (wewenang eksplisit pengguna).
+    builder.Services.AddScoped<FinanceReceivableMigrationService>();
+    builder.Services.AddScoped<FinanceBenefitSettlementService>();
     builder.Services.AddScoped<ICompanyGuarantorReimbursementRouteService, CompanyGuarantorReimbursementRouteService>();
     builder.Services.AddScoped<CompanyGuarantorReimbursementRouteService>();
     builder.Services.AddScoped<ICompanyGuarantorCoverageRuleService, CompanyGuarantorCoverageRuleService>();

@@ -112,9 +112,13 @@ public sealed class FinanceReceivableService
         };
     }
 
-    public async Task<ReceivableSummaryResponse> GetSummaryAsync(CancellationToken cancellationToken)
+    // BE-FIN-100 (FR-FIN-219, FIN-DEC-176): parameter debtorType opsional, mengikuti pola
+    // GetAgingSummaryAsync (BE-FIN-055) — null/kosong berarti seluruh FinReceivable tanpa
+    // saringan, perilaku bawaan sebelum task ini TIDAK berubah bila dipanggil tanpa argumen ini.
+    public async Task<ReceivableSummaryResponse> GetSummaryAsync(CancellationToken cancellationToken, string? debtorType = null)
     {
         var query = _dbContext.FinReceivables.AsNoTracking().Where(x => !x.IsDelete);
+        if (!string.IsNullOrWhiteSpace(debtorType)) query = query.Where(x => x.DebtorType == debtorType);
         var counts = await query.GroupBy(x => x.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })
             .ToListAsync(cancellationToken);
@@ -1002,14 +1006,19 @@ public sealed class FinanceReceivableService
         }
     }
 
-    public async Task<ReceivableReportResponse> GetReportSummaryAsync(DateOnly? asOfDate, CancellationToken cancellationToken)
+    // BE-FIN-100 (FR-FIN-219, FIN-DEC-176): parameter debtorType opsional, pola yang sama dengan
+    // GetAgingSummaryAsync/GetSummaryAsync — null/kosong berarti seluruh FinReceivable tanpa
+    // saringan (perilaku bawaan sebelum task ini). Diteruskan juga ke GetAgingSummaryAsync di
+    // bawah supaya AgingBuckets pada laporan tetap konsisten dengan saringan yang sama.
+    public async Task<ReceivableReportResponse> GetReportSummaryAsync(
+        DateOnly? asOfDate, CancellationToken cancellationToken, string? debtorType = null)
     {
         var date = asOfDate ?? FinanceBusinessDate.Today();
-        var receivables = await _dbContext.FinReceivables.AsNoTracking()
-            .Where(x => !x.IsDelete)
-            .ToListAsync(cancellationToken);
+        var query = _dbContext.FinReceivables.AsNoTracking().Where(x => !x.IsDelete);
+        if (!string.IsNullOrWhiteSpace(debtorType)) query = query.Where(x => x.DebtorType == debtorType);
+        var receivables = await query.ToListAsync(cancellationToken);
 
-        var agingBuckets = await GetAgingSummaryAsync(date, cancellationToken);
+        var agingBuckets = await GetAgingSummaryAsync(date, cancellationToken, debtorType);
 
         var statusBreakdown = receivables
             .GroupBy(x => x.Status)

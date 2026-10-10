@@ -670,6 +670,13 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<FinReceivableWriteOff> FinReceivableWriteOffs { get; set; }
         // BE-FIN-058, FIN-DES-079: buku mutasi piutang.
         public DbSet<FinReceivableMovement> FinReceivableMovements { get; set; }
+        // BE-FIN-092, FIN-DES-099: perjanjian angsuran piutang pegawai. Migration
+        // AddFinanceReceivableInstallmentAndBenefitSettlement dibuat via CLI EF Core, belum diterapkan.
+        public DbSet<FinReceivableInstallmentPlan> FinReceivableInstallmentPlans { get; set; }
+        public DbSet<FinReceivableInstallment> FinReceivableInstallments { get; set; }
+        // BE-FIN-092, FIN-DES-102: pelunasan internal berkala porsi benefit yang ditanggung RS.
+        public DbSet<FinBenefitSettlement> FinBenefitSettlements { get; set; }
+        public DbSet<FinBenefitSettlementItem> FinBenefitSettlementItems { get; set; }
         // BE-FIN-038, FIN-DES-041: Batch Tagihan AR ke penjamin. Migration
         // AddArInvoiceBatchAndReceiptDeduction — berkas migration MENUNGGU otorisasi terpisah
         // (prasyarat #10 01-backend-roadmap.md), belum dibuat pada task ini.

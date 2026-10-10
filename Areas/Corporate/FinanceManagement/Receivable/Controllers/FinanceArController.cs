@@ -113,23 +113,31 @@ public sealed class FinanceArController : ControllerBase
         }
     }
 
+    // BE-FIN-100 (FR-FIN-219, FIN-DEC-176): request.DebtorType sudah ada di ReceivableAgingQuery
+    // sejak BE-FIN-055, tetapi TIDAK PERNAH diteruskan ke service di controller ini (gap legacy
+    // ditemukan, bukan diperkenalkan task ini) — berbeda dari FinanceReceivablesController.GetAging
+    // (route v1) yang sudah benar. Diwiring sekarang supaya kedua controller konsisten memakai
+    // kemampuan yang sama yang sudah disetujui BE-FIN-055.
     [HttpGet("aging")]
     [AccessAction("View", "View AR", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("Finance.AR", "View")]
     [ProducesResponseType(typeof(ApiResponse<List<ReceivableAgingBucketResult>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAging([FromQuery] ReceivableAgingQuery request, CancellationToken cancellationToken)
     {
-        var result = await _service.GetAgingSummaryAsync(request.AsOfDate, cancellationToken);
+        var result = await _service.GetAgingSummaryAsync(request.AsOfDate, cancellationToken, request.DebtorType);
         return Ok(ApiResponse<List<ReceivableAgingBucketResult>>.Ok(result, "Rekap umur piutang (aging) berhasil diambil."));
     }
 
+    // BE-FIN-100 (FR-FIN-219, FIN-DEC-176): parameter debtorType opsional ditambahkan pada laporan
+    // rekapitulasi — pola yang sama dengan GET /aging di atas. Null/kosong berarti seluruh
+    // FinReceivable tanpa saringan (perilaku bawaan sebelum task ini, tidak berubah).
     [HttpGet("report")]
     [AccessAction("View", "View AR", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("Finance.AR", "View")]
     [ProducesResponseType(typeof(ApiResponse<ReceivableReportResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetReport([FromQuery] DateOnly? asOfDate, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetReport([FromQuery] DateOnly? asOfDate, [FromQuery] string? debtorType, CancellationToken cancellationToken)
     {
-        var result = await _service.GetReportSummaryAsync(asOfDate, cancellationToken);
+        var result = await _service.GetReportSummaryAsync(asOfDate, cancellationToken, debtorType);
         return Ok(ApiResponse<ReceivableReportResponse>.Ok(result, "Laporan ringkasan piutang berhasil diambil."));
     }
 
