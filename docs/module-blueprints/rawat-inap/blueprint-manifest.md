@@ -1046,8 +1046,8 @@ berlaku apa adanya.
 | Product decisions | 00-interview-decisions.md rev46; DEC274–294/AC396–426 sudah ditutup |
 | Requirement gate | evidence/02-requirement-completeness-gate.md rev1.12/BM-RCG-20261010-01; enam scope siap bounded design |
 | Domain architecture | DOMAIN_ARCHITECTURE_NOT_RUN untuk BM; direct design diizinkan gate, old architecture scope lain tetap |
-| Capability evidence | BM-AUD-20261010-01 rev1 pada artifacts/bed-management; root capability map historical tetap read-only |
-| BE / FE snapshot | d4e1eca06fb28c05934c68c1e51a4dca01935a10 / 969acfcc04cdf31074a1911e9827c31d25ddadd0 |
+| Capability evidence | Historis BM-AUD-20261010-01 rev1 pada artifacts/bed-management, arsip tidak tersedia di workspace current. Current: [BM-IMP-20261011-01](./evidence/bed-management-impact-scan-20261011.md); root capability map historical tetap read-only |
+| BE / FE snapshot | Desain10 Oktober: d4e1eca06fb28c05934c68c1e51a4dca01935a10 / 969acfcc04cdf31074a1911e9827c31d25ddadd0. Impact scan11 Oktober: c5d3b5bfdc15c014a2399d904d7c4c2207505905 / 5aa2c7c70754e6131e4243b5ea3ee5f768b7a5d2 |
 | Map module | 02-module-map.md revision6 draft, bagian9; satu menu Bed Management route existing |
 | Compatibility | Mutation versions/key/manual category/reason diperketat; cutover semua consumers; no mixed writer bypass |
 | Gates | BM-G01 class, BM-G02 SOP/assignment, BM-G03 akses/privacy, BM-G04 implementasi/runtime evidence tetap activation dependencies |
@@ -1056,3 +1056,5 @@ berlaku apa adanya.
 Artefak current/hash/input provenance/owner ada pada [manifest anak](./episode-rawat-inap/blueprint-manifest.md) bagian14. MVP six epics dan12FR pada [PRD bagian26](./episode-rawat-inap/04-prd-to-mvp.md);31AC dan UAT pada [acceptance22](./episode-rawat-inap/testing/acceptance-test-matrix.md). Rincian validasi [laporan desain BM](./episode-rawat-inap/testing/bed-management-design-validation.md).
 
 Scope lain dan roadmap lama tetap pada kontrak/approval masing-masing. Tidak menulis roadmap/task, source aplikasi, migration executable atau database. Hanya dokumen blueprint. Langkah lanjutan plan-module-delivery memerlukan approval desain current dari manusia.
+
+Finalisasi11 Oktober2026 melengkapi inventaris wrapper admisi transfer IGD, membetulkan nama event sesuai kontrak Billing, serta menyinkronkan hash dan laporan validasi. Revision draft dan set kontrak target dipertahankan; tidak mengubah approval. Bukti baru tersimpan di evidence dan hash current pada manifest anak14.8. Pernyataan62 fingerprint dari sesi lama tidak dianggap sudah dijalankan ulang.

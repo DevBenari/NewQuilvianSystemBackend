@@ -2125,22 +2125,22 @@ Input hashes upstream mengikuti manifest14.1. Input hash artefak teknis saat PRD
 
 | Input relatif | SHA256 |
 | --- | --- |
-| 02-backend-architecture.md | 8eb9ae69d05cfe2013400a6cb73c721d7a235a9b0f3d7115ffe0296693e815f6 |
-| data/data-dictionary.md | f411d5b87f54ddb53b241b78c51f5ab4ebd22100c6a3e07aae8b192263e87098 |
-| contracts/api-contract.md | ddd31d88a469239e6f731eea2fe3023499fd0137ae3e35c3de284b03a1c7c531 |
+| 02-backend-architecture.md | 110761fb71f7dbfabea35ae394229805a97230c32c3493585f7c8175a0cb16ee |
+| data/data-dictionary.md | d660c2b8e260a5d45eced4c900b63416a43e09b39ed6c98ba67372901e3c9bd3 |
+| contracts/api-contract.md | 07efda0575841b26c3b21207ef0a193949908e081b42367638dd3361c1c404ca |
 | contracts/state-transition-matrix.md | 78a286e0f8441dd626c5e9fb6687ecdc549d7410d8e7867a1cdc45a12bd274e5 |
 | contracts/validation-matrix.md | a8a225a84f51b9a1e455285edfc0458c830ef1775d59f767d6e49e1664bf1dce |
 | contracts/permission-audit-matrix.md | 893c0c2d24e8ed3de0f25b42aec853d5b05e22bc89c0acf06371e6949f680960 |
-| contracts/integration-contract.md | 6ea617368b475f2493c59994181e7b8238574f1913f8857cb0095e4c84ac3714 |
-| 03-frontend-architecture.md | 5f18ddfbf44e7af2b8192f407a1cf6c625e6b38e7a1699ffe0bbabec308165d4 |
-| testing/acceptance-test-matrix.md | c8c67cb6504021e68832b2b42b9d272f3209f6435b025bdab88c88380d0f26af |
-| flowcharts/00-alur-utama.md | a2a5d5897366620db03972cdad6fa32ec807af6539b3f8522588ea3ae71ed13b |
-| flowcharts/09-bed-reservation-release.md | d7015fe25aa0b71af88b97b0756bc59e88f3034d66c6dbedc601ffb67f475837 |
-| flowcharts/10-bed-transfer.md | adff6804dbc83f16f1ff99c6ace63bcb80cf409bdf54aa0452d61019cbc19609 |
-| flowcharts/11-bed-cleaning-readiness.md | a2bd18ac9d8b49125e69e6fd929e1d19423149c3dc8118f4a7dd42cab35f838c |
-| flowcharts/12-bed-closure-reopen.md | a9340f628728ef16c556b3f2bf1e718e0826c8b095a89b3b1f47dd0f54f3abb4 |
-| flowcharts/13-bed-usage-history-correction.md | 92d3e1eaf472c44ec7e94592bd4039b651cebf0a98f69ab9545dde8ff6161651 |
-| flowcharts/14-bed-uncertain-outcome.md | 114cd5d9bd6b8cd3a8b6d28019810c8362f5935fe25ac2d267b9ed2f90edd788 |
+| contracts/integration-contract.md | 894f8df47fed471d167110375d0511d3af3a1ace94262ef47a7f4cb0ecddca31 |
+| 03-frontend-architecture.md | 41a0bb7c341b0be4c1f140278c760fd5edcebc89b4c822af53c2d57ed5d0b26b |
+| testing/acceptance-test-matrix.md | 8306cf781b25ce251ee781599306cc762a5c82edf3e3b39e8e849bdd5d6c2ca5 |
+| flowcharts/00-alur-utama.md | 51f97afcc472607e96f350d785d0b066e4d833dd4bfe2c06127127787ba2ec6d |
+| flowcharts/09-bed-reservation-release.md | b8a967e51464947f8af5c72a204643503951a9f9f279e4224b0ed9eaa2bcf857 |
+| flowcharts/10-bed-transfer.md | 97771fe2f1e9bd60bac9237f5036e55b45834c728d69f2a3fe204f01f05604d5 |
+| flowcharts/11-bed-cleaning-readiness.md | f077535b933af60a1ba816991c3f4e5eb244577634829445261b3f2b8e192ca0 |
+| flowcharts/12-bed-closure-reopen.md | d2b4e6b7375e23257c4b3b2a3f65a1d1752c2bf6d9f0905cd1e99e98cf9ee27e |
+| flowcharts/13-bed-usage-history-correction.md | 3a054a8516ebf953982c18add7a9c5cdf22e9ae6d74af1486ea4021e830b6b68 |
+| flowcharts/14-bed-uncertain-outcome.md | 13d7bf111fdfaf26505cd343d7f64cff6709244ecf05d673a4728a7d31d8a2d4 |
 
 ### 26.2 Ringkasan eksekutif
 
@@ -2194,7 +2194,7 @@ Seluruh epic berikut MUST HAVE karena tanpa salah satunya rangkaian bed siap→d
 | EPIC BM-05 — Transfer manual tervalidasi | BM-CAP-11/12 | MUST HAVE; EXTEND |
 | EPIC BM-06 — Usage history dan koreksi | BM-CAP-13/17 | MUST HAVE; EXTEND |
 
-BM-CAP-16 adalah proof readiness pada epic02/DoD, bukan klaim kemampuan runtime sudah ada. Link audit: [Capability evidence map](../../../../../artifacts/bed-management/01-existing-capability-map.md).
+BM-CAP-16 adalah proof readiness pada epic02/DoD, bukan klaim kemampuan runtime sudah ada. Bukti current: [impact scan dan capability map terbaru](../evidence/bed-management-impact-scan-20261011.md). Audit BM-AUD-20261010-01 tetap provenance historis; berkas dan daftar62 fingerprint aslinya tidak tersedia untuk verifikasi ulang pada sesi11 Oktober2026.
 
 ### 26.8 Kemampuan yang ditunda
 
@@ -2380,6 +2380,16 @@ Base URL: `api/v1/health-services/master-data/patient-classes`
 | PUT | /{id} | Guard hierarchy yang mengubah availability/class bed | PatientClass : Update | UpdatePatientClassRequest existing + hierarchy mutation extension | Response existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
 | PATCH | /{id}/status | Aktivasi/nonaktif hierarchy terkoordinasi | PatientClass : Update | UpdatePatientClassStatusRequest existing + hierarchy mutation extension | Response existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
 | DELETE | /{id} | Soft-delete hierarchy tanpa melepas holder | PatientClass : Delete | DeletePatientClassRequest existing + hierarchy mutation extension | Envelope existing + OperationMeta | EPIC BM-04 | Existing; guard diperbarui |
+
+#### [Tags("Health Services / Inpatient Management / Inpatient Admission Transfer")]
+
+Base URL: `api/v1/health-services/inpatient-management/admission-transfers`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| POST | /admit | Admisi transfer IGD dengan reserve melalui coordinator | InpatientEpisode : Create | OpenAdmissionFromTransferRequest existing + ExpectedBedVersion; Idempotency-Key header | Data episode existing + OperationMeta | EPIC BM-02 | Existing; guard diperbarui |
+
+Inventaris writer diperiksa ulang11 Oktober2026: API13.8 dan backend14.14 memasukkan wrapper reserve internal. Respons tetap201; replay memulihkan hasil lama tanpa episode kedua. Tidak mengubah keputusan klinis IGD atau memperluas menu MVP.
 
 ### 26.14 Matriks kewenangan
 

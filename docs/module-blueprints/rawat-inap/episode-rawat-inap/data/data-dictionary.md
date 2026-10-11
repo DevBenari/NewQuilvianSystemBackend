@@ -1631,7 +1631,7 @@ Bukti commit idempotent, satu actor dan key. Tidak menyimpan salinan response pa
 | IdempotencyKey | varchar(100) | Ya | Header klien | UNIQUE(ActorUserId,IdempotencyKey) | Tidak hard delete | Ya | Key stabil saat retry |
 | OperationName | varchar(64) | Ya | Nama operasi server | — | Tidak hard delete | Tidak | Nama aksi bounded bed |
 | RequestHash | char(64) | Ya | SHA256 server | — | Tidak hard delete | Ya | Method + route canonical + isi ternormalisasi + versi |
-| ResultKind | varchar(64) | Ya | Jenis hasil server | — | Tidak hard delete | Tidak | Placement/Reservation/Readiness/Bed/Departure |
+| ResultKind | varchar(64) | Ya | Jenis hasil server | — | Tidak hard delete | Tidak | Placement/Reservation/Readiness/Bed/Departure/Room/ServiceUnit/PatientClass; wrapper admisi memakai Reservation dan episode dari relasinya |
 | ResultEntityId | uuid | Ya | Hasil commit | Referensi polimorfik tervalidasi service | Tidak hard delete | Ya | Tidak memakai FK ke beberapa tabel |
 | ResultVersion | bigint | Tidak | NULL | — | Tidak hard delete | Tidak | Versi outcome saat commit |
 | CommittedAtUtc | timestamptz | Ya | Waktu server | — | Tidak hard delete | Tidak | Bukan waktu callback |

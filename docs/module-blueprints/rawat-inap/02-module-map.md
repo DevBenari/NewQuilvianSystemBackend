@@ -761,7 +761,7 @@ Bagian9 menggantikan label/akses menu bed lama pada bagian3 untuk target draft; 
 
 ### 9.3 Capability disposition
 
-ID berikut berasal dari [audit Bed Management](../../../../artifacts/bed-management/01-existing-capability-map.md) section5, bukan ID baru ciptaan PRD. Label audit adalah as-is; kolom berikut adalah target setelah decision46. Capability map root historis tidak diedit.
+ID berikut berasal dari pemetaan audit Bed Management section5 yang tersimpan pada amandemen10 Oktober, bukan ID baru ciptaan PRD. Berkas audit asli tidak tersedia di workspace sesi11 Oktober; [impact scan current](./evidence/bed-management-impact-scan-20261011.md) mempertahankan ID dan memeriksa ulang source beserta batas buktinya. Kolom berikut adalah target setelah decision46. Capability map root historis tidak diedit.
 
 | ID asal | Disposition target | Cakupan/hasil | Trace |
 | --- | --- | --- | --- |
@@ -792,3 +792,5 @@ Urutan schema/cutover pada backend14.9, urutan gelombang MVP pada PRD26.20. Tida
 ### 9.5 Status parent
 
 Manifest anak Bed Management draft membuat aggregate parent **partial**. Tiga anak lain tidak diubah atau disetujui ulang. `DOMAIN_ARCHITECTURE_NOT_RUN` khusus slice Bed Management diperbolehkan gate; bukan pembatalan arsitektur domain sebelumnya. Metadata summary lama yang drift tidak diperbaiki pada upstream decision/audit; bukti fresh dan hash dicatat pada manifest.
+
+Finalisasi11 Oktober2026 memasukkan wrapper InpAdmissionTransferService ke cutover writer existing (backend14.14/API13.8). Tidak menambah owner, tabel, menu, atau kemampuan produk. Current source evidence disimpan pada folder evidence agar ikut Git; folder artifacts lama tidak direkonstruksi.

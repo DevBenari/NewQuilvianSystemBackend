@@ -719,7 +719,7 @@ Inject failure setelah end source sebelum destination/create audit/outbox/receip
 
 ### 22.3 API/security/contract/frontend
 
-Semua 38 route inventory diuji menurut status existing/new; metode unchanged tetap regression. Tambahan header/DTO pada old consumers yang belum diperbarui harus fail400 terkendali, bukan silent old behavior. Uji HK profile dengan broad permission fixture untuk memastikan OperationalOnly tetap menolak patient/episode/reservation fields dan history; jangan hanya memakai field-hide FE. Uji unknown assignment deny, unit counters scoped, denied direct query dan noPHI in logger.
+Semua 39 route inventory diuji menurut status existing/new; metode unchanged tetap regression. Tambahan header/DTO pada old consumers yang belum diperbarui harus fail400 terkendali, bukan silent old behavior. Uji HK profile dengan broad permission fixture untuk memastikan OperationalOnly tetap menolak patient/episode/reservation fields dan history; jangan hanya memakai field-hide FE. Uji unknown assignment deny, unit counters scoped, denied direct query dan noPHI in logger.
 
 FE deferred response test memaksa refetch pertama terlambat, memastikan konfirmasi memakai returned fresh context dan stale response diabaikan. Double click/timeout stable key; online recovery no cache overwrite; modal focus/keyboard/tab roles, ongoing end=NULL, wrong category preserves input. Consumer admission/detail/master/departure/correction ikut contract regression.
 
@@ -747,3 +747,7 @@ Review generated EF Configuration/migration sesuai data dictionary; PostgreSQL d
 ### 22.6 Bukti sign-off
 
 Unit/API/PG/UI/UAT hasil target, schema migration applied evidence, master actual proof BM-G01, SOP/assignment BM-G02, security/privacy scope BM-G03 serta repairs BM-G04 semuanya belum tersedia. Laporan dokumentasi sendiri tidak menggantikan itu. Tidak menjalankan aplikasi/test target atau database pada desain ini.
+
+### 22.7 Writer admisi transfer IGD — pemeriksaan11 Oktober2026
+
+Turunan BM-AT-419/421/422 dan UAT-704 mencakup POST admission-transfers/admit: field/key hilang ditolak; versi stale tidak membuka episode; kegagalan setelah OpenAdmission dan setelah reserve menggugurkan seluruh transaksi; timeout sesudah commit diikuti retry key sama menghasilkan tepat satu episode, reservasi, disposisi existing, dan receipt. Uji dua request wrapper bersamaan untuk key yang sama serta wrapper melawan placement lain pada bed yang sama. Pastikan direct caller service tetap sah tanpa nested transaction. Helper frontend admitFromTransfer diperbarui sebelum dipakai; tidak menganggap helper yang belum dipanggil sebagai alur UI lulus. Seluruh skenario target ini **NOT_RUN**.

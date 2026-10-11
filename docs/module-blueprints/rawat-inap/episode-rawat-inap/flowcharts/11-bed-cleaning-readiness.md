@@ -6,20 +6,31 @@ Pelaku dan pemicu: HK individu dan perawat verifikator sah; pemicu used release.
 
 ```mermaid
 flowchart TD
- A["WaitingCleaning"] --> B{"Assignment, SOP, cycle/version sah?"}
- B -- Tidak --> C["Deny/konflik; tidak berubah"]
- B -- Ya --> D["HK Start: attempt Started, root Cleaning"]
- D --> E["HK Complete fisik: AwaitingVerification"]
- E --> F["Label tetap Dalam Pembersihan / Menunggu verifikasi"]
- F --> G{"Perawat ditunjuk: inspected dan ready?"}
- G -- Belum --> H["Reason wajib; attempt Rejected, root WaitingCleaning"]
- H --> A
- G -- Ya --> I["Cek holder/closure/cycle/version dan bukti"]
- I --> J{"Semua prasyarat masih sah?"}
- J -- Tidak --> C
- J -- Ya --> K["Atomic Ready + verifier/time/reference + event/receipt"]
- K --> L["Available jika master valid/aktif/reservable"]
+ subgraph hk[Housekeeping]
+  A["Bed Menunggu Pembersihan"] --> B["Mulai pekerjaan sesuai SOP sah"]
+  B --> C["Selesaikan pekerjaan fisik; tunggu verifikasi"]
+ end
+ subgraph perawat[Perawat verifikator]
+  C --> D["Periksa bed dan bukti pekerjaan"]
+  D --> E{"Sudah layak disahkan?"}
+  E -- Belum --> F["Catat alasan; kembalikan ke Menunggu Pembersihan"]
+  E -- Ya --> G["Sahkan kesiapan"]
+ end
+ subgraph sistem[Sistem]
+  G --> H{"Siklus, penugasan, hak dan kondisi terkini sah?"}
+  H -- Tidak --> I["Tahan pengesahan; minta pemeriksaan ulang"]
+  H -- Ya --> J["Tersedia jika master sah dan bed tidak ditutup"]
+ end
+ F --> B
+ I --> D
 ```
+
+| Langkah | Pelaku | Masukan | Keluaran | Bila gagal |
+| --- | --- | --- | --- | --- |
+| Mulai pekerjaan | Housekeeping | Siklus terkini, SOP dan penugasan sah | Dalam Pembersihan; pelaksana/waktu tercatat | Hak atau siklus tidak sah: baca ulang, hubungi penanggung jawab |
+| Selesai fisik | Housekeeping | Pekerjaan selesai pada siklus yang sama | Tahap Menunggu verifikasi; belum tersedia | Jangan menyatakan bed siap sendiri |
+| Periksa dan tolak | Perawat verifikator | Bed dan bukti pekerjaan; alasan penolakan | Menunggu Pembersihan; upaya terdahulu tetap ada | Lengkapi alasan; jangan menghapus upaya |
+| Sahkan kesiapan | Perawat verifikator/sistem | Bukti dan kondisi terkini sah | Tersedia hanya bila seluruh guard lolos | Tetap tertahan jika ditutup, berubah, atau bukti tidak sah |
 
 Tidak ada timer auto-ready. Close/new-cycle menginvalidasi attempt lama; history upaya tidak hilang. Verifikasi awal Unverified tanpa used-dirty memerlukan SOP/evidence dan verifier yang sama sahnya, tanpa membuat cleaning palsu.
 

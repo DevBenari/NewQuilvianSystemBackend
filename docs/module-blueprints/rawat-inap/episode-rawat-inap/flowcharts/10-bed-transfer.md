@@ -6,19 +6,32 @@ Pelaku dan pemicu: Petugas Transfer terotorisasi; pasien dengan current placemen
 
 ```mermaid
 flowchart TD
- A["Pilih episode authorized"] --> B["Server tampilkan asal current readonly"]
- B --> C["Pilih tujuan tersedia + kategori manual + alasan"]
- C --> D["Await refresh context dan target; simpan versions"]
- D --> E["Lock episode + kedua bed terurut; receipt, holder, versi, guard DPJP/folio"]
- E --> F{"Kelas resmi dan kategori cocok, tujuan ready?"}
- F -- Tidak --> G["409/422; source/destination/history tidak berubah"]
- F -- Ya --> H["Satu transaksi: end source + destination placement snapshot + audit/receipt/outbox"]
- H --> I["Asal WaitingCleaning; tujuan Occupied"]
- I --> J["Commit lalu handover/callback existing"]
- J --> K{"Callback gagal?"}
- K -- Ya --> L["Retry delivery existing; tidak reverse transfer"]
- K -- Tidak --> M["Refresh monitoring/history/detail"]
+ subgraph petugas[Petugas transfer]
+  A["Buka pasien; lihat asal otomatis"] --> B["Pilih tujuan siap, kategori manual dan alasan"]
+  B --> C["Periksa ulang lalu simpan"]
+ end
+ subgraph sistem[Sistem]
+  C --> D{"Asal, tujuan, kelas resmi dan kewenangan masih sah?"}
+  D -- Tidak --> E["Tolak perubahan; petugas memperbarui pilihan"]
+  D -- Ya --> F["Simpan perpindahan dan riwayat secara utuh"]
+  F --> G["Tujuan Terisi; asal Menunggu Pembersihan"]
+ end
+ subgraph ruangan[Petugas ruangan]
+  G --> H["Lanjutkan serah terima klinis existing"]
+  H --> I{"Serah terima dapat dilanjutkan?"}
+  I -- Ya --> J["Baca ulang lokasi dan riwayat pasien"]
+  I -- Belum --> K["Tindak lanjuti kendala; perpindahan yang sah tetap tercatat"]
+ end
+ E --> B
+ K --> J
 ```
+
+| Langkah | Pelaku | Masukan | Keluaran | Bila gagal |
+| --- | --- | --- | --- | --- |
+| Buka asal dan pilih tujuan | Petugas transfer | Hunian asal aktif; tujuan siap | Asal otomatis dan kategori dipilih manual | Baca ulang jika lokasi berubah |
+| Periksa dan simpan | Petugas transfer/sistem | Kelas resmi, alasan, hak, data terbaru | Asal, tujuan dan riwayat tersimpan bersama | Seluruh perubahan dibatalkan bila penyimpanan gagal |
+| Lanjutkan serah terima | Petugas ruangan | Perpindahan yang sudah sah | Dokumen dan proses existing dilanjutkan | Tindak lanjuti tanpa membalik perpindahan |
+| Baca hasil | Petugas transfer | Hasil server | Lokasi dan riwayat terbaru terlihat | Bila hasil belum diketahui, ikuti alur14 |
 
 SameGrade valid disediakan manual; arah/order kelas tidak ditebak dari angka0/harga/nama. Handover bukan penerimaan dua fase dan tidak menjadi gate commit.
 

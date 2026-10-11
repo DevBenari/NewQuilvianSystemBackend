@@ -453,11 +453,11 @@ Ditulis 10 Oktober 2026 sebagai respon atas evaluasi alur admisi pendaftaran ole
 | --- | --- | --- |
 | ../00-interview-decisions.md | 46; DEC-274–294 product closed, AC-396–426 | 41dd035d62e7804dff7e796712e25410152fae8e67b9444257ba73e0a6a30b3d |
 | ../evidence/02-requirement-completeness-gate.md | 1.12; BM-RCG-20261010-01; enam bounded capabilities READY_FOR_DOMAIN_DESIGN | 418066b0f721717fcb44392efc2d410b474987e030ea49352368e90a628dab2a |
-| ../../../../../artifacts/bed-management/01-existing-capability-map.md | BM-AUD-20261010-01 rev1; source-audited, Swagger section7 | 50e0e1525804260331d3a830fb379532f802a3ff31e43cd3b4df4416fa42f38b |
-| ../02-module-map.md | 6 draft; section9 Bed Management | dd31850cf99d1ef3dda5030693405ffe57b6989b3dfecf3330c4d7f9a8665c84 |
+| Audit historis: artifacts/bed-management/01-existing-capability-map.md | BM-AUD-20261010-01 rev1; arsip tidak tersedia pada sesi11 Oktober2026, hash ini tidak diverifikasi ulang | 50e0e1525804260331d3a830fb379532f802a3ff31e43cd3b4df4416fa42f38b |
+| ../02-module-map.md | 6 draft; section9 Bed Management | d503f8016d14a7dda6afe3d3579496d113d93811dcda4bf014ea06a71da34d9f |
 | Previous child manifest snapshot | revision10 approved; input history before amendment | b661259ee1812418ab0e78bc03b7c0f6dc19dda05f5bfe18b6c847843d568a8c |
 
-Input links: [decisions](../00-interview-decisions.md), [gate](../evidence/02-requirement-completeness-gate.md), [audit](../../../../../artifacts/bed-management/01-existing-capability-map.md), [module map](../02-module-map.md). `input_hash` tiap artefak Bed Management merujuk tabel ini; PRD26.1 memuat hash artefak teknis saat diturunkan. `DOMAIN_ARCHITECTURE_NOT_RUN` khusus BM: gate siap untuk bounded design langsung; arsitektur domain old scope lain tetap berlaku.
+Input links: [decisions](../00-interview-decisions.md), [gate](../evidence/02-requirement-completeness-gate.md), [impact scan current](../evidence/bed-management-impact-scan-20261011.md), [module map](../02-module-map.md). `input_hash` tiap artefak Bed Management merujuk tabel ini beserta14.8; PRD26.1 memuat hash artefak teknis saat diturunkan. Audit asli dan snapshot manifest sebelum desain merupakan provenance historis, bukan berkas yang tersedia untuk validasi ulang. `DOMAIN_ARCHITECTURE_NOT_RUN` khusus BM: gate siap untuk bounded design langsung; arsitektur domain old scope lain tetap berlaku.
 
 ### 14.2 Owner, authority dan approval
 
@@ -472,27 +472,27 @@ Input links: [decisions](../00-interview-decisions.md), [gate](../evidence/02-re
 
 ### 14.3 Artefak current dan hash
 
-Hash berikut mendeteksi drift pada **draft current**; tabel hash lama adalah bukti versi terdahulu. Manifest ini tidak menghitung hash dirinya sendiri. Contract set baru tidak mengubah last_changed_in pada extra contract lain yang tidak disentuh.
+Hash berikut mendeteksi drift pada **draft current**, disinkronkan11 Oktober2026 memakai SHA256 byte file aktual. Snapshot source menyimpan hash LF tambahan untuk membedakan perubahan akhir baris; file source tidak dinormalisasi. Tabel hash lama pada bagian terdahulu adalah bukti versi terdahulu. Manifest ini tidak menghitung hash dirinya sendiri. Contract set baru tidak mengubah last_changed_in pada extra contract lain yang tidak disentuh.
 
 | Artefak relatif | Status / last_changed_in | SHA256 |
 | --- | --- | --- |
-| 02-backend-architecture.md | draft / 0.12.0 | 0d696cfc7a5e2a01734508e518978c5db764de450c03472f30e7b1e5fb74b1ad |
-| data/data-dictionary.md | draft / 0.12.0 | f411d5b87f54ddb53b241b78c51f5ab4ebd22100c6a3e07aae8b192263e87098 |
-| contracts/api-contract.md | draft / 0.12.0 | ddd31d88a469239e6f731eea2fe3023499fd0137ae3e35c3de284b03a1c7c531 |
+| 02-backend-architecture.md | draft / 0.12.0 | 110761fb71f7dbfabea35ae394229805a97230c32c3493585f7c8175a0cb16ee |
+| data/data-dictionary.md | draft / 0.12.0 | d660c2b8e260a5d45eced4c900b63416a43e09b39ed6c98ba67372901e3c9bd3 |
+| contracts/api-contract.md | draft / 0.12.0 | 07efda0575841b26c3b21207ef0a193949908e081b42367638dd3361c1c404ca |
 | contracts/state-transition-matrix.md | draft / 0.12.0 | 78a286e0f8441dd626c5e9fb6687ecdc549d7410d8e7867a1cdc45a12bd274e5 |
 | contracts/validation-matrix.md | draft / 0.12.0 | a8a225a84f51b9a1e455285edfc0458c830ef1775d59f767d6e49e1664bf1dce |
 | contracts/permission-audit-matrix.md | draft / 0.12.0 | 893c0c2d24e8ed3de0f25b42aec853d5b05e22bc89c0acf06371e6949f680960 |
-| contracts/integration-contract.md | draft / 0.12.0 | 6ea617368b475f2493c59994181e7b8238574f1913f8857cb0095e4c84ac3714 |
-| 03-frontend-architecture.md | draft / 0.12.0 | 5f18ddfbf44e7af2b8192f407a1cf6c625e6b38e7a1699ffe0bbabec308165d4 |
-| testing/acceptance-test-matrix.md | draft / 0.12.0 | c8c67cb6504021e68832b2b42b9d272f3209f6435b025bdab88c88380d0f26af |
-| flowcharts/00-alur-utama.md | draft / 0.12.0 | a2a5d5897366620db03972cdad6fa32ec807af6539b3f8522588ea3ae71ed13b |
-| flowcharts/09-bed-reservation-release.md | draft / 0.12.0 | d7015fe25aa0b71af88b97b0756bc59e88f3034d66c6dbedc601ffb67f475837 |
-| flowcharts/10-bed-transfer.md | draft / 0.12.0 | adff6804dbc83f16f1ff99c6ace63bcb80cf409bdf54aa0452d61019cbc19609 |
-| flowcharts/11-bed-cleaning-readiness.md | draft / 0.12.0 | a2bd18ac9d8b49125e69e6fd929e1d19423149c3dc8118f4a7dd42cab35f838c |
-| flowcharts/12-bed-closure-reopen.md | draft / 0.12.0 | a9340f628728ef16c556b3f2bf1e718e0826c8b095a89b3b1f47dd0f54f3abb4 |
-| flowcharts/13-bed-usage-history-correction.md | draft / 0.12.0 | 92d3e1eaf472c44ec7e94592bd4039b651cebf0a98f69ab9545dde8ff6161651 |
-| flowcharts/14-bed-uncertain-outcome.md | draft / 0.12.0 | 114cd5d9bd6b8cd3a8b6d28019810c8362f5935fe25ac2d267b9ed2f90edd788 |
-| 04-prd-to-mvp.md | draft / 0.12.0 | b877c31dcc96ba7d33b4e66fc0c379f46cb27e4bf4d2519cd688da337f507cdd |
+| contracts/integration-contract.md | draft / 0.12.0 | 894f8df47fed471d167110375d0511d3af3a1ace94262ef47a7f4cb0ecddca31 |
+| 03-frontend-architecture.md | draft / 0.12.0 | 41a0bb7c341b0be4c1f140278c760fd5edcebc89b4c822af53c2d57ed5d0b26b |
+| testing/acceptance-test-matrix.md | draft / 0.12.0 | 8306cf781b25ce251ee781599306cc762a5c82edf3e3b39e8e849bdd5d6c2ca5 |
+| flowcharts/00-alur-utama.md | draft / 0.12.0 | 51f97afcc472607e96f350d785d0b066e4d833dd4bfe2c06127127787ba2ec6d |
+| flowcharts/09-bed-reservation-release.md | draft / 0.12.0 | b8a967e51464947f8af5c72a204643503951a9f9f279e4224b0ed9eaa2bcf857 |
+| flowcharts/10-bed-transfer.md | draft / 0.12.0 | 97771fe2f1e9bd60bac9237f5036e55b45834c728d69f2a3fe204f01f05604d5 |
+| flowcharts/11-bed-cleaning-readiness.md | draft / 0.12.0 | f077535b933af60a1ba816991c3f4e5eb244577634829445261b3f2b8e192ca0 |
+| flowcharts/12-bed-closure-reopen.md | draft / 0.12.0 | d2b4e6b7375e23257c4b3b2a3f65a1d1752c2bf6d9f0905cd1e99e98cf9ee27e |
+| flowcharts/13-bed-usage-history-correction.md | draft / 0.12.0 | 3a054a8516ebf953982c18add7a9c5cdf22e9ae6d74af1486ea4021e830b6b68 |
+| flowcharts/14-bed-uncertain-outcome.md | draft / 0.12.0 | 13d7bf111fdfaf26505cd343d7f64cff6709244ecf05d673a4728a7d31d8a2d4 |
+| 04-prd-to-mvp.md | draft / 0.12.0 | 74d6aedf3b2165e111243e064ba32a93331b38fea5a3cf9c9308a618d35e09de |
 
 ### 14.4 Scope, compatibility dan supersession
 
@@ -515,7 +515,7 @@ Tidak ada product OPEN DECISION tersisa. Gate fakta tidak dibuka ulang sebagai w
 
 ### 14.6 Validasi desain dan batas bukti
 
-Pada pemeriksaan sebelum manifest:20 bagian PRD,31AC,12UAT,9diagram structurally checked, tabel/tautan lokal/git diff check lulus;12body sejarah sebelum amandemen tetap sama setelah normalisasi header.62fingerprints dan HEAD BE/FE sama; frontend status tetap28. Pemeriksaan final manifest/hash/report melanjutkan bukti tersebut. Mermaid rendering dan aplikasi/API/PostgreSQL/migration/UAT runtime **NOT_RUN**. Rincian final ada pada [laporan validasi](./testing/bed-management-design-validation.md).
+Catatan sesi10 Oktober menyebut20 bagian PRD,31AC,12UAT,9diagram, pemeriksaan sejarah, dan62fingerprint yang cocok. Catatan itu bersifat historis; daftar62 asli tidak tersedia untuk dijalankan ulang. Sesi11 Oktober memeriksa ulang dokumen current dan47fingerprint source pilihan pada HEAD terbaru, mempertahankan keputusan/gate/capability map root, serta memperbarui inventaris menjadi39endpoint dengan wrapper admisi transfer IGD. Mermaid rendering dan aplikasi/API/PostgreSQL/migration/UAT runtime **NOT_RUN**. Hasil aktual dan batas pemeriksaan ada pada [laporan validasi](./testing/bed-management-design-validation.md).
 
 ### 14.7 Supplement bukti source
 
@@ -527,4 +527,18 @@ Pada pemeriksaan sebelum manifest:20 bagian PRD,31AC,12UAT,9diagram structurally
 | Repositories/Configurations/HealthServices/MstBedConfiguration.cs | 5673d6bd77a9a41605b90fec8def0c062e58aed2a348ff247ebd7c6cfc23a0a5 |
 | Models/ApplicationUser.cs | 214a431732b187a98f4e618d20defeebcc6938069f38b6d3e413bd5aec90f45b |
 
-Source tambahan digunakan untuk memastikan hierarchy writer actual, path EF config MasterData dan ApplicationUser. Fingerprints original62 tetap unchanged; tidak menulis ulang audit as-is atau decision log.
+Source tambahan digunakan untuk memastikan hierarchy writer actual, path EF config MasterData dan ApplicationUser. Catatan sesi10 Oktober menyebut fingerprints original62 tetap unchanged; daftar aslinya tidak tersedia untuk diperiksa ulang pada sesi11 Oktober. Audit as-is dan decision log tidak ditulis ulang.
+
+### 14.8 Bukti finalisasi11 Oktober2026
+
+Current impact scan memakai BE `c5d3b5bfdc15c014a2399d904d7c4c2207505905`, FE `5aa2c7c70754e6131e4243b5ea3ee5f768b7a5d2`. Working tree awal kedua repository bersih; perubahan sesi ini hanya dokumen blueprint. Klaim62fingerprint pada14.7 adalah catatan sesi lama dan tidak dianggap hasil pemeriksaan ulang. Snapshot baru memuat47source terpilih dan3masukan hulu.
+
+Penyempurnaan draft: wrapper reserve internal `InpAdmissionTransferService` masuk M3/API13.8/backend14.14; nama event Billing diperbaiki ke BED_OCCUPIED/OCCUPANCY_CORRECTED; allowlist ResultKind kamus data diselaraskan dengan master hierarchy. Scope produk/31AC/approval/kontrak target0.12.0 tetap. Tidak menulis atau menjalankan implementasi.
+
+| Artefak relatif | Status | SHA256 byte aktual |
+| --- | --- | --- |
+| ../evidence/bed-management-impact-scan-20261011.md | draft / BM-IMP-20261011-01 rev1 | 68ccb413da7a3398e944a2505e8d22890298ba5bad2258d223f9dbd351ed7079 |
+| ../evidence/bed-management-source-snapshot-20261011.json | snapshot source current; bukan fingerprint62 lama | 7faa06ba0dca2c4aa6dfb47510be966d467629bab87f8cfd181cd513bbd3bc45 |
+| testing/bed-management-design-validation.md | laporan validasi current; runtime NOT_RUN | 66e3d6c7a7eda93d477a801e5adea4cdd6a5e2110ed0da0487d1e611d00a7d92 |
+
+Approval manusia belum diberikan untuk amandemen. Sesudah pemilik menyetujui draft dan kontraknya, langkah berikutnya `plan-module-delivery`; BM-G01–04 tetap dependency aktivasi operasi yang relevan. Dokumen upstream dengan link artifacts lama dipertahankan read-only; status arsip yang tidak tersedia dijelaskan pada bukti current, tidak disamarkan sebagai tautan yang lulus.

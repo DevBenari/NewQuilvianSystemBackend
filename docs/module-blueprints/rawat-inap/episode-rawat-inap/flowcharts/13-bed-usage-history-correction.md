@@ -6,17 +6,34 @@ Pelaku dan pemicu: Viewer history authorized, correction oleh existing authorize
 
 ```mermaid
 flowchart TD
- A["Pilih bed dan periode UTC"] --> B["Scope bed/unit + history permission; HK deny"]
- B --> C["Query overlap segmen placement: initial, transfer, ongoing, correction"]
- C --> D["Snapshot lama atau label konteks legacy; mask identity per episode right"]
- D --> E{"Koreksi diminta?"}
- E -- Tidak --> F["Tampilkan versions dan flag efektif; tidak hapus"]
- E -- Ya --> G["Existing Correct + Billing OPEN + reason/version + impacted locks"]
- G --> H{"Guard sah?"}
- H -- Tidak --> I["Reject; versi lama tetap"]
- H -- Ya --> J["Append correction version dan notification outbox existing"]
- J --> F
+ subgraph pembaca[Pembaca berwenang]
+  A["Pilih bed dan periode"] --> B["Buka riwayat penggunaan"]
+ end
+ subgraph sistem[Sistem]
+  B --> C{"Hak dan scope baca sah?"}
+  C -- Tidak --> D["Tolak akses tanpa membuka identitas"]
+  C -- Ya --> E["Tampilkan seluruh segmen dan versi sesuai hak"]
+ end
+ subgraph korektor[Petugas koreksi berwenang]
+  E --> F{"Perlu koreksi salah catat?"}
+  F -- Tidak --> G["Baca riwayat tanpa mengubahnya"]
+  F -- Ya --> H["Ajukan koreksi beralasan"]
+ end
+ subgraph validasi[Sistem]
+  H --> I{"Hak, versi dan guard Billing sah?"}
+  I -- Tidak --> J["Tolak koreksi; riwayat lama tetap"]
+  I -- Ya --> K["Tambahkan versi koreksi; teruskan integrasi existing"]
+ end
+ K --> G
+ J --> E
 ```
+
+| Langkah | Pelaku | Masukan | Keluaran | Bila gagal |
+| --- | --- | --- | --- | --- |
+| Baca riwayat | Pembaca berwenang | Bed/periode dalam scope | Segmen awal, transfer, masih berjalan, dan koreksi | Coba baca ulang bila gagal; tanpa hak tidak membuka identitas |
+| Periksa konteks lama | Pembaca | Lokasi/kelas saat kejadian dan sumber konteks legacy | Perubahan master tidak mengubah snapshot lama | Data legacy yang tidak diketahui ditandai, tidak ditebak |
+| Ajukan koreksi | Petugas koreksi | Alasan, versi dan hak koreksi existing | Permintaan diperiksa terhadap guard Billing | Jangan menghapus atau mengganti riwayat lama |
+| Simpan versi | Sistem | Seluruh guard lolos | Versi baru dan integrasi existing; versi lama tetap | Rollback jika gagal; bila hasil tak pasti ikuti alur14 |
 
 Reservasi/HK/closure audit tidak dihitung sebagai durasi pasien. Correction bukan transfer fisik; kategori tidak memicu harga. End=NULL ongoing; SupersededByCorrectionId menentukan versi efektif Billing.
 

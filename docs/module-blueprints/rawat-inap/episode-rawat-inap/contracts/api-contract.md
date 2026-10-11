@@ -1144,3 +1144,17 @@ Hierarchy mutation extension: OperationReason:string max500 required bila mengub
 | Health Services / Master Data / Patient Class | `api/v1/health-services/master-data/patient-classes` | GET | /{id} | PatientClass : Read | Detail existing + AffectedBedVersions:[{BedId,ExpectedVersion}] |
 
 GET detail master tambahan tidak memuat holder/pasien. AffectedBedVersions adalah read-only snapshot IDs+versions; server tetap menghitung ulang seluruh set dan recheck setelah lock. Perubahan set/versi menolak commit stale; client reload, tidak menebak expected version.
+
+### 13.8 Writer admisi transfer IGD — pemeriksaan 11 Oktober 2026
+
+#### [Tags("Health Services / Inpatient Management / Inpatient Admission Transfer")]
+
+Base URL: `api/v1/health-services/inpatient-management/admission-transfers`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| POST | /admit | Admisi transfer IGD dengan reserve melalui coordinator | InpatientEpisode : Create | OpenAdmissionFromTransferRequest existing + ExpectedBedVersion; Idempotency-Key header | Data episode existing + OperationMeta | EPIC BM-02 | Existing; guard diperbarui |
+
+`ExpectedBedVersion:long` wajib, nilainya dari hasil available-beds terbaru, tidak ditebak. Field/header hilang →400; akses/scope tidak sah →403; versi/holder/key konflik →409; tidak siap atau dependency aktivasi →422/503 sesuai13.4. Sukses pertama/replay tetap HTTP201 dengan envelope existing; replay ditandai OperationMeta.IsReplay. Endpoint ini pengecualian eksplisit dari sukses200 pada13.1, sesuai controller existing.
+
+Writer menjalankan komposisi transaksi backend14.14; lookup receipt actor/key/hash mendahului pembukaan episode. ResultKind=Reservation menunjuk reservasi hasil wrapper dan episode terkait. GET own outcome tetap tidak mengembalikan PHI. Kontrak ini tidak menambah endpoint/permission IGD atau keputusan admisi baru. Bukti source dan keterbatasan helper frontend ada pada impact scan terbaru; perilaku target belum tersedia.

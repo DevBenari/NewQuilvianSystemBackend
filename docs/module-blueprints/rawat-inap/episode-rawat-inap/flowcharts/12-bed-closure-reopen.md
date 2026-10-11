@@ -6,18 +6,33 @@ Pelaku dan pemicu: Admin MasterData berwenang; seluruh write path. Trace: DEC-28
 
 ```mermaid
 flowchart TD
- A["Close/nonactive/nonreservable/delete atau hierarchy availability change"] --> B["Reason + expected version; shared lock coordinator"]
- B --> C{"Ada holder aktif setelah expiry server?"}
- C -- Ya --> D["409; tidak menutup, holder tetap terlihat"]
- C -- Tidak --> E["Invalidasi verification/cycle; interrupt attempt aktif; dirty tidak hilang"]
- E --> F["Master closed; Unavailable + audit"]
- F --> G["Reopen beralasan"]
- G --> H{"Masih butuh cleaning?"}
- H -- Ya --> I["WaitingCleaning; flow cleaning"]
- H -- Tidak --> J["Unverified; verifikasi sesuai SOP"]
- I --> K["Ready hanya dari verifier current"]
- J --> K
+ subgraph admin[Admin MasterData]
+  A["Ajukan penutupan atau perubahan master beralasan"] --> B["Periksa bed yang terdampak"]
+ end
+ subgraph sistem[Sistem]
+  B --> C{"Ada hunian atau pesanan aktif?"}
+  C -- Ya --> D["Tolak penutupan; pemegang bed tetap terlihat"]
+  C -- Tidak --> E["Tutup bed; Tidak Tersedia; jejak pekerjaan dipertahankan"]
+ end
+ subgraph pemulihan[Admin MasterData]
+  E --> F["Tangani penyebab; ajukan pembukaan beralasan"]
+ end
+ subgraph kesiapan[Perawat verifikator dan Housekeeping]
+  F --> G{"Masih perlu pembersihan?"}
+  G -- Ya --> H["Jalankan pembersihan dan pemeriksaan"]
+  G -- Tidak --> I["Periksa kesiapan sesuai SOP"]
+  H --> J["Sahkan hanya jika seluruh syarat terpenuhi"]
+  I --> J
+ end
+ D --> B
 ```
+
+| Langkah | Pelaku | Masukan | Keluaran | Bila gagal |
+| --- | --- | --- | --- | --- |
+| Ajukan perubahan master | Admin MasterData | Alasan, hak dan seluruh bed terdampak | Permintaan diperiksa terhadap pemegang aktual | Baca ulang bila data berubah |
+| Tutup bed | Admin/sistem | Tidak ada hunian atau pesanan aktif | Tidak Tersedia; alasan dan jejak tersimpan | Jangan menyembunyikan pasien atau membatalkan pesanan secara diam-diam |
+| Buka kembali | Admin | Penyebab sudah ditangani; alasan | Penutupan dibuka; kesiapan belum diasumsikan | Pertahankan bed tertahan jika penyebab belum selesai |
+| Sahkan kesiapan | HK/perawat sesuai peran | Pembersihan bila diperlukan, pemeriksaan sah | Tersedia setelah seluruh syarat lolos | Ikuti alur11; pembukaan administratif tidak menggantikan pengesahan |
 
 PUT/status/availability/create/delete tidak dapat menjadi bypass. Pada konflik data legacy, pasien/reservation aktif tetap terlihat dan pemesanan dilarang, bukan dianggap kosong.
 

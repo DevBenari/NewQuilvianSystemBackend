@@ -6,19 +6,32 @@ Pelaku dan pemicu: Petugas actor permintaan asli; pemicu timeout/network. Trace:
 
 ```mermaid
 flowchart TD
- A["Mutation terkirim dengan key/payload stabil"] --> B{"Respons diketahui?"}
- B -- Sukses --> C["Refresh data server"]
- B -- Rejected rollback --> D["Tampilkan error; perbaiki input untuk intent baru"]
- B -- Timeout --> E["Jangan tampilkan sukses; cek own operation receipt"]
- E --> F{"Committed receipt ditemukan?"}
- F -- Ya --> C
- F -- Belum/unknown --> G["Tidak menganggap batal; cek lagi atau retry same key/payload"]
- G --> H{"Koneksi pulih?"}
- H -- Tidak --> I["Tahan aksi; ikuti SOP downtime yang sah"]
- H -- Ya --> E
- I --> J["Rekonsiliasi authorized+audit sesuai SOP; tanpa cache overwrite"]
+ subgraph petugas[Petugas pemilik permintaan]
+  A["Kirim satu permintaan; pertahankan kunci dan isi semula"] --> B{"Hasil penyimpanan diketahui?"}
+  B -- Berhasil --> C["Baca ulang data server"]
+  B -- Ditolak --> D["Perbaiki isian sesudah penolakan dipastikan"]
+  B -- Belum --> E["Tampilkan hasil belum diketahui; periksa hasil semula"]
+ end
+ subgraph sistem[Sistem]
+  E --> F{"Bukti hasil tersimpan ditemukan?"}
+  F -- Ya --> C
+  F -- Belum --> G["Periksa lagi atau ulangi dengan kunci dan isi yang sama"]
+ end
+ subgraph pemulihan[Petugas berwenang]
+  G --> H{"Koneksi pulih?"}
+  H -- Ya --> E
+  H -- Belum --> I["Tahan aksi; ikuti SOP downtime sah"]
+  I --> J["Rekonsiliasi berwenang dengan jejak audit"]
+ end
  J --> E
 ```
+
+| Langkah | Pelaku | Masukan | Keluaran | Bila gagal |
+| --- | --- | --- | --- | --- |
+| Kirim permintaan | Petugas asli | Kunci dan isi untuk satu maksud | Satu permintaan terlacak | Klik ganda ditahan |
+| Periksa hasil tak pasti | Petugas/sistem | Identitas actor dan kunci semula | Hasil commit diketahui atau masih belum diketahui | Belum ditemukan tidak berarti pasti batal |
+| Ulangi dengan aman | Petugas asli | Kunci dan isi sama; koneksi tersedia | Hasil semula dipulihkan tanpa simpan ganda | Jangan membuat kunci baru atau sukses fiktif |
+| Downtime dan rekonsiliasi | Petugas yang ditunjuk | SOP sah, bukti kejadian dan kewenangan | Hasil diverifikasi dan diaudit | Tahan aksi bila SOP/penugasan belum terbukti; jangan menimpa dari cache |
 
 NotFound saat request masih in-flight bukan bukti pasti gagal. Tidak membuat offline queue, key baru otomatis, sukses fiktif atau reverse transfer karena callback. SOP rumah sakit tetap BM-G02.
 

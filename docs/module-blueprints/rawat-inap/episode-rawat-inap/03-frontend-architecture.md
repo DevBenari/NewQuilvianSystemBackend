@@ -1405,3 +1405,7 @@ Clear state/cache sensitif saat actor/unit berubah. Mask dari server tidak diisi
 ### 15.5 Accessibility dan verification
 
 Gunakan role tablist/tab/tabpanel, aria-selected, keyboard navigation/focus return modal dan label form. Badge berisi teks, tidak mengandalkan warna. Small screen mempertahankan pilihan tab/filter dan akses aksi. Uji permission direct API/UI, kontrak PHI-free HK, refresh race, keyboard dan current ongoing history sesuai acceptance matrix. Tidak mengunci library baru atau final visual pada blueprint.
+
+### 15.6 Konsumen admisi transfer IGD — finalisasi 11 Oktober 2026
+
+`src/lib/services/health-services/inpatient-management/inpatient-admission-transfer.service.js` berstatus **Diperbarui** pada target: helper `admitFromTransfer` meneruskan ExpectedBedVersion dan Idempotency-Key stabil sesuai API13.8. Helper tersedia, tetapi pencarian source terbaru tidak menemukan pemanggilnya di UI; jangan mengklaim alur UI sudah terhubung. Pemanggil yang nanti dihubungkan memakai hasil available-beds terbaru dan penanganan uncertain outcome yang sama pada15.4. Satu hasil wrapper tidak boleh membuat episode kedua saat retry. Ini inventaris kompatibilitas konsumen, bukan menu/layar baru.

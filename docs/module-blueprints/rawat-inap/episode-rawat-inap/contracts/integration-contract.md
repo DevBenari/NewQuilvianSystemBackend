@@ -356,7 +356,7 @@ Snapshot BE `d4e1eca06fb28c05934c68c1e51a4dca01935a10`, FE `969acfcc04cdf31074a1
 | INT-BM-02 | Bed operations → MasterData bed copy | Update raw status di transaksi yang sama, melalui guard coordinator | Cleaning raw4 untuk internal waiting/inprogress; closed5..7 tidak ditimpa cleaning | AC-407/412/424 |
 | INT-BM-03 | Departure/transfer → Readiness | Release placement aktual lalu root WaitingCleaning cycle baru | Closure episode lama tidak release bed baru; admission unused cancel tidak dirty | AC-407/408/426 |
 | INT-BM-04 | Transfer → Clinical handover existing | Pertahankan alur sesudah commit; gagal callback dicatat/retry existing | Tidak gate penerimaan tujuan; tidak reverse transfer committed | DEC-284/290, AC-414/422 |
-| INT-BM-05 | Placement/correction → Billing | Pertahankan OCCUPANCY_CHANGED/OCCUPANCY_CORRECTED notification existing yang sudah didefinisikan, receiver requery timeline | Gunakan integrasi-billing contract approved 1.1.0 + outbox/ack existing; tidak mengubah event name/payload dari kontrak canonical | DEC-157/161/166, AC-415/418 |
+| INT-BM-05 | Placement/correction → Billing | Pertahankan BED_OCCUPIED untuk penempatan/transfer biasa dan OCCUPANCY_CORRECTED untuk koreksi; receiver requery timeline | Gunakan integrasi-billing contract approved 1.1.0 + outbox/ack existing; tidak mengubah event name/payload dari kontrak canonical | DEC-157/161/166, AC-415/418 |
 | INT-BM-06 | Authorization platform → BedAccess | Permission existing + trusted scope assignment; deny bila proof hilang | Tidak role grants atau scope inferred; masking server | AC-416/417/425 |
 | INT-BM-07 | Frontend → API committed outcome | Key stabil, expected versions, query own outcome; invalidate affected reads | Tidak optimistic success/offline overwrite; await refresh baru confirmation | AC-420–422 |
 | INT-BM-08 | Master hierarchy writers → Bed guards | Perubahan availability unit/room/class serialized terhadap affected beds | Inventory source/path & implement adapter sebelum mixed-writer cutover | AC-419/424, BM-G04 |
@@ -372,3 +372,7 @@ Jika Billing guard atau scope dependency tidak dapat dipastikan saat commit, fai
 ### 11.3 Batas scope
 
 Tidak ada integrasi eksternal baru, worker expiry, reminder, offline workflow atau SLA baru. SOP rekonsiliasi dipenuhi dari BM-G02, bukan dibuat oleh AI. BM-DEP-01..05 pada gate tetap berlaku; dependencies non-blocking untuk desain bounded dapat menjadi blocker aktivasi operasi terkait.
+
+### 11.4 Konsumen internal reserve — finalisasi 11 Oktober 2026
+
+`InpAdmissionTransferService` juga memanggil reserve, sehingga ikut M3 dan guard INT-BM-02/07. Komposisi pembukaan episode, reserve, disposisi existing, dan receipt memakai satu transaksi caller sebagaimana backend14.14; layanan yang ikut tidak membuka transaksi bersarang. Tidak menambah integrasi eksternal, event Billing, atau aturan klinis IGD. Audit current dan fingerprint baru ada pada evidence/bed-management-impact-scan-20261011.md; arsip audit62 lama tidak tersedia untuk verifikasi ulang.

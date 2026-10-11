@@ -2937,3 +2937,18 @@ BedMutationService mencakup operasi hierarchy terdampak; logic baru tetap di ser
 Setiap Configuration baru adalah class Baru dengan lokasi `Repositories/Configurations/HealthServices/InPatientManagement/<Entity>Configuration.cs`, tujuan binding tipe/required/index/FK Restrict/concurrency sesuai kamus data21; field/dependency berupa EntityTypeBuilder<Entity>, padanan hanya Configuration entity existing untuk dua model yang Diperbarui. Model baru tidak dibentuk dari tiga tab, tetapi dari ownership kesiapan, upaya, audit dan dedup operasi.
 
 Konfigurasi new API resource memakai moduleCode yang dipakai InpatientBedOccupancyController existing dan nama resource/action yang tertulis pada API contract; tidak membuat identifier menu/role global kedua. Pemilik keamanan menetapkan grant actual pada BM-G03.
+
+### 14.14 Finalisasi 11 Oktober 2026 — writer admisi transfer IGD
+
+[Impact scan terbaru](../evidence/bed-management-impact-scan-20261011.md) menemukan `InpAdmissionTransferService.ExecuteTransferAdmissionAsync` memanggil `ReserveBedAsync` secara internal. Jalur ini termasuk cutover M3. Perbandingan commit tidak menggantikan fingerprint working tree lama yang arsipnya tidak tersedia.
+
+| Class | Status / lokasi file | Delta target |
+| --- | --- | --- |
+| InpAdmissionTransferService | Diperbarui; `Areas/HealthServices/InPatientManagement/Services/InpAdmissionTransferService.cs` | Teruskan ExpectedBedVersion dan kunci intent ke coordinator; lookup receipt sebelum membuka episode; menjadi pemilik satu transaksi untuk komposisi pembukaan episode, reserve, pencatatan disposisi existing, dan receipt |
+| InpatientAdmissionTransferController | Diperbarui; `Areas/HealthServices/InPatientManagement/Controllers/InpatientAdmissionTransferController.cs` | Tetap memakai service tersebut dan permission InpatientEpisode : Create; validasi field/header target; tidak membuka transaksi sendiri |
+| OpenAdmissionFromTransferRequest | Diperbarui; `Areas/HealthServices/InPatientManagement/DTOs/InpatientAdmissionTransferDtos.cs` | Tambahkan ExpectedBedVersion:long wajib; Idempotency-Key pada header. Field existing dan respons episode existing dipertahankan |
+| InpEpisodeService / InpBedOccupancyService | Diperbarui; `Areas/HealthServices/InPatientManagement/Services/` sesuai nama file | Operasi yang dipanggil wrapper ikut transaksi caller pada ApplicationDbContext yang sama; direct caller tetap mempunyai satu pemilik transaksi. Tidak membuka nested transaction |
+
+Target wrapper belum tersedia. Pada sukses, receipt ResultKind=Reservation menunjuk reservasi yang terikat episode; respons endpoint tetap data episode existing plus OperationMeta. Replay memakai actor/key/hash wrapper yang sama, memulihkan episode dari hasil reservasi tanpa membuka episode/reservasi/disposisi kedua. Pemeriksaan receipt dilakukan sebelum expected version yang sudah berubah karena commit semula. Semua operasi tetap memeriksa akses dan scope.
+
+Pada gagal sebelum commit, seluruh komposisi rollback; tidak menutup episode dengan kompensasi lalu mengklaim hasil atomik. Tidak melakukan callback eksternal dalam transaksi. Uji injeksi gagal setelah pembukaan episode dan setelah reserve, serta timeout sesudah commit, wajib sebelum mengaktifkan writer ini (BM-G04). Perubahan hanya komposisi teknis writer existing; keputusan klinis IGD, eligibility, dan proses admisi tetap milik kontrak existing. Jika service terkait tidak dapat ikut transaksi caller, wrapper belum boleh diaktifkan sampai rancangan komposisi ini dipenuhi.

@@ -185,24 +185,33 @@ Masukan: decision log revision **46**, RWI-DEC-274–294 dan RWI-AC-396–426; g
 Snapshot BE `d4e1eca06fb28c05934c68c1e51a4dca01935a10`, FE `969acfcc04cdf31074a1911e9827c31d25ddadd0`. Semua nama class/field/API baru di bawah adalah **target Rencana (belum tersedia)**. Bila bagian lama bertentangan mengenai bed kembali Available, amandemen ini mengikuti RWI-DEC-281/282. Persetujuan produk bukan persetujuan desain atau SOP. Hash masukan terpusat pada manifest.
 
 ```mermaid
-flowchart LR
- A["Master bed + kesiapan terbukti"] --> B["Tersedia"]
- B --> C["Dipesan, TTL server existing"]
- C --> D["Terisi / placement initial"]
- B --> D
- D --> E{"Transfer atau keluar fisik?"}
- E -- Transfer --> F["Satu commit: tujuan Terisi + snapshot"]
- E -- Keluar --> G["End placement aktual"]
- F --> H["Asal Menunggu Pembersihan"]
- G --> H
- H --> I["HK mulai: Dalam Pembersihan"]
- I --> J["HK selesai: Menunggu verifikasi"]
- J --> K{"Perawat sahkan?"}
- K -- Ya --> B
- K -- Belum --> H
- D --> L["Usage History: initial, transfer, ongoing, correction"]
- F --> L
+flowchart TD
+ subgraph admisi[Petugas admisi]
+  A["Pilih bed Tersedia"] --> B["Pesan lalu tempatkan pasien"]
+ end
+ subgraph ruangan[Petugas ruangan berwenang]
+  B --> C["Catat kepergian fisik pasien"]
+ end
+ subgraph hk[Housekeeping]
+  C --> D["Mulai lalu selesaikan pembersihan"]
+ end
+ subgraph verifier[Perawat verifikator]
+  D --> E["Periksa dan sahkan kesiapan"]
+ end
+ subgraph pembaca[Petugas pembaca berwenang]
+  E --> F["Bed kembali Tersedia; baca riwayat penggunaannya"]
+ end
 ```
+
+Diagram ini menunjukkan jalur normal penggunaan awal sampai kesiapan kembali. Jalur transfer, penolakan, dan hasil tidak pasti dirinci pada flow per proses di bawah.
+
+| Langkah | Pelaku | Masukan | Keluaran | Bila gagal |
+| --- | --- | --- | --- | --- |
+| Pilih, pesan, tempatkan | Admisi | Episode sah; bed siap; hak pada unit | Dipesan lalu Terisi | Perbarui data atau pilih bed lain; lihat alur09 |
+| Catat kepergian | Petugas ruangan | Kepergian sah dan hunian terkini | Hunian berakhir; Menunggu Pembersihan | Periksa hunian; jangan melepas pasien berikutnya |
+| Mulai dan selesai pembersihan | Housekeeping | Siklus terkini; SOP dan penugasan sah | Dalam Pembersihan; tahap Menunggu verifikasi | Pertahankan bed tertahan; lihat alur11 |
+| Periksa dan sahkan | Perawat verifikator | Hasil pekerjaan; bukti dan hak sah | Tersedia sesudah seluruh guard lolos | Catat alasan belum siap; lihat alur11 |
+| Baca riwayat | Pembaca berwenang | Bed/periode dalam scope | Seluruh segmen penggunaan sesuai hak | Coba baca ulang; lihat alur13 |
 
 Closure master sah membuat Tidak Tersedia, pembukaan kembali belum otomatis Tersedia. Reservasi unused cancel/expiry tidak masuk cleaning. Konflik data/closure/current holder tetap diperiksa pada setiap panah.
 
