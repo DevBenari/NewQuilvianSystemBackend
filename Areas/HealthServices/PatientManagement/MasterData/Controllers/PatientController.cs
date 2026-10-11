@@ -1595,7 +1595,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 using var logoCanvas = new SixLabors.ImageSharp.Image<Rgba32>(
                     canvasWidth,
                     canvasHeight,
-                    ImageSharpColor.White.ToPixel<Rgba32>()
+                    ImageSharpColor.White
                 );
 
                 var logoXInCanvas = (canvasWidth - logoImage.Width) / 2;
