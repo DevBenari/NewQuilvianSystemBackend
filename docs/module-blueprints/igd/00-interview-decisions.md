@@ -5999,3 +5999,443 @@ Instruksi pemilik mengenai penyelesaian Poin 1 (Otorisasi Role Access) dan Poin 
 
 
 
+
+### Dokter jaga IGD dan override beralasan (`EPIC IGD-12`, `S7`) — 11 Oktober 2026
+
+*Amendment pass* `grill-me` sempit yang menutup dua pertanyaan pemblokir `S7` (`IGD-OQ-102`, `IGD-OQ-103`). Pemicunya: pemilik
+menyampaikan bahwa pemilih DPJP di layar triage sudah ia ubah sehingga hanya dokter IGD yang tampil, lalu meminta agent
+memeriksanya. Pemeriksaan source menemukan perubahan itu (fakta di bawah). Pemilik kemudian mengesahkan sumber roster-nya,
+memilih isi kelompok override, dan menyetujui kontraknya lewat pertanyaan interaktif. Snapshot: backend `rizkiG`
+`c7e523fd`, frontend `RizkiV2` `3335f4b53` — keduanya working tree bersih.
+
+| Batas | Isi |
+| --- | --- |
+| Di dalam scope | Sumber dan kriteria dokter layak (jaga) IGD pada waktu tertentu; dokter yang boleh dipilih lewat override; tempat penanda override; status kontrak dan kartu hasil pass ini |
+| Di luar scope | Kriteria cuti dokter (kandidat K-c `IGD-DEC-141`); jadwal pengganti (`SubstituteDoctorId`, kandidat K-b); pengisian jadwal IGD di data master; pengesahan klinis aturan override oleh Clinical Governance (`IGD-OQ-099`) |
+
+#### Fakta
+
+| ID | Isi | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-088` | **Backend sudah punya daftar dokter jaga IGD, dibuat pemilik di luar kartu.** `GET …/emergency-doctor-assignments/on-duty-doctors` (dan alias `GET …/options`) membaca `MstDoctorSchedule` aktif yang berlaku pada jam operasional Asia/Jakarta — termasuk shift lintas tengah malam, jadwal tanggal khusus, dan rentang efektif — pada unit yang dikenali dari `ServiceUnitType.Emergency` **atau** dari nama/kode unit dan klinik yang mengandung "IGD"/"Gawat Darurat". Bila tidak ada satu pun dokter berjadwal dan `onlyOnDuty=false`, endpoint mengembalikan cadangan: dokter aktif berspesialisasi kosong, "Umum", "Emergency", atau "Gawat Darurat" (maksimal 50), bertanda `isOnDuty=false` tetapi berlabel *"(Dokter Jaga IGD)"*. Cadangan **tidak** ditawarkan selama roster terisi. Penetapan (`POST /`) dan pengalihan (`POST /{id}/handover`) hanya memeriksa dokter ada dan aktif: kelayakan tidak diperiksa ulang dan tidak ada override | backend `EmergencyDoctorAssignmentService.cs` `:425` (`AmbilDokterJagaAktifAsync`), `:452`–`465` (pencocokan unit), `:578` (cadangan), `:608`–`609` (label), `:348` (`PeriksaDokterAsync`); `EmergencyDoctorAssignmentController.cs` `:62`–`63` @`c7e523fd` (masuk lewat `f39250df`, 8 Oktober 2026) |
+| `IGD-FACT-089` | **Frontend memakai daftar itu, ditambah saringan sendiri.** Thunk `fetchEmergencyDoctorOptions` memanggil `on-duty-doctors`; bila hasilnya kosong atau galat, thunk mengambil seluruh master dokter (`doctors/options`, 50 baris). Util `mapEmergencyDoctorSelectOptions` lalu menyaring spesialisasi di layar — dokter tanpa spesialisasi dianggap dokter IGD — dan bila saringan menghabiskan semua kandidat, **semua** kandidat ditampilkan (`filtered.length > 0 ? filtered : items`). Layar tidak membedakan dokter berjadwal dari cadangan. Dipakai dua pintu: bagian dokter pada Detail triage (`Form.Select`) dan modal penetapan/pengalihan (`FilterSelect`, dipakai daftar triage dan Detail Pengkajian). Unit test `emergency-doctor-shift-assignment` 7/7 lulus (`node --test`, dijalankan agent 11 Oktober 2026) | frontend `emergency-management-triage-slice.jsx` `:698`–`738` (cadangan master `:718`); `emergency-doctor-option-utils.js` `:18`, `:97`; `emergency-triage-doctor-section.jsx`, `emergency-triage-doctor-modal-dialog.jsx` @`3335f4b53` (masuk lewat `905aec3bd`, 8 Oktober 2026) |
+
+#### Keputusan
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-237` | Decision | **Menjawab `IGD-OQ-102`. Dokter layak (jaga) IGD pada waktu T adalah dokter aktif yang punya jadwal `MstDoctorSchedule` — aktif, tidak dihapus, berstatus `Active` — yang berlaku pada T di unit layanan bertipe `ServiceUnitType.Emergency`.** (1) Unit IGD dikenali **hanya** dari tipe unit: unit layanan pada jadwal, atau unit induk klinik pada jadwal, bertipe `Emergency`; jadwal yang unitnya bertipe `Outpatient` tidak pernah dihitung. **Pencocokan nama atau kode ("IGD", "Gawat Darurat") tidak dipakai.** (2) "Berlaku pada T" dihitung pada jam operasional Asia/Jakarta: hari praktik (jadwal mingguan) atau tanggal praktik (jadwal tanggal khusus), di dalam rentang efektif, dan jam T di antara jam mulai dan jam selesai; shift lintas tengah malam dihitung dari hari mulainya. (3) T = waktu penugasan (`effectiveFrom`; kosong berarti waktu server) saat menyimpan, dan `at` (kosong berarti sekarang) saat membaca daftar. (4) Kriteria cuti (K-c) **tidak** dipakai pada versi ini; jadwal pengganti (K-b) dibaca apa adanya — dokter pada baris jadwal itulah yang dihitung. *Contoh:* dr. Ranger dijadwalkan Senin 21.00–07.00 (lintas tengah malam) di unit "Instalasi Gawat Darurat" bertipe `Emergency`. Pukul 02.00 Selasa ia layak; pukul 08.00 Selasa tidak. Unit "Poli IGD Anak" bertipe `Outpatient` tidak pernah dihitung walau namanya mengandung "IGD" | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pesan pemilik 11 Oktober 2026: *"saya setujui Sahkan sumber roster di atas sebagai jawaban IGD-OQ-102 … pencocokan nama nyaa cukup ServiceUnitType.Emergency"*; `IGD-FACT-088` |
+| `IGD-DEC-238` | Decision | **Menjawab `IGD-OQ-103`. Penanda override disimpan sebagai dua kolom baru pada `EmgDoctorAssignment`: `IsRosterOverride` (benar/salah, bawaan salah) dan `RosterOverrideReason` (teks, paling banyak 500 karakter), terpisah dari `AssignmentReason`.** `AssignmentReason` tetap berarti alasan pengalihan. Dengan kolom tersendiri, pertanyaan *"berapa penugasan di luar jadwal bulan ini, dan apa alasannya"* terjawab tanpa membaca isi teks. Konsekuensi yang diterima: satu migration, dibuat Rizki sendiri. Baris lama bernilai salah dan tanpa alasan — artinya *tidak tercatat sebagai override*, **bukan** *terbukti layak*, karena kelayakan belum pernah diperiksa sebelum aturan ini | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pesan pemilik 11 Oktober 2026: *"kerjakan sesuai rekomendasi anda"*. Rekomendasi agent pada percakapan yang sama: kolom baru, karena override harus dapat dihitung dan diaudit |
+| `IGD-DEC-239` | Decision | **Pemilih DPJP selalu menawarkan dua kelompok yang disusun backend: (a) dokter jaga IGD pada saat itu (`IGD-DEC-237`), dan (b) dokter umum/emergency aktif yang tidak sedang jaga — boleh dipilih hanya dengan alasan (override).** Kelompok (b) memakai himpunan cadangan yang sudah ada di source: spesialisasi kosong, "Umum", "Emergency", atau "Gawat Darurat". Bila kelompok (b) kosong, seluruh dokter aktif yang tidak sedang jaga ditawarkan di kelompok itu, supaya layar tidak pernah buntu (`IGD-DEC-141` butir 4). Dokter di luar kedua kelompok ditolak backend walau dikirim lewat API. Label kelompok (b) **tidak pernah** berbunyi *"Dokter Jaga IGD"*. *Contoh:* pukul 10.00 dr. Ranger dan dr. Sari sedang jaga. Perawat Dimas melihat keduanya di kelompok pertama, lalu dr. Andi (Umum) dan dr. Budi (Emergency) di kelompok kedua. Ia memilih dr. Andi karena kedua dokter jaga sedang resusitasi, dan wajib menulis alasannya. dr. Citra, Sp.JP tidak tampil dan ditolak bila dikirim lewat Postman | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pilihan interaktif pemilik 11 Oktober 2026: *"Dokter umum/emergency (Recommended)"*, atas pertanyaan dokter mana yang tetap dapat dipilih lewat override selama roster terisi |
+| `IGD-DEC-240` | Decision | **Approval desain `EPIC IGD-12` (manifest bagian 0o): API `0.16.0` §11, validation `0.15.0` §13, permission/audit `0.9.0` §10, integration `0.7.0` §8, kamus data §9, `02-backend-architecture.md` §16 beserta delapan pilihan desain §16.9, `03-frontend-architecture.md` §16, `04-prd-to-mvp.md` §11, flowchart `dokter-penanggung-jawab-igd.md`; dan izin `plan-module-delivery` menyusun ulang kartu `BE-IGD-056` dan `FE-IGD-037` pada pass yang sama.** Sementara, mengikuti pola `IGD-DEC-174`: approver yang disebut `IGD-DEC-141` untuk aturan override adalah Clinical Governance, yang masih `OPEN` (`IGD-OQ-099`). Bila peran itu ditunjuk, keputusan ini wajib ditinjau ulang | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pilihan interaktif pemilik 11 Oktober 2026: *"Langsung approved (Recommended)"*, atas pertanyaan status kontrak dan kartu hasil pass ini |
+
+Perubahan status pertanyaan terbuka — baris aslinya tidak diubah:
+
+| ID | Status baru | Ditutup oleh | Tanggal |
+| --- | --- | --- | --- |
+| `IGD-OQ-102` | **dijawab** | `IGD-DEC-237` (sumber dan kriteria), `IGD-DEC-239` (kelompok override). Angka kueri E1–E3 **tidak lagi** menahan pengembangan; keadaan data jadwal tiap lingkungan menjadi syarat rilis (`IGD-UNK-18`) | 2026-10-11 |
+| `IGD-OQ-103` | **dijawab** | `IGD-DEC-238` | 2026-10-11 |
+| `IGD-OQ-099` | Tetap `open`, **tidak menahan** (`IGD-DEC-150`) | — | — |
+
+#### Unknown baru
+
+| ID | Isi | Siapa menjawab | Menahan? |
+| --- | --- | --- | --- |
+| `IGD-UNK-18` | Apakah unit IGD di tiap lingkungan bertipe `Emergency` dan punya jadwal dokter aktif. Bila tidak, setiap penetapan DPJP menjadi override yang wajib beralasan — aman, tetapi merepotkan perawat. Terjawab dari label pemilih di layar (*"(Shift … IGD - jam)"* berarti roster terisi) atau dari kueri E1 | Rizki (dev); pemilik jadwal dokter / Master Data (lingkungan lain) | **Tidak** untuk pengembangan; **ya** untuk rilis per lingkungan |
+
+#### Yang berubah dan yang tidak
+
+| Butir | Keadaan |
+| --- | --- |
+| Kontrak | API `0.15.0` → **`0.16.0`** (§11), validation `0.14.0` → **`0.15.0`** (§13), permission/audit `0.8.0` → **`0.9.0`** (§10), integration `0.6.0` → **`0.7.0`** (§8). State **tidak berubah** (`0.10.0`) — kelayakan bukan status |
+| Schema | Dua kolom baru pada `EmgDoctorAssignment`; satu migration milik Rizki |
+| `IGD-DEC-141` | Tetap `approved`; butir 5 (*kriteria belum dikunci*) kini dijawab `IGD-DEC-237` |
+| `FE-IGD-027` | **Tetap ✅** (`IGD-DEC-141` butir 6) |
+| Kode yang sudah ada | Dipakai sebagai titik awal kartu, tidak dibuang. Kartu menyebut apa yang dipertahankan dan apa yang diubah |
+
+#### Acceptance yang dapat diuji
+
+1. Pada jam berjadwal, pemilih menampilkan dokter jaga IGD lebih dulu, lalu dokter umum/emergency di luar jadwal dengan
+   tanda yang jelas; dokter spesialis poli tidak tampil.
+2. Memilih dokter di luar jadwal tanpa alasan ditolak; dengan alasan diterima, dan riwayat penugasan memperlihatkan
+   penanda beserta alasannya.
+3. Dokter yang tidak ditawarkan ditolak backend walau dikirim lewat API.
+4. Pada jam tanpa jadwal, layar tetap dapat menetapkan dokter lewat kelompok di luar jadwal.
+
+Langkah berikutnya: `design-business-module` dan `plan-module-delivery` diteruskan pada sesi yang sama (manifest bagian
+0o dan 0o.1).
+
+### Billing IGD — 11 Oktober 2026 (`grill-me`, *amendment pass*)
+
+Slice baru atas permintaan pemilik, dengan tenggat presentasi klien *Kasir IGD* pada 21 Oktober 2026. Snapshot: backend
+`rizkiG` `c7e523fd` + working tree `BE-IGD-056`; frontend `RizkiV2` `3335f4b53` + working tree `FE-IGD-037`. Area billing
+pada capability map **belum pernah diaudit**. Fakta di bawah berasal dari pemeriksaan singkat 11 Oktober 2026, jadi
+`trace-existing-capabilities` (*impact scan*) masih diperlukan sebelum desain.
+
+| Batas | Isi |
+| --- | --- |
+| Di dalam scope | Kejadian IGD yang ditagih; kapan tiap kejadian dianggap terjadi dan dikirim ke Billing; dasar jasa dokter IGD; pembatalan dan koreksi (pasien pergi sebelum triage, triase ulang, tindakan dibatalkan); titik sentuh saat pasien dialihkan ke rawat inap; hubungan tagihan dengan penutupan kunjungan |
+| Di luar scope — untuk modul lain | Harga/tarif, PPN, biaya administrasi, invoice, pembayaran, layar kasir → Billing/Kasir (`billing-kasir`). Tagihan laboratorium, radiologi, bank darah, hemodialisa, gizi → modul penunjang masing-masing. Tagihan obat → Farmasi. Klaim penjamin → Asuransi (`PLANNED`). Pemakaian alat → bukan tagihan (`IGD-DEC-096`) |
+| Bentuk blueprint | Tetap `SINGLE` (`IGD-DEC-157` dan seterusnya; pilihan pemilik 22 September 2026). Billing IGD adalah slice di dalam blueprint IGD; ia tidak membentuk bounded context sendiri karena kepemilikan tagihan ada di Billing |
+
+#### Fakta
+
+| ID | Isi | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-090` | Billing **sudah menerima** baris tagihan bersumber `SourceDomain = "EMERGENCY"` (status tagih `CONFIRMED`, `ACCEPTED`, `COMPLETED`, `PERFORMED`, `DISPENSED`, `ADDED`; status batal `CANCELLED`, `VOIDED`), dirancang untuk konsolidasi tagihan alihan IGD ke rawat inap (`BKC-DEC-117`). **Tidak satu pun kode IGD mengirim sumber itu** | `BillingChargeSourceAdapter.cs` `:91`–`97`; `grep '"EMERGENCY"'` di luar `BillingManagement` kosong @`c7e523fd` |
+| `IGD-FACT-091` | Tindakan (`TrxPatientProcedure`) dan resep sampai ke Billing lewat fakta klinis (`ClinicalMilestoneFactProducer`) dan finalisasi Farmasi. Jasa konsultasi per catatan dokter untuk encounter `Emergency` sengaja tidak dikirim (`IGD-DEC-229`, `BE-IGD-068`). Jasa kunjungan IGD dan observasi **belum** punya pengirim | `ClinicalMilestoneFactProducer.cs`; `ConsultationFinalizationService.cs` @`c7e523fd` |
+| `IGD-FACT-092` | Blueprint Billing/Kasir sudah memutuskan untuk IGD: PPN obat/alkes berlaku seperti rawat jalan (`BKC-DEC-078`, `079`); biaya administrasi IGD memakai biaya administrasi rawat jalan; penebusan obat IGD diizinkan (`FR-BKC-080`); tagihan alihan IGD digabung ke invoice rawat inap tanpa kehilangan `SourceDomain` (`BKC-DEC-117`, `FR-BKC-247`) | `docs/module-blueprints/billing-kasir/00-interview-decisions.md`, `04-prd-to-mvp.md` |
+
+#### Keputusan
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-241` | Decision | **Batas scope slice Billing IGD** sebagaimana tabel di atas: IGD menentukan kejadian yang ditagih dan kapan dikirim; harga, PPN, administrasi, invoice, dan pembayaran tetap milik Billing/Kasir | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pilihan interaktif pemilik: *"Benar (Recommended)"* |
+| `IGD-DEC-242` | Decision | **Jasa kunjungan IGD ditagih sekali per kunjungan, sudah termasuk pemeriksaan dokter jaga, dan dikirim ke Billing saat DPJP pertama ditetapkan.** Pengalihan DPJP tidak menambah baris; catatan dokter tidak menambah jasa (`IGD-DEC-229`). Pasien yang pergi sebelum ditriage (`NoShow`, `IGD-DEC-142`) tidak tertagih karena belum punya DPJP. Menyempitkan kelompok *jasa kunjungan IGD* pada `IGD-DEC-097`. *Contoh:* Tn. Budi tiba 10.05, ditriage 10.10, DPJP dr. Ranger ditetapkan 10.15 → satu baris *Jasa kunjungan IGD*. Pukul 11.00 DPJP dialihkan ke dr. Andi dan tiga catatan dokter ditulis → tetap satu baris | Product/Domain Owner IGD; **Finance owner `OPEN`** sebagai approver akhir (`IGD-DEC-097`) | `approved` — sementara, pola `IGD-DEC-174`; wajib ditinjau Finance owner bila ditunjuk | **Rizki Gunawan / 2026-10-11** | Pilihan interaktif pemilik: *"Sekali per kunjungan (Recommended)"* |
+| `IGD-DEC-243` | Decision | **Resusitasi ditagih sebagai tindakan; observasi ditagih satu baris per periode observasi yang diselesaikan.** Resusitasi (misalnya RJP) dicatat dokter atau perawat sebagai tindakan klinis umum (`IGD-DEC-225`) dan sampai ke Billing lewat jalur tindakan yang sudah ada — tanpa mekanisme baru. Periode observasi yang **diselesaikan** mengirim satu baris *Observasi IGD* beserta lamanya; periode yang **dibatalkan** tidak ditagih. Harga per durasi diatur Billing. Menyempitkan kelompok *observasi dan resusitasi* pada `IGD-DEC-097`. *Contoh:* RJP pukul 10.20 dicatat sebagai tindakan → satu baris tindakan. Periode observasi 10.30–16.30 diselesaikan → satu baris *Observasi IGD*, lama 6 jam. Periode kedua dibatalkan pukul 17.00 → tidak ada baris | Product/Domain Owner IGD; Finance owner `OPEN` | `approved` — sementara, pola `IGD-DEC-174`; wajib ditinjau Finance owner | **Rizki Gunawan / 2026-10-11** | Pilihan interaktif pemilik: *"Per periode, resus = tindakan (Recommended)"* |
+| `IGD-DEC-244` | Decision | **Bahan habis pakai IGD dikeluarkan dan ditagih oleh Farmasi** (resep atau pengeluaran sekali pakai/amprah), sama seperti obat. IGD tidak mencatat atau mengirim tagihan BHP sendiri, sehingga tidak ada stok maupun tagihan ganda. Menyerahkan kelompok *obat dan bahan habis pakai* pada `IGD-DEC-097` seluruhnya ke Farmasi | Product/Domain Owner IGD; titik sentuh Farmasi | `approved` — sementara, pola `IGD-DEC-174` | **Rizki Gunawan / 2026-10-11** | Pilihan interaktif pemilik: *"Lewat Farmasi (Recommended)"* |
+| `IGD-DEC-245` | Decision | **Kunjungan IGD yang dibatalkan (salah daftar atau duplikat) mengirim pembatalan atas tagihan yang sudah dikirim IGD** — jasa kunjungan dan observasi — dengan status `VOIDED`, lalu Billing menandainya untuk ditinjau (`IGD-DEC-098`). Pasien yang pulang atas permintaan sendiri, dirujuk, atau meninggal **bukan** pembatalan dan tetap ditagih. Tindakan dan obat dibatalkan lewat modul pemiliknya masing-masing, bukan oleh IGD. *Contoh:* Ny. Sari terdaftar dua kali; kunjungan kedua sempat diberi DPJP lalu dibatalkan → baris jasa kunjungan kedua menjadi `VOIDED` dan muncul di daftar tinjau Billing | Product/Domain Owner IGD; Finance owner `OPEN` | `approved` — sementara, pola `IGD-DEC-174` | **Rizki Gunawan / 2026-10-11** | Pilihan interaktif pemilik: *"Batal otomatis + tinjau (Recommended)"* |
+| `IGD-DEC-246` | Decision | **Tagihan IGD dikirim ke Billing seketika saat kejadiannya terjadi**, bukan dikumpulkan sampai kunjungan ditutup: jasa kunjungan saat DPJP pertama ditetapkan, observasi saat periodenya diselesaikan, pembatalan saat kunjungan dibatalkan. Kasir IGD melihat tagihan berjalan, dan penggabungan ke invoice rawat inap (`BKC-DEC-117`) tidak menunggu penutupan kunjungan. Bila Billing gagal dihubungi, pengiriman diulang tanpa menahan pelayanan maupun penutupan klinis (`IGD-DEC-021`, `IGD-DEC-025`); kiriman ulang tidak boleh melahirkan baris ganda. *Contoh:* DPJP ditetapkan 10.15 → baris jasa kunjungan terkirim 10.15; observasi selesai 16.30 → baris observasi terkirim 16.30; kasir pukul 16.35 sudah melihat keduanya | Product/Domain Owner IGD; Finance owner `OPEN` | `approved` — sementara, pola `IGD-DEC-174` | **Rizki Gunawan / 2026-10-11** | Pilihan interaktif pemilik: *"Seketika saat terjadi (Recommended)"* |
+| `IGD-DEC-247` | Decision | **Batas rilis pertama Billing IGD (target demo Kasir IGD 21 Oktober 2026): jasa kunjungan IGD (`IGD-DEC-242`) ditambah tindakan dan obat yang sudah mengalir hari ini, tampil di kasir IGD.** Observasi per periode (`IGD-DEC-243`) dan pembatalan otomatis (`IGD-DEC-245`) masuk rilis berikutnya. Keputusan keduanya tetap berlaku; yang ditunda hanya pengerjaannya | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pilihan interaktif pemilik: *"Inti dulu (Recommended)"* |
+
+Perubahan status keputusan lama — baris aslinya tidak diubah:
+
+| ID | Status sesudah pass ini |
+| --- | --- |
+| `IGD-DEC-097` | Tetap `draft` untuk Finance owner. Keempat kelompoknya kini dirinci: jasa kunjungan → `IGD-DEC-242`; tindakan → jalur `IGD-DEC-225`; observasi dan resusitasi → `IGD-DEC-243`; obat dan bahan habis pakai → `IGD-DEC-244` (milik Farmasi) |
+| `IGD-DEC-098` | Tetap `draft`; diterapkan pertama kali oleh `IGD-DEC-245` |
+
+#### Unknown dan pertanyaan terbuka
+
+| ID | Isi | Siapa menjawab | Memblokir |
+| --- | --- | --- | --- |
+| `IGD-UNK-19` | Kode layanan/tarif apa yang dipakai IGD untuk *Jasa kunjungan IGD* dan *Observasi IGD* di master tarif Billing, dan apakah kode itu sudah ada | `trace-existing-capabilities`; pemilik master tarif Billing | `DESIGN` |
+| `IGD-UNK-20` | Jalur pengiriman yang sah ke Billing: kontrak *upsert charge* dengan `SourceDomain = "EMERGENCY"` (`IGD-FACT-090`), fakta klinis lewat `ClinicalMilestoneFactProducer`, atau jalur lain; termasuk kunci anti-ganda untuk kiriman ulang | `trace-existing-capabilities` | `DESIGN` |
+| `IGD-UNK-21` | Apakah tindakan dan obat pasien IGD hari ini benar-benar tampil di layar Kasir IGD | `trace-existing-capabilities` + satu uji layar | Demo 21 Oktober (`IGD-DEC-247`) |
+| `IGD-OQ-120` | Finance owner untuk pengesahan akhir `IGD-DEC-097`, `098`, `242`…`246` | Rizki Gunawan (penunjukan) | Tidak — keputusan berlaku sementara (pola `IGD-DEC-174`) |
+
+#### Blocker desain
+
+Nol blocker bisnis. Desain menunggu `IGD-UNK-19` dan `IGD-UNK-20`, keduanya pertanyaan fakta source, bukan keputusan.
+
+#### Acceptance yang sudah dapat diuji
+
+1. Penetapan DPJP pertama pada sebuah kunjungan melahirkan tepat satu baris *Jasa kunjungan IGD* di Billing; pengalihan
+   DPJP dan catatan dokter tidak menambah baris.
+2. Pasien yang pergi sebelum ditriage tidak punya baris jasa kunjungan.
+3. Kiriman ulang karena Billing sempat gagal tidak melahirkan baris ganda.
+4. Kasir IGD melihat jasa kunjungan, tindakan, dan obat untuk satu pasien IGD.
+5. *(Rilis berikutnya)* Periode observasi yang diselesaikan melahirkan satu baris *Observasi IGD*; periode yang dibatalkan
+   tidak.
+6. *(Rilis berikutnya)* Kunjungan yang dibatalkan mengubah baris jasa kunjungan dan observasinya menjadi `VOIDED` dan
+   muncul di daftar tinjau Billing.
+
+#### Di luar scope — dicatat untuk modul lain
+
+| Butir | Pemilik |
+| --- | --- |
+| Harga jasa kunjungan dan observasi IGD, PPN, administrasi | Billing/Kasir |
+| Tagihan BHP dan obat IGD | Farmasi (`IGD-DEC-244`) |
+| Layar dan alur Kasir IGD | Billing/Kasir |
+
+Langkah berikutnya: `trace-existing-capabilities` (*impact scan* area billing) untuk menjawab `IGD-UNK-19`…`21`, lalu
+`design-business-module` untuk slice Billing IGD.
+
+#### Hasil *impact scan* billing — 11 Oktober 2026 (suplemen 3.6)
+
+`trace-existing-capabilities` dijalankan pada backend `rizkiG` `c7e523fd` + working tree `BE-IGD-056` dan frontend
+`RizkiV2` `3335f4b53` + working tree `FE-IGD-037`. Working tree tidak menyentuh berkas billing, Farmasi, maupun
+ClinicalManagement. Bukti lengkap, tabel kemampuan `IGD-CAP-99`…`115`, dan kontrak as-is ada di
+`01-existing-capability-map.md` suplemen 3.6. Read-only; nol kueri basis data; nol uji runtime.
+
+##### Fakta
+
+| ID | Isi | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-093` | **Tindakan, obat, laboratorium, dan radiologi pasien IGD tidak tampil di layar kasir hari ini.** Layar *Invoice & Billing Kasir* dan *Running Invoice* hanya membaca invoice, dan tidak ada jalur otomatis yang membuat invoice untuk kunjungan IGD. Invoice IGD hanya lahir bila kasir menambah tarif katalog secara manual. *Contoh:* Tn. Budi dipasangi infus dan diberi resep parasetamol di IGD; kasir mencari namanya dan tidak menemukan apa pun | `BillingInvoiceService.GetCashierOverviewAsync` `:507`–`551`; `catalog-charges`; suplemen 3.6 `IGD-CAP-99`, `100`, `113` |
+| `IGD-FACT-094` | **Jembatan folio → invoice menghentikan kunjungan IGD dengan kode `NOT_OUTPATIENT`, dan baris yang berhenti tidak terlihat siapa pun.** Kontrak rawat jalan menyerahkan pembukaan gerbang itu kepada pemilik IGD; rawat inap sudah membukanya untuk dirinya sendiri (`BE-RWI-155`). Baris `NotApplicable` tidak tampil di antrean rekonsiliasi dan tidak dapat dikirim ulang | `BillingClinicalChargeBridgeService.BuildPlanAsync` `:139`–`140`; `rawat-jalan/contracts/integration-contract.md` `:218`; `BillingChargeReconciliationService` `:158`–`161`, `:254`–`257` |
+| `IGD-FACT-095` | **Tindakan IGD tidak menerbitkan fakta tagih sama sekali.** Tindakan dokter IGD tersimpan *Planned* dan fakta hanya terbit lewat `PATCH …/{id}/execute`, yang tidak pernah dipanggil layar IGD. Tindakan perawat IGD (`BE-IGD-069`) tersimpan langsung *Completed* tanpa fakta. Akibatnya resusitasi yang dicatat sebagai tindakan (`IGD-DEC-243`) tidak pernah tertagih | `PatientProcedureController` `:883`–`917`, `:1303`; `PatientProcedureOrderService.CreateEmergencyNursingActionAsync` `:314`, `:437`, `:460`; `emergency-doctor-procedure-tab.jsx` `:319`–`331` |
+| `IGD-FACT-096` | **Resep IGD menerbitkan fakta, tetapi berhenti di jembatan; kiriman langsung resep selalu ditolak untuk semua jenis kunjungan.** `PrescriptionBillingChargeProducer` mengirim status `SUBMITTED` pada kontrak `1.2`, padahal adapter hanya menerima `DISPENSED`, atau `PRESCRIBED` pada kontrak `1.3`. Ini temuan untuk pemilik Farmasi dan Billing, bukan pekerjaan IGD | `ConsultationFinalizationService` `:251`–`254`, `:281`; `PrescriptionBillingChargeProducer` `:40`, `:43`; `BillingChargeSourceAdapter` `:114`–`115` |
+| `IGD-FACT-097` | **Farmasi menahan resep sampai ada surat lunas dari Billing, tanpa pengecualian IGD — inferensi, belum diuji runtime.** Empat gerbang (telaah, penyiapan, pemeriksaan akhir, penyerahan) menolak resep tanpa surat clearance, dan surat hanya terbit dari invoice. Resep IGD tidak pernah sampai invoice, jadi kemungkinan tidak dapat ditelaah. Bertentangan dengan `PHA-DEC-007`: *"Tagihan rawat inap/IGD timbul setelah pemberian obat kepada pasien"* | `PrescriptionReviewService` `:64`; `PrescriptionPreparationService` `:31`; `PrescriptionFinalCheckService` `:62`; `PrescriptionDispensingService` `:172`, `:301`; `PrescriptionFinancialClearanceService.DescribeAsync` `:129`–`139`; `pharmacy/00-interview-decisions.md` `:158` |
+| `IGD-FACT-098` | **Jalur fakta klinis → folio → jembatan sudah memenuhi `IGD-DEC-246`.** Identitas fakta per sumber dan agregat, kunci deterministik per fakta dan revisi, `BilChargeReceipt`, satu baris per (`SourceDomain`, `SourceDetailId`), satu invoice per kunjungan, dan dua pekerja latar yang mengirim ulang dengan jeda bertingkat. Sebaliknya, *upsert* langsung mewajibkan pengirim membawa harga dan kategori tarif | `ClinicalMilestoneFactProducer` `:128`, `:353`–`360`; `BillingClinicalChargeBridgeService.DeterministicKey` `:618`–`625`; `UpsertChargeAsync` `:1772`–`1863`; `Program.cs` `:1011`, `:1013`; `UpsertChargeRequest` |
+| `IGD-FACT-099` | **Tidak ada kode, tarif, atau aturan harga untuk *Jasa kunjungan IGD* dan *Observasi IGD* di source.** Penetapan harga Billing belum punya cabang untuk sumber IGD. `MstTariff` sudah memuat `ProcedureId`, kelas pasien, unit layanan, dan dasar hitung `PerHour` | `BillingSourceTariffResolver` `:33`–`45`, `:402`–`428`; `MstTariff.cs` `:22`, `:25`, `:42`, `:57` |
+
+##### Status unknown dan conflict lama — baris aslinya tidak diubah
+
+| ID | Status sesudah scan |
+| --- | --- |
+| `IGD-UNK-19` | **Dijawab sebagian** (`IGD-FACT-099`). Sisa: apakah baris tarifnya sudah ada di layar *Master Tarif* tiap lingkungan (dilihat pemilik, tanpa mengubah), dan bentuk pengenalnya (`IGD-OQ-123`) |
+| `IGD-UNK-20` | **Dijawab** (`IGD-FACT-094`, `098`). Jalur sah: fakta klinis dengan agregat = kunjungan IGD, dipetakan ke `SourceDomain = "EMERGENCY"`. Perubahan di area Billing dicatat sebagai titik sentuh (suplemen 3.6 bagian 7) |
+| `IGD-UNK-21` | **Dijawab dari source: tidak tampil** (`IGD-FACT-093`, `095`, `096`). Konfirmasi lewat satu uji layar Antigravity, panduannya diserahkan pada percakapan ini |
+| `IGD-UNK-16` | **Dijawab.** Jasa konsultasi IGD tidak dikirim; fakta resep IGD berhenti `NOT_OUTPATIENT` |
+| `IGD-CONF-10` | **Selesai** lewat `IGD-DEC-229` dan `BE-IGD-068`; diverifikasi `ConsultationFinalizationService` `:222`@`c7e523fd` |
+
+##### Conflict baru
+
+| ID | Isi | Penyelesaian |
+| --- | --- | --- |
+| `IGD-CONF-13` | Premis `IGD-DEC-247` — *tindakan dan obat yang sudah mengalir hari ini* — tidak terpenuhi (`IGD-FACT-093`, `095`, `096`) | Keputusan pemilik `IGD-OQ-121` |
+| `IGD-CONF-14` | `BKC-DEC-117` menyebut semua item IGD ber-`SourceDomain = "EMERGENCY"`, sedangkan jembatan memakai domain per jenis dan surat clearance Farmasi hanya mengenali `PHARMACY` | Desain, bersama tim Billing. Usulan: domain per jenis untuk tindakan, obat, penunjang; `EMERGENCY` hanya untuk baris milik IGD |
+| `IGD-CONF-15` | `PHA-DEC-007` (obat IGD ditagih sesudah diberikan) versus gerbang lunas Farmasi tanpa pengecualian IGD (`IGD-FACT-097`) | Keputusan `IGD-OQ-122`, Farmasi sebagai pemilik gerbang |
+
+##### Pertanyaan terbuka baru
+
+| ID | Isi | Siapa menjawab | Memblokir |
+| --- | --- | --- | --- |
+| `IGD-OQ-121` | Isi rilis demo Kasir IGD 21 Oktober 2026 sesudah `IGD-CONF-13` | Rizki Gunawan | `DESIGN`, demo 21 Oktober |
+| `IGD-OQ-122` | Kapan obat IGD ditagih, dan apakah Farmasi menunggu lunas sebelum menelaah resep IGD | Rizki Gunawan bersama tim Farmasi | Obat IGD di kasir; keselamatan obat IGD |
+| `IGD-OQ-123` | Bagaimana Billing mengenali harga *Jasa kunjungan IGD* | Rizki Gunawan bersama pemilik master tarif | `DESIGN` jasa kunjungan |
+| `IGD-UNK-22` | Apakah Farmasi benar-benar menolak telaah resep IGD tanpa surat clearance | Uji layar (skenario opsional) | Bukti `IGD-FACT-097` |
+| `IGD-UNK-23` | Apakah kebijakan kirim ulang `INVOICE_SYNC` aktif di tiap lingkungan | Billing — `GET …/master-data/billing-sync-policies` | Kirim ulang `IGD-DEC-246` |
+
+##### Blocker desain sesudah scan
+
+Desain jasa kunjungan menunggu `IGD-OQ-121` dan `IGD-OQ-123`. `IGD-OQ-122` hanya menahan obat IGD. `IGD-CONF-14` diselesaikan
+di dalam desain.
+
+##### Keputusan sesudah *impact scan* — 11 Oktober 2026
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-248` | Decision | **Menjawab `IGD-OQ-121` dan menyelesaikan `IGD-CONF-13`. Rilis pertama Billing IGD (demo Kasir IGD 21 Oktober 2026) berisi: jasa kunjungan IGD (`IGD-DEC-242`), tindakan IGD oleh perawat dan dokter — termasuk resusitasi (`IGD-DEC-243`) — serta laboratorium dan radiologi IGD, semuanya tampil di layar kasir.** Untuk itu tindakan IGD mulai menerbitkan fakta tagih (`IGD-FACT-095`) dan jembatan Billing dibuka untuk kunjungan IGD bagi tindakan, laboratorium, dan radiologi (`IGD-FACT-094`). **Obat IGD menyusul** sesudah gerbang Farmasi dikerjakan (`IGD-DEC-249`); observasi per periode dan pembatalan otomatis tetap rilis berikutnya. Menggantikan isi rilis pada `IGD-DEC-247`; batas scope `IGD-DEC-241` tidak berubah. *Contoh:* Tn. Budi tiba 10.05, DPJP dr. Ranger ditetapkan 10.15, perawat memasang infus 10.20, spesimen darah rutin diterima laboratorium 10.40. Pukul 11.00 kasir melihat tiga baris: *Jasa kunjungan IGD*, pemasangan infus, dan darah rutin. Resep ondansetron belum tampil pada rilis ini | Product/Domain Owner IGD; titik sentuh Billing dan ClinicalManagement | `approved` | **Rizki Gunawan / 2026-10-11** | Pilihan interaktif pemilik: *"Kunjungan+tindakan+penunjang (Recommended)"*. Persetujuan tim Billing atas perubahan di `BillingManagement` dicatat dari laporan pemilik saat approval desain |
+| `IGD-DEC-249` | Decision | **Menjawab `IGD-OQ-122` dan menyelesaikan `IGD-CONF-15`. Resep IGD biasa (`PrescriptionOrderType` `Routine` dan `Daily`) ditelaah, disiapkan, dan diserahkan Farmasi tanpa menunggu lunas, lalu ditagih saat obat diserahkan (tahap `DISPENSED`) — seperti rawat inap pada jembatan hari ini dan sejalan dengan `PHA-DEC-007`. Resep obat pulang (`Discharge`) tetap melewati gerbang lunas: ditagih saat resep difinalkan, dan Farmasi menunggu pembayaran — sejalan dengan penebusan obat IGD (`FR-BKC-080`).** *Contoh:* dokter jaga meresepkan ondansetron injeksi untuk pasien muntah hebat (resep biasa). Farmasi langsung menelaah dan menyerahkannya pukul 10.30; baris obat masuk tagihan pukul 10.30. Saat pulang, dokter menulis resep parasetamol tablet berjenis obat pulang; keluarga membayar di kasir lebih dulu, baru Farmasi menyerahkan obatnya. Pekerjaan tagihannya masuk rilis sesudah `IGD-DEC-248`; pemeriksaan runtime gerbang hari ini lewat `IGD-UNK-22` | Product/Domain Owner IGD; **Farmasi** sebagai pemilik gerbang; Billing | `approved` — sementara, pola `IGD-DEC-174`; persetujuan tim Farmasi dicatat dari laporan pemilik saat approval desain | **Rizki Gunawan / 2026-10-11** | Pilihan interaktif pemilik: *"Bebas gerbang, resep pulang lunas (Recommended)"* |
+| `IGD-DEC-250` | Decision | **Menjawab `IGD-OQ-123` dan sisi aturan `IGD-UNK-19`. Billing mengenali harga jasa kunjungan IGD dari satu item master tindakan *Jasa kunjungan IGD* (tersedia untuk IGD) beserta tarifnya per kelas pasien di Master Tarif, memakai cara cari tarif yang sudah ada (menurut `ProcedureId`, kelas pasien, dan tanggal berlaku). Harganya sama untuk semua DPJP.** Item dan tarifnya diisi pemilik master tarif, bukan oleh agent. Bila tarif belum ada pada tanggal pelayanan, baris masuk antrean rekonsiliasi Billing dengan sebab `TARIFF_NOT_FOUND` — tidak pernah Rp0. Letak penunjuk ke item itu ditetapkan pada desain. *Contoh (angka contoh, bukan tarif rumah sakit):* tarif *Jasa kunjungan IGD* kelas Umum Rp150.000 dan kelas VIP Rp250.000. Tn. Budi pasien kelas Umum, DPJP-nya dokter umum atau spesialis — tagihannya tetap Rp150.000 | Product/Domain Owner IGD; pemilik master tarif; Finance owner `OPEN` (`IGD-OQ-120`) | `approved` — sementara, pola `IGD-DEC-174` | **Rizki Gunawan / 2026-10-11** | Pilihan interaktif pemilik: *"Item tindakan + tarif per kelas (Recommended)"* |
+
+Perubahan status butir lama — baris aslinya tidak diubah:
+
+| ID | Status sesudah keputusan di atas |
+| --- | --- |
+| `IGD-DEC-247` | Isi rilisnya digantikan `IGD-DEC-248`; penundaan observasi dan pembatalan otomatis tetap berlaku |
+| `IGD-OQ-121`, `IGD-OQ-122`, `IGD-OQ-123` | Dijawab `IGD-DEC-248`, `249`, `250` |
+| `IGD-UNK-19` | Sisi aturan dijawab `IGD-DEC-250`. Sisi data — apakah item dan tarifnya sudah ada di tiap lingkungan — dilihat pemilik di layar *Master Tindakan* dan *Master Tarif* tanpa mengubah apa pun |
+
+##### Blocker desain sesudah keputusan
+
+Nol blocker bisnis untuk desain rilis `IGD-DEC-248`. `IGD-CONF-14` diselesaikan di dalam desain bersama tim Billing.
+`IGD-UNK-22` dan `IGD-UNK-23` tidak menahan desain, tetapi menahan bukti siap demo.
+
+##### Langkah berikutnya
+
+Uji layar `IGD-UNK-21`/`22` (panduan Antigravity pada percakapan ini), lalu `requirement-completeness-gate` dan
+`hospital-domain-architect` untuk slice lintas modul ini, lalu `design-business-module` dan `plan-module-delivery` sampai
+kartu BE/FE rilis `IGD-DEC-248` terbit.
+
+##### Uji layar dibatalkan dan urutan rilis — 11 Oktober 2026 (lanjutan)
+
+Pemilik menyatakan uji layar `IGD-UNK-21`/`22` tidak dapat dijalankan karena alur klinis IGD — pemeriksaan dokter, tindakan,
+dan resep — belum selesai. Roadmap mengonfirmasi hal itu.
+
+| ID | Isi | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-100` | **Alur klinis yang menjadi sumber tagihan IGD belum lulus uji.** Kartu `MVP-9` sudah diimplementasikan, tetapi bukti acceptance-nya belum lengkap: daftar pasien dokter `FE-IGD-045` 3 dari 10, catatan dokter `FE-IGD-047` 3 dari 9, resep `FE-IGD-049` 2 dari 7, kajian medis `BE-IGD-066` 2 dari 7; tab Tindakan dokter dan perawat (`FE-IGD-050`, `051`) beserta `BE-IGD-069` belum diuji. Tab Penunjang dokter (`FE-IGD-052`) belum dimulai, dan pesanan lab/radiologi perawat (`BE-IGD-071`, `FE-IGD-057`) tertahan `IGD-OQ-117`. Jasa kunjungan hanya bergantung pada penetapan DPJP (`BE-IGD-056`) | `roadmap/backend-roadmap.md` `:262`–`268`; `roadmap/frontend-roadmap.md` `:211`–`224` (dibaca, tidak disunting) |
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-251` | Decision | **Menjawab `IGD-OQ-124`. Rilis Billing IGD dikerjakan bertahap; target `IGD-DEC-248` tidak berubah.** (1) **Jasa kunjungan IGD dikerjakan lebih dulu dan menjadi satu-satunya isi yang dijanjikan pada demo 21 Oktober 2026**, karena hanya bergantung pada `BE-IGD-056`. (2) Tagihan tindakan — fakta tindakan perawat dan dokter — dikerjakan paralel, dan ditampilkan pada demo hanya bila tab Tindakan perawat atau dokter (`FE-IGD-050`, `051`) sudah lulus uji. (3) Gerbang jembatan dibuka sekaligus untuk tindakan, laboratorium, dan radiologi, tetapi lab dan radiologi **tidak** dijanjikan pada demo, karena tab Penunjang dokter belum dibuat dan pesanan perawat tertahan `IGD-OQ-117`. Uji layar `IGD-UNK-21` dibatalkan; bukti runtime pindah ke uji ujung-ke-ujung kartu Billing IGD. *Contoh:* pada demo, Tn. Budi diberi DPJP pukul 10.15, dan kasir melihat baris *Jasa kunjungan IGD*. Bila tab Tindakan perawat sudah lulus uji sebelum 21 Oktober, pemasangan infus pukul 10.20 ikut tampil sebagai baris kedua; bila belum, baris itu tidak dijanjikan | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pernyataan pemilik 11 Oktober 2026: *"untuk uji ini tidak akan berjalan karna memang kita belum membuat nyaa sampai ke kasir"*; pilihan interaktif *"Bertahap, kunjungan dulu (Recommended)"* |
+
+Perubahan status butir lama — baris aslinya tidak diubah:
+
+| ID | Status sesudah keputusan di atas |
+| --- | --- |
+| `IGD-UNK-21` | Tetap dijawab dari source (tidak tampil). Uji layar konfirmasi dibatalkan; bukti runtime = uji ujung-ke-ujung kartu Billing IGD |
+| `IGD-UNK-22` | Dipindah ke pengujian alur resep layar dokter IGD (`FE-IGD-049`): akun Apoteker mencoba menelaah resep hasil uji |
+| `IGD-OQ-124` | Diajukan dan dijawab pada pass ini — *bagaimana rilis Billing untuk demo disusun bila alur klinis IGD belum lulus uji* — dijawab `IGD-DEC-251` |
+| Langkah berikutnya sebelumnya | Digantikan langkah di bawah; panduan uji Antigravity tidak dipakai |
+
+##### Langkah berikutnya (menggantikan yang di atas)
+
+`requirement-completeness-gate`, lalu `hospital-domain-architect` untuk slice lintas modul ini, lalu `design-business-module`
+dan `plan-module-delivery`. Kartu jasa kunjungan disusun sebagai gelombang pertama. Desain dan perencanaan menulis ke luar
+berkas ini, jadi keduanya menunggu pemilik menyatakan sesi DPJP (`BE-IGD-056`, `FE-IGD-037`) ditutup.
+
+##### Urutan tahap dan pembagian peran — 11 Oktober 2026 (lanjutan)
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-252` | Decision | **Urutan kerja Billing IGD disahkan.** Sebelum demo: **Tahap 0** (Senin 12 Oktober) — tutup DPJP `BE-IGD-056`/`FE-IGD-037`; owner Billing membuat item dan tarif *Jasa kunjungan IGD* (hari ini atau Senin); cek kebijakan `INVOICE_SYNC`. **Tahap 1** (12–13 Oktober) — gate kelengkapan, arsitektur domain, desain, dan rencana kartu dalam batas `IGD-DEC-251`. **Tahap 2** (14–16 Oktober) — bangun jasa kunjungan: fakta dari IGD sesudah DPJP pertama tersimpan, sumber baru dan cabang tarif di Billing, diusahakan tanpa migration. **Tahap 3** (15–19 Oktober, paralel, bukan janji demo) — uji tab Tindakan perawat, fakta tagih tindakan perawat, gerbang jembatan untuk tindakan, lab, dan radiologi. **Tahap 4** (20 Oktober) — gladi ujung-ke-ujung dengan akun peran nyata, lalu bekukan kode. Sesudah demo, berurutan: tuntaskan `MVP-9` beserta fakta tindakan dokter; obat IGD (`IGD-DEC-249`, didahulukan karena keselamatan pasien); penunjang (`FE-IGD-052`, `BE-IGD-071`); observasi, pembatalan otomatis, dan konsolidasi rawat inap. *Contoh:* bila tarif *Jasa kunjungan IGD* belum dibuat sampai Jumat 16 Oktober, baris tagihan Tn. Budi masuk antrean rekonsiliasi `TARIFF_NOT_FOUND` dan tidak tampil di kasir walau kodenya benar — karena itu data tarif ada di Tahap 0 | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pesan pemilik 11 Oktober 2026: *"saya putuskan saya setuju dengan beberapa catatan"* |
+| `IGD-DEC-253` | Decision | **Pembagian peran: IGD mengirim data pelayanan; owner Billing memiliki master tarif, invoice, dan layar kasir — termasuk tampilan *Kasir IGD*.** Seluruh pelayanan tertagih yang terjadi di IGD wajib sampai ke Billing: jasa kunjungan (sudah termasuk jasa dokter jaga/DPJP, `IGD-DEC-242`), tindakan perawat dan dokter, obat dari resep IGD (lewat jalur Farmasi, `IGD-DEC-244`, `249`), pemakaian alat bertarif (`IGD-DEC-254`), dan penunjang (lewat modul penunjang masing-masing). Biaya administrasi IGD dihitung Billing sendiri dari invoice berjenis layanan `IGD` (`AdministrationFeeServiceTypes.Igd`); IGD tidak mengirim baris administrasi. Jasa konsultasi per catatan dokter tetap tidak dikirim (`IGD-DEC-229`), dan pembagian jasa medis (`DoctorShare`) milik modul Medical Fee. Akibatnya **tidak ada kartu frontend IGD untuk layar kasir**. **Persetujuan:** owner Billing dan tim ClinicalManagement menyetujui di muka perubahan di modul mereka yang **hanya menambah** sesuai kebutuhan IGD dan **tidak mengubah alur yang ada** — rawat jalan, rawat inap, dan layar mereka berperilaku sama seperti sebelumnya. *Contoh:* membuka gerbang jembatan untuk kunjungan IGD termasuk persetujuan ini, karena kunjungan rawat jalan dan rawat inap tetap diproses persis sama | Product/Domain Owner IGD; owner Billing; tim ClinicalManagement | `approved` | **Rizki Gunawan / 2026-10-11**, atas nama persetujuan lisan owner Billing dan tim ClinicalManagement (persetujuan lisan tim internal cukup dari laporan pemilik) | Pesan pemilik 11 Oktober 2026: *"jika ada izin terkait ke ownner billing maka sudah pasti di setujui yang penting kita tidak merubah alur hanya menambahkan sesuai dengan kebbutuhan igd begitu juga poin 2 persetujuan tim billing dan clinical"*; *"kasir igd bukan kita yang membuat tapi data semua pemeriksaan yang ada di igd akan masuk ke billing"* |
+| `IGD-DEC-254` | Decision | **Menjawab `IGD-OQ-125`. Pemakaian alat bertarif di IGD — misalnya ventilator atau *syringe pump* yang dihitung per jam — ditagih, memakai pencatatan pemakaian alat rawat inap (`CliEquipmentUsage`) yang diperluas ke kunjungan IGD, dan jalur tagih `EQUIPMENT_USAGE` yang sudah ada di Billing. Dikerjakan sesudah demo; posisinya dalam urutan `IGD-DEC-252` ditetapkan saat perencanaan.** `IGD-DEC-096` tetap berlaku untuk hal yang berbeda: pencatatan alat invasif (kateter, jalur infus) demi PPI dan keselamatan pasien, bukan tagihan. Hari ini pencatatan alat bertarif hanya menerima episode rawat inap (`CliEquipmentUsageService.StartAsync` `:45`–`58`@`c7e523fd`). *Contoh:* Tn. Budi memakai ventilator di IGD pukul 11.00–14.30; perawat mencatat mulai dan selesai, dan Billing menagih menurut tarif per jam alat itu. Kateter urine yang dipasang pada kunjungan yang sama dicatat untuk PPI dan tidak menghasilkan baris tagihan | Product/Domain Owner IGD; owner Billing | `approved` — sementara, pola `IGD-DEC-174` | **Rizki Gunawan / 2026-10-11** | Pesan pemilik: *"jika igd hanya mengirim data pemeriksaan seperti resep , obat , tindakan, penggunaan alat, penunjang medis dari igd akan diikirim ke billing"* (penjelasan owner Billing); pilihan interaktif *"Ditagih, sesudah demo (Recommended)"* |
+
+Perubahan status butir lama — baris aslinya tidak diubah:
+
+| ID | Status sesudah keputusan di atas |
+| --- | --- |
+| `IGD-DEC-096` | Dipersempit oleh `IGD-DEC-254`: hanya mengatur pencatatan alat invasif untuk PPI. Baris *"Pemakaian alat → bukan tagihan"* pada tabel batas scope Billing IGD di atas dibaca dengan penyempitan ini |
+| `IGD-OQ-125` | Diajukan dan dijawab pada pass ini — *apakah pemakaian alat IGD ditagih* — dijawab `IGD-DEC-254` |
+
+**Apakah alur kerja IGD berubah?** Tidak, bagi perawat dan dokter. Data dikirim otomatis di belakang layar saat kejadiannya
+terjadi — DPJP ditetapkan, tindakan disimpan, resep diselesaikan, obat diserahkan, spesimen diterima — tanpa layar atau klik
+baru. Satu titik dijaga di desain supaya tetap begitu: tindakan dokter IGD hari ini tersimpan *Planned* dan baru menerbitkan
+fakta saat di-*execute* (`IGD-FACT-095`). Usulan desain: tindakan yang dicatat dokter di IGD dianggap sudah dikerjakan saat
+disimpan, seperti tindakan perawat, sehingga tidak ada tombol tambahan. Perubahan alur yang memang terjadi berada di luar
+IGD: Farmasi tidak lagi menunggu lunas untuk resep IGD biasa (`IGD-DEC-249`, sesudah demo).
+
+**Daftar owner Billing dibanding rencana.** Jasa kunjungan tidak disebut dalam daftar owner Billing, padahal itu satu-satunya
+janji demo (`IGD-DEC-251`). Pemilik mengonfirmasinya kepada owner Billing bersamaan dengan pembuatan tarif pada Tahap 0.
+
+Batas persetujuan di muka `IGD-DEC-253` — dicatat supaya tidak ditafsirkan melebar:
+
+| Butir | Sikap |
+| --- | --- |
+| Pengaman `from-source` diperluas ke kunjungan IGD (suplemen 3.6, `IGD-CAP-113`) | Butir ini **menutup** jalan input manual domain klinis untuk kunjungan IGD, demi mencegah baris ganda. Hanya kunjungan IGD yang terdampak, tetapi tetap disebut terang pada approval desain |
+| Gerbang lunas Farmasi untuk resep IGD (`IGD-DEC-249`) | **Tidak** tercakup — Farmasi tidak disebut. Persetujuan lisan tim Farmasi dicatat dari laporan pemilik saat tahap obat IGD dimulai |
+| Kiriman langsung resep yang selalu ditolak (`IGD-FACT-096`) | Bukan kebutuhan IGD; tidak disentuh. Diteruskan sebagai temuan kepada owner Farmasi dan Billing |
+
+Kebutuhan data master untuk owner Billing (Tahap 0) — disusun dari cara cari tarif yang ada (`BillingSourceTariffResolver.FindTariffAsync` `:402`–`428`):
+
+| Layar | Isian | Nilai yang dibutuhkan | Alasan |
+| --- | --- | --- | --- |
+| Master Tindakan | Nama | *Jasa kunjungan IGD* | Penanda pelayanan |
+| Master Tindakan | Kode | Bebas, misalnya `IGD-KUNJ`; **beri tahu kodenya** | Desain menetapkan cara Billing menunjuk item ini |
+| Master Tindakan | Tersedia untuk IGD; aktif | Ya; ya | — |
+| Master Tarif | Tindakan | Item di atas | Tarif dicari menurut tindakan |
+| Master Tarif | Klinik | **Kosong** | Kunjungan IGD umumnya tanpa klinik; tarif berklinik tidak akan cocok |
+| Master Tarif | Kelas pasien | Satu baris per kelas, atau satu baris tanpa kelas sebagai bawaan | Baris berkelas lebih diutamakan daripada baris tanpa kelas |
+| Master Tarif | Dasar hitung; harga; berlaku mulai; aktif | `PerService`; harga pilihan Billing; paling lambat tanggal uji pertama; ya | Tarif yang belum berlaku pada waktu pelayanan dianggap tidak ada |
+| Master Tarif | Kategori tarif | Pilihan Billing | Menentukan pengelompokan di invoice |
+| Kebijakan administrasi | Jenis layanan `IGD` | Sesuai Billing | Bila kosong, biaya administrasi IGD nol rupiah |
+| Kebijakan kirim ulang | `INVOICE_SYNC` | Aktif | Tanpanya kiriman ulang otomatis mati (`IGD-UNK-23`) |
+
+*Contoh pengisian (angka contoh, bukan tarif rumah sakit):* tindakan `IGD-KUNJ` *Jasa kunjungan IGD*; tarif kelas Umum
+Rp150.000 dan kelas VIP Rp250.000, klinik kosong, berlaku mulai 12 Oktober 2026.
+
+##### Keadaan akhir sesi Billing — 11 Oktober 2026 (malam)
+
+Pemilik melanjutkan slice ini 12 Oktober 2026 dari mesin lain. Bagian ini menjadi titik masuk sesi berikutnya.
+
+| Butir | Keadaan |
+| --- | --- |
+| Pesan ke owner Billing | Dikirim pemilik 12 Oktober 2026 (isi: konfirmasi baris *Jasa kunjungan IGD*, kode tindakan, tarif berklinik kosong per kelas, kebijakan administrasi `IGD`, `INVOICE_SYNC` aktif — tabel kebutuhan data master di atas). Jawaban dicatat sebagai fakta di bagian ini |
+| Menunggu owner Billing | Konfirmasi jasa kunjungan; kode tindakan; tarif sudah dibuat; persetujuan terang atas pengaman `from-source` untuk kunjungan IGD; tafsir `BKC-DEC-117` sesuai usulan `IGD-CONF-14`; jenis alat bertarif yang dimaksud (`IGD-DEC-254`) |
+| Menunggu tim Farmasi | Persetujuan `IGD-DEC-249` (sesudah demo); konfirmasi `IGD-UNK-22` dari pengalaman layar; temuan `IGD-FACT-096` |
+| Masih terbuka | `IGD-OQ-120` (Finance owner), `IGD-UNK-22`, `IGD-UNK-23`, `IGD-CONF-14` (diselesaikan di desain) |
+| Langkah berikutnya | Tahap 1 `IGD-DEC-252`: `requirement-completeness-gate` untuk rilis `IGD-DEC-251`, lalu `hospital-domain-architect`, lalu `design-business-module` dan `plan-module-delivery`. Desain dan rencana menulis ke luar bagian ini, jadi menunggu pemilik menyatakan sesi DPJP ditutup |
+| Nomor yang dipakai slice Billing | `IGD-DEC-241`…`254`, `IGD-FACT-090`…`100`, `IGD-OQ-121`…`125`, `IGD-UNK-19`…`23`, `IGD-CONF-13`…`15`, `IGD-CAP-99`…`115`. Sesi DPJP memakai `IGD-FACT-101`…`105`, `IGD-DEC-255`…`259`, `IGD-OQ-126`. Sebelum memberi nomor baru, cari nomor tertinggi di seluruh folder blueprint |
+
+### Pemeriksaan bukti uji DPJP dokter jaga — 11 Oktober 2026 (sore)
+
+Lahir dari pemeriksaan bukti mentah `QuilvianSystemFrontendDev/test-with-agy/igd/uji-dpjp-dokter-jaga-2026-10-11/`
+(`data-uji.json`, dua belas JSON, lima PNG, sembilan skrip) terhadap log backend `Logs/quilvian-backend-20261011.json`,
+**bukan** terhadap ringkasan penguji. Laporan penguji:
+[`testing/2026-10-11-laporan-uji-antigravity-dpjp-dokter-jaga.md`](testing/2026-10-11-laporan-uji-antigravity-dpjp-dokter-jaga.md)
+(tidak disunting). Putusan per skenario ada di laporan
+[`BE-IGD-056` §8](task/report/backend/BE-IGD-056.md) dan [`FE-IGD-037` §9](task/report/frontend/FE-IGD-037.md). Snapshot:
+backend `rizkiG` `c7e523fd` + working tree `BE-IGD-056`; frontend `RizkiV2` `3335f4b53` + working tree `FE-IGD-037`.
+Pemilik menjawab *"setuju"* atas daftar saran agent; jumlah warning build, uji `Down`, konfirmasi sesi SuperAdmin, dan
+pertanyaan spesialis/konsulen tetap terbuka.
+
+| Batas | Isi |
+| --- | --- |
+| Di dalam scope | Perlakuan bukti putaran DPJP; delta acceptance `BE-IGD-056` dan `FE-IGD-037`; tambahan penanda override pada DPJP aktif |
+| Di luar scope | Daftar riwayat penugasan lengkap di layar; perubahan jadwal atau data master oleh agent; Billing IGD |
+
+#### Fakta
+
+| ID | Isi | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-101` | Lingkungan uji sah. Backend dinyalakan 15.32 WIB dan melayani putaran 16.07–16.42 WIB tanpa dinyalakan ulang; respons memuat pesan aturan 8–10 dan ruas `isRosterOverride`. Kelima PNG: `nextjsPortalNull: true` dan tanpa lencana "N". Akun penguji `dimas.kurniawan` (`isSuperAdmin: false`); sandi dari variabel lingkungan; nol SuperAdmin, *Simpan Akses*, atau SQL di skrip. Seluruh permintaan putaran resmi cocok dengan log; tiga penulisan berhasil, semuanya dilaporkan | `BE-IGD-056` §8.1, §8.3 |
+| `IGD-FACT-102` | Kegiatan penguji yang tidak dilaporkan: eksplorasi 16.07–16.22 WIB (190 permintaan, termasuk 4 `POST /emergency-doctor-assignments` → `400`), satu sesi layar 16.29 WIB, dan pemindaian `?at=` 16.36–16.41 WIB (65 permintaan); skripnya tidak tersimpan. Nol penulisan berhasil | Log backend; `BE-IGD-056` §8.4 a–c |
+| `IGD-FACT-103` | Laporan penguji berbeda dari bukti: nama pasien V1 dan V2, `effectiveTo` D1, spesialisasi D3, dan harapan `AT-IGD-220` b yang diganti di skrip tanpa disebut | `BE-IGD-056` §8.4 d–g |
+| `IGD-FACT-104` | `EmergencyTriageDoctorSection` — termasuk `DaftarRiwayatDokter` dan tanda *"Di luar jadwal jaga — alasan"* — tidak dipasang di layar mana pun sejak `a8044eaf9` (7 Oktober 2026). Pintu pemilih DPJP hanya dua modal: panel riwayat triage (`emergency-triage-history-panel.jsx`) dan Ruang Kerja Pemeriksaan IGD (`emergency-assessment-detail-view.jsx`). Akibatnya penanda override dari `FE-IGD-037` tidak terlihat pengguna (`AT-IGD-216`) | `git grep`; `git show a8044eaf9`; `AT216-*.png` |
+| `IGD-FACT-105` | Jadwal IGD dev terisi Shift Pagi, Siang, dan Malam dengan dokter yang sama (dr. Farhan Malik). Karena daftar menampilkan satu baris per dokter, `AT-IGD-220` b (07.30) tidak dapat menunjukkan berakhirnya shift malam, dan tidak ada jam tanpa jadwal untuk `AT-IGD-219` | `AT220-api.json`, `AT219-api.json`; `AmbilDokterJagaAktifAsync` |
+
+#### Keputusan
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-255` | Decision | **Bukti uji DPJP 11 Oktober 2026 diterima dengan penyimpangan tercatat** (preseden `IGD-DEC-210`, `218`): kegiatan tak dilaporkan (`IGD-FACT-102`) dan ketidakcocokan laporan penguji (`IGD-FACT-103`). Putusan per skenario mengikuti pemeriksaan agent, bukan ringkasan penguji | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pesan pemilik: *"setuju"* atas saran agent butir 1 |
+| `IGD-DEC-256` | Decision | **Acceptance 6 `FE-IGD-037` memakai opsi (a): penanda *Di luar jadwal jaga* beserta alasannya tampil pada DPJP aktif** — banner DPJP di pintu A dan tampilan DPJP di pintu B — bila `isRosterOverride` DPJP aktif bernilai benar. Kriteria 6 dibaca "penanda pada DPJP aktif", bukan daftar riwayat. Dua berkas di luar enam berkas Cakupan disahkan sebagai delta. Daftar riwayat penugasan lengkap di layar tidak termasuk dan dapat menjadi task terpisah. *Contoh:* sesudah DPJP Tn. Budi dialihkan ke dr. Andi (Umum, tidak berjadwal) dengan alasan *"Dua dokter jaga sedang resusitasi"*, banner menampilkan baris *Di luar jadwal jaga — alasan: Dua dokter jaga sedang resusitasi* | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pesan pemilik: *"setuju"* atas saran agent butir 2 |
+| `IGD-DEC-257` | Decision | **`AT-IGD-219` diuji ulang pada jendela tanpa jadwal IGD yang disiapkan pemilik di dev** (Senin 12 Oktober 2026). Agent tidak mengubah jadwal | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pesan pemilik: *"setuju"* atas saran agent butir 3 |
+| `IGD-DEC-258` | Decision | **`AT-IGD-220` b, `AT-IGD-220` d, dan aturan 6 validation §13 disahkan sebagai delta berdasarkan source** (`KueriJadwalIgdBerlaku`, `KueriKelompokLuarJadwalAsync`), supaya data master tidak diubah menjelang demo (`IGD-FACT-105`). Bagian acceptance `BE-IGD-056` yang bergantung padanya dihitung terbukti dengan delta | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pesan pemilik: *"setuju"* atas saran agent butir 4 |
+| `IGD-DEC-259` | Decision | **Penghapusan lima baris komentar lama yang menjadi keliru pada `BE-IGD-056` disahkan** (laporan §7); acceptance 8 terpenuhi dengan delta | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pesan pemilik: *"setuju"* atas saran agent butir 5 |
+
+#### Pertanyaan terbuka
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+| --- | --- | --- | --- |
+| `IGD-OQ-126` | Dokter spesialis yang menangani pasien IGD dicatat sebagai DPJP IGD atau sebagai konsulen? Hari ini spesialis ditolak sebagai DPJP selama ada dokter umum di luar jadwal (validation §13 aturan 5, 6, 8; `AT-IGD-218`) | Product/Domain Owner IGD | Tidak untuk `BE-IGD-056`; ya bila jawabannya DPJP |
+| — | Jumlah warning build `BE-IGD-056` (acceptance 9) | Rizki | ✅ `BE-IGD-056` |
+| — | Uji `Up→Down→Up` migration `20261011052215` di basis data terpisah, atau dikecualikan (acceptance 7) | Rizki | ✅ `BE-IGD-056` |
+| — | Konfirmasi bahwa sesi SuperAdmin 15.33–15.54 WIB (sebelum putaran, hanya `GET`) adalah sesi pemilik | Rizki | Tidak |
+
+#### Langkah berikutnya
+
+1. `build-module-frontend` `FE-IGD-037` untuk delta `IGD-DEC-256`.
+2. Panduan uji ulang Antigravity untuk sisa acceptance kedua task, termasuk `AT-IGD-219` pada jendela `IGD-DEC-257`.
+3. Pemilik: jumlah warning, keputusan uji `Down`, dan `IGD-OQ-126`.
+
+### Pemeriksaan uji ulang DPJP dokter jaga — 11 Oktober 2026 (malam)
+
+Lahir dari pemeriksaan bukti mentah `QuilvianSystemFrontendDev/test-with-agy/igd/uji-ulang-dpjp-dokter-jaga-2026-10-11/`
+(`percobaan.json`, `data-uji.json`, sepuluh JSON skenario, delapan JSON jaringan, sembilan PNG, sebelas skrip) terhadap
+`Logs/quilvian-backend-20261011.json`, **bukan** terhadap ringkasan penguji
+([`testing/2026-10-11-laporan-uji-ulang-antigravity-dpjp-dokter-jaga.md`](testing/2026-10-11-laporan-uji-ulang-antigravity-dpjp-dokter-jaga.md),
+tidak disunting). Ukurannya aturan 1–11
+[panduan uji ulang](testing/2026-10-11-panduan-uji-ulang-dpjp-dokter-jaga.md). Pesan pemilik malam itu juga menjawab
+empat butir terbuka pass sebelumnya.
+
+#### Fakta
+
+| ID | Isi | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-106` | Putaran sah. Backend tetap proses yang dinyalakan 15.32 WIB dari DLL 15.23 WIB; frontend dari `BUILD_ID` 20.51 WIB. Sembilan PNG `nextPortalNull: true` dan nol piksel gelap di pojok kiri bawah. Seluruh permintaan 21.07–21.18 WIB berakun `dimas.kurniawan` dan terpetakan ke `percobaan.json`; nol SuperAdmin, nol `/api/v1/administrator/**`, nol SQL, sandi dari variabel lingkungan, `Cookie` disamarkan. Penulisan berhasil hanya R-06 dan R-07 (dua pengalihan V2, sesuai aturan 6); `POST` yang ditolak: R-05 dua kali, R-13 tiga kali. Sesi SuperAdmin 15.33–15.54 WIB dikonfirmasi pemilik sebagai sesinya sendiri | Log backend; `percobaan.json`; pesan pemilik *"Benar, itu sesi saya"* |
+| `IGD-FACT-107` | Penyimpangan penguji: (a) laporan menulis pasien V3 *"An. Rizky"* dan menyatakannya diverifikasi dari layar, padahal layar R-11…R-13 menampilkan *ANISA PRAMESTI*; ruas `patientName` di JSON jaringan berisi potongan URL; `data-uji.json` tanpa nama pasien. (b) Percobaan 1 R-13 dicatat `SCRIPT ERROR` tanpa menyebut bahwa `POST`-nya terkirim dan ditolak `400` (21.14.48 WIB); percobaan 2 tercatat dua kali di `percobaan.json` dengan jumlah permintaan berbeda. (c) Percobaan 2 R-13 menutup browser saat `POST` diproses; backend mencatat `500` `OperationCanceledException` di kueri baca `PeriksaKelayakanAsync` `:669`, sebelum penyimpanan — riwayat V3 tetap nol baris. (d) Jendela tanpa jadwal `IGD-DEC-257` tidak disiapkan, sehingga R-14 dan R-15 `NOT RUN` (21.18 WIB, Shift Malam dr. Farhan Malik) | PNG R-11…R-13; log backend 21.14.48 dan 21.15.56 WIB; `R-13-api.json` |
+| `IGD-FACT-108` | Pemilik melaporkan build backend **0 warning**. DLL `bin` terakhir ditulis 15.23 WIB — sesudah source `BE-IGD-056` terakhir berubah (11.25 WIB) — dan tidak ditulis ulang sesudahnya. Build ulang tanpa perubahan source tidak mengompilasi dan selalu melaporkan 0 warning; build penuh 6 Oktober 2026 tercatat 235 warning (`IGD-FACT-064`). Angka penuh diperoleh dengan `dotnet build --no-incremental -p:RunAnalyzers=false` | `bin/Debug/net9.0/QuilvianSystemBackend.dll`; pesan pemilik |
+
+#### Keputusan
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-260` | Decision | **Uji siklus `Up→Down→Up` migration `20261011052215_AddEmergencyDoctorRosterOverride` dikecualikan** untuk basis data dev saat ini. Penjaga `Down()` tetap terpasang; acceptance 7 `BE-IGD-056` dihitung terpenuhi dengan pengecualian ini | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pesan pemilik: *"Uji Down migration: Dikecualikan untuk basis data dev saat ini"* |
+| `IGD-DEC-261` | Decision | **Menjawab `IGD-OQ-126`: dokter spesialis yang menangani pasien IGD dicatat sebagai konsulen, bukan DPJP IGD.** Aturan validation §13 (5, 6, 8) tetap: spesialis tidak ditawarkan dan ditolak sebagai DPJP selama ada dokter umum/emergency di luar jadwal (`AT-IGD-218`). Nol perubahan kode. Bentuk pencatatan konsul spesialis di IGD berada di luar slice ini. *Contoh:* dr. Citra, Sp.JP memeriksa Tn. Budi di IGD atas permintaan dr. Andi; DPJP IGD tetap dr. Andi | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pesan pemilik: *"Dokter spesialis di IGD: Dicatat sebagai KONSULEN (bukan DPJP)"* |
+
+#### Pertanyaan terbuka
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+| --- | --- | --- | --- |
+| `IGD-OQ-126` | **Dijawab** `IGD-DEC-261` | — | — |
+| — | ~~Penyimpangan `IGD-FACT-107` a–c~~ — **diputus** `IGD-DEC-262` | — | — |
+| — | ~~Acceptance 7 `FE-IGD-037` (`AT-IGD-219`)~~ — **diputus** `IGD-DEC-263` | — | — |
+
+Pemilik menjawab tiga pertanyaan lanjutan lewat pilihan interaktif; ketiganya opsi yang direkomendasikan agent.
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-262` | Decision | **Bukti uji ulang 11 Oktober 2026 malam diterima dengan penyimpangan tercatat** (`IGD-FACT-107` a–c; preseden `IGD-DEC-255`). Putusan R-01…R-13 dari pemeriksaan agent tetap; laporan penguji tidak disunting | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pilihan interaktif *"Sahkan (Recommended)"* |
+| `IGD-DEC-263` | Decision | **Acceptance 7 `FE-IGD-037` ditutup lewat uji layar dengan daftar dokter tiruan**: `page.route` menyaring respons asli `GET …/on-duty-doctors` sehingga hanya dokter di luar jadwal yang sampai ke layar, lalu keterangan roster kosong dan penetapan dengan alasan diperiksa pada kunjungan V3 (panduan uji ulang R-16). Jadwal tidak diubah. Uji roster kosong yang nyata tetap menjadi cek lingkungan sebelum rilis (`IGD-UNK-18`). Menggantikan cara uji `IGD-DEC-257` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pilihan interaktif *"Uji layar dengan daftar tiruan (Recommended)"* |
+| `IGD-DEC-264` | Decision | **Butir DoD "rilis bersama `FE-IGD-037`" dan "`IGD-UNK-18` dicatat untuk lingkungan rilis" dilepas dari DoD task `BE-IGD-056`.** Keduanya tetap syarat rilis (roadmap backend R3.17.3) dan daftar cek demo; tidak menahan ✅ task | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pilihan interaktif *"Lepas dari DoD task (Recommended)"* |
+
+Perubahan status butir lama — baris aslinya tidak diubah:
+
+| ID | Status sesudah keputusan di atas |
+| --- | --- |
+| `IGD-DEC-257` | Cara uji `AT-IGD-219` digantikan `IGD-DEC-263`; jendela tanpa jadwal yang nyata tidak lagi dibutuhkan untuk acceptance task |
+
+#### Langkah berikutnya
+
+1. `build-module-backend` `BE-IGD-056`: laporan, roadmap, dan traceability ditandai ✅ (`IGD-DEC-260`, `264`).
+2. `FE-IGD-037` tetap 🟡 sampai R-16 (`IGD-DEC-263`) lulus pada bukti mentah.
+3. `MODULE-STATUS.md` diselaraskan lewat `manage-module-blueprint` — bukan wewenang skill build.
+
+### Pemeriksaan R-16 roster kosong — 11 Oktober 2026 (malam)
+
+Lahir dari pemeriksaan bukti mentah `QuilvianSystemFrontendDev/test-with-agy/igd/uji-ulang-r16-dpjp-2026-10-11/`
+(`percobaan.json`, `R-16-network.json`, `R-16-api.json`, dua PNG, tiga versi skrip) terhadap
+`Logs/quilvian-backend-20261011.json`, **bukan** terhadap ringkasan penguji
+([`testing/2026-10-11-laporan-uji-r16-dpjp-dokter-jaga.md`](testing/2026-10-11-laporan-uji-r16-dpjp-dokter-jaga.md),
+tidak disunting).
+
+| ID | Isi | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-109` | R-16 lulus pada percobaan 3 (21.44.29–21.44.45 WIB). `page.route` persis seperti panduan; kedua respons `on-duty-doctors` yang sampai ke layar hanya berisi dr. Ranger Biru dan dr. Rendy Pangalila (`isOnDuty=false`). Teks keterangan roster kosong ditemukan persis di DOM modal; judul *Di luar jadwal jaga — wajib alasan* tampil, judul dokter jaga tidak. `POST` V3 + D2 dengan alasan *"Uji roster kosong"* → `201`, `isRosterOverride=true` (21.44.43 WIB, satu-satunya penulisan); banner menampilkan *"Di luar jadwal jaga — alasan: Uji roster kosong"*; riwayat V3 satu baris. Server port 3000 `node .next/standalone/server.js` PID 6644 sejak 21.06.05 WIB — proses yang sama dengan uji ulang R-08…R-13; dua PNG tanpa lencana "N". Penyimpangan: (a) percobaan 1 dan 2 tercatat "0 request", padahal log memuat login (21.42.09) dan, pada percobaan 2, `GET` riwayat serta satu sesi layar penuh (21.43.06–21.43.13), semuanya hanya membaca; (b) hasil cek `nextjs-portal` hanya dicetak di konsol skrip, tidak disimpan di JSON; (c) di `R-16-kosong.png` keterangan tertutup daftar yang sedang terbuka — urutan tangkap layar yang diminta panduan | Log backend; `R-16-network.json`; `run-r16-p3.mjs` `:175`–`183`, `:192`, `:216`–`230` |
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-265` | Decision | **Bukti R-16 diterima dengan penyimpangan tercatat** (`IGD-FACT-109` a–c). Acceptance 7 `FE-IGD-037` terbukti; `FE-IGD-037` naik ✅. Butir DoD kartu "rilis bersama `BE-IGD-056`" diperlakukan sama dengan `IGD-DEC-264`: tetap syarat rilis R3.17.3, tidak menahan ✅ task | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pilihan interaktif *"Sahkan, naikkan FE-037 ke ✅ (Recommended)"* |
+
+#### Langkah berikutnya
+
+1. `build-module-frontend` `FE-IGD-037`: laporan, roadmap, dan traceability ditandai ✅.
+2. Pemilik: commit; rilis `BE-IGD-056` bersama `FE-IGD-037` dengan migration `20261011052215` lebih dulu dan
+   `IGD-UNK-18` dicatat untuk lingkungan rilis (R3.17.3).
+3. `MODULE-STATUS.md` diselaraskan lewat `manage-module-blueprint`.

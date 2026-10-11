@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `IGD-BP-001` revision `5`; **bagian encounter-first (`AT-IGD-166`…`185`) ditambahkan 22 September 2026**; **bagian Ruang Kerja Dokter IGD (`AT-IGD-200`…`213`) ditambahkan 6 Oktober 2026**, `approved` `IGD-DEC-230` |
+| Blueprint | `IGD-BP-001` revision `5`; **bagian encounter-first (`AT-IGD-166`…`185`) ditambahkan 22 September 2026**; **bagian Ruang Kerja Dokter IGD (`AT-IGD-200`…`213`) ditambahkan 6 Oktober 2026**, `approved` `IGD-DEC-230`; **bagian dokter jaga IGD (`AT-IGD-214`…`220`) ditambahkan 11 Oktober 2026**, `approved` `IGD-DEC-240` |
 | Status | `draft` |
 | Kontrak | API `0.3.0`, state `0.3.0`, validation `0.3.0`, permission/audit `0.3.0` |
 | Prasarana uji backend | `QuilvianSystemBackend.Tests` — xunit 2.9.2, EFCore InMemory 9.0.18, pola `IsolatedBillingDbContextFactory` |
@@ -284,3 +284,24 @@ functional requirement, aturan kontrak, dan cara membuktikannya. Status `approve
 Keputusan bahwa setiap dokter IGD melihat semua pasien IGD (`IGD-DEC-222`) adalah kebijakan, bukan perilaku yang dapat
 gagal; yang diuji hanya saringan dan tampilannya. Pemisahan konfirmasi dan pelaksanaan tindak lanjut di tingkat API tidak
 diuji karena memang tidak ditegakkan API (permission §9.2).
+
+## Dokter jaga IGD dan override — 11 Oktober 2026 (**Rencana (belum tersedia)**)
+
+Skenario `AT-IGD-214`…`220` ditulis lengkap pada [PRD §11.3](../04-prd-to-mvp.md). Tabel ini memetakan setiap skenario ke
+functional requirement, aturan kontrak, dan cara membuktikannya. Status `approved` (`IGD-DEC-240`, Rizki Gunawan, 11 Oktober
+2026).
+
+| Skenario | Functional requirement | Aturan kontrak | Bukti | Prasyarat |
+| --- | --- | --- | --- | --- |
+| `AT-IGD-214` | `FR-IGD-106` | API §11.2; validation §13 aturan 1–7 | PNG pemilih di kedua pintu + rekaman `GET …/on-duty-doctors` | Satu dokter berjadwal di unit `Emergency` pada jam uji; satu dokter umum tanpa jadwal; satu dokter spesialis poli |
+| `AT-IGD-215` | `FR-IGD-106`, `107` | API §11.3; validation §13 aturan 11 | JSON `201` + PNG riwayat | Sama |
+| `AT-IGD-216` | `FR-IGD-108` | API §11.3–11.4; validation §13 aturan 12; permission §10.2 | JSON `201`/`200` + PNG riwayat dengan penanda | Satu kunjungan tanpa DPJP dan satu dengan DPJP |
+| `AT-IGD-217` | `FR-IGD-107`, `108` | Validation §13 aturan 9, 10 | JSON `400` | Uji API |
+| `AT-IGD-218` | `FR-IGD-107` | Validation §13 aturan 8 | JSON `400` | Dokter spesialis poli aktif; kelompok di luar jadwal tidak kosong |
+| `AT-IGD-219` | `FR-IGD-106`, `108` | Validation §13 aturan 7, §13.4 | PNG pemilih + JSON | Jam tanpa jadwal IGD |
+| `AT-IGD-220` | `FR-IGD-106` | Validation §13 aturan 1–4 | JSON `GET …?at=` | Jadwal lintas tengah malam; satu unit bernama "IGD" yang bertipe bukan `Emergency` (data uji disiapkan Rizki — agent tidak mengubah data master) |
+
+### Yang tidak dapat diuji otomatis pada slice ini
+
+Ketepatan isi jadwal di tiap lingkungan (`IGD-UNK-18`) adalah keadaan data, bukan perilaku kode. Ia diperiksa sebelum
+rilis, bukan lewat skenario.

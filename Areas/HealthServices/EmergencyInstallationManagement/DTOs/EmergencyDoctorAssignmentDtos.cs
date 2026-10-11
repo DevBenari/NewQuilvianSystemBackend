@@ -42,6 +42,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public string? AssignedByName { get; set; }
 
         public string? AssignmentReason { get; set; }
+
+        public bool IsRosterOverride { get; set; }
+
+        public string? RosterOverrideReason { get; set; }
     }
 
     /// <summary>
@@ -66,6 +70,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// mendahului waktu kedatangan pasien (validation bagian 3 aturan 4).
         /// </summary>
         public DateTime? EffectiveFrom { get; set; }
+
+        public string? RosterOverrideReason { get; set; }
     }
 
     /// <summary>
@@ -122,6 +128,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// tidak pernah berlubang dan tidak pernah bertindih.
         /// </summary>
         public DateTime? EffectiveFrom { get; set; }
+
+        public string? RosterOverrideReason { get; set; }
     }
 
     /// <summary>
@@ -129,7 +137,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
     /// </summary>
     /// <remarks>
     /// Memisahkan jadwal praktek poli rawat jalan dari dokter jaga IGD.
-    /// Dropdown penugasan dokter IGD hanya menampilkan dokter yang sedang bertugas pada shift aktif.
     /// </remarks>
     public class EmergencyOnDutyDoctorResponse
     {

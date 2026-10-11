@@ -57,10 +57,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// </summary>
         /// <remarks>
         /// Memisahkan jadwal praktek poli rawat jalan dari dokter jaga IGD.
-        /// Dokter praktek poli umum/spesialis otomatis difilter keluar.
         /// </remarks>
         [HttpGet("on-duty-doctors")]
-        [HttpGet("options")]
         [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<EmergencyOnDutyDoctorResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Emergency Doctor Assignment", Description = "Melihat dokter jaga IGD aktif", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("EmergencyDoctorAssignment", "Read")]

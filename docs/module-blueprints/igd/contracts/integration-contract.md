@@ -2,11 +2,11 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.6.0` — Ruang Kerja Dokter IGD, 6 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-230`): bagian 7 baru — sepuluh modul disentuh secara sinkron tanpa salinan data; fakta tagih jasa konsultasi IGD tidak dikirim. Masukan: `00-interview-decisions.md` **229 keputusan**, terakhir `IGD-DEC-229` (grill-me 6 Oktober 2026 sore); capability map suplemen 3.4 (backend `43dab6da`, frontend `6680278a2`). *Sebelumnya:* `0.5.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 6 baru (penutupan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol modul baru yang disentuh. Sebelumnya `0.4.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif pada dokumen**: bagian 5 baru; bagian 1–4 tidak diubah. Secara perilaku **memutus** untuk Registrasi (penolakan Emergency pada jalur umum, pintu encounter memanggil aturan IGD). Sebelumnya `0.3.0` |
-| Status | `draft`, **kecuali bagian 7 (Ruang Kerja Dokter IGD) yang `approved`** (`IGD-DEC-230`, 6 Oktober 2026); **kecuali bagian 5 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026). Bagian 6 **`approved`** (`IGD-DEC-170`, 23 September 2026) |
+| `contract_version` | `0.7.0` — Dokter jaga IGD, 11 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-240`): bagian 8 baru — IGD membaca jadwal dokter, unit layanan, klinik (Master Data) dan master dokter (Human Resource) secara sinkron tanpa salinan. Masukan: `00-interview-decisions.md` **240 keputusan**, terakhir `IGD-DEC-240`; capability map suplemen 3.5. *Sebelumnya:* `0.6.0` — Ruang Kerja Dokter IGD, 6 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-230`): bagian 7 baru — sepuluh modul disentuh secara sinkron tanpa salinan data; fakta tagih jasa konsultasi IGD tidak dikirim. Masukan: `00-interview-decisions.md` **229 keputusan**, terakhir `IGD-DEC-229` (grill-me 6 Oktober 2026 sore); capability map suplemen 3.4 (backend `43dab6da`, frontend `6680278a2`). *Sebelumnya:* `0.5.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 6 baru (penutupan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol modul baru yang disentuh. Sebelumnya `0.4.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif pada dokumen**: bagian 5 baru; bagian 1–4 tidak diubah. Secara perilaku **memutus** untuk Registrasi (penolakan Emergency pada jalur umum, pintu encounter memanggil aturan IGD). Sebelumnya `0.3.0` |
+| Status | `draft`, **kecuali bagian 8 (dokter jaga IGD) yang `approved`** (`IGD-DEC-240`, 11 Oktober 2026); **kecuali bagian 7 (Ruang Kerja Dokter IGD) yang `approved`** (`IGD-DEC-230`, 6 Oktober 2026); **kecuali bagian 5 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026). Bagian 6 **`approved`** (`IGD-DEC-170`, 23 September 2026) |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
-| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-10-06** — bagian 7 (Ruang Kerja Dokter IGD) lewat `IGD-DEC-230`. **Rizki Gunawan / 2026-09-22** — bagian 5 (encounter-first) lewat `IGD-DEC-157` — termasuk koreksi B1 pada §5.2. **Rizki Gunawan / 2026-09-23** — bagian 6 (penutupan lewat disposisi) lewat `IGD-DEC-170`. Bagian 1–4 tetap `draft` |
-| Versi sebelumnya | `0.5.0`; sebelumnya `0.2.0` |
+| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-10-11** — bagian 8 (dokter jaga IGD) lewat `IGD-DEC-240` (sementara, pola `IGD-DEC-174`). **Rizki Gunawan / 2026-10-06** — bagian 7 (Ruang Kerja Dokter IGD) lewat `IGD-DEC-230`. **Rizki Gunawan / 2026-09-22** — bagian 5 (encounter-first) lewat `IGD-DEC-157` — termasuk koreksi B1 pada §5.2. **Rizki Gunawan / 2026-09-23** — bagian 6 (penutupan lewat disposisi) lewat `IGD-DEC-170`. Bagian 1–4 tetap `draft` |
+| Versi sebelumnya | `0.6.0`, `0.5.0`; sebelumnya `0.2.0` |
 
 ---
 
@@ -255,3 +255,26 @@ milik modul lain di IGD.
 | Verifikasi pesanan perawat untuk bank darah, hemodialisa, gizi | `IGD-OQ-118` — ketiga modul belum punya status verifikasi instruksi; perawat tidak memesan ketiganya pada slice ini |
 | Jasa dokter IGD ke Billing | Slice billing IGD |
 | Tabel tindakan IGD (`EmgProcedureDetail`) ke Billing | `IGD-DEC-225` — tabel itu dibekukan, tidak ditambah lagi |
+
+## 8. Dokter jaga IGD — baru pada `0.7.0`, **Rencana (belum tersedia)**
+
+Untuk `IGD-DEC-237`…`239`. Status **`approved`** (`IGD-DEC-240`, Rizki Gunawan, 11 Oktober 2026). IGD **membaca** data master
+milik modul lain di dalam permintaan yang sama: tidak ada salinan, tidak ada sinkronisasi, tidak ada penulisan.
+
+### 8.1 Data yang dibaca
+
+| Data | Pemilik | Ruas yang dipakai | Untuk |
+| --- | --- | --- | --- |
+| `MstDoctorSchedule` | Master Data layanan kesehatan (pemilik jadwal dokter **belum dipetakan**) | `DoctorId`, `ServiceUnitId`, `ClinicId`, `ScheduleType`, `PracticeDay`, `PracticeDate`, `StartTime`, `EndTime`, `IsOvernight`, `EffectiveStartDate`, `EffectiveEndDate`, `ScheduleStatus`, `IsActive`, `SessionName`, `SortOrder` | Dokter jaga pada T (validation §13.1) |
+| `MstServiceUnit` | Master Data | `ServiceUnitType` | Mengenali unit IGD — **hanya** tipe `Emergency` (`IGD-DEC-237`) |
+| `MstClinic` | Master Data | Unit induk klinik | Jadwal yang hanya menyebut klinik |
+| `MstDoctor` | Human Resource | `IsActive`, `SpecialistName`, `FullName`, `DoctorCode` | Dokter aktif dan kelompok di luar jadwal (validation §13.2) |
+
+### 8.2 Perilaku saat data tidak lengkap
+
+| Keadaan | Perilaku | Siapa membereskan |
+| --- | --- | --- |
+| Unit IGD tidak bertipe `Emergency`, atau tidak ada jadwal IGD | Kelompok dokter jaga kosong; setiap penetapan menjadi override beralasan. Layanan tidak terhenti | Master Data / pemilik jadwal (`IGD-UNK-18`) — syarat rilis per lingkungan |
+| `SpecialistName` dokter umum diisi tidak baku (misalnya "GP") | Dokter itu tidak masuk kelompok di luar jadwal, kecuali kelompok itu kosong (validation §13 aturan 6) | Pengurus master dokter HR |
+| Jadwal pengganti (`SubstituteDoctorId`) | Tidak dibaca; dokter pada baris jadwal yang dihitung (`IGD-DEC-237` butir 4) | — |
+| Cuti dokter | Tidak dibaca (`IGD-DEC-237` butir 4); jembatan identitas dokter–pegawai belum terbukti | Ditinjau bila jembatan itu ada |

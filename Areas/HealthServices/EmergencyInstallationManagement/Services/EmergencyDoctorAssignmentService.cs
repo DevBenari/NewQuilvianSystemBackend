@@ -103,8 +103,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     : (x.AssignedByUser == null
                         ? null
                         : x.AssignedByUser.DisplayName ?? x.AssignedByUser.UserName ?? x.AssignedByUser.Email ?? x.AssignedByUser.UserCode),
-                AssignmentReason = x.AssignmentReason
+                AssignmentReason = x.AssignmentReason,
+                IsRosterOverride = x.IsRosterOverride,
+                RosterOverrideReason = x.RosterOverrideReason
             };
+
+        private static readonly Expression<Func<MstDoctor, bool>> DokterUmumAtauEmergency =
+            x => x.SpecialistName == null ||
+                x.SpecialistName == "" ||
+                x.SpecialistName == "Umum" ||
+                EF.Functions.ILike(x.SpecialistName, "%Umum%") ||
+                EF.Functions.ILike(x.SpecialistName, "%Emergency%") ||
+                EF.Functions.ILike(x.SpecialistName, "%Gawat Darurat%");
+
+        private sealed record HasilKelayakan(string? Penolakan, bool IsRosterOverride, string? Alasan);
 
         /// <summary>
         /// Riwayat penugasan satu kunjungan, urut waktu dari yang pertama.
@@ -202,6 +214,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     StatusCodes.Status400BadRequest,
                     "Waktu penugasan tidak boleh lebih awal dari waktu kedatangan pasien.");
 
+            var kelayakan = await PeriksaKelayakanAsync(
+                request.DoctorId, effectiveFrom, request.RosterOverrideReason, cancellationToken);
+            if (kelayakan.Penolakan != null)
+                return Hasil<EmergencyDoctorAssignmentResponse>.Gagal(
+                    StatusCodes.Status400BadRequest, kelayakan.Penolakan);
+
             // Validation bagian 3 aturan 2. Pemeriksaan ini ramah bagi pengguna; penjaga
             // sesungguhnya tetap index unik bersyarat, yang menangkap dua permintaan bersamaan
             // yang sama-sama lolos di sini.
@@ -224,6 +242,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 EffectiveTo = null,
                 AssignedByUserId = actorUserId,
                 AssignmentReason = null,
+                IsRosterOverride = kelayakan.IsRosterOverride,
+                RosterOverrideReason = kelayakan.Alasan,
                 CreateDateTime = now,
                 CreateBy = actorUserId
             };
@@ -297,6 +317,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     StatusCodes.Status400BadRequest,
                     "Waktu pengalihan tidak boleh lebih awal dari waktu mulai penugasan yang sedang berjalan.");
 
+            var kelayakan = await PeriksaKelayakanAsync(
+                request.DoctorId, effectiveFrom, request.RosterOverrideReason, cancellationToken);
+            if (kelayakan.Penolakan != null)
+                return Hasil<EmergencyDoctorAssignmentResponse>.Gagal(
+                    StatusCodes.Status400BadRequest, kelayakan.Penolakan);
+
             var now = DateTime.UtcNow;
 
             // Baris lama DITUTUP, bukan ditimpa - IGD-DEC-082. Dokter, waktu mulai, dan
@@ -314,6 +340,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 EffectiveTo = null,
                 AssignedByUserId = actorUserId,
                 AssignmentReason = alasanPengalihan,
+                IsRosterOverride = kelayakan.IsRosterOverride,
+                RosterOverrideReason = kelayakan.Alasan,
                 CreateDateTime = now,
                 CreateBy = actorUserId
             };
@@ -432,83 +460,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 ? ConvertToOperationalTime(at.Value)
                 : GetOperationalNow();
 
-            var today = effectiveNow.Date;
-            var currentTime = effectiveNow.TimeOfDay;
-            var currentDay = today.DayOfWeek;
-            var yesterday = today.AddDays(-1);
-            var previousDay = yesterday.DayOfWeek;
-
-            var query = _dbContext.Set<MstDoctorSchedule>()
-                .AsNoTracking()
+            IQueryable<MstDoctorSchedule> query = KueriJadwalIgdBerlaku(effectiveNow)
                 .Include(x => x.Doctor)
                 .Include(x => x.ServiceUnit)
                 .Include(x => x.Clinic)
-                .Include(x => x.Room)
-                .Where(x =>
-                    x.IsActive && !x.IsDelete &&
-                    x.ScheduleStatus == DoctorScheduleStatus.Active &&
-                    x.Doctor != null && x.Doctor.IsActive && !x.Doctor.IsDelete);
-
-            // Filter HANYA ke Instalasi Gawat Darurat (IGD)
-            query = query.Where(x =>
-                (x.ServiceUnit != null && (
-                    x.ServiceUnit.ServiceUnitType == ServiceUnitType.Emergency ||
-                    EF.Functions.ILike(x.ServiceUnit.ServiceUnitName, "%IGD%") ||
-                    EF.Functions.ILike(x.ServiceUnit.ServiceUnitName, "%Gawat Darurat%") ||
-                    EF.Functions.ILike(x.ServiceUnit.ServiceUnitCode, "%IGD%")))
-                ||
-                (x.Clinic != null && (
-                    (x.Clinic.ServiceUnit != null && x.Clinic.ServiceUnit.ServiceUnitType == ServiceUnitType.Emergency) ||
-                    EF.Functions.ILike(x.Clinic.ClinicName, "%IGD%") ||
-                    EF.Functions.ILike(x.Clinic.ClinicName, "%Gawat Darurat%") ||
-                    EF.Functions.ILike(x.Clinic.ClinicCode, "%IGD%")))
-            );
-
-            // Kecualikan secara tegas poli rawat jalan
-            query = query.Where(x =>
-                (x.ServiceUnit == null || x.ServiceUnit.ServiceUnitType != ServiceUnitType.Outpatient) &&
-                (x.Clinic == null || x.Clinic.ServiceUnit == null || x.Clinic.ServiceUnit.ServiceUnitType != ServiceUnitType.Outpatient)
-            );
-
-            // Filter hari dan jam shift dinas aktif (termasuk shift overnight / lintas tengah malam)
-            query = query.Where(x =>
-                (
-                    !x.IsOvernight &&
-                    (
-                        (x.ScheduleType == DoctorScheduleType.WeeklyRecurring && x.PracticeDay == currentDay) ||
-                        (x.ScheduleType != DoctorScheduleType.WeeklyRecurring && x.PracticeDate.HasValue && x.PracticeDate.Value.Date == today)
-                    ) &&
-                    (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= today) &&
-                    (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= today) &&
-                    x.StartTime <= currentTime &&
-                    currentTime < x.EndTime
-                )
-                ||
-                (
-                    x.IsOvernight &&
-                    (
-                        (
-                            (
-                                (x.ScheduleType == DoctorScheduleType.WeeklyRecurring && x.PracticeDay == currentDay) ||
-                                (x.ScheduleType != DoctorScheduleType.WeeklyRecurring && x.PracticeDate.HasValue && x.PracticeDate.Value.Date == today)
-                            ) &&
-                            (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= today) &&
-                            (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= today) &&
-                            currentTime >= x.StartTime
-                        )
-                        ||
-                        (
-                            (
-                                (x.ScheduleType == DoctorScheduleType.WeeklyRecurring && x.PracticeDay == previousDay) ||
-                                (x.ScheduleType != DoctorScheduleType.WeeklyRecurring && x.PracticeDate.HasValue && x.PracticeDate.Value.Date == yesterday)
-                            ) &&
-                            (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= yesterday) &&
-                            (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= yesterday) &&
-                            currentTime < x.EndTime
-                        )
-                    )
-                )
-            );
+                .Include(x => x.Room);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -572,21 +528,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 });
             }
 
-            // Jika belum ada jadwal shift terdata (misal di database uji/development belum ada roster hari ini),
-            // sediakan cadangan dokter aktif agar operasional perawat IGD tidak lumpuh.
-            // HANYA dokter umum atau dokter emergency (dokter spesialis poliklinik disaring keluar).
-            if (items.Count == 0 && !onlyOnDuty)
+            if (!onlyOnDuty)
             {
-                var fallbackQuery = _dbContext.Set<MstDoctor>()
-                    .AsNoTracking()
-                    .Where(x => x.IsActive && !x.IsDelete &&
-                        (x.SpecialistName == null ||
-                         x.SpecialistName == "" ||
-                         x.SpecialistName == "Umum" ||
-                         EF.Functions.ILike(x.SpecialistName, "%Umum%") ||
-                         EF.Functions.ILike(x.SpecialistName, "%Emergency%") ||
-                         EF.Functions.ILike(x.SpecialistName, "%Gawat Darurat%"))
-                    );
+                var fallbackQuery = await KueriKelompokLuarJadwalAsync(effectiveNow, cancellationToken);
 
                 if (!string.IsNullOrWhiteSpace(search))
                 {
@@ -605,8 +549,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 foreach (var d in fallbackDoctors)
                 {
                     var label = !string.IsNullOrWhiteSpace(d.SpecialistName)
-                        ? $"{d.FullName} — {d.SpecialistName} (Dokter Jaga IGD)"
-                        : $"{d.FullName} (Dokter Jaga IGD)";
+                        ? $"{d.FullName} — {d.SpecialistName} (di luar jadwal jaga)"
+                        : $"{d.FullName} (di luar jadwal jaga)";
 
                     items.Add(new EmergencyOnDutyDoctorResponse
                     {
@@ -614,7 +558,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                         DoctorCode = d.DoctorCode,
                         DoctorName = d.FullName,
                         SpecialistName = d.SpecialistName,
-                        SessionName = "Luar Roster Shift",
                         IsOnDuty = false,
                         DisplayLabel = label
                     });
@@ -622,6 +565,128 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             }
 
             return items;
+        }
+
+        private IQueryable<MstDoctorSchedule> KueriJadwalIgdBerlaku(DateTime waktuOperasional)
+        {
+            var today = waktuOperasional.Date;
+            var currentTime = waktuOperasional.TimeOfDay;
+            var currentDay = today.DayOfWeek;
+            var yesterday = today.AddDays(-1);
+            var previousDay = yesterday.DayOfWeek;
+
+            var query = _dbContext.Set<MstDoctorSchedule>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.IsActive && !x.IsDelete &&
+                    x.ScheduleStatus == DoctorScheduleStatus.Active &&
+                    x.Doctor != null && x.Doctor.IsActive && !x.Doctor.IsDelete);
+
+            // Filter HANYA ke Instalasi Gawat Darurat (IGD)
+            query = query.Where(x =>
+                (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitType == ServiceUnitType.Emergency) ||
+                (x.Clinic != null && x.Clinic.ServiceUnit != null && x.Clinic.ServiceUnit.ServiceUnitType == ServiceUnitType.Emergency)
+            );
+
+            // Kecualikan secara tegas poli rawat jalan
+            query = query.Where(x =>
+                (x.ServiceUnit == null || x.ServiceUnit.ServiceUnitType != ServiceUnitType.Outpatient) &&
+                (x.Clinic == null || x.Clinic.ServiceUnit == null || x.Clinic.ServiceUnit.ServiceUnitType != ServiceUnitType.Outpatient)
+            );
+
+            // Filter hari dan jam shift dinas aktif (termasuk shift overnight / lintas tengah malam)
+            return query.Where(x =>
+                (
+                    !x.IsOvernight &&
+                    (
+                        (x.ScheduleType == DoctorScheduleType.WeeklyRecurring && x.PracticeDay == currentDay) ||
+                        (x.ScheduleType != DoctorScheduleType.WeeklyRecurring && x.PracticeDate.HasValue && x.PracticeDate.Value.Date == today)
+                    ) &&
+                    (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= today) &&
+                    (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= today) &&
+                    x.StartTime <= currentTime &&
+                    currentTime < x.EndTime
+                )
+                ||
+                (
+                    x.IsOvernight &&
+                    (
+                        (
+                            (
+                                (x.ScheduleType == DoctorScheduleType.WeeklyRecurring && x.PracticeDay == currentDay) ||
+                                (x.ScheduleType != DoctorScheduleType.WeeklyRecurring && x.PracticeDate.HasValue && x.PracticeDate.Value.Date == today)
+                            ) &&
+                            (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= today) &&
+                            (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= today) &&
+                            currentTime >= x.StartTime
+                        )
+                        ||
+                        (
+                            (
+                                (x.ScheduleType == DoctorScheduleType.WeeklyRecurring && x.PracticeDay == previousDay) ||
+                                (x.ScheduleType != DoctorScheduleType.WeeklyRecurring && x.PracticeDate.HasValue && x.PracticeDate.Value.Date == yesterday)
+                            ) &&
+                            (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= yesterday) &&
+                            (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= yesterday) &&
+                            currentTime < x.EndTime
+                        )
+                    )
+                )
+            );
+        }
+
+        private async Task<IQueryable<MstDoctor>> KueriKelompokLuarJadwalAsync(
+            DateTime waktuOperasional,
+            CancellationToken cancellationToken)
+        {
+            var dokterJaga = KueriJadwalIgdBerlaku(waktuOperasional).Select(x => x.DoctorId);
+
+            var dokterTidakJaga = _dbContext.Set<MstDoctor>()
+                .AsNoTracking()
+                .Where(x => x.IsActive && !x.IsDelete && !dokterJaga.Contains(x.Id));
+
+            var dokterUmumTidakJaga = dokterTidakJaga.Where(DokterUmumAtauEmergency);
+
+            return await dokterUmumTidakJaga.AnyAsync(cancellationToken)
+                ? dokterUmumTidakJaga
+                : dokterTidakJaga;
+        }
+
+        private async Task<HasilKelayakan> PeriksaKelayakanAsync(
+            Guid doctorId,
+            DateTime effectiveFrom,
+            string? alasanOverride,
+            CancellationToken cancellationToken)
+        {
+            var waktuOperasional = ConvertToOperationalTime(effectiveFrom);
+
+            var sedangJaga = await KueriJadwalIgdBerlaku(waktuOperasional)
+                .AnyAsync(x => x.DoctorId == doctorId, cancellationToken);
+            if (sedangJaga)
+                return new HasilKelayakan(null, false, null);
+
+            var kelompokLuarJadwal = await KueriKelompokLuarJadwalAsync(waktuOperasional, cancellationToken);
+            var dapatDipilih = await kelompokLuarJadwal.AnyAsync(x => x.Id == doctorId, cancellationToken);
+            if (!dapatDipilih)
+                return new HasilKelayakan(
+                    "Dokter ini tidak dapat dipilih sebagai dokter penanggung jawab IGD. Pilih dokter jaga IGD, atau dokter umum/emergency dengan alasan.",
+                    false,
+                    null);
+
+            var alasan = alasanOverride?.Trim();
+            if (string.IsNullOrEmpty(alasan))
+                return new HasilKelayakan(
+                    "Dokter ini tidak sedang jaga IGD pada waktu penugasan. Isi alasan memilih dokter di luar jadwal jaga.",
+                    false,
+                    null);
+
+            if (alasan.Length > 500)
+                return new HasilKelayakan(
+                    "Alasan memilih dokter di luar jadwal jaga paling banyak 500 karakter.",
+                    false,
+                    null);
+
+            return new HasilKelayakan(null, true, alasan);
         }
 
         private static DateTime GetOperationalNow()

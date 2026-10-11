@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `IGD-BP-001` revision `5`; **bagian 8 (encounter-first, `EPIC IGD-11`/`12`) ditambahkan 22 September 2026**; **bagian 10 (`EPIC IGD-14`, Ruang Kerja Dokter IGD) ditambahkan 6 Oktober 2026**, `approved` `IGD-DEC-230` |
+| Blueprint | `IGD-BP-001` revision `5`; **bagian 8 (encounter-first, `EPIC IGD-11`/`12`) ditambahkan 22 September 2026**; **bagian 10 (`EPIC IGD-14`, Ruang Kerja Dokter IGD) ditambahkan 6 Oktober 2026**, `approved` `IGD-DEC-230`; **bagian 11 (`EPIC IGD-12`, dokter jaga IGD) ditambahkan 11 Oktober 2026**, `approved` `IGD-DEC-240` |
 | Status | `draft` — **belum disetujui**; memuat pertanyaan memblokir |
 | Commit diaudit | backend `f69e9e48`, frontend `96a91201` |
 | Turunan dari | `02-backend-architecture.md`, `03-frontend-architecture.md`, `erd/`, `contracts/`, `testing/` |
@@ -408,6 +408,9 @@ dengan menyebut "mulai triage 09.42".
 Tidak masuk gelombang mana pun sampai `IGD-OQ-102` dan `IGD-OQ-103` dijawab. Prinsipnya sudah `approved`
 (`IGD-DEC-141`): kandidat layak saja, validasi ulang di backend, override beralasan, tidak pernah buntu.
 
+> **Diperbarui 11 Oktober 2026.** `IGD-OQ-102` dan `IGD-OQ-103` dijawab (`IGD-DEC-237`…`239`). Epic ini masuk gelombang
+> **`MVP-10`** dan dirinci pada **§11**. Paragraf di atas tidak disunting.
+
 ### 8.5 Urutan pengiriman
 
 | Gelombang | Isi | Prasyarat |
@@ -629,3 +632,75 @@ tersimpan) dijawab `FR-IGD-097`…`100`; `FR-IGD-064` (koreksi menambah baris) d
 
 Nol pertanyaan yang memblokir seluruh slice. Begitu pemilik menyetujui kontraknya, slice ini boleh diteruskan ke
 `plan-module-delivery`; kartu yang menunggu `IGD-OQ-117` atau `IGD-OQ-119` ditandai ⛔ dengan nama blocker-nya.
+
+## 11. `EPIC IGD-12` — Dokter jaga IGD dan override beralasan
+
+Gelombang **`MVP-10`**. Sumber: `IGD-DEC-141` (prinsip, 22 September 2026), `IGD-DEC-237`…`239` (11 Oktober 2026); fakta
+`IGD-FACT-088`, `089`; capability map suplemen 3.5. Menutup status `OPEN DECISION` pada §8.4.
+
+**Status: `approved`** — `IGD-DEC-240`, Rizki Gunawan, 11 Oktober 2026 (sementara, pola `IGD-DEC-174`).
+
+**Masalah produk.** Sampai 8 Oktober 2026 pemilih DPJP di layar triage menawarkan **semua** dokter aktif rumah sakit.
+Perubahan pemilik 8 Oktober mempersempitnya ke dokter berjadwal IGD, tetapi (a) dokter lain hanya muncul bila roster
+kosong, sehingga perawat tidak dapat memilih dokter lain saat dokter jaga sibuk; (b) dokter cadangan diberi label *"Dokter
+Jaga IGD"* walau tidak berjadwal; (c) server tidak memeriksa apa pun, sehingga dokter poli mana pun tetap dapat ditetapkan
+lewat API. *Contoh:* pukul 10.00 dr. Ranger dan dr. Sari, dokter jaga pagi, sedang resusitasi. Perawat Dimas ingin
+menetapkan dr. Andi (Umum) yang sedang di IGD, tetapi nama itu tidak ada di pilihan.
+
+**Visi.** Perawat triage memilih DPJP dari daftar yang disusun server: dokter jaga lebih dulu, lalu dokter umum/emergency
+lain yang boleh dipilih dengan alasan tertulis. Server menolak pilihan di luar itu, dan setiap pilihan di luar jadwal
+tercatat untuk ditinjau.
+
+### 11.1 Batas slice
+
+| Butir | Isi |
+| --- | --- |
+| Titik mulai | Perawat membuka pemilih DPJP pada Detail triage atau modal penetapan/pengalihan |
+| Titik akhir | Penugasan DPJP tersimpan, dengan penanda dan alasan bila di luar jadwal jaga |
+| Pelaku | Perawat triage / perawat IGD |
+| Di luar slice | Cuti dokter, jadwal pengganti, pengisian jadwal IGD di master, penyetuju kedua untuk override, pemeriksaan ulang DPJP yang sedang berjalan |
+
+### 11.2 Functional requirement
+
+| ID | Requirement | Disposisi |
+| --- | --- | --- |
+| `FR-IGD-106` | Pemilih DPJP menampilkan dokter jaga IGD pada saat itu — dihitung dari jadwal dokter di unit bertipe `Emergency` — lebih dulu, lalu dokter umum/emergency di luar jadwal dengan tanda jelas; keduanya dari satu sumber backend (`IGD-DEC-237`, `239`) | `REPAIR` (daftar yang sudah ada) |
+| `FR-IGD-107` | Backend memeriksa ulang kelayakan saat penetapan dan pengalihan, dan menolak dokter di luar kedua kelompok (`IGD-DEC-141` butir 2) | `EXTEND` |
+| `FR-IGD-108` | Dokter di luar jadwal hanya dapat dipilih dengan alasan; penanda dan alasannya tersimpan pada riwayat penugasan dan terbaca di layar (`IGD-DEC-141` butir 3, `IGD-DEC-238`) | `MISSING / NEW` |
+
+Requirement penugasan dokter lama `FR-IGD-016`…`021` tetap berlaku dan tidak disunting.
+
+### 11.3 Skenario UAT
+
+| # | Jalur | Langkah | Hasil yang diharapkan |
+| ---: | --- | --- | --- |
+| `AT-IGD-214` | Berhasil | Pada jam berjadwal, perawat membuka pemilih DPJP di kedua pintu | Dokter berjadwal di unit bertipe `Emergency` tampil di kelompok *Dokter jaga IGD saat ini* beserta nama shift dan jamnya; dokter umum/emergency lain di kelompok *Di luar jadwal jaga*; dokter spesialis poli tidak tampil |
+| `AT-IGD-215` | Berhasil | Perawat memilih dokter jaga dan menyimpan | Tersimpan tanpa alasan override; riwayat tanpa penanda di luar jadwal |
+| `AT-IGD-216` | Berhasil | Perawat memilih dokter di luar jadwal, menulis alasan, menyimpan — sekali pada penetapan pertama, sekali pada pengalihan | Tersimpan; riwayat menampilkan penanda *Di luar jadwal jaga* dan alasannya; pada pengalihan alasan pengalihan juga tersimpan |
+| `AT-IGD-217` | Gagal | Lewat API, dokter di luar jadwal dikirim tanpa `rosterOverrideReason`; lalu dengan alasan 501 karakter | Keduanya `400` dengan pesan validation §13 aturan 9 dan 10; nol baris tercatat |
+| `AT-IGD-218` | Gagal | Lewat API, dokter spesialis poli yang tidak ditawarkan dikirim dengan alasan | `400` pesan aturan 8; nol baris tercatat |
+| `AT-IGD-219` | Berhasil | Pada jam tanpa jadwal IGD, perawat membuka pemilih lalu menetapkan dokter | Kelompok dokter jaga kosong dengan keterangan; dokter di luar jadwal dapat dipilih dengan alasan; tidak ada label *"Dokter Jaga IGD"* pada dokter di luar jadwal |
+| `AT-IGD-220` | Berhasil | Uji API `GET …/on-duty-doctors?at=` pada jadwal lintas tengah malam 21.00–07.00: pukul 02.00 hari berikutnya, lalu 07.30 | Pukul 02.00 dokter itu `isOnDuty=true`; pukul 07.30 `false`. Unit bernama "IGD" yang bertipe bukan `Emergency` tidak menghasilkan dokter jaga |
+
+### 11.4 Definition of Done
+
+| # | Butir | Bukti |
+| ---: | --- | --- |
+| 1 | Daftar, penetapan, dan pengalihan memakai satu perhitungan kelayakan | Diff service |
+| 2 | Pencocokan nama/kode unit hilang dari kueri; unit IGD hanya dari `ServiceUnitType.Emergency` | Diff + `AT-IGD-220` |
+| 3 | Penolakan backend memakai pesan validation §13 | `AT-IGD-217`, `218` |
+| 4 | Override tersimpan dan terbaca di riwayat | `AT-IGD-216` |
+| 5 | Frontend tidak menyaring spesialisasi dan tidak mengambil master dokter sebagai cadangan | Diff frontend |
+| 6 | Layar tidak buntu saat roster kosong | `AT-IGD-219` |
+| 7 | Migration diterapkan pemilik; `Down()` berpenjaga diuji | Keluaran migration + uji `Down` pada basis data terpisah |
+| 8 | Build backend 0 error; `eslint` dan `npm run build` frontend lulus | Keluaran build |
+| 9 | `IGD-UNK-18` dicatat per lingkungan sebelum rilis di sana | Daftar periksa rilis |
+
+### 11.5 Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir? |
+| --- | --- | :-: |
+| `IGD-OQ-099` | Pengesahan Clinical Governance atas aturan override | Tidak (`IGD-DEC-150`) |
+| `IGD-UNK-18` | Unit IGD bertipe `Emergency` dan punya jadwal aktif di tiap lingkungan | Tidak untuk pengembangan; ya untuk rilis |
+
+Nol pertanyaan yang memblokir pengembangan.

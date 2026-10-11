@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `IGD-BP-001` revision `5`; **bagian 6 ditambahkan 22 September 2026** (encounter-first); **bagian 8 ditambahkan 6 Oktober 2026** (Ruang Kerja Dokter IGD, `approved` `IGD-DEC-230`) |
+| Blueprint | `IGD-BP-001` revision `5`; **bagian 6 ditambahkan 22 September 2026** (encounter-first); **bagian 8 ditambahkan 6 Oktober 2026** (Ruang Kerja Dokter IGD, `approved` `IGD-DEC-230`); **bagian 9 ditambahkan 11 Oktober 2026** (dokter jaga IGD, `approved` `IGD-DEC-240`) |
 | Status | `draft` |
 | Commit diaudit | backend `f69e9e48` |
 | Diselaraskan | 15 September 2026 — nama tabel bagian 4 dan rujukan bagian 5.3 menjadi `EmgDoctorAssignment` (`IGD-DEC-116`); isi kolom tidak berubah |
@@ -504,3 +504,34 @@ aturan baru IGD. `BbkBloodOrder` mensyaratkan unit pemesan berizin (`MstServiceU
 ### Tabel yang **tidak** berubah pada slice ini
 
 Seluruh tabel di atas. Nol kolom baru, nol index baru, nol perubahan perilaku hapus, nol migration.
+
+## 9. Dokter jaga IGD dan override — 11 Oktober 2026 (**Rencana (belum tersedia)**)
+
+Untuk `IGD-DEC-237`…`239`. Status `approved` (`IGD-DEC-240`, Rizki Gunawan, 11 Oktober 2026). Satu tabel berubah; nol tabel
+baru. Sepuluh kolom warisan `IdentityModel` tidak diulang.
+
+### `EmgDoctorAssignment` — Diperbarui (pemilik: IGD)
+
+Model: `Areas/HealthServices/EmergencyInstallationManagement/Models/EmgDoctorAssignment.cs`. Kolom lama pada §4 tidak berubah.
+
+| Kolom | Tipe | Wajib | Bawaan | Panjang | Validasi | Sensitif |
+| --- | --- | :-: | --- | ---: | --- | :-: |
+| `IsRosterOverride` | `boolean` | Ya | `false` | — | Diisi sistem: `true` hanya bila dokter tidak sedang jaga pada `EffectiveFrom` dan alasan sah dikirim (validation §13 aturan 12) | Tidak |
+| `RosterOverrideReason` | `varchar` | **Bersyarat** | — | 500 | Wajib bila `IsRosterOverride = true`; `NULL` bila `false`. Spasi di ujung dibuang | **Ya** — dapat memuat keterangan klinis; tidak masuk log kustom |
+
+*Contoh baris:* `DoctorId` = dr. Andi, `EffectiveFrom` = 13 Oktober 2026 10.05 WIB, `IsRosterOverride` = `true`,
+`RosterOverrideReason` = *"Dua dokter jaga sedang resusitasi"*, `AssignmentReason` = *"dr. Ranger menangani resusitasi
+pasien lain"* (karena baris ini lahir dari pengalihan).
+
+**Data lama.** Migration mengisi `IsRosterOverride = false` dan `RosterOverrideReason = NULL` untuk seluruh baris yang ada,
+termasuk baris legacy `BE-IGD-048`. Nilai itu berarti *tidak tercatat sebagai override*, bukan *terbukti dokter jaga*.
+
+**Index.** Tidak ada index baru: tabelnya kecil per kunjungan, dan laporan override dibaca berkala, bukan di jalur layar.
+
+**Migration** (dibuat Rizki; agent berhenti sebelum `dotnet ef migrations add`): dua `AddColumn`. `Down()` **berpenjaga**
+mengikuti pola `BE-IGD-053` dan `BE-IGD-060`: menolak dijalankan bila ada baris dengan `IsRosterOverride = true`, supaya
+jejak override tidak hilang diam-diam.
+
+### Tabel yang dibaca, tidak berubah
+
+`MstDoctorSchedule`, `MstServiceUnit`, `MstClinic` (Master Data) dan `MstDoctor` (Human Resource) — integration §8.1.

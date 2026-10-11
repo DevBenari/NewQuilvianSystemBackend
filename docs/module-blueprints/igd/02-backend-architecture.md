@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `IGD-BP-001` revision `5`; **bagian 13 ditambahkan 22 September 2026** (encounter-first, revisi `6` `draft`); **bagian 15 ditambahkan 6 Oktober 2026** (Ruang Kerja Dokter IGD, revisi `9`, `approved` `IGD-DEC-230`) |
+| Blueprint | `IGD-BP-001` revision `5`; **bagian 13 ditambahkan 22 September 2026** (encounter-first, revisi `6` `draft`); **bagian 15 ditambahkan 6 Oktober 2026** (Ruang Kerja Dokter IGD, revisi `9`, `approved` `IGD-DEC-230`); **bagian 16 ditambahkan 11 Oktober 2026** (dokter jaga IGD, revisi `10`, `approved` `IGD-DEC-240`) |
 | Status | `draft` — **belum disetujui siapa pun**. Diturunkan dari `IGD-DEC-067` sampai `IGD-DEC-088` yang seluruhnya masih `draft` |
 | Commit diaudit | backend `f69e9e483052845d11c91d8b7bbdce33c4acc8d8`, frontend `96a9120111f6acc6b7c0f37973ea0c717ba41f17` |
 | Masukan | `00-interview-decisions.md` (88 keputusan), `01-existing-capability-map.md` revision `3` |
@@ -1689,3 +1689,166 @@ Pilihan berikut diturunkan agent dari keputusan dan fakta source, bukan diputusk
 | 6 | Perawat memesan lab dan radiologi atas instruksi; bank darah, hemodialisa, gizi hanya dari layar dokter sampai `IGD-OQ-118` selesai | `IGD-DEC-224` mensyaratkan verifikasi, dan baru lab/radiologi yang punya mekanismenya | Membuka ketiganya tanpa verifikasi |
 | 7 | Dokter pemberi instruksi yang sah = dokter aktif | Memeriksa hak akses pengguna lain tidak tersedia murah di source; asumsi `IGD-DEC-224` dipersempit ke yang dapat diuji | Dokter yang memegang hak akses layar dokter |
 | 8 | Saringan *Pasien saya* memakai parameter `doctorId` yang dikirim layar dari identitas dokter pengguna | Eksplisit dan mudah diuji; bukan hak akses | Server menebak dokter pengguna (`assignedToMe`) |
+
+## 16. Dokter jaga IGD dan override beralasan — 11 Oktober 2026 (**Rencana (belum tersedia)**)
+
+Desain target untuk `S7` / `EPIC IGD-12` (`IGD-DEC-141`, `237`…`239`). Status bagian ini: **`approved`** (`IGD-DEC-240`, Rizki
+Gunawan, 11 Oktober 2026). Masukan: decision log bagian *Dokter jaga IGD dan override beralasan — 11 Oktober 2026*;
+capability map *Suplemen revision 3.5* (backend `c7e523fd`, frontend `3335f4b53`). Bentuk blueprint tetap `SINGLE`.
+
+**Inti desain.** Satu perhitungan kelayakan di `EmergencyDoctorAssignmentService` dipakai **tiga** jalur: daftar dokter
+untuk pemilih, penetapan, dan pengalihan. Dengan begitu daftar di layar dan penjaga di server tidak pernah berbeda
+pendapat (`IGD-DEC-141` butir 1–2). Kode daftar dokter jaga yang sudah ada (`IGD-FACT-088`) menjadi titik awal: kueri
+jadwal dan perhitungan shift lintas tengah malam dipertahankan; pencocokan nama dibuang; cadangan diubah menjadi
+kelompok di luar jadwal yang selalu dikirim.
+
+Keberlakuan QBE: `TOUCHED LEGACY` untuk `EmergencyDoctorAssignmentService`, `EmergencyDoctorAssignmentController`,
+`EmergencyDoctorAssignmentDtos`, serta model dan configuration `EmgDoctorAssignment`; `NEW CODE` untuk method baru. Nol
+service baru, nol perubahan `Program.cs`.
+
+### 16.1 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai | Dibuat ulang di IGD |
+| --- | --- | --- | --- |
+| Penugasan dokter (`EmgDoctorAssignment`) | IGD | Ditulis; dua kolom baru | — |
+| Jadwal dokter (`MstDoctorSchedule`), unit (`MstServiceUnit`), klinik (`MstClinic`) | Master Data | Dibaca | **Tidak** |
+| Master dokter (`MstDoctor`) | Human Resource | Dibaca | **Tidak** |
+
+### 16.2 Class diagram
+
+```mermaid
+classDiagram
+    class EmergencyDoctorAssignmentController {
+        <<Diperbarui · IGD>>
+        +GetOnDutyDoctors(search, at, onlyOnDuty)
+        +Assign(AssignEmergencyDoctorRequest)
+        +Handover(id, HandoverEmergencyDoctorRequest)
+    }
+    class EmergencyDoctorAssignmentService {
+        <<Diperbarui · IGD>>
+        +AmbilDokterJagaAktifAsync(search, at, onlyOnDuty, ct)
+        +TetapkanAsync(request, actor, ct)
+        +AlihkanAsync(id, request, actor, ct)
+        -KueriJadwalIgdBerlaku(waktuOperasional) IQueryable~MstDoctorSchedule~
+        -KueriKelompokLuarJadwal(dokterJaga) IQueryable~MstDoctor~
+        -PeriksaKelayakanAsync(doctorId, effectiveFrom, alasan, ct) HasilKelayakan
+    }
+    class HasilKelayakan {
+        <<Baru · IGD · privat>>
+        +bool Diterima
+        +bool IsRosterOverride
+        +string? Alasan
+        +string? Penolakan
+    }
+    class EmgDoctorAssignment {
+        <<Diperbarui · IGD>>
+        +bool IsRosterOverride
+        +string? RosterOverrideReason
+    }
+    class AssignEmergencyDoctorRequest {
+        <<Diperbarui>>
+        +string? RosterOverrideReason
+    }
+    class HandoverEmergencyDoctorRequest {
+        <<Diperbarui>>
+        +string? RosterOverrideReason
+    }
+    class EmergencyDoctorAssignmentResponse {
+        <<Diperbarui>>
+        +bool IsRosterOverride
+        +string? RosterOverrideReason
+    }
+    class EmergencyOnDutyDoctorResponse {
+        <<Sudah ada tanpa kontrak>>
+        +bool IsOnDuty
+        +string DisplayLabel
+    }
+    class MstDoctorSchedule {
+        <<Sudah ada · Master Data>>
+    }
+    class MstServiceUnit {
+        <<Sudah ada · Master Data>>
+        +ServiceUnitType ServiceUnitType
+    }
+    class MstDoctor {
+        <<Sudah ada · Human Resource>>
+    }
+    EmergencyDoctorAssignmentController ..> EmergencyDoctorAssignmentService
+    EmergencyDoctorAssignmentService ..> HasilKelayakan
+    EmergencyDoctorAssignmentService ..> MstDoctorSchedule : baca-saja
+    MstDoctorSchedule ..> MstServiceUnit : tipe Emergency
+    EmergencyDoctorAssignmentService ..> MstDoctor : baca-saja
+    EmergencyDoctorAssignmentService --> EmgDoctorAssignment : tulis
+```
+
+### 16.3 Penjelasan class
+
+| Class | Status | Peran |
+| --- | --- | --- |
+| `EmergencyDoctorAssignmentService` | Diperbarui | Pemilik tunggal aturan kelayakan. `KueriJadwalIgdBerlaku` memegang validation §13.1 (dipindah dari kueri yang sudah ada, tanpa pencocokan nama); `KueriKelompokLuarJadwal` memegang §13.2; `PeriksaKelayakanAsync` memegang §13.3 dan dipanggil `TetapkanAsync` serta `AlihkanAsync` |
+| `HasilKelayakan` | Baru, privat | Hasil satu pemeriksaan. Nama dan bentuknya `DEV_DISCRETION`; boleh `record` privat di dalam service |
+| `EmgDoctorAssignment` | Diperbarui | Dua kolom baru (kamus data §9) |
+| DTO request/response | Diperbarui | Ruas pada API §11.3–11.4 |
+| `EmergencyOnDutyDoctorResponse` | Sudah ada | Masuk kontrak (API §11.2); `sessionName` dan ruas jadwal `null` pada kelompok di luar jadwal |
+| `EmergencyDoctorAssignmentController` | Diperbarui | Alias `[HttpGet("options")]` dihapus; selebihnya meneruskan ke service |
+
+### 16.4 Arsitektur folder
+
+```text
+Areas/HealthServices/EmergencyInstallationManagement/
+├── Controllers/EmergencyDoctorAssignmentController.cs      Diperbarui
+├── DTOs/EmergencyDoctorAssignmentDtos.cs                   Diperbarui
+├── Models/EmgDoctorAssignment.cs                           Diperbarui
+├── (configuration EmgDoctorAssignment)                     Diperbarui — panjang 500
+└── Services/EmergencyDoctorAssignmentService.cs            Diperbarui
+Migrations/<timestamp>_<nama>.cs                             Baru — dibuat Rizki
+```
+
+Letak berkas configuration mengikuti source; nama migration `DEV_DISCRETION`.
+
+### 16.5 Status model
+
+| Model | Status | Kolom yang berubah | Dampak migration |
+| --- | --- | --- | --- |
+| `EmgDoctorAssignment` | Diperbarui | `IsRosterOverride`, `RosterOverrideReason` | Dua `AddColumn`; `Down()` berpenjaga |
+| `MstDoctorSchedule`, `MstServiceUnit`, `MstClinic`, `MstDoctor` | Sudah ada | Nol | Nol |
+
+### 16.6 Rencana migration dan rilis
+
+1. Rizki membuat migration sesudah model diubah; agent memeriksa isinya.
+2. Rilis backend **bersama** `FE-IGD-037`. Sesudah backend aktif, penetapan dokter di luar jadwal tanpa alasan ditolak,
+   padahal layar lama tidak punya isian alasan. Saat roster kosong, layar lama tidak dapat menetapkan dokter sama sekali.
+3. Sebelum rilis di lingkungan mana pun, periksa `IGD-UNK-18` (unit IGD bertipe `Emergency` dan punya jadwal aktif).
+   Bila belum, rilis tetap aman, tetapi setiap penetapan menjadi override beralasan.
+
+### 16.7 Konkurensi
+
+| Risiko | Penjaga |
+| --- | --- |
+| Roster berubah antara daftar dibuka dan simpan | Kelayakan dihitung ulang saat simpan (validation §13.4) |
+| Dua perawat menetapkan dokter serentak | Penjaga yang sudah ada: index unik bersyarat penugasan berjalan (`409`) |
+
+### 16.8 Yang sengaja tidak dibuat
+
+| Tidak dibuat | Sebab |
+| --- | --- |
+| Pembacaan cuti dokter | Jembatan identitas dokter–pegawai belum terbukti (`IGD-DEC-237` butir 4) |
+| Penggantian dokter lewat `SubstituteDoctorId` | Sama |
+| Butir hak akses khusus override | `IGD-DEC-141` tidak meminta penyetuju kedua (permission §10.1) |
+| Pemeriksaan ulang penugasan berjalan saat dokter berhenti jaga | Kelayakan hanya syarat saat menetapkan; mengganti DPJP tetap keputusan klinis lewat pengalihan |
+| Tabel roster IGD tersendiri | `MstDoctorSchedule` sudah cukup (`IGD-DEC-237`) |
+
+### 16.9 Pilihan desain yang disetujui
+
+Diturunkan agent dari keputusan dan fakta source. Kedelapannya **disetujui** lewat `IGD-DEC-240` (11 Oktober 2026).
+
+| No | Pilihan | Alasan | Alternatif yang ditolak |
+| ---: | --- | --- | --- |
+| 1 | Satu daftar berurutan dengan `isOnDuty`, bukan dua array | Bentuk response yang sudah ada dipertahankan; layar cukup membaca satu ruas | Dua array terpisah — memutus pemanggil yang sudah ada |
+| 2 | Override hanya memakai butir `Create`/`Update` yang sudah ada | `IGD-DEC-141` tidak meminta penyetuju | Butir `Override` baru — menunggu Clinical Governance |
+| 3 | Kelayakan dihitung pada `effectiveFrom` | Arti *layak pada saat itu* (`IGD-DEC-141`) | Waktu server saat simpan — salah untuk penetapan yang dicatat susulan |
+| 4 | Penolakan memakai `400`, bukan `409` | Isian pengguna yang kurang (alasan) atau pilihan yang tidak sah, bukan keadaan pasien | `409` |
+| 5 | Alasan override disimpan terpisah dari alasan pengalihan | Pengalihan ke dokter di luar jadwal butuh keduanya | Satu kolom alasan |
+| 6 | `Down()` migration berpenjaga | Jejak override tidak boleh hilang diam-diam (pola `BE-IGD-053`, `060`) | `Down()` polos |
+| 7 | Alias `GET …/options` dihapus | Nol pemakai; dua nama untuk satu perilaku membingungkan kontrak | Dibiarkan |
+| 8 | Kelompok di luar jadwal dibatasi 50 baris dan dapat dicari | Mengikuti batas yang sudah ada di source; perawat mengetik nama bila tidak tampil | Tanpa batas |

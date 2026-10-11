@@ -2,11 +2,11 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.8.0` — Ruang Kerja Dokter IGD, 6 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-230`): bagian 9 baru — anjuran butir per peran Dokter IGD dan Perawat IGD, keterbatasan pemisahan tugas, jejak audit; **nol butir hak akses baru**. Masukan: `00-interview-decisions.md` **229 keputusan**, terakhir `IGD-DEC-229` (grill-me 6 Oktober 2026 sore); capability map suplemen 3.4 (backend `43dab6da`, frontend `6680278a2`). *Sebelumnya:* `0.7.0` — kewenangan unit, 5 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-199`): catatan baru di bawah tabel §3 (tindakan yang benar-benar dijaga kode, `IGD-CONFLICT-006` ditunda `IGD-DEC-197`), paragraf *"Yang belum terjawab"* §3.1 diganti (`IGD-DEC-195`, `196`), dan baris §6 *Perilaku unit tanpa simpul organisasi* diselaraskan. Nol resource, nol aksi baru. *Sebelumnya* `0.6.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 8 baru (penutupan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol resource dan nol aksi baru. Sebelumnya `0.5.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif**: bagian 7 baru — aksi `EmergencyVisit : NoShow`, resource baru `EmergencyEncounterReconciliation` (`Read`/`Process`/`Reverse`), jejak audit override, NoShow, waktu tiba, rekonsiliasi. Sebelumnya `0.4.0` — bagian 3.1 (kewenangan atas pesanan) ditambahkan correction pass revisi 6. **Aditif** |
-| Status | `draft`, **kecuali bagian 9 (Ruang Kerja Dokter IGD) yang `approved`** (`IGD-DEC-230`, 6 Oktober 2026); **kecuali bagian 7 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026). Bagian 8 **`approved`** (`IGD-DEC-170`, 23 September 2026). Catatan §3, paragraf §3.1, dan baris §6 versi `0.7.0` **`approved`** (`IGD-DEC-199`, 5 Oktober 2026); isi lain bagian 3 dan 6 tetap `draft` |
+| `contract_version` | `0.9.0` — Dokter jaga IGD dan override beralasan, 11 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-240`): bagian 10 baru — nol butir hak akses baru; jejak audit override pada `EmgDoctorAssignment`. Masukan: `00-interview-decisions.md` **240 keputusan**, terakhir `IGD-DEC-240`; capability map suplemen 3.5. *Sebelumnya:* `0.8.0` — Ruang Kerja Dokter IGD, 6 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-230`): bagian 9 baru — anjuran butir per peran Dokter IGD dan Perawat IGD, keterbatasan pemisahan tugas, jejak audit; **nol butir hak akses baru**. Masukan: `00-interview-decisions.md` **229 keputusan**, terakhir `IGD-DEC-229` (grill-me 6 Oktober 2026 sore); capability map suplemen 3.4 (backend `43dab6da`, frontend `6680278a2`). *Sebelumnya:* `0.7.0` — kewenangan unit, 5 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-199`): catatan baru di bawah tabel §3 (tindakan yang benar-benar dijaga kode, `IGD-CONFLICT-006` ditunda `IGD-DEC-197`), paragraf *"Yang belum terjawab"* §3.1 diganti (`IGD-DEC-195`, `196`), dan baris §6 *Perilaku unit tanpa simpul organisasi* diselaraskan. Nol resource, nol aksi baru. *Sebelumnya* `0.6.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 8 baru (penutupan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol resource dan nol aksi baru. Sebelumnya `0.5.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif**: bagian 7 baru — aksi `EmergencyVisit : NoShow`, resource baru `EmergencyEncounterReconciliation` (`Read`/`Process`/`Reverse`), jejak audit override, NoShow, waktu tiba, rekonsiliasi. Sebelumnya `0.4.0` — bagian 3.1 (kewenangan atas pesanan) ditambahkan correction pass revisi 6. **Aditif** |
+| Status | `draft`, **kecuali bagian 10 (dokter jaga IGD) yang `approved`** (`IGD-DEC-240`, 11 Oktober 2026); **kecuali bagian 9 (Ruang Kerja Dokter IGD) yang `approved`** (`IGD-DEC-230`, 6 Oktober 2026); **kecuali bagian 7 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026). Bagian 8 **`approved`** (`IGD-DEC-170`, 23 September 2026). Catatan §3, paragraf §3.1, dan baris §6 versi `0.7.0` **`approved`** (`IGD-DEC-199`, 5 Oktober 2026); isi lain bagian 3 dan 6 tetap `draft` |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
-| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-10-06** — bagian 9 (Ruang Kerja Dokter IGD) lewat `IGD-DEC-230`. **Rizki Gunawan / 2026-09-22** — bagian 7 (encounter-first) lewat `IGD-DEC-157`; keterbatasan izin bersama pada §7.1 diterima lewat `IGD-DEC-158`. **Rizki Gunawan / 2026-09-23** — bagian 8 (penutupan lewat disposisi) lewat `IGD-DEC-170`. Bagian lain tetap `draft`. Amendment 30 September 2026 (`IGD-DEC-171`, `172`) **tidak** mengubah matriks ini: menyelesaikan dan mengeskalasi observasi tetap memakai `EmergencyObservation : Update` (§8.1). **Rizki Gunawan / 2026-10-05** — catatan §3, §3.1, dan baris §6 versi `0.7.0` lewat `IGD-DEC-199` (sementara, pola `IGD-DEC-174`; approver akhir Security/Privacy owner, belum ditunjuk). Konfigurasi peran 5 Oktober 2026 (`IGD-DEC-190`, `191`, `198`) adalah pemberian hak ke peran (§7.1 *"Pemberian hak ke peran ada di basis data"*), **bukan** perubahan matriks ini |
-| Versi sebelumnya | `0.7.0`, `0.6.0`, `0.5.0`, `0.4.0`, `0.3.0`, sebelumnya `0.2.0` |
+| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-10-11** — bagian 10 (dokter jaga IGD) lewat `IGD-DEC-240` (sementara, pola `IGD-DEC-174`). **Rizki Gunawan / 2026-10-06** — bagian 9 (Ruang Kerja Dokter IGD) lewat `IGD-DEC-230`. **Rizki Gunawan / 2026-09-22** — bagian 7 (encounter-first) lewat `IGD-DEC-157`; keterbatasan izin bersama pada §7.1 diterima lewat `IGD-DEC-158`. **Rizki Gunawan / 2026-09-23** — bagian 8 (penutupan lewat disposisi) lewat `IGD-DEC-170`. Bagian lain tetap `draft`. Amendment 30 September 2026 (`IGD-DEC-171`, `172`) **tidak** mengubah matriks ini: menyelesaikan dan mengeskalasi observasi tetap memakai `EmergencyObservation : Update` (§8.1). **Rizki Gunawan / 2026-10-05** — catatan §3, §3.1, dan baris §6 versi `0.7.0` lewat `IGD-DEC-199` (sementara, pola `IGD-DEC-174`; approver akhir Security/Privacy owner, belum ditunjuk). Konfigurasi peran 5 Oktober 2026 (`IGD-DEC-190`, `191`, `198`) adalah pemberian hak ke peran (§7.1 *"Pemberian hak ke peran ada di basis data"*), **bukan** perubahan matriks ini |
+| Versi sebelumnya | `0.8.0`, `0.7.0`, `0.6.0`, `0.5.0`, `0.4.0`, `0.3.0`, sebelumnya `0.2.0` |
 
 ---
 
@@ -321,3 +321,34 @@ Nama pasien, diagnosis, dan isi catatan klinis **tidak** ditulis ke log kustom.
 
 Butir menu Ruang Kerja Dokter IGD tidak didefinisikan di source; letaknya di sidebar diatur admin (`IGD-UNK-14`). Menu
 itu tidak menggantikan hak akses — setiap aksi tetap dijaga butir pada tabel 9.1.
+
+## 10. Dokter jaga IGD dan override beralasan — baru pada `0.9.0`, **Rencana (belum tersedia)**
+
+Untuk `IGD-DEC-237`…`239`. Status **`approved`** (`IGD-DEC-240`, Rizki Gunawan, 11 Oktober 2026). **Nol butir hak akses baru.**
+
+### 10.1 Butir hak akses
+
+| Tindakan | Endpoint | Butir | Perawat triage | Catatan |
+| --- | --- | --- | :-: | --- |
+| Membaca daftar dokter untuk pemilih DPJP | `GET …/on-duty-doctors` | `EmergencyDoctorAssignment : Read` *(sudah ada)* | Ya | Butir yang sama dengan riwayat penugasan |
+| Menetapkan DPJP, termasuk di luar jadwal | `POST …/emergency-doctor-assignments` | `EmergencyDoctorAssignment : Create` *(sudah ada)* | Ya | Override **tidak** butuh butir tersendiri |
+| Mengalihkan DPJP, termasuk di luar jadwal | `POST …/{id}/handover` | `EmergencyDoctorAssignment : Update` *(sudah ada)* | Ya | Sama |
+
+**Keterbatasan yang diterima.** Siapa pun yang boleh menetapkan DPJP juga boleh memilih dokter di luar jadwal, asal
+menulis alasan; `IGD-DEC-141` tidak meminta penyetuju kedua. Bila Clinical Governance kelak ditunjuk dan meminta override
+disetujui peran lain, butir aksi tersendiri (misalnya `EmergencyDoctorAssignment : Override`) dapat ditambahkan secara
+**aditif** lewat keputusan tersendiri (`IGD-OQ-099`).
+
+### 10.2 Jejak audit
+
+| Kejadian | Yang tersimpan tahan lama | Tempat |
+| --- | --- | --- |
+| DPJP ditetapkan atau dialihkan di luar jadwal jaga | Dokter, waktu mulai, pelaku (token), penanda override, alasan override; pada pengalihan juga alasan pengalihan | `EmgDoctorAssignment` — `DoctorId`, `EffectiveFrom`, `AssignedByUserId`, `IsRosterOverride`, `RosterOverrideReason`, `AssignmentReason`; baris tambah-saja, tidak pernah ditimpa |
+| Penolakan dokter di luar kedua kelompok, atau override tanpa alasan | Status `400` dan pelakunya | Log permintaan yang sudah ada |
+
+**Tidak boleh masuk log kustom:** alasan override, karena dapat memuat keterangan klinis pasien. Alasan itu hanya tinggal
+di `EmgDoctorAssignment` (pola §7.2).
+
+*Contoh pertanyaan audit yang kini terjawab:* *"Berapa DPJP IGD yang ditetapkan di luar jadwal jaga pada Oktober 2026, oleh
+siapa, dan apa alasannya?"* — dibaca dari `EmgDoctorAssignment` dengan `IsRosterOverride = true` dan `EffectiveFrom` pada
+bulan itu.

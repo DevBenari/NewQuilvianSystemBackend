@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `IGD-BP-001` revision `5`; **bagian 13 ditambahkan 22 September 2026** (encounter-first); **bagian 15 ditambahkan 6 Oktober 2026** (Ruang Kerja Dokter IGD, `approved` `IGD-DEC-230`) |
+| Blueprint | `IGD-BP-001` revision `5`; **bagian 13 ditambahkan 22 September 2026** (encounter-first); **bagian 15 ditambahkan 6 Oktober 2026** (Ruang Kerja Dokter IGD, `approved` `IGD-DEC-230`); **bagian 16 ditambahkan 11 Oktober 2026** (dokter jaga IGD, `approved` `IGD-DEC-240`) |
 | Status | `draft` |
 | Commit diaudit | frontend `96a9120111f6acc6b7c0f37973ea0c717ba41f17` |
 | Kontrak yang diikuti | API `0.3.0`, state `0.3.0`, validation `0.3.0`, permission/audit `0.3.0` |
@@ -689,3 +689,66 @@ mengikuti layar dokter rawat inap dan komponen dasar yang sudah ada.
 Uji layar pada hasil build dengan akun peran nyata: dokter (`DOKTER`), perawat IGD (`dimas.kurniawan`, `IGD-DEC-215`),
 penerima. Skenario `AT-IGD-200`…`213` pada PRD §10.3. Bagian *Perlu Verifikasi* dan pesanan perawat atas instruksi baru
 dapat diuji sesudah `IGD-OQ-117`.
+
+## 16. Dokter jaga IGD dan override beralasan — 11 Oktober 2026 (**Rencana (belum tersedia)**)
+
+Kontrak fungsional untuk `IGD-DEC-237`…`239`. Status **`approved`** (`IGD-DEC-240`, Rizki Gunawan, 11 Oktober 2026). Tidak ada
+layar baru: yang berubah adalah pemilih Dokter Penanggung Jawab IGD yang sudah ada di dua pintu.
+
+### 16.1 Hierarki kewenangan
+
+| Lapis | Isi yang mengikat |
+| --- | --- |
+| Keamanan / invariant | Kelayakan dihitung **backend** (`IGD-DEC-141` butir 1). Layar tidak menyaring spesialisasi, tidak mengambil master dokter sebagai cadangan, dan menampilkan penolakan server apa adanya |
+| Brief produk | `IGD-DEC-239`: dua kelompok selalu tampil; kelompok kedua wajib alasan |
+| Konvensi proyek | Komponen yang sudah ada (`Form.Select`, `FilterSelect`, modal penetapan); nol CSS global baru |
+| `DEV_DISCRETION` | Bagian 16.5 |
+
+### 16.2 Pintu yang berubah
+
+| Pintu | Komponen | Dipakai di |
+| --- | --- | --- |
+| Bagian *Dokter Penanggung Jawab IGD* pada Detail triage | `emergency-triage-doctor-section.jsx` (`Form.Select`) | Detail triage |
+| Modal *Tetapkan/Alihkan Dokter Penanggung Jawab IGD* | `emergency-triage-doctor-modal-dialog.jsx` (`FilterSelect`) | Panel riwayat triage, Detail Pengkajian (layar perawat) |
+| Riwayat penugasan | `DaftarRiwayatDokter` di `emergency-triage-doctor-section.jsx` | Detail triage |
+
+Ketiganya memakai hook `use-emergency-triage-doctor.jsx`, sehingga sumber data cukup diubah di hook, thunk, dan util.
+
+### 16.3 Perilaku layar
+
+1. Daftar dokter diambil **hanya** dari `GET …/on-duty-doctors` (API §11.2). Bila gagal, layar menampilkan pesan galat
+   dan **tidak** mengambil `doctors/options`.
+2. Dokter dengan `isOnDuty = true` tampil lebih dulu di bawah judul *Dokter jaga IGD saat ini*; dokter dengan
+   `isOnDuty = false` di bawah *Di luar jadwal jaga — wajib alasan*. Label memakai `displayLabel` dari server.
+3. Bila dokter terpilih `isOnDuty = false`, isian *Alasan memilih dokter di luar jadwal jaga* muncul dan wajib (1–500
+   karakter); tombol simpan nonaktif sampai terisi. Pada pengalihan, isian ini **terpisah** dari *Alasan pengalihan*.
+4. Penolakan `400` validation §13 aturan 8–10 tampil apa adanya di tempat aksi; daftar dimuat ulang karena roster dapat
+   berubah.
+5. Riwayat penugasan menampilkan penanda *Di luar jadwal jaga* beserta alasannya pada baris `isRosterOverride = true`.
+6. Bila kelompok dokter jaga kosong, layar memberi keterangan bahwa tidak ada dokter berjadwal jaga IGD pada jam ini dan
+   perawat memilih dokter di luar jadwal dengan alasan. Layar tidak pernah buntu.
+
+*Contoh:* perawat Dimas membuka modal pukul 10.00. Dua nama di atas berlabel shift pagi; di bawahnya dr. Andi berlabel
+*(di luar jadwal jaga)*. Ia memilih dr. Andi, isian alasan muncul, dan tombol *Tetapkan* baru aktif setelah ia menulis
+*"Dua dokter jaga sedang resusitasi"*.
+
+### 16.4 Yang dihapus dari frontend
+
+| Dihapus | Sebab |
+| --- | --- |
+| Cadangan ke `GET …/human-resource/master-data/doctors/options` di thunk `fetchEmergencyDoctorOptions` | Melewati penjaga backend (`IGD-FACT-089`) |
+| `isEmergencyDutyDoctor` dan saringan `filtered.length > 0 ? filtered : items` | Kelayakan dihitung backend (`IGD-DEC-141` butir 1) |
+
+Unit test `emergency-doctor-shift-assignment.test.mjs` disesuaikan dengan util yang tersisa.
+
+### 16.5 Wewenang yang didelegasikan (`DEV_DISCRETION`)
+
+Cara menandai kelompok pada `FilterSelect` (komponen itu tidak mengenal grup — boleh judul pemisah berupa opsi nonaktif,
+atau cukup akhiran label dari `displayLabel`), letak isian alasan, teks keterangan roster kosong, dan bentuk penanda pada
+riwayat — selama kedua kelompok terbedakan jelas di kedua pintu dan teks *"Dokter Jaga IGD"* tidak pernah menempel pada
+dokter di luar jadwal.
+
+### 16.6 Ketergantungan uji
+
+Uji layar pada hasil build dengan akun perawat IGD (`dimas.kurniawan@rsmmc.local`) dan data jadwal yang diketahui: satu
+jam berjadwal dan satu jam tanpa jadwal (atau `at` pada uji API). Skenario `AT-IGD-214`…`220` pada PRD §11.3.
