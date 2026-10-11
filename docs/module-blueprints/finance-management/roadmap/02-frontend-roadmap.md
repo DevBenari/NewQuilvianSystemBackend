@@ -940,3 +940,103 @@ flowchart TD
 | 4 | Backend `BE-FIN-099` Rilis di Lingkungan Dev | 🟡 Menahan eksekusi `FE-FIN-040` |
 | 5 | Evaluasi hak akses RBAC peran Finance Staff / Officer | Terintegrasi via `FIN-PERM-1.10` |
 
+---
+
+## Perbaikan `ISSUE-FIN-001` — Laporan AR dan Report AR Created
+
+Dokumen issue: [`../docs/issue/issue-001-laporan-ar-dan-report-ar-created.md`](../docs/issue/issue-001-laporan-ar-dan-report-ar-created.md). Rencana perbaikan beserta register statusnya: [`../docs/plan-repair/plan-repair-001-laporan-ar-dan-report-ar-created.md`](../docs/plan-repair/plan-repair-001-laporan-ar-dan-report-ar-created.md). Pemilik memerintahkan eksekusi lewat instruksi chat langsung 11 Oktober 2026: "lakukan perbaikan melalui /quilvian-engineering-skills:build-module-backend dan /quilvian-engineering-skills:build-module-frontend" — ini adalah persetujuan K-01 pada issue tersebut untuk `FIX-FIN-001-02`.
+
+### 🟡 `FE-FIN-042` — Report AR Created: tambahkan impor `useMemo` yang hilang pada `useReportArCreated`
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🟡 **Sebagian, 11 Oktober 2026** — source selesai; [laporan](../task/report/frontend/FE-FIN-042.md); `npx eslint src/lib/hooks/finance/receivable/use-report-ar-created.jsx --quiet` exit `0`; `npm run build` **PASS** (dijalankan atas instruksi lanjutan pemilik). Verifikasi peramban manual tetap `NOT FEASIBLE` (server dev tidak aktif). Merujuk `ISS-FIN-001-03` |
+| **Gelombang** | Di luar gelombang — task perbaikan bug pasca-laporan pemilik, `PLAN-REPAIR-FIN-001` |
+| **Wewenang UI** | Tidak ada perubahan tampilan — perbaikan satu baris impor JavaScript pada hook data |
+
+**Bisnis prosesnya.** Petugas Finance yang membuka menu Laporan Pembuatan AR (Report AR Created) tidak lagi mendapat "This page couldn't load". Halaman kembali menampilkan panel Filter Data, Ringkasan Laporan, dan tabel detail tagihan seperti rancangan yang sudah ada.
+
+**Acceptance criteria.**
+
+1. Membuka `/finance/ar-report/created` (navigasi sidebar maupun refresh langsung di URL) tidak lagi menampilkan "This page couldn't load".
+2. Tidak ada `ReferenceError` atau galat React lain di console browser pada render pertama, saat menerapkan filter, maupun saat berganti halaman.
+3. `debtorIdsToResolve` tetap hanya dihitung ulang ketika `appliedFilters.debtorReferenceId` atau `items` berubah — perilaku memoisasi tidak berubah oleh perbaikan ini.
+
+**Bukti verifikasi.** `npx eslint src/lib/hooks/finance/receivable/use-report-ar-created.jsx --quiet` — exit `0`. Pembacaan source sebelum/sesudah pada baris impor.
+
+**Yang dikecualikan.** `npm run build` **NOT RUN** (lihat kolom Status); verifikasi peramban manual (membuka halaman, mengetes filter/paginasi/ekspor) **NOT FEASIBLE** pada sesi ini — server dev tidak dijalankan. Keduanya menunggu konfirmasi pemilik untuk dijalankan.
+
+**Risiko.** Sangat rendah — menambah satu nama ke daftar impor `react` yang sudah ada tidak dapat memengaruhi berkas atau perilaku lain.
+
+**Definition of Done.** `npm run lint:errors` **PASS**; `npm run build` **PASS**; verifikasi peramban manual Report AR Created **PASS** (menunggu environment dev); laporan tracked ada; roadmap dan traceability diperbarui.
+
+### 🟡 `FE-FIN-043` — Laporan AR: lengkapi filter Status Billing/Integrasi Finance AR/Invoice AR yang hilang, dan perbaiki galat API yang salah ditampilkan sebagai data kosong
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🟡 **Sebagian, 11 Oktober 2026** — source selesai; [laporan](../task/report/frontend/FE-FIN-043.md); `npx eslint ... --quiet` exit `0`; `npm run build` **PASS**. Verifikasi peramban manual **NOT FEASIBLE** (server dev tidak aktif) |
+| **Gelombang** | Di luar gelombang — task perbaikan bug pasca-instruksi lanjutan pemilik, `PLAN-REPAIR-FIN-001` (`FIX-FIN-001-05`, `FIX-FIN-001-06`) |
+| **Wewenang UI** | `REUSE` murni atas `FilterSelect` dan `InformationAlert` yang sudah dipakai di layar yang sama/sejenis — nol komponen baru, nol keputusan `NEW`/`EXTEND` menunggu pemilik |
+
+**Bisnis prosesnya.** Petugas Finance kini dapat menyaring Laporan AR berdasarkan Status Billing, Status Integrasi Finance AR, dan Status Invoice AR langsung dari layar — ketiganya sudah didukung backend sejak awal tetapi sebelumnya tidak pernah terhubung ke UI. Saat API gagal, petugas melihat kartu galat yang jelas beserta tombol "Coba Lagi" yang mempertahankan saringan yang sedang dipakai — bukan lagi tabel kosong yang menyesatkan seolah memang tidak ada transaksi.
+
+**Acceptance criteria.**
+
+1. Dropdown Status Billing, Status Integrasi Finance AR, dan Status Invoice AR tampil di panel filter dan nilainya terkirim ke API saat bukan "ALL".
+2. Default ketiganya "ALL" (Semua) — backend tidak pernah dipaksa `CLOSED` atau status lain.
+3. Saat API gagal: kartu galat merah tampil dengan pesan sebenarnya dan tombol Coba Lagi; filter pengguna tidak hilang.
+4. Export Excel/PDF tetap mengikuti seluruh filter aktif (dikonfirmasi ulang, sudah benar sejak awal).
+
+**Bukti verifikasi.** `eslint`; `npm run build`; pembacaan source `buildQueryParams`, `retry`, dan `isAccessDeniedError`.
+
+**Yang dikecualikan.** Verifikasi peramban manual `NOT FEASIBLE` — server dev tidak dijalankan pada sesi ini.
+
+**Risiko.** Rendah — murni penambahan kontrol filter yang memakai ulang komponen dan pola yang sudah ada, serta satu blok error-state yang mengikuti pola `report-created-view.jsx` persis.
+
+**Definition of Done.** `npm run lint:errors` **PASS**; `npm run build` **PASS**; verifikasi peramban manual **PASS** (menunggu environment dev); laporan tracked ada; roadmap dan traceability diperbarui.
+
+---
+
+## Perbaikan `ISSUE-FIN-002` — Settlement AR
+
+Dokumen issue: [`../docs/issue/issue-002-settlement-ar-http-500-dan-revisi-uiux.md`](../docs/issue/issue-002-settlement-ar-http-500-dan-revisi-uiux.md). Rencana perbaikan beserta register statusnya: [`../docs/plan-repair/plan-repair-002-settlement-ar-http-500-dan-revisi-uiux.md`](../docs/plan-repair/plan-repair-002-settlement-ar-http-500-dan-revisi-uiux.md). Pemilik memerintahkan eksekusi lewat instruksi chat langsung 11 Oktober 2026: "Kerjakan semua lakukan perbaikan melalui /quilvian-engineering-skills:build-module-backend dan /quilvian-engineering-skills:build-module-frontend" — ini adalah persetujuan K-01 pada issue tersebut (Opsi (a): tetapkan implementasi V2 Settlement AR sebagai desain resmi) untuk `FIX-FIN-002-04`, `-05`, `-06`, `-07`, `-08`, `-10`.
+
+### 🟡 `FE-FIN-044` — Settlement AR: revisi UI/UX (kategori tab, tabel 7 kolom, error state, navigasi detail)
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🟡 **Sebagian, 11 Oktober 2026** — source selesai; [laporan](../task/report/frontend/FE-FIN-044.md); `npx eslint` empat berkas yang diubah exit `0`. `npm run build` **NOT RUN** — instruksi eksplisit pemilik pada sesi ini (diperluas dari larangan `dotnet build`). Merujuk `ISS-FIN-002-04`, `ISS-FIN-002-05`, `ISS-FIN-002-07`; mengoreksi premis `ISS-FIN-002-03` dan `ISS-FIN-002-08` (lihat laporan bagian 1) |
+| **Gelombang** | Di luar gelombang — task perbaikan bug + revisi UI/UX pasca-laporan pemilik, `PLAN-REPAIR-FIN-002` |
+| **Wewenang UI** | `PLAN-REPAIR-FIN-002` bagian 4 (`FIX-FIN-002-04`, `-05`, `-06`, `-07`, `-08`, `-10`), disetujui pemilik 11 Oktober 2026 |
+
+**Bisnis prosesnya.** Petugas Finance membuka Settlement AR, memilih kategori lewat tab yang kini
+berada di atas filter dan ringkasan, melihat label card Beginning Balance menyesuaikan
+ada/tidaknya periode, tidak lagi melihat `Rp0` diam-diam saat ringkasan gagal dimuat, dapat
+menekan "Coba Lagi" tanpa kehilangan filter saat daftar gagal, melihat 7 kolom tabel tanpa scroll
+menyamping di laptop/desktop, dan navigasi ke/dari Detail Settlement AR kini mempertahankan
+urutan data selain kategori/filter/halaman yang sudah lebih dulu berfungsi.
+
+**Acceptance criteria.**
+
+1. Tab kategori tampil satu baris penuh di atas blok filter+card, bukan di dalam kolom kanan.
+2. Card Beginning Balance berlabel "Nilai Awal Piutang" saat tanpa periode, label lain saat ada periode.
+3. Saat endpoint summary gagal, ketiga card menampilkan "Gagal memuat ringkasan", bukan `Rp0`.
+4. Tombol "Coba Lagi" muncul saat daftar gagal dan tidak mereset filter yang sudah diisi.
+5. `sortBy`/`sortDirection` ikut terbawa saat membuka Detail dan saat menekan Kembali.
+6. Total lebar minimum tujuh kolom tabel ±824px (turun dari ±1000px), tanpa menyembunyikan data.
+7. Route duplikat `/finance/settlement` tidak lagi ada; `/finance/receivable/settlement` tetap berfungsi.
+
+**Bukti verifikasi.** `npx eslint` pada keempat berkas yang diubah, exit `0`. Pembacaan source
+sebelum/sesudah pada tiap perubahan (bagian 3 laporan).
+
+**Yang dikecualikan.** `npm run build`, `npm run test:unit`, dan uji visual peramban pada 6
+breakpoint (1920/1440/1366/1024/768/390) **NOT RUN/NOT FEASIBLE** — menunggu konfirmasi pemilik
+dan environment dev yang dijalankan.
+
+**Risiko.** Rendah untuk kebenaran logika (murni tampilan/komposisi). Risiko visual: proporsi
+lebar kolom baru belum diuji di peramban sungguhan.
+
+**Definition of Done.** `npm run build` **PASS** (menunggu konfirmasi pemilik); uji visual 6
+breakpoint pada plan-repair bagian 8 **PASS**; laporan tracked ada; roadmap dan traceability
+diperbarui.
+

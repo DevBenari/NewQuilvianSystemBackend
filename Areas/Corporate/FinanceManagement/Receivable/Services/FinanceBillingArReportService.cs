@@ -578,7 +578,7 @@ LEFT JOIN LATERAL (
     SELECT intake2.""Id"", intake2.""Status"", intake2.""ErrorMessage""
     FROM ""FinBillingHandoffIntake"" intake2
     WHERE intake2.""SourceHandoffId"" = h.""Id"" AND intake2.""HandoffType"" = 'AR' AND NOT intake2.""IsDelete""
-    ORDER BY intake2.""CreatedAt"" DESC
+    ORDER BY intake2.""CreateDateTime"" DESC, intake2.""Id"" DESC
     LIMIT 1
 ) intake ON true
 LEFT JOIN LATERAL (
@@ -594,9 +594,9 @@ LEFT JOIN LATERAL (
     LIMIT 1
 ) cv ON true
 LEFT JOIN LATERAL (
-    SELECT COALESCE(SUM(bi_item.""TotalPrice""), 0) AS ""ItemsTotal""
+    SELECT COALESCE(SUM(bi_item.""Quantity"" * bi_item.""UnitPrice""), 0) AS ""ItemsTotal""
     FROM ""BilInvoiceItem"" bi_item
-    WHERE bi_item.""InvoiceId"" = i.""Id"" AND NOT bi_item.""IsDelete""
+    WHERE bi_item.""InvoiceId"" = i.""Id"" AND NOT bi_item.""IsDelete"" AND bi_item.""Status"" <> 'VOIDED'
 ) items_sum ON true
 LEFT JOIN LATERAL (
     SELECT g2.""InsuranceProviderId"", g2.""CompanyGuarantorId"", g2.""PaymentSourceNameSnapshot""
@@ -610,7 +610,7 @@ LEFT JOIN LATERAL (
     FROM ""FinReceivableInvoiceBatchItem"" bi2
     JOIN ""FinReceivableInvoiceBatch"" batch2 ON bi2.""BatchId"" = batch2.""Id"" AND NOT batch2.""IsDelete""
     WHERE bi2.""ReceivableId"" = r.""Id"" AND NOT bi2.""IsDelete""
-    ORDER BY bi2.""IsActiveMembership"" DESC, batch2.""CreatedAt"" DESC
+    ORDER BY bi2.""IsActiveMembership"" DESC, batch2.""CreateDateTime"" DESC, batch2.""Id"" DESC
     LIMIT 1
 ) batch_info ON true
 WHERE NOT i.""IsDelete""
@@ -760,60 +760,76 @@ SELECT
 
         try
         {
-            await using var cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
-            foreach (var p in parameters)
-            {
-                cmd.Parameters.Add(p.Clone());
-            }
+            // Baca dan simpan seluruh nilai kolom ke variabel lokal di dalam cakupan eksplisit ini,
+            // supaya cmd/reader benar-benar di-dispose (await using) sebelum ResolvePayerNameAsync
+            // (query EF Core pada _dbContext yang memakai koneksi ADO.NET yang sama) dipanggil di
+            // bawah. Memanggilnya selagi reader masih terbuka berisiko
+            // NpgsqlOperationInProgressException pada koneksi yang tidak mendukung command ganda.
+            bool hasRow;
+            int invCount = 0, patCount = 0, onProcessCount = 0, closedCount = 0,
+                handoffPending = 0, handoffSuccess = 0, arNotCreated = 0, arCreated = 0;
+            decimal estAmount = 0m, finalAmount = 0m, recAmount = 0m, totAmount = 0m;
 
-            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-            if (await reader.ReadAsync(cancellationToken))
             {
-                var invCount = reader.GetInt32(0);
-                var patCount = reader.GetInt32(1);
-                var onProcessCount = reader.GetInt32(2);
-                var closedCount = reader.GetInt32(3);
-                var handoffPending = reader.GetInt32(4);
-                var handoffSuccess = reader.GetInt32(5);
-                var arNotCreated = reader.GetInt32(6);
-                var arCreated = reader.GetInt32(7);
-                var estAmount = reader.GetDecimal(8);
-                var finalAmount = reader.GetDecimal(9);
-                var recAmount = reader.GetDecimal(10);
-                var totAmount = reader.GetDecimal(11);
-
-                string payerDisplayName = "Semua Perusahaan / Asuransi";
-                if (query.PayerId.HasValue && query.PayerId.Value != Guid.Empty)
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = sql;
+                foreach (var p in parameters)
                 {
-                    payerDisplayName = await ResolvePayerNameAsync(query.PayerId.Value, cancellationToken);
+                    cmd.Parameters.Add(p.Clone());
                 }
 
+                await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+                hasRow = await reader.ReadAsync(cancellationToken);
+                if (hasRow)
+                {
+                    invCount = Convert.ToInt32(reader.GetValue(0));
+                    patCount = Convert.ToInt32(reader.GetValue(1));
+                    onProcessCount = Convert.ToInt32(reader.GetValue(2));
+                    closedCount = Convert.ToInt32(reader.GetValue(3));
+                    handoffPending = Convert.ToInt32(reader.GetValue(4));
+                    handoffSuccess = Convert.ToInt32(reader.GetValue(5));
+                    arNotCreated = Convert.ToInt32(reader.GetValue(6));
+                    arCreated = Convert.ToInt32(reader.GetValue(7));
+                    estAmount = Convert.ToDecimal(reader.GetValue(8));
+                    finalAmount = Convert.ToDecimal(reader.GetValue(9));
+                    recAmount = Convert.ToDecimal(reader.GetValue(10));
+                    totAmount = Convert.ToDecimal(reader.GetValue(11));
+                }
+            }
+
+            if (!hasRow)
+            {
                 return new BillingArReportSummaryResponse
                 {
-                    InvoiceCount = invCount,
-                    PatientCount = patCount,
-                    BillingOnProcessCount = onProcessCount,
-                    BillingClosedCount = closedCount,
-                    HandoffPendingCount = handoffPending,
-                    HandoffSuccessCount = handoffSuccess,
-                    InvoiceArNotCreatedCount = arNotCreated,
-                    InvoiceArCreatedCount = arCreated,
-                    TotalEstimatedAmount = estAmount,
-                    TotalFinalBillingAmount = finalAmount,
-                    TotalFinanceReceivableAmount = recAmount,
-                    TotalAmount = totAmount,
-                    PayerName = payerDisplayName,
-                    PeriodLabel = periodLabel,
-                    EntityTotalAmount = totAmount,
-                    EntityPatientCount = patCount
+                    PayerName = "Semua Perusahaan / Asuransi",
+                    PeriodLabel = periodLabel
                 };
+            }
+
+            string payerDisplayName = "Semua Perusahaan / Asuransi";
+            if (query.PayerId.HasValue && query.PayerId.Value != Guid.Empty)
+            {
+                payerDisplayName = await ResolvePayerNameAsync(query.PayerId.Value, cancellationToken);
             }
 
             return new BillingArReportSummaryResponse
             {
-                PayerName = "Semua Perusahaan / Asuransi",
-                PeriodLabel = periodLabel
+                InvoiceCount = invCount,
+                PatientCount = patCount,
+                BillingOnProcessCount = onProcessCount,
+                BillingClosedCount = closedCount,
+                HandoffPendingCount = handoffPending,
+                HandoffSuccessCount = handoffSuccess,
+                InvoiceArNotCreatedCount = arNotCreated,
+                InvoiceArCreatedCount = arCreated,
+                TotalEstimatedAmount = estAmount,
+                TotalFinalBillingAmount = finalAmount,
+                TotalFinanceReceivableAmount = recAmount,
+                TotalAmount = totAmount,
+                PayerName = payerDisplayName,
+                PeriodLabel = periodLabel,
+                EntityTotalAmount = totAmount,
+                EntityPatientCount = patCount
             };
         }
         finally
@@ -905,18 +921,12 @@ LIMIT @pageSize OFFSET @offset;";
                 var invId = reader.GetGuid(0);
                 var invNumber = reader.IsDBNull(1) ? string.Empty : reader.GetString(1);
                 var invStatus = reader.IsDBNull(2) ? string.Empty : reader.GetString(2);
-                DateTimeOffset? billingDate = reader.IsDBNull(3) ? null : reader.GetDateTime(3);
-                DateTime? visitDate = reader.IsDBNull(4) ? null : reader.GetDateTime(4);
-                DateTimeOffset? dischargeDate = null;
-                if (!reader.IsDBNull(5))
-                {
-                    var val = reader.GetValue(5);
-                    if (val is DateTime dt) dischargeDate = new DateTimeOffset(dt, TimeSpan.Zero);
-                    else if (val is DateTimeOffset dto) dischargeDate = dto;
-                }
+                DateTimeOffset? billingDate = ReadDateTimeOffset(reader, 3);
+                DateTime? visitDate = ReadDateTime(reader, 4);
+                DateTimeOffset? dischargeDate = ReadDateTimeOffset(reader, 5);
                 Guid? encId = reader.IsDBNull(6) ? null : reader.GetGuid(6);
                 var encNumber = reader.IsDBNull(7) ? string.Empty : reader.GetString(7);
-                var encTypeVal = reader.IsDBNull(8) ? 0 : reader.GetInt32(8);
+                var encTypeVal = reader.IsDBNull(8) ? 0 : Convert.ToInt32(reader.GetValue(8));
                 var ageText = reader.IsDBNull(9) ? "-" : reader.GetString(9);
                 var mrn = reader.IsDBNull(11) ? string.Empty : reader.GetString(11);
                 var patName = reader.IsDBNull(12) ? string.Empty : reader.GetString(12);
@@ -924,8 +934,8 @@ LIMIT @pageSize OFFSET @offset;";
                 var payerType = reader.IsDBNull(14) ? "OTHER" : reader.GetString(14);
                 var payerName = reader.IsDBNull(15) ? "Lainnya" : reader.GetString(15);
                 var clinicOrRoom = reader.IsDBNull(16) ? "-" : reader.GetString(16);
-                var coveredAmount = reader.IsDBNull(17) ? 0m : reader.GetDecimal(17);
-                var excessAmount = reader.IsDBNull(18) ? 0m : reader.GetDecimal(18);
+                var coveredAmount = reader.IsDBNull(17) ? 0m : Convert.ToDecimal(reader.GetValue(17));
+                var excessAmount = reader.IsDBNull(18) ? 0m : Convert.ToDecimal(reader.GetValue(18));
                 Guid? recId = reader.IsDBNull(19) ? null : reader.GetGuid(19);
                 var recNumber = reader.IsDBNull(20) ? null : reader.GetString(20);
                 Guid? batchId = reader.IsDBNull(21) ? null : reader.GetGuid(21);
@@ -1186,6 +1196,24 @@ LIMIT @pageSize OFFSET @offset;";
             "IGD" or "EMERGENCY" => "IGD",
             _ => visitType
         };
+    }
+
+    private static DateTimeOffset? ReadDateTimeOffset(DbDataReader reader, int index)
+    {
+        if (reader.IsDBNull(index)) return null;
+        var val = reader.GetValue(index);
+        if (val is DateTimeOffset dto) return dto;
+        if (val is DateTime dt) return new DateTimeOffset(dt, TimeSpan.Zero);
+        return null;
+    }
+
+    private static DateTime? ReadDateTime(DbDataReader reader, int index)
+    {
+        if (reader.IsDBNull(index)) return null;
+        var val = reader.GetValue(index);
+        if (val is DateTime dt) return dt;
+        if (val is DateTimeOffset dto) return dto.DateTime;
+        return null;
     }
 
     private static string EscapeLike(string input) =>

@@ -1441,3 +1441,99 @@ flowchart TD
 | 3 | Otorisasi eksekusi migrasi database `BE-FIN-092` | 🟡 Milik pemilik repository. Model dan configuration selesai 10 Oktober 2026, tetapi file migration `AddFinanceReceivableInstallmentAndBenefitSettlement` itu sendiri **belum dibuat** — instruksi eksplisit pengguna "tanpa build dan migration automatis". Lihat [laporan BE-FIN-092](../task/report/backend/BE-FIN-092.md) |
 | 4 | QBE preflight check & audit invariant | Wajib dijalankan pada permulaan tiap task |
 
+---
+
+## Perbaikan `ISSUE-FIN-001` — Laporan AR dan Report AR Created
+
+Dokumen issue: [`../docs/issue/issue-001-laporan-ar-dan-report-ar-created.md`](../docs/issue/issue-001-laporan-ar-dan-report-ar-created.md). Rencana perbaikan beserta register statusnya: [`../docs/plan-repair/plan-repair-001-laporan-ar-dan-report-ar-created.md`](../docs/plan-repair/plan-repair-001-laporan-ar-dan-report-ar-created.md). Pemilik memerintahkan eksekusi lewat instruksi chat langsung 11 Oktober 2026: "lakukan perbaikan melalui /quilvian-engineering-skills:build-module-backend dan /quilvian-engineering-skills:build-module-frontend" — ini adalah persetujuan K-01 pada issue tersebut untuk `FIX-FIN-001-01` dan `FIX-FIN-001-03`.
+
+### Backend Governance Preflight
+
+| Field | Nilai |
+| --- | --- |
+| Area | Corporate |
+| Module / Submodule | FinanceManagement / Receivable |
+| Owner / Prefix | `Fin` (`MODULE_OWNERSHIP_PREFIX_REGISTRY.md` baris 15, status `ACTIVE`) |
+| Applicability | `TOUCHED LEGACY` — memperbaiki method pada service yang sudah ada, nol entity/model/table baru |
+| QBE ID berlaku | Tidak ada QBE baru yang terpicu (nol model baru, nol endpoint baru, nol migration) |
+
+### 🟡 `BE-FIN-101` — Perbaiki dua nama kolom SQL salah dan urutan baca reader/koneksi pada Laporan AR
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🟡 **Sebagian, 11 Oktober 2026** — source selesai untuk `FIX-FIN-001-01` dan `FIX-FIN-001-03`; [laporan](../task/report/backend/BE-FIN-101.md). `dotnet build` **NOT RUN** — instruksi eksplisit pemilik pada sesi ini: "jangan lakukan build dotnet secara automatis". Merujuk `ISS-FIN-001-01`, `ISS-FIN-001-02`, `ISS-FIN-001-T1` |
+| **Gelombang** | Di luar gelombang — task perbaikan bug pasca-laporan pemilik, `PLAN-REPAIR-FIN-001` |
+| **Wewenang** | `PLAN-REPAIR-FIN-001` bagian 4 (`FIX-FIN-001-01`, `FIX-FIN-001-03`), disetujui pemilik 11 Oktober 2026 |
+
+**Bisnis prosesnya.** Petugas Finance yang membuka Laporan AR tidak lagi mendapat "Terjadi kesalahan pada server" — laporan tagihan Billing ke Finance AR kembali dapat dibuka, disaring, dan diekspor. Menyaring laporan dengan satu Penjamin tertentu juga tidak lagi berisiko gagal akibat urutan baca database yang salah.
+
+**Acceptance criteria.**
+
+1. `GET /api/v1/corporate/finance-management/receivables/reports/billing-ar` (tanpa saringan) mengembalikan HTTP 200, bukan 500/42703.
+2. `ORDER BY` pada `LATERAL JOIN` `FinBillingHandoffIntake` dan `FinReceivableInvoiceBatch` memakai `"CreateDateTime"` (kolom asli `IdentityModel`), bukan `"CreatedAt"`.
+3. Menyaring dengan `payerId` tertentu mengembalikan `summary.PayerName` berisi nama penjamin yang benar, tanpa galat koneksi/reader tambahan.
+4. Seluruh nilai ringkasan dan daftar lain (jumlah invoice, nominal, status) tidak berubah dari logika sebelumnya — perbaikan ini murni nama kolom dan urutan eksekusi, nol perubahan hasil hitung.
+
+**Bukti verifikasi.** Pembacaan source sebelum/sesudah (diff dua method: `BuildFromWhereClause`, `ExecuteSummaryQueryAsync`); penelusuran migration snapshot terbaru (`Migrations/20261010115612_...Designer.cs`) untuk mengonfirmasi nama kolom `CreateDateTime` pada kedua tabel.
+
+**Yang dikecualikan.** `dotnet build`/`dotnet run` **NOT RUN**, sesuai instruksi eksplisit pemilik pada sesi ini — menunggu konfirmasi terpisah sebelum dijalankan. Uji manual terhadap database sungguhan (bagian 14 laporan asli pemilik: tanpa saringan, per penjamin, per jenis kunjungan, per periode, per status Billing/handoff/Invoice AR, paginasi, ekspor Excel/PDF) **NOT RUN** — menunggu `dotnet build` dan environment database yang sama.
+
+**Risiko.** Rendah untuk kebenaran (perbaikan nama kolom literal dan penataan ulang urutan baris, nol logika bisnis disentuh). Risiko tersisa murni administratif: task ini belum dapat ditandai ✅ sampai `dotnet build` dan uji manual terhadap database sungguhan dikonfirmasi pemilik.
+
+**Definition of Done.** `dotnet build` **PASS** (menunggu konfirmasi pemilik); uji manual keempat endpoint Laporan AR dengan kombinasi saringan pada plan-repair bagian 8 **PASS**; laporan tracked ada; roadmap dan traceability diperbarui.
+
+---
+
+## Perbaikan `ISSUE-FIN-002` — Settlement AR
+
+Dokumen issue: [`../docs/issue/issue-002-settlement-ar-http-500-dan-revisi-uiux.md`](../docs/issue/issue-002-settlement-ar-http-500-dan-revisi-uiux.md). Rencana perbaikan beserta register statusnya: [`../docs/plan-repair/plan-repair-002-settlement-ar-http-500-dan-revisi-uiux.md`](../docs/plan-repair/plan-repair-002-settlement-ar-http-500-dan-revisi-uiux.md). Pemilik memerintahkan eksekusi lewat instruksi chat langsung 11 Oktober 2026: "Kerjakan semua lakukan perbaikan melalui /quilvian-engineering-skills:build-module-backend dan /quilvian-engineering-skills:build-module-frontend" — ini adalah persetujuan K-01 pada issue tersebut (Opsi (a): tetapkan implementasi V2 Settlement AR sebagai desain resmi) untuk `FIX-FIN-002-01` dan `FIX-FIN-002-02`. P-02 (stack trace asli) terjawab bukan dari pelapor, melainkan ditemukan langsung pada `Logs/quilvian-backend-20261011.json` oleh agent pelaksana.
+
+### Backend Governance Preflight
+
+| Field | Nilai |
+| --- | --- |
+| Area | Corporate |
+| Module / Submodule | FinanceManagement / Receivable |
+| Owner / Prefix | `Fin` (`MODULE_OWNERSHIP_PREFIX_REGISTRY.md` baris 15, status `ACTIVE`) |
+| Applicability | `TOUCHED LEGACY` — memperbaiki method pada service yang sudah ada, nol entity/model/table baru |
+| QBE ID berlaku | Tidak ada QBE baru yang terpicu (nol model baru, nol endpoint baru, nol migration) |
+
+### 🟡 `BE-FIN-102` — Perbaiki HTTP 500 Settlement AR (translasi EF) dan duplikasi baris invoice batch
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🟡 **Sebagian, 11 Oktober 2026** — source selesai untuk `FIX-FIN-002-01` dan `FIX-FIN-002-02`; [laporan](../task/report/backend/BE-FIN-102.md). `dotnet build`/`dotnet run` **NOT RUN** — instruksi eksplisit pemilik pada sesi ini: "jangan lakukan build dotnet secara automatis". Merujuk `ISS-FIN-002-01`, `ISS-FIN-002-02` |
+| **Gelombang** | Di luar gelombang — task perbaikan bug pasca-laporan pemilik, `PLAN-REPAIR-FIN-002` |
+| **Wewenang** | `PLAN-REPAIR-FIN-002` bagian 4 (`FIX-FIN-002-01`, `FIX-FIN-002-02`), disetujui pemilik 11 Oktober 2026 |
+
+**Bisnis prosesnya.** Petugas Finance yang membuka Settlement AR kategori apa pun tidak lagi
+mendapat "Terjadi kesalahan pada server" saat mengurutkan berdasarkan nama pasien (urutan
+default) atau mencari dengan kata kunci bebas. Piutang yang pernah mengalami pembatalan/
+penerbitan ulang batch invoice tidak lagi tampil dua kali pada daftar maupun ringkasan.
+
+**Acceptance criteria.**
+
+1. `GET /api/v1/corporate/finance-management/receivables/settlement?category=COMPANY&pageNumber=1&pageSize=10&sortBy=patientName&sortDirection=asc` mengembalikan HTTP 200, bukan 500.
+2. Request yang sama dengan tambahan `search=<kata kunci>` juga mengembalikan HTTP 200.
+3. `ApplySorting` dan filter `Search` tidak lagi merujuk `x.debtorResolvedName` pada klausa yang berjalan sebelum materialisasi — dihitung ulang langsung dari `x.pat`/`x.comp`/`x.ins`/`x.emp`.
+4. `batchSubquery` menyaring `!IsDelete`; piutang dengan membership batch ganda (satu soft-delete, satu aktif) tampil tepat satu kali.
+5. Nol perubahan kontrak API, DTO, atau skema database.
+
+**Bukti verifikasi.** Pembacaan source sebelum/sesudah (`SettlementQueryRow`, proyeksi,
+`ApplySorting`, filter `Search`, `batchSubquery`); `Logs/quilvian-backend-20261011.json` sebagai
+bukti exception asli sebelum perbaikan.
+
+**Yang dikecualikan.** `dotnet build`/`dotnet run` **NOT RUN**, sesuai instruksi eksplisit
+pemilik pada sesi ini — menunggu konfirmasi terpisah sebelum dijalankan. Uji manual terhadap
+database sungguhan (request yang dilaporkan, variasi `search`, data uji membership batch ganda)
+**NOT RUN** — menunggu `dotnet build` dan environment database yang sama.
+
+**Risiko.** Rendah untuk kebenaran (perubahan menghitung ulang ekspresi yang sudah ada di file
+yang sama, nol logika bisnis baru). Risiko tersisa murni administratif: task ini belum dapat
+ditandai ✅ sampai `dotnet build` dan uji manual terhadap database sungguhan dikonfirmasi
+pemilik.
+
+**Definition of Done.** `dotnet build` **PASS** (menunggu konfirmasi pemilik); uji manual
+request yang dilaporkan beserta variasi `search` dan data uji membership batch ganda pada
+plan-repair bagian 8 **PASS**; laporan tracked ada; roadmap dan traceability diperbarui.
+

@@ -637,15 +637,15 @@ public sealed class FinanceSettlementService
             }
             else
             {
-                var firstMovement = recMovements.FirstOrDefault();
-                if (firstMovement != null && firstMovement.BusinessDate >= startDate.Value)
+                var startDtUtc = ToUtcStartOfDay(startDate.Value);
+                if (r.RecognizedAt < startDtUtc)
                 {
-                    beginningBalance = 0m;
+                    var firstMovement = recMovements.FirstOrDefault();
+                    beginningBalance = firstMovement != null ? firstMovement.BalanceBefore : r.OriginalAmount;
                 }
                 else
                 {
-                    var startDtUtc = ToUtcStartOfDay(startDate.Value);
-                    beginningBalance = r.RecognizedAt < startDtUtc ? r.OriginalAmount : 0m;
+                    beginningBalance = 0m;
                 }
             }
         }
@@ -665,7 +665,15 @@ public sealed class FinanceSettlementService
             else
             {
                 var endDtUtc = ToUtcEndOfDay(endDate.Value);
-                endingBalance = r.RecognizedAt <= endDtUtc ? r.OutstandingAmount : 0m;
+                if (r.RecognizedAt <= endDtUtc)
+                {
+                    var firstMovement = recMovements.FirstOrDefault();
+                    endingBalance = firstMovement != null ? firstMovement.BalanceBefore : r.OriginalAmount;
+                }
+                else
+                {
+                    endingBalance = 0m;
+                }
             }
         }
         else
@@ -688,14 +696,33 @@ public sealed class FinanceSettlementService
         return TimeZoneInfo.ConvertTimeToUtc(localDateTime, FinanceBusinessDate.BusinessTimeZone);
     }
 
-    private sealed record SettlementQueryRow(
-        FinReceivable r,
-        BilInvoice? inv,
-        RegPatientEncounter? enc,
-        MstPatient? pat,
-        MstEmployee? emp,
-        string? debtorResolvedName,
-        string? batchNumber);
+    /// <summary>
+    /// Baris gabungan internal untuk query Settlement AR.
+    /// Menggunakan class dengan parameterless constructor dan properti getter/setter
+    /// (bukan positional record constructor) agar EF Core Npgsql dapat menerjemahkan
+    /// MemberInitExpression ke SQL PostgreSQL tanpa memicu System.InvalidOperationException
+    /// saat OrderBy, Where, CountAsync, atau Select dijalankan setelah join.
+    /// </summary>
+    internal sealed class SettlementQueryRow
+    {
+        public FinReceivable r { get; set; } = null!;
+        public BilInvoice? inv { get; set; }
+        public RegPatientEncounter? enc { get; set; }
+        public MstPatient? pat { get; set; }
+        public MstEmployee? emp { get; set; }
+        public MstCompanyGuarantor? comp { get; set; }
+        public MstInsuranceProvider? ins { get; set; }
+        public string? batchNumber { get; set; }
+
+        /// <summary>
+        /// Nama debitur teresolusi di memori setelah data termaterialisasi.
+        /// </summary>
+        public string? debtorResolvedName =>
+            comp != null ? comp.CompanyGuarantorName
+            : ins != null ? ins.InsuranceProviderName
+            : emp != null ? emp.FullName
+            : pat != null ? pat.FullName : null;
+    }
 
     private IQueryable<SettlementQueryRow> BuildFilteredQueryable(FinanceSettlementQuery query, string category)
     {
@@ -730,9 +757,11 @@ public sealed class FinanceSettlementService
             baseRecs = baseRecs.Where(r => r.RecognizedAt <= endUtc || r.CreateDateTime <= endUtc);
         }
 
-        // Subquery active batch number
-        var batchSubquery = _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
-            .Where(b => b.IsActiveMembership && b.Batch!.Status != FinReceivableInvoiceBatchStatuses.Cancelled);
+        // Subquery active batch number (hanya batch yang tidak dibatalkan dan item membership aktif)
+        var batchSubquery = from b in _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+                            join batch in _dbContext.FinReceivableInvoiceBatches.AsNoTracking() on b.BatchId equals batch.Id
+                            where !b.IsDelete && b.IsActiveMembership && !batch.IsDelete && batch.Status != FinReceivableInvoiceBatchStatuses.Cancelled
+                            select new { b.ReceivableId, batch.BatchNumber };
 
         var queryable = from r in baseRecs
                         join inv in _dbContext.BilInvoices.AsNoTracking() on r.InvoiceId equals inv.Id into invJoin
@@ -749,18 +778,17 @@ public sealed class FinanceSettlementService
                         from ins in insJoin.DefaultIfEmpty()
                         join bItem in batchSubquery on r.Id equals bItem.ReceivableId into bJoin
                         from bItem in bJoin.DefaultIfEmpty()
-                        select new SettlementQueryRow(
-                            r,
-                            inv,
-                            enc,
-                            pat,
-                            emp,
-                            comp != null ? comp.CompanyGuarantorName
-                                : ins != null ? ins.InsuranceProviderName
-                                : emp != null ? emp.FullName
-                                : pat != null ? pat.FullName : null,
-                            bItem != null ? bItem.Batch!.BatchNumber : null
-                        );
+                        select new SettlementQueryRow
+                        {
+                            r = r,
+                            inv = inv,
+                            enc = enc,
+                            pat = pat,
+                            emp = emp,
+                            comp = comp,
+                            ins = ins,
+                            batchNumber = bItem != null ? bItem.BatchNumber : null
+                        };
 
         // Filter spesifik PatientId jika kategori Pasien Umum
         if (category == FinanceSettlementCategories.Patient && query.PatientId.HasValue && query.PatientId.Value != Guid.Empty)
@@ -789,7 +817,9 @@ public sealed class FinanceSettlementService
                 (x.pat != null && x.pat.FullName.ToUpper().Contains(search)) ||
                 (x.pat != null && x.pat.MedicalRecordNumber.ToUpper().Contains(search)) ||
                 (x.enc != null && x.enc.EncounterNumber.ToUpper().Contains(search)) ||
-                (x.debtorResolvedName != null && x.debtorResolvedName.ToUpper().Contains(search)));
+                (x.comp != null && x.comp.CompanyGuarantorName.ToUpper().Contains(search)) ||
+                (x.ins != null && x.ins.InsuranceProviderName.ToUpper().Contains(search)) ||
+                (x.emp != null && x.emp.FullName.ToUpper().Contains(search)));
         }
 
         return queryable;
@@ -804,25 +834,31 @@ public sealed class FinanceSettlementService
         return normSort switch
         {
             "invoicenumber" => desc
-                ? query.OrderByDescending(x => x.inv != null ? x.inv.InvoiceNumber : x.r.ReceivableNumber).ThenBy(x => x.r.Id)
-                : query.OrderBy(x => x.inv != null ? x.inv.InvoiceNumber : x.r.ReceivableNumber).ThenBy(x => x.r.Id),
+                ? query.OrderByDescending(x => x.inv != null ? x.inv.InvoiceNumber : (x.batchNumber ?? x.r.ReceivableNumber)).ThenBy(x => x.r.Id)
+                : query.OrderBy(x => x.inv != null ? x.inv.InvoiceNumber : (x.batchNumber ?? x.r.ReceivableNumber)).ThenBy(x => x.r.Id),
 
             "duedate" => desc
                 ? query.OrderByDescending(x => x.r.DueDate).ThenBy(x => x.r.Id)
                 : query.OrderBy(x => x.r.DueDate).ThenBy(x => x.r.Id),
 
-            "outstandingamount" => desc
+            "outstandingamount" or "endingbalance" => desc
                 ? query.OrderByDescending(x => x.r.OutstandingAmount).ThenBy(x => x.r.Id)
                 : query.OrderBy(x => x.r.OutstandingAmount).ThenBy(x => x.r.Id),
 
-            "totalpiutang" => desc
+            "totalpiutang" or "beginningbalance" => desc
                 ? query.OrderByDescending(x => x.r.OriginalAmount).ThenBy(x => x.r.Id)
                 : query.OrderBy(x => x.r.OriginalAmount).ThenBy(x => x.r.Id),
 
             // default: patientName ASC
             _ => desc
-                ? query.OrderByDescending(x => x.pat != null ? x.pat.FullName : x.debtorResolvedName).ThenBy(x => x.r.Id)
-                : query.OrderBy(x => x.pat != null ? x.pat.FullName : x.debtorResolvedName).ThenBy(x => x.r.Id)
+                ? query.OrderByDescending(x => x.pat != null ? x.pat.FullName
+                    : x.comp != null ? x.comp.CompanyGuarantorName
+                    : x.ins != null ? x.ins.InsuranceProviderName
+                    : x.emp != null ? x.emp.FullName : null).ThenBy(x => x.r.Id)
+                : query.OrderBy(x => x.pat != null ? x.pat.FullName
+                    : x.comp != null ? x.comp.CompanyGuarantorName
+                    : x.ins != null ? x.ins.InsuranceProviderName
+                    : x.emp != null ? x.emp.FullName : null).ThenBy(x => x.r.Id)
         };
     }
 

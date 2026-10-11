@@ -633,7 +633,7 @@ public sealed class FinanceReceivableAgingReportService
             else
             {
                 var batchRecIds = b.Items.Select(i => i.ReceivableId).ToHashSet();
-                paidAmount = allocations.Where(a => a.ReceivableId.HasValue && batchRecIds.Contains(a.ReceivableId.Value)).Sum(a => a.Amount);
+                paidAmount = Math.Max(0m, allocations.Where(a => a.ReceivableId.HasValue && batchRecIds.Contains(a.ReceivableId.Value)).Sum(a => a.IsReversal ? -a.Amount : a.Amount));
             }
 
             var outstanding = Math.Max(0m, totalAmount - paidAmount);
