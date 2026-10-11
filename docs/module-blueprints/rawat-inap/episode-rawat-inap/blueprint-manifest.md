@@ -542,3 +542,31 @@ Penyempurnaan draft: wrapper reserve internal `InpAdmissionTransferService` masu
 | testing/bed-management-design-validation.md | laporan validasi current; runtime NOT_RUN | 66e3d6c7a7eda93d477a801e5adea4cdd6a5e2110ed0da0487d1e611d00a7d92 |
 
 Approval manusia belum diberikan untuk amandemen. Sesudah pemilik menyetujui draft dan kontraknya, langkah berikutnya `plan-module-delivery`; BM-G01–04 tetap dependency aktivasi operasi yang relevan. Dokumen upstream dengan link artifacts lama dipertahankan read-only; status arsip yang tidak tersedia dijelaskan pada bukti current, tidak disamarkan sebagai tautan yang lulus.
+
+## 15. Delivery Bed Management — 11 Oktober 2026
+
+Permintaan pengguna menjalankan plan-module-delivery ditangani sebagai **perencanaan DRAFT/FORWARD-TEST** menurut pengecualian skill untuk task BLOCKED. Permintaan planning tidak dicatat sebagai approval amandemen. Revision desain child11/parent10 dan contract set target0.12.0 tetap; approved_by/approved_at amandemen tetap null. Status sebelumnya pada14.8 adalah keadaan saat finalisasi desain; registrasi ini mencatat fase planning berikutnya.
+
+| Field | Nilai |
+| --- | --- |
+| planning_id / revision / status | BM-DEL-20261011-01 / 1 / DRAFT/FORWARD-TEST |
+| Task backend | 14 task BE-RWI-208–221; seluruhnya ⛔ BM-A |
+| Task frontend | 7 task FE-RWI-231–237; seluruhnya ⛔ BM-A |
+| Gate BM-A | Approval manusia atas amandemen/desain/kontrak0.12.0 serta roadmap/task terkait dan revalidasi hash; owner Muhammad Hamzah/pemilik berwenang |
+| Dependency / coverage | Grafik teks29 pasangan;12FR,6NFR,31AC,21decision,12UAT dan39endpoint terpetakan |
+| Source SHA BE / FE saat planning | db85bede83c0ddbc9aaa412c576f2c3fd7447492 / 5aa2c7c70754e6131e4243b5ea3ee5f768b7a5d2 |
+| Hash/provenance | Snapshot24 input dan manifest sebelum registrasi pada delivery-lock. Diff dari design HEAD c5d3b5b hanya20 dokumen;47fingerprint source diperiksa ulang. Lock draft bukan implementation lock |
+| Scope trace | Bed Management decision46 + input SHA256; DEC/AC/label0.12.0 yang dipakai ulang roadmap admisi IGD lama tidak memberi approval atau bukti slice ini |
+| Gate penerapan | BM-G01–04 tetap terbuka dan spesifik per slice; bukan approval source/role/database/runtime |
+| Laporan task / runtime | Belum ada laporan implementasi; build/API/PostgreSQL/migration/browser/UAT NOT_RUN |
+| Next handoff | Sesudah approval/relock dan authority execution: BE-RWI-208/209 terlebih dahulu; FE-RWI-231 setelah BE-RWI-211 terbukti; tidak menjalankan builder pada planning ini |
+| ID bebas sesudah alokasi ini | BE-RWI-222; FE-RWI-238. Tetap scan ulang saat alokasi berikutnya |
+
+| Artefak relatif | Status | SHA256 byte aktual |
+| --- | --- | --- |
+| [roadmap/backend-roadmap-bed-management.md](./roadmap/backend-roadmap-bed-management.md) | DRAFT/FORWARD-TEST rev1 | 017f44850a2e3888f956a298f787b548b60788f7cb44c2209d29cc5113ea95f6 |
+| [roadmap/frontend-roadmap-bed-management.md](./roadmap/frontend-roadmap-bed-management.md) | DRAFT/FORWARD-TEST rev1 | 5716d1ef007ecb593615f148332c70b6c3d1aa50d4083cb4488bdcb11ebb6a6e |
+| [roadmap/requirement-traceability-bed-management.md](./roadmap/requirement-traceability-bed-management.md) | DRAFT/FORWARD-TEST rev1 | 9445e15f8a784226e198696710265a299e493c69a1251503df97f1cf07a11139 |
+| [roadmap/bed-management-delivery-lock.json](./roadmap/bed-management-delivery-lock.json) | DRAFT/FORWARD-TEST rev1 | 1d78636725038c2c32c216035a6c0cb14a6662515499eff12d21952276097260 |
+
+Pemeriksaan aktual dan gap bukti dicatat pada [traceability delivery](./roadmap/requirement-traceability-bed-management.md). Tidak ada approval baru yang diinferensikan, source aplikasi/lockfile yang ditulis, migration/database yang dijalankan, atau Git mutation. Tabel artefak desain14.3/14.8 tidak berubah.

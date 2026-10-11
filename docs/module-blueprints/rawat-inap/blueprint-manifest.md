@@ -1058,3 +1058,16 @@ Artefak current/hash/input provenance/owner ada pada [manifest anak](./episode-r
 Scope lain dan roadmap lama tetap pada kontrak/approval masing-masing. Tidak menulis roadmap/task, source aplikasi, migration executable atau database. Hanya dokumen blueprint. Langkah lanjutan plan-module-delivery memerlukan approval desain current dari manusia.
 
 Finalisasi11 Oktober2026 melengkapi inventaris wrapper admisi transfer IGD, membetulkan nama event sesuai kontrak Billing, serta menyinkronkan hash dan laporan validasi. Revision draft dan set kontrak target dipertahankan; tidak mengubah approval. Bukti baru tersimpan di evidence dan hash current pada manifest anak14.8. Pernyataan62 fingerprint dari sesi lama tidak dianggap sudah dijalankan ulang.
+
+## 0-F. Registrasi Delivery Bed Management — 11 Oktober 2026
+
+[Manifest anak bagian15](./episode-rawat-inap/blueprint-manifest.md) mendaftarkan planning BM-DEL-20261011-01 revision1 **DRAFT/FORWARD-TEST**:14 task backend BE-RWI-208–221 dan7 task frontend FE-RWI-231–237. Seluruh task ⛔ BM-A karena amandemen desain/kontrak0.12.0 dan roadmap belum approved. Pengecualian skill mengizinkan rancangan roadmap BLOCKED untuk review; tidak memberi izin implementasi. Parent revision10/partial dan child revision11/draft tetap, tanpa perubahan approval.
+
+| Artefak | Kegunaan |
+| --- | --- |
+| [Roadmap backend](./episode-rawat-inap/roadmap/backend-roadmap-bed-management.md) | 14 task, grafik teks dan dependency16 pasangan, QBE/evidence handoff |
+| [Roadmap frontend](./episode-rawat-inap/roadmap/frontend-roadmap-bed-management.md) | 7 task, grafik teks dan dependency13 pasangan, UI/consumer handoff |
+| [Traceability](./episode-rawat-inap/roadmap/requirement-traceability-bed-management.md) | 12FR/6NFR/31AC/21decision/12UAT/39endpoint, empat gate, hasil pemeriksaan dan gap aktual |
+| [Input lock draft](./episode-rawat-inap/roadmap/bed-management-delivery-lock.json) | 24hash input, source SHA, manifest snapshot sebelum registrasi dan task/endpoint ownership; implementation_lock=false |
+
+Planning membaca HEAD BE db85bede83c0ddbc9aaa412c576f2c3fd7447492 dan FE5aa2c7c70754e6131e4243b5ea3ee5f768b7a5d2;47fingerprint source sesuai snapshot desain. Tidak mengubah module-map, decisions, kontrak/desain, source, lockfile frontend, database atau Git. Catatan0-E mengenai belum adanya roadmap adalah keadaan fase desain sebelumnya. Approval manusia atas draft dan relock dibutuhkan sebelum task dipilih untuk builder; BM-G01–04 tetap gate bukti aktivasi yang relevan.

@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
@@ -19,7 +21,7 @@ using ResponsePatientClassPagedResult =
 
 namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 {
-    [ApiController]
+    [ApiController, ServiceFilter(typeof(InpBedOperationFilter))]
     [Authorize]
     [Route("api/v1/health-services/master-data/patient-classes")]
     [AccessController(
@@ -39,14 +41,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         private const int PatientClassCodeDigitLength = 5;
 
         private readonly ApplicationDbContext _dbContext;
-        private readonly LoggerService _loggerService;
+        private readonly LoggerService _loggerService; private readonly BedMutationService _bedMutation;
+        private readonly PatientClassMasterWriteService _bedWriter;
 
         public PatientClassController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService, BedMutationService bedMutation, PatientClassMasterWriteService bedWriter)
         {
             _dbContext = dbContext;
-            _loggerService = loggerService;
+            _loggerService = loggerService; _bedMutation = bedMutation; _bedWriter = bedWriter;
         }
 
         [HttpGet("filters/metadata")]
@@ -306,6 +309,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var result = MapDetailResponse(entity, actorNames);
 
+            result.AffectedBedVersions = await _bedMutation.VersionsAsync("PatientClass", id);
             return Ok(ApiResponse<PatientClassDetailResponse>.Ok(
                 result,
                 "Detail patient class berhasil diambil."
@@ -331,7 +335,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            await using var transaction = await InpBedTransactionLease.BeginAsync(_dbContext, HttpContext.RequestAborted);
 
             if (request.IsDefault)
             {
@@ -395,75 +399,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("PatientClass", "Update")]
         public async Task<IActionResult> UpdatePatientClass(Guid id, [FromBody] UpdatePatientClassRequest request)
         {
-            var entity = await _dbContext.Set<MstPatientClass>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Patient class tidak ditemukan."
-                ));
-            }
-
-            var validation = await ValidateCreateUpdateRequestAsync(id, request, request.IsActive);
-            if (!validation.IsValid)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data patient class tidak valid."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-
-            if (request.IsDefault)
-            {
-                await ResetDefaultPatientClassAsync(actorUserId, now, excludeId: entity.Id);
-            }
-
-            entity.PatientClassName = request.PatientClassName.Trim();
-            entity.PatientClassType = request.PatientClassType;
-            entity.ExternalClassCode = NormalizeNullableText(request.ExternalClassCode);
-            entity.ClassAlias = NormalizeNullableText(request.ClassAlias);
-            entity.ClassLevel = request.ClassLevel;
-            entity.IsForOutpatient = request.IsForOutpatient;
-            entity.IsForInpatient = request.IsForInpatient;
-            entity.IsForEmergency = request.IsForEmergency;
-            entity.IsForIntensiveCare = request.IsForIntensiveCare;
-            entity.IsForNewborn = request.IsForNewborn;
-            entity.IsForRoomCharge = request.IsForRoomCharge;
-            entity.IsForTariffMapping = request.IsForTariffMapping;
-            entity.IsDefault = request.IsActive && request.IsDefault;
-            entity.DefaultDailyRoomRate = request.DefaultDailyRoomRate;
-            entity.DefaultRegistrationFee = request.DefaultRegistrationFee;
-            entity.DefaultConsultationFee = request.DefaultConsultationFee;
-            entity.SortOrder = request.SortOrder;
-            entity.Description = NormalizeNullableText(request.Description);
-            entity.IsActive = request.IsActive;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            await _dbContext.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            var actorNames = await GetActorNameMapAsync(new[] { actorUserId });
-            var result = MapUpdateResponse(entity, actorNames);
-
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "PatientClass.UpdatePatientClass",
-                "Mengubah data patient class.",
-                result
-            );
-
-            return Ok(ApiResponse<PatientClassUpdateResponse>.Ok(
-                result,
-                "Patient class berhasil diperbarui."
-            ));
+            try { return await _bedMutation.ExecuteAsync("PatientClass", "Update", id, request ?? new(), () => _bedWriter.UpdatePatientClassAsync(id, request), HttpContext.RequestAborted); }
+            catch (MasterWriteRejectedException e) { return e.Result; }
         }
 
         [HttpPatch("{id:guid}/status")]
@@ -473,38 +410,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("PatientClass", "Update")]
         public async Task<IActionResult> UpdatePatientClassStatus(Guid id, [FromBody] UpdatePatientClassStatusRequest request)
         {
-            var entity = await _dbContext.Set<MstPatientClass>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Patient class tidak ditemukan."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            entity.IsActive = request.IsActive;
-            if (!request.IsActive)
-            {
-                entity.IsDefault = false;
-            }
-
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            await _dbContext.SaveChangesAsync();
-
-            var actorNames = await GetActorNameMapAsync(new[] { actorUserId });
-            var result = MapUpdateResponse(entity, actorNames);
-
-            return Ok(ApiResponse<PatientClassUpdateResponse>.Ok(
-                result,
-                "Status patient class berhasil diperbarui."
-            ));
+            try { return await _bedMutation.ExecuteAsync("PatientClass", "Status", id, request ?? new(), () => _bedWriter.UpdatePatientClassStatusAsync(id, request), HttpContext.RequestAborted); }
+            catch (MasterWriteRejectedException e) { return e.Result; }
         }
 
         [HttpDelete("{id:guid}")]
@@ -515,79 +422,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("PatientClass", "Delete")]
         public async Task<IActionResult> DeletePatientClass(Guid id, [FromBody] DeletePatientClassRequest? request = null)
         {
-            var entity = await _dbContext.Set<MstPatientClass>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Patient class tidak ditemukan."
-                ));
-            }
-
-            if (entity.IsDefault)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Patient class default tidak dapat dihapus."
-                ));
-            }
-
-            var isUsedByRoom = await _dbContext.Set<MstRoom>()
-                .AnyAsync(x => x.PatientClassId == id && !x.IsDelete);
-
-            var isUsedByTariff = await _dbContext.Set<MstTariff>()
-                .AnyAsync(x => x.PatientClassId == id && !x.IsDelete);
-
-            if (isUsedByRoom || isUsedByTariff)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Patient class tidak dapat dihapus karena sudah digunakan oleh room atau tariff."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            entity.IsDelete = true;
-            entity.IsActive = false;
-            entity.IsDefault = false;
-            entity.DeleteDateTime = now;
-            entity.DeleteBy = actorUserId;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
-            {
-                entity.Description = request.DeleteReason.Trim();
-            }
-
-            await _dbContext.SaveChangesAsync();
-
-            var actorNames = await GetActorNameMapAsync(new[] { actorUserId });
-            var result = new PatientClassDeleteResponse
-            {
-                Id = entity.Id,
-                PatientClassCode = entity.PatientClassCode,
-                PatientClassName = entity.PatientClassName,
-                DeleteDateTime = entity.DeleteDateTime,
-                DeleteBy = entity.DeleteBy == Guid.Empty ? null : (Guid?)entity.DeleteBy,
-                DeleteByName = GetActorName(actorNames, entity.DeleteBy)
-            };
-
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "PatientClass.DeletePatientClass",
-                "Menghapus data patient class.",
-                result
-            );
-
-            return Ok(ApiResponse<PatientClassDeleteResponse>.Ok(
-                result,
-                "Patient class berhasil dihapus."
-            ));
+            try { return await _bedMutation.ExecuteAsync("PatientClass", "Delete", id, request ?? new(), () => _bedWriter.DeletePatientClassAsync(id, request), HttpContext.RequestAborted); }
+            catch (MasterWriteRejectedException e) { return e.Result; }
         }
 
         private IQueryable<MstPatientClass> BuildBaseQuery()
@@ -934,23 +770,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 CreateDateTime = entity.CreateDateTime,
                 CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
                 CreateByName = GetActorName(actorNames, entity.CreateBy)
-            };
-        }
-
-        private static PatientClassUpdateResponse MapUpdateResponse(MstPatientClass entity, IReadOnlyDictionary<Guid, string?> actorNames)
-        {
-            return new PatientClassUpdateResponse
-            {
-                Id = entity.Id,
-                PatientClassCode = entity.PatientClassCode,
-                PatientClassName = entity.PatientClassName,
-                PatientClassType = entity.PatientClassType,
-                PatientClassTypeName = BuildEnumLabel(entity.PatientClassType),
-                IsDefault = entity.IsDefault,
-                IsActive = entity.IsActive,
-                UpdateDateTime = entity.UpdateDateTime,
-                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
-                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
             };
         }
 

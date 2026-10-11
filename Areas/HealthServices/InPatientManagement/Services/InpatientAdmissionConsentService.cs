@@ -123,8 +123,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     SnapshotJson = snapshotJson,
                     SnapshotFormatVersion = 1,
                     RowVersion = Guid.NewGuid(),
-                    CreatedBy = actorUserId?.ToString() ?? "SYSTEM",
-                    CreatedAt = now
+                    CreateBy = actorUserId ?? Guid.Empty,
+                    CreateDateTime = now
                 };
 
                 // Catat Party (Pihak Penanda Tangan)
@@ -140,8 +140,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         ? request.SignerPhoneNumber[..13]
                         : request.SignerPhoneNumber,
                     IdentityNumber = request.SignerIdentityNumber,
-                    CreatedBy = actorUserId?.ToString() ?? "SYSTEM",
-                    CreatedAt = now
+                    CreateBy = actorUserId ?? Guid.Empty,
+                    CreateDateTime = now
                 };
 
                 // Catat Signature (Slot Pasien/Keluarga)
@@ -157,8 +157,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     SignedAt = request.SignedAt ?? now,
                     RecordedAt = now,
                     VerifiedByUserId = actorUserId,
-                    CreatedBy = actorUserId?.ToString() ?? "SYSTEM",
-                    CreatedAt = now
+                    CreateBy = actorUserId ?? Guid.Empty,
+                    CreateDateTime = now
                 };
 
                 _dbContext.Set<InpAdmissionDocument>().Add(doc);
@@ -175,8 +175,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 existingDoc.SnapshotJson = snapshotJson;
                 existingDoc.SnapshotFormatVersion = 1;
                 existingDoc.RowVersion = Guid.NewGuid();
-                existingDoc.UpdatedBy = actorUserId?.ToString() ?? "SYSTEM";
-                existingDoc.UpdatedAt = now;
+                existingDoc.UpdateBy = actorUserId ?? Guid.Empty;
+                existingDoc.UpdateDateTime = now;
 
                 if (existingDoc.Party != null)
                 {
@@ -187,8 +187,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         ? request.SignerPhoneNumber[..13]
                         : request.SignerPhoneNumber;
                     existingDoc.Party.IdentityNumber = request.SignerIdentityNumber;
-                    existingDoc.Party.UpdatedBy = actorUserId?.ToString() ?? "SYSTEM";
-                    existingDoc.Party.UpdatedAt = now;
+                    existingDoc.Party.UpdateBy = actorUserId ?? Guid.Empty;
+                    existingDoc.Party.UpdateDateTime = now;
                 }
 
                 var sig = existingDoc.Signatures?.FirstOrDefault(s => s.Slot == InpAdmissionSignatureSlot.PatientOrFamily && !s.IsDelete);
@@ -200,8 +200,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     sig.SignedAt = request.SignedAt ?? now;
                     sig.RecordedAt = now;
                     sig.VerifiedByUserId = actorUserId;
-                    sig.UpdatedBy = actorUserId?.ToString() ?? "SYSTEM";
-                    sig.UpdatedAt = now;
+                    sig.UpdateBy = actorUserId ?? Guid.Empty;
+                    sig.UpdateDateTime = now;
                 }
             }
 

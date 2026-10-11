@@ -290,8 +290,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             var now = DateTime.UtcNow;
 
-            await using var transaction = await _dbContext.Database
-                .BeginTransactionAsync(cancellationToken);
+            await using var transaction = await InpBedTransactionLease.BeginAsync(_dbContext, cancellationToken);
 
             try
             {
@@ -549,8 +548,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             var now = DateTime.UtcNow;
             var reason = request.Reason.Trim();
 
-            await using var transaction = await _dbContext.Database
-                .BeginTransactionAsync(cancellationToken);
+            await using var transaction = await InpBedTransactionLease.BeginAsync(_dbContext, cancellationToken);
 
             try
             {
@@ -735,8 +733,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 return false;
             }
 
-            await using var transaction = await _dbContext.Database
-                .BeginTransactionAsync(cancellationToken);
+            await using var transaction = await InpBedTransactionLease.BeginAsync(_dbContext, cancellationToken);
 
             try
             {
@@ -1350,7 +1347,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// paling mungkin terlewat adalah cabang yang lebih jarang dipakai.
         /// </remarks>
         public ClosureSideEffectsResponse? SideEffects { get; set; }
-        public InpatientDepartureResponse? Departure { get; set; }
+        public InpatientDepartureResponse? Departure { get; set; } public BedOperationMeta? OperationMeta { get; set; }
 
         public static InpEpisodeOperationResult Success(
             InpEpisode episode,

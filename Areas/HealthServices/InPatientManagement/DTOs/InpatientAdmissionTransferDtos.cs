@@ -92,6 +92,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// </summary>
     public class OpenAdmissionFromTransferRequest
     {
+        public long ExpectedBedVersion { get; set; }
         [Required(ErrorMessage = "TransferDispositionId wajib diisi.")]
         public Guid TransferDispositionId { get; set; }
 

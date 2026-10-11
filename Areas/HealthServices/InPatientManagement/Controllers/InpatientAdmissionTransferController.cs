@@ -69,45 +69,5 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                 : Ok(ApiResponse<InpatientAdmissionTransferItemResponse>.Ok(result, "Detail rujukan transfer berhasil diambil."));
         }
 
-        /// <summary>
-        /// Mengeksekusi pendaftaran rawat inap dari rujukan transfer IGD secara atomik (BE-RWI-207).
-        /// </summary>
-        [HttpPost("admit")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status201Created)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Create", "Create Inpatient Episode from Transfer", Description = "Menyelesaikan pendaftaran rawat inap dari transfer IGD", AccessType = AccessTypes.Create, SortOrder = 2)]
-        [AccessPermission("InpatientEpisode", "Create")]
-        public async Task<IActionResult> AdmitFromTransfer(
-            [FromBody] OpenAdmissionFromTransferRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Validasi formulir gagal."));
-            }
-
-            var result = await _service.ExecuteTransferAdmissionAsync(
-                request,
-                User.GetUserId(),
-                cancellationToken);
-
-            if (!result.IsSuccess)
-            {
-                return result.Status switch
-                {
-                    InpEpisodeOperationStatus.NotFound => NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, result.Message)),
-                    InpEpisodeOperationStatus.Conflict => Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, result.Message)),
-                    InpEpisodeOperationStatus.BusinessRuleRejected => UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, result.Message)),
-                    _ => BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, result.Message))
-                };
-            }
-
-            return StatusCode(
-                StatusCodes.Status201Created,
-                ApiResponse<object>.Ok(result.Data, result.Message));
-        }
     }
 }

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
@@ -17,11 +18,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
     /// <summary>
     /// Service pengelola antrean dan penyelesaian admisi ranap dari transfer pasien IGD & Poliklinik (BE-RWI-206, BE-RWI-207).
     /// </summary>
-    public class InpAdmissionTransferService
+    public partial class InpAdmissionTransferService
     {
         private const string LogCategory = "HealthServices.InPatient.AdmissionTransfer";
 
-        private readonly ApplicationDbContext _dbContext;
+        private readonly ApplicationDbContext _dbContext; private readonly InpBedMutationCoordinator _bedCoordinator; private readonly InpBedAccessService _bedAccess;
         private readonly InpEpisodeService _episodeService;
         private readonly InpBedOccupancyService _bedOccupancyService;
         private readonly LoggerService _loggerService;
@@ -30,9 +31,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             ApplicationDbContext dbContext,
             InpEpisodeService episodeService,
             InpBedOccupancyService bedOccupancyService,
-            LoggerService loggerService)
+            LoggerService loggerService, InpBedMutationCoordinator bedCoordinator, InpBedAccessService bedAccess)
         {
-            _dbContext = dbContext;
+            _dbContext = dbContext; _bedCoordinator = bedCoordinator; _bedAccess = bedAccess;
             _episodeService = episodeService;
             _bedOccupancyService = bedOccupancyService;
             _loggerService = loggerService;
@@ -143,8 +144,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 };
             }).ToList();
 
-            return new PagedResult<InpatientAdmissionTransferItemResponse>(
-                resultItems, totalCount, pageNumber, pageSize);
+            return new PagedResult<InpatientAdmissionTransferItemResponse>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalCount,
+                TotalPage = (int)Math.Ceiling(totalCount / (double)pageSize),
+                Items = resultItems
+            };
         }
 
         /// <summary>
@@ -200,7 +207,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// <summary>
         /// Mengeksekusi pendaftaran rawat inap dari transfer IGD secara atomik (BE-RWI-207).
         /// </summary>
-        public async Task<InpEpisodeOperationResult> ExecuteTransferAdmissionAsync(
+        private async Task<InpEpisodeOperationResult> ExecuteTransferAdmissionCoreAsync(
             OpenAdmissionFromTransferRequest request,
             Guid actorUserId,
             CancellationToken cancellationToken = default)
@@ -210,6 +217,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 return InpEpisodeOperationResult.Invalid("Data pendaftaran transfer belum dikirim.");
             }
 
+            await _dbContext.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM public.\"EmgDisposition\" WHERE \"Id\" = {request.TransferDispositionId} FOR UPDATE", cancellationToken);
             // 1. Verifikasi Disposisi IGD
             var disposition = await _dbContext.Set<EmgDisposition>()
                 .Include(x => x.EmergencyVisit)
@@ -253,12 +261,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 actorUserId,
                 cancellationToken);
 
-            if (!openResult.IsSuccess || openResult.Data == null)
+            if (!(openResult.Status == InpEpisodeOperationStatus.Success) || openResult.Episode == null)
             {
                 return openResult;
             }
 
-            var episodeId = openResult.Data.Id;
+            var episodeId = openResult.Episode.Id;
 
             // 3. Reservasi / Booking Tempat Tidur
             if (request.BedId != Guid.Empty)
@@ -267,23 +275,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 {
                     EpisodeId = episodeId,
                     BedId = request.BedId,
-                    Notes = $"Alokasi kamar untuk transfer IGD ({disposition.EmergencyVisit.EmergencyVisitNumber})"
+                    ExpectedBedVersion = request.ExpectedBedVersion
                 };
 
-                var bedResult = await _bedOccupancyService.ReserveBedAsync(
+                var bedResult = await _bedOccupancyService.ReserveBedCoreAsync(
                     reserveBedRequest,
                     actorUserId,
                     cancellationToken);
 
-                if (!bedResult.IsSuccess)
+                if (!(bedResult.Status == InpEpisodeOperationStatus.Success))
                 {
-                    // Rollback pembukaan admisi jika booking bed gagal
-                    await _episodeService.CancelAdmissionAsync(
-                        episodeId,
-                        new CancelAdmissionRequest { CancellationReason = "Gagal alokasi tempat tidur transfer: " + bedResult.Message },
-                        actorUserId,
-                        cancellationToken);
-
                     return InpEpisodeOperationResult.BusinessRuleRejected(
                         $"Alokasi tempat tidur gagal: {bedResult.Message}");
                 }
@@ -299,16 +300,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            // 5. Catat audit log
-            await _loggerService.AuditAsync(
-                LogCategory,
-                "InpAdmissionTransfer.Executed",
-                $"Admisi rawat inap berhasil diterbitkan untuk transfer IGD {disposition.EmergencyVisit.EmergencyVisitNumber}. EpisodeId={episodeId}",
-                actorUserId,
-                cancellationToken);
-
             return InpEpisodeOperationResult.Success(
-                openResult.Data,
+                openResult.Episode,
                 "Pendaftaran rawat inap dari transfer IGD berhasil diselesaikan.");
         }
     }

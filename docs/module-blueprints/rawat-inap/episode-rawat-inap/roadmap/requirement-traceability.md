@@ -1038,3 +1038,43 @@ Billing; barisnya kini bertanda coretan dan menyebut nomornya milik `dokter-rawa
 | Requirement                               | Yang belum tercakup test                | Sebabnya                                                                                                                     |
 | ----------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | Kelayakan keuangan berbasis fakta Billing | `AC-MVP-021` s.d. `AC-MVP-023` nol test | `RWI-DEC-102` mengeluarkannya dari `Gelombang 1A`. Menunggu `BE-BKC-040` pada roadmap `billing-kasir`, yang nol barisnya ada |
+
+
+## Implementasi Backend Bed Management — 2026-10-11
+
+Scope ini memakai decision46/kontrak0.12.0 dan hash masukan pada [delivery lock](bed-management-delivery-lock.json). ID AC/DEC yang berulang pada roadmap IGD historis tidak mewariskan approval atau bukti. Pengguna menyetujui seluruh14task backend; source sudah dikerjakan, status 🟡 karena runtime belum dibuktikan. QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error. Build serta migration dikecualikan pengguna dan akan dikerjakan mandiri. Tidak ada migration, perubahan frontend atau eksekusi database.
+
+Pemetaan rinci tersedia pada [traceability Bed Management](requirement-traceability-bed-management.md) dan [roadmap backend](backend-roadmap-bed-management.md).
+
+| Task | Requirement | Status / bukti |
+| --- | --- | --- |
+| `BE-RWI-208` 🟡 | FR-BM-003, FR-BM-004, FR-BM-005, FR-BM-006, FR-BM-010, FR-BM-011 | Source dipetakan 4/4; acceptance penuh0/4; runtime NOT_RUN; [laporan](../task/report/backend/BE-RWI-208.md) |
+| `BE-RWI-209` 🟡 | FR-BM-001, FR-BM-002, FR-BM-005, FR-BM-006, FR-BM-009, FR-BM-011 | Source dipetakan 4/4; acceptance penuh0/4; runtime NOT_RUN; [laporan](../task/report/backend/BE-RWI-209.md) |
+| `BE-RWI-210` 🟡 | FR-BM-002, FR-BM-004, FR-BM-007, FR-BM-008, FR-BM-010, FR-BM-012 | Source dipetakan 5/5; acceptance penuh0/5; runtime NOT_RUN; [laporan](../task/report/backend/BE-RWI-210.md) |
+| `BE-RWI-211` 🟡 | FR-BM-001, FR-BM-002, FR-BM-008 | Source dipetakan 4/4; acceptance penuh0/4; runtime NOT_RUN; [laporan](../task/report/backend/BE-RWI-211.md) |
+| `BE-RWI-212` 🟡 | FR-BM-003, FR-BM-004 | Source dipetakan 4/4; acceptance penuh0/4; runtime NOT_RUN; [laporan](../task/report/backend/BE-RWI-212.md) |
+| `BE-RWI-213` 🟡 | FR-BM-003, FR-BM-004, FR-BM-010, FR-BM-011 | Source dipetakan 4/4; acceptance penuh0/4; runtime NOT_RUN; [laporan](../task/report/backend/BE-RWI-213.md) |
+| `BE-RWI-214` 🟡 | FR-BM-005 | Source dipetakan 4/4; acceptance penuh0/4; runtime NOT_RUN; [laporan](../task/report/backend/BE-RWI-214.md) |
+| `BE-RWI-215` 🟡 | FR-BM-006, FR-BM-008 | Source dipetakan 4/4; acceptance penuh0/4; runtime NOT_RUN; [laporan](../task/report/backend/BE-RWI-215.md) |
+| `BE-RWI-216` 🟡 | FR-BM-007, FR-BM-008 | Source dipetakan 4/4; acceptance penuh0/4; runtime NOT_RUN; [laporan](../task/report/backend/BE-RWI-216.md) |
+| `BE-RWI-217` 🟡 | FR-BM-007, FR-BM-008, FR-BM-009 | Source dipetakan 4/4; acceptance penuh0/4; runtime NOT_RUN; [laporan](../task/report/backend/BE-RWI-217.md) |
+| `BE-RWI-218` 🟡 | FR-BM-009 | Source dipetakan 4/4; acceptance penuh0/4; runtime NOT_RUN; [laporan](../task/report/backend/BE-RWI-218.md) |
+| `BE-RWI-219` 🟡 | FR-BM-004, FR-BM-009, FR-BM-010 | Source dipetakan 4/4; acceptance penuh0/4; runtime NOT_RUN; [laporan](../task/report/backend/BE-RWI-219.md) |
+| `BE-RWI-220` 🟡 | FR-BM-011, FR-BM-012 | Source dipetakan 4/4; acceptance penuh0/4; runtime NOT_RUN; [laporan](../task/report/backend/BE-RWI-220.md) |
+| `BE-RWI-221` 🟡 | FR-BM-003, FR-BM-004 | Source dipetakan 4/4; acceptance penuh0/4; runtime NOT_RUN; [laporan](../task/report/backend/BE-RWI-221.md) |
+
+## Implementasi Frontend Bed Management — 2026-10-11
+
+Scope memakai decision46/kontrak0.12.0 BM-DEL-20261011-01; ID AC historis IGD tidak mewariskan bukti. Pengguna mengotorisasi seluruh7task frontend serta mengecualikan build/lint untuk dijalankan manual. Source dan laporan sudah tersedia, status 🟡 karena browser/API/runtime belum terbukti dan dependency backend masih parsial. Unit scope58/58 PASS; suite2720/2694 PASS/26 FAIL baseline; parser/import63file dan UI grep9 JSX/CSS baru bersih, hash24/24 cocok. Localhost:3000 ECONNREFUSED; MANUAL TEST: NOT FEASIBLE. Tidak ada perubahan source backend, migration/database/deploy atau stage/commit/push.
+
+| Task | Requirement | Acceptance scoped | Status / laporan |
+| --- | --- | --- | --- |
+| `FE-RWI-231` 🟡 | FR-BM-001, FR-BM-002, FR-BM-004 | RWI-AC-396, RWI-AC-397, RWI-AC-398, RWI-AC-416, RWI-AC-417, RWI-AC-420, RWI-AC-422, RWI-AC-424 | Source3/4 lengkap +1/4 parsial; acceptance penuh0/4; unit scope58/58 PASS; runtime NOT_RUN; [laporan](../task/report/frontend/FE-RWI-231.md) |
+| `FE-RWI-232` 🟡 | FR-BM-003, FR-BM-004 | RWI-AC-407, RWI-AC-408, RWI-AC-413, RWI-AC-418, RWI-AC-419, RWI-AC-421, RWI-AC-422, RWI-AC-426 | Source4/4 dipetakan; acceptance penuh0/4; unit scope58/58 PASS; runtime NOT_RUN; [laporan](../task/report/frontend/FE-RWI-232.md) |
+| `FE-RWI-233` 🟡 | FR-BM-005, FR-BM-006 | RWI-AC-406, RWI-AC-409, RWI-AC-410, RWI-AC-411, RWI-AC-416, RWI-AC-417, RWI-AC-421, RWI-AC-425 | Source3/4 lengkap +1/4 parsial; acceptance penuh0/4; unit scope58/58 PASS; runtime NOT_RUN; [laporan](../task/report/frontend/FE-RWI-233.md) |
+| `FE-RWI-234` 🟡 | FR-BM-007, FR-BM-008 | RWI-AC-412, RWI-AC-419, RWI-AC-421, RWI-AC-424 | Source4/4 dipetakan; acceptance penuh0/4; unit scope58/58 PASS; runtime NOT_RUN; [laporan](../task/report/frontend/FE-RWI-234.md) |
+| `FE-RWI-235` 🟡 | FR-BM-002, FR-BM-009, FR-BM-010 | RWI-AC-399, RWI-AC-400, RWI-AC-401, RWI-AC-403, RWI-AC-404, RWI-AC-405, RWI-AC-414, RWI-AC-420, RWI-AC-423 | Source4/4 dipetakan; acceptance penuh0/4; unit scope58/58 PASS; runtime NOT_RUN; [laporan](../task/report/frontend/FE-RWI-235.md) |
+| `FE-RWI-236` 🟡 | FR-BM-011, FR-BM-012 | RWI-AC-402, RWI-AC-415, RWI-AC-416, RWI-AC-417, RWI-AC-418 | Source4/4 dipetakan; acceptance penuh0/4; unit scope58/58 PASS; runtime NOT_RUN; [laporan](../task/report/frontend/FE-RWI-236.md) |
+| `FE-RWI-237` 🟡 | FR-BM-003, FR-BM-004 | RWI-AC-408, RWI-AC-419, RWI-AC-421, RWI-AC-422, RWI-AC-425 | Source4/4 dipetakan; acceptance penuh0/4; unit scope58/58 PASS; runtime NOT_RUN; [laporan](../task/report/frontend/FE-RWI-237.md) |
+
+Metadata backend belum menyediakan key transfer; evidence historis tidak diekspos respons cleaning-attempt. Gate kelas/SOP/access/cutover tetap terbuka. Rincian ada pada [roadmap frontend](frontend-roadmap-bed-management.md), [traceability Bed Management](requirement-traceability-bed-management.md) dan inventaris consumer [FE-RWI-237](../task/report/frontend/FE-RWI-237.md).
