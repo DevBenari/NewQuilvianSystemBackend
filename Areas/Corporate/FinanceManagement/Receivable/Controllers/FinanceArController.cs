@@ -54,6 +54,24 @@ public sealed class FinanceArController : ControllerBase
         }
     }
 
+    [HttpGet("{id:guid}/documents")]
+    [AccessAction("View", "View AR", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("Finance.AR", "View")]
+    [ProducesResponseType(typeof(ApiResponse<ReceivableDocumentsResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetDocuments(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetDocumentsAsync(id, cancellationToken);
+            return Ok(ApiResponse<ReceivableDocumentsResponse>.Ok(result, "Dokumen piutang berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(404, exception.Message));
+        }
+    }
+
     // BE-FIN-077: metode, sumber dana, nomor rujukan, dan ProofId kini wajib dan tersimpan di baris
     // mutasi; ambang pembayaran langsung ditegakkan (FIN-DES-085, FIN-DES-086). PERUBAHAN MEMUTUS —
     // lihat laporan task BE-FIN-077 bagian 7 untuk urutan rilis bersama FE-FIN-030.

@@ -19,6 +19,14 @@ using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Data;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
+using System.Globalization;
 
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 
@@ -37,6 +45,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Ser
 /// </summary>
 public sealed class FinanceReceivableInvoiceBatchService
 {
+    private static readonly CultureInfo IdCulture = new("id-ID");
     private const string LogCategory = "Corporate.FinanceManagement.Receivable";
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
@@ -120,8 +129,8 @@ public sealed class FinanceReceivableInvoiceBatchService
             mapped.PayerName = debtorName;
             mapped.CompanyId = b.DebtorReferenceId;
             mapped.CompanyName = debtorName;
-            mapped.VisitCode = visitCode;
-            mapped.VisitLabel = ResolveVisitLabel(visitCode);
+            mapped.VisitCode = visitCode ?? string.Empty;
+            mapped.VisitLabel = ResolveVisitLabel(visitCode) ?? string.Empty;
             mapped.SentDate = b.IssuedAt;
             mapped.TotalDiscount = b.TotalDiscount;
             mapped.NetAmount = b.TotalAmount - b.TotalDiscount;
@@ -244,6 +253,28 @@ public sealed class FinanceReceivableInvoiceBatchService
                 .ToDictionaryAsync(x => x.Id, cancellationToken)
             : new Dictionary<Guid, MstPatient>();
 
+        var doctorIds = encounters.Values.Where(e => e.DoctorId.HasValue).Select(e => e.DoctorId!.Value).Distinct().ToList();
+        var doctors = doctorIds.Count > 0
+            ? await _dbContext.MstDoctors.AsNoTracking()
+                .Where(d => doctorIds.Contains(d.Id) && !d.IsDelete)
+                .ToDictionaryAsync(d => d.Id, d => d.FullName, cancellationToken)
+            : new Dictionary<Guid, string>();
+
+        var patientClassIds = encounters.Values.Where(e => e.PatientClassId.HasValue).Select(e => e.PatientClassId!.Value).Distinct().ToList();
+        var patientClasses = patientClassIds.Count > 0
+            ? await _dbContext.MstPatientClasses.AsNoTracking()
+                .Where(c => patientClassIds.Contains(c.Id) && !c.IsDelete)
+                .ToDictionaryAsync(c => c.Id, c => c.PatientClassName, cancellationToken)
+            : new Dictionary<Guid, string>();
+
+        var encounterDiagnoses = encounterIds.Count > 0
+            ? await _dbContext.TrxPatientDiagnoses.AsNoTracking()
+                .Where(d => encounterIds.Contains(d.EncounterId) && !d.IsDelete)
+                .OrderByDescending(d => d.IsPrimary)
+                .ThenBy(d => d.SortOrder)
+                .ToListAsync(cancellationToken)
+            : new List<TrxPatientDiagnosis>();
+
         var members = batch.Items
             .Where(x => !x.IsDelete && x.Receivable is not null)
             .Select(x =>
@@ -262,6 +293,13 @@ public sealed class FinanceReceivableInvoiceBatchService
                 var billingDate = inv?.InvoiceDate.HasValue == true
                     ? DateOnly.FromDateTime(inv.InvoiceDate.Value.LocalDateTime)
                     : r.DueDate.AddDays(-30);
+
+                var encDiags = encId.HasValue ? encounterDiagnoses.Where(d => d.EncounterId == encId.Value).ToList() : new List<TrxPatientDiagnosis>();
+                var primaryDiag = encDiags.FirstOrDefault(d => d.IsPrimary) ?? encDiags.FirstOrDefault();
+                var secondaryDiags = encDiags.Where(d => d != primaryDiag).Select(d => $"{d.DiagnosisCode} - {d.DiagnosisName}").ToList();
+
+                string? doctorName = enc?.DoctorId.HasValue == true && doctors.TryGetValue(enc.DoctorId.Value, out var doc) ? doc : null;
+                string? className = enc?.PatientClassId.HasValue == true && patientClasses.TryGetValue(enc.PatientClassId.Value, out var cls) ? cls : null;
 
                 return new ReceivableInvoiceBatchMemberResponse
                 {
@@ -283,7 +321,16 @@ public sealed class FinanceReceivableInvoiceBatchService
                     OutstandingAmount = r.OutstandingAmount,
                     ReceivableStatus = r.Status,
                     IsSettled = r.Status == FinReceivableStatuses.Settled,
-                    Note = null
+                    Note = null,
+                    EncounterNumber = enc?.EncounterNumber ?? "-",
+                    ServiceType = enc != null ? (enc.EncounterType == EncounterType.Inpatient ? "RANAP" : enc.EncounterType == EncounterType.Emergency ? "IGD" : "RAJAL") : (visitCode == "IP" ? "RANAP" : "RAJAL"),
+                    ServiceLabel = enc != null ? (enc.EncounterType == EncounterType.Inpatient ? "Rawat Inap" : enc.EncounterType == EncounterType.Emergency ? "IGD" : "Rawat Jalan") : (visitCode == "IP" ? "Rawat Inap" : "Rawat Jalan"),
+                    ServiceDate = enc != null ? DateOnly.FromDateTime(enc.EncounterDate) : billingDate,
+                    PatientClassName = className ?? "-",
+                    DoctorName = doctorName ?? "-",
+                    PrimaryDiagnosisCode = primaryDiag?.DiagnosisCode,
+                    PrimaryDiagnosisName = primaryDiag?.DiagnosisName,
+                    SecondaryDiagnoses = secondaryDiags.Count > 0 ? string.Join(", ", secondaryDiags) : null
                 };
             })
             .ToList();
@@ -363,8 +410,8 @@ public sealed class FinanceReceivableInvoiceBatchService
             DebtorName = debtorName,
             PayerName = debtorName,
             CompanyName = debtorName,
-            VisitCode = visitCode,
-            VisitLabel = ResolveVisitLabel(visitCode),
+            VisitCode = visitCode ?? string.Empty,
+            VisitLabel = ResolveVisitLabel(visitCode) ?? string.Empty,
             PeriodStart = mapped.PeriodStart,
             PeriodEnd = mapped.PeriodEnd,
             InvoiceDate = mapped.InvoiceDate,
@@ -1016,14 +1063,75 @@ public sealed class FinanceReceivableInvoiceBatchService
             .AsNoTracking()
             .SingleOrDefaultAsync(x => x.Id == batchId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Batch Tagihan AR tidak ditemukan.");
+
+        // 1. Resolve Debtor (Company Guarantor or Insurance Provider)
         var company = await _dbContext.MstCompanyGuarantors.AsNoTracking()
-            .Where(x => x.Id == batch.DebtorReferenceId && !x.IsDelete)
-            .Select(x => x.CompanyGuarantorName)
-            .FirstOrDefaultAsync(cancellationToken);
-        var debtorName = company ?? await _dbContext.MstInsuranceProviders.AsNoTracking()
-            .Where(x => x.Id == batch.DebtorReferenceId && !x.IsDelete)
-            .Select(x => x.InsuranceProviderName)
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == batch.DebtorReferenceId && !x.IsDelete, cancellationToken);
+        var insurance = company is null
+            ? await _dbContext.MstInsuranceProviders.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == batch.DebtorReferenceId && !x.IsDelete, cancellationToken)
+            : null;
+
+        var debtorName = company?.CompanyGuarantorName ?? insurance?.InsuranceProviderName ?? "-";
+        var officeAddress = company?.OfficeAddress ?? insurance?.OfficeAddress ?? "-";
+        var picName = company?.PicName ?? insurance?.PicName ?? "-";
+        var picPhone = company?.PicPhoneNumber ?? insurance?.PicPhoneNumber;
+        var picEmail = company?.PicEmail ?? insurance?.PicEmail;
+        var contractNumber = company?.ContractNumber ?? insurance?.ContractNumber;
+        var debtorType = company is not null ? "CompanyGuarantor" : (insurance is not null ? "InsuranceProvider" : "Corporate");
+
+        // 2. Resolve Active Official Bank Accounts from V2 Master Data
+        var bankAccounts = await _dbContext.MstBankAccounts
+            .Include(x => x.Bank)
+            .AsNoTracking()
+            .Where(x => !x.IsDelete && x.IsActive && (x.AccountType == "COLLECTION" || x.AccountType == "OPERATIONAL"))
+            .OrderByDescending(x => x.AccountType == "COLLECTION")
+            .ThenBy(x => x.Bank != null ? x.Bank.SortOrder : 0)
+            .ThenBy(x => x.Bank != null ? x.Bank.BankName : "")
+            .Select(x => new ReceivableInvoiceBatchBankAccountResponse
+            {
+                BankAccountId = x.Id,
+                BankName = x.Bank != null ? x.Bank.BankName : "Bank",
+                BankCode = x.Bank != null ? x.Bank.BankCode : "",
+                AccountNumber = x.AccountNumber,
+                AccountName = x.AccountName,
+                Branch = x.Bank != null ? x.Bank.Description : null,
+                CurrencyCode = x.CurrencyCode,
+                AccountType = x.AccountType
+            })
+            .ToListAsync(cancellationToken);
+
+        // 3. Resolve Actual Payments Received from FinReceipt & FinReceiptAllocation
+        var receivableIds = batch.Items.Where(x => !x.IsDelete && x.Receivable is not null)
+            .Select(x => x.ReceivableId)
+            .Distinct()
+            .ToList();
+
+        var receipts = await _dbContext.FinReceipts
+            .Include(r => r.BankAccount).ThenInclude(b => b!.Bank)
+            .AsNoTracking()
+            .Where(r => !r.IsDelete
+                && r.Status != FinReceiptStatuses.Reversed
+                && r.ReversalOfReceiptId == null
+                && (r.CorrelationId == batch.Id
+                    || _dbContext.FinReceiptAllocations.Any(a =>
+                        !a.IsDelete && !a.IsReversal && a.ReceiptId == r.Id && a.ReceivableId.HasValue && receivableIds.Contains(a.ReceivableId.Value))))
+            .OrderByDescending(r => r.OccurredAt)
+            .Select(r => new ReceivableInvoiceBatchReceiptResponse
+            {
+                ReceiptId = r.Id,
+                ReceiptNumber = r.ReceiptNumber,
+                KwitansiNumber = r.KwitansiNumber ?? r.ReceiptNumber,
+                Amount = r.Amount,
+                OccurredAt = r.OccurredAt,
+                ProviderReference = r.ProviderReference,
+                BankAccountId = r.BankAccountId,
+                BankName = r.BankAccount != null && r.BankAccount.Bank != null ? r.BankAccount.Bank.BankName : null,
+                AccountNumber = r.BankAccount != null ? r.BankAccount.AccountNumber : null,
+                AccountName = r.BankAccount != null ? r.BankAccount.AccountName : null,
+                Status = r.Status
+            })
+            .ToListAsync(cancellationToken);
 
         var response = new ReceivableInvoiceBatchDocumentResponse
         {
@@ -1032,30 +1140,414 @@ public sealed class FinanceReceivableInvoiceBatchService
             DebtorReferenceId = batch.DebtorReferenceId,
             CompanyId = batch.DebtorReferenceId,
             CompanyName = debtorName,
+            CompanyAddress = officeAddress,
+            PicName = picName,
+            PicPhone = picPhone,
+            PicEmail = picEmail,
+            ContractNumber = contractNumber,
+            DebtorType = debtorType,
             PeriodStart = batch.PeriodStart,
             PeriodEnd = batch.PeriodEnd,
             InvoiceDate = batch.InvoiceDate,
-            DueDate = batch.DueDate
+            DueDate = batch.DueDate,
+            IsBankAccountConfigured = bankAccounts.Count > 0,
+            BankAccounts = bankAccounts,
+            Receipts = receipts
         };
 
+        if (bankAccounts.Count == 0)
+        {
+            response.Warnings.Add("Rekening pembayaran rumah sakit belum dikonfigurasi pada master data.");
+        }
+
+        // 4. Resolve Member Invoices and Patient Recap with Coverage Items Breakdown
+        int seq = 1;
         foreach (var item in batch.Items.Where(x => !x.IsDelete && x.Receivable is not null))
         {
-            // BE-FIN-079: item migrasi tagihan lama tidak punya InvoiceId (asalnya bukan Billing) —
-            // tidak ada dokumen tagihan Billing untuk diambil, sehingga dilewati dengan peringatan
-            // alih-alih memanggil _documentService dengan Guid kosong.
-            if (item.Receivable!.InvoiceId is not { } invoiceId)
+            var rec = item.Receivable!;
+            if (rec.InvoiceId is not { } invoiceId)
             {
-                response.Warnings.Add($"Anggota {item.Receivable.ReceivableNumber} adalah item migrasi tagihan lama — nol dokumen Billing untuk diambil.");
+                response.Warnings.Add($"Anggota {rec.ReceivableNumber} adalah item migrasi tagihan lama — nol dokumen Billing untuk diambil.");
+                response.Patients.Add(new ReceivableInvoiceBatchRecapPatientResponse
+                {
+                    SequenceNumber = seq++,
+                    InvoiceId = null,
+                    ReceivableId = rec.Id,
+                    TransactionDate = DateOnly.FromDateTime(rec.CreateDateTime),
+                    MedicalRecordNumber = "-",
+                    PatientName = "Item Migrasi Tagihan Lama",
+                    BillingNumber = rec.ReceivableNumber,
+                    VisitCode = batch.VisitCode ?? string.Empty,
+                    VisitType = batch.VisitCode == "IP" ? "Rawat Inap" : "Rawat Jalan",
+                    Note = "Item Migrasi",
+                    TotalAmount = rec.OriginalAmount,
+                    PatientPaidAmount = 0m,
+                    GuarantorCoveredAmount = rec.OriginalAmount
+                });
                 continue;
             }
 
-            var invoiceDocument = await _documentService.GetDocumentAsync(invoiceId, actorUserId, cancellationToken);
-            response.Invoices.Add(invoiceDocument);
-            response.Warnings.AddRange(invoiceDocument.Warnings);
+            CompanyGuarantorInvoiceDocumentResponse? invoiceDocument = null;
+            try
+            {
+                invoiceDocument = await _documentService.GetDocumentAsync(invoiceId, actorUserId, cancellationToken);
+                if (invoiceDocument != null)
+                {
+                    response.Invoices.Add(invoiceDocument);
+                    response.Warnings.AddRange(invoiceDocument.Warnings);
+                }
+            }
+            catch (Exception ex)
+            {
+                response.Warnings.Add($"Dokumen billing {invoiceId} dilewati: {ex.Message}");
+            }
+
+            var patientName = invoiceDocument?.Patient?.FullName ?? "-";
+            var mrn = invoiceDocument?.Patient?.MedicalRecordNumber ?? "-";
+            var billingNum = invoiceDocument?.InvoiceNumber ?? rec.ReceivableNumber;
+            var txDate = invoiceDocument?.InvoiceDate.HasValue == true
+                ? DateOnly.FromDateTime(invoiceDocument.InvoiceDate.Value.DateTime)
+                : DateOnly.FromDateTime(rec.CreateDateTime);
+            var coveredAmt = invoiceDocument?.Totals?.TotalCoveredAmount ?? rec.OriginalAmount;
+            var patientAmt = invoiceDocument?.Totals?.PatientAmount ?? 0m;
+            var totalAmt = coveredAmt + patientAmt;
+
+            var coverageItems = new List<ReceivableInvoiceBatchRecapItemResponse>();
+            if (invoiceDocument?.Items != null && invoiceDocument.Items.Count > 0)
+            {
+                foreach (var itm in invoiceDocument.Items)
+                {
+                    coverageItems.Add(new ReceivableInvoiceBatchRecapItemResponse
+                    {
+                        InvoiceItemId = itm.InvoiceItemId,
+                        Description = itm.Description,
+                        CategoryCode = itm.CategoryCode,
+                        CategoryName = itm.CategoryName,
+                        Quantity = itm.Quantity,
+                        UnitPrice = itm.UnitPrice,
+                        GrossAmount = itm.GrossAmount,
+                        ItemDiscount = itm.ItemDiscount,
+                        NetAmount = itm.NetAmount,
+                        CoveredNetAmount = itm.CoveredNetAmount,
+                        CoveredTaxAmount = itm.CoveredTaxAmount,
+                        CoveredAmount = itm.CoveredAmount,
+                        PatientAmount = itm.PatientAmount
+                    });
+                }
+            }
+            else
+            {
+                coverageItems.Add(new ReceivableInvoiceBatchRecapItemResponse
+                {
+                    Description = "Pelayanan Kesehatan " + (batch.VisitCode == "IP" ? "Rawat Inap" : "Rawat Jalan"),
+                    Quantity = 1,
+                    UnitPrice = coveredAmt,
+                    GrossAmount = totalAmt,
+                    NetAmount = totalAmt,
+                    CoveredNetAmount = coveredAmt,
+                    CoveredAmount = coveredAmt,
+                    PatientAmount = patientAmt
+                });
+            }
+
+            response.Patients.Add(new ReceivableInvoiceBatchRecapPatientResponse
+            {
+                SequenceNumber = seq++,
+                InvoiceId = invoiceId,
+                ReceivableId = rec.Id,
+                TransactionDate = txDate,
+                MedicalRecordNumber = mrn,
+                PatientName = patientName,
+                BillingNumber = billingNum,
+                VisitCode = batch.VisitCode ?? string.Empty,
+                VisitType = batch.VisitCode == "IP" ? "Rawat Inap" : "Rawat Jalan",
+                Note = invoiceDocument?.Patient?.RoomName ?? invoiceDocument?.Patient?.ServiceUnitName ?? "-",
+                TotalAmount = totalAmt,
+                PatientPaidAmount = patientAmt,
+                GuarantorCoveredAmount = coveredAmt,
+                CoverageItems = coverageItems
+            });
         }
 
-        response.GrandTotalCoveredAmount = response.Invoices.Sum(x => x.Totals.TotalCoveredAmount);
+        response.GrandTotalCoveredAmount = response.Patients.Sum(x => x.GuarantorCoveredAmount);
+        response.TotalBillAmount = response.Patients.Sum(x => x.TotalAmount);
+        response.TotalPatientAmount = response.Patients.Sum(x => x.PatientPaidAmount);
+        response.PatientCount = response.Patients.Count;
+
         return response;
+    }
+
+    public async Task<ReceivableInvoiceBatchSingleDocumentResponse> GetSpecificDocumentAsync(
+        Guid batchId,
+        string documentType,
+        string? language,
+        Guid? receiptId,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var doc = await GetDocumentAsync(batchId, actorUserId, cancellationToken);
+        var normType = (documentType ?? "").Trim().ToUpperInvariant() switch
+        {
+            "INVOICE" or "LETTER" or "BERKAS_INVOICE" or "INVOICE_LETTER" => ReceivableInvoiceBatchDocumentTypes.InvoiceLetter,
+            "TANDA_TERIMA" or "RECEIPT_ACK" or "ACKNOWLEDGEMENT" => ReceivableInvoiceBatchDocumentTypes.Acknowledgement,
+            "KWITANSI" or "PAYMENT" or "PAYMENT_RECEIPT" => ReceivableInvoiceBatchDocumentTypes.PaymentReceipt,
+            "REKAP" or "REKAP_TAGIHAN" or "BILLING_RECAP" => ReceivableInvoiceBatchDocumentTypes.BillingRecap,
+            _ => documentType?.ToUpperInvariant() ?? ReceivableInvoiceBatchDocumentTypes.InvoiceLetter
+        };
+
+        var lang = (language ?? "id").Trim().ToLowerInvariant();
+        if (lang != "id" && lang != "en") lang = "id";
+
+        var meta = new ReceivableInvoiceBatchDocumentMetadataResponse
+        {
+            DocumentType = normType,
+            DocumentNumber = doc.BatchNumber,
+            Language = lang,
+            RelatedInvoiceId = doc.BatchId,
+            Printable = true,
+            Downloadable = true,
+            Available = true
+        };
+
+        if (normType == ReceivableInvoiceBatchDocumentTypes.PaymentReceipt)
+        {
+            if (doc.Receipts.Count == 0)
+            {
+                meta.Available = false;
+                meta.Message = lang == "en"
+                    ? "Not available — payment has not been received yet."
+                    : "Belum tersedia — pembayaran belum diterima.";
+                meta.Printable = false;
+                meta.Downloadable = false;
+            }
+            else
+            {
+                if (receiptId.HasValue)
+                {
+                    var selected = doc.Receipts.FirstOrDefault(r => r.ReceiptId == receiptId.Value);
+                    if (selected != null)
+                    {
+                        meta.RelatedReceiptId = selected.ReceiptId;
+                        meta.DocumentNumber = selected.KwitansiNumber ?? selected.ReceiptNumber;
+                    }
+                }
+                else
+                {
+                    var latest = doc.Receipts.First();
+                    meta.RelatedReceiptId = latest.ReceiptId;
+                    meta.DocumentNumber = latest.KwitansiNumber ?? latest.ReceiptNumber;
+                }
+            }
+        }
+        else if (normType == ReceivableInvoiceBatchDocumentTypes.Acknowledgement)
+        {
+            meta.DocumentNumber = $"TT/{doc.BatchNumber}";
+        }
+
+        return new ReceivableInvoiceBatchSingleDocumentResponse
+        {
+            Metadata = meta,
+            Document = doc
+        };
+    }
+
+    public async Task<byte[]> ExportRecapExcelAsync(Guid batchId, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var doc = await GetDocumentAsync(batchId, actorUserId, cancellationToken);
+
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var ws = workbook.Worksheets.Add("Rekap Tagihan AR");
+
+        // Title Block
+        ws.Cell(1, 1).Value = "RUMAH SAKIT METROPOLITAN MEDICAL CENTRE";
+        ws.Cell(1, 1).Style.Font.Bold = true;
+        ws.Cell(1, 1).Style.Font.FontSize = 14;
+
+        ws.Cell(2, 1).Value = "REKAPITULASI TAGIHAN PELAYANAN KESEHATAN";
+        ws.Cell(2, 1).Style.Font.Bold = true;
+        ws.Cell(2, 1).Style.Font.FontSize = 12;
+
+        ws.Cell(4, 1).Value = "No. Invoice AR:";
+        ws.Cell(4, 2).Value = doc.BatchNumber;
+        ws.Cell(4, 4).Value = "Penjamin / Asuransi:";
+        ws.Cell(4, 5).Value = doc.CompanyName ?? "-";
+
+        ws.Cell(5, 1).Value = "Periode Pelayanan:";
+        ws.Cell(5, 2).Value = $"{doc.PeriodStart:dd/MM/yyyy} s/d {doc.PeriodEnd:dd/MM/yyyy}";
+        ws.Cell(5, 4).Value = "Alamat:";
+        ws.Cell(5, 5).Value = doc.CompanyAddress ?? "-";
+
+        ws.Cell(6, 1).Value = "Tanggal Invoice:";
+        ws.Cell(6, 2).Value = doc.InvoiceDate.HasValue ? doc.InvoiceDate.Value.ToString("dd/MM/yyyy") : "-";
+        ws.Cell(6, 4).Value = "Jatuh Tempo:";
+        ws.Cell(6, 5).Value = doc.DueDate.HasValue ? doc.DueDate.Value.ToString("dd/MM/yyyy") : "-";
+
+        int row = 8;
+        // Table 1 Header: Ringkasan Pasien
+        ws.Cell(row, 1).Value = "TABEL 1. DAFTAR TAGIHAN PASIEN";
+        ws.Cell(row, 1).Style.Font.Bold = true;
+        row++;
+
+        var headers = new[]
+        {
+            "No.", "Tanggal Transaksi", "No. Rekam Medis", "Nama Pasien",
+            "No. Billing", "Jenis Kunjungan", "Keterangan", "Total Biaya", "Dibayar", "Tagihan Penjamin"
+        };
+
+        for (int c = 0; c < headers.Length; c++)
+        {
+            var cell = ws.Cell(row, c + 1);
+            cell.Value = headers[c];
+            cell.Style.Font.Bold = true;
+            cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#E2E8F0");
+            cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+            cell.Style.Alignment.Horizontal = (c >= 7)
+                ? ClosedXML.Excel.XLAlignmentHorizontalValues.Right
+                : ClosedXML.Excel.XLAlignmentHorizontalValues.Left;
+        }
+        row++;
+
+        int startPatientRow = row;
+        foreach (var p in doc.Patients)
+        {
+            ws.Cell(row, 1).Value = p.SequenceNumber;
+            ws.Cell(row, 2).Value = p.TransactionDate.ToString("dd/MM/yyyy");
+            ws.Cell(row, 3).Value = p.MedicalRecordNumber;
+            ws.Cell(row, 4).Value = p.PatientName;
+            ws.Cell(row, 5).Value = p.BillingNumber;
+            ws.Cell(row, 6).Value = p.VisitType;
+            ws.Cell(row, 7).Value = p.Note ?? "-";
+            ws.Cell(row, 8).Value = p.TotalAmount;
+            ws.Cell(row, 9).Value = p.PatientPaidAmount;
+            ws.Cell(row, 10).Value = p.GuarantorCoveredAmount;
+
+            for (int c = 1; c <= 10; c++)
+            {
+                var cell = ws.Cell(row, c);
+                cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                if (c >= 8)
+                {
+                    cell.Style.NumberFormat.Format = "#,##0";
+                    cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Right;
+                }
+            }
+            row++;
+        }
+
+        // Total Row Table 1
+        ws.Cell(row, 1).Value = "GRAND TOTAL";
+        ws.Range(row, 1, row, 7).Merge();
+        ws.Cell(row, 1).Style.Font.Bold = true;
+        ws.Cell(row, 1).Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Right;
+
+        ws.Cell(row, 8).FormulaA1 = $"SUM(H{startPatientRow}:H{row - 1})";
+        ws.Cell(row, 9).FormulaA1 = $"SUM(I{startPatientRow}:I{row - 1})";
+        ws.Cell(row, 10).FormulaA1 = $"SUM(J{startPatientRow}:J{row - 1})";
+
+        for (int c = 1; c <= 10; c++)
+        {
+            var cell = ws.Cell(row, c);
+            cell.Style.Font.Bold = true;
+            cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+            cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#F1F5F9");
+            if (c >= 8)
+            {
+                cell.Style.NumberFormat.Format = "#,##0";
+                cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Right;
+            }
+        }
+        row += 3;
+
+        // Table 2 Header: Rincian Item Coverage Per Pasien
+        ws.Cell(row, 1).Value = "TABEL 2. RINCIAN ITEM PELAYANAN YANG DICOVER PENJAMIN/ASURANSI";
+        ws.Cell(row, 1).Style.Font.Bold = true;
+        row++;
+
+        foreach (var p in doc.Patients)
+        {
+            ws.Cell(row, 1).Value = $"Pasien: {p.PatientName} (RM: {p.MedicalRecordNumber}) | No. Billing: {p.BillingNumber} | {p.VisitType}";
+            ws.Range(row, 1, row, 9).Merge();
+            ws.Cell(row, 1).Style.Font.Bold = true;
+            ws.Cell(row, 1).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#E0F2FE");
+            ws.Cell(row, 1).Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+            row++;
+
+            var itemHeaders = new[]
+            {
+                "No.", "Nama Layanan / Tindakan", "Kategori", "Qty", "Tarif Satuan",
+                "Total Biaya", "Diskon", "Ditanggung Penjamin", "Porsi Pasien"
+            };
+
+            for (int c = 0; c < itemHeaders.Length; c++)
+            {
+                var cell = ws.Cell(row, c + 1);
+                cell.Value = itemHeaders[c];
+                cell.Style.Font.Bold = true;
+                cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#F8FAFC");
+                cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                cell.Style.Alignment.Horizontal = (c >= 3)
+                    ? ClosedXML.Excel.XLAlignmentHorizontalValues.Right
+                    : ClosedXML.Excel.XLAlignmentHorizontalValues.Left;
+            }
+            row++;
+
+            int startItemRow = row;
+            int itemNo = 1;
+            foreach (var itm in p.CoverageItems)
+            {
+                ws.Cell(row, 1).Value = itemNo++;
+                ws.Cell(row, 2).Value = itm.Description;
+                ws.Cell(row, 3).Value = itm.CategoryName ?? itm.CategoryCode ?? "-";
+                ws.Cell(row, 4).Value = itm.Quantity;
+                ws.Cell(row, 5).Value = itm.UnitPrice;
+                ws.Cell(row, 6).Value = itm.NetAmount > 0 ? itm.NetAmount : itm.GrossAmount;
+                ws.Cell(row, 7).Value = itm.ItemDiscount;
+                ws.Cell(row, 8).Value = itm.CoveredAmount;
+                ws.Cell(row, 9).Value = itm.PatientAmount;
+
+                for (int c = 1; c <= 9; c++)
+                {
+                    var cell = ws.Cell(row, c);
+                    cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                    if (c >= 4)
+                    {
+                        cell.Style.NumberFormat.Format = "#,##0";
+                        cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Right;
+                    }
+                }
+                row++;
+            }
+
+            // Subtotal Row for this patient
+            ws.Cell(row, 1).Value = $"Subtotal {p.PatientName}";
+            ws.Range(row, 1, row, 5).Merge();
+            ws.Cell(row, 1).Style.Font.Bold = true;
+            ws.Cell(row, 1).Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Right;
+
+            ws.Cell(row, 6).FormulaA1 = $"SUM(F{startItemRow}:F{row - 1})";
+            ws.Cell(row, 7).FormulaA1 = $"SUM(G{startItemRow}:G{row - 1})";
+            ws.Cell(row, 8).FormulaA1 = $"SUM(H{startItemRow}:H{row - 1})";
+            ws.Cell(row, 9).FormulaA1 = $"SUM(I{startItemRow}:I{row - 1})";
+
+            for (int c = 1; c <= 9; c++)
+            {
+                var cell = ws.Cell(row, c);
+                cell.Style.Font.Bold = true;
+                cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#F1F5F9");
+                if (c >= 6)
+                {
+                    cell.Style.NumberFormat.Format = "#,##0";
+                    cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Right;
+                }
+            }
+            row += 2;
+        }
+
+        ws.Columns().AdjustToContents();
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        return ms.ToArray();
     }
 
     // ------------------------------------------------------------------------------------
@@ -1104,8 +1596,8 @@ public sealed class FinanceReceivableInvoiceBatchService
             DebtorType = batch.DebtorType,
             DebtorReferenceId = batch.DebtorReferenceId,
             CompanyId = batch.DebtorReferenceId,
-            VisitCode = visitCode,
-            VisitLabel = ResolveVisitLabel(visitCode),
+            VisitCode = visitCode ?? string.Empty,
+            VisitLabel = ResolveVisitLabel(visitCode) ?? string.Empty,
             PeriodStart = batch.PeriodStart,
             PeriodEnd = batch.PeriodEnd,
             InvoiceDate = batch.InvoiceDate,
@@ -1688,11 +2180,11 @@ public sealed class FinanceReceivableInvoiceBatchService
         return null;
     }
 
-    private static string? ResolveVisitLabel(string? visitCode) => visitCode switch
+    private static string ResolveVisitLabel(string? visitCode) => visitCode switch
     {
         "IP" => "Rawat Inap",
         "OP" => "Rawat Jalan",
-        _ => null
+        _ => string.Empty
     };
 
     // ====================================================================================
@@ -2644,6 +3136,1273 @@ public sealed class FinanceReceivableInvoiceBatchService
             "OP" => "Rawat Jalan",
             _ => "-"
         };
+    }
+
+    // ====================================================================================
+    // REPORT AR CREATED (Laporan Pembuatan AR)
+    // ====================================================================================
+
+    private sealed class ReportArCreatedInternalRow
+    {
+        public FinReceivableInvoiceBatchItem Bi { get; set; } = null!;
+        public FinReceivableInvoiceBatch Batch { get; set; } = null!;
+        public FinReceivable Rec { get; set; } = null!;
+        public BilInvoice? Invoice { get; set; }
+        public RegPatientEncounter? Encounter { get; set; }
+        public MstPatient? Patient { get; set; }
+        public string? CompanyGuarantorName { get; set; }
+        public string? InsuranceProviderName { get; set; }
+    }
+
+    private static (DateOnly? StartDate, DateOnly? EndDate, string PeriodLabel) ResolveReportArCreatedPeriod(
+        string? periodType, DateOnly? customStart, DateOnly? customEnd)
+    {
+        if (customStart.HasValue || customEnd.HasValue)
+        {
+            var sLabel = customStart?.ToString("dd/MM/yyyy") ?? "";
+            var eLabel = customEnd?.ToString("dd/MM/yyyy") ?? "";
+            var label = customStart.HasValue && customEnd.HasValue ? $"{sLabel} - {eLabel}"
+                : customStart.HasValue ? $"Mulai {sLabel}" : $"Sampai {eLabel}";
+            return (customStart, customEnd, label);
+        }
+
+        var today = FinanceBusinessDate.Today();
+        var period = (periodType ?? "ALL").Trim().ToUpperInvariant();
+
+        return period switch
+        {
+            "TODAY" => (today, today, "Hari Ini"),
+            "THIS_WEEK" => (today.AddDays(-(int)today.DayOfWeek), today.AddDays(6 - (int)today.DayOfWeek), "Minggu Ini"),
+            "THIS_MONTH" => (new DateOnly(today.Year, today.Month, 1), FinanceBusinessDate.GetPeriodEndDate(today.Year, today.Month), "Bulan Ini"),
+            "LAST_MONTH" =>
+                today.Month == 1
+                    ? (new DateOnly(today.Year - 1, 12, 1), new DateOnly(today.Year - 1, 12, 31), "Bulan Lalu")
+                    : (new DateOnly(today.Year, today.Month - 1, 1), FinanceBusinessDate.GetPeriodEndDate(today.Year, today.Month - 1), "Bulan Lalu"),
+            "THIS_YEAR" => (new DateOnly(today.Year, 1, 1), new DateOnly(today.Year, 12, 31), "Tahun Ini"),
+            _ => (null, null, "Semua Periode")
+        };
+    }
+
+    private IQueryable<ReportArCreatedInternalRow> BuildReportArCreatedBaseQuery(ReportArCreatedQuery request)
+    {
+        var (startDate, endDate, _) = ResolveReportArCreatedPeriod(request.PeriodType, request.StartDate, request.EndDate);
+
+        var query = from bi in _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+                    where !bi.IsDelete && bi.IsActiveMembership
+                    join b in _dbContext.FinReceivableInvoiceBatches.AsNoTracking() on bi.BatchId equals b.Id
+                    where !b.IsDelete
+                    join r in _dbContext.FinReceivables.AsNoTracking() on bi.ReceivableId equals r.Id
+                    where !r.IsDelete
+                    join inv in _dbContext.BilInvoices.AsNoTracking() on r.InvoiceId equals (Guid?)inv.Id into invGroup
+                    from inv in invGroup.DefaultIfEmpty()
+                    join enc in _dbContext.RegPatientEncounters.AsNoTracking() on (inv != null ? (Guid?)inv.EncounterId : null) equals (Guid?)enc.Id into encGroup
+                    from enc in encGroup.DefaultIfEmpty()
+                    join pat in _dbContext.MstPatients.AsNoTracking() on (enc != null ? (Guid?)enc.PatientId : null) equals (Guid?)pat.Id into patGroup
+                    from pat in patGroup.DefaultIfEmpty()
+                    join c in _dbContext.MstCompanyGuarantors.AsNoTracking() on b.DebtorReferenceId equals c.Id into cGroup
+                    from c in cGroup.DefaultIfEmpty()
+                    join p in _dbContext.MstInsuranceProviders.AsNoTracking() on b.DebtorReferenceId equals p.Id into pGroup
+                    from p in pGroup.DefaultIfEmpty()
+                    select new ReportArCreatedInternalRow
+                    {
+                        Bi = bi,
+                        Batch = b,
+                        Rec = r,
+                        Invoice = inv,
+                        Encounter = enc,
+                        Patient = pat,
+                        CompanyGuarantorName = c != null ? c.CompanyGuarantorName : null,
+                        InsuranceProviderName = p != null ? p.InsuranceProviderName : null
+                    };
+
+        // 1. Status Filter (default: exclude CANCELLED)
+        if (!string.IsNullOrWhiteSpace(request.Status) && !request.Status.Equals("ALL", StringComparison.OrdinalIgnoreCase))
+        {
+            var reqStatus = request.Status.Trim();
+            query = query.Where(x => x.Batch.Status == reqStatus);
+        }
+        else
+        {
+            query = query.Where(x => x.Batch.Status != FinReceivableInvoiceBatchStatuses.Cancelled);
+        }
+
+        // 2. Filter Penjamin (DebtorReferenceId)
+        if (request.DebtorReferenceId.HasValue && request.DebtorReferenceId.Value != Guid.Empty)
+        {
+            query = query.Where(x => x.Batch.DebtorReferenceId == request.DebtorReferenceId.Value);
+        }
+
+        // 3. Filter Tanggal
+        var dateType = (request.DateType ?? "INVOICE_DATE").Trim().ToUpperInvariant();
+        if (dateType == "REGISTRATION_DATE")
+        {
+            if (startDate.HasValue)
+            {
+                var startUtc = FinanceBusinessDate.GetStartOfDayUtc(startDate.Value);
+                query = query.Where(x => x.Encounter != null && x.Encounter.EncounterDate >= startUtc);
+            }
+            if (endDate.HasValue)
+            {
+                var endUtc = FinanceBusinessDate.GetEndOfPeriodUtc(endDate.Value);
+                query = query.Where(x => x.Encounter != null && x.Encounter.EncounterDate <= endUtc);
+            }
+        }
+        else // INVOICE_DATE (Default)
+        {
+            if (startDate.HasValue)
+            {
+                query = query.Where(x => x.Batch.InvoiceDate >= startDate.Value);
+            }
+            if (endDate.HasValue)
+            {
+                query = query.Where(x => x.Batch.InvoiceDate <= endDate.Value);
+            }
+        }
+
+        // 4. Filter Jenis Kunjungan (VisitType)
+        if (!string.IsNullOrWhiteSpace(request.VisitType) && !request.VisitType.Equals("ALL", StringComparison.OrdinalIgnoreCase))
+        {
+            var vt = request.VisitType.Trim().ToUpperInvariant();
+            if (vt == "RAJAL" || vt == "OP" || vt == "OUTPATIENT")
+            {
+                query = query.Where(x =>
+                    (x.Encounter != null && x.Encounter.EncounterType == EncounterType.Outpatient)
+                    || (x.Batch.VisitCode == "OP" || EF.Functions.ILike(x.Batch.BatchNumber, "%/OP/%")));
+            }
+            else if (vt == "RANAP" || vt == "IP" || vt == "INPATIENT")
+            {
+                query = query.Where(x =>
+                    (x.Encounter != null && x.Encounter.EncounterType == EncounterType.Inpatient)
+                    || (x.Batch.VisitCode == "IP" || EF.Functions.ILike(x.Batch.BatchNumber, "%/IP/%")));
+            }
+            else if (vt == "IGD" || vt == "EMERGENCY")
+            {
+                query = query.Where(x =>
+                    (x.Encounter != null && x.Encounter.EncounterType == EncounterType.Emergency)
+                    || (x.Batch.VisitCode == "IGD" || EF.Functions.ILike(x.Batch.BatchNumber, "%/IGD/%")));
+            }
+        }
+
+        // 5. Filter Pencarian (Search)
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var pattern = $"%{request.Search.Trim()}%";
+            query = query.Where(x =>
+                EF.Functions.ILike(x.Batch.BatchNumber, pattern)
+                || (x.Invoice != null && EF.Functions.ILike(x.Invoice.InvoiceNumber, pattern))
+                || (x.Encounter != null && EF.Functions.ILike(x.Encounter.EncounterNumber, pattern))
+                || (x.Patient != null && (
+                    EF.Functions.ILike(x.Patient.MedicalRecordNumber, pattern)
+                    || EF.Functions.ILike(x.Patient.FullName, pattern)))
+                || (x.CompanyGuarantorName != null && EF.Functions.ILike(x.CompanyGuarantorName, pattern))
+                || (x.InsuranceProviderName != null && EF.Functions.ILike(x.InsuranceProviderName, pattern)));
+        }
+
+        return query;
+    }
+
+    private static IQueryable<ReportArCreatedInternalRow> ApplyReportArCreatedSort(
+        IQueryable<ReportArCreatedInternalRow> query, ReportArCreatedQuery request)
+    {
+        var descending = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+        return (request.SortBy ?? "company").Trim().ToLowerInvariant() switch
+        {
+            "invoicenumber" => descending
+                ? query.OrderByDescending(x => x.Batch.BatchNumber).ThenBy(x => x.Bi.Id)
+                : query.OrderBy(x => x.Batch.BatchNumber).ThenBy(x => x.Bi.Id),
+            "billingnumber" => descending
+                ? query.OrderByDescending(x => x.Invoice != null ? x.Invoice.InvoiceNumber : "").ThenBy(x => x.Bi.Id)
+                : query.OrderBy(x => x.Invoice != null ? x.Invoice.InvoiceNumber : "").ThenBy(x => x.Bi.Id),
+            "patientname" => descending
+                ? query.OrderByDescending(x => x.Patient != null ? x.Patient.FullName : "").ThenBy(x => x.Bi.Id)
+                : query.OrderBy(x => x.Patient != null ? x.Patient.FullName : "").ThenBy(x => x.Bi.Id),
+            "medicalrecordnumber" => descending
+                ? query.OrderByDescending(x => x.Patient != null ? x.Patient.MedicalRecordNumber : "").ThenBy(x => x.Bi.Id)
+                : query.OrderBy(x => x.Patient != null ? x.Patient.MedicalRecordNumber : "").ThenBy(x => x.Bi.Id),
+            "billingamount" or "amount" => descending
+                ? query.OrderByDescending(x => x.Rec.OriginalAmount).ThenBy(x => x.Bi.Id)
+                : query.OrderBy(x => x.Rec.OriginalAmount).ThenBy(x => x.Bi.Id),
+            "invoicedate" => descending
+                ? query.OrderByDescending(x => x.Batch.InvoiceDate).ThenBy(x => x.Batch.BatchNumber).ThenBy(x => x.Bi.Id)
+                : query.OrderBy(x => x.Batch.InvoiceDate).ThenBy(x => x.Batch.BatchNumber).ThenBy(x => x.Bi.Id),
+            "registrationdate" => descending
+                ? query.OrderByDescending(x => x.Encounter != null ? x.Encounter.EncounterDate : (DateTimeOffset?)null).ThenBy(x => x.Bi.Id)
+                : query.OrderBy(x => x.Encounter != null ? x.Encounter.EncounterDate : (DateTimeOffset?)null).ThenBy(x => x.Bi.Id),
+            _ => descending
+                ? query.OrderByDescending(x => x.CompanyGuarantorName != null ? x.CompanyGuarantorName : (x.InsuranceProviderName != null ? x.InsuranceProviderName : ""))
+                       .ThenByDescending(x => x.Batch.InvoiceDate)
+                       .ThenBy(x => x.Batch.BatchNumber)
+                       .ThenBy(x => x.Bi.Id)
+                : query.OrderBy(x => x.CompanyGuarantorName != null ? x.CompanyGuarantorName : (x.InsuranceProviderName != null ? x.InsuranceProviderName : ""))
+                       .ThenByDescending(x => x.Batch.InvoiceDate)
+                       .ThenBy(x => x.Batch.BatchNumber)
+                       .ThenBy(x => x.Bi.Id)
+        };
+    }
+
+    private static ReportArCreatedItemResponse MapReportArCreatedItem(ReportArCreatedInternalRow row)
+    {
+        var companyName = row.CompanyGuarantorName ?? row.InsuranceProviderName ?? "-";
+        var visitType = row.Encounter != null
+            ? (row.Encounter.EncounterType == EncounterType.Inpatient ? "RANAP"
+               : row.Encounter.EncounterType == EncounterType.Emergency ? "IGD"
+               : "RAJAL")
+            : (!string.IsNullOrWhiteSpace(row.Batch.VisitCode) ? (row.Batch.VisitCode == "IP" ? "RANAP" : row.Batch.VisitCode == "OP" ? "RAJAL" : row.Batch.VisitCode)
+               : (!string.IsNullOrWhiteSpace(row.Batch.ServiceType) ? row.Batch.ServiceType : "RAJAL"));
+
+        var visitTypeName = visitType switch
+        {
+            "RANAP" => "Rawat Inap",
+            "RAJAL" => "Rawat Jalan",
+            "IGD" => "IGD",
+            _ => visitType
+        };
+
+        DateTimeOffset? invoiceDateTime = row.Batch.InvoiceDate.HasValue
+            ? FinanceBusinessDate.GetStartOfDayUtc(row.Batch.InvoiceDate.Value)
+            : row.Batch.CreateDateTime;
+
+        return new ReportArCreatedItemResponse
+        {
+            Id = row.Bi.Id,
+            BatchId = row.Batch.Id,
+            BatchItemId = row.Bi.Id,
+            ReceivableId = row.Rec.Id,
+            InvoiceId = row.Invoice?.Id,
+            InvoiceNumber = row.Batch.BatchNumber,
+            CompanyId = row.Batch.DebtorReferenceId,
+            CompanyName = companyName,
+            InvoiceDate = invoiceDateTime,
+            RegistrationDate = row.Encounter?.EncounterDate ?? row.Invoice?.InvoiceDate,
+            BillingNumber = row.Invoice?.InvoiceNumber ?? "-",
+            RegistrationNumber = row.Encounter?.EncounterNumber ?? "-",
+            MedicalRecordNumber = row.Patient?.MedicalRecordNumber ?? "-",
+            PatientName = row.Patient?.FullName ?? "-",
+            VisitType = visitType,
+            VisitTypeName = visitTypeName,
+            BillingAmount = row.Rec.OriginalAmount,
+            BatchStatus = row.Batch.Status
+        };
+    }
+
+    private async Task<string> ResolveDebtorFilterLabelAsync(Guid? debtorId, CancellationToken cancellationToken)
+    {
+        if (!debtorId.HasValue || debtorId.Value == Guid.Empty) return "Semua Perusahaan";
+        var c = await _dbContext.MstCompanyGuarantors.AsNoTracking().FirstOrDefaultAsync(x => x.Id == debtorId.Value && !x.IsDelete, cancellationToken);
+        if (c != null) return c.CompanyGuarantorName;
+        var p = await _dbContext.MstInsuranceProviders.AsNoTracking().FirstOrDefaultAsync(x => x.Id == debtorId.Value && !x.IsDelete, cancellationToken);
+        if (p != null) return p.InsuranceProviderName;
+        return "Penjamin Terpilih";
+    }
+
+    private static List<ReportArCreatedGroupResponse> BuildReportArCreatedGroups(
+        List<ReportArCreatedItemResponse> items,
+        Dictionary<Guid, decimal>? companyGlobalTotals = null)
+    {
+        var groups = new List<ReportArCreatedGroupResponse>();
+        var companyGroups = items.GroupBy(x => new { x.CompanyId, x.CompanyName });
+
+        foreach (var cg in companyGroups)
+        {
+            var groupItems = cg.ToList();
+            var pageSubtotal = groupItems.Sum(x => x.BillingAmount);
+            var totalCompany = (companyGlobalTotals != null && companyGlobalTotals.TryGetValue(cg.Key.CompanyId, out var globalTotal))
+                ? globalTotal
+                : pageSubtotal;
+
+            var dateSubtotals = groupItems
+                .GroupBy(x => x.InvoiceDate.HasValue
+                    ? FinanceBusinessDate.ToBusinessTime(x.InvoiceDate.Value).ToString("yyyy-MM-dd")
+                    : "NO_DATE")
+                .Select(dg =>
+                {
+                    var dFormatted = dg.Key == "NO_DATE"
+                        ? "Tanpa Tanggal"
+                        : (dg.First().InvoiceDate.HasValue
+                            ? FinanceBusinessDate.ToBusinessTime(dg.First().InvoiceDate!.Value).ToString("dd MMMM yyyy")
+                            : dg.Key);
+                    return new ReportArCreatedDateSubtotal
+                    {
+                        Date = dg.Key,
+                        DateFormatted = dFormatted,
+                        SubtotalAmount = dg.Sum(x => x.BillingAmount),
+                        RowCount = dg.Count()
+                    };
+                })
+                .ToList();
+
+            groups.Add(new ReportArCreatedGroupResponse
+            {
+                CompanyId = cg.Key.CompanyId,
+                CompanyName = cg.Key.CompanyName,
+                TotalCompanyAmount = totalCompany,
+                PageSubtotalAmount = pageSubtotal,
+                DateSubtotals = dateSubtotals,
+                Items = groupItems
+            });
+        }
+
+        return groups;
+    }
+
+    public async Task<ReportArCreatedSummaryResponse> GetReportArCreatedSummaryAsync(
+        ReportArCreatedQuery request, CancellationToken cancellationToken)
+    {
+        var baseQuery = BuildReportArCreatedBaseQuery(request);
+
+        var count = await baseQuery.CountAsync(cancellationToken);
+        var (_, _, periodLabel) = ResolveReportArCreatedPeriod(request.PeriodType, request.StartDate, request.EndDate);
+        var selectedCompanyName = await ResolveDebtorFilterLabelAsync(request.DebtorReferenceId, cancellationToken);
+
+        if (count == 0)
+        {
+            return new ReportArCreatedSummaryResponse
+            {
+                PeriodLabel = periodLabel,
+                SelectedCompanyName = selectedCompanyName
+            };
+        }
+
+        var totalBillingAmount = await baseQuery.SumAsync(x => x.Rec.OriginalAmount, cancellationToken);
+        var totalInvoiceCount = await baseQuery.Select(x => x.Batch.Id).Distinct().CountAsync(cancellationToken);
+
+        var companyGroupData = await baseQuery
+            .GroupBy(x => new
+            {
+                CompanyId = x.Batch.DebtorReferenceId,
+                CompanyName = x.CompanyGuarantorName != null ? x.CompanyGuarantorName : (x.InsuranceProviderName != null ? x.InsuranceProviderName : "-")
+            })
+            .Select(g => new ReportArCreatedCompanySummary
+            {
+                CompanyId = g.Key.CompanyId,
+                CompanyName = g.Key.CompanyName,
+                TotalAmount = g.Sum(x => x.Rec.OriginalAmount),
+                RowCount = g.Count(),
+                InvoiceCount = g.Select(x => x.Batch.Id).Distinct().Count()
+            })
+            .OrderByDescending(g => g.TotalAmount)
+            .ToListAsync(cancellationToken);
+
+        var visitTypeGroupData = await baseQuery
+            .GroupBy(x => x.Encounter != null ? x.Encounter.EncounterType : EncounterType.Unknown)
+            .Select(g => new
+            {
+                EncounterType = g.Key,
+                Count = g.Count(),
+                Amount = g.Sum(x => x.Rec.OriginalAmount)
+            })
+            .ToListAsync(cancellationToken);
+
+        var visitTypeSummary = visitTypeGroupData.Select(v => new ReportArCreatedVisitTypeSummary
+        {
+            VisitType = v.EncounterType == EncounterType.Inpatient ? "RANAP"
+                : v.EncounterType == EncounterType.Emergency ? "IGD"
+                : "RAJAL",
+            VisitTypeName = v.EncounterType == EncounterType.Inpatient ? "Rawat Inap"
+                : v.EncounterType == EncounterType.Emergency ? "IGD"
+                : "Rawat Jalan",
+            Count = v.Count,
+            Amount = v.Amount
+        }).ToList();
+
+        return new ReportArCreatedSummaryResponse
+        {
+            TotalInvoiceCount = totalInvoiceCount,
+            TotalDetailRows = count,
+            TotalBillingAmount = totalBillingAmount,
+            PeriodLabel = periodLabel,
+            SelectedCompanyName = selectedCompanyName,
+            TopCompanySummary = companyGroupData.FirstOrDefault(),
+            TotalByCompany = companyGroupData,
+            VisitTypeSummary = visitTypeSummary
+        };
+    }
+
+    public async Task<ReportArCreatedPagedResponse> GetReportArCreatedPagedAsync(
+        ReportArCreatedQuery request, CancellationToken cancellationToken)
+    {
+        var pageSize = Math.Clamp(request.PageSize, 1, 30); // Strictly max 30 enforced
+        var pageNumber = Math.Max(1, request.PageNumber);
+
+        var baseQuery = BuildReportArCreatedBaseQuery(request);
+        var sortedQuery = ApplyReportArCreatedSort(baseQuery, request);
+
+        var summary = await GetReportArCreatedSummaryAsync(request, cancellationToken);
+
+        var pagedRows = await sortedQuery
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        var items = pagedRows.Select(MapReportArCreatedItem).ToList();
+
+        var companyTotalsDict = summary.TotalByCompany.ToDictionary(c => c.CompanyId, c => c.TotalAmount);
+        var groups = BuildReportArCreatedGroups(items, companyTotalsDict);
+
+        var totalData = summary.TotalDetailRows;
+        var totalPage = totalData == 0 ? 0 : (int)Math.Ceiling(totalData / (double)pageSize);
+
+        return new ReportArCreatedPagedResponse
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = totalData,
+            TotalPage = totalPage,
+            Items = items,
+            Groups = groups,
+            Summary = summary
+        };
+    }
+
+    public async Task<byte[]> ExportReportArCreatedExcelAsync(
+        ReportArCreatedQuery request, CancellationToken cancellationToken)
+    {
+        var baseQuery = BuildReportArCreatedBaseQuery(request);
+        var sortedQuery = ApplyReportArCreatedSort(baseQuery, request);
+
+        var allRows = await sortedQuery.ToListAsync(cancellationToken);
+        var items = allRows.Select(MapReportArCreatedItem).ToList();
+        var summary = await GetReportArCreatedSummaryAsync(request, cancellationToken);
+        var groups = BuildReportArCreatedGroups(items);
+
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var ws = workbook.Worksheets.Add("Laporan Pembuatan AR");
+
+        // Title
+        ws.Cell(1, 1).Value = "LAPORAN PEMBUATAN AR (REPORT AR CREATED)";
+        ws.Cell(1, 1).Style.Font.Bold = true;
+        ws.Cell(1, 1).Style.Font.FontSize = 14;
+        ws.Cell(1, 1).Style.Font.FontColor = ClosedXML.Excel.XLColor.FromHtml("#087d91");
+
+        // Metadata
+        ws.Cell(2, 1).Value = $"Periode: {summary.PeriodLabel}  |  Penjamin: {summary.SelectedCompanyName}";
+        ws.Cell(2, 1).Style.Font.FontSize = 10;
+        ws.Cell(2, 1).Style.Font.FontColor = ClosedXML.Excel.XLColor.FromHtml("#475569");
+
+        var printTimeWib = FinanceBusinessDate.ToBusinessTime(DateTimeOffset.UtcNow);
+        ws.Cell(3, 1).Value = $"Dicetak pada: {printTimeWib:dd/MM/yyyy HH:mm} WIB  |  Total: {summary.TotalDetailRows} Tagihan ({summary.TotalInvoiceCount} Invoice AR)  |  Rp {summary.TotalBillingAmount:N0}";
+        ws.Cell(3, 1).Style.Font.FontSize = 9;
+        ws.Cell(3, 1).Style.Font.Italic = true;
+        ws.Cell(3, 1).Style.Font.FontColor = ClosedXML.Excel.XLColor.FromHtml("#64748b");
+
+        // Table Header (Row 5)
+        var headerRow = 5;
+        string[] headers =
+        [
+            "NO", "TANGGAL INVOICE", "TANGGAL REGISTRASI", "NO. BILL",
+            "NO. REG", "NO. RM", "NAMA PASIEN", "NO. INVOICE", "JUMLAH TAGIHAN"
+        ];
+
+        for (var c = 0; c < headers.Length; c++)
+        {
+            var cell = ws.Cell(headerRow, c + 1);
+            cell.Value = headers[c];
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontSize = 9;
+            cell.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+            cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#087d91");
+            cell.Style.Alignment.Horizontal = (c == 0 || c == 1 || c == 2 || c == 4 || c == 5)
+                ? ClosedXML.Excel.XLAlignmentHorizontalValues.Center
+                : c == 8 ? ClosedXML.Excel.XLAlignmentHorizontalValues.Right
+                : ClosedXML.Excel.XLAlignmentHorizontalValues.Left;
+            cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+            cell.Style.Border.OutsideBorderColor = ClosedXML.Excel.XLColor.FromHtml("#065f6d");
+        }
+
+        var r = headerRow + 1;
+        var globalIdx = 1;
+
+        foreach (var group in groups)
+        {
+            // Group Header (Rowspan/Colspan 9)
+            var grpRange = ws.Range(r, 1, r, 9);
+            grpRange.Merge();
+            grpRange.Value = group.CompanyName.ToUpperInvariant();
+            grpRange.Style.Font.Bold = true;
+            grpRange.Style.Font.FontSize = 9.5;
+            grpRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#d9d9d9");
+            grpRange.Style.Font.FontColor = ClosedXML.Excel.XLColor.FromHtml("#071323");
+            grpRange.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+            r++;
+
+            // Items grouped by Date
+            var dateItemsMap = group.Items
+                .GroupBy(x => x.InvoiceDate.HasValue
+                    ? FinanceBusinessDate.ToBusinessTime(x.InvoiceDate.Value).ToString("yyyy-MM-dd")
+                    : "NO_DATE")
+                .ToList();
+
+            foreach (var dg in dateItemsMap)
+            {
+                decimal dateSubtotal = 0m;
+                string dateLabel = dg.Key == "NO_DATE" ? "Tanpa Tanggal" : dg.Key;
+
+                foreach (var item in dg)
+                {
+                    dateSubtotal += item.BillingAmount;
+
+                    ws.Cell(r, 1).Value = globalIdx++;
+                    ws.Cell(r, 1).Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+
+                    var invDateStr = item.InvoiceDate.HasValue
+                        ? FinanceBusinessDate.ToBusinessTime(item.InvoiceDate.Value).ToString("dd/MM/yyyy HH:mm")
+                        : "-";
+                    ws.Cell(r, 2).Value = invDateStr;
+                    ws.Cell(r, 2).Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+
+                    var regDateStr = item.RegistrationDate.HasValue
+                        ? FinanceBusinessDate.ToBusinessTime(item.RegistrationDate.Value).ToString("dd/MM/yyyy HH:mm")
+                        : "-";
+                    ws.Cell(r, 3).Value = regDateStr;
+                    ws.Cell(r, 3).Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+
+                    ws.Cell(r, 4).Value = item.BillingNumber;
+                    ws.Cell(r, 5).Value = item.RegistrationNumber;
+                    ws.Cell(r, 5).Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+                    ws.Cell(r, 6).Value = item.MedicalRecordNumber;
+                    ws.Cell(r, 6).Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+                    ws.Cell(r, 7).Value = item.PatientName;
+                    ws.Cell(r, 7).Style.Font.Bold = true;
+                    ws.Cell(r, 8).Value = item.InvoiceNumber;
+
+                    ws.Cell(r, 9).Value = item.BillingAmount;
+                    ws.Cell(r, 9).Style.NumberFormat.Format = "#,##0";
+                    ws.Cell(r, 9).Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Right;
+
+                    for (var col = 1; col <= 9; col++)
+                    {
+                        ws.Cell(r, col).Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                        ws.Cell(r, col).Style.Border.OutsideBorderColor = ClosedXML.Excel.XLColor.FromHtml("#e2e8f0");
+                    }
+                    r++;
+
+                    if (item.InvoiceDate.HasValue)
+                    {
+                        dateLabel = FinanceBusinessDate.ToBusinessTime(item.InvoiceDate.Value).ToString("dd MMMM yyyy");
+                    }
+                }
+
+                // Date Subtotal Row
+                var subtotalLabelRange = ws.Range(r, 1, r, 8);
+                subtotalLabelRange.Merge();
+                subtotalLabelRange.Value = $"Total {dateLabel} :";
+                subtotalLabelRange.Style.Font.Bold = true;
+                subtotalLabelRange.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Right;
+                subtotalLabelRange.Style.Font.FontColor = ClosedXML.Excel.XLColor.FromHtml("#1e4620");
+                subtotalLabelRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#e6f4ea");
+
+                var subtotalValCell = ws.Cell(r, 9);
+                subtotalValCell.Value = dateSubtotal;
+                subtotalValCell.Style.Font.Bold = true;
+                subtotalValCell.Style.NumberFormat.Format = "#,##0";
+                subtotalValCell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Right;
+                subtotalValCell.Style.Font.FontColor = ClosedXML.Excel.XLColor.FromHtml("#1e4620");
+                subtotalValCell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#e6f4ea");
+
+                for (var col = 1; col <= 9; col++)
+                {
+                    ws.Cell(r, col).Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                    ws.Cell(r, col).Style.Border.OutsideBorderColor = ClosedXML.Excel.XLColor.FromHtml("#bbf7d0");
+                }
+                r++;
+            }
+
+            // Company Total Row
+            var compTotalLabelRange = ws.Range(r, 1, r, 8);
+            compTotalLabelRange.Merge();
+            compTotalLabelRange.Value = $"Total {group.CompanyName} :";
+            compTotalLabelRange.Style.Font.Bold = true;
+            compTotalLabelRange.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Right;
+            compTotalLabelRange.Style.Font.FontColor = ClosedXML.Excel.XLColor.FromHtml("#0369a1");
+            compTotalLabelRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#e0f2fe");
+
+            var compTotalValCell = ws.Cell(r, 9);
+            compTotalValCell.Value = group.PageSubtotalAmount;
+            compTotalValCell.Style.Font.Bold = true;
+            compTotalValCell.Style.NumberFormat.Format = "#,##0";
+            compTotalValCell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Right;
+            compTotalValCell.Style.Font.FontColor = ClosedXML.Excel.XLColor.FromHtml("#0369a1");
+            compTotalValCell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#e0f2fe");
+
+            for (var col = 1; col <= 9; col++)
+            {
+                ws.Cell(r, col).Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                ws.Cell(r, col).Style.Border.OutsideBorderColor = ClosedXML.Excel.XLColor.FromHtml("#7dd3fc");
+            }
+            r++;
+        }
+
+        // Grand Total Row
+        if (items.Count > 0)
+        {
+            var gtLabelRange = ws.Range(r, 1, r, 8);
+            gtLabelRange.Merge();
+            gtLabelRange.Value = "GRAND TOTAL :";
+            gtLabelRange.Style.Font.Bold = true;
+            gtLabelRange.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Right;
+            gtLabelRange.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+            gtLabelRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#0f172a");
+
+            var gtValCell = ws.Cell(r, 9);
+            gtValCell.Value = summary.TotalBillingAmount;
+            gtValCell.Style.Font.Bold = true;
+            gtValCell.Style.NumberFormat.Format = "#,##0";
+            gtValCell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Right;
+            gtValCell.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+            gtValCell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#0f172a");
+        }
+
+        ws.Columns().AdjustToContents();
+        ws.SheetView.FreezeRows(5);
+
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        return ms.ToArray();
+    }
+
+    public async Task<byte[]> ExportReportArCreatedPdfAsync(
+        ReportArCreatedQuery request, CancellationToken cancellationToken)
+    {
+        var baseQuery = BuildReportArCreatedBaseQuery(request);
+        var sortedQuery = ApplyReportArCreatedSort(baseQuery, request);
+
+        var allRows = await sortedQuery.ToListAsync(cancellationToken);
+        var items = allRows.Select(MapReportArCreatedItem).ToList();
+        var summary = await GetReportArCreatedSummaryAsync(request, cancellationToken);
+
+        return ReportArCreatedReportDocuments.BuildPdf(items, summary);
+    }
+
+    // ------------------------------------------------------------------------------------
+    // REVAMP MANAJEMEN KLAIM PENJAMIN V2 (Read-Model, Filter Server-Side, Summary, Export)
+    // ------------------------------------------------------------------------------------
+
+    public async Task<ClaimManagementPagedResponse> GetClaimsPagedAsync(
+        ClaimManagementBatchQuery request, CancellationToken cancellationToken)
+    {
+        var query = _dbContext.FinReceivableInvoiceBatches.AsNoTracking().Where(x => !x.IsDelete);
+        query = ApplyClaimFilter(query, request);
+
+        var descending = !string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+        query = request.SortBy.Trim().ToLowerInvariant() switch
+        {
+            "batchnumber" or "claimnumber" => descending ? query.OrderByDescending(x => x.BatchNumber) : query.OrderBy(x => x.BatchNumber),
+            "totalamount" => descending ? query.OrderByDescending(x => x.TotalAmount) : query.OrderBy(x => x.TotalAmount),
+            "approvedamount" => descending ? query.OrderByDescending(x => x.ApprovedAmount) : query.OrderBy(x => x.ApprovedAmount),
+            "invoicedate" => descending ? query.OrderByDescending(x => x.InvoiceDate) : query.OrderBy(x => x.InvoiceDate),
+            "status" => descending ? query.OrderByDescending(x => x.Status) : query.OrderBy(x => x.Status),
+            "claimstatus" => descending ? query.OrderByDescending(x => x.ClaimStatus) : query.OrderBy(x => x.ClaimStatus),
+            _ => descending ? query.OrderByDescending(x => x.CreateDateTime) : query.OrderBy(x => x.CreateDateTime)
+        };
+
+        var total = await query.CountAsync(cancellationToken);
+        var pageSize = Math.Clamp(request.PageSize, 1, 30);
+        var pageNumber = Math.Max(request.PageNumber, 1);
+
+        var pagedBatches = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        var batchIds = pagedBatches.Select(b => b.Id).ToList();
+
+        // 1. Resolve Debtor Names
+        var debtorIds = pagedBatches.Select(b => b.DebtorReferenceId).Distinct().ToList();
+        var companyNames = debtorIds.Count > 0
+            ? await _dbContext.MstCompanyGuarantors.AsNoTracking()
+                .Where(c => debtorIds.Contains(c.Id) && !c.IsDelete)
+                .ToDictionaryAsync(c => c.Id, c => c.CompanyGuarantorName, cancellationToken)
+            : new Dictionary<Guid, string>();
+        var insuranceNames = debtorIds.Count > 0
+            ? await _dbContext.MstInsuranceProviders.AsNoTracking()
+                .Where(p => debtorIds.Contains(p.Id) && !p.IsDelete)
+                .ToDictionaryAsync(p => p.Id, p => p.InsuranceProviderName, cancellationToken)
+            : new Dictionary<Guid, string>();
+
+        // 2. Resolve Active Member Items and Member Receivables
+        var batchItems = batchIds.Count > 0
+            ? await _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+                .Where(i => batchIds.Contains(i.BatchId) && !i.IsDelete && i.IsActiveMembership)
+                .ToListAsync(cancellationToken)
+            : new List<FinReceivableInvoiceBatchItem>();
+
+        var receivableIds = batchItems.Select(i => i.ReceivableId).Distinct().ToList();
+        var memberReceivables = receivableIds.Count > 0
+            ? await _dbContext.FinReceivables.AsNoTracking()
+                .Where(r => receivableIds.Contains(r.Id) && !r.IsDelete)
+                .ToDictionaryAsync(r => r.Id, cancellationToken)
+            : new Dictionary<Guid, FinReceivable>();
+
+        // 3. For single-member batches (memberCount == 1), resolve patient, encounter, billing, and diagnosis
+        var singleBatches = pagedBatches
+            .Where(b => batchItems.Count(i => i.BatchId == b.Id) == 1)
+            .ToList();
+
+        var singleReceivableIds = singleBatches
+            .SelectMany(b => batchItems.Where(i => i.BatchId == b.Id).Select(i => i.ReceivableId))
+            .Distinct()
+            .ToList();
+
+        var singleReceivableItems = singleReceivableIds.Count > 0
+            ? await _dbContext.FinReceivableItems.AsNoTracking()
+                .Where(i => singleReceivableIds.Contains(i.ReceivableId) && !i.IsDelete)
+                .ToListAsync(cancellationToken)
+            : new List<FinReceivableItem>();
+
+        var singleInvoiceIds = singleReceivableIds
+            .Select(id => memberReceivables.TryGetValue(id, out var r) ? r.InvoiceId : null)
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Concat(singleReceivableItems.Where(i => i.InvoiceId.HasValue).Select(i => i.InvoiceId!.Value))
+            .Distinct()
+            .ToList();
+
+        var singleInvoices = singleInvoiceIds.Count > 0
+            ? await _dbContext.BilInvoices.AsNoTracking()
+                .Where(inv => singleInvoiceIds.Contains(inv.Id) && !inv.IsDelete)
+                .ToDictionaryAsync(inv => inv.Id, cancellationToken)
+            : new Dictionary<Guid, BilInvoice>();
+
+        var singleEncounterIds = singleInvoices.Values.Select(inv => inv.EncounterId)
+            .Concat(singleReceivableItems.Where(i => i.EncounterId.HasValue).Select(i => i.EncounterId!.Value))
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var singleEncounters = singleEncounterIds.Count > 0
+            ? await _dbContext.RegPatientEncounters.AsNoTracking()
+                .Where(enc => singleEncounterIds.Contains(enc.Id) && !enc.IsDelete)
+                .ToDictionaryAsync(enc => enc.Id, cancellationToken)
+            : new Dictionary<Guid, RegPatientEncounter>();
+
+        var singlePatientIds = singleEncounters.Values.Select(enc => enc.PatientId)
+            .Concat(singleReceivableItems.Where(i => i.PatientId.HasValue).Select(i => i.PatientId!.Value))
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var singlePatients = singlePatientIds.Count > 0
+            ? await _dbContext.MstPatients.AsNoTracking()
+                .Where(p => singlePatientIds.Contains(p.Id) && !p.IsDelete)
+                .ToDictionaryAsync(p => p.Id, cancellationToken)
+            : new Dictionary<Guid, MstPatient>();
+
+        var singleDiagnoses = singleEncounterIds.Count > 0
+            ? await _dbContext.TrxPatientDiagnoses.AsNoTracking()
+                .Where(d => singleEncounterIds.Contains(d.EncounterId) && !d.IsDelete)
+                .OrderByDescending(d => d.IsPrimary)
+                .ThenBy(d => d.SortOrder)
+                .ToListAsync(cancellationToken)
+            : new List<TrxPatientDiagnosis>();
+
+        var items = pagedBatches.Select(b =>
+        {
+            string payerName = "-";
+            if (companyNames.TryGetValue(b.DebtorReferenceId, out var cName)) payerName = cName;
+            else if (insuranceNames.TryGetValue(b.DebtorReferenceId, out var iName)) payerName = iName;
+
+            var bItems = batchItems.Where(i => i.BatchId == b.Id).ToList();
+            var memberCount = bItems.Count;
+
+            decimal paidAmount = 0m;
+            decimal outstandingAmount = b.TotalAmount;
+            if (memberCount > 0)
+            {
+                paidAmount = bItems.Sum(i => memberReceivables.TryGetValue(i.ReceivableId, out var r) ? r.AllocatedAmount : 0m);
+                outstandingAmount = bItems.Sum(i => memberReceivables.TryGetValue(i.ReceivableId, out var r) ? r.OutstandingAmount : 0m);
+            }
+
+            var visitCode = ResolveBatchVisitCode(b) ?? "OP";
+            var visitLabel = ResolveVisitLabel(visitCode);
+
+            string? singlePatientName = null;
+            string? singleMrn = null;
+            string? singleBillingNumber = null;
+            string? singleEncounterNumber = null;
+            string? diagnosisSummary = null;
+
+            if (memberCount == 1)
+            {
+                var rId = bItems[0].ReceivableId;
+                memberReceivables.TryGetValue(rId, out var r);
+                var itemsForRec = singleReceivableItems.Where(it => it.ReceivableId == rId).ToList();
+
+                Guid? invId = r?.InvoiceId ?? itemsForRec.FirstOrDefault(it => it.InvoiceId.HasValue)?.InvoiceId;
+                BilInvoice? inv = invId.HasValue && singleInvoices.TryGetValue(invId.Value, out var foundInv) ? foundInv : null;
+
+                Guid? encId = inv?.EncounterId ?? itemsForRec.FirstOrDefault(it => it.EncounterId.HasValue)?.EncounterId;
+                RegPatientEncounter? enc = encId.HasValue && singleEncounters.TryGetValue(encId.Value, out var foundEnc) ? foundEnc : null;
+
+                Guid? patId = enc?.PatientId ?? itemsForRec.FirstOrDefault(it => it.PatientId.HasValue)?.PatientId;
+                MstPatient? pat = patId.HasValue && singlePatients.TryGetValue(patId.Value, out var foundPat) ? foundPat : null;
+
+                singlePatientName = pat?.FullName;
+                singleMrn = pat?.MedicalRecordNumber;
+                singleBillingNumber = inv?.InvoiceNumber;
+                singleEncounterNumber = enc?.EncounterNumber;
+
+                var diag = encId.HasValue ? singleDiagnoses.FirstOrDefault(d => d.EncounterId == encId.Value) : null;
+                if (diag != null)
+                {
+                    diagnosisSummary = !string.IsNullOrWhiteSpace(diag.DiagnosisCode)
+                        ? $"{diag.DiagnosisCode} - {diag.DiagnosisName}"
+                        : diag.DiagnosisName;
+                }
+            }
+
+            var effectiveClaim = ResolveEffectiveClaimStatus(b);
+
+            return new ClaimManagementBatchItemResponse
+            {
+                Id = b.Id,
+                BatchNumber = b.BatchNumber,
+                PayerClaimReference = b.PayerClaimReference,
+                DebtorReferenceId = b.DebtorReferenceId,
+                PayerName = payerName,
+                MemberCount = memberCount,
+                SinglePatientName = singlePatientName,
+                SingleMedicalRecordNumber = singleMrn,
+                SingleBillingNumber = singleBillingNumber,
+                SingleEncounterNumber = singleEncounterNumber,
+                VisitCode = visitCode,
+                VisitLabel = visitLabel ?? string.Empty,
+                DiagnosisSummary = diagnosisSummary ?? (memberCount > 1 ? $"{memberCount} Pasien" : "-"),
+                TotalAmount = b.TotalAmount,
+                ApprovedAmount = b.ApprovedAmount,
+                ClaimVarianceAmount = b.ApprovedAmount.HasValue ? b.TotalAmount - b.ApprovedAmount.Value : null,
+                PaidAmount = paidAmount,
+                OutstandingAmount = outstandingAmount,
+                ClaimStatus = effectiveClaim,
+                PaymentStatus = b.Status,
+                InvoiceDate = b.InvoiceDate,
+                PeriodStart = b.PeriodStart,
+                PeriodEnd = b.PeriodEnd,
+                IssuedAt = b.IssuedAt,
+                PayerVerifiedAt = b.PayerVerifiedAt,
+                ClaimApprovedAt = b.ClaimApprovedAt,
+                ClaimClosedAt = b.ClaimClosedAt,
+                ClaimNote = b.ClaimNote,
+                CancelReason = b.CancelReason,
+                CancelDateTime = b.CancelDateTime,
+                RowVersion = b.RowVersion
+            };
+        }).ToList();
+
+        var summary = await GetClaimsSummaryAsync(request, cancellationToken);
+
+        return new ClaimManagementPagedResponse
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
+            Items = items,
+            Summary = summary
+        };
+    }
+
+    public async Task<ClaimManagementSummaryResponse> GetClaimsSummaryAsync(
+        ClaimManagementBatchQuery request, CancellationToken cancellationToken)
+    {
+        var query = _dbContext.FinReceivableInvoiceBatches.AsNoTracking().Where(x => !x.IsDelete);
+        query = ApplyClaimFilter(query, request);
+
+        var totalClaims = await query.CountAsync(cancellationToken);
+        if (totalClaims == 0)
+        {
+            return new ClaimManagementSummaryResponse();
+        }
+
+        var pendingVerificationCount = await query.CountAsync(x =>
+            x.ClaimStatus == "SUBMITTED" || (x.ClaimStatus == null && x.Status != "DRAFT" && x.Status != "CANCELLED"), cancellationToken);
+
+        var pendingApprovalCount = await query.CountAsync(x => x.ClaimStatus == "PAYER_VERIFIED", cancellationToken);
+        var approvedCount = await query.CountAsync(x => x.ClaimStatus == "APPROVED", cancellationToken);
+        var closedCount = await query.CountAsync(x => x.ClaimStatus == "CLOSED", cancellationToken);
+
+        var totalClaimAmount = await query.SumAsync(x => x.TotalAmount, cancellationToken);
+        var totalApprovedAmount = await query.SumAsync(x => x.ApprovedAmount ?? 0m, cancellationToken);
+
+        var batchIdsQuery = query.Select(x => x.Id);
+        var receivableTotals = await _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+            .Where(i => batchIdsQuery.Contains(i.BatchId) && !i.IsDelete && i.IsActiveMembership)
+            .Join(_dbContext.FinReceivables.AsNoTracking().Where(r => !r.IsDelete),
+                i => i.ReceivableId,
+                r => r.Id,
+                (i, r) => new { r.AllocatedAmount, r.OutstandingAmount })
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                TotalPaid = g.Sum(x => x.AllocatedAmount),
+                TotalOutstanding = g.Sum(x => x.OutstandingAmount)
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return new ClaimManagementSummaryResponse
+        {
+            TotalClaims = totalClaims,
+            PendingVerificationCount = pendingVerificationCount,
+            PendingApprovalCount = pendingApprovalCount,
+            ApprovedCount = approvedCount,
+            ClosedCount = closedCount,
+            TotalClaimAmount = totalClaimAmount,
+            TotalApprovedAmount = totalApprovedAmount,
+            TotalPaidAmount = receivableTotals?.TotalPaid ?? 0m,
+            TotalOutstandingAmount = receivableTotals?.TotalOutstanding ?? totalClaimAmount
+        };
+    }
+
+    public async Task<byte[]> ExportClaimsExcelAsync(
+        ClaimManagementBatchQuery request, CancellationToken cancellationToken)
+    {
+        var query = _dbContext.FinReceivableInvoiceBatches.AsNoTracking().Where(x => !x.IsDelete);
+        query = ApplyClaimFilter(query, request).OrderByDescending(x => x.CreateDateTime);
+        var batches = await query.Take(1000).ToListAsync(cancellationToken);
+        var batchIds = batches.Select(b => b.Id).ToList();
+
+        var debtorIds = batches.Select(b => b.DebtorReferenceId).Distinct().ToList();
+        var companyNames = debtorIds.Count > 0
+            ? await _dbContext.MstCompanyGuarantors.AsNoTracking()
+                .Where(c => debtorIds.Contains(c.Id) && !c.IsDelete)
+                .ToDictionaryAsync(c => c.Id, c => c.CompanyGuarantorName, cancellationToken)
+            : new Dictionary<Guid, string>();
+        var insuranceNames = debtorIds.Count > 0
+            ? await _dbContext.MstInsuranceProviders.AsNoTracking()
+                .Where(p => debtorIds.Contains(p.Id) && !p.IsDelete)
+                .ToDictionaryAsync(p => p.Id, p => p.InsuranceProviderName, cancellationToken)
+            : new Dictionary<Guid, string>();
+
+        var batchItems = batchIds.Count > 0
+            ? await _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+                .Where(i => batchIds.Contains(i.BatchId) && !i.IsDelete && i.IsActiveMembership)
+                .ToListAsync(cancellationToken)
+            : new List<FinReceivableInvoiceBatchItem>();
+
+        var receivableIds = batchItems.Select(i => i.ReceivableId).Distinct().ToList();
+        var memberReceivables = receivableIds.Count > 0
+            ? await _dbContext.FinReceivables.AsNoTracking()
+                .Where(r => receivableIds.Contains(r.Id) && !r.IsDelete)
+                .ToDictionaryAsync(r => r.Id, cancellationToken)
+            : new Dictionary<Guid, FinReceivable>();
+
+        using var workbook = new ClosedXML.Excel.XLWorkbook();
+        var ws = workbook.Worksheets.Add("Manajemen Klaim");
+
+        string[] headers =
+        [
+            "No", "No. Klaim / Invoice AR", "Ref. Penjamin", "Penjamin", "Pasien / Jumlah",
+            "Jenis Kunjungan", "Tanggal Invoice", "Nilai Klaim", "Nilai Disetujui",
+            "Selisih Klaim", "Terbayar", "Status Klaim", "Status Pembayaran"
+        ];
+        for (var i = 0; i < headers.Length; i++)
+            ws.Cell(1, i + 1).Value = headers[i];
+
+        var headerRange = ws.Range(1, 1, 1, headers.Length);
+        headerRange.Style.Font.Bold = true;
+        headerRange.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+        headerRange.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#0d7f89");
+        headerRange.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+
+        var r = 2;
+        foreach (var b in batches)
+        {
+            string payerName = "-";
+            if (companyNames.TryGetValue(b.DebtorReferenceId, out var cName)) payerName = cName;
+            else if (insuranceNames.TryGetValue(b.DebtorReferenceId, out var iName)) payerName = iName;
+
+            var bItems = batchItems.Where(i => i.BatchId == b.Id).ToList();
+            var memberCount = bItems.Count;
+            decimal paidAmount = memberCount > 0
+                ? bItems.Sum(i => memberReceivables.TryGetValue(i.ReceivableId, out var rec) ? rec.AllocatedAmount : 0m)
+                : 0m;
+
+            var visitCode = ResolveBatchVisitCode(b) ?? "OP";
+            var visitLabel = ResolveVisitLabel(visitCode);
+            var effectiveClaim = ResolveEffectiveClaimStatus(b) ?? "Belum Diajukan";
+            var variance = b.ApprovedAmount.HasValue ? b.TotalAmount - b.ApprovedAmount.Value : (decimal?)null;
+
+            ws.Cell(r, 1).Value = r - 1;
+            ws.Cell(r, 2).Value = b.BatchNumber;
+            ws.Cell(r, 3).Value = b.PayerClaimReference ?? "-";
+            ws.Cell(r, 4).Value = payerName;
+            ws.Cell(r, 5).Value = memberCount > 1 ? $"{memberCount} Pasien" : "1 Pasien";
+            ws.Cell(r, 6).Value = visitLabel;
+            ws.Cell(r, 7).Value = b.InvoiceDate.HasValue ? b.InvoiceDate.Value.ToString("dd/MM/yyyy") : "-";
+            ws.Cell(r, 8).Value = b.TotalAmount;
+            ws.Cell(r, 9).Value = b.ApprovedAmount.HasValue ? b.ApprovedAmount.Value : 0m;
+            ws.Cell(r, 10).Value = variance.HasValue ? variance.Value : 0m;
+            ws.Cell(r, 11).Value = paidAmount;
+            ws.Cell(r, 12).Value = effectiveClaim;
+            ws.Cell(r, 13).Value = b.Status;
+
+            for (var col = 1; col <= headers.Length; col++)
+            {
+                ws.Cell(r, col).Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                ws.Cell(r, col).Style.Border.OutsideBorderColor = ClosedXML.Excel.XLColor.FromHtml("#e2e8f0");
+            }
+
+            r++;
+        }
+
+        if (r > 2)
+        {
+            ws.Range(2, 8, r - 1, 11).Style.NumberFormat.Format = "#,##0";
+        }
+
+        ws.Columns().AdjustToContents();
+        ws.SheetView.FreezeRows(1);
+
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        return ms.ToArray();
+    }
+
+    public async Task<byte[]> ExportClaimsPdfAsync(
+        ClaimManagementBatchQuery request, CancellationToken cancellationToken)
+    {
+        var query = _dbContext.FinReceivableInvoiceBatches.AsNoTracking().Where(x => !x.IsDelete);
+        query = ApplyClaimFilter(query, request).OrderByDescending(x => x.CreateDateTime);
+        var batches = await query.Take(500).ToListAsync(cancellationToken);
+        var batchIds = batches.Select(b => b.Id).ToList();
+
+        var debtorIds = batches.Select(b => b.DebtorReferenceId).Distinct().ToList();
+        var companyNames = debtorIds.Count > 0
+            ? await _dbContext.MstCompanyGuarantors.AsNoTracking()
+                .Where(c => debtorIds.Contains(c.Id) && !c.IsDelete)
+                .ToDictionaryAsync(c => c.Id, c => c.CompanyGuarantorName, cancellationToken)
+            : new Dictionary<Guid, string>();
+        var insuranceNames = debtorIds.Count > 0
+            ? await _dbContext.MstInsuranceProviders.AsNoTracking()
+                .Where(p => debtorIds.Contains(p.Id) && !p.IsDelete)
+                .ToDictionaryAsync(p => p.Id, p => p.InsuranceProviderName, cancellationToken)
+            : new Dictionary<Guid, string>();
+
+        var batchItems = batchIds.Count > 0
+            ? await _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+                .Where(i => batchIds.Contains(i.BatchId) && !i.IsDelete && i.IsActiveMembership)
+                .ToListAsync(cancellationToken)
+            : new List<FinReceivableInvoiceBatchItem>();
+
+        var receivableIds = batchItems.Select(i => i.ReceivableId).Distinct().ToList();
+        var memberReceivables = receivableIds.Count > 0
+            ? await _dbContext.FinReceivables.AsNoTracking()
+                .Where(r => receivableIds.Contains(r.Id) && !r.IsDelete)
+                .ToDictionaryAsync(r => r.Id, cancellationToken)
+            : new Dictionary<Guid, FinReceivable>();
+
+        var summary = await GetClaimsSummaryAsync(request, cancellationToken);
+
+        return QuestPDF.Fluent.Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(QuestPDF.Helpers.PageSizes.A4.Landscape());
+                page.Margin(20);
+                page.DefaultTextStyle(x => x.FontSize(8).FontFamily("Arial"));
+
+                page.Header().Column(col =>
+                {
+                    col.Item().Row(row =>
+                    {
+                        row.RelativeItem().Column(c =>
+                        {
+                            c.Item().Text("RUMAH SAKIT METROPOLITAN MEDICAL CENTRE").Bold().FontSize(12).FontColor("#0d7f89");
+                            c.Item().Text("LAPORAN MANAJEMEN KLAIM PENJAMIN (AR)").Bold().FontSize(10).FontColor("#1f2937");
+                            c.Item().Text($"Dicetak pada: {DateTime.Now:dd/MM/yyyy HH:mm} WIB").FontSize(7.5f).FontColor("#6b7280");
+                        });
+                    });
+                    col.Item().PaddingVertical(5).LineHorizontal(1).LineColor("#0d7f89");
+                });
+
+                page.Content().PaddingVertical(5).Column(col =>
+                {
+                    col.Item().Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.ConstantColumn(25);  // No
+                            columns.RelativeColumn(2);   // No. Klaim / AR
+                            columns.RelativeColumn(2.5f);// Penjamin
+                            columns.RelativeColumn(1.2f);// Pasien
+                            columns.RelativeColumn(1.2f);// Jenis
+                            columns.RelativeColumn(1.5f);// Nilai Klaim
+                            columns.RelativeColumn(1.5f);// Disetujui
+                            columns.RelativeColumn(1.5f);// Terbayar
+                            columns.RelativeColumn(1.5f);// Status Klaim
+                            columns.RelativeColumn(1.5f);// Status Bayar
+                        });
+
+                        table.Header(header =>
+                        {
+                            header.Cell().Background("#0d7f89").Padding(3).AlignCenter().Text("NO").Bold().FontColor("#ffffff");
+                            header.Cell().Background("#0d7f89").Padding(3).Text("NO. KLAIM / AR").Bold().FontColor("#ffffff");
+                            header.Cell().Background("#0d7f89").Padding(3).Text("PENJAMIN").Bold().FontColor("#ffffff");
+                            header.Cell().Background("#0d7f89").Padding(3).AlignCenter().Text("PASIEN").Bold().FontColor("#ffffff");
+                            header.Cell().Background("#0d7f89").Padding(3).AlignCenter().Text("JENIS").Bold().FontColor("#ffffff");
+                            header.Cell().Background("#0d7f89").Padding(3).AlignRight().Text("NILAI KLAIM").Bold().FontColor("#ffffff");
+                            header.Cell().Background("#0d7f89").Padding(3).AlignRight().Text("DISETUJUI").Bold().FontColor("#ffffff");
+                            header.Cell().Background("#0d7f89").Padding(3).AlignRight().Text("TERBAYAR").Bold().FontColor("#ffffff");
+                            header.Cell().Background("#0d7f89").Padding(3).AlignCenter().Text("KLAIM").Bold().FontColor("#ffffff");
+                            header.Cell().Background("#0d7f89").Padding(3).AlignCenter().Text("PEMBAYARAN").Bold().FontColor("#ffffff");
+                        });
+
+                        var idx = 1;
+                        foreach (var b in batches)
+                        {
+                            string payerName = "-";
+                            if (companyNames.TryGetValue(b.DebtorReferenceId, out var cName)) payerName = cName;
+                            else if (insuranceNames.TryGetValue(b.DebtorReferenceId, out var iName)) payerName = iName;
+
+                            var bItems = batchItems.Where(i => i.BatchId == b.Id).ToList();
+                            var memberCount = bItems.Count;
+                            decimal paidAmount = memberCount > 0
+                                ? bItems.Sum(i => memberReceivables.TryGetValue(i.ReceivableId, out var rec) ? rec.AllocatedAmount : 0m)
+                                : 0m;
+
+                            var visitCode = ResolveBatchVisitCode(b) ?? "OP";
+                            var visitLabel = ResolveVisitLabel(visitCode);
+                            var effectiveClaim = ResolveEffectiveClaimStatus(b) ?? "-";
+
+                            var isEven = idx % 2 == 0;
+                            var bg = isEven ? "#f9fafb" : "#ffffff";
+
+                            table.Cell().Background(bg).Padding(2).AlignCenter().Text(idx.ToString());
+                            table.Cell().Background(bg).Padding(2).Text(b.BatchNumber).Bold();
+                            table.Cell().Background(bg).Padding(2).Text(payerName);
+                            table.Cell().Background(bg).Padding(2).AlignCenter().Text(memberCount > 1 ? $"{memberCount} Pasien" : "1 Pasien");
+                            table.Cell().Background(bg).Padding(2).AlignCenter().Text(visitLabel);
+                            table.Cell().Background(bg).Padding(2).AlignRight().Text(b.TotalAmount.ToString("N0", IdCulture));
+                            table.Cell().Background(bg).Padding(2).AlignRight().Text(b.ApprovedAmount.HasValue ? b.ApprovedAmount.Value.ToString("N0", IdCulture) : "-");
+                            table.Cell().Background(bg).Padding(2).AlignRight().Text(paidAmount.ToString("N0", IdCulture));
+                            table.Cell().Background(bg).Padding(2).AlignCenter().Text(effectiveClaim);
+                            table.Cell().Background(bg).Padding(2).AlignCenter().Text(b.Status);
+
+                            idx++;
+                        }
+
+                        // Summary Footer row
+                        table.Cell().ColumnSpan(5).Background("#e0f2fe").Padding(3).AlignRight().Text("TOTAL SELURUH KLAIM :").Bold().FontColor("#0369a1");
+                        table.Cell().Background("#e0f2fe").Padding(3).AlignRight().Text(summary.TotalClaimAmount.ToString("N0", IdCulture)).Bold().FontColor("#0369a1");
+                        table.Cell().Background("#e0f2fe").Padding(3).AlignRight().Text(summary.TotalApprovedAmount.ToString("N0", IdCulture)).Bold().FontColor("#0369a1");
+                        table.Cell().Background("#e0f2fe").Padding(3).AlignRight().Text(summary.TotalPaidAmount.ToString("N0", IdCulture)).Bold().FontColor("#0369a1");
+                        table.Cell().ColumnSpan(2).Background("#e0f2fe").Padding(3).Text("");
+                    });
+                });
+
+                page.Footer().AlignCenter().Text(x =>
+                {
+                    x.Span("Halaman ");
+                    x.CurrentPageNumber();
+                    x.Span(" dari ");
+                    x.TotalPages();
+                });
+            });
+        }).GeneratePdf();
+    }
+
+    private IQueryable<FinReceivableInvoiceBatch> ApplyClaimFilter(
+        IQueryable<FinReceivableInvoiceBatch> query,
+        ClaimManagementBatchQuery request)
+    {
+        var debtorId = request.PayerId ?? request.DebtorReferenceId;
+        if (debtorId.HasValue && debtorId.Value != Guid.Empty)
+            query = query.Where(x => x.DebtorReferenceId == debtorId.Value);
+
+        if (!string.IsNullOrWhiteSpace(request.VisitCode) && !request.VisitCode.Equals("ALL", StringComparison.OrdinalIgnoreCase))
+        {
+            var vc = request.VisitCode.Trim().ToUpperInvariant();
+            query = query.Where(x => x.VisitCode == vc || (x.VisitCode == null && EF.Functions.ILike(x.BatchNumber, $"%/{vc}/%")));
+        }
+
+        DateOnly? start = request.StartDate;
+        DateOnly? end = request.EndDate;
+        if (!string.IsNullOrWhiteSpace(request.PeriodPreset))
+        {
+            var today = FinanceBusinessDate.Today();
+            var preset = request.PeriodPreset.Trim().ToUpperInvariant();
+            if (preset == "TODAY") { start = today; end = today; }
+            else if (preset == "THIS_WEEK")
+            {
+                int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
+                start = today.AddDays(-diff);
+                end = start.Value.AddDays(6);
+            }
+            else if (preset == "THIS_MONTH")
+            {
+                start = new DateOnly(today.Year, today.Month, 1);
+                end = start.Value.AddMonths(1).AddDays(-1);
+            }
+            else if (preset == "LAST_MONTH")
+            {
+                var firstThisMonth = new DateOnly(today.Year, today.Month, 1);
+                end = firstThisMonth.AddDays(-1);
+                start = new DateOnly(end.Value.Year, end.Value.Month, 1);
+            }
+            else if (preset == "THIS_YEAR")
+            {
+                start = new DateOnly(today.Year, 1, 1);
+                end = new DateOnly(today.Year, 12, 31);
+            }
+        }
+
+        if (start.HasValue)
+            query = query.Where(x => (x.InvoiceDate ?? DateOnly.FromDateTime(x.CreateDateTime)) >= start.Value);
+
+        if (end.HasValue)
+            query = query.Where(x => (x.InvoiceDate ?? DateOnly.FromDateTime(x.CreateDateTime)) <= end.Value);
+
+        if (!string.IsNullOrWhiteSpace(request.ClaimStatus) && !request.ClaimStatus.Equals("ALL", StringComparison.OrdinalIgnoreCase))
+        {
+            var cs = request.ClaimStatus.Trim().ToUpperInvariant();
+            if (cs == "SUBMITTED")
+            {
+                query = query.Where(x => x.ClaimStatus == "SUBMITTED" || (x.ClaimStatus == null && x.Status != "DRAFT" && x.Status != "CANCELLED"));
+            }
+            else if (cs == "PAYER_VERIFIED")
+            {
+                query = query.Where(x => x.ClaimStatus == "PAYER_VERIFIED");
+            }
+            else if (cs == "APPROVED")
+            {
+                query = query.Where(x => x.ClaimStatus == "APPROVED");
+            }
+            else if (cs == "CLOSED")
+            {
+                query = query.Where(x => x.ClaimStatus == "CLOSED");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.PaymentStatus) && !request.PaymentStatus.Equals("ALL", StringComparison.OrdinalIgnoreCase))
+        {
+            var ps = request.PaymentStatus.Trim().ToUpperInvariant();
+            query = query.Where(x => x.Status == ps);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var pattern = $"%{request.Search.Trim()}%";
+            query = query.Where(x =>
+                EF.Functions.ILike(x.BatchNumber, pattern)
+                || (x.PayerClaimReference != null && EF.Functions.ILike(x.PayerClaimReference, pattern))
+                || (x.Note != null && EF.Functions.ILike(x.Note, pattern))
+                || _dbContext.MstCompanyGuarantors.Any(c => !c.IsDelete && c.Id == x.DebtorReferenceId && EF.Functions.ILike(c.CompanyGuarantorName, pattern))
+                || _dbContext.MstInsuranceProviders.Any(p => !p.IsDelete && p.Id == x.DebtorReferenceId && EF.Functions.ILike(p.InsuranceProviderName, pattern))
+                || x.Items.Any(i => !i.IsDelete && i.Receivable != null && (
+                    EF.Functions.ILike(i.Receivable.ReceivableNumber, pattern)
+                    || _dbContext.BilInvoices.Any(inv => !inv.IsDelete && inv.Id == i.Receivable.InvoiceId && (
+                        EF.Functions.ILike(inv.InvoiceNumber, pattern)
+                        || _dbContext.RegPatientEncounters.Any(enc => !enc.IsDelete && enc.Id == inv.EncounterId && (
+                            EF.Functions.ILike(enc.EncounterNumber, pattern)
+                            || _dbContext.MstPatients.Any(pat => !pat.IsDelete && pat.Id == enc.PatientId && (
+                                EF.Functions.ILike(pat.FullName, pattern) || EF.Functions.ILike(pat.MedicalRecordNumber, pattern)
+                            ))
+                        ))
+                    ))
+                ))
+            );
+        }
+
+        return query;
     }
 }
 

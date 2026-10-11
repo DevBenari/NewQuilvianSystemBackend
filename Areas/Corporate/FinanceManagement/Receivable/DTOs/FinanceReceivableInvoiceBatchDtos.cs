@@ -234,6 +234,15 @@ public sealed class ReceivableInvoiceBatchMemberResponse
     public string DueDatePeriod { get; set; } = string.Empty;
     public string? Note { get; set; }
     public string? Keterangan => Note;
+    public string? EncounterNumber { get; set; }
+    public string? ServiceType { get; set; }
+    public string? ServiceLabel { get; set; }
+    public DateOnly? ServiceDate { get; set; }
+    public string? PatientClassName { get; set; }
+    public string? DoctorName { get; set; }
+    public string? PrimaryDiagnosisCode { get; set; }
+    public string? PrimaryDiagnosisName { get; set; }
+    public string? SecondaryDiagnoses { get; set; }
 }
 
 public sealed class ReceivableInvoiceBatchPaymentHistoryAllocationResponse
@@ -293,6 +302,90 @@ public sealed class ReceivableInvoiceBatchDetailResponse : ReceivableInvoiceBatc
     public List<ReceivableInvoiceBatchPaymentHistoryResponse> Payments { get; set; } = new();
 }
 
+public static class ReceivableInvoiceBatchDocumentTypes
+{
+    public const string InvoiceLetter = "INVOICE_LETTER";
+    public const string Acknowledgement = "ACKNOWLEDGEMENT";
+    public const string PaymentReceipt = "PAYMENT_RECEIPT";
+    public const string BillingRecap = "BILLING_RECAP";
+}
+
+public sealed class ReceivableInvoiceBatchDocumentMetadataResponse
+{
+    public string DocumentType { get; set; } = string.Empty;
+    public string DocumentNumber { get; set; } = string.Empty;
+    public bool Available { get; set; } = true;
+    public string? Message { get; set; }
+    public string Language { get; set; } = "id";
+    public Guid? RelatedInvoiceId { get; set; }
+    public Guid? RelatedReceiptId { get; set; }
+    public bool Printable { get; set; } = true;
+    public bool Downloadable { get; set; } = true;
+}
+
+public sealed class ReceivableInvoiceBatchBankAccountResponse
+{
+    public Guid BankAccountId { get; set; }
+    public string BankName { get; set; } = string.Empty;
+    public string BankCode { get; set; } = string.Empty;
+    public string AccountNumber { get; set; } = string.Empty;
+    public string AccountName { get; set; } = string.Empty;
+    public string? Branch { get; set; }
+    public string CurrencyCode { get; set; } = "IDR";
+    public string AccountType { get; set; } = string.Empty;
+}
+
+public sealed class ReceivableInvoiceBatchReceiptResponse
+{
+    public Guid ReceiptId { get; set; }
+    public string ReceiptNumber { get; set; } = string.Empty;
+    public string? KwitansiNumber { get; set; }
+    public decimal Amount { get; set; }
+    public DateTimeOffset OccurredAt { get; set; }
+    public string? ProviderReference { get; set; }
+    public Guid? BankAccountId { get; set; }
+    public string? BankName { get; set; }
+    public string? AccountNumber { get; set; }
+    public string? AccountName { get; set; }
+    public string Status { get; set; } = string.Empty;
+}
+
+public sealed class ReceivableInvoiceBatchRecapItemResponse
+{
+    public Guid? InvoiceItemId { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public string? CategoryCode { get; set; }
+    public string? CategoryName { get; set; }
+    public decimal Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal GrossAmount { get; set; }
+    public decimal ItemDiscount { get; set; }
+    public decimal NetAmount { get; set; }
+    public decimal CoveredNetAmount { get; set; }
+    public decimal CoveredTaxAmount { get; set; }
+    public decimal CoveredAmount { get; set; }
+    public decimal PatientAmount { get; set; }
+    public string? CoverageNote { get; set; }
+}
+
+public sealed class ReceivableInvoiceBatchRecapPatientResponse
+{
+    public int SequenceNumber { get; set; }
+    public Guid? InvoiceId { get; set; }
+    public Guid ReceivableId { get; set; }
+    public DateOnly TransactionDate { get; set; }
+    public string MedicalRecordNumber { get; set; } = string.Empty;
+    public string PatientName { get; set; } = string.Empty;
+    public string BillingNumber { get; set; } = string.Empty;
+    public string VisitCode { get; set; } = string.Empty;
+    public string VisitType { get; set; } = string.Empty;
+    public string? Note { get; set; }
+    public decimal TotalAmount { get; set; }
+    public decimal PatientPaidAmount { get; set; }
+    public decimal GuarantorCoveredAmount { get; set; }
+    public List<ReceivableInvoiceBatchRecapItemResponse> CoverageItems { get; set; } = new();
+}
+
 public sealed class ReceivableInvoiceBatchDocumentResponse
 {
     public Guid BatchId { get; set; }
@@ -301,13 +394,32 @@ public sealed class ReceivableInvoiceBatchDocumentResponse
     public Guid DebtorReferenceId { get; set; }
     public Guid CompanyId { get; set; }
     public string? CompanyName { get; set; }
+    public string? CompanyAddress { get; set; }
+    public string? PicName { get; set; }
+    public string? PicPhone { get; set; }
+    public string? PicEmail { get; set; }
+    public string? ContractNumber { get; set; }
+    public string DebtorType { get; set; } = string.Empty;
     public DateOnly PeriodStart { get; set; }
     public DateOnly PeriodEnd { get; set; }
     public DateOnly? InvoiceDate { get; set; }
     public DateOnly? DueDate { get; set; }
     public decimal GrandTotalCoveredAmount { get; set; }
+    public decimal TotalBillAmount { get; set; }
+    public decimal TotalPatientAmount { get; set; }
+    public int PatientCount { get; set; }
+    public bool IsBankAccountConfigured { get; set; } = true;
+    public List<ReceivableInvoiceBatchBankAccountResponse> BankAccounts { get; set; } = new();
+    public List<ReceivableInvoiceBatchReceiptResponse> Receipts { get; set; } = new();
+    public List<ReceivableInvoiceBatchRecapPatientResponse> Patients { get; set; } = new();
     public List<CompanyGuarantorInvoiceDocumentResponse> Invoices { get; set; } = new();
     public List<string> Warnings { get; set; } = new();
+}
+
+public sealed class ReceivableInvoiceBatchSingleDocumentResponse
+{
+    public ReceivableInvoiceBatchDocumentMetadataResponse Metadata { get; set; } = new();
+    public ReceivableInvoiceBatchDocumentResponse Document { get; set; } = new();
 }
 
 // ====================================================================================
@@ -681,3 +793,184 @@ public sealed class ReissueReceivableInvoiceBatchRequest
 {
     [Required] public Guid ExpectedRowVersion { get; set; }
 }
+
+// ====================================================================================
+// REPORT AR CREATED (Laporan Pembuatan AR)
+// ====================================================================================
+
+public sealed class ReportArCreatedQuery
+{
+    public string? Search { get; set; }
+    public Guid? DebtorReferenceId { get; set; }
+    public string? VisitType { get; set; } // "ALL", "RAJAL", "RANAP", "IGD", "OP", "IP"
+    public string? PeriodType { get; set; } // "ALL", "TODAY", "THIS_WEEK", "THIS_MONTH", "LAST_MONTH", "THIS_YEAR", "CUSTOM"
+    public DateOnly? StartDate { get; set; }
+    public DateOnly? EndDate { get; set; }
+    public string? DateType { get; set; } = "INVOICE_DATE"; // "INVOICE_DATE" | "REGISTRATION_DATE"
+    public string? Status { get; set; } // default null (excludes CANCELLED)
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 30; // Max 30 enforced
+    public string SortBy { get; set; } = "company";
+    public string SortDirection { get; set; } = "asc";
+}
+
+public sealed class ReportArCreatedItemResponse
+{
+    public Guid Id { get; set; } // Stable row identifier (bi.Id)
+    public Guid BatchId { get; set; }
+    public Guid BatchItemId { get; set; }
+    public Guid ReceivableId { get; set; }
+    public Guid? InvoiceId { get; set; }
+    public string InvoiceNumber { get; set; } = string.Empty; // NO. INVOICE (b.BatchNumber)
+    public Guid CompanyId { get; set; }
+    public string CompanyName { get; set; } = string.Empty; // NAMA PERUSAHAAN / ASURANSI
+    public DateTimeOffset? InvoiceDate { get; set; } // TANGGAL INVOICE
+    public DateTimeOffset? RegistrationDate { get; set; } // TANGGAL REGISTRASI
+    public string BillingNumber { get; set; } = string.Empty; // NO. BILL (inv.InvoiceNumber)
+    public string RegistrationNumber { get; set; } = string.Empty; // NO. REG (enc.EncounterNumber)
+    public string MedicalRecordNumber { get; set; } = string.Empty; // NO. RM (pat.MedicalRecordNumber)
+    public string PatientName { get; set; } = string.Empty; // NAMA PASIEN (pat.FullName)
+    public string VisitType { get; set; } = string.Empty; // RAJAL / RANAP / IGD
+    public string VisitTypeName { get; set; } = string.Empty; // Rawat Jalan / Rawat Inap / IGD
+    public decimal BillingAmount { get; set; } // JUMLAH TAGIHAN (r.OriginalAmount)
+    public string BatchStatus { get; set; } = string.Empty;
+}
+
+public sealed class ReportArCreatedDateSubtotal
+{
+    public string Date { get; set; } = string.Empty; // "yyyy-MM-dd"
+    public string DateFormatted { get; set; } = string.Empty; // "26 Juni 2026"
+    public decimal SubtotalAmount { get; set; }
+    public int RowCount { get; set; }
+}
+
+public sealed class ReportArCreatedGroupResponse
+{
+    public Guid CompanyId { get; set; }
+    public string CompanyName { get; set; } = string.Empty;
+    public decimal TotalCompanyAmount { get; set; } // Total company across entire filtered dataset
+    public decimal PageSubtotalAmount { get; set; } // Subtotal on current page
+    public List<ReportArCreatedDateSubtotal> DateSubtotals { get; set; } = new();
+    public List<ReportArCreatedItemResponse> Items { get; set; } = new();
+}
+
+public sealed class ReportArCreatedCompanySummary
+{
+    public Guid CompanyId { get; set; }
+    public string CompanyName { get; set; } = string.Empty;
+    public decimal TotalAmount { get; set; }
+    public int InvoiceCount { get; set; }
+    public int RowCount { get; set; }
+}
+
+public sealed class ReportArCreatedVisitTypeSummary
+{
+    public string VisitType { get; set; } = string.Empty;
+    public string VisitTypeName { get; set; } = string.Empty;
+    public int Count { get; set; }
+    public decimal Amount { get; set; }
+}
+
+public sealed class ReportArCreatedSummaryResponse
+{
+    public int TotalInvoiceCount { get; set; } // Distinct invoice batches
+    public int TotalDetailRows { get; set; } // Total billing items
+    public decimal TotalBillingAmount { get; set; } // Total tagihan across all filtered data
+    public string PeriodLabel { get; set; } = string.Empty;
+    public string SelectedCompanyName { get; set; } = "Semua Perusahaan";
+    public ReportArCreatedCompanySummary? TopCompanySummary { get; set; }
+    public List<ReportArCreatedCompanySummary> TotalByCompany { get; set; } = new();
+    public List<ReportArCreatedVisitTypeSummary> VisitTypeSummary { get; set; } = new();
+}
+
+public sealed class ReportArCreatedPagedResponse
+{
+    public int PageNumber { get; set; }
+    public int PageSize { get; set; }
+    public int TotalData { get; set; }
+    public int TotalPage { get; set; }
+    public List<ReportArCreatedItemResponse> Items { get; set; } = new();
+    public List<ReportArCreatedGroupResponse> Groups { get; set; } = new();
+    public ReportArCreatedSummaryResponse Summary { get; set; } = new();
+}
+
+// ------------------------------------------------------------------------------------
+// REVAMP MANAJEMEN KLAIM PENJAMIN V2 (Read-Model DTOs)
+// ------------------------------------------------------------------------------------
+
+public sealed class ClaimManagementBatchQuery
+{
+    public string? Search { get; set; }
+    public Guid? PayerId { get; set; }
+    public Guid? DebtorReferenceId { get; set; }
+    public string? VisitCode { get; set; }
+    public string? PeriodPreset { get; set; }
+    public DateOnly? StartDate { get; set; }
+    public DateOnly? EndDate { get; set; }
+    public string? ClaimStatus { get; set; }
+    public string? PaymentStatus { get; set; }
+    public string SortBy { get; set; } = "createDateTime";
+    public string SortDirection { get; set; } = "desc";
+    [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
+    [Range(1, 30)] public int PageSize { get; set; } = 20;
+}
+
+public sealed class ClaimManagementBatchItemResponse
+{
+    public Guid Id { get; set; }
+    public string BatchNumber { get; set; } = string.Empty;
+    public string? PayerClaimReference { get; set; }
+    public Guid DebtorReferenceId { get; set; }
+    public string PayerName { get; set; } = string.Empty;
+    public int MemberCount { get; set; }
+    public string? SinglePatientName { get; set; }
+    public string? SingleMedicalRecordNumber { get; set; }
+    public string? SingleBillingNumber { get; set; }
+    public string? SingleEncounterNumber { get; set; }
+    public string VisitCode { get; set; } = string.Empty;
+    public string VisitLabel { get; set; } = string.Empty;
+    public string? DiagnosisSummary { get; set; }
+    public decimal TotalAmount { get; set; }
+    public decimal? ApprovedAmount { get; set; }
+    public decimal? ClaimVarianceAmount { get; set; }
+    public decimal PaidAmount { get; set; }
+    public decimal OutstandingAmount { get; set; }
+    public string? ClaimStatus { get; set; }
+    public string PaymentStatus { get; set; } = string.Empty;
+    public DateOnly? InvoiceDate { get; set; }
+    public DateOnly PeriodStart { get; set; }
+    public DateOnly PeriodEnd { get; set; }
+    public DateTimeOffset? IssuedAt { get; set; }
+    public DateTimeOffset? PayerVerifiedAt { get; set; }
+    public DateTimeOffset? ClaimApprovedAt { get; set; }
+    public DateTimeOffset? ClaimClosedAt { get; set; }
+    public string? ClaimNote { get; set; }
+    public string? CancelReason { get; set; }
+    public DateTimeOffset? CancelDateTime { get; set; }
+    public Guid RowVersion { get; set; }
+}
+
+public sealed class ClaimManagementSummaryResponse
+{
+    public int TotalClaims { get; set; }
+    public int PendingVerificationCount { get; set; }
+    public int PendingApprovalCount { get; set; }
+    public int ApprovedCount { get; set; }
+    public int ClosedCount { get; set; }
+    public decimal TotalClaimAmount { get; set; }
+    public decimal TotalApprovedAmount { get; set; }
+    public decimal TotalPaidAmount { get; set; }
+    public decimal TotalOutstandingAmount { get; set; }
+}
+
+public sealed class ClaimManagementPagedResponse
+{
+    public int PageNumber { get; set; }
+    public int PageSize { get; set; }
+    public int TotalData { get; set; }
+    public int TotalPage { get; set; }
+    public List<ClaimManagementBatchItemResponse> Items { get; set; } = new();
+    public ClaimManagementSummaryResponse Summary { get; set; } = new();
+}
+
+

@@ -409,7 +409,11 @@ try
     builder.Services.AddScoped<FinanceReceivableClearanceService>();
     // BE-FIN-098: berdiri sendiri dari FinanceOpeningItemBatchService (wewenang eksplisit pengguna).
     builder.Services.AddScoped<FinanceReceivableMigrationService>();
+    builder.Services.AddScoped<IFinanceReceivableNumberGenerator, FinanceReceivableNumberGenerator>();
     builder.Services.AddScoped<FinanceBenefitSettlementService>();
+    builder.Services.AddScoped<FinanceBillingArReportService>();
+    builder.Services.AddScoped<FinanceReceivableAgingReportService>();
+    builder.Services.AddScoped<FinanceSettlementService>();
     builder.Services.AddScoped<ICompanyGuarantorReimbursementRouteService, CompanyGuarantorReimbursementRouteService>();
     builder.Services.AddScoped<CompanyGuarantorReimbursementRouteService>();
     builder.Services.AddScoped<ICompanyGuarantorCoverageRuleService, CompanyGuarantorCoverageRuleService>();

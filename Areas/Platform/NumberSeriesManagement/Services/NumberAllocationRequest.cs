@@ -34,5 +34,7 @@ namespace QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services
         int SequenceDigits,
         Guid ActorUserId,
         DateTimeOffset Instant,
-        long MinimumValue = 0);
+        long MinimumValue = 0,
+        bool CompactScopeFormat = false,
+        bool AllowSequenceOverflow = false);
 }

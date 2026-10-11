@@ -21,8 +21,12 @@ public sealed class ReceivableResponse
     public string ReceivableNumber { get; set; } = string.Empty;
     // BE-FIN-079: nullable — kosong untuk item migrasi tagihan lama (lihat FinReceivable.OpeningItemBatchId).
     public Guid? InvoiceId { get; set; }
+    public string? InvoiceNumber { get; set; }
+    public string? BatchInvoiceNumber { get; set; }
     public string DebtorType { get; set; } = string.Empty;
     public Guid? DebtorReferenceId { get; set; }
+    public string? DebtorName { get; set; }
+    public string? CompanyName { get; set; }
     public decimal OriginalAmount { get; set; }
     public decimal OutstandingAmount { get; set; }
     public decimal AllocatedAmount { get; set; }
@@ -33,6 +37,29 @@ public sealed class ReceivableResponse
     public string ClaimStatus { get; set; } = string.Empty;
     public DateTimeOffset RecognizedAt { get; set; }
     public Guid RowVersion { get; set; }
+}
+
+public sealed class ReceivableDocumentsResponse
+{
+    public Guid ReceivableId { get; set; }
+    public string ReceivableNumber { get; set; } = string.Empty;
+    public List<ReceivableDocumentItemResponse> Documents { get; set; } = new();
+}
+
+public sealed class ReceivableDocumentItemResponse
+{
+    public string Id { get; set; } = string.Empty;
+    public string DocumentType { get; set; } = string.Empty;
+    public string DocumentName { get; set; } = string.Empty;
+    public string SourceModule { get; set; } = string.Empty;
+    public string ReferenceNumber { get; set; } = string.Empty;
+    public string FileFormat { get; set; } = "PDF";
+    public bool Available { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string? ViewUrl { get; set; }
+    public string? DownloadUrl { get; set; }
+    public decimal? Amount { get; set; }
+    public DateTimeOffset? DocumentDate { get; set; }
 }
 
 public sealed class ReceivableItemResponse

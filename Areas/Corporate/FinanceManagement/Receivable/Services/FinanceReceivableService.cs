@@ -1,11 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -79,9 +82,52 @@ public sealed class FinanceReceivableService
         };
 
         var total = await query.CountAsync(cancellationToken);
-        var items = await query
+        var pagedEntities = await query
             .Skip((request.PageNumber - 1) * request.PageSize).Take(request.PageSize)
-            .Select(x => Map(x)).ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken);
+
+        // Resolve Debtor Names & Invoice Numbers in batch untuk daftar
+        var debtorRefIds = pagedEntities.Where(x => x.DebtorReferenceId.HasValue).Select(x => x.DebtorReferenceId!.Value).Distinct().ToList();
+        var companyNames = debtorRefIds.Count > 0
+            ? await _dbContext.MstCompanyGuarantors.AsNoTracking()
+                .Where(c => !c.IsDelete && debtorRefIds.Contains(c.Id))
+                .ToDictionaryAsync(c => c.Id, c => c.CompanyGuarantorName, cancellationToken)
+            : new Dictionary<Guid, string>();
+
+        var missingCompanyIds = debtorRefIds.Where(id => !companyNames.ContainsKey(id)).ToList();
+        if (missingCompanyIds.Count > 0)
+        {
+            var insuranceNames = await _dbContext.MstInsuranceProviders.AsNoTracking()
+                .Where(p => !p.IsDelete && missingCompanyIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, p => p.InsuranceProviderName, cancellationToken);
+            foreach (var kvp in insuranceNames)
+            {
+                companyNames[kvp.Key] = kvp.Value;
+            }
+        }
+
+        var invoiceIds = pagedEntities.Where(x => x.InvoiceId.HasValue).Select(x => x.InvoiceId!.Value).Distinct().ToList();
+        var invoiceNumbers = invoiceIds.Count > 0
+            ? await _dbContext.BilInvoices.AsNoTracking()
+                .Where(i => invoiceIds.Contains(i.Id))
+                .ToDictionaryAsync(i => i.Id, i => i.InvoiceNumber, cancellationToken)
+            : new Dictionary<Guid, string>();
+
+        var items = pagedEntities.Select(x =>
+        {
+            var res = Map(x);
+            if (x.DebtorReferenceId.HasValue && companyNames.TryGetValue(x.DebtorReferenceId.Value, out var debtorName))
+            {
+                res.DebtorName = debtorName;
+                res.CompanyName = debtorName;
+            }
+            if (x.InvoiceId.HasValue && invoiceNumbers.TryGetValue(x.InvoiceId.Value, out var invNum))
+            {
+                res.InvoiceNumber = invNum;
+            }
+            return res;
+        }).ToList();
+
         return new PagedResult<ReceivableResponse>
         {
             PageNumber = request.PageNumber, PageSize = request.PageSize, TotalData = total,
@@ -96,9 +142,65 @@ public sealed class FinanceReceivableService
             .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Piutang tidak ditemukan.");
 
+        var resReceivable = Map(receivable);
+
+        // Resolve debtor name (Company Guarantor / Insurance Provider)
+        if (receivable.DebtorReferenceId.HasValue)
+        {
+            var company = await _dbContext.MstCompanyGuarantors.AsNoTracking()
+                .Where(c => !c.IsDelete && c.Id == receivable.DebtorReferenceId.Value)
+                .Select(c => c.CompanyGuarantorName)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(company))
+            {
+                resReceivable.DebtorName = company;
+                resReceivable.CompanyName = company;
+            }
+            else
+            {
+                var insurance = await _dbContext.MstInsuranceProviders.AsNoTracking()
+                    .Where(p => !p.IsDelete && p.Id == receivable.DebtorReferenceId.Value)
+                    .Select(p => p.InsuranceProviderName)
+                    .FirstOrDefaultAsync(cancellationToken);
+                if (!string.IsNullOrWhiteSpace(insurance))
+                {
+                    resReceivable.DebtorName = insurance;
+                    resReceivable.CompanyName = insurance;
+                }
+            }
+        }
+
+        // Resolve invoice number asal (Billing)
+        if (receivable.InvoiceId.HasValue)
+        {
+            var invNum = await _dbContext.BilInvoices.AsNoTracking()
+                .Where(i => i.Id == receivable.InvoiceId.Value)
+                .Select(i => i.InvoiceNumber)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (!string.IsNullOrWhiteSpace(invNum))
+            {
+                resReceivable.InvoiceNumber = invNum;
+            }
+        }
+
+        // Resolve batch invoice number (Finance AR Batch)
+        var batchNumber = await _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+            .Where(b => b.ReceivableId == receivable.Id && b.IsActiveMembership && b.Batch!.Status != FinReceivableInvoiceBatchStatuses.Cancelled)
+            .Select(b => b.Batch!.BatchNumber)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (!string.IsNullOrWhiteSpace(batchNumber))
+        {
+            resReceivable.BatchInvoiceNumber = batchNumber;
+            if (string.IsNullOrWhiteSpace(resReceivable.InvoiceNumber))
+            {
+                resReceivable.InvoiceNumber = batchNumber;
+            }
+        }
+
         return new ReceivableDetailResponse
         {
-            Receivable = Map(receivable),
+            Receivable = resReceivable,
             Items = receivable.Items.Select(x => new ReceivableItemResponse
             {
                 Id = x.Id, EncounterId = x.EncounterId, InvoiceId = x.InvoiceId, Description = x.Description, Amount = x.Amount
@@ -110,6 +212,162 @@ public sealed class FinanceReceivableService
             Adjustments = receivable.Adjustments.Select(MapAdjustment).ToList(),
             WriteOffs = receivable.WriteOffs.Select(MapWriteOff).ToList()
         };
+    }
+
+    /// <summary>
+    /// Agregasi dokumen asli terkait piutang (Rekap Tagihan Pelayanan Billing, Kwitansi Pembayaran Kasir, Invoice AR Batch Finance).
+    /// Read-only, tidak memicu transaksi baru, dan mengembalikan referensi nyata untuk preview/download.
+    /// </summary>
+    public async Task<ReceivableDocumentsResponse> GetDocumentsAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var receivable = await _dbContext.FinReceivables.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Piutang tidak ditemukan.");
+
+        var response = new ReceivableDocumentsResponse
+        {
+            ReceivableId = receivable.Id,
+            ReceivableNumber = receivable.ReceivableNumber
+        };
+
+        // 1. Rekap Tagihan Pelayanan Kesehatan (Billing)
+        BilInvoice? bilInvoice = null;
+        if (receivable.InvoiceId.HasValue)
+        {
+            bilInvoice = await _dbContext.BilInvoices.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == receivable.InvoiceId.Value, cancellationToken);
+        }
+
+        var hasBillingRecap = bilInvoice != null;
+        response.Documents.Add(new ReceivableDocumentItemResponse
+        {
+            Id = receivable.InvoiceId?.ToString() ?? $"recap-{receivable.Id}",
+            DocumentType = "BILLING_RECAP",
+            DocumentName = "Rekap Tagihan Pelayanan Kesehatan",
+            SourceModule = "Billing",
+            ReferenceNumber = hasBillingRecap ? bilInvoice!.InvoiceNumber : "-",
+            FileFormat = "PDF",
+            Available = hasBillingRecap,
+            Status = hasBillingRecap ? "Tersedia" : "Belum tersedia",
+            ViewUrl = hasBillingRecap ? $"/api/v1/health-services/billing-management/billing/invoices/{bilInvoice!.Id}/company-guarantor-invoice-document" : null,
+            Amount = receivable.OriginalAmount,
+            DocumentDate = bilInvoice?.InvoiceDate
+        });
+
+        // 2. Kwitansi Pembayaran (Billing / Kasir)
+        var kwitansiList = new List<ReceivableDocumentItemResponse>();
+        if (receivable.InvoiceId.HasValue)
+        {
+            var tenders = await (from s in _dbContext.BilSettlements.AsNoTracking()
+                                 join t in _dbContext.BilTenders.AsNoTracking() on s.Id equals t.SettlementId
+                                 where s.InvoiceId == receivable.InvoiceId.Value && !t.IsDelete && !string.IsNullOrWhiteSpace(t.KwitansiNumber)
+                                 select new { t.Id, t.KwitansiNumber, t.Amount, t.AttemptedAt })
+                                 .ToListAsync(cancellationToken);
+
+            foreach (var tender in tenders)
+            {
+                kwitansiList.Add(new ReceivableDocumentItemResponse
+                {
+                    Id = tender.Id.ToString(),
+                    DocumentType = "CASHIER_RECEIPT",
+                    DocumentName = $"Kwitansi Pembayaran - {tender.KwitansiNumber}",
+                    SourceModule = "Billing/Kasir",
+                    ReferenceNumber = tender.KwitansiNumber!,
+                    FileFormat = "PDF",
+                    Available = true,
+                    Status = "Tersedia",
+                    Amount = tender.Amount,
+                    DocumentDate = tender.AttemptedAt
+                });
+            }
+        }
+
+        // Periksa juga penerimaan Finance jika ada receipt allocations
+        var financeReceipts = await (from a in _dbContext.FinReceiptAllocations.AsNoTracking()
+                                     join r in _dbContext.FinReceipts.AsNoTracking() on a.ReceiptId equals r.Id
+                                     where a.ReceivableId == receivable.Id && !a.IsDelete && !r.IsDelete && !string.IsNullOrWhiteSpace(r.KwitansiNumber)
+                                     select new { r.Id, r.KwitansiNumber, r.Amount, r.CreateDateTime })
+                                     .ToListAsync(cancellationToken);
+
+        foreach (var fr in financeReceipts)
+        {
+            if (!kwitansiList.Any(k => k.ReferenceNumber == fr.KwitansiNumber))
+            {
+                kwitansiList.Add(new ReceivableDocumentItemResponse
+                {
+                    Id = fr.Id.ToString(),
+                    DocumentType = "CASHIER_RECEIPT",
+                    DocumentName = $"Kwitansi Pembayaran - {fr.KwitansiNumber}",
+                    SourceModule = "Billing/Kasir",
+                    ReferenceNumber = fr.KwitansiNumber!,
+                    FileFormat = "PDF",
+                    Available = true,
+                    Status = "Tersedia",
+                    Amount = fr.Amount,
+                    DocumentDate = fr.CreateDateTime
+                });
+            }
+        }
+
+        if (kwitansiList.Count > 0)
+        {
+            response.Documents.AddRange(kwitansiList);
+        }
+        else
+        {
+            response.Documents.Add(new ReceivableDocumentItemResponse
+            {
+                Id = $"kwitansi-{receivable.Id}",
+                DocumentType = "CASHIER_RECEIPT",
+                DocumentName = "Kwitansi Pembayaran",
+                SourceModule = "Billing/Kasir",
+                ReferenceNumber = "-",
+                FileFormat = "PDF",
+                Available = false,
+                Status = "Belum tersedia",
+                Amount = receivable.AllocatedAmount
+            });
+        }
+
+        // 3. Invoice AR (Finance)
+        var batchItem = await _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+            .Include(x => x.Batch)
+            .Where(x => x.ReceivableId == receivable.Id && x.IsActiveMembership && x.Batch!.Status != FinReceivableInvoiceBatchStatuses.Cancelled)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (batchItem?.Batch != null)
+        {
+            response.Documents.Add(new ReceivableDocumentItemResponse
+            {
+                Id = batchItem.Batch.Id.ToString(),
+                DocumentType = "AR_INVOICE",
+                DocumentName = $"Invoice AR - {batchItem.Batch.BatchNumber}",
+                SourceModule = "Finance",
+                ReferenceNumber = batchItem.Batch.BatchNumber,
+                FileFormat = "PDF",
+                Available = true,
+                Status = "Tersedia",
+                ViewUrl = $"/api/v1/corporate/finance-management/receivable-invoice-batches/{batchItem.Batch.Id}/document",
+                Amount = batchItem.Batch.TotalAmount,
+                DocumentDate = batchItem.Batch.IssuedAt ?? batchItem.Batch.CreateDateTime
+            });
+        }
+        else
+        {
+            response.Documents.Add(new ReceivableDocumentItemResponse
+            {
+                Id = $"ar-invoice-{receivable.Id}",
+                DocumentType = "AR_INVOICE",
+                DocumentName = "Invoice AR",
+                SourceModule = "Finance",
+                ReferenceNumber = "-",
+                FileFormat = "PDF",
+                Available = false,
+                Status = "Belum dibuat"
+            });
+        }
+
+        return response;
     }
 
     // BE-FIN-100 (FR-FIN-219, FIN-DEC-176): parameter debtorType opsional, mengikuti pola

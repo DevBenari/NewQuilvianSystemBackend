@@ -1595,7 +1595,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 using var logoCanvas = new SixLabors.ImageSharp.Image<Rgba32>(
                     canvasWidth,
                     canvasHeight,
-                    ImageSharpColor.White
+                    ImageSharpColor.White.ToPixel<Rgba32>()
                 );
 
                 var logoXInCanvas = (canvasWidth - logoImage.Width) / 2;
@@ -2578,7 +2578,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                         x.Email ??
                         x.UserCode
                 })
-                .ToDictionaryAsync(x => x.Id, x => x.Name);
+                .ToDictionaryAsync(x => x.Id, x => (string?)x.Name);
         }
 
         private static PatientResponse MapResponse(

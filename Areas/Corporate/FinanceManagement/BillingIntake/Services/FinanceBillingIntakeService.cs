@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Mod
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
 using QuilvianSystemBackend.Repositories;
@@ -44,19 +45,22 @@ public sealed class FinanceBillingIntakeService
     private readonly FinanceAccountingOutboxService _accountingOutboxService;
     private readonly FinanceReceiptService _receiptService;
     private readonly FinanceSubledgerMovementService _subledgerMovementService;
+    private readonly IFinanceReceivableNumberGenerator _numberGenerator;
 
     public FinanceBillingIntakeService(
         ApplicationDbContext dbContext,
         LoggerService loggerService,
         FinanceAccountingOutboxService accountingOutboxService,
         FinanceReceiptService receiptService,
-        FinanceSubledgerMovementService subledgerMovementService)
+        FinanceSubledgerMovementService subledgerMovementService,
+        IFinanceReceivableNumberGenerator numberGenerator)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
         _accountingOutboxService = accountingOutboxService;
         _receiptService = receiptService;
         _subledgerMovementService = subledgerMovementService;
+        _numberGenerator = numberGenerator;
     }
 
     // ------------------------------------------------------------------------------------
@@ -481,7 +485,7 @@ public sealed class FinanceBillingIntakeService
             var now = DateTimeOffset.UtcNow;
             var receivable = new FinReceivable
             {
-                ReceivableNumber = GenerateReceivableNumber(),
+                ReceivableNumber = await _numberGenerator.GenerateAsync(actorUserId, cancellationToken),
                 SourceHandoffKey = handoff.HandoffKey,
                 SourceHandoffId = handoff.Id,
                 InvoiceId = handoff.InvoiceId,
@@ -1182,7 +1186,7 @@ public sealed class FinanceBillingIntakeService
 
                 var newReceivable = new FinReceivable
                 {
-                    ReceivableNumber = GenerateReceivableNumber(),
+                    ReceivableNumber = await _numberGenerator.GenerateAsync(actorUserId, cancellationToken),
                     SourceHandoffKey = newHandoff.HandoffKey,
                     SourceHandoffId = newHandoff.Id,
                     InvoiceId = newHandoff.InvoiceId,
@@ -1561,14 +1565,7 @@ public sealed class FinanceBillingIntakeService
     private static Task RollbackAsync(IDbContextTransaction? transaction) =>
         transaction is null ? Task.CompletedTask : transaction.RollbackAsync(CancellationToken.None);
 
-    // Nomor piutang tidak punya penomor seri resmi di modul ini (BillingNumberSeriesService
-    // adalah milik BillingManagement) — dibuat unik lewat Guid, bukan Count/Max/Last+1
-    // (QBE-CODE-002/003), sampai ada keputusan skema penomoran resmi untuk Finance.
-    private static string GenerateReceivableNumber()
-    {
-        var candidate = $"AR-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}";
-        return candidate.Length <= 50 ? candidate : candidate[..50];
-    }
+    // Penomoran piutang kini dialokasikan resmi melalui IFinanceReceivableNumberGenerator (AR-YYYYMMDD0001).
 
     private static string Truncate(string value, int maxLength) => value.Length <= maxLength ? value : value[..maxLength];
 

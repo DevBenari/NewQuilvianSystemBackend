@@ -65,6 +65,45 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
             await _service.GetCanceledSummaryAsync(request, cancellationToken), "Ringkasan Canceled Invoice berhasil diambil."));
 
     // ------------------------------------------------------------------------------------
+    // Read-Model Manajemen Klaim Penjamin V2 (Claims List, Summary, Excel, PDF)
+    // ------------------------------------------------------------------------------------
+
+    [HttpGet("claims")]
+    [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<ClaimManagementPagedResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetClaims([FromQuery] ClaimManagementBatchQuery request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<ClaimManagementPagedResponse>.Ok(
+            await _service.GetClaimsPagedAsync(request, cancellationToken), "Daftar Manajemen Klaim Penjamin berhasil diambil."));
+
+    [HttpGet("claims/summary")]
+    [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<ClaimManagementSummaryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetClaimsSummary([FromQuery] ClaimManagementBatchQuery request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<ClaimManagementSummaryResponse>.Ok(
+            await _service.GetClaimsSummaryAsync(request, cancellationToken), "Ringkasan Manajemen Klaim Penjamin berhasil diambil."));
+
+    [HttpGet("claims/export/excel")]
+    [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
+    public async Task<IActionResult> ExportClaimsExcel([FromQuery] ClaimManagementBatchQuery request, CancellationToken cancellationToken)
+    {
+        var bytes = await _service.ExportClaimsExcelAsync(request, cancellationToken);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            $"manajemen-klaim-{DateTime.UtcNow:yyyyMMddHHmmss}.xlsx");
+    }
+
+    [HttpGet("claims/export/pdf")]
+    [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
+    public async Task<IActionResult> ExportClaimsPdf([FromQuery] ClaimManagementBatchQuery request, CancellationToken cancellationToken)
+    {
+        var bytes = await _service.ExportClaimsPdfAsync(request, cancellationToken);
+        return File(bytes, "application/pdf", $"manajemen-klaim-{DateTime.UtcNow:yyyyMMddHHmmss}.pdf");
+    }
+
+    // ------------------------------------------------------------------------------------
     // Export Report Canceled Invoice (read-only) — bagian G task revamp. Selalu memakai filter
     // yang sama dengan list/summary, mencakup SELURUH hasil filter (bukan hanya satu halaman),
     // dan tidak pernah mengubah status invoice apa pun.
@@ -116,6 +155,50 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
 
+    // ====================================================================================
+    // Report AR Created (Laporan Pembuatan AR) — read-only detail billing per Invoice AR
+    // ====================================================================================
+
+    [HttpGet("reports/created")]
+    [HttpGet("created-report")]
+    [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<ReportArCreatedPagedResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetReportArCreated([FromQuery] ReportArCreatedQuery request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<ReportArCreatedPagedResponse>.Ok(
+            await _service.GetReportArCreatedPagedAsync(request, cancellationToken), "Laporan Pembuatan AR berhasil diambil."));
+
+    [HttpGet("reports/created/summary")]
+    [HttpGet("created-report/summary")]
+    [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<ReportArCreatedSummaryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetReportArCreatedSummary([FromQuery] ReportArCreatedQuery request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<ReportArCreatedSummaryResponse>.Ok(
+            await _service.GetReportArCreatedSummaryAsync(request, cancellationToken), "Ringkasan Laporan Pembuatan AR berhasil diambil."));
+
+    [HttpGet("reports/created/export/excel")]
+    [HttpGet("created-report/export/excel")]
+    [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
+    public async Task<IActionResult> ExportReportArCreatedExcel([FromQuery] ReportArCreatedQuery request, CancellationToken cancellationToken)
+    {
+        var bytes = await _service.ExportReportArCreatedExcelAsync(request, cancellationToken);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            $"laporan-pembuatan-ar-{DateTime.UtcNow:yyyyMMddHHmmss}.xlsx");
+    }
+
+    [HttpGet("reports/created/export/pdf")]
+    [HttpGet("created-report/export/pdf")]
+    [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
+    public async Task<IActionResult> ExportReportArCreatedPdf([FromQuery] ReportArCreatedQuery request, CancellationToken cancellationToken)
+    {
+        var bytes = await _service.ExportReportArCreatedPdfAsync(request, cancellationToken);
+        return File(bytes, "application/pdf",
+            $"laporan-pembuatan-ar-{DateTime.UtcNow:yyyyMMddHHmmss}.pdf");
+    }
+
     [HttpGet("eligible-receivables")]
     [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
@@ -164,6 +247,43 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
     {
         try { return Ok(ApiResponse<ReceivableInvoiceBatchDocumentResponse>.Ok(await _service.GetDocumentAsync(id, CurrentUserId(), cancellationToken), "Dokumen tagihan gabungan berhasil diambil.")); }
         catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
+    }
+
+    [HttpGet("{id:guid}/documents/{documentType}")]
+    [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<ReceivableInvoiceBatchSingleDocumentResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetSpecificDocument(
+        Guid id,
+        string documentType,
+        [FromQuery] string? language,
+        [FromQuery] Guid? receiptId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetSpecificDocumentAsync(id, documentType, language, receiptId, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<ReceivableInvoiceBatchSingleDocumentResponse>.Ok(result, "Dokumen AR berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    [HttpGet("{id:guid}/documents/recap/export/excel")]
+    [HttpGet("{id:guid}/recap/export/excel")]
+    [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivableInvoiceBatch", "Read")]
+    public async Task<IActionResult> ExportRecapExcel(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var bytes = await _service.ExportRecapExcelAsync(id, CurrentUserId(), cancellationToken);
+            return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"Rekap-Tagihan-{id:N}.xlsx");
+        }
+        catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
 
     [HttpGet("{id:guid}/canceled-detail")]

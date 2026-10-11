@@ -41,13 +41,18 @@ public sealed class FinanceReceivableMigrationService
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
     private readonly FinanceSubledgerMovementService _subledgerMovementService;
+    private readonly IFinanceReceivableNumberGenerator _numberGenerator;
 
     public FinanceReceivableMigrationService(
-        ApplicationDbContext dbContext, LoggerService loggerService, FinanceSubledgerMovementService subledgerMovementService)
+        ApplicationDbContext dbContext,
+        LoggerService loggerService,
+        FinanceSubledgerMovementService subledgerMovementService,
+        IFinanceReceivableNumberGenerator numberGenerator)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
         _subledgerMovementService = subledgerMovementService;
+        _numberGenerator = numberGenerator;
     }
 
     public async Task<EmployeeReceivableBatchResponse> ImportAsync(
@@ -187,7 +192,7 @@ public sealed class FinanceReceivableMigrationService
             {
                 var receivable = new FinReceivable
                 {
-                    ReceivableNumber = GenerateReceivableNumber(),
+                    ReceivableNumber = await _numberGenerator.GenerateAsync(actorUserId, cancellationToken),
                     OpeningItemBatchId = batch.Id,
                     DebtorType = FinReceivableDebtorTypes.EmployeeBenefit,
                     BenefitOwnerId = item.Employee.Id,
@@ -331,11 +336,7 @@ public sealed class FinanceReceivableMigrationService
         return candidate.Length <= 50 ? candidate : candidate[..50];
     }
 
-    private static string GenerateReceivableNumber()
-    {
-        var candidate = $"AR-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}";
-        return candidate.Length <= 50 ? candidate : candidate[..50];
-    }
+    // Penomoran piutang kini dialokasikan resmi melalui IFinanceReceivableNumberGenerator (AR-YYYYMMDD0001).
 
     private async Task<IDbContextTransaction?> BeginTransactionAsync(CancellationToken cancellationToken)
     {
