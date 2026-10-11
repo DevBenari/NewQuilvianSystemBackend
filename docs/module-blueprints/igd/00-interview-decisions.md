@@ -6439,3 +6439,9 @@ tidak disunting).
 2. Pemilik: commit; rilis `BE-IGD-056` bersama `FE-IGD-037` dengan migration `20261011052215` lebih dulu dan
    `IGD-UNK-18` dicatat untuk lingkungan rilis (R3.17.3).
 3. `MODULE-STATUS.md` diselaraskan lewat `manage-module-blueprint`.
+
+### Penutupan sesi DPJP dokter jaga — 11 Oktober 2026 (malam)
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-266` | Decision | **Sesi DPJP dokter jaga IGD (`EPIC IGD-12`, `MVP-10`) dinyatakan ditutup.** `BE-IGD-056` ✅ dan `FE-IGD-037` ✅ sudah di-commit pemilik: backend `7f37b8ff` (`rizkiG`), frontend `03b057c03` (`RizkiV2`), keduanya sejajar dengan origin. Tidak ada migration baru selain `20261011052215`. Syarat rilis R3.17.3 tetap berlaku per lingkungan: migration diterapkan lebih dulu, backend dan frontend dirilis bersama, `IGD-UNK-18` dicatat. Syarat Tahap 0 `IGD-DEC-252` bagian DPJP terpenuhi, sehingga desain dan perencanaan Billing IGD (Tahap 1) tidak lagi tertahan sesi ini | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pesan pemilik: *"saya sudah commit dan saya nyatakan sesi DPJP ditutup"* |
