@@ -506,7 +506,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             ));
         }
 
-        private IQueryable<TrxQueue> BuildQueueBaseQuery(
+        private IQueryable<RegQueue> BuildQueueBaseQuery(
             DateTime? queueDate,
             List<Guid>? clinicIds)
         {
@@ -514,7 +514,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var startDate = selectedDate.Date;
             var endDate = startDate.AddDays(1);
 
-            var query = _dbContext.Set<TrxQueue>()
+            var query = _dbContext.Set<RegQueue>()
                 .AsNoTracking()
                 .Include(x => x.Encounter)
                     .ThenInclude(x => x.PaymentMethod)
@@ -565,7 +565,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return query;
         }
 
-        private static IQueryable<TrxQueue> ApplyStandardFilter(IQueryable<TrxQueue> query, QueueStatus? queueStatus, string? search)
+        private static IQueryable<RegQueue> ApplyStandardFilter(IQueryable<RegQueue> query, QueueStatus? queueStatus, string? search)
         {
             query = queueStatus.HasValue
                 ? query.Where(x => x.QueueStatus == queueStatus.Value)
@@ -587,7 +587,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return query;
         }
 
-        private static IQueryable<TrxQueue> ApplyNurseOperationalStatusFilter(IQueryable<TrxQueue> query)
+        private static IQueryable<RegQueue> ApplyNurseOperationalStatusFilter(IQueryable<RegQueue> query)
         {
             return query.Where(x =>
                 x.QueueStatus == QueueStatus.WaitingForNurse ||
@@ -596,7 +596,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 x.QueueStatus == QueueStatus.Skipped);
         }
 
-        private static IOrderedQueryable<TrxQueue> ApplySorting(IQueryable<TrxQueue> query, string? sortBy, string? sortDirection)
+        private static IOrderedQueryable<RegQueue> ApplySorting(IQueryable<RegQueue> query, string? sortBy, string? sortDirection)
         {
             var isDescending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
 
@@ -1060,9 +1060,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     });
         }
 
-        private async Task<TrxQueue?> GetAllowedQueueWithEncounterAsync(Guid id)
+        private async Task<RegQueue?> GetAllowedQueueWithEncounterAsync(Guid id)
         {
-            var query = _dbContext.Set<TrxQueue>()
+            var query = _dbContext.Set<RegQueue>()
                 .Include(x => x.Encounter)
                     .ThenInclude(x => x.PaymentMethod)
                 .Include(x => x.Encounter)
@@ -1104,7 +1104,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 clinicIds.Contains(x.ClinicId.Value));
         }
 
-        private static NurseStationQueueResponse MapResponse(TrxQueue x, IReadOnlyDictionary<Guid, (Guid ClusterId, string ClusterName)> clusterMap)
+        private static NurseStationQueueResponse MapResponse(RegQueue x, IReadOnlyDictionary<Guid, (Guid ClusterId, string ClusterName)> clusterMap)
         {
             Guid? clusterId = null;
             string? clusterName = null;
@@ -1161,6 +1161,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 NoShowAt = x.NoShowAt,
                 NoShowReason = x.NoShowReason,
                 IsPriorityQueue = x.IsPriorityQueue,
+                IsMemberQueue = x.PatientMembershipIdSnapshot.HasValue,
+                QueueAudience = x.QueueAudienceSnapshot,
                 IsScreeningRequired = x.IsScreeningRequired,
                 IsDoctorRequired = x.IsDoctorRequired,
                 CanCall = CanCallNurse(x, serverNowUtc),
@@ -1242,7 +1244,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         private static NurseStationQueueActionResponse BuildActionResponse(
-            TrxQueue queue,
+            RegQueue queue,
             string message,
             QueueVoiceGenerateResponse? voiceResult = null,
             bool assessmentCompleted = false,
@@ -1291,14 +1293,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             };
         }
 
-        private static bool IsNurseCallTimerRunning(TrxQueue queue, DateTime serverNowUtc)
+        private static bool IsNurseCallTimerRunning(RegQueue queue, DateTime serverNowUtc)
         {
             return queue.QueueStatus == QueueStatus.CalledByNurse &&
                    queue.NurseCallExpiresAt.HasValue &&
                    queue.NurseCallExpiresAt.Value > serverNowUtc;
         }
 
-        private static bool CanCallNurse(TrxQueue queue, DateTime serverNowUtc)
+        private static bool CanCallNurse(RegQueue queue, DateTime serverNowUtc)
         {
             return (queue.QueueStatus == QueueStatus.WaitingForNurse ||
                     queue.QueueStatus == QueueStatus.CalledByNurse ||
@@ -1306,7 +1308,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                    !IsNurseCallTimerRunning(queue, serverNowUtc);
         }
 
-        private static bool CanSkipNurse(TrxQueue queue, DateTime serverNowUtc)
+        private static bool CanSkipNurse(RegQueue queue, DateTime serverNowUtc)
         {
             return queue.QueueStatus == QueueStatus.CalledByNurse &&
                    queue.NurseCallAttemptCount > 0 &&
@@ -1314,20 +1316,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                    !IsNurseCallTimerRunning(queue, serverNowUtc);
         }
 
-        private static bool CanNoShowNurse(TrxQueue queue, DateTime serverNowUtc)
+        private static bool CanNoShowNurse(RegQueue queue, DateTime serverNowUtc)
         {
             return (queue.SkipCount > 0 || queue.LastSkippedAt.HasValue) &&
                    (queue.QueueStatus == QueueStatus.Skipped || queue.QueueStatus == QueueStatus.CalledByNurse) &&
                    !IsNurseCallTimerRunning(queue, serverNowUtc);
         }
 
-        private static bool CanStartScreeningNurse(TrxQueue queue)
+        private static bool CanStartScreeningNurse(RegQueue queue)
         {
             return queue.QueueStatus == QueueStatus.WaitingForNurse ||
                    queue.QueueStatus == QueueStatus.CalledByNurse;
         }
 
-        private static bool CanFinishScreeningNurse(TrxQueue queue)
+        private static bool CanFinishScreeningNurse(RegQueue queue)
         {
             return queue.QueueStatus == QueueStatus.InNurseScreening;
         }

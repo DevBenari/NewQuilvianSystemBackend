@@ -166,3 +166,161 @@ Akun dan role uji **tidak** dibuat dalam percobaan ini: aplikasinya tidak dapat 
 sehingga mekanisme sah pembuatannya — endpoint administrator `role-access/policies` — juga tidak
 dapat dipakai. Membuatnya langsung lewat SQL akan menjadi data palsu yang tidak membuktikan
 pipeline apa pun.
+
+---
+
+## ✅ Dibuka 6 Oktober 2026 — Jalur B langkah 1
+
+**Aplikasi kini dapat dijalankan.** Yang dikerjakan hanya langkah pertama Jalur B, yaitu membuat
+`RunStartupSeederAsync` tidak fatal. Dua langkah lainnya — kedua seeder menghormati
+`SeedDefaultData:Enabled`, dan `IcdDiagnosisGroupSeeder` memeriksa tabelnya alih-alih berkas CSV —
+**tidak dikerjakan**, karena keduanya menyentuh seeder milik modul lain.
+
+### Bentuknya: opt-in, bawaan tidak berubah
+
+```
+Seeders:ContinueOnFailure   // bawaan false
+```
+
+Tiga sifat yang disengaja:
+
+1. **Opt-in dan bawaannya `false`.** Perilaku setiap lingkungan yang sudah berjalan tidak berubah
+   sedikit pun oleh perubahan ini. Yang membutuhkannya harus memintanya secara sadar.
+2. **Diabaikan di Production**, mengikuti pola `Security:Authorization:Enabled`. Rumah sakit yang
+   berjalan dengan data master separuh terisi lebih berbahaya daripada rumah sakit yang menolak
+   boot: yang pertama gagal saat petugas sedang melayani pasien, dan sebabnya tidak terlihat.
+3. **Dicatat `Error`, bukan `Warning`**, per seeder yang gagal, ditambah satu ringkasan sesudah
+   seluruh seeder selesai. Yang berubah hanya bahwa startup tidak ikut mati — bukan bahwa
+   kegagalannya menjadi wajar. Satu baris di tengah ratusan baris log startup terlalu mudah
+   terlewat, karena itu ringkasannya menyebut nama seeder dan menunjuk `__EFMigrationsHistory`
+   sebagai tempat memeriksa lebih dulu.
+
+### Catatan polaritas
+
+`Program.cs` kini memuat dua aturan yang tampak berlawanan, dan keduanya benar:
+
+| Pemeriksaan | Di luar Production | Di Production |
+|---|---|---|
+| `PermissionRegistryValidator` | **menghentikan** startup | mencatat `Critical`, lanjut |
+| Seeder data master | lanjut bila diminta | **menghentikan** startup |
+
+Bedanya pada apa yang diperiksa. Validator memeriksa **anotasi pada source**, jadi kegagalannya
+cacat kode yang harus tertangkap sebelum rilis. Seeder data master gagal karena **basis datanya
+belum lengkap**, dan itu keadaan normal pada lingkungan pengembangan, bukan cacat kode.
+
+### Bukti runtime
+
+Dijalankan pada `localhost / QuilvianNewDevIkbalFr` dengan
+`Seeders__ContinueOnFailure=true` dan `Security__Authorization__Enabled=true`, keduanya lewat env
+var proses:
+
+| Hal | Hasil |
+|---|---|
+| `Unhandled exception` | **0** — sebelumnya startup mati di sini |
+| Seeder gagal dan dilewati | **3**: `IcdDiagnosisGroupSeeder`, `MstNursingDiagnosisSeeder`, `MstDailyNursingActionSeeder` |
+| Ringkasan akhir tercatat | ya, menyebut ketiganya |
+| `GET /swagger/index.html` | **200** |
+| `POST /api/v1/Auth/login` badan kosong | **400** — validasi berjalan, bukan mati |
+| `GET .../operating-room-management/reports/operations` tanpa login | **401** |
+| `GET .../operating-room-management/reports/materials` tanpa login | **401** |
+| `GET .../operating-room-management/cases` tanpa login | **401** |
+
+### Akar masalahnya tetap ada
+
+Perubahan ini **tidak** memulihkan data yang hilang. Angka sebenarnya, dibaca read-only:
+
+| | Jumlah |
+|---|---|
+| Migration di source | **287** |
+| Tercatat di `__EFMigrationsHistory` | **48** |
+| **Belum pernah dijalankan** | **239** |
+
+Migration terakhir yang tercatat `20260929000000_AddOperatingRoomOutboxEventContract`; source sudah
+sampai `20261005090000`. Dua migration yang menyediakan tabel pemicu blocker ini, keduanya belum
+tercatat:
+
+- `20260928093849_AddMasterNursingDiagnosisSdki` → `MstNursingDiagnosis`, `MstNursingDiagnosisGroup`
+- `20261001043557_AddMstDiagnosisGroup` → `MstDiagnosisGroup`
+
+Selain itu, beberapa **background worker** kini mencatat galat berulang atas tabel yang juga belum
+ada — `AccAccountingEvent` dan `MstBillingSyncPolicy`. Galat itu tidak mematikan host, tetapi
+membuat log ramai dan pekerjaan latar belakangnya tidak berjalan. Itu bagian dari kekurangan
+migration yang sama, bukan akibat perubahan ini, dan milik pemilik modul masing-masing.
+
+**Jalur A tetap dibutuhkan.** Yang berubah hanya bahwa ia tidak lagi memblokir seluruh pekerjaan
+modul lain sementara ia belum dikerjakan.
+
+## Lapis kedua: kolom hilang, bukan hanya tabel — 6 Oktober 2026
+
+Sesudah startup terbuka, pekerjaan berikutnya menampakkan bentuk drift yang berbeda dan lebih
+halus: bukan tabel yang hilang, melainkan **kolom**.
+
+```
+42703: column a.SourceAssignmentId does not exist
+```
+
+Model `ApplicationUserOrganization` memuat `SourceAssignmentId`; tabel `AspNetUserOrganization`
+di basis data dev tidak. Kolom itu milik migration
+`20260901073655_A0AuthorizationIntegrityProjection`, yang **belum tercatat** di
+`__EFMigrationsHistory`.
+
+Akibatnya spesifik dan mahal: `OrganizationAuthorizationProjectionService` — satu-satunya
+penulis projection izin — gagal pada setiap pemicunya. Tiga jalur sah dicoba dan ketiganya
+jatuh pada kolom yang sama: pembuatan external user dengan akun login, pembuatan organization
+assignment, dan seeder demo Operasi.
+
+Jadi **tidak ada satu pun pengguna yang dapat diberi departemen dan jabatan** pada basis data
+ini, dan karena itu tidak ada izin yang dapat diberikan kepada siapa pun. Otorisasi hanya dapat
+menolak, tidak dapat mengizinkan.
+
+Yang perlu dicatat: `AccessPermissionService` sendiri **tidak** ikut gagal, karena ia
+memproyeksikan hanya kolom yang dipakainya. Itu sebabnya `403` dapat dibuktikan runtime
+sementara `200` tidak — pipeline penegakannya sehat, yang rusak jalur penulisan datanya.
+
+Ini memperkuat kesimpulan di atas, bukan menggantikannya: **Jalur A tetap dibutuhkan.** Membuat
+seeder tidak fatal membuka aplikasinya, tetapi tidak dapat mengembalikan kolom dan tabel yang
+belum pernah dibuat.
+
+## Lapis ketiga: tiga kolom hilang, dan apa saja yang terhalang — 7 Oktober 2026
+
+Setelah sinkronisasi dengan integration `6ee17145`, drift yang sama menampakkan dua kolom lagi.
+Keduanya menghalangi pekerjaan yang berbeda, dan keduanya bukan milik modul Farmasi/Gizi/Operasi.
+
+| Kolom hilang | Tabel | Migration penyedia | Tercatat? | Yang terhalang |
+|---|---|---|---|---|
+| `SourceAssignmentId` | `AspNetUserOrganization` | `20260901073655_A0AuthorizationIntegrityProjection` | **belum** | `200` pada acceptance `BE-OPR-011` — projection izin tidak dapat ditulis lewat jalur apa pun |
+| `AcknowledgedReceiptId` | `InpIntegrationOutbox` | `20261005033044_AddRawatInapFinishing` | **belum** | **seluruh rantai runtime Farmasi** — pembuatan item resep gagal `500` karena jalur fakta klinisnya membaca outbox Rawat Inap |
+
+Ditambah tabel yang sudah tercatat sebelumnya — `MstNursingDiagnosisGroup`, `MstNursingDiagnosis`,
+`MstDiagnosisGroup`, `MstDailyNursingAction`, `AccAccountingEvent`, `MstBillingSyncPolicy`.
+
+### Akibatnya bagi rantai runtime Farmasi
+
+Rantai `resep → finalisasi → tagihan → invoice → kasir → surat clearance → penyerahan`
+**tidak dapat dijalankan ulang** pada basis data ini. Upayanya terhenti pada langkah paling awal:
+
+```
+POST /api/v1/health-services/pharmacy-management/prescription-items
+  -> 500
+  -> 42703: column i.AcknowledgedReceiptId does not exist
+```
+
+Jadi penyelarasan kontrak `PRESCRIBED` + `BIL-INTEGRATION-1.3` **tidak dapat dibuktikan runtime
+hari ini**. Yang sudah terbukti dan tetap berlaku: tagihan tahap 1 diterima
+`ContractBillingChargeSourceAdapter` yang sebenarnya — dijaga tiga uji pada
+`BillingChargeProducerTests`, termasuk pembuktian negatif bahwa nilai lama ditolak.
+
+Dua item invoice `PHARMACY` yang ada di basis data bertanda `SUBMITTED` + `BIL-INTEGRATION-1.2`,
+dari runtime 1 Oktober 2026 ketika patch Billing sementara masih aktif. Keduanya **bukan** bukti
+bagi kontrak yang sekarang, dan dicatat di sini supaya tidak disalahbaca sebagai bukti.
+
+### Pola yang berulang, dan pelajarannya
+
+Tiga kali hari ini pekerjaan berhenti pada drift yang sama, dan setiap kali bentuknya berbeda:
+tabel hilang, lalu kolom hilang pada tabel otorisasi, lalu kolom hilang pada tabel outbox modul
+lain. Yang ketiga paling mahal karena ia memutus rantai yang melintasi empat modul.
+
+Membuat seeder tidak fatal membuka aplikasinya, dan itu nyata. Tetapi ia **tidak dapat**
+mengembalikan kolom yang belum pernah dibuat, dan setiap pekerjaan yang menulis data lintas modul
+akan terus berhenti sampai migration dijalankan. **Jalur A bukan lagi pilihan yang dapat
+ditunda.**

@@ -57,6 +57,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
 
         public bool ShowClinicName { get; set; } = true;
 
+        /// <summary>Kelompok antrean yang ditampilkan perangkat ini (RJ-DOC-DEC-058).</summary>
+        public QueueDisplayAudienceMode QueueAudienceMode { get; set; } = QueueDisplayAudienceMode.All;
+
         public int RefreshIntervalSeconds { get; set; } = 5;
 
         /// <summary>

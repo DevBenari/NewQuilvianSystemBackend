@@ -1619,7 +1619,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             if (result.QueueId.HasValue)
             {
-                var queue = await _dbContext.Set<TrxQueue>()
+                var queue = await _dbContext.Set<RegQueue>()
                     .Include(x => x.ServiceUnit)
                     .Include(x => x.Clinic)
                     .AsNoTracking()

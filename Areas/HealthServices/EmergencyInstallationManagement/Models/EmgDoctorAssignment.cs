@@ -84,6 +84,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [MaxLength(500)]
         public string? AssignmentReason { get; set; }
 
+        public bool IsRosterOverride { get; set; }
+
+        [MaxLength(500)]
+        public string? RosterOverrideReason { get; set; }
+
         public EmgVisit? EmergencyVisit { get; set; }
 
         public MstDoctor? Doctor { get; set; }

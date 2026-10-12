@@ -36,11 +36,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
 /// </remarks>
 public sealed class PrescriptionBillingChargeProducer
 {
-    /// <summary>Status sumber yang dipakai saat resep baru difinalkan, belum diserahkan.</summary>
-    public const string SubmittedSourceStatus = "SUBMITTED";
+    /// <summary>
+    /// Status sumber yang dipakai saat resep baru difinalkan dokter dan belum diserahkan —
+    /// tagihan obat <b>tahap 1</b>.
+    /// </summary>
+    /// <remarks>
+    /// Namanya mengikuti kosakata Billing, bukan kosakata internal Farmasi. Billing menyebut
+    /// tahap ini <c>PRESCRIBED</c> dan mendefinisikannya sebagai "tahap 1 saat resep difinalkan
+    /// dokter, supaya gerbang lunas-sebelum-serah farmasi dapat dilalui"
+    /// (<c>RJ-E2E-DEC-005</c> pada <c>BillingChargeSourceAdapter</c>). Itu persis titik
+    /// pengiriman dari sini, yaitu sesudah <c>ConsultationFinalizationService</c> melakukan
+    /// commit.
+    ///
+    /// Sebelumnya konstanta ini bernilai <c>"SUBMITTED"</c>, kosakata Farmasi untuk keadaan yang
+    /// sama. Billing tidak pernah mengenal nama itu, sehingga setiap tagihan tahap 1 ditolak
+    /// dengan "Jumlah obat yang diserahkan belum final." dan rantai
+    /// tagihan → kasir → surat clearance → penyerahan tidak pernah dimulai.
+    /// </remarks>
+    public const string PrescribedSourceStatus = "PRESCRIBED";
 
-    /// <summary>Versi kontrak charge yang masih diterima <c>ContractBillingChargeSourceAdapter</c>.</summary>
-    public const string ContractVersion = "BIL-INTEGRATION-1.2";
+    /// <summary>
+    /// Versi kontrak charge yang dipakai saat mengirim tagihan obat.
+    /// </summary>
+    /// <remarks>
+    /// Harus <c>1.3</c>. Billing membuka status <c>PRESCRIBED</c> <b>hanya</b> pada kontrak itu;
+    /// pada versi sebelumnya aturan lama dipertahankan apa adanya, yaitu hanya jumlah yang
+    /// benar-benar diserahkan (<c>DISPENSED</c>) yang boleh ditagih. Ketiga versi masih diterima
+    /// <c>IsSupportedContractVersion</c>, jadi menurunkannya tidak akan ditolak sebagai kontrak
+    /// tak dikenal — ia hanya membuat tahap 1 tertolak kembali secara senyap.
+    /// </remarks>
+    public const string ContractVersion = "BIL-INTEGRATION-1.3";
 
     /// <summary>
     /// Revisi pertama baris tagihan. Finalisasi hanya terjadi sekali per resep —
@@ -106,7 +131,7 @@ public sealed class PrescriptionBillingChargeProducer
             SourceDomain = "PHARMACY",
             SourceDetailId = prescription.Id.ToString("D"),
             SourceVersion = InitialSourceVersion,
-            SourceStatus = SubmittedSourceStatus,
+            SourceStatus = PrescribedSourceStatus,
             OccurredAt = occurredAt,
             CategoryId = categoryId.Value,
             DescriptionSnapshot = BuildDescription(prescription),

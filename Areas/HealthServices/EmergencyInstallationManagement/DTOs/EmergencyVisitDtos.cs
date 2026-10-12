@@ -59,6 +59,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public bool IsAwaitingClosure { get; set; }
         public string? AwaitingClosureReason { get; set; }
 
+        public Guid? ActiveDoctorId { get; set; }
+        public string? ActiveDoctorName { get; set; }
+
         public DateTime CreateDateTime { get; set; }
         public DateTime? UpdateDateTime { get; set; }
     }
@@ -319,6 +322,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         /// <summary>Kosong selama kunjungan belum lahir.</summary>
         public EmergencyVisitStatus? VisitStatus { get; set; }
+
+        /// <summary>
+        /// Keluhan utama dari data pendaftaran atau kunjungan IGD.
+        /// </summary>
+        public string? ChiefComplaint { get; set; }
 
         /// <summary>
         /// Waktu terdaftar. Layar menampilkannya berlabel <b>Terdaftar</b> dan tidak pernah

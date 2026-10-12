@@ -1,4 +1,5 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
+﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using System.ComponentModel.DataAnnotations;
 
@@ -92,6 +93,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DateTime? NoShowAt { get; set; }
         public string? NoShowReason { get; set; }
         public bool IsPriorityQueue { get; set; }
+
+        /// <summary>Penanda internal staf (RJ-DOC-DEC-055); bukan untuk layar publik.</summary>
+        public bool IsMemberQueue { get; set; }
+
+        public QueueAudience QueueAudience { get; set; }
         public bool IsDoctorRequired { get; set; }
         public bool CanCall { get; set; }
         public bool CanSkip { get; set; }

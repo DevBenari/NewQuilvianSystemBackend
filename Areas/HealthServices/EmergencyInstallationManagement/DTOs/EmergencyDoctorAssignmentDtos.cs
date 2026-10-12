@@ -42,6 +42,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public string? AssignedByName { get; set; }
 
         public string? AssignmentReason { get; set; }
+
+        public bool IsRosterOverride { get; set; }
+
+        public string? RosterOverrideReason { get; set; }
     }
 
     /// <summary>
@@ -66,6 +70,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// mendahului waktu kedatangan pasien (validation bagian 3 aturan 4).
         /// </summary>
         public DateTime? EffectiveFrom { get; set; }
+
+        public string? RosterOverrideReason { get; set; }
     }
 
     /// <summary>
@@ -122,5 +128,58 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// tidak pernah berlubang dan tidak pernah bertindih.
         /// </summary>
         public DateTime? EffectiveFrom { get; set; }
+
+        public string? RosterOverrideReason { get; set; }
+    }
+
+    /// <summary>
+    /// Dokter jaga IGD aktif berdasarkan jadwal dinas (shift roster IGD).
+    /// </summary>
+    /// <remarks>
+    /// Memisahkan jadwal praktek poli rawat jalan dari dokter jaga IGD.
+    /// </remarks>
+    public class EmergencyOnDutyDoctorResponse
+    {
+        public Guid Id => DoctorId;
+
+        public Guid DoctorId { get; set; }
+
+        public string DoctorCode { get; set; } = string.Empty;
+
+        public string DoctorName { get; set; } = string.Empty;
+
+        public string? SpecialistName { get; set; }
+
+        public Guid? ScheduleId { get; set; }
+
+        public string? ScheduleCode { get; set; }
+
+        public string? ScheduleName { get; set; }
+
+        public string? SessionName { get; set; }
+
+        public TimeSpan? StartTime { get; set; }
+
+        public TimeSpan? EndTime { get; set; }
+
+        public string? FormattedShiftTime { get; set; }
+
+        public bool IsOvernight { get; set; }
+
+        public Guid? ServiceUnitId { get; set; }
+
+        public string? ServiceUnitName { get; set; }
+
+        public Guid? ClinicId { get; set; }
+
+        public string? ClinicName { get; set; }
+
+        public Guid? RoomId { get; set; }
+
+        public string? RoomName { get; set; }
+
+        public bool IsOnDuty { get; set; } = true;
+
+        public string DisplayLabel { get; set; } = string.Empty;
     }
 }
