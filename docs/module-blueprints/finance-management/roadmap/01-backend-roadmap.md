@@ -1332,25 +1332,25 @@ Gelombang **`REV-18`** adalah rencana pengiriman mandiri (*dedicated release wav
 ```mermaid
 flowchart TD
     subgraph REV_18B1["Gelombang REV-18B1: Fondasi Skema & Intake Serah Terima"]
-        BE_FIN_091["BE-FIN-091<br/>Intake Serah Terima 2 Baris Billing"]
-        BE_FIN_092["BE-FIN-092<br/>Model & Migration Skema Basis Data"]
+        BE_FIN_091["BE-FIN-091 🟡<br/>Intake Serah Terima 2 Baris Billing"]
+        BE_FIN_092["BE-FIN-092 🟡<br/>Model & Migration Skema Basis Data"]
     end
 
     subgraph REV_18B2["Gelombang REV-18B2: Perjanjian Cicilan, Clearance, Pelunasan & Migrasi"]
-        BE_FIN_093["BE-FIN-093<br/>Layanan & API Perjanjian Angsuran"]
-        BE_FIN_096["BE-FIN-096<br/>Layanan & API Bebas Tanggungan"]
-        BE_FIN_098["BE-FIN-098<br/>Layanan & API Migrasi Batch NIP"]
-        BE_FIN_099["BE-FIN-099<br/>Layanan & API Pelunasan Internal"]
-        BE_FIN_100["BE-FIN-100<br/>Filter Jenis Debitur Laporan AR"]
+        BE_FIN_093["BE-FIN-093 🟡<br/>Layanan & API Perjanjian Angsuran"]
+        BE_FIN_096["BE-FIN-096 🟡<br/>Layanan & API Bebas Tanggungan"]
+        BE_FIN_098["BE-FIN-098 🟡<br/>Layanan & API Migrasi Batch NIP"]
+        BE_FIN_099["BE-FIN-099 🟡<br/>Layanan & API Pelunasan Internal"]
+        BE_FIN_100["BE-FIN-100 🟡<br/>Filter Jenis Debitur Laporan AR"]
     end
 
     subgraph REV_18B3["Gelombang REV-18B3: Sinkronisasi Outbound Payroll HR"]
-        BE_FIN_094["BE-FIN-094<br/>Integrasi Outbound ke TrxPayrollVariableInput"]
+        BE_FIN_094["BE-FIN-094 🟡<br/>Integrasi Outbound ke TrxPayrollVariableInput"]
     end
 
     subgraph REV_18B4["Gelombang REV-18B4: Inbound Webhook Payroll & Koreksi Reversal"]
-        BE_FIN_095["BE-FIN-095<br/>Inbound Webhook Hasil Payroll & Notifikasi"]
-        BE_FIN_097["BE-FIN-097<br/>Reversal Handoff & Koreksi Salah Orang"]
+        BE_FIN_095["BE-FIN-095 🟡<br/>Inbound Webhook Hasil Payroll & Notifikasi"]
+        BE_FIN_097["BE-FIN-097 🟡<br/>Reversal Handoff & Koreksi Salah Orang"]
     end
 
     BE_FIN_091 --> BE_FIN_093
@@ -1373,10 +1373,10 @@ flowchart TD
 
 | Gelombang | Boleh Mulai Setelah | Task Backend | Keterangan |
 |---|---|---|---|
-| `REV-18B1` | Persetujuan Rilis REV-18 | `BE-FIN-091`, `BE-FIN-092` | Fondasi skema database dan adapter serah terima Billing 2 baris |
-| `REV-18B2` | `REV-18B1` Selesai | `BE-FIN-093`, `BE-FIN-096`, `BE-FIN-098`, `BE-FIN-099`, `BE-FIN-100` | Logika domain cicilan, clearance, pelunasan internal benefit, dan laporan |
-| `REV-18B3` | `BE-FIN-093` Selesai | `BE-FIN-094` | Ekspor jadwal angsuran ke input variabel penggajian HR |
-| `REV-18B4` | `BE-FIN-094` Selesai | `BE-FIN-095`, `BE-FIN-097` | Webhook inbound hasil payroll, penumpukan tunggakan, dan alur reversal |
+| `REV-18B1` | Persetujuan Rilis REV-18 | `BE-FIN-091` 🟡, `BE-FIN-092` 🟡 | Fondasi skema database dan adapter serah terima Billing 2 baris |
+| `REV-18B2` | `REV-18B1` Selesai | `BE-FIN-093` 🟡, `BE-FIN-096` 🟡, `BE-FIN-098` 🟡, `BE-FIN-099` 🟡, `BE-FIN-100` 🟡 | Logika domain cicilan, clearance, pelunasan internal benefit, dan laporan |
+| `REV-18B3` | `BE-FIN-093` Selesai | `BE-FIN-094` 🟡 | Ekspor jadwal angsuran ke input variabel penggajian HR |
+| `REV-18B4` | `BE-FIN-094` Selesai | `BE-FIN-095` 🟡, `BE-FIN-097` 🟡 | Webhook inbound hasil payroll, penumpukan tunggakan, dan alur reversal |
 
 ---
 
@@ -1384,16 +1384,16 @@ flowchart TD
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `BE-FIN-091` | Serah terima tagihan manfaat karyawan 2 baris dari Billing dikonsumsi dengan aman ke piutang pegawai dan piutang penjamin internal | `FR-FIN-220`..`222`; `FIN-DEC-183`..`186`; `FIN-DES-100` | `FIN-INTEGRATION-1.8` §P.1; `FIN-VAL-1.11` `FIN-VAL-247`; `FIN-STATE-1.8` | `FinanceReceivableIntakeService`, `BilArHandoff`, `CK_FinReceivable_EmployeeBenefit_BenefitOwnerId` | Konsumsi baris `EMPLOYEE_BENEFIT` menyalin `BenefitOwnerId` & `BenefitRelationship`, nominal kelebihan di atas plafon; baris `PAYER` menyalin porsi benefit RS | — | `M.1.1`..`M.1.5`; baris tanpa `BenefitOwnerId` ditolak `422`; constraint database ditegakkan | Unit/Integration test; log verifikasi | Backend Owner. QBE preflight dan kesesuaian engineering diselesaikan pada waktu eksekusi dari `AGENTS.md` backend | Build PASS, unit test PASS, laporan task tracked |
-| `BE-FIN-092` | Model entitas dan migration skema basis data perjanjian cicilan dan pelunasan internal terpasang rapi tanpa downtime | `FR-FIN-193`, `212`; `FIN-DEC-165`, `177`; `FIN-DES-099`, `102` | `data/data-dictionary.md` Bagian O; `02-backend-architecture.md` P.11 | `ApplicationDbContext`, `IdentityModel`, `FinReceivableMovement` | 4 entitas baru (`FinReceivableInstallmentPlan`, `FinReceivableInstallment`, `FinBenefitSettlement`, `FinBenefitSettlementItem`), 2 nilai mutasi baru; 1 migration | — | `L.7.1`..`L.7.2`; tabel terpasang dengan FK, index, dan check constraint; nol data lama rusak | `dotnet ef migrations`, DDL script review | Backend Owner. Eksekusi migrasi fisik menunggu otorisasi pemilik | Migration file created, snapshot konsisten, laporan task tracked |
-| `BE-FIN-093` | Petugas Finance dapat mengajukan, menyetujui (maker-checker keras), dan membatalkan perjanjian cicilan piutang pegawai | `FR-FIN-192`..`199`; `FIN-DEC-165`, `166`; `FIN-DES-099` | `FIN-API-1.9` O.1; `FIN-VAL-1.10` `FIN-VAL-230`..`238`; `FIN-STATE-1.8` O.1 | `FinanceReceivableInstallmentPlanService`, `FinanceReceivableInstallmentPlansController` | API CRUD, maker-checker check constraint pengaju != penyetuju, pembangkitan jadwal angsuran | `BE-FIN-091`, `BE-FIN-092` | `L.1.1`..`L.1.7`, `L.2.1`..`L.2.6`, `L.8.1`; pengaju tidak boleh menyetujui sendiri | Uji integrasi API; uji check constraint DB | Backend Owner. QBE preflight diselesaikan saat eksekusi | Build PASS, unit test PASS, laporan task tracked |
-| `BE-FIN-094` | Jadwal angsuran yang disetujui otomatis terbit ke modul Payroll HR sebagai input variabel penggajian | `FR-FIN-224`; `FIN-DEC-190`; `FIN-DES-100` | `FIN-INTEGRATION-1.8` §P.2 | `FinanceReceivablePayrollSyncService`, `TrxPayrollVariableInput` | Event/service penulisan input variabel gaji membawa `SourceType = 'FinanceReceivableInstallment'` dan `SourceId = InstallmentId` | `BE-FIN-093` | `M.2.1`; baris jadwal tercatat akurat di payroll run periode terkait | Uji integrasi database inter-module | Backend Owner. QBE preflight diselesaikan saat eksekusi | Build PASS, verifikasi penulisan data variabel, laporan task |
-| `BE-FIN-095` | Finance menerima laporan hasil potongan payroll HR secara otomatis dan idempoten, menumpuk sisa ke periode berikutnya | `FR-FIN-200`..`205`, `225`..`227`; `FIN-DEC-191`, `192`; `FIN-DES-100` | `FIN-API-1.9` §P.1; `FIN-INTEGRATION-1.8` §P.3; `FIN-VAL-1.11` `FIN-VAL-240`, `248` | `FinanceReceivablesPayrollController`, `FinanceReceivablePayrollSyncService` | Endpoint `POST /receivables/installments/payroll-results`, pengecekan idempoten `(InstallmentId, PayrollPeriodId)`, mutasi `POTONGAN-GAJI`, notifikasi pemisahan | `BE-FIN-094` | `M.2.2`..`M.2.4`, `L.3.1`..`L.3.8`, `L.8.3`; kiriman ganda tidak memotong saldo 2 kali | Uji webhook ganda, simulasi potongan sebagian | Backend Owner. QBE preflight diselesaikan saat eksekusi | Build PASS, unit test idempotensi, laporan task tracked |
-| `BE-FIN-096` | Layanan perhitungan status bebas tanggungan perorangan dan kolektif tersedia untuk konsumsi Finance dan Exit Clearance HR | `FR-FIN-206`..`210`, `228`..`230`; `FIN-DEC-170`, `193`; `FIN-DES-101` | `FIN-API-1.9` O.4; `FIN-INTEGRATION-1.8` §P.4; `FIN-VAL-1.10` `FIN-VAL-244`, `245` | `FinanceReceivableClearanceService`, `FinanceReceivablesController` | Endpoint `GET /receivables/clearance/{benefitOwnerId}` dan `POST /receivables/clearance/batch` (max 100), kalkulasi saldo dinamis murni baca | `BE-FIN-091` | `M.3.1`..`M.3.2`, `L.4.1`..`L.4.7`; status dihitung dari saldo aktif, nol kolom tersimpan | Uji clearance pegawai berpiutang vs lunas | Backend Owner. QBE preflight diselesaikan saat eksekusi | Build PASS, unit test PASS, laporan task tracked |
-| `BE-FIN-097` | Serah terima pembalik Billing diolah untuk membatalkan piutang lama, menerbitkan piutang baru, dan memicu restitusi payroll | `FR-FIN-231`..`234`; `FIN-DEC-187`, `195`, `200`; `02-backend-architecture.md` P.7 | `FIN-INTEGRATION-1.8` §P.6; `FIN-STATE-1.8` P.1 | `FinanceReceivableIntakeService`, `BilHandoffAdjustment` | Konsumsi penyesuaian pembalik, pembatalan kartu piutang lama (`CANCELLED`), penerbitan kartu baru, event restitusi ke HR | `BE-FIN-091`, `BE-FIN-095` | `M.4.1`..`M.4.3`; integritas audit terjaga tanpa edit manual debitur | Uji skenario koreksi salah orang | Backend Owner. QBE preflight diselesaikan saat eksekusi | Build PASS, unit test koreksi, laporan task tracked |
-| `BE-FIN-098` | Batch impor saldo lama piutang karyawan divalidasi ke NIP master pegawai HR dan dipetakan ke identitas debitur | `FR-FIN-235`..`237`; `FIN-DEC-196`; `02-backend-architecture.md` P.8 | `FIN-API-1.9` §P.2; `FIN-VAL-1.11` `FIN-VAL-246`; `FIN-PERM-1.10` P.2 | `FinanceReceivableMigrationController`, `FinanceReceivableMigrationService` | Endpoint `POST /receivables/migration-batches/employee`, validasi NIP ke `MstEmployee`, pemetaan Guid `BenefitOwnerId` | `BE-FIN-091` | `M.5.1`..`M.5.3`; baris dengan NIP tidak valid ditolak `422`, batch tervalidasi utuh | Uji impor CSV dengan NIP valid & invalid | Backend Owner. QBE preflight diselesaikan saat eksekusi | Build PASS, unit test validasi NIP, laporan task |
-| `BE-FIN-099` | Layanan penutupan berkala porsi benefit rumah sakit (hitung awal, draf, terbitkan atomic, batalkan) beroperasi penuh | `FR-FIN-211`..`217`; `FIN-DEC-177`, `178`; `FIN-DES-102`, `103` | `FIN-API-1.9` O.2; `FIN-VAL-1.10` `FIN-VAL-241`..`243`; `FIN-STATE-1.8` O.3 | `FinanceBenefitSettlementService`, `FinanceBenefitSettlementsController` | API hitung awal non-mutasi, pembuatan draf, penerbitan atomic dalam 1 transaksi DB, pembatalan dengan mutasi pembalik | `BE-FIN-091`, `BE-FIN-092` | `L.5.1`..`L.5.14`; seluruh kartu tertutup atomic, penutupan sebagian dicegah | Uji siklus pelunasan internal dan rollback | Backend Owner. QBE preflight diselesaikan saat eksekusi | Build PASS, unit test atomisitas, laporan task |
-| `BE-FIN-100` | Saringan jenis debitur `EMPLOYEE_BENEFIT` terpasang pada daftar piutang, kalkulasi aging AR, dan laporan rekapitulasi AR | `FR-FIN-219`; `FIN-DEC-176`; `02-backend-architecture.md` O.7 | `FIN-API-1.9` Receivable endpoints; `FIN-PERM-1.10` | `FinanceReceivableService`, `FinanceReceivablesController` | Tambahan filter `DebtorType = EMPLOYEE_BENEFIT` pada query daftar AR, laporan rekapitulasi, dan bucket umur piutang | `BE-FIN-091` | `L.6.4`; piutang karyawan tersaring akurat, nol data tercampur penjamin reguler | Uji filter jenis debitur pada laporan | Backend Owner. QBE preflight diselesaikan saat eksekusi | Build PASS, unit test filter, laporan task |
+| 🟡 `BE-FIN-091` | Serah terima tagihan manfaat karyawan 2 baris dari Billing dikonsumsi dengan aman ke piutang pegawai dan piutang penjamin internal | `FR-FIN-220`..`222`; `FIN-DEC-183`..`186`; `FIN-DES-100` | `FIN-INTEGRATION-1.8` §P.1; `FIN-VAL-1.11` `FIN-VAL-247`; `FIN-STATE-1.8` | `FinanceBillingIntakeService.ProcessArIntakeAsync` (nama source sebenarnya — berbeda dari `FinanceReceivableIntakeService` di baris ini), `BilArHandoff`, `CK_FinReceivable_BenefitOwner` (nama source sebenarnya — berbeda dari `CK_FinReceivable_EmployeeBenefit_BenefitOwnerId` di baris ini) | Konsumsi baris `EMPLOYEE_BENEFIT` menyalin `BenefitOwnerId` & `BenefitRelationship`, nominal kelebihan di atas plafon; baris `PAYER` menyalin porsi benefit RS | — | `M.1.1`..`M.1.5`; baris tanpa `BenefitOwnerId` ditolak `422`; constraint database ditegakkan | Unit/Integration test; log verifikasi | Backend Owner. QBE preflight dan kesesuaian engineering diselesaikan pada waktu eksekusi dari `AGENTS.md` backend | 🟡 **SEBAGIAN, 10 Oktober 2026.** `M.1.3`..`M.1.5` terpetakan ke source (konsumsi + validasi 422 + check constraint ganda). `M.1.1`..`M.1.2` **belum terpenuhi** — keduanya milik `BillingArApHandoffService` (emisi 2 baris di Billing), di luar wewenang task ini. Migration `AddEmployeeBenefitColumnsToBilArHandoff` **dibuat, belum diterapkan**. `dotnet build` **NOT RUN** (instruksi eksplisit pengguna). Bukti: [laporan BE-FIN-091](../task/report/backend/BE-FIN-091.md) |
+| 🟡 `BE-FIN-092` | Model entitas dan migration skema basis data perjanjian cicilan dan pelunasan internal terpasang rapi tanpa downtime | `FR-FIN-193`, `212`; `FIN-DEC-165`, `177`; `FIN-DES-099`, `102` | `data/data-dictionary.md` Bagian O; `02-backend-architecture.md` P.11 | `ApplicationDbContext`, `IdentityModel`, `FinReceivableMovement` | 4 entitas baru (`FinReceivableInstallmentPlan`, `FinReceivableInstallment`, `FinBenefitSettlement`, `FinBenefitSettlementItem`), 2 nilai mutasi baru; 1 migration | — | `L.7.1`..`L.7.2`; tabel terpasang dengan FK, index, dan check constraint; nol data lama rusak | `dotnet ef migrations`, DDL script review | Backend Owner. Eksekusi migrasi fisik menunggu otorisasi pemilik | 🟡 **SEBAGIAN, 10 Oktober 2026.** Keempat model + configuration selesai ditulis. Migration `AddFinanceReceivableInstallmentAndBenefitSettlement` **belum dibuat** dan `dotnet build` **NOT RUN** (instruksi eksplisit pengguna "tanpa build dan migration automatis"). Source belum pernah dikompilasi. Temuan: unique-terfilter lintas tabel pada `FinBenefitSettlementItem.ReceivableId` tidak dapat diwujudkan sebagai DB constraint, diserahkan ke service `BE-FIN-099`. Bukti: [laporan BE-FIN-092](../task/report/backend/BE-FIN-092.md) |
+| 🟡 `BE-FIN-093` | Petugas Finance dapat mengajukan, menyetujui (maker-checker keras), dan membatalkan perjanjian cicilan piutang pegawai | `FR-FIN-192`..`199`; `FIN-DEC-165`, `166`; `FIN-DES-099` | `FIN-API-1.9` O.1; `FIN-VAL-1.10` `FIN-VAL-230`..`238`; `FIN-STATE-1.8` O.1 | `FinanceReceivableInstallmentPlanService`, `FinanceReceivableInstallmentPlansController` | API CRUD, maker-checker check constraint pengaju != penyetuju, pembangkitan jadwal angsuran | `BE-FIN-091` 🟡, `BE-FIN-092` 🟡 | `L.1.1`..`L.1.7`, `L.2.1`..`L.2.6`, `L.8.1`; pengaju tidak boleh menyetujui sendiri | Uji integrasi API; uji check constraint DB | Backend Owner. QBE preflight diselesaikan saat eksekusi | 🟡 **SEBAGIAN, 10 Oktober 2026.** 7 endpoint + service selesai ditulis di atas dependency yang belum ✅. `dotnet build` **NOT RUN**. `L.1.7` dan `L.2.5` `NOT APPLICABLE` (lihat laporan §3). **Temuan signifikan:** rumpun service `Corporate/FinanceManagement` tampak tidak terdaftar DI di `Program.cs` — lihat laporan §3.A. Bukti: [laporan BE-FIN-093](../task/report/backend/BE-FIN-093.md) |
+| 🟡 `BE-FIN-094` | Jadwal angsuran yang disetujui otomatis terbit ke modul Payroll HR sebagai input variabel penggajian | `FR-FIN-224`; `FIN-DEC-190`; `FIN-DES-100` | `FIN-INTEGRATION-1.8` §P.2 | `FinanceReceivablePayrollSyncService`, `TrxPayrollVariableInput` | Event/service penulisan input variabel gaji membawa `SourceType = 'FinanceReceivableInstallment'` dan `SourceId = InstallmentId` | `BE-FIN-093` 🟡 | `M.2.1`; baris jadwal tercatat akurat di payroll run periode terkait | Uji integrasi database inter-module | Backend Owner. QBE preflight diselesaikan saat eksekusi | 🟡 **SEBAGIAN, 10 Oktober 2026.** Kontrak §P.2 TIDAK dapat diimplementasikan apa adanya (field mapping tidak cocok source, HR belum punya mesin payroll run) — diganti adapter sempit resolve-or-create `TrxPayrollRun`/`TrxPayrollRunEmployee`, wewenang cross-module eksplisit pengguna. `dotnet build` **NOT RUN**. **MUST diresmikan HR Owner** sebagai amandemen kontrak, bukan dianggap final. Bukti: [laporan BE-FIN-094](../task/report/backend/BE-FIN-094.md) |
+| 🟡 `BE-FIN-095` | Finance menerima laporan hasil potongan payroll HR secara otomatis dan idempoten, menumpuk sisa ke periode berikutnya | `FR-FIN-200`..`205`, `225`..`227`; `FIN-DEC-191`, `192`; `FIN-DES-100` | `FIN-API-1.9` §P.1; `FIN-INTEGRATION-1.8` §P.3; `FIN-VAL-1.11` `FIN-VAL-240`, `248` | `FinanceReceivablesPayrollController`, `FinanceReceivablePayrollSyncService` | Endpoint `POST /receivables/installments/payroll-results`, pengecekan idempoten `(InstallmentId, PayrollPeriodId)`, mutasi `POTONGAN-GAJI`, notifikasi pemisahan | `BE-FIN-094` 🟡 | `M.2.2`..`M.2.4`, `L.3.1`..`L.3.8`, `L.8.3`; kiriman ganda tidak memotong saldo 2 kali | Uji webhook ganda, simulasi potongan sebagian | Backend Owner. QBE preflight diselesaikan saat eksekusi | 🟡 **SEBAGIAN, 10 Oktober 2026.** Endpoint + service selesai ditulis, termasuk model carry-forward yang DIRANCANG SENDIRI (kontrak tidak menetapkan mekanismenya persis) — **MUST diresmikan Finance/HR Owner**. Status `FIN-OQ-091` tidak konsisten antar dokumen blueprint (bukti basi). `dotnet build` **NOT RUN**. Bukti: [laporan BE-FIN-095](../task/report/backend/BE-FIN-095.md) |
+| 🟡 `BE-FIN-096` | Layanan perhitungan status bebas tanggungan perorangan dan kolektif tersedia untuk konsumsi Finance dan Exit Clearance HR | `FR-FIN-206`..`210`, `228`..`230`; `FIN-DEC-170`, `193`; `FIN-DES-101` | `FIN-API-1.9` O.4; `FIN-INTEGRATION-1.8` §P.4; `FIN-VAL-1.10` `FIN-VAL-244`, `245` | `FinanceReceivableClearanceService`, `FinanceReceivablesController` | Endpoint `GET /receivables/clearance/{benefitOwnerId}` dan `GET /receivables/clearance` (batch, max 100 — kontrak `api-contract.md` O.4 memakai `GET`+query, bukan `POST /batch` seperti ditulis baris ini; diikuti `api-contract.md` sebagai sumber lebih rinci), kalkulasi saldo dinamis murni baca | `BE-FIN-091` 🟡 (lihat laporan §0 — dependency ini tidak signifikan untuk task ini) | `M.3.1`..`M.3.2`, `L.4.1`..`L.4.7`; status dihitung dari saldo aktif, nol kolom tersimpan | Uji clearance pegawai berpiutang vs lunas | Backend Owner. QBE preflight diselesaikan saat eksekusi | 🟡 **SEBAGIAN, 10 Oktober 2026.** Source selesai, `dotnet build` **NOT RUN**. Task paling ringan pada gelombang ini — murni baca, nol keputusan desain baru. Bukti: [laporan BE-FIN-096](../task/report/backend/BE-FIN-096.md) |
+| 🟡 `BE-FIN-097` | Serah terima pembalik Billing diolah untuk membatalkan piutang lama, menerbitkan piutang baru, dan memicu restitusi payroll | `FR-FIN-231`..`234`; `FIN-DEC-187`, `195`, `200`; `02-backend-architecture.md` P.7 | `FIN-INTEGRATION-1.8` §P.6; `FIN-STATE-1.8` P.1 | `FinanceBillingIntakeService` (nama source sebenarnya), `BilHandoffAdjustment` | Konsumsi penyesuaian pembalik, pembatalan kartu piutang lama (`CANCELLED`), penerbitan kartu baru, event restitusi ke HR | `BE-FIN-091` 🟡, `BE-FIN-095` 🟡 | `M.4.1`..`M.4.3`; integritas audit terjaga tanpa edit manual debitur | Uji skenario koreksi salah orang | Backend Owner. QBE preflight diselesaikan saat eksekusi | 🟡 **SEBAGIAN, 10 Oktober 2026.** Pembatalan piutang lama terpenuhi struktural. **Blocker cross-module ditemukan**: Billing belum punya jalur penerbitan BilArHandoff pengganti untuk skenario salah-orang — fitur tidak dapat berfungsi penuh sampai itu dibangun (di luar wewenang task ini). Restitusi payroll NOT IMPLEMENTED. `dotnet build` NOT RUN. Bukti: [laporan BE-FIN-097](../task/report/backend/BE-FIN-097.md) |
+| 🟡 `BE-FIN-098` | Batch impor saldo lama piutang karyawan divalidasi ke NIP master pegawai HR dan dipetakan ke identitas debitur | `FR-FIN-235`..`237`; `FIN-DEC-196`; `02-backend-architecture.md` P.8 | `FIN-API-1.9` §P.2; `FIN-VAL-1.11` `FIN-VAL-246`; `FIN-PERM-1.10` P.2 | `FinanceReceivableMigrationController`, `FinanceReceivableMigrationService` | Endpoint `POST /receivables/migration-batches/employee`, validasi NIP ke `MstEmployee`, pemetaan Guid `BenefitOwnerId` | `BE-FIN-091` 🟡 | `M.5.1`..`M.5.3`; baris dengan NIP tidak valid ditolak `422`, batch tervalidasi utuh | Uji impor CSV dengan NIP valid & invalid | Backend Owner. QBE preflight diselesaikan saat eksekusi | 🟡 **SEBAGIAN, 10 Oktober 2026.** Source selesai sebagai service berdiri sendiri (keputusan eksplisit pengguna — lihat laporan §0, `FinanceOpeningItemBatchService` existing TIDAK disentuh). `dotnet build` NOT RUN. Bukti: [laporan BE-FIN-098](../task/report/backend/BE-FIN-098.md) |
+| 🟡 `BE-FIN-099` | Layanan penutupan berkala porsi benefit rumah sakit (hitung awal, draf, terbitkan atomic, batalkan) beroperasi penuh | `FR-FIN-211`..`217`; `FIN-DEC-177`, `178`; `FIN-DES-102`, `103` | `FIN-API-1.9` O.2; `FIN-VAL-1.10` `FIN-VAL-241`..`243`; `FIN-STATE-1.8` O.3 | `FinanceBenefitSettlementService`, `FinanceBenefitSettlementsController` | API hitung awal non-mutasi, pembuatan draf, penerbitan atomic dalam 1 transaksi DB, pembatalan dengan mutasi pembalik | `BE-FIN-091` 🟡, `BE-FIN-092` 🟡 | `L.5.1`..`L.5.14`; seluruh kartu tertutup atomic, penutupan sebagian dicegah | Uji siklus pelunasan internal dan rollback | Backend Owner. QBE preflight diselesaikan saat eksekusi | 🟡 **SEBAGIAN, 10 Oktober 2026.** Service (preview/create/post/cancel/paged/detail) + controller (5 endpoint) selesai ditulis di atas dependency yang belum ✅. `GetEligibleItemsAsync` menegakkan unique-terfilter lintas tabel `FinBenefitSettlementItem.ReceivableId` di lapis service (temuan `BE-FIN-092`, DB tidak bisa). `dotnet build` **NOT RUN**. Kriteria eligibility piutang berbasis `RecognizedAt` dalam bulan periode adalah interpretasi saya — **MUST dikonfirmasi Finance Owner**. Bukti: [laporan BE-FIN-099](../task/report/backend/BE-FIN-099.md) |
+| 🟡 `BE-FIN-100` | Saringan jenis debitur `EMPLOYEE_BENEFIT` terpasang pada daftar piutang, kalkulasi aging AR, dan laporan rekapitulasi AR | `FR-FIN-219`; `FIN-DEC-176`; `02-backend-architecture.md` O.7 | `FIN-API-1.9` Receivable endpoints; `FIN-PERM-1.10` | `FinanceReceivableService`, `FinanceReceivablesController` | Tambahan filter `DebtorType = EMPLOYEE_BENEFIT` pada query daftar AR, laporan rekapitulasi, dan bucket umur piutang | `BE-FIN-091` 🟡 | `L.6.4`; piutang karyawan tersaring akurat, nol data tercampur penjamin reguler | Uji filter jenis debitur pada laporan | Backend Owner. QBE preflight diselesaikan saat eksekusi | 🟡 **SEBAGIAN, 10 Oktober 2026.** Filter `debtorType` diperluas ke `GetSummaryAsync`/`GetReportSummaryAsync` dan diwiring konsisten pada kedua controller (termasuk memperbaiki gap legacy `FinanceArController.GetAging` yang mengabaikan parameter `BE-FIN-055`). Daftar piutang sudah berfungsi sejak sebelum task ini (diverifikasi baca). `dotnet build` **NOT RUN**. Interpretasi "tiga laporan AR" (Ringkasan/Aging/Rekapitulasi) — **MUST dikonfirmasi Finance Owner**. Bukti: [laporan BE-FIN-100](../task/report/backend/BE-FIN-100.md) |
 
 ---
 
@@ -1437,7 +1437,103 @@ flowchart TD
 | # | Prasyarat | Status |
 |:--:|---|:---:|
 | 1 | Approval Blueprint Revisi 18 | ✅ **DIBERIKAN** (Yasmin, 6 Oktober 2026) |
-| 2 | Migration Billing `AddEmployeeBenefitColumnsToBilArHandoff` | 🟡 Menahan eksekusi runtime `BE-FIN-091` |
-| 3 | Otorisasi eksekusi migrasi database `BE-FIN-092` | 🟡 Milik pemilik repository |
+| 2 | Migration Billing `AddEmployeeBenefitColumnsToBilArHandoff` | 🟡 File migration dibuat 10 Oktober 2026 oleh `BE-FIN-091` (wewenang cross-module eksplisit pengguna — lihat §0 [laporan BE-FIN-091](../task/report/backend/BE-FIN-091.md)), **belum diterapkan** ke database. Tetap menahan eksekusi runtime `BE-FIN-091` sampai pemilik menjalankan `dotnet ef database update` |
+| 3 | Otorisasi eksekusi migrasi database `BE-FIN-092` | 🟡 Milik pemilik repository. Model dan configuration selesai 10 Oktober 2026, tetapi file migration `AddFinanceReceivableInstallmentAndBenefitSettlement` itu sendiri **belum dibuat** — instruksi eksplisit pengguna "tanpa build dan migration automatis". Lihat [laporan BE-FIN-092](../task/report/backend/BE-FIN-092.md) |
 | 4 | QBE preflight check & audit invariant | Wajib dijalankan pada permulaan tiap task |
+
+---
+
+## Perbaikan `ISSUE-FIN-001` — Laporan AR dan Report AR Created
+
+Dokumen issue: [`../docs/issue/issue-001-laporan-ar-dan-report-ar-created.md`](../docs/issue/issue-001-laporan-ar-dan-report-ar-created.md). Rencana perbaikan beserta register statusnya: [`../docs/plan-repair/plan-repair-001-laporan-ar-dan-report-ar-created.md`](../docs/plan-repair/plan-repair-001-laporan-ar-dan-report-ar-created.md). Pemilik memerintahkan eksekusi lewat instruksi chat langsung 11 Oktober 2026: "lakukan perbaikan melalui /quilvian-engineering-skills:build-module-backend dan /quilvian-engineering-skills:build-module-frontend" — ini adalah persetujuan K-01 pada issue tersebut untuk `FIX-FIN-001-01` dan `FIX-FIN-001-03`.
+
+### Backend Governance Preflight
+
+| Field | Nilai |
+| --- | --- |
+| Area | Corporate |
+| Module / Submodule | FinanceManagement / Receivable |
+| Owner / Prefix | `Fin` (`MODULE_OWNERSHIP_PREFIX_REGISTRY.md` baris 15, status `ACTIVE`) |
+| Applicability | `TOUCHED LEGACY` — memperbaiki method pada service yang sudah ada, nol entity/model/table baru |
+| QBE ID berlaku | Tidak ada QBE baru yang terpicu (nol model baru, nol endpoint baru, nol migration) |
+
+### 🟡 `BE-FIN-101` — Perbaiki dua nama kolom SQL salah dan urutan baca reader/koneksi pada Laporan AR
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🟡 **Sebagian, 11 Oktober 2026** — source selesai untuk `FIX-FIN-001-01` dan `FIX-FIN-001-03`; [laporan](../task/report/backend/BE-FIN-101.md). `dotnet build` **NOT RUN** — instruksi eksplisit pemilik pada sesi ini: "jangan lakukan build dotnet secara automatis". Merujuk `ISS-FIN-001-01`, `ISS-FIN-001-02`, `ISS-FIN-001-T1` |
+| **Gelombang** | Di luar gelombang — task perbaikan bug pasca-laporan pemilik, `PLAN-REPAIR-FIN-001` |
+| **Wewenang** | `PLAN-REPAIR-FIN-001` bagian 4 (`FIX-FIN-001-01`, `FIX-FIN-001-03`), disetujui pemilik 11 Oktober 2026 |
+
+**Bisnis prosesnya.** Petugas Finance yang membuka Laporan AR tidak lagi mendapat "Terjadi kesalahan pada server" — laporan tagihan Billing ke Finance AR kembali dapat dibuka, disaring, dan diekspor. Menyaring laporan dengan satu Penjamin tertentu juga tidak lagi berisiko gagal akibat urutan baca database yang salah.
+
+**Acceptance criteria.**
+
+1. `GET /api/v1/corporate/finance-management/receivables/reports/billing-ar` (tanpa saringan) mengembalikan HTTP 200, bukan 500/42703.
+2. `ORDER BY` pada `LATERAL JOIN` `FinBillingHandoffIntake` dan `FinReceivableInvoiceBatch` memakai `"CreateDateTime"` (kolom asli `IdentityModel`), bukan `"CreatedAt"`.
+3. Menyaring dengan `payerId` tertentu mengembalikan `summary.PayerName` berisi nama penjamin yang benar, tanpa galat koneksi/reader tambahan.
+4. Seluruh nilai ringkasan dan daftar lain (jumlah invoice, nominal, status) tidak berubah dari logika sebelumnya — perbaikan ini murni nama kolom dan urutan eksekusi, nol perubahan hasil hitung.
+
+**Bukti verifikasi.** Pembacaan source sebelum/sesudah (diff dua method: `BuildFromWhereClause`, `ExecuteSummaryQueryAsync`); penelusuran migration snapshot terbaru (`Migrations/20261010115612_...Designer.cs`) untuk mengonfirmasi nama kolom `CreateDateTime` pada kedua tabel.
+
+**Yang dikecualikan.** `dotnet build`/`dotnet run` **NOT RUN**, sesuai instruksi eksplisit pemilik pada sesi ini — menunggu konfirmasi terpisah sebelum dijalankan. Uji manual terhadap database sungguhan (bagian 14 laporan asli pemilik: tanpa saringan, per penjamin, per jenis kunjungan, per periode, per status Billing/handoff/Invoice AR, paginasi, ekspor Excel/PDF) **NOT RUN** — menunggu `dotnet build` dan environment database yang sama.
+
+**Risiko.** Rendah untuk kebenaran (perbaikan nama kolom literal dan penataan ulang urutan baris, nol logika bisnis disentuh). Risiko tersisa murni administratif: task ini belum dapat ditandai ✅ sampai `dotnet build` dan uji manual terhadap database sungguhan dikonfirmasi pemilik.
+
+**Definition of Done.** `dotnet build` **PASS** (menunggu konfirmasi pemilik); uji manual keempat endpoint Laporan AR dengan kombinasi saringan pada plan-repair bagian 8 **PASS**; laporan tracked ada; roadmap dan traceability diperbarui.
+
+---
+
+## Perbaikan `ISSUE-FIN-002` — Settlement AR
+
+Dokumen issue: [`../docs/issue/issue-002-settlement-ar-http-500-dan-revisi-uiux.md`](../docs/issue/issue-002-settlement-ar-http-500-dan-revisi-uiux.md). Rencana perbaikan beserta register statusnya: [`../docs/plan-repair/plan-repair-002-settlement-ar-http-500-dan-revisi-uiux.md`](../docs/plan-repair/plan-repair-002-settlement-ar-http-500-dan-revisi-uiux.md). Pemilik memerintahkan eksekusi lewat instruksi chat langsung 11 Oktober 2026: "Kerjakan semua lakukan perbaikan melalui /quilvian-engineering-skills:build-module-backend dan /quilvian-engineering-skills:build-module-frontend" — ini adalah persetujuan K-01 pada issue tersebut (Opsi (a): tetapkan implementasi V2 Settlement AR sebagai desain resmi) untuk `FIX-FIN-002-01` dan `FIX-FIN-002-02`. P-02 (stack trace asli) terjawab bukan dari pelapor, melainkan ditemukan langsung pada `Logs/quilvian-backend-20261011.json` oleh agent pelaksana.
+
+### Backend Governance Preflight
+
+| Field | Nilai |
+| --- | --- |
+| Area | Corporate |
+| Module / Submodule | FinanceManagement / Receivable |
+| Owner / Prefix | `Fin` (`MODULE_OWNERSHIP_PREFIX_REGISTRY.md` baris 15, status `ACTIVE`) |
+| Applicability | `TOUCHED LEGACY` — memperbaiki method pada service yang sudah ada, nol entity/model/table baru |
+| QBE ID berlaku | Tidak ada QBE baru yang terpicu (nol model baru, nol endpoint baru, nol migration) |
+
+### 🟡 `BE-FIN-102` — Perbaiki HTTP 500 Settlement AR (translasi EF) dan duplikasi baris invoice batch
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🟡 **Sebagian, 11 Oktober 2026** — source selesai untuk `FIX-FIN-002-01` dan `FIX-FIN-002-02`; [laporan](../task/report/backend/BE-FIN-102.md). `dotnet build`/`dotnet run` **NOT RUN** — instruksi eksplisit pemilik pada sesi ini: "jangan lakukan build dotnet secara automatis". Merujuk `ISS-FIN-002-01`, `ISS-FIN-002-02` |
+| **Gelombang** | Di luar gelombang — task perbaikan bug pasca-laporan pemilik, `PLAN-REPAIR-FIN-002` |
+| **Wewenang** | `PLAN-REPAIR-FIN-002` bagian 4 (`FIX-FIN-002-01`, `FIX-FIN-002-02`), disetujui pemilik 11 Oktober 2026 |
+
+**Bisnis prosesnya.** Petugas Finance yang membuka Settlement AR kategori apa pun tidak lagi
+mendapat "Terjadi kesalahan pada server" saat mengurutkan berdasarkan nama pasien (urutan
+default) atau mencari dengan kata kunci bebas. Piutang yang pernah mengalami pembatalan/
+penerbitan ulang batch invoice tidak lagi tampil dua kali pada daftar maupun ringkasan.
+
+**Acceptance criteria.**
+
+1. `GET /api/v1/corporate/finance-management/receivables/settlement?category=COMPANY&pageNumber=1&pageSize=10&sortBy=patientName&sortDirection=asc` mengembalikan HTTP 200, bukan 500.
+2. Request yang sama dengan tambahan `search=<kata kunci>` juga mengembalikan HTTP 200.
+3. `ApplySorting` dan filter `Search` tidak lagi merujuk `x.debtorResolvedName` pada klausa yang berjalan sebelum materialisasi — dihitung ulang langsung dari `x.pat`/`x.comp`/`x.ins`/`x.emp`.
+4. `batchSubquery` menyaring `!IsDelete`; piutang dengan membership batch ganda (satu soft-delete, satu aktif) tampil tepat satu kali.
+5. Nol perubahan kontrak API, DTO, atau skema database.
+
+**Bukti verifikasi.** Pembacaan source sebelum/sesudah (`SettlementQueryRow`, proyeksi,
+`ApplySorting`, filter `Search`, `batchSubquery`); `Logs/quilvian-backend-20261011.json` sebagai
+bukti exception asli sebelum perbaikan.
+
+**Yang dikecualikan.** `dotnet build`/`dotnet run` **NOT RUN**, sesuai instruksi eksplisit
+pemilik pada sesi ini — menunggu konfirmasi terpisah sebelum dijalankan. Uji manual terhadap
+database sungguhan (request yang dilaporkan, variasi `search`, data uji membership batch ganda)
+**NOT RUN** — menunggu `dotnet build` dan environment database yang sama.
+
+**Risiko.** Rendah untuk kebenaran (perubahan menghitung ulang ekspresi yang sudah ada di file
+yang sama, nol logika bisnis baru). Risiko tersisa murni administratif: task ini belum dapat
+ditandai ✅ sampai `dotnet build` dan uji manual terhadap database sungguhan dikonfirmasi
+pemilik.
+
+**Definition of Done.** `dotnet build` **PASS** (menunggu konfirmasi pemilik); uji manual
+request yang dilaporkan beserta variasi `search` dan data uji membership batch ganda pada
+plan-repair bagian 8 **PASS**; laporan tracked ada; roadmap dan traceability diperbarui.
 

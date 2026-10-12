@@ -18,4 +18,10 @@ public sealed class FinReceivableInvoiceBatchItem : IdentityModel
 
     public Guid ReceivableId { get; set; }
     public FinReceivable? Receivable { get; set; }
+
+    /// <summary>
+    /// Menandakan keanggotaan aktif dalam batch tagihan. Bernilai false bila batch telah CANCELLED,
+    /// sehingga piutang (ReceivableId) dapat digabung ulang ke batch baru tanpa melanggar unique index.
+    /// </summary>
+    public bool IsActiveMembership { get; set; } = true;
 }

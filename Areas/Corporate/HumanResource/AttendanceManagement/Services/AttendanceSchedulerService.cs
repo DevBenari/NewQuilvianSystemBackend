@@ -610,6 +610,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 job.HeartbeatAt = DateTime.UtcNow;
                 await _dbContext.SaveChangesAsync(cancellationToken);
 
+                // Pekerjaan sistem (TriggeredByUserId null) jatuh ke SystemActorUserId konfigurasi.
+                // Tanpa pengawalan ini, Guid.Empty mengalir ke INSERT HrdAttendanceProcessingRun dan
+                // melanggar FK ke AspNetUsers berulang setiap siklus scheduler — pola pengawalan yang
+                // sama dengan OvertimeSchedulerService.ExecuteClaimedJobAsync.
+                var actor = job.TriggeredByUserId ?? ParseSystemActorUserId();
+                if (actor == Guid.Empty)
+                {
+                    throw new InvalidOperationException("HumanResource:AttendanceScheduler:SystemActorUserId belum dikonfigurasi.");
+                }
+
                 var processingCorrelation = $"{job.JobNumber}-TRY-{job.RetryCount + 1}";
                 var result = await _processingService.ProcessRangeAsync(
                     new ProcessAttendanceRangeRequest
@@ -625,7 +635,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                         CorrelationId = processingCorrelation,
                         Notes = job.Notes
                     },
-                    job.TriggeredByUserId ?? ParseSystemActorUserId(),
+                    actor,
                     cancellationToken);
 
                 var now = DateTime.UtcNow;

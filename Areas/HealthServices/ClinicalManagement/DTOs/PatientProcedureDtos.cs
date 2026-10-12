@@ -148,7 +148,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
     }
 
     /// <summary>
-    /// Pilihan master tindakan khusus kebutuhan klinis dokter & keperawatan rawat jalan maupun rawat inap.
+    /// Pilihan master tindakan khusus kebutuhan klinis dokter dan keperawatan rawat jalan maupun rawat inap.
     /// Endpoint klinis menggunakan DTO ini agar klinisi tidak memerlukan akses
     /// langsung ke halaman master data Procedure, lengkap dengan resolusi tarif acuan rumah sakit.
     /// </summary>

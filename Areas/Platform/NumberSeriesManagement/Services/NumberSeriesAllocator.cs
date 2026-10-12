@@ -150,7 +150,7 @@ namespace QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services
             // lebih buruk daripada menolaknya: bentuk yang menyimpang baru ketahuan jauh di
             // belakang, ketika nomornya sudah menempel pada catatan. Pelajaran dari FACT-PLT-009,
             // yaitu LegalEntityController yang deretnya habis diam-diam setelah 999.
-            if (sequence.Length > request.SequenceDigits)
+            if (!request.AllowSequenceOverflow && sequence.Length > request.SequenceDigits)
             {
                 throw new NumberSeriesAllocationException(
                     "Nilai deret melampaui jumlah digit yang dikonfigurasi.")
@@ -160,8 +160,11 @@ namespace QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services
             await context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
 
-            return scopeKey == GlobalScopeKey
-                ? $"{prefix}-{sequence}"
+            if (scopeKey == GlobalScopeKey)
+                return $"{prefix}-{sequence}";
+
+            return request.CompactScopeFormat
+                ? $"{prefix}-{scopeKey}{sequence}"
                 : $"{prefix}-{scopeKey}-{sequence}";
         }
 
