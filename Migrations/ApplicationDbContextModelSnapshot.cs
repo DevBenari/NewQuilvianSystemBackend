@@ -101085,6 +101085,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime>("ReferralDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("ReferralDoctorName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("ReferralReason")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");

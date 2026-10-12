@@ -204,6 +204,59 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             }, "Data pilihan diagnosis berhasil diambil."));
         }
 
+        /// <summary>Pilihan diagnosa rujukan untuk akun perangkat Kiosk (Data Rujukan Kiosk).</summary>
+        /// <remarks>
+        /// <b>Sengaja tanpa <c>[AccessAction]</c> dan <c>[AccessPermission]</c></b>, mengikuti
+        /// <c>referral-institutions/kiosk/options</c>: akun Kiosk tidak punya baris di matriks Akses
+        /// Role, dan policy <see cref="AuthorizationPolicies.KioskRead"/> adalah otorisasi alternatif
+        /// yang disetujui. Filter sama dengan <c>options</c> (aktif dan dapat dipilih klinis), dan
+        /// kata kunci minimal dua huruf supaya perangkat tidak menarik seluruh katalog.
+        /// </remarks>
+        [HttpGet("kiosk/options")]
+        [Authorize(Policy = AuthorizationPolicies.KioskRead)]
+        [ProducesResponseType(typeof(ApiResponse<DiagnosisOptionPagedResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetKioskDiagnosisOptions(
+            [FromQuery] string? search,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25)
+        {
+            var paging = NormalizePaging(pageNumber, pageSize);
+            pageNumber = paging.PageNumber;
+            pageSize = paging.PageSize;
+
+            if (string.IsNullOrWhiteSpace(search) || search.Trim().Length < 2)
+            {
+                return Ok(ApiResponse<DiagnosisOptionPagedResponse>.Ok(new DiagnosisOptionPagedResponse
+                {
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalData = 0,
+                    TotalPage = 0,
+                    Items = new List<DiagnosisOptionResponse>()
+                }, "Data pilihan diagnosis berhasil diambil."));
+            }
+
+            var query = BuildBaseQuery();
+            query = ApplyStandardFilter(query, search.Trim(), null, null, null, null, null, null, null, null, null);
+            query = query.Where(x => x.IsActive && x.IsSelectableForClinicalUse);
+
+            var totalData = await query.CountAsync();
+            var optionEntities = await ApplySorting(query, "diagnosisCode", "asc")
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+            var items = optionEntities.Select(MapOptionResponse).ToList();
+
+            return Ok(ApiResponse<DiagnosisOptionPagedResponse>.Ok(new DiagnosisOptionPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            }, "Data pilihan diagnosis berhasil diambil."));
+        }
+
         [HttpGet("clinical-options")]
         [ProducesResponseType(typeof(ApiResponse<DiagnosisOptionPagedResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Diagnosis", Description = "Melihat pilihan diagnosis klinis ICD-10 untuk SOAP dokter", AccessType = AccessTypes.Read, SortOrder = 1)]
