@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
@@ -40,6 +42,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             if (!Enum.IsDefined(typeof(EmergencyDispositionStatus), request.DispositionStatus))
                 return "Nilai DispositionStatus tidak valid.";
+
+            if (request.DispositionStatus != EmergencyDispositionStatus.Draft)
+                return "Tindak lanjut baru selalu disimpan sebagai draf. Konfirmasi dilakukan sesudah draf tersimpan.";
 
             if (request.IsPatientDeceased && !request.DeathDateTime.HasValue)
                 return "DeathDateTime wajib diisi ketika pasien dinyatakan meninggal.";
@@ -171,6 +176,44 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     or EmergencyDispositionStatus.Cancelled,
                 _ => false
             };
+        }
+
+        public async Task<string?> ValidateDiagnosisBeforeConfirmAsync(
+            EmgVisit visit,
+            CancellationToken cancellationToken = default)
+        {
+            var hasValidDiagnosis = await _dbContext.Set<TrxPatientDiagnosis>()
+                .AsNoTracking()
+                .Include(x => x.Consultation)
+                .Include(x => x.Diagnosis)
+                .AnyAsync(x =>
+                    x.EncounterId == visit.EncounterId
+                    && !x.IsDelete
+                    && !x.IsCancel
+                    && (x.IsActive || x.DiagnosisStatus == PatientDiagnosisStatus.Resolved)
+                    && (x.DiagnosisStatus == PatientDiagnosisStatus.Active || x.DiagnosisStatus == PatientDiagnosisStatus.Resolved)
+                    && (x.DiagnosisType == PatientDiagnosisType.Primary
+                        || x.DiagnosisType == PatientDiagnosisType.Secondary
+                        || x.DiagnosisType == PatientDiagnosisType.WorkingDiagnosis
+                        || x.DiagnosisType == PatientDiagnosisType.FinalDiagnosis)
+                    && (x.DiagnosisMasterType == "ICD10"
+                        || x.DiagnosisMasterType == "ICD-10"
+                        || (x.IcdVersion != null && x.IcdVersion.Contains("ICD-10"))
+                        || (x.Diagnosis != null && (x.Diagnosis.IcdVersion.Contains("ICD-10") || x.Diagnosis.DiagnosisType == "ICD10")))
+                    && x.DiagnosisMasterType != "ICD9"
+                    && (!x.ConsultationId.HasValue
+                        || (x.Consultation != null
+                            && !x.Consultation.IsDelete
+                            && !x.Consultation.IsCancel
+                            && x.Consultation.ConsultationStatus != DoctorConsultationStatus.Cancelled)),
+                    cancellationToken);
+
+            if (!hasValidDiagnosis)
+            {
+                return "Tindak lanjut belum dapat dikonfirmasi karena pasien belum punya diagnosis. Tambahkan diagnosis kerja pada catatan dokter lebih dulu.";
+            }
+
+            return null;
         }
     }
 }

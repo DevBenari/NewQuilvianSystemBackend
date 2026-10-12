@@ -115,11 +115,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 return Pm03;
             }
 
-            if (referral.TargetUnitType != ReferralTargetUnitType.Clinic ||
-                !request.ClinicId.HasValue ||
-                request.ClinicId.Value == Guid.Empty)
+            if (request.EncounterType == EncounterType.Emergency)
             {
-                return Pm05;
+                if (referral.TargetUnitType != ReferralTargetUnitType.Emergency &&
+                    referral.TargetUnitType != ReferralTargetUnitType.Clinic)
+                {
+                    return Pm05;
+                }
+            }
+            else
+            {
+                if (referral.TargetUnitType != ReferralTargetUnitType.Clinic ||
+                    !request.ClinicId.HasValue ||
+                    request.ClinicId.Value == Guid.Empty)
+                {
+                    return Pm05;
+                }
             }
 
             if (referral.ReferralDateTime.HasValue &&
@@ -167,9 +178,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 ReferralDateTime = request.Referral.ReferralDateTime.HasValue
                     ? ToUtc(request.Referral.ReferralDateTime.Value)
                     : now,
-                TargetUnitType = ReferralTargetUnitType.Clinic,
+                TargetUnitType = encounter.EncounterType == EncounterType.Emergency
+                    ? ReferralTargetUnitType.Emergency
+                    : ReferralTargetUnitType.Clinic,
                 TargetServiceUnitId = encounter.ServiceUnitId,
-                TargetClinicId = encounter.ClinicId,
+                TargetClinicId = encounter.EncounterType == EncounterType.Emergency ? null : encounter.ClinicId,
                 DiagnosisId = NormalizeGuid(request.Referral.DiagnosisId),
                 DiagnosisNote = NormalizeText(request.Referral.DiagnosisNote),
                 ReferralReason = NormalizeText(request.Referral.ReferralReason),
@@ -536,6 +549,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             ReferralTargetUnitType.Clinic => "Poliklinik",
             ReferralTargetUnitType.Laboratory => "Laboratorium",
             ReferralTargetUnitType.Radiology => "Radiologi",
+            ReferralTargetUnitType.Emergency => "Instalasi Gawat Darurat",
             _ => type.ToString()
         };
 
@@ -545,7 +559,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         /// <summary>
         /// Unit tujuan rincian baru lewat <c>PUT</c> diturunkan dari kunjungan itu sendiri:
-        /// kunjungan berklinik → <c>Clinic</c>, kunjungan Laboratorium → <c>Laboratory</c>.
+        /// kunjungan berklinik → <c>Clinic</c>, kunjungan Laboratorium → <c>Laboratory</c>, kunjungan IGD → <c>Emergency</c>.
         /// </summary>
         private static string? ResolveNewTarget(
             RegPatientEncounter encounter,
@@ -556,7 +570,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         {
             targetServiceUnitId = encounter.ServiceUnitId;
             targetClinicId = encounter.ClinicId;
-            targetType = encounter.ClinicId.HasValue ? ReferralTargetUnitType.Clinic : ReferralTargetUnitType.Laboratory;
+            if (encounter.EncounterType == EncounterType.Emergency)
+            {
+                targetType = ReferralTargetUnitType.Emergency;
+                targetClinicId = null;
+            }
+            else
+            {
+                targetType = encounter.ClinicId.HasValue ? ReferralTargetUnitType.Clinic : ReferralTargetUnitType.Laboratory;
+            }
 
             if (request.TargetUnitType == ReferralTargetUnitType.Radiology)
                 return Pm05;

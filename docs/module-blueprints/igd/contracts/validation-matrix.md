@@ -2,12 +2,12 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.11.0` — observasi Dieskalasi dan kunjungan yang sudah berakhir, 3 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-186`): bagian 11.2 baru (aturan 16–21, `IGD-DEC-183`, `184`; asumsi `IGD-ASM-003`) dan §6 aturan 2 diubah. **Bukan aditif murni**: penjaga penutupan kini juga menahan kunjungan yang punya observasi `Escalated`, sehingga `PATCH /emergency-visits/{id}/complete` yang dulu berhasil kini dapat dijawab `409`, dan penutupan susulan tertunda; pada kunjungan `Completed`/`Cancelled`, penolakan `409` aksi observasi berganti pesan. Nol ruas request/response baru. *Sebelumnya* `0.10.0` — observasi yang diakhiri sesudah disposisi dilaksanakan, 30 September 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-175`): bagian 11.1 baru (aturan 12–15, `IGD-DEC-171`, `172`). **Bukan aditif murni** pada `PATCH .../emergency-observations/{id}/observation-status`: pada kunjungan `Disposed`, target `Completed` yang dulu ditolak `409` kini **diterima** (penolakan dilonggarkan), dan penolakan `409` target `Escalated` **berganti pesan** — dari pesan teknis penjaga transisi menjadi kalimat mengikat aturan 14. Nol aturan lama berubah teksnya; §8 tetap berlaku utuh. Sebelumnya `0.9.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 11 baru (penutupan kunjungan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol aturan lama berubah. Sebelumnya `0.8.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. Bagian 10 baru (enam sub-bagian); **bukan aditif murni**: sumber aturan §1.2 aturan 5 (dan §1 aturan 4) berganti dari `CariEpisodeAktifAsync` ke rumus §10.1 aturan 2 (klausa A+B). Kalimat aturan lama **tidak** diubah; teks penggantian dicatat di §10.1. Sebelumnya `0.7.0` — pra-cek episode IGD berjalan, 21 September 2026. **Aditif**: bagian 1.2 baru (`BE-IGD-050`, `IGD-DEC-138`); nol aturan lama diubah teksnya — aturan 4 bagian 1 dan penolakan `409`-nya tetap sebagai jaring pengaman. Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026. **Aditif**: bagian 9 baru; nol aturan lama diubah teksnya. Empat penolakan baru pada `POST .../emergency-observation-details` (`IGD-DEC-122`, `IGD-DEC-126`). *Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: pesan bagian 1 aturan 2 (`IGD-DEC-120`), pesan bagian 6 aturan 4 (`IGD-DEC-118`), dan bagian 8 baru (`IGD-DEC-119`, `IGD-DEC-121`)* |
-| Status | `draft`, **kecuali bagian 2 aturan 4 dan 5, dan bagian 10 (encounter-first), yang `approved`**. Bagian 11 aturan 1–11 **`approved`** (`IGD-DEC-170`, 23 September 2026). Bagian 11.1 (aturan 12–15) **`approved`** (`IGD-DEC-175`, 30 September 2026). Bagian 11.2 (aturan 16–21) dan perubahan §6 aturan 2 **`approved`** (`IGD-DEC-186`, 3 Oktober 2026) |
+| `contract_version` | `0.15.0` — Dokter jaga IGD dan override beralasan, 11 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-240`): bagian 13 baru (aturan 1–12, `IGD-DEC-237`…`239`). *Sebelumnya:* `0.14.0` — Ruang Kerja Dokter IGD, 6 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-230`): bagian 12 baru (aturan 1–16, `IGD-DEC-220`…`229`). *Sebelumnya:* `0.13.0` — pesanan tanpa sikap dan kepergian yang dibatalkan, 5 Oktober 2026 (sore), **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-209`): §5 aturan 12 dan §6 aturan 4 diberi pengecualian kepergian yang dibatalkan; §5.1 diperjelas (arti *tanpa sikap*, *ditolak*, pengecualian, dan batas cakupan); §6.1 butir (d) diselaraskan dengan source, butir (e)–(f) baru (`IGD-DEC-203`, `205`). **Bukan aditif murni**: pesanan milik kepergian yang fisiknya `Cancelled` — tanpa sikap maupun ditolak — tidak lagi menahan penutupan, sehingga kunjungan yang dulu tertahan pesanan ditolak pada kepergian yang dibatalkan kini dapat ditutup. Pesanan tanpa sikap yang **menahan** bukan perubahan kontrak — itu sudah bunyi §5.1 dan §6 aturan 4 yang `approved` (`IGD-DEC-108`); yang berubah adalah kode (`IGD-DEC-203`). Nol endpoint, nol ruas request/response, nol kalimat pesan baru. *Sebelumnya* `0.12.0` — kewenangan unit, 5 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-199`): bagian 7 diamandemen — aturan 1 ditegaskan (jembatan lewat simpul organisasi penugasan HR, `IGD-DEC-193`), aturan 3 diputuskan (fail-closed dan kalimat `IGD-DEC-195`), aturan 6–9 baru (`IGD-DEC-194`, `197`). **Bukan aditif murni**: pengguna yang penugasan HR-nya cocok dengan simpul unit kini lolos — sebelumnya setiap pengguna ditolak `403` karena jembatannya salah — dan pesan `403` untuk unit yang belum dipetakan berganti. Nol endpoint, nol ruas request/response. *Sebelumnya* `0.11.0` — observasi Dieskalasi dan kunjungan yang sudah berakhir, 3 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-186`): bagian 11.2 baru (aturan 16–21, `IGD-DEC-183`, `184`; asumsi `IGD-ASM-003`) dan §6 aturan 2 diubah. **Bukan aditif murni**: penjaga penutupan kini juga menahan kunjungan yang punya observasi `Escalated`, sehingga `PATCH /emergency-visits/{id}/complete` yang dulu berhasil kini dapat dijawab `409`, dan penutupan susulan tertunda; pada kunjungan `Completed`/`Cancelled`, penolakan `409` aksi observasi berganti pesan. Nol ruas request/response baru. *Sebelumnya* `0.10.0` — observasi yang diakhiri sesudah disposisi dilaksanakan, 30 September 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-175`): bagian 11.1 baru (aturan 12–15, `IGD-DEC-171`, `172`). **Bukan aditif murni** pada `PATCH .../emergency-observations/{id}/observation-status`: pada kunjungan `Disposed`, target `Completed` yang dulu ditolak `409` kini **diterima** (penolakan dilonggarkan), dan penolakan `409` target `Escalated` **berganti pesan** — dari pesan teknis penjaga transisi menjadi kalimat mengikat aturan 14. Nol aturan lama berubah teksnya; §8 tetap berlaku utuh. Sebelumnya `0.9.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 11 baru (penutupan kunjungan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol aturan lama berubah. Sebelumnya `0.8.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. Bagian 10 baru (enam sub-bagian); **bukan aditif murni**: sumber aturan §1.2 aturan 5 (dan §1 aturan 4) berganti dari `CariEpisodeAktifAsync` ke rumus §10.1 aturan 2 (klausa A+B). Kalimat aturan lama **tidak** diubah; teks penggantian dicatat di §10.1. Sebelumnya `0.7.0` — pra-cek episode IGD berjalan, 21 September 2026. **Aditif**: bagian 1.2 baru (`BE-IGD-050`, `IGD-DEC-138`); nol aturan lama diubah teksnya — aturan 4 bagian 1 dan penolakan `409`-nya tetap sebagai jaring pengaman. Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026. **Aditif**: bagian 9 baru; nol aturan lama diubah teksnya. Empat penolakan baru pada `POST .../emergency-observation-details` (`IGD-DEC-122`, `IGD-DEC-126`). *Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: pesan bagian 1 aturan 2 (`IGD-DEC-120`), pesan bagian 6 aturan 4 (`IGD-DEC-118`), dan bagian 8 baru (`IGD-DEC-119`, `IGD-DEC-121`)* |
+| Status | `draft`, **kecuali bagian 13 (dokter jaga IGD) yang `approved`** (`IGD-DEC-240`, 11 Oktober 2026); **kecuali bagian 12 (Ruang Kerja Dokter IGD) yang `approved`** (`IGD-DEC-230`, 6 Oktober 2026); **kecuali bagian 2 aturan 4 dan 5, dan bagian 10 (encounter-first), yang `approved`**. Bagian 11 aturan 1–11 **`approved`** (`IGD-DEC-170`, 23 September 2026). Bagian 11.1 (aturan 12–15) **`approved`** (`IGD-DEC-175`, 30 September 2026). Bagian 11.2 (aturan 16–21) dan perubahan §6 aturan 2 **`approved`** (`IGD-DEC-186`, 3 Oktober 2026). Bagian 7 (aturan 1–9) **`approved`** (`IGD-DEC-199`, 5 Oktober 2026). §5 aturan 12, §5.1 bagian *Diperjelas pada `0.13.0`*, §6 aturan 4, dan §6.1 butir (d)–(f) **`approved`** (`IGD-DEC-209`, 5 Oktober 2026 sore) |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
-| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 2 aturan 4 dan 5 lewat `IGD-DEC-093`. **Rizki Gunawan / 2026-09-22** — bagian 10 (encounter-first) lewat `IGD-DEC-157` — termasuk koreksi pesan §10.4 aturan 4 (B2). **Rizki Gunawan / 2026-09-23** — bagian 11 aturan 1–11 lewat `IGD-DEC-170`. **Rizki Gunawan / 2026-09-30** — bagian 11.1 aturan 12–15 lewat `IGD-DEC-175` (sementara, `IGD-DEC-174`). **Rizki Gunawan / 2026-10-03** — §6 aturan 2 dan bagian 11.2 aturan 16–21 lewat `IGD-DEC-186` (sementara, pola `IGD-DEC-174`). Seluruh aturan lain tetap `draft` |
-| `input_revision` | `0.11.0`: `00-interview-decisions.md` **185 keputusan**, terakhir `IGD-DEC-185` (amendment pass 3 Oktober 2026); fakta `IGD-FACT-032`…`036` diverifikasi pada backend `rizkiG` `2a63a3bb` (source IGD identik dengan `5af6ef3b`). `0.10.0`: `00-interview-decisions.md` **174 keputusan**, terakhir `IGD-DEC-174` (amendment pass 30 September 2026); fakta `IGD-FACT-029`…`031` diverifikasi ulang pada backend `rizkiG` `327ccad3` + working tree `BE-IGD-060` |
-| Versi sebelumnya | `0.10.0`, `0.9.0`, `0.8.0`, `0.7.0`, `0.6.0`, sebelumnya `0.5.0`, `0.4.0`, `0.3.0`, dan `0.2.0` |
+| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-10-11** — bagian 13 (dokter jaga IGD) lewat `IGD-DEC-240` (sementara, pola `IGD-DEC-174`). **Rizki Gunawan / 2026-10-06** — bagian 12 (Ruang Kerja Dokter IGD) lewat `IGD-DEC-230`. **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 2 aturan 4 dan 5 lewat `IGD-DEC-093`. **Rizki Gunawan / 2026-09-22** — bagian 10 (encounter-first) lewat `IGD-DEC-157` — termasuk koreksi pesan §10.4 aturan 4 (B2). **Rizki Gunawan / 2026-09-23** — bagian 11 aturan 1–11 lewat `IGD-DEC-170`. **Rizki Gunawan / 2026-09-30** — bagian 11.1 aturan 12–15 lewat `IGD-DEC-175` (sementara, `IGD-DEC-174`). **Rizki Gunawan / 2026-10-03** — §6 aturan 2 dan bagian 11.2 aturan 16–21 lewat `IGD-DEC-186` (sementara, pola `IGD-DEC-174`). **Rizki Gunawan / 2026-10-05** — bagian 7 aturan 1–9 lewat `IGD-DEC-199` (sementara, pola `IGD-DEC-174`; approver akhir Security/Privacy owner, belum ditunjuk). **Rizki Gunawan / 2026-10-05 (sore)** — §5 aturan 12, §5.1, §6 aturan 4, §6.1 butir (d)–(f) lewat `IGD-DEC-209` (sementara, pola `IGD-DEC-174`; Nursing authority belum ditunjuk). Seluruh aturan lain tetap `draft` |
+| `input_revision` | `0.15.0`: `00-interview-decisions.md` **240 keputusan**, terakhir `IGD-DEC-240` (11 Oktober 2026); fakta `IGD-FACT-088`, `089`; capability map suplemen 3.5. `0.14.0`: `00-interview-decisions.md` **229 keputusan**, terakhir `IGD-DEC-229` (grill-me 6 Oktober 2026 sore); capability map suplemen 3.4 (backend `43dab6da`, frontend `6680278a2`). `0.13.0`: `00-interview-decisions.md` **208 keputusan**, terakhir `IGD-DEC-208` (amendment pass `grill-me` 5 Oktober 2026 sore, `IGD-DEC-204`…`208`); fakta `IGD-FACT-051`, `054`, `055`, `057` diverifikasi pada backend `rizkiG` `8d81d361` + working tree `EmergencyUnitAuthorityService.cs` dan frontend `RizkiV2` `57b1d360f`. `0.12.0`: `00-interview-decisions.md` **198 keputusan**, terakhir `IGD-DEC-198` (amendment pass 5 Oktober 2026, pass C2); fakta `IGD-FACT-044`…`048` diverifikasi pada backend `rizkiG` `8d81d361` (area IGD identik dengan `c1f79f79`) dan frontend `RizkiV2` `57b1d360f`. `0.11.0`: `00-interview-decisions.md` **185 keputusan**, terakhir `IGD-DEC-185` (amendment pass 3 Oktober 2026); fakta `IGD-FACT-032`…`036` diverifikasi pada backend `rizkiG` `2a63a3bb` (source IGD identik dengan `5af6ef3b`). `0.10.0`: `00-interview-decisions.md` **174 keputusan**, terakhir `IGD-DEC-174` (amendment pass 30 September 2026); fakta `IGD-FACT-029`…`031` diverifikasi ulang pada backend `rizkiG` `327ccad3` + working tree `BE-IGD-060` |
+| Versi sebelumnya | `0.14.0`, `0.13.0`, `0.12.0`, `0.11.0`, `0.10.0`, `0.9.0`, `0.8.0`, `0.7.0`, `0.6.0`, sebelumnya `0.5.0`, `0.4.0`, `0.3.0`, dan `0.2.0` |
 
 Aturan penulisan pesan: pesan penolakan **wajib** menyebut apa yang salah dan apa yang harus
 dilakukan petugas. Pesan yang hanya menyebut nama kolom teknis dianggap belum selesai.
@@ -160,7 +160,7 @@ Diperluas revisi 6 oleh `IGD-DEC-100`, `101`, `102`, dan `103`.
 | 9 | Sikap **`Cancel` hanya untuk pesanan yang belum dimulai**, dan hanya oleh klinisi berwenang | `409` | "Pesanan yang sudah dikerjakan tidak dapat dibatalkan; tetapkan Continue atau Handover." | **`IGD-DEC-100`** butir (a) dan (c) |
 | 10 | Sikap `Handover` menuntut unit penerima, dan menunggu **penerimaan eksplisit** | `400` | "Sikap serah terima wajib menyebutkan unit penerima." | **`IGD-DEC-102`** |
 | 11 | Penolakan sebuah pesanan **tidak** membatalkan penerimaan pasien | — | Tidak menolak. Perpindahan pasien tetap sah | **`IGD-DEC-102`** butir (a) dan (d) |
-| 12 | Pesanan yang **ditolak** unit penerima wajib diberi **sikap pengganti** sebelum kunjungan ditutup | `409` | "Ada pesanan yang ditolak unit penerima dan belum ditetapkan sikap penggantinya." | **`IGD-DEC-102`** butir (b) dan (c) |
+| 12 | Pesanan yang **ditolak** unit penerima wajib diberi **sikap pengganti** sebelum kunjungan ditutup — *kecuali pesanan milik kepergian yang fisiknya `Cancelled` (ditambahkan pada `0.13.0`, `IGD-DEC-205`; lihat §5.1)* | `409` | "Ada pesanan yang ditolak unit penerima dan belum ditetapkan sikap penggantinya." | **`IGD-DEC-102`** butir (b) dan (c) |
 | 13 | `AcceptanceStatus` = `Rejected` wajib beralasan | `400` | "Alasan penolakan pesanan wajib diisi." | **`IGD-DEC-102`** |
 | 14 | Sikap pengganti ditulis sebagai **baris baru** yang menunjuk baris lama; baris lama ditandai tidak berlaku dan **tidak dihapus** | — | — | **`IGD-DEC-102`**, mengikuti `IGD-DEC-090` |
 
@@ -172,6 +172,25 @@ dan tidak boleh ikut menahan penutupan kunjungan pada bagian 6 aturan 4.
 
 Yang menahan penutupan hanyalah pesanan **tanpa sikap sama sekali** (aturan 1) dan pesanan
 **ditolak yang belum diberi sikap pengganti** (aturan 12).
+
+**Diperjelas pada `0.13.0`** (`IGD-DEC-203`, `IGD-DEC-205`; **`approved`** lewat `IGD-DEC-209`, 5 Oktober 2026). Dua kalimat di atas
+tetap berlaku. Tabel ini mengunci arti setiap istilahnya, supaya penjaga penutupan, tombol *Selesaikan* kunjungan,
+penutupan susulan, dan alasan pada daftar menunggu penutupan membaca hal yang sama.
+
+| Ketentuan | Isi |
+| --- | --- |
+| Pesanan **tanpa sikap** | Baris pesanan kepergian yang **berlaku** — tidak dihapus dan belum digantikan baris lain — yang belum punya sikap `Continue`, `Handover`, atau `Cancel`. Arti yang sama dipakai aturan 1 saat dokumen diajukan. Baris semacam ini lahir dari pesanan luar sistem yang didaftarkan tanpa sikap, atau dari pengajuan dokumen yang ditolak aturan 1: barisnya **tetap tersimpan** supaya sikapnya dapat ditetapkan (`IGD-FACT-054`) |
+| Pesanan **ditolak** | Baris berlaku yang penerimaannya `Rejected` dan belum digantikan sikap pengganti (aturan 12 dan 14) |
+| Kepergian yang **dibatalkan** | Pesanan milik kepergian yang rangkaian fisiknya `Cancelled` **tidak** menahan penutupan, untuk kedua jenis di atas. Sejalan dengan §6 aturan 3 dan `IGD-DEC-106`: kepergian yang dibatalkan memang tuntas — pasien tidak jadi pergi, sehingga pesanannya tetap urusan IGD dan tidak butuh sikap *saat pergi* (`IGD-DEC-205`). Barisnya tidak diubah dan tidak dihapus |
+| Yang tidak menahan | Sikap `Continue`; `Handover` yang masih menunggu penerimaan atau sudah diterima; `Cancel`; baris yang sudah digantikan sikap pengganti |
+| Batas cakupan | Pesanan yang **belum pernah** menjadi baris pesanan kepergian — misalnya resep encounter yang dokumen serah terimanya belum pernah diajukan — **tidak** dihitung. Daftar pesanan dibentuk saat dokumen diajukan (`02-backend-architecture.md` §11.1), dan penjaga hanya membaca baris yang sudah ada. Menghitung pesanan yang belum terbentuk adalah keputusan bisnis tersendiri, bukan bagian versi ini |
+
+*Contoh berangka.* Kepergian Ny. Sari (data samaran) ke Rawat Inap Melati memuat tiga pesanan: *Resep R-0012* tanpa
+sikap, *Darah lengkap* ditolak Melati, *Ureum* bersikap `Continue`. Pasien sudah tiba; tindak lanjut dilaksanakan pukul
+14.00 → kunjungan **menunggu penutupan** karena dua penahan, *Resep R-0012* dan *Darah lengkap*; *Ureum* tidak dihitung.
+Pada pasien lain, kepergian ke HCU dibatalkan dengan satu baris *Resep R-0020* tanpa sikap dan satu baris *Elektrolit*
+ditolak HCU → keduanya **tidak** menahan; tindak lanjut yang dilaksanakan menutup kunjungan saat itu juga, dan kedua baris
+tetap tersimpan apa adanya.
 
 ### 5.2 Yang **tidak** ditegakkan sistem, dan sebabnya
 
@@ -193,7 +212,7 @@ Sampai saat itu, aturan 5 melarang sistem berpura-pura tahu.
 | 1 | Status wajib `Disposed` | `409` | "Kunjungan hanya dapat diselesaikan setelah keputusan tindak lanjut ditetapkan." |
 | 2 | Tidak boleh ada observasi `Active` **atau `Escalated`** — *diubah pada `0.11.0`* (§11.2 aturan 16, `IGD-DEC-183`); sebelumnya hanya `Active` | `409` | "Masih ada observasi yang belum diselesaikan." |
 | 3 | Tidak boleh ada kepergian yang fisiknya belum `Arrived` atau `Cancelled` | `409` | "Masih ada proses kepergian pasien yang belum selesai." |
-| 4 | Tidak boleh ada pesanan tanpa sikap | `409` | "Masih ada pesanan yang belum ditentukan sikapnya: {daftar pesanan}." |
+| 4 | Tidak boleh ada pesanan tanpa sikap — *diperjelas pada `0.13.0`*: pesanan tanpa sikap **atau** ditolak tanpa sikap pengganti menurut §5.1, **kecuali** milik kepergian yang fisiknya `Cancelled` (`IGD-DEC-205`) | `409` | "Masih ada pesanan yang belum ditentukan sikapnya: {daftar pesanan}." |
 | 5 | Status tagihan **tidak** diperiksa | — | Sesuai `IGD-DEC-021` |
 
 ### 6.1 Daftar pesanan pada aturan 4 — diubah pada `0.5.0`
@@ -206,8 +225,10 @@ diganti karena petugas tidak dapat mengetahui pesanan mana yang menahan penutupa
 | (a) Jumlah yang ditampilkan | Paling banyak **5** pesanan |
 | (b) Bila lebih dari 5 | Ditambahkan *"dan N lainnya"*, N = sisa pesanan yang tidak ditampilkan |
 | (c) Aturan kueri | **Tidak** diduplikasi — pesanan yang disebut adalah pesanan yang memang menahan penutupan |
-| (d) Titik penegakan | `EmergencyDepartureService.ValidatePesananSebelumPenutupanAsync` yang sudah ada |
-| Kode dan kondisi | Tetap `409`; kondisi penolakan **tidak** berubah |
+| (d) Titik penegakan | `EmergencyDepartureService.ValidatePesananSebelumPenutupanAsync` yang sudah ada. *Diselaraskan pada `0.13.0`:* sejak `BE-IGD-041` (16 September 2026) aturan kuerinya tinggal di `EmergencyDepartureService.AmbilPesananPenahanPenutupanAsync`, dan dipakai ketiga jalur penutupan lewat penjaga yang sama (§11 aturan 2 dan 10). `ValidatePesananSebelumPenutupanAsync` tetap memegang kalimat aturan 12 dan hanya boleh menyebut pesanan **ditolak** |
+| (e) Isi daftar — *baru pada `0.13.0`* | Pesanan tanpa sikap dan pesanan ditolak disebut bersama dalam satu daftar, dengan aturan (a) dan (b) yang sama. Pesanan milik kepergian yang dibatalkan tidak disebut |
+| (f) Data lama — *baru pada `0.13.0`* | Berlaku ke depan (pola `IGD-DEC-167`). Kunjungan yang sudah `Completed` atau `Cancelled` tidak dibuka kembali (§11 aturan 7 dan 9). Kunjungan yang sedang menunggu penutupan dan punya pesanan tanpa sikap mulai tertahan sejak aturan ini aktif, lalu tertutup lewat penutupan susulan begitu sikapnya ditetapkan |
+| Kode dan kondisi | Tetap `409`; kondisi penolakan **tidak** berubah. *Pada `0.13.0` kondisinya diperjelas lewat §5.1 — termasuk pengecualian kepergian yang dibatalkan; kode dan kalimat tetap* |
 
 *Contoh:* tujuh pesanan ditolak Rawat Inap → *"Masih ada pesanan yang belum ditentukan sikapnya:
 Darah lengkap, Elektrolit, Ureum, Kreatinin, Gula darah sewaktu dan 2 lainnya."*
@@ -216,18 +237,47 @@ Darah lengkap, Elektrolit, Ureum, Kreatinin, Gula darah sewaktu dan 2 lainnya."*
 
 ## 7. Kewenangan unit
 
-| No | Aturan | Kode | Keputusan |
-| ---: | --- | :-: | --- |
-| 1 | Pengguna wajib punya penugasan organisasi yang sedang berlaku pada simpul organisasi milik unit | `403` | `IGD-DEC-086` |
-| 2 | Penugasan yang `EffectiveEndDate`-nya sudah lewat tidak memberi kewenangan | `403` | `IGD-DEC-086` |
-| 3 | Unit yang kolom simpul organisasinya kosong | **Perilaku wajib disengaja dan tertulis** | `IGD-DEC-086` butir 4 |
-| 4 | Kewenangan unit **tidak** dengan sendirinya memberi kemampuan klinis | `403` | `IGD-DEC-058` |
-| 5 | Pelayanan klinis darurat **tidak pernah** diblokir ketiadaan penugasan | — | `IGD-DEC-086` butir 7 |
+Aturan 1 dan 2 serta 4 dan 5 berlaku sejak `0.2.0`; aturan 1 ditegaskan, aturan 3 diputuskan, dan aturan 6–9 ditambahkan
+pada `0.12.0` (5 Oktober 2026, `IGD-DEC-193`…`197`). Lapis izin kemampuan `[AccessPermission]` diperiksa lebih dulu
+oleh atribut endpoint; aturan bagian ini baru berjalan sesudahnya (permission/audit §1).
 
-> **Aturan 3 belum diputuskan.** Dua kemungkinan: menolak semua orang (fail-closed) atau
-> mengizinkan semua orang (fail-open). Untuk data master yang belum lengkap, fail-closed
-> menghentikan pelayanan dan fail-open menghapus penjagaan. Keduanya buruk, dan pilihannya
-> milik Security/Privacy owner. Dicatat sebagai `IGD-OQ-071`.
+| No | Aturan | Kode | Pesan | Keputusan |
+| ---: | --- | :-: | --- | --- |
+| 1 | Pengguna wajib punya penempatan organisasi yang sedang berlaku (`AspNetUserOrganization`), yang **sumbernya** — penugasan HR `WfpOrganizationAssignment` lewat `SourceAssignmentId` — menunjuk simpul organisasi yang **sama persis** dengan `MstServiceUnit.OrganizationUnitId` milik unit. Departemen penempatan **tidak** dipakai sebagai jembatan | `403` | "Anda tidak bertugas di unit {nama unit}, sehingga tidak dapat {tindakan}." | `IGD-DEC-086`, `IGD-DEC-193` |
+| 2 | Penempatan yang tidak aktif, terhapus, belum mulai berlaku, atau `EffectiveEndDate`-nya sudah lewat tidak memberi kewenangan | `403` | Sama dengan aturan 1 | `IGD-DEC-086` |
+| 3 | Unit yang kolom simpul organisasinya kosong **ditolak** (fail-closed). Pesannya **tidak** menjanjikan jalan keluar yang tidak tersedia | `403` | "Unit {nama unit} belum dipetakan ke simpul organisasi, sehingga kewenangan {tindakan} belum dapat diperiksa sistem. Minta Master Data melengkapi pemetaan unit ini." | `IGD-DEC-092` (bagian fail-closed), `IGD-DEC-195` |
+| 4 | Kewenangan unit **tidak** dengan sendirinya memberi kemampuan klinis | `403` | — | `IGD-DEC-058` |
+| 5 | Pelayanan klinis darurat **tidak pernah** diblokir ketiadaan penugasan | — | — | `IGD-DEC-086` butir 7 |
+| 6 | Penugasan pada simpul **induk** unit tidak memberi kewenangan atas unit turunannya; pemeriksaan tidak menelusuri pohon simpul | `403` | Sama dengan aturan 1 | `IGD-DEC-194` |
+| 7 | Penempatan warisan yang sumbernya kosong (`SourceAssignmentId` = `null`) tidak memberi kewenangan | `403` | Sama dengan aturan 1 | `IGD-DEC-193` |
+| 8 | Penempatan **sekunder** yang berlaku memberi kewenangan yang sama dengan penempatan utama (`IsPrimary` bukan syarat) | — | — | `IGD-DEC-194` |
+| 9 | Bagian ini dipakai **lima** tindakan kepergian: mencatat kedatangan, menerima atau menolak serah terima, menerima atau menolak pesanan (unit **tujuan**); menetapkan sikap pesanan dan mendaftarkan pesanan luar sistem (unit **asal**). Tindakan unit asal lain belum dijaga — permission/audit §3, `IGD-CONFLICT-006` | — | — | `IGD-DEC-197` |
+
+**Urutan pemeriksaan** di dalam penjaga: unit ditemukan → unit sudah dipetakan (aturan 3) → penempatan berlaku pada
+simpul yang sama (aturan 1, 2, 6–8). Pesan aturan 1 dan 3 diisi nama unit pelayanan dan kata kerja tindakan, misalnya
+*"meninjau serah terima"* atau *"menerima atau menolak pesanan"*. Kepergian yang unit asalnya kosong tetap ditolak `403`
+dengan pesan lama *"Unit asal belum tercatat sehingga kewenangan tindakan tidak dapat diperiksa."* — tidak berubah pada
+`0.12.0`.
+
+*Contoh.* Unit pelayanan *Rawat Inap Melati* dipetakan ke simpul *Bangsal Melati*, di bawah simpul induk *Instalasi Rawat
+Inap*. Pasien IGD dikirim ke Rawat Inap Melati.
+
+| Petugas | Penugasan HR | Hasil *Terima serah terima* | Aturan |
+| --- | --- | --- | --- |
+| Ns. Wati | Simpul *Bangsal Melati*, berlaku | `200` | 1 |
+| Ns. Budi | Simpul *Bangsal Mawar*, departemen sama dengan Ns. Wati | `403` *"Anda tidak bertugas di unit Rawat Inap Melati, sehingga tidak dapat meninjau serah terima."* | 1 |
+| Kepala Instalasi Rawat Inap | Simpul *Instalasi Rawat Inap* saja | `403`, pesan sama | 6 |
+| Kepala Instalasi Rawat Inap | Ditambah penugasan sekunder pada simpul *Bangsal Melati* | `200` | 8 |
+| Ns. Wati | Penugasan *Bangsal Melati* berakhir kemarin | `403`, pesan sama | 2 |
+| Siapa pun | — (unit *Rawat Inap Melati* belum dipetakan) | `403` *"Unit Rawat Inap Melati belum dipetakan ke simpul organisasi, sehingga kewenangan meninjau serah terima belum dapat diperiksa sistem. Minta Master Data melengkapi pemetaan unit ini."* | 3 |
+
+> **Aturan 3 diputuskan.** Catatan lama berbunyi *"Aturan 3 belum diputuskan … Dicatat sebagai `IGD-OQ-071`"*. Ia dijawab
+> sementara oleh `IGD-DEC-092` (24 Agustus 2026: fail-closed beserta jalan keluar beralasan), lalu dipersempit
+> `IGD-DEC-195` (5 Oktober 2026): fail-closed tetap, sedangkan jalan keluar beralasan **ditunda**. Jalan keluar itu
+> dirancang bila pemetaan unit sudah dinyatakan selesai dan sisa celahnya terbukti, atau bila Security/Privacy owner
+> ditunjuk — sesuai syarat `IGD-DEC-092` sendiri bahwa jalan keluar diperuntukkan bagi sisa celah, bukan keadaan kosong
+> massal. Pemetaan unit diisi pemilik lewat basis data per lingkungan sampai Master Data membuka kolomnya di API
+> (`IGD-DEC-196`). Approver akhir aturan ini tetap Security/Privacy owner, yang belum ditunjuk.
 
 ---
 
@@ -501,3 +551,131 @@ kesimpulan tersimpan, dan kunjungan tertutup pada penyimpanan yang sama atas nam
 *Contoh — urutan.* Pada kunjungan yang sudah selesai sejak kemarin, perawat menyelesaikan observasi Dieskalasi lama
 dengan catatan 1.200 karakter. Yang dijawab adalah `409` aturan 18, bukan `400` batas catatan: walaupun catatannya
 diringkas, kunjungan itu sudah berakhir.
+
+---
+
+## 12. Ruang Kerja Dokter IGD — baru pada `0.14.0`, **Rencana (belum tersedia)**
+
+Aturan untuk `IGD-DEC-220`…`229`. Status **`approved`** (`IGD-DEC-230`, Rizki Gunawan, 6 Oktober 2026). Aturan pada endpoint milik modul lain
+(aturan 4–13) ditulis di sini karena dipicu kebutuhan IGD; penerapannya tetap di modul pemiliknya. Pesan wajib ditulis
+**persis**; pesan yang sudah ada di source disebut *(pesan yang ada)* dan tidak diubah.
+
+### 12.1 Daftar pasien dokter
+
+| No | Aturan | Kapan diperiksa | Kode | Pesan / perilaku |
+| ---: | --- | --- | :-: | --- |
+| 1 | `doctorId` menyaring kunjungan yang DPJP **aktif**-nya dokter itu — penugasan berjalan berarti `EffectiveTo` kosong (`IGD-DEC-117`, `130`). Saringan ini **bukan** hak akses | `GET /emergency-visits` | — | Kunjungan tanpa DPJP aktif tidak ikut tersaring; tanpa `doctorId` semua kunjungan tampil (`IGD-DEC-222`) |
+| 2 | `ongoing=true` hanya memuat kunjungan yang belum `Completed` dan belum `Cancelled` | `GET /emergency-visits` | — | — |
+| 3 | `activeDoctorId`/`activeDoctorName` diambil dari penugasan berjalan yang sama dengan aturan 1; tanpa penugasan berjalan keduanya `null` | Daftar dan detail kunjungan | — | — |
+
+### 12.2 Kajian medis dokter untuk pasien IGD (perluasan ClinicalManagement)
+
+| No | Aturan | Kapan diperiksa | Kode | Pesan |
+| ---: | --- | --- | :-: | --- |
+| 4 | Kajian medis hanya dapat ditulis pengguna yang terhubung ke data dokter | `POST /patient-assessments` tipe kajian medis | `403` | *(pesan yang ada untuk kajian medis bukan oleh dokter)* |
+| 5 | Untuk encounter milik kunjungan IGD, kajian medis baru hanya diterima selama kunjungan belum `Completed`/`Cancelled` | Sama, sesudah aturan 4 | `409` | *"Kunjungan IGD ini sudah berakhir, sehingga kajian medis baru tidak dapat dibuat. Gunakan addendum pada kajian yang sudah ada."* |
+| 6 | Kajian medis **awal** (`MedicalInitial`) hanya satu per kunjungan IGD; kajian ulang (`MedicalReassessment`) boleh berkali-kali | Sama, sesudah aturan 5 | `409` | *"Kajian medis awal untuk kunjungan IGD ini sudah ada. Buka kajian itu, atau buat kajian ulang."* |
+
+Encounter yang bukan milik kunjungan IGD dan tidak punya episode rawat inap tetap ditolak seperti hari ini.
+
+### 12.3 Tindakan keperawatan IGD (perluasan ClinicalManagement)
+
+| No | Aturan | Kapan diperiksa | Kode | Pesan |
+| ---: | --- | --- | :-: | --- |
+| 7 | Encounter wajib milik kunjungan IGD | `POST /patient-procedures/emergency-nursing-actions` | `400` | *"Pencatatan tindakan keperawatan ini hanya untuk pasien IGD."* |
+| 8 | Kunjungan belum `Completed`/`Cancelled` | Sesudah aturan 7 | `409` | *"Kunjungan IGD ini sudah berakhir, sehingga tindakan baru tidak dapat dicatat."* |
+| 9 | Kunjungan wajib punya DPJP aktif; dokternya menjadi `doctorId` baris tindakan | Sesudah aturan 8 | `409` | *"Pasien belum punya dokter penanggung jawab. Tetapkan DPJP di layar triage lebih dulu, lalu catat tindakan ini."* |
+| 10 | Master tindakan wajib aktif | Sesudah aturan 9 | `400` | *(pesan yang ada: "Master tindakan tidak ditemukan atau tidak aktif.")* |
+| 11 | `performedAt` tidak boleh melewati waktu server; kosong berarti waktu server | Sesudah aturan 10 | `400` | *"Waktu pelaksanaan tindakan tidak boleh melewati waktu sekarang."* |
+| 12 | Kiriman ulang dengan `idempotencyKey` yang sama mengembalikan baris yang sudah tercatat, bukan baris kedua | Paling awal | `200` | — |
+
+*Contoh:* perawat Dimas menekan *Simpan* dua kali saat jaringan lambat; kedua permintaan membawa kunci yang sama, dan
+hanya satu tindakan *pemasangan infus* yang tercatat.
+
+### 12.4 Pesanan penunjang oleh perawat atas instruksi (perluasan Laboratorium dan Radiologi — menunggu `IGD-OQ-117`)
+
+| No | Aturan | Kapan diperiksa | Kode | Pesan |
+| ---: | --- | --- | :-: | --- |
+| 13 | Pada encounter milik kunjungan IGD, pesanan lab atau radiologi yang dibuat pengguna **bukan** dokter wajib membawa `instructingDoctorId` milik dokter aktif; verifikasinya `Pending` sampai dokter itu memverifikasi. Pesanan oleh dokter sendiri `NotRequired` | `POST /lab-orders`, `POST /rad-orders` | `400` | Tanpa dokter: *(pesan yang ada: "Pilih dokter yang memberi instruksi.")*. Dokter tidak aktif: *"Dokter pemberi instruksi tidak ditemukan atau tidak aktif."* |
+
+Pesanan bank darah, hemodialisa, dan gizi oleh perawat **tidak** dibuka pada slice ini (`IGD-OQ-118`) — dokter memesan
+ketiganya dari layar dokter.
+
+### 12.5 Tindak lanjut dari layar dokter
+
+| No | Aturan | Kapan diperiksa | Kode | Pesan |
+| ---: | --- | --- | :-: | --- |
+| 14 | Tindak lanjut baru selalu berstatus Draft (`IGD-CONF-11`) | `POST /emergency-dispositions`, bersama pemeriksaan ruas wajib | `400` | *"Tindak lanjut baru selalu disimpan sebagai draf. Konfirmasi dilakukan sesudah draf tersimpan."* |
+| 15 | Konfirmasi (Draft → Confirmed) hanya diterima bila kunjungan punya sekurang-kurangnya satu diagnosis yang dihitung (`IGD-DEC-226`) | `PATCH …/disposition-status` ke `2`, sesudah pemeriksaan rangkaian status | `409` | *"Tindak lanjut belum dapat dikonfirmasi karena pasien belum punya diagnosis. Tambahkan diagnosis kerja pada catatan dokter lebih dulu."* |
+
+**Diagnosis yang dihitung** (aturan 15): baris diagnosis pada encounter kunjungan itu yang tidak dihapus dan masih
+aktif, ber-master ICD-10, berstatus `Active` atau `Resolved`, berjenis `Primary`, `Secondary`, `WorkingDiagnosis`, atau
+`FinalDiagnosis`, dan — bila menempel ke catatan dokter — catatannya tidak dibatalkan. Diagnosis banding
+(`Differential`), diagnosis yang disingkirkan (`RuledOut`), dan yang dibatalkan **tidak** dihitung.
+
+**Urutan pemeriksaan `PATCH …/disposition-status`:** `404` → `400` rangkaian status → **`409` aturan 15** (hanya untuk
+target Confirmed) → pemeriksaan yang sudah ada (pembatalan atas kunjungan selesai, alasan pembatalan, pelaksanaan).
+
+*Contoh:* dr. Ani membuat tindak lanjut *Rawat Inap* untuk Tn. Budi — tersimpan sebagai draf. Ia menekan *Konfirmasi*
+dan ditolak `409`. Ia menambahkan diagnosis kerja *J18.9 Pneumonia* di catatan dokter, menekan *Konfirmasi* lagi, dan
+berhasil.
+
+### 12.6 Fakta tagih dari catatan dokter IGD (perilaku, bukan penolakan)
+
+| No | Aturan | Kapan | Perilaku |
+| ---: | --- | --- | --- |
+| 16 | Untuk encounter berjenis `Emergency`, penyelesaian catatan dokter **tidak** mengirim fakta jasa konsultasi; fakta resep tetap dikirim (`IGD-DEC-229`) | `PATCH /doctor-consultations/{id}/complete` | Tanpa pesan ke pengguna. Poliklinik dan rawat inap tidak berubah |
+
+## 13. Dokter jaga IGD dan override beralasan — baru pada `0.15.0`, **Rencana (belum tersedia)**
+
+Aturan untuk `IGD-DEC-141`, `237`…`239`. Status **`approved`** (`IGD-DEC-240`, Rizki Gunawan, 11 Oktober 2026). Pesan wajib
+ditulis **persis**; pesan yang sudah ada di source disebut *(pesan yang ada)* dan tidak diubah. Seluruh aturan ditegakkan
+backend lewat **satu** perhitungan kelayakan yang dipakai daftar dan penyimpanan sekaligus (`IGD-DEC-141` butir 1–2).
+
+### 13.1 Siapa dokter jaga IGD
+
+| No | Aturan | Contoh |
+| ---: | --- | --- |
+| 1 | Jadwal dihitung bila: `MstDoctorSchedule` aktif, tidak dihapus, `ScheduleStatus = Active`; dokternya aktif dan tidak dihapus; **dan** unit layanan pada jadwal, atau unit induk klinik pada jadwal, bertipe `ServiceUnitType.Emergency`. Jadwal yang unit layanannya atau unit induk kliniknya bertipe `Outpatient` tidak pernah dihitung. Nama dan kode unit **tidak** dibaca (`IGD-DEC-237` butir 1) | Unit "Poli IGD Anak" bertipe `Outpatient` → jadwal di sana tidak dihitung. Unit "Instalasi Gawat Darurat" bertipe `Emergency` → dihitung |
+| 2 | Jadwal berlaku pada T (jam Asia/Jakarta) bila: jadwal mingguan pada hari T, atau jadwal tanggal khusus pada tanggal T; tanggal T di dalam rentang efektif; dan jam mulai ≤ jam T < jam selesai | Jadwal Rabu 07.00–14.00: pukul 14.00 tepat **tidak** lagi berlaku |
+| 3 | Jadwal lintas tengah malam (`IsOvernight`) berlaku dari jam mulai pada hari praktiknya sampai jam selesai keesokan harinya; rentang efektif dibaca terhadap hari mulai | Jadwal Senin 21.00–07.00: Selasa 02.00 berlaku; Selasa 07.30 tidak |
+| 4 | T = `at` pada daftar (kosong = sekarang); T = `effectiveFrom` pada penyimpanan (kosong = waktu server) | Perawat menetapkan dokter pukul 06.50 dengan `effectiveFrom` kosong → kelayakan dihitung pukul 06.50 |
+
+### 13.2 Kelompok di luar jadwal
+
+| No | Aturan | Contoh |
+| ---: | --- | --- |
+| 5 | Kelompok di luar jadwal = dokter aktif yang tidak layak pada T dan spesialisasinya kosong, "Umum", mengandung "Umum", "Emergency", atau "Gawat Darurat" (`IGD-DEC-239`) | dr. Andi (Umum) yang tidak berjadwal → masuk; dr. Citra, Sp.JP → tidak |
+| 6 | Bila himpunan aturan 5 kosong, kelompok di luar jadwal = seluruh dokter aktif yang tidak layak pada T | Semua dokter umum sedang jaga → dokter spesialis ditawarkan di kelompok kedua |
+| 7 | Kelompok di luar jadwal **selalu** dikirim (kecuali `onlyOnDuty=true`), urut nama, paling banyak 50 baris; `search` menyaring kedua kelompok; satu dokter muncul sekali | Perawat mengetik "andi" bila nama itu tidak tampil di 50 baris pertama |
+
+### 13.3 Pemeriksaan saat menyimpan
+
+Berlaku pada `POST /emergency-doctor-assignments` dan `POST /{id}/handover`, **sesudah** pemeriksaan waktu penugasan
+yang sudah ada dan **sebelum** pemeriksaan penugasan berjalan (`409`).
+
+| No | Aturan | Kode | Pesan |
+| ---: | --- | :-: | --- |
+| 8 | Dokter tidak layak pada T dan tidak termasuk kelompok di luar jadwal pada T | `400` | *"Dokter ini tidak dapat dipilih sebagai dokter penanggung jawab IGD. Pilih dokter jaga IGD, atau dokter umum/emergency dengan alasan."* |
+| 9 | Dokter termasuk kelompok di luar jadwal dan `rosterOverrideReason` kosong (tidak dikirim, `null`, kosong, atau spasi saja) | `400` | *"Dokter ini tidak sedang jaga IGD pada waktu penugasan. Isi alasan memilih dokter di luar jadwal jaga."* |
+| 10 | `rosterOverrideReason` lebih dari 500 karakter sesudah spasi di ujung dibuang | `400` | *"Alasan memilih dokter di luar jadwal jaga paling banyak 500 karakter."* |
+| 11 | Dokter layak pada T | — | Diterima; `rosterOverrideReason` diabaikan; `IsRosterOverride = false` |
+| 12 | Dokter di luar jadwal dengan alasan sah | — | Diterima; `IsRosterOverride = true`; alasan disimpan sesudah spasi di ujung dibuang |
+
+**Urutan pemeriksaan `POST /`:** `404` kunjungan → `400` dokter tidak ada/tidak aktif *(pesan yang ada)* → `400` waktu
+penugasan *(pesan yang ada)* → **`400` aturan 8, 9, 10** → `409` penugasan berjalan *(pesan yang ada)*.
+
+**Urutan `POST /{id}/handover`:** `400` alasan pengalihan *(pesan yang ada)* → `404`/`409` penugasan lama *(pesan yang
+ada)* → `404` kunjungan → `400` dokter → `400` waktu (dua aturan yang ada) → **`400` aturan 8, 9, 10**.
+
+*Contoh:* pukul 10.00 perawat Dimas mengalihkan Tn. Budi ke dr. Andi (Umum, tidak berjadwal) dan hanya mengisi alasan
+pengalihan. Ditolak `400` aturan 9. Ia menambahkan alasan *"Dua dokter jaga sedang resusitasi"*, mengirim lagi, dan
+berhasil. Riwayat mencatat dr. Andi dengan penanda *di luar jadwal jaga* beserta alasannya.
+
+### 13.4 Keadaan tidak normal
+
+| Keadaan | Perilaku |
+| --- | --- |
+| Roster berubah antara daftar dibuka dan tombol simpan ditekan | Penyimpanan memakai aturan 8–12 pada saat simpan; layar menampilkan `400` apa adanya dan memuat ulang daftar |
+| Tidak ada jadwal IGD sama sekali (roster kosong) | Semua penetapan menjadi override beralasan; layar tidak buntu (`IGD-UNK-18`) |
+| Dokter yang sedang menjadi DPJP berhenti jaga | Penugasan berjalan **tidak** diubah; kelayakan hanya diperiksa saat menetapkan atau mengalihkan |

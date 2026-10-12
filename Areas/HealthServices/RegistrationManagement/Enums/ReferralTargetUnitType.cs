@@ -18,6 +18,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enum
         /// (<c>RJ-DOC-OQ-PM-02</c>, <c>RJ-VAL-PM-05</c>).
         /// </summary>
         [Display(Name = "Radiologi")]
-        Radiology = 3
+        Radiology = 3,
+
+        [Display(Name = "Instalasi Gawat Darurat")]
+        Emergency = 4
     }
 }
