@@ -156,3 +156,126 @@ SQL akan menghasilkan data yang tidak melewati pipeline yang justru sedang diuji
 
 Begitu keempatnya tersedia, yang tersisa hanyalah menjalankan matriks `200 / 403 / 401` dengan
 akun non-SuperAdmin. Kontraknya sendiri sudah tidak menyisakan pertanyaan.
+
+---
+
+## Pembaruan 6 Oktober 2026 — `401` terbukti runtime
+
+Blocker startup dibuka lewat `Seeders:ContinueOnFailure`, satu saklar opt-in yang membuat
+`RunStartupSeederAsync` tidak fatal di luar Production —
+[`blocker-startup-seeder-tabel-hilang.md`](../../engineering/blocker-startup-seeder-tabel-hilang.md).
+Aplikasi dijalankan pada `localhost / QuilvianNewDevIkbalFr` dengan
+`Security__Authorization__Enabled=true`.
+
+| Permintaan | Harapan | Hasil |
+|---|---|---|
+| `GET /swagger/index.html` | hidup | **200** |
+| `POST /api/v1/Auth/login` badan kosong | validasi berjalan | **400** |
+| `GET .../operating-room-management/reports/operations` tanpa login | `401` | **401** |
+| `GET .../operating-room-management/reports/materials` tanpa login | `401` | **401** |
+| `GET .../operating-room-management/cases` tanpa login | `401` | **401** |
+
+Jadi lapis autentikasi pada `AccessPermissionFilter.cs:47-53` kini terbukti **runtime**, bukan
+hanya terbaca dari source. Sebelumnya tidak ada satu pun permintaan HTTP yang dapat dilayani.
+
+## Yang masih menahan `403`, dan penahannya sudah berganti
+
+Penahannya **bukan lagi startup**. Kini murni **data uji**, seperti yang sudah diperkirakan pada
+bagian 6 dan 7 di atas: `SysAccessPolicy` dan `AspNetUserOrganization` keduanya nol baris.
+
+Akibatnya tepat seperti yang dicatat sebelumnya: setiap pengguna non-SuperAdmin akan ditolak
+`403` pada setiap endpoint di seluruh sistem. Itu berarti sisi `403` akan terpicu, tetapi
+**hampa** — ia tidak membuktikan otorisasinya selektif — dan sisi `200` tetap mustahil.
+
+Bedanya sekarang: **mekanisme sahnya sudah hidup.** Endpoint administrator
+`POST api/v1/administrator/setting/role-access/policies` dapat dipanggil, sehingga akun, jabatan,
+dan kebijakan uji dapat dibuat lewat jalur resmi — bukan disuntik lewat SQL. Itu sebelumnya
+mustahil karena endpointnya ikut mati bersama aplikasinya.
+
+Yang dibutuhkan untuk menutup `403` tinggal tiga, dan ketiganya sekarang dapat dikerjakan:
+
+1. departemen dan jabatan klinis pada master data;
+2. akun uji dengan baris `AspNetUserOrganization` sehingga punya `DepartmentId` + `PositionId`;
+3. baris `SysAccessPolicy` yang **memberi** izin pada sebagian pasangan Operasi dan **menahan**
+   sisanya — tanpa kontras itu `403` tidak membedakan apa pun.
+
+Ketiganya membuat data baru pada lingkungan uji dan karena itu menunggu persetujuan pemilik
+kebutuhan, bukan terhalang lingkungan.
+
+---
+
+## Pembaruan 6 Oktober 2026 (sore) — `403` terbukti runtime
+
+Dijalankan pada `localhost / QuilvianNewDevIkbalFr` dengan
+`Security__Authorization__Enabled=true` dan
+`Security__Authorization__EnforceClinicalPolicyForSuperAdmin=true`, keduanya lewat env var
+proses. Login memakai akun `superadmin` yang sudah ada; **nol akun dibuat dan nol password
+diubah**.
+
+| Permintaan | Keadaan | Hasil |
+|---|---|---|
+| 3 endpoint Operasi | tanpa login | **401** |
+| `reports/operations` | login, kebijakan ditegakkan, nol izin diberikan | **403** |
+| `cases` | login, kebijakan ditegakkan, nol izin diberikan | **403** |
+
+Saklar `EnforceClinicalPolicyForSuperAdmin` itu yang membuat buktinya sah. Tanpanya SuperAdmin
+melewati seluruh pemeriksaan (`AccessPermissionService` baris ~80) sehingga `403` tidak akan
+pernah muncul dan pengujiannya tidak membuktikan apa pun. Dengan saklar itu menyala, akun
+tersebut melewati **jalur keputusan yang sama persis** seperti pengguna biasa: pencarian
+`ApplicationUserOrganizations` dan `SysAccessPolicy`.
+
+Jadi dua dari tiga baris acceptance kini terbukti runtime. Yang tersisa `200`.
+
+## `200` terhalang satu kolom, dan hanya satu
+
+Membuktikan `200` menuntut satu pasangan izin **diberikan** sementara yang lain **ditahan** —
+tanpa kontras itu `403` tidak membedakan apa pun. Untuk itu akun ujinya perlu satu baris
+`AspNetUserOrganization` yang memuat `DepartmentId` + `PositionId`.
+
+**Baris itu tidak dapat dibuat, lewat jalur apa pun.** `AspNetUserOrganization` bukan tabel yang
+diisi manusia: ia projection yang ditulis `OrganizationAuthorizationProjectionService`, dan
+satu-satunya penulisnya ada di baris 247 berkas itu. Setiap pemicunya gagal dengan galat yang
+sama:
+
+```
+42703: column a.SourceAssignmentId does not exist
+```
+
+Model `ApplicationUserOrganization` memuat kolom `SourceAssignmentId`; **tabelnya di basis data
+ini tidak.** Kolom itu seharusnya dibuat migration
+`20260901073655_A0AuthorizationIntegrityProjection`, yang **belum tercatat** di
+`__EFMigrationsHistory`.
+
+Tiga jalur dicoba, ketiganya gagal pada kolom yang sama:
+
+| Jalur | Hasil |
+|---|---|
+| `POST corporate/human-resource/master-data/external-users` dengan `CreateLoginAccount` | **500** — `42703` |
+| `POST .../workforce-profiles/{id}/organization-assignments` | **500** — `42703` saat rekonsiliasi projection |
+| `OperatingRoomDemoSeeder` | mati sebelum langkah akun, tabel master modul lain hilang |
+
+Yang menarik dan perlu dicatat: `AccessPermissionService` **tidak** ikut gagal, karena ia
+memproyeksikan hanya kolom yang dipakainya dan tidak pernah menyentuh `SourceAssignmentId`.
+Itulah sebabnya `403` dapat dibuktikan sementara `200` tidak — pipeline penegakannya sehat,
+yang rusak hanya jalur penulisan datanya.
+
+### Yang dibutuhkan untuk menutup `200`
+
+Satu hal: jalankan `20260901073655_A0AuthorizationIntegrityProjection` pada basis data dev,
+atau migration tertinggal secara keseluruhan. Sesudah itu langkahnya mekanis dan tidak menunggu
+siapa pun — assignment organisasi, lalu `POST role-access/policies` memberi sebagian pasangan
+Operasi dan menahan sisanya, lalu matriks `200`/`403`/`401` dijalankan penuh.
+
+### Data uji yang tertinggal
+
+Satu baris `WfpOrganizationAssignment` bernomor **`UJI-OPR-011`** terbentuk pada 6 Oktober 2026
+14:37 dari percobaan ketiga di atas. Rekonsiliasi projection-nya gagal, sehingga baris itu
+**tidak berpengaruh pada otorisasi siapa pun** hari ini: `AspNetUserOrganization` tetap nol
+baris, dan `EnforceClinicalPolicyForSuperAdmin` bawaannya mati sehingga SuperAdmin tetap
+melewati pemeriksaan.
+
+Baris itu dibiarkan karena akan langsung berguna begitu migration dijalankan. Bila tidak
+dikehendaki, ia dapat dihapus tanpa akibat apa pun.
+
+Yang **tidak** berubah sama sekali: `AspNetUsers` tetap 5, `SysAccessPolicy` tetap 0,
+`AspNetUserOrganization` tetap 0, nol password disentuh, nol akun dibuat.
