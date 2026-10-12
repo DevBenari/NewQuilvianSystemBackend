@@ -7,6 +7,12 @@ using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
+using Microsoft.Extensions.DependencyInjection;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 
@@ -32,6 +38,7 @@ public sealed class OperatingRoomHarness : IDisposable
 {
     private readonly TestDatabase _database;
     private readonly List<ApplicationDbContext> _contexts = [];
+    private readonly List<ServiceProvider> _providers = [];
 
     public OperatingRoomHarness(bool relaxed = false)
     {
@@ -75,14 +82,13 @@ public sealed class OperatingRoomHarness : IDisposable
     public OperatingRoomExecutionService ExecutionService(Guid userId, ApplicationDbContext? context = null)
     {
         var db = context ?? NewContext();
-        return new OperatingRoomExecutionService(db, Accessor(userId), Logger(userId),
-            IntegrationService(userId, db), Relaxation());
+        return Susun<OperatingRoomExecutionService>(userId, db);
     }
 
     public OperatingRoomRecoveryService RecoveryService(Guid userId, ApplicationDbContext? context = null)
     {
         var db = context ?? NewContext();
-        return new OperatingRoomRecoveryService(db, Accessor(userId), Logger(userId), Relaxation());
+        return Susun<OperatingRoomRecoveryService>(userId, db);
     }
 
     public OperatingRoomMaterialService MaterialService(Guid userId, ApplicationDbContext? context = null)
@@ -95,7 +101,7 @@ public sealed class OperatingRoomHarness : IDisposable
     public OperatingRoomIntegrationService IntegrationService(Guid userId, ApplicationDbContext? context = null)
     {
         var db = context ?? NewContext();
-        return new OperatingRoomIntegrationService(db, Accessor(userId), Logger(userId));
+        return Susun<OperatingRoomIntegrationService>(userId, db);
     }
 
     private OperatingRoomRuleRelaxation Relaxation()
@@ -133,8 +139,69 @@ public sealed class OperatingRoomHarness : IDisposable
         public HttpContext? HttpContext { get; set; } = context;
     }
 
+    /// <summary>
+    /// Menyusun satu service beserta seluruh rantai dependensinya lewat container DI, di atas
+    /// konteks yang diberikan.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Dipakai untuk service yang rantai dependensinya dalam dan melintasi modul — pelaksanaan,
+    /// pemulihan, dan integrasi Operasi kini menarik <c>ClinicalMilestoneFactProducer</c>,
+    /// <c>PatientProcedureExecutionService</c>, <c>InpAdmissionReferralService</c>, dan
+    /// seterusnya. Merangkainya dengan tangan berarti harness ini pecah setiap kali salah satu
+    /// konstruktor di modul lain berubah, dan itu sudah terjadi.
+    /// </para>
+    /// <para>
+    /// Konteksnya didaftarkan sebagai <b>instance</b>, bukan pabrik, supaya seluruh rantai
+    /// memakai konteks yang sama persis dengan yang dipegang uji. Kalau tidak, uji memeriksa
+    /// keadaan pada konteks yang berbeda dari yang dilihat service.
+    /// </para>
+    /// </remarks>
+    private T Susun<T>(Guid userId, ApplicationDbContext db) where T : notnull
+    {
+        var layanan = new ServiceCollection();
+
+        layanan.AddLogging();
+        layanan.AddSingleton<IHttpContextAccessor>(_ => Accessor(userId));
+        layanan.AddSingleton(db);
+        layanan.AddSingleton(_ => Logger(userId));
+        layanan.AddSingleton(_ => Relaxation());
+
+        // Seluruh service yang ikut tertarik rantai dependensi Operasi. Didaftarkan dengan
+        // tipenya sendiri supaya DI yang menentukan urutan pembangunannya, bukan harness.
+        foreach (var tipe in new[]
+        {
+            typeof(OperatingRoomExecutionService),
+            typeof(OperatingRoomRecoveryService),
+            typeof(OperatingRoomIntegrationService),
+            typeof(OperatingRoomCompletionEffects),
+            typeof(InpPatientLocationQuery),
+            typeof(InpAdmissionReferralService),
+            typeof(InpSettingService),
+            typeof(PatientProcedureExecutionService),
+            typeof(PatientProcedureOrderService),
+            typeof(ClinicalDocumentIntegrityService),
+            typeof(ClinicalMilestoneFactProducer),
+            typeof(InpatientClinicalContextService),
+            typeof(InsuranceCoverageService),
+            typeof(EncounterInsuranceService),
+            typeof(NursingActorService),
+            typeof(BillingFolioService),
+            typeof(BillingClinicalChargeBridgeService)
+        })
+        {
+            layanan.AddScoped(tipe);
+        }
+
+        var penyedia = layanan.BuildServiceProvider();
+        _providers.Add(penyedia);
+
+        return penyedia.GetRequiredService<T>();
+    }
+
     public void Dispose()
     {
+        foreach (var penyedia in _providers) penyedia.Dispose();
         foreach (var context in _contexts) context.Dispose();
         _database.Dispose();
     }
