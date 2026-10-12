@@ -49,6 +49,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         [MaxLength(1000)]
         public string? ReferralReason { get; set; }
 
+        /// <summary>
+        /// Nama dokter perujuk sesuai surat, diketik bebas (bukan pilihan master). Menggantikan
+        /// <c>RegPatientEncounter.ReferralDoctorId</c> untuk rujukan baru dari Pendaftaran RJ dan Kiosk.
+        /// </summary>
+        [MaxLength(200)]
+        public string? ReferralDoctorName { get; set; }
+
         /// <summary>Tanda mitra instansi perujuk saat rincian disimpan.</summary>
         public bool InstitutionIsPartnerSnapshot { get; set; }
 
