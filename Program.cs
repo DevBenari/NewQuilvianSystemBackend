@@ -90,6 +90,8 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegrat
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Services;
 // BE-FIN-074: Konfigurasi bukti pembayaran langsung Finance (FIN-DES-092).
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Services;
+// BE-FIN-093: Perjanjian cicilan piutang manfaat karyawan (FIN-DES-099).
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
 
 
@@ -108,6 +110,11 @@ try
     // atribut baru mengulang cacat yang sama.
     CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
     CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+
+    // Report Canceled Invoice V2 (export PDF) — organisasi wajib memenuhi syarat QuestPDF
+    // Community License (pendapatan kotor tahunan di bawah USD 1 juta, bukan sektor publik/
+    // perusahaan publik) sebelum deployment produksi. Dikonfirmasi oleh pemilik produk.
+    QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
     var builder = WebApplication.CreateBuilder(args);
 
@@ -384,6 +391,30 @@ try
     builder.Services.AddSingleton(backendVersionManifest);
     builder.Services.AddScoped<LanguageService>();
     builder.Services.AddScoped<LoggerService>();
+    // BE-FIN-093: belum terdaftar sebelum task ini. Temuan: FinanceBillingIntakeService dan
+    // tampaknya sebagian besar service Corporate/FinanceManagement lain juga TIDAK terdaftar di
+    // sini (diverifikasi grep "AddScoped<Finance" pada berkas ini: nol hasil) walau controller dan
+    // using-nya sudah ada — nol dotnet build pernah membuktikannya, karena build sukses tidak
+    // membuktikan DI terselesaikan saat runtime. Dicatat di laporan task, TIDAK diperbaiki di sini
+    // untuk service lain — di luar cakupan BE-FIN-093.
+    builder.Services.AddScoped<FinanceReceivableInstallmentPlanService>();
+    // BE-FIN-094: pola Configure<T> sama persis dengan LeavePayrollIntegrationOptions (HR).
+    builder.Services.Configure<FinanceReceivablePayrollSyncOptions>(
+        builder.Configuration.GetSection("Finance:ReceivablePayrollSync"));
+    // BE-FIN-095: FinanceSubledgerMovementService dibutuhkan FinanceReceivablePayrollSyncService
+    // (mutasi POTONGAN-GAJI) — juga belum terdaftar sebelum task ini, temuan yang sama dengan BE-FIN-093 §3.A.
+    builder.Services.AddScoped<FinanceSubledgerMovementService>();
+    builder.Services.AddScoped<FinanceReceivablePayrollSyncService>();
+    // BE-FIN-096: murni baca, nol dependency tambahan selain ApplicationDbContext.
+    builder.Services.AddScoped<FinanceReceivableClearanceService>();
+    // BE-FIN-098: berdiri sendiri dari FinanceOpeningItemBatchService (wewenang eksplisit pengguna).
+    builder.Services.AddScoped<FinanceReceivableMigrationService>();
+    builder.Services.AddScoped<IFinanceReceivableNumberGenerator, FinanceReceivableNumberGenerator>();
+    builder.Services.AddScoped<FinanceBenefitSettlementService>();
+    builder.Services.AddScoped<FinanceBillingArReportService>();
+    builder.Services.AddScoped<FinanceReceivableAgingReportService>();
+    builder.Services.AddScoped<FinanceSettlementService>();
+    builder.Services.AddScoped<FinanceReceivablePaymentReportService>();
     builder.Services.AddScoped<ICompanyGuarantorReimbursementRouteService, CompanyGuarantorReimbursementRouteService>();
     builder.Services.AddScoped<CompanyGuarantorReimbursementRouteService>();
     builder.Services.AddScoped<ICompanyGuarantorCoverageRuleService, CompanyGuarantorCoverageRuleService>();
@@ -635,6 +666,7 @@ try
     // dibuat oleh dependency injection, sehingga endpoint-nya membalas 500 sebelum kode
     // modul sempat dijalankan. Pola mengikuti service lain: kelas konkret, tanpa interface.
     builder.Services.AddScoped<EmergencyDocumentNumberService>();
+    builder.Services.AddScoped<EmergencyRealtimeService>();
     builder.Services.AddScoped<EmergencyVisitService>();
     builder.Services.AddScoped<EmergencyTriageService>();
     builder.Services.AddScoped<EmergencyResuscitationService>();
@@ -1579,10 +1611,64 @@ try
         }
     }
 
-    static async Task RunStartupSeederAsync(string seederName, Func<Task> seed)
+    // Seeder yang gagal ketika `Seeders:ContinueOnFailure` menyala. Dilaporkan sekali lagi
+    // sebagai ringkasan sesudah seluruh seeder selesai, karena satu baris log di tengah ratusan
+    // baris startup terlalu mudah terlewat.
+    var seederYangGagal = new List<string>();
+
+    // Boleh melanjutkan startup ketika satu seeder gagal.
+    //
+    // OPT-IN, dan bawaannya `false` supaya perilaku setiap lingkungan yang sudah berjalan tidak
+    // berubah diam-diam oleh perubahan ini.
+    //
+    // DIABAIKAN DI PRODUCTION, mengikuti pola `Security:Authorization:Enabled`: kemudahan
+    // pengembangan tidak boleh melemahkan produksi. Rumah sakit yang berjalan dengan data master
+    // separuh terisi lebih berbahaya daripada rumah sakit yang menolak boot, karena yang pertama
+    // gagal pada saat petugas sedang melayani pasien dan sebabnya tidak terlihat.
+    var lanjutkanSaatSeederGagal =
+        builder.Configuration.GetValue<bool>("Seeders:ContinueOnFailure")
+        && !app.Environment.IsProduction();
+
+    // Catatan polaritas, karena berkas ini memuat dua aturan yang tampak berlawanan.
+    //
+    // `PermissionRegistryValidator` di bawah justru MENGHENTIKAN startup di luar Production dan
+    // hanya mencatat Critical di Production. Itu benar untuk kasusnya: yang diperiksanya anotasi
+    // pada source, jadi kegagalannya adalah cacat kode yang harus tertangkap sebelum rilis.
+    //
+    // Seeder data master berbeda. Kegagalannya hampir selalu berarti basis datanya belum lengkap
+    // — tabelnya belum dibuat migration yang belum dijalankan — dan itu keadaan NORMAL pada
+    // lingkungan pengembangan, bukan cacat kode. Mematikan seluruh aplikasi karenanya membuat
+    // seluruh modul tidak dapat dijalankan hanya karena satu data master milik modul lain belum
+    // ada. Karena itu kelonggarannya dibuka untuk pengembangan saja, dan tetap harus diminta
+    // secara sadar.
+    async Task RunStartupSeederAsync(string seederName, Func<Task> seed)
     {
         var stopwatch = Stopwatch.StartNew();
-        await seed();
+
+        try
+        {
+            await seed();
+        }
+        catch (Exception ex) when (lanjutkanSaatSeederGagal)
+        {
+            stopwatch.Stop();
+            seederYangGagal.Add(seederName);
+
+            // Error, bukan Warning: ini bukan hal yang boleh dianggap wajar. Yang berubah hanya
+            // bahwa startup tidak ikut mati — bukan bahwa kegagalannya menjadi tidak penting.
+            Log.Error(
+                ex,
+                "[StartupSeed] {Seeder} GAGAL setelah {ElapsedMilliseconds} ms. Startup " +
+                "dilanjutkan karena Seeders:ContinueOnFailure menyala pada lingkungan {Environment}. " +
+                "Data master yang disiapkan seeder ini TIDAK tersedia, sehingga fitur yang " +
+                "bergantung padanya akan gagal saat dipakai.",
+                seederName,
+                stopwatch.ElapsedMilliseconds,
+                app.Environment.EnvironmentName);
+
+            return;
+        }
+
         stopwatch.Stop();
         Log.Information("[StartupSeed] {Seeder} completed in {ElapsedMilliseconds} ms", seederName, stopwatch.ElapsedMilliseconds);
     }
@@ -1938,6 +2024,20 @@ try
         {
             await Icd10DiagnosisSeeder.SeedAsync(app.Services, icdSeedPath);
         }
+    }
+
+    // Ringkasan seeder yang dilewati karena gagal. Tanpa ini, kegagalannya terkubur di antara
+    // ratusan baris log startup dan aplikasi tampak sehat padahal sebagian data master kosong.
+    if (seederYangGagal.Count > 0)
+    {
+        Log.Error(
+            "[StartupSeed] {JumlahGagal} seeder GAGAL dan dilewati: {DaftarSeeder}. Aplikasi " +
+            "berjalan, tetapi data master yang disiapkan seeder itu tidak tersedia. Penyebab " +
+            "paling umum adalah migration yang belum dijalankan pada basis data ini — periksa " +
+            "__EFMigrationsHistory terhadap berkas di Migrations/ sebelum menyimpulkan ada cacat " +
+            "kode. Matikan Seeders:ContinueOnFailure untuk kembali menggagalkan startup.",
+            seederYangGagal.Count,
+            string.Join(", ", seederYangGagal));
     }
 
     if (runWebRuntime && app.Environment.IsDevelopment())

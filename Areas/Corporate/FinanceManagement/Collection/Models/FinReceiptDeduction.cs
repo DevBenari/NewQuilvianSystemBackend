@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -39,6 +40,10 @@ public sealed class FinReceiptDeduction : IdentityModel
     public FinReceiptAllocation? ReceiptAllocation { get; set; }
 
     [Required, MaxLength(30)] public string DeductionType { get; set; } = string.Empty;
+
+    /// <summary>Rujukan akun COA akuntansi (AccChartOfAccount) untuk potongan ini.</summary>
+    public Guid? ChartOfAccountId { get; set; }
+    public AccChartOfAccount? ChartOfAccount { get; set; }
 
     /// <summary>Selalu positif, termasuk pada baris pembalik.</summary>
     public decimal Amount { get; set; }

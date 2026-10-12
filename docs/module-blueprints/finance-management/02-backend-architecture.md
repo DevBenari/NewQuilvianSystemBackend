@@ -6336,3 +6336,70 @@ Areas/HealthServices/BillingManagement/Billing/
 3. **Penyimpanan Gaji Bruto Pegawai di Finance**: Ditolak. Finance hanya menerima angka cicilan dan hasil potongan, tidak menyimpan struktur gaji atau potongan pajak PPh 21 pegawai.
 4. **Pengeluaran Kas Manual Finance untuk Restitusi Potongan Salah Orang**: Ditolak (`FIN-DEC-195`). Pengembalian dana dilakukan oleh HR via penyesuaian payroll slip gaji periode berikutnya agar rekonsiliasi beban gaji dan pajak pegawai tetap akurat.
 
+---
+
+## Q. Settlement AR V2 (Pembayaran & Pelunasan)
+
+Didokumentasikan 2026-10-11 lewat `ISSUE-FIN-002`/`PLAN-REPAIR-FIN-002`, menyusul `FIN-DEC-203`
+yang menetapkan layar ini sebagai desain resmi (menggantikan rencana reuse `/finance/receipts`
+pada `FIN-DEC-107`). Service, endpoint, dan source-nya sudah berjalan sebelum dokumen ini
+ditulis — bagian ini hanya menyusulkan dokumentasinya agar tidak lagi "di luar radar" blueprint.
+
+### Q.1 Lingkup dan tujuan
+
+Laporan dan monitoring **read-only** piutang per debitur (Perusahaan/Asuransi, Pasien Umum,
+Karyawan), menampilkan Total Piutang, Beginning Balance, dan Ending Balance per piutang beserta
+ringkasan global, dengan pagination 10 baris dan ekspor Excel/PDF atas seluruh hasil filter.
+Service **tidak mengubah** status transaksi, tidak membuat mutasi, dan tidak menimbulkan side
+effect — satu-satunya sumber kebenaran saldo tetap `FinReceivable` (agregat) dan
+`FinReceivableMovement` (riwayat), sesuai batasan eksplisit pemilik.
+
+### Q.2 Service dan entitas
+
+`FinanceSettlementService`
+(`Areas/Corporate/FinanceManagement/Receivable/Services/FinanceSettlementService.cs`) — service
+tunggal untuk seluruh kebutuhan layar ini:
+
+- `GetSettlementPagedAsync` — daftar terpaginasi + ringkasan, memanggil `BuildFilteredQueryable`,
+  `ApplySorting`, lalu menghitung Beginning/Ending Balance per baris dengan `CalculateBalances`.
+- `GetSettlementSummaryAsync`/`GetSettlementSummaryInternalAsync` — ringkasan global atas seluruh
+  hasil filter (bukan hanya halaman aktif), menghitung ulang balance historis bila periode diisi.
+- `GetSettlementDetailAsync`, `ExportExcelAsync`, `ExportPdfAsync` — detail satu piutang dan
+  ekspor seluruh hasil filter.
+
+Entitas yang digabung (`LEFT JOIN`, bukan navigasi FK untuk `InvoiceId` — lintas bounded
+context): `FinReceivable` (agregat), `BilInvoice`, `RegPatientEncounter`, `MstPatient`,
+`MstEmployee`, `MstCompanyGuarantor`, `MstInsuranceProvider`, dan membership aktif
+`FinReceivableInvoiceBatchItem` (disaring `!IsDelete && IsActiveMembership && Batch.Status !=
+Cancelled` — perbaikan `FIX-FIN-002-02` menambahkan syarat `!IsDelete` yang semula hilang,
+mencegah duplikasi baris saat satu piutang pernah punya lebih dari satu baris membership).
+
+Proyeksi `SettlementQueryRow` membawa `comp`/`ins` sebagai anggota record tersendiri (bukan
+hanya `debtorResolvedName` yang sudah dihitung) — perbaikan `FIX-FIN-002-01` setelah ditemukan
+`InvalidOperationException` EF Core saat `ApplySorting`/filter `Search` merujuk ulang hasil
+proyeksi pada operator yang dipasang setelah `Select`.
+
+### Q.3 Beginning Balance, Ending Balance, dan "Posisi Terkini"
+
+`CalculateBalances` (statis, dipanggil pada data yang sudah dimaterialisasi, bukan di dalam
+`IQueryable`):
+
+- Tanpa `StartDate`/`EndDate`: Beginning = `OriginalAmount`, Ending = `OutstandingAmount`
+  (posisi berjalan). Label periode: *"Semua Periode (Posisi Terkini)"*.
+- `StartDate` diisi: Beginning = saldo (`BalanceAfter`) mutasi terakhir sebelum `StartDate`; bila
+  tidak ada mutasi sebelum itu, `0` jika piutang baru terbentuk setelah `StartDate`, atau
+  `OriginalAmount` jika piutang sudah ada sebelum `StartDate` tanpa mutasi tercatat.
+- `EndDate` diisi: Ending = saldo mutasi terakhir s/d `EndDate` (inklusif).
+
+### Q.4 Endpoint
+
+Lihat `contracts/api-contract.md` bagian baru untuk kontrak lengkap. Lima endpoint di bawah
+`api/v1/corporate/finance-management/receivables/settlement*`, hak akses `FinanceReceivable :
+Read` di seluruhnya (baca-saja, tanpa aksi tulis).
+
+### Q.5 Yang sengaja tidak dibuat
+
+Perubahan saldo manual, endpoint tulis (POST/PUT/PATCH/DELETE), dan migration skema baru — layar
+ini murni laporan; perbaikan/penyesuaian saldo tetap lewat proses resmi V2 (reversal, adjustment,
+write-off) di modul Receivable yang sudah ada, bukan lewat Settlement AR.
+

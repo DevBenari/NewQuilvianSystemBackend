@@ -69,6 +69,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private readonly QueueRealtimeService _queueRealtimeService;
         private readonly ClinicalDocumentIntegrityService _integrityService;
         private readonly PatientEncounterNumberService _patientEncounterNumberService;
+        private readonly EmergencyRealtimeService? _emergencyRealtimeService;
         private readonly OutpatientQueueClassificationService _queueClassificationService;
         private readonly OutpatientQueueNumberAllocator _queueNumberAllocator;
         private readonly EncounterReferralService _encounterReferralService;
@@ -86,6 +87,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             LoggerService loggerService,
             QueueRealtimeService queueRealtimeService,
             ClinicalDocumentIntegrityService integrityService,
+            EmergencyRealtimeService? emergencyRealtimeService = null,
             PatientEncounterNumberService? patientEncounterNumberService = null,
             IConfiguration? configuration = null,
             OutpatientQueueClassificationService? queueClassificationService = null,
@@ -97,6 +99,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             _queueRealtimeService = queueRealtimeService;
             _integrityService = integrityService;
             _patientEncounterNumberService = patientEncounterNumberService ?? new PatientEncounterNumberService(dbContext);
+            _emergencyRealtimeService = emergencyRealtimeService;
             _queueClassificationService = queueClassificationService ?? new OutpatientQueueClassificationService(dbContext);
             _queueNumberAllocator = queueNumberAllocator ?? new OutpatientQueueNumberAllocator(dbContext);
             _configuration = configuration;
@@ -1039,6 +1042,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     }
                 }
 
+                if (isEmergencyEncounter && _emergencyRealtimeService != null)
+                {
+                    try
+                    {
+                        await _emergencyRealtimeService.NotifyEmergencyPatientRegisteredAsync(
+                            encounter.Id,
+                            encounter.PatientId,
+                            encounter.ServiceUnitId,
+                            actorUserId,
+                            "Pasien IGD baru terdaftar.");
+                    }
+                    catch
+                    {
+                    }
+                }
+
                 var response = new PatientEncounterCreateResponse
                 {
                     EncounterId = encounter.Id,
@@ -1463,6 +1482,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             foreach (var queue in cancelledQueues)
             {
                 await _queueRealtimeService.NotifyQueueCancelledAsync(queue, actorUserId, "Patient encounter dibatalkan.");
+            }
+
+            if (isEmergencyEncounter && _emergencyRealtimeService != null)
+            {
+                try
+                {
+                    await _emergencyRealtimeService.NotifyEmergencyQueueChangedAsync(
+                        "EmergencyEncounterCancelled",
+                        entity.Id,
+                        null,
+                        entity.PatientId,
+                        entity.ServiceUnitId,
+                        null,
+                        null,
+                        actorUserId,
+                        "Encounter IGD dibatalkan.");
+                }
+                catch
+                {
+                }
             }
 
             return Ok(ApiResponse<object>.Ok(null, "Patient encounter berhasil dibatalkan."));
@@ -2553,7 +2592,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             return queues;
         }
-
 
 
         private static string GenerateQueueCode(MstClinic? clinic, int queueNumber)

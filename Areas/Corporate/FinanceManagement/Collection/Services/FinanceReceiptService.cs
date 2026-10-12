@@ -54,15 +54,18 @@ public sealed class FinanceReceiptService
     private readonly ApplicationDbContext _dbContext;
     private readonly FinanceAccountingOutboxService _accountingOutboxService;
     private readonly FinanceReceivableService _receivableService;
+    private readonly FinanceReceivableInvoiceBatchStatusSynchronizer _batchStatusSynchronizer;
 
     public FinanceReceiptService(
         ApplicationDbContext dbContext,
         FinanceAccountingOutboxService accountingOutboxService,
-        FinanceReceivableService receivableService)
+        FinanceReceivableService receivableService,
+        FinanceReceivableInvoiceBatchStatusSynchronizer batchStatusSynchronizer)
     {
         _dbContext = dbContext;
         _accountingOutboxService = accountingOutboxService;
         _receivableService = receivableService;
+        _batchStatusSynchronizer = batchStatusSynchronizer;
     }
 
     // ------------------------------------------------------------------------------------
@@ -611,6 +614,14 @@ public sealed class FinanceReceiptService
                 throw new ReceivableValidationException(
                     $"Alokasi melebihi sisa penerimaan. Sisa saat ini Rp {receipt.UnallocatedAmount:N0}.");
 
+            // Cek integrasi Ayat Silang (FinCrossEntry)
+            var crossEntry = await _dbContext.FinCrossEntries
+                .SingleOrDefaultAsync(x => x.ReceiptId == receiptId && !x.IsDelete, cancellationToken);
+            if (crossEntry != null && crossEntry.Status == FinCrossEntryStatuses.Cancelled)
+                throw new ReceivableValidationException("Dokumen Ayat Silang telah dibatalkan dan tidak dapat dialokasikan.");
+
+            decimal crossEntryRunningBalance = receipt.UnallocatedAmount;
+
             var now = DateTimeOffset.UtcNow;
             foreach (var line in lines)
             {
@@ -641,6 +652,57 @@ public sealed class FinanceReceiptService
                         movementType: FinReceivableMovementTypes.AlokasiPenerimaan,
                         sourceAllocationId: allocation.Id,
                         referenceNumber: receipt.ReceiptNumber);
+                }
+
+                // Integrasi Ayat Silang: buat mutasi AR_ALLOCATION (DEBIT) jika receipt terhubung dengan FinCrossEntry
+                if (crossEntry != null)
+                {
+                    var duplicateExists = await _dbContext.FinCrossEntryTransactions
+                        .AnyAsync(t => t.CrossEntryId == crossEntry.Id && t.ReceiptAllocationId == allocation.Id && t.TransactionType == FinCrossEntryTransactionTypes.ArAllocation && !t.IsDelete, cancellationToken);
+
+                    if (!duplicateExists)
+                    {
+                        string? resolvedBatchNumber = null;
+                        string? resolvedReceivableNumber = null;
+                        if (line.ReceivableId.HasValue)
+                        {
+                            resolvedBatchNumber = await (from item in _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+                                                         join b in _dbContext.FinReceivableInvoiceBatches.AsNoTracking() on item.BatchId equals b.Id
+                                                         where item.ReceivableId == line.ReceivableId.Value && !item.IsDelete && item.IsActiveMembership && !b.IsDelete
+                                                         select b.BatchNumber).FirstOrDefaultAsync(cancellationToken);
+
+                            if (string.IsNullOrWhiteSpace(resolvedBatchNumber))
+                            {
+                                resolvedReceivableNumber = await _dbContext.FinReceivables.AsNoTracking()
+                                    .Where(r => r.Id == line.ReceivableId.Value)
+                                    .Select(r => r.ReceivableNumber)
+                                    .FirstOrDefaultAsync(cancellationToken);
+                            }
+                        }
+
+                        string description = !string.IsNullOrWhiteSpace(resolvedBatchNumber)
+                            ? $"Alokasi Ayat Silang ke Invoice AR {resolvedBatchNumber}"
+                            : !string.IsNullOrWhiteSpace(resolvedReceivableNumber)
+                                ? $"Alokasi Ayat Silang ke Piutang AR {resolvedReceivableNumber}"
+                                : "Alokasi Ayat Silang ke Invoice AR";
+
+                        crossEntryRunningBalance -= line.Amount;
+                        var crossEntryTx = new FinCrossEntryTransaction
+                        {
+                            Id = Guid.NewGuid(),
+                            CrossEntryId = crossEntry.Id,
+                            TransactionType = FinCrossEntryTransactionTypes.ArAllocation,
+                            Direction = FinCrossEntryDirections.Debit,
+                            Amount = line.Amount,
+                            BalanceAfterTransaction = crossEntryRunningBalance,
+                            OccurredAt = now,
+                            ReceiptAllocationId = allocation.Id,
+                            Description = description,
+                            CreateBy = actorUserId,
+                            CreateDateTime = DateTime.UtcNow
+                        };
+                        _dbContext.Set<FinCrossEntryTransaction>().Add(crossEntryTx);
+                    }
                 }
 
                 if (line.Deductions is not { Count: > 0 }) continue;
@@ -695,6 +757,31 @@ public sealed class FinanceReceiptService
                         ActorUserId = actorUserId
                     }, cancellationToken);
                 }
+            }
+
+            // Pembaruan status Ayat Silang
+            if (crossEntry != null && crossEntry.Status != FinCrossEntryStatuses.Cancelled)
+            {
+                var finalUnallocated = receipt.UnallocatedAmount - totalRequested;
+                crossEntry.Status = finalUnallocated == 0m
+                    ? FinCrossEntryStatuses.FullyUsed
+                    : finalUnallocated < receipt.Amount
+                        ? FinCrossEntryStatuses.PartiallyUsed
+                        : FinCrossEntryStatuses.Open;
+                crossEntry.UpdateDateTime = DateTime.UtcNow;
+                crossEntry.UpdateBy = actorUserId;
+                crossEntry.RowVersion = Guid.NewGuid();
+            }
+
+            // Sinkronisasi status batch tagihan AR untuk seluruh piutang terdampak
+            var affectedReceivableIds = lines
+                .Where(l => l.ReceivableId.HasValue)
+                .Select(l => l.ReceivableId!.Value)
+                .Distinct()
+                .ToList();
+            if (affectedReceivableIds.Count > 0)
+            {
+                await _batchStatusSynchronizer.SynchronizeByReceivableIdsAsync(affectedReceivableIds, actorUserId, cancellationToken);
             }
 
             receipt.AllocatedAmount += totalRequested;
@@ -833,6 +920,65 @@ public sealed class FinanceReceiptService
             receipt.UpdateDateTime = DateTime.UtcNow;
             receipt.UpdateBy = actorUserId;
             receipt.RowVersion = Guid.NewGuid();
+
+            // Cek integrasi Ayat Silang (FinCrossEntry) untuk pembalikan alokasi
+            var crossEntry = await _dbContext.FinCrossEntries
+                .SingleOrDefaultAsync(x => x.ReceiptId == original.ReceiptId && !x.IsDelete, cancellationToken);
+
+            if (crossEntry != null)
+            {
+                var origTx = await _dbContext.FinCrossEntryTransactions
+                    .FirstOrDefaultAsync(x => x.CrossEntryId == crossEntry.Id && x.ReceiptAllocationId == original.Id && x.TransactionType == FinCrossEntryTransactionTypes.ArAllocation && !x.IsDelete, cancellationToken);
+
+                string? resolvedBatchNumber = null;
+                if (original.ReceivableId.HasValue)
+                {
+                    resolvedBatchNumber = await (from item in _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+                                                 join b in _dbContext.FinReceivableInvoiceBatches.AsNoTracking() on item.BatchId equals b.Id
+                                                 where item.ReceivableId == original.ReceivableId.Value && !item.IsDelete && item.IsActiveMembership && !b.IsDelete
+                                                 select b.BatchNumber).FirstOrDefaultAsync(cancellationToken);
+                }
+
+                string description = !string.IsNullOrWhiteSpace(resolvedBatchNumber)
+                    ? $"Pembalikan alokasi Ayat Silang ke Invoice AR {resolvedBatchNumber}"
+                    : "Pembalikan alokasi Ayat Silang";
+
+                var reversalBalance = receipt.UnallocatedAmount;
+                var reversalTx = new FinCrossEntryTransaction
+                {
+                    Id = Guid.NewGuid(),
+                    CrossEntryId = crossEntry.Id,
+                    TransactionType = FinCrossEntryTransactionTypes.ArAllocationReversal,
+                    Direction = FinCrossEntryDirections.Credit,
+                    Amount = original.Amount,
+                    BalanceAfterTransaction = reversalBalance,
+                    OccurredAt = now,
+                    ReceiptAllocationId = reversal.Id,
+                    ReversalOfTransactionId = origTx?.Id,
+                    Description = description,
+                    CreateBy = actorUserId,
+                    CreateDateTime = DateTime.UtcNow
+                };
+                _dbContext.Set<FinCrossEntryTransaction>().Add(reversalTx);
+
+                if (crossEntry.Status != FinCrossEntryStatuses.Cancelled)
+                {
+                    crossEntry.Status = reversalBalance == receipt.Amount
+                        ? FinCrossEntryStatuses.Open
+                        : reversalBalance > 0m
+                            ? FinCrossEntryStatuses.PartiallyUsed
+                            : FinCrossEntryStatuses.FullyUsed;
+                    crossEntry.UpdateDateTime = DateTime.UtcNow;
+                    crossEntry.UpdateBy = actorUserId;
+                    crossEntry.RowVersion = Guid.NewGuid();
+                }
+            }
+
+            // Sinkronisasi status batch tagihan AR untuk piutang yang alokasinya dibalik
+            if (original.ReceivableId.HasValue)
+            {
+                await _batchStatusSynchronizer.SynchronizeByReceivableIdsAsync(new[] { original.ReceivableId.Value }, actorUserId, cancellationToken);
+            }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
             await CommitAsync(transaction, cancellationToken);

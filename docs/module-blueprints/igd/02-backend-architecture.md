@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `IGD-BP-001` revision `5`; **bagian 13 ditambahkan 22 September 2026** (encounter-first, revisi `6` `draft`) |
+| Blueprint | `IGD-BP-001` revision `5`; **bagian 13 ditambahkan 22 September 2026** (encounter-first, revisi `6` `draft`); **bagian 15 ditambahkan 6 Oktober 2026** (Ruang Kerja Dokter IGD, revisi `9`, `approved` `IGD-DEC-230`); **bagian 16 ditambahkan 11 Oktober 2026** (dokter jaga IGD, revisi `10`, `approved` `IGD-DEC-240`) |
 | Status | `draft` — **belum disetujui siapa pun**. Diturunkan dari `IGD-DEC-067` sampai `IGD-DEC-088` yang seluruhnya masih `draft` |
 | Commit diaudit | backend `f69e9e483052845d11c91d8b7bbdce33c4acc8d8`, frontend `96a9120111f6acc6b7c0f37973ea0c717ba41f17` |
 | Masukan | `00-interview-decisions.md` (88 keputusan), `01-existing-capability-map.md` revision `3` |
@@ -803,6 +803,12 @@ menyimpan **snapshot** uraian pesanan pada `OrderDescription`. Snapshot dipakai 
 tetap terbaca meski baris sumbernya kelak berubah — pola yang sama dengan
 `OrderLabelSnapshot` yang sudah ada.
 
+*Catatan 5 Oktober 2026 (sore, `approved` lewat `IGD-DEC-209`).* Di source, pembentukan ini tinggal di
+`EmergencyDepartureService.BentukPesananInternalAsync` dan berjalan pada `submit-handover`. Baris yang terbentuk
+**tetap tersimpan** walau pengajuan ditolak karena masih ada pesanan tanpa sikap (`IGD-FACT-054`), dan sejak validation
+`0.13.0` §5.1 baris itu ikut menahan penutupan kunjungan sampai sikapnya ditetapkan — kecuali milik kepergian yang
+dibatalkan. Pesanan yang belum pernah dibentuk tidak dihitung (batas cakupan validation §5.1).
+
 ### 11.2 Unique constraint yang mendukung tiga keadaan sekaligus
 
 Rancangan revisi 6 menulis *"tepat satu baris `IsEffective = true` per pesanan yang sama"*.
@@ -1301,7 +1307,8 @@ satu kolom baru, nol tabel baru, nol endpoint baru. Status bagian ini: **`approv
 berasal dari amendment 30 September 2026 (`IGD-DEC-171`, `172`) dan **`approved`** lewat `IGD-DEC-175` (30 September 2026).
 Baris `EmergencyDispositionService` dan `EmergencyObservationDetailController`, serta perluasan baris
 `EmergencyObservationController` bertanda *3 Oktober 2026*, berasal dari amendment `IGD-DEC-183`, `184` dan
-**`approved`** lewat `IGD-DEC-186` (3 Oktober 2026).
+**`approved`** lewat `IGD-DEC-186` (3 Oktober 2026). Baris `EmergencyDepartureService` bertanda *5 Oktober 2026* berasal
+dari `IGD-DEC-203` dan `IGD-DEC-205` dan **`approved`** lewat `IGD-DEC-209` (5 Oktober 2026).
 
 Masukan: decision log bagian "Amendment pass 23 September 2026"; capability map suplemen revision 3.3
 (`dce1f138`); gerbang requirement `S5` `READY_FOR_DOMAIN_DESIGN`. Keberlakuan QBE: `TOUCHED LEGACY` untuk
@@ -1346,7 +1353,7 @@ classDiagram
         +ValidateVisitClosureAsync(visit, ct) string?
     }
     class EmergencyDepartureService {
-        <<Sudah ada · IGD>>
+        <<Diperbarui · IGD · 5 Okt>>
         +AmbilPesananPenahanPenutupanAsync(visitId, ct) string[]
     }
     EmergencyVisitService ..> EmergencyDispositionService : memanggil penjaga
@@ -1371,6 +1378,7 @@ boleh memanggilnya. Keduanya sudah terdaftar di `Program.cs` (`:515`, `:520`), s
 | `EmergencyDispositionService` | Service | **Diperbarui** *(3 Oktober 2026, `IGD-DEC-186`)* | `…/Services/EmergencyDispositionService.cs` | `ValidateVisitClosureAsync` menghitung observasi `Active` **dan** `Escalated` sebagai penahan (`IGD-DEC-183`; validation §11.2 aturan 16). Kalimat penolakan tidak berubah (`IGD-ASM-003`). Satu perubahan ini berlaku pada ketiga pemakai penjaga: penutupan susulan, `PATCH /emergency-visits/{id}/complete`, dan alasan saringan menunggu penutupan. Tidak membuka transaksi; tetap baca-saja (`AsNoTracking`) |
 | `EmergencyObservationDetailController` | Controller | **Diperbarui** *(3 Oktober 2026, `IGD-DEC-186` — aturan 21, usulan agent yang disetujui)* | `…/Controllers/EmergencyObservationDetailController.cs` | `POST /`: pemantauan baru pada periode milik kunjungan `Completed`/`Cancelled` ditolak `409` (validation §11.2 aturan 21), disisipkan sesudah pemeriksaan periode tertutup. Tempat pemeriksaannya — di controller atau sebagai langkah tambahan `EmergencyObservationService.ValidateDetailScopeAsync` (dipanggil dengan `tolakPeriodeTertutup: true` hanya oleh `POST`) — ditetapkan task; `PUT` tidak berubah |
 | `EmergencyDepartureController` | Controller | **Diperbarui** | `…/Controllers/EmergencyDepartureController.cs` | Sesudah serah terima diterima/ditolak/dibatalkan (`:162`, `:172`, `:206`) dan sesudah sikap pesanan ditetapkan (`:118`, `:129`, `:135`), panggil penutupan susulan |
+| `EmergencyDepartureService` | Service | **Diperbarui** *(5 Oktober 2026, `IGD-DEC-203`, `205` — `approved` `IGD-DEC-209`)* | `…/Services/EmergencyDepartureService.cs` | `AmbilPesananPenahanPenutupanAsync` — satu-satunya tempat aturan kueri pesanan penahan — menghitung baris berlaku yang **tanpa sikap** (arti yang sama dengan `SubmitHandoverAsync`) **dan** yang **ditolak**, pada kepergian yang fisiknya **tidak** `Cancelled` (validation `0.13.0` §5.1). Satu perubahan ini berlaku pada ketiga pemakai penjaga lewat `EmergencyDispositionService.ValidateVisitClosureAsync`, yang tidak berubah. `ValidatePesananSebelumPenutupanAsync` (kalimat aturan 12, nol pemanggil) tetap hanya menyebut pesanan ditolak. Tidak membuka transaksi; baca-saja (`AsNoTracking`). Nol migration, nol `Program.cs` |
 | `EmergencyVisitController` | Controller | **Diperbarui** | `…/Controllers/EmergencyVisitController.cs` | `GET /` bertambah saringan `awaitingClosure`; `EmergencyVisitResponse` bertambah dua ruas penahan |
 | `EmergencyVisitDtos.cs` | DTO | **Diperbarui** | `…/DTOs/EmergencyVisitDtos.cs` | + `IsAwaitingClosure`, `AwaitingClosureReason` pada response |
 | `EmgVisitConfiguration` | Configuration | **Diperbarui** | `Repositories/Configurations/HealthServices/EmergencyInstallationManagement/EmgVisitConfiguration.cs` | FK `ClosedByDispositionId` → `EmgDisposition`, `Restrict` |
@@ -1390,7 +1398,9 @@ Areas/HealthServices/EmergencyInstallationManagement/
 ├── Models/EmgVisit.cs                        Diperbarui  (+1 kolom)
 └── Services/
     ├── EmergencyVisitService.cs              Diperbarui  (+1 method)
-    └── EmergencyDispositionService.cs        Diperbarui  (penjaga menghitung Escalated, 3 Okt)
+    ├── EmergencyDispositionService.cs        Diperbarui  (penjaga menghitung Escalated, 3 Okt)
+    └── EmergencyDepartureService.cs          Diperbarui  (pesanan penahan: tanpa sikap + ditolak,
+                                                          kecuali kepergian dibatalkan, 5 Okt)
 
 Repositories/Configurations/…/EmgVisitConfiguration.cs   Diperbarui  (+1 FK)
 Migrations/                                              1 migration — dibuat Rizki
@@ -1442,3 +1452,403 @@ pengisian master apa pun.
 | Kolom `VisitClosureSource` bertipe enum | Satu kolom FK `ClosedByDispositionId` sudah menjawab dua hal sekaligus: dari mana penutupan berasal, dan disposisi mana |
 | Pembukaan kembali kunjungan yang sudah selesai | `IGD-DEC-166`; invariant `Completed` final sudah berlaku di source hari ini |
 | Perubahan pada modul Bank Darah dan Laboratorium | `IGD-DEC-169` menerima konsekuensi hilir apa adanya |
+
+## 15. Ruang Kerja Dokter IGD — 6 Oktober 2026
+
+Desain target untuk `IGD-DEC-220`…`229` (*amendment pass* 6 Oktober 2026). Status bagian ini: **`approved`** (`IGD-DEC-230`, Rizki Gunawan, 6 Oktober 2026), **Rencana
+(belum tersedia)**. Masukan: decision log bagian *Ruang Kerja Dokter IGD — 6 Oktober 2026
+(sore)*; capability map *Suplemen revision 3.4* (backend `43dab6da`, frontend `6680278a2`). Bentuk blueprint tetap
+`SINGLE`.
+
+**Inti desain.** Layar dokter IGD tidak membuat data klinis baru milik IGD. Catatan dokter, diagnosis, kajian medis,
+tindakan, resep, dan pesanan penunjang tetap tinggal di modul pemiliknya; yang dikerjakan adalah **empat perluasan kecil
+di modul lain** dan **dua perubahan di IGD**. Nol tabel baru, nol kolom baru, nol migration, nol perubahan `Program.cs`.
+
+Keberlakuan QBE: `TOUCHED LEGACY` untuk seluruh controller dan service yang disentuh (`EmergencyVisitController`,
+`EmergencyDispositionService`, `DoctorConsultationController`, `PatientAssessmentController`,
+`PatientProcedureController`, `PatientProcedureOrderService`, `LabOrderService`, `RadOrderService`,
+`ConsultationFinalizationService`); `NEW CODE` untuk method dan DTO baru. Logika baru ditempatkan di service yang sudah
+terdaftar, bukan di controller, kecuali pembacaan yang memang sudah tinggal di controller (daftar kunjungan, timeline).
+
+### 15.1 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai slice ini | Dibuat ulang di IGD |
+| --- | --- | --- | --- |
+| Kunjungan IGD (`EmgVisit`) | IGD | Ya — dibaca; nol kolom baru | — |
+| Penugasan dokter (`EmgDoctorAssignment`) | IGD | Ya — dibaca untuk DPJP aktif dan saringan *Pasien saya* | — |
+| Tindak lanjut (`EmgDisposition`) | IGD | Ya — status awal dibatasi, konfirmasi dijaga diagnosis | — |
+| Tindakan IGD lama (`EmgProcedureDetail`) | IGD | Hanya dibaca sebagai riwayat; **tidak ditambah lagi** (`IGD-DEC-225`) | — |
+| Catatan dokter (`TrxDoctorConsultation`) | ClinicalManagement | Ya — dibuat dari layar dokter | **Tidak** |
+| Diagnosis (`TrxPatientDiagnosis`) | ClinicalManagement | Ya — ditulis lewat catatan dokter; dibaca penjaga konfirmasi | **Tidak** |
+| Kajian pasien (`TrxPatientAssessment`) | ClinicalManagement | Ya — kajian medis dokter | **Tidak** |
+| Tindakan pasien (`TrxPatientProcedure`) | ClinicalManagement | Ya — tindakan dokter dan tindakan keperawatan | **Tidak** |
+| CPPT (`TrxPatientIntegratedProgressNote`) | ClinicalManagement | Ya — dibaca dan ditulis | **Tidak** |
+| Addendum dan integritas dokumen | Rekam Medis | Ya | **Tidak** |
+| Resep (`PhmPrescription`) dan template | Farmasi | Ya | **Tidak** |
+| Pesanan lab (`LabOrder`), radiologi (`RadOrder`) | Laboratorium, Radiologi | Ya | **Tidak** |
+| Pesanan darah (`BbkBloodOrder`), hemodialisa (`HmdOrder`), gizi (`GziNutritionOrder`) | Bank Darah, Hemodialisa, Gizi | Ya | **Tidak** |
+| Fakta tagih klinis | ClinicalManagement → Billing | Ya — jasa konsultasi IGD tidak dikirim (`IGD-DEC-229`) | **Tidak** |
+| Encounter (`RegPatientEncounter`) | Registration Management | Dibaca jenisnya | **Tidak** |
+
+### 15.2 Class diagram — konteks IGD
+
+```mermaid
+classDiagram
+    class EmergencyVisitController {
+        <<Diperbarui · IGD>>
+        +GetList(..., doctorId, ongoing) EmergencyVisitResponse[]
+        +GetById(id) EmergencyVisitResponse
+    }
+    class EmergencyVisitResponse {
+        <<Diperbarui · IGD>>
+        +Guid? ActiveDoctorId
+        +string? ActiveDoctorName
+    }
+    class EmergencyDoctorAssignmentService {
+        <<Diperbarui · IGD>>
+        +AmbilAktifAsync(visitId, at, ct)
+        +KueriBerjalan() IQueryable~EmgDoctorAssignment~
+    }
+    class EmergencyDispositionService {
+        <<Diperbarui · IGD>>
+        +ValidateRequestAsync(request, ct) string?
+        +ValidateDiagnosisBeforeConfirmAsync(visit, ct) string?
+    }
+    class EmergencyDispositionController {
+        <<Diperbarui · IGD>>
+        +Create(request)
+        +UpdateDispositionStatus(id, request)
+    }
+    class TrxPatientDiagnosis {
+        <<Sudah ada · ClinicalManagement>>
+    }
+    EmergencyVisitController ..> EmergencyDoctorAssignmentService : DPJP berjalan
+    EmergencyVisitController ..> EmergencyVisitResponse
+    EmergencyDispositionController ..> EmergencyDispositionService : status awal + diagnosis
+    EmergencyDispositionService ..> TrxPatientDiagnosis : baca-saja
+```
+
+### 15.3 Class diagram — perluasan di modul lain
+
+```mermaid
+classDiagram
+    class DoctorConsultationController {
+        <<Diperbarui · ClinicalManagement>>
+        +GetEncounterSoapTimeline(encounterId) EncounterSoapTimelineResponse
+    }
+    class EncounterSoapTimelineResponse {
+        <<Baru · ClinicalManagement>>
+        +Guid EncounterId
+        +Guid EmergencyVisitId
+        +SoapTimelineItemResponse[] Items
+    }
+    class PatientAssessmentController {
+        <<Diperbarui · ClinicalManagement>>
+        +Create(request) kajian medis untuk kunjungan IGD
+    }
+    class PatientProcedureController {
+        <<Diperbarui · ClinicalManagement>>
+        +CreateEmergencyNursingAction(request)
+    }
+    class PatientProcedureOrderService {
+        <<Diperbarui · ClinicalManagement>>
+        +CreateEmergencyNursingActionAsync(request, actor, ct)
+    }
+    class LabOrderService {
+        <<Diperbarui · Laboratorium>>
+        -ResolveInstructionAsync(encounter, episode, doctor, ct)
+    }
+    class RadOrderService {
+        <<Diperbarui · Radiologi>>
+        -ResolveInstructionAsync(encounter, episode, doctor, ct)
+    }
+    class ConsultationFinalizationService {
+        <<Diperbarui · Farmasi>>
+        +FinalizeAsync(...) tanpa fakta jasa konsultasi untuk Emergency
+    }
+    DoctorConsultationController ..> EncounterSoapTimelineResponse
+    PatientProcedureController ..> PatientProcedureOrderService
+```
+
+**Nol siklus dependency.** IGD hanya **membaca** `TrxPatientDiagnosis`; modul lain hanya membaca keberadaan `EmgVisit`
+(pola yang sudah dipakai `DoctorConsultationController.ValidateWithoutQueueGateAsync`) dan penugasan dokter aktif.
+Tidak ada service IGD yang dipanggil modul lain, dan tidak ada service modul lain yang disuntik ke IGD.
+
+### 15.4 Penjelasan class
+
+| Class | Jenis | Status | Lokasi file | Tanggung jawab | Transaksi |
+| --- | --- | --- | --- | --- | --- |
+| `EmergencyVisitController` | Controller | **Diperbarui** | `Areas/HealthServices/EmergencyInstallationManagement/Controllers/EmergencyVisitController.cs` | `GET /` + saringan `doctorId` (EXISTS penugasan berjalan dengan `DoctorId` itu) dan `ongoing` (status bukan `Completed`/`Cancelled`); proyeksi `ActiveDoctorId`/`ActiveDoctorName` dari penugasan berjalan, di kueri yang sama. `GET /{id}` mengisi kedua ruas yang sama. Atribut akses tidak berubah | Tidak |
+| `EmergencyVisitDtos.cs` (`EmergencyVisitResponse`) | DTO (Response) | **Diperbarui** | `…/DTOs/EmergencyVisitDtos.cs` | + `ActiveDoctorId` (`Guid?`), `ActiveDoctorName` (`string?`) | — |
+| `EmergencyDoctorAssignmentService` | Service | **Diperbarui** | `…/Services/EmergencyDoctorAssignmentService.cs` | + `KueriBerjalan()` — satu-satunya definisi *penugasan berjalan* (`EffectiveTo` kosong), dipakai `AmbilAktifAsync` dan daftar kunjungan, supaya arti DPJP aktif tidak bercabang | Tidak |
+| `EmergencyDispositionService` | Service | **Diperbarui** | `…/Services/EmergencyDispositionService.cs` | `ValidateRequestAsync`: status awal selain Draft → pesan validation §12 aturan 14. + `ValidateDiagnosisBeforeConfirmAsync(EmgVisit, ct)`: menghitung diagnosis menurut aturan 15 dari `TrxPatientDiagnosis` (baca-saja, `AsNoTracking`); `null` bila ada, pesan aturan 15 bila tidak | Tidak |
+| `EmergencyDispositionController` | Controller | **Diperbarui** | `…/Controllers/EmergencyDispositionController.cs` | `UpdateDispositionStatus`: sesudah `CanTransition` dan hanya untuk target `Confirmed`, panggil `ValidateDiagnosisBeforeConfirmAsync`; penolakan `409`. Urutan validation §12 | Tidak berubah |
+| `DoctorConsultationController` | Controller | **Diperbarui** | `Areas/HealthServices/ClinicalManagement/Controllers/DoctorConsultationController.cs` | + `GET encounters/{encounterId}/soap-timeline` — `[AccessAction("Read", …)]`, `[AccessPermission("DoctorConsultation", "Read")]`; encounter wajib milik kunjungan IGD (pola `ValidateWithoutQueueGateAsync`); butir dibentuk `ToTimelineItem` yang sudah ada | Tidak |
+| `DoctorConsultationDtos.cs` (`EncounterSoapTimelineResponse`) | DTO (Response) | **Baru** di berkas yang ada | `Areas/HealthServices/ClinicalManagement/DTOs/DoctorConsultationDtos.cs` | `EncounterId`, `EmergencyVisitId`, `PatientId`, `TotalCount`, `Items` (`List<SoapTimelineItemResponse>`). `SoapTimelineResponse` rawat inap **tidak** diubah | — |
+| `PatientAssessmentController` | Controller | **Diperbarui** | `Areas/HealthServices/ClinicalManagement/Controllers/PatientAssessmentController.cs` | Penjaga kajian medis: bila encounter milik kunjungan IGD, lewati konteks rawat inap dan terapkan validation §12 aturan 4–6 (keunikan `MedicalInitial` per encounter IGD). Cabang rawat inap tidak berubah | Tidak berubah |
+| `PatientProcedureController` | Controller | **Diperbarui** | `Areas/HealthServices/ClinicalManagement/Controllers/PatientProcedureController.cs` | + `POST emergency-nursing-actions` — `[AccessAction("Create", "Create Emergency Nursing Action", …)]` dan `[AccessPermission("PatientProcedure", "Create")]` — pola yang sama dengan `inpatient-orders`; meneruskan ke service | — |
+| `PatientProcedureOrderService` | Service | **Diperbarui** | `Areas/HealthServices/ClinicalManagement/Services/PatientProcedureOrderService.cs` | + `CreateEmergencyNursingActionAsync`: validation §12 aturan 7–12; DPJP aktif sebagai `DoctorId`; penyusun snapshot tarif yang sama dengan pembuatan tindakan lain; `ProcedureSource = NursingAction`, `ProcedureStatus = Completed`, `IsExecuted = true`, `PerformedByUserId`/`ExecutedByUserId` = perawat | **Ya** — satu `SaveChanges`; idempotensi diperiksa paling awal |
+| `PatientProcedureDtos.cs` (`CreateEmergencyNursingActionRequest`) | DTO (Create) | **Baru** di berkas yang ada | `Areas/HealthServices/ClinicalManagement/DTOs/PatientProcedureDtos.cs` | `EncounterId`, `ProcedureId`, `Quantity?`, `PerformedAt?`, `ClinicalNote?` (maks. 1000), `IdempotencyKey` (maks. 100) | — |
+| `LabOrderService` | Service | **Diperbarui** | `Areas/HealthServices/LaboratoryManagement/Services/LabOrderService.cs` | `ResolveInstructionAsync`: cabang encounter IGD tanpa episode — pembuat bukan dokter wajib `InstructingDoctorId` dokter aktif, status `Pending`; worklist verifikasi memuat pesanan itu. **Menunggu `IGD-OQ-117`** | Tidak berubah |
+| `RadOrderService` | Service | **Diperbarui** | `Areas/HealthServices/RadiologyManagement/Services/RadOrderService.cs` | Sama dengan `LabOrderService`. **Menunggu `IGD-OQ-117`** | Tidak berubah |
+| `ConsultationFinalizationService` | Service | **Diperbarui** | `Areas/HealthServices/PharmacyManagement/Services/ConsultationFinalizationService.cs` | Lewati pengiriman fakta `ConsultationCompleted` bila encounter berjenis `EncounterType.Emergency` (dibaca dari `RegPatientEncounter`); fakta resep tetap. Tidak membaca tabel IGD | Tidak berubah |
+
+### 15.5 Arsitektur folder
+
+```text
+Areas/HealthServices/EmergencyInstallationManagement/
+├── Controllers/
+│   ├── EmergencyVisitController.cs            Diperbarui  (saringan doctorId, ongoing; ruas DPJP)
+│   └── EmergencyDispositionController.cs      Diperbarui  (penjaga diagnosis saat konfirmasi)
+├── DTOs/EmergencyVisitDtos.cs                 Diperbarui  (+2 ruas response)
+└── Services/
+    ├── EmergencyDoctorAssignmentService.cs    Diperbarui  (+KueriBerjalan)
+    └── EmergencyDispositionService.cs         Diperbarui  (status awal Draft; +penjaga diagnosis)
+
+Areas/HealthServices/ClinicalManagement/
+├── Controllers/
+│   ├── DoctorConsultationController.cs        Diperbarui  (+timeline per encounter IGD)
+│   ├── PatientAssessmentController.cs         Diperbarui  (kajian medis untuk kunjungan IGD)
+│   └── PatientProcedureController.cs          Diperbarui  (+emergency-nursing-actions)
+├── DTOs/
+│   ├── DoctorConsultationDtos.cs              Diperbarui  (+EncounterSoapTimelineResponse)
+│   └── PatientProcedureDtos.cs                Diperbarui  (+CreateEmergencyNursingActionRequest)
+└── Services/PatientProcedureOrderService.cs   Diperbarui  (+CreateEmergencyNursingActionAsync)
+
+Areas/HealthServices/LaboratoryManagement/Services/LabOrderService.cs      Diperbarui  (instruksi IGD — IGD-OQ-117)
+Areas/HealthServices/RadiologyManagement/Services/RadOrderService.cs       Diperbarui  (instruksi IGD — IGD-OQ-117)
+Areas/HealthServices/PharmacyManagement/Services/ConsultationFinalizationService.cs  Diperbarui  (IGD-DEC-229)
+
+Migrations/        TIDAK ada migration
+Program.cs         TIDAK disentuh
+```
+
+**Utang teknis yang tidak ditiru dan tidak dirapikan:** daftar kunjungan dan timeline catatan dokter dibangun langsung di
+controller dengan `ApplicationDbContext` (pola lama). Perluasan mengikuti tempatnya agar diff kecil; memindahkannya ke
+service bukan bagian slice ini.
+
+### 15.6 Status model
+
+| Model | Status | Kolom yang berubah | Dampak migration |
+| --- | --- | --- | --- |
+| `EmgVisit`, `EmgDoctorAssignment`, `EmgDisposition`, `EmgProcedureDetail` | Sudah ada | Nol | Nol |
+| `TrxDoctorConsultation`, `TrxPatientDiagnosis`, `TrxPatientAssessment`, `TrxPatientProcedure` | Sudah ada | Nol — tindakan keperawatan memakai kolom yang sudah ada (`ProcedureSource`, `PerformedByUserId`, `PerformedAt`, `DoctorId`; `ConsultationId` dan `InpEpisodeId` memang opsional) | Nol |
+| `LabOrder`, `RadOrder` | Sudah ada | Nol — `InstructingDoctorId` dan `InstructionVerificationStatus` sudah ada | Nol |
+| `PhmPrescription`, `BbkBloodOrder`, `HmdOrder`, `GziNutritionOrder` | Sudah ada | Nol | Nol |
+
+### 15.7 Rencana migration
+
+**Tidak ada migration.** Slice ini dapat dirilis tanpa menghentikan layanan dan dibatalkan dengan mengembalikan kode.
+Data lama: tindak lanjut yang sudah lahir dengan status selain Draft tidak diubah; aturan berlaku ke depan (pola
+`IGD-DEC-167`).
+
+### 15.8 Rencana data master awal dan konfigurasi
+
+| Master / konfigurasi | Isi minimum | Pemilik |
+| --- | --- | --- |
+| `MstServiceUnit.IsAvailableForBloodOrder` untuk unit IGD | `true`, agar dokter IGD dapat memesan darah | Master Data (`IGD-UNK-13`) |
+| Akses Role peran Dokter IGD dan Perawat IGD | Butir pada permission/audit §9.1 | Pengurus Akses Role |
+| `RadReport : ActAsRadiologist` | Dicentang untuk peran radiolog, agar hasil radiologi pesanan IGD dapat dirilis | Pemilik Radiologi (`IGD-UNK-15`) |
+| Butir menu Ruang Kerja Dokter IGD | Satu butir di bawah Instalasi Gawat Darurat | Admin (`IGD-UNK-14`) |
+
+Nol master baru.
+
+### 15.9 Konkurensi
+
+| Risiko | Penjaga |
+| --- | --- |
+| Dokter mengonfirmasi tindak lanjut bersamaan dengan diagnosis terakhir dibatalkan | Penjaga dibaca pada saat konfirmasi; konfirmasi yang sudah lolos tidak dibatalkan oleh pembatalan diagnosis sesudahnya — diagnosis dicatat sebagai riwayat |
+| Perawat menekan simpan tindakan dua kali | `IdempotencyKey` — baris kedua tidak lahir |
+| DPJP dialihkan saat perawat menyimpan tindakan | Dokter diambil dari penugasan berjalan pada saat penyimpanan; peralihan sesudahnya tidak mengubah baris yang sudah tercatat |
+| Dua dokter menulis catatan untuk pasien yang sama | Setiap catatan milik penulisnya sendiri (penjaga penulis tunggal yang sudah ada) |
+
+### 15.10 Yang sengaja tidak dibuat
+
+| Tidak dibuat | Sebab |
+| --- | --- |
+| Tabel catatan dokter, diagnosis, atau resep versi IGD | Sudah dimiliki ClinicalManagement dan Farmasi (`IGD-DEC-220`) |
+| Endpoint tulis baru untuk tindakan di modul IGD | `IGD-DEC-225` memilih tindakan klinis umum; menulis `TrxPatientProcedure` dari modul IGD melanggar kepemilikan |
+| Kolom penanda pada `EmgProcedureDetail` atau migrasi isinya ke `TrxPatientProcedure` | `IGD-DEC-225`: tabel lama dibekukan dan tetap terbaca sebagai riwayat |
+| Status verifikasi instruksi untuk bank darah, hemodialisa, gizi | `IGD-OQ-118`; perawat tidak memesan ketiganya pada slice ini |
+| Butir hak akses baru untuk memisahkan konfirmasi dari pelaksanaan tindak lanjut | Butuh keputusan tersendiri; pemisahan dijaga layar (permission §9.2) |
+| Perubahan `SoapTimelineResponse` rawat inap menjadi `InpEpisodeId` opsional | Mengubah kontrak yang sudah dipakai rawat inap; dibuat respons baru untuk IGD |
+| Service baru yang harus didaftarkan di `Program.cs` | Seluruh logika menumpang service yang sudah terdaftar |
+
+### 15.11 Pilihan desain yang perlu disetujui pemilik
+
+Pilihan berikut diturunkan agent dari keputusan dan fakta source, bukan diputuskan pemilik secara terpisah. Kedelapannya
+**disetujui** bersama desain ini lewat `IGD-DEC-230` (6 Oktober 2026).
+
+| No | Pilihan | Alasan | Alternatif yang ditolak |
+| ---: | --- | --- | --- |
+| 1 | Tindakan keperawatan mencatat **DPJP aktif** sebagai `DoctorId`, dan ditolak bila belum ada DPJP | `DoctorId` wajib di tabel tindakan; DPJP adalah dokter penanggung jawab pasien | Perawat memilih dokter sendiri — membuka celah menempelkan tindakan ke dokter yang tidak merawat |
+| 2 | *Diagnosis yang dihitung* = ICD-10, `Active`/`Resolved`, jenis selain banding, catatan tidak dibatalkan | Paling dekat dengan arti *diagnosis kerja* tanpa memaksa dokter memakai satu jenis tertentu | Hanya jenis `WorkingDiagnosis` — terlalu sempit untuk kebiasaan dokter yang memilih *Primary* |
+| 3 | Penolakan konfirmasi tanpa diagnosis memakai `409` | Keadaan pasien belum memenuhi syarat, bukan isian yang salah — sama dengan penjaga penutupan | `400` |
+| 4 | Status awal tindak lanjut dibatasi Draft (`IGD-CONF-11`) | Tanpa ini penjaga diagnosis dan pemicu penutupan dapat dilewati | Menjaga kedua jalur — status awal non-Draft tetap tidak punya arti bisnis |
+| 5 | Kajian medis baru dan tindakan keperawatan baru ditolak pada kunjungan yang sudah berakhir; catatan dokter dan resep mengikuti aturan modul pemiliknya | Kunjungan berakhir tidak menerima tindakan baru; koreksi tetap lewat addendum | Menolak catatan dokter juga — mengubah modul lain di luar kebutuhan |
+| 6 | Perawat memesan lab dan radiologi atas instruksi; bank darah, hemodialisa, gizi hanya dari layar dokter sampai `IGD-OQ-118` selesai | `IGD-DEC-224` mensyaratkan verifikasi, dan baru lab/radiologi yang punya mekanismenya | Membuka ketiganya tanpa verifikasi |
+| 7 | Dokter pemberi instruksi yang sah = dokter aktif | Memeriksa hak akses pengguna lain tidak tersedia murah di source; asumsi `IGD-DEC-224` dipersempit ke yang dapat diuji | Dokter yang memegang hak akses layar dokter |
+| 8 | Saringan *Pasien saya* memakai parameter `doctorId` yang dikirim layar dari identitas dokter pengguna | Eksplisit dan mudah diuji; bukan hak akses | Server menebak dokter pengguna (`assignedToMe`) |
+
+## 16. Dokter jaga IGD dan override beralasan — 11 Oktober 2026 (**Rencana (belum tersedia)**)
+
+Desain target untuk `S7` / `EPIC IGD-12` (`IGD-DEC-141`, `237`…`239`). Status bagian ini: **`approved`** (`IGD-DEC-240`, Rizki
+Gunawan, 11 Oktober 2026). Masukan: decision log bagian *Dokter jaga IGD dan override beralasan — 11 Oktober 2026*;
+capability map *Suplemen revision 3.5* (backend `c7e523fd`, frontend `3335f4b53`). Bentuk blueprint tetap `SINGLE`.
+
+**Inti desain.** Satu perhitungan kelayakan di `EmergencyDoctorAssignmentService` dipakai **tiga** jalur: daftar dokter
+untuk pemilih, penetapan, dan pengalihan. Dengan begitu daftar di layar dan penjaga di server tidak pernah berbeda
+pendapat (`IGD-DEC-141` butir 1–2). Kode daftar dokter jaga yang sudah ada (`IGD-FACT-088`) menjadi titik awal: kueri
+jadwal dan perhitungan shift lintas tengah malam dipertahankan; pencocokan nama dibuang; cadangan diubah menjadi
+kelompok di luar jadwal yang selalu dikirim.
+
+Keberlakuan QBE: `TOUCHED LEGACY` untuk `EmergencyDoctorAssignmentService`, `EmergencyDoctorAssignmentController`,
+`EmergencyDoctorAssignmentDtos`, serta model dan configuration `EmgDoctorAssignment`; `NEW CODE` untuk method baru. Nol
+service baru, nol perubahan `Program.cs`.
+
+### 16.1 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai | Dibuat ulang di IGD |
+| --- | --- | --- | --- |
+| Penugasan dokter (`EmgDoctorAssignment`) | IGD | Ditulis; dua kolom baru | — |
+| Jadwal dokter (`MstDoctorSchedule`), unit (`MstServiceUnit`), klinik (`MstClinic`) | Master Data | Dibaca | **Tidak** |
+| Master dokter (`MstDoctor`) | Human Resource | Dibaca | **Tidak** |
+
+### 16.2 Class diagram
+
+```mermaid
+classDiagram
+    class EmergencyDoctorAssignmentController {
+        <<Diperbarui · IGD>>
+        +GetOnDutyDoctors(search, at, onlyOnDuty)
+        +Assign(AssignEmergencyDoctorRequest)
+        +Handover(id, HandoverEmergencyDoctorRequest)
+    }
+    class EmergencyDoctorAssignmentService {
+        <<Diperbarui · IGD>>
+        +AmbilDokterJagaAktifAsync(search, at, onlyOnDuty, ct)
+        +TetapkanAsync(request, actor, ct)
+        +AlihkanAsync(id, request, actor, ct)
+        -KueriJadwalIgdBerlaku(waktuOperasional) IQueryable~MstDoctorSchedule~
+        -KueriKelompokLuarJadwal(dokterJaga) IQueryable~MstDoctor~
+        -PeriksaKelayakanAsync(doctorId, effectiveFrom, alasan, ct) HasilKelayakan
+    }
+    class HasilKelayakan {
+        <<Baru · IGD · privat>>
+        +bool Diterima
+        +bool IsRosterOverride
+        +string? Alasan
+        +string? Penolakan
+    }
+    class EmgDoctorAssignment {
+        <<Diperbarui · IGD>>
+        +bool IsRosterOverride
+        +string? RosterOverrideReason
+    }
+    class AssignEmergencyDoctorRequest {
+        <<Diperbarui>>
+        +string? RosterOverrideReason
+    }
+    class HandoverEmergencyDoctorRequest {
+        <<Diperbarui>>
+        +string? RosterOverrideReason
+    }
+    class EmergencyDoctorAssignmentResponse {
+        <<Diperbarui>>
+        +bool IsRosterOverride
+        +string? RosterOverrideReason
+    }
+    class EmergencyOnDutyDoctorResponse {
+        <<Sudah ada tanpa kontrak>>
+        +bool IsOnDuty
+        +string DisplayLabel
+    }
+    class MstDoctorSchedule {
+        <<Sudah ada · Master Data>>
+    }
+    class MstServiceUnit {
+        <<Sudah ada · Master Data>>
+        +ServiceUnitType ServiceUnitType
+    }
+    class MstDoctor {
+        <<Sudah ada · Human Resource>>
+    }
+    EmergencyDoctorAssignmentController ..> EmergencyDoctorAssignmentService
+    EmergencyDoctorAssignmentService ..> HasilKelayakan
+    EmergencyDoctorAssignmentService ..> MstDoctorSchedule : baca-saja
+    MstDoctorSchedule ..> MstServiceUnit : tipe Emergency
+    EmergencyDoctorAssignmentService ..> MstDoctor : baca-saja
+    EmergencyDoctorAssignmentService --> EmgDoctorAssignment : tulis
+```
+
+### 16.3 Penjelasan class
+
+| Class | Status | Peran |
+| --- | --- | --- |
+| `EmergencyDoctorAssignmentService` | Diperbarui | Pemilik tunggal aturan kelayakan. `KueriJadwalIgdBerlaku` memegang validation §13.1 (dipindah dari kueri yang sudah ada, tanpa pencocokan nama); `KueriKelompokLuarJadwal` memegang §13.2; `PeriksaKelayakanAsync` memegang §13.3 dan dipanggil `TetapkanAsync` serta `AlihkanAsync` |
+| `HasilKelayakan` | Baru, privat | Hasil satu pemeriksaan. Nama dan bentuknya `DEV_DISCRETION`; boleh `record` privat di dalam service |
+| `EmgDoctorAssignment` | Diperbarui | Dua kolom baru (kamus data §9) |
+| DTO request/response | Diperbarui | Ruas pada API §11.3–11.4 |
+| `EmergencyOnDutyDoctorResponse` | Sudah ada | Masuk kontrak (API §11.2); `sessionName` dan ruas jadwal `null` pada kelompok di luar jadwal |
+| `EmergencyDoctorAssignmentController` | Diperbarui | Alias `[HttpGet("options")]` dihapus; selebihnya meneruskan ke service |
+
+### 16.4 Arsitektur folder
+
+```text
+Areas/HealthServices/EmergencyInstallationManagement/
+├── Controllers/EmergencyDoctorAssignmentController.cs      Diperbarui
+├── DTOs/EmergencyDoctorAssignmentDtos.cs                   Diperbarui
+├── Models/EmgDoctorAssignment.cs                           Diperbarui
+├── (configuration EmgDoctorAssignment)                     Diperbarui — panjang 500
+└── Services/EmergencyDoctorAssignmentService.cs            Diperbarui
+Migrations/<timestamp>_<nama>.cs                             Baru — dibuat Rizki
+```
+
+Letak berkas configuration mengikuti source; nama migration `DEV_DISCRETION`.
+
+### 16.5 Status model
+
+| Model | Status | Kolom yang berubah | Dampak migration |
+| --- | --- | --- | --- |
+| `EmgDoctorAssignment` | Diperbarui | `IsRosterOverride`, `RosterOverrideReason` | Dua `AddColumn`; `Down()` berpenjaga |
+| `MstDoctorSchedule`, `MstServiceUnit`, `MstClinic`, `MstDoctor` | Sudah ada | Nol | Nol |
+
+### 16.6 Rencana migration dan rilis
+
+1. Rizki membuat migration sesudah model diubah; agent memeriksa isinya.
+2. Rilis backend **bersama** `FE-IGD-037`. Sesudah backend aktif, penetapan dokter di luar jadwal tanpa alasan ditolak,
+   padahal layar lama tidak punya isian alasan. Saat roster kosong, layar lama tidak dapat menetapkan dokter sama sekali.
+3. Sebelum rilis di lingkungan mana pun, periksa `IGD-UNK-18` (unit IGD bertipe `Emergency` dan punya jadwal aktif).
+   Bila belum, rilis tetap aman, tetapi setiap penetapan menjadi override beralasan.
+
+### 16.7 Konkurensi
+
+| Risiko | Penjaga |
+| --- | --- |
+| Roster berubah antara daftar dibuka dan simpan | Kelayakan dihitung ulang saat simpan (validation §13.4) |
+| Dua perawat menetapkan dokter serentak | Penjaga yang sudah ada: index unik bersyarat penugasan berjalan (`409`) |
+
+### 16.8 Yang sengaja tidak dibuat
+
+| Tidak dibuat | Sebab |
+| --- | --- |
+| Pembacaan cuti dokter | Jembatan identitas dokter–pegawai belum terbukti (`IGD-DEC-237` butir 4) |
+| Penggantian dokter lewat `SubstituteDoctorId` | Sama |
+| Butir hak akses khusus override | `IGD-DEC-141` tidak meminta penyetuju kedua (permission §10.1) |
+| Pemeriksaan ulang penugasan berjalan saat dokter berhenti jaga | Kelayakan hanya syarat saat menetapkan; mengganti DPJP tetap keputusan klinis lewat pengalihan |
+| Tabel roster IGD tersendiri | `MstDoctorSchedule` sudah cukup (`IGD-DEC-237`) |
+
+### 16.9 Pilihan desain yang disetujui
+
+Diturunkan agent dari keputusan dan fakta source. Kedelapannya **disetujui** lewat `IGD-DEC-240` (11 Oktober 2026).
+
+| No | Pilihan | Alasan | Alternatif yang ditolak |
+| ---: | --- | --- | --- |
+| 1 | Satu daftar berurutan dengan `isOnDuty`, bukan dua array | Bentuk response yang sudah ada dipertahankan; layar cukup membaca satu ruas | Dua array terpisah — memutus pemanggil yang sudah ada |
+| 2 | Override hanya memakai butir `Create`/`Update` yang sudah ada | `IGD-DEC-141` tidak meminta penyetuju | Butir `Override` baru — menunggu Clinical Governance |
+| 3 | Kelayakan dihitung pada `effectiveFrom` | Arti *layak pada saat itu* (`IGD-DEC-141`) | Waktu server saat simpan — salah untuk penetapan yang dicatat susulan |
+| 4 | Penolakan memakai `400`, bukan `409` | Isian pengguna yang kurang (alasan) atau pilihan yang tidak sah, bukan keadaan pasien | `409` |
+| 5 | Alasan override disimpan terpisah dari alasan pengalihan | Pengalihan ke dokter di luar jadwal butuh keduanya | Satu kolom alasan |
+| 6 | `Down()` migration berpenjaga | Jejak override tidak boleh hilang diam-diam (pola `BE-IGD-053`, `060`) | `Down()` polos |
+| 7 | Alias `GET …/options` dihapus | Nol pemakai; dua nama untuk satu perilaku membingungkan kontrak | Dibiarkan |
+| 8 | Kelompok di luar jadwal dibatasi 50 baris dan dapat dicari | Mengikuti batas yang sudah ada di source; perawat mengetik nama bila tidak tampil | Tanpa batas |

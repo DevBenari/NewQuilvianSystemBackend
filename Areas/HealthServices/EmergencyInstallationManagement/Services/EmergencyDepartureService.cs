@@ -21,6 +21,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
     /// </remarks>
     public class EmergencyDepartureService
     {
+        private static readonly EmergencyOrderAction[] SikapTercatat = Enum.GetValues<EmergencyOrderAction>();
+
         private readonly ApplicationDbContext _dbContext;
         private readonly EmergencyDocumentNumberService _documentNumberService;
         private readonly EmergencyUnitAuthorityService _unitAuthorityService;
@@ -549,8 +551,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             Guid emergencyVisitId,
             CancellationToken cancellationToken = default)
         {
-            var pesananDitolak = await AmbilPesananPenahanPenutupanAsync(
-                emergencyVisitId, cancellationToken);
+            var pesananDitolak = await KueriPesananPenahanPenutupan(emergencyVisitId)
+                .Where(x => x.AcceptanceStatus == EmergencyOrderAcceptanceStatus.Rejected)
+                .Select(x => x.OrderDescription)
+                .ToListAsync(cancellationToken);
 
             if (pesananDitolak.Count == 0)
                 return null;
@@ -575,16 +579,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             Guid emergencyVisitId,
             CancellationToken cancellationToken = default)
         {
-            return await _dbContext.Set<EmgHandoverOrderItem>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete
-                    && x.IsEffective
-                    && x.AcceptanceStatus == EmergencyOrderAcceptanceStatus.Rejected
-                    && x.EmergencyDeparture != null
-                    && x.EmergencyDeparture.EmergencyVisitId == emergencyVisitId)
+            return await KueriPesananPenahanPenutupan(emergencyVisitId)
                 .Select(x => x.OrderDescription)
                 .ToListAsync(cancellationToken);
         }
+
+        private IQueryable<EmgHandoverOrderItem> KueriPesananPenahanPenutupan(Guid emergencyVisitId)
+            => _dbContext.Set<EmgHandoverOrderItem>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete
+                    && x.IsEffective
+                    && x.EmergencyDeparture != null
+                    && x.EmergencyDeparture.EmergencyVisitId == emergencyVisitId
+                    && x.EmergencyDeparture.PhysicalStatus != EmergencyPhysicalStatus.Cancelled
+                    && (!SikapTercatat.Contains(x.Action)
+                        || x.AcceptanceStatus == EmergencyOrderAcceptanceStatus.Rejected));
 
         /// <summary>
         /// Menyusun daftar uraian pesanan menjadi satu kalimat — paling banyak lima,

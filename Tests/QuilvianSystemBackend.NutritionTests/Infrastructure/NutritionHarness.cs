@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 
@@ -304,10 +305,16 @@ public sealed class NutritionHarness : IDisposable
             Accessor(PenggunaId),
             new LoggerService(new CapturingLogger(LogEntries), Accessor(PenggunaId)));
 
+    /// <remarks>
+    /// <c>InpatientClinicalContextService</c> menyusul sebagai dependensi wajib dari integration;
+    /// ia menentukan profesi penulis dan unit perawatan pasien (<c>GUARD-INP-08</c>). Dibangun di
+    /// atas konteks yang sama supaya ia melihat keadaan yang sama dengan service ordernya.
+    /// </remarks>
     public NutritionOrderService OrderService(ApplicationDbContext konteks) =>
         new(konteks,
             Accessor(PenggunaId),
-            new LoggerService(new CapturingLogger(LogEntries), Accessor(PenggunaId)));
+            new LoggerService(new CapturingLogger(LogEntries), Accessor(PenggunaId)),
+            new InpatientClinicalContextService(konteks));
 
     public NutritionRequirementService RequirementService(ApplicationDbContext konteks)
     {
