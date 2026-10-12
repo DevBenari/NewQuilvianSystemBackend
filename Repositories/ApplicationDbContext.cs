@@ -670,6 +670,13 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<FinReceivableWriteOff> FinReceivableWriteOffs { get; set; }
         // BE-FIN-058, FIN-DES-079: buku mutasi piutang.
         public DbSet<FinReceivableMovement> FinReceivableMovements { get; set; }
+        // BE-FIN-092, FIN-DES-099: perjanjian angsuran piutang pegawai. Migration
+        // AddFinanceReceivableInstallmentAndBenefitSettlement dibuat via CLI EF Core, belum diterapkan.
+        public DbSet<FinReceivableInstallmentPlan> FinReceivableInstallmentPlans { get; set; }
+        public DbSet<FinReceivableInstallment> FinReceivableInstallments { get; set; }
+        // BE-FIN-092, FIN-DES-102: pelunasan internal berkala porsi benefit yang ditanggung RS.
+        public DbSet<FinBenefitSettlement> FinBenefitSettlements { get; set; }
+        public DbSet<FinBenefitSettlementItem> FinBenefitSettlementItems { get; set; }
         // BE-FIN-038, FIN-DES-041: Batch Tagihan AR ke penjamin. Migration
         // AddArInvoiceBatchAndReceiptDeduction — berkas migration MENUNGGU otorisasi terpisah
         // (prasyarat #10 01-backend-roadmap.md), belum dibuat pada task ini.
@@ -690,6 +697,10 @@ namespace QuilvianSystemBackend.Repositories
         // FinReceivableMovement/FinSupplierPayableMovement MASIH belum ber-FK ke tabel ini — lihat
         // laporan task BE-FIN-074 bagian 7.
         public DbSet<FinTransactionProof> FinTransactionProofs { get; set; }
+        // Ayat Silang (Unidentified Payer Receipt / Cross-Entry)
+        public DbSet<FinCrossEntry> FinCrossEntries { get; set; }
+        public DbSet<FinCrossEntryTransaction> FinCrossEntryTransactions { get; set; }
+        public DbSet<FinCrossEntryDocument> FinCrossEntryDocuments { get; set; }
         // BE-FIN-010, FIN-DES-017..019: kotak keluar kejadian Finance -> Accounting (transactional
         // outbox). Migration AddFinanceAccountingOutbox dibuat tangan, belum dijalankan. Worker
         // pengiriman (FIN-DES-020) dan endpoint penerima Accounting belum ada (FIN-CAP-018) — di

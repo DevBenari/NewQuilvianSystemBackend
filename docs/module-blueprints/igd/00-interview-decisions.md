@@ -6445,3 +6445,57 @@ tidak disunting).
 | ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
 | --- | --- | --- | --- | --- | --- | --- |
 | `IGD-DEC-266` | Decision | **Sesi DPJP dokter jaga IGD (`EPIC IGD-12`, `MVP-10`) dinyatakan ditutup.** `BE-IGD-056` ✅ dan `FE-IGD-037` ✅ sudah di-commit pemilik: backend `7f37b8ff` (`rizkiG`), frontend `03b057c03` (`RizkiV2`), keduanya sejajar dengan origin. Tidak ada migration baru selain `20261011052215`. Syarat rilis R3.17.3 tetap berlaku per lingkungan: migration diterapkan lebih dulu, backend dan frontend dirilis bersama, `IGD-UNK-18` dicatat. Syarat Tahap 0 `IGD-DEC-252` bagian DPJP terpenuhi, sehingga desain dan perencanaan Billing IGD (Tahap 1) tidak lagi tertahan sesi ini | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pesan pemilik: *"saya sudah commit dan saya nyatakan sesi DPJP ditutup"* |
+
+### Audit capability Billing/Finance untuk gap lama — 12 Oktober 2026 (`trace-existing-capabilities`)
+
+Dipicu permintaan pemilik menutup enam butir dari pass wawancara 13 Agustus 2026 yang **belum** disentuh suplemen 3.6
+(3.6 mengaudit charge/tariff/jembatan untuk slice Billing IGD yang sedang berjalan; cluster di bawah ini — payment type
+encounter, enum guarantor legacy, deposit/financial exception, dan gate clinical-completion-versus-billing — adalah
+cluster berbeda): `IGD-GAP-002`, `IGD-GAP-003`, `IGD-GAP-010`, `IGD-EVID-002`, `IGD-CONFLICT-001`, `IGD-AUDIT-001`. Bukti
+lengkap dan tabel kemampuan `IGD-CAP-116`…`123` ada di `01-existing-capability-map.md` suplemen 3.7. Read-only; nol
+kueri basis data; nol uji runtime; frontend tidak diperiksa.
+
+| Butir | Isi |
+| --- | --- |
+| Di dalam scope | Enam butir gap/evidence/conflict/audit di atas saja |
+| Di luar scope — untuk sesi lain | Slice Billing IGD (jasa kunjungan, tindakan, obat, penunjang) — sudah ditutup `IGD-DEC-241`…`254` dan suplemen 3.6; tidak disentuh ulang di sini |
+
+#### Fakta
+
+| ID | Isi | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-110` | Snapshot audit ini: backend `rizkiG` `7f835932`, working tree punya perubahan belum di-commit di `Areas/Corporate/FinanceManagement/{Collection,Receivable}` dan `Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs`/`Program.cs`. Tidak satu pun berkas itu dibaca isinya, dan tidak satu pun temuan di bawah bergantung padanya | `git status --short` pada `NewQuilvianSystemBackend` |
+
+#### Hasil audit source untuk enam butir lama
+
+| ID | Status baru | Temuan |
+| --- | --- | --- |
+| `IGD-GAP-002` | `resolved — klaim basi` | `EncounterPaymentType` sudah punya `CompanyGuarantor = 3` (aditif, `BE-RWI-035`/`RWI-ENC-PAYER-001`). Premis gap ("hanya Cash/Insurance, corporate masih legacy") tidak lagi benar — `IGD-CAP-116` |
+| `IGD-AUDIT-001` | `resolved — dead code, belum dihapus` | `PatientEncounterGuarantorType` dan `PatientEncounterGuarantorStatus`: nol pemakaian di seluruh `Areas/` selain definisinya. Konsisten dengan `RJ-BIL-CONFLICT-001-E` (blueprint rawat-jalan) — sisa desain multi-payer yang dibongkar migration `20260712123508` — `IGD-CAP-117` |
+| `IGD-GAP-003` | `resolved sebagian — partial, bukan missing murni` | Deposit (`MstDepositPolicy`, `BilDepositAccount`/`Movement`, `BillingDepositService`), refund/adjustment/write-off (`BillingFinancialExceptionsController`/`Service`), dan pola adapter baca-saja lintas modul (`InpBillingClearanceAdapter`) **sudah ada** — `IGD-CAP-118`, `119`, `121`. Kategori financial release exception (`DeferredPayment`, `FinancialAssistanceOrWaiver`, `PaymentInfrastructureFailure`, `HospitalBillingReconciliation`, `DepositSecuredRelease`) dan tiered approval untuk release **tetap tidak ada** — `IGD-CAP-120` |
+| `IGD-GAP-010` | `resolved sebagian` | Sama dengan `IGD-GAP-003` di atas; lihat `IGD-CAP-120` untuk bagian yang benar-benar hilang |
+| `IGD-EVID-002` | `confirmed` | `EmergencyVisitService` transisi `AwaitingDisposition → Disposed → Completed` tanpa satu pun gate billing; nol referensi Billing/Financial di seluruh `EmergencyInstallationManagement` — `IGD-CAP-123`, menegaskan ulang `IGD-FACT-007` (14 Agustus 2026) pada source yang jauh lebih besar |
+| `IGD-CONFLICT-001` | `resolved — tidak terkonfirmasi (verifikasi ulang)` | Re-verifikasi atas resolusi `IGD-DEC-049`/14 Agustus 2026, kini pada Billing yang jauh lebih besar (`InpatientClearanceService`, `BillingFinancialExceptionsController`, dll. belum ada saat resolusi pertama). Satu-satunya kandidat, `InpatientClearanceDtos.CanDischarge`, bersifat advisory — nol caller menegakkannya sebagai guard. Kesimpulan tidak berubah — `IGD-CAP-122` |
+
+Perubahan status butir lama — baris aslinya tidak diubah:
+
+| ID | Status sesudah audit ini |
+| --- | --- |
+| `IGD-GAP-002` | Lihat tabel di atas — `resolved — klaim basi` |
+| `IGD-AUDIT-001` | Lihat tabel di atas — `resolved — dead code` |
+| `IGD-GAP-003` | Lihat tabel di atas — `resolved sebagian` |
+| `IGD-GAP-010` | Lihat tabel di atas — `resolved sebagian` |
+| `IGD-EVID-002` | Lihat tabel di atas — `confirmed` |
+| `IGD-CONFLICT-001` | Re-konfirmasi `resolved — tidak terkonfirmasi`, sejalan dengan resolusi pertama `IGD-DEC-049` |
+
+#### Pertanyaan terbuka baru
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+| --- | --- | --- | --- |
+| `IGD-OQ-127` | Apakah enum guarantor legacy (`PatientEncounterGuarantorType`, `PatientEncounterGuarantorStatus`, dan dua lainnya yang ditemukan `RJ-BIL-CONFLICT-001-E`) dijadwalkan dihapus sebagai task tersendiri, atau dibiarkan sebagai dead code terdokumentasi | Backend/API owner + Product/Domain Owner IGD/Rawat Jalan | Tidak — kebersihan source, bukan blocker fungsional |
+
+#### Langkah berikutnya
+
+Enam butir pass 13 Agustus 2026 ditutup. `IGD-GAP-003`/`010` menyisakan satu kemampuan yang benar-benar hilang
+(`IGD-CAP-120`) — relevan bila `IGD-DEC-030`/`038` (self-pay `Outstanding + Released`) kelak diaktifkan, di luar
+scope slice Billing IGD rilis 21 Oktober 2026. `IGD-OQ-127` menunggu keputusan pemilik, tidak memblokir pekerjaan apa pun.

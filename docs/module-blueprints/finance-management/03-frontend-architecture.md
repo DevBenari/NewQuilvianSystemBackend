@@ -628,7 +628,7 @@ membuka kembali keputusan yang sudah tertutup.
 | Receiveable AR Canceled | 2 | Transaksi A/R | `/finance/receipts/reversed-allocations` | `FIN-LYR-AR-06` | `FinanceReceipt : Read` | **Baru** — butuh endpoint baru |
 | Report Receiveable AR | 2 | Transaksi A/R | `/finance/ar-report/receivable` | `FIN-LYR-AR-07` | `FinanceReceivable : Read` | **Baru** — pandangan tersaring |
 | Report Payment AR | 2 | Transaksi A/R | `/finance/ar-report/payment` | `FIN-LYR-AR-08` | `FinanceReceipt : Read` | **Baru** — pandangan tersaring atas `GET /receipts/register` |
-| Settlement AR | 2 | Transaksi A/R | `/finance/receipts` | `FIN-LYR-AR-09` | `FinanceReceipt : Read` | **Sudah ada** (`FE-FIN-004`) |
+| Settlement AR | 2 | Transaksi A/R | `/finance/receivable/settlement` | `FIN-LYR-AR-09` | `FinanceReceivable : Read` | **Direvisi 2026-10-11** (`ISSUE-FIN-002`/`FIN-DEC-203`) — bukan lagi pandangan tersaring atas `/finance/receipts`. Layar dedicated V2 dengan tab kategori Perusahaan/Pasien Umum/Karyawan, backend `FinanceSettlementService` (`02-backend-architecture.md` bagian baru), kontrak `receivables/settlement*` (`contracts/api-contract.md`). Skema tampilan: filter 2 kolom (±33%/±67%), 3 information card (Total Piutang/Beginning Balance/Ending Balance), tabel 7 kolom (No., Nama Pasien, No. Invoice, Beginning Balance, Ending Balance, Total Piutang, Aksi) tanpa scroll horizontal pada 1024px ke atas — lihat `PLAN-REPAIR-FIN-002` bagian 3 untuk rangka SEBELUM/SESUDAH |
 | Report Closed Billing | 2 | Transaksi A/R | `/finance/ar-report/closed-billing` | `FIN-LYR-AR-10` | `FinanceReceivable : Read` | **Baru** — pandangan tersaring |
 | Report AR | 2 | Transaksi A/R | `/finance/ar-report` | `FIN-LYR-AR-11` | `Finance.AR : View` | **Sudah ada** |
 | Report AR Created | 2 | Transaksi A/R | `/finance/ar-report/created` | `FIN-LYR-AR-12` | `FinanceReceivable : Read` | **Baru** — pandangan tersaring |
@@ -716,9 +716,10 @@ menautkan ke sana.
 
 #### Layar pandangan tersaring — digambar sekali, dipakai sembilan layar
 
-Sembilan layar baru (`FIN-LYR-AR-04`, `05`, `07`, `08`, `10`, `12`, `14`, `AP-09`, `AP-10`,
+Delapan dari sembilan layar baru (`FIN-LYR-AR-04`, `05`, `07`, `08`, `10`, `14`, `AP-09`, `AP-10`,
 `AP-11`, `AP-15`) berbagi satu bentuk: **daftar bersaring, baca saja**, memakai endpoint yang sudah
-ada dengan saringan bawaan yang terkunci layar.
+ada dengan saringan bawaan yang terkunci layar. `FIN-LYR-AR-12` (Report AR Created) **tidak lagi**
+mengikuti pola ini sejak revisi V2 — lihat 23.1.
 
 ```text
 +- <judul layar> ------------------------------------------- <ID layar> -+
@@ -738,7 +739,7 @@ ada dengan saringan bawaan yang terkunci layar.
 | `FIN-LYR-AR-07` Report Receiveable AR | `GET /receivables` | — (laporan penuh) |
 | `FIN-LYR-AR-08` Report Payment AR | `GET /receipts/register` | — |
 | `FIN-LYR-AR-10` Report Closed Billing | `GET /receivables` | `Status = SETTLED` |
-| `FIN-LYR-AR-12` Report AR Created | `GET /receivables` | diurutkan tanggal terbit |
+| `FIN-LYR-AR-12` Report AR Created | ~~`GET /receivables`~~ — **lihat 23.1**, kontrak V2 terpisah, bukan lagi bagian pola sembilan layar ini | diurutkan tanggal terbit (V1, sudah tidak berlaku) |
 | `FIN-LYR-AR-14` Piutang Korporat/Penjamin | `GET /receivables` | `DebtorType = PAYER` |
 | `FIN-LYR-AP-09`/`10`/`11`/`15` | Keempat endpoint `purchasing/reports` | — (endpointnya memang sudah terpisah) |
 
@@ -1449,3 +1450,61 @@ Gerbang hulu dan hilir lintas domain (`evidence/23` B1..B6 Billing, H1..H8 HR, d
 | Ruas nomor jurnal pada pelunasan internal | Kontraknya milik Accounting dan masih terbuka (22.6) |
 | Layar master "RS Benefit" | `FIN-OQ-102`; master penjamin milik Administrator, bukan Finance |
 | Menampilkan sisa plafon benefit pegawai | Finance tidak memegang plafon dan tidak menghitungnya (`FIN-DEC-164`). Menampilkannya berarti menjanjikan angka yang bukan miliknya |
+
+## 23. Amendment 11 Oktober 2026 — koreksi kontrak `FIN-LYR-AR-12` Report AR Created ke endpoint V2
+
+```yaml
+input_issue: docs/issue/issue-001-laporan-ar-dan-report-ar-created.md (ISS-FIN-001-T2)
+input_plan_repair: docs/plan-repair/plan-repair-001-laporan-ar-dan-report-ar-created.md (FIX-FIN-001-04)
+jenis: koreksi dokumen menyusul source yang sudah lebih maju — bukan keputusan desain baru
+status: diterapkan
+approved_by: Pemilik (instruksi chat langsung: "kerjakan FIX-FIN-001-04")
+approved_at: 2026-10-11
+```
+
+### 23.1 Apa yang salah dan kenapa dikoreksi
+
+Baris `FIN-LYR-AR-12` pada tabel 17.2 (bagian "Layar pandangan tersaring") sejak Revisi 1 mencatat
+Report AR Created sebagai bagian dari sembilan layar daftar-bersaring generik, memakai endpoint
+`GET /receivables` yang sama dengan Report Receiveable AR dan Report Closed Billing. Ini adalah
+kontrak **V1**, diimplementasikan task `FE-FIN-017` (`task/report/frontend/FE-FIN-017.md:227`).
+
+Working tree frontend saat ini **tidak lagi** memakai kontrak itu. Hook
+`use-created-receivable-list.jsx` kini hanyalah *compatibility wrapper* ke
+`useReportArCreated` (`src/lib/hooks/finance/receivable/use-report-ar-created.jsx`), yang memanggil
+endpoint detail resmi:
+
+| Method | Path | Kegunaan |
+|---|---|---|
+| `GET` | `/api/v1/corporate/finance-management/receivable-invoice-batches/reports/created` | Daftar detail tagihan Laporan Pembuatan AR terpaginasi |
+| `GET` | `/api/v1/corporate/finance-management/receivable-invoice-batches/reports/created/summary` | Ringkasan laporan |
+| `GET` | `/api/v1/corporate/finance-management/receivable-invoice-batches/reports/created/export/excel` | Ekspor Excel |
+| `GET` | `/api/v1/corporate/finance-management/receivable-invoice-batches/reports/created/export/pdf` | Ekspor PDF |
+
+Didukung method khusus `GetReportArCreatedPagedAsync`/`GetReportArCreatedSummaryAsync`/`ExportReportArCreatedExcelAsync`/`ExportReportArCreatedPdfAsync`
+pada `FinanceReceivableInvoiceBatchService.cs:3448-3774`, mengembalikan **detail per baris
+tagihan** (`FinReceivableInvoiceBatchItem`) dikelompokkan per penjamin dengan subtotal tanggal —
+bukan daftar piutang generik satu baris per `FinReceivable` seperti kontrak V1.
+
+Implementasi V2 ini **tidak tercatat di roadmap manapun** (nol entri `BE-FIN-*`/`FE-FIN-*` yang
+menyebut "reports/created" atau "Laporan Pembuatan AR" sebelum `ISSUE-FIN-001`), sehingga
+dikerjakan di luar proses task yang terlacak — itulah sebabnya dokumen ini tidak ikut diperbarui
+saat itu. `FE-FIN-017.md:288` baris "Masalah yang diketahui" poin (2) sudah memperingatkan sendiri
+bahwa bagian ini harus direvisi; peringatan itu baru ditindaklanjuti sekarang.
+
+### 23.2 Yang diubah pada dokumen ini
+
+- Baris `FIN-LYR-AR-12` pada tabel 17.2 dicoret dan diberi catatan silang ke bagian ini.
+- Kalimat pembuka tabel 17.2 diperbarui dari "sembilan layar... berbagi satu bentuk" menjadi
+  "delapan dari sembilan", karena Report AR Created tidak lagi mengikuti bentuk generik itu —
+  kolomnya bukan lagi "mengikuti response endpoint sumbernya" V1, melainkan kontrak detail V2
+  tersendiri.
+
+### 23.3 Yang MUST NOT disimpulkan dari amandemen ini
+
+- Ini **bukan** keputusan desain baru dan **bukan** wewenang untuk mengubah tampilan Report AR
+  Created. Tampilan (filter kiri, ringkasan kanan, tabel 9 kolom) sudah berjalan di source sejak
+  sebelum amandemen ini dan tidak disentuh.
+- Ini **bukan** pengesahan retroaktif atas proses ad-hoc yang melahirkan V2 di luar roadmap.
+  Task frontend/backend berikutnya yang menyentuh layar ini tetap **wajib** didaftarkan ke roadmap
+  dengan task ID sebagaimana mestinya.

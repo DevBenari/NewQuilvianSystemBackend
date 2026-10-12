@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Mod
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
 using QuilvianSystemBackend.Repositories;
@@ -44,19 +45,22 @@ public sealed class FinanceBillingIntakeService
     private readonly FinanceAccountingOutboxService _accountingOutboxService;
     private readonly FinanceReceiptService _receiptService;
     private readonly FinanceSubledgerMovementService _subledgerMovementService;
+    private readonly IFinanceReceivableNumberGenerator _numberGenerator;
 
     public FinanceBillingIntakeService(
         ApplicationDbContext dbContext,
         LoggerService loggerService,
         FinanceAccountingOutboxService accountingOutboxService,
         FinanceReceiptService receiptService,
-        FinanceSubledgerMovementService subledgerMovementService)
+        FinanceSubledgerMovementService subledgerMovementService,
+        IFinanceReceivableNumberGenerator numberGenerator)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
         _accountingOutboxService = accountingOutboxService;
         _receiptService = receiptService;
         _subledgerMovementService = subledgerMovementService;
+        _numberGenerator = numberGenerator;
     }
 
     // ------------------------------------------------------------------------------------
@@ -141,6 +145,22 @@ public sealed class FinanceBillingIntakeService
             .ToListAsync(cancellationToken);
         var arToCreate = arCandidates.Where(x => !existingKeysByType[FinBillingHandoffTypes.Ar].Contains(x.HandoffKey)).ToList();
 
+        // BE-FIN-097, FIN-DEC-187: hanya BilHandoffAdjustment yang menunjuk handoff EMPLOYEE_BENEFIT
+        // yang relevan bagi Finance (koreksi pemilik manfaat salah orang) — penyesuaian Billing lain
+        // (refund, write-off invoice biasa, dsb.) sudah punya jalur sendiri dan TIDAK diproses ulang
+        // di sini. FinBillingHandoffTypes.Adjustment sudah ada sejak sebelum task ini tetapi belum
+        // pernah disinkron maupun diproses — ditemukan dorman, bukan ditambahkan baru.
+        var employeeBenefitHandoffIds = await _dbContext.BilArHandoffs.AsNoTracking()
+            .Where(x => !x.IsDelete && x.DebtorType == BillingArDebtorTypes.EmployeeBenefit)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+        var adjustmentCandidates = employeeBenefitHandoffIds.Count == 0
+            ? new List<BilHandoffAdjustment>()
+            : await _dbContext.BilHandoffAdjustments.AsNoTracking()
+                .Where(x => !x.IsDelete && x.ArHandoffId.HasValue && employeeBenefitHandoffIds.Contains(x.ArHandoffId.Value))
+                .ToListAsync(cancellationToken);
+        var adjustmentToCreate = adjustmentCandidates.Where(x => !existingKeysByType[FinBillingHandoffTypes.Adjustment].Contains(x.Id)).ToList();
+
         // BE-FIN-016: BilCollectionHandoff dibuat dengan Status = CREATED untuk kedua keadaan
         // terminal tender (SUCCEEDED maupun REVERSED) — keduanya disinkron, dibedakan saat proses.
         var collectionCandidates = await _dbContext.BilCollectionHandoffs.AsNoTracking()
@@ -221,7 +241,8 @@ public sealed class FinanceBillingIntakeService
         }
 
         var totalToCreate = arToCreate.Count + collectionToCreate.Count + depositToCreate.Count
-            + creditToCreate.Count + refundToCreate.Count + varianceToCreate.Count + orphanTopUps.Count;
+            + creditToCreate.Count + refundToCreate.Count + varianceToCreate.Count + orphanTopUps.Count
+            + adjustmentToCreate.Count;
         if (totalToCreate == 0) return 0;
 
         var now = DateTime.UtcNow;
@@ -303,6 +324,19 @@ public sealed class FinanceBillingIntakeService
                 CreateBy = actorUserId
             });
         }
+        foreach (var adjustment in adjustmentToCreate)
+        {
+            _dbContext.FinBillingHandoffIntakes.Add(new FinBillingHandoffIntake
+            {
+                HandoffType = FinBillingHandoffTypes.Adjustment,
+                SourceHandoffId = adjustment.Id,
+                SourceHandoffKey = adjustment.Id, // BilHandoffAdjustment tidak punya HandoffKey sendiri — pola sama dengan RefundableCredit.
+                Status = FinBillingHandoffIntakeStatuses.New,
+                CorrelationId = adjustment.CorrelationId,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            });
+        }
 
         // BE-FIN-046, FIN-VAL-142: baris ditulis LANGSUNG berstatus ERROR — bukan NEW. Ia bukan
         // fakta yang menunggu diolah, melainkan lubang yang menunggu diperbaiki di sisi Billing.
@@ -378,6 +412,9 @@ public sealed class FinanceBillingIntakeService
                 case FinBillingHandoffTypes.CashVarianceReview:
                     await ProcessCashVarianceReviewIntakeAsync(intakeId, actorUserId, cancellationToken);
                     break;
+                case FinBillingHandoffTypes.Adjustment:
+                    await ProcessArAdjustmentIntakeAsync(intakeId, actorUserId, cancellationToken);
+                    break;
                 default:
                     throw new InvalidOperationException($"Konsumen untuk HandoffType '{current.HandoffType}' belum didukung.");
             }
@@ -423,6 +460,12 @@ public sealed class FinanceBillingIntakeService
             if (await _dbContext.FinReceivables.AnyAsync(x => !x.IsDelete && x.SourceHandoffKey == handoff.HandoffKey, cancellationToken))
                 throw new InvalidOperationException("Piutang untuk fakta ini sudah pernah dibuat.");
 
+            // BE-FIN-091, FIN-VAL-247: lapis service di atas CK_BilArHandoff_BenefitOwner dan
+            // CK_FinReceivable_BenefitOwner — pesan 422 yang jelas sebelum baris menyentuh database.
+            if (handoff.DebtorType == BillingArDebtorTypes.EmployeeBenefit && handoff.BenefitOwnerId is null)
+                throw new BillingIntakeValidationException(
+                    "Serah terima piutang manfaat karyawan wajib membawa ID pemilik manfaat yang valid.");
+
             var invoice = await _dbContext.BilInvoices.AsNoTracking()
                 .SingleOrDefaultAsync(x => x.Id == handoff.InvoiceId, cancellationToken);
 
@@ -442,15 +485,20 @@ public sealed class FinanceBillingIntakeService
             var now = DateTimeOffset.UtcNow;
             var receivable = new FinReceivable
             {
-                ReceivableNumber = GenerateReceivableNumber(),
+                ReceivableNumber = await _numberGenerator.GenerateAsync(actorUserId, cancellationToken),
                 SourceHandoffKey = handoff.HandoffKey,
                 SourceHandoffId = handoff.Id,
                 InvoiceId = handoff.InvoiceId,
-                // Billing hanya mengenal PAYER/PATIENT_GUARANTOR — nilai string sama persis
-                // dengan FinReceivableDebtorTypes, disalin apa adanya (FIN-DES-024: EMPLOYEE_BENEFIT
-                // belum punya jalur intake, OPEN DECISION, tidak pernah dihasilkan di sini).
+                // Nilai string BillingArDebtorTypes sama persis dengan FinReceivableDebtorTypes,
+                // disalin apa adanya. BE-FIN-091: EMPLOYEE_BENEFIT kini punya jalur intake penuh
+                // (FIN-DES-024 OPEN DECISION ditutup) — PAYER/PATIENT_GUARANTOR tetap seperti semula.
                 DebtorType = handoff.DebtorType,
                 DebtorReferenceId = handoff.DebtorReferenceId,
+                // BE-FIN-091, FIN-DEC-184/185: disalin apa adanya, tidak pernah dihitung ulang.
+                // NULL untuk baris PAYER/PATIENT_GUARANTOR — ditegakkan CK_BilArHandoff_BenefitOwner
+                // di sisi sumber dan CK_FinReceivable_BenefitOwner di sini.
+                BenefitOwnerId = handoff.BenefitOwnerId,
+                BenefitRelationship = handoff.BenefitRelationship,
                 // FIN-DES-011 area: nilai disalin dari handoff, tidak pernah dihitung ulang.
                 // BilArHandoff.Amount sudah berupa sisa tanggungan penjamin (FR-FIN-020) —
                 // dihitung Billing sebelum handoff dibuat, bukan oleh Finance.
@@ -1037,6 +1085,198 @@ public sealed class FinanceBillingIntakeService
         }
     }
 
+    // ------------------------------------------------------------------------------------
+    // BE-FIN-097, FIN-DEC-173/187/195/200, INT-BIL-FIN-002 §P.6 — Koreksi pemilik manfaat salah
+    // orang: batalkan kartu piutang lama (mutasi pembalik, BUKAN edit manual debitur), terbitkan
+    // kartu baru atas pegawai yang benar.
+    //
+    // TEMUAN BLOCKER, dicatat karena menentukan apa yang BENAR-BENAR terjadi saat method ini
+    // berjalan: diverifikasi ke BillingArApHandoffService.cs — satu-satunya jalur Billing yang
+    // menulis BilHandoffAdjustment HANYA mencatat baris penyesuaian untuk refund/write-off
+    // invoice umum; Billing TIDAK PERNAH menerbitkan BilArHandoff baru sebagai pasangannya, dan
+    // tidak ada field eksplisit yang menautkan adjustment ke handoff pengganti selain berbagi
+    // CorrelationId (pola yang sama dipakai handoff↔intake di tempat lain pada file ini). Karena
+    // itu `newHandoff` di bawah MEMANG tidak akan pernah ditemukan sampai Billing membangun jalur
+    // penerbitan BilArHandoff pengganti untuk skenario ini — bukan bug di sini, dicatat sebagai
+    // gap lintas modul di laporan task, BUKAN diam-diam diasumsikan sudah berjalan.
+    //
+    // Restitusi payroll (langkah 3 kontrak §P.6 — event pembalikan angsuran ke HR) SENGAJA BELUM
+    // diimplementasikan pada task ini: butuh menentukan apakah cicilan atas pegawai lama sempat
+    // terpotong (FinReceivableInstallment.PaidAmount > 0), lalu menulis entri pembalik HR —
+    // kombinasi keputusan desain yang belum sempat dikerjakan dalam anggaran task ini. Dicatat
+    // NOT IMPLEMENTED pada laporan, bukan ditulis asal agar terlihat lengkap.
+    // ------------------------------------------------------------------------------------
+
+    private async Task ProcessArAdjustmentIntakeAsync(Guid intakeId, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"FIN_BILLING_INTAKE_{intakeId:N}", cancellationToken);
+
+            var intake = await _dbContext.FinBillingHandoffIntakes
+                .SingleOrDefaultAsync(x => x.Id == intakeId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Fakta masuk tidak ditemukan.");
+            if (intake.Status is FinBillingHandoffIntakeStatuses.Consumed or FinBillingHandoffIntakeStatuses.Acknowledged)
+                throw new BillingIntakeValidationException("Fakta ini sudah berhasil diolah dan tidak dapat diulang.");
+            if (intake.HandoffType != FinBillingHandoffTypes.Adjustment)
+                throw new InvalidOperationException($"Konsumen untuk HandoffType '{intake.HandoffType}' tidak cocok.");
+
+            var adjustment = await _dbContext.BilHandoffAdjustments
+                .SingleOrDefaultAsync(x => x.Id == intake.SourceHandoffId && !x.IsDelete, cancellationToken)
+                ?? throw new InvalidOperationException("Penyesuaian serah terima sumber tidak ditemukan di Billing.");
+
+            var oldHandoff = await _dbContext.BilArHandoffs
+                .SingleOrDefaultAsync(x => adjustment.ArHandoffId.HasValue && x.Id == adjustment.ArHandoffId.Value, cancellationToken)
+                ?? throw new InvalidOperationException("Serah terima AR lama milik penyesuaian ini tidak ditemukan.");
+
+            var now = DateTimeOffset.UtcNow;
+
+            var oldReceivable = await _dbContext.FinReceivables
+                .SingleOrDefaultAsync(x => !x.IsDelete && x.SourceHandoffKey == oldHandoff.HandoffKey, cancellationToken);
+
+            if (oldReceivable is not null && oldReceivable.Status != FinReceivableStatuses.Cancelled)
+            {
+                var balanceBefore = oldReceivable.OutstandingAmount;
+                oldReceivable.OutstandingAmount = 0m;
+                oldReceivable.AdjustedAmount += balanceBefore;
+                oldReceivable.Status = FinReceivableStatuses.Cancelled;
+                oldReceivable.UpdateDateTime = DateTime.UtcNow;
+                oldReceivable.UpdateBy = actorUserId;
+                oldReceivable.RowVersion = Guid.NewGuid();
+
+                if (balanceBefore != 0)
+                {
+                    await _subledgerMovementService.RecordReceivableMovementAsync(
+                        receivable: oldReceivable,
+                        movementType: FinReceivableMovementTypes.Penyesuaian,
+                        deltaAmount: -balanceBefore,
+                        balanceBefore: balanceBefore,
+                        occurredAt: now,
+                        actorUserId: actorUserId,
+                        correlationId: adjustment.CorrelationId,
+                        causationId: adjustment.Id,
+                        referenceNumber: oldReceivable.ReceivableNumber,
+                        notes: $"Pembatalan piutang — {adjustment.Reason} (BE-FIN-097)",
+                        cancellationToken: cancellationToken);
+                }
+            }
+
+            // Lihat catatan blocker di atas kelas method ini — pencarian ini akan tetap kosong
+            // sampai Billing membangun jalur penerbitan BilArHandoff pengganti.
+            var newHandoff = await _dbContext.BilArHandoffs
+                .SingleOrDefaultAsync(x => !x.IsDelete && x.CorrelationId == adjustment.CorrelationId && x.Id != oldHandoff.Id, cancellationToken);
+
+            Guid? targetEntityId = oldReceivable?.Id;
+
+            if (newHandoff is not null
+                && !await _dbContext.FinReceivables.AnyAsync(x => !x.IsDelete && x.SourceHandoffKey == newHandoff.HandoffKey, cancellationToken))
+            {
+                var newInvoice = await _dbContext.BilInvoices.AsNoTracking()
+                    .SingleOrDefaultAsync(x => x.Id == newHandoff.InvoiceId, cancellationToken);
+                Guid? newPatientId = null;
+                if (newInvoice is not null)
+                {
+                    newPatientId = await _dbContext.RegPatientEncounters.AsNoTracking()
+                        .Where(x => x.Id == newInvoice.EncounterId)
+                        .Select(x => (Guid?)x.PatientId)
+                        .FirstOrDefaultAsync(cancellationToken);
+                }
+
+                var newReceivable = new FinReceivable
+                {
+                    ReceivableNumber = await _numberGenerator.GenerateAsync(actorUserId, cancellationToken),
+                    SourceHandoffKey = newHandoff.HandoffKey,
+                    SourceHandoffId = newHandoff.Id,
+                    InvoiceId = newHandoff.InvoiceId,
+                    DebtorType = newHandoff.DebtorType,
+                    DebtorReferenceId = newHandoff.DebtorReferenceId,
+                    BenefitOwnerId = newHandoff.BenefitOwnerId,
+                    BenefitRelationship = newHandoff.BenefitRelationship,
+                    OriginalAmount = newHandoff.Amount,
+                    OutstandingAmount = newHandoff.Amount,
+                    DueDate = newHandoff.DueDate.HasValue ? FinanceBusinessDate.ToDateOnly(newHandoff.DueDate.Value) : FinanceBusinessDate.ToDateOnly(now),
+                    Status = FinReceivableStatuses.Outstanding,
+                    ClaimStatus = FinReceivableClaimStatuses.NotRequired,
+                    RecognizedAt = now,
+                    CorrelationId = adjustment.CorrelationId,
+                    CausationId = adjustment.Id,
+                    CreateDateTime = DateTime.UtcNow,
+                    CreateBy = actorUserId
+                };
+                newReceivable.Items.Add(new FinReceivableItem
+                {
+                    EncounterId = newInvoice?.EncounterId,
+                    InvoiceId = newHandoff.InvoiceId,
+                    PatientId = newPatientId,
+                    Description = $"Piutang pengganti — koreksi salah orang ({adjustment.Reason})",
+                    Amount = newHandoff.Amount,
+                    CreateDateTime = DateTime.UtcNow,
+                    CreateBy = actorUserId
+                });
+                _dbContext.FinReceivables.Add(newReceivable);
+
+                await _subledgerMovementService.RecordReceivableMovementAsync(
+                    receivable: newReceivable,
+                    movementType: FinReceivableMovementTypes.Pengakuan,
+                    deltaAmount: newReceivable.OriginalAmount,
+                    balanceBefore: 0m,
+                    occurredAt: now,
+                    actorUserId: actorUserId,
+                    correlationId: adjustment.CorrelationId,
+                    causationId: adjustment.Id,
+                    referenceNumber: newReceivable.ReceivableNumber,
+                    notes: $"Pengakuan piutang pengganti dari koreksi salah orang {adjustment.Id}",
+                    cancellationToken: cancellationToken);
+
+                await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+                {
+                    EventTypeCode = FinAccountingEventTypeCodes.PengakuanPiutang,
+                    SourceTransactionId = newReceivable.ReceivableNumber,
+                    EventOccurredAt = now,
+                    AccountingDate = FinanceBusinessDate.ToDateOnly(now),
+                    Amount = newReceivable.OriginalAmount,
+                    CorrelationId = adjustment.CorrelationId,
+                    CausationId = adjustment.Id,
+                    ActorUserId = actorUserId
+                }, cancellationToken);
+
+                newHandoff.Status = BillingHandoffStatuses.Acknowledged;
+                newHandoff.AcknowledgedAt = now;
+                newHandoff.RowVersion = Guid.NewGuid();
+
+                targetEntityId = newReceivable.Id;
+            }
+
+            // TODO BE-FIN-097 (belum diimplementasikan, lihat catatan di atas kelas method ini):
+            // restitusi payroll — event pembalikan angsuran ke HR bila cicilan pegawai lama sempat
+            // terpotong (FIN-DEC-195).
+
+            intake.Status = newHandoff is not null ? FinBillingHandoffIntakeStatuses.Acknowledged : FinBillingHandoffIntakeStatuses.Consumed;
+            intake.TargetEntityId = targetEntityId;
+            intake.ConsumedAt = now;
+            if (newHandoff is not null) intake.AcknowledgedAt = now;
+            intake.ErrorMessage = null;
+            intake.UpdateDateTime = DateTime.UtcNow;
+            intake.UpdateBy = actorUserId;
+            intake.RowVersion = Guid.NewGuid();
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            await AuditAsync("Intake.Adjustment.Processed", intake.Id, actorUserId, targetEntityId);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
     // BE-FIN-045: Penanda penutupan shift kasir (FIN-DES-054, FIN-DEC-070/072/073/075)
     // BE-FIN-070: Penanda pembukaan shift kasir (FIN-DEC-115, FIN-DEC-121, FIN-DES-084)
     //
@@ -1325,14 +1565,7 @@ public sealed class FinanceBillingIntakeService
     private static Task RollbackAsync(IDbContextTransaction? transaction) =>
         transaction is null ? Task.CompletedTask : transaction.RollbackAsync(CancellationToken.None);
 
-    // Nomor piutang tidak punya penomor seri resmi di modul ini (BillingNumberSeriesService
-    // adalah milik BillingManagement) — dibuat unik lewat Guid, bukan Count/Max/Last+1
-    // (QBE-CODE-002/003), sampai ada keputusan skema penomoran resmi untuk Finance.
-    private static string GenerateReceivableNumber()
-    {
-        var candidate = $"AR-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}";
-        return candidate.Length <= 50 ? candidate : candidate[..50];
-    }
+    // Penomoran piutang kini dialokasikan resmi melalui IFinanceReceivableNumberGenerator (AR-YYYYMMDD0001).
 
     private static string Truncate(string value, int maxLength) => value.Length <= maxLength ? value : value[..maxLength];
 
