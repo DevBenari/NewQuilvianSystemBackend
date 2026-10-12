@@ -186,6 +186,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 DiagnosisId = NormalizeGuid(request.Referral.DiagnosisId),
                 DiagnosisNote = NormalizeText(request.Referral.DiagnosisNote),
                 ReferralReason = NormalizeText(request.Referral.ReferralReason),
+                ReferralDoctorName = NormalizeText(request.Referral.ReferralDoctorName),
                 CaptureSource = isKiosk ? ReferralCaptureSource.Kiosk : ReferralCaptureSource.Staff,
                 RowVersion = Guid.NewGuid(),
                 CreateDateTime = now,
@@ -290,6 +291,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 ReferralDateTime = r?.ReferralDateTime,
                 ReferralInstitution = encounter.Institution,
                 ReferralDoctor = encounter.Doctor,
+                ReferralDoctorName = r?.ReferralDoctorName ?? encounter.Doctor?.Name,
                 InstitutionIsPartnerSnapshot = r?.InstitutionIsPartnerSnapshot ?? false,
                 InstitutionCodeSnapshot = r?.InstitutionCodeSnapshot,
                 InstitutionNameSnapshot = r?.InstitutionNameSnapshot,
@@ -421,6 +423,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             referral.DiagnosisId = NormalizeGuid(request.DiagnosisId);
             referral.DiagnosisNote = NormalizeText(request.DiagnosisNote);
             referral.ReferralReason = NormalizeText(request.ReferralReason);
+            referral.ReferralDoctorName = NormalizeText(request.ReferralDoctorName);
             // Snapshot fasilitas diambil ulang hanya bila fasilitasnya diganti (atau belum pernah
             // ada), supaya koreksi ruas lain tidak menimpa histori kontrak saat rujukan dicatat.
             if (isNew ||
@@ -713,6 +716,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 ["referralNumber"] = encounter.ReferralNumber,
                 ["referralInstitutionId"] = encounter.ReferralInstitutionId,
                 ["referralDoctorId"] = encounter.ReferralDoctorId,
+                ["referralDoctorName"] = referral.ReferralDoctorName,
                 ["referralDateTime"] = referral.ReferralDateTime,
                 ["diagnosisId"] = referral.DiagnosisId,
                 ["diagnosisNote"] = referral.DiagnosisNote,

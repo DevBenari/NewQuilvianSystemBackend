@@ -23,6 +23,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         [MaxLength(1000)]
         public string? ReferralReason { get; set; }
+
+        /// <summary>Nama dokter perujuk, teks bebas (opsional).</summary>
+        [MaxLength(200)]
+        public string? ReferralDoctorName { get; set; }
     }
 
     /// <summary>
@@ -42,6 +46,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public Guid? ReferralInstitutionId { get; set; }
 
         public Guid? ReferralDoctorId { get; set; }
+
+        /// <summary>Nama dokter perujuk, teks bebas (opsional).</summary>
+        [MaxLength(200)]
+        public string? ReferralDoctorName { get; set; }
 
         /// <summary>Hanya dipakai saat rincian belum ada; sesudahnya wajib sama (<c>RJ-VAL-PM-10</c>).</summary>
         public ReferralTargetUnitType? TargetUnitType { get; set; }
@@ -97,6 +105,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DateTime? ReferralDateTime { get; set; }
         public EncounterReferralReferenceResponse? ReferralInstitution { get; set; }
         public EncounterReferralReferenceResponse? ReferralDoctor { get; set; }
+
+        /// <summary>
+        /// Nama dokter perujuk untuk ditampilkan: teks bebas rincian, atau nama master untuk data
+        /// lama yang masih memakai <c>ReferralDoctorId</c>.
+        /// </summary>
+        public string? ReferralDoctorName { get; set; }
         public bool InstitutionIsPartnerSnapshot { get; set; }
 
         /// <summary>Kode/nama fasilitas dan nomor PKS saat rujukan dicatat (DEC-FRJ-001).</summary>
