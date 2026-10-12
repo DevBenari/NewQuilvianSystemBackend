@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 |---|---|
-| Revisi | `29` — Amendment KT, `draft` |
+| Revisi | `29` — Amendment KT (`approved`); `30` — Amendment MT, `draft` (bagian akhir) |
 | Keputusan | `RJ-DOC-DEC-028`..`031`, `RJ-DOC-FE-010`..`012` |
 | Rujukan | `02-backend-architecture.md` *Amendment KT*, `03-frontend-architecture.md` *Amendment KT* |
 
@@ -58,3 +58,48 @@ flowchart TD
 (30 Sep). Petugas melihat petunjuk "Konsultasi masih aktif…" lalu menghubungi dr. Arif Lesmana.
 dr. Arif membuka Konsultasi tertunda, memastikan IKBAL memang sudah diperiksa, lalu menekan
 Simpan. Pendaftaran IKBAL kemudian diterima.
+
+## Amendment MT — alur dokter sesudah menu Konsultasi Tertunda (revisi `30`, `draft`)
+
+Keputusan `RJ-DOC-DEC-045`..`049`, `RJ-DOC-FE-014`..`016`. Bagian Dokter pada alur di atas
+**digantikan** alur berikut. Bagian Petugas tidak berubah.
+
+```mermaid
+flowchart TD
+    subgraph Dokter
+        M1[Buka menu Konsultasi<br/>Tertunda] --> M2[Cari pasien<br/>di daftar]
+        K0[Buka Klinis Dokter] --> K1{Ada pengingat<br/>konsultasi tertunda?}
+        K1 -- Ya --> M1
+        K1 -- Tidak --> K2[Layani antrean hari ini]
+        M2 --> M3{Pasien sudah<br/>diperiksa?}
+        M3 -- Tidak --> M4[Batalkan Konsultasi<br/>dengan alasan]
+        M3 -- Ya --> M5[Simpan Konsultasi]
+        M5 --> W1{Konsultasi masih<br/>tertunda?}
+        W1 -- Tidak --> W2[Pesan tidak ditemukan<br/>lalu kembali ke daftar]
+        W1 -- Ya --> W3[Tinjau isi konsultasi<br/>di Klinis Dokter]
+        W3 --> W4{Layak disimpan?}
+        W4 -- Tidak --> W5[Batalkan Konsultasi<br/>dari workspace]
+        W4 -- Ya --> W6[Selesaikan dan centang<br/>konfirmasi bila diminta]
+        W6 -- Validasi gagal --> W7[Perbaiki data yang<br/>ditunjuk]
+        W7 --> W6
+        W6 -- Berhasil --> M6[Kembali ke daftar<br/>dengan pesan sukses]
+        W5 --> M6
+        M4 --> M7[Baris hilang dan<br/>pesan untuk petugas]
+        W2 --> M1
+    end
+```
+
+| Langkah | Pelaku | Masukan | Keluaran | Bila gagal |
+|---|---|---|---|---|
+| K1 | Dokter | — | Pengingat jumlah tertunda bila ada | Bila jumlah gagal dimuat, pengingat tidak tampil; menu Konsultasi Tertunda tetap bisa dibuka |
+| M1–M2 | Dokter | Kata kunci pencarian | Daftar konsultasi tertunda miliknya | Daftar gagal dimuat: tekan Coba lagi |
+| M4 | Dokter | Alasan, 1–250 karakter | Konsultasi batal; kunjungan menunggu dibatalkan petugas | Pesan server tampil di modal; modal tetap terbuka |
+| M5–W3 | Dokter | Pilihan baris | Klinis Dokter terbuka pada konsultasi itu, tanpa modal Simpan | Konsultasi sudah diproses di tempat lain: pesan tidak ditemukan dan tautan kembali |
+| W6 | Dokter | Catatan klinis lengkap, centang konfirmasi | Konsultasi selesai; kunjungan status 7 | Perbaiki bagian yang ditunjuk pesan validasi; tetap di Klinis Dokter |
+| W5 | Dokter | Alasan | Konsultasi batal | Sama dengan M4 |
+| M6 | Sistem | Hasil aksi | Daftar dimuat ulang dengan pesan sukses | — |
+
+**Contoh:** pada 7 Okt 2026 dr. Arif melihat "Ada 8 konsultasi tertunda" di Klinis Dokter. Ia
+membuka Konsultasi Tertunda dan membatalkan konsultasi AGNES (pasien pulang sebelum diperiksa).
+Lalu ia memilih Simpan Konsultasi pada IKBAL, meninjau resepnya di Klinis Dokter, menekan
+Selesaikan, dan kembali ke daftar yang kini berisi 6 baris.

@@ -53,6 +53,12 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
 
         public bool PriorityQueue { get; set; } = false;
 
+        /// <summary>Kelompok antrean layar publik pemegang tier ini (RJ-DOC-DEC-055).</summary>
+        public QueueAudience QueueAudience { get; set; } = QueueAudience.Member;
+
+        /// <summary>Identitas yang boleh tampil di layar antrean publik (RJ-DOC-DEC-057).</summary>
+        public PublicDisplayMode PublicDisplayMode { get; set; } = PublicDisplayMode.Default;
+
         public bool FreeAnnualCheckup { get; set; } = false;
 
         public bool FreeParking { get; set; } = false;

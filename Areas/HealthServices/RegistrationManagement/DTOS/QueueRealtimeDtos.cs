@@ -1,4 +1,5 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
+﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 {
@@ -35,6 +36,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public bool IsDoctorRequired { get; set; }
 
         public bool IsPriorityQueue { get; set; }
+
+        /// <summary>Kelompok antrean non-sensitif untuk penyaringan layar (RJ-DOC-DEC-058).</summary>
+        public QueueAudience QueueAudience { get; set; }
 
         public DateTime? NurseCallExpiresAt { get; set; }
 

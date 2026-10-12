@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -809,6 +809,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstReferralInstitution> MstReferralInstitutions { get; set; }
 
         public DbSet<MstReferralDoctor> MstReferralDoctors { get; set; }
+
+        // Histori perjanjian kerja sama fasilitas perujuk mitra (DEC-FRJ-001).
+        public DbSet<MstReferralInstitutionAgreement> MstReferralInstitutionAgreements { get; set; }
         public DbSet<MstDiagnosisChapter> MstDiagnosisChapters { get; set; }
         public DbSet<MstDiagnosis> MstDiagnoses { get; set; }
         public DbSet<MstDiagnosisGroup> MstDiagnosisGroups { get; set; }
@@ -885,7 +888,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxKioskScanSession> TrxKioskScanSessions { get; set; }
         public DbSet<RegPatientEncounter> RegPatientEncounters { get; set; }
         public DbSet<RegPatientEncounterGuarantor> RegPatientEncounterGuarantors { get; set; }
-        public DbSet<TrxQueue> TrxQueues { get; set; }
+        public DbSet<RegQueue> RegQueues { get; set; }
+        public DbSet<RegEncounterReferral> RegEncounterReferrals { get; set; }
+        public DbSet<RegEncounterReferralDocument> RegEncounterReferralDocuments { get; set; }
+        public DbSet<RegEncounterReferralRevision> RegEncounterReferralRevisions { get; set; }
         public DbSet<TrxPatientAssessment> TrxPatientAssessments { get; set; }
         public DbSet<TrxDoctorConsultation> TrxDoctorConsultations { get; set; }
         public DbSet<TrxPatientDiagnosis> TrxPatientDiagnoses { get; set; }

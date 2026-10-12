@@ -230,7 +230,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             var now = DateTime.UtcNow;
             var abandonedIds = abandoned.Select(x => x.Id).ToList();
 
-            var queues = await _dbContext.Set<TrxQueue>()
+            var queues = await _dbContext.Set<RegQueue>()
                 .Where(x =>
                     abandonedIds.Contains(x.EncounterId) &&
                     !x.IsDelete &&

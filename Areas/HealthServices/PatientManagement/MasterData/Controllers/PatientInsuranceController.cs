@@ -52,15 +52,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly PatientPayerCardImageService _cardImageService;
+        private readonly InsuranceCardScanMatcher _cardScanMatcher;
 
         public PatientInsuranceController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
-            PatientPayerCardImageService cardImageService)
+            PatientPayerCardImageService cardImageService,
+            InsuranceCardScanMatcher cardScanMatcher)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _cardImageService = cardImageService;
+            _cardScanMatcher = cardScanMatcher;
         }
 
         [HttpGet("filters/metadata")]
@@ -488,6 +491,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     validation.ErrorMessage ?? "Data patient insurance tidak valid."
+                ));
+            }
+
+            // RJ-DOC-REV-BE-020: hasil scan kartu wajib cocok sebelum penjamin dibuat.
+            var cardScanError = await _cardScanMatcher.ValidateAsync(
+                request.InsuranceProviderId,
+                request.PolicyNumber,
+                request.CardScan);
+
+            if (cardScanError != null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    cardScanError
                 ));
             }
 

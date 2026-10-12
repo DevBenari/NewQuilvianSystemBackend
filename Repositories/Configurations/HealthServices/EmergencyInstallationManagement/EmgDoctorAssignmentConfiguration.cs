@@ -14,6 +14,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Emerg
 
             builder.Property(x => x.AssignmentReason).HasMaxLength(500);
 
+            builder.Property(x => x.RosterOverrideReason).HasMaxLength(500);
+
             // Kamus data bagian 4 — index riwayat, dibaca urut waktu oleh GET /.
             builder.HasIndex(x => new { x.EmergencyVisitId, x.EffectiveFrom });
 

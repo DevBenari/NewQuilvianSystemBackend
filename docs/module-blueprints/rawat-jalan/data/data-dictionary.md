@@ -269,3 +269,84 @@ Tidak ada tabel baru atau tabel yang diperbarui. Kolom kunci yang dibaca fitur i
 | `EmgVisit` | Emergency | `EncounterId` | Penyaring IGD | `EmgVisit` |
 
 Kolom sensitif yang ikut dikembalikan sama dengan `GET /doctor-queues` (nama pasien, no. RM).
+
+
+## PM-B. Amendment PM-B — Pendaftaran Rujukan (`approved` 2026-10-08)
+
+Sepuluh kolom warisan `IdentityModel` tidak diulang (lihat kepala dokumen).
+
+### PM-B.1 Status tabel
+
+| Tabel | Status | Pemilik |
+|---|---|---|
+| `RegEncounterReferral` | Baru | Registration |
+| `RegEncounterReferralDocument` | Baru | Registration |
+| `RegEncounterReferralRevision` | Baru | Registration |
+| `MstReferralInstitution` | Diperbarui (`IsPartner`) | Health Service Master Data |
+| `MstReferralDoctor` | Sudah ada | Health Service Master Data |
+| `RegPatientEncounter` | Sudah ada | Registration |
+
+### PM-B.2 `RegEncounterReferral` (schema `public`)
+
+| Kolom | Tipe | Wajib | Bawaan | Batas / validasi | Sensitif |
+|---|---|:---:|---|---|:---:|
+| `Id` | `uuid` PK | Ya | baru | — | Tidak |
+| `PatientEncounterId` | `uuid` FK → `RegPatientEncounter`, Restrict | Ya | — | Unique (filter `IsDeleted = false`) | Tidak |
+| `ReferralDateTime` | `timestamptz` | Ya | waktu layar dibuka | ≤ sekarang | Tidak |
+| `TargetUnitType` | `int` (`ReferralTargetUnitType`) | Ya | — | `1` Clinic, `2` Laboratory; `3` ditolak | Tidak |
+| `TargetServiceUnitId` | `uuid` FK → `MstServiceUnit`, Restrict | Ya | — | Unit aktif | Tidak |
+| `TargetClinicId` | `uuid` FK → `MstClinic`, Restrict | Bila Clinic | null | Sama dengan klinik kunjungan | Tidak |
+| `DiagnosisId` | `uuid` FK → `MstDiagnosis`, Restrict | Tidak (wajib untuk lengkap) | null | Diagnosis aktif | **Ya** |
+| `DiagnosisNote` | `varchar(500)` | Tidak | null | — | **Ya** |
+| `ReferralReason` | `varchar(1000)` | Tidak (wajib untuk lengkap) | null | — | **Ya** |
+| `InstitutionIsPartnerSnapshot` | `boolean` | Ya | `false` | Disalin dari institusi saat disimpan | Tidak |
+| `CaptureSource` | `int` (`ReferralCaptureSource`) | Ya | — | `1` Staff, `2` Kiosk | Tidak |
+| `IsComplete` | `boolean` | Ya | `false` | Hasil hitung `PM.3.1` | Tidak |
+| `CompletedAt` | `timestamptz` | Tidak | null | Diisi saat pertama `true` | Tidak |
+| `RowVersion` | `uuid` | Ya | baru | Concurrency token, diganti setiap update | Tidak |
+
+Index: `IX_RegEncounterReferral_IsComplete`, unique `IX_RegEncounterReferral_PatientEncounterId`.
+
+### PM-B.3 `RegEncounterReferralDocument`
+
+| Kolom | Tipe | Wajib | Batas / validasi | Sensitif |
+|---|---|:---:|---|:---:|
+| `Id` | `uuid` PK | Ya | — | Tidak |
+| `EncounterReferralId` | `uuid` FK → `RegEncounterReferral`, Cascade | Ya | — | Tidak |
+| `OriginalFileName` | `varchar(255)` | Ya | Dibersihkan dari path | **Ya** |
+| `ContentType` | `varchar(100)` | Ya | `application/pdf`, `image/jpeg`, `image/png` | Tidak |
+| `SizeBytes` | `bigint` | Ya | ≤ 5 MB | Tidak |
+| `StoragePath` | `varchar(500)` | Ya | Relatif terhadap `FileStorage:PrivateRootPath` | Tidak |
+| `PageOrder` | `int` | Ya | Mulai 1 | Tidak |
+
+Index `(EncounterReferralId, IsDeleted)`. Hapus = soft delete; berkas fisik dihapus pada task
+pembersihan terpisah (tidak dalam scope).
+
+### PM-B.4 `RegEncounterReferralRevision`
+
+| Kolom | Tipe | Wajib | Keterangan | Sensitif |
+|---|---|:---:|---|:---:|
+| `Id` | `uuid` PK | Ya | — | Tidak |
+| `EncounterReferralId` | `uuid` FK Cascade | Ya | — | Tidak |
+| `RevisionType` | `int` (`ReferralRevisionType`) | Ya | `1` Completed, `2` Corrected, `3` DocumentAdded, `4` DocumentRemoved | Tidak |
+| `OldValuesJson` | `jsonb` | Tidak | Ruas yang berubah saja | **Ya** |
+| `NewValuesJson` | `jsonb` | Tidak | Ruas yang berubah saja | **Ya** |
+| `ChangedAt` | `timestamptz` | Ya | — | Tidak |
+| `ChangedBy` | `uuid` | Tidak | Pengguna | Tidak |
+
+Index `(EncounterReferralId, ChangedAt)`.
+
+### PM-B.5 `MstReferralInstitution` — kolom baru
+
+| Kolom | Tipe | Wajib | Bawaan | Keterangan |
+|---|---|:---:|---|---|
+| `IsPartner` | `boolean` | Ya | `false` | Bermitra dengan rumah sakit (`RJ-DOC-DEC-073`) |
+
+### PM-B.6 Tabel `Sudah ada` — kolom kunci
+
+| Tabel | Kolom dipakai | Aturan | Model |
+|---|---|---|---|
+| `RegPatientEncounter` | `IsReferral`, `ReferralNumber`, `ReferralInstitutionId`, `ReferralDoctorId`, `EncounterStatus`, `IsFromKiosk`, `CreateDateTime` | Sumber kebenaran identitas rujukan; penguncian `PM.3.3`; batas Kiosk `PM.3.5` | `RegPatientEncounter.cs` |
+| `MstReferralDoctor` | `ReferralInstitutionId`, `IsActive` | Dokter milik institusi | `MstReferralDoctor.cs` |
+| `MstPatientInsurance` | `InsuranceProviderId`, `PolicyNumber` | Dicocokkan dengan `cardScan` | `MstPatientInsurance.cs` |
+| `MstInsuranceProvider` | `InsuranceProviderName`, `InsuranceProviderCode`, `InsuranceGroupName` | Pencocokan nama | `MstInsuranceProvider.cs` |

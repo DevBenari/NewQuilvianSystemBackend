@@ -1,15 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 {
-    public class TrxQueueConfiguration : IEntityTypeConfiguration<TrxQueue>
+    public class RegQueueConfiguration : IEntityTypeConfiguration<RegQueue>
     {
-        public void Configure(EntityTypeBuilder<TrxQueue> entity)
+        public void Configure(EntityTypeBuilder<RegQueue> entity)
         {
-            entity.ToTable("TrxQueue", "public");
+            entity.ToTable("RegQueue", "public");
 
             entity.HasKey(x => x.Id);
 
@@ -146,6 +147,34 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 
             entity.Property(x => x.IsPriorityQueue)
                 .HasDefaultValue(false);
+
+            entity.Property(x => x.QueuePriorityLevelSnapshot)
+                .HasDefaultValue(0);
+
+            entity.Property(x => x.QueueAudienceSnapshot)
+                .HasConversion<int>()
+                .HasDefaultValue(QueueAudience.Regular)
+                .IsRequired();
+
+            entity.Property(x => x.PublicDisplayModeSnapshot)
+                .HasConversion<int>()
+                .HasDefaultValue(PublicDisplayMode.Default)
+                .IsRequired();
+
+            entity.Property(x => x.PatientMembershipIdSnapshot)
+                .IsRequired(false);
+
+            entity.Property(x => x.MembershipTierIdSnapshot)
+                .IsRequired(false);
+
+            entity.Property(x => x.MembershipTierCodeSnapshot)
+                .HasMaxLength(50);
+
+            entity.Property(x => x.PriorityReasonCode)
+                .HasMaxLength(50);
+
+            entity.Property(x => x.QueueScopeKey)
+                .IsRequired();
 
             entity.Property(x => x.IsFromKiosk)
                 .HasDefaultValue(false);
@@ -316,6 +345,19 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             })
             .IsUnique()
             .HasFilter("\"IsDelete\" = false AND \"ClinicId\" IS NULL");
+
+            // RJ-DOC-DEC-056: nomor antrean unik per cakupan penomoran (cluster/poliklinik/
+            // service unit) dan tanggal. Melengkapi index per poliklinik di atas, yang tidak
+            // melindungi dua poliklinik dalam satu Nurse Station Cluster.
+            entity.HasIndex(x => new
+            {
+                x.QueueDate,
+                x.ServiceUnitId,
+                x.QueueScopeKey,
+                x.QueueNumber
+            })
+            .IsUnique()
+            .HasFilter("\"IsDelete\" = false");
 
             entity.HasIndex(x => new
             {

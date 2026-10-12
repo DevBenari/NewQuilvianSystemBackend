@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
@@ -41,17 +41,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private readonly LoggerService _loggerService;
         private readonly EmergencyVisitService _emergencyVisitService;
         private readonly EmergencyDispositionService _emergencyDispositionService;
+        private readonly EmergencyDoctorAssignmentService _emergencyDoctorAssignmentService;
+        private readonly EmergencyRealtimeService? _emergencyRealtimeService;
 
         public EmergencyVisitController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             EmergencyVisitService emergencyService,
-            EmergencyDispositionService emergencyDispositionService)
+            EmergencyDispositionService emergencyDispositionService,
+            EmergencyDoctorAssignmentService emergencyDoctorAssignmentService,
+            EmergencyRealtimeService? emergencyRealtimeService = null)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _emergencyVisitService = emergencyService;
             _emergencyDispositionService = emergencyDispositionService;
+            _emergencyDoctorAssignmentService = emergencyDoctorAssignmentService;
+            _emergencyRealtimeService = emergencyRealtimeService;
         }
 
         [HttpGet]
@@ -70,6 +76,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             [FromQuery] bool? isActive,
             [FromQuery] bool? hasDuplicateEpisodeOverride,
             [FromQuery] bool? awaitingClosure,
+            [FromQuery] Guid? doctorId,
+            [FromQuery] bool? ongoing,
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] string? sortBy = null,
@@ -94,6 +102,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             {
                 var keyword = search.Trim().ToLower();
                 query = query.Where(x =>
+                    (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)) ||
+                    (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(keyword)) ||
                     x.EmergencyVisitNumber.ToLower().Contains(keyword) ||
                     (x.ChiefComplaint != null && x.ChiefComplaint.ToLower().Contains(keyword)) ||
                     (x.ArrivalLocation != null && x.ArrivalLocation.ToLower().Contains(keyword)) ||
@@ -120,6 +130,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             if (awaitingClosure.HasValue)
                 query = _emergencyVisitService.SaringMenungguPenutupan(query, awaitingClosure.Value);
+
+            if (doctorId.HasValue && doctorId.Value != Guid.Empty)
+            {
+                var dokterId = doctorId.Value;
+                var penugasanDokter = _emergencyDoctorAssignmentService.KueriBerjalan()
+                    .Where(a => a.DoctorId == dokterId);
+                query = query.Where(x => penugasanDokter.Any(a => a.EmergencyVisitId == x.Id));
+            }
+
+            if (ongoing.HasValue)
+            {
+                query = ongoing.Value
+                    ? query.Where(x => x.VisitStatus != EmergencyVisitStatus.Completed
+                        && x.VisitStatus != EmergencyVisitStatus.Cancelled)
+                    : query.Where(x => x.VisitStatus == EmergencyVisitStatus.Completed
+                        || x.VisitStatus == EmergencyVisitStatus.Cancelled);
+            }
 
             if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
                 query = query.Where(x => x.ServiceUnitId == serviceUnitId.Value);
@@ -162,13 +189,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var alasanMenungguPenutupan = await _emergencyVisitService.AmbilAlasanMenungguPenutupanAsync(
                 entities, cancellationToken);
 
+            var dokterBerjalan = await _emergencyDoctorAssignmentService.AmbilBerjalanPerKunjunganAsync(
+                entities.Select(x => x.Id).ToList(), cancellationToken);
+
             var result = new PagedResult<EmergencyVisitResponse>
             {
                 PageNumber = pageNumber,
                 PageSize = pageSize,
                 TotalData = totalData,
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
-                Items = entities.Select(x => ToResponse(x, alasanMenungguPenutupan)).ToList()
+                Items = entities.Select(x => ToResponse(x, alasanMenungguPenutupan, dokterBerjalan)).ToList()
             };
 
             return Ok(ApiResponse<PagedResult<EmergencyVisitResponse>>.Ok(result, "Data kunjungan IGD berhasil diambil."));
@@ -210,15 +240,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyVisit", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<EmgVisit>().AsNoTracking().Include(x => x.ArrivalConfirmedByUser).FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgVisit>()
+                .AsNoTracking()
+                .Include(x => x.Patient)
+                .Include(x => x.ServiceUnit)
+                .Include(x => x.ArrivalMode)
+                .Include(x => x.CaseType)
+                .Include(x => x.ArrivalConfirmedByUser)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data kunjungan IGD tidak ditemukan."));
 
             var alasanMenungguPenutupan = await _emergencyVisitService.AmbilAlasanMenungguPenutupanAsync(
                 new[] { entity }, cancellationToken);
 
+            var dokterBerjalan = await _emergencyDoctorAssignmentService.AmbilBerjalanPerKunjunganAsync(
+                new[] { entity.Id }, cancellationToken);
+
             return Ok(ApiResponse<EmergencyVisitResponse>.Ok(
-                ToResponse(entity, alasanMenungguPenutupan),
+                ToResponse(entity, alasanMenungguPenutupan, dokterBerjalan),
                 "Detail kunjungan IGD berhasil diambil."));
         }
 
@@ -415,6 +455,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 new { EntityId = entity.Id, Controller = "EmergencyVisit", Action = "Create" }
             );
 
+            if (_emergencyRealtimeService != null)
+            {
+                await _emergencyRealtimeService.NotifyEmergencyVisitChangedAsync(
+                    "EmergencyVisitCreated",
+                    entity,
+                    actorUserId
+                );
+            }
+
             return Ok(ApiResponse<EmergencyVisitResponse>.Ok(ToResponse(entity), "Data kunjungan IGD berhasil dibuat."));
         }
 
@@ -445,6 +494,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     : "Aksi StartTriage pada Emergency Visit yang sudah ada.",
                 new { EntityId = kunjungan.Id, Controller = "EmergencyVisit", Action = "StartTriage", kunjungan.EncounterId, request.Mode, kunjungan.VisitStatus, kunjungan.ArrivalTimeSource, Lahir = lahir }
             );
+
+            if (_emergencyRealtimeService != null)
+            {
+                var eventType = kunjungan.VisitStatus == EmergencyVisitStatus.InTreatment
+                    ? "EmergencyImmediateCareStarted"
+                    : "EmergencyVisitCreated";
+
+                await _emergencyRealtimeService.NotifyEmergencyVisitChangedAsync(
+                    eventType,
+                    kunjungan,
+                    actorUserId
+                );
+            }
 
             var pesan = lahir
                 ? (kunjungan.VisitStatus == EmergencyVisitStatus.InTreatment
@@ -481,6 +543,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 new { EntityId = penandaan.EncounterId, Controller = "EmergencyVisit", Action = "NoShow", penandaan.EncounterStatus }
             );
 
+            if (_emergencyRealtimeService != null)
+            {
+                await _emergencyRealtimeService.NotifyEmergencyQueueChangedAsync(
+                    "EmergencyNoShow",
+                    penandaan.EncounterId,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    actorUserId
+                );
+            }
+
             return Ok(ApiResponse<EmergencyEncounterNoShowResponse>.Ok(penandaan, "Pasien ditandai pergi sebelum ditriage."));
         }
 
@@ -507,6 +583,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 "Mengonfirmasi waktu tiba Emergency Visit.",
                 new { EntityId = id, Controller = "EmergencyVisit", Action = "UpdateArrivalTime", kunjungan.ArrivalTimeSource }
             );
+
+            if (_emergencyRealtimeService != null)
+            {
+                await _emergencyRealtimeService.NotifyEmergencyVisitChangedAsync(
+                    "EmergencyVisitUpdated",
+                    kunjungan,
+                    actorUserId
+                );
+            }
 
             return Ok(ApiResponse<EmergencyVisitResponse>.Ok(ToResponse(kunjungan), "Waktu tiba kunjungan IGD berhasil dikonfirmasi."));
         }
@@ -570,6 +655,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 new { EntityId = id, Controller = "EmergencyVisit", Action = "Update" }
             );
 
+            if (_emergencyRealtimeService != null)
+            {
+                await _emergencyRealtimeService.NotifyEmergencyVisitChangedAsync(
+                    "EmergencyVisitUpdated",
+                    entity,
+                    actorUserId
+                );
+            }
+
             return Ok(ApiResponse<EmergencyVisitResponse>.Ok(ToResponse(entity), "Data kunjungan IGD berhasil diubah."));
         }
 
@@ -618,6 +712,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 "Memperbarui proses Emergency Visit melalui aksi UpdateRegistrationStatus.",
                 new { EntityId = id, Controller = "EmergencyVisit", Action = "UpdateRegistrationStatus" }
             );
+
+            if (_emergencyRealtimeService != null)
+            {
+                await _emergencyRealtimeService.NotifyEmergencyVisitChangedAsync(
+                    "EmergencyVisitUpdated",
+                    entity,
+                    actorUserId
+                );
+            }
 
             return Ok(ApiResponse<EmergencyVisitResponse>.Ok(ToResponse(entity), "Status kunjungan IGD berhasil diubah."));
         }
@@ -685,6 +788,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 "Memperbarui proses Emergency Visit melalui aksi UpdateVisitStatus.",
                 new { EntityId = id, Controller = "EmergencyVisit", Action = "UpdateVisitStatus", entity.EncounterId, EncounterDitutup = encounterDitutup }
             );
+
+            if (_emergencyRealtimeService != null)
+            {
+                await _emergencyRealtimeService.NotifyEmergencyVisitChangedAsync(
+                    "EmergencyVisitUpdated",
+                    entity,
+                    actorUserId
+                );
+            }
 
             return Ok(ApiResponse<EmergencyVisitResponse>.Ok(ToResponse(entity), "Status kunjungan IGD berhasil diubah."));
         }
@@ -763,6 +875,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 new { EntityId = id, Controller = "EmergencyVisit", Action = "Complete", entity.EncounterId, EncounterDitutup = encounterDitutup }
             );
 
+            if (_emergencyRealtimeService != null)
+            {
+                await _emergencyRealtimeService.NotifyEmergencyVisitChangedAsync(
+                    "EmergencyVisitUpdated",
+                    entity,
+                    actorUserId
+                );
+            }
+
             // IGD-DEC-106 syarat (d) - penutupan tidak boleh pernah diam soal dokumen serah
             // terima yang masih menggantung. Dokumen itu memang TIDAK menahan penutupan, tetapi
             // petugas yang menutup wajib tahu bahwa ia meninggalkan berkas yang belum tuntas di
@@ -812,6 +933,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 "Menghapus data Emergency Visit.",
                 new { EntityId = id, Controller = "EmergencyVisit", Action = "Delete" }
             );
+
+            if (_emergencyRealtimeService != null)
+            {
+                await _emergencyRealtimeService.NotifyEmergencyVisitChangedAsync(
+                    "EmergencyVisitDeleted",
+                    entity,
+                    actorUserId
+                );
+            }
 
             return Ok(ApiResponse<object>.Ok(null, "Data kunjungan IGD berhasil dihapus."));
         }
@@ -991,7 +1121,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         private static EmergencyVisitResponse ToResponse(
             EmgVisit x,
-            IReadOnlyDictionary<Guid, string?> alasanMenungguPenutupan)
+            IReadOnlyDictionary<Guid, string?> alasanMenungguPenutupan,
+            IReadOnlyDictionary<Guid, EmergencyDoctorAssignmentResponse> dokterBerjalan)
         {
             var response = ToResponse(x);
 
@@ -999,6 +1130,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             {
                 response.IsAwaitingClosure = true;
                 response.AwaitingClosureReason = alasan;
+            }
+
+            if (dokterBerjalan.TryGetValue(x.Id, out var dokter))
+            {
+                response.ActiveDoctorId = dokter.DoctorId;
+                response.ActiveDoctorName = dokter.DoctorName;
             }
 
             return response;

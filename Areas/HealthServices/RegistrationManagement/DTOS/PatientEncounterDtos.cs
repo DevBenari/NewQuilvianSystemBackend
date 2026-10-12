@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using System.ComponentModel.DataAnnotations;
 
@@ -487,6 +488,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         public bool IsReferralVerified { get; set; } = false;
 
+        /// <summary>
+        /// Penunjuk instansi perujuk (RJ-DOC-REV-BE-018). Wajib aktif; dokter perujuk wajib
+        /// milik instansi ini.
+        /// </summary>
+        public Guid? ReferralInstitutionId { get; set; }
+
+        public Guid? ReferralDoctorId { get; set; }
+
+        /// <summary>
+        /// Rincian rujukan (RJ-DOC-REFERRAL-001). Bila diisi, kunjungan dan rincian dibuat dalam
+        /// satu transaksi. Kosong = perilaku lama.
+        /// </summary>
+        public EncounterReferralCreateRequest? Referral { get; set; }
+
         public bool IsNewPatient { get; set; } = false;
 
         public bool IsFromKiosk { get; set; } = false;
@@ -513,6 +528,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         /// Dokter yang ditetapkan. Dikosongkan untuk mencabut penetapan.
         /// </summary>
         public Guid? DoctorId { get; set; }
+    }
+
+    public class PatientEncounterQueueClassificationResponse
+    {
+        public bool IsMember { get; set; }
+
+        public bool IsPriorityQueue { get; set; }
+
+        public bool IsReservedPriorityNumber { get; set; }
+
+        public QueueAudience QueueAudience { get; set; }
+
+        public string QueueAudienceName { get; set; } = string.Empty;
+
+        public PublicDisplayMode PublicDisplayMode { get; set; }
+
+        public string PublicDisplayModeName { get; set; } = string.Empty;
     }
 
     public class PatientEncounterCreateResponse
@@ -546,6 +578,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DateTime EncounterDate { get; set; }
 
         public DateTime? QueueDate { get; set; }
+
+        /// <summary>Klasifikasi antrean hasil keputusan backend (RJ-DOC-DEC-055). Null bila tanpa antrean.</summary>
+        public PatientEncounterQueueClassificationResponse? QueueClassification { get; set; }
+
+        /// <summary>Rincian rujukan yang ikut dibuat (RJ-DOC-REV-BE-018); null bila tidak ada.</summary>
+        public EncounterReferralCreatedResponse? Referral { get; set; }
 
         public bool IsFutureVisit { get; set; }
 

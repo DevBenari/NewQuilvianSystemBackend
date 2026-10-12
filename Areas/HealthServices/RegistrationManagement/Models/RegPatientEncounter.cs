@@ -33,7 +33,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         /// <summary>
         /// Ruangan pelayanan yang digunakan pada encounter, misalnya ruang konsultasi dokter.
         /// Disimpan pada encounter agar seluruh antrean dan proses klinis menggunakan konteks
-        /// ruangan yang sama tanpa menduplikasi RoomId pada TrxQueue.
+        /// ruangan yang sama tanpa menduplikasi RoomId pada RegQueue.
         /// </summary>
         public Guid? RoomId { get; set; }
 

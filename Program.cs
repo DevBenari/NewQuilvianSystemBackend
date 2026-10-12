@@ -449,6 +449,11 @@ try
 
     builder.Services.AddScoped<EncounterIntakeService>();
     builder.Services.AddScoped<PatientEncounterNumberService>();
+    // RJ-DOC-REV-BE-015 — klasifikasi dan alokator nomor antrean Rawat Jalan (kiosk dan petugas).
+    builder.Services.AddScoped<OutpatientQueueClassificationService>();
+    builder.Services.AddScoped<OutpatientQueueNumberAllocator>();
+    builder.Services.Configure<OutpatientQueueNumberOptions>(
+        builder.Configuration.GetSection(OutpatientQueueNumberOptions.SectionName));
 
     // BE-KSK-001 — Cek Nomor Rekam Medis dari Kiosk (baca-saja).
     builder.Services.AddScoped<KioskPatientLookupService>();
@@ -471,6 +476,7 @@ try
     builder.Services.AddScoped<EncounterInsuranceService>();
     // RJ-DOC-REV-BE-013 — penyimpanan foto kartu penjamin pasien hasil scan.
     builder.Services.AddScoped<PatientPayerCardImageService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.InsuranceCardScanMatcher>();
     builder.Services.AddScoped<InsuranceCoverageService>();
     builder.Services.AddScoped<CompanyGuarantorCoverageService>();
     builder.Services.AddScoped<PrescriptionNumberService>();
@@ -570,6 +576,11 @@ try
     builder.Services.AddScoped<MedicalRecordAccessReviewService>();
     builder.Services.AddScoped<MedicalRecordTimelineService>();
 
+    // Patient Management — rekonsiliasi MRN Pilot RSMMC (BE-PAT-MIG-001), sementara, khusus Staging
+    builder.Services.AddSingleton(RsmmcPilotApprovedBatchProfile.Canonical);
+    builder.Services.AddScoped<IRsmmcPilotMigrationSource, RsmmcPilotMigrationSource>();
+    builder.Services.AddScoped<RsmmcPilotMrnReconciliationService>();
+
     builder.Services.AddScoped<PrescriptionAggregateService>();
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
@@ -624,6 +635,7 @@ try
     // dibuat oleh dependency injection, sehingga endpoint-nya membalas 500 sebelum kode
     // modul sempat dijalankan. Pola mengikuti service lain: kelas konkret, tanpa interface.
     builder.Services.AddScoped<EmergencyDocumentNumberService>();
+    builder.Services.AddScoped<EmergencyRealtimeService>();
     builder.Services.AddScoped<EmergencyVisitService>();
     builder.Services.AddScoped<EmergencyTriageService>();
     builder.Services.AddScoped<EmergencyResuscitationService>();
@@ -746,6 +758,8 @@ try
     // tidak punya sumber pilihan dan petugas terpaksa mengetik nama, yang justru dilarang
     // LAB-DEC-035.
     builder.Services.AddScoped<ReferralMasterDataService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services.EncounterReferralService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services.ReferralDocumentStorageService>();
 
     // Pemeriksaan golongan darah Bank Darah — sumber sah golongan darah pasien (DEC-BD-015),
     // bukan MstPatient.BloodType. Service ini memegang deteksi perbedaan hasil (BD-XINV-04)
