@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `module` | `igd` |
-| `revision` | `3` — diperluas suplemen 3.1–3.6; suplemen **3.6** (*impact scan* Billing IGD) 11 Oktober 2026 pada backend `c7e523fd` / frontend `3335f4b53` |
+| `revision` | `3` — diperluas suplemen 3.1–3.7; suplemen **3.7** (*impact scan* Form Permintaan Rawat Inap dari IGD) 12 Oktober 2026 pada backend `6a1c6cf9` / frontend `03b057c03` |
 | `status` | `draft` — audit read-only, belum disetujui siapa pun |
 | `audit_date` | 24 Agustus 2026 |
 | Backend repository / SHA | `NewQuilvianSystemBackend` / `f69e9e483052845d11c91d8b7bbdce33c4acc8d8` (branch `rizkiG`) |
@@ -1142,3 +1142,265 @@ atau berkas `billing-invoices/cashier-overview/**` dan `use-cashier-billing-over
 3. **Obat IGD bergantung keputusan Farmasi** (`IGD-OQ-122`, `IGD-CONF-15`) dan membawa risiko keselamatan yang perlu
    dibuktikan runtime (`IGD-UNK-22`).
 4. **Satu tafsir keputusan Billing** (`IGD-CONF-14`) diselesaikan pada desain bersama tim Billing.
+
+# Suplemen revision 3.7 — *impact scan* Form Permintaan Rawat Inap dari IGD pada `6a1c6cf9` / `03b057c03`
+
+Scan lintas modul untuk slice baru: perawat IGD mengisi **Form Permintaan Rawat Inap** untuk pasien IGD yang akan dirawat
+inap, dengan isian dari analis pemilik. Tujuannya menjawab satu pertanyaan sebelum `grill-me`: kemampuan apa yang **sudah
+ada** di source untuk setiap isian dan setiap langkah form itu, dan mana yang benar-benar belum ada. Status memakai tujuh
+status kontrak bukti yang sama dengan suplemen 3.4.
+
+| Butir | Isi |
+| --- | --- |
+| Baseline lama | Jalur IGD → rawat inap belum pernah diaudit terhadap source Rawat Inap. Butir terdekat: `IGD-CAP-39` (revisi 3, `f69e9e48`, ketika modul Rawat Inap belum ada di source) dan `IGD-CAP-115` (suplemen 3.6, invoice gabungan) |
+| Baseline baru | Backend `rizkiG` **`6a1c6cf9`**, frontend `RizkiV2` **`03b057c03`** — sama dengan HEAD, sejajar origin, working tree bersih (diperiksa `git fetch` + `git status -sb`, 12 Oktober 2026) |
+| Masukan | Spesifikasi analis *Form Permintaan Rawat Inap* dan tiga jawaban pemilik 12 Oktober 2026 (pengisi = perawat IGD; TTD dokter kemungkinan digital; "Unit Layanan" menunggu jawaban analis) — **belum dicatat sebagai keputusan**; dicatat pada `grill-me` berikutnya. Keputusan lama yang disentuh: `IGD-DEC-067`, `069`, `071`, `075`, `190`, `223`, `226`, `261`; Rawat Inap `RWI-DEC-073`, `RWI-RULE-029`, `RWI-AC-071`…`077` |
+| Batas | Read-only terhadap source kedua repository dan dokumen blueprint modul lain; nol kueri basis data; nol perubahan source; nol uji runtime |
+| Tanggal | 12 Oktober 2026 |
+
+## 0. Perbandingan SHA tercatat dengan HEAD
+
+| Yang tercatat | Backend | Frontend | Dibanding HEAD 12 Oktober 2026 | Akibat |
+| --- | --- | --- | --- | --- |
+| Kepala peta (revision 3) | `f69e9e48` | `96a91201` | Jauh tertinggal; modul Rawat Inap belum ada saat itu | `IGD-CAP-39` (*"episode rawat inap belum diimplementasikan"*) **usang** — digantikan bagian 3 suplemen ini |
+| Suplemen 3.5 dan 3.6 | `c7e523fd` | `3335f4b53` | Tertinggal 2 commit backend dan 1 commit frontend milik pemilik (DPJP dokter jaga, asuransi pada pendaftaran IGD) | Nol berkas Rawat Inap, Billing, atau ClinicalManagement di antara keduanya; butir suplemen 3.6 tetap berlaku |
+| Kontrak integrasi IGD §2.2 | — | — | Kalimat *"Modul Inpatient Management belum ada di source"* **usang** — modul itu kini ada dan dipakai | Dicatat sebagai bukti usang; teks kontrak tidak disunting scan ini |
+
+## 1. Ringkasan untuk pemilik
+
+1. **Wadah yang paling dekat sudah ada: `InpAdmissionReferral` milik Rawat Inap.** Permintaan admisi ini sudah
+   (a) tampil di daftar petugas admisi, (b) **memaksa** admisi dibuka dari permintaan itu — admisi tanpa permintaan ditolak
+   `409` bila pasien punya permintaan `Pending`, (c) selesai otomatis dalam transaksi admisi yang sama, dan (d) membuat
+   Billing menautkan kunjungan asal ke invoice rawat inap. Hari ini ia **hanya** lahir dari keputusan kamar pulih OK, dan
+   strukturnya terikat kasus operasi: `OprCaseId` dan `PrimarySurgeonId` wajib. Memakainya untuk IGD berarti memperluas
+   tabel milik Rawat Inap — butuh persetujuan pemiliknya.
+2. **Rawat jalan sudah punya "Surat Rujukan" rawat inap** (`CliDoctorCertificate`, jenis `InpatientReferral`) dengan
+   tujuan **klinik (poli) atau unit layanan**, kelas kamar sebagai teks, diagnosis teks, dan gambar TTD dokter. Ini
+   kemungkinan asal kata *"selection poli"* pada spesifikasi analis. Surat itu tidak terhubung ke antrean admisi.
+3. **Admisi rawat inap tetap manual oleh petugas admisi**, dan source menolak kunjungan IGD sebagai jangkar episode
+   (*"Kunjungan yang dipilih bukan kunjungan rawat inap"*). Janji kontrak IGD §2.2 — tindak lanjut `RANAP` menutup
+   kunjungan IGD **dan** membuat kunjungan rawat inap sebagai satu tindakan utuh (`IGD-DEC-067`) — belum terwujud, dan
+   kolom penghubung `OriginEncounterId` (`IGD-DEC-075`) belum ada.
+4. **Pengisi form (perawat) bertabrakan dengan pembagian tugas yang sudah disahkan.** Tindak lanjut — termasuk
+   `RANAP` — dibuat dan dikonfirmasi dokter; perawat hanya *Jalankan* (`IGD-DEC-223`), dan hak *Create* tindak lanjut sudah
+   dicabut dari Perawat IGD (`IGD-DEC-190`). Siapa mengirim form dan bagaimana kaitannya dengan tindak lanjut dokter
+   harus diputuskan.
+5. **Tanda tangan digital: ada empat pola di source, tidak satu pun berupa TTD elektronik tersertifikasi, dan tidak satu
+   pun meminta kata sandi ulang.** Pola terkuat yang sudah dipakai dua modul adalah *atestasi akun* — server mencatat akun
+   yang masuk, nama dan jabatannya dibekukan, waktu server — tanpa gambar. Rawat Inap sendiri masih menunggu keputusan
+   bisnis tanda tangan digital (`DEC-INP-003`, slice `INP-S48`).
+6. **Isian yang belum punya tempat di mana pun:** `IsCito`, Estimasi Lama Rawat, relasi dokter ↔ unit rawat inap (DPJP
+   "dari unit terpilih"), hak kelas penjamin yang terstruktur, serta kebutuhan khusus *Dukungan Oksigen* dan *Monitoring
+   Khusus*.
+7. **Isian yang tinggal dibaca:** identitas pasien, umur, jenis kelamin, alergi, penjamin kunjungan IGD, diagnosis ICD-10
+   kunjungan, unit rawat inap, kelas perawatan, dan asal permintaan (jenis kunjungan `Emergency` → "IGD").
+8. **Layar admisi Rawat Inap memakai komponen pendaftaran IGD milik pemilik.** Form ini sendiri tidak bergantung pada
+   halaman pendaftaran IGD, tetapi setiap perluasan layar admisi menyentuh layar yang memakai ulang komponen itu
+   (bagian 9).
+
+## 2. Proses bisnis hari ini — pasien IGD yang harus dirawat inap
+
+**Tujuan:** pasien IGD yang diputuskan dirawat inap pindah ke bangsal dengan permintaan yang jelas, admisi yang benar,
+dan tagihan IGD yang ikut ke invoice rawat inap.
+
+**Pelaku:** dokter IGD memutuskan; perawat IGD menjalankan dan mengantar; petugas admisi (PPRI) membuka admisi; perawat
+bangsal menerima; kasir menagih.
+
+**Langkah hari ini menurut source:**
+
+| # | Langkah | Siapa | Ada di source? | Bukti |
+| ---: | --- | --- | --- | --- |
+| 1 | Dokter membuat tindak lanjut `RANAP` (lahir *Draft*), memilih unit tujuan, alasan, kondisi pasien, instruksi | Dokter | Ya — diimplementasikan, **belum diuji** (`BE-IGD-070` 🟡, `FE-IGD-054`) | `EmergencyDispositionService` `:73`–`85`; `emergency-doctor-disposition-tab.jsx` `:46`–`51` |
+| 2 | Dokter mengonfirmasi; dijaga diagnosis ICD-10 | Dokter | Ya — belum diuji | `ValidateDiagnosisBeforeConfirmAsync` `:181`–`198` |
+| 3 | Perawat membuat kepergian ke unit tujuan, mengisi SBAR, alergi (teks), sikap pesanan | Perawat IGD | Ya ✅ (`MVP-4`, `MVP-5`) | `EmgDeparture` `:51`, `:83`–`115`; `EmergencyDepartureService` `:101` |
+| 4 | **Permintaan admisi ke petugas admisi** | — | **Tidak ada** untuk IGD. Petugas admisi harus tahu sendiri | `InpAdmissionReferralService.CreateFromRecoveryAsync` `:60` adalah satu-satunya pembuat |
+| 5 | Petugas admisi membuka admisi: unit rawat inap, kelas, DPJP; kunjungan rawat inap baru dibuat | Petugas admisi | Ya | `POST …/inpatient-management/episodes` (`OpenAdmissionRequest`) |
+| 6 | Perawat IGD menjalankan tindak lanjut; pasien berangkat dan tiba; kunjungan IGD tertutup | Perawat IGD, perawat bangsal | Ya ✅ (`MVP-8`) | `EmergencyDispositionController` `:370`–`404` |
+| 7 | Tagihan IGD ditautkan ke invoice rawat inap | Billing | **Tidak** untuk IGD — penautan hanya lewat permintaan admisi yang selesai | `BillingInpatientEventReceiver.EnsureEncounterLinksAsync` `:247`–`273` |
+
+*Contoh hari ini:* Tn. Budi (IGD) diputuskan dr. Andi dirawat di Bangsal Melati kelas 2. Perawat Dimas mengantar dan
+mengisi SBAR. Petugas admisi Sari tidak menerima permintaan apa pun di layarnya; ia membuka admisi karena ditelepon,
+memilih Bangsal Melati, kelas 2, dan DPJP sendiri. Diagnosis kerja, indikasi, dan kebutuhan isolasi yang ditulis dr. Andi
+tidak sampai ke Sari. Tagihan IGD Tn. Budi tidak ikut ke invoice rawat inap.
+
+*Contoh jalur kamar pulih (pembanding yang sudah berjalan):* Ny. Sari selesai operasi; dokter anestesi memutuskan
+"Rawat inap". Satu permintaan `Pending` lahir otomatis dan tampil di daftar Sari (mode **Kamar Pulih**). Admisi dibuka dari
+permintaan itu, permintaannya `Completed` dalam transaksi yang sama, dan Billing menautkan kunjungan asal ke invoice rawat
+inap.
+
+## 3. Kemampuan
+
+| ID | Kebutuhan | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap/adapter | Risiko |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-CAP-116` | Jenis tindak lanjut `RANAP` beserta unit tujuan | IGD | `EmgDispositionType` `:21`–`25` (`RequiresDestinationServiceUnit`, `ClosesEmergencyVisit`); seeder `PULANG`, `RANAP` (wajib unit), `INTENSIF` *"Pindah ICU atau kamar operasi"*, `RUJUK`, `MENINGGAL`, `TOLAK`, `APS` (`EmergencyMasterDataSeeder.cs` `:391`–`397`); unit tujuan hanya diperiksa ada, **bukan** tipenya (`EmergencyDispositionService` `:80`–`85`)@6a1c6cf9 | `Reuse with adapter` | Form perlu mengenali tindak lanjut rawat inap dengan pasti; unit tujuan belum disaring ke tipe `Inpatient` | Kode master di tiap lingkungan dapat berbeda dari seeder (`IGD-UNK-24`); ICU dan OK berbagi satu kode `INTENSIF` |
+| `IGD-CAP-117` | Tindak lanjut dibuat/dikonfirmasi dokter, perawat hanya *Jalankan* | IGD | `IGD-DEC-223`, `IGD-DEC-190`; `BE-IGD-070` 🟡 (*Draft* + penjaga diagnosis); `FE-IGD-054`, `055` belum diuji@6a1c6cf9 / 03b057c03 | `Conflict` | Bertabrakan dengan pengisi form = perawat (`IGD-CONF-16`) | Dua dokumen keputusan rawat inap yang bisa saling berbeda isi (tindak lanjut dokter vs form perawat) |
+| `IGD-CAP-118` | Kepergian fisik dan serah terima SBAR ke unit rawat inap | IGD | `EmgDeparture` `ToServiceUnitId` `:51`, SBAR `:83`–`92`, `AllergySnapshot` `:115`, `TriageLevelSnapshot` `:120`; **tanpa** `DispositionId`; alergi diisi dari teks kiriman layar (`EmergencyDepartureService` `:101`)@6a1c6cf9 | `Ready to reuse` | Form tidak menggantikan kepergian; keduanya tidak saling menunjuk | Unit tujuan, alergi, dan diagnosis dapat diketik dua kali dan berbeda |
+| `IGD-CAP-119` | Penutupan kunjungan IGD lewat tindak lanjut | IGD | `MVP-8` ✅; `EmergencyDispositionController` `:370`–`404` (`TryCloseAfterDispositionAsync`)@6a1c6cf9 | `Ready to reuse` | — | Penutupan tidak menunggu admisi rawat inap terbentuk (lihat `IGD-CONF-17`) |
+| `IGD-CAP-120` | Permintaan admisi yang masuk antrean petugas admisi | Rawat Inap (Muhammad Hamzah) | `InpAdmissionReferral` `:23`–`70`: `OprCaseId` `:32` dan `PrimarySurgeonId` `:35` **wajib**, `RequestedCareLevel` `Inpatient`/`Icu` `:37`, `RecoveryDecisionNote` `:40`, status `Pending`/`Completed`/`Cancelled` (tanpa *Ditolak*), `RowVersion`; satu `Pending` per pasien dan per kasus OK, FK `Restrict` (`InpAdmissionReferralConfiguration.cs` `:19`–`20`, `:36`–`55`); pembuat tunggal `CreateFromRecoveryAsync` `:60`; controller hanya `GET` (`InpatientAdmissionReferral : Read`, `:42`, `:55`), keterangan *"Membuat dan membatalkan permintaan tidak punya endpoint"* `:15`–`17`; asal kunjungan dibaca dari `EncounterType` (`ReadEncounterTypesAsync` `:298`–`308`)@6a1c6cf9 | `Extend` | Kolom kasus OK harus boleh kosong, ditambah penanda sumber (IGD) dan isian klinis IGD; jalan membuat dan membatalkan dari IGD; satu migration pada tabel Rawat Inap | Butuh persetujuan pemilik Rawat Inap; migration pada tabel yang sudah dipakai Billing (FK `SourceReferralId`) |
+| `IGD-CAP-121` | Admisi wajib dibuka dari permintaan yang menunggu | Rawat Inap | `CheckForAdmissionAsync` `:199`–`225` (`409` `INP-ADM-REF-001`); `MarkCompleted` `:231` dipanggil dalam transaksi admisi (`InpEpisodeService` `:366`)@6a1c6cf9 | `Reuse with adapter` | Pesan masih menyebut *"dari kamar pulih"* (`:222`–`223`) | Pesan menyesatkan petugas bila permintaannya dari IGD |
+| `IGD-CAP-122` | Membuka admisi rawat inap | Rawat Inap | `POST /api/v1/health-services/inpatient-management/episodes` (`OpenAdmissionRequest`, `InpatientEpisodeDtos.cs` `:29`–`75`); unit wajib `ServiceUnitType.Inpatient` (`InpEpisodeService` `:1236`), kelas wajib `IsForInpatient` (`:1254`), DPJP cukup dokter aktif (`:185`–`195`), kunjungan jangkar wajib bertipe `Inpatient` (`:225`); tanpa kunjungan jangkar dibuat kunjungan baru `PaymentType = Cash` (`BuildInpatientEncounter` `:1166`–`1195`)@6a1c6cf9 | `Ready to reuse` | Form hanya mengusulkan; keputusan admisi tetap pada petugas | Isian form tidak terisi otomatis kecuali permintaan membawanya |
+| `IGD-CAP-123` | Layar admisi petugas menerima permintaan dari IGD | Rawat Inap (frontend) | `inpatient-admission-view.jsx` mode `Pasien Baru`/`Pasien Lama`/`Kamar Pulih` `:65`–`78`; daftar `getAdmissionReferrals({ status: "Pending" })` `:598`–`627`; `admissionReferralId` dikirim `:538`; daftar menampilkan nomor kasus, nama tindakan, dokter bedah (`recovery-admission-referrals-list.jsx` `:121`–`152`)@03b057c03 | `Extend` | Baris dari IGD tidak punya kasus OK; perlu tampilan isian IGD | Layar memakai komponen pendaftaran IGD (bagian 9) |
+| `IGD-CAP-124` | Workspace PPRI sebagai wadah form permintaan | Rawat Inap | Route `…/episodes/{episodeId}/admission-workspace` (`InpatientAdmissionDocumentController.cs` `:45`); penulisan hanya pada episode `Admitted`/`DischargePending` (`INV-RWA-08`, `rawat-inap/episode-rawat-inap/02-backend-architecture.md` §13.3)@6a1c6cf9 | `Missing` | Workspace PPRI bekerja **sesudah** episode ada; form permintaan lahir **sebelum** admisi. Yang dapat ditiru: salinan beku `jsonb`, `RowVersion`, kunci idempoten, atestasi, log cetak | — |
+| `IGD-CAP-125` | Kunjungan rawat inap menunjuk kunjungan IGD asalnya | Registrasi; pekerjaannya di modul IGD (`RWI-DEC-073`) | `RegPatientEncounter.OriginEncounterId` **tidak ada**; dicatat di `InpBedOccupancyService` `:715`, `:1692`@6a1c6cf9 | `Missing` | `IGD-DEC-075` masih `draft` | `RWI-AC-072` (satu rangkaian kedatangan) tidak dapat diuji |
+| `IGD-CAP-126` | Tagihan IGD ikut ke invoice rawat inap | Billing | `EnsureEncounterLinksAsync` `:247`–`273` menautkan `SourceEncounterId` setiap permintaan admisi `Completed`; `BilInvoiceEncounterLink.LinkReason` bawaan `"SURGERY_ORIGIN"`; rincian dibaca `IGD-CAP-115`@6a1c6cf9 | `Reuse with adapter` | Permintaan dari IGD otomatis menautkan kunjungan IGD; label alasan perlu dibedakan | Persetujuan owner Billing; perilaku bila invoice IGD sudah dibayar terpisah (`IGD-UNK-26`); bersinggungan dengan `IGD-CONF-14` |
+| `IGD-CAP-127` | Identitas pasien: nama, No. RM, jenis kelamin, umur | PatientManagement / IGD | `BE-IGD-064` ✅ (detail kunjungan memuat pasien); `MstPatient` tanggal lahir dan jenis kelamin@6a1c6cf9 | `Ready to reuse` | Umur dihitung dari tanggal lahir | — |
+| `IGD-CAP-128` | Alergi pasien | ClinicalManagement | `TrxPatientAllergy` `:26`–`73` (nama alergen, tingkat, status); layar dokter IGD membacanya (`use-emergency-physician-workspace.jsx` `:6`, `:55`–`68`); controller membaca context langsung (`PatientAllergyController` `:98`–`99`, `RWI` §13.1)@6a1c6cf9 / 03b057c03 | `Reuse with adapter` | Bila form dibekukan, salinan alergi diambil server, bukan teks kiriman layar (beda dengan `IGD-CAP-118`) | "Belum ada data alergi" ≠ "tidak ada alergi" |
+| `IGD-CAP-129` | Penjamin kunjungan IGD | Registrasi (dibaca lewat Clinical) | `RegPatientEncounter.PaymentType` `:102`, `PaymentSource` `:250`; `EncounterInsuranceService.GetContextAsync` `:25` (tanpa nomor kartu, `RWI-FACT-067`); pendaftaran IGD mengirim asuransi/perusahaan penjamin (`emergency-registration.service.js` `:33`–`40`)@6a1c6cf9 / 03b057c03 | `Reuse with adapter` | Ditampilkan saja | Kunjungan rawat inap hasil admisi tidak mewarisi penjamin IGD: dibuat `Cash` di backend, atau dibuat layar admisi lewat langkah pembayaran sendiri (`inpatient-admission-encounter.service.js` `:30`) — penjamin diisi ulang (`IGD-UNK-28`) |
+| `IGD-CAP-130` | Diagnosa terakhir (ICD-10) | ClinicalManagement | `TrxPatientDiagnosis` `EncounterId` `:18`, kode dan nama `:74`–`79`, `DiagnosisType`, `IsPrimary`, `DiagnosisDateTime` `:90`–`106`; diagnosis IGD ditulis lewat catatan dokter (`BE-IGD-067`, `FE-IGD-047` 🟡)@6a1c6cf9 | `Reuse with adapter` | Arti "terakhir" belum ditetapkan: waktu terbaru, diagnosis utama, atau semua yang aktif | Catatan dokter IGD belum lulus uji |
+| `IGD-CAP-131` | Pilihan unit layanan rawat inap | MasterData | `ServiceUnitType` `Inpatient = 2`, `Emergency = 3`, `OperatingRoom = 8`, **tanpa** tipe ICU; layar admisi menyaring `serviceUnitType = 2` di server (`inpatient-admission-encounter.service.js` `:45`); Surat Rujukan rawat jalan menerima klinik **atau** unit (`DoctorCertificateService` `:395`–`416`)@6a1c6cf9 / 03b057c03 | `Ready to reuse` | — | Tipe unit ICU di tiap lingkungan (`IGD-UNK-25`); jawaban analis tentang "poli" (`IGD-CONF-19`) |
+| `IGD-CAP-132` | Pilihan kelas perawatan | MasterData | `MstPatientClass` `IsForInpatient` `:33`, `IsForEmergency` `:35`, `IsForIntensiveCare` `:37`, `ClassLevel`; admisi menolak kelas bukan rawat inap (`InpEpisodeService` `:1254`)@6a1c6cf9 | `Ready to reuse` | — | — |
+| `IGD-CAP-133` | Kelas yang diminta dibanding hak kelas penjamin | PatientManagement / Billing | `MstPatientInsurance.ClassName` `:33` — **teks bebas**, bukan rujukan ke `MstPatientClass`; Selisih Biaya hanya dokumen PPRI sesudah admisi (`InpAdmissionCostDifferenceStatement`)@6a1c6cf9 | `Missing` | Perbandingan otomatis tidak mungkin | Dampak Billing (naik kelas, selisih biaya) |
+| `IGD-CAP-134` | DPJP rawat inap "dari unit layanan terpilih" | HR / MasterData | `MstDoctor` tanpa unit (hanya `SpecializationId` `:100`); relasi dokter ↔ unit hanya lewat jadwal (`MstDoctorSchedule.ServiceUnitId` `:28`) atau penugasan HR → simpul organisasi (`IGD-DEC-193`); layar admisi memakai semua dokter (`doctors/admin/options`), backend menerima dokter aktif mana pun@6a1c6cf9 / 03b057c03 | `Missing` | Sumber relasi harus dipilih | DPJP usulan IGD vs DPJP pilihan petugas admisi (`IGD-CONF-20`) |
+| `IGD-CAP-135` | Kebutuhan khusus: intensif, isolasi, oksigen, monitoring | Rawat Inap / MasterData | `InpRequestedCareLevel` `Inpatient`/`Icu`; `InpEpisode.RequiresIsolation` `:70`; `MstBed.IsIsolationBed` `:35`, `IsIntensiveCareBed` `:37`; **tanpa** atribut oksigen atau monitoring@6a1c6cf9 | `Extend` | Dua dari empat pilihan punya padanan | Radio (satu pilihan) tidak dapat menyatakan pasien isolasi yang juga butuh oksigen |
+| `IGD-CAP-136` | `IsCito` | — | `IsCito` hanya ada pada pesanan laboratorium dan hemodialisa (`LabExaminationDtos`, `HmdOrderDtos`); daftar permintaan admisi diurut waktu permintaan, tanda terlambat dari pengaturan `PendingAdmissionReferralAlertMinutes` (`InpAdmissionReferralService` `:251`–`259`)@6a1c6cf9 | `Missing` | Kegunaannya belum ditetapkan | — |
+| `IGD-CAP-137` | Estimasi lama rawat | — | Tidak ada di mana pun; lama rawat hanya dihitung dari waktu admisi (`InpCensusQueryService` `:400`)@6a1c6cf9 | `Missing` | Kegunaannya belum ditetapkan | Bila dipakai untuk perkiraan biaya, menyentuh Estimasi Biaya PPRI (`DEC-INP-020`) |
+| `IGD-CAP-138` | Indikasi klinis; rencana perawatan dan instruksi | IGD | Tindak lanjut sudah menyimpan `DispositionReason`, `PatientConditionAtDisposition`, `FollowUpInstruction` (`EmgDisposition` `:44`–`50`); permintaan kamar pulih menyimpan catatan keputusan ≤ 2.000 karakter (`RecoveryDecisionNote`)@6a1c6cf9 | `Reuse with adapter` | Sumber tunggal harus dipilih supaya tidak diketik dua kali | — |
+| `IGD-CAP-139` | Tanda tangan dokter pengirim | Lintas modul | Empat pola: **(a)** atestasi akun Rawat Inap — `InpAdmissionDocumentSignature` (`SignedByUserId`, nama/jabatan dibekukan, waktu server; tanpa gambar/hash, `EPIC-RWA-13`), `InpAdmissionSignatureService.AttestAsync` `:131`; **(b)** tanda tangan dokumen Rekam Medis — `MrcClinicalDocumentIntegrity` `SignedByUserId` `:69`, perangkat `:76` dan IP `:79` diambil server (`RM-DEC-021`); **(c)** gambar TTD `data URL` ≤ 2,8 MB — `CliDoctorCertificate.DoctorSignatureDataUrl` `:56`, layar mengunggah berkas PNG/JPEG/WEBP (`doctor-certificate-tab.jsx` `:573`–`596`); **(d)** path berkas TTD — `TrxPatientConsent` `:188`–`197`. Frontend: `react-signature-canvas` hanya di `outpatient-general-consent-step.jsx` `:5`; `SignatureModal.jsx` `:4` mengimpor `@/components/ui/signature-canvas-input` yang **tidak ada** (kode mati). Nol tanda tangan yang meminta kata sandi/PIN ulang (`CheckPasswordAsync` hanya di `KioskDeviceController` `:1179`, `QueueDisplayDeviceController` `:613`); nol penyedia TTE tersertifikasi@6a1c6cf9 / 03b057c03 | `Reuse with adapter` | Bentuk harus dipilih (`IGD-TRQ-20`) | Rawat Inap belum memutuskan tanda tangan digital (`DEC-INP-003`, `INP-S48`); gambar TTD tidak membuktikan siapa yang menekan tombol |
+| `IGD-CAP-140` | Surat Rujukan/Pengantar Rawat Inap dokter | ClinicalManagement | `DoctorCertificateType.InpatientReferral = 3` (*"Surat Rujukan"*); isian `ReferralAdmissionDate`, `ReferralDiagnosis` (teks), `ReferralReason`, tujuan klinik/unit, `RequestedRoomClass` (teks), `SpecialInstruction`, gambar TTD (`CliDoctorCertificate.cs` `:56`–`80`); dokter = DPJP kunjungan (`DoctorCertificateService` `:444`–`458`); kunjungan jenis apa pun diterima (`:358`–`366`); status `Issued`/`Cancelled`; dibaca Workspace PPRI (`RWI-DEC-254`); `POST /api/v1/health-services/clinical-management/doctor-certificates`@6a1c6cf9 | `Conflict` | Artefak "permintaan rawat inap" kedua yang tidak masuk antrean admisi (`IGD-CONF-18`) | Tiga model untuk hal yang sama bila form IGD dibuat terpisah lagi |
+| `IGD-CAP-141` | Status form, perubahan sesudah kirim, cetak | Rawat Inap (pola) | Permintaan admisi: `Pending`/`Completed`/`Cancelled` beralasan, `RowVersion`; dokumen PPRI: `Draft`/`AwaitingSignature`/`Completed`, versi koreksi, log cetak beralasan (`RWI` §13.3 `INV-RWA-01`…`10`)@6a1c6cf9 | `Extend` | Status *Ditolak* oleh admisi tidak ada | — |
+| `IGD-CAP-142` | Hak akses perawat IGD membuat permintaan | Platform Authorization | `InpatientAdmissionReferral` hanya punya aksi `Read`; Perawat IGD tidak punya `EmergencyDisposition : Create` (`IGD-DEC-190`)@6a1c6cf9 | `Missing` | Aksi baru dan pemberian ke peran (oleh pengurus Akses Role, bukan agent) | — |
+
+## 4. Kontrak as-is yang disentuh
+
+```http
+GET /api/v1/health-services/inpatient-management/admission-referrals?status=Pending&overdueOnly=&search=&pageNumber=1&pageSize=20
+Izin: InpatientAdmissionReferral : Read
+200: PagedResult<AdmissionReferralResponse>
+     { id, patientId, patientName, medicalRecordNumber, sourceEncounterId, sourceEncounterType,
+       oprCaseId, caseNumber, procedureNames[], primarySurgeonId, primarySurgeonName,
+       requestedCareLevel (Inpatient | Icu), recoveryDecisionNote, status, requestedAt,
+       waitingMinutes, isOverdue, cancelledReason, completedEpisodeId, rowVersion }
+Catatan: tidak ada POST, PATCH, atau DELETE — permintaan lahir dari service Kamar Operasi.
+```
+
+```http
+POST /api/v1/health-services/inpatient-management/episodes
+Body: { patientId, encounterId?, serviceUnitId, patientClassId, doctorId, motherEpisodeId?, notes?, admissionReferralId? }
+400: unit/kelas/DPJP kosong atau tidak aktif
+409: INP-ADM-REF-001 — pasien punya permintaan Pending tetapi admissionReferralId kosong
+422: unit bukan Inpatient, kelas bukan rawat inap, encounterId bukan kunjungan rawat inap
+Efek: permintaan yang dirujuk menjadi Completed pada transaksi yang sama.
+```
+
+```http
+POST /api/v1/health-services/clinical-management/doctor-certificates
+Body (jenis InpatientReferral): { certificateType, encounterId, queueId?, inpatientReferral: {
+       admissionDate, diagnosis, reason, targetServiceUnitId? | targetClinicId?, targetServiceUnit, requestedRoomClass,
+       specialInstruction }, doctorSignatureDataUrl? }
+Efek: surat Issued; dokter diambil dari DPJP kunjungan; tidak membuat permintaan admisi.
+```
+
+```http
+POST /api/v1/health-services/inpatient-management/episodes/{episodeId}/admission-workspace/documents/{documentId}/signatures/admission-officer
+Body: { rowVersion }   Header: Idempotency-Key
+Efek: atestasi slot oleh akun yang masuk (nama dan jabatan dibekukan, waktu server). Tanpa kata sandi ulang.
+```
+
+## 5. Isian form analis dibanding sumbernya hari ini
+
+| Isian analis | Sumber hari ini | Keadaan |
+| --- | --- | --- |
+| Nama Pasien, No. RM, Jenis Kelamin, Umur | Pasien pada detail kunjungan IGD (`IGD-CAP-127`) | Baca |
+| Alergi | `TrxPatientAllergy` (`IGD-CAP-128`) | Baca; bentuk salinan ditentukan desain |
+| Penjamin | Penjamin kunjungan IGD (`IGD-CAP-129`) | Baca |
+| Asal Permintaan = "IGD" | Jenis kunjungan `Emergency` (`IGD-CAP-120`, `ReadEncounterTypesAsync`) | Diturunkan, tidak perlu isian |
+| Diagnosa Terakhir | Diagnosis ICD-10 kunjungan (`IGD-CAP-130`) | Baca; arti "terakhir" diputuskan |
+| Indikasi Klinis | Alasan tindak lanjut dokter (`IGD-CAP-138`) atau isian baru | Diputuskan |
+| `IsCito` | — (`IGD-CAP-136`) | Baru |
+| Unit Layanan | Unit `Inpatient` (`IGD-CAP-131`) | Baca; menunggu jawaban analis |
+| Kelas Perawatan | `MstPatientClass` rawat inap (`IGD-CAP-132`) | Baca |
+| DPJP dari unit terpilih | — (`IGD-CAP-134`) | Relasi belum ada |
+| Estimasi Lama Rawat (bawaan 3) | — (`IGD-CAP-137`) | Baru |
+| Kebutuhan Khusus (radio) | Sebagian (`IGD-CAP-135`) | Baru sebagian |
+| Rencana Perawatan & Instruksi | Instruksi tindak lanjut dokter (`IGD-CAP-138`) atau isian baru | Diputuskan |
+| Dokter Pengirim — nama | DPJP IGD aktif (`encounter.DoctorId` diselaraskan, `EmergencyDoctorAssignmentService` `:389`–`418`) atau dokter yang memutuskan tindak lanjut (`DecidedByDoctorId`) | Diputuskan |
+| Dokter Pengirim — TTD | Empat pola (`IGD-CAP-139`) | Bentuk diputuskan |
+
+## 6. Conflict
+
+| ID | Isi | Penyelesaian |
+| --- | --- | --- |
+| `IGD-CONF-16` | Spesifikasi: **perawat** mengisi form rawat inap. Keputusan berlaku: tindak lanjut — termasuk `RANAP` — dibuat dan dikonfirmasi **dokter**, perawat hanya *Jalankan* (`IGD-DEC-223`), dan hak *Create* tindak lanjut dicabut dari Perawat IGD (`IGD-DEC-190`) | Keputusan pemilik (`IGD-TRQ-14`, `15`) |
+| `IGD-CONF-17` | Kontrak integrasi IGD §2.2 dan `IGD-DEC-067`: tindak lanjut `RANAP` menutup kunjungan IGD **dan** membuat kunjungan rawat inap sebagai satu tindakan utuh. Source: admisi manual oleh petugas, kunjungan IGD ditolak sebagai jangkar (`InpEpisodeService` `:225`), dan penutupan IGD berdiri sendiri. Rawat Inap menempatkan jalur otomatis (`INP-S09`) di luar MVP-nya | Keputusan pemilik (`IGD-TRQ-16`); persetujuan pemilik Rawat Inap bila `INP-S09` dibuka |
+| `IGD-CONF-18` | Sudah ada dua artefak "permintaan rawat inap" yang tidak saling kenal: Surat Rujukan dokter rawat jalan (`IGD-CAP-140`) dan permintaan admisi kamar pulih (`IGD-CAP-120`). Form IGD yang dibuat sebagai model ketiga akan memperbanyak sumber kebenaran | Keputusan pemilik (`IGD-TRQ-16`) |
+| `IGD-CONF-19` | Spesifikasi: *"Unit Layanan (selection poli)"*. Admisi hanya menerima unit bertipe `Inpatient`; poli bukan tujuan admisi. Surat Rujukan rawat jalan memang menerima klinik (poli) | Jawaban analis (sudah ditanyakan pemilik) |
+| `IGD-CONF-20` | Spesifikasi: DPJP dipilih dari unit terpilih. Source: tidak ada relasi dokter ↔ unit rawat inap, dan DPJP episode dipilih petugas admisi; permintaan kamar pulih menyebut dokternya hanya *usulan* (`InpAdmissionReferral` `:34`) | Keputusan pemilik (`IGD-TRQ-17`) |
+
+## 7. Unknown
+
+| ID | Isi | Siapa menjawab | Memblokir |
+| --- | --- | --- | --- |
+| `IGD-UNK-24` | Kode dan nama jenis tindak lanjut rawat inap di master tiap lingkungan (seeder memakai `RANAP`; nilai dev pernah tampil berbeda) | Pemilik, lewat layar master *Jenis Tindak Lanjut* tanpa mengubah | `DESIGN` bila form dikaitkan ke tindak lanjut |
+| `IGD-UNK-25` | Tipe unit layanan ICU di tiap lingkungan (tidak ada tipe ICU) dan apakah "Perawatan Intensif" berarti unit ICU atau kelas `IsForIntensiveCare` | Pemilik + pemilik Rawat Inap | `DESIGN` kebutuhan khusus |
+| `IGD-UNK-26` | Perilaku Billing bila kunjungan IGD ditautkan ke invoice rawat inap padahal invoice IGD sudah dibayar atau ditutup | Owner Billing | Desain bagian Billing |
+| `IGD-UNK-27` | Arti "Unit Layanan (selection poli)" | Analis (lewat pemilik) | `DESIGN` |
+| `IGD-UNK-28` | Apakah penjamin pasien IGD terbawa ke kunjungan rawat inap lewat langkah pembayaran layar admisi, atau diisi ulang petugas | Satu uji layar admisi; pemilik Rawat Inap | Tidak untuk desain form; ya untuk isian Penjamin di sisi admisi |
+
+## 8. Pertanyaan penutup untuk `grill-me`
+
+Sebelas butir terbuka dari pemilik dipetakan ke ID supaya dapat dilacak; temuan scan ditambahkan pada butir terkait.
+
+| ID | Pertanyaan | Temuan scan yang relevan |
+| --- | --- | --- |
+| `IGD-TRQ-14` | Perawat mengisi; siapa **mengirim**, dan apakah TTD dokter wajib sebelum terkirim? | `IGD-CONF-16`; `IGD-CAP-117`, `142` |
+| `IGD-TRQ-15` | Hubungan form dengan tindak lanjut `RANAP` (isi tindak lanjut, lahir saat konfirmasi, atau dokumen terpisah); urutannya terhadap kepergian, serah terima, dan penutupan | `IGD-CAP-116`, `118`, `119`, `138` |
+| `IGD-TRQ-16` | Form menjadi permintaan admisi (perluasan `InpAdmissionReferral`), perluasan Surat Rujukan, atau model baru; pemilik datanya; admisi tetap manual atau `INP-S09` dibuka | `IGD-CONF-17`, `18`; `IGD-CAP-120`…`126`, `140` |
+| `IGD-TRQ-17` | Sumber relasi dokter ↔ unit untuk DPJP rawat inap, dan apakah pilihan IGD hanya usulan | `IGD-CONF-20`; `IGD-CAP-134` |
+| `IGD-TRQ-18` | Kelas perawatan vs hak kelas penjamin — perlu dibandingkan di form atau diserahkan ke Selisih Biaya PPRI? | `IGD-CAP-133` |
+| `IGD-TRQ-19` | Kebutuhan khusus satu pilihan atau boleh lebih; "Perawatan Intensif" = tujuan ICU? | `IGD-CAP-135`; `IGD-UNK-25` |
+| `IGD-TRQ-20` | Bentuk TTD digital dokter pengirim | `IGD-CAP-139` |
+| `IGD-TRQ-21` | Kegunaan `IsCito` dan Estimasi Lama Rawat | `IGD-CAP-136`, `137` |
+| `IGD-TRQ-22` | Sumber Alergi, Penjamin, dan arti "Diagnosa Terakhir" | `IGD-CAP-128`…`130` |
+| `IGD-TRQ-23` | Status form, boleh diubah sesudah dikirim, ditolak oleh admisi, perlu dicetak | `IGD-CAP-141` |
+| `IGD-TRQ-24` | Dokter pengirim = DPJP IGD aktif atau dokter yang memutuskan tindak lanjut? | Bagian 5 |
+
+## 9. Ketergantungan pada pekerjaan pendaftaran IGD — dilaporkan, tidak disentuh
+
+Form permintaan sendiri **tidak** bergantung pada halaman pendaftaran IGD. Arah ketergantungan yang ditemukan justru
+sebaliknya: layar admisi Rawat Inap dan pendaftaran rawat jalan memakai ulang kode pendaftaran IGD.
+
+| Berkas pemakai | Yang dipakai |
+| --- | --- |
+| `inpatient-admission-view.jsx` `:11`–`12` | `EmergencyRegistrationStepper`, `PatientEntryChoiceStep` |
+| `inpatient-admission-confirmation-step.jsx`, `inpatient-admission-existing-patient-step.jsx`, `use-inpatient-admission-patient.jsx`, `inpatient-admission-encounter.service.js` | Util `emergency-registration.utils.js` (`getCollectionItems`, `getCollectionPagination`, `toSafeString`, `unwrapApiData`) |
+| Tiga berkas pendaftaran rawat jalan | Komponen/util pendaftaran IGD |
+
+Commit pemilik `03b057c03` menambah 190 baris dan menghapus 2 baris pada util itu; keempat fungsi yang dipakai Rawat Inap
+masih diekspor, dan dua komponen yang dipakai layar admisi tidak berubah. **Akibat untuk slice ini:** bila desain memilih
+memperluas layar admisi (`IGD-CAP-123`), pekerjaannya menyentuh layar yang memakai komponen pendaftaran IGD — perlu
+dilaporkan kepada pemilik sebelum kartu disusun.
+
+## 10. Catatan desain dari fakta — bukan keputusan
+
+1. **Perluasan `InpAdmissionReferral` memberi empat hal tanpa membangun ulang:** antrean admisi, penjaga `409`, penyelesaian
+   dalam transaksi admisi, dan penautan tagihan IGD ke invoice rawat inap. Biayanya: satu migration pada tabel Rawat Inap
+   (kolom kasus OK boleh kosong, penanda sumber, isian klinis IGD), jalan membuat/membatalkan dari IGD, pesan yang tidak lagi
+   menyebut kamar pulih, dan persetujuan pemilik Rawat Inap serta owner Billing.
+2. **Admisi tetap manual** konsisten dengan batas MVP Rawat Inap (`INP-S09` di luar MVP). Janji `IGD-DEC-067` tetap tidak
+   terwujud dan perlu dinyatakan sebagai batas sadar, bukan dibiarkan diam.
+3. **Pola atestasi akun** (`IGD-CAP-139` a/b) adalah satu-satunya bentuk yang mengikat tanda tangan ke akun dokter yang masuk
+   dan sudah dipakai dua modul. Gambar TTD (c) mudah dipasang tetapi tidak membuktikan siapa yang menekan tombol.
+4. Isian yang dibekukan saat dikirim dapat meniru salinan beku `jsonb` yang sudah dipakai (`CliTransferHandover.SnapshotJson`,
+   `InpAdmissionDocument.SnapshotJson`) supaya tampilan form tidak berubah ketika data pasien berubah.
+5. Kepergian IGD (`IGD-CAP-118`) dan form permintaan menyimpan unit tujuan, alergi, dan ringkasan klinis yang beririsan —
+   desain sebaiknya menetapkan satu sumber dan prefill ke yang lain.
+
+## 11. Pemicu audit ulang suplemen ini
+
+Commit yang menyentuh `InpAdmissionReferral*`, `InpEpisodeService`, `InpatientEpisodeDtos`, `InpAdmissionSignatureService`,
+`BillingInpatientEventReceiver`, `BilInvoiceEncounterLink`, `EmgDisposition*`, `EmergencyDisposition*`, `EmgDeparture*`,
+`DoctorCertificate*`, `MstPatientClass`, `MstServiceUnit`, `MstPatientInsurance`, `RegPatientEncounter`, atau di frontend
+`inpatient-admission-*`, `admission-referrals/**`, `emergency-doctor-disposition-tab.jsx`, dan
+`emergency-registration.utils.js`.
+
+## 12. Kesimpulan scan
+
+1. **Nol blocker teknis untuk mulai `grill-me`.** Semua yang menahan desain adalah keputusan: pengirim dan kaitannya dengan
+   tindak lanjut dokter (`IGD-CONF-16`), wadah form (`IGD-CONF-17`, `18`), unit layanan (`IGD-CONF-19`), dan DPJP
+   (`IGD-CONF-20`).
+2. **Kandidat reuse terkuat** adalah perluasan `InpAdmissionReferral` (`IGD-CAP-120`, `121`, `126`) — dengan biaya satu
+   migration pada tabel Rawat Inap dan dua persetujuan pemilik modul lain.
+3. **Lima isian benar-benar baru:** `IsCito`, Estimasi Lama Rawat, relasi DPJP ↔ unit, hak kelas terstruktur, dan dua
+   kebutuhan khusus (oksigen, monitoring).
+4. **TTD digital** dapat memakai pola atestasi yang sudah ada; keputusan bentuknya juga menyentuh keputusan Rawat Inap yang
+   masih terbuka (`DEC-INP-003`).

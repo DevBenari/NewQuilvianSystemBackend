@@ -6445,3 +6445,288 @@ tidak disunting).
 | ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
 | --- | --- | --- | --- | --- | --- | --- |
 | `IGD-DEC-266` | Decision | **Sesi DPJP dokter jaga IGD (`EPIC IGD-12`, `MVP-10`) dinyatakan ditutup.** `BE-IGD-056` ✅ dan `FE-IGD-037` ✅ sudah di-commit pemilik: backend `7f37b8ff` (`rizkiG`), frontend `03b057c03` (`RizkiV2`), keduanya sejajar dengan origin. Tidak ada migration baru selain `20261011052215`. Syarat rilis R3.17.3 tetap berlaku per lingkungan: migration diterapkan lebih dulu, backend dan frontend dirilis bersama, `IGD-UNK-18` dicatat. Syarat Tahap 0 `IGD-DEC-252` bagian DPJP terpenuhi, sehingga desain dan perencanaan Billing IGD (Tahap 1) tidak lagi tertahan sesi ini | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-11** | Pesan pemilik: *"saya sudah commit dan saya nyatakan sesi DPJP ditutup"* |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Form Permintaan Rawat Inap dari IGD — 12 Oktober 2026 (`grill-me`, *amendment pass*)
+
+Slice baru atas permintaan pemilik, sambil menunggu jawaban owner Billing untuk slice Billing IGD. Masukan: spesifikasi
+analis *Form Permintaan Rawat Inap* dan tiga jawaban pemilik 12 Oktober 2026. Snapshot: backend `rizkiG` `6a1c6cf9`,
+frontend `RizkiV2` `03b057c03`, keduanya sejajar origin dan bersih. Bukti source: `01-existing-capability-map.md`
+suplemen 3.7 (`IGD-CAP-116`…`142`, `IGD-CONF-16`…`20`, `IGD-UNK-24`…`28`, `IGD-TRQ-14`…`24`). Bentuk blueprint tetap
+`SINGLE` (pilihan pemilik 22 September 2026); slice ini bagian dari blueprint IGD.
+
+**Spesifikasi analis (apa adanya).** Perawat IGD mengisi Form Permintaan Rawat Inap:
+
+| Kelompok | Isian |
+| --- | --- |
+| Identitas Pasien (tampil otomatis) | Nama Pasien, No. RM, Jenis Kelamin, Umur, Alergi, Penjamin, Asal Permintaan (selalu "IGD") |
+| Informasi Klinis | Diagnosa Terakhir, Indikasi Klinis, `IsCito` |
+| Rencana Penempatan | Unit Layanan (pilihan), Kelas Perawatan (pilihan), DPJP (pilihan dokter dari unit layanan terpilih), Estimasi Lama Rawat (bawaan 3, dapat diubah), Kebutuhan Khusus (radio: Perawatan Intensif, Ruang Isolasi, Dukungan Oksigen, Monitoring Khusus) |
+| Rencana Perawatan & Instruksi | Isian manual |
+| Dokter Pengirim | Nama Dokter, TTD Dokter |
+
+| Batas | Isi |
+| --- | --- |
+| Di dalam scope | Isian form; siapa mengisi, mengirim, dan menandatangani; kaitan form dengan tindak lanjut `RANAP` dokter, kepergian pasien, dan penutupan kunjungan IGD; status form (draf, terkirim, selesai, batal, koreksi); cara form sampai ke petugas admisi (wadah dan titik sentuh); data yang **dibaca** form (identitas, alergi, penjamin, diagnosis, unit, kelas, dokter); bentuk TTD digital dokter pengirim; cetak form |
+| Di luar scope — untuk modul lain | Membuka admisi, memilih bed, Workspace PPRI, General Consent → Rawat Inap (Muhammad Hamzah). Tarif kamar, selisih biaya, deposit, penggabungan invoice → Billing dan PPRI. Isi master jadwal dokter → HR/Master Data. Pindah ke kamar operasi (jalur `INTENSIF`/OK). Pendaftaran IGD (pekerjaan pemilik). Slice Billing IGD (sesi terpisah) |
+
+#### Fakta
+
+| ID | Isi | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-110` | Rawat Inap sudah punya **permintaan admisi** (`InpAdmissionReferral`) yang tampil di daftar petugas admisi, memaksa admisi dibuka dari permintaan itu (`409` `INP-ADM-REF-001`), dan selesai dalam transaksi admisi yang sama. Hari ini hanya lahir dari keputusan kamar pulih OK; kolom kasus OK dan dokter bedah wajib diisi; tanpa endpoint buat/batal | Suplemen 3.7 `IGD-CAP-120`, `121` |
+| `IGD-FACT-111` | Billing menautkan kunjungan asal setiap permintaan admisi yang selesai ke invoice rawat inap (`BilInvoiceEncounterLink`, alasan bawaan `SURGERY_ORIGIN`) | Suplemen 3.7 `IGD-CAP-126` |
+| `IGD-FACT-112` | Rawat jalan sudah punya Surat Rujukan rawat inap (`CliDoctorCertificate` jenis `InpatientReferral`) dengan tujuan klinik (poli) atau unit, kelas kamar teks, diagnosis teks, dan gambar TTD dokter; tidak masuk antrean admisi | Suplemen 3.7 `IGD-CAP-140` |
+| `IGD-FACT-113` | Admisi rawat inap tetap manual oleh petugas admisi; kunjungan IGD ditolak sebagai jangkar episode; `OriginEncounterId` belum ada. Janji `IGD-DEC-067` (tutup IGD dan buat kunjungan rawat inap sebagai satu tindakan utuh) belum terwujud | Suplemen 3.7 `IGD-CAP-122`, `125`; `IGD-CONF-17` |
+| `IGD-FACT-114` | Tanda tangan di source memakai empat pola — atestasi akun (Rawat Inap, Rekam Medis), gambar `data URL` (surat dokter), path berkas (consent) — tanpa kata sandi ulang dan tanpa TTE tersertifikasi. Rawat Inap belum memutuskan tanda tangan digital (`DEC-INP-003`) | Suplemen 3.7 `IGD-CAP-139` |
+| `IGD-FACT-115` | `IsCito`, Estimasi Lama Rawat, relasi dokter ↔ unit rawat inap, hak kelas penjamin terstruktur, serta kebutuhan khusus oksigen dan monitoring belum punya tempat di source | Suplemen 3.7 `IGD-CAP-133`…`137` |
+
+#### Keputusan
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-267` | Decision | **Batas scope slice Form Permintaan Rawat Inap dari IGD** sebagaimana tabel di atas. Admisi, bed, Workspace PPRI, tarif, dan penggabungan invoice tetap milik Rawat Inap dan Billing; slice ini mengatur form dan cara form sampai ke petugas admisi | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Setuju (Recommended)"* |
+| `IGD-DEC-268` | Decision | **Yang mengisi Form Permintaan Rawat Inap adalah Perawat IGD.** *Contoh:* perawat Dimas membuka form untuk Tn. Budi dan mengisi rencana penempatan serta instruksi | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pernyataan pemilik pada brief sesi 12 Oktober 2026 |
+| `IGD-DEC-269` | Decision | **TTD Dokter Pengirim berbentuk tanda tangan digital, bukan kertas.** Bentuk persisnya diputuskan lewat `IGD-TRQ-20` | Product/Domain Owner IGD | `draft` — arah; pemilik menulis *"kemungkinan besar"* | — | Pernyataan pemilik pada brief sesi 12 Oktober 2026 |
+| `IGD-DEC-270` | Decision | **Arti isian "Unit Layanan (selection poli)" tidak diasumsikan** sampai jawaban analis masuk (`IGD-OQ-127`). Dugaan pemilik: bangsal/unit rawat inap, bukan poli | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pernyataan pemilik pada brief sesi 12 Oktober 2026 |
+| `IGD-DEC-271` | Decision | **Menjawab `IGD-TRQ-15` (bagian kaitan) dan menyelesaikan `IGD-CONF-16`. Form Permintaan Rawat Inap melengkapi tindak lanjut `RANAP`, bukan menggantikannya.** Dokter tetap membuat dan mengonfirmasi tindak lanjut `RANAP` di Ruang Kerja Dokter IGD (`IGD-DEC-223`, dijaga diagnosis `IGD-DEC-226`). Form baru dapat dibuka perawat sesudah tindak lanjut `RANAP` terkonfirmasi, dan isian yang sudah ada di tindak lanjut — unit tujuan, alasan, instruksi — terisi dari sana. Satu keputusan rawat inap, satu sumber. *Contoh:* dr. Andi mengonfirmasi tindak lanjut `RANAP` ke Bangsal Melati pukul 10.05. Pukul 10.10 perawat Dimas membuka form Tn. Budi: unit Bangsal Melati sudah terisi, Dimas melengkapi kelas, kebutuhan khusus, dan estimasi lama rawat. Sebelum 10.05 tombol form belum tersedia | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Form melengkapi (Recommended)"* |
+| `IGD-DEC-272` | Decision | **Menjawab `IGD-TRQ-20`. TTD Dokter Pengirim memakai atestasi akun dokter**: dokter menekan *Tandatangani* dari sesi login-nya sendiri; server mencatat akun, nama dan jabatan yang dibekukan, waktu server, serta perangkat dan alamat IP yang dibaca server. Tanpa gambar tanda tangan dan tanpa kata sandi ulang. Pola yang sama dengan atestasi Rawat Inap (`InpAdmissionSignatureService`) dan tanda tangan dokumen Rekam Medis (`RM-DEC-021`). Cetakan menulis *"Ditandatangani secara elektronik oleh dr. Andi Pratama, 12-10-2026 10.15 WIB"*. Melengkapi `IGD-DEC-269` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Atestasi akun dokter (Recommended)"* |
+| `IGD-DEC-273` | Decision | **Menjawab `IGD-TRQ-14` dan tempat tanda tangan. Form diisi dan diajukan perawat dari layar perawat; dokter pengirim menandatanganinya dari daftar *Perlu TTD* di Ruang Kerja Dokter IGD, dan form terkirim ke petugas admisi tepat saat ditandatangani.** Form **tidak** diisi di layar dokter: daftar *Perlu TTD* hanya menampilkan ringkasan baca-saja dan tombol *Tandatangani*. TTD wajib sebelum form terkirim; tidak ada kata sandi dokter yang diketik di perangkat perawat. *Contoh:* Dimas menekan *Minta TTD dr. Andi* pukul 10.12; form berstatus *Menunggu TTD*. dr. Andi membuka daftar *Perlu TTD* di sesinya, membaca ringkasan Tn. Budi, dan menekan *Tandatangani* pukul 10.15; saat itu juga form muncul di daftar petugas admisi | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Daftar Perlu TTD (Recommended)"*, sesudah catatan analis bahwa form diisi perawat dan tidak ada di Ruang Kerja Pemeriksaan Dokter (`IGD-FACT-116`) |
+| `IGD-DEC-274` | Decision | **Menjawab `IGD-TRQ-24`. Dokter Pengirim adalah DPJP IGD aktif pasien saat perawat meminta TTD**; perawat tidak memilih dokter. Bila DPJP IGD dialihkan sebelum form ditandatangani, permintaan TTD ikut pindah ke DPJP yang baru dan DPJP lama tidak dapat lagi menandatanganinya. Nama Dokter Pengirim pada form = penanda tangan. *Contoh:* dr. Andi (DPJP) mengonfirmasi `RANAP` 10.05; Dimas meminta TTD 10.12; pukul 10.30 DPJP dialihkan ke dr. Rina karena dr. Andi selesai shift; permintaan pindah ke daftar *Perlu TTD* dr. Rina, yang menandatangani 10.35 — Dokter Pengirim tercatat dr. Rina | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"DPJP IGD aktif (Recommended)"* |
+| `IGD-DEC-275` | Decision | **Menjawab `IGD-TRQ-16` (wadah) dan menyelesaikan `IGD-CONF-18`. Form yang terkirim menjadi satu permintaan admisi `Pending` bersumber IGD pada `InpAdmissionReferral` milik Rawat Inap**, yang diperluas untuk sumber IGD. Kemampuan yang ada dipakai apa adanya: daftar petugas admisi, admisi wajib dibuka dari permintaan (`409` `INP-ADM-REF-001`), permintaan selesai dalam transaksi admisi, dan penautan kunjungan IGD ke invoice rawat inap. Pemilik tabel tetap Rawat Inap; IGD menulis lewat service Rawat Inap. Surat Rujukan rawat jalan (`IGD-FACT-112`) tidak dipakai untuk slice ini. Perluasan tabel Rawat Inap dan penautan tagihan **membutuhkan persetujuan** pemilik Rawat Inap (Muhammad Hamzah) dan owner Billing — persetujuan lisan dicatat dari laporan pemilik saat approval desain | Product/Domain Owner IGD; titik sentuh Rawat Inap dan Billing | `approved` (sisi IGD) | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Perluas permintaan admisi (Recommended)"* |
+| `IGD-DEC-276` | Decision | **Menjawab `IGD-TRQ-16` (admisi) dan menyelesaikan `IGD-CONF-17`. Admisi rawat inap tetap dibuka manual oleh petugas admisi dari permintaan.** Janji `IGD-DEC-067` — tindak lanjut `RANAP` menutup kunjungan IGD dan membuat kunjungan rawat inap sebagai satu tindakan utuh — dinyatakan **batas sadar** dan ditunda ke slice Rawat Inap `INP-S09`. Kunjungan IGD tetap ditutup lewat jalur `MVP-8`. Rangkaian kedatangan IGD → rawat inap dibaca lewat permintaan admisi (kunjungan asal → episode yang dibuka), sehingga kolom `OriginEncounterId` (`IGD-DEC-075`) tetap ditunda. *Contoh:* form terkirim 10.15; Sari membuka admisi 10.40 dari permintaan itu; kunjungan rawat inap lahir dan permintaan selesai; pasien tiba di bangsal 11.00 dan kunjungan IGD tertutup — dua tindakan terpisah | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Tetap manual, janji ditunda (Recommended)"* |
+| `IGD-DEC-277` | Decision | **Menjawab `IGD-TRQ-15` (urutan). Perawat tidak dapat menekan *Jalankan* pada tindak lanjut `RANAP` sebelum Form Permintaan Rawat Inap terkirim** (sudah ditandatangani DPJP). Pesan di layar menyebut alasannya. Penahanan ini hanya di dalam IGD; tidak menunggu admisi dibuka petugas. *Contoh:* pukul 10.12 tombol *Jalankan* nonaktif dengan keterangan *"Form Permintaan Rawat Inap belum ditandatangani DPJP"*; sesudah dr. Andi menandatangani 10.15, tombol aktif dan Dimas menyiapkan kepergian 10.20 | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Ditahan sampai terkirim (Recommended)"* |
+| `IGD-DEC-278` | Decision | **Menjawab `IGD-TRQ-23` (koreksi). Form yang sudah ditandatangani tidak pernah diubah.** Sebelum admisi dibuka, perawat dapat membatalkannya dengan alasan, lalu mengajukan form baru yang ditandatangani ulang DPJP. Sesudah admisi dibuka, form tidak dapat dibatalkan dari IGD. *Contoh:* form Tn. Budi terkirim 10.15 dengan kelas 3, padahal penjaminnya kelas 2. Pukul 10.25 Dimas membatalkannya dengan alasan *"Salah kelas perawatan"* dan mengajukan form baru kelas 2; dr. Andi menandatangani 10.28 | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Batal lalu ajukan ulang (Recommended)"* |
+| `IGD-DEC-279` | Decision | **Menjawab `IGD-TRQ-23` (penolakan). Petugas admisi yang tidak dapat menerima permintaan membatalkannya dengan alasan**; tidak ada status *Ditolak* terpisah. Perawat IGD melihat *"Dibatalkan admisi — alasan"* dan dapat mengajukan form baru. Sejak dibatalkan, *Jalankan* tindak lanjut `RANAP` kembali tertahan sampai form baru terkirim (`IGD-DEC-277`). *Contoh:* Sari membatalkan permintaan Tn. Budi pukul 10.50 dengan alasan *"Kelas 2 Bangsal Melati penuh"*; Dimas mengajukan form baru untuk Bangsal Mawar kelas 2 | Product/Domain Owner IGD; titik sentuh Rawat Inap (aksi batal oleh petugas admisi) | `approved` (sisi IGD) | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Admisi batalkan beralasan (Recommended)"* |
+| `IGD-DEC-280` | Decision | **Menjawab `IGD-TRQ-23` (tindak lanjut batal). Bila dokter membatalkan tindak lanjut `RANAP`, permintaan admisi yang masih `Pending` ikut dibatalkan otomatis dalam transaksi yang sama, dengan alasan pembatalan tindak lanjut.** Form yang masih draf atau menunggu TTD juga ikut batal. Pola yang sama dengan kamar pulih yang mengubah keputusan. *Contoh:* pukul 10.45 dr. Andi membatalkan `RANAP` Tn. Budi dengan alasan *"Keluhan membaik, pulang"*; permintaan admisinya hilang dari daftar Sari dengan alasan yang sama | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Ikut batal otomatis (Recommended)"* |
+| `IGD-DEC-281` | Decision | **Menjawab `IGD-TRQ-23` (cetak). Form dapat dicetak sesudah terkirim**, dibentuk dari salinan beku saat ditandatangani, dengan baris *"Ditandatangani secara elektronik oleh dr. … , <tanggal> <jam> WIB"*. Isi cetakan tidak berubah walau data pasien berubah sesudahnya | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Bisa dicetak (Recommended)"* |
+| `IGD-DEC-282` | Decision | **Menjawab `IGD-TRQ-22` (diagnosis). "Diagnosa Terakhir" = semua diagnosis ICD-10 aktif pada kunjungan IGD, diagnosis utama paling atas**, dibekukan saat TTD. Jenis yang dihitung sama dengan penjaga diagnosis `IGD-DEC-226` (utama, sekunder, kerja, akhir). *Contoh:* form Tn. Budi memuat *I21.9 Infark miokard akut (utama)* lalu *E11.9 Diabetes melitus tipe 2 (sekunder)* | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Semua aktif, utama di atas (Recommended)"* |
+| `IGD-DEC-283` | Decision | **Menjawab `IGD-TRQ-22` (identitas, alergi, penjamin). Ketiganya dibaca server dari pemilik datanya — pasien, alergi ClinicalManagement, penjamin kunjungan IGD — tampil baca-saja, dan dibekukan saat TTD.** Perubahan dilakukan lewat layar pemiliknya, bukan di form. *"Belum ada data alergi"* dibedakan dari *"Tidak ada alergi"*. *Contoh:* alergi amoksisilin dicatat di layar alergi pukul 10.20, sesudah form ditandatangani 10.15 — cetakan form tetap tanpa amoksisilin, dan bangsal membacanya dari data alergi terkini | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Baca-saja, beku saat TTD (Recommended)"* |
+| `IGD-DEC-284` | Decision | **Menjawab `IGD-TRQ-19`. Kebutuhan Khusus boleh lebih dari satu (centang), bukan radio; "Perawatan Intensif" berarti permintaan tingkat perawatan ICU.** Menyimpang dari spesifikasi analis (radio) — disampaikan pemilik kepada analis. Kaitan "Perawatan Intensif" dengan pilihan Unit Layanan menunggu `IGD-OQ-127` dan `IGD-UNK-25`. *Contoh:* pasien TB paru tercatat *Ruang Isolasi* dan *Dukungan Oksigen* sekaligus | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Boleh >1, Intensif = ICU (Recommended)"* |
+| `IGD-DEC-285` | Decision | **Dokter yang tidak setuju isi form menekan *Kembalikan* dengan catatan pada daftar *Perlu TTD*; form kembali menjadi draf di layar perawat.** Perawat memperbaiki lalu meminta TTD lagi. Dokter tidak mengisi atau mengubah isian form (`IGD-FACT-116`). *Contoh:* dr. Andi mengembalikan form Tn. Budi dengan catatan *"Minta ICU, bukan bangsal"*; Dimas memperbaikinya dan meminta TTD ulang | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Kembalikan ke perawat (Recommended)"* |
+| `IGD-DEC-286` | Decision | **Menjawab `IGD-TRQ-17` dan menyelesaikan `IGD-CONF-20`. DPJP rawat inap di form adalah usulan**; petugas admisi tetap menetapkan DPJP final saat membuka admisi, terisi dari usulan. Daftar pilihan = dokter yang punya jadwal di unit terpilih; bila unit itu tidak punya jadwal, tampil semua dokter aktif dengan keterangan. Aturan `IGD-DEC-261` (spesialis = konsulen) hanya untuk DPJP IGD dan tidak berlaku di sini. *Contoh:* Unit Bangsal Melati punya jadwal dr. Sinta Sp.PD dan dr. Joko Sp.JP → keduanya ditawarkan; Bangsal Kenanga tanpa jadwal → semua dokter aktif tampil dengan keterangan *"Unit ini belum punya jadwal dokter"* | Product/Domain Owner IGD; titik sentuh Rawat Inap (DPJP final) | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Usulan, saring jadwal unit (Recommended)"* |
+| `IGD-DEC-287` | Decision | **Menjawab `IGD-TRQ-18`. Form mencatat kelas perawatan yang diminta dan menampilkan penjamin beserta teks hak kelasnya sebagai informasi; tidak ada perbandingan otomatis.** Naik kelas dan selisih biaya diurus di Workspace PPRI (dokumen Selisih Biaya). Pemetaan hak kelas terstruktur berada di luar scope | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Catat + tampilkan info (Recommended)"* |
+| `IGD-DEC-288` | Decision | **Menjawab `IGD-TRQ-21` (CITO). Permintaan bertanda CITO tampil paling atas dan bertanda di daftar petugas admisi**: CITO lebih dulu, lalu yang paling lama menunggu. Tanpa notifikasi baru | Product/Domain Owner IGD; titik sentuh Rawat Inap (urutan daftar) | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Teratas + bertanda (Recommended)"* |
+| `IGD-DEC-289` | Decision | **Menjawab `IGD-TRQ-21` (lama rawat). Estimasi Lama Rawat hanya informasi** bagi petugas admisi dan bangsal untuk perencanaan bed; tidak dipakai menghitung apa pun. Bawaan 3 hari, boleh diubah, rentang 1–90 hari | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Informasi saja (Recommended)"* — rentang 1–90 bagian dari opsi itu |
+| `IGD-DEC-290` | Decision | **Indikasi Klinis dan Rencana Perawatan & Instruksi terisi dari tindak lanjut `RANAP` dokter** (alasan → Indikasi Klinis; instruksi tindak lanjut → Rencana Perawatan & Instruksi), **dan perawat boleh melengkapinya sebelum meminta TTD.** Dokter membaca hasil akhirnya pada daftar *Perlu TTD*, sehingga tambahan perawat ikut disahkan saat ditandatangani. Isian di tindak lanjut dokter tidak ikut berubah. *Contoh:* alasan *"Nyeri dada tipikal, troponin meningkat"* terisi sebagai Indikasi Klinis; Dimas menambah *"Pasang monitor jantung kontinu"* pada Rencana Perawatan; dr. Andi menandatangani isi akhir itu | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Terisi, perawat lengkapi (Recommended)"* |
+| `IGD-DEC-291` | Decision | **Hak akses: aksi baru "ajukan permintaan rawat inap" diberikan kepada peran Perawat IGD oleh pengurus Akses Role (bukan agent). Tanda tangan hanya diterima dari akun yang terhubung ke DPJP IGD aktif pasien, diperiksa server. Tanpa penjaga kewenangan unit tambahan** — sama dengan aksi perawat IGD lain hari ini. *Contoh:* perawat Dimas dapat mengajukan; perawat bangsal tanpa izin itu ditolak `403`; dr. Rina yang bukan DPJP aktif Tn. Budi menekan *Tandatangani* lewat API dan ditolak | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Peran Perawat IGD (Recommended)"* |
+
+Perubahan status butir lama — baris aslinya tidak diubah:
+
+| ID | Status sesudah keputusan di atas |
+| --- | --- |
+| `IGD-CONF-20` | Selesai lewat `IGD-DEC-286` |
+| `IGD-TRQ-17`, `18`, `19`, `21`, `22` | Dijawab `IGD-DEC-286`; `287`; `284`; `288`, `289`; `282`, `283` |
+| `IGD-DEC-067` | Tetap `approved` sebagai arah jangka panjang; bagian "satu tindakan utuh" dinyatakan batas sadar dan ditunda ke `INP-S09` oleh `IGD-DEC-276` |
+| `IGD-DEC-075` | Tetap `draft`; ditunda oleh `IGD-DEC-276` — rangkaian kedatangan dibaca lewat permintaan admisi |
+| `IGD-CONF-17`, `IGD-CONF-18` | Selesai lewat `IGD-DEC-276`, `275` |
+| `IGD-TRQ-15`, `IGD-TRQ-16`, `IGD-TRQ-24` | Dijawab `IGD-DEC-271`, `277`; `275`, `276`; `274` |
+| `IGD-DEC-269` | Arah "digital, bukan kertas" dikukuhkan dan bentuknya ditetapkan `IGD-DEC-272` — `superseded` oleh `IGD-DEC-272` |
+| `IGD-DEC-223` | Tetap berlaku utuh; `IGD-DEC-271` tidak mengubahnya |
+| `IGD-CONF-16` | Selesai lewat `IGD-DEC-271`, `273` |
+| `IGD-TRQ-14`, `IGD-TRQ-20` | Dijawab `IGD-DEC-273`, `272` |
+
+| ID | Jenis | Isi | Bukti |
+| --- | --- | --- | --- |
+| `IGD-FACT-116` | Fact | Tim analis pemilik menyatakan form diisi perawat dan **tidak** berada di Ruang Kerja Pemeriksaan Dokter | Pesan pemilik 12 Oktober 2026 di tengah wawancara |
+
+#### Pertanyaan terbuka
+
+| ID | Isi | Siapa menjawab | Memblokir |
+| --- | --- | --- | --- |
+| `IGD-OQ-127` | Arti "Unit Layanan (selection poli)" pada spesifikasi: unit rawat inap (bangsal), poli, atau keduanya (`IGD-CONF-19`) | Analis, lewat pemilik | `DESIGN` isian Unit Layanan |
+
+#### Keadaan form yang lahir dari keputusan di atas
+
+Ringkasan untuk desain; sumbernya keputusan bernomor, bukan pilihan baru.
+
+| Keadaan | Artinya | Masuk dari | Keluar ke |
+| --- | --- | --- | --- |
+| *Draf* | Perawat mengisi; belum terlihat siapa pun selain IGD | Tindak lanjut `RANAP` terkonfirmasi (`IGD-DEC-271`); dikembalikan dokter (`IGD-DEC-285`) | *Menunggu TTD*; *Dibatalkan* |
+| *Menunggu TTD* | Ada di daftar *Perlu TTD* DPJP IGD aktif | Perawat meminta TTD (`IGD-DEC-273`) | *Terkirim* (TTD); *Draf* (dikembalikan); *Dibatalkan* |
+| *Terkirim* | Permintaan admisi `Pending` di daftar petugas admisi; *Jalankan* `RANAP` aktif | TTD DPJP IGD aktif (`IGD-DEC-272`…`275`, `277`) | *Selesai*; *Dibatalkan* |
+| *Selesai* | Admisi dibuka dari permintaan; final | Petugas admisi membuka admisi (`IGD-DEC-276`) | — |
+| *Dibatalkan* | Final, beralasan | Perawat sebelum admisi (`IGD-DEC-278`), petugas admisi (`IGD-DEC-279`), atau otomatis karena `RANAP` dibatalkan (`IGD-DEC-280`) | — (form baru boleh diajukan) |
+
+**Catatan untuk desain, bukan keputusan bisnis:** keadaan *Draf* dan *Menunggu TTD* tidak boleh terlihat di daftar petugas
+admisi. Apakah keduanya disimpan pada tabel permintaan admisi dengan status tambahan atau pada tabel milik IGD lalu
+dipindah saat ditandatangani ditetapkan `design-business-module`, dalam batas `IGD-DEC-275` (yang terkirim adalah
+`InpAdmissionReferral`).
+
+#### Titipan untuk pemilik modul lain
+
+Persetujuan lisan tim internal cukup dari laporan pemilik saat approval desain.
+
+| Untuk | Butir |
+| --- | --- |
+| Pemilik Rawat Inap (Muhammad Hamzah) | (1) Perluasan `InpAdmissionReferral` untuk sumber IGD — kolom kasus OK dan dokter bedah boleh kosong, penanda sumber, isian form IGD; satu migration (`IGD-DEC-275`). (2) Petugas admisi dapat membatalkan permintaan beralasan (`IGD-DEC-279`). (3) Daftar dan layar admisi menampilkan permintaan bersumber IGD, CITO paling atas (`IGD-DEC-288`), DPJP usulan terisi saat admisi (`IGD-DEC-286`). (4) Pesan `409` tidak lagi menyebut "kamar pulih" saja. (5) Arti "Perawatan Intensif" = tingkat perawatan ICU dan tipe unit ICU (`IGD-DEC-284`, `IGD-UNK-25`) |
+| Owner Billing | (1) Kunjungan IGD ditautkan ke invoice rawat inap lewat permintaan admisi yang selesai — kemampuan yang sudah ada, kini untuk sumber IGD; label alasan tautan dibedakan dari `SURGERY_ORIGIN` (`IGD-FACT-111`). (2) Perilaku bila invoice IGD sudah dibayar atau ditutup saat ditautkan (`IGD-OQ-129`, dari `IGD-UNK-26`). Ditambahkan ke daftar *Menunggu owner Billing* slice Billing IGD |
+| Analis pemilik | (1) Arti "Unit Layanan (selection poli)" (`IGD-OQ-127`). (2) Dua penyimpangan dari spesifikasi yang disahkan pemilik: Kebutuhan Khusus menjadi centang (`IGD-DEC-284`), dan DPJP rawat inap menjadi usulan dengan cadangan semua dokter (`IGD-DEC-286`) |
+
+#### Pertanyaan terbuka dan blocker sesudah pass ini
+
+| ID | Isi | Siapa menjawab | Memblokir |
+| --- | --- | --- | --- |
+| `IGD-OQ-127` | Arti "Unit Layanan (selection poli)" | Analis, lewat pemilik | `DESIGN` isian Unit Layanan saja |
+| `IGD-UNK-25` | Tipe unit ICU di tiap lingkungan; padanan "Perawatan Intensif" dengan Unit Layanan | Pemilik + pemilik Rawat Inap | `DESIGN` kaitan Perawatan Intensif ↔ Unit Layanan |
+| `IGD-UNK-24` | Kode jenis tindak lanjut rawat inap di master tiap lingkungan | Pemilik, lewat layar master tanpa mengubah | `IMPLEMENTATION` (cara mengenali `RANAP`) |
+| `IGD-OQ-129` | Penautan kunjungan IGD ke invoice rawat inap bila invoice IGD sudah dibayar atau ditutup (mengangkat `IGD-UNK-26`; diajukan gate kelengkapan 12 Oktober 2026) | Owner Billing | Desain bagian Billing (sub-slice S3); desain permintaan admisi wajib menyatakan perilaku penautan untuk sumber IGD |
+| `IGD-UNK-28` | Penjamin terbawa ke kunjungan rawat inap lewat layar admisi | Uji layar admisi; pemilik Rawat Inap | Tidak menahan form |
+| `IGD-OQ-128` | Persetujuan pemilik Rawat Inap dan owner Billing atas titipan di atas | Pemilik, dari laporan tim internal | Approval desain |
+
+Selain `IGD-OQ-127` dan `IGD-UNK-25`, desain tidak tertahan keputusan bisnis.
+
+#### Kriteria terima yang sudah dapat diuji
+
+1. Tombol Form Permintaan Rawat Inap baru tersedia sesudah tindak lanjut `RANAP` terkonfirmasi; unit tujuan, Indikasi
+   Klinis, dan Rencana Perawatan terisi dari tindak lanjut dan masih dapat dilengkapi perawat.
+2. Identitas, alergi, penjamin, dan diagnosis tampil baca-saja; diagnosis utama paling atas; *"Belum ada data alergi"*
+   berbeda dari *"Tidak ada alergi"*.
+3. *Minta TTD* memasukkan form ke daftar *Perlu TTD* DPJP IGD aktif saja; akun dokter lain yang mencoba menandatangani
+   ditolak server.
+4. Pengalihan DPJP IGD sebelum TTD memindahkan permintaan ke DPJP baru.
+5. *Kembalikan* oleh dokter membuat form kembali *Draf* beserta catatannya.
+6. Sesudah TTD, form tampil di daftar petugas admisi sebagai permintaan bersumber IGD; permintaan CITO paling atas.
+7. *Jalankan* `RANAP` nonaktif sebelum form terkirim dan aktif sesudahnya; kembali nonaktif bila permintaan dibatalkan
+   petugas admisi.
+8. Petugas admisi yang membuka admisi tanpa permintaan untuk pasien itu ditolak `409`; admisi dari permintaan
+   menyelesaikannya dan mengisi DPJP usulan.
+9. Perawat dapat membatalkan form beralasan sebelum admisi dibuka, tidak sesudahnya; petugas admisi dapat membatalkan
+   beralasan dan alasannya terbaca di IGD.
+10. Pembatalan tindak lanjut `RANAP` ikut membatalkan permintaan yang masih `Pending`.
+11. Cetakan dibentuk dari salinan beku dan memuat baris tanda tangan elektronik; tidak berubah sesudah data pasien berubah.
+12. Kebutuhan Khusus dapat dicentang lebih dari satu; "Perawatan Intensif" tersimpan sebagai tingkat perawatan ICU.
+13. Estimasi Lama Rawat bawaan 3, menerima 1–90 dan menolak di luar rentang.
+14. Sesudah admisi dibuka dari permintaan IGD, kunjungan IGD tertaut ke invoice rawat inap (titik sentuh Billing).
+
+#### Di luar scope — dicatat untuk modul lain
+
+| Butir | Pemilik |
+| --- | --- |
+| Jalur otomatis IGD → admisi dalam satu tindakan (`INP-S09`), `OriginEncounterId` | Rawat Inap, Registrasi (ditunda `IGD-DEC-276`) |
+| Pemetaan hak kelas penjamin terstruktur | PatientManagement / Billing |
+| Notifikasi seketika ke petugas admisi | Rawat Inap |
+| Estimasi Biaya rawat inap | Rawat Inap PPRI (`DEC-INP-020`) |
+| Pindah IGD ke kamar operasi | IGD jalur `INTENSIF` / OK — slice lain |
+
+#### Langkah berikutnya
+
+Urutan pemilik: `requirement-completeness-gate` lalu `hospital-domain-architect` (slice lintas IGD ↔ Rawat Inap ↔ Billing),
+`design-business-module`, `plan-module-delivery`. Sebelum build, prioritas terhadap Billing IGD (`IGD-DEC-252`, demo Kasir
+21 Oktober 2026) ditanyakan kepada pemilik — tidak diputuskan agent.
+
+Nomor yang dipakai slice ini: `IGD-DEC-267`…`291`, `IGD-FACT-110`…`116`, `IGD-OQ-127`…`129`, `IGD-CAP-116`…`142`,
+`IGD-CONF-16`…`20`, `IGD-UNK-24`…`28`, `IGD-TRQ-14`…`24`.
+
+Gate kelengkapan 12 Oktober 2026: **`PARTIALLY_READY`** — [evidence/2026-10-12-gate-form-permintaan-rawat-inap.md](evidence/2026-10-12-gate-form-permintaan-rawat-inap.md).
+Arsitektur domain 12 Oktober 2026: **`DOMAIN_ARCHITECTURE_PARTIAL`** — [evidence/2026-10-12-arsitektur-domain-form-permintaan-rawat-inap.md](evidence/2026-10-12-arsitektur-domain-form-permintaan-rawat-inap.md); usulan `ARC-RI-01` (dua aggregate) dan `ARC-RI-02` (butir tersalin) menunggu persetujuan pemilik.
+
+#### Keputusan sesudah gate dan arsitektur domain — 12 Oktober 2026
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-292` | Decision | **Arsitektur domain slice ini disahkan: form dimiliki IGD sampai ditandatangani; sesudah TTD lahir permintaan admisi milik Rawat Inap** (`ARC-RI-01`). Permintaan admisi bersumber IGD membawa unit, kelas, DPJP rawat inap usulan, tingkat perawatan (ICU/biasa), CITO, dan rujukan ke form IGD; rincian lain (diagnosis, alergi, indikasi, rencana, kebutuhan khusus, lama rawat) dibaca dari form IGD (`ARC-RI-02`). Usulan gate ikut disahkan: tanpa aturan silang tingkat ICU ↔ unit sampai `IGD-UNK-25` dijawab (G-02); *Minta TTD* ditolak dengan pesan bila tidak ada DPJP IGD aktif atau DPJP tanpa akun (G-04); paling banyak satu form aktif per kunjungan (G-05); setiap perpindahan keadaan tercatat pelaku, waktu server, alasan/catatan (G-06); tanpa notifikasi baru (G-07); jenis tindak lanjut rawat inap dikenali lewat konfigurasi master (G-10). Bagian Rawat Inap tetap ditandai butuh persetujuan pemiliknya (`IGD-OQ-128`) | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Setujui, lanjut desain (Recommended)"* |
+| `IGD-DEC-293` | Decision | **Sampai owner Billing menjawab `IGD-OQ-129`, admisi dari permintaan bersumber IGD tidak menautkan kunjungan IGD ke invoice rawat inap.** Sama dengan keadaan hari ini (kunjungan IGD belum pernah tertaut), sehingga tidak ada akibat tagihan baru sebelum Billing menyetujui. Penautan untuk sumber kamar pulih tidak berubah. *Contoh:* Tn. Budi diadmisikan dari permintaan IGD; tagihan IGD-nya tetap pada invoice kunjungan IGD sampai Billing memutuskan | Product/Domain Owner IGD; owner Billing sebagai pemutus akhir | `approved` — sementara sampai `IGD-OQ-129` dijawab | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Tahan dulu (Recommended)"* |
+
+Status `ARC-RI-01` dan `ARC-RI-02` pada dokumen arsitektur: disahkan lewat `IGD-DEC-292`.
+
+#### Fakta saat desain — 12 Oktober 2026
+
+| ID | Isi | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-117` | **Clinical Management tidak menyimpan penanda "tidak ada alergi".** `PatientAllergyCategory` hanya berisi jenis alergen (`Unknown`, `Drug`, `Food`, `Latex`, `Environment`, `ContrastMedia`, `Vaccine`, `Other`); tidak ada kolom atau nilai untuk "tidak ada alergi yang diketahui". Akibatnya pembeda `IGD-DEC-283` hanya dapat ditampilkan sebagai *"Belum ada data alergi"* bila daftar kosong — form tidak pernah menulis *"Tidak ada alergi"*. Penanda itu titipan untuk pemilik Clinical, di luar slice | `ClinicalManagement/Enums` `PatientAllergyCategory`; pencarian `NoKnownAllerg`/`NKDA` kosong @`6a1c6cf9` |
+
+Desain `design-business-module` 12 Oktober 2026: revisi blueprint **`11`** (`draft`), manifest bagian **0p**.
+
+#### Approval desain — 12 Oktober 2026
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-294` | Decision | **Desain Form Permintaan Rawat Inap dari IGD (manifest bagian 0p, revisi blueprint 11) disahkan beserta sebelas pilihan desain**: `02-backend-architecture.md` §17.11 nomor 1–7 (isian wajib sebelum *Minta TTD*; DPJP usulan diperiksa server; pembatalan tindak lanjut rawat inap ditolak sesudah admisi dibuka; kunjungan tanpa pasien/encounter ditolak; jenis tindak lanjut dikenali kolom master `RequiresAdmissionRequest`; alergi kosong ditulis *"Belum ada data alergi"*; aturan tipe unit ditahan sampai `IGD-OQ-127`) dan `03-frontend-architecture.md` §17.7 U1–U4 (form sebagai panel penuh di tab *Tindak Lanjut*; *Perlu TTD* sebagai butir ringkasan Ruang Kerja Dokter + tanda di kartu pasien; cetak mengikuti pola surat dokter rawat jalan; rupa tampilan `DEV_DISCRETION`). Bagian yang menyentuh Rawat Inap dan Billing **tetap** butuh persetujuan pemiliknya (`IGD-OQ-128`); `FR-IGD-117` dan `FR-IGD-118` tetap `OPEN DECISION` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif pemilik: *"Setujui, lanjut rencana (Recommended)"* |
+
+### Pemeriksaan bukti putaran 3 Tindakan IGD — 12 Oktober 2026
+
+Lahir dari pemeriksaan bukti mentah `QuilvianSystemFrontendDev/test-with-agy/igd/uji-putaran-3-tindakan-20261009/` terhadap
+`Logs/quilvian-backend-20261009.json`, **bukan** terhadap ringkasan penguji
+([`testing/2026-10-09-laporan-uji-antigravity-putaran-3-tindakan.md`](testing/2026-10-09-laporan-uji-antigravity-putaran-3-tindakan.md),
+tidak disunting). Pemicunya: sesi lain menaikkan `BE-IGD-069`, `FE-IGD-050`, `FE-IGD-051` menjadi ✅ pada roadmap, laporan task,
+dan `MODULE-STATUS.md` (12 Oktober 2026 09.29–09.34 WIB) atas laporan itu tanpa pemeriksaan bukti mentah. Rincian per butir ada
+di bagian *Pemeriksaan bukti putaran 3* pada ketiga laporan task.
+
+| ID | Jenis | Isi | Bukti |
+| --- | --- | --- | --- |
+| `IGD-FACT-118` | Fact | Putaran 3 berjalan **empat** kali (14.52, 14.58, 15.00, 15.02 WIB, 9 Oktober 2026); hanya yang terakhir dilaporkan. Dua putaran tak dilaporkan membuat dua tindakan keperawatan tambahan di pasien uji. Skenario API `069-A1`…`A3` putaran terakhir cocok dengan log. Kelima PNG layar berlencana "N" (`next dev`); tiga PNG `050` identik dan dua PNG `051` identik; klaim `050-U3` tidak terlihat pada gambarnya | Log backend; md5 PNG; JSON dan skrip di folder bukti |
+| `IGD-FACT-119` | Fact | Akun dokter IGD `ranger.biru` ditolak `403` pada `GET …/patient-allergies/active-alerts` sehingga layar dokter menampilkan *"Alergi gagal dimuat"*; daftar tindakan perawat menampilkan teks mentah *"NotApplicable"* di bawah biaya. Keduanya catatan, bukan kartu (hak akses milik pengurus Akses Role) | Log backend 14.52.50, 15.00.40, 15.02.20 WIB; `051-U3.png` |
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-295` | Decision | **`BE-IGD-069` tetap ✅, disahkan dengan penyimpangan tercatat** (preseden `IGD-DEC-210`, `218`, `255`, `262`): tiga putaran tak dilaporkan, dua tindakan tambahan di pasien uji, ruas status kosong di JSON. Yang terbukti pada log adalah skenario `069-A1`…`A3`; klaim "8 dari 8 acceptance" tidak diperiksa per butir | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif *"Sahkan dgn penyimpangan (Recommended)"* |
+| `IGD-DEC-296` | Decision | **`FE-IGD-050` dan `FE-IGD-051` dibuka kembali 🟡** — bukti layar putaran 3 tidak sah sebagai uji hasil build (`IGD-FACT-118`). Uji ulang pada hasil `npm run build` (server standalone, tanpa lencana "N"), satu tangkapan layar per skenario sesudah aksinya, aturan PASS ketat; panduan disiapkan agent | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif *"Uji ulang pada build (Recommended)"* |
+
+### Approval rencana delivery dan prioritas — 12 Oktober 2026
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-297` | Decision | **Rencana delivery `MVP-11` (manifest bagian 0p.1) disahkan**: backend R3.18 `BE-IGD-072`…`075`, frontend R3.16 `FE-IGD-059`…`062`, grafik urutan, putaran uji A/B, dan syarat rilis R3.18.5. **Delta kartu ikut disahkan**: ruas aditif `requiresAdmissionRequest` pada DTO master jenis tindak lanjut (create, update, response) dan pada `EmergencyDispositionResponse`, sebagai Cakupan (2) `BE-IGD-072` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pilihan interaktif *"Setujui rencana + delta (Recommended)"* |
+| `IGD-DEC-298` | Decision | **Prioritas build: transfer pasien IGD → rawat inap (`EPIC IGD-15`) didahulukan atas Billing IGD.** Pemilik menyebut kemungkinan demo transfer pasien **16 Oktober 2026**, lebih dulu dari demo Kasir IGD 21 Oktober 2026. Jadwal tahap Billing IGD pada `IGD-DEC-252` bergeser dan ditetapkan ulang pemilik; isi keputusan Billing IGD lain tidak berubah. *Jawaban pemilik:* "transfer pasien dulu kemungkinan akan di demo lebih dulu transfer pasien tanggal 16" | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Jawaban bebas pemilik pada pertanyaan prioritas |
+
+Perubahan status butir lama — baris aslinya tidak diubah:
+
+| ID | Status sesudah keputusan di atas |
+| --- | --- |
+| `IGD-DEC-252` | Urutan tahapnya digeser `IGD-DEC-298`: transfer pasien dikerjakan lebih dulu; jadwal tahap Billing IGD ditetapkan ulang pemilik |
+
+### Persetujuan titik sentuh Rawat Inap dan Billing — 12 Oktober 2026
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-299` | Decision | **Menjawab `IGD-OQ-128`. Pemilik Rawat Inap (Muhammad Hamzah) dan owner Billing menyetujui secara lisan titik sentuh slice Form Permintaan Rawat Inap**: perluasan `InpAdmissionReferral` untuk sumber IGD beserta migration-nya, aksi batal oleh petugas admisi, tampilan permintaan IGD di layar admisi (CITO paling atas, DPJP usulan terisi), pesan `409` yang dinetralkan (`BE-IGD-073`, `FE-IGD-062`); serta penahanan penautan invoice untuk sumber IGD (`BE-IGD-075`, `IGD-DEC-293`). Persetujuan lisan tim internal dicatat dari laporan pemilik. Gerbang dicabut dari roadmap; `BE-IGD-073`, `074`, `075`, `FE-IGD-060`, `061`, `062` ⛔ → tanpa tanda (dependency biasa) | Product/Domain Owner IGD; pemilik Rawat Inap; owner Billing | `approved` | **Rizki Gunawan / 2026-10-12** (laporan atas persetujuan lisan Muhammad Hamzah dan owner Billing) | Pesan pemilik: *"ini sudah di setujui by lisan oleh owner billing dan hamzah owner ranap, jadi lanjutkan saja dan ubah status blokirnya"* |
+
+Perubahan status butir lama — baris aslinya tidak diubah:
+
+| ID | Status sesudah keputusan di atas |
+| --- | --- |
+| `IGD-OQ-128` | **Dijawab** `IGD-DEC-299` |
+| `IGD-DEC-275`, `279`, `293` | Persetujuan pemilik modul tetangga yang dibutuhkannya tercatat (`IGD-DEC-299`) |
+| `IGD-OQ-129` | Tetap `open` — persetujuan di atas tidak menjawab perilaku penautan bila invoice IGD sudah dibayar |
+
+### Metode aksi Form Permintaan Rawat Inap — 12 Oktober 2026 (saat build `BE-IGD-072`)
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-300` | Decision | **Aksi yang memindahkan keadaan Form Permintaan Rawat Inap memakai `POST /{id}/<aksi>`, bukan `PATCH`** — mengikuti standar endpoint transaksi (perpindahan status `POST /{id}/<aksi>`; `PATCH /{id}/<ruas>` hanya untuk suntingan atribut). Berlaku untuk `request-signature`, `sign`, `return`, `cancel` pada `emergency-admission-requests`, dan `admission-referrals/{id}/cancel` milik Rawat Inap. API dikoreksi `0.17.0` → **`0.17.1`**: nol dampak kompatibilitas karena kelima endpoint masih *Rencana (belum tersedia)* dan belum punya pemakai. `PATCH …/emergency-dispositions/{id}/disposition-status` (sudah ada) tidak berubah. Body, hak akses, kode status, dan pesan tidak berubah | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pertanyaan agent saat build `BE-IGD-072` (kontrak §12 menulis `PATCH`, standar menuntut `POST`); jawaban pemilik: *"Ikuti standar: POST (Recommended)"* |
+
+Perubahan status butir lama — baris aslinya tidak diubah:
+
+| ID | Status sesudah keputusan di atas |
+| --- | --- |
+| `IGD-DEC-294` | Isi kontrak yang disahkannya tetap berlaku, kecuali metode lima aksi di atas (API `0.17.1`, manifest bagian 0p.3) |
+
+### Spesifikasi analis dikirim ulang — 12 Oktober 2026 (sesudah putaran A)
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-301` | Decision | **Arti "Unit Layanan (selection poli)" tetap ditanyakan ke analis (`IGD-OQ-127` tetap terbuka); selama belum dijawab, isian tetap unit rawat inap (bangsal) seperti yang sudah dibangun `FE-IGD-059`.** `BE-IGD-073` tetap dikerjakan karena perpindahan data unit dari form ke permintaan admisi sama untuk kedua arti; pengisian unit di layar admisi Rawat Inap dari form (`FE-IGD-062`) **ditahan** sampai jawaban analis masuk. Pemetaan spesifikasi analis terhadap yang sudah dibangun: identitas, diagnosa terakhir, indikasi, CITO, kelas, DPJP usulan, lama rawat, rencana perawatan, dan nama dokter pengirim sudah ada; TTD dokter di `BE-IGD-074` + `FE-IGD-060`; kebutuhan khusus sengaja kotak centang, bukan radio (`IGD-DEC-284`) — penyimpangan itu disampaikan pemilik kepada analis. Bukti yang condong ke arti "poli": daftar DPJP diambil dari jadwal dokter unit, dan jadwal dokter umumnya terpasang di poli; pada putaran A unit *Rawat Inap* baru punya jadwal setelah dibuatkan untuk uji | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-12** | Pemilik meneruskan spesifikasi analis; pilihan interaktif *"Tanya analis dulu (Recommended)"* |
+
+Perubahan status butir lama — baris aslinya tidak diubah:
+
+| ID | Status sesudah keputusan di atas |
+| --- | --- |
+| `IGD-OQ-127` | Tetap `open`; arah sementara `IGD-DEC-301` |
+| `IGD-DEC-270` | Tetap berlaku; dugaan pemilik (bangsal) dipakai sementara sampai analis menjawab |
+| `IGD-DEC-284` | Tetap berlaku; penyampaian ke analis dicatat sebagai tindakan pemilik |

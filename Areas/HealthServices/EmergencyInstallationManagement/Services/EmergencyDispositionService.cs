@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
@@ -13,10 +13,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
     /// <summary>
     /// Validasi keputusan akhir pelayanan IGD dan transisi Draft-Confirmed-Executed.
     /// </summary>
-    public class EmergencyDispositionService
+    public partial class EmergencyDispositionService
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly EmergencyDepartureService _departureService;
+        private readonly PatientAllergyQueryService _patientAllergyQueryService;
+        private readonly EncounterInsuranceService _encounterInsuranceService;
 
         // BE-IGD-041: aturan pesanan yang menahan penutupan dimiliki EmergencyDepartureService.
         // Keduanya sudah terdaftar Scoped di DI dan EmergencyDepartureService tidak bergantung
@@ -24,10 +26,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         // menuntut baris baru di Program.cs.
         public EmergencyDispositionService(
             ApplicationDbContext dbContext,
-            EmergencyDepartureService departureService)
+            EmergencyDepartureService departureService,
+            PatientAllergyQueryService patientAllergyQueryService,
+            EncounterInsuranceService encounterInsuranceService)
         {
             _dbContext = dbContext;
             _departureService = departureService;
+            _patientAllergyQueryService = patientAllergyQueryService;
+            _encounterInsuranceService = encounterInsuranceService;
         }
 
         public async Task<string?> ValidateRequestAsync(
@@ -182,31 +188,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             EmgVisit visit,
             CancellationToken cancellationToken = default)
         {
-            var hasValidDiagnosis = await _dbContext.Set<TrxPatientDiagnosis>()
-                .AsNoTracking()
-                .Include(x => x.Consultation)
-                .Include(x => x.Diagnosis)
-                .AnyAsync(x =>
-                    x.EncounterId == visit.EncounterId
-                    && !x.IsDelete
-                    && !x.IsCancel
-                    && (x.IsActive || x.DiagnosisStatus == PatientDiagnosisStatus.Resolved)
-                    && (x.DiagnosisStatus == PatientDiagnosisStatus.Active || x.DiagnosisStatus == PatientDiagnosisStatus.Resolved)
-                    && (x.DiagnosisType == PatientDiagnosisType.Primary
-                        || x.DiagnosisType == PatientDiagnosisType.Secondary
-                        || x.DiagnosisType == PatientDiagnosisType.WorkingDiagnosis
-                        || x.DiagnosisType == PatientDiagnosisType.FinalDiagnosis)
-                    && (x.DiagnosisMasterType == "ICD10"
-                        || x.DiagnosisMasterType == "ICD-10"
-                        || (x.IcdVersion != null && x.IcdVersion.Contains("ICD-10"))
-                        || (x.Diagnosis != null && (x.Diagnosis.IcdVersion.Contains("ICD-10") || x.Diagnosis.DiagnosisType == "ICD10")))
-                    && x.DiagnosisMasterType != "ICD9"
-                    && (!x.ConsultationId.HasValue
-                        || (x.Consultation != null
-                            && !x.Consultation.IsDelete
-                            && !x.Consultation.IsCancel
-                            && x.Consultation.ConsultationStatus != DoctorConsultationStatus.Cancelled)),
-                    cancellationToken);
+            var hasValidDiagnosis = await KueriDiagnosisTerhitung(
+                    _dbContext.Set<TrxPatientDiagnosis>().AsNoTracking(),
+                    visit.EncounterId)
+                .AnyAsync(cancellationToken);
 
             if (!hasValidDiagnosis)
             {

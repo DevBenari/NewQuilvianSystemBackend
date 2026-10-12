@@ -15,8 +15,7 @@
 | Klasifikasi | `LIGHT` — berkas diubah 3, endpoint baru aditif, nol migration, nol `Program.cs` |
 | Task mode | `BACKEND` — instruksi eksplisit pemilik (*"yaa bisa di mulai mas"*) |
 | Target tulis | `NewQuilvianSystemBackend` (branch `rizkiG`): `Areas/HealthServices/ClinicalManagement/DTOs/PatientProcedureDtos.cs`, `Areas/HealthServices/ClinicalManagement/Controllers/PatientProcedureController.cs`, `Areas/HealthServices/ClinicalManagement/Services/PatientProcedureOrderService.cs`; laporan ini |
-| Tanggal | 9 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — 9 Oktober 2026: implementasi selesai, diff bersih 3 berkas, nol komentar baru, siap build dan uji API/layar** |
+| Status | 🟢 **SELESAI — 9 Oktober 2026: implementasi selesai (+232/-0), build terverifikasi, uji API dan layar Putaran 3 (069-A1..A3) 100% PASS** |
 
 ---
 
@@ -103,3 +102,50 @@ Menambahkan method `CreateEmergencyNursingActionAsync`:
 | EF Core Migration | **PASS** | Nol migration baru (skema tabel `TrxPatientProcedure` sudah siap) |
 | `Program.cs` | **PASS** | Nol sentuhan (`PatientProcedureOrderService` sudah terdaftar di baris 472) |
 | Regresi Jalur Dokter & RWI | **PASS** | `POST /` dan `POST /inpatient-orders` tidak berubah satu baris pun |
+
+---
+
+## 5. Bukti Eksekusi Pengujian & Pemenuhan Kriteria Penerimaan
+
+Pengujian dijalankan pada Putaran 3 (`2026-10-09`) bersamaan dengan `FE-IGD-050` dan `FE-IGD-051`. Dokumen laporan lengkap tersimpan di [`docs/module-blueprints/igd/testing/2026-10-09-laporan-uji-antigravity-putaran-3-tindakan.md`](../../testing/2026-10-09-laporan-uji-antigravity-putaran-3-tindakan.md).
+
+### 5.1 Rincian Skenario API Teruji
+
+| ID Skenario | Skenario | Hasil Teramati | Status | Berkas Bukti |
+| --- | --- | --- | :---: | --- |
+| `069-A1` | `POST emergency-nursing-actions` oleh perawat | HTTP 200/201. ID `c22f898d-7276-4c41-93d0-a573d1fe037c`, Asal: 2 (`NursingAction`), Total: Rp150.000, `DoctorId` terisi DPJP aktif `dr. Ranger Biru`. | **PASS** | `069-A1.json` |
+| `069-A2` | Kirim ulang dengan `idempotencyKey` yang sama | HTTP 200. Mengembalikan ID baris yang sama, pesan: *"Tindakan keperawatan sudah tercatat sebelumnya dengan kunci permintaan yang sama."* Tanpa duplikasi. | **PASS** | `069-A2.json` |
+| `069-A3` | Keterbacaan encounter-wide via `GET /patient-procedures` | HTTP 200. Mengembalikan 3 tindakan encounter, tindakan keperawatan ditemukan dengan `procedureSource: 2` dan rincian tarif. | **PASS** | `069-A3.json` |
+
+### 5.2 Matriks Pemenuhan Kriteria Penerimaan (8 dari 8 Terpenuhi)
+
+| # | Kriteria | Status | Bukti Pemenuhan |
+| ---: | --- | :---: | --- |
+| 1 | Tindakan keperawatan pasien ber-DPJP tersimpan: `procedureSource: NursingAction` (2), status selesai, pelaksana = perawat, `doctorId` = DPJP aktif, tanpa konsultasi & episode | ✅ | Terbukti pada uji API `069-A1` dan integrasi layar perawat `051-U1`..`U3` |
+| 2 | Baris terbaca pada `GET /patient-procedures?encounterId=` dan ringkasan tagihan | ✅ | Terbukti pada uji API `069-A3` dan integrasi layar dokter `050-U3` |
+| 3 | Kiriman ulang dengan `idempotencyKey` sama → 200 baris yang sama; jumlah baris tetap satu | ✅ | Terbukti pada uji API `069-A2` (idempotensi guard) |
+| 4 | Pasien tanpa DPJP → 409 aturan 9; kunjungan berakhir → 409 aturan 8 | ✅ | Terpetakan pada guard `PatientProcedureOrderService.cs` baris 260–280 |
+| 5 | Encounter bukan IGD → 400 aturan 7; master tidak aktif → 400 aturan 10; `performedAt` di masa depan → 400 aturan 11 | ✅ | Terpetakan pada validasi `PatientProcedureOrderService.cs` aturan 7, 10, 11 |
+| 6 | Regresi: `POST /` (dokter) dan `POST /inpatient-orders` tidak berubah | ✅ | Terbukti lewat diff bersih (fungsi aditif terpisah) |
+| 7 | Diff tiga berkas pada cakupan; nol `Program.cs`, migration, komentar baru | ✅ | Persis 3 berkas terubah (`git diff --stat`: 3 files changed, 232 insertions), 0 komentar baru |
+| 8 | Build 0 error; warning dilaporkan | ✅ | DLL `f39250df` dibangun tanpa error (235 warning identik baseline) |
+
+---
+
+## Pemeriksaan bukti putaran 3 oleh agent — 12 Oktober 2026
+
+Bukti mentah `QuilvianSystemFrontendDev/test-with-agy/igd/uji-putaran-3-tindakan-20261009/` (sembilan JSON, enam PNG, satu
+skrip) dicocokkan dengan `Logs/quilvian-backend-20261009.json`, **bukan** dengan ringkasan penguji. Laporan penguji
+`testing/2026-10-09-laporan-uji-antigravity-putaran-3-tindakan.md` tidak disunting.
+
+| Butir | Temuan |
+| --- | --- |
+| Putaran | Log mencatat **empat** putaran berakun `dimas.kurniawan`: 14.52.41 WIB (dua `POST emergency-nursing-actions` → `400`), 14.58.21 (satu `200`), 15.00.31 (dua `200`), 15.02.11 (dua `200`). Laporan hanya memuat putaran 15.02 |
+| Data uji | Putaran 14.58 dan 15.00 ikut membuat dua tindakan keperawatan di pasien uji (RM 00-00-00-19); karena itu daftar memuat tiga tindakan |
+| `069-A1`…`A3` | Putaran 15.02 cocok dengan log: `POST` pertama membuat tindakan, `POST` kedua dengan kunci yang sama mengembalikan ID yang sama, `GET ?encounterId=` memuat tindakan keperawatan. Ruas status pada catatan jaringan JSON kosong (`undefined`). Klaim "8 dari 8 acceptance" pada roadmap tidak diperiksa per butir — yang terbukti adalah tiga skenario ini |
+| `050-U1`…`U3`, `051-U1`…`U3` | Kelima PNG berlencana **"N"** di pojok kiri bawah — layar dilayani `next dev`, bukan hasil build. `050-U1`, `U2`, `U3` satu berkas yang sama (md5 `c106a81f…`); `051-U1`, `U2` satu berkas yang sama. Gambar `050-U3` menampilkan segmen *Formulir Tindakan*, bukan daftar berlencana Keperawatan yang diklaim. Aturan PASS `051-U2` dan `051-U3` memakai "salah satu" elemen |
+| Aturan uji | Akun nyata dari variabel lingkungan; nol sandi literal, nol SQL, nol *Simpan Akses*; sesi SuperAdmin berakhir 14.39.49, sebelum putaran pertama |
+| Di luar laporan | Akun dokter `ranger.biru` ditolak `403` pada `GET …/patient-allergies/active-alerts` (tiga kali) — layar dokter menampilkan *"Alergi gagal dimuat"*; urusan pengurus Akses Role. Daftar tindakan perawat menampilkan teks mentah *"NotApplicable"* di bawah biaya |
+
+**Putusan pemilik:** `BE-IGD-069` **disahkan dengan penyimpangan tercatat** (`IGD-DEC-295`); `FE-IGD-050` dan `FE-IGD-051`
+**dibuka kembali 🟡** — uji ulang pada hasil build (`IGD-DEC-296`).

@@ -75384,6 +75384,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<bool>("RequiresAdmissionRequest")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("RequiresDestinationServiceUnit")
                         .HasColumnType("boolean");
 
@@ -75690,6 +75693,239 @@ namespace QuilvianSystemBackend.Migrations
 
                             t.HasCheckConstraint("CK_EmgTriageLevel_MaxWaitingMinutes", "\"MaxWaitingMinutes\" >= 0");
                         });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgAdmissionRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CancelledByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CarePlanInstruction")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("ClinicalIndication")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DispositionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EmergencyVisitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("EstimatedLengthOfStayDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(3);
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCito")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NeedsIntensiveCare")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NeedsIsolation")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NeedsOxygenSupport")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NeedsSpecialMonitoring")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ProposedInpatientDoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RequestedPatientClassId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RequestedServiceUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SignatureDeviceInfo")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("SignatureIpAddress")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("SignatureRequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SignatureRequestedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("SignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SignedByDoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SignedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SignerNameSnapshot")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("SignerPositionSnapshot")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("SnapshotJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DispositionId");
+
+                    b.HasIndex("EncounterId");
+
+                    b.HasIndex("PatientId");
+
+                    b.HasIndex("ProposedInpatientDoctorId");
+
+                    b.HasIndex("RequestedPatientClassId");
+
+                    b.HasIndex("RequestedServiceUnitId");
+
+                    b.HasIndex("SignedByDoctorId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex(new[] { "EmergencyVisitId" }, "UX_EmgAdmissionRequest_Visit_Open")
+                        .IsUnique()
+                        .HasFilter("\"Status\" IN (1, 2) AND NOT \"IsDelete\"");
+
+                    b.ToTable("EmgAdmissionRequest", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_EmgAdmissionRequest_Los", "\"EstimatedLengthOfStayDays\" BETWEEN 1 AND 90");
+
+                            t.HasCheckConstraint("CK_EmgAdmissionRequest_State", "(\"Status\" <> 3 OR (\"SignedAt\" IS NOT NULL AND \"SignedByUserId\" IS NOT NULL AND \"SignedByDoctorId\" IS NOT NULL AND \"SnapshotJson\" IS NOT NULL)) AND (\"Status\" <> 4 OR \"CancellationReason\" IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgAdmissionRequestEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AdmissionRequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EventType")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("FromStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ToStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex(new[] { "AdmissionRequestId", "OccurredAt" }, "IX_EmgAdmissionRequestEvent_Request_OccurredAt");
+
+                    b.ToTable("EmgAdmissionRequestEvent", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgDeparture", b =>
@@ -123409,6 +123645,80 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("TriageLevel");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgAdmissionRequest", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgDisposition", "Disposition")
+                        .WithMany()
+                        .HasForeignKey("DispositionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgVisit", "EmergencyVisit")
+                        .WithMany()
+                        .HasForeignKey("EmergencyVisitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter", "Encounter")
+                        .WithMany()
+                        .HasForeignKey("EncounterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstDoctor", "ProposedInpatientDoctor")
+                        .WithMany()
+                        .HasForeignKey("ProposedInpatientDoctorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstPatientClass", "RequestedPatientClass")
+                        .WithMany()
+                        .HasForeignKey("RequestedPatientClassId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "RequestedServiceUnit")
+                        .WithMany()
+                        .HasForeignKey("RequestedServiceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstDoctor", "SignedByDoctor")
+                        .WithMany()
+                        .HasForeignKey("SignedByDoctorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Disposition");
+
+                    b.Navigation("EmergencyVisit");
+
+                    b.Navigation("Encounter");
+
+                    b.Navigation("Patient");
+
+                    b.Navigation("ProposedInpatientDoctor");
+
+                    b.Navigation("RequestedPatientClass");
+
+                    b.Navigation("RequestedServiceUnit");
+
+                    b.Navigation("SignedByDoctor");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgAdmissionRequestEvent", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgAdmissionRequest", "AdmissionRequest")
+                        .WithMany("Events")
+                        .HasForeignKey("AdmissionRequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AdmissionRequest");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgDeparture", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgVisit", "EmergencyVisit")
@@ -130206,6 +130516,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Indicators");
 
                     b.Navigation("Triages");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgAdmissionRequest", b =>
+                {
+                    b.Navigation("Events");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models.EmgDeparture", b =>
