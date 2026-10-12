@@ -457,12 +457,6 @@ public sealed class FinanceReceivablePaymentReportService
         public Guid BatchId { get; set; }
         public decimal TotalAllocatedAmount { get; set; }
         public DateTimeOffset PaymentDateUtc { get; set; }
-        public string ReceiptNumber { get; set; } = string.Empty;
-        public string? ProviderReference { get; set; }
-        public Guid? BankAccountId { get; set; }
-        public string BatchNumber { get; set; } = string.Empty;
-        public Guid DebtorReferenceId { get; set; }
-        public decimal TotalInvoiceAmount { get; set; }
     }
 
     private async Task<(List<RawPaymentGroup> PagedGroups, int TotalCount, PaymentArReportSummaryResponse Summary)>
@@ -609,13 +603,7 @@ public sealed class FinanceReceivablePaymentReportService
                 ReceiptId = g.Key.ReceiptId,
                 BatchId = g.Key.BatchId,
                 TotalAllocatedAmount = g.Sum(x => x.Amount),
-                PaymentDateUtc = g.Max(x => x.AllocatedAt),
-                ReceiptNumber = g.Max(x => x.ReceiptNumber)!,
-                ProviderReference = g.Max(x => x.ProviderReference),
-                BankAccountId = g.Max(x => x.BankAccountId),
-                BatchNumber = g.Max(x => x.BatchNumber)!,
-                DebtorReferenceId = g.Max(x => x.DebtorReferenceId),
-                TotalInvoiceAmount = g.Max(x => x.TotalAmount)
+                PaymentDateUtc = g.Max(x => x.AllocatedAt)
             });
 
         // 3. Hitung Summary
@@ -673,50 +661,105 @@ public sealed class FinanceReceivablePaymentReportService
 
         var receiptIds = groups.Select(g => g.ReceiptId).Distinct().ToList();
         var batchIds = groups.Select(g => g.BatchId).Distinct().ToList();
-        var debtorIds = groups.Select(g => g.DebtorReferenceId).Distinct().ToList();
 
-        // 1. Resolve Cross Entries
-        var crossEntriesByReceipt = await _dbContext.FinCrossEntries.AsNoTracking()
+        // 1. Fetch Receipts
+        var receipts = await _dbContext.FinReceipts.AsNoTracking()
+            .Where(r => receiptIds.Contains(r.Id))
+            .Select(r => new
+            {
+                r.Id,
+                r.ReceiptNumber,
+                r.ProviderReference,
+                r.BankAccountId
+            })
+            .ToListAsync(cancellationToken);
+        var receiptsMap = receipts.GroupBy(r => r.Id).ToDictionary(g => g.Key, g => g.First());
+
+        // 2. Fetch Batches
+        var batches = await _dbContext.FinReceivableInvoiceBatches.AsNoTracking()
+            .Where(b => batchIds.Contains(b.Id))
+            .Select(b => new
+            {
+                b.Id,
+                b.BatchNumber,
+                b.DebtorReferenceId,
+                b.TotalAmount
+            })
+            .ToListAsync(cancellationToken);
+        var batchesMap = batches.GroupBy(b => b.Id).ToDictionary(g => g.Key, g => g.First());
+
+        var debtorIds = batches.Select(b => b.DebtorReferenceId).Distinct().ToList();
+
+        // 3. Resolve Cross Entries (1:1 per ReceiptId)
+        var crossEntries = await _dbContext.FinCrossEntries.AsNoTracking()
             .Include(ce => ce.BankAccount)
                 .ThenInclude(ba => ba!.Bank)
             .Where(ce => !ce.IsDelete && receiptIds.Contains(ce.ReceiptId))
-            .ToDictionaryAsync(ce => ce.ReceiptId, cancellationToken);
+            .ToListAsync(cancellationToken);
+        var crossEntriesByReceipt = crossEntries.GroupBy(ce => ce.ReceiptId).ToDictionary(g => g.Key, g => g.First());
 
-        // 2. Resolve Bank Accounts
-        var bankAccountIds = groups
-            .Where(g => g.BankAccountId.HasValue)
-            .Select(g => g.BankAccountId!.Value)
+        // Check cross entries linked via transaction
+        var missingCeReceiptIds = receiptIds.Where(id => !crossEntriesByReceipt.ContainsKey(id)).ToList();
+        if (missingCeReceiptIds.Count > 0)
+        {
+            var txCrossEntries = await (from cet in _dbContext.FinCrossEntryTransactions.AsNoTracking()
+                                        join ce in _dbContext.FinCrossEntries.AsNoTracking().Include(x => x.BankAccount).ThenInclude(b => b!.Bank) on cet.CrossEntryId equals ce.Id
+                                        join a in _dbContext.FinReceiptAllocations.AsNoTracking() on cet.ReceiptAllocationId equals a.Id
+                                        where missingCeReceiptIds.Contains(a.ReceiptId) && !cet.IsDelete && !ce.IsDelete && !a.IsDelete
+                                        select new { a.ReceiptId, CrossEntry = ce })
+                                        .ToListAsync(cancellationToken);
+
+            foreach (var tx in txCrossEntries)
+            {
+                if (!crossEntriesByReceipt.ContainsKey(tx.ReceiptId))
+                {
+                    crossEntriesByReceipt[tx.ReceiptId] = tx.CrossEntry;
+                }
+            }
+        }
+
+        // 4. Resolve Bank Accounts
+        var bankAccountIds = receipts
+            .Where(r => r.BankAccountId.HasValue)
+            .Select(r => r.BankAccountId!.Value)
+            .Concat(crossEntries.Where(ce => ce.BankAccountId != Guid.Empty).Select(ce => ce.BankAccountId))
             .Distinct()
             .ToList();
 
-        var bankAccounts = bankAccountIds.Count > 0
+        var bankAccountList = bankAccountIds.Count > 0
             ? await _dbContext.MstBankAccounts.AsNoTracking()
                 .Include(ba => ba.Bank)
                 .Where(ba => !ba.IsDelete && bankAccountIds.Contains(ba.Id))
-                .ToDictionaryAsync(ba => ba.Id, cancellationToken)
-            : new Dictionary<Guid, MasterData.Models.MstBankAccount>();
+                .ToListAsync(cancellationToken)
+            : [];
+        var bankAccounts = bankAccountList.GroupBy(ba => ba.Id).ToDictionary(g => g.Key, g => g.First());
 
-        // 3. Resolve Payers (Company & Insurance)
-        var companyMap = await _dbContext.MstCompanyGuarantors.AsNoTracking()
+        // 5. Resolve Payers (Company & Insurance)
+        var companies = await _dbContext.MstCompanyGuarantors.AsNoTracking()
             .Where(cg => !cg.IsDelete && debtorIds.Contains(cg.Id))
-            .ToDictionaryAsync(cg => cg.Id, cg => cg.CompanyGuarantorName, cancellationToken);
+            .ToListAsync(cancellationToken);
+        var companyMap = companies.GroupBy(cg => cg.Id).ToDictionary(g => g.Key, g => g.First().CompanyGuarantorName);
 
-        var insuranceMap = await _dbContext.MstInsuranceProviders.AsNoTracking()
+        var insurances = await _dbContext.MstInsuranceProviders.AsNoTracking()
             .Where(ip => !ip.IsDelete && debtorIds.Contains(ip.Id))
-            .ToDictionaryAsync(ip => ip.Id, ip => ip.InsuranceProviderName, cancellationToken);
+            .ToListAsync(cancellationToken);
+        var insuranceMap = insurances.GroupBy(ip => ip.Id).ToDictionary(g => g.Key, g => g.First().InsuranceProviderName);
 
-        // 4. Resolve Batch Outstandings
-        var batchOutstandingMap = await (from bi in _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
-                                         join r in _dbContext.FinReceivables.AsNoTracking() on bi.ReceivableId equals r.Id
-                                         where batchIds.Contains(bi.BatchId) && bi.IsActiveMembership && !bi.IsDelete && !r.IsDelete
-                                         group r.OutstandingAmount by bi.BatchId into bg
-                                         select new { BatchId = bg.Key, Outstanding = bg.Sum() })
-                                         .ToDictionaryAsync(x => x.BatchId, x => x.Outstanding, cancellationToken);
+        // 6. Resolve Batch Outstandings
+        var batchOutstandingList = await (from bi in _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+                                          join r in _dbContext.FinReceivables.AsNoTracking() on bi.ReceivableId equals r.Id
+                                          where batchIds.Contains(bi.BatchId) && bi.IsActiveMembership && !bi.IsDelete && !r.IsDelete
+                                          group r.OutstandingAmount by bi.BatchId into bg
+                                          select new { BatchId = bg.Key, Outstanding = bg.Sum() })
+                                          .ToListAsync(cancellationToken);
+        var batchOutstandingMap = batchOutstandingList.GroupBy(x => x.BatchId).ToDictionary(g => g.Key, g => g.First().Outstanding);
 
         var result = new List<PaymentArReportRowResponse>(groups.Count);
 
         foreach (var g in groups)
         {
+            receiptsMap.TryGetValue(g.ReceiptId, out var receipt);
+            batchesMap.TryGetValue(g.BatchId, out var batch);
             crossEntriesByReceipt.TryGetValue(g.ReceiptId, out var ce);
 
             var isCrossEntry = ce != null;
@@ -724,14 +767,15 @@ public sealed class FinanceReceivablePaymentReportService
             var paymentMethod = isCrossEntry ? "Ayat Silang" : "Kas/Bank";
 
             // Payer name & type
+            var debtorId = batch?.DebtorReferenceId ?? Guid.Empty;
             string debtorName;
             string payerType;
-            if (insuranceMap.TryGetValue(g.DebtorReferenceId, out var insName))
+            if (insuranceMap.TryGetValue(debtorId, out var insName))
             {
                 debtorName = insName;
                 payerType = "Asuransi";
             }
-            else if (companyMap.TryGetValue(g.DebtorReferenceId, out var compName))
+            else if (companyMap.TryGetValue(debtorId, out var compName))
             {
                 debtorName = compName;
                 payerType = "Perusahaan";
@@ -744,7 +788,8 @@ public sealed class FinanceReceivablePaymentReportService
 
             // Bank recipient
             string bankRecipient = "-";
-            if (g.BankAccountId.HasValue && bankAccounts.TryGetValue(g.BankAccountId.Value, out var ba))
+            var bankAccountId = receipt?.BankAccountId ?? ce?.BankAccountId;
+            if (bankAccountId.HasValue && bankAccounts.TryGetValue(bankAccountId.Value, out var ba))
             {
                 bankRecipient = ba.Bank != null
                     ? $"{ba.Bank.BankName} - {ba.AccountNumber}"
@@ -755,9 +800,9 @@ public sealed class FinanceReceivablePaymentReportService
                 bankRecipient = $"{ce.BankAccount.Bank.BankName} - {ce.BankAccount.AccountNumber}";
             }
 
-            var refNumber = !string.IsNullOrWhiteSpace(g.ProviderReference)
-                ? g.ProviderReference
-                : (ce?.ReferenceNumber ?? g.ReceiptNumber);
+            var refNumber = !string.IsNullOrWhiteSpace(receipt?.ProviderReference)
+                ? receipt.ProviderReference
+                : (ce?.ReferenceNumber ?? receipt?.ReceiptNumber ?? "-");
 
             var paymentDate = DateOnly.FromDateTime(FinanceBusinessDate.ToBusinessTime(g.PaymentDateUtc).DateTime);
 
@@ -774,11 +819,11 @@ public sealed class FinanceReceivablePaymentReportService
                 PaymentMethod = paymentMethod,
                 BankRecipient = bankRecipient,
                 ReferenceNumber = refNumber,
-                ReceiptNumber = g.ReceiptNumber,
+                ReceiptNumber = receipt?.ReceiptNumber ?? "-",
                 CrossEntryNumber = ce?.CrossEntryNumber,
                 PaymentDate = paymentDate,
-                InvoiceNumber = g.BatchNumber,
-                TotalTagihan = g.TotalInvoiceAmount,
+                InvoiceNumber = batch?.BatchNumber ?? "-",
+                TotalTagihan = batch?.TotalAmount ?? 0m,
                 TotalPembayaran = g.TotalAllocatedAmount,
                 SisaPembayaran = batchOutstanding
             });
