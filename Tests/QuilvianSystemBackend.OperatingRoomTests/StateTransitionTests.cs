@@ -49,6 +49,7 @@ public class StateTransitionTests
 
         var kasusId = await alur.BuatKasusAsync();
         await alur.JadwalkanAsync(kasusId);
+        await alur.SediakanGerbangLuarAsync(kasusId);
         await alur.ChecklistSignInSelesaiAsync(kasusId);
 
         await alur.SignOffAsync(kasusId, OprReadinessRole.PrimarySurgeon);
@@ -96,6 +97,7 @@ public class StateTransitionTests
         Assert.Equal("InvalidStateTransition", galat.Code);
 
         await alur.JadwalkanAsync(kasusId);
+        await alur.SediakanGerbangLuarAsync(kasusId);
         await alur.ChecklistSignInSelesaiAsync(kasusId);
         await alur.SignOffAsync(kasusId, OprReadinessRole.PrimarySurgeon);
         await alur.SignOffAsync(kasusId, OprReadinessRole.Anesthesiologist);
@@ -169,7 +171,10 @@ public class StateTransitionTests
             });
         Assert.Equal(OprCaseStatus.InProgress, await alur.StatusAsync(kasusId));
 
-        // 4. Diterima unit tujuan.
+        // 4. Diterima unit tujuan. `VAL-RWF-85` menuntut pasien sudah menempati bed aktif di
+        // unit itu lebih dulu, dan itu prasyarat Rawat Inap — bukan langkah Operasi.
+        await alur.SediakanPasienDiUnitAsync(seed.UnitTujuanId);
+
         await harness.RecoveryService(OperatingRoomSeed.AkunPerawat).AcceptHandoverAsync(kasusId, serahTerima.Id,
             new AcceptOprHandoverRequest { Accept = true, IdempotencyKey = alur.Kunci("TERIMA") });
 

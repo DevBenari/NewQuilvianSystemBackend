@@ -7,7 +7,7 @@ Berkas ini permintaan beserta buktinya, bukan pengumuman perubahan.
 |---|---|
 | Pemohon | modul Farmasi |
 | Pemilik keputusan | modul Billing/Kasir |
-| Status | **Menunggu approval owner Billing** |
+| Status | ✅ **DIPENUHI owner Billing** — lihat bagian "Penutupan" di bawah |
 | Berkas terdampak | `Areas/HealthServices/BillingManagement/Billing/Services/BillingChargeSourceAdapter.cs` |
 | Bukti runtime | `verifikasi-runtime-be-bkc-067.md` |
 
@@ -80,3 +80,74 @@ berfungsi, meskipun ia tidak membuat Farmasi gagal.
 Reversal, amandemen resep, void baris obat, dan rincian per obat pada invoice tidak termasuk
 permintaan ini. `NormalVoidFromStatuses` dan `VoidStatuses` untuk PHARMACY dibiarkan kosong seperti
 sekarang.
+
+---
+
+## Penutupan — 6 Oktober 2026
+
+**Permintaan ini sudah dipenuhi owner Billing, dengan bentuk yang lebih baik dari yang diminta.**
+
+`BillingChargeSourceAdapter` kini berbunyi:
+
+```csharp
+// RJ-E2E-DEC-005: obat ditagih dua tahap. PRESCRIBED = tahap 1 saat resep difinalkan
+// dokter, supaya gerbang "lunas sebelum serah" farmasi dapat dilalui; masih boleh
+// dibatalkan normal selama belum diproses farmasi. DISPENSED = jumlah aktual yang
+// diserahkan dan tetap final — koreksinya berupa adjustment. PRESCRIBED hanya sah
+// pada kontrak 1.3 (lihat ValidateAndNormalize).
+["PHARMACY"] = Policy(["PRESCRIBED", "DISPENSED"], ["PRESCRIBED"], ["CANCELLED"]),
+```
+
+Dua hal yang **berbeda** dari usulan Farmasi, dan keduanya lebih baik:
+
+1. **Nama statusnya `PRESCRIBED`, bukan `SUBMITTED`.** Usulan Farmasi memakai kosakata
+   internalnya sendiri. Billing memilih nama yang netral dan menjelaskan keadaannya
+   ("diresepkan"), bukan nama langkah pada alur Farmasi.
+2. **Dibatasi kontrak `BIL-INTEGRATION-1.3`.** Usulan Farmasi melonggarkan aturan untuk semua
+   pemanggil. Billing mengikatnya pada versi kontrak baru, sehingga pemanggil lama tetap
+   terikat aturan lama dan perilakunya tidak berubah diam-diam. Ini pengamanan yang tidak
+   terpikirkan saat permintaan ditulis.
+
+### Akibatnya bagi Farmasi, dan mengapa ia tidak langsung menyala
+
+Pemenuhan ini tidak otomatis membuat rantainya jalan. Farmasi masih mengirim `SUBMITTED` pada
+kontrak `1.2`, sehingga setiap tagihan tahap 1 tetap tertolak — kini bukan karena aturannya
+belum ada, melainkan karena kedua sisi memakai kosakata berbeda. Gejalanya identik dengan
+sebelumnya, pesan galatnya pun sama, sehingga mudah disalahbaca sebagai "Billing belum setuju".
+
+Diselaraskan 6 Oktober 2026 pada `PrescriptionBillingChargeProducer`:
+
+| | Sebelum | Sesudah |
+|---|---|---|
+| `SourceStatus` | `SUBMITTED` | `PRESCRIBED` |
+| `ContractVersion` | `BIL-INTEGRATION-1.2` | `BIL-INTEGRATION-1.3` |
+
+Konstanta `SubmittedSourceStatus` ikut berganti nama menjadi `PrescribedSourceStatus`, karena
+nama lama akan menyesatkan pembaca berikutnya.
+
+**Nol baris Billing disentuh dalam penyelarasan ini.**
+
+### Pelajaran yang dikunci uji
+
+Kedua konstanta itu sebelumnya **konsisten di dalam Farmasi** dan lulus seluruh uji Farmasi,
+tetapi ditolak Billing pada setiap pengiriman. Mengunci nilai konstanta saja tidak pernah cukup:
+kegagalan seperti ini tidak terlihat dari dalam satu modul.
+
+`BillingChargeProducerTests` karena itu kini melewatkan tagihan Farmasi ke
+**`ContractBillingChargeSourceAdapter` yang sebenarnya**, bukan ke tiruan:
+
+| Uji | Yang dibuktikan |
+|---|---|
+| `Tagihan_tahap_satu_diterima_validator_Billing_yang_sebenarnya` | `PRESCRIBED` + `1.3` lolos |
+| `Status_atau_kontrak_lama_ditolak_validator_Billing` | ketiga kombinasi lama ditolak — pembuktian negatif, supaya uji di atas tidak lulus karena validatornya permisif |
+| `Tagihan_tahap_dua_tetap_diterima_pada_kontrak_lama_dan_baru` | `DISPENSED` tetap jalan pada `1.2` maupun `1.3`; penyelarasan tahap 1 tidak mempersempit jalur yang sudah ada |
+
+### Yang masih belum terbukti
+
+Rantai penuh **tagihan → kasir → surat clearance → penyerahan** belum diuji ulang di runtime
+sesudah penyelarasan ini, karena startup pada basis data dev masih mati di
+`MstNursingDiagnosisSeeder` —
+[`blocker-startup-seeder-tabel-hilang.md`](../../engineering/blocker-startup-seeder-tabel-hilang.md).
+Yang sudah terbukti: validator Billing menerima bentuk tagihannya, dan rantai hilirnya sendiri
+sudah pernah terbukti ujung ke ujung pada
+[`verifikasi-runtime-be-bkc-067.md`](verifikasi-runtime-be-bkc-067.md).
