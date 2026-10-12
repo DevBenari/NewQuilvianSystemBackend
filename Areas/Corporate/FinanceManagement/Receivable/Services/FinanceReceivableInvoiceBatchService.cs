@@ -242,8 +242,18 @@ public sealed class FinanceReceivableInvoiceBatchService
         var encounters = encounterIds.Count > 0
             ? await _dbContext.RegPatientEncounters.AsNoTracking()
                 .Where(x => encounterIds.Contains(x.Id) && !x.IsDelete)
+                .Select(x => new BatchMemberEncounterRow
+                {
+                    Id = x.Id,
+                    PatientId = x.PatientId,
+                    DoctorId = x.DoctorId,
+                    PatientClassId = x.PatientClassId,
+                    EncounterNumber = x.EncounterNumber,
+                    EncounterType = x.EncounterType,
+                    EncounterDate = x.EncounterDate
+                })
                 .ToDictionaryAsync(x => x.Id, cancellationToken)
-            : new Dictionary<Guid, RegPatientEncounter>();
+            : new Dictionary<Guid, BatchMemberEncounterRow>();
 
         var patientIds = encounters.Values.Select(x => x.PatientId)
             .Concat(receivableItems.Where(x => x.PatientId.HasValue).Select(x => x.PatientId!.Value))
@@ -289,7 +299,7 @@ public sealed class FinanceReceivableInvoiceBatchService
                 BilInvoice? inv = invId.HasValue && invoices.TryGetValue(invId.Value, out var foundInv) ? foundInv : null;
 
                 Guid? encId = inv?.EncounterId ?? itemsForRec.FirstOrDefault(i => i.EncounterId.HasValue)?.EncounterId;
-                RegPatientEncounter? enc = encId.HasValue && encounters.TryGetValue(encId.Value, out var foundEnc) ? foundEnc : null;
+                BatchMemberEncounterRow? enc = encId.HasValue && encounters.TryGetValue(encId.Value, out var foundEnc) ? foundEnc : null;
 
                 Guid? patId = enc?.PatientId ?? itemsForRec.FirstOrDefault(i => i.PatientId.HasValue)?.PatientId;
                 MstPatient? pat = patId.HasValue && patients.TryGetValue(patId.Value, out var foundPat) ? foundPat : null;
@@ -662,7 +672,8 @@ public sealed class FinanceReceivableInvoiceBatchService
 
         var encounters = await _dbContext.RegPatientEncounters.AsNoTracking()
             .Where(x => encounterIds.Contains(x.Id) && !x.IsDelete)
-            .ToDictionaryAsync(x => x.Id, cancellationToken);
+            .Select(x => new { x.Id, x.EncounterType })
+            .ToDictionaryAsync(x => x.Id, x => x.EncounterType, cancellationToken);
 
         // 2. Resolve seluruh VisitCode dan pastikan hanya ada satu distinct VisitCode dalam batch
         var visitCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -1878,7 +1889,7 @@ public sealed class FinanceReceivableInvoiceBatchService
         FinReceivable receivable,
         List<FinReceivableItem> items,
         Dictionary<Guid, BilInvoice> invoices,
-        Dictionary<Guid, RegPatientEncounter> encounters)
+        Dictionary<Guid, EncounterType> encounters)
     {
         // 1. Cek dari BilInvoice jika ada
         Guid? invoiceId = receivable.InvoiceId ?? items.FirstOrDefault(x => x.InvoiceId.HasValue)?.InvoiceId;
@@ -1907,20 +1918,33 @@ public sealed class FinanceReceivableInvoiceBatchService
             encounterId = items.FirstOrDefault(x => x.EncounterId.HasValue)?.EncounterId;
         }
 
-        if (encounterId.HasValue && encounters.TryGetValue(encounterId.Value, out var encounter))
+        if (encounterId.HasValue && encounters.TryGetValue(encounterId.Value, out var encounterType))
         {
-            return encounter.EncounterType switch
+            return encounterType switch
             {
                 EncounterType.Inpatient => "IP",
                 EncounterType.Outpatient => "OP",
                 EncounterType.Emergency => "OP",
                 _ => throw new ReceivableInvoiceBatchValidationException(
-                    $"Piutang {receivable.ReceivableNumber} dengan jenis kunjungan '{encounter.EncounterType}' tidak dapat diklasifikasikan secara aman ke IP atau OP.")
+                    $"Piutang {receivable.ReceivableNumber} dengan jenis kunjungan '{encounterType}' tidak dapat diklasifikasikan secara aman ke IP atau OP.")
             };
         }
 
         throw new ReceivableInvoiceBatchValidationException(
             $"Piutang {receivable.ReceivableNumber} tidak memiliki data invoice atau encounter yang valid untuk klasifikasi IP/OP.");
+    }
+
+    public static string ResolveReceivableVisitCode(
+        FinReceivable receivable,
+        List<FinReceivableItem> items,
+        Dictionary<Guid, BilInvoice> invoices,
+        Dictionary<Guid, RegPatientEncounter> encounters)
+    {
+        return ResolveReceivableVisitCode(
+            receivable,
+            items,
+            invoices,
+            encounters.ToDictionary(k => k.Key, v => v.Value.EncounterType));
     }
 
     private static void EnsureCurrent(Guid actualRowVersion, Guid expectedRowVersion)
@@ -2432,10 +2456,19 @@ public sealed class FinanceReceivableInvoiceBatchService
 
     private static string ResolveCancellationReportStatus(FinReceivableInvoiceBatch batch)
     {
+        // 1. Jika sudah di-reissue ke batch pengganti (ReissuedToBatchId != null),
+        // invoice asal telah berhasil dibuat ulang menjadi batch baru.
+        if (batch.ReissuedToBatchId.HasValue)
+            return "RECREATED";
+
+        // 2. Jika status operasional saat ini CANCELLED (dan belum di-reissue),
+        // invoice masih dalam kondisi dibatalkan dan belum dibuat ulang.
         if (batch.Status == FinReceivableInvoiceBatchStatuses.Cancelled)
             return "CANCELLED";
 
-        if (batch.CancelDateTime.HasValue || batch.ReissuedToBatchId.HasValue || batch.IsCancel)
+        // 3. Jika status operasional aktif (misalnya ISSUED, PARTIALLY_PAID, PAID)
+        // dan memiliki riwayat pembatalan, berarti batch ini telah di-revive (diaktifkan kembali).
+        if (batch.CancelDateTime.HasValue || batch.IsCancel)
             return "RECREATED";
 
         return "CANCELLED";
@@ -2478,15 +2511,31 @@ public sealed class FinanceReceivableInvoiceBatchService
         IQueryable<FinReceivableInvoiceBatch> query, CanceledInvoiceBatchQuery request)
     {
         var descending = !string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
-        return request.SortBy.Trim().ToLowerInvariant() switch
+        var sortBy = string.IsNullOrWhiteSpace(request.SortBy) ? "canceldatetime" : request.SortBy.Trim().ToLowerInvariant();
+
+        return sortBy switch
         {
-            "batchnumber" or "invoicenumber" => descending ? query.OrderByDescending(x => x.BatchNumber) : query.OrderBy(x => x.BatchNumber),
-            "totalamount" => descending ? query.OrderByDescending(x => x.TotalAmount) : query.OrderBy(x => x.TotalAmount),
-            "invoicedate" => descending ? query.OrderByDescending(x => x.InvoiceDate) : query.OrderBy(x => x.InvoiceDate),
-            "duedate" => descending ? query.OrderByDescending(x => x.DueDate) : query.OrderBy(x => x.DueDate),
-            "canceldatetime" or "cancelledat" => descending ? query.OrderByDescending(x => x.CancelDateTime) : query.OrderBy(x => x.CancelDateTime),
-            "servicetype" => descending ? query.OrderByDescending(x => x.ServiceType) : query.OrderBy(x => x.ServiceType),
-            _ => descending ? query.OrderByDescending(x => x.CancelDateTime ?? x.CreateDateTime) : query.OrderBy(x => x.CancelDateTime ?? x.CreateDateTime)
+            "batchnumber" or "invoicenumber" => descending
+                ? query.OrderByDescending(x => x.BatchNumber).ThenBy(x => x.Id)
+                : query.OrderBy(x => x.BatchNumber).ThenBy(x => x.Id),
+            "totalamount" => descending
+                ? query.OrderByDescending(x => x.TotalAmount).ThenBy(x => x.Id)
+                : query.OrderBy(x => x.TotalAmount).ThenBy(x => x.Id),
+            "invoicedate" => descending
+                ? query.OrderByDescending(x => x.InvoiceDate).ThenBy(x => x.Id)
+                : query.OrderBy(x => x.InvoiceDate).ThenBy(x => x.Id),
+            "duedate" => descending
+                ? query.OrderByDescending(x => x.DueDate).ThenBy(x => x.Id)
+                : query.OrderBy(x => x.DueDate).ThenBy(x => x.Id),
+            "canceldatetime" or "cancelledat" => descending
+                ? query.OrderByDescending(x => x.CancelDateTime).ThenBy(x => x.Id)
+                : query.OrderBy(x => x.CancelDateTime).ThenBy(x => x.Id),
+            "servicetype" => descending
+                ? query.OrderByDescending(x => x.ServiceType).ThenBy(x => x.Id)
+                : query.OrderBy(x => x.ServiceType).ThenBy(x => x.Id),
+            _ => descending
+                ? query.OrderByDescending(x => x.CancelDateTime ?? x.CreateDateTime).ThenBy(x => x.Id)
+                : query.OrderBy(x => x.CancelDateTime ?? x.CreateDateTime).ThenBy(x => x.Id)
         };
     }
 
@@ -2531,6 +2580,17 @@ public sealed class FinanceReceivableInvoiceBatchService
                 .ToHashSetAsync(cancellationToken)
             : new HashSet<Guid>();
 
+        var reissuedToIds = rows
+            .Where(r => r.ReissuedToBatchId.HasValue)
+            .Select(r => r.ReissuedToBatchId!.Value)
+            .Distinct()
+            .ToList();
+        var replacementNumbers = reissuedToIds.Count > 0
+            ? await _dbContext.FinReceivableInvoiceBatches.AsNoTracking()
+                .Where(b => reissuedToIds.Contains(b.Id))
+                .ToDictionaryAsync(b => b.Id, b => b.BatchNumber, cancellationToken)
+            : new Dictionary<Guid, string>();
+
         return rows.Select(b =>
         {
             string? debtorName = null;
@@ -2555,6 +2615,12 @@ public sealed class FinanceReceivableInvoiceBatchService
             userNames.TryGetValue(b.CancelBy, out var cancelledByName);
             var reportStatus = ResolveCancellationReportStatus(b);
 
+            string? replNumber = null;
+            if (b.ReissuedToBatchId.HasValue)
+            {
+                replacementNumbers.TryGetValue(b.ReissuedToBatchId.Value, out replNumber);
+            }
+
             return new CanceledInvoiceRowResponse
             {
                 Id = b.Id,
@@ -2578,6 +2644,7 @@ public sealed class FinanceReceivableInvoiceBatchService
                 CancelReason = b.CancelReason,
                 ReissuedToBatchId = b.ReissuedToBatchId,
                 ReissuedFromBatchId = b.ReissuedFromBatchId,
+                ReplacementInvoiceNumber = replNumber,
                 RowVersion = b.RowVersion,
                 DocumentCapabilities = new CanceledInvoiceDocumentCapabilities
                 {
@@ -2646,7 +2713,7 @@ public sealed class FinanceReceivableInvoiceBatchService
             ws.Cell(r, 10).Value = row.TotalDiscount;
             ws.Cell(r, 11).Value = row.NetAmount;
             ws.Cell(r, 12).Value = row.CancelReason ?? "-";
-            ws.Cell(r, 13).Value = row.ReportStatus == "RECREATED" ? "Sudah Dibuat Ulang" : "Canceled";
+            ws.Cell(r, 13).Value = row.ReportStatus == "RECREATED" ? "Sudah Dibuat Ulang" : "Cancelled";
             r++;
         }
 
@@ -2768,32 +2835,35 @@ public sealed class FinanceReceivableInvoiceBatchService
             .FirstOrDefaultAsync(cancellationToken);
 
         string targetName = "Semua Perusahaan";
-        decimal targetAmount;
-        if (request.DebtorReferenceId.HasValue && request.DebtorReferenceId.Value != Guid.Empty)
+        decimal targetAmount = 0m;
+        if (categorySupported)
         {
-            var cName = await _dbContext.MstCompanyGuarantors.AsNoTracking()
-                .Where(c => c.Id == request.DebtorReferenceId.Value && !c.IsDelete)
-                .Select(c => c.CompanyGuarantorName)
-                .FirstOrDefaultAsync(cancellationToken);
+            if (request.DebtorReferenceId.HasValue && request.DebtorReferenceId.Value != Guid.Empty)
+            {
+                var cName = await _dbContext.MstCompanyGuarantors.AsNoTracking()
+                    .Where(c => c.Id == request.DebtorReferenceId.Value && !c.IsDelete)
+                    .Select(c => c.CompanyGuarantorName)
+                    .FirstOrDefaultAsync(cancellationToken);
 
-            targetName = cName ?? await _dbContext.MstInsuranceProviders.AsNoTracking()
-                .Where(p => p.Id == request.DebtorReferenceId.Value && !p.IsDelete)
-                .Select(p => p.InsuranceProviderName)
-                .FirstOrDefaultAsync(cancellationToken) ?? "Semua Perusahaan";
+                targetName = cName ?? await _dbContext.MstInsuranceProviders.AsNoTracking()
+                    .Where(p => p.Id == request.DebtorReferenceId.Value && !p.IsDelete)
+                    .Select(p => p.InsuranceProviderName)
+                    .FirstOrDefaultAsync(cancellationToken) ?? "Semua Perusahaan";
 
-            // Total Target: akumulasi sepanjang masa untuk target yang dipilih, TANPA rentang
-            // tanggal/search/jenis layanan — definisi bisnisnya "berapa total yang pernah dibatalkan
-            // untuk perusahaan ini", bukan "berapa yang cocok dengan filter saat ini" (itu Total Filter).
-            targetAmount = await BuildCancellationHistoryQuery()
-                .Where(x => x.DebtorReferenceId == request.DebtorReferenceId.Value)
-                .SumAsync(x => x.TotalAmount, cancellationToken);
-        }
-        else
-        {
-            // Tidak ada target spesifik dipilih: Total Target = total seluruh invoice dengan riwayat pembatalan
-            // sepanjang masa (tanpa filter apa pun), konsisten dengan TargetName "Semua Perusahaan".
-            targetAmount = await BuildCancellationHistoryQuery()
-                .SumAsync(x => x.TotalAmount, cancellationToken);
+                // Total Target: akumulasi sepanjang masa untuk target yang dipilih, TANPA rentang
+                // tanggal/search/jenis layanan — definisi bisnisnya "berapa total yang pernah dibatalkan
+                // untuk perusahaan ini", bukan "berapa yang cocok dengan filter saat ini" (itu Total Filter).
+                targetAmount = await BuildCancellationHistoryQuery()
+                    .Where(x => x.DebtorReferenceId == request.DebtorReferenceId.Value)
+                    .SumAsync(x => x.TotalAmount, cancellationToken);
+            }
+            else
+            {
+                // Tidak ada target spesifik dipilih: Total Target = total seluruh invoice dengan riwayat pembatalan
+                // sepanjang masa (tanpa filter apa pun), konsisten dengan TargetName "Semua Perusahaan".
+                targetAmount = await BuildCancellationHistoryQuery()
+                    .SumAsync(x => x.TotalAmount, cancellationToken);
+            }
         }
 
         var totalAmount = agg?.TotalAmount ?? 0m;
@@ -2891,8 +2961,18 @@ public sealed class FinanceReceivableInvoiceBatchService
         var encounters = encounterIds.Count > 0
             ? await _dbContext.RegPatientEncounters.AsNoTracking()
                 .Where(x => encounterIds.Contains(x.Id) && !x.IsDelete)
+                .Select(x => new BatchMemberEncounterRow
+                {
+                    Id = x.Id,
+                    PatientId = x.PatientId,
+                    DoctorId = x.DoctorId,
+                    PatientClassId = x.PatientClassId,
+                    EncounterNumber = x.EncounterNumber,
+                    EncounterType = x.EncounterType,
+                    EncounterDate = x.EncounterDate
+                })
                 .ToDictionaryAsync(x => x.Id, cancellationToken)
-            : new Dictionary<Guid, RegPatientEncounter>();
+            : new Dictionary<Guid, BatchMemberEncounterRow>();
 
         var patientIds = encounters.Values.Select(x => x.PatientId)
             .Concat(receivableItems.Where(x => x.PatientId.HasValue).Select(x => x.PatientId!.Value))
@@ -2926,8 +3006,7 @@ public sealed class FinanceReceivableInvoiceBatchService
                 BilInvoice? inv = invId.HasValue && invoices.TryGetValue(invId.Value, out var foundInv) ? foundInv : null;
 
                 Guid? encId = inv?.EncounterId ?? itemsForRec.FirstOrDefault(i => i.EncounterId.HasValue)?.EncounterId;
-                RegPatientEncounter? enc = encId.HasValue && encounters.TryGetValue(encId.Value, out var foundEnc) ? foundEnc : null;
-
+                BatchMemberEncounterRow? enc = encId.HasValue && encounters.TryGetValue(encId.Value, out var foundEnc) ? foundEnc : null;
                 Guid? patId = enc?.PatientId ?? itemsForRec.FirstOrDefault(i => i.PatientId.HasValue)?.PatientId;
                 MstPatient? pat = patId.HasValue && patients.TryGetValue(patId.Value, out var foundPat) ? foundPat : null;
 
@@ -3014,6 +3093,15 @@ public sealed class FinanceReceivableInvoiceBatchService
             reissueBlockedReason = "Perubahan nominal masih menunggu persetujuan koreksi piutang.";
         }
 
+        string? replacementInvoiceNumber = null;
+        if (batch.ReissuedToBatchId.HasValue)
+        {
+            replacementInvoiceNumber = await _dbContext.FinReceivableInvoiceBatches.AsNoTracking()
+                .Where(b => b.Id == batch.ReissuedToBatchId.Value)
+                .Select(b => b.BatchNumber)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
         return new CanceledInvoiceDetailResponse
         {
             Id = batch.Id,
@@ -3041,6 +3129,7 @@ public sealed class FinanceReceivableInvoiceBatchService
             RowVersion = batch.RowVersion,
             ReissuedToBatchId = batch.ReissuedToBatchId,
             ReissuedFromBatchId = batch.ReissuedFromBatchId,
+            ReplacementInvoiceNumber = replacementInvoiceNumber,
             CanReissue = canReissue,
             ReissueBlockedReason = reissueBlockedReason,
             DocumentCapabilities = new CanceledInvoiceDocumentCapabilities
@@ -3223,9 +3312,7 @@ public sealed class FinanceReceivableInvoiceBatchService
             ReissuedFromBatchId = batch.Id,
             RowVersion = Guid.NewGuid(),
             CreateBy = actorUserId,
-            UpdateBy = actorUserId,
-            DeleteBy = actorUserId,
-            CancelBy = actorUserId
+            UpdateBy = actorUserId
         };
 
         foreach (var r in receivables)
@@ -3237,9 +3324,7 @@ public sealed class FinanceReceivableInvoiceBatchService
                 ReceivableId = r.Id,
                 IsActiveMembership = true,
                 CreateBy = actorUserId,
-                UpdateBy = actorUserId,
-                DeleteBy = actorUserId,
-                CancelBy = actorUserId
+                UpdateBy = actorUserId
             });
         }
 
@@ -3398,13 +3483,33 @@ public sealed class FinanceReceivableInvoiceBatchService
     // REPORT AR CREATED (Laporan Pembuatan AR)
     // ====================================================================================
 
+    private sealed class BatchMemberEncounterRow
+    {
+        public Guid Id { get; set; }
+        public Guid PatientId { get; set; }
+        public Guid? DoctorId { get; set; }
+        public Guid? PatientClassId { get; set; }
+        public string? EncounterNumber { get; set; }
+        public EncounterType EncounterType { get; set; }
+        public DateTime EncounterDate { get; set; }
+    }
+
+    private sealed class ClaimSingleEncounterRow
+    {
+        public Guid Id { get; set; }
+        public Guid PatientId { get; set; }
+        public string? EncounterNumber { get; set; }
+    }
+
     private sealed class ReportArCreatedInternalRow
     {
         public FinReceivableInvoiceBatchItem Bi { get; set; } = null!;
         public FinReceivableInvoiceBatch Batch { get; set; } = null!;
         public FinReceivable Rec { get; set; } = null!;
         public BilInvoice? Invoice { get; set; }
-        public RegPatientEncounter? Encounter { get; set; }
+        public EncounterType? EncounterType { get; set; }
+        public DateTimeOffset? EncounterDate { get; set; }
+        public string? EncounterNumber { get; set; }
         public MstPatient? Patient { get; set; }
         public string? CompanyGuarantorName { get; set; }
         public string? InsuranceProviderName { get; set; }
@@ -3465,7 +3570,9 @@ public sealed class FinanceReceivableInvoiceBatchService
                         Batch = b,
                         Rec = r,
                         Invoice = inv,
-                        Encounter = enc,
+                        EncounterType = enc != null ? (EncounterType?)enc.EncounterType : null,
+                        EncounterDate = enc != null ? (DateTimeOffset?)enc.EncounterDate : null,
+                        EncounterNumber = enc != null ? enc.EncounterNumber : null,
                         Patient = pat,
                         CompanyGuarantorName = c != null ? c.CompanyGuarantorName : null,
                         InsuranceProviderName = p != null ? p.InsuranceProviderName : null
@@ -3495,12 +3602,12 @@ public sealed class FinanceReceivableInvoiceBatchService
             if (startDate.HasValue)
             {
                 var startUtc = FinanceBusinessDate.GetStartOfDayUtc(startDate.Value);
-                query = query.Where(x => x.Encounter != null && x.Encounter.EncounterDate >= startUtc);
+                query = query.Where(x => x.EncounterDate != null && x.EncounterDate >= startUtc);
             }
             if (endDate.HasValue)
             {
                 var endUtc = FinanceBusinessDate.GetEndOfPeriodUtc(endDate.Value);
-                query = query.Where(x => x.Encounter != null && x.Encounter.EncounterDate <= endUtc);
+                query = query.Where(x => x.EncounterDate != null && x.EncounterDate <= endUtc);
             }
         }
         else // INVOICE_DATE (Default)
@@ -3522,19 +3629,19 @@ public sealed class FinanceReceivableInvoiceBatchService
             if (vt == "RAJAL" || vt == "OP" || vt == "OUTPATIENT")
             {
                 query = query.Where(x =>
-                    (x.Encounter != null && x.Encounter.EncounterType == EncounterType.Outpatient)
+                    (x.EncounterType != null && x.EncounterType == EncounterType.Outpatient)
                     || (x.Batch.VisitCode == "OP" || EF.Functions.ILike(x.Batch.BatchNumber, "%/OP/%")));
             }
             else if (vt == "RANAP" || vt == "IP" || vt == "INPATIENT")
             {
                 query = query.Where(x =>
-                    (x.Encounter != null && x.Encounter.EncounterType == EncounterType.Inpatient)
+                    (x.EncounterType != null && x.EncounterType == EncounterType.Inpatient)
                     || (x.Batch.VisitCode == "IP" || EF.Functions.ILike(x.Batch.BatchNumber, "%/IP/%")));
             }
             else if (vt == "IGD" || vt == "EMERGENCY")
             {
                 query = query.Where(x =>
-                    (x.Encounter != null && x.Encounter.EncounterType == EncounterType.Emergency)
+                    (x.EncounterType != null && x.EncounterType == EncounterType.Emergency)
                     || (x.Batch.VisitCode == "IGD" || EF.Functions.ILike(x.Batch.BatchNumber, "%/IGD/%")));
             }
         }
@@ -3546,7 +3653,7 @@ public sealed class FinanceReceivableInvoiceBatchService
             query = query.Where(x =>
                 EF.Functions.ILike(x.Batch.BatchNumber, pattern)
                 || (x.Invoice != null && EF.Functions.ILike(x.Invoice.InvoiceNumber, pattern))
-                || (x.Encounter != null && EF.Functions.ILike(x.Encounter.EncounterNumber, pattern))
+                || (x.EncounterNumber != null && EF.Functions.ILike(x.EncounterNumber, pattern))
                 || (x.Patient != null && (
                     EF.Functions.ILike(x.Patient.MedicalRecordNumber, pattern)
                     || EF.Functions.ILike(x.Patient.FullName, pattern)))
@@ -3582,8 +3689,8 @@ public sealed class FinanceReceivableInvoiceBatchService
                 ? query.OrderByDescending(x => x.Batch.InvoiceDate).ThenBy(x => x.Batch.BatchNumber).ThenBy(x => x.Bi.Id)
                 : query.OrderBy(x => x.Batch.InvoiceDate).ThenBy(x => x.Batch.BatchNumber).ThenBy(x => x.Bi.Id),
             "registrationdate" => descending
-                ? query.OrderByDescending(x => x.Encounter != null ? x.Encounter.EncounterDate : (DateTimeOffset?)null).ThenBy(x => x.Bi.Id)
-                : query.OrderBy(x => x.Encounter != null ? x.Encounter.EncounterDate : (DateTimeOffset?)null).ThenBy(x => x.Bi.Id),
+                ? query.OrderByDescending(x => x.EncounterDate).ThenBy(x => x.Bi.Id)
+                : query.OrderBy(x => x.EncounterDate).ThenBy(x => x.Bi.Id),
             _ => descending
                 ? query.OrderByDescending(x => x.CompanyGuarantorName != null ? x.CompanyGuarantorName : (x.InsuranceProviderName != null ? x.InsuranceProviderName : ""))
                        .ThenByDescending(x => x.Batch.InvoiceDate)
@@ -3599,9 +3706,9 @@ public sealed class FinanceReceivableInvoiceBatchService
     private static ReportArCreatedItemResponse MapReportArCreatedItem(ReportArCreatedInternalRow row)
     {
         var companyName = row.CompanyGuarantorName ?? row.InsuranceProviderName ?? "-";
-        var visitType = row.Encounter != null
-            ? (row.Encounter.EncounterType == EncounterType.Inpatient ? "RANAP"
-               : row.Encounter.EncounterType == EncounterType.Emergency ? "IGD"
+        var visitType = row.EncounterType != null
+            ? (row.EncounterType == EncounterType.Inpatient ? "RANAP"
+               : row.EncounterType == EncounterType.Emergency ? "IGD"
                : "RAJAL")
             : (!string.IsNullOrWhiteSpace(row.Batch.VisitCode) ? (row.Batch.VisitCode == "IP" ? "RANAP" : row.Batch.VisitCode == "OP" ? "RAJAL" : row.Batch.VisitCode)
                : (!string.IsNullOrWhiteSpace(row.Batch.ServiceType) ? row.Batch.ServiceType : "RAJAL"));
@@ -3629,9 +3736,9 @@ public sealed class FinanceReceivableInvoiceBatchService
             CompanyId = row.Batch.DebtorReferenceId,
             CompanyName = companyName,
             InvoiceDate = invoiceDateTime,
-            RegistrationDate = row.Encounter?.EncounterDate ?? row.Invoice?.InvoiceDate,
+            RegistrationDate = row.EncounterDate ?? row.Invoice?.InvoiceDate,
             BillingNumber = row.Invoice?.InvoiceNumber ?? "-",
-            RegistrationNumber = row.Encounter?.EncounterNumber ?? "-",
+            RegistrationNumber = row.EncounterNumber ?? "-",
             MedicalRecordNumber = row.Patient?.MedicalRecordNumber ?? "-",
             PatientName = row.Patient?.FullName ?? "-",
             VisitType = visitType,
@@ -3740,7 +3847,7 @@ public sealed class FinanceReceivableInvoiceBatchService
             .ToListAsync(cancellationToken);
 
         var visitTypeGroupData = await baseQuery
-            .GroupBy(x => x.Encounter != null ? x.Encounter.EncounterType : EncounterType.Unknown)
+            .GroupBy(x => x.EncounterType ?? EncounterType.Unknown)
             .Select(g => new
             {
                 EncounterType = g.Key,
@@ -4040,7 +4147,8 @@ public sealed class FinanceReceivableInvoiceBatchService
         query = ApplyClaimFilter(query, request);
 
         var descending = !string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
-        query = request.SortBy.Trim().ToLowerInvariant() switch
+        var sortBy = (string.IsNullOrWhiteSpace(request.SortBy) ? "createdatetime" : request.SortBy).Trim().ToLowerInvariant();
+        query = sortBy switch
         {
             "batchnumber" or "claimnumber" => descending ? query.OrderByDescending(x => x.BatchNumber) : query.OrderBy(x => x.BatchNumber),
             "totalamount" => descending ? query.OrderByDescending(x => x.TotalAmount) : query.OrderBy(x => x.TotalAmount),
@@ -4128,8 +4236,14 @@ public sealed class FinanceReceivableInvoiceBatchService
         var singleEncounters = singleEncounterIds.Count > 0
             ? await _dbContext.RegPatientEncounters.AsNoTracking()
                 .Where(enc => singleEncounterIds.Contains(enc.Id) && !enc.IsDelete)
+                .Select(enc => new ClaimSingleEncounterRow
+                {
+                    Id = enc.Id,
+                    PatientId = enc.PatientId,
+                    EncounterNumber = enc.EncounterNumber
+                })
                 .ToDictionaryAsync(enc => enc.Id, cancellationToken)
-            : new Dictionary<Guid, RegPatientEncounter>();
+            : new Dictionary<Guid, ClaimSingleEncounterRow>();
 
         var singlePatientIds = singleEncounters.Values.Select(enc => enc.PatientId)
             .Concat(singleReceivableItems.Where(i => i.PatientId.HasValue).Select(i => i.PatientId!.Value))
@@ -4187,7 +4301,7 @@ public sealed class FinanceReceivableInvoiceBatchService
                 BilInvoice? inv = invId.HasValue && singleInvoices.TryGetValue(invId.Value, out var foundInv) ? foundInv : null;
 
                 Guid? encId = inv?.EncounterId ?? itemsForRec.FirstOrDefault(it => it.EncounterId.HasValue)?.EncounterId;
-                RegPatientEncounter? enc = encId.HasValue && singleEncounters.TryGetValue(encId.Value, out var foundEnc) ? foundEnc : null;
+                ClaimSingleEncounterRow? enc = encId.HasValue && singleEncounters.TryGetValue(encId.Value, out var foundEnc) ? foundEnc : null;
 
                 Guid? patId = enc?.PatientId ?? itemsForRec.FirstOrDefault(it => it.PatientId.HasValue)?.PatientId;
                 MstPatient? pat = patId.HasValue && singlePatients.TryGetValue(patId.Value, out var foundPat) ? foundPat : null;
