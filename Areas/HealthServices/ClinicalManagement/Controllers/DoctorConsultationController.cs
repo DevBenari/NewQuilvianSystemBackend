@@ -418,6 +418,87 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             ));
         }
 
+        [HttpGet("encounters/{encounterId:guid}/soap-timeline")]
+        [ProducesResponseType(typeof(ApiResponse<EncounterSoapTimelineResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Doctor Consultation", Description = "Melihat lini masa SOAP satu kunjungan IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("DoctorConsultation", "Read")]
+        public async Task<IActionResult> GetSoapTimelineByEncounter(
+            Guid encounterId,
+            CancellationToken cancellationToken = default)
+        {
+            if (encounterId == Guid.Empty)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Encounter wajib disebut."
+                ));
+            }
+
+            var visit = await _dbContext.Set<EmgVisit>()
+                .AsNoTracking()
+                .Where(x => x.EncounterId == encounterId && !x.IsDelete)
+                .Select(x => new { x.Id, x.EncounterId, x.PatientId })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (visit == null)
+            {
+                var encounterExists = await _dbContext.Set<RegPatientEncounter>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == encounterId && !x.IsDelete, cancellationToken);
+
+                if (!encounterExists)
+                {
+                    return NotFound(ApiResponse<object>.Fail(
+                        StatusCodes.Status404NotFound,
+                        "Encounter tidak ditemukan."
+                    ));
+                }
+
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Encounter bukan milik kunjungan IGD."
+                ));
+            }
+
+            var patientId = visit.PatientId.HasValue && visit.PatientId.Value != Guid.Empty
+                ? visit.PatientId.Value
+                : await _dbContext.Set<RegPatientEncounter>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == encounterId)
+                    .Select(x => x.PatientId)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+            var query = _dbContext.Set<TrxDoctorConsultation>()
+                .AsNoTracking()
+                .Include(x => x.Doctor)
+                .Where(x => x.EncounterId == encounterId && !x.IsDelete);
+
+            var rows = await query
+                .OrderBy(x => x.ClinicalDateTime ?? x.ConsultationDateTime)
+                .ThenBy(x => x.CreateDateTime)
+                .ToListAsync(cancellationToken);
+
+            var items = rows.Select(ToTimelineItem).ToList();
+
+            await EnrichTimelineItemsAsync(Guid.Empty, rows, items, cancellationToken);
+
+            var result = new EncounterSoapTimelineResponse
+            {
+                EncounterId = encounterId,
+                EmergencyVisitId = visit.Id,
+                PatientId = patientId,
+                TotalCount = rows.Count,
+                Items = items
+            };
+
+            return Ok(ApiResponse<EncounterSoapTimelineResponse>.Ok(
+                result,
+                "Lini masa catatan dokter berhasil diambil."
+            ));
+        }
+
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<DoctorConsultationCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]

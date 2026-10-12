@@ -76903,6 +76903,13 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<bool>("IsDelete")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsRosterOverride")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("RosterOverrideReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
 

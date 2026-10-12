@@ -314,6 +314,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data tindak lanjut IGD tidak ditemukan."));
 
+            if (!_emergencyDispositionService.CanTransition(entity.DispositionStatus, request.DispositionStatus))
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, $"Perubahan status dari {entity.DispositionStatus} ke {request.DispositionStatus} tidak diperbolehkan."));
+
+            if (request.DispositionStatus == EmergencyDispositionStatus.Confirmed)
+            {
+                var visit = await _dbContext.Set<EmgVisit>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
+
+                if (visit != null)
+                {
+                    var diagnosisValidation = await _emergencyDispositionService.ValidateDiagnosisBeforeConfirmAsync(
+                        visit, cancellationToken);
+
+                    if (diagnosisValidation != null)
+                    {
+                        return Conflict(ApiResponse<object>.Fail(
+                            StatusCodes.Status409Conflict,
+                            diagnosisValidation));
+                    }
+                }
+            }
+
             if (request.DispositionStatus == EmergencyDispositionStatus.Cancelled &&
                 entity.DispositionStatus == EmergencyDispositionStatus.Executed)
             {
@@ -326,9 +349,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 if (statusKunjungan == EmergencyVisitStatus.Completed)
                     return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, PesanPembatalanPadaKunjunganSelesai));
             }
-
-            if (!_emergencyDispositionService.CanTransition(entity.DispositionStatus, request.DispositionStatus))
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, $"Perubahan status dari {entity.DispositionStatus} ke {request.DispositionStatus} tidak diperbolehkan."));
 
             // Membatalkan keputusan tindak lanjut berarti mencabut penentuan ke mana pasien
             // pergi setelah meninggalkan IGD. Tanpa alasan tertulis, pencabutan itu tidak
