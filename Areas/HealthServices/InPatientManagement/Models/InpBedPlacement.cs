@@ -11,6 +11,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
     {
 
         public Guid Id { get; set; } = Guid.NewGuid();
+        public InpBedTransferCategory? TransferCategory { get; set; }
+        public Guid? TransferFromPlacementId { get; set; }
+        public string? LocationSnapshotJson { get; set; }
 
         [Required]
         public Guid EpisodeId { get; set; }

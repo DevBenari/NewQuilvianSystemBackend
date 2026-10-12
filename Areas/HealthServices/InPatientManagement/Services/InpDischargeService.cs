@@ -36,7 +36,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// <summary>Nilai <c>ActionType</c> untuk keputusan pasien boleh pulang.</summary>
         public const string ActionDecideDischarge = "DecideDischarge";
 
-        private readonly ApplicationDbContext _dbContext;
+        private readonly ApplicationDbContext _dbContext; private readonly InpBedMutationCoordinator _bedCoordinator; private readonly InpBedAccessService _bedAccess;
         private readonly InpEpisodeService _episodeService;
         private readonly InpBedOccupancyService _bedOccupancyService;
         private readonly ClinicalDocumentIntegrityService _clinicalDocumentIntegrityService;
@@ -96,7 +96,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             IInpBillingClearanceAdapter billingClearanceAdapter,
             IInpIntegrationOutboxService outboxService,
             IServiceScopeFactory scopeFactory,
-            ILogger<InpDischargeService> dischargeLogger,
+            ILogger<InpDischargeService> dischargeLogger, InpBedMutationCoordinator bedCoordinator, InpBedAccessService bedAccess,
             IInpBillingDepositAdapter? billingDepositAdapter = null)
         {
             _dbContext = dbContext;
@@ -107,7 +107,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             _medicationAdministrationService = medicationAdministrationService;
             _billingDepositAdapter = billingDepositAdapter;
             _billingClearanceAdapter = billingClearanceAdapter; _outboxService = outboxService;
-            _scopeFactory = scopeFactory; _dischargeLogger = dischargeLogger;
+            _bedCoordinator = bedCoordinator; _bedAccess = bedAccess; _scopeFactory = scopeFactory; _dischargeLogger = dischargeLogger;
         }
 
         // =====================================================================

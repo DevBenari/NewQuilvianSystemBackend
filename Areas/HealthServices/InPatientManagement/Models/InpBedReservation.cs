@@ -11,6 +11,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
     {
 
         public Guid Id { get; set; } = Guid.NewGuid();
+        [MaxLength(500)] public string? CancellationReason { get; set; }
+        public Guid? CancelledByUserId { get; set; }
 
         [Required]
         public Guid EpisodeId { get; set; }

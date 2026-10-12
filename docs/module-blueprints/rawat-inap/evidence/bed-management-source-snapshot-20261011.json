@@ -1,0 +1,433 @@
+{
+  "assessment_id": "BM-IMP-20261011-01",
+  "revision": 1,
+  "captured_on": "2026-10-11",
+  "timezone": "Asia/Jakarta",
+  "description": "Fingerprint pemeriksaan source terbaru; bukan rekonstruksi62 fingerprint historis. Test source hanya dicatat hash, tidak dijalankan.",
+  "historical_audit_available": false,
+  "historical_fingerprints_available": false,
+  "hash_convention": {
+    "sha256": "Byte file aktual",
+    "sha256_lf": "UTF-8 dengan CRLF dinormalisasi LF dalam memori; source tidak ditulis ulang"
+  },
+  "repositories": {
+    "backend": {
+      "root": "NewQuilvianSystemBackend",
+      "head": "c5d3b5bfdc15c014a2399d904d7c4c2207505905",
+      "previous_design_head": "d4e1eca06fb28c05934c68c1e51a4dca01935a10",
+      "initial_worktree_status": [],
+      "changed_paths": [
+        "Areas/HealthServices/InPatientManagement/Controllers/InpatientAdmissionConsentController.cs",
+        "Areas/HealthServices/InPatientManagement/Controllers/InpatientAdmissionTransferController.cs",
+        "Areas/HealthServices/InPatientManagement/DTOs/InpatientAdmissionConsentDtos.cs",
+        "Areas/HealthServices/InPatientManagement/DTOs/InpatientAdmissionTransferDtos.cs",
+        "Areas/HealthServices/InPatientManagement/Enums/InpAdmissionDocumentType.cs",
+        "Areas/HealthServices/InPatientManagement/Services/InpAdmissionDocumentRules.cs",
+        "Areas/HealthServices/InPatientManagement/Services/InpAdmissionTransferService.cs",
+        "Areas/HealthServices/InPatientManagement/Services/InpatientAdmissionConsentService.cs",
+        "Areas/HealthServices/PatientManagement/MasterData/Controllers/PatientEmergencyContactController.cs",
+        "Areas/HealthServices/PatientManagement/MasterData/DTOs/PatientEmergencyContactDtos.cs",
+        "Areas/HealthServices/RegistrationManagement/Controllers/PatientEncounterController.cs",
+        "Program.cs",
+        "docs/module-blueprints/rawat-inap/00-interview-decisions.md",
+        "docs/module-blueprints/rawat-inap/02-module-map.md",
+        "docs/module-blueprints/rawat-inap/blueprint-manifest.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/02-backend-architecture.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/03-frontend-architecture.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/04-prd-to-mvp.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/05-skema-tampilan.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/blueprint-manifest.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/contracts/api-contract.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/contracts/integration-contract.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/contracts/permission-audit-matrix.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/contracts/state-transition-matrix.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/contracts/validation-matrix.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/data/data-dictionary.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/flowcharts/00-alur-utama.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/flowcharts/09-bed-reservation-release.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/flowcharts/10-bed-transfer.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/flowcharts/11-bed-cleaning-readiness.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/flowcharts/12-bed-closure-reopen.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/flowcharts/13-bed-usage-history-correction.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/flowcharts/14-bed-uncertain-outcome.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/roadmap/backend-roadmap-admisi-pendaftaran.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/roadmap/backend-roadmap-admisi-transfer-igd.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/roadmap/frontend-roadmap-admisi-pendaftaran.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/roadmap/frontend-roadmap-admisi-transfer-igd.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/roadmap/requirement-traceability-admisi-pendaftaran.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/roadmap/requirement-traceability-admisi-transfer-igd.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/task/report/backend/BE-RWI-204.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/task/report/backend/BE-RWI-205.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/task/report/backend/BE-RWI-206.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/task/report/backend/BE-RWI-207.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/task/report/frontend/FE-RWI-222.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/task/report/frontend/FE-RWI-223.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/task/report/frontend/FE-RWI-224.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/task/report/frontend/FE-RWI-225.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/task/report/frontend/FE-RWI-226.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/task/report/frontend/FE-RWI-227.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/task/report/frontend/FE-RWI-228.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/task/report/frontend/FE-RWI-229.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/task/report/frontend/FE-RWI-230.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/testing/acceptance-test-matrix.md",
+        "docs/module-blueprints/rawat-inap/episode-rawat-inap/testing/bed-management-design-validation.md",
+        "docs/module-blueprints/rawat-inap/evidence/02-requirement-completeness-gate.md"
+      ],
+      "files": [
+        {
+          "path": "Areas/HealthServices/MasterData/Models/MstBed.cs",
+          "sha256": "8124ea8acda81dafc1b1c90cb0a6a180c0a3479e9d3ae1f95a4045535d9c4c6f",
+          "sha256_lf": "e08010d2928e40a90d7c8b5e3153980b41586a6cce4fdafba2e65bd59c0d0795",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/MasterData/Models/MstRoom.cs",
+          "sha256": "6c26501c52da1620c451b454d70bcda653b2c776fb39ea7999f41783532e83f6",
+          "sha256_lf": "cc05441982498671f914b6d1fcdc447c5f3718c55e16b0a0e0613dff811ed2ec",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/MasterData/Models/MstPatientClass.cs",
+          "sha256": "dc92988f86b1d59bb2d67caca657912e87362a9a2117dd1e39c96e457edf0cc4",
+          "sha256_lf": "8f630391ea6db4774834abc065dc90d029337fde1a25bf971284b033c7b4b712",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/MasterData/Models/MstInpatientSetting.cs",
+          "sha256": "ecfb0441bec04a1bda4b439d48ff0f5f96b725de83007d48dc5b945b1ed17fbe",
+          "sha256_lf": "f81e45ef2d967bf9a403c1cfbf4454813699eac8ecd125334f73fac54f1f4a80",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/MasterData/Enums/BedStatus.cs",
+          "sha256": "4bcf8d4c0cc2578b6b47218c44a5129e1e486fc4168f9a3687adb447976ae275",
+          "sha256_lf": "bba622e9bbc868aa56654acb447f7c7145e268edbde48f73e93b8e1312698448",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/MasterData/Controllers/BedController.cs",
+          "sha256": "c86e43ff8b5e40520dcb47b6eab883ee050e2c451bf667720c2e722283f3f4de",
+          "sha256_lf": "53b18fca37c76fc79a3f42c62e89ca98c15262de59cc62d6a4b5e6be10da6988",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/MasterData/Controllers/RoomController.cs",
+          "sha256": "ea4e84c98dcf4f1384add868f431ab6ab629ee6b38c69d261621218337fb794a",
+          "sha256_lf": "766475018ab2b0ffbba865ab453d696628b6ce8f48af67fcbb96b062ce2c518b",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/MasterData/Controllers/ServiceUnitController.cs",
+          "sha256": "541dd37182d46e9a565642ac7cdaa894325bb4a0f32f469ebab047ee425979b8",
+          "sha256_lf": "b895345c156c417a77a7c9481df45c5da1635f4c865b090858f328406f365c0d",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/MasterData/Controllers/PatientClassController.cs",
+          "sha256": "7d5838c242f27957ae818f79fee6a9b819140f16daf80f8c70bc5f655a603b59",
+          "sha256_lf": "c38a28f7a6ff65843b7f585e491cf31ffc6a2ea177816fdb084d69f7fe97af40",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/InPatientManagement/Models/InpBedPlacement.cs",
+          "sha256": "f23dc5608f487a990782b9d1643520a371aee61a8efaef7ee6cc1ffd90a5ccfa",
+          "sha256_lf": "b06ffb80f44a1b91b332d669b35098b5bfca36b903aa5ab0d581512961e70962",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/InPatientManagement/Models/InpBedReservation.cs",
+          "sha256": "4bc34dd9a5929e788d42c20b9530ac93be395d33180c6fc9cb27dc45e847b0ee",
+          "sha256_lf": "7e85b17f74ad0fc35ab1a1d458321db31d67351f369b42d75ce05d538ae147be",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/InPatientManagement/Services/InpBedOccupancyService.cs",
+          "sha256": "1092009fafa8fc67e28dc4fc2ba6d9932aea155cb84f36815147b8bb36458695",
+          "sha256_lf": "acc05edd5324d4d89e15854ef9e7571c78b5c6e7ca0fed5706f5ade353691366",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/InPatientManagement/Services/InpSettingService.cs",
+          "sha256": "a0aed62c14e3c7a66c507e09f47dd345bb013eb3719500e33547d85d6134d8cf",
+          "sha256_lf": "752b558a9d777d4af0c54ca2b8b844215e69d07e26b56675e4c0be5ab9fbe811",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/InPatientManagement/Services/InpEpisodeService.cs",
+          "sha256": "07a52a4fa58923bb2770c0ea8088154c56f37aeac96e30587a00b6502f897b13",
+          "sha256_lf": "7fc9227d2de9de03d065c4dc4bfb85392c41d404a9cb4ccb976dbc8c7fbb60df",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/InPatientManagement/Services/InpPlacementCorrectionService.cs",
+          "sha256": "ddf9810a6140b229353083d1c3a3b8c9b10c8179f8f1a34b7a6f293624ec1d46",
+          "sha256_lf": "66c9e903a2f9d0657924c916dc17365810d561e864561c7c5090f4860dadef24",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/InPatientManagement/Services/InpDischargeService.Departure.cs",
+          "sha256": "1614cc140ac369677d6f295c960e98146be717bba9ace4fdc4b1a4827f6a5c45",
+          "sha256_lf": "8ae517873ed62be945cab380a73c06d8f078db6873b0a4a2af03e017d10ce4a5",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/InPatientManagement/Services/InpDischargeService.Closure.cs",
+          "sha256": "d7bcb88ed4d62259dadf5a8bea2dd6f4b4d302f0690bbff2dd6e55886c0c4051",
+          "sha256_lf": "11b5448ec714146d4a903882ab5e8a8709363a2b7dbc6eac58cdc461a7c999bb",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/InPatientManagement/Services/InpRoomTransferReportService.cs",
+          "sha256": "f6807d75ab6e16e79b724a55e0133fb479d8eb3801b4968dab6f76529a6acc0f",
+          "sha256_lf": "e0c6d851688b8f0dfef1496d1343d24710db34c1c0c3592075e3cea83fc505cf",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/InPatientManagement/Services/InpIntegrationReplayService.cs",
+          "sha256": "48c516cef5370e6707267878b2d0ea6bd225940d17f77eeeb5351856c8ca1320",
+          "sha256_lf": "5f2a64d7905ae851ddc73a1e2125f2fc403f978a7b2dd3aaa5d09790fb2bc032",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/InPatientManagement/Services/InpIntegrationOutboxService.cs",
+          "sha256": "37fd2e2f4515d627a5effb4bf8627bbdc7e20d6a028ce628f56add6776108ed5",
+          "sha256_lf": "d425d13a1dc7444736dc84db3e6aa4b462c40d1283a3c2591e809bbb7d673600",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/InPatientManagement/Controllers/InpatientBedOccupancyController.cs",
+          "sha256": "46d4307a2b56d9e8bb90a769332d471ee16128104c784912cc39ed3bca2403dd",
+          "sha256_lf": "b309c82ee3e03b84f78e2de09d488a86674df305df1598d86017b3440376f76e",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/InPatientManagement/DTOs/InpatientBedOccupancyDtos.cs",
+          "sha256": "716f53b579bdd44cc70d22e1c47cd8dbabd3d920aa7d7721feea2c9679aa6d49",
+          "sha256_lf": "0f79ba8481f414d9f4cdca58735e8230bb6f6379ed5056ca522c8480ee5826b5",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Areas/HealthServices/InPatientManagement/Services/InpAdmissionTransferService.cs",
+          "sha256": "413418778d3f2508c8d5800973d1c63b72dd7be92edbf658c8d49a039373e36c",
+          "sha256_lf": "4a52c09c8ca943704a4cd9876f709cd95b495acf04682f44327bc08f1db6c200",
+          "changed_between_commits": true
+        },
+        {
+          "path": "Areas/HealthServices/InPatientManagement/Controllers/InpatientAdmissionTransferController.cs",
+          "sha256": "12605628a194f4bb2a82c3a71d146c5336fc55bdfc68ab053327da916b6ab889",
+          "sha256_lf": "08fd49754b71c0949dea3ef00757781efc7eba5b8b398e3c829a404cdf1b7f0a",
+          "changed_between_commits": true
+        },
+        {
+          "path": "Areas/HealthServices/InPatientManagement/DTOs/InpatientAdmissionTransferDtos.cs",
+          "sha256": "eb75ac6e162dc41bcf139d60c8c3d5c73f558cdb2078ab79ab25d0e2bbdd6f8a",
+          "sha256_lf": "459071b9ff81e22fd5e25031cee4ed4e9b4941385b96becfcbbd0d6b5e073498",
+          "changed_between_commits": true
+        },
+        {
+          "path": "Repositories/Configurations/HealthServices/InPatientManagement/InpBedPlacementConfiguration.cs",
+          "sha256": "15a8acf666d68de8290c421cdfd520f642eaabb618e9ac50c070f1ac23cffec9",
+          "sha256_lf": "e2b6a98d81be00edc9e29db2f021df77b4fde8282d0c25be83b0ea01161258fa",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Repositories/Configurations/HealthServices/InPatientManagement/InpBedReservationConfiguration.cs",
+          "sha256": "00b325d566ae6af030785c9655db1d73ea52c6383ae75a6c317d624aa5d5c90b",
+          "sha256_lf": "9a6d1aa31a5b9ffa3924966ab3fd9bf94d7de58665bebd6a9bbe2b73d72072bd",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Repositories/Configurations/HealthServices/MstBedConfiguration.cs",
+          "sha256": "5673d6bd77a9a41605b90fec8def0c062e58aed2a348ff247ebd7c6cfc23a0a5",
+          "sha256_lf": "2330caf8c6de93b3e4d126a9064da9585d16a06035ca0f4c059732aea652557b",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Repositories/ApplicationDbContext.cs",
+          "sha256": "ca437bb6f319f0c51a4642844f0e8b3df6344195d1cc398c39840e50c9648c16",
+          "sha256_lf": "fd4bb549661080e69003c74e174dd1b508ec515fabec8dfea040d904fd88355b",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Program.cs",
+          "sha256": "bb378c6998d3b2dbca2d3e29c6c62deabd9ae7e3fd6a2a1dea1deb322731ba1d",
+          "sha256_lf": "b80524ba0c1a24f4d38157d03d9bcfe52c39060cc81541c3c60b0d01a24e7026",
+          "changed_between_commits": true
+        },
+        {
+          "path": "Models/ApplicationUser.cs",
+          "sha256": "214a431732b187a98f4e618d20defeebcc6938069f38b6d3e413bd5aec90f45b",
+          "sha256_lf": "d32ece3d8c574f21aec0deac91bdbbd78c62d08cdbff8a3ac8afa802449e6350",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Filters/AccessPermissionFilter.cs",
+          "sha256": "e8291caa469f8bc480228e1038222d9b2c580491d4c03131f76e9ac216e0b9be",
+          "sha256_lf": "19342f0007fe604d122393bb6065b6b4c48c2b8eef4b04c0680a8a772e490cb1",
+          "changed_between_commits": false
+        },
+        {
+          "path": "Services/Security/AccessPermissionService.cs",
+          "sha256": "8ff983526c5457b631cb9e54d81cb4c14751448cf0656dc9b3bae4eac70fb85e",
+          "sha256_lf": "e43214de4ef7bb7def2d8b21a39392360f3375d36903cbfa5ddb3e5c033a3573",
+          "changed_between_commits": false
+        }
+      ]
+    },
+    "frontend": {
+      "root": "QuilvianSystemFrontendDev",
+      "head": "5aa2c7c70754e6131e4243b5ea3ee5f768b7a5d2",
+      "previous_design_head": "969acfcc04cdf31074a1911e9827c31d25ddadd0",
+      "initial_worktree_status": [],
+      "changed_paths": [
+        "src/components/view/health-services/inpatient-management/admission-transfers/inpatient-admission-transfer-list.jsx",
+        "src/components/view/health-services/inpatient-management/admission-transfers/inpatient-admission-transfer-review-step.jsx",
+        "src/components/view/health-services/inpatient-management/admission-workspace/sections/general-consent/general-consent-form-print.jsx",
+        "src/components/view/health-services/inpatient-management/admission-workspace/sections/general-consent/general-consent-section.jsx",
+        "src/components/view/health-services/inpatient-management/inpatient-admission-confirmation-step.jsx",
+        "src/components/view/health-services/inpatient-management/inpatient-admission-consent-form-step.jsx",
+        "src/components/view/health-services/inpatient-management/inpatient-admission-doctor-step.jsx",
+        "src/components/view/health-services/inpatient-management/inpatient-admission-existing-patient-step.jsx",
+        "src/components/view/health-services/inpatient-management/inpatient-admission-print-steps.jsx",
+        "src/components/view/health-services/inpatient-management/inpatient-admission-registration-step.jsx",
+        "src/components/view/health-services/inpatient-management/inpatient-admission-view.jsx",
+        "src/components/view/health-services/inpatient-management/inpatient-admission-visit-category-step.jsx",
+        "src/components/view/health-services/inpatient-management/inpatient-admission-visit-type-step.jsx",
+        "src/components/view/health-services/inpatient-management/inpatient-consent-form.jsx",
+        "src/lib/constants/health-services/inpatient-management/inpatient-admission-flow-constants.jsx",
+        "src/lib/hooks/health-services/inpatient-management/use-admission-general-consent.js",
+        "src/lib/hooks/health-services/inpatient-management/use-inpatient-admission-doctor.jsx",
+        "src/lib/hooks/health-services/inpatient-management/use-inpatient-admission-flow.jsx",
+        "src/lib/services/health-services/inpatient-management/inpatient-admission-transfer.service.js",
+        "src/lib/services/health-services/inpatient-management/inpatient-admission-workspace.service.js",
+        "src/style/health-services/inpatient-management/inpatient-admission.module.css",
+        "src/style/health-services/inpatient-management/inpatient-consent-print.module.css",
+        "src/utils/health-services/inpatient-management/inpatient-admission-encounter-utils.jsx",
+        "src/utils/health-services/inpatient-management/inpatient-admission-patient-utils.jsx",
+        "src/utils/health-services/inpatient-management/inpatient-admission-print-utils.js",
+        "src/utils/health-services/inpatient-management/inpatient-consent-utils.jsx",
+        "tests/unit/inpatient-admission-consent.test.mjs",
+        "tests/unit/inpatient-admission-deposit.test.mjs",
+        "tests/unit/inpatient-admission-transfer.test.mjs"
+      ],
+      "files": [
+        {
+          "path": "src/utils/menu-sidebar/menu-items.jsx",
+          "sha256": "17ac4754788f8d55f60079aa0d617b96dd50f1857e57ea6bf77e19192f626022",
+          "sha256_lf": "24ccfe5b9cbf49c0718529e4fb4fe7589d1990c2f3f8b5cae6b783820b944942",
+          "changed_between_commits": false
+        },
+        {
+          "path": "src/components/view/health-services/inpatient-management/inpatient-bed-board-view.jsx",
+          "sha256": "ec306d333daf1845e09057fadca5d04add17b017a9ce2fd09f94a84eeb701bac",
+          "sha256_lf": "7307ff00ae29e10a4b069197f8262bd4e21d6dc4f64714f63d244d72256f88fe",
+          "changed_between_commits": false
+        },
+        {
+          "path": "src/lib/hooks/health-services/inpatient-management/use-inpatient-bed-board.jsx",
+          "sha256": "45fc9b11c51791ad19158ab6b927b94bcd35f1dc363b4048e5588b7f2c806ced",
+          "sha256_lf": "bfae32bb1b50f83f00bd1f6e9aab0c94e359a7b199b40110fe2acc8594d1cd2a",
+          "changed_between_commits": false
+        },
+        {
+          "path": "src/lib/hooks/health-services/inpatient-management/use-inpatient-bed-board-actions.jsx",
+          "sha256": "26518c9100fa2a1c5d08cdb792fea42d5e0f2e085d546bf772733e4e4d1a629e",
+          "sha256_lf": "be00f5f00604652c969e375ffc5586ee18be493736ee157c7dc3192d3c25201f",
+          "changed_between_commits": false
+        },
+        {
+          "path": "src/lib/services/health-services/inpatient-management/bed-occupancy.service.js",
+          "sha256": "16b0b321dc6535179f06f561beaf8a8d713da8de5b650c8ec332be9ab937e28c",
+          "sha256_lf": "4f7ea7c9dd332e657cc694dc103b3b2892445d9dd9431c0c35cd71fc3b28ce02",
+          "changed_between_commits": false
+        },
+        {
+          "path": "src/utils/health-services/inpatient-management/inpatient-bed-utils.jsx",
+          "sha256": "2b5a09e4090c9c946b24ddb7a1a63ff03cacf959c76647199cdc91b8d6719200",
+          "sha256_lf": "0766a44858c0335a8ab3479c2965b3b15bad4d898fcf0f228dd17bde553ad2cc",
+          "changed_between_commits": false
+        },
+        {
+          "path": "src/lib/hooks/health-services/inpatient-management/use-inpatient-episode-detail.jsx",
+          "sha256": "4b046e1846f81200bcb21351ef5979b9d387d9b53db0d2e2e067b8c9c6fb714e",
+          "sha256_lf": "b9b1dc4e05ef54128be187b9506e4e154ef5b7aa4541dc7c2dbb2cc8c18a2304",
+          "changed_between_commits": false
+        },
+        {
+          "path": "src/lib/hooks/health-services/inpatient-management/use-inpatient-admission-bed.jsx",
+          "sha256": "88b5d751eccf07d47738603195d2781cf5d1ee0c336df0b9f05d0d90d1d250af",
+          "sha256_lf": "52a8ab2e671b045f96b7ef6fb83e7984caa527e79d9ec2974f35d0d5cb631511",
+          "changed_between_commits": false
+        },
+        {
+          "path": "src/lib/hooks/health-services/inpatient-management/use-inpatient-admission-flow.jsx",
+          "sha256": "3a7c27e7138a1cfc6f369ea15c5d8fd2f7bc068b28e8c7d7cb43f217b9c0bd4b",
+          "sha256_lf": "8ce31f57450cb1f0a43ed5b446043657c92be847f97015ce821954b5ba1f8e29",
+          "changed_between_commits": true
+        },
+        {
+          "path": "src/lib/services/health-services/inpatient-management/inpatient-admission-transfer.service.js",
+          "sha256": "91d95db5b11d37cc522fb28e1de5a51330fad7fb4a914666fe7f9863475d49d5",
+          "sha256_lf": "6c74b569459de3acd14bbc5667c2d1fe444bb8ba816bdaad8fb7137fccef3390",
+          "changed_between_commits": true
+        },
+        {
+          "path": "src/components/view/health-services/inpatient-management/admission-transfers/inpatient-admission-transfer-list.jsx",
+          "sha256": "c1c80fe6927efdfe5cd84c2f143e94a8b4404e4dd4f261458ad895ab8fc8124d",
+          "sha256_lf": "8c8f5f572c20ddcf901b186e356b99d6b94669003ea123445f2ba455433d03eb",
+          "changed_between_commits": true
+        },
+        {
+          "path": "tests/unit/inpatient-bed-status.test.mjs",
+          "sha256": "97d02ae6dcdff071ada52cf15549299e27becfd32709109d318dbe912cbaddae",
+          "sha256_lf": "da171d9c015642a44d30718ca9ae21234c6489c842656d9b2003ff69b7ddbd40",
+          "changed_between_commits": false
+        },
+        {
+          "path": "tests/unit/inpatient-bed-board.test.mjs",
+          "sha256": "d16e430d1d60d2cb1929642fc555c4f7557ec7c5b00534ce1b8a8dbb1195aad0",
+          "sha256_lf": "47fd90c607435329045948ce4f7d9b9176eb93afcce1bc7f6b29d79faefecff1",
+          "changed_between_commits": false
+        },
+        {
+          "path": "tests/e2e/inpatient-bed-board.spec.mjs",
+          "sha256": "86d24bbbf8bbe00f524432d8a42733142ea010412eb301f599adcb311e1aa618",
+          "sha256_lf": "718699bdee920ef4fa43bf6a153a6d015e39cf0b9e8ec096701158004a690bc9",
+          "changed_between_commits": false
+        }
+      ]
+    }
+  },
+  "inputs": [
+    {
+      "path": "docs/module-blueprints/rawat-inap/00-interview-decisions.md",
+      "sha256": "41dd035d62e7804dff7e796712e25410152fae8e67b9444257ba73e0a6a30b3d",
+      "sha256_lf": "b7a796789968e9200d48734d18e18e12b3801b95c85ebad81b83e0a9fdfcd5b2"
+    },
+    {
+      "path": "docs/module-blueprints/rawat-inap/evidence/02-requirement-completeness-gate.md",
+      "sha256": "418066b0f721717fcb44392efc2d410b474987e030ea49352368e90a628dab2a",
+      "sha256_lf": "0be29332f672fc2712ff5bf7ec96148fd00a55bddb2aa0d5d611ebe8b05864ef"
+    },
+    {
+      "path": "docs/module-blueprints/rawat-inap/01-existing-capability-map.md",
+      "sha256": "44d3bdc9059b45d6b41bdebba973b0afc50a84dbb187f8a1ef0709b5d7ccecf9",
+      "sha256_lf": "e8e454cbaed3f0bfd39793bbb4b82860ed9eb921b9154c24554b2bf06fb6e3da"
+    }
+  ],
+  "observed_external_frontend_changes": {
+    "description": "Perubahan lockfile terlihat selama sesi. Task ini tidak menjalankan package manager atau menulis frontend; berkas dipertahankan.",
+    "files": [
+      {
+        "path": "package-lock.json",
+        "status": " M",
+        "sha256": "626dfb1c92cf4e40a33f031b65f577a40e9d14cd70ac53d79206d11ffb0ebfc7"
+      },
+      {
+        "path": "yarn.lock",
+        "status": " M",
+        "sha256": "0ae3f55f6b083867691dc2b1b7676341814ecdad0e87be84b9054ae370ae978e"
+      }
+    ]
+  }
+}
