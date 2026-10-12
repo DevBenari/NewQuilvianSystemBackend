@@ -101275,6 +101275,13 @@ namespace QuilvianSystemBackend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("AdmissionTransferId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AdmissionTransferSourceType")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<DateTime?>("AgeCalculatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -101504,6 +101511,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("ServiceUnitId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("SourceEncounterId")
+                        .HasColumnType("uuid");
+
                     b.Property<int?>("TotalAgeDaysAtEncounter")
                         .HasColumnType("integer");
 
@@ -101560,6 +101570,12 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("RoomId");
 
                     b.HasIndex("ServiceUnitId");
+
+                    b.HasIndex("SourceEncounterId");
+
+                    b.HasIndex("AdmissionTransferSourceType", "AdmissionTransferId")
+                        .IsUnique()
+                        .HasFilter("\"AdmissionTransferId\" IS NOT NULL");
 
                     b.HasIndex("AgeCategoryId", "AgeCategoryCodeSnapshot", "IsDelete");
 
@@ -128531,6 +128547,11 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter", "SourceEncounter")
+                        .WithMany()
+                        .HasForeignKey("SourceEncounterId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("AgeCategory");
 
                     b.Navigation("CancelledByUser");
@@ -128562,6 +128583,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Room");
 
                     b.Navigation("ServiceUnit");
+
+                    b.Navigation("SourceEncounter");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounterGuarantor", b =>

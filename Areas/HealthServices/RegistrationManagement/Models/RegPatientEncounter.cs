@@ -208,6 +208,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         [MaxLength(100)]
         public string? RegistrationIdempotencyKey { get; set; }
 
+        /// <summary>Kunjungan asal transfer; catatan klinis tetap pada kunjungan ini.</summary>
+        public Guid? SourceEncounterId { get; set; }
+        public Guid? AdmissionTransferId { get; set; }
+        [MaxLength(20)]
+        public string? AdmissionTransferSourceType { get; set; }
+        public RegPatientEncounter? SourceEncounter { get; set; }
+
         // =========================
         // NAVIGATION
         // =========================

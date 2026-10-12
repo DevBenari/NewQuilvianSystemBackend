@@ -560,3 +560,10 @@ Master hierarchy yang membuat bed tidak layak harus masuk shared predicate dan s
 ### 16.3 Evidence
 
 BM-F01–07 menjadi regression obligations; detail positif/negatif ada pada acceptance-test-matrix 22. Belum ada hasil target aplikasi/PG. Bukti SOP/assignment/class actual tidak digantikan parameter atau contoh fixture.
+
+
+## Amandemen EPS-006 - 12 Oktober 2026
+
+SourceType harus Emergency atau Outpatient (400). Sumber ranap sah wajib ada (404), status Confirmed dan belum dipakai (409), pasien/kunjungan asal cocok (422). Bed harus sesuai unit/kelas request (422) dan versi current (409). Penjamin divalidasi owner Registrasi; deposit positif hanya Cash dengan metode Billing yang sah dan shift aktif bila tunai. Kegagalan membatalkan seluruh transaksi.
+
+[Acuan implementasi EPS-006 versi 1.0](admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](../task/report/frontend/FIX-EPS-006-08.md).

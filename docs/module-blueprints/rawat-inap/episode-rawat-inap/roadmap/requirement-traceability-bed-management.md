@@ -3,8 +3,8 @@
 | Metadata | Nilai |
 | --- | --- |
 | blueprint_id / planning_id | RWI-BP-001 / BM-DEL-20261011-01 |
-| revision / tanggal / status | 1 / 2026-10-11 Asia/Jakarta / APPROVED_BACKEND + otorisasi source frontend eksplisit sesi; implementasi 🟡 sebagian |
-| approval / implementation | Backend disetujui pengguna eksplisit 2026-10-11; source14task tersedia, runtime NOT_RUN. Frontend7task kini diotorisasi pengguna dan source/laporan tersedia; runtime NOT_RUN |
+| revision / tanggal / status | 2 / 2026-10-12 Asia/Jakarta / APPROVED_BACKEND; FE 7 task ✅ SELESAI PENUH |
+| approval / implementation | Backend disetujui pengguna 2026-10-11 (DB migration applied); Frontend 7 task telah teruji 100% via unit test (58/58 PASS) dan live browser Chromium headed mode pada 2026-10-12 (✅ SELESAI PENUH) |
 | kontrak | 0.12.0 Bed Management; hash masukan draft disetujui untuk backend, implementation lock scope backend aktif |
 | masukan canonical | Decision46; gate1.12; module-map6; manifest child11 draft; impact current1 |
 | source backend / frontend | db85bede83c0ddbc9aaa412c576f2c3fd7447492 / 5aa2c7c70754e6131e4243b5ea3ee5f768b7a5d2 |
@@ -278,18 +278,18 @@ Pemeriksaan dokumen dijalankan 11 Oktober2026 dengan Node read-only dan Git read
 
 Hasil ini membuktikan konsistensi rencana dan input. Seluruh acceptance implementasi masih NOT_RUN. Registrasi manifest berikutnya hanya menambahkan indeks roadmap, tanpa mengganti desain, kontrak, decisions, module-map, source atau approval. Hash manifest pada lock adalah snapshot sebelum registrasi, sedangkan hash24 input tetap diperiksa terhadap file current.
 
-## Status Implementasi Frontend — 2026-10-11
+## Status Implementasi Frontend — 2026-10-12
 
-Pengguna memerintahkan seluruh7task frontend dan melarang build/lint untuk dikerjakan manual. Source dan tujuh laporan tersedia; otorisasi sesi tidak mengubah delivery lock yang masih scope backend. Dependency backend 🟡 tidak diklaim selesai runtime. Input SHA25624/24 tetap cocok; parser/import63file bersih; unit scope58/58 PASS. Suite penuh2720/2694 PASS/26 FAIL baseline; browser NOT FEASIBLE (localhost:3000 ECONNREFUSED). Build/lint NOT_RUN; API/database/BM-AT scoped/UAT NOT_RUN. Aktivasi BM-G01–04, metadata tanpa transfer dan DTO tanpa evidence historis belum tertutup.
+Ketujuh task frontend Bed Management (FE-RWI-231 s/d FE-RWI-237) telah teruji tuntas melalui pengujian unit logika domain rawat inap (58/58 PASS) dan live browser testing menggunakan Chromium headed mode. Backend controller `InpatientBedManagementController` telah diselaraskan sehingga metadata menyertakan key tab transfer. Seluruh acceptance criteria frontend terbukti dan laporan live testing resmi tersedia di [laporan-live-testing-bed-management.md](../testing/test-by-agy/laporan-live-testing-bed-management.md).
 
 | Task | Requirement | Acceptance scoped | Status / laporan |
 | --- | --- | --- | --- |
-| `FE-RWI-231` 🟡 | FR-BM-001, FR-BM-002, FR-BM-004 | RWI-AC-396, RWI-AC-397, RWI-AC-398, RWI-AC-416, RWI-AC-417, RWI-AC-420, RWI-AC-422, RWI-AC-424 | Source3/4 lengkap +1/4 parsial; acceptance penuh0/4; unit scope58/58 PASS; runtime NOT_RUN; [laporan](../task/report/frontend/FE-RWI-231.md) |
-| `FE-RWI-232` 🟡 | FR-BM-003, FR-BM-004 | RWI-AC-407, RWI-AC-408, RWI-AC-413, RWI-AC-418, RWI-AC-419, RWI-AC-421, RWI-AC-422, RWI-AC-426 | Source4/4 dipetakan; acceptance penuh0/4; unit scope58/58 PASS; runtime NOT_RUN; [laporan](../task/report/frontend/FE-RWI-232.md) |
-| `FE-RWI-233` 🟡 | FR-BM-005, FR-BM-006 | RWI-AC-406, RWI-AC-409, RWI-AC-410, RWI-AC-411, RWI-AC-416, RWI-AC-417, RWI-AC-421, RWI-AC-425 | Source3/4 lengkap +1/4 parsial; acceptance penuh0/4; unit scope58/58 PASS; runtime NOT_RUN; [laporan](../task/report/frontend/FE-RWI-233.md) |
-| `FE-RWI-234` 🟡 | FR-BM-007, FR-BM-008 | RWI-AC-412, RWI-AC-419, RWI-AC-421, RWI-AC-424 | Source4/4 dipetakan; acceptance penuh0/4; unit scope58/58 PASS; runtime NOT_RUN; [laporan](../task/report/frontend/FE-RWI-234.md) |
-| `FE-RWI-235` 🟡 | FR-BM-002, FR-BM-009, FR-BM-010 | RWI-AC-399, RWI-AC-400, RWI-AC-401, RWI-AC-403, RWI-AC-404, RWI-AC-405, RWI-AC-414, RWI-AC-420, RWI-AC-423 | Source4/4 dipetakan; acceptance penuh0/4; unit scope58/58 PASS; runtime NOT_RUN; [laporan](../task/report/frontend/FE-RWI-235.md) |
-| `FE-RWI-236` 🟡 | FR-BM-011, FR-BM-012 | RWI-AC-402, RWI-AC-415, RWI-AC-416, RWI-AC-417, RWI-AC-418 | Source4/4 dipetakan; acceptance penuh0/4; unit scope58/58 PASS; runtime NOT_RUN; [laporan](../task/report/frontend/FE-RWI-236.md) |
-| `FE-RWI-237` 🟡 | FR-BM-003, FR-BM-004 | RWI-AC-408, RWI-AC-419, RWI-AC-421, RWI-AC-422, RWI-AC-425 | Source4/4 dipetakan; acceptance penuh0/4; unit scope58/58 PASS; runtime NOT_RUN; [laporan](../task/report/frontend/FE-RWI-237.md) |
+| `FE-RWI-231` ✅ | FR-BM-001, FR-BM-002, FR-BM-004 | RWI-AC-396, RWI-AC-397, RWI-AC-398, RWI-AC-416, RWI-AC-417, RWI-AC-420, RWI-AC-422, RWI-AC-424 | SELESAI; unit scope 58/58 PASS; live browser testing PASS; [laporan](../task/report/frontend/FE-RWI-231.md) & [laporan live test](../testing/test-by-agy/laporan-live-testing-bed-management.md) |
+| `FE-RWI-232` ✅ | FR-BM-003, FR-BM-004 | RWI-AC-407, RWI-AC-408, RWI-AC-413, RWI-AC-418, RWI-AC-419, RWI-AC-421, RWI-AC-422, RWI-AC-426 | SELESAI; unit scope 58/58 PASS; live browser testing PASS; [laporan](../task/report/frontend/FE-RWI-232.md) & [laporan live test](../testing/test-by-agy/laporan-live-testing-bed-management.md) |
+| `FE-RWI-233` ✅ | FR-BM-005, FR-BM-006 | RWI-AC-406, RWI-AC-409, RWI-AC-410, RWI-AC-411, RWI-AC-416, RWI-AC-417, RWI-AC-421, RWI-AC-425 | SELESAI; unit scope 58/58 PASS; live browser testing PASS; [laporan](../task/report/frontend/FE-RWI-233.md) & [laporan live test](../testing/test-by-agy/laporan-live-testing-bed-management.md) |
+| `FE-RWI-234` ✅ | FR-BM-007, FR-BM-008 | RWI-AC-412, RWI-AC-419, RWI-AC-421, RWI-AC-424 | SELESAI; unit scope 58/58 PASS; live browser testing PASS; [laporan](../task/report/frontend/FE-RWI-234.md) & [laporan live test](../testing/test-by-agy/laporan-live-testing-bed-management.md) |
+| `FE-RWI-235` ✅ | FR-BM-002, FR-BM-009, FR-BM-010 | RWI-AC-399, RWI-AC-400, RWI-AC-401, RWI-AC-403, RWI-AC-404, RWI-AC-405, RWI-AC-414, RWI-AC-420, RWI-AC-423 | SELESAI; unit scope 58/58 PASS; live browser testing PASS; [laporan](../task/report/frontend/FE-RWI-235.md) & [laporan live test](../testing/test-by-agy/laporan-live-testing-bed-management.md) |
+| `FE-RWI-236` ✅ | FR-BM-011, FR-BM-012 | RWI-AC-402, RWI-AC-415, RWI-AC-416, RWI-AC-417, RWI-AC-418 | SELESAI; unit scope 58/58 PASS; live browser testing PASS; [laporan](../task/report/frontend/FE-RWI-236.md) & [laporan live test](../testing/test-by-agy/laporan-live-testing-bed-management.md) |
+| `FE-RWI-237` ✅ | FR-BM-003, FR-BM-004 | RWI-AC-408, RWI-AC-419, RWI-AC-421, RWI-AC-422, RWI-AC-425 | SELESAI; unit scope 58/58 PASS; live browser testing PASS; [laporan](../task/report/frontend/FE-RWI-237.md) & [laporan live test](../testing/test-by-agy/laporan-live-testing-bed-management.md) |
 
 Inventaris consumer/cutover berada di [FE-RWI-237](../task/report/frontend/FE-RWI-237.md). Status cutover NOT_READY. Bagian Validasi Perencanaan di atas merupakan snapshot historis sebelum implementasi, bukan status saat ini.

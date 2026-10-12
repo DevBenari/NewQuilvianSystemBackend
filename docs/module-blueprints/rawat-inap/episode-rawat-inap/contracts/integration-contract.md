@@ -376,3 +376,10 @@ Tidak ada integrasi eksternal baru, worker expiry, reminder, offline workflow at
 ### 11.4 Konsumen internal reserve — finalisasi 11 Oktober 2026
 
 `InpAdmissionTransferService` juga memanggil reserve, sehingga ikut M3 dan guard INT-BM-02/07. Komposisi pembukaan episode, reserve, disposisi existing, dan receipt memakai satu transaksi caller sebagaimana backend14.14; layanan yang ikut tidak membuka transaksi bersarang. Tidak menambah integrasi eksternal, event Billing, atau aturan klinis IGD. Audit current dan fingerprint baru ada pada evidence/bed-management-impact-scan-20261011.md; arsip audit62 lama tidak tersedia untuk verifikasi ulang.
+
+
+## Amandemen EPS-006 - 12 Oktober 2026
+
+Orchestrator transfer existing memanggil OpenAdmission, owner Registrasi untuk source pembayaran dan relasi asal, ReserveBedCore, serta Billing TopUp dalam satu outer transaction. Billing tidak membuka nested transaction. Receipt bed actor/key/hash serta source row lock dan unique source index menjaga replay/duplikasi. Clinical letter poli tetap Issued; status pemakaian diturunkan dari relasi Registrasi.
+
+[Acuan implementasi EPS-006 versi 1.0](admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](../task/report/frontend/FIX-EPS-006-08.md).

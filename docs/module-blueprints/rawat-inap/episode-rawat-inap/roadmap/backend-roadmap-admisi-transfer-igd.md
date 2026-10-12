@@ -6,8 +6,8 @@
 | Blueprint | `RWI-BP-001` revision `11`, sub-modul `episode-rawat-inap`, kontrak **`0.12.0` `approved`** 10 Oktober 2026 atas instruksi perluasan admisi transfer IGD/Rawat Jalan |
 | Status roadmap | **`APPROVED`** — disetujui pengguna 10 Oktober 2026 sebagai rencana pengiriman resmi alur admisi transfer pasien IGD dan Poliklinik ke Rawat Inap |
 | Ditulis | 10 Oktober 2026 oleh `plan-module-delivery` |
-| Masukan dan approval | Analisis Bisnis (Alur 4 Tahap A-B-C-D), integrasi `EmergencyInstallationManagement` (`EmgDisposition` status `Confirmed` / `AdmitToInpatient`), `04-prd-to-mvp.md`, `contracts/api-contract.md` bagian 11.7, `02-backend-architecture.md` |
-| Keputusan Bisnis | `RWI-DEC-274` (Antrean Terpadu Transfer Pasien IGD/Rawat Jalan), `RWI-DEC-275` (Eksekusi Otomatis Disposisi IGD & Penautan Episode), `RWI-DEC-276` (Batas Peringatan Overdue Waktu Tunggu Kamar > 60 Menit) |
+| Masukan dan approval | Analisis Bisnis (Alur 4 Tahap A-B-C-D), integrasi `EmergencyInstallationManagement` (`EmgDisposition` status `Confirmed` / `DispositionType.Code=RANAP`), `04-prd-to-mvp.md`, `contracts/api-contract.md` bagian 13.8 dan amandemen EPS-006, `02-backend-architecture.md` |
+| Keputusan Bisnis | `EPS-006/K-02` (Antrean Terpadu Transfer Pasien IGD/Rawat Jalan), `EPS-006/K-01/K-03` (Eksekusi Otomatis Disposisi IGD & Penautan Episode), `EPS-006/WAIT-60` (Batas Peringatan Overdue Waktu Tunggu Kamar > 60 Menit) |
 | Source SHA | Backend `fdf85a07` / branch `MHamzah`; Frontend `dd2cbf7c` / branch `HamzahV2` |
 | Deret ID | `BE-RWI-206` s.d. `BE-RWI-207` |
 | Roadmap pendamping | `frontend-roadmap-admisi-transfer-igd.md`, `requirement-traceability-admisi-transfer-igd.md` |
@@ -32,16 +32,16 @@
 ```mermaid
 flowchart TD
     subgraph backend[Roadmap Backend: Admisi Transfer IGD]
-        BE206["BE-RWI-206: Endpoint Antrean & Detail Transfer Pasien IGD/Poli"]
-        BE207["BE-RWI-207: Eksekusi Disposisi & Pembukaan Episode Ranap Terpadu"]
+        BE206["? BE-RWI-206: Endpoint Antrean & Detail Transfer Pasien IGD/Poli"]
+        BE207["? BE-RWI-207: Eksekusi Disposisi & Pembukaan Episode Ranap Terpadu"]
         
         BE206 --> BE207
     end
     
     subgraph frontendPrereq[Prasyarat Implementasi Frontend]
-        FE228["FE-RWI-228: Komponen Tabel Antrean Transfer IGD"]
-        FE229["FE-RWI-229: Pre-fill Stepper Admisi Pasien Transfer"]
-        FE230["FE-RWI-230: Penyelesaian Admisi & Lembar Serah Terima"]
+        FE228["? FE-RWI-228: Komponen Tabel Antrean Transfer IGD"]
+        FE229["? FE-RWI-229: Pre-fill Stepper Admisi Pasien Transfer"]
+        FE230["? FE-RWI-230: Penyelesaian Admisi & Lembar Serah Terima"]
     end
     
     BE206 -.->|Menyediakan data antrean| FE228
@@ -55,8 +55,8 @@ flowchart TD
 
 | Task ID | Outcome | Requirement / Decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance Criteria | Verifikasi | Risiko / Pemilik | Definition of Done (DoD) |
 |---|---|---|---|---|---|---|---|---|---|---|
-| [`BE-RWI-206`](../task/report/backend/BE-RWI-206.md) ✅ | Petugas admisi rawat inap dapat membaca daftar antrean pasien transfer dari IGD dan Poliklinik yang membutuhkan kamar, lengkap dengan lama waktu tunggu dan diagnosa awal | `FR-RI-187`, `RWI-DEC-274`, `RWI-DEC-276` | API Contract `0.12.0` (11.7.1 & 11.7.2), Validation Matrix `0.12.0` | `EmgVisit`, `EmgDisposition`, `MstServiceUnit`, `InpAdmissionReferral` | Controller, DTO query & response, Service pembaca disposisi IGD status Confirmed & belum Executed | — | `RWI-AC-396`, `RWI-AC-397` | Unit/Integration test query antrean (pasien IGD status Confirmed muncul; pasien Executed/Cancelled tidak muncul; perhitungan `WaitingMinutes` & `IsOverdue`) | Data relasi null pada dokter perujuk / M. Hamzah | ✅ **Selesai 10 Oktober 2026.** DTO, service, controller antrean transfer IGD aktif; [laporan](../task/report/backend/BE-RWI-206.md) |
-| [`BE-RWI-207`](../task/report/backend/BE-RWI-207.md) ✅ | Pembukaan episode rawat inap dari pasien transfer secara atomik menerbitkan `InpatientEpisode` dan mengupdate status `EmgDisposition` IGD menjadi `Executed` | `FR-RI-188`, `RWI-DEC-275` | API Contract `0.12.0` (11.7.3), State Transition `0.12.0` | `InpatientEpisodeService`, `EmergencyDispositionService`, `InpEpisode` | DTO `OpenAdmissionFromTransferRequest`, validasi disposisi belum pernah dieksekusi, transaksi simpan episode + eksekusi disposisi | `BE-RWI-206` | `RWI-AC-398`, `RWI-AC-399` | Transactional rollback test (bila alokasi bed gagal, disposisi IGD tidak boleh berubah; bila sukses, status IGD menjadi Executed dan tanggal eksekusi terisi) | Lock konkurensi pada `EmgDisposition` / Tim Database | ✅ **Selesai 10 Oktober 2026.** Transaksi eksekusi episode + status IGD Executed aktif; [laporan](../task/report/backend/BE-RWI-207.md) |
+| [`BE-RWI-206`](../task/report/backend/BE-RWI-206.md) 🟡 | Petugas admisi rawat inap dapat membaca daftar antrean pasien transfer dari IGD dan Poliklinik yang membutuhkan kamar, lengkap dengan lama waktu tunggu dan diagnosa awal | `FR-RI-187`, `EPS-006/K-02`, `EPS-006/WAIT-60` | EPS-006 1.0 (admission-transfer-repair-006.md), Validation Matrix `0.12.0` | `EmgVisit`, `EmgDisposition`, `MstServiceUnit`, `InpAdmissionReferral` | Controller, DTO query & response, Service pembaca disposisi IGD status Confirmed & belum Executed | — | `RWI-AC-396`, `RWI-AC-397` | Unit/Integration test query antrean (pasien IGD status Confirmed muncul; pasien Executed/Cancelled tidak muncul; perhitungan `WaitingMinutes` & `IsOverdue`) | Data relasi null pada dokter perujuk / M. Hamzah | 🟡 **Sebagian - diperiksa ulang 12 Oktober 2026.** DTO, service, controller antrean transfer IGD aktif; [laporan](../task/report/backend/BE-RWI-206.md) |
+| [`BE-RWI-207`](../task/report/backend/BE-RWI-207.md) 🟡 | Pembukaan episode rawat inap dari pasien transfer secara atomik menerbitkan `InpatientEpisode` dan mengupdate status `EmgDisposition` IGD menjadi `Executed` | `FR-RI-188`, `EPS-006/K-01/K-03` | EPS-006 1.0 (admission-transfer-repair-006.md), State Transition `0.12.0` | `InpatientEpisodeService`, `EmergencyDispositionService`, `InpEpisode` | DTO `OpenAdmissionFromTransferRequest`, validasi disposisi belum pernah dieksekusi, transaksi simpan episode + eksekusi disposisi | `BE-RWI-206` | `RWI-AC-398`, `RWI-AC-399` | Transactional rollback test (bila alokasi bed gagal, disposisi IGD tidak boleh berubah; bila sukses, status IGD menjadi Executed dan tanggal eksekusi terisi) | Lock konkurensi pada `EmgDisposition` / Tim Database | 🟡 **Sebagian - diperiksa ulang 12 Oktober 2026.** Transaksi eksekusi episode + status IGD Executed aktif; [laporan](../task/report/backend/BE-RWI-207.md) |
 
 ---
 
@@ -135,8 +135,8 @@ flowchart TD
   4. Backend menerbitkan episode rawat inap baru `RWI-20261010-0045`, mencatat bed terisi, dan mengubah status disposisi IGD menjadi `Executed`.
   5. Jika ada kesalahan sistem saat booking kamar, transaksi dibatalkan sepenuhnya sehingga status IGD tidak berubah menjadi `Executed` secara keliru.
 - **Spesifikasi Endpoint (Bergaya Swagger):**
-  - **Tag:** `[Tags("Health Services / Inpatient Management / Inpatient Episode")]`
-  - **Endpoint:** `POST /api/v1/health-services/inpatient-management/episodes/open-from-transfer`
+  - **Tag:** `[Tags("Health Services / Inpatient Management / Inpatient Admission Transfer")]`
+  - **Endpoint:** `POST /api/v1/health-services/inpatient-management/admission-transfers/admit`
     - **Method:** `POST`
     - **Auth:** `Bearer JWT` (Hak Akses: `InpatientEpisode : Create`)
     - **Payload Request:**
@@ -149,7 +149,9 @@ flowchart TD
         "patientClassId": "5da91c78-1234-4567-89ab-cdef01234567",
         "doctorId": "1b9a2345-6789-01bc-def2-34567890abcd",
         "bedId": "9e2c3456-7890-12ab-cdef-45678901bcde",
-        "paymentScheme": "BPJS",
+        "paymentType": 2,
+        "patientInsuranceId": "00000000-0000-0000-0000-000000000021",
+        "expectedBedVersion": 8,
         "depositAmount": 0,
         "notes": "Transfer dari IGD, indikasi DBD trombositopenia"
       }
@@ -164,12 +166,20 @@ flowchart TD
         "success": true,
         "message": "Episode rawat inap dari transfer IGD berhasil diterbitkan.",
         "data": {
-          "episodeId": "f12a3456-7890-bcde-f123-456789abcdef",
+          "id": "f12a3456-7890-bcde-f123-456789abcdef",
           "episodeNumber": "RWI-20261010-0045",
           "patientId": "8b51d7c3-3f19-459f-b7a4-31ea6785dc91",
-          "bedNumber": "Melati-03",
-          "transferStatus": "Executed",
-          "executedAt": "2026-10-10T10:35:00Z"
+          "encounterId": "00000000-0000-0000-0000-000000000009",
+          "sourceEncounterId": "00000000-0000-0000-0000-000000000010",
+          "admissionTransferId": "c4b9671d-d4e5-47e9-a359-563d76e73001",
+          "admissionTransferSourceType": "Emergency",
+          "transferReservation": {
+            "id": "00000000-0000-0000-0000-000000000011",
+            "episodeId": "f12a3456-7890-bcde-f123-456789abcdef",
+            "bedId": "9e2c3456-7890-12ab-cdef-45678901bcde"
+          },
+          "transferDeposit": null,
+          "operationMeta": { "isReplay": false, "committedVersion": 9 }
         }
       }
       ```
@@ -178,6 +188,24 @@ flowchart TD
       {
         "success": false,
         "message": "Pasien transfer ini sudah selesai diproses admisi atau dibatalkan oleh IGD.",
-        "errorCode": "INP_TRANSFER_ALREADY_EXECUTED"
+        "errorCode": "TRANSFER_ALREADY_PROCESSED"
       }
       ```
+
+
+## Status koreksi EPS-006 - 12 Oktober 2026
+
+Status task historis di atas dikoreksi menjadi sebagian; klaim selesai lama tidak menjadi bukti runtime pasangan branch ini. Acuan route, payload dan lifecycle final: [amandemen EPS-006](../contracts/admission-transfer-repair-006.md). ID RWI-DEC-274/275/276 lama tidak dipakai untuk keputusan admisi karena bertabrakan dengan keputusan Bed Management. EPS-006/WAIT-60 hanya merujuk ambang existing 60 menit.
+
+Backend MHamzah dan frontend HamzahV2 telah diperbaiki pada working tree. Backend build Repair006: 0 error; QBE strict: 0 violation. Uji frontend terarah: 28/28 lulus. Bukti browser dan gerbang rilis: [FIX-EPS-006-08](../task/report/frontend/FIX-EPS-006-08.md). Migration belum diterapkan; uji transaksi PostgreSQL belum dilakukan.
+
+| Task perbaikan | Pemilik | Status | Laporan |
+| --- | --- | --- | --- |
+| FIX-EPS-006-01 | backend | ✅ | [Laporan](../task/report/backend/FIX-EPS-006-01.md) |
+| FIX-EPS-006-02 | backend | 🟡 | [Laporan](../task/report/backend/FIX-EPS-006-02.md) |
+| FIX-EPS-006-03 | backend | 🟡 | [Laporan](../task/report/backend/FIX-EPS-006-03.md) |
+| FIX-EPS-006-04 | frontend | 🟡 | [Laporan](../task/report/frontend/FIX-EPS-006-04.md) |
+| FIX-EPS-006-05 | frontend | 🟡 | [Laporan](../task/report/frontend/FIX-EPS-006-05.md) |
+| FIX-EPS-006-06 | frontend | 🟡 | [Laporan](../task/report/frontend/FIX-EPS-006-06.md) |
+| FIX-EPS-006-07 | backend | 🟡 | [Laporan](../task/report/backend/FIX-EPS-006-07.md) |
+| FIX-EPS-006-08 | frontend | 🟡 | [Laporan](../task/report/frontend/FIX-EPS-006-08.md) |

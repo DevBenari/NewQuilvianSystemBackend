@@ -1428,6 +1428,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return (false, "Pasien wajib dipilih.");
             }
 
+            if (request.ServiceUnitId == Guid.Empty && request.EncounterType == EncounterType.Inpatient)
+            {
+                var defaultInpatientUnit = await _dbContext.Set<MstServiceUnit>()
+                    .AsNoTracking()
+                    .Where(x => x.IsActive && !x.IsDelete && x.ServiceUnitType == ServiceUnitType.Inpatient && x.IsAvailableForRegistration)
+                    .OrderBy(x => x.SortOrder)
+                    .ThenBy(x => x.ServiceUnitName)
+                    .Select(x => (Guid?)x.Id)
+                    .FirstOrDefaultAsync();
+
+                if (defaultInpatientUnit.HasValue)
+                {
+                    request.ServiceUnitId = defaultInpatientUnit.Value;
+                }
+            }
+
             if (request.ServiceUnitId == Guid.Empty)
             {
                 return (false, "Service unit wajib dipilih.");
@@ -1484,19 +1500,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 }
             }
 
-            if (request.ServiceUnitId == Guid.Empty && request.EncounterType == EncounterType.Inpatient)
-            {
-                var defaultInpatientUnit = await _dbContext.Set<MstServiceUnit>()
-                    .AsNoTracking()
-                    .Where(x => x.IsActive && !x.IsDelete && x.ServiceUnitType == ServiceUnitType.Inpatient && x.IsAvailableForRegistration)
-                    .Select(x => (Guid?)x.Id)
-                    .FirstOrDefaultAsync();
 
-                if (defaultInpatientUnit.HasValue)
-                {
-                    request.ServiceUnitId = defaultInpatientUnit.Value;
-                }
-            }
 
             var serviceUnitExists = await _dbContext.Set<MstServiceUnit>()
                 .AsNoTracking()

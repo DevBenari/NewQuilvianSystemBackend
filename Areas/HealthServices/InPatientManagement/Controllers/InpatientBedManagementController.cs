@@ -42,6 +42,7 @@ public class InpatientBedManagementController(InpBedManagementQueryService queri
         return Ok(ApiResponse<object>.Ok(new {
             Tabs = new[] { new { key = "monitoring", label = "Monitoring", allowed = actions.Contains("Read") },
                 new { key = "housekeeping", label = "Pembersihan", allowed = actions.Contains("StartCleaning") || actions.Contains("CompleteCleaning") || actions.Contains("VerifyReadiness") },
+                new { key = "transfer", label = "Transfer", allowed = actions.Contains("Read") },
                 new { key = "history", label = "Riwayat penggunaan", allowed = actions.Contains("ReadUsageHistory") } },
             BedStatuses = InpBedManagementQueryService.StatusLabels.Select(x => new { code = x.Key, label = x.Value }),
             TransferCategories = new[] { new { code = 1, label = "DownGrade" }, new { code = 2, label = "UpGrade" }, new { code = 3, label = "SameGrade" } },

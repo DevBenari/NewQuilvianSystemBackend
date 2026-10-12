@@ -132,6 +132,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// </remarks>
     public class InpatientEpisodeDetailResponse
     {
+        public Guid? SourceEncounterId { get; set; }
+        public Guid? AdmissionTransferId { get; set; }
+        public string? AdmissionTransferSourceType { get; set; }
+        public BedReservationResponse? TransferReservation { get; set; }
+        public QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos.DepositResponse? TransferDeposit { get; set; }
         public BedOperationMeta? OperationMeta { get; set; } public int Version { get; set; }
         public Guid Id { get; set; }
 

@@ -1409,3 +1409,10 @@ Gunakan role tablist/tab/tabpanel, aria-selected, keyboard navigation/focus retu
 ### 15.6 Konsumen admisi transfer IGD — finalisasi 11 Oktober 2026
 
 `src/lib/services/health-services/inpatient-management/inpatient-admission-transfer.service.js` berstatus **Diperbarui** pada target: helper `admitFromTransfer` meneruskan ExpectedBedVersion dan Idempotency-Key stabil sesuai API13.8. Helper tersedia, tetapi pencarian source terbaru tidak menemukan pemanggilnya di UI; jangan mengklaim alur UI sudah terhubung. Pemanggil yang nanti dihubungkan memakai hasil available-beds terbaru dan penanganan uncertain outcome yang sama pada15.4. Satu hasil wrapper tidak boleh membuat episode kedua saat retry. Ini inventaris kompatibilitas konsumen, bukan menu/layar baru.
+
+
+## Amandemen EPS-006 - 12 Oktober 2026
+
+Cabang transfer: URL menyimpan patientId, transferId, sourceType dan episodeId hasil. Dokter hanya memvalidasi form; booking memanggil admitFromTransfer sekali. Guard pasien/sumber dibaca ulang, draft dan unknown intent disimpan per owner/sumber. Jalur pasien baru/lama/kamar pulih mempertahankan default existing. Perpindahan langkah transfer pada route yang sama memakai History API terintegrasi useSearchParams, tanpa meminta transisi server hanya untuk query langkah; lihat [dokumentasi Next.js](https://nextjs.org/docs/app/getting-started/linking-and-navigating#native-history-api).
+
+[Acuan implementasi EPS-006 versi 1.0](contracts/admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](task/report/frontend/FIX-EPS-006-08.md).

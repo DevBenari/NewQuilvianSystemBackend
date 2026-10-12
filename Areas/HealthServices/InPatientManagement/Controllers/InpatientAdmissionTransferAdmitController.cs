@@ -16,7 +16,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
     displayName: "Inpatient Episode", AreaName = "HealthServices", ControllerName = "InpatientEpisode",
     Description = "Membuka episode dari transfer IGD", SortOrder = 10)]
 [Tags("Health Services / Inpatient Management / Inpatient Admission Transfer")]
-public class InpatientAdmissionTransferAdmitController(InpAdmissionTransferService service, InpEpisodeService episodes) : ControllerBase
+public class InpatientAdmissionTransferAdmitController(InpAdmissionTransferService service) : ControllerBase
 {
     [HttpPost("admit")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status201Created)]
@@ -25,8 +25,7 @@ public class InpatientAdmissionTransferAdmitController(InpAdmissionTransferServi
     public async Task<IActionResult> AdmitFromTransfer([FromBody] OpenAdmissionFromTransferRequest request, CancellationToken ct)
     {
         var result = await service.ExecuteTransferAdmissionAsync(request, User.GetUserId(), ct);
-        var detail = await episodes.GetEpisodeDetailAsync(result.Episode!.Id, ct);
-        if (detail != null) detail.OperationMeta = result.OperationMeta;
+        var detail = await service.GetAdmissionResultAsync(result, ct);
         return StatusCode(StatusCodes.Status201Created, ApiResponse<object>.Ok(detail, result.Message));
     }
 }

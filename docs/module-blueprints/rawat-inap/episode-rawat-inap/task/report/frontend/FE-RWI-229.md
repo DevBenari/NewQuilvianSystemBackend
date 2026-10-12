@@ -48,3 +48,8 @@ Sesuai kebutuhan Analisis Bisnis (Tahap C alur admisi transfer IGD):
 ## 3. Bukti Verifikasi
 - Pengujian unit `inpatient-admission-transfer.test.mjs` membuktikan bahwa `transfer-referral` dan `transfer-patient-review` terdaftar dalam urutan langkah transfer.
 - Simulasi klik "Proses Admisi" memuat data pasien dan DPJP tanpa input manual.
+
+
+## Koreksi bukti 12 Oktober 2026 - EPS-006
+
+Status saat ini: 🟡 SEBAGIAN. Laporan historis tidak menjadi bukti runtime slice transfer current. Source diperbaiki pada MHamzah/HamzahV2 dengan [kontrak EPS-006](../../../contracts/admission-transfer-repair-006.md). Bukti build, unit, browser dan batas migration/database ada di [FIX-EPS-006-08](../frontend/FIX-EPS-006-08.md). Tidak mengklaim transaksi PostgreSQL PROVEN.

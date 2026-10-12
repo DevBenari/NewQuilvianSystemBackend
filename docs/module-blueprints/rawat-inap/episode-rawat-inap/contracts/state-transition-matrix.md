@@ -552,3 +552,10 @@ Root.Unverified saat bed ditempati adalah invalidasi bukti kesiapan lama; status
 ### 11.4 Proof gates dan waktu
 
 BM-G01/02/03 tetap bukti aktivasi, bukan state/status produk baru. Eventtime dan recordedtime dipisah, koreksi versioned. Existing 120 menit lazy server expiry dipertahankan, tanpa worker/reminder/perpanjangan baru. Waktu cleanup/verification ditetapkan server saat aksi, tidak timer auto-ready. SOP waktu kejadian rekonsiliasi tidak dikarang.
+
+
+## Amandemen EPS-006 - 12 Oktober 2026
+
+IGD Confirmed -> Executed hanya setelah admisi dan reservasi berhasil commit. Surat poli Issued tetap Issued; consumption diturunkan dari AdmissionTransferId/SourceType. Episode Draft dan reservasi Active belum menyatakan pasien tiba. Pendaftaran selesai setelah persetujuan bertanda tangan tersimpan untuk episode yang sama; departure/arrival/handover berjalan melalui owner existing.
+
+[Acuan implementasi EPS-006 versi 1.0](admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](../task/report/frontend/FIX-EPS-006-08.md).

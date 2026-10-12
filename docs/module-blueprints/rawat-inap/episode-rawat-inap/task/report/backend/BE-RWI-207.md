@@ -56,3 +56,8 @@ Sesuai kebutuhan Analisis Bisnis (Tahap C dan D alur admisi transfer IGD):
 - Transaksi simpan episode rawat inap dan pengubahan status `EmgDisposition` menjadi `Executed` berjalan dalam satu unit kerja.
 - Jika alokasi bed gagal, pembuatan episode dibatalkan secara bersih (*cancellation safety*).
 - Disposisi IGD yang sudah `Executed` secara otomatis hilang dari daftar antrean pasien menunggu di admisi.
+
+
+## Koreksi bukti 12 Oktober 2026 - EPS-006
+
+Status saat ini: 🟡 SEBAGIAN. Laporan historis tidak menjadi bukti runtime slice transfer current. Source diperbaiki pada MHamzah/HamzahV2 dengan [kontrak EPS-006](../../../contracts/admission-transfer-repair-006.md). Bukti build, unit, browser dan batas migration/database ada di [FIX-EPS-006-08](../frontend/FIX-EPS-006-08.md). Tidak mengklaim transaksi PostgreSQL PROVEN.

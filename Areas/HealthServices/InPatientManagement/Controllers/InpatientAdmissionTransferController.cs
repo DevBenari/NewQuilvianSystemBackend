@@ -61,11 +61,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [AccessPermission("InpatientAdmissionTransfer", "Read")]
         public async Task<IActionResult> GetById(
             Guid id,
+            [FromQuery] string? sourceType = null,
             CancellationToken cancellationToken = default)
         {
-            var result = await _service.GetTransferByIdAsync(id, cancellationToken);
+            if (sourceType != null && sourceType is not ("Emergency" or "Outpatient"))
+                return BadRequest(ApiResponse<object>.Fail(400, "Jenis sumber transfer tidak dikenali."));
+            var result = await _service.GetTransferByIdAsync(id, cancellationToken, sourceType);
             return result == null
-                ? NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Rujukan transfer IGD tidak ditemukan."))
+                ? NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Permintaan rawat inap tidak ditemukan."))
                 : Ok(ApiResponse<InpatientAdmissionTransferItemResponse>.Ok(result, "Detail rujukan transfer berhasil diambil."));
         }
 

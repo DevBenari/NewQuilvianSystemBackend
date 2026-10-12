@@ -2952,3 +2952,10 @@ Konfigurasi new API resource memakai moduleCode yang dipakai InpatientBedOccupan
 Target wrapper belum tersedia. Pada sukses, receipt ResultKind=Reservation menunjuk reservasi yang terikat episode; respons endpoint tetap data episode existing plus OperationMeta. Replay memakai actor/key/hash wrapper yang sama, memulihkan episode dari hasil reservasi tanpa membuka episode/reservasi/disposisi kedua. Pemeriksaan receipt dilakukan sebelum expected version yang sudah berubah karena commit semula. Semua operasi tetap memeriksa akses dan scope.
 
 Pada gagal sebelum commit, seluruh komposisi rollback; tidak menutup episode dengan kompensasi lalu mengklaim hasil atomik. Tidak melakukan callback eksternal dalam transaksi. Uji injeksi gagal setelah pembukaan episode dan setelah reserve, serta timeout sesudah commit, wajib sebelum mengaktifkan writer ini (BM-G04). Perubahan hanya komposisi teknis writer existing; keputusan klinis IGD, eligibility, dan proses admisi tetap milik kontrak existing. Jika service terkait tidak dapat ikut transaksi caller, wrapper belum boleh diaktifkan sampai rancangan komposisi ini dipenuhi.
+
+
+## Amandemen EPS-006 - 12 Oktober 2026
+
+Gunakan InpAdmissionTransferService existing sebagai orchestrator satu transaksi. Reader gabungan disposisi RANAP IGD dan surat InpatientReferral poli; pembayaran/relasi berada di Registrasi, ledger deposit berada di Billing. Tidak memindahkan catatan klinis atau menutup kunjungan IGD ketika hanya reservasi.
+
+[Acuan implementasi EPS-006 versi 1.0](contracts/admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](task/report/frontend/FIX-EPS-006-08.md).

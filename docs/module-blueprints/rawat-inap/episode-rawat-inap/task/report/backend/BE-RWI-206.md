@@ -59,3 +59,8 @@ Sesuai kebutuhan Analisis Bisnis (Tahap A dan B alur admisi transfer IGD):
 - Kueri antrean transfer berhasil membaca pasien IGD aktif berstatus `Confirmed`.
 - Pasien yang sudah selesai dieksekusi atau dibatalkan otomatis tidak muncul pada antrean.
 - Penanda `IsOverdue` aktif secara otomatis jika waktu instruksi dokter melebihi 60 menit.
+
+
+## Koreksi bukti 12 Oktober 2026 - EPS-006
+
+Status saat ini: 🟡 SEBAGIAN. Laporan historis tidak menjadi bukti runtime slice transfer current. Source diperbaiki pada MHamzah/HamzahV2 dengan [kontrak EPS-006](../../../contracts/admission-transfer-repair-006.md). Bukti build, unit, browser dan batas migration/database ada di [FIX-EPS-006-08](../frontend/FIX-EPS-006-08.md). Tidak mengklaim transaksi PostgreSQL PROVEN.

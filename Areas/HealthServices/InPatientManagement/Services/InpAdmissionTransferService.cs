@@ -1,308 +1,174 @@
-using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
-using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
-using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
-using QuilvianSystemBackend.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services
+namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
+
+/// <summary>Satu transaksi sumber, kunjungan, penjamin, episode, bed dan deposit.</summary>
+public partial class InpAdmissionTransferService(
+    ApplicationDbContext dbContext, InpEpisodeService episodeService,
+    InpBedOccupancyService bedOccupancyService, LoggerService loggerService,
+    InpBedMutationCoordinator bedCoordinator, InpBedAccessService bedAccess,
+    EncounterPaymentSourceService paymentSources, BillingDepositService deposits)
 {
-    /// <summary>
-    /// Service pengelola antrean dan penyelesaian admisi ranap dari transfer pasien IGD & Poliklinik (BE-RWI-206, BE-RWI-207).
-    /// </summary>
-    public partial class InpAdmissionTransferService
+    private readonly ApplicationDbContext _dbContext = dbContext;
+    private readonly InpBedMutationCoordinator _bedCoordinator = bedCoordinator;
+    private readonly InpBedAccessService _bedAccess = bedAccess;
+
+    public async Task<PagedResult<InpatientAdmissionTransferItemResponse>> GetPagedTransfersAsync(
+        AdmissionTransferQuery query, CancellationToken cancellationToken = default)
     {
-        private const string LogCategory = "HealthServices.InPatient.AdmissionTransfer";
-
-        private readonly ApplicationDbContext _dbContext; private readonly InpBedMutationCoordinator _bedCoordinator; private readonly InpBedAccessService _bedAccess;
-        private readonly InpEpisodeService _episodeService;
-        private readonly InpBedOccupancyService _bedOccupancyService;
-        private readonly LoggerService _loggerService;
-
-        public InpAdmissionTransferService(
-            ApplicationDbContext dbContext,
-            InpEpisodeService episodeService,
-            InpBedOccupancyService bedOccupancyService,
-            LoggerService loggerService, InpBedMutationCoordinator bedCoordinator, InpBedAccessService bedAccess)
+        var now = DateTime.UtcNow;
+        var itemsQuery = TransferQuery(query.SourceType);
+        var status = (query.Status ?? EmergencyDispositionStatus.Confirmed).ToString();
+        itemsQuery = itemsQuery.Where(x => x.DispositionStatus == status);
+        if (query.OverdueOnly == true)
+            itemsQuery = itemsQuery.Where(x => x.DecidedAt < now.AddMinutes(-60));
+        if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            _dbContext = dbContext; _bedCoordinator = bedCoordinator; _bedAccess = bedAccess;
-            _episodeService = episodeService;
-            _bedOccupancyService = bedOccupancyService;
-            _loggerService = loggerService;
+            var term = query.Search.Trim().ToLower();
+            itemsQuery = itemsQuery.Where(x => x.PatientName.ToLower().Contains(term)
+                || x.MedicalRecordNumber.ToLower().Contains(term)
+                || (x.SourceEncounterNumber != null && x.SourceEncounterNumber.ToLower().Contains(term))
+                || x.EmergencyVisitNumber.ToLower().Contains(term));
         }
-
-        /// <summary>
-        /// Mengambil daftar antrean pasien transfer dari IGD yang menunggu tempat tidur (BE-RWI-206).
-        /// </summary>
-        public async Task<PagedResult<InpatientAdmissionTransferItemResponse>> GetPagedTransfersAsync(
-            AdmissionTransferQuery query,
-            CancellationToken cancellationToken = default)
+        var count = await itemsQuery.CountAsync(cancellationToken);
+        var items = await itemsQuery.OrderBy(x => x.DecidedAt).ThenBy(x => x.TransferId)
+            .Skip((query.PageNumber - 1) * query.PageSize).Take(query.PageSize)
+            .ToListAsync(cancellationToken);
+        foreach (var item in items) ApplyWaiting(item, now);
+        return new PagedResult<InpatientAdmissionTransferItemResponse>
         {
-            var pageNumber = query.PageNumber < 1 ? 1 : query.PageNumber;
-            var pageSize = query.PageSize is < 1 or > 100 ? 20 : query.PageSize;
+            PageNumber = query.PageNumber, PageSize = query.PageSize,
+            TotalData = count, TotalPage = (int)Math.Ceiling(count / (double)query.PageSize), Items = items
+        };
+    }
 
-            var baseQuery = _dbContext.Set<EmgDisposition>()
-                .AsNoTracking()
-                .Include(x => x.EmergencyVisit)
-                    .ThenInclude(v => v!.Patient)
-                .Include(x => x.DispositionType)
-                .Include(x => x.DecidedByDoctor)
-                .Include(x => x.DestinationServiceUnit)
-                .Where(x => !x.IsDelete && x.EmergencyVisit != null && !x.EmergencyVisit.IsDelete);
+    public async Task<InpatientAdmissionTransferItemResponse?> GetTransferByIdAsync(
+        Guid transferId, CancellationToken cancellationToken = default, string? sourceType = null)
+    {
+        var item = await TransferQuery(sourceType).FirstOrDefaultAsync(x => x.TransferId == transferId, cancellationToken);
+        if (item != null) ApplyWaiting(item, DateTime.UtcNow);
+        return item;
+    }
 
-            // Saring jenis disposisi yang mengarah ke rawat inap
-            baseQuery = baseQuery.Where(x =>
-                x.DispositionType != null &&
-                (x.DispositionType.RequiresDestinationServiceUnit ||
-                 x.DestinationServiceUnitId != null ||
-                 x.DispositionType.Name.Contains("Inap") ||
-                 x.DispositionType.Code.Contains("INPATIENT") ||
-                 x.DispositionType.Code.Contains("RANAP")));
+    private static void ApplyWaiting(InpatientAdmissionTransferItemResponse item, DateTime now)
+    {
+        item.WaitingMinutes = (int)Math.Max(0, (now - item.DecidedAt).TotalMinutes);
+        item.IsOverdue = item.DecidedAt < now.AddMinutes(-60);
+    }
 
-            // Saring status
-            if (query.Status.HasValue)
-            {
-                baseQuery = baseQuery.Where(x => x.DispositionStatus == query.Status.Value);
-            }
-            else
-            {
-                // Bawaan: status Confirmed dan belum dieksekusi
-                baseQuery = baseQuery.Where(x =>
-                    x.DispositionStatus == EmergencyDispositionStatus.Confirmed &&
-                    x.ExecutedAt == null);
-            }
+    private async Task<InpEpisodeOperationResult> ExecuteTransferAdmissionCoreAsync(
+        OpenAdmissionFromTransferRequest request, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        if (request.SourceType is not ("Emergency" or "Outpatient"))
+            throw new InpBedOperationException(400, "INVALID_SOURCE_TYPE", "Jenis sumber transfer tidak dikenali.");
+        if (!Enum.IsDefined(request.PaymentType) || (request.DepositAmount ?? 0) < 0
+            || request.DepositAmount > 9999999999999999.99m
+            || (request.DepositAmount > 0 && request.PaymentType != EncounterPaymentType.Cash))
+            throw new InpBedOperationException(422, "INVALID_PAYMENT", "Jenis pembayaran atau nominal deposit tidak sesuai.");
+        if (!string.IsNullOrWhiteSpace(request.PaymentScheme)
+            && !string.Equals(request.PaymentScheme, request.PaymentType.ToString(), StringComparison.OrdinalIgnoreCase))
+            throw new InpBedOperationException(422, "INVALID_PAYMENT_SCHEME", "PaymentScheme harus sesuai PaymentType dan identitas penjamin.");
 
-            // Saring overdue (> 60 menit)
-            var now = DateTime.UtcNow;
-            if (query.OverdueOnly == true)
-            {
-                var overdueThreshold = now.AddMinutes(-60);
-                baseQuery = baseQuery.Where(x => x.DecidedAt <= overdueThreshold);
-            }
-
-            // Pencarian nama, nomor RM, atau nomor kunjungan IGD
-            if (!string.IsNullOrWhiteSpace(query.Search))
-            {
-                var term = query.Search.Trim().ToLower();
-                baseQuery = baseQuery.Where(x =>
-                    (x.EmergencyVisit!.Patient != null && (
-                        x.EmergencyVisit.Patient.FullName.ToLower().Contains(term) ||
-                        x.EmergencyVisit.Patient.MedicalRecordNumber.ToLower().Contains(term))) ||
-                    x.EmergencyVisit.EmergencyVisitNumber.ToLower().Contains(term));
-            }
-
-            var totalCount = await baseQuery.CountAsync(cancellationToken);
-
-            var items = await baseQuery
-                .OrderBy(x => x.DecidedAt)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .Select(x => new
-                {
-                    Disposition = x,
-                    Visit = x.EmergencyVisit!,
-                    Patient = x.EmergencyVisit!.Patient,
-                    Doctor = x.DecidedByDoctor,
-                    Unit = x.DestinationServiceUnit
-                })
-                .ToListAsync(cancellationToken);
-
-            var resultItems = items.Select(x =>
-            {
-                var waitingMinutes = (int)Math.Max(0, (now - x.Disposition.DecidedAt).TotalMinutes);
-                return new InpatientAdmissionTransferItemResponse
-                {
-                    TransferId = x.Disposition.Id,
-                    SourceType = "Emergency",
-                    EmergencyVisitId = x.Visit.Id,
-                    EmergencyVisitNumber = x.Visit.EmergencyVisitNumber,
-                    SourceEncounterId = x.Visit.EncounterId,
-                    PatientId = x.Patient != null ? x.Patient.Id : Guid.Empty,
-                    PatientName = x.Patient?.FullName ?? "Pasien Tidak Diketahui",
-                    MedicalRecordNumber = x.Patient?.MedicalRecordNumber ?? "-",
-                    Gender = x.Patient?.Gender?.ToString(),
-                    BirthDate = x.Patient?.BirthDate,
-                    DecidedByDoctorId = x.Disposition.DecidedByDoctorId,
-                    DecidedByDoctorName = x.Doctor?.FullName,
-                    DispositionReason = x.Disposition.DispositionReason,
-                    PatientCondition = x.Disposition.PatientConditionAtDisposition,
-                    FollowUpInstruction = x.Disposition.FollowUpInstruction,
-                    RecommendedServiceUnitId = x.Disposition.DestinationServiceUnitId,
-                    RecommendedServiceUnitName = x.Unit?.ServiceUnitName,
-                    DecidedAt = x.Disposition.DecidedAt,
-                    WaitingMinutes = waitingMinutes,
-                    IsOverdue = waitingMinutes > 60,
-                    DispositionStatus = x.Disposition.DispositionStatus.ToString()
-                };
-            }).ToList();
-
-            return new PagedResult<InpatientAdmissionTransferItemResponse>
-            {
-                PageNumber = pageNumber,
-                PageSize = pageSize,
-                TotalData = totalCount,
-                TotalPage = (int)Math.Ceiling(totalCount / (double)pageSize),
-                Items = resultItems
-            };
-        }
-
-        /// <summary>
-        /// Mengambil detail satu rujukan transfer IGD untuk mengisi awal stepper admisi (BE-RWI-206).
-        /// </summary>
-        public async Task<InpatientAdmissionTransferItemResponse?> GetTransferByIdAsync(
-            Guid transferId,
-            CancellationToken cancellationToken = default)
-        {
-            var disposition = await _dbContext.Set<EmgDisposition>()
-                .AsNoTracking()
-                .Include(x => x.EmergencyVisit)
-                    .ThenInclude(v => v!.Patient)
-                .Include(x => x.DecidedByDoctor)
-                .Include(x => x.DestinationServiceUnit)
-                .FirstOrDefaultAsync(x => x.Id == transferId && !x.IsDelete, cancellationToken);
-
-            if (disposition == null || disposition.EmergencyVisit == null)
-            {
-                return null;
-            }
-
-            var now = DateTime.UtcNow;
-            var waitingMinutes = (int)Math.Max(0, (now - disposition.DecidedAt).TotalMinutes);
-            var patient = disposition.EmergencyVisit.Patient;
-
-            return new InpatientAdmissionTransferItemResponse
-            {
-                TransferId = disposition.Id,
-                SourceType = "Emergency",
-                EmergencyVisitId = disposition.EmergencyVisit.Id,
-                EmergencyVisitNumber = disposition.EmergencyVisit.EmergencyVisitNumber,
-                SourceEncounterId = disposition.EmergencyVisit.EncounterId,
-                PatientId = patient?.Id ?? Guid.Empty,
-                PatientName = patient?.FullName ?? string.Empty,
-                MedicalRecordNumber = patient?.MedicalRecordNumber ?? string.Empty,
-                Gender = patient?.Gender?.ToString(),
-                BirthDate = patient?.BirthDate,
-                DecidedByDoctorId = disposition.DecidedByDoctorId,
-                DecidedByDoctorName = disposition.DecidedByDoctor?.FullName,
-                DispositionReason = disposition.DispositionReason,
-                PatientCondition = disposition.PatientConditionAtDisposition,
-                FollowUpInstruction = disposition.FollowUpInstruction,
-                RecommendedServiceUnitId = disposition.DestinationServiceUnitId,
-                RecommendedServiceUnitName = disposition.DestinationServiceUnit?.ServiceUnitName,
-                DecidedAt = disposition.DecidedAt,
-                WaitingMinutes = waitingMinutes,
-                IsOverdue = waitingMinutes > 60,
-                DispositionStatus = disposition.DispositionStatus.ToString()
-            };
-        }
-
-        /// <summary>
-        /// Mengeksekusi pendaftaran rawat inap dari transfer IGD secara atomik (BE-RWI-207).
-        /// </summary>
-        private async Task<InpEpisodeOperationResult> ExecuteTransferAdmissionCoreAsync(
-            OpenAdmissionFromTransferRequest request,
-            Guid actorUserId,
-            CancellationToken cancellationToken = default)
-        {
-            if (request == null)
-            {
-                return InpEpisodeOperationResult.Invalid("Data pendaftaran transfer belum dikirim.");
-            }
-
+        if (request.SourceType == "Emergency")
             await _dbContext.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM public.\"EmgDisposition\" WHERE \"Id\" = {request.TransferDispositionId} FOR UPDATE", cancellationToken);
-            // 1. Verifikasi Disposisi IGD
-            var disposition = await _dbContext.Set<EmgDisposition>()
-                .Include(x => x.EmergencyVisit)
-                .FirstOrDefaultAsync(
-                    x => x.Id == request.TransferDispositionId && !x.IsDelete,
-                    cancellationToken);
+        else
+            await _dbContext.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM public.\"CliDoctorCertificate\" WHERE \"Id\" = {request.TransferDispositionId} FOR UPDATE", cancellationToken);
 
-            if (disposition == null || disposition.EmergencyVisit == null)
-            {
-                return InpEpisodeOperationResult.NotFound("Disposisi transfer IGD tidak ditemukan.");
-            }
+        var source = await GetTransferByIdAsync(request.TransferDispositionId, cancellationToken, request.SourceType);
+        if (source == null) return InpEpisodeOperationResult.NotFound("Permintaan rawat inap yang sah tidak ditemukan.");
+        if (source.DispositionStatus != "Confirmed" || source.ResultEpisodeId.HasValue)
+            throw new InpBedOperationException(409, "TRANSFER_ALREADY_PROCESSED", "Permintaan sudah diproses atau dibatalkan. Muat ulang sumber.");
+        if (source.PatientId != request.PatientId || source.SourceEncounterId == null)
+            throw new InpBedOperationException(422, "TRANSFER_PATIENT_MISMATCH", "Pasien atau kunjungan asal tidak sesuai permintaan.");
 
-            if (disposition.DispositionStatus != EmergencyDispositionStatus.Confirmed ||
-                disposition.ExecutedAt.HasValue)
-            {
-                return InpEpisodeOperationResult.BusinessRuleRejected(
-                    "Disposisi transfer IGD ini sudah pernah dieksekusi atau tidak berstatus menunggu kamar.");
-            }
+        await _dbContext.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM public.\"RegPatientEncounter\" WHERE \"Id\" = {source.SourceEncounterId.Value} FOR UPDATE", cancellationToken);
+        var origin = await _dbContext.RegPatientEncounters.AsNoTracking().FirstOrDefaultAsync(
+            x => x.Id == source.SourceEncounterId && x.PatientId == request.PatientId && !x.IsDelete && !x.IsCancel
+                && x.EncounterStatus != EncounterStatus.Cancelled && x.EncounterStatus != EncounterStatus.NoShow,
+            cancellationToken);
+        if (origin == null)
+            throw new InpBedOperationException(422, "INVALID_SOURCE_ENCOUNTER", "Kunjungan asal tidak aktif atau dibatalkan.");
+        if (await _dbContext.RegPatientEncounters.IgnoreQueryFilters().AnyAsync(
+            x => x.AdmissionTransferId == request.TransferDispositionId && x.AdmissionTransferSourceType == request.SourceType,
+            cancellationToken))
+            throw new InpBedOperationException(409, "TRANSFER_ALREADY_PROCESSED", "Permintaan ini sudah memiliki hasil admisi.");
 
-            if (disposition.EmergencyVisit.PatientId != request.PatientId)
-            {
-                return InpEpisodeOperationResult.BusinessRuleRejected(
-                    "Pasien yang didaftarkan tidak cocok dengan data rujukan transfer IGD.");
-            }
+        if (!await _dbContext.Set<QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstBed>()
+            .AnyAsync(x => x.Id == request.BedId && x.Room != null
+                && x.Room.ServiceUnitId == request.ServiceUnitId && x.Room.PatientClassId == request.PatientClassId, cancellationToken))
+            throw new InpBedOperationException(422, "BED_CONTEXT_MISMATCH", "Unit dan kelas admisi harus sesuai tempat tidur yang dipilih.");
 
-            // 2. Buka episode rawat inap
-            var openRequest = new OpenAdmissionRequest
-            {
-                PatientId = request.PatientId,
-                EncounterId = null, // Admisi membuat encounter rawat inap sendiri
-                ServiceUnitId = request.ServiceUnitId,
-                PatientClassId = request.PatientClassId,
-                DoctorId = request.DoctorId,
-                Notes = string.IsNullOrWhiteSpace(request.Notes)
-                    ? $"Transfer dari IGD {disposition.EmergencyVisit.EmergencyVisitNumber}"
-                    : request.Notes
-            };
+        var result = await episodeService.OpenAdmissionAsync(new OpenAdmissionRequest
+        {
+            PatientId = request.PatientId, ServiceUnitId = request.ServiceUnitId,
+            PatientClassId = request.PatientClassId, DoctorId = request.DoctorId, Notes = request.Notes
+        }, actorUserId, cancellationToken);
+        if (result.Status != InpEpisodeOperationStatus.Success || result.Episode == null) return result;
+        var episode = result.Episode;
 
-            var openResult = await _episodeService.OpenAdmissionAsync(
-                openRequest,
-                actorUserId,
-                cancellationToken);
-
-            if (!(openResult.Status == InpEpisodeOperationStatus.Success) || openResult.Episode == null)
-            {
-                return openResult;
-            }
-
-            var episodeId = openResult.Episode.Id;
-
-            // 3. Reservasi / Booking Tempat Tidur
-            if (request.BedId != Guid.Empty)
-            {
-                var reserveBedRequest = new ReserveBedRequest
-                {
-                    EpisodeId = episodeId,
-                    BedId = request.BedId,
-                    ExpectedBedVersion = request.ExpectedBedVersion
-                };
-
-                var bedResult = await _bedOccupancyService.ReserveBedCoreAsync(
-                    reserveBedRequest,
-                    actorUserId,
-                    cancellationToken);
-
-                if (!(bedResult.Status == InpEpisodeOperationStatus.Success))
-                {
-                    return InpEpisodeOperationResult.BusinessRuleRejected(
-                        $"Alokasi tempat tidur gagal: {bedResult.Message}");
-                }
-            }
-
-            // 4. Update status disposisi IGD menjadi Executed
-            var now = DateTime.UtcNow;
-            disposition.DispositionStatus = EmergencyDispositionStatus.Executed;
-            disposition.ExecutedAt = now;
-            disposition.ConfirmedByUserId = actorUserId;
-            disposition.UpdateDateTime = now;
-            disposition.UpdateBy = actorUserId;
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return InpEpisodeOperationResult.Success(
-                openResult.Episode,
-                "Pendaftaran rawat inap dari transfer IGD berhasil diselesaikan.");
+        try
+        {
+            var payer = await paymentSources.InitializeAdmissionAsync(new EncounterPaymentSourceSwitchCommand(
+                episode.EncounterId, request.PaymentType, request.PaymentMethodId, request.PatientInsuranceId,
+                request.PatientCompanyGuarantorId, DateTime.UtcNow, "Admisi transfer", actorUserId),
+                source.SourceEncounterId.Value, request.TransferDispositionId, request.SourceType, cancellationToken);
+            if (payer is { Success: false })
+                throw new InpBedOperationException(payer.StatusCode, payer.ErrorCode!, payer.ErrorMessage!);
         }
+        catch (ArgumentException ex) { throw new InpBedOperationException(422, "INVALID_PAYMENT", ex.Message); }
+
+        if (request.RequiresIsolation)
+        {
+            var isolation = await episodeService.SetIsolationRequirementAsync(episode.Id,
+                new SetIsolationRequirementRequest { RequiresIsolation = true, IsolationNote = request.IsolationNote },
+                actorUserId, null, cancellationToken);
+            if (isolation.Status != InpEpisodeOperationStatus.Success) return isolation;
+        }
+        var bedResult = await bedOccupancyService.ReserveBedCoreAsync(new ReserveBedRequest
+        {
+            EpisodeId = episode.Id, BedId = request.BedId, ExpectedBedVersion = request.ExpectedBedVersion
+        }, actorUserId, cancellationToken);
+        if (bedResult.Status != InpEpisodeOperationStatus.Success)
+            throw new InpBedOperationException(bedResult.Status == InpEpisodeOperationStatus.Conflict ? 409 : 422,
+                "BED_NOT_READY", bedResult.Message);
+
+        if (request.DepositAmount > 0)
+        {
+            if (!request.DepositPaymentMethodId.HasValue)
+                throw new InpBedOperationException(422, "DEPOSIT_METHOD_REQUIRED", "Pilih metode penerimaan deposit.");
+            try
+            {
+                await deposits.TopUpAsync(episode.EncounterId, new DepositTopUpRequest
+                {
+                    Amount = request.DepositAmount.Value, PaymentMethodId = request.DepositPaymentMethodId.Value,
+                    Reason = "Deposit admisi transfer", CorrelationId = episode.Id, CausationId = request.TransferDispositionId
+                }, episode.Id, actorUserId, cancellationToken, deferAudit: true);
+            }
+            catch (BillingDepositValidationException ex) { throw new InpBedOperationException(422, "DEPOSIT_REJECTED", ex.Message); }
+            catch (BillingDepositConflictException ex) { throw new InpBedOperationException(409, "DEPOSIT_CONFLICT", ex.Message); }
+            catch (KeyNotFoundException ex) { throw new InpBedOperationException(422, "DEPOSIT_REFERENCE_INVALID", ex.Message); }
+        }
+        if (request.SourceType == "Emergency")
+        {
+            var disposition = await _dbContext.Set<EmgDisposition>().SingleAsync(x => x.Id == request.TransferDispositionId, cancellationToken);
+            disposition.DispositionStatus = EmergencyDispositionStatus.Executed;
+            disposition.ExecutedAt = DateTime.UtcNow;
+            disposition.UpdateBy = actorUserId;
+            disposition.UpdateDateTime = DateTime.UtcNow;
+        }
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return InpEpisodeOperationResult.Success(episode, "Admisi dan reservasi transfer tersimpan. Lanjutkan persetujuan pasien.");
     }
 }

@@ -7,7 +7,7 @@
 | Status roadmap | **`APPROVED`** — disetujui pengguna 10 Oktober 2026 sebagai rencana pengiriman resmi frontend untuk alur admisi transfer pasien IGD dan Poliklinik |
 | Ditulis | 10 Oktober 2026 oleh `plan-module-delivery` |
 | Masukan dan approval | Analisis Bisnis (Alur 4 Tahap A-B-C-D), `03-frontend-architecture.md`, `05-skema-tampilan.md`, kontrak API 11.7 (`BE-RWI-206` & `BE-RWI-207`), `INPATIENT_ADMISSION_ENTRY_MODE` |
-| Keputusan Bisnis | `RWI-DEC-274` (Kartu Keempat Transfer IGD/RJ), `RWI-DEC-275` (Daftar Antrean & Auto Pre-fill Stepper), `RWI-DEC-276` (Indikator Warna Overdue Waktu Tunggu Kamar) |
+| Keputusan Bisnis | `EPS-006/K-02` (Kartu Keempat Transfer IGD/RJ), `EPS-006/K-01/K-03` (Daftar Antrean & Auto Pre-fill Stepper), `EPS-006/WAIT-60` (Indikator Warna Overdue Waktu Tunggu Kamar) |
 | Source SHA | Frontend `dd2cbf7c` / branch `HamzahV2`; Backend `fdf85a07` / branch `MHamzah` |
 | Deret ID | `FE-RWI-227` s.d. `FE-RWI-230` |
 | Roadmap pendamping | `backend-roadmap-admisi-transfer-igd.md`, `requirement-traceability-admisi-transfer-igd.md` |
@@ -38,15 +38,15 @@
 ```mermaid
 flowchart TD
     subgraph backendPrereq[Prasyarat Backend]
-        BE206["BE-RWI-206: Endpoint Antrean & Detail Transfer IGD"]
-        BE207["BE-RWI-207: Endpoint Open Episode from Transfer"]
+        BE206["? BE-RWI-206: Endpoint Antrean & Detail Transfer IGD"]
+        BE207["? BE-RWI-207: Endpoint Open Episode from Transfer"]
     end
 
     subgraph frontend[Roadmap Frontend: Admisi Transfer IGD]
-        FE227["FE-RWI-227: Opsi Kartu Keempat Transfer IGD/RJ pada Landing Admisi"]
-        FE228["FE-RWI-228: Komponen Tabel Antrean Transfer Pasien & Metrik Menunggu"]
-        FE229["FE-RWI-229: Integrasi Pre-fill Stepper Admisi Pasien Transfer IGD"]
-        FE230["FE-RWI-230: Penyelesaian Admisi, Dialog Sukses & Lembar Serah Terima"]
+        FE227["? FE-RWI-227: Opsi Kartu Keempat Transfer IGD/RJ pada Landing Admisi"]
+        FE228["? FE-RWI-228: Komponen Tabel Antrean Transfer Pasien & Metrik Menunggu"]
+        FE229["? FE-RWI-229: Integrasi Pre-fill Stepper Admisi Pasien Transfer IGD"]
+        FE230["? FE-RWI-230: Penyelesaian Admisi, Dialog Sukses & Lembar Serah Terima"]
 
         FE227 --> FE228
         FE228 --> FE229
@@ -64,10 +64,10 @@ flowchart TD
 
 | Task ID | Outcome | Requirement / Decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance Criteria | Verifikasi | Risiko / Pemilik | Definition of Done (DoD) |
 |---|---|---|---|---|---|---|---|---|---|---|
-| [`FE-RWI-227`](../task/report/frontend/FE-RWI-227.md) ✅ | Landing page pendaftaran admisi ranap menampilkan kartu pilihan ke-4 "Transfer Pasien IGD / Rawat Jalan" dengan badge visual dan panduan operasional yang jelas | `FR-RI-189`, `RWI-DEC-274` | `05-skema-tampilan.md` 3.0, `INPATIENT_ADMISSION_ENTRY_MODE` | `BaseCheckboxCard`, `inpatient-admission-view.jsx`, constants flow | Penambahan konstanta mode `TRANSFER`, opsi kartu ke-4, routing query URL `entry=transfer` | — | `RWI-AC-400` | UI test landing page (kartu ke-4 tampil rapi sejajar 4 kolom atau grid responsif; klik kartu membuka view antrean transfer) | Layout responsif pada layar sempit / Hamzah | ✅ **Selesai 10 Oktober 2026.** Kartu ke-4 aktif, test unit lulus; [laporan](../task/report/frontend/FE-RWI-227.md) |
-| [`FE-RWI-228`](../task/report/frontend/FE-RWI-228.md) ✅ | Layar antrean transfer pasien IGD/RJ menampilkan daftar pasien yang membutuhkan tempat tidur dengan indikator waktu tunggu, filter unit, dan tombol "Proses Admisi" | `FR-RI-190`, `RWI-DEC-275`, `RWI-DEC-276` | API Contract `0.12.0` (11.7.1), `05-skema-tampilan.md` 3.3 | `BaseTable`, `StatusBadge`, `BaseButton`, `SearchBar` | Service frontend rujukan transfer, komponen tabel transfer, badge IGD merah / Poli biru, filter overdue > 60 menit | `BE-RWI-206`, `FE-RWI-227` | `RWI-AC-401`, `RWI-AC-402` | E2E/Mock data test (tabel menampilkan pasien IGD; indikator overdue warna kuning/merah aktif saat >60 menit; tombol "Proses Admisi" mengarahkan ke stepper) | Data list kosong (empty state) / Hamzah | ✅ **Selesai 10 Oktober 2026.** Service & tabel antrean transfer IGD aktif; [laporan](../task/report/frontend/FE-RWI-228.md) |
-| [`FE-RWI-229`](../task/report/frontend/FE-RWI-229.md) ✅ | Membuka stepper pendaftaran admisi dengan identitas pasien, diagnosa awal, dan DPJP IGD yang langsung terisi otomatis tanpa perlu ketik ulang dari nol | `FR-RI-191`, `RWI-DEC-275` | API Contract `0.12.0` (11.7.2), Validation Matrix `0.12.0` | Stepper admisi pasien lama, hook `useInpatientAdmissionFlow` | Penyesuaian hook flow untuk mengunci data rujukan transfer IGD, melompati step cari pasien langsung ke penjamin & kamar | `BE-RWI-206`, `FE-RWI-228` | `RWI-AC-403`, `RWI-AC-404` | State transition test (saat pasien dipilih, nama & RM terkunci; form dokter langsung terisi DPJP IGD; stepper siap lanjut ke kamar & TTD) | State clash dengan alur pasien biasa / Hamzah | ✅ **Selesai 10 Oktober 2026.** Step verifikasi review & pre-fill stepper terpadu; [laporan](../task/report/frontend/FE-RWI-229.md) |
-| [`FE-RWI-230`](../task/report/frontend/FE-RWI-230.md) ✅ | Petugas menyelesaikan pendaftaran admisi ranap transfer, sistem menampilkan dialog sukses dengan nomor kamar, serta mencetak berkas bukti admisi & serah terima | `FR-RI-192`, `RWI-DEC-275` | API Contract `0.12.0` (11.7.3), `05-skema-tampilan.md` 3.4 | `ConfirmModal`, `PrintSheet`, Lembar Persetujuan `FE-RWI-226` | Integrasi submit `open-from-transfer`, modal dialog sukses, lembar cetak bukti admisi transfer & serah terima fisik | `BE-RWI-207`, `FE-RWI-229` | `RWI-AC-405`, `RWI-AC-406` | End-to-end UAT simulation (proses admisi hingga selesai; modal nomor episode & kamar muncul; tombol cetak berkas aktif) | Kegagalan cetak di browser / Hamzah | ✅ **Selesai 10 Oktober 2026.** Sinkronisasi status transfer & banner konfirmasi aktif; [laporan](../task/report/frontend/FE-RWI-230.md) |
+| [`FE-RWI-227`](../task/report/frontend/FE-RWI-227.md) 🟡 | Landing page pendaftaran admisi ranap menampilkan kartu pilihan ke-4 "Transfer Pasien IGD / Rawat Jalan" dengan badge visual dan panduan operasional yang jelas | `FR-RI-189`, `EPS-006/K-02` | `05-skema-tampilan.md` 3.0, `INPATIENT_ADMISSION_ENTRY_MODE` | `BaseCheckboxCard`, `inpatient-admission-view.jsx`, constants flow | Penambahan konstanta mode `TRANSFER`, opsi kartu ke-4, routing query URL `entry=transfer` | — | `RWI-AC-400` | UI test landing page (kartu ke-4 tampil rapi sejajar 4 kolom atau grid responsif; klik kartu membuka view antrean transfer) | Layout responsif pada layar sempit / Hamzah | 🟡 **Sebagian - diperiksa ulang 12 Oktober 2026.** Kartu ke-4 aktif, test unit lulus; [laporan](../task/report/frontend/FE-RWI-227.md) |
+| [`FE-RWI-228`](../task/report/frontend/FE-RWI-228.md) 🟡 | Layar antrean transfer pasien IGD/RJ menampilkan daftar pasien yang membutuhkan tempat tidur dengan indikator waktu tunggu, filter unit, dan tombol "Proses Admisi" | `FR-RI-190`, `EPS-006/K-01/K-03`, `EPS-006/WAIT-60` | EPS-006 1.0 (admission-transfer-repair-006.md), `05-skema-tampilan.md` 3.3 | `BaseTable`, `StatusBadge`, `BaseButton`, `SearchBar` | Service frontend rujukan transfer, komponen tabel transfer, badge IGD merah / Poli biru, filter overdue > 60 menit | `BE-RWI-206`, `FE-RWI-227` | `RWI-AC-401`, `RWI-AC-402` | E2E/Mock data test (tabel menampilkan pasien IGD; indikator overdue warna kuning/merah aktif saat >60 menit; tombol "Proses Admisi" mengarahkan ke stepper) | Data list kosong (empty state) / Hamzah | 🟡 **Sebagian - diperiksa ulang 12 Oktober 2026.** Service & tabel antrean transfer IGD aktif; [laporan](../task/report/frontend/FE-RWI-228.md) |
+| [`FE-RWI-229`](../task/report/frontend/FE-RWI-229.md) 🟡 | Membuka stepper pendaftaran admisi dengan identitas pasien, diagnosa awal, dan DPJP IGD yang langsung terisi otomatis tanpa perlu ketik ulang dari nol | `FR-RI-191`, `EPS-006/K-01/K-03` | EPS-006 1.0 (admission-transfer-repair-006.md), Validation Matrix `0.12.0` | Stepper admisi pasien lama, hook `useInpatientAdmissionFlow` | Penyesuaian hook flow untuk mengunci data rujukan transfer IGD, melompati step cari pasien langsung ke penjamin & kamar | `BE-RWI-206`, `FE-RWI-228` | `RWI-AC-403`, `RWI-AC-404` | State transition test (saat pasien dipilih, nama & RM terkunci; form dokter langsung terisi DPJP IGD; stepper siap lanjut ke kamar & TTD) | State clash dengan alur pasien biasa / Hamzah | 🟡 **Sebagian - diperiksa ulang 12 Oktober 2026.** Step verifikasi review & pre-fill stepper terpadu; [laporan](../task/report/frontend/FE-RWI-229.md) |
+| [`FE-RWI-230`](../task/report/frontend/FE-RWI-230.md) 🟡 | Petugas menyelesaikan pendaftaran admisi ranap transfer, sistem menampilkan dialog sukses dengan nomor kamar, serta mencetak berkas bukti admisi & serah terima | `FR-RI-192`, `EPS-006/K-01/K-03` | EPS-006 1.0 (admission-transfer-repair-006.md), `05-skema-tampilan.md` 3.4 | `ConfirmModal`, `PrintSheet`, Lembar Persetujuan `FE-RWI-226` | Integrasi submit `admission-transfers/admit`, modal dialog sukses, lembar cetak bukti admisi transfer & serah terima fisik | `BE-RWI-207`, `FE-RWI-229` | `RWI-AC-405`, `RWI-AC-406` | End-to-end UAT simulation (proses admisi hingga selesai; modal nomor episode & kamar muncul; tombol cetak berkas aktif) | Kegagalan cetak di browser / Hamzah | 🟡 **Sebagian - diperiksa ulang 12 Oktober 2026.** Sinkronisasi status transfer & banner konfirmasi aktif; [laporan](../task/report/frontend/FE-RWI-230.md) |
 
 ---
 
@@ -124,3 +124,21 @@ flowchart TD
     - `[Cetak Surat Registrasi & Gelang Pasien]`
     - `[Cetak Form General Consent Ber-TTD]`
     - `[Kembali ke Antrean Transfer]`
+
+
+## Status koreksi EPS-006 - 12 Oktober 2026
+
+Status task historis di atas dikoreksi menjadi sebagian; klaim selesai lama tidak menjadi bukti runtime pasangan branch ini. Acuan route, payload dan lifecycle final: [amandemen EPS-006](../contracts/admission-transfer-repair-006.md). ID RWI-DEC-274/275/276 lama tidak dipakai untuk keputusan admisi karena bertabrakan dengan keputusan Bed Management. EPS-006/WAIT-60 hanya merujuk ambang existing 60 menit.
+
+Backend MHamzah dan frontend HamzahV2 telah diperbaiki pada working tree. Backend build Repair006: 0 error; QBE strict: 0 violation. Uji frontend terarah: 28/28 lulus. Bukti browser dan gerbang rilis: [FIX-EPS-006-08](../task/report/frontend/FIX-EPS-006-08.md). Migration belum diterapkan; uji transaksi PostgreSQL belum dilakukan.
+
+| Task perbaikan | Pemilik | Status | Laporan |
+| --- | --- | --- | --- |
+| FIX-EPS-006-01 | backend | ✅ | [Laporan](../task/report/backend/FIX-EPS-006-01.md) |
+| FIX-EPS-006-02 | backend | 🟡 | [Laporan](../task/report/backend/FIX-EPS-006-02.md) |
+| FIX-EPS-006-03 | backend | 🟡 | [Laporan](../task/report/backend/FIX-EPS-006-03.md) |
+| FIX-EPS-006-04 | frontend | 🟡 | [Laporan](../task/report/frontend/FIX-EPS-006-04.md) |
+| FIX-EPS-006-05 | frontend | 🟡 | [Laporan](../task/report/frontend/FIX-EPS-006-05.md) |
+| FIX-EPS-006-06 | frontend | 🟡 | [Laporan](../task/report/frontend/FIX-EPS-006-06.md) |
+| FIX-EPS-006-07 | backend | 🟡 | [Laporan](../task/report/backend/FIX-EPS-006-07.md) |
+| FIX-EPS-006-08 | frontend | 🟡 | [Laporan](../task/report/frontend/FIX-EPS-006-08.md) |

@@ -47,3 +47,8 @@ Sesuai kebutuhan Analisis Bisnis (Tahap D alur admisi transfer IGD):
 - Pengujian unit `inpatient-admission-transfer.test.mjs` lulus 100%.
 - Banner konfirmasi rujukan IGD tampil dengan benar pada langkah konfirmasi.
 - Siklus pendaftaran admisi transfer dari Tahap A hingga D berjalan terpadu dan tanpa friksi.
+
+
+## Koreksi bukti 12 Oktober 2026 - EPS-006
+
+Status saat ini: 🟡 SEBAGIAN. Laporan historis tidak menjadi bukti runtime slice transfer current. Source diperbaiki pada MHamzah/HamzahV2 dengan [kontrak EPS-006](../../../contracts/admission-transfer-repair-006.md). Bukti build, unit, browser dan batas migration/database ada di [FIX-EPS-006-08](../frontend/FIX-EPS-006-08.md). Tidak mengklaim transaksi PostgreSQL PROVEN.

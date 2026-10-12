@@ -49,3 +49,8 @@ Sesuai kebutuhan Analisis Bisnis (Tahap A dan B alur admisi transfer IGD):
 - Tabel antrean terisi secara otomatis dengan data dari backend.
 - Filter overdue menyaring pasien yang menunggu > 60 menit secara tepat.
 - Tombol "Proses Admisi" memicu callback `onSelectTransfer` ke komponen induk.
+
+
+## Koreksi bukti 12 Oktober 2026 - EPS-006
+
+Status saat ini: 🟡 SEBAGIAN. Laporan historis tidak menjadi bukti runtime slice transfer current. Source diperbaiki pada MHamzah/HamzahV2 dengan [kontrak EPS-006](../../../contracts/admission-transfer-repair-006.md). Bukti build, unit, browser dan batas migration/database ada di [FIX-EPS-006-08](../frontend/FIX-EPS-006-08.md). Tidak mengklaim transaksi PostgreSQL PROVEN.

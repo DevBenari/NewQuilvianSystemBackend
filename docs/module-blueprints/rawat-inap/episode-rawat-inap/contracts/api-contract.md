@@ -1158,3 +1158,10 @@ Base URL: `api/v1/health-services/inpatient-management/admission-transfers`
 `ExpectedBedVersion:long` wajib, nilainya dari hasil available-beds terbaru, tidak ditebak. Field/header hilang →400; akses/scope tidak sah →403; versi/holder/key konflik →409; tidak siap atau dependency aktivasi →422/503 sesuai13.4. Sukses pertama/replay tetap HTTP201 dengan envelope existing; replay ditandai OperationMeta.IsReplay. Endpoint ini pengecualian eksplisit dari sukses200 pada13.1, sesuai controller existing.
 
 Writer menjalankan komposisi transaksi backend14.14; lookup receipt actor/key/hash mendahului pembukaan episode. ResultKind=Reservation menunjuk reservasi hasil wrapper dan episode terkait. GET own outcome tetap tidak mengembalikan PHI. Kontrak ini tidak menambah endpoint/permission IGD atau keputusan admisi baru. Bukti source dan keterbatasan helper frontend ada pada impact scan terbaru; perilaku target belum tersedia.
+
+
+## Amandemen EPS-006 - 12 Oktober 2026
+
+GET antrean/detail membedakan Emergency dan Outpatient. POST /admission-transfers/admit tetap 201 dan mengembalikan detail episode, OperationMeta, TransferReservation, TransferDeposit serta relasi asal. ExpectedBedVersion dan Idempotency-Key wajib; tidak ada route episodes/open-from-transfer.
+
+[Acuan implementasi EPS-006 versi 1.0](admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](../task/report/frontend/FIX-EPS-006-08.md).

@@ -609,3 +609,10 @@ Logger teknis mengikuti pola EntityId/controller/action/status existing; jangan 
 ### 11.4 Retensi, SOP dan batas approval
 
 Kebijakan retensi baru, perubahan rekam medis, legal signoff dan SOP kebersihan tidak didefinisikan oleh desain ini. Tidak menjadwalkan purge/hard delete. Pemilik keamanan/privasi masih OPEN; nilai assignment/config hanya dapat diterapkan setelah bukti BM-G02/03. Config direction/penugasan bukan jalan menyatakan aturan yang belum terbukti sudah disahkan. Jika mapping actual berbeda dari batas produk ini, reassess slice yang berubah.
+
+
+## Amandemen EPS-006 - 12 Oktober 2026
+
+Read: InpatientAdmissionTransfer:Read. Submit: InpatientEpisode:Create dan PatientEncounter:Create, scope unit/bed existing. Isolasi: InpatientEpisode:Update. Deposit positif: BillingDeposit:Create. Opsi metode: PaymentMethod:Read. Audit admisi dan audit top-up/cash receipt milik Billing diterbitkan sesudah outer transaction commit. Client memakai keputusan permission ketat untuk reader transfer.
+
+[Acuan implementasi EPS-006 versi 1.0](admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](../task/report/frontend/FIX-EPS-006-08.md).

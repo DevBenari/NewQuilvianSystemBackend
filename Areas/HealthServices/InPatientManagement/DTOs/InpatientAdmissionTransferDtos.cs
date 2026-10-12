@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 {
@@ -9,6 +10,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     public class AdmissionTransferQuery
     {
         /// <summary>Jenis asal transfer: "Emergency" (IGD) atau "Outpatient" (Poliklinik). Null untuk semua.</summary>
+        [RegularExpression("^(Emergency|Outpatient)$")]
         public string? SourceType { get; set; }
 
         /// <summary>Status disposisi transfer. Bawaan Confirmed (menunggu kamar).</summary>
@@ -47,6 +49,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         /// <summary>ID encounter kunjungan asal jika tersedia.</summary>
         public Guid? SourceEncounterId { get; set; }
+        public string? SourceEncounterNumber { get; set; }
+        public Guid? ResultEpisodeId { get; set; }
 
         public Guid PatientId { get; set; }
 
@@ -81,7 +85,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// <summary>Lama waktu menunggu dalam menit sejak diputuskan dokter.</summary>
         public int WaitingMinutes { get; set; }
 
-        /// <summary>Benar bila menunggu > 60 menit (RWI-DEC-276).</summary>
+        /// <summary>Benar bila menunggu > 60 menit (EPS-006/WAIT-60).</summary>
         public bool IsOverdue { get; set; }
 
         public string DispositionStatus { get; set; } = "Confirmed";
@@ -97,6 +101,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public Guid TransferDispositionId { get; set; }
 
         [Required(ErrorMessage = "SourceType wajib diisi.")]
+        [RegularExpression("^(Emergency|Outpatient)$")]
         public string SourceType { get; set; } = "Emergency";
 
         [Required(ErrorMessage = "PatientId wajib diisi.")]
@@ -121,6 +126,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public string? PaymentScheme { get; set; }
 
         public decimal? DepositAmount { get; set; }
+        public EncounterPaymentType PaymentType { get; set; } = EncounterPaymentType.Cash;
+        public Guid? PaymentMethodId { get; set; }
+        public Guid? PatientInsuranceId { get; set; }
+        public Guid? PatientCompanyGuarantorId { get; set; }
+        public Guid? DepositPaymentMethodId { get; set; }
+        public bool RequiresIsolation { get; set; }
+        [MaxLength(500)] public string? IsolationNote { get; set; }
     }
 
     /// <summary>

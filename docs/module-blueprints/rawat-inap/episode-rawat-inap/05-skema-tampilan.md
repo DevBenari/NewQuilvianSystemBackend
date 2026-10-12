@@ -1823,3 +1823,10 @@ mengikat setelah pemilik menyetujui revision ini.
 | 24 | impact scan frontend `12562f17e12ee43b7d8cdaeaff3f1a1fca5a8360`; enam screenshot runtime pemilik 28 Agustus 2026; spot-check backend master pada `b71a6a3d12190c4db60fe3433f10b6eb92131629` |
 | 25 | source/contract impact scan 28 Agustus 2026; `FE-RWI-020.md` untuk gap reservation; bukti runtime pemilik untuk gap data master 007 |
 | 26 | `roadmap/frontend-roadmap.md` revision `5` draft dan `roadmap/requirement-traceability.md` |
+
+
+## Amandemen EPS-006 - 12 Oktober 2026
+
+Transfer: antrean server -> review -> pembayaran -> deposit untuk Cash -> dokter (validasi) -> pilih bed -> booking (satu submit) -> konfirmasi hasil -> simpan persetujuan -> cetak/selesai. Paginasi, asal IGD/Poli, jumlah overdue sesuai filter dan keadaan gagal/akses ditampilkan. Tombol Selesai menunggu persetujuan tersimpan pada episode yang sama.
+
+[Acuan implementasi EPS-006 versi 1.0](contracts/admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](task/report/frontend/FIX-EPS-006-08.md).

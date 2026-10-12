@@ -1840,3 +1840,16 @@ Pasangan VerifiedAt/VerifiedBy terisi bersamaan; CompletedAt/CompletedBy terisi 
 ### 21.6 Migration dan perlindungan data
 
 Rencana M1–M3/backfill/rollback ada pada backend architecture 14.9. Tidak mengisi TransferCategory=SameGrade untuk legacy atau menyulap raw Available menjadi Ready. Null legacy cancellation reason ditampilkan sebagai Belum tercatat (data lama), bukan dihapus. Dilarang cascade/soft-delete event sebagai koreksi. Kebijakan retensi/hapus permanen belum ditetapkan, tetap di luar amandemen; hak akses history identity memerlukan episode authorization dan scope, HK tidak dapat membaca tabel ini lewat generic API.
+
+
+## Relasi asal admisi transfer EPS-006 - 12 Oktober 2026
+
+Pemilik: RegistrationManagement / RegPatientEncounter. Episode rawat inap hanya membaca relasi melalui EncounterId.
+
+| Field | Tipe | Null | Makna |
+| --- | --- | --- | --- |
+| SourceEncounterId | uuid | Ya | Kunjungan IGD/poli asal, self FK Restrict |
+| AdmissionTransferId | uuid | Ya | ID disposisi IGD atau surat InpatientReferral poli |
+| AdmissionTransferSourceType | varchar(20) | Ya | Emergency atau Outpatient |
+
+Index unik pasangan SourceType/TransferId menjaga satu hasil per permintaan; tidak menghapus perlindungan ketika hasil dibatalkan. Pasien datang langsung memakai null. Notes tidak menjadi relasi. [Amandemen](../contracts/admission-transfer-repair-006.md). Migration disiapkan, belum diterapkan.

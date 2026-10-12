@@ -1078,3 +1078,8 @@ Scope memakai decision46/kontrak0.12.0 BM-DEL-20261011-01; ID AC historis IGD ti
 | `FE-RWI-237` 🟡 | FR-BM-003, FR-BM-004 | RWI-AC-408, RWI-AC-419, RWI-AC-421, RWI-AC-422, RWI-AC-425 | Source4/4 dipetakan; acceptance penuh0/4; unit scope58/58 PASS; runtime NOT_RUN; [laporan](../task/report/frontend/FE-RWI-237.md) |
 
 Metadata backend belum menyediakan key transfer; evidence historis tidak diekspos respons cleaning-attempt. Gate kelas/SOP/access/cutover tetap terbuka. Rincian ada pada [roadmap frontend](frontend-roadmap-bed-management.md), [traceability Bed Management](requirement-traceability-bed-management.md) dan inventaris consumer [FE-RWI-237](../task/report/frontend/FE-RWI-237.md).
+
+
+## Koreksi bukti admisi transfer ? EPS-006, 12 Oktober 2026
+
+FR-RI-187-192 dan BE-RWI-206/207, FE-RWI-227-230: 🟡 implementasi diperbaiki, bukti integrasi PostgreSQL belum tersedia. Gunakan [traceability slice](requirement-traceability-admisi-transfer-igd.md), [amandemen](../contracts/admission-transfer-repair-006.md), dan [laporan verifikasi](../task/report/frontend/FIX-EPS-006-08.md); klaim COMPLETED_PROVEN historis tidak berlaku sebagai sign-off runtime.
