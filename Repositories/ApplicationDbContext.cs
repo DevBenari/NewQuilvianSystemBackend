@@ -872,6 +872,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<InpNurseAssignment> InpNurseAssignments { get; set; }
         public DbSet<InpBedReservation> InpBedReservations { get; set; }
         public DbSet<InpBedPlacement> InpBedPlacements { get; set; }
+        public DbSet<InpBedReadiness> InpBedReadinesses { get; set; }
+        public DbSet<InpBedCleaningAttempt> InpBedCleaningAttempts { get; set; }
+        public DbSet<InpBedLifecycleEvent> InpBedLifecycleEvents { get; set; }
+        public DbSet<InpBedOperationReceipt> InpBedOperationReceipts { get; set; }
         public DbSet<InpDischargeSummary> InpDischargeSummaries { get; set; }
         public DbSet<InpDischargeSummaryRevision> InpDischargeSummaryRevisions { get; set; }
         public DbSet<InpClearanceMark> InpClearanceMarks { get; set; }
@@ -1231,6 +1235,9 @@ namespace QuilvianSystemBackend.Repositories
         private void StampEpisodeVersions()
         {
             ChangeTracker.DetectChanges();
+            if (ChangeTracker.Entries().Any(x => (x.Entity is InpBedLifecycleEvent || x.Entity is InpBedOperationReceipt) &&
+                (x.State == EntityState.Modified || x.State == EntityState.Deleted)))
+                throw new InvalidOperationException("Lifecycle event dan operation receipt bersifat append-only.");
             foreach (var entry in ChangeTracker.Entries<InpEpisode>().Where(x => x.State == EntityState.Modified))
                 entry.Entity.Version = entry.Property(x => x.Version).OriginalValue + 1;
         }

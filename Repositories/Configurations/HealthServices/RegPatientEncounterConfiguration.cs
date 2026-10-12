@@ -13,6 +13,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 
             entity.HasKey(x => x.Id);
 
+            entity.Property(x => x.AdmissionTransferSourceType).HasMaxLength(20);
+            entity.HasOne(x => x.SourceEncounter).WithMany()
+                .HasForeignKey(x => x.SourceEncounterId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => new { x.AdmissionTransferSourceType, x.AdmissionTransferId })
+                .IsUnique().HasFilter("\"AdmissionTransferId\" IS NOT NULL");
+
             // =========================
             // PROPERTIES
             // =========================

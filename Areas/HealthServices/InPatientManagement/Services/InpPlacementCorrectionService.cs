@@ -29,16 +29,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
     {
         private const string LogCategory = "HealthServices.InPatientManagement.PlacementCorrection";
 
-        private readonly ApplicationDbContext _dbContext;
+        private readonly ApplicationDbContext _dbContext; private readonly InpBedAccessService _bedAccess;
         private readonly InpBedOccupancyService _bedOccupancyService;
         private readonly IInpBillingClearanceAdapter _billingClearanceAdapter;
 
         public InpPlacementCorrectionService(
             ApplicationDbContext dbContext,
             InpBedOccupancyService bedOccupancyService,
-            IInpBillingClearanceAdapter billingClearanceAdapter)
+            IInpBillingClearanceAdapter billingClearanceAdapter, InpBedAccessService bedAccess)
         {
-            _dbContext = dbContext;
+            _dbContext = dbContext; _bedAccess = bedAccess;
             _bedOccupancyService = bedOccupancyService;
             _billingClearanceAdapter = billingClearanceAdapter;
         }
@@ -86,32 +86,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     InpEpisodeOperationStatus.NotFound, "Penempatan tidak ditemukan.");
             }
 
-            // INT-RWF-03 — gerbang status invoice dari bacaan langsung Billing.
-            var billing = await _billingClearanceAdapter.GetStatusAsync(encounterId.Value, cancellationToken);
-
-            if (!billing.IsReadable)
+            var ownerEpisode = await _dbContext.Set<InpBedPlacement>().Where(x => x.Id == placementId).Select(x => x.EpisodeId).SingleAsync(cancellationToken); await _bedAccess.RequireEpisodeAsync(ownerEpisode, "InpatientBedOccupancy:Correct", cancellationToken); // INT-RWF-03: guard hanya untuk mutation baru, bukan replay receipt yang telah commit.
+            return await _bedOccupancyService.ApplyPlacementCorrectionAsync(placementId, request, actorUserId, cancellationToken, async ct =>
             {
-                return InpPlacementCorrectionResult.Fail(
-                    InpEpisodeOperationStatus.BusinessRuleRejected,
-                    "Status tagihan tidak dapat dibaca. Koreksi penempatan belum dapat disimpan.",
-                    InpPlacementCorrectionCodes.InvoiceUnreadable);
-            }
-
-            if (!string.Equals(billing.InvoiceStatus, "OPEN", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(billing.InvoiceStatus, "NONE", StringComparison.OrdinalIgnoreCase))
-            {
-                return InpPlacementCorrectionResult.Fail(
-                    InpEpisodeOperationStatus.BusinessRuleRejected,
-                    "Penempatan tidak dapat dikoreksi karena tagihan rawat inap sudah difinalkan. " +
-                    "Hubungi kasir untuk penyesuaian.",
-                    InpPlacementCorrectionCodes.InvoiceNotOpen);
-            }
-
-            return await _bedOccupancyService.ApplyPlacementCorrectionAsync(
-                placementId,
-                request,
-                actorUserId,
-                cancellationToken);
+                var billing = await _billingClearanceAdapter.GetStatusAsync(encounterId.Value, ct);
+                if (!billing.IsReadable) throw new InpBedOperationException(503, "DEPENDENCY_UNAVAILABLE", "Status tagihan belum dapat dibaca.");
+                if (!string.Equals(billing.InvoiceStatus, "OPEN", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(billing.InvoiceStatus, "NONE", StringComparison.OrdinalIgnoreCase))
+                    throw new InpBedOperationException(422, InpPlacementCorrectionCodes.InvoiceNotOpen, "Penempatan tidak dapat dikoreksi karena tagihan sudah difinalkan.");
+            });
         }
     }
 

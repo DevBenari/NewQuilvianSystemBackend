@@ -1,4 +1,5 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
@@ -19,6 +20,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
     public class RoomResponse
     {
+        public BedOperationMeta? OperationMeta { get; set; }
+        public long OperationalVersion { get; set; }
+        public Guid CycleId { get; set; }
+        public List<BedVersionExpectation> AffectedBedVersions { get; set; } = [];
         public Guid Id { get; set; }
         public Guid ServiceUnitId { get; set; }
         public string ServiceUnitCode { get; set; } = string.Empty;
@@ -180,6 +185,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
     public class CreateRoomRequest
     {
+        public long ExpectedBedVersion { get; set; }
+        [MaxLength(500)] public string? OperationReason { get; set; }
+        public List<BedVersionExpectation> AffectedBedVersions { get; set; } = [];
         [Required]
         public Guid ServiceUnitId { get; set; }
 
@@ -221,17 +229,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
     public class UpdateRoomStatusRequest
     {
+        public long ExpectedBedVersion { get; set; }
+        [MaxLength(500)] public string? OperationReason { get; set; }
+        public List<BedVersionExpectation> AffectedBedVersions { get; set; } = [];
         public bool IsActive { get; set; }
     }
 
     public class DeleteRoomRequest
     {
+        public long ExpectedBedVersion { get; set; }
+        [MaxLength(500)] public string? OperationReason { get; set; }
+        public List<BedVersionExpectation> AffectedBedVersions { get; set; } = [];
         [MaxLength(250)]
         public string? DeleteReason { get; set; }
     }
 
     public class RoomCreateResponse
     {
+        public BedOperationMeta? OperationMeta { get; set; }
+        public long OperationalVersion { get; set; }
+        public Guid CycleId { get; set; }
+        public List<BedVersionExpectation> AffectedBedVersions { get; set; } = [];
         public Guid Id { get; set; }
         public Guid ServiceUnitId { get; set; }
         public Guid? PatientClassId { get; set; }
@@ -247,6 +265,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
     public class RoomUpdateResponse
     {
+        public BedOperationMeta? OperationMeta { get; set; }
+        public long OperationalVersion { get; set; }
+        public Guid CycleId { get; set; }
+        public List<BedVersionExpectation> AffectedBedVersions { get; set; } = [];
         public Guid Id { get; set; }
         public Guid ServiceUnitId { get; set; }
         public Guid? PatientClassId { get; set; }
@@ -262,6 +284,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
     public class RoomDeleteResponse
     {
+        public BedOperationMeta? OperationMeta { get; set; }
+        public long OperationalVersion { get; set; }
+        public Guid CycleId { get; set; }
+        public List<BedVersionExpectation> AffectedBedVersions { get; set; } = [];
         public Guid Id { get; set; }
         public string RoomCode { get; set; } = string.Empty;
         public string RoomName { get; set; } = string.Empty;

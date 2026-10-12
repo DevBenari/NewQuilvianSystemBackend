@@ -688,6 +688,19 @@ try
     builder.Services.AddScoped<InpSettingService>();
     builder.Services.AddScoped<InpEpisodeNumberService>();
     builder.Services.AddScoped<InpBedOccupancyService>();
+    builder.Services.AddSingleton<Microsoft.Extensions.Options.IValidateOptions<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options.BedManagementOptions>, QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options.BedManagementOptionsValidator>();
+    builder.Services.AddOptions<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options.BedManagementOptions>().Bind(builder.Configuration.GetSection("BedManagement")).ValidateOnStart();
+    builder.Services.AddScoped<InpBedAccessService>();
+    builder.Services.AddScoped<InpBedMutationCoordinator>();
+    builder.Services.AddScoped<InpBedManagementQueryService>();
+    builder.Services.AddScoped<InpBedClassComparisonService>();
+    builder.Services.AddScoped<InpBedReadinessService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.BedMutationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.BedMasterWriteService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.RoomMasterWriteService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.ServiceUnitMasterWriteService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.PatientClassMasterWriteService>();
+    builder.Services.AddScoped<InpBedOperationFilter>();
     builder.Services.AddScoped<InpEpisodeService>();
     builder.Services.AddScoped<InpDischargeService>();
     builder.Services.AddScoped<CliWsdObservationService>();
@@ -718,6 +731,8 @@ try
     builder.Services.AddScoped<InpPatientLocationQuery>();
     // BE-RWI-181: permintaan admisi dari kamar pulih (dipanggil OK dan admisi).
     builder.Services.AddScoped<InpAdmissionReferralService>();
+    // BE-RWI-206 & BE-RWI-207: antrean dan eksekusi admisi transfer pasien IGD dan Poliklinik.
+    builder.Services.AddScoped<InpAdmissionTransferService>();
     // BE-RWI-184 (P2): laporan transfer ruangan dari linimasa penempatan bed.
     builder.Services.AddScoped<InpRoomTransferReportService>();
 
@@ -740,6 +755,7 @@ try
     builder.Services.AddScoped<InpAdmissionSignatureService>();
     builder.Services.AddScoped<InpAdmissionPrintService>();
     builder.Services.AddScoped<InpAdmissionWorkspaceQueryService>();
+    builder.Services.AddScoped<InpatientAdmissionConsentService>();
 
     // BE-RWI-086 — penyusun usulan isian resume pulang. Hanya membaca, tidak pernah
     // menyimpan, dan tidak dipakai service Rawat Inap lain; ia dipanggil langsung controller.

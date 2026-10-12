@@ -716,6 +716,12 @@ namespace QuilvianSystemBackend.Migrations
     }
 
     [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260901073655_A0AuthorizationIntegrityProjection")]
+    partial class A0AuthorizationIntegrityProjection
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
     [Migration("20260901081830_AddNutritionManagement")]
     partial class AddNutritionManagement
     {
@@ -1202,6 +1208,12 @@ namespace QuilvianSystemBackend.Migrations
     }
 
     [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260917072515_AddEmergencyDoctorAssignment")]
+    partial class AddEmergencyDoctorAssignment
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
     [Migration("20260917083800_AddFundingSourceToPettyCashMovement")]
     partial class AddFundingSourceToPettyCashMovement
     {
@@ -1216,6 +1228,402 @@ namespace QuilvianSystemBackend.Migrations
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20260918063610_RemoveTaxableCategoryFromMstTaxRule")]
     partial class RemoveTaxableCategoryFromMstTaxRule
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260918080248_AddLabPathologyReport")]
+    partial class AddLabPathologyReport
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260918085707_AddLabMicrobiologyMasterData")]
+    partial class AddLabMicrobiologyMasterData
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260921000000_AddFinanceMasterData")]
+    partial class AddFinanceMasterData
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260921000001_AddFinanceBillingIntake")]
+    partial class AddFinanceBillingIntake
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260921000002_AddFinanceReceivableAndCollection")]
+    partial class AddFinanceReceivableAndCollection
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260921000003_AddFinanceAccountingOutbox")]
+    partial class AddFinanceAccountingOutbox
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260921000004_AddFinanceCashManagement")]
+    partial class AddFinanceCashManagement
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260921032324_AddBbkBloodOrderRequestedBloodGroup")]
+    partial class AddBbkBloodOrderRequestedBloodGroup
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260921032943_BackfillEmergencyDoctorAssignment")]
+    partial class BackfillEmergencyDoctorAssignment
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260921033917_AddLabMicrobiologyResultCompletion")]
+    partial class AddLabMicrobiologyResultCompletion
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260921041046_AddLabMicrobiologyIsolateAndSusceptibility")]
+    partial class AddLabMicrobiologyIsolateAndSusceptibility
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260921042352_AddLabSusceptibilityBreakpoint")]
+    partial class AddLabSusceptibilityBreakpoint
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260921045527_AddLabProcedureMicrobiologyProfile")]
+    partial class AddLabProcedureMicrobiologyProfile
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260921051028_AddLabSpecimenDetailType")]
+    partial class AddLabSpecimenDetailType
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260921054250_AddLabMicrobiologyCriticalRule")]
+    partial class AddLabMicrobiologyCriticalRule
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260921061227_AddLabFieldChangeLog")]
+    partial class AddLabFieldChangeLog
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260921063308_AddLabDisciplineSettingAndReportNumber")]
+    partial class AddLabDisciplineSettingAndReportNumber
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260922015126_AddBillCollectionPrescriptionHandoff")]
+    partial class AddBillCollectionPrescriptionHandoff
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260922044002_AddHemodialysisManagement")]
+    partial class AddHemodialysisManagement
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260922064824_AddLabReportNumberShape")]
+    partial class AddLabReportNumberShape
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260922100000_AddFinanceCollection")]
+    partial class AddFinanceCollection
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260922110000_AddFinanceSupplierPayable")]
+    partial class AddFinanceSupplierPayable
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260922120000_AddFinancePayment")]
+    partial class AddFinancePayment
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260922130000_AddFinanceMedicalServicePayable")]
+    partial class AddFinanceMedicalServicePayable
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260923020351_AddFinPayableAdjustmentIndexAndDropLabOrderExaminerFk")]
+    partial class AddFinPayableAdjustmentIndexAndDropLabOrderExaminerFk
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260923021224_AddEmergencyArrivalTimeSource")]
+    partial class AddEmergencyArrivalTimeSource
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260923025953_RestoreLabOrderExaminerDoctorFk")]
+    partial class RestoreLabOrderExaminerDoctorFk
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260923060000_FixFinReceiptTenderRequiredForReversal")]
+    partial class FixFinReceiptTenderRequiredForReversal
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260923061124_AddEmergencyEncounterReconciliation")]
+    partial class AddEmergencyEncounterReconciliation
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260924042630_AddAccountingEventInbox")]
+    partial class AddAccountingEventInbox
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260924080000_AddPettyCashVoucherConfirmationFields")]
+    partial class AddPettyCashVoucherConfirmationFields
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260924083000_AddBillingManagementRevisionsDoctorMemoAndRefundCategory")]
+    partial class AddBillingManagementRevisionsDoctorMemoAndRefundCategory
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260925090000_AlterFinBillingHandoffIntakeHandoffTypeCheck")]
+    partial class AlterFinBillingHandoffIntakeHandoffTypeCheck
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260926100000_AddPurchasingApRumpun")]
+    partial class AddPurchasingApRumpun
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260926110000_AddSourcePurchasingInvoiceIdToSupplierPayable")]
+    partial class AddSourcePurchasingInvoiceIdToSupplierPayable
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260928041937_AddAccSubledgerBalance")]
+    partial class AddAccSubledgerBalance
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260928093849_AddMasterNursingDiagnosisSdki")]
+    partial class AddMasterNursingDiagnosisSdki
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260928120000_AddDepositAppliedAmountToFinPayment")]
+    partial class AddDepositAppliedAmountToFinPayment
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260929041709_AddLabResultValidationAndRelease")]
+    partial class AddLabResultValidationAndRelease
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260929120000_AddArInvoiceBatchAndReceiptDeduction")]
+    partial class AddArInvoiceBatchAndReceiptDeduction
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260929130000_AddPPNAmountToFinSupplierReturn")]
+    partial class AddPPNAmountToFinSupplierReturn
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260930032822_AddLabSpecimenDecidedAtIndex")]
+    partial class AddLabSpecimenDecidedAtIndex
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260930064430_AddEmergencyVisitClosureSource")]
+    partial class AddEmergencyVisitClosureSource
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260930080625_TableFinPurchasingIdempotencyRecord")]
+    partial class TableFinPurchasingIdempotencyRecord
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260930082632_UpdatePendingModelChanges")]
+    partial class UpdatePendingModelChanges
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261001023520_AddEmergencyDuplicateEpisodeOverride")]
+    partial class AddEmergencyDuplicateEpisodeOverride
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261001040508_AddCliDoctorCertificate")]
+    partial class AddCliDoctorCertificate
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261001043557_AddMstDiagnosisGroup")]
+    partial class AddMstDiagnosisGroup
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261001090000_AddClaimTrackingToFinReceivableInvoiceBatch")]
+    partial class AddClaimTrackingToFinReceivableInvoiceBatch
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261001100000_AddFinNonPatientReceivable")]
+    partial class AddFinNonPatientReceivable
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261002091515_SetFinPurchasingIdempotencyRecordDefaultValues")]
+    partial class SetFinPurchasingIdempotencyRecordDefaultValues
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261002093000_AddFinanceSubledgerMovementLedgers")]
+    partial class AddFinanceSubledgerMovementLedgers
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261002103000_AddFinanceSubledgerSetup")]
+    partial class AddFinanceSubledgerSetup
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261002120000_AddFinanceTransactionProofAndDirectPaymentThreshold")]
+    partial class AddFinanceTransactionProofAndDirectPaymentThreshold
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261002130000_AddFinanceOpeningItemMigration")]
+    partial class AddFinanceOpeningItemMigration
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261002140000_FixFinSupplierPayableMovementForeignKey")]
+    partial class FixFinSupplierPayableMovementForeignKey
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261002150000_FixFinPurchasingIdempotencyRecord")]
+    partial class FixFinPurchasingIdempotencyRecord
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261003090000_RelaxFinCashMovementAmountForZeroOpeningBalance")]
+    partial class RelaxFinCashMovementAmountForZeroOpeningBalance
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261004090000_AlterMstDirectPaymentThresholdRowVersion")]
+    partial class AlterMstDirectPaymentThresholdRowVersion
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261005033044_AddRawatInapFinishing")]
+    partial class AddRawatInapFinishing
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261005050735_AddNutritionAndBloodInstructionVerification")]
+    partial class AddNutritionAndBloodInstructionVerification
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261005071042_AddRawatInapKeperawatanFinishing")]
+    partial class AddRawatInapKeperawatanFinishing
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261005084241_AddRawatInapBillingEncounterLink")]
+    partial class AddRawatInapBillingEncounterLink
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261005090000_OptimizeRunningInvoiceQueries")]
+    partial class OptimizeRunningInvoiceQueries
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261006092040_AddCardImagePathToPatientCompanyGuarantor")]
+    partial class AddCardImagePathToPatientCompanyGuarantor
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261006150000_AddInvoiceDateAndTermsToFinReceivableInvoiceBatch")]
+    partial class AddInvoiceDateAndTermsToFinReceivableInvoiceBatch
     {
     }
 }

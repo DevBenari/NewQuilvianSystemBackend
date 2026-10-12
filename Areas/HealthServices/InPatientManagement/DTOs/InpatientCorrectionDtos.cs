@@ -107,6 +107,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// </remarks>
     public class CorrectPlacementRequest
     {
+        public List<BedVersionExpectation> AffectedBedVersions { get; set; } = [];
         /// <summary>Bed yang benar. Wajib lolos kelayakan penempatan yang sama dengan transfer.</summary>
         public Guid? CorrectedBedId { get; set; }
 

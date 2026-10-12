@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Repositories;
@@ -34,6 +35,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders
         /// <summary>Kode baris pengaturan tunggal yang dipakai seluruh modul Rawat Inap.</summary>
         public const string DefaultSettingCode = "DEFAULT";
 
+        /// <summary>Kode kebijakan deposit default untuk pasien umum/tunai.</summary>
+        public const string DefaultGeneralDepositPolicyCode = "DEP-POL-UMUM";
+
         /// <summary>Nama lingkungan yang membuat seeder berhenti tanpa menulis apa pun.</summary>
         public const string ProductionEnvironmentName = "Production";
 
@@ -61,6 +65,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders
             await SeedPrintSettingValuesAsync(db, actorUserId, now, result, ct);
             await SeedClearanceItemsAsync(db, actorUserId, now, result, ct);
             await SeedNewPatientHandoverItemsAsync(db, actorUserId, now, result, ct);
+            await SeedDefaultDepositPolicyAsync(db, actorUserId, now, result, ct);
 
             return result;
         }
@@ -407,6 +412,69 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders
             }
         }
 
+        // ------------------------------------------------------------------
+        // Kebijakan Deposit Default — Satu baris berkode DEP-POL-UMUM untuk Pasien Tunai/Umum (UAT)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Mengisi data master MstDepositPolicy untuk skenario pasien tunai / umum (Rp10.000.000)
+        /// pada lingkungan non-produksi (FIX-EPS-007-03 / UAT-ADM-003).
+        /// </summary>
+        private static async Task SeedDefaultDepositPolicyAsync(
+            ApplicationDbContext db,
+            Guid actorUserId,
+            DateTime now,
+            InpatientMasterDataSeedResult result,
+            CancellationToken ct)
+        {
+            var existingGeneral = await db.Set<MstDepositPolicy>()
+                .FirstOrDefaultAsync(x => x.Code == DefaultGeneralDepositPolicyCode 
+                    || x.Code == "DEP-RANAP-UMUM" 
+                    || (x.GuarantorId == null && x.PatientClassId == null), ct);
+
+            if (existingGeneral != null)
+            {
+                if (existingGeneral.MinimumAmount != 10000000m)
+                {
+                    existingGeneral.MinimumAmount = 10000000m;
+                    existingGeneral.FollowUpIntervalDays = 3;
+                    existingGeneral.IsActive = true;
+                    existingGeneral.UpdateDateTime = now;
+                    existingGeneral.UpdateBy = actorUserId;
+                    await db.SaveChangesAsync(ct);
+                    result.DepositPolicyInserted = 1;
+                }
+                else
+                {
+                    result.DepositPolicySkippedReason =
+                        $"Kebijakan deposit default berkode {existingGeneral.Code} sudah bernilai Rp10.000.000, tidak diubah.";
+                }
+
+                return;
+            }
+
+            db.Set<MstDepositPolicy>().Add(new MstDepositPolicy
+            {
+                Id = Guid.NewGuid(),
+                Code = DefaultGeneralDepositPolicyCode,
+                Name = "Kebijakan Deposit Pasien Tunai / Umum",
+                GuarantorId = null,
+                PatientClassId = null,
+                IsRequired = true,
+                MinimumAmount = 10000000m,
+                FollowUpIntervalDays = 3,
+                Description = "Kebijakan deposit minimum Rp10.000.000 untuk pasien umum/tunai rawat inap (UAT).",
+                EffectiveFrom = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
+                EffectiveTo = null,
+                IsActive = true,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            });
+
+            await db.SaveChangesAsync(ct);
+            result.DepositPolicyInserted = 1;
+        }
+
         private sealed record HandoverItemDefinition(
             string ItemCode,
             string ItemName,
@@ -448,6 +516,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders
         /// <summary>Butir serah terima yang masuk tanpa saran karena sumbernya sudah dipakai butir lain.</summary>
         public int HandoverSuggestionSourceDropped { get; set; }
 
-        public int TotalInserted => SettingInserted + ClearanceItemInserted + HandoverItemInserted;
+        /// <summary>Kebijakan deposit default pasien tunai/umum Rp10 Juta (FIX-EPS-007-03).</summary>
+        public int DepositPolicyInserted { get; set; }
+
+        public string? DepositPolicySkippedReason { get; set; }
+
+        public int TotalInserted => SettingInserted + ClearanceItemInserted + HandoverItemInserted + DepositPolicyInserted;
     }
 }
