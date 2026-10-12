@@ -48,14 +48,15 @@ public static class CanceledInvoiceReportDocuments
                             columns.ConstantColumn(22);
                             columns.RelativeColumn(2);
                             columns.RelativeColumn(3);
-                            columns.RelativeColumn(2);
-                            columns.RelativeColumn(2);
-                            columns.RelativeColumn(2.2f);
-                            columns.RelativeColumn(2);
+                            columns.RelativeColumn(1.8f);
+                            columns.RelativeColumn(1.8f);
+                            columns.RelativeColumn(2f);
+                            columns.RelativeColumn(1.8f);
                             columns.RelativeColumn(1.6f);
                             columns.RelativeColumn(1.6f);
                             columns.RelativeColumn(1.6f);
-                            columns.RelativeColumn(3);
+                            columns.RelativeColumn(2.5f);
+                            columns.RelativeColumn(2f);
                         });
 
                         table.Header(header =>
@@ -63,7 +64,7 @@ public static class CanceledInvoiceReportDocuments
                             string[] heads =
                             [
                                 "No", "No. Invoice", "Perusahaan/Penjamin", "Jenis", "Tgl Invoice",
-                                "Tgl Cancel", "Oleh", "Total", "Diskon", "Akhir", "Alasan Cancel"
+                                "Tgl Cancel", "Oleh", "Total", "Diskon", "Akhir", "Alasan Cancel", "Status"
                             ];
                             foreach (var h in heads)
                                 header.Cell().Background(Colors.Grey.Lighten2).Padding(3).Text(h).Bold();
@@ -85,12 +86,14 @@ public static class CanceledInvoiceReportDocuments
                             table.Cell().Padding(3).AlignRight().Text(row.TotalDiscount.ToString("N0"));
                             table.Cell().Padding(3).AlignRight().Text(row.NetAmount.ToString("N0"));
                             table.Cell().Padding(3).Text(row.CancelReason ?? "-");
+                            var statusLabel = row.ReportStatus == "RECREATED" ? "Sudah Dibuat Ulang" : "Canceled";
+                            table.Cell().Padding(3).Text(statusLabel);
                             i++;
                         }
 
                         if (rows.Count == 0)
                         {
-                            table.Cell().ColumnSpan(11).Padding(8).AlignCenter()
+                            table.Cell().ColumnSpan(12).Padding(8).AlignCenter()
                                 .Text("Tidak ada Canceled Invoice yang cocok dengan filter ini.");
                         }
                     });
@@ -122,8 +125,9 @@ public static class CanceledInvoiceReportDocuments
                 {
                     col.Item().PaddingVertical(8).Column(h =>
                     {
+                        var statusLabel = detail.ReportStatus == "RECREATED" ? "Sudah Dibuat Ulang" : "Canceled";
                         h.Item().Text($"Perusahaan/Penjamin: {detail.DebtorName ?? "-"}");
-                        h.Item().Text($"Status: {detail.Status}");
+                        h.Item().Text($"Status: {statusLabel}");
                         h.Item().Text("Tanggal Cancel: " + (detail.CancelledAt.HasValue
                             ? FinanceBusinessDate.ToBusinessTime(detail.CancelledAt.Value).ToString("dd/MM/yyyy HH:mm")
                             : "-"));
