@@ -101,7 +101,7 @@ public static class PaymentArReportDocuments
                     var idx = 1;
                     foreach (var row in rows)
                     {
-                        var bg = idx % 2 == 0 ? "#f8fafc" : Colors.White;
+                        var bg = idx % 2 == 0 ? "#f8fafc" : "#ffffff";
 
                         table.Cell().Background(bg).Padding(3).AlignCenter().Text(idx.ToString());
                         table.Cell().Background(bg).Padding(3).Column(c =>
@@ -122,7 +122,7 @@ public static class PaymentArReportDocuments
                         table.Cell().Background(bg).Padding(3).AlignCenter().Text(row.PaymentDate.ToString("dd/MM/yyyy"));
                         table.Cell().Background(bg).Padding(3).AlignRight().Text($"Rp {row.TotalTagihan:N0}");
                         table.Cell().Background(bg).Padding(3).AlignRight().Text($"Rp {row.TotalPembayaran:N0}").Bold().FontColor("#16a34a");
-                        table.Cell().Background(bg).Padding(3).AlignRight().Text($"Rp {row.SisaPembayaran:N0}").FontColor(row.SisaPembayaran > 0 ? "#dc2626" : Colors.Black);
+                        table.Cell().Background(bg).Padding(3).AlignRight().Text($"Rp {row.SisaPembayaran:N0}").FontColor(row.SisaPembayaran > 0 ? "#dc2626" : "#000000");
 
                         idx++;
                     }
@@ -260,7 +260,7 @@ public static class PaymentArReportDocuments
                     var idx = 1;
                     foreach (var item in detail.Items)
                     {
-                        var bg = idx % 2 == 0 ? "#f8fafc" : Colors.White;
+                        var bg = idx % 2 == 0 ? "#f8fafc" : "#ffffff";
 
                         table.Cell().Background(bg).Padding(3).AlignCenter().Text(idx.ToString());
                         table.Cell().Background(bg).Padding(3).Column(c =>
@@ -275,7 +275,7 @@ public static class PaymentArReportDocuments
                         table.Cell().Background(bg).Padding(3).AlignCenter().Text(item.PaymentSequence);
                         table.Cell().Background(bg).Padding(3).AlignRight().Text($"Rp {item.TotalPiutang:N0}");
                         table.Cell().Background(bg).Padding(3).AlignRight().Text($"Rp {item.PiutangTerbayar:N0}").Bold().FontColor("#16a34a");
-                        table.Cell().Background(bg).Padding(3).AlignRight().Text($"Rp {item.SisaPembayaran:N0}").FontColor(item.SisaPembayaran > 0 ? "#dc2626" : Colors.Black);
+                        table.Cell().Background(bg).Padding(3).AlignRight().Text($"Rp {item.SisaPembayaran:N0}").FontColor(item.SisaPembayaran > 0 ? "#dc2626" : "#000000");
                         table.Cell().Background(bg).Padding(3).AlignCenter().Text(item.Status);
 
                         idx++;
