@@ -97,6 +97,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 SignerRelationshipText = request.SignerRelationshipText,
                 SignerPhoneNumber = request.SignerPhoneNumber,
                 SignerIdentityNumber = request.SignerIdentityNumber,
+                SignerAddress = request.SignerAddress,
                 AgreedClauses = request.AgreedClauses,
                 SignatureImageBase64 = request.SignatureImageBase64,
                 SignedAt = request.SignedAt ?? now,
@@ -136,6 +137,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     SourceType = isSelfSigner ? InpAdmissionPartySource.Patient : InpAdmissionPartySource.Manual,
                     Relationship = MapRelationship(request.SignerRelationship),
                     RelationshipText = request.SignerRelationshipText ?? request.SignerRelationship,
+                    Address = request.SignerAddress,
                     MobilePhone = request.SignerPhoneNumber != null && request.SignerPhoneNumber.Length > 13
                         ? request.SignerPhoneNumber[..13]
                         : request.SignerPhoneNumber,
@@ -183,6 +185,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     existingDoc.Party.FullName = request.SignerName.Trim();
                     existingDoc.Party.Relationship = MapRelationship(request.SignerRelationship);
                     existingDoc.Party.RelationshipText = request.SignerRelationshipText ?? request.SignerRelationship;
+                    existingDoc.Party.Address = request.SignerAddress;
                     existingDoc.Party.MobilePhone = request.SignerPhoneNumber != null && request.SignerPhoneNumber.Length > 13
                         ? request.SignerPhoneNumber[..13]
                         : request.SignerPhoneNumber;
@@ -261,6 +264,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 SignerRelationshipText = doc.Party?.RelationshipText,
                 SignerPhoneNumber = doc.Party?.MobilePhone,
                 SignerIdentityNumber = doc.Party?.IdentityNumber,
+                SignerAddress = doc.Party?.Address,
                 Status = doc.Status.ToString(),
                 IsSigned = true
             };

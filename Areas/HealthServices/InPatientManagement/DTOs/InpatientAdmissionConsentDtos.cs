@@ -35,6 +35,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         [MaxLength(50, ErrorMessage = "Nomor identitas maksimal 50 karakter.")]
         public string? SignerIdentityNumber { get; set; }
 
+        /// <summary>Alamat lengkap penanda tangan persetujuan rawat inap.</summary>
+        [MaxLength(500, ErrorMessage = "Alamat penanda tangan maksimal 500 karakter.")]
+        public string? SignerAddress { get; set; }
+
         /// <summary>Daftar 12 klausul persetujuan umum rawat inap yang disetujui (VAL-ADM-04).</summary>
         public List<int> AgreedClauses { get; set; } = new();
 
@@ -70,6 +74,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public string? SignerPhoneNumber { get; set; }
 
         public string? SignerIdentityNumber { get; set; }
+
+        public string? SignerAddress { get; set; }
 
         public List<int> AgreedClauses { get; set; } = new();
 

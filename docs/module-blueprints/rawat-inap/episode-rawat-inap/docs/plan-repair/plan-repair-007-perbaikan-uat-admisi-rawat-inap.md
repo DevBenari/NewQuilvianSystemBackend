@@ -17,12 +17,12 @@ basis_source_frontend: "3f8cb2facce438969ffa95a0cd172b5ebde7a333 (HamzahV2)"
 
 | ID Perbaikan | Menutup | Ringkasan Perbaikan | Area | Prioritas | Task ID | Status | Bukti |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- |
-| `FIX-EPS-007-01` | `ISS-EPS-007-01` | Tambahkan tombol aksi "Sekarang" pada pemilih tanggal & jam rujukan | FE | 2 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-007-02` | `ISS-EPS-007-02` | Integrasikan API kebijakan deposit dan tampilkan batas minimum pada langkah Deposit | FE | 1 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-007-03` | `ISS-EPS-007-03` | Konfigurasi seeder idempotent / SQL kebijakan deposit Rp10.000.000 untuk pasien umum UAT | BE | 1 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-007-04` | `ISS-EPS-007-T1` | Verifikasi alur pelunasan kekurangan deposit di Workspace PPRI | FE + BE | 2 | — | BELUM DIKERJAKAN | — |
+| `FIX-EPS-007-01` | `ISS-EPS-007-01` | Tambahkan tombol aksi "Sekarang" pada pemilih tanggal & jam rujukan | FE | 2 | `TASK-EPS-007-01` | ✅ SELESAI | `BaseDateTimeField` (`showNowButton`), Screenshot: `01-tombol-sekarang-terisi.png` |
+| `FIX-EPS-007-02` | `ISS-EPS-007-02` | Integrasikan API kebijakan deposit dan tampilkan batas minimum pada langkah Deposit | FE | 1 | `TASK-EPS-007-02` | ✅ SELESAI | `fetchInpatientDepositPolicy`, `useInpatientAdmissionDeposit`, Screenshot: `03-deposit-kebijakan-10-juta.png`, `04-deposit-kekurangan-1-juta.png` |
+| `FIX-EPS-007-03` | `ISS-EPS-007-03` | Konfigurasi seeder idempotent / SQL kebijakan deposit Rp10.000.000 untuk pasien umum UAT | BE | 1 | `TASK-EPS-007-03` | ✅ SELESAI | Tabel `public."MstDepositPolicy"` aktif Rp10.000.000, `InpatientMasterDataSeeder.cs`, seeder SQL `seed-mst-deposit-policy-uat.sql` |
+| `FIX-EPS-007-04` | `ISS-EPS-007-T1` | Verifikasi alur pelunasan kekurangan deposit di Workspace PPRI | FE + BE | 2 | `TASK-EPS-007-04` | ✅ SELESAI | Invariant `RWI-DEC-095` terjaga (Lanjut aktif), `deposit-settlement-form.jsx` terhubung API `deposit-summary` kekurangan Rp1.000.000 |
 
-**Ringkasan: 0 dari 4 perbaikan selesai (Menunggu persetujuan pemilik).**
+**Ringkasan: 4 dari 4 perbaikan selesai (100% Terverifikasi End-to-End).**
 
 ---
 
