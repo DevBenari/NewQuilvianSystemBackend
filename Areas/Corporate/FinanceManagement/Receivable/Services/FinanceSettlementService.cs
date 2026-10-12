@@ -56,6 +56,31 @@ public sealed class FinanceSettlementService
         var totalData = await queryable.CountAsync(cancellationToken);
         var totalPage = (int)Math.Ceiling(totalData / (double)pageSize);
 
+        if (totalData == 0)
+        {
+            return new FinanceSettlementPagedResponse
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = 0,
+                TotalPage = 1,
+                Items = new List<FinanceSettlementRowResponse>(),
+                Summary = new FinanceSettlementSummaryResponse
+                {
+                    Category = category,
+                    TotalReceivables = 0,
+                    GrandTotalPiutang = 0m,
+                    GrandTotalBeginningBalance = 0m,
+                    GrandTotalEndingBalance = 0m,
+                    GrandTotalOutstanding = 0m,
+                    PeriodStart = query.StartDate,
+                    PeriodEnd = query.EndDate,
+                    BalanceAsOfDate = query.EndDate ?? FinanceBusinessDate.Today(),
+                    PeriodLabel = FormatPeriodLabel(query.StartDate, query.EndDate)
+                }
+            };
+        }
+
         // Sorting
         queryable = ApplySorting(queryable, query.SortBy, query.SortDirection);
 
@@ -757,11 +782,12 @@ public sealed class FinanceSettlementService
             baseRecs = baseRecs.Where(r => r.RecognizedAt <= endUtc || r.CreateDateTime <= endUtc);
         }
 
-        // Subquery active batch number (hanya batch yang tidak dibatalkan dan item membership aktif)
+        // Subquery active batch number (hanya batch yang tidak dibatalkan dan item membership aktif, satu nomor batch per piutang)
         var batchSubquery = from b in _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
                             join batch in _dbContext.FinReceivableInvoiceBatches.AsNoTracking() on b.BatchId equals batch.Id
                             where !b.IsDelete && b.IsActiveMembership && !batch.IsDelete && batch.Status != FinReceivableInvoiceBatchStatuses.Cancelled
-                            select new { b.ReceivableId, batch.BatchNumber };
+                            group batch.BatchNumber by b.ReceivableId into g
+                            select new { ReceivableId = g.Key, BatchNumber = g.Max() };
 
         var queryable = from r in baseRecs
                         join inv in _dbContext.BilInvoices.AsNoTracking() on r.InvoiceId equals inv.Id into invJoin

@@ -202,7 +202,58 @@ public sealed class FinanceCrossEntryService
             .Select(u => u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode)
             .FirstOrDefaultAsync(cancellationToken);
 
-        var txUserIds = entry.Transactions.Select(t => t.CreateBy).Distinct().ToList();
+        // 1. Ambil persisted transactions yang sudah ada
+        var existingTransactions = entry.Transactions.Where(t => !t.IsDelete).ToList();
+        var knownAllocationIds = existingTransactions
+            .Where(t => t.ReceiptAllocationId.HasValue)
+            .Select(t => t.ReceiptAllocationId!.Value)
+            .ToHashSet();
+
+        // 2. Ambil alokasi FinReceiptAllocation untuk mendeteksi legacy allocation yang belum mempunyai FinCrossEntryTransaction
+        var allocations = entry.ReceiptId != Guid.Empty
+            ? await _dbContext.FinReceiptAllocations.AsNoTracking()
+                .Where(a => a.ReceiptId == entry.ReceiptId && !a.IsDelete)
+                .ToListAsync(cancellationToken)
+            : new List<FinReceiptAllocation>();
+
+        var missingAllocations = allocations
+            .Where(a => !knownAllocationIds.Contains(a.Id))
+            .ToList();
+
+        // 3. Resolve nomor invoice batch / receivable untuk deskripsi missing allocations
+        var missingReceivableIds = missingAllocations
+            .Where(a => a.ReceivableId.HasValue)
+            .Select(a => a.ReceivableId!.Value)
+            .Distinct()
+            .ToList();
+
+        var batchMap = new Dictionary<Guid, string>();
+        var recNumMap = new Dictionary<Guid, string>();
+
+        if (missingReceivableIds.Count > 0)
+        {
+            var batchInfo = await (from item in _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+                                   join b in _dbContext.FinReceivableInvoiceBatches.AsNoTracking() on item.BatchId equals b.Id
+                                   where missingReceivableIds.Contains(item.ReceivableId) && !item.IsDelete && item.IsActiveMembership && !b.IsDelete
+                                   select new { item.ReceivableId, b.BatchNumber })
+                                   .ToListAsync(cancellationToken);
+            foreach (var info in batchInfo)
+            {
+                if (!string.IsNullOrWhiteSpace(info.BatchNumber) && !batchMap.ContainsKey(info.ReceivableId))
+                    batchMap[info.ReceivableId] = info.BatchNumber;
+            }
+
+            recNumMap = await _dbContext.FinReceivables.AsNoTracking()
+                .Where(r => missingReceivableIds.Contains(r.Id))
+                .ToDictionaryAsync(r => r.Id, r => r.ReceivableNumber, cancellationToken);
+        }
+
+        // 4. Resolve user pembuat transaksi & alokasi
+        var txUserIds = existingTransactions.Select(t => t.CreateBy)
+            .Concat(missingAllocations.Select(a => a.AllocatedBy))
+            .Distinct()
+            .ToList();
+
         var txUserMap = txUserIds.Count > 0
             ? await _dbContext.Users.AsNoTracking()
                 .Where(u => txUserIds.Contains(u.Id))
@@ -216,37 +267,114 @@ public sealed class FinanceCrossEntryService
                 .ToDictionaryAsync(u => u.Id, u => u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode, cancellationToken)
             : new Dictionary<Guid, string?>();
 
-        var transactions = entry.Transactions
-            .Where(t => !t.IsDelete)
-            .OrderBy(t => t.OccurredAt)
-            .ThenBy(t => t.CreateDateTime)
-            .Select(t =>
+        // 5. Gabungkan persisted transactions dan synthetic projections
+        var allTxResponses = new List<CrossEntryTransactionResponse>();
+
+        foreach (var t in existingTransactions)
+        {
+            string? txCreatedByName = null;
+            if (txUserMap.TryGetValue(t.CreateBy, out var name)) txCreatedByName = name;
+
+            var isCredit = string.Equals(t.Direction, FinCrossEntryDirections.Credit, StringComparison.OrdinalIgnoreCase);
+
+            allTxResponses.Add(new CrossEntryTransactionResponse
             {
-                string? txCreatedByName = null;
-                if (txUserMap.TryGetValue(t.CreateBy, out var name)) txCreatedByName = name;
+                Id = t.Id,
+                CrossEntryId = t.CrossEntryId,
+                TransactionType = t.TransactionType,
+                Direction = t.Direction,
+                Amount = t.Amount,
+                BalanceAfterTransaction = t.BalanceAfterTransaction,
+                OccurredAt = t.OccurredAt,
+                ReceiptAllocationId = t.ReceiptAllocationId,
+                ReversalOfTransactionId = t.ReversalOfTransactionId,
+                Description = t.Description,
+                TransactionDateIn = isCredit ? t.OccurredAt : null,
+                CreditAmount = isCredit ? t.Amount : 0m,
+                TransactionDateOut = isCredit ? null : t.OccurredAt,
+                DebitAmount = isCredit ? 0m : t.Amount,
+                CreatedByName = txCreatedByName
+            });
+        }
 
-                var isCredit = string.Equals(t.Direction, FinCrossEntryDirections.Credit, StringComparison.OrdinalIgnoreCase);
+        // Synthesize read-model fallback untuk legacy allocation tanpa persisted transaction
+        foreach (var a in missingAllocations)
+        {
+            string? txCreatedByName = null;
+            if (txUserMap.TryGetValue(a.AllocatedBy, out var name)) txCreatedByName = name;
 
-                return new CrossEntryTransactionResponse
-                {
-                    Id = t.Id,
-                    CrossEntryId = t.CrossEntryId,
-                    TransactionType = t.TransactionType,
-                    Direction = t.Direction,
-                    Amount = t.Amount,
-                    BalanceAfterTransaction = t.BalanceAfterTransaction,
-                    OccurredAt = t.OccurredAt,
-                    ReceiptAllocationId = t.ReceiptAllocationId,
-                    ReversalOfTransactionId = t.ReversalOfTransactionId,
-                    Description = t.Description,
-                    TransactionDateIn = isCredit ? t.OccurredAt : null,
-                    CreditAmount = isCredit ? t.Amount : 0m,
-                    TransactionDateOut = isCredit ? null : t.OccurredAt,
-                    DebitAmount = isCredit ? 0m : t.Amount,
-                    CreatedByName = txCreatedByName
-                };
-            })
+            bool isReversal = a.IsReversal;
+            string txType = isReversal
+                ? FinCrossEntryTransactionTypes.ArAllocationReversal
+                : FinCrossEntryTransactionTypes.ArAllocation;
+            string direction = isReversal ? FinCrossEntryDirections.Credit : FinCrossEntryDirections.Debit;
+
+            string? batchNumber = null;
+            string? recNumber = null;
+            if (a.ReceivableId.HasValue)
+            {
+                batchMap.TryGetValue(a.ReceivableId.Value, out batchNumber);
+                recNumMap.TryGetValue(a.ReceivableId.Value, out recNumber);
+            }
+
+            string description = isReversal
+                ? (!string.IsNullOrWhiteSpace(batchNumber) ? $"Pembalikan alokasi Ayat Silang ke Invoice AR {batchNumber}" : "Pembalikan alokasi Ayat Silang")
+                : (!string.IsNullOrWhiteSpace(batchNumber) ? $"Alokasi Ayat Silang ke Invoice AR {batchNumber}" : !string.IsNullOrWhiteSpace(recNumber) ? $"Alokasi Ayat Silang ke Piutang AR {recNumber}" : "Alokasi Ayat Silang ke Invoice AR");
+
+            allTxResponses.Add(new CrossEntryTransactionResponse
+            {
+                Id = a.Id,
+                CrossEntryId = entry.Id,
+                TransactionType = txType,
+                Direction = direction,
+                Amount = a.Amount,
+                BalanceAfterTransaction = 0m,
+                OccurredAt = a.AllocatedAt,
+                ReceiptAllocationId = a.Id,
+                ReversalOfTransactionId = null,
+                Description = description,
+                TransactionDateIn = isReversal ? a.AllocatedAt : null,
+                CreditAmount = isReversal ? a.Amount : 0m,
+                TransactionDateOut = isReversal ? null : a.AllocatedAt,
+                DebitAmount = isReversal ? 0m : a.Amount,
+                CreatedByName = txCreatedByName
+            });
+        }
+
+        // 6. Urutkan secara kronologis
+        allTxResponses = allTxResponses
+            .OrderBy(t => t.OccurredAt)
+            .ThenBy(t => t.TransactionType == FinCrossEntryTransactionTypes.InitialReceipt ? 0 : 1)
+            .ThenBy(t => t.Id)
             .ToList();
+
+        // 7. Hitung ulang running balance untuk seluruh transaksi
+        decimal runningBalance = 0m;
+        foreach (var tx in allTxResponses)
+        {
+            if (tx.TransactionType == FinCrossEntryTransactionTypes.InitialReceipt)
+            {
+                runningBalance = tx.Amount;
+            }
+            else if (string.Equals(tx.Direction, FinCrossEntryDirections.Credit, StringComparison.OrdinalIgnoreCase))
+            {
+                runningBalance += tx.Amount;
+            }
+            else if (string.Equals(tx.Direction, FinCrossEntryDirections.Debit, StringComparison.OrdinalIgnoreCase))
+            {
+                runningBalance -= tx.Amount;
+            }
+            tx.BalanceAfterTransaction = runningBalance;
+        }
+
+        // 8. Hitung TotalCredit dan TotalDebit
+        var totalCredit = allTxResponses
+            .Where(t => string.Equals(t.Direction, FinCrossEntryDirections.Credit, StringComparison.OrdinalIgnoreCase))
+            .Sum(t => t.Amount);
+
+        var totalDebit = allTxResponses
+            .Where(t => string.Equals(t.Direction, FinCrossEntryDirections.Debit, StringComparison.OrdinalIgnoreCase))
+            .Sum(t => t.Amount);
 
         var documents = entry.Documents
             .Where(d => !d.IsDelete)
@@ -291,6 +419,8 @@ public sealed class FinanceCrossEntryService
             OriginalAmount = entry.OriginalAmount,
             AllocatedAmount = allocated,
             AvailableBalance = unallocated,
+            TotalCredit = totalCredit,
+            TotalDebit = totalDebit,
             Status = entry.Status,
             Description = entry.Description,
             CreatedByName = creator,
@@ -298,7 +428,7 @@ public sealed class FinanceCrossEntryService
             RowVersion = entry.RowVersion,
             ReceiptId = entry.ReceiptId,
             ReceiptNumber = entry.Receipt?.ReceiptNumber ?? entry.CrossEntryNumber,
-            Transactions = transactions,
+            Transactions = allTxResponses,
             Documents = documents
         };
     }

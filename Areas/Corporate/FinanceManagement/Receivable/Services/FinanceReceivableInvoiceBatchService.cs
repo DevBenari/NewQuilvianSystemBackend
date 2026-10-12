@@ -683,7 +683,9 @@ public sealed class FinanceReceivableInvoiceBatchService
             PaymentTermDays = paymentTermDays,
             Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
             TotalAmount = receivables.Sum(x => x.OriginalAmount),
-            Status = FinReceivableInvoiceBatchStatuses.Draft,
+            Status = FinReceivableInvoiceBatchStatuses.Issued,
+            IssuedAt = DateTimeOffset.UtcNow,
+            ClaimStatus = null,
             RowVersion = Guid.NewGuid(),
             CreateBy = actorUserId,
             UpdateBy = actorUserId,
@@ -738,6 +740,10 @@ public sealed class FinanceReceivableInvoiceBatchService
 
         EnsureCurrent(batch.RowVersion, expectedRowVersion);
 
+        // Jika batch sudah ISSUED, kembalikan idempotent untuk backward compatibility
+        if (batch.Status == FinReceivableInvoiceBatchStatuses.Issued)
+            return batch;
+
         if (batch.Status != FinReceivableInvoiceBatchStatuses.Draft)
             throw new ReceivableInvoiceBatchValidationException($"Hanya batch berstatus DRAFT yang dapat diterbitkan. Status saat ini: {batch.Status}.");
 
@@ -747,8 +753,7 @@ public sealed class FinanceReceivableInvoiceBatchService
 
         batch.Status = FinReceivableInvoiceBatchStatuses.Issued;
         batch.IssuedAt = DateTimeOffset.UtcNow;
-        // FIN-DES-070: sumbu klaim dimulai otomatis saat dokumen terbit — tidak menunggu aksi petugas.
-        batch.ClaimStatus = FinReceivableInvoiceBatchClaimStatuses.Submitted;
+        batch.ClaimStatus = null;
         batch.UpdateDateTime = DateTime.UtcNow;
         batch.UpdateBy = actorUserId;
         batch.RowVersion = Guid.NewGuid();
@@ -898,9 +903,9 @@ public sealed class FinanceReceivableInvoiceBatchService
             throw new ReceivableInvoiceBatchConflictException(
                 $"Piutang {string.Join(", ", conflictingNumbers)} sudah tergabung dalam batch tagihan aktif lain dan tidak dapat dikembalikan ke batch ini.");
 
-        batch.Status = batch.IssuedAt.HasValue
-            ? FinReceivableInvoiceBatchStatuses.Issued
-            : FinReceivableInvoiceBatchStatuses.Draft;
+        batch.Status = FinReceivableInvoiceBatchStatuses.Issued;
+        batch.IssuedAt ??= DateTimeOffset.UtcNow;
+        batch.ClaimStatus = null;
         batch.UpdateDateTime = DateTime.UtcNow;
         batch.UpdateBy = actorUserId;
         batch.RowVersion = Guid.NewGuid();
@@ -943,6 +948,7 @@ public sealed class FinanceReceivableInvoiceBatchService
         return alreadyIssued ? FinReceivableInvoiceBatchClaimStatuses.Submitted : null;
     }
 
+    [Obsolete("Workflow operasional klaim ditiadakan. Dipertahankan hanya untuk backward compatibility legacy consumer.")]
     public async Task<FinReceivableInvoiceBatch> VerifyClaimAsync(
         Guid batchId, Guid expectedRowVersion, string? payerClaimReference, string? claimNote,
         Guid actorUserId, CancellationToken cancellationToken)
@@ -975,6 +981,7 @@ public sealed class FinanceReceivableInvoiceBatchService
         return batch;
     }
 
+    [Obsolete("Workflow operasional klaim ditiadakan. Dipertahankan hanya untuk backward compatibility legacy consumer.")]
     public async Task<FinReceivableInvoiceBatch> ApproveClaimAsync(
         Guid batchId, Guid expectedRowVersion, decimal approvedAmount, string? payerClaimReference,
         string? claimNote, Guid actorUserId, CancellationToken cancellationToken)
@@ -1019,6 +1026,7 @@ public sealed class FinanceReceivableInvoiceBatchService
         return batch;
     }
 
+    [Obsolete("Workflow operasional klaim ditiadakan. Dipertahankan hanya untuk backward compatibility legacy consumer.")]
     public async Task<FinReceivableInvoiceBatch> CloseClaimAsync(
         Guid batchId, Guid expectedRowVersion, string? claimNote, Guid actorUserId, CancellationToken cancellationToken)
     {
@@ -1563,27 +1571,56 @@ public sealed class FinanceReceivableInvoiceBatchService
     /// </summary>
     private async Task RefreshStatusAsync(FinReceivableInvoiceBatch batch, CancellationToken cancellationToken)
     {
-        if (batch.Status != FinReceivableInvoiceBatchStatuses.Issued
-            && batch.Status != FinReceivableInvoiceBatchStatuses.PartiallyPaid)
+        if (batch.Status == FinReceivableInvoiceBatchStatuses.Cancelled)
         {
             return;
         }
 
-        var members = batch.Items.Where(x => !x.IsDelete && x.Receivable is not null).ToList();
+        var members = batch.Items.Where(x => !x.IsDelete && x.Receivable is not null && !x.Receivable.IsDelete).ToList();
         if (members.Count == 0) return;
 
-        var settledCount = members.Count(x => x.Receivable!.Status == FinReceivableStatuses.Settled);
-        var newStatus = settledCount == members.Count
+        var allSettled = members.All(x => x.Receivable!.OutstandingAmount <= 0);
+        var totalAllocated = members.Sum(x => x.Receivable!.AllocatedAmount);
+        var totalOutstanding = members.Sum(x => x.Receivable!.OutstandingAmount);
+        var totalOriginal = members.Sum(x => x.Receivable!.OriginalAmount);
+        var hasActivePayments = totalAllocated > 0 || totalOutstanding < totalOriginal;
+
+        var newStatus = allSettled && totalOriginal > 0
             ? FinReceivableInvoiceBatchStatuses.Paid
-            : settledCount > 0
+            : hasActivePayments
                 ? FinReceivableInvoiceBatchStatuses.PartiallyPaid
                 : FinReceivableInvoiceBatchStatuses.Issued;
 
-        if (newStatus == batch.Status) return;
+        bool changed = false;
 
-        batch.Status = newStatus;
-        batch.UpdateDateTime = DateTime.UtcNow;
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        // Normalisasi IssuedAt jika masih null (misal legacy DRAFT yang sudah punya nomor invoice)
+        if (batch.IssuedAt == null)
+        {
+            DateTimeOffset effectiveIssuedAt;
+            if (batch.InvoiceDate.HasValue)
+            {
+                effectiveIssuedAt = new DateTimeOffset(batch.InvoiceDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc));
+            }
+            else
+            {
+                effectiveIssuedAt = new DateTimeOffset(batch.CreateDateTime, TimeSpan.Zero);
+            }
+            batch.IssuedAt = effectiveIssuedAt;
+            changed = true;
+        }
+
+        if (newStatus != batch.Status)
+        {
+            batch.Status = newStatus;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            batch.UpdateDateTime = DateTime.UtcNow;
+            batch.RowVersion = Guid.NewGuid();
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
     }
 
     private static ReceivableInvoiceBatchResponse Map(FinReceivableInvoiceBatch batch)
@@ -1745,8 +1782,13 @@ public sealed class FinanceReceivableInvoiceBatchService
 
         EnsureCurrent(batch.RowVersion, request.ExpectedRowVersion);
 
+        // Transisi kompatibilitas: legacy batch berstatus DRAFT otomatis dinormalisasi ke ISSUED saat menerima pembayaran pertama
         if (batch.Status == FinReceivableInvoiceBatchStatuses.Draft)
-            throw new ReceivableInvoiceBatchValidationException("Batch Tagihan AR masih berstatus DRAFT. Terbitkan (Issue) batch terlebih dahulu sebelum memproses pembayaran.");
+        {
+            batch.Status = FinReceivableInvoiceBatchStatuses.Issued;
+            batch.IssuedAt ??= DateTimeOffset.UtcNow;
+            batch.ClaimStatus = null;
+        }
 
         if (batch.Status == FinReceivableInvoiceBatchStatuses.Paid)
             throw new ReceivableInvoiceBatchValidationException("Batch Tagihan AR sudah lunas (PAID).");
@@ -2963,7 +3005,9 @@ public sealed class FinanceReceivableInvoiceBatchService
             PaymentTermDays = paymentTermDays,
             Note = string.IsNullOrWhiteSpace(batch.Note) ? $"Buat ulang dari {batch.BatchNumber}" : $"Buat ulang dari {batch.BatchNumber}. {batch.Note}".Trim(),
             TotalAmount = newTotalAmount,
-            Status = FinReceivableInvoiceBatchStatuses.Draft,
+            Status = FinReceivableInvoiceBatchStatuses.Issued,
+            IssuedAt = DateTimeOffset.UtcNow,
+            ClaimStatus = null,
             ReissuedFromBatchId = batch.Id,
             RowVersion = Guid.NewGuid(),
             CreateBy = actorUserId,
@@ -3973,7 +4017,17 @@ public sealed class FinanceReceivableInvoiceBatchService
                 PaidAmount = paidAmount,
                 OutstandingAmount = outstandingAmount,
                 ClaimStatus = effectiveClaim,
-                PaymentStatus = b.Status,
+                PaymentStatus = b.Status == FinReceivableInvoiceBatchStatuses.Cancelled
+                    ? FinReceivableInvoiceBatchStatuses.Cancelled
+                    : outstandingAmount <= 0 && b.TotalAmount > 0
+                        ? FinReceivableInvoiceBatchStatuses.Paid
+                        : paidAmount > 0 && outstandingAmount > 0
+                            ? FinReceivableInvoiceBatchStatuses.PartiallyPaid
+                            : b.Status == FinReceivableInvoiceBatchStatuses.Paid
+                                ? FinReceivableInvoiceBatchStatuses.Paid
+                                : b.Status == FinReceivableInvoiceBatchStatuses.PartiallyPaid
+                                    ? FinReceivableInvoiceBatchStatuses.PartiallyPaid
+                                    : "UNPAID",
                 InvoiceDate = b.InvoiceDate,
                 PeriodStart = b.PeriodStart,
                 PeriodEnd = b.PeriodEnd,
@@ -4020,6 +4074,15 @@ public sealed class FinanceReceivableInvoiceBatchService
         var approvedCount = await query.CountAsync(x => x.ClaimStatus == "APPROVED", cancellationToken);
         var closedCount = await query.CountAsync(x => x.ClaimStatus == "CLOSED", cancellationToken);
 
+        var unpaidCount = await query.CountAsync(x =>
+            x.Status == FinReceivableInvoiceBatchStatuses.Issued || x.Status == FinReceivableInvoiceBatchStatuses.Draft, cancellationToken);
+        var partiallyPaidCount = await query.CountAsync(x => x.Status == FinReceivableInvoiceBatchStatuses.PartiallyPaid, cancellationToken);
+        var paidCount = await query.CountAsync(x => x.Status == FinReceivableInvoiceBatchStatuses.Paid, cancellationToken);
+        var today = FinanceBusinessDate.Today();
+        var overdueCount = await query.CountAsync(x =>
+            (x.Status == FinReceivableInvoiceBatchStatuses.Issued || x.Status == FinReceivableInvoiceBatchStatuses.PartiallyPaid)
+            && x.DueDate < today, cancellationToken);
+
         var totalClaimAmount = await query.SumAsync(x => x.TotalAmount, cancellationToken);
         var totalApprovedAmount = await query.SumAsync(x => x.ApprovedAmount ?? 0m, cancellationToken);
 
@@ -4041,6 +4104,11 @@ public sealed class FinanceReceivableInvoiceBatchService
         return new ClaimManagementSummaryResponse
         {
             TotalClaims = totalClaims,
+            TotalInvoices = totalClaims,
+            UnpaidCount = unpaidCount,
+            PartiallyPaidCount = partiallyPaidCount,
+            PaidCount = paidCount,
+            OverdueCount = overdueCount,
             PendingVerificationCount = pendingVerificationCount,
             PendingApprovalCount = pendingApprovalCount,
             ApprovedCount = approvedCount,
@@ -4086,13 +4154,13 @@ public sealed class FinanceReceivableInvoiceBatchService
             : new Dictionary<Guid, FinReceivable>();
 
         using var workbook = new ClosedXML.Excel.XLWorkbook();
-        var ws = workbook.Worksheets.Add("Manajemen Klaim");
+        var ws = workbook.Worksheets.Add("Monitoring Tagihan");
 
         string[] headers =
         [
-            "No", "No. Klaim / Invoice AR", "Ref. Penjamin", "Penjamin", "Pasien / Jumlah",
-            "Jenis Kunjungan", "Tanggal Invoice", "Nilai Klaim", "Nilai Disetujui",
-            "Selisih Klaim", "Terbayar", "Status Klaim", "Status Pembayaran"
+            "No", "No. Invoice AR", "Ref. Penjamin", "Penjamin", "Pasien / Jumlah",
+            "Jenis Kunjungan", "Tanggal Invoice", "Jatuh Tempo", "Total Tagihan",
+            "Terbayar", "Sisa Piutang", "Status Pembayaran"
         ];
         for (var i = 0; i < headers.Length; i++)
             ws.Cell(1, i + 1).Value = headers[i];
@@ -4115,11 +4183,12 @@ public sealed class FinanceReceivableInvoiceBatchService
             decimal paidAmount = memberCount > 0
                 ? bItems.Sum(i => memberReceivables.TryGetValue(i.ReceivableId, out var rec) ? rec.AllocatedAmount : 0m)
                 : 0m;
+            decimal outstandingAmount = memberCount > 0
+                ? bItems.Sum(i => memberReceivables.TryGetValue(i.ReceivableId, out var rec) ? rec.OutstandingAmount : 0m)
+                : b.TotalAmount;
 
             var visitCode = ResolveBatchVisitCode(b) ?? "OP";
             var visitLabel = ResolveVisitLabel(visitCode);
-            var effectiveClaim = ResolveEffectiveClaimStatus(b) ?? "Belum Diajukan";
-            var variance = b.ApprovedAmount.HasValue ? b.TotalAmount - b.ApprovedAmount.Value : (decimal?)null;
 
             ws.Cell(r, 1).Value = r - 1;
             ws.Cell(r, 2).Value = b.BatchNumber;
@@ -4128,12 +4197,11 @@ public sealed class FinanceReceivableInvoiceBatchService
             ws.Cell(r, 5).Value = memberCount > 1 ? $"{memberCount} Pasien" : "1 Pasien";
             ws.Cell(r, 6).Value = visitLabel;
             ws.Cell(r, 7).Value = b.InvoiceDate.HasValue ? b.InvoiceDate.Value.ToString("dd/MM/yyyy") : "-";
-            ws.Cell(r, 8).Value = b.TotalAmount;
-            ws.Cell(r, 9).Value = b.ApprovedAmount.HasValue ? b.ApprovedAmount.Value : 0m;
-            ws.Cell(r, 10).Value = variance.HasValue ? variance.Value : 0m;
-            ws.Cell(r, 11).Value = paidAmount;
-            ws.Cell(r, 12).Value = effectiveClaim;
-            ws.Cell(r, 13).Value = b.Status;
+            ws.Cell(r, 8).Value = b.DueDate.HasValue ? b.DueDate.Value.ToString("dd/MM/yyyy") : "-";
+            ws.Cell(r, 9).Value = b.TotalAmount;
+            ws.Cell(r, 10).Value = paidAmount;
+            ws.Cell(r, 11).Value = outstandingAmount;
+            ws.Cell(r, 12).Value = b.Status;
 
             for (var col = 1; col <= headers.Length; col++)
             {
@@ -4146,7 +4214,7 @@ public sealed class FinanceReceivableInvoiceBatchService
 
         if (r > 2)
         {
-            ws.Range(2, 8, r - 1, 11).Style.NumberFormat.Format = "#,##0";
+            ws.Range(2, 9, r - 1, 11).Style.NumberFormat.Format = "#,##0";
         }
 
         ws.Columns().AdjustToContents();
@@ -4207,7 +4275,7 @@ public sealed class FinanceReceivableInvoiceBatchService
                         row.RelativeItem().Column(c =>
                         {
                             c.Item().Text("RUMAH SAKIT METROPOLITAN MEDICAL CENTRE").Bold().FontSize(12).FontColor("#0d7f89");
-                            c.Item().Text("LAPORAN MANAJEMEN KLAIM PENJAMIN (AR)").Bold().FontSize(10).FontColor("#1f2937");
+                            c.Item().Text("LAPORAN MONITORING TAGIHAN PENJAMIN (AR)").Bold().FontSize(10).FontColor("#1f2937");
                             c.Item().Text($"Dicetak pada: {DateTime.Now:dd/MM/yyyy HH:mm} WIB").FontSize(7.5f).FontColor("#6b7280");
                         });
                     });
@@ -4221,29 +4289,31 @@ public sealed class FinanceReceivableInvoiceBatchService
                         table.ColumnsDefinition(columns =>
                         {
                             columns.ConstantColumn(25);  // No
-                            columns.RelativeColumn(2);   // No. Klaim / AR
+                            columns.RelativeColumn(2);   // No. Invoice AR
                             columns.RelativeColumn(2.5f);// Penjamin
                             columns.RelativeColumn(1.2f);// Pasien
-                            columns.RelativeColumn(1.2f);// Jenis
-                            columns.RelativeColumn(1.5f);// Nilai Klaim
-                            columns.RelativeColumn(1.5f);// Disetujui
+                            columns.RelativeColumn(1f);  // Jenis
+                            columns.RelativeColumn(1.2f);// Tgl Invoice
+                            columns.RelativeColumn(1.2f);// Jatuh Tempo
+                            columns.RelativeColumn(1.5f);// Total Tagihan
                             columns.RelativeColumn(1.5f);// Terbayar
-                            columns.RelativeColumn(1.5f);// Status Klaim
-                            columns.RelativeColumn(1.5f);// Status Bayar
+                            columns.RelativeColumn(1.5f);// Sisa Piutang
+                            columns.RelativeColumn(1.2f);// Status Bayar
                         });
 
                         table.Header(header =>
                         {
                             header.Cell().Background("#0d7f89").Padding(3).AlignCenter().Text("NO").Bold().FontColor("#ffffff");
-                            header.Cell().Background("#0d7f89").Padding(3).Text("NO. KLAIM / AR").Bold().FontColor("#ffffff");
+                            header.Cell().Background("#0d7f89").Padding(3).Text("NO. INVOICE AR").Bold().FontColor("#ffffff");
                             header.Cell().Background("#0d7f89").Padding(3).Text("PENJAMIN").Bold().FontColor("#ffffff");
                             header.Cell().Background("#0d7f89").Padding(3).AlignCenter().Text("PASIEN").Bold().FontColor("#ffffff");
                             header.Cell().Background("#0d7f89").Padding(3).AlignCenter().Text("JENIS").Bold().FontColor("#ffffff");
-                            header.Cell().Background("#0d7f89").Padding(3).AlignRight().Text("NILAI KLAIM").Bold().FontColor("#ffffff");
-                            header.Cell().Background("#0d7f89").Padding(3).AlignRight().Text("DISETUJUI").Bold().FontColor("#ffffff");
+                            header.Cell().Background("#0d7f89").Padding(3).AlignCenter().Text("TGL INV").Bold().FontColor("#ffffff");
+                            header.Cell().Background("#0d7f89").Padding(3).AlignCenter().Text("JATUH TEMPO").Bold().FontColor("#ffffff");
+                            header.Cell().Background("#0d7f89").Padding(3).AlignRight().Text("TOTAL TAGIHAN").Bold().FontColor("#ffffff");
                             header.Cell().Background("#0d7f89").Padding(3).AlignRight().Text("TERBAYAR").Bold().FontColor("#ffffff");
-                            header.Cell().Background("#0d7f89").Padding(3).AlignCenter().Text("KLAIM").Bold().FontColor("#ffffff");
-                            header.Cell().Background("#0d7f89").Padding(3).AlignCenter().Text("PEMBAYARAN").Bold().FontColor("#ffffff");
+                            header.Cell().Background("#0d7f89").Padding(3).AlignRight().Text("SISA PIUTANG").Bold().FontColor("#ffffff");
+                            header.Cell().Background("#0d7f89").Padding(3).AlignCenter().Text("STATUS").Bold().FontColor("#ffffff");
                         });
 
                         var idx = 1;
@@ -4258,10 +4328,12 @@ public sealed class FinanceReceivableInvoiceBatchService
                             decimal paidAmount = memberCount > 0
                                 ? bItems.Sum(i => memberReceivables.TryGetValue(i.ReceivableId, out var rec) ? rec.AllocatedAmount : 0m)
                                 : 0m;
+                            decimal outstandingAmount = memberCount > 0
+                                ? bItems.Sum(i => memberReceivables.TryGetValue(i.ReceivableId, out var rec) ? rec.OutstandingAmount : 0m)
+                                : b.TotalAmount;
 
                             var visitCode = ResolveBatchVisitCode(b) ?? "OP";
                             var visitLabel = ResolveVisitLabel(visitCode);
-                            var effectiveClaim = ResolveEffectiveClaimStatus(b) ?? "-";
 
                             var isEven = idx % 2 == 0;
                             var bg = isEven ? "#f9fafb" : "#ffffff";
@@ -4271,21 +4343,22 @@ public sealed class FinanceReceivableInvoiceBatchService
                             table.Cell().Background(bg).Padding(2).Text(payerName);
                             table.Cell().Background(bg).Padding(2).AlignCenter().Text(memberCount > 1 ? $"{memberCount} Pasien" : "1 Pasien");
                             table.Cell().Background(bg).Padding(2).AlignCenter().Text(visitLabel);
+                            table.Cell().Background(bg).Padding(2).AlignCenter().Text(b.InvoiceDate.HasValue ? b.InvoiceDate.Value.ToString("dd/MM/yyyy") : "-");
+                            table.Cell().Background(bg).Padding(2).AlignCenter().Text(b.DueDate.HasValue ? b.DueDate.Value.ToString("dd/MM/yyyy") : "-");
                             table.Cell().Background(bg).Padding(2).AlignRight().Text(b.TotalAmount.ToString("N0", IdCulture));
-                            table.Cell().Background(bg).Padding(2).AlignRight().Text(b.ApprovedAmount.HasValue ? b.ApprovedAmount.Value.ToString("N0", IdCulture) : "-");
                             table.Cell().Background(bg).Padding(2).AlignRight().Text(paidAmount.ToString("N0", IdCulture));
-                            table.Cell().Background(bg).Padding(2).AlignCenter().Text(effectiveClaim);
+                            table.Cell().Background(bg).Padding(2).AlignRight().Text(outstandingAmount.ToString("N0", IdCulture));
                             table.Cell().Background(bg).Padding(2).AlignCenter().Text(b.Status);
 
                             idx++;
                         }
 
                         // Summary Footer row
-                        table.Cell().ColumnSpan(5).Background("#e0f2fe").Padding(3).AlignRight().Text("TOTAL SELURUH KLAIM :").Bold().FontColor("#0369a1");
+                        table.Cell().ColumnSpan(7).Background("#e0f2fe").Padding(3).AlignRight().Text("TOTAL TAGIHAN PENJAMIN :").Bold().FontColor("#0369a1");
                         table.Cell().Background("#e0f2fe").Padding(3).AlignRight().Text(summary.TotalClaimAmount.ToString("N0", IdCulture)).Bold().FontColor("#0369a1");
-                        table.Cell().Background("#e0f2fe").Padding(3).AlignRight().Text(summary.TotalApprovedAmount.ToString("N0", IdCulture)).Bold().FontColor("#0369a1");
                         table.Cell().Background("#e0f2fe").Padding(3).AlignRight().Text(summary.TotalPaidAmount.ToString("N0", IdCulture)).Bold().FontColor("#0369a1");
-                        table.Cell().ColumnSpan(2).Background("#e0f2fe").Padding(3).Text("");
+                        table.Cell().Background("#e0f2fe").Padding(3).AlignRight().Text(summary.TotalOutstandingAmount.ToString("N0", IdCulture)).Bold().FontColor("#0369a1");
+                        table.Cell().Background("#e0f2fe").Padding(3).Text("");
                     });
                 });
 

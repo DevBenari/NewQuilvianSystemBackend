@@ -27,6 +27,10 @@ public sealed class ReceivableResponse
     public Guid? DebtorReferenceId { get; set; }
     public string? DebtorName { get; set; }
     public string? CompanyName { get; set; }
+    public string? DebtorDisplayName { get; set; }
+    public string? DebtorDisplayCategory { get; set; }
+    public string? InvoiceServiceType { get; set; }
+    public DateTimeOffset? InvoiceDate { get; set; }
     public decimal OriginalAmount { get; set; }
     public decimal OutstandingAmount { get; set; }
     public decimal AllocatedAmount { get; set; }
@@ -114,6 +118,11 @@ public sealed class ReceivableWriteOffResponse
 public sealed class ReceivableDetailResponse
 {
     public ReceivableResponse Receivable { get; set; } = new();
+    public string? DebtorDisplayName { get; set; }
+    public string? DebtorDisplayCategory { get; set; }
+    public string? InvoiceNumber { get; set; }
+    public string? InvoiceServiceType { get; set; }
+    public DateTimeOffset? InvoiceDate { get; set; }
     public List<ReceivableItemResponse> Items { get; set; } = new();
     public List<ReceivableDocumentResponse> Documents { get; set; } = new();
     public List<ReceivableAdjustmentResponse> Adjustments { get; set; } = new();

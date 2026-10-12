@@ -150,6 +150,8 @@ public sealed class CrossEntryDetailResponse
     public decimal OriginalAmount { get; set; }
     public decimal AllocatedAmount { get; set; }
     public decimal AvailableBalance { get; set; }
+    public decimal TotalCredit { get; set; }
+    public decimal TotalDebit { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? CreatedByName { get; set; }

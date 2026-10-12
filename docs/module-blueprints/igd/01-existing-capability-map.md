@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `module` | `igd` |
-| `revision` | `3` — diperluas suplemen 3.1–3.6; suplemen **3.6** (*impact scan* Billing IGD) 11 Oktober 2026 pada backend `c7e523fd` / frontend `3335f4b53` |
+| `revision` | `3` — diperluas suplemen 3.1–3.7; suplemen **3.7** (audit `IGD-GAP-002/003/010`, `IGD-EVID-002`, `IGD-CONFLICT-001`, `IGD-AUDIT-001`) 12 Oktober 2026 pada backend `7f835932`. *Sebelumnya* suplemen **3.6** (*impact scan* Billing IGD) 11 Oktober 2026 pada backend `c7e523fd` / frontend `3335f4b53` |
 | `status` | `draft` — audit read-only, belum disetujui siapa pun |
 | `audit_date` | 24 Agustus 2026 |
 | Backend repository / SHA | `NewQuilvianSystemBackend` / `f69e9e483052845d11c91d8b7bbdce33c4acc8d8` (branch `rizkiG`) |
@@ -1142,3 +1142,52 @@ atau berkas `billing-invoices/cashier-overview/**` dan `use-cashier-billing-over
 3. **Obat IGD bergantung keputusan Farmasi** (`IGD-OQ-122`, `IGD-CONF-15`) dan membawa risiko keselamatan yang perlu
    dibuktikan runtime (`IGD-UNK-22`).
 4. **Satu tafsir keputusan Billing** (`IGD-CONF-14`) diselesaikan pada desain bersama tim Billing.
+
+---
+
+## Suplemen revision 3.7 — audit `IGD-GAP-002`, `003`, `010`, `IGD-EVID-002`, `IGD-CONFLICT-001`, `IGD-AUDIT-001` (12 Oktober 2026)
+
+Dipicu permintaan pemilik menutup enam butir gap/evidence/conflict/audit dari pass wawancara 13 Agustus 2026 — payment
+type encounter, enum guarantor legacy, deposit/financial exception, dan gate clinical-completion-versus-billing — yang
+**belum** disentuh suplemen 3.6 (3.6 mengaudit charge/tariff/jembatan untuk slice Billing IGD yang sedang berjalan;
+enam butir ini tentang payment model dan financial-release, cluster berbeda). Backend `rizkiG` `7f835932`; working tree
+punya perubahan belum di-commit di `Areas/Corporate/FinanceManagement/{Collection,Receivable}` dan
+`Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs` serta `Program.cs` —
+tidak satu pun berkas itu dibaca isinya untuk suplemen ini, dan tidak satu pun temuan di bawah bergantung padanya.
+Frontend **tidak** diperiksa pada pass ini. Read-only; nol kueri basis data; nol uji runtime.
+
+### Tabel kemampuan
+
+| ID | Kemampuan | Modul pemilik | Bukti | Status | Risk/Dependency | Catatan |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-CAP-116` | Jenis pembayaran encounter mendukung Cash, Insurance, dan `CompanyGuarantor` | Registration | `EncounterPaymentType.cs` (`Cash=1`, `Insurance=2`, `CompanyGuarantor=3`, ditambah aditif `BE-RWI-035`/`RWI-ENC-PAYER-001`)@7f835932 | `Ready to reuse` | — | Menjawab `IGD-GAP-002`: klaim "hanya Cash/Insurance" sudah **basi** — corporate sudah masuk kontrak aktif, bukan legacy-only |
+| `IGD-CAP-117` | Enum `PatientEncounterGuarantorType` dan `PatientEncounterGuarantorStatus` | Registration | `rg` di seluruh `Areas/` untuk `PatientEncounterGuarantorType\.`/`PatientEncounterGuarantorStatus\.` → nol hasil selain definisinya; `RegPatientEncounterGuarantor.cs` tidak mereferensikan keduanya@7f835932 | `Dead code (unused)` | — | Menjawab `IGD-AUDIT-001`. Konsisten dengan temuan independen `RJ-BIL-CONFLICT-001-E` (blueprint rawat-jalan) yang menemukan `PatientEncounterGuarantorRole` juga mati — sisa desain multi-payer yang dibongkar migration `20260712123508` |
+| `IGD-CAP-118` | Deposit pasien tingkat Billing | Billing | `MstDepositPolicy`, `BilDepositAccount`, `BilDepositMovement`, `BillingDepositService`, `BillingPatientFundsController`, `EpisodeDepositSummaryDtos`@7f835932 | `Ready to reuse` | — | Deposit sebagai mekanisme generik **sudah ada**; belum ada binding spesifik ke self-pay outstanding release IGD |
+| `IGD-CAP-119` | Financial exception tingkat Billing: refund, adjustment, write-off | Billing | `BillingFinancialExceptionsController`, `BillingFinancialExceptionService`, `BillingRefundService`@7f835932 | `Reuse with adapter` | — | Lifecycle case ada, tetapi kategorinya refund/adjustment/write-off — **bukan** kategori release-exception yang disebut `IGD-DEC-061` |
+| `IGD-CAP-120` | Kategori financial release exception (`DeferredPayment`, `FinancialAssistanceOrWaiver`, `PaymentInfrastructureFailure`, `HospitalBillingReconciliation`, `DepositSecuredRelease`) dan tiered approval untuk release | Billing | Pencarian nama kategori persis di `Areas/HealthServices/BillingManagement/` → nol hasil | `Missing` | Blocker desain bila `IGD-DEC-030`/`038` diaktifkan | Menjawab sisi `IGD-GAP-003`/`IGD-GAP-010` yang benar-benar hilang — bukan seluruh klaim gap, lihat `IGD-CAP-118`/`119`/`121` untuk bagian yang sudah ada |
+| `IGD-CAP-121` | Pola adapter baca-saja lintas modul untuk status financial clearance | InPatient ↔ Billing | `InpBillingClearanceAdapter` membaca `IInpatientClearanceService.GetLatestStatusAsync` milik Billing; gagal baca → `IsReadable=false`, **tidak pernah** default ke Cleared@7f835932 | `Ready to reuse` | — | Pola fail-safe ini reusable bila IGD kelak butuh baca status clearance dari Billing tanpa memilikinya sendiri |
+| `IGD-CAP-122` | Gate discharge berdasar billing clearance pada InPatient | InPatient ↔ Billing | `InpatientClearanceDtos.CanDischarge` (`= ClearanceStatus == Cleared`) hanya pernah diisi di `InpatientClearanceService.cs:452`; nol caller yang membaca/menegakkannya sebagai guard@7f835932 | `Advisory only — bukan conflict` | — | Flag informatif ke frontend, bukan hard-block. Tidak ada modul backend yang menegakkan billing Final/Cleared sebagai syarat completion atau discharge hari ini |
+| `IGD-CAP-123` | Gate billing pada transisi `Disposed`/`Completed` IGD | IGD | `rg 'Billing\|Financial'` di seluruh `Areas/HealthServices/EmergencyInstallationManagement/` → nol hasil; `EmergencyVisitService` transisi `AwaitingDisposition → Disposed → Completed` tanpa satu pun gate billing@7f835932 | `Confirmed — selaras IGD-FACT-007` | — | Menegaskan ulang `IGD-FACT-007` (14 Agustus 2026) dengan source yang jauh lebih besar; kesimpulan tidak berubah |
+
+### Resolusi enam butir pass 13 Agustus 2026
+
+| ID | Status baru | Temuan |
+| --- | --- | --- |
+| `IGD-GAP-002` | `resolved — klaim basi` | `IGD-CAP-116`. Corporate payment type **sudah** di kontrak aktif sejak `BE-RWI-035`; premis gap ("hanya Cash/Insurance") tidak lagi benar |
+| `IGD-AUDIT-001` | `resolved — dead code, belum dihapus` | `IGD-CAP-117`. Aman ditandai mati; penghapusan tetap memerlukan task terpisah mengikuti legacy ratchet (`AGENTS.md`), bukan keputusan agent sepihak |
+| `IGD-GAP-003` | `resolved sebagian — partial, bukan missing murni` | `IGD-CAP-118`, `119`, `121` sudah ada (deposit, refund/adjustment/write-off, adapter baca-saja); `IGD-CAP-120` (kategori release exception + tiered approval untuk release) tetap `Missing` |
+| `IGD-GAP-010` | `resolved sebagian` | Sama dengan `IGD-GAP-003` — lihat `IGD-CAP-120` untuk bagian yang benar-benar hilang |
+| `IGD-EVID-002` | `confirmed` | `IGD-CAP-123`. Klaim source (EmergencyVisitService ke `Disposed` tanpa billing validation) **benar**; `BillingManagement` juga belum menunjukkan transactional financial-release governance untuk IGD — karena IGD belum pernah mengirim apa pun ke Billing sampai slice Billing IGD 11 Oktober 2026 (lihat bagian "Billing IGD" di `00-interview-decisions.md`) |
+| `IGD-CONFLICT-001` | `resolved — tidak terkonfirmasi (verifikasi ulang)` | `IGD-CAP-122`. Re-verifikasi atas resolusi `IGD-DEC-049`/14 Agustus 2026 pada source yang jauh lebih besar (Billing kini punya `InpatientClearanceService`, `BillingFinancialExceptionsController`, dll. yang belum ada saat resolusi pertama). Kesimpulan **tidak berubah**: satu-satunya kandidat (`CanDischarge` InPatient) bersifat advisory, tidak ditegakkan sebagai guard di mana pun |
+
+### Pertanyaan terbuka baru
+
+| ID | Isi | Siapa menjawab | Memblokir |
+| --- | --- | --- | --- |
+| `IGD-OQ-127` | Apakah empat enum guarantor legacy (`PatientEncounterGuarantorType`, `Status`, dan dua lainnya yang ditemukan `RJ-BIL-CONFLICT-001-E`) dijadwalkan untuk dihapus sebagai task tersendiri, atau dibiarkan sebagai dead code terdokumentasi | Backend/API owner + Product/Domain Owner IGD/Rawat Jalan | Tidak — kebersihan source, bukan blocker fungsional |
+
+### Pemicu audit ulang suplemen ini
+
+Commit yang menyentuh `EncounterPaymentType`, `PatientEncounterGuarantorType`/`Status`, `BillingFinancialExceptionsController`/`Service`,
+`BillingDepositService`, `MstDepositPolicy`, `InpatientClearanceService`, `InpBillingClearanceAdapter`,
+`InpatientClearanceDtos.CanDischarge`, atau transisi status pada `EmergencyVisitService`.

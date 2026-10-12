@@ -120,6 +120,7 @@ public sealed class FinanceReceivableService
             {
                 res.DebtorName = debtorName;
                 res.CompanyName = debtorName;
+                res.DebtorDisplayName = debtorName;
             }
             if (x.InvoiceId.HasValue && invoiceNumbers.TryGetValue(x.InvoiceId.Value, out var invNum))
             {
@@ -144,6 +145,9 @@ public sealed class FinanceReceivableService
 
         var resReceivable = Map(receivable);
 
+        string? debtorDisplayName = null;
+        string? debtorDisplayCategory = null;
+
         // Resolve debtor name (Company Guarantor / Insurance Provider)
         if (receivable.DebtorReferenceId.HasValue)
         {
@@ -154,6 +158,8 @@ public sealed class FinanceReceivableService
 
             if (!string.IsNullOrWhiteSpace(company))
             {
+                debtorDisplayName = company;
+                debtorDisplayCategory = "Perusahaan penjamin";
                 resReceivable.DebtorName = company;
                 resReceivable.CompanyName = company;
             }
@@ -165,22 +171,33 @@ public sealed class FinanceReceivableService
                     .FirstOrDefaultAsync(cancellationToken);
                 if (!string.IsNullOrWhiteSpace(insurance))
                 {
+                    debtorDisplayName = insurance;
+                    debtorDisplayCategory = "Asuransi rekanan";
                     resReceivable.DebtorName = insurance;
                     resReceivable.CompanyName = insurance;
                 }
             }
         }
+        resReceivable.DebtorDisplayName = debtorDisplayName;
+        resReceivable.DebtorDisplayCategory = debtorDisplayCategory;
+
+        string? resolvedInvoiceNumber = null;
+        string? invoiceServiceType = null;
+        DateTimeOffset? invoiceDate = null;
 
         // Resolve invoice number asal (Billing)
         if (receivable.InvoiceId.HasValue)
         {
-            var invNum = await _dbContext.BilInvoices.AsNoTracking()
+            var bilInvoice = await _dbContext.BilInvoices.AsNoTracking()
                 .Where(i => i.Id == receivable.InvoiceId.Value)
-                .Select(i => i.InvoiceNumber)
+                .Select(i => new { i.InvoiceNumber, i.ServiceType, i.InvoiceDate })
                 .FirstOrDefaultAsync(cancellationToken);
-            if (!string.IsNullOrWhiteSpace(invNum))
+            if (bilInvoice != null)
             {
-                resReceivable.InvoiceNumber = invNum;
+                resolvedInvoiceNumber = bilInvoice.InvoiceNumber;
+                invoiceServiceType = bilInvoice.ServiceType;
+                invoiceDate = bilInvoice.InvoiceDate;
+                resReceivable.InvoiceNumber = bilInvoice.InvoiceNumber;
             }
         }
 
@@ -195,12 +212,21 @@ public sealed class FinanceReceivableService
             if (string.IsNullOrWhiteSpace(resReceivable.InvoiceNumber))
             {
                 resReceivable.InvoiceNumber = batchNumber;
+                resolvedInvoiceNumber = batchNumber;
             }
         }
+
+        resReceivable.InvoiceServiceType = invoiceServiceType;
+        resReceivable.InvoiceDate = invoiceDate;
 
         return new ReceivableDetailResponse
         {
             Receivable = resReceivable,
+            DebtorDisplayName = debtorDisplayName,
+            DebtorDisplayCategory = debtorDisplayCategory,
+            InvoiceNumber = resolvedInvoiceNumber,
+            InvoiceServiceType = invoiceServiceType,
+            InvoiceDate = invoiceDate,
             Items = receivable.Items.Select(x => new ReceivableItemResponse
             {
                 Id = x.Id, EncounterId = x.EncounterId, InvoiceId = x.InvoiceId, Description = x.Description, Amount = x.Amount

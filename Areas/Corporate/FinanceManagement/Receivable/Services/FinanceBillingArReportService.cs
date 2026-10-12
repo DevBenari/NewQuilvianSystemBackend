@@ -599,9 +599,10 @@ LEFT JOIN LATERAL (
     WHERE bi_item.""InvoiceId"" = i.""Id"" AND NOT bi_item.""IsDelete"" AND bi_item.""Status"" <> 'VOIDED'
 ) items_sum ON true
 LEFT JOIN LATERAL (
-    SELECT g2.""InsuranceProviderId"", g2.""CompanyGuarantorId"", g2.""PaymentSourceNameSnapshot""
+    SELECT g2.""Id"", g2.""InsuranceProviderId"", g2.""CompanyGuarantorId"", g2.""PaymentType"", g2.""PaymentSourceNameSnapshot""
     FROM ""RegPatientEncounterGuarantor"" g2
     WHERE g2.""EncounterId"" = i.""EncounterId"" AND g2.""IsActive"" AND NOT g2.""IsDelete"" AND NOT g2.""IsCancel""
+      AND (g2.""PaymentType"" IN (2, 3) OR g2.""InsuranceProviderId"" IS NOT NULL OR g2.""CompanyGuarantorId"" IS NOT NULL)
     ORDER BY g2.""IsPrimary"" DESC, g2.""Priority"" ASC
     LIMIT 1
 ) g ON true
@@ -614,7 +615,58 @@ LEFT JOIN LATERAL (
     LIMIT 1
 ) batch_info ON true
 WHERE NOT i.""IsDelete""
-  AND (i.""Status"" = 'OPEN' OR COALESCE(r.""OriginalAmount"", h.""Amount"", cv.""PrimaryAmount"" + cv.""ExcessAmount"", items_sum.""ItemsTotal"", 0) > 0)");
+  AND (i.""Status"" = 'OPEN' OR COALESCE(r.""OriginalAmount"", h.""Amount"", cv.""PrimaryAmount"" + cv.""ExcessAmount"", items_sum.""ItemsTotal"", 0) > 0)
+  -- PEMBATASAN EKSPLISIT: Hanya tagihan berpenjamin perusahaan / asuransi valid.
+  -- Tagihan tunai/mandiri murni tanpa penjamin korporat dikecualikan dari scope laporan AR V2.
+  AND (
+      -- 1. Penjamin terverifikasi melalui master asuransi
+      EXISTS (
+          SELECT 1 FROM ""MstInsuranceProvider"" ins 
+          WHERE ins.""Id"" IN (r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""InsuranceProviderId"")
+            AND NOT ins.""IsDelete""
+      )
+      OR
+      -- 2. Penjamin terverifikasi melalui master perusahaan
+      EXISTS (
+          SELECT 1 FROM ""MstCompanyGuarantor"" comp 
+          WHERE comp.""Id"" IN (r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""CompanyGuarantorId"")
+            AND NOT comp.""IsDelete""
+      )
+      OR
+      -- 3. Penjamin historis asuransi valid dari registrasi encounter (termasuk bila master non-aktif)
+      (
+          g.""PaymentType"" = 2 
+          AND (
+              g.""InsuranceProviderId"" IS NOT NULL 
+              OR (
+                  g.""PaymentSourceNameSnapshot"" IS NOT NULL 
+                  AND TRIM(g.""PaymentSourceNameSnapshot"") <> ''
+                  AND g.""PaymentSourceNameSnapshot"" NOT ILIKE '%TUNAI%'
+                  AND g.""PaymentSourceNameSnapshot"" NOT ILIKE '%CASH%'
+                  AND g.""PaymentSourceNameSnapshot"" NOT ILIKE '%MANDIRI%'
+                  AND g.""PaymentSourceNameSnapshot"" NOT ILIKE '%PRIBADI%'
+                  AND g.""PaymentSourceNameSnapshot"" NOT ILIKE '%UMUM%'
+              )
+          )
+      )
+      OR
+      -- 4. Penjamin historis perusahaan valid dari registrasi encounter (termasuk bila master non-aktif)
+      (
+          g.""PaymentType"" = 3 
+          AND (
+              g.""CompanyGuarantorId"" IS NOT NULL 
+              OR (
+                  g.""PaymentSourceNameSnapshot"" IS NOT NULL 
+                  AND TRIM(g.""PaymentSourceNameSnapshot"") <> ''
+                  AND g.""PaymentSourceNameSnapshot"" NOT ILIKE '%TUNAI%'
+                  AND g.""PaymentSourceNameSnapshot"" NOT ILIKE '%CASH%'
+                  AND g.""PaymentSourceNameSnapshot"" NOT ILIKE '%MANDIRI%'
+                  AND g.""PaymentSourceNameSnapshot"" NOT ILIKE '%PRIBADI%'
+                  AND g.""PaymentSourceNameSnapshot"" NOT ILIKE '%UMUM%'
+              )
+          )
+      )
+  )");
 
         // 1. Filter Penjamin (PayerId)
         if (query.PayerId.HasValue && query.PayerId.Value != Guid.Empty)
@@ -717,12 +769,13 @@ WHERE NOT i.""IsDelete""
       i.""InvoiceNumber"" ILIKE @searchPattern
       OR e.""EncounterNumber"" ILIKE @searchPattern
       OR p.""FullName"" ILIKE @searchPattern
-      OR p.""MedicalRecordNumber"" ILIKE @searchPattern
       OR COALESCE(
-          (SELECT ins.""InsuranceProviderName"" FROM ""MstInsuranceProvider"" ins WHERE ins.""Id"" = COALESCE(r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""InsuranceProviderId"", g.""CompanyGuarantorId"") AND NOT ins.""IsDelete"" LIMIT 1),
-          (SELECT comp.""CompanyGuarantorName"" FROM ""MstCompanyGuarantor"" comp WHERE comp.""Id"" = COALESCE(r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""InsuranceProviderId"", g.""CompanyGuarantorId"") AND NOT comp.""IsDelete"" LIMIT 1),
-          g.""PaymentSourceNameSnapshot"",
-          'Lainnya'
+          (SELECT ins.""InsuranceProviderName"" FROM ""MstInsuranceProvider"" ins WHERE ins.""Id"" IN (r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""InsuranceProviderId"") AND NOT ins.""IsDelete"" LIMIT 1),
+          (SELECT comp.""CompanyGuarantorName"" FROM ""MstCompanyGuarantor"" comp WHERE comp.""Id"" IN (r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""CompanyGuarantorId"") AND NOT comp.""IsDelete"" LIMIT 1),
+          (SELECT ins.""InsuranceProviderName"" FROM ""MstInsuranceProvider"" ins WHERE ins.""Id"" IN (r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""InsuranceProviderId"") LIMIT 1),
+          (SELECT comp.""CompanyGuarantorName"" FROM ""MstCompanyGuarantor"" comp WHERE comp.""Id"" IN (r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""CompanyGuarantorId"") LIMIT 1),
+          CASE WHEN g.""PaymentType"" IN (2, 3) THEN g.""PaymentSourceNameSnapshot"" ELSE NULL END,
+          'Penjamin Korporat'
       ) ILIKE @searchPattern
   )");
             parameters.Add(new NpgsqlParameter("searchPattern", pattern));
@@ -860,17 +913,28 @@ SELECT
     p.""Id"" AS patient_id,
     p.""MedicalRecordNumber"",
     p.""FullName"" AS patient_name,
-    COALESCE(r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""InsuranceProviderId"", g.""CompanyGuarantorId"") AS payer_id,
+    COALESCE(
+        (SELECT ins.""Id"" FROM ""MstInsuranceProvider"" ins WHERE ins.""Id"" IN (r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""InsuranceProviderId"") AND NOT ins.""IsDelete"" LIMIT 1),
+        (SELECT comp.""Id"" FROM ""MstCompanyGuarantor"" comp WHERE comp.""Id"" IN (r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""CompanyGuarantorId"") AND NOT comp.""IsDelete"" LIMIT 1),
+        r.""DebtorReferenceId"",
+        h.""DebtorReferenceId"",
+        g.""InsuranceProviderId"",
+        g.""CompanyGuarantorId""
+    ) AS payer_id,
     CASE 
-        WHEN (SELECT ins.""Id"" FROM ""MstInsuranceProvider"" ins WHERE ins.""Id"" = COALESCE(r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""InsuranceProviderId"", g.""CompanyGuarantorId"") AND NOT ins.""IsDelete"" LIMIT 1) IS NOT NULL THEN 'INSURANCE'
-        WHEN (SELECT comp.""Id"" FROM ""MstCompanyGuarantor"" comp WHERE comp.""Id"" = COALESCE(r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""InsuranceProviderId"", g.""CompanyGuarantorId"") AND NOT comp.""IsDelete"" LIMIT 1) IS NOT NULL THEN 'COMPANY'
-        ELSE 'OTHER'
+        WHEN (SELECT ins.""Id"" FROM ""MstInsuranceProvider"" ins WHERE ins.""Id"" IN (r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""InsuranceProviderId"") AND NOT ins.""IsDelete"" LIMIT 1) IS NOT NULL THEN 'INSURANCE'
+        WHEN (SELECT comp.""Id"" FROM ""MstCompanyGuarantor"" comp WHERE comp.""Id"" IN (r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""CompanyGuarantorId"") AND NOT comp.""IsDelete"" LIMIT 1) IS NOT NULL THEN 'COMPANY'
+        WHEN g.""PaymentType"" = 2 THEN 'INSURANCE'
+        WHEN g.""PaymentType"" = 3 THEN 'COMPANY'
+        ELSE 'CORPORATE'
     END AS payer_type,
     COALESCE(
-        (SELECT ins.""InsuranceProviderName"" FROM ""MstInsuranceProvider"" ins WHERE ins.""Id"" = COALESCE(r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""InsuranceProviderId"", g.""CompanyGuarantorId"") AND NOT ins.""IsDelete"" LIMIT 1),
-        (SELECT comp.""CompanyGuarantorName"" FROM ""MstCompanyGuarantor"" comp WHERE comp.""Id"" = COALESCE(r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""InsuranceProviderId"", g.""CompanyGuarantorId"") AND NOT comp.""IsDelete"" LIMIT 1),
-        g.""PaymentSourceNameSnapshot"",
-        'Lainnya'
+        (SELECT ins.""InsuranceProviderName"" FROM ""MstInsuranceProvider"" ins WHERE ins.""Id"" IN (r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""InsuranceProviderId"") AND NOT ins.""IsDelete"" LIMIT 1),
+        (SELECT comp.""CompanyGuarantorName"" FROM ""MstCompanyGuarantor"" comp WHERE comp.""Id"" IN (r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""CompanyGuarantorId"") AND NOT comp.""IsDelete"" LIMIT 1),
+        (SELECT ins.""InsuranceProviderName"" FROM ""MstInsuranceProvider"" ins WHERE ins.""Id"" IN (r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""InsuranceProviderId"") LIMIT 1),
+        (SELECT comp.""CompanyGuarantorName"" FROM ""MstCompanyGuarantor"" comp WHERE comp.""Id"" IN (r.""DebtorReferenceId"", h.""DebtorReferenceId"", g.""CompanyGuarantorId"") LIMIT 1),
+        CASE WHEN g.""PaymentType"" IN (2, 3) THEN g.""PaymentSourceNameSnapshot"" ELSE NULL END,
+        'Penjamin Korporat'
     ) AS payer_name,
     COALESCE(cl.""ClinicName"", rm.""RoomName"", su.""ServiceUnitName"", '-') AS clinic_or_room_name,
     COALESCE(r.""OriginalAmount"", h.""Amount"", cv.""PrimaryAmount"", items_sum.""ItemsTotal"", 0) AS covered_amount,
@@ -1035,8 +1099,9 @@ LIMIT @pageSize OFFSET @offset;";
         var groups = new List<BillingArReportGroupResponse>();
         if (items.Count == 0) return groups;
 
-        // Kelompokkan berdasarkan PayerId + PayerName (ASC)
+        // Kelompokkan berdasarkan PayerId + PayerName (ASC), pastikan tidak ada kelompok Tunai / Cash
         var groupedByPayer = items
+            .Where(x => !IsTunaiOrCashPayer(x.PayerName, x.PayerType))
             .GroupBy(x => new { PayerKey = x.PayerId?.ToString() ?? x.PayerName, x.PayerId, x.PayerName, x.PayerType })
             .OrderBy(g => g.Key.PayerName, StringComparer.OrdinalIgnoreCase);
 
@@ -1084,6 +1149,19 @@ LIMIT @pageSize OFFSET @offset;";
         }
 
         return groups;
+    }
+
+    private static bool IsTunaiOrCashPayer(string? payerName, string? payerType)
+    {
+        if (string.Equals(payerType, "CASH", StringComparison.OrdinalIgnoreCase)) return true;
+        if (string.IsNullOrWhiteSpace(payerName)) return false;
+        var p = payerName.Trim();
+        return string.Equals(p, "TUNAI", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(p, "CASH", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(p, "MANDIRI", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(p, "PASIEN UMUM", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(p, "UMUM", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(p, "PRIBADI", StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task<string> ResolvePayerNameAsync(Guid payerId, CancellationToken cancellationToken)

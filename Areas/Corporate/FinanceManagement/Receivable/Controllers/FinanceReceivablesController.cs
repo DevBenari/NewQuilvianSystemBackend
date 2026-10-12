@@ -34,6 +34,7 @@ public sealed class FinanceReceivablesController : ControllerBase
     private readonly FinanceBillingArReportService _billingArReportService;
     private readonly FinanceReceivableAgingReportService _agingReportService;
     private readonly FinanceSettlementService _settlementService;
+    private readonly FinanceReceivablePaymentReportService _paymentReportService;
 
     public FinanceReceivablesController(
         FinanceReceivableService service,
@@ -41,7 +42,8 @@ public sealed class FinanceReceivablesController : ControllerBase
         FinanceReceivableClearanceService clearanceService,
         FinanceBillingArReportService billingArReportService,
         FinanceReceivableAgingReportService agingReportService,
-        FinanceSettlementService settlementService)
+        FinanceSettlementService settlementService,
+        FinanceReceivablePaymentReportService paymentReportService)
     {
         _service = service;
         _clearanceService = clearanceService;
@@ -49,6 +51,7 @@ public sealed class FinanceReceivablesController : ControllerBase
         _billingArReportService = billingArReportService;
         _agingReportService = agingReportService;
         _settlementService = settlementService;
+        _paymentReportService = paymentReportService;
     }
 
     [HttpGet("filters/metadata")]
@@ -212,6 +215,156 @@ public sealed class FinanceReceivablesController : ControllerBase
     {
         var bytes = await _billingArReportService.ExportPdfAsync(request, cancellationToken);
         var fileName = $"Laporan_AR_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
+        return File(bytes, "application/pdf", fileName);
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Laporan Pembayaran AR (Finance > Transaksi A/R > Laporan & Monitoring > Laporan Pembayaran AR)
+    // Read-model pembayaran yang dialokasikan ke Invoice AR tertentu dari Kas/Bank maupun Ayat Silang
+    // ------------------------------------------------------------------------------------
+
+    [HttpGet("reports/payment-ar")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PaymentArReportPagedResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPaymentArReport(
+        [FromQuery] PaymentArReportQuery request, CancellationToken cancellationToken)
+    {
+        var result = await _paymentReportService.GetPaymentArReportAsync(request, cancellationToken);
+        return Ok(ApiResponse<PaymentArReportPagedResponse>.Ok(result, "Laporan pembayaran AR berhasil diambil."));
+    }
+
+    [HttpGet("reports/payment-ar/summary")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PaymentArReportSummaryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPaymentArSummary(
+        [FromQuery] PaymentArReportQuery request, CancellationToken cancellationToken)
+    {
+        var result = await _paymentReportService.GetPaymentArSummaryAsync(request, cancellationToken);
+        return Ok(ApiResponse<PaymentArReportSummaryResponse>.Ok(result, "Ringkasan laporan pembayaran AR berhasil diambil."));
+    }
+
+    [HttpGet("reports/payment-ar/{receiptId:guid}/{batchId:guid}/detail")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PaymentArDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetPaymentArDetail(
+        Guid receiptId, Guid batchId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _paymentReportService.GetPaymentArDetailAsync(receiptId, batchId, cancellationToken);
+            return Ok(ApiResponse<PaymentArDetailResponse>.Ok(result, "Detail laporan pembayaran AR berhasil diambil."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<object>.Fail(404, ex.Message));
+        }
+    }
+
+    [HttpGet("reports/payment-ar/{paymentKey}/detail")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PaymentArDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetPaymentArDetailByKey(
+        string paymentKey, CancellationToken cancellationToken)
+    {
+        var parts = paymentKey.Split('_');
+        if (parts.Length != 2 || !Guid.TryParse(parts[0], out var receiptId) || !Guid.TryParse(parts[1], out var batchId))
+        {
+            return BadRequest(ApiResponse<object>.Fail(400, "Format identifier pembayaran tidak valid. Gunakan format '{ReceiptId}_{BatchId}'."));
+        }
+
+        try
+        {
+            var result = await _paymentReportService.GetPaymentArDetailAsync(receiptId, batchId, cancellationToken);
+            return Ok(ApiResponse<PaymentArDetailResponse>.Ok(result, "Detail laporan pembayaran AR berhasil diambil."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse<object>.Fail(404, ex.Message));
+        }
+    }
+
+    [HttpGet("reports/payment-ar/export/excel")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    public async Task<IActionResult> ExportPaymentArExcel(
+        [FromQuery] PaymentArReportQuery request, CancellationToken cancellationToken)
+    {
+        var bytes = await _paymentReportService.ExportListExcelAsync(request, cancellationToken);
+        var fileName = $"Laporan_Pembayaran_AR_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+    }
+
+    [HttpGet("reports/payment-ar/export/pdf")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    public async Task<IActionResult> ExportPaymentArPdf(
+        [FromQuery] PaymentArReportQuery request, CancellationToken cancellationToken)
+    {
+        var bytes = await _paymentReportService.ExportListPdfAsync(request, cancellationToken);
+        var fileName = $"Laporan_Pembayaran_AR_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
+        return File(bytes, "application/pdf", fileName);
+    }
+
+    [HttpGet("reports/payment-ar/{receiptId:guid}/{batchId:guid}/export/excel")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    public async Task<IActionResult> ExportPaymentArDetailExcel(
+        Guid receiptId, Guid batchId, CancellationToken cancellationToken)
+    {
+        var bytes = await _paymentReportService.ExportDetailExcelAsync(receiptId, batchId, cancellationToken);
+        var fileName = $"Detail_Pembayaran_AR_{batchId}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+    }
+
+    [HttpGet("reports/payment-ar/{receiptId:guid}/{batchId:guid}/export/pdf")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    public async Task<IActionResult> ExportPaymentArDetailPdf(
+        Guid receiptId, Guid batchId, CancellationToken cancellationToken)
+    {
+        var bytes = await _paymentReportService.ExportDetailPdfAsync(receiptId, batchId, cancellationToken);
+        var fileName = $"Detail_Pembayaran_AR_{batchId}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
+        return File(bytes, "application/pdf", fileName);
+    }
+
+    [HttpGet("reports/payment-ar/{paymentKey}/export/excel")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    public async Task<IActionResult> ExportPaymentArDetailExcelByKey(
+        string paymentKey, CancellationToken cancellationToken)
+    {
+        var parts = paymentKey.Split('_');
+        if (parts.Length != 2 || !Guid.TryParse(parts[0], out var receiptId) || !Guid.TryParse(parts[1], out var batchId))
+        {
+            return BadRequest(ApiResponse<object>.Fail(400, "Format identifier pembayaran tidak valid."));
+        }
+
+        var bytes = await _paymentReportService.ExportDetailExcelAsync(receiptId, batchId, cancellationToken);
+        var fileName = $"Detail_Pembayaran_AR_{batchId}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+    }
+
+    [HttpGet("reports/payment-ar/{paymentKey}/export/pdf")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    public async Task<IActionResult> ExportPaymentArDetailPdfByKey(
+        string paymentKey, CancellationToken cancellationToken)
+    {
+        var parts = paymentKey.Split('_');
+        if (parts.Length != 2 || !Guid.TryParse(parts[0], out var receiptId) || !Guid.TryParse(parts[1], out var batchId))
+        {
+            return BadRequest(ApiResponse<object>.Fail(400, "Format identifier pembayaran tidak valid."));
+        }
+
+        var bytes = await _paymentReportService.ExportDetailPdfAsync(receiptId, batchId, cancellationToken);
+        var fileName = $"Detail_Pembayaran_AR_{batchId}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
         return File(bytes, "application/pdf", fileName);
     }
 

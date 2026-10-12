@@ -400,6 +400,7 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
     // ------------------------------------------------------------------------------------
 
     [HttpPost("{id:guid}/claim/verify")]
+    [Obsolete("Workflow operasional klaim penjamin ditiadakan. Dipertahankan hanya untuk backward compatibility legacy consumer.")]
     [AccessAction("Update", "Update Receivable Invoice Batch", AccessType = AccessTypes.Update, SortOrder = 4)]
     [AccessPermission("FinanceReceivableInvoiceBatch", "Update")]
     public async Task<IActionResult> ClaimVerify(Guid id, [FromBody] ClaimVerifyRequest request, CancellationToken cancellationToken)
@@ -414,6 +415,7 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
     }
 
     [HttpPost("{id:guid}/claim/approve")]
+    [Obsolete("Workflow operasional klaim penjamin ditiadakan. Dipertahankan hanya untuk backward compatibility legacy consumer.")]
     [AccessAction("Update", "Update Receivable Invoice Batch", AccessType = AccessTypes.Update, SortOrder = 4)]
     [AccessPermission("FinanceReceivableInvoiceBatch", "Update")]
     public async Task<IActionResult> ClaimApprove(Guid id, [FromBody] ClaimApproveRequest request, CancellationToken cancellationToken)
@@ -429,6 +431,7 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
     }
 
     [HttpPost("{id:guid}/claim/close")]
+    [Obsolete("Workflow operasional klaim penjamin ditiadakan. Dipertahankan hanya untuk backward compatibility legacy consumer.")]
     [AccessAction("Update", "Update Receivable Invoice Batch", AccessType = AccessTypes.Update, SortOrder = 4)]
     [AccessPermission("FinanceReceivableInvoiceBatch", "Update")]
     public async Task<IActionResult> ClaimClose(Guid id, [FromBody] ClaimCloseRequest request, CancellationToken cancellationToken)

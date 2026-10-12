@@ -953,6 +953,11 @@ public sealed class ClaimManagementBatchItemResponse
 public sealed class ClaimManagementSummaryResponse
 {
     public int TotalClaims { get; set; }
+    public int TotalInvoices { get; set; }
+    public int UnpaidCount { get; set; }
+    public int PartiallyPaidCount { get; set; }
+    public int PaidCount { get; set; }
+    public int OverdueCount { get; set; }
     public int PendingVerificationCount { get; set; }
     public int PendingApprovalCount { get; set; }
     public int ApprovedCount { get; set; }

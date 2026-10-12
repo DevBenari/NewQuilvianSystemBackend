@@ -414,6 +414,7 @@ try
     builder.Services.AddScoped<FinanceBillingArReportService>();
     builder.Services.AddScoped<FinanceReceivableAgingReportService>();
     builder.Services.AddScoped<FinanceSettlementService>();
+    builder.Services.AddScoped<FinanceReceivablePaymentReportService>();
     builder.Services.AddScoped<ICompanyGuarantorReimbursementRouteService, CompanyGuarantorReimbursementRouteService>();
     builder.Services.AddScoped<CompanyGuarantorReimbursementRouteService>();
     builder.Services.AddScoped<ICompanyGuarantorCoverageRuleService, CompanyGuarantorCoverageRuleService>();
