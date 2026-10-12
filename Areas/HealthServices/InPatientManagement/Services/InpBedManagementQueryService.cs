@@ -42,6 +42,7 @@ public sealed class InpBedManagementQueryService(ApplicationDbContext db, InpBed
             RawBedStatus = (int)bed.BedStatus, BedId = bed.Id, BedCode = bed.BedCode, BedName = bed.BedName, RoomId = bed.RoomId,
             RoomName = room?.RoomName, RawRoomCode = room?.RoomCode, RawRoomCapacity = room?.Capacity ?? 0, ServiceUnitId = room?.ServiceUnitId ?? Guid.Empty,
             PatientClassId = room?.PatientClassId, PatientClassName = cls?.PatientClassName,
+            IsIsolationBed = bed.IsIsolationBed, IsForNewborn = bed.IsForNewborn,
             StatusCode = code, StatusLabel = StatusLabels[code], IsBookable = code == "Available",
             OperationalVersion = root?.Version ?? 1, CycleId = root?.CycleId ?? Guid.Empty,
             CleaningPhase = code == "Cleaning" ? root?.State == InpBedReadinessState.AwaitingVerification ? "AwaitingVerification" : "InProgress" : null,

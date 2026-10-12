@@ -46,6 +46,8 @@ public class BedOperationalResponse
     public Guid ServiceUnitId { get; set; }
     public Guid? PatientClassId { get; set; }
     public string? PatientClassName { get; set; }
+    public bool IsIsolationBed { get; set; }
+    public bool IsForNewborn { get; set; }
     public string StatusCode { get; set; } = "Unavailable";
     public string StatusLabel { get; set; } = "Tidak tersedia";
     public string? CleaningPhase { get; set; }
