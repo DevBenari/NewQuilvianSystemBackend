@@ -45,10 +45,12 @@ public partial class InpAdmissionTransferService
                     .Select(e => (Guid?)e.Id).FirstOrDefault()
             });
 
+        // Sumber Poliklinik hanya Surat Pengantar Rawat Inap; Surat Rujukan biasa bukan pengajuan admisi.
+        // DecidedAt memakai waktu terbit sebenarnya (CreateDateTime), bukan tanggal kalender IssuedDate.
         var outpatient = from c in _dbContext.Set<CliDoctorCertificate>().AsNoTracking()
             join e in _dbContext.RegPatientEncounters on c.EncounterId equals e.Id
             join p in _dbContext.Set<MstPatient>() on c.PatientId equals p.Id
-            where !c.IsDelete && c.CertificateType == DoctorCertificateType.InpatientReferral
+            where !c.IsDelete && c.CertificateType == DoctorCertificateType.InpatientAdmissionLetter
                 && e.PatientId == c.PatientId && !e.IsDelete && !e.IsCancel
                 && e.EncounterType == EncounterType.Outpatient
                 && e.EncounterStatus != EncounterStatus.Cancelled && e.EncounterStatus != EncounterStatus.NoShow
@@ -64,7 +66,7 @@ public partial class InpAdmissionTransferService
                 DecidedByDoctorName = c.DoctorNameSnapshot,
                 DispositionReason = c.ReferralReason, PatientCondition = c.ClinicalSummary,
                 FollowUpInstruction = c.SpecialInstruction, RecommendedServiceUnitId = c.ReferralTargetServiceUnitId,
-                RecommendedServiceUnitName = c.ReferralTargetNameSnapshot, DecidedAt = c.IssuedDate,
+                RecommendedServiceUnitName = c.ReferralTargetNameSnapshot, DecidedAt = c.CreateDateTime,
                 DispositionStatus = c.CertificateStatus != DoctorCertificateStatus.Issued || c.IsCancel || !c.IsActive ? "Cancelled"
                     : _dbContext.RegPatientEncounters.IgnoreQueryFilters().Any(t => t.AdmissionTransferId == c.Id
                         && t.AdmissionTransferSourceType == "Outpatient") ? "Executed" : "Confirmed",
