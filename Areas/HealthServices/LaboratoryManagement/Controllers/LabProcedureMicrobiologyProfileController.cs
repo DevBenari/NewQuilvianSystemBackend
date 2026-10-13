@@ -38,6 +38,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             _service = service;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<LabProcedureMicrobiologyProfileFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Procedure Microbiology Profile", Description = "Melihat daftar, ringkasan, pilihan, dan detail pemetaan set bakteri", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabProcedureMicrobiologyProfile", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = LabFilterMetadataFactory.LabProcedureMicrobiologyProfile();
+
+            return Ok(ApiResponse<LabProcedureMicrobiologyProfileFilterMetadataResponse>.Ok(
+                result, "Metadata penyaring profil Mikrobiologi berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<LabProcedureMicrobiologyProfileSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Procedure Microbiology Profile", Description = "Melihat daftar, ringkasan, pilihan, dan detail pemetaan set bakteri", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabProcedureMicrobiologyProfile", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var result = await _service.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<LabProcedureMicrobiologyProfileSummaryResponse>.Ok(
+                result, "Ringkasan profil Mikrobiologi berhasil diambil."));
+        }
+
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabProcedureMicrobiologyProfileResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Lab Procedure Microbiology Profile", Description = "Melihat daftar, ringkasan, pilihan, dan detail pemetaan set bakteri", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -153,31 +177,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
 
         // =============================================================
         // Baseline master data yang dilengkapi 2026-09-22 — `LAB-API-v1` r30.
+        //
+        // `filters/metadata` dan `summary` dari baseline ini ditaruh paling awal controller
+        // supaya tampil teratas di Swagger (permintaan pemilik modul 2026-10-13).
         // =============================================================
-
-        [HttpGet("filters/metadata")]
-        [ProducesResponseType(typeof(ApiResponse<LabProcedureMicrobiologyProfileFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Procedure Microbiology Profile", Description = "Melihat daftar, ringkasan, pilihan, dan detail pemetaan set bakteri", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LabProcedureMicrobiologyProfile", "Read")]
-        public IActionResult GetFilterMetadata()
-        {
-            var result = LabFilterMetadataFactory.LabProcedureMicrobiologyProfile();
-
-            return Ok(ApiResponse<LabProcedureMicrobiologyProfileFilterMetadataResponse>.Ok(
-                result, "Metadata penyaring profil Mikrobiologi berhasil diambil."));
-        }
-
-        [HttpGet("summary")]
-        [ProducesResponseType(typeof(ApiResponse<LabProcedureMicrobiologyProfileSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Procedure Microbiology Profile", Description = "Melihat daftar, ringkasan, pilihan, dan detail pemetaan set bakteri", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LabProcedureMicrobiologyProfile", "Read")]
-        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
-        {
-            var result = await _service.GetSummaryAsync(cancellationToken);
-
-            return Ok(ApiResponse<LabProcedureMicrobiologyProfileSummaryResponse>.Ok(
-                result, "Ringkasan profil Mikrobiologi berhasil diambil."));
-        }
 
         [HttpGet("options")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabProcedureMicrobiologyProfileOptionResponse>>), StatusCodes.Status200OK)]

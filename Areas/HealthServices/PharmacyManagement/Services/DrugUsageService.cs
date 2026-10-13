@@ -1,7 +1,13 @@
 ﻿using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
@@ -23,7 +29,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
 /// <para>
 /// Sesudah dicatat, pemakaian berhenti pada keadaan "belum ditagihkan". Ia adalah transaksi
 /// yang <em>dapat</em> ditagihkan; keputusan menagih beserta aturannya milik Billing, bukan
-/// Farmasi.
+/// Farmasi. Sejak <c>BE-BKC-FIX-017</c> (keputusan pemilik K-04) pencatatan pemakaian tanpa resep
+/// menerbitkan satu fakta per butir ke Billing sesudah tersimpan; Billing yang menetapkan tarif
+/// dan meneruskannya ke invoice. Draft tidak pernah menerbitkan fakta.
 /// </para>
 /// <para>
 /// Batch yang terpakai disimpan per baris. Ketika sebuah batch ditarik dari peredaran,
@@ -39,15 +47,27 @@ public sealed class DrugUsageService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly LoggerService _loggerService;
     private readonly DrugStockService _drugStockService;
+    private readonly PharmacyDepotRoutingService _depotRoutingService;
+    private readonly ClinicalMilestoneFactProducer _factProducer;
+    private readonly BillingClinicalChargeBridgeService _chargeBridge;
+    private readonly ILogger<DrugUsageService> _logger;
 
     public DrugUsageService(ApplicationDbContext dbContext,
         IHttpContextAccessor httpContextAccessor, LoggerService loggerService,
-        DrugStockService drugStockService)
+        DrugStockService drugStockService,
+        PharmacyDepotRoutingService depotRoutingService,
+        ClinicalMilestoneFactProducer factProducer,
+        BillingClinicalChargeBridgeService chargeBridge,
+        ILogger<DrugUsageService> logger)
     {
         _dbContext = dbContext;
         _httpContextAccessor = httpContextAccessor;
         _loggerService = loggerService;
         _drugStockService = drugStockService;
+        _depotRoutingService = depotRoutingService;
+        _factProducer = factProducer;
+        _chargeBridge = chargeBridge;
+        _logger = logger;
     }
 
     // ==================================================================== daftar
@@ -143,7 +163,11 @@ public sealed class DrugUsageService
         CancellationToken cancellationToken = default)
     {
         var entity = await LoadAsync(id, tracking: false, cancellationToken);
-        return entity == null ? null : MapDetail(entity);
+        if (entity == null) return null;
+
+        var detail = MapDetail(entity);
+        await ApplyChargeStateAsync(entity, detail, cancellationToken);
+        return detail;
     }
 
     // ====================================================================== buat
@@ -161,14 +185,21 @@ public sealed class DrugUsageService
         if (existing != null) return (await GetDetailAsync(id, cancellationToken))!;
 
         await EnsureEncounterAsync(request.EncounterId, cancellationToken);
-        await EnsureWorkforceAsync(request.RecordedByWorkforceId, cancellationToken);
+        var actorUserId = GetCurrentUserId();
+
+        // BE-BKC-FIX-017 / FE-BKC-FIX-012: petugas dan depo boleh dikosongkan layar. Petugas
+        // diambil dari profil yang tertaut pada akun login; depo dari aturan depo per kunjungan.
+        // Keduanya tetap divalidasi seperti nilai yang dikirim — GUID kosong tidak pernah menjadi
+        // petugas atau depo bawaan.
+        var recordedByWorkforceId = await ResolveRecordedByAsync(request.RecordedByWorkforceId, actorUserId, cancellationToken);
+        await EnsureWorkforceAsync(recordedByWorkforceId, cancellationToken);
 
         // Stok hanya boleh keluar dari lokasi yang memang diizinkan menyerahkan. Unit tempat
         // pasien dirawat tidak menjadi sumber stok; ia hanya konteks kunjungan.
-        await EnsureDispensingLocationAsync(request.StorageLocationId, cancellationToken);
+        var storageLocationId = await ResolveStorageLocationAsync(request.StorageLocationId, request.EncounterId, cancellationToken);
+        await EnsureDispensingLocationAsync(storageLocationId, cancellationToken);
 
         var drugs = await ResolveDrugsAsync(request.Items, cancellationToken);
-        var actorUserId = GetCurrentUserId();
         var now = DateTime.UtcNow;
 
         var entity = new PhmDrugUsage
@@ -176,8 +207,8 @@ public sealed class DrugUsageService
             Id = id,
             UsageNumber = $"USG-{now:yyyyMMdd}-{id.ToString("N")[..6].ToUpperInvariant()}",
             EncounterId = request.EncounterId,
-            StorageLocationId = request.StorageLocationId,
-            RecordedByWorkforceId = request.RecordedByWorkforceId,
+            StorageLocationId = storageLocationId,
+            RecordedByWorkforceId = recordedByWorkforceId,
             Status = DrugUsageStatus.Draft,
             UsedAt = request.UsedAt?.ToUniversalTime() ?? now,
             Notes = Normalize(request.Notes),
@@ -257,7 +288,12 @@ public sealed class DrugUsageService
             ?? throw new KeyNotFoundException("Pemakaian obat tidak ditemukan.");
 
         if (entity.Status == DrugUsageStatus.NotBilled || entity.Status == DrugUsageStatus.Billed)
+        {
+            // Kiriman ulang perintah catat: stok tidak disentuh lagi, tetapi fakta tagih yang
+            // belum pernah terbit (mis. Billing sempat gagal) dipulihkan — BE-BKC-FIX-017.
+            await EmitUsageChargesAsync(entity, GetCurrentUserId(), cancellationToken);
             return (await GetDetailAsync(id, cancellationToken))!;
+        }
 
         if (entity.Status != DrugUsageStatus.Draft)
             throw new DrugUsageConflictException("PHM060",
@@ -327,8 +363,146 @@ public sealed class DrugUsageService
             "Mencatat pemakaian obat pasien dan mengurangi stok.",
             new { entity.Id, entity.UsageNumber, entity.EncounterId, entity.ItemCount });
 
+        // Sesudah stok tersimpan: tagihan menyusul lewat Billing. Kegagalannya tidak membatalkan
+        // pemakaian yang sudah terjadi.
+        await EmitUsageChargesAsync(entity, actorUserId, cancellationToken);
+
         return (await GetDetailAsync(id, cancellationToken))!;
     }
+
+    // ================================================================ tagihan
+
+    /// <summary>
+    /// Menerbitkan fakta tagih per butir pemakaian tanpa resep — <c>BE-BKC-FIX-017</c>, K-04.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Satu fakta per butir (<c>SourceAggregateId</c> = pemakaian, <c>SourceItemId</c> = butir),
+    /// jumlah = jumlah yang dicatat, waktu = waktu pemakaian. Billing menetapkan tarif obat/alkes
+    /// yang berlaku dan meneruskannya ke invoice kunjungan; tarif yang belum ada masuk antrean
+    /// rekonsiliasi, tidak pernah menjadi Rp0.
+    /// </para>
+    /// <para>
+    /// Hanya butir yang <b>belum pernah</b> punya fakta yang diterbitkan, sehingga kiriman ulang —
+    /// termasuk sesudah retur menerbitkan revisi pengurangan — tidak pernah menagih ulang.
+    /// Pemakaian yang menempel pada resep dilewati: penyerahan resep ditagih lewat resep.
+    /// </para>
+    /// </remarks>
+    private async Task EmitUsageChargesAsync(PhmDrugUsage entity, Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (entity.PrescriptionId != null
+            || entity.Status is not (DrugUsageStatus.NotBilled or DrugUsageStatus.Billed))
+            return;
+
+        var items = entity.Items.Where(x => !x.IsDelete && x.Quantity > 0).OrderBy(x => x.LineNumber).ToList();
+        if (items.Count == 0) return;
+
+        var itemIds = items.Select(x => (Guid?)x.Id).ToList();
+        var emitted = await _dbContext.Set<CliClinicalMilestoneFact>().AsNoTracking()
+            .Where(x => x.SourceContext == BillingSourceContract.DrugUsageSourceContext
+                && x.SourceAggregateId == entity.Id
+                && itemIds.Contains(x.SourceItemId) && !x.IsDelete)
+            .Select(x => x.SourceItemId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        var emittedSet = emitted.Where(x => x.HasValue).Select(x => x!.Value).ToHashSet();
+
+        var usedAt = entity.UsedAt.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(entity.UsedAt, DateTimeKind.Utc)
+            : entity.UsedAt.ToUniversalTime();
+
+        foreach (var item in items.Where(x => !emittedSet.Contains(x.Id)))
+        {
+            try
+            {
+                var emission = await _factProducer.EmitChargeEligibilityAsync(
+                    new ClinicalMilestoneFactRequest
+                    {
+                        SourceContext = BillingSourceContract.DrugUsageSourceContext,
+                        SourceAggregateId = entity.Id,
+                        SourceItemId = item.Id,
+                        EffectType = BillingSourceContract.DrugUsageChargeEffectType,
+                        EncounterId = entity.EncounterId,
+                        OccurredAt = usedAt,
+                        Quantity = item.Quantity,
+                        Unit = string.IsNullOrWhiteSpace(item.MeasurementNameSnapshot)
+                            ? "UNIT"
+                            : item.MeasurementNameSnapshot.Trim(),
+                        // Hanya identitas dan jumlah, tanpa catatan klinis.
+                        RuleSnapshot = JsonSerializer.Serialize(new
+                        {
+                            milestone = BillingSourceContract.DrugUsageMilestoneRecorded,
+                            usageNumber = entity.UsageNumber,
+                            lineNumber = item.LineNumber,
+                            drugId = item.DrugId
+                        }),
+                        CorrelationId = entity.Id
+                    },
+                    actorUserId,
+                    cancellationToken);
+
+                if (!emission.IsClinicallySafe)
+                    await _loggerService.AuditAsync(LogCategory, "DrugUsage.BillingHandoffIssue",
+                        "Fakta tagih pemakaian belum tersampaikan ke Billing.",
+                        new { entity.Id, entity.UsageNumber, DrugUsageItemId = item.Id, emission.Code });
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                _logger.LogError(exception,
+                    "Fakta tagih pemakaian {UsageNumber} baris {LineNumber} gagal diterbitkan.",
+                    entity.UsageNumber, item.LineNumber);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Mengisi keadaan penagihan per butir dan keseluruhan pada detail — <c>BE-BKC-FIX-017</c>.
+    /// </summary>
+    private async Task ApplyChargeStateAsync(PhmDrugUsage entity, DrugUsageDetailResponse detail,
+        CancellationToken cancellationToken)
+    {
+        if (entity.PrescriptionId != null
+            || entity.Status is not (DrugUsageStatus.NotBilled or DrugUsageStatus.Billed))
+            return;
+
+        BillingSourceChargeState? worst = null;
+        foreach (var item in detail.Items)
+        {
+            var state = await _chargeBridge.GetChargeStateAsync(
+                BillingSourceContract.DrugUsageSourceContext, entity.Id, item.Id, cancellationToken);
+            item.ChargeState = state.State;
+            if (worst == null || ChargeStateRank(state.State) > ChargeStateRank(worst.State))
+                worst = state;
+        }
+
+        if (worst == null) return;
+        detail.ChargeState = worst.State;
+        detail.ChargeStateMessage = worst.State switch
+        {
+            BillingSourceChargeStates.NeedsReview =>
+                worst.Message ?? "Tagihan pemakaian perlu ditinjau Billing.",
+            BillingSourceChargeStates.WaitingForBilling =>
+                "Pemakaian tercatat; tagihannya sedang diteruskan ke invoice dan akan dicoba ulang otomatis.",
+            BillingSourceChargeStates.NotReceived or BillingSourceChargeStates.NotSent =>
+                "Pemakaian tercatat, tetapi tagihannya belum diterima Billing. Catat ulang untuk mengirim ulang.",
+            BillingSourceChargeStates.InInvoice => "Pemakaian tercatat dan sudah masuk invoice.",
+            BillingSourceChargeStates.ResolvedManually => "Tagihan pemakaian sudah diselesaikan manual oleh Billing.",
+            _ => "Pemakaian tercatat dan tidak ditagih terpisah."
+        };
+    }
+
+    /// <summary>Urutan "paling butuh tindakan" untuk meringkas keadaan beberapa butir.</summary>
+    private static int ChargeStateRank(string state) => state switch
+    {
+        BillingSourceChargeStates.NeedsReview => 6,
+        BillingSourceChargeStates.NotSent => 5,
+        BillingSourceChargeStates.NotReceived => 4,
+        BillingSourceChargeStates.WaitingForBilling => 3,
+        BillingSourceChargeStates.ResolvedManually => 2,
+        BillingSourceChargeStates.InInvoice => 1,
+        _ => 0
+    };
 
     // ==================================================================== batal
 
@@ -453,6 +627,34 @@ public sealed class DrugUsageService
         if (!valid)
             throw new DrugUsageUnprocessableException("PHM063",
                 "Kunjungan pasien tidak ditemukan.");
+    }
+
+    private async Task<Guid> ResolveRecordedByAsync(Guid? requested, Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (requested is { } given && given != Guid.Empty) return given;
+
+        var linked = await _dbContext.Users.AsNoTracking()
+            .Where(x => x.Id == actorUserId)
+            .Select(x => x.WorkforceProfileId)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (linked is not { } workforceId || workforceId == Guid.Empty)
+            throw new DrugUsageUnprocessableException("PHM063",
+                "Akun Anda belum tertaut ke profil petugas, sehingga petugas pencatat tidak dapat ditentukan. " +
+                "Hubungi admin untuk menautkan profil petugas.");
+        return workforceId;
+    }
+
+    private async Task<Guid> ResolveStorageLocationAsync(Guid? requested, Guid encounterId,
+        CancellationToken cancellationToken)
+    {
+        if (requested is { } given && given != Guid.Empty) return given;
+
+        var route = await _depotRoutingService.ResolveAsync(encounterId, cancellationToken);
+        if (!route.IsSuccess || route.StorageLocationId is not { } locationId)
+            throw new DrugUsageUnprocessableException("PHM064",
+                $"Depo pengambilan stok tidak dapat ditentukan otomatis: {route.Message} Pilih lokasi stok secara manual.");
+        return locationId;
     }
 
     private async Task EnsureWorkforceAsync(Guid workforceId, CancellationToken cancellationToken)

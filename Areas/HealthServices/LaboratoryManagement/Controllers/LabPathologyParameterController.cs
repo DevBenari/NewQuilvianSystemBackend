@@ -46,6 +46,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             _labPathologyParameterService = labPathologyParameterService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<LabPathologyParameterFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Pathology Parameter", Description = "Melihat daftar, ringkasan, pilihan, dan detail ruas isian laporan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabPathologyParameter", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = LabFilterMetadataFactory.LabPathologyParameter();
+
+            return Ok(ApiResponse<LabPathologyParameterFilterMetadataResponse>.Ok(
+                result, "Metadata penyaring ruas isian Patologi Anatomi berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<LabPathologyParameterSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Pathology Parameter", Description = "Melihat daftar, ringkasan, pilihan, dan detail ruas isian laporan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabPathologyParameter", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var result = await _labPathologyParameterService.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<LabPathologyParameterSummaryResponse>.Ok(
+                result, "Ringkasan ruas isian Patologi Anatomi berhasil diambil."));
+        }
+
         // Daftar parameter untuk layar pengelolaan kepala instalasi. Memuat yang nonaktif juga,
         // karena tanpa itu parameter yang dinonaktifkan tidak akan pernah dapat diaktifkan lagi.
         [HttpGet]
@@ -117,31 +141,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
 
         // =============================================================
         // Baseline data induk yang dilengkapi 2026-09-23 — `LAB-API-v1` r32.
+        //
+        // `filters/metadata` dan `summary` dari baseline ini ditaruh paling awal controller
+        // supaya tampil teratas di Swagger (permintaan pemilik modul 2026-10-13).
         // =============================================================
-
-        [HttpGet("filters/metadata")]
-        [ProducesResponseType(typeof(ApiResponse<LabPathologyParameterFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Pathology Parameter", Description = "Melihat daftar, ringkasan, pilihan, dan detail ruas isian laporan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LabPathologyParameter", "Read")]
-        public IActionResult GetFilterMetadata()
-        {
-            var result = LabFilterMetadataFactory.LabPathologyParameter();
-
-            return Ok(ApiResponse<LabPathologyParameterFilterMetadataResponse>.Ok(
-                result, "Metadata penyaring ruas isian Patologi Anatomi berhasil diambil."));
-        }
-
-        [HttpGet("summary")]
-        [ProducesResponseType(typeof(ApiResponse<LabPathologyParameterSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Pathology Parameter", Description = "Melihat daftar, ringkasan, pilihan, dan detail ruas isian laporan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LabPathologyParameter", "Read")]
-        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
-        {
-            var result = await _labPathologyParameterService.GetSummaryAsync(cancellationToken);
-
-            return Ok(ApiResponse<LabPathologyParameterSummaryResponse>.Ok(
-                result, "Ringkasan ruas isian Patologi Anatomi berhasil diambil."));
-        }
 
         // Jalur detail. Tanpa ini, formulir ubah yang dibuka lewat tautan langsung atau sesudah
         // halaman disegarkan nol punya cara memuat barisnya — dan gagalnya DIAM.
@@ -198,10 +201,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             }
         }
 
-        /// <summary>
-        /// Menjalankan satu perubahan dan menerjemahkan kegagalannya menjadi status HTTP yang
-        /// tepat, tanpa membocorkan detail exception ke pemanggil.
-        /// </summary>
         private async Task<IActionResult> ExecuteAsync(
             Func<Task<LabPathologyParameterResponse>> action,
             string successMessage)

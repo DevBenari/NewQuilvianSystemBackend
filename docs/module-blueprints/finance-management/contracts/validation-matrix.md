@@ -803,3 +803,131 @@ input_revision: 00-interview-decisions.md (FIN-DEC-183..FIN-DEC-202)
 | Revisi 18 | `FIN-VAL-246`..`248` | 3 |
 | **Total Akumulatif** | `FIN-VAL-230`..`248` | **19** |
 
+
+---
+
+# AMENDMENT REVISI 19 — Piutang Manfaat Karyawan: Validasi Benefit HR, Registrasi, dan Pilihan Pegawai (`FIN-VAL-1.12`)
+
+```yaml
+contract_version: FIN-VAL-1.12
+last_changed_in: Revisi 19 (13 Oktober 2026)
+status: approved
+approved_by: Pemilik Finance dan HR (pengguna sesi); konfirmasi pemilik Billing dan Registrasi belum turun
+approved_at: 2026-10-13
+input_revision: 00-interview-decisions.md (FIN-DEC-204..FIN-DEC-210)
+input_hash: ac37d579d10c64e4   # SHA-256 (16 karakter pertama) berkas ini sebelum amandemen Revisi 19
+```
+
+## R.1 Enrollment dan tanggungan di HR
+
+| Kode | Aturan | Pesan yang dibaca petugas | Kode HTTP | Ditegakkan di |
+|---|---|---|---|---|
+| `FIN-VAL-249` | Satu pegawai **MUST NOT** memiliki dua enrollment layanan RS berstatus `Active` dengan masa berlaku berimpit | "Pegawai ini sudah memiliki benefit layanan RS yang aktif pada periode tersebut." | `422` | Service enrollment; indeks unik terfilter |
+| `FIN-VAL-250` | Enrollment **MUST** punya batas plafon plan lebih dari nol saat diaktifkan | "Plan benefit ini belum memiliki batas plafon. Lengkapi plan terlebih dahulu." | `422` | Service enrollment |
+| `FIN-VAL-251` | Tanggungan **MUST** berasal dari anggota keluarga yang aktif dan milik pegawai yang sama | "Anggota keluarga tidak terdaftar pada pegawai ini." | `422` | Service tanggungan |
+| `FIN-VAL-252` | Hubungan anggota keluarga **MUST** dibolehkan `CoverageType` plan (`FIN-INTEGRATION-1.9` `R.1.2`) | "Jenis hubungan {hubungan} tidak ditanggung oleh plan {nama plan}." | `422` | Service tanggungan |
+| `FIN-VAL-253` | Jumlah tanggungan aktif **MUST NOT** melebihi `MaximumDependents` plan | "Jumlah tanggungan melebihi batas {n} pada plan ini." | `422` | Service tanggungan |
+| `FIN-VAL-254` | Verifikasi tanggungan **MUST** hanya dari status `Requested` dan **MUST** mengisi masa berlaku serta batas plafon lebih dari nol | "Tanggungan belum diajukan untuk diverifikasi, atau masa berlaku dan batas plafon belum diisi." | `422` | Service tanggungan |
+| `FIN-VAL-271` | Penyetuju enrollment **MUST** berbeda dari pengaju | "Pengaju tidak boleh menyetujui pengajuannya sendiri." | `403` | Service enrollment; pemberian hak berbeda peran |
+
+## R.2 Pemakaian dan pengembalian plafon
+
+| Kode | Aturan | Pesan yang dibaca petugas | Kode HTTP | Ditegakkan di |
+|---|---|---|---|---|
+| `FIN-VAL-255` | Nominal pemakaian **MUST** lebih dari nol | — tidak ada pesan; kesalahan pemrograman | `400` | Layanan plafon |
+| `FIN-VAL-256` | Nominal pemakaian **MUST NOT** melebihi sisa plafon saat ini | "Sisa plafon tidak cukup. Sisa saat ini Rp {n}." | `422` | Pembaruan bersyarat atomik; `CK_..._Balance` |
+| `FIN-VAL-257` | Kunci pemakaian yang sama **MUST NOT** dipakai dengan nominal berbeda, atau dipakai lagi setelah dikembalikan | "Kunci pemakaian plafon sudah dipakai. Hubungi administrator." | `409` | Indeks unik `(SourceHandoffKey, MovementType)` |
+| `FIN-VAL-258` | Pengembalian **MUST** untuk mutasi pemakaian yang ada, penuh, dan hanya sekali | — tidak ada pesan; hasil `NOT_FOUND` atau `ALREADY_RETURNED` | — | Layanan plafon; indeks unik `ReversesMovementId` |
+
+## R.3 Registrasi
+
+| Kode | Aturan | Pesan yang dibaca petugas | Kode HTTP | Ditegakkan di |
+|---|---|---|---|---|
+| `FIN-VAL-259` | Kartu penjamin internal **MUST** punya `EmployeeId` dan kelayakan `OK` (`FIN-DEC-204`, `209`) | Pesan sesuai kode alasan pada `FIN-INTEGRATION-1.9` `R.2.3`, misalnya "Pasien belum terdaftar sebagai tanggungan pegawai di HR. Daftarkan di HR terlebih dahulu atau daftarkan sebagai Pasien Umum." | `422` | Service kartu penjamin |
+| `FIN-VAL-260` | Kode hubungan **MUST** ditentukan sistem; klien **MUST NOT** mengirimnya | "Hubungan keluarga ditentukan sistem dari data HR." | `400` | DTO tidak memuat field itu |
+| `FIN-VAL-261` | `SELF` **MUST** tanpa `FamilyMemberId`; hubungan lain **MUST** memilikinya | "Data hubungan keluarga pada kartu tidak konsisten." | `422` | `CK_MstPatientCompanyGuarantor_BenefitLink` |
+| `FIN-VAL-268` | Kata kunci pencarian pegawai **MUST** minimal 3 karakter | "Ketik minimal 3 karakter untuk mencari pegawai." | `400` | Anotasi DTO |
+| `FIN-VAL-269` | Pencarian **MUST NOT** mengembalikan lebih dari 20 hasil | "Hasil terlalu banyak. Ketik nama atau NIP yang lebih spesifik." | `200` (dengan penanda terpotong) | Service pencarian |
+
+## R.4 Finalisasi tagihan di Billing
+
+| Kode | Aturan | Pesan yang dibaca petugas | Kode HTTP | Ditegakkan di |
+|---|---|---|---|---|
+| `FIN-VAL-262` | Nominal pilihan pegawai **MUST NOT** negatif dan **MUST NOT** melebihi sisa tagihan pasien | "Nominal yang dijadikan utang pegawai tidak boleh melebihi sisa tagihan pasien (Rp {n})." | `422` | Service finalisasi; `CK_BilArHandoff_Deferred` |
+| `FIN-VAL-263` | Pilihan pegawai lebih dari nol **MUST** hanya untuk kunjungan berpenjamin internal dengan pemilik manfaat valid | "Tagihan ini bukan tagihan benefit pegawai, sehingga tidak dapat dijadikan utang pegawai." | `422` | Service finalisasi |
+| `FIN-VAL-264` | Finalisasi **MUST** ditahan bila plafon tidak dapat dibaca atau orang tidak lagi layak | "Data benefit pegawai belum dapat dipastikan. Hubungi HR untuk konfirmasi; finalisasi ditahan." | `422` | Service finalisasi (`BillingFinalizationBlockedException`) |
+| `FIN-VAL-265` | Kunjungan berpenjamin internal **MUST NOT** punya penjamin kedua (`ExcessAmount` > 0) | "Kombinasi penjamin RS Benefit dengan penjamin kedua belum didukung." | `422` | Service finalisasi |
+| `FIN-VAL-266` | Jumlah seluruh baris serah terima **MUST** sama dengan `C + D` | — tidak ada pesan; galat invarian | `500` | Service finalisasi |
+| `FIN-VAL-267` | Baris serah terima bernilai nol **MUST NOT** diterbitkan | — tidak ada pesan | — | Service finalisasi; `CK_BilArHandoff_Amount` |
+| `FIN-VAL-270` | `BenefitRelationship` pada Finance **MUST** menampung 50 karakter agar sama dengan Billing | — tidak ada pesan | — | Konfigurasi `FinReceivable` |
+
+## R.5 Ringkasan penomoran akumulatif
+
+| Bagian | Kode | Jumlah |
+|---|---|---:|
+| Revisi 17 | `FIN-VAL-230`..`245` | 16 |
+| Revisi 18 | `FIN-VAL-246`..`248` | 3 |
+| Revisi 19 | `FIN-VAL-249`..`271` | 23 |
+| **Total Akumulatif** | `FIN-VAL-230`..`271` | **42** |
+
+---
+
+# AMENDMENT REVISI 20 — Validasi Jembatan Manual Potong Gaji dan Persetujuan Pegawai (`FIN-VAL-1.13`)
+
+```yaml
+contract_version: FIN-VAL-1.13
+last_changed_in: Revisi 20 (13 Oktober 2026)
+status: approved
+approved_by: Pemilik Finance, HR, dan Billing (pengguna sesi); konfirmasi pemilik Registrasi belum turun
+approved_at: 2026-10-13
+input_revision: 00-interview-decisions.md (FIN-DEC-215..FIN-DEC-222)
+input_hash: 1e01c38b9f7c5f62   # SHA-256 (16 karakter pertama) berkas ini sebelum amandemen Revisi 20
+```
+
+## S.1 Unggah dan baris berkas
+
+| Kode | Aturan | Pesan yang dibaca petugas | Kode HTTP | Ditegakkan di |
+|---|---|---|---|---|
+| `FIN-VAL-272` | Periode **MUST** berformat `YYYY-MM` dan `PayrollPeriodId` **MUST** menunjuk master periode payroll aktif pada bulan yang sama | "Periode payroll tidak cocok dengan bulan yang dipilih." | `400` / `422` | Service batch |
+| `FIN-VAL-273` | Berkas **MUST** `.xlsx`/`.csv`, memuat kolom wajib, dan maksimal 2.000 baris | "Berkas tidak sesuai templat atau melebihi 2.000 baris. Unduh ulang templat dari jadwal potongan." | `400` | Service batch |
+| `FIN-VAL-274` | Kode angsuran **MUST** ada dan NIP **MUST** sama dengan pemilik manfaat angsuran itu | "Baris {n}: kode angsuran {kode} tidak cocok dengan NIP {nip}." | `201` (baris tidak valid) | Validasi per baris |
+| `FIN-VAL-275` | Angsuran **MUST** milik perjanjian `DISETUJUI` dan periode potongannya sama dengan periode batch | "Baris {n}: angsuran {kode} bukan jadwal periode {periode}." | `201` (baris tidak valid) | Validasi per baris |
+| `FIN-VAL-276` | `BERHASIL` ⇒ nominal = terutang; `SEBAGIAN` ⇒ 0 < nominal < terutang; `GAGAL` ⇒ nominal 0 | "Baris {n}: status {status} tidak sesuai nominal Rp {nominal} (terutang Rp {terutang})." | `201` (baris tidak valid) | Validasi per baris |
+| `FIN-VAL-277` | Satu angsuran **MUST NOT** muncul dua kali dalam satu berkas | "Baris {n}: angsuran {kode} sudah ada di baris {m}." | `201` (baris tidak valid) | Validasi per baris |
+
+## S.2 Pengajuan dan pengesahan
+
+| Kode | Aturan | Pesan yang dibaca petugas | Kode HTTP | Ditegakkan di |
+|---|---|---|---|---|
+| `FIN-VAL-278` | Batch `REGULER` **MUST** memuat setiap angsuran pada jadwal periode itu | "{n} angsuran terjadwal belum ada di berkas. Tulis GAGAL untuk yang tidak dipotong." | `422` | Service batch |
+| `FIN-VAL-279` | Total kontrol **MUST** sama dengan jumlah nominal terpotong | "Total berkas Rp {a} tidak sama dengan total laporan penggajian Rp {b}." | `422` | Service batch |
+| `FIN-VAL-280` | Nomor laporan penggajian dan bukti jenis `LAPORAN-PENGGAJIAN` **MUST** ada saat diajukan | "Nomor dan lampiran laporan penggajian wajib diisi sebelum diajukan." | `422` | Service batch |
+| `FIN-VAL-281` | Pengesah **MUST** berbeda dari pengaju | "Pengaju tidak boleh mengesahkan batchnya sendiri." | `403` | Service batch; check constraint |
+| `FIN-VAL-282` | Hanya satu batch `REGULER` aktif (`DRAFT`, `DIAJUKAN`, `DISAHKAN`) per periode | "Sudah ada batch hasil potongan untuk periode {periode}." | `409` | Service; indeks unik terfilter |
+| `FIN-VAL-283` | Batch dengan baris tidak valid **MUST NOT** diajukan | "Perbaiki {n} baris tidak valid lalu unggah ulang." | `422` | Service batch |
+| `FIN-VAL-284` | Pengesahan **MUST** menerapkan seluruh baris dalam satu transaksi; satu gagal, semua batal | "Batch gagal disahkan: {alasan}. Tidak ada saldo yang berubah." | `422` | Service batch |
+
+## S.3 Koreksi dan peralihan
+
+| Kode | Aturan | Pesan yang dibaca petugas | Kode HTTP | Ditegakkan di |
+|---|---|---|---|---|
+| `FIN-VAL-285` | Batch `KOREKSI` **MUST** punya alasan, menunjuk periode yang sudah punya batch `REGULER` `DISAHKAN`, dan angsuran berikutnya **MUST** belum menerima hasil | "Koreksi angsuran {kode} tidak dapat dilakukan karena angsuran berikutnya sudah menerima hasil. Gunakan penyesuaian piutang." | `422` | Service batch |
+| `FIN-VAL-286` | Batch manual untuk periode ≥ `AutomaticFromPeriod` ditolak; nilai peralihan **MUST NOT** mundur ke periode yang punya batch manual `DISAHKAN` | "Periode {periode} sudah ditangani mesin payroll; pencatatan manual tidak diizinkan." | `422` | Service batch; service master peralihan |
+| `FIN-VAL-287` | Panggilan langsung ke penerima hasil potongan tanpa `PayrollRunId` **MUST** ditolak; hasil manual hanya lewat batch | "Hasil potongan manual wajib melalui batch hasil potongan." | `422` | Controller/service penerima hasil |
+| `FIN-VAL-288` | Hasil mesin (`PayrollRunId` terisi) untuk periode sebelum peralihan **MUST** ditolak | "Periode {periode} masih memakai pencatatan manual." | `422` | Service penerima hasil |
+
+## S.4 Persetujuan pegawai (Billing)
+
+| Kode | Aturan | Pesan yang dibaca petugas | Kode HTTP | Ditegakkan di |
+|---|---|---|---|---|
+| `FIN-VAL-289` | Bila pilihan utang lebih dari 0 dan hubungan bukan `SELF`, nama pemberi persetujuan **MUST** diisi (maksimal 200 karakter) | "Isi nama orang yang menyetujui utang dibuat atas nama pegawai." | `422` | Service finalisasi; `CK_BilArHandoff_Consent` |
+
+## S.5 Ringkasan penomoran akumulatif
+
+| Bagian | Kode | Jumlah |
+|---|---|---:|
+| Revisi 17 | `FIN-VAL-230`..`245` | 16 |
+| Revisi 18 | `FIN-VAL-246`..`248` | 3 |
+| Revisi 19 | `FIN-VAL-249`..`271` | 23 |
+| Revisi 20 | `FIN-VAL-272`..`289` | 18 |
+| **Total Akumulatif** | `FIN-VAL-230`..`289` | **60** |

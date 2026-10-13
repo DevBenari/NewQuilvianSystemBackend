@@ -1042,7 +1042,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             // baris, dilewati bila tidak satu pun baris tervalidasi. Halaman 18 baris tidak boleh
             // menjadi 18 kueri nama.
             var pelakuIds = rows
-                .SelectMany(x => new[] { x.ValidatedByUserId, x.ReleasedByUserId })
+                // r48 — pengisi hasil ikut, untuk Penanggung Jawab Analis halaman hasil v1.
+                .SelectMany(x => new[] { x.ValidatedByUserId, x.ReleasedByUserId, x.ResultEnteredByUserId })
                 .Where(x => x.HasValue && x.Value != Guid.Empty)
                 .Select(x => x!.Value)
                 .Distinct()
@@ -1067,6 +1068,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 var response = new LabExaminationResultFormResponse
                 {
                     ResultEnteredByUserId = row.ResultEnteredByUserId,
+                    ResultEnteredByName = Nama(row.ResultEnteredByUserId),
                     ResultStatus = DeriveResultStatus(row.ReleasedAt, row.ValidatedAt, row.FinalizedAt, row.ResultEnteredAt).ToString(),
                     IsValidated = row.ValidatedAt is not null,
                     ValidatedAt = row.ValidatedAt,

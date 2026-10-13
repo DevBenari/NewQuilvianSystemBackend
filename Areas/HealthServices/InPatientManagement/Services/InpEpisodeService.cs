@@ -194,6 +194,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     "Dokter penanggung jawab yang dipilih tidak ditemukan atau tidak aktif.");
             }
 
+            if (request.SelectedBedId.HasValue)
+            {
+                var selectedRoom = await _dbContext.Set<MstBed>().AsNoTracking()
+                    .Where(x => x.Id == request.SelectedBedId.Value && !x.IsDelete && x.IsActive &&
+                        x.Room != null && !x.Room.IsDelete && x.Room.IsActive)
+                    .Select(x => new { x.Room!.PatientClassId, x.Room.ServiceUnitId })
+                    .SingleOrDefaultAsync(cancellationToken);
+                if (selectedRoom?.PatientClassId == null || selectedRoom.PatientClassId == Guid.Empty)
+                    return InpEpisodeOperationResult.Invalid("Kamar yang dipilih belum memiliki kelas perawatan aktif.");
+                if (selectedRoom.ServiceUnitId != request.ServiceUnitId)
+                    return InpEpisodeOperationResult.Invalid("Kamar yang dipilih berbeda dari unit layanan admisi. Pilih kamar pada unit layanan yang sesuai.");
+                request.PatientClassId = selectedRoom.PatientClassId.Value;
+            }
+
             var contextCheck = await ValidateServiceUnitAndPatientClassAsync(
                 request.ServiceUnitId,
                 request.PatientClassId,
@@ -434,6 +448,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     "Isian admisi hanya dapat diubah selama pasien belum ditempatkan.",
                     episode);
             }
+
+            var reservedRoom = await _dbContext.Set<InpBedReservation>().AsNoTracking()
+                .Where(x => x.EpisodeId == episodeId && !x.IsDelete &&
+                    x.ReservationStatus == InpBedReservationStatus.Active && x.ExpiresAt > DateTime.UtcNow)
+                .OrderByDescending(x => x.CreateDateTime)
+                .Select(x => new { x.Bed!.Room!.PatientClassId, x.Bed.Room.ServiceUnitId })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (reservedRoom != null)
+            {
+                if (!reservedRoom.PatientClassId.HasValue || reservedRoom.PatientClassId.Value == Guid.Empty)
+                    return InpEpisodeOperationResult.Invalid("Kamar yang dipesan belum memiliki kelas perawatan.");
+                if (reservedRoom.ServiceUnitId != request.ServiceUnitId)
+                    return InpEpisodeOperationResult.Invalid("Unit layanan harus sesuai dengan kamar yang dipesan.");
+            }
+            // Kelas tidak dapat diganti melalui isian konfirmasi admisi.
+            request.PatientClassId = reservedRoom?.PatientClassId ?? episode.PatientClassId;
 
             var contextCheck = await ValidateServiceUnitAndPatientClassAsync(
                 request.ServiceUnitId,

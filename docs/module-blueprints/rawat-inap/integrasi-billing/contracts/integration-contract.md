@@ -254,3 +254,16 @@ Perubahan Billing: penolakan `NotOutpatient` dicabut untuk kunjungan `Inpatient`
 | `INT-RWF-29` | Billing ← Rawat Inap (baca) | Billing memproses `ADMISSION_CONFIRMED` | `InpAdmissionReferral` dengan `CompletedEpisodeId` = episode: `SourceEncounterId`, `Id` | Ya, dalam transaksi Billing pembukaan invoice | Unique (`RanapInvoiceId`, `LinkedEncounterId`) | Transaksi Billing batal; pesan `Failed` dan dicoba ulang dengan backoff `INT-RWF-01` | Putar ulang `I5` membuat tautan yang terlewat tanpa menggandakan |
 
 Pesan `ADMISSION_CONFIRMED` **tidak** membawa `SourceEncounterId`; daftar putih isi pesan (`INV-RWF-05`) tetap. Keputusan: `RWI-DEC-207`. Konsumen tautan: Tagihan Pasien (`breakdown`) dan penyelesaian satu kwitansi `BKC-DEC-118` milik `billing-kasir`.
+
+---
+
+## Delta 12 Oktober 2026 — `INT-RWF-04` diselaraskan (`BE-BKC-FIX-015`)
+
+Aturan "obat rawat inap ditagih setelah diserahkan" **dipertahankan**. Pelanggarnya — pengirim langsung yang menagih `TotalPrice` saat finalisasi konsultasi — sudah dihapus, sehingga resep rawat inap kini benar-benar baru tertagih saat diserahkan (jumlah aktual). Bahan racikan ikut ditagih pada penyerahan pertama resepnya dengan jumlah diresepkan (`BKC-DEC-136`). Rencana: [`PLAN-REPAIR-BKC-001`](../../../billing-kasir/docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md) FIX-05.
+
+
+## Amandemen PLAN-REPAIR-DOK-006 — 2026-10-13
+
+BillingCoverageComponent menambah ServiceOccurredAt/PatientClassId opsional internal. Item dan pajak turunannya membawa SourceOccurredAt; resolver mengisi kelas per komponen. Aturan class/date dipilih per layanan, urutannya sama dengan Clinical. Administrasi/agregat tanpa waktu layanan menggunakan CalculatedAt secara eksplisit. Bridge tarif dan retur memakai kelas pada waktu sumber. Snapshot kalkulasi lama tidak ditulis ulang; kebijakan limit/pajak, buku tarif asuransi dan formula existing tetap berlaku.
+
+Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../../dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.

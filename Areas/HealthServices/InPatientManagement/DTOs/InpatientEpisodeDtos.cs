@@ -43,6 +43,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// <summary>Kelas perawatan yang ditagihkan. Wajib berlaku untuk rawat inap.</summary>
         public Guid PatientClassId { get; set; }
 
+        /// <summary>Bed pilihan admisi. Bila diisi, kelas dibaca ulang dari kamar oleh server.</summary>
+        public Guid? SelectedBedId { get; set; }
+
         /// <summary>
         /// Dokter penanggung jawab pelayanan pertama. Wajib sejak detik pertama — episode
         /// tanpa DPJP tidak boleh pernah tersimpan (<c>INV-INP-03</c>).

@@ -141,9 +141,79 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                         : _dbContext.Set<MstDoctor>()
                             .Where(d => d.Id == x.ExaminerDoctorId)
                             .Select(d => d.FullName)
-                            .FirstOrDefault()
+                            .FirstOrDefault(),
+
+                    // LAB-API-v1 r47 — kolom tabel v1. Sub-query di dalam proyeksi yang sama,
+                    // mengikuti PatientName dan ConfirmedByName di atas.
+                    PatientEmail = x.Encounter == null
+                        ? null
+                        : _dbContext.MstPatients
+                            .Where(p => p.Id == x.Encounter.PatientId)
+                            .Select(p => p.Email)
+                            .FirstOrDefault(),
+                    ClinicName = x.Encounter != null && x.Encounter.Clinic != null
+                        ? x.Encounter.Clinic.ClinicName
+                        : null,
+                    ServiceUnitName = x.Encounter != null && x.Encounter.ServiceUnit != null
+                        ? x.Encounter.ServiceUnit.ServiceUnitName
+                        : null,
+                    PayerName = _dbContext.RegPatientEncounterGuarantors
+                        .Where(g => g.EncounterId == x.EncounterId && !g.IsDelete && g.IsActive)
+                        .OrderByDescending(g => g.IsPrimary)
+                        .ThenBy(g => g.Priority)
+                        .Select(g => g.PaymentSourceNameSnapshot)
+                        .FirstOrDefault(),
+                    RequestedByName = _dbContext.Users
+                        .Where(u => u.Id == (x.RequestedByUserId ?? x.CreateBy))
+                        .Select(u => u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode)
+                        .FirstOrDefault(),
+                    FirstCollectedAt = _dbContext.LabSpecimens
+                        .Where(s => s.LabOrderId == x.Id && !s.IsDelete && s.CollectedAt.HasValue)
+                        .Min(s => s.CollectedAt),
+                    FirstExaminedAt = _dbContext.LabExaminations
+                        .Where(e => e.LabOrderId == x.Id && !e.IsDelete && e.ExaminedAt.HasValue)
+                        .Min(e => e.ExaminedAt)
                 })
                 .ToListAsync(cancellationToken);
+
+            // r47 — daftar pemeriksaan yang diminta, satu kueri untuk seluruh halaman.
+            var orderIds = items.Select(x => x.LabOrderId).ToList();
+            var permintaan = await _dbContext.LabOrderedProcedures
+                .AsNoTracking()
+                .Where(p => orderIds.Contains(p.LabOrderId) && !p.IsDelete)
+                .OrderBy(p => p.CreateDateTime)
+                .ThenBy(p => p.Id)
+                .Select(p => new
+                {
+                    p.LabOrderId,
+                    p.ProcedureCodeSnapshot,
+                    p.ProcedureNameSnapshot,
+                    KodeKatalog = p.Procedure != null ? p.Procedure.ProcedureCode : null,
+                    NamaKatalog = p.Procedure != null ? p.Procedure.ProcedureName : null,
+                    Kategori = p.Procedure != null ? p.Procedure.ProcedureCategoryName : null,
+                    p.Urgency,
+                    p.OrderedStatus
+                })
+                .ToListAsync(cancellationToken);
+
+            var permintaanPerOrder = permintaan
+                .GroupBy(p => p.LabOrderId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(p => new LabMonitoringOrderedProcedureItem
+                    {
+                        ProcedureCode = p.ProcedureCodeSnapshot ?? p.KodeKatalog,
+                        ProcedureName = p.ProcedureNameSnapshot ?? p.NamaKatalog,
+                        ProcedureCategoryName = p.Kategori,
+                        Urgency = p.Urgency.ToString(),
+                        OrderedStatus = p.OrderedStatus.ToString()
+                    }).ToList());
+
+            foreach (var item in items)
+            {
+                if (permintaanPerOrder.TryGetValue(item.LabOrderId, out var daftar))
+                    item.OrderedProcedures = daftar;
+            }
 
             // r34 29.5, r35 30.5 — label order turunan bagi disiplin yang DAPAT DIRILIS
             // (LabReleasableDisciplines: Patologi Klinik dan, sejak BE-LAB-79, Mikrobiologi) — satu

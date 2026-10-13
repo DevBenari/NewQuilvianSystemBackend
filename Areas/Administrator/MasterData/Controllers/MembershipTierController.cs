@@ -275,7 +275,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             [FromQuery] bool? freeParking = null,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 25)
+            [FromQuery] int pageSize = 25,
+            [FromQuery] bool registrableOnly = false)
         {
             var paging = NormalizePaging(pageNumber, pageSize);
             pageNumber = paging.PageNumber;
@@ -284,6 +285,16 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             var useOnlyActive = activeOnly ?? onlyActive;
 
             var query = BuildBaseQuery();
+
+            if (registrableOnly)
+            {
+                // Hanya tingkat berbayar yang boleh didaftarkan lewat CRM (CRM-DEC-006).
+                query = query.Where(x =>
+                    x.TierType == MembershipTierType.Silver ||
+                    x.TierType == MembershipTierType.Gold ||
+                    x.TierType == MembershipTierType.Platinum ||
+                    x.TierType == MembershipTierType.Executive);
+            }
 
             query = ApplyStandardFilter(
                 query,
@@ -432,6 +443,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 FreeParking = request.FreeParking,
                 ValidityMonths = request.ValidityMonths,
                 MinimumSpendAmount = request.MinimumSpendAmount,
+                AnnualFeeAmount = request.AnnualFeeAmount,
                 SortOrder = request.SortOrder,
                 BenefitDescription = NormalizeNullableString(request.BenefitDescription),
                 Description = NormalizeNullableString(request.Description),
@@ -557,6 +569,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             entity.FreeParking = request.FreeParking;
             entity.ValidityMonths = request.ValidityMonths;
             entity.MinimumSpendAmount = request.MinimumSpendAmount;
+            entity.AnnualFeeAmount = request.AnnualFeeAmount;
             entity.SortOrder = request.SortOrder;
             entity.BenefitDescription = NormalizeNullableString(request.BenefitDescription);
             entity.Description = NormalizeNullableString(request.Description);
@@ -1008,6 +1021,11 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 return (false, "Minimum spend amount tidak boleh kurang dari 0.");
             }
 
+            if (request.AnnualFeeAmount < 0)
+            {
+                return (false, "Nominal iuran tidak boleh kurang dari 0.");
+            }
+
             if (request.SortOrder < 0)
             {
                 return (false, "Urutan tidak boleh kurang dari 0.");
@@ -1184,6 +1202,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 FreeParking = entity.FreeParking,
                 ValidityMonths = entity.ValidityMonths,
                 MinimumSpendAmount = entity.MinimumSpendAmount,
+                AnnualFeeAmount = entity.AnnualFeeAmount,
                 SortOrder = entity.SortOrder,
                 IsActive = entity.IsActive,
                 CreateDateTime = entity.CreateDateTime,
@@ -1226,6 +1245,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 FreeParking = entity.FreeParking,
                 ValidityMonths = entity.ValidityMonths,
                 MinimumSpendAmount = entity.MinimumSpendAmount,
+                AnnualFeeAmount = entity.AnnualFeeAmount,
                 SortOrder = entity.SortOrder,
                 BenefitDescription = entity.BenefitDescription,
                 Description = entity.Description,
@@ -1260,6 +1280,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 FreeParking = entity.FreeParking,
                 ValidityMonths = entity.ValidityMonths,
                 MinimumSpendAmount = entity.MinimumSpendAmount,
+                AnnualFeeAmount = entity.AnnualFeeAmount,
                 SortOrder = entity.SortOrder
             };
         }
@@ -1368,6 +1389,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 new() { Name = "freeParking", Label = "Free Parking", Section = "Benefit", InputType = "switch", SortOrder = 20 },
                 new() { Name = "validityMonths", Label = "Masa Berlaku Bulan", Section = "Validity", InputType = "number", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", Description = "Minimal 1 bulan.", Example = "12", SortOrder = 21 },
                 new() { Name = "minimumSpendAmount", Label = "Minimum Spend", Section = "Validity", InputType = "number", Description = "Minimal transaksi untuk tier ini.", Example = "1000000", SortOrder = 22 },
+                new() { Name = "annualFeeAmount", Label = "Nominal Iuran", Section = "Validity", InputType = "number", Description = "Iuran per periode membership. Tingkat bernilai 0 tidak bisa didaftarkan.", Example = "2400000", SortOrder = 22 },
                 new() { Name = "sortOrder", Label = "Urutan", Section = "Display", InputType = "number", SortOrder = 23 },
                 new() { Name = "benefitDescription", Label = "Deskripsi Benefit", Section = "Additional", InputType = "textarea", MaxLength = 500, SortOrder = 24 },
                 new() { Name = "description", Label = "Deskripsi", Section = "Additional", InputType = "textarea", MaxLength = 250, SortOrder = 25 }

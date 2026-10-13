@@ -2249,3 +2249,198 @@ Nomor kriteria penerimaan terinci merujuk ke `testing/acceptance-test-matrix.md`
 2. **Kemandirian Rilis**: Kemampuan ini dirancang untuk dapat diimplementasikan dan dirilis secara independen tanpa mengganggu stabilitas modul-modul yang berada di dalam paket `MVP-1` s.d. `MVP-4`.
 3. **Nol Kode & Nol Migrasi Dijalankan**: Seluruh artefak Revisi 18 murni berada di lapisan tata kelola perancangan dan dokumentasi kontrak.
 
+
+
+---
+
+# Revisi 19 — `EPIC FIN-04` Plafon Benefit per Orang, Verifikasi Tanggungan, dan Pilihan Pegawai (Desain Draft, Rilis Tersendiri)
+
+```yaml
+contract_version: FIN-MVP-1.14
+status: draft
+owner: Pemilik Finance (Product/Domain), bersama pemilik HR, Billing, dan Registrasi
+last_changed_in: Revisi 19 (13 Oktober 2026)
+input_revision: 00-interview-decisions.md (FIN-DEC-204..FIN-DEC-210)
+input_hash: 7679cc19709fb946   # SHA-256 (16 karakter pertama) berkas ini sebelum amandemen Revisi 19
+input_design: 02-backend-architecture.md bagian R; contracts/integration-contract.md bagian R; contracts/api-contract.md bagian R; contracts/validation-matrix.md bagian R; contracts/state-transition-matrix.md bagian R; contracts/permission-audit-matrix.md bagian R; data/data-dictionary.md bagian 9; 03-frontend-architecture.md bagian 24; flowcharts/02-alur-plafon-benefit-pasien-keluarga.md
+naik_dari: FIN-MVP-1.13
+```
+
+## 71. Mengapa Revisi Ini Ada
+
+Audit kemampuan 13 Oktober 2026 menemukan bahwa Finance sudah siap mencatat piutang karyawan, tetapi tiga bagian di hulu belum
+tersambung: HR belum punya layanan plafon, Registrasi belum menautkan pasien ke pegawai, dan Billing belum membagi dua porsi.
+Akibatnya piutang karyawan belum dapat lahir dari kunjungan pasien sungguhan.
+
+**Batas.** Titik mulai: pasien keluarga pegawai datang ke loket Registrasi. Titik akhir: dua serah terima (porsi RS Benefit dan
+porsi pegawai) tercatat di Finance dan plafon di HR berkurang tepat sekali. Penagihan, cicilan, potong gaji, dan gerbang berhenti kerja
+tetap milik `REV-18` dan tidak diulang.
+
+**Status tata kelola rilis.** `EPIC FIN-04` tetap berada **di luar** `MVP-1` s.d. `MVP-4` dan dikirim sebagai rilis tersendiri.
+Dokumen ini `draft` dan **belum boleh diteruskan** ke `plan-module-delivery` sampai kontrak `FIN-INTEGRATION-1.9` disetujui.
+
+## 72. Functional Requirements Revisi 19
+
+Nomor melanjutkan `FR-FIN-237`. Ini menutup gap traceability `G-TR-01` pada roadmap `REV-19`.
+
+### 72.1 Registrasi dan Verifikasi Tanggungan
+
+| # | Functional requirement | Disposisi |
+|---:|---|---|
+| `FR-FIN-238` | Petugas Registrasi mencari pegawai aktif dengan NIP, NIK, atau nama (minimal 3 karakter, maksimum 20 hasil); NIK tampil tersamar | `MISSING / NEW` |
+| `FR-FIN-239` | Sistem menampilkan anggota keluarga aktif milik pegawai beserta status verifikasi tanggungan benefit | `MISSING / NEW` |
+| `FR-FIN-240` | Kartu penjamin internal hanya terbit bila anggota keluarga aktif **dan** tanggungan benefit terverifikasi (pegawai sendiri: enrollment aktif); selain itu ditolak dengan alasan dan pasien didaftarkan sebagai Pasien Umum tunai (`FIN-DEC-204`, `209`) | `EXTEND` |
+| `FR-FIN-241` | Kartu menyimpan tautan ke pegawai dan anggota keluarga serta kode hubungan yang **ditentukan sistem**, lalu tersalin ke data kunjungan | `EXTEND` |
+
+### 72.2 Enrollment dan Plafon di HR
+
+| # | Functional requirement | Disposisi |
+|---:|---|---|
+| `FR-FIN-242` | HR mendaftarkan pegawai ke plan benefit dan mengaktifkannya dengan pengaju ≠ penyetuju; saldo awal diambil dari batas plafon plan | `MISSING / NEW` |
+| `FR-FIN-243` | HR mendaftarkan dan memverifikasi tanggungan; hubungan dibatasi `CoverageType` plan dan jumlah dibatasi `MaximumDependents` (`FIN-DEC-207`) | `MISSING / NEW` |
+| `FR-FIN-244` | Sistem menyediakan sisa plafon **per orang** kepada Billing | `MISSING / NEW` |
+| `FR-FIN-245` | Pemakaian dan pengembalian plafon dicatat pada buku mutasi yang hanya menambah, idempoten per serah terima, dan saldo tidak pernah negatif | `MISSING / NEW` |
+
+### 72.3 Billing: Pembagian Porsi dan Pilihan Pegawai
+
+| # | Functional requirement | Disposisi |
+|---:|---|---|
+| `FR-FIN-246` | Billing membagi porsi yang ditanggung penjamin: porsi RS Benefit = yang terkecil antara cakupan dan sisa plafon; kelebihannya menjadi utang pegawai. Menyempurnakan `FR-FIN-220`..`222` | `EXTEND` |
+| `FR-FIN-247` | Baris serah terima bernilai nol tidak diterbitkan. Jumlah baris satu atau dua (ditambah satu baris pasien pulang tanpa bayar bila terjadi). **Mengoreksi** `FR-FIN-220` ("tepat dua baris") | `EXTEND` |
+| `FR-FIN-248` | Untuk bagian tagihan pasien di luar cakupan (co-pay, item di luar cakupan), pegawai memilih bayar lunas di kasir atau menjadikannya utang pegawai; kasir mencatat pilihan itu (`FIN-DEC-208`) | `EXTEND` |
+| `FR-FIN-249` | Plafon dikurangi di dalam transaksi finalisasi yang sama dengan penerbitan serah terima, dan dikembalikan saat tagihan dikoreksi atau dibatalkan (`FIN-DEC-205`) | `EXTEND` |
+| `FR-FIN-250` | Finalisasi ditahan bila plafon tidak terbaca atau orang tidak lagi layak; tidak ada tebakan "semua ditanggung RS" atau "semua ditanggung pegawai" | `EXTEND` |
+| `FR-FIN-251` | Pratinjau finalisasi menampilkan pembagian dua porsi dan pilihan pegawai sebelum disahkan | `EXTEND` |
+| `FR-FIN-252` | Kunjungan berpenjamin internal dengan penjamin kedua ditolak pada finalisasi karena belum didukung | `EXTEND` |
+
+## 73. Skenario UAT Revisi 19
+
+Nomor kriteria merujuk ke `testing/acceptance-test-matrix.md` Bagian `N`.
+
+### 73.1 Jalur Berhasil
+
+| # | Skenario | Yang Dilihat Pemilik / Pengguna | Kriteria |
+|---:|---|---|---|
+| 1 | HR mendaftarkan Budi dan anaknya Sari, lalu memverifikasi tanggungan | Enrollment `Active`, Sari `Verified`, saldo per orang tampil | `N.2.1` |
+| 2 | Petugas Registrasi mencari "Budi" dan memilih Sari | Kartu internal terbit, hubungan "anak" terisi sistem | `N.1.1`, `N.1.3` |
+| 3 | Tagihan Sari Rp 5.000.000 difinalisasi; sisa plafon Rp 3.000.000 | Serah terima: RS Benefit Rp 3.000.000, pegawai Rp 2.000.000; plafon menjadi Rp 0 | `N.4.1`, `N.3.1` |
+| 4 | Pegawai menjadikan co-pay Rp 1.000.000 sebagai utang | Piutang pegawai bertambah Rp 1.000.000; tunai Rp 0 | `N.4.3` |
+| 5 | Tagihan dikoreksi | Plafon kembali penuh; serah terima pengganti terbit | `N.3.5`, `N.5.1` |
+
+### 73.2 Jalur Gagal
+
+| # | Skenario | Yang Dilihat Pemilik / Pengguna | Kriteria |
+|---:|---|---|---|
+| 1 | Pak Andi (tidak terdaftar di HR) didaftarkan memakai penjamin internal | Ditolak dengan pesan; jalur Pasien Umum tunai | `N.1.4` |
+| 2 | Tanggungan Sari belum diverifikasi | Ditolak dengan pesan berbeda | `N.1.5` |
+| 3 | Pegawai tanpa enrollment aktif | Ditolak; Pasien Umum tunai | `N.1.6` |
+| 4 | HR tidak terbaca saat finalisasi | Finalisasi ditahan; tidak ada serah terima; plafon tidak berubah | `N.4.7` |
+| 5 | Dua finalisasi bersamaan menguras plafon yang sama | Saldo tidak negatif; yang kedua menghitung ulang | `N.3.6` |
+| 6 | Finalisasi diulang karena jaringan putus | Tidak ada baris ganda; plafon tidak berkurang dua kali | `N.4.9` |
+| 7 | Pilihan utang melebihi sisa tagihan pasien | Ditolak dengan pesan | `N.4.6` |
+
+## 74. Definition of Done Tambahan Revisi 19
+
+| # | Butir Definition of Done | Bukti yang Menjawabnya |
+|---:|---|---|
+| 1 | Saldo plafon per orang dapat dibaca, dipakai, dan dikembalikan tanpa pernah negatif | Pembacaan mutasi dan rekonsiliasi `N.3.7` |
+| 2 | Pengurangan plafon dan penerbitan serah terima berhasil atau gagal bersama | Verifikasi proses bisnis `N.4.10` |
+| 3 | Hanya orang yang terdaftar dan terverifikasi di HR yang dapat memakai penjamin internal | `N.1.3`..`N.1.6` |
+| 4 | Tidak ada baris serah terima bernilai nol | `N.4.4`, `N.4.5` |
+| 5 | Kartu lama tetap terbaca tanpa tautan | `N.1.8` |
+| 6 | Pilihan pegawai tercatat dan dapat diaudit | `N.4.3`, kolom `DeferredPatientAmount` |
+| 7 | Alur dua porsi, pendaftaran, dan koreksi tergambar runtut | `flowcharts/02-alur-plafon-benefit-pasien-keluarga.md` |
+| 8 | `dotnet build` aplikasi backend lulus dan migration 1-4 (lihat arsitektur `R.8`) siap diterapkan pemilik | Laporan task tracked; **NOT RUN** sampai pemilik meminta |
+
+## 75. Pertanyaan Terbuka Sesudah Revisi 19
+
+| Pertanyaan | Pemilik | Dampak | Status |
+|---|---|---|---|
+| Persetujuan `FIN-INTEGRATION-1.9` dan kontrak turunan | Finance + HR + Billing + Registrasi | **Memblokir** `BE-FIN-103`, `104`, `106`, `107`, `108` (`FIN-OQ-105` menunggu persetujuan) | Draft ditulis |
+| Siapa yang boleh mencatat pilihan pegawai, dan apakah persetujuan pegawai dicatat bila pasien bukan pegawai (`FIN-OQ-108`) | Billing + Finance | Isian tambahan dan butir hak akses; **tidak** memblokir `BE-FIN-105` | `OPEN` |
+| Kategori benefit untuk layanan RS dan pemetaan teks hubungan keluarga (`FIN-OQ-109`) | HR | Aturan penanda enrollment layanan RS dan kode hubungan; usulan baseline tersedia | `OPEN` |
+| Bentuk mesin potongan payroll HR (`FIN-OQ-106`) | HR / Payroll | **Memblokir** `BE-FIN-110` | `OPEN` |
+| Master "RS Benefit" (`FIN-OQ-102`) dan akun beban (`FIN-OQ-103`) | Administrator, Accounting | Seeder penjamin internal; jurnal pelunasan internal | `OPEN` (tidak berubah) |
+
+## 76. Catatan Penyerahan Desain Revisi 19 kepada Pemilik
+
+1. **Status `draft`.** Tidak ada kontrak yang ditandai `approved`. Persetujuan tetap tindakan manusia.
+2. **Nol kode dan nol migration.** Seluruh artefak Revisi 19 berada di lapisan dokumentasi desain.
+3. **Satu koreksi atas kontrak yang sudah disetujui:** §`P.1` menyebut "tepat dua baris"; basis data menolak baris bernilai nol, sehingga
+   yang benar adalah satu atau dua baris (`FIN-DEC-210`). Mohon dinyatakan eksplisit saat persetujuan.
+4. **Satu tafsiran yang perlu dikonfirmasi:** jawaban "bisa keduanya" dan "pegawai bisa memilih bayar lunas di kasir atau jadi utang" dibaca
+   sebagai pilihan pegawai atas bagian di luar kelebihan plafon, dengan nominal bebas antara 0 dan seluruhnya (`FIN-DEC-208`).
+5. **Blueprint HR belum diselaraskan.** `docs/module-blueprints/human-resource` masih mencatat slice Benefit `S-D3` sebagai `BLOCKED`;
+   pembukaannya (`FIN-DEC-206`) perlu dicatat di sana oleh pemilik blueprint HR.
+
+
+---
+
+# Revisi 20 — `EPIC FIN-04` Jembatan Manual Potong Gaji (Desain Draft)
+
+```yaml
+contract_version: FIN-MVP-1.15
+status: approved
+approved_by: Pemilik Finance, HR, dan Billing (pengguna sesi); konfirmasi pemilik Registrasi belum turun
+approved_at: 2026-10-13
+owner: Pemilik Finance (Product/Domain), bersama pemilik HR dan Billing
+last_changed_in: Revisi 20 (13 Oktober 2026)
+input_revision: 00-interview-decisions.md (FIN-DEC-214..FIN-DEC-222)
+input_hash: 2371839c76af42b3   # SHA-256 (16 karakter pertama) berkas ini sebelum amandemen Revisi 20
+input_design: 02-backend-architecture.md bagian S; contracts bagian S; data/data-dictionary.md bagian 10; 03-frontend-architecture.md bagian 25; flowcharts/03-alur-jembatan-manual-potong-gaji.md
+naik_dari: FIN-MVP-1.14
+```
+
+## 77. Batas
+
+**Titik mulai:** perjanjian cicilan disetujui dan angsuran terjadwal pada satu periode. **Titik akhir:** hasil potongan periode itu
+tercatat, saldo piutang dan angsuran berubah, tunggakan dilimpahkan. Berlaku **sampai** mesin payroll HR aktif (`FIN-DEC-214`, `222`).
+**Penggantinya selama mesin belum ada** adalah jembatan ini sendiri; setelah mesin aktif, hasil otomatis `FIN-DEC-191` mengambil alih.
+
+## 78. Functional Requirements Revisi 20
+
+| # | Functional requirement | Disposisi |
+|---:|---|---|
+| `FR-FIN-253` | Finance melihat dan mengekspor jadwal potongan per periode (Excel, PDF), termasuk tunggakan yang dilimpahkan | `MISSING / NEW` |
+| `FR-FIN-254` | Finance mengunggah berkas hasil potongan per periode; sistem memvalidasi tiap baris (kode angsuran dan NIP cocok, periode benar, status sesuai nominal, tanpa duplikat) | `MISSING / NEW` |
+| `FR-FIN-255` | Batch hanya dapat diajukan bila lengkap, seluruh baris valid, total kontrol cocok, dan ada nomor serta bukti laporan penggajian | `MISSING / NEW` |
+| `FR-FIN-256` | Pengesah berbeda dari pengaju; pengesahan menerapkan seluruh baris dalam satu transaksi memakai inti pencatatan yang sama dengan jalur otomatis | `EXTEND` |
+| `FR-FIN-257` | Koreksi berotorisasi pejabat dengan alasan, menerapkan selisih termasuk pembalikan, hanya bila angsuran berikutnya belum menerima hasil | `MISSING / NEW` |
+| `FR-FIN-258` | Nilai peralihan ke mesin menentukan jalur: manual untuk periode sebelumnya, mesin untuk periode itu dan sesudahnya | `MISSING / NEW` |
+| `FR-FIN-259` | Pilihan utang pada pasien bukan pegawai wajib mencatat nama pemberi persetujuan | `EXTEND` |
+| `FR-FIN-260` | Penerima hasil potongan menerima `PayrollRunId` kosong hanya dari pengesahan batch; panggilan langsung tanpa `PayrollRunId` ditolak | `EXTEND` |
+
+## 79. Skenario UAT
+
+| # | Jalur | Skenario | Yang dilihat | Kriteria |
+|---:|---|---|---|---|
+| 1 | Berhasil | Ekspor jadwal September | Budi terutang Rp 3.000.000 (termasuk tunggakan Rp 2.000.000) | `O.1.1` |
+| 2 | Berhasil | Unggah, ajukan, sahkan batch September | Saldo berubah sekaligus; sisa terlimpah ke Oktober | `O.2.1`, `O.2.6` |
+| 3 | Berhasil | Koreksi Rp 1.500.000 → Rp 1.200.000 | Piutang naik Rp 300.000; tunggakan Oktober Rp 1.800.000 | `O.3.1` |
+| 4 | Gagal | Berkas tanpa angsuran Ani | Tidak dapat diajukan; Ani tampil di daftar belum ada | `O.2.2` |
+| 5 | Gagal | Pengaju mencoba mengesahkan | Ditolak | `O.2.4` |
+| 6 | Gagal | Unggah manual untuk periode yang ditangani mesin | Ditolak | `O.4.1` |
+| 7 | Gagal | Anak berobat, utang tanpa nama pemberi persetujuan | Finalisasi ditolak | `O.5.1` |
+
+## 80. Definition of Done Tambahan Revisi 20
+
+| # | Butir | Bukti |
+|---:|---|---|
+| 1 | Jalur manual dan jalur otomatis memakai satu inti pencatatan | Review diff: `ApplyResultCoreAsync` dipanggil keduanya |
+| 2 | Pengesahan batch atomik | `O.2.6` |
+| 3 | Pengaju ≠ pengesah ditegakkan service dan database | `O.2.4` |
+| 4 | Peralihan menolak jalur yang salah di kedua arah | `O.4.1`, `O.4.2` |
+| 5 | Migration 5 dan 6 siap diterapkan pemilik | Laporan task; **NOT RUN** sampai pemilik meminta |
+
+## 81. Pertanyaan Terbuka
+
+| Pertanyaan | Pemilik | Memblokir |
+|---|---|---|
+| `FIN-OQ-111` nilai persen batas potongan dan dasar "gaji bersih" | HR | Prosedur penggajian dan mesin; **bukan** desain jembatan |
+| Konfirmasi pemilik Billing atas `FIN-DEC-218` | Billing | Implementasi isian persetujuan |
+
+## 82. Catatan Penyerahan
+
+1. Seluruh Revisi 20 berstatus **draft**; persetujuan tetap tindakan pemilik.
+2. Revisi 20 **mengoreksi dua bagian kontrak yang sudah disetujui** (`payrollRunId` opsional dan isian persetujuan). Mohon dinyatakan eksplisit saat persetujuan.
+3. Batas 2.000 baris per berkas adalah pilihan desain agen; dapat diubah saat persetujuan.

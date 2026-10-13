@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Repositories;
@@ -50,9 +50,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 
             if (tariffResolution.Tariff == null)
             {
-                return InsuranceCoverageResult.Fail(
-                    "Tarif rumah sakit untuk obat belum dikonfigurasi atau tidak cocok dengan scope encounter.",
-                    coverageStatus: "ConfigurationMissing");
+                return BuildMissingTariffResult(context, "Tarif sesuai kelas kamar maupun tarif umum obat belum tersedia. Lengkapi tarif sebelum menyimpan resep.");
             }
 
             return await ResolveTariffInternalAsync(
@@ -162,7 +160,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                             context.EncounterId,
                             tariff.Id,
                             quantity,
-                            context.ServiceDate,
+                            context.ServiceOccurredAt,
                             cancellationToken);
 
                         if (compResult.IsValid)
@@ -524,31 +522,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     "Tarif global digunakan karena tidak ditemukan tarif dengan scope encounter yang lebih spesifik.");
             }
 
-            // Untuk pasien tunai, data migrasi lama sering membentuk tarif per kelas
-            // tetapi encounter lama tidak memiliki PatientClassId. Fallback hanya
-            // diizinkan bila seluruh kandidat memiliki harga yang sama agar tidak
-            // memilih harga kelas yang keliru.
-            if (context.PaymentType == EncounterPaymentType.Cash)
-            {
-                var distinctPrices = allCandidates
-                    .Select(x => RoundMoney(Math.Max(0m, x.NormalPrice)))
-                    .Distinct()
-                    .ToList();
-
-                if (distinctPrices.Count == 1)
-                {
-                    var fallback = SelectBestTariff(allCandidates);
-                    if (fallback != null)
-                    {
-                        return TariffResolution.Fallback(
-                            fallback,
-                            "Tarif fallback digunakan karena scope encounter belum lengkap dan seluruh tarif aktif obat memiliki harga yang sama.");
-                    }
-                }
-            }
-
             return TariffResolution.NotFound();
         }
+
+        private static InsuranceCoverageResult BuildMissingTariffResult(EncounterInsuranceContext context, string message) => new()
+        {
+            IsValid = false,
+            ErrorMessage = message,
+            CoverageStatus = "ConfigurationMissing",
+            IsCoverageApplicable = context.PaymentType != EncounterPaymentType.Cash,
+            PaymentType = context.PaymentType,
+            PaymentTypeName = context.PaymentTypeName,
+            PricingWarning = message,
+            CoverageNote = "Cakupan belum dapat ditentukan karena tarif belum tersedia.",
+            Warnings = new List<string> { message }
+        };
 
         private static MstTariff? SelectBestTariff(IEnumerable<MstTariff> candidates)
         {
@@ -649,6 +637,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     !x.IsDelete &&
                     x.IsActive &&
                     x.InsuranceProviderId == context.InsuranceProviderId.Value &&
+                    (!x.PatientClassId.HasValue || x.PatientClassId == context.PatientClassId) &&
                     (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= date) &&
                     (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= date) &&
                     (x.BenefitPlanCode == null || x.BenefitPlanCode == "" ||
@@ -662,14 +651,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     ))
                 .ToListAsync(cancellationToken);
 
-            return candidates
-                .OrderByDescending(x => GetRuleSpecificity(x.ItemType))
+            return OrderCoverageRules(candidates).FirstOrDefault();
+        }
+
+        internal static IOrderedEnumerable<MstInsuranceCoverageRule> OrderCoverageRules(IEnumerable<MstInsuranceCoverageRule> rules) =>
+            rules.OrderByDescending(x => GetRuleSpecificity(x.ItemType))
+                .ThenByDescending(x => x.PatientClassId.HasValue)
                 .ThenByDescending(x => !string.IsNullOrWhiteSpace(x.BenefitPlanCode))
+                .ThenByDescending(x => x.Priority)
                 .ThenByDescending(x => x.EffectiveStartDate)
                 .ThenBy(x => x.SortOrder)
-                .ThenBy(x => x.Id)
-                .FirstOrDefault();
-        }
+                .ThenBy(x => x.Id);
 
         private static InsuranceCoverageResult BuildCashResult(
             MstTariff tariff,

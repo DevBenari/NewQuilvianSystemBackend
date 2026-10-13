@@ -55,6 +55,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool FreeParking { get; set; }
         public int ValidityMonths { get; set; }
         public decimal MinimumSpendAmount { get; set; }
+        public decimal AnnualFeeAmount { get; set; }
         public int SortOrder { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
@@ -90,6 +91,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool FreeParking { get; set; }
         public int ValidityMonths { get; set; }
         public decimal MinimumSpendAmount { get; set; }
+        public decimal AnnualFeeAmount { get; set; }
         public int SortOrder { get; set; }
     }
 
@@ -248,6 +250,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
 
         [Range(0, 999999999999)]
         public decimal MinimumSpendAmount { get; set; } = 0;
+
+        /// <summary>Nominal iuran per periode (CRM-DEC-004). Tingkat bernilai 0 tidak bisa didaftarkan.</summary>
+        [Range(0, 999999999999)]
+        public decimal AnnualFeeAmount { get; set; } = 0;
 
         public int SortOrder { get; set; } = 0;
 

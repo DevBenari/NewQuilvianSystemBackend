@@ -651,11 +651,38 @@ public sealed class BillingInvoiceService
                     x.RoomChargeAmount,
                     x.ItemDiscount,
                     x.TaxAmount,
-                    x.RoundingAmount
+                    x.RoundingAmount,
+                    x.CalculatedAt
                 })
                 .ToListAsync(cancellationToken);
         var latestCalcByInvoice = calcRows.GroupBy(x => x.InvoiceId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.VersionNo).First());
+
+        // 5b. BE-BKC-FIX-020 / K-07: kekinian hitungan. Aturannya sama dengan penjaga finalisasi
+        // (BillingFinalizationService.IsCalculationCurrentAsync): item atau diskon yang berubah
+        // sesudah waktu hitungan membuat angka hitungan tertinggal. Dibaca dalam batch, tanpa
+        // menulis hitungan baru hanya karena daftar dibuka.
+        var latestItemChangeRows = invoiceIds.Count == 0
+            ? []
+            : await _dbContext.BilInvoiceItems.AsNoTracking()
+                .Where(x => invoiceIds.Contains(x.InvoiceId))
+                .GroupBy(x => x.InvoiceId)
+                .Select(g => new { InvoiceId = g.Key, Latest = g.Max(x => x.UpdateDateTime ?? x.CreateDateTime) })
+                .ToListAsync(cancellationToken);
+        var latestDiscountChangeRows = invoiceIds.Count == 0
+            ? []
+            : await _dbContext.BilDiscountApplications.AsNoTracking()
+                .Where(x => invoiceIds.Contains(x.InvoiceId))
+                .GroupBy(x => x.InvoiceId)
+                .Select(g => new { InvoiceId = g.Key, Latest = g.Max(x => x.UpdateDateTime ?? x.CreateDateTime) })
+                .ToListAsync(cancellationToken);
+        var latestChangeByInvoice = latestItemChangeRows.Concat(latestDiscountChangeRows)
+            .GroupBy(x => x.InvoiceId)
+            .ToDictionary(g => g.Key, g => g.Max(x => x.Latest));
+
+        // 5c. Pelayanan eligible yang belum menjadi item invoice (sama dengan penjaga finalisasi).
+        var pendingChargeByEncounter = await BillingPendingChargeQuery.CountByEncounterAsync(
+            _dbContext, encounterIds, cancellationToken);
 
         // 6. Batch query Settlement & Tender SUCCEEDED
         var settlementRows = invoiceIds.Count == 0
@@ -819,6 +846,16 @@ public sealed class BillingInvoiceService
             var patientAmount = calc?.PatientAmount
                 ?? (isCashPayer ? x.RunningGrossAmount : 0m);
 
+            // BE-BKC-FIX-020: tanpa hitungan, atau dengan hitungan yang tertinggal, angka di atas
+            // hanya perkiraan. Ditandai supaya layar tidak menyajikannya sebagai kewajiban pasti —
+            // terutama Rp0 penjamin yang tanggungannya belum diketahui.
+            var calculationState = calc is null
+                ? CashierCalculationStates.NotCalculated
+                : latestChangeByInvoice.TryGetValue(x.Id, out var latestChange)
+                    && latestChange > calc.CalculatedAt.UtcDateTime
+                    ? CashierCalculationStates.Stale
+                    : CashierCalculationStates.Current;
+
             // Gross sebelum coverage penjamin (subtotal + admin/room + tax - diskon item, sebelum
             // waterfall insurance/company-guarantor) - direkonstruksi dari kolom yang sudah dipersist
             // BillingCalculationService.CalculateAsync, TANPA menghitung ulang pajak/diskon di sini.
@@ -935,6 +972,12 @@ public sealed class BillingInvoiceService
                 TotalPaidAmount = paidAmount,
                 OutstandingAmount = outstanding,
                 PaymentStatus = paymentStatus,
+                CalculationState = calculationState,
+                CalculatedAt = calc?.CalculatedAt,
+                RunningGrossAmount = x.RunningGrossAmount,
+                IsPatientAmountProvisional = calculationState != CashierCalculationStates.Current,
+                IsCashPayer = isCashPayer,
+                PendingChargeCount = pendingChargeByEncounter.GetValueOrDefault(x.EncounterId),
                 HasDepositAccount = hasDepositAccount,
                 DepositAvailableBalance = depositAvailable,
                 DepositTotalReceived = depositReceived,

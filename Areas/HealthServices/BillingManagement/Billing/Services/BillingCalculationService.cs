@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
@@ -1103,7 +1103,7 @@ public class BillingCalculationService : IBillingCalculationService
                 item.Id, "ITEM", itemType, tariffId, procedureId, drugId, drugCategoryId, tariffCategoryId,
                 item.Quantity,
                 itemCalculation.GrossAmount - itemCalculation.ItemDiscount,
-                itemCalculation.Coverable));
+                itemCalculation.Coverable, item.SourceOccurredAt));
 
             if (itemCalculation.TaxAmount > 0 && taxByItem.TryGetValue(item.Id, out var tax))
             {
@@ -1117,7 +1117,7 @@ public class BillingCalculationService : IBillingCalculationService
                 components.Add(new BillingCoverageComponent(
                     item.Id, "TAX", itemType, tariffId, procedureId, drugId, drugCategoryId, tariffCategoryId,
                     item.Quantity,
-                    itemCalculation.TaxAmount, taxCoverable));
+                    itemCalculation.TaxAmount, taxCoverable, item.SourceOccurredAt));
             }
         }
 

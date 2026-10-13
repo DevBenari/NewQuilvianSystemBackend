@@ -42,3 +42,22 @@ Kode status tidak bertambah. Resep yang keadaan finansialnya belum diketahui tet
 sendiri ada dan sah.
 
 Trace `PHA-DEC-063`, `PHA-DEC-067`, `PHA-DEC-069`. Tests `PHA-AT-CLR-10`.
+
+---
+
+## Delta 12 Oktober 2026 — Drug Usage (`BE-BKC-FIX-017`)
+
+| Endpoint | Perubahan |
+| --- | --- |
+| `POST /pharmacy-management/drug-usages` | `storageLocationId` dan `recordedByWorkforceId` menjadi **opsional**. Kosong → server memakai depo sesuai kunjungan (`PHA-DEPOT-ROUTING-v1`) dan profil petugas akun login; gagal → `422 PHM064`/`PHM063` dengan sebab. GUID kosong tidak pernah menjadi depo/petugas bawaan |
+| `POST /pharmacy-management/drug-usages/{id}/record` | Sesudah stok berkurang, pemakaian **tanpa resep** menerbitkan satu fakta tagih per butir ke Billing (`BKC-DEC-138`); kiriman ulang memulihkan fakta yang belum terbit tanpa menyentuh stok |
+| `GET /pharmacy-management/drug-usages/{id}` | Field baru `chargeState`, `chargeStateMessage`, `items[].chargeState` (dibaca dari Billing). Status `PhmDrugUsage` tetap `NotBilled`; `Billed` belum ditulis |
+
+Retur atas pemakaian tanpa resep kini mengurangi tagihan butirnya. Rencana: [`PLAN-REPAIR-BKC-001`](../../billing-kasir/docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md) FIX-03, [laporan](../../billing-kasir/task/report/backend/BE-BKC-FIX-017.md).
+
+
+## Amandemen PLAN-REPAIR-DOK-006 — 2026-10-13
+
+Khusus repair kelas rawat inap, resolver obat menerima tarif sesuai atau umum kompatibel. NotCovered tetap IsValid=true; ConfigurationMissing tanpa tarif sesuai/umum IsValid=false dan menahan reguler/racikan/item/rekonsiliasi melalui guard existing. PATCH prescription-workspaces/{prescriptionId}/autosave mempertahankan hak PrescriptionWorkspace : Update. Tidak membuat endpoint harga tertunda.
+
+Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../../rawat-inap/dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.

@@ -61,6 +61,12 @@ public sealed class ContractBillingChargeSourceAdapter : IBillingChargeSourceAda
             // koreksinya adjustment, sama seperti konsultasi.
             ["OPERATING_ROOM"] = Policy(["COMPLETED"], [], ["CANCELLED", "VOIDED"]),
             ["EQUIPMENT_USAGE"] = Policy(["COMPLETED"], [], ["CANCELLED", "VOIDED"]),
+            // BE-BKC-FIX-018 / DEC-BD-016: tindakan Bank Darah ditagih saat Completed, satu baris per
+            // tindakan. Koreksi pemberian kantong tidak membalik biaya (DEC-BD-034), sehingga tidak
+            // ada void normal; peninjauan finansialnya lewat adjustment Billing.
+            ["BLOOD_BANK"] = Policy(["COMPLETED"], [], ["CANCELLED", "VOIDED"]),
+            // BE-BKC-FIX-017 / K-04: pemakaian obat/BMHP tanpa resep, ditagih saat dicatat. Retur
+            // mengurangi baris lewat jalur retur (versi lebih baru), bukan void normal.
             ["CONSUMABLE"] = Policy(["USED"], [], []),
             // Biaya bebas yang diketik langsung oleh kasir pada Menu Pembayaran (BKC-DEC-047):
             // nama/harga bebas, tanpa gerbang approval, tapi tetap boleh dibatalkan kasir sendiri

@@ -4040,3 +4040,29 @@ Daftar endpoint existing tetap merujuk [inventaris Swagger pada audit bagian 6](
 ## Amandemen lokal EPS-006 - 12 Oktober 2026
 
 Pengguna meminta seluruh plan-repair-006 admisi transfer diselesaikan pada backend MHamzah dan frontend HamzahV2. Rekomendasi K-01, K-02 dan K-03 dipakai sebagai keputusan implementasi: satu orchestrator pada booking; surat InpatientReferral Issued untuk poli; sumber pembayaran/relasi oleh Registrasi dan deposit oleh Billing. Selesai administratif membutuhkan consent tersimpan, reservasi terpisah dari kedatangan fisik. Tidak mencabut IGD-DEC-067, tidak memakai ulang ID keputusan RWI-DEC-274/275/276 milik Bed Management, dan tidak mengubah versi global blueprint. [Kontrak EPS-006](episode-rawat-inap/contracts/admission-transfer-repair-006.md). Database update dan deployment tidak dijalankan.
+
+
+## Amandemen PLAN-REPAIR-DOK-006 — 2026-10-13
+
+A-01 sampai A-05 dan K-01/K-02/K-03 pada PLAN-REPAIR-DOK-006 sudah disetujui untuk dilaksanakan. Kelas aktual memakai periode penempatan pada waktu layanan, terpisah dari hak polis. Tidak ada input kelas pada pembayaran/asuransi atau konfirmasi admisi. Semua item klinis tetap tampil. Khusus resep, gunakan tarif umum kompatibel bila tarif sesuai tidak ada; tahan resep bila keduanya tidak tersedia. Ketentuan khusus resep ini menggantikan perluasan RWI-DEC-218 yang dahulu membolehkan resep tanpa tarif. Kontrak tindakan/penunjang tetap berlaku.
+
+Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.
+
+## Amandemen PLAN-REPAIR-EPS-008 — 2026-10-13
+
+Pemilik sistem meminta General Consent di Workspace PPRI menjadi form edit atas persetujuan yang sudah diisi dan ditandatangani pada langkah admisi, dengan riwayat siapa yang mengubah. Analisis dan rencana: [ISSUE-EPS-008](episode-rawat-inap/docs/issue/issue-008-edit-riwayat-general-consent.md), [PLAN-REPAIR-EPS-008](episode-rawat-inap/docs/plan-repair/plan-repair-008-edit-riwayat-general-consent.md).
+
+| ID | Jenis | Isi | Pemilik | Status | Disetujui | Sumber |
+|---|---|---|---|---|---|---|
+| `RWI-DEC-295` | Decision | **Persetujuan umum yang sudah tersimpan dapat dikoreksi dari Workspace PPRI sebagai versi baru beralasan; versi lama tidak pernah ditimpa dan tampil di Riwayat Perubahan.** Koreksi memakai rantai versi `InpAdmissionDocument` yang sama dengan Versi Koreksi dokumen admisi lain (`RWI-DEC-240`): versi lama `Superseded`, versi baru `Completed`, alasan 10–500 karakter, hak `InpatientAdmissionDocument : Update`, hanya pada episode berjalan. Simpan ulang dari langkah admisi dengan isi berbeda juga menjadi versi baru beralasan otomatis; isi sama tidak membuat versi. Panduan rawat inap ikut tersimpan dan berversi. Merevisi sifat *read-only* pada `RWI-AC-395` dan `05-skema-tampilan.md` aturan 4 langkah persetujuan. **Contoh:** versi 1 Ny. Rina (istri) disimpan Sari 09.40 dengan NIK salah satu angka; Dewi mengoreksi pukul 10.15 beralasan "NIK penanda tangan salah ketik saat admisi" → versi 2 aktif, versi 1 tetap terbaca beserta tanda tangannya, riwayat menampilkan "No. Identitas: …98 → …99 oleh Dewi" | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-10-13 ("tolong di perbaiki ya") | Permintaan pemilik 13-10-2026; `RWI-DEC-240`, `RWI-DEC-236` butir 3 |
+| `RWI-DEC-296` | Decision | **Koreksi memakai tanda tangan lama, kecuali jenis penanda tangan berganti; tanda tangan baru boleh dibubuhkan kapan pun.** Berganti jenis (misalnya `Spouse` → `Family`) berarti orangnya berbeda, sehingga tanpa tanda tangan baru koreksi ditolak `TTD_BARU_WAJIB`. Tanda tangan lama beserta waktunya tetap pada versi lama. **Contoh:** memperbaiki NIK Ny. Rina tidak meminta tanda tangan ulang; mengganti penanda tangan menjadi Andi (anak) mewajibkan Andi menandatangani di kanvas | Muhammad Hamzah | `approved` sebagai bawaan rekomendasi K-01; dapat diubah pemilik tanpa mengubah struktur data | Muhammad Hamzah, 2026-10-13 (rencana disetujui bersama rekomendasinya) | `PLAN-REPAIR-EPS-008` K-01 |
+
+| ID | Kriteria penerimaan | Sumber |
+|---|---|---|
+| `RWI-AC-427` | Persetujuan bertanda tangan + pemegang `InpatientAdmissionDocument : Update` + episode `Admitted` → tombol "Edit Persetujuan" tampil di tab Formulir General Consent; episode `Closed` atau tanpa hak `Update` → tidak tampil | `RWI-DEC-295` |
+| `RWI-AC-428` | Koreksi beralasan "salah" ditolak 400 "Alasan perubahan minimal 10 karakter."; beralasan valid → versi lama `Superseded` utuh, versi baru `Completed` menunjuk versi lama | `RWI-DEC-295` |
+| `RWI-AC-429` | Dua petugas mengoreksi dari versi yang sama: yang kedua ditolak 409 `INP-ADM-DOC-004`, versi aktif tetap satu | `RWI-DEC-295` |
+| `RWI-AC-430` | Ganti jenis penanda tangan tanpa tanda tangan baru → 422 `TTD_BARU_WAJIB`; dengan tanda tangan baru → berhasil dan riwayat mencatat "Tanda tangan diganti" | `RWI-DEC-296` |
+| `RWI-AC-431` | Riwayat Perubahan menampilkan setiap versi terbaru di atas dengan status, waktu, nama pengubah, alasan, dan "label: lama → baru"; versi 1 tertulis "Dibuat pada langkah admisi"; terbaca oleh pemegang `Read` tanpa `Update` | `RWI-DEC-295` |
+
+Bukti pelaksanaan: `BE-RWI-227`, `FE-RWI-241`, `FE-RWI-242` (register di `PLAN-REPAIR-EPS-008` bagian 1). Bagian lama yang menyatakan General Consent Workspace PPRI *read-only* untuk persetujuan bertanda tangan digital digantikan oleh amandemen ini; bagian lain tetap berlaku.

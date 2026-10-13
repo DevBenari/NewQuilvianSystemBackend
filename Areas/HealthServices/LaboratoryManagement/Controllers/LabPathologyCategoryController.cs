@@ -44,6 +44,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             _labPathologyCategoryService = labPathologyCategoryService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<LabPathologyCategoryFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Pathology Category", Description = "Melihat daftar, ringkasan, pilihan, detail, dan keberlakuan ruas golongan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabPathologyCategory", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = LabFilterMetadataFactory.LabPathologyCategory();
+
+            return Ok(ApiResponse<LabPathologyCategoryFilterMetadataResponse>.Ok(
+                result, "Metadata penyaring golongan Patologi Anatomi berhasil diambil."));
+        }
+
+        // Ringkasan. `withParameter` yang paling berarti di sini: selisihnya terhadap total
+        // adalah golongan yang menghasilkan formulir laporan KOSONG.
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<LabPathologyCategorySummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Pathology Category", Description = "Melihat daftar, ringkasan, pilihan, detail, dan keberlakuan ruas golongan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabPathologyCategory", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var result = await _labPathologyCategoryService.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<LabPathologyCategorySummaryResponse>.Ok(
+                result, "Ringkasan golongan Patologi Anatomi berhasil diambil."));
+        }
+
         // Daftar golongan untuk layar pengelolaan. Membawa jumlah ruas yang berlaku, karena
         // nilai 0 adalah keadaan berbahaya yang tidak terlihat dari mana pun: golongan tanpa
         // ruas menghasilkan formulir kosong bagi patolog.
@@ -183,33 +209,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
 
         // =============================================================
         // Baseline data induk yang dilengkapi 2026-09-23 — `LAB-API-v1` r32.
+        //
+        // `filters/metadata` dan `summary` dari baseline ini ditaruh paling awal controller
+        // supaya tampil teratas di Swagger (permintaan pemilik modul 2026-10-13).
         // =============================================================
-
-        [HttpGet("filters/metadata")]
-        [ProducesResponseType(typeof(ApiResponse<LabPathologyCategoryFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Pathology Category", Description = "Melihat daftar, ringkasan, pilihan, detail, dan keberlakuan ruas golongan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LabPathologyCategory", "Read")]
-        public IActionResult GetFilterMetadata()
-        {
-            var result = LabFilterMetadataFactory.LabPathologyCategory();
-
-            return Ok(ApiResponse<LabPathologyCategoryFilterMetadataResponse>.Ok(
-                result, "Metadata penyaring golongan Patologi Anatomi berhasil diambil."));
-        }
-
-        // Ringkasan. `withParameter` yang paling berarti di sini: selisihnya terhadap total
-        // adalah golongan yang menghasilkan formulir laporan KOSONG.
-        [HttpGet("summary")]
-        [ProducesResponseType(typeof(ApiResponse<LabPathologyCategorySummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Pathology Category", Description = "Melihat daftar, ringkasan, pilihan, detail, dan keberlakuan ruas golongan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LabPathologyCategory", "Read")]
-        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
-        {
-            var result = await _labPathologyCategoryService.GetSummaryAsync(cancellationToken);
-
-            return Ok(ApiResponse<LabPathologyCategorySummaryResponse>.Ok(
-                result, "Ringkasan golongan Patologi Anatomi berhasil diambil."));
-        }
 
         // Jalur detail. Tanpa ini, formulir ubah yang dibuka lewat tautan langsung atau sesudah
         // halaman disegarkan nol punya cara memuat barisnya — dan gagalnya DIAM.
@@ -266,10 +269,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             }
         }
 
-        /// <summary>
-        /// Menjalankan satu perubahan dan menerjemahkan kegagalannya menjadi status HTTP yang
-        /// tepat, tanpa membocorkan detail exception ke pemanggil.
-        /// </summary>
         private async Task<IActionResult> ExecuteAsync(
             Func<Task<LabPathologyCategoryResponse>> action,
             string successMessage)

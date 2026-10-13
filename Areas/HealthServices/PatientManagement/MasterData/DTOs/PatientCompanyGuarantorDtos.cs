@@ -107,6 +107,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         public bool IsActive { get; set; }
 
+        /// <summary>BE-FIN-105: tautan ke pegawai HR. Hanya-baca; tidak diterima pada request simpan kartu.</summary>
+        public Guid? EmployeeId { get; set; }
+
+        /// <summary>BE-FIN-105: tautan ke anggota keluarga HR; kosong bila pegawai sendiri. Hanya-baca.</summary>
+        public Guid? FamilyMemberId { get; set; }
+
+        /// <summary>BE-FIN-105: SELF, SPOUSE, CHILD, PARENT, atau OTHER. Hanya-baca.</summary>
+        public string? BenefitRelationship { get; set; }
+
         public DateTime CreateDateTime { get; set; }
 
         public Guid? CreateBy { get; set; }

@@ -19,8 +19,19 @@ public class DrugUsageItemInput
 public class CreateDrugUsageRequest
 {
     [Required] public Guid EncounterId { get; set; }
-    [Required] public Guid StorageLocationId { get; set; }
-    [Required] public Guid RecordedByWorkforceId { get; set; }
+
+    /// <summary>
+    /// Lokasi stok yang menyerahkan. Kosong berarti server memakai depo sesuai kunjungan pasien
+    /// (<c>PharmacyDepotRoutingService</c>) — <c>BE-BKC-FIX-017</c>/<c>FE-BKC-FIX-012</c>. Lokasi yang
+    /// tidak ditemukan tidak pernah diperlakukan sebagai depo bawaan.
+    /// </summary>
+    public Guid? StorageLocationId { get; set; }
+
+    /// <summary>
+    /// Petugas pencatat. Kosong berarti profil petugas yang tertaut pada akun login; tanpa tautan
+    /// itu permintaan ditolak <c>422</c>, bukan disimpan atas nama petugas kosong.
+    /// </summary>
+    public Guid? RecordedByWorkforceId { get; set; }
 
     /// <summary>Kapan obatnya dipakai. Kosong berarti saat perintah ini dikirim.</summary>
     public DateTime? UsedAt { get; set; }
@@ -115,6 +126,18 @@ public class DrugUsageDetailResponse : DrugUsageSummaryResponse
     public string? Notes { get; set; }
     public string? CancelReason { get; set; }
     public List<DrugUsageItemResponse> Items { get; set; } = [];
+
+    /// <summary>
+    /// Keadaan penagihan pemakaian ini secara keseluruhan — <c>BE-BKC-FIX-017</c>. Kosong untuk
+    /// draft/batal dan untuk penyerahan resep (tagihannya mengikuti resep). Nilainya
+    /// <c>BillingSourceChargeStates</c>: <c>WAITING_FOR_BILLING</c>, <c>IN_INVOICE</c>,
+    /// <c>NEEDS_REVIEW</c>, dst. Bila butirnya berbeda-beda, yang ditampilkan keadaan yang paling
+    /// membutuhkan tindakan.
+    /// </summary>
+    public string? ChargeState { get; set; }
+
+    /// <summary>Penjelasan keadaan penagihan yang perlu ditindaklanjuti, siap tampil.</summary>
+    public string? ChargeStateMessage { get; set; }
 }
 
 public class DrugUsageItemResponse
@@ -128,6 +151,9 @@ public class DrugUsageItemResponse
     public decimal Quantity { get; set; }
     public string? Note { get; set; }
     public int LineNumber { get; set; }
+
+    /// <summary>Keadaan penagihan butir ini — lihat <see cref="DrugUsageDetailResponse.ChargeState"/>.</summary>
+    public string? ChargeState { get; set; }
 
     /// <summary>Batch yang benar-benar dipakai; terisi setelah pemakaian dicatat.</summary>
     public List<DrugUsageAllocationResponse> Allocations { get; set; } = [];

@@ -100,6 +100,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
                 .HasColumnType("numeric(18,2)")
                 .HasDefaultValue(0);
 
+            entity.Property(x => x.AnnualFeeAmount)
+                .HasColumnType("numeric(18,2)")
+                .HasDefaultValue(0m);
+
             entity.Property(x => x.SortOrder)
                 .HasDefaultValue(0);
 

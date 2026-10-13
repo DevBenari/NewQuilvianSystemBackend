@@ -575,3 +575,31 @@ Kelima task **coding selesai**, QBE Strict 25 source PASS dan parsing/statika PA
 Dependensi Keperawatan BE-RWI-166: enum GziInstructionVerificationStatus kini tersedia, namun coding diet bukan bagian dari roadmap ini. Task frontend dan integrasi hasil operasi/ruangan bedah tetap mengikuti roadmap pemiliknya. Kontrak desain approved 0.7.0 dan hash approval dipertahankan. Langkah berikutnya adalah build/migration oleh user dan pembuktian API/proses bisnis; otorisasi task frontend atau publikasi tidak diberikan sesi ini.
 
 **Pembaruan migration 2026-10-05:** `20261005050735_AddNutritionAndBloodInstructionVerification` beserta Designer dan model snapshot sudah tersedia di workspace saat pemeriksaan ulang; tidak dibuat ulang atau diubah oleh agent. Review statis membuktikan enam kolom, empat index dan dua FK Restrict, serta target model Designer sama dengan snapshot. Bukti terbaru: laporan BE-RWI-161/162/164 bagian 7.1 dan catatan akhir roadmap backend. Catatan sebelumnya tentang file belum dibuat dipertahankan sebagai riwayat. Penerapan database belum dibuktikan; agent tidak menjalankan build, dotnet ef atau database update. Preferensi user agar task schema berikutnya menyertakan file migration dicatat dalam AGENTS.md.
+
+## 11. Delta PLAN-REPAIR-DOK-006 — Kelas perawatan dan cakupan asuransi ★ 13 Oktober 2026
+
+**Status: `SELESAI`** — seluruh enam perbaikan FIX-DOK-006-01..06 ditutup 13 Oktober 2026. Delta ini memakai kontrak tersendiri `RWI-KELAS-006-1.0` atas instruksi pemilik 12 Oktober 2026; kontrak `0.7.0` pada bagian 10 dan revision blueprint lain tidak berubah. Uji UI/runtime belum dilakukan.
+
+| Field | Nilai |
+| --- | --- |
+| Plan / issue | [PLAN-REPAIR-DOK-006](./docs/plan-repair/plan-repair-006-kelas-perawatan-dan-cakupan-asuransi.md) / [ISSUE-DOK-006](./docs/issue/issue-006-kelas-perawatan-dan-cakupan-asuransi.md) — keduanya `SELESAI`; ISS-DOK-006-T1 tetap tindak lanjut terpisah |
+| Kontrak | [RWI-KELAS-006-1.0](./contracts/kelas-perawatan-repair-006.md), disetujui pemilik 2026-10-12 |
+| Source | Basis BE `d908988248f6652ed7f2ce84aae9eb3e38dd36a0` / FE `affcfcb4ea9f5177b1ff9a3ca0c09d15183af248`; implementasi di-commit `8551291f` / `2d0a6890e`; penutupan diperiksa pada HEAD `4ec02370` / `f4495aa14` ditambah perbaikan 2 baris `EncounterInsuranceService.cs` yang belum di-commit |
+| Task milik sub-modul ini | ✅ BE-RWI-223, ✅ BE-RWI-226, ✅ FE-RWI-239 |
+| Task pemilik lain | ✅ BE-RWI-224 dan ✅ FE-RWI-240 pada `episode-rawat-inap`; ✅ BE-RWI-225 pada `integrasi-billing` |
+| Validasi | Build backend 0 error (281 warning existing); QBE ReportOnly 13 berkas PASS; ESLint terarah FE exit 0; unit repair 5/5; build Next.js PASS pada sesi implementasi. Uji manual NOT FEASIBLE; database/migration/deploy NOT APPLICABLE |
+| Amandemen hulu | 13 dokumen menautkan kontrak ini (plan bagian 7) |
+
+| Artefak relatif | Status | SHA256 byte working copy (CRLF) saat penutupan |
+| --- | --- | --- |
+| [contracts/kelas-perawatan-repair-006.md](./contracts/kelas-perawatan-repair-006.md) | disetujui `RWI-KELAS-006-1.0` | `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112` |
+| [docs/plan-repair/plan-repair-006-kelas-perawatan-dan-cakupan-asuransi.md](./docs/plan-repair/plan-repair-006-kelas-perawatan-dan-cakupan-asuransi.md) | `SELESAI` | `8c5bfc7cf0c8d86e978e8110d98ce423b8622bf14964e031f4a3cb06d41651ef` |
+| [docs/issue/issue-006-kelas-perawatan-dan-cakupan-asuransi.md](./docs/issue/issue-006-kelas-perawatan-dan-cakupan-asuransi.md) | `SELESAI` | `f25969ec69cb108afd3fc85469a2a28d541d8408ff4383b31220bb5787e6a12f` |
+| [roadmap/backend-roadmap-kelas-perawatan.md](./roadmap/backend-roadmap-kelas-perawatan.md) | revision `1`; BE-RWI-223 ✅, BE-RWI-226 ✅ | `054b8d996c3e563fc3a326330acb4c04a08512325438930579a545ee29ca11ff` |
+| [roadmap/frontend-roadmap-kelas-perawatan.md](./roadmap/frontend-roadmap-kelas-perawatan.md) | revision `1`; FE-RWI-239 ✅ | `289898cc15b4e072ffbce2710a0b2133f0b377fb39b9ee1a9ee58e1e25c8a72f` |
+| [roadmap/requirement-traceability-kelas-perawatan.md](./roadmap/requirement-traceability-kelas-perawatan.md) | FIX-DOK-006-03/04/05 ✅ | `90122c060be705a3ef1b23055fcfbbf897a530b4ee96f550457c62b9dd6bce10` |
+| [task/report/backend/BE-RWI-223.md](./task/report/backend/BE-RWI-223.md) | ✅ | `fdddff688345ec4ea5c6e0d967740dc7cbb4d92c8ae4c32f4c41a39509ec0471` |
+| [task/report/backend/BE-RWI-226.md](./task/report/backend/BE-RWI-226.md) | ✅ | `a64c516a1b529496f425f3b1ab5290647e1753477619e8f0c6961c3d78a77bf2` |
+| [task/report/frontend/FE-RWI-239.md](./task/report/frontend/FE-RWI-239.md) | ✅ | `28dca65adc354b12e45a1f439c7931702bd556f7d1556d75b06a155026319055` |
+
+Hash di atas adalah jejak saat penutupan, bukan approval desain baru. Register pemilik lain: [episode-rawat-inap bagian 16](../episode-rawat-inap/blueprint-manifest.md) dan [integrasi-billing bagian 3](../integrasi-billing/blueprint-manifest.md).

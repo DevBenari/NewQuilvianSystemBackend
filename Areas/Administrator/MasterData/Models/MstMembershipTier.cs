@@ -67,6 +67,9 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
 
         public decimal MinimumSpendAmount { get; set; } = 0;
 
+        /// <summary>Nominal iuran per periode; tingkat dengan nilai 0 tidak bisa didaftarkan (CRM-DEC-004).</summary>
+        public decimal AnnualFeeAmount { get; set; } = 0;
+
         public int SortOrder { get; set; } = 0;
 
         [MaxLength(500)]

@@ -135,7 +135,8 @@ public partial class InpBedOccupancyService
         if (r.Status == InpEpisodeOperationStatus.Success) return;
         var status = r.Status switch { InpEpisodeOperationStatus.Invalid => 400, InpEpisodeOperationStatus.Forbidden => 403,
             InpEpisodeOperationStatus.NotFound => 404, InpEpisodeOperationStatus.Conflict => 409, _ => 422 };
-        throw new InpBedOperationException(status, r.Failures.FirstOrDefault()?.Code ?? "BED_NOT_READY", r.Message);
+        var defaultCode = status == 409 ? "PATIENT_ALREADY_ADMITTED" : "BED_NOT_READY";
+        throw new InpBedOperationException(status, r.Code ?? r.Failures.FirstOrDefault()?.Code ?? defaultCode, r.Message);
     }
 }
 

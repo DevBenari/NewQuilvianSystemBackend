@@ -2548,6 +2548,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     NormalizeNullableText(patientCompanyGuarantor.EmployeeNumber);
                 entity.EmployeeNameSnapshot =
                     NormalizeNullableText(patientCompanyGuarantor.EmployeeName);
+                // BE-FIN-105, FIN-DEC-198: tautan HR disalin persis dari kartu; kartu tanpa
+                // tautan menghasilkan snapshot kosong.
+                entity.EmployeeIdSnapshot = patientCompanyGuarantor.EmployeeId;
+                entity.FamilyMemberIdSnapshot = patientCompanyGuarantor.FamilyMemberId;
+                entity.BenefitRelationshipSnapshot = patientCompanyGuarantor.BenefitRelationship;
                 entity.BenefitPlanCodeSnapshot =
                     NormalizeNullableText(patientCompanyGuarantor.BenefitPlanCode);
                 entity.PlanNameSnapshot =

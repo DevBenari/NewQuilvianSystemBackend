@@ -89,7 +89,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             // Jawabannya 200, bukan 409: bagi dokter yang menekan tombol sekali lagi, hasilnya
             // memang sudah tercapai. Menjawab 409 membuatnya mengira pencatatannya gagal.
             if (entity.IsExecuted && entity.ProcedureStatus == PatientProcedureStatus.Completed)
+            {
+                // BE-BKC-FIX-019 / ISSUE-BKC-001 ISS-06: tindakan yang lahir Completed lewat jalur
+                // lain dulu tidak pernah menerbitkan fakta, dan menekan execute lagi hanya berhenti
+                // di sini. Tanpa mengerjakan ulang apa pun, fakta yang hilang dipulihkan; fakta
+                // yang sudah ada tidak disentuh, sehingga tidak ada charge kedua.
+                await EnsureCompletedFactAsync(entity, actorUserId, cancellationToken);
                 return PatientProcedureExecutionResult.AlreadyExecuted("Tindakan pasien sudah ditandai dikerjakan sebelumnya.");
+            }
 
             var now = DateTime.UtcNow;
 
@@ -208,9 +215,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 return PatientProcedureExecutionResult.Fail(StatusCodes.Status404NotFound, "Tindakan pasien tidak ditemukan.");
 
             // Idempoten (AC 2): order yang sudah selesai tidak menyentuh apa pun dan tidak
-            // menerbitkan fakta tagih kedua.
+            // menerbitkan fakta tagih kedua. BE-BKC-FIX-019: fakta yang belum pernah terbit
+            // dipulihkan sekali.
             if (entity.IsExecuted && entity.ProcedureStatus == PatientProcedureStatus.Completed)
+            {
+                await EnsureCompletedFactAsync(entity, actorUserId, cancellationToken);
                 return PatientProcedureExecutionResult.AlreadyExecuted("Order tindakan sudah selesai sebelumnya.");
+            }
 
             if (entity.ProcedureStatus == PatientProcedureStatus.Cancelled || entity.IsCancel)
                 return PatientProcedureExecutionResult.Fail(StatusCodes.Status400BadRequest,
@@ -265,6 +276,73 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 emission.Kind.ToString(),
                 emission.IsClinicallySafe,
                 "Order tindakan diselesaikan dari Kamar Operasi.");
+        }
+
+        /// <summary>
+        /// Menjamin tindakan yang sudah <c>Completed</c> punya fakta tagih — <c>BE-BKC-FIX-019</c>,
+        /// <c>FIX-BKC-001-07</c>. Dipakai jalur yang menyelesaikan tindakan di luar
+        /// <see cref="ExecuteAsync"/> (pembuatan dengan <c>ExecuteImmediately</c>, tindakan
+        /// keperawatan IGD) dan pemulihan saat execute diulang.
+        /// </summary>
+        /// <remarks>
+        /// Hanya menerbitkan bila <b>belum ada satu pun</b> fakta tindakan ini, sehingga tidak pernah
+        /// melahirkan revisi kedua atas tindakan yang faktanya sudah terbit. Waktu kejadiannya waktu
+        /// selesai yang tersimpan, bukan waktu pemanggilan. Pemanggil wajib sudah melakukan commit;
+        /// kegagalan Billing tidak membatalkan catatan klinis. Tindakan gratis/tidak billable tetap
+        /// diterbitkan dan Billing yang menolaknya menjadi tidak ditagih.
+        /// </remarks>
+        public async Task<ClinicalFactEmissionResult?> EnsureCompletedFactAsync(
+            TrxPatientProcedure entity,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (!entity.IsExecuted || entity.ProcedureStatus != PatientProcedureStatus.Completed
+                || entity.IsCancel || entity.IsDelete)
+                return null;
+
+            var alreadyEmitted = await _dbContext.Set<CliClinicalMilestoneFact>().AsNoTracking()
+                .AnyAsync(x => x.SourceContext == BillingSourceContract.ProcedureSourceContext
+                    && x.SourceAggregateId == entity.Id && !x.IsDelete, cancellationToken);
+            if (alreadyEmitted)
+                return null;
+
+            var completedAt = entity.CompletedAt ?? entity.ExecutedAt ?? entity.PerformedAt ?? DateTime.UtcNow;
+            if (completedAt.Kind == DateTimeKind.Unspecified)
+                completedAt = DateTime.SpecifyKind(completedAt, DateTimeKind.Utc);
+
+            var emission = await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
+                BuildProcedureFactRequest(entity, completedAt),
+                actorUserId,
+                cancellationToken);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PatientProcedure.EnsureCompletedFact",
+                "Menerbitkan fakta tagih untuk tindakan Completed yang belum memilikinya.",
+                new
+                {
+                    ProcedureId = entity.Id,
+                    entity.EncounterId,
+                    entity.ProcedureSource,
+                    BillingHandoff = emission.Kind.ToString(),
+                    emission.MilestoneFactVersion
+                });
+
+            return emission;
+        }
+
+        /// <summary>
+        /// Varian <see cref="EnsureCompletedFactAsync(TrxPatientProcedure, Guid, CancellationToken)"/>
+        /// untuk pemanggil yang hanya memegang id tindakan.
+        /// </summary>
+        public async Task<ClinicalFactEmissionResult?> EnsureCompletedFactAsync(
+            Guid procedureId,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await _dbContext.Set<TrxPatientProcedure>().AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == procedureId && !x.IsDelete, cancellationToken);
+            return entity == null ? null : await EnsureCompletedFactAsync(entity, actorUserId, cancellationToken);
         }
 
         /// <summary>
