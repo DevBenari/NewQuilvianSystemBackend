@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Models;
@@ -10,10 +12,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
     public class ResignationLifecycleHandoffService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly FinanceReceivableClearanceService _financeClearanceService;
+        private readonly FinanceReceivableSeparationNoticeService _separationNoticeService;
 
-        public ResignationLifecycleHandoffService(ApplicationDbContext dbContext)
+        public ResignationLifecycleHandoffService(
+            ApplicationDbContext dbContext,
+            FinanceReceivableClearanceService financeClearanceService,
+            FinanceReceivableSeparationNoticeService separationNoticeService)
         {
             _dbContext = dbContext;
+            _financeClearanceService = financeClearanceService;
+            _separationNoticeService = separationNoticeService;
         }
 
         public async Task<ResignationServiceResult<ResignationHandoffResponse>> HandoffAsync(
@@ -162,6 +171,53 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagemen
 
                     createdTaskCount = templateTasks.Count;
                 }
+            }
+
+            // BE-FIN-112: Inisiasi Exit Clearance dan evaluasi gerbang Finance (INT-HR-FIN-002 §P.4)
+            bool isFinanceCleared = false;
+            if (resignation.EmployeeId.HasValue)
+            {
+                var financeClearance = await _financeClearanceService.GetAsync(resignation.EmployeeId.Value, cancellationToken);
+                isFinanceCleared = financeClearance.IsCleared;
+            }
+
+            var exitClearance = new TrxExitClearance
+            {
+                Id = Guid.NewGuid(),
+                ClearanceNumber = GenerateNumber("EXC"),
+                EmployeeSeparationId = separation.Id,
+                WorkforceProfileId = resignation.WorkforceProfileId,
+                EmployeeId = resignation.EmployeeId,
+                OffboardingChecklistId = checklist?.Id,
+                StartDate = now,
+                DueDate = resignation.ProposedLastWorkingDate,
+                ClearanceStatus = "Draft",
+                IsFinanceCleared = isFinanceCleared,
+                IsDepartmentCleared = false,
+                IsAssetCleared = false,
+                IsPayrollCleared = false,
+                IsItAccessCleared = false,
+                IsHrCleared = false,
+                TotalItem = 6,
+                ClearedItem = isFinanceCleared ? 1 : 0,
+                ProgressPercentage = isFinanceCleared ? Math.Round(1m / 6m * 100m, 2) : 0m,
+                Notes = $"Inisiasi exit clearance dari pemisahan pegawai {separation.SeparationNumber}.",
+                IsActive = true,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            };
+            _dbContext.TrxExitClearances.Add(exitClearance);
+
+            // BE-FIN-112 & INT-HR-FIN-003 §P.5: Kirim notifikasi pemisahan pegawai ke Finance
+            if (resignation.EmployeeId.HasValue)
+            {
+                await _separationNoticeService.ProcessNoticeAsync(new SeparationNoticeRequest
+                {
+                    EmployeeId = resignation.EmployeeId.Value,
+                    SeparationDate = DateOnly.FromDateTime(resignation.ProposedLastWorkingDate),
+                    Reason = resignation.ResignationReason,
+                    SeparationId = separation.Id
+                }, cancellationToken);
             }
 
             resignation.EmployeeSeparationId = separation.Id;

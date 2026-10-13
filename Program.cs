@@ -29,6 +29,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Ser
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Workers;
@@ -405,8 +406,18 @@ try
     // (mutasi POTONGAN-GAJI) — juga belum terdaftar sebelum task ini, temuan yang sama dengan BE-FIN-093 §3.A.
     builder.Services.AddScoped<FinanceSubledgerMovementService>();
     builder.Services.AddScoped<FinanceReceivablePayrollSyncService>();
+    // BE-FIN-110: Eksekusi potongan cicilan piutang RS di dalam mesin payroll run HR.
+    builder.Services.AddScoped<PayrollInstallmentDeductionService>();
+    // BE-FIN-111: Layanan restitusi salah potong cicilan piutang RS ke slip gaji periode berikutnya di HR.
+    builder.Services.AddScoped<PayrollRestitutionService>();
     // BE-FIN-096: murni baca, nol dependency tambahan selain ApplicationDbContext.
     builder.Services.AddScoped<FinanceReceivableClearanceService>();
+    // BE-FIN-112/BE-FIN-113: Notifikasi pemisahan pegawai ke Finance (INT-HR-FIN-003 §P.5).
+    builder.Services.AddScoped<FinanceReceivableSeparationNoticeService>();
+    // BE-FIN-115: Master peralihan penanganan potongan cicilan ke mesin payroll (FIN-DEC-222, FIN-API-1.11 §S.2).
+    builder.Services.AddScoped<PayrollDeductionCutoverService>();
+    // BE-FIN-116: Layanan jadwal potongan per periode dan ekspor templat/PDF (FIN-DEC-219, FIN-API-1.11 §S.1).
+    builder.Services.AddScoped<FinancePayrollDeductionBatchService>();
     // BE-FIN-098: berdiri sendiri dari FinanceOpeningItemBatchService (wewenang eksplisit pengguna).
     builder.Services.AddScoped<FinanceReceivableMigrationService>();
     builder.Services.AddScoped<IFinanceReceivableNumberGenerator, FinanceReceivableNumberGenerator>();
@@ -883,6 +894,8 @@ try
     builder.Services.AddScoped<ResignationWorkflowLifecycleService>();
     builder.Services.AddScoped<ResignationWorkflowIntegrationService>();
     builder.Services.AddScoped<ResignationLifecycleHandoffService>();
+    // BE-FIN-112: Administrasi Exit Clearance HR & penegakan gerbang bebas tanggungan Finance.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.ExitClearanceService>();
 
     // BE-FIN-103 (FIN-API-1.10 R.1, R.2): enrollment dan tanggungan benefit pegawai.
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEnrollmentService>();

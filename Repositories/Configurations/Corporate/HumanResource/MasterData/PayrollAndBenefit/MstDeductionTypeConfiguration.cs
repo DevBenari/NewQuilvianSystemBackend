@@ -8,7 +8,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
     {
         public void Configure(EntityTypeBuilder<MstDeductionType> entity)
         {
-            entity.ToTable("MstDeductionType", "public");
+            entity.ToTable("MstDeductionType", "public", table =>
+            {
+                table.HasCheckConstraint("CK_MstDeductionType_MaxNetSalaryPercentage",
+                    "\"MaxNetSalaryPercentage\" IS NULL OR (\"MaxNetSalaryPercentage\" >= 0 AND \"MaxNetSalaryPercentage\" <= 100)");
+            });
             entity.HasKey(x => x.Id);
 
             entity.Property(x => x.DeductionTypeCode).HasMaxLength(50).IsRequired();
@@ -19,6 +23,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             entity.Property(x => x.DefaultAmount).HasPrecision(18, 2).HasDefaultValue(0m);
             entity.Property(x => x.DefaultPercentage).HasPrecision(9, 4).HasDefaultValue(0m);
             entity.Property(x => x.MaximumAmount).HasPrecision(18, 2);
+            entity.Property(x => x.MaxNetSalaryPercentage).HasPrecision(9, 4);
             entity.Property(x => x.IsRecurring).HasDefaultValue(true);
             entity.Property(x => x.IsStatutory).HasDefaultValue(false);
             entity.Property(x => x.IsPreTax).HasDefaultValue(false);

@@ -39,6 +39,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
         public decimal? MaximumAmount { get; set; }
 
+        /// <summary>
+        /// Batas potongan berupa persentase dari gaji bersih (BE-FIN-110, FIN-DEC-217).
+        /// Nilai antara 0 sampai 100 persen. Bila potongan melebihi batas ini, dipotong sebagian.
+        /// </summary>
+        public decimal? MaxNetSalaryPercentage { get; set; }
+
         public bool IsRecurring { get; set; } = true;
 
         public bool IsStatutory { get; set; } = false;

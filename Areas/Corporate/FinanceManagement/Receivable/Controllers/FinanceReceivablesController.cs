@@ -35,6 +35,7 @@ public sealed class FinanceReceivablesController : ControllerBase
     private readonly FinanceReceivableAgingReportService _agingReportService;
     private readonly FinanceSettlementService _settlementService;
     private readonly FinanceReceivablePaymentReportService _paymentReportService;
+    private readonly FinanceReceivableSeparationNoticeService _separationNoticeService;
 
     public FinanceReceivablesController(
         FinanceReceivableService service,
@@ -43,7 +44,8 @@ public sealed class FinanceReceivablesController : ControllerBase
         FinanceBillingArReportService billingArReportService,
         FinanceReceivableAgingReportService agingReportService,
         FinanceSettlementService settlementService,
-        FinanceReceivablePaymentReportService paymentReportService)
+        FinanceReceivablePaymentReportService paymentReportService,
+        FinanceReceivableSeparationNoticeService separationNoticeService)
     {
         _service = service;
         _clearanceService = clearanceService;
@@ -52,6 +54,7 @@ public sealed class FinanceReceivablesController : ControllerBase
         _agingReportService = agingReportService;
         _settlementService = settlementService;
         _paymentReportService = paymentReportService;
+        _separationNoticeService = separationNoticeService;
     }
 
     [HttpGet("filters/metadata")]
@@ -570,6 +573,26 @@ public sealed class FinanceReceivablesController : ControllerBase
     {
         var result = await _clearanceService.GetBatchAsync(request.BenefitOwnerIds, cancellationToken);
         return Ok(ApiResponse<List<EmployeeClearanceResponse>>.Ok(result, "Status bebas tanggungan berhasil diambil."));
+    }
+
+    // INT-HR-FIN-003 §P.5 (FIN-DEC-169, FIN-DEC-194): Notifikasi pemisahan pegawai dari HR ke Finance.
+    [HttpPost("separation-notice")]
+    [AccessAction("Update", "Update Receivable", AccessType = AccessTypes.Update, SortOrder = 6)]
+    [AccessPermission("FinanceReceivable", "Update")]
+    [ProducesResponseType(typeof(ApiResponse<SeparationNoticeResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ReceiveSeparationNotice([FromBody] SeparationNoticeRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _separationNoticeService.ProcessNoticeAsync(request, cancellationToken);
+            return Ok(ApiResponse<SeparationNoticeResponse>.Ok(result, result.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse<object>.Fail(400, ex.Message));
+        }
     }
 
     private IActionResult Failure(Exception exception) => exception switch
