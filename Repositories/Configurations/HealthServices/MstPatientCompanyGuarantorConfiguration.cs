@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
@@ -8,7 +10,16 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
     {
         public void Configure(EntityTypeBuilder<MstPatientCompanyGuarantor> entity)
         {
-            entity.ToTable("MstPatientCompanyGuarantor", "public");
+            entity.ToTable("MstPatientCompanyGuarantor", "public", table =>
+            {
+                // BE-FIN-105, kamus data 9.4: ketiga kolom tautan HR kosong semua (kartu biasa),
+                // atau EmployeeId dan BenefitRelationship terisi dengan SELF <=> FamilyMemberId kosong.
+                table.HasCheckConstraint(
+                    "CK_MstPatientCompanyGuarantor_BenefitLink",
+                    "(\"EmployeeId\" IS NULL AND \"FamilyMemberId\" IS NULL AND \"BenefitRelationship\" IS NULL) " +
+                    "OR (\"EmployeeId\" IS NOT NULL AND \"BenefitRelationship\" IS NOT NULL " +
+                    "AND ((\"BenefitRelationship\" = 'SELF') = (\"FamilyMemberId\" IS NULL)))");
+            });
 
             entity.HasKey(x => x.Id);
 
@@ -104,6 +115,16 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.IsActive)
                 .HasDefaultValue(true);
 
+            entity.Property(x => x.EmployeeId)
+                .IsRequired(false);
+
+            entity.Property(x => x.FamilyMemberId)
+                .IsRequired(false);
+
+            entity.Property(x => x.BenefitRelationship)
+                .HasMaxLength(50)
+                .IsRequired(false);
+
             entity.Property(x => x.CreateDateTime)
                 .HasColumnType("timestamp with time zone")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
@@ -136,9 +157,31 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .HasForeignKey(x => x.CompanyGuarantorId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // BE-FIN-105: FK lintas area ke HR tanpa navigation property, mengikuti pola
+            // SlidingScaleExecutionConfiguration (HealthServices -> MstEmployee).
+            entity.HasOne<MstEmployee>()
+                .WithMany()
+                .HasForeignKey(x => x.EmployeeId)
+                .HasConstraintName("FK_MstPatientCompanyGuarantor_EmployeeId")
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne<WfpFamilyMember>()
+                .WithMany()
+                .HasForeignKey(x => x.FamilyMemberId)
+                .HasConstraintName("FK_MstPatientCompanyGuarantor_FamilyMemberId")
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasIndex(x => x.PatientId);
 
             entity.HasIndex(x => x.CompanyGuarantorId);
+
+            entity.HasIndex(x => x.EmployeeId)
+                .HasFilter("\"EmployeeId\" IS NOT NULL")
+                .HasDatabaseName("IX_MstPatientCompanyGuarantor_EmployeeId");
+
+            entity.HasIndex(x => x.FamilyMemberId)
+                .HasFilter("\"FamilyMemberId\" IS NOT NULL")
+                .HasDatabaseName("IX_MstPatientCompanyGuarantor_FamilyMemberId");
 
             entity.HasIndex(x => x.EmployeeNumber)
                 .HasFilter("\"IsDelete\" = false");

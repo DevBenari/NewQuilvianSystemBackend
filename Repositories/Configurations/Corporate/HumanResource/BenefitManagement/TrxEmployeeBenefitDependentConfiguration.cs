@@ -9,8 +9,15 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
     {
         public void Configure(EntityTypeBuilder<TrxEmployeeBenefitDependent> entity)
         {
-            entity.ToTable("TrxEmployeeBenefitDependent", "public");
+            entity.ToTable("TrxEmployeeBenefitDependent", "public", table =>
+            {
+                // BE-FIN-103, kamus data 9.3: saldo plafon tidak pernah negatif.
+                table.HasCheckConstraint(
+                    "CK_TrxEmployeeBenefitDependent_Balance",
+                    "\"UsedAmount\" >= 0 AND \"RemainingAmount\" >= 0");
+            });
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.RowVersion).IsConcurrencyToken();
 
             entity.Property(x => x.BirthDate).HasColumnType("timestamp with time zone");
             entity.Property(x => x.EffectiveStartDate).HasColumnType("timestamp with time zone");
@@ -53,9 +60,18 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
                 .HasForeignKey(x => x.VerifiedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // BE-FIN-103 (TOUCHED LEGACY): filter dipersempit ke status terbuka. Semula hanya
+            // "IsDelete = false", sehingga tanggungan yang Rejected/Ended tidak dapat didaftarkan
+            // ulang (FIN-STATE-1.9 R.2: mengajukan ulang = membuat tanggungan baru).
             entity.HasIndex(x => new { x.EmployeeBenefitEnrollmentId, x.DependentName, x.RelationshipType })
                 .IsUnique()
-                .HasFilter("\"IsDelete\" = false");
+                .HasFilter("\"IsDelete\" = false AND \"DependentStatus\" IN ('Draft','Requested','Verified')");
+
+            // BE-FIN-103, kamus data 9.3: satu tanggungan terbuka per anggota keluarga per enrollment.
+            entity.HasIndex(x => new { x.EmployeeBenefitEnrollmentId, x.FamilyMemberId })
+                .IsUnique()
+                .HasFilter("\"DependentStatus\" IN ('Draft','Requested','Verified') AND \"FamilyMemberId\" IS NOT NULL AND \"IsDelete\" = false")
+                .HasDatabaseName("UX_TrxEmployeeBenefitDependent_OpenPerFamilyMember");
 
             entity.HasIndex(x => new { x.WorkforceProfileId, x.DependentStatus, x.IsActive });
 

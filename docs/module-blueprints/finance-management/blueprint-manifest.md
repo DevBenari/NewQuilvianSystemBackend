@@ -6,10 +6,109 @@ module_name: Finance Management
 module_slug: finance-management
 module_prefix: Fin
 module_area: Areas/Corporate/FinanceManagement
-revision: 18
+revision: 20
 blueprint_shape: SINGLE
 blueprint_shape_decided_by: USER_CONFIRMED
 blueprint_shape_decision: FIN-DEC-161
+revision_20_note: >
+  Revisi 20 (13 Oktober 2026) adalah /design-business-module yang merevisi kontrak menyusul grill-me FIN-DEC-215, 218..222.
+  STATUS: SELURUHNYA draft. Revisi 19 (lima kontrak approved sisi Finance dan HR) TIDAK ditimpa; Revisi 20 menerbitkan versi
+  baru karena dua bagiannya berubah: payrollRunId opsional (FIN-API-1.9 P.1.1, sesuai kode) dan isian nama pemberi persetujuan
+  (FIN-INTEGRATION-1.9 R.4.3). YANG BARU: jembatan manual potong gaji INT-FIN-PAY-001 (jadwal per periode dan ekspor; batch
+  hasil potongan dengan validasi per baris, kelengkapan, total kontrol, bukti laporan penggajian, pengaju-pengesah, pengesahan
+  atomik; koreksi berselisih; master peralihan ke mesin). Desain FIN-DES-105..108. Tabel baru FinPayrollDeductionBatch,
+  FinPayrollDeductionBatchItem, MstPayrollDeductionCutover; kolom BilArHandoff.DeferredConsentGivenBy; migration usulan 5 dan 6.
+  FIN-VAL-272..289, FR-FIN-253..260, kriteria uji bagian O, flowchart 03, arsitektur bagian S, frontend bagian 25.
+  NOL source, NOL migration, NOL build. Roadmap BELUM diperbarui: pemecahan BE-FIN-110 dan task jembatan adalah tugas
+  plan-module-delivery setelah persetujuan.
+approval_revision_20: >
+  APPROVED 13 Oktober 2026 oleh pemilik Finance, HR, dan Billing (pengguna sesi; FIN-DEC-223, FIN-DEC-224): ketujuh kontrak
+  Revisi 20, desain FIN-DES-105..108, dua koreksi atas Revisi 19, dan empat pilihan desain agen. Konfirmasi pemilik Registrasi
+  atas FIN-DEC-204 dan 209 belum turun. Roadmap REV-21 ditulis pada hari yang sama (plan-module-delivery).
+contract_versions_revision_20:
+  integration-contract: FIN-INTEGRATION-1.10 — approved 2026-10-13, naik dari 1.9 (approved sisi Finance dan HR). Bagian S
+  api-contract: FIN-API-1.11 — approved 2026-10-13, naik dari 1.10. Bagian S
+  state-transition-matrix: FIN-STATE-1.10 — approved 2026-10-13. Bagian S
+  validation-matrix: FIN-VAL-1.13 — approved 2026-10-13. FIN-VAL-272..289
+  permission-audit-matrix: FIN-PERM-1.12 — approved 2026-10-13. Bagian S
+  acceptance-test-matrix: FIN-TEST-1.14 — approved 2026-10-13. Bagian O
+  prd-to-mvp: FIN-MVP-1.15 — approved 2026-10-13. FR-FIN-253..260
+artifact_hashes_revision_20:
+  note: >
+    SHA256 dipotong 16 karakter, dihitung sesudah revisi 20 ditulis.
+  contracts/integration-contract.md: 0a96059e0a3b696e
+  contracts/api-contract.md: e23f8ef664745671
+  contracts/state-transition-matrix.md: c983e29cf99aa38c
+  contracts/validation-matrix.md: f0b8d4dde52eabf3
+  contracts/permission-audit-matrix.md: 80a8b1d75b6f21c7
+  data/data-dictionary.md: 37725dd6c3c7f061
+  02-backend-architecture.md: 2932a9925d366c4d
+  03-frontend-architecture.md: 1f19a6e2c3e3635c
+  04-prd-to-mvp.md: 61964cdc2fe6b4a2
+  testing/acceptance-test-matrix.md: 0e4ba704128aedd3
+  00-interview-decisions.md: a59e449441450c39
+  flowcharts/00-alur-utama.md: 37c285cd33715746
+  flowcharts/03-alur-jembatan-manual-potong-gaji.md: aca27068d482b022
+revision_19_note: >
+  Revisi 19 (13 Oktober 2026) adalah /design-business-module yang menulis FIN-INTEGRATION-1.9 beserta kontrak
+  turunannya, setelah pemilik menyetujui rencana REV-19 dan menjawab FIN-OQ-104. STATUS: SELURUHNYA draft.
+  Tidak ada kontrak yang approved; persetujuan tetap tindakan manusia. Revisi 18 TETAP approved dan tidak
+  dicabut. NOL source aplikasi disentuh, NOL migration dibuat atau dijalankan, NOL build dijalankan.
+  YANG DITULIS: kontrak INT-REG-HR-001 (Registrasi membaca HR: cari pegawai, daftar keluarga, periksa kelayakan)
+  dan INT-BIL-HR-001 (Billing membaca, memakai, dan mengembalikan plafon di HR dengan kunci idempotensi
+  HandoffKey baris PAYER); koreksi atas INT-FIN-BIL-001 (satu atau dua baris, tidak pernah nol; BenefitOwnerId =
+  MstEmployee.Id; status awal Created; panjang kolom 50; rumus pembagian P = min(C, S)); pilihan pegawai atas sisa
+  tagihan pasien (bayar lunas di kasir atau jadikan utang). Arsitektur backend bagian R, kamus data bagian 9,
+  arsitektur frontend bagian 24, PRD bagian 71..76 (FR-FIN-238..252), flowchart 02, dan matriks uji bagian N.
+  KEPUTUSAN BARU: FIN-DEC-204..210 (204, 205, 206, 207, 208, 209 approved sisi pemilik; 210 proposed).
+  FIN-OQ-104, FIN-OQ-107 CLOSED; FIN-OQ-105 CLOSED sebagai draft kontrak (task yang bergantung tetap tertahan
+  sampai kontrak disetujui). PERTANYAAN BARU: FIN-OQ-108 (siapa mencatat pilihan pegawai; persetujuan pegawai),
+  FIN-OQ-109 (kategori benefit layanan RS; pemetaan hubungan keluarga). FIN-OQ-106 (mesin payroll HR) tetap OPEN.
+  DUA HAL YANG PERLU PERHATIAN PEMILIK SAAT MENYETUJUI: (1) koreksi FIN-INTEGRATION-1.8 P.1 dari "tepat dua baris"
+  menjadi "satu atau dua baris" (FIN-DEC-210, bukti CK_BilArHandoff_Amount); (2) tafsiran FIN-DEC-208 bahwa pilihan
+  pegawai boleh sebagian. Blueprint HR belum diselaraskan: slice Benefit S-D3 masih tercatat BLOCKED di sana.
+  SHA commit: tidak tersedia, folder kerja bukan repository git; bukti dibaca langsung dari working tree.
+approval_revision_19: >
+  APPROVED SISI PEMILIK FINANCE DAN HR, 13 Oktober 2026 (pernyataan langsung pada sesi grill-me, FIN-DEC-212):
+  FIN-INTEGRATION-1.9, FIN-API-1.10, FIN-STATE-1.9, FIN-VAL-1.12, dan FIN-PERM-1.11. Status kelimanya naik dari
+  draft menjadi approved. YANG TIDAK IKUT DISETUJUI: FIN-TEST-1.13 dan FIN-MVP-1.14 (tidak disebut; tetap draft).
+  YANG MASIH MENUNGGU: konfirmasi pemilik Billing dan Registrasi atas FIN-DEC-204, 208, dan 209. Poin penyerahan
+  1-3 (FIN-DEC-210, tafsiran FIN-DEC-208, FIN-OQ-109) sudah dikonfirmasi pemilik. GATE-01 tertutup (build sukses dan
+  dua migration diterapkan ke database dev, laporan pemilik, FIN-DEC-213). FIN-DEC-214: potongan cicilan dieksekusi
+  mesin payroll run di sistem ini yang dibangun HR; mesin itu belum ada, sehingga BE-FIN-110 perlu dipecah.
+  PUTARAN KEDUA DAN KETIGA grill-me (13 Oktober 2026): FIN-DEC-215..222. Jembatan manual potong gaji sampai mesin payroll
+  ada (FIN-DEC-215, 219..222: ekspor jadwal per periode; unggah hasil dengan pengaju-penyetuju dan bukti; terkunci per
+  periode setelah mesin aktif), urutan dan batas potongan (FIN-DEC-216, 217), persetujuan pegawai pada utang pasien non-
+  pegawai (FIN-DEC-218). TIGA PERUBAHAN ATAS KONTRAK APPROVED wajib menjadi revisi berikutnya lewat design-business-module,
+  bukan sunting langsung. FIN-OQ-106, 108, 110 CLOSED sisi Finance; FIN-OQ-111 (nilai persen dan dasar hitung) OPEN.
+contract_versions_revision_19:
+  integration-contract: FIN-INTEGRATION-1.9 — approved sisi pemilik Finance dan HR 2026-10-13, naik dari 1.8 (approved). Bagian R
+  api-contract: FIN-API-1.10 — approved sisi pemilik Finance dan HR 2026-10-13, naik dari 1.9. Bagian R (HR benefit, lookup Registrasi, finalisasi Billing)
+  state-transition-matrix: FIN-STATE-1.9 — approved sisi pemilik Finance dan HR 2026-10-13, naik dari 1.8. Bagian R
+  validation-matrix: FIN-VAL-1.12 — approved sisi pemilik Finance dan HR 2026-10-13, naik dari 1.11. FIN-VAL-249..271
+  permission-audit-matrix: FIN-PERM-1.11 — approved sisi pemilik Finance dan HR 2026-10-13, naik dari 1.10. Bagian R
+  acceptance-test-matrix: FIN-TEST-1.13 — draft 2026-10-13, naik dari 1.12. Bagian N
+  prd-to-mvp: FIN-MVP-1.14 — draft 2026-10-13, naik dari 1.13. FR-FIN-238..252
+artifact_hashes_revision_19:
+  note: >
+    SHA256 dipotong 16 karakter pertama, dihitung 13 Oktober 2026 sesudah revisi 19 ditulis. Hash sebelum
+    amandemen dicatat pada kepala tiap bagian (input_hash). Hash pada artifact_hashes lama berhenti
+    diperbarui sejak revisi 7 dan TIDAK menjadi rujukan.
+  00-interview-decisions.md: a59e449441450c39
+  02-backend-architecture.md: 2932a9925d366c4d
+  03-frontend-architecture.md: 1f19a6e2c3e3635c
+  04-prd-to-mvp.md: 61964cdc2fe6b4a2
+  contracts/integration-contract.md: 0a96059e0a3b696e
+  contracts/api-contract.md: e23f8ef664745671
+  contracts/state-transition-matrix.md: c983e29cf99aa38c
+  contracts/validation-matrix.md: f0b8d4dde52eabf3
+  contracts/permission-audit-matrix.md: 80a8b1d75b6f21c7
+  data/data-dictionary.md: 37725dd6c3c7f061
+  testing/acceptance-test-matrix.md: 0e4ba704128aedd3
+  flowcharts/00-alur-utama.md: 37c285cd33715746
+  flowcharts/02-alur-plafon-benefit-pasien-keluarga.md: 0d06426b81affc47
+  roadmap/01-backend-roadmap.md: 3975dfc9627356ac
+  roadmap/02-frontend-roadmap.md: 9d45b6f41364ca57
 revision_18_note: >
   Revisi 18 (6 Oktober 2026) adalah /design-business-module yang menuntaskan SELURUH GERBANG HULU DAN HILIR
   lintas domain untuk EPIC FIN-04 — piutang manfaat karyawan — mencakup slices S1, S3, S4b, S5, dan S6,
