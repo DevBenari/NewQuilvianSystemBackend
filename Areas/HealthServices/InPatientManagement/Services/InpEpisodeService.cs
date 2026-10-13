@@ -203,8 +203,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     .SingleOrDefaultAsync(cancellationToken);
                 if (selectedRoom?.PatientClassId == null || selectedRoom.PatientClassId == Guid.Empty)
                     return InpEpisodeOperationResult.Invalid("Kamar yang dipilih belum memiliki kelas perawatan aktif.");
-                if (selectedRoom.ServiceUnitId != request.ServiceUnitId)
-                    return InpEpisodeOperationResult.Invalid("Kamar yang dipilih berbeda dari unit layanan admisi. Pilih kamar pada unit layanan yang sesuai.");
+                if (selectedRoom.ServiceUnitId != Guid.Empty && selectedRoom.ServiceUnitId != request.ServiceUnitId)
+                {
+                    request.ServiceUnitId = selectedRoom.ServiceUnitId;
+                }
                 request.PatientClassId = selectedRoom.PatientClassId.Value;
             }
 
@@ -459,8 +461,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             {
                 if (!reservedRoom.PatientClassId.HasValue || reservedRoom.PatientClassId.Value == Guid.Empty)
                     return InpEpisodeOperationResult.Invalid("Kamar yang dipesan belum memiliki kelas perawatan.");
-                if (reservedRoom.ServiceUnitId != request.ServiceUnitId)
-                    return InpEpisodeOperationResult.Invalid("Unit layanan harus sesuai dengan kamar yang dipesan.");
+                if (reservedRoom.ServiceUnitId != Guid.Empty && reservedRoom.ServiceUnitId != request.ServiceUnitId)
+                {
+                    request.ServiceUnitId = reservedRoom.ServiceUnitId;
+                }
             }
             // Kelas tidak dapat diganti melalui isian konfirmasi admisi.
             request.PatientClassId = reservedRoom?.PatientClassId ?? episode.PatientClassId;
