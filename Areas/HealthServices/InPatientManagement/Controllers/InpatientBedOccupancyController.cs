@@ -395,7 +395,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         /// </summary>
         private IActionResult FromFailure(InpBedOccupancyOperationResult result)
         {
-            object? errors = result.Failures.Count > 0 ? result.Failures : null;
+            object? errors = result.Failures.Count > 0
+                ? result.Failures
+                : !string.IsNullOrWhiteSpace(result.Code)
+                    ? new { code = result.Code }
+                    : null;
 
             return result.Status switch
             {

@@ -356,6 +356,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     "Pemesanan tempat tidur hanya dapat dilakukan sebelum pasien ditempatkan.");
             }
 
+            // BE-RWI-012 — INV-INP-10. Pasien yang sudah aktif dirawat tidak dapat memesan bed baru.
+            var present = await _episodeService.FindPresentEpisodeAsync(
+                episode.PatientId,
+                episode.Id,
+                cancellationToken);
+
+            if (present != null)
+            {
+                return InpBedOccupancyOperationResult.Conflict(
+                    present.RejectionMessage,
+                    "PATIENT_ALREADY_ADMITTED");
+            }
+
             var context = await LoadBedContextAsync(request.BedId, cancellationToken);
 
             if (context == null)
@@ -601,7 +614,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             if (present != null)
             {
-                return InpBedOccupancyOperationResult.Conflict(present.RejectionMessage);
+                return InpBedOccupancyOperationResult.Conflict(
+                    present.RejectionMessage,
+                    "PATIENT_ALREADY_ADMITTED");
             }
 
             var context = await LoadBedContextAsync(request.BedId, cancellationToken);
@@ -2126,18 +2141,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             string message,
             List<PlacementEligibilityFailureResponse>? failures = null,
             Guid? reservationId = null,
-            Guid? placementId = null)
+            Guid? placementId = null,
+            string? code = null)
         {
             Status = status;
             Message = message;
             Failures = failures ?? new List<PlacementEligibilityFailureResponse>();
             ReservationId = reservationId;
             PlacementId = placementId;
+            Code = code;
         }
 
         public InpEpisodeOperationStatus Status { get; }
 
         public string Message { get; }
+
+        public string? Code { get; }
 
         /// <summary>
         /// Daftar aturan Kelayakan Penempatan yang gagal. Kosong untuk penolakan yang bukan
@@ -2160,20 +2179,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 reservationId,
                 placementId);
 
-        public static InpBedOccupancyOperationResult Invalid(string message)
-            => new(InpEpisodeOperationStatus.Invalid, message);
+        public static InpBedOccupancyOperationResult Invalid(string message, string? code = null)
+            => new(InpEpisodeOperationStatus.Invalid, message, code: code);
 
-        public static InpBedOccupancyOperationResult NotFound(string message)
-            => new(InpEpisodeOperationStatus.NotFound, message);
+        public static InpBedOccupancyOperationResult NotFound(string message, string? code = null)
+            => new(InpEpisodeOperationStatus.NotFound, message, code: code);
 
-        public static InpBedOccupancyOperationResult Conflict(string message)
-            => new(InpEpisodeOperationStatus.Conflict, message);
+        public static InpBedOccupancyOperationResult Conflict(string message, string? code = null)
+            => new(InpEpisodeOperationStatus.Conflict, message, code: code);
 
-        public static InpBedOccupancyOperationResult BusinessRuleRejected(string message)
-            => new(InpEpisodeOperationStatus.BusinessRuleRejected, message);
+        public static InpBedOccupancyOperationResult BusinessRuleRejected(string message, string? code = null)
+            => new(InpEpisodeOperationStatus.BusinessRuleRejected, message, code: code);
 
-        public static InpBedOccupancyOperationResult Forbidden(string message)
-            => new(InpEpisodeOperationStatus.Forbidden, message);
+        public static InpBedOccupancyOperationResult Forbidden(string message, string? code = null)
+            => new(InpEpisodeOperationStatus.Forbidden, message, code: code);
 
         /// <summary>
         /// Menyusun penolakan dari hasil Kelayakan Penempatan, lengkap dengan daftar aturan
@@ -2189,7 +2208,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             return new InpBedOccupancyOperationResult(
                 status,
                 evaluation.PrimaryMessage,
-                evaluation.Failures.ToList());
+                evaluation.Failures.ToList(),
+                code: evaluation.Failures.FirstOrDefault()?.Code);
         }
     }
 }
