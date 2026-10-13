@@ -1,41 +1,15 @@
 {
-  "backendVersion": "0.17.0",
+  "backendVersion": "0.18.0",
   "releaseMetadata": {
-    "generatedBy": "Quilvian Release Generator",
-    "migrations": [
-      "20261013051652_ExtendPatientMembershipLifecycle.cs",
-      "20261013052442_AddPatientMembershipStatusUniqueIndexes.cs",
-      "20261013055556_TableHrdBenefitBalanceMovements.cs",
-      "20261013055825_AddEmployeeLinkToPatientCompanyGuarantor.cs",
-      "20261013083000_AddReceivableWriteOffProposalV2.cs"
-    ],
-    "migrationCount": 5,
-    "generatedAt": "2026-10-13T07:54:59",
-    "features": [
-      "Microbiology Workflow",
-      "Susceptibility Management",
-      "Specimen Management",
-      "Laboratory Master Data",
-      "Result Validation",
-      "Billing Workflow",
-      "Finance Workflow",
-      "Pharmacy Workflow",
-      "Radiology Workflow"
-    ],
+    "generatedAt": "2026-10-13T09:14:45",
     "modules": [
-      "Administrator Management",
-      "Billing Management",
-      "Clinical Management",
-      "Finance Management",
-      "Human Resource Management",
-      "Inpatient Management",
-      "Laboratory Management",
-      "Patient Management",
-      "Pharmacy Management",
-      "Radiology Management",
-      "Registration Management"
-    ]
+      "Inpatient Management"
+    ],
+    "generatedBy": "Quilvian Release Generator",
+    "features": [],
+    "migrations": [],
+    "migrationCount": 0
   },
-  "description": "Release 0.17.0 enhances Administrator Management, Billing Management, Clinical Management, Finance Management, Human Resource Management, Inpatient Management, Laboratory Management, Patient Management, Pharmacy Management, Radiology Management, Registration Management capabilities. Includes improvements across Microbiology Workflow, Susceptibility Management, Specimen Management, Laboratory Master Data, Result Validation, Billing Workflow, Finance Workflow, Pharmacy Workflow, Radiology Workflow. Includes 5 database migration update(s).",
-  "releaseName": "Quilvian 0.17.0 - Enterprise Platform Enhancement"
+  "releaseName": "Quilvian 0.18.0 - Inpatient Management Enhancement",
+  "description": "Release 0.18.0 enhances Inpatient Management capabilities."
 }
