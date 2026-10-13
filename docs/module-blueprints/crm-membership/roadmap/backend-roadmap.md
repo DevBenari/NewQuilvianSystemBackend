@@ -24,13 +24,14 @@
 | Tanda | Arti |
 |:---:|---|
 | ✅ | Prasyarat atau task selesai dan terbukti |
+| 🟡 | Source dan migration ada, bukti berbasis database belum dijalankan |
 | ⛔ | Prasyarat berupa keputusan atau gerbang di luar task belum terpenuhi |
 | tanpa tanda | Siap dikerjakan setelah dependency selesai |
 
 ## Grafik Dependency
 
 ```text
-✅{Registry} ─> BE-CRM-001 ─┬─> BE-CRM-002 ─┐
+✅{Registry} ─> BE-CRM-001 ✅ ─┬─> BE-CRM-002 ✅ ─┐
                            ├─> BE-CRM-003 ─┤
                            ├─> BE-CRM-010 ─┼─> BE-CRM-011 ─┬─> BE-CRM-012 ─┐
                            └─> BE-CRM-023  │               ├─> BE-CRM-013 ─┼─> BE-CRM-015 (rilis bersama FE-CRM-001)
@@ -49,12 +50,12 @@
 
 | Task ID | Outcome | Epic | Dependency | Status |
 |---|---|---|---|---|
-| `BE-CRM-001` | Model, enum, konfigurasi, dan migration skema membership | CRM-01 | `BE-CRM-000` ✅ | Siap |
-| `BE-CRM-002` | Data lama menjadi Perlu Verifikasi + index unik per status | CRM-01 | 001 | — |
-| `BE-CRM-003` | Nominal iuran di master tingkat | CRM-01 | 001 | — |
-| `BE-CRM-023` | Respons daftar/detail/ringkasan memuat kolom dan status baru | CRM-01 | 001 | — |
-| `BE-CRM-010` | Satu aturan member aktif + penulis proyeksi | CRM-05 | 001 | — |
-| `BE-CRM-011` | Daftar membership baru lewat service | CRM-02 | 002, 003, 010 | — |
+| `BE-CRM-001` ✅ | Model, enum, konfigurasi, dan migration skema membership | CRM-01 | `BE-CRM-000` ✅ | Selesai, diterapkan ke devYoga — [laporan](../task/report/backend/BE-CRM-001.md) |
+| `BE-CRM-002` ✅ | Data lama menjadi Perlu Verifikasi + index unik per status | CRM-01 | 001 | Selesai, diterapkan ke devYoga — [laporan](../task/report/backend/BE-CRM-002.md) |
+| `BE-CRM-003` ✅ | Nominal iuran di master tingkat | CRM-01 | 001 | Selesai — [laporan](../task/report/backend/BE-CRM-003.md) |
+| `BE-CRM-023` ✅ | Respons daftar/detail/ringkasan memuat kolom dan status baru | CRM-01 | 001 | Selesai — [laporan](../task/report/backend/BE-CRM-023.md) |
+| `BE-CRM-010` ✅ | Satu aturan member aktif + penulis proyeksi | CRM-05 | 001 | Selesai — [laporan](../task/report/backend/BE-CRM-010.md) |
+| `BE-CRM-011` 🟡 | Daftar membership baru lewat service | CRM-02 | 002, 003, 010 | Selesai, `AT-12` paralel di PostgreSQL belum — [laporan](../task/report/backend/BE-CRM-011.md) |
 | `BE-CRM-012` | Perpanjangan dan upgrade | CRM-02 | 011 | — |
 | `BE-CRM-013` | Batal, verifikasi data lama, catatan, riwayat | CRM-04 | 011 | — |
 | `BE-CRM-014` | Lookup pasien + status aktif pasien | CRM-02, CRM-05 | 010 | — |
@@ -74,7 +75,9 @@
 | Pemilik | Pemilik registry (persetujuan), Yoga Aji Pratama (pengaju) |
 | Status | ✅ Selesai 2026-10-13. Baris `HealthServices / PatientManagement / Membership / Patient Membership` (`Pat`, `ACTIVE`) ditambahkan beserta catatan lifecycle. Persetujuan Muhammad Hamzah (pemilik registry), disampaikan Yoga Aji Pratama. QBE checker `ReportOnly` atas berkas registry: PASS |
 
-### `BE-CRM-001` — Skema membership
+### `BE-CRM-001` ✅ — Skema membership
+
+Selesai 2026-10-13 di `761bfe9d`: migration `20261013051652_ExtendPatientMembershipLifecycle`. Laporan: [`task/report/backend/BE-CRM-001.md`](../task/report/backend/BE-CRM-001.md). Diterapkan ke `QuilvianNewDevYoga` 2026-10-13.
 
 | Field | Isi |
 |---|---|
@@ -89,7 +92,9 @@
 | Risiko/pemilik | Merge lain membawa migration bersamaan, sehingga snapshot bentrok. Pemilik: implementer + Yoga |
 | DoD | Kriteria 1–4 terbukti dan laporan task tertulis |
 
-### `BE-CRM-002` — Data lama dan index unik
+### `BE-CRM-002` ✅ — Data lama dan index unik
+
+Migration `20261013052442_AddPatientMembershipStatusUniqueIndexes` dibuat 2026-10-13. SQL data ditaruh di migration ini (bukan di migration `BE-CRM-001`), sebelum index. Laporan: [`task/report/backend/BE-CRM-002.md`](../task/report/backend/BE-CRM-002.md). Diterapkan ke `QuilvianNewDevYoga` 2026-10-13 setelah dua uji kering; kriteria 1–3 terbukti.
 
 | Field | Isi |
 |---|---|
@@ -104,7 +109,9 @@
 | Risiko/pemilik | Jumlah baris lama belum diketahui (`CRM-CAP-015`). Pemilik: Yoga |
 | DoD | Kriteria 1–3 terbukti dengan bukti kueri |
 
-### `BE-CRM-003` — Iuran di master tingkat
+### `BE-CRM-003` ✅ — Iuran di master tingkat
+
+Selesai 2026-10-13. Laporan: [`task/report/backend/BE-CRM-003.md`](../task/report/backend/BE-CRM-003.md).
 
 | Field | Isi |
 |---|---|
@@ -119,7 +126,9 @@
 | Risiko/pemilik | Menyentuh master milik Administrator. Pemilik: Yoga |
 | DoD | Kriteria terbukti |
 
-### `BE-CRM-023` — Respons baca diperluas
+### `BE-CRM-023` ✅ — Respons baca diperluas
+
+Selesai 2026-10-13. Laporan: [`task/report/backend/BE-CRM-023.md`](../task/report/backend/BE-CRM-023.md).
 
 | Field | Isi |
 |---|---|
@@ -134,7 +143,9 @@
 | Risiko/pemilik | — |
 | DoD | Kriteria terbukti |
 
-### `BE-CRM-010` — Resolver member aktif
+### `BE-CRM-010` ✅ — Resolver member aktif
+
+Selesai 2026-10-13. Laporan: [`task/report/backend/BE-CRM-010.md`](../task/report/backend/BE-CRM-010.md).
 
 | Field | Isi |
 |---|---|
@@ -149,7 +160,9 @@
 | Risiko/pemilik | Jebakan UTC-WIB. Pemilik: implementer |
 | DoD | Kriteria terbukti |
 
-### `BE-CRM-011` — Daftar membership baru
+### `BE-CRM-011` 🟡 — Daftar membership baru
+
+Selesai 2026-10-13 kecuali uji paralel `AT-12` di PostgreSQL (index unik sudah terbukti di `BE-CRM-002`). Laporan: [`task/report/backend/BE-CRM-011.md`](../task/report/backend/BE-CRM-011.md).
 
 | Field | Isi |
 |---|---|

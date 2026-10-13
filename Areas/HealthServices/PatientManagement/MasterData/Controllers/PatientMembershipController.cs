@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membership.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
@@ -39,13 +40,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly PatientMembershipStatusResolver _statusResolver;
+        private readonly PatientMembershipService _membershipService;
 
         public PatientMembershipController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            PatientMembershipStatusResolver statusResolver,
+            PatientMembershipService membershipService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _statusResolver = statusResolver;
+            _membershipService = membershipService;
         }
 
         [HttpGet("filters/metadata")]
@@ -158,7 +165,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 AutoCreatedPatientMembership = await query.CountAsync(x => x.IsAutoCreated),
                 KioskCreatedPatientMembership = await query.CountAsync(x => x.IsCreatedFromKiosk),
                 AdmissionCreatedPatientMembership = await query.CountAsync(x => x.IsCreatedFromAdmission),
-                MarketingCreatedPatientMembership = await query.CountAsync(x => x.IsCreatedByMarketing)
+                MarketingCreatedPatientMembership = await query.CountAsync(x => x.IsCreatedByMarketing),
+                PendingPaymentPatientMembership = await query.CountAsync(x => x.MembershipStatus == MembershipStatus.PendingPayment),
+                ScheduledPatientMembership = await query.CountAsync(x => x.MembershipStatus == MembershipStatus.Scheduled),
+                NeedsVerificationPatientMembership = await query.CountAsync(x => x.MembershipStatus == MembershipStatus.NeedsVerification),
+                CancelledPatientMembership = await query.CountAsync(x => x.MembershipStatus == MembershipStatus.Cancelled),
+                ExpiringIn30DaysPatientMembership = await ApplyExpiringWithinDays(query, 30).CountAsync()
             };
 
             return Ok(ApiResponse<PatientMembershipSummaryResponse>.Ok(
@@ -189,7 +201,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 25)
+            [FromQuery] int pageSize = 25,
+            [FromQuery] MembershipStatus? membershipStatus = null,
+            [FromQuery] int? expiringWithinDays = null)
         {
             var paging = NormalizePaging(pageNumber, pageSize);
             pageNumber = paging.PageNumber;
@@ -200,6 +214,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             query = ApplyDateFilter(query, startDate, endDate, customPeriod);
             query = ApplyRelationFilter(query, patientId, membershipTierId);
             query = ApplyStandardFilter(query, isActive, search);
+
+            if (membershipStatus.HasValue)
+            {
+                query = query.Where(x => x.MembershipStatus == membershipStatus.Value);
+            }
+
+            if (expiringWithinDays is > 0)
+            {
+                query = ApplyExpiringWithinDays(query, Math.Min(expiringWithinDays.Value, 366));
+            }
 
             var totalData = await query.CountAsync();
 
@@ -246,9 +270,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 25)
+            [FromQuery] int pageSize = 25,
+            [FromQuery] MembershipStatus? membershipStatus = null,
+            [FromQuery] int? expiringWithinDays = null)
         {
-            return GetPatientMemberships(startDate, endDate, customPeriod, patientId, membershipTierId, isActive, search, sortBy, sortDirection, pageNumber, pageSize);
+            return GetPatientMemberships(startDate, endDate, customPeriod, patientId, membershipTierId, isActive, search, sortBy, sortDirection, pageNumber, pageSize, membershipStatus, expiringWithinDays);
         }
 
 
@@ -482,11 +508,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             }
         }
 
+        // crm-membership BE-CRM-011 (CRM-DEC-004): pendaftaran baru oleh petugas CRM, tersimpan
+        // Menunggu Pembayaran dengan nomor member dari sistem.
         [HttpPost("admin")]
+        [ProducesResponseType(typeof(ApiResponse<PatientMembershipDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessPermission("PatientMembership", "Create")]
-        public Task<IActionResult> CreatePatientMembershipForAdmin([FromBody] CreatePatientMembershipRequest request)
+        public async Task<IActionResult> RegisterPatientMembershipForAdmin(
+            [FromBody] RegisterPatientMembershipRequest request,
+            CancellationToken cancellationToken = default)
         {
-            return CreatePatientMembership(request);
+            var result = await _membershipService.RegisterAsync(request, GetCurrentUserId(), cancellationToken);
+
+            if (!result.IsSuccess)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            var entity = await BuildBaseQuery().FirstAsync(x => x.Id == result.PatientMembershipId, cancellationToken);
+            var actorNames = await GetActorNameMapAsync(new[] { entity.CreateBy, entity.UpdateBy });
+
+            return Ok(ApiResponse<PatientMembershipDetailResponse>.Ok(MapDetailResponse(entity, actorNames), result.Message));
         }
 
 
@@ -796,6 +840,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             }
 
             return query;
+        }
+
+        /// <summary>Aktif yang tanggal akhirnya jatuh antara hari ini dan N hari ke depan (kalender WIB).</summary>
+        private IQueryable<MstPatientMembership> ApplyExpiringWithinDays(
+            IQueryable<MstPatientMembership> query,
+            int days)
+        {
+            var today = _statusResolver.GetTodayWib();
+            var until = today.AddDays(days);
+
+            return query.Where(x =>
+                x.MembershipStatus == MembershipStatus.Active &&
+                x.ExpiredDate != null &&
+                x.ExpiredDate >= today &&
+                x.ExpiredDate <= until);
         }
 
         private static IQueryable<MstPatientMembership> ApplyRelationFilter(
@@ -1192,6 +1251,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 MembershipStatusName = BuildEnumLabel(entity.MembershipStatus),
                 JoinDate = entity.JoinDate,
                 ExpiredDate = entity.ExpiredDate,
+                RegistrationType = entity.RegistrationType,
+                RegistrationTypeName = BuildEnumLabel(entity.RegistrationType),
+                PeriodStartDate = entity.PeriodStartDate,
+                PaymentDueAt = entity.PaymentDueAt,
+                ActivatedAt = entity.ActivatedAt,
+                FeeAmountSnapshot = entity.FeeAmountSnapshot,
+                PreviousPatientMembershipId = entity.PreviousPatientMembershipId,
+                CancellationCategory = entity.CancellationCategory,
+                CancellationCategoryName = entity.CancellationCategory.HasValue ? BuildEnumLabel(entity.CancellationCategory.Value) : null,
+                RowVersion = entity.RowVersion,
                 IsPrimary = entity.IsPrimary,
                 IsAutoCreated = entity.IsAutoCreated,
                 IsCreatedFromKiosk = entity.IsCreatedFromKiosk,
@@ -1232,6 +1301,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 MembershipStatusName = BuildEnumLabel(entity.MembershipStatus),
                 JoinDate = entity.JoinDate,
                 ExpiredDate = entity.ExpiredDate,
+                RegistrationType = entity.RegistrationType,
+                RegistrationTypeName = BuildEnumLabel(entity.RegistrationType),
+                PeriodStartDate = entity.PeriodStartDate,
+                PaymentDueAt = entity.PaymentDueAt,
+                ActivatedAt = entity.ActivatedAt,
+                FeeAmountSnapshot = entity.FeeAmountSnapshot,
+                PreviousPatientMembershipId = entity.PreviousPatientMembershipId,
+                CancellationCategory = entity.CancellationCategory,
+                CancellationCategoryName = entity.CancellationCategory.HasValue ? BuildEnumLabel(entity.CancellationCategory.Value) : null,
+                RowVersion = entity.RowVersion,
                 IsPrimary = entity.IsPrimary,
                 IsAutoCreated = entity.IsAutoCreated,
                 IsCreatedFromKiosk = entity.IsCreatedFromKiosk,
@@ -1243,6 +1322,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 LastDowngradeDate = entity.LastDowngradeDate,
                 UpgradeDowngradeReason = entity.UpgradeDowngradeReason,
                 Notes = entity.Notes,
+                CancellationReason = entity.CancellationReason,
                 IsActive = entity.IsActive,
                 CreateDateTime = entity.CreateDateTime,
                 CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,

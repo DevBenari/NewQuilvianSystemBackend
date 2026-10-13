@@ -13,12 +13,12 @@
 
 | Requirement | Keputusan | Desain | Kontrak | Task BE | Task FE | Bukti | Status |
 |---|---|---|---|---|---|---|---|
-| `FR-CRM-001` | `CRM-DEC-017` | BE §7 langkah 0 | — | `BE-CRM-000` ✅, `BE-CRM-001` | — | Baris registry (2026-10-13) | Sebagian selesai (registry) |
-| `FR-CRM-002` | `CRM-DEC-004`, `012`, `023`, `024` | BE §6 | Kamus data r1 | `BE-CRM-001` | — | Skrip migration vs DDL | Direncanakan |
-| `FR-CRM-003` | `CRM-DEC-021` | BE §7 langkah 2 | State `v1` | `BE-CRM-002` | `FE-CRM-004` | `AT-27`, `UAT-01` | Direncanakan |
-| `FR-CRM-004` | `INV-01` s.d. `03` | ERD | State `v1` | `BE-CRM-002` | — | `UAT-02`, `AT-12` | Direncanakan |
-| `FR-CRM-010` | `CRM-DEC-004`, `023` | BE §4.5 | API `v2` | `BE-CRM-011` | `FE-CRM-003` | `AT-02`, `UAT-03` | Direncanakan |
-| `FR-CRM-011` | `CRM-DEC-003`, `006`, `012` | — | Validasi `VAL-01` s.d. `05` | `BE-CRM-011`, `BE-CRM-003` | `FE-CRM-003` | `AT-01`, `AT-11`, `AT-20`, `UAT-04` | Direncanakan |
+| `FR-CRM-001` | `CRM-DEC-017` | BE §7 langkah 0 | — | `BE-CRM-000` ✅, `BE-CRM-001` ✅ | — | Baris registry (2026-10-13); QBE checker PASS atas model di folder baru | Selesai |
+| `FR-CRM-002` | `CRM-DEC-004`, `012`, `023`, `024` | BE §6 | Kamus data r1 | `BE-CRM-001` ✅ | — | Skrip SQL offline sesuai DDL ([laporan](../task/report/backend/BE-CRM-001.md)) | Selesai, diterapkan ke devYoga |
+| `FR-CRM-003` | `CRM-DEC-021` | BE §7 langkah 2 | State `v1` | `BE-CRM-002` ✅ | `FE-CRM-004` | `AT-27`, `UAT-01` lewat uji kering bersemai ([laporan](../task/report/backend/BE-CRM-002.md) §8) | Selesai backend |
+| `FR-CRM-004` | `INV-01` s.d. `03` | ERD | State `v1` | `BE-CRM-002` ✅ | — | `UAT-02` di devYoga (23505). `AT-12` jalur API menunggu `BE-CRM-011` | Index aktif |
+| `FR-CRM-010` | `CRM-DEC-004`, `023` | BE §4.5 | API `v2` | `BE-CRM-011` 🟡 | `FE-CRM-003` | `AT-02` lulus; `UAT-03` menunggu FE | Backend selesai |
+| `FR-CRM-011` | `CRM-DEC-003`, `006`, `012` | — | Validasi `VAL-01` s.d. `05` | `BE-CRM-011` 🟡, `BE-CRM-003` ✅ | `FE-CRM-003` | `AT-01`, `AT-11`, `AT-20` lulus; `UAT-04` menunggu FE | Backend selesai |
 | `FR-CRM-012` | `CRM-DEC-024` | — | `VAL-07`, `VAL-08` | `BE-CRM-012` | `FE-CRM-005` | `AT-30`, `UAT-05` | Direncanakan |
 | `FR-CRM-013` | `CRM-DEC-012`, `029` | — | `VAL-09` | `BE-CRM-012` | `FE-CRM-005` | `AT-14` | Direncanakan |
 | `FR-CRM-014` | `CRM-DEC-010` | — | `VAL-22` | `BE-CRM-014` | `FE-CRM-003` | `AT-18` | Direncanakan |
@@ -32,8 +32,8 @@
 | `FR-CRM-033` | `CRM-DEC-022` | — | `VAL-16` | `BE-CRM-013` | `FE-CRM-005` | Uji endpoint | Direncanakan |
 | `FR-CRM-034` | `CRM-DEC-013` | BE §4.3 | Izin `v1` | `BE-CRM-011`, `012`, `013`, `020` | `FE-CRM-005` | Baris riwayat di setiap AT | Direncanakan |
 | `FR-CRM-035` | — | — | `VAL-17` | `BE-CRM-013` | `FE-CRM-005` | `AT-35`, `UAT-15` | Direncanakan |
-| `FR-CRM-040` | `CRM-DEC-005` | J1 | `INT-01` | `BE-CRM-010` | — | `AT-03`, `AT-09` | Direncanakan |
-| `FR-CRM-041` | — | BE §4.4 | `INT-03` | `BE-CRM-010`, `BE-CRM-015` | `FE-CRM-007` | `UAT-11` | Direncanakan |
+| `FR-CRM-040` | `CRM-DEC-005` | J1 | `INT-01` | `BE-CRM-010` ✅ | — | `AT-03`, `AT-09` lulus ([laporan](../task/report/backend/BE-CRM-010.md)) | Selesai backend |
+| `FR-CRM-041` | — | BE §4.4 | `INT-03` | `BE-CRM-010` ✅, `BE-CRM-015` | `FE-CRM-007` | Penulis proyeksi diuji; `UAT-11` menunggu `BE-CRM-015` | Sebagian |
 | `FR-CRM-042` | `AG-03` | J1 | `INT-02` | `BE-CRM-022` ⛔ | — | `AT-36` | ⛔ menunggu owner rawat-jalan |
 | `FR-CRM-043` | `CRM-DEC-018` | — | `INT-03` | `BE-CRM-021` | — | `AT-23` | Direncanakan |
 | `FR-CRM-050` | `CRM-DEC-018` | — | API `v2` | `BE-CRM-015` | — | `AT-22`, `UAT-13` | Direncanakan |
