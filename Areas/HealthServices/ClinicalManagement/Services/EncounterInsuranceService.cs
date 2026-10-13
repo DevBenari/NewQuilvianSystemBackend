@@ -172,8 +172,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     ServiceUnitId = encounter.ServiceUnitId,
                     ClinicId = encounter.ClinicId,
                     PatientClassId = serviceClass.Id,
-                    PatientClassName = encounter.PatientClass?.PatientClassName
-                        ?? paymentSource.ClassNameSnapshot,
+                    PatientClassName = serviceClass.Name,
                     PaymentType = EncounterPaymentType.CompanyGuarantor,
                     PaymentTypeName = "Penjamin Perusahaan",
                     HasInsurance = false,
@@ -301,8 +300,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 ServiceUnitId = encounter.ServiceUnitId,
                 ClinicId = encounter.ClinicId,
                 PatientClassId = serviceClass.Id,
-                PatientClassName = encounter.PatientClass?.PatientClassName
-                    ?? paymentSource.ClassNameSnapshot,
+                PatientClassName = serviceClass.Name,
                 PaymentType = EncounterPaymentType.Insurance,
                 PaymentTypeName = "Asuransi",
                 HasInsurance = true,

@@ -5,7 +5,7 @@ Revision 1, 2026-10-12; owner episode-rawat-inap. Approval instruksi pemilik unt
 ## Grafik Urutan Dependency
 
 ```text
-FE-RWI-240
+FE-RWI-240 ✅
 ```
 
 | Gelombang | Boleh mulai setelah | Task |
@@ -14,8 +14,8 @@ FE-RWI-240
 
 ## Task
 
-### FE-RWI-240 — Kelas otomatis setelah memilih kamar pada admisi
+### ✅ FE-RWI-240 — Kelas otomatis setelah memilih kamar pada admisi
 
-Status: belum dikerjakan. Dependency: Tidak ada. Requirement: A-01–A-05, FIX-DOK-006-06; keputusan K-01/K-02/K-03 sesuai kontrak. Outcome dan scope: Hapus field/progress/validasi kelas pada pembayaran. Draft dokter ditunda sampai pilih kamar, lalu kunjungan dan episode memakai kelas kamar. Deposit dan transfer tidak membaca kelas dari storage pembayaran. Validasi penjamin, isolasi, konflik bed, dan retry tetap berlaku.
+Status: ✅ **SELESAI 13 Oktober 2026.** Pembayaran dan konfirmasi tanpa input kelas; kunjungan/episode dibuat setelah bed dipilih dengan `selectedBedId`; deposit dan transfer tidak lagi membaca kelas pembayaran. `inpatient-class-coverage.test.mjs` 5/5 `PASS`; ESLint terarah 17 berkas exit 0; build produksi Next.js `PASS` pada sesi implementasi; 14 berkas unit terkait 87/92 dengan 5 kegagalan lama di luar task. Uji manual alur admisi `NOT FEASIBLE`, runtime tidak tersedia. Bukti: [laporan](../task/report/frontend/FE-RWI-240.md). Dependency: Tidak ada; konsumsi kontrak ✅ BE-RWI-224. Requirement: A-01–A-05, FIX-DOK-006-06; keputusan K-01/K-02/K-03 sesuai kontrak. Outcome dan scope: Hapus field/progress/validasi kelas pada pembayaran. Draft dokter ditunda sampai pilih kamar, lalu kunjungan dan episode memakai kelas kamar. Deposit dan transfer tidak membaca kelas dari storage pembayaran. Validasi penjamin, isolasi, konflik bed, dan retry tetap berlaku.
 
 Reuse: model, service, hook, API dan base component existing; tidak membuat tabel baru. Acceptance: seluruh perilaku pada scope di atas dan contoh kamar kelas 1/item hanya dijamin kelas 2 pada plan, tanpa menyembunyikan item. Verifikasi: review kontrak/diff/proses bisnis; lint, suite unit, build, manual bila runtime tersedia. Risiko: consumer bersama harus diperiksa. DoD: source, validasi, laporan tracked, traceability. Wewenang hanya source dan dokumentasi, tanpa eksekusi database/deploy. QBE preflight/conformance dilaksanakan saat eksekusi dari AGENTS.md dan governance canonical.

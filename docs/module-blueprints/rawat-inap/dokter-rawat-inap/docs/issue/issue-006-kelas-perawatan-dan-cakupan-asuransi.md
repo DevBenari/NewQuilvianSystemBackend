@@ -7,7 +7,8 @@ submodule: dokter-rawat-inap
 layar: "Dokter Rawat Inap — Resep, Tindakan, Penunjang; lintas batas dengan admisi, penempatan kamar, dan Billing"
 sumber_laporan: "Permintaan audit pemilik 12-10-2026: dua pertanyaan dan ketetapan kelas perawatan fleksibel"
 tanggal_issue: "2026-10-12"
-status: TERBUKA
+status: SELESAI   # 2026-10-13: ISS-DOK-006-01..04 diperbaiki lewat FIX-DOK-006-01..06 ✅; uji UI/runtime belum dilakukan; ISS-DOK-006-T1 tindak lanjut terpisah
+tanggal_selesai: "2026-10-13"
 keparahan_tertinggi: High
 source_sha_backend: "d908988248f6652ed7f2ce84aae9eb3e38dd36a0 (MHamzah), pemeriksaan akhir"
 source_sha_frontend: "affcfcb4ea9f5177b1ff9a3ca0c09d15183af248 (HamzahV2), pemeriksaan akhir"
@@ -268,10 +269,37 @@ Base URL: `api/v1/health-services/inpatient-management/episodes/{episodeId}/anci
 
 `200`: hasil per item tersedia; harga dapat berstatus belum dapat diperkirakan. `400`: jenis/daftar item tidak valid. Episode yang tidak tersedia dan penolakan domain mengikuti `InpAncillaryOrderException.StatusCode`; `401/403` mengikuti akses. Tidak ada endpoint baru yang diusulkan sebagai seolah sudah tersedia.
 
-## 9. Riwayat dokumen
+## 9. Hasil implementasi
+
+Perbaikan dilaksanakan menurut [PLAN-REPAIR-DOK-006](../plan-repair/plan-repair-006-kelas-perawatan-dan-cakupan-asuransi.md) dan kontrak [RWI-KELAS-006-1.0](../../contracts/kelas-perawatan-repair-006.md) (SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`). Source di-commit pemilik pada backend `8551291f` dan frontend `2d0a6890e`; penutupan diperiksa terhadap HEAD `4ec02370` / `f4495aa14`.
+
+| Temuan | Perbaikan dan task | Yang berubah pada sistem | Status |
+| --- | --- | --- | --- |
+| ISS-DOK-006-01 | FIX-DOK-006-01, FIX-DOK-006-03 — ✅ [BE-RWI-226](../../task/report/backend/BE-RWI-226.md) | Obat lintas kelas tetap tampil. Harga memakai tarif yang cocok dengan kelas kamar atau tarif umum; tarif kelas lain tidak lagi diambil hanya karena harganya sama. Tanpa tarif sesuai/umum, resep ditahan dengan pesan "Lengkapi tarif sebelum menyimpan resep" | ✅ Diperbaiki |
+| ISS-DOK-006-02 | FIX-DOK-006-02, FIX-DOK-006-06 — ✅ [BE-RWI-224](../../../episode-rawat-inap/task/report/backend/BE-RWI-224.md), ✅ [BE-RWI-225](../../../integrasi-billing/task/report/backend/BE-RWI-225.md), ✅ [FE-RWI-240](../../../episode-rawat-inap/task/report/frontend/FE-RWI-240.md) | Kelas layanan dibaca dari riwayat penempatan pada waktu layanan; Billing menilai tiap item menurut waktunya. Admisi tidak lagi meminta kelas pada pembayaran/konfirmasi; kelas ditetapkan dari kamar yang dipilih dan divalidasi server | ✅ Diperbaiki |
+| ISS-DOK-006-03 | FIX-DOK-006-04 — ✅ [BE-RWI-223](../../task/report/backend/BE-RWI-223.md), ✅ BE-RWI-225 | Mesin klinis kini memeriksa kelas aturan asuransi; Clinical dan Billing memakai urutan aturan yang sama, aturan khusus kelas didahulukan | ✅ Diperbaiki |
+| ISS-DOK-006-04 | FIX-DOK-006-05 — ✅ [FE-RWI-239](../../task/report/frontend/FE-RWI-239.md) | `Cover 0%` diganti label dari status backend: Ditanggung, Ditanggung sebagian, Tidak Di-cover, Perlu persetujuan, atau Belum dapat ditentukan | ✅ Diperbaiki |
+| ISS-DOK-006-T1 | Tindak lanjut terpisah | Tidak dikerjakan pada plan ini; tetap menjadi tindak lanjut pemilik modul Gizi/Bank Darah | Terbuka |
+
+### Jawaban pelapor sesudah perbaikan
+
+Untuk contoh pelapor — pasien kamar kelas 1, Parasetamol hanya punya aturan cakupan kelas 2 — Parasetamol tetap tampil dan dapat diresepkan bila tarif kelas 1 atau tarif umum tersedia. Aturan kelas 2 tidak dipakai, sehingga lencana menunjukkan "Tidak Di-cover" dan bagian asuransi nol. Bila tarif juga tidak ada, resep ditahan sampai tarif dilengkapi. Kelas pasien tidak lagi dipilih manual; kelas mengikuti kamar yang dipilih, dan setelah pindah kamar layanan baru memakai kelas kamar baru.
+
+### Temuan saat penutupan
+
+- Audit ulang 13 Oktober 2026 menemukan konteks asuransi/perusahaan masih menyimpan nama kelas awal encounter (atau nama kelas polis) sebagai `PatientClassNameSnapshot` pada resep dan tindakan. Diperbaiki dua baris di `EncounterInsuranceService.cs`; build 0 error dan QBE PASS. Perbaikan belum di-commit.
+- BOM UTF-8 tertambah pada tujuh berkas source backend; kosmetik, tidak dikembalikan.
+- Salinan helper cakupan lama di `doctor-queues/tabs/prescription/doctor-prescription-shared.jsx` tidak diimpor di mana pun; kode mati di luar scope.
+
+### Batas bukti
+
+Bukti berupa review source/kontrak, build backend, QBE, ESLint, unit test, dan build produksi frontend; rinciannya di plan bagian 9. Belum ada uji layar, transaksi, atau kalkulasi Billing pada data nyata, dan aplikasi yang berjalan belum memuat build baru. Langkah berikutnya: uji manual admisi tanpa kelas → pilih kamar kelas 1 → resep obat yang hanya dijamin kelas 2, lalu periksa tagihan setelah pindah kamar.
+
+## 10. Riwayat dokumen
 
 | Tanggal | Perubahan | Oleh |
 | --- | --- | --- |
 | 2026-10-12 | Audit source atas dua pertanyaan pemilik; empat temuan utama, satu tambahan; tanpa perubahan aplikasi atau database | `diagnose-module-issue` |
 | 2026-10-12 | Catat pergeseran HEAD eksternal dan cocokkan ulang source inti yang dikutip; temuan tetap berlaku pada SHA pemeriksaan akhir | `diagnose-module-issue` |
 | 2026-10-12 | Tambahan pelapor A-05: kelas perawatan tidak diinput pada penambahan asuransi admisi; perluas ISS-DOK-006-02 ke penghapusan input/validasi kelas dan tautkan FIX-DOK-006-06. K-01 ditutup sebagian, tanpa perubahan source aplikasi | `diagnose-module-issue` |
+| 2026-10-13 | Hasil implementasi PLAN-REPAIR-DOK-006 ditambahkan (bagian 9); status issue SELESAI untuk ISS-DOK-006-01..04 dengan batas bukti tanpa uji runtime; ISS-DOK-006-T1 tetap terbuka | Penutupan plan repair |

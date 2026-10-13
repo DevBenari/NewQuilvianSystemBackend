@@ -13,8 +13,8 @@
 | Klasifikasi | HEAVY — repo 2, baca 2, ubah 1, logika 2, API 1, DB 1, auth 0, UI 0 = 9 |
 | Task mode / Target tulis | CROSS-REPO; source backend scope task dan dokumentasi blueprint pemilik; tidak ada DB/deploy |
 | Model | Codex berbasis GPT-6 |
-| Commit backend / frontend rujukan | `d908988248f6652ed7f2ce84aae9eb3e38dd36a0` / `affcfcb4ea9f5177b1ff9a3ca0c09d15183af248`; worktree perubahan lain dipertahankan |
-| Tanggal / Status | 2026-10-13 / DALAM_PENYELESAIAN_VALIDASI |
+| Commit backend / frontend rujukan | Basis `d908988248f6652ed7f2ce84aae9eb3e38dd36a0` / `affcfcb4ea9f5177b1ff9a3ca0c09d15183af248`. Source repair di-commit pemilik pada `8551291f` / `2d0a6890e`; penutupan diverifikasi terhadap HEAD `4ec02370` / `f4495aa14` (merge IGD/Finance, tidak menyentuh berkas repair) |
+| Tanggal / Status | 2026-10-13 / ✅ SELESAI — divalidasi ulang pada sesi penutupan 13 Oktober 2026 |
 
 ## 1. Masalah yang diperbaiki
 
@@ -46,7 +46,7 @@ Berkas yang diperiksa: source pada tabel, caller Clinical/Pharmacy/Billing/admis
 | Kontrak API | DTO komponen internal bertambah optional properties; endpoint publik Billing dan permission tidak berubah. |
 | Database / migration | Query/perilaku existing saja; tidak mengubah schema/entity, tidak membuat migration, tidak menjalankan database |
 | Keamanan/Auth | Metadata Access existing dipertahankan; tidak menambah role hardcode atau melemahkan permission |
-| Arsitektur / audit | Resolver baru di module service, DI scoped; AsNoTracking pada pembacaan. Write existing mempertahankan transaksi, Create/Update actor dan lifecycle. Tidak membuat generic repository |
+| Arsitektur / audit | Adapter dan service existing memakai `InpServiceClassResolver` (BE-RWI-224) lewat DI scoped dan urutan `InsuranceCoverageService.OrderCoverageRules` (BE-RWI-223). Pembacaan AsNoTracking; kelas di-cache per timestamp dalam satu kalkulasi. Lifecycle dan transaksi kalkulasi existing dipertahankan. Tidak membuat generic repository |
 
 Checker repository hanya mencakup subset QBE otomatis. Review source/kontrak melengkapi aturan review-only. Registry suite canonical berbeda pada entri Finance/Nutrition yang tidak disentuh; ownership Clinical/Pharmacy/Inpatient/Billing yang dipakai task tetap cocok.
 
@@ -59,10 +59,11 @@ NOT APPLICABLE — task mengubah adapter internal, tidak menambah/mengubah route
 | Perintah/skenario | Hasil | Klasifikasi/bukti |
 | --- | --- | --- |
 | `dotnet restore QuilvianSystemBackend.csproj --nologo` | Berhasil; 5 peringatan paket ImageSharp NU1902/NU1903 existing | PASS, 2026-10-12 |
-| `dotnet build QuilvianSystemBackend.csproj --no-restore --nologo -o "$env:TEMP/quilvian-kelas-be-build"` | 0 error, 286 warning; output diisolasi karena exe aplikasi berjalan mengunci output default | PASS, 2026-10-13; log sementara `quilvian-kelas-be-final.log` |
-| `Invoke-QbeConformanceCheck.ps1 -Path <13 berkas source repair> -Mode ReportOnly` | 13 berkas; 0 VIOLATION, 0 REVIEW, 0 INFO | PASS; pemeriksaan akhir dicatat pada penutupan register |
-| Review success/validation/authorization/failure/transaksi/kontrak | Setiap kriteria di bagian 6 ditelusuri ke guard/query/caller source. Tidak mengklaim eksekusi API dengan data pasien | PASS — source/contract review |
-| Review diff/scope | Perubahan checkout Billing dan perubahan modul lain pada workspace dipertahankan; tidak stage/commit/push | PASS; `git diff --check` |
+| `dotnet build QuilvianSystemBackend.csproj --no-restore --nologo -o "$env:TEMP/quilvian-kelas-be-build"` | 0 error, 286 warning; output diisolasi karena exe aplikasi berjalan mengunci output default | PASS, 2026-10-13 sesi implementasi, sebelum commit `8551291f` |
+| Build penutupan: perintah yang sama ditambah `-p:UseSharedCompilation=false` | `Build succeeded`, 0 error, 281 warning, 2 menit 16 detik. Source = HEAD `4ec02370` ditambah perbaikan label kelas BE-RWI-224. Selisih jumlah warning tidak dianalisis per butir; HEAD sudah memuat merge IGD/Finance. Tidak ada warning pada baris delta task ini | PASS, 2026-10-13; log `%TEMP%/quilvian-kelas-be-closure.log` |
+| `tooling/qbe/Invoke-QbeConformanceCheck.ps1 -Path <13 berkas source repair> -Mode ReportOnly` | 13 berkas; 0 VIOLATION, 0 REVIEW, 0 INFO; `Final result: PASS` | PASS, dijalankan ulang pada sesi penutupan |
+| Review success/validation/authorization/failure/transaksi/kontrak | Diff dibaca ulang pada sesi penutupan: enrich `ServiceOccurredAt`/`PatientClassId` per komponen di `ResolveAsync`, filter kelas/masa per komponen sebelum `Matches`, bridge memakai `effect.OccurredAt`, retur memakai `item.SourceOccurredAt`. Tidak mengklaim eksekusi kalkulasi dengan data pasien | PASS — source/contract review |
+| Review diff/scope | Perubahan Billing checkout dan modul lain yang ikut di-commit dipisahkan dari delta repair; tidak stage/commit/push | PASS; `git diff --check` worktree dan rentang `d9089882..HEAD` area repair |
 
 AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (`rules/backend/TEST_POLICY.md`). Tidak membuat atau menjalankan runner backend alternatif.
 
@@ -77,7 +78,7 @@ MANUAL TEST: NOT FEASIBLE — inventaris computer-use sesi ini tidak memiliki ap
 | Snapshot kalkulasi lama tidak diubah | Terpenuhi pada source/kontrak | Resolver/adapter tidak menulis riwayat; hanya keputusan kalkulasi baru. Lifecycle kalkulasi existing dipertahankan |
 | Contoh kelas kamar 1 dan aturan item kelas 2 tidak menanggung | Terpenuhi pada source/kontrak | Aturan kelas 2 terbuang sebelum Matches; tidak ada rule lain berarti outcome bagian penjamin nol |
 | Tarif bridge/retur tidak memakai kelas saat hitung ulang | Terpenuhi pada source/kontrak | ResolveAsync pada effect.OccurredAt dan item.SourceOccurredAt |
-| Build, QBE, laporan tracked, traceability | Menunggu penutupan register | Hasil di bagian 5; laporan ini dan roadmap pemilik diperbarui setelah validasi akhir |
+| Build, QBE, laporan tracked, traceability | Terpenuhi | Build 0 error dan QBE PASS pada bagian 5; [roadmap](../../../roadmap/backend-roadmap-kelas-perawatan.md) dan [traceability](../../../roadmap/requirement-traceability-kelas-perawatan.md) ditandai ✅ 13 Oktober 2026 |
 
 Tidak ada acceptance source yang sengaja dibiarkan. Pengecualian verifikasi runtime dinyatakan sebagai NOT FEASIBLE, bukan PASS.
 
@@ -87,7 +88,14 @@ Tidak ada acceptance source yang sengaja dibiarkan. Pengecualian verifikasi runt
 | --- | --- |
 | Peringatan | Warning build existing (termasuk ImageSharp, nullable/legacy, EF1002 coordinator); bukan diperbaiki pada scope kelas |
 | Masalah/risiko tersisa | Administrasi/agregat tanpa timestamp layanan memakai CalculatedAt secara eksplisit. Rumus limit agregat, pajak, pembulatan dan buku tarif asuransi existing tidak disatukan oleh delta kelas ini; preview bukan janji nominal final semua kasus. |
-| Perubahan sampingan | NONE oleh task ini; perubahan lain di worktree tidak dibatalkan |
+| Perubahan sampingan | BOM UTF-8 tertambah di awal `BillingCalculationService.cs`, `BillingClinicalChargeBridgeService.cs`, dan `BillingClinicalChargeBridgeService.DrugReturn.cs`. Berkas bridge juga diubah pekerjaan checkout Billing pada commit yang sama, sehingga asal BOM-nya tidak dapat dipisahkan. Tidak memengaruhi kompilasi; tidak dikembalikan |
 | Interupsi | Lanjut setelah interupsi dengan status/diff dan SHA HEAD diverifikasi; tidak mengulang implementasi |
-| Status Git | Source pada tabel M/baru, kontrak/roadmap/laporan repair baru; kedua repo memiliki perubahan lain. Belum commit |
-| Langkah berikutnya | Jalankan aplikasi hasil build pada lingkungan yang disetujui untuk UAT; tidak ada kebutuhan migration repair ini |
+| Status Git | Source task ini sudah di-commit pemilik pada `8551291f`. Sesi penutupan hanya mengubah laporan/register; commit dan push dilakukan pemilik |
+| Langkah berikutnya | UAT kalkulasi Billing untuk pasien yang pindah kamar kelas 1 → kelas 2 pada lingkungan yang disetujui; tidak ada kebutuhan migration repair ini |
+
+### Riwayat status
+
+| Tanggal | Status | Dasar |
+| --- | --- | --- |
+| 2026-10-13 | DALAM_PENYELESAIAN_VALIDASI | Source dan build sesi implementasi |
+| 2026-10-13 | ✅ SELESAI | Penutupan PLAN-REPAIR-DOK-006: diff Billing dibaca ulang, build penutupan 0 error, QBE PASS, register diperbarui |

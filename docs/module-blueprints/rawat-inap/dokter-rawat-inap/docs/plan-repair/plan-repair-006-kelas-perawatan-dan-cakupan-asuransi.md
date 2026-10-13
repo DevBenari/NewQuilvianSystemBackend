@@ -1,16 +1,22 @@
-# PLAN-REPAIR-006 ? Kelas kamar dan cakupan asuransi per item
+# PLAN-REPAIR-006 — Kelas kamar dan cakupan asuransi per item
 
 ```yaml
 plan_id: PLAN-REPAIR-DOK-006
 issue: ../issue/issue-006-kelas-perawatan-dan-cakupan-asuransi.md
-status_rencana: DALAM_PENGERJAAN
+status_rencana: SELESAI
 tanggal_rencana: "2026-10-12"
 diputuskan_oleh: pemilik melalui percakapan
 tanggal_keputusan: "2026-10-12"
 tanggal_validasi: "2026-10-13"
+tanggal_penutupan: "2026-10-13"
 basis_source_backend: d908988248f6652ed7f2ce84aae9eb3e38dd36a0
 basis_source_frontend: affcfcb4ea9f5177b1ff9a3ca0c09d15183af248
+commit_implementasi_backend: 8551291f
+commit_implementasi_frontend: 2d0a6890e
+head_penutupan_backend: 4ec02370
+head_penutupan_frontend: f4495aa14
 kontrak: RWI-KELAS-006-1.0
+kontrak_sha256: 439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112
 ```
 
 Pemilik telah memerintahkan seluruh perbaikan dilaksanakan. Dokumen ini memuat keputusan final termasuk jawaban tambahan tentang tarif: **pakai tarif umum bila tersedia; tahan resep bila semua tarif sesuai/umum tidak tersedia**. Ketetapan ini menggantikan rekomendasi audit awal yang membolehkan resep tanpa harga. Riwayat audit awal tetap ada pada issue.
@@ -19,14 +25,18 @@ Pemilik telah memerintahkan seluruh perbaikan dilaksanakan. Dokumen ini memuat k
 
 | Perbaikan | Temuan | Outcome | Task dan bukti | Status |
 | --- | --- | --- | --- | --- |
-| FIX-DOK-006-01 | ISS-DOK-006-01/02 | Kunci kelas aktual, hak polis, tarif, dan API | [Kontrak](../../contracts/kelas-perawatan-repair-006.md), amandemen dokumen hulu bagian 7 | Dalam pengerjaan |
-| FIX-DOK-006-02 | ISS-DOK-006-02 | Kelas menurut periode penempatan/waktu layanan | BE-RWI-224, BE-RWI-225 | Dalam pengerjaan |
-| FIX-DOK-006-03 | ISS-DOK-006-01 | Tarif umum; tanpa tarif sesuai/umum resep ditahan, item tetap tampil | BE-RWI-226 | Dalam pengerjaan |
-| FIX-DOK-006-04 | ISS-DOK-006-03 | Aturan hanya cocok untuk kelas sama/umum; urutan Clinical/Billing sama | BE-RWI-223, BE-RWI-225 | Dalam pengerjaan |
-| FIX-DOK-006-05 | ISS-DOK-006-04 | Lencana dari status backend | FE-RWI-239 | Dalam pengerjaan |
-| FIX-DOK-006-06 | ISS-DOK-006-02 | Admisi tanpa input kelas; kelas dari kamar | FE-RWI-240, BE-RWI-224 | Dalam pengerjaan |
+| FIX-DOK-006-01 | ISS-DOK-006-01/02 | Kunci kelas aktual, hak polis, tarif, dan API | [Kontrak RWI-KELAS-006-1.0](../../contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112` cocok saat penutupan; amandemen dokumen hulu bagian 7 | ✅ Selesai 2026-10-13 |
+| FIX-DOK-006-02 | ISS-DOK-006-02 | Kelas menurut periode penempatan/waktu layanan | ✅ [BE-RWI-224](../../../episode-rawat-inap/task/report/backend/BE-RWI-224.md), ✅ [BE-RWI-225](../../../integrasi-billing/task/report/backend/BE-RWI-225.md) | ✅ Selesai 2026-10-13 |
+| FIX-DOK-006-03 | ISS-DOK-006-01 | Tarif umum; tanpa tarif sesuai/umum resep ditahan, item tetap tampil | ✅ [BE-RWI-226](../../task/report/backend/BE-RWI-226.md) | ✅ Selesai 2026-10-13 |
+| FIX-DOK-006-04 | ISS-DOK-006-03 | Aturan hanya cocok untuk kelas sama/umum; urutan Clinical/Billing sama | ✅ [BE-RWI-223](../../task/report/backend/BE-RWI-223.md), ✅ [BE-RWI-225](../../../integrasi-billing/task/report/backend/BE-RWI-225.md) | ✅ Selesai 2026-10-13 |
+| FIX-DOK-006-05 | ISS-DOK-006-04 | Lencana dari status backend | ✅ [FE-RWI-239](../../task/report/frontend/FE-RWI-239.md) | ✅ Selesai 2026-10-13 |
+| FIX-DOK-006-06 | ISS-DOK-006-02 | Admisi tanpa input kelas; kelas dari kamar | ✅ [FE-RWI-240](../../../episode-rawat-inap/task/report/frontend/FE-RWI-240.md), ✅ [BE-RWI-224](../../../episode-rawat-inap/task/report/backend/BE-RWI-224.md) | ✅ Selesai 2026-10-13 |
 
 Tidak membuat migration, menjalankan database, melakukan commit/push, atau deploy. Temuan tambahan Gizi/Bank Darah ISS-DOK-006-T1 tetap tindak lanjut terpisah pemilik modul; tidak menjanjikan estimasi cakupan yang belum tersedia.
+
+**Penutupan 13 Oktober 2026.** Seluruh acceptance criteria dibaca ulang terhadap diff source `basis..HEAD`. Audit ini menemukan satu celah pada BE-RWI-224: konteks asuransi dan perusahaan masih mengisi `PatientClassName` dari kelas awal encounter dan bisa jatuh ke nama kelas polis. Celah itu diperbaiki dua baris pada `EncounterInsuranceService.cs` (belum di-commit), lalu build dan QBE dijalankan ulang. Uji UI runtime tetap belum dilakukan; lihat bagian 9.
+
+Register pemilik: [traceability dokter](../../roadmap/requirement-traceability-kelas-perawatan.md), [traceability episode](../../../episode-rawat-inap/roadmap/requirement-traceability-kelas-perawatan.md), [traceability integrasi-billing](../../../integrasi-billing/roadmap/requirement-traceability-kelas-perawatan.md); ketiganya juga terdaftar pada `blueprint-manifest.md` sub-modul masing-masing.
 
 ## 2. Solusi terpilih
 
@@ -44,22 +54,22 @@ Alternatif menghapus seluruh filter tarif ditolak karena dapat memakai harga kel
 Skema berikut berdasarkan source, bukan klaim screenshot/render runtime.
 
 ```text
-SEBELUM ? ASURANSI / PEMBAYARAN
+SEBELUM — ASURANSI / PEMBAYARAN
 Penjamin, nomor kartu, masa aktif
-Kelas perawatan [ Pilih kelas wajib ? ]
+Kelas perawatan [ Pilih kelas wajib ▾ ]
 [Lanjut] tertahan jika kelas kosong
 Konfirmasi juga memiliki pemilih kelas manual
 
-SESUDAH ? ASURANSI / PEMBAYARAN
+SESUDAH — ASURANSI / PEMBAYARAN
 Penjamin, nomor kartu, masa aktif
 Kelas perawatan mengikuti kamar yang dipilih
 [Lanjut] mengikuti validasi cara bayar/kartu, tanpa syarat kelas
 
-SESUDAH ? PILIH BED DAN KONFIRMASI
+SESUDAH — PILIH BED DAN KONFIRMASI
 Kamar/bed: Melati contoh / A
 Kelas perawatan: Kelas 1 (informasi otomatis)
 
-KATALOG ? CONTOH DATA SAMARAN
+KATALOG — CONTOH DATA SAMARAN
 Parasetamol   Tidak Di-cover        Rp 10.000  [Pilih]
 Obat B       Ditanggung            Rp 20.000  [Pilih]
 Obat C       Ditanggung sebagian    Rp 30.000  [Pilih]
@@ -91,31 +101,31 @@ Obat D       Belum dapat ditentukan Tarif belum tersedia [Tidak aktif]
 
 ## 4. Rincian dan acceptance criteria
 
-### FIX-DOK-006-01 ? Kontrak terkunci
+### FIX-DOK-006-01 — Kontrak terkunci
 
 Kontrak [RWI-KELAS-006-1.0](../../contracts/kelas-perawatan-repair-006.md) memuat keputusan pengguna, API existing, timestamp layanan, prioritas aturan dan batas harga.
 
 Acceptance: contoh polis/kamar kelas 1 dan item hanya dijamin kelas 2 tertulis; transfer tidak menulis ulang sejarah; kondisi tanpa placement jelas; tidak ada kelas manual; tanpa tarif sesuai/umum menahan resep; tarif nol sah dibedakan. Bukti melalui kontrak dan amandemen hulu.
 
-### FIX-DOK-006-02 ? Kelas pada waktu layanan
+### FIX-DOK-006-02 — Kelas pada waktu layanan
 
 `InpServiceClassResolver` mencari placement interval `[StartDateTime, EndDateTime)`. Riwayat transfer `IsSuperseded` tetap sah; baris yang dihapus atau digantikan koreksi dikecualikan. Clinical memakai timestamp layanan, Billing memakai `SourceOccurredAt` item. Rawat jalan/IGD tetap memakai kelas encounter existing.
 
 Acceptance: sebelum placement kelas aktual null; titik akhir periode tidak masuk kamar lama; layanan terlambat memakai periode asal; kelas awal/hak polis tidak ditimpa; room charge dan tarif sumber memakai kelas layanan. Komponen administrasi/agregat tanpa timestamp layanan menggunakan waktu kalkulasi secara eksplisit.
 
-### FIX-DOK-006-03 ? Tarif umum dan resep tanpa tarif
+### FIX-DOK-006-03 — Tarif umum dan resep tanpa tarif
 
 Gunakan tarif yang cocok konteks atau tarif umum kompatibel. Hapus fallback tunai yang mengambil kelas lain hanya karena harganya sama. `ConfigurationMissing` invalid menahan seluruh jalur penyimpanan resep; `NotCovered` tetap valid. Tidak membuat alur resep harga tertunda.
 
 Acceptance: item tetap tampil lintas kelas; tarif umum dapat dipakai; tanpa tarif sesuai/umum resep ditahan; tarif nol sah diterima; reguler/racikan/item/rekonsiliasi memanggil resolver yang sama; validasi dosis/satuan/aktif tetap berlaku.
 
-### FIX-DOK-006-04 ? Kecocokan aturan
+### FIX-DOK-006-04 — Kecocokan aturan
 
 Clinical menambah filter kelas pada `MstInsuranceCoverageRule`. Billing menyaring kelas/masa berlaku per komponen, bukan sekali menurut encounter/waktu kalkulasi. Keduanya memakai pengurutan aturan bersama. Cakupan perusahaan memakai kelas per layanan juga.
 
 Acceptance: aturan khusus kelas lain tidak cocok; aturan umum masih boleh cocok bila dikonfigurasi; khusus kelas menang pada sasaran setara; contoh kelas 1/item dijamin kelas 2 memberi pertanggungan nol pada preview dan Billing dengan data yang sama. Rumus limit kumulatif, buku tarif asuransi dan kebijakan finansial existing tidak dirancang ulang oleh perbaikan ini.
 
-### FIX-DOK-006-05 ? Status cakupan
+### FIX-DOK-006-05 — Status cakupan
 
 | Status backend | Label |
 | --- | --- |
@@ -129,7 +139,7 @@ Acceptance: aturan khusus kelas lain tidak cocok; aturan umum masih boleh cocok 
 
 Acceptance: tidak ada `Cover 0%` yang memberi kesan ditanggung; alasan/nominal memakai backend; consumer shared rawat inap/IGD/rawat jalan mengikuti helper yang sama; tidak menghitung aturan asuransi di frontend.
 
-### FIX-DOK-006-06 ? Admisi tanpa input kelas
+### FIX-DOK-006-06 — Admisi tanpa input kelas
 
 Pembayaran hanya memvalidasi kategori, kartu penjamin dan draft kartu yang belum disimpan. Draft dokter ditunda sampai bed dipilih. `SelectedBedId` membuat server membaca kelas/unit kamar. Konfirmasi tidak dapat mengedit kelas; backend mempertahankan/menurunkan kelas dari reservasi. Snapshot kelas pembayaran lama diabaikan. Transfer memakai kelas target bed. Deposit tidak memakai kelas pembayaran lama. ID episode ditulis ke URL untuk pemulihan draft setelah pembukaan berhasil.
 
@@ -138,18 +148,27 @@ Acceptance: tambah/pilih asuransi dan lanjut pembayaran tidak meminta kelas; tun
 ## 5. Urutan dan pemetaan task
 
 ```text
-FIX-DOK-006-01 ? kontrak disetujui
-??? BE-RWI-223 ? aturan klinis
-??? BE-RWI-224 ? kelas efektif dan validasi kelas kamar admisi
-?   ??? BE-RWI-225 ? Billing per waktu layanan
-??? BE-RWI-226 ? tarif umum/penahanan resep
-??? FE-RWI-239 ? lencana shared
-??? FE-RWI-240 ? pembayaran → kamar → konfirmasi
+FIX-DOK-006-01 ✅ — kontrak disetujui
+├── BE-RWI-223 ✅ — aturan klinis
+├── BE-RWI-224 ✅ — kelas efektif dan validasi kelas kamar admisi
+│   └── BE-RWI-225 ✅ — Billing per waktu layanan
+├── BE-RWI-226 ✅ — tarif umum/penahanan resep
+├── FE-RWI-239 ✅ — lencana shared
+└── FE-RWI-240 ✅ — pembayaran → kamar → konfirmasi
 ```
 
 Roadmap dan laporan berada pada sub-modul pemilik masing-masing: dokter-rawat-inap, episode-rawat-inap, dan integrasi-billing. Tidak mengubah ID task lama atau keputusan blueprint di luar delta ini.
 
-## 6. Keputusan pemilik ? sudah ditutup
+| Task | Roadmap | Laporan |
+| --- | --- | --- |
+| ✅ BE-RWI-223 | [dokter-rawat-inap backend](../../roadmap/backend-roadmap-kelas-perawatan.md) | [BE-RWI-223](../../task/report/backend/BE-RWI-223.md) |
+| ✅ BE-RWI-226 | [dokter-rawat-inap backend](../../roadmap/backend-roadmap-kelas-perawatan.md) | [BE-RWI-226](../../task/report/backend/BE-RWI-226.md) |
+| ✅ FE-RWI-239 | [dokter-rawat-inap frontend](../../roadmap/frontend-roadmap-kelas-perawatan.md) | [FE-RWI-239](../../task/report/frontend/FE-RWI-239.md) |
+| ✅ BE-RWI-224 | [episode-rawat-inap backend](../../../episode-rawat-inap/roadmap/backend-roadmap-kelas-perawatan.md) | [BE-RWI-224](../../../episode-rawat-inap/task/report/backend/BE-RWI-224.md) |
+| ✅ FE-RWI-240 | [episode-rawat-inap frontend](../../../episode-rawat-inap/roadmap/frontend-roadmap-kelas-perawatan.md) | [FE-RWI-240](../../../episode-rawat-inap/task/report/frontend/FE-RWI-240.md) |
+| ✅ BE-RWI-225 | [integrasi-billing backend](../../../integrasi-billing/roadmap/backend-roadmap-kelas-perawatan.md) | [BE-RWI-225](../../../integrasi-billing/task/report/backend/BE-RWI-225.md) |
+
+## 6. Keputusan pemilik — sudah ditutup
 
 | ID | Keputusan final | Dasar |
 | --- | --- | --- |
@@ -227,9 +246,31 @@ Pasien memiliki polis kelas 1 dan ditempatkan di kamar kelas 1. Parasetamol hany
 | V-11 | Kamar tanpa kelas, unit salah, klik ganda, konflik bed | Ditolak/ditahan dengan pesan; tidak membuat nilai kelas palsu |
 | V-12 | Resume admisi dan deposit sebelum kamar | Episode server jadi sumber; kebijakan deposit belum ada tidak menahan admisi |
 
+Skenario V-01 s.d. V-12 dibuktikan pada tingkat source, kontrak, dan unit test. Belum ada yang dijalankan sebagai uji layar atau transaksi pada data nyata.
+
 ## 9. Bukti validasi
 
-Hasil final berada pada laporan task masing-masing dan traceability; belum menyatakan uji UI runtime berhasil. Source berubah pada workspace, belum diterapkan ke proses aplikasi berjalan. Bukti suite global dibedakan dari pengujian terarah agar kegagalan baseline tidak disembunyikan.
+Hasil rinci berada pada laporan task masing-masing dan traceability. Bukti suite global dibedakan dari pengujian terarah agar kegagalan baseline tidak disembunyikan.
+
+| Pemeriksaan | Hasil aktual | Batas bukti |
+| --- | --- | --- |
+| `dotnet restore` backend | PASS 2026-10-12; 5 peringatan paket ImageSharp existing | Sesi implementasi |
+| `dotnet build` backend, sesi implementasi | PASS: 0 error, 286 warning; output `%TEMP%/quilvian-kelas-be-build` | Sebelum commit `8551291f` |
+| `dotnet build` backend, penutupan | PASS: 0 error, 281 warning, 2 menit 16 detik; HEAD `4ec02370` + perbaikan label kelas; log `%TEMP%/quilvian-kelas-be-closure.log` | Kompilasi saja; aplikasi yang berjalan tidak direstart dan masih memuat binary lama |
+| QBE ReportOnly 13 berkas source repair | PASS: 0 VIOLATION, 0 REVIEW, 0 INFO; dijalankan ulang sesudah perbaikan | Subset aturan otomatis; sisanya review source/kontrak |
+| `git diff --check` | PASS pada worktree dan rentang `d9089882..HEAD` area repair | — |
+| ESLint terarah 17 berkas FE repair | Exit 0 (sesi implementasi dan penutupan) | Hanya berkas repair |
+| Unit `inpatient-class-coverage.test.mjs` | PASS 5/5 pada penutupan; pengujian terarah sesi implementasi 39/39 | Logika pemetaan dan payload, bukan render layar |
+| Unit 14 berkas terkait admisi/resep | 92 tes: 87 lulus, 5 gagal lama | Berkas yang diuji kelima kegagalan tidak berubah sejak basis, atau isi yang dipersoalkan sudah ada di basis |
+| Build produksi Next.js + `prepare-standalone` | PASS, sesi implementasi | Source FE repair tidak berubah sesudahnya; build ulang penutupan NOT RUN |
+| Suite unit global frontend | 2776 tes: 2742 lulus, 34 gagal; snapshot HEAD pembanding 2761/2732/29 | Lima kegagalan tambahan dari relokasi menu Transfer Workspace PPRI; direproduksi pada penutupan: 21 tes, 16 lulus, 5 gagal |
+| Uji manual/UI | NOT FEASIBLE | Tidak ada browser/aplikasi aktif; tidak diklaim lulus |
+| Migration, database, deploy | NOT APPLICABLE | Delta tanpa schema; tidak ada eksekusi database atau deploy |
+
+Temuan sampingan penutupan, tidak menahan status:
+
+- BOM UTF-8 tertambah di awal tujuh berkas source backend repair. Tidak memengaruhi kompilasi; dicatat pada laporan BE masing-masing.
+- `doctor-queues/tabs/prescription/doctor-prescription-shared.jsx` masih memuat salinan helper cakupan lama yang tidak diimpor di mana pun. Kode mati, di luar scope.
 
 ## 10. Riwayat
 
@@ -239,3 +280,4 @@ Hasil final berada pada laporan task masing-masing dan traceability; belum menya
 | 2026-10-12 | A-05: tidak ada input kelas pada asuransi/pembayaran admisi |
 | 2026-10-12 | Pemilik menyetujui seluruh pelaksanaan; K-01/K-02 dijawab eksplisit; kontrak dan enam task dialokasikan |
 | 2026-10-13 | Implementasi lintas BE/FE; flowchart dan acceptance diselaraskan dengan penahanan resep tanpa tarif; konfirmasi dan validasi server juga mengikuti kamar |
+| 2026-10-13 | Penutupan: audit ulang source, perbaikan label kelas BE-RWI-224, build/QBE/unit diulang, laporan FE-RWI-239/240 dibuat, enam FIX ditutup, roadmap/traceability/manifest diperbarui. Karakter em dash dan garis pohon yang sebelumnya rusak menjadi `?` dipulihkan; simbol dropdown pada skema sebelum direkonstruksi sebagai `▾` |
