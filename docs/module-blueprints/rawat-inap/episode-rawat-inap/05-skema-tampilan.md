@@ -1837,3 +1837,12 @@ Transfer: antrean server -> review -> pembayaran -> deposit untuk Cash -> dokter
 Amandemen bagian pembayaran dan konfirmasi: hapus pemilih kelas, checklist wajib kelas dan validasi kelas dari pembayaran/asuransi. Tampilkan informasi bahwa kelas mengikuti kamar. Konfirmasi hanya dapat mengubah unit/catatan; kelas informasi server. Langkah dokter memvalidasi draft di klien; setelah bed dipilih, buka kunjungan/episode dengan kelas kamar. Deposit sebelum pilihan kamar menampilkan kebijakan kelas belum tersedia dan tidak menahan admisi. Pemulihan draft membaca kelas episode, bukan snapshot pembayaran lama.
 
 Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.
+
+## Amandemen PLAN-REPAIR-EPS-009 — 2026-10-13
+
+Bagian 3.8, wilayah "Unit Tujuan (Tersembunyi)": unit rawat inap bawaan hanya menyemai penyaring papan pada langkah
+Pilih Bed; unit admisi yang disimpan mengikuti kamar bed terpilih, sama dengan kelasnya. Bagian 3.9, tombol
+"Lanjut ke Pemesanan": menjalankan titik tulis 1 (kunjungan dan episode) dengan unit dan kelas dari bed; bila gagal,
+alasan aslinya tampil pada alert langkah ini; bila berhasil, maju ke Booking Bed. Papan bed (bagian 3.9 dan 7)
+mengikuti penyaring unit, kamar, kelas, dan pencarian, termasuk angka ringkasannya. Skema sebelum-sesudah ada pada
+[`PLAN-REPAIR-EPS-009`](docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md) bagian 3.

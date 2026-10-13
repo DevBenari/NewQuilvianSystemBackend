@@ -767,6 +767,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             try
             {
+                // BE-RWI-229 — dua pembacaan bersamaan (mis. GET /episodes dan /episodes/summary)
+                // dapat sama-sama menemukan Draft ini lewat batas. Tanpa kunci baris keduanya
+                // menulis riwayat bernomor sama dan yang kalah jatuh 500 pada
+                // IX_InpStatusHistory_EpisodeId_SequenceNumber. Pembaca kedua kini menunggu,
+                // lalu melihat episode yang sudah Cancelled dan tidak menulis apa pun.
+                if (!await LockDraftStillDueAsync(episode, cancellationToken))
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return false;
+                }
+
                 await CancelEpisodeInternalAsync(
                     episode,
                     SystemExpiryReason,
@@ -786,6 +797,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 await transaction.RollbackAsync(cancellationToken);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Mengunci baris episode di dalam transaksi pengguguran, membaca ulang nilainya, lalu
+        /// memastikan episode masih <c>Draft</c> dan masih lewat batas waktu.
+        /// </summary>
+        /// <remarks>
+        /// Polanya sama dengan <c>InpBedMutationCoordinator.LockAsync</c> dan
+        /// <c>InpBedOccupancyService.LockBedRowAsync</c>. Penguncian hanya dijalankan pada
+        /// penyedia relasional; provider InMemory tidak mengenal <c>FOR UPDATE</c>, sehingga di
+        /// sana pemeriksaan awal pemanggil tetap berlaku apa adanya.
+        /// </remarks>
+        private async Task<bool> LockDraftStillDueAsync(
+            InpEpisode episode,
+            CancellationToken cancellationToken)
+        {
+            if (!_dbContext.Database.IsRelational())
+            {
+                return true;
+            }
+
+            await _dbContext.Database.ExecuteSqlRawAsync(
+                "SELECT 1 FROM public.\"InpEpisode\" WHERE \"Id\" = {0} FOR UPDATE",
+                new object[] { episode.Id },
+                cancellationToken);
+
+            await _dbContext.Entry(episode).ReloadAsync(cancellationToken);
+
+            if (episode.EpisodeStatus != InpEpisodeStatus.Draft)
+            {
+                return false;
+            }
+
+            var setting = await _settingService.GetEffectiveSettingAsync(cancellationToken);
+            var lastTouchedAt = episode.UpdateDateTime ?? episode.CreateDateTime;
+
+            return DateTime.UtcNow > lastTouchedAt.AddHours(setting.DraftEpisodeExpiryHours);
         }
 
         /// <summary>
