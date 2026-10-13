@@ -883,6 +883,10 @@ try
     builder.Services.AddScoped<ResignationWorkflowIntegrationService>();
     builder.Services.AddScoped<ResignationLifecycleHandoffService>();
 
+    // BE-FIN-103 (FIN-API-1.10 R.1, R.2): enrollment dan tanggungan benefit pegawai.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEnrollmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitDependentService>();
+
     builder.Services.AddScoped<AttendanceRawLogService>();
     builder.Services.AddScoped<AttendanceSelfServiceCaptureService>();
     builder.Services.AddScoped<AttendanceScheduleResolverService>();

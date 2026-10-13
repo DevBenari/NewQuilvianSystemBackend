@@ -10405,6 +10405,252 @@ namespace QuilvianSystemBackend.Migrations
                         });
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableWriteOffProposal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid?>("DebtorReferenceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTimeOffset?>("PostedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PostedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("ProposalDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ProposalNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ProposalType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("PER_INVOICE");
+
+                    b.Property<string>("ReasonCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ReasonDescription")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("RejectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RejectedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ServiceType")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("DRAFT");
+
+                    b.Property<decimal>("TotalApprovedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalInvoiceAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalOutstandingAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalProposedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DebtorReferenceId")
+                        .HasDatabaseName("IX_FinReceivableWriteOffProposal_DebtorReferenceId");
+
+                    b.HasIndex("ProposalDate")
+                        .HasDatabaseName("IX_FinReceivableWriteOffProposal_Date");
+
+                    b.HasIndex("ProposalNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FinReceivableWriteOffProposal_Number")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_FinReceivableWriteOffProposal_Status");
+
+                    b.ToTable("FinReceivableWriteOffProposal", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_FinReceivableWriteOffProposal_Amounts", "\"TotalProposedAmount\" >= 0 AND \"TotalApprovedAmount\" >= 0");
+
+                            t.HasCheckConstraint("CK_FinReceivableWriteOffProposal_MakerChecker", "\"ApprovedBy\" IS NULL OR \"ApprovedBy\" <> \"RequestedBy\"");
+
+                            t.HasCheckConstraint("CK_FinReceivableWriteOffProposal_Status", "\"Status\" IN ('DRAFT','SUBMITTED','APPROVED','POSTED','REJECTED')");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableWriteOffProposalItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("ApprovedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("InvoiceBatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("OutstandingSnapshot")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("ProposedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("ProposalId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ReceivableId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("WriteOffId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceBatchId")
+                        .HasDatabaseName("IX_FinReceivableWriteOffProposalItem_InvoiceBatchId");
+
+                    b.HasIndex("ReceivableId")
+                        .HasDatabaseName("IX_FinReceivableWriteOffProposalItem_ReceivableId");
+
+                    b.HasIndex("WriteOffId")
+                        .HasDatabaseName("IX_FinReceivableWriteOffProposalItem_WriteOffId");
+
+                    b.HasIndex("ProposalId", "ReceivableId")
+                        .HasDatabaseName("IX_FinReceivableWriteOffProposalItem_Proposal_Receivable");
+
+                    b.ToTable("FinReceivableWriteOffProposalItem", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_FinReceivableWriteOffProposalItem_Amounts", "\"ProposedAmount\" > 0 AND \"ApprovedAmount\" >= 0");
+                        });
+                });
+
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendance", b =>
                 {
                     b.Property<Guid>("Id")
@@ -105442,6 +105688,41 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Receivable");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableWriteOffProposalItem", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableInvoiceBatch", "InvoiceBatch")
+                        .WithMany()
+                        .HasForeignKey("InvoiceBatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableWriteOffProposal", "Proposal")
+                        .WithMany("Items")
+                        .HasForeignKey("ProposalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivable", "Receivable")
+                        .WithMany()
+                        .HasForeignKey("ReceivableId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableWriteOff", "WriteOff")
+                        .WithMany()
+                        .HasForeignKey("WriteOffId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("InvoiceBatch");
+
+                    b.Navigation("Proposal");
+
+                    b.Navigation("Receivable");
+
+                    b.Navigation("WriteOff");
+                });
+
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceiptDeduction", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models.AccChartOfAccount", "ChartOfAccount")
@@ -132440,7 +132721,13 @@ namespace QuilvianSystemBackend.Migrations
                 {
                     b.Navigation("Actions");
                 });
-#pragma warning restore 612, 618
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableWriteOffProposal", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            #pragma warning restore 612, 618
         }
     }
 }

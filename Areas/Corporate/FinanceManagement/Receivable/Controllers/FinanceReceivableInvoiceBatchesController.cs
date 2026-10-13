@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
@@ -30,7 +33,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Con
 public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
 {
     private readonly FinanceReceivableInvoiceBatchService _service;
-    public FinanceReceivableInvoiceBatchesController(FinanceReceivableInvoiceBatchService service) => _service = service;
+    private readonly ILogger<FinanceReceivableInvoiceBatchesController> _logger;
+
+    public FinanceReceivableInvoiceBatchesController(
+        FinanceReceivableInvoiceBatchService service,
+        ILogger<FinanceReceivableInvoiceBatchesController> logger)
+    {
+        _service = service;
+        _logger = logger;
+    }
 
     [HttpGet]
     [AccessAction("Read", "Read Receivable Invoice Batch", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -453,18 +464,39 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
     [AccessAction("Update", "Update Receivable Invoice Batch", AccessType = AccessTypes.Update, SortOrder = 5)]
     [AccessPermission("FinanceReceivableInvoiceBatch", "Update")]
     [ProducesResponseType(typeof(ApiResponse<PostReceivableInvoiceBatchPaymentResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> PostPayment(
         Guid id,
         [FromBody] PostReceivableInvoiceBatchPaymentRequest request,
         [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
         CancellationToken cancellationToken)
     {
+        Guid actorUserId;
         try
         {
-            var result = await _service.PostPaymentAsync(id, request, idempotencyKey, CurrentUserId(), cancellationToken);
+            actorUserId = RequireCurrentUserId();
+        }
+        catch (Exception ex) when (IsHandled(ex))
+        {
+            return Failure(ex);
+        }
+
+        try
+        {
+            var result = await _service.PostPaymentAsync(id, request, idempotencyKey, actorUserId, cancellationToken);
             return Ok(ApiResponse<PostReceivableInvoiceBatchPaymentResponse>.Ok(result, "Pembayaran Batch Tagihan AR berhasil diproses."));
         }
-        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+        catch (Exception exception) when (IsHandled(exception))
+        {
+            return Failure(exception);
+        }
+        catch (Exception exception)
+        {
+            return HandleUnexpectedPaymentException(id, request, actorUserId, idempotencyKey, exception);
+        }
     }
 
     private static ReceivableInvoiceBatchResponse Map(FinReceivableInvoiceBatch batch)
@@ -517,22 +549,101 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
         };
     }
 
-    private IActionResult Failure(Exception exception) => exception switch
+    private IActionResult Failure(Exception exception)
     {
-        KeyNotFoundException => NotFound(ApiResponse<object>.Fail(404, exception.Message)),
-        ReceivableInvoiceBatchConflictException => Conflict(ApiResponse<object>.Fail(409, exception.Message)),
-        ReceivableInvoiceBatchValidationException => UnprocessableEntity(ApiResponse<object>.Fail(422, exception.Message)),
-        ReceivableInvoiceBatchBadRequestException => BadRequest(ApiResponse<object>.Fail(400, exception.Message)),
-        _ => throw exception
-    };
+        var traceId = HttpContext.TraceIdentifier;
+
+        return exception switch
+        {
+            KeyNotFoundException => NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message, new { traceId })),
+            ReceivableInvoiceBatchConflictException => Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message, new { traceId })),
+            ReceivableConflictException => Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message, new { traceId })),
+            DbUpdateConcurrencyException => Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "Data telah berubah. Muat ulang sebelum melanjutkan.", new { traceId })),
+            ReceivableInvoiceBatchValidationException => UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message, new { traceId })),
+            ReceivableValidationException => UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message, new { traceId })),
+            ReceivableInvoiceBatchBadRequestException => BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, exception.Message, new { traceId })),
+            ReceivableBadRequestException => BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, exception.Message, new { traceId })),
+            AccountingOutboxException outboxEx when outboxEx.Message.Contains("Badan hukum utama") => Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, outboxEx.Message, new { traceId })),
+            AccountingOutboxException => UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message, new { traceId })),
+            ArgumentException or ArgumentNullException => BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, exception.Message, new { traceId })),
+            UnauthorizedAccessException => StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, "Akses ditolak.", new { traceId })),
+            FinanceSubledgerException subledgerEx => StatusCode(subledgerEx.StatusCode, ApiResponse<object>.Fail(subledgerEx.StatusCode, subledgerEx.Message, new { traceId })),
+            DbUpdateException dbUpdateEx when dbUpdateEx.InnerException is PostgresException pgEx => MapPostgresException(pgEx, traceId),
+            DbUpdateException => StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail(StatusCodes.Status500InternalServerError, "Terjadi kesalahan saat memproses data transaksi.", new { traceId })),
+            _ => throw exception
+        };
+    }
+
+    private IActionResult MapPostgresException(PostgresException pgEx, string traceId)
+    {
+        _logger.LogWarning(
+            "Database constraint error caught in controller. SqlState={SqlState}, Constraint={Constraint}, TraceId={TraceId}",
+            pgEx.SqlState, pgEx.ConstraintName, traceId);
+
+        return pgEx.SqlState switch
+        {
+            "23505" => Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "Terjadi duplikasi data atau transaksi sudah pernah diproses.", new { traceId })),
+            "23503" => UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, "Referensi data terkait tidak valid atau tidak ditemukan.", new { traceId })),
+            "23514" => UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, "Data transaksi melanggar batasan validasi sistem.", new { traceId })),
+            "40P01" or "55P03" => Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, "Transaksi sedang diproses oleh operasi lain. Silakan coba beberapa saat lagi.", new { traceId })),
+            _ => StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail(StatusCodes.Status500InternalServerError, "Terjadi kesalahan saat memproses data transaksi.", new { traceId }))
+        };
+    }
 
     private static bool IsHandled(Exception exception) => exception is
-        KeyNotFoundException or ReceivableInvoiceBatchConflictException
-        or ReceivableInvoiceBatchValidationException or ReceivableInvoiceBatchBadRequestException;
+        KeyNotFoundException or ReceivableInvoiceBatchConflictException or ReceivableConflictException
+        or DbUpdateConcurrencyException or ReceivableInvoiceBatchValidationException or ReceivableValidationException
+        or ReceivableInvoiceBatchBadRequestException or ReceivableBadRequestException
+        or ArgumentException or ArgumentNullException or UnauthorizedAccessException
+        or AccountingOutboxException or FinanceSubledgerException
+        or DbUpdateException;
 
-    private Guid CurrentUserId()
+    private IActionResult HandleUnexpectedPaymentException(
+        Guid batchId,
+        PostReceivableInvoiceBatchPaymentRequest request,
+        Guid actorUserId,
+        string? idempotencyKey,
+        Exception exception)
+    {
+        var traceId = HttpContext.TraceIdentifier;
+        var pgEx = exception as PostgresException ?? exception.InnerException as PostgresException;
+
+        _logger.LogError(exception,
+            "Unexpected error processing payment for BatchId={BatchId}, ActorUserId={ActorUserId}, " +
+            "ReceiptAmount={ReceiptAmount}, BankAccountId={BankAccountId}, PaymentDate={PaymentDate}, " +
+            "MemberCount={MemberCount}, TraceId={TraceId}, ExceptionType={ExceptionType}, " +
+            "InnerExceptionType={InnerExceptionType}, SqlState={SqlState}, ConstraintName={ConstraintName}",
+            batchId,
+            actorUserId,
+            request.ReceiptAmount,
+            request.BankAccountId,
+            request.PaymentDate,
+            request.MemberAllocations?.Count ?? 0,
+            traceId,
+            exception.GetType().FullName,
+            exception.InnerException?.GetType().FullName,
+            pgEx?.SqlState,
+            pgEx?.ConstraintName);
+
+        return StatusCode(StatusCodes.Status500InternalServerError,
+            ApiResponse<object>.Fail(StatusCodes.Status500InternalServerError, "Terjadi kesalahan saat memproses pembayaran.", new { traceId }));
+    }
+
+    private Guid RequireCurrentUserId()
     {
         var value = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("user_id");
-        return Guid.TryParse(value, out var userId) ? userId : Guid.Empty;
+        if (Guid.TryParse(value, out var userId) && userId != Guid.Empty)
+        {
+            return userId;
+        }
+
+        var traceId = HttpContext.TraceIdentifier;
+        _logger.LogWarning(
+            "Identitas pengguna tidak valid pada transaksi finansial Batch Tagihan AR. TraceId={TraceId}, RawClaim={RawClaim}",
+            traceId, value);
+
+        throw new ReceivableInvoiceBatchBadRequestException("Identitas pengguna tidak valid untuk transaksi keuangan.");
     }
+
+    private Guid CurrentUserId() => RequireCurrentUserId();
 }

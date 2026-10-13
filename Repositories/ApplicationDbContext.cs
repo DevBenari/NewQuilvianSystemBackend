@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -668,6 +668,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<FinReceivableDocument> FinReceivableDocuments { get; set; }
         public DbSet<FinReceivableAdjustment> FinReceivableAdjustments { get; set; }
         public DbSet<FinReceivableWriteOff> FinReceivableWriteOffs { get; set; }
+        public DbSet<FinReceivableWriteOffProposal> FinReceivableWriteOffProposals { get; set; }
+        public DbSet<FinReceivableWriteOffProposalItem> FinReceivableWriteOffProposalItems { get; set; }
         // BE-FIN-058, FIN-DES-079: buku mutasi piutang.
         public DbSet<FinReceivableMovement> FinReceivableMovements { get; set; }
         // BE-FIN-092, FIN-DES-099: perjanjian angsuran piutang pegawai. Migration
