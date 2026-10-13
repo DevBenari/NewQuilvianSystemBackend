@@ -21,6 +21,7 @@ public sealed class InpBedAccessService(
     // BE-RWI-228: daftar unit aktif SuperAdmin sama untuk setiap operasi, jadi cukup dibaca
     // sekali per permintaan — sebelumnya dibaca ulang per operasi (4–5 kali per papan bed).
     private List<Guid>? _allActiveUnitsCache;
+    private List<Guid>? _allReadableUnitsCache;
     private bool? _actorIsActive;
     private bool? _isSuperAdmin;
 
@@ -62,10 +63,21 @@ public sealed class InpBedAccessService(
         {
             _actorIsActive = await db.Users.AnyAsync(x => x.Id == ActorId && x.IsActive, ct);
         }
-        if (!_actorIsActive.Value || !await HasPermissionAsync(operation))
+        var isBedManagementRead = operation is "InpatientBedManagement:Read" or "InpatientBedManagement:ReadUsageHistory";
+        if (!_actorIsActive.Value || (!isBedManagementRead && !await HasPermissionAsync(operation)))
         {
             _unitsCache[operation] = [];
             return [];
+        }
+        if (isBedManagementRead)
+        {
+            // Termasuk unit nonaktif agar bed tidak tersedia dan riwayatnya tetap terlihat.
+            _allReadableUnitsCache ??= await db.Set<MstServiceUnit>().AsNoTracking()
+                .Where(x => !x.IsDelete)
+                .Select(x => x.Id)
+                .ToListAsync(ct);
+            _unitsCache[operation] = _allReadableUnitsCache;
+            return _allReadableUnitsCache;
         }
         var isSuperAdmin = await IsSuperAdminAsync(ct);
         if (isSuperAdmin)
