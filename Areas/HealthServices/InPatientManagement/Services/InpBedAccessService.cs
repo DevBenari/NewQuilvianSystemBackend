@@ -18,6 +18,10 @@ public sealed class InpBedAccessService(
         .Where(x => x.UserId == ActorId && x.ServiceUnitId != Guid.Empty && !string.IsNullOrWhiteSpace(x.AssignmentReference));
     private readonly Dictionary<string, bool> _permissionCache = new();
     private readonly Dictionary<string, List<Guid>> _unitsCache = new();
+    // BE-RWI-228: daftar unit aktif SuperAdmin sama untuk setiap operasi, jadi cukup dibaca
+    // sekali per permintaan — sebelumnya dibaca ulang per operasi (4–5 kali per papan bed).
+    private List<Guid>? _allActiveUnitsCache;
+    private List<Guid>? _allReadableUnitsCache;
     private bool? _actorIsActive;
     private bool? _isSuperAdmin;
 
@@ -59,20 +63,31 @@ public sealed class InpBedAccessService(
         {
             _actorIsActive = await db.Users.AnyAsync(x => x.Id == ActorId && x.IsActive, ct);
         }
-        if (!_actorIsActive.Value || !await HasPermissionAsync(operation))
+        var isBedManagementRead = operation is "InpatientBedManagement:Read" or "InpatientBedManagement:ReadUsageHistory";
+        if (!_actorIsActive.Value || (!isBedManagementRead && !await HasPermissionAsync(operation)))
         {
             _unitsCache[operation] = [];
             return [];
         }
+        if (isBedManagementRead)
+        {
+            // Termasuk unit nonaktif agar bed tidak tersedia dan riwayatnya tetap terlihat.
+            _allReadableUnitsCache ??= await db.Set<MstServiceUnit>().AsNoTracking()
+                .Where(x => !x.IsDelete)
+                .Select(x => x.Id)
+                .ToListAsync(ct);
+            _unitsCache[operation] = _allReadableUnitsCache;
+            return _allReadableUnitsCache;
+        }
         var isSuperAdmin = await IsSuperAdminAsync(ct);
         if (isSuperAdmin)
         {
-            var allUnits = await db.Set<MstServiceUnit>()
+            _allActiveUnitsCache ??= await db.Set<MstServiceUnit>()
                 .Where(x => !x.IsDelete && x.IsActive)
                 .Select(x => x.Id)
                 .ToListAsync(ct);
-            _unitsCache[operation] = allUnits;
-            return allUnits;
+            _unitsCache[operation] = _allActiveUnitsCache;
+            return _allActiveUnitsCache;
         }
         var ids = Assignments.Where(x => x.Operations.Contains(operation) &&
             (!x.OperationalOnly || operation is "InpatientBedManagement:Read" or "InpatientBedManagement:StartCleaning" or "InpatientBedManagement:CompleteCleaning" or "InpatientBedOccupancy:Read"))
@@ -105,6 +120,22 @@ public sealed class InpBedAccessService(
         if (!await HasPermissionAsync("InpatientEpisode:Read")) return false;
         var units = await UnitsAsync("InpatientBedOccupancy:Read", ct);
         return await db.Set<InpEpisode>().AnyAsync(x => x.Id == episodeId && !x.IsDelete && units.Contains(x.ServiceUnitId), ct);
+    }
+
+    /// <summary>
+    /// Aturan yang sama persis dengan <see cref="CanReadIdentityAsync"/>, tetapi memakai data
+    /// episode yang sudah dimuat pemanggil. Dipakai proyeksi bed supaya pemeriksaan identitas
+    /// tidak lagi satu query per bed terisi/dipesan (BE-RWI-228).
+    /// </summary>
+    public async Task<bool> CanReadLoadedIdentityAsync(Guid unitId, Guid episodeServiceUnitId, bool episodeIsDeleted, CancellationToken ct = default)
+    {
+        var isSuperAdmin = await IsSuperAdminAsync(ct);
+        if (!isSuperAdmin && (!Assignments.Any(x => x.ServiceUnitId == unitId) || Assignments.Any(x => x.ServiceUnitId == unitId && x.OperationalOnly)))
+            return false;
+        if (!await HasPermissionAsync("InpatientEpisode:Read")) return false;
+        if (episodeIsDeleted) return false;
+        var units = await UnitsAsync("InpatientBedOccupancy:Read", ct);
+        return units.Contains(episodeServiceUnitId);
     }
     public async Task RequireMasterResultAsync(string kind, Guid id, string operation, CancellationToken ct)
     {

@@ -293,3 +293,9 @@ Ketujuh task frontend Bed Management (FE-RWI-231 s/d FE-RWI-237) telah teruji tu
 | `FE-RWI-237` ✅ | FR-BM-003, FR-BM-004 | RWI-AC-408, RWI-AC-419, RWI-AC-421, RWI-AC-422, RWI-AC-425 | SELESAI; unit scope 58/58 PASS; live browser testing PASS; [laporan](../task/report/frontend/FE-RWI-237.md) & [laporan live test](../testing/test-by-agy/laporan-live-testing-bed-management.md) |
 
 Inventaris consumer/cutover berada di [FE-RWI-237](../task/report/frontend/FE-RWI-237.md). Status cutover NOT_READY. Bagian Validasi Perencanaan di atas merupakan snapshot historis sebelum implementasi, bukan status saat ini.
+
+## Tambahan PLAN-REPAIR-EPS-009 — 13 Oktober 2026
+
+| Requirement | Hasil | Rencana | Backend | Frontend | Bukti | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `ISS-EPS-009-03`, `ISS-EPS-009-04`, `ISS-EPS-009-T1` | Pembacaan bed tanpa muat ulang dan tanpa query per bed; papan mengikuti penyaring kamar/kelas/pencarian; pesan 409 tanpa nama exception | [`PLAN-REPAIR-EPS-009`](../docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md) `FIX-EPS-009-03`, `-04` | [`BE-RWI-228`](../task/report/backend/BE-RWI-228.md) ✅ | — (layar sudah mengirim penyaring) | Build 0 error/284 warning; QBE strict 7 berkas PASS (13-10-2026); hitung SQL dan uji papan `NOT RUN` | `SOURCE_COMPLETE` — runtime `NOT RUN` |
