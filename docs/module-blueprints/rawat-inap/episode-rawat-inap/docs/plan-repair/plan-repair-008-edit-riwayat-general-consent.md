@@ -3,7 +3,7 @@
 ```yaml
 plan_id: PLAN-REPAIR-EPS-008
 issue: ../issue/issue-008-edit-riwayat-general-consent.md
-status_rencana: DISETUJUI
+status_rencana: SELESAI
 tanggal_rencana: "2026-10-13"
 diputuskan_oleh: "Pemilik sistem (Muhammad Hamzah)"
 tanggal_keputusan: "2026-10-13"
@@ -18,11 +18,11 @@ basis_source_frontend: "f4495aa14c067c15e282203533e9c163363528ca (HamzahV2)"
 | ID perbaikan | Menutup | Ringkasan | Area | Prioritas | Task ID | Status | Bukti |
 | --- | --- | --- | --- | :---: | --- | --- | --- |
 | `FIX-EPS-008-01` | `ISS-EPS-008-01`, `ISS-EPS-008-02`, `ISS-EPS-008-T1` | Endpoint edit persetujuan berversi, endpoint riwayat, panduan rawat inap ikut tersimpan, dan simpan ulang dari admisi tidak lagi menimpa | BE | 1 | `BE-RWI-227` | ✅ SELESAI | [`BE-RWI-227.md`](../../task/report/backend/BE-RWI-227.md) — build 0 error, QBE PASS; uji PostgreSQL `NOT RUN` |
-| `FIX-EPS-008-02` | `ISS-EPS-008-01`, `ISS-EPS-008-T1`, `ISS-EPS-008-T2` | Tab Formulir General Consent: mode lihat dan mode edit, panduan dari data tersimpan, hubungan tercentang pada cetakan | FE | 1 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-008-03` | `ISS-EPS-008-02` | Panel Riwayat Perubahan: versi, pengubah, waktu, alasan, dan daftar perubahan | FE | 2 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-008-04` | `ISS-EPS-008-01` | Revisi dokumen blueprint: keputusan baru, skema tampilan, arsitektur frontend, kontrak API, dan matriks validasi | Dokumen | 2 | — | BELUM DIKERJAKAN | — |
+| `FIX-EPS-008-02` | `ISS-EPS-008-01`, `ISS-EPS-008-T1`, `ISS-EPS-008-T2` | Tab Formulir General Consent: mode lihat dan mode edit, panduan dari data tersimpan, hubungan tercentang pada cetakan | FE | 1 | `FE-RWI-241` | ✅ SELESAI | [`FE-RWI-241.md`](../../task/report/frontend/FE-RWI-241.md) — ESLint 0 error, unit 15/15, build PASS; uji layar `NOT FEASIBLE` |
+| `FIX-EPS-008-03` | `ISS-EPS-008-02` | Panel Riwayat Perubahan: versi, pengubah, waktu, alasan, dan daftar perubahan | FE | 2 | `FE-RWI-242` | ✅ SELESAI | [`FE-RWI-242.md`](../../task/report/frontend/FE-RWI-242.md) — ESLint 0 error, unit 16/16, build PASS; uji layar `NOT FEASIBLE` |
+| `FIX-EPS-008-04` | `ISS-EPS-008-01` | Revisi dokumen blueprint: keputusan baru, skema tampilan, arsitektur frontend, kontrak API, dan matriks validasi | Dokumen | 2 | — (perbaikan dokumen, bukan task roadmap) | ✅ SELESAI | Amandemen `RWI-DEC-295`/`296`, `RWI-AC-427` s.d. `431` di [`00-interview-decisions.md`](../../../00-interview-decisions.md) bagian "Amandemen PLAN-REPAIR-EPS-008"; lima dokumen pada bagian 7 direvisi |
 
-**Ringkasan: 1 dari 4 perbaikan selesai.**
+**Ringkasan: 4 dari 4 perbaikan selesai pada tingkat source, lint, unit test, dan build. Uji transaksi PostgreSQL dan uji layar oleh pemilik belum dijalankan (bagian 8).**
 
 `ISS-EPS-008-T3` sengaja tidak dimasukkan: berkasnya sedang diubah pekerjaan lain (issue bagian 6).
 
@@ -409,9 +409,9 @@ memori pemilik bahwa uji `.mjs` dan E2E bukan gerbang selesai.
 
 ```text
 ✅ FIX-EPS-008-01   tanpa dependency
-├── FIX-EPS-008-02   memakai POST …/revisions, VersionNo, RowVersion, dan panduan dari FIX-01
-│   └── FIX-EPS-008-03   memuat ulang riwayat sesudah edit FIX-02
-└── FIX-EPS-008-04   mencatat kontrak final FIX-01
+├── ✅ FIX-EPS-008-02   memakai POST …/revisions, VersionNo, RowVersion, dan panduan dari FIX-01
+│   └── ✅ FIX-EPS-008-03   memuat ulang riwayat sesudah edit FIX-02
+└── ✅ FIX-EPS-008-04   mencatat kontrak final FIX-01
 ```
 
 ---
@@ -425,6 +425,8 @@ memori pemilik bahwa uji `.mjs` dan E2E bukan gerbang selesai.
 ---
 
 ## 7. Dokumen hulu yang ikut direvisi
+
+Status 13-10-2026: kelima baris di bawah sudah direvisi (`FIX-EPS-008-04`).
 
 | Dokumen | Bagian | Sekarang | Menjadi |
 | --- | --- | --- | --- |
@@ -458,3 +460,5 @@ memori pemilik bahwa uji `.mjs` dan E2E bukan gerbang selesai.
 | --- | --- | --- |
 | 2026-10-13 | Rencana dibuat, 4 perbaikan. Disetujui langsung oleh pemilik lewat permintaan "tolong di perbaiki ya"; K-01 memakai rekomendasi sebagai bawaan | `diagnose-module-issue` |
 | 2026-10-13 | `FIX-EPS-008-01` ✅ sebagai `BE-RWI-227`. Delta: route edit/riwayat pindah ke grup Workspace PPRI (`POST …/general-consent/revisions`, `GET …/general-consent/history`) karena aturan akses role; AC 8 memakai kode sukses 201 yang sudah ada | `build-module-backend` |
+| 2026-10-13 | `FIX-EPS-008-02` ✅ sebagai `FE-RWI-241`. Kotak tanda tangan memakai class modul Workspace PPRI, bukan class langkah admisi, karena sebagian class itu baru ada di working tree pekerjaan lain | `build-module-frontend` |
+| 2026-10-13 | `FIX-EPS-008-03` ✅ sebagai `FE-RWI-242`; `FIX-EPS-008-04` ✅ lewat amandemen decision log (`RWI-DEC-295`, `RWI-DEC-296`, `RWI-AC-427` s.d. `431`) dan revisi `05-skema-tampilan.md`, `03-frontend-architecture.md` 14.4.3, `contracts/api-contract.md`, `contracts/validation-matrix.md` (`VAL-ADM-06` s.d. `09`). Status rencana `SELESAI` pada tingkat source; uji runtime bagian 8 masih menunggu pemilik | `build-module-frontend`, blueprint |

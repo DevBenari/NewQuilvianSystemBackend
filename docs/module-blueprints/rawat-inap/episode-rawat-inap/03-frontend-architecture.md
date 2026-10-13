@@ -1203,6 +1203,14 @@ Sudah menerima panduan rawat inap: (•) Ya ( ) Tidak    Keterangan: …
 
 Layar ini **tidak mengirim satu pun permintaan tulis** (`RWI-AC-347`); pilihan petugas hilang saat halaman ditutup (`RWI-DEC-233`).
 
+**Revisi 13 Oktober 2026 (`RWI-DEC-295`, `PLAN-REPAIR-EPS-008`, `FE-RWI-241`, `FE-RWI-242`).** Paragraf di atas kini hanya berlaku untuk episode yang **belum** punya persetujuan tersimpan. Bila persetujuan sudah ditandatangani digital pada langkah admisi (`RWI-DEC-272`), tab Formulir General Consent berjalan dalam dua mode:
+
+| Mode | Isi | Sumber data | Butir hak akses |
+|---|---|---|---|
+| Lihat | Jenis penanda tangan, keterangan hubungan, nama, NIK, telepon, alamat, waktu tanda tangan, panduan rawat inap tersimpan, lencana "Versi N", dan "terakhir diubah". Hubungan pada cetakan diturunkan dari data tersimpan | `GET …/consent` | `InpatientEpisode : Read` |
+| Edit | Form terisi dari versi aktif + kanvas tanda tangan opsional (wajib bila jenis penanda tangan berganti, `RWI-DEC-296`) + alasan perubahan 10–500 karakter. Simpan selalu dapat ditekan, lalu validasi dan fokus ke isian yang salah | `POST …/admission-workspace/general-consent/revisions` | `InpatientAdmissionDocument : Update`; episode `Admitted`/`DischargePending` |
+| Riwayat Perubahan | Satu kotak per versi: status, waktu, pengubah, alasan, dan "label: lama → baru" | `GET …/admission-workspace/general-consent/history` | `InpatientAdmissionDocument : Read` |
+
 #### 14.4.4 `FE-INP-38` Gelang & Label Pasien
 
 ```text

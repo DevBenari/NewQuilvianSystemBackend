@@ -8,7 +8,7 @@ blueprint_id: RWI-BP-001
 layar: "Workspace PPRI — menu General Consent, tab Formulir General Consent (FE-INP-36); sumber datanya langkah Formulir Persetujuan & TTD Digital admisi (FE-INP-03)"
 sumber_laporan: "Permintaan pemilik sistem 13-10-2026, 1 butir, 1 screenshot tab Formulir General Consent"
 tanggal_issue: "2026-10-13"
-status: DALAM_PERBAIKAN
+status: SELESAI
 keparahan_tertinggi: High
 source_sha_backend: "4ec02370dfa2160a9b749f507f8ebd45b0a395db (MHamzah); folder InPatientManagement bersih di working tree"
 source_sha_frontend: "f4495aa14c067c15e282203533e9c163363528ca (HamzahV2); inpatient-admission-consent-form-step.jsx dan inpatient-consent-form.jsx sedang diubah pekerjaan lain di working tree"
@@ -271,3 +271,4 @@ Keputusan yang **sudah diambil** dan tidak ditanyakan ulang:
 | --- | --- | --- |
 | 2026-10-13 | Issue dibuat dari laporan 1 butir; 2 temuan utama dan 3 temuan tambahan | `diagnose-module-issue` |
 | 2026-10-13 | Status `DALAM_PERBAIKAN`: pemilik meminta perbaikan langsung dikerjakan ("tolong di perbaiki ya") | `diagnose-module-issue` |
+| 2026-10-13 | Status `SELESAI`: keempat perbaikan ✅ (`BE-RWI-227`, `FE-RWI-241`, `FE-RWI-242`, amandemen `RWI-DEC-295`/`296`). Uji transaksi PostgreSQL dan uji layar belum dijalankan; pemilik menjalankan skenario rencana bagian 8 | `build-module-frontend` |
