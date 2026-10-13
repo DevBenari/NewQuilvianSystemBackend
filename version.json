@@ -1,38 +1,35 @@
 {
-  "description": "Release 0.15.0 enhances Billing Management, Clinical Management, Emergency Management, Finance Management, Human Resource Management, Number Series Management, Nutrition Management, Patient Management, Pharmacy Management, Platform Management, Registration Management capabilities. Includes improvements across Billing Workflow, Finance Workflow, Pharmacy Workflow. Includes 8 database migration update(s).",
+  "description": "Release 0.16.0 enhances Billing Management, Emergency Management, Finance Management, Inpatient Management, Patient Management, Registration Management capabilities. Includes improvements across Microbiology Workflow, Susceptibility Management, Laboratory Reporting, Specimen Management, Laboratory Master Data, Result Validation, Billing Workflow, Finance Workflow, Pharmacy Workflow, Blood Bank Workflow. Includes 3 database migration update(s).",
   "releaseMetadata": {
     "modules": [
       "Billing Management",
-      "Clinical Management",
       "Emergency Management",
       "Finance Management",
-      "Human Resource Management",
-      "Number Series Management",
-      "Nutrition Management",
+      "Inpatient Management",
       "Patient Management",
-      "Pharmacy Management",
-      "Platform Management",
       "Registration Management"
     ],
-    "migrationCount": 8,
+    "generatedAt": "2026-10-13T02:02:11",
+    "migrations": [
+      "20261011084625_AddInpatientBedManagementReadinessAndLifecycle.cs",
+      "20261012041938_AddAdmissionTransferOrigin.cs",
+      "20261012080102_AddEmergencyAdmissionRequest.cs"
+    ],
+    "generatedBy": "Quilvian Release Generator",
     "features": [
+      "Microbiology Workflow",
+      "Susceptibility Management",
+      "Laboratory Reporting",
+      "Specimen Management",
+      "Laboratory Master Data",
+      "Result Validation",
       "Billing Workflow",
       "Finance Workflow",
-      "Pharmacy Workflow"
+      "Pharmacy Workflow",
+      "Blood Bank Workflow"
     ],
-    "generatedAt": "2026-10-12T08:23:06",
-    "migrations": [
-      "20261008120000_AddArInvoiceBatchPaymentAndCollectionEnhancements.cs",
-      "20261008130000_AddFinanceCrossEntry.cs",
-      "20261008140000_AdjustFinanceCrossEntryAuditColumns.cs",
-      "20261008150000_EnhanceCanceledInvoiceWorkflow.cs",
-      "20261010022402_AddEmployeeBenefitColumnsToBilArHandoff.cs",
-      "20261010115612_AddFinanceReceivableInstallmentAndBenefitSettlement.cs",
-      "20261011052215_AddEmergencyDoctorRosterOverride.cs",
-      "20261012040222_AddReferralDoctorNameToEncounterReferral.cs"
-    ],
-    "generatedBy": "Quilvian Release Generator"
+    "migrationCount": 3
   },
-  "backendVersion": "0.15.0",
-  "releaseName": "Quilvian 0.15.0 - Enterprise Platform Enhancement"
+  "backendVersion": "0.16.0",
+  "releaseName": "Quilvian 0.16.0 - Enterprise Platform Enhancement"
 }
