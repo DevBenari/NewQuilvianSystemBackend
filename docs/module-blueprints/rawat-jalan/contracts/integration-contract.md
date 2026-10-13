@@ -254,3 +254,9 @@ tertunda memakai jalur handoff Billing yang sama dengan konsultasi hari ini
 | Agent Plustek — scan surat rujukan (Kiosk) | Browser → agent `POST /scanner/scan` (tanpa OCR, sudah ada) | Gambar per halaman | Gagal scan → pesan, boleh ulang; kunjungan belum dibuat sampai pasien lanjut |
 | Registrasi Laboratorium | Frontend RJ → `POST /lab-patient-registrations/external-referral` (sudah ada) | `RegisterLabExternalReferralRequest` + `IdempotencyKey` | Gagal → tidak ada kunjungan; ulang dengan kunci yang sama |
 | Rincian rujukan Lab | Frontend RJ → `PUT /patient-encounters/{id}/referral` | `RJ-DOC-REFERRAL-001` | Gagal sesudah kunjungan lab ada → "Rincian rujukan belum tersimpan" + Coba lagi; kunjungan tampil "Rujukan belum lengkap" |
+
+---
+
+## Delta 12 Oktober 2026 — Satu jalur tagihan resep (`BE-BKC-FIX-015`)
+
+Penegasan: fakta resep → folio → jembatan adalah **satu-satunya** jalur tagihan resep. Pengirim paralel `PrescriptionBillingChargeProducer` yang menghitung harga dan waktu tagih sendiri sudah dihapus. Racikan ditagih bahan × tarif obat tanpa jasa racik (`BKC-DEC-136`). Rencana: [`PLAN-REPAIR-BKC-001`](../../billing-kasir/docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md) FIX-05.

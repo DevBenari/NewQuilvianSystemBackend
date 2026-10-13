@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -19,10 +20,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
     public class CompanyGuarantorCoverageService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly InpServiceClassResolver _serviceClassResolver;
 
-        public CompanyGuarantorCoverageService(ApplicationDbContext dbContext)
+        public CompanyGuarantorCoverageService(ApplicationDbContext dbContext, InpServiceClassResolver serviceClassResolver)
         {
             _dbContext = dbContext;
+            _serviceClassResolver = serviceClassResolver;
         }
 
         /// <summary>
@@ -41,10 +44,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     "CompanyGuarantorId wajib bernilai untuk perhitungan tanggungan perusahaan.");
             }
 
-            var effectiveDate = context.CalculatedAt.UtcDateTime.Date;
             var companyGuarantorId = paymentSource.CompanyGuarantorId.Value;
             var benefitPlanCode = paymentSource.BenefitPlanCodeSnapshot;
-            var patientClassId = encounter.PatientClassId;
 
             string? employeeGrade = null;
             if (paymentSource.PatientCompanyGuarantorId.HasValue)
@@ -58,10 +59,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             var rules = await _dbContext.MstCompanyGuarantorCoverageRules.AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive && x.CompanyGuarantorId == companyGuarantorId
                     && (x.BenefitPlanCode == null || x.BenefitPlanCode == benefitPlanCode)
-                    && (x.PatientClassId == null || x.PatientClassId == patientClassId)
                     && (x.EmployeeGrade == null || (employeeGrade != null && x.EmployeeGrade == employeeGrade))
-                    && (x.EffectiveStartDate == null || x.EffectiveStartDate <= effectiveDate)
-                    && (x.EffectiveEndDate == null || effectiveDate <= x.EffectiveEndDate))
+                )
                 .OrderByDescending(x => x.Priority)
                 .ThenBy(x => x.RuleCode)
                 .ToListAsync(cancellationToken);
@@ -78,19 +77,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             RegPatientEncounter encounter,
             CancellationToken cancellationToken)
         {
-            var effectiveDate = context.CalculatedAt.UtcDateTime.Date;
             var companyGuarantorId = candidateCard.CompanyGuarantorId;
             var benefitPlanCode = candidateCard.BenefitPlanCode;
-            var patientClassId = encounter.PatientClassId;
             var employeeGrade = candidateCard.GradeLevel;
 
             var rules = await _dbContext.MstCompanyGuarantorCoverageRules.AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive && x.CompanyGuarantorId == companyGuarantorId
                     && (x.BenefitPlanCode == null || x.BenefitPlanCode == benefitPlanCode)
-                    && (x.PatientClassId == null || x.PatientClassId == patientClassId)
                     && (x.EmployeeGrade == null || (employeeGrade != null && x.EmployeeGrade == employeeGrade))
-                    && (x.EffectiveStartDate == null || x.EffectiveStartDate <= effectiveDate)
-                    && (x.EffectiveEndDate == null || effectiveDate <= x.EffectiveEndDate))
+                )
                 .OrderByDescending(x => x.Priority)
                 .ThenBy(x => x.RuleCode)
                 .ToListAsync(cancellationToken);
@@ -111,7 +106,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 
             foreach (var component in context.Components.Where(x => x.Coverable && x.Amount > 0))
             {
-                var rule = rules.FirstOrDefault(x => Matches(x, component));
+                var serviceDate = (component.ServiceOccurredAt ?? context.CalculatedAt).UtcDateTime.Date;
+                var rule = rules.Where(x =>
+                        (x.PatientClassId == null || x.PatientClassId == component.PatientClassId) &&
+                        (x.EffectiveStartDate == null || x.EffectiveStartDate.Value.Date <= serviceDate) &&
+                        (x.EffectiveEndDate == null || serviceDate <= x.EffectiveEndDate.Value.Date))
+                    .OrderByDescending(x => x.PatientClassId.HasValue).ThenByDescending(x => x.Priority).ThenBy(x => x.RuleCode)
+                    .FirstOrDefault(x => Matches(x, component));
                 if (rule is null)
                 {
                     outcomes.Add(new BillingCoverageComponentOutcome(
@@ -261,7 +262,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             if (tariff == null)
                 return CompanyGuarantorCoverageResult.Fail("Tarif rumah sakit tidak ditemukan atau tidak aktif.");
 
-            var effectiveDate = (serviceDate ?? DateTime.UtcNow).Date;
+            var serviceAt = serviceDate ?? DateTime.UtcNow;
+            var effectiveDate = serviceAt.Date;
+            var patientClassId = (await _serviceClassResolver.ResolveAsync(encounterId, serviceAt, cancellationToken)).Id;
             var unitPrice = Math.Max(0, tariff.NormalPrice);
             quantity = quantity <= 0 ? 1 : quantity;
             var totalPrice = RoundMoney(unitPrice * quantity);
@@ -269,10 +272,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             var rules = await _dbContext.MstCompanyGuarantorCoverageRules.AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive && x.CompanyGuarantorId == companyGuarantorId
                     && (x.BenefitPlanCode == null || x.BenefitPlanCode == benefitPlanCode)
-                    && (x.PatientClassId == null || x.PatientClassId == encounter.PatientClassId)
+                    && (x.PatientClassId == null || x.PatientClassId == patientClassId)
                     && (x.EmployeeGrade == null || (employeeGrade != null && x.EmployeeGrade == employeeGrade))
-                    && (x.EffectiveStartDate == null || x.EffectiveStartDate <= effectiveDate)
-                    && (x.EffectiveEndDate == null || effectiveDate <= x.EffectiveEndDate))
+                )
                 .OrderByDescending(x => x.Priority)
                 .ThenBy(x => x.RuleCode)
                 .ToListAsync(cancellationToken);
@@ -290,7 +292,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 totalPrice,
                 Coverable: true);
 
-            var rule = rules.FirstOrDefault(x => Matches(x, component));
+            var rule = rules.Where(x =>
+                    (x.EffectiveStartDate == null || x.EffectiveStartDate.Value.Date <= effectiveDate) &&
+                    (x.EffectiveEndDate == null || effectiveDate <= x.EffectiveEndDate.Value.Date))
+                .OrderByDescending(x => x.PatientClassId.HasValue).ThenByDescending(x => x.Priority).ThenBy(x => x.RuleCode)
+                .FirstOrDefault(x => Matches(x, component));
             if (rule == null)
             {
                 return new CompanyGuarantorCoverageResult

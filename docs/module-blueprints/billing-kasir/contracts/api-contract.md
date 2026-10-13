@@ -1058,3 +1058,14 @@ Base URL: `api/v1/health-services/billing-management/invoices`
 
 Trace `BUI-DEC-001`–`015`, `BUI-DES-001`–`012`. Tests: lihat
 `testing/acceptance-test-matrix.md` amendment revisi 1.6.
+
+---
+
+## Delta 12 Oktober 2026 — `PLAN-REPAIR-BKC-001`
+
+| Endpoint | Perubahan | Kompatibilitas | Task |
+| --- | --- | --- | --- |
+| `GET /billing/invoices/cashier-overview` | Field tambahan per baris: `calculationState` (`CURRENT`/`STALE`/`NOT_CALCULATED`), `calculatedAt`, `runningGrossAmount`, `isPatientAmountProvisional`, `isCashPayer`, `pendingChargeCount`. Field lama tidak berubah makna | Tambahan saja; konsumen lama tetap berjalan | [`BE-BKC-FIX-020`](../task/report/backend/BE-BKC-FIX-020.md) |
+| `GET /billing/finalizations/invoices/{invoiceId}/preview`, `POST /billing/finalizations/invoices/{invoiceId}` | Kode penahan baru `BIL-FIN-022` — masih ada pelayanan layak tagih yang belum menjadi item invoice. Tidak menahan departure exception | Nilai baru pada `blockingCodes` | [`BE-BKC-FIX-021`](../task/report/backend/BE-BKC-FIX-021.md) |
+
+Keputusan: `BKC-DEC-141`. Rencana: [`PLAN-REPAIR-BKC-001`](../docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md).

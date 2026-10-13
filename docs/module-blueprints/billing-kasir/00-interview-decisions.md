@@ -2804,3 +2804,92 @@ ada open question tersisa yang memblokir.
 | Trace | `BillingDepositService.cs:176`; `BillingDepositService.cs:764`; `evidence/19`; `FIN-DEC-080` |
 
 
+
+
+---
+
+## Amendment Pass — Keputusan Pemilik atas `PLAN-REPAIR-BKC-001` (12 Oktober 2026)
+
+**Pemicu:** audit `ISSUE-BKC-001` ("apakah semua item checkout dokter/perawat sudah sampai kasir?") dan rencana perbaikannya [`plan-repair-001`](docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md) bagian 6. Pemilik meminta rencana dikerjakan sampai tuntas pada 12 Oktober 2026. Empat keputusan berisi kebijakan tagih baru ditanyakan sekali kepada pemilik lewat pilihan interaktif; tiga lainnya diturunkan dari keputusan yang sudah ada atau rekomendasi plan-repair dan dicatat demikian.
+
+### `BKC-DEC-135` — K-01: Penagihan intervensi keperawatan ditunda
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **FIX-BKC-001-01 ditunda.** Intervensi/tindakan harian keperawatan yang ditandai "dapat ditagih" tetap berstatus `BillingDispatchStatus = Pending` seperti kontrak `INT-KEP-05` saat ini; belum ada pengirim maupun pemetaan tarif. Tindakan perawat yang bertarif tetap ditagih lewat order Tindakan (jalur prosedur yang sudah ada) |
+| Owner | Pemilik pekerjaan (pengguna sesi) |
+| Status | `approved` |
+| Approval evidence | Pilihan interaktif 12 Oktober 2026: *"Tunda FIX-01"* (rekomendasi agent: tarif via master) |
+| Konsekuensi | Intervensi harian billable belum muncul di kasir. Bila kelak dibuka, butuh tautan tarif pada master Tindakan Harian Keperawatan (migration) dan penahan duplikasi terhadap order Tindakan |
+| Trace | `ISS-BKC-001-01`; `NursingInterventionService.cs:289`, `:439`; `rawat-inap/keperawatan/contracts/integration-contract.md` `INT-KEP-05` |
+
+### `BKC-DEC-136` — K-02: Racikan ditagih bahan × tarif obat, tanpa jasa racik
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Resep yang memuat racikan **ditagih otomatis lewat jalur fakta resep**: setiap bahan racikan aktif = `PricingQuantity` × tarif obat bahan itu (tarif langsung bahan, lalu tarif obat), dijumlahkan dengan obat reguler menjadi satu baris `PHARMACY` per resep. **Jasa racik belum ditagih.** Bahan tanpa tarif menahan seluruh resep (`TARIFF_NOT_FOUND`), tidak pernah ditagih sebagian. Karena penyerahan per bahan belum dicatat Farmasi, bahan racikan ikut ditagih pada tahap yang berlaku — tahap 1 (`PRESCRIBED`) rawat jalan/IGD, tahap 2 (`DISPENSED`) rawat inap — dengan jumlah yang diresepkan. Retur bahan racikan memakai adjustment manual |
+| Owner | Pemilik pekerjaan |
+| Status | `approved` |
+| Approval evidence | Pilihan interaktif 12 Oktober 2026: *"Bahan × tarif obat (Rekomendasi)"* |
+| Konsekuensi | Penahan racikan di resolver dicabut (`BE-BKC-FIX-015`); pengirim langsung `PrescriptionBillingChargeProducer` yang dulu menagih `TotalPrice` agregat dihapus, sehingga tidak ada lagi dua otoritas harga resep |
+| Trace | `ISS-BKC-001-04`; `BillingSourceTariffResolver.ResolvePharmacyAsync` |
+
+### `BKC-DEC-137` — K-03: Konsultasi/asuhan Gizi tidak ditagih terpisah
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Konsultasi dan asuhan Gizi **termasuk paket kamar/layanan**; tidak ada charge otomatis dari modul Gizi. Pengecualian yang memang harus ditagih dicatat kasir lewat biaya katalog (`ADHOC_CATALOG`) |
+| Owner | Pemilik pekerjaan |
+| Status | `approved` |
+| Approval evidence | Pilihan interaktif 12 Oktober 2026: *"Tidak terpisah (Rekomendasi)"* |
+| Konsekuensi | FIX-BKC-001-06 selesai sebagai keputusan dan dokumentasi, tanpa producer/consumer baru; mencegah tagihan ganda dengan paket |
+| Trace | `ISS-BKC-001-05`; `gizi/00-interview-decisions.md:40` |
+
+### `BKC-DEC-138` — K-04: BMHP/obat tanpa resep ditagih per butir saat pemakaian dicatat
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Pemakaian obat/BMHP pasien **tanpa resep** (`PhmDrugUsage` tanpa `PrescriptionId`) ditagih **per butir** saat pemakaian **dicatat** (stok berkurang), dengan tarif obat/alkes yang berlaku pada waktu pemakaian. Draft tidak menagih. Tarif yang belum ada masuk antrean rekonsiliasi (`TARIFF_NOT_FOUND`), bukan Rp0. Penyerahan resep tidak ditagih lagi dari pemakaian. Retur pemakaian mengurangi baris butirnya |
+| Owner | Pemilik pekerjaan |
+| Status | `approved` |
+| Approval evidence | Pilihan interaktif 12 Oktober 2026: *"Per item saat dicatat (Rekomendasi)"*; selaras `IGD-DEC-244` (BHP ditagih Farmasi) |
+| Konsekuensi | Sumber kontrak baru `DrugUsage`/`DrugUsageCharge` → domain invoice `CONSUMABLE`/`USED` (`BE-BKC-FIX-017`). Bahan Radiologi tetap tidak ditagih tersendiri sampai ada keputusan terpisah |
+| Trace | `ISS-BKC-001-02`; `DrugUsageService.RecordAsync` |
+
+### `BKC-DEC-139` — K-05: Pelayanan IGD masuk invoice kunjungan IGD (turunan keputusan yang ada)
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Jembatan fakta→invoice **mencakup kunjungan IGD** dengan titik tagih rawat jalan. Tujuan invoice adalah invoice kunjungan IGD itu sendiri; pasien IGD yang naik rawat inap digabung lewat tautan invoice (`BilInvoiceEncounterLinks`) pada settlement terpadu, tanpa memindahkan item, sehingga pelayanan IGD tidak tertagih dua kali. Resep IGD mengikuti tahap 1 seperti rawat jalan (sama dengan perilaku pengirim langsung sebelumnya). Jasa konsultasi per catatan dokter IGD tetap tidak dikirim (`IGD-DEC-229`); jasa kunjungan dan observasi IGD tetap milik slice Billing IGD (`IGD-DEC-242`..`247`) |
+| Owner | Diturunkan agent dari keputusan yang sudah `approved` |
+| Status | `approved` — turunan, bukan kebijakan baru |
+| Approval evidence | `BKC-DEC-079` (IGD = rawat jalan), `BKC-DEC-118` (konsolidasi non-destruktif), `IGD-DEC-246`/`247` (tindakan dan obat IGD tampil di kasir seketika) |
+| Konsekuensi | `BE-BKC-FIX-016`. Fakta IGD lama yang sudah berstatus `NotApplicable` tidak diproses ulang otomatis (backfill tindakan terpisah) |
+| Trace | `ISS-BKC-001-06`; `BillingClinicalChargeBridgeService.BuildPlanAsync` |
+
+### `BKC-DEC-140` — K-06: Fakta Bank Darah diteruskan ke invoice per tindakan
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Fakta `BloodBank`/`BloodBankCharge` (satu per tindakan selesai, `DEC-BD-016`) **diteruskan otomatis ke invoice** sebagai domain `BLOOD_BANK`, satu baris per tindakan berapa pun kantongnya; harga dibaca ulang dari `MstTariff` yang berlaku (tarif yang dirujuk tindakan, lalu tarif tindakan rujukannya) |
+| Owner | Diturunkan agent dari rekomendasi plan-repair dan `DEC-BD-016` |
+| Status | `approved` — rekomendasi plan-repair dijalankan atas permintaan pemilik "kerjakan sampai tuntas" |
+| Konsekuensi | `BE-BKC-FIX-018`. Fakta Bank Darah lama (`NotApplicable`) tidak diproses ulang otomatis |
+| Trace | `ISS-BKC-001-03`; `bank-darah/contracts/integration-contract.md` bagian 3 |
+
+### `BKC-DEC-141` — K-07: Daftar kasir memisahkan total tagihan, pembayaran, sisa pasien, dan kekinian
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Daftar Invoice & Billing Kasir menyajikan **Total Tagihan**, **Sudah Dibayar & Tgl**, **Sisa Pasien**, dan **Status Tagihan** (Terkini / Perlu Hitung Ulang / Belum Dihitung) sebagai kolom terpisah, ditambah perhatian "pelayanan belum masuk invoice". Angka yang belum terkini tidak disajikan sebagai kewajiban pasti; sisa pasien penjamin yang belum dihitung tampil "Belum dihitung", bukan Rp0. Daftar tidak menulis hitungan baru hanya karena dibuka |
+| Owner | Diturunkan agent dari rekomendasi plan-repair |
+| Status | `approved` — rekomendasi plan-repair dijalankan atas permintaan pemilik |
+| Konsekuensi | Field respons baru `CalculationState`, `CalculatedAt`, `RunningGrossAmount`, `IsPatientAmountProvisional`, `IsCashPayer`, `PendingChargeCount` (`BE-BKC-FIX-020`); tampilan `FE-BKC-FIX-013` |
+| Trace | `ISS-BKC-001-07`, `-08`; `cashier-overview-view.jsx` |

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
@@ -57,7 +58,9 @@ public sealed record BillingCoverageComponent(
     Guid? TariffCategoryId,
     decimal Quantity,
     decimal Amount,
-    bool Coverable);
+    bool Coverable,
+    DateTimeOffset? ServiceOccurredAt = null,
+    Guid? PatientClassId = null);
 
 public sealed record BillingCoverageDecision(
     string ContractVersion,
@@ -120,21 +123,38 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
     private readonly ApplicationDbContext _dbContext;
     private readonly CompanyGuarantorCoverageService _companyCoverageService;
     private readonly EncounterInsuranceService _encounterInsuranceService;
+    private readonly InpServiceClassResolver _serviceClassResolver;
 
     public RegistrationBillingCoverageAdapter(
         ApplicationDbContext dbContext,
         CompanyGuarantorCoverageService companyCoverageService,
-        EncounterInsuranceService encounterInsuranceService)
+        EncounterInsuranceService encounterInsuranceService,
+        InpServiceClassResolver serviceClassResolver)
     {
         _dbContext = dbContext;
         _companyCoverageService = companyCoverageService;
         _encounterInsuranceService = encounterInsuranceService;
+        _serviceClassResolver = serviceClassResolver;
     }
 
     public async Task<BillingCoverageDecision> ResolveAsync(
         BillingCoverageContext context,
         CancellationToken cancellationToken)
     {
+        var classes = new Dictionary<DateTimeOffset, Guid?>();
+        var components = new List<BillingCoverageComponent>();
+        foreach (var component in context.Components)
+        {
+            var occurredAt = component.ServiceOccurredAt ?? context.CalculatedAt;
+            if (!classes.TryGetValue(occurredAt, out var classId))
+            {
+                classId = (await _serviceClassResolver.ResolveAsync(context.EncounterId, occurredAt.UtcDateTime, cancellationToken)).Id;
+                classes[occurredAt] = classId;
+            }
+            components.Add(component with { ServiceOccurredAt = occurredAt, PatientClassId = classId });
+        }
+        context = context with { Components = components };
+
         // BE-BKC-046/MPY-DES-005/CAP-34: Jika CandidatePayer disediakan eksplisit,
         // evaluasi payer kandidat secara murni tanpa membaca maupun menyentuh penjamin
         // persistent pada kunjungan (100% read-only, AsNoTracking, zero-side-effect).
@@ -212,13 +232,11 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
                 payerKind: "INSURANCE");
 
         var providerId = insuranceContext.InsuranceProviderId!.Value;
-        var benefitPlanCode = insuranceContext.BenefitPlanCode;
+        var benefitPlanCode = insuranceContext.BenefitPlanCode?.Trim().ToUpperInvariant();
         var rules = await _dbContext.MstInsuranceCoverageRules.AsNoTracking()
             .Where(x => !x.IsDelete && x.IsActive && x.InsuranceProviderId == providerId
-                && (x.BenefitPlanCode == null || x.BenefitPlanCode == benefitPlanCode)
-                && (x.PatientClassId == null || x.PatientClassId == encounter.PatientClassId)
-                && (x.EffectiveStartDate == null || x.EffectiveStartDate <= effectiveDate)
-                && (x.EffectiveEndDate == null || effectiveDate <= x.EffectiveEndDate))
+                && (x.BenefitPlanCode == null || x.BenefitPlanCode == "" ||
+                    (benefitPlanCode != null && x.BenefitPlanCode.ToUpper() == benefitPlanCode)))
             .OrderByDescending(x => x.Priority)
             .ThenBy(x => x.RuleCode)
             .ToListAsync(cancellationToken);
@@ -350,15 +368,12 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
                 "Data kunjungan tidak ditemukan saat memeriksa penjamin. Hubungi tim teknis sebelum menagih.",
                 payerKind: "INSURANCE");
 
-        var effectiveDate = context.CalculatedAt.UtcDateTime.Date;
         var providerId = paymentSource.InsuranceProviderId.Value;
-        var benefitPlanCode = paymentSource.BenefitPlanCodeSnapshot;
+        var benefitPlanCode = paymentSource.BenefitPlanCodeSnapshot?.Trim().ToUpperInvariant();
         var rules = await _dbContext.MstInsuranceCoverageRules.AsNoTracking()
             .Where(x => !x.IsDelete && x.IsActive && x.InsuranceProviderId == providerId
-                && (x.BenefitPlanCode == null || x.BenefitPlanCode == benefitPlanCode)
-                && (x.PatientClassId == null || x.PatientClassId == encounter.PatientClassId)
-                && (x.EffectiveStartDate == null || x.EffectiveStartDate <= effectiveDate)
-                && (x.EffectiveEndDate == null || effectiveDate <= x.EffectiveEndDate))
+                && (x.BenefitPlanCode == null || x.BenefitPlanCode == "" ||
+                    (benefitPlanCode != null && x.BenefitPlanCode.ToUpper() == benefitPlanCode)))
             .OrderByDescending(x => x.Priority)
             .ThenBy(x => x.RuleCode)
             .ToListAsync(cancellationToken);
@@ -389,7 +404,12 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
 
         foreach (var component in context.Components.Where(x => x.Coverable && x.Amount > 0))
         {
-            var rule = rules.FirstOrDefault(x => Matches(x, component));
+            var serviceDate = (component.ServiceOccurredAt ?? context.CalculatedAt).UtcDateTime.Date;
+            var rule = InsuranceCoverageService.OrderCoverageRules(rules.Where(x =>
+                (x.PatientClassId == null || x.PatientClassId == component.PatientClassId) &&
+                (x.EffectiveStartDate == null || x.EffectiveStartDate.Value.Date <= serviceDate) &&
+                (x.EffectiveEndDate == null || serviceDate <= x.EffectiveEndDate.Value.Date)))
+                .FirstOrDefault(x => Matches(x, component));
             if (rule is null)
             {
                 // Keputusan pengguna (di luar roadmap, mengubah sebagian gating BE-BKC-021): TIDAK

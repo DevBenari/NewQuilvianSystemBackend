@@ -145,3 +145,9 @@ sehingga penyaluran MUST NOT dibekukan menjadi kontrak, dan pola idempotency yan
 | HCLAB | **Tidak ada sambungan pada MVP** | Bukti hanya workstation `BANK DARAH`, kode `BBW`, Lab Sec `GL`; tidak ada kontrak/protokol/pemetaan (`DEC-BD-022`, `BD-CAP-024`). Tetap dicatat sebagai temuan penelusuran |
 | Laboratorium (pemeriksaan umum) | **Berjalan sendiri-sendiri** | Pemeriksaan golongan darah & sampelnya milik Bank Darah (`DEC-BD-015`, `DEC-BD-018`). Bila kelak Laboratorium mengambil alih, wajib ada keputusan kepemilikan & aturan prioritas (`INV-BD-015`) — bukan sekarang |
 | Mesin crossmatch / kesesuaian klinis | Di luar scope | Quilvian tidak menghitung kompatibilitas (`INV-BD-013`); hanya mencatat titik pemeriksaan |
+
+---
+
+## Delta 12 Oktober 2026 — Consumer invoice untuk fakta Bank Darah (`BKC-DEC-140`, `BE-BKC-FIX-018`)
+
+Batas Billing di bagian 3 diperluas di sisi Billing: fakta `BloodBank`/`BloodBankCharge` kini **diteruskan ke invoice kasir** sebagai `BLOOD_BANK`, satu baris per tindakan berapa pun kantongnya, dengan harga `MstTariff` yang berlaku pada waktu selesai. Producer, bentuk fakta, dan `DEC-BD-034` (koreksi tidak membalik biaya) tidak berubah. Fakta yang diterima folio sebelum perubahan ini tidak diproses ulang otomatis. Rencana: [`PLAN-REPAIR-BKC-001`](../../billing-kasir/docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md) FIX-04.
