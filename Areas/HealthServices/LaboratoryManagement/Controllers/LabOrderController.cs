@@ -175,15 +175,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 "Daftar order laboratorium berhasil diambil."));
         }
 
-        /// <summary>
-        /// Pesanan laboratorium dan ketersediaan hasilnya untuk satu perawatan rawat inap.
-        /// </summary>
-        /// <remarks>
-        /// <c>BE-RWI-052</c>, <c>api-contract.md</c> bagian 7. Hasil yang belum final ditandai
-        /// dan <b>tidak</b> disajikan sebagai hasil sah - <c>VAL-DOK-30</c>. Tidak ada satu pun
-        /// baris hasil yang disalin ke Rawat Inap; yang dibaca adalah baris milik Laboratorium
-        /// apa adanya - <c>RUL-DOK-02</c>.
-        /// </remarks>
+        // Pesanan laboratorium dan ketersediaan hasilnya untuk satu perawatan rawat inap.
+        // `BE-RWI-052`, `api-contract.md` bagian 7. Hasil yang belum final ditandai
+        // dan tidak disajikan sebagai hasil sah - `VAL-DOK-30`. Tidak ada satu pun
+        // baris hasil yang disalin ke Rawat Inap; yang dibaca adalah baris milik Laboratorium
+        // apa adanya - `RUL-DOK-02`.
         [HttpGet("episodes/{episodeId:guid}")]
         [ProducesResponseType(typeof(ApiResponse<List<LabOrderListResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Lab Order", Description = "Melihat pesanan dan hasil laboratorium satu perawatan rawat inap", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -415,16 +411,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             }
         }
 
-        /// <summary>
-        /// Dokter pemberi instruksi memverifikasi pesanan laboratorium rawat inap yang dibuat perawat —
-        /// <c>BE-RWI-104</c>, api-contract 0.6.0 bagian 12.12.
-        /// </summary>
-        /// <remarks>
-        /// Hak akses baru <c>LabOrder : Verify</c>, disetujui pemilik modul lewat <c>RWI-DEC-153</c>.
-        /// Verb <c>PUT</c> mengikuti konvensi transisi yang sudah dipakai controller ini. Jawaban:
-        /// <c>200</c> terverifikasi; <c>403</c> bukan pemberi instruksi; <c>404</c> pesanan tidak ada;
-        /// <c>409</c> sudah diverifikasi atau tidak memerlukan verifikasi.
-        /// </remarks>
+        // Dokter pemberi instruksi memverifikasi pesanan laboratorium rawat inap yang dibuat perawat —
+        // `BE-RWI-104`, api-contract 0.6.0 bagian 12.12.
+        // Hak akses baru `LabOrder : Verify`, disetujui pemilik modul lewat `RWI-DEC-153`.
+        // Verb `PUT` mengikuti konvensi transisi yang sudah dipakai controller ini. Jawaban:
+        // `200` terverifikasi; `403` bukan pemberi instruksi; `404` pesanan tidak ada;
+        // `409` sudah diverifikasi atau tidak memerlukan verifikasi.
         [HttpPut("{id:guid}/verify-instruction")]
         [ProducesResponseType(typeof(ApiResponse<LabOrderDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
@@ -458,9 +450,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             }
         }
 
-        /// <summary>
-        /// Pesanan laboratorium yang menunggu verifikasi dokter login — <c>BE-RWI-104</c>.
-        /// </summary>
+        // Pesanan laboratorium yang menunggu verifikasi dokter login — `BE-RWI-104`.
         [HttpGet("instruction-verification-worklist")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabOrderInstructionVerificationItemResponse>>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]

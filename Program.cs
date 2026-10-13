@@ -61,6 +61,7 @@ using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membership.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Controllers;
 using QuilvianSystemBackend.Responses;
 using System.Threading.RateLimiting;
@@ -483,6 +484,9 @@ try
     // RJ-DOC-REV-BE-015 — klasifikasi dan alokator nomor antrean Rawat Jalan (kiosk dan petugas).
     builder.Services.AddScoped<OutpatientQueueClassificationService>();
     builder.Services.AddScoped<OutpatientQueueNumberAllocator>();
+    // crm-membership BE-CRM-010 — satu aturan "member aktif" untuk seluruh konsumen.
+    builder.Services.AddScoped<PatientMembershipStatusResolver>();
+    builder.Services.AddScoped<PatientMembershipService>();
     builder.Services.Configure<OutpatientQueueNumberOptions>(
         builder.Configuration.GetSection(OutpatientQueueNumberOptions.SectionName));
 
