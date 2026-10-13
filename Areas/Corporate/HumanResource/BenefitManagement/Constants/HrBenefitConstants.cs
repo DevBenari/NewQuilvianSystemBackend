@@ -92,6 +92,59 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         public const string Medical = "Medical";
     }
 
+    /// <summary>Pemilik saldo plafon (FIN-DEC-207): pegawai sendiri di enrollment, atau satu baris tanggungan.</summary>
+    public static class BenefitPersonKinds
+    {
+        public const string Enrollment = "ENROLLMENT";
+        public const string Dependent = "DEPENDENT";
+    }
+
+    /// <summary>Jenis mutasi pada HrdBenefitBalanceMovement (kamus data 9.2).</summary>
+    public static class BenefitMovementTypes
+    {
+        public const string Use = "USE";
+        public const string Return = "RETURN";
+
+        public static readonly string[] All = { Use, Return };
+    }
+
+    /// <summary>Kode alasan kelayakan (FIN-INTEGRATION-1.9 R.2.3), dipakai ulang oleh BacaPlafon (R.3.1).</summary>
+    public static class BenefitEligibilityReasonCodes
+    {
+        public const string Ok = "OK";
+        public const string EmployeeNotFound = "EMPLOYEE_NOT_FOUND";
+        public const string EnrollmentNotActive = "ENROLLMENT_NOT_ACTIVE";
+        public const string EnrollmentAmbiguous = "ENROLLMENT_AMBIGUOUS";
+        public const string FamilyMemberNotFound = "FAMILY_MEMBER_NOT_FOUND";
+        public const string FamilyMemberInactive = "FAMILY_MEMBER_INACTIVE";
+        public const string RelationshipNotCovered = "RELATIONSHIP_NOT_COVERED";
+        public const string DependentNotRegistered = "DEPENDENT_NOT_REGISTERED";
+        public const string DependentNotVerified = "DEPENDENT_NOT_VERIFIED";
+        public const string DependentNotEligible = "DEPENDENT_NOT_ELIGIBLE";
+        public const string DependentOutOfPeriod = "DEPENDENT_OUT_OF_PERIOD";
+
+        /// <summary>Diisi pemanggil (adapter Billing/Registrasi) bila pembacaan HR melempar galat.</summary>
+        public const string HrUnavailable = "HR_UNAVAILABLE";
+    }
+
+    /// <summary>Hasil PakaiPlafon (FIN-INTEGRATION-1.9 R.3.2).</summary>
+    public static class BenefitUseResults
+    {
+        public const string Applied = "APPLIED";
+        public const string AlreadyApplied = "ALREADY_APPLIED";
+        public const string KeyConflict = "KEY_CONFLICT";
+        public const string Insufficient = "INSUFFICIENT";
+        public const string NotUsable = "NOT_USABLE";
+    }
+
+    /// <summary>Hasil KembalikanPlafon (FIN-INTEGRATION-1.9 R.3.3).</summary>
+    public static class BenefitReturnResults
+    {
+        public const string Returned = "RETURNED";
+        public const string AlreadyReturned = "ALREADY_RETURNED";
+        public const string NotFound = "NOT_FOUND";
+    }
+
     /// <summary>Nama aksi pada AvailableActions; sama dengan argumen pertama [AccessAction].</summary>
     public static class EmployeeBenefitActions
     {

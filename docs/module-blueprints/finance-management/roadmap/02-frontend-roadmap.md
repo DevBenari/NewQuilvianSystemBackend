@@ -1086,8 +1086,8 @@ roadmap backend. Node segi empat tanpa label adalah task frontend milik roadmap 
 ```mermaid
 flowchart LR
     B103["BE-FIN-103 🟡 [BE]"]
-    B104["BE-FIN-104 ⛔ [BE]"]
-    B105["BE-FIN-105 [BE]"]
+    B104["BE-FIN-104 🟡 [BE]"]
+    B105["BE-FIN-105 🟡 [BE]"]
     B106["BE-FIN-106 ⛔ [BE]"]
     B107["BE-FIN-107 ⛔ [BE]"]
     B109["BE-FIN-109 ⛔ [BE]"]
@@ -1117,8 +1117,8 @@ keputusan atau gerbang. Sesuai aturan, task yang tertahan tidak diberi nomor gel
 
 | Gelombang | Boleh mulai setelah | Task |
 |---:|---|---|
-| — | ⛔ menunggu `BE-FIN-103` 🟡 dan `BE-FIN-104` ⛔ [BE] (yang menunggu `FIN-OQ-104`, `FIN-OQ-105`) | `FE-FIN-045` |
-| — | ⛔ menunggu `BE-FIN-105` [BE] dan `BE-FIN-106` ⛔ [BE] (yang menunggu `FIN-OQ-105`) | `FE-FIN-046` |
+| — | ⛔ menunggu `BE-FIN-103` 🟡 dan `BE-FIN-104` 🟡 [BE] (yang menunggu `FIN-OQ-104`, `FIN-OQ-105`) | `FE-FIN-045` |
+| — | ⛔ menunggu `BE-FIN-105` 🟡 [BE] dan `BE-FIN-106` ⛔ [BE] (yang menunggu `FIN-OQ-105`) | `FE-FIN-046` |
 | — | ⛔ menunggu `BE-FIN-107`, `BE-FIN-109`, dan `BE-FIN-119` ⛔ [BE] | `FE-FIN-047` |
 | — | ⛔ menunggu `BE-FIN-112` ⛔ [BE] (yang menunggu `FIN-OQ-104`, `BE-FIN-113`) | `FE-FIN-048` |
 

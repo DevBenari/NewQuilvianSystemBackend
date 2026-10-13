@@ -11,7 +11,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 {
     /// <summary>
     /// Enrollment benefit pegawai — aggregate ber-lifecycle (transaction-endpoint-standard.md 2.1).
-    /// BE-FIN-103, FIN-API-1.10 R.1. Perpindahan status lewat POST /{id}/&lt;aksi&gt;; tidak ada
+    /// BE-FIN-103 (lifecycle) dan BE-FIN-104 (buku mutasi), FIN-API-1.10 R.1. Perpindahan status lewat POST /{id}/&lt;aksi&gt;; tidak ada
     /// GET /options, PATCH /{id}/status generik, maupun DELETE — pembatalan lewat aksi cancel.
     /// </summary>
     [ApiController]
@@ -29,8 +29,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
     public sealed class EmployeeBenefitEnrollmentController : ControllerBase
     {
         private readonly EmployeeBenefitEnrollmentService _service;
+        private readonly EmployeeBenefitBalanceService _balanceService;
 
-        public EmployeeBenefitEnrollmentController(EmployeeBenefitEnrollmentService service) => _service = service;
+        public EmployeeBenefitEnrollmentController(EmployeeBenefitEnrollmentService service, EmployeeBenefitBalanceService balanceService)
+        {
+            _service = service;
+            _balanceService = balanceService;
+        }
 
         [HttpGet("filters/metadata")]
         [AccessAction("Read", "Read Employee Benefit Enrollment", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -79,6 +84,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         public Task<IActionResult> GetStatusHistory(Guid id, CancellationToken cancellationToken) =>
             Run(async () => Ok(ApiResponse<List<EnrollmentStatusHistoryResponse>>.Ok(
                 await _service.GetStatusHistoryAsync(id, cancellationToken), "Riwayat status enrollment berhasil diambil.")));
+
+        /// <summary>Buku mutasi plafon enrollment ini, pegawai sendiri dan tanggungannya (BE-FIN-104).</summary>
+        [HttpGet("{id:guid}/movements")]
+        [AccessAction("Read", "Read Employee Benefit Enrollment", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmployeeBenefitEnrollment", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<BenefitMovementResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public Task<IActionResult> GetMovements(Guid id, [FromQuery] BenefitMovementPagedQuery query, CancellationToken cancellationToken) =>
+            Run(async () => Ok(ApiResponse<PagedResult<BenefitMovementResponse>>.Ok(
+                await _balanceService.GetMovementsAsync(id, query, cancellationToken), "Buku mutasi plafon berhasil diambil.")));
 
         [HttpPost]
         [AccessAction("Create", "Create Employee Benefit Enrollment", AccessType = AccessTypes.Create, SortOrder = 2)]

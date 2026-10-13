@@ -426,6 +426,7 @@ namespace QuilvianSystemBackend.Repositories
         #region CORPORATE - HUMAN RESOURCE - BENEFIT MANAGEMENT
         public DbSet<TrxEmployeeBenefitEnrollment> TrxEmployeeBenefitEnrollments { get; set; }
         public DbSet<TrxEmployeeBenefitDependent> TrxEmployeeBenefitDependents { get; set; }
+        public DbSet<HrdBenefitBalanceMovement> HrdBenefitBalanceMovements { get; set; }
         public DbSet<TrxEmployeeInsuranceEnrollment> TrxEmployeeInsuranceEnrollments { get; set; }
         public DbSet<TrxBenefitClaim> TrxBenefitClaims { get; set; }
         public DbSet<TrxBenefitClaimItem> TrxBenefitClaimItems { get; set; }

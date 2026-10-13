@@ -164,7 +164,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             response.CoverageType = active.e.CoverageLevel;
             response.Persons.Add(new BenefitPersonBalanceResponse
             {
-                BenefitPersonKind = "ENROLLMENT",
+                BenefitPersonKind = BenefitPersonKinds.Enrollment,
                 BenefitPersonId = active.e.Id,
                 PersonName = employee.FullName,
                 RelationshipCode = BenefitRelationshipCodes.Self,
@@ -181,7 +181,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 .ToListAsync(cancellationToken);
             response.Persons.AddRange(dependents.Select(d => new BenefitPersonBalanceResponse
             {
-                BenefitPersonKind = "DEPENDENT",
+                BenefitPersonKind = BenefitPersonKinds.Dependent,
                 BenefitPersonId = d.Id,
                 PersonName = d.DependentName,
                 RelationshipCode = d.RelationshipType,
