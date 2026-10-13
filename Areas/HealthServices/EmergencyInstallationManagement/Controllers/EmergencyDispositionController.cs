@@ -564,6 +564,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 RequiresDestinationServiceUnit = x.DispositionType?.RequiresDestinationServiceUnit ?? false,
                 RequiresReferralFacility = x.DispositionType?.RequiresReferralFacility ?? false,
                 ClosesEmergencyVisit = x.DispositionType?.ClosesEmergencyVisit ?? false,
+                RequiresAdmissionRequest = x.DispositionType?.RequiresAdmissionRequest ?? false,
                 DispositionStatus = x.DispositionStatus,
                 DecidedAt = x.DecidedAt,
                 DecidedByDoctorId = x.DecidedByDoctorId,

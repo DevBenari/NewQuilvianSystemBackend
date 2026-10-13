@@ -305,3 +305,32 @@ functional requirement, aturan kontrak, dan cara membuktikannya. Status `approve
 
 Ketepatan isi jadwal di tiap lingkungan (`IGD-UNK-18`) adalah keadaan data, bukan perilaku kode. Ia diperiksa sebelum
 rilis, bukan lewat skenario.
+
+## Form Permintaan Rawat Inap dari IGD — 12 Oktober 2026 (**Rencana (belum tersedia)**)
+
+Skenario `AT-IGD-221`…`235` ditulis lengkap pada [PRD §12.4](../04-prd-to-mvp.md). Tabel ini memetakan setiap skenario ke
+functional requirement, aturan kontrak, dan cara membuktikannya. Status `approved` (`IGD-DEC-294`, Rizki Gunawan, 12 Oktober 2026).
+
+| Skenario | Functional requirement | Aturan kontrak | Bukti | Prasyarat |
+| --- | --- | --- | --- | --- |
+| `AT-IGD-221` | `FR-IGD-109`, `110` | API §12.2–12.3; state §11.1 | JSON `201` + PNG form *Draf* | Tindak lanjut rawat inap terkonfirmasi; jenisnya bertanda `RequiresAdmissionRequest`; pasien punya diagnosis |
+| `AT-IGD-222` | `FR-IGD-109` | Validation §14 aturan 1, 3 | JSON `409` ×2 | Satu tindak lanjut *Draft*; satu form aktif |
+| `AT-IGD-223` | `FR-IGD-111` | API §12.3 `EmergencyInpatientDoctorOption` | JSON `GET …/inpatient-doctor-options` + PNG | Satu unit rawat inap berjadwal dokter, satu tanpa jadwal (data uji disiapkan Rizki) |
+| `AT-IGD-224` | `FR-IGD-111` | Validation §14 aturan 6, 8, 10 | JSON `400` ×3 | Uji API |
+| `AT-IGD-225` | `FR-IGD-112`, `113` | API §12.2, §12.4; state §11.1, §11.3; integration §9.2 | JSON `sign` + JSON `GET admission-referrals` + PNG daftar petugas admisi | Akun perawat, akun DPJP IGD aktif berakun, akun petugas admisi |
+| `AT-IGD-226` | `FR-IGD-112` | Validation §14 aturan 13; permission §11.3 | JSON `403` + PNG *Perlu TTD* dua dokter | Dua dokter IGD berakun; pengalihan DPJP di tengah uji |
+| `AT-IGD-227` | `FR-IGD-112` | State §11.1; validation §14 aturan 17 | JSON `return` + PNG riwayat | — |
+| `AT-IGD-228` | `FR-IGD-114` | Validation §14 aturan 23; API §12.5 | JSON `409` + PNG tombol nonaktif | — |
+| `AT-IGD-229` | `FR-IGD-113` | API §12.4; state §11.3 | JSON `POST episodes` + PNG layar admisi terisi | Unit rawat inap punya bed kosong |
+| `AT-IGD-230` | `FR-IGD-113` | Validation §14 aturan 21 | JSON `409` | — |
+| `AT-IGD-231` | `FR-IGD-114`, `115` | Validation §14 aturan 20, 23; state §11.2 | JSON `cancel` (Rawat Inap) + PNG IGD | — |
+| `AT-IGD-232` | `FR-IGD-115` | State §11.4; validation §14 aturan 25 | JSON `disposition-status` + JSON form dan permintaan | — |
+| `AT-IGD-233` | `FR-IGD-115` | Validation §14 aturan 19, 24 | JSON `409` ×2 | Admisi sudah dibuka dari permintaan |
+| `AT-IGD-234` | `FR-IGD-116` | API §12.2 `print-data`; kamus data §10 `SnapshotJson` | PNG/PDF dua cetakan | Alergi ditambah sesudah TTD |
+| `AT-IGD-235` | `FR-IGD-113` | Validation §14 aturan 4, 18; integration §9.3 | JSON ×2 + hitungan permintaan per form | Pasien dengan permintaan kamar pulih `Pending` (data uji lewat jalur OK yang sah, bukan SQL) |
+
+### Yang tidak dapat diuji otomatis pada slice ini
+
+`FR-IGD-117` (arti Unit Layanan) dan `FR-IGD-118` (penautan tagihan) berstatus `OPEN DECISION` dan tidak diuji sampai
+`IGD-OQ-127` dan `IGD-OQ-129` dijawab. Penandaan jenis tindak lanjut rawat inap per lingkungan (`IGD-UNK-24`) adalah keadaan
+data; diperiksa sebelum rilis.

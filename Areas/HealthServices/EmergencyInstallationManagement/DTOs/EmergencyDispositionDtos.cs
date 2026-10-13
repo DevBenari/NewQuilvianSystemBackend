@@ -22,6 +22,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public bool RequiresDestinationServiceUnit { get; set; }
         public bool RequiresReferralFacility { get; set; }
         public bool ClosesEmergencyVisit { get; set; }
+        public bool RequiresAdmissionRequest { get; set; }
 
         public EmergencyDispositionStatus DispositionStatus { get; set; }
         public DateTime DecidedAt { get; set; }

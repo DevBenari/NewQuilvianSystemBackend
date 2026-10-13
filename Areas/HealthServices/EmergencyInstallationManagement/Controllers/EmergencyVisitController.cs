@@ -247,6 +247,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 .Include(x => x.ArrivalMode)
                 .Include(x => x.CaseType)
                 .Include(x => x.ArrivalConfirmedByUser)
+                .Include(x => x.Triages)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data kunjungan IGD tidak ditemukan."));
@@ -1114,6 +1115,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 DuplicateEpisodeOverrideByUserId = x.DuplicateEpisodeOverrideByUserId,
                 DuplicateEpisodeOverrideAt = x.DuplicateEpisodeOverrideAt,
                 DuplicateEpisodeOverrideOfVisitId = x.DuplicateEpisodeOverrideOfVisitId,
+                IsTriaged = x.VisitStatus == EmergencyVisitStatus.Triaged
+                    || (x.Triages != null && x.Triages.Any(t => !t.IsDelete && t.TriageStatus == EmergencyTriageStatus.Completed)),
                 CreateDateTime = x.CreateDateTime,
                 UpdateDateTime = x.UpdateDateTime
             };
