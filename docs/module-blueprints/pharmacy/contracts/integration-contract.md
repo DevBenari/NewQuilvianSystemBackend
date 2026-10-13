@@ -47,3 +47,10 @@ Ini ketergantungan satu arah: Billing dapat dibangun dan berguna tanpa Farmasi, 
 juga menunggu penerbit yang sama.
 
 Trace `PHA-DEC-063`–`070`, `BKC-DEC-106`–`109`. Tests `PHA-AT-CLR-01`–`PHA-AT-CLR-12`.
+
+
+## Amandemen PLAN-REPAIR-DOK-006 — 2026-10-13
+
+Kontrak kelas repair rawat inap terpisah dari perubahan checkout Billing lain. Resep tidak disembunyikan oleh kelas; tarif wajib sesuai/umum, pertanggungan dievaluasi tersendiri menurut kelas penempatan pada waktu layanan. Retur menghitung kembali tarif sumber menggunakan waktu item asal. Tidak mengubah workflow dispensing, checkout, atau buku tarif asuransi dalam amandemen ini.
+
+Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../../rawat-inap/dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.

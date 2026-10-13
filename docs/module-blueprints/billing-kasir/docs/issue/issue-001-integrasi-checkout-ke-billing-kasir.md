@@ -7,7 +7,7 @@ submodule: null
 layar: "Invoice & Billing Kasir; checkout dokter/perawat dan layanan penerima order"
 sumber_laporan: "Permintaan audit pemilik 12 Oktober 2026; satu screenshot daftar kasir"
 tanggal_issue: "2026-10-12"
-status: TERBUKA
+status: SEBAGIAN_DIPERBAIKI  # 12-10-2026: 10/11 perbaikan selesai, FIX-01 (intervensi keperawatan) ditunda pemilik
 keparahan_tertinggi: High
 source_sha_backend: "05634d1f498a57c990789367521c8b430e08c32e (MHamzah)"
 source_sha_frontend: "7d44526ff11822e04d2ed558994f602986b4e2ef (HamzahV2)"
@@ -342,3 +342,4 @@ Base URL: `api/v1/health-services/clinical-management/nursing-interventions`.
 | Tanggal | Perubahan | Oleh |
 | --- | --- | --- |
 | 2026-10-12 | Audit source seluruh kategori checkout; delapan kelompok temuan, satu tambahan, matriks cakupan dan hasil uji 38/39; tanpa perubahan aplikasi/database | diagnose-module-issue |
+| 2026-10-12 | Perbaikan dikerjakan sesuai `PLAN-REPAIR-BKC-001`: ISS-02, 03, 04, 05 (lewat keputusan), 06, 07, 08, dan T1 ditutup di source/keputusan; ISS-01 tetap terbuka karena pemilik menunda K-01 (`BKC-DEC-135`). Matriks bagian 1.2 menggambarkan keadaan **sebelum** perbaikan; keadaan sesudahnya ada di register plan-repair bagian 1 | Claude |

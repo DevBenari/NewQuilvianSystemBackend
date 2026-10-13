@@ -1165,3 +1165,10 @@ Writer menjalankan komposisi transaksi backend14.14; lookup receipt actor/key/ha
 GET antrean/detail membedakan Emergency dan Outpatient. POST /admission-transfers/admit tetap 201 dan mengembalikan detail episode, OperationMeta, TransferReservation, TransferDeposit serta relasi asal. ExpectedBedVersion dan Idempotency-Key wajib; tidak ada route episodes/open-from-transfer.
 
 [Acuan implementasi EPS-006 versi 1.0](admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](../task/report/frontend/FIX-EPS-006-08.md).
+
+
+## Amandemen PLAN-REPAIR-DOK-006 — 2026-10-13
+
+`POST /api/v1/health-services/inpatient-management/episodes` menambah `OpenAdmissionRequest.SelectedBedId` opsional untuk kompatibilitas. Klien baru mengirimnya; server membaca ulang kelas/unit kamar dan menolak konteks tidak sah. Field PatientClassId lama tetap ada, tetapi tidak menjadi input manual UI. `PUT /episodes/{id}` mempertahankan kelas episode atau menggunakan kamar reservasi aktif; kiriman kelas manual tidak mengubahnya. Booking menyelaraskan kelas draft dengan kamar pilihan. Detail Swagger delta dan status respons ada pada kontrak tertaut.
+
+Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../../dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.

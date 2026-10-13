@@ -2027,3 +2027,15 @@ Jumlah panah dependency: **3** (2 panah lintas-backend sebagai cermin baca-saja,
 | Memberikan opsi bypass penolakan buka shift di sisi klien | Aturan penolakan pembukaan shift adalah integritas finansial (*hard business rule*); kasir tidak boleh memiliki tombol untuk mengabaikan blokir selisih kas |
 | Membuat modul hak akses peran baru di frontend | Otorisasi mengikuti konfigurasi RBAC terpadu `[AccessPermission("CashierShift", "Review")]` yang sudah baku di modul Billing |
 
+
+
+---
+
+## Gelombang Perbaikan `PLAN-REPAIR-BKC-001` — Checkout klinis sampai invoice kasir (12 Oktober 2026)
+
+Task ad-hoc, pola `FE-BKC-FIX-XXX`. Pemicu: [`ISSUE-BKC-001`](../docs/issue/issue-001-integrasi-checkout-ke-billing-kasir.md) dan [`PLAN-REPAIR-BKC-001`](../docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md). Belum di-commit.
+
+| Task | FIX plan-repair | Ringkasan | Dependency | Status | Laporan |
+| --- | --- | --- | --- | --- | --- |
+| `FE-BKC-FIX-012` | FIX-02 | Keranjang Alkes perawat: draft sah → Catat Pemakaian (hak `DrugUsage : Record`) → status tagih; fallback resep dan GUID kosong dihapus | `BE-BKC-FIX-017` | ✅ Source selesai; lint 0 error; build lulus; uji unit baru lulus; uji layar `NOT RUN` | [laporan](../task/report/frontend/FE-BKC-FIX-012.md) |
+| `FE-BKC-FIX-013` | FIX-10 | Daftar kasir: Total Tagihan, Sudah Dibayar & Tgl, Sisa Pasien, Status Tagihan, banner pelayanan tertunda, Muat Ulang (`BKC-DEC-141`) | `BE-BKC-FIX-020` | ✅ Source selesai; 21/21 uji unit; lint 0 error; build lulus; pemeriksaan visual `NOT RUN` | [laporan](../task/report/frontend/FE-BKC-FIX-013.md) |

@@ -3,33 +3,37 @@
 ```yaml
 plan_id: PLAN-REPAIR-BKC-001
 issue: ../issue/issue-001-integrasi-checkout-ke-billing-kasir.md
-status_rencana: MENUNGGU_PERSETUJUAN
+status_rencana: DIKERJAKAN_10_DARI_11
 tanggal_rencana: "2026-10-12"
-diputuskan_oleh: null
-tanggal_keputusan: null
+diputuskan_oleh: "Pemilik pekerjaan (pilihan interaktif K-01..K-04); K-05..K-07 diturunkan dari keputusan/rekomendasi yang ada"
+tanggal_keputusan: "2026-10-12"
 basis_source_backend: "05634d1f498a57c990789367521c8b430e08c32e (MHamzah)"
 basis_source_frontend: "7d44526ff11822e04d2ed558994f602986b4e2ef (HamzahV2)"
+basis_implementasi_backend: "d9089882 (MHamzah) + working tree, belum di-commit"
+basis_implementasi_frontend: "7d44526ff (HamzahV2) + working tree, belum di-commit"
 ```
 
-Rencana ini merupakan usulan tindak lanjut audit. Source, test, konfigurasi, roadmap, dan database belum diubah. Nomor `FIX` adalah nomor perbaikan dokumen ini, bukan task ID builder. Implementasi lintas pemilik perlu didaftarkan sebagai task kecil setelah kontrak yang diperlukan disetujui; setiap task hanya menulis repository yang diberi wewenang.
+Rencana ini disetujui dan dikerjakan pada 12 Oktober 2026 atas permintaan pemilik ("kerjakan sampai tuntas"). Keputusan K-01..K-07 tercatat sebagai `BKC-DEC-135`..`141` di [`00-interview-decisions.md`](../../00-interview-decisions.md). Nomor `FIX` tetap nomor perbaikan dokumen ini; task builder yang mengerjakannya adalah `BE-BKC-FIX-015`..`021` dan `FE-BKC-FIX-012`..`013`, dengan laporan di `task/report/`. Seluruh perubahan masih berada di working tree — commit dan push dilakukan pemilik.
 
 ## 1. Register status pengerjaan
 
 | ID perbaikan | Menutup | Ringkasan | Area / pemilik | Prioritas | Task ID | Status | Bukti |
 | --- | --- | --- | --- | :---: | --- | --- | --- |
-| FIX-BKC-001-01 | ISS-BKC-001-01 | Hubungkan intervensi keperawatan billable | Clinical + Billing | 1 | — | BELUM DIKERJAKAN | — |
-| FIX-BKC-001-02 | ISS-BKC-001-02 | Selaraskan checkout Alkes dengan API pemakaian | FE Keperawatan + kontrak Farmasi | 1 | — | BELUM DIKERJAKAN | — |
-| FIX-BKC-001-03 | ISS-BKC-001-02 | Kirim pemakaian nonresep/BMHP yang tercatat ke invoice | Farmasi + Billing | 1 | — | BELUM DIKERJAKAN | — |
-| FIX-BKC-001-04 | ISS-BKC-001-03 | Teruskan fakta Bank Darah ke invoice | Billing + Bank Darah | 1 | — | BELUM DIKERJAKAN | — |
-| FIX-BKC-001-05 | ISS-BKC-001-04 | Satukan pengiriman resep dan aturan care setting/racikan | Farmasi + Billing | 1 | — | BELUM DIKERJAKAN | — |
-| FIX-BKC-001-06 | ISS-BKC-001-05 | Tetapkan dan implementasikan titik tagih Gizi | Gizi + Billing | 2 | — | BELUM DIKERJAKAN | — |
-| FIX-BKC-001-07 | ISS-BKC-001-06 | Samakan penerbitan fakta seluruh jalur Completed | Clinical + IGD | 1 | — | BELUM DIKERJAKAN | — |
-| FIX-BKC-001-08 | ISS-BKC-001-06 | Tutup cakupan invoice IGD dan transfer | IGD + Billing | 1 | — | BELUM DIKERJAKAN | — |
-| FIX-BKC-001-09 | ISS-BKC-001-07 | Cegah angka daftar kasir yang tertinggal/tampak nol | Billing | 1 | — | BELUM DIKERJAKAN | — |
-| FIX-BKC-001-10 | ISS-BKC-001-08 | Perjelas total tagihan, pembayaran, dan kekinian di kasir | FE Billing | 2 | — | BELUM DIKERJAKAN | — |
-| FIX-BKC-001-11 | ISS-BKC-001-T1 | Periksa charge eligible tertunda sebelum finalisasi | Billing | 1 | — | BELUM DIKERJAKAN | — |
+| FIX-BKC-001-01 | ISS-BKC-001-01 | Hubungkan intervensi keperawatan billable | Clinical + Billing | 1 | — | ⏸️ DITUNDA PEMILIK | `BKC-DEC-135` (K-01: tunda) |
+| FIX-BKC-001-02 | ISS-BKC-001-02 | Selaraskan checkout Alkes dengan API pemakaian | FE Keperawatan + kontrak Farmasi | 1 | `FE-BKC-FIX-012` (+ sisi server di `BE-BKC-FIX-017`) | ✅ SELESAI | [laporan](../../task/report/frontend/FE-BKC-FIX-012.md) |
+| FIX-BKC-001-03 | ISS-BKC-001-02 | Kirim pemakaian nonresep/BMHP yang tercatat ke invoice | Farmasi + Billing | 1 | `BE-BKC-FIX-017` | ✅ SELESAI | [laporan](../../task/report/backend/BE-BKC-FIX-017.md) |
+| FIX-BKC-001-04 | ISS-BKC-001-03 | Teruskan fakta Bank Darah ke invoice | Billing + Bank Darah | 1 | `BE-BKC-FIX-018` | ✅ SELESAI | [laporan](../../task/report/backend/BE-BKC-FIX-018.md) |
+| FIX-BKC-001-05 | ISS-BKC-001-04 | Satukan pengiriman resep dan aturan care setting/racikan | Farmasi + Billing | 1 | `BE-BKC-FIX-015` | ✅ SELESAI | [laporan](../../task/report/backend/BE-BKC-FIX-015.md) |
+| FIX-BKC-001-06 | ISS-BKC-001-05 | Tetapkan dan implementasikan titik tagih Gizi | Gizi + Billing | 2 | — | ✅ SELESAI (keputusan, tanpa kode) | `BKC-DEC-137` (K-03: tidak ditagih terpisah) |
+| FIX-BKC-001-07 | ISS-BKC-001-06 | Samakan penerbitan fakta seluruh jalur Completed | Clinical + IGD | 1 | `BE-BKC-FIX-019` | ✅ SELESAI | [laporan](../../task/report/backend/BE-BKC-FIX-019.md) |
+| FIX-BKC-001-08 | ISS-BKC-001-06 | Tutup cakupan invoice IGD dan transfer | IGD + Billing | 1 | `BE-BKC-FIX-016` | ✅ SELESAI | [laporan](../../task/report/backend/BE-BKC-FIX-016.md) |
+| FIX-BKC-001-09 | ISS-BKC-001-07 | Cegah angka daftar kasir yang tertinggal/tampak nol | Billing | 1 | `BE-BKC-FIX-020` | ✅ SELESAI | [laporan](../../task/report/backend/BE-BKC-FIX-020.md) |
+| FIX-BKC-001-10 | ISS-BKC-001-08 | Perjelas total tagihan, pembayaran, dan kekinian di kasir | FE Billing | 2 | `FE-BKC-FIX-013` | ✅ SELESAI | [laporan](../../task/report/frontend/FE-BKC-FIX-013.md) |
+| FIX-BKC-001-11 | ISS-BKC-001-T1 | Periksa charge eligible tertunda sebelum finalisasi | Billing | 1 | `BE-BKC-FIX-021` | ✅ SELESAI | [laporan](../../task/report/backend/BE-BKC-FIX-021.md) |
 
-**Ringkasan: 0 dari 11 usulan perbaikan selesai.** Belum ada laporan task implementasi. Keputusan yang belum tersedia dijabarkan di bagian 6, tanpa menganggap seluruh audit terblokir.
+**Ringkasan 12 Oktober 2026: 10 dari 11 usulan perbaikan selesai** — 9 lewat source dan 1 lewat keputusan (FIX-06); **1 ditunda pemilik** (FIX-01). Semuanya masih di working tree, belum di-commit.
+
+**Verifikasi yang benar-benar dijalankan:** build backend `QuilvianSystemBackend.csproj` 0 error (warning baru dari berkas yang diubah: nol); 15/15 test baru `CheckoutBillingIntegrationTests` lulus (dijalankan lewat proyek uji sementara karena proyek `PharmacyTests` di repo sudah tidak terkompilasi sebelum task ini — galat di `BillingInvoiceEligibilityTests.cs` dan `BillingZeroPatientObligationTests.cs` yang tidak disentuh); unit frontend 48/49 (satu-satunya gagal `FE-RWI-094`, mismatch lama bagian 8); `npx eslint src --quiet` 0 error; `npm run build` frontend lulus. **`NOT RUN`:** uji transaksi PostgreSQL ujung-ke-ujung, aplikasi berjalan, dan skenario bagian 8 — lihat tiap laporan.
 
 ## 2. Solusi terpilih per temuan
 
@@ -319,7 +323,7 @@ Semua bukti awal berada pada katalog E01–E28 di dokumen issue. Path BE berawal
 
 ## 5. Urutan pengerjaan
 
-Pohon berikut menunjukkan dependency, bukan pemberian izin implementasi. Semua item masih **BELUM DIKERJAKAN**.
+Pohon berikut menunjukkan dependency yang dipakai saat pengerjaan 12 Oktober 2026. Status terkini ada di register bagian 1: semua cabang selesai kecuali K-01 → FIX-01 (ditunda pemilik). FIX-05 dan FIX-08 dikerjakan pada gelombang yang sama karena penghapusan pengirim resep langsung hanya aman bila jembatan sudah mencakup IGD.
 
 ```text
 Kontrak yang sudah berlaku
@@ -352,21 +356,21 @@ FIX-05, 07, 09, dan 11 merupakan prioritas awal karena memperbaiki jalur yang su
 
 ## 6. Keputusan pemilik yang dibutuhkan
 
-| ID | Keputusan | Rekomendasi | Perbaikan yang bergantung |
-| --- | --- | --- | --- |
-| K-01 | Titik tagih/tarif intervensi dan hubungannya dengan prosedur/paket | Tindakan aktual eligible, satu charge layanan | FIX-01 |
-| K-02 | Tarif, kuantitas serah, jasa racik, dan retur racikan | Kunci seluruh komponen sebelum membuka otomatisasi | Slice racikan FIX-05 |
-| K-03 | Gizi per kunjungan/episode/paket atau tidak terpisah | Pemilik menetapkan berdasarkan kebijakan rumah sakit | FIX-06 |
-| K-04 | BMHP dan bahan Radiologi terpisah atau termasuk tarif | Hindari charge kedua atas bahan paket | FIX-03; perluasan Radiologi belum dialokasikan |
-| K-05 | Invoice IGD, transfer, dan konsolidasi ranap | Pertahankan encounter asal dan tujuan invoice resmi | FIX-08; aturan resep IGD FIX-05 |
-| K-06 | Perluasan fakta Bank Darah menjadi item invoice | Consumer otomatis per tindakan, sesuai fakta existing | FIX-04 |
-| K-07 | Total invoice, pembayaran, dan keadaan kalkulasi pada daftar | Tiga makna terpisah, status kekinian jelas | Kontrak FIX-09 dan FIX-10 |
+| ID | Keputusan | Rekomendasi | Perbaikan yang bergantung | Keputusan 12 Oktober 2026 |
+| --- | --- | --- | --- | --- |
+| K-01 | Titik tagih/tarif intervensi dan hubungannya dengan prosedur/paket | Tindakan aktual eligible, satu charge layanan | FIX-01 | **Ditunda** — `BKC-DEC-135`, pilihan pemilik |
+| K-02 | Tarif, kuantitas serah, jasa racik, dan retur racikan | Kunci seluruh komponen sebelum membuka otomatisasi | Slice racikan FIX-05 | **Bahan × tarif obat, tanpa jasa racik; retur manual** — `BKC-DEC-136`, pilihan pemilik |
+| K-03 | Gizi per kunjungan/episode/paket atau tidak terpisah | Pemilik menetapkan berdasarkan kebijakan rumah sakit | FIX-06 | **Tidak ditagih terpisah** — `BKC-DEC-137`, pilihan pemilik |
+| K-04 | BMHP dan bahan Radiologi terpisah atau termasuk tarif | Hindari charge kedua atas bahan paket | FIX-03; perluasan Radiologi belum dialokasikan | **BMHP nonresep per butir saat dicatat**; bahan Radiologi tetap belum ditagih tersendiri — `BKC-DEC-138`, pilihan pemilik |
+| K-05 | Invoice IGD, transfer, dan konsolidasi ranap | Pertahankan encounter asal dan tujuan invoice resmi | FIX-08; aturan resep IGD FIX-05 | **Invoice kunjungan IGD sendiri + tautan konsolidasi** — `BKC-DEC-139`, turunan `BKC-DEC-079`/`118`, `IGD-DEC-246`/`247` |
+| K-06 | Perluasan fakta Bank Darah menjadi item invoice | Consumer otomatis per tindakan, sesuai fakta existing | FIX-04 | **Consumer otomatis per tindakan** — `BKC-DEC-140` |
+| K-07 | Total invoice, pembayaran, dan keadaan kalkulasi pada daftar | Tiga makna terpisah, status kekinian jelas | Kontrak FIX-09 dan FIX-10 | **Empat kolom terpisah + status kekinian** — `BKC-DEC-141` |
 
 Pertanyaan implementasi yang jawabannya sudah ada pada source/kontrak tidak perlu ditanyakan ulang. Task ID dan target branch ditetapkan saat task implementasi disetujui/didaftarkan, bukan pada audit ini.
 
 ## 7. Dokumen hulu yang ikut direvisi
 
-Dokumen di tabel ini **belum diubah oleh audit**.
+Status 12 Oktober 2026: dokumen di tabel ini diberi catatan delta bertanggal yang menunjuk keputusan `BKC-DEC-135`..`141` dan laporan task. Isi lama tidak dihapus.
 
 | Dokumen | Bagian | Sekarang | Usulan menjadi |
 | --- | --- | --- | --- |
@@ -416,3 +420,4 @@ Uji unit terarah pada audit awal menghasilkan 38/39 lulus; satu test penghubung 
 | Tanggal | Perubahan | Oleh |
 | --- | --- | --- |
 | 2026-10-12 | Sebelas usulan perbaikan dibuat; status seluruhnya belum dikerjakan; keputusan lintas domain dan verifikasi per kategori dicatat | diagnose-module-issue |
+| 2026-10-12 | Rencana dikerjakan atas permintaan pemilik. K-01..K-04 diputuskan pemilik lewat pilihan interaktif, K-05..K-07 diturunkan dari keputusan/rekomendasi yang ada (`BKC-DEC-135`..`141`). FIX-02..05 dan 07..11 selesai lewat source (`BE-BKC-FIX-015`..`021`, `FE-BKC-FIX-012`..`013`), FIX-06 selesai lewat keputusan, FIX-01 ditunda. Dokumen hulu bagian 7 diberi catatan delta | Claude (build-module-backend/frontend) |

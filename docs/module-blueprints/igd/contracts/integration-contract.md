@@ -278,3 +278,9 @@ milik modul lain di dalam permintaan yang sama: tidak ada salinan, tidak ada sin
 | `SpecialistName` dokter umum diisi tidak baku (misalnya "GP") | Dokter itu tidak masuk kelompok di luar jadwal, kecuali kelompok itu kosong (validation §13 aturan 6) | Pengurus master dokter HR |
 | Jadwal pengganti (`SubstituteDoctorId`) | Tidak dibaca; dokter pada baris jadwal yang dihitung (`IGD-DEC-237` butir 4) | — |
 | Cuti dokter | Tidak dibaca (`IGD-DEC-237` butir 4); jembatan identitas dokter–pegawai belum terbukti | Ditinjau bila jembatan itu ada |
+
+---
+
+## Catatan lintas modul 12 Oktober 2026 — Jembatan Billing mencakup kunjungan IGD (`BKC-DEC-139`, `BE-BKC-FIX-016`, `BE-BKC-FIX-019`)
+
+Untuk perhatian pemilik slice Billing IGD (`IGD-UNK-20`, `IGD-UNK-21`): jembatan fakta→invoice milik Billing kini meneruskan fakta pada kunjungan IGD (tindakan, Lab, Radiologi, alat, resep tahap 1, BMHP nonresep, Bank Darah) ke invoice kunjungan IGD; tindakan keperawatan IGD yang langsung Completed kini menerbitkan fakta. Jasa kunjungan dan observasi IGD (`IGD-DEC-242`/`243`) **tidak** disentuh dan tetap milik slice Billing IGD; sumber `EMERGENCY` tidak dipakai. Konsolidasi ke rawat inap memakai tautan invoice (`BKC-DEC-118`). Rencana: [`PLAN-REPAIR-BKC-001`](../../billing-kasir/docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md) FIX-07/08.

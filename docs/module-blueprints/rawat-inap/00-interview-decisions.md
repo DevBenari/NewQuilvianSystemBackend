@@ -4040,3 +4040,10 @@ Daftar endpoint existing tetap merujuk [inventaris Swagger pada audit bagian 6](
 ## Amandemen lokal EPS-006 - 12 Oktober 2026
 
 Pengguna meminta seluruh plan-repair-006 admisi transfer diselesaikan pada backend MHamzah dan frontend HamzahV2. Rekomendasi K-01, K-02 dan K-03 dipakai sebagai keputusan implementasi: satu orchestrator pada booking; surat InpatientReferral Issued untuk poli; sumber pembayaran/relasi oleh Registrasi dan deposit oleh Billing. Selesai administratif membutuhkan consent tersimpan, reservasi terpisah dari kedatangan fisik. Tidak mencabut IGD-DEC-067, tidak memakai ulang ID keputusan RWI-DEC-274/275/276 milik Bed Management, dan tidak mengubah versi global blueprint. [Kontrak EPS-006](episode-rawat-inap/contracts/admission-transfer-repair-006.md). Database update dan deployment tidak dijalankan.
+
+
+## Amandemen PLAN-REPAIR-DOK-006 — 2026-10-13
+
+A-01 sampai A-05 dan K-01/K-02/K-03 pada PLAN-REPAIR-DOK-006 sudah disetujui untuk dilaksanakan. Kelas aktual memakai periode penempatan pada waktu layanan, terpisah dari hak polis. Tidak ada input kelas pada pembayaran/asuransi atau konfirmasi admisi. Semua item klinis tetap tampil. Khusus resep, gunakan tarif umum kompatibel bila tarif sesuai tidak ada; tahan resep bila keduanya tidak tersedia. Ketentuan khusus resep ini menggantikan perluasan RWI-DEC-218 yang dahulu membolehkan resep tanpa tarif. Kontrak tindakan/penunjang tetap berlaku.
+
+Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.

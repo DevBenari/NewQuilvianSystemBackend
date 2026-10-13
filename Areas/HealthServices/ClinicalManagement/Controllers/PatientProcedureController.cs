@@ -583,6 +583,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
             }
 
+            // BE-BKC-FIX-019 / ISSUE-BKC-001 ISS-06: tindakan keperawatan IGD tercatat langsung
+            // Completed, jadi fakta tagihnya diterbitkan di sini, sesudah tersimpan. Kiriman ulang
+            // berkunci sama tidak menerbitkan fakta kedua karena faktanya sudah ada.
+            await _executionService.EnsureCompletedFactAsync(result.Data!.Id, actorUserId, CancellationToken.None);
+
             return Ok(ApiResponse<PatientProcedureResponse>.Ok(result.Data!, result.Message));
         }
 
@@ -946,6 +951,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 );
 
                 await transaction.CommitAsync();
+
+                // BE-BKC-FIX-019 / ISSUE-BKC-001 ISS-06: tindakan yang lahir langsung Completed
+                // (ExecuteImmediately) menerbitkan fakta tagih seperti execute resmi, sesudah
+                // commit. Kegagalan Billing tidak membatalkan tindakan yang sudah tersimpan.
+                if (entity.IsExecuted && entity.ProcedureStatus == PatientProcedureStatus.Completed)
+                    await _executionService.EnsureCompletedFactAsync(entity, actorUserId, CancellationToken.None);
 
                 var response = ToCreateResponse(entity, summary);
 

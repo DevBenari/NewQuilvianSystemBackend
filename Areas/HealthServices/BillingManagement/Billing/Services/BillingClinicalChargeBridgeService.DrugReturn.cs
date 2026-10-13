@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Enums;
@@ -34,7 +34,7 @@ public sealed partial class BillingClinicalChargeBridgeService
             join inv in db.BilInvoices.AsNoTracking() on folio.EncounterId equals inv.EncounterId
             join enc in db.RegPatientEncounters.AsNoTracking() on inv.EncounterId equals enc.Id
             where folio.Id == effect.FolioId && !inv.IsDelete
-            select new { inv.Id, inv.Status, inv.RowVersion, enc.ClinicId, enc.PatientClassId }).SingleOrDefaultAsync(ct);
+            select new { inv.Id, inv.Status, inv.RowVersion, inv.EncounterId, enc.ClinicId, enc.PatientClassId }).SingleOrDefaultAsync(ct);
         if (invoice == null) return SyncOutcome.NoChange("Retur belum memiliki invoice sumber.", domain, detailId, null);
         var key = DeterministicKey(effect.MilestoneFactId, effect.MilestoneFactVersion);
         var applied = await db.BilInvoiceItems.AsNoTracking().AnyAsync(x => x.InvoiceId == invoice.Id
@@ -59,9 +59,11 @@ public sealed partial class BillingClinicalChargeBridgeService
         decimal targetQuantity = 0, targetUnitPrice = 0;
         if (remaining > 0)
         {
+            var serviceClass = await services.GetRequiredService<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services.InpServiceClassResolver>()
+                .ResolveAsync(invoice.EncounterId, item.SourceOccurredAt.UtcDateTime, ct);
             var tariff = await services.GetRequiredService<BillingSourceTariffResolver>().ResolveAsync(
                 new BillingTariffResolutionRequest(domain, fact.SourceAggregateId, fact.SourceItemId, remaining,
-                    invoice.ClinicId, invoice.PatientClassId, item.SourceOccurredAt.UtcDateTime, quantities), ct);
+                    invoice.ClinicId, serviceClass.Id, item.SourceOccurredAt.UtcDateTime, quantities), ct);
             if (tariff.Kind != BillingTariffResolutionKind.Resolved)
                 return SyncOutcome.Reconcile(tariff.Code ?? BillingBridgeCodes.SourceRejected, tariff.Message ?? "Tarif retur tidak dapat dibaca.", domain, detailId);
             targetQuantity = tariff.Quantity; targetUnitPrice = tariff.UnitPrice;

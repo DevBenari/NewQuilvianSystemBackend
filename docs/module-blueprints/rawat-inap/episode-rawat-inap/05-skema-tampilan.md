@@ -1830,3 +1830,10 @@ mengikat setelah pemilik menyetujui revision ini.
 Transfer: antrean server -> review -> pembayaran -> deposit untuk Cash -> dokter (validasi) -> pilih bed -> booking (satu submit) -> konfirmasi hasil -> simpan persetujuan -> cetak/selesai. Paginasi, asal IGD/Poli, jumlah overdue sesuai filter dan keadaan gagal/akses ditampilkan. Tombol Selesai menunggu persetujuan tersimpan pada episode yang sama.
 
 [Acuan implementasi EPS-006 versi 1.0](contracts/admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](task/report/frontend/FIX-EPS-006-08.md).
+
+
+## Amandemen PLAN-REPAIR-DOK-006 — 2026-10-13
+
+Amandemen bagian pembayaran dan konfirmasi: hapus pemilih kelas, checklist wajib kelas dan validasi kelas dari pembayaran/asuransi. Tampilkan informasi bahwa kelas mengikuti kamar. Konfirmasi hanya dapat mengubah unit/catatan; kelas informasi server. Langkah dokter memvalidasi draft di klien; setelah bed dipilih, buka kunjungan/episode dengan kelas kamar. Deposit sebelum pilihan kamar menampilkan kebijakan kelas belum tersedia dan tidak menahan admisi. Pemulihan draft membaca kelas episode, bukan snapshot pembayaran lama.
+
+Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.

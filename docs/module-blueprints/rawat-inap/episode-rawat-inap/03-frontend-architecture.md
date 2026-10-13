@@ -1416,3 +1416,10 @@ Gunakan role tablist/tab/tabpanel, aria-selected, keyboard navigation/focus retu
 Cabang transfer: URL menyimpan patientId, transferId, sourceType dan episodeId hasil. Dokter hanya memvalidasi form; booking memanggil admitFromTransfer sekali. Guard pasien/sumber dibaca ulang, draft dan unknown intent disimpan per owner/sumber. Jalur pasien baru/lama/kamar pulih mempertahankan default existing. Perpindahan langkah transfer pada route yang sama memakai History API terintegrasi useSearchParams, tanpa meminta transisi server hanya untuk query langkah; lihat [dokumentasi Next.js](https://nextjs.org/docs/app/getting-started/linking-and-navigating#native-history-api).
 
 [Acuan implementasi EPS-006 versi 1.0](contracts/admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](task/report/frontend/FIX-EPS-006-08.md).
+
+
+## Amandemen PLAN-REPAIR-DOK-006 — 2026-10-13
+
+Alur admisi tidak membaca kelas dari hook pembayaran. `resolveInpatientAdmissionRoom` memvalidasi kelas/unit bed; `doctor.submit({selectedBed})` baru menulis sesudah bed dipilih; `bed.prepareBooking` menahan klik ganda dan kegagalan. Episode ID disimpan pada URL untuk resume. Konfirmasi tidak mengedit kelas; transfer memakai kelas target bed, deposit memakai kelas episode server bila sudah tersedia.
+
+Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.

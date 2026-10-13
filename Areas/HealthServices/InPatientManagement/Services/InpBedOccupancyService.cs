@@ -395,6 +395,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
                 _dbContext.Set<InpBedReservation>().Add(reservation);
 
+                // Draft mengikuti kamar yang benar-benar dipesan, termasuk setelah memilih ulang.
+                episode.PatientClassId = ResolveBilledPatientClassId(context.Room, episode);
+                episode.UpdateDateTime = now;
+                episode.UpdateBy = actorUserId;
+
                 await WriteBedStatusCopyAsync(
                     context.Bed.Id,
                     BedStatus.Reserved,
@@ -1520,6 +1525,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             CancellationToken cancellationToken = default)
         {
             var result = new InpPlacementEligibilityResult();
+            if (!room.PatientClassId.HasValue || room.PatientClassId.Value == Guid.Empty)
+            {
+                result.Add(1, "ROOM_CLASS_MISSING", "Kamar belum memiliki kelas perawatan. Lengkapi kelas kamar sebelum memesan atau menempatkan pasien.", 422);
+            }
             var operational = await _bedQueries.ProjectAsync(bed, cancellationToken);
             var root = await _dbContext.Set<InpBedReadiness>().AsNoTracking().SingleOrDefaultAsync(x => x.BedId == bed.Id, cancellationToken);
             var ownReservation = episode != null && await _dbContext.Set<InpBedReservation>().AnyAsync(x => x.BedId == bed.Id && x.EpisodeId == episode.Id && x.ReservationStatus == InpBedReservationStatus.Active && x.ExpiresAt > DateTime.UtcNow && x.ExpiresAt > DateTime.UtcNow && !x.IsDelete, cancellationToken);
@@ -1937,7 +1946,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
         /// <summary>
         /// Kelas yang ditagihkan selama satu penempatan: mengikuti kamar yang ditempati bila
-        /// kamarnya memang punya kelas, dan jatuh kembali ke kelas pada episode bila tidak.
+        /// kamarnya memiliki kelas. Kamar tanpa kelas ditolak pada pemeriksaan kelayakan.
         /// </summary>
         /// <remarks>
         /// Dasarnya <c>RWI-DEC-013</c>: pasien yang pindah dari kamar kelas 2 ke kamar kelas 1
@@ -1948,7 +1957,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         {
             return room.PatientClassId.HasValue && room.PatientClassId.Value != Guid.Empty
                 ? room.PatientClassId.Value
-                : episode.PatientClassId;
+                : throw new InvalidOperationException("Kamar belum memiliki kelas perawatan. Lengkapi kelas kamar sebelum menempatkan pasien.");
         }
 
         private static bool IsBedClosed(BedStatus status)

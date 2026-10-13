@@ -567,3 +567,10 @@ BM-F01–07 menjadi regression obligations; detail positif/negatif ada pada acce
 SourceType harus Emergency atau Outpatient (400). Sumber ranap sah wajib ada (404), status Confirmed dan belum dipakai (409), pasien/kunjungan asal cocok (422). Bed harus sesuai unit/kelas request (422) dan versi current (409). Penjamin divalidasi owner Registrasi; deposit positif hanya Cash dengan metode Billing yang sah dan shift aktif bila tunai. Kegagalan membatalkan seluruh transaksi.
 
 [Acuan implementasi EPS-006 versi 1.0](admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](../task/report/frontend/FIX-EPS-006-08.md).
+
+
+## Amandemen PLAN-REPAIR-DOK-006 — 2026-10-13
+
+Pembayaran memvalidasi kategori/kartu dan draft penjamin tanpa syarat kelas. Pembukaan dengan SelectedBedId mewajibkan bed/kamar aktif, berkelas, sesuai unit, serta kelas sah rawat inap. Pemesanan/penempatan kamar tanpa kelas memberi ROOM_CLASS_MISSING (422). Konfirmasi tidak dapat mengubah kelas; unit harus cocok kamar reservasi aktif. Validasi DPJP/isolasi, konflik bed, lifecycle dan hak akses existing tetap berlaku.
+
+Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../../dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.
