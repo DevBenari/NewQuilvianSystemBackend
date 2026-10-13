@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Char
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
@@ -53,6 +54,7 @@ public sealed class FinanceReceivableInvoiceBatchService
     private readonly NumberSeriesAllocator _numberSeriesAllocator;
     private readonly FinanceReceivableService _receivableService;
     private readonly FinanceAccountingOutboxService _accountingOutboxService;
+    private readonly FinanceReceiptService _receiptService;
 
     public FinanceReceivableInvoiceBatchService(
         ApplicationDbContext dbContext,
@@ -60,7 +62,8 @@ public sealed class FinanceReceivableInvoiceBatchService
         BillingCompanyGuarantorInvoiceDocumentService documentService,
         NumberSeriesAllocator numberSeriesAllocator,
         FinanceReceivableService receivableService,
-        FinanceAccountingOutboxService accountingOutboxService)
+        FinanceAccountingOutboxService accountingOutboxService,
+        FinanceReceiptService receiptService)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
@@ -68,6 +71,7 @@ public sealed class FinanceReceivableInvoiceBatchService
         _numberSeriesAllocator = numberSeriesAllocator;
         _receivableService = receivableService;
         _accountingOutboxService = accountingOutboxService;
+        _receiptService = receiptService;
     }
 
     // ------------------------------------------------------------------------------------
@@ -400,6 +404,35 @@ public sealed class FinanceReceivableInvoiceBatchService
         var totalPph23 = deductions.Where(d => d.DeductionType == FinReceiptDeductionTypes.Pph23).Sum(d => d.Amount);
         var totalBankAdminFee = deductions.Where(d => d.DeductionType == FinReceiptDeductionTypes.BankAdminFee).Sum(d => d.Amount);
 
+        var reversedAllocationIds = allocations
+            .Where(a => a.IsReversal && a.ReversalOfAllocationId.HasValue)
+            .Select(a => a.ReversalOfAllocationId!.Value)
+            .ToHashSet();
+
+        var activeAllocations = allocations
+            .Where(a => !a.IsReversal && a.Amount > 0 && !reversedAllocationIds.Contains(a.Id))
+            .ToList();
+
+        var hasActivePayment = activeAllocations.Count > 0;
+        var activePaymentCount = activeAllocations.Count;
+
+        bool isCancelled = mapped.Status == FinReceivableInvoiceBatchStatuses.Cancelled;
+        bool isPaid = mapped.Status == FinReceivableInvoiceBatchStatuses.Paid;
+        bool isPartiallyPaid = mapped.Status == FinReceivableInvoiceBatchStatuses.PartiallyPaid;
+        bool isIssued = mapped.Status == FinReceivableInvoiceBatchStatuses.Issued;
+        bool isDraft = mapped.Status == FinReceivableInvoiceBatchStatuses.Draft;
+
+        string invoiceStatusText = isCancelled ? "Dibatalkan" : "Aktif";
+        string paymentStatus = isPaid ? "Lunas" : (isPartiallyPaid ? "Sebagian Lunas" : "Belum Lunas");
+
+        bool canProcessPayment = !isCancelled && !isPaid && !hasActivePayment;
+        bool canCancel = !isCancelled && (isDraft || isIssued || isPartiallyPaid || isPaid);
+        bool canRevive = isCancelled;
+
+        string? cancelWarning = hasActivePayment
+            ? "Invoice ini sudah memiliki pembayaran aktif. Seluruh pembayaran aktif akan dibalik dan saldo piutang akan dikembalikan."
+            : null;
+
         return new ReceivableInvoiceBatchDetailResponse
         {
             Id = mapped.Id,
@@ -444,6 +477,14 @@ public sealed class FinanceReceivableInvoiceBatchService
             PayerVerifiedAt = mapped.PayerVerifiedAt,
             ClaimApprovedAt = mapped.ClaimApprovedAt,
             ClaimClosedAt = mapped.ClaimClosedAt,
+            CanProcessPayment = canProcessPayment,
+            CanCancel = canCancel,
+            HasActivePayment = hasActivePayment,
+            ActivePaymentCount = activePaymentCount,
+            CanRevive = canRevive,
+            CancelWarning = cancelWarning,
+            PaymentStatus = paymentStatus,
+            InvoiceStatusText = invoiceStatusText,
             Members = members,
             Payments = payments
         };
@@ -780,6 +821,16 @@ public sealed class FinanceReceivableInvoiceBatchService
         Guid batchId, Guid expectedRowVersion, Guid actorUserId, CancellationToken cancellationToken) =>
         CancelAsync(batchId, expectedRowVersion, "Pembatalan oleh pengguna", actorUserId, cancellationToken);
 
+    /// <summary>
+    /// Membatalkan Batch Tagihan AR dan secara atomik membalik seluruh alokasi pembayaran aktif
+    /// yang melekat pada piutang-piutang anggotanya (auto-reversal).
+    /// Menerima status: DRAFT, ISSUED, PARTIALLY_PAID, PAID.
+    /// Menolak status: CANCELLED.
+    /// Seluruh alokasi pembayaran aktif (baik dari Cash/Bank maupun Ayat Silang) dibalik lewat
+    /// FinanceReceiptService.ReverseAllocationCoreAsync tanpa menghapus riwayat receipt original.
+    /// Subledger movement PEMBALIKAN-ALOKASI dan PEMBALIKAN-POTONGAN dicatat canonical,
+    /// saldo Ayat Silang dipulihkan, status batch akhir menjadi CANCELLED, dan keanggotaan batch item dinonaktifkan.
+    /// </summary>
     public async Task<FinReceivableInvoiceBatch> CancelAsync(
         Guid batchId, Guid expectedRowVersion, string reason, Guid actorUserId, CancellationToken cancellationToken)
     {
@@ -800,43 +851,91 @@ public sealed class FinanceReceivableInvoiceBatchService
         if (batch.Status == FinReceivableInvoiceBatchStatuses.Cancelled)
             throw new ReceivableInvoiceBatchValidationException("Batch Tagihan AR sudah dibatalkan sebelumnya.");
 
-        if (batch.Status != FinReceivableInvoiceBatchStatuses.Draft && batch.Status != FinReceivableInvoiceBatchStatuses.Issued)
-            throw new ReceivableInvoiceBatchValidationException($"Hanya batch berstatus DRAFT atau ISSUED yang dapat dibatalkan. Status saat ini: {batch.Status}.");
-
-        // Periksa apakah batch/piutang anggota sudah memiliki alokasi pembayaran
-        var memberReceivableIds = batch.Items.Where(x => !x.IsDelete).Select(x => x.ReceivableId).ToList();
-        if (memberReceivableIds.Count > 0)
+        var allowedStatuses = new[]
         {
-            var hasPayments = await _dbContext.FinReceiptAllocations.AsNoTracking()
-                .AnyAsync(a => !a.IsDelete && !a.IsReversal && memberReceivableIds.Contains(a.ReceivableId!.Value) && a.Amount > 0, cancellationToken);
-            if (hasPayments)
-                throw new ReceivableInvoiceBatchValidationException("Batch tagihan tidak dapat dibatalkan karena sudah memiliki alokasi pembayaran.");
-        }
+            FinReceivableInvoiceBatchStatuses.Draft,
+            FinReceivableInvoiceBatchStatuses.Issued,
+            FinReceivableInvoiceBatchStatuses.PartiallyPaid,
+            FinReceivableInvoiceBatchStatuses.Paid
+        };
 
-        batch.Status = FinReceivableInvoiceBatchStatuses.Cancelled;
-        batch.CancelReason = trimmedReason;
-        batch.UpdateDateTime = DateTime.UtcNow;
-        batch.UpdateBy = actorUserId;
-        batch.CancelDateTime = DateTime.UtcNow;
-        batch.CancelBy = actorUserId;
-        batch.IsCancel = true;
-        batch.RowVersion = Guid.NewGuid();
+        if (!allowedStatuses.Contains(batch.Status))
+            throw new ReceivableInvoiceBatchValidationException($"Batch berstatus {batch.Status} tidak dapat dibatalkan.");
 
-        // Nonaktifkan keanggotaan batch item agar piutang dapat digabung ulang / di-reissue
-        foreach (var item in batch.Items.Where(x => !x.IsDelete))
-        {
-            item.IsActiveMembership = false;
-            item.UpdateDateTime = DateTime.UtcNow;
-            item.UpdateBy = actorUserId;
-        }
+        var memberReceivableIds = batch.Items
+            .Where(x => !x.IsDelete)
+            .Select(x => x.ReceivableId)
+            .Distinct()
+            .ToList();
 
+        // Cari seluruh alokasi pembayaran aktif pada piutang anggota
+        var activeAllocations = await GetActiveAllocationsForReceivablesAsync(memberReceivableIds, cancellationToken);
+
+        IDbContextTransaction? transaction = null;
         try
         {
+            transaction = await BeginTransactionAsync(cancellationToken);
+
+            // Deterministic distributed locking order: Batch -> Receipts (sorted) -> Receivables (sorted)
+            await AcquireLockAsync($"FIN_AR_BATCH_{batch.Id:N}", cancellationToken);
+
+            var receiptIdsToLock = activeAllocations
+                .Select(a => a.ReceiptId)
+                .Distinct()
+                .OrderBy(id => id)
+                .ToList();
+            foreach (var rId in receiptIdsToLock)
+            {
+                await AcquireLockAsync($"FIN_RECEIPT_{rId:N}", cancellationToken);
+            }
+
+            foreach (var recId in memberReceivableIds.OrderBy(id => id))
+            {
+                await AcquireLockAsync($"FIN_RECEIVABLE_{recId:N}", cancellationToken);
+            }
+
+            // Reverse setiap alokasi aktif secara atomik
+            foreach (var activeAlloc in activeAllocations)
+            {
+                await _receiptService.ReverseAllocationCoreAsync(
+                    activeAlloc.Id,
+                    actorUserId,
+                    cancellationToken,
+                    acquireLocks: false,
+                    synchronizeBatch: false);
+            }
+
+            // Nonaktifkan keanggotaan batch item agar piutang dapat digabung ulang / di-reissue
+            foreach (var item in batch.Items.Where(x => !x.IsDelete))
+            {
+                item.IsActiveMembership = false;
+                item.UpdateDateTime = DateTime.UtcNow;
+                item.UpdateBy = actorUserId;
+            }
+
+            // Final state batch: CANCELLED
+            var now = DateTime.UtcNow;
+            batch.Status = FinReceivableInvoiceBatchStatuses.Cancelled;
+            batch.CancelReason = trimmedReason;
+            batch.CancelDateTime = now;
+            batch.CancelBy = actorUserId;
+            batch.IsCancel = true;
+            batch.UpdateDateTime = now;
+            batch.UpdateBy = actorUserId;
+            batch.RowVersion = Guid.NewGuid();
+
             await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
         }
         catch (DbUpdateConcurrencyException ex)
         {
+            await RollbackAsync(transaction);
             throw Stale(ex);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
         }
 
         await AuditAsync("Cancel", batch.Id, actorUserId);
@@ -844,23 +943,17 @@ public sealed class FinanceReceivableInvoiceBatchService
     }
 
     /// <summary>
-    /// Revive (un-cancel) — mengembalikan batch CANCELLED ke status sebelum dibatalkan, TANPA
-    /// menyentuh FinReceipt/FinReceiptAllocation/subledger sama sekali. Ini aman karena
-    /// CancelAsync di atas TIDAK PERNAH mengizinkan pembatalan batch yang sudah memiliki alokasi
-    /// pembayaran ("Batch tagihan tidak dapat dibatalkan karena sudah memiliki alokasi
-    /// pembayaran") — artinya secara struktural, batch CANCELLED manapun DIJAMIN belum pernah
-    /// punya pembayaran, sehingga revive murni soal status/keanggotaan batch, bukan koreksi
-    /// ledger. Setelah revive, pembayaran diposting lewat jalur normal PostPaymentAsync.
+    /// Buat Ulang AR / Revive (Restore) — mengaktifkan kembali batch tagihan existing dengan
+    /// Batch Id dan BatchNumber yang PERSIS SAMA (tanpa membuat GUID baru atau generate nomor invoice baru).
     ///
-    /// Status sebelum cancel tidak disimpan eksplisit (tidak ada kolom StatusBeforeCancel) —
-    /// disimpulkan dari IssuedAt: batch yang sudah pernah diterbitkan (IssuedAt terisi) kembali
-    /// ke ISSUED, yang belum (masih DRAFT saat dibatalkan) kembali ke DRAFT. Ini aman karena
-    /// CancelAsync hanya pernah mengizinkan cancel dari DRAFT atau ISSUED — tidak ada status lain.
+    /// Memeriksa bahwa tidak terdapat alokasi pembayaran aktif (unreversed) pada piutang anggotanya.
+    /// Riwayat alokasi lama dan pembalikannya tetap utuh sebagai audit history.
+    /// Riwayat pembatalan (CancelDateTime, CancelBy, CancelReason) SENGAJA dipertahankan sebagai bukti audit.
     ///
-    /// CancelDateTime/CancelBy/CancelReason SENGAJA tidak dihapus — itu riwayat valid bahwa batch
-    /// ini pernah dibatalkan sekali, bukan sesuatu yang perlu disembunyikan. Laporan Canceled
-    /// Invoice (GetCanceledPagedAsync) memfilter Status == CANCELLED, sehingga batch yang sudah
-    /// di-revive otomatis tidak lagi muncul di laporan itu tanpa perlu logika tambahan.
+    /// Tanggal operasional diperbarui:
+    /// InvoiceDate = FinanceBusinessDate.Today(), DueDate = InvoiceDate + PaymentTermDays, IssuedAt = UtcNow.
+    /// Total tagihan dihitung ulang dari nilai piutang terkini.
+    /// Status batch kembali ke ISSUED dan IsActiveMembership kembali ke true.
     /// </summary>
     public async Task<FinReceivableInvoiceBatch> ReviveAsync(
         Guid batchId, Guid expectedRowVersion, Guid actorUserId, CancellationToken cancellationToken)
@@ -873,28 +966,40 @@ public sealed class FinanceReceivableInvoiceBatchService
         EnsureCurrent(batch.RowVersion, expectedRowVersion);
 
         if (batch.Status != FinReceivableInvoiceBatchStatuses.Cancelled)
-            throw new ReceivableInvoiceBatchValidationException("Hanya batch tagihan berstatus CANCELLED yang dapat dihidupkan kembali (revive).");
+            throw new ReceivableInvoiceBatchValidationException("Hanya batch tagihan berstatus CANCELLED yang dapat dihidupkan kembali (Buat Ulang AR).");
 
         if (batch.ReissuedToBatchId.HasValue)
             throw new ReceivableInvoiceBatchConflictException(
-                "Batch tagihan ini sudah pernah dibuat ulang (reissue) ke batch baru dan tidak dapat dihidupkan kembali. Gunakan batch hasil reissue-nya.");
+                "Batch tagihan ini sudah pernah dibuat ulang (reissue) ke batch baru dan tidak dapat dihidupkan kembali.");
 
-        // Jaminan struktural (lihat ringkasan di atas): batch CANCELLED tidak mungkin punya
-        // alokasi pembayaran. Diperiksa ulang di sini sebagai pengaman, bukan karena diharapkan
-        // pernah true.
-        var memberReceivableIds = batch.Items.Where(x => !x.IsDelete).Select(x => x.ReceivableId).ToList();
+        var memberReceivableIds = batch.Items
+            .Where(x => !x.IsDelete)
+            .Select(x => x.ReceivableId)
+            .Distinct()
+            .ToList();
+
+        // 1. Periksa alokasi pembayaran aktif:
+        // Invoice yang pernah dibayar lalu dibatalkan telah membalik alokasinya.
+        // Revive HANYA ditolak bila masih ada alokasi pembayaran AKTIF yang belum dibalik!
         if (memberReceivableIds.Count > 0)
         {
-            var hasPayments = await _dbContext.FinReceiptAllocations.AsNoTracking()
-                .AnyAsync(a => !a.IsDelete && !a.IsReversal && memberReceivableIds.Contains(a.ReceivableId!.Value) && a.Amount > 0, cancellationToken);
-            if (hasPayments)
+            var hasActivePayments = await HasActiveAllocationsForReceivablesAsync(memberReceivableIds, cancellationToken);
+            if (hasActivePayments)
                 throw new ReceivableInvoiceBatchConflictException(
-                    "Batch tagihan ini memiliki alokasi pembayaran yang tidak konsisten dengan status CANCELLED-nya. Hubungi administrator sistem.");
+                    "Batch tagihan ini masih memiliki alokasi pembayaran aktif yang belum dibalik.");
         }
 
-        // Piutang anggota mungkin sudah digabung ke batch aktif lain sejak pembatalan (CancelAsync
-        // melepas IsActiveMembership, sehingga piutangnya bebas dipakai ulang). Revive ditolak bila
-        // ada konflik, alih-alih diam-diam merebut kembali keanggotaan dari batch lain.
+        // 2. Periksa apakah ada koreksi piutang (FinReceivableAdjustment) yang masih pending (Requested)
+        if (memberReceivableIds.Count > 0)
+        {
+            var hasPendingAdjustments = await _dbContext.FinReceivableAdjustments.AsNoTracking()
+                .AnyAsync(a => memberReceivableIds.Contains(a.ReceivableId) && a.Status == FinReceivableApprovalStatuses.Requested && !a.IsDelete, cancellationToken);
+            if (hasPendingAdjustments)
+                throw new ReceivableInvoiceBatchConflictException(
+                    "Perubahan nominal masih menunggu persetujuan koreksi piutang.");
+        }
+
+        // 3. Periksa konflik: piutang anggota tidak boleh tergabung di batch aktif lain
         var conflictingNumbers = await _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
             .Where(x => !x.IsDelete && x.IsActiveMembership && x.BatchId != batch.Id && memberReceivableIds.Contains(x.ReceivableId))
             .Select(x => x.Receivable!.ReceivableNumber)
@@ -903,12 +1008,30 @@ public sealed class FinanceReceivableInvoiceBatchService
             throw new ReceivableInvoiceBatchConflictException(
                 $"Piutang {string.Join(", ", conflictingNumbers)} sudah tergabung dalam batch tagihan aktif lain dan tidak dapat dikembalikan ke batch ini.");
 
+        // 4. Perbarui tanggal operasional (InvoiceDate, DueDate, IssuedAt) dengan mempertahankan ID & Nomor Invoice
+        var today = FinanceBusinessDate.Today();
+        int paymentTermDays = batch.PaymentTermDays is > 0 ? batch.PaymentTermDays.Value : 30;
+        batch.InvoiceDate = today;
+        batch.DueDate = today.AddDays(paymentTermDays);
+        batch.IssuedAt = DateTimeOffset.UtcNow;
+
+        // 5. Hitung ulang total dari nilai finansial piutang terkini
+        var memberReceivables = await _dbContext.FinReceivables.AsNoTracking()
+            .Where(x => memberReceivableIds.Contains(x.Id) && !x.IsDelete)
+            .ToListAsync(cancellationToken);
+        if (memberReceivables.Count > 0)
+        {
+            batch.TotalAmount = memberReceivables.Sum(r => r.OriginalAmount);
+        }
+
+        // 6. Set status ISSUED dan aktifkan kembali membership
         batch.Status = FinReceivableInvoiceBatchStatuses.Issued;
-        batch.IssuedAt ??= DateTimeOffset.UtcNow;
+        batch.IsCancel = false;
         batch.ClaimStatus = null;
         batch.UpdateDateTime = DateTime.UtcNow;
         batch.UpdateBy = actorUserId;
         batch.RowVersion = Guid.NewGuid();
+        // CATATAN AUDIT: CancelDateTime, CancelBy, CancelReason SENGAJA dipertahankan untuk riwayat audit.
 
         foreach (var item in batch.Items.Where(x => !x.IsDelete))
         {
@@ -928,6 +1051,55 @@ public sealed class FinanceReceivableInvoiceBatchService
 
         await AuditAsync("Revive", batch.Id, actorUserId);
         return batch;
+    }
+
+    /// <summary>
+    /// Mengembalikan seluruh alokasi pembayaran aktif (unreversed) untuk piutang-piutang anggota batch.
+    /// Alokasi aktif adalah alokasi original (!IsDelete dan !IsReversal dan Amount > 0)
+    /// yang belum pernah dibalik oleh alokasi pembalik (!IsDelete dan IsReversal dan ReversalOfAllocationId == original.Id).
+    /// </summary>
+    public async Task<List<FinReceiptAllocation>> GetActiveAllocationsForReceivablesAsync(
+        IEnumerable<Guid> receivableIds, CancellationToken cancellationToken)
+    {
+        var idList = receivableIds.Distinct().ToList();
+        if (idList.Count == 0) return new List<FinReceiptAllocation>();
+
+        var allAllocations = await _dbContext.FinReceiptAllocations
+            .Include(a => a.Receipt)
+            .Where(a => a.ReceivableId.HasValue && idList.Contains(a.ReceivableId.Value) && !a.IsDelete)
+            .ToListAsync(cancellationToken);
+
+        var reversedTargetIds = allAllocations
+            .Where(a => a.IsReversal && a.ReversalOfAllocationId.HasValue)
+            .Select(a => a.ReversalOfAllocationId!.Value)
+            .ToHashSet();
+
+        return allAllocations
+            .Where(a => !a.IsReversal && a.Amount > 0 && !reversedTargetIds.Contains(a.Id))
+            .OrderBy(a => a.AllocatedAt)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Memeriksa apakah piutang-piutang anggota memiliki setidaknya satu alokasi pembayaran aktif (unreversed).
+    /// </summary>
+    public async Task<bool> HasActiveAllocationsForReceivablesAsync(
+        IEnumerable<Guid> receivableIds, CancellationToken cancellationToken)
+    {
+        var idList = receivableIds.Distinct().ToList();
+        if (idList.Count == 0) return false;
+
+        var allAllocations = await _dbContext.FinReceiptAllocations.AsNoTracking()
+            .Where(a => a.ReceivableId.HasValue && idList.Contains(a.ReceivableId.Value) && !a.IsDelete)
+            .Select(a => new { a.Id, a.Amount, a.IsReversal, a.ReversalOfAllocationId })
+            .ToListAsync(cancellationToken);
+
+        var reversedTargetIds = allAllocations
+            .Where(a => a.IsReversal && a.ReversalOfAllocationId.HasValue)
+            .Select(a => a.ReversalOfAllocationId!.Value)
+            .ToHashSet();
+
+        return allAllocations.Any(a => !a.IsReversal && a.Amount > 0 && !reversedTargetIds.Contains(a.Id));
     }
 
     // ------------------------------------------------------------------------------------
@@ -1796,6 +1968,13 @@ public sealed class FinanceReceivableInvoiceBatchService
         if (batch.Status == FinReceivableInvoiceBatchStatuses.Cancelled)
             throw new ReceivableInvoiceBatchValidationException("Batch Tagihan AR sudah dibatalkan (CANCELLED).");
 
+        // Periksa apakah batch ini sudah memiliki pembayaran aktif yang belum dibalik (Section 7)
+        var memberRecIds = batch.Items.Where(x => !x.IsDelete).Select(x => x.ReceivableId).Distinct().ToList();
+        if (memberRecIds.Count > 0 && await HasActiveAllocationsForReceivablesAsync(memberRecIds, cancellationToken))
+        {
+            throw new ReceivableInvoiceBatchValidationException("Invoice ini sudah memiliki pembayaran aktif. Gunakan koreksi pembayaran atau batalkan invoice jika diperlukan.");
+        }
+
         if (!string.IsNullOrWhiteSpace(idempotencyKey))
         {
             var existingReceipt = await _dbContext.FinReceipts.AsNoTracking()
@@ -2233,11 +2412,39 @@ public sealed class FinanceReceivableInvoiceBatchService
     // CANCELED INVOICE WORKFLOW
     // ====================================================================================
 
+    private IQueryable<FinReceivableInvoiceBatch> BuildCancellationHistoryQuery()
+    {
+        return _dbContext.FinReceivableInvoiceBatches.AsNoTracking()
+            .Where(x => !x.IsDelete &&
+                (x.CancelDateTime != null
+                 || x.Status == FinReceivableInvoiceBatchStatuses.Cancelled
+                 || x.ReissuedToBatchId != null
+                 || x.IsCancel));
+    }
+
+    private static bool HasCancellationHistory(FinReceivableInvoiceBatch batch)
+    {
+        return batch.CancelDateTime != null
+            || batch.Status == FinReceivableInvoiceBatchStatuses.Cancelled
+            || batch.ReissuedToBatchId != null
+            || batch.IsCancel;
+    }
+
+    private static string ResolveCancellationReportStatus(FinReceivableInvoiceBatch batch)
+    {
+        if (batch.Status == FinReceivableInvoiceBatchStatuses.Cancelled)
+            return "CANCELLED";
+
+        if (batch.CancelDateTime.HasValue || batch.ReissuedToBatchId.HasValue || batch.IsCancel)
+            return "RECREATED";
+
+        return "CANCELLED";
+    }
+
     public async Task<CanceledInvoicePagedResponse> GetCanceledPagedAsync(
         CanceledInvoiceBatchQuery request, CancellationToken cancellationToken)
     {
-        var query = _dbContext.FinReceivableInvoiceBatches.AsNoTracking()
-            .Where(x => !x.IsDelete && x.Status == FinReceivableInvoiceBatchStatuses.Cancelled);
+        var query = BuildCancellationHistoryQuery();
 
         query = ApplyCanceledFilter(query, request);
         query = ApplyCanceledSort(query, request);
@@ -2346,6 +2553,7 @@ public sealed class FinanceReceivableInvoiceBatchService
             var hasReceipt = recsForBatch.Any(r => paidReceivableIds.Contains(r));
 
             userNames.TryGetValue(b.CancelBy, out var cancelledByName);
+            var reportStatus = ResolveCancellationReportStatus(b);
 
             return new CanceledInvoiceRowResponse
             {
@@ -2362,7 +2570,9 @@ public sealed class FinanceReceivableInvoiceBatchService
                 TotalAmount = b.TotalAmount,
                 TotalDiscount = b.TotalDiscount,
                 NetAmount = b.TotalAmount - b.TotalDiscount,
-                Status = b.Status,
+                ReportStatus = reportStatus,
+                CurrentStatus = b.Status,
+                Status = reportStatus,
                 CancelledBy = b.CancelBy,
                 CancelledByName = cancelledByName,
                 CancelReason = b.CancelReason,
@@ -2390,8 +2600,7 @@ public sealed class FinanceReceivableInvoiceBatchService
     private async Task<List<CanceledInvoiceRowResponse>> GetAllCanceledRowsForExportAsync(
         CanceledInvoiceBatchQuery request, CancellationToken cancellationToken)
     {
-        var query = _dbContext.FinReceivableInvoiceBatches.AsNoTracking()
-            .Where(x => !x.IsDelete && x.Status == FinReceivableInvoiceBatchStatuses.Cancelled);
+        var query = BuildCancellationHistoryQuery();
 
         query = ApplyCanceledFilter(query, request);
         query = ApplyCanceledSort(query, request);
@@ -2437,7 +2646,7 @@ public sealed class FinanceReceivableInvoiceBatchService
             ws.Cell(r, 10).Value = row.TotalDiscount;
             ws.Cell(r, 11).Value = row.NetAmount;
             ws.Cell(r, 12).Value = row.CancelReason ?? "-";
-            ws.Cell(r, 13).Value = row.Status;
+            ws.Cell(r, 13).Value = row.ReportStatus == "RECREATED" ? "Sudah Dibuat Ulang" : "Canceled";
             r++;
         }
 
@@ -2545,8 +2754,7 @@ public sealed class FinanceReceivableInvoiceBatchService
 
         // Total Filter: agregat atas seluruh filter aktif (search, rentang tanggal, jenis layanan,
         // DebtorReferenceId, kategori). Merepresentasikan persis isi tabel yang sedang ditampilkan FE.
-        var query = _dbContext.FinReceivableInvoiceBatches.AsNoTracking()
-            .Where(x => !x.IsDelete && x.Status == FinReceivableInvoiceBatchStatuses.Cancelled);
+        var query = BuildCancellationHistoryQuery();
         query = ApplyCanceledFilter(query, request);
 
         var agg = await query
@@ -2576,18 +2784,15 @@ public sealed class FinanceReceivableInvoiceBatchService
             // Total Target: akumulasi sepanjang masa untuk target yang dipilih, TANPA rentang
             // tanggal/search/jenis layanan — definisi bisnisnya "berapa total yang pernah dibatalkan
             // untuk perusahaan ini", bukan "berapa yang cocok dengan filter saat ini" (itu Total Filter).
-            targetAmount = await _dbContext.FinReceivableInvoiceBatches.AsNoTracking()
-                .Where(x => !x.IsDelete
-                    && x.Status == FinReceivableInvoiceBatchStatuses.Cancelled
-                    && x.DebtorReferenceId == request.DebtorReferenceId.Value)
+            targetAmount = await BuildCancellationHistoryQuery()
+                .Where(x => x.DebtorReferenceId == request.DebtorReferenceId.Value)
                 .SumAsync(x => x.TotalAmount, cancellationToken);
         }
         else
         {
-            // Tidak ada target spesifik dipilih: Total Target = total seluruh invoice CANCELLED
+            // Tidak ada target spesifik dipilih: Total Target = total seluruh invoice dengan riwayat pembatalan
             // sepanjang masa (tanpa filter apa pun), konsisten dengan TargetName "Semua Perusahaan".
-            targetAmount = await _dbContext.FinReceivableInvoiceBatches.AsNoTracking()
-                .Where(x => !x.IsDelete && x.Status == FinReceivableInvoiceBatchStatuses.Cancelled)
+            targetAmount = await BuildCancellationHistoryQuery()
                 .SumAsync(x => x.TotalAmount, cancellationToken);
         }
 
@@ -2614,8 +2819,8 @@ public sealed class FinanceReceivableInvoiceBatchService
             .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Canceled Invoice tidak ditemukan.");
 
-        if (batch.Status != FinReceivableInvoiceBatchStatuses.Cancelled)
-            throw new ReceivableInvoiceBatchValidationException("Batch tagihan bukan berstatus CANCELLED.");
+        if (!HasCancellationHistory(batch))
+            throw new ReceivableInvoiceBatchValidationException("Batch tagihan tidak memiliki riwayat pembatalan.");
 
         // Debtor Name
         string? debtorName = null;
@@ -2795,11 +3000,14 @@ public sealed class FinanceReceivableInvoiceBatchService
                 };
             }).ToList();
 
-        bool canReissue = !batch.ReissuedToBatchId.HasValue && pendingAdjustments.Count == 0;
+        var reportStatus = ResolveCancellationReportStatus(batch);
+        bool canReissue = batch.Status == FinReceivableInvoiceBatchStatuses.Cancelled
+            && !batch.ReissuedToBatchId.HasValue
+            && pendingAdjustments.Count == 0;
         string? reissueBlockedReason = null;
-        if (batch.ReissuedToBatchId.HasValue)
+        if (batch.Status != FinReceivableInvoiceBatchStatuses.Cancelled || batch.ReissuedToBatchId.HasValue)
         {
-            reissueBlockedReason = "Batch tagihan ini sudah pernah dibuat ulang.";
+            reissueBlockedReason = "Batch tagihan ini sudah pernah dibuat ulang / dipulihkan.";
         }
         else if (pendingAdjustments.Count > 0)
         {
@@ -2822,7 +3030,11 @@ public sealed class FinanceReceivableInvoiceBatchService
             CancelReason = batch.CancelReason,
             CancelledBy = batch.CancelBy,
             CancelledByName = cancelledByName,
-            Status = batch.Status,
+            ReportStatus = reportStatus,
+            CurrentStatus = batch.Status,
+            Status = reportStatus,
+            WasCanceled = true,
+            WasRecreated = reportStatus == "RECREATED",
             TotalAmount = batch.TotalAmount,
             TotalDiscount = batch.TotalDiscount,
             NetAmount = batch.TotalAmount - batch.TotalDiscount,

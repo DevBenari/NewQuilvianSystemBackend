@@ -1108,6 +1108,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<EmgEncounterReconciliationRun> EmgEncounterReconciliationRuns { get; set; }
         public DbSet<EmgEncounterReconciliationItem> EmgEncounterReconciliationItems { get; set; }
         public DbSet<EmgDuplicateEpisodeOverride> EmgDuplicateEpisodeOverrides { get; set; }
+        public DbSet<EmgAdmissionRequest> EmgAdmissionRequests { get; set; }
+        public DbSet<EmgAdmissionRequestEvent> EmgAdmissionRequestEvents { get; set; }
         #endregion
 
         #endregion

@@ -353,6 +353,7 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
     // CANCELLED manapun dijamin belum pernah dibayar. Setelah revive, bayar lewat endpoint
     // {id}/payments yang sudah ada.
     [HttpPost("{id:guid}/revive")]
+    [HttpPost("{id:guid}/restore")]
     [AccessAction("Update", "Update Receivable Invoice Batch", AccessType = AccessTypes.Update, SortOrder = 4)]
     [AccessPermission("FinanceReceivableInvoiceBatch", "Update")]
     public async Task<IActionResult> Revive(Guid id, [FromBody] ReviveReceivableInvoiceBatchRequest request, CancellationToken cancellationToken)

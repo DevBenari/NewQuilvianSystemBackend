@@ -47,6 +47,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public bool IsActive { get; set; }
 
         /// <summary>
+        /// Menandakan apakah kunjungan ini sudah memiliki hasil penilaian triage lengkap
+        /// atau status kunjungannya sudah Triaged. Berguna bagi layar kerja perawat IGD
+        /// untuk menampilkan atau menyembunyikan tombol Isi Triage Pasien.
+        /// </summary>
+        public bool IsTriaged { get; set; }
+
+        /// <summary>
         /// Terisi hanya bila kunjungan ini dibuat dengan menembus penjagaan satu pasien satu
         /// episode IGD aktif. Layar wajib menandainya, bukan menyembunyikannya.
         /// </summary>
@@ -338,10 +345,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public DateTime? ArrivalDateTime { get; set; }
 
         /// <summary>
-        /// Baris tanpa kunjungan: <c>StartTriage</c>, <c>ImmediateCare</c>, <c>NoShow</c>.
-        /// Baris kunjungan <c>Arrived</c>/<c>WaitingForTriage</c>: <c>FillTriage</c>,
-        /// <c>ImmediateCare</c> (<c>IGD-DEC-128</c>). Status kunjungan lain: kosong.
+        /// Menandakan apakah baris sudah pernah memiliki penilaian triage yang selesai
+        /// atau status kunjungannya sudah Triaged.
         /// </summary>
+        public bool IsTriaged { get; set; }
+
         public List<string> AvailableActions { get; set; } = new();
     }
 

@@ -5,9 +5,9 @@ using System.ComponentModel.DataAnnotations;
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 
 /// <summary>
-/// Query parameter untuk Settlement AR V2 (Finance > Transaksi A/R > Pembayaran & Pelunasan > Settlement AR).
+/// Query parameter untuk Settlement AR V2 (Finance - Transaksi A/R - Pembayaran dan Pelunasan - Settlement AR).
 /// Mendukung filter kategori (COMPANY, PATIENT, EMPLOYEE), pencarian teks, entitas penjamin/pasien/karyawan,
-/// nomor invoice, rentang tanggal (StartDate & EndDate), serta server-side pagination (maksimum 10 baris).
+/// nomor invoice, rentang tanggal (StartDate dan EndDate), serta server-side pagination (maksimum 10 baris).
 /// </summary>
 public sealed class FinanceSettlementQuery
 {

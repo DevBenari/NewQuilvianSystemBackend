@@ -298,6 +298,15 @@ public sealed class ReceivableInvoiceBatchDetailResponse : ReceivableInvoiceBatc
     public decimal BankAdminFeeAmount { get; set; }
     public decimal NetInvoiceAmount { get; set; }
 
+    public bool CanProcessPayment { get; set; }
+    public bool CanCancel { get; set; }
+    public bool HasActivePayment { get; set; }
+    public int ActivePaymentCount { get; set; }
+    public bool CanRevive { get; set; }
+    public string? CancelWarning { get; set; }
+    public string PaymentStatus { get; set; } = string.Empty;
+    public string InvoiceStatusText { get; set; } = string.Empty;
+
     public List<ReceivableInvoiceBatchMemberResponse> Members { get; set; } = new();
     public List<ReceivableInvoiceBatchPaymentHistoryResponse> Payments { get; set; } = new();
 }
@@ -602,9 +611,13 @@ public sealed class CanceledInvoiceRowResponse
     public decimal TotalDiscount { get; set; }
     public decimal NetAmount { get; set; }
 
-    /// <summary>Selalu CANCELLED — baris ini hanya pernah diisi dari hasil query yang sudah
-    /// difilter Status == CANCELLED (lihat GetCanceledPagedAsync). Field eksplisit disediakan
-    /// agar FE tidak perlu mengasumsikan status dari konteks endpoint.</summary>
+    /// <summary>Status pelaporan pembatalan: CANCELLED (masih dibatalkan) atau RECREATED (sudah dibuat ulang / revived).</summary>
+    public string ReportStatus { get; set; } = "CANCELLED";
+
+    /// <summary>Status aktual batch saat ini di FinReceivableInvoiceBatch (misal: CANCELLED, ISSUED, PARTIALLY_PAID, PAID).</summary>
+    public string CurrentStatus { get; set; } = "CANCELLED";
+
+    /// <summary>Backward compatibility untuk FE: bernilai sama dengan ReportStatus ("CANCELLED" atau "RECREATED").</summary>
     public string Status { get; set; } = "CANCELLED";
 
     public Guid CancelledBy { get; set; }
@@ -711,7 +724,17 @@ public sealed class CanceledInvoiceDetailResponse
     public Guid CancelledBy { get; set; }
     public string? CancelledByName { get; set; }
 
+    /// <summary>Status pelaporan pembatalan: CANCELLED (masih dibatalkan) atau RECREATED (sudah dibuat ulang / revived).</summary>
+    public string ReportStatus { get; set; } = "CANCELLED";
+
+    /// <summary>Status aktual batch saat ini di FinReceivableInvoiceBatch (misal: CANCELLED, ISSUED, PARTIALLY_PAID, PAID).</summary>
+    public string CurrentStatus { get; set; } = "CANCELLED";
+
+    /// <summary>Backward compatibility untuk FE: bernilai sama dengan ReportStatus ("CANCELLED" atau "RECREATED").</summary>
     public string Status { get; set; } = "CANCELLED";
+
+    public bool WasCanceled { get; set; } = true;
+    public bool WasRecreated { get; set; }
 
     public decimal TotalAmount { get; set; }
     public decimal TotalDiscount { get; set; }
@@ -723,6 +746,8 @@ public sealed class CanceledInvoiceDetailResponse
     public bool IsReissued => ReissuedToBatchId.HasValue;
     public bool CanReissue { get; set; }
     public string? ReissueBlockedReason { get; set; }
+    public bool CanRevive => CanReissue;
+    public string? ReviveBlockedReason => ReissueBlockedReason;
 
     public CanceledInvoiceDocumentCapabilities DocumentCapabilities { get; set; } = new();
     public CanceledInvoiceDetailSummary Summary { get; set; } = new();

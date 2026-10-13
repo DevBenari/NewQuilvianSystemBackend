@@ -752,3 +752,179 @@ dokter di luar jadwal.
 
 Uji layar pada hasil build dengan akun perawat IGD (`dimas.kurniawan@rsmmc.local`) dan data jadwal yang diketahui: satu
 jam berjadwal dan satu jam tanpa jadwal (atau `at` pada uji API). Skenario `AT-IGD-214`…`220` pada PRD §11.3.
+
+## 17. Form Permintaan Rawat Inap dari IGD — 12 Oktober 2026 (**Rencana (belum tersedia)**)
+
+Kontrak fungsional untuk `IGD-DEC-267`…`293`, `EPIC IGD-15`. Status **`approved`** (`IGD-DEC-294`, Rizki Gunawan, 12 Oktober 2026); layar admisi
+Rawat Inap (17.4 C) milik Muhammad Hamzah dan butuh persetujuannya (`IGD-OQ-128`). Form **diisi perawat di layar perawat**
+dan **tidak** diisi di Ruang Kerja Dokter (`IGD-FACT-116`); dokter hanya menandatangani atau mengembalikan.
+
+### 17.1 Hierarki kewenangan
+
+| Lapis | Isi yang mengikat |
+| --- | --- |
+| Keamanan / invariant | Penanda tangan dan penahanan *Jalankan* diputuskan **backend**; layar hanya menampilkan `canSign` dan penolakan apa adanya. Identitas, alergi, penjamin, dan diagnosis baca-saja — tidak ada isian untuk mengubahnya (`IGD-DEC-283`) |
+| Brief produk | Spesifikasi analis beserta keputusan `IGD-DEC-268`…`291` |
+| Konvensi proyek | Komponen yang sudah ada: `ConfirmModal`, `FilterSelect`, `ClinicalSummaryBar`, `InformationAlert`, `StatusBadge`, kartu dan CSS module tab perawat/dokter IGD; nol CSS global baru; tanpa komentar baris |
+| `DEV_DISCRETION` | Bagian 17.7 |
+
+### 17.2 Kebutuhan layar
+
+| ID | Layar | Pengguna | Jenis | Status |
+| --- | --- | --- | --- | --- |
+| `SCR-IGD-P01` | Pengkajian Pasien IGD (layar perawat) — tab *Tindak Lanjut* | Perawat IGD | **Diperbarui** — panel form pada tindak lanjut rawat inap; *Jalankan* tertahan | Rencana (belum tersedia) |
+| `SCR-IGD-P02` | Form Permintaan Rawat Inap | Perawat IGD | **Baru** — layar anak `SCR-IGD-P01` | Rencana (belum tersedia) |
+| `SCR-IGD-P03` | Cetak Form Permintaan Rawat Inap | Perawat IGD | **Baru** — layar anak `SCR-IGD-P02` | Rencana (belum tersedia) |
+| `SCR-IGD-D01` | Ruang Kerja Dokter IGD | Dokter IGD | **Diperbarui** — ringkasan dan saringan *Perlu TTD* | Rencana (belum tersedia) |
+| `SCR-IGD-D04` | Tanda tangan Form Permintaan Rawat Inap | Dokter IGD | **Baru** — layar anak `SCR-IGD-D01` | Rencana (belum tersedia) |
+| `SCR-INP-ADM` | Admisi Rawat Inap — daftar dan pemakaian permintaan | Petugas admisi | **Diperbarui** — milik Rawat Inap | Rencana (belum tersedia), **butuh persetujuan Hamzah** |
+
+### 17.3 Peta butir menu
+
+**Nol butir menu baru.** Seluruh layar baru adalah layar anak:
+
+| Layar | Layar induk | Jalan masuk | Butir hak akses yang menjaga |
+| --- | --- | --- | --- |
+| `SCR-IGD-P02` | `SCR-IGD-P01` | Tab *Tindak Lanjut* → baris tindak lanjut rawat inap → *Buat Form* / *Buka Form* | `EmergencyAdmissionRequest : Read` (melihat), `Create`/`Update`/`Cancel` (tombol) |
+| `SCR-IGD-P03` | `SCR-IGD-P02` | Tombol *Cetak* pada form terkirim | `EmergencyAdmissionRequest : Read` |
+| `SCR-IGD-D04` | `SCR-IGD-D01` | Ringkasan *Perlu TTD* atau tanda pada kartu pasien | `EmergencyAdmissionRequest : Sign` |
+
+### 17.4 Skema fitur per layar
+
+#### A. `SCR-IGD-P01` tab *Tindak Lanjut* — yang berubah
+
+```text
+┌ Tindak Lanjut ─────────────────────────────────────────────────┐
+│ Rawat inap · Bangsal Melati · Terkonfirmasi dr. Andi 10.05      │
+│ ┌ Form Permintaan Rawat Inap ─────────── [Menunggu TTD] ┐       │
+│ │ Diminta 10.12 kepada dr. Andi Pratama (DPJP IGD)       │       │
+│ │ [Buka Form]                                            │       │
+│ └────────────────────────────────────────────────────────┘       │
+│ [Jalankan] (nonaktif)                                             │
+│ ⓘ Form Permintaan Rawat Inap belum ditandatangani DPJP.          │
+└────────────────────────────────────────────────────────────────┘
+```
+
+| Wilayah | Isi | Sumber data | Hak akses tombol | Kosong / gagal |
+| --- | --- | --- | --- | --- |
+| Panel form | Keadaan tampil dan keterangannya (17.5) | `GET /emergency-admission-requests?emergencyVisitId=` | *Buat Form*: `Create`; *Buka Form*: `Read` | Belum ada form: *"Belum ada Form Permintaan Rawat Inap."* + *Buat Form*. Gagal: *"Form Permintaan Rawat Inap tidak dapat dimuat."* + *Coba lagi* |
+| *Jalankan* | Nonaktif sampai `displayStatus` `Sent` atau `Completed` | Turunan panel form | `EmergencyDisposition : Update` (sudah ada) | Penolakan `409` validation §14 aturan 23 tampil di modal konfirmasi |
+
+#### B. `SCR-IGD-P02` — Form Permintaan Rawat Inap
+
+```text
+┌ Form Permintaan Rawat Inap ─────────────── [Draf] ┐
+│ IDENTITAS (otomatis)                              │
+│ Nama · No. RM · JK · Umur · Asal: IGD             │
+│ Alergi: Belum ada data alergi                     │
+│ Penjamin: Asuransi Sehat Sentosa · hak Kelas 2    │
+│ INFORMASI KLINIS                                  │
+│ Diagnosa terakhir: I21.9 (utama), E11.9           │
+│ Indikasi klinis*  [.......................]       │
+│ [ ] CITO                                          │
+│ RENCANA PENEMPATAN                                │
+│ Unit layanan* [Bangsal Melati ▼]                  │
+│ Kelas perawatan* [Kelas 2 ▼]                      │
+│ DPJP usulan* [dr. Sinta, Sp.PD ▼]                 │
+│ Estimasi lama rawat* [ 3 ] hari                   │
+│ Kebutuhan khusus [ ]Intensif [ ]Isolasi [x]O2 [ ]Monitor │
+│ RENCANA PERAWATAN & INSTRUKSI [...............]   │
+│ DOKTER PENGIRIM: dr. Andi Pratama (DPJP IGD)      │
+│ Riwayat: dikembalikan 10.14 — "Minta ICU, ..."    │
+│ [Simpan Draf] [Minta TTD dr. Andi] [Batalkan Form]│
+└───────────────────────────────────────────────────┘
+```
+
+| Wilayah | Isi | Sumber data | Hak akses tombol | Kosong / gagal |
+| --- | --- | --- | --- | --- |
+| Identitas | Nama, No. RM, JK, umur, asal "IGD", alergi, penjamin dan teks hak kelas — baca-saja | `GET /{id}` | — | Alergi kosong: *"Belum ada data alergi"*; penjamin kosong: *"Tanpa penjamin (umum)"* |
+| Informasi klinis | Diagnosis (baca-saja, utama paling atas), Indikasi klinis (terisi dari alasan tindak lanjut, boleh dilengkapi), CITO | `GET /{id}` | `Update` | Diagnosis kosong: *"Belum ada diagnosis ICD-10 pada kunjungan ini."* |
+| Rencana penempatan | Unit (terisi dari tindak lanjut), kelas, DPJP usulan, lama rawat (bawaan 3), kebutuhan khusus (centang) | Unit/kelas: endpoint master (API §12.2); DPJP: `GET /inpatient-doctor-options` | `Update` | DPJP tanpa jadwal: keterangan *"Unit ini belum punya jadwal dokter; menampilkan semua dokter aktif."* |
+| Rencana perawatan | Terisi dari instruksi tindak lanjut, boleh dilengkapi | `GET /{id}` | `Update` | — |
+| Dokter pengirim | DPJP IGD aktif; sesudah TTD: nama, jabatan, waktu | `activeIgdDoctor`, `signer` | — | Tanpa DPJP/akun: pesan validation §14 aturan 12 dan *Minta TTD* nonaktif |
+| Riwayat | Kejadian beserta catatan *Kembalikan* | `events[]` | — | — |
+| Aksi | *Simpan Draf*, *Minta TTD*, *Batalkan Form* (alasan wajib), *Cetak* (sesudah terkirim) | `PUT`, `POST request-signature`, `POST cancel`, `GET print-data` | `Update`, `Update`, `Cancel`, `Read` | Penolakan tampil di tempat aksi; `409` `RowVersion` → *"Form sudah diubah orang lain. Muat ulang lalu coba lagi."* |
+
+Sesudah ditandatangani seluruh isian baca-saja dan menampilkan **salinan beku**.
+
+#### C. `SCR-IGD-D01` dan `SCR-IGD-D04` — dokter
+
+```text
+Ruang Kerja Dokter IGD
+[Semua pasien 24] [Pasien saya 6] [Perlu TTD 1]   ← ringkasan yang ada + satu butir
+...
+┌ Tanda Tangan Form Permintaan Rawat Inap ───────────┐
+│ Tn. BUDI SANTOSO · 00-00-12-34 · 58 th              │
+│ Bangsal Melati · Kelas 2 · DPJP usulan dr. Sinta    │
+│ CITO · O2 · lama rawat 4 hari                       │
+│ Indikasi: Nyeri dada tipikal, troponin meningkat    │
+│ Diagnosa: I21.9 (utama), E11.9 · Alergi: belum ada  │
+│ [Kembalikan…]                    [Tandatangani]     │
+└─────────────────────────────────────────────────────┘
+```
+
+| Wilayah | Isi | Sumber data | Hak akses tombol | Kosong / gagal |
+| --- | --- | --- | --- | --- |
+| Ringkasan *Perlu TTD* | Jumlah form menunggu TTD untuk dokter yang masuk; menyaring daftar pasien | `GET /pending-signature` | `Sign` (butir tampil hanya bila berhak) | Nol: butir tetap tampil dengan angka 0. Gagal: *"Daftar Perlu TTD tidak dapat dimuat."* |
+| Dialog TTD | Ringkasan baca-saja seluruh isian | `GET /{id}` | — | Gagal muat: pesan + *Coba lagi* |
+| *Tandatangani* | Kirim dengan `Idempotency-Key` baru per dialog | `POST /{id}/sign` | `Sign` | `403`/`409`/`503` tampil di dialog; daftar dimuat ulang |
+| *Kembalikan* | Catatan wajib 1–500 | `POST /{id}/return` | `Sign` | Penolakan tampil di dialog |
+
+#### D. `SCR-INP-ADM` — layar admisi Rawat Inap (**butuh persetujuan Hamzah**)
+
+| Wilayah | Yang berubah | Sumber data |
+| --- | --- | --- |
+| Daftar permintaan | Baris sumber IGD tampil bersama kamar pulih, dengan lencana sumber dan CITO; urutan CITO dulu | `GET /admission-referrals` |
+| Rincian | Blok IGD: diagnosis, alergi, indikasi, rencana, kebutuhan khusus, lama rawat, penanda tangan | `GET /admission-referrals/{id}` |
+| Buka admisi | Unit, kelas, DPJP terisi dari permintaan dan tetap dapat diubah petugas | Sudah ada (`POST episodes` dengan `admissionReferralId`) |
+| *Batalkan permintaan* | Alasan wajib | `POST /admission-referrals/{id}/cancel` |
+
+Layar ini memakai komponen pendaftaran IGD (`EmergencyRegistrationStepper`, `PatientEntryChoiceStep`); perubahannya tidak
+boleh menyentuh komponen itu (capability map suplemen 3.7 bagian 9).
+
+### 17.5 Keadaan tampil
+
+| `displayStatus` | Lencana | Keterangan | Tombol yang tersedia |
+| --- | --- | --- | --- |
+| `Draft` | Draf | — / catatan pengembalian terakhir | Simpan Draf, Minta TTD, Batalkan Form |
+| `AwaitingSignature` | Menunggu TTD | *"Diminta {jam} kepada {DPJP aktif}"* | Batalkan Form |
+| `Sent` | Terkirim | *"Menunggu petugas admisi"* | Batalkan Form, Cetak; *Jalankan* aktif |
+| `Completed` | Selesai | *"Admisi dibuka {jam}"* | Cetak; *Jalankan* aktif |
+| `CancelledByAdmission` | Dibatalkan admisi | Alasan petugas admisi | Buat Form (baru); *Jalankan* nonaktif |
+| `Cancelled` | Dibatalkan | Alasan | Buat Form (baru) bila tindak lanjut masih terkonfirmasi |
+
+### 17.6 Aturan layar yang mengikat
+
+1. Layar **tidak** menghitung siapa yang boleh menandatangani; ia memakai `canSign` dan `activeIgdDoctor` dari server.
+2. Layar **tidak** menyaring dokter usulan sendiri; daftar dari `GET /inpatient-doctor-options`.
+3. Satu klik *Tandatangani* = satu `Idempotency-Key`; tombol nonaktif selama permintaan berjalan.
+4. Sesudah setiap aksi, panel form, tombol *Jalankan*, dan ringkasan *Perlu TTD* dimuat ulang.
+5. Data sensitif (indikasi, rencana, catatan) tidak ditulis ke `console` maupun penyimpanan peramban.
+6. Tidak ada teks *"Tidak ada alergi"* (`IGD-FACT-117`).
+7. Isian Unit Layanan: tanpa aturan tipe unit di layar sampai `IGD-OQ-127` dijawab.
+
+### 17.7 Wewenang yang didelegasikan (`DEV_DISCRETION`) — disetujui (`IGD-DEC-294`)
+
+| No | Hal | Usulan | Alternatif |
+| ---: | --- | --- | --- |
+| U1 | Wadah `SCR-IGD-P02` | Panel penuh di dalam tab *Tindak Lanjut* (form panjang, riwayat terlihat, *Jalankan* di layar yang sama) | Modal besar; tab baru di layar perawat |
+| U2 | Jalan masuk `SCR-IGD-D04` | Butir *Perlu TTD* pada ringkasan yang sudah ada di Ruang Kerja Dokter + tanda pada kartu pasien | Halaman daftar tersendiri |
+| U3 | Tata letak cetak `SCR-IGD-P03` | Mengikuti pola cetak surat dokter rawat jalan | Pola cetak dokumen PPRI |
+| U4 | Warna, ikon, jarak, urutan isian dalam kelompok | `DEV_DISCRETION` dalam konvensi proyek | — |
+
+### 17.8 Yang sengaja tidak dibuat di frontend
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Isian form di Ruang Kerja Dokter | `IGD-FACT-116`, `IGD-DEC-273` |
+| Kanvas atau unggah gambar tanda tangan | `IGD-DEC-272` |
+| Isian ubah alergi/penjamin di form | `IGD-DEC-283` |
+| Penyaringan dokter atau unit di sisi layar | Server memegang aturan (17.6) |
+| Butir menu baru | Semua layar baru adalah layar anak |
+
+### 17.9 Ketergantungan uji
+
+Akun Perawat IGD (`dimas.kurniawan@rsmmc.local`) dan dokter IGD yang terhubung ke data dokter (`ranger.biru@admin.com`);
+akun petugas admisi Rawat Inap; satu tindak lanjut rawat inap terkonfirmasi dengan DPJP IGD aktif; jenis tindak lanjut
+bertanda `RequiresAdmissionRequest`; unit rawat inap dengan dan tanpa jadwal dokter. Hak akses diberikan pengurus Akses
+Role — bukan lewat SuperAdmin oleh penguji.

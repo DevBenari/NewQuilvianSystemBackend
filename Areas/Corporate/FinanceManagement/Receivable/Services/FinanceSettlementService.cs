@@ -24,9 +24,9 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 
 /// <summary>
-/// Service read-only untuk Settlement AR V2 (Finance > Transaksi A/R > Pembayaran & Pelunasan > Settlement AR).
+/// Service read-only untuk Settlement AR V2 (Finance - Transaksi A/R - Pembayaran dan Pelunasan - Settlement AR).
 /// Menampilkan piutang dan riwayat mutasi per pasien serta invoice, dengan filter tiga kategori (Perusahaan,
-/// Pasien Umum, Karyawan), pagination 10 baris, perhitungan Beginning & Ending Balance historis yang akurat,
+/// Pasien Umum, Karyawan), pagination 10 baris, perhitungan Beginning dan Ending Balance historis yang akurat,
 /// serta ekspor Excel dan PDF.
 ///
 /// HANYA MEMBACA. Service ini tidak mengubah status transaksi, tidak membuat mutasi, dan tidak menimbulkan side effect.
