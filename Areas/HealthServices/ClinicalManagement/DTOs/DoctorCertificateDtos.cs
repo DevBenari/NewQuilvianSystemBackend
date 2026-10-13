@@ -4,7 +4,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 {
     // RJ-DOC-REV-BE-004 — kontrak mengikuti payload yang sudah dikirim layar Surat Dokter
     // (`buildDoctorCertificatePayload`). `certificateType` berupa teks: sickLeave, health,
-    // inpatientReferral.
+    // inpatientReferral, inpatientAdmission (Surat Pengantar Rawat Inap).
 
     public class DoctorCertificateSickLeaveRequest
     {
@@ -44,6 +44,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         [MaxLength(2000)] public string? SpecialInstruction { get; set; }
     }
 
+    /// <summary>
+    /// Isi Surat Pengantar Rawat Inap. Tujuan wajib unit layanan bertipe <c>Inpatient</c>; tidak ada
+    /// pilihan klinik. Tanda tangan, dokter, dan tanggal terbit ditentukan server.
+    /// </summary>
+    public class DoctorCertificateInpatientAdmissionRequest
+    {
+        [Required] public Guid? TargetServiceUnitId { get; set; }
+        [MaxLength(2000)] public string? Diagnosis { get; set; }
+        [MaxLength(2000)] public string? Reason { get; set; }
+        [MaxLength(4000)] public string? PatientCondition { get; set; }
+        [MaxLength(100)] public string? RequestedRoomClass { get; set; }
+        [MaxLength(2000)] public string? SpecialInstruction { get; set; }
+    }
+
     public class SaveDoctorCertificateRequest
     {
         public Guid? QueueId { get; set; }
@@ -74,6 +88,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public DoctorCertificateSickLeaveRequest? SickLeave { get; set; }
         public DoctorCertificateHealthRequest? Health { get; set; }
         public DoctorCertificateReferralRequest? InpatientReferral { get; set; }
+        public DoctorCertificateInpatientAdmissionRequest? InpatientAdmission { get; set; }
     }
 
     public class CancelDoctorCertificateRequest
@@ -115,9 +130,62 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public DoctorCertificateSickLeaveRequest? SickLeave { get; set; }
         public DoctorCertificateHealthRequest? Health { get; set; }
         public DoctorCertificateReferralResponse? InpatientReferral { get; set; }
+        public DoctorCertificateInpatientAdmissionResponse? InpatientAdmission { get; set; }
+        /// <summary>Tanda tangan elektronik dari akun dokter penerbit; hanya pada Surat Pengantar Rawat Inap.</summary>
+        public DoctorCertificateSignatureResponse? DoctorSignature { get; set; }
         public string? CancelReason { get; set; }
         public DateTime CreateDateTime { get; set; }
         public DateTime? UpdateDateTime { get; set; }
+    }
+
+    /// <summary>Status pengajuan transfer dari Surat Pengantar Rawat Inap.</summary>
+    public static class InpatientAdmissionSubmissionStatus
+    {
+        /// <summary>Surat terbit, menunggu proses admisi di Admisi Transfer IGD &amp; Poliklinik.</summary>
+        public const string Submitted = "Submitted";
+        /// <summary>Petugas Rawat Inap sudah membuka episode dari surat ini.</summary>
+        public const string Admitted = "Admitted";
+        public const string Cancelled = "Cancelled";
+    }
+
+    public class DoctorCertificateInpatientAdmissionResponse
+    {
+        public Guid? TargetServiceUnitId { get; set; }
+        public string? TargetServiceUnit { get; set; }
+        public string? Diagnosis { get; set; }
+        public string? Reason { get; set; }
+        public string? PatientCondition { get; set; }
+        public string? RequestedRoomClass { get; set; }
+        public string? SpecialInstruction { get; set; }
+        /// <summary>Waktu terbit sebenarnya (UTC), bukan tanggal kalender surat.</summary>
+        public DateTime IssuedAt { get; set; }
+        public string SubmissionStatus { get; set; } = InpatientAdmissionSubmissionStatus.Submitted;
+        public string SubmissionStatusName { get; set; } = string.Empty;
+        public Guid? EpisodeId { get; set; }
+        public string? EpisodeNumber { get; set; }
+        public DateTime? AdmittedAt { get; set; }
+    }
+
+    public class DoctorCertificateSignatureResponse
+    {
+        public string Method { get; set; } = "ElectronicAccount";
+        public string MethodName { get; set; } = "Tanda tangan elektronik akun dokter";
+        public Guid? DoctorId { get; set; }
+        public string? DoctorName { get; set; }
+        public string? DoctorSip { get; set; }
+        public DateTime SignedAt { get; set; }
+        /// <summary>Kode verifikasi = nomor surat yang terdaftar di sistem.</summary>
+        public string VerificationCode { get; set; } = string.Empty;
+    }
+
+    /// <summary>Pantauan Surat Pengantar Rawat Inap satu kunjungan untuk perawat Rawat Jalan.</summary>
+    public class OutpatientInpatientAdmissionMonitorResponse
+    {
+        public Guid EncounterId { get; set; }
+        /// <summary><c>NotIssued</c>, <c>Submitted</c>, <c>Admitted</c>, atau <c>Cancelled</c>.</summary>
+        public string Status { get; set; } = "NotIssued";
+        public string StatusName { get; set; } = string.Empty;
+        public DoctorCertificateResponse? Letter { get; set; }
     }
 
     public class DoctorCertificateReferralResponse

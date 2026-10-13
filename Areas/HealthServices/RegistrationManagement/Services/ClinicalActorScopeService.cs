@@ -70,7 +70,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return new ClinicalActorScope(canReadAll, doctorId, clinicIds);
         }
 
-        private async Task<Guid?> ResolveDoctorIdAsync(ClaimsPrincipal user, CancellationToken cancellationToken)
+        /// <summary>Data dokter aktif milik pengguna yang login, atau <c>null</c> bila bukan dokter.</summary>
+        public async Task<Guid?> ResolveDoctorIdAsync(ClaimsPrincipal user, CancellationToken cancellationToken)
         {
             var doctorIdClaim = user.FindFirstValue("doctor_id") ?? user.FindFirstValue("DoctorId");
             if (Guid.TryParse(doctorIdClaim, out var doctorId) && doctorId != Guid.Empty)
