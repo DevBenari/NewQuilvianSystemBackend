@@ -500,6 +500,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public string? EncounterType { get; set; }
 
         public string? ServiceUnitName { get; set; }
+
+        // LAB-API-v1 r48 — kartu Informasi Pasien / Informasi Pemeriksaan halaman hasil v1. Aditif.
+
+        /// <summary>Nama poliklinik kunjungan (Poliklinik / Kamar v1).</summary>
+        public string? ClinicName { get; set; }
+
+        /// <summary>Nama ruangan/kamar kunjungan (Poliklinik / Kamar v1).</summary>
+        public string? RoomName { get; set; }
+
+        /// <summary>Nama kelas pasien kunjungan (Kelas v1).</summary>
+        public string? PatientClassName { get; set; }
+
+        /// <summary>Nama enum jenis penjamin kunjungan: <c>Cash</c>, <c>Insurance</c>, <c>CompanyGuarantor</c>.</summary>
+        public string? PaymentType { get; set; }
+
+        /// <summary>Nama penjamin kunjungan aktif, utama lebih dulu — sumber sama dengan daftar pantau <c>r47</c>.</summary>
+        public string? PayerName { get; set; }
+
+        /// <summary>
+        /// Dokter Perujuk / DPJP v1: dokter kunjungan (data induk dokter), atau dokter perujuk luar
+        /// bila kunjungan rujukan tanpa dokter internal.
+        /// </summary>
+        public string? ReferringDoctorName { get; set; }
+
+        /// <summary>Tanggal Sampling / Specimen v1: <c>CollectedAt</c> paling awal pada wadah pesanan.</summary>
+        public DateTime? FirstCollectedAt { get; set; }
+
+        /// <summary>Tanggal Pemeriksaan v1: <c>ExaminedAt</c> paling awal pada pemeriksaan pesanan.</summary>
+        public DateTime? FirstExaminedAt { get; set; }
     }
 
     /// <summary>
