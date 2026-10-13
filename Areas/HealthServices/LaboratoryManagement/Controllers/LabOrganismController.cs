@@ -49,6 +49,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             _labOrganismService = labOrganismService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<LabOrganismFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Organism", Description = "Melihat daftar, ringkasan, pilihan, dan detail organisme Mikrobiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabOrganism", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = LabFilterMetadataFactory.LabOrganism();
+
+            return Ok(ApiResponse<LabOrganismFilterMetadataResponse>.Ok(
+                result, "Metadata penyaring organisme Mikrobiologi berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<LabOrganismSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Organism", Description = "Melihat daftar, ringkasan, pilihan, dan detail organisme Mikrobiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabOrganism", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var result = await _labOrganismService.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<LabOrganismSummaryResponse>.Ok(
+                result, "Ringkasan organisme Mikrobiologi berhasil diambil."));
+        }
+
         // Daftar organisme untuk layar pengelolaan kepala instalasi. Memuat yang nonaktif juga.
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabOrganismResponse>>), StatusCodes.Status200OK)]
@@ -111,37 +135,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 () => _labOrganismService.UpdateAsync(id, request, cancellationToken),
                 "Organisme berhasil diubah.");
 
-        /// <summary>
-        /// Menjalankan satu perubahan dan menerjemahkan kegagalannya menjadi status HTTP yang
-        /// tepat, tanpa membocorkan detail exception ke pemanggil.
-        /// </summary>
         // =============================================================
         // Baseline data induk yang dilengkapi 2026-09-22 — `LAB-API-v1` r31.
+        //
+        // `filters/metadata` dan `summary` dari baseline ini ditaruh paling awal controller
+        // supaya tampil teratas di Swagger (permintaan pemilik modul 2026-10-13).
         // =============================================================
-
-        [HttpGet("filters/metadata")]
-        [ProducesResponseType(typeof(ApiResponse<LabOrganismFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Organism", Description = "Melihat daftar, ringkasan, pilihan, dan detail organisme Mikrobiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LabOrganism", "Read")]
-        public IActionResult GetFilterMetadata()
-        {
-            var result = LabFilterMetadataFactory.LabOrganism();
-
-            return Ok(ApiResponse<LabOrganismFilterMetadataResponse>.Ok(
-                result, "Metadata penyaring organisme Mikrobiologi berhasil diambil."));
-        }
-
-        [HttpGet("summary")]
-        [ProducesResponseType(typeof(ApiResponse<LabOrganismSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Organism", Description = "Melihat daftar, ringkasan, pilihan, dan detail organisme Mikrobiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LabOrganism", "Read")]
-        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
-        {
-            var result = await _labOrganismService.GetSummaryAsync(cancellationToken);
-
-            return Ok(ApiResponse<LabOrganismSummaryResponse>.Ok(
-                result, "Ringkasan organisme Mikrobiologi berhasil diambil."));
-        }
 
         // Jalur detail. Tanpa ini, formulir ubah yang dibuka lewat tautan langsung atau sesudah
         // halaman disegarkan nol punya cara memuat barisnya — dan gagalnya DIAM.
