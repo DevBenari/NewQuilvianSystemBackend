@@ -4066,3 +4066,21 @@ Pemilik sistem meminta General Consent di Workspace PPRI menjadi form edit atas 
 | `RWI-AC-431` | Riwayat Perubahan menampilkan setiap versi terbaru di atas dengan status, waktu, nama pengubah, alasan, dan "label: lama → baru"; versi 1 tertulis "Dibuat pada langkah admisi"; terbaca oleh pemegang `Read` tanpa `Update` | `RWI-DEC-295` |
 
 Bukti pelaksanaan: `BE-RWI-227`, `FE-RWI-241`, `FE-RWI-242` (register di `PLAN-REPAIR-EPS-008` bagian 1). Bagian lama yang menyatakan General Consent Workspace PPRI *read-only* untuk persetujuan bertanda tangan digital digantikan oleh amandemen ini; bagian lain tetap berlaku.
+
+## Amandemen PLAN-REPAIR-EPS-010 — 2026-10-13
+
+Pemilik sistem melaporkan pasien yang sudah dirawat dan menempati tempat tidur tetap dapat melewati langkah 1 Pasien Lama, lalu menambahkan bahwa pasien yang masih punya kunjungan aktif juga tidak boleh lanjut. Analisis dan rencana: [ISSUE-EPS-010](episode-rawat-inap/docs/issue/issue-010-pasien-lama-sudah-dirawat-lolos.md), [PLAN-REPAIR-EPS-010](episode-rawat-inap/docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md).
+
+| ID | Jenis | Isi | Pemilik | Status | Disetujui | Sumber |
+|---|---|---|---|---|---|---|
+| `RWI-DEC-297` | Decision | **Kelayakan admisi diperiksa sejak langkah 1, bukan baru di Pilih Bed.** Tombol Lanjut pada langkah 1 Pasien Lama (dan Informasi Pasien jalur Kamar Pulih) menolak pasien yang (a) sedang dirawat — episode `Admitted`, atau `DischargePending` yang kepergiannya belum dicatat (`RWI-DEC-054`), (b) masih punya kunjungan rawat jalan aktif menurut aturan pendaftaran yang sama (saklar `HealthServices:Registration:BlockActiveEncounter`), atau (c) punya permintaan admisi Kamar Pulih yang menunggu (`VAL-RWF-87`). Jalan keluarnya ditunjukkan di layar: perpindahan tempat tidur dari Detail Episode, menyelesaikan/membatalkan kunjungan atau jalur Transfer IGD/Poli, dan jalur Kamar Pulih. Server juga menolak `POST /episodes` untuk pasien yang sedang hadir sebelum menulis apa pun. Admisi lain yang masih `Draft` **tetap peringatan**, bukan penolakan (keputusan lama dipertahankan; `PLAN-REPAIR-EPS-010` K-01). **Contoh:** Tn. Umar dirawat di Kamar 02 BED 001; petugas mencari No. RM-nya lalu menekan Lanjut → layar tetap di langkah 1 dengan kalimat "… Bila memang pindah kamar, pakai perpindahan, bukan admisi baru." dan tombol Pindah Tempat Tidur; Daftar Pasien Rawat Inap tidak bertambah baris "Sedang Disiapkan" | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-10-13 ("jika sudah terdaftar tidak boleh lanjut… agar tidak terjadi duplikat"; "kunjungan aktif… tidak bisa di lanjut") | Laporan pemilik 13-10-2026; `RWI-DEC-054`; RJ-DOC-REV-BE-007 |
+
+| ID | Kriteria penerimaan | Sumber |
+|---|---|---|
+| `RWI-AC-432` | Pasien `Admitted` dipilih di langkah 1 → badge "Sedang Dirawat", alert berisi nomor episode dan lokasinya, tombol "Pindah Tempat Tidur" membuka bagian Perpindahan Tempat Tidur di Detail Episode; Lanjut tidak maju. `POST /episodes` untuk pasien yang sama → 409 `PATIENT_ALREADY_ADMITTED` tanpa kunjungan/episode yang tertulis | `RWI-DEC-297` |
+| `RWI-AC-433` | Pasien dengan kunjungan rawat jalan berklinik Draft–Sedang Konsultasi yang belum batal/selesai (saklar hidup) → langkah 1 menolak dengan kalimat yang sama persis dengan penolakan `POST /patient-encounters/admin`; saklar mati → tidak menghalangi | `RWI-DEC-297` |
+| `RWI-AC-434` | Pasien dengan admisi lain yang masih `Draft` → peringatan dengan tombol "Lanjutkan Admisi {nomor}"; tombol Lanjut tetap maju | `RWI-DEC-297` |
+| `RWI-AC-435` | Pasien yang menjadi `Admitted` sesudah langkah 1 → "Lanjut ke Pemesanan" di Pilih Bed menampilkan penolakan dan tidak mengirim `POST /patient-encounters/admin` maupun `POST /episodes` | `RWI-DEC-297` |
+
+Bukti pelaksanaan: `BE-RWI-230`, `FE-RWI-244` (register di `PLAN-REPAIR-EPS-010` bagian 1). Bagian 3.5.1 `05-skema-tampilan.md` ("Lanjut aktif bila tepat 1 pasien terverifikasi, lalu maju") dan `02-backend-architecture.md` §1.5 (lapis 1 `INV-INP-10` hanya "sebelum menempatkan pasien") dibaca bersama amandemen ini; bagian lain tetap berlaku.
+

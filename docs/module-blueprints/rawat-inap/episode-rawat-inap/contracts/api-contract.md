@@ -1187,3 +1187,19 @@ Implementasi `BE-RWI-228`; baris adapter `GET /bed-board` pada tabel Bed Managem
 `POST /patient-encounters/admin` dan `POST /episodes` pada admisi biasa mengirim `serviceUnitId` unit kamar bed
 terpilih (sama dengan jalur transfer), sehingga syarat "sesuai unit" pada `SelectedBedId` (`RWI-KELAS-006-1.0`)
 selalu terpenuhi. Implementasi `FE-RWI-243`. Rujukan: [`PLAN-REPAIR-EPS-009`](../docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md).
+
+## Amandemen PLAN-REPAIR-EPS-010 — 2026-10-13
+
+**Baru:** `GET /api/v1/health-services/inpatient-management/episodes/admission-eligibility?patientId={guid}&admissionReferralId={guid?}`
+— hak `InpatientEpisode : Read`. Jawaban `ApiResponse<InpatientAdmissionEligibilityResponse>`: `patientId`, `canContinue`,
+`blockingCode?`, `message?`, `blockers[] { code, message }`, `presentEpisode? { episodeId, episodeNumber, locationText }`,
+`activeEncounter? { encounterNumber, encounterDate }`, `draftEpisode? { episodeId, episodeNumber, createdAt,
+hasActiveReservation }`, `warnings[]`. Kode penghalang: `PATIENT_ALREADY_ADMITTED`, `INP-ADM-REF-001`, `INP-ADM-REF-002`,
+`ACTIVE_ENCOUNTER_EXISTS`. Galat: 400 "Pasien belum dipilih."; 404 "Pasien tidak ditemukan atau tidak aktif.". Pembacaan
+ini dapat menggugurkan Draft milik pasien yang sudah lewat batas, sama seperti `GET /episodes`.
+
+**Berubah:** `POST /episodes` (dan admisi transfer yang memanggilnya) menolak 409 `errors.code = "PATIENT_ALREADY_ADMITTED"`
+untuk pasien yang sedang hadir, sebelum kunjungan atau episode apa pun ditulis. Sebelumnya penolakan yang sama baru
+datang dari `POST /bed-occupancies/reservations`, sesudah kunjungan dan episode `Draft` tersimpan. Implementasi
+`BE-RWI-230` (backend) dan `FE-RWI-244` (langkah 1 dan pemeriksaan ulang di Pilih Bed). Rujukan:
+[`PLAN-REPAIR-EPS-010`](../docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md).

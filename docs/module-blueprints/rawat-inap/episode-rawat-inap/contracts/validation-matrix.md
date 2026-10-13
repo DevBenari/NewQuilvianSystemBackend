@@ -586,3 +586,18 @@ hanya menyemai penyaring awal papan bed dan tidak hilang ketika pasien dipilih. 
 di layar sebelum permintaan dikirim; unit yang bukan rawat inap tetap ditolak server ("Unit tujuan untuk kunjungan rawat
 inap wajib merupakan unit layanan bertipe rawat inap."). Setiap penolakan titik tulis 1 tampil apa adanya pada langkah
 Pilih Bed (`FE-RWI-243`). Rujukan: [`PLAN-REPAIR-EPS-009`](../docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md) `FIX-EPS-009-01`, `-02`.
+
+## Amandemen PLAN-REPAIR-EPS-010 — 2026-10-13
+
+Dasar keputusan: `RWI-DEC-297`. Tiga baris baru untuk validasi admisi. Kalimatnya sama persis dengan penolakan tulisnya,
+karena dibentuk sumber yang sama (`InpPresentEpisodeInfo.RejectionMessage`,
+`OutpatientEncounterRules.BuildActiveEncounterMessage`, `InpEpisodeService.BuildOtherDraftWarning`).
+
+| ID | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- | ---: |
+| `VAL-ADM-10` | **Pasien yang sedang dirawat tidak dapat dibukakan admisi baru** (`RWI-DEC-054`, `RWI-DEC-297`, `RWI-AC-432`) | `GET /episodes/admission-eligibility` (langkah 1); `POST /episodes` | Pasien punya episode `Admitted`, atau `DischargePending` yang kepergiannya belum dicatat | "Tn. Budi sudah dirawat pada episode RI-2026-09-000123 di Melati 3B. Bila memang pindah kamar, pakai perpindahan, bukan admisi baru." (`PATIENT_ALREADY_ADMITTED`) | 200 `canContinue=false` / 409 |
+| `VAL-ADM-11` | **Kunjungan rawat jalan aktif menghalangi admisi dari langkah 1** (`RWI-DEC-297`, `RWI-AC-433`) | `GET /episodes/admission-eligibility` (langkah 1); penolakan tulis tetap milik `POST /patient-encounters/admin` | Saklar `HealthServices:Registration:BlockActiveEncounter` hidup dan pasien punya kunjungan rawat jalan berklinik berstatus Draft–Sedang Konsultasi yang belum batal/selesai | "Pasien masih memiliki kunjungan aktif bernomor ENC-RSMMC-00150 tanggal 30 Jul 2026. Selesaikan atau batalkan kunjungan tersebut sebelum mendaftar ke poliklinik atau layanan lain." (`ACTIVE_ENCOUNTER_EXISTS`) | 200 `canContinue=false` / 400 |
+| `VAL-ADM-12` | **Admisi lain yang masih Draft hanya diperingatkan** (`RWI-AC-434`; keputusan "Draft ganda bukan penolakan" bagian 3 tetap berlaku) | `GET /episodes/admission-eligibility`; `POST /episodes` (`warnings`) | Pasien punya episode `Draft` lain yang belum lewat batas; yang lewat batas digugurkan lebih dulu | "Pasien ini punya admisi lain yang sedang disiapkan, yaitu … sejak …. Lanjutkan bila memang admisi terpisah, atau batalkan yang lama lebih dulu." | 200 |
+
+Permintaan Kamar Pulih yang menunggu (`VAL-RWF-87`/`88`) ikut dibaca endpoint yang sama dengan kode `INP-ADM-REF-001`/`002`.
+Rujukan: [`PLAN-REPAIR-EPS-010`](../docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md) `FIX-EPS-010-01`, `-02`.

@@ -9,7 +9,7 @@
 | Masukan dan approval | `03-frontend-architecture.md` revision `0.11`, `05-skema-tampilan.md` revision `0.7` (bagian 3.0 s.d. 3.16), `04-prd-to-mvp.md` bagian 25, `contracts/validation-matrix.md` bagian 16 (`VAL-ADM-01` s.d. `05`), `00-interview-decisions.md` revision `40` (`RWI-DEC-267` s.d. `273`, `RWI-AC-388` s.d. `395`) |
 | Keputusan | `RWI-DEC-267` (No HP Kontak Darurat max 13 digit), `RWI-DEC-268` (Default Ranap Service Unit), `RWI-DEC-269` (Rujukan Teks Ringkas), `RWI-DEC-270` (3 Kategori Pasien), `RWI-DEC-271` (Split Screen Pasien Lama), `RWI-DEC-272` (Dedicated Step Persetujuan & TTD Digital), `RWI-DEC-273` (Invariant Penanda Tangan Bayi) |
 | Source SHA | Frontend `dd2cbf7c` / branch `HamzahV2`; Backend `fdf85a07` / branch `MHamzah` |
-| Deret ID | `FE-RWI-222` s.d. `FE-RWI-226`; `FE-RWI-241` dan `FE-RWI-242` ditambahkan 13 Oktober 2026 dari [`PLAN-REPAIR-EPS-008`](../docs/plan-repair/plan-repair-008-edit-riwayat-general-consent.md) (`FIX-EPS-008-02`, `-03`, disetujui pemilik); `FE-RWI-243` ditambahkan 13 Oktober 2026 dari [`PLAN-REPAIR-EPS-009`](../docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md) (`FIX-EPS-009-01`, `-02`, disetujui pemilik lewat laporan yang sama) |
+| Deret ID | `FE-RWI-222` s.d. `FE-RWI-226`; `FE-RWI-241` dan `FE-RWI-242` ditambahkan 13 Oktober 2026 dari [`PLAN-REPAIR-EPS-008`](../docs/plan-repair/plan-repair-008-edit-riwayat-general-consent.md) (`FIX-EPS-008-02`, `-03`, disetujui pemilik); `FE-RWI-243` ditambahkan 13 Oktober 2026 dari [`PLAN-REPAIR-EPS-009`](../docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md) (`FIX-EPS-009-01`, `-02`, disetujui pemilik lewat laporan yang sama); `FE-RWI-244` ditambahkan 13 Oktober 2026 dari [`PLAN-REPAIR-EPS-010`](../docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md) (`FIX-EPS-010-02`, disetujui pemilik lewat laporan yang sama) |
 | Roadmap pendamping | `backend-roadmap-admisi-pendaftaran.md`, `requirement-traceability-admisi-pendaftaran.md` |
 
 ---
@@ -46,6 +46,7 @@ flowchart TD
         FE241["✅ FE-RWI-241: Edit Persetujuan General Consent (Mode Lihat & Edit)"]
         FE242["✅ FE-RWI-242: Panel Riwayat Perubahan General Consent"]
         FE243["✅ FE-RWI-243: Pilih Bed — Unit Mengikuti Bed & Alasan Galat Tampil"]
+        FE244["✅ FE-RWI-244: Langkah 1 Pasien Lama — Kelayakan Admisi (Sedang Dirawat, Kunjungan Aktif)"]
 
         FE222 --> FE223
         FE223 --> FE224
@@ -54,6 +55,7 @@ flowchart TD
         FE226 --> FE241
         FE241 --> FE242
         FE224 --> FE243
+        FE224 --> FE244
     end
 
     BE204 -.->|Kunci kontrak| FE222
@@ -75,6 +77,7 @@ flowchart TD
 | [`FE-RWI-241`](../task/report/frontend/FE-RWI-241.md) ✅ | Tab Formulir General Consent punya mode lihat dan mode Edit Persetujuan; koreksi tersimpan sebagai versi baru; panduan rawat inap dan hubungan pada cetakan berasal dari data tersimpan | `ISS-EPS-008-01`, `-T1`, `-T2`; permintaan pemilik 13-10-2026 | [`PLAN-REPAIR-EPS-008`](../docs/plan-repair/plan-repair-008-edit-riwayat-general-consent.md) bagian 3.2–3.3, `FIX-EPS-008-02`; kontrak `BE-RWI-227` | `AdmissionRadioGroup`, `BaseTextField`, `BaseTextAreaField`, `BaseButton`, `StatusBadge`, `InformationAlert`, `react-signature-canvas` | Section General Consent, form edit baru, utility edit, hook, service | `BE-RWI-227`, `FE-RWI-226` | 9 butir `FIX-EPS-008-02` | ESLint, unit test utility, build; uji layar oleh pemilik | Kanvas tanda tangan pada tablet / Tim PPRI | ✅ **Selesai 13 Oktober 2026 (source, lint, unit, build).** ESLint quiet 0 error; unit 15/15 PASS; `npm run build` PASS (492 halaman); 9/9 AC terpetakan ke source; uji layar `NOT FEASIBLE` (backend lokal masih DLL lama), dikecualikan atas keputusan pemilik; [laporan](../task/report/frontend/FE-RWI-241.md) |
 | [`FE-RWI-242`](../task/report/frontend/FE-RWI-242.md) ✅ | Panel Riwayat Perubahan General Consent: versi, pengubah, waktu, alasan, dan isian yang berubah | `ISS-EPS-008-02` | `PLAN-REPAIR-EPS-008` `FIX-EPS-008-03`; `GET …/admission-workspace/general-consent/history` (`BE-RWI-227`) | `InformationAlert`, `StatusBadge`, `BaseButton` | Panel riwayat di tab Formulir General Consent | `BE-RWI-227`, `FE-RWI-241` | 3 butir `FIX-EPS-008-03` | ESLint, build; uji layar oleh pemilik | — | ✅ **Selesai 13 Oktober 2026 (source, lint, unit, build).** ESLint 0 error; unit 16/16 PASS; `npm run build` PASS (492 halaman); 3/3 AC terpetakan ke source; uji layar `NOT FEASIBLE` (backend lokal masih DLL lama), dikecualikan atas keputusan pemilik; [laporan](../task/report/frontend/FE-RWI-242.md) |
 | [`FE-RWI-243`](../task/report/frontend/FE-RWI-243.md) ✅ | Langkah Pilih Bed kembali dapat dilanjutkan: unit dan kelas admisi mengikuti kamar bed terpilih, unit bawaan tidak hilang saat pasien dipilih, dan alasan kegagalan titik tulis 1 tampil apa adanya | `ISS-EPS-009-01`, `-02`, `-T4`; `RWI-DEC-268`; laporan pemilik 13-10-2026 | [`PLAN-REPAIR-EPS-009`](../docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md) bagian 3.2, `FIX-EPS-009-01`, `-02`; kontrak `RWI-KELAS-006-1.0` (`SelectedBedId`) | Pola unit/kelas dari bed pada `buildTransferAdmissionPayload`; `InformationAlert` | `inpatient-admission-encounter-utils.jsx`, `use-inpatient-admission-doctor.jsx`, `use-inpatient-admission-bed.jsx`, test `inpatient-class-coverage` | `FE-RWI-240` (sudah ada) | 4 butir `FIX-EPS-009-01` + 3 butir `FIX-EPS-009-02` | Test unit terarah, ESLint, build; uji layar oleh pemilik | Bed pada unit bukan rawat inap ditolak server / Tim Admisi | ✅ **Selesai 13 Oktober 2026 (source dan test unit terarah).** 7/7 AC terpetakan ke source; unit `inpatient-class-coverage` 6/6 PASS; ESLint dan `npm run build` `NOT RUN` karena `node_modules` tidak ada di repository saat dikerjakan; uji layar `NOT RUN`; dikecualikan atas keputusan pemilik 10-09-2026 (build dijalankan pemilik); [laporan](../task/report/frontend/FE-RWI-243.md) |
+| [`FE-RWI-244`](../task/report/frontend/FE-RWI-244.md) ✅ | Langkah 1 Pasien Lama dan Informasi Pasien (Kamar Pulih) menolak pasien yang sedang dirawat, berkunjungan aktif, atau berpermintaan Kamar Pulih dengan kalimat server dan tombol tindak lanjut; Pilih Bed memeriksa ulang sebelum kunjungan dibuat | `ISS-EPS-010-01`, `-02`, `-03`, `-T1`, `-T2`, `-T3`; `RWI-DEC-297`; laporan pemilik 13-10-2026 | [`PLAN-REPAIR-EPS-010`](../docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md) bagian 3, `FIX-EPS-010-02`; kontrak `GET /episodes/admission-eligibility` (`BE-RWI-230`) | `BasePatientVerificationCard` `badgeText`, `InformationAlert` + `BaseButton` (pola alert NIK terdaftar), `buildInpatientEpisodeTransferRoute`, `buildInpatientAdmissionResumeRoute` | Hook `use-inpatient-admission-eligibility.jsx`, util `inpatient-admission-eligibility-utils.js`, komponen `inpatient-admission-eligibility-notice.jsx`, langkah Pasien Lama, view admisi, `use-inpatient-admission-doctor.jsx`, test unit | `BE-RWI-230` ✅ | 9 butir `FIX-EPS-010-02` | Test unit, ESLint, build; uji layar oleh pemilik sesudah backend dijalankan ulang | Langkah 1 *fail-closed* selama backend lama berjalan / Tim Admisi | ✅ **Selesai 13 Oktober 2026 (source, lint, unit, build).** 9/9 AC terpetakan ke source; unit baru 8/8 PASS, suite 2832/2802/30 tanpa regresi; ESLint 0 error (`npx eslint src --quiet` exit 0); build 492 halaman PASS; uji layar `NOT FEASIBLE` (backend runtime belum memuat `BE-RWI-230`), dikecualikan atas keputusan pemilik; [laporan](../task/report/frontend/FE-RWI-244.md) |
 
 ---
 
@@ -191,3 +194,14 @@ flowchart TD
 | Asal | [`PLAN-REPAIR-EPS-009`](../docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md) `FIX-EPS-009-01`, `FIX-EPS-009-02` |
 | Tujuan | Tombol Lanjut ke Pemesanan tidak lagi buntu; kunjungan dan episode dibuat dengan unit dan kelas kamar bed terpilih; alasan kegagalan apa pun terbaca di langkah Pilih Bed |
 | Contoh | Bed `RI-201-A` (Rawat Inap, Kelas II) → `POST /patient-encounters/admin` dan `POST /episodes` dengan unit Rawat Inap, Kelas II, `selectedBedId` RI-201-A → Booking Bed |
+
+### 4.9 ✅ `FE-RWI-244` — Langkah 1 Pasien Lama memeriksa kelayakan admisi
+
+| Field | Nilai |
+|---|---|
+| Status | ✅ SELESAI — 13 Oktober 2026 (source, lint, unit, build). Unit baru 8/8 PASS; ESLint 0 error; build 492 halaman PASS; uji layar `NOT FEASIBLE` sampai backend `BE-RWI-230` dijalankan, dikecualikan atas keputusan pemilik. [Laporan FE-RWI-244](../task/report/frontend/FE-RWI-244.md) |
+| Asal | [`PLAN-REPAIR-EPS-010`](../docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md) `FIX-EPS-010-02` |
+| Tujuan | Pasien yang sedang dirawat, masih punya kunjungan aktif, atau punya permintaan Kamar Pulih berhenti di langkah 1 dengan alasan dan jalan keluarnya; tidak ada lagi admisi ganda "Sedang Disiapkan" |
+| Endpoint | `GET …/episodes/admission-eligibility` (`InpatientEpisode : Read`) |
+| Contoh | Tn. Umar dirawat di Kamar 02 BED 001 → badge "Sedang Dirawat", alert "… pakai perpindahan, bukan admisi baru." + Pindah Tempat Tidur; Lanjut tidak maju |
+

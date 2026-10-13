@@ -87,6 +87,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// <summary>Peringatan kelengkapan dokumen admisi pada Detail Episode (<c>BE-RWI-195</c>, <c>INT-RWA-13</c>).</summary>
         private readonly InpAdmissionCompletenessEvaluator _admissionCompleteness;
 
+        /// <summary>
+        /// Saklar kunjungan aktif milik pendaftaran, dibaca pemeriksaan kelayakan admisi
+        /// (<c>BE-RWI-230</c>).
+        /// </summary>
+        private readonly IConfiguration _configuration;
+
         /// <remarks>
         /// <b>Arah dependency dibalik pada `BE-RWI-011`.</b> Sampai `BE-RWI-008`, service ini
         /// menerima <c>InpBedOccupancyService</c> tanpa pernah memakainya. Sejak penempatan
@@ -103,7 +109,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             InpEpisodeNumberService episodeNumberService,
             IInpIntegrationOutboxService outboxService,
             InpAdmissionReferralService admissionReferralService,
-            InpAdmissionCompletenessEvaluator admissionCompleteness)
+            InpAdmissionCompletenessEvaluator admissionCompleteness,
+            IConfiguration configuration)
         {
             _dbContext = dbContext;
             _settingService = settingService;
@@ -111,6 +118,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             _outboxService = outboxService;
             _admissionReferralService = admissionReferralService;
             _admissionCompleteness = admissionCompleteness;
+            _configuration = configuration;
         }
 
         // =====================================================================
@@ -164,6 +172,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             if (patient == null)
             {
                 return InpEpisodeOperationResult.Invalid("Pasien belum dipilih.");
+            }
+
+            // BE-RWI-230 / INV-INP-10 — pasien yang sedang hadir tidak pernah dapat diadmisi ulang,
+            // jadi ditolak sebelum apa pun ditulis. Tanpa penjaga ini admisi baru sempat membuat
+            // kunjungan dan episode Draft yang baru ditolak pada pemesanan bed, lalu tertinggal
+            // sebagai admisi ganda "Sedang Disiapkan" (ISSUE-EPS-010).
+            var present = await FindPresentEpisodeAsync(request.PatientId, Guid.Empty, cancellationToken);
+
+            if (present != null)
+            {
+                return InpEpisodeOperationResult.FromStatus(
+                    InpEpisodeOperationStatus.Conflict,
+                    present.RejectionMessage,
+                    PatientAlreadyAdmittedCode);
             }
 
             // BE-RWI-181 / VAL-RWF-87, VAL-RWF-88: pasien yang punya permintaan admisi Pending dari
@@ -298,10 +320,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             if (otherDraft != null)
             {
-                warnings.Add(
-                    $"Pasien ini punya admisi lain yang sedang disiapkan, yaitu " +
-                    $"{otherDraft.EpisodeNumber} sejak {otherDraft.CreateDateTime:dd MMMM yyyy HH:mm}. " +
-                    "Lanjutkan bila memang admisi terpisah, atau batalkan yang lama lebih dulu.");
+                warnings.Add(BuildOtherDraftWarning(otherDraft.EpisodeNumber, otherDraft.CreateDateTime));
             }
 
             var now = DateTime.UtcNow;
