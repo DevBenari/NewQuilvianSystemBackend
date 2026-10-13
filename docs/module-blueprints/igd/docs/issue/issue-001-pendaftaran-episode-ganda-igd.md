@@ -192,10 +192,10 @@ Kotak peringatan kuning dan merah pada `verification-step.jsx` saat ini dirancan
 
 ### Untuk pemilik modul:
 
-| No | Keputusan | Pilihan | Rekomendasi | Menahan perbaikan |
+| No | Keputusan | Pilihan | Rekomendasi & Keputusan | Menahan perbaikan |
 | ---: | --- | --- | --- | --- |
-| K-01 | Bentuk tampilan kolom "Alasan Pendaftaran Episode Ganda" saat pasien TIDAK memiliki episode aktif | (A) Dibuat `disabled` dengan placeholder/helper text penjelas;<br>(B) Dihilangkan sama sekali (*hidden/unmounted*) dari tampilan Langkah 2 | **Pilihan A (disabled)**: Menjaga stabilitas tata letak form dan memberi edukasi visual kepada petugas loket bahwa fitur episode ganda memang ada namun tidak berlaku untuk kunjungan normal. | `FIX-IGD-001-01` |
-| K-02 | Waktu eksekusi pra-cek episode berjalan | (A) Saat pasien dipilih di Langkah 1 & disimpan di state controller;<br>(B) Saat komponen Langkah 2 (*EmergencyVisitStep*) di-mount | **Pilihan A**: Lebih responsif karena saat petugas tiba di Langkah 2, data episode aktif sudah siap tanpa jeda pemuatan (*loading spinner*). | `FIX-IGD-001-01` |
+| K-01 | Bentuk tampilan kolom "Alasan Pendaftaran Episode Ganda" saat pasien TIDAK memiliki episode aktif | (A) Dibuat `disabled` dengan placeholder/helper text penjelas;<br>(B) Dihilangkan sama sekali (*hidden/unmounted*) dari tampilan Langkah 2 | **Disetujui Pemilik: Pilihan B (Dihilangkan/Hide)**. Kolom teks dan alert disembunyikan sepenuhnya dari antarmuka bila tidak ada episode aktif, dan hanya dimunculkan saat pasien terbukti memiliki kunjungan IGD yang masih berjalan. | `FIX-IGD-001-01` |
+| K-02 | Waktu eksekusi pra-cek episode berjalan | (A) Saat pasien dipilih di Langkah 1 & disimpan di state controller;<br>(B) Saat komponen Langkah 2 (*EmergencyVisitStep*) di-mount | **Disetujui: Pilihan A**. Lebih responsif karena saat petugas tiba di Langkah 2, data episode aktif sudah siap tanpa jeda pemuatan (*loading spinner*). | `FIX-IGD-001-01` |
 
 ---
 
@@ -213,3 +213,4 @@ Pola masalah ini merupakan contoh klasik dari **"Validasi Server yang Terlambat 
 | Tanggal | Perubahan | Oleh |
 | --- | --- | --- |
 | 2026-10-12 | Dokumen issue dibuat dari laporan keluhan pelapor dan analisis kode frontend/backend | `diagnose-module-issue` |
+| 2026-10-13 | Memperbarui K-01 sesuai keputusan pemilik modul: Pilihan B (kolom di-hide bukan disabled saat tidak ada episode aktif) | `diagnose-module-issue` |

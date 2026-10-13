@@ -1421,7 +1421,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 RegisteredAt = x.Encounter != null ? x.Encounter.RegisteredAt : x.ArrivalDateTime,
                 ArrivalDateTime = x.ArrivalDateTime,
                 Urutan = x.ArrivalDateTime,
-                KunciUrutan = x.Id
+                KunciUrutan = x.Id,
+                IsTriaged = x.VisitStatus == EmergencyVisitStatus.Triaged
+                    || x.Triages.Any(t => !t.IsDelete && t.TriageStatus == EmergencyTriageStatus.Completed)
             });
 
             IQueryable<BarisAntreanTriage> gabungan = barisKunjungan;
@@ -1459,7 +1461,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     RegisteredAt = x.RegisteredAt,
                     ArrivalDateTime = (DateTime?)null,
                     Urutan = x.RegisteredAt,
-                    KunciUrutan = x.Id
+                    KunciUrutan = x.Id,
+                    IsTriaged = false
                 });
 
                 gabungan = barisEncounter.Concat(barisKunjungan);
@@ -1511,6 +1514,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 VisitStatus = baris.VisitStatus,
                 RegisteredAt = baris.RegisteredAt,
                 ArrivalDateTime = baris.ArrivalDateTime,
+                IsTriaged = baris.IsTriaged,
                 AvailableActions = AksiBarisAntrean(baris)
             };
         }
@@ -1533,6 +1537,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             {
                 EmergencyVisitStatus.Arrived or EmergencyVisitStatus.WaitingForTriage
                     => new List<string> { AksiIsiTriage, AksiTanganiSegera },
+                EmergencyVisitStatus.InTreatment when !baris.IsTriaged
+                    => new List<string> { AksiIsiTriage },
                 _ => new List<string>()
             };
         }
@@ -1572,6 +1578,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             public EmergencyVisitStatus? VisitStatus { get; set; }
             public DateTime RegisteredAt { get; set; }
             public DateTime? ArrivalDateTime { get; set; }
+            public bool IsTriaged { get; set; }
 
             /// <summary>Waktu yang dipakai mengurutkan: waktu tiba bagi kunjungan, waktu terdaftar bagi encounter.</summary>
             public DateTime Urutan { get; set; }
