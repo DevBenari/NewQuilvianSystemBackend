@@ -1846,3 +1846,21 @@ Pilih Bed; unit admisi yang disimpan mengikuti kamar bed terpilih, sama dengan k
 alasan aslinya tampil pada alert langkah ini; bila berhasil, maju ke Booking Bed. Papan bed (bagian 3.9 dan 7)
 mengikuti penyaring unit, kamar, kelas, dan pencarian, termasuk angka ringkasannya. Skema sebelum-sesudah ada pada
 [`PLAN-REPAIR-EPS-009`](docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md) bagian 3.
+
+## Amandemen PLAN-REPAIR-EPS-010 — 2026-10-13
+
+Dasar keputusan: `RWI-DEC-297`. Bagian 3.5.1, tombol "Lanjut ke Jenis Kunjungan & Kategori": aktif bila tepat satu
+pasien terpilih; menekannya memeriksa `GET /episodes/admission-eligibility` lebih dulu. Boleh → maju ke langkah 2.
+Ditolak (pasien sedang dirawat, kunjungan rawat jalan aktif, atau permintaan Kamar Pulih menunggu) atau gagal diperiksa
+→ tetap di langkah 1; alert kelayakan berisi kalimat server digulir ke pandangan dan diberi fokus. Tombolnya tidak
+dimatikan karena hasil pemeriksaan; selama memeriksa ia menampilkan "Memeriksa kelayakan...".
+
+Wilayah baru di bawah kedua panel: **Alert kelayakan** (`InformationAlert` + `BaseButton`) dengan tombol tindak lanjut
+"Pindah Tempat Tidur" dan "Lihat Detail Episode" (pasien sedang dirawat), "Buka Jalur Kamar Pulih" (permintaan Kamar
+Pulih), "Lanjutkan Admisi {nomor}" (admisi lain masih Draft — peringatan, Lanjut tetap dapat dipakai), atau
+"Periksa Ulang" (gagal diperiksa). Badge kartu identitas mengikuti hasil pemeriksaan ("Siap Melanjutkan", "Sedang
+Dirawat", "Kunjungan Aktif", "Permintaan Kamar Pulih", "Ada Admisi Disiapkan", "Belum Terperiksa"), bukan lagi selalu
+"Siap Melanjutkan". Aturan yang sama berlaku pada langkah Informasi Pasien Lama jalur Kamar Pulih (tombol "Lanjut ke
+Tipe Pasien"), dengan permintaan Kamar Pulih yang sedang dipakai tidak dihitung sebagai penghalang. Langkah Pilih Bed
+(3.9) memeriksa ulang kelayakan sebelum kunjungan dibuat; penolakannya tampil pada alert langkah itu tanpa permintaan
+tulis apa pun. Skema sebelum-sesudah ada pada [`PLAN-REPAIR-EPS-010`](docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md) bagian 3.
