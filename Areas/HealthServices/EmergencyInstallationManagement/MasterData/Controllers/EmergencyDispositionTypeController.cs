@@ -162,6 +162,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 RequiresDestinationServiceUnit = request.RequiresDestinationServiceUnit,
                 RequiresReferralFacility = request.RequiresReferralFacility,
                 ClosesEmergencyVisit = request.ClosesEmergencyVisit,
+                RequiresAdmissionRequest = request.RequiresAdmissionRequest,
                 Sequence = request.Sequence,
                 Description = NormalizeText(request.Description),
                 IsActive = request.IsActive,
@@ -219,6 +220,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             entity.RequiresDestinationServiceUnit = request.RequiresDestinationServiceUnit;
             entity.RequiresReferralFacility = request.RequiresReferralFacility;
             entity.ClosesEmergencyVisit = request.ClosesEmergencyVisit;
+            entity.RequiresAdmissionRequest = request.RequiresAdmissionRequest;
             entity.Sequence = request.Sequence;
             entity.Description = NormalizeText(request.Description);
             entity.IsActive = request.IsActive;
@@ -297,6 +299,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 RequiresDestinationServiceUnit = x.RequiresDestinationServiceUnit,
                 RequiresReferralFacility = x.RequiresReferralFacility,
                 ClosesEmergencyVisit = x.ClosesEmergencyVisit,
+                RequiresAdmissionRequest = x.RequiresAdmissionRequest,
                 Sequence = x.Sequence,
                 Description = x.Description,
                 IsActive = x.IsActive,
