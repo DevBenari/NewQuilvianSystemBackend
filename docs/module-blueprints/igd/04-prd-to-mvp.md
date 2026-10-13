@@ -704,3 +704,114 @@ Requirement penugasan dokter lama `FR-IGD-016`…`021` tetap berlaku dan tidak d
 | `IGD-UNK-18` | Unit IGD bertipe `Emergency` dan punya jadwal aktif di tiap lingkungan | Tidak untuk pengembangan; ya untuk rilis |
 
 Nol pertanyaan yang memblokir pengembangan.
+
+## 12. `EPIC IGD-15` — Form Permintaan Rawat Inap dari IGD
+
+Gelombang **`MVP-11`**. Sumber: `IGD-DEC-267`…`293` (12 Oktober 2026); fakta `IGD-FACT-110`…`117`; capability map
+suplemen 3.7 (`IGD-CAP-116`…`142`); [gate](evidence/2026-10-12-gate-form-permintaan-rawat-inap.md) `PARTIALLY_READY`;
+[arsitektur domain](evidence/2026-10-12-arsitektur-domain-form-permintaan-rawat-inap.md) revisi `1`.
+
+**Status: `approved`** — `IGD-DEC-294`, Rizki Gunawan, 12 Oktober 2026. Bagian Rawat Inap dan Billing butuh persetujuan pemiliknya (`IGD-OQ-128`).
+Urutan terhadap Billing IGD (`IGD-DEC-252`, demo Kasir 21 Oktober 2026) **ditanyakan kepada pemilik sebelum build**, tidak
+diputuskan di dokumen ini.
+
+**Masalah produk.** Pasien IGD yang diputuskan dirawat inap hari ini sampai ke petugas admisi tanpa permintaan tertulis:
+petugas admisi tidak menerima apa pun di layarnya, memilih unit, kelas, dan DPJP sendiri, dan tidak membaca diagnosis,
+indikasi, atau kebutuhan isolasi yang sudah diketahui IGD. Pasien dapat berangkat ke bangsal sebelum admisi tahu. *Contoh:*
+Tn. Budi diputuskan rawat inap pukul 10.05; Sari baru tahu dari telepon pukul 10.40 dan tidak tahu pasien butuh oksigen.
+
+**Visi.** Perawat IGD mengisi satu Form Permintaan Rawat Inap dari tindak lanjut dokter; DPJP IGD aktif menandatanganinya
+secara elektronik; saat itu juga permintaan muncul di daftar petugas admisi, CITO paling atas, dan admisi wajib dibuka dari
+permintaan itu. Pasien tidak berangkat sebelum permintaannya terkirim.
+
+### 12.1 Batas slice
+
+| Butir | Isi |
+| --- | --- |
+| Titik mulai | Tindak lanjut rawat inap terkonfirmasi dokter |
+| Titik akhir | Permintaan admisi *Selesai* karena admisi dibuka darinya, atau *Dibatalkan* beralasan |
+| Pelaku | Perawat IGD, DPJP IGD aktif, petugas admisi Rawat Inap |
+| Di luar slice | Pembukaan admisi otomatis (`INP-S09`), `OriginEncounterId`, penautan tagihan IGD (`IGD-DEC-293`), pemetaan hak kelas, notifikasi, pindah ke kamar operasi, penanda "tidak ada alergi" |
+
+### 12.2 Kemampuan `MUST HAVE`
+
+| Kemampuan | ID kemampuan asal | Disposisi |
+| --- | --- | --- |
+| Form milik IGD dengan keadaan, atestasi, salinan beku | `IGD-CAP-124` (wadah PPRI tidak cocok), `IGD-CAP-139`, `IGD-CAP-141` | `MISSING / NEW` |
+| Permintaan admisi bersumber IGD | `IGD-CAP-120`, `121`, `123` | `EXTEND` |
+| Penahanan *Jalankan* dan batal otomatis | `IGD-CAP-116`, `117`, `119` | `EXTEND` |
+| Data pasien yang dibaca dan dibekukan | `IGD-CAP-127`…`130` | `EXISTING / REUSE` |
+| Unit, kelas, DPJP usulan | `IGD-CAP-131`, `132`, `134` | `EXISTING / REUSE` (unit, kelas); `MISSING / NEW` (saringan DPJP per jadwal unit) |
+| Kebutuhan khusus, CITO, lama rawat | `IGD-CAP-135`…`137` | `MISSING / NEW` |
+| Hak akses perawat dan petugas admisi | `IGD-CAP-142` | `MISSING / NEW` |
+
+**Ditunda dengan pengganti:**
+
+| Kemampuan | Alasan | Pengganti selama MVP |
+| --- | --- | --- |
+| Tagihan IGD ikut invoice rawat inap | `IGD-OQ-129` belum dijawab owner Billing (`IGD-DEC-293`) | Tagihan IGD tetap pada invoice kunjungan IGD |
+| Aturan tipe unit pada isian Unit Layanan | `IGD-OQ-127` menunggu analis | Unit terisi dari tindak lanjut dokter; admisi tetap menolak unit bukan rawat inap |
+| "Tidak ada alergi" | Clinical tidak menyimpannya (`IGD-FACT-117`) | Ditulis "Belum ada data alergi" |
+
+### 12.3 Functional requirement
+
+| ID | Requirement | Disposisi |
+| --- | --- | --- |
+| `FR-IGD-109` | Perawat IGD membuat Form Permintaan Rawat Inap hanya dari tindak lanjut rawat inap yang terkonfirmasi; unit tujuan, indikasi, dan instruksi terisi dari tindak lanjut dan dapat dilengkapi (`IGD-DEC-268`, `271`, `290`) | `MISSING / NEW` |
+| `FR-IGD-110` | Form menampilkan identitas, alergi, penjamin dengan teks hak kelas, dan seluruh diagnosis ICD-10 aktif (utama paling atas) secara baca-saja, dibekukan saat TTD (`IGD-DEC-282`, `283`, `287`) | `MISSING / NEW` |
+| `FR-IGD-111` | Perawat mengisi unit, kelas perawatan rawat inap, DPJP usulan dari daftar berjadwal di unit (cadangan semua dokter), estimasi lama rawat 1–90 (bawaan 3), CITO, dan kebutuhan khusus yang boleh lebih dari satu (`IGD-DEC-284`, `286`, `288`, `289`) | `MISSING / NEW` |
+| `FR-IGD-112` | Perawat meminta TTD; form masuk daftar *Perlu TTD* DPJP IGD aktif, berpindah bila DPJP dialihkan; dokter menandatangani (atestasi akun) atau mengembalikan dengan catatan (`IGD-DEC-272`…`274`, `285`, `291`) | `MISSING / NEW` |
+| `FR-IGD-113` | Tanda tangan melahirkan permintaan admisi bersumber IGD dalam satu transaksi; petugas admisi melihatnya dengan rinciannya dan wajib membuka admisi darinya (`IGD-DEC-275`, `276`) | `EXTEND` |
+| `FR-IGD-114` | *Jalankan* tindak lanjut rawat inap tertahan sampai form terkirim, dan tertahan lagi bila permintaan dibatalkan admisi (`IGD-DEC-277`, `279`) | `EXTEND` |
+| `FR-IGD-115` | Pembatalan beralasan oleh perawat (sebelum admisi), petugas admisi, atau otomatis karena tindak lanjut dibatalkan; isi yang ditandatangani tidak pernah berubah (`IGD-DEC-278`…`280`) | `EXTEND` |
+| `FR-IGD-116` | Form terkirim dapat dicetak dari salinan beku dengan baris tanda tangan elektronik (`IGD-DEC-281`) | `MISSING / NEW` |
+| `FR-IGD-117` | Isian Unit Layanan mengikuti arti yang dijawab analis | `OPEN DECISION` — `IGD-OQ-127`; **tidak** masuk gelombang |
+| `FR-IGD-118` | Kunjungan IGD ditautkan ke invoice rawat inap saat admisi dibuka dari permintaan IGD | `OPEN DECISION` — `IGD-OQ-129`; **tidak** masuk gelombang (`IGD-DEC-293`) |
+
+### 12.4 Skenario UAT
+
+| # | Jalur | Langkah | Hasil yang diharapkan |
+| ---: | --- | --- | --- |
+| `AT-IGD-221` | Berhasil | Dokter mengonfirmasi tindak lanjut rawat inap; perawat membuat form | Form *Draf*; unit, indikasi, instruksi terisi; identitas, alergi, penjamin, diagnosis tampil baca-saja |
+| `AT-IGD-222` | Gagal | Perawat membuat form dari tindak lanjut *Draft*; lalu perawat kedua membuat form kedua | Keduanya `409` dengan pesan validation §14 aturan 1 dan 3 |
+| `AT-IGD-223` | Berhasil | Perawat memilih unit berjadwal, lalu unit tanpa jadwal | Unit berjadwal: hanya dokter berjadwal; tanpa jadwal: semua dokter aktif dengan keterangan |
+| `AT-IGD-224` | Gagal | Lewat API: lama rawat 0, dokter usulan tidak berjadwal di unit berjadwal, kelas rawat jalan | `400` aturan 6, 10, 8 |
+| `AT-IGD-225` | Berhasil | Perawat meminta TTD; DPJP membuka *Perlu TTD* dan menandatangani | Form *Terkirim*; permintaan admisi `Pending` bersumber IGD tampil di daftar petugas admisi |
+| `AT-IGD-226` | Gagal | Dokter bukan DPJP aktif menandatangani lewat API; lalu DPJP dialihkan sebelum TTD | `403` aturan 13; sesudah pengalihan, form pindah ke *Perlu TTD* DPJP baru dan DPJP lama ditolak |
+| `AT-IGD-227` | Berhasil | Dokter mengembalikan dengan catatan; perawat memperbaiki dan meminta TTD lagi | Form kembali *Draf* dengan catatan di riwayat; TTD kedua berhasil |
+| `AT-IGD-228` | Gagal | Perawat menekan *Jalankan* sebelum form terkirim | `409` aturan 23; tombol nonaktif di layar |
+| `AT-IGD-229` | Berhasil | Petugas admisi membuka admisi dari permintaan | Permintaan *Selesai*; unit, kelas, DPJP terisi dari permintaan; IGD menampilkan *Selesai* |
+| `AT-IGD-230` | Gagal | Petugas admisi membuka admisi pasien itu tanpa memilih permintaan | `409` `INP-ADM-REF-001` dengan pesan netral |
+| `AT-IGD-231` | Berhasil | Petugas admisi membatalkan permintaan beralasan | IGD menampilkan *Dibatalkan admisi — alasan*; *Jalankan* nonaktif lagi; perawat dapat membuat form baru |
+| `AT-IGD-232` | Berhasil | Dokter membatalkan tindak lanjut rawat inap saat form terkirim | Form dan permintaan ikut batal dengan alasan yang sama |
+| `AT-IGD-233` | Gagal | Perawat membatalkan form, dan dokter membatalkan tindak lanjut, sesudah admisi dibuka | Keduanya `409` (aturan 19 dan 24) |
+| `AT-IGD-234` | Berhasil | Form terkirim dicetak; lalu alergi baru dicatat dan form dicetak ulang | Kedua cetakan sama, memuat baris tanda tangan elektronik |
+| `AT-IGD-235` | Gagal | Klik *Tandatangani* dua kali dengan `Idempotency-Key` sama; dan saat pasien punya permintaan kamar pulih yang menunggu | Satu permintaan saja; kasus kedua TTD ditolak `409` dan form tetap *Menunggu TTD* |
+
+### 12.5 Definition of Done
+
+| # | Butir | Bukti |
+| ---: | --- | --- |
+| 1 | Form, riwayat, atestasi, dan salinan beku tersimpan sesuai kamus data §10 | Diff + migration |
+| 2 | Tanda tangan dan permintaan admisi lahir dalam satu transaksi | Diff + `AT-IGD-225`, `235` |
+| 3 | Hanya DPJP IGD aktif yang dapat menandatangani; pengalihan memindahkan *Perlu TTD* | `AT-IGD-226` |
+| 4 | *Jalankan* tertahan sesuai aturan 23 | `AT-IGD-228`, `231` |
+| 5 | Pembatalan tiga jalan berperilaku sesuai state §11 | `AT-IGD-231`…`233` |
+| 6 | Petugas admisi melihat dan memakai permintaan bersumber IGD | `AT-IGD-229`, `230` |
+| 7 | Tagihan IGD tidak ditautkan untuk sumber IGD | Diff `BillingInpatientEventReceiver` |
+| 8 | Nol baris `Program.cs`; nol komentar baru; CRLF tanpa BOM (migration ber-BOM) | Diff |
+| 9 | Dua migration diterapkan pemilik; `Down()` berpenjaga diuji atau dikecualikan pemilik | Keluaran migration |
+| 10 | Build backend 0 error; `eslint` dan `npm run build` frontend lulus | Keluaran build |
+| 11 | Hak akses diberikan pengurus Akses Role, bukan penguji | Log backend uji tanpa SuperAdmin / *Simpan Akses* |
+| 12 | Persetujuan pemilik Rawat Inap dan owner Billing tercatat dari laporan pemilik | `IGD-OQ-128` |
+
+### 12.6 Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir? |
+| --- | --- | :-: |
+| `IGD-OQ-127` | Arti Unit Layanan | Ya untuk `FR-IGD-117` saja |
+| `IGD-OQ-129` | Penautan tagihan bila invoice IGD sudah dibayar | Ya untuk `FR-IGD-118` saja |
+| `IGD-OQ-128` | Persetujuan Rawat Inap dan Billing | Ya untuk approval desain bagian modul lain |
+| `IGD-UNK-24` | Jenis tindak lanjut rawat inap per lingkungan | Tidak untuk pengembangan; ya untuk rilis |
+| `IGD-UNK-25` | Tipe unit ICU | Tidak (tanpa aturan silang) |
+| Urutan terhadap Billing IGD | Ditanyakan pemilik sebelum build (`IGD-DEC-252`) | Ya untuk mulai build |

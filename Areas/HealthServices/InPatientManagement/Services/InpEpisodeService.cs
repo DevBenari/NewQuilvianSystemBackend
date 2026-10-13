@@ -194,6 +194,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     "Dokter penanggung jawab yang dipilih tidak ditemukan atau tidak aktif.");
             }
 
+            if (request.SelectedBedId.HasValue)
+            {
+                var selectedRoom = await _dbContext.Set<MstBed>().AsNoTracking()
+                    .Where(x => x.Id == request.SelectedBedId.Value && !x.IsDelete && x.IsActive &&
+                        x.Room != null && !x.Room.IsDelete && x.Room.IsActive)
+                    .Select(x => new { x.Room!.PatientClassId, x.Room.ServiceUnitId })
+                    .SingleOrDefaultAsync(cancellationToken);
+                if (selectedRoom?.PatientClassId == null || selectedRoom.PatientClassId == Guid.Empty)
+                    return InpEpisodeOperationResult.Invalid("Kamar yang dipilih belum memiliki kelas perawatan aktif.");
+                if (selectedRoom.ServiceUnitId != request.ServiceUnitId)
+                    return InpEpisodeOperationResult.Invalid("Kamar yang dipilih berbeda dari unit layanan admisi. Pilih kamar pada unit layanan yang sesuai.");
+                request.PatientClassId = selectedRoom.PatientClassId.Value;
+            }
+
             var contextCheck = await ValidateServiceUnitAndPatientClassAsync(
                 request.ServiceUnitId,
                 request.PatientClassId,
@@ -434,6 +448,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     "Isian admisi hanya dapat diubah selama pasien belum ditempatkan.",
                     episode);
             }
+
+            var reservedRoom = await _dbContext.Set<InpBedReservation>().AsNoTracking()
+                .Where(x => x.EpisodeId == episodeId && !x.IsDelete &&
+                    x.ReservationStatus == InpBedReservationStatus.Active && x.ExpiresAt > DateTime.UtcNow)
+                .OrderByDescending(x => x.CreateDateTime)
+                .Select(x => new { x.Bed!.Room!.PatientClassId, x.Bed.Room.ServiceUnitId })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (reservedRoom != null)
+            {
+                if (!reservedRoom.PatientClassId.HasValue || reservedRoom.PatientClassId.Value == Guid.Empty)
+                    return InpEpisodeOperationResult.Invalid("Kamar yang dipesan belum memiliki kelas perawatan.");
+                if (reservedRoom.ServiceUnitId != request.ServiceUnitId)
+                    return InpEpisodeOperationResult.Invalid("Unit layanan harus sesuai dengan kamar yang dipesan.");
+            }
+            // Kelas tidak dapat diganti melalui isian konfirmasi admisi.
+            request.PatientClassId = reservedRoom?.PatientClassId ?? episode.PatientClassId;
 
             var contextCheck = await ValidateServiceUnitAndPatientClassAsync(
                 request.ServiceUnitId,
@@ -737,6 +767,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             try
             {
+                // BE-RWI-229 — dua pembacaan bersamaan (mis. GET /episodes dan /episodes/summary)
+                // dapat sama-sama menemukan Draft ini lewat batas. Tanpa kunci baris keduanya
+                // menulis riwayat bernomor sama dan yang kalah jatuh 500 pada
+                // IX_InpStatusHistory_EpisodeId_SequenceNumber. Pembaca kedua kini menunggu,
+                // lalu melihat episode yang sudah Cancelled dan tidak menulis apa pun.
+                if (!await LockDraftStillDueAsync(episode, cancellationToken))
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return false;
+                }
+
                 await CancelEpisodeInternalAsync(
                     episode,
                     SystemExpiryReason,
@@ -756,6 +797,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 await transaction.RollbackAsync(cancellationToken);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Mengunci baris episode di dalam transaksi pengguguran, membaca ulang nilainya, lalu
+        /// memastikan episode masih <c>Draft</c> dan masih lewat batas waktu.
+        /// </summary>
+        /// <remarks>
+        /// Polanya sama dengan <c>InpBedMutationCoordinator.LockAsync</c> dan
+        /// <c>InpBedOccupancyService.LockBedRowAsync</c>. Penguncian hanya dijalankan pada
+        /// penyedia relasional; provider InMemory tidak mengenal <c>FOR UPDATE</c>, sehingga di
+        /// sana pemeriksaan awal pemanggil tetap berlaku apa adanya.
+        /// </remarks>
+        private async Task<bool> LockDraftStillDueAsync(
+            InpEpisode episode,
+            CancellationToken cancellationToken)
+        {
+            if (!_dbContext.Database.IsRelational())
+            {
+                return true;
+            }
+
+            await _dbContext.Database.ExecuteSqlRawAsync(
+                "SELECT 1 FROM public.\"InpEpisode\" WHERE \"Id\" = {0} FOR UPDATE",
+                new object[] { episode.Id },
+                cancellationToken);
+
+            await _dbContext.Entry(episode).ReloadAsync(cancellationToken);
+
+            if (episode.EpisodeStatus != InpEpisodeStatus.Draft)
+            {
+                return false;
+            }
+
+            var setting = await _settingService.GetEffectiveSettingAsync(cancellationToken);
+            var lastTouchedAt = episode.UpdateDateTime ?? episode.CreateDateTime;
+
+            return DateTime.UtcNow > lastTouchedAt.AddHours(setting.DraftEpisodeExpiryHours);
         }
 
         /// <summary>

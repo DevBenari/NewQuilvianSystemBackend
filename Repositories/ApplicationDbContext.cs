@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Models;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membership.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
@@ -426,6 +427,7 @@ namespace QuilvianSystemBackend.Repositories
         #region CORPORATE - HUMAN RESOURCE - BENEFIT MANAGEMENT
         public DbSet<TrxEmployeeBenefitEnrollment> TrxEmployeeBenefitEnrollments { get; set; }
         public DbSet<TrxEmployeeBenefitDependent> TrxEmployeeBenefitDependents { get; set; }
+        public DbSet<HrdBenefitBalanceMovement> HrdBenefitBalanceMovements { get; set; }
         public DbSet<TrxEmployeeInsuranceEnrollment> TrxEmployeeInsuranceEnrollments { get; set; }
         public DbSet<TrxBenefitClaim> TrxBenefitClaims { get; set; }
         public DbSet<TrxBenefitClaimItem> TrxBenefitClaimItems { get; set; }
@@ -590,6 +592,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstMembershipTier> MstMembershipTiers { get; set; }
         public DbSet<MstPatient> MstPatients { get; set; }
         public DbSet<MstPatientMembership> MstPatientMemberships { get; set; }
+        public DbSet<PatMembershipStatusHistory> PatMembershipStatusHistories { get; set; }
         public DbSet<MstPatientIdentityDocument> MstPatientIdentityDocuments { get; set; }
         public DbSet<MstPatientRelationship> MstPatientRelationships { get; set; }
         public DbSet<MstPatientEmergencyContact> MstPatientEmergencyContacts { get; set; }
@@ -668,6 +671,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<FinReceivableDocument> FinReceivableDocuments { get; set; }
         public DbSet<FinReceivableAdjustment> FinReceivableAdjustments { get; set; }
         public DbSet<FinReceivableWriteOff> FinReceivableWriteOffs { get; set; }
+        public DbSet<FinReceivableWriteOffProposal> FinReceivableWriteOffProposals { get; set; }
+        public DbSet<FinReceivableWriteOffProposalItem> FinReceivableWriteOffProposalItems { get; set; }
         // BE-FIN-058, FIN-DES-079: buku mutasi piutang.
         public DbSet<FinReceivableMovement> FinReceivableMovements { get; set; }
         // BE-FIN-092, FIN-DES-099: perjanjian angsuran piutang pegawai. Migration
@@ -1108,6 +1113,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<EmgEncounterReconciliationRun> EmgEncounterReconciliationRuns { get; set; }
         public DbSet<EmgEncounterReconciliationItem> EmgEncounterReconciliationItems { get; set; }
         public DbSet<EmgDuplicateEpisodeOverride> EmgDuplicateEpisodeOverrides { get; set; }
+        public DbSet<EmgAdmissionRequest> EmgAdmissionRequests { get; set; }
+        public DbSet<EmgAdmissionRequestEvent> EmgAdmissionRequestEvents { get; set; }
         #endregion
 
         #endregion

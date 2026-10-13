@@ -10,6 +10,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public bool RequiresDestinationServiceUnit { get; set; }
         public bool RequiresReferralFacility { get; set; }
         public bool ClosesEmergencyVisit { get; set; }
+        public bool RequiresAdmissionRequest { get; set; }
         public int Sequence { get; set; }
         public string? Description { get; set; }
         public bool IsActive { get; set; }
@@ -32,6 +33,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public bool RequiresReferralFacility { get; set; }
 
         public bool ClosesEmergencyVisit { get; set; } = true;
+
+        public bool RequiresAdmissionRequest { get; set; }
 
         public int Sequence { get; set; }
 

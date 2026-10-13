@@ -165,6 +165,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// </summary>
         public Guid? ResultEnteredByUserId { get; set; }
 
+        /// <summary>Nama pengisi hasil — Penanggung Jawab Analis halaman hasil v1 (<c>r48</c>).</summary>
+        public string? ResultEnteredByName { get; set; }
+
         /// <summary><c>NotEntered</c>, <c>Draft</c>, <c>Final</c>, <c>Validated</c>, <c>Released</c> — turunan (<c>LAB-DEC-080</c>).</summary>
         public string ResultStatus { get; set; } = string.Empty;
 

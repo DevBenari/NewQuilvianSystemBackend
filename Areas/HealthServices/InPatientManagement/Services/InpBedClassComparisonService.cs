@@ -10,10 +10,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
 public sealed class InpBedClassComparisonService(ApplicationDbContext db, IOptionsMonitor<BedManagementOptions> options)
 {
+    private List<MstPatientClass>? _cachedClasses;
+    private readonly Dictionary<(Guid, Guid), string> _compareCache = new();
+
     // Format digest: kelas aktif, Id:D|ClassLevel, urut Id; LF; pasangan equivalence ternormalisasi sesudah kelas.
     public async Task<string> CompareAsync(Guid sourceId, Guid targetId, CancellationToken ct = default)
     {
-        var classes = await db.Set<MstPatientClass>().AsNoTracking().Where(x => x.IsActive && !x.IsDelete).ToListAsync(ct);
+        if (_compareCache.TryGetValue((sourceId, targetId), out var cached)) return cached;
+        _cachedClasses ??= await db.Set<MstPatientClass>().AsNoTracking().Where(x => x.IsActive && !x.IsDelete).ToListAsync(ct);
+        var classes = _cachedClasses;
         var source = classes.SingleOrDefault(x => x.Id == sourceId);
         var target = classes.SingleOrDefault(x => x.Id == targetId);
         if (source == null || target == null) return "Unknown";
@@ -28,11 +33,17 @@ public sealed class InpBedClassComparisonService(ApplicationDbContext db, IOptio
             "\n" + string.Join("\n", pairs.Select(x => $"{x.A:D}|{x.B:D}"));
         var digest = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(input))).ToLowerInvariant();
         if (!string.Equals(digest, profile.ApprovedSourceDigest, StringComparison.OrdinalIgnoreCase)) return "Unknown";
+        string result;
         if (source.ClassLevel == target.ClassLevel)
-            return pairs.Any(x => x.A == sourceId && x.B == targetId || x.A == targetId && x.B == sourceId) ? "SameGrade" : "Unknown";
-        var higher = target.ClassLevel > source.ClassLevel;
-        if (profile.Direction == BedClassOrderDirection.LowerValueIsHigherGrade) higher = !higher;
-        return higher ? "UpGrade" : "DownGrade";
+            result = pairs.Any(x => x.A == sourceId && x.B == targetId || x.A == targetId && x.B == sourceId) ? "SameGrade" : "Unknown";
+        else
+        {
+            var higher = target.ClassLevel > source.ClassLevel;
+            if (profile.Direction == BedClassOrderDirection.LowerValueIsHigherGrade) higher = !higher;
+            result = higher ? "UpGrade" : "DownGrade";
+        }
+        _compareCache[(sourceId, targetId)] = result;
+        return result;
     }
 }
 

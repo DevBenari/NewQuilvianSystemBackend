@@ -98,6 +98,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
         public bool IsActive { get; set; } = true;
 
+        /// <summary>BE-FIN-103, FIN-API-1.10: token konkurensi optimistik, diganti service pada setiap perubahan.</summary>
+        public Guid RowVersion { get; set; } = Guid.NewGuid();
+
         public MstWorkforceProfile? WorkforceProfile { get; set; }
         public MstEmployee? Employee { get; set; }
         public WfpOrganizationAssignment? OrganizationAssignment { get; set; }

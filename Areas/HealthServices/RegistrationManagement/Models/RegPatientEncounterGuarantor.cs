@@ -141,6 +141,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         public string? Notes { get; set; }
 
         // =========================
+        // EMPLOYEE BENEFIT SNAPSHOT (BE-FIN-105, FIN-DEC-198, kamus data 9.5)
+        // =========================
+
+        /// <summary>
+        /// Salinan MstPatientCompanyGuarantor.EmployeeId saat registrasi. Tanpa FK agar riwayat
+        /// kunjungan tetap utuh bila data HR berubah. Kolom sensitif.
+        /// </summary>
+        public Guid? EmployeeIdSnapshot { get; set; }
+
+        /// <summary>Salinan MstPatientCompanyGuarantor.FamilyMemberId saat registrasi. Kolom sensitif.</summary>
+        public Guid? FamilyMemberIdSnapshot { get; set; }
+
+        /// <summary>Salinan MstPatientCompanyGuarantor.BenefitRelationship saat registrasi. Kolom sensitif.</summary>
+        [MaxLength(50)]
+        public string? BenefitRelationshipSnapshot { get; set; }
+
+        // =========================
         // NAVIGATION
         // =========================
 

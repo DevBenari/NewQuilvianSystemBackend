@@ -2985,3 +2985,35 @@ Jumlah panah dependency internal: **1**. Jumlah panah handoff eksternal: **1**. 
 
 
 
+
+
+---
+
+## Gelombang Perbaikan `PLAN-REPAIR-BKC-001` — Checkout klinis sampai invoice kasir (12 Oktober 2026)
+
+Task ad-hoc di luar penomoran roadmap asli, mengikuti pola `BE-BKC-FIX-XXX`. Pemicu: [`ISSUE-BKC-001`](../docs/issue/issue-001-integrasi-checkout-ke-billing-kasir.md) dan [`PLAN-REPAIR-BKC-001`](../docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md). Keputusan `BKC-DEC-135`..`141`. Seluruhnya **nol migration**; belum di-commit.
+
+```mermaid
+graph TD
+    F19["✅ BE-BKC-FIX-019<br/>Fakta tindakan Completed"] --> F16["✅ BE-BKC-FIX-016<br/>Jembatan IGD"]
+    F16 --> F15["✅ BE-BKC-FIX-015<br/>Satu jalur resep + racikan"]
+    F17["✅ BE-BKC-FIX-017<br/>BMHP nonresep"]
+    F18["✅ BE-BKC-FIX-018<br/>Bank Darah"]
+    F20["✅ BE-BKC-FIX-020<br/>Kekinian daftar kasir"]
+    F21["✅ BE-BKC-FIX-021<br/>Penahan BIL-FIN-022"]
+    F20 -.query bersama.- F21
+```
+
+| Task | FIX plan-repair | Ringkasan | Status | Laporan |
+| --- | --- | --- | --- | --- |
+| `BE-BKC-FIX-015` | FIX-05 | Pengirim resep langsung dihapus; racikan = bahan × tarif obat (`BKC-DEC-136`); hasil invoice dilaporkan ke dokter | ✅ Source selesai, build 0 error, uji resolver lulus; uji DB `NOT RUN` | [laporan](../task/report/backend/BE-BKC-FIX-015.md) |
+| `BE-BKC-FIX-016` | FIX-08 | Jembatan menerima kunjungan IGD, invoice IGD sendiri + tautan konsolidasi (`BKC-DEC-139`) | ✅ Source selesai; uji DB `NOT RUN` | [laporan](../task/report/backend/BE-BKC-FIX-016.md) |
+| `BE-BKC-FIX-017` | FIX-03 (+ server FIX-02) | Sumber `DrugUsage` → `CONSUMABLE`; depo/petugas ditentukan server; retur nonresep; `chargeState` (`BKC-DEC-138`) | ✅ Source selesai, uji resolver lulus; uji DB `NOT RUN` | [laporan](../task/report/backend/BE-BKC-FIX-017.md) |
+| `BE-BKC-FIX-018` | FIX-04 | Fakta Bank Darah → `BLOOD_BANK` per tindakan (`BKC-DEC-140`) | ✅ Source selesai, uji resolver lulus; uji DB `NOT RUN` | [laporan](../task/report/backend/BE-BKC-FIX-018.md) |
+| `BE-BKC-FIX-019` | FIX-07 | `ExecuteImmediately`, tindakan keperawatan IGD, dan pemulihan `AlreadyExecuted` menerbitkan fakta | ✅ Source selesai; uji DB `NOT RUN` | [laporan](../task/report/backend/BE-BKC-FIX-019.md) |
+| `BE-BKC-FIX-020` | FIX-09 | `calculationState`, `runningGrossAmount`, `isPatientAmountProvisional`, `isCashPayer`, `pendingChargeCount` pada daftar kasir (`BKC-DEC-141`) | ✅ Source selesai, uji query lulus | [laporan](../task/report/backend/BE-BKC-FIX-020.md) |
+| `BE-BKC-FIX-021` | FIX-11 | Kode penahan `BIL-FIN-022` pada tiga jalur finalisasi | ✅ Source selesai, uji query lulus; uji DB `NOT RUN` | [laporan](../task/report/backend/BE-BKC-FIX-021.md) |
+| — | FIX-01 | Intervensi keperawatan ke invoice | ⏸️ Ditunda pemilik (`BKC-DEC-135`) | — |
+| — | FIX-06 | Gizi | ✅ Lewat keputusan: tidak ditagih terpisah (`BKC-DEC-137`) | — |
+
+**Verifikasi gelombang:** build backend 0 error (warning baru dari berkas gelombang ini 0); 15/15 uji `CheckoutBillingIntegrationTests` lulus lewat proyek uji sementara — proyek `QuilvianSystemBackend.PharmacyTests` sendiri **tidak terkompilasi sebelum gelombang ini** (`BillingInvoiceEligibilityTests.cs`, `BillingZeroPatientObligationTests.cs`) dan perlu diperbaiki terpisah. Backfill fakta lama (IGD/Bank Darah yang sudah `NotApplicable`) di luar cakupan.

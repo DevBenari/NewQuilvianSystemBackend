@@ -534,3 +534,13 @@ Trace `BUI-DEC-001`–`015`, `BUI-DES-001`–`012`. Tests: lihat
 Trace `BKC-DEC-128`–`134`, `BKC-DES-051`–`056`. Tests: `BIL-AT-149`–`BIL-AT-158`.
 
 
+
+---
+
+## Delta 12 Oktober 2026 — `BIL-FIN-022` (`BE-BKC-FIX-021`)
+
+| Kode | Aturan | Jalur | Pengecualian | Pelepas |
+| --- | --- | --- | --- | --- |
+| `BIL-FIN-022` | Invoice tidak dapat difinalkan normal selama kunjungannya masih punya pelayanan layak tagih yang belum menjadi item: efek folio `Pending`/`Failed`/`ReconciliationRequired` (selain `TARIFF_NOT_FOUND` = `BIL-FIN-021`) atau fakta klinis tagih yang belum diterima folio | Finalisasi manual normal, selesaikan tanpa kewajiban pasien, tutup otomatis sesudah lunas | Departure exception (`BKC-DEC-033`); efek `NotApplicable` (gratis, tidak billable, tahap belum eligible) tidak pernah menahan | Kirim ulang berhasil (`Synced`) atau diselesaikan di antrean rekonsiliasi (`Resolved`) |
+
+Rencana: [`PLAN-REPAIR-BKC-001`](../docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md) FIX-11.

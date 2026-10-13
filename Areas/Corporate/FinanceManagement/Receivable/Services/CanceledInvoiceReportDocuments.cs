@@ -86,7 +86,7 @@ public static class CanceledInvoiceReportDocuments
                             table.Cell().Padding(3).AlignRight().Text(row.TotalDiscount.ToString("N0"));
                             table.Cell().Padding(3).AlignRight().Text(row.NetAmount.ToString("N0"));
                             table.Cell().Padding(3).Text(row.CancelReason ?? "-");
-                            var statusLabel = row.ReportStatus == "RECREATED" ? "Sudah Dibuat Ulang" : "Canceled";
+                            var statusLabel = row.ReportStatus == "RECREATED" ? "Sudah Dibuat Ulang" : "Cancelled";
                             table.Cell().Padding(3).Text(statusLabel);
                             i++;
                         }
@@ -125,7 +125,7 @@ public static class CanceledInvoiceReportDocuments
                 {
                     col.Item().PaddingVertical(8).Column(h =>
                     {
-                        var statusLabel = detail.ReportStatus == "RECREATED" ? "Sudah Dibuat Ulang" : "Canceled";
+                        var statusLabel = detail.ReportStatus == "RECREATED" ? "Sudah Dibuat Ulang" : "Cancelled";
                         h.Item().Text($"Perusahaan/Penjamin: {detail.DebtorName ?? "-"}");
                         h.Item().Text($"Status: {statusLabel}");
                         h.Item().Text("Tanggal Cancel: " + (detail.CancelledAt.HasValue

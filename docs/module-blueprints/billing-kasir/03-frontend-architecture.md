@@ -1668,3 +1668,9 @@ sekali — ini murni penambahan kolom/section baru di sebelahnya.
 | `BUI-DES-003` (default tombol benar) | `BUI-DES-001` (backend) — **MUST selesai lebih dulu**, kalau tidak tombol akan menampilkan default yang salah walau UI sudah benar |
 | `BUI-DES-011` (kolom Tanggal pada datatable refund) | `BUI-DES-002` (backend) |
 | Sisanya (`BUI-DES-004`–`007`, `009` bagian validasi, `010`, `012`) | Nol dependency backend baru — seluruhnya memakai endpoint yang sudah ada |
+
+---
+
+## Delta 12 Oktober 2026 — Daftar Invoice & Billing Kasir (`BKC-DEC-141`, `FE-BKC-FIX-013`)
+
+Kolom daftar kasir kini: No, Pasien, **Total Tagihan**, **Sudah Dibayar & Tgl** (dahulu "Biaya & Tgl Bayar" — isinya memang pembayaran), **Sisa Pasien** (dahulu "Sisa Pembayaran"), **Status Tagihan** (Terkini / Perlu Hitung Ulang / Belum Dihitung + jumlah pelayanan yang belum masuk invoice), Info Deposit, Status Deposit, Umur & Pengingat, Aksi. Banner "Ada pelayanan yang belum masuk invoice" menaut ke antrean rekonsiliasi; tombol **Muat Ulang** hanya membaca ulang. Angka yang belum terkini tidak disajikan sebagai kewajiban pasti; sisa pasien penjamin yang belum dihitung tertulis "Belum dihitung", bukan Rp0. Sumber: [`PLAN-REPAIR-BKC-001`](docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md) FIX-10, [laporan](task/report/frontend/FE-BKC-FIX-013.md).

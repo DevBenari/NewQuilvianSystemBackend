@@ -39,6 +39,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             _service = service;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<LabSusceptibilityBreakpointFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Susceptibility Breakpoint", Description = "Melihat daftar, ringkasan, pilihan, dan detail rentang breakpoint", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabSusceptibilityBreakpoint", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = LabFilterMetadataFactory.LabSusceptibilityBreakpoint();
+
+            return Ok(ApiResponse<LabSusceptibilityBreakpointFilterMetadataResponse>.Ok(
+                result, "Metadata penyaring breakpoint berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<LabSusceptibilityBreakpointSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Susceptibility Breakpoint", Description = "Melihat daftar, ringkasan, pilihan, dan detail rentang breakpoint", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabSusceptibilityBreakpoint", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var result = await _service.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<LabSusceptibilityBreakpointSummaryResponse>.Ok(
+                result, "Ringkasan breakpoint berhasil diambil."));
+        }
+
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabSusceptibilityBreakpointResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Lab Susceptibility Breakpoint", Description = "Melihat daftar, ringkasan, pilihan, dan detail rentang breakpoint", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -163,33 +187,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         // =============================================================
         // Baseline master data yang dilengkapi 2026-09-22 — `LAB-API-v1` r30.
         //
-        // Keempat endpoint di bawah dituntut `master-data-endpoint-standard` dan nol ada saat
+        // `filters/metadata` dan `summary` dari baseline ini ditaruh paling awal controller
+        // supaya tampil teratas di Swagger (permintaan pemilik modul 2026-10-13).
+        //
+        // Keempat endpoint baseline ini dituntut `master-data-endpoint-standard` dan nol ada saat
         // BE-LAB-60 dikerjakan. Kekurangannya ditemukan gate FE-LAB-34, bukan oleh pengujian.
         // =============================================================
-
-        [HttpGet("filters/metadata")]
-        [ProducesResponseType(typeof(ApiResponse<LabSusceptibilityBreakpointFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Susceptibility Breakpoint", Description = "Melihat daftar, ringkasan, pilihan, dan detail rentang breakpoint", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LabSusceptibilityBreakpoint", "Read")]
-        public IActionResult GetFilterMetadata()
-        {
-            var result = LabFilterMetadataFactory.LabSusceptibilityBreakpoint();
-
-            return Ok(ApiResponse<LabSusceptibilityBreakpointFilterMetadataResponse>.Ok(
-                result, "Metadata penyaring breakpoint berhasil diambil."));
-        }
-
-        [HttpGet("summary")]
-        [ProducesResponseType(typeof(ApiResponse<LabSusceptibilityBreakpointSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Susceptibility Breakpoint", Description = "Melihat daftar, ringkasan, pilihan, dan detail rentang breakpoint", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LabSusceptibilityBreakpoint", "Read")]
-        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
-        {
-            var result = await _service.GetSummaryAsync(cancellationToken);
-
-            return Ok(ApiResponse<LabSusceptibilityBreakpointSummaryResponse>.Ok(
-                result, "Ringkasan breakpoint berhasil diambil."));
-        }
 
         [HttpGet("options")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabSusceptibilityBreakpointOptionResponse>>), StatusCodes.Status200OK)]

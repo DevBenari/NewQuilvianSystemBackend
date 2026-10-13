@@ -1035,3 +1035,150 @@ naik_dari: FIN-TEST-1.11 (approved 5 Oktober 2026)
 | Format dan formula potongan PPh 21 internal HR | Perhitungan internal modul Payroll HR, di luar domain Finance |
 | Konfigurasi master penjamin "RS Benefit" | Master data Administrator (`FIN-OQ-102`), ditangani terpisah sebelum eksekusi seeder |
 
+
+
+---
+
+# AMENDMENT REVISI 19 — Piutang Manfaat Karyawan: Kriteria Uji Plafon Benefit, Verifikasi Tanggungan, dan Pilihan Pegawai (`FIN-TEST-1.13`)
+
+```yaml
+contract_version: FIN-TEST-1.13
+status: draft
+owner: Pemilik Finance (Product/Domain)
+last_changed_in: Revisi 19 (13 Oktober 2026)
+input_revision: 00-interview-decisions.md (FIN-DEC-204..FIN-DEC-210)
+input_hash: a1fe769be5cdfe5b   # SHA-256 (16 karakter pertama) berkas ini sebelum amandemen Revisi 19
+input_design: 02-backend-architecture.md bagian R; contracts/integration-contract.md bagian R; contracts/api-contract.md bagian R
+input_contracts: FIN-INTEGRATION-1.9; FIN-API-1.10; FIN-VAL-1.12; FIN-STATE-1.9; FIN-PERM-1.11 (seluruhnya draft)
+naik_dari: FIN-TEST-1.12
+```
+
+Bukti verifikasi backend mengikuti kebijakan backend: QBE preflight, review diff dan cakupan, `dotnet build`, verifikasi kontrak
+API, verifikasi proses bisnis, dan verifikasi manual/runtime. **Tidak ada** kewajiban pengujian otomatis kecuali pemilik memintanya.
+Seluruh data contoh adalah data samaran.
+
+## N.1 Tautan Kartu dan Kelayakan (Registrasi ↔ HR)
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `N.1.1` | Pencarian pegawai | Ketik "198" | Pegawai aktif yang NIP, NIK, atau namanya mengandung "198"; maksimum 20; NIK tersamar (empat digit awal dan akhir) |
+| `N.1.2` | Kata kunci terlalu pendek | Ketik "19" | `400` dengan pesan minimal 3 karakter |
+| `N.1.3` | Anak terdaftar dan terverifikasi | Kartu untuk Sari (`Child`, tanggungan `Verified`, berlaku) | Kartu terbit; `BenefitRelationship = CHILD` ditentukan sistem; `FamilyMemberId` terisi |
+| `N.1.4` | Orang tidak terdaftar | Kartu untuk Pak Andi yang tidak ada di HR | Tidak bisa dipilih; kartu internal tidak terbit; petugas mendaftarkan Pasien Umum tunai |
+| `N.1.5` | Tanggungan belum terverifikasi | Sari berstatus `Requested` | Ditolak `DEPENDENT_NOT_VERIFIED` |
+| `N.1.6` | Pegawai tanpa enrollment aktif | Budi sendiri, enrollment berakhir kemarin | Ditolak `ENROLLMENT_NOT_ACTIVE` (`FIN-DEC-209`) |
+| `N.1.7` | Hubungan di luar plan | Plan `Individual`, pasien pasangan | Ditolak `RELATIONSHIP_NOT_COVERED` |
+| `N.1.8` | Kartu lama tanpa tautan | Buka kartu yang dibuat sebelum revisi | Tetap terbaca; ketiga kolom tautan kosong; tidak ada kesalahan |
+| `N.1.9` | Klien mengirim kode hubungan | Kirim `BenefitRelationship` pada permintaan kartu | `400`; kode hubungan hanya dari sistem |
+
+## N.2 Enrollment dan Tanggungan di HR
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `N.2.1` | Aktivasi menetapkan saldo awal | Aktifkan enrollment pada plan berplafon Rp 10.000.000 | `RemainingAmount` Rp 10.000.000; `UsedAmount` Rp 0 |
+| `N.2.2` | Pengaju menyetujui sendiri | Satu pengguna mengajukan lalu menyetujui | Ditolak `403` (`FIN-VAL-271`) |
+| `N.2.3` | Dua enrollment layanan RS berimpit | Aktifkan enrollment kedua pada periode yang sama | Ditolak `422` (`FIN-VAL-249`) |
+| `N.2.4` | Melebihi batas tanggungan | Daftarkan tanggungan ke-4 pada plan `MaximumDependents = 3` | Ditolak `422` (`FIN-VAL-253`) |
+| `N.2.5` | Verifikasi tanpa masa berlaku | Verifikasi tanpa tanggal atau batas plafon | Ditolak `422` (`FIN-VAL-254`) |
+
+## N.3 Pemakaian dan Pengembalian Plafon (`INT-BIL-HR-001`)
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `N.3.1` | Pakai plafon | Sisa Rp 3.000.000; pakai Rp 3.000.000 untuk invoice A | Sisa Rp 0; satu mutasi `USE` dengan saldo sebelum Rp 3.000.000 dan sesudah Rp 0 |
+| `N.3.2` | Pengulangan aman | Pakai lagi dengan kunci dan nominal yang sama | `ALREADY_APPLIED`; saldo dan mutasi tidak berubah |
+| `N.3.3` | Melebihi sisa | Sisa Rp 1.000.000; pakai Rp 1.500.000 | `INSUFFICIENT` `422` membawa sisa terkini; saldo tidak berubah |
+| `N.3.4` | Kunci sama, nominal beda | Pakai Rp 2.000.000 dengan kunci yang sudah dipakai Rp 3.000.000 | `KEY_CONFLICT` `409` |
+| `N.3.5` | Kembalikan | Kembalikan kunci invoice A; ulangi | Sisa pulih penuh Rp 3.000.000; pengulangan `ALREADY_RETURNED`, tidak berubah |
+| `N.3.6` | Dua finalisasi bersamaan | Dua permintaan bersamaan menguras saldo yang sama | Saldo tidak pernah negatif; yang kedua menerima `INSUFFICIENT` lalu menghitung ulang |
+| `N.3.7` | Rekonsiliasi | Bandingkan `UsedAmount` dengan Σ`USE` − Σ`RETURN` setelah rangkaian uji | Sama persis |
+
+## N.4 Finalisasi, Pembagian Porsi, dan Pilihan Pegawai (`INT-FIN-BIL-001` versi 1.9)
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `N.4.1` | Plafon kurang | Cakupan Rp 5.000.000 (100%), sisa Rp 3.000.000 | `PAYER` Rp 3.000.000; `EMPLOYEE_BENEFIT` Rp 2.000.000; jumlah Rp 5.000.000 |
+| `N.4.2` | Co-pay dibayar tunai | Tagihan Rp 5.000.000, cakupan 80%, sisa Rp 3.000.000, `D = 0` | `PAYER` Rp 3.000.000; `EMPLOYEE_BENEFIT` Rp 1.000.000; tunai Rp 1.000.000 |
+| `N.4.3` | Co-pay dijadikan utang | Kasus yang sama, `D = Rp 1.000.000` | `EMPLOYEE_BENEFIT` Rp 2.000.000; tunai Rp 0; `DeferredPatientAmount` Rp 1.000.000 |
+| `N.4.4` | Plafon habis | Sisa Rp 0 | Tidak ada baris `PAYER`; `EMPLOYEE_BENEFIT` Rp 5.000.000 |
+| `N.4.5` | Plafon cukup | Cakupan Rp 2.000.000, sisa Rp 3.000.000 | `PAYER` Rp 2.000.000; tidak ada baris `EMPLOYEE_BENEFIT` |
+| `N.4.6` | Pilihan melebihi sisa tagihan | `D` lebih besar dari sisa tagihan pasien | Ditolak `422` (`FIN-VAL-262`) |
+| `N.4.7` | Plafon tidak terbaca | Enrollment tidak aktif saat finalisasi | Finalisasi ditahan `422` (`FIN-VAL-264`); nol baris serah terima; plafon tidak berubah |
+| `N.4.8` | Penjamin kedua | Kunjungan berpenjamin internal dengan penjamin kedua | Ditolak `422` (`FIN-VAL-265`) |
+| `N.4.9` | Finalisasi diulang | Kirim ulang permintaan yang sama | Penanda `IsReplay`; tidak ada baris ganda; plafon tidak berkurang dua kali |
+| `N.4.10` | Atomik | Paksa penerbitan serah terima gagal setelah pembacaan plafon | Plafon **tidak** berkurang |
+| `N.4.11` | Kunjungan non-internal | Finalisasi tagihan berpenjamin asuransi | Perilaku lama tidak berubah; nol panggilan ke HR |
+| `N.4.12` | Tidak ada baris nol | Periksa seluruh hasil `N.4.4` dan `N.4.5` | Tidak ada baris dengan `Amount = 0` |
+
+## N.5 Koreksi dan Kompatibilitas Finance
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `N.5.1` | Koreksi salah orang | Pindahkan kunjungan dari pegawai A ke B setelah final | Plafon A pulih penuh; plafon B berkurang dengan kunci baru; piutang A `CANCELLED`, piutang B terbit |
+| `N.5.2` | Identitas pemilik manfaat | Periksa `BenefitOwnerId` pada baris `EMPLOYEE_BENEFIT` | Sama dengan `MstEmployee.Id` pegawai (bukan `WorkforceProfileId`) |
+| `N.5.3` | Intake satu baris | Finance memproses serah terima yang hanya berisi satu baris | Satu kartu piutang terbit; tidak ada galat karena "kurang satu baris" |
+| `N.5.4` | Panjang hubungan | Simpan `BenefitRelationship` 50 karakter ke Finance | Tersimpan tanpa terpotong |
+
+
+---
+
+# AMENDMENT REVISI 20 — Kriteria Uji Jembatan Manual Potong Gaji (`FIN-TEST-1.14`)
+
+```yaml
+contract_version: FIN-TEST-1.14
+status: approved
+approved_by: Pemilik Finance, HR, dan Billing (pengguna sesi); konfirmasi pemilik Registrasi belum turun
+approved_at: 2026-10-13
+last_changed_in: Revisi 20 (13 Oktober 2026)
+input_revision: 00-interview-decisions.md (FIN-DEC-215..FIN-DEC-222)
+input_hash: 8a6fe25e7beb0973   # SHA-256 (16 karakter pertama) berkas ini sebelum amandemen Revisi 20
+input_contracts: FIN-INTEGRATION-1.10; FIN-API-1.11; FIN-VAL-1.13; FIN-STATE-1.10; FIN-PERM-1.12 (draft)
+naik_dari: FIN-TEST-1.13
+```
+
+Bukti verifikasi backend: QBE preflight, review diff, `dotnet build` (atas permintaan pemilik), verifikasi kontrak dan proses bisnis.
+Data contoh samaran.
+
+## O.1 Jadwal
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `O.1.1` | Nominal terutang termasuk tunggakan | Cicilan Rp 1.000.000 gagal Juli dan Agustus; ekspor September | Budi terutang Rp 3.000.000; baris Juli dan Agustus tidak muncul |
+| `O.1.2` | Hanya perjanjian disetujui | Perjanjian `MENUNGGU` berperiode September | Tidak muncul |
+
+## O.2 Batch reguler
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `O.2.1` | Validasi baris | Unggah berkas tiga baris benar | Semua `VALID`; total berkas dihitung |
+| `O.2.2` | Kelengkapan | Hapus baris Ani lalu ajukan | Ditolak `422` (`FIN-VAL-278`); Ani di daftar belum ada |
+| `O.2.3` | Total kontrol | Total kontrol Rp 2.100.000, berkas Rp 2.000.000 | Ditolak `422` (`FIN-VAL-279`) |
+| `O.2.4` | Pengaju ≠ pengesah | Pengaju mengesahkan | Ditolak `403` |
+| `O.2.5` | NIP tidak cocok | Kode angsuran Budi dengan NIP Sari | Baris `INVALID` (`FIN-VAL-274`); batch tidak dapat diajukan |
+| `O.2.6` | Atomik | Paksa satu baris gagal saat pengesahan | Tidak ada saldo berubah; batch tetap `DIAJUKAN` |
+| `O.2.7` | Satu batch per periode | Unggah batch reguler kedua September | Ditolak `409` |
+| `O.2.8` | Status vs nominal | `BERHASIL` Rp 900.000 untuk terutang Rp 1.000.000 | Baris `INVALID` (`FIN-VAL-276`) |
+
+## O.3 Koreksi
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `O.3.1` | Selisih negatif | Tercatat Rp 1.500.000, benar Rp 1.200.000 | Mutasi pembalikan Rp 300.000; tunggakan Oktober Rp 1.800.000 |
+| `O.3.2` | Batas koreksi | Oktober sudah menerima hasil, lalu koreksi September | Ditolak `422` (`FIN-VAL-285`) |
+| `O.3.3` | Pengesah koreksi | Penyelia tanpa `ApproveCorrection` | Ditolak `403` |
+
+## O.4 Peralihan
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `O.4.1` | Manual ditolak setelah peralihan | Peralihan `2027-01`; unggah manual Januari 2027 | Ditolak `422` (`FIN-VAL-286`) |
+| `O.4.2` | Mesin ditolak sebelum peralihan | Hasil dengan `PayrollRunId` untuk Desember 2026 | Ditolak `422` (`FIN-VAL-288`) |
+| `O.4.3` | Tidak boleh mundur | Ubah peralihan ke `2026-09` padahal September punya batch disahkan | Ditolak `422` |
+| `O.4.4` | Jalan pintas ditolak | Panggil penerima hasil langsung tanpa `PayrollRunId` | Ditolak `422` (`FIN-VAL-287`) |
+
+## O.5 Persetujuan pegawai
+
+| ID | Yang diuji | Cara | Hasil yang diharapkan |
+|---|---|---|---|
+| `O.5.1` | Wajib untuk non-pegawai | Anak berobat, utang Rp 400.000, nama kosong | Ditolak `422` (`FIN-VAL-289`) |
+| `O.5.2` | Tidak wajib untuk pegawai sendiri | Pegawai berobat, utang Rp 400.000, nama kosong | Diterima |

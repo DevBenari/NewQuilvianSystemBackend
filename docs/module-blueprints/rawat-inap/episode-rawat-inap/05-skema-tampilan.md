@@ -702,7 +702,7 @@ Langkah mandiri yang menyediakan formulir persetujuan umum rawat inap serta kanv
 1. **Invariant Hukum Medis Kategori Bayi Baru Lahir (`RWI-DEC-273`, `RWI-AC-394`)**: Jika pasien terdaftar dengan Kategori Pasien = `Bayi Baru Lahir`, opsi "Pasien Sendiri" **wajib dinonaktifkan permanen**. Sistem secara otomatis mengaktifkan opsi "Penanggung Jawab / Keluarga" dan mengisi nama ibu / wali dari data admisi.
 2. **Kewajiban Tanda Tangan Digital (`RWI-DEC-272`, `RWI-AC-393`)**: Tombol `Simpan Persetujuan & Lanjut ke Cetak` tidak dapat ditekan jika kanvas tanda tangan masih kosong atau belum dikunci.
 3. **Penyimpanan Permanen Dokumen**: Berkas persetujuan yang disimpan di langkah ini mengikat nomor episode (`InpEpisode`), data penanda tangan, waktu tanda tangan, dan citra tanda tangan berformat PNG.
-4. **Prinsip Satu Pintu dengan Workspace PPRI (`RWI-AC-395`)**: Dokumen yang disimpan di langkah ini otomatis menjadi sumber General Consent di menu Workspace PPRI. Menu PPRI berstatus **read-only / print-ready** sehingga staf PPRI hanya perlu mencetak tanpa perlu meminta pasien mengisi atau menandatangani ulang formulir.
+4. **Prinsip Satu Pintu dengan Workspace PPRI (`RWI-AC-395`, direvisi `RWI-DEC-295`)**: Dokumen yang disimpan di langkah ini otomatis menjadi sumber General Consent di menu Workspace PPRI. Menu PPRI menampilkan dokumen siap cetak tanpa meminta pasien mengisi atau menandatangani ulang. **Sejak 13 Oktober 2026** menu itu juga menyediakan **Edit Persetujuan**: koreksi disimpan sebagai versi baru beralasan, versi lama beserta tanda tangannya tetap tersimpan, dan setiap koreksi tampil di Riwayat Perubahan (siapa, kapan, alasan, isian yang berubah). Menyimpan ulang langkah ini dengan isi berbeda juga menjadi versi baru, bukan menimpa. Skema layarnya ada di [`PLAN-REPAIR-EPS-008`](docs/plan-repair/plan-repair-008-edit-riwayat-general-consent.md) bagian 3.
 
 ---
 
@@ -1830,3 +1830,19 @@ mengikat setelah pemilik menyetujui revision ini.
 Transfer: antrean server -> review -> pembayaran -> deposit untuk Cash -> dokter (validasi) -> pilih bed -> booking (satu submit) -> konfirmasi hasil -> simpan persetujuan -> cetak/selesai. Paginasi, asal IGD/Poli, jumlah overdue sesuai filter dan keadaan gagal/akses ditampilkan. Tombol Selesai menunggu persetujuan tersimpan pada episode yang sama.
 
 [Acuan implementasi EPS-006 versi 1.0](contracts/admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](task/report/frontend/FIX-EPS-006-08.md).
+
+
+## Amandemen PLAN-REPAIR-DOK-006 — 2026-10-13
+
+Amandemen bagian pembayaran dan konfirmasi: hapus pemilih kelas, checklist wajib kelas dan validasi kelas dari pembayaran/asuransi. Tampilkan informasi bahwa kelas mengikuti kamar. Konfirmasi hanya dapat mengubah unit/catatan; kelas informasi server. Langkah dokter memvalidasi draft di klien; setelah bed dipilih, buka kunjungan/episode dengan kelas kamar. Deposit sebelum pilihan kamar menampilkan kebijakan kelas belum tersedia dan tidak menahan admisi. Pemulihan draft membaca kelas episode, bukan snapshot pembayaran lama.
+
+Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.
+
+## Amandemen PLAN-REPAIR-EPS-009 — 2026-10-13
+
+Bagian 3.8, wilayah "Unit Tujuan (Tersembunyi)": unit rawat inap bawaan hanya menyemai penyaring papan pada langkah
+Pilih Bed; unit admisi yang disimpan mengikuti kamar bed terpilih, sama dengan kelasnya. Bagian 3.9, tombol
+"Lanjut ke Pemesanan": menjalankan titik tulis 1 (kunjungan dan episode) dengan unit dan kelas dari bed; bila gagal,
+alasan aslinya tampil pada alert langkah ini; bila berhasil, maju ke Booking Bed. Papan bed (bagian 3.9 dan 7)
+mengikuti penyaring unit, kamar, kelas, dan pencarian, termasuk angka ringkasannya. Skema sebelum-sesudah ada pada
+[`PLAN-REPAIR-EPS-009`](docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md) bagian 3.

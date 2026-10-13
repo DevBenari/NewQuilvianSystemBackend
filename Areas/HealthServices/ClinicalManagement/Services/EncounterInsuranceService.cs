@@ -1,4 +1,5 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -16,10 +17,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
     public class EncounterInsuranceService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly InpServiceClassResolver _serviceClassResolver;
 
-        public EncounterInsuranceService(ApplicationDbContext dbContext)
+        public EncounterInsuranceService(ApplicationDbContext dbContext, InpServiceClassResolver serviceClassResolver)
         {
             _dbContext = dbContext;
+            _serviceClassResolver = serviceClassResolver;
         }
 
         public async Task<EncounterInsuranceContext> GetContextAsync(
@@ -50,7 +53,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             if (encounter == null)
                 return EncounterInsuranceContext.Fail(encounterId, "Encounter tidak ditemukan atau tidak aktif.");
 
-            var effectiveDate = (serviceDate ?? DateTime.UtcNow).Date;
+            var serviceAt = serviceDate ?? DateTime.UtcNow;
+            var effectiveDate = serviceAt.Date;
+            var serviceClass = await _serviceClassResolver.ResolveAsync(encounterId, serviceAt, cancellationToken);
             var paymentSource = encounter.PaymentSource;
 
             if (paymentSource == null || paymentSource.IsDelete || !paymentSource.IsActive)
@@ -69,14 +74,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     PatientId = encounter.PatientId,
                     ServiceUnitId = encounter.ServiceUnitId,
                     ClinicId = encounter.ClinicId,
-                    PatientClassId = encounter.PatientClassId,
-                    PatientClassName = encounter.PatientClass?.PatientClassName,
+                    PatientClassId = serviceClass.Id,
+                    PatientClassName = serviceClass.Name,
                     PaymentType = EncounterPaymentType.Cash,
                     PaymentTypeName = "Tunai",
                     HasInsurance = false,
                     PaymentSourceId = paymentSource.Id,
                     PaymentSourceName = paymentSource.PaymentSourceNameSnapshot,
                     ServiceDate = effectiveDate,
+                    ServiceOccurredAt = serviceAt,
                     IsInsuranceReady = false
                 };
             }
@@ -165,9 +171,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     PatientId = encounter.PatientId,
                     ServiceUnitId = encounter.ServiceUnitId,
                     ClinicId = encounter.ClinicId,
-                    PatientClassId = encounter.PatientClassId,
-                    PatientClassName = encounter.PatientClass?.PatientClassName
-                        ?? paymentSource.ClassNameSnapshot,
+                    PatientClassId = serviceClass.Id,
+                    PatientClassName = serviceClass.Name,
                     PaymentType = EncounterPaymentType.CompanyGuarantor,
                     PaymentTypeName = "Penjamin Perusahaan",
                     HasInsurance = false,
@@ -198,7 +203,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     IsNeedApprovalForProcedure = company.IsNeedApprovalForProcedure,
                     IsAllowExcessPaymentByPatient = company.IsAllowExcessPaymentByPatient,
                     RemainingLimitAmount = patientCompanyGuarantor?.RemainingLimitAmount,
-                    ServiceDate = effectiveDate
+                    ServiceDate = effectiveDate,
+                    ServiceOccurredAt = serviceAt
                 };
             }
 
@@ -293,9 +299,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 PatientId = encounter.PatientId,
                 ServiceUnitId = encounter.ServiceUnitId,
                 ClinicId = encounter.ClinicId,
-                PatientClassId = encounter.PatientClassId,
-                PatientClassName = encounter.PatientClass?.PatientClassName
-                    ?? paymentSource.ClassNameSnapshot,
+                PatientClassId = serviceClass.Id,
+                PatientClassName = serviceClass.Name,
                 PaymentType = EncounterPaymentType.Insurance,
                 PaymentTypeName = "Asuransi",
                 HasInsurance = true,
@@ -329,7 +334,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 RemainingLimitAmount = patientInsurance.RemainingLimitAmount,
                 PolicyCoPaymentPercent = patientInsurance.CoPaymentPercent,
                 PolicyCoPaymentAmount = patientInsurance.CoPaymentAmount,
-                ServiceDate = effectiveDate
+                ServiceDate = effectiveDate,
+                    ServiceOccurredAt = serviceAt
             };
         }
 
@@ -362,7 +368,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             if (encounter == null)
                 return EncounterInsuranceContext.Fail(encounterId, "Encounter tidak ditemukan atau tidak aktif.");
 
-            var effectiveDate = (serviceDate ?? DateTime.UtcNow).Date;
+            var serviceAt = serviceDate ?? DateTime.UtcNow;
+            var effectiveDate = serviceAt.Date;
+            var serviceClass = await _serviceClassResolver.ResolveAsync(encounterId, serviceAt, cancellationToken);
 
             var patientInsurance = await _dbContext.Set<MstPatientInsurance>()
                 .AsNoTracking()
@@ -440,8 +448,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 PatientId = encounter.PatientId,
                 ServiceUnitId = encounter.ServiceUnitId,
                 ClinicId = encounter.ClinicId,
-                PatientClassId = encounter.PatientClassId,
-                PatientClassName = encounter.PatientClass?.PatientClassName,
+                PatientClassId = serviceClass.Id,
+                PatientClassName = serviceClass.Name,
                 PaymentType = EncounterPaymentType.Insurance,
                 PaymentTypeName = "Asuransi",
                 HasInsurance = true,
@@ -467,7 +475,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 RemainingLimitAmount = patientInsurance.RemainingLimitAmount,
                 PolicyCoPaymentPercent = patientInsurance.CoPaymentPercent,
                 PolicyCoPaymentAmount = patientInsurance.CoPaymentAmount,
-                ServiceDate = effectiveDate
+                ServiceDate = effectiveDate,
+                    ServiceOccurredAt = serviceAt
             };
         }
 
@@ -485,6 +494,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         public Guid ServiceUnitId { get; set; }
         public Guid? ClinicId { get; set; }
         public Guid? PatientClassId { get; set; }
+        public DateTime ServiceOccurredAt { get; set; }
         public string? PatientClassName { get; set; }
 
         public EncounterPaymentType PaymentType { get; set; }

@@ -18,13 +18,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
 public class InpatientBedManagementController(InpBedManagementQueryService queries,
     InpBedReadinessService readiness, InpBedAccessService access) : ControllerBase
 {
+    // Akses baca Bed Management terbuka untuk seluruh pengguna yang sudah login.
+    // Izin tindakan dan penugasan operasional tetap diperiksa pada endpoint perubahan.
     [HttpGet("metadata")]
     [AccessAction("Read", "Read Inpatient Bed Management", AccessType = AccessTypes.Read)]
-    [AccessPermission("InpatientBedManagement", "Read")]
     public async Task<IActionResult> Metadata([FromQuery] Guid? serviceUnitId, CancellationToken ct)
     {
-        var actions = new List<string>();
-        foreach (var action in new[] { "Read", "ReadUsageHistory", "StartCleaning", "CompleteCleaning", "VerifyReadiness" })
+        var actions = new List<string> { "Read", "ReadUsageHistory" };
+        foreach (var action in new[] { "StartCleaning", "CompleteCleaning", "VerifyReadiness" })
         {
             var units = await access.UnitsAsync("InpatientBedManagement:" + action, ct);
             if (units.Count > 0 && (!serviceUnitId.HasValue || units.Contains(serviceUnitId.Value)))
@@ -51,7 +52,6 @@ public class InpatientBedManagementController(InpBedManagementQueryService queri
 
     [HttpGet("monitoring")]
     [AccessAction("Read", "Read Inpatient Bed Management", AccessType = AccessTypes.Read)]
-    [AccessPermission("InpatientBedManagement", "Read")]
     public async Task<IActionResult> Monitoring([FromQuery] BedMonitoringQuery query, CancellationToken ct = default)
     {
         var result = await queries.MonitoringAsync(query, ct: ct);
@@ -60,7 +60,6 @@ public class InpatientBedManagementController(InpBedManagementQueryService queri
 
     [HttpGet("usage-history")]
     [AccessAction("ReadUsageHistory", "ReadUsageHistory Inpatient Bed Management", AccessType = AccessTypes.Read)]
-    [AccessPermission("InpatientBedManagement", "ReadUsageHistory")]
     public async Task<IActionResult> History([FromQuery] BedUsageHistoryQuery query, CancellationToken ct = default)
     {
         var result = await queries.HistoryAsync(query, ct);
@@ -69,7 +68,6 @@ public class InpatientBedManagementController(InpBedManagementQueryService queri
 
     [HttpGet("operations/{key}")]
     [AccessAction("Read", "Read Inpatient Bed Management", AccessType = AccessTypes.Read)]
-    [AccessPermission("InpatientBedManagement", "Read")]
     public async Task<IActionResult> Outcome(string key, CancellationToken ct = default)
     {
         var result = await queries.OutcomeAsync(key, ct);
@@ -78,7 +76,6 @@ public class InpatientBedManagementController(InpBedManagementQueryService queri
 
     [HttpGet("beds/{bedId:guid}/cleaning-attempts")]
     [AccessAction("Read", "Read Inpatient Bed Management", AccessType = AccessTypes.Read)]
-    [AccessPermission("InpatientBedManagement", "Read")]
     public async Task<IActionResult> Attempts(Guid bedId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 25, CancellationToken ct = default)
     {
         var result = await readiness.AttemptsAsync(bedId, pageNumber, pageSize, ct);
