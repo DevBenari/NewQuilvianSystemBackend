@@ -1,4 +1,5 @@
 ﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membership.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs
@@ -14,6 +15,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public int KioskCreatedPatientMembership { get; set; }
         public int AdmissionCreatedPatientMembership { get; set; }
         public int MarketingCreatedPatientMembership { get; set; }
+
+        // Hitungan per status siklus hidup crm-membership (BE-CRM-023).
+        public int PendingPaymentPatientMembership { get; set; }
+        public int ScheduledPatientMembership { get; set; }
+        public int NeedsVerificationPatientMembership { get; set; }
+        public int CancelledPatientMembership { get; set; }
+
+        /// <summary>Aktif yang berakhir dalam 30 hari ke depan (pengganti pengingat WA selama MVP).</summary>
+        public int ExpiringIn30DaysPatientMembership { get; set; }
     }
 
     public class PatientMembershipResponse
@@ -36,6 +46,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public string MembershipStatusName { get; set; } = string.Empty;
         public DateTime JoinDate { get; set; }
         public DateTime? ExpiredDate { get; set; }
+
+        public MembershipRegistrationType RegistrationType { get; set; }
+        public string RegistrationTypeName { get; set; } = string.Empty;
+        public DateTime? PeriodStartDate { get; set; }
+        public DateTimeOffset? PaymentDueAt { get; set; }
+        public DateTimeOffset? ActivatedAt { get; set; }
+        public decimal FeeAmountSnapshot { get; set; }
+        public Guid? PreviousPatientMembershipId { get; set; }
+        public MembershipCancellationCategory? CancellationCategory { get; set; }
+        public string? CancellationCategoryName { get; set; }
+        public Guid RowVersion { get; set; }
 
         public bool IsPrimary { get; set; }
         public bool IsAutoCreated { get; set; }
@@ -63,6 +84,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
     {
         public string? UpgradeDowngradeReason { get; set; }
         public string? Notes { get; set; }
+
+        /// <summary>Hanya di detail, tidak di daftar (data sensitif).</summary>
+        public string? CancellationReason { get; set; }
     }
 
     public class PatientMembershipOptionResponse
@@ -183,6 +207,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [MaxLength(250)]
         public string? UpgradeDowngradeReason { get; set; }
+
+        [MaxLength(250)]
+        public string? Notes { get; set; }
+    }
+
+    /// <summary>
+    /// Pendaftaran membership baru oleh CRM (BE-CRM-011). Status, tanggal, dan nomor member
+    /// diisi sistem; field lain di body diabaikan (CRM-DEC-022, CRM-DEC-023).
+    /// </summary>
+    public class RegisterPatientMembershipRequest
+    {
+        [Required]
+        public Guid PatientId { get; set; }
+
+        [Required]
+        public Guid MembershipTierId { get; set; }
 
         [MaxLength(250)]
         public string? Notes { get; set; }
