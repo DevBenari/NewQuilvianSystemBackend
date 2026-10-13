@@ -21,11 +21,11 @@ Rencana ini menutup keluhan pelapor dan dua temuan pendukung pada [ISSUE-001](..
 
 | ID perbaikan | Menutup | Ringkasan | Area | Prioritas | Task ID | Status | Bukti |
 | --- | --- | --- | --- | :---: | --- | --- | --- |
-| `FIX-IGD-001-01` | `ISS-IGD-001-01` | Pindahkan pra-cek ke pemilihan pasien; tampilkan alert peringatan dan aktifkan kolom episode ganda hanya saat ada episode aktif di Langkah 2 | FE | 1 | — | ✅ SELESAI 2026-10-12 | `emergency-visit-step.jsx`, `use-emergency-registration.js` |
-| `FIX-IGD-001-02` | `ISS-IGD-001-T1` | Nonaktifkan (*disabled*) dan bersihkan otomatis (*auto-clear*) isian alasan episode ganda bila pasien tidak memiliki episode aktif | FE | 1 | — | ✅ SELESAI 2026-10-12 | `emergency-visit-step.jsx`, `use-emergency-registration.js` |
+| `FIX-IGD-001-01` | `ISS-IGD-001-01` | Pindahkan pra-cek ke pemilihan pasien; tampilkan alert peringatan dan munculkan kolom episode ganda hanya saat ada episode aktif di Langkah 2 | FE | 1 | — | ✅ SELESAI 2026-10-12 | `emergency-visit-step.jsx`, `use-emergency-registration.js` |
+| `FIX-IGD-001-02` | `ISS-IGD-001-T1` | Sembunyikan (*hide / unmount*) dan bersihkan otomatis (*auto-clear*) isian alasan episode ganda bila pasien tidak memiliki episode aktif (sesuai arahan pemilik modul) | FE | 1 | — | ✅ SELESAI 2026-10-13 | `emergency-visit-step.jsx`, `use-emergency-registration.js` |
 | `FIX-IGD-001-03` | `ISS-IGD-001-T2` | Pertahankan pra-cek verifikasi akhir sebagai jaring pengaman sekunder (*fail-safe*) | FE | 2 | — | ✅ SELESAI 2026-10-12 | `use-emergency-registration.js` |
 
-**Ringkasan: 3 dari 3 perbaikan selesai (12 Oktober 2026). ESLint 0 error; unit test 20/20 PASS.**
+**Ringkasan: 3 dari 3 perbaikan selesai (13 Oktober 2026). ESLint 0 error; unit test 20/20 PASS.**
 
 ---
 
@@ -35,15 +35,15 @@ Rencana ini menutup keluhan pelapor dan dua temuan pendukung pada [ISSUE-001](..
 
 | Opsi | Cara | Kelebihan | Kekurangan |
 | --- | --- | --- | --- |
-| **A (Terpilih)** | Jalankan `lookupActiveEmergencyEpisode` saat pasien lama dipilih di Langkah 1; simpan hasil di state controller `useEmergencyRegistration`; teruskan ke Langkah 2 untuk menampilkan `EmergencyInlineAlert` dan mengontrol properti `disabled` pada `duplicateEpisodeOverrideReason` | Paling mulus: data episode aktif sudah siap saat Langkah 2 terbuka (tanpa *loading delay* di Langkah 2); memanfaatkan fungsi utilitas yang sudah ada | State controller bertambah satu properti status episode aktif |
+| **A (Terpilih)** | Jalankan `lookupActiveEmergencyEpisode` saat pasien lama dipilih di Langkah 1; simpan hasil di state controller `useEmergencyRegistration`; teruskan ke Langkah 2 untuk menampilkan `EmergencyInlineAlert` dan menampilkan kolom `duplicateEpisodeOverrideReason` secara kondisional | Paling mulus: data episode aktif sudah siap saat Langkah 2 terbuka (tanpa *loading delay* di Langkah 2); memanfaatkan fungsi utilitas yang sudah ada | State controller bertambah satu properti status episode aktif |
 | **B** | Panggil `lookupActiveEmergencyEpisode` di dalam `useEffect` komponen `EmergencyVisitStep` | Terisolasi di dalam file Langkah 2 saja | Muncul jeda *loading* visual sesaat setelah memasuki Langkah 2; jika pengguna bergerak cepat, peringatan baru muncul belakangan |
 | **C** | Tampilkan dialog konfirmasi modal popup yang memblokir saat menekan "Lanjut ke Langkah 2" | Memaksa petugas membaca peringatan | Mengganggu kelancaran input petugas di IGD yang menuntut kecepatan (*modal fatigue*) |
 
 **Solusi terpilih: Opsi A.**
 - Menggunakan endpoint yang sudah tersedia di backend (`GET emergency-visits/active-episode?patientId=`).
 - Hasil pengecekan langsung mengontrol tampilan Langkah 2:
-  1. Bila `hasActiveEpisode: true`: Tampilkan `EmergencyInlineAlert tone="warning"` berisi nomor kunjungan/encounter berjalan, dan kolom isian alasan pendaftaran episode ganda menjadi **AKTIF (enabled)** serta wajib diisi sebelum lanjut ke langkah berikutnya.
-  2. Bila `hasActiveEpisode: false`: Tidak menampilkan alert peringatan, dan kolom isian alasan pendaftaran episode ganda menjadi **NONAKTIF (disabled)**.
+  1. Bila `hasActiveEpisode: true`: Tampilkan `EmergencyInlineAlert tone="warning"` berisi nomor kunjungan/encounter berjalan, dan kolom isian alasan pendaftaran episode ganda ditampilkan (*mounted*) serta wajib diisi sebelum lanjut ke langkah berikutnya.
+  2. Bila `hasActiveEpisode: false`: Tidak menampilkan alert peringatan, dan kolom isian alasan pendaftaran episode ganda **disembunyikan sepenuhnya dari layar (di-hide / unmounted)**.
 
 ---
 
@@ -51,11 +51,11 @@ Rencana ini menutup keluhan pelapor dan dua temuan pendukung pada [ISSUE-001](..
 
 | Opsi | Cara | Kelebihan | Kekurangan |
 | --- | --- | --- | --- |
-| **A (Terpilih)** | Berikan prop `disabled={!hasActiveEpisode}` pada `EmergencyTextField` dan lakukan `setValue("duplicateEpisodeOverrideReason", "")` saat `hasActiveEpisode` bernilai `false` | Menjamin form state bersih; mencegah pengguna mengetik teks yang pasti ditolak backend; tata letak visual tetap konsisten | Kolom tetap terlihat abu-abu (disabled) |
-| **B** | Sembunyikan sama sekali (*conditional render*) kolom `duplicateEpisodeOverrideReason` jika `!hasActiveEpisode` | Form terlihat lebih bersih | Tata letak form berubah-ubah (tinggi form melompat); petugas tidak tahu bahwa fitur pendaftaran ganda tersedia |
+| **A** | Berikan prop `disabled={!hasActiveEpisode}` pada `EmergencyTextField` dan lakukan `setValue("duplicateEpisodeOverrideReason", "")` saat `hasActiveEpisode` bernilai `false` | Menjamin form state bersih; mencegah pengguna mengetik teks yang pasti ditolak backend | Kolom tetap terlihat abu-abu (disabled) meski tidak relevan |
+| **B (Terpilih)** | Sembunyikan sama sekali (*conditional render / hide*) kolom `duplicateEpisodeOverrideReason` dan alert jika `!hasActiveEpisode`, serta kosongkan nilainya | Antarmuka bersih, fokus, tidak membingungkan petugas, dan dijamin bebas dari risiko galat 400 | Kolom hanya muncul saat episode aktif ada |
 
-**Solusi terpilih: Opsi A.**
-Dengan mempertahankan kolom dalam keadaan `disabled` saat kunjungan aktif tidak ada, petugas mendapatkan kepastian visual bahwa pendaftaran ini adalah pendaftaran kunjungan normal tanpa perlu mengisi alasan ganda.
+**Solusi terpilih: Opsi B (Disetujui Pemilik Modul).**
+Sesuai arahan eksplisit pemilik modul (*"hilang di hide bukan disable"*), kolom alasan beserta alert disembunyikan sepenuhnya dari tampilan DOM saat pasien tidak memiliki kunjungan aktif. Form state juga dibersihkan (`setValue("", { shouldDirty: false })`) agar tidak ada nilai alasan yang terkirim ke backend.
 
 ---
 
@@ -158,11 +158,7 @@ Dengan mempertahankan kolom dalam keadaan `disabled` saat kunjungan aktif tidak 
 | | Demam tinggi dan nyeri perut                                              | |
 | +---------------------------------------------------------------------------+ |
 |                                                                               |
-| Alasan Pendaftaran Episode Ganda                                              |
-| +---------------------------------------------------------------------------+ |
-| | Tidak berlaku (Pasien tidak memiliki kunjungan IGD yang sedang berjalan)  | |
-| +---------------------------------------------------------------------------+ |
-| (Kolom DINONAKTIFKAN / DISABLED, nilai otomatis kosong, tidak ada alert)      |
+| (Kolom Alasan Pendaftaran Episode Ganda & Alert DISEMBUNYIKAN / HIDE)        |
 |                                                                               |
 | [ Kembali ]                                            [ Lanjut ke Pembayaran ]
 +-------------------------------------------------------------------------------+
@@ -174,8 +170,8 @@ Dengan mempertahankan kolom dalam keadaan `disabled` saat kunjungan aktif tidak 
 
 | Wilayah | Elemen | Perilaku saat `hasActiveEpisode: true` | Perilaku saat `hasActiveEpisode: false` |
 | --- | --- | --- | --- |
-| Peringatan | `EmergencyInlineAlert` | Tampil (tone="warning"): Menampilkan nomor kunjungan/encounter aktif dan instruksi | Disembunyikan (tidak dirender) |
-| Form Input | `duplicateEpisodeOverrideReason` | **Aktif (`disabled={false}`)**, wajib diisi (`required: true`) | **Nonaktif (`disabled={true}`)**, placeholder/helper text penjelas, nilai direset ke `""` |
+| Peringatan | `EmergencyInlineAlert` | Tampil (tone="warning"): Menampilkan nomor kunjungan/encounter aktif dan instruksi | Disembunyikan (tidak dirender / unmounted) |
+| Form Input | `duplicateEpisodeOverrideReason` | **Ditampilkan & Aktif**, wajib diisi (`required: true`) | **Disembunyikan sepenuhnya dari layar (di-hide / unmounted)**, nilai direset ke `""` |
 | Tombol Navigasi | `Lanjut ke Pembayaran` / `Lanjut ke Data Rujukan` | Hanya dapat lanjut bila keluhan utama terisi DAN alasan episode ganda terisi | Lanjut normal (hanya memeriksa keluhan utama) |
 
 ---
@@ -204,15 +200,15 @@ Dengan mempertahankan kolom dalam keadaan `disabled` saat kunjungan aktif tidak 
    - Terima prop `activeEpisodeCheck`.
    - Jika `activeEpisodeCheck?.hasActiveEpisode === true`:
      - Render `EmergencyInlineAlert tone="warning"` tepat di atas kolom Alasan Pendaftaran Episode Ganda.
-     - Berikan prop `disabled={false}` dan `rules={{ required: "Alasan pendaftaran episode ganda wajib diisi" }}` pada `EmergencyTextField`.
+     - Render `EmergencyTextField` untuk alasan pendaftaran episode ganda dengan label berwajib (`*`) dan `rules={{ required: "Alasan pendaftaran episode ganda wajib diisi..." }}`.
    - Jika `activeEpisodeCheck?.hasActiveEpisode === false`:
-     - Jangan render alert.
-     - Berikan prop `disabled={true}` pada `EmergencyTextField`, dengan placeholder *"Tidak perlu diisi untuk pendaftaran normal (tidak ada kunjungan aktif)"*.
+     - Sembunyikan sama sekali alert dan kolom `EmergencyTextField` (conditional rendering `{isEpisodeActive ? ( ... ) : null}`).
+     - Nilai form otomatis dikosongkan lewat `useEffect`.
 
 #### Acceptance Criteria (Kriteria Keberterimaan):
 - **AC-01:** Saat memilih Pasien Lama yang memiliki kunjungan IGD berjalan, Langkah 2 langsung menampilkan kotak peringatan kuning berisi informasi nomor kunjungan/encounter berjalan.
-- **AC-02:** Pada kondisi AC-01, kolom *Alasan Pendaftaran Episode Ganda* aktif dan wajib diisi sebelum petugas dapat mengklik tombol *Lanjut ke Pembayaran* / *Lanjut ke Data Rujukan*.
-- **AC-03:** Saat memilih Pasien Lama yang tidak memiliki kunjungan aktif, atau saat mendaftarkan Pasien Baru, tidak ada kotak peringatan yang muncul, dan kolom *Alasan Pendaftaran Episode Ganda* berstatus `disabled`.
+- **AC-02:** Pada kondisi AC-01, kolom *Alasan Pendaftaran Episode Ganda* muncul dan wajib diisi sebelum petugas dapat mengklik tombol *Lanjut ke Pembayaran* / *Lanjut ke Data Rujukan*.
+- **AC-03:** Saat memilih Pasien Lama yang tidak memiliki kunjungan aktif, atau saat mendaftarkan Pasien Baru, tidak ada kotak peringatan yang muncul, dan kolom *Alasan Pendaftaran Episode Ganda* disembunyikan sepenuhnya dari antarmuka (di-hide / unmounted).
 - **AC-04:** Nilai kolom *Alasan Pendaftaran Episode Ganda* dipastikan kosong (`""`) saat pasien tidak memiliki kunjungan aktif, sehingga tidak ada galat *400 Bad Request* dari backend.
 - **AC-05:** Pada Langkah Verifikasi, pendaftaran dapat diselesaikan langsung tanpa terhenti oleh validasi alasan episode ganda yang terlambat.
 
@@ -234,7 +230,7 @@ Dengan mempertahankan kolom dalam keadaan `disabled` saat kunjungan aktif tidak 
 [FIX-IGD-001-01] Kaitkan pra-cek di use-emergency-registration & ekspos activeEpisodeCheck
        │
        ▼
-[FIX-IGD-001-02] Perbarui emergency-visit-step.jsx (render alert kondisional & disabled kolom)
+[FIX-IGD-001-02] Perbarui emergency-visit-step.jsx (render alert kondisional & hide kolom saat tidak aktif)
        │
        ▼
 [FIX-IGD-001-03] Verifikasi jaring pengaman sekunder & uji unit regression
@@ -246,9 +242,9 @@ Dengan mempertahankan kolom dalam keadaan `disabled` saat kunjungan aktif tidak 
 
 Disalin dari dokumen issue:
 1. **K-01:** Bentuk tampilan kolom "Alasan Pendaftaran Episode Ganda" saat pasien tidak memiliki episode aktif.
-   - Rekomendasi: `disabled` dengan placeholder penjelas (menjaga konsistensi tata letak form).
+   - Keputusan Pemilik Modul: **Pilihan B (Dihilangkan/Hide)** — kolom disembunyikan sepenuhnya saat tidak ada episode aktif.
 2. **K-02:** Waktu eksekusi pra-cek episode berjalan.
-   - Rekomendasi: Saat pasien dipilih di Langkah 1 (segera tersedia sebelum membuka Langkah 2).
+   - Keputusan: **Pilihan A** — saat pasien dipilih di Langkah 1 (segera tersedia sebelum membuka Langkah 2).
 
 ---
 
@@ -256,7 +252,7 @@ Disalin dari dokumen issue:
 
 | Dokumen | Bagian | Alasan revisi |
 | --- | --- | --- |
-| `NewQuilvianSystemBackend/docs/module-blueprints/igd/03-frontend-architecture.md` | Bagian Alur Pendaftaran IGD (Langkah 2) | Menambahkan spesifikasi bahwa Langkah 2 memuat pra-cek episode aktif dan mengontrol status aktif kolom episode ganda |
+| `NewQuilvianSystemBackend/docs/module-blueprints/igd/03-frontend-architecture.md` | Bagian Alur Pendaftaran IGD (Langkah 2) | Menambahkan spesifikasi bahwa Langkah 2 memuat pra-cek episode aktif dan mengontrol kemunculan kolom episode ganda |
 | `NewQuilvianSystemBackend/docs/module-blueprints/igd/roadmap/frontend-roadmap.md` | Bagian R3.11 / catatan `FE-IGD-038` | Menambahkan referensi perbaikan `FIX-IGD-001-01` untuk menyempurnakan penempatan pra-cek dari verifikasi akhir ke Langkah 2 |
 
 ---
@@ -265,9 +261,9 @@ Disalin dari dokumen issue:
 
 | No | Skenario Uji | Tindakan Penguji | Hasil yang Diharapkan |
 | :---: | --- | --- | --- |
-| 1 | Pasien baru (belum pernah terdaftar) | Pilih "Pasien Baru", isi data identitas di Langkah 1, lanjut ke Langkah 2 | Tidak ada alert kuning. Kolom "Alasan Pendaftaran Episode Ganda" berstatus disabled. Petugas dapat lanjut ke pembayaran normal. |
-| 2 | Pasien lama tanpa kunjungan aktif | Cari pasien yang tidak sedang dirawat di IGD, klik pilih, masuk ke Langkah 2 | Tidak ada alert kuning. Kolom alasan berstatus disabled. Nilai alasan kosong. Pendaftaran tersimpan sukses di akhir tanpa galat 400. |
-| 3 | Pasien lama dengan kunjungan aktif (belum selesai) | Cari pasien yang saat ini berstatus "Menunggu Triage" atau sedang aktif di IGD, masuk ke Langkah 2 | Kotak alert kuning muncul menampilkan nomor kunjungan aktif. Kolom alasan berstatus aktif. Bila alasan dikosongkan dan tombol lanjut ditekan, sistem menolak dengan pesan wajib isi. |
+| 1 | Pasien baru (belum pernah terdaftar) | Pilih "Pasien Baru", isi data identitas di Langkah 1, lanjut ke Langkah 2 | Tidak ada alert kuning. Kolom "Alasan Pendaftaran Episode Ganda" disembunyikan (hide). Petugas dapat lanjut ke pembayaran normal. |
+| 2 | Pasien lama tanpa kunjungan aktif | Cari pasien yang tidak sedang dirawat di IGD, klik pilih, masuk ke Langkah 2 | Tidak ada alert kuning. Kolom alasan disembunyikan (hide). Nilai alasan kosong. Pendaftaran tersimpan sukses di akhir tanpa galat 400. |
+| 3 | Pasien lama dengan kunjungan aktif (belum selesai) | Cari pasien yang saat ini berstatus "Menunggu Triage" atau sedang aktif di IGD, masuk ke Langkah 2 | Kotak alert kuning muncul menampilkan nomor kunjungan aktif. Kolom alasan muncul dan aktif. Bila alasan dikosongkan dan tombol lanjut ditekan, sistem menolak dengan pesan wajib isi. |
 | 4 | Pasien lama dengan kunjungan aktif + alasan diisi | Pada skenario 3, isi alasan "Pasien datang kembali dengan keluhan baru", lalu lanjut | Langkah berikutnya terbuka normal, data rujukan/pembayaran terisi, dan saat verifikasi akhir diklik "Selesaikan Pendaftaran", pendaftaran tersimpan sukses tanpa penolakan. |
 
 ---
@@ -277,3 +273,4 @@ Disalin dari dokumen issue:
 | Tanggal | Perubahan | Oleh |
 | --- | --- | --- |
 | 2026-10-12 | Rencana perbaikan dibuat menanggapi ISSUE-IGD-001 | `diagnose-module-issue` |
+| 2026-10-13 | Memperbarui rencana perbaikan sesuai keputusan pemilik modul: Pilihan B (kolom di-hide bukan disabled saat tidak ada episode aktif) | `diagnose-module-issue` |
