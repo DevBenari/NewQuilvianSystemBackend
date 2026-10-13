@@ -12,7 +12,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums
         Health = 2,
 
         [Display(Name = "Surat Rujukan")]
-        InpatientReferral = 3
+        InpatientReferral = 3,
+
+        /// <summary>
+        /// Surat Pengantar Rawat Inap — satu-satunya sumber pengajuan transfer Poliklinik → Rawat Inap
+        /// pada antrean Admisi Transfer (<c>SourceType = Outpatient</c>). Terbit langsung, tidak
+        /// menunggu finalisasi konsultasi; tanda tangannya berasal dari akun dokter yang menerbitkan.
+        /// </summary>
+        [Display(Name = "Surat Pengantar Rawat Inap")]
+        InpatientAdmissionLetter = 4
     }
 
     /// <summary>Status surat dokter. Surat terbit tidak dihapus; ia dibatalkan.</summary>
