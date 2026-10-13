@@ -10,7 +10,7 @@
     daripada menghasilkan assembly yang membuat migration hilang tanpa peringatan.
   -->
   <PropertyGroup>
-    <MigrationMetadataDeclaredCount>199</MigrationMetadataDeclaredCount>
+    <MigrationMetadataDeclaredCount>267</MigrationMetadataDeclaredCount>
   </PropertyGroup>
 
 </Project>

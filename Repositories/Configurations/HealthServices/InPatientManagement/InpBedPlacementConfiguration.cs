@@ -8,9 +8,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.InPat
     {
         public void Configure(EntityTypeBuilder<InpBedPlacement> builder)
         {
-            builder.ToTable("InpBedPlacement", "public");
+            builder.ToTable("InpBedPlacement", "public", t => t.HasCheckConstraint("CK_InpBedPlacement_TransferCategory", "\"TransferCategory\" IS NULL OR \"TransferCategory\" BETWEEN 1 AND 3"));
 
             builder.HasKey(x => x.Id);
+            builder.Property(x => x.TransferCategory).HasConversion<int?>();
+            builder.Property(x => x.LocationSnapshotJson).HasColumnType("jsonb");
+            builder.HasIndex(x => x.TransferFromPlacementId);
+            builder.HasOne<InpBedPlacement>().WithMany().HasForeignKey(x => x.TransferFromPlacementId).OnDelete(DeleteBehavior.Restrict);
 
 
             builder.Property(x => x.EndReason).HasConversion<int>();

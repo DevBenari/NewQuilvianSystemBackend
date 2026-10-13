@@ -2578,7 +2578,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                         x.Email ??
                         x.UserCode
                 })
-                .ToDictionaryAsync(x => x.Id, x => x.Name);
+                .ToDictionaryAsync(x => x.Id, x => (string?)x.Name);
         }
 
         private static PatientResponse MapResponse(

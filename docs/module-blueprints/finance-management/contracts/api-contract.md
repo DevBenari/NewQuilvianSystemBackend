@@ -1313,3 +1313,48 @@ Hak akses: `ControllerName = "FinanceReceivableMigration"`.
 2. NIP otomatis dipetakan ke `BenefitOwnerId` (Guid).
 3. Bila NIP tidak ditemukan di HR, baris ditolak dengan pesan: *"NIP {EmployeeNumber} tidak terdaftar atau nonaktif di data kepegawaian HR"*.
 
+---
+
+## Q.1 Settlement AR V2 (`[Tags("Corporate / Finance Management / Receivable")]`)
+
+Didokumentasikan 2026-10-11 (`ISSUE-FIN-002`/`FIN-DEC-203`, lihat `02-backend-architecture.md`
+bagian Q). Seluruh endpoint read-only, hak akses `FinanceReceivable : Read`.
+
+| Method | Route | Deskripsi |
+|---|---|---|
+| `GET` | `/api/v1/corporate/finance-management/receivables/settlement` | Daftar Settlement AR terpaginasi (maks 10 baris/halaman) |
+| `GET` | `/api/v1/corporate/finance-management/receivables/settlement/summary` | Ringkasan global (Grandtotal Piutang/Beginning/Ending Balance) atas seluruh hasil filter |
+| `GET` | `/api/v1/corporate/finance-management/receivables/settlement/{id:guid}` | Detail satu Settlement AR by `ReceivableId` |
+| `GET` | `/api/v1/corporate/finance-management/receivables/settlement/export/excel` | Ekspor seluruh hasil filter ke Excel |
+| `GET` | `/api/v1/corporate/finance-management/receivables/settlement/export/pdf` | Ekspor seluruh hasil filter ke PDF |
+
+**`FinanceSettlementQuery` (query param bersama, kecuali `/{id}`):**
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `Category` | string | `COMPANY` (default) \| `PATIENT` \| `EMPLOYEE` |
+| `Search` | string? | Kata kunci bebas: No. Invoice, No. RM, nama pasien, nama penjamin, nomor piutang |
+| `PayerId` | Guid? | Filter entitas penjamin/asuransi (kategori `COMPANY`) |
+| `PatientId` | Guid? | Filter pasien (kategori `PATIENT`) |
+| `EmployeeId` | Guid? | Filter karyawan penanggung benefit (kategori `EMPLOYEE`) |
+| `InvoiceNumber` | string? | Filter nomor invoice Billing atau Invoice AR batch |
+| `StartDate`, `EndDate` | DateOnly? | Periode analisis saldo, inklusif; tanpa keduanya = Posisi Terkini |
+| `SortBy` | string | `patientName` (default) \| `invoiceNumber` \| `dueDate` \| `outstandingAmount` \| `totalPiutang` |
+| `SortDirection` | string | `asc` (default) \| `desc` |
+| `PageNumber` | int | Default `1` |
+| `PageSize` | int | Maks `10`, default `10` |
+
+**`FinanceSettlementRowResponse`:** `ReceivableId`, `ReceivableNumber`, `InvoiceId`,
+`InvoiceNumber`, `PatientId`, `PatientName`, `MedicalRecordNumber`, `EncounterNumber`,
+`DebtorType`, `DebtorReferenceId`, `DebtorName`, `BenefitOwnerId`, `BenefitOwnerName`,
+`BenefitRelationship`, `TotalPiutang`, `BeginningBalance`, `EndingBalance`,
+`OutstandingAmount`, `AllocatedAmount`, `AdjustedAmount`, `WrittenOffAmount`, `DueDate`,
+`InvoiceDate`, `Status`, `LastMovementDate`.
+
+**`FinanceSettlementSummaryResponse`:** `Category`, `TotalReceivables`, `GrandTotalPiutang`,
+`GrandTotalBeginningBalance`, `GrandTotalEndingBalance`, `GrandTotalOutstanding`,
+`PeriodStart`, `PeriodEnd`, `BalanceAsOfDate`, `PeriodLabel`.
+
+**`FinanceSettlementPagedResponse`:** `PageNumber`, `PageSize`, `TotalData`, `TotalPage`,
+`Items: List<FinanceSettlementRowResponse>`, `Summary: FinanceSettlementSummaryResponse`.
+

@@ -12,16 +12,22 @@ public sealed class BilArHandoffConfiguration : IEntityTypeConfiguration<BilArHa
         {
             table.HasCheckConstraint(
                 "CK_BilArHandoff_DebtorType",
-                "\"DebtorType\" IN ('PATIENT_GUARANTOR','PAYER')");
+                "\"DebtorType\" IN ('PATIENT_GUARANTOR','PAYER','EMPLOYEE_BENEFIT')");
             table.HasCheckConstraint(
                 "CK_BilArHandoff_Status",
                 "\"Status\" IN ('CREATED','ACKNOWLEDGED')");
             table.HasCheckConstraint("CK_BilArHandoff_Amount", "\"Amount\" > 0");
+            // BE-FIN-091, FIN-DEC-184: baris EMPLOYEE_BENEFIT wajib membawa BenefitOwnerId; baris
+            // lain wajib kosong. Pola sama persis dengan CK_FinReceivable_BenefitOwner.
+            table.HasCheckConstraint(
+                "CK_BilArHandoff_BenefitOwner",
+                "(\"DebtorType\" = 'EMPLOYEE_BENEFIT' AND \"BenefitOwnerId\" IS NOT NULL) OR (\"DebtorType\" <> 'EMPLOYEE_BENEFIT' AND \"BenefitOwnerId\" IS NULL)");
         });
         entity.HasKey(x => x.Id);
         entity.Property(x => x.DebtorType).HasMaxLength(30).IsRequired();
         entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
         entity.Property(x => x.Amount).HasPrecision(18, 2);
+        entity.Property(x => x.BenefitRelationship).HasMaxLength(50);
         entity.Property(x => x.RowVersion).IsConcurrencyToken();
         entity.Property(x => x.DueDate).HasColumnType("timestamp with time zone");
         entity.Property(x => x.CreatedAt).HasColumnType("timestamp with time zone");

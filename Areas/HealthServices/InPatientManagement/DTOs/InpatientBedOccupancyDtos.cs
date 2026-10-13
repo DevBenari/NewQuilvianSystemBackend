@@ -56,6 +56,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// <summary>Satu tempat tidur yang lolos pemeriksaan kelayakan.</summary>
     public class AvailableBedResponse
     {
+        public long OperationalVersion { get; set; }
+        public Guid CycleId { get; set; }
+        public string StatusCode { get; set; } = string.Empty;
+        public string? StatusLabel { get; set; }
+        public string? CleaningPhase { get; set; }
+        public bool IsBookable { get; set; }
+        public string? ComparisonResult { get; set; }
+        public string[] AllowedManualCategories { get; set; } = [];
         public Guid BedId { get; set; }
 
         public string BedCode { get; set; } = string.Empty;
@@ -206,6 +214,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// </remarks>
     public class BedBoardBedResponse
     {
+        public long OperationalVersion { get; set; }
+        public Guid CycleId { get; set; }
+        public string StatusCode { get; set; } = string.Empty;
+        public string? StatusLabel { get; set; }
+        public string? CleaningPhase { get; set; }
+        public bool IsBookable { get; set; }
+        public string? ComparisonResult { get; set; }
+        public string[] AllowedManualCategories { get; set; } = [];
         public Guid BedId { get; set; }
 
         public string BedCode { get; set; } = string.Empty;
@@ -248,6 +264,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// <summary>Bentuk permintaan memesan tempat tidur untuk satu episode <c>Draft</c>.</summary>
     public class ReserveBedRequest
     {
+        [Range(1, long.MaxValue)] public long ExpectedBedVersion { get; set; }
         public Guid EpisodeId { get; set; }
 
         public Guid BedId { get; set; }
@@ -256,6 +273,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// <summary>Bentuk permintaan membatalkan pemesanan sebelum dipakai.</summary>
     public class CancelReservationRequest
     {
+        [Range(1, long.MaxValue)] public long ExpectedBedVersion { get; set; }
         [MaxLength(500)]
         public string? Reason { get; set; }
     }
@@ -263,6 +281,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// <summary>Satu pemesanan tempat tidur.</summary>
     public class BedReservationResponse
     {
+        public string? CancellationReason { get; set; }
+        public Guid? CancelledByUserId { get; set; }
+        public BedOperationMeta? OperationMeta { get; set; }
         public Guid Id { get; set; }
 
         public Guid EpisodeId { get; set; }
@@ -307,6 +328,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// </remarks>
     public class PlacePatientRequest
     {
+        [Range(1, long.MaxValue)] public long ExpectedBedVersion { get; set; }
         public Guid EpisodeId { get; set; }
 
         public Guid BedId { get; set; }
@@ -318,6 +340,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// <summary>Bentuk permintaan memindahkan pasien ke tempat tidur lain.</summary>
     public class TransferPatientRequest
     {
+        [Range(1, 3)] public int ManualTransferCategory { get; set; }
+        public Guid ExpectedSourcePlacementId { get; set; }
+        [Range(1, int.MaxValue)] public int ExpectedSourcePlacementVersion { get; set; }
+        [Range(1, long.MaxValue)] public long ExpectedSourceBedVersion { get; set; }
+        [Range(1, long.MaxValue)] public long ExpectedTargetBedVersion { get; set; }
         public Guid EpisodeId { get; set; }
 
         /// <summary>Tempat tidur tujuan. Wajib berbeda dari tempat tidur yang ditempati sekarang.</summary>
@@ -335,6 +362,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// <summary>Satu baris penempatan tempat tidur.</summary>
     public class BedPlacementResponse
     {
+        public int? TransferCategory { get; set; }
+        public Guid? TransferFromPlacementId { get; set; }
+        public string? LocationSnapshotJson { get; set; }
+        public string ContextSource { get; set; } = "LegacyStoredIds";
+        public bool IsEffectiveForBilling { get; set; }
+        public BedOperationMeta? OperationMeta { get; set; }
         public Guid Id { get; set; }
 
         public Guid EpisodeId { get; set; }

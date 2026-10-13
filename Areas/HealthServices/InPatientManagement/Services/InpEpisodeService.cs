@@ -290,8 +290,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             var now = DateTime.UtcNow;
 
-            await using var transaction = await _dbContext.Database
-                .BeginTransactionAsync(cancellationToken);
+            await using var transaction = await InpBedTransactionLease.BeginAsync(_dbContext, cancellationToken);
 
             try
             {
@@ -549,8 +548,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             var now = DateTime.UtcNow;
             var reason = request.Reason.Trim();
 
-            await using var transaction = await _dbContext.Database
-                .BeginTransactionAsync(cancellationToken);
+            await using var transaction = await InpBedTransactionLease.BeginAsync(_dbContext, cancellationToken);
 
             try
             {
@@ -735,8 +733,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 return false;
             }
 
-            await using var transaction = await _dbContext.Database
-                .BeginTransactionAsync(cancellationToken);
+            await using var transaction = await InpBedTransactionLease.BeginAsync(_dbContext, cancellationToken);
 
             try
             {
@@ -1031,6 +1028,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     EpisodeNumber = x.EpisodeNumber,
                     EncounterId = x.EncounterId,
                     EncounterNumber = x.Encounter != null ? x.Encounter.EncounterNumber : null,
+                    SourceEncounterId = x.Encounter != null ? x.Encounter.SourceEncounterId : null,
+                    AdmissionTransferId = x.Encounter != null ? x.Encounter.AdmissionTransferId : null,
+                    AdmissionTransferSourceType = x.Encounter != null ? x.Encounter.AdmissionTransferSourceType : null,
                     PatientId = x.PatientId,
                     PatientName = x.Patient != null ? x.Patient.FullName : null,
                     MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : null,
@@ -1350,7 +1350,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// paling mungkin terlewat adalah cabang yang lebih jarang dipakai.
         /// </remarks>
         public ClosureSideEffectsResponse? SideEffects { get; set; }
-        public InpatientDepartureResponse? Departure { get; set; }
+        public InpatientDepartureResponse? Departure { get; set; } public BedOperationMeta? OperationMeta { get; set; }
 
         public static InpEpisodeOperationResult Success(
             InpEpisode episode,

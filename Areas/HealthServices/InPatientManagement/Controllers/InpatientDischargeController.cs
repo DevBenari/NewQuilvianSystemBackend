@@ -40,7 +40,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
     /// Keempat syarat penutupan lainnya tetap menahan siapa pun.
     /// </para>
     /// </remarks>
-    [ApiController]
+    [ApiController, ServiceFilter(typeof(InpBedOperationFilter))]
     [Authorize]
     [Route("api/v1/health-services/inpatient-management/discharges")]
     [AccessController(

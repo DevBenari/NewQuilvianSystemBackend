@@ -35,7 +35,10 @@ public sealed partial class NutritionDietService
     {
         var actor = GetCurrentUserId();
         await using var tx = await _dbContext.Database.BeginTransactionAsync(ct);
-        var row = await _dbContext.GziPatientDiets.FromSqlInterpolated($"SELECT * FROM public.\"GziPatientDiet\" WHERE \"Id\" = {id} AND \"IsDelete\" = false FOR UPDATE").FirstOrDefaultAsync(ct);
+        // `FOR UPDATE` hanya dikenal PostgreSQL; di luar itu barisnya dibaca biasa.
+        var row = _dbContext.Database.IsNpgsql()
+            ? await _dbContext.GziPatientDiets.FromSqlInterpolated($"SELECT * FROM public.\"GziPatientDiet\" WHERE \"Id\" = {id} AND \"IsDelete\" = false FOR UPDATE").FirstOrDefaultAsync(ct)
+            : await _dbContext.GziPatientDiets.FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, ct);
         if (row == null) return NursingResult<GziPatientDietResponse>.Fail(404, "Diet tidak ditemukan.");
         var doctor = await clinical.ResolveActorDoctorIdAsync(_httpContextAccessor.HttpContext?.User, actor, ct);
         if (!doctor.HasValue || !await _dbContext.Set<MstDoctor>().AnyAsync(x => x.Id == doctor && x.WorkforceProfileId == row.PrescribedByWorkforceId, ct))

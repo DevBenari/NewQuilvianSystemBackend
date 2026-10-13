@@ -19,7 +19,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 or InpAdmissionDocumentType.PrivacyRequest
                 or InpAdmissionDocumentType.BeliefValues
                 or InpAdmissionDocumentType.CostDifferenceStatement
-                or InpAdmissionDocumentType.DepositSettlementStatement;
+                or InpAdmissionDocumentType.DepositSettlementStatement
+                or InpAdmissionDocumentType.GeneralConsent;
 
         /// <summary>Dokumen berupiah hanya dicetak lewat <c>/amount-print</c> (<c>VAL-RWA-42</c>).</summary>
         public static bool HasAmounts(InpAdmissionDocumentType type)
@@ -30,7 +31,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             => type is InpAdmissionDocumentType.PrivacyRequest
                 or InpAdmissionDocumentType.BeliefValues
                 or InpAdmissionDocumentType.CostDifferenceStatement
-                or InpAdmissionDocumentType.DepositSettlementStatement;
+                or InpAdmissionDocumentType.DepositSettlementStatement
+                or InpAdmissionDocumentType.GeneralConsent;
 
         /// <summary>Jenis yang salinan bekunya memuat penjamin (kamus data 20.2.1).</summary>
         public static bool FreezesGuarantor(InpAdmissionDocumentType type)
@@ -57,6 +59,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             InpAdmissionDocumentType.BeliefValues => new[]
             {
                 InpAdmissionSignatureSlot.PatientOrFamily
+            },
+            InpAdmissionDocumentType.GeneralConsent => new[]
+            {
+                InpAdmissionSignatureSlot.PatientOrFamily,
+                InpAdmissionSignatureSlot.AdmissionOfficer
             },
             _ => new[]
             {
@@ -96,6 +103,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             InpAdmissionDocumentType.CostDifferenceStatement => "Selisih Biaya",
             InpAdmissionDocumentType.DepositSettlementStatement => "Pelunasan Deposit",
             InpAdmissionDocumentType.CostEstimate => "Estimasi Biaya",
+            InpAdmissionDocumentType.GeneralConsent => "Persetujuan Rawat Inap (General Consent)",
             _ => "Dokumen admisi"
         };
 
