@@ -12,7 +12,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
     ///
     /// Service ini tidak melakukan SaveChanges atau Commit. Pemanggil wajib
     /// menjalankannya di dalam transaction yang sama dengan perubahan status
-    /// TrxQueue dan RegPatientEncounter.
+    /// RegQueue dan RegPatientEncounter.
     /// </summary>
     public class DoctorConsultationLifecycleService
     {
@@ -24,7 +24,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         }
 
         public async Task<TrxDoctorConsultation> GetOrCreateForQueueAsync(
-            TrxQueue queue,
+            RegQueue queue,
             Guid actorUserId,
             DateTime nowUtc,
             CancellationToken cancellationToken = default)

@@ -1,4 +1,5 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
+﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 {
@@ -18,6 +19,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public bool ShowPatientName { get; set; }
         public bool ShowDoctorName { get; set; }
         public bool ShowClinicName { get; set; }
+        public QueueDisplayAudienceMode QueueAudienceMode { get; set; }
         public int RefreshIntervalSeconds { get; set; }
         public DateTime ServerDateTime { get; set; }
     }

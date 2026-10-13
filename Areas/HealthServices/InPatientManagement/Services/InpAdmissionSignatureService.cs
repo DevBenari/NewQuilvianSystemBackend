@@ -282,6 +282,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             DateTime now,
             CancellationToken cancellationToken)
         {
+            _dbContext.Set<InpAdmissionDocumentSignature>().Add(signature);
             document.Signatures.Add(signature);
 
             var filledSlots = document.Signatures.Where(x => !x.IsDelete).Select(x => x.Slot).ToHashSet();

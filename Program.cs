@@ -90,6 +90,8 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegrat
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Services;
 // BE-FIN-074: Konfigurasi bukti pembayaran langsung Finance (FIN-DES-092).
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Services;
+// BE-FIN-093: Perjanjian cicilan piutang manfaat karyawan (FIN-DES-099).
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
 
 
@@ -108,6 +110,11 @@ try
     // atribut baru mengulang cacat yang sama.
     CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
     CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+
+    // Report Canceled Invoice V2 (export PDF) — organisasi wajib memenuhi syarat QuestPDF
+    // Community License (pendapatan kotor tahunan di bawah USD 1 juta, bukan sektor publik/
+    // perusahaan publik) sebelum deployment produksi. Dikonfirmasi oleh pemilik produk.
+    QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
     var builder = WebApplication.CreateBuilder(args);
 
@@ -384,6 +391,30 @@ try
     builder.Services.AddSingleton(backendVersionManifest);
     builder.Services.AddScoped<LanguageService>();
     builder.Services.AddScoped<LoggerService>();
+    // BE-FIN-093: belum terdaftar sebelum task ini. Temuan: FinanceBillingIntakeService dan
+    // tampaknya sebagian besar service Corporate/FinanceManagement lain juga TIDAK terdaftar di
+    // sini (diverifikasi grep "AddScoped<Finance" pada berkas ini: nol hasil) walau controller dan
+    // using-nya sudah ada — nol dotnet build pernah membuktikannya, karena build sukses tidak
+    // membuktikan DI terselesaikan saat runtime. Dicatat di laporan task, TIDAK diperbaiki di sini
+    // untuk service lain — di luar cakupan BE-FIN-093.
+    builder.Services.AddScoped<FinanceReceivableInstallmentPlanService>();
+    // BE-FIN-094: pola Configure<T> sama persis dengan LeavePayrollIntegrationOptions (HR).
+    builder.Services.Configure<FinanceReceivablePayrollSyncOptions>(
+        builder.Configuration.GetSection("Finance:ReceivablePayrollSync"));
+    // BE-FIN-095: FinanceSubledgerMovementService dibutuhkan FinanceReceivablePayrollSyncService
+    // (mutasi POTONGAN-GAJI) — juga belum terdaftar sebelum task ini, temuan yang sama dengan BE-FIN-093 §3.A.
+    builder.Services.AddScoped<FinanceSubledgerMovementService>();
+    builder.Services.AddScoped<FinanceReceivablePayrollSyncService>();
+    // BE-FIN-096: murni baca, nol dependency tambahan selain ApplicationDbContext.
+    builder.Services.AddScoped<FinanceReceivableClearanceService>();
+    // BE-FIN-098: berdiri sendiri dari FinanceOpeningItemBatchService (wewenang eksplisit pengguna).
+    builder.Services.AddScoped<FinanceReceivableMigrationService>();
+    builder.Services.AddScoped<IFinanceReceivableNumberGenerator, FinanceReceivableNumberGenerator>();
+    builder.Services.AddScoped<FinanceBenefitSettlementService>();
+    builder.Services.AddScoped<FinanceBillingArReportService>();
+    builder.Services.AddScoped<FinanceReceivableAgingReportService>();
+    builder.Services.AddScoped<FinanceSettlementService>();
+    builder.Services.AddScoped<FinanceReceivablePaymentReportService>();
     builder.Services.AddScoped<ICompanyGuarantorReimbursementRouteService, CompanyGuarantorReimbursementRouteService>();
     builder.Services.AddScoped<CompanyGuarantorReimbursementRouteService>();
     builder.Services.AddScoped<ICompanyGuarantorCoverageRuleService, CompanyGuarantorCoverageRuleService>();
@@ -449,6 +480,11 @@ try
 
     builder.Services.AddScoped<EncounterIntakeService>();
     builder.Services.AddScoped<PatientEncounterNumberService>();
+    // RJ-DOC-REV-BE-015 — klasifikasi dan alokator nomor antrean Rawat Jalan (kiosk dan petugas).
+    builder.Services.AddScoped<OutpatientQueueClassificationService>();
+    builder.Services.AddScoped<OutpatientQueueNumberAllocator>();
+    builder.Services.Configure<OutpatientQueueNumberOptions>(
+        builder.Configuration.GetSection(OutpatientQueueNumberOptions.SectionName));
 
     // BE-KSK-001 — Cek Nomor Rekam Medis dari Kiosk (baca-saja).
     builder.Services.AddScoped<KioskPatientLookupService>();
@@ -471,6 +507,7 @@ try
     builder.Services.AddScoped<EncounterInsuranceService>();
     // RJ-DOC-REV-BE-013 — penyimpanan foto kartu penjamin pasien hasil scan.
     builder.Services.AddScoped<PatientPayerCardImageService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.InsuranceCardScanMatcher>();
     builder.Services.AddScoped<InsuranceCoverageService>();
     builder.Services.AddScoped<CompanyGuarantorCoverageService>();
     builder.Services.AddScoped<PrescriptionNumberService>();
@@ -570,6 +607,11 @@ try
     builder.Services.AddScoped<MedicalRecordAccessReviewService>();
     builder.Services.AddScoped<MedicalRecordTimelineService>();
 
+    // Patient Management — rekonsiliasi MRN Pilot RSMMC (BE-PAT-MIG-001), sementara, khusus Staging
+    builder.Services.AddSingleton(RsmmcPilotApprovedBatchProfile.Canonical);
+    builder.Services.AddScoped<IRsmmcPilotMigrationSource, RsmmcPilotMigrationSource>();
+    builder.Services.AddScoped<RsmmcPilotMrnReconciliationService>();
+
     builder.Services.AddScoped<PrescriptionAggregateService>();
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
@@ -624,6 +666,7 @@ try
     // dibuat oleh dependency injection, sehingga endpoint-nya membalas 500 sebelum kode
     // modul sempat dijalankan. Pola mengikuti service lain: kelas konkret, tanpa interface.
     builder.Services.AddScoped<EmergencyDocumentNumberService>();
+    builder.Services.AddScoped<EmergencyRealtimeService>();
     builder.Services.AddScoped<EmergencyVisitService>();
     builder.Services.AddScoped<EmergencyTriageService>();
     builder.Services.AddScoped<EmergencyResuscitationService>();
@@ -645,6 +688,19 @@ try
     builder.Services.AddScoped<InpSettingService>();
     builder.Services.AddScoped<InpEpisodeNumberService>();
     builder.Services.AddScoped<InpBedOccupancyService>();
+    builder.Services.AddSingleton<Microsoft.Extensions.Options.IValidateOptions<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options.BedManagementOptions>, QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options.BedManagementOptionsValidator>();
+    builder.Services.AddOptions<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options.BedManagementOptions>().Bind(builder.Configuration.GetSection("BedManagement")).ValidateOnStart();
+    builder.Services.AddScoped<InpBedAccessService>();
+    builder.Services.AddScoped<InpBedMutationCoordinator>();
+    builder.Services.AddScoped<InpBedManagementQueryService>();
+    builder.Services.AddScoped<InpBedClassComparisonService>();
+    builder.Services.AddScoped<InpBedReadinessService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.BedMutationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.BedMasterWriteService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.RoomMasterWriteService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.ServiceUnitMasterWriteService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.PatientClassMasterWriteService>();
+    builder.Services.AddScoped<InpBedOperationFilter>();
     builder.Services.AddScoped<InpEpisodeService>();
     builder.Services.AddScoped<InpDischargeService>();
     builder.Services.AddScoped<CliWsdObservationService>();
@@ -675,6 +731,8 @@ try
     builder.Services.AddScoped<InpPatientLocationQuery>();
     // BE-RWI-181: permintaan admisi dari kamar pulih (dipanggil OK dan admisi).
     builder.Services.AddScoped<InpAdmissionReferralService>();
+    // BE-RWI-206 & BE-RWI-207: antrean dan eksekusi admisi transfer pasien IGD dan Poliklinik.
+    builder.Services.AddScoped<InpAdmissionTransferService>();
     // BE-RWI-184 (P2): laporan transfer ruangan dari linimasa penempatan bed.
     builder.Services.AddScoped<InpRoomTransferReportService>();
 
@@ -697,6 +755,7 @@ try
     builder.Services.AddScoped<InpAdmissionSignatureService>();
     builder.Services.AddScoped<InpAdmissionPrintService>();
     builder.Services.AddScoped<InpAdmissionWorkspaceQueryService>();
+    builder.Services.AddScoped<InpatientAdmissionConsentService>();
 
     // BE-RWI-086 — penyusun usulan isian resume pulang. Hanya membaca, tidak pernah
     // menyimpan, dan tidak dipakai service Rawat Inap lain; ia dipanggil langsung controller.
@@ -746,6 +805,8 @@ try
     // tidak punya sumber pilihan dan petugas terpaksa mengetik nama, yang justru dilarang
     // LAB-DEC-035.
     builder.Services.AddScoped<ReferralMasterDataService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services.EncounterReferralService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services.ReferralDocumentStorageService>();
 
     // Pemeriksaan golongan darah Bank Darah — sumber sah golongan darah pasien (DEC-BD-015),
     // bukan MstPatient.BloodType. Service ini memegang deteksi perbedaan hasil (BD-XINV-04)
@@ -1566,10 +1627,64 @@ try
         }
     }
 
-    static async Task RunStartupSeederAsync(string seederName, Func<Task> seed)
+    // Seeder yang gagal ketika `Seeders:ContinueOnFailure` menyala. Dilaporkan sekali lagi
+    // sebagai ringkasan sesudah seluruh seeder selesai, karena satu baris log di tengah ratusan
+    // baris startup terlalu mudah terlewat.
+    var seederYangGagal = new List<string>();
+
+    // Boleh melanjutkan startup ketika satu seeder gagal.
+    //
+    // OPT-IN, dan bawaannya `false` supaya perilaku setiap lingkungan yang sudah berjalan tidak
+    // berubah diam-diam oleh perubahan ini.
+    //
+    // DIABAIKAN DI PRODUCTION, mengikuti pola `Security:Authorization:Enabled`: kemudahan
+    // pengembangan tidak boleh melemahkan produksi. Rumah sakit yang berjalan dengan data master
+    // separuh terisi lebih berbahaya daripada rumah sakit yang menolak boot, karena yang pertama
+    // gagal pada saat petugas sedang melayani pasien dan sebabnya tidak terlihat.
+    var lanjutkanSaatSeederGagal =
+        builder.Configuration.GetValue<bool>("Seeders:ContinueOnFailure")
+        && !app.Environment.IsProduction();
+
+    // Catatan polaritas, karena berkas ini memuat dua aturan yang tampak berlawanan.
+    //
+    // `PermissionRegistryValidator` di bawah justru MENGHENTIKAN startup di luar Production dan
+    // hanya mencatat Critical di Production. Itu benar untuk kasusnya: yang diperiksanya anotasi
+    // pada source, jadi kegagalannya adalah cacat kode yang harus tertangkap sebelum rilis.
+    //
+    // Seeder data master berbeda. Kegagalannya hampir selalu berarti basis datanya belum lengkap
+    // — tabelnya belum dibuat migration yang belum dijalankan — dan itu keadaan NORMAL pada
+    // lingkungan pengembangan, bukan cacat kode. Mematikan seluruh aplikasi karenanya membuat
+    // seluruh modul tidak dapat dijalankan hanya karena satu data master milik modul lain belum
+    // ada. Karena itu kelonggarannya dibuka untuk pengembangan saja, dan tetap harus diminta
+    // secara sadar.
+    async Task RunStartupSeederAsync(string seederName, Func<Task> seed)
     {
         var stopwatch = Stopwatch.StartNew();
-        await seed();
+
+        try
+        {
+            await seed();
+        }
+        catch (Exception ex) when (lanjutkanSaatSeederGagal)
+        {
+            stopwatch.Stop();
+            seederYangGagal.Add(seederName);
+
+            // Error, bukan Warning: ini bukan hal yang boleh dianggap wajar. Yang berubah hanya
+            // bahwa startup tidak ikut mati — bukan bahwa kegagalannya menjadi tidak penting.
+            Log.Error(
+                ex,
+                "[StartupSeed] {Seeder} GAGAL setelah {ElapsedMilliseconds} ms. Startup " +
+                "dilanjutkan karena Seeders:ContinueOnFailure menyala pada lingkungan {Environment}. " +
+                "Data master yang disiapkan seeder ini TIDAK tersedia, sehingga fitur yang " +
+                "bergantung padanya akan gagal saat dipakai.",
+                seederName,
+                stopwatch.ElapsedMilliseconds,
+                app.Environment.EnvironmentName);
+
+            return;
+        }
+
         stopwatch.Stop();
         Log.Information("[StartupSeed] {Seeder} completed in {ElapsedMilliseconds} ms", seederName, stopwatch.ElapsedMilliseconds);
     }
@@ -1925,6 +2040,20 @@ try
         {
             await Icd10DiagnosisSeeder.SeedAsync(app.Services, icdSeedPath);
         }
+    }
+
+    // Ringkasan seeder yang dilewati karena gagal. Tanpa ini, kegagalannya terkubur di antara
+    // ratusan baris log startup dan aplikasi tampak sehat padahal sebagian data master kosong.
+    if (seederYangGagal.Count > 0)
+    {
+        Log.Error(
+            "[StartupSeed] {JumlahGagal} seeder GAGAL dan dilewati: {DaftarSeeder}. Aplikasi " +
+            "berjalan, tetapi data master yang disiapkan seeder itu tidak tersedia. Penyebab " +
+            "paling umum adalah migration yang belum dijalankan pada basis data ini — periksa " +
+            "__EFMigrationsHistory terhadap berkas di Migrations/ sebelum menyimpulkan ada cacat " +
+            "kode. Matikan Seeders:ContinueOnFailure untuk kembali menggagalkan startup.",
+            seederYangGagal.Count,
+            string.Join(", ", seederYangGagal));
     }
 
     if (runWebRuntime && app.Environment.IsDevelopment())

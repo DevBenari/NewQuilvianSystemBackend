@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `IGD-BP-001` revision `5`; **bagian 6 ditambahkan 22 September 2026** (encounter-first) |
+| Blueprint | `IGD-BP-001` revision `5`; **bagian 6 ditambahkan 22 September 2026** (encounter-first); **bagian 8 ditambahkan 6 Oktober 2026** (Ruang Kerja Dokter IGD, `approved` `IGD-DEC-230`); **bagian 9 ditambahkan 11 Oktober 2026** (dokter jaga IGD, `approved` `IGD-DEC-240`) |
 | Status | `draft` |
 | Commit diaudit | backend `f69e9e48` |
 | Diselaraskan | 15 September 2026 — nama tabel bagian 4 dan rujukan bagian 5.3 menjadi `EmgDoctorAssignment` (`IGD-DEC-116`); isi kolom tidak berubah |
@@ -395,3 +395,266 @@ kosong berarti kunjungan belum selesai — apa pun isi kolom lain.
 `EmgDisposition`, `EmgObservation`, `EmgDeparture`, `EmgHandoverOrderItem`, `EmgDispositionType`, dan
 `RegPatientEncounter` seluruhnya dibaca apa adanya. Nol kolom baru, nol index baru, nol perubahan perilaku hapus.
 `RegPatientEncounter` tetap ditulis hanya lewat daftar kolom tertutup integration §5.2.
+
+## 8. Ruang Kerja Dokter IGD — 6 Oktober 2026 (**Rencana (belum tersedia)**)
+
+Slice `IGD-DEC-220`…`229` **tidak membuat tabel dan tidak menambah kolom**. Semua tabel di bawah berstatus **Sudah
+ada**, sehingga hanya kolom kunci dan kolom yang dipakai aturan slice ini yang dicatat, beserta rujukan ke file model.
+Sepuluh kolom warisan `IdentityModel` tidak diulang; lihat kepala dokumen. Status bagian ini `approved` (`IGD-DEC-230`, Rizki Gunawan, 6 Oktober 2026).
+
+### `EmgDoctorAssignment` — Sudah ada (pemilik: IGD)
+
+Model: `Areas/HealthServices/EmergencyInstallationManagement/Models/EmgDoctorAssignment.cs`
+
+| Kolom | Tipe | Wajib | Dipakai untuk | Sensitif |
+| --- | --- | :-: | --- | :-: |
+| `EmergencyVisitId` | `uuid` | Ya | Menautkan penugasan ke kunjungan | Tidak |
+| `DoctorId` | `uuid` | Ya | DPJP; saringan *Pasien saya* (`doctorId`) dan `activeDoctorId` | Tidak |
+| `EffectiveFrom` | `timestamptz` | Ya | Awal penugasan | Tidak |
+| `EffectiveTo` | `timestamptz?` | Tidak | Kosong = penugasan **berjalan** (DPJP aktif) | Tidak |
+
+### `EmgDisposition` — Sudah ada (pemilik: IGD)
+
+Model: `Areas/HealthServices/EmergencyInstallationManagement/Models/EmgDisposition.cs`
+
+| Kolom | Tipe | Wajib | Dipakai untuk | Sensitif |
+| --- | --- | :-: | --- | :-: |
+| `EmergencyVisitId` | `uuid` | Ya | Kunjungan pemilik tindak lanjut; jalan ke encounter untuk penjaga diagnosis | Tidak |
+| `DispositionStatus` | `int` | Ya | Lahir hanya `1` (Draft); konfirmasi `1 → 2` dijaga diagnosis | Tidak |
+| `ConfirmedByUserId`, `ConfirmedAt` | `uuid?`, `timestamptz?` | Tidak | Pengonfirmasi — dokter dari layar dokter | Tidak |
+
+### `EmgProcedureDetail` — Sudah ada (pemilik: IGD) — dibekukan
+
+Model: `Areas/HealthServices/EmergencyInstallationManagement/Models/EmgProcedureDetail.cs`. Tidak ditambah baris oleh
+layar mana pun sejak slice ini (`IGD-DEC-225`); isinya tetap terbaca sebagai riwayat. Jumlah baris lama per lingkungan
+belum diketahui (`IGD-UNK-17`).
+
+### `TrxDoctorConsultation` — Sudah ada (pemilik: ClinicalManagement)
+
+Model: `Areas/HealthServices/ClinicalManagement/Models/TrxDoctorConsultation.cs`
+
+| Kolom | Dipakai untuk | Sensitif |
+| --- | --- | :-: |
+| `EncounterId` | Catatan dokter untuk encounter kunjungan IGD; timeline per encounter | Tidak |
+| `QueueId` | Kosong untuk pasien IGD | Tidak |
+| `DoctorId` | Penulis catatan | Tidak |
+| `ConsultationStatus` | Draf / selesai (terkunci) / dibatalkan; resep dan tindakan dokter hanya pada catatan yang belum selesai | Tidak |
+| Isi SOAP | Dokumentasi dokter | **Ya** — isi klinis, tidak ke log kustom |
+
+### `TrxPatientDiagnosis` — Sudah ada (pemilik: ClinicalManagement)
+
+Model: `Areas/HealthServices/ClinicalManagement/Models/TrxPatientDiagnosis.cs`
+
+| Kolom | Dipakai untuk | Sensitif |
+| --- | --- | :-: |
+| `EncounterId` | Penjaga konfirmasi tindak lanjut membaca diagnosis encounter kunjungan | Tidak |
+| `ConsultationId` | Diagnosis IGD selalu menempel ke catatan dokter | Tidak |
+| `DiagnosisMasterType` | Hanya `ICD10` yang dihitung | Tidak |
+| `DiagnosisType` | Dihitung: `Primary` (1), `Secondary` (2), `WorkingDiagnosis` (4), `FinalDiagnosis` (5); tidak: `Differential` (3) | Tidak |
+| `DiagnosisStatus` | Dihitung: `Active` (1), `Resolved` (2); tidak: `RuledOut` (3), `Cancelled` (4) | Tidak |
+| `IsActive`, `IsDelete` | Baris nonaktif atau terhapus tidak dihitung | Tidak |
+| `DiagnosisCode`, `DiagnosisName` | Ditampilkan di kartu pasien | **Ya** |
+
+### `TrxPatientAssessment` — Sudah ada (pemilik: ClinicalManagement)
+
+Model: `Areas/HealthServices/ClinicalManagement/Models/TrxPatientAssessment.cs`
+
+| Kolom | Dipakai untuk | Sensitif |
+| --- | --- | :-: |
+| `EncounterId` | Kajian medis untuk encounter kunjungan IGD; keunikan kajian medis awal per encounter IGD | Tidak |
+| `AssessmentType` | `MedicalInitial`, `MedicalReassessment` | Tidak |
+| `InpEpisodeId` | Kosong untuk pasien IGD | Tidak |
+| `DoctorId` | Dokter penulis, dari identitas pengguna | Tidak |
+| Isian kajian (`ChiefComplaint`, `PhysicalExamination`, `WorkingDiagnosis`, …) | Dokumentasi dokter | **Ya** |
+
+### `TrxPatientProcedure` — Sudah ada (pemilik: ClinicalManagement)
+
+Model: `Areas/HealthServices/ClinicalManagement/Models/TrxPatientProcedure.cs`
+
+| Kolom | Tindakan dokter | Tindakan keperawatan IGD | Sensitif |
+| --- | --- | --- | :-: |
+| `EncounterId` | Encounter kunjungan | Encounter kunjungan | Tidak |
+| `ConsultationId` | Catatan dokter terbuka (wajib) | Kosong | Tidak |
+| `DoctorId` (wajib) | Dokter penulis | **DPJP aktif** kunjungan | Tidak |
+| `InpEpisodeId` | Kosong | Kosong | Tidak |
+| `ProcedureSource` | `DoctorOrder` (1) | `NursingAction` (2) | Tidak |
+| `ProcedureStatus` | Mengikuti jalur yang ada | Lahir `Completed` (4) | Tidak |
+| `PerformedByUserId`, `PerformedAt` | Mengikuti jalur yang ada | Perawat pengirim; waktu pelaksanaan (tidak di masa depan) | Tidak |
+| `IdempotencyKey` | Mengikuti jalur yang ada | Wajib; cegah baris ganda | Tidak |
+| `ClinicalNote` | — | Catatan tindakan | **Ya** |
+
+### `LabOrder`, `RadOrder` — Sudah ada (pemilik: Laboratorium, Radiologi)
+
+Model: `Areas/HealthServices/LaboratoryManagement/Models/LabOrder.cs`, `Areas/HealthServices/RadiologyManagement/Models/RadOrder.cs`
+
+| Kolom | Dipakai untuk | Sensitif |
+| --- | --- | :-: |
+| `EncounterId` | Pesanan untuk encounter kunjungan IGD | Tidak |
+| `InpEpisodeId` | Kosong untuk pasien IGD | Tidak |
+| `RequestedByUserId` | Pembuat pesanan (dokter atau perawat) | Tidak |
+| `InstructingDoctorId` | Dokter pemberi instruksi bila pembuat bukan dokter (`IGD-OQ-117`) | Tidak |
+| `InstructionVerificationStatus` | `NotRequired` atau menunggu verifikasi | Tidak |
+
+### `PhmPrescription`, `BbkBloodOrder`, `HmdOrder`, `GziNutritionOrder` — Sudah ada
+
+Dibaca dan dibuat lewat endpoint modul pemiliknya dengan `EncounterId` encounter kunjungan IGD. Nol kolom yang dipakai
+aturan baru IGD. `BbkBloodOrder` mensyaratkan unit pemesan berizin (`MstServiceUnit.IsAvailableForBloodOrder`,
+`IGD-UNK-13`); `GziNutritionOrder` hanya satu order terbuka per encounter.
+
+### Tabel yang **tidak** berubah pada slice ini
+
+Seluruh tabel di atas. Nol kolom baru, nol index baru, nol perubahan perilaku hapus, nol migration.
+
+## 9. Dokter jaga IGD dan override — 11 Oktober 2026 (**Rencana (belum tersedia)**)
+
+Untuk `IGD-DEC-237`…`239`. Status `approved` (`IGD-DEC-240`, Rizki Gunawan, 11 Oktober 2026). Satu tabel berubah; nol tabel
+baru. Sepuluh kolom warisan `IdentityModel` tidak diulang.
+
+### `EmgDoctorAssignment` — Diperbarui (pemilik: IGD)
+
+Model: `Areas/HealthServices/EmergencyInstallationManagement/Models/EmgDoctorAssignment.cs`. Kolom lama pada §4 tidak berubah.
+
+| Kolom | Tipe | Wajib | Bawaan | Panjang | Validasi | Sensitif |
+| --- | --- | :-: | --- | ---: | --- | :-: |
+| `IsRosterOverride` | `boolean` | Ya | `false` | — | Diisi sistem: `true` hanya bila dokter tidak sedang jaga pada `EffectiveFrom` dan alasan sah dikirim (validation §13 aturan 12) | Tidak |
+| `RosterOverrideReason` | `varchar` | **Bersyarat** | — | 500 | Wajib bila `IsRosterOverride = true`; `NULL` bila `false`. Spasi di ujung dibuang | **Ya** — dapat memuat keterangan klinis; tidak masuk log kustom |
+
+*Contoh baris:* `DoctorId` = dr. Andi, `EffectiveFrom` = 13 Oktober 2026 10.05 WIB, `IsRosterOverride` = `true`,
+`RosterOverrideReason` = *"Dua dokter jaga sedang resusitasi"*, `AssignmentReason` = *"dr. Ranger menangani resusitasi
+pasien lain"* (karena baris ini lahir dari pengalihan).
+
+**Data lama.** Migration mengisi `IsRosterOverride = false` dan `RosterOverrideReason = NULL` untuk seluruh baris yang ada,
+termasuk baris legacy `BE-IGD-048`. Nilai itu berarti *tidak tercatat sebagai override*, bukan *terbukti dokter jaga*.
+
+**Index.** Tidak ada index baru: tabelnya kecil per kunjungan, dan laporan override dibaca berkala, bukan di jalur layar.
+
+**Migration** (dibuat Rizki; agent berhenti sebelum `dotnet ef migrations add`): dua `AddColumn`. `Down()` **berpenjaga**
+mengikuti pola `BE-IGD-053` dan `BE-IGD-060`: menolak dijalankan bila ada baris dengan `IsRosterOverride = true`, supaya
+jejak override tidak hilang diam-diam.
+
+### Tabel yang dibaca, tidak berubah
+
+`MstDoctorSchedule`, `MstServiceUnit`, `MstClinic` (Master Data) dan `MstDoctor` (Human Resource) — integration §8.1.
+
+## 10. Form Permintaan Rawat Inap dari IGD — 12 Oktober 2026 (**Rencana (belum tersedia)**)
+
+Untuk `IGD-DEC-267`…`293`, `EPIC IGD-15`. Status **`approved`** (`IGD-DEC-294`, Rizki Gunawan, 12 Oktober 2026); tabel milik Rawat Inap butuh
+persetujuan pemiliknya (`IGD-OQ-128`). Dua tabel baru milik IGD, dua tabel diperluas. Sepuluh kolom warisan `IdentityModel`
+tidak diulang.
+
+### `EmgAdmissionRequest` — Baru (pemilik: IGD)
+
+Model: `Areas/HealthServices/EmergencyInstallationManagement/Models/EmgAdmissionRequest.cs`. Tabel `public."EmgAdmissionRequest"`.
+Satu baris = satu Form Permintaan Rawat Inap.
+
+| Kolom | Tipe | Wajib | Bawaan | Panjang | Validasi | Sensitif |
+| --- | --- | :-: | --- | ---: | --- | :-: |
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | — | PK | Tidak |
+| `EmergencyVisitId` | `uuid` | Ya | — | — | FK → `EmgVisit`, `Restrict` | Tidak |
+| `DispositionId` | `uuid` | Ya | — | — | FK → `EmgDisposition`, `Restrict`; tindak lanjut yang jenisnya `RequiresAdmissionRequest` dan berstatus *Confirmed* saat form dibuat | Tidak |
+| `EncounterId` | `uuid` | Ya | — | — | FK → `RegPatientEncounter`, `Restrict`; disalin dari kunjungan saat form dibuat | Tidak |
+| `PatientId` | `uuid` | Ya | — | — | FK → `MstPatient`, `Restrict`; disalin dari kunjungan | Tidak |
+| `Status` | `integer` | Ya | `1` (*Draft*) | — | `EmergencyAdmissionRequestStatus` | Tidak |
+| `RequestedServiceUnitId` | `uuid` | Bersyarat | Unit tujuan tindak lanjut | — | FK → `MstServiceUnit`, `Restrict`; wajib sebelum *Minta TTD*; aturan tipe unit menunggu `IGD-OQ-127` | Tidak |
+| `RequestedPatientClassId` | `uuid` | Bersyarat | — | — | FK → `MstPatientClass`, `Restrict`; wajib sebelum *Minta TTD*; kelas wajib `IsForInpatient` | Tidak |
+| `ProposedInpatientDoctorId` | `uuid` | Bersyarat | — | — | FK → `MstDoctor`, `Restrict`; wajib sebelum *Minta TTD*; dari daftar DPJP usulan | Tidak |
+| `EstimatedLengthOfStayDays` | `integer` | Ya | `3` | — | 1–90 (`IGD-DEC-289`); check constraint | Tidak |
+| `IsCito` | `boolean` | Ya | `false` | — | — | Tidak |
+| `NeedsIntensiveCare` | `boolean` | Ya | `false` | — | `true` ⇒ permintaan admisi bertingkat ICU (`IGD-DEC-284`) | Tidak |
+| `NeedsIsolation` | `boolean` | Ya | `false` | — | — | Tidak |
+| `NeedsOxygenSupport` | `boolean` | Ya | `false` | — | — | Tidak |
+| `NeedsSpecialMonitoring` | `boolean` | Ya | `false` | — | — | Tidak |
+| `ClinicalIndication` | `varchar` | Bersyarat | Alasan tindak lanjut | 2000 | Wajib sebelum *Minta TTD*; spasi ujung dibuang | **Ya** |
+| `CarePlanInstruction` | `varchar` | Tidak | Instruksi tindak lanjut | 2000 | — | **Ya** |
+| `SignatureRequestedAt` | `timestamptz` | Bersyarat | — | — | Waktu server saat *Minta TTD* terakhir | Tidak |
+| `SignatureRequestedByUserId` | `uuid` | Bersyarat | — | — | Akun perawat | Tidak |
+| `SignedAt` | `timestamptz` | Bersyarat | — | — | Waktu server; wajib bila *Signed* | Tidak |
+| `SignedByUserId` | `uuid` | Bersyarat | — | — | Akun penanda tangan; wajib bila *Signed* | Tidak |
+| `SignedByDoctorId` | `uuid` | Bersyarat | — | — | FK → `MstDoctor`, `Restrict`; = DPJP IGD aktif saat TTD; wajib bila *Signed* | Tidak |
+| `SignerNameSnapshot` | `varchar` | Bersyarat | — | 200 | Nama tampilan akun saat TTD, beku | Tidak |
+| `SignerPositionSnapshot` | `varchar` | Tidak | — | 200 | Jabatan utama akun saat TTD, beku | Tidak |
+| `SignatureDeviceInfo` | `varchar` | Tidak | — | 250 | Dibaca server dari permintaan, bukan kiriman klien | **Ya** |
+| `SignatureIpAddress` | `varchar` | Tidak | — | 64 | Dibaca server | **Ya** |
+| `SnapshotJson` | `jsonb` | Bersyarat | — | — | Salinan beku saat TTD; wajib bila *Signed*; struktur di bawah | **Ya** |
+| `CancelledAt`, `CancelledByUserId` | `timestamptz`, `uuid` | Bersyarat | — | — | Hanya pembatalan **sebelum** terkirim; sesudah terkirim pembatalan dicatat di `InpAdmissionReferral` | Tidak |
+| `CancellationReason` | `varchar` | Bersyarat | — | 500 | Wajib bila *Cancelled* | **Ya** |
+| `RowVersion` | `uuid` | Ya | `Guid.NewGuid()` | — | Token konkurensi; berganti setiap perubahan | Tidak |
+
+**Check constraint.** `CK_EmgAdmissionRequest_State`: *Signed* ⇒ `SignedAt`, `SignedByUserId`, `SignedByDoctorId`,
+`SnapshotJson` terisi; *Cancelled* ⇒ `CancellationReason` terisi. `CK_EmgAdmissionRequest_Los`: `EstimatedLengthOfStayDays`
+antara 1 dan 90.
+
+**Index.** `UX_EmgAdmissionRequest_Visit_Open` unik pada `EmergencyVisitId` dengan saring `"Status" IN (1, 2) AND NOT
+"IsDelete"` — paling banyak satu draf/menunggu TTD per kunjungan. Form *Signed* dengan permintaan `Pending` dijaga service
+(kunci per kunjungan), karena syaratnya ada di tabel lain. `IX_EmgAdmissionRequest_DispositionId`;
+`IX_EmgAdmissionRequest_Status` untuk daftar *Perlu TTD*.
+
+**Struktur `SnapshotJson`** — ditulis sekali saat TTD:
+
+| Bagian | Isi | Sumber |
+| --- | --- | --- |
+| `capturedAt` | Waktu server | — |
+| `origin` | `"IGD"`, nomor kunjungan IGD, nomor encounter | Kunjungan |
+| `patient` | Nama, No. RM, jenis kelamin, tanggal lahir, teks umur pada saat TTD | `MstPatient` |
+| `allergies` | `state` = `NotRecorded` atau `Recorded`; daftar alergen aktif (nama, kategori, tingkat, reaksi) | `TrxPatientAllergy` |
+| `payer` | Jenis pembayaran, nama penjamin, teks hak kelas | `EncounterInsuranceService`, `MstPatientInsurance.ClassName` |
+| `diagnoses` | Kode, nama, jenis, penanda utama — diagnosis utama paling atas | `TrxPatientDiagnosis` aktif pada encounter |
+| `placement` | Nama unit, nama kelas, nama DPJP usulan, lama rawat, CITO, kebutuhan khusus | Isian form |
+| `clinical` | Indikasi klinis, rencana perawatan dan instruksi | Isian form |
+| `signer` | Nama, jabatan, waktu TTD | Atestasi |
+
+*Contoh baris:* Tn. Budi, kunjungan IGD-20261012-0012; `Status` = 3; unit Bangsal Melati, kelas 2, DPJP usulan dr. Sinta
+Sp.PD, lama rawat 4, `IsCito` = `true`, `NeedsOxygenSupport` = `true`; `SignedByDoctorId` = dr. Andi; `SignedAt` = 12 Oktober
+2026 10.15 WIB.
+
+### `EmgAdmissionRequestEvent` — Baru (pemilik: IGD)
+
+Model: `…/EmergencyInstallationManagement/Models/EmgAdmissionRequestEvent.cs`. Tambah-saja; tidak pernah diubah atau dihapus.
+
+| Kolom | Tipe | Wajib | Bawaan | Panjang | Validasi | Sensitif |
+| --- | --- | :-: | --- | ---: | --- | :-: |
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | — | PK | Tidak |
+| `AdmissionRequestId` | `uuid` | Ya | — | — | FK → `EmgAdmissionRequest`, `Restrict` | Tidak |
+| `EventType` | `integer` | Ya | — | — | `EmergencyAdmissionRequestEventType` | Tidak |
+| `FromStatus` | `integer` | Tidak | — | — | Kosong pada `Opened` | Tidak |
+| `ToStatus` | `integer` | Ya | — | — | Untuk `CancelledAfterSend`, status form tetap `Signed` | Tidak |
+| `ActorUserId` | `uuid` | Ya | — | — | Akun pelaku; untuk batal otomatis = akun yang membatalkan tindak lanjut | Tidak |
+| `OccurredAt` | `timestamptz` | Ya | — | — | Waktu server | Tidak |
+| `Note` | `varchar` | Bersyarat | — | 500 | Wajib pada `Returned`, `Cancelled`, `CancelledAfterSend`, `AutoCancelled` | **Ya** |
+
+**Index.** `IX_EmgAdmissionRequestEvent_Request_OccurredAt`.
+
+### `EmgDispositionType` — Diperbarui (pemilik: IGD, master)
+
+| Kolom | Tipe | Wajib | Bawaan | Validasi | Sensitif |
+| --- | --- | :-: | --- | --- | :-: |
+| `RequiresAdmissionRequest` | `boolean` | Ya | `false` | `true` berarti tindak lanjut jenis ini wajib punya Form Permintaan Rawat Inap yang terkirim sebelum *Jalankan* | Tidak |
+
+**Data lama.** Migration mengisi `true` untuk baris berkode `RANAP`; selain itu `false`.
+
+### `InpAdmissionReferral` — Diperbarui (pemilik: **Rawat Inap**, butuh persetujuan Muhammad Hamzah)
+
+Model: `Areas/HealthServices/InPatientManagement/Models/InpAdmissionReferral.cs`. Kolom lama yang tidak disebut tidak berubah.
+
+| Kolom | Tipe | Wajib | Bawaan | Validasi | Sensitif |
+| --- | --- | :-: | --- | --- | :-: |
+| `SourceKind` | `integer` | Ya | `1` | `InpAdmissionReferralSourceKind`: `RecoveryRoom = 1`, `Emergency = 2` | Tidak |
+| `OprCaseId` | `uuid` | **Bersyarat** (sebelumnya wajib) | — | Wajib bila `SourceKind = 1` | Tidak |
+| `EmergencyAdmissionRequestId` | `uuid` | Bersyarat | — | FK → `EmgAdmissionRequest`, `Restrict`; wajib bila `SourceKind = 2`; unik bila terisi | Tidak |
+| `PrimarySurgeonId` | `uuid` | Ya | — | Tidak berubah. Arti: usulan DPJP awal. Sumber IGD = DPJP rawat inap usulan | Tidak |
+| `RequestedCareLevel` | `integer` | Ya | — | Tidak berubah. Sumber IGD: `Icu` bila `NeedsIntensiveCare`, selain itu `Inpatient` | Tidak |
+| `RequestedServiceUnitId` | `uuid` | Bersyarat | — | FK → `MstServiceUnit`, `Restrict`; wajib bila `SourceKind = 2` | Tidak |
+| `RequestedPatientClassId` | `uuid` | Bersyarat | — | FK → `MstPatientClass`, `Restrict`; wajib bila `SourceKind = 2` | Tidak |
+| `IsCito` | `boolean` | Ya | `false` | Urutan daftar: CITO dulu | Tidak |
+| `RecoveryDecisionNote` | `varchar(2000)` | Tidak | — | Tidak berubah; kosong untuk sumber IGD (rincian dibaca dari form IGD, `ARC-RI-02`) | Ya |
+| `CancellationSource` | `integer` | Bersyarat | — | `InpAdmissionReferralCancellationSource`; wajib bila `Status = Cancelled` pada baris baru | Tidak |
+
+**Check constraint baru** `CK_InpAdmissionReferral_Source`. **Index baru** `UX_InpAdmissionReferral_EmergencyRequest`,
+`IX_InpAdmissionReferral_Status_Cito_RequestedAt`. Index lama tetap: satu `Pending` per pasien berlaku untuk kedua sumber.
+
+### Tabel yang dibaca, tidak berubah
+
+`MstPatient`, `MstPatientInsurance` (Patient Management); `TrxPatientAllergy`, `TrxPatientDiagnosis` (Clinical);
+`RegPatientEncounter`, `RegPatientEncounterGuarantor` (Registrasi); `MstServiceUnit`, `MstPatientClass`, `MstDoctorSchedule`
+(Master Data); `MstDoctor` (Human Resource); `ApplicationUser.DoctorId` (Identity); `EmgDoctorAssignment`, `EmgVisit`,
+`EmgDisposition` (IGD). `BilInvoiceEncounterLink` (Billing) **tidak** dibuat untuk sumber IGD (`IGD-DEC-293`).

@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
@@ -1417,10 +1417,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 EncounterNumber = x.Encounter != null ? x.Encounter.EncounterNumber : null,
                 EmergencyVisitNumber = x.EmergencyVisitNumber,
                 VisitStatus = x.VisitStatus,
+                ChiefComplaint = x.ChiefComplaint ?? (x.Encounter != null ? x.Encounter.ChiefComplaint : null),
                 RegisteredAt = x.Encounter != null ? x.Encounter.RegisteredAt : x.ArrivalDateTime,
                 ArrivalDateTime = x.ArrivalDateTime,
                 Urutan = x.ArrivalDateTime,
-                KunciUrutan = x.Id
+                KunciUrutan = x.Id,
+                IsTriaged = x.VisitStatus == EmergencyVisitStatus.Triaged
+                    || x.Triages.Any(t => !t.IsDelete && t.TriageStatus == EmergencyTriageStatus.Completed)
             });
 
             IQueryable<BarisAntreanTriage> gabungan = barisKunjungan;
@@ -1454,10 +1457,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     EncounterNumber = x.EncounterNumber,
                     EmergencyVisitNumber = (string?)null,
                     VisitStatus = (EmergencyVisitStatus?)null,
+                    ChiefComplaint = x.ChiefComplaint,
                     RegisteredAt = x.RegisteredAt,
                     ArrivalDateTime = (DateTime?)null,
                     Urutan = x.RegisteredAt,
-                    KunciUrutan = x.Id
+                    KunciUrutan = x.Id,
+                    IsTriaged = false
                 });
 
                 gabungan = barisEncounter.Concat(barisKunjungan);
@@ -1502,12 +1507,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 TemporaryPatientAlias = baris.TemporaryPatientAlias,
                 EncounterNumber = baris.EncounterNumber,
                 EmergencyVisitNumber = baris.EmergencyVisitNumber,
+                ChiefComplaint = baris.ChiefComplaint,
                 QueueStatus = dariKunjungan && baris.VisitStatus.HasValue
                     ? baris.VisitStatus.Value.ToString()
                     : nameof(EmergencyVisitStatus.WaitingForTriage),
                 VisitStatus = baris.VisitStatus,
                 RegisteredAt = baris.RegisteredAt,
                 ArrivalDateTime = baris.ArrivalDateTime,
+                IsTriaged = baris.IsTriaged,
                 AvailableActions = AksiBarisAntrean(baris)
             };
         }
@@ -1530,6 +1537,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             {
                 EmergencyVisitStatus.Arrived or EmergencyVisitStatus.WaitingForTriage
                     => new List<string> { AksiIsiTriage, AksiTanganiSegera },
+                EmergencyVisitStatus.InTreatment when !baris.IsTriaged
+                    => new List<string> { AksiIsiTriage },
                 _ => new List<string>()
             };
         }
@@ -1565,9 +1574,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             public string? TemporaryPatientAlias { get; set; }
             public string? EncounterNumber { get; set; }
             public string? EmergencyVisitNumber { get; set; }
+            public string? ChiefComplaint { get; set; }
             public EmergencyVisitStatus? VisitStatus { get; set; }
             public DateTime RegisteredAt { get; set; }
             public DateTime? ArrivalDateTime { get; set; }
+            public bool IsTriaged { get; set; }
 
             /// <summary>Waktu yang dipakai mengurutkan: waktu tiba bagi kunjungan, waktu terdaftar bagi encounter.</summary>
             public DateTime Urutan { get; set; }

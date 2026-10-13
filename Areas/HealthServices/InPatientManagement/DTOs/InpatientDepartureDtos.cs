@@ -2,7 +2,7 @@ using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 public sealed class InpatientDepartureResponse
 {
-    public Guid EpisodeId { get; set; }
+    public BedOperationMeta? OperationMeta { get; set; } public Guid EpisodeId { get; set; }
     public InpEpisodeStatus EpisodeStatus { get; set; }
     public DateTime PhysicallyLeftAt { get; set; }
     public string? PhysicallyLeftByUserName { get; set; }
@@ -23,7 +23,7 @@ public sealed class DepartureBeforeClearanceQuery
 }
 public sealed class DepartureBeforeClearanceItem
 {
-    public Guid EpisodeId { get; set; }
+    public BedOperationMeta? OperationMeta { get; set; } public Guid EpisodeId { get; set; }
     public string EpisodeNumber { get; set; } = "";
     public Guid EncounterId { get; set; }
     public string? PatientName { get; set; }

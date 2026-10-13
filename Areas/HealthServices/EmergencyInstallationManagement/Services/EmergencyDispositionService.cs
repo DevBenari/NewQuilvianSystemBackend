@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
@@ -11,10 +13,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
     /// <summary>
     /// Validasi keputusan akhir pelayanan IGD dan transisi Draft-Confirmed-Executed.
     /// </summary>
-    public class EmergencyDispositionService
+    public partial class EmergencyDispositionService
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly EmergencyDepartureService _departureService;
+        private readonly PatientAllergyQueryService _patientAllergyQueryService;
+        private readonly EncounterInsuranceService _encounterInsuranceService;
 
         // BE-IGD-041: aturan pesanan yang menahan penutupan dimiliki EmergencyDepartureService.
         // Keduanya sudah terdaftar Scoped di DI dan EmergencyDepartureService tidak bergantung
@@ -22,10 +26,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         // menuntut baris baru di Program.cs.
         public EmergencyDispositionService(
             ApplicationDbContext dbContext,
-            EmergencyDepartureService departureService)
+            EmergencyDepartureService departureService,
+            PatientAllergyQueryService patientAllergyQueryService,
+            EncounterInsuranceService encounterInsuranceService)
         {
             _dbContext = dbContext;
             _departureService = departureService;
+            _patientAllergyQueryService = patientAllergyQueryService;
+            _encounterInsuranceService = encounterInsuranceService;
         }
 
         public async Task<string?> ValidateRequestAsync(
@@ -40,6 +48,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             if (!Enum.IsDefined(typeof(EmergencyDispositionStatus), request.DispositionStatus))
                 return "Nilai DispositionStatus tidak valid.";
+
+            if (request.DispositionStatus != EmergencyDispositionStatus.Draft)
+                return "Tindak lanjut baru selalu disimpan sebagai draf. Konfirmasi dilakukan sesudah draf tersimpan.";
 
             if (request.IsPatientDeceased && !request.DeathDateTime.HasValue)
                 return "DeathDateTime wajib diisi ketika pasien dinyatakan meninggal.";
@@ -171,6 +182,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     or EmergencyDispositionStatus.Cancelled,
                 _ => false
             };
+        }
+
+        public async Task<string?> ValidateDiagnosisBeforeConfirmAsync(
+            EmgVisit visit,
+            CancellationToken cancellationToken = default)
+        {
+            var hasValidDiagnosis = await KueriDiagnosisTerhitung(
+                    _dbContext.Set<TrxPatientDiagnosis>().AsNoTracking(),
+                    visit.EncounterId)
+                .AnyAsync(cancellationToken);
+
+            if (!hasValidDiagnosis)
+            {
+                return "Tindak lanjut belum dapat dikonfirmasi karena pasien belum punya diagnosis. Tambahkan diagnosis kerja pada catatan dokter lebih dulu.";
+            }
+
+            return null;
         }
     }
 }

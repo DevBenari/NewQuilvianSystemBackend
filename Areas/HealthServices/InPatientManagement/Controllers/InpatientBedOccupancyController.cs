@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers;
@@ -27,7 +27,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
     /// controller ini; keduanya milik grup Inpatient Discharge.
     /// </para>
     /// </remarks>
-    [ApiController]
+    [ApiController, ServiceFilter(typeof(InpBedOperationFilter))]
     [Authorize]
     [Route("api/v1/health-services/inpatient-management/bed-occupancies")]
     [AccessController(
@@ -46,16 +46,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
 
         private readonly InpBedOccupancyService _bedOccupancyService;
         private readonly InpPlacementCorrectionService _placementCorrectionService;
-        private readonly LoggerService _loggerService;
+        private readonly LoggerService _loggerService; private readonly InpBedMutationCoordinator _coordinator; private readonly InpBedAccessService _access;
 
         public InpatientBedOccupancyController(
             InpBedOccupancyService bedOccupancyService,
             InpPlacementCorrectionService placementCorrectionService,
-            LoggerService loggerService)
+            LoggerService loggerService, InpBedMutationCoordinator coordinator, InpBedAccessService access)
         {
             _bedOccupancyService = bedOccupancyService;
             _placementCorrectionService = placementCorrectionService;
-            _loggerService = loggerService;
+            _loggerService = loggerService; _coordinator = coordinator; _access = access;
         }
 
         // =====================================================================
@@ -147,7 +147,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                 result.ReservationId!.Value,
                 cancellationToken);
 
-            return Ok(ApiResponse<BedReservationResponse>.Ok(reservation, result.Message));
+            if (reservation != null) reservation.OperationMeta = _coordinator.LastOperation; return Ok(ApiResponse<BedReservationResponse>.Ok(reservation, result.Message));
         }
 
         /// <summary>Membatalkan pemesanan sebelum dipakai.</summary>
@@ -187,7 +187,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
 
             var reservation = await _bedOccupancyService.GetReservationAsync(id, cancellationToken);
 
-            return Ok(ApiResponse<BedReservationResponse>.Ok(reservation, result.Message));
+            if (reservation != null) reservation.OperationMeta = _coordinator.LastOperation; return Ok(ApiResponse<BedReservationResponse>.Ok(reservation, result.Message));
         }
 
         // =====================================================================
@@ -237,7 +237,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                 result.PlacementId!.Value,
                 cancellationToken);
 
-            return Ok(ApiResponse<BedPlacementResponse>.Ok(placement, result.Message));
+            if (placement != null) placement.OperationMeta = _coordinator.LastOperation; return Ok(ApiResponse<BedPlacementResponse>.Ok(placement, result.Message));
         }
 
         // =====================================================================
@@ -290,7 +290,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                 result.PlacementId!.Value,
                 cancellationToken);
 
-            return Ok(ApiResponse<BedPlacementResponse>.Ok(placement, result.Message));
+            if (placement != null) placement.OperationMeta = _coordinator.LastOperation; return Ok(ApiResponse<BedPlacementResponse>.Ok(placement, result.Message));
         }
 
         // =====================================================================
@@ -359,7 +359,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                 result.PlacementId!.Value,
                 cancellationToken);
 
-            return Ok(ApiResponse<BedPlacementResponse>.Ok(placement, result.Message));
+            if (placement != null) placement.OperationMeta = _coordinator.LastOperation; return Ok(ApiResponse<BedPlacementResponse>.Ok(placement, result.Message));
         }
 
         /// <summary>Riwayat penempatan satu episode, dari tempat tidur pertama sampai terakhir.</summary>
@@ -371,7 +371,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
             Guid episodeId,
             CancellationToken cancellationToken = default)
         {
-            var result = await _bedOccupancyService.GetPlacementsByEpisodeAsync(
+            await _access.RequireEpisodeAsync(episodeId, "InpatientBedOccupancy:Read", cancellationToken); var result = await _bedOccupancyService.GetPlacementsByEpisodeAsync(
                 episodeId,
                 cancellationToken);
 
@@ -382,6 +382,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
 
         // =====================================================================
         // Pembantu
+        [HttpGet("transfer-context")]
+        [AccessAction("Read", "Read Inpatient Transfer Context", AccessType = AccessTypes.Read)]
+        [AccessPermission("InpatientBedOccupancy", "Read")]
+        public async Task<IActionResult> TransferContext([FromQuery] Guid episodeId, CancellationToken ct)
+            => Ok(ApiResponse<BedTransferContextResponse>.Ok(await _bedOccupancyService.GetTransferContextAsync(episodeId, ct)));
         // =====================================================================
 
         /// <summary>

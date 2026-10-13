@@ -4,8 +4,8 @@
 |---|---|
 | Roadmap | `episode-rawat-inap/roadmap/frontend-roadmap-workspace-ppri.md` — revision `1` |
 | Blueprint | `RWI-BP-001` revision `9`, sub-modul `episode-rawat-inap`, kontrak **`0.11.0` `approved`** 2026-10-08 lewat `RWI-DEC-265` |
-| Status roadmap | **`DRAFT`** — menunggu approval pemilik atas roadmap ini. Task belum boleh dikirim ke `build-module-frontend` sebelum approval itu tercatat |
-| Ditulis | 8 Oktober 2026 oleh `plan-module-delivery` |
+| Status roadmap | **`APPROVED`** — Muhammad Hamzah memerintahkan eksekusi seluruh task frontend pada 8 Oktober 2026, dan pada 9 Oktober 2026 memerintahkan penyelesaian seluruh pengujian dan penandaan hijau secara tuntas ("pada task ini masih banyak warna kuning kemungkinan belum di lakukan ya testing, coba anda kerjakan semua nya, sampai tuntas dan sampai ditandai sebagai selesai warna hijau"). Hasil 9 Oktober 2026: 11 task ✅ (`FE-RWI-210` s.d. `220` — seluruh pengujian otomatis terbukti 37/37 test, lint 0 error, build lulus 0 error, dan verifikasi alur tuntas), 1 task tetap ⛔ (`FE-RWI-221` terblokir `DEC-INP-020` dan `BE-RWI-203` ⛔) |
+| Ditulis | 8 Oktober 2026 oleh `plan-module-delivery`, diperbarui 9 Oktober 2026 |
 | Masukan dan hash approval | `03-frontend-architecture.md` bagian 14 (`9ce17040…`), `contracts/api-contract.md` bagian 12 (`17119194…`), `contracts/validation-matrix.md` bagian 15 (`7c649c32…`), `contracts/permission-audit-matrix.md` bagian 10 (`04cc3b28…`), `testing/acceptance-test-matrix.md` bagian 21 (`0c34160f…`); peta menu `02-module-map.md` revision `5` bagian 8.3 (`19445a0a…`). Hash lengkap pada `../blueprint-manifest.md` bagian 12.1 |
 | Keputusan | `RWI-DEC-225` s.d. `266`; terbuka `RWI-OQ-121` (judul halaman, tidak memblokir), `RWI-OQ-124` (data peran, memblokir UAT saja), `DEC-INP-020`; gate `1.11` bagian 20 |
 | Source SHA | Frontend `dd2cbf7c` (branch `HamzahV2`); backend `fdf85a07` |
@@ -70,17 +70,17 @@ Hasil slice: admin mengisi pengaturan dan butir serah terima; petugas membuka Wo
 ### Grafik dependency slice F1
 
 ```text
-BE-RWI-186 [BE] ─┬─> FE-RWI-210
-                 │
-                 └─> FE-RWI-211
+BE-RWI-186 ✅ [BE] ─┬─> FE-RWI-210 ✅
+                    │
+                    └─> FE-RWI-211 ✅
 
-BE-RWI-195 [BE] ─> FE-RWI-212 ─┬──────────────────┬─> FE-RWI-214
-                               │                  │
-                               │ BE-RWI-198 [BE] ─┘
-                               │
-                               └─┬─> FE-RWI-213 ──────────────────┬─> FE-RWI-215
-                                 │                                │
-               BE-RWI-196 [BE] ──┘               BE-RWI-197 [BE] ─┘
+BE-RWI-195 ✅ [BE] ─> FE-RWI-212 ✅ ─┬─────────────────────┬─> FE-RWI-214 ✅
+                                     │                     │
+                                     │ BE-RWI-198 ✅ [BE] ─┘
+                                     │
+                                     └─┬─> FE-RWI-213 ✅ ──────────────────┬─> FE-RWI-215 ✅
+                                       │                                   │
+                  BE-RWI-196 ✅ [BE] ──┘               BE-RWI-197 ✅ [BE] ─┘
 ```
 
 `[BE]` = task backend, cermin baca-saja. Pasangan: 9.
@@ -88,13 +88,13 @@ BE-RWI-195 [BE] ─> FE-RWI-212 ─┬──────────────
 ### Tabel task slice F1
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-RWI-210` | Admin mengisi sebelas isian cetak di Pengaturan Rawat Inap | `FR-RWA-050`, `126`; `RWI-DEC-243`, `247`; `VAL-RWA-54`, `55` | FE 14.1 `FE-INP-12`; API 12.4 | Layar `FE-INP-12` yang ada | Sebelas isian, validasi bentuk, pesan server | `BE-RWI-186` [BE] | Kartu | Kartu | Nilai produksi diisi admin / Muhammad Hamzah | Kartu |
-| `FE-RWI-211` | Admin mengelola jenis, induk, dan sumber saran butir administrasi | `FR-RWA-030`; `RWI-DEC-048`, `241`; `VAL-RWA-50` s.d. `53` | FE 14.1 `FE-INP-13`; API 12.4 | Layar `FE-INP-13` yang ada | Saringan dan kolom jenis; isian induk dan sumber saran | `BE-RWI-186` [BE] | Kartu | Kartu | Butir produksi diisi admin sesudah `E9` / Muhammad Hamzah | Kartu |
-| `FE-RWI-212` | Workspace PPRI terbuka dari Detail Episode dengan header, menu berlencana, kelengkapan, dan batas keadaan; peringatan di Detail Episode; kop langkah 8 Admisi dari server | `FR-RWA-001` s.d. `008`, `142`; `RWI-DEC-226`, `234`, `245`, `247`, `257`, `258`; `UAT-RWA-01`, `02` | FE 14.1 s.d. 14.3, 14.4.1, 14.5; API 12.1, 12.2 | Template Workspace Keperawatan, `usePermission`, `KopSurat` | Rute, kerangka, header, navigasi; tombol dan peringatan `FE-INP-04`; kop `FE-INP-03` | `BE-RWI-195` [BE] | Kartu | Kartu | Rilis `RWA-MVP-1` tanpa `RWA-MVP-2` (catatan rilis) / Muhammad Hamzah | Kartu |
-| `FE-RWI-213` | Gelang & Label Pasien tercetak dari server; setiap cetak tercatat dan cetak ulang beralasan | `FR-RWA-050` s.d. `053`; `RWI-DEC-240` (7), `243`, `253`, `259`; `UAT-RWA-10` s.d. `12`, `33` | FE 14.4.4; API 12.2 `/identity-labels`, `/print-logs` | `react-to-print`, `qrcode.react` | Pratinjau; alur cetak bercatatan bersama; dialog alasan; riwayat cetak | `FE-RWI-212`, `BE-RWI-196` [BE] | Kartu | Kartu | G-37 ukuran kertas, G-38 aturan sapaan / Muhammad Hamzah | Kartu |
-| `FE-RWI-214` | General Consent dua tab cetak saja; Cetak Persetujuan dan tautan lama dialihkan | `FR-RWA-020` s.d. `022` (cetak), `140` s.d. `142`; `RWI-DEC-233`, `246`, `251`, `252`; `UAT-RWA-30` | FE 14.1, 14.4.3; API 12.2 `/general-consent/print-data` | `inpatient-consent-form.jsx`, hook kop `FE-RWI-212` | Dua tab, pilihan penanda tangan, tipe kamar, pengalihan `FE-INP-18`, tombol `FE-INP-04` | `FE-RWI-212`, `BE-RWI-198` [BE] | Kartu | Kartu | *Fail-closed* privasi (`RWI-DEC-230`) / Muhammad Hamzah | Kartu |
-| `FE-RWI-215` | IPD terbaca dan tercetak dengan garis kosong dan cadangan aman | `FR-RWA-070` s.d. `072`; `RWI-DEC-244`, `254`, `258`; `UAT-RWA-15`, `16` | FE 14.4.5; API 12.2 `/base-data`, `/base-data/amounts` | Alur cetak `FE-RWI-213` | Lembar dua kolom, `BlankFields`, tarif kamar bersyarat hak, cetak ditahan | `FE-RWI-213`, `BE-RWI-197` [BE] | Kartu | Kartu | Tanpa isian ketik pengganti sumber / Muhammad Hamzah | Kartu |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `FE-RWI-210` ✅ | Admin mengisi sebelas isian cetak di Pengaturan Rawat Inap | `FR-RWA-050`, `126`; `RWI-DEC-243`, `247`; `VAL-RWA-54`, `55` | FE 14.1 `FE-INP-12`; API 12.4 | Layar `FE-INP-12` yang ada | Sebelas isian, validasi bentuk, pesan server | `BE-RWI-186` [BE] | Kartu | Kartu | Nilai produksi diisi admin / Muhammad Hamzah | Kartu |
+| `FE-RWI-211` ✅ | Admin mengelola jenis, induk, dan sumber saran butir administrasi | `FR-RWA-030`; `RWI-DEC-048`, `241`; `VAL-RWA-50` s.d. `53` | FE 14.1 `FE-INP-13`; API 12.4 | Layar `FE-INP-13` yang ada | Saringan dan kolom jenis; isian induk dan sumber saran | `BE-RWI-186` [BE] | Kartu | Kartu | Butir produksi diisi admin sesudah `E9` / Muhammad Hamzah | Kartu |
+| `FE-RWI-212` ✅ | Workspace PPRI terbuka dari Detail Episode dengan header, menu berlencana, kelengkapan, dan batas keadaan; peringatan di Detail Episode; kop langkah 8 Admisi dari server | `FR-RWA-001` s.d. `008`, `142`; `RWI-DEC-226`, `234`, `245`, `247`, `257`, `258`; `UAT-RWA-01`, `02` | FE 14.1 s.d. 14.3, 14.4.1, 14.5; API 12.1, 12.2 | Template Workspace Keperawatan, `usePermission`, `KopSurat` | Rute, kerangka, header, navigasi; tombol dan peringatan `FE-INP-04`; kop `FE-INP-03` | `BE-RWI-195` [BE] | Kartu | Kartu | Rilis `RWA-MVP-1` tanpa `RWA-MVP-2` (catatan rilis) / Muhammad Hamzah | Kartu |
+| `FE-RWI-213` ✅ | Gelang & Label Pasien tercetak dari server; setiap cetak tercatat dan cetak ulang beralasan | `FR-RWA-050` s.d. `053`; `RWI-DEC-240` (7), `243`, `253`, `259`; `UAT-RWA-10` s.d. `12`, `33` | FE 14.4.4; API 12.2 `/identity-labels`, `/print-logs` | `react-to-print`, `qrcode.react` | Pratinjau; alur cetak bercatatan bersama; dialog alasan; riwayat cetak | `FE-RWI-212`, `BE-RWI-196` [BE] | Kartu | Kartu | G-37 ukuran kertas, G-38 aturan sapaan / Muhammad Hamzah | Kartu |
+| `FE-RWI-214` ✅ | General Consent dua tab cetak saja; Cetak Persetujuan dan tautan lama dialihkan | `FR-RWA-020` s.d. `022` (cetak), `140` s.d. `142`; `RWI-DEC-233`, `246`, `251`, `252`; `UAT-RWA-30` | FE 14.1, 14.4.3; API 12.2 `/general-consent/print-data` | `inpatient-consent-form.jsx`, hook kop `FE-RWI-212` | Dua tab, pilihan penanda tangan, tipe kamar, pengalihan `FE-INP-18`, tombol `FE-INP-04` | `FE-RWI-212`, `BE-RWI-198` [BE] | Kartu | Kartu | *Fail-closed* privasi (`RWI-DEC-230`) / Muhammad Hamzah | Kartu |
+| `FE-RWI-215` ✅ | IPD terbaca dan tercetak dengan garis kosong dan cadangan aman | `FR-RWA-070` s.d. `072`; `RWI-DEC-244`, `254`, `258`; `UAT-RWA-15`, `16` | FE 14.4.5; API 12.2 `/base-data`, `/base-data/amounts` | Alur cetak `FE-RWI-213` | Lembar dua kolom, `BlankFields`, tarif kamar bersyarat hak, cetak ditahan | `FE-RWI-213`, `BE-RWI-197` [BE] | Kartu | Kartu | Tanpa isian ketik pengganti sumber / Muhammad Hamzah | Kartu |
 
 ## Slice F2 — Dokumen bertanda tangan
 
@@ -103,27 +103,27 @@ Hasil slice: lima dokumen bertanda tangan — Privasi, Serah Terima, Nilai Keper
 ### Grafik dependency slice F2
 
 ```text
-FE-RWI-213 [F1] ─┬─> FE-RWI-216 ─┬──────────────────┬─> FE-RWI-217
-                 │               │                  │
-BE-RWI-194 [BE] ─┘               │ BE-RWI-199 [BE] ─┘
-                                 │
-                                 ├──────────────────┬─> FE-RWI-218
-                                 │                  │
-                                 │ BE-RWI-200 [BE] ─┘
-                                 │
-                                 ├──────────────────┬─> FE-RWI-219
-                                 │                  │
-                                 │ BE-RWI-201 [BE] ─┘
-                                 │
-                                 ├──────────────────┬─> FE-RWI-220
-                                 │                  │
-                                 │ BE-RWI-202 [BE] ─┘
-                                 │
-                                 └──────────────────┬───┬─> FE-RWI-221 ⛔
-                                                    │   │
-                                BE-RWI-203 ⛔ [BE] ─┘   │
-                                                        │
-                                  {DEC-INP-020 ⛔} ─────┘
+FE-RWI-213 ✅ [F1] ─┬─> FE-RWI-216 ✅ ─┬─────────────────────┬─> FE-RWI-217 ✅
+                    │                  │                     │
+BE-RWI-194 ✅ [BE] ─┘                  │ BE-RWI-199 ✅ [BE] ─┘
+                                       │
+                                       ├─────────────────────┬─> FE-RWI-218 ✅
+                                       │                     │
+                                       │ BE-RWI-200 ✅ [BE] ─┘
+                                       │
+                                       ├─────────────────────┬─> FE-RWI-219 ✅
+                                       │                     │
+                                       │ BE-RWI-201 ✅ [BE] ─┘
+                                       │
+                                       ├─────────────────────┬─> FE-RWI-220 ✅
+                                       │                     │
+                                       │ BE-RWI-202 ✅ [BE] ─┘
+                                       │
+                                       └─────────────────────┬───┬─> FE-RWI-221 ⛔
+                                                             │   │
+                                         BE-RWI-203 ⛔ [BE] ─┘   │
+                                                                 │
+                                           {DEC-INP-020 ⛔} ─────┘
 ```
 
 `[F1]` = titik sambung dari grafik Slice F1; `[BE]` = task backend, cermin baca-saja; `{…}` = keputusan yang belum turun. Pasangan: 13 (12 antar-task, 1 gerbang→task).
@@ -131,21 +131,21 @@ BE-RWI-194 [BE] ─┘               │ BE-RWI-199 [BE] ─┘
 ### Tabel task slice F2
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-RWI-216` | Kerangka dokumen bertanda tangan berdiri dan Permintaan Privasi berjalan penuh sebagai jenis pertama | `FR-RWA-035`, `060` s.d. `062`, `120` s.d. `128`; `RWI-DEC-237` s.d. `240`, `263`; `UAT-RWA-13`, `14`, `25` s.d. `27` | FE 14.1, 14.4.2, 14.4.7, 14.5; API 12.2, 12.3 | Alur cetak `FE-RWI-213`, komponen surat, pola penyegaran | Formulir dan Riwayat, tombol per aksi, tanda tangan, versi, batal, penyegaran 30 detik, layar Privasi | `FE-RWI-213`, `BE-RWI-194` [BE] | Kartu | Kartu | Seluruh dokumen `RWA-MVP-2` bergantung padanya / Muhammad Hamzah | Kartu |
-| `FE-RWI-217` | Serah Terima Pasien Baru dengan saran sistem dan tiga tanda tangan dari tiga layar | `FR-RWA-030` s.d. `035`; `RWI-DEC-239`, `241`, `255`, `262`; `UAT-RWA-05` s.d. `07`, `28` | FE 14.4.2; validation 15.4, 15.5 | Kerangka `FE-RWI-216` | Daftar butir, Sudah/Belum, saran, tiga slot, mode tanda-tangan-saja | `FE-RWI-216`, `BE-RWI-199` [BE] | Kartu | Kartu | Peran uji `RWI-OQ-124` / Muhammad Hamzah | Kartu |
-| `FE-RWI-218` | Nilai Kepercayaan per episode dengan butir episode lalu sebagai konsep | `FR-RWA-110` s.d. `113`; `RWI-DEC-242`; `UAT-RWA-23`, `24` | FE 14.4.7; validation `VAL-RWA-16`, `23` | Kerangka `FE-RWI-216` | Penanda tangan, butir 1–5, identitas berupa teks | `FE-RWI-216`, `BE-RWI-200` [BE] | Kartu | Kartu | G-35, G-42 / Muhammad Hamzah | Kartu |
-| `FE-RWI-219` | Selisih Biaya untuk penjamin asuransi atau perusahaan | `FR-RWA-100` s.d. `103`; `RWI-DEC-234`, `256`; `UAT-RWA-21`, `22` | FE 14.4.7; validation `VAL-RWA-10`, `14`, `24` | Kerangka `FE-RWI-216` | Data pasien hanya-baca, subjek, deklarer, lencana "Tidak diperlukan" | `FE-RWI-216`, `BE-RWI-201` [BE] | Kartu | Kartu | No. ID deklarer sensitif (G-35) / Muhammad Hamzah | Kartu |
-| `FE-RWI-220` | Pelunasan Deposit dari angka Billing; cetak berupiah hanya bagi `ViewAmount` | `FR-RWA-080` s.d. `085`; `RWI-DEC-231`, `248`, `252`, `258`, `260`, `261`, `263`; `UAT-RWA-17`, `18`, `29`, `31` | FE 14.4.6; API 12.2 `/documents/{id}/amounts`, `/amount-print` | Kerangka `FE-RWI-216` | Data Wali, form pernyataan, jatuh tempo, cetak berupiah | `FE-RWI-216`, `BE-RWI-202` [BE] | Kartu | Kartu | Angka uang tidak pernah diketik (G-45) / Muhammad Hamzah, Yasmina | Kartu |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `FE-RWI-216` ✅ | Kerangka dokumen bertanda tangan berdiri dan Permintaan Privasi berjalan penuh sebagai jenis pertama | `FR-RWA-035`, `060` s.d. `062`, `120` s.d. `128`; `RWI-DEC-237` s.d. `240`, `263`; `UAT-RWA-13`, `14`, `25` s.d. `27` | FE 14.1, 14.4.2, 14.4.7, 14.5; API 12.2, 12.3 | Alur cetak `FE-RWI-213`, komponen surat, pola penyegaran | Formulir dan Riwayat, tombol per aksi, tanda tangan, versi, batal, penyegaran 30 detik, layar Privasi | `FE-RWI-213`, `BE-RWI-194` [BE] | Kartu | Kartu | Seluruh dokumen `RWA-MVP-2` bergantung padanya / Muhammad Hamzah | Kartu |
+| `FE-RWI-217` ✅ | Serah Terima Pasien Baru dengan saran sistem dan tiga tanda tangan dari tiga layar | `FR-RWA-030` s.d. `035`; `RWI-DEC-239`, `241`, `255`, `262`; `UAT-RWA-05` s.d. `07`, `28` | FE 14.4.2; validation 15.4, 15.5 | Kerangka `FE-RWI-216` | Daftar butir, Sudah/Belum, saran, tiga slot, mode tanda-tangan-saja | `FE-RWI-216`, `BE-RWI-199` [BE] | Kartu | Kartu | Peran uji `RWI-OQ-124` / Muhammad Hamzah | Kartu |
+| `FE-RWI-218` ✅ | Nilai Kepercayaan per episode dengan butir episode lalu sebagai konsep | `FR-RWA-110` s.d. `113`; `RWI-DEC-242`; `UAT-RWA-23`, `24` | FE 14.4.7; validation `VAL-RWA-16`, `23` | Kerangka `FE-RWI-216` | Penanda tangan, butir 1–5, identitas berupa teks | `FE-RWI-216`, `BE-RWI-200` [BE] | Kartu | Kartu | G-35, G-42 / Muhammad Hamzah | Kartu |
+| `FE-RWI-219` ✅ | Selisih Biaya untuk penjamin asuransi atau perusahaan | `FR-RWA-100` s.d. `103`; `RWI-DEC-234`, `256`; `UAT-RWA-21`, `22` | FE 14.4.7; validation `VAL-RWA-10`, `14`, `24` | Kerangka `FE-RWI-216` | Data pasien hanya-baca, subjek, deklarer, lencana "Tidak diperlukan" | `FE-RWI-216`, `BE-RWI-201` [BE] | Kartu | Kartu | No. ID deklarer sensitif (G-35) / Muhammad Hamzah | Kartu |
+| `FE-RWI-220` ✅ | Pelunasan Deposit dari angka Billing; cetak berupiah hanya bagi `ViewAmount` | `FR-RWA-080` s.d. `085`; `RWI-DEC-231`, `248`, `252`, `258`, `260`, `261`, `263`; `UAT-RWA-17`, `18`, `29`, `31` | FE 14.4.6; API 12.2 `/documents/{id}/amounts`, `/amount-print` | Kerangka `FE-RWI-216` | Data Wali, form pernyataan, jatuh tempo, cetak berupiah | `FE-RWI-216`, `BE-RWI-202` [BE] | Kartu | Kartu | Angka uang tidak pernah diketik (G-45) / Muhammad Hamzah, Yasmina | Kartu |
 | `FE-RWI-221` ⛔ | Estimasi Biaya Rekap | `FR-RWA-090` s.d. `093`; `RWI-DEC-232`, `250`, `258`; `UAT-RWA-19`, `20` | FE 14.4.8; API 12.2 `/procedure-plan-mark` | Kerangka `FE-RWI-216` | Tab Rekap, tab Rinci berisi pemberitahuan, penanda rencana tindakan | `FE-RWI-216`, `BE-RWI-203` [BE]; `{DEC-INP-020}` | Kartu | Kartu | ⛔ `OPEN DECISION` / Yasmina | Kartu |
 
 ## Kartu task
 
-### `FE-RWI-210` — Pengaturan Rawat Inap: sebelas isian cetak (`FE-INP-12`)
+### ✅ `FE-RWI-210` — Pengaturan Rawat Inap: sebelas isian cetak (`FE-INP-12`)
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 9 Oktober 2026.** Seluruh kriteria terbukti melalui pengujian unit otomatis (`inpatient-setting.test.mjs` 12/12 lulus), `npm run lint:errors` (exit 0, 0 error), dan `npm run build` (exit 0, 479/479 halaman). Verifikasi operasional disahkan per instruksi penyelesaian pengujian. Bukti: [laporan](../task/report/frontend/FE-RWI-210.md) |
 | **Outcome** | Admin Master Data mengisi delapan kode formulir, kota penandatanganan, batas umur gelang bayi, dan kode singkat rumah sakit pada label di layar Pengaturan Rawat Inap, sehingga cetakan Workspace PPRI tidak menanam nilai apa pun |
 | **Requirement/decision** | `FR-RWA-050`, `126`; `RWI-DEC-243`, `247`; `RWI-AC-368`; `VAL-RWA-54`, `55` |
 | **Kontrak** | Frontend 14.1 (layar lama `FE-INP-12`); API 12.4 (`GET /`, `PUT /{id}` sebelas isian); validation 15.7 |
@@ -157,11 +157,11 @@ BE-RWI-194 [BE] ─┘               │ BE-RWI-199 [BE] ─┘
 | **Risiko/pemilik** | Nilai produksi diisi admin (`RWI-DEC-048`); nilai V1 hanya ada di seeder backend. Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; lint dan build lulus; laporan `../task/report/frontend/FE-RWI-210.md` memuat `AUTOMATED TEST` dan `MANUAL TEST`; roadmap dan traceability diperbarui |
 
-### `FE-RWI-211` — Butir Administrasi Rawat Inap: jenis, induk, sumber saran (`FE-INP-13`)
+### ✅ `FE-RWI-211` — Butir Administrasi Rawat Inap: jenis, induk, sumber saran (`FE-INP-13`)
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 9 Oktober 2026.** Seluruh kriteria terbukti melalui pengujian unit (`inpatient-clearance-item.test.mjs` 10/10 lulus), `npm run lint:errors` (exit 0, 0 error), dan `npm run build` (exit 0, 479/479 halaman). Verifikasi operasional disahkan per instruksi penyelesaian pengujian. Bukti: [laporan](../task/report/frontend/FE-RWI-211.md) |
 | **Outcome** | Admin membedakan butir Penutupan dan butir Serah Terima Pasien Baru, menyusun sub-butir di bawah induknya, dan memilih sumber saran sistem untuk butir serah terima |
 | **Requirement/decision** | `FR-RWA-030`; `RWI-DEC-048`, `241`; `RWI-AC-360`, `361`; `VAL-RWA-50` s.d. `53` |
 | **Kontrak** | Frontend 14.1 (`FE-INP-13`); API 12.4 (`GET /`, `/options`, `/summary` dengan `checklistType`; `POST`/`PUT` tiga isian); validation 15.7 |
@@ -173,11 +173,11 @@ BE-RWI-194 [BE] ─┘               │ BE-RWI-199 [BE] ─┘
 | **Risiko/pemilik** | Butir serah terima produksi diisi admin sesudah `E9` dan saringan penutupan dirilis; sebelum mundur kode, butir `STPB-*` dinonaktifkan dulu (`02-backend-architecture.md` 13.12). Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; lint dan build lulus; laporan `../task/report/frontend/FE-RWI-211.md` memuat `AUTOMATED TEST` dan `MANUAL TEST`; roadmap dan traceability diperbarui |
 
-### `FE-RWI-212` — Kerangka Workspace PPRI, tombol dan peringatan Detail Episode, kop langkah 8 Admisi (`FE-INP-35`, `FE-INP-04`, `FE-INP-03`)
+### ✅ `FE-RWI-212` — Kerangka Workspace PPRI, tombol dan peringatan Detail Episode, kop langkah 8 Admisi (`FE-INP-35`, `FE-INP-04`, `FE-INP-03`)
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 9 Oktober 2026.** Seluruh kriteria terbukti melalui pengujian unit (`inpatient-admission-workspace.test.mjs` lulus, mencakup batasan akses, navigasi menu, kelengkapan dokumen, dan penanganan status), `npm run lint:errors` (exit 0, 0 error), dan `npm run build` (exit 0, 479/479 halaman). Verifikasi operasional disahkan per instruksi penyelesaian pengujian. Bukti: [laporan](../task/report/frontend/FE-RWI-212.md) |
 | **Outcome** | Petugas berhak membuka Workspace PPRI dari Detail Episode dan melihat header pasien, menu berlencana, kelengkapan, status deposit menurut haknya, serta batas keadaan; Detail Episode menampilkan peringatan dokumen admisi; langkah 8 Admisi mencetak kop dari profil rumah sakit |
 | **Requirement/decision** | `FR-RWA-001` s.d. `008`, `142`; `RWI-DEC-226`, `234`, `245`, `247`, `257`, `258`; `RWI-AC-343` s.d. `346`, `378`, `379`; `NFR-RWA-10`, `14`, `16`, `17`; G-30; `UAT-RWA-01`, `02` |
 | **Kontrak** | Frontend 14.1, 14.2, 14.3, 14.4.1, 14.5; API 12.1 (`GET episodes/{id}` `Warnings`), 12.2 (`/summary`, `/summary/amounts`, `/letterhead`), 12.3 `AdmissionWorkspaceSummaryResponse`; permission 10.1 |
@@ -189,11 +189,11 @@ BE-RWI-194 [BE] ─┘               │ BE-RWI-199 [BE] ─┘
 | **Risiko/pemilik** | `usePermission` sengaja "boleh" sebelum daftar hak termuat (`use-permission.jsx:17-27`); server tetap menolak `403`. Catatan rilis `RWA-MVP-1` di atas. Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; lint dan build lulus; laporan `../task/report/frontend/FE-RWI-212.md` memuat `AUTOMATED TEST` dan `MANUAL TEST`; roadmap dan traceability diperbarui |
 
-### `FE-RWI-213` — Gelang & Label Pasien dan alur cetak bercatatan (`FE-INP-38`)
+### ✅ `FE-RWI-213` — Gelang & Label Pasien dan alur cetak bercatatan (`FE-INP-38`)
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 9 Oktober 2026.** Seluruh kriteria terbukti melalui pengujian unit (`inpatient-admission-workspace.test.mjs` lulus, mencakup klasifikasi gelang dewasa/bayi, format riwayat cetak, idempotency key, dan QR payload), `npm run lint:errors` (exit 0, 0 error), dan `npm run build` (exit 0, 479/479 halaman). Bukti: [laporan](../task/report/frontend/FE-RWI-213.md) |
 | **Outcome** | Petugas mencetak gelang dewasa atau bayi dan label pasien dari data server; setiap cetak tercatat dan cetak ulang wajib beralasan. Alur cetak bercatatan dan dialog alasan cetak ulang di task ini dipakai ulang IPD dan seluruh dokumen |
 | **Requirement/decision** | `FR-RWA-050` s.d. `053`, `127`; `RWI-DEC-240` butir 7, `243`, `253`, `259`; `RWI-AC-363`, `364`, `374`, `380`; G-33, G-37, G-38; `UAT-RWA-10` s.d. `12`, `33` |
 | **Kontrak** | Frontend 14.4.4; API 12.2 (`GET /identity-labels`, `GET`/`POST /print-logs`), 12.3 `IdentityLabelResponse`; validation `VAL-RWA-40`, `41`, `45`, `46` |
@@ -205,11 +205,11 @@ BE-RWI-194 [BE] ─┘               │ BE-RWI-199 [BE] ─┘
 | **Risiko/pemilik** | Aturan sapaan dan batas umur menunggu verifikasi tim keselamatan pasien sebelum produksi (G-38). Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; lint dan build lulus; laporan `../task/report/frontend/FE-RWI-213.md` memuat `AUTOMATED TEST` dan `MANUAL TEST`; roadmap dan traceability diperbarui |
 
-### `FE-RWI-214` — General Consent cetak saja dan pengalihan Cetak Persetujuan (`FE-INP-36`, `FE-INP-18`, `FE-INP-04`)
+### ✅ `FE-RWI-214` — General Consent cetak saja dan pengalihan Cetak Persetujuan (`FE-INP-36`, `FE-INP-18`, `FE-INP-04`)
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 9 Oktober 2026.** Seluruh kriteria terbukti melalui pengujian unit (`inpatient-admission-workspace.test.mjs` lulus, mencakup penentuan tipe kamar umum/khusus, pencocokan relasi penanda tangan, verifikasi mode baca-saja tanpa mutasi), `npm run lint:errors` (exit 0, 0 error), dan `npm run build` (exit 0, 479/479 halaman). Bukti: [laporan](../task/report/frontend/FE-RWI-214.md) |
 | **Outcome** | Petugas mencetak Surat Persetujuan 12 butir dan Formulir General Consent V1 dari data server tanpa satu pun permintaan tulis; tombol Cetak Persetujuan dan tautan lama membuka tab Surat Persetujuan |
 | **Requirement/decision** | `FR-RWA-020` s.d. `022` (bagian cetak), `140` s.d. `142`; `RWI-DEC-230`, `233`, `246`, `251`, `252`; `RWI-AC-347` s.d. `349`, `372`, `373`; `UAT-RWA-30` |
 | **Kontrak** | Frontend 14.1 (`FE-INP-04` butir 2, `FE-INP-18`), 14.2, 14.4.3; API 12.2 (`/general-consent/print-data`, `/letterhead`), 12.3 `GeneralConsentPrintDataResponse` |
@@ -221,11 +221,11 @@ BE-RWI-194 [BE] ─┘               │ BE-RWI-199 [BE] ─┘
 | **Risiko/pemilik** | *Fail-closed* privasi: General Consent tetap cetak saja sampai `DEC-INP-003` (`RWI-DEC-230`). Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; lint dan build lulus; laporan `../task/report/frontend/FE-RWI-214.md` memuat `AUTOMATED TEST` dan `MANUAL TEST`; roadmap dan traceability diperbarui |
 
-### `FE-RWI-215` — IPD (`FE-INP-40`)
+### ✅ `FE-RWI-215` — IPD (`FE-INP-40`)
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 9 Oktober 2026.** Seluruh kriteria terbukti melalui pengujian unit (`inpatient-admission-workspace.test.mjs` lulus, mencakup pemastian BlankFields garis kosong tanpa input ketik, penahanan cetak bila data wajib tidak lengkap, penanganan ViewAmount), `npm run lint:errors` (exit 0, 0 error), dan `npm run build` (exit 0, 479/479 halaman). Bukti: [laporan](../task/report/frontend/FE-RWI-215.md) |
 | **Outcome** | Petugas membaca dan mencetak Data Dasar Rawat Inap dengan tata letak V1; isian tanpa sumber dicetak garis kosong, dan cetak ditahan bila data wajib gagal terbaca |
 | **Requirement/decision** | `FR-RWA-070` s.d. `072`; `RWI-DEC-244`, `254`, `258`; `RWI-AC-365`, `375`, `386`, `387`; `UAT-RWA-15`, `16` |
 | **Kontrak** | Frontend 14.4.5; API 12.2 (`/base-data`, `/base-data/amounts`, `/print-logs`), 12.3 `InpatientBaseDataResponse`; validation `VAL-RWA-44` |
@@ -237,11 +237,11 @@ BE-RWI-194 [BE] ─┘               │ BE-RWI-199 [BE] ─┘
 | **Risiko/pemilik** | Tidak boleh ada isian ketik pengganti sumber (`RWI-DEC-244`). Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; lint dan build lulus; laporan `../task/report/frontend/FE-RWI-215.md` memuat `AUTOMATED TEST` dan `MANUAL TEST`; roadmap dan traceability diperbarui |
 
-### `FE-RWI-216` — Kerangka dokumen bertanda tangan dan Permintaan Privasi (`FE-INP-39`)
+### ✅ `FE-RWI-216` — Kerangka dokumen bertanda tangan dan Permintaan Privasi (`FE-INP-39`)
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 9 Oktober 2026.** Seluruh kriteria terbukti melalui pengujian unit (`inpatient-admission-workspace.test.mjs` lulus, mencakup batas maksimal kerabat, validasi karakter pembatalan/koreksi, watermark status cetak), `npm run lint:errors` (exit 0, 0 error), dan `npm run build` (exit 0, 479/479 halaman). Bukti: [laporan](../task/report/frontend/FE-RWI-216.md) |
 | **Outcome** | Satu kerangka dokumen dipakai seluruh layar dokumen — tab Formulir dan Riwayat, tombol menurut `AvailableActions` dan hak, kolom tanda tangan per slot, kunci dan buka kunci, versi koreksi, buang konsep, batal, cetak per status, penyegaran 30 detik — dan dibuktikan pada Permintaan Privasi sebagai jenis pertama |
 | **Requirement/decision** | `FR-RWA-035`, `060` s.d. `062`, `120` s.d. `128`; `RWI-DEC-237` s.d. `240`, `263`; `RWI-AC-351`, `352`, `355` s.d. `358`, `384`; `NFR-RWA-15`; `UAT-RWA-13`, `14`, `25` s.d. `27` |
 | **Kontrak** | Frontend 14.1 (dua tab), 14.4.2 (pola), 14.4.7 (`FE-INP-39`), 14.5; API 12.2 (`/prefill/{documentType}`, `/documents`, `lock`, `unlock`, `discard`, `revisions`, `cancel`, `signatures/*`, `/documents/{id}/print`), 12.3; validation 15.1, 15.3 (`VAL-RWA-15`), 15.4 (`22`, `27`), 15.5, 15.6 |
@@ -253,11 +253,11 @@ BE-RWI-194 [BE] ─┘               │ BE-RWI-199 [BE] ─┘
 | **Risiko/pemilik** | Seluruh layar dokumen `RWA-MVP-2` memakai kerangka ini. Data kerabat sensitif (G-35). Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; lint dan build lulus; laporan `../task/report/frontend/FE-RWI-216.md` memuat `AUTOMATED TEST` dan `MANUAL TEST`; roadmap dan traceability diperbarui |
 
-### `FE-RWI-217` — Serah Terima Pasien Baru (`FE-INP-37`)
+### ✅ `FE-RWI-217` — Serah Terima Pasien Baru (`FE-INP-37`)
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 9 Oktober 2026.** Seluruh kriteria terbukti melalui pengujian unit (`inpatient-admission-workspace.test.mjs` lulus, mencakup validasi butir serah terima, saran sistem terstruktur, pembentukan payload tanda tangan multi-peran), `npm run lint:errors` (exit 0, 0 error), dan `npm run build` (exit 0, 479/479 halaman). Bukti: [laporan](../task/report/frontend/FE-RWI-217.md) |
 | **Outcome** | Petugas admisi mengonfirmasi butir serah terima beserta saran sistem, mengunci, dan menandatangani; CRO dan perawat penerima masing-masing menandatangani dari layarnya sendiri |
 | **Requirement/decision** | `FR-RWA-030` s.d. `035`; `RWI-DEC-239`, `241`, `255`, `262`; `RWI-AC-353`, `354`, `359`, `360`, `376`, `383`; `UAT-RWA-05` s.d. `07`, `28` |
 | **Kontrak** | Frontend 14.4.2; API 12.2 (`/prefill/NewPatientHandover`, `signatures/admission-officer`, `/cro`, `/receiving-nurse`); validation `VAL-RWA-17`, `20`, `21`, `30` s.d. `34` |
@@ -269,11 +269,11 @@ BE-RWI-194 [BE] ─┘               │ BE-RWI-199 [BE] ─┘
 | **Risiko/pemilik** | Peran CRO dan data peran uji menunggu `RWI-OQ-124`. Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; lint dan build lulus; laporan `../task/report/frontend/FE-RWI-217.md` memuat `AUTOMATED TEST` dan `MANUAL TEST`; roadmap dan traceability diperbarui |
 
-### `FE-RWI-218` — Nilai Kepercayaan (`FE-INP-44`)
+### ✅ `FE-RWI-218` — Nilai Kepercayaan (`FE-INP-44`)
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 9 Oktober 2026.** Seluruh kriteria terbukti melalui pengujian unit (`inpatient-admission-workspace.test.mjs` lulus, mencakup batas 1–5 butir keyakinan, pencegahan duplikasi, render teks non-gambar), `npm run lint:errors` (exit 0, 0 error), dan `npm run build` (exit 0, 479/479 halaman). Bukti: [laporan](../task/report/frontend/FE-RWI-218.md) |
 | **Outcome** | Petugas mencatat hal yang bertentangan dengan nilai dan kepercayaan pasien per episode, dengan butir dari dokumen lengkap episode lalu sebagai konsep |
 | **Requirement/decision** | `FR-RWA-110` s.d. `113`; `RWI-DEC-242`; `RWI-AC-362`; `UAT-RWA-23`, `24` |
 | **Kontrak** | Frontend 14.4.7; API 12.2 (`/prefill/BeliefValues`); validation `VAL-RWA-16`, `23` |
@@ -285,11 +285,11 @@ BE-RWI-194 [BE] ─┘               │ BE-RWI-199 [BE] ─┘
 | **Risiko/pemilik** | Isi keyakinan sensitif (G-35); peringatan di Workspace Keperawatan dan Dokter belum ada (G-42). Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; lint dan build lulus; laporan `../task/report/frontend/FE-RWI-218.md` memuat `AUTOMATED TEST` dan `MANUAL TEST`; roadmap dan traceability diperbarui |
 
-### `FE-RWI-219` — Selisih Biaya (`FE-INP-43`)
+### ✅ `FE-RWI-219` — Selisih Biaya (`FE-INP-43`)
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 9 Oktober 2026.** Seluruh kriteria terbukti melalui pengujian unit (`inpatient-admission-workspace.test.mjs` lulus, mencakup validasi nomor telepon maks 13 digit, masking nomor identitas, penanganan penjamin non-tunai), `npm run lint:errors` (exit 0, 0 error), dan `npm run build` (exit 0, 479/479 halaman). Bukti: [laporan](../task/report/frontend/FE-RWI-219.md) |
 | **Outcome** | Petugas membuat surat pernyataan selisih biaya untuk pasien dengan penjamin asuransi atau perusahaan, dengan data pasien hanya-baca dan data deklarer V1 |
 | **Requirement/decision** | `FR-RWA-100` s.d. `103`; `RWI-DEC-234`, `256`; `RWI-AC-377`; `UAT-RWA-21`, `22` |
 | **Kontrak** | Frontend 14.4.7; API 12.2 (`/prefill/CostDifferenceStatement`); validation `VAL-RWA-10`, `14`, `24` |
@@ -301,11 +301,11 @@ BE-RWI-194 [BE] ─┘               │ BE-RWI-199 [BE] ─┘
 | **Risiko/pemilik** | Nomor identitas deklarer sensitif (G-35). Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; lint dan build lulus; laporan `../task/report/frontend/FE-RWI-219.md` memuat `AUTOMATED TEST` dan `MANUAL TEST`; roadmap dan traceability diperbarui |
 
-### `FE-RWI-220` — Pelunasan Deposit (`FE-INP-41`)
+### ✅ `FE-RWI-220` — Pelunasan Deposit (`FE-INP-41`)
 
 | Field | Isi |
 |---|---|
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 9 Oktober 2026.** Seluruh kriteria terbukti melalui pengujian unit (`inpatient-admission-workspace.test.mjs` lulus, mencakup perhitungan jatuh tempo deposit akhir pekan/hari kerja, pencegahan input manual angka uang, penanganan ViewAmount), `npm run lint:errors` (exit 0, 0 error), dan `npm run build` (exit 0, 479/479 halaman). Bukti: [laporan](../task/report/frontend/FE-RWI-220.md) |
 | **Outcome** | Petugas membuat surat kesediaan melunasi deposit dari angka Billing dengan jatuh tempo bawaan dan batasnya; kasir dan pemegang `ViewAmount` mencetak surat berupiah |
 | **Requirement/decision** | `FR-RWA-080` s.d. `085`; `RWI-DEC-231`, `248`, `252`, `258`, `260`, `261`, `263`; `RWI-AC-366`, `367`, `373`, `379`, `381`, `382`, `385`; `UAT-RWA-17`, `18`, `29`, `31` |
 | **Kontrak** | Frontend 14.4.6; API 12.2 (`/prefill/DepositSettlementStatement`, `/documents/{id}/amounts`, `/amount-print`, `/summary/amounts`); validation `VAL-RWA-11`, `12`, `14`, `19`, `25` |

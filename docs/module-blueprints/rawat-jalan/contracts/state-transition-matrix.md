@@ -162,3 +162,40 @@ bertanggal lampau. Tabel berikut mencatat transisi yang terjadi agar pengujian d
 | Simpan konsultasi yang sudah `Completed`/`Cancelled` | `400` "Status konsultasi tidak valid untuk finalisasi." |
 | Batalkan konsultasi yang sudah `Completed` | `400` "Konsultasi yang sudah completed tidak dapat dibatalkan." |
 | Simpan bila antrean bukan `InConsultation` | `400` "Konsultasi dokter belum dimulai." |
+
+
+# Amendment PM-B — `RJ-DOC-REFERRAL-001@1.0.0`
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `RJ-DOC-REFERRAL-001@1.0.0` — `approved` |
+| Owner | Sukma Giri |
+| `approved_by` / `approved_at` | Sukma Giri / 2026-10-08 |
+| `input_revision` | Decision log *Amendment PM-B* (`RJ-DOC-DEC-068`..`082`) |
+
+### Rincian rujukan (`RegEncounterReferral`)
+
+`IsComplete` bukan status alur, melainkan hasil hitung (`PM.3.1`). Yang mengatur boleh-tidaknya
+perubahan adalah status kunjungan.
+
+| Status kunjungan | Lengkapi / koreksi rincian | Tambah / hapus berkas | Ubah unit tujuan |
+|---|---|---|---|
+| `Draft` (0) – `WaitingForDoctor` (5) | Ya | Ya | Tidak (`RJ-VAL-PM-10`) |
+| `InConsultation` (6) – `Completed` | Tidak (`RJ-VAL-PM-09`) | Tidak | Tidak |
+| `Cancelled`, `NoShow` | Tidak | Tidak | Tidak |
+
+| Transisi `IsComplete` | Pemicu | Jejak |
+|---|---|---|
+| (tidak ada) → `false` | Kunjungan Kiosk dibuat; atau Lab terdaftar tetapi `PUT` belum berhasil | — |
+| (tidak ada) → `true` | Kunjungan petugas dengan isian lengkap dan berkas terunggah | — |
+| `false` → `true` | `PUT` melengkapi isian / unggah berkas | `RegEncounterReferralRevision` `Completed` |
+| `true` → `false` | Berkas terakhir dihapus | `DocumentRemoved` |
+| `true` → `true` | Koreksi isian | `Corrected` |
+
+### Penjamin asuransi baru dengan scan
+
+| Keadaan | Hasil |
+|---|---|
+| Tanpa `cardScan` (masa transisi) | Tersimpan seperti sekarang |
+| `cardScan` cocok | Tersimpan |
+| `cardScan` tidak cocok / tidak lengkap | Tidak tersimpan (`RJ-VAL-PM-01`/`02`); boleh dicoba lagi |

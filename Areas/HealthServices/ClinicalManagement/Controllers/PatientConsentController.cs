@@ -1091,7 +1091,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             if (result.QueueId.HasValue)
             {
-                var queue = await _dbContext.Set<TrxQueue>()
+                var queue = await _dbContext.Set<RegQueue>()
                     .AsNoTracking()
                     .FirstOrDefaultAsync(x => x.Id == result.QueueId.Value && !x.IsDelete);
 

@@ -264,7 +264,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
 
         public RegPatientEncounter? Encounter { get; set; }
 
-        public TrxQueue? Queue { get; set; }
+        public RegQueue? Queue { get; set; }
 
         public TrxPatientAssessment? PatientAssessment { get; set; }
 

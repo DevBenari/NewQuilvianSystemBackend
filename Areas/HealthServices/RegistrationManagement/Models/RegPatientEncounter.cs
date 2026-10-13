@@ -33,7 +33,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         /// <summary>
         /// Ruangan pelayanan yang digunakan pada encounter, misalnya ruang konsultasi dokter.
         /// Disimpan pada encounter agar seluruh antrean dan proses klinis menggunakan konteks
-        /// ruangan yang sama tanpa menduplikasi RoomId pada TrxQueue.
+        /// ruangan yang sama tanpa menduplikasi RoomId pada RegQueue.
         /// </summary>
         public Guid? RoomId { get; set; }
 
@@ -207,6 +207,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         /// </summary>
         [MaxLength(100)]
         public string? RegistrationIdempotencyKey { get; set; }
+
+        /// <summary>Kunjungan asal transfer; catatan klinis tetap pada kunjungan ini.</summary>
+        public Guid? SourceEncounterId { get; set; }
+        public Guid? AdmissionTransferId { get; set; }
+        [MaxLength(20)]
+        public string? AdmissionTransferSourceType { get; set; }
+        public RegPatientEncounter? SourceEncounter { get; set; }
 
         // =========================
         // NAVIGATION

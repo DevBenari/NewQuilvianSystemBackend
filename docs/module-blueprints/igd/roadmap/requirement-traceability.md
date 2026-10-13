@@ -8,7 +8,7 @@ roadmap_revision: 3
 wave: "Dikoreksi 2026-09-15: MVP-1, MVP-2, R3.7 selesai; MVP-0, MVP-3, MVP-4, MVP-5 sebagian; MVP-6 terblokir BE-IGD-039"
 status: ACTIVE
 status_synced_at: "2026-09-15 — backend e89907c5, frontend 43adae648; IGD-DEC-110 sampai IGD-DEC-115"
-planning_updated_at: "2026-09-30 — plan-module-delivery (docs saja): R3.14 diperluas — BE-IGD-061 ke FR-IGD-092/093 dan AT-IGD-192/193; BE-IGD-062 diperiksa ulang (IGD-DEC-176); FE-IGD-042 baru (IGD-DEC-177); IGD-DEC-171 sampai IGD-DEC-177 ditelusuri; IGD-OQ-111 dicatat. Sebelumnya 2026-09-22 (penutup) — plan-module-delivery FINAL (docs saja): R3.13 diselaraskan — BE-IGD-051..059 dan FE-IGD-035..040 ditelusuri ke FR-IGD-069..085 dan AT-IGD-166..185; kontrak encounter-first disetujui IGD-DEC-157 dan terkunci hash; IGD-DEC-157 sampai IGD-DEC-162; IGD-OQ-108 dibuka. Lihat bagian R3.13. Sebelumnya 2026-09-22 — plan-module-delivery (docs saja): BE-IGD-051..056 dan FE-IGD-035..037 (encounter-first, pasien tanpa identitas, dokter jaga); IGD-DEC-139 sampai IGD-DEC-141; IGD-OQ-093 ditutup [dikoreksi: superseded sebagian, realisasi BE-IGD-053]; IGD-OQ-094 sampai IGD-OQ-101; IGD-EV-140 sampai IGD-EV-144. Kontrak tidak dinaikkan pass ini. Lihat bagian R3.13. Sebelumnya 2026-09-16 (keempat) — plan-module-delivery: FE-IGD-031 dan FE-IGD-032 (tata letak riwayat pada ruang kerja pemeriksaan); IGD-DEC-133 dan IGD-DEC-134; evidence 2026-09-16-tata-letak-riwayat-pemeriksaan.md. Nol perubahan kontrak, nol perubahan backend, nol requirement didesain ulang. Lihat bagian R3.8. Sebelumnya 2026-09-16 (ketiga) — penyelarasan kesiapan EPIC IGD-04 sebelum coding: IGD-DEC-129 sampai IGD-DEC-132; API naik 0.7.0 (aditif, proyeksi nama §3.2 + nama canonical RegPatientEncounter); IsActive dihapus dari rancangan EmgDoctorAssignment; acceptance BE-IGD-044/045 dan FE-IGD-027 diperbarui. Nol requirement didesain ulang. Lihat bagian R3.7. Sebelumnya 2026-09-16 (kedua) — FE-IGD-029 dan FE-IGD-030 (kunjungan keluar dari Arrived); IGD-DEC-127 dan IGD-DEC-128; nol perubahan kontrak, bagian R3.6. Sebelumnya 2026-09-16: BE-IGD-046 dan FE-IGD-028, IGD-DEC-122 sampai IGD-DEC-126, kontrak API dan validation 0.6.0 (bagian R3.5); 2026-09-15 (kedua): BE-IGD-040..045, FE-IGD-019, FE-IGD-023..027"
+planning_updated_at: "2026-10-11 (EPIC IGD-12, MVP-10) — plan-module-delivery (docs saja) pada backend c7e523fd dan frontend 3335f4b53: bagian EPIC IGD-12 baru — BE-IGD-056 dan FE-IGD-037 disusun ulang, FR-IGD-106 sampai 108 ke task dan AT-IGD-214 sampai 220; baris R3.13 diselaraskan. Sebelumnya: 2026-10-06 (sore, MVP-9) — plan-module-delivery (docs saja) pada backend e3cbc58d (source identik dengan 43dab6da) dan frontend 6680278a2: bagian EPIC IGD-14 Ruang Kerja Dokter IGD baru — 21 task (backend R3.16 BE-IGD-065 sampai BE-IGD-071, frontend R3.14 FE-IGD-045 sampai FE-IGD-058), FR-IGD-096 sampai FR-IGD-105 ke task dan AT-IGD-200 sampai AT-IGD-213, DoD PRD §10.4 ke task, keputusan IGD-DEC-220 sampai IGD-DEC-231 ke task; coverage gap FR-IGD-102 (IGD-OQ-117) dan gizi FR-IGD-101 (IGD-OQ-119); kontrak API 0.15.0, validation 0.14.0, state 0.10.0, permission/audit 0.8.0, integration 0.6.0 (IGD-DEC-230); manifest bagian 0n.1. Sebelumnya 2026-10-05 (sore, sinkronisasi sesudah amandemen) — plan-module-delivery (docs saja) pada backend 8d81d361 + working tree EmergencyUnitAuthorityService.cs, frontend 553501053 (nol berkas IGD berubah sejak 57b1d360f): amandemen IGD-DEC-205 approved (IGD-DEC-209; validation 0.13.0, state 0.9.0; manifest bagian 0m). BE-IGD-041 terblokir menjadi sebagian (7 dari 17 acceptance pada source; siap dikerjakan ulang); FE-IGD-044 terblokir menjadi tanpa tanda (gelombang 2 R3.13.2). Skenario uji pesanan memakai AT-IGD-198 dan AT-IGD-199 (PRD §9) menggantikan pola AT-IGD-187; IGD-DEC-209 masuk tabel keputusan ke task. Nol task baru; manifest bagian 0m.1. Sebelumnya 2026-10-05 (sore) — plan-module-delivery (docs saja) pada backend 8d81d361 + working tree EmergencyUnitAuthorityService.cs, frontend 57b1d360f: BE-IGD-041 diperluas (FR-IGD-051, FR-IGD-087, FR-IGD-088; IGD-DEC-203, IGD-DEC-205; terblokir amandemen validation §5.1 dan §6 aturan 4); FE-IGD-043 (FR-IGD-053, FR-IGD-054 sisi layar; IGD-DEC-202) dan FE-IGD-044 (FR-IGD-045 sampai FR-IGD-048, FR-IGD-050, FR-IGD-051 sisi layar; IGD-DEC-204 sampai IGD-DEC-206) ditambahkan; BE-IGD-064 ditambahkan (IGD-OQ-116 dijawab IGD-DEC-207; tanpa FR, dijejak ke API §1); IGD-DEC-200 sampai IGD-DEC-208 ditelusuri; coverage gap pesanan internal yang belum pernah dibentuk dicatat; bagian Pesanan tanpa sikap. Sebelumnya 2026-10-05 — plan-module-delivery (docs saja) pada backend 8d81d361, frontend 57b1d360f: BE-IGD-039 ditulis ulang dan siap dikerjakan; EPIC IGD-08 (FR-IGD-053 sampai FR-IGD-059) tertelusuri penuh ke acceptance 1-13; IGD-DEC-190 sampai IGD-DEC-199 ditelusuri; IGD-OQ-114, IGD-OQ-115 dicatat tidak menahan; bagian EPIC IGD-08 kewenangan unit. Sebelumnya 2026-09-30 — plan-module-delivery (docs saja): R3.14 diperluas — BE-IGD-061 ke FR-IGD-092/093 dan AT-IGD-192/193; BE-IGD-062 diperiksa ulang (IGD-DEC-176); FE-IGD-042 baru (IGD-DEC-177); IGD-DEC-171 sampai IGD-DEC-177 ditelusuri; IGD-OQ-111 dicatat. Sebelumnya 2026-09-22 (penutup) — plan-module-delivery FINAL (docs saja): R3.13 diselaraskan — BE-IGD-051..059 dan FE-IGD-035..040 ditelusuri ke FR-IGD-069..085 dan AT-IGD-166..185; kontrak encounter-first disetujui IGD-DEC-157 dan terkunci hash; IGD-DEC-157 sampai IGD-DEC-162; IGD-OQ-108 dibuka. Lihat bagian R3.13. Sebelumnya 2026-09-22 — plan-module-delivery (docs saja): BE-IGD-051..056 dan FE-IGD-035..037 (encounter-first, pasien tanpa identitas, dokter jaga); IGD-DEC-139 sampai IGD-DEC-141; IGD-OQ-093 ditutup [dikoreksi: superseded sebagian, realisasi BE-IGD-053]; IGD-OQ-094 sampai IGD-OQ-101; IGD-EV-140 sampai IGD-EV-144. Kontrak tidak dinaikkan pass ini. Lihat bagian R3.13. Sebelumnya 2026-09-16 (keempat) — plan-module-delivery: FE-IGD-031 dan FE-IGD-032 (tata letak riwayat pada ruang kerja pemeriksaan); IGD-DEC-133 dan IGD-DEC-134; evidence 2026-09-16-tata-letak-riwayat-pemeriksaan.md. Nol perubahan kontrak, nol perubahan backend, nol requirement didesain ulang. Lihat bagian R3.8. Sebelumnya 2026-09-16 (ketiga) — penyelarasan kesiapan EPIC IGD-04 sebelum coding: IGD-DEC-129 sampai IGD-DEC-132; API naik 0.7.0 (aditif, proyeksi nama §3.2 + nama canonical RegPatientEncounter); IsActive dihapus dari rancangan EmgDoctorAssignment; acceptance BE-IGD-044/045 dan FE-IGD-027 diperbarui. Nol requirement didesain ulang. Lihat bagian R3.7. Sebelumnya 2026-09-16 (kedua) — FE-IGD-029 dan FE-IGD-030 (kunjungan keluar dari Arrived); IGD-DEC-127 dan IGD-DEC-128; nol perubahan kontrak, bagian R3.6. Sebelumnya 2026-09-16: BE-IGD-046 dan FE-IGD-028, IGD-DEC-122 sampai IGD-DEC-126, kontrak API dan validation 0.6.0 (bagian R3.5); 2026-09-15 (kedua): BE-IGD-040..045, FE-IGD-019, FE-IGD-023..027"
 generated_at: "2026-08-24"
 aligned_at: "2026-08-26 (correction pass revisi 6)"
 input_revisions:
@@ -177,7 +177,7 @@ Ditambahkan 26 Agustus 2026. Bagian di atas menelusuri `MVP-0` dan tetap berlaku
 | `BE-IGD-032` | `FR-IGD-023`…`035` | `IGD-05` | `MVP-4` | State §2–4 — **`draft`** | — | ✅ | [be-igd-021-035](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
 | `BE-IGD-033` | `FR-IGD-036`…`043` | `IGD-06` | `MVP-4` | State, validation §4 — **`draft`** | — | ✅ | [be-igd-021-035](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
 | `BE-IGD-034` | `FR-IGD-036`…`043` | `IGD-06` | `MVP-4` | Validation §4, §4.1 — **`draft`** | — | ✅ | [be-igd-021-035](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
-| `BE-IGD-035` | `FR-IGD-044`…`052` | `IGD-07` | `MVP-5` | Validation §5 — **`draft`** | **Cakupan "pesanan" belum pasti** sebelum penunjang medis punya blueprint | 🟡 kriteria 2 (`IGD-EV-122`); kewenangan unit tujuan (`BE-IGD-039`) | [be-igd-021-035](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
+| `BE-IGD-035` | `FR-IGD-044`…`052` | `IGD-07` | `MVP-5` | Validation §5 — **`draft`** | **Cakupan "pesanan" belum pasti** sebelum penunjang medis punya blueprint | 🟡 kriteria 2 (`IGD-EV-122`); kewenangan unit tujuan (`BE-IGD-039`). *Dinilai ulang 6 Oktober 2026 (`BE-IGD-041` acceptance 7):* `BE-IGD-039` ✅ sehingga penghalang kewenangan tercabut; kriteria 2 terbukti runtime 6 Oktober 2026 lewat `041-S2` dan `041-S4` (`IGD-DEC-210`); tetap 🟡 — approval Clinical Governance `IGD-DEC-100`/`101` belum tercatat | [be-igd-021-035](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
 | `FE-IGD-013` | `FR-IGD-060`…`064` | `IGD-09` | `MVP-3` | — | `BE-IGD-027`, `028`; kredensial petugas | 🟡 uji lewat layar belum | [fe-igd-012-018](../task/report/frontend/fe-igd-012-018-penyelesaian-antarmuka.md) |
 | `FE-IGD-014` | `FR-IGD-001`…`012` | `IGD-01`, `02` | `MVP-1`, `MVP-2` | — | `BE-IGD-023`, `025` | ✅ **Dinilai ulang 21 September 2026 (malam) — atas penilaian pemilik**, sesudah `FE-IGD-034` ✅ (kriteria 2 kini bersumber pra-cek `BE-IGD-050`; "membukanya" termasuk pernyataan pemilik bahwa uji layar lulus) — **celah `IGD-OQ-093` `open` dinyatakan**: tidak berarti tidak ada encounter yatim dalam segala keadaan (`IGD-DEC-138`, `IGD-EV-123` butir 1). *Riwayat:* 🟡 kriteria 2 di source, hasil klik belum dikonfirmasi | [FE-IGD-014](../task/report/frontend/FE-IGD-014.md) |
 | `FE-IGD-015` | `FR-IGD-023`…`035` | `IGD-05` | `MVP-4` | — | Rilis serentak `BE-IGD-031` | ✅ | [fe-igd-012-018](../task/report/frontend/fe-igd-012-018-penyelesaian-antarmuka.md) |
@@ -198,7 +198,7 @@ Ditambahkan 26 Agustus 2026. Bagian di atas menelusuri `MVP-0` dan tetap berlaku
 > | `BE-IGD-036` | `FR-IGD-060` (jalur simpan terbukti) | ✅ | [be-igd-036-039](../task/report/backend/be-igd-036-039-penerapan-migration-pemindahan-master-dan-audit-kesiapan.md) |
 > | `BE-IGD-037` | — (struktur modul) | ✅ | Sama |
 > | `BE-IGD-038` | `FR-IGD-060`, `FR-IGD-064` (kolom respons) | ✅ | Sama |
-> | `BE-IGD-039` | `FR-IGD-053`…`059` | ⛔ Security/Privacy owner | Sama |
+> | `BE-IGD-039` | `FR-IGD-053`…`059` | ✅ 5 Oktober 2026 — atas penilaian pemilik (`IGD-DEC-201`); acceptance 3, 4, 5, 6, 11 dikecualikan (lihat bagian *`EPIC IGD-08` — kewenangan unit*). *Sebelumnya: 🟡 Implementation Complete; sebelumnya lagi ⛔ Security/Privacy owner* | [BE-IGD-039](../task/report/backend/BE-IGD-039.md) |
 > | `FE-IGD-019` | `FR-IGD-060` | ✅ — kartu susulan ditambahkan 15 September 2026 (lihat R3.4) | [fe-igd-012-018](../task/report/frontend/fe-igd-012-018-penyelesaian-antarmuka.md) |
 > | `FE-IGD-020` | — (route master) | ✅ | [fe-igd-020-021](../task/report/frontend/fe-igd-020-021-route-master-igd-dan-kolom-kesimpulan.md) |
 > | `FE-IGD-021` | — (kolom kesimpulan) | ✅ | Sama |
@@ -221,7 +221,8 @@ Diuraikan pada revisi roadmap berikutnya, setelah `MVP-3` selesai.
 > dipindahkan. Tulisan `FR-IGD-016`…`022` pada `IGD-DEC-114`, pada catatan di atas, dan pada
 > tabel bagian 5 dikoreksi di sini tanpa mengubah makna requirement. `EPIC IGD-04` kini
 > dipecah menjadi `BE-IGD-044`, `BE-IGD-045`, dan `FE-IGD-027` — lihat R3.4.
-> `EPIC IGD-08` kini sebagian tertelusuri lewat `BE-IGD-039` (⛔).
+> `EPIC IGD-08` kini sebagian tertelusuri lewat `BE-IGD-039` (⛔). *5 Oktober 2026:* tertelusuri **penuh** —
+> `FR-IGD-053`…`059` dipetakan ke acceptance 1–13 `BE-IGD-039`, yang kini siap dikerjakan.
 
 ## R3.3 Tiga area tanpa requirement sama sekali
 
@@ -260,7 +261,7 @@ Empat keadaan dibedakan dengan tegas:
 | --- | --- | --- | --- | :-: | :-: | :-: | :-: |
 | `BE-IGD-017` (tindak lanjut) | — (perbaikan build) | Laporan tracked historis `BE-IGD-017.md`; nol source | — | — | Ya | Source: ya (26 Agt). Laporan: **belum** | Historis (26 Agt), tidak dapat diulang |
 | `BE-IGD-040` | `IGD-DEC-115`, `IGD-DEC-119`; **coverage gap: tanpa FR** | `EmergencyObservationController.UpdateObservationStatus`: `Completed` → `CompletionSummary`; batas 1000 karakter `400` | `IGD-DEC-115` ✅, `IGD-DEC-119` ✅ | Ya | Ya | **Ya** ✅ 15 September 2026 — kriteria 1–7 ke source; delta pesan catatan > 2000 karakter tercatat; build **Not Verified** (diserahkan ke Rizki) — [laporan](../task/report/backend/BE-IGD-040.md) | **Belum** — uji API manual contoh 1–6 belum dijalankan |
-| `BE-IGD-041` 🟡 | `FR-IGD-051`; `IGD-DEC-118` | `EmergencyDispositionService.ValidateVisitClosureAsync` memakai `EmergencyDepartureService.AmbilPesananPenahanPenutupanAsync`; pesan menyebut pesanan. Menutup kriteria 2 `BE-IGD-035` | `IGD-DEC-118` ✅ | Ya | Ya | **Sebagian** — 16 September 2026, [laporan](../task/report/backend/BE-IGD-041.md); ketujuh kriteria terpetakan ke source, `dotnet build` dan uji API belum dijalankan | Belum |
+| `BE-IGD-041` ✅ | `FR-IGD-051`; `IGD-DEC-118`. *5 Oktober 2026:* `IGD-DEC-203`, `205`, `209` — lihat bagian *Pesanan tanpa sikap* di akhir dokumen | `EmergencyDispositionService.ValidateVisitClosureAsync` memakai `EmergencyDepartureService.AmbilPesananPenahanPenutupanAsync`; pesan menyebut pesanan. Menutup kriteria 2 `BE-IGD-035`. *5 Oktober 2026:* penahan ikut menghitung pesanan tanpa sikap; pesanan pada kepergian yang dibatalkan tidak dihitung | `IGD-DEC-118` ✅; `IGD-DEC-203` ✅; amandemen validation §5.1 dan §6 aturan 4 (`IGD-DEC-205`) ✅ — `IGD-DEC-209`, validation `0.13.0`; *sebelumnya ⛔* | Ya | Ya — **diperluas 5 Oktober 2026 (sore)**, acceptance 8–17; dibuka sesudah amandemen pada hari yang sama | **Ya** — 6 Oktober 2026: perluasan selesai di source dan dibuild (laporan bagian 9). *Sebelumnya:* **Sebagian** — 16 September 2026, [laporan](../task/report/backend/BE-IGD-041.md); ketujuh kriteria terpetakan ke source, `dotnet build` dan uji API belum dijalankan. *6 Oktober 2026:* perluasan selesai di source — `EmergencyDepartureService.cs` +17/−8, QBE Strict `PASS`, acceptance 1–16 terpetakan (laporan bagian 9); build pemilik DLL 08.30.28 WIB | **Ya** — 6 Oktober 2026 (sore): 17 dari 17 acceptance terbukti — acceptance 14 dan 15 pada putaran bersama `FE-IGD-044` (`041-S9`, `S10`, `S11a`, `S11b`; `IGD-DEC-218`, laporan bagian 9.12). *Sebelumnya:* sebagian — uji API 6 Oktober 2026 (`041-S1`…`S8`, `IGD-DEC-210`): 15 dari 17 (`IGD-DEC-211`) |
 | `BE-IGD-042` | `FR-IGD-001`, `FR-IGD-002`; `IGD-DEC-074`, `IGD-DEC-109`, `IGD-DEC-120` | `EmergencyVisitService.PeriksaJenisEncounter` menolak `Outpatient` | ⛔ **OWNER DATA CONFIRMATION** — jumlah `EmgVisit` aktif dengan `EncounterType.Outpatient`; `IGD-DEC-120` ✅ | Ya | Ya — **⛔ BLOCKED** | Belum | Belum |
 | `BE-IGD-043` | `IGD-DEC-112` | Laporan tracked `BE-IGD-043.md` atas `f76ebaab`; nol source | — | Ya | Ya | Source: ya (28 Agt). Laporan: **belum** | Belum |
 | `BE-IGD-044` ✅ | `FR-IGD-017`, `FR-IGD-019`; `IGD-DEC-082` (**`approved` 17 Sep 2026**), `IGD-DEC-116`, `IGD-DEC-130` | Tabel `EmgDoctorAssignment` tanpa `IsActive` + unique bersyarat `EffectiveTo IS NULL` + pengisian data lama; migration oleh Rizki | `MVP-1` ✅, `IGD-DEC-116` ✅ | **Ya** — `IGD-DEC-082` approved 17 Sep 2026 | Ya | **Selesai** — 21 September 2026: seluruh enam acceptance terpenuhi. Acceptance 4 dikerjakan `BE-IGD-048` ✅; acceptance 5 (`Down` asli di basis data terpisah) terbukti ([bukti](../evidence/2026-09-21-uji-down-migration-be-igd-044.md), [laporan](../task/report/backend/BE-IGD-044.md)) | Belum |
@@ -298,7 +299,7 @@ Enam dari enam requirement `EPIC IGD-04` kini punya task. `FR-IGD-022` **bukan**
 | `BE-IGD-040` dan `FE-IGD-024` tanpa `FR-IGD-*` | Penutupan observasi adalah kapabilitas reuse (`IGD-CAP-26`) tanpa requirement tertulis; dijejak ke `IGD-DEC-115`/`119`/`121` |
 | Uji `AT-IGD-124`…`129` tanpa automated test | Proyek test dihapus; bukti pengganti berupa uji API manual (`IGD-DEC-110`) |
 | Layar resusitasi IGD | Tanpa ID task atas instruksi owner (`IGD-EV-111`) |
-| Layar baca/aksi `order-items` | Tanpa ID task atas instruksi owner (`IGD-EV-109`); aksi tulis terhalang `BE-IGD-039` |
+| Layar baca/aksi `order-items` | Tanpa ID task atas instruksi owner (`IGD-EV-109`); aksi tulis terhalang `BE-IGD-039`. *5 Oktober 2026 (sore):* dicabut sebagian (`IGD-DEC-204`) — baca dan penetapan sikap menjadi `FE-IGD-044`; terima/tolak oleh unit penerima tetap gap. `BE-IGD-039` ✅ |
 | ~~Teks berkas kontrak belum diselaraskan~~ | **Ditutup 15 September 2026** — API dan validation naik ke `0.5.0`, lalu `0.6.0` pada 16 September 2026; lihat manifest bagian 0c dan 0d |
 
 ---
@@ -532,13 +533,13 @@ Dua keputusan pemilik atas temuan gerbang backlog frontend. **`BE-IGD-049` dan `
 | ✅ `BE-IGD-053` | `FR-IGD-069`, `071`…`074`; `IGD-DEC-139`, `144`…`146`; realisasi `IGD-OQ-093` | Penjaga di `CreateEncounterCoreAsync` (Emergency saja), kunci per pasien, override tercatat, tanpa antrean; `POST /emergency-visits` bertransaksi; `active-episode` + `encounter`; 1 tabel + migration Rizki | API §8.1, §8.2, §8.3.6; val §10.1 a.2–7; int §5.2–5.4 | `BE-IGD-050` ✅, `BE-IGD-052` ✅, `BE-IGD-055` ✅ | Ya | Ya | **Ya — 1 Oktober 2026**: source (9 berkas) + migration `20261001023520` diterapkan ke dev ([laporan](../task/report/backend/BE-IGD-053.md)) | **Ya — 1 Oktober 2026, atas penilaian pemilik**: uji API S1–S12 `PASS` (bukti mentah diperiksa agent); `Down()` berpenjaga lulus uji terpisah; alur loket lewat layar terbukti `PASS` lewat uji layar `FE-IGD-038` U1. Bukan UAT |
 | ✅ `BE-IGD-054` | `FR-IGD-070`; `IGD-DEC-139` b.2, `142`, `143`, `144` | `GET triage-queue` terpadu, halaman di basis data | API §8.3.1 | `BE-IGD-051` ✅ | Ya | Ya | **Ya — 23 September 2026** ([laporan](../task/report/backend/BE-IGD-054.md)) | **Ya — 24 September 2026, atas penilaian pemilik** (sebelas skenario §5.3; nol diamati agent; jumlah warning build tidak dilaporkan). *Sebelumnya: tidak — build dan uji API belum* |
 | ✅ `BE-IGD-055` | `FR-IGD-075`…`077`, `085`; `IGD-DEC-143`, `147`, `151`, `161` | `POST start-triage` (Triage/ImmediateCare), idempoten; lahir `FindOpenEpisodeAsync`, `LockPatientEpisodeAsync`; 3 kolom + migration `20260923021224` | API §8.3.2, §8.3.4; val §10.2; state §8.1, §8.3 | `BE-IGD-025` ✅, `BE-IGD-051` ✅ | Ya | Ya | **Ya — 23 September 2026**; delta `IGD-DEC-179` **1 Oktober 2026**: lima ruas kunjungan opsional pada `start-triage`, 2 berkas source, QBE checker `PASS` ([laporan](../task/report/backend/BE-IGD-055.md) bagian 8) | **Ya — 2 Oktober 2026**: D1–D6 6 dari 6 pada bukti mentah; S1–S15 atas penilaian pemilik (23 September 2026) |
-| `BE-IGD-056` | `FR-IGD-016`…`021`; `IGD-DEC-141` | Dibekukan | **Belum ada** | `BE-IGD-045` ✅; ⛔ `IGD-OQ-102`; ⛔ `IGD-OQ-103` | **Tidak** — `S7` | Sebagian (dibekukan) | Tidak | Tidak |
+| ✅ `BE-IGD-056` | `FR-IGD-016`…`021`; `IGD-DEC-141`; **sejak 11 Oktober 2026** `FR-IGD-106`…`108`, `IGD-DEC-237`…`240` | **Disusun ulang 11 Oktober 2026** — lihat bagian `EPIC IGD-12` | API `0.16.0` §11 | `BE-IGD-045` ✅; `IGD-OQ-102`, `103` **dijawab** | **Ya** — 11 Oktober 2026 | Ya | **Ya** — 11 Oktober 2026 ([laporan](../task/report/backend/BE-IGD-056.md)); build berhasil; migration `20261011052215` diterapkan ke dev; warning build belum dilaporkan | **Ya** — 11 Oktober 2026 (malam): 9 dari 9 acceptance sesudah uji ulang R-01…R-07 (laporan §9); 1, 2, 8 dengan delta, 7 dengan pengecualian `IGD-DEC-260` |
 | ✅ `BE-IGD-057` | `FR-IGD-079`; `IGD-DEC-142` | `POST no-show`, aksi `EmergencyVisit : NoShow` | API §8.3.3; val §10.3; perm §7.1 | `BE-IGD-055` | Ya | Ya | **Ya — 1 Oktober 2026**: source ditulis (3 berkas), QBE checker `PASS`, build pemilik berhasil. Batas alasan 250 (`IGD-DEC-178`) ([laporan](../task/report/backend/BE-IGD-057.md)) | **Ya — 2 Oktober 2026**: S1–S7, S9, S10 (1 Oktober) dan S8 ulang (3 putaran serentak) terbukti pada bukti mentah |
 | ✅ `BE-IGD-058` | `FR-IGD-078`, `083`; `IGD-DEC-152`, `154`, `159` | `PATCH {id}/arrival-time`; `PUT` mengunci tiga ruas | API §8.3.4, §8.3.5; val §10.4 | `BE-IGD-055` | Ya | Ya | **Ya — 1 Oktober 2026**: source ditulis (3 berkas), QBE checker `PASS`, build pemilik berhasil ([laporan](../task/report/backend/BE-IGD-058.md)) | **Ya — 1 Oktober 2026**: uji API S1–S9 terbukti 9 dari 9 pada bukti mentah (JSON, skrip, log backend diperiksa agent). Bukan UAT |
 | ✅ `BE-IGD-059` | `FR-IGD-082`; `IGD-DEC-153` | `PATCH …/status` menolak Emergency; `…/cancel` hanya sebelum kunjungan lahir | API §8.1 no.3–4; val §10.1 a.8–9 | `BE-IGD-051` ✅, `BE-IGD-057` 🟡 | Ya | Ya | **Ya — 1 Oktober 2026**: source ditulis (1 berkas Registrasi), QBE checker `PASS` ([laporan](../task/report/backend/BE-IGD-059.md)) | **Ya — 2 Oktober 2026**: S1–S8 8 dari 8 pada bukti mentah |
 | ✅ `FE-IGD-035` | `FR-IGD-070` sisi layar | Daftar triage membaca `triage-queue`; label "Terdaftar"/"Tiba" | API §8.3.1; 03 §13.3 B | `BE-IGD-054` ✅ (24 September 2026 — **tidak lagi menahan**) | Ya | Ya | **Ya — 30 September 2026** ([laporan](../task/report/frontend/FE-IGD-035.md)); `eslint` 0 error, unit test 19/19; `npm run build` pemilik | **Ya — 30 September 2026, atas penilaian pemilik**: uji layar U1–U10 lewat Playwright (7 `PASS`, U9/U10 simulasi, U3 `NOT RUN` tanpa data). Bukan UAT |
 | ✅ `FE-IGD-036` | `FR-IGD-069`, `075`…`077`, `085` sisi layar | Loket berhenti `POST /emergency-visits`; Mulai Triage dan Tangani Segera pada baris tanpa kunjungan | API §8.3.2; 03 §13.3 A–C | `BE-IGD-053` ✅, `055` 🟡 (delta `IGD-DEC-179`), `059` 🟡, `FE-IGD-035` ✅, `FE-IGD-038` ✅ | Ya | Ya | **Ya — 1 Oktober 2026**: source ditulis (17 berkas) + pengerjaan ulang `IGD-DEC-179` (lima isian pada dialog Mulai Triage, 3 berkas), `eslint` 0 error ([laporan](../task/report/frontend/FE-IGD-036.md)) | **Ya — 3 Oktober 2026 (akhir)**: uji ulang loket dengan akun Petugas Pendaftaran sungguhan 3 dari 3 terbukti (`POST /patient-encounters/admin` `200`). *Sebelumnya: sebagian (pengerjaan ulang kedua)*: uji izin peran nyata `C4-01` gagal `403` untuk petugas loket (rute kiosk); rute diganti ke `/admin` (`IGD-DEC-182`), build lulus 15.31, belum diuji ulang dengan akun loket. *Sebelumnya:* uji ulang pada hasil build (`521b18a9a`, build 10.14) 10 dari 10 terbukti pada bukti mentah — `036-U7a`/`U7b`, `036-R1`, `036-U1`, `036-U9`, loket `FE-IGD-038` U2/U3 dan `FE-IGD-034` U1/U2/U6. Seluruh 14 skenario kartu terbukti. Bukan UAT. *Sebelumnya: sebagian — 3 Oktober 2026 (pagi)*: U7 dan U8 terbukti pada uji ulang, sehingga ke-14 skenario pernah terbukti. Pengerjaan ulang agent 3 Oktober (gulir pesan galat, tanggal bawaan waktu tiba) belum di-build. Belum: commit, build pemilik, uji ulang U7 dan cek loket U1, U9 pada hasil build (source loket berubah sesudah buktinya diambil) |
-| `FE-IGD-037` | `FR-IGD-016`…`021` sisi layar; `IGD-DEC-141` | Dibekukan | **Belum ada** | `BE-IGD-056` ⛔ | **Tidak** — `S7` | Sebagian (dibekukan) | Tidak | Tidak |
+| ✅ `FE-IGD-037` | `FR-IGD-016`…`021` sisi layar; `IGD-DEC-141`; **sejak 11 Oktober 2026** `FR-IGD-106`, `108` | **Disusun ulang 11 Oktober 2026** — lihat bagian `EPIC IGD-12` | API `0.16.0` §11.2–11.4 | `BE-IGD-056` 🟡 | **Ya** — 11 Oktober 2026 | Ya | **Ya** — 11 Oktober 2026 ([laporan](../task/report/frontend/FE-IGD-037.md)); `eslint` 0/0, build 489/489 | **Ya** — 11 Oktober 2026 (malam): 8 dari 8 acceptance; uji ulang R-08…R-13 (laporan §11) dan R-16 (laporan §12) |
 | ✅ `FE-IGD-038` | `FR-IGD-071`, `073` sisi layar; `IGD-DEC-145` | Alasan pendaftaran ganda ke `POST /patient-encounters`; pra-cek membaca `encounter` | API §8.2, §8.3.6; 03 §13.3 A | `BE-IGD-053` ✅, `FE-IGD-034` ✅ | Ya | Ya | **Ya — 1 Oktober 2026**: source ditulis (enam berkas), `eslint` 0 error, unit test 28/28, build pemilik berhasil ([laporan](../task/report/frontend/FE-IGD-038.md)) | **Ya — 1 Oktober 2026**: uji layar U1–U6 terbukti 6 dari 6 pada bukti mentah (JSON, skrip, tangkapan layar diperiksa agent; layar dilayani `next dev`). Bukan UAT |
 | ✅ `FE-IGD-039` | `FR-IGD-079` sisi layar; `IGD-DEC-142`, `178` | Aksi *Pergi sebelum ditriage* beralasan (maks. 250) | API §8.3.3; 03 §13.3 B | `BE-IGD-057` 🟡, `FE-IGD-035` ✅ | Ya | Ya | **Ya — 1 Oktober 2026**: source ditulis (7 berkas), `eslint` 0 error, unit test terkait 73/73 ([laporan](../task/report/frontend/FE-IGD-039.md)) | **Ya — 2 Oktober 2026**: U1–U6 6 dari 6 pada bukti mentah |
 | ✅ `FE-IGD-040` | `FR-IGD-078` sisi layar; `IGD-DEC-147`, `160` | Panel waktu tiba Detail triage | API §8.3.4; 03 §13.3 D | `BE-IGD-058` ✅ | Ya | Ya | **Ya — 1 Oktober 2026**: source ditulis (9 berkas), `eslint` 0 error, unit test terkait 79/79 ([laporan](../task/report/frontend/FE-IGD-040.md)); build pemilik 3 Oktober 2026 09.46 | **Ya — 3 Oktober 2026**: U1–U7 7 dari 7 terbukti pada bukti mentah (U4, U5, U6 diuji ulang). Layar dilayani `next dev`. Bukan UAT. *Sebelumnya: sebagian — 2 Oktober 2026* |
@@ -564,7 +565,7 @@ Dua keputusan pemilik atas temuan gerbang backlog frontend. **`BE-IGD-049` dan `
 | `FR-IGD-083` identitas kunjungan terkunci | `BE-IGD-058` | — | `AT-IGD-181` | Lengkap |
 | `FR-IGD-084` rekonsiliasi | `BE-IGD-052` ✅ | — (tanpa layar, `IGD-DEC-162`) | `AT-IGD-182`, `183` (sepuluh skenario laporan `BE-IGD-052` §5.4 — **lulus menurut pemilik**, penomoran pemilik berbeda dari §5.3; butir §5.3 R5 tidak dilaporkan terpisah) | Lengkap; acceptance 1 ditutup atas pernyataan pemilik bahwa angka pratinjau cocok dengan kueri D |
 | `FR-IGD-085` pasien tanpa identitas | `BE-IGD-055` ✅ (ruas) | `FE-IGD-036` | `AT-IGD-184` (skenario S13 laporan `BE-IGD-055` — **berlampir**: `400` tanpa alias, `201` dengan alias) | Lengkap; praktik lapangan `IGD-UNK-10` belum diketahui |
-| Kelayakan dokter jaga (`EPIC IGD-12`) | `BE-IGD-056` ⛔ | `FE-IGD-037` ⛔ | — | **Gap** — tanpa FR/AT sampai `IGD-OQ-102`/`103` dijawab |
+| Kelayakan dokter jaga (`EPIC IGD-12`) | `BE-IGD-056` ✅ | `FE-IGD-037` ✅ | `AT-IGD-214`…`220` | **Gap ditutup 11 Oktober 2026** — `FR-IGD-106`…`108`; lihat bagian `EPIC IGD-12` |
 
 Seluruh `FR-IGD-069`…`085` dan `AT-IGD-166`…`185` terpetakan ke minimal satu task.
 
@@ -574,7 +575,7 @@ Seluruh `FR-IGD-069`…`085` dan `AT-IGD-166`…`185` terpetakan ke minimal satu
 | --- | --- | --- |
 | `IGD-DEC-139` (+ koreksi lima tanda) | `approved` | `BE-IGD-051`, `053`, `054`, `055`; `FE-IGD-035`, `036`, `038` |
 | `IGD-DEC-140` | `superseded` sebagian (U1) oleh `IGD-DEC-151`; U2 `candidate` milik Master Patient | — |
-| `IGD-DEC-141` | `approved` prinsip; kriteria ditahan | `BE-IGD-056`, `FE-IGD-037` |
+| `IGD-DEC-141` | `approved` prinsip; kriteria dijawab `IGD-DEC-237` (11 Oktober 2026) | `BE-IGD-056`, `FE-IGD-037` |
 | `IGD-DEC-142` | `approved`; wajib tinjau klinis (`IGD-DEC-150`) | `BE-IGD-054`, `057`; `FE-IGD-039` |
 | `IGD-DEC-143` | `approved` | `BE-IGD-054`, `055`; `FE-IGD-036` |
 | `IGD-DEC-144` | `approved` | `BE-IGD-053`, `054` |
@@ -595,7 +596,7 @@ Seluruh `FR-IGD-069`…`085` dan `AT-IGD-166`…`185` terpetakan ke minimal satu
 | `IGD-OQ-094`…`097`, `100`, `101` | `superseded` (`IGD-DEC-147`, `148`, `142`, `144`, `143`, `145`+`146`) | — |
 | `IGD-OQ-098` | Dipersempit — penggabungan rekam dan U2 milik Master Patient | Di luar slice |
 | `IGD-OQ-099` | `open`, tidak menahan (`IGD-DEC-150`) | — |
-| `IGD-OQ-102`, `IGD-OQ-103` | `open` — **menahan** `S7` | `BE-IGD-056`, `FE-IGD-037` |
+| `IGD-OQ-102`, `IGD-OQ-103` | **Dijawab** 11 Oktober 2026 (`IGD-DEC-237`…`239`); *sebelumnya `open` — menahan `S7`* | `BE-IGD-056`, `FE-IGD-037` |
 | `IGD-OQ-104`…`107` | `superseded` oleh `IGD-DEC-159`…`162` | — |
 | `IGD-OQ-108` | `superseded` oleh **`IGD-DEC-180`** (3 Oktober 2026) — kontrak berlaku: encounter kedua hasil override tidak dapat dimulai selama kunjungan lama berjalan; keterbatasan bersama `BE-IGD-039` diterima | `BE-IGD-055`, `FE-IGD-036` |
 
@@ -649,7 +650,7 @@ identitas U1 (dibatalkan `IGD-DEC-151`).
 | Task | Requirement / keputusan | Target implementasi | Kontrak | Dependency | Requirement approved | Delivery planned | Implementation complete | Runtime verified |
 | --- | --- | --- | --- | --- | :-: | :-: | :-: | :-: |
 | ✅ `BE-IGD-060` | `FR-IGD-086`, `087`, `089`; `IGD-DEC-163`…`165`, `167` | Kolom `EmgVisit.ClosedByDispositionId` + `TryCloseAfterDispositionAsync` + pemicu disposisi `Executed`; 1 migration | val §11 a.1–7; state §9; int §6 | `BE-IGD-051` ✅, `BE-IGD-055` ✅ | Ya | Ya | **Ya — 30 September 2026**: source + migration `20260930064430` diterapkan ke dev ([laporan](../task/report/backend/BE-IGD-060.md)) | **Ya — 30 September 2026, atas penilaian pemilik**: uji S1–S6 `PASS` (Playwright pemilik; bukti mentah diperiksa agent); `Down()` berpenjaga lulus uji terpisah. Bukan UAT |
-| 🟡 `BE-IGD-061` | `FR-IGD-088`, `092`, `093`, `094`, `095`; `IGD-DEC-165`, `136`, `171`, `172`, `173`, `183`, `184`, `185` | Tiga titik pemicu susulan: observasi, serah terima, sikap pesanan; pemetaan observasi pada kunjungan `Disposed` (selesaikan tanpa memindahkan status, eskalasi `409`); **3 Oktober 2026:** penjaga penutupan menghitung `Escalated`, aksi observasi dan pemantauan baru pada kunjungan berakhir ditolak `409` | val §6 a.2, §9.1 l.2a, §11 a.4–6, §11.1 a.12–15, §11.2 a.16–21; state §9.2, §9.5, §9.6; API §9.1 no.5–8, §9.4 | `BE-IGD-060` ✅ | Ya | Ya — **diperluas 30 September dan 3 Oktober 2026** | **Ya — 3 Oktober 2026 (pengerjaan ulang)**: 3 berkas, QBE checker Strict `PASS`; acceptance 13–18 pada source ([laporan](../task/report/backend/BE-IGD-061.md), *Pengerjaan ulang 3 Oktober 2026*). *Sebelumnya — 1 Oktober 2026*: source ditulis (3 berkas), QBE checker `PASS` | **Sebagian — 4 Oktober 2026 (uji gabungan `MVP-8`)**: S13–S19 terbukti pada bukti mentah dan log backend (acceptance 13–19); `NOT RUN` kaki `PUT` S18 dan kaki `reject-handover` S11; bukti diterima dengan penyimpangan tercatat (`IGD-DEC-188`). Tetap tertahan: S2, S3, S12 (`BE-IGD-039`). Sebelumnya — 4 Oktober 2026 (build): build Rizki 3 Oktober 2026 0 error, 0 warning (kriteria 7); uji API S13–S19 belum. *3 Oktober 2026*: perluasan belum dibuild dan belum diuji. *2 Oktober 2026*: S1, S5, S7–S10 terbukti; S4, S11 sebagian; S2, S3, S6, S12 belum (403 kewenangan unit; prasyarat S6 tidak terpenuhi) |
+| ✅ `BE-IGD-061` | `FR-IGD-088`, `092`, `093`, `094`, `095`; `IGD-DEC-165`, `136`, `171`, `172`, `173`, `183`, `184`, `185` | Tiga titik pemicu susulan: observasi, serah terima, sikap pesanan; pemetaan observasi pada kunjungan `Disposed` (selesaikan tanpa memindahkan status, eskalasi `409`); **3 Oktober 2026:** penjaga penutupan menghitung `Escalated`, aksi observasi dan pemantauan baru pada kunjungan berakhir ditolak `409` | val §6 a.2, §9.1 l.2a, §11 a.4–6, §11.1 a.12–15, §11.2 a.16–21; state §9.2, §9.5, §9.6; API §9.1 no.5–8, §9.4 | `BE-IGD-060` ✅ | Ya | Ya — **diperluas 30 September dan 3 Oktober 2026** | **Ya — 3 Oktober 2026 (pengerjaan ulang)**: 3 berkas, QBE checker Strict `PASS`; acceptance 13–18 pada source ([laporan](../task/report/backend/BE-IGD-061.md), *Pengerjaan ulang 3 Oktober 2026*). *Sebelumnya — 1 Oktober 2026*: source ditulis (3 berkas), QBE checker `PASS` | **Ya — 5 Oktober 2026**: acceptance 2, 3, dan kaki tersisa acceptance 4 terbukti pada putaran uji `BE-IGD-039` — `061-S2`, `061-S3`, `061-S11` kaki tolak, `061-S12` kaki terima dan tolak, `061-S4` kaki kepergian dan pesanan; bukti diterima dengan penyimpangan (`IGD-DEC-200`); seluruh acceptance 1–19 terpenuhi ([laporan](../task/report/backend/BE-IGD-061.md), *Uji ulang acceptance 2–4*). Bukan UAT. *Sebelumnya* **Sebagian — 4 Oktober 2026 (uji gabungan `MVP-8`)**: S13–S19 terbukti pada bukti mentah dan log backend (acceptance 13–19); `NOT RUN` kaki `PUT` S18 dan kaki `reject-handover` S11; bukti diterima dengan penyimpangan tercatat (`IGD-DEC-188`). Tetap tertahan: S2, S3, S12 (`BE-IGD-039`). Sebelumnya — 4 Oktober 2026 (build): build Rizki 3 Oktober 2026 0 error, 0 warning (kriteria 7); uji API S13–S19 belum. *3 Oktober 2026*: perluasan belum dibuild dan belum diuji. *2 Oktober 2026*: S1, S5, S7–S10 terbukti; S4, S11 sebagian; S2, S3, S6, S12 belum (403 kewenangan unit; prasyarat S6 tidak terpenuhi) |
 | ✅ `BE-IGD-062` | `FR-IGD-090`; `IGD-DEC-166`, `176` | Penolakan `409` bermakna pembatalan disposisi `Executed` atas kunjungan selesai, didahulukan atas penjaga `400`; `Executed` tetap final | val §11 a.8–9; API §9.1 no.3 (dikoreksi), §9.3 | `BE-IGD-060` ✅ | Ya | Ya — **diperiksa ulang 30 September 2026** | **Ya — 1 Oktober 2026**: source ditulis (1 berkas), QBE checker `PASS` ([laporan](../task/report/backend/BE-IGD-062.md)) | **Ya — 2 Oktober 2026**: S1–S5 5 dari 5 pada bukti mentah |
 | ✅ `BE-IGD-063` | `FR-IGD-091`; `IGD-DEC-164`, `168` | Saringan `awaitingClosure` + dua ruas response | API §9.2; val §11 a.10 | `BE-IGD-060` ✅ | Ya | Ya | **Ya — 1 Oktober 2026**: source ditulis (3 berkas), QBE checker `PASS` ([laporan](../task/report/backend/BE-IGD-063.md)) | **Ya — 2 Oktober 2026**: S1, S4–S8 terbukti; S2 dan S3 sebagian (dikecualikan, lihat laporan) |
 | ✅ `FE-IGD-041` | `FR-IGD-091`; `IGD-DEC-164`, `168` | Saringan dan penanda pada daftar kunjungan IGD; nol menu baru | API §9.2 | `BE-IGD-063` ✅ | Ya | Ya | **Ya — 1 Oktober 2026**: source ditulis (4 berkas), `eslint` 0 error, tanpa unit test ([laporan](../task/report/frontend/FE-IGD-041.md)) | **Ya — 4 Oktober 2026 (uji gabungan `MVP-8`)**: U2, U6, U7, R 4 dari 4 terbukti pada hasil build 11.46, 1440 × 900, akun Perawat IGD ([laporan](../task/report/frontend/FE-IGD-041.md), *Pemeriksaan bukti uji gabungan `MVP-8`*); bukti diterima dengan penyimpangan tercatat (`IGD-DEC-188`). Sebelumnya — 3 Oktober 2026: tata letak diperbaiki (penanda di bawah lencana STATUS KUNJUNGAN; harness 1440 piksel luber 0, penanda utuh); `npm run build` lulus 17.03; uji layar U2, U6, U7 revisi belum ([laporan](../task/report/frontend/FE-IGD-041.md), *Pengerjaan ulang 3 Oktober 2026*). *Sebelumnya — 2 Oktober 2026*: U1, U3, U4, U5 terbukti; U2 sebagian; U6, U7 belum — kolom PENUTUPAN di luar bidang pandang |
@@ -707,3 +708,360 @@ disposisi `Executed` (`BE-IGD-062`).
 | `IGD-OQ-110` | Jumlah encounter `IsActive = false` tanpa tanda berakhir pada data lama; sisi source sudah dijawab (nol jalur), sisi data milik pemilik | Tidak — memengaruhi angka, bukan bentuk aturan |
 | `IGD-OQ-111` | Cara mencatat pasien yang memburuk sesudah disposisinya dilaksanakan tetapi masih berada di IGD | Tidak — menahan kebijakan klinis kasus itu, bukan `BE-IGD-061`/`FE-IGD-042` |
 | `IGD-OQ-112` | Jumlah observasi Dieskalasi yang sudah tertinggal pada kunjungan berakhir, per lingkungan; kueri milik pemilik | Tidak — menentukan perlu tidaknya tindak lanjut operasional |
+
+## `EPIC IGD-08` — kewenangan unit `BE-IGD-039` (perencanaan ulang 5 Oktober 2026)
+
+| Butir | Isi |
+| --- | --- |
+| Snapshot source | Backend `rizkiG` `8d81d361` (area IGD identik dengan `c1f79f79`; merge integration sesudah `0078a0dc` tidak menyentuh area IGD maupun berkas dasar `IGD-FACT-044`…`048`); frontend `RizkiV2` `57b1d360f` |
+| Kontrak terkunci | Validation **`0.12.0`** §7 aturan 1–9; permission/audit **`0.7.0`** §1, catatan §3, §3.1, baris §6; API `0.14.0` §2.1 tidak berubah. Hash di manifest bagian 0l |
+| Approval | `IGD-DEC-199` — Rizki Gunawan, 5 Oktober 2026 (sementara, pola `IGD-DEC-174`; approver akhir Security/Privacy owner belum ditunjuk) |
+| Desain turunan | Nol perubahan pada `02-backend-architecture.md` — baris `EmergencyUnitAuthorityService` sudah sesuai `IGD-DEC-193`; `04-prd-to-mvp.md` §4 `EPIC IGD-08` (`FR-IGD-053`…`059`, `AT-IGD-130`…`136`) |
+| Task | Backend: `BE-IGD-039` (kartu ditulis ulang di bagian R3.7 roadmap backend, siap dikerjakan). Frontend: nol task (`IGD-DEC-195`). *5 Oktober 2026 (sore):* `FE-IGD-043` — pasangan layar `BE-IGD-039` (`IGD-DEC-202`, mengubah sebagian `IGD-DEC-195`); ✅ 6 Oktober 2026 sore — 9 dari 9 acceptance terbukti pada uji layar putaran bersama (`IGD-DEC-218`; [laporan](../task/report/frontend/FE-IGD-043.md)); *sebelumnya 🟡 implementasi selesai, uji layar menunggu*; lihat bagian *Pesanan tanpa sikap* |
+
+### Task
+
+| Task | Requirement / keputusan | Target implementasi | Kontrak | Dependency | Requirement approved | Delivery planned | Implementation complete | Runtime verified |
+| --- | --- | --- | --- | --- | :-: | :-: | :-: | :-: |
+| ✅ `BE-IGD-039` | `FR-IGD-053`…`059`; `IGD-DEC-086`, `092` (fail-closed), `193`…`197`, `199`, `200`, `201` | Kueri kewenangan lewat `SourceAssignmentId` → `WfpOrganizationAssignment.OrganizationUnitId` = simpul unit; kalimat unit belum dipetakan dikoreksi; satu berkas service, nol migration | val §7 a.1–9; perm §1, §3, §3.1 | — | Ya — 5 Oktober 2026 (sementara) | **Ya — ditulis ulang 5 Oktober 2026** (acceptance 1–13). *Sebelumnya ⛔ Security/Privacy owner* | **Ya — 5 Oktober 2026**: 1 berkas (+8/−4), QBE checker Strict `PASS`, nol komentar baru; acceptance 10 terpenuhi, 12 sebagian ([laporan](../task/report/backend/BE-IGD-039.md)) | **Ya — 5 Oktober 2026, atas penilaian pemilik** (`IGD-DEC-201`): build pemilik (DLL 11.51 WIB) dan uji API pada bukti mentah, 115/115 respons cocok log backend — acceptance 1, 2, 7–10, 12, 13 terpenuhi; 3, 4, 5, 6, 11 dikecualikan dengan bukti source (akun opsional tidak tersedia); bukti diterima dengan penyimpangan (`IGD-DEC-200`). Bukan UAT. *Sebelumnya:* belum — menunggu build dan data P1–P5 |
+
+### Requirement ke task dan uji
+
+| Requirement | Task backend | Task frontend | Skenario uji | Cakupan |
+| --- | --- | --- | --- | --- |
+| `FR-IGD-053` petugas unit lain ditolak mencatat kedatangan | `BE-IGD-039` (acceptance 2, pada `arrive`) | — (tombol *Catat Tiba* sudah ada) | `AT-IGD-130` | Lengkap |
+| `FR-IGD-054` petugas unit tujuan diterima | `BE-IGD-039` (acceptance 1, 6) | — (tombol *Terima Dokumen* sudah ada) | `AT-IGD-131`; `061-S2` / `AT-IGD-188` | Lengkap |
+| `FR-IGD-055` penugasan yang sudah berakhir tidak memberi kewenangan | `BE-IGD-039` (acceptance 4) | — | `AT-IGD-132` | Lengkap |
+| `FR-IGD-056` penugasan unit tidak memberi kemampuan klinis | `BE-IGD-039` (acceptance 11) | — | `AT-IGD-133` | Lengkap |
+| `FR-IGD-057` kemampuan tidak melewati batas penugasan unit | `BE-IGD-039` (acceptance 2, 3) | — | `AT-IGD-134` | Lengkap |
+| `FR-IGD-058` mesin hak akses tidak berubah perilakunya | `BE-IGD-039` (acceptance 10, 11) | — | `AT-IGD-135` | Lengkap |
+| `FR-IGD-059` pelayanan klinis darurat tidak pernah diblokir | `BE-IGD-039` (acceptance 12) | — | `AT-IGD-136` | Lengkap — dibuktikan lewat source dan regresi `061-S19` |
+| — (penyelesaian `BE-IGD-061` acceptance 2–3, `FR-IGD-088`) | `BE-IGD-039` (acceptance 1, 8, 9) bersama `BE-IGD-061` | — | `061-S2`, `S3`, `S4`, `S12`, kaki `reject-handover` `S11` | Diuji pada putaran yang sama |
+
+**Coverage gap yang dicatat:**
+
+- **Permission/audit §3 — tindakan unit asal yang belum dijaga** (membuat, memberangkatkan, membatalkan kepergian; membalik
+  dan mengoreksi kejadian; menetapkan dokter): **tanpa task**, ditunda `IGD-DEC-197` (`IGD-CONFLICT-006`, `IGD-OQ-115`).
+  Tidak ada FR `EPIC IGD-08` yang terbuka karenanya; yang terbuka adalah kesesuaian penuh dengan tabel target §3.
+- **Sikap pesanan tidak punya layar** — acceptance 8 dan `061-S3`, `S12` hanya dapat diuji lewat API. *5 Oktober 2026
+  (sore):* layar sikap direncanakan sebagai `FE-IGD-044` (`IGD-DEC-204`).
+- **Acceptance 5** (penempatan warisan tanpa sumber) boleh `NOT RUN` bila dev tidak punya barisnya; data semacam itu
+  **tidak** dibuat lewat SQL.
+- *5 Oktober 2026:* acceptance 3, 4, 5, 6, 11 **dikecualikan** dengan bukti source (`IGD-DEC-201`) — `FR-IGD-055`
+  (`AT-IGD-132`), `FR-IGD-056` (`AT-IGD-133`), dan bagian simpul induk `FR-IGD-057` belum pernah diamati pada runtime.
+
+### Keputusan ke task
+
+| Keputusan | Status | Direalisasikan |
+| --- | --- | --- |
+| `IGD-DEC-190` dokter menetapkan tindak lanjut, perawat melaksanakan | `approved` (sementara) | Nol task — pemberian hak ke peran oleh pemilik; dipakai naskah UAT `MVP-8` |
+| `IGD-DEC-191` `EmergencyDeparture : Approve` dicabut dari Perawat IGD | `approved` (sementara) | Nol task — pemberian hak ke peran; menutup `IGD-OQ-113` |
+| `IGD-DEC-192` naskah UAT mengikuti layar; `AT-IGD-195` keluar UAT layar | `approved` (sementara) | Naskah UAT `MVP-8` (C1); `AT-IGD-195` tetap berbukti `061-S16` |
+| `IGD-DEC-193` jembatan lewat simpul organisasi penugasan HR | `approved` (sementara) | `BE-IGD-039` (perubahan 1; acceptance 1, 2, 5) |
+| `IGD-DEC-194` simpul sama persis; penempatan sekunder berlaku | `approved` (sementara) | `BE-IGD-039` (acceptance 3, 6) |
+| `IGD-DEC-195` fail-closed, pesan dikoreksi, jalan keluar ditunda | `approved` (sementara) | `BE-IGD-039` (perubahan 2; acceptance 7); nol kartu frontend |
+| `IGD-DEC-196` pemetaan unit diisi pemilik lewat basis data; permintaan ke Master Data | `approved` (sementara) | Persiapan data P1 kartu `BE-IGD-039`; daftar rilis C5; permintaan ke pemilik Master Data (bukan kartu IGD) |
+| `IGD-DEC-197` lingkup tetap lima tindakan | `approved` (sementara) | Batas cakupan `BE-IGD-039`; `IGD-CONFLICT-006` tanpa task |
+| `IGD-DEC-198` peran perawat rawat inap mendapat `EmergencyDeparture : Read`/`Update` | `approved` (sementara) | Persiapan data P3 kartu `BE-IGD-039` |
+| `IGD-DEC-199` approval amandemen kontrak kewenangan unit | `approved` (sementara) | Gerbang pembukaan kartu `BE-IGD-039` |
+
+### Pertanyaan terbuka
+
+| ID | Isi | Menahan? |
+| --- | --- | --- |
+| `IGD-OQ-114` | Pasien tanpa observasi tidak dapat ditindaklanjuti dari layar | Tidak — menahan pemakaian layar tindak lanjut untuk pasien semacam itu di produksi, bukan `BE-IGD-039` |
+| `IGD-OQ-115` | Kapan tindakan unit asal yang belum dijaga mulai diperiksa (`IGD-CONFLICT-006`) | Tidak — menahan kesesuaian penuh permission/audit §3 |
+
+## Pesanan tanpa sikap — `BE-IGD-041` diperluas, `FE-IGD-043`, `FE-IGD-044`, dan `BE-IGD-064` (perencanaan 5 Oktober 2026, sore)
+
+| Butir | Isi |
+| --- | --- |
+| Snapshot source | Backend `rizkiG` `8d81d361` + working tree `EmergencyUnitAuthorityService.cs` (`BE-IGD-039`); frontend `RizkiV2` `57b1d360f`. *Diperiksa ulang sesudah amandemen:* frontend `553501053` — nol berkas IGD berubah; backend tidak bergerak |
+| Kontrak | API **`0.14.0`** §1.2, §2, §2.3, §9 (isi `awaitingClosureReason`); validation **`0.13.0`** §4, §5 (termasuk aturan 12), §5.1, §6 aturan 4, §6.1, §7; state **`0.9.0`** §6a.2, §9.2 butir 4 — `approved`. Hash di manifest bagian 0m. *Sebelumnya:* validation `0.12.0`; klarifikasi §5.1 dan §6 aturan 4 untuk `IGD-DEC-205` belum ada dan menahan `BE-IGD-041` serta, lewat kartu itu, `FE-IGD-044` |
+| Approval | `IGD-DEC-202` (sementara, pola `IGD-DEC-174`); `IGD-DEC-203`, `204`, `206` — Rizki Gunawan, 5 Oktober 2026; `IGD-DEC-205` — Rizki Gunawan, 5 Oktober 2026 (sementara, pola `IGD-DEC-174`; Nursing authority belum ditunjuk); `IGD-DEC-209` approval amandemen — Rizki Gunawan, 5 Oktober 2026 (sementara, pola yang sama) |
+| Desain turunan | Pass perencanaan: nol perubahan pada `02-backend-architecture.md` dan `03-frontend-architecture.md`; `04-prd-to-mvp.md` §4 `EPIC IGD-07` (`FR-IGD-045`…`051`, `AT-IGD-116`…`122`) dan §9 `EPIC IGD-13` (`FR-IGD-087`, `088`, `091`). *Amandemen `IGD-DEC-209`:* `02-backend-architecture.md` §11.1 dan §14 (baris `EmergencyDepartureService`); `04-prd-to-mvp.md` §9 `AT-IGD-198`, `199` dan butir DoD 12; `flowcharts/penutupan-lewat-disposisi.md` langkah 3. `03-frontend-architecture.md` tetap tidak berubah |
+| Task | Backend: `BE-IGD-041` (kartu R3.8 diperluas; ✅ 6 Oktober 2026 sore — 17 dari 17 acceptance terbukti, `IGD-DEC-218`; *sebelumnya 🟡 15 dari 17, sebelumnya lagi ⛔*); `BE-IGD-064` (R3.15, ✅ 6 Oktober 2026 sore — `IGD-OQ-116`, `IGD-DEC-216`). Frontend: `FE-IGD-043` (✅ 6 Oktober 2026 sore — 9 dari 9, `IGD-DEC-218`; *sebelumnya 🟡 implementasi selesai, uji layar menunggu*; gelombang 1), `FE-IGD-044` (✅ 6 Oktober 2026 sore — 13 dari 13, `IGD-DEC-218`, `IGD-DEC-219`; *sebelumnya 🟡 implementasi selesai dan build lulus, uji layar menunggu; sebelumnya lagi gelombang 2, ⛔*) — bagian R3.13.2 roadmap frontend. Urutan dan satu putaran uji: `IGD-DEC-208` |
+
+### Task
+
+| Task | Requirement / keputusan | Target implementasi | Kontrak | Dependency | Requirement approved | Delivery planned | Implementation complete | Runtime verified |
+| --- | --- | --- | --- | --- | :-: | :-: | :-: | :-: |
+| ✅ `BE-IGD-041` | `FR-IGD-051`, `087`, `088`, `091`; `IGD-DEC-118`, `203`, `205`, `209`; `IGD-CONFLICT-007` | Kueri penahan penutupan menghitung pesanan tanpa sikap dan pesanan ditolak, di luar kepergian yang dibatalkan; kalimat §6 aturan 4 tetap | val `0.13.0` §5 a.12, §5.1, §6 a.4, §6.1; state `0.9.0` §6a.2; API §1.2, §9 | `IGD-DEC-118` ✅, `IGD-DEC-203` ✅, amandemen `IGD-DEC-205` ✅ (`IGD-DEC-209`; *sebelumnya ⛔*) | Ya — 5 Oktober 2026 | **Ya — diperluas 5 Oktober 2026 (sore)**, acceptance 8–17 | **Ya** — 6 Oktober 2026: source satu berkas, QBE Strict `PASS`, build pemilik DLL 08.30.28 WIB (warning tidak dilaporkan) — [laporan](../task/report/backend/BE-IGD-041.md) bagian 9 | **Ya** — 6 Oktober 2026 (sore): putaran bersama `FE-IGD-044` ([laporan penguji](../testing/2026-10-06-laporan-uji-putaran-bersama.md); diperiksa agent pada bukti mentah dan log, laporan bagian 9.12) membuktikan acceptance 14 (`041-S9`, `041-S11b`) dan 15 (`041-S10`, `041-S11a`) — 17 dari 17; diterima dengan penyimpangan tercatat (`IGD-DEC-218`). *Sebelumnya:* sebagian — uji API 6 Oktober 2026 ([laporan penguji](../testing/2026-10-06-laporan-uji-be-igd-041.md), bagian 9.11): 15 dari 17 (`IGD-DEC-211`); tanda ✅ penguji ditarik (`IGD-DEC-212`) |
+| ✅ `FE-IGD-043` | `FR-IGD-053`, `054` (sisi layar); `IGD-DEC-202`, `195` | Galat aksi kepergian tampil di dalam modal konfirmasi; satu berkas | val §4, §5 a.1, §7 a.1, a.3 | `BE-IGD-039` ✅ | Ya — 5 Oktober 2026 | **Ya — 5 Oktober 2026 (sore)**, acceptance 1–9 | **Ya** — 5 Oktober 2026 (sore): source satu berkas (ter-commit `2a985f6d5`), acceptance 8–9 terbukti (`eslint`, uji IGD lama 91/91, `npm run build` lulus) — [laporan](../task/report/frontend/FE-IGD-043.md) | **Ya** — 6 Oktober 2026 (sore): uji layar putaran bersama `043-U1`…`U5` dan `044-U8` pada hasil build, akun `PERAWAT` nyata ([laporan penguji](../testing/2026-10-06-laporan-uji-putaran-bersama.md); diperiksa agent pada bukti mentah dan log, laporan bagian 9) — acceptance 1–7 terbukti, `039-U1` dan `039-U2` terulang sebagai `043-U2` dan `043-U1`; diterima dengan penyimpangan tercatat (`IGD-DEC-218`). *Sebelumnya: belum* |
+| ✅ `FE-IGD-044` | `FR-IGD-045`…`048`, `050`, `051`, `088` (sisi layar); `IGD-DEC-204`, `205`, `206` | Daftar pesanan per kepergian dan penetapan sikap di tab Transfer; *Handover* ke unit tujuan kepergian | API §2, §2.3; val `0.13.0` §5, §5.1 | `FE-IGD-043`, `BE-IGD-041` | Ya — 5 Oktober 2026 | **Ya — 5 Oktober 2026 (sore)**, acceptance 1–13 | **Ya** — 6 Oktober 2026: empat berkas, `eslint` 0/0, uji IGD lama 91/91, acceptance 12 dan 13 terbukti (`npm run build` lulus 11.13 WIB) — [laporan](../task/report/frontend/FE-IGD-044.md) | **Ya** — 6 Oktober 2026 (sore): uji layar putaran bersama `044-U1`…`U9` dan `041-S11c` pada hasil build, akun peran nyata ([laporan penguji](../testing/2026-10-06-laporan-uji-putaran-bersama.md); diperiksa agent pada bukti mentah dan log, laporan bagian 9) — acceptance 1–8, 10, 11 terbukti; acceptance 9 untuk modal sikap pesanan lewat source, `044-U10` `NOT RUN` diserahkan ke tim UAT (`IGD-DEC-219`); diterima dengan penyimpangan tercatat (`IGD-DEC-218`). *Sebelumnya: belum* |
+| ✅ `BE-IGD-064` | **Tanpa FR** — API §1; `IGD-DEC-207`; menjawab `IGD-OQ-116` | `GET /emergency-visits/{id}` memuat `Patient`, `ServiceUnit`, `ArrivalMode`, `CaseType`; satu berkas controller | API §1 (tidak berubah) | — | Ya — 5 Oktober 2026 | **Ya — 5 Oktober 2026 (sore)**, acceptance 1–6 | **Ya** — 6 Oktober 2026: `GetById` satu berkas (+8/−1), QBE Strict `PASS`, acceptance 1–3 terpetakan, 5 dan 6 terbukti (build 0 error, 235 warning) — [laporan](../task/report/backend/BE-IGD-064.md) | **Ya** — 6 Oktober 2026 (sore): uji ulang dengan akun `dimas`, acceptance 1–4 terbukti; diterima dengan penyimpangan (`IGD-DEC-216`). *Sebelumnya:* uji siang ditolak (`IGD-DEC-213`) |
+
+### Requirement ke task dan uji
+
+| Requirement | Task backend | Task frontend | Skenario uji | Cakupan |
+| --- | --- | --- | --- | --- |
+| `FR-IGD-045` daftar sikap memuat obat dan tindakan | — (pembentukan sudah ada) | `FE-IGD-044` (acceptance 1) | `AT-IGD-116` | Lengkap sesudah `FE-IGD-044` |
+| `FR-IGD-046` keterbatasan penunjang dinyatakan di layar | — | `FE-IGD-044` (acceptance 8) | `AT-IGD-117` | Lengkap sesudah `FE-IGD-044` |
+| `FR-IGD-047` dokumen tidak dapat diajukan selama ada pesanan tanpa sikap | — (sudah ada, `SubmitHandoverAsync`) | `FE-IGD-043` (pesan *Ajukan* terbaca); `FE-IGD-044` (acceptance 3, 10) | `AT-IGD-118` | Lengkap sesudah kedua kartu |
+| `FR-IGD-048` pembatalan pesanan menuntut alasan | — (sudah ada) | `FE-IGD-044` (acceptance 4) | `AT-IGD-119` | Lengkap sesudah `FE-IGD-044` |
+| `FR-IGD-049` pesanan diteruskan muncul sebagai tugas di unit penerima | — | — | `AT-IGD-120` | **Coverage gap** — terima/tolak oleh unit penerima tanpa layar (sisa `IGD-EV-109`) |
+| `FR-IGD-050` perubahan sikap tercatat sebagai koreksi | — (sudah ada) | `FE-IGD-044` (acceptance 6) | `AT-IGD-121` | Lengkap sesudah `FE-IGD-044` |
+| `FR-IGD-051` kunjungan tidak dapat diselesaikan bila ada pesanan tanpa sikap | `BE-IGD-041` (acceptance 8, 9, 11–14) | `FE-IGD-044` (acceptance 11) | `AT-IGD-122`, `AT-IGD-199`; ulang `PROBE-1` | Lengkap untuk pesanan yang sudah terbentuk; lihat coverage gap |
+| `FR-IGD-087`, `FR-IGD-088` penahan dan penutupan susulan atas pesanan | `BE-IGD-041` (acceptance 8, 10, 12, 13, 15) | `FE-IGD-044` (acceptance 7, 11) | `AT-IGD-198`, `AT-IGD-199` (PRD §9, amandemen `IGD-DEC-209`; *sebelumnya pola `AT-IGD-187`*); regresi `061-S3`, `S12`, `AT-IGD-188` | Lengkap |
+| `FR-IGD-091` alasan pada daftar menunggu penutupan | `BE-IGD-041` (acceptance 8) | — (`FE-IGD-041` menampilkan apa adanya) | `AT-IGD-191` | Isi alasan berubah, bentuk tidak |
+| `FR-IGD-053`, `FR-IGD-054` penolakan kewenangan unit terbaca petugas | — (`BE-IGD-039` ✅) | `FE-IGD-043` (acceptance 1, 2) | `AT-IGD-130`, `131`; `039-U1`, `039-U2` | Lengkap sesudah `FE-IGD-043` |
+
+**Coverage gap yang dicatat:**
+
+- **Pesanan yang belum pernah dibentuk tidak menahan.** Resep, tindakan, atau laboratorium encounter baru menjadi baris
+  pesanan kepergian saat *Ajukan Serah Terima* (`IGD-FACT-054`). Bila dokumen tidak pernah diajukan, pesanan itu tidak
+  menahan penutupan — `FR-IGD-051` terpenuhi untuk pesanan yang sudah terbentuk saja. Tanpa task; menutupnya butuh
+  keputusan bisnis baru.
+- **Terima/tolak pesanan oleh unit penerima tanpa layar** — `FR-IGD-049` (`AT-IGD-120`); sisa gap `IGD-EV-109`.
+- **Syarat klinisi berwenang untuk *Cancel*** (permission/audit §3.1) belum ditegakkan kode; `FE-IGD-044` mengikuti backend.
+- **Nama pelaku sikap pesanan** tidak ada pada respons (`actionByUserId` saja); layar tidak menampilkan pelaku.
+- **`BE-IGD-064` tanpa `FR-IGD-*`** — identitas pasien pada detail kunjungan tidak punya requirement tertulis; dijejak ke
+  kontrak API §1 (*"satu kunjungan beserta konteksnya"*) dan `IGD-DEC-207`.
+
+### Keputusan ke task
+
+| Keputusan | Status | Direalisasikan |
+| --- | --- | --- |
+| `IGD-DEC-200` bukti uji `BE-IGD-039` diterima dengan penyimpangan | `approved` | Laporan task `BE-IGD-039`, `BE-IGD-061`; panduan berikutnya menegaskan skrip disimpan dan setiap percobaan dilaporkan (verifikasi `FE-IGD-043`, `FE-IGD-044`, `BE-IGD-041`) |
+| `IGD-DEC-201` `BE-IGD-039` ✅ dengan lima acceptance dikecualikan | `approved` | Status `BE-IGD-039` |
+| `IGD-DEC-202` galat aksi kepergian terbaca di modal | `approved` (sementara) | `FE-IGD-043` |
+| `IGD-DEC-203` pesanan tanpa sikap ikut menahan; pengerjaan ulang `BE-IGD-041` | `approved` | `BE-IGD-041` (perubahan a, c–e; acceptance 8–11, 14–17) |
+| `IGD-DEC-204` layar sikap pesanan; rilis bersama `BE-IGD-041` | `approved` | `FE-IGD-044`; syarat rilis `BE-IGD-041` |
+| `IGD-DEC-205` pesanan pada kepergian yang dibatalkan tidak menahan | `approved` (sementara) | Amandemen validation `0.13.0` §5 aturan 12, §5.1, §6 aturan 4 dan state `0.9.0` §6a.2 (✅ `IGD-DEC-209`; *sebelumnya belum*); `BE-IGD-041` (perubahan b; acceptance 12, 13); `FE-IGD-044` (acceptance 7) |
+| `IGD-DEC-206` unit penerima *Handover* = unit tujuan kepergian | `approved` | `FE-IGD-044` (acceptance 5) |
+| `IGD-DEC-207` detail kunjungan memuat identitas pasien — kartu backend kecil | `approved` | `BE-IGD-064` |
+| `IGD-DEC-208` urutan: amandemen dulu, satu putaran uji untuk empat kartu | `approved` | Jadwal `BE-IGD-041`, `BE-IGD-064`, `FE-IGD-043`, `FE-IGD-044`; bukan dependency. Langkah amandemen ✅ (`IGD-DEC-209`) |
+| `IGD-DEC-209` approval amandemen kontrak pesanan tanpa sikap dan kepergian yang dibatalkan | `approved` (sementara, pola `IGD-DEC-174`) | Gerbang pembukaan kartu `BE-IGD-041` (⛔ → 🟡) dan, lewat kartu itu, `FE-IGD-044` (⛔ → tanpa tanda); skenario `AT-IGD-198`, `199`; manifest bagian 0m |
+| `IGD-DEC-210` bukti uji `BE-IGD-041` 6 Oktober 2026 diterima dengan penyimpangan tercatat | `approved` | Laporan task `BE-IGD-041` bagian 9.11; host basis data di laporan penguji disamarkan |
+| `IGD-DEC-211` `BE-IGD-041` tetap 🟡 — acceptance 14 dan 15 diuji pada putaran bersama `FE-IGD-044` | `approved` | Status `BE-IGD-041`; panduan putaran bersama |
+| `IGD-DEC-212` suntingan penguji pada dokumen tracked ditulis ulang agent | `approved` | Laporan task `BE-IGD-041`, roadmap backend, traceability |
+| `IGD-DEC-213` bukti uji `BE-IGD-064` 6 Oktober (siang) ditolak; diulang di putaran bersama | `approved` | Status `BE-IGD-064`; laporan task bagian 6 dan 8; panduan putaran bersama |
+| `IGD-DEC-214` perubahan CSS frontend oleh penguji dikembalikan ke commit `2a985f6d5` | `approved` | `emergency-assessment.module.css`, `emergency-assessment-workspace.module.css` — working tree bersih |
+| `IGD-DEC-215` akun SuperAdmin tidak diubah; langkah perawat memakai `dimas.kurniawan@rsmmc.local` | `approved` | Panduan putaran bersama; sandi lewat variabel lingkungan |
+| `IGD-DEC-216` bukti uji ulang `BE-IGD-064` diterima; Akses Role lewat SuperAdmin diterima sebagai konfigurasi sementara | `approved` | Status ✅ `BE-IGD-064`; penyempurnaan Akses Role oleh pengurusnya (kembali ke `IGD-DEC-190`) |
+| `IGD-DEC-217` dua QR code tracked dipulihkan dari HEAD | `approved` | `Storage/uploads/patient-qrcodes` — working tree bersih |
+| `IGD-DEC-218` bukti uji putaran bersama 6 Oktober (sore) diterima dengan penyimpangan tercatat | `approved` | Status ✅ `BE-IGD-041` (17 dari 17) dan `FE-IGD-043`; bagian pemeriksaan bukti putaran bersama pada laporan task; laporan penguji tidak disunting |
+| `IGD-DEC-219` `FE-IGD-044` ✅; acceptance 9 untuk modal sikap pesanan lewat source dan pola yang sudah teruji | `approved` | Status `FE-IGD-044`; `044-U10` diserahkan ke tim UAT |
+
+### Pertanyaan terbuka
+
+| ID | Isi | Menahan? |
+| --- | --- | --- |
+| ~~`IGD-OQ-116`~~ | Kartu pasien Ruang Kerja selalu *"Pasien belum teridentifikasi"*; RM dan unit kosong — **dijawab `IGD-DEC-207`** (5 Oktober 2026 sore): `BE-IGD-064` | Tidak lagi terbuka |
+
+## `EPIC IGD-14` — Ruang Kerja Dokter IGD (`MVP-9`, perencanaan 6 Oktober 2026, sore)
+
+| Butir | Isi |
+| --- | --- |
+| Snapshot source | Backend `rizkiG` `e3cbc58d` — commit dokumen desain di atas `43dab6da`, **nol** berkas di luar `docs/` berubah; frontend `RizkiV2` `6680278a2`. Keduanya bersih |
+| Kontrak | API **`0.15.0`** §10, validation **`0.14.0`** §12, state **`0.10.0`** §10, permission/audit **`0.8.0`** §9, integration **`0.6.0`** §7 — `approved`. Hash di manifest bagian 0n; baris pengganti `00-interview-decisions.md` di 0n.1 |
+| Approval | `IGD-DEC-220`…`229` dan desain `IGD-DEC-230` — Rizki Gunawan, 6 Oktober 2026 (sementara, pola `IGD-DEC-174`); `IGD-DEC-231` keputusan perencanaan — Rizki Gunawan, 6 Oktober 2026 (sementara, pola yang sama) |
+| Desain turunan | `02-backend-architecture.md` §15; `03-frontend-architecture.md` §15 (bagian B dibaca bersama `IGD-DEC-231`); `04-prd-to-mvp.md` §10 (`FR-IGD-096`…`105`, `AT-IGD-200`…`213`, DoD 1–10); `erd/data-dictionary.md` §8; `testing/acceptance-test-matrix.md`; `flowcharts/ruang-kerja-dokter.md` |
+| Task | Backend R3.16: `BE-IGD-065`…`071` (empat 🟡, dua siap, `BE-IGD-071` ⛔ `IGD-OQ-117`). Frontend R3.14: `FE-IGD-045`…`058` (lima 🟡, enam siap pada gelombang 1–3, tiga ⛔: `FE-IGD-053` `IGD-OQ-119`; `FE-IGD-057`, `058` lewat `BE-IGD-071`) |
+
+### Task
+
+| Task | Requirement / keputusan | Target implementasi | Kontrak | Dependency | Requirement approved | Delivery planned | Implementation complete | Runtime verified |
+| --- | --- | --- | --- | --- | :-: | :-: | :-: | :-: |
+| 🟡 `BE-IGD-065` | `FR-IGD-096`; `IGD-DEC-222`, `230` (8) | Daftar dan detail kunjungan membawa DPJP aktif; saringan `doctorId`, `ongoing`; `KueriBerjalan` | API §10.1 n.1–2, §10.2; val §12.1 | — | Ya — 6 Oktober 2026 | **Ya — 6 Oktober 2026 (sore)**, acceptance 1–8 | **Ya** — 7–8 Oktober 2026: 3 berkas (+75/−12), QBE Strict `PASS`, acceptance 6 (dengan delta: satu kueri DPJP per halaman), 7, 8 (build 0 error, 235 warning identik baseline) terbukti, delta 1 disahkan `IGD-DEC-233` — [laporan](../task/report/backend/BE-IGD-065.md) | **Sebagian** — build pemilik terbukti (0 error, 235 warning); belum: uji API 1–5 pada putaran 1 bersama `FE-IGD-045` |
+| 🟡 `BE-IGD-066` | `FR-IGD-097`; `IGD-DEC-221`, `230` (5) | Kajian medis dokter untuk kunjungan IGD; satu kajian awal per kunjungan | API §10.5; val §12.2 a.4–6 | — | Ya | **Ya**, acceptance 1–7 | **Ya** — 7–8 Oktober 2026: 1 berkas (+42/−0), QBE Strict `PASS`, acceptance 6 (lewat diff), 7 (build 0 error, 235 warning identik baseline) — [laporan](../task/report/backend/BE-IGD-066.md) | **Sebagian** — build pemilik terbukti; belum: uji 1–5 putaran 1 bersama `FE-IGD-046` |
+| 🟡 `BE-IGD-067` | `FR-IGD-098`; `IGD-DEC-227`, `231` | `GET …/encounters/{encounterId}/soap-timeline` | API §10.4 | — | Ya | **Ya**, acceptance 1–6 | **Ya** — 8 Oktober 2026: 2 berkas (+102/−0), QBE Strict `PASS`, acceptance 4, 5, 6 (build 0 error, 235 warning identik baseline) — [laporan](../task/report/backend/BE-IGD-067.md) | **Sebagian** — build pemilik terbukti; belum: uji 1–3 putaran 1 bersama `FE-IGD-047` |
+| 🟡 `BE-IGD-068` | `FR-IGD-105`; `IGD-DEC-229` | Finalisasi catatan dokter encounter `Emergency` tanpa fakta jasa konsultasi | API §10.1 n.6; val §12.6 a.16; integ §7.3 | — | Ya | **Ya**, acceptance 1–5 | **Ya** — 8 Oktober 2026: 1 berkas (+23/−22), QBE Strict `PASS`, acceptance 2–4, 5 (build 0 error, 235 warning identik baseline) — [laporan](../task/report/backend/BE-IGD-068.md) | **Sebagian** — build pemilik terbukti; belum: uji integrasi putaran 1 bersama `FE-IGD-049` (`AT-IGD-204`) |
+| 🟢 `BE-IGD-069` | `FR-IGD-100`; `IGD-DEC-225`, `230` (1, 5) | `POST …/patient-procedures/emergency-nursing-actions` | API §10.6; val §12.3 a.7–12; state §10.2 | — | Ya | **Ya**, acceptance 1–8 | **Ya** — 9 Oktober 2026: DTO, Controller, Service; 0 migration; compile 0 error; acceptance 4, 7, 8 — [laporan](../task/report/backend/BE-IGD-069.md) | **Belum** — uji integrasi/layar bersama FE-IGD-050, 051 |
+| 🟡 `BE-IGD-070` | `FR-IGD-103`, `104`; `IGD-DEC-223`, `226`, `230` (2–4); `IGD-CONF-11` | Status awal Draft; penjaga diagnosis saat konfirmasi | API §10.1 n.3–4, §10.3; val §12.5 a.14–15; state §10.1 | — | Ya | **Ya**, acceptance 1–8; syarat rilis R3.16.5 | **Ya** — 9 Oktober 2026: 2 berkas (+45/−3), nol migration, nol komentar baru; build pemilik lulus (0 error, 235 warning); acceptance 7, 8 — [laporan](../task/report/backend/BE-IGD-070.md) | **Sebagian** — build pemilik terbukti (0 error, 235 warning); belum: uji API 1–6 bersama `FE-IGD-054`, `055` |
+| ⛔ `BE-IGD-071` | `FR-IGD-102`; `IGD-DEC-224`, `230` (6, 7) | Instruksi lab dan radiologi untuk pesanan perawat IGD; worklist | API §10.1 n.9–10, §10.7; val §12.4 a.13 | `IGD-OQ-117` | Ya (desain); **aturan modul menunggu pemiliknya** | **Ya**, acceptance 1–8 — ⛔ | Belum | Belum |
+| 🟡 `FE-IGD-045` | `FR-IGD-096`; `IGD-DEC-220`…`223` | Route `doctor-emergency`; daftar, saringan, kartu, kerangka tab | API §10.2 | `BE-IGD-065` | Ya | **Ya**, acceptance 1–10 | **Ya** — 7 Oktober 2026: 11 berkas baru + menu, `eslint` 0/0, `npm run build` lulus (472/472); acceptance 8–10 terbukti — [laporan](../task/report/frontend/FE-IGD-045.md) | **Belum** — uji layar 1–7 putaran 1 sesudah build `BE-IGD-065` |
+| 🟡 `FE-IGD-046` | `FR-IGD-097` | Tab Pengkajian Medis (adapter) | API §10.5; val §12.2 | `FE-IGD-045`, `BE-IGD-066` | Ya | **Ya**, acceptance 1–6 | **Ya** — 7 Oktober 2026: adapter 9 berkas, `eslint` 0 error, build lulus (472/472); acceptance 4–6 — [laporan](../task/report/frontend/FE-IGD-046.md) | **Belum** — uji layar 1–3 putaran 1 sesudah build `BE-IGD-066` |
+| 🟡 `FE-IGD-047` | `FR-IGD-098`; `IGD-DEC-227`, `231` | Tab Catatan Dokter dan CPPT (hook & tab mandiri IGD, `IGD-DEC-234`) | API §10.4, §10.8 | `FE-IGD-045`, `BE-IGD-067` | Ya | **Ya**, acceptance 1–9 | **Ya** — 8 Oktober 2026: hook & tab mandiri IGD (`IGD-DEC-234`), rawat inap utuh; `eslint` 0/0, `npm run build` lulus (476/476); acceptance 7–9 — [laporan](../task/report/frontend/FE-IGD-047.md) | **Belum** — uji layar 1–6 putaran 1 sesudah build `BE-IGD-067` |
+| 🟡 `FE-IGD-048` | `FR-IGD-098`; `IGD-DEC-227`, `231` | *Catatan Saya* IGD: terkunci dan addendum, tanpa draf | API §10.8 | `FE-IGD-045` | Ya | **Ya**, acceptance 1–6 | **Ya** — 8 Oktober 2026: route `my-notes`, view, hook & tab mandiri IGD (`IGD-DEC-234`), rawat inap utuh; `eslint` 0 error, `npm run build` lulus (476/476); acceptance 4–6 — [laporan](../task/report/frontend/FE-IGD-048.md) | **Belum** — uji layar 1–3 putaran 1 |
+| 🟡 `FE-IGD-049` | `FR-IGD-099`, `105` (uji) | Tab Resep (hook & tab mandiri IGD, `IGD-DEC-234`) | API §10.8; val §12.6 | `FE-IGD-047` | Ya | **Ya**, acceptance 1–7 | **Ya** — 8 Oktober 2026: service, hook & tab mandiri IGD (`IGD-DEC-234`), rawat inap utuh; `eslint` 0/0, `npm run build` lulus (476/476); acceptance 6, 7 — [laporan](../task/report/frontend/FE-IGD-049.md) | **Belum** — uji integrasi/layar 1–5 putaran 1 bersama `BE-IGD-068` (`AT-IGD-204`) |
+| 🟢 `FE-IGD-050` | `FR-IGD-100` (dokter) | Tab Tindakan dokter (adapter) | API §10.6 | `FE-IGD-047` | Ya | **Ya**, acceptance 1–6 | **Ya** — 9 Oktober 2026: tab mandiri EmergencyDoctorProcedureTab, terdaftar pada doctor-emergency-view.jsx, rawat inap utuh; acceptance 4–6 — [laporan](../task/report/frontend/FE-IGD-050.md) | **Belum** — uji layar bersama BE-IGD-069, FE-IGD-051 |
+| 🟢 `FE-IGD-051` | `FR-IGD-100` (perawat) | Tab Tindakan perawat: tindakan klinis umum + tindakan keperawatan | API §10.6; val §12.3 | `BE-IGD-069` | Ya | **Ya**, acceptance 1–5 | **Ya** — 9 Oktober 2026: service, slice, hook, komponen EmergencyAssessmentProcedureTab; acceptance 4, 5 — [laporan](../task/report/frontend/FE-IGD-051.md) | **Belum** — uji layar bersama BE-IGD-069, FE-IGD-050 |
+| `FE-IGD-052` | `FR-IGD-101` (empat jenis); `IGD-DEC-228` | Tab Penunjang dokter: lab, radiologi, darah, hemodialisa | API §10.7, §10.8 | `FE-IGD-045` | Ya | **Ya**, acceptance 1–5 | Belum | Belum |
+| ⛔ `FE-IGD-053` | `FR-IGD-101` (gizi) | Pesanan dan status gizi di kedua layar | API §10.8 | `FE-IGD-052`, `FE-IGD-056`, `IGD-OQ-119` | Ya (desain); **layanan Gizi menunggu pemiliknya** | **Ya**, acceptance 1–4 — ⛔ | Belum | Belum |
+| 🟢 `FE-IGD-054` | `FR-IGD-103`, `104` | Tab Tindak Lanjut dokter: draf, konfirmasi, batalkan | API §10.3; val §12.5 | `FE-IGD-045`, `BE-IGD-070` | Ya | **Ya**, acceptance 1–5 | **Ya** — 9 Oktober 2026: komponen EmergencyDoctorDispositionTab, terdaftar di doctor-emergency-view.jsx, DOCTOR_DISPOSITION_STATUS_ACTIONS; acceptance 1–5 — [laporan](../task/report/frontend/FE-IGD-054.md) | **Belum** — uji integrasi/layar bersama BE-IGD-070 |
+| 🟢 `FE-IGD-055` | `FR-IGD-103` | Layar perawat hanya *Jalankan* | API §10.3; permission §9.2 | `FE-IGD-054` | Ya | **Ya**, acceptance 1–4 | **Ya** — 9 Oktober 2026: komponen EmergencyAssessmentDispositionTab, NURSE_DISPOSITION_STATUS_ACTIONS; acceptance 1–4 — [laporan](../task/report/frontend/FE-IGD-055.md) | **Belum** — uji integrasi/layar bersama BE-IGD-070 |
+| `FE-IGD-056` | `FR-IGD-101` (baca perawat) | Tab Penunjang perawat membaca status empat jenis | API §10.7, §10.8 | — | Ya | **Ya**, acceptance 1–4 | Belum | Belum |
+| ⛔ `FE-IGD-057` | `FR-IGD-102` (perawat) | Pesanan lab dan radiologi perawat dengan dokter pemberi instruksi | API §10.7; val §12.4 | `FE-IGD-056`, `BE-IGD-071` | Ya (desain) | **Ya**, acceptance 1–4 — ⛔ | Belum | Belum |
+| ⛔ `FE-IGD-058` | `FR-IGD-102` (dokter) | *Perlu Verifikasi* dan angka ringkasan | API §10.7 | `FE-IGD-045`, `BE-IGD-071` | Ya (desain) | **Ya**, acceptance 1–4 — ⛔ | Belum | Belum |
+
+### Requirement ke task dan uji
+
+| Requirement | Task backend | Task frontend | Skenario uji | Cakupan |
+| --- | --- | --- | --- | --- |
+| `FR-IGD-096` layar dokter terpisah, semua pasien berjalan, saringan *Pasien saya*, nama DPJP | `BE-IGD-065` | `FE-IGD-045` | `AT-IGD-200` | Lengkap sesudah kedua kartu; butir menu didaftarkan admin (`IGD-UNK-14`) |
+| `FR-IGD-097` kajian medis awal dan ulang; awal satu per kunjungan | `BE-IGD-066` | `FE-IGD-046` | `AT-IGD-201`, `202` | Lengkap |
+| `FR-IGD-098` catatan dokter + ICD-10, riwayat per kunjungan, koreksi lewat addendum | `BE-IGD-067` | `FE-IGD-047`, `FE-IGD-048` | `AT-IGD-203` | Lengkap untuk catatan terkunci dan addendum; **draf IGD tidak di *Catatan Saya*** (`IGD-DEC-231`) — lihat coverage gap |
+| `FR-IGD-099` resep pada catatan terbuka, terbaca di layar perawat | — (sudah ada) | `FE-IGD-049` | `AT-IGD-204` | Lengkap; `IGD-UNK-12` dibuktikan saat uji |
+| `FR-IGD-100` tindakan dokter dan tindakan keperawatan sebagai tindakan klinis umum | `BE-IGD-069` | `FE-IGD-050`, `FE-IGD-051` | `AT-IGD-205`, `206`, `207` | Lengkap |
+| `FR-IGD-101` lima jenis penunjang dari satu tab, status dan hasil terbaca | — (sudah ada) | `FE-IGD-052`, `FE-IGD-056`; ⛔ `FE-IGD-053` (gizi) | `AT-IGD-208` | Empat jenis lengkap; **gizi ⛔ `IGD-OQ-119`** |
+| `FR-IGD-102` pesanan perawat atas instruksi, diverifikasi dokter | ⛔ `BE-IGD-071` | ⛔ `FE-IGD-057`, ⛔ `FE-IGD-058` | `AT-IGD-209`, `210` | **⛔ `IGD-OQ-117`** |
+| `FR-IGD-103` tindak lanjut dibuat dan dikonfirmasi dokter; perawat hanya *Jalankan* | `BE-IGD-070` | `FE-IGD-054`, `FE-IGD-055` | `AT-IGD-211`, `213` | Lengkap; pemisahan di tingkat API diterima sebagai keterbatasan (permission §9.2) |
+| `FR-IGD-104` tindak lanjut baru selalu draf; konfirmasi butuh diagnosis | `BE-IGD-070` | `FE-IGD-054` | `AT-IGD-211`, `212` | Lengkap |
+| `FR-IGD-105` catatan dokter IGD tanpa fakta jasa konsultasi; fakta resep tetap | `BE-IGD-068` | `FE-IGD-049` (pasangan uji) | `AT-IGD-204` | Lengkap; pembacaan fakta tagih lewat kueri `SELECT` pemilik atau endpoint baca Billing yang sudah ada |
+
+**Definition of Done PRD §10.4 ke task.** Butir 1 → `FE-IGD-045`; 2 → `FE-IGD-046`, `047`, `049`, `050`, `052`, `054`;
+3 → `BE-IGD-066`, `069`, `070`; 4 → `FE-IGD-047`, `048`; 5 → `BE-IGD-068`; 6 → `BE-IGD-069`, `FE-IGD-050`, `051`;
+7 → `FE-IGD-051`, `055`, `056`, ⛔ `057`; 8 → acceptance diff setiap kartu backend; 9 → acceptance build setiap kartu;
+10 → **tanpa task** — konfigurasi lingkungan oleh admin dan pemilik modul (R3.16.5).
+
+**Coverage gap yang dicatat:**
+
+- **Pesanan perawat atas instruksi** (`FR-IGD-102`, `AT-IGD-209`, `210`) — ⛔ `IGD-OQ-117` (pemilik Laboratorium; pemilik
+  Radiologi, Yoga Aji Pratama). Sampai terjawab, perawat IGD tetap memesan lab seperti hari ini tanpa dokter pemberi
+  instruksi, dan tidak memesan radiologi.
+- **Jenis gizi** (`FR-IGD-101`, `AT-IGD-208` bagian gizi) — ⛔ `IGD-OQ-119` (pemilik Gizi).
+- **Pesanan perawat untuk bank darah, hemodialisa, gizi** — tidak dibuka slice ini (`IGD-OQ-118`, ditunda); tanpa task.
+- **Draf catatan dokter IGD tidak tampil di *Catatan Saya*, dan draf yang terlupa tidak terkunci saat kunjungan ditutup**
+  (`IGD-FACT-085`, `IGD-DEC-231`) — penyempitan `IGD-DEC-227` yang diterima pemilik; tanpa task.
+- **Label status encounter** *Sedang Konsultasi*/*Konsultasi Selesai* pada pasien IGD yang masih dirawat di IGD
+  (`IGD-FACT-087`) — tidak memengaruhi penjaga mana pun; tanpa task; diamati saat uji.
+- **Perlakuan Billing atas fakta dari encounter IGD** (`IGD-UNK-16`) — tidak diaudit; slice billing IGD.
+- **`FE-IGD-056` tanpa skenario `AT-IGD-*`** — pembacaan status penunjang oleh perawat tertulis di `03` §15.4 bagian D,
+  bukan di PRD §10.3; diuji lewat acceptance kartu.
+- **DoD butir 10** — konfigurasi lingkungan (`IGD-UNK-13`…`15`) adalah langkah operasional, bukan kartu kode.
+
+### Keputusan ke task
+
+| Keputusan | Status | Direalisasikan |
+| --- | --- | --- |
+| `IGD-DEC-220` layar dokter tersendiri, penunjang lima jenis | `approved` (sementara) | Seluruh R3.16 dan R3.14 |
+| `IGD-DEC-221` tab klinis inti | `approved` (sementara) | `FE-IGD-045` (kerangka), `046`, `047`, `049`, `050`, `052` |
+| `IGD-DEC-222` semua pasien berjalan + saringan *Pasien saya* | `approved` (sementara) | `BE-IGD-065`, `FE-IGD-045` |
+| `IGD-DEC-223` tindak lanjut dibuat/dikonfirmasi dokter, perawat *Jalankan* | `approved` (sementara) | `FE-IGD-054`, `FE-IGD-055` |
+| `IGD-DEC-224` pesanan dokter; perawat atas instruksi + verifikasi | `approved` (sementara) | `FE-IGD-052` (dokter); ⛔ `BE-IGD-071`, `FE-IGD-057`, `058` (`IGD-OQ-117`) |
+| `IGD-DEC-225` tindakan klinis umum untuk dokter dan perawat | `approved` (sementara) | `BE-IGD-069`, `FE-IGD-050`, `FE-IGD-051` |
+| `IGD-DEC-226` konfirmasi tindak lanjut butuh diagnosis | `approved` (sementara) | `BE-IGD-070`, `FE-IGD-054` |
+| `IGD-DEC-227` catatan dokter draf → kunci → addendum; *Catatan Saya* | `approved` (sementara); kata *"draf"* untuk *Catatan Saya* `superseded` oleh `IGD-DEC-231` | `BE-IGD-067`, `FE-IGD-047`, `FE-IGD-048` |
+| `IGD-DEC-228` radiologi dibuka walau hasil menyusul | `approved` (sementara) | `FE-IGD-052` |
+| `IGD-DEC-229` resep jalan, jasa konsultasi IGD tidak dikirim | `approved` (sementara) | `BE-IGD-068`; uji lewat `FE-IGD-049` |
+| `IGD-DEC-230` approval desain + delapan pilihan desain | `approved` (sementara) | Pilihan 1, 5 → `BE-IGD-069`; 2–4 → `BE-IGD-070`; 5 → `BE-IGD-066`; 6, 7 → `BE-IGD-071`, `FE-IGD-056`, `057`; 8 → `BE-IGD-065`, `FE-IGD-045` |
+| `IGD-DEC-231` *Catatan Saya* IGD: terkunci dan addendum, tanpa draf | `approved` (sementara) | `FE-IGD-048`; `FE-IGD-047` acceptance 3 |
+| `IGD-DEC-232` | Menu Ruang Kerja Dokter IGD: *Dokter → IGD* | `approved` | `FE-IGD-045` |
+| `IGD-DEC-233` | Saringan `ongoing=false` pada `GET /emergency-visits` berlaku simetris | `approved` | `BE-IGD-065` |
+| `IGD-DEC-234` | Pemisahan hook & tab mandiri dokter IGD dari modul rawat inap | `approved` | `FE-IGD-047`, `FE-IGD-048`, `FE-IGD-049` |
+| `IGD-DEC-235` | Konfirmasi titik sentuh BE-IGD-068 pada ConsultationFinalizationService (Farmasi) | `approved` | `BE-IGD-068` |
+
+### Pertanyaan terbuka
+
+| ID | Isi | Menahan? |
+| --- | --- | --- |
+| `IGD-OQ-117` | Aturan dokter pemberi instruksi pada Laboratorium dan Radiologi untuk pasien IGD | **Ya** — `BE-IGD-071`, `FE-IGD-057`, `FE-IGD-058` |
+| `IGD-OQ-118` | Verifikasi pesanan perawat bank darah, hemodialisa, gizi | Tidak — ditunda; perawat tidak memesan ketiganya |
+| `IGD-OQ-119` | Apakah tim Gizi melayani pasien IGD | **Ya** — `FE-IGD-053` |
+| `IGD-UNK-12` | `ClinicId` kosong pada resep IGD di alur Farmasi hilir | Tidak — dibuktikan pada uji `FE-IGD-049` |
+| `IGD-UNK-13`…`15` | Izin unit IGD memesan darah; `ActAsRadiologist`; butir menu | Tidak menahan pembangunan; menahan uji `FE-IGD-045`, `052` di lingkungan yang belum dikonfigurasi |
+| `IGD-UNK-16` | Perlakuan Billing atas fakta IGD | Tidak — slice billing IGD |
+| `IGD-UNK-17` | Jumlah baris lama `EmgProcedureDetail` | Tidak — menentukan apakah bagian *Riwayat tindakan lama* `FE-IGD-051` tampil |
+
+## `EPIC IGD-12` — Dokter jaga IGD dan override beralasan (`MVP-10`, perencanaan 11 Oktober 2026)
+
+| Butir | Isi |
+| --- | --- |
+| Snapshot source | Backend `rizkiG` `c7e523fd`, frontend `RizkiV2` `3335f4b53` — keduanya bersih |
+| Kontrak | API **`0.16.0`** §11, validation **`0.15.0`** §13, permission/audit **`0.9.0`** §10, integration **`0.7.0`** §8 — `approved`; hash di manifest bagian 0o |
+| Approval | `IGD-DEC-237`…`240` — Rizki Gunawan, 11 Oktober 2026 (sementara, pola `IGD-DEC-174`) |
+| Desain turunan | `02-backend-architecture.md` §16; `03-frontend-architecture.md` §16; `04-prd-to-mvp.md` §11; `erd/data-dictionary.md` §9; `testing/acceptance-test-matrix.md`; `flowcharts/dokter-penanggung-jawab-igd.md` |
+| Task | `BE-IGD-056` ✅, `FE-IGD-037` ✅ (keduanya 11 Oktober 2026 malam) — keduanya disusun ulang; source awal ada di luar kartu |
+
+### Task
+
+| Task | Requirement / keputusan | Target implementasi | Kontrak | Dependency | Requirement approved | Delivery planned | Implementation complete | Runtime verified |
+| --- | --- | --- | --- | --- | :-: | :-: | :-: | :-: |
+| ✅ `BE-IGD-056` | `FR-IGD-106`…`108`; `IGD-DEC-141`, `237`…`240` | Satu perhitungan kelayakan untuk daftar, penetapan, dan pengalihan; dua kolom override; alias `options` dihapus | API §11; val §13; perm §10; integ §8; kamus §9 | `BE-IGD-045` ✅ | Ya — 11 Oktober 2026 | **Ya — 11 Oktober 2026**, acceptance 1–9 | **Ya** — 11 Oktober 2026: 5 berkas (+172/−95), QBE `PASS`; 1 dari 9 acceptance (8, dengan delta) — [laporan](../task/report/backend/BE-IGD-056.md); build berhasil, migration diterapkan ke dev; belum: uji `Down` (7), warning build (9) | **Ya** — 11 Oktober 2026 (malam): putaran `AT-IGD-214`…`220` dan uji ulang R-01…R-07; 9 dari 9 acceptance (1, 2, 8 dengan delta; 7 dengan pengecualian `IGD-DEC-260`) — [laporan §9](../task/report/backend/BE-IGD-056.md) |
+| ✅ `FE-IGD-037` | `FR-IGD-106`, `108` (layar); `IGD-DEC-237`, `239`, `240` | Dua kelompok di dua pintu, isian alasan, penanda riwayat; cadangan master dan saringan layar dihapus | API §11.2–11.4; val §13 | `BE-IGD-056` | Ya | **Ya**, acceptance 1–8 | **Ya** — 11 Oktober 2026: 6 berkas (+277/−97); `eslint` 0/0; unit 10/10; build 489/489; 2 dari 8 acceptance — [laporan](../task/report/frontend/FE-IGD-037.md) | **Ya** — 11 Oktober 2026 (malam): putaran sore, uji ulang R-08…R-13, dan R-16 lulus; 8 dari 8 acceptance — [laporan §11–§12](../task/report/frontend/FE-IGD-037.md) |
+
+### Requirement ke task dan uji
+
+| Requirement | Task backend | Task frontend | Skenario uji | Cakupan |
+| --- | --- | --- | --- | --- |
+| `FR-IGD-106` dua kelompok dari satu sumber backend | `BE-IGD-056` | `FE-IGD-037` | `AT-IGD-214`, `219`, `220` | Dua kelompok di kedua pintu terbukti (`AT-IGD-214`, 11 Oktober 2026). `onlyOnDuty` dan `search` terbukti (R-01, R-02). Roster kosong di layar terbukti lewat R-16 dengan daftar tiruan (`IGD-DEC-263`, `265`); uji dengan jadwal kosong yang nyata tetap cek lingkungan (`IGD-UNK-18`). Batas akhir shift malam dan unit bernama "IGD" bertipe lain (`AT-IGD-220` b, d) disahkan sebagai delta berdasarkan source (`IGD-DEC-258`). Isi data jadwal per lingkungan di luar kode (`IGD-UNK-18`) |
+| `FR-IGD-107` pemeriksaan ulang saat simpan | `BE-IGD-056` | — | `AT-IGD-215`, `217`, `218` | **Lengkap** — aturan 8–10 (`AT-IGD-217`, `218`), aturan 11 (R-06), urutan `400` sebelum `409` (R-05) |
+| `FR-IGD-108` override beralasan tercatat dan terbaca | `BE-IGD-056` | `FE-IGD-037` | `AT-IGD-216` | **Tercatat** — terbukti lewat API (`AT-IGD-216`). **Terbaca di layar — terbukti** pada DPJP aktif di kedua pintu (R-08…R-10; `IGD-DEC-256`, laporan `FE-IGD-037` §10–§11). Daftar riwayat penugasan lengkap di layar di luar scope. Penyetuju kedua sengaja tidak ada (`IGD-OQ-099`) |
+| DoD PRD §11.4 butir 1–4, 7, 9 | `BE-IGD-056` | — | — | Butir 7: uji `Down` dikecualikan (`IGD-DEC-260`). Butir 9 operasional (`IGD-UNK-18`), dilepas dari DoD task menjadi syarat rilis (`IGD-DEC-264`) |
+| DoD butir 5, 6 | — | `FE-IGD-037` | `AT-IGD-219` | Butir 5 terbukti (diff, R-12); butir 6 terbukti (R-16, `IGD-DEC-263`) |
+| DoD butir 8 | `BE-IGD-056` | `FE-IGD-037` | — | — |
+
+### Keputusan ke task
+
+| Keputusan | Status | Task |
+| --- | --- | --- |
+| `IGD-DEC-141` | `approved` — butir 5 kini dijawab `IGD-DEC-237` | `BE-IGD-056`, `FE-IGD-037` |
+| `IGD-DEC-237` sumber roster, hanya `ServiceUnitType.Emergency` | `approved` | `BE-IGD-056` |
+| `IGD-DEC-238` dua kolom override | `approved` | `BE-IGD-056` |
+| `IGD-DEC-239` kelompok di luar jadwal selalu ditawarkan | `approved` | `BE-IGD-056`, `FE-IGD-037` |
+| `IGD-DEC-240` desain dan pilihan desain §16.9 | `approved` | `BE-IGD-056`, `FE-IGD-037` |
+
+### Pertanyaan terbuka
+
+| ID | Keadaan | Menahan |
+| --- | --- | --- |
+| `IGD-OQ-102`, `IGD-OQ-103` | **Dijawab** 11 Oktober 2026 | — |
+| `IGD-OQ-099` | `open` | Tidak |
+| `IGD-UNK-18` | Terbuka per lingkungan | Rilis, bukan pengembangan |
+
+## `EPIC IGD-15` — Form Permintaan Rawat Inap dari IGD (`MVP-11`, perencanaan 12 Oktober 2026)
+
+| Butir | Isi |
+| --- | --- |
+| Snapshot source | Backend `rizkiG` `6a1c6cf9`, frontend `RizkiV2` `03b057c03` |
+| Kontrak | API **`0.17.1`** §12 (metode `POST`, `IGD-DEC-300`), validation **`0.16.0`** §14, state **`0.11.0`** §11, permission/audit **`0.10.0`** §11, integration **`0.8.0`** §9 — `approved`; hash di manifest bagian 0p |
+| Approval | `IGD-DEC-294`, `297` — Rizki Gunawan, 12 Oktober 2026; titik sentuh Rawat Inap dan Billing disetujui lisan pemiliknya (`IGD-DEC-299`) |
+| Desain turunan | `02-backend-architecture.md` §17; `03-frontend-architecture.md` §17; `04-prd-to-mvp.md` §12; `erd/data-dictionary.md` §10; `testing/acceptance-test-matrix.md`; `flowcharts/permintaan-rawat-inap.md` |
+| Task | Backend R3.18: `BE-IGD-072`…`075`; frontend R3.16: `FE-IGD-059`…`062` |
+
+### Task
+
+| Task | Requirement / keputusan | Target implementasi | Kontrak | Dependency | Requirement approved | Delivery planned | Implementation complete | Runtime verified |
+| --- | --- | --- | --- | --- | :-: | :-: | :-: | :-: |
+| `BE-IGD-072` | `FR-IGD-109`…`112`, `115`; `IGD-DEC-268`, `271`, `273`, `274`, `278`, `282`…`292` | Form IGD dari draf sampai *Menunggu TTD*; migration 1 | API §12.2–12.3; val §14 aturan 1–14, 17, 19, 26; state §11.1 | — | ✅ | ✅ | 🟡 source, migration, build 12 Oktober 2026 — [laporan](../task/report/backend/BE-IGD-072.md) | 🟡 putaran A 12/14; A-11 diulang |
+| `BE-IGD-073` | `FR-IGD-113`, `115`; `IGD-DEC-275`, `276`, `279`, `288` | Permintaan admisi bersumber IGD di Rawat Inap; migration 2 | API §12.4; val §14 aturan 20–22; state §11.3 | `BE-IGD-072` | ✅ | ✅ | — | — |
+| `BE-IGD-074` | `FR-IGD-112`…`116`; `IGD-DEC-272`, `275`, `277`, `280`, `281` | Tanda tangan dan pengiriman satu transaksi; penahanan *Jalankan*; batal; cetak | API §12.2, §12.5; val §14 aturan 13–16, 18, 19, 23–25; state §11 | `BE-IGD-072`, `073` | ✅ | ✅ | — | — |
+| `BE-IGD-075` | `IGD-DEC-293` | Penautan invoice ditahan untuk sumber IGD | Integration §9 | `BE-IGD-073` | ✅ | ✅ | — | — |
+| `FE-IGD-059` | `FR-IGD-109`…`112`, `115` | Panel dan form perawat | API §12.2–12.3; val §14 | `BE-IGD-072` | ✅ | ✅ | 🟡 kode 12 Oktober 2026, ESLint 0 error; build belum — [laporan](../task/report/frontend/FE-IGD-059.md) | 🟡 putaran A 12/14; A-11 diulang |
+| `FE-IGD-060` | `FR-IGD-112` | *Perlu TTD* dan dialog dokter | API §12.2; val §14 aturan 13–18 | `BE-IGD-072`, `074` | ✅ | ✅ | — | — |
+| `FE-IGD-061` | `FR-IGD-114`…`116` | Status pasca-kirim, *Jalankan*, batal, cetak | API §12.2, §12.5; state §11.2 | `BE-IGD-074`, `FE-IGD-059` | ✅ | ✅ | — | — |
+| `FE-IGD-062` | `FR-IGD-113`, `115` | Layar admisi Rawat Inap | API §12.4 | `BE-IGD-073` | ✅ | ✅ | — | — |
+
+### Requirement ke task dan uji
+
+| Requirement | Backend | Frontend | Uji | Keadaan |
+| --- | --- | --- | --- | --- |
+| `FR-IGD-109` buat form dari tindak lanjut terkonfirmasi | `BE-IGD-072` | `FE-IGD-059` | `AT-IGD-221`, `222` | Sebagian — putaran A 12 Oktober 2026: 12/14 skenario terbukti, A-11 diulang; build FE belum |
+| `FR-IGD-110` data pasien baca-saja, beku saat TTD | `BE-IGD-072`, `074` | `FE-IGD-059` | `AT-IGD-221`, `234` | Sebagian — putaran A 12 Oktober 2026: 12/14 skenario terbukti, A-11 diulang; build FE belum |
+| `FR-IGD-111` isian penempatan | `BE-IGD-072` | `FE-IGD-059` | `AT-IGD-223`, `224` | Sebagian — putaran A 12 Oktober 2026: 12/14 skenario terbukti, A-11 diulang; build FE belum |
+| `FR-IGD-112` minta TTD, *Perlu TTD*, tandatangani, kembalikan | `BE-IGD-072`, `074` | `FE-IGD-059`, `060` | `AT-IGD-225`…`227` | Sebagian — putaran A 12 Oktober 2026: 12/14 skenario terbukti, A-11 diulang; build FE belum |
+| `FR-IGD-113` permintaan admisi bersumber IGD | `BE-IGD-073`, `074` | `FE-IGD-062` | `AT-IGD-225`, `229`, `230`, `235` | Direncanakan |
+| `FR-IGD-114` penahanan *Jalankan* | `BE-IGD-074` | `FE-IGD-061` | `AT-IGD-228`, `231` | Direncanakan |
+| `FR-IGD-115` tiga jalan pembatalan | `BE-IGD-072`, `073`, `074` | `FE-IGD-059`, `061`, `062` | `AT-IGD-231`…`233` | Sebagian — putaran A 12 Oktober 2026: 12/14 skenario terbukti, A-11 diulang; build FE belum |
+| `FR-IGD-116` cetak | `BE-IGD-074` | `FE-IGD-061` | `AT-IGD-234` | Direncanakan |
+| `FR-IGD-117` aturan tipe Unit Layanan | — | — | — | **Coverage gap** — `OPEN DECISION` `IGD-OQ-127` |
+| `FR-IGD-118` penautan tagihan IGD | — (`BE-IGD-075` hanya menahan) | — | — | **Coverage gap** — `OPEN DECISION` `IGD-OQ-129` |
+| DoD PRD §12.5 butir 7 (tagihan IGD tidak ditautkan) | `BE-IGD-075` | — | Uji API regresi | Direncanakan |
+| DoD PRD §12.5 butir 11 (hak akses lewat pengurus Akses Role) | — | — | Log uji tanpa SuperAdmin | Langkah operasional, bukan task |
+| DoD PRD §12.5 butir 12 (persetujuan Rawat Inap dan Billing) | — | — | — | Lunas — `IGD-DEC-299` |
+
+### Keputusan ke task
+
+| Keputusan | Status | Task |
+| --- | --- | --- |
+| `IGD-DEC-267`…`270` scope, pengisi, TTD digital, Unit Layanan tidak diasumsikan | `approved` (`269` `superseded`) | Seluruh R3.18/R3.16 |
+| `IGD-DEC-271`, `277` kaitan dengan tindak lanjut, penahanan *Jalankan* | `approved` | `BE-IGD-072`, `074`; `FE-IGD-059`, `061` |
+| `IGD-DEC-272`…`274`, `285`, `291` tanda tangan, tempat, DPJP, kembalikan, hak akses | `approved` | `BE-IGD-072`, `074`; `FE-IGD-060` |
+| `IGD-DEC-275`, `276`, `279`, `288` wadah, admisi manual, batal admisi, CITO | `approved` (sisi IGD) | `BE-IGD-073`; `FE-IGD-062` |
+| `IGD-DEC-278`, `280`, `281` koreksi, batal otomatis, cetak | `approved` | `BE-IGD-072`, `074`; `FE-IGD-059`, `061` |
+| `IGD-DEC-282`…`284`, `286`, `287`, `289`, `290` isian | `approved` | `BE-IGD-072`; `FE-IGD-059` |
+| `IGD-DEC-292` arsitektur domain | `approved` | Seluruh |
+| `IGD-DEC-293` tahan penautan invoice | `approved` sementara | `BE-IGD-075` |
+| `IGD-DEC-294` desain dan sebelas pilihan desain | `approved` | Seluruh |
+
+### Pertanyaan terbuka
+
+| ID | Keadaan | Menahan |
+| --- | --- | --- |
+| `IGD-OQ-127` | `open` — analis | `FR-IGD-117` |
+| `IGD-OQ-128` | **Dijawab** `IGD-DEC-299` (12 Oktober 2026) | — |
+| `IGD-OQ-129` | `open` — owner Billing | `FR-IGD-118` |
+| `IGD-UNK-24` | Per lingkungan | Rilis |
+| `IGD-UNK-25` | `open` | Tidak (tanpa aturan silang) |
+| Prioritas terhadap Billing IGD | Ditanyakan pemilik sebelum build | Mulai build |

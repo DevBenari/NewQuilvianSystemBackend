@@ -148,7 +148,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
     }
 
     /// <summary>
-    /// Pilihan master tindakan khusus kebutuhan klinis dokter & keperawatan rawat jalan maupun rawat inap.
+    /// Pilihan master tindakan khusus kebutuhan klinis dokter dan keperawatan rawat jalan maupun rawat inap.
     /// Endpoint klinis menggunakan DTO ini agar klinisi tidak memerlukan akses
     /// langsung ke halaman master data Procedure, lengkap dengan resolusi tarif acuan rumah sakit.
     /// </summary>
@@ -287,6 +287,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         /// Dokter pemberi instruksi. Wajib jika pembuat pesanan adalah perawat.
         /// </summary>
         public Guid? InstructingDoctorId { get; set; }
+
+        [MaxLength(100)]
+        public string? IdempotencyKey { get; set; }
+    }
+
+    public class CreateEmergencyNursingActionRequest
+    {
+        [Required]
+        public Guid EncounterId { get; set; }
+
+        [Required]
+        public Guid ProcedureId { get; set; }
+
+        public decimal? Quantity { get; set; }
+
+        public DateTime? PerformedAt { get; set; }
+
+        [MaxLength(1000)]
+        public string? ClinicalNote { get; set; }
 
         [MaxLength(100)]
         public string? IdempotencyKey { get; set; }

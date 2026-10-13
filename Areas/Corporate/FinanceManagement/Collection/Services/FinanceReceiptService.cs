@@ -1,14 +1,19 @@
+using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using System.Data;
@@ -54,15 +59,18 @@ public sealed class FinanceReceiptService
     private readonly ApplicationDbContext _dbContext;
     private readonly FinanceAccountingOutboxService _accountingOutboxService;
     private readonly FinanceReceivableService _receivableService;
+    private readonly FinanceReceivableInvoiceBatchStatusSynchronizer _batchStatusSynchronizer;
 
     public FinanceReceiptService(
         ApplicationDbContext dbContext,
         FinanceAccountingOutboxService accountingOutboxService,
-        FinanceReceivableService receivableService)
+        FinanceReceivableService receivableService,
+        FinanceReceivableInvoiceBatchStatusSynchronizer batchStatusSynchronizer)
     {
         _dbContext = dbContext;
         _accountingOutboxService = accountingOutboxService;
         _receivableService = receivableService;
+        _batchStatusSynchronizer = batchStatusSynchronizer;
     }
 
     // ------------------------------------------------------------------------------------
@@ -611,6 +619,14 @@ public sealed class FinanceReceiptService
                 throw new ReceivableValidationException(
                     $"Alokasi melebihi sisa penerimaan. Sisa saat ini Rp {receipt.UnallocatedAmount:N0}.");
 
+            // Cek integrasi Ayat Silang (FinCrossEntry)
+            var crossEntry = await _dbContext.FinCrossEntries
+                .SingleOrDefaultAsync(x => x.ReceiptId == receiptId && !x.IsDelete, cancellationToken);
+            if (crossEntry != null && crossEntry.Status == FinCrossEntryStatuses.Cancelled)
+                throw new ReceivableValidationException("Dokumen Ayat Silang telah dibatalkan dan tidak dapat dialokasikan.");
+
+            decimal crossEntryRunningBalance = receipt.UnallocatedAmount;
+
             var now = DateTimeOffset.UtcNow;
             foreach (var line in lines)
             {
@@ -641,6 +657,57 @@ public sealed class FinanceReceiptService
                         movementType: FinReceivableMovementTypes.AlokasiPenerimaan,
                         sourceAllocationId: allocation.Id,
                         referenceNumber: receipt.ReceiptNumber);
+                }
+
+                // Integrasi Ayat Silang: buat mutasi AR_ALLOCATION (DEBIT) jika receipt terhubung dengan FinCrossEntry
+                if (crossEntry != null)
+                {
+                    var duplicateExists = await _dbContext.FinCrossEntryTransactions
+                        .AnyAsync(t => t.CrossEntryId == crossEntry.Id && t.ReceiptAllocationId == allocation.Id && t.TransactionType == FinCrossEntryTransactionTypes.ArAllocation && !t.IsDelete, cancellationToken);
+
+                    if (!duplicateExists)
+                    {
+                        string? resolvedBatchNumber = null;
+                        string? resolvedReceivableNumber = null;
+                        if (line.ReceivableId.HasValue)
+                        {
+                            resolvedBatchNumber = await (from item in _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+                                                         join b in _dbContext.FinReceivableInvoiceBatches.AsNoTracking() on item.BatchId equals b.Id
+                                                         where item.ReceivableId == line.ReceivableId.Value && !item.IsDelete && item.IsActiveMembership && !b.IsDelete
+                                                         select b.BatchNumber).FirstOrDefaultAsync(cancellationToken);
+
+                            if (string.IsNullOrWhiteSpace(resolvedBatchNumber))
+                            {
+                                resolvedReceivableNumber = await _dbContext.FinReceivables.AsNoTracking()
+                                    .Where(r => r.Id == line.ReceivableId.Value)
+                                    .Select(r => r.ReceivableNumber)
+                                    .FirstOrDefaultAsync(cancellationToken);
+                            }
+                        }
+
+                        string description = !string.IsNullOrWhiteSpace(resolvedBatchNumber)
+                            ? $"Alokasi Ayat Silang ke Invoice AR {resolvedBatchNumber}"
+                            : !string.IsNullOrWhiteSpace(resolvedReceivableNumber)
+                                ? $"Alokasi Ayat Silang ke Piutang AR {resolvedReceivableNumber}"
+                                : "Alokasi Ayat Silang ke Invoice AR";
+
+                        crossEntryRunningBalance -= line.Amount;
+                        var crossEntryTx = new FinCrossEntryTransaction
+                        {
+                            Id = Guid.NewGuid(),
+                            CrossEntryId = crossEntry.Id,
+                            TransactionType = FinCrossEntryTransactionTypes.ArAllocation,
+                            Direction = FinCrossEntryDirections.Debit,
+                            Amount = line.Amount,
+                            BalanceAfterTransaction = crossEntryRunningBalance,
+                            OccurredAt = now,
+                            ReceiptAllocationId = allocation.Id,
+                            Description = description,
+                            CreateBy = actorUserId,
+                            CreateDateTime = DateTime.UtcNow
+                        };
+                        _dbContext.Set<FinCrossEntryTransaction>().Add(crossEntryTx);
+                    }
                 }
 
                 if (line.Deductions is not { Count: > 0 }) continue;
@@ -697,6 +764,31 @@ public sealed class FinanceReceiptService
                 }
             }
 
+            // Pembaruan status Ayat Silang
+            if (crossEntry != null && crossEntry.Status != FinCrossEntryStatuses.Cancelled)
+            {
+                var finalUnallocated = receipt.UnallocatedAmount - totalRequested;
+                crossEntry.Status = finalUnallocated == 0m
+                    ? FinCrossEntryStatuses.FullyUsed
+                    : finalUnallocated < receipt.Amount
+                        ? FinCrossEntryStatuses.PartiallyUsed
+                        : FinCrossEntryStatuses.Open;
+                crossEntry.UpdateDateTime = DateTime.UtcNow;
+                crossEntry.UpdateBy = actorUserId;
+                crossEntry.RowVersion = Guid.NewGuid();
+            }
+
+            // Sinkronisasi status batch tagihan AR untuk seluruh piutang terdampak
+            var affectedReceivableIds = lines
+                .Where(l => l.ReceivableId.HasValue)
+                .Select(l => l.ReceivableId!.Value)
+                .Distinct()
+                .ToList();
+            if (affectedReceivableIds.Count > 0)
+            {
+                await _batchStatusSynchronizer.SynchronizeByReceivableIdsAsync(affectedReceivableIds, actorUserId, cancellationToken);
+            }
+
             receipt.AllocatedAmount += totalRequested;
             receipt.UnallocatedAmount -= totalRequested;
             // state-transition-matrix.md §4: RECEIVED tetap RECEIVED bila masih ada sisa, ALLOCATED bila habis.
@@ -731,109 +823,7 @@ public sealed class FinanceReceiptService
         try
         {
             transaction = await BeginTransactionAsync(cancellationToken);
-
-            var original = await _dbContext.FinReceiptAllocations.AsNoTracking()
-                .SingleOrDefaultAsync(x => x.Id == allocationId && !x.IsDelete, cancellationToken)
-                ?? throw new KeyNotFoundException("Alokasi tidak ditemukan.");
-            if (original.IsReversal)
-                throw new ReceivableValidationException("Baris pembalik tidak dapat dibalik lagi.");
-            if (await _dbContext.FinReceiptAllocations.AnyAsync(x => x.ReversalOfAllocationId == original.Id, cancellationToken))
-                throw new ReceivableValidationException("Alokasi ini sudah pernah dibalik sebelumnya.");
-
-            await AcquireLockAsync($"FIN_RECEIPT_{original.ReceiptId:N}", cancellationToken);
-            if (original.ReceivableId.HasValue)
-                await AcquireLockAsync($"FIN_RECEIVABLE_{original.ReceivableId.Value:N}", cancellationToken);
-
-            var receipt = await _dbContext.FinReceipts.SingleAsync(x => x.Id == original.ReceiptId, cancellationToken);
-
-            var now = DateTimeOffset.UtcNow;
-            var reversal = new FinReceiptAllocation
-            {
-                ReceiptId = original.ReceiptId,
-                ReceivableId = original.ReceivableId,
-                TargetType = original.TargetType,
-                Amount = original.Amount,
-                IsReversal = true,
-                ReversalOfAllocationId = original.Id,
-                AllocatedBy = actorUserId,
-                AllocatedAt = now,
-                CreateDateTime = DateTime.UtcNow,
-                CreateBy = actorUserId
-            };
-            _dbContext.Set<FinReceiptAllocation>().Add(reversal);
-
-            if (original.ReceivableId.HasValue)
-            {
-                // BE-FIN-060, FIN-DES-079: Mutasi subledger PEMBALIKAN-ALOKASI (Jalur 3).
-                await _receivableService.ReverseAllocationAsync(
-                    original.ReceivableId.Value,
-                    original.Amount,
-                    actorUserId,
-                    cancellationToken,
-                    movementType: FinReceivableMovementTypes.PembalikanAlokasi,
-                    sourceAllocationId: reversal.Id,
-                    referenceNumber: receipt.ReceiptNumber);
-
-                // BE-FIN-040, FIN-DES-049: seluruh potongan pada alokasi ini ikut dibalik dalam
-                // transaksi yang sama — potongan tidak dapat dibalik sendirian tanpa alokasinya.
-                var deductions = await _dbContext.FinReceiptDeductions.AsNoTracking()
-                    .Where(x => x.ReceiptAllocationId == original.Id && !x.IsReversal && !x.IsDelete)
-                    .ToListAsync(cancellationToken);
-
-                foreach (var deduction in deductions)
-                {
-                    var deductionReversal = new FinReceiptDeduction
-                    {
-                        DeductionNumber = GenerateDeductionNumber(),
-                        ReceiptId = deduction.ReceiptId,
-                        ReceiptAllocationId = reversal.Id,
-                        DeductionType = deduction.DeductionType,
-                        Amount = deduction.Amount,
-                        Reason = deduction.Reason,
-                        ReferenceNumber = deduction.ReferenceNumber,
-                        IsReversal = true,
-                        ReversalOfDeductionId = deduction.Id,
-                        CreateDateTime = DateTime.UtcNow,
-                        CreateBy = actorUserId
-                    };
-                    _dbContext.Set<FinReceiptDeduction>().Add(deductionReversal);
-
-                    // BE-FIN-060, FIN-DES-079: Mutasi subledger PEMBALIKAN-POTONGAN (Jalur 4).
-                    var receivable = await _receivableService.ReverseAllocationAsync(
-                        original.ReceivableId.Value,
-                        deduction.Amount,
-                        actorUserId,
-                        cancellationToken,
-                        movementType: FinReceivableMovementTypes.PembalikanPotongan,
-                        sourceAllocationId: reversal.Id,
-                        referenceNumber: deductionReversal.DeductionNumber,
-                        notes: $"Pembalikan {deduction.DeductionType}: {deduction.Reason}");
-
-                    // FIN-DES-050/052: kebalikan kode 32/34 — nilai baris pembalik SELALU positif.
-                    var reversalEventTypeCode = deduction.DeductionType == FinReceiptDeductionTypes.Pph23
-                        ? FinAccountingEventTypeCodes.PembalikanPotonganPph23Piutang
-                        : FinAccountingEventTypeCodes.PembalikanPotonganBiayaBankPiutang;
-
-                    await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
-                    {
-                        EventTypeCode = reversalEventTypeCode,
-                        SourceTransactionId = deductionReversal.DeductionNumber,
-                        EventOccurredAt = now,
-                        AccountingDate = FinanceBusinessDate.ToDateOnly(now),
-                        Amount = deduction.Amount,
-                        CorrelationId = receivable.CorrelationId,
-                        CausationId = deductionReversal.Id,
-                        ActorUserId = actorUserId
-                    }, cancellationToken);
-                }
-            }
-            receipt.AllocatedAmount -= original.Amount;
-            receipt.UnallocatedAmount += original.Amount;
-            receipt.Status = FinReceiptStatuses.Received; // tidak lagi ALLOCATED penuh setelah sebagian dibalik
-            receipt.UpdateDateTime = DateTime.UtcNow;
-            receipt.UpdateBy = actorUserId;
-            receipt.RowVersion = Guid.NewGuid();
-
+            var reversal = await ReverseAllocationCoreAsync(allocationId, actorUserId, cancellationToken, acquireLocks: true, synchronizeBatch: true);
             await _dbContext.SaveChangesAsync(cancellationToken);
             await CommitAsync(transaction, cancellationToken);
             return reversal;
@@ -843,10 +833,218 @@ public sealed class FinanceReceiptService
             await RollbackAsync(transaction);
             throw;
         }
-        finally
+    }
+
+    /// <summary>
+    /// Inti pembalikan satu FinReceiptAllocation tanpa membuka transaksi mandiri.
+    /// Digunakan baik oleh ReverseAllocationAsync maupun orchestrasi pembatalan batch (CancelAsync)
+    /// yang membalik beberapa alokasi sekaligus dalam satu transaksi atomik.
+    /// </summary>
+    public async Task<FinReceiptAllocation> ReverseAllocationCoreAsync(
+        Guid allocationId,
+        Guid actorUserId,
+        CancellationToken cancellationToken,
+        bool acquireLocks = true,
+        bool synchronizeBatch = true)
+    {
+        var original = await _dbContext.FinReceiptAllocations.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == allocationId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Alokasi tidak ditemukan.");
+        if (original.IsReversal)
+            throw new ReceivableValidationException("Baris pembalik tidak dapat dibalik lagi.");
+        if (await _dbContext.FinReceiptAllocations.AnyAsync(x => x.ReversalOfAllocationId == original.Id && !x.IsDelete, cancellationToken))
+            throw new ReceivableValidationException("Alokasi ini sudah pernah dibalik sebelumnya.");
+
+        if (acquireLocks)
         {
-            if (transaction is not null) await transaction.DisposeAsync();
+            await AcquireLockAsync($"FIN_RECEIPT_{original.ReceiptId:N}", cancellationToken);
+            if (original.ReceivableId.HasValue)
+                await AcquireLockAsync($"FIN_RECEIVABLE_{original.ReceivableId.Value:N}", cancellationToken);
         }
+
+        var receipt = await _dbContext.FinReceipts.SingleAsync(x => x.Id == original.ReceiptId, cancellationToken);
+
+        var now = DateTimeOffset.UtcNow;
+        var reversal = new FinReceiptAllocation
+        {
+            ReceiptId = original.ReceiptId,
+            ReceivableId = original.ReceivableId,
+            TargetType = original.TargetType,
+            Amount = original.Amount,
+            IsReversal = true,
+            ReversalOfAllocationId = original.Id,
+            AllocatedBy = actorUserId,
+            AllocatedAt = now,
+            CreateDateTime = DateTime.UtcNow,
+            CreateBy = actorUserId
+        };
+        _dbContext.Set<FinReceiptAllocation>().Add(reversal);
+
+        if (original.ReceivableId.HasValue)
+        {
+            // BE-FIN-060, FIN-DES-079: Mutasi subledger PEMBALIKAN-ALOKASI (Jalur 3).
+            await _receivableService.ReverseAllocationAsync(
+                original.ReceivableId.Value,
+                original.Amount,
+                actorUserId,
+                cancellationToken,
+                movementType: FinReceivableMovementTypes.PembalikanAlokasi,
+                sourceAllocationId: reversal.Id,
+                referenceNumber: receipt.ReceiptNumber);
+
+            // BE-FIN-040, FIN-DES-049: seluruh potongan pada alokasi ini ikut dibalik dalam
+            // transaksi yang sama — potongan tidak dapat dibalik sendirian tanpa alokasinya.
+            var deductions = await _dbContext.FinReceiptDeductions.AsNoTracking()
+                .Where(x => x.ReceiptAllocationId == original.Id && !x.IsReversal && !x.IsDelete)
+                .ToListAsync(cancellationToken);
+
+            foreach (var deduction in deductions)
+            {
+                var deductionReversal = new FinReceiptDeduction
+                {
+                    DeductionNumber = GenerateDeductionNumber(),
+                    ReceiptId = deduction.ReceiptId,
+                    ReceiptAllocationId = reversal.Id,
+                    DeductionType = deduction.DeductionType,
+                    Amount = deduction.Amount,
+                    Reason = deduction.Reason,
+                    ReferenceNumber = deduction.ReferenceNumber,
+                    IsReversal = true,
+                    ReversalOfDeductionId = deduction.Id,
+                    CreateDateTime = DateTime.UtcNow,
+                    CreateBy = actorUserId
+                };
+                _dbContext.Set<FinReceiptDeduction>().Add(deductionReversal);
+
+                // BE-FIN-060, FIN-DES-079: Mutasi subledger PEMBALIKAN-POTONGAN (Jalur 4).
+                var receivable = await _receivableService.ReverseAllocationAsync(
+                    original.ReceivableId.Value,
+                    deduction.Amount,
+                    actorUserId,
+                    cancellationToken,
+                    movementType: FinReceivableMovementTypes.PembalikanPotongan,
+                    sourceAllocationId: reversal.Id,
+                    referenceNumber: deductionReversal.DeductionNumber,
+                    notes: $"Pembalikan {deduction.DeductionType}: {deduction.Reason}");
+
+                // FIN-DES-050/052: kebalikan kode 32/34 — nilai baris pembalik SELALU positif.
+                var reversalEventTypeCode = deduction.DeductionType == FinReceiptDeductionTypes.Pph23
+                    ? FinAccountingEventTypeCodes.PembalikanPotonganPph23Piutang
+                    : FinAccountingEventTypeCodes.PembalikanPotonganBiayaBankPiutang;
+
+                await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+                {
+                    EventTypeCode = reversalEventTypeCode,
+                    SourceTransactionId = deductionReversal.DeductionNumber,
+                    EventOccurredAt = now,
+                    AccountingDate = FinanceBusinessDate.ToDateOnly(now),
+                    Amount = deduction.Amount,
+                    CorrelationId = receivable.CorrelationId,
+                    CausationId = deductionReversal.Id,
+                    ActorUserId = actorUserId
+                }, cancellationToken);
+            }
+
+            // Pembalikan potongan non-deduction (Diskon Invoice AR) yang melekat pada alokasi ini.
+            // Sesuai audit Task Revamp Receivable AR Canceled: PostPaymentAsync membuat diskon via
+            // FinReceivableMovementTypes.Potongan dengan SourceAllocationId = original.Id tanpa FinReceiptDeduction.
+            // Saat alokasi dibalik, efek finansial diskon ini dinetralkan melalui PEMBALIKAN-POTONGAN.
+            var discountMovements = await _dbContext.FinReceivableMovements.AsNoTracking()
+                .Where(x => x.ReceivableId == original.ReceivableId.Value
+                    && x.SourceAllocationId == original.Id
+                    && x.MovementType == FinReceivableMovementTypes.Potongan
+                    && !x.IsDelete)
+                .ToListAsync(cancellationToken);
+
+            var deductionNumbers = deductions.Select(d => d.DeductionNumber).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var nonDeductionDiscountMovements = discountMovements
+                .Where(m => string.IsNullOrEmpty(m.ReferenceNumber) || !deductionNumbers.Contains(m.ReferenceNumber))
+                .ToList();
+
+            foreach (var discMovement in nonDeductionDiscountMovements)
+            {
+                var discAmount = Math.Abs(discMovement.Amount);
+                if (discAmount > 0)
+                {
+                    await _receivableService.ReverseAllocationAsync(
+                        original.ReceivableId.Value,
+                        discAmount,
+                        actorUserId,
+                        cancellationToken,
+                        movementType: FinReceivableMovementTypes.PembalikanPotongan,
+                        sourceAllocationId: reversal.Id,
+                        referenceNumber: receipt.ReceiptNumber,
+                        notes: $"Pembalikan {discMovement.Notes ?? "Diskon AR"}");
+                }
+            }
+        }
+        receipt.AllocatedAmount -= original.Amount;
+        receipt.UnallocatedAmount += original.Amount;
+        receipt.Status = FinReceiptStatuses.Received; // tidak lagi ALLOCATED penuh setelah sebagian dibalik
+        receipt.UpdateDateTime = DateTime.UtcNow;
+        receipt.UpdateBy = actorUserId;
+        receipt.RowVersion = Guid.NewGuid();
+
+        // Cek integrasi Ayat Silang (FinCrossEntry) untuk pembalikan alokasi
+        var crossEntry = await _dbContext.FinCrossEntries
+            .SingleOrDefaultAsync(x => x.ReceiptId == original.ReceiptId && !x.IsDelete, cancellationToken);
+
+        if (crossEntry != null)
+        {
+            var origTx = await _dbContext.FinCrossEntryTransactions
+                .FirstOrDefaultAsync(x => x.CrossEntryId == crossEntry.Id && x.ReceiptAllocationId == original.Id && x.TransactionType == FinCrossEntryTransactionTypes.ArAllocation && !x.IsDelete, cancellationToken);
+
+            string? resolvedBatchNumber = null;
+            if (original.ReceivableId.HasValue)
+            {
+                resolvedBatchNumber = await (from item in _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+                                             join b in _dbContext.FinReceivableInvoiceBatches.AsNoTracking() on item.BatchId equals b.Id
+                                             where item.ReceivableId == original.ReceivableId.Value && !item.IsDelete && item.IsActiveMembership && !b.IsDelete
+                                             select b.BatchNumber).FirstOrDefaultAsync(cancellationToken);
+            }
+
+            string description = !string.IsNullOrWhiteSpace(resolvedBatchNumber)
+                ? $"Pembalikan alokasi Ayat Silang ke Invoice AR {resolvedBatchNumber}"
+                : "Pembalikan alokasi Ayat Silang";
+
+            var reversalBalance = receipt.UnallocatedAmount;
+            var reversalTx = new FinCrossEntryTransaction
+            {
+                Id = Guid.NewGuid(),
+                CrossEntryId = crossEntry.Id,
+                TransactionType = FinCrossEntryTransactionTypes.ArAllocationReversal,
+                Direction = FinCrossEntryDirections.Credit,
+                Amount = original.Amount,
+                BalanceAfterTransaction = reversalBalance,
+                OccurredAt = now,
+                ReceiptAllocationId = reversal.Id,
+                ReversalOfTransactionId = origTx?.Id,
+                Description = description,
+                CreateBy = actorUserId,
+                CreateDateTime = DateTime.UtcNow
+            };
+            _dbContext.Set<FinCrossEntryTransaction>().Add(reversalTx);
+
+            if (crossEntry.Status != FinCrossEntryStatuses.Cancelled)
+            {
+                crossEntry.Status = reversalBalance == receipt.Amount
+                    ? FinCrossEntryStatuses.Open
+                    : reversalBalance > 0m
+                        ? FinCrossEntryStatuses.PartiallyUsed
+                        : FinCrossEntryStatuses.FullyUsed;
+                crossEntry.UpdateDateTime = DateTime.UtcNow;
+                crossEntry.UpdateBy = actorUserId;
+                crossEntry.RowVersion = Guid.NewGuid();
+            }
+        }
+
+        // Sinkronisasi status batch tagihan AR untuk piutang yang alokasinya dibalik
+        if (synchronizeBatch && original.ReceivableId.HasValue)
+        {
+            await _batchStatusSynchronizer.SynchronizeByReceivableIdsAsync(new[] { original.ReceivableId.Value }, actorUserId, cancellationToken);
+        }
+
+        return reversal;
     }
 
     private async Task<IDbContextTransaction?> BeginTransactionAsync(CancellationToken cancellationToken)
@@ -865,6 +1063,811 @@ public sealed class FinanceReceiptService
 
     private static Task RollbackAsync(IDbContextTransaction? transaction) =>
         transaction is null ? Task.CompletedTask : transaction.RollbackAsync(CancellationToken.None);
+
+    // ====================================================================================
+    // READ-MODEL KHUSUS: RECEIVABLE AR CANCELED (PAYMENT SESSION GRAIN)
+    // ====================================================================================
+
+    /// <summary>
+    /// Memuat dan memfilter daftar sesi pembayaran AR yang dibatalkan.
+    /// Grain: 1 payment session = 1 row (dikelompokkan berdasarkan ReceiptId + BatchId + OriginalPaymentAllocatedAt).
+    /// </summary>
+    private async Task<List<CanceledArPaymentRowResponse>> LoadFilteredCanceledSessionsAsync(
+        CanceledArPaymentQuery request, CancellationToken cancellationToken)
+    {
+        var baseReversals = await (
+            from rev in _dbContext.FinReceiptAllocations.AsNoTracking()
+            join orig in _dbContext.FinReceiptAllocations.AsNoTracking() on rev.ReversalOfAllocationId equals orig.Id
+            join receipt in _dbContext.FinReceipts.AsNoTracking() on orig.ReceiptId equals receipt.Id
+            where !rev.IsDelete && rev.IsReversal && !orig.IsDelete && !receipt.IsDelete
+            select new
+            {
+                ReversalId = rev.Id,
+                ReversedAt = rev.AllocatedAt,
+                ReversedBy = rev.AllocatedBy,
+                OriginalId = orig.Id,
+                ReceiptId = receipt.Id,
+                ReceiptNumber = receipt.ReceiptNumber,
+                ReceiptOccurredAt = receipt.OccurredAt,
+                ReceiptCorrelationId = receipt.CorrelationId,
+                ReceiptAmount = receipt.Amount,
+                ReceiptUnallocatedAmount = receipt.UnallocatedAmount,
+                ReceiptStatus = receipt.Status,
+                ReceiptSourceType = receipt.SourceType,
+                ReceiptBankAccountId = receipt.BankAccountId,
+                ReceiptProviderReference = receipt.ProviderReference,
+                ReceiptRowVersion = receipt.RowVersion,
+                ReceivableId = orig.ReceivableId,
+                AllocatedAmount = orig.Amount,
+                OriginalAllocatedAt = orig.AllocatedAt
+            }
+        ).ToListAsync(cancellationToken);
+
+        var distinctReceivableIds = baseReversals
+            .Where(x => x.ReceivableId.HasValue)
+            .Select(x => x.ReceivableId!.Value)
+            .Distinct()
+            .ToList();
+
+        var batchItems = distinctReceivableIds.Count > 0
+            ? await _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+                .Where(bi => distinctReceivableIds.Contains(bi.ReceivableId) && !bi.IsDelete)
+                .Select(bi => new { bi.ReceivableId, bi.BatchId, bi.IsActiveMembership })
+                .ToListAsync(cancellationToken)
+            : [];
+
+        var candidateBatchIds = batchItems.Select(x => x.BatchId)
+            .Concat(baseReversals.Select(x => x.ReceiptCorrelationId))
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var batches = candidateBatchIds.Count > 0
+            ? await _dbContext.FinReceivableInvoiceBatches.AsNoTracking()
+                .Where(b => candidateBatchIds.Contains(b.Id) && !b.IsDelete)
+                .ToDictionaryAsync(b => b.Id, cancellationToken)
+            : new Dictionary<Guid, FinReceivableInvoiceBatch>();
+
+        var groupedSessions = baseReversals
+            .Select(r =>
+            {
+                Guid? resolvedBatchId = null;
+                if (batches.ContainsKey(r.ReceiptCorrelationId))
+                {
+                    resolvedBatchId = r.ReceiptCorrelationId;
+                }
+                else if (r.ReceivableId.HasValue)
+                {
+                    var match = batchItems
+                        .Where(bi => bi.ReceivableId == r.ReceivableId.Value && batches.ContainsKey(bi.BatchId))
+                        .OrderByDescending(bi => bi.IsActiveMembership)
+                        .FirstOrDefault();
+                    if (match != null) resolvedBatchId = match.BatchId;
+                }
+
+                return new { Reversal = r, ResolvedBatchId = resolvedBatchId };
+            })
+            .GroupBy(x => new
+            {
+                ReceiptId = x.Reversal.ReceiptId,
+                BatchId = x.ResolvedBatchId,
+                AllocatedAt = x.Reversal.OriginalAllocatedAt
+            })
+            .ToList();
+
+        var debtorIds = batches.Values.Select(b => b.DebtorReferenceId).Where(id => id != Guid.Empty).Distinct().ToList();
+        var companyNames = debtorIds.Count > 0
+            ? await _dbContext.MstCompanyGuarantors.AsNoTracking()
+                .Where(c => debtorIds.Contains(c.Id) && !c.IsDelete)
+                .ToDictionaryAsync(c => c.Id, c => c.CompanyGuarantorName, cancellationToken)
+            : new Dictionary<Guid, string>();
+        var insuranceNames = debtorIds.Count > 0
+            ? await _dbContext.MstInsuranceProviders.AsNoTracking()
+                .Where(p => debtorIds.Contains(p.Id) && !p.IsDelete)
+                .ToDictionaryAsync(p => p.Id, p => p.InsuranceProviderName, cancellationToken)
+            : new Dictionary<Guid, string>();
+
+        var userIds = baseReversals.Select(r => r.ReversedBy).Where(u => u != Guid.Empty).Distinct().ToList();
+        var userNames = userIds.Count > 0
+            ? await _dbContext.Users.AsNoTracking()
+                .Where(u => userIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, u => u.DisplayName ?? u.UserName ?? "-", cancellationToken)
+            : new Dictionary<Guid, string>();
+
+        var originalAllocationIds = baseReversals.Select(r => r.OriginalId).Distinct().ToList();
+        var movements = originalAllocationIds.Count > 0
+            ? await _dbContext.FinReceivableMovements.AsNoTracking()
+                .Where(m => m.SourceAllocationId.HasValue && originalAllocationIds.Contains(m.SourceAllocationId.Value) && !m.IsDelete)
+                .Select(m => new { m.SourceAllocationId, m.ReceivableId, m.BalanceAfter, m.MovementType, m.Notes, m.OccurredAt, m.Id })
+                .ToListAsync(cancellationToken)
+            : [];
+
+        var receivablesDict = distinctReceivableIds.Count > 0
+            ? await _dbContext.FinReceivables.AsNoTracking()
+                .Where(r => distinctReceivableIds.Contains(r.Id) && !r.IsDelete)
+                .ToDictionaryAsync(r => r.Id, cancellationToken)
+            : new Dictionary<Guid, FinReceivable>();
+
+        var activeReplacements = await (
+            from a in _dbContext.FinReceiptAllocations.AsNoTracking()
+            where !a.IsDelete && !a.IsReversal && a.Amount > 0
+                  && !_dbContext.FinReceiptAllocations.Any(rev => rev.ReversalOfAllocationId == a.Id && !rev.IsDelete)
+            select new { a.ReceiptId, a.ReceivableId, a.AllocatedAt }
+        ).ToListAsync(cancellationToken);
+
+        var allRows = new List<CanceledArPaymentRowResponse>();
+        foreach (var group in groupedSessions)
+        {
+            var representative = group.OrderBy(x => x.Reversal.ReversalId).First().Reversal;
+            var batch = group.Key.BatchId.HasValue && batches.TryGetValue(group.Key.BatchId.Value, out var b) ? b : null;
+
+            string companyName = "-";
+            if (batch != null && batch.DebtorReferenceId != Guid.Empty)
+            {
+                if (companyNames.TryGetValue(batch.DebtorReferenceId, out var cName))
+                    companyName = cName;
+                else if (insuranceNames.TryGetValue(batch.DebtorReferenceId, out var insName))
+                    companyName = insName;
+            }
+
+            string? visitType = null;
+            if (batch != null)
+            {
+                var st = batch.ServiceType?.Trim().ToUpperInvariant() ?? "";
+                visitType = st switch
+                {
+                    "OP" or "RAJAL" or "RAWAT JALAN" => "Rawat Jalan",
+                    "IP" or "RANAP" or "RAWAT INAP" => "Rawat Inap",
+                    "IGD" => "IGD",
+                    _ => batch.ServiceType
+                };
+            }
+
+            var paymentDate = representative.ReceiptOccurredAt != default
+                ? representative.ReceiptOccurredAt
+                : representative.OriginalAllocatedAt;
+
+            decimal totalDiterima = group.Sum(x => x.Reversal.AllocatedAmount);
+            decimal totalTagihan = batch?.TotalAmount ?? group.Sum(x =>
+                x.Reversal.ReceivableId.HasValue && receivablesDict.TryGetValue(x.Reversal.ReceivableId.Value, out var rec)
+                    ? rec.OriginalAmount
+                    : x.Reversal.AllocatedAmount);
+
+            var groupOrigIds = group.Select(x => x.Reversal.OriginalId).ToHashSet();
+            var groupRecIds = group.Where(x => x.Reversal.ReceivableId.HasValue).Select(x => x.Reversal.ReceivableId!.Value).Distinct().ToList();
+
+            decimal historicalRemaining = 0m;
+            bool hasSubledger = false;
+            foreach (var recId in groupRecIds)
+            {
+                var recMovements = movements.Where(m => m.ReceivableId == recId && m.SourceAllocationId.HasValue && groupOrigIds.Contains(m.SourceAllocationId.Value)).ToList();
+                if (recMovements.Count > 0)
+                {
+                    hasSubledger = true;
+                    var lastMovement = recMovements.OrderByDescending(m => m.OccurredAt).ThenByDescending(m => m.Id).First();
+                    historicalRemaining += lastMovement.BalanceAfter;
+                }
+            }
+            if (!hasSubledger)
+            {
+                historicalRemaining = Math.Max(0m, totalTagihan - totalDiterima);
+            }
+
+            string keterangan = "-";
+            var movementNote = movements.FirstOrDefault(m => m.SourceAllocationId.HasValue && groupOrigIds.Contains(m.SourceAllocationId.Value) && !string.IsNullOrWhiteSpace(m.Notes))?.Notes;
+            if (!string.IsNullOrWhiteSpace(movementNote))
+                keterangan = movementNote;
+            else if (!string.IsNullOrWhiteSpace(batch?.Note))
+                keterangan = batch.Note;
+            else if (!string.IsNullOrWhiteSpace(representative.ReceiptProviderReference))
+                keterangan = representative.ReceiptProviderReference;
+
+            var reversedAt = group.Max(x => x.Reversal.ReversedAt);
+            var reversedBy = representative.ReversedBy;
+            var reversedByName = userNames.TryGetValue(reversedBy, out var un) ? un : "-";
+
+            var isReplaced = activeReplacements.Any(ar =>
+                ar.ReceiptId == group.Key.ReceiptId &&
+                groupRecIds.Contains(ar.ReceivableId ?? Guid.Empty) &&
+                ar.AllocatedAt > reversedAt);
+
+            allRows.Add(new CanceledArPaymentRowResponse
+            {
+                SessionId = representative.ReversalId,
+                ReceiptId = representative.ReceiptId,
+                ReceiptNumber = representative.ReceiptNumber,
+                BatchId = group.Key.BatchId,
+                InvoiceNumber = batch?.BatchNumber ?? "-",
+                DebtorReferenceId = batch?.DebtorReferenceId,
+                CompanyName = companyName,
+                VisitType = visitType,
+                PaymentDate = paymentDate,
+                TotalTagihan = totalTagihan,
+                TotalDiterima = totalDiterima,
+                HistoricalRemaining = historicalRemaining,
+                Keterangan = keterangan,
+                Status = "Canceled",
+                ReversedAt = reversedAt,
+                ReversedBy = reversedBy,
+                ReversedByName = reversedByName,
+                FollowUpStatus = isReplaced ? "Sudah Diposting Ulang" : "Belum Diposting Ulang"
+            });
+        }
+
+        var query = allRows.AsEnumerable();
+
+        if (request.StartDate.HasValue)
+        {
+            var startDt = request.StartDate.Value.ToDateTime(TimeOnly.MinValue);
+            query = query.Where(x => x.PaymentDate.Date >= startDt.Date);
+        }
+        if (request.EndDate.HasValue)
+        {
+            var endDt = request.EndDate.Value.ToDateTime(TimeOnly.MaxValue);
+            query = query.Where(x => x.PaymentDate.Date <= endDt.Date);
+        }
+        if (request.DebtorReferenceId.HasValue && request.DebtorReferenceId.Value != Guid.Empty)
+        {
+            query = query.Where(x => x.DebtorReferenceId == request.DebtorReferenceId.Value);
+        }
+        if (!string.IsNullOrWhiteSpace(request.VisitType))
+        {
+            var vt = request.VisitType.Trim();
+            query = query.Where(x => !string.IsNullOrEmpty(x.VisitType) && (
+                x.VisitType.Equals(vt, StringComparison.OrdinalIgnoreCase) ||
+                (vt.Equals("Rawat Jalan", StringComparison.OrdinalIgnoreCase) && (x.VisitType.Contains("Jalan", StringComparison.OrdinalIgnoreCase) || x.VisitType.Equals("OP", StringComparison.OrdinalIgnoreCase))) ||
+                (vt.Equals("Rawat Inap", StringComparison.OrdinalIgnoreCase) && (x.VisitType.Contains("Inap", StringComparison.OrdinalIgnoreCase) || x.VisitType.Equals("IP", StringComparison.OrdinalIgnoreCase))) ||
+                (vt.Equals("IGD", StringComparison.OrdinalIgnoreCase) && x.VisitType.Equals("IGD", StringComparison.OrdinalIgnoreCase))
+            ));
+        }
+        if (!string.IsNullOrWhiteSpace(request.InvoiceNumber))
+        {
+            var invPattern = request.InvoiceNumber.Trim();
+            query = query.Where(x => x.InvoiceNumber.Contains(invPattern, StringComparison.OrdinalIgnoreCase));
+        }
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var s = request.Search.Trim();
+            query = query.Where(x =>
+                x.InvoiceNumber.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                x.CompanyName.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                x.ReceiptNumber.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                x.Keterangan.Contains(s, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var descending = !string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+        var sortBy = request.SortBy?.Trim().ToLowerInvariant() ?? "";
+        query = sortBy switch
+        {
+            "invoicenumber" or "batchnumber" => descending ? query.OrderByDescending(x => x.InvoiceNumber) : query.OrderBy(x => x.InvoiceNumber),
+            "companyname" or "debtorname" => descending ? query.OrderByDescending(x => x.CompanyName) : query.OrderBy(x => x.CompanyName),
+            "totaltagihan" or "totalamount" => descending ? query.OrderByDescending(x => x.TotalTagihan) : query.OrderBy(x => x.TotalTagihan),
+            "totalditerima" or "totalbayar" => descending ? query.OrderByDescending(x => x.TotalDiterima) : query.OrderBy(x => x.TotalDiterima),
+            "historicalremaining" or "totalsisa" => descending ? query.OrderByDescending(x => x.HistoricalRemaining) : query.OrderBy(x => x.HistoricalRemaining),
+            "reversedat" => descending ? query.OrderByDescending(x => x.ReversedAt) : query.OrderBy(x => x.ReversedAt),
+            _ => descending ? query.OrderByDescending(x => x.PaymentDate) : query.OrderBy(x => x.PaymentDate)
+        };
+
+        return query.ToList();
+    }
+
+    /// <summary>
+    /// Mengambil daftar Canceled AR Payment Sessions dengan paginasi server-side.
+    /// </summary>
+    public async Task<PagedResult<CanceledArPaymentRowResponse>> GetCanceledArPaymentSessionsAsync(
+        CanceledArPaymentQuery request, CancellationToken cancellationToken)
+    {
+        var allSessions = await LoadFilteredCanceledSessionsAsync(request, cancellationToken);
+        var pageNumber = Math.Max(1, request.PageNumber);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+        var total = allSessions.Count;
+
+        var items = allSessions
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return new PagedResult<CanceledArPaymentRowResponse>
+        {
+            Items = items,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
+            PageNumber = pageNumber,
+            PageSize = pageSize
+        };
+    }
+
+    /// <summary>
+    /// Mengambil ringkasan 4 metrik (Transaksi, Total Tagihan, Total Bayar, Total Sisa)
+    /// yang dihitung berdasarkan SELURUH hasil filter aktif.
+    /// </summary>
+    public async Task<CanceledArPaymentSummaryResponse> GetCanceledArPaymentSummaryAsync(
+        CanceledArPaymentQuery request, CancellationToken cancellationToken)
+    {
+        var allSessions = await LoadFilteredCanceledSessionsAsync(request, cancellationToken);
+        return new CanceledArPaymentSummaryResponse
+        {
+            TransactionCount = allSessions.Count,
+            TotalTagihan = allSessions.Sum(x => x.TotalTagihan),
+            TotalBayar = allSessions.Sum(x => x.TotalDiterima),
+            TotalSisa = allSessions.Sum(x => x.HistoricalRemaining)
+        };
+    }
+
+    /// <summary>
+    /// Mengambil rincian lengkap satu Canceled AR Payment Session berdasarkan sessionId (representative ReversalAllocationId).
+    /// </summary>
+    public async Task<CanceledArPaymentDetailResponse> GetCanceledArPaymentDetailAsync(
+        Guid sessionId, CancellationToken cancellationToken)
+    {
+        var reversal = await _dbContext.FinReceiptAllocations.AsNoTracking()
+            .Include(x => x.Receipt)
+            .FirstOrDefaultAsync(x => x.Id == sessionId && x.IsReversal && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Sesi pembatalan pembayaran tidak ditemukan.");
+
+        if (!reversal.ReversalOfAllocationId.HasValue)
+            throw new KeyNotFoundException("Alokasi asal tidak ditemukan.");
+
+        var origAllocation = await _dbContext.FinReceiptAllocations.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == reversal.ReversalOfAllocationId.Value && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Alokasi original tidak ditemukan.");
+
+        var receipt = await _dbContext.FinReceipts.AsNoTracking()
+            .Include(x => x.BankAccount)
+            .FirstOrDefaultAsync(x => x.Id == origAllocation.ReceiptId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Penerimaan (Receipt) tidak ditemukan.");
+
+        var siblingOriginals = await _dbContext.FinReceiptAllocations.AsNoTracking()
+            .Where(x => x.ReceiptId == origAllocation.ReceiptId
+                     && x.AllocatedAt == origAllocation.AllocatedAt
+                     && !x.IsReversal
+                     && !x.IsDelete)
+            .ToListAsync(cancellationToken);
+
+        var siblingOrigIds = siblingOriginals.Select(x => x.Id).ToList();
+        var siblingReversals = await _dbContext.FinReceiptAllocations.AsNoTracking()
+            .Where(x => x.ReversalOfAllocationId.HasValue && siblingOrigIds.Contains(x.ReversalOfAllocationId.Value) && !x.IsDelete)
+            .ToListAsync(cancellationToken);
+
+        var receivableIds = siblingOriginals.Where(x => x.ReceivableId.HasValue).Select(x => x.ReceivableId!.Value).Distinct().ToList();
+        FinReceivableInvoiceBatch? batch = null;
+
+        if (receipt.CorrelationId != Guid.Empty)
+        {
+            batch = await _dbContext.FinReceivableInvoiceBatches.AsNoTracking()
+                .FirstOrDefaultAsync(b => b.Id == receipt.CorrelationId && !b.IsDelete, cancellationToken);
+        }
+
+        if (batch == null && receivableIds.Count > 0)
+        {
+            var batchItem = await _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+                .Where(bi => receivableIds.Contains(bi.ReceivableId) && !bi.IsDelete)
+                .OrderByDescending(bi => bi.IsActiveMembership)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (batchItem != null)
+            {
+                batch = await _dbContext.FinReceivableInvoiceBatches.AsNoTracking()
+                    .FirstOrDefaultAsync(b => b.Id == batchItem.BatchId && !b.IsDelete, cancellationToken);
+            }
+        }
+
+        string companyName = "-";
+        if (batch != null && batch.DebtorReferenceId != Guid.Empty)
+        {
+            var comp = await _dbContext.MstCompanyGuarantors.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == batch.DebtorReferenceId && !c.IsDelete, cancellationToken);
+            if (comp != null)
+            {
+                companyName = comp.CompanyGuarantorName;
+            }
+            else
+            {
+                var ins = await _dbContext.MstInsuranceProviders.AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Id == batch.DebtorReferenceId && !p.IsDelete, cancellationToken);
+                if (ins != null) companyName = ins.InsuranceProviderName;
+            }
+        }
+
+        string reversedByName = "-";
+        var user = await _dbContext.Users.AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == reversal.AllocatedBy, cancellationToken);
+        if (user != null)
+        {
+            reversedByName = user.DisplayName ?? user.UserName ?? "-";
+        }
+
+        var crossEntry = await _dbContext.FinCrossEntries.AsNoTracking()
+            .Include(x => x.BankAccount)
+            .FirstOrDefaultAsync(x => x.ReceiptId == receipt.Id && !x.IsDelete, cancellationToken);
+
+        string paymentSource = crossEntry != null ? "AYAT_SILANG" : "CASH_BANK";
+
+        // Bank info resolution
+        Guid? bankAccountId = null;
+        string? bankAccountNumber = null;
+        string? bankAccountName = null;
+        string? bankName = null;
+
+        if (crossEntry != null)
+        {
+            bankAccountId = crossEntry.BankAccountId;
+            bankAccountNumber = crossEntry.BankAccount?.AccountNumber;
+            bankAccountName = crossEntry.BankAccount?.AccountName;
+            if (crossEntry.BankAccount != null && crossEntry.BankAccount.BankId != Guid.Empty)
+            {
+                var bank = await _dbContext.MstBanks.AsNoTracking()
+                    .FirstOrDefaultAsync(b => b.Id == crossEntry.BankAccount.BankId && !b.IsDelete, cancellationToken);
+                bankName = bank?.BankName;
+            }
+        }
+        else if (receipt.BankAccountId.HasValue)
+        {
+            bankAccountId = receipt.BankAccountId.Value;
+            bankAccountNumber = receipt.BankAccount?.AccountNumber;
+            bankAccountName = receipt.BankAccount?.AccountName;
+            if (receipt.BankAccount != null && receipt.BankAccount.BankId != Guid.Empty)
+            {
+                var bank = await _dbContext.MstBanks.AsNoTracking()
+                    .FirstOrDefaultAsync(b => b.Id == receipt.BankAccount.BankId && !b.IsDelete, cancellationToken);
+                bankName = bank?.BankName;
+            }
+        }
+
+        decimal totalDiterima = siblingOriginals.Sum(x => x.Amount);
+        decimal totalTagihan = batch?.TotalAmount ?? 0m;
+
+        int sequenceNumber = 1;
+        if (batch != null && receivableIds.Count > 0)
+        {
+            var allBatchItemReceivableIds = await _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+                .Where(bi => bi.BatchId == batch.Id && !bi.IsDelete)
+                .Select(bi => bi.ReceivableId)
+                .ToListAsync(cancellationToken);
+
+            var allAllocations = await _dbContext.FinReceiptAllocations.AsNoTracking()
+                .Where(a => a.ReceivableId.HasValue && allBatchItemReceivableIds.Contains(a.ReceivableId.Value) && !a.IsDelete)
+                .Select(a => new { a.ReceiptId, a.AllocatedAt })
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            var distinctSessions = allAllocations
+                .GroupBy(a => new { a.ReceiptId, a.AllocatedAt })
+                .OrderBy(g => g.Key.AllocatedAt)
+                .ToList();
+
+            var currentIdx = distinctSessions.FindIndex(g => g.Key.ReceiptId == receipt.Id && g.Key.AllocatedAt == origAllocation.AllocatedAt);
+            sequenceNumber = currentIdx >= 0 ? currentIdx + 1 : 1;
+        }
+
+        var movements = await _dbContext.FinReceivableMovements.AsNoTracking()
+            .Where(m => m.SourceAllocationId.HasValue && siblingOrigIds.Contains(m.SourceAllocationId.Value) && !m.IsDelete)
+            .ToListAsync(cancellationToken);
+
+        decimal historicalRemaining = 0m;
+        bool hasMovements = false;
+        foreach (var recId in receivableIds)
+        {
+            var recMovements = movements.Where(m => m.ReceivableId == recId).ToList();
+            if (recMovements.Count > 0)
+            {
+                hasMovements = true;
+                var lastMovement = recMovements.OrderByDescending(m => m.OccurredAt).ThenByDescending(m => m.Id).First();
+                historicalRemaining += lastMovement.BalanceAfter;
+            }
+        }
+        if (!hasMovements)
+        {
+            historicalRemaining = Math.Max(0m, (batch?.TotalAmount ?? totalDiterima) - totalDiterima);
+        }
+
+        var originalDeductions = await _dbContext.FinReceiptDeductions.AsNoTracking()
+            .Where(d => siblingOrigIds.Contains(d.ReceiptAllocationId) && !d.IsReversal && !d.IsDelete)
+            .ToListAsync(cancellationToken);
+
+        var deductionResponses = originalDeductions
+            .GroupBy(d => d.DeductionType)
+            .Select(g => new CanceledArPaymentDeductionResponse
+            {
+                DeductionType = g.Key,
+                Amount = g.Sum(x => x.Amount),
+                Reason = g.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.Reason))?.Reason,
+                ReferenceNumber = g.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.ReferenceNumber))?.ReferenceNumber
+            })
+            .ToList();
+
+        var activeReplacements = await (
+            from a in _dbContext.FinReceiptAllocations.AsNoTracking()
+            where a.ReceiptId == receipt.Id
+                  && a.ReceivableId.HasValue
+                  && receivableIds.Contains(a.ReceivableId.Value)
+                  && !a.IsDelete
+                  && !a.IsReversal
+                  && a.Amount > 0
+                  && a.AllocatedAt > reversal.AllocatedAt
+                  && !_dbContext.FinReceiptAllocations.Any(rev => rev.ReversalOfAllocationId == a.Id && !rev.IsDelete)
+            select a
+        ).AnyAsync(cancellationToken);
+
+        string followUpStatus = activeReplacements ? "Sudah Diposting Ulang" : "Belum Diposting Ulang";
+
+        bool canReapply = true;
+        string? reapplyBlockedReason = null;
+
+        if (batch != null && batch.Status == "CANCELLED")
+        {
+            canReapply = false;
+            reapplyBlockedReason = "Invoice AR ini sedang dibatalkan. Buat Ulang AR dari halaman Pembatalan Invoice AR terlebih dahulu sebelum pembayaran dapat diposting ulang.";
+        }
+        else if (receipt.Status == FinReceiptStatuses.Reversed)
+        {
+            canReapply = false;
+            reapplyBlockedReason = "Penerimaan (Receipt) berstatus REVERSED.";
+        }
+        else if (receipt.UnallocatedAmount < totalDiterima)
+        {
+            canReapply = false;
+            reapplyBlockedReason = $"Saldo penerimaan yang belum dialokasikan tidak mencukupi (Tersedia: Rp {receipt.UnallocatedAmount:N0}, Dibutuhkan: Rp {totalDiterima:N0}).";
+        }
+        else if (crossEntry != null && crossEntry.Status == FinCrossEntryStatuses.Cancelled)
+        {
+            canReapply = false;
+            reapplyBlockedReason = "Ayat Silang terkait dalam status CANCELLED.";
+        }
+        else if (activeReplacements)
+        {
+            canReapply = false;
+            reapplyBlockedReason = "Pembayaran ini sudah mempunyai alokasi pengganti.";
+        }
+        else if (receivableIds.Count == 0)
+        {
+            canReapply = false;
+            reapplyBlockedReason = "Data historis tidak memiliki referensi piutang/invoice yang lengkap.";
+        }
+
+        var memberReceivables = await _dbContext.FinReceivables.AsNoTracking()
+            .Where(r => receivableIds.Contains(r.Id) && !r.IsDelete)
+            .ToListAsync(cancellationToken);
+
+        var receivableItems = await _dbContext.FinReceivableItems.AsNoTracking()
+            .Where(x => !x.IsDelete && receivableIds.Contains(x.ReceivableId))
+            .ToListAsync(cancellationToken);
+
+        var invoiceIds = memberReceivables.Where(x => x.InvoiceId.HasValue).Select(x => x.InvoiceId!.Value)
+            .Concat(receivableItems.Where(x => x.InvoiceId.HasValue).Select(x => x.InvoiceId!.Value))
+            .Distinct()
+            .ToList();
+
+        var invoices = invoiceIds.Count > 0
+            ? await _dbContext.BilInvoices.AsNoTracking()
+                .Where(x => invoiceIds.Contains(x.Id) && !x.IsDelete)
+                .ToDictionaryAsync(x => x.Id, cancellationToken)
+            : new Dictionary<Guid, BilInvoice>();
+
+        var encounterIds = invoices.Values.Select(x => x.EncounterId)
+            .Concat(receivableItems.Where(x => x.EncounterId.HasValue).Select(x => x.EncounterId!.Value))
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var encounters = encounterIds.Count > 0
+            ? await _dbContext.RegPatientEncounters.AsNoTracking()
+                .Where(x => encounterIds.Contains(x.Id) && !x.IsDelete)
+                .ToDictionaryAsync(x => x.Id, cancellationToken)
+            : new Dictionary<Guid, RegPatientEncounter>();
+
+        var patientIds = encounters.Values.Select(x => x.PatientId)
+            .Concat(receivableItems.Where(x => x.PatientId.HasValue).Select(x => x.PatientId!.Value))
+            .Where(x => x != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var patients = patientIds.Count > 0
+            ? await _dbContext.MstPatients.AsNoTracking()
+                .Where(x => patientIds.Contains(x.Id) && !x.IsDelete)
+                .ToDictionaryAsync(x => x.Id, cancellationToken)
+            : new Dictionary<Guid, MstPatient>();
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var memberResponses = new List<CanceledArPaymentMemberDetailResponse>();
+
+        foreach (var orig in siblingOriginals)
+        {
+            if (!orig.ReceivableId.HasValue) continue;
+            var r = memberReceivables.FirstOrDefault(x => x.Id == orig.ReceivableId.Value);
+            if (r == null) continue;
+
+            var itemsForRec = receivableItems.Where(i => i.ReceivableId == r.Id).ToList();
+            Guid? invId = r.InvoiceId ?? itemsForRec.FirstOrDefault(i => i.InvoiceId.HasValue)?.InvoiceId;
+            BilInvoice? inv = invId.HasValue && invoices.TryGetValue(invId.Value, out var foundInv) ? foundInv : null;
+
+            Guid? encId = inv?.EncounterId ?? itemsForRec.FirstOrDefault(i => i.EncounterId.HasValue)?.EncounterId;
+            RegPatientEncounter? enc = encId.HasValue && encounters.TryGetValue(encId.Value, out var foundEnc) ? foundEnc : null;
+
+            Guid? patId = enc?.PatientId ?? itemsForRec.FirstOrDefault(i => i.PatientId.HasValue)?.PatientId;
+            MstPatient? pat = patId.HasValue && patients.TryGetValue(patId.Value, out var foundPat) ? foundPat : null;
+
+            decimal histRem = 0m;
+            var recMovements = movements.Where(m => m.ReceivableId == r.Id && m.SourceAllocationId == orig.Id).ToList();
+            if (recMovements.Count > 0)
+            {
+                var lastMovement = recMovements.OrderByDescending(m => m.OccurredAt).ThenByDescending(m => m.Id).First();
+                histRem = lastMovement.BalanceAfter;
+            }
+            else
+            {
+                histRem = Math.Max(0m, r.OriginalAmount - orig.Amount);
+            }
+
+            string? dueDatePeriod = null;
+            if (r.DueDate != default)
+            {
+                int dayDiff = today.DayNumber - r.DueDate.DayNumber;
+                dueDatePeriod = dayDiff > 0 ? $"{dayDiff} hari lewat jatuh tempo" : $"{Math.Abs(dayDiff)} hari sebelum jatuh tempo";
+            }
+
+            DateOnly? invoiceDate = inv?.InvoiceDate.HasValue == true
+                ? DateOnly.FromDateTime(inv.InvoiceDate.Value.DateTime)
+                : (r.RecognizedAt != default ? DateOnly.FromDateTime(r.RecognizedAt.DateTime) : null);
+
+            memberResponses.Add(new CanceledArPaymentMemberDetailResponse
+            {
+                ReceivableId = r.Id,
+                ReceivableNumber = r.ReceivableNumber,
+                PatientName = pat?.FullName ?? "-",
+                MedicalRecordNumber = pat?.MedicalRecordNumber ?? "-",
+                BillingNumber = inv?.InvoiceNumber ?? "-",
+                RegistrationNumber = enc?.EncounterNumber ?? "-",
+                InvoiceDate = invoiceDate,
+                DueDate = r.DueDate != default ? r.DueDate : null,
+                DueDatePeriod = dueDatePeriod,
+                OriginalAmount = r.OriginalAmount,
+                OriginalPaidAmount = orig.Amount,
+                HistoricalRemainingAmount = histRem,
+                CurrentOutstandingAmount = r.OutstandingAmount,
+                CurrentAllocatedAmount = r.AllocatedAmount,
+                WasFullyPaid = histRem <= 0m,
+                Note = recMovements.FirstOrDefault(m => !string.IsNullOrWhiteSpace(m.Notes))?.Notes ?? batch?.Note
+            });
+        }
+
+        string? visitTypeDetail = null;
+        if (batch != null)
+        {
+            var st = batch.ServiceType?.Trim().ToUpperInvariant() ?? "";
+            visitTypeDetail = st switch
+            {
+                "OP" or "RAJAL" or "RAWAT JALAN" => "Rawat Jalan",
+                "IP" or "RANAP" or "RAWAT INAP" => "Rawat Inap",
+                "IGD" => "IGD",
+                _ => batch.ServiceType
+            };
+        }
+
+        var paymentDateDetail = receipt.OccurredAt != default ? receipt.OccurredAt : origAllocation.AllocatedAt;
+        var reversedAtDetail = siblingReversals.Count > 0 ? siblingReversals.Max(x => x.AllocatedAt) : reversal.AllocatedAt;
+
+        return new CanceledArPaymentDetailResponse
+        {
+            SessionId = reversal.Id,
+            ReceiptId = receipt.Id,
+            ReceiptNumber = receipt.ReceiptNumber,
+            BatchId = batch?.Id,
+            InvoiceNumber = batch?.BatchNumber ?? "-",
+            DebtorReferenceId = batch?.DebtorReferenceId,
+            CompanyName = companyName,
+            VisitType = visitTypeDetail,
+            PaymentDate = paymentDateDetail,
+            PaymentSequenceNumber = sequenceNumber,
+            ReversedAt = reversedAtDetail,
+            ReversedBy = reversal.AllocatedBy,
+            ReversedByName = reversedByName,
+            PaymentSource = paymentSource,
+            BankAccountId = bankAccountId,
+            BankAccountNumber = bankAccountNumber,
+            BankAccountName = bankAccountName,
+            BankName = bankName,
+            CrossEntryId = crossEntry?.Id,
+            CrossEntryNumber = crossEntry?.CrossEntryNumber,
+            CrossEntryStatus = crossEntry?.Status,
+            TotalTagihan = totalTagihan,
+            TotalDiterima = totalDiterima,
+            HistoricalRemaining = historicalRemaining,
+            CurrentBatchStatus = batch?.Status,
+            BatchCancelReason = batch?.CancelReason,
+            CanReapply = canReapply,
+            ReapplyBlockedReason = reapplyBlockedReason,
+            ReceiptRowVersion = receipt.RowVersion,
+            BatchRowVersion = batch?.RowVersion,
+            Note = movements.FirstOrDefault(m => !string.IsNullOrWhiteSpace(m.Notes))?.Notes ?? batch?.Note ?? receipt.ProviderReference,
+            ReceiptAmount = receipt.Amount,
+            ReceiptUnallocatedAmount = receipt.UnallocatedAmount,
+            TotalDiscount = batch?.TotalDiscount ?? 0m,
+            OtherReceiptAmount = batch?.OtherReceiptAmount ?? 0m,
+            FollowUpStatus = followUpStatus,
+            Members = memberResponses,
+            Deductions = deductionResponses
+        };
+    }
+
+    /// <summary>
+    /// Ekspor daftar Canceled AR Payment Sessions ke format file Excel (.xlsx).
+    /// </summary>
+    public async Task<byte[]> ExportCanceledArPaymentsExcelAsync(
+        CanceledArPaymentQuery request, CancellationToken cancellationToken)
+    {
+        var rows = await LoadFilteredCanceledSessionsAsync(request, cancellationToken);
+        using var workbook = new XLWorkbook();
+        var worksheet = workbook.Worksheets.Add("Canceled AR Payments");
+
+        worksheet.Cell(1, 1).Value = "Daftar Pembatalan Receivable AR";
+        worksheet.Cell(1, 1).Style.Font.Bold = true;
+        worksheet.Cell(1, 1).Style.Font.FontSize = 14;
+
+        worksheet.Cell(2, 1).Value = $"Tanggal Ekspor: {DateTime.UtcNow:dd/MM/yyyy HH:mm} WIB | Total: {rows.Count} sesi";
+        worksheet.Cell(2, 1).Style.Font.FontSize = 9;
+
+        string[] headers = [
+            "No", "No. Invoice", "Nama Perusahaan", "Tgl Pembayaran",
+            "Total Tagihan", "Total Diterima", "Sisa Pembayaran", "Keterangan", "Status", "Dibatalkan Oleh"
+        ];
+
+        for (int col = 0; col < headers.Length; col++)
+        {
+            var cell = worksheet.Cell(4, col + 1);
+            cell.Value = headers[col];
+            cell.Style.Font.Bold = true;
+            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#E2E8F0");
+            cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        }
+
+        for (int i = 0; i < rows.Count; i++)
+        {
+            var r = rows[i];
+            int rowIdx = 5 + i;
+            worksheet.Cell(rowIdx, 1).Value = i + 1;
+            worksheet.Cell(rowIdx, 2).Value = r.InvoiceNumber;
+            worksheet.Cell(rowIdx, 3).Value = r.CompanyName;
+            worksheet.Cell(rowIdx, 4).Value = FinanceBusinessDate.ToBusinessTime(r.PaymentDate).ToString("dd/MM/yyyy");
+            worksheet.Cell(rowIdx, 5).Value = r.TotalTagihan;
+            worksheet.Cell(rowIdx, 5).Style.NumberFormat.Format = "#,##0";
+            worksheet.Cell(rowIdx, 6).Value = r.TotalDiterima;
+            worksheet.Cell(rowIdx, 6).Style.NumberFormat.Format = "#,##0";
+            worksheet.Cell(rowIdx, 7).Value = r.HistoricalRemaining;
+            worksheet.Cell(rowIdx, 7).Style.NumberFormat.Format = "#,##0";
+            worksheet.Cell(rowIdx, 8).Value = r.Keterangan;
+            worksheet.Cell(rowIdx, 9).Value = r.Status;
+            worksheet.Cell(rowIdx, 10).Value = r.ReversedByName;
+
+            for (int col = 1; col <= headers.Length; col++)
+            {
+                worksheet.Cell(rowIdx, col).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            }
+        }
+
+        worksheet.Columns().AdjustToContents();
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        return stream.ToArray();
+    }
+
+    /// <summary>
+    /// Ekspor daftar Canceled AR Payment Sessions ke format PDF (QuestPDF A4 Landscape).
+    /// </summary>
+    public async Task<byte[]> ExportCanceledArPaymentsPdfAsync(
+        CanceledArPaymentQuery request, CancellationToken cancellationToken)
+    {
+        var rows = await LoadFilteredCanceledSessionsAsync(request, cancellationToken);
+        var summary = new CanceledArPaymentSummaryResponse
+        {
+            TransactionCount = rows.Count,
+            TotalTagihan = rows.Sum(x => x.TotalTagihan),
+            TotalBayar = rows.Sum(x => x.TotalDiterima),
+            TotalSisa = rows.Sum(x => x.HistoricalRemaining)
+        };
+
+        return CanceledArPaymentReportDocuments.BuildListPdf(rows, summary);
+    }
 }
 
 /// <summary>Satu baris permintaan alokasi (BE-FIN-018, FR-FIN-040). ReceivableId kosong = INVOICE_DIRECT.

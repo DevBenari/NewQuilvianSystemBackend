@@ -24,6 +24,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums
         DepositSettlementStatement = 5,
 
         /// <summary>Estimasi Biaya Rekap — di luar gelombang sampai <c>DEC-INP-020</c> (<c>EPIC-RWA-09</c>).</summary>
-        CostEstimate = 6
+        CostEstimate = 6,
+
+        /// <summary>Formulir Persetujuan Rawat Inap / General Consent (BE-RWI-205, RWI-DEC-272).</summary>
+        GeneralConsent = 7
     }
 }

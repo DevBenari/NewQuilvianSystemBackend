@@ -20,6 +20,14 @@ public sealed class BilArHandoff : IdentityModel
     public Guid CausationId { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? AcknowledgedAt { get; set; }
+
+    /// <summary>BE-FIN-091, FIN-DEC-184: terisi hanya untuk baris EMPLOYEE_BENEFIT. Guid EmployeeId/
+    /// WorkforceProfileId pegawai, divalidasi ke HR saat Billing menerbitkan baris ini.</summary>
+    public Guid? BenefitOwnerId { get; set; }
+
+    /// <summary>BE-FIN-091, FIN-DEC-184/198: kode hubungan keluarga (SELF/SPOUSE/CHILD/PARENT/OTHER).</summary>
+    [MaxLength(50)] public string? BenefitRelationship { get; set; }
+
     public Guid RowVersion { get; set; } = Guid.NewGuid();
 
     public BilInvoice Invoice { get; set; } = null!;
@@ -30,6 +38,9 @@ public static class BillingArDebtorTypes
 {
     public const string PatientGuarantor = "PATIENT_GUARANTOR";
     public const string Payer = "PAYER";
+
+    /// <summary>BE-FIN-091, FIN-DEC-184: porsi tagihan manfaat karyawan di atas plafon, ditanggung pegawai.</summary>
+    public const string EmployeeBenefit = "EMPLOYEE_BENEFIT";
 }
 
 public static class BillingHandoffStatuses

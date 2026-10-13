@@ -96,6 +96,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
                 TierTypeOptions = BuildEnumOptions<MembershipTierType>(),
+                QueueAudienceOptions = BuildEnumOptions<QueueAudience>(),
+                PublicDisplayModeOptions = BuildEnumOptions<PublicDisplayMode>(),
                 QueryParameters = BuildQueryParameterInfo(),
                 CreateFields = BuildCreateFieldMetadata(),
                 UpdateFields = BuildUpdateFieldMetadata(),
@@ -424,6 +426,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 RadiologyDiscountPercent = request.RadiologyDiscountPercent,
                 PharmacyDiscountPercent = request.PharmacyDiscountPercent,
                 PriorityQueue = request.PriorityQueue,
+                QueueAudience = request.QueueAudience ?? QueueAudience.Member,
+                PublicDisplayMode = request.PublicDisplayMode ?? PublicDisplayMode.Default,
                 FreeAnnualCheckup = request.FreeAnnualCheckup,
                 FreeParking = request.FreeParking,
                 ValidityMonths = request.ValidityMonths,
@@ -547,6 +551,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             entity.RadiologyDiscountPercent = request.RadiologyDiscountPercent;
             entity.PharmacyDiscountPercent = request.PharmacyDiscountPercent;
             entity.PriorityQueue = request.PriorityQueue;
+            entity.QueueAudience = request.QueueAudience ?? entity.QueueAudience;
+            entity.PublicDisplayMode = request.PublicDisplayMode ?? entity.PublicDisplayMode;
             entity.FreeAnnualCheckup = request.FreeAnnualCheckup;
             entity.FreeParking = request.FreeParking;
             entity.ValidityMonths = request.ValidityMonths;
@@ -980,6 +986,18 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 return (false, "Priority level tidak boleh kurang dari 0.");
             }
 
+            if (request.QueueAudience.HasValue &&
+                !Enum.IsDefined(typeof(QueueAudience), request.QueueAudience.Value))
+            {
+                return (false, "Queue audience tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
+            if (request.PublicDisplayMode.HasValue &&
+                !Enum.IsDefined(typeof(PublicDisplayMode), request.PublicDisplayMode.Value))
+            {
+                return (false, "Public display mode tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
             if (request.ValidityMonths < 1)
             {
                 return (false, "Masa berlaku membership minimal 1 bulan.");
@@ -1158,6 +1176,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 RadiologyDiscountPercent = entity.RadiologyDiscountPercent,
                 PharmacyDiscountPercent = entity.PharmacyDiscountPercent,
                 PriorityQueue = entity.PriorityQueue,
+                QueueAudience = entity.QueueAudience,
+                QueueAudienceName = SplitPascalCase(entity.QueueAudience.ToString()),
+                PublicDisplayMode = entity.PublicDisplayMode,
+                PublicDisplayModeName = SplitPascalCase(entity.PublicDisplayMode.ToString()),
                 FreeAnnualCheckup = entity.FreeAnnualCheckup,
                 FreeParking = entity.FreeParking,
                 ValidityMonths = entity.ValidityMonths,
@@ -1196,6 +1218,10 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 RadiologyDiscountPercent = entity.RadiologyDiscountPercent,
                 PharmacyDiscountPercent = entity.PharmacyDiscountPercent,
                 PriorityQueue = entity.PriorityQueue,
+                QueueAudience = entity.QueueAudience,
+                QueueAudienceName = SplitPascalCase(entity.QueueAudience.ToString()),
+                PublicDisplayMode = entity.PublicDisplayMode,
+                PublicDisplayModeName = SplitPascalCase(entity.PublicDisplayMode.ToString()),
                 FreeAnnualCheckup = entity.FreeAnnualCheckup,
                 FreeParking = entity.FreeParking,
                 ValidityMonths = entity.ValidityMonths,
@@ -1336,6 +1362,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 new() { Name = "radiologyDiscountPercent", Label = "Diskon Radiologi (%)", Section = "Discount", InputType = "number", Description = "Nilai 0 sampai 100.", Example = "5", SortOrder = 16 },
                 new() { Name = "pharmacyDiscountPercent", Label = "Diskon Farmasi (%)", Section = "Discount", InputType = "number", Description = "Nilai 0 sampai 100.", Example = "3", SortOrder = 17 },
                 new() { Name = "priorityQueue", Label = "Prioritas Antrian", Section = "Benefit", InputType = "switch", SortOrder = 18 },
+                new() { Name = "queueAudience", Label = "Queue Audience", Section = "Benefit", InputType = "select", OptionsSource = "queueAudienceOptions", Description = "Kelompok layar antrean publik: Regular atau Member.", Example = "2", SortOrder = 18 },
+                new() { Name = "publicDisplayMode", Label = "Public Display Mode", Section = "Benefit", InputType = "select", OptionsSource = "publicDisplayModeOptions", Description = "Identitas pasien yang boleh tampil di layar antrean publik.", Example = "4", SortOrder = 18 },
                 new() { Name = "freeAnnualCheckup", Label = "Free Annual Checkup", Section = "Benefit", InputType = "switch", SortOrder = 19 },
                 new() { Name = "freeParking", Label = "Free Parking", Section = "Benefit", InputType = "switch", SortOrder = 20 },
                 new() { Name = "validityMonths", Label = "Masa Berlaku Bulan", Section = "Validity", InputType = "number", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", Description = "Minimal 1 bulan.", Example = "12", SortOrder = 21 },

@@ -11,6 +11,64 @@ Keduanya punya roadmap, progress, dan Definition of Done sendiri, dan **tidak bo
 | Billing / Revenue Cycle | `RJ-BIL` | [roadmap/backend-roadmap.md](roadmap/backend-roadmap.md), [roadmap/frontend-roadmap.md](roadmap/frontend-roadmap.md) | `PARTIAL — NEEDS REVERIFICATION` | `1` — `HISTORICAL SNAPSHOT` per `2026-08-24`/`28` | Dimulai sebagai **consumer** clinical fact. `DOWNSTREAM — NOT PART OF DOCTOR DEFINITION OF DONE` |
 | **Rawat Jalan → Invoice V2** | `RJ-E2E` (dokumen: `RJE`) | [roadmap/e2e-backend-roadmap.md](roadmap/e2e-backend-roadmap.md), [roadmap/e2e-frontend-roadmap.md](roadmap/e2e-frontend-roadmap.md) | **Desain `APPROVED` · roadmap `DRAFT`** | `1` | Jembatan fakta klinis → `BilInvoice`, obat dua tahap, jasa konsultasi, rekonsiliasi, Ringkasan Billing. Lihat bagian *Revisi 27* di bawah |
 
+## Revisi 31 — Amendment PM-B: Pendaftaran Rujukan dan Pencocokan Kartu Asuransi (`2026-10-08`)
+
+| Field | Nilai |
+|---|---|
+| `revision` | `31` |
+| `status` | **`approved`** — desain disetujui Sukma Giri, 2026-10-08 ("setuju dan lanjutkan") |
+| Scope | `RJ-DOC` (revisi `RJ-DOC-REV-*`). Step Data Rujukan petugas dan Kiosk, unit tujuan poli/Laboratorium, master Institusi/Dokter Perujuk + tanda mitra, surat rujukan privat, rujukan belum lengkap, koreksi beraudit, pencocokan scan kartu asuransi |
+| `blueprint_shape` | `SINGLE` (`RJ-DOC-DEC-045`, `USER_CONFIRMED`) |
+| `backend_commit_sha` / `frontend_commit_sha` | `77caf434` / `de323430` |
+| `contract_versions` | `RJ-DOC-REFERRAL-001@1.0.0` (`approved`) — bagian *Amendment PM-B* pada `contracts/*` |
+| `decision_revision` | `RJ-DOC-DEC-068`..`082`; `RJ-DOC-DEC-067` `superseded`; `KSK-DEC-025` (blueprint Kiosk) |
+| `requirement_readiness` | `GATE_NOT_RUN` — keputusan tertutup berbukti dari wawancara pemilik |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN` — rujukan milik Registration, master perujuk global yang sudah ada, tanpa dampak billing |
+| Capability | Fakta `F-PM-1`..`13` di decision log |
+| Migration | Satu: `AddEncounterReferralAndReferralInstitutionPartner` (3 tabel + 1 kolom), aditif |
+| Artefak | `02` *Amendment PM-B*, `03` *Amendment PM-B*, `04` *Amendment PM-B*, `contracts/*` *Amendment PM-B*, `data/data-dictionary.md` *PM-B*, [flowcharts/pendaftaran-rujukan.md](flowcharts/pendaftaran-rujukan.md) |
+| Open question | `RJ-DOC-OQ-PM-01` (OCR agent, tidak memblokir MVP), `RJ-DOC-OQ-PM-02` (Radiologi, `POST-MVP`) |
+| `owners` | Product/Domain, Frontend authority: Sukma Giri |
+| `approved_by`, `approved_at` | Sukma Giri, `2026-10-08` |
+| `implementation_authority` | `GRANTED` — `RJ-DOC-DEC-083` (CROSS-REPO, 12 task) |
+| Roadmap | [roadmap/doctor-consultation-roadmap.md](roadmap/doctor-consultation-roadmap.md) bagian 19; Kiosk `FE-KSK-014`..`016` |
+| Langkah berikutnya | Implementasi gelombang 1: `RJ-DOC-REV-BE-017`, `RJ-DOC-REV-BE-020` |
+
+## Revisi 30 — Amendment MT: Menu Konsultasi Tertunda (`2026-10-07`)
+
+| Field | Nilai |
+|---|---|
+| `revision` | `30` |
+| `status` | **`approved`** — desain disetujui (`RJ-DOC-DEC-050`) |
+| Scope | `RJ-DOC` (revisi roadmap `RJ-DOC-REV-*`). Konsultasi tertunda pindah dari tab panel kiri Klinis Dokter ke menu Dokter → Rawat Jalan → Konsultasi Tertunda; aksi baris Batalkan Konsultasi dan Simpan Konsultasi (tinjau di Klinis Dokter) |
+| `blueprint_shape` | `SINGLE` (`RJ-DOC-DEC-045`, `USER_CONFIRMED`) |
+| `backend_commit_sha` / `frontend_commit_sha` | `85962dc4` / `9acc42027` |
+| `contract_versions` | **Tidak berubah** — `RJ-DOC-PENDCONS-001@1.0.0 (approved)` dipakai apa adanya; berkas `contracts/` tidak disunting |
+| `decision_revision` | `RJ-DOC-DEC-045`..`049`, `RJ-DOC-FE-014`..`016`; `RJ-DOC-FE-010` dan `RJ-DOC-FE-013` `superseded` |
+| `requirement_readiness` | `GATE_NOT_RUN` — scope kecil, keputusan tertutup berbukti, tanpa aturan bisnis baru |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN` — hanya letak layar; tanpa bounded context, master, atau dampak billing baru |
+| Capability | Fakta `F-MT-1`..`5` di decision log |
+| Migration | Tidak ada |
+| Backend | Tidak ada perubahan (`02` *Amendment MT*) |
+| Open question | `RJ-DOC-OQ-016` filter Dokter — `POST-MVP`, tidak memblokir |
+| `owners` | Product/Domain, Frontend authority: Sukma Giri |
+| `approved_by`, `approved_at` | Sukma Giri, `2026-10-07` ("lanjutkan") |
+| `implementation_authority` | `GRANTED` — `RJ-DOC-REV-FE-015` (`RJ-DOC-DEC-051`) |
+| Roadmap | [roadmap/doctor-consultation-roadmap.md](roadmap/doctor-consultation-roadmap.md) bagian 16 — `RJ-DOC-REV-FE-015` (`MVP-0`) |
+| Implementasi | ✅ `RJ-DOC-REV-FE-015` selesai `2026-10-07` (`RJ-DOC-DEC-051`, uji `RJ-DOC-DEC-052`); belum di-commit — [laporan](task/report/frontend/RJ-DOC-REV-FE-015.md) |
+| Langkah berikutnya | Restart server dev backend 7184, commit oleh pemilik (frontend `sukmagpV2`, dokumen backend `sukmagp`) |
+
+| Artifact | SHA-256 | Keadaan |
+|---|---|---|
+| `00-interview-decisions.md` | `867FEC23FCBD9BF9C03A1302BB9B95FA6BC54F2688DEEE448B090FF7A66E3583` | `CHANGED` — Amendment Pass, hasil desain, approval 2026-10-07 |
+| `02-backend-architecture.md` | `F69D3CF78B1617F2BB8C18599B346FEE3F2003C3FD5EDC814E801EB626656977` | `CHANGED` — Amendment MT: pernyataan tanpa perubahan backend |
+| `03-frontend-architecture.md` | `0E131F65A07D71350736E7D66DCF21E362EC1A3AEBEAE4BBFD7604A2DF737272` | `CHANGED` — Amendment MT |
+| `04-prd-to-mvp.md` | `B1ECE17B18BC762FFF0DDB236CCC104AB8EC46661F8469B570BA6D1A60B7E05B` | `CHANGED` — Amendment MT |
+| `flowcharts/konsultasi-tertunda.md` | `A46FDC2BF8D3ED417F0188E1F8BEED8789876F19B907EB95DD98C8D36D1D388D` | `CHANGED` — alur dokter Amendment MT |
+| `testing/acceptance-test-matrix.md` | `9A095B08B4CFA9AFA1B0038FEB9E5CD59D04654A7146F2F548904F328CE6E37A` | `CHANGED` — `AT-MT-01`..`12` |
+| `data/data-dictionary.md` | — | `UNCHANGED` — tanpa tabel/kolom baru |
+| `contracts/*` | — | `UNCHANGED` — tanpa endpoint, transisi, validasi, integrasi, atau butir hak akses baru |
+
 ## Revisi 29 — Amendment KT: Konsultasi Tertunda di Klinis Dokter (`2026-10-05`)
 
 | Field | Nilai |

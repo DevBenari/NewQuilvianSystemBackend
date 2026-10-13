@@ -70,6 +70,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
             entity.Property(x => x.ShowClinicName)
                 .HasDefaultValue(true);
 
+            entity.Property(x => x.QueueAudienceMode)
+                .HasConversion<int>()
+                .HasDefaultValue(QueueDisplayAudienceMode.All)
+                .IsRequired();
+
             entity.Property(x => x.RefreshIntervalSeconds)
                 .HasDefaultValue(5);
 

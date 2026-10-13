@@ -62,7 +62,50 @@ namespace QuilvianSystemBackend.Tests.Pharmacy.Infrastructure
                 pragma.ExecuteNonQuery();
             }
 
+            // Dua fungsi PostgreSQL disediakan tiruannya, dan HANYA pada basis data uji ini.
+            //
+            // `DrugReturnService.VerifyAsync` mengambil kunci penasihat sebelum menambah stok:
+            //
+            //     SELECT pg_advisory_xact_lock(hashtext({0}));
+            //
+            // dijaga `Database.IsRelational()`, yang bernilai benar juga untuk SQLite — sehingga
+            // SQLite ikut menjalankannya dan gagal dengan "no such function: hashtext".
+            //
+            // Yang disediakan di sini bentuknya saja, bukan perilakunya. `hashtext` mengembalikan
+            // hash yang stabil untuk satu masukan, dan `pg_advisory_xact_lock` tidak mengunci apa
+            // pun. Itu memadai karena uji ini berjalan pada basis data dalam memori yang dipakai
+            // satu uji saja, sehingga tidak ada pesaing yang perlu dikunci.
+            //
+            // AKIBATNYA, DAN INI PENTING: perilaku penguncian itu sendiri TIDAK diuji di sini.
+            // Serialisasi dua verifikasi bersamaan hanya dapat dibuktikan pada PostgreSQL, dan
+            // itu dicatat sebagai keterbatasan, bukan ditutup dengan uji yang terlihat hijau.
+            //
+            // Sumber perilaku produksi tetap PostgreSQL. Source aplikasi tidak diubah sedikit pun
+            // untuk membuat uji ini lulus.
+            connection.CreateFunction<string?, long>(
+                "hashtext",
+                teks => teks == null ? 0L : StableHash(teks));
+
+            connection.CreateFunction<long, object?>(
+                "pg_advisory_xact_lock",
+                _ => null);
+
             return database;
+        }
+
+        /// <summary>
+        /// Hash stabil untuk tiruan <c>hashtext</c>. Nilainya tidak perlu sama dengan milik
+        /// PostgreSQL — yang dibutuhkan hanya bahwa masukan yang sama menghasilkan nilai yang
+        /// sama di dalam satu uji.
+        /// </summary>
+        private static long StableHash(string value)
+        {
+            unchecked
+            {
+                var hash = 5381L;
+                foreach (var c in value) hash = ((hash << 5) + hash) + c;
+                return hash;
+            }
         }
 
         /// <summary>
