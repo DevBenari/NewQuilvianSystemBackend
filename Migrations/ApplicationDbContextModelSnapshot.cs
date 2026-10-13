@@ -10410,6 +10410,251 @@ namespace QuilvianSystemBackend.Migrations
                         });
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableWriteOffProposal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid?>("DebtorReferenceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTimeOffset?>("PostedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PostedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("ProposalDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ProposalNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ProposalType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("PER_INVOICE");
+
+                    b.Property<string>("ReasonCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ReasonDescription")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("RejectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RejectedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ServiceType")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("DRAFT");
+
+                    b.Property<decimal>("TotalApprovedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalInvoiceAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalOutstandingAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalProposedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DebtorReferenceId")
+                        .HasDatabaseName("IX_FinReceivableWriteOffProposal_DebtorReferenceId");
+
+                    b.HasIndex("ProposalDate")
+                        .HasDatabaseName("IX_FinReceivableWriteOffProposal_Date");
+
+                    b.HasIndex("ProposalNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FinReceivableWriteOffProposal_Number")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_FinReceivableWriteOffProposal_Status");
+
+                    b.ToTable("FinReceivableWriteOffProposal", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_FinReceivableWriteOffProposal_Amounts", "\"TotalProposedAmount\" >= 0 AND \"TotalApprovedAmount\" >= 0");
+
+                            t.HasCheckConstraint("CK_FinReceivableWriteOffProposal_MakerChecker", "\"ApprovedBy\" IS NULL OR \"ApprovedBy\" <> \"RequestedBy\"");
+
+                            t.HasCheckConstraint("CK_FinReceivableWriteOffProposal_Status", "\"Status\" IN ('DRAFT','SUBMITTED','APPROVED','POSTED','REJECTED')");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableWriteOffProposalItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("ApprovedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("InvoiceBatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("OutstandingSnapshot")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("ProposalId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("ProposedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("ReceivableId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("WriteOffId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceBatchId")
+                        .HasDatabaseName("IX_FinReceivableWriteOffProposalItem_InvoiceBatchId");
+
+                    b.HasIndex("ReceivableId")
+                        .HasDatabaseName("IX_FinReceivableWriteOffProposalItem_ReceivableId");
+
+                    b.HasIndex("WriteOffId")
+                        .HasDatabaseName("IX_FinReceivableWriteOffProposalItem_WriteOffId");
+
+                    b.HasIndex("ProposalId", "ReceivableId")
+                        .HasDatabaseName("IX_FinReceivableWriteOffProposalItem_Proposal_Receivable");
+
+                    b.ToTable("FinReceivableWriteOffProposalItem", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_FinReceivableWriteOffProposalItem_Amounts", "\"ProposedAmount\" > 0 AND \"ApprovedAmount\" >= 0");
+                        });
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendance", b =>
                 {
                     b.Property<Guid>("Id")
@@ -12792,6 +13037,129 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("HrdRemoteAttendance", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models.HrdBenefitBalanceMovement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("BalanceAfter")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("BalanceBefore")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("BenefitPersonKind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("EmployeeBenefitDependentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EmployeeBenefitEnrollmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("MovementType")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReasonText")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("ReversesMovementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SourceHandoffKey")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeBenefitDependentId")
+                        .HasDatabaseName("IX_HrdBenefitBalanceMovement_Dependent");
+
+                    b.HasIndex("InvoiceId")
+                        .HasDatabaseName("IX_HrdBenefitBalanceMovement_InvoiceId");
+
+                    b.HasIndex("ReversesMovementId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_HrdBenefitBalanceMovement_Reverses")
+                        .HasFilter("\"ReversesMovementId\" IS NOT NULL");
+
+                    b.HasIndex("EmployeeBenefitEnrollmentId", "OccurredAt")
+                        .HasDatabaseName("IX_HrdBenefitBalanceMovement_Enrollment_OccurredAt");
+
+                    b.HasIndex("SourceHandoffKey", "MovementType")
+                        .IsUnique()
+                        .HasDatabaseName("UX_HrdBenefitBalanceMovement_Key");
+
+                    b.ToTable("HrdBenefitBalanceMovement", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_HrdBenefitBalanceMovement_Amount", "\"Amount\" > 0");
+
+                            t.HasCheckConstraint("CK_HrdBenefitBalanceMovement_Balance", "((\"MovementType\" = 'USE' AND \"BalanceAfter\" = \"BalanceBefore\" - \"Amount\") OR (\"MovementType\" = 'RETURN' AND \"BalanceAfter\" = \"BalanceBefore\" + \"Amount\")) AND \"BalanceAfter\" >= 0");
+
+                            t.HasCheckConstraint("CK_HrdBenefitBalanceMovement_Kind", "(\"BenefitPersonKind\" = 'ENROLLMENT' AND \"EmployeeBenefitDependentId\" IS NULL) OR (\"BenefitPersonKind\" = 'DEPENDENT' AND \"EmployeeBenefitDependentId\" IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_HrdBenefitBalanceMovement_Reverses", "(\"MovementType\" = 'RETURN') = (\"ReversesMovementId\" IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_HrdBenefitBalanceMovement_Type", "\"MovementType\" IN ('USE','RETURN')");
+                        });
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models.TrxBenefitClaim", b =>
                 {
                     b.Property<Guid>("Id")
@@ -13437,6 +13805,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid?>("RequestedByUserId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
                     b.Property<string>("SupportingDocumentJson")
                         .HasColumnType("jsonb");
 
@@ -13473,13 +13845,21 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("VerifiedByUserId");
 
+                    b.HasIndex("EmployeeBenefitEnrollmentId", "FamilyMemberId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TrxEmployeeBenefitDependent_OpenPerFamilyMember")
+                        .HasFilter("\"DependentStatus\" IN ('Draft','Requested','Verified') AND \"FamilyMemberId\" IS NOT NULL AND \"IsDelete\" = false");
+
                     b.HasIndex("EmployeeBenefitEnrollmentId", "DependentName", "RelationshipType")
                         .IsUnique()
-                        .HasFilter("\"IsDelete\" = false");
+                        .HasFilter("\"IsDelete\" = false AND \"DependentStatus\" IN ('Draft','Requested','Verified')");
 
                     b.HasIndex("WorkforceProfileId", "DependentStatus", "IsActive");
 
-                    b.ToTable("TrxEmployeeBenefitDependent", "public");
+                    b.ToTable("TrxEmployeeBenefitDependent", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_TrxEmployeeBenefitDependent_Balance", "\"UsedAmount\" >= 0 AND \"RemainingAmount\" >= 0");
+                        });
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models.TrxEmployeeBenefitEnrollment", b =>
@@ -13628,6 +14008,10 @@ namespace QuilvianSystemBackend.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("SubmittedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -13676,11 +14060,21 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("WorkflowDefinitionId");
 
+                    b.HasIndex("WorkforceProfileId", "BenefitPlanId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_TrxEmployeeBenefitEnrollment_OpenPerPlan")
+                        .HasFilter("\"EnrollmentStatus\" IN ('Draft','Submitted','Approved','Active') AND \"IsDelete\" = false");
+
                     b.HasIndex("EffectiveStartDate", "EffectiveEndDate", "IsActive");
 
                     b.HasIndex("WorkforceProfileId", "BenefitPlanId", "EnrollmentStatus");
 
-                    b.ToTable("TrxEmployeeBenefitEnrollment", "public");
+                    b.ToTable("TrxEmployeeBenefitEnrollment", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_TrxEmployeeBenefitEnrollment_Balance", "\"UsedAmount\" >= 0 AND \"RemainingAmount\" >= 0");
+
+                            t.HasCheckConstraint("CK_TrxEmployeeBenefitEnrollment_MakerChecker", "\"ApprovedByUserId\" IS NULL OR \"SubmittedByUserId\" IS NULL OR \"ApprovedByUserId\" <> \"SubmittedByUserId\"");
+                        });
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models.TrxEmployeeInsuranceEnrollment", b =>
@@ -95053,6 +95447,10 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<string>("BenefitRelationship")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<Guid>("CancelBy")
                         .HasColumnType("uuid");
 
@@ -95104,6 +95502,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)");
 
+                    b.Property<Guid?>("EmployeeId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("EmployeeName")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
@@ -95112,6 +95513,9 @@ namespace QuilvianSystemBackend.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("FamilyMemberId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("GradeLevel")
                         .HasMaxLength(100)
@@ -95192,8 +95596,16 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("CompanyGuarantorId");
 
+                    b.HasIndex("EmployeeId")
+                        .HasDatabaseName("IX_MstPatientCompanyGuarantor_EmployeeId")
+                        .HasFilter("\"EmployeeId\" IS NOT NULL");
+
                     b.HasIndex("EmployeeNumber")
                         .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("FamilyMemberId")
+                        .HasDatabaseName("IX_MstPatientCompanyGuarantor_FamilyMemberId")
+                        .HasFilter("\"FamilyMemberId\" IS NOT NULL");
 
                     b.HasIndex("PatientId");
 
@@ -95213,7 +95625,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("EffectiveStartDate", "EffectiveEndDate", "IsActive", "IsDelete");
 
-                    b.ToTable("MstPatientCompanyGuarantor", "public");
+                    b.ToTable("MstPatientCompanyGuarantor", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_MstPatientCompanyGuarantor_BenefitLink", "(\"EmployeeId\" IS NULL AND \"FamilyMemberId\" IS NULL AND \"BenefitRelationship\" IS NULL) OR (\"EmployeeId\" IS NOT NULL AND \"BenefitRelationship\" IS NOT NULL AND ((\"BenefitRelationship\" = 'SELF') = (\"FamilyMemberId\" IS NULL)))");
+                        });
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatientEmergencyContact", b =>
@@ -103163,6 +103578,10 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("BenefitRelationshipSnapshot")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<Guid>("CancelBy")
                         .HasColumnType("uuid");
 
@@ -103204,6 +103623,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("EffectiveStartDateSnapshot")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("EmployeeIdSnapshot")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("EmployeeNameSnapshot")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
@@ -103213,6 +103635,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.Property<Guid>("EncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("FamilyMemberIdSnapshot")
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("InsuranceProviderId")
@@ -103304,6 +103729,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyGuarantorId");
+
+                    b.HasIndex("EmployeeIdSnapshot")
+                        .HasDatabaseName("IX_RegPatientEncounterGuarantor_EmployeeIdSnapshot")
+                        .HasFilter("\"EmployeeIdSnapshot\" IS NOT NULL");
 
                     b.HasIndex("EncounterId")
                         .IsUnique();
@@ -106107,6 +106536,40 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Receivable");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableWriteOffProposalItem", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableInvoiceBatch", "InvoiceBatch")
+                        .WithMany()
+                        .HasForeignKey("InvoiceBatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableWriteOffProposal", "Proposal")
+                        .WithMany("Items")
+                        .HasForeignKey("ProposalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivable", "Receivable")
+                        .WithMany()
+                        .HasForeignKey("ReceivableId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableWriteOff", "WriteOff")
+                        .WithMany()
+                        .HasForeignKey("WriteOffId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("InvoiceBatch");
+
+                    b.Navigation("Proposal");
+
+                    b.Navigation("Receivable");
+
+                    b.Navigation("WriteOff");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendance", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendanceDaily", "AttendanceDaily")
@@ -106955,6 +107418,31 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("User");
 
                     b.Navigation("WorkforceProfile");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models.HrdBenefitBalanceMovement", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models.TrxEmployeeBenefitDependent", "EmployeeBenefitDependent")
+                        .WithMany()
+                        .HasForeignKey("EmployeeBenefitDependentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models.TrxEmployeeBenefitEnrollment", "EmployeeBenefitEnrollment")
+                        .WithMany()
+                        .HasForeignKey("EmployeeBenefitEnrollmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models.HrdBenefitBalanceMovement", "ReversesMovement")
+                        .WithMany()
+                        .HasForeignKey("ReversesMovementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("EmployeeBenefitDependent");
+
+                    b.Navigation("EmployeeBenefitEnrollment");
+
+                    b.Navigation("ReversesMovement");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models.TrxBenefitClaim", b =>
@@ -128572,6 +129060,18 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstEmployee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_MstPatientCompanyGuarantor_EmployeeId");
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpFamilyMember", null)
+                        .WithMany()
+                        .HasForeignKey("FamilyMemberId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_MstPatientCompanyGuarantor_FamilyMemberId");
+
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
                         .WithMany()
                         .HasForeignKey("PatientId")
@@ -131026,6 +131526,11 @@ namespace QuilvianSystemBackend.Migrations
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableInvoiceBatch", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableWriteOffProposal", b =>
                 {
                     b.Navigation("Items");
                 });

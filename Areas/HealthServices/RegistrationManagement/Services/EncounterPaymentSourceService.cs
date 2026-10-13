@@ -456,6 +456,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 paymentSource.CompanyGuarantorCodeSnapshot = guarantor.CompanyGuarantorCode;
                 paymentSource.EmployeeNumberSnapshot = card.EmployeeNumber;
                 paymentSource.EmployeeNameSnapshot = card.EmployeeName;
+                // BE-FIN-105, FIN-DEC-198: tautan HR disalin persis dari kartu baru.
+                paymentSource.EmployeeIdSnapshot = card.EmployeeId;
+                paymentSource.FamilyMemberIdSnapshot = card.FamilyMemberId;
+                paymentSource.BenefitRelationshipSnapshot = card.BenefitRelationship;
                 paymentSource.BenefitPlanCodeSnapshot = card.BenefitPlanCode;
                 paymentSource.PlanNameSnapshot = card.BenefitPlanName;
                 paymentSource.ClassNameSnapshot = card.ClassName;
@@ -507,6 +511,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             entity.CompanyGuarantorCodeSnapshot = null;
             entity.EmployeeNumberSnapshot = null;
             entity.EmployeeNameSnapshot = null;
+            entity.EmployeeIdSnapshot = null;
+            entity.FamilyMemberIdSnapshot = null;
+            entity.BenefitRelationshipSnapshot = null;
         }
     }
 

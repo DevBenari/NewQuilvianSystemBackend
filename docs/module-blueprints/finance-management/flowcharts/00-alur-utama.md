@@ -18,6 +18,8 @@
 | Perjanjian cicilan piutang karyawan | [perjanjian-cicilan-piutang-karyawan.md](perjanjian-cicilan-piutang-karyawan.md) | `S2a`, `S2b` | 17 |
 | Pelunasan internal porsi benefit | [pelunasan-internal-porsi-benefit.md](pelunasan-internal-porsi-benefit.md) | `S7a` | 17 |
 | Integrasi piutang manfaat karyawan end-to-end | [01-alur-piutang-manfaat-karyawan-end-to-end.md](01-alur-piutang-manfaat-karyawan-end-to-end.md) | `S1`, `S3`, `S4b`, `S5`, `S6` | 18 |
+| Plafon benefit pasien keluarga: mendaftar, menagih, mengoreksi | [02-alur-plafon-benefit-pasien-keluarga.md](02-alur-plafon-benefit-pasien-keluarga.md) | Celah implementasi `REV-19` (`S1`, `S5`) | 19 |
+| Jembatan manual potong gaji sampai mesin payroll aktif | [03-alur-jembatan-manual-potong-gaji.md](03-alur-jembatan-manual-potong-gaji.md) | `S3` (jembatan, `FIN-DEC-215`) | 20 |
 
 ## Rumpun yang BELUM punya flowchart
 

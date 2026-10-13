@@ -627,6 +627,8 @@ public sealed class CanceledInvoiceRowResponse
     public Guid? ReissuedToBatchId { get; set; }
     public Guid? ReissuedFromBatchId { get; set; }
     public bool IsReissued => ReissuedToBatchId.HasValue;
+    public Guid? ReplacementInvoiceId => ReissuedToBatchId;
+    public string? ReplacementInvoiceNumber { get; set; }
 
     public Guid RowVersion { get; set; }
 
@@ -744,6 +746,8 @@ public sealed class CanceledInvoiceDetailResponse
     public Guid? ReissuedToBatchId { get; set; }
     public Guid? ReissuedFromBatchId { get; set; }
     public bool IsReissued => ReissuedToBatchId.HasValue;
+    public Guid? ReplacementInvoiceId => ReissuedToBatchId;
+    public string? ReplacementInvoiceNumber { get; set; }
     public bool CanReissue { get; set; }
     public string? ReissueBlockedReason { get; set; }
     public bool CanRevive => CanReissue;
