@@ -446,4 +446,49 @@ Penyelarasan ini menutup secara permanen celah `FIN-OQ-034` (`evidence/17`) dan 
 
 Trace `BKC-DEC-128`–`134`, `BKC-DES-051`–`056`, `FIN-DEC-077`, `FIN-DEC-080`..`081`. Tests `BIL-AT-149`–`BIL-AT-158`.
 
+---
+
+## Amendment 13 Oktober 2026 — Pelunasan Gabungan Lintas Kunjungan (Revisi 1.9)
+
+> `last_changed_in`: `BIL-INTEGRATION-1.4` atas `BIL-INTEGRATION-1.3` — status **draft**.
+> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> Masukan: `BKC-DEC-118`, `BKC-DES-057`–`BKC-DES-062`. Backend SHA: `e049a65b`.
+
+### `BIL-INT-019` — Pembacaan rantai kunjungan untuk menemukan tagihan kandidat
+
+| Aspek | Ketentuan |
+|---|---|
+| Arah | Billing **membaca** dari Registration Management dan Rawat Inap |
+| Sifat | Pemanggilan dalam proses (*in-process*) lewat `ApplicationDbContext`, bukan HTTP — konsisten dengan `BIL-INT-010`–`012` dan `BKC-DES-040` karena keduanya satu assembly |
+| Yang dibaca | `RegPatientEncounter`: `Id`, `PatientId`, `EncounterType`, `SourceEncounterId`. `InpAdmissionReferral`: `SourceEncounterId`. `BilInvoiceEncounterLink`: `RanapInvoiceId`, `LinkedEncounterId`, `LinkReason` |
+| Yang **tidak** ditulis | Billing **MUST NOT** menulis ke tabel milik Registration Management maupun Rawat Inap. Amendment ini nol perubahan pada kedua modul itu |
+| Kegagalan | Bila rantai kunjungan tidak dapat dibaca, pencarian tagihan kandidat mengembalikan daftar kosong, **bukan** galat. Kasir tetap dapat memproses pembayaran satu tagihan |
+| Idempotensi | Pembacaan bersifat murni (*read-only*), tidak punya efek samping, sehingga aman dipanggil berulang |
+
+### Cara tagihan kandidat ditemukan
+
+Tiga sumber hubungan dibaca berurutan, dan hasilnya digabung tanpa duplikat:
+
+| Urutan | Sumber hubungan | Nilai `RelationType` | Kekuatan bukti |
+|---:|---|---|---|
+| 1 | `BilInvoiceEncounterLink` — tautan yang memang sudah dicatat sistem | `RECORDED_LINK` | Terkuat; hubungan sudah tercatat beserta sebabnya pada `LinkReason` |
+| 2 | `RegPatientEncounter.SourceEncounterId` — rantai rujukan kunjungan | `REFERRAL_CHAIN` | Kuat; membuktikan kunjungan ranap memang lahir dari kunjungan IGD atau poliklinik |
+| 3 | Kunjungan lain pasien yang sama yang tagihannya masih bersisa | `SAME_PATIENT` | Paling lemah; hanya kesamaan pasien, tanpa hubungan rujukan |
+
+Hasil `SAME_PATIENT` **MUST** tetap ditampilkan kepada kasir, bukan disembunyikan, karena
+keluarga pasien berhak menggabungkan tagihan apa pun milik pasien yang sama (`BKC-DES-061`).
+Yang dibedakan hanya keterangan hubungannya di layar, supaya kasir tidak salah menduga ada
+rujukan padahal tidak ada.
+
+### Dampak pada konsumen hilir
+
+| Konsumen | Dampak | Tindakan yang dibutuhkan |
+|---|---|---|
+| Finance / AR (`BilArHandoff`) | **Nol perubahan bentuk.** Penerbitan fakta piutang tetap per invoice, karena invoice tidak dilebur | Tidak ada |
+| Finance / Penerimaan kas (`BilCollectionHandoff`) | Satu transaksi gabungan menghasilkan **satu** fakta penerimaan kas, dengan rincian alokasi per invoice yang sudah tersedia pada baris alokasi | Verifikasi pembacaan rincian alokasi oleh Finance — `BKC-OQ-111` |
+| Rawat Inap (kelayakan pemulangan) | Belum ditentukan apakah sisa tagihan kunjungan IGD menahan kelayakan pulang | Menunggu `BKC-OQ-109`; amendment ini **tidak** mengubah `InpatientClearanceService` |
+| Farmasi (`BilPrescriptionClearanceHandoff`) | **Nol perubahan.** Kelayakan resep tetap dinilai per invoice | Tidak ada |
+
+Trace `BKC-DEC-118`, `BKC-DES-057`–`BKC-DES-062`, `CAP-BIL-09`. Tests: `BIL-AT-159`–`BIL-AT-168`.
+
 

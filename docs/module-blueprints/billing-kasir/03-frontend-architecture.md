@@ -1668,3 +1668,153 @@ sekali — ini murni penambahan kolom/section baru di sebelahnya.
 | `BUI-DES-003` (default tombol benar) | `BUI-DES-001` (backend) — **MUST selesai lebih dulu**, kalau tidak tombol akan menampilkan default yang salah walau UI sudah benar |
 | `BUI-DES-011` (kolom Tanggal pada datatable refund) | `BUI-DES-002` (backend) |
 | Sisanya (`BUI-DES-004`–`007`, `009` bagian validasi, `010`, `012`) | Nol dependency backend baru — seluruhnya memakai endpoint yang sudah ada |
+
+---
+
+# Amendment 13 Oktober 2026 — Pelunasan Gabungan Lintas Kunjungan (Revisi 1.9)
+
+> `revisi blueprint`: `1.9`, status **draft**. Masukan: `BKC-DEC-118`, `BKC-AC-086`,
+> `BKC-DES-057`–`BKC-DES-062`. Frontend SHA diaudit: `ae216044`.
+> Endpoint yang dipakai: lihat `contracts/api-contract.md` amendment revisi 1.9 — ketiganya masih
+> berlabel **Rencana (belum tersedia)**, sehingga pekerjaan frontend **MUST** menunggu backend.
+
+## 1. Kebutuhan Layar
+
+| ID layar | Nama layar | Status | Peran sasaran |
+|---|---|---|---|
+| `FE-BKC-43` | Pelunasan Gabungan Lintas Kunjungan | **Baru** | Kasir, Supervisor Kasir |
+| `FE-BKC-09` | Menu Pembayaran (sudah ada) | **Diperbarui** | Kasir, Supervisor Kasir |
+
+## 2. Peta Butir Menu
+
+`FE-BKC-43` **sengaja tidak mendapat butir menu tersendiri**, dan dinyatakan sebagai **layar
+anak**:
+
+| Layar | Jenis | Jalan masuknya | Route | Butir hak akses |
+|---|---|---|---|---|
+| `FE-BKC-43` Pelunasan Gabungan | Layar anak | Dari `FE-BKC-09` Menu Pembayaran, lewat tombol "Bayar Gabungan dengan Tagihan Lain" | `/health-services/billing-management/billing/invoices/[slug]/pembayaran-gabungan` | `BillingConsolidatedSettlement : Read` untuk membuka, `BillingConsolidatedSettlement : Create` untuk memproses |
+
+Alasan tidak diberi butir menu: layar ini **selalu** butuh satu tagihan jangkar sebagai titik
+awal. Butir menu tingkat atas akan membuka layar tanpa tagihan jangkar, yaitu keadaan yang tidak
+punya makna. Pola ini sama dengan Menu Pembayaran dan Edit Tagihan yang juga layar anak dari
+tagihan.
+
+Nol perubahan pada `src/utils/menu-sidebar/menu-items.jsx`. Ini disebutkan eksplisit karena
+pernah terjadi lima halaman `billing-management` selesai namun tak terjangkau sampai
+`FE-BKC-MENU-001` dikerjakan sebagai task tersendiri — pada amendment ini keterjangkauan dijamin
+lewat tombol di layar induk, dan pemasangan tombol itu **MUST** menjadi acceptance criteria task
+`FE-BKC-43`, bukan pekerjaan yang menganggur.
+
+Nama tombol, ikon, penempatan, serta apakah layar ini dibuka sebagai halaman penuh, modal, atau
+drawer tetap `DEV_DISCRETION`.
+
+## 3. Skema Fitur `FE-BKC-43` — Pelunasan Gabungan
+
+```text
++- Pelunasan Gabungan - Ny. Sari Mandasari ------------------ FE-BKC-43 -+
+| Tagihan jangkar: INV-RANAP-000412   Unit: RANAP                       |
+| Sisa tagihan jangkar: Rp 8.000.000                                    |
++-----------------------------------------------------------------------+
+| Tagihan lain pasien ini yang masih bersisa:                           |
+| [v] No. Tagihan        | Unit  | Terbit      | Sisa        | Hubungan |
+| [v] INV-IGD-000311     | IGD   | 09 Okt 08:15| 1.500.000   | Rujukan  |
+| [ ] INV-RAJAL-000120   | RAJAL | 02 Okt 09:30|   250.000   | Pasien sama |
++-----------------------------------------------------------------------+
+| Urutan pelunasan (ditetapkan sistem, tagihan terbit paling awal dulu):|
+|   1. INV-IGD-000311  (IGD)    2. INV-RANAP-000412 (RANAP)             |
++-----------------------------------------------------------------------+
+| Total sisa terpilih: Rp 9.500.000                                     |
+| Pembayaran:  [Metode v] [Nominal ............]  [+ Tambah metode]     |
+| Total dibayar: Rp 6.000.000                                           |
++-----------------------------------------------------------------------+
+| Perkiraan hasil:                                                      |
+|   INV-IGD-000311   -> lunas          (teralokasi Rp 1.500.000)        |
+|   INV-RANAP-000412 -> sisa 3.500.000 (teralokasi Rp 4.500.000)        |
++-----------------------------------------------------------------------+
+| memuat -> kerangka baris pada daftar tagihan, bukan layar kosong      |
+| kosong -> "Pasien ini tidak punya tagihan lain yang masih bersisa."   |
+|           [Kembali ke pembayaran biasa]                               |
+| gagal  -> "Daftar tagihan gagal dimuat."            [Coba lagi]       |
++--------------------------- [Batal] [Proses Pembayaran Gabungan] ------+
+```
+
+### Tabel wilayah `FE-BKC-43`
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Kepala | Nama pasien, nomor dan unit tagihan jangkar, sisa tagihan jangkar | `GET /invoices/{id}` (sudah ada) | `BillingInvoice : Read` | Gagal → seluruh layar diganti pesan beserta tombol coba lagi |
+| Daftar tagihan lain | Nomor tagihan, unit layanan, tanggal terbit, sisa, dan keterangan hubungan | `GET /invoices/{id}/consolidation-candidates` | `BillingConsolidatedSettlement : Read` | Kosong → "Pasien ini tidak punya tagihan lain yang masih bersisa." beserta tautan kembali ke pembayaran biasa. Gagal → "Daftar tagihan gagal dimuat." beserta tombol coba lagi |
+| Keterangan hubungan | Teks terbaca: "Rujukan" (`REFERRAL_CHAIN`), "Tautan tercatat" (`RECORDED_LINK`), atau "Pasien sama" (`SAME_PATIENT`) | Field `RelationType` pada response yang sama | `BillingConsolidatedSettlement : Read` | — |
+| Urutan pelunasan | Urutan yang ditetapkan sistem, hanya ditampilkan, **tidak dapat diubah petugas** | Dihitung dari `InvoiceOpenedAt` pada response kandidat | `BillingConsolidatedSettlement : Read` | — |
+| Bagian pembayaran | Metode pembayaran dan nominal, boleh lebih dari satu metode | `MstPaymentMethod` lewat endpoint master yang sudah dipakai Menu Pembayaran | `BillingConsolidatedSettlement : Create` | Gagal memuat metode → bagian pembayaran dinonaktifkan beserta pesan, daftar tagihan tetap terbaca |
+| Perkiraan hasil | Simulasi alokasi per tagihan sebelum diproses | **Dihitung di sisi klien** dari sisa tagihan dan urutan pelunasan | `BillingConsolidatedSettlement : Read` | Bila nominal belum diisi, bagian ini disembunyikan |
+| Tombol Proses | Mengirim permintaan pembentukan pembayaran gabungan | `POST /consolidated-settlements` | `BillingConsolidatedSettlement : Create` | Tombol **MUST** disembunyikan bagi petugas tanpa hak `Create`, bukan ditampilkan lalu ditolak kode `403` |
+| Tombol Batal | Kembali ke Menu Pembayaran tanpa menyimpan apa pun | — | — | — |
+
+> **Catatan "Perkiraan hasil".** Angka ini dihitung di sisi klien sebagai **bantuan baca**, dan
+> **MUST NOT** diperlakukan sebagai kebenaran. Yang sah adalah hasil dari backend pada response
+> `POST`. Bila keduanya berbeda — misalnya karena biaya susulan masuk di sela waktu — layar
+> **MUST** menampilkan hasil dari backend, bukan perkiraan tadi.
+
+## 4. Perubahan pada `FE-BKC-09` Menu Pembayaran
+
+| Yang berubah | Isi | Sumber data | Butir hak akses |
+|---|---|---|---|
+| Satu tombol baru | "Bayar Gabungan dengan Tagihan Lain", menuju `FE-BKC-43` | — | `BillingConsolidatedSettlement : Read` |
+| Penanda jumlah tagihan lain | Angka kecil pada tombol, menandai ada berapa tagihan lain yang masih bersisa | `GET /invoices/{id}/consolidation-candidates` | `BillingConsolidatedSettlement : Read` |
+
+Tombol ini **MUST** disembunyikan bila daftar kandidat kosong, agar kasir tidak membuka layar yang
+pasti kosong. Seluruh bagian lain Menu Pembayaran — termasuk jalur pembayaran satu tagihan —
+**MUST NOT** berubah sama sekali (`BKC-DES-061`).
+
+## 5. Aksi per Peran
+
+Diturunkan dari `contracts/permission-audit-matrix.md` amendment revisi 1.9, bukan dikarang ulang.
+
+| Peran | Membuka `FE-BKC-43` | Memilih tagihan peserta | Memproses pembayaran | Mencetak ulang kwitansi |
+|---|:---:|:---:|:---:|:---:|
+| Kasir | Ya | Ya | Ya | Ya |
+| Supervisor Kasir | Ya | Ya | Ya | Ya |
+| Petugas Billing (tanpa loket) | Ya | Tidak | Tidak | Ya |
+| Finance / AR | Ya | Tidak | Tidak | Tidak |
+| Perawat bangsal | Tidak | Tidak | Tidak | Tidak |
+
+## 6. Penanganan Keadaan
+
+| Keadaan | Perilaku yang mengikat |
+|---|---|
+| Memuat | Daftar tagihan menampilkan kerangka baris. Tombol Proses dinonaktifkan selama pemuatan |
+| Kosong | "Pasien ini tidak punya tagihan lain yang masih bersisa." beserta tautan kembali ke pembayaran biasa |
+| Gagal | "Daftar tagihan gagal dimuat." beserta tombol coba lagi. Pilihan tagihan yang sudah ditandai **MUST** dipertahankan setelah percobaan ulang berhasil |
+| Data basi | Bila backend menolak dengan kode `409` karena sisa tagihan berubah (`BIL-VAL-137`), layar menampilkan "Sisa tagihan sudah berubah karena ada biaya baru yang masuk. Muat ulang daftar tagihan lalu ulangi." beserta tombol muat ulang. Layar **MUST NOT** memproses ulang secara otomatis — keluarga pasien perlu diberi tahu lebih dulu bahwa nominalnya berubah |
+| Tagihan dipegang loket lain | Bila backend menolak dengan kode `409` karena `BIL-VAL-138`, baris tagihan itu ditandai tidak dapat dipilih beserta keterangannya, dan kasir tetap dapat melanjutkan dengan tagihan lain |
+| Pengiriman ganda | Tombol Proses dinonaktifkan sejak permintaan dikirim sampai response diterima. `IdempotencyKey` dibentuk **sekali** saat layar dibuka dan dipakai ulang pada percobaan ulang, supaya penekanan dua kali tidak menghasilkan dua pembayaran |
+| Pembayaran sebagian | Status `PARTIALLY_SETTLED` **MUST** ditampilkan sebagai keadaan **normal**, bukan galat merah. Bunyinya menyebut tagihan mana yang masih bersisa dan berapa |
+
+## 7. Privasi dan Aksesibilitas
+
+| Hal | Ketentuan |
+|---|---|
+| Privasi | Layar ini menampilkan nominal rupiah lintas kunjungan dan hanya untuk peran loket serta Billing/Finance. Nominal **MUST NOT** terbawa ke layar perawat bangsal, mengikuti aturan yang sudah berlaku sejak `BKC-DEC-117` |
+| Aksesibilitas | Daftar tagihan memakai tabel bertanda kepala kolom yang benar, setiap kotak pilih punya label terbaca pembaca layar yang menyebut nomor tagihan dan unit layanannya, dan pesan galat ditautkan ke bagian yang bersangkutan. Pemindaian aksesibilitas otomatis masih belum dapat dijalankan — keadaan yang sudah tercatat sejak `FE-BKC-010` dan tidak diselesaikan amendment ini |
+| Responsif | Pada lebar telepon, tabel tagihan beralih menjadi daftar kartu. Bagian "Urutan pelunasan" dan "Perkiraan hasil" **MUST** tetap terbaca karena keduanya yang dijelaskan kasir kepada keluarga pasien |
+
+## 8. Kewenangan UI
+
+| Keputusan | Kewenangan |
+|---|---|
+| Keberadaan setiap wilayah layar dan sumber datanya | **Mengikat** — dikunci skema di atas |
+| Hak akses yang menjaga setiap tombol | **Mengikat** — dari `contracts/permission-audit-matrix.md` |
+| Bunyi pesan kosong, gagal, dan data basi | **Mengikat** — sejalan `contracts/validation-matrix.md` |
+| Urutan pelunasan tidak dapat diubah petugas | **Mengikat** — `BKC-DES-060` |
+| Halaman penuh, modal, atau drawer | `DEV_DISCRETION` |
+| Nama tombol, ikon, warna, jarak, dan component library | `DEV_DISCRETION` |
+| Letak penanda jumlah tagihan lain pada Menu Pembayaran | `DEV_DISCRETION` |
+
+## 9. Dependency Pengerjaan
+
+| Kebutuhan frontend | Menunggu |
+|---|---|
+| Seluruh `FE-BKC-43` | **Ketiga endpoint backend** pada `contracts/api-contract.md` revisi 1.9 — masih **Rencana (belum tersedia)**. Frontend **MUST NOT** dimulai sebelum backend tersedia, karena nol endpoint existing yang dapat dipakai sebagai pengganti |
+| Tombol pada `FE-BKC-09` | `GET /invoices/{id}/consolidation-candidates` |
+| Seeder hak akses `BillingConsolidatedSettlement` | **MUST** terpasang lebih dulu, kalau tidak seluruh layar akan ditolak kode `403` meski kodenya sudah benar |

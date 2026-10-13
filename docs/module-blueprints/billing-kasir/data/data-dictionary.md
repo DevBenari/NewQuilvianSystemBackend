@@ -1225,4 +1225,138 @@ CREATE INDEX "IX_BilInpatientClearanceHandoff_ClearanceStatus"
 
 Nol migrasi EF Core baru dan nol skrip DDL SQL baru pada revisi ini.
 
+---
+
+## Amendment 13 Oktober 2026 — Pelunasan Gabungan Lintas Kunjungan (Revisi 1.9)
+
+> `last_changed_in`: revisi blueprint `1.9`, status **draft**. Masukan: `BKC-DEC-118`, `BKC-AC-086`,
+> `BKC-DES-057`–`BKC-DES-062`. Backend SHA diaudit: `e049a65b`.
+> Jejak keputusan bisnis yang belum diratifikasi: `BKC-OQ-108`.
+
+### Status Skema Database
+
+**SATU TABEL BARU, NOL KOLOM BARU, SATU CONSTRAINT DIPERLUAS.**
+
+| Tabel | Modul pemilik | Status | Keterangan singkat |
+|---|---|---|---|
+| `BilSettlementInvoice` | Billing (`BIL-CTX-03`) | **Baru** | Mencatat tagihan mana saja yang diikutkan keluarga pasien dalam satu transaksi pembayaran gabungan, beserta urutan pelunasannya |
+| `BilSettlement` | Billing (`BIL-CTX-03`) | **Diperbarui** | Nol kolom baru. Hanya `CHECK` constraint `Purpose` yang diperluas |
+| `BilPaymentAllocation` | Billing (`BIL-CTX-03`) | **Sudah ada** | Dipakai apa adanya — skemanya sudah mendukung banyak target per transaksi |
+| `BilInvoice` | Billing (`BIL-CTX-01`) | **Sudah ada** | Dipakai apa adanya. `EncounterId` tetap unik; tidak ada penggabungan invoice |
+| `BilInvoiceEncounterLink` | Billing (`BIL-CTX-01`) | **Sudah ada** | Dipakai untuk menemukan tagihan kandidat; hanya daftar nilai `LinkReason` yang diperluas |
+| `RegPatientEncounter` | Registration Management | **Sudah ada** | Dibaca saja, untuk menelusuri rantai rujukan kunjungan. Kolom kunci: `Id` (PK), `PatientId` (FK), `EncounterType`, `SourceEncounterId` — lihat `Areas/HealthServices/RegistrationManagement/Models/RegPatientEncounter.cs` |
+
+### Tabel `BilSettlementInvoice` — Baru
+
+Seluruh tabel mewarisi `IdentityModel` (lihat kepala dokumen); sepuluh kolom warisannya tidak
+diulang di sini.
+
+| Kolom | Tipe | Wajib | Bawaan | Unique / Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `SettlementId` | `uuid` | Ya | — | Unik gabungan; index | FK → `BilSettlement.Id` | `Cascade` | Tidak | Transaksi pembayaran yang memiliki baris ini |
+| `InvoiceId` | `uuid` | Ya | — | Unik gabungan; `IX_BilSettlementInvoice_Invoice_Status` | FK → `BilInvoice.Id` | `Restrict` | Tidak | Tagihan yang diikutkan. `Restrict` dipakai agar histori pembayaran tidak ikut terhapus berantai |
+| `AllocationSequence` | `int` | Ya | — | — | — | — | Tidak | Urutan pelunasan, mulai `1`. Ditetapkan dari tanggal tagihan terbit paling awal (`BKC-DES-060`) dan **disimpan**, bukan dihitung ulang saat dibaca, supaya hasilnya dapat diaudit |
+| `OutstandingSnapshot` | `numeric(18,2)` | Ya | — | — | — | — | Tidak | Potret sisa tagihan pasien saat grup dibentuk. Dipakai memeriksa apakah tagihan berubah sebelum pembayaran selesai |
+| `RequestedAmount` | `numeric(18,2)` | Ya | — | — | — | — | Tidak | Nominal yang dimaksudkan untuk tagihan ini saat grup dibentuk |
+| `AllocatedAmount` | `numeric(18,2)` | Ya | `0` | — | — | — | Tidak | Nominal yang benar-benar teralokasi setelah pembayaran berhasil |
+| `ParticipantStatus` | `varchar(20)` | Ya | `PENDING` | `IX_BilSettlementInvoice_Invoice_Status` | — | — | Tidak | Bernilai `PENDING`, `ALLOCATED`, `PARTIAL`, atau `SKIPPED` |
+| `ServiceTypeSnapshot` | `varchar(20)` | Ya | — | — | — | — | Tidak | Potret unit layanan tagihan: `IGD`, `RANAP`, `RAJAL`, `MCU`, atau `TELEMEDICINE`. Dipakai mencetak rincian per unit pada kwitansi tanpa membaca ulang tagihan |
+| `InvoiceOpenedAtSnapshot` | `timestamptz` | Ya | — | — | — | — | Tidak | Potret tanggal tagihan terbit, menjadi dasar `AllocationSequence` |
+| `RowVersion` | `uuid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Penjaga perubahan bersamaan oleh dua petugas |
+
+**Mengapa memakai potret (*snapshot*), bukan membaca langsung dari tagihan.** Sisa tagihan dapat
+berubah di antara saat kasir membentuk grup dan saat keluarga pasien menyerahkan uang — misalnya
+karena biaya susulan dari farmasi masuk di sela waktu itu. Dengan menyimpan potret, sistem dapat
+mengenali perubahan tersebut lalu meminta kasir memuat ulang daftar, bukan diam-diam
+mengalokasikan uang ke angka yang sudah berubah (`BIL-VAL-137`).
+
+**Contoh isi baris.** Keluarga pasien menggabungkan tagihan IGD dan rawat inap, lalu membayar
+Rp 6.000.000:
+
+| `AllocationSequence` | `ServiceTypeSnapshot` | `InvoiceOpenedAtSnapshot` | `OutstandingSnapshot` | `AllocatedAmount` | `ParticipantStatus` |
+|---:|---|---|---:|---:|---|
+| 1 | `IGD` | 2026-10-09 08:15 | 1.500.000,00 | 1.500.000,00 | `ALLOCATED` |
+| 2 | `RANAP` | 2026-10-09 16:40 | 8.000.000,00 | 4.500.000,00 | `PARTIAL` |
+
+### Tabel `BilSettlement` — Diperbarui
+
+Nol kolom ditambah, nol kolom diubah tipenya. Yang berubah hanya satu constraint:
+
+| Nama constraint | Keadaan sebelum | Keadaan sesudah |
+|---|---|---|
+| `CK_BilSettlement_Purpose_Target` | Hanya menerima `Purpose` bernilai `INVOICE_PAYMENT` (dengan `InvoiceId` terisi) atau `DEPOSIT_TOP_UP` (dengan `DepositAccountId` terisi) | Menerima satu nilai tambahan `CONSOLIDATED_INVOICE_PAYMENT` dengan syarat `InvoiceId` terisi dan `DepositAccountId` kosong |
+
+Kolom `InvoiceId` pada transaksi gabungan berisi **tagihan jangkar**, yaitu tagihan yang pertama
+dibuka kasir di layar. Karena kolom itu tetap terisi, seluruh indeks, query, dan laporan kas yang
+sudah berjalan tetap bekerja tanpa perubahan apa pun.
+
+### Nilai `LinkReason` pada `BilInvoiceEncounterLink` — Diperluas
+
+| Nilai | Status | Artinya |
+|---|---|---|
+| `SURGERY_ORIGIN` | Sudah ada | Tautan lahir dari rujukan operasi |
+| `EMERGENCY_ORIGIN` | **Baru** | Tautan lahir dari alihan pasien IGD ke rawat inap |
+
+Tidak ada perubahan kolom. Nilai baru ini hanya ditambahkan sebagai konstanta bernama agar
+pencarian tagihan kandidat punya bukti hubungan yang tercatat, bukan hanya dugaan dari kesamaan
+pasien. Kolom kunci tabel ini: `RanapInvoiceId` (FK), `LinkedEncounterId` (FK), `LinkReason`,
+`SourceReferralId` (FK) — lihat `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoiceEncounterLink.cs`.
+
+### Skema DDL — Dokumentasi Bentuk, Bukan Skrip yang Dijalankan
+
+> **Peringatan.** Potongan di bawah adalah **dokumentasi bentuk tabel** yang diturunkan dari
+> rencana file configuration EF Core. Ini **bukan** skrip yang dijalankan ke basis data. Pembuatan
+> dan penerapan migration adalah tindakan terpisah yang memerlukan otorisasi pemilik modul.
+> Kolom warisan `IdentityModel` tidak ditampilkan.
+
+```sql
+CREATE TABLE public."BilSettlementInvoice" (
+    "Id"                       uuid           NOT NULL,
+    "SettlementId"             uuid           NOT NULL,
+    "InvoiceId"                uuid           NOT NULL,
+    "AllocationSequence"       integer        NOT NULL,
+    "OutstandingSnapshot"      numeric(18,2)  NOT NULL,
+    "RequestedAmount"          numeric(18,2)  NOT NULL,
+    "AllocatedAmount"          numeric(18,2)  NOT NULL DEFAULT 0,
+    "ParticipantStatus"        varchar(20)    NOT NULL DEFAULT 'PENDING',
+    "ServiceTypeSnapshot"      varchar(20)    NOT NULL,
+    "InvoiceOpenedAtSnapshot"  timestamptz    NOT NULL,
+    "RowVersion"               uuid           NOT NULL,
+    CONSTRAINT "PK_BilSettlementInvoice" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_BilSettlementInvoice_BilSettlement" FOREIGN KEY ("SettlementId")
+        REFERENCES public."BilSettlement" ("Id") ON DELETE CASCADE,
+    CONSTRAINT "FK_BilSettlementInvoice_BilInvoice" FOREIGN KEY ("InvoiceId")
+        REFERENCES public."BilInvoice" ("Id") ON DELETE RESTRICT
+);
+
+CREATE UNIQUE INDEX "UX_BilSettlementInvoice_Settlement_Invoice"
+    ON public."BilSettlementInvoice" ("SettlementId", "InvoiceId");
+
+CREATE INDEX "IX_BilSettlementInvoice_Invoice_Status"
+    ON public."BilSettlementInvoice" ("InvoiceId", "ParticipantStatus");
+```
+
+Bentuk `CHECK` constraint `BilSettlement` setelah diperluas. Seluruh baris lama tetap lolos karena
+aturannya hanya dilonggarkan, tidak diperketat:
+
+```sql
+ALTER TABLE public."BilSettlement"
+    ADD CONSTRAINT "CK_BilSettlement_Purpose_Target" CHECK (
+        ("Purpose" = 'INVOICE_PAYMENT'
+            AND "InvoiceId" IS NOT NULL AND "DepositAccountId" IS NULL)
+        OR ("Purpose" = 'DEPOSIT_TOP_UP'
+            AND "InvoiceId" IS NULL AND "DepositAccountId" IS NOT NULL)
+        OR ("Purpose" = 'CONSOLIDATED_INVOICE_PAYMENT'
+            AND "InvoiceId" IS NOT NULL AND "DepositAccountId" IS NULL)
+    );
+```
+
+### Kolom Sensitif
+
+Nol kolom bertanda **Sensitif** pada tabel baru ini. Seluruh kolomnya berisi nominal uang,
+pengenal teknis, dan penanda status — tidak ada diagnosis, keluhan, nomor polis, maupun data
+medis. Payload log untuk tabel ini **MUST** memuat `EntityId`, controller, action, dan status saja,
+mengikuti konvensi yang sudah berlaku.
+
 

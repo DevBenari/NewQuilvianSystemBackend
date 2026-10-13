@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Dtos;
@@ -18,11 +20,16 @@ public sealed class BillingArApHandoffService
     private const string LogCategory = "HealthServices.BillingManagement.Billing";
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
+    private readonly EmployeeBenefitBalanceService? _balanceService;
 
-    public BillingArApHandoffService(ApplicationDbContext dbContext, LoggerService loggerService)
+    public BillingArApHandoffService(
+        ApplicationDbContext dbContext,
+        LoggerService loggerService,
+        EmployeeBenefitBalanceService? balanceService = null)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
+        _balanceService = balanceService;
     }
 
     /// <summary>
@@ -36,7 +43,8 @@ public sealed class BillingArApHandoffService
         decimal outstandingAtFinalization,
         bool isDepartureException,
         Guid actorUserId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        EmployeeBenefitSplitCalculationResult? employeeBenefitSplit = null)
     {
         var now = DateTimeOffset.UtcNow;
 
@@ -62,41 +70,104 @@ public sealed class BillingArApHandoffService
             });
         }
 
-        var payerAmount = calculation.PrimaryAmount + calculation.ExcessAmount;
-        if (payerAmount > 0)
+        if (employeeBenefitSplit != null && employeeBenefitSplit.IsEmployeeBenefitVisit)
         {
-            // FIN-CAP-069: penjamin kunjungan dipilih memakai urutan yang sama dengan
-            // BillingDepositService — penjamin yang sudah dibatalkan dibuang, lalu penjamin utama
-            // diutamakan dan sisanya mengikuti Priority. Tanpa urutan ini, kunjungan dengan lebih
-            // dari satu penjamin memulangkan baris yang berbeda-beda setiap kali dijalankan.
-            var guarantor = await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
-                .Where(x => x.EncounterId == invoice.EncounterId && x.IsActive && !x.IsDelete && !x.IsCancel)
-                .OrderByDescending(x => x.IsPrimary)
-                .ThenBy(x => x.Priority)
-                .FirstOrDefaultAsync(cancellationToken);
-            _dbContext.BilArHandoffs.Add(new BilArHandoff
+            // BE-FIN-107, FIN-DEC-183, FIN-DEC-210: Pembagian dua porsi tagihan penjamin internal.
+            // 1. Baris PAYER untuk porsi RS Benefit (P = min(C, S)). Baris nol tidak diterbitkan.
+            if (employeeBenefitSplit.PayerAmount > 0)
             {
-                InvoiceId = invoice.Id,
-                Invoice = invoice,
-                FinalizationRecordId = finalizationRecord.Id,
-                FinalizationRecord = finalizationRecord,
-                DebtorType = BillingArDebtorTypes.Payer,
-                // FIN-CAP-069: kunjungan yang dijamin PERUSAHAAN tidak punya InsuranceProviderId,
-                // sehingga sebelumnya piutangnya lahir tanpa identitas debitur dan tidak dapat
-                // dikelompokkan maupun digabung ke Batch Tagihan. Urutan InsuranceProviderId lalu
-                // CompanyGuarantorId mengikuti BillingDepositService, dan Finance sudah memetakan
-                // nilai ini ke kedua master saat menampilkan nama penjamin.
-                DebtorReferenceId = guarantor?.InsuranceProviderId ?? guarantor?.CompanyGuarantorId,
-                Amount = payerAmount,
-                Status = BillingHandoffStatuses.Created,
-                HandoffKey = Guid.NewGuid(),
-                CorrelationId = Guid.NewGuid(),
-                CausationId = finalizationRecord.CorrelationId,
-                CreatedAt = now,
-                RowVersion = Guid.NewGuid(),
-                CreateDateTime = DateTime.UtcNow,
-                CreateBy = actorUserId
-            });
+                var payerHandoffKey = employeeBenefitSplit.PayerHandoffKey ?? Guid.NewGuid();
+                employeeBenefitSplit.PayerHandoffKey = payerHandoffKey;
+
+                _dbContext.BilArHandoffs.Add(new BilArHandoff
+                {
+                    InvoiceId = invoice.Id,
+                    Invoice = invoice,
+                    FinalizationRecordId = finalizationRecord.Id,
+                    FinalizationRecord = finalizationRecord,
+                    DebtorType = BillingArDebtorTypes.Payer,
+                    DebtorReferenceId = employeeBenefitSplit.CompanyGuarantorId,
+                    Amount = employeeBenefitSplit.PayerAmount,
+                    DueDate = invoice.InvoiceDate,
+                    Status = BillingHandoffStatuses.Created,
+                    HandoffKey = payerHandoffKey,
+                    CorrelationId = Guid.NewGuid(),
+                    CausationId = finalizationRecord.CorrelationId,
+                    CreatedAt = now,
+                    RowVersion = Guid.NewGuid(),
+                    CreateDateTime = DateTime.UtcNow,
+                    CreateBy = actorUserId
+                });
+            }
+
+            // 2. Baris EMPLOYEE_BENEFIT untuk porsi kelebihan plafon (E = C - P) ditambah pilihan utang pegawai (D).
+            // Baris nol tidak diterbitkan.
+            if (employeeBenefitSplit.EmployeeReceivableAmount > 0)
+            {
+                _dbContext.BilArHandoffs.Add(new BilArHandoff
+                {
+                    InvoiceId = invoice.Id,
+                    Invoice = invoice,
+                    FinalizationRecordId = finalizationRecord.Id,
+                    FinalizationRecord = finalizationRecord,
+                    DebtorType = BillingArDebtorTypes.EmployeeBenefit,
+                    DebtorReferenceId = null,
+                    BenefitOwnerId = employeeBenefitSplit.EmployeeId,
+                    BenefitRelationship = employeeBenefitSplit.RelationshipCode,
+                    DeferredPatientAmount = employeeBenefitSplit.ChoiceAmount,
+                    DeferredConsentGivenBy = employeeBenefitSplit.ConsentGivenBy,
+                    Amount = employeeBenefitSplit.EmployeeReceivableAmount,
+                    DueDate = invoice.InvoiceDate,
+                    Status = BillingHandoffStatuses.Created,
+                    HandoffKey = Guid.NewGuid(),
+                    CorrelationId = Guid.NewGuid(),
+                    CausationId = finalizationRecord.CorrelationId,
+                    CreatedAt = now,
+                    RowVersion = Guid.NewGuid(),
+                    CreateDateTime = DateTime.UtcNow,
+                    CreateBy = actorUserId
+                });
+            }
+        }
+        else
+        {
+            var payerAmount = calculation.PrimaryAmount + calculation.ExcessAmount;
+            if (payerAmount > 0)
+            {
+                // FIN-CAP-069: penjamin kunjungan dipilih memakai urutan yang sama dengan
+                // BillingDepositService — penjamin yang sudah dibatalkan dibuang, lalu penjamin utama
+                // diutamakan dan sisanya mengikuti Priority. Tanpa urutan ini, kunjungan dengan lebih
+                // dari satu penjamin memulangkan baris yang berbeda-beda setiap kali dijalankan.
+                var guarantor = await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
+                    .Where(x => x.EncounterId == invoice.EncounterId && x.IsActive && !x.IsDelete && !x.IsCancel)
+                    .OrderByDescending(x => x.IsPrimary)
+                    .ThenBy(x => x.Priority)
+                    .FirstOrDefaultAsync(cancellationToken);
+                _dbContext.BilArHandoffs.Add(new BilArHandoff
+                {
+                    InvoiceId = invoice.Id,
+                    Invoice = invoice,
+                    FinalizationRecordId = finalizationRecord.Id,
+                    FinalizationRecord = finalizationRecord,
+                    DebtorType = BillingArDebtorTypes.Payer,
+                    // FIN-CAP-069: kunjungan yang dijamin PERUSAHAAN tidak punya InsuranceProviderId,
+                    // sehingga sebelumnya piutangnya lahir tanpa identitas debitur dan tidak dapat
+                    // dikelompokkan maupun digabung ke Batch Tagihan. Urutan InsuranceProviderId lalu
+                    // CompanyGuarantorId mengikuti BillingDepositService, dan Finance sudah memetakan
+                    // nilai ini ke kedua master saat menampilkan nama penjamin.
+                    DebtorReferenceId = guarantor?.InsuranceProviderId ?? guarantor?.CompanyGuarantorId,
+                    Amount = payerAmount,
+                    DueDate = invoice.InvoiceDate,
+                    Status = BillingHandoffStatuses.Created,
+                    HandoffKey = Guid.NewGuid(),
+                    CorrelationId = Guid.NewGuid(),
+                    CausationId = finalizationRecord.CorrelationId,
+                    CreatedAt = now,
+                    RowVersion = Guid.NewGuid(),
+                    CreateDateTime = DateTime.UtcNow,
+                    CreateBy = actorUserId
+                });
+            }
         }
 
         var doctorId = await _dbContext.RegPatientEncounters.AsNoTracking()
@@ -216,6 +287,31 @@ public sealed class BillingArApHandoffService
             };
             _dbContext.BilHandoffAdjustments.Add(correction);
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            // BE-FIN-108: Kembalikan plafon benefit internal di HR bila tagihan dikoreksi (FIN-DEC-202, FIN-DEC-205, R.3.3)
+            if (_balanceService is not null)
+            {
+                var payerHandoff = await _dbContext.BilArHandoffs.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.InvoiceId == invoiceId
+                        && x.DebtorType == BillingArDebtorTypes.Payer
+                        && !x.IsDelete, cancellationToken);
+
+                if (payerHandoff is not null)
+                {
+                    if (string.Equals(direction, BillingAdjustmentDirections.Credit, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(direction, "CANCEL", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(direction, "REVERSAL", StringComparison.OrdinalIgnoreCase))
+                    {
+                        await _balanceService.ReturnAsync(new BenefitBalanceReturnRequest
+                        {
+                            SourceHandoffKey = payerHandoff.HandoffKey,
+                            Reason = reason,
+                            ActorUserId = actorUserId
+                        }, cancellationToken);
+                    }
+                }
+            }
+
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             await AuditCorrectionAsync(correction, actorUserId);
         }
@@ -317,6 +413,10 @@ public sealed class BillingArApHandoffService
         DueDate = handoff.DueDate,
         Status = handoff.Status,
         HandoffKey = handoff.HandoffKey,
+        BenefitOwnerId = handoff.BenefitOwnerId,
+        BenefitRelationship = handoff.BenefitRelationship,
+        DeferredPatientAmount = handoff.DeferredPatientAmount,
+        DeferredConsentGivenBy = handoff.DeferredConsentGivenBy,
         CreatedAt = handoff.CreatedAt,
         AcknowledgedAt = handoff.AcknowledgedAt
     };
@@ -342,4 +442,63 @@ public sealed class BillingArApHandoffService
         Reason = adjustment.Reason,
         CreatedAt = adjustment.CreatedAt
     };
+
+    /// <summary>
+    /// Mengembalikan plafon benefit karyawan di HR untuk invoice tertentu (BE-FIN-108, R.3.3, AC 3).
+    /// Dipanggil saat koreksi, pembatalan invoice, atau penerbitan serah terima pembalik.
+    /// Idempoten: bila sudah pernah dikembalikan atau tidak ada mutasi pemakaian, operasi aman.
+    /// </summary>
+    public async Task<BenefitBalanceReturnResult?> ReturnBenefitBalanceAsync(
+        Guid invoiceId,
+        string? reason,
+        Guid? actorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (_balanceService is null) return null;
+
+        var payerHandoff = await _dbContext.BilArHandoffs.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.InvoiceId == invoiceId
+                && x.DebtorType == BillingArDebtorTypes.Payer
+                && !x.IsDelete, cancellationToken);
+        if (payerHandoff is null) return null;
+
+        if (_dbContext.Database.CurrentTransaction is not null)
+        {
+            return await _balanceService.ReturnAsync(new BenefitBalanceReturnRequest
+            {
+                SourceHandoffKey = payerHandoff.HandoffKey,
+                Reason = reason,
+                ActorUserId = actorUserId
+            }, cancellationToken);
+        }
+
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            if (_dbContext.Database.IsRelational())
+            {
+                transaction = await _dbContext.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable, cancellationToken);
+            }
+
+            var result = await _balanceService.ReturnAsync(new BenefitBalanceReturnRequest
+            {
+                SourceHandoffKey = payerHandoff.HandoffKey,
+                Reason = reason,
+                ActorUserId = actorUserId
+            }, cancellationToken);
+
+            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+            return result;
+        }
+        catch
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
 }

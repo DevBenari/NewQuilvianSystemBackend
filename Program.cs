@@ -503,6 +503,7 @@ try
     builder.Services.Configure<KioskEncounterClosureOptions>(
     builder.Configuration.GetSection("HealthServices:KioskEncounterClosure"));
     builder.Services.AddScoped<EncounterPaymentSourceService>();
+    builder.Services.AddScoped<RegistrationEmployeeBenefitLookupService>();
     builder.Services.AddScoped<DoctorQueuePatientContextService>();
     builder.Services.AddScoped<EncounterInsuranceService>();
     // RJ-DOC-REV-BE-013 — penyimpanan foto kartu penjamin pasien hasil scan.
@@ -1042,6 +1043,7 @@ try
     builder.Services.AddScoped<BillingRefundService>();
 
     builder.Services.AddScoped<BillingFinalizationService>();
+    builder.Services.AddScoped<BillingEmployeeBenefitSplitService>();
 
     // Empat layanan di bawah masuk lewat merge 4ba789b2 dari QuilvianIntegrationBackend
     // bersama BillingManagementServiceCollectionExtensions.AddBillingManagement(), TETAPI

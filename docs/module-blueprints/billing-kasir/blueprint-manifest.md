@@ -4,8 +4,22 @@
 blueprint_id: BIL-CASH-001
 module_name: Billing dan Kasir
 module_slug: billing-kasir
-revision: 1.8
+revision: 1.9
 status: draft
+status_derivation_revision_1_9: >
+  Revisi 1.9 (Pelunasan Gabungan Lintas Kunjungan) berstatus `draft`. Menutup CAP-BIL-09, satu-satunya
+  kemampuan Pass B yang masih terbuka setelah impact scan 13 Oktober 2026. Keputusan bisnis dasarnya
+  BKC-DEC-118 sudah approved 24 September 2026; dua arahan pemilik modul pada 13 Oktober 2026 (urutan
+  alokasi tagihan terbit paling awal lebih dulu, dan penggabungan bersifat opsional sesuai kehendak
+  pasien) BELUM punya baris BKC-DEC-* dan diminta ratifikasinya lewat BKC-OQ-108 — ini satu-satunya
+  pertanyaan yang MEMBLOKIR penerusan ke /plan-module-delivery untuk EPIC BKC-25.
+  Keputusan arsitektur BKC-DES-057..062 disahkan sebagai draft. BKC-DES-048 DIPERSEMPIT (bukan dicabut):
+  konsolidasi dipindahkan dari lapisan invoice ke lapisan settlement karena lapisan invoice terbukti
+  tidak dapat dijalankan (BilInvoiceConfiguration.cs:27 memasang HasIndex(EncounterId).IsUnique()).
+  Enam dari tujuh sumbu kontrak dinaikkan; calculation TIDAK bergerak.
+  Dampak skema: SATU tabel baru (BilSettlementInvoice), NOL kolom baru, satu CHECK constraint diperluas.
+  EPIC BKC-26 (FR-BKC-259) berstatus OPEN DECISION dan MUST NOT masuk gelombang pengiriman mana pun
+  sampai BKC-OQ-109 terjawab.
 status_derivation_revision_1_8: >
   Revisi 1.8 (Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan) berstatus `draft`.
   Dipicu permintaan perbaikan dari modul Finance (evidence 17, FIN-OQ-034 / FIN-DEC-077)
@@ -260,10 +274,17 @@ last_revision_note: >
   menaruh Petty Cash sebagai rumpun di dalam struktur SINGLE yang sudah ada sudah diambil pada
   00-interview-decisions.md amendment 7 September 2026, mengikuti preseden Shift Kasir, Diskon,
   Deposit, Refund, dan Pengecualian Finansial.
-backend_commit_sha: dcb9c88e
-frontend_commit_sha: fdebb9059
-previous_backend_commit_sha: 6782ae652ca53299f7469c49b2edb64d23e77b60
-previous_frontend_commit_sha: 1b138b9aac7a50524fd751a47c9a76e0a55f8803
+backend_commit_sha: e049a65b1c11f6a2989db2b1397e7aae599c6dee
+frontend_commit_sha: ae216044fc026594c44ab9fc728282f844091506
+previous_backend_commit_sha: dcb9c88e
+previous_frontend_commit_sha: fdebb9059
+sha_movement_note_revision_1_9: >
+  SHA backend bergerak dari dcb9c88e ke e049a65b dan SHA frontend dari fdebb9059 ke ae216044
+  (keduanya 12 Oktober 2026). Pergerakan ini MEMBUAT bukti as-is 01-existing-capability-map.md
+  bagian 22 BASI, dan impact scan read-only dijalankan ulang pada 13 Oktober 2026 sebelum desain
+  revisi 1.9 ditulis. Hasilnya: EMPAT dari sepuluh baris CAP-BIL ternyata SUDAH DIBANGUN di source
+  dan statusnya pada capability map tidak lagi benar. Rinciannya pada bagian
+  "Temuan Impact Scan 13 Oktober 2026" di bawah.
 commit_sha_note_revision_1_4: >
   SHA dimutakhirkan pada revisi 1.4 (21 September 2026). Working tree backend saat desain ini
   disusun memuat perubahan yang BELUM di-commit, terutama area Corporate/FinanceManagement
@@ -410,7 +431,12 @@ input_hashes_note: >
   baseline sehingga selisihnya tidak dapat dijelaskan pass ini; nilainya diperbarui apa adanya
   dan dilaporkan sebagai temuan pemeliharaan manifest, bukan sebagai perubahan isi yang
   disengaja pass ini.
-design_decision_ids: [BKC-DES-001, BKC-DES-002, BKC-DES-003, BKC-DES-004, BKC-DES-005, BKC-DES-006, BKC-DES-007, BKC-DES-008, BKC-DES-009, BKC-DES-010, BKC-DES-011, BKC-DES-012, BKC-DES-013, BKC-DES-014, BKC-DES-015, BKC-DES-016, BKC-DES-017, BKC-DES-018, BKC-DES-019, BKC-DES-020, BKC-DES-021, BKC-DES-022, BKC-DES-023, BKC-DES-024, BKC-DES-025, BKC-DES-026, BKC-DES-027, BKC-DES-028, BKC-DES-029, BKC-DES-030, BKC-DES-031, BKC-DES-032, BKC-DES-033, BKC-DES-034, BKC-DES-035, BKC-DES-036, BKC-DES-037, BKC-DES-038, BKC-DES-039, BKC-DES-040, BKC-DES-041, BKC-DES-042, BKC-DES-043, BKC-DES-044, BKC-DES-045, BKC-DES-046, BKC-DES-047, BKC-DES-048, BKC-DES-049, BKC-DES-050, BKC-DES-051, BKC-DES-052, BKC-DES-053, BKC-DES-054]
+design_decision_ids: [BKC-DES-001, BKC-DES-002, BKC-DES-003, BKC-DES-004, BKC-DES-005, BKC-DES-006, BKC-DES-007, BKC-DES-008, BKC-DES-009, BKC-DES-010, BKC-DES-011, BKC-DES-012, BKC-DES-013, BKC-DES-014, BKC-DES-015, BKC-DES-016, BKC-DES-017, BKC-DES-018, BKC-DES-019, BKC-DES-020, BKC-DES-021, BKC-DES-022, BKC-DES-023, BKC-DES-024, BKC-DES-025, BKC-DES-026, BKC-DES-027, BKC-DES-028, BKC-DES-029, BKC-DES-030, BKC-DES-031, BKC-DES-032, BKC-DES-033, BKC-DES-034, BKC-DES-035, BKC-DES-036, BKC-DES-037, BKC-DES-038, BKC-DES-039, BKC-DES-040, BKC-DES-041, BKC-DES-042, BKC-DES-043, BKC-DES-044, BKC-DES-045, BKC-DES-046, BKC-DES-047, BKC-DES-048, BKC-DES-049, BKC-DES-050, BKC-DES-051, BKC-DES-052, BKC-DES-053, BKC-DES-054, BKC-DES-055, BKC-DES-056, BKC-DES-057, BKC-DES-058, BKC-DES-059, BKC-DES-060, BKC-DES-061, BKC-DES-062]
+design_decision_note_revision_1_9: >
+  BKC-DES-057..062 ditambahkan pada revisi 1.9. BKC-DES-048 TIDAK dicabut melainkan DIPERSEMPIT oleh
+  BKC-DES-057: bagian "menyatukan tagihan dalam satu nomor invoice rawat inap" dinyatakan tidak dapat
+  dijalankan dan digantikan konsolidasi pada lapisan settlement; bagian "item IGD mempertahankan
+  SourceDomain EMERGENCY" tetap berlaku utuh.
 design_decision_status_revision_1_8: >
   BKC-DES-051..054 (BARU pada revisi 1.8, 28 September 2026). Sekuens BKC-DES-* dilanjutkan
   karena menyangkut bounded context inti Patient Funds & Settlement (BIL-CTX-03).
@@ -508,6 +534,23 @@ superseded_design_decisions:
 narrowed_design_decisions:
   BKC-DES-013: dipersempit dua kali (BUKAN digugurkan). Revisi 0.8 (BKC-DES-021): makna UnresolvedAmount menyisakan jalur rule NotCovered + IsAllowExcessPaymentByPatient=false saja; residual perhitungan pindah ke NonBillableResidualAmount. Revisi 0.9 (BKC-DES-026/027, approved 5 Sep 2026): dipersempit lagi menjadi NOL jalur — UnresolvedAmount selalu 0 pada versi kalkulasi baru; field/kolomnya tetap dipertahankan sebagai bukti perhitungan versi lama
 contract_versions:
+  api: BIL-API-1.6 (draft, revisi 1.9 — dua endpoint baru + satu endpoint pembacaan untuk pelunasan gabungan; nol endpoint lama berubah bentuk) atas BIL-API-1.5
+  state: BIL-STATE-1.6 (draft, revisi 1.9 — status peserta grup PENDING/ALLOCATED/PARTIAL/SKIPPED; nol status baru pada BilSettlement dan BilInvoice) atas BIL-STATE-1.5
+  validation: BIL-VALIDATION-1.6 (draft, revisi 1.9 — BIL-VAL-134..140: minimum dua tagihan, batas alokasi per invoice, pasien sama, potret sisa berubah, tagihan terikat loket lain, tagihan terkunci, tagihan sudah lunas) atas BIL-VALIDATION-1.5
+  integration: BIL-INTEGRATION-1.4 (draft, revisi 1.9 — BIL-INT-019: pembacaan read-only rantai kunjungan dari Registration Management dan Rawat Inap untuk menemukan tagihan kandidat) atas BIL-INTEGRATION-1.3
+  permission: BIL-PERMISSION-1.3 (draft, revisi 1.9 — satu Resource baru BillingConsolidatedSettlement dengan Action Read dan Create) atas BIL-PERMISSION-1.2
+  testing: BIL-TEST-1.7 (draft, revisi 1.9 — BIL-AT-159..168: alokasi berurutan, penolakan grup tidak sah, konkurensi dua loket, regresi jalur satu tagihan, kwitansi per unit, non-destruktif) atas BIL-TEST-1.6
+  calculation: BIL-CALCULATION-0.9 — TIDAK BERGERAK pada revisi 1.9 (nol perubahan formula tarif maupun kalkulasi)
+contract_versions_note_revision_1_9: >
+  Revisi 1.9 menaikkan ENAM dari tujuh sumbu. Hanya calculation yang tidak bergerak.
+  CATATAN DISKREPANSI YANG DITEMUKAN: blok status_derivation_revision_1_8 menyebut sumbu revisi 1.8
+  sebagai BIL-STATE-1.6, BIL-VALIDATION-1.6, BIL-INTEGRATION-1.4, dan BIL-TEST-1.7, sedangkan blok
+  contract_versions sebelum suntingan ini mencatat BIL-STATE-1.5, BIL-VALIDATION-1.5,
+  BIL-INTEGRATION-1.3, dan BIL-TEST-1.6. Keduanya tidak dapat benar bersamaan. Karena
+  blueprint-output-contract.md bagian 4 menetapkan blok contract_versions sebagai sumber kebenaran
+  tunggal, penomoran revisi 1.9 dihitung sebagai kenaikan atas nilai pada blok itu. Diskrepansi ini
+  TIDAK diperbaiki diam-diam dan diminta dikoreksi pemilik modul lewat BKC-OQ-112.
+contract_versions_set_sebelum_revisi_1_9:
   api: BIL-API-1.5 (draft, revisi 1.6 — nol endpoint baru; satu field response BillingRefundableItemResponse.TransactionDate ditambahkan, aditif non-breaking) atas BIL-API-1.4
   state: BIL-STATE-1.5 (draft, revisi 1.8 — penanganan kompensasi alokasi LIFO dan transisi tender REVERSED pada deposit) atas BIL-STATE-1.4
   validation: BIL-VALIDATION-1.5 (draft, revisi 1.8 — BIL-VAL-127..131: saldo non-negatif, LIFO alokasi, status awal succeeded, audit pembalik) atas BIL-VALIDATION-1.4
@@ -926,3 +969,65 @@ Tidak satu pun rumpun sebelumnya disentuh. Secara khusus: tidak ada nilai tagiha
 Rumpun Petty Cash **tidak bergantung** pada `BKC-OQ-083` maupun `BKC-OQ-085`, dua pertanyaan terbuka yang masih menahan `/plan-module-delivery` untuk rumpun-rumpun sebelumnya. Keduanya menyangkut PPN dan tanggungan penjamin pada tagihan pasien; kas kecil tidak bersinggungan dengan keduanya sama sekali.
 
 Konsekuensinya: begitu `PC-DES-001`–`014` disetujui, gelombang `MVP-13`–`MVP-15` dapat direncanakan dan dikerjakan **secara mandiri**, tanpa menunggu sisa pertanyaan terbuka rumpun lain terjawab. Inilah keuntungan praktis dari `PC-DEC-001` yang memutus sambungan ke kas shift kasir sejak awal.
+
+---
+
+## Temuan Impact Scan 13 Oktober 2026 — Revisi 1.9
+
+Impact scan read-only dijalankan karena SHA backend bergerak dari `dcb9c88e` (dasar
+`01-existing-capability-map.md` §22) ke `e049a65b`. Temuannya mengubah premis pekerjaan secara
+material, sehingga dicatat di sini sebelum dipakai `/plan-module-delivery`.
+
+### Empat baris capability map yang sudah tidak benar lagi
+
+| ID | Status pada §22 (`dcb9c88e`) | Keadaan sebenarnya pada `e049a65b` | Bukti |
+|---|---|---|---|
+| `CAP-BIL-01` | `Extend` — domain `ROOM_STAY` belum terdaftar | **Sudah dibangun** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingChargeSourceAdapter.cs:83` (`ROOM_STAY`) dan `:87` (`INPATIENT`) terdaftar pada `SourcePolicies` |
+| `CAP-BIL-04` | `Extend` — `MstAdministrationFeePolicy` belum punya `Percentage`/`CapAmount` | **Sudah dibangun** | `Areas/HealthServices/BillingManagement/MasterData/Models/MstAdministrationFeePolicy.cs:23`, `:26`, `:29`, `:33` memuat `Percentage`, `CapAmount`, `CalculationType`, `ReplacementPriority`; konstanta `PERCENTAGE_WITH_CAP` ada di `:49` |
+| `CAP-BIL-05` | `Extend` — belum ada void/kredit otomatis admin rajal | **Sudah dibangun dan terpasang** | `AdministrationFeeCalculationService.cs:19` (`SUPERSEDED_BY_INPATIENT_ADMISSION`), `IAdministrationFeeCalculationService.cs:24` (`ReconcileReferredOutpatientAdminFeeAsync`), dipanggil dari `BillingCalculationService.cs:607`, terdaftar DI pada `BillingManagementServiceCollectionExtensions.cs:56` |
+| `CAP-BIL-07` / `CAP-BIL-08` | `Repair` / `Extend` — clearance belum dimiliki Billing | **Sudah dibangun** | `Models/BilInpatientClearanceHandoff.cs`, `Services/InpatientClearanceService.cs`, `Controllers/InpatientClearanceController.cs` dengan lima endpoint (`:56`, `:92`, `:146`, `:178`, `:215`) |
+
+### Dua closure question Pass B yang sudah terjawab oleh implementasi
+
+| ID | Pertanyaan | Jawaban yang sudah terwujud di source |
+|---|---|---|
+| `BKC-CQ-02` | Room charge dihitung in-process saja atau dipersist sebagai item invoice lewat event `BED_OCCUPIED`? | **Keduanya** — sesuai `BKC-DES-043` (dualitas). Domain `ROOM_STAY` kini diterima adapter, sementara `CalculateRoomChargeAsync` tetap menghitung in-process |
+| `BKC-CQ-03` | Kredit admin rajal dicatat sebagai alokasi pembayaran bertipe kredit atau mengurangi dasar hitungan admin ranap? | **`BilRefundableCredit`** — tertulis eksplisit pada `IAdministrationFeeCalculationService.cs:22` |
+
+### Satu kemampuan yang benar-benar masih terbuka
+
+`CAP-BIL-09` (konsolidasi pembayaran lintas kunjungan). Inilah yang ditutup desain revisi 1.9.
+Bukti bahwa ia masih terbuka: `BilSettlementConfiguration.cs:21` masih mengikat `Purpose` hanya pada
+`'INVOICE_PAYMENT'` dan `'DEPOSIT_TOP_UP'`, dan `BillingAllocationService.cs:264`–`267` berhenti bila
+`settlement.InvoiceId` kosong lalu memuat **tepat satu** invoice. Nol konsep grup pembayaran
+ditemukan di source.
+
+### Tiga cacat ketertelusuran yang ditemukan dan TIDAK diperbaiki diam-diam
+
+| Cacat | Bukti | Diminta dikoreksi lewat |
+|---|---|---|
+| Rujukan `BKC-DEC-*` pada amendment revisi 1.5 bergeser nomornya | `02-backend-architecture.md:3913` menautkan `BKC-DES-048` ke `BKC-DEC-117`, padahal konsolidasi IGD adalah `BKC-DEC-118`; `BKC-DEC-117` sendiri adalah arsitektur financial clearance. Pergeseran serupa terlihat pada invariant 1–5 dan pada `BKC-DES-045`–`047`, `050` | `BKC-OQ-113` |
+| `requirement-traceability.md` ikut membawa pergeseran yang sama | Baris 706 menyebut "`BKC-DEC-117` (Konsolidasi item IGD non-destruktif)" dan baris 707 menyebut "`BKC-DEC-118` (Koreksi penempatan kamar idempoten)" — keduanya tertukar dari isi `00-interview-decisions.md` | `BKC-OQ-113` |
+| `04-prd-to-mvp.md` menautkan kemampuan ke ID yang salah | Baris 2613 menautkan "Pembatalan dan pengalihan kredit biaya admin rajal ke ranap" ke `CAP-BIL-09`, padahal itu `CAP-BIL-05`; `CAP-BIL-09` adalah konsolidasi pembayaran | `BKC-OQ-114` |
+
+Ketiganya **tidak** disunting oleh pass ini karena `00-interview-decisions.md`,
+`01-existing-capability-map.md`, `roadmap/`, dan laporan task bukan keluaran
+`/design-business-module`. Memperbaikinya di sini berarti menulis ke artefak milik skill lain.
+
+### Pertanyaan terbuka tambahan dari pass ini
+
+| ID | Pertanyaan | Pemilik jawaban | Memblokir |
+|---|---|---|:---:|
+| `BKC-OQ-112` | Blok `status_derivation_revision_1_8` dan blok `contract_versions` mencatat nomor sumbu kontrak revisi 1.8 yang berbeda. Mana yang benar? | Pemilik modul Billing | Tidak memblokir `MVP-36` |
+| `BKC-OQ-113` | Apakah pergeseran rujukan `BKC-DEC-*` pada amendment revisi 1.5 dan `requirement-traceability.md` dikoreksi lewat `/manage-module-blueprint`? | Pemilik modul Billing | Tidak memblokir `MVP-36`; memblokir keandalan jejak Pass B |
+| `BKC-OQ-114` | Apakah penautan `CAP-BIL-09` pada `04-prd-to-mvp.md:2613` dikoreksi menjadi `CAP-BIL-05`? | Pemilik modul Billing | Tidak memblokir `MVP-36` |
+
+### Rekomendasi tindak lanjut
+
+1. `/grill-me` closure pass untuk meratifikasi dua arahan pemilik 13 Oktober 2026 (`BKC-OQ-108`) —
+   **ini satu-satunya yang memblokir** penerusan `EPIC BKC-25` ke `/plan-module-delivery`, dan
+   untuk menjawab `BKC-OQ-109`.
+2. `/trace-existing-capabilities` impact scan penuh untuk memperbarui `01-existing-capability-map.md`
+   §22 ke SHA `e049a65b`, karena empat barisnya sudah tidak benar lagi.
+3. `/manage-module-blueprint` untuk mengoreksi cacat ketertelusuran `BKC-OQ-113` dan `BKC-OQ-114`
+   serta laporan `BE-BKC-072` (`BKC-OQ-107`).

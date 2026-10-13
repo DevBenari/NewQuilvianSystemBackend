@@ -470,4 +470,36 @@ Trace `BUI-DEC-001`–`015`, `BUI-DES-001`–`012`, `BUI-AC-01`–`17`, `BUI-VAL
 
 Trace `BKC-DEC-128`–`134`, `BKC-DES-051`–`056`, `BIL-VAL-127`–`133`, `BIL-INT-018`.
 
+---
+
+## Amendment 13 Oktober 2026 — Pelunasan Gabungan Lintas Kunjungan (Revisi 1.9)
+
+> `last_changed_in`: `BIL-TEST-1.7` atas `BIL-TEST-1.6` — status **draft**.
+> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> Masukan: `BKC-DEC-118`, `BKC-AC-086`, `BKC-DES-057`–`BKC-DES-062`, `BIL-VAL-134`–`140`,
+> `BIL-INT-019`. Backend SHA: `e049a65b`.
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|---|
+| `BIL-AT-159` | `FR-BKC-251` | **Jalur berhasil.** Tagihan IGD bersisa Rp 1.500.000 dan tagihan ranap bersisa Rp 8.000.000; keluarga membayar Rp 6.000.000 gabungan | Unit + integrasi | Tagihan IGD teralokasi tepat Rp 1.500.000 dan berstatus tertutup; tagihan ranap teralokasi Rp 4.500.000 dan tetap terbuka bersisa Rp 3.500.000; transaksi berstatus `PARTIALLY_SETTLED` |
+| `BIL-AT-160` | `FR-BKC-251` | **Jalur berhasil.** Uang cukup menutup seluruh tagihan peserta | Unit | Seluruh peserta berstatus `ALLOCATED`; transaksi berstatus `SETTLED`; setiap invoice tertutup sendiri-sendiri |
+| `BIL-AT-161` | `FR-BKC-252` | **Urutan alokasi.** Tiga tagihan terbit 9 Okt pagi, 9 Okt sore, dan 10 Okt; uang hanya menutup dua tagihan pertama | Unit | `AllocationSequence` bernilai 1, 2, 3 mengikuti tanggal terbit; tagihan ketiga berstatus `SKIPPED` dengan nol alokasi |
+| `BIL-AT-162` | `FR-BKC-253` | **Jalur gagal.** Kasir mengirim hanya satu tagihan sebagai peserta | Unit | Ditolak kode `422` dengan pesan `BIL-VAL-134`; nol baris peserta dan nol alokasi tertulis |
+| `BIL-AT-163` | `FR-BKC-253` | **Jalur gagal.** Salah satu tagihan peserta milik pasien berbeda | Unit | Ditolak kode `422` dengan pesan `BIL-VAL-136`; nol baris tertulis |
+| `BIL-AT-164` | `FR-BKC-254` | **Jalur gagal.** Biaya susulan masuk setelah daftar ditampilkan sehingga sisa tagihan berubah | Integrasi | Ditolak kode `409` dengan pesan `BIL-VAL-137`; nol alokasi tertulis; kasir dapat memuat ulang lalu berhasil memproses |
+| `BIL-AT-165` | `FR-BKC-255` | **Jalur gagal.** Tagihan yang sama dimasukkan ke dua transaksi gabungan hampir bersamaan | Integrasi (konkurensi) | Transaksi kedua ditolak kode `409` dengan pesan `BIL-VAL-138`; hanya satu transaksi yang memegang tagihan itu; nol alokasi ganda |
+| `BIL-AT-166` | `FR-BKC-256` | **Pembayaran terpisah tetap bekerja.** Keluarga memilih membayar tagihan IGD saja lewat jalur satu tagihan | Regresi | Pembayaran berhasil tanpa membentuk grup; tagihan ranap tetap terbuka apa adanya; nol baris `BilSettlementInvoice` tertulis |
+| `BIL-AT-167` | `FR-BKC-257` | **Kwitansi per unit.** Satu transaksi gabungan dicetak kwitansinya | Integrasi | Kwitansi memuat satu baris per unit layanan (`IGD` dan `RANAP`) beserta nominal masing-masing; total kwitansi sama dengan uang yang benar-benar diterima |
+| `BIL-AT-168` | `FR-BKC-258` | **Non-destruktif.** Setelah pembayaran gabungan, rincian item IGD diperiksa | Integrasi | Setiap item IGD tetap ber-`SourceDomain = "EMERGENCY"` pada invoice asalnya; nol item berpindah invoice; `BilInvoice.EncounterId` kedua invoice tetap berbeda dan tetap unik |
+
+### Yang belum dapat diuji dan sebabnya
+
+| Hal | Sebab | Penggantinya sementara |
+|---|---|---|
+| Uji ujung-ke-ujung di peramban | Belum ada satu pun spesifikasi end-to-end Billing, dan environment ter-autentikasi belum tersedia — keadaan yang sudah tercatat sejak `FE-BKC-010` | Uji integrasi tingkat service ditambah pemeriksaan manual ter-autentikasi oleh kasir saat UAT |
+| Interaksi dengan kelayakan pemulangan | Menunggu `BKC-OQ-109`; aturan bisnisnya belum diputuskan | Tidak ada; bagian ini **MUST NOT** diuji sebelum keputusannya turun agar test tidak mengunci perilaku yang belum disetujui |
+| Rekonsiliasi penerimaan kas oleh Finance | Menunggu `BKC-OQ-111` | Pemeriksaan bahwa baris alokasi per invoice benar-benar tertulis, sebagai bahan rekonsiliasi |
+
+Trace `BKC-DEC-118`, `BKC-AC-086`, `BKC-DES-057`–`BKC-DES-062`, `BIL-VAL-134`–`140`, `BIL-INT-019`.
+
 

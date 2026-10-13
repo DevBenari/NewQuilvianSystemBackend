@@ -640,3 +640,55 @@ Ketika tender pembayaran yang mendanai top-up deposit (`Settlement.Purpose == "D
 
 Trace `BKC-DEC-128`–`134`, `BKC-DES-051`–`056`.
 
+---
+
+## Amendment 13 Oktober 2026 — Pelunasan Gabungan Lintas Kunjungan (Revisi 1.9)
+
+> `last_changed_in`: `BIL-STATE-1.6` atas `BIL-STATE-1.5` — status **draft**.
+> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> Masukan: `BKC-DEC-118`, `BKC-AC-086`, `BKC-DES-057`–`BKC-DES-062`. Backend SHA: `e049a65b`.
+
+### Status peserta grup pembayaran (`BilSettlementInvoice.ParticipantStatus`)
+
+Status ini **baru** dan berlaku per tagihan peserta, bukan per transaksi.
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| — | Kasir memasukkan tagihan ke daftar peserta | `PENDING` | Kasir dengan hak `BillingConsolidatedSettlement : Create` | Tagihan masih punya sisa, milik pasien yang sama, dan belum terikat transaksi berjalan lain | Permintaan ditolak; tagihan tidak masuk daftar (`BIL-VAL-134`, `BIL-VAL-136`, `BIL-VAL-138`) |
+| `PENDING` | Pembayaran berhasil dan menutup seluruh sisa tagihan ini | `ALLOCATED` | Sistem Billing | Nominal teralokasi sama dengan sisa tagihan | Alokasi berlebih ditolak; sisa uang diteruskan ke tagihan urutan berikutnya (`BIL-VAL-135`) |
+| `PENDING` | Pembayaran berhasil tetapi hanya menutup sebagian sisa tagihan ini | `PARTIAL` | Sistem Billing | Nominal teralokasi lebih kecil dari sisa tagihan dan lebih besar dari nol | — |
+| `PENDING` | Uang sudah habis sebelum sampai ke tagihan ini | `SKIPPED` | Sistem Billing | Nol nominal teralokasi | Tagihan tetap terbuka apa adanya; ini keadaan **sah**, bukan kegagalan |
+| `PARTIAL` | Pembayaran tambahan pada transaksi yang sama berhasil menutup sisanya | `ALLOCATED` | Sistem Billing | Masih ada tender yang berhasil pada transaksi yang sama | — |
+| `ALLOCATED` | Tender yang mendasarinya dibalik | `PENDING` | Supervisor Kasir | Mengikuti mekanisme pembalikan tender yang sudah ada (`BKC-DES-051`–`056`) | — |
+
+### Transisi yang tidak sah
+
+| Transisi | Mengapa tidak sah | Akibatnya bila dipaksakan |
+|---|---|---|
+| `SKIPPED` → `ALLOCATED` tanpa tender baru | Tidak ada uang yang masuk; alokasi tanpa penerimaan kas | Kas tercatat lebih kecil daripada tagihan yang dinyatakan lunas |
+| `ALLOCATED` → `PARTIAL` | Tagihan yang sudah tertutup penuh tidak dapat "berkurang" pelunasannya tanpa pembalikan tender | Sisa tagihan menjadi tidak sesuai dengan catatan kas |
+| Mengubah `AllocationSequence` setelah tender berhasil | Urutan pelunasan adalah fakta yang sudah terjadi, bukan rencana | Audit alokasi tidak dapat direkonstruksi |
+| Memasukkan tagihan baru ke grup setelah transaksi berstatus `SETTLED` | Transaksi sudah tutup; penambahan peserta berarti mengubah kwitansi yang sudah tercetak | Kwitansi yang dipegang keluarga pasien tidak lagi cocok dengan catatan sistem |
+
+### Status transaksi pembayaran (`BilSettlement.Status`) pada jalur gabungan
+
+Nilai statusnya **tidak berubah** dari yang sudah berlaku. Yang berubah hanya cara
+menurunkannya ketika `Purpose = CONSOLIDATED_INVOICE_PAYMENT`:
+
+| Status | Arti pada jalur satu tagihan (tidak berubah) | Arti tambahan pada jalur gabungan |
+|---|---|---|
+| `DRAFT` | Transaksi dibentuk, belum ada tender | Daftar peserta sudah tercatat, belum ada uang masuk |
+| `IN_PROGRESS` | Tender sedang diproses | Sama |
+| `PARTIALLY_SETTLED` | Uang masuk belum menutup tagihan | Uang masuk belum menutup **seluruh** tagihan peserta; sekurang-kurangnya satu peserta berstatus `PARTIAL` atau `SKIPPED` |
+| `SETTLED` | Tagihan tertutup penuh | **Seluruh** peserta berstatus `ALLOCATED` |
+| `FAILED` | Seluruh tender gagal | Sama; nol alokasi ditulis dan seluruh peserta tetap `PENDING` |
+
+### Status invoice tetap dihitung per invoice
+
+Penyelarasan `FINAL` ↔ `CLOSED` berjalan **per tagihan peserta**, memakai mekanisme yang sudah
+ada. Satu transaksi gabungan dapat menutup satu tagihan dan membiarkan tagihan lain tetap
+`FINAL` — lihat contoh berangka pada
+`flowcharts/pelunasan-gabungan-lintas-kunjungan.md`. Tidak ada status baru pada `BilInvoice`.
+
+Trace `BKC-DEC-118`, `BKC-AC-086`, `BKC-DES-057`–`BKC-DES-062`. Tests: `BIL-AT-159`–`BIL-AT-168`.
+

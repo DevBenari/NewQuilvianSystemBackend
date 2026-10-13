@@ -1058,3 +1058,119 @@ Base URL: `api/v1/health-services/billing-management/invoices`
 
 Trace `BUI-DEC-001`–`015`, `BUI-DES-001`–`012`. Tests: lihat
 `testing/acceptance-test-matrix.md` amendment revisi 1.6.
+
+---
+
+## Amendment 13 Oktober 2026 — Pelunasan Gabungan Lintas Kunjungan (Revisi 1.9)
+
+> `last_changed_in`: `BIL-API-1.6` atas `BIL-API-1.5` — status **draft**.
+> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> `input_revision`: `00-interview-decisions.md` `BKC-DEC-118` + arahan pemilik 13 Oktober 2026.
+> Masukan arsitektur: `BKC-DES-057`–`BKC-DES-062`. Backend SHA diaudit: `e049a65b`.
+> Dampak kompatibilitas: **aditif penuh** — nol endpoint lama berubah bentuk, nol field lama
+> dihapus atau diganti nama.
+
+### Health Services / Billing Management / Billing / Consolidated Settlement
+
+Base URL: `api/v1/health-services/billing-management/billing`
+Contract version: `BIL-API-1.6` — status `draft`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/invoices/{id}/consolidation-candidates` | Menampilkan tagihan lain milik pasien yang sama yang masih punya sisa, supaya kasir dapat menawarkan pembayaran gabungan kepada keluarga pasien | `BillingConsolidatedSettlement : Read` | `ConsolidationCandidateQuery` (query) | `ApiResponse<List<ConsolidationCandidateResponse>>` | **Rencana (belum tersedia)** |
+| `POST` | `/consolidated-settlements` | Membentuk satu transaksi pembayaran yang melunasi beberapa tagihan sekaligus, lalu memprosesnya | `BillingConsolidatedSettlement : Create` | `CreateConsolidatedSettlementRequest` (body) | `ApiResponse<ConsolidatedSettlementResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/consolidated-settlements/{id}` | Menampilkan hasil satu transaksi pembayaran gabungan beserta rincian per unit layanan, untuk pencetakan ulang kwitansi | `BillingConsolidatedSettlement : Read` | — | `ApiResponse<ConsolidatedSettlementResponse>` | **Rencana (belum tersedia)** |
+
+#### Arti kode status bagi pengguna
+
+| Kode | Artinya bagi petugas kasir |
+|---|---|
+| `200` | Permintaan berhasil dibaca |
+| `201` | Pembayaran gabungan berhasil dibentuk dan diproses |
+| `400` | Isian yang dikirim tidak lengkap atau formatnya salah, misalnya daftar tagihan peserta kosong |
+| `403` | Petugas tidak punya hak akses untuk membentuk pembayaran gabungan |
+| `404` | Tagihan jangkar tidak ditemukan, atau salah satu tagihan peserta tidak ada |
+| `409` | Salah satu tagihan sedang diproses pada transaksi pembayaran lain, atau sisa tagihannya sudah berubah sejak daftar ditampilkan. Petugas memuat ulang daftar lalu mencoba lagi |
+| `422` | Permintaan ditolak aturan bisnis, misalnya hanya satu tagihan yang dipilih, tagihan milik pasien berbeda, atau tagihan sudah terkunci permanen |
+
+#### Contoh permintaan `POST /consolidated-settlements`
+
+Keluarga pasien Ibu **Sari Mandasari** (nama samaran) menggabungkan tagihan IGD dan rawat inap,
+lalu membayar tunai Rp 6.000.000:
+
+```json
+{
+  "anchorInvoiceId": "8f1c0a52-0000-0000-0000-00000000rnap",
+  "participantInvoiceIds": [
+    "8f1c0a52-0000-0000-0000-000000000igd",
+    "8f1c0a52-0000-0000-0000-00000000rnap"
+  ],
+  "tenders": [
+    { "paymentMethodCode": "CASH", "amount": 6000000.00 }
+  ],
+  "idempotencyKey": "3a7d9e10-0000-0000-0000-0000000000k1",
+  "note": "Pelunasan gabungan atas permintaan keluarga pasien"
+}
+```
+
+Potongan response yang diharapkan — perhatikan rincian per unit layanan yang tetap terpisah,
+sesuai `BKC-AC-086`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "settlementId": "c51b77aa-0000-0000-0000-0000000000s1",
+    "status": "PARTIALLY_SETTLED",
+    "requestedAmount": 6000000.00,
+    "successfulAmount": 6000000.00,
+    "allocatedAmount": 6000000.00,
+    "receiptNumber": "KW-RSMMC-20261013-000147",
+    "participants": [
+      {
+        "invoiceId": "8f1c0a52-0000-0000-0000-000000000igd",
+        "serviceType": "IGD",
+        "allocationSequence": 1,
+        "outstandingBefore": 1500000.00,
+        "allocatedAmount": 1500000.00,
+        "outstandingAfter": 0.00,
+        "participantStatus": "ALLOCATED",
+        "invoiceStatusAfter": "CLOSED"
+      },
+      {
+        "invoiceId": "8f1c0a52-0000-0000-0000-00000000rnap",
+        "serviceType": "RANAP",
+        "allocationSequence": 2,
+        "outstandingBefore": 8000000.00,
+        "allocatedAmount": 4500000.00,
+        "outstandingAfter": 3500000.00,
+        "participantStatus": "PARTIAL",
+        "invoiceStatusAfter": "FINAL"
+      }
+    ]
+  }
+}
+```
+
+Status transaksi `PARTIALLY_SETTLED` di sini **bukan kegagalan**: uang yang diserahkan memang
+belum menutup seluruh tagihan, dan itu keadaan sah karena keluarga pasien berhak membayar
+sebagian (`BKC-DES-061`).
+
+### Endpoint yang Dipakai Ulang Apa Adanya
+
+| Method | Path | Alasan tidak berubah |
+|---|---|---|
+| `POST` | `/patient-funds/settlements` | Inilah jalur pembayaran **satu tagihan** yang dipakai ketika keluarga pasien memilih membayar terpisah. **MUST** dipertahankan utuh (`BKC-DES-061`) |
+| `GET` | `/invoices` | Pencarian tagihan terbuka sudah menyediakan `Status` dan filter tanggal yang dibutuhkan layar baru |
+| `GET` | `/invoices/{id}` | Rincian tagihan jangkar dibaca apa adanya |
+
+### Yang Sengaja Tidak Menjadi Endpoint
+
+| Yang ditolak | Alasan |
+|---|---|
+| Endpoint untuk menggabungkan dua invoice menjadi satu | Penggabungan invoice ditolak `BKC-DES-057`; `BilInvoice.EncounterId` unik dan tidak ada penggabungan yang dirancang |
+| Endpoint pembatalan grup tersendiri | Pembatalan memakai mekanisme pembalikan tender yang sudah ada (`BKC-DES-051`–`056`); membuat jalur pembatalan kedua berisiko menghasilkan dua catatan kas yang berbeda untuk satu kejadian |
+| Endpoint untuk mengubah urutan pelunasan | Urutan ditetapkan sistem dari tanggal tagihan terbit (`BKC-DES-060`), bukan dipilih petugas. Membuatnya dapat diubah petugas berarti membuka celah pengaturan alokasi secara manual tanpa jejak keputusan |
+
+Trace `BKC-DEC-118`, `BKC-AC-086`, `BKC-DES-057`–`BKC-DES-062`, `CAP-BIL-09`. Tests: lihat
+`testing/acceptance-test-matrix.md` amendment revisi 1.9 (`BIL-AT-159`–`BIL-AT-168`).

@@ -59,6 +59,13 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
 
         public bool IsAllowExcessPaymentByPatient { get; set; } = true;
 
+        /// <summary>
+        /// BE-FIN-106, FIN-DEC-197 dan FIN-OQ-102: menandai penjamin internal "RS Benefit". Kartu pasien atas
+        /// penjamin ini hanya terbit untuk pegawai atau anggota keluarga yang terdaftar dan terverifikasi di HR.
+        /// Paling banyak satu penjamin yang bertanda (indeks unik terfilter).
+        /// </summary>
+        public bool IsEmployeeBenefitGuarantor { get; set; } = false;
+
         public decimal? CreditLimitAmount { get; set; }
 
         public decimal? CurrentOutstandingAmount { get; set; }

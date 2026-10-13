@@ -533,4 +533,54 @@ Trace `BUI-DEC-001`–`015`, `BUI-DES-001`–`012`. Tests: lihat
 
 Trace `BKC-DEC-128`–`134`, `BKC-DES-051`–`056`. Tests: `BIL-AT-149`–`BIL-AT-158`.
 
+---
+
+## Amendment 13 Oktober 2026 — Pelunasan Gabungan Lintas Kunjungan (Revisi 1.9)
+
+> `last_changed_in`: `BIL-VALIDATION-1.6` atas `BIL-VALIDATION-1.5` — status **draft**.
+> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> Masukan: `BKC-DEC-118`, `BKC-DES-057`–`BKC-DES-062`. Backend SHA: `e049a65b`.
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `BIL-VAL-134` | Pembentukan pembayaran gabungan | Daftar tagihan peserta berisi kurang dari dua tagihan | "Pembayaran gabungan membutuhkan sekurang-kurangnya dua tagihan. Bila hanya satu tagihan yang dibayar, gunakan pembayaran biasa." | `422` |
+| `BIL-VAL-135` | Alokasi lintas tagihan | Nominal yang akan dialokasikan ke satu tagihan melebihi sisa tagihan itu | "Nominal yang dialokasikan melebihi sisa tagihan. Sisa uang otomatis diteruskan ke tagihan berikutnya." | `422` |
+| `BIL-VAL-136` | Pembentukan pembayaran gabungan | Salah satu tagihan peserta milik pasien yang berbeda dari tagihan jangkar | "Tagihan yang dipilih bukan milik pasien yang sama. Pembayaran gabungan hanya untuk tagihan satu pasien." | `422` |
+| `BIL-VAL-137` | Pembentukan pembayaran gabungan | Sisa tagihan sudah berubah dibandingkan potret saat daftar ditampilkan | "Sisa tagihan sudah berubah karena ada biaya baru yang masuk. Muat ulang daftar tagihan lalu ulangi." | `409` |
+| `BIL-VAL-138` | Pembentukan pembayaran gabungan | Salah satu tagihan sedang terikat transaksi pembayaran lain yang belum selesai | "Tagihan ini sedang diproses di loket lain. Keluarkan dari daftar atau tunggu sampai transaksi di sana selesai." | `409` |
+| `BIL-VAL-139` | Pembentukan pembayaran gabungan | Salah satu tagihan peserta sudah terkunci permanen | "Tagihan ini sudah ditutup permanen sehingga tidak dapat dibayar lagi. Hubungi Supervisor Kasir bila perlu dibuka kembali." | `422` |
+| `BIL-VAL-140` | Pembentukan pembayaran gabungan | Salah satu tagihan peserta tidak punya sisa tagihan pasien sama sekali | "Tagihan ini sudah lunas sehingga tidak perlu diikutkan." | `422` |
+
+### Contoh berangka untuk `BIL-VAL-135`
+
+Keluarga pasien membayar Rp 6.000.000 untuk dua tagihan: tagihan IGD bersisa Rp 1.500.000 dan
+tagihan rawat inap bersisa Rp 8.000.000.
+
+Sistem **tidak** mengalokasikan Rp 6.000.000 seluruhnya ke tagihan IGD meski uangnya cukup.
+Alokasi dibatasi pada sisa tagihan masing-masing: tagihan IGD menerima tepat Rp 1.500.000, lalu
+Rp 4.500.000 sisanya diteruskan ke tagihan rawat inap. Bila sistem memaksakan Rp 6.000.000 ke
+tagihan IGD, tagihan itu akan tercatat kelebihan bayar Rp 4.500.000 padahal uangnya dimaksudkan
+untuk tagihan lain.
+
+### Contoh berangka untuk `BIL-VAL-137`
+
+Pukul 10.00 kasir menampilkan daftar: tagihan rawat inap bersisa Rp 8.000.000. Pukul 10.04
+petugas farmasi memasukkan obat susulan Rp 250.000, sehingga sisanya menjadi Rp 8.250.000. Pukul
+10.05 kasir menekan proses pembayaran.
+
+Sistem menolak dengan kode `409` karena potret yang tersimpan (Rp 8.000.000) tidak lagi sama
+dengan keadaan sekarang (Rp 8.250.000). Kasir memuat ulang daftar, menjelaskan tambahan biaya
+kepada keluarga pasien, lalu memproses ulang. Tanpa aturan ini, keluarga pasien akan menerima
+kwitansi yang menyatakan tagihan lunas padahal masih bersisa Rp 250.000.
+
+### Aturan yang sengaja TIDAK dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Menolak pembayaran yang tidak menutup seluruh tagihan peserta | Pembayaran sebagian adalah **hak** keluarga pasien (`BKC-DES-061`). Transaksi berstatus `PARTIALLY_SETTLED` dan itu sah |
+| Mewajibkan seluruh tagihan terbuka pasien ikut dalam grup | Keluarga pasien boleh menggabungkan sebagian saja (`BKC-DES-061`) |
+| Memaksa tagihan rawat inap dibayar lebih dulu agar pasien cepat pulang | Urutan pelunasan sudah ditetapkan tagihan terbit paling awal lebih dulu (`BKC-DES-060`). Mengubahnya di lapisan validasi berarti dua aturan urutan yang saling bertabrakan |
+
+Trace `BKC-DEC-118`, `BKC-DES-057`–`BKC-DES-062`. Tests: `BIL-AT-159`–`BIL-AT-168`.
+
 

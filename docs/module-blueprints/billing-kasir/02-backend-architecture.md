@@ -4278,4 +4278,402 @@ Tidak ada data master baru. Tidak ada data awal yang perlu ditambahkan atau dimi
 
 `DRAFT`. `BKC-DES-051`–`056` berstatus draft menunggu approval Product/Domain Owner sebelum diteruskan ke `/plan-module-delivery`.
 
+---
+
+# Amendment 13 Oktober 2026 — Pelunasan Gabungan Lintas Kunjungan (Revisi 1.9)
+
+> `revisi blueprint`: `1.9`, status **draft**. Masukan: `BKC-DEC-118` (approved 24 September 2026),
+> `BKC-AC-086`, ditambah dua arahan pemilik modul pada 13 Oktober 2026 (lihat `BKC-DES-060` dan
+> `BKC-DES-061`). Keputusan arsitektur: `BKC-DES-057`–`BKC-DES-062`.
+> Backend SHA diaudit: `e049a65b`, Frontend SHA diaudit: `ae216044`.
+>
+> **Tujuan amendment.** Menutup `CAP-BIL-09` — satu-satunya kemampuan Pass B yang masih terbuka.
+> Amendment ini membuat kasir dapat melunasi beberapa tagihan dari kunjungan berbeda milik satu
+> pasien dalam **satu kali transaksi pembayaran** dengan **satu kwitansi** yang merinci beban per
+> unit pelayanan, **tanpa** menggabungkan invoice-nya dan **tanpa** memaksa pasien membayar
+> semuanya sekaligus.
+
+## 0. Mengapa amendment ini ada, dan apa yang dikoreksinya
+
+### 0.1 Masalah nyata di loket kasir
+
+Pasien datang ke IGD, lalu kondisinya memburuk sehingga dokter memutuskan rawat inap. Secara
+sistem, ini menghasilkan **dua kunjungan terpisah**: kunjungan IGD dan kunjungan rawat inap.
+Karena setiap kunjungan punya tagihan sendiri, keluarga pasien harus bertransaksi dua kali saat
+pemulangan — sekali untuk tagihan IGD, sekali untuk tagihan rawat inap.
+
+Yang diminta `BKC-DEC-118` adalah menghilangkan antrean ganda itu, **tanpa** mengorbankan
+kemampuan rumah sakit melaporkan pendapatan unit IGD secara terpisah dari unit rawat inap.
+
+### 0.2 Dua arahan tambahan pemilik modul, 13 Oktober 2026
+
+| Arahan | Isi | Diturunkan menjadi |
+| --- | --- | --- |
+| Urutan alokasi | Bila uang yang dibayarkan tidak cukup menutup seluruh tagihan dalam satu transaksi gabungan, tagihan yang **lebih dulu terbit** dilunasi lebih dulu sampai habis, sisanya baru ke tagihan berikutnya | `BKC-DES-060` |
+| Kehendak pasien | Pembayaran **boleh digabung, boleh dipisah** sesuai kehendak pasien. Penggabungan adalah pilihan, bukan kewajiban. Pasien juga boleh menggabungkan sebagian saja | `BKC-DES-061` |
+
+> **Catatan jejak yang MUST ditutup.** Kedua arahan di atas lahir dari percakapan langsung dengan
+> pemilik modul pada 13 Oktober 2026 dan **belum** punya baris `BKC-DEC-*` di
+> `00-interview-decisions.md`. Dokumen keputusan adalah keluaran `/grill-me`, bukan keluaran skill
+> ini, sehingga amendment ini **tidak** menulisnya. `BKC-OQ-108` meminta ratifikasi formalnya.
+
+### 0.3 Koreksi terhadap `BKC-DES-048`
+
+`BKC-DES-048` (revisi 1.5) merancang konsolidasi pada **lapisan invoice**: *"Menyatukan tagihan
+dalam satu nomor invoice rawat inap"*. Pembacaan source pada `e049a65b` membuktikan rancangan itu
+tidak dapat dijalankan:
+
+| Fakta source | Bukti | Akibatnya bagi `BKC-DES-048` |
+| --- | --- | --- |
+| Satu invoice hanya boleh mewakili satu kunjungan | `BilInvoiceConfiguration.cs:27` — `entity.HasIndex(x => x.EncounterId).IsUnique()` | Satu invoice **tidak mungkin** mewakili kunjungan IGD dan kunjungan ranap sekaligus |
+| Admisi ranap selalu membuat kunjungan baru | `InpEpisodeService.cs:1172-1196` (`BuildInpatientEncounter`, `Id = Guid.NewGuid()`); kunjungan asal hanya ditautkan lewat `SourceEncounterId` (`RegPatientEncounter.cs:212`) | Kunjungan IGD dan ranap **selalu** dua baris berbeda, bukan satu |
+| Invoice dibuka otomatis per kunjungan saat charge pertama tiba | `BillingInvoiceService.cs:1820-1824` — `ServiceType = MapServiceType(encounter.EncounterType)` | Kunjungan IGD **sudah** memiliki invoice `IGD` sendiri sebelum keputusan admisi turun |
+
+Selain itu, bunyi approval `BKC-DEC-118` sendiri adalah **"Konsolidasi *Settlement*
+Non-Destruktif"**, dan baris Konsekuensi-nya menyebut *"penutupan multi-folio/multi-invoice"* —
+keduanya menunjuk lapisan pembayaran, bukan lapisan invoice. Jadi `BKC-DES-048` salah membaca
+keputusan yang diklaimnya diturunkan.
+
+Amendment ini **mempersempit** `BKC-DES-048` menjadi makna yang benar dan dapat dijalankan:
+
+| Aspek | `BKC-DES-048` lama | Setelah dikoreksi `BKC-DES-057` |
+| --- | --- | --- |
+| Lapisan konsolidasi | Invoice digabung jadi satu | Invoice tetap terpisah; **pembayarannya** yang digabung |
+| Yang tetap berlaku | Identitas `SourceDomain = "EMERGENCY"` pada item IGD wajib dipertahankan | **Tetap berlaku utuh**, tidak dicabut |
+| Yang dicabut | Penyatuan nomor invoice | Dicabut — tidak dapat dijalankan karena `EncounterId` unik |
+
+### 0.4 Apa yang `BE-BKC-072` sebenarnya sudah bangun
+
+`BE-BKC-072` melaporkan invariant konsolidasi IGD terpenuhi. Pembacaan source menunjukkan yang
+terbangun adalah **penerimaan** domain `EMERGENCY` pada adapter charge
+(`BillingChargeSourceAdapter.cs`, `SourcePolicies`), yaitu agar charge berlabel `EMERGENCY` tidak
+ditolak. Itu **bukan** konsolidasi pembayaran: invoice tujuan sebuah charge tetap diturunkan dari
+kunjungan charge itu sendiri (`BillingInvoiceService.cs:1820-1824`). Jadi `CAP-BIL-09` masih
+terbuka, dan amendment inilah yang menutupnya. Ketidaksesuaian laporan ini dicatat pada
+`BKC-OQ-107` untuk dikoreksi pemilik modul, bukan diperbaiki diam-diam di sini.
+
+## 1. Perubahan pada Bounded Context & Invariant
+
+| Konteks | Aggregate root | Invariant sesudah amendment ini | Owner |
+| --- | --- | --- | --- |
+| `BIL-CTX-03` Patient Funds & Settlement | `BilSettlement` | Satu settlement adalah satu transaksi kasir yang idempoten. **Baru:** satu settlement boleh menyasar **lebih dari satu** invoice bila dan hanya bila `Purpose = "CONSOLIDATED_INVOICE_PAYMENT"`. Invoice peserta dicatat eksplisit sebelum tender diproses. Alokasi lintas invoice mengikuti urutan invoice terbit paling awal lebih dulu. | Billing |
+| `BIL-CTX-01` Billing Account & Charge | `BilInvoice` | Satu invoice per kunjungan (`EncounterId` unik) — **tidak berubah**. Penutupan status invoice tetap dihitung per invoice, bukan per grup pembayaran. | Billing |
+
+### Invariant baru yang wajib dipertahankan
+
+1. **Invoice tidak pernah dilebur (`BKC-DES-057`).** Penggabungan hanya terjadi pada transaksi
+   pembayaran. Tidak ada mekanisme apa pun yang memindahkan `BilInvoiceItem` antar invoice, dan
+   `BilInvoice.EncounterId` tetap unik. Konsekuensinya, pelaporan pendapatan per unit pelayanan
+   tetap utuh tanpa pekerjaan tambahan — ini yang dituntut `BKC-AC-086`.
+2. **Penggabungan bersifat pilihan (`BKC-DES-061`).** Jalur pembayaran satu invoice yang sudah
+   berjalan hari ini **tidak berubah sama sekali**. Pasien yang ingin membayar tagihan IGD lebih
+   dulu lalu melunasi tagihan ranap di kemudian hari tetap dilayani oleh jalur lama, tanpa perlu
+   membentuk grup.
+3. **Peserta grup dicatat sebelum uang diterima.** Daftar invoice yang dipilih pasien dicatat
+   lebih dulu pada `BilSettlementInvoice`. Tanpa ini, kwitansi tidak dapat mencetak rincian yang
+   dimaksudkan bila salah satu tender gagal di tengah jalan.
+4. **Satu invoice hanya boleh ikut satu grup pembayaran aktif.** Invoice yang sedang menjadi
+   peserta settlement berstatus `DRAFT` atau `IN_PROGRESS` tidak boleh ikut grup lain, agar dua
+   kasir tidak mengalokasikan uang ke tagihan yang sama pada waktu hampir bersamaan.
+5. **Alokasi tetap tidak boleh melebihi sisa tagihan.** Aturan alokasi per invoice yang sudah
+   berlaku (`BIL-VAL-127`–`131`, `BKC-DES-055`) tetap berlaku apa adanya di dalam grup.
+
+## 2. Tabel Kepemilikan Data
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+| --- | --- | :---: | --- |
+| Kunjungan pasien (`RegPatientEncounter`, termasuk `SourceEncounterId`) | Registration Management | Ya, **baca saja** | Tidak; dipakai untuk menemukan rantai rujukan kunjungan |
+| Rujukan admisi rawat inap (`InpAdmissionReferral`) | Rawat Inap (`Inpatient`) | Ya, **baca saja** | Tidak; dipakai sebagai bukti hubungan kunjungan asal → ranap |
+| Tagihan dan rincian (`BilInvoice`, `BilInvoiceItem`) | Billing (`BIL-CTX-01`) | Ya | Tidak; nol perubahan skema |
+| Transaksi pembayaran (`BilSettlement`, `BilTender`) | Billing (`BIL-CTX-03`) | Ya | Tidak; `BilSettlement` diperbarui, bukan diganti |
+| Alokasi pembayaran (`BilPaymentAllocation`) | Billing (`BIL-CTX-03`) | Ya | Tidak; **skema sudah mendukung multi-invoice apa adanya** |
+| **Peserta grup pembayaran (`BilSettlementInvoice`)** | Billing (`BIL-CTX-03`) | Ya | **Ya — tabel baru** |
+| Tautan invoice ranap ke kunjungan lain (`BilInvoiceEncounterLink`) | Billing (`BIL-CTX-01`) | Ya | Tidak; tabel yang sudah ada diperluas nilai `LinkReason`-nya |
+| Kwitansi kasir | Billing (`BIL-CTX-04`) | Ya | Tidak; template cetak diperluas, bukan diganti |
+
+### Temuan reuse yang menghemat satu tabel
+
+`BilPaymentAllocation` **sudah** memiliki `SettlementId`, `TargetType`, dan `TargetId`
+(`Models/BilPaymentAllocation.cs`). Artinya satu settlement secara skema **sudah** boleh memiliki
+banyak baris alokasi yang menunjuk invoice berbeda. Yang menghalangi hanyalah dua hal, dan
+keduanya logika, bukan skema:
+
+| Penghalang | Bukti | Perubahan yang dibutuhkan |
+| --- | --- | --- |
+| Service alokasi hanya memuat satu invoice | `BillingAllocationService.cs:264` (`!settlement.InvoiceId.HasValue` → berhenti) dan `:267` (`LoadInvoiceAsync(settlement.InvoiceId.Value)`) | Perluas agar memuat seluruh invoice peserta |
+| `CHECK` constraint hanya mengenal dua `Purpose` | `BilSettlementConfiguration.cs:21` — hanya `'INVOICE_PAYMENT'` dan `'DEPOSIT_TOP_UP'` | Tambahkan cabang untuk `'CONSOLIDATED_INVOICE_PAYMENT'` |
+
+Karena itu amendment ini **tidak** membuat tabel grup settlement tersendiri. Satu-satunya tabel
+baru adalah `BilSettlementInvoice`, dan alasannya khusus: menyimpan **pilihan pasien** sebelum
+uang diterima — sesuatu yang tidak dapat diturunkan dari baris alokasi, karena alokasi baru lahir
+setelah tender berhasil.
+
+## 3. Class Diagram
+
+### Diagram 1: Grup pelunasan lintas kunjungan
+
+```mermaid
+classDiagram
+  direction TB
+
+  class BilSettlement {
+    <<Billing Aggregate Diperbarui>>
+    +Guid Id
+    +Guid? InvoiceId
+    +Guid? DepositAccountId
+    +string Purpose
+    +decimal RequestedAmount
+    +decimal SuccessfulAmount
+    +decimal AllocatedAmount
+    +string Status
+    +Guid IdempotencyKey
+    +Guid RowVersion
+  }
+
+  class BilSettlementInvoice {
+    <<Entity Baru>>
+    +Guid Id
+    +Guid SettlementId
+    +Guid InvoiceId
+    +int AllocationSequence
+    +decimal OutstandingSnapshot
+    +decimal RequestedAmount
+    +decimal AllocatedAmount
+    +string ParticipantStatus
+    +string ServiceTypeSnapshot
+    +DateTimeOffset InvoiceOpenedAtSnapshot
+  }
+
+  class BilPaymentAllocation {
+    <<Entity Sudah Ada>>
+    +Guid Id
+    +Guid SettlementId
+    +string TargetType
+    +Guid TargetId
+    +decimal Amount
+    +int? CalculationVersion
+  }
+
+  class BilInvoice {
+    <<Billing Aggregate Sudah Ada>>
+    +Guid Id
+    +Guid EncounterId
+    +string ServiceType
+    +string Status
+    +decimal PatientAmount
+  }
+
+  BilSettlement "1" *-- "many" BilSettlementInvoice : "Peserta grup"
+  BilSettlement "1" *-- "many" BilPaymentAllocation : "Alokasi hasil"
+  BilSettlementInvoice --> BilInvoice : "Menunjuk tagihan"
+  BilPaymentAllocation --> BilInvoice : "TargetId"
+```
+
+### Diagram 2: Penemuan tagihan kandidat
+
+```mermaid
+classDiagram
+  direction LR
+
+  class ConsolidatedSettlementService {
+    <<Service Baru>>
+    +GetCandidateInvoicesAsync(invoiceId) CandidateList
+    +CreateConsolidatedSettlementAsync(request) SettlementResult
+    +ResolveAllocationOrder(participants) OrderedList
+  }
+
+  class RegPatientEncounter {
+    <<Registration>>
+    +Guid Id
+    +Guid PatientId
+    +EncounterType EncounterType
+    +Guid? SourceEncounterId
+  }
+
+  class BilInvoiceEncounterLink {
+    <<Billing Sudah Ada>>
+    +Guid RanapInvoiceId
+    +Guid LinkedEncounterId
+    +string LinkReason
+    +Guid? SourceReferralId
+  }
+
+  class BillingAllocationService {
+    <<Service Diperbarui>>
+    +ReconcileSettlementAsync(settlement)
+  }
+
+  ConsolidatedSettlementService ..> RegPatientEncounter : "Rantai rujukan SourceEncounterId"
+  ConsolidatedSettlementService ..> BilInvoiceEncounterLink : "Tautan tercatat"
+  ConsolidatedSettlementService ..> BillingAllocationService : "Serahkan alokasi"
+```
+
+## 4. Penjelasan Setiap Class
+
+### Model & Configuration
+
+| Class | Status | Lokasi file | Tanggung jawab |
+| --- | --- | --- | --- |
+| `BilSettlementInvoice` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Models/BilSettlementInvoice.cs` | Mencatat satu invoice peserta grup pembayaran beserta urutan alokasi, potret sisa tagihan saat grup dibentuk, dan hasil alokasi akhirnya |
+| `BilSettlementInvoiceConfiguration` | **Baru** | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilSettlementInvoiceConfiguration.cs` | Mapping tabel, indeks unik `(SettlementId, InvoiceId)`, dan `DeleteBehavior.Restrict` ke `BilInvoice` |
+| `BilSettlement` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Models/BilSettlement.cs` | Menambah konstanta `BillingSettlementPurposes.ConsolidatedInvoicePayment = "CONSOLIDATED_INVOICE_PAYMENT"` dan koleksi navigasi `ParticipantInvoices`. Kolom tabel **tidak** berubah |
+| `BilSettlementConfiguration` | **Diperbarui** | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilSettlementConfiguration.cs` | Memperluas `CHECK` constraint `Purpose` agar menerima `'CONSOLIDATED_INVOICE_PAYMENT'` |
+| `BilInvoiceEncounterLink` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoiceEncounterLink.cs` | Menambah nilai `LinkReason` baru `"EMERGENCY_ORIGIN"` sebagai konstanta bernama. Kolom tabel **tidak** berubah |
+
+### Service & Application Layer
+
+| Class | Status | Lokasi file | Tanggung jawab | Membuka transaksi database |
+| --- | --- | --- | --- | :---: |
+| `ConsolidatedSettlementService` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Services/ConsolidatedSettlementService.cs` | Menemukan tagihan kandidat satu pasien, memvalidasi pilihan kasir, membentuk grup, menetapkan urutan alokasi, lalu menyerahkan pemrosesan tender ke service settlement yang sudah ada | Ya |
+| `BillingAllocationService` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingAllocationService.cs` | `ReconcileSettlementAsync` diperluas: bila `Purpose = "CONSOLIDATED_INVOICE_PAYMENT"`, memuat seluruh invoice peserta dan mengalokasikan berurutan sesuai `AllocationSequence`, bukan hanya `settlement.InvoiceId` | Tidak — ikut transaksi pemanggil |
+| `BillingSettlementService` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingSettlementService.cs` | Penyelarasan status `FINAL`/`CLOSED` dijalankan **per invoice peserta**, bukan hanya invoice jangkar | Ya |
+| `InpatientClearanceService` | **Tidak disentuh amendment ini** | `Areas/HealthServices/BillingManagement/Billing/Services/InpatientClearanceService.cs` | Interaksi kelayakan pemulangan dengan tagihan kunjungan lain masih menunggu `BKC-OQ-109` | — |
+
+### Controller & DTO
+
+| Class | Status | Lokasi file | Service yang dipakai | Hak akses / Atribut |
+| --- | --- | --- | --- | --- |
+| `ConsolidatedSettlementsController` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Controllers/ConsolidatedSettlementsController.cs` | `ConsolidatedSettlementService` | `[Tags("Health Services / Billing Management / Billing / Consolidated Settlement")]`, `[AccessController(...)]`, `[AccessPermission("BillingConsolidatedSettlement", "Read")]` dan `[AccessPermission("BillingConsolidatedSettlement", "Create")]` |
+
+> **Catatan konvensi `[Tags]`.** Submodul ini memuat dua gaya nilai `[Tags(...)]`: bentuk panjang
+> `"Health Services / Billing Management / Billing / Patient Funds"`
+> (`BillingSettlementsController.cs:17`) dan bentuk pendek `"BillingInpatientIntegration"`
+> (`InpatientClearanceController.cs:37`, dibangun pada revisi 1.5). Bentuk panjang adalah pola
+> standar. Controller baru amendment ini memakai bentuk panjang; bentuk pendek dicatat sebagai
+> **utang teknis yang sudah ada** dan perapiannya **MUST** menjadi task tersendiri, bukan efek
+> samping amendment ini.
+| `ConsolidatedSettlementDtos` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Dtos/ConsolidatedSettlementDtos.cs` | N/A | DTO kandidat tagihan, pembentukan grup, dan rincian kwitansi gabungan |
+
+### Rincian DTO
+
+| Nama class | Jenis | Field |
+| --- | --- | --- |
+| `ConsolidationCandidateQuery` | PagedQuery | `AnchorInvoiceId` (Guid, wajib), `IncludeClosed` (bool, bawaan `false`) |
+| `ConsolidationCandidateResponse` | Response | `InvoiceId`, `InvoiceNumber`, `EncounterId`, `EncounterNumber`, `ServiceType`, `InvoiceOpenedAt`, `PatientOutstanding`, `RelationType`, `RelationEvidence`, `IsEligible`, `IneligibleReason` |
+| `CreateConsolidatedSettlementRequest` | Create | `AnchorInvoiceId` (Guid, wajib), `ParticipantInvoiceIds` (List&lt;Guid&gt;, wajib, minimum 2 termasuk jangkar), `Tenders` (List&lt;`SettlementTenderRequest`&gt;, wajib), `IdempotencyKey` (Guid, wajib), `Note` (string, opsional, maksimum 500) |
+| `ConsolidatedSettlementResponse` | Response | `SettlementId`, `Status`, `RequestedAmount`, `SuccessfulAmount`, `AllocatedAmount`, `Participants` (List&lt;`ConsolidatedParticipantResponse`&gt;), `ReceiptNumber` |
+| `ConsolidatedParticipantResponse` | Response | `InvoiceId`, `InvoiceNumber`, `ServiceType`, `AllocationSequence`, `OutstandingBefore`, `AllocatedAmount`, `OutstandingAfter`, `ParticipantStatus`, `InvoiceStatusAfter` |
+
+`RelationType` bernilai `REFERRAL_CHAIN` (ditemukan dari `RegPatientEncounter.SourceEncounterId`),
+`RECORDED_LINK` (ditemukan dari `BilInvoiceEncounterLink`), atau `SAME_PATIENT` (kunjungan lain
+pasien yang sama tanpa hubungan rujukan tercatat).
+
+## 5. Arsitektur Folder
+
+```text
+Areas/HealthServices/BillingManagement/Billing/
+├── Controllers/
+│   ├── ConsolidatedSettlementsController.cs            # BARU (BKC-DES-058)
+│   ├── BillingSettlementsController.cs                 # sudah ada, nol perubahan
+│   └── InpatientClearanceController.cs                 # sudah ada, nol perubahan
+├── Dtos/
+│   ├── ConsolidatedSettlementDtos.cs                   # BARU
+│   └── BillingSettlementDtos.cs                        # sudah ada, nol perubahan
+├── Models/
+│   ├── BilSettlementInvoice.cs                         # BARU (BKC-DES-058)
+│   ├── BilSettlement.cs                                # DIPERBARUI (konstanta Purpose + navigasi)
+│   ├── BilPaymentAllocation.cs                         # sudah ada, nol perubahan
+│   └── BilInvoiceEncounterLink.cs                      # DIPERBARUI (konstanta LinkReason)
+└── Services/
+    ├── ConsolidatedSettlementService.cs                # BARU (BKC-DES-058, BKC-DES-060)
+    ├── BillingAllocationService.cs                     # DIPERBARUI (alokasi multi-invoice)
+    └── BillingSettlementService.cs                     # DIPERBARUI (penyelarasan per peserta)
+
+Repositories/Configurations/HealthServices/BillingManagement/Billing/
+├── BilSettlementInvoiceConfiguration.cs                # BARU
+└── BilSettlementConfiguration.cs                       # DIPERBARUI (CHECK Purpose)
+```
+
+> **Catatan pola.** Folder `Dtos/` pada submodul `Billing` memakai ejaan `Dtos`, berbeda dari pola
+> standar `DTOs/` yang dipakai submodul lain. Ini **utang teknis yang sudah ada** — berkas baru
+> amendment ini mengikuti ejaan folder yang berlaku di submodul ini agar tidak memecah namespace,
+> dan perapiannya **MUST** menjadi task tersendiri, bukan efek samping amendment ini.
+
+> **Catatan service tanpa interface.** `ConsolidatedSettlementService` dibuat **tanpa** interface,
+> mengikuti pola `AddScoped<TService>()` yang berlaku. Ini sengaja berbeda dari
+> `IInpatientClearanceService` (revisi 1.5) yang memakai interface; pola tanpa interface adalah
+> pola standar yang berlaku pada `backend-structure-rules.md`.
+
+## 6. Status Model dan Rencana Migration
+
+### Rincian perubahan skema database
+
+| Tabel | Skema | Status | Kolom yang berubah / ditambahkan | Indeks & constraint | Perilaku hapus |
+| --- | --- | --- | --- | --- | --- |
+| `BilSettlementInvoice` | `public` | **Baru** | Seluruh kolom: `Id` (uuid, PK), `SettlementId` (uuid, wajib, FK), `InvoiceId` (uuid, wajib, FK), `AllocationSequence` (int, wajib), `OutstandingSnapshot` (numeric 18,2, wajib), `RequestedAmount` (numeric 18,2, wajib), `AllocatedAmount` (numeric 18,2, wajib, bawaan `0`), `ParticipantStatus` (varchar 20, wajib, bawaan `'PENDING'`), `ServiceTypeSnapshot` (varchar 20, wajib), `InvoiceOpenedAtSnapshot` (timestamptz, wajib), `RowVersion` (uuid, wajib) | `UX_BilSettlementInvoice_Settlement_Invoice` (unik: `SettlementId`, `InvoiceId`); `IX_BilSettlementInvoice_Invoice_Status` (`InvoiceId`, `ParticipantStatus`) — penjaga invariant 4 | `Restrict` pada FK `InvoiceId`; `Cascade` pada FK `SettlementId` |
+| `BilSettlement` | `public` | **Diperbarui** | **Nol kolom baru.** Hanya `CHECK` constraint `CK_BilSettlement_Purpose_Target` yang diperluas agar menerima `Purpose = 'CONSOLIDATED_INVOICE_PAYMENT'` dengan syarat `InvoiceId IS NOT NULL AND DepositAccountId IS NULL` | `CHECK` diperluas; seluruh indeks yang ada dipertahankan | Tidak berubah |
+
+Nilai `Purpose` baru memakai invoice jangkar pada `InvoiceId`, sehingga seluruh query, indeks
+`(InvoiceId, Status)`, dan laporan yang sudah berjalan **tetap bekerja tanpa perubahan**. Inilah
+alasan tidak ada kolom baru pada `BilSettlement`.
+
+### Rencana migration EF Core
+
+| No | Nama migration | Zero-downtime? | Backfill data lama | Cara mundur (`Down`) |
+| --- | --- | :---: | --- | --- |
+| 1 | `AddConsolidatedSettlementParticipants` | **Ya** — satu tabel baru, dan satu `CHECK` yang hanya **melonggarkan** aturan (semua baris lama tetap lolos) | **Tidak ada.** Grup pembayaran hanya berlaku untuk transaksi baru; settlement lama tetap bermakna satu invoice apa adanya | `Down` menghapus tabel `BilSettlementInvoice` dan mengembalikan `CHECK` ke dua nilai `Purpose` semula. Mundur **aman** hanya bila belum ada baris ber-`Purpose = 'CONSOLIDATED_INVOICE_PAYMENT'`; bila sudah ada, `Down` **MUST** ditolak dan pembatalan dilakukan lewat pembalikan tender yang sudah ada (`BKC-DES-051`–`056`) |
+
+Catatan urutan: migration ini **tidak** bergantung pada migration `MstRegister` maupun
+`BilInpatientClearanceHandoff` yang masih tertunda otorisasinya, sehingga boleh berjalan lebih
+dulu maupun sesudahnya.
+
+## 7. Rencana Data Master Awal
+
+Amendment ini **tidak memerlukan tabel master baru dan tidak memerlukan pengisian master awal**.
+Alasannya konkret: urutan alokasi diturunkan dari tanggal invoice terbit yang sudah tersimpan pada
+`BilInvoice`, bukan dari baris master yang harus dikonfigurasi, dan metode pembayaran tetap memakai
+`MstPaymentMethod` yang sudah terisi.
+
+Satu nilai yang **MUST** tersedia di master hak akses:
+
+| Master | Isi minimum | Sumber nilai |
+| --- | --- | --- |
+| Master hak akses (seeder permission) | Resource `BillingConsolidatedSettlement` dengan Action `Read` dan `Create` | `contracts/permission-audit-matrix.md` revisi 1.9 |
+
+## 8. Yang Sengaja Tidak Dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Tabel grup settlement tersendiri (mis. `BilSettlementGroup`) | **Ditolak (`BKC-DES-058`).** `BilSettlement` sudah menjadi kepala transaksi kasir dan `BilPaymentAllocation` sudah mendukung banyak target per settlement. Menambah tabel grup berarti dua kepala transaksi untuk satu pembayaran, dan memaksa seluruh laporan kas yang sudah berjalan membaca dua sumber |
+| Menurunkan peserta grup dari `BilInvoiceEncounterLink` saja | **Ditolak.** Pasien boleh menggabungkan **sebagian** tagihan saja (`BKC-DES-061`). Tautan hanya menyatakan hubungan antar kunjungan, bukan pilihan pasien pada satu transaksi. Pilihan itu **MUST** tercatat per transaksi |
+| Menggabungkan invoice menjadi satu nomor invoice ranap | **Ditolak (`BKC-DES-057`).** `BilInvoice.EncounterId` unik (`BilInvoiceConfiguration.cs:27`) dan admisi ranap selalu membuat kunjungan baru. Penggabungan juga akan merusak pelaporan pendapatan per unit yang justru dituntut `BKC-AC-086` |
+| Memindahkan `BilInvoiceItem` dari invoice IGD ke invoice ranap | **Ditolak.** Melanggar idempotensi `SourceDomain` + `SourceDetailId` yang menjadi penjaga anti-duplikasi charge, dan melanggar sifat non-destruktif `BKC-DEC-118` |
+| Memaksa seluruh tagihan terbuka ikut satu grup | **Ditolak (`BKC-DES-061`).** Pemilik modul menegaskan pembayaran boleh digabung atau dipisah sesuai kehendak pasien |
+| Kolom `ConsolidationGroupId` pada `BilSettlement` | **Ditolak.** Settlement **adalah** grupnya; kolom itu akan menunjuk dirinya sendiri |
+| Membatalkan jalur pembayaran satu invoice yang sudah ada | **Ditolak.** Jalur itu adalah cara pasien membayar terpisah, dan justru **MUST** dipertahankan utuh |
+
+## 9. Keputusan Arsitektur
+
+| ID | Keputusan | Dasar | Alasan |
+| --- | --- | --- | --- |
+| `BKC-DES-057` | Konsolidasi dijalankan pada lapisan **settlement**, bukan lapisan invoice; `BKC-DES-048` dipersempit | `BKC-DEC-118` (approval evidence "Konsolidasi Settlement Non-Destruktif"), `BKC-AC-086`, `CAP-BIL-09`, arahan pemilik 13 Oktober 2026 | Lapisan invoice tidak dapat dijalankan karena `BilInvoice.EncounterId` unik dan admisi ranap selalu membuat kunjungan baru. Lapisan settlement memenuhi tujuan bisnis yang sama tanpa merusak pelaporan per unit |
+| `BKC-DES-058` | Pakai ulang `BilSettlement` + `BilPaymentAllocation`; satu-satunya tabel baru adalah `BilSettlementInvoice` | `CAP-BIL-09`, `Models/BilPaymentAllocation.cs` | Skema alokasi sudah multi-target; yang kurang hanya catatan pilihan pasien sebelum uang diterima. Menambah satu tabel kecil jauh lebih murah daripada kepala transaksi kedua |
+| `BKC-DES-059` | Perluas `CHECK` constraint `Purpose` daripada melonggarkan aturan `InvoiceId XOR DepositAccountId` | `BilSettlementConfiguration.cs:15`, `:21` | Invoice jangkar tetap mengisi `InvoiceId`, sehingga constraint pertama tetap lolos apa adanya. Hanya daftar `Purpose` yang perlu diperluas — perubahan paling sempit yang mungkin, dan seluruh baris lama tetap sah |
+| `BKC-DES-060` | Alokasi lintas invoice berurutan **invoice terbit paling awal lebih dulu**, dilunasi sampai habis sebelum pindah ke invoice berikutnya | Arahan pemilik modul 13 Oktober 2026 | Deterministik, mudah dijelaskan ke keluarga pasien, dan selaras dengan praktik pelunasan piutang berdasarkan umur tagihan. Urutan disimpan eksplisit pada `AllocationSequence` agar hasilnya dapat diaudit, bukan dihitung ulang saat pembacaan |
+| `BKC-DES-061` | Penggabungan bersifat **opsional dan boleh sebagian**, mengikuti kehendak pasien; jalur satu invoice tetap utuh | Arahan pemilik modul 13 Oktober 2026 | Pasien berhak memilih membayar tagihan IGD lebih dulu dan melunasi tagihan ranap kemudian. Memaksa penggabungan akan menghapus kemampuan yang hari ini sudah dipakai |
+| `BKC-DES-062` | Satu kwitansi, rincian beban per unit pelayanan diturunkan dari baris alokasi dan `BilInvoice.ServiceType` | `BKC-DEC-118`, `BKC-AC-086` | Rincian per unit lahir otomatis dari data yang sudah ada karena setiap invoice menyimpan `ServiceType` (`IGD`, `RANAP`, `RAJAL`). Tidak perlu penanda unit tambahan |
+
+## 10. Yang MUST Dijawab Owner Saat Approval
+
+| Butir | Pertanyaan | Memblokir |
+| --- | --- | :---: |
+| `BKC-OQ-107` | `BE-BKC-072` melaporkan invariant konsolidasi IGD terpenuhi, padahal yang terbangun hanya penerimaan domain `EMERGENCY` pada adapter charge. Apakah laporan task dan status roadmap `BE-BKC-072` dikoreksi, dan `CAP-BIL-09` dinyatakan terbuka sampai amendment ini dikerjakan? | Tidak memblokir desain; memblokir klaim kesiapan modul |
+| `BKC-OQ-108` | Dua arahan pemilik 13 Oktober 2026 (urutan alokasi invoice tertua dulu, dan penggabungan bersifat opsional) belum punya baris `BKC-DEC-*`. Apakah keduanya diratifikasi lewat `/grill-me` closure pass sebelum `/plan-module-delivery`? | **Ya** — `plan-module-delivery` membutuhkan jejak keputusan bisnis yang sah |
+| `BKC-OQ-109` | Bila tagihan kunjungan IGD masih punya sisa, apakah itu **menahan** kelayakan pemulangan rawat inap (`BilInpatientClearanceHandoff` menjadi `BLOCKED`), atau kelayakan hanya menilai tagihan kunjungan ranap saja? | **Ya** — untuk bagian interaksi kelayakan pemulangan saja; mekanisme pelunasan gabungan tetap dapat dikerjakan tanpa jawaban ini |
+| `BKC-OQ-110` | `BKC-AC-086` berbunyi "Tagihan IGD dan Rawat Inap pada **satu encounter**", padahal keduanya selalu dua kunjungan berbeda. Apakah bunyi kriteria penerimaan ini dikoreksi menjadi "pada satu rantai kunjungan pasien yang sama"? | Tidak memblokir desain; memblokir penulisan skenario UAT yang benar |
+
+## 11. Status Amendment
+
+| Aspek | Nilai |
+| --- | --- |
+| Keputusan bisnis dasar | `BKC-DEC-118` (`approved` 24 September 2026) + dua arahan pemilik 13 Oktober 2026 yang **belum** diratifikasi (`BKC-OQ-108`) |
+| Kriteria penerimaan | `BKC-AC-086` (bunyinya perlu dikoreksi — `BKC-OQ-110`) |
+| Keputusan arsitektur | `BKC-DES-057`–`BKC-DES-062`; `BKC-DES-048` **dipersempit**, tidak dicabut |
+| Dampak skema | **Satu tabel baru** (`BilSettlementInvoice`), **nol kolom baru**, satu `CHECK` constraint diperluas |
+| Dampak kontrak API | **Dua endpoint baru** (`GET /invoices/{id}/consolidation-candidates`, `POST /consolidated-settlements`) dan **satu endpoint pembacaan** (`GET /consolidated-settlements/{id}`); nol endpoint lama yang berubah |
+| Dampak frontend | Satu layar baru "Pelunasan Gabungan" sebagai layar anak dari Menu Pembayaran |
+| Ketergantungan lintas modul | Registration Management dan Rawat Inap sebagai sumber **baca saja** rantai kunjungan; nol perubahan pada keduanya |
+| Kompatibilitas | **Aditif penuh.** Jalur pembayaran satu invoice tidak berubah sama sekali |
+| Status | **draft** — menunggu approval Product/Domain Owner |
+
 
