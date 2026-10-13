@@ -104,10 +104,11 @@ public sealed class InpBedMutationCoordinator(ApplicationDbContext db, InpBedAcc
             LastOperation = Meta(receipt, false); LastOperationName = operation;
             return LastOperation;
         }
-        catch (DbUpdateException ex)
+        catch (DbUpdateException)
         {
             await tx.RollbackAsync(ct); db.ChangeTracker.Clear();
-            throw new InpBedOperationException(409, "BED_HOLD_CONFLICT", "Data bed berubah bersamaan. Muat ulang data: " + ex.GetType().Name);
+            // Pesan untuk petugas tanpa nama tipe exception (BE-RWI-228); kodenya tetap BED_HOLD_CONFLICT.
+            throw new InpBedOperationException(409, "BED_HOLD_CONFLICT", "Data bed berubah bersamaan. Muat ulang data.");
         }
         catch
         {

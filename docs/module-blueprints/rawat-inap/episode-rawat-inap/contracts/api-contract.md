@@ -1174,3 +1174,16 @@ GET antrean/detail membedakan Emergency dan Outpatient. POST /admission-transfer
 `POST /api/v1/health-services/inpatient-management/episodes` menambah `OpenAdmissionRequest.SelectedBedId` opsional untuk kompatibilitas. Klien baru mengirimnya; server membaca ulang kelas/unit kamar dan menolak konteks tidak sah. Field PatientClassId lama tetap ada, tetapi tidak menjadi input manual UI. `PUT /episodes/{id}` mempertahankan kelas episode atau menggunakan kamar reservasi aktif; kiriman kelas manual tidak mengubahnya. Booking menyelaraskan kelas draft dengan kamar pilihan. Detail Swagger delta dan status respons ada pada kontrak tertaut.
 
 Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../../dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.
+
+## Amandemen PLAN-REPAIR-EPS-009 — 2026-10-13
+
+`GET /api/v1/health-services/inpatient-management/bed-occupancies/bed-board` menerima parameter query opsional
+`roomId?`, `patientClassId?`, dan `search?` di samping `serviceUnitId?`. Penyaringnya sama dengan
+`available-beds`: kamar, kelas kamar, serta kode/nama bed atau nama kamar tanpa beda huruf besar-kecil. Ringkasan
+angka dihitung dari bed yang tersaring. Tanpa parameter baru jawabannya tidak berubah; bentuk response tidak berubah.
+`GET /bed-management/monitoring` ikut menerima `patientClassId?` (`BedMonitoringQuery.PatientClassId`).
+Implementasi `BE-RWI-228`; baris adapter `GET /bed-board` pada tabel Bed Management di atas dibaca bersama amandemen ini.
+
+`POST /patient-encounters/admin` dan `POST /episodes` pada admisi biasa mengirim `serviceUnitId` unit kamar bed
+terpilih (sama dengan jalur transfer), sehingga syarat "sesuai unit" pada `SelectedBedId` (`RWI-KELAS-006-1.0`)
+selalu terpenuhi. Implementasi `FE-RWI-243`. Rujukan: [`PLAN-REPAIR-EPS-009`](../docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md).

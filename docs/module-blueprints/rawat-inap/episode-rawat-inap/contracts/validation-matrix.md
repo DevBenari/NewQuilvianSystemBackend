@@ -578,3 +578,11 @@ SourceType harus Emergency atau Outpatient (400). Sumber ranap sah wajib ada (40
 Pembayaran memvalidasi kategori/kartu dan draft penjamin tanpa syarat kelas. Pembukaan dengan SelectedBedId mewajibkan bed/kamar aktif, berkelas, sesuai unit, serta kelas sah rawat inap. Pemesanan/penempatan kamar tanpa kelas memberi ROOM_CLASS_MISSING (422). Konfirmasi tidak dapat mengubah kelas; unit harus cocok kamar reservasi aktif. Validasi DPJP/isolasi, konflik bed, lifecycle dan hak akses existing tetap berlaku.
 
 Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../../dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.
+
+## Amandemen PLAN-REPAIR-EPS-009 — 2026-10-13
+
+`VAL-ADM-03` dibaca: unit admisi yang disimpan = unit kamar bed terpilih (`SelectedBedId`); unit rawat inap bawaan
+hanya menyemai penyaring awal papan bed dan tidak hilang ketika pasien dipilih. Bed tanpa unit atau tanpa kelas ditolak
+di layar sebelum permintaan dikirim; unit yang bukan rawat inap tetap ditolak server ("Unit tujuan untuk kunjungan rawat
+inap wajib merupakan unit layanan bertipe rawat inap."). Setiap penolakan titik tulis 1 tampil apa adanya pada langkah
+Pilih Bed (`FE-RWI-243`). Rujukan: [`PLAN-REPAIR-EPS-009`](../docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md) `FIX-EPS-009-01`, `-02`.
