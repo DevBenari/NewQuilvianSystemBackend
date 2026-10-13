@@ -1,15 +1,17 @@
 {
-  "backendVersion": "0.18.0",
+  "description": "Release 0.19.0 enhances Clinical Management, Inpatient Management, Registration Management capabilities.",
+  "backendVersion": "0.19.0",
   "releaseMetadata": {
-    "generatedAt": "2026-10-13T09:14:45",
+    "migrationCount": 0,
     "modules": [
-      "Inpatient Management"
+      "Clinical Management",
+      "Inpatient Management",
+      "Registration Management"
     ],
-    "generatedBy": "Quilvian Release Generator",
     "features": [],
     "migrations": [],
-    "migrationCount": 0
+    "generatedBy": "Quilvian Release Generator",
+    "generatedAt": "2026-10-13T09:25:04"
   },
-  "releaseName": "Quilvian 0.18.0 - Inpatient Management Enhancement",
-  "description": "Release 0.18.0 enhances Inpatient Management capabilities."
+  "releaseName": "Quilvian 0.19.0 - Clinical Management and Inpatient Management and Registration Management Enhancement"
 }
